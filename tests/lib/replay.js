@@ -73,12 +73,18 @@ export async function sha256Hex(chunks) {
  *   renderHz       simulated render rate driving the accumulator
  *   traceStrideMs  state sampled into the trace every this many ms
  *   cellVoltage    optional open-circuit per-cell voltage to set after init
+ *   prelude        optional function(sim) run after init, before any sample
  */
 export async function replayTrace(sim, rec, opts) {
   const { configText, renderHz, traceStrideMs } = opts;
   must(sim.init(configText), 'sim_init');
   if (opts.cellVoltage !== undefined && opts.cellVoltage !== null) {
     must(sim.setCellVoltage(opts.cellVoltage), 'sim_set_cell_voltage');
+  }
+  /* Anything a recording assumes was done before its first sample: the
+   * wing's airframe and its throw. Nothing for the quad. */
+  if (opts.prelude) {
+    opts.prelude(sim);
   }
   const durationMs = Math.round((rec.count * 1000) / rec.rateHz);
   const chunks = [];

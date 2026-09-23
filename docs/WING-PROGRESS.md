@@ -22,8 +22,8 @@ is DONE only when its check ran green in the same session that wrote it.
 | --- | --- | --- | --- |
 | 0 Derivation | DONE | see git log | docs/WING-STAGE1.md: every number has a formula and a source, bands derived by the script at its end |
 | 1 Deterministic maths | DONE | see git log | wing:math 9 of 9, 641,601 grid points within 1e-12 of the host; verify 16 of 16, quad hash de0401cd4266 unmoved |
-| 2 Wing plant | pending | | |
-| 3 Wing gates | pending | | |
+| 2 Wing plant | DONE | see git log | src/native/plant_wing.c behind airframe id 2, sim_wing_launch, sim_wing_surfaces and sim_wing_debug additive; builds clean, vendor tree unmodified, quad replay hash de0401cd4266c395 unmoved, verify 16 of 16 |
+| 3 Wing gates | DONE | see git log | wing:gates 11 of 11: W1 15.32 m/s, W2 7.73, W3 9.90, W4 23.74, W5 237 deg/s, W6 off 7 percent, W7 10.92 m/s, W8 5.4 m and 9.5 m/s, W9 7.9 deg, W10 hash unmoved, W11 node and chrome 5fb5c7f4ada5a87a. Three coefficient sign errors found and fixed by flying, recorded in docs/WING-STAGE1.md |
 | 4 Shell and input | pending | | |
 | 5 Rendering and sound | pending | | |
 | 6 Collision | pending | | |
@@ -35,4 +35,5 @@ is DONE only when its check ran green in the same session that wrote it.
 
 ## Findings
 
-Nothing yet.
+- Stage 2: the coefficients are written in the aero convention (y right, z down) and the body frame is y left, z up. Sideslip, pitch rate and yaw rate change sign going in; side force, pitch and yaw moments coming out. Getting that wrong made the nose turn away from the wind and the wing depart in yaw the moment it banked. Found with `sim_wing_debug`, not by reasoning; the export stays.
+- Stage 3: the harness pilot's own maths is JS, not bit specified across engines, so the cross-host gate replays a recorded stick stream (`tests/inputs/wing-baseline.rec`) rather than running the pilot in the browser. Same discipline as the quad's baseline.rec.

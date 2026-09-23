@@ -1,0 +1,14 @@
+{
+  "note": "The bands the wing plant has to land in, from docs/WING-STAGE1.md, which derives each from published figures for a 1000 mm flying wing. Never widened to pass; argue in the derivation instead.",
+  "w1_level_65": { "duty": 0.65, "min": 13.5, "max": 17.5, "unit": "m/s", "source": "level speed at 65 percent throttle, derived 15.2" },
+  "w2_stall": { "min": 6.8, "max": 8.2, "unit": "m/s", "source": "sqrt(2W / rho S CLmax), derived 7.25" },
+  "w3_glide": { "speed": 9, "min": 8.5, "max": 11.0, "source": "L/D at best glide, derived 9.76" },
+  "w4_top": { "duty": 1.0, "min": 22.0, "max": 27.0, "unit": "m/s", "source": "level speed at full throttle, derived 23.8" },
+  "w5_roll": { "duty": 0.65, "min": 180, "max": 300, "unit": "deg/s", "source": "full elevon at about 20 m/s, derived 250" },
+  "w6_turn": { "duty": 0.65, "bankDeg": 60, "maxOffPercent": 15, "source": "radius against V^2 / (g tan bank) at the bank and speed flown" },
+  "w7_climb": { "min": 8.0, "max": 13.0, "unit": "m/s", "source": "full throttle, best over a sweep of airspeeds, derived 11.5" },
+  "w8_throw": { "minAltitude": 1.0, "minSpeed": 9.0, "source": "a throw at 10 m/s, 60 percent, an eighth of up for two seconds; airborne and flying after three" },
+  "w9_chop": { "maxPitchDeg": 30, "source": "throttle off from cruise, pitch stick neutral: a glide, not a tumble" },
+  "w10_quad_hash": { "expected": "de0401cd4266c395", "source": "verify check 2's canonical replay hash of the five inch before the wing existed; the wing must not move it" },
+  "w11_cross_host": { "source": "the scripted flight's state trace hash, Node against headless Chrome" }
+}
