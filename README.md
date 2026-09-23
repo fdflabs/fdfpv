@@ -9,6 +9,15 @@ This is a GPLv3 fork of
 [Mathew-Harvey/WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator).
 See NOTICE for what was taken and what was removed.
 
+## Where the thinking is
+
+`docs/PLAN.md` is the fork's plan with every phase and its evidence,
+`docs/ARCHITECTURE.md` the ten minute read of how the code fits,
+`docs/PHASE5-DESIGN.md` the design of verified times, claimed names, live
+rooms and localisation, `docs/REBRAND-INVENTORY.md` what changed from
+upstream and why, and `docs/SPANISH-GLOSSARY.md` the rules the Spanish
+table was translated by.
+
 ## Requirements
 
 To fly it: Node 22 or newer, nothing else. `dist/sim.wasm` is committed so
