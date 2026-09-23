@@ -48,6 +48,15 @@ import { AIRFRAMES } from './airframes.js';
 
 export const TUNES = [
   {
+    /* The wing has no flight controller. This diff is the stock Betaflight
+     * one, parsed and ignored, so the Tune row has something honest to
+     * say: the rates and expo the elevons fly are in plant_wing.c. */
+    id: 'wing-manual',
+    airframe: 'wing1000',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the elevons, 25 degrees at full stick with a little expo.',
+  },
+  {
     id: 'betaflight-default',
     airframe: '5inch',
     name: 'Betaflight default',

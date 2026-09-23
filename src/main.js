@@ -337,8 +337,9 @@ const WALL_NEAR_M = 2.0;
  * does not report it. These are the HUD gauge's ends only: the physics reads
  * its own constant and never these. Change the plant's cell count and this
  * has to follow, or the bar lies while the flight is right. */
-const PACK_EMPTY_V = 6 * 3.3;
-const PACK_FULL_V = 6 * 4.2;
+/* Per cell; the airframe says how many cells, so the wing's 4S reads right. */
+const PACK_EMPTY_PER_CELL = 3.3;
+const PACK_FULL_PER_CELL = 4.2;
 /* Full throttle rotor speed on a charged pack, measured off the compiled
  * module at 25,570 RPM. Only the lens shake reads it, to turn motor speed
  * into a 0 to 1 imbalance scale, so a few percent either way is invisible. */
@@ -2224,6 +2225,8 @@ export async function boot({ loading, bootStart, mapId }) {
    * which is a few hundred triangles once.
    */
   let runAirframe = '5inch';
+  /* The seated airframe's cell count, for the pack gauge. */
+  let runCells = airframeById(runAirframe).cells;
   /* Which aircraft the Settings studio last built, so it is rebuilt when
    * the aircraft changes rather than posing the old one. */
   let showcaseCraft = '5inch';
@@ -3650,6 +3653,7 @@ export async function boot({ loading, bootStart, mapId }) {
    */
   function syncCraftScale() {
     setCraftAirframe(airframeById(runAirframe).dims);
+    runCells = airframeById(runAirframe).cells;
     /* Where this aircraft's centre sits when it is parked, which is where
      * the shell puts the ground plane, the spawn and the landed test. See
      * SPAWN_ALT at the top of this file. */
@@ -4944,6 +4948,29 @@ export async function boot({ loading, bootStart, mapId }) {
       setCrashflip(false);
       turtleRecover = false;
       finishClipCrash();
+      return;
+    }
+    if (code === 'KeyL' && ui.screen === 'flight' && airframeById(runAirframe).simId === 2) {
+      /* A wing is thrown, not stood on the line: ten metres a second along
+       * its own nose, the way a hand does it. Only from rest. */
+      const stNow = readState();
+      const speedNow = stNow ? Math.hypot(stNow[4], stNow[5], stNow[6]) : 0;
+      /* Into the hand first: a hull on the grass is held by friction the
+       * moment it moves, so the throw starts a metre and a bit up. */
+      if (stNow && speedNow < 1.0) {
+        sim.e.sim_set_pose(stNow[1], stNow[2], stNow[3] + 1.2, stNow[7], stNow[8], stNow[9], stNow[10]);
+      }
+      if (speedNow < 1.0 && typeof sim.e.sim_wing_launch === 'function' && sim.e.sim_wing_launch(10) === SIM_OK) {
+        /* A landed craft is frozen with the integrator until the throttle
+         * comes up, which a wing on the grass never does: the throw is its
+         * take off, so it leaves the ground here the way the quad does on
+         * throttle. */
+        landed = false;
+        takingOff = false;
+        flownThisRun = true;
+        adoptSimClock();
+        notice = { text: str('main.thrown_keep_it_flying'), untilMs: performance.now() + 2200 };
+      }
       return;
     }
     if (code === 'KeyL' && ui.screen === 'flight') {
@@ -7334,7 +7361,7 @@ export async function boot({ loading, bootStart, mapId }) {
         gateCue: nextGt && nextGt.cue ? nextGt.cue : '',
         volts: st[18],
         lastLapMs: race.lastLapMs,
-        packFrac: (st[18] - PACK_EMPTY_V) / (PACK_FULL_V - PACK_EMPTY_V),
+        packFrac: (st[18] - PACK_EMPTY_PER_CELL * runCells) / ((PACK_FULL_PER_CELL - PACK_EMPTY_PER_CELL) * runCells),
         /* The same biased fromY every contact query in this file uses, and
          * for the same reason: the city's height walker takes any platform
          * within a step of fromY as the floor, so an unbiased query from the

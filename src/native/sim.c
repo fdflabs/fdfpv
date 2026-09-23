@@ -1091,6 +1091,9 @@ static void stand_pitch_only(void) {
 }
 
 static void stand_apply(void) {
+  if (PLANT.kind == PLANT_KIND_WING) {
+    return; /* a wing is thrown, not stood on the line */
+  }
   if (!g_stand_on) {
     return;
   }

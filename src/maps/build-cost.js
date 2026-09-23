@@ -41,4 +41,8 @@ export const MAP_BUILD_MS = {
    * have. */
   custom: 2964,
   city: 7994,
+  /* A flat field with a dozen meshes in it. The world stage as the shell's
+   * own loading ledger reports it, through shots.js on this container at
+   * 1600 by 900 on Low, two runs: 709 and 717 ms. */
+  airfield: 713,
 };

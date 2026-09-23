@@ -390,7 +390,50 @@ export const AIRFRAMES = [
       bodyHeight: 0.034,
     },
   },
+  {
+    /*
+     * The fixed wing, docs/WING-STAGE1.md. A 1000 mm flying wing on 4S,
+     * flown by hand: no flight controller, the sticks drive the elevons
+     * through rates and expo in src/native/plant_wing.c. Its own plant,
+     * simId 2. The track class is the five inch's until the wing's own
+     * class exists (docs/WING-PLAN.md stage 7), which keeps every gate on
+     * the field and the board out of its way; it flies the freestyle
+     * worlds until then.
+     */
+    id: 'wing1000',
+    simId: 2,
+    name: 'Fixed wing',
+    short: 'Wing',
+    blurb: 'A 1000 mm flying wing on 4S, flown by hand. Throw it, keep it flying, land it on its belly.',
+    facts: ['4S', '1000 mm', 'Manual'],
+    trackClass: 'full',
+    cells: 4,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'wing-manual',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    dims: {
+      arm: 0,
+      propR: 0.0762,
+      hullR: 0.50,
+      vHalfDown: 0.035,
+      vHalfUp: 0.035,
+      bodyLength: 0.25,
+      bodyWidth: 1.0,
+      bodyHeight: 0.07,
+    },
+  },
 ];
+
 
 
 /*

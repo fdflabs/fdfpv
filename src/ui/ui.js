@@ -2700,6 +2700,15 @@ const WAYS = [
      * hidden and these are the whole of the card. */
     facts: [str('ui.no_gates'), str('ui.no_clock'), str('ui.one_town')],
   },
+  {
+    id: 'freestyle-wing1000',
+    airframe: 'wing1000',
+    mode: 'freestyle',
+    label: str('ui.fixed_wing'),
+    art: 'assets/gate/freestyle.jpg',
+    blurb: str('ui.a_1000_mm_flying_wing_on'),
+    facts: ['4S', '1000 mm', str('ui.manual')],
+  },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
 /* The way that is seated right now, which is what the gate's cursor opens
@@ -5398,7 +5407,7 @@ export class Ui {
             ? str('ui.levelled_off_with_the_sticks_drawn', { name: seat.name })
             : str('ui.levelled_off_with_the_sticks_drawn_2'),
         }
-        : { label: str('ui.fly'), action: 'fly', primary: true };
+        : { label: str('ui.fly_label'), action: 'fly', primary: true };
       return [
         ...(trouble ? [trouble] : []),
         flyRow,
@@ -6194,7 +6203,7 @@ export class Ui {
         ...this.ghostItems(),
         ...this.liveItems(),
         {
-          label: str('ui.fly'),
+          label: str('ui.fly_label'),
           action: 'launch-go',
           primary: true,
           note: recordSentence(s, trackName),
