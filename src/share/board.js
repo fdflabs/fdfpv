@@ -54,7 +54,7 @@ import { readShareImport, writeShareImport } from './session.js';
  * only one of them has a board sitting next to it.
  *
  * Development serves the shell off a loopback address with the board on
- * 3100 beside it. Anything else is a deploy, and a deploy has to name its
+ * 3180 beside it. Anything else is a deploy, and a deploy has to name its
  * board out loud: the shell is a static site, so there is no environment to
  * read at run time and no server to ask. The name lives here instead.
  *
@@ -70,7 +70,7 @@ import { readShareImport, writeShareImport } from './session.js';
  * exactly where a bare origin used to, and the only thing that would not is
  * `new URL('/some/path', board)`, which is not done anywhere here.
  */
-export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3100';
+export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3180';
 export const PRODUCTION_BOARD_ORIGIN = 'https://fdfpv.example/board';
 export const DEFAULT_LANDING_ORIGIN = 'http://127.0.0.1:8080';
 export const PRODUCTION_LANDING_ORIGIN = 'https://fdfpv.example';

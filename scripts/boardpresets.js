@@ -83,7 +83,7 @@ const PRESET_TAGS = ['race', 'micro'];
 
 function usage() {
   console.log('usage: node scripts/boardpresets.js [options]');
-  console.log('  --board <origin>   the board, default http://127.0.0.1:3100');
+  console.log('  --board <origin>   the board, default http://127.0.0.1:3180');
   console.log('  --class <name>     which shipped set, default micro');
   console.log('  --author <name>    who published, default the track\'s own broughtOverBy');
   console.log('  --preset <id>      just this one, by its preset id');
@@ -101,7 +101,7 @@ function usage() {
 
 function parseArgs(argv) {
   const opts = {
-    board: process.env.BOARD_ORIGIN || 'http://127.0.0.1:3100',
+    board: process.env.BOARD_ORIGIN || 'http://127.0.0.1:3180',
     trackClass: 'micro',
     author: '',
     preset: '',

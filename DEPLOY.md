@@ -200,7 +200,7 @@ Then in a browser, in this order:
 
 1. Open `SIM_URL`. It should reach the flying menu.
 2. Build a course, publish it, and confirm the Publish dialog offers your
-   `BOARD_URL` rather than `127.0.0.1:3100`.
+   `BOARD_URL` rather than `127.0.0.1:3180`.
 3. Open `BOARD_URL`. The course is listed, and its card thumbnail draws.
    The thumbnail is the simulator's `/src/share/orbit.html` in a cross
    origin iframe, so an empty card means the simulator is refusing to be
@@ -738,7 +738,7 @@ show is a request per card.
 
 Nothing above changes how this runs on your machine. The simulator picks
 its board by its own hostname, and a loopback address still means the local
-board on 3100.
+board on 3180.
 
 ```bash
 # One terminal, the board.

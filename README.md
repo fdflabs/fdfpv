@@ -71,7 +71,7 @@ Tracks you build stay in this browser. Clearing it, or another device,
 starts you from nothing. Publish a course from the track builder to put
 it on the public board, marks and all. The board is a separate site,
 [fdfpv-leaderboard](https://github.com/fdflabs/fdfpv-leaderboard).
-Locally it serves at `http://127.0.0.1:3100/`. Fly this course from the
+Locally it serves at `http://127.0.0.1:3180/`. Fly this course from the
 board opens this simulator in another tab with `?share=` and the course
 document, including the sponsor print on the gates, the flags and the
 grass.

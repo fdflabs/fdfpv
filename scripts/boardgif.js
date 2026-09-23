@@ -53,7 +53,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 function usage() {
   console.log('usage: node scripts/boardgif.js [options]');
-  console.log('  --board <origin>   the board, default http://127.0.0.1:3100');
+  console.log('  --board <origin>   the board, default http://127.0.0.1:3180');
   console.log('  --track <trk-id>   just this one, even if it already has an animation');
   console.log('  --all              redraw every room, including ones that already have one');
   console.log('  --out <dir>        also write each GIF here, to look at');
@@ -70,7 +70,7 @@ function usage() {
 
 function parseArgs(argv) {
   const opts = {
-    board: process.env.BOARD_ORIGIN || 'http://127.0.0.1:3100',
+    board: process.env.BOARD_ORIGIN || 'http://127.0.0.1:3180',
     track: '', all: false, out: '', dry: false,
   };
   for (let i = 0; i < argv.length; i += 1) {

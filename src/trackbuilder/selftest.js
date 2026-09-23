@@ -2384,14 +2384,14 @@ function suiteListing() {
   check('remix name tags a course', suggestRemixName('Ladder Loop') === 'Ladder Loop remix');
   check('remix name does not double tag', suggestRemixName('Ladder Loop remix') === 'Ladder Loop remix');
   const community = inspectCourse({
-    share: { id: doc.id, name: doc.name, author: 'Ada Rook', board: 'http://127.0.0.1:3100', document: doc },
+    share: { id: doc.id, name: doc.name, author: 'Ada Rook', board: 'http://127.0.0.1:3180', document: doc },
     autosave: null,
     editKeyFor: () => null,
     bindFor: () => null,
   });
   check('a board course you do not own is a community listing', community.kind === 'community' && community.canRemix && community.canPostTime);
   const owned = inspectCourse({
-    share: { id: doc.id, name: doc.name, author: 'Ada Rook', board: 'http://127.0.0.1:3100', document: doc },
+    share: { id: doc.id, name: doc.name, author: 'Ada Rook', board: 'http://127.0.0.1:3180', document: doc },
     autosave: null,
     editKeyFor: (id) => (id === doc.id ? 'key' : null),
     bindFor: () => ({ layoutFingerprint: layoutFingerprint(doc), nameOnBoard: doc.name, owned: true }),
@@ -2412,7 +2412,7 @@ function suiteListing() {
   });
   check('an owned rename is name drift, not layout drift', drifted.nameDrift === true && drifted.layoutDrift === false && drifted.canPostTime);
   const authorShift = inspectCourse({
-    share: { id: doc.id, name: doc.name, author: 'Ada Rook', board: 'http://127.0.0.1:3100', document: doc },
+    share: { id: doc.id, name: doc.name, author: 'Ada Rook', board: 'http://127.0.0.1:3180', document: doc },
     autosave: null,
     editKeyFor: (id) => (id === doc.id ? 'key' : null),
     bindFor: () => ({ layoutFingerprint: layoutFingerprint(doc), nameOnBoard: doc.name, owned: true, author: 'Ada Rook' }),
