@@ -73,7 +73,7 @@ import { readShareImport, writeShareImport } from './session.js';
 export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3180';
 export const PRODUCTION_BOARD_ORIGIN = 'https://fdfpv.example/board';
 export const DEFAULT_LANDING_ORIGIN = 'http://127.0.0.1:8080';
-export const PRODUCTION_LANDING_ORIGIN = 'https://fdfpv.example';
+export const PRODUCTION_LANDING_ORIGIN = 'https://fdflabs.github.io/fdfpv';
 const ORIGIN_KEY = 'webfpv.board.origin';
 
 /* An empty hostname is a file:// open, which is a developer, not a deploy. */
