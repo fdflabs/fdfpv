@@ -36,18 +36,19 @@ and the manufacturers' published figures.
 
 | Quantity | Value | Source |
 | --- | --- | --- |
-| Span, area, mean chord | 1.0 m, 0.22 m², 0.22 m | class geometry |
+| Span, area, mean chord | 1.0 m, 0.22 m², 0.22 m | manufacturer |
 | All-up mass | 0.65 kg with a 4S 2200 mAh pack | class figure |
-| Wing loading | 29.5 N/m² | derived |
-| CL max, CD0, Oswald e | 1.10, 0.030, 0.80 | flying wing typical |
-| Stall speed, level | 10.4 m/s | derived from CL max and loading |
-| Cruise at 50 percent throttle | 16 to 20 m/s | class figure |
-| Top speed, level | 32 to 38 m/s | class figure |
-| Glide ratio, power off | 9 to 12 | derived from the polar |
-| Roll rate, full elevon | 180 to 300 deg/s | class figure |
-| Motor, prop, static thrust | 2216 1400 kV, 6x4, 11 to 13 N | manufacturer |
-| Inertia Ixx, Iyy, Izz | 0.012, 0.006, 0.017 kg m² | estimated from a flat plate of the mass and span |
+| Wing loading | 29 N/m² | derived |
+| CL max, CD0, Oswald e | 0.90, 0.030, 0.80 | reflexed flying wing section |
+| Stall speed, level | 7.3 m/s | derived |
+| Level speed at 65 percent throttle | 15 m/s | derived from the thrust model |
+| Top speed, level | 24 m/s | derived |
+| Glide ratio, power off | 9.8 | derived from the polar |
+| Roll rate, full elevon at 20 m/s | 250 deg/s | derived |
+| Motor, prop, static thrust | 2216 1400 kV, 6x4, 11.5 N | manufacturer |
+| Inertia Ixx, Iyy, Izz | 0.016, 0.006, 0.020 kg m² | estimated |
 
+Every number's formula and source is in `docs/WING-STAGE1.md`.
 The plant has to land inside every band. Numbers that are estimated say
 so in the derivation, and the bands are wide where the estimate is.
 
