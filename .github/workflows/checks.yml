@@ -1,0 +1,30 @@
+# The cheap checks on every push and pull request: the lints and selftests
+# that run in plain Node with no browser and no toolchain, in under a
+# minute. The browser lints and npm run verify stay local, because they
+# drive headless Chromium for minutes and verify needs Emscripten.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run lint:fc
+      - run: npm run lint:presets
+      - run: npm run lint:catalog
+      - run: npm run lint:nouns
+      - run: npm run input:selftest
+      - run: npm run ghost:selftest
+      - run: npm run contact:selftest
+      - run: npm run link:selftest
+      - run: npm run music:selftest
+      - run: npm run test:edge
+      - run: npm run check:clip
