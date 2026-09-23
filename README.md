@@ -85,6 +85,32 @@ in its palette, which is a footprint on the field wearing whichever mark you
 pick. Paint is not layout, so adding a sponsor to a course people have
 already flown does not clear its times.
 
+## Posting a time, and flying with others
+
+A lap posted to the board travels with its ghost, position and attitude
+at 30 Hz, and the board runs this simulator's own gate detector over it
+before the time goes up: start on the line, every gate in flying order,
+line again, and the course's clock has to agree with the claim and with
+every split. A lap that does not hold up is refused with the reason. The
+check is `src/game/verify.js`, and the board imports it from a pinned
+checkout of this repository, so the two can never disagree about what a
+gate is. `npm run lap:selftest` threads a synthetic lap through the
+reference course and then breaks it seven ways.
+
+Your name on the board belongs to a key this browser makes the first time
+you post, and every post is signed with it. Another browser posting under
+your name is refused. **Pilot key** in Settings copies the key so you can
+carry your name to another browser with **Import pilot key**, and keep it
+safe: whoever has it is you on the board. `src/share/identity.js`, checked
+by `npm run identity:selftest`.
+
+**Live**, beside Ghost on a board track, opens a socket to the board's
+room for that track. Other pilots flying it right now appear as ghost
+craft with their names, posed a fraction of a second behind their own
+clock, and they see you. Nothing is scored between you and nothing
+collides. `src/share/live.js` and `LiveGhost` in `src/game/ghost.js`,
+checked by `npm run live:selftest`.
+
 ## Host it
 
 Three Render resources: this repo as a static site, the board as a Node
