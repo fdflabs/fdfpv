@@ -3,9 +3,11 @@
 A browser FPV simulator whose only current goal is flight feel
 indistinguishable from a real quad. Stage 1 is physics only: Betaflight
 4.5.1 compiled to WASM flying a first principles plant model, verified by
-a fixed harness. See CLAUDE.md and STAGE1.md for the rules and PROGRESS.md
-for the state of play. [TRACK-FROM-GIF.md](TRACK-FROM-GIF.md) is how a
-supplied RaceGOW track animation becomes a track in the game.
+a fixed harness. See CLAUDE.md and STAGE1.md for the rules.
+
+This is a GPLv3 fork of
+[Mathew-Harvey/WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator).
+See NOTICE for what was taken and what was removed.
 
 ## Requirements
 

@@ -11,7 +11,7 @@
  * the sheet is the argument, not this file.
  *
  * The extracted workbook lives at
- *   .loop/evidence/freestyle-scoring/twp-calculator.json
+ *   tests/fixtures/freestyle-scoring/twp-calculator.json
  * and `npm run score:selftest` asserts this file still agrees with it, name
  * for name and point for point. The workbook itself is not vendored: it is 1.4 MB
  * of XLSX carrying three embedded images, and the project needs the numbers

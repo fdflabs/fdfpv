@@ -26,7 +26,7 @@ A browser FPV racing simulator whose only current goal is flight feel indistingu
 
 ## Style
 
-- Plain JavaScript for the shell. No framework, no bundler beyond what Emscripten needs, no TypeScript, no state library. If a dependency is being added, justify it in PROGRESS.md first.
+- Plain JavaScript for the shell. No framework, no bundler beyond what Emscripten needs, no TypeScript, no state library. If a dependency is being added, justify it in the commit message first.
 - Three.js from a CDN import map for rendering. Nothing else on the render side.
 - No physics engine. Cannon, Ammo and Rapier are all wrong for a quad.
 - Prefer one file doing an obvious thing over three files doing a clever thing.
@@ -50,9 +50,7 @@ A browser FPV racing simulator whose only current goal is flight feel indistingu
   scales on a guess, and do not skip the question because the answer seems obvious.
 - Never report a check as passing without having run it in the same turn. That rule is unchanged by the one above: if verify was not run, say so, say why, and say what was done instead. A check that was not run is not evidence, and neither is a green check that cannot see the thing that changed. Check 13 loads only `tests/browser/harness.html`, so it says nothing about any other page.
 - Prefer the cheap targeted check to the full suite: `npm run lint:fc`, `npm run lint:presets`, `npm run lint:catalog`, `node scripts/shots.js` for anything visual, and a direct fetch for anything about a served file.
-- Never change a threshold to make a check pass. Argue in PROGRESS.md instead.
-- Every turn that changes code appends to PROGRESS.md, including what went wrong.
-- Consult the advisor before any change that alters the physics model's shape, the module ABI, or the build. Not for filling in the next line.
+- Never change a threshold to make a check pass. Argue in the commit message or an issue instead.
 
 ## Git
 
@@ -78,13 +76,8 @@ because a fetch printed `forced update` and a `git merge-base` came back empty.
 - **Fetch before you reason about a branch.** A remote tracking ref from a
   container's first clone can be hours stale, and a stale ref is how a
   destroyed history looks normal.
-- **Do not commit screenshots.** `.gitignore` drops `.loop/**/*.png` because
-  175 of them had reached 77 MB of an 79 MB directory. The loops' RECORDS are
-  the point and stay tracked: the disputes, the handovers, the state, the
-  probe JSON, and `.loop/evidence`, which `src/game/track.js` and
-  `src/render/scene.js` cite as the provenance for numbers that are in the
-  code. A picture is evidence for one round; a number in a file is evidence
-  forever.
+- **Do not commit screenshots.** A picture is evidence for one round; a
+  number in a file is evidence forever.
 - Anything worth keeping is committed and pushed before the turn ends. A
   container is reclaimed without warning and takes everything uncommitted
   with it.
@@ -92,4 +85,4 @@ because a fetch printed `forced update` and a `git merge-base` came back empty.
 ## Review
 
 - **Do not run adversarial review, multi agent review or a review workflow unless directed.** Read your own diff, run the cheap checks, and hand the work over. Fan out only when the request asks for it.
-- When a review does run, its findings go in PROGRESS.md whether or not they were acted on, and a finding that was declined is written down with the reason.
+- When a review does run, its findings go in the pull request whether or not they were acted on, and a finding that was declined is written down with the reason.

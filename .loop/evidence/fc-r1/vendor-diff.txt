@@ -1,3 +1,0 @@
-git diff --stat -- vendor/betaflight
-
-(empty)

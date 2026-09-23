@@ -898,7 +898,7 @@ export const PATTERNS = [
    * already measures the net rotation across a lap on all three axes and
    * threw it away on everything but the Powerloop and the Maverick Loop.
    *
-   * The definitions are in .loop/evidence/freestyle-scoring/
+   * The definitions are in tests/fixtures/freestyle-scoring/
    * tricktionary-outdoor.json, which is the copy of record for what a
    * trick IS the way src/game/tricks.js is for what it is worth. A pattern
    * here that disagrees with the paragraph there is the pattern that is

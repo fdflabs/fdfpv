@@ -6,7 +6,7 @@
  *
  *   1. THE TRANSCRIPTION. src/game/tricks.js says it carries the owner's
  *      workbook. This reads the extracted workbook back out of
- *      .loop/evidence/freestyle-scoring/twp-calculator.json and compares
+ *      tests/fixtures/freestyle-scoring/twp-calculator.json and compares
  *      it name for name and point for point. A catalogue that has drifted
  *      from its source is worse than no catalogue, because it still looks
  *      authoritative.
@@ -66,7 +66,7 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { simPosToThree } from '../src/render/frame.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const EVIDENCE = join(HERE, '..', '.loop', 'evidence', 'freestyle-scoring', 'twp-calculator.json');
+const EVIDENCE = join(HERE, '..', 'tests', 'fixtures', 'freestyle-scoring', 'twp-calculator.json');
 const WASM = join(HERE, '..', 'dist', 'sim.wasm');
 
 let failures = 0;

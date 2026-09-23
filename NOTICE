@@ -99,3 +99,22 @@ from. Whichever it is, the answer belongs here:
 
 Recorded rather than quietly left, because a silent gap in a licence file is
 the kind of thing that is discovered by somebody else.
+
+## Origin of this fork
+
+    Upstream    https://github.com/Mathew-Harvey/WebFPVSimulator
+    Commit      9ed8b9c (2026-09-22), full history retained in this repository
+    Licence     GPLv3, Copyright (C) 2026 Mathew Harvey and contributors
+    Forked      2026-09-23 as FDFPV, https://github.com/fdflabs/fdfpv
+
+Every file the upstream project shipped keeps its GPLv3 header and its
+copyright line. Removed from this fork, and still in the history: the
+upstream design log PROGRESS.md, the agent loop records under .loop/,
+the agent prompts under prompts/ and .claude/, CITY-PERF-PLAN.md,
+TRACK-FROM-GIF.md, and scripts/gates.js with scripts/judge-loop.md,
+which read the loop records at run time. The freestyle scoring
+definitions that scripts/score-selftest.js reads moved from
+.loop/evidence/freestyle-scoring/ to tests/fixtures/freestyle-scoring/
+unchanged. Comments in the code that cite PROGRESS.md or anything else
+under .loop/evidence refer to those files as they stand in the upstream
+repository at the commit above.
