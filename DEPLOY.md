@@ -1,3 +1,19 @@
+# Deploying FDFPV
+
+Two resources today, and the rest of this file is the upstream walkthrough
+for the Render half, kept because it is still accurate for the board.
+
+| Resource | Where | How |
+| --- | --- | --- |
+| Simulator | GitHub Pages, https://fdflabs.github.io/fdfpv/ | `.github/workflows/pages.yml` on every push to `main`. Nothing to build. |
+| Board | Render, Node web service plus Postgres | `render.yaml` in the board repo as a Blueprint. Set `SIM_ORIGIN` to the Pages URL. |
+
+The simulator finds the board through `PRODUCTION_BOARD_ORIGIN` in
+`src/share/board.js`, and the board finds the simulator through
+`SIM_ORIGIN` in its environment. Both are placeholders until the board
+exists. The Cloudflare Worker under `edge/` is not deployed: it joined
+three deploys under one domain, and there is no domain yet.
+
 # Deploying to Render
 
 Your guess was right, and it is three resources, not two.

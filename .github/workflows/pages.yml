@@ -1,0 +1,51 @@
+# Publish the simulator to GitHub Pages on every push to main.
+#
+# The shell is a static site: index.html, src/, dist/sim.wasm (committed),
+# assets/, configs/ and tests/lib/, which main.js imports the WASM loader
+# from. Nothing is built here. The Betaflight submodule is not checked out
+# because nothing served needs it, and vendor/ is left out of the artifact
+# for the same reason. Pages serves .wasm as application/wasm, which the
+# streaming instantiate in tests/lib/simmod.js requires.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage the site
+        run: |
+          mkdir -p /tmp/site
+          rsync -a --exclude .git --exclude .github --exclude vendor --exclude node_modules \
+            --exclude build --exclude patches --exclude tracks --exclude edge --exclude scripts \
+            --exclude 'tests/browser' --exclude 'tests/fixtures' --exclude 'tests/gen' \
+            --exclude 'tests/inputs' --exclude 'tests/verify.js' --exclude 'tests/*.json' \
+            --exclude '*.md' --exclude LICENSE --exclude NOTICE --exclude package.json \
+            --exclude render.yaml --exclude gates.config.json \
+            ./ /tmp/site/
+          cp LICENSE NOTICE /tmp/site/
+          du -sh /tmp/site
+          test -f /tmp/site/dist/sim.wasm
+          test -f /tmp/site/tests/lib/simmod.js
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: /tmp/site
+      - id: deployment
+        uses: actions/deploy-pages@v4
