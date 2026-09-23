@@ -203,7 +203,7 @@ Only now do we add. Candidates, to be ranked with you:
 - Multiplayer ghosts or live races. Physics is deterministic, so replaying
   another pilot's input stream reproduces their flight exactly. That is a
   large gift and the most interesting thing to build on.
-- Own airframes in `configs/airframes.js`.
+- Own airframes in `configs/airframes.js`. The first is a fixed wing: a 1000 mm flying wing with its own plant, done stage by stage in `docs/WING-PLAN.md` and ticked off in `docs/WING-PROGRESS.md`.
 
 Rule for this phase: physics changes are made as patches and upstreamed or
 kept mergeable. Shell changes are ours and may diverge freely.

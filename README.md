@@ -5,6 +5,11 @@ indistinguishable from a real quad. Stage 1 is physics only: Betaflight
 4.5.1 compiled to WASM flying a first principles plant model, verified by
 a fixed harness. See CLAUDE.md and STAGE1.md for the rules.
 
+There is a second aircraft: a 1000 mm flying wing on 4S with no flight
+controller, thrown by hand from the title's fourth card and flown on the
+sticks. Its model, its bands and its progress are in `docs/WING-STAGE1.md`,
+`docs/WING-PLAN.md` and `docs/WING-PROGRESS.md`.
+
 This is a GPLv3 fork of
 [Mathew-Harvey/WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator).
 See NOTICE for what was taken and what was removed.

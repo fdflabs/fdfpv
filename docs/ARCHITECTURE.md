@@ -96,18 +96,32 @@ control, crashflip, angle mode, simplified tuning. What is not: the
 scheduler, IMU and AHRS, all RX protocols, failsafe, GPS, OSD, blackbox,
 MSP, CLI, and every driver. Those are stubbed in `bf_stubs.c`.
 
-## Two airframes, one plant
+## Three airframes, two plants
 
-`plant.c` has two parameter tables, a 0.71 kg five inch on 6S and a 23 g
-65 mm whoop on 1S. Only the five inch is ever selected. `configs/airframes.js`
-gives the whoop `simId: 0`, so it flies the five inch plant in a scaled
-world, and the comment says so. Building a true whoop is a Phase 5 option
-that is already half done in C.
+`plant.c` has three parameter tables, a 0.71 kg five inch on 6S, a 23 g
+65 mm whoop on 1S and a 0.65 kg 1000 mm flying wing on 4S. The whoop is
+never selected: `configs/airframes.js` gives it `simId: 0`, so it flies the
+five inch plant in a scaled world, and the comment says so. Building a true
+whoop is a Phase 5 option that is already half done in C.
+
+The wing is `simId: 2` and is a second plant, `src/native/plant_wing.c`,
+behind the same 20 double state block and the same contact code. It has
+no flight controller: `sim_step` skips the Betaflight bridge for it and
+the sticks drive two elevons through rates and expo in C. Lift, drag and
+the moments come from a stability derivative model written in the
+aeronautical convention and mapped into the body frame at the boundary,
+with a cubic stall and a propeller whose thrust falls with airspeed. The
+numbers and where each came from are in `docs/WING-STAGE1.md`; the eleven
+bands the plant has to land in are `scripts/wing-gates.js`, and the ground
+cases are `scripts/wing-contact-selftest.js`. The plant needs `atan2`,
+which the fixed libm did not have, so `sim_math.c` gained one that agrees
+with the host to 1e-12 across a grid (`scripts/wing-math-selftest.js`).
+The quad's replay hash is pinned by those checks and has not moved.
 
 ## Seams for our own work
 
 - New map: a row in `src/maps/registry.js` and a module like `field.js`.
-- New airframe: a table in `plant.c`, a row in `configs/airframes.js`, an id in `sim_set_airframe`.
+- New airframe: a table in `plant.c`, a row in `configs/airframes.js`, an id in `sim_set_airframe`. A new kind of aircraft is a second plant with a `kind` in the table, the way `plant_wing.c` is; see `docs/WING-PLAN.md` for the stages that took.
 - New tune: a Betaflight diff in `configs/` and a row in `configs/registry.js`.
 - Board origin: two constants in `src/share/board.js` and one in the board's `public/origins.js`.
 - Multiplayer or shared ghosts: the ghost wire format in `src/share/ghostdata.js` is already position plus quaternion at 30 Hz. Live races would send the same stream over a socket.
