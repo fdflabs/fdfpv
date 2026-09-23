@@ -5878,6 +5878,17 @@ export class Ui {
             ? 'Posted times and published tracks carry this name. Changing it updates the board for tracks you published from this browser.'
             : `Needed to publish a track or post a time. ${nameRules()}`,
         },
+        {
+          label: 'Pilot key',
+          value: 'This browser',
+          action: 'exportkey',
+          note: 'On the board your name belongs to a key kept in this browser, made the first time you post. Export copies it, to carry your name to another browser or to keep it safe.',
+        },
+        {
+          label: 'Import pilot key',
+          action: 'importkey',
+          note: 'Paste a key exported from another browser. Times you post from here then count as that pilot, and the key that was here is gone.',
+        },
         { label: 'Sticks', section: true },
         {
           label: 'Choose joystick',

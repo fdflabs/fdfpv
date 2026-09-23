@@ -603,7 +603,7 @@ export async function fetchFreestyleRuns(map, origin = boardOrigin()) {
 }
 
 export async function postTime({
-  trackId, name, lapMs, threeMs, ghost, origin,
+  trackId, name, lapMs, threeMs, ghost, key, sig, origin,
 }) {
   const board = trimOrigin(origin || boardOrigin());
   /*
@@ -621,6 +621,12 @@ export async function postTime({
   }
   if (ghost) {
     body.ghost = ghost;
+  }
+  /* The pilot's key and the signature over this exact post, from
+   * src/share/identity.js. The board files the name under the key. */
+  if (key && sig) {
+    body.key = key;
+    body.sig = sig;
   }
   const res = await fetch(`${board}/api/tracks/${encodeURIComponent(trackId)}/times`, {
     method: 'POST',

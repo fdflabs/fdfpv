@@ -104,7 +104,7 @@ export function checkLap(document, ghostBytes, lapMs) {
   }
   const gates = gatesFromCourse(course);
   if (gates.length === 0) {
-    return refuse('the course has no gates, so it has no laps');
+    return refuse('the track has no gates, so it has no laps');
   }
 
   let ghost;
@@ -178,7 +178,7 @@ export function checkLap(document, ghostBytes, lapMs) {
     return refuse(`the lap starts ${Math.round(startMs)} ms into the ghost rather than on the line`);
   }
   if (Math.abs(measured - lapMs) > LAP_TOLERANCE_MS) {
-    return refuse(`the course measures ${Math.round(measured)} ms and the claim is ${Math.round(lapMs)} ms`);
+    return refuse(`the track measures ${Math.round(measured)} ms and the claim is ${Math.round(lapMs)} ms`);
   }
   if (race.lastSplits.length !== n) {
     return refuse(`${race.lastSplits.length} crossings in the lap for ${n} gates`);
@@ -189,7 +189,7 @@ export function checkLap(document, ghostBytes, lapMs) {
     }
     for (let k = 0; k < n; k += 1) {
       if (Math.abs(ghost.splits[k] - race.lastSplits[k]) > LAP_TOLERANCE_MS) {
-        return refuse(`split ${k + 1} is ${ghost.splits[k]} ms in the ghost and ${Math.round(race.lastSplits[k])} ms on the course`);
+        return refuse(`split ${k + 1} is ${ghost.splits[k]} ms in the ghost and ${Math.round(race.lastSplits[k])} ms on the track`);
       }
     }
   }

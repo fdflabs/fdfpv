@@ -75,6 +75,11 @@ import { findBoardTwin, hasFlyableTrack, inspectCourse, publishCurrentCourse, pu
 import { createFlightStats, pingVisit } from './share/stats.js';
 import { sendCardAnimation } from './share/cardgif.js';
 import { nameRules, readPilotName, writePilotName } from './share/pilot.js';
+import { createIdentity } from './share/identity.js';
+
+/* The pilot's key for signing posted times, made on first use and kept in
+ * this browser. See src/share/identity.js. */
+const identity = createIdentity();
 import {
   clearPendingTime,
   readPendingTime,
@@ -3978,14 +3983,21 @@ export async function boot({ loading, bootStart, mapId }) {
     let trackIdNow = trackId;
     let boardNow = listing.board;
     let healed = '';
-    const send = () => postTime({
-      trackId: trackIdNow,
-      name,
-      lapMs: Math.round(fastest),
-      threeMs: threeFrom,
-      ghost,
-      origin: boardNow,
-    });
+    /* Signed inside send, because a 404 below can move the post to the
+     * board's republished twin, and the signature covers the track id. */
+    const send = async () => {
+      const auth = await identity.signTime({ trackId: trackIdNow, lapMs: Math.round(fastest), ghost });
+      return postTime({
+        trackId: trackIdNow,
+        name,
+        lapMs: Math.round(fastest),
+        threeMs: threeFrom,
+        ghost,
+        key: auth.key,
+        sig: auth.sig,
+        origin: boardNow,
+      });
+    };
     try {
       let posted;
       try {
@@ -4641,6 +4653,44 @@ export async function boot({ loading, bootStart, mapId }) {
           }
         } catch (e) {
           notice = { text: `Name saved here. The board could not be updated.\n${e.message ?? e}`, untilMs: performance.now() + 3600 };
+        }
+      })();
+    } else if (action === 'exportkey') {
+      (async () => {
+        const text = await identity.exportText();
+        let copied = false;
+        try {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        } catch (e) {
+        }
+        if (copied) {
+          notice = { text: 'Pilot key copied. Paste it into Import pilot key on another browser, and keep it somewhere safe: whoever has it is you on the board.', untilMs: performance.now() + 5200 };
+          return;
+        }
+        await ui.askForm({
+          title: 'Your pilot key',
+          detail: 'Copy this line. Paste it into Import pilot key on another browser, and keep it somewhere safe: whoever has it is you on the board.',
+          confirmLabel: 'Done',
+          fields: [{ key: 'key', label: '', value: text, maxLength: 4000, placeholder: '', save: (v) => v }],
+        });
+      })();
+    } else if (action === 'importkey') {
+      (async () => {
+        const values = await ui.askForm({
+          title: 'Import pilot key',
+          detail: 'Paste the line that Pilot key exported on your other browser. The key that is here now is replaced.',
+          confirmLabel: 'Import',
+          fields: [{ key: 'key', label: '', value: '', maxLength: 4000, placeholder: 'Pilot key', save: (v) => v }],
+        });
+        if (!values || !values.key) {
+          return;
+        }
+        try {
+          await identity.importText(values.key);
+          notice = { text: 'Pilot key imported. Times you post from here now count as that pilot.', untilMs: performance.now() + 3600 };
+        } catch (e) {
+          notice = { text: `That key was not imported.\n${e.message ?? e}`, untilMs: performance.now() + 3600 };
         }
       })();
     } else if (action === 'posttime') {
