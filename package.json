@@ -44,6 +44,7 @@
     "replay:selftest": "node scripts/replay-log.js --selftest",
     "replay": "node scripts/replay-log.js",
     "link:selftest": "node scripts/link-selftest.js",
+    "lap:selftest": "node scripts/lap-selftest.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",

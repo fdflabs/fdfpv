@@ -55,6 +55,7 @@ import { courseFromDocument } from '../game/trackdoc.js';
 import { GUIDE, guideFromKnots, knotsFromPath, tessellateGuide } from '../game/guide.js';
 import { GATE_SCALE, MICRO_SCALE } from '../game/track.js';
 import { Race } from '../game/race.js';
+import { gatesFromCourse } from '../game/verify.js';
 import {
   Colliders, hitOutcome, groundOutcome, GROUND_LAND, GROUND_BOUNCE, GROUND_CRASH,
   GROUND_TUMBLE, GROUND_SLIDE, canPerch, shouldScorePass, shouldEnterTurtle,
@@ -2691,18 +2692,7 @@ function suiteStartBlock() {
  * obstacle that is not on the real course.
  */
 function raceFromCourse(course) {
-  return new Race(course.stations.map((st, i) => ({
-    position: { x: st.x, y: 0, z: st.z },
-    heading: st.yaw,
-    pitch: st.pitch ?? 0,
-    flyOrder: i,
-    elementId: st.elementId,
-    apertureIndex: st.apertureIndex,
-    kindName: st.type,
-    virtual: Boolean(st.virtual),
-    apertures: [{ centreY: st.centreY, clearW: st.clearW, clearH: st.clearH }],
-    aperture: { centreY: st.centreY, clearW: st.clearW, clearH: st.clearH },
-  })));
+  return new Race(gatesFromCourse(course));
 }
 
 function flyAlong(g, toward = 1) {
