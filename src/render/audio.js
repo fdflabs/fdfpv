@@ -88,12 +88,33 @@
 import { Music } from './music.js';
 
 /*
- * Three blades, because the prop this plant is built around is a 5 x 4.3 x 3,
- * and the blade pass frequency is what a quad's fundamental IS: each blade
- * passing a fixed point pushes one pressure pulse, so a three blade prop at
- * N revolutions per minute radiates at 3N/60 Hz.
+ * THE VOICE, which is the machine's shape as the ear hears it. The blade
+ * pass frequency is what a motor's fundamental IS: each blade passing a
+ * fixed point pushes one pressure pulse, so a prop with B blades at N
+ * revolutions per minute radiates at BN/60 Hz. Everything else here that
+ * depends on the aircraft rather than on the mix is beside it.
+ *
+ *   quad  Three blades, because the prop the plant is built around is a
+ *         5 x 4.3 x 3. Four motors spread across the stereo field so the
+ *         beat between them is audible. The loudness law tops out at 9000
+ *         RPM and the wind at 32 m/s, the numbers every figure in
+ *         PROGRESS.md was measured at, and the wind's lowpass stays where
+ *         it was measured too.
+ *   wing  One motor, a 6 x 4 two blade, in the centre of the field because
+ *         a pusher sits on the centre line behind the camera. Slots 1 to 3
+ *         arrive at zero RPM from the plant and fall under MOTOR_MUTE_RPM,
+ *         so they are silent by the same rule that silences a parked quad;
+ *         nothing here special cases them. The loudness law tops out at the
+ *         plant's 17,600 RPM, which is 0.85 of the no load figure at full
+ *         duty, and the wind at the wing's 24 m/s top speed. The wind is
+ *         the instrument on a wing, since a glide has no motor at all, so
+ *         its lowpass opens with airspeed: a hiss that brightens as the
+ *         wing speeds up, under 2 kHz still so the cues keep their band.
  */
-const BLADES = 3;
+export const VOICES = {
+  quad: { blades: 3, rpmFull: 9000, speedFull: 32, pan: [0.45, 0.32, -0.45, -0.32], windCorner: 900, windOpen: 0 },
+  wing: { blades: 2, rpmFull: 17600, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
+};
 
 /*
  * The motor lowpass tracks the fundamental so the timbre holds across the
@@ -211,6 +232,7 @@ export class MotorAudio {
      * measures at exactly these values when no mix argument is given. */
     this.mix = { motors: 0.5, wind: 0.5, music: 0.5, focus: 1, ambience: 0 };
     this.focusOn = false;
+    this.voice = VOICES.quad;
     this.music = new Music();
     /* Every AudioNode this instance owns, for P12. A node created and
      * dropped without being counted is exactly the leak P12 forbids, so
@@ -269,6 +291,28 @@ export class MotorAudio {
 
   setMusicEnabled(on) {
     this.music.setEnabled(on);
+  }
+
+  /*
+   * Which machine the mix is the sound of: 'quad' or 'wing', see VOICES.
+   * Safe before attach, since the voice is data until update() reads it;
+   * after attach it re-seats the motor pans, which are the one part of the
+   * voice that lives in the graph rather than in the law. An unknown name
+   * is refused rather than defaulted, because a silent fallback to the
+   * quad's voice on a wing is exactly the kind of wrong nobody hears.
+   */
+  setVoice(name) {
+    const voice = VOICES[name];
+    if (!voice) {
+      throw new Error(`audio: no voice named ${name}`);
+    }
+    this.voice = voice;
+    for (let m = 0; m < this.motors.length; m += 1) {
+      const pan = this.motors[m].pan;
+      if (pan) {
+        pan.pan.value = voice.pan[m];
+      }
+    }
   }
 
   /* Which music track, or 'rotation' for a random start then the crate
@@ -460,7 +504,7 @@ export class MotorAudio {
        * between them is audible, the way it is behind real goggles. */
       const pan = ctx.createStereoPanner ? keep(ctx.createStereoPanner()) : null;
       if (pan) {
-        pan.pan.value = [0.45, 0.32, -0.45, -0.32][m];
+        pan.pan.value = this.voice.pan[m];
       }
       osc.connect(lp1);
       lp1.connect(gain);
@@ -471,7 +515,7 @@ export class MotorAudio {
         gain.connect(motorBus);
       }
       osc.start();
-      this.motors.push({ osc, lp1, gain });
+      this.motors.push({ osc, lp1, gain, pan });
     }
 
     /* Air rush: one second of deterministic noise, looped. Lowpassed, not
@@ -490,7 +534,7 @@ export class MotorAudio {
     noise.loop = true;
     const nf = keep(ctx.createBiquadFilter());
     nf.type = 'lowpass';
-    nf.frequency.value = 900;
+    nf.frequency.value = this.voice.windCorner;
     nf.Q.value = 0.6;
     const ng = keep(ctx.createGain());
     ng.gain.value = 0.0;
@@ -499,6 +543,7 @@ export class MotorAudio {
     ng.connect(windBus);
     noise.start();
     this.noiseGain = ng;
+    this.noiseFilter = nf;
 
     /*
      * The binaural focus tone: one carrier per ear, differing by the beat
@@ -802,6 +847,7 @@ export class MotorAudio {
       this.music.pause();
       return;
     }
+    const voice = this.voice;
     let loudest = 0;
     for (let m = 0; m < 4; m += 1) {
       const r = Math.max(0, rpm[m]);
@@ -819,7 +865,7 @@ export class MotorAudio {
       /* THE fundamental. No register correction, no scale factor: this is
        * the blade pass frequency, and A2 asserts it against the RPM the
        * module reports to within one percent. */
-      const hz = (r / 60) * BLADES;
+      const hz = (r / 60) * voice.blades;
       /* setTargetAtTime, not linearRamp: the ear hears a step in
        * frequency as a click, and the motors change fast. */
       node.osc.frequency.setTargetAtTime(hz, t, 0.012);
@@ -843,7 +889,7 @@ export class MotorAudio {
        * untouched. See the header for where the other 6.5 dB of the owner's
        * 70 percent went and why it could not all come off here.
        */
-      const loud = Math.min(1, r / 9000);
+      const loud = Math.min(1, r / voice.rpmFull);
       node.gain.gain.setTargetAtTime(0.139 + 0.139 * loud, t, 0.03);
       if (loud > loudest) {
         loudest = loud;
@@ -861,7 +907,13 @@ export class MotorAudio {
      * to it, because the wind is broadband and raising it further is how a
      * mix gets hissy.
      */
-    const rush = Math.min(1, speed / 32);
+    const rush = Math.min(1, speed / voice.speedFull);
+    /* The wing's wind brightens with speed; the quad's corner is a
+     * constant the graph was built with and is left alone, so its
+     * measured render does not move. */
+    if (voice.windOpen > 0) {
+      this.noiseFilter.frequency.setTargetAtTime(voice.windCorner + voice.windOpen * rush, t, 0.08);
+    }
     /*
      * THE 0.085 IS THE AIR A FLYING QUAD SITS IN, NOT A HUM THE PAGE MAKES.
      *

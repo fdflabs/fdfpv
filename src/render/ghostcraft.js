@@ -4,9 +4,13 @@
  * The same machine the player flies, built by the same builder, wearing a
  * hologram: every panel and motor is replaced with one translucent mint
  * material, mint because that is the colour this product paints a record
- * in, and a ghost IS a record, flying. Reusing buildHeroCraft is the
- * point: the ghost must read as "that exact quad, again", not as a second
- * model that drifts out of step the next time the airframe changes.
+ * in, and a ghost IS a record, flying. Reusing the craft's own builder is
+ * the point: the ghost must read as "that exact aircraft, again", not as a
+ * second model that drifts out of step the next time the airframe changes.
+ *
+ * The builder comes from src/render/craft.js's table by airframe id, so a
+ * wing's ghost is a wing. The id is optional and defaults to the five inch,
+ * which is what every caller passed by omission before there was a choice.
  *
  * Session lived, like the hero craft in craft.js: built once, re-parented
  * into whichever scene is active by the shell, never disposed with a map.
@@ -35,7 +39,7 @@
  */
 
 import * as THREE from 'three';
-import { buildHeroCraft } from './herocraft.js';
+import { craftBuilderFor } from './craft.js';
 
 const GHOST_MINT = 0x7dffb4;
 /* Body opacity at full presence. The discs sit far lower, as they do on
@@ -44,8 +48,8 @@ const BODY_OPACITY = 0.40;
 const DISC_OPACITY = 0.10;
 const LABEL_OPACITY = 0.88;
 
-export function buildGhostCraft() {
-  const craft = buildHeroCraft({
+export function buildGhostCraft(airframeId = '5inch') {
+  const craft = craftBuilderFor(airframeId)({
     name: 'ghost-craft',
     lite: true,
     fog: true,

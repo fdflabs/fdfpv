@@ -33,7 +33,28 @@
 import { CRAFT_ARM, CRAFT_PROP_R, CRAFT_HULL_R } from '../game/collide.js';
 import { buildHeroCraft } from './herocraft.js';
 import { buildWhoopCraft } from './whoopcraft.js';
+import { buildWingCraft } from './wingcraft.js';
 import { airframeById } from '../../configs/airframes.js';
+
+/*
+ * ONE BUILDER PER SILHOUETTE, NOT ONE WITH FLAGS. A five inch is four arms
+ * and four open discs and what you see is the X; a whoop is a moulded tub
+ * with four holes in it; a wing is one swept surface with a prop behind
+ * it. They do not share a silhouette, so they do not share a builder. See
+ * src/render/whoopcraft.js and src/render/wingcraft.js.
+ *
+ * Exported so the ghost and the settings studio build the same machine the
+ * shell flies, from the one table, rather than each keeping its own idea of
+ * which id draws what.
+ */
+const BUILDERS = {
+  whoop65: buildWhoopCraft,
+  wing1000: buildWingCraft,
+};
+
+export function craftBuilderFor(airframeId) {
+  return BUILDERS[airframeById(airframeId).id] ?? buildHeroCraft;
+}
 
 /*
  * The published dimensions of the airframe, in metres. A FUNCTION since the
@@ -96,14 +117,9 @@ export function buildCraft(airframeId = '5inch') {
    * machine and the group scale is the identity; the seam stays because it
    * is the one place the world's ratio touches the model, and check 15
    * asserts the declared ratio reached it.
-   *
-   * TWO BUILDERS, NOT ONE WITH A FLAG. A five inch is four arms and four
-   * open discs and what you see is the X; a whoop is a moulded tub with four
-   * holes in it. They do not share a silhouette, so they do not share a
-   * builder. See src/render/whoopcraft.js.
    */
   currentCraftId = airframeById(airframeId).id;
-  const build = currentCraftId === 'whoop65' ? buildWhoopCraft : buildHeroCraft;
+  const build = craftBuilderFor(currentCraftId);
   return build({
     name: 'craft',
     fog: true,

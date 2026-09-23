@@ -36,9 +36,15 @@
  *   node scripts/audio-probe.js [--trace=NAME] [--seconds=20] [--rate=48000]
  *        [--level=0.6] [--blades=3] [--f0=HZ] [--scream=2000,8000]
  *        [--carrier=80,600] [--beat=6] [--seam=SEC] [--tones=LO,HI]
- *        [--json=PATH]
+ *        [--json=PATH] [--voice=quad|wing]
  *
- * Traces: hover, full, flight, steady:RPM, idle.
+ * Traces: hover, full, flight, steady:RPM, idle, wing.
+ *
+ * --voice picks the machine's voice, see VOICES in src/render/audio.js, and
+ * with it the blade count the fundamental is derived from unless --blades
+ * says otherwise. The wing trace is one motor in slot 0 and zeros after, the
+ * shape the wing plant reports: a hand throw, a climb to cruise, a throttle
+ * chop into a glide, then full throttle.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -92,6 +98,26 @@ function traceFn(name) {
   if (name === 'hover') {
     return () => ({ rpm: 4200, speed: 0 });
   }
+  if (name === 'wing') {
+    /* RPM is 0.85 of the 20,720 no load figure times duty, as the plant
+     * reports it; speeds are the bands in docs/WING-STAGE1.md. */
+    const rpmAt = (duty) => 0.85 * duty * 20720;
+    return (t) => {
+      if (t < 3) {
+        /* Thrown at 8 m/s on 60 percent, gathering speed. */
+        return { rpm: rpmAt(0.60), speed: 8 + 2 * t, single: true };
+      }
+      if (t < 8) {
+        return { rpm: rpmAt(0.65), speed: 15, single: true };
+      }
+      if (t < 13) {
+        /* Chopped: the duty floor, and the glide settles at best L/D. */
+        return { rpm: rpmAt(0.02), speed: 15 - 6 * Math.min(1, (t - 8) / 2), single: true };
+      }
+      const k = Math.min(1, (t - 13) / 4);
+      return { rpm: rpmAt(1.0), speed: 9 + 15 * k, single: true };
+    };
+  }
   if (name === 'full') {
     /* A full throttle pass: two seconds of spool up, then held wide open
      * with the airspeed following it. This is the trace A1 names. */
@@ -118,11 +144,15 @@ function buildTrace(name, seconds) {
   const out = [];
   for (let i = 0; i < n; i += 1) {
     const t = i / TRACE_HZ;
-    const { rpm, speed } = fn(t);
+    const { rpm, speed, single } = fn(t);
+    /* A single motor has no spread to beat against and nothing in the
+     * other three slots, which is what the wing plant hands the shell. */
     out.push([
       t,
-      rpm * MOTOR_SPREAD[0], rpm * MOTOR_SPREAD[1],
-      rpm * MOTOR_SPREAD[2], rpm * MOTOR_SPREAD[3],
+      rpm * MOTOR_SPREAD[0],
+      single ? 0 : rpm * MOTOR_SPREAD[1],
+      single ? 0 : rpm * MOTOR_SPREAD[2],
+      single ? 0 : rpm * MOTOR_SPREAD[3],
       speed,
     ]);
   }
@@ -788,6 +818,11 @@ const DRIVER = `async (spec) => {
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const ctx = new OAC(2, Math.round(spec.seconds * spec.rate), spec.rate);
   const a = new mod.MotorAudio();
+  /* Before attach, the way the shell would set it on seating an airframe
+   * at boot; setVoice is safe on either side of attach. */
+  if (spec.voice && typeof a.setVoice === 'function') {
+    a.setVoice(spec.voice);
+  }
   a.attach(ctx);
   a.setLevel(spec.level);
   if (spec.mix && typeof a.setMix === 'function') {
@@ -958,7 +993,7 @@ async function main() {
     /* 0.6 is what the shell actually runs at: ui.js defaults volume to 6 and
      * main.js divides by 10. Rendering at 0.5 put every published loudness
      * figure 1.58 dB below what a player hears. */
-    trace: 'flight', seconds: 20, rate: 48000, level: 0.6, blades: 3,
+    trace: 'flight', seconds: 20, rate: 48000, level: 0.6, blades: 0, voice: 'quad',
     scream: '2000,8000', carrier: '', beat: 0, seam: 0, f0: 0, json: '',
     /*
      * Which stems to render. A1 is a property of the MOTOR model, and A8
@@ -1010,6 +1045,11 @@ async function main() {
   const seconds = Number(opts.seconds);
   const rate = Number(opts.rate);
   const trace = buildTrace(String(opts.trace), seconds);
+  /* The blade count the fundamental is derived from: the voice's unless
+   * the caller names one. Zero means "the voice's". */
+  if (!(Number(opts.blades) > 0)) {
+    opts.blades = String(opts.voice) === 'wing' ? 2 : 3;
+  }
   const mix = {};
   if (Number(opts.motors) >= 0) {
     mix.motors = Number(opts.motors);
@@ -1029,6 +1069,7 @@ async function main() {
     music: Number(opts.music),
     focus: Number(opts.focus),
     track: String(opts.track),
+    voice: String(opts.voice),
   };
   const { meta, channels } = await renderGraph(spec);
 
@@ -1055,7 +1096,12 @@ async function main() {
     anaMono = mono.subarray(winFrom, winTo);
   }
 
-  const meanRpm = trace.reduce((s, r) => s + (r[1] + r[2] + r[3] + r[4]) / 4, 0) / (trace.length || 1);
+  /* Over the motors that ever turn, so a single motor trace's mean is that
+   * motor's and not a quarter of it. */
+  const liveSlots = [1, 2, 3, 4].filter((c) => trace.some((r) => r[c] > 0));
+  const meanRpm = liveSlots.length
+    ? trace.reduce((s, r) => s + liveSlots.reduce((q, c) => q + r[c], 0) / liveSlots.length, 0) / (trace.length || 1)
+    : 0;
   const f0 = Number(opts.f0) || (meanRpm / 60) * Number(opts.blades);
   /*
    * The analysis frame has to fit inside the window. A 0.16 s window at
