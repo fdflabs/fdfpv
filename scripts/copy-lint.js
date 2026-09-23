@@ -85,12 +85,35 @@ function literals(src) {
     }
     if (c === '"' || c === "'" || c === '`') {
       let j = i + 1;
+      /* A template's \${...} can hold strings of its own, backticks included,
+       * so a template is walked with the brace depth in hand and an inner
+       * string is stepped over whole. */
+      let depth = 0;
       while (j < n) {
         if (src[j] === '\\') {
           j += 2;
           continue;
         }
-        if (src[j] === c) {
+        if (c === '`' && depth > 0 && (src[j] === '"' || src[j] === "'" || src[j] === '`')) {
+          const q = src[j];
+          j += 1;
+          while (j < n && src[j] !== q) {
+            j += src[j] === '\\' ? 2 : 1;
+          }
+          j += 1;
+          continue;
+        }
+        if (c === '`' && src[j] === '$' && src[j + 1] === '{') {
+          depth += 1;
+          j += 2;
+          continue;
+        }
+        if (c === '`' && depth > 0 && src[j] === '}') {
+          depth -= 1;
+          j += 1;
+          continue;
+        }
+        if (src[j] === c && depth === 0) {
           break;
         }
         if (src[j] === '\n') {
@@ -124,7 +147,13 @@ function literals(src) {
 }
 
 function isProse(raw) {
-  const text = raw.replace(/\$\{[^}]*\}/g, 'x').trim();
+  /* Innermost placeholders first, so a template inside a template blanks
+   * whole rather than leaving its tail behind. */
+  let text = raw;
+  for (let pass = 0; pass < 8 && /\$\{/.test(text); pass += 1) {
+    text = text.replace(/\$\{[^{}]*\}/g, 'x');
+  }
+  text = text.trim();
   if (!/\s/.test(text) || !/[A-Za-z]{2,}/.test(text.replace(/\bx+\b/g, ''))) {
     return false;
   }
