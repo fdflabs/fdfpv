@@ -676,6 +676,9 @@ const DEFAULTS = {
    * mid-session has the session to race.
    */
   ghost: 'best',
+  /* Live: see the other pilots on a board track as ghost craft, through
+   * the board's live room. Off by default: a room is a socket. */
+  live: 'off',
   cameraAngle: CAMERA_ANGLE_DEFAULT,
   cameraFov: CAMERA_FOV_DEFAULT,
   renderScale: 100,
@@ -902,6 +905,7 @@ export function loadSettings() {
     ['packVoltage', PACK_VOLTAGES],
     ['musicTrack', musicIds()],
     ['ghost', ['off', 'best', 'previous']],
+    ['live', ['off', 'on']],
     ['freestyleScoring', FREESTYLE_SCORING],
   ]) {
     if (!allowed.includes(s[key])) {
@@ -2842,6 +2846,7 @@ export class Ui {
      * because the shell is the side that knows what can be chased. Null
      * hides the row, which is every freestyle map. */
     this.ghostRow = null;
+    this.liveRow = null;
     this.boardLoading = false;
     this.openingBoardCourse = false;
     this.onBoardCourse = null; /* (track) => Promise<boolean> */
@@ -3949,6 +3954,31 @@ export class Ui {
     if (this.screen === 'title' || this.screen === 'paused') {
       this.renderMenu();
     }
+  }
+
+  /* The Live row, beside Ghost: the shell pushes { value, note, cycle }
+   * the same way, and null when the track has no room. */
+  setLiveRow(row) {
+    this.liveRow = row || null;
+    if (this.screen === 'title' || this.screen === 'paused') {
+      this.renderMenu();
+    }
+  }
+
+  liveItems() {
+    if (!this.liveRow) {
+      return [];
+    }
+    return [{
+      label: 'Live',
+      value: this.liveRow.value,
+      note: this.liveRow.note,
+      adjust: (d) => {
+        if (this.liveRow) {
+          this.liveRow.cycle(d);
+        }
+      },
+    }];
   }
 
   /* The Ghost row where the shell has provided one, as an array so the two
@@ -6149,6 +6179,7 @@ export class Ui {
          * launch and it is what you are racing. It was on the title, which
          * is the one screen with no run in front of it. */
         ...this.ghostItems(),
+        ...this.liveItems(),
         {
           label: 'Fly',
           action: 'launch-go',
@@ -6186,6 +6217,7 @@ export class Ui {
         { label: 'Resume', action: 'resume', primary: true },
         { label: 'Restart run', action: 'restart' },
         ...this.ghostItems(),
+        ...this.liveItems(),
         { label: 'Does it feel wrong?', section: true },
         tuneItem(s, true),
         /*

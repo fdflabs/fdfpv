@@ -157,6 +157,66 @@ export function encodeGhost({ rateHz, durationMs, splits, count, pos, quat }) {
   return bytes;
 }
 
+/*
+ * One live frame, for pilots flying the same track at the same time: the
+ * sender's clock in milliseconds and one ghost sample, 24 bytes. The relay
+ * prepends the sender's peer id, u16, and passes the rest through
+ * untouched, so a receiver reads LIVE_PEER_BYTES + LIVE_FRAME_BYTES.
+ * The quaternion hemisphere is the sender's business: it flips against its
+ * own previous frame the way encodeGhost does, so a receiver can nlerp
+ * without a sign check.
+ */
+export const LIVE_FRAME_BYTES = 4 + GHOST_SAMPLE_BYTES;
+export const LIVE_PEER_BYTES = 2;
+
+export function encodeLiveFrame(tMs, px, py, pz, qx, qy, qz, qw) {
+  const bytes = new Uint8Array(LIVE_FRAME_BYTES);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, Math.max(0, Math.round(tMs)) >>> 0, true);
+  view.setFloat32(4, px, true);
+  view.setFloat32(8, py, true);
+  view.setFloat32(12, pz, true);
+  view.setInt16(16, quantise(qx), true);
+  view.setInt16(18, quantise(qy), true);
+  view.setInt16(20, quantise(qz), true);
+  view.setInt16(22, quantise(qw), true);
+  return bytes;
+}
+
+/* { peer, tMs, px, py, pz, qx, qy, qz, qw } from a relayed frame, or null
+ * when the bytes are not one. */
+export function decodeLiveFrame(bytes) {
+  if (!bytes || bytes.byteLength !== LIVE_PEER_BYTES + LIVE_FRAME_BYTES) {
+    return null;
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const at = LIVE_PEER_BYTES;
+  let qx = view.getInt16(at + 16, true) / QUAT_SCALE;
+  let qy = view.getInt16(at + 18, true) / QUAT_SCALE;
+  let qz = view.getInt16(at + 20, true) / QUAT_SCALE;
+  let qw = view.getInt16(at + 22, true) / QUAT_SCALE;
+  const n = Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
+  if (n > 1e-6) {
+    qx /= n;
+    qy /= n;
+    qz /= n;
+    qw /= n;
+  } else {
+    qx = 0;
+    qy = 0;
+    qz = 0;
+    qw = 1;
+  }
+  return {
+    peer: view.getUint16(0, true),
+    tMs: view.getUint32(at, true),
+    px: view.getFloat32(at + 4, true),
+    py: view.getFloat32(at + 8, true),
+    pz: view.getFloat32(at + 12, true),
+    qx, qy, qz, qw,
+  };
+}
+
 function quantise(v) {
   const q = Math.round(Math.max(-1, Math.min(1, v)) * QUAT_SCALE);
   return q;

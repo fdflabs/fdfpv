@@ -46,6 +46,7 @@
     "link:selftest": "node scripts/link-selftest.js",
     "lap:selftest": "node scripts/lap-selftest.js",
     "identity:selftest": "node scripts/identity-selftest.js",
+    "live:selftest": "node scripts/live-selftest.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",

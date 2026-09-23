@@ -194,6 +194,12 @@ export default {
 
     const upstream = await fetch(new Request(target, init));
 
+    /* A WebSocket upgrade for the board's live rooms: the 101 carries the
+     * socket and must go back exactly as it came, not re-wrapped. */
+    if (upstream.status === 101) {
+      return upstream;
+    }
+
     const out = new Response(upstream.body, upstream);
     const location = out.headers.get('location');
     if (location) {

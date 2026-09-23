@@ -397,3 +397,177 @@ export class GhostBook {
     return slot ? slot.previous : null;
   }
 }
+
+/*
+ * A peer's craft, live. Frames arrive at the ghost rate on the sender's
+ * clock, over a network that reorders nothing but delays everything by a
+ * varying amount. The playhead runs on the sender's clock too, LIVE_DELAY_MS
+ * behind the newest frame, and advances by the local frame time, so a
+ * frame that is late by less than the delay is never waited for and a burst
+ * does not make the craft leap. Position is lerped and attitude nlerped
+ * between the two frames around the playhead, as GhostRecorder resamples;
+ * past the newest frame the craft holds its last pose, and a hole longer
+ * than LIVE_STALE_MS makes it fade.
+ */
+export const LIVE_DELAY_MS = 150;
+export const LIVE_STALE_MS = 2000;
+/* The playhead may trail its target by this much before it snaps forward,
+ * which is what happens after a tab was in the background. */
+export const LIVE_CATCHUP_MS = 100;
+const LIVE_RING = 64;
+
+export class LiveGhost {
+  constructor() {
+    this.frames = [];       /* newest last, at most LIVE_RING */
+    this.playhead = null;   /* sender ms */
+    this.lastWall = null;
+    this.lastArrival = null; /* local ms of the newest frame */
+  }
+
+  push(frame, wallMs) {
+    const last = this.frames[this.frames.length - 1];
+    if (last && frame.tMs <= last.tMs) {
+      return; /* older than what is here: dropped, never reordered */
+    }
+    this.frames.push(frame);
+    this.lastArrival = wallMs;
+    if (this.frames.length > LIVE_RING) {
+      this.frames.splice(0, this.frames.length - LIVE_RING);
+    }
+  }
+
+  newestMs() {
+    return this.frames.length ? this.frames[this.frames.length - 1].tMs : null;
+  }
+
+  /* Writes the pose at the playhead into out and returns the presence,
+   * 0 to 1: nothing yet, or gone stale, is 0. wallMs is the local clock. */
+  sample(wallMs, out) {
+    if (this.frames.length === 0) {
+      return 0;
+    }
+    const newest = this.newestMs();
+    const target = newest - LIVE_DELAY_MS;
+    if (this.playhead == null || this.lastWall == null) {
+      this.playhead = target;
+    } else {
+      this.playhead += Math.max(0, wallMs - this.lastWall);
+      if (this.playhead > target) {
+        this.playhead = target;
+      } else if (target - this.playhead > LIVE_CATCHUP_MS) {
+        this.playhead = target - LIVE_CATCHUP_MS;
+      }
+    }
+    this.lastWall = wallMs;
+    const t = this.playhead;
+    let i = this.frames.length - 1;
+    while (i > 0 && this.frames[i - 1].tMs > t) {
+      i -= 1;
+    }
+    /* frames[i-1].tMs <= t < frames[i].tMs when both exist */
+    const b = this.frames[i];
+    const a = i > 0 ? this.frames[i - 1] : b;
+    const span = b.tMs - a.tMs;
+    const u = span > 0 ? Math.min(1, Math.max(0, (t - a.tMs) / span)) : 1;
+    out.px = a.px + (b.px - a.px) * u;
+    out.py = a.py + (b.py - a.py) * u;
+    out.pz = a.pz + (b.pz - a.pz) * u;
+    const dot = a.qx * b.qx + a.qy * b.qy + a.qz * b.qz + a.qw * b.qw;
+    const s = dot < 0 ? -1 : 1;
+    let qx = a.qx + (b.qx * s - a.qx) * u;
+    let qy = a.qy + (b.qy * s - a.qy) * u;
+    let qz = a.qz + (b.qz * s - a.qz) * u;
+    let qw = a.qw + (b.qw * s - a.qw) * u;
+    const n = Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
+    if (n > 1e-6) {
+      qx /= n;
+      qy /= n;
+      qz /= n;
+      qw /= n;
+    } else {
+      qx = b.qx;
+      qy = b.qy;
+      qz = b.qz;
+      qw = b.qw;
+    }
+    out.qx = qx;
+    out.qy = qy;
+    out.qz = qz;
+    out.qw = qw;
+    out.cut = false;
+    if (this.lastArrival != null && wallMs - this.lastArrival > LIVE_STALE_MS) {
+      return 0;
+    }
+    return 1;
+  }
+}
+
+/*
+ * The sender's side: render frames arrive at whatever rate the screen
+ * runs, and the wire wants the ghost rate. Same resampling as
+ * GhostRecorder.push, one grid step at a time, handed to emit as
+ * (tMs, x, y, z, qx, qy, qz, qw) with the quaternion hemisphere aligned to
+ * the previous emitted frame.
+ */
+export class LiveSender {
+  constructor(emit, rateHz = GHOST_RATE_HZ) {
+    this.emit = emit;
+    this.stepMs = 1000 / rateHz;
+    this.prev = null;
+    this.nextMs = null;
+    this.lastQ = { x: 0, y: 0, z: 0, w: 1 };
+  }
+
+  reset() {
+    this.prev = null;
+    this.nextMs = null;
+  }
+
+  feed(tMs, x, y, z, qx, qy, qz, qw) {
+    if (this.prev === null) {
+      this.prev = { t: tMs, x, y, z, qx, qy, qz, qw };
+      this.nextMs = tMs;
+      this.write(tMs, x, y, z, qx, qy, qz, qw);
+      this.nextMs += this.stepMs;
+      return;
+    }
+    const p = this.prev;
+    while (this.nextMs <= tMs) {
+      const span = tMs - p.t;
+      const u = span > 1e-9 ? (this.nextMs - p.t) / span : 1;
+      const dot = p.qx * qx + p.qy * qy + p.qz * qz + p.qw * qw;
+      const s = dot < 0 ? -1 : 1;
+      let bx = p.qx + (qx * s - p.qx) * u;
+      let by = p.qy + (qy * s - p.qy) * u;
+      let bz = p.qz + (qz * s - p.qz) * u;
+      let bw = p.qw + (qw * s - p.qw) * u;
+      const n = Math.sqrt(bx * bx + by * by + bz * bz + bw * bw);
+      if (n > 1e-6) {
+        bx /= n;
+        by /= n;
+        bz /= n;
+        bw /= n;
+      } else {
+        bx = qx;
+        by = qy;
+        bz = qz;
+        bw = qw;
+      }
+      this.write(this.nextMs, p.x + (x - p.x) * u, p.y + (y - p.y) * u, p.z + (z - p.z) * u, bx, by, bz, bw);
+      this.nextMs += this.stepMs;
+    }
+    this.prev = { t: tMs, x, y, z, qx, qy, qz, qw };
+  }
+
+  write(tMs, x, y, z, qx, qy, qz, qw) {
+    const l = this.lastQ;
+    if (qx * l.x + qy * l.y + qz * l.z + qw * l.w < 0) {
+      qx = -qx;
+      qy = -qy;
+      qz = -qz;
+      qw = -qw;
+    }
+    this.lastQ = { x: qx, y: qy, z: qz, w: qw };
+    this.emit(tMs, x, y, z, qx, qy, qz, qw);
+  }
+}

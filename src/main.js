@@ -62,9 +62,9 @@ import { Race } from './game/race.js';
 import { TrickDetector } from './game/trickdetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
-import { GhostBook, GhostLap, GhostRecorder } from './game/ghost.js';
+import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
-import { decodeGhost, encodeGhost, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
+import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch } from './game/collide.js';
 import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor } from './ui/ui.js';
 import {
@@ -76,6 +76,7 @@ import { createFlightStats, pingVisit } from './share/stats.js';
 import { sendCardAnimation } from './share/cardgif.js';
 import { nameRules, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
+import { createLiveLink } from './share/live.js';
 
 /* The pilot's key for signing posted times, made on first use and kept in
  * this browser. See src/share/identity.js. */
@@ -1217,6 +1218,136 @@ export async function boot({ loading, bootStart, mapId }) {
    * back without having to know it exists.
    */
   shell.keepAcrossMaps(ghostRig.group);
+
+  /*
+   * Live: the other pilots on this board track, each a ghost craft fed from
+   * the room's socket. peers is by the room's peer id; the sender resamples
+   * this craft's rendered pose onto the ghost rate and the link carries it.
+   * See src/share/live.js and LiveGhost in src/game/ghost.js.
+   */
+  const livePeers = new Map();
+  const livePose = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
+  const liveLink = createLiveLink({
+    onWelcome: (id, peers) => {
+      for (const p of peers) {
+        livePeerJoin(p.id, p.name);
+      }
+      syncLiveRow();
+    },
+    onJoin: (id, name) => {
+      livePeerJoin(id, name);
+      syncLiveRow();
+    },
+    onLeave: (id) => {
+      livePeerLeave(id);
+      syncLiveRow();
+    },
+    onFrame: (frame, wallMs) => {
+      const peer = livePeers.get(frame.peer);
+      if (peer) {
+        peer.live.push(frame, wallMs);
+      }
+    },
+    onState: () => syncLiveRow(),
+  });
+  const liveSender = new LiveSender((t, x, y, z, qx, qy, qz, qw) => {
+    liveLink.send(encodeLiveFrame(t, x, y, z, qx, qy, qz, qw));
+  });
+
+  function livePeerJoin(id, name) {
+    if (livePeers.has(id)) {
+      livePeers.get(id).rig.setLabel(name);
+      return;
+    }
+    const rig = buildGhostCraft();
+    rig.setLabel(name);
+    rig.setPresence(0);
+    shell.keepAcrossMaps(rig.group);
+    livePeers.set(id, { rig, live: new LiveGhost(), name });
+  }
+
+  function livePeerLeave(id) {
+    const peer = livePeers.get(id);
+    if (!peer) {
+      return;
+    }
+    peer.rig.setPresence(0);
+    if (peer.rig.group.parent) {
+      peer.rig.group.parent.remove(peer.rig.group);
+    }
+    livePeers.delete(id);
+  }
+
+  function livePeersClear() {
+    for (const id of [...livePeers.keys()]) {
+      livePeerLeave(id);
+    }
+  }
+
+  /* Whether this track has a room: a board track, not freestyle. */
+  function liveListing() {
+    const listing = ghostListing();
+    return listing && !race.freestyle && listing.shareId ? listing : null;
+  }
+
+  function syncLive() {
+    const listing = liveListing();
+    if (!listing || ui.settings.live !== 'on') {
+      liveLink.leave();
+      liveSender.reset();
+      livePeersClear();
+      syncLiveRow();
+      return;
+    }
+    liveLink.join({ origin: listing.board, trackId: listing.shareId, name: readPilotName() || 'Pilot' });
+    syncLiveRow();
+  }
+
+  function syncLiveRow() {
+    if (!liveListing()) {
+      ui.setLiveRow(null);
+      return;
+    }
+    const on = ui.settings.live === 'on';
+    const state = liveLink.state();
+    let value = 'Off';
+    if (on) {
+      value = state === 'open'
+        ? (livePeers.size ? `${livePeers.size} here` : 'Alone')
+        : (state === 'failed' ? 'No room' : 'Joining');
+    }
+    ui.setLiveRow({
+      value,
+      note: on
+        ? 'Other pilots flying this track right now appear as ghost craft, and they see you. Nothing is scored between you.'
+        : 'See the other pilots flying this track right now as ghost craft, and let them see you. Opens a socket to the board.',
+      cycle: () => {
+        ui.settings.live = ui.settings.live === 'on' ? 'off' : 'on';
+        ui.persistSettings();
+        syncLive();
+      },
+    });
+  }
+
+  /* Every frame: send this craft, pose the peers. wallMs is the render
+   * clock; peers are posed LIVE_DELAY_MS behind their sender. */
+  function liveFrame(wallMs) {
+    if (liveLink.state() !== 'open') {
+      return;
+    }
+    if (mode === 'flight') {
+      liveSender.feed(wallMs, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w);
+    }
+    for (const peer of livePeers.values()) {
+      const presence = peer.live.sample(wallMs, livePose);
+      peer.rig.group.position.set(livePose.px, livePose.py, livePose.pz);
+      peer.rig.group.quaternion.set(livePose.qx, livePose.qy, livePose.qz, livePose.qw);
+      peer.rig.setPresence(presence);
+      if (presence > 0 && shell.quad.parent && peer.rig.group.parent !== shell.quad.parent) {
+        shell.quad.parent.add(peer.rig.group);
+      }
+    }
+  }
   const ghostSample = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
   let ghostLap = null; /* the lap being chased, armed at each lap start */
   let ghostChased = null; /* the lap the last FINISHED lap was chased against */
@@ -1421,6 +1552,8 @@ export async function boot({ loading, bootStart, mapId }) {
     ghostRig.setPresence(0);
     ghostChoice = normalizeGhostChoice(ui.settings.ghost);
     syncGhostRow();
+    livePeersClear();
+    syncLive();
     const listing = ghostListing();
     if (!listing || race.freestyle) {
       return;
@@ -6625,6 +6758,7 @@ export async function boot({ loading, bootStart, mapId }) {
       ghostPrev.qw = qPrev.w;
     }
     ghostFrame(simNow);
+    liveFrame(nowWall);
 
     /* Airtime, for the freestyle display: the simulation clock since this
      * run began, which is what a pilot flying a pack wants beside the pack
