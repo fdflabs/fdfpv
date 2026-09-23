@@ -1,7 +1,7 @@
 /*
  * og.js: the share card, drawn by the thing it advertises.
  *
- * Every link to webfpv.org posted anywhere renders a 1200 by 630 image, and
+ * Every link to fdfpv.example posted anywhere renders a 1200 by 630 image, and
  * a made-up one would drift out of date the first time the world changed.
  * This one cannot: it is a frame of the real shell, rendered by the real
  * renderer, through scripts/shots.js, which is the same harness every
@@ -25,8 +25,8 @@
  * REGENERATE, DO NOT EDIT, the same rule as the icons:
  *
  *     npm run gen:og                                  # this repo
- *     node scripts/og.js . ../landingpage-WebFPVSimulator- \
- *                          ../WebFPVSimulator-LeaderBoard/public
+ *     node scripts/og.js . ../fdfpv-landing \
+ *                          ../fdfpv-leaderboard/public
  *
  * This file is part of WebFPVSimulator.
  *
@@ -78,7 +78,7 @@ const hide = `${JSON.stringify(HIDE)}.forEach((s) => document.querySelectorAll(s
 const targets = (process.argv.slice(2).length ? process.argv.slice(2) : ['.'])
   .map((d) => resolve(root, d));
 
-const out = await mkdtemp(join(tmpdir(), 'webfpv-og-'));
+const out = await mkdtemp(join(tmpdir(), 'fdfpv-og-'));
 try {
   const run = spawnSync('node', [
     join(root, 'scripts/shots.js'),

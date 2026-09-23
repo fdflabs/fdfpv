@@ -180,6 +180,6 @@ http
     }
   })
   .listen(port, '127.0.0.1', () => {
-    console.log(`WebFPVSimulator: http://127.0.0.1:${port}/`);
+    console.log(`FDFPV: http://127.0.0.1:${port}/`);
     console.log('Build the module first if you have not: npm run build:wasm');
   });

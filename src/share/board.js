@@ -65,15 +65,15 @@ import { readShareImport, writeShareImport } from './session.js';
  * over the default.
  *
  * "Origin" is now generous: the production value carries a path, because the
- * board is a mount on webfpv.org rather than a host of its own. Everything
+ * board is a mount on fdfpv.example rather than a host of its own. Everything
  * below concatenates onto it and trims a trailing slash, so a prefix works
  * exactly where a bare origin used to, and the only thing that would not is
  * `new URL('/some/path', board)`, which is not done anywhere here.
  */
 export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3100';
-export const PRODUCTION_BOARD_ORIGIN = 'https://webfpv.org/board';
+export const PRODUCTION_BOARD_ORIGIN = 'https://fdfpv.example/board';
 export const DEFAULT_LANDING_ORIGIN = 'http://127.0.0.1:8080';
-export const PRODUCTION_LANDING_ORIGIN = 'https://webfpv.org';
+export const PRODUCTION_LANDING_ORIGIN = 'https://fdfpv.example';
 const ORIGIN_KEY = 'webfpv.board.origin';
 
 /* An empty hostname is a file:// open, which is a developer, not a deploy. */
@@ -123,8 +123,8 @@ export function landingOrigin() {
     if (LOOPBACK_HOSTS.has(host)) {
       return DEFAULT_LANDING_ORIGIN;
     }
-    if (host === 'webfpv.org' || host === 'www.webfpv.org') {
-      return `${window.location.protocol}//webfpv.org`;
+    if (host === 'fdfpv.example' || host === 'www.fdfpv.example') {
+      return `${window.location.protocol}//fdfpv.example`;
     }
     return PRODUCTION_LANDING_ORIGIN;
   } catch (e) {

@@ -24,7 +24,7 @@
  * the same reason rather than for a different one.
  *
  * usage:
- *   BOARD_ADMIN_TOKEN=... node scripts/boardgif.js --board https://webfpv.org/board
+ *   BOARD_ADMIN_TOKEN=... node scripts/boardgif.js --board https://fdfpv.example/board
  *
  * This file is part of WebFPVSimulator.
  *

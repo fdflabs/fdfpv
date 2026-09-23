@@ -1,7 +1,7 @@
 # The track document
 
 This is the track builder's output and the only thing it shares with the rest
-of WebFPVSimulator. The builder does not import a line of the simulator.
+of FDFPV. The builder does not import a line of the simulator.
 
 **The game now reads it.** `src/game/trackdoc.js` turns a document into a
 course, `src/render/scene.js` builds the race field around that course instead

@@ -12,10 +12,10 @@
  * instead of making another, and focuses it. So there are two names, here,
  * written down once:
  *
- *   webfpv-sim     the simulator page and the track builder, which are one
+ *   fdfpv-sim     the simulator page and the track builder, which are one
  *                  tab because the simulator navigates to the builder in
  *                  place and the builder navigates back
- *   webfpv-board   the leaderboard
+ *   fdfpv-board   the leaderboard
  *
  * Two rules come out of that and both are easy to break by accident.
  *
@@ -62,9 +62,9 @@
 
 /* The board repository has these two strings written down again, because
  * it cannot import from here. They have to agree. */
-export const SIM_WINDOW = 'webfpv-sim';
-export const BOARD_WINDOW = 'webfpv-board';
-export const WIKI_WINDOW = 'webfpv-wiki';
+export const SIM_WINDOW = 'fdfpv-sim';
+export const BOARD_WINDOW = 'fdfpv-board';
+export const WIKI_WINDOW = 'fdfpv-wiki';
 
 /*
  * Say which of the two tabs this page is. Returns the name it took, or ''

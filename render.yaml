@@ -22,13 +22,13 @@
 # visitors, the thing people actually fly should not.
 #
 # The board lives in its own repo and its own blueprint:
-# https://github.com/Mathew-Harvey/WebFPVSimulator-LeaderBoard
+# https://github.com/fdflabs/fdfpv-leaderboard
 # Deploy that first, then put its URL in PRODUCTION_BOARD_ORIGIN in
 # src/share/board.js and in SIM_ORIGIN on the board's service. See DEPLOY.md.
 
 services:
   - type: web
-    name: webfpvsimulator
+    name: fdfpv
     runtime: static
 
     # There is no build. This is the assertion that stands in for one: both
@@ -41,7 +41,7 @@ services:
     # ../dist/sim.wasm, ./maps/city/... and ../tests/lib/simmod.js, which
     # src/main.js imports to load the module. Those resolve against the module
     # rather than the site root, which is what lets this same tree also serve
-    # under webfpv.org/sim/, but they still span the repository. Trimming this
+    # under fdfpv.example/sim/, but they still span the repository. Trimming this
     # to src plus dist breaks boot. The repo is public and GPLv3, so there is
     # nothing here that publishing the tree gives away.
     staticPublishPath: .
@@ -53,7 +53,7 @@ services:
       # lets the CDN answer with a 304 off its ETag, so a warm visitor pays a
       # round trip and no bytes.
       #
-      # THIS IS NOT WHAT A BROWSER ON webfpv.org GETS, and the difference has
+      # THIS IS NOT WHAT A BROWSER ON fdfpv.example GETS, and the difference has
       # already broken a live session twice. The origin answers max-age=0 for
       # every file; through the domain, src/ui/ui.js comes back max-age=14400
       # while index.html stays at 0, so the sheet is current and the script is

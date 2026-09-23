@@ -4,9 +4,9 @@ Your guess was right, and it is three resources, not two.
 
 | Resource | Render type | Repo | Why this type |
 | --- | --- | --- | --- |
-| `webfpvsimulator` | Static Site | WebFPVSimulator | No server side. Never sleeps. Free. |
-| `webfpv-board` | Web Service, Node | WebFPVSimulator-LeaderBoard | Has an API and holds state. |
-| `webfpvleaderboard-db` | Postgres | attached to the board | The only durable store. |
+| `fdfpv` | Static Site | fdfpv | No server side. Never sleeps. Free. |
+| `fdfpv-board` | Web Service, Node | fdfpv-leaderboard | Has an API and holds state. |
+| `fdfpv-board-db` | Postgres | attached to the board | The only durable store. |
 
 The simulator is a static site and not a web service because it has no
 server side at all. `dist/sim.wasm` is committed, the shell is plain ES
@@ -115,14 +115,14 @@ serves a directory with one file in it.
 ## 1. The board and its database
 
 Both come from one blueprint. In the Render dashboard: **New**, then
-**Blueprint**, then pick `Mathew-Harvey/WebFPVSimulator-LeaderBoard`.
+**Blueprint**, then pick `fdflabs/fdfpv-leaderboard`.
 `render.yaml` in that repo creates the web service and the Postgres
 instance together and wires `DATABASE_URL` between them.
 
-Render appends a suffix to the hostname if `webfpv-board` is already
+Render appends a suffix to the hostname if `fdfpv-board` is already
 taken by someone else, so read the URL it actually gives you rather than
 assuming it. Call it `BOARD_URL` for the rest of this page. It will look
-like `https://webfpv-board.onrender.com`.
+like `https://fdfpv-board.onrender.com`.
 
 `SIM_ORIGIN` is deliberately left unset in the blueprint. The board starts
 fine without it and falls back to `http://127.0.0.1:8000`, which just means
@@ -133,13 +133,13 @@ the Fly buttons point at nothing yet. Step 3 fixes that.
 Edit one line in `src/share/board.js`:
 
 ```js
-export const PRODUCTION_BOARD_ORIGIN = 'https://webfpv-board.onrender.com';
+export const PRODUCTION_BOARD_ORIGIN = 'https://fdfpv-board.onrender.com';
 ```
 
 Put your `BOARD_URL` there, with no trailing slash. Commit and push.
 
 Then in Render: **New**, **Blueprint**, pick
-`Mathew-Harvey/WebFPVSimulator`. Its `render.yaml` creates the static site.
+`fdflabs/fdfpv`. Its `render.yaml` creates the static site.
 Read the URL it gives you and call it `SIM_URL`.
 
 That constant is the default, not a lock. A `?board=` query beats it, and
@@ -148,10 +148,10 @@ at a different board without another deploy.
 
 ## 3. Wire the board back to the simulator
 
-On the `webfpv-board` service, under **Environment**, set:
+On the `fdfpv-board` service, under **Environment**, set:
 
 ```
-SIM_ORIGIN = https://webfpvsimulator.onrender.com
+SIM_ORIGIN = https://fdfpv.onrender.com
 ```
 
 Your `SIM_URL`, no trailing slash. Save, which redeploys the board.
@@ -172,8 +172,8 @@ still handing the link around.
 In order, because each one depends on the last:
 
 ```bash
-BOARD=https://webfpv-board.onrender.com
-SIM=https://webfpvsimulator.onrender.com
+BOARD=https://fdfpv-board.onrender.com
+SIM=https://fdfpv.onrender.com
 
 # The board is up and talking to Postgres, not to a JSON file.
 curl -s $BOARD/api/health
@@ -181,8 +181,8 @@ curl -s $BOARD/api/health
 
 # The board knows where the simulator is, and knows its own https origin.
 curl -s $BOARD/api/config
-# {"simOrigin":"https://webfpvsimulator.onrender.com",
-#  "boardOrigin":"https://webfpv-board.onrender.com"}
+# {"simOrigin":"https://fdfpv.onrender.com",
+#  "boardOrigin":"https://fdfpv-board.onrender.com"}
 
 # The two files the simulator dies without.
 curl -s -o /dev/null -w "%{http_code} %{content_type}\n" $SIM/dist/sim.wasm
@@ -218,9 +218,9 @@ never leaves it:
 
 | Address | What answers | Where it actually comes from |
 | --- | --- | --- |
-| `https://webfpv.org/` | the landing page | GitHub Pages, `Mathew-Harvey/landingpage-WebFPVSimulator-` |
-| `https://webfpv.org/sim/` | the simulator and the track builder | the Render static site |
-| `https://webfpv.org/board/` | the board and the bug inbox | the Render web service |
+| `https://fdfpv.example/` | the landing page | GitHub Pages, `fdflabs/fdfpv-landing` |
+| `https://fdfpv.example/sim/` | the simulator and the track builder | the Render static site |
+| `https://fdfpv.example/board/` | the board and the bug inbox | the Render web service |
 
 The thing doing the work is a Cloudflare Worker, `edge/router.js` in this
 repository. It takes the first path segment off and passes the rest to the
@@ -253,25 +253,25 @@ and the onrender.com addresses keep working exactly as before.
 | simulator | `configs/registry.js` | a tune's `.diff`, now resolved beside `registry.js` |
 | simulator | `src/render/tracks.js` | the music crates, now resolved against the module |
 | simulator | `src/ui/ui.js` | the orbit thumbnail in the Courses reel |
-| simulator | `src/share/board.js` | `PRODUCTION_BOARD_ORIGIN` is now `https://webfpv.org/board` |
+| simulator | `src/share/board.js` | `PRODUCTION_BOARD_ORIGIN` is now `https://fdfpv.example/board` |
 | board | `public/index.html`, `public/bugs.html` | icons, the inbox script, the back link |
 | board | `public/app.js`, `public/bugs.js` | every `/api/...` fetch, now resolved against the page's own directory |
-| simulator | `edge/router.js` | `x-webfpv-country`, the one header the Worker adds beyond the forwarded pair |
+| simulator | `edge/router.js` | `x-fdfpv-country`, the one header the Worker adds beyond the forwarded pair |
 | board | `public/app.js` | `orbitHref`, which was silently dropping the `/sim` |
-| landing | `src/config.js`, `index.html` | the simulator and board links now name `webfpv.org` |
+| landing | `src/config.js`, `index.html` | the simulator and board links now name `fdfpv.example` |
 
 Two of those deserve a note.
 
 `MAP_MODULE_PREFIX` in `src/main.js` still has leading slashes and is meant
 to. Those strings are never fetched: `moduleCounter` matches them as a
 substring of each performance entry's full URL, and a shell at
-`https://webfpv.org/sim/` still produces names containing `/src/maps/city/`.
+`https://fdfpv.example/sim/` still produces names containing `/src/maps/city/`.
 
 `orbitHref` in the board's `public/app.js` is the one that would have been
 hardest to find. It read `new URL('/src/share/orbit.html', config.simOrigin)`,
 and a leading slash in `new URL` throws away everything in the base but the
-scheme and the host. With the simulator at `https://webfpv.org/sim` that
-produced `https://webfpv.org/src/share/orbit.html`, which is the landing page.
+scheme and the host. With the simulator at `https://fdfpv.example/sim` that
+produced `https://fdfpv.example/src/share/orbit.html`, which is the landing page.
 The board would have loaded, listed every course, and drawn an empty box where
 each thumbnail should be. The two links either side of it concatenate rather
 than resolve and were never affected, which is exactly why it was easy to miss.
@@ -284,7 +284,7 @@ where it was.
 
 **1. Create the Worker.** In the Cloudflare dashboard: **Compute (Workers)**,
 then **Workers & Pages**, then **Create**, then **Start with Hello World!**,
-then **Deploy**. Name it `webfpv-router`. Open **Edit code**, select
+then **Deploy**. Name it `fdfpv-router`. Open **Edit code**, select
 everything in the editor, paste the whole of `edge/router.js` over it, and
 **Deploy** again.
 
@@ -296,12 +296,12 @@ npx wrangler deploy --config edge/wrangler.toml
 ```
 
 **2. Give it the domain.** On the Worker: **Settings**, then **Domains &
-Routes**, then **Add**, then **Custom domain**. Enter `webfpv.org` and add it.
-Do it a second time for `www.webfpv.org`.
+Routes**, then **Add**, then **Custom domain**. Enter `fdfpv.example` and add it.
+Do it a second time for `www.fdfpv.example`.
 
 Custom domain rather than route, and the difference matters here. A route
 needs a DNS record already pointing somewhere for the Worker to intercept, and
-`webfpv.org` has no origin server to point at: the Worker is the origin. A
+`fdfpv.example` has no origin server to point at: the Worker is the origin. A
 custom domain makes Cloudflare create the record and issue the certificate
 itself. The zone's DNS page goes from "no DNS records" to one record per
 hostname, both managed by the Worker.
@@ -309,12 +309,12 @@ hostname, both managed by the Worker.
 The Worker sends `www` to the apex on arrival, so the site has one address
 rather than two that both work.
 
-**3. Tell the board where it lives.** On the `webfpv-board` service in Render,
+**3. Tell the board where it lives.** On the `fdfpv-board` service in Render,
 under **Environment**, set both of these and save, which redeploys:
 
 ```
-SIM_ORIGIN            = https://webfpv.org/sim
-BOARD_PUBLIC_ORIGIN   = https://webfpv.org/board
+SIM_ORIGIN            = https://fdfpv.example/sim
+BOARD_PUBLIC_ORIGIN   = https://fdfpv.example/board
 ```
 
 `SIM_ORIGIN` is the same field as step 3 above with a new value, and every
@@ -322,7 +322,7 @@ consumer already treats it as a prefix and concatenates.
 
 `BOARD_PUBLIC_ORIGIN` is the field this page told you to leave alone, and this
 is the situation it exists for. `requestOrigin` works the board's own address
-out of the forwarded headers, which now say `webfpv.org` and cannot say
+out of the forwarded headers, which now say `fdfpv.example` and cannot say
 `/board`, because a path is not part of a host. Left unset, every Fly link the
 board writes and every `?board=` it hands the simulator would point at the
 landing page. Set, it short circuits the whole calculation and answers with
@@ -333,7 +333,7 @@ still what makes a direct visit to the onrender.com address report `https`.
 
 **4. Deploy the three branches, and the Worker goes first.** This is the one
 ordering that is not a preference. `PRODUCTION_BOARD_ORIGIN` in
-`src/share/board.js` now reads `https://webfpv.org/board`, so a simulator that
+`src/share/board.js` now reads `https://fdfpv.example/board`, so a simulator that
 reaches Render before the Worker is live has a board address that nothing is
 answering: Publish, the community course list and the F8 bug reporter would
 all be talking to a domain with no `/board` on it. Worker, then board, then
@@ -341,7 +341,7 @@ simulator, then landing page.
 
 The rest is backwards compatible in both directions. Every path change in the
 three repositories resolves to exactly the URL it used to at a root mount, so
-`webfpvsimulator.onrender.com` and `webfpv-board.onrender.com` keep working
+`fdfpv.onrender.com` and `fdfpv-board.onrender.com` keep working
 after the migration, and the mounted copies work before the Render redeploy
 lands.
 
@@ -357,7 +357,7 @@ what keeps it that way.
 **The board's page no longer believes the board about where the board is.**
 `/api/config` returns a `boardOrigin` built from the request headers, and a
 header carries a host, not a path: behind the mount it can only ever say
-`https://webfpv.org`, which is the landing page. `public/app.js` now keeps its
+`https://fdfpv.example`, which is the landing page. `public/app.js` now keeps its
 own `HERE_ORIGIN`, taken from `document.baseURI`, and overrides that field. It
 takes `simOrigin` from the server, because only the server knows it. Setting
 `BOARD_PUBLIC_ORIGIN` is still worth doing so that `/api/config` tells the
@@ -366,7 +366,7 @@ truth to anything else reading it, but the Fly links no longer depend on it.
 **A returning pilot carries the old board address around.** The resolved board
 is written to `localStorage` under `webfpv.board.origin`, and a stored value
 outranks the compiled default. Storage is per origin, so anyone arriving at
-`webfpv.org/sim/` starts clean. Anyone who keeps using the onrender address
+`fdfpv.example/sim/` starts clean. Anyone who keeps using the onrender address
 keeps the onrender board, which works, and is worth knowing when a bug report
 says the wrong board.
 
@@ -380,7 +380,7 @@ board in one tab and the simulator in another now contends on one lock instead
 of two.
 
 **The Worker is where a visitor's country comes from, and the board is the
-only thing that ever learns it.** `edge/router.js` sets `x-webfpv-country`
+only thing that ever learns it.** `edge/router.js` sets `x-fdfpv-country`
 from Cloudflare's own `request.cf.country` on every forwarded request. It is
 set unconditionally, overwriting anything the client sent, which is what
 makes it worth believing at the other end; the board believes it only when
@@ -398,7 +398,7 @@ the only response on the board besides a card animation that is not
 `no-store`. Twenty seconds is under the page's thirty second poll, so a
 reader still sees their own effect within one tick and a hundred readers
 cost the database what one does. The warning below about not adding a cache
-rule for `webfpv.org` still stands: this header travels from the origin and
+rule for `fdfpv.example` still stands: this header travels from the origin and
 the Worker passes it through untouched.
 
 **Do not add a Content Security Policy or a framing header at the Worker.**
@@ -408,7 +408,7 @@ separate import maps load three.js from `cdn.jsdelivr.net`. A `script-src`
 without jsDelivr would take down the landing page, the simulator, the builder
 and every card on the board in one deploy.
 
-**Do not add a Cloudflare cache rule for `webfpv.org`.** Three cache policies
+**Do not add a Cloudflare cache rule for `fdfpv.example`.** Three cache policies
 now live on one hostname: the simulator's `no-cache` with the music crate
 immutable for a year, the board's `no-store` on everything, and whatever Pages
 does. They still match at the origin because the prefix comes off before the
@@ -417,7 +417,7 @@ untouched. One rule for the domain would flatten all three.
 
 **The landing page's spelling of its own repository is case sensitive and
 correct.** `edge/router.js` names
-`https://mathew-harvey.github.io/landingpage-WebFPVSimulator-`. The lowercase
+`https://fdflabs.github.io/fdfpv-landing`. The lowercase
 spelling 404s at Pages, checked rather than assumed, so leave the capitals
 where they are.
 
@@ -425,26 +425,26 @@ where they are.
 
 ```bash
 # The three mounts answer, and none of them is a redirect.
-curl -s -o /dev/null -w "%{http_code} %{url_effective}\n" -L https://webfpv.org/
-curl -s -o /dev/null -w "%{http_code} %{url_effective}\n" -L https://webfpv.org/sim/
-curl -s -o /dev/null -w "%{http_code} %{url_effective}\n" -L https://webfpv.org/board/
+curl -s -o /dev/null -w "%{http_code} %{url_effective}\n" -L https://fdfpv.example/
+curl -s -o /dev/null -w "%{http_code} %{url_effective}\n" -L https://fdfpv.example/sim/
+curl -s -o /dev/null -w "%{http_code} %{url_effective}\n" -L https://fdfpv.example/board/
 
 # The prefix comes off before Render sees it.
-curl -s -o /dev/null -w "%{http_code} %{content_type}\n" https://webfpv.org/sim/dist/sim.wasm
+curl -s -o /dev/null -w "%{http_code} %{content_type}\n" https://fdfpv.example/sim/dist/sim.wasm
 # 200 application/wasm
 
 # The board knows where it lives and where the simulator lives, WITH the paths.
-curl -s https://webfpv.org/board/api/config
-# {"simOrigin":"https://webfpv.org/sim","boardOrigin":"https://webfpv.org/board"}
+curl -s https://fdfpv.example/board/api/config
+# {"simOrigin":"https://fdfpv.example/sim","boardOrigin":"https://fdfpv.example/board"}
 
 # The missing slash is a permanent redirect, not a 404. Every relative url on
 # the page below it depends on this.
-curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://webfpv.org/sim
-# 301 https://webfpv.org/sim/
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://fdfpv.example/sim
+# 301 https://fdfpv.example/sim/
 
 # www is one site, not two.
-curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://www.webfpv.org/
-# 301 https://webfpv.org/
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://www.fdfpv.example/
+# 301 https://fdfpv.example/
 ```
 
 ### The browser cache TTL in front, which is not what render.yaml asks for
@@ -458,15 +458,15 @@ Measured on 2026-09-12:
 
 ```bash
 # The Render origin, both files the same and both revalidated.
-curl -sI https://webfpvsimulator.onrender.com/index.html      | grep -i cache-control
-curl -sI https://webfpvsimulator.onrender.com/src/ui/ui.js    | grep -i cache-control
+curl -sI https://fdfpv.onrender.com/index.html      | grep -i cache-control
+curl -sI https://fdfpv.onrender.com/src/ui/ui.js    | grep -i cache-control
 # cache-control: public, max-age=0, s-maxage=300
 # cache-control: public, max-age=0, s-maxage=300
 
 # The same two files through the domain. The page revalidates. The script
 # does not, for four hours.
-curl -sI https://webfpv.org/sim/                              | grep -i cache-control
-curl -sI https://webfpv.org/sim/src/ui/ui.js                  | grep -i cache-control
+curl -sI https://fdfpv.example/sim/                              | grep -i cache-control
+curl -sI https://fdfpv.example/sim/src/ui/ui.js                  | grep -i cache-control
 # cache-control: public, max-age=0, s-maxage=300
 # cache-control: public, max-age=14400, s-maxage=300
 ```
@@ -491,19 +491,19 @@ on, needs a hard reload to be safe, and returning pilots will not do one.
 
 Then in a browser, in this order:
 
-1. `https://webfpv.org/` and click **Fly now**. The address bar should read
-   `https://webfpv.org/sim/?map=field` and the simulator should reach the
+1. `https://fdfpv.example/` and click **Fly now**. The address bar should read
+   `https://fdfpv.example/sim/?map=field` and the simulator should reach the
    flying menu.
-2. `https://webfpv.org/board/`. Every course card's thumbnail should draw. An
+2. `https://fdfpv.example/board/`. Every course card's thumbnail should draw. An
    empty box is `orbitHref` or the `/sim` mount, not the simulator refusing to
    be framed, because nothing in this estate sets `X-Frame-Options`.
 3. **Fly this course** from a card. It should land in the simulator with the
    course loaded and offer to post a time at the end of a lap.
 4. Publish a course from the builder at
-   `https://webfpv.org/sim/src/trackbuilder/index.html` and confirm the
-   Publish dialog offers `https://webfpv.org/board`.
+   `https://fdfpv.example/sim/src/trackbuilder/index.html` and confirm the
+   Publish dialog offers `https://fdfpv.example/board`.
 5. F8 in the simulator, file a test ticket, and find it at
-   `https://webfpv.org/board/bugs`.
+   `https://fdfpv.example/board/bugs`.
 
 `node edge/selftest.js` covers the router's own string handling without an
 account or a network: the three mounts, the trailing slash redirects, a POST
@@ -660,8 +660,8 @@ Regenerate, do not edit, the same rule as the icons:
 npm run gen:og
 
 # All three, from a checkout of each beside this one.
-node scripts/og.js . ../landingpage-WebFPVSimulator- \
-                     ../WebFPVSimulator-LeaderBoard/public
+node scripts/og.js . ../fdfpv-landing \
+                     ../fdfpv-leaderboard/public
 ```
 
 The camera is six numbers at the top of `scripts/og.js`. Change them and the
@@ -670,8 +670,8 @@ history.
 
 **Every `og:image` is an absolute URL.** A crawler does not resolve a relative
 one against the page it found it on, so each page names its own copy in full:
-`https://webfpv.org/og.png`, `https://webfpv.org/sim/og.png`,
-`https://webfpv.org/board/og.png`. Each service therefore carries its own copy
+`https://fdfpv.example/og.png`, `https://fdfpv.example/sim/og.png`,
+`https://fdfpv.example/board/og.png`. Each service therefore carries its own copy
 of the file, exactly as each carries its own icon set.
 
 **No animated card, and it is not for want of trying.** Facebook, Messenger, X,
@@ -708,8 +708,8 @@ is no build step on any of the three services, so the output is committed.
 npm run gen:icons
 
 # The other two, from a checkout of each beside this one.
-node scripts/icons.js cream ../landingpage-WebFPVSimulator-
-node scripts/icons.js mint  ../WebFPVSimulator-LeaderBoard/public
+node scripts/icons.js cream ../fdfpv-landing
+node scripts/icons.js mint  ../fdfpv-leaderboard/public
 ```
 
 **Every page names its icon, because a file at the site root is not
@@ -742,10 +742,10 @@ board on 3100.
 
 ```bash
 # One terminal, the board.
-cd WebFPVSimulator-LeaderBoard && npm install && npm start
+cd fdfpv-leaderboard && npm install && npm start
 
 # Another, the simulator.
-cd WebFPVSimulator && npm run serve
+cd fdfpv && npm run serve
 ```
 
 Then open `http://127.0.0.1:8000/`.

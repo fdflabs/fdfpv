@@ -936,7 +936,7 @@ export class Loading {
     copy.textContent = 'Copy the details';
     copy.addEventListener('click', async () => {
       const report = [
-        `WebFPV failed to start: ${message}`,
+        `FDFPV failed to start: ${message}`,
         `browser: ${probe.engine || 'unknown'} ${probe.version || ''}`.trim(),
         `webgl2: ${probe.webgl2} webgl1: ${probe.webgl1} wasm: ${probe.wasm}`,
         `storage: ${probe.storage} online: ${probe.online}`,

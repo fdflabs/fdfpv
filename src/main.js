@@ -99,7 +99,7 @@ import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/sim
  * The module's bytes, resolved against this file rather than the site root.
  *
  * It was '/dist/sim.wasm', which is the same URL as long as the shell is the
- * whole site. It is not any more: webfpv.org serves the landing page at the
+ * whole site. It is not any more: fdfpv.example serves the landing page at the
  * root and this shell under /sim/, so a leading slash asked the landing page
  * for the physics and got its 404 page back. Every other file the boot path
  * needs moved the same way and for the same reason. Nothing about the module
@@ -400,7 +400,7 @@ const MAP_MODULE_COUNT = { field: 1, city: 72, custom: 1 };
  * These stay leading-slash while the rest of the file went relative, and that
  * is not an oversight. They are never fetched. moduleCounter matches them as a
  * SUBSTRING of each performance entry's full URL, and a shell mounted at
- * https://webfpv.org/sim/ still produces names containing /src/maps/city/. */
+ * https://fdfpv.example/sim/ still produces names containing /src/maps/city/. */
 const MAP_MODULE_PREFIX = {
   field: '/src/maps/field',
   city: '/src/maps/city/',

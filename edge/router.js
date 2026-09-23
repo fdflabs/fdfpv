@@ -3,11 +3,11 @@
  *
  * THE MAP, WRITTEN DOWN ONCE.
  *
- *   https://webfpv.org/          the landing page, from GitHub Pages
- *   https://webfpv.org/sim/      the simulator, from its Render static site
- *   https://webfpv.org/board/    the board, from its Render web service
+ *   https://fdfpv.example/          the landing page, from GitHub Pages
+ *   https://fdfpv.example/sim/      the simulator, from its Render static site
+ *   https://fdfpv.example/board/    the board, from its Render web service
  *
- * Every request to webfpv.org lands here. This file picks an upstream by the
+ * Every request to fdfpv.example lands here. This file picks an upstream by the
  * first path segment, takes that segment off, and passes the rest through
  * untouched. The upstreams still serve from their own roots and do not know
  * they are mounted anywhere: /sim/dist/sim.wasm arrives at Render as
@@ -54,8 +54,8 @@
  * in a dashboard field nobody can diff.
  */
 const MOUNTS = [
-  { prefix: '/board', upstream: 'https://webfpv-board.onrender.com' },
-  { prefix: '/sim', upstream: 'https://webfpvsimulator.onrender.com' },
+  { prefix: '/board', upstream: 'https://fdfpv-board.onrender.com' },
+  { prefix: '/sim', upstream: 'https://fdfpv.onrender.com' },
 ];
 
 /*
@@ -63,11 +63,11 @@ const MOUNTS = [
  * project site out of a subdirectory, so the base carries that path and the
  * request path is appended to it.
  *
- * The landing repository must NOT carry a CNAME file naming webfpv.org. Pages
+ * The landing repository must NOT carry a CNAME file naming fdfpv.example. Pages
  * answers a CNAME by redirecting github.io to the custom domain, which would
  * come straight back here and loop until Cloudflare gave up.
  */
-const LANDING = 'https://mathew-harvey.github.io/landingpage-WebFPVSimulator-';
+const LANDING = 'https://fdflabs.github.io/fdfpv-landing';
 
 /* Every upstream host, for rewriting a Location header that names one. */
 const UPSTREAM_ORIGINS = [LANDING, ...MOUNTS.map((m) => m.upstream)]
@@ -86,7 +86,7 @@ function mountFor(pathname) {
  *
  * The base for a relative Location is the URL WE ASKED FOR, not the one the
  * visitor typed. An upstream writing `/bugs` means its own root, and resolving
- * that against https://webfpv.org/board/tickets produces https://webfpv.org/bugs,
+ * that against https://fdfpv.example/board/tickets produces https://fdfpv.example/bugs,
  * which is the landing page. Resolving it against the upstream URL instead
  * gives the board's own /bugs, which then gets the prefix put back on like any
  * other. Anything pointing off the estate, such as a link out, is left alone.
@@ -142,7 +142,7 @@ export default {
     /*
      * Rebuilt rather than forwarded whole, so that fetch sets Host from the
      * target and the upstream sees its own name. Render and Pages both route
-     * by Host, and a forwarded Host of webfpv.org is a 404 at either.
+     * by Host, and a forwarded Host of fdfpv.example is a 404 at either.
      *
      * redirect: 'manual' because a redirect has to be rewritten on the way
      * back rather than followed here, or the browser's address bar and the
@@ -177,7 +177,7 @@ export default {
      * sends for an address it cannot place. The board reads both as
      * unknown.
      */
-    headers.set('x-webfpv-country', (request.cf && request.cf.country) || 'XX');
+    headers.set('x-fdfpv-country', (request.cf && request.cf.country) || 'XX');
 
     const init = { method: request.method, headers, redirect: 'manual' };
     /*

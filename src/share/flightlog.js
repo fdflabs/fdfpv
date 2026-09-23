@@ -218,5 +218,5 @@ export function flightLogName(mapId) {
   const p = (n, w = 2) => String(n).padStart(w, '0');
   const stamp = `${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}`
     + `-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}`;
-  return `webfpv-${String(mapId || 'flight')}-${stamp}.csv`;
+  return `fdfpv-${String(mapId || 'flight')}-${stamp}.csv`;
 }

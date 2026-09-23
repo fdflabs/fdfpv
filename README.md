@@ -1,4 +1,4 @@
-# WebFPVSimulator
+# FDFPV
 
 A browser FPV simulator whose only current goal is flight feel
 indistinguishable from a real quad. Stage 1 is physics only: Betaflight
@@ -70,7 +70,7 @@ on it.
 Tracks you build stay in this browser. Clearing it, or another device,
 starts you from nothing. Publish a course from the track builder to put
 it on the public board, marks and all. The board is a separate site,
-[WebFPVSimulator-LeaderBoard](https://github.com/Mathew-Harvey/WebFPVSimulator-LeaderBoard).
+[fdfpv-leaderboard](https://github.com/fdflabs/fdfpv-leaderboard).
 Locally it serves at `http://127.0.0.1:3100/`. Fly this course from the
 board opens this simulator in another tab with `?share=` and the course
 document, including the sponsor print on the gates, the flags and the

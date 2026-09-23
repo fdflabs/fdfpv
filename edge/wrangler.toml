@@ -11,7 +11,7 @@
 # and no dependencies, and a deploy tool for one of the three services is not a
 # reason to grow node_modules. npx fetches it for the length of the command.
 
-name = "webfpv-router"
+name = "fdfpv-router"
 main = "router.js"
 compatibility_date = "2026-08-01"
 
@@ -20,11 +20,11 @@ compatibility_date = "2026-08-01"
 # what an apex with no origin server behind it needs: there is no A record to
 # point anywhere, because the Worker IS the origin.
 [[routes]]
-pattern = "webfpv.org"
+pattern = "fdfpv.example"
 custom_domain = true
 
 # www is here so that it reaches the Worker at all. The Worker's own first act
 # is to send it to the apex, so the site has one address rather than two.
 [[routes]]
-pattern = "www.webfpv.org"
+pattern = "www.fdfpv.example"
 custom_domain = true

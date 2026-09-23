@@ -57,7 +57,7 @@ export const CLIP_MS_MIN = 8000;
 const DB_NAME = 'webfpv.orbitclips.v1';
 const STORE = 'clips';
 const MAX_CLIPS = 12;
-const LOCK_NAME = 'webfpv-orbit-capture';
+const LOCK_NAME = 'fdfpv-orbit-capture';
 
 const mem = new Map();
 let dbPromise = null;

@@ -42,7 +42,7 @@ import { createHash } from 'node:crypto';
 import { startServer } from './server.js';
 import { findChrome } from './browser.js';
 
-const CACHE = process.env.SIM_CDN_CACHE || join(tmpdir(), 'webfpv-cdn');
+const CACHE = process.env.SIM_CDN_CACHE || join(tmpdir(), 'fdfpv-cdn');
 
 /* Virtual key codes for the keys the shell listens to. Chromium wants one
  * for a key event to look real to the page. */

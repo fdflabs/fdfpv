@@ -40,7 +40,7 @@
  * times posted on it, which is why it is a flag and not the default.
  *
  * usage:
- *   node scripts/boardpresets.js --board https://webfpv.org/board --dry
+ *   node scripts/boardpresets.js --board https://fdfpv.example/board --dry
  *   BOARD_ADMIN_TOKEN=... node scripts/boardpresets.js --board ... --replace
  *
  * This file is part of WebFPVSimulator.

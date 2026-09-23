@@ -10,7 +10,7 @@
  * is already there, so the simulator draws the same picture the other two do.
  *
  * PORTED, NOT REWRITTEN. The drawing code below is
- * WebFPVSimulator-LeaderBoard/public/plan.js, carried over unchanged, and
+ * fdfpv-leaderboard/public/plan.js, carried over unchanged, and
  * planFromDocument is that repository's src/validate.js. Both are GPLv3 and
  * both are ours. The pair MUST keep drawing the same picture: if a mark
  * changes shape here, change it there in the same turn, or the same course
@@ -743,7 +743,7 @@ export function drawPlan(canvas, plan, options = {}) {
 /*
  * A schema.md document, reduced to the plan the drawer above wants.
  *
- * MIRRORS planFromDocument in WebFPVSimulator-LeaderBoard/src/validate.js.
+ * MIRRORS planFromDocument in fdfpv-leaderboard/src/validate.js.
  * The board runs its copy at publish time and stores the result; this one
  * runs on the working canvas, which has never been published and so has no
  * stored plan. They must produce the same keys, or a course would change

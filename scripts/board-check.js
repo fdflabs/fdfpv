@@ -50,7 +50,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const BOARD_REPO = join(dirname(root), 'WebFPVSimulator-LeaderBoard');
+const BOARD_REPO = join(dirname(root), 'fdfpv-leaderboard');
 const PORT = 3187;
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 
@@ -163,7 +163,7 @@ async function main() {
     return 0;
   }
 
-  const dir = await mkdtemp(join(tmpdir(), 'webfpv-board-'));
+  const dir = await mkdtemp(join(tmpdir(), 'fdfpv-board-'));
   const proc = spawn(process.execPath, [join(BOARD_REPO, 'src', 'server.js')], {
     cwd: BOARD_REPO,
     env: { ...process.env, PORT: String(PORT), BOARD_FILE: join(dir, 'board.json') },

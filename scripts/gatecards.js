@@ -142,7 +142,7 @@ const SHOTS = [
   },
 ];
 
-const out = await mkdtemp(join(tmpdir(), 'webfpv-gatecards-'));
+const out = await mkdtemp(join(tmpdir(), 'fdfpv-gatecards-'));
 try {
   for (const shot of SHOTS) {
     const steps = [

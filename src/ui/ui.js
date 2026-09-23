@@ -169,7 +169,6 @@ import { ScoreHud } from './scorehud.js';
 import { formatScore } from '../game/score.js';
 import { JOKE_MS, quotedJoke } from './loading.js';
 import { fillCredits } from './credits.js';
-import { patreonAnchor } from '../share/patreon.js';
 import { mountRatesPanel } from './ratespanel.js';
 import { mountPidsPanel } from './pidspanel.js';
 import { touchWanted } from '../input/touchsticks.js';
@@ -241,7 +240,7 @@ const COURSE_PLAN_MS = 50;
 const ROOM_PARENTS = new Set(['courses', 'freestyle', 'launch', 'quad', 'pilot']);
 
 const SCREEN_TITLES = {
-  title: 'WebFPV',
+  title: 'FDFPV',
   courses: 'Race',
   freestyle: 'Freestyle',
   pilot: 'Settings',
@@ -272,7 +271,7 @@ const CRUMBS = {
   howto: ['How to fly'],
   tricks: ['Freestyle', 'Trick list'],
   credits: ['Credits'],
-  title: ['WebFPV'],
+  title: ['FDFPV'],
 };
 
 /*
@@ -1321,7 +1320,7 @@ function makeGimbal(caption) {
  * the drag set for one afternoon before the pilot flew it and named the axis
  * they actually meant, and renaming .osd-air to .osd-grav is exactly the move
  * the .corner-chip note further down this file was written in blood about:
- * webfpv.org serves index.html at max-age=0 and this script at max-age=14400,
+ * fdfpv.example serves index.html at max-age=0 and this script at max-age=14400,
  * so for four hours a returning browser pairs the NEW stylesheet with the OLD
  * script. Renamed classes leave that script writing elements no rule matches,
  * which drops an unstyled slider and an unpositioned hint card into the
@@ -1468,7 +1467,7 @@ function hintWithKeys(keys, text) {
 
 function wordmark() {
   const h = el('h1', 'wordmark');
-  h.append(document.createTextNode('WEB'), el('span', 'fpv', 'FPV'));
+  h.append(document.createTextNode('FD'), el('span', 'fpv', 'FPV'));
   return h;
 }
 
@@ -3168,16 +3167,6 @@ export class Ui {
       el('span', null, 'Expect bugs and rough edges. It is still being built, and it will improve.'),
     );
     brand.append(beta);
-    /*
-     * The support link lives HERE on the title, under the wordmark, because
-     * the title hides the top bar and the command bar's right corner is
-     * where a pilot does not look. The same node moves into the bars on
-     * every other screen.
-     */
-    this.patreonSlot = el('div', 'brand-patreon');
-    this.patreonLink = patreonAnchor();
-    this.patreonSlot.append(this.patreonLink);
-    brand.append(this.patreonSlot);
     this.titleBest = el('div', 'brand-best', '');
     brand.append(this.titleBest);
     this.keepNote = el('p', 'keep-note', 'Tracks you build stay in this browser. Clearing it, or another device, starts you from nothing. Publish a track to put it on the public board.');
@@ -5439,7 +5428,7 @@ export class Ui {
         {
           label: 'FPV wiki',
           action: 'wiki',
-          note: 'The closed loop, the plant, and every Betaflight 4.5.1 key. Opens the wiki on webfpv.org.',
+          note: 'The closed loop, the plant, and every Betaflight 4.5.1 key. Opens the wiki on fdfpv.example.',
         },
         {
           label: 'Tracks and Statistics',
@@ -6229,7 +6218,7 @@ export class Ui {
         },
         graphicsItem(s),
         { label: 'How to fly', action: 'howto' },
-        { label: 'FPV wiki', action: 'wiki', note: 'The plant, the compiled controller, and every catalog key. Opens the wiki on webfpv.org.' },
+        { label: 'FPV wiki', action: 'wiki', note: 'The plant, the compiled controller, and every catalog key. Opens the wiki on fdfpv.example.' },
         { label: 'Credits', action: 'credits', note: 'Who made this, who flew it, and whose work it stands on.' },
         { label: 'Quit to title', action: 'title' },
       ];
@@ -8920,7 +8909,7 @@ export class Ui {
         };
         const onAbort = () => finish(new DOMException('aborted', 'AbortError'));
         const onMsg = (e) => {
-          if (!e.data || e.data.type !== 'webfpv-orbit-clip') {
+          if (!e.data || e.data.type !== 'fdfpv-orbit-clip') {
             return;
           }
           if (frame.contentWindow !== e.source) {
@@ -11209,43 +11198,6 @@ export class Ui {
     return this.items().find((it) => it && it.primary && !it.disabled) || null;
   }
 
-  /*
-   * Where the support link sits.
-   *
-   * The title hides the top bar, so the link sits in the brand, under the
-   * wordmark, which is the one place on that screen a visitor reads. The
-   * bench hides the top bar too, so there it rides the command bar. Every
-   * other menu puts it in the top bar, after the breadcrumb. It is not a
-   * menu row: the lists are about the flight.
-   * Flight hides both bars, and the link with them. A support control over
-   * the FPV picture is the wrong layer.
-   */
-  placePatreon() {
-    const a = this.patreonLink;
-    if (!a) {
-      return;
-    }
-    if (this.screen === 'flight') {
-      a.hidden = true;
-      return;
-    }
-    a.hidden = false;
-    if (this.screen === 'title') {
-      if (a.parentNode !== this.patreonSlot) {
-        this.patreonSlot.append(a);
-      }
-      return;
-    }
-    if (this.screen === 'fc') {
-      if (a.parentNode !== this.frameBot || a.nextSibling !== this.framePrimary) {
-        this.frameBot.insertBefore(a, this.framePrimary);
-      }
-      return;
-    }
-    if (a.parentNode !== this.frameTop || a.nextSibling !== this.frameGap) {
-      this.frameTop.insertBefore(a, this.frameGap);
-    }
-  }
 
   /*
    * The bars, repainted whenever the screen or the cursor changes.
@@ -11258,8 +11210,8 @@ export class Ui {
     const onFlight = this.screen === 'flight';
     const bench = this.screen === 'fc';
     /* The title already IS the branding: a wordmark, a tagline and the
-     * existing chip cluster. A breadcrumb reading WEBFPV under a wordmark
-     * reading WEBFPV is a second answer to a question nobody asked, and its
+     * existing chip cluster. A breadcrumb reading FDFPV under a wordmark
+     * reading FDFPV is a second answer to a question nobody asked, and its
      * context chips land on top of the bug chip and the music dock. So the
      * top bar sits out the one screen that does not need it. */
     const titleScreen = this.screen === 'title';
@@ -11278,7 +11230,6 @@ export class Ui {
      * condition. The condition is whether the bar is there.
      */
     this.root.classList.toggle('bar-shown', !this.frameTop.hidden);
-    this.placePatreon();
     if (onFlight) {
       this.root.style.setProperty('--bar-top', '0px');
       this.root.style.setProperty('--bar-bot', '0px');

@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  WebFPVSimulator: the page. A canvas for the world, an overlay for the
+  FDFPV: the page. A canvas for the world, an overlay for the
   product shell (title, how to fly, credits, settings, pause, results, and the
   flight display). The overlay's structure is built in src/ui/ui.js; its
   styling lives here with the rest of the page's CSS.
@@ -44,7 +44,7 @@
          root now carries touch-action: manipulation, which stops the
          double-tap and keeps the pinch. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>WebFPV, a browser FPV racing simulator</title>
+    <title>FDFPV, a browser FPV racing simulator</title>
     <meta name="description" content="Fly a five inch quad in a browser, on a real Betaflight control loop compiled to WebAssembly. Build a track, set a lap, put it on the public board." />
     <!--
       A link to this page posted anywhere renders a 1200 by 630 card, and
@@ -57,22 +57,22 @@
       all flatten a link preview to one still frame; Discord is the only place
       that would animate it, which is not worth a second asset.
     -->
-    <link rel="canonical" href="https://webfpv.org/sim/" />
+    <link rel="canonical" href="https://fdfpv.example/sim/" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="WebFPV" />
-    <meta property="og:url" content="https://webfpv.org/sim/" />
-    <meta property="og:title" content="WebFPV, fly a quad in your browser" />
+    <meta property="og:site_name" content="FDFPV" />
+    <meta property="og:url" content="https://fdfpv.example/sim/" />
+    <meta property="og:title" content="FDFPV, fly a quad in your browser" />
     <meta property="og:description" content="A real Betaflight control loop compiled to WebAssembly, a race track, and a lap timer. Plug in a gamepad and go." />
-    <meta property="og:image" content="https://webfpv.org/sim/og.png" />
+    <meta property="og:image" content="https://fdfpv.example/sim/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The WebFPV simulator: a lit start gate on mown grass, a five inch quad parked beside it, flags and track markers running away under a low sun." />
+    <meta property="og:image:alt" content="The FDFPV simulator: a lit start gate on mown grass, a five inch quad parked beside it, flags and track markers running away under a low sun." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="WebFPV, fly a quad in your browser" />
+    <meta name="twitter:title" content="FDFPV, fly a quad in your browser" />
     <meta name="twitter:description" content="A real Betaflight control loop compiled to WebAssembly, a race track, and a lap timer. Plug in a gamepad and go." />
-    <meta name="twitter:image" content="https://webfpv.org/sim/og.png" />
-    <meta name="twitter:image:alt" content="The WebFPV simulator: a lit start gate on mown grass, a five inch quad parked beside it, flags and track markers running away under a low sun." />
+    <meta name="twitter:image" content="https://fdfpv.example/sim/og.png" />
+    <meta name="twitter:image:alt" content="The FDFPV simulator: a lit start gate on mown grass, a five inch quad parked beside it, flags and track markers running away under a low sun." />
 
     <!--
       The mark is four propellers, an X frame and the stack in the middle, one
@@ -1805,29 +1805,6 @@
       }
       .frame-chip b { color: var(--cream); font-weight: 600; }
       .frame-chip-key { color: var(--slate); }
-      /*
-       * Support. Patreon's symbol, in their coral, and the name in this
-       * page's type. The plate, the type and the focus ring stay in the
-       * product palette. The coral is only the mark and the hover line,
-       * the same way a borrowed wordmark on the landing page keeps its
-       * own colour and nothing else does.
-       */
-      .brand-patreon { margin-top: 14px; }
-      .brand-patreon:empty { display: none; }
-      a.patreon {
-        display: inline-flex; align-items: center; gap: 7px;
-        height: 28px; padding: 0 11px 0 8px; border-radius: 3px;
-        background: rgba(16, 22, 17, 0.72);
-        box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.16);
-        color: var(--cream);
-        font: 600 12px/1 var(--ui-font); letter-spacing: 0.02em;
-        text-decoration: none; text-transform: none;
-        pointer-events: auto; flex: 0 0 auto; white-space: nowrap;
-      }
-      a.patreon svg { width: 14px; height: 14px; display: block; }
-      a.patreon:hover { box-shadow: inset 0 0 0 1px #FF424D; color: var(--cream); }
-      a.patreon[hidden] { display: none; }
-      .screen-title a.patreon { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65); }
       .frame-legend { display: flex; align-items: center; gap: 16px; flex-wrap: nowrap; overflow: hidden; }
       .frame-legend i, .frame-legend .legend-act {
         display: flex; align-items: center; gap: 6px;
@@ -4129,7 +4106,7 @@
          THE NAME IS WRONG AND IT STAYS. Three buttons wear this class and
          only one of them is the bug chip, so it was renamed to
          .corner-chip, and that rename broke the shell twice for a live
-         pilot. Behind Cloudflare, webfpv.org serves this file with
+         pilot. Behind Cloudflare, fdfpv.example serves this file with
          max-age=0 and src/ui/ui.js with max-age=14400: the stylesheet
          updates on the next request and the script is four hours behind
          it. A class name is the contract between the two halves, so a

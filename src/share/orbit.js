@@ -98,7 +98,7 @@ async function postClip(key, mapId, blob) {
     return;
   }
   const buffer = await blob.arrayBuffer();
-  post('webfpv-orbit-clip', { key, map: mapId, mime: blob.type, buffer });
+  post('fdfpv-orbit-clip', { key, map: mapId, mime: blob.type, buffer });
 }
 
 let clipUrl = null;
@@ -174,7 +174,7 @@ async function renderAndCapture(mapId, shareId, key) {
     const payload = await fetchTrackDocument(shareId);
     const trackDoc = payload.document || payload;
     options = { document: trackDoc };
-    window.document.title = payload.name || trackDoc.name || 'WebFPV, orbit';
+    window.document.title = payload.name || trackDoc.name || 'FDFPV, orbit';
   }
 
   const shell = buildShell(canvas, { pixelRatio: 1, powerPreference: 'low-power' });
@@ -276,7 +276,7 @@ async function renderAndCapture(mapId, shareId, key) {
   window.__orbitReady = true;
   window.__orbitMap = mapId;
   window.__orbitLoopMs = loopMs;
-  post('webfpv-orbit-ready', { map: mapId, cached: false, key });
+  post('fdfpv-orbit-ready', { map: mapId, cached: false, key });
 
   let blob;
   try {
@@ -346,7 +346,7 @@ async function boot() {
       window.__orbitReady = true;
       window.__orbitMap = mapId;
       window.__orbitCached = true;
-      post('webfpv-orbit-ready', { map: mapId, cached: true, key });
+      post('fdfpv-orbit-ready', { map: mapId, cached: true, key });
       await postClip(key, mapId, cached);
       return;
     }
@@ -360,7 +360,7 @@ async function boot() {
         window.__orbitReady = true;
         window.__orbitMap = mapId;
         window.__orbitCached = true;
-        post('webfpv-orbit-ready', { map: mapId, cached: true, key });
+        post('fdfpv-orbit-ready', { map: mapId, cached: true, key });
         await postClip(key, mapId, again);
         return;
       }

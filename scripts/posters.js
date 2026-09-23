@@ -123,7 +123,7 @@ for (const m of MAPS) {
   }
 }
 
-const out = await mkdtemp(join(tmpdir(), 'webfpv-posters-'));
+const out = await mkdtemp(join(tmpdir(), 'fdfpv-posters-'));
 try {
   for (const map of targets) {
     const cam = CAMERAS[map.id];

@@ -46,7 +46,7 @@ import {
 } from './session.js';
 
 /*
- * MIRRORS layoutHash in WebFPVSimulator-LeaderBoard/src/validate.js. The
+ * MIRRORS layoutHash in fdfpv-leaderboard/src/validate.js. The
  * board decides when a layout has changed enough to clear a course's times;
  * this is the client's prediction of that answer, used to warn before
  * publishing. They must agree on WHICH KEYS count as the layout, currently

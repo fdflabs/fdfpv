@@ -49,74 +49,74 @@ function check(what, got, want) {
 
 async function hit(path, init) {
   asked = null;
-  const res = await router.fetch(new Request(`https://webfpv.org${path}`, init));
+  const res = await router.fetch(new Request(`https://fdfpv.example${path}`, init));
   return res;
 }
 
 /* The three mounts reach the three upstreams, with the prefix taken off. */
 await hit('/');
 check('/ goes to the landing page',
-  asked.url, 'https://mathew-harvey.github.io/landingpage-WebFPVSimulator-/');
+  asked.url, 'https://fdflabs.github.io/fdfpv-landing/');
 
 await hit('/assets/also-by/apphub.png');
 check('a landing asset keeps its path',
-  asked.url, 'https://mathew-harvey.github.io/landingpage-WebFPVSimulator-/assets/also-by/apphub.png');
+  asked.url, 'https://fdflabs.github.io/fdfpv-landing/assets/also-by/apphub.png');
 
 await hit('/sim/');
 check('/sim/ reaches the simulator root',
-  asked.url, 'https://webfpvsimulator.onrender.com/');
+  asked.url, 'https://fdfpv.onrender.com/');
 
 await hit('/sim/dist/sim.wasm');
 check('the wasm loses the prefix',
-  asked.url, 'https://webfpvsimulator.onrender.com/dist/sim.wasm');
+  asked.url, 'https://fdfpv.onrender.com/dist/sim.wasm');
 
 await hit('/sim/tests/lib/simmod.js');
 check('the module loader loses the prefix',
-  asked.url, 'https://webfpvsimulator.onrender.com/tests/lib/simmod.js');
+  asked.url, 'https://fdfpv.onrender.com/tests/lib/simmod.js');
 
 await hit('/sim/src/share/orbit.html?map=custom&share=abc');
 check('the orbit thumbnail keeps its query',
-  asked.url, 'https://webfpvsimulator.onrender.com/src/share/orbit.html?map=custom&share=abc');
+  asked.url, 'https://fdfpv.onrender.com/src/share/orbit.html?map=custom&share=abc');
 
 await hit('/sim/assets/music/tarmac-pulse.webm?v=3');
 check('a music url keeps its cache buster',
-  asked.url, 'https://webfpvsimulator.onrender.com/assets/music/tarmac-pulse.webm?v=3');
+  asked.url, 'https://fdfpv.onrender.com/assets/music/tarmac-pulse.webm?v=3');
 
 await hit('/board/api/tracks');
 check('the board api loses the prefix',
-  asked.url, 'https://webfpv-board.onrender.com/api/tracks');
+  asked.url, 'https://fdfpv-board.onrender.com/api/tracks');
 
 await hit('/board/bugs');
 check('the bug inbox loses the prefix',
-  asked.url, 'https://webfpv-board.onrender.com/bugs');
+  asked.url, 'https://fdfpv-board.onrender.com/bugs');
 
 /* The trailing slash redirect, which every relative url depends on. */
 const simBare = await hit('/sim');
 check('/sim redirects', String(simBare.status), '301');
-check('/sim redirects to /sim/', simBare.headers.get('location'), 'https://webfpv.org/sim/');
+check('/sim redirects to /sim/', simBare.headers.get('location'), 'https://fdfpv.example/sim/');
 check('/sim does not reach an upstream', String(asked), 'null');
 
 const boardBare = await hit('/board?x=1');
 check('/board keeps its query across the redirect',
-  boardBare.headers.get('location'), 'https://webfpv.org/board/?x=1');
+  boardBare.headers.get('location'), 'https://fdfpv.example/board/?x=1');
 
 /* www is one site, not two. */
 asked = null;
-const www = await router.fetch(new Request('https://www.webfpv.org/sim/?map=field'));
+const www = await router.fetch(new Request('https://www.fdfpv.example/sim/?map=field'));
 check('www redirects', String(www.status), '301');
 check('www becomes the apex, path and query intact',
-  www.headers.get('location'), 'https://webfpv.org/sim/?map=field');
+  www.headers.get('location'), 'https://fdfpv.example/sim/?map=field');
 check('www does not reach an upstream', String(asked), 'null');
 
 /* A name that merely starts with a mount is not that mount. */
 await hit('/simulator-notes');
 check('/simulator-notes is not the simulator',
-  asked.url, 'https://mathew-harvey.github.io/landingpage-WebFPVSimulator-/simulator-notes');
+  asked.url, 'https://fdflabs.github.io/fdfpv-landing/simulator-notes');
 
 /* Host is the upstream's, because Render and Pages both route by it. */
 await hit('/board/api/health');
 check('host is not forwarded', asked.headers.get('host'), null);
-check('the real host is forwarded aside', asked.headers.get('x-forwarded-host'), 'webfpv.org');
+check('the real host is forwarded aside', asked.headers.get('x-forwarded-host'), 'fdfpv.example');
 check('the scheme is forwarded aside', asked.headers.get('x-forwarded-proto'), 'https');
 
 /*
@@ -125,16 +125,16 @@ check('the scheme is forwarded aside', asked.headers.get('x-forwarded-proto'), '
  * this file sees the fallback, and 'XX' is what Cloudflare itself sends for
  * an address it cannot place: the board reads both as unknown.
  */
-check('the country is put on the request', asked.headers.get('x-webfpv-country'), 'XX');
+check('the country is put on the request', asked.headers.get('x-fdfpv-country'), 'XX');
 
 /*
  * AND IT IS OVERWRITTEN RATHER THAN PASSED THROUGH. A header a visitor can
  * set is a header a visitor can lie in, and this is the line that makes it
  * worth believing at the other end.
  */
-await hit('/board/api/stats/events', { headers: { 'x-webfpv-country': 'AQ' } });
+await hit('/board/api/stats/events', { headers: { 'x-fdfpv-country': 'AQ' } });
 check("a client's own country header does not survive",
-  asked.headers.get('x-webfpv-country'), 'XX');
+  asked.headers.get('x-fdfpv-country'), 'XX');
 
 /* A method and a body survive, because publishing a course is a POST. */
 await hit('/board/api/tracks', { method: 'POST', body: '{"author":"a"}' });
@@ -143,32 +143,32 @@ check('a POST stays a POST', asked.method, 'POST');
 /* A redirect from an upstream comes back inside our own namespace. */
 reply = () => new Response(null, {
   status: 302,
-  headers: { location: 'https://webfpv-board.onrender.com/bugs?open=1' },
+  headers: { location: 'https://fdfpv-board.onrender.com/bugs?open=1' },
 });
 const bounced = await hit('/board/tickets');
 check('an absolute upstream Location is remounted',
-  bounced.headers.get('location'), 'https://webfpv.org/board/bugs?open=1');
+  bounced.headers.get('location'), 'https://fdfpv.example/board/bugs?open=1');
 
 reply = () => new Response(null, { status: 302, headers: { location: '/bugs' } });
 const relative = await hit('/board/tickets');
 check('a relative upstream Location is remounted',
-  relative.headers.get('location'), 'https://webfpv.org/board/bugs');
+  relative.headers.get('location'), 'https://fdfpv.example/board/bugs');
 
 reply = () => new Response(null, {
   status: 301,
-  headers: { location: 'https://mathew-harvey.github.io/landingpage-WebFPVSimulator-/about/' },
+  headers: { location: 'https://fdflabs.github.io/fdfpv-landing/about/' },
 });
 const landing = await hit('/about');
 check('the landing subdirectory is not leaked into our address space',
-  landing.headers.get('location'), 'https://webfpv.org/about/');
+  landing.headers.get('location'), 'https://fdfpv.example/about/');
 
 reply = () => new Response(null, {
   status: 302,
-  headers: { location: 'https://github.com/Mathew-Harvey/WebFPVSimulator' },
+  headers: { location: 'https://github.com/fdflabs/fdfpv' },
 });
 const away = await hit('/sim/elsewhere');
 check('a Location pointing off the estate is left alone',
-  away.headers.get('location'), 'https://github.com/Mathew-Harvey/WebFPVSimulator');
+  away.headers.get('location'), 'https://github.com/fdflabs/fdfpv');
 
 console.log(failures ? `\n${failures} failed` : '\nedge router: all checks passed');
 process.exit(failures ? 1 : 0);
