@@ -68,14 +68,22 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *   whoop65   a 65 mm whoop: 65 mm motor to motor across the
  *             diagonal, 82.6 mm square over the ducts, 23.4 g.
  *
+ *   wing1000  a 1000 mm flying wing: the span is the number on the box,
+ *             and the diagonal reach is the winglet's trailing corner, half
+ *             a metre out and 215 mm aft of the CG because of the sweep, so
+ *             the wing reaches 44 mm further from its centre than its half
+ *             span. src/render/wingcraft.js derives the planform.
+ *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
  * is what a collider sweeps. They are different numbers about one machine
- * and both are checked.
+ * and both are checked. `wheelbaseMm` is the motor to motor figure a quad
+ * is named for; a wing has none.
  */
 const REAL = {
-  '5inch': { spanMm: 282.6, sweepMm: 347.0, tolMm: 6 },
-  whoop65: { spanMm: 82.6, sweepMm: 101.2, tolMm: 3 },
+  '5inch': { spanMm: 282.6, sweepMm: 347.0, tolMm: 6, wheelbaseMm: 220 },
+  whoop65: { spanMm: 82.6, sweepMm: 101.2, tolMm: 3, wheelbaseMm: 65 },
+  wing1000: { spanMm: 1000.0, sweepMm: 1088.6, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
@@ -242,9 +250,36 @@ async function main() {
      * multiplication are ever seen together.
      */
     const k = af.trackClass === 'micro' ? MICRO_SCALE : 1;
-    near(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach * k, real.tolMm * k);
-    near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp * k, real.tolMm * k);
-    if (af.id === '5inch') {
+    if (af.id === 'wing1000') {
+      /*
+       * THE WING'S COLLIDER IS A SLAB, AND THE DRAWN WING IS NOT ONLY A SLAB.
+       *
+       * The airframe table gives the wing a half span disc about the CG,
+       * 35 mm deep either way: the wing itself, which is what meets a gate.
+       * Two drawn things stand outside that on purpose. The swept back tips
+       * reach 44 mm further from the CG than the half span, because a
+       * 25 degree sweep puts the winglet's trailing corner 215 mm aft of
+       * the CG; and the pusher prop on its pylon stands 121 mm above the
+       * CG, with the winglets under it, where the slab stops at 35.
+       * Sweeping the disc out to the tips would make the wing 88 mm wider
+       * to the world than it is across its own span, and sweeping the slab
+       * up to the prop would make a wing that cannot pass under a bar its
+       * wing clears. Pinned at what was measured, so a model that grows
+       * past these numbers says so here.
+       */
+      pinned(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach, 44.3,
+        'the collider is the half span disc; the swept tips reach past it');
+      pinned(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp, 86.2,
+        'the collider is the wing slab; the prop and winglets stand above it');
+    } else {
+      near(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach * k, real.tolMm * k);
+      near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp * k, real.tolMm * k);
+    }
+    if (af.id === 'wing1000') {
+      /* The prop disc's bottom edge is the lowest drawn thing, and the slab
+       * reaches about as far. */
+      near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
+    } else if (af.id === '5inch') {
       pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 15.0,
         'the plant parks it 15 mm under the model, see the note above');
     } else {
@@ -278,9 +313,11 @@ async function main() {
      * where that fact lives and whoopcraft.js builds from it, so this asserts
      * the two agree and that the aircraft on screen is still a whoop.
      */
-    near(`${af.id}: wheelbase`,
-      (af.id === 'whoop65' ? WHOOP_TRUE_DIMS.arm : dims.arm) * 2000,
-      af.id === 'whoop65' ? 65 : 220, 0.5);
+    if (real.wheelbaseMm) {
+      near(`${af.id}: wheelbase`,
+        (af.id === 'whoop65' ? WHOOP_TRUE_DIMS.arm : dims.arm) * 2000,
+        real.wheelbaseMm, 0.5);
+    }
   }
 
   const w = Math.max(...rows.map((r) => r.id.length));
