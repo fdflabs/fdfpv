@@ -21,7 +21,7 @@ is DONE only when its check ran green in the same session that wrote it.
 | Stage | Status | Commit | Evidence |
 | --- | --- | --- | --- |
 | 0 Derivation | DONE | see git log | docs/WING-STAGE1.md: every number has a formula and a source, bands derived by the script at its end |
-| 1 Deterministic maths | pending | | |
+| 1 Deterministic maths | DONE | see git log | wing:math 9 of 9, 641,601 grid points within 1e-12 of the host; verify 16 of 16, quad hash de0401cd4266 unmoved |
 | 2 Wing plant | pending | | |
 | 3 Wing gates | pending | | |
 | 4 Shell and input | pending | | |

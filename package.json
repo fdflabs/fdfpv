@@ -48,6 +48,7 @@
     "identity:selftest": "node scripts/identity-selftest.js",
     "live:selftest": "node scripts/live-selftest.js",
     "strings:selftest": "node scripts/strings-selftest.js",
+    "wing:math": "node scripts/wing-math-selftest.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",

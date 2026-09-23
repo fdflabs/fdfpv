@@ -1312,6 +1312,12 @@ SIM_EXPORT int sim_step(int n) {
   return SIM_OK;
 }
 
+/* The fixed libm's atan2, exported so a test can hold it against the host's
+ * on a grid. Additive; not part of the flight ABI. */
+SIM_EXPORT double sim_math_atan2(double y, double x) {
+  return sim_atan2(y, x);
+}
+
 SIM_EXPORT int sim_state_size(void) { return SIM_STATE_DOUBLES; }
 
 SIM_EXPORT int sim_state(double *out) {

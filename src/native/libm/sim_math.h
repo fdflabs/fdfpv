@@ -46,4 +46,16 @@ static inline double sim_fabs(double x) { return x < 0.0 ? -x : x; }
 double sim_sin_small(double x);
 double sim_cos_small(double x);
 
+/*
+ * atan and atan2 for the wing's angle of attack and sideslip. atan by
+ * argument halving, atan(x) = 2 atan(x / (1 + sqrt(1 + x^2))), applied
+ * twice so |x| <= 1 lands under 0.21, then the odd Taylor series to x^15
+ * whose truncation error is under 1e-13 there. Every step is an exact
+ * IEEE operation or f64.sqrt, so the result is the same on every host.
+ * |x| > 1 goes through pi/2 - atan(1/x). atan2 fixes the quadrant the
+ * way the C library does, zeros and signed zeros included.
+ */
+double sim_atan(double x);
+double sim_atan2(double y, double x);
+
 #endif /* SIM_MATH_H */
