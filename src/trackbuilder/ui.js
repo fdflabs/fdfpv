@@ -400,7 +400,7 @@ export class Panels {
     const doc = this.host.doc;
     const ids = [...this.host.selection];
 
-    host.append(el('h3', null, ids.length === 1 ? 'Element' : (ids.length ? `${ids.length} selected` : 'Field')));
+    host.append(el('h3', null, ids.length === 1 ? str('ui.element') : (ids.length ? `${ids.length} selected` : str('ui.field'))));
 
     if (ids.length === 0) {
       this.renderFieldSettings(host, doc);
@@ -571,7 +571,7 @@ export class Panels {
     host.append(el('p', 'tb-help', str('ui.each_hole_is_its_own_gate')));
     const grid = el('div', 'tb-fig-grid');
     for (const fig of figuresFor(element)) {
-      const b = el('button', current === fig.id ? str('ui.tb_fig_card_on') : 'tb-fig-card');
+      const b = el('button', current === fig.id ? 'tb-fig-card on' : 'tb-fig-card');
       b.type = 'button';
       b.title = fig.hint;
       b.append(figureIcon(fig.id, n));
@@ -612,7 +612,7 @@ export class Panels {
     const current = logoForDecal(doc, element);
     const grid = el('div', 'tb-logo-grid');
     logos.forEach((logo, i) => {
-      const b = el('button', current === logo ? str('ui.tb_logo_card_on') : 'tb-logo-card');
+      const b = el('button', current === logo ? 'tb-logo-card on' : 'tb-logo-card');
       b.type = 'button';
       b.title = logo.name || str('app.logo', { v1: i + 1 });
       const img = el('img');
@@ -658,7 +658,7 @@ export class Panels {
     /* The class's own presets: MultiGP's four on a field, RaceGOW's two
      * legal sizes in a room. */
     for (const preset of gatePresetsFor(this.paletteClass ?? TRACK_CLASS_DEFAULT)) {
-      const b = el('button', current && current.id === preset.id ? str('ui.tb_fig_card_on') : 'tb-fig-card');
+      const b = el('button', current && current.id === preset.id ? 'tb-fig-card on' : 'tb-fig-card');
       b.type = 'button';
       b.title = preset.hint;
       b.append(el('strong', null, preset.label));
@@ -713,7 +713,7 @@ export class Panels {
     host.append(el('p', 'tb-help', str('ui.where_the_pennant_stands_on_the')));
     const grid = el('div', 'tb-side-grid');
     for (const side of FLAG_SIDES) {
-      const b = el('button', current === side ? str('ui.tb_fig_card_on') : 'tb-fig-card');
+      const b = el('button', current === side ? 'tb-fig-card on' : 'tb-fig-card');
       b.type = 'button';
       b.append(flagSideIcon(side));
       b.append(el('strong', null, FLAG_SIDE_LABEL[side]));
@@ -958,7 +958,7 @@ export class Panels {
 
     const warnings = this.host.warnings ?? [];
     const bad = warnings.filter((w) => w.level === 'warn');
-    host.append(el('h3', null, bad.length ? str('ui.warnings', { length: bad.length }) : 'Warnings'));
+    host.append(el('h3', null, bad.length ? str('ui.warnings', { length: bad.length }) : str('ui.warnings_2')));
     if (!warnings.length) {
       host.append(el('p', 'tb-help', str('ui.nothing_to_report_the_line_goes')));
     }

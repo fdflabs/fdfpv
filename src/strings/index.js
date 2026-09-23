@@ -34,7 +34,9 @@
 import en from './en.js';
 
 export const LANG_KEY = 'webfpv.lang';
-export const LOCALES = ['en'];
+export const LOCALES = ['en', 'es'];
+/* Each language's name in itself: what the Language row shows. */
+export const LOCALE_NAMES = { en: 'English', es: 'Español' };
 
 const tables = { en };
 let locale = 'en';
@@ -85,6 +87,15 @@ export async function useLocale(id) {
     }
   }
   return setLocale(want);
+}
+
+/* Remember a choice. The page reloads to take it, because screen titles and
+ * menu rows are built from the table when their modules load. */
+export function rememberLocale(id) {
+  try {
+    localStorage.setItem(LANG_KEY, id);
+  } catch (e) {
+  }
 }
 
 /* The locale a page should start in. */

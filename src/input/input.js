@@ -289,10 +289,10 @@ function padKey(gp) {
 }
 
 function shortPadName(id) {
-  let name = String(id || 'Joystick').replace(/\s+/g, ' ').trim();
+  let name = String(id || str('input.joystick_3')).replace(/\s+/g, ' ').trim();
   name = name.replace(/\s*\(Vendor:.*$/i, '').trim();
   if (name.length < 4) {
-    name = String(id || 'Joystick').trim() || 'Joystick';
+    name = String(id || str('input.joystick_3')).trim() || str('input.joystick_3');
   }
   if (name.length > 44) {
     return `${name.slice(0, 42)}...`;
@@ -640,7 +640,7 @@ function calTitle(c) {
     pitch: 'Pitch',
     yaw: 'Yaw',
     select: str('ui.menu_switch'),
-    confirm: c.checkOnly ? str('ui.check_sticks') : 'Check',
+    confirm: c.checkOnly ? str('ui.check_sticks') : str('input.check'),
   }[c.step] || '';
 }
 
@@ -1459,7 +1459,7 @@ export class InputManager {
       prompt = str('input.use', { title: chosen.title });
       hint = str('input.yes_keeps_it_no_waits_for');
     }
-    const skipLabel = p.reason === 'menu' ? 'Cancel' : str('ui.use_keyboard_instead');
+    const skipLabel = p.reason === 'menu' ? str('ui.cancel') : str('ui.use_keyboard_instead');
     return {
       phase: p.phase,
       reason: p.reason,

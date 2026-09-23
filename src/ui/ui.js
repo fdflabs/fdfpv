@@ -176,7 +176,7 @@ import {
   downloadCli, drawAttitude, FcSession, paintPageStrip, paintTabStrip,
 } from './fc.js';
 import { FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY } from '../fc/dump.js';
-import { str } from '../strings/index.js';
+import { str, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } from '../strings/index.js';
 /*
  * The pilot's own tracks live in this browser, and the Track room lists
  * them now, so the shell reads the same library the builder's Load dialog
@@ -258,20 +258,20 @@ const SCREEN_TITLES = {
   credits: 'Credits',
 };
 const CRUMBS = {
-  courses: ['Race'],
-  freestyle: ['Freestyle'],
-  pilot: ['Settings'],
-  quad: ['Quad'],
+  courses: [str('ui.race')],
+  freestyle: [str('ui.freestyle')],
+  pilot: [str('ui.settings')],
+  quad: [str('ui.quad')],
   launch: [str('ui.before_you_fly')],
-  standings: ['Race', 'Standings'],
-  rates: ['Settings', 'Rates'],
-  pids: ['Quad', 'PIDs'],
-  fc: ['Quad', str('ui.firmware_bench')],
-  paused: ['Paused'],
+  standings: [str('ui.race'), str('ui.standings')],
+  rates: [str('ui.settings'), str('ui.rates')],
+  pids: [str('ui.quad'), 'PIDs'],
+  fc: [str('ui.quad'), str('ui.firmware_bench')],
+  paused: [str('ui.paused')],
   results: [str('ui.run_complete')],
   howto: [str('ui.how_to_fly')],
-  tricks: ['Freestyle', str('ui.trick_list')],
-  credits: ['Credits'],
+  tricks: [str('ui.freestyle'), str('ui.trick_list')],
+  credits: [str('ui.credits')],
   title: ['FDFPV'],
 };
 
@@ -1537,7 +1537,7 @@ function scoreableTricks() {
     out.push({
       name: pat.name,
       points: t.points,
-      category: t.category || 'Other',
+      category: t.category || str('bugs.other'),
       difficulty: t.difficulty || '',
       steps: pat.steps,
       /* How reliably the sweep landed it. See trickStatus. */
@@ -1563,13 +1563,13 @@ function scoreableTricks() {
 function trickStatus(t) {
   if (t.proven.landed >= t.proven.runs) {
     return {
-      tag: 'Reliable',
+      tag: str('ui.reliable'),
       line: str('ui.scored_on_all_test_flights_across', { runs: t.proven.runs })
         + str('ui.angles_and_three_degrees_of_overshoot'),
     };
   }
   return {
-    tag: 'Fussy',
+    tag: str('ui.fussy'),
     line: str('ui.scored_on_of_test_flights_so', { landed: t.proven.landed, runs: t.proven.runs })
       + str('ui.it_wants_flying_cleanly_to_register'),
   };
@@ -1635,7 +1635,7 @@ function seatIsRace(s) {
  * run and the only place it can still change anything.
  */
 function recordSentence(s, trackName) {
-  const style = s.flightStyle === 'arcade' ? 'Arcade' : 'Expert';
+  const style = s.flightStyle === 'arcade' ? str('ui.arcade') : str('ui.expert');
   const link = s.link === 'perfect' ? str('ui.a_perfect_link') : LINK_PRESETS[s.link].label;
   const bits = [
     `${style} physics`,
@@ -2325,7 +2325,7 @@ function tunePickItem(s, midRun) {
     : str('ui.stock_is_the_only_tune_shipped', { fc: SCREEN_TITLES.fc, name: CUSTOM_TUNE.name });
   return {
     ...choice(
-      'Tune',
+      str('ui.tune'),
       str('ui.everything_below_belongs_to_this_one', { door, v2: midRun ? MID_RUN_WARNING : '' }),
       ids,
       s.tune,
@@ -2367,7 +2367,7 @@ function craftItem(s, midRun) {
   const af = airframeById(s.airframe);
   const other = AIRFRAMES.find((a) => a.id !== s.airframe) || af;
   return choice(
-    'Aircraft',
+    str('ui.aircraft'),
     str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v2: other.trackClass === 'micro' ? str('ui.sixty_metre_field_and_a_living') : str('ui.living_room_and_a_sixty_metre'), v3: midRun ? MID_RUN_WARNING : '' }),
     AIRFRAME_IDS,
     s.airframe,
@@ -2436,7 +2436,7 @@ function feelItem() {
 function graphicsItem(s) {
   const id = normalizeGraphics(s.graphics);
   return choice(
-    'Graphics',
+    str('ui.graphics'),
     graphicsNote(id),
     GRAPHICS_IDS,
     id,
@@ -2449,7 +2449,7 @@ function gpuItem(info) {
   if (!info) {
     return {
       label: str('ui.gpu'),
-      value: 'Detecting',
+      value: str('ui.detecting'),
       note: str('ui.read_from_the_webgl_context_that'),
       info: true,
     };
@@ -2580,31 +2580,31 @@ function craftSvg(a) {
   if (ducted) {
     /* The tub: the webs first so the rings sit on top of them. */
     parts.push(`<rect x="${c - off}" y="${c - off}" width="${off * 2}" height="${off * 2}"`
-      + str('ui.rx_fill_none_stroke_currentcolor_stroke', { v1: prop * 0.35, v2: prop * 0.42 })
+      + ` rx="${prop * 0.35}" fill="none" stroke="currentColor" stroke-width="${prop * 0.42}"`
       + ' stroke-opacity="0.30"/>');
     parts.push(`<line x1="${c - off}" y1="${c - off}" x2="${c + off}" y2="${c + off}"`
-      + str('ui.stroke_currentcolor_stroke_width_stroke_opacity', { v1: prop * 0.34 }));
+      + ` stroke="currentColor" stroke-width="${prop * 0.34}" stroke-opacity="0.24"/>`);
     parts.push(`<line x1="${c - off}" y1="${c + off}" x2="${c + off}" y2="${c - off}"`
-      + str('ui.stroke_currentcolor_stroke_width_stroke_opacity', { v1: prop * 0.34 }));
+      + ` stroke="currentColor" stroke-width="${prop * 0.34}" stroke-opacity="0.24"/>`);
   } else {
     for (const [mx, mz] of motors) {
       parts.push(`<line x1="${c}" y1="${c}" x2="${c + mx}" y2="${c + mz}"`
-        + str('ui.stroke_currentcolor_stroke_width_stroke_opacity_2', { v1: prop * 0.20 }));
+        + ` stroke="currentColor" stroke-width="${prop * 0.20}" stroke-opacity="0.55"/>`);
     }
     parts.push(`<rect x="${c - 22}" y="${c - 38}" width="44" height="76" rx="10"`
-      + str('ui.fill_currentcolor_fill_opacity_0_30'));
+      + ' fill="currentColor" fill-opacity="0.30"/>');
   }
   for (const [mx, mz] of motors) {
     if (ducted) {
       /* The duct wall, then the bore, so a ring reads as a ring. */
       parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${hull}"`
-        + str('ui.fill_currentcolor_fill_opacity_0_34'));
+        + ' fill="currentColor" fill-opacity="0.34"/>');
       parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${prop}"`
-        + str('ui.fill_none_stroke_currentcolor_stroke_width'));
+        + ' fill="none" stroke="currentColor" stroke-width="1.1" stroke-opacity="0.85"/>');
     } else {
       parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${prop}"`
-        + str('ui.fill_currentcolor_fill_opacity_0_16')
-        + str('ui.stroke_currentcolor_stroke_width_1_4'));
+        + ' fill="currentColor" fill-opacity="0.16"'
+        + ' stroke="currentColor" stroke-width="1.4" stroke-opacity="0.8"/>');
     }
   }
   if (ducted) {
@@ -2617,9 +2617,9 @@ function craftSvg(a) {
      * the craft frame and on this drawing.
      */
     parts.push(`<rect x="${c - 9}" y="${c - 9}" width="18" height="18" rx="2"`
-      + str('ui.fill_currentcolor_fill_opacity_0_42'));
+      + ' fill="currentColor" fill-opacity="0.42"/>');
     parts.push(`<rect x="${c - 7}" y="${c - 17}" width="14" height="11" rx="2"`
-      + str('ui.fill_currentcolor_fill_opacity_0_72'));
+      + ' fill="currentColor" fill-opacity="0.72"/>');
   }
   return `<svg viewBox="0 0 ${VB} ${VB}" role="img" aria-hidden="true"`
     + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
@@ -2681,7 +2681,7 @@ const WAYS = [
      * promised three times the angular acceleration, which was true of a
      * plant nothing selects now. */
     blurb: str('ui.the_same_clock_indoors_a_65'),
-    facts: ['Indoors', '65 mm', '5 inch feel'],
+    facts: [str('ui.indoors'), '65 mm', '5 inch feel'],
   },
   {
     id: 'freestyle-5inch',
@@ -3731,7 +3731,7 @@ export class Ui {
      * and a pilot can see that they are on the wrong hands. */
     this.calModeBtn = btn('name-dialog-btn', str('ui.swap_stick_mode'));
     this.calModeBtn.hidden = true;
-    this.calSaveBtn = btn(str('ui.name_dialog_btn_on'), str('ui.save_mapping'));
+    this.calSaveBtn = btn('name-dialog-btn on', str('ui.save_mapping'));
     this.calSaveBtn.disabled = true;
     this.calCancelBtn.addEventListener('click', () => this.act('calibrate-cancel'));
     this.calSkipBtn.addEventListener('click', () => this.act('calibrate-skip'));
@@ -3764,7 +3764,7 @@ export class Ui {
     this.padHint = el('p', 'cal-hint', '');
     this.padCards = el('div', 'pad-cards');
     const padBtns = el('div', 'cal-actions pad-actions');
-    this.padYesBtn = btn(str('ui.name_dialog_btn_on'), str('ui.yes_use_this'));
+    this.padYesBtn = btn('name-dialog-btn on', str('ui.yes_use_this'));
     this.padNoBtn = btn('name-dialog-btn', str('ui.no_not_this_one'));
     this.padSkipBtn = btn('name-dialog-btn', str('ui.use_keyboard_instead'));
     this.padYesBtn.addEventListener('click', () => this.act('padpick-yes'));
@@ -3783,7 +3783,7 @@ export class Ui {
     );
     this.screens.padpick = padpick;
     this.padCardNodes = new Map();
-    this.padInfo = { count: 0, using: 'Keyboard' };
+    this.padInfo = { count: 0, using: str('ui.keyboard') };
     this.padPickReason = 'boot';
     this.padPickPhase = 'wiggle';
 
@@ -4062,7 +4062,7 @@ export class Ui {
         inputs.push({ spec, field });
       }
       const row = el('div', 'name-dialog-row');
-      const save = btn(str('ui.name_dialog_btn_on'), confirmLabel || 'Save');
+      const save = btn('name-dialog-btn on', confirmLabel || str('ui.save'));
       const cancel = btn('name-dialog-btn', str('ui.cancel'));
       row.append(save, cancel);
       box.append(err, row);
@@ -4157,7 +4157,7 @@ export class Ui {
     return this.askForm({
       title: str('ui.name_this_preset'),
       detail: RATES_STORAGE_WARNING,
-      confirmLabel: taken ? 'Replace' : 'Save',
+      confirmLabel: taken ? str('app.replace') : str('ui.save'),
       fields: [{
         key: 'name',
         label: '',
@@ -4188,7 +4188,7 @@ export class Ui {
         box.append(el('p', 'lede', detail));
       }
       const row = el('div', 'name-dialog-row');
-      const yesBtn = btn(str('ui.name_dialog_btn_on'), yes || 'Yes');
+      const yesBtn = btn('name-dialog-btn on', yes || 'Yes');
       const noBtn = btn('name-dialog-btn', no || 'No');
       row.append(noBtn, yesBtn);
       box.append(row);
@@ -4346,7 +4346,7 @@ export class Ui {
       str('ui.you_have_written_something_that_has'),
     ));
     const row = el('div', 'name-dialog-row');
-    const send = btn(str('ui.name_dialog_btn_on'), str('ui.send_it'));
+    const send = btn('name-dialog-btn on', str('ui.send_it'));
     const keep = btn('name-dialog-btn', str('ui.keep_editing'));
     const drop = btn('name-dialog-btn danger', str('ui.discard'));
     row.append(send, keep, drop);
@@ -4729,7 +4729,7 @@ export class Ui {
 
     const err = el('p', 'name-dialog-err', '');
     const row = el('div', 'name-dialog-row');
-    const send = btn(str('ui.name_dialog_btn_on'), str('ui.send'));
+    const send = btn('name-dialog-btn on', str('ui.send'));
     const cancel = btn('name-dialog-btn', str('ui.cancel'));
     row.append(send, cancel);
     box.append(
@@ -4849,7 +4849,7 @@ export class Ui {
           str('ui.ticket_is_on_the_board_thanks', { id: posted.id }),
         ));
         const doneRow = el('div', 'name-dialog-row');
-        const close = btn(str('ui.name_dialog_btn_on'), str('ui.close'));
+        const close = btn('name-dialog-btn on', str('ui.close'));
         close.addEventListener('click', () => finish(posted));
         doneRow.append(close);
         box.append(doneRow);
@@ -5059,7 +5059,7 @@ export class Ui {
 
     const err = el('p', 'name-dialog-err', '');
     const row = el('div', 'name-dialog-row');
-    const send = btn(str('ui.name_dialog_btn_on'), str('ui.send'));
+    const send = btn('name-dialog-btn on', str('ui.send'));
     const dismiss = btn('name-dialog-btn', str('ui.not_now'));
     row.append(send, dismiss);
     box.append(
@@ -5177,7 +5177,7 @@ export class Ui {
           str('ui.landed_with_your_tune_and_rates'),
         ));
         const doneRow = el('div', 'name-dialog-row');
-        const close = btn(str('ui.name_dialog_btn_on'), str('ui.close'));
+        const close = btn('name-dialog-btn on', str('ui.close'));
         close.addEventListener('click', () => finish(posted));
         doneRow.append(close);
         box.append(doneRow);
@@ -5398,7 +5398,7 @@ export class Ui {
             ? str('ui.levelled_off_with_the_sticks_drawn', { name: seat.name })
             : str('ui.levelled_off_with_the_sticks_drawn_2'),
         }
-        : { label: 'Fly', action: 'fly', primary: true };
+        : { label: str('ui.fly'), action: 'fly', primary: true };
       return [
         ...(trouble ? [trouble] : []),
         flyRow,
@@ -5699,7 +5699,7 @@ export class Ui {
          */
         {
           ...choice(
-            'Scoring',
+            str('ui.scoring'),
             scoringNote(s.freestyleScoring),
             FREESTYLE_SCORING,
             s.freestyleScoring,
@@ -5765,7 +5765,7 @@ export class Ui {
             : str('ui.expert_the_full_physics_propwash_gyro'),
           FLIGHT_STYLES,
           s.flightStyle === 'arcade' ? 'arcade' : 'expert',
-          (id) => (id === 'arcade' ? 'Arcade' : 'Expert'),
+          (id) => (id === 'arcade' ? str('ui.arcade') : str('ui.expert')),
           (id) => { s.flightStyle = id; },
         ),
         { label: str('ui.back'), action: 'back' },
@@ -5854,7 +5854,7 @@ export class Ui {
           str('ui.acro_sticks_are_rates_hands_off_2'),
           FLIGHT_MODES,
           s.flightMode === 'angle' ? 'angle' : 'acro',
-          (id) => (id === 'angle' ? 'Angle' : 'Acro'),
+          (id) => (id === 'angle' ? str('ui.angle') : str('ui.acro')),
           (id) => { s.flightMode = id; },
         ),
         toggle(
@@ -5901,6 +5901,17 @@ export class Ui {
       const midRun = this.returnTo === 'paused';
       return [
         { label: 'You', section: true },
+        choice(
+          str('ui.language'),
+          str('ui.language_note'),
+          LOCALES,
+          currentLocale(),
+          (id) => LOCALE_NAMES[id] || id,
+          (id) => {
+            rememberLocale(id);
+            window.location.reload();
+          },
+        ),
         {
           label: str('ui.your_name'),
           value: name || str('ui.not_set'),
@@ -5923,7 +5934,8 @@ export class Ui {
         { label: str('ui.sticks'), section: true },
         {
           label: str('ui.choose_joystick'),
-          value: (this.padInfo && this.padInfo.using) || 'Keyboard',
+          /* 'Keyboard' is the pad picker's own sentinel, shown in the pilot's language. */
+          value: (this.padInfo && this.padInfo.using && this.padInfo.using !== 'Keyboard') ? this.padInfo.using : str('ui.keyboard'),
           action: 'choosepad',
           note: padChooseNote(this.padInfo),
         },
@@ -5997,7 +6009,7 @@ export class Ui {
           str('ui.fewer_pixels_then_stretched_to_fit'),
           RENDER_SCALES,
           s.renderScale,
-          (n) => (n >= 100 ? 'Native' : `${n}%`),
+          (n) => (n >= 100 ? str('ui.native') : `${n}%`),
           (n) => { s.renderScale = n; },
         ),
         choice(
@@ -6005,22 +6017,22 @@ export class Ui {
           str('ui.caps_how_often_the_world_is'),
           FPS_CAPS,
           s.fpsCap,
-          (n) => (n === 0 ? 'Uncapped' : `${n} fps`),
+          (n) => (n === 0 ? str('ui.uncapped') : `${n} fps`),
           (n) => { s.fpsCap = n; },
         ),
         { label: str('ui.sound'), section: true },
-        toggle('Sound', str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
-        stepper('Volume', str('ui.overall_level_zero_to_ten'), `${s.volume}`, (d) => {
+        toggle(str('ui.sound'), str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
+        stepper(str('ui.volume'), str('ui.overall_level_zero_to_ten'), `${s.volume}`, (d) => {
           s.volume = Math.max(0, Math.min(10, s.volume + d));
         }),
-        stepper('Motors', str('ui.the_blade_pass_tone_you_fly'), `${s.motorLevel}`, (d) => {
+        stepper(str('catalog.motors'), str('ui.the_blade_pass_tone_you_fly'), `${s.motorLevel}`, (d) => {
           s.motorLevel = Math.max(0, Math.min(10, s.motorLevel + d));
         }),
-        stepper('Wind', str('ui.air_over_the_airframe_rises_with'), `${s.windLevel}`, (d) => {
+        stepper(str('ui.wind'), str('ui.air_over_the_airframe_rises_with'), `${s.windLevel}`, (d) => {
           s.windLevel = Math.max(0, Math.min(10, s.windLevel + d));
         }),
         stepper(
-          'Music',
+          str('ui.music'),
           str('ui.recorded_tracks_in_flight_and_a'),
           s.musicLevel > 0 ? `${s.musicLevel}` : 'Off',
           (d) => { s.musicLevel = Math.max(0, Math.min(10, s.musicLevel + d)); },
@@ -6032,7 +6044,7 @@ export class Ui {
             : str('ui.what_flies_this_track_loops_until'),
           ids,
           s.musicTrack,
-          (id) => (id === 'rotation' ? 'Rotation' : trackById(id).name),
+          (id) => (id === 'rotation' ? str('ui.rotation') : trackById(id).name),
           (id) => { s.musicTrack = id; },
         ),
         toggle(
@@ -6141,7 +6153,7 @@ export class Ui {
         },
         { label: str('ui.what_this_run_counts_as'), section: true },
         choice(
-          'Laps',
+          str('ui.laps'),
           str('ui.how_many_laps_a_run_lasts'),
           LAP_COUNTS,
           s.laps,
@@ -6163,7 +6175,7 @@ export class Ui {
             : str('ui.expert_the_full_physics_propwash_gyro_2'),
           FLIGHT_STYLES,
           s.flightStyle === 'arcade' ? 'arcade' : 'expert',
-          (id) => (id === 'arcade' ? 'Arcade' : 'Expert'),
+          (id) => (id === 'arcade' ? str('ui.arcade') : str('ui.expert')),
           (id) => { s.flightStyle = id; },
         ),
         choice(
@@ -6182,7 +6194,7 @@ export class Ui {
         ...this.ghostItems(),
         ...this.liveItems(),
         {
-          label: 'Fly',
+          label: str('ui.fly'),
           action: 'launch-go',
           primary: true,
           note: recordSentence(s, trackName),
@@ -6428,7 +6440,7 @@ export class Ui {
       const loaded = presetMatching(r);
       const presetValue = loaded
         ? loaded.name
-        : (ratesAreDefault(r) ? 'Stock' : str('ui.not_saved'));
+        : (ratesAreDefault(r) ? str('ui.stock') : str('ui.not_saved'));
       const presetRow = presets.length === 0
         ? {
           label: str('ui.preset'),
@@ -6438,7 +6450,7 @@ export class Ui {
         }
         : {
           ...choice(
-            'Preset',
+            str('ui.preset'),
             str('ui.loading_one_sets_every_number_below', { v1: presets.length === 1 ? str('ui.one_saved_profile') : `${presets.length} saved profiles`, RATES_STORAGE_WARNING }),
             presets.map((p) => p.id),
             loaded ? loaded.id : '',
@@ -6478,7 +6490,7 @@ export class Ui {
             }
           },
         ),
-        { label: split ? 'Roll' : str('ui.roll_and_pitch'), section: true },
+        { label: split ? str('ratespanel.roll') : str('ui.roll_and_pitch'), section: true },
         ...axisRows('roll'),
         ...(split ? [{ label: str('ui.pitch'), section: true }, ...axisRows('pitch')] : []),
         { label: 'Yaw', section: true },
@@ -6675,7 +6687,7 @@ export class Ui {
         }
         if (expert) {
           for (const axis of PID_AXES) {
-            rows.push({ label: axis === 'roll' ? 'Roll' : axis === 'pitch' ? 'Pitch' : 'Yaw', section: true });
+            rows.push({ label: axis === 'roll' ? str('ratespanel.roll') : axis === 'pitch' ? str('ui.pitch') : 'Yaw', section: true });
             for (const f of PID_FIELDS) {
               rows.push(pidRow(axis, f));
             }
@@ -7063,7 +7075,7 @@ export class Ui {
 
   syncFcDirty() {
     if (this.fcDirty) {
-      this.fcDirty.textContent = this.fc.dirty() ? 'Unsaved' : '';
+      this.fcDirty.textContent = this.fc.dirty() ? str('ui.unsaved') : '';
     }
     this.syncFcExit();
   }
@@ -7087,7 +7099,7 @@ export class Ui {
       this.fcSaveExit.hidden = !dirty;
     }
     if (this.fcLeave) {
-      this.fcLeave.textContent = dirty ? str('ui.exit_without_saving') : 'Exit';
+      this.fcLeave.textContent = dirty ? str('ui.exit_without_saving') : str('ui.exit');
     }
     if (this.fcExitCopy) {
       this.fcExitCopy.textContent = dirty ? 'exits without saving' : 'returns';
@@ -10018,7 +10030,7 @@ export class Ui {
       totalRow(
         opts.trackClass === 'micro' && three != null && three === total
           ? str('ui.best_three_consecutive')
-          : (clean.length === log.length ? 'Total' : str('ui.clean_laps_total')),
+          : (clean.length === log.length ? str('ui.total') : str('ui.clean_laps_total')),
         total,
       );
     }
@@ -10381,7 +10393,7 @@ export class Ui {
          * the readout cannot be mistaken for a lap time. */
         const ahead = ghostGapMs <= 0;
         const gap = `${ahead ? '-' : '+'}${(Math.abs(ghostGapMs) / 1000).toFixed(2)}`;
-        Ui.text(this.osdGhost, `${ghostFinal ? str('ui.ghost_lap') : 'Ghost'} ${gap}`);
+        Ui.text(this.osdGhost, `${ghostFinal ? str('ui.ghost_lap') : str('ui.ghost')} ${gap}`);
         Ui.klass(this.osdGhost, `osd-ghost ${ahead ? 'ahead' : 'behind'}`);
       }
     }
@@ -10389,10 +10401,10 @@ export class Ui {
     Ui.text(this.osdSpeed, str('ui.km_h', { speedKph: speedKph.toFixed(0) }));
     if (this.osdFlight) {
       Ui.text(this.osdFlight, flightMode === 'turtle'
-        ? 'Turtle'
+        ? str('ui.turtle')
         : (launchState === 1 || launchState === 2
-          ? 'Launch'
-          : (flightMode === 'angle' ? 'Angle' : 'Acro')));
+          ? str('ui.launch_2')
+          : (flightMode === 'angle' ? str('ui.angle') : str('ui.acro'))));
     }
     if (this.osdLaunch) {
       const on = launchState > 0;
@@ -10862,7 +10874,7 @@ export class Ui {
         /* Named, and it says which way it is going: a pilot who has already
          * pressed it once needs to know this puts it back. */
         const on = view.reverse && view.reverse[view.moving];
-        Ui.text(this.calRevBtn, `${on ? 'Un-reverse' : 'Reverse'} ${view.moving}`);
+        Ui.text(this.calRevBtn, `${on ? 'Un-reverse' : str('ui.reverse')} ${view.moving}`);
       }
     }
     if (this.calModeBtn) {
@@ -10945,7 +10957,7 @@ export class Ui {
 
   setPadInfo(info) {
     const was = padTroubleItem(this.padInfo);
-    this.padInfo = info || { count: 0, using: 'Keyboard' };
+    this.padInfo = info || { count: 0, using: str('ui.keyboard') };
     /*
      * A TROUBLE ROW THAT APPEARS MID SESSION HAS TO ASK FOR THE PAINT.
      *
@@ -11021,7 +11033,7 @@ export class Ui {
       node.name.textContent = pad.name;
       node.status.textContent = pad.chosen
         ? str('ui.use_this_one')
-        : (pad.live ? 'Moving' : 'Resting');
+        : (pad.live ? str('ui.moving') : str('ui.resting'));
       node.card.classList.toggle('is-live', pad.live && !pad.chosen);
       node.card.classList.toggle('is-on', pad.chosen);
       const ax = pad.axes || [0, 0, 0, 0];
@@ -11095,7 +11107,7 @@ export class Ui {
     if (String(st.source).includes('keyboard')) {
       return [{
         label: str('ui.stick_path'),
-        value: 'Keyboard',
+        value: str('ui.keyboard'),
         info: true,
         note: str('ui.a_key_is_not_a_stick'),
       }];
@@ -11127,7 +11139,7 @@ export class Ui {
     }
     return [{
       label: str('ui.stick_path'),
-      value: padHz > 0 ? str('ui.radio_hz', { padHz }) : 'Radio',
+      value: padHz > 0 ? str('ui.radio_hz', { padHz }) : str('ui.radio'),
       info: true,
       rowClass: tracksFrames ? 'row-warn' : undefined,
       note: bits.join(' '),

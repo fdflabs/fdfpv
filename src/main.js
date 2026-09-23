@@ -1300,7 +1300,7 @@ export async function boot({ loading, bootStart, mapId }) {
       syncLiveRow();
       return;
     }
-    liveLink.join({ origin: listing.board, trackId: listing.shareId, name: readPilotName() || 'Pilot' });
+    liveLink.join({ origin: listing.board, trackId: listing.shareId, name: readPilotName() || str('ui.pilot') });
     syncLiveRow();
   }
 
@@ -1314,8 +1314,8 @@ export async function boot({ loading, bootStart, mapId }) {
     let value = 'Off';
     if (on) {
       value = state === 'open'
-        ? (livePeers.size ? `${livePeers.size} here` : 'Alone')
-        : (state === 'failed' ? str('main.no_room') : 'Joining');
+        ? (livePeers.size ? `${livePeers.size} here` : str('main.alone'))
+        : (state === 'failed' ? str('main.no_room') : str('main.joining'));
     }
     ui.setLiveRow({
       value,
@@ -1378,9 +1378,9 @@ export async function boot({ loading, bootStart, mapId }) {
 
   function ghostLabelFor(lap) {
     if (lap.source === 'board') {
-      return `${lap.name || 'Rival'}  ${formatTime(lap.durationMs)}`;
+      return `${lap.name || str('main.rival')}  ${formatTime(lap.durationMs)}`;
     }
-    return `${lap.label === 'Session best' ? 'Best' : 'Last'}  ${formatTime(lap.durationMs)}`;
+    return `${lap.label === 'Session best' ? str('main.best') : str('main.last')}  ${formatTime(lap.durationMs)}`;
   }
 
   /* What the current choice resolves to right now, or null. Session slots
@@ -4332,7 +4332,7 @@ export async function boot({ loading, bootStart, mapId }) {
     const values = await ui.askForm({
       title: updating ? str('ui.update_this_track') : str('ui.publish_this_track'),
       detail,
-      confirmLabel: updating ? str('main.update_the_board') : 'Publish',
+      confirmLabel: updating ? str('main.update_the_board') : str('app.publish'),
       fields: [
         {
           key: 'course',

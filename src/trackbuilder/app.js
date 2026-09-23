@@ -1608,8 +1608,8 @@ export class App {
       return b;
     };
 
-    this.undoBtn = btn('Undo', () => this.undo(), str('app.control_z'));
-    this.redoBtn = btn('Redo', () => this.redo(), str('app.control_shift_z'));
+    this.undoBtn = btn(str('app.undo_2'), () => this.undo(), str('app.control_z'));
+    this.redoBtn = btn(str('app.redo_2'), () => this.redo(), str('app.control_shift_z'));
     this.mode2d = btn('2D', () => this.setMode('2d'), str('app.top_down_authoring_view'));
     this.mode3d = btn('3D', () => this.setMode('3d'), str('app.preview_drag_an_element_to_change'));
     /* Plain, not primary. There is one green button on this bar and it is
@@ -1638,7 +1638,7 @@ export class App {
      * fly the wrong track once.
      */
     this.flyBtn = btn(str('ui.fly_this_track'), () => this.flyThisTrack(), str('app.build_the_world_around_this_track'), 'tb-btn tb-primary');
-    this.publishBtn = btn('Publish', () => this.openPublish(), str('app.put_this_track_on_the_public'));
+    this.publishBtn = btn(str('app.publish'), () => this.openPublish(), str('app.put_this_track_on_the_public'));
     this.listingChip = document.createElement('span');
     this.listingChip.className = 'tb-listing';
 
@@ -1663,7 +1663,7 @@ export class App {
      */
     this.moreWrap = document.createElement('div');
     this.moreWrap.className = 'tb-more';
-    this.moreBtn = btn('More', () => this.toggleMore(), str('app.import_export_duplicate_delete'));
+    this.moreBtn = btn(str('app.more'), () => this.toggleMore(), str('app.import_export_duplicate_delete'));
     this.moreMenu = document.createElement('div');
     this.moreMenu.className = 'tb-more-menu';
     this.moreMenu.hidden = true;
@@ -1731,8 +1731,8 @@ export class App {
       name,
       group(
         btn('New', () => this.newTrack(), str('app.start_a_blank_track')),
-        btn('Save', () => this.save(), str('app.control_s')),
-        btn('Load', () => this.openLoad()),
+        btn(str('ui.save'), () => this.save(), str('app.control_s')),
+        btn(str('app.load'), () => this.openLoad()),
       ),
       this.moreWrap,
     );
@@ -1878,7 +1878,7 @@ export class App {
     const close = document.createElement('button');
     close.type = 'button';
     close.className = 'tb-btn';
-    close.textContent = actions.length ? 'Cancel' : 'Close';
+    close.textContent = actions.length ? str('ui.cancel') : str('ui.close');
     close.addEventListener('click', () => this.closeModal());
     row.append(close);
     box.append(row);

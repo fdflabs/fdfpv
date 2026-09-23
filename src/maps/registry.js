@@ -51,7 +51,7 @@ import { str } from '../strings/index.js';
 export const MAPS = [
   {
     id: 'custom',
-    name: 'Track',
+    name: str('ui.track'),
     mode: 'race',
     note: str('registry.a_track_from_the_board_or'),
     buildMs: MAP_BUILD_MS.custom,

@@ -1256,7 +1256,7 @@ export const VALUE_TABLE = [
     "type": "UINT8",
     "lookup": null,
     "pg": "FAILSAFE_CONFIG",
-    "min": str('catalogdata.period_rxdata_recovery_millis_per_tenth'),
+    "min": 'PERIOD_RXDATA_RECOVERY / MILLIS_PER_TENTH_SECOND',
     "max": "200",
     "array": false,
     "live": false
@@ -5717,7 +5717,7 @@ export const VALUE_TABLE = [
     "lookup": "MAX_POWER_LEVELS",
     "pg": "VTX_SETTINGS_CONFIG",
     "min": "0",
-    "max": str('catalogdata.vtx_table_max_power_levels_1'),
+    "max": 'VTX_TABLE_MAX_POWER_LEVELS - 1',
     "array": false,
     "live": false
   },
@@ -6027,7 +6027,7 @@ export const VALUE_TABLE = [
     "lookup": null,
     "pg": "STATUS_LED_CONFIG",
     "min": "0",
-    "max": str('catalogdata.1_status_led_number_1'),
+    "max": '((1 << STATUS_LED_NUMBER) - 1)',
     "array": false,
     "live": false
   },
@@ -6467,7 +6467,7 @@ export const VALUE_TABLE = [
     "lookup": null,
     "pg": "MCO_CONFIG",
     "min": "0",
-    "max": str('catalogdata.mco_source_count_1'),
+    "max": 'MCO_SOURCE_COUNT - 1',
     "array": false,
     "live": false
   },
@@ -6477,7 +6477,7 @@ export const VALUE_TABLE = [
     "lookup": null,
     "pg": "MCO_CONFIG",
     "min": "0",
-    "max": str('catalogdata.mco_divider_count_1'),
+    "max": 'MCO_DIVIDER_COUNT - 1',
     "array": false,
     "live": false
   },

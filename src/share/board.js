@@ -48,7 +48,7 @@
  */
 
 import { readShareImport, writeShareImport } from './session.js';
-import { str } from '../strings/index.js';
+import { str, currentLocale } from '../strings/index.js';
 
 /*
  * Two named hosts, because this page is served from two kinds of place and
@@ -198,7 +198,11 @@ export function boardPageUrl(origin, craft) {
   const base = usableBoardOrigin(origin)
     || usableBoardOrigin(boardOrigin())
     || defaultBoardOrigin();
-  return craft ? `${base}/?craft=${encodeURIComponent(craft)}` : `${base}/`;
+  const url = craft ? `${base}/?craft=${encodeURIComponent(craft)}` : `${base}/`;
+  /* The board reads ?lang= too, so a pilot flying in Spanish reads the
+   * board in Spanish. */
+  const lang = currentLocale();
+  return lang === 'en' ? url : `${url}${url.includes('?') ? '&' : '?'}lang=${encodeURIComponent(lang)}`;
 }
 
 async function readJson(res) {
