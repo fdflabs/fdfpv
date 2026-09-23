@@ -209,6 +209,7 @@ SIM_EXPORT int sim_abi_version(void) { return SIM_ABI_VERSION; }
 
 static void reset_dynamics(void) {
   plant_reset(&S);
+  plant_wing_reset();
   bridge_reset();
   g_q_head = 0;
   g_q_tail = 0;
@@ -1281,10 +1282,12 @@ SIM_EXPORT int sim_step(int n) {
       rx_new = 1;
     }
     double duty[SIM_MOTOR_COUNT];
-    bridge_run(&S, g_current_rc, rx_new, duty);
-    for (int m = 0; m < SIM_MOTOR_COUNT; m += 1) {
-      if (g_override[m] >= 0.0) {
-        duty[m] = g_override[m];
+    if (PLANT.kind != PLANT_KIND_WING) {
+      bridge_run(&S, g_current_rc, rx_new, duty);
+      for (int m = 0; m < SIM_MOTOR_COUNT; m += 1) {
+        if (g_override[m] >= 0.0) {
+          duty[m] = g_override[m];
+        }
       }
     }
     /*
@@ -1304,11 +1307,50 @@ SIM_EXPORT int sim_step(int n) {
     } else {
       S.ground_h = -1.0;
     }
-    plant_step(&S, duty);
+    /* The wing has no controller: the sticks go to its plant as they are. */
+    if (PLANT.kind == PLANT_KIND_WING) {
+      plant_wing_step(&S, g_current_rc);
+    } else {
+      plant_step(&S, duty);
+    }
     ground_apply();
     stand_apply();
     S.step_index += 1;
   }
+  return SIM_OK;
+}
+
+/*
+ * The wing's own entry points. Additive, version unchanged.
+ *
+ * sim_wing_launch: a hand throw at speed m/s along the body's forward axis.
+ * sim_wing_surfaces: the two elevon angles, radians, left then right,
+ * positive trailing edge up, for the renderer.
+ */
+SIM_EXPORT int sim_wing_launch(double speed) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (PLANT.kind != PLANT_KIND_WING || !(speed >= 0.0) || speed > 60.0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_launch(&S, speed);
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wing_debug(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_debug(out);
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wing_surfaces(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_surfaces(out);
   return SIM_OK;
 }
 

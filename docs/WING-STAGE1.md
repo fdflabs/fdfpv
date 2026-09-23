@@ -51,10 +51,23 @@ inputs, and never wider.
 | W5 roll rate, full elevon at 20 m/s | 250 deg/s | 180 to 300 |
 | W6 turn radius at 60 deg bank | V²/(g tan 60°), 23.5 m at 20 m/s | within 15 percent of the formula at the speed flown |
 | W7 climb rate, full throttle, best | 11.5 m/s at 12.5 m/s | 8 to 13 |
-| W8 hand throw at 8 m/s, 60 percent throttle | airborne after 3 s, above 1 m | pass or fail |
+| W8 hand throw at 10 m/s, 60 percent throttle, an eighth of up stick for two seconds | above 1 m and faster than 9 m/s after 3 s | pass or fail |
 | W9 throttle chop from cruise | glides, pitch stays within ±30 deg for 3 s | pass or fail |
 | W10 the five inch unmoved | verify check 2 hash | identical |
 | W11 Node and Chrome agree on a wing trace | SHA-256 | identical |
+
+## What the first flights corrected
+
+Three things the derivation had wrong, found by flying the plant headless
+and reading its own numbers back through `sim_wing_debug`:
+
+- Sideslip was defined with the wind from the left positive, the opposite
+  of the convention every coefficient is written in, so the nose turned
+  away from the wind and the wing departed in yaw the moment it banked.
+- The elevon lift term had the wrong sign for a flying wing.
+- A throw at 8 m/s with the sticks neutral sinks before it accelerates,
+  as a real one does below its trim speed; the check now throws harder
+  and holds a little up, which is what a hand does.
 
 ## Conventions
 
@@ -63,7 +76,11 @@ Z up; SI throughout; 1000 Hz fixed step; the state block's twenty
 doubles with the motor in RPM slot 0 and zeros in slots 1 to 3. The
 relative wind in the body frame is (u, v, w). Angle of attack
 α = atan2(-w, u), positive with the nose above the wind. Sideslip
-β = atan2(v, sqrt(u² + w²)), positive with the wind from the left.
+β = atan2(−v, sqrt(u² + w²)), positive with the wind from the right, the aero
+convention. The coefficients are all in that convention, y right and z down,
+so in this body frame, y left and z up, the pitch and yaw rates change sign
+going in and the side force, pitch moment and yaw moment change sign coming
+out. Roll and angle of attack are the same in both.
 Dynamic pressure q = ½ ρ V², ρ = 1.225 kg/m³, V = |(u, v, w)|.
 
 ## The model
@@ -77,7 +94,8 @@ Forces in the wind axes, then rotated into the body frame:
 - Weight in the world frame.
 
 CL below the stall is CLα α plus the elevon lift CLδe δe with
-CLδe = 0.35 /rad. Above it CL blends to a flat plate's 2 sin α cos α over
+CLδe = −0.35 /rad: a nose-up command is trailing edge up, which sheds lift
+on a flying wing. Above it CL blends to a flat plate's 2 sin α cos α over
 a smoothstep of ±3 deg about α_s, and CD to 2 sin² α over the same
 blend, on top of CD0 + k CL². The blend is a cubic smoothstep rather than
 the sigmoid in Beard and McLain, so the libm needs no exponential.

@@ -656,6 +656,35 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_y = 0.0,
   .camera_z = 0.012,
 },
+/*
+ * The 1000 mm flying wing, docs/WING-STAGE1.md. Only what sim.c reads for
+ * every airframe is filled in: mass, inertia, gravity, the pack, the hull
+ * the contact code builds its corners from, and the camera. The aero and
+ * the motor live in plant_wing.c, which is the plant this entry selects
+ * through kind; the quad's fields below stay zero and are never read.
+ */
+[SIM_AIRFRAME_WING1000] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 0.65,
+  .inertia = { 0.016, 0.006, 0.020 },
+  .gravity = 9.81,
+  .cells = 4.0,
+  .r_cell = 0.012,
+  .rho = 1.225,
+  .prop_r = 0.0762,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -0.05, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.25,
+  .hull_hy = 0.50,
+  .hull_hz_down = 0.035,
+  .hull_hz_up = 0.035,
+  .contact_patch_r = 0.05,
+  .contact_arm_max = 0.55,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.20,
+  .camera_y = 0.0,
+  .camera_z = 0.02,
+},
 };
 
 /*

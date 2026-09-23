@@ -49,7 +49,7 @@ static const double W_CL_ALPHA = 4.36;     /* per rad, Helmbold at AR 4.55 */
 static const double W_CL_MAX = 0.90;
 static const double W_CD0 = 0.030;
 static const double W_K_INDUCED = 0.0875;  /* 1/(pi e AR) */
-static const double W_CL_DE = 0.35;        /* elevon lift, per rad */
+static const double W_CL_DE = -0.35;       /* elevon lift, per rad: trailing edge up sheds lift */
 static const double W_CY_BETA = -0.30;
 static const double W_CL_BETA = -0.05;
 static const double W_CL_P = -0.40;
@@ -73,6 +73,17 @@ static const double W_DUTY_MIN = 0.02;
 /* The elevons this step, radians, positive trailing edge up (nose up). */
 static double g_elevon_left = 0.0;
 static double g_elevon_right = 0.0;
+
+/* What the last step saw and did, for the gates and for anyone chasing a
+ * sign: alpha, beta, qbar, CL, CD, l m n (aero), thrust, F body x y z,
+ * M body x y z, u v w. */
+static double g_debug[20];
+
+void plant_wing_debug(double out[20]) {
+  for (int i = 0; i < 20; i += 1) {
+    out[i] = g_debug[i];
+  }
+}
 
 static void wquat_mul(const double a[4], const double b[4], double out[4]) {
   out[0] = a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3];
@@ -171,7 +182,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double V = sim_sqrt(V2);
   const double Vxz = sim_sqrt(u * u + w * w);
   const double alpha = Vxz > 1e-6 ? sim_atan2(-w, u) : 0.0;
-  const double beta = V > 1e-6 ? sim_atan2(v, Vxz) : 0.0;
+  const double beta = V > 1e-6 ? sim_atan2(-v, Vxz) : 0.0; /* wind from the right positive */
   const double qbar = 0.5 * W_RHO * V2;
   const double Vrate = V > 1.0 ? V : 1.0; /* floor for the rate terms */
 
@@ -205,7 +216,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     F[0] -= D * u / V;
     F[1] -= D * v / V;
     F[2] -= D * w / V;
-    F[1] += Y;
+    F[1] -= Y; /* aero y is right, body y is left */
   }
 
   /* The motor: thrust along body x, falling with the forward airspeed. */
@@ -224,20 +235,25 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   s->pack_current = W_CURRENT_FULL * duty * duty;
   s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
 
-  /* Moments in the body frame. */
-  const double p = s->omega[0], qr = s->omega[1], r = s->omega[2];
+  /* Moments, in the aero convention, then into the body frame. */
+  const double p = s->omega[0];
+  const double q_aero = -s->omega[1]; /* nose up positive */
+  const double r_aero = -s->omega[2]; /* nose right positive */
   const double b2v = W_SPAN / (2.0 * Vrate);
   const double c2v = W_CHORD / (2.0 * Vrate);
+  const double l_aero = qbar * W_AREA * W_SPAN * (W_CL_BETA * beta + W_CL_P * p * b2v + W_CL_DA * delta_a);
+  const double m_aero = qbar * W_AREA * W_CHORD * (W_CM_0 + W_CM_ALPHA * alpha + W_CM_Q * q_aero * c2v + W_CM_DE * delta_e);
+  const double n_aero = qbar * W_AREA * W_SPAN * (W_CN_BETA * beta + W_CN_R * r_aero * b2v);
   double M[3];
-  M[0] = qbar * W_AREA * W_SPAN * (W_CL_BETA * beta + W_CL_P * p * b2v + W_CL_DA * delta_a)
-    - W_TORQUE_ARM * thrust; /* the prop turns one way; the airframe answers the other */
-  M[1] = qbar * W_AREA * W_CHORD * (W_CM_0 + W_CM_ALPHA * alpha + W_CM_Q * qr * c2v + W_CM_DE * delta_e);
-  M[2] = qbar * W_AREA * W_SPAN * (W_CN_BETA * beta + W_CN_R * r * b2v);
+  M[0] = l_aero - W_TORQUE_ARM * thrust; /* the prop turns one way; the airframe answers the other */
+  M[1] = -m_aero;
+  M[2] = -n_aero;
 
   /* Rates: I omega_dot = M - omega x (I omega), diagonal inertia. */
   const double Ix = PLANT.inertia[0], Iy = PLANT.inertia[1], Iz = PLANT.inertia[2];
-  const double hx = Ix * p, hy = Iy * qr, hz = Iz * r;
-  const double gyro[3] = { qr * hz - r * hy, r * hx - p * hz, p * hy - qr * hx };
+  const double qb = s->omega[1], r = s->omega[2];
+  const double hx = Ix * p, hy = Iy * qb, hz = Iz * r;
+  const double gyro[3] = { qb * hz - r * hy, r * hx - p * hz, p * hy - qb * hx };
   s->omega[0] += (M[0] - gyro[0]) / Ix * WING_DT;
   s->omega[1] += (M[1] - gyro[1]) / Iy * WING_DT;
   s->omega[2] += (M[2] - gyro[2]) / Iz * WING_DT;
@@ -257,6 +273,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     s->quat[2] = q2[2] / n;
     s->quat[3] = q2[3] / n;
   }
+
+  g_debug[0] = alpha; g_debug[1] = beta; g_debug[2] = qbar; g_debug[3] = CL; g_debug[4] = CD;
+  g_debug[5] = l_aero; g_debug[6] = m_aero; g_debug[7] = n_aero; g_debug[8] = thrust;
+  g_debug[9] = F[0]; g_debug[10] = F[1]; g_debug[11] = F[2];
+  g_debug[12] = M[0]; g_debug[13] = M[1]; g_debug[14] = M[2];
+  g_debug[15] = u; g_debug[16] = v; g_debug[17] = w; g_debug[18] = delta_e; g_debug[19] = delta_a;
 
   /* Velocity and position, semi implicit. */
   double Fw[3];

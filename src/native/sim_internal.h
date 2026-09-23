@@ -51,6 +51,7 @@
  * verification bands; the reasoning lives in PROGRESS.md.
  */
 typedef struct {
+  int kind;          /* PLANT_KIND_QUAD or PLANT_KIND_WING */
   double mass_kg;
   double inertia[3]; /* Ixx roll, Iyy pitch, Izz yaw */
   double gravity;
@@ -153,7 +154,12 @@ typedef struct {
  */
 #define SIM_AIRFRAME_5IN 0
 #define SIM_AIRFRAME_WHOOP65 1
-#define SIM_AIRFRAME_COUNT 2
+#define SIM_AIRFRAME_WING1000 2
+#define SIM_AIRFRAME_COUNT 3
+
+/* What kind of plant a table entry is: the quad's plant_step or the wing's. */
+#define PLANT_KIND_QUAD 0
+#define PLANT_KIND_WING 1
 
 typedef struct {
   /* rigid body, world frame */
@@ -309,6 +315,13 @@ double sim_sqrt_pub(double x);
  * branches on host properties.
  */
 void plant_step(SimState *s, const double duty[SIM_MOTOR_COUNT]);
+
+/* The wing plant, src/native/plant_wing.c. Sticks in, no controller. */
+void plant_wing_step(SimState *s, const double rc[4]);
+void plant_wing_reset(void);
+void plant_wing_launch(SimState *s, double speed);
+void plant_wing_surfaces(double out[2]);
+void plant_wing_debug(double out[20]);
 
 /* Bridge: Betaflight control loop and config shim. */
 
