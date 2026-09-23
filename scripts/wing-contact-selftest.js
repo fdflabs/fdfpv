@@ -1,0 +1,130 @@
+/*
+ * wing-contact-selftest.js: the wing against the ground plane, in Node.
+ *
+ * The wing's hull is a flat box a metre wide and seven centimetres thick,
+ * through the same contact path as the quad's. Four things a wing does
+ * with the ground that a quad does not: a belly landing that skids and
+ * stops, a wingtip touching first in a bank and the wing settling flat, a
+ * nose-in that stops rather than tunnels, and a throw from the grass
+ * that leaves it. Run with npm run wing:contact.
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
+import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
+const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
+const HULL_DOWN = 0.035;
+
+let failed = 0;
+let passed = 0;
+function check(name, ok, detail = '') {
+  if (ok) {
+    passed += 1;
+    console.log(`  pass  ${name}`);
+  } else {
+    failed += 1;
+    console.log(`  FAIL  ${name}${detail ? `  (${detail})` : ''}`);
+  }
+}
+const must = (c, w) => { if (c !== SIM_OK) throw new Error(`${w}: ${c}`); };
+
+async function wing() {
+  const sim = await loadSim(wasmBytes);
+  must(sim.init(configText), 'init');
+  must(sim.e.sim_set_airframe(2), 'airframe');
+  must(sim.setCellVoltage(4.1), 'volts');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E), 'ground');
+  return sim;
+}
+const state = (sim) => sim.readState().state;
+const finite = (s) => Array.from(s).every((v) => Number.isFinite(v));
+const speed = (s) => Math.hypot(s[4], s[5], s[6]);
+/* The lowest of the hull's eight corners in the world, given the pose. */
+function lowestCorner(s) {
+  const w = s[7], x = s[8], y = s[9], z = s[10];
+  const rot = (v) => [
+    (1 - 2 * (y * y + z * z)) * v[0] + 2 * (x * y - w * z) * v[1] + 2 * (x * z + w * y) * v[2],
+    2 * (x * y + w * z) * v[0] + (1 - 2 * (x * x + z * z)) * v[1] + 2 * (y * z - w * x) * v[2],
+    2 * (x * z - w * y) * v[0] + 2 * (y * z + w * x) * v[1] + (1 - 2 * (x * x + y * y)) * v[2],
+  ];
+  let low = Infinity;
+  for (const cx of [-0.25, 0.25]) for (const cy of [-0.5, 0.5]) for (const cz of [-HULL_DOWN, 0.035]) {
+    low = Math.min(low, s[3] + rot([cx, cy, cz])[2]);
+  }
+  return low;
+}
+function run(sim, ms, sticks = [0, 0, 0, 0]) {
+  const t0 = Number(state(sim)[0]);
+  for (let i = 0; i < ms; i += 4) {
+    must(sim.input(t0 + i / 1000 + 0.0001, ...sticks), 'input');
+    must(sim.step(4), 'step');
+  }
+  return state(sim);
+}
+const pitchQuat = (deg) => { const h = deg * Math.PI / 360; return [Math.cos(h), 0, Math.sin(h), 0]; };
+const rollQuat = (deg) => { const h = deg * Math.PI / 360; return [Math.cos(h), Math.sin(h), 0, 0]; };
+
+console.log('wing and the ground');
+{
+  const sim = await wing();
+  must(sim.e.sim_set_pose(0, 0, 0.30, 1, 0, 0, 0), 'pose');
+  must(sim.e.sim_wing_launch(8), 'launch');
+  const s = run(sim, 4000);
+  check('a belly landing at 8 m/s comes to rest', finite(s) && speed(s) < 0.3, `speed ${speed(s).toFixed(2)}`);
+  check('resting on the plane, not in it', Math.abs(lowestCorner(s)) < 0.02 && s[3] > 0, `lowest corner ${lowestCorner(s).toFixed(3)} m, z ${s[3].toFixed(3)}`);
+  check('and it slid, it did not stick', s[1] > 1.0, `${s[1].toFixed(1)} m along`);
+}
+{
+  const sim = await wing();
+  const q = rollQuat(60);
+  must(sim.e.sim_set_pose(0, 0, 0.6, q[0], q[1], q[2], q[3]), 'pose');
+  must(sim.e.sim_rest(), 'rest');
+  const s = run(sim, 3000);
+  const up = 1 - 2 * (s[8] * s[8] + s[9] * s[9]);
+  check('a wingtip touching first ends with the wing flat', finite(s) && up > 0.95, `up ${up.toFixed(3)}`);
+  check('no corner below the plane after the tip strike', lowestCorner(s) > -0.02, `${lowestCorner(s).toFixed(3)}`);
+}
+{
+  const sim = await wing();
+  const q = pitchQuat(45); /* nose down 45 */
+  must(sim.e.sim_set_pose(0, 0, 1.0, q[0], q[1], q[2], q[3]), 'pose');
+  must(sim.e.sim_wing_launch(10), 'launch');
+  const s = run(sim, 3000);
+  check('a nose-in stops rather than tunnels', finite(s) && speed(s) < 0.5 && lowestCorner(s) > -0.05, `speed ${speed(s).toFixed(2)}, lowest ${lowestCorner(s).toFixed(3)}`);
+}
+{
+  const sim = await wing();
+  must(sim.e.sim_set_pose(0, 0, HULL_DOWN + 0.005, 1, 0, 0, 0), 'pose');
+  must(sim.e.sim_rest(), 'rest');
+  run(sim, 500);
+  /* Into the hand first, as the shell does: a hull on the grass is held
+   * by friction the moment it moves. */
+  const rest = state(sim);
+  must(sim.e.sim_set_pose(rest[1], rest[2], rest[3] + 1.2, rest[7], rest[8], rest[9], rest[10]), 'lift');
+  must(sim.e.sim_wing_launch(10), 'launch');
+  const s = run(sim, 2500, [0, 0.15, 0, 0.7]);
+  check('a throw from the grass leaves it', finite(s) && s[3] > 1.0 && speed(s) > 9, `z ${s[3].toFixed(2)} m, ${speed(s).toFixed(1)} m/s`);
+}
+console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
+process.exit(failed ? 1 : 0);

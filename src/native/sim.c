@@ -171,6 +171,8 @@ static int g_ground_near = 0;
 #define CONTACT_INVERT_HALO_UPZ -0.90
 #define CONTACT_SLIDE_STOP 0.12
 #define CONTACT_OMEGA_STOP 0.35
+/* cos 18 degrees: a wing this far from flat still has a corner to fall on. */
+#define CONTACT_WING_REST_UPZ 0.95
 #define CONTACT_NEAR 0.008
 /* Inbound normal faster than this in the 8 mm halo is a live arrival,
  * not a seated props-down slide. Invert-stop on near-only used to
@@ -662,6 +664,18 @@ static void ground_settle(double upz, double vn_plant) {
   double vtx = S.vel[0] - nx * vn;
   double vty = S.vel[1] - ny * vn;
   double vtz = S.vel[2] - nz * vn;
+  /* A quad on a leg is at rest; a wing on a tip is not. Its span puts
+   * the weight half a metre outside the contact, so it has to pivot down,
+   * and pivoting moves the centre. The stops and the centre friction
+   * below, taken every millisecond, held the centre still and ate each
+   * step's gravity turn, so a tip strike perched at 50 degrees, or spun
+   * in place on the impact's own rate and went over onto its back. Until
+   * it lies near flat the wing is left to the corner impulses, which
+   * carry their own friction at the point that is actually on the grass.
+   * The quad is unchanged. */
+  if (PLANT.kind == PLANT_KIND_WING && !(upz >= CONTACT_WING_REST_UPZ)) {
+    return;
+  }
   const double vt2 = vtx * vtx + vty * vty + vtz * vtz;
   if (vt2 < CONTACT_SLIDE_STOP * CONTACT_SLIDE_STOP) {
     S.vel[0] = nx * vn;

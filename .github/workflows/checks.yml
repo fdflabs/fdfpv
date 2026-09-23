@@ -32,6 +32,7 @@ jobs:
       - run: npm run live:selftest
       - run: npm run wing:math
       - run: npm run wing:gates
+      - run: npm run wing:contact
       - run: npm run input:selftest
       - run: npm run ghost:selftest
       - run: npm run contact:selftest
