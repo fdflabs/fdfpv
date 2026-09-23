@@ -146,6 +146,11 @@ async function start() {
   loading.done('three');
   loading.detail = '';
 
+  /* The locale, before main.js: its module scope builds screen titles and
+   * menu rows from the string table at import time, so the table has to be
+   * the right one first. Only en ships today; see src/strings/index.js. */
+  const strings = await import('./strings/index.js');
+  await strings.useLocale(strings.preferredLocale());
   const main = await import('./main.js');
   await main.boot({ loading, bootStart: BOOT_START, mapId });
 }

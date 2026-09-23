@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * loading.js: a loading screen that reports work, not time.
  *
@@ -87,10 +88,10 @@ export const MEASURED_MS = {
 const STAGE_NAMES = {
   three: 'Renderer',
   board: 'Board',
-  sim: 'Flight controller',
+  sim: str('loading.flight_controller'),
   module: 'Map',
   world: 'World',
-  frame: 'First frame',
+  frame: str('loading.first_frame'),
 };
 
 /*
@@ -115,12 +116,12 @@ const STAGE_NAMES = {
  * label on a box.
  */
 const STAGE_DOING = {
-  three: 'Loading the renderer',
-  board: 'Asking the leaderboard',
-  sim: 'Starting the flight controller',
-  module: 'Loading the map',
-  world: 'Building the world',
-  frame: 'Drawing the first frame',
+  three: str('loading.loading_the_renderer'),
+  board: str('loading.asking_the_leaderboard'),
+  sim: str('loading.starting_the_flight_controller'),
+  module: str('loading.loading_the_map'),
+  world: str('loading.building_the_world'),
+  frame: str('loading.drawing_the_first_frame'),
 };
 
 /*
@@ -163,7 +164,7 @@ const CREEP_FACTOR = 3.5;
  * spends its time where the stage does. A linear creep to the same place
  * looks confident for a second and then wrong for five.
  */
-const CREEP_EASE = 'cubic-bezier(0.2, 0.4, 0.3, 1)';
+const CREEP_EASE = str('loading.cubic_bezier_0_2_0_4');
 
 /*
  * THE FLOOR UNDER A STAGE'S SHARE OF THE BAR.
@@ -201,26 +202,26 @@ export const JOKE_MS = 4800;
 export const STALL_MS = 6000;
 
 export const LOADING_JOKES = [
-  'I complimented my quad on its propellers. It said thanks for the props.',
-  'My flight controller only eats Greek food. It loves a good gyro.',
-  'My LiPo went to prison. It\'s doing time in six cells.',
-  'My quad is a helicopter parent. It never stops hovering.',
-  'My tiny whoop just won the race. Big whoop.',
-  'Someone snapped my carbon. I\'ve been framed.',
-  'My quad broke an arm, and now it won\'t arm. Poetic.',
-  'Race directors are so exclusive. Pure gatekeeping.',
-  'My racing record is chequered. That\'s the whole point.',
-  'My VTX and I just click. Same wavelength.',
-  'My battery reads the news every morning. It likes to stay current.',
-  'The packs went on strike. It was revolting.',
-  'My old LiPo refuses to change. Too much internal resistance.',
-  'My battery left the army. Honourable discharge.',
-  'Why did the pilot bring soap to the track? Prop wash.',
-  'What does a baby battery call its mum? mAh.',
-  'My quad went low carb. Kept the fibre.',
-  'My quad was on a roll. Then a pitch. Then a yaw.',
-  'My quad asked for a raise, so I upped its rates.',
-  'The start gates are in mint condition. Never been hit. Yet.',
+  str('loading.i_complimented_my_quad_on_its'),
+  str('loading.my_flight_controller_only_eats_greek'),
+  str('loading.my_lipo_went_to_prison_it'),
+  str('loading.my_quad_is_a_helicopter_parent'),
+  str('loading.my_tiny_whoop_just_won_the'),
+  str('loading.someone_snapped_my_carbon_i_ve'),
+  str('loading.my_quad_broke_an_arm_and'),
+  str('loading.race_directors_are_so_exclusive_pure'),
+  str('loading.my_racing_record_is_chequered_that'),
+  str('loading.my_vtx_and_i_just_click'),
+  str('loading.my_battery_reads_the_news_every'),
+  str('loading.the_packs_went_on_strike_it'),
+  str('loading.my_old_lipo_refuses_to_change'),
+  str('loading.my_battery_left_the_army_honourable'),
+  str('loading.why_did_the_pilot_bring_soap'),
+  str('loading.what_does_a_baby_battery_call'),
+  str('loading.my_quad_went_low_carb_kept'),
+  str('loading.my_quad_was_on_a_roll'),
+  str('loading.my_quad_asked_for_a_raise'),
+  str('loading.the_start_gates_are_in_mint'),
 ];
 
 export function quotedJoke(index, offset) {
@@ -433,38 +434,38 @@ export function recoveryAdvice(probe, message) {
   const looksNetwork = /fetch|network|load|import|CDN|cdn|jsdelivr|timeout|Failed to/i.test(text);
 
   if (!probe.wasm) {
-    why = 'This browser cannot run WebAssembly, which is what the flight controller is compiled to.';
-    steps.push('Open the simulator in a <b>current Chrome, Edge or Firefox</b>. Every browser released since about 2017 supports WebAssembly, so a browser that does not is either very old or has it switched off by policy.');
+    why = str('loading.this_browser_cannot_run_webassembly_which');
+    steps.push(str('loading.open_the_simulator_in_a_b'));
   } else if (!probe.webgl2) {
     why = probe.webgl1
-      ? 'This browser has WebGL 1 but not WebGL 2, and the renderer needs WebGL 2.'
-      : 'This browser is not giving the page a WebGL context at all, so nothing can be drawn.';
-    steps.push('Turn <b>hardware acceleration</b> back on. In Chrome and Edge it is Settings, System, "Use graphics acceleration when available". In Firefox it is Settings, General, Performance.');
-    steps.push('Update your <b>graphics driver</b>, then restart the browser. A blocked driver is the most common reason a working machine has no WebGL 2.');
-    steps.push('Try a different browser: <b>Chrome, Edge or Firefox</b>, all current.');
+      ? str('loading.this_browser_has_webgl_1_but')
+      : str('loading.this_browser_is_not_giving_the');
+    steps.push(str('loading.turn_b_hardware_acceleration_b_back'));
+    steps.push(str('loading.update_your_b_graphics_driver_b'));
+    steps.push(str('loading.try_a_different_browser_b_chrome'));
   } else if (looksNetwork || !probe.online) {
     why = probe.online
-      ? 'Something the page needed did not arrive. The renderer comes from a CDN, so a blocker or a work network can stop it.'
-      : 'This device looks offline.';
-    steps.push('Check the connection, then <b>reload</b>.');
-    steps.push('Turn off <b>ad blockers and script blockers</b> for this site, or allow <b>cdn.jsdelivr.net</b>. That is where the renderer is served from.');
-    steps.push('If you are on a work or school network, a proxy may be blocking the CDN. Try a <b>home network or a phone hotspot</b>.');
+      ? str('loading.something_the_page_needed_did_not')
+      : str('loading.this_device_looks_offline');
+    steps.push(str('loading.check_the_connection_then_b_reload'));
+    steps.push(str('loading.turn_off_b_ad_blockers_and'));
+    steps.push(str('loading.if_you_are_on_a_work'));
   } else {
-    why = 'The page got far enough to start, then stopped. That usually means a resource went missing or an extension interfered.';
+    why = str('loading.the_page_got_far_enough_to');
     steps.push('<b>Reload without the cache</b>: Ctrl and Shift and R, or Cmd and Shift and R on a Mac.');
-    steps.push('Try a <b>private window</b>. If it works there, an extension is the cause.');
-    steps.push('Try <b>Chrome, Edge or Firefox</b>, current version.');
+    steps.push(str('loading.try_a_b_private_window_b'));
+    steps.push(str('loading.try_b_chrome_edge_or_firefox'));
   }
 
   /* Conditions that do not stop the boot on their own but make it fragile,
    * so they are worth saying once the real cause is named. */
   if (probe.softwareRenderer) {
-    steps.push(`Your browser is drawing with the <b>CPU</b> rather than the GPU${probe.renderer ? ` (${probe.renderer})` : ''}. It may load and then run very slowly. Turning hardware acceleration on fixes this too.`);
+    steps.push(str('loading.your_browser_is_drawing_with_the', { v1: probe.renderer ? ` (${probe.renderer})` : '' }));
   }
   if (!probe.storage) {
-    steps.push('This browser is <b>blocking site data</b>, so settings and your times cannot be saved. A private window does this. Allow site data for this page if you want anything kept.');
+    steps.push(str('loading.this_browser_is_b_blocking_site'));
   }
-  steps.push('If none of that works, the <b>Report a bug</b> link on the title screen sends the details, or open the browser console with F12 and copy what is in red.');
+  steps.push(str('loading.if_none_of_that_works_the'));
   return { why, steps };
 }
 
@@ -654,7 +655,7 @@ export class Loading {
     if (left < 0.001) {
       return;
     }
-    this.aim(this.aimed + left * 0.5, 3000, 'cubic-bezier(0.2, 0.6, 0.3, 1)');
+    this.aim(this.aimed + left * 0.5, 3000, str('loading.cubic_bezier_0_2_0_6'));
   }
 
   /* Where this stage's slot starts: every earlier stage's weight. */
@@ -773,7 +774,7 @@ export class Loading {
       return;
     }
     const step = this.index >= 0 && this.stages.length
-      ? `Step ${this.index + 1} of ${this.stages.length}`
+      ? str('loading.step_of', { v1: this.index + 1, length: this.stages.length })
       : '';
     if (this.stepEl.textContent !== step) {
       this.stepEl.textContent = step;
@@ -805,12 +806,12 @@ export class Loading {
     let text = 'loading';
     if (stage && running > STALL_MS) {
       const name = (STAGE_NAMES[stage.id] || stage.id).toLowerCase();
-      text = `still loading the ${name}`;
+      text = str('loading.still_loading_the', { name });
       if (this.detail) {
         text += `, ${this.detail}`;
       }
     } else if (stage) {
-      text = STAGE_DOING[stage.id] || `Loading the ${(STAGE_NAMES[stage.id] || stage.id).toLowerCase()}`;
+      text = STAGE_DOING[stage.id] || str('loading.loading_the', { v1: (STAGE_NAMES[stage.id] || stage.id).toLowerCase() });
     }
     if (this.stageEl.textContent !== text) {
       this.stageEl.textContent = text;
@@ -839,7 +840,7 @@ export class Loading {
    */
   fail(message) {
     this.failed = true;
-    this.stageEl.textContent = 'Could not start';
+    this.stageEl.textContent = str('loading.could_not_start');
     this.jokeEl.textContent = message;
     this.jokeEl.classList.add('is-error');
     /* Full, red, and STILL: a sweep under a dead end is a page pretending to
@@ -880,13 +881,13 @@ export class Loading {
       probe = {};
       advice = {
         why: '',
-        steps: ['Reload the page. If it keeps failing, try a current <b>Chrome, Edge or Firefox</b>.'],
+        steps: [str('loading.reload_the_page_if_it_keeps')],
       };
     }
 
     help.textContent = '';
     const h = document.createElement('h3');
-    h.textContent = 'What to try';
+    h.textContent = str('loading.what_to_try');
     help.append(h);
 
     if (advice.why) {
@@ -922,7 +923,7 @@ export class Loading {
     actions.className = 'loading-actions';
     const retry = document.createElement('button');
     retry.type = 'button';
-    retry.textContent = 'Try again';
+    retry.textContent = str('loading.try_again');
     retry.addEventListener('click', () => {
       /* A plain reload. The cache-bypassing one needs a keystroke the page
        * cannot send, which is why it is step one in the list above. */
@@ -933,24 +934,24 @@ export class Loading {
     const copy = document.createElement('button');
     copy.type = 'button';
     copy.className = 'quiet';
-    copy.textContent = 'Copy the details';
+    copy.textContent = str('loading.copy_the_details');
     copy.addEventListener('click', async () => {
       const report = [
-        `FDFPV failed to start: ${message}`,
-        `browser: ${probe.engine || 'unknown'} ${probe.version || ''}`.trim(),
-        `webgl2: ${probe.webgl2} webgl1: ${probe.webgl1} wasm: ${probe.wasm}`,
-        `storage: ${probe.storage} online: ${probe.online}`,
-        probe.renderer ? `renderer: ${probe.renderer}` : '',
-        `url: ${window.location.href}`,
-        `agent: ${navigator.userAgent}`,
+        str('loading.fdfpv_failed_to_start', { message }),
+        str('loading.browser', { v1: probe.engine || 'unknown', v2: probe.version || '' }).trim(),
+        str('loading.webgl2_webgl1_wasm', { webgl2: probe.webgl2, webgl1: probe.webgl1, wasm: probe.wasm }),
+        str('loading.storage_online', { storage: probe.storage, online: probe.online }),
+        probe.renderer ? str('loading.renderer', { renderer: probe.renderer }) : '',
+        str('loading.url', { href: window.location.href }),
+        str('loading.agent', { userAgent: navigator.userAgent }),
       ].filter(Boolean).join('\n');
       try {
         await navigator.clipboard.writeText(report);
-        copy.textContent = 'Copied';
+        copy.textContent = str('loading.copied');
       } catch (e) {
         /* Clipboard refused, which is common without a secure context. Show
          * the text instead so it can still be selected by hand. */
-        copy.textContent = 'Select and copy';
+        copy.textContent = str('loading.select_and_copy');
         const pre = document.createElement('div');
         pre.className = 'loading-detail';
         pre.textContent = report;
@@ -964,8 +965,8 @@ export class Loading {
     detail.className = 'loading-detail';
     detail.textContent = [
       probe.engine ? `${probe.engine} ${probe.version}` : '',
-      `WebGL2 ${probe.webgl2 ? 'yes' : 'no'}`,
-      `WebAssembly ${probe.wasm ? 'yes' : 'no'}`,
+      str('loading.webgl2', { v1: probe.webgl2 ? 'yes' : 'no' }),
+      str('loading.webassembly', { v1: probe.wasm ? 'yes' : 'no' }),
       `site data ${probe.storage ? 'yes' : 'blocked'}`,
     ].filter(Boolean).join('  .  ');
     help.append(detail);

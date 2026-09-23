@@ -51,6 +51,7 @@ import { ELEMENTS, KIND, FRAME_TUBE_OD, isUnbuilt, trackClassOf, virtualAperture
 import { PIPE_OD as RACEGOW_PIPE_OD } from './racegow.js';
 import { aperturesOf, elementById, apertureCenter } from './model.js';
 import { apertureFrame, apertureCorners, clamp } from './geometry.js';
+import { str } from '../strings/index.js';
 
 /*
  * THE CAMERA, in six numbers.
@@ -432,7 +433,7 @@ function nameTexture(THREE, name) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   let px = 132;
-  const text = String(name || 'Untitled track');
+  const text = String(name || str('ui.untitled_track'));
   for (;;) {
     ctx.font = `600 ${px}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
     if (ctx.measureText(text).width <= w * 0.92 || px <= 28) {

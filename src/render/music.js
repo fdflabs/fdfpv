@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * music.js: recorded tracks on the mix bus.
  *
@@ -279,7 +280,7 @@ export class Music {
     if (typeof el.canPlayType !== 'function') {
       return 'mp3';
     }
-    return el.canPlayType('audio/webm; codecs="opus"') !== '' ? 'webm' : 'mp3';
+    return el.canPlayType(str('music.audio_webm_codecs_opus')) !== '' ? 'webm' : 'mp3';
   }
 
   /* The crate the context word names, and the pilot's place in it. One

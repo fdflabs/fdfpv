@@ -43,6 +43,7 @@ import {
 import { elementById, elementNormal, kindOf, startPadsOf } from './model.js';
 import { sequenceLabel, unsequencedElements } from './sequence.js';
 import { dist, insideYawedBox, lerp, wrapAngle, yawVector } from './geometry.js';
+import { str } from '../strings/index.js';
 
 function warn(code, message, extra = {}) {
   return { level: 'warn', code, message, ...extra };
@@ -105,11 +106,11 @@ export function collectWarnings(doc, path) {
   /* -------- the course itself, no line needed -------- */
 
   if (!doc.sequence.length) {
-    out.push(note('empty', 'Nothing is in the flying order yet. Place an element and it joins the order automatically.'));
+    out.push(note('empty', str('warnings.nothing_is_in_the_flying_order')));
   }
 
   if (!startPadsOf(doc)) {
-    out.push(note('no-start', 'No start pads. The line runs from the first element to the last and the lap does not close. Press S to place them.'));
+    out.push(note('no-start', str('warnings.no_start_pads_the_line_runs')));
   }
 
   for (const el of unsequencedElements(doc)) {
@@ -117,7 +118,7 @@ export function collectWarnings(doc, path) {
       continue;
     }
     const def = ELEMENTS[el.type];
-    out.push(warn('unsequenced', `${el.name || def.label} is on the field but not in the flying order, so the line ignores it.`, {
+    out.push(warn('unsequenced', str('warnings.is_on_the_field_but_not', { v1: el.name || def.label }), {
       elementId: el.id,
     }));
   }
@@ -128,7 +129,7 @@ export function collectWarnings(doc, path) {
       return;
     }
     if (kindOf(el) === KIND.APERTURE && s.entry === 0) {
-      out.push(warn('no-face', `${i + 1}. ${sequenceLabel(doc, s)} has no entry face set, so the line guessed one.`, {
+      out.push(warn('no-face', str('warnings.has_no_entry_face_set_so', { v1: i + 1, sequenceLabel: sequenceLabel(doc, s) }), {
         seqId: s.id,
         elementId: el.id,
       }));
@@ -141,7 +142,7 @@ export function collectWarnings(doc, path) {
   for (const el of doc.elements) {
     const { x, y } = el.position;
     if (x < 0 || y < 0 || x > doc.field.width || y > doc.field.depth) {
-      out.push(warn('element-out-of-field', `${el.name || ELEMENTS[el.type].label} is standing outside the field.`, {
+      out.push(warn('element-out-of-field', str('warnings.is_standing_outside_the_field', { v1: el.name || ELEMENTS[el.type].label }), {
         elementId: el.id,
       }));
     }
@@ -158,19 +159,19 @@ export function collectWarnings(doc, path) {
     const b = path.knots[i + 1];
     const span = dist(a.pos, b.pos);
     if (span < 1e-6) {
-      out.push(warn('coincident', `${describe(doc, a)} and ${describe(doc, b)} are in the same place, so the line has no direction between them.`, {
+      out.push(warn('coincident', str('warnings.and_are_in_the_same_place', { describe: describe(doc, a), describe2: describe(doc, b) }), {
         seqId: a.seq?.id ?? b.seq?.id ?? null,
       }));
       continue;
     }
     if (hasFace(a) && reversed(a.tangent, a.pos, b.pos)) {
-      out.push(warn('reversal', `${describe(doc, a)} faces away from ${describe(doc, b)}. The line leaves it backwards. Press X to flip the face.`, {
+      out.push(warn('reversal', str('warnings.faces_away_from_the_line_leaves', { describe: describe(doc, a), describe2: describe(doc, b) }), {
         seqId: a.seq?.id ?? null,
         elementId: a.elementId,
       }));
     }
     if (hasFace(b) && reversed(b.tangent, a.pos, b.pos)) {
-      out.push(warn('reversal', `${describe(doc, b)} faces back towards ${describe(doc, a)}. The line arrives at it backwards. Press X to flip the face.`, {
+      out.push(warn('reversal', str('warnings.faces_back_towards_the_line_arrives', { describe: describe(doc, b), describe2: describe(doc, a) }), {
         seqId: b.seq?.id ?? null,
         elementId: b.elementId,
       }));
@@ -182,7 +183,7 @@ export function collectWarnings(doc, path) {
   if (pads && first && first.role !== 'finish') {
     const heading = yawVector(pads.yaw);
     if (reversed(heading, pads.position, first.pos)) {
-      out.push(warn('reversal', `The lap sets off away from ${describe(doc, first)}. Turn the start pads, or reorder the track.`, {
+      out.push(warn('reversal', str('warnings.the_lap_sets_off_away_from', { describe: describe(doc, first) }), {
         elementId: pads.id,
       }));
     }
@@ -190,7 +191,7 @@ export function collectWarnings(doc, path) {
   if (path.closed && path.knots.length >= 2) {
     const lastReal = path.knots[path.knots.length - 2];
     if (first.role === 'aperture' && reversed(first.tangent, lastReal.pos, first.pos)) {
-      out.push(warn('reversal', `The lap comes back to ${describe(doc, first)} from in front of it, after ${describe(doc, lastReal)}. Flip that face, or move the last element behind it.`, {
+      out.push(warn('reversal', str('warnings.the_lap_comes_back_to_from', { describe: describe(doc, first), describe2: describe(doc, lastReal) }), {
         seqId: first.seq?.id ?? null,
         elementId: first.elementId,
       }));
@@ -213,7 +214,7 @@ export function collectWarnings(doc, path) {
     }
   }
   if (worst) {
-    out.push(warn('tight-corner', `The line turns tighter than ${limit.toFixed(1)} m at ${worst.s.toFixed(1)} m along the lap: ${worst.radius.toFixed(2)} m radius. Nothing flies that.`, {
+    out.push(warn('tight-corner', str('warnings.the_line_turns_tighter_than_m', { limit: limit.toFixed(1), v2: worst.s.toFixed(1), v3: worst.radius.toFixed(2) }), {
       s: worst.s,
       pos: worst.pos,
     }));
@@ -229,7 +230,7 @@ export function collectWarnings(doc, path) {
   for (const bar of barriers) {
     const hit = firstBarrierHit(path, bar, barrierPad);
     if (hit) {
-      out.push(warn('barrier', `The line passes through ${bar.name || ELEMENTS[bar.type].label} at ${hit.s.toFixed(1)} m along the lap.`, {
+      out.push(warn('barrier', str('warnings.the_line_passes_through_at_m', { v1: bar.name || ELEMENTS[bar.type].label, v2: hit.s.toFixed(1) }), {
         elementId: bar.id,
         s: hit.s,
         pos: hit.pos,
@@ -252,13 +253,13 @@ export function collectWarnings(doc, path) {
     }
   }
   if (outside) {
-    out.push(warn('out-of-field', `The line leaves the field at ${outside.s.toFixed(1)} m along the lap.`, {
+    out.push(warn('out-of-field', str('warnings.the_line_leaves_the_field_at', { v1: outside.s.toFixed(1) }), {
       s: outside.s,
       pos: outside.pos,
     }));
   }
   if (under) {
-    out.push(warn('underground', `The line goes below the ground at ${under.s.toFixed(1)} m along the lap.`, {
+    out.push(warn('underground', str('warnings.the_line_goes_below_the_ground', { v1: under.s.toFixed(1) }), {
       s: under.s,
       pos: under.pos,
     }));
@@ -329,10 +330,10 @@ function describe(doc, knot) {
    * that names them names the element itself. A 'finish' knot is a copy of
    * the first sequenced knot, so it describes itself as that. */
   if (knot.role === 'finish' && !knot.seq) {
-    return 'the finish line';
+    return str('warnings.the_finish_line');
   }
   if (!knot.seq) {
-    return 'a knot';
+    return str('warnings.a_knot');
   }
   return `${knot.index}. ${sequenceLabel(doc, knot.seq)}`;
 }
@@ -431,7 +432,7 @@ function collectRaceGowWarnings(doc, out, legs) {
       const skew = Math.abs(off - Math.round(off / q) * q);
       if (skew > 0.02) {
         out.push(warn('rg-square-headings',
-          `${label(el)} is ${(skew * 180 / Math.PI).toFixed(1)} deg off square from ${label(gates[0])}. Every gate faces along one of the two track axes: set its Yaw a right angle from theirs.`,
+          str('warnings.is_deg_off_square_from_every', { label: label(el), v2: (skew * 180 / Math.PI).toFixed(1), label2: label(gates[0]) }),
           { elementId: el.id }));
       }
     }
@@ -445,11 +446,11 @@ function collectRaceGowWarnings(doc, out, legs) {
     const small = Math.min(w, h);
     if (big > GATE_OPENING_MAX + 1e-6) {
       out.push(warn('rg-opening-max',
-        `${label(el)} opens ${inches(big)}. A RaceGOW gate fits inside a 28 in square.`,
+        str('warnings.opens_a_racegow_gate_fits_inside', { label: label(el), inches: inches(big) }),
         { elementId: el.id }));
     } else if (small < GATE_OPENING_MIN - 1e-6) {
       out.push(warn('rg-opening-min',
-        `${label(el)} opens ${inches(small)}. RaceGOW's minimum gate is 24 in.`,
+        str('warnings.opens_racegow_s_minimum_gate_is', { label: label(el), inches: inches(small) }),
         { elementId: el.id }));
     }
   }
@@ -466,7 +467,7 @@ function collectRaceGowWarnings(doc, out, legs) {
       || Math.abs(el.dims.clearH - ref.dims.clearH) > 0.002);
     if (odd.length) {
       out.push(warn('rg-opening-mixed',
-        `${odd.length === 1 ? label(odd[0]) : `${odd.length} gates`} ${odd.length === 1 ? 'is' : 'are'} a different size from ${label(ref)}. Every gate on a RaceGOW track is the same size.`,
+        str('warnings.a_different_size_from_every_gate', { v1: odd.length === 1 ? label(odd[0]) : `${odd.length} gates`, v2: odd.length === 1 ? 'is' : 'are', label: label(ref) }),
         { elementId: odd[0].id }));
     }
   }
@@ -484,18 +485,18 @@ function collectRaceGowWarnings(doc, out, legs) {
       if (i === 0 && el.dims.sillH < 0.001 && el.position.z < 0.001) {
         if (centre > GROUND_GATE_CENTRE_MAX + 1e-6) {
           out.push(warn('rg-ground-centre',
-            `${label(el)} has its bottom opening's centre at ${inches(centre)}. A gate on the ground has its centre at 20 in or lower.`,
+            str('warnings.has_its_bottom_opening_s_centre', { label: label(el), inches: inches(centre) }),
             { elementId: el.id }));
         }
       }
       if (i === 1 && centre < STACK2_CENTRE_MIN - 1e-6) {
         out.push(warn('rg-stack2',
-          `${label(el)}'s second opening is centred at ${inches(centre)}. The top gate of a two high stack must be at least 42 in up.`,
+          str('warnings.s_second_opening_is_centred_at', { label: label(el), inches: inches(centre) }),
           { elementId: el.id }));
       }
       if (i === 2 && centre < STACK3_CENTRE_MIN - 1e-6) {
         out.push(warn('rg-stack3',
-          `${label(el)}'s third opening is centred at ${inches(centre)}. A third gate must be at least 69 in up.`,
+          str('warnings.s_third_opening_is_centred_at', { label: label(el), inches: inches(centre) }),
           { elementId: el.id }));
       }
       /* Not a RaceGOW rule: a ceiling. These are flown indoors and a
@@ -503,7 +504,7 @@ function collectRaceGowWarnings(doc, out, legs) {
        * track nobody can build in the room this class assumes. */
       if (sill + el.dims.clearH > ROOM_HEIGHT) {
         out.push(warn('rg-ceiling',
-          `${label(el)} reaches ${inches(sill + el.dims.clearH)}, through the ${ROOM_HEIGHT.toFixed(1)} m ceiling. RaceGOW tracks are flown indoors.`,
+          str('warnings.reaches_through_the_m_ceiling_racegow', { label: label(el), inches: inches(sill + el.dims.clearH), ROOM_HEIGHT: ROOM_HEIGHT.toFixed(1) }),
           { elementId: el.id }));
       }
     }
@@ -511,7 +512,7 @@ function collectRaceGowWarnings(doc, out, legs) {
     const pitch = el.dims.levelPitch ?? 0;
     if (levels > 1 && (pitch < GATE_SPACING_MIN - 1e-6 || pitch > GATE_SPACING_MAX + 1e-6)) {
       out.push(warn('rg-stack-pitch',
-        `${label(el)} stacks its openings ${inches(pitch)} apart. Adjacent gates are 27 to 33 in centre to centre, stacked or side by side.`,
+        str('warnings.stacks_its_openings_apart_adjacent_gates', { label: label(el), inches: inches(pitch) }),
         { elementId: el.id }));
     }
   }
@@ -585,11 +586,11 @@ function collectRaceGowWarnings(doc, out, legs) {
       const aligned = Math.max(...off) > 0.94 * d;
       if (d < GATE_SPACING_MIN - 1e-6) {
         out.push(warn('rg-spacing',
-          `${label(a)} and ${label(b)} are ${inches(d)} apart. Two gates that close are adjacent, and adjacent gates are 27 to 33 in centre to centre.`,
+          str('warnings.and_are_apart_two_gates_that', { label: label(a), label2: label(b), inches: inches(d) }),
           { elementId: a.id }));
       } else if (aligned && d > GATE_SPACING_MAX + 1e-6 && d < GATE_SPACING_MAX * 1.25) {
         out.push(note('rg-spacing-near',
-          `${label(a)} and ${label(b)} are ${inches(d)} apart. If they are meant to be a side by side pair, adjacent gates are 27 to 33 in centre to centre, nominally 30.`,
+          str('warnings.and_are_apart_if_they_are', { label: label(a), label2: label(b), inches: inches(d) }),
           { elementId: a.id }));
       }
     }
@@ -604,7 +605,7 @@ function collectRaceGowWarnings(doc, out, legs) {
       const d = Math.hypot(p.position.x - g.position.x, p.position.y - g.position.y);
       if (d < POLE_FROM_GATE_MIN - 1e-6) {
         out.push(warn('rg-pole-gate',
-          `${label(p)} is ${inches(d)} from ${label(g)}. A pole sits at least 14 in from the centre of a gate.`,
+          str('warnings.is_from_a_pole_sits_at', { label: label(p), inches: inches(d), label2: label(g) }),
           { elementId: p.id }));
       }
     }
@@ -618,7 +619,7 @@ function collectRaceGowWarnings(doc, out, legs) {
         poles[i].position.y - poles[j].position.y);
       if (d < POLE_FROM_POLE_MIN - 1e-6) {
         out.push(warn('rg-pole-pole',
-          `${label(poles[i])} and ${label(poles[j])} are ${inches(d)} apart. Two poles sit at least 36 in apart.`,
+          str('warnings.and_are_apart_two_poles_sit', { label: label(poles[i]), label2: label(poles[j]), inches: inches(d) }),
           { elementId: poles[i].id }));
       }
     }
@@ -651,7 +652,7 @@ function collectRaceGowWarnings(doc, out, legs) {
       || (d <= env.width + 0.02 && w <= env.depth + 0.02);
     if (!fits) {
       out.push(note('rg-envelope',
-        `The track spans ${w.toFixed(2)} by ${d.toFixed(2)} m. A RaceGOW track fits ${env.width.toFixed(2)} by ${env.depth.toFixed(2)} m at this gate size.`));
+        str('warnings.the_track_spans_by_m_a', { w: w.toFixed(2), d: d.toFixed(2), v3: env.width.toFixed(2), v4: env.depth.toFixed(2) })));
     }
   }
 }

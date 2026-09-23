@@ -31,6 +31,7 @@
 import { mapById } from '../maps/registry.js';
 import { CAMERA_FOV_DEFAULT } from '../render/lens.js';
 import { fetchTrackDocument } from './board.js';
+import { str } from '../strings/index.js';
 import {
   CLIP_W,
   CLIP_H,
@@ -167,14 +168,14 @@ async function renderAndCapture(mapId, shareId, key) {
   const { makeAttractCamera } = await import('../render/attract.js');
 
   const spec = mapById(mapId);
-  setStatus(`Loading ${spec.name}.`);
+  setStatus(str('orbit.loading', { name: spec.name }));
 
   let options;
   if (shareId) {
     const payload = await fetchTrackDocument(shareId);
     const trackDoc = payload.document || payload;
     options = { document: trackDoc };
-    window.document.title = payload.name || trackDoc.name || 'FDFPV, orbit';
+    window.document.title = payload.name || trackDoc.name || str('orbit.fdfpv_orbit');
   }
 
   const shell = buildShell(canvas, { pixelRatio: 1, powerPreference: 'low-power' });
@@ -197,7 +198,7 @@ async function renderAndCapture(mapId, shareId, key) {
 
   const mod = await spec.load();
   const view = await mod.buildMap(shell, (f) => {
-    setStatus(`Building ${spec.name}, ${Math.round(f * 100)} percent.`);
+    setStatus(str('orbit.building_percent', { name: spec.name, v2: Math.round(f * 100) }));
   }, { ...(options || {}), quality: 'low' });
   pinThumb(shell, view, THREE);
   if (view.post) {
@@ -370,7 +371,7 @@ async function boot() {
 }
 
 boot().catch((e) => {
-  setStatus(e.message || 'The preview failed.');
+  setStatus(e.message || str('orbit.the_preview_failed'));
   window.__orbitError = String(e.message || e);
   console.error(e);
 });

@@ -44,6 +44,7 @@ import {
   trackClassOf, tuningFor,
 } from './elements.js';
 import { apertureFrame, wrapAngle } from './geometry.js';
+import { str } from '../strings/index.js';
 
 /*
  * The schema version. Bump it when a change to the document cannot be read
@@ -186,7 +187,7 @@ function int(x, fallback, lo, hi) {
   return n;
 }
 
-function str(x, fallback = '') {
+function asText(x, fallback = '') {
   return typeof x === 'string' ? x : fallback;
 }
 
@@ -284,7 +285,7 @@ export function createTrack(name, cls = TRACK_CLASS_DEFAULT) {
   /* Defaulted here rather than in the signature so a caller that only wants
    * to name the class can pass undefined for the name, which every one of
    * app.js's six call sites does. */
-  name = name ?? 'Untitled track';
+  name = name ?? str('ui.untitled_track');
   const stamp = nowUtc();
   const T = tuningFor(cls);
   return {
@@ -560,11 +561,11 @@ export function sequenceRefCount(doc, elementId) {
 export function normalize(raw) {
   const repairs = [];
   const src = (raw && typeof raw === 'object') ? raw : {};
-  const base = createTrack(str(src.name, 'Untitled track'));
+  const base = createTrack(asText(src.name, str('ui.untitled_track')));
 
   const version = int(src.schemaVersion, 0, 0);
   if (version > SCHEMA_VERSION) {
-    repairs.push(`document says schemaVersion ${version}, this build understands ${SCHEMA_VERSION}. Unknown fields were dropped.`);
+    repairs.push(str('model.document_says_schemaversion_this_build_understands', { version, SCHEMA_VERSION }));
   }
   /* The one migration there is, from 1 to 2, is the branding read below:
    * a version 1 document's single `branding.logo` becomes the first entry
@@ -574,10 +575,10 @@ export function normalize(raw) {
 
   const doc = {
     schemaVersion: SCHEMA_VERSION,
-    id: str(src.id, base.id),
-    name: str(src.name, 'Untitled track'),
-    createdUtc: str(src.createdUtc, base.createdUtc),
-    modifiedUtc: str(src.modifiedUtc, base.modifiedUtc),
+    id: asText(src.id, base.id),
+    name: asText(src.name, str('ui.untitled_track')),
+    createdUtc: asText(src.createdUtc, base.createdUtc),
+    modifiedUtc: asText(src.modifiedUtc, base.modifiedUtc),
     /* Defaulted to 'full' rather than repaired, because a document without
      * one is a document written before micro tracks existed and every one of
      * those IS full sized. A repair note here would cry wolf on every track
@@ -628,7 +629,7 @@ export function normalize(raw) {
        * written list of data URLs is the obvious thing somebody would try
        * and refusing it teaches nothing. */
       const image = typeof raw === 'string' ? raw : (raw && typeof raw === 'object' ? raw.image : null);
-      const name = typeof raw === 'object' && raw ? str(raw.name, '') : '';
+      const name = typeof raw === 'object' && raw ? asText(raw.name, '') : '';
       if (!isUsableLogo(image)) {
         dropped += 1;
         continue;
@@ -644,16 +645,16 @@ export function normalize(raw) {
       spent += image.length;
       /* Ids are repaired against what is already in the list, so a file with
        * two logos claiming the same id cannot make a decal ambiguous. */
-      const wanted = typeof raw === 'object' && raw ? str(raw.id, '') : '';
+      const wanted = typeof raw === 'object' && raw ? asText(raw.id, '') : '';
       const taken = doc.branding.logos.map((l) => l.id);
       const id = wanted && !taken.includes(wanted) ? wanted : nextId(taken, 'logo');
       doc.branding.logos.push({ id, image, name });
     }
     if (dropped) {
-      repairs.push(`dropped ${dropped} logo${dropped === 1 ? '' : 's'} that ${dropped === 1 ? 'was' : 'were'} not an embedded image under ${Math.round(LOGO_MAX_CHARS / 1024)} kB. A track carries its pictures inside itself, never a link to one.`);
+      repairs.push(str('model.dropped_logo_that_not_an_embedded', { dropped, v2: dropped === 1 ? '' : 's', v3: dropped === 1 ? 'was' : 'were', v4: Math.round(LOGO_MAX_CHARS / 1024) }));
     }
     if (overflowed) {
-      repairs.push(`dropped ${overflowed} logo${overflowed === 1 ? '' : 's'} past the ${LOGO_SLOTS} a track carries or past the ${Math.round(BRANDING_MAX_CHARS / 1024)} kB they share.`);
+      repairs.push(str('model.dropped_logo_past_the_a_track', { overflowed, v2: overflowed === 1 ? '' : 's', LOGO_SLOTS, v4: Math.round(BRANDING_MAX_CHARS / 1024) }));
     }
   }
 
@@ -666,26 +667,26 @@ export function normalize(raw) {
    * sequence entry naming the id now pointed at the wrong gate. Renaming
    * has to dodge the whole file, not just the part already read.
    */
-  const rawIds = (Array.isArray(src.elements) ? src.elements : []).map((e) => str(e?.id));
+  const rawIds = (Array.isArray(src.elements) ? src.elements : []).map((e) => asText(e?.id));
   let startSeen = false;
   for (const rawEl of Array.isArray(src.elements) ? src.elements : []) {
-    const type = str(rawEl?.type);
+    const type = asText(rawEl?.type);
     const def = ELEMENTS[type];
     if (!def) {
-      repairs.push(`dropped an element of unknown type "${type}".`);
+      repairs.push(str('model.dropped_an_element_of_unknown_type', { type }));
       continue;
     }
     if (def.kind === KIND.START) {
       if (startSeen) {
-        repairs.push('dropped a second set of start pads. A track has exactly one.');
+        repairs.push(str('model.dropped_a_second_set_of_start'));
         continue;
       }
       startSeen = true;
     }
-    let id = str(rawEl.id);
+    let id = asText(rawEl.id);
     if (!id || seenIds.has(id)) {
       id = nextId([...seenIds, ...rawIds], 'el');
-      repairs.push(`an element had a missing or duplicate id, renamed to ${id}.`);
+      repairs.push(str('model.an_element_had_a_missing_or', { id }));
     }
     seenIds.add(id);
 
@@ -700,7 +701,7 @@ export function normalize(raw) {
     const el = {
       id,
       type,
-      name: str(rawEl.name, ''),
+      name: asText(rawEl.name, ''),
       position: {
         x: num(rawEl.position?.x),
         y: num(rawEl.position?.y),
@@ -716,14 +717,14 @@ export function normalize(raw) {
       dims,
     };
     if (def.kind === KIND.ANNOTATION) {
-      el.text = str(rawEl.text, 'Label');
+      el.text = asText(rawEl.text, 'Label');
     }
     if (def.kind === KIND.DECAL) {
       /* Kept even when no logo carries this id, because the logos are read
        * above and a decal naming one that was dropped for size should say
        * so in the builder rather than silently repaint itself with the
        * first sponsor's logo. logoForDecal returns null for it. */
-      el.logoId = str(rawEl.logoId, '');
+      el.logoId = asText(rawEl.logoId, '');
     }
     if (def.flagSide) {
       el.flagSide = normalizeFlagSide(rawEl.flagSide, def.flagSide);
@@ -740,21 +741,21 @@ export function normalize(raw) {
 
   const seenSeq = new Set();
   for (const rawSeq of Array.isArray(src.sequence) ? src.sequence : []) {
-    const elementId = str(rawSeq?.elementId);
+    const elementId = asText(rawSeq?.elementId);
     const el = doc.elements.find((e) => e.id === elementId);
     if (!el) {
-      repairs.push(`dropped a sequence entry pointing at missing element "${elementId}".`);
+      repairs.push(str('model.dropped_a_sequence_entry_pointing_at', { elementId }));
       continue;
     }
     const def = ELEMENTS[el.type];
     if (def.kind !== KIND.APERTURE && def.kind !== KIND.MARKER) {
-      repairs.push(`dropped a sequence entry for a ${def.label}, which is never part of the track.`);
+      repairs.push(str('model.dropped_a_sequence_entry_for_a', { label: def.label }));
       continue;
     }
-    let id = str(rawSeq.id);
+    let id = asText(rawSeq.id);
     if (!id || seenSeq.has(id)) {
       id = nextId([...seenSeq], 'sq');
-      repairs.push(`a sequence entry had a missing or duplicate id, renamed to ${id}.`);
+      repairs.push(str('model.a_sequence_entry_had_a_missing', { id }));
     }
     seenSeq.add(id);
 
@@ -764,7 +765,7 @@ export function normalize(raw) {
       const wanted = int(rawSeq.apertureIndex, 0, 0);
       apertureIndex = Math.min(wanted, count - 1);
       if (apertureIndex !== wanted) {
-        repairs.push(`sequence entry ${id} asked for level ${wanted + 1} of a ${count} level ${def.label}, clamped to ${apertureIndex + 1}.`);
+        repairs.push(str('model.sequence_entry_asked_for_level_of', { id, v2: wanted + 1, count, label: def.label, v5: apertureIndex + 1 }));
       }
     }
 
@@ -878,7 +879,7 @@ export function toPlain(doc) {
       logos: logosOf(doc)
         .filter((l) => l && isUsableLogo(l.image))
         .slice(0, LOGO_SLOTS)
-        .map((l, i) => ({ id: str(l.id, `logo-${i + 1}`), image: l.image, name: str(l.name, '') })),
+        .map((l, i) => ({ id: asText(l.id, `logo-${i + 1}`), image: l.image, name: asText(l.name, '') })),
     },
     /*
      * WRITTEN, for the same reason trackClass is. This function is a
@@ -913,7 +914,7 @@ export function toPlain(doc) {
         out.text = el.text ?? '';
       }
       if (def.kind === KIND.DECAL) {
-        out.logoId = str(el.logoId, '');
+        out.logoId = asText(el.logoId, '');
       }
       if (def.flagSide) {
         out.flagSide = normalizeFlagSide(el.flagSide, def.flagSide);
@@ -949,7 +950,7 @@ export function deserialize(text) {
   try {
     parsed = JSON.parse(text);
   } catch (e) {
-    return { doc: createTrack(), repairs: [], error: `not valid JSON: ${e.message}` };
+    return { doc: createTrack(), repairs: [], error: str('model.not_valid_json', { message: e.message }) };
   }
   const { doc, repairs } = normalize(parsed);
   return { doc, repairs, error: null };

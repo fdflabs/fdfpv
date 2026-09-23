@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * session.js: the published course this browser is currently flying.
  *
@@ -189,7 +190,7 @@ export function writeShareImport(payload) {
   const cls = payload.document.trackClass === 'micro' ? 'micro' : 'full';
   return writeJson(importKey(cls), {
     id: String(payload.id),
-    name: String(payload.name || payload.document.name || 'Untitled track'),
+    name: String(payload.name || payload.document.name || str('ui.untitled_track')),
     author: String(payload.author || ''),
     board: String(payload.board || ''),
     document: payload.document,

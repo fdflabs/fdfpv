@@ -43,6 +43,7 @@ import {
   hoverStickPercent, normaliseRates, pitchMatchesRoll, rateAxis,
 } from '../../configs/rates.js';
 import { ANGLE_RATE_SAMPLES, angleRateDeg } from '../fc/ratescurve.js';
+import { str } from '../strings/index.js';
 
 /* House palette, from the :root block in index.html. Kept as literals
  * because a canvas cannot read a CSS custom property. EXPORTED for the
@@ -96,17 +97,17 @@ export function ratesCurves(rates) {
   if (pitchMatchesRoll(r)) {
     return [
       {
-        id: 'rollpitch', label: 'Roll, pitch', color: SAKURA, type: r.type, axis: rateAxis(r, 'roll'),
+        id: 'rollpitch', label: str('ui.roll_pitch'), color: SAKURA, type: r.type, axis: rateAxis(r, 'roll'),
       },
       yaw,
     ];
   }
   return [
     {
-      id: 'roll', label: 'Roll', color: SAKURA, type: r.type, axis: rateAxis(r, 'roll'),
+      id: 'roll', label: str('ratespanel.roll'), color: SAKURA, type: r.type, axis: rateAxis(r, 'roll'),
     },
     {
-      id: 'pitch', label: 'Pitch', color: MINT, dash: [2, 3], type: r.type, axis: rateAxis(r, 'pitch'),
+      id: 'pitch', label: str('ui.pitch'), color: MINT, dash: [2, 3], type: r.type, axis: rateAxis(r, 'pitch'),
     },
     yaw,
   ];
@@ -125,10 +126,10 @@ function curveFor(curves, id) {
 /* One sentence a screen reader can read instead of the picture. */
 function describe(curves) {
   const parts = curves.map((c) => {
-    const at = SAMPLE_STICKS.map((s) => `${Math.round(degAt(c, s))} at ${s === 1 ? 'the stop' : `${s * 100} percent`}`);
-    return `${c.label}: ${at.join(', ')} degrees per second`;
+    const at = SAMPLE_STICKS.map((s) => str('ratespanel.at', { v1: Math.round(degAt(c, s)), v2: s === 1 ? str('ratespanel.the_stop') : `${s * 100} percent` }));
+    return str('ratespanel.degrees_per_second', { label: c.label, v2: at.join(', ') });
   });
-  return `Stick to rate curve. ${parts.join('. ')}.`;
+  return str('ratespanel.stick_to_rate_curve', { v1: parts.join('. ') });
 }
 
 export function mountRatesPanel() {
@@ -181,7 +182,7 @@ export function mountRatesPanel() {
     }
     for (const s of SAMPLE_STICKS) {
       const wrap = el('div', 'rates-cell');
-      wrap.append(el('dt', null, s === 1 ? 'Full stick' : `${s * 100}% stick`));
+      wrap.append(el('dt', null, s === 1 ? str('ratespanel.full_stick') : str('ratespanel.stick', { v1: s * 100 })));
       const dd = el('dd', null, '');
       /* The spans only, in curve order. The curve OBJECT is deliberately not
        * kept: it is rebuilt from the settings on every paint, and a cell
@@ -205,7 +206,7 @@ export function mountRatesPanel() {
       cells.push({ stick: s, nums });
     }
     const hoverWrap = el('div', 'rates-cell');
-    hoverWrap.append(el('dt', null, 'Hover sits at'));
+    hoverWrap.append(el('dt', null, str('ratespanel.hover_sits_at')));
     hoverDd = el('dd', null, '');
     hoverWrap.append(hoverDd);
     readout.append(hoverWrap);
@@ -363,7 +364,7 @@ export function mountRatesPanel() {
     for (const c of curves) {
       const val = swatches.get(c.id);
       if (val) {
-        val.textContent = `${Math.round(degAt(c, 1))} deg/s`;
+        val.textContent = str('ratespanel.deg_s', { v1: Math.round(degAt(c, 1)) });
       }
     }
     for (const cell of cells) {
@@ -383,7 +384,7 @@ export function mountRatesPanel() {
       });
     }
     if (hoverDd) {
-      hoverDd.textContent = `${hoverStickPercent(r.throttleCap, airframe).toFixed(1)}% stick`;
+      hoverDd.textContent = str('ratespanel.stick', { v1: hoverStickPercent(r.throttleCap, airframe).toFixed(1) });
     }
     canvas.setAttribute('aria-label', describe(curves));
     draw();

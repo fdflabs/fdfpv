@@ -46,6 +46,7 @@
 import { keyNote, hasKeyNote } from '../fc/keynotes.js';
 import { normaliseRates, RATE_DEFAULTS } from '../../configs/rates.js';
 import { OFFERED_TUNES, tunePath } from '../../configs/registry.js';
+import { str } from '../strings/index.js';
 import {
   FEATURES,
   FIELDS,
@@ -78,9 +79,9 @@ const TABS_SHOWN = TABS.filter((t) => t.id !== 'cli');
 const SEARCH_CAP = 60;
 
 const PID_PAGES = [
-  { id: 'pid', label: 'PID Profile Settings' },
-  { id: 'filters', label: 'Filter Settings' },
-  { id: 'rates', label: 'Rateprofile Settings' },
+  { id: 'pid', label: str('fc.pid_profile_settings') },
+  { id: 'filters', label: str('fc.filter_settings') },
+  { id: 'rates', label: str('fc.rateprofile_settings') },
 ];
 
 /* Step through a list with wraparound. */
@@ -108,16 +109,16 @@ function sectionFor(field, page) {
   const k = field.key;
   if (page === 'pid') {
     if (k.startsWith('simplified_')) {
-      return 'Simplified tuning';
+      return str('fc.simplified_tuning');
     }
     if (/^[pidf]_/.test(k) || k.startsWith('d_min')) {
       return 'PID';
     }
     if (k.startsWith('iterm_')) {
-      return 'Iterm relax';
+      return str('fc.iterm_relax');
     }
     if (k.startsWith('anti_gravity')) {
-      return 'Anti gravity';
+      return str('fc.anti_gravity');
     }
     if (k.startsWith('tpa_') || k.startsWith('throttle_boost')) {
       return 'TPA';
@@ -132,33 +133,33 @@ function sectionFor(field, page) {
   }
   if (page === 'filters') {
     if (k.startsWith('simplified_')) {
-      return 'Simplified filters';
+      return str('fc.simplified_filters');
     }
     if (k.startsWith('gyro_lpf')) {
-      return 'Gyro lowpass';
+      return str('fc.gyro_lowpass');
     }
     if (k.startsWith('dyn_notch')) {
-      return 'Dynamic gyro notch';
+      return str('fc.dynamic_gyro_notch');
     }
     if (k.startsWith('dterm_') || k.startsWith('yaw_lowpass')) {
-      return 'D term';
+      return str('fc.d_term');
     }
     if (k.startsWith('rpm_')) {
-      return 'RPM filter';
+      return str('fc.rpm_filter');
     }
     return 'Filters';
   }
   if (page === 'rates') {
-    return 'Throttle and limits';
+    return str('fc.throttle_and_limits');
   }
   if (field.tab === 'receiver') {
     if (k.startsWith('rc_smoothing')) {
-      return 'RC smoothing';
+      return str('fc.rc_smoothing');
     }
     if (/check$|mid_rc|airmode_start/.test(k)) {
       return 'Receiver';
     }
-    return 'Radio link';
+    return str('ui.radio_link');
   }
   if (field.tab === 'motors') {
     if (/^dshot_|^motor_poles|^bidir/.test(k)) {
@@ -207,7 +208,7 @@ function fieldRank(field, page) {
 function fieldNote(field, session) {
   const look = (key) => session.cliValue(key);
   if (field.key === 'gyro_lpf1_static_hz' && Number(look('gyro_lpf1_dyn_min_hz')) > 0) {
-    return 'Firmware inits LPF1 from gyro_lpf1_dyn_min_hz while that is above 0. Set dyn min to 0 to make this cutoff live. Same as 4.5.1.';
+    return str('fc.firmware_inits_lpf1_from_gyro_lpf1');
   }
   if (field.status === STATUS.GATED) {
     return field.reason;
@@ -216,7 +217,7 @@ function fieldNote(field, session) {
     return field.reason;
   }
   if (field.key.startsWith('simplified_')) {
-    return 'Writes the slider, then simplified_tuning apply, then any expert lines below it. Betaflight does the math. The PIDs screen drives the same sliders with fewer steps.';
+    return str('fc.writes_the_slider_then_simplified_tuning');
   }
   /*
    * This used to be `return field.key`, so the help column beside 115 typed
@@ -445,14 +446,14 @@ export class FcSession {
     if (this.confirm === 'save-run') {
       return [
         {
-          label: 'Save and restart the run',
+          label: str('fc.save_and_restart_the_run'),
           action: 'fc-save-restart',
-          note: 'Save writes the dump through sim_init, which resets the craft. That is the same as changing a rate today. Escape cancels and stays here.',
+          note: str('fc.save_writes_the_dump_through_sim'),
         },
         {
-          label: 'Wait until the result screen',
+          label: str('fc.wait_until_the_result_screen'),
           action: 'fc-wait',
-          note: 'Keeps the draft. Save when the run is over. Live PID mid-lap is out of this round. Escape cancels and stays here.',
+          note: str('fc.keeps_the_draft_save_when_the'),
         },
       ];
     }
@@ -466,21 +467,21 @@ export class FcSession {
     if (this.confirm === 'leave') {
       return [
         {
-          label: 'Keep editing',
+          label: str('ui.keep_editing'),
           action: 'fc-keep-editing',
-          note: 'Stays here with the draft intact. Escape does the same.',
+          note: str('fc.stays_here_with_the_draft_intact'),
         },
         {
-          label: 'Save and leave',
+          label: str('fc.save_and_leave'),
           action: 'fc-save-exit',
           note: this.runActive
-            ? 'Writes the dump, then asks whether to restart the run.'
-            : 'Writes the draft through sim_init, then leaves.',
+            ? str('fc.writes_the_dump_then_asks_whether')
+            : str('fc.writes_the_draft_through_sim_init'),
         },
         {
-          label: 'Discard and leave',
+          label: str('fc.discard_and_leave'),
           action: 'fc-discard-leave',
-          note: 'Throws the draft away and restores the dump that was live when this screen opened. This cannot be undone.',
+          note: str('fc.throws_the_draft_away_and_restores'),
         },
       ];
     }
@@ -497,37 +498,37 @@ export class FcSession {
     if (this.search != null) {
       const found = this.searchHits(this.search);
       rows.push({
-        label: 'Search',
+        label: str('fc.search'),
         key: 'fc-search',
         note: this.search
-          ? `${found.total} key(s) match, across every tab. Escape leaves search and puts you back on ${tab.label}.`
-          : 'Type part of a key name. It looks across every tab, including the ones this build does not implement, because knowing a key is missing is an answer too. Escape leaves search.',
+          ? str('fc.key_s_match_across_every_tab', { total: found.total, label: tab.label })
+          : str('fc.type_part_of_a_key_name'),
         /*
          * Its own control, not the typed number row's. That one commits on
          * blur, carries stepper arrows and declares a decimal input mode,
          * and all three are wrong for a name being typed a letter at a
          * time. See makeSearch in ui.js.
          */
-        text: { value: this.search, placeholder: 'part of a key name' },
+        text: { value: this.search, placeholder: str('fc.part_of_a_key_name') },
         onText: (v) => { this.search = String(v == null ? '' : v); },
       });
       if (!this.search) {
         rows.push({
-          label: 'Nothing typed yet',
+          label: str('fc.nothing_typed_yet'),
           info: true,
           disabled: true,
           rowClass: 'row-grey',
-          note: 'Every key in the catalog is still here under its own tab. Escape leaves search.',
+          note: str('fc.every_key_in_the_catalog_is'),
         });
         return rows;
       }
       if (!found.total) {
         rows.push({
-          label: `No key contains "${this.search}"`,
+          label: str('fc.no_key_contains', { search: this.search }),
           info: true,
           disabled: true,
           rowClass: 'row-grey',
-          note: 'Not in Betaflight 4.5.1 under that spelling, and not in this build either. Betaflight renames keys between versions, so a name from an older guide may be spelled differently now.',
+          note: str('fc.not_in_betaflight_4_5_1'),
         });
         return rows;
       }
@@ -542,11 +543,11 @@ export class FcSession {
          * the key is missing.
          */
         rows.push({
-          label: `${found.total - found.hits.length} more not shown`,
+          label: str('fc.more_not_shown', { v1: found.total - found.hits.length }),
           info: true,
           disabled: true,
           rowClass: 'row-grey',
-          note: `${found.total} keys match and the first ${found.hits.length} are listed, because rendering all of them costs about 57 ms per keystroke. Type more of the name to narrow it.`,
+          note: str('fc.keys_match_and_the_first_are', { total: found.total, length: found.hits.length }),
         });
       }
       return rows;
@@ -554,7 +555,7 @@ export class FcSession {
 
     rows.push({
       label: 'Tab',
-      note: tab.grey ? tab.reason : 'Configurator tabs. Grey tabs can be read, not edited.',
+      note: tab.grey ? tab.reason : str('fc.configurator_tabs_grey_tabs_can_be'),
       value: tab.label,
       current: tab.id,
       options: TABS_SHOWN.map((t) => ({ value: t.id, label: t.label })),
@@ -572,7 +573,7 @@ export class FcSession {
     if (skipped > 0) {
       rows.push({
         /* A switch, not a two item popup. See toggle() in ui.js. */
-        label: 'Walk every key',
+        label: str('fc.walk_every_key'),
         sw: true,
         on: this.walkAll,
         value: this.walkAll ? 'On' : 'Off',
@@ -580,8 +581,8 @@ export class FcSession {
         adjust: (d) => { this.walkAll = d > 0; },
         flip: () => { this.walkAll = !this.walkAll; },
         note: this.walkAll
-          ? `Up and Down stop on all ${skipped} key(s) this build does not implement, so their reason can be read. Off makes the arrows travel only the live rows.`
-          : `Up and Down skip the ${skipped} key(s) this build does not implement. Turn this on to walk them and read why each one is missing. They are still on screen either way.`,
+          ? str('fc.up_and_down_stop_on_all', { skipped })
+          : str('fc.up_and_down_skip_the_key', { skipped }),
       });
     }
 
@@ -594,7 +595,7 @@ export class FcSession {
     const changedCount = this.modifiedKeys().size;
     if (changedCount > 0 || this.onlyModified) {
       rows.push({
-        label: 'Only what I changed',
+        label: str('fc.only_what_i_changed'),
         sw: true,
         on: this.onlyModified,
         value: this.onlyModified ? 'On' : 'Off',
@@ -602,8 +603,8 @@ export class FcSession {
         adjust: (d) => { this.onlyModified = d > 0; },
         flip: () => { this.onlyModified = !this.onlyModified; },
         note: this.onlyModified
-          ? `Showing only the ${changedCount} key(s) this draft has moved off the dump it opened with. Every tab still has the rest.`
-          : `${changedCount} key(s) differ from the dump this screen opened with. Turn this on to see exactly what Save is about to write, tab by tab.`,
+          ? str('fc.showing_only_the_key_s_this', { changedCount })
+          : str('fc.key_s_differ_from_the_dump', { changedCount }),
       });
     }
 
@@ -611,7 +612,7 @@ export class FcSession {
       const page = PID_PAGES.find((p) => p.id === this.page) ?? PID_PAGES[0];
       rows.push({
         label: 'Page',
-        note: 'PID Tuning in 4.5.1 is PID Profile, Filters, and Rateprofile.',
+        note: str('fc.pid_tuning_in_4_5_1'),
         value: page.label,
         current: page.id,
         options: PID_PAGES.map((p) => ({ value: p.id, label: p.label })),
@@ -621,55 +622,55 @@ export class FcSession {
     }
 
     rows.push({
-      label: 'Save',
+      label: str('ui.save'),
       action: 'fc-save',
       rowClass: 'fc-btn',
       note: this.dirty()
-        ? 'Writes the draft dump through sim_init and stays here. It becomes Your edits on the Tune row.'
-        : 'No edits. Save does not re-init, so a live race is not killed for nothing.',
+        ? str('fc.writes_the_draft_dump_through_sim')
+        : str('fc.no_edits_save_does_not_re'),
     });
     if (this.dirty()) {
       rows.push({
-        label: 'Save and exit',
+        label: str('ui.save_and_exit'),
         action: 'fc-save-exit',
         rowClass: 'fc-btn',
         note: this.runActive
-          ? 'Writes the dump, then asks whether to restart the run.'
-          : 'Writes the dump through sim_init, then leaves this screen.',
+          ? str('fc.writes_the_dump_then_asks_whether')
+          : str('fc.writes_the_dump_through_sim_init'),
       });
     }
     rows.push({
-      label: 'Discard',
+      label: str('ui.discard'),
       action: 'fc-discard',
       rowClass: 'fc-btn',
-      note: 'Restores the dump that was live when this screen opened. Stays here.',
+      note: str('fc.restores_the_dump_that_was_live'),
     });
     rows.push({
-      label: 'Export',
+      label: str('fc.export'),
       action: 'fc-export',
       rowClass: 'fc-btn',
-      note: 'Downloads CLI text a 4.5 Configurator can read. Does not Save. Text goes OUT of this simulator only; there is no door for pasting any back in.',
+      note: str('fc.downloads_cli_text_a_4_5'),
     });
     rows.push({
-      label: this.dirty() ? 'Exit without saving' : 'Exit',
+      label: this.dirty() ? str('ui.exit_without_saving') : 'Exit',
       action: 'fc-back',
       rowClass: 'fc-btn',
       note: this.dirty()
-        ? 'Leaves and restores the dump that was live when this screen opened. Escape does the same.'
-        : 'Leaves this screen. Escape does the same.',
+        ? str('fc.leaves_and_restores_the_dump_that')
+        : str('fc.leaves_this_screen_escape_does_the'),
     });
 
     if (this.tab === 'pid' && this.page === 'rates') {
       rows.push({
-        label: 'Rates',
-        value: 'On the Rates screen',
-        note: 'Rates belong to you, not to a tune or a dump, and their own screen draws the curve your sticks ride. The Rates screen is the one editor; whatever it holds is appended to every Save from here. Below are the throttle and limit keys that are not part of the stick curve.',
+        label: str('ui.rates'),
+        value: str('fc.on_the_rates_screen'),
+        note: str('fc.rates_belong_to_you_not_to'),
         info: true,
       });
       rows.push({
-        label: 'Open the Rates screen',
+        label: str('fc.open_the_rates_screen'),
         action: 'rates',
-        note: 'Leaves the flight controller. Unsaved edits here are kept until you exit.',
+        note: str('fc.leaves_the_flight_controller_unsaved_edits'),
       });
     }
 
@@ -678,13 +679,13 @@ export class FcSession {
         rows.push({
           label: t.name,
           action: `fc-preset:${t.id}`,
-          note: `${t.note} Keep-mine rates. Save still required.`,
+          note: str('fc.keep_mine_rates_save_still_required', { note: t.note }),
         });
       }
       rows.push({
         label: 'firmware-presets',
         value: 'Unavailable',
-        note: 'Optional later: fetch from betaflight/firmware-presets 4.5 branch only. Master presets would be a version lie.',
+        note: str('fc.optional_later_fetch_from_betaflight_firmware'),
         info: true,
         disabled: true,
         rowClass: 'row-grey',
@@ -695,16 +696,16 @@ export class FcSession {
     if (this.tab === 'modes') {
       const angle = this.getFlightMode() === 'angle';
       rows.push({
-        label: 'ARM',
-        value: 'Always on',
-        note: 'The sim is always armed. A real board uses an AUX range.',
+        label: str('fc.arm'),
+        value: str('fc.always_on'),
+        note: str('fc.the_sim_is_always_armed_a'),
         info: true,
         disabled: true,
         rowClass: 'row-grey',
       });
       rows.push({
-        label: 'ANGLE',
-        note: 'On or off, same sim_set_angle_mode as Flight mode in Settings. A real board uses an AUX range. Keyboard flight always uses Angle.',
+        label: str('fc.angle'),
+        note: str('fc.on_or_off_same_sim_set'),
         sw: true,
         on: angle,
         value: angle ? 'On' : 'Off',
@@ -713,8 +714,8 @@ export class FcSession {
         flip: () => this.setFlightMode(!angle),
       });
       rows.push({
-        label: 'LAUNCH CONTROL',
-        note: 'On or off, same Launch control in Settings. L on the keyboard is the mode switch on the start line. A real board uses an AUX range.',
+        label: str('fc.launch_control'),
+        note: str('fc.on_or_off_same_launch_control'),
         sw: true,
         on: this.getLaunchControl(),
         value: this.getLaunchControl() ? 'On' : 'Off',
@@ -723,17 +724,17 @@ export class FcSession {
         flip: () => this.setLaunchControl(!this.getLaunchControl()),
       });
       rows.push({
-        label: 'HORIZON',
+        label: str('fc.horizon'),
         value: 'Unavailable',
-        note: 'No AUX channels until they are fed from the gamepad.',
+        note: str('fc.no_aux_channels_until_they_are'),
         info: true,
         disabled: true,
         rowClass: 'row-grey',
       });
       rows.push({
-        label: 'GPS RESCUE',
+        label: str('fc.gps_rescue'),
         value: 'Unavailable',
-        note: 'No GPS sensor in the plant.',
+        note: str('fc.no_gps_sensor_in_the_plant'),
         info: true,
         disabled: true,
         rowClass: 'row-grey',
@@ -743,20 +744,20 @@ export class FcSession {
 
     if (this.tab === 'setup') {
       rows.push({
-        label: 'Attitude',
+        label: str('ui.attitude'),
         value: 'Live',
-        note: 'Horizon from the plant quaternion (sim_state). The simulated gyro needs no calibration.',
+        note: str('fc.horizon_from_the_plant_quaternion_sim'),
         info: true,
       });
     }
 
     if (this.tab === 'configuration') {
       rows.push({
-        label: 'Features',
+        label: str('fc.features'),
         info: true,
         disabled: true,
         rowClass: 'fc-section',
-        note: 'feature lines in the dump. Same path a preset uses.',
+        note: str('fc.feature_lines_in_the_dump_same'),
       });
       for (const feat of FEATURES) {
         const live = feat.status === STATUS.LIVE;
@@ -764,7 +765,7 @@ export class FcSession {
         const shown = on == null ? (live ? 'unset' : 'Off') : (on ? 'On' : 'Off');
         if (!live) {
           rows.push({
-            label: `feature ${feat.name}`,
+            label: str('fc.feature', { name: feat.name }),
             value: shown,
             note: feat.reason,
             info: true,
@@ -775,7 +776,7 @@ export class FcSession {
         }
         const current = Boolean(on);
         rows.push({
-          label: `feature ${feat.name}`,
+          label: str('fc.feature', { name: feat.name }),
           key: `feature ${feat.name}`,
           note: feat.reason,
           sw: true,
@@ -792,34 +793,34 @@ export class FcSession {
       const allowed = this.motorTestAllowed();
       if (!allowed) {
         rows.push({
-          label: 'Motor test',
+          label: str('fc.motor_test'),
           value: 'Unavailable',
-          note: 'Motor test uses sim_motor_override on the title, never mid-race. Open Flight controller from Settings on the title.',
+          note: str('fc.motor_test_uses_sim_motor_override'),
           info: true,
           disabled: true,
           rowClass: 'row-grey',
         });
       } else {
         rows.push({
-          label: 'All motors',
-          note: 'Title only. sim_motor_override, the same ABI check 8 uses. Stop before you Save.',
+          label: str('fc.all_motors'),
+          note: str('fc.title_only_sim_motor_override_the'),
           value: `${Math.round(this.motorDuty[0] * 100)} %`,
           step: true,
           adjust: (d) => this.setMotorDuty(-1, this.motorDuty[0] + d * 0.05),
         });
         for (let i = 0; i < 4; i += 1) {
           rows.push({
-            label: `Motor ${i + 1}`,
-            note: 'Betaflight order: 1 rear right, 2 front right, 3 rear left, 4 front left.',
+            label: str('fc.motor', { v1: i + 1 }),
+            note: str('fc.betaflight_order_1_rear_right_2'),
             value: `${Math.round(this.motorDuty[i] * 100)} %`,
             step: true,
             adjust: (d) => this.setMotorDuty(i, this.motorDuty[i] + d * 0.05),
           });
         }
         rows.push({
-          label: 'Stop motors',
+          label: str('fc.stop_motors'),
           action: 'fc-motors-stop',
-          note: 'Clears sim_motor_override.',
+          note: str('fc.clears_sim_motor_override'),
         });
       }
     }
@@ -845,7 +846,7 @@ export class FcSession {
           info: true,
           disabled: true,
           rowClass: 'fc-section',
-          note: 'Configurator group. Values still travel as CLI.',
+          note: str('fc.configurator_group_values_still_travel_as'),
         });
       }
       rows.push(this.fieldItem(field, tab.grey));

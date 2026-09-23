@@ -46,21 +46,22 @@
  */
 
 import { MAP_BUILD_MS } from './build-cost.js';
+import { str } from '../strings/index.js';
 
 export const MAPS = [
   {
     id: 'custom',
     name: 'Track',
     mode: 'race',
-    note: 'A track from the board, or one you built. Opening the sim loads the most flown track.',
+    note: str('registry.a_track_from_the_board_or'),
     buildMs: MAP_BUILD_MS.custom,
     load: () => import('./custom.js'),
   },
   {
     id: 'city',
-    name: 'Freestyle city',
+    name: str('ui.freestyle_city'),
     mode: 'freestyle',
-    note: 'A whole town. No gates, no lap, no clock. Roofs, alleys, a level crossing, and a works road out to a derelict factory and the municipal pool.',
+    note: str('registry.a_whole_town_no_gates_no'),
     buildMs: MAP_BUILD_MS.city,
     poster: 'assets/posters/city.jpg',
     load: () => import('./city/index.js'),

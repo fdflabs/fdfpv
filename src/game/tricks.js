@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * tricks.js: the freestyle trick catalogue and the score model, as published
  * numbers and nothing else.
@@ -68,116 +69,116 @@
 export const TRICKS = [
 
   /* Open Air Tricks */
-  { name: 'Flip', category: 'Open Air Tricks', difficulty: 'Beginner', points: 50 },
-  { name: 'Roll', category: 'Open Air Tricks', difficulty: 'Beginner', points: 50 },
-  { name: 'Yaw Spin', category: 'Open Air Tricks', difficulty: 'Beginner', points: 50 },
-  { name: 'Segmented Flips/Rolls', category: 'Open Air Tricks', difficulty: 'Beginner', points: 75 },
-  { name: 'Invert Rewind', category: 'Open Air Tricks', difficulty: 'Beginner', points: 75 },
-  { name: 'Vanny Roll', category: 'Open Air Tricks', difficulty: 'Beginner', points: 125 },
-  { name: 'Double Flip', category: 'Open Air Tricks', difficulty: 'Beginner', points: 150 },
-  { name: 'Double Roll', category: 'Open Air Tricks', difficulty: 'Beginner', points: 150 },
-  { name: 'Juicy Flick', category: 'Open Air Tricks', difficulty: 'Novice', points: 200 },
-  { name: 'Snapback', category: 'Open Air Tricks', difficulty: 'Novice', points: 200 },
-  { name: 'Rubik\'s Cube', category: 'Open Air Tricks', difficulty: 'Intermediate', points: 325 },
-  { name: 'Cubik\'s Rube', category: 'Open Air Tricks', difficulty: 'Intermediate', points: 325 },
-  { name: 'Inverted Yaw Spin', category: 'Open Air Tricks', difficulty: 'Advanced', points: 400 },
-  { name: 'Inverted Yaw Tracking', category: 'Open Air Tricks', difficulty: 'Advanced', points: 425 },
+  { name: 'Flip', category: str('tricks.open_air_tricks'), difficulty: 'Beginner', points: 50 },
+  { name: 'Roll', category: str('tricks.open_air_tricks'), difficulty: 'Beginner', points: 50 },
+  { name: str('tricks.yaw_spin'), category: str('tricks.open_air_tricks'), difficulty: 'Beginner', points: 50 },
+  { name: str('tricks.segmented_flips_rolls'), category: str('tricks.open_air_tricks'), difficulty: 'Beginner', points: 75 },
+  { name: str('tricks.invert_rewind'), category: str('tricks.open_air_tricks'), difficulty: 'Beginner', points: 75 },
+  { name: str('tricks.vanny_roll'), category: str('tricks.open_air_tricks'), difficulty: 'Beginner', points: 125 },
+  { name: str('tricks.double_flip'), category: str('tricks.open_air_tricks'), difficulty: 'Beginner', points: 150 },
+  { name: str('tricks.double_roll'), category: str('tricks.open_air_tricks'), difficulty: 'Beginner', points: 150 },
+  { name: str('tricks.juicy_flick'), category: str('tricks.open_air_tricks'), difficulty: 'Novice', points: 200 },
+  { name: 'Snapback', category: str('tricks.open_air_tricks'), difficulty: 'Novice', points: 200 },
+  { name: str('tricks.rubik_s_cube'), category: str('tricks.open_air_tricks'), difficulty: 'Intermediate', points: 325 },
+  { name: str('tricks.cubik_s_rube'), category: str('tricks.open_air_tricks'), difficulty: 'Intermediate', points: 325 },
+  { name: str('tricks.inverted_yaw_spin'), category: str('tricks.open_air_tricks'), difficulty: 'Advanced', points: 400 },
+  { name: str('tricks.inverted_yaw_tracking'), category: str('tricks.open_air_tricks'), difficulty: 'Advanced', points: 425 },
 
   /* Powerloops */
   { name: 'Powerloop', category: 'Powerloops', difficulty: 'Novice', points: 200 },
-  { name: 'Immelmann Turn', category: 'Powerloops', difficulty: 'Novice', points: 250 },
-  { name: 'Power Split', category: 'Powerloops', difficulty: 'Intermediate', points: 300 },
-  { name: 'Power Flip', category: 'Powerloops', difficulty: 'Intermediate', points: 350 },
-  { name: 'Reversed Power Flip', category: 'Powerloops', difficulty: 'Intermediate', points: 325 },
-  { name: 'Power Swap', category: 'Powerloops', difficulty: 'Intermediate', points: 350 },
-  { name: 'Power Switch', category: 'Powerloops', difficulty: 'Advanced', points: 425 },
-  { name: 'Power Roll', category: 'Powerloops', difficulty: 'Advanced', points: 450 },
-  { name: 'Inverted 360 Powerloop', category: 'Powerloops', difficulty: 'Master', points: 650 },
+  { name: str('tricks.immelmann_turn'), category: 'Powerloops', difficulty: 'Novice', points: 250 },
+  { name: str('tricks.power_split'), category: 'Powerloops', difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.power_flip'), category: 'Powerloops', difficulty: 'Intermediate', points: 350 },
+  { name: str('tricks.reversed_power_flip'), category: 'Powerloops', difficulty: 'Intermediate', points: 325 },
+  { name: str('tricks.power_swap'), category: 'Powerloops', difficulty: 'Intermediate', points: 350 },
+  { name: str('tricks.power_switch'), category: 'Powerloops', difficulty: 'Advanced', points: 425 },
+  { name: str('tricks.power_roll'), category: 'Powerloops', difficulty: 'Advanced', points: 450 },
+  { name: str('tricks.inverted_360_powerloop'), category: 'Powerloops', difficulty: 'Master', points: 650 },
   { name: 'Barani', category: 'Powerloops', difficulty: 'Master', points: 700 },
-  { name: 'Beginner Switch', category: 'Powerloops', difficulty: 'Beginner', points: 150 },
+  { name: str('tricks.beginner_switch'), category: 'Powerloops', difficulty: 'Beginner', points: 150 },
   { name: 'Immelloop', category: 'Powerloops', difficulty: 'Intermediate', points: 300 },
   { name: 'Immelmatt', category: 'Powerloops', difficulty: 'Advanced', points: 450 },
   { name: 'Rollani', category: 'Powerloops', difficulty: 'Master', points: 800 },
   { name: 'Flipani', category: 'Powerloops', difficulty: 'Master', points: 850 },
 
   /* Maverick Loops */
-  { name: 'Maverick Loop', category: 'Maverick Loops', difficulty: 'Beginner', points: 100 },
-  { name: 'Mavvy Roll', category: 'Maverick Loops', difficulty: 'Novice', points: 250 },
-  { name: 'Half Mavvy', category: 'Maverick Loops', difficulty: 'Advanced', points: 450 },
-  { name: 'Mavik\'s Loop', category: 'Maverick Loops', difficulty: 'Advanced', points: 475 },
-  { name: 'Mavani', category: 'Maverick Loops', difficulty: 'Advanced', points: 500 },
-  { name: 'Donkey Loop', category: 'Maverick Loops', difficulty: 'Master', points: 600 },
-  { name: 'Mavvelmann', category: 'Maverick Loops', difficulty: 'Novice', points: 250 },
+  { name: str('tricks.maverick_loop'), category: str('tricks.maverick_loops'), difficulty: 'Beginner', points: 100 },
+  { name: str('tricks.mavvy_roll'), category: str('tricks.maverick_loops'), difficulty: 'Novice', points: 250 },
+  { name: str('tricks.half_mavvy'), category: str('tricks.maverick_loops'), difficulty: 'Advanced', points: 450 },
+  { name: str('tricks.mavik_s_loop'), category: str('tricks.maverick_loops'), difficulty: 'Advanced', points: 475 },
+  { name: 'Mavani', category: str('tricks.maverick_loops'), difficulty: 'Advanced', points: 500 },
+  { name: str('tricks.donkey_loop'), category: str('tricks.maverick_loops'), difficulty: 'Master', points: 600 },
+  { name: 'Mavvelmann', category: str('tricks.maverick_loops'), difficulty: 'Novice', points: 250 },
 
   /* Matty Flips */
-  { name: 'Beginner Matty', category: 'Matty Flips', difficulty: 'Beginner', points: 100 },
-  { name: 'Matty Flip', category: 'Matty Flips', difficulty: 'Novice', points: 200 },
-  { name: 'Matty Twister', category: 'Matty Flips', difficulty: 'Intermediate', points: 350 },
-  { name: 'Half Matty', category: 'Matty Flips', difficulty: 'Intermediate', points: 350 },
-  { name: '540 Half Matty', category: 'Matty Flips', difficulty: 'Advanced', points: 425 },
-  { name: 'Matty 360', category: 'Matty Flips', difficulty: 'Advanced', points: 425 },
-  { name: 'Forani', category: 'Matty Flips', difficulty: 'Advanced', points: 475 },
-  { name: 'Anti Matty', category: 'Matty Flips', difficulty: 'Novice', points: 250 },
-  { name: 'Power Matty', category: 'Matty Flips', difficulty: 'Intermediate', points: 300 },
-  { name: 'Matty Roll', category: 'Matty Flips', difficulty: 'Advanced', points: 425 },
+  { name: str('tricks.beginner_matty'), category: str('tricks.matty_flips'), difficulty: 'Beginner', points: 100 },
+  { name: str('tricks.matty_flip'), category: str('tricks.matty_flips'), difficulty: 'Novice', points: 200 },
+  { name: str('tricks.matty_twister'), category: str('tricks.matty_flips'), difficulty: 'Intermediate', points: 350 },
+  { name: str('tricks.half_matty'), category: str('tricks.matty_flips'), difficulty: 'Intermediate', points: 350 },
+  { name: str('tricks.540_half_matty'), category: str('tricks.matty_flips'), difficulty: 'Advanced', points: 425 },
+  { name: str('tricks.matty_360'), category: str('tricks.matty_flips'), difficulty: 'Advanced', points: 425 },
+  { name: 'Forani', category: str('tricks.matty_flips'), difficulty: 'Advanced', points: 475 },
+  { name: str('tricks.anti_matty'), category: str('tricks.matty_flips'), difficulty: 'Novice', points: 250 },
+  { name: str('tricks.power_matty'), category: str('tricks.matty_flips'), difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.matty_roll'), category: str('tricks.matty_flips'), difficulty: 'Advanced', points: 425 },
 
   /* SplitS */
   { name: 'Split-S', category: 'SplitS', difficulty: 'Beginner', points: 100 },
-  { name: '540 Split S', category: 'SplitS', difficulty: 'Novice', points: 250 },
+  { name: str('tricks.540_split_s'), category: 'SplitS', difficulty: 'Novice', points: 250 },
   { name: 'Split-Back', category: 'SplitS', difficulty: 'Intermediate', points: 300 },
-  { name: 'Split Yaw', category: 'SplitS', difficulty: 'Intermediate', points: 300 },
-  { name: 'Split Stall Matty Rewind', category: 'SplitS', difficulty: 'Intermediate', points: 350 },
+  { name: str('tricks.split_yaw'), category: 'SplitS', difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.split_stall_matty_rewind'), category: 'SplitS', difficulty: 'Intermediate', points: 350 },
 
   /* Pole Dancing */
-  { name: 'Orbit x2', category: 'Pole Dancing', difficulty: 'Beginner', points: 75 },
-  { name: 'Cradle', category: 'Pole Dancing', difficulty: 'Beginner', points: 150 },
-  { name: 'Side-Lock Rewind', category: 'Pole Dancing', difficulty: 'Beginner', points: 150 },
-  { name: 'Whiplash', category: 'Pole Dancing', difficulty: 'Beginner', points: 175 },
-  { name: 'Pole Dance', category: 'Pole Dancing', difficulty: 'Advanced', points: 450 },
-  { name: 'Trippy Spin x2', category: 'Pole Dancing', difficulty: 'Advanced', points: 500 },
-  { name: 'Trippy Switch', category: 'Pole Dancing', difficulty: 'Advanced', points: 550 },
-  { name: 'Double Rolling Trippy Spin', category: 'Pole Dancing', difficulty: 'Master', points: 750 },
+  { name: str('tricks.orbit_x2'), category: str('tricks.pole_dancing'), difficulty: 'Beginner', points: 75 },
+  { name: 'Cradle', category: str('tricks.pole_dancing'), difficulty: 'Beginner', points: 150 },
+  { name: str('tricks.side_lock_rewind'), category: str('tricks.pole_dancing'), difficulty: 'Beginner', points: 150 },
+  { name: 'Whiplash', category: str('tricks.pole_dancing'), difficulty: 'Beginner', points: 175 },
+  { name: str('tricks.pole_dance'), category: str('tricks.pole_dancing'), difficulty: 'Advanced', points: 450 },
+  { name: str('tricks.trippy_spin_x2'), category: str('tricks.pole_dancing'), difficulty: 'Advanced', points: 500 },
+  { name: str('tricks.trippy_switch'), category: str('tricks.pole_dancing'), difficulty: 'Advanced', points: 550 },
+  { name: str('tricks.double_rolling_trippy_spin'), category: str('tricks.pole_dancing'), difficulty: 'Master', points: 750 },
 
   /* Jump Roping */
-  { name: 'Jump Rope', category: 'Jump Roping', difficulty: 'Beginner', points: 100 },
-  { name: 'Cinnamon Roll', category: 'Jump Roping', difficulty: 'Beginner', points: 175 },
-  { name: 'Burrito Roll', category: 'Jump Roping', difficulty: 'Novice', points: 250 },
-  { name: 'Side Loop', category: 'Jump Roping', difficulty: 'Novice', points: 200 },
-  { name: 'Double Dutch', category: 'Jump Roping', difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.jump_rope'), category: str('tricks.jump_roping'), difficulty: 'Beginner', points: 100 },
+  { name: str('tricks.cinnamon_roll'), category: str('tricks.jump_roping'), difficulty: 'Beginner', points: 175 },
+  { name: str('tricks.burrito_roll'), category: str('tricks.jump_roping'), difficulty: 'Novice', points: 250 },
+  { name: str('tricks.side_loop'), category: str('tricks.jump_roping'), difficulty: 'Novice', points: 200 },
+  { name: str('tricks.double_dutch'), category: str('tricks.jump_roping'), difficulty: 'Intermediate', points: 300 },
 
   /* Rewinds */
-  { name: 'Flip Stall Rewind', category: 'Rewinds', difficulty: 'Novice', points: 275 },
-  { name: '360 Stall Rewind', category: 'Rewinds', difficulty: 'Novice', points: 275 },
-  { name: 'Matty Stall Rewind', category: 'Rewinds', difficulty: 'Intermediate', points: 350 },
-  { name: 'Half Matty Stall Rewind', category: 'Rewinds', difficulty: 'Intermediate', points: 375 },
-  { name: '540 Half Matty Stall Rewind', category: 'Rewinds', difficulty: 'Advanced', points: 450 },
-  { name: 'Stall Rewind', category: 'Rewinds', difficulty: 'Beginner', points: 75 },
+  { name: str('tricks.flip_stall_rewind'), category: 'Rewinds', difficulty: 'Novice', points: 275 },
+  { name: str('tricks.360_stall_rewind'), category: 'Rewinds', difficulty: 'Novice', points: 275 },
+  { name: str('tricks.matty_stall_rewind'), category: 'Rewinds', difficulty: 'Intermediate', points: 350 },
+  { name: str('tricks.half_matty_stall_rewind'), category: 'Rewinds', difficulty: 'Intermediate', points: 375 },
+  { name: str('tricks.540_half_matty_stall_rewind'), category: 'Rewinds', difficulty: 'Advanced', points: 450 },
+  { name: str('tricks.stall_rewind'), category: 'Rewinds', difficulty: 'Beginner', points: 75 },
 
   /* Wall Tricks */
-  { name: 'Dive', category: 'Wall Tricks', difficulty: 'Beginner', points: 100 },
-  { name: 'Wall Ride', category: 'Wall Tricks', difficulty: 'Beginner', points: 150 },
-  { name: 'Wall Tap', category: 'Wall Tricks', difficulty: 'Beginner', points: 150 },
-  { name: 'Roll Tap', category: 'Wall Tricks', difficulty: 'Novice', points: 250 },
-  { name: 'Loop Tap', category: 'Wall Tricks', difficulty: 'Intermediate', points: 300 },
-  { name: 'Ceiling Tap', category: 'Wall Tricks', difficulty: 'Intermediate', points: 300 },
-  { name: 'Reverse Wall Ride', category: 'Wall Tricks', difficulty: 'Intermediate', points: 300 },
-  { name: 'Downtown Tap', category: 'Wall Tricks', difficulty: 'Intermediate', points: 350 },
-  { name: 'Maverick Tap Rewind', category: 'Wall Tricks', difficulty: 'Advanced', points: 500 },
-  { name: 'Power Switch Tap', category: 'Wall Tricks', difficulty: 'Advanced', points: 550 },
+  { name: 'Dive', category: str('tricks.wall_tricks'), difficulty: 'Beginner', points: 100 },
+  { name: str('tricks.wall_ride'), category: str('tricks.wall_tricks'), difficulty: 'Beginner', points: 150 },
+  { name: str('tricks.wall_tap'), category: str('tricks.wall_tricks'), difficulty: 'Beginner', points: 150 },
+  { name: str('tricks.roll_tap'), category: str('tricks.wall_tricks'), difficulty: 'Novice', points: 250 },
+  { name: str('tricks.loop_tap'), category: str('tricks.wall_tricks'), difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.ceiling_tap'), category: str('tricks.wall_tricks'), difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.reverse_wall_ride'), category: str('tricks.wall_tricks'), difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.downtown_tap'), category: str('tricks.wall_tricks'), difficulty: 'Intermediate', points: 350 },
+  { name: str('tricks.maverick_tap_rewind'), category: str('tricks.wall_tricks'), difficulty: 'Advanced', points: 500 },
+  { name: str('tricks.power_switch_tap'), category: str('tricks.wall_tricks'), difficulty: 'Advanced', points: 550 },
 
   /* Gaps */
-  { name: 'Knife Edge', category: 'Gaps', difficulty: 'Beginner', points: 150 },
-  { name: 'Reverse Knife Edge', category: 'Gaps', difficulty: 'Intermediate', points: 300 },
-  { name: 'Ninja Star', category: 'Gaps', difficulty: 'Advanced', points: 450 },
+  { name: str('tricks.knife_edge'), category: 'Gaps', difficulty: 'Beginner', points: 150 },
+  { name: str('tricks.reverse_knife_edge'), category: 'Gaps', difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.ninja_star'), category: 'Gaps', difficulty: 'Advanced', points: 450 },
 
   /* Other Tricks */
-  { name: 'Facepunch', category: 'Other Tricks', difficulty: 'Beginner', points: 100 },
-  { name: 'Slide Disarm', category: 'Other Tricks', difficulty: 'Novice', points: 200 },
-  { name: 'Perch', category: 'Other Tricks', difficulty: 'Novice', points: 200 },
-  { name: 'Eject Roll', category: 'Other Tricks', difficulty: 'Novice', points: 200 },
-  { name: 'Blindflip', category: 'Other Tricks', difficulty: 'Intermediate', points: 300 },
-  { name: 'True Barani', category: 'Other Tricks', difficulty: 'Intermediate', points: 375 },
-  { name: 'Stellar Eject Roll', category: 'Other Tricks', difficulty: 'Advanced', points: 450 },];
+  { name: 'Facepunch', category: str('tricks.other_tricks'), difficulty: 'Beginner', points: 100 },
+  { name: str('tricks.slide_disarm'), category: str('tricks.other_tricks'), difficulty: 'Novice', points: 200 },
+  { name: 'Perch', category: str('tricks.other_tricks'), difficulty: 'Novice', points: 200 },
+  { name: str('tricks.eject_roll'), category: str('tricks.other_tricks'), difficulty: 'Novice', points: 200 },
+  { name: 'Blindflip', category: str('tricks.other_tricks'), difficulty: 'Intermediate', points: 300 },
+  { name: str('tricks.true_barani'), category: str('tricks.other_tricks'), difficulty: 'Intermediate', points: 375 },
+  { name: str('tricks.stellar_eject_roll'), category: str('tricks.other_tricks'), difficulty: 'Advanced', points: 450 },];
 
 /*
  * The building blocks, from the sheet "Custom Trick Building Blocks". A
@@ -190,34 +191,34 @@ export const TRICKS = [
  * the floor under the catalogue, not a second catalogue.
  */
 export const BUILDING_BLOCKS = [
-  { name: '1/4 Flip', points: 25 },
-  { name: '1/2 Flip', points: 50 },
-  { name: '3/4 Flip', points: 75 },
-  { name: '1 Flip', points: 100 },
-  { name: '1/4 Roll', points: 25 },
-  { name: '1/2 Roll', points: 50 },
-  { name: '3/4 Roll', points: 75 },
-  { name: '1 Roll', points: 100 },
-  { name: '1/4 Yaw Spin', points: 25 },
-  { name: '1/2 Yaw Spin', points: 50 },
-  { name: '3/4 Yaw Spin', points: 75 },
-  { name: '1 Yaw Spin', points: 100 },
-  { name: '1/4 powerloop', points: 25 },
-  { name: '1/2 Power Loop', points: 100 },
-  { name: '3/4 Power Loop', points: 150 },
-  { name: '1/2 Maverick', points: 50 },
+  { name: str('tricks.1_4_flip'), points: 25 },
+  { name: str('tricks.1_2_flip'), points: 50 },
+  { name: str('tricks.3_4_flip'), points: 75 },
+  { name: str('tricks.1_flip'), points: 100 },
+  { name: str('tricks.1_4_roll'), points: 25 },
+  { name: str('tricks.1_2_roll'), points: 50 },
+  { name: str('tricks.3_4_roll'), points: 75 },
+  { name: str('tricks.1_roll'), points: 100 },
+  { name: str('tricks.1_4_yaw_spin'), points: 25 },
+  { name: str('tricks.1_2_yaw_spin'), points: 50 },
+  { name: str('tricks.3_4_yaw_spin'), points: 75 },
+  { name: str('tricks.1_yaw_spin'), points: 100 },
+  { name: str('tricks.1_4_powerloop'), points: 25 },
+  { name: str('tricks.1_2_power_loop'), points: 100 },
+  { name: str('tricks.3_4_power_loop'), points: 150 },
+  { name: str('tricks.1_2_maverick'), points: 50 },
   { name: 'Split-S', points: 100 },
-  { name: '1/4 Matty Flip', points: 25 },
-  { name: '1/2 Matty Flip', points: 100 },
-  { name: '1/2 Trippy Spin', points: 50 },
-  { name: '1 Trippy Spin', points: 100 },
+  { name: str('tricks.1_4_matty_flip'), points: 25 },
+  { name: str('tricks.1_2_matty_flip'), points: 100 },
+  { name: str('tricks.1_2_trippy_spin'), points: 50 },
+  { name: str('tricks.1_trippy_spin'), points: 100 },
   { name: 'Rewind', points: 100 },
   { name: 'Dive', points: 100 },
   { name: 'Eject', points: 100 },
-  { name: 'Juicy Flick', points: 200 },
-  { name: 'Wall Tap', points: 150 },
-  { name: '1/4 Jump Rope', points: 25 },
-  { name: '1/2 Jump Rope', points: 50 },];
+  { name: str('tricks.juicy_flick'), points: 200 },
+  { name: str('tricks.wall_tap'), points: 150 },
+  { name: str('tricks.1_4_jump_rope'), points: 25 },
+  { name: str('tricks.1_2_jump_rope'), points: 50 },];
 
 /*
  * How a trick was flown, and what that costs. Sheet "Info Tables", columns
@@ -238,11 +239,11 @@ export const BUILDING_BLOCKS = [
  * so that one switch statement can implement it.
  */
 export const EXECUTION = {
-  CLEAN: { points: 1.0, streak: 'grow', label: 'CLEAN' },
-  SLOPPY: { points: 0.65, streak: 'grow', label: 'SLOPPY' },
-  BUMP: { points: 0.5, streak: 'halve', label: 'BUMP' },
-  MISSED: { points: 0.0, streak: 'hold', label: 'MISSED' },
-  CRASH: { points: 0.0, streak: 'kill', label: 'CRASH' },
+  CLEAN: { points: 1.0, streak: 'grow', label: str('tricks.clean') },
+  SLOPPY: { points: 0.65, streak: 'grow', label: str('tricks.sloppy') },
+  BUMP: { points: 0.5, streak: 'halve', label: str('tricks.bump') },
+  MISSED: { points: 0.0, streak: 'hold', label: str('tricks.missed') },
+  CRASH: { points: 0.0, streak: 'kill', label: str('tricks.crash') },
 };
 
 /*
@@ -322,7 +323,7 @@ for (const b of BUILDING_BLOCKS) {
    * catalogue entry is the one that carries a category. */
   if (!BY_NAME.has(b.name)) {
     BY_NAME.set(b.name, {
-      name: b.name, category: 'Building Blocks', difficulty: 'Block', points: b.points,
+      name: b.name, category: str('tricks.building_blocks'), difficulty: 'Block', points: b.points,
     });
   }
 }

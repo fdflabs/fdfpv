@@ -27,14 +27,15 @@
  */
 
 import { boardOrigin } from './board.js';
+import { str } from '../strings/index.js';
 
 export const BUG_KINDS = [
-  { id: 'crash', label: 'Crash or freeze' },
-  { id: 'blocking', label: 'Cannot play' },
-  { id: 'wrong', label: 'Wrong behaviour' },
-  { id: 'visual', label: 'Looks wrong' },
-  { id: 'feel', label: 'Flight feel' },
-  { id: 'other', label: 'Other' },
+  { id: 'crash', label: str('bugs.crash_or_freeze') },
+  { id: 'blocking', label: str('bugs.cannot_play') },
+  { id: 'wrong', label: str('bugs.wrong_behaviour') },
+  { id: 'visual', label: str('bugs.looks_wrong') },
+  { id: 'feel', label: str('ui.flight_feel') },
+  { id: 'other', label: str('bugs.other') },
 ];
 
 function trimOrigin(value) {
@@ -56,7 +57,7 @@ export async function submitBug(payload, origin = boardOrigin()) {
     body = null;
   }
   if (!res.ok) {
-    const message = (body && body.error) || text || `The board answered ${res.status}.`;
+    const message = (body && body.error) || text || str('board.the_board_answered', { status: res.status });
     const err = new Error(message);
     err.status = res.status;
     throw err;

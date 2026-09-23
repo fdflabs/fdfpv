@@ -25,6 +25,11 @@ jobs:
       - run: npm run lint:presets
       - run: npm run lint:catalog
       - run: npm run lint:nouns
+      - run: npm run lint:copy
+      - run: npm run strings:selftest
+      - run: npm run lap:selftest
+      - run: npm run identity:selftest
+      - run: npm run live:selftest
       - run: npm run input:selftest
       - run: npm run ghost:selftest
       - run: npm run contact:selftest

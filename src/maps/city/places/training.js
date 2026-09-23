@@ -82,6 +82,7 @@
 import * as THREE from 'three';
 import { rngKit } from '../vendored/core/util.js';
 import { makeNoticeBoard, makeBench } from '../vendored/world/props.js';
+import { str } from '../../../strings/index.js';
 import {
   GROUND, mats, slab, decal, deck, post, board, patch,
 } from './kit.js';
@@ -241,32 +242,32 @@ export function buildTraining(ctx) {
   out.references.trainingTowerHeight = {
     measured: +TOWER.h.toFixed(2),
     unit: 'm',
-    real: 'a suburban lattice mast, 20 to 50 m',
+    real: str('training.a_suburban_lattice_mast_20_to'),
   };
   out.references.trainingLoopGap = {
     measured: +(LOOP.xs[1] - LOOP.xs[0]).toFixed(2),
     unit: 'm',
-    real: 'far enough apart to fly the second half, 12 to 25 m',
+    real: str('training.far_enough_apart_to_fly_the'),
   };
   out.references.trainingArchOpening = {
     measured: +(LOOP.half * 2).toFixed(2),
     unit: 'm',
-    real: 'an arch a five inch takes at speed, 4 m and up',
+    real: str('training.an_arch_a_five_inch_takes'),
   };
   out.references.trainingSplitEntry = {
     measured: +SPLITS.bar.toFixed(2),
     unit: 'm',
-    real: 'enough height to finish a split-S, 10 m and up',
+    real: str('training.enough_height_to_finish_a_split'),
   };
   out.references.trainingJumpRail = {
     measured: +JUMP.bar.toFixed(2),
     unit: 'm',
-    real: 'low enough to hop and high enough to fly under, 2 to 3.5 m',
+    real: str('training.low_enough_to_hop_and_high'),
   };
   out.references.trainingWallTap = {
     measured: +WALL.target.toFixed(2),
     unit: 'm',
-    real: 'tap height for a five inch, 2 to 4 m',
+    real: str('training.tap_height_for_a_five_inch'),
   };
   return out;
 }

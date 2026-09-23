@@ -53,6 +53,7 @@
  */
 
 import { GHOST_MAX_MS, GHOST_RATE_HZ } from '../share/ghostdata.js';
+import { str } from '../strings/index.js';
 
 /*
  * A grid segment faster than this is a teleport, not flight. Terminal
@@ -370,7 +371,7 @@ export class GhostBook {
     }
     const slot = this.courseSlot(key);
     const lap = new GhostLap(lapRecord, {
-      label: 'Previous lap',
+      label: str('ghost.previous_lap'),
       source: 'session',
     });
     slot.previous = lap;
@@ -379,7 +380,7 @@ export class GhostBook {
        * previous slot cannot retire the best. The arrays are shared and
        * immutable from here on. */
       slot.best = new GhostLap(lapRecord, {
-        label: 'Session best',
+        label: str('ghost.session_best'),
         source: 'session',
       });
       return { best: true };

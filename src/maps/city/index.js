@@ -66,6 +66,7 @@ import { buildPlaces } from './places/index.js';
 import { drawnBoxes } from './drawn.js';
 import { yieldToPaint } from '../../ui/loading.js';
 import { qualityFor } from '../../render/quality.js';
+import { str } from '../../strings/index.js';
 
 /*
  * Where a run starts. On the road south of the level crossing, facing north
@@ -2262,7 +2263,7 @@ export async function buildMap(shell, onProgress, options) {
   references.crossingBoomCollider = {
     measured: boomColliderExtent(anim.boomExtentDown(), references.crossingBoomGround),
     unit: 'm',
-    real: 'must bracket the drawn arm hinge, with the arms DOWN',
+    real: str('index.must_bracket_the_drawn_arm_hinge'),
   };
   progress(0.94);
 
@@ -2427,7 +2428,7 @@ export async function buildMap(shell, onProgress, options) {
 
   return {
     id: 'city',
-    name: 'Freestyle city',
+    name: str('ui.freestyle_city'),
     mode: 'freestyle',
     graphics: q.id,
     scene,

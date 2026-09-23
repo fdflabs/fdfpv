@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * trickfilm.js: a moving picture of a trick, drawn from the trick's own
  * definition.
@@ -70,9 +71,9 @@ const SEG_MS = 1500;
 const HOLD_MS = 700;
 
 export const VIEW_LABEL = {
-  side: 'seen from the side',
-  above: 'seen from above',
-  behind: 'seen from behind',
+  side: str('trickfilm.seen_from_the_side'),
+  above: str('trickfilm.seen_from_above'),
+  behind: str('trickfilm.seen_from_behind'),
 };
 
 /* ------------------------------------------------------------------ *
@@ -107,11 +108,11 @@ export function viewFor(steps) {
 /* Turns as the workbook says them: a count, not an angle. */
 function turnWords(n) {
   const t = Math.abs(n);
-  if (t === 0.25) { return 'a quarter turn'; }
-  if (t === 0.5) { return 'a half turn'; }
-  if (t === 0.75) { return 'three quarters of a turn'; }
-  if (t === 1) { return 'a whole turn'; }
-  if (t === 2) { return 'two whole turns'; }
+  if (t === 0.25) { return str('trickfilm.a_quarter_turn'); }
+  if (t === 0.5) { return str('trickfilm.a_half_turn'); }
+  if (t === 0.75) { return str('trickfilm.three_quarters_of_a_turn'); }
+  if (t === 1) { return str('trickfilm.a_whole_turn'); }
+  if (t === 2) { return str('trickfilm.two_whole_turns'); }
   return `${t} turns`;
 }
 
@@ -126,42 +127,42 @@ export function describeSteps(steps) {
   const parts = [];
   for (const s of steps) {
     if (s.path !== undefined) {
-      const thing = s.path === 'pole' ? 'a post' : 'a rail';
+      const thing = s.path === 'pole' ? str('trickfilm.a_post') : str('trickfilm.a_rail');
       let lap;
       if (s.turnsAtLeast !== undefined) {
-        lap = `${turnWords(s.turnsAtLeast)} or more around ${thing}`;
+        lap = str('trickfilm.or_more_around', { turnWords: turnWords(s.turnsAtLeast), thing });
       } else if (s.turns === 0.5) {
-        lap = `half a lap around ${thing}`;
+        lap = str('trickfilm.half_a_lap_around', { thing });
       } else if (s.turns === 1) {
-        lap = `a whole lap around ${thing}`;
+        lap = str('trickfilm.a_whole_lap_around', { thing });
       } else {
         lap = `${turnWords(s.turns)} around ${thing}`;
       }
-      if (s.from === 'under') { lap += ', entered from underneath'; }
-      if (s.from === 'over') { lap += ', entered from over the top'; }
-      if (s.inverted === true) { lap += ', flown belly up'; }
-      if (s.track === true) { lap += ', with the post held on the screen'; }
+      if (s.from === 'under') { lap += str('trickfilm.entered_from_underneath'); }
+      if (s.from === 'over') { lap += str('trickfilm.entered_from_over_the_top'); }
+      if (s.inverted === true) { lap += str('trickfilm.flown_belly_up'); }
+      if (s.track === true) { lap += str('trickfilm.with_the_post_held_on_the'); }
       const rot = [];
       if (s.rot) {
         for (const key of Object.keys(s.rot)) {
           if (s.rot[key] === 0) { continue; }
-          rot.push(`${turnWords(s.rot[key])} of ${AXIS_WORD[key]}`);
+          rot.push(str('trickfilm.of', { turnWords: turnWords(s.rot[key]), v2: AXIS_WORD[key] }));
         }
       }
-      if (rot.length) { lap += `, carrying ${rot.join(' and ')}`; }
+      if (rot.length) { lap += str('trickfilm.carrying', { v1: rot.join(' and ') }); }
       parts.push(lap);
       continue;
     }
-    let r = `${turnWords(s.turns)} of ${AXIS_WORD[s.axis] || s.axis || 'rotation'}`;
-    if (s.oppTo !== undefined) { r += ' back the other way'; }
-    if (s.sameAs !== undefined) { r += ' the same way again'; }
-    if (s.stallMs) { r += ', after a pause'; }
-    if (s.tap) { r += ', touching the object as you go'; }
-    if (s.inverted === true) { r += ', upside down'; }
+    let r = str('trickfilm.of', { turnWords: turnWords(s.turns), v2: AXIS_WORD[s.axis] || s.axis || 'rotation' });
+    if (s.oppTo !== undefined) { r += str('trickfilm.back_the_other_way'); }
+    if (s.sameAs !== undefined) { r += str('trickfilm.the_same_way_again'); }
+    if (s.stallMs) { r += str('trickfilm.after_a_pause'); }
+    if (s.tap) { r += str('trickfilm.touching_the_object_as_you_go'); }
+    if (s.inverted === true) { r += str('trickfilm.upside_down'); }
     parts.push(r);
   }
   if (!parts.length) { return ''; }
-  const line = parts.join(', then ');
+  const line = parts.join(str('trickfilm.then'));
   return `${line.charAt(0).toUpperCase()}${line.slice(1)}.`;
 }
 

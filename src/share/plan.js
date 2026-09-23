@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * plan.js: a course, drawn as a plan.
  *
@@ -1490,7 +1491,7 @@ export function planCanvas(plan, label) {
   canvas.className = 'plan';
   canvas.planData = plan || null;
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', label || 'Track plan');
+  canvas.setAttribute('aria-label', label || str('ui.track_plan'));
   return canvas;
 }
 
@@ -1508,5 +1509,5 @@ export function paintPlans(root, options = {}) {
 export function fieldSize(plan) {
   const w = Math.round(Number(plan && plan.width) || 0);
   const d = Math.round(Number(plan && plan.depth) || 0);
-  return w && d ? `${w} by ${d} m` : '';
+  return w && d ? str('plan.by_m', { w, d }) : '';
 }

@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * profile.js: the elevation chart under the results panel. Height above the
  * ground against distance along the lap.
@@ -51,7 +52,7 @@ export function drawProfile(canvas, profile) {
   if (!profile || profile.points.length < 2) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Put gates in the flying order to see the elevation', w / 2, h / 2);
+    ctx.fillText(str('profile.put_gates_in_the_flying_order'), w / 2, h / 2);
     ctx.restore();
     return;
   }

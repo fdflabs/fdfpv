@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * gpuinfo.js: the GPU WebGL actually bound, named for the settings row.
  *
@@ -66,7 +67,7 @@ const SOFTWARE_RE = /swiftshader|llvmpipe|softpipe|lavapipe|microsoft basic rend
 const INTEGRATED_RE = new RegExp([
   /* Intel: HD Graphics 4000, UHD Graphics 620, Iris Plus, Iris Xe. */
   'intel\\b[^,)]*\\b(hd|uhd|iris|xe)\\b',
-  '\\b(hd|uhd) graphics\\b',
+  str('gpuinfo.b_hd_uhd_graphics_b'),
   '\\biris\\b',
   /* AMD integrated: bare "Radeon Graphics", Vega 3 to 11, Radeon RX Vega N. */
   '\\bradeon\\s*(\\(tm\\)\\s*)?graphics\\b',
@@ -169,19 +170,19 @@ function isSoftware(raw) {
 
 function buildNote(info) {
   if (!info.usable) {
-    return 'WebGL is not drawing. Reload the page. If this stays, the browser refused a graphics context.';
+    return str('gpuinfo.webgl_is_not_drawing_reload_the');
   }
-  const api = info.webgl2 ? 'WebGL 2' : 'WebGL';
+  const api = info.webgl2 ? str('gpuinfo.webgl_2') : 'WebGL';
   if (info.software) {
-    return `${api} is running on the CPU, not a GPU (${info.raw || 'software rasteriser'}). Headless Chrome does this. Low is the preset that will run. Nothing is uploaded.`;
+    return str('gpuinfo.is_running_on_the_cpu_not', { api, v2: info.raw || 'software rasteriser' });
   }
   if (info.hidden) {
-    return `${api} is drawing, so a GPU is in use, but this browser will not name the chip. Firefox's resist-fingerprinting and some Safari builds do that. Nothing is uploaded.`;
+    return str('gpuinfo.is_drawing_so_a_gpu_is', { api });
   }
   if (/^Apple GPU$/i.test(info.name)) {
-    return `${info.name}. ${api} is drawing. Safari hides the chip model. On a dual-GPU machine this is the device the tab bound after asking for high-performance. Nothing is uploaded.`;
+    return str('gpuinfo.is_drawing_safari_hides_the_chip', { name: info.name, api });
   }
-  return `${info.name}. ${api} is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded.`;
+  return str('gpuinfo.is_drawing_on_this_gpu_on', { name: info.name, api });
 }
 
 /*
@@ -199,14 +200,14 @@ export function readGpuInfo(renderer) {
     usable: false,
     webgl2: false,
     hidden: true,
-    note: 'The GPU name is not available yet.',
+    note: str('gpuinfo.the_gpu_name_is_not_available'),
   };
   if (!gl || typeof gl.getParameter !== 'function') {
-    info.note = 'No WebGL context. The world cannot draw.';
+    info.note = str('gpuinfo.no_webgl_context_the_world_cannot');
     return info;
   }
   if (typeof gl.isContextLost === 'function' && gl.isContextLost()) {
-    info.note = 'The WebGL context was lost. Reload the page.';
+    info.note = str('gpuinfo.the_webgl_context_was_lost_reload');
     return info;
   }
   info.usable = true;
@@ -242,11 +243,11 @@ export function readGpuInfo(renderer) {
   info.integrated = !info.software && (isIntegratedGpu(raw) || isIntegratedGpu(name));
   info.hidden = !info.software && looksGeneric(name, raw);
   if (info.software) {
-    info.display = name ? `Software (${name})` : 'Software';
+    info.display = name ? str('gpuinfo.software', { name }) : str('gpuinfo.software_plain');
   } else if (info.hidden) {
-    info.display = 'Hidden by this browser';
+    info.display = str('gpuinfo.hidden_by_this_browser');
   } else {
-    info.display = name || 'GPU in use';
+    info.display = name || str('gpuinfo.gpu_in_use');
   }
   info.note = buildNote(info);
   return info;

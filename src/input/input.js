@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * input.js: stick input for the shell.
  *
@@ -633,13 +634,13 @@ function mapCentered(v, spec) {
 function calTitle(c) {
   return {
     center: 'Centre',
-    sweep: 'Full range',
+    sweep: str('ui.full_range'),
     throttle: 'Throttle',
     roll: 'Roll',
     pitch: 'Pitch',
     yaw: 'Yaw',
-    select: 'Menu switch',
-    confirm: c.checkOnly ? 'Check sticks' : 'Check',
+    select: str('ui.menu_switch'),
+    confirm: c.checkOnly ? str('ui.check_sticks') : 'Check',
   }[c.step] || '';
 }
 
@@ -656,57 +657,57 @@ function calTitle(c) {
  */
 function calPrompt(c, mode) {
   if (c.step === 'center') {
-    return 'Both sticks in the centre. Throttle all the way down. Hold still.';
+    return str('input.both_sticks_in_the_centre_throttle');
   }
   if (c.step === 'sweep') {
-    return 'Move both sticks through every corner, and the throttle up and down, then put them back.';
+    return str('input.move_both_sticks_through_every_corner');
   }
   if (c.step === 'confirm') {
-    return `Move the sticks. Left is ${stickCaption(mode, 'left').toLowerCase()},`
-      + ` right is ${stickCaption(mode, 'right').toLowerCase()}.`;
+    return str('input.move_the_sticks_left_is', { v1: stickCaption(mode, 'left').toLowerCase() })
+      + str('input.right_is', { v1: stickCaption(mode, 'right').toLowerCase() });
   }
   const side = (ch) => stickSideOf(mode, ch);
   if (c.phase === 'release') {
     return {
-      throttle: 'Now put the throttle all the way back down.',
-      roll: `Let the ${side('roll')} stick come back to the centre.`,
-      pitch: `Let the ${side('pitch')} stick come back to the centre.`,
-      yaw: `Let the ${side('yaw')} stick come back to the centre.`,
-      select: 'Put it back where it was.',
-    }[c.step] || 'Return to rest.';
+      throttle: str('input.now_put_the_throttle_all_the'),
+      roll: str('input.let_the_stick_come_back_to', { side: side('roll') }),
+      pitch: str('input.let_the_stick_come_back_to', { side: side('pitch') }),
+      yaw: str('input.let_the_stick_come_back_to', { side: side('yaw') }),
+      select: str('input.put_it_back_where_it_was'),
+    }[c.step] || str('input.return_to_rest');
   }
   return {
-    throttle: 'Push the throttle all the way up and hold it.',
-    roll: `Hold the ${side('roll')} stick fully to the right.`,
-    pitch: `Pull the ${side('pitch')} stick fully back, toward you.`,
-    yaw: `Hold the ${side('yaw')} stick fully to the right.`,
+    throttle: str('input.push_the_throttle_all_the_way'),
+    roll: str('input.hold_the_stick_fully_to_the', { side: side('roll') }),
+    pitch: str('input.pull_the_stick_fully_back_toward', { side: side('pitch') }),
+    yaw: str('input.hold_the_stick_fully_to_the', { side: side('yaw') }),
     /* Only ever asked of a radio reporting no buttons at all, so there is
      * no press to describe and the pilot is choosing which switch becomes
      * one. See SELECT_STEP. */
-    select: 'Throw the switch you want to use as Enter, and hold it.',
+    select: str('input.throw_the_switch_you_want_to'),
   }[c.step] || '';
 }
 
 function calHint(c, travelled, need, gp, idleThrottle = 0, moving = null) {
   if (!gp) {
-    return 'Radio disconnected. Plug it back in, joystick mode.';
+    return str('input.radio_disconnected_plug_it_back_in');
   }
   if (c.step === 'center') {
-    return 'Waiting until the reading is steady.';
+    return str('input.waiting_until_the_reading_is_steady');
   }
   if (c.step === 'sweep') {
     return travelled < need
-      ? `Keep going. Full travel on ${travelled} of ${need} axes so far.`
-      : 'Back to rest to continue.';
+      ? str('input.keep_going_full_travel_on_of', { travelled, need })
+      : str('input.back_to_rest_to_continue');
   }
   if (c.step === 'confirm') {
     /* A throttle reading this high with the sticks sitting where the pilot
      * left them is a quad that will fly itself. Say the number, because the
      * gimbal alone does not make it obvious, and name the way out. */
     if (idleThrottle > CAL.THROTTLE_IDLE) {
-      return `Throttle is reading ${Math.round(idleThrottle * 100)} percent right now.`
-        + ' If that is where your throttle sits when you let go, press T or'
-        + ' Throttle zero is here.';
+      return str('input.throttle_is_reading_percent_right_now', { v1: Math.round(idleThrottle * 100) })
+        + str('input.if_that_is_where_your_throttle')
+        + str('input.throttle_zero_is_here');
     }
     /*
      * The channel under their thumb, named, with the one key that fixes it
@@ -717,26 +718,26 @@ function calHint(c, travelled, need, gp, idleThrottle = 0, moving = null) {
      */
     if (moving) {
       const rev = c.draft && c.draft.reverse && c.draft.reverse[moving];
-      return `Moving ${moving}${rev ? ', reversed' : ''}.`
-        + ' If the wrong stick moved on screen, press M.'
-        + ` If it moved the wrong way, press R to reverse ${moving}.`;
+      return str('input.moving', { moving, v2: rev ? str('input.reversed') : '' })
+        + str('input.if_the_wrong_stick_moved_on')
+        + str('input.if_it_moved_the_wrong_way', { moving });
     }
     const keep = c.checkOnly
-      ? 'Enter or Save mapping keeps the change. Escape leaves it as it was.'
+      ? str('input.enter_or_save_mapping_keeps_the')
       : (c.draft && c.draft.select
-        ? 'Enter, Save mapping, or the switch you just assigned. Escape cancels.'
-        : 'Enter or Save mapping keeps it. Escape cancels.');
-    return `Move one stick at a time and watch it. ${keep}`;
+        ? str('input.enter_save_mapping_or_the_switch')
+        : str('input.enter_or_save_mapping_keeps_it'));
+    return str('input.move_one_stick_at_a_time', { keep });
   }
   if (c.step === 'select') {
-    return 'This radio reports no buttons, so one channel can be the button.'
-      + ' No switch to spare? Skip. Holding any stick away from centre for'
-      + ' a second counts as a press either way.';
+    return str('input.this_radio_reports_no_buttons_so')
+      + str('input.no_switch_to_spare_skip_holding')
+      + str('input.a_second_counts_as_a_press');
   }
   if (c.phase === 'release') {
-    return 'One direction at a time. Diagonals are ignored.';
+    return str('input.one_direction_at_a_time_diagonals');
   }
-  return 'Hold it there. Diagonals are ignored.';
+  return str('input.hold_it_there_diagonals_are_ignored');
 }
 
 /*
@@ -834,7 +835,7 @@ export class InputManager {
   constructor() {
     this.channels = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
     this.queue = [];
-    this.source = 'the keyboard';
+    this.source = str('input.the_keyboard');
     /* The thumb sticks, when a touch device mounted them: an object with
      * active(), sample(dtMs) and reset(), from src/input/touchsticks.js.
      * Sits under a radio and over the keyboard in poll()'s ladder. */
@@ -1440,7 +1441,7 @@ export class InputManager {
       }
       cards.push({
         key,
-        title: `Joystick ${i + 1}`,
+        title: str('input.joystick', { v1: i + 1 }),
         name: shortPadName(gp.id),
         motion,
         live: motion >= PAD_PICK.WIGGLE,
@@ -1449,16 +1450,16 @@ export class InputManager {
       });
     }
     const chosen = cards.find((c) => c.chosen) || null;
-    let prompt = 'Move the joystick you want to fly with.';
-    let hint = 'Each box is one plugged-in device. The one you move lights up.';
+    let prompt = str('ui.move_the_joystick_you_want_to');
+    let hint = str('input.each_box_is_one_plugged_in');
     if (!cards.length) {
-      prompt = 'No joystick found.';
-      hint = 'Plug one in, set it to joystick mode, then move it.';
+      prompt = str('input.no_joystick_found');
+      hint = str('input.plug_one_in_set_it_to');
     } else if (p.phase === 'confirm' && chosen) {
-      prompt = `Use ${chosen.title}?`;
-      hint = 'Yes keeps it. No waits for another wiggle.';
+      prompt = str('input.use', { title: chosen.title });
+      hint = str('input.yes_keeps_it_no_waits_for');
     }
-    const skipLabel = p.reason === 'menu' ? 'Cancel' : 'Use keyboard instead';
+    const skipLabel = p.reason === 'menu' ? 'Cancel' : str('ui.use_keyboard_instead');
     return {
       phase: p.phase,
       reason: p.reason,
@@ -1549,7 +1550,7 @@ export class InputManager {
     let using = 'Keyboard';
     if (selected) {
       const n = pads.findIndex((g) => g.index === selected.index && g.id === selected.id) + 1;
-      using = n > 0 ? `Joystick ${n}, ${shortPadName(selected.id)}` : shortPadName(selected.id);
+      using = n > 0 ? str('input.joystick_2', { n, shortPadName: shortPadName(selected.id) }) : shortPadName(selected.id);
     } else if (this.padChoice && this.padChoice.kind === 'none') {
       using = 'Keyboard';
     }
@@ -2467,23 +2468,23 @@ export class InputManager {
        * hands the collective back where it left it rather than springing. */
       next = { ...this.harnessChannels };
       this.kb.throttle = next.throttle;
-      this.source = 'the harness override';
+      this.source = str('input.the_harness_override');
     } else if (this.padPick) {
       this.runPadPick(dtMs);
       next = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
-      this.source = 'the joystick picker';
+      this.source = str('input.the_joystick_picker');
     } else if (this.calibration) {
       /* Unconditional: runCalibration's own first line sets waiting when
        * there is no pad, so the else arm here was a second copy that could
        * only ever agree with it. */
       this.runCalibration(gp, dtMs);
       next = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
-      this.source = 'the calibration wizard';
+      this.source = str('input.the_calibration_wizard');
     } else if (gp) {
       next = this.readGamepad(gp);
       this.noteThrottleParked(gp);
       this.noteGuessOrder(gp);
-      this.source = this.mapUsable() ? 'a radio' : 'a radio whose stick order is a guess';
+      this.source = this.mapUsable() ? str('input.a_radio') : str('input.a_radio_whose_stick_order_is');
       /* Keyboard still works while a pad is plugged in: any held stick
        * key overrides that channel. */
       const kb = this.readKeyboard(dtMs, false);
@@ -2502,10 +2503,10 @@ export class InputManager {
        * spring back to centre is time, not touches, and the sticky
        * throttle has to keep feeding while no finger is down at all. */
       next = this.touchSource.sample(dtMs);
-      this.source = 'the touch sticks';
+      this.source = str('input.the_touch_sticks');
     } else {
       next = this.readKeyboard(dtMs, true);
-      this.source = 'the keyboard';
+      this.source = str('input.the_keyboard');
     }
 
     const changed =

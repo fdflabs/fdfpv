@@ -56,6 +56,7 @@
  */
 
 import { stickChannels, stickCaption, DEFAULT_STICK_MODE } from './stickmode.js';
+import { str } from '../strings/index.js';
 
 /* Released channels run back to centre at this rate, full scale per
  * second. 8 is about 125 ms from the stop, the pace of a real spring,
@@ -132,7 +133,7 @@ export function mountTouchSticks({ onPause } = {}) {
   const right = makePlate(stickCaption(layout.mode, 'right', ' · '));
   right.zone.classList.add('touch-zone-right');
 
-  const pause = el('button', 'bug-chip touch-pause', 'Pause');
+  const pause = el('button', 'bug-chip touch-pause', str('ui.pause'));
   pause.type = 'button';
   pause.addEventListener('click', () => {
     if (onPause) {
@@ -140,7 +141,7 @@ export function mountTouchSticks({ onPause } = {}) {
     }
   });
 
-  const rotate = el('div', 'touch-rotate', 'Turn your phone sideways to fly');
+  const rotate = el('div', 'touch-rotate', str('touchsticks.turn_your_phone_sideways_to_fly'));
 
   root.append(left.zone, right.zone, pause, rotate);
 

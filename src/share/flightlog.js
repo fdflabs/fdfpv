@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * flightlog.js: record a flight and write it out as a blackbox log.
  *
@@ -72,11 +73,11 @@ const THR_SPAN = 1000;
  */
 export function toBlackboxCsv(samples) {
   const head = [
-    'time (us)',
+    str('flightlog.time_us'),
     'rcCommand[0]', 'rcCommand[1]', 'rcCommand[2]', 'rcCommand[3]',
     'gyroADC[0]', 'gyroADC[1]', 'gyroADC[2]',
     'motor[0]', 'motor[1]', 'motor[2]', 'motor[3]',
-    'vbatLatest (V)',
+    str('flightlog.vbatlatest_v'),
   ].map((n) => `"${n}"`).join(', ');
   const body = samples.map((s) => [
     Math.round(s.tUs),

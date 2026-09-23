@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * presets.js: the tracks that ship with the builder, and nothing else.
  *
@@ -60,7 +61,7 @@ export const PRESETS = [
   {
     "schemaVersion": 3,
     "id": "racegow5-track8",
-    "name": "RaceGOW5 Track 8",
+    "name": str('presets.racegow5_track_8'),
     "createdUtc": "2026-09-11T00:00:00Z",
     "modifiedUtc": "2026-09-11T00:00:00Z",
     "trackClass": "micro",
@@ -81,7 +82,7 @@ export const PRESETS = [
       "designer": "AyyyKayyy",
       "series": "RaceGOW5",
       "sponsor": "weBLEEDfpv",
-      "source": "racegow.com/tracks, the official Track 8 animation",
+      "source": str('presets.racegow_com_tracks_the_official_track'),
       "broughtOverBy": "andAgainFPV",
       "note": ""
     },
@@ -107,7 +108,7 @@ export const PRESETS = [
       {
         "id": "el-2",
         "type": "gate",
-        "name": "Start gate",
+        "name": str('presets.start_gate'),
         "position": {
           "x": 3.9624,
           "y": 5.625465,
@@ -127,7 +128,7 @@ export const PRESETS = [
       {
         "id": "el-3",
         "type": "gate",
-        "name": "Over the start gate",
+        "name": str('presets.over_the_start_gate'),
         "position": {
           "x": 3.9624,
           "y": 5.625465,
@@ -148,7 +149,7 @@ export const PRESETS = [
       {
         "id": "el-4",
         "type": "gate",
-        "name": "Tower, bottom",
+        "name": str('presets.tower_bottom'),
         "position": {
           "x": 6.17601,
           "y": 6.363335,
@@ -168,7 +169,7 @@ export const PRESETS = [
       {
         "id": "el-5",
         "type": "gate",
-        "name": "Tower, middle",
+        "name": str('presets.tower_middle'),
         "position": {
           "x": 6.17601,
           "y": 6.363335,
@@ -188,7 +189,7 @@ export const PRESETS = [
       {
         "id": "el-6",
         "type": "gate",
-        "name": "Tower, top",
+        "name": str('presets.tower_top'),
         "position": {
           "x": 6.17601,
           "y": 6.363335,
@@ -209,7 +210,7 @@ export const PRESETS = [
       {
         "id": "el-7",
         "type": "gate",
-        "name": "Far side, left, low",
+        "name": str('presets.far_side_left_low'),
         "position": {
           "x": 5.069205,
           "y": 6.73227,
@@ -229,7 +230,7 @@ export const PRESETS = [
       {
         "id": "el-8",
         "type": "gate",
-        "name": "Far side, left, up",
+        "name": str('presets.far_side_left_up'),
         "position": {
           "x": 5.069205,
           "y": 6.73227,
@@ -250,7 +251,7 @@ export const PRESETS = [
       {
         "id": "el-9",
         "type": "gate",
-        "name": "Far side, right, low",
+        "name": str('presets.far_side_right_low'),
         "position": {
           "x": 5.807075,
           "y": 6.73227,
@@ -270,7 +271,7 @@ export const PRESETS = [
       {
         "id": "el-10",
         "type": "gate",
-        "name": "Far side, right, up",
+        "name": str('presets.far_side_right_up'),
         "position": {
           "x": 5.807075,
           "y": 6.73227,
@@ -291,7 +292,7 @@ export const PRESETS = [
       {
         "id": "el-11",
         "type": "gate",
-        "name": "Under the rail",
+        "name": str('presets.under_the_rail'),
         "position": {
           "x": 5.069205,
           "y": 5.9944,
@@ -312,7 +313,7 @@ export const PRESETS = [
       {
         "id": "el-12",
         "type": "gate",
-        "name": "Over the rail",
+        "name": str('presets.over_the_rail'),
         "position": {
           "x": 5.069205,
           "y": 5.9944,
@@ -333,7 +334,7 @@ export const PRESETS = [
       {
         "id": "el-13",
         "type": "diveGate",
-        "name": "Table top",
+        "name": str('presets.table_top'),
         "position": {
           "x": 5.807075,
           "y": 6.363335,
@@ -353,7 +354,7 @@ export const PRESETS = [
       {
         "id": "el-14",
         "type": "pole",
-        "name": "Tall pole",
+        "name": str('presets.tall_pole'),
         "position": {
           "x": 6.17601,
           "y": 6.007735,
@@ -371,7 +372,7 @@ export const PRESETS = [
       {
         "id": "el-15",
         "type": "pole",
-        "name": "Left pole",
+        "name": str('presets.left_pole'),
         "position": {
           "x": 3.9624,
           "y": 5.981065,
@@ -389,7 +390,7 @@ export const PRESETS = [
       {
         "id": "el-16",
         "type": "pole",
-        "name": "Far side post",
+        "name": str('presets.far_side_post'),
         "position": {
           "x": 5.43814,
           "y": 6.73227,
@@ -407,7 +408,7 @@ export const PRESETS = [
       {
         "id": "el-17",
         "type": "waypoint",
-        "name": "Over the tower",
+        "name": str('presets.over_the_tower'),
         "position": {
           "x": 6.190767,
           "y": 6.606832,
@@ -425,7 +426,7 @@ export const PRESETS = [
       {
         "id": "el-18",
         "type": "waypoint",
-        "name": "Round the pole, low",
+        "name": str('presets.round_the_pole_low'),
         "position": {
           "x": 6.906501,
           "y": 6.193625,
@@ -443,7 +444,7 @@ export const PRESETS = [
       {
         "id": "el-19",
         "type": "waypoint",
-        "name": "Home straight",
+        "name": str('presets.home_straight'),
         "position": {
           "x": 4.707649,
           "y": 5.345074,
@@ -461,7 +462,7 @@ export const PRESETS = [
       {
         "id": "el-20",
         "type": "waypoint",
-        "name": "Round the pole, mid",
+        "name": str('presets.round_the_pole_mid'),
         "position": {
           "x": 6.862229,
           "y": 5.957507,
@@ -479,7 +480,7 @@ export const PRESETS = [
       {
         "id": "el-21",
         "type": "waypoint",
-        "name": "Behind the far side",
+        "name": str('presets.behind_the_far_side'),
         "position": {
           "x": 5.60785,
           "y": 7.182371,
@@ -497,7 +498,7 @@ export const PRESETS = [
       {
         "id": "el-22",
         "type": "waypoint",
-        "name": "Outside the start gate",
+        "name": str('presets.outside_the_start_gate'),
         "position": {
           "x": 3.711524,
           "y": 5.389347,
@@ -515,7 +516,7 @@ export const PRESETS = [
       {
         "id": "el-23",
         "type": "horizontalPole",
-        "name": "Rail, x 0 to 1",
+        "name": str('presets.rail_x_0_to_1'),
         "position": {
           "x": 4.331335,
           "y": 5.9944,
@@ -533,7 +534,7 @@ export const PRESETS = [
       {
         "id": "el-24",
         "type": "horizontalPole",
-        "name": "Rail, x 1 to 2",
+        "name": str('presets.rail_x_1_to_2'),
         "position": {
           "x": 5.069205,
           "y": 5.9944,
@@ -870,7 +871,7 @@ export const PRESETS = [
   {
     "schemaVersion": 3,
     "id": "racegow5-track5",
-    "name": "RaceGOW5 Track 5",
+    "name": str('presets.racegow5_track_5'),
     "createdUtc": "2026-09-11T00:00:00Z",
     "modifiedUtc": "2026-09-11T00:00:00Z",
     "trackClass": "micro",
@@ -888,10 +889,10 @@ export const PRESETS = [
       "logos": []
     },
     "credit": {
-      "designer": "Cumber and Hotspur",
+      "designer": str('credits.cumber_and_hotspur'),
       "series": "RaceGOW5",
-      "sponsor": "Neo's UV Creations",
-      "source": "racegow.com/tracks, the official Track 5 animation",
+      "sponsor": str('presets.neo_s_uv_creations'),
+      "source": str('presets.racegow_com_tracks_the_official_track_2'),
       "broughtOverBy": "andAgainFPV",
       "note": ""
     },
@@ -917,7 +918,7 @@ export const PRESETS = [
       {
         "id": "el-2",
         "type": "gate",
-        "name": "Start gate",
+        "name": str('presets.start_gate'),
         "position": {
           "x": 6.17601,
           "y": 5.625465,
@@ -937,7 +938,7 @@ export const PRESETS = [
       {
         "id": "el-3",
         "type": "gate",
-        "name": "Over the start gate",
+        "name": str('presets.over_the_start_gate'),
         "position": {
           "x": 6.17601,
           "y": 5.625465,
@@ -958,7 +959,7 @@ export const PRESETS = [
       {
         "id": "el-4",
         "type": "gate",
-        "name": "Frame, bottom",
+        "name": str('presets.frame_bottom'),
         "position": {
           "x": 5.43814,
           "y": 6.363335,
@@ -978,7 +979,7 @@ export const PRESETS = [
       {
         "id": "el-5",
         "type": "gate",
-        "name": "Frame, middle",
+        "name": str('presets.frame_middle'),
         "position": {
           "x": 5.43814,
           "y": 6.363335,
@@ -998,7 +999,7 @@ export const PRESETS = [
       {
         "id": "el-6",
         "type": "gate",
-        "name": "Frame, top",
+        "name": str('presets.frame_top'),
         "position": {
           "x": 5.43814,
           "y": 6.363335,
@@ -1019,7 +1020,7 @@ export const PRESETS = [
       {
         "id": "el-7",
         "type": "gate",
-        "name": "Under the bar",
+        "name": str('presets.under_the_bar'),
         "position": {
           "x": 5.807075,
           "y": 5.9944,
@@ -1039,7 +1040,7 @@ export const PRESETS = [
       {
         "id": "el-8",
         "type": "gate",
-        "name": "Under the rail",
+        "name": str('presets.under_the_rail'),
         "position": {
           "x": 4.331335,
           "y": 5.9944,
@@ -1060,7 +1061,7 @@ export const PRESETS = [
       {
         "id": "el-9",
         "type": "gate",
-        "name": "Over the rail",
+        "name": str('presets.over_the_rail'),
         "position": {
           "x": 4.331335,
           "y": 5.9944,
@@ -1081,7 +1082,7 @@ export const PRESETS = [
       {
         "id": "el-10",
         "type": "gate",
-        "name": "Near gate",
+        "name": str('presets.near_gate'),
         "position": {
           "x": 3.9624,
           "y": 5.625465,
@@ -1101,7 +1102,7 @@ export const PRESETS = [
       {
         "id": "el-11",
         "type": "gate",
-        "name": "Over the near gate",
+        "name": str('presets.over_the_near_gate'),
         "position": {
           "x": 3.9624,
           "y": 5.625465,
@@ -1122,7 +1123,7 @@ export const PRESETS = [
       {
         "id": "el-12",
         "type": "pole",
-        "name": "Right pole",
+        "name": str('presets.right_pole'),
         "position": {
           "x": 6.17601,
           "y": 5.269865,
@@ -1140,7 +1141,7 @@ export const PRESETS = [
       {
         "id": "el-13",
         "type": "pole",
-        "name": "Tall pole",
+        "name": str('presets.tall_pole'),
         "position": {
           "x": 5.43814,
           "y": 6.718935,
@@ -1158,7 +1159,7 @@ export const PRESETS = [
       {
         "id": "el-14",
         "type": "pole",
-        "name": "Near pole",
+        "name": str('presets.near_pole'),
         "position": {
           "x": 3.9624,
           "y": 5.269865,
@@ -1176,7 +1177,7 @@ export const PRESETS = [
       {
         "id": "el-15",
         "type": "pole",
-        "name": "Near post",
+        "name": str('presets.near_post'),
         "position": {
           "x": 3.9624,
           "y": 5.9944,
@@ -1194,7 +1195,7 @@ export const PRESETS = [
       {
         "id": "el-16",
         "type": "waypoint",
-        "name": "Back past the frame",
+        "name": str('presets.back_past_the_frame'),
         "position": {
           "x": 5.511927,
           "y": 7.632471,
@@ -1212,7 +1213,7 @@ export const PRESETS = [
       {
         "id": "el-17",
         "type": "waypoint",
-        "name": "Round the tall pole",
+        "name": str('presets.round_the_tall_pole'),
         "position": {
           "x": 5.799696,
           "y": 7.012661,
@@ -1230,7 +1231,7 @@ export const PRESETS = [
       {
         "id": "el-18",
         "type": "waypoint",
-        "name": "Round the tall pole again",
+        "name": str('presets.round_the_tall_pole_again'),
         "position": {
           "x": 5.283187,
           "y": 7.617714,
@@ -1248,7 +1249,7 @@ export const PRESETS = [
       {
         "id": "el-19",
         "type": "waypoint",
-        "name": "Back over the rail",
+        "name": str('presets.back_over_the_rail'),
         "position": {
           "x": 4.877359,
           "y": 6.739649,
@@ -1266,7 +1267,7 @@ export const PRESETS = [
       {
         "id": "el-20",
         "type": "waypoint",
-        "name": "Round the right pole",
+        "name": str('presets.round_the_right_pole'),
         "position": {
           "x": 6.781063,
           "y": 5.057305,
@@ -1284,7 +1285,7 @@ export const PRESETS = [
       {
         "id": "el-21",
         "type": "waypoint",
-        "name": "Round the near gate",
+        "name": str('presets.round_the_near_gate'),
         "position": {
           "x": 3.276181,
           "y": 5.76566,
@@ -1302,7 +1303,7 @@ export const PRESETS = [
       {
         "id": "el-22",
         "type": "waypoint",
-        "name": "Round the right pole, low",
+        "name": str('presets.round_the_right_pole_low'),
         "position": {
           "x": 6.227661,
           "y": 4.607204,
@@ -1320,7 +1321,7 @@ export const PRESETS = [
       {
         "id": "el-23",
         "type": "waypoint",
-        "name": "Round the left pole",
+        "name": str('presets.round_the_left_pole'),
         "position": {
           "x": 3.475406,
           "y": 5.699252,
@@ -1338,7 +1339,7 @@ export const PRESETS = [
       {
         "id": "el-24",
         "type": "horizontalPole",
-        "name": "Rail, x 0 to 1",
+        "name": str('presets.rail_x_0_to_1'),
         "position": {
           "x": 4.331335,
           "y": 5.9944,
@@ -1356,7 +1357,7 @@ export const PRESETS = [
       {
         "id": "el-25",
         "type": "horizontalPole",
-        "name": "Rail, x 1 to 2",
+        "name": str('presets.rail_x_1_to_2'),
         "position": {
           "x": 5.069205,
           "y": 5.9944,
@@ -1630,7 +1631,7 @@ export const PRESETS = [
   {
     "schemaVersion": 3,
     "id": "racegow5-track1",
-    "name": "RaceGOW5 Track 1",
+    "name": str('presets.racegow5_track_1'),
     "createdUtc": "2026-09-11T00:00:00Z",
     "modifiedUtc": "2026-09-11T00:00:00Z",
     "trackClass": "micro",
@@ -1651,7 +1652,7 @@ export const PRESETS = [
       "designer": "Skittles",
       "series": "RaceGOW5",
       "sponsor": "EMAX",
-      "source": "racegow.com/tracks, the official Track 1 animation",
+      "source": str('presets.racegow_com_tracks_the_official_track_3'),
       "broughtOverBy": "andAgainFPV",
       "note": ""
     },
@@ -1677,7 +1678,7 @@ export const PRESETS = [
       {
         "id": "el-2",
         "type": "gate",
-        "name": "Start gate",
+        "name": str('presets.start_gate'),
         "position": {
           "x": 4.26593,
           "y": 5.674995,
@@ -1697,7 +1698,7 @@ export const PRESETS = [
       {
         "id": "el-3",
         "type": "gate",
-        "name": "Right frame, under the bar",
+        "name": str('presets.right_frame_under_the_bar'),
         "position": {
           "x": 5.74167,
           "y": 6.412865,
@@ -1717,7 +1718,7 @@ export const PRESETS = [
       {
         "id": "el-4",
         "type": "gate",
-        "name": "Right frame, over the bar",
+        "name": str('presets.right_frame_over_the_bar'),
         "position": {
           "x": 5.74167,
           "y": 6.412865,
@@ -1737,7 +1738,7 @@ export const PRESETS = [
       {
         "id": "el-5",
         "type": "gate",
-        "name": "Left gate",
+        "name": str('presets.left_gate'),
         "position": {
           "x": 4.634865,
           "y": 6.7818,
@@ -1757,7 +1758,7 @@ export const PRESETS = [
       {
         "id": "el-6",
         "type": "gate",
-        "name": "Over the left gate",
+        "name": str('presets.over_the_left_gate'),
         "position": {
           "x": 4.634865,
           "y": 6.7818,
@@ -1796,7 +1797,7 @@ export const PRESETS = [
       {
         "id": "el-8",
         "type": "waypoint",
-        "name": "Out past the right frame",
+        "name": str('presets.out_past_the_right_frame'),
         "position": {
           "x": 6.125362,
           "y": 5.970143,
@@ -1814,7 +1815,7 @@ export const PRESETS = [
       {
         "id": "el-9",
         "type": "waypoint",
-        "name": "Back to the top opening",
+        "name": str('presets.back_to_the_top_opening'),
         "position": {
           "x": 6.095848,
           "y": 5.608587,
@@ -1832,7 +1833,7 @@ export const PRESETS = [
       {
         "id": "el-10",
         "type": "waypoint",
-        "name": "Behind the frames",
+        "name": str('presets.behind_the_frames'),
         "position": {
           "x": 4.819333,
           "y": 7.032676,
@@ -1850,7 +1851,7 @@ export const PRESETS = [
       {
         "id": "el-11",
         "type": "waypoint",
-        "name": "Down to the gap",
+        "name": str('presets.down_to_the_gap'),
         "position": {
           "x": 5.594096,
           "y": 5.829948,
@@ -1868,7 +1869,7 @@ export const PRESETS = [
       {
         "id": "el-12",
         "type": "waypoint",
-        "name": "Behind the pole",
+        "name": str('presets.behind_the_pole'),
         "position": {
           "x": 4.804575,
           "y": 6.966268,
@@ -1886,7 +1887,7 @@ export const PRESETS = [
       {
         "id": "el-13",
         "type": "waypoint",
-        "name": "Out past the start gate",
+        "name": str('presets.out_past_the_start_gate'),
         "position": {
           "x": 3.520681,
           "y": 6.767043,
@@ -1904,7 +1905,7 @@ export const PRESETS = [
       {
         "id": "el-14",
         "type": "waypoint",
-        "name": "Round the far end",
+        "name": str('presets.round_the_far_end'),
         "position": {
           "x": 3.373107,
           "y": 6.206261,
@@ -1922,7 +1923,7 @@ export const PRESETS = [
       {
         "id": "el-15",
         "type": "waypoint",
-        "name": "Back on to the start gate",
+        "name": str('presets.back_on_to_the_start_gate'),
         "position": {
           "x": 3.778936,
           "y": 5.807812,
@@ -1940,7 +1941,7 @@ export const PRESETS = [
       {
         "id": "el-16",
         "type": "horizontalPole",
-        "name": "Ground bar, pole to right frame",
+        "name": str('presets.ground_bar_pole_to_right_frame'),
         "position": {
           "x": 5.372735,
           "y": 6.7818,
@@ -1958,7 +1959,7 @@ export const PRESETS = [
       {
         "id": "el-17",
         "type": "horizontalPole",
-        "name": "Ground bar, left gate to start gate",
+        "name": str('presets.ground_bar_left_gate_to_start'),
         "position": {
           "x": 4.26593,
           "y": 6.412865,
@@ -2106,7 +2107,7 @@ export const PRESETS = [
   {
     "schemaVersion": 3,
     "id": "racegow5-track2",
-    "name": "RaceGOW5 Track 2",
+    "name": str('presets.racegow5_track_2'),
     "createdUtc": "2026-09-11T00:00:00Z",
     "modifiedUtc": "2026-09-11T00:00:00Z",
     "trackClass": "micro",
@@ -2127,7 +2128,7 @@ export const PRESETS = [
       "designer": "Skittles",
       "series": "RaceGOW5",
       "sponsor": "",
-      "source": "racegow.com/tracks, the official Track 2 animation",
+      "source": str('presets.racegow_com_tracks_the_official_track_4'),
       "broughtOverBy": "andAgainFPV",
       "note": ""
     },
@@ -2153,7 +2154,7 @@ export const PRESETS = [
       {
         "id": "el-2",
         "type": "gate",
-        "name": "Start gate",
+        "name": str('presets.start_gate'),
         "position": {
           "x": 3.8608,
           "y": 6.006465,
@@ -2173,7 +2174,7 @@ export const PRESETS = [
       {
         "id": "el-3",
         "type": "gate",
-        "name": "Under the middle bar",
+        "name": str('presets.under_the_middle_bar'),
         "position": {
           "x": 4.967605,
           "y": 6.3754,
@@ -2193,7 +2194,7 @@ export const PRESETS = [
       {
         "id": "el-4",
         "type": "gate",
-        "name": "Over the middle bar",
+        "name": str('presets.over_the_middle_bar'),
         "position": {
           "x": 4.967605,
           "y": 6.3754,
@@ -2214,7 +2215,7 @@ export const PRESETS = [
       {
         "id": "el-5",
         "type": "gate",
-        "name": "Frame, bottom",
+        "name": str('presets.frame_bottom'),
         "position": {
           "x": 6.07441,
           "y": 6.006465,
@@ -2234,7 +2235,7 @@ export const PRESETS = [
       {
         "id": "el-6",
         "type": "gate",
-        "name": "Frame, middle",
+        "name": str('presets.frame_middle'),
         "position": {
           "x": 6.07441,
           "y": 6.006465,
@@ -2254,7 +2255,7 @@ export const PRESETS = [
       {
         "id": "el-7",
         "type": "gate",
-        "name": "Over the top rung",
+        "name": str('presets.over_the_top_rung'),
         "position": {
           "x": 6.07441,
           "y": 6.006465,
@@ -2275,7 +2276,7 @@ export const PRESETS = [
       {
         "id": "el-8",
         "type": "gate",
-        "name": "Under the overhang",
+        "name": str('presets.under_the_overhang'),
         "position": {
           "x": 6.07441,
           "y": 6.744335,
@@ -2296,7 +2297,7 @@ export const PRESETS = [
       {
         "id": "el-9",
         "type": "pole",
-        "name": "Tall pole",
+        "name": str('presets.tall_pole'),
         "position": {
           "x": 6.07441,
           "y": 5.650865,
@@ -2314,7 +2315,7 @@ export const PRESETS = [
       {
         "id": "el-10",
         "type": "pole",
-        "name": "Middle post",
+        "name": str('presets.middle_post'),
         "position": {
           "x": 5.33654,
           "y": 6.3754,
@@ -2332,7 +2333,7 @@ export const PRESETS = [
       {
         "id": "el-11",
         "type": "waypoint",
-        "name": "Out past the frame",
+        "name": str('presets.out_past_the_frame'),
         "position": {
           "x": 6.369558,
           "y": 6.080252,
@@ -2350,7 +2351,7 @@ export const PRESETS = [
       {
         "id": "el-12",
         "type": "waypoint",
-        "name": "Back to the middle opening",
+        "name": str('presets.back_to_the_middle_opening'),
         "position": {
           "x": 6.406452,
           "y": 5.895785,
@@ -2368,7 +2369,7 @@ export const PRESETS = [
       {
         "id": "el-13",
         "type": "waypoint",
-        "name": "Round behind the frame",
+        "name": str('presets.round_behind_the_frame'),
         "position": {
           "x": 5.299646,
           "y": 5.52685,
@@ -2386,7 +2387,7 @@ export const PRESETS = [
       {
         "id": "el-14",
         "type": "waypoint",
-        "name": "Back along the far side",
+        "name": str('presets.back_along_the_far_side'),
         "position": {
           "x": 5.779262,
           "y": 5.084128,
@@ -2404,7 +2405,7 @@ export const PRESETS = [
       {
         "id": "el-15",
         "type": "waypoint",
-        "name": "Round the top of the pole",
+        "name": str('presets.round_the_top_of_the_pole'),
         "position": {
           "x": 6.554025,
           "y": 5.563743,
@@ -2422,7 +2423,7 @@ export const PRESETS = [
       {
         "id": "el-16",
         "type": "waypoint",
-        "name": "Down off the top rung",
+        "name": str('presets.down_off_the_top_rung'),
         "position": {
           "x": 5.447221,
           "y": 6.707442,
@@ -2440,7 +2441,7 @@ export const PRESETS = [
       {
         "id": "el-17",
         "type": "waypoint",
-        "name": "Round the outside",
+        "name": str('presets.round_the_outside'),
         "position": {
           "x": 6.723736,
           "y": 6.006465,
@@ -2458,7 +2459,7 @@ export const PRESETS = [
       {
         "id": "el-18",
         "type": "waypoint",
-        "name": "Back across the middle",
+        "name": str('presets.back_across_the_middle'),
         "position": {
           "x": 5.22586,
           "y": 5.342382,
@@ -2476,7 +2477,7 @@ export const PRESETS = [
       {
         "id": "el-19",
         "type": "waypoint",
-        "name": "Down in front",
+        "name": str('presets.down_in_front'),
         "position": {
           "x": 4.856924,
           "y": 6.781229,
@@ -2494,7 +2495,7 @@ export const PRESETS = [
       {
         "id": "el-20",
         "type": "waypoint",
-        "name": "Back up to the low gate",
+        "name": str('presets.back_up_to_the_low_gate'),
         "position": {
           "x": 5.004499,
           "y": 6.707442,
@@ -2512,7 +2513,7 @@ export const PRESETS = [
       {
         "id": "el-21",
         "type": "waypoint",
-        "name": "Out to the far side",
+        "name": str('presets.out_to_the_far_side'),
         "position": {
           "x": 4.524883,
           "y": 5.416169,
@@ -2530,7 +2531,7 @@ export const PRESETS = [
       {
         "id": "el-22",
         "type": "waypoint",
-        "name": "Round the far end",
+        "name": str('presets.round_the_far_end'),
         "position": {
           "x": 3.934587,
           "y": 5.076749,
@@ -2548,7 +2549,7 @@ export const PRESETS = [
       {
         "id": "el-23",
         "type": "waypoint",
-        "name": "Back on to the start gate",
+        "name": str('presets.back_on_to_the_start_gate'),
         "position": {
           "x": 3.307398,
           "y": 5.563743,
@@ -2566,7 +2567,7 @@ export const PRESETS = [
       {
         "id": "el-24",
         "type": "waypoint",
-        "name": "Line up",
+        "name": str('presets.line_up'),
         "position": {
           "x": 3.491865,
           "y": 5.844134,
@@ -2584,7 +2585,7 @@ export const PRESETS = [
       {
         "id": "el-25",
         "type": "horizontalPole",
-        "name": "Ground bar, start gate to the middle",
+        "name": str('presets.ground_bar_start_gate_to_the'),
         "position": {
           "x": 4.229735,
           "y": 6.3754,
@@ -2602,7 +2603,7 @@ export const PRESETS = [
       {
         "id": "el-26",
         "type": "horizontalPole",
-        "name": "Ground bar, the middle to the frame",
+        "name": str('presets.ground_bar_the_middle_to_the'),
         "position": {
           "x": 5.705475,
           "y": 6.3754,
@@ -2822,7 +2823,7 @@ export const PRESETS = [
   {
     "schemaVersion": 3,
     "id": "racegow5-track3",
-    "name": "RaceGOW5 Track 3",
+    "name": str('presets.racegow5_track_3'),
     "createdUtc": "2026-09-11T00:00:00Z",
     "modifiedUtc": "2026-09-11T00:00:00Z",
     "trackClass": "micro",
@@ -2840,10 +2841,10 @@ export const PRESETS = [
       "logos": []
     },
     "credit": {
-      "designer": "the Lego Dans",
+      "designer": str('credits.the_lego_dans'),
       "series": "RaceGOW5",
       "sponsor": "",
-      "source": "racegow.com/tracks, the official Track 3 animation",
+      "source": str('presets.racegow_com_tracks_the_official_track_5'),
       "broughtOverBy": "andAgainFPV",
       "note": ""
     },
@@ -2889,7 +2890,7 @@ export const PRESETS = [
       {
         "id": "el-3",
         "type": "gate",
-        "name": "Tower, near bay, low",
+        "name": str('presets.tower_near_bay_low'),
         "position": {
           "x": 6.096,
           "y": 6.260465,
@@ -2909,7 +2910,7 @@ export const PRESETS = [
       {
         "id": "el-4",
         "type": "gate",
-        "name": "Tower, near bay, mid",
+        "name": str('presets.tower_near_bay_mid'),
         "position": {
           "x": 6.096,
           "y": 6.260465,
@@ -2929,7 +2930,7 @@ export const PRESETS = [
       {
         "id": "el-5",
         "type": "gate",
-        "name": "Tower, far bay, low",
+        "name": str('presets.tower_far_bay_low'),
         "position": {
           "x": 6.096,
           "y": 5.522595,
@@ -2949,7 +2950,7 @@ export const PRESETS = [
       {
         "id": "el-6",
         "type": "gate",
-        "name": "Over the tower shoulder",
+        "name": str('presets.over_the_tower_shoulder'),
         "position": {
           "x": 6.096,
           "y": 5.522595,
@@ -2970,7 +2971,7 @@ export const PRESETS = [
       {
         "id": "el-7",
         "type": "gate",
-        "name": "Under the rail, right",
+        "name": str('presets.under_the_rail_right'),
         "position": {
           "x": 5.727065,
           "y": 5.15366,
@@ -2990,7 +2991,7 @@ export const PRESETS = [
       {
         "id": "el-8",
         "type": "gate",
-        "name": "Over the rail, right",
+        "name": str('presets.over_the_rail_right'),
         "position": {
           "x": 5.727065,
           "y": 5.15366,
@@ -3011,7 +3012,7 @@ export const PRESETS = [
       {
         "id": "el-9",
         "type": "gate",
-        "name": "Under the rail, middle",
+        "name": str('presets.under_the_rail_middle'),
         "position": {
           "x": 4.989195,
           "y": 5.15366,
@@ -3031,7 +3032,7 @@ export const PRESETS = [
       {
         "id": "el-10",
         "type": "gate",
-        "name": "Over the rail, middle",
+        "name": str('presets.over_the_rail_middle'),
         "position": {
           "x": 4.989195,
           "y": 5.15366,
@@ -3052,7 +3053,7 @@ export const PRESETS = [
       {
         "id": "el-11",
         "type": "gate",
-        "name": "Under the rail, left",
+        "name": str('presets.under_the_rail_left'),
         "position": {
           "x": 4.251325,
           "y": 5.15366,
@@ -3072,7 +3073,7 @@ export const PRESETS = [
       {
         "id": "el-12",
         "type": "gate",
-        "name": "Round the end of the rail",
+        "name": str('presets.round_the_end_of_the_rail'),
         "position": {
           "x": 3.513455,
           "y": 5.15366,
@@ -3093,7 +3094,7 @@ export const PRESETS = [
       {
         "id": "el-13",
         "type": "pole",
-        "name": "Tall pole",
+        "name": str('presets.tall_pole'),
         "position": {
           "x": 6.096,
           "y": 6.616065,
@@ -3111,7 +3112,7 @@ export const PRESETS = [
       {
         "id": "el-14",
         "type": "waypoint",
-        "name": "Out over the rail",
+        "name": str('presets.out_over_the_rail'),
         "position": {
           "x": 4.841621,
           "y": 4.81424,
@@ -3129,7 +3130,7 @@ export const PRESETS = [
       {
         "id": "el-15",
         "type": "waypoint",
-        "name": "Back across the rail",
+        "name": str('presets.back_across_the_rail'),
         "position": {
           "x": 4.413656,
           "y": 5.389778,
@@ -3147,7 +3148,7 @@ export const PRESETS = [
       {
         "id": "el-16",
         "type": "waypoint",
-        "name": "Round the rail end",
+        "name": str('presets.round_the_rail_end'),
         "position": {
           "x": 4.007828,
           "y": 4.895406,
@@ -3165,7 +3166,7 @@ export const PRESETS = [
       {
         "id": "el-17",
         "type": "waypoint",
-        "name": "Down the long side",
+        "name": str('presets.down_the_long_side'),
         "position": {
           "x": 5.505704,
           "y": 5.648033,
@@ -3183,7 +3184,7 @@ export const PRESETS = [
       {
         "id": "el-18",
         "type": "waypoint",
-        "name": "Out past the tower",
+        "name": str('presets.out_past_the_tower'),
         "position": {
           "x": 6.678917,
           "y": 5.921045,
@@ -3201,7 +3202,7 @@ export const PRESETS = [
       {
         "id": "el-19",
         "type": "waypoint",
-        "name": "Up the outside",
+        "name": str('presets.up_the_outside'),
         "position": {
           "x": 6.391148,
           "y": 6.931927,
@@ -3219,7 +3220,7 @@ export const PRESETS = [
       {
         "id": "el-20",
         "type": "waypoint",
-        "name": "Round behind the tower",
+        "name": str('presets.round_behind_the_tower'),
         "position": {
           "x": 5.690172,
           "y": 6.828625,
@@ -3237,7 +3238,7 @@ export const PRESETS = [
       {
         "id": "el-21",
         "type": "waypoint",
-        "name": "Across the back",
+        "name": str('presets.across_the_back'),
         "position": {
           "x": 5.645899,
           "y": 5.854637,
@@ -3255,7 +3256,7 @@ export const PRESETS = [
       {
         "id": "el-22",
         "type": "waypoint",
-        "name": "Back over the tower",
+        "name": str('presets.back_over_the_tower'),
         "position": {
           "x": 6.354255,
           "y": 5.78085,
@@ -3273,7 +3274,7 @@ export const PRESETS = [
       {
         "id": "el-23",
         "type": "waypoint",
-        "name": "Round the pole again",
+        "name": str('presets.round_the_pole_again'),
         "position": {
           "x": 5.609006,
           "y": 6.895033,
@@ -3291,7 +3292,7 @@ export const PRESETS = [
       {
         "id": "el-24",
         "type": "waypoint",
-        "name": "Down the tower face",
+        "name": str('presets.down_the_tower_face'),
         "position": {
           "x": 6.125515,
           "y": 6.127648,
@@ -3309,7 +3310,7 @@ export const PRESETS = [
       {
         "id": "el-25",
         "type": "waypoint",
-        "name": "Down the near face",
+        "name": str('presets.down_the_near_face'),
         "position": {
           "x": 6.43542,
           "y": 5.714441,
@@ -3327,7 +3328,7 @@ export const PRESETS = [
       {
         "id": "el-26",
         "type": "waypoint",
-        "name": "Down to the low bay",
+        "name": str('presets.down_to_the_low_bay'),
         "position": {
           "x": 6.022213,
           "y": 5.522595,
@@ -3345,7 +3346,7 @@ export const PRESETS = [
       {
         "id": "el-27",
         "type": "waypoint",
-        "name": "Round the near post",
+        "name": str('presets.round_the_near_post'),
         "position": {
           "x": 5.771337,
           "y": 6.253086,
@@ -3363,7 +3364,7 @@ export const PRESETS = [
       {
         "id": "el-28",
         "type": "waypoint",
-        "name": "Round the right end",
+        "name": str('presets.round_the_right_end'),
         "position": {
           "x": 6.228817,
           "y": 4.666666,
@@ -3381,7 +3382,7 @@ export const PRESETS = [
       {
         "id": "el-29",
         "type": "waypoint",
-        "name": "Back down the long side",
+        "name": str('presets.back_down_the_long_side'),
         "position": {
           "x": 4.642396,
           "y": 5.640654,
@@ -3399,7 +3400,7 @@ export const PRESETS = [
       {
         "id": "el-30",
         "type": "waypoint",
-        "name": "Round the left end",
+        "name": str('presets.round_the_left_end'),
         "position": {
           "x": 4.730941,
           "y": 4.688802,
@@ -3417,7 +3418,7 @@ export const PRESETS = [
       {
         "id": "el-31",
         "type": "waypoint",
-        "name": "Home along the top",
+        "name": str('presets.home_along_the_top'),
         "position": {
           "x": 5.387645,
           "y": 5.32337,
@@ -3435,7 +3436,7 @@ export const PRESETS = [
       {
         "id": "el-32",
         "type": "waypoint",
-        "name": "Past the goalpost",
+        "name": str('presets.past_the_goalpost'),
         "position": {
           "x": 5.549976,
           "y": 6.437554,
@@ -3453,7 +3454,7 @@ export const PRESETS = [
       {
         "id": "el-33",
         "type": "waypoint",
-        "name": "Round on to the goalpost",
+        "name": str('presets.round_on_to_the_goalpost'),
         "position": {
           "x": 5.151526,
           "y": 7.013092,
@@ -3471,7 +3472,7 @@ export const PRESETS = [
       {
         "id": "el-34",
         "type": "horizontalPole",
-        "name": "Ground bar, goalpost to the tower",
+        "name": str('presets.ground_bar_goalpost_to_the_tower'),
         "position": {
           "x": 5.727065,
           "y": 6.6294,
@@ -3808,7 +3809,7 @@ export const PRESETS = [
   {
     "schemaVersion": 3,
     "id": "racegow5-track4",
-    "name": "RaceGOW5 Track 4",
+    "name": str('presets.racegow5_track_4'),
     "createdUtc": "2026-09-11T00:00:00Z",
     "modifiedUtc": "2026-09-11T00:00:00Z",
     "trackClass": "micro",
@@ -3826,10 +3827,10 @@ export const PRESETS = [
       "logos": []
     },
     "credit": {
-      "designer": "the Lego Dans",
+      "designer": str('credits.the_lego_dans'),
       "series": "RaceGOW5",
       "sponsor": "",
-      "source": "racegow.com/tracks, the official Track 4 animation",
+      "source": str('presets.racegow_com_tracks_the_official_track_6'),
       "broughtOverBy": "andAgainFPV",
       "note": ""
     },
@@ -3855,7 +3856,7 @@ export const PRESETS = [
       {
         "id": "el-2",
         "type": "gate",
-        "name": "Far gate",
+        "name": str('presets.far_gate'),
         "position": {
           "x": 6.09854,
           "y": 5.269865,
@@ -3875,7 +3876,7 @@ export const PRESETS = [
       {
         "id": "el-3",
         "type": "gate",
-        "name": "Left frame, under the bar",
+        "name": str('presets.left_frame_under_the_bar'),
         "position": {
           "x": 4.253865,
           "y": 5.6388,
@@ -3895,7 +3896,7 @@ export const PRESETS = [
       {
         "id": "el-4",
         "type": "gate",
-        "name": "Left frame, over the bar",
+        "name": str('presets.left_frame_over_the_bar'),
         "position": {
           "x": 4.253865,
           "y": 5.6388,
@@ -3915,7 +3916,7 @@ export const PRESETS = [
       {
         "id": "el-5",
         "type": "gate",
-        "name": "Over the left bar",
+        "name": str('presets.over_the_left_bar'),
         "position": {
           "x": 4.253865,
           "y": 5.6388,
@@ -3936,7 +3937,7 @@ export const PRESETS = [
       {
         "id": "el-6",
         "type": "gate",
-        "name": "Near bay",
+        "name": str('presets.near_bay'),
         "position": {
           "x": 4.6228,
           "y": 6.007735,
@@ -3956,7 +3957,7 @@ export const PRESETS = [
       {
         "id": "el-7",
         "type": "gate",
-        "name": "Over the near bar",
+        "name": str('presets.over_the_near_bar'),
         "position": {
           "x": 4.6228,
           "y": 6.007735,
@@ -3977,7 +3978,7 @@ export const PRESETS = [
       {
         "id": "el-8",
         "type": "gate",
-        "name": "Far bay",
+        "name": str('presets.far_bay'),
         "position": {
           "x": 4.991735,
           "y": 6.37667,
@@ -3997,7 +3998,7 @@ export const PRESETS = [
       {
         "id": "el-9",
         "type": "diveGate",
-        "name": "Dive gate",
+        "name": str('presets.dive_gate'),
         "position": {
           "x": 4.991735,
           "y": 6.007735,
@@ -4017,7 +4018,7 @@ export const PRESETS = [
       {
         "id": "el-10",
         "type": "pole",
-        "name": "Left pole",
+        "name": str('presets.left_pole'),
         "position": {
           "x": 3.898265,
           "y": 5.6388,
@@ -4035,7 +4036,7 @@ export const PRESETS = [
       {
         "id": "el-11",
         "type": "pole",
-        "name": "Tall pole",
+        "name": str('presets.tall_pole'),
         "position": {
           "x": 4.6228,
           "y": 5.6388,
@@ -4053,7 +4054,7 @@ export const PRESETS = [
       {
         "id": "el-12",
         "type": "waypoint",
-        "name": "Down the long side",
+        "name": str('presets.down_the_long_side'),
         "position": {
           "x": 4.910569,
           "y": 5.255108,
@@ -4071,7 +4072,7 @@ export const PRESETS = [
       {
         "id": "el-13",
         "type": "waypoint",
-        "name": "Up to the frame",
+        "name": str('presets.up_to_the_frame'),
         "position": {
           "x": 4.172699,
           "y": 5.446954,
@@ -4089,7 +4090,7 @@ export const PRESETS = [
       {
         "id": "el-14",
         "type": "waypoint",
-        "name": "Round the far side",
+        "name": str('presets.round_the_far_side'),
         "position": {
           "x": 4.231729,
           "y": 6.516865,
@@ -4107,7 +4108,7 @@ export const PRESETS = [
       {
         "id": "el-15",
         "type": "waypoint",
-        "name": "Round to the pole",
+        "name": str('presets.round_to_the_pole'),
         "position": {
           "x": 3.870173,
           "y": 5.041125,
@@ -4125,7 +4126,7 @@ export const PRESETS = [
       {
         "id": "el-16",
         "type": "waypoint",
-        "name": "Back off the pole",
+        "name": str('presets.back_off_the_pole'),
         "position": {
           "x": 4.017747,
           "y": 5.80851,
@@ -4143,7 +4144,7 @@ export const PRESETS = [
       {
         "id": "el-17",
         "type": "waypoint",
-        "name": "Out in front",
+        "name": str('presets.out_in_front'),
         "position": {
           "x": 4.630179,
           "y": 5.107534,
@@ -4161,7 +4162,7 @@ export const PRESETS = [
       {
         "id": "el-18",
         "type": "waypoint",
-        "name": "Round the near end",
+        "name": str('presets.round_the_near_end'),
         "position": {
           "x": 5.02125,
           "y": 5.860161,
@@ -4179,7 +4180,7 @@ export const PRESETS = [
       {
         "id": "el-19",
         "type": "waypoint",
-        "name": "Up off the floor",
+        "name": str('presets.up_off_the_floor'),
         "position": {
           "x": 4.489983,
           "y": 5.845404,
@@ -4197,7 +4198,7 @@ export const PRESETS = [
       {
         "id": "el-20",
         "type": "waypoint",
-        "name": "Out over the rail",
+        "name": str('presets.out_over_the_rail'),
         "position": {
           "x": 5.065522,
           "y": 5.727344,
@@ -4215,7 +4216,7 @@ export const PRESETS = [
       {
         "id": "el-21",
         "type": "waypoint",
-        "name": "Back down inside",
+        "name": str('presets.back_down_inside'),
         "position": {
           "x": 5.537759,
           "y": 6.26599,
@@ -4233,7 +4234,7 @@ export const PRESETS = [
       {
         "id": "el-22",
         "type": "waypoint",
-        "name": "Under the dive gate",
+        "name": str('presets.under_the_dive_gate'),
         "position": {
           "x": 5.235232,
           "y": 6.074143,
@@ -4251,7 +4252,7 @@ export const PRESETS = [
       {
         "id": "el-23",
         "type": "waypoint",
-        "name": "Round the top, out",
+        "name": str('presets.round_the_top_out'),
         "position": {
           "x": 4.556392,
           "y": 5.100155,
@@ -4269,7 +4270,7 @@ export const PRESETS = [
       {
         "id": "el-24",
         "type": "waypoint",
-        "name": "Round the top, back",
+        "name": str('presets.round_the_top_back'),
         "position": {
           "x": 5.095037,
           "y": 5.343652,
@@ -4287,7 +4288,7 @@ export const PRESETS = [
       {
         "id": "el-25",
         "type": "waypoint",
-        "name": "Over the back",
+        "name": str('presets.over_the_back'),
         "position": {
           "x": 4.947463,
           "y": 4.90093,
@@ -4305,7 +4306,7 @@ export const PRESETS = [
       {
         "id": "el-26",
         "type": "waypoint",
-        "name": "Down the far side",
+        "name": str('presets.down_the_far_side'),
         "position": {
           "x": 5.124552,
           "y": 5.196078,
@@ -4323,7 +4324,7 @@ export const PRESETS = [
       {
         "id": "el-27",
         "type": "waypoint",
-        "name": "Round the far end",
+        "name": str('presets.round_the_far_end'),
         "position": {
           "x": 5.463972,
           "y": 7.048132,
@@ -4341,7 +4342,7 @@ export const PRESETS = [
       {
         "id": "el-28",
         "type": "waypoint",
-        "name": "Back along the far side",
+        "name": str('presets.back_along_the_far_side'),
         "position": {
           "x": 5.766499,
           "y": 6.767741,
@@ -4359,7 +4360,7 @@ export const PRESETS = [
       {
         "id": "el-29",
         "type": "waypoint",
-        "name": "On to the dive gate again",
+        "name": str('presets.on_to_the_dive_gate_again'),
         "position": {
           "x": 5.331155,
           "y": 5.897055,
@@ -4377,7 +4378,7 @@ export const PRESETS = [
       {
         "id": "el-30",
         "type": "waypoint",
-        "name": "Down the rail",
+        "name": str('presets.down_the_rail'),
         "position": {
           "x": 5.692712,
           "y": 6.029871,
@@ -4395,7 +4396,7 @@ export const PRESETS = [
       {
         "id": "el-31",
         "type": "waypoint",
-        "name": "Along the rail, out",
+        "name": str('presets.along_the_rail_out'),
         "position": {
           "x": 6.091161,
           "y": 6.325019,
@@ -4413,7 +4414,7 @@ export const PRESETS = [
       {
         "id": "el-32",
         "type": "waypoint",
-        "name": "Round the near end",
+        "name": str('presets.round_the_near_end'),
         "position": {
           "x": 6.770002,
           "y": 5.793753,
@@ -4431,7 +4432,7 @@ export const PRESETS = [
       {
         "id": "el-33",
         "type": "waypoint",
-        "name": "Line up on the far gate",
+        "name": str('presets.line_up_on_the_far_gate'),
         "position": {
           "x": 6.533883,
           "y": 5.387924,
@@ -4449,7 +4450,7 @@ export const PRESETS = [
       {
         "id": "el-34",
         "type": "horizontalPole",
-        "name": "Rail on to the far gate",
+        "name": str('presets.rail_on_to_the_far_gate'),
         "position": {
           "x": 5.729605,
           "y": 5.6388,
@@ -4467,7 +4468,7 @@ export const PRESETS = [
       {
         "id": "el-35",
         "type": "horizontalPole",
-        "name": "Bar over the near bay",
+        "name": str('presets.bar_over_the_near_bay'),
         "position": {
           "x": 4.6228,
           "y": 6.007735,
@@ -4795,7 +4796,7 @@ export const PRESETS = [
   {
     "schemaVersion": 3,
     "id": "racegow5-track6",
-    "name": "RaceGOW5 Track 6",
+    "name": str('presets.racegow5_track_6'),
     "createdUtc": "2026-09-11T00:00:00Z",
     "modifiedUtc": "2026-09-11T00:00:00Z",
     "trackClass": "micro",
@@ -4816,7 +4817,7 @@ export const PRESETS = [
       "designer": "MrE",
       "series": "RaceGOW5",
       "sponsor": "",
-      "source": "racegow.com/tracks, the official Track 6 animation",
+      "source": str('presets.racegow_com_tracks_the_official_track_7'),
       "broughtOverBy": "andAgainFPV",
       "note": ""
     },
@@ -4842,7 +4843,7 @@ export const PRESETS = [
       {
         "id": "el-2",
         "type": "gate",
-        "name": "Front gate",
+        "name": str('presets.front_gate'),
         "position": {
           "x": 3.9116,
           "y": 5.624195,
@@ -4862,7 +4863,7 @@ export const PRESETS = [
       {
         "id": "el-3",
         "type": "gate",
-        "name": "Back gate",
+        "name": str('presets.back_gate'),
         "position": {
           "x": 5.018405,
           "y": 6.731,
@@ -4882,7 +4883,7 @@ export const PRESETS = [
       {
         "id": "el-4",
         "type": "gate",
-        "name": "Frame, low",
+        "name": str('presets.frame_low'),
         "position": {
           "x": 5.38734,
           "y": 5.624195,
@@ -4902,7 +4903,7 @@ export const PRESETS = [
       {
         "id": "el-5",
         "type": "gate",
-        "name": "Frame, high",
+        "name": str('presets.frame_high'),
         "position": {
           "x": 5.38734,
           "y": 5.624195,
@@ -4922,7 +4923,7 @@ export const PRESETS = [
       {
         "id": "el-6",
         "type": "gate",
-        "name": "Under the left bar",
+        "name": str('presets.under_the_left_bar'),
         "position": {
           "x": 5.018405,
           "y": 5.25526,
@@ -4942,7 +4943,7 @@ export const PRESETS = [
       {
         "id": "el-7",
         "type": "gate",
-        "name": "Under the right bar",
+        "name": str('presets.under_the_right_bar'),
         "position": {
           "x": 5.756275,
           "y": 5.25526,
@@ -4962,7 +4963,7 @@ export const PRESETS = [
       {
         "id": "el-8",
         "type": "gate",
-        "name": "Over the right bar",
+        "name": str('presets.over_the_right_bar'),
         "position": {
           "x": 5.756275,
           "y": 5.25526,
@@ -4983,7 +4984,7 @@ export const PRESETS = [
       {
         "id": "el-9",
         "type": "pole",
-        "name": "Back pole",
+        "name": str('presets.back_pole'),
         "position": {
           "x": 5.374005,
           "y": 6.731,
@@ -5001,7 +5002,7 @@ export const PRESETS = [
       {
         "id": "el-10",
         "type": "pole",
-        "name": "Frame pole",
+        "name": str('presets.frame_pole'),
         "position": {
           "x": 5.38734,
           "y": 5.979795,
@@ -5019,7 +5020,7 @@ export const PRESETS = [
       {
         "id": "el-11",
         "type": "pole",
-        "name": "Corner pole",
+        "name": str('presets.corner_pole'),
         "position": {
           "x": 5.400675,
           "y": 5.25526,
@@ -5037,7 +5038,7 @@ export const PRESETS = [
       {
         "id": "el-12",
         "type": "pole",
-        "name": "Right pole",
+        "name": str('presets.right_pole'),
         "position": {
           "x": 6.111875,
           "y": 5.25526,
@@ -5055,7 +5056,7 @@ export const PRESETS = [
       {
         "id": "el-13",
         "type": "waypoint",
-        "name": "Round the frame pole",
+        "name": str('presets.round_the_frame_pole'),
         "position": {
           "x": 5.771032,
           "y": 6.103811,
@@ -5073,7 +5074,7 @@ export const PRESETS = [
       {
         "id": "el-14",
         "type": "waypoint",
-        "name": "Back across the middle",
+        "name": str('presets.back_across_the_middle'),
         "position": {
           "x": 4.900346,
           "y": 5.373319,
@@ -5091,7 +5092,7 @@ export const PRESETS = [
       {
         "id": "el-15",
         "type": "waypoint",
-        "name": "Round the right pole",
+        "name": str('presets.round_the_right_pole'),
         "position": {
           "x": 5.645595,
           "y": 4.797781,
@@ -5109,7 +5110,7 @@ export const PRESETS = [
       {
         "id": "el-16",
         "type": "waypoint",
-        "name": "Low through the middle",
+        "name": str('presets.low_through_the_middle'),
         "position": {
           "x": 5.350447,
           "y": 5.875071,
@@ -5127,7 +5128,7 @@ export const PRESETS = [
       {
         "id": "el-17",
         "type": "waypoint",
-        "name": "Out in front",
+        "name": str('presets.out_in_front'),
         "position": {
           "x": 5.483263,
           "y": 4.731372,
@@ -5145,7 +5146,7 @@ export const PRESETS = [
       {
         "id": "el-18",
         "type": "waypoint",
-        "name": "Round the corner pole",
+        "name": str('presets.round_the_corner_pole'),
         "position": {
           "x": 5.940743,
           "y": 5.712739,
@@ -5163,7 +5164,7 @@ export const PRESETS = [
       {
         "id": "el-19",
         "type": "waypoint",
-        "name": "Wide in front",
+        "name": str('presets.wide_in_front'),
         "position": {
           "x": 5.055299,
           "y": 4.628071,
@@ -5181,7 +5182,7 @@ export const PRESETS = [
       {
         "id": "el-20",
         "type": "waypoint",
-        "name": "Round the back of the frame",
+        "name": str('presets.round_the_back_of_the_frame'),
         "position": {
           "x": 5.89647,
           "y": 6.310414,
@@ -5199,7 +5200,7 @@ export const PRESETS = [
       {
         "id": "el-21",
         "type": "waypoint",
-        "name": "High out in front",
+        "name": str('presets.high_out_in_front'),
         "position": {
           "x": 5.712003,
           "y": 4.886325,
@@ -5217,7 +5218,7 @@ export const PRESETS = [
       {
         "id": "el-22",
         "type": "waypoint",
-        "name": "Back inside the frame",
+        "name": str('presets.back_inside_the_frame'),
         "position": {
           "x": 5.859577,
           "y": 5.233124,
@@ -5235,7 +5236,7 @@ export const PRESETS = [
       {
         "id": "el-23",
         "type": "waypoint",
-        "name": "Low round the right pole",
+        "name": str('presets.low_round_the_right_pole'),
         "position": {
           "x": 5.866956,
           "y": 4.923219,
@@ -5253,7 +5254,7 @@ export const PRESETS = [
       {
         "id": "el-24",
         "type": "waypoint",
-        "name": "Back along the front",
+        "name": str('presets.back_along_the_front'),
         "position": {
           "x": 5.099571,
           "y": 4.952733,
@@ -5271,7 +5272,7 @@ export const PRESETS = [
       {
         "id": "el-25",
         "type": "waypoint",
-        "name": "Up the back",
+        "name": str('presets.up_the_back'),
         "position": {
           "x": 5.225009,
           "y": 6.598183,
@@ -5289,7 +5290,7 @@ export const PRESETS = [
       {
         "id": "el-26",
         "type": "waypoint",
-        "name": "High round the frame",
+        "name": str('presets.high_round_the_frame'),
         "position": {
           "x": 5.343068,
           "y": 5.845556,
@@ -5307,7 +5308,7 @@ export const PRESETS = [
       {
         "id": "el-27",
         "type": "waypoint",
-        "name": "Up and over",
+        "name": str('presets.up_and_over'),
         "position": {
           "x": 5.284038,
           "y": 5.683225,
@@ -5325,7 +5326,7 @@ export const PRESETS = [
       {
         "id": "el-28",
         "type": "waypoint",
-        "name": "Round behind the back gate",
+        "name": str('presets.round_behind_the_back_gate'),
         "position": {
           "x": 5.202872,
           "y": 7.586929,
@@ -5343,7 +5344,7 @@ export const PRESETS = [
       {
         "id": "el-29",
         "type": "waypoint",
-        "name": "Back on to the back gate",
+        "name": str('presets.back_on_to_the_back_gate'),
         "position": {
           "x": 4.546168,
           "y": 6.288278,
@@ -5361,7 +5362,7 @@ export const PRESETS = [
       {
         "id": "el-30",
         "type": "waypoint",
-        "name": "Out to the left",
+        "name": str('presets.out_to_the_left'),
         "position": {
           "x": 4.428109,
           "y": 6.627698,
@@ -5379,7 +5380,7 @@ export const PRESETS = [
       {
         "id": "el-31",
         "type": "waypoint",
-        "name": "Round the far end",
+        "name": str('presets.round_the_far_end'),
         "position": {
           "x": 3.40247,
           "y": 7.07042,
@@ -5397,7 +5398,7 @@ export const PRESETS = [
       {
         "id": "el-32",
         "type": "waypoint",
-        "name": "Home along the near side",
+        "name": str('presets.home_along_the_near_side'),
         "position": {
           "x": 3.372955,
           "y": 6.184976,
@@ -5415,7 +5416,7 @@ export const PRESETS = [
       {
         "id": "el-33",
         "type": "horizontalPole",
-        "name": "Ground bar, back pole to the frame",
+        "name": str('presets.ground_bar_back_pole_to_the'),
         "position": {
           "x": 5.38734,
           "y": 6.362065,
@@ -5433,7 +5434,7 @@ export const PRESETS = [
       {
         "id": "el-34",
         "type": "horizontalPole",
-        "name": "Ground bar, front gate to the left bar",
+        "name": str('presets.ground_bar_front_gate_to_the'),
         "position": {
           "x": 4.280535,
           "y": 5.25526,
@@ -5815,7 +5816,7 @@ export const PRESETS = [
   {
     "schemaVersion": 3,
     "id": "racegow5-track7",
-    "name": "RaceGOW5 Track 7",
+    "name": str('presets.racegow5_track_7'),
     "createdUtc": "2026-09-11T00:00:00Z",
     "modifiedUtc": "2026-09-11T00:00:00Z",
     "trackClass": "micro",
@@ -5836,7 +5837,7 @@ export const PRESETS = [
       "designer": "FPVBean",
       "series": "RaceGOW5",
       "sponsor": "",
-      "source": "racegow.com/tracks, the official Track 7 animation",
+      "source": str('presets.racegow_com_tracks_the_official_track_8'),
       "broughtOverBy": "andAgainFPV",
       "note": ""
     },
@@ -5862,7 +5863,7 @@ export const PRESETS = [
       {
         "id": "el-2",
         "type": "gate",
-        "name": "Near gate",
+        "name": str('presets.near_gate'),
         "position": {
           "x": 3.9116,
           "y": 6.362065,
@@ -5882,7 +5883,7 @@ export const PRESETS = [
       {
         "id": "el-3",
         "type": "gate",
-        "name": "Far gate",
+        "name": str('presets.far_gate'),
         "position": {
           "x": 3.9116,
           "y": 5.624195,
@@ -5902,7 +5903,7 @@ export const PRESETS = [
       {
         "id": "el-4",
         "type": "gate",
-        "name": "Over the far gate",
+        "name": str('presets.over_the_far_gate'),
         "position": {
           "x": 3.9116,
           "y": 5.624195,
@@ -5923,7 +5924,7 @@ export const PRESETS = [
       {
         "id": "el-5",
         "type": "gate",
-        "name": "Under the spur",
+        "name": str('presets.under_the_spur'),
         "position": {
           "x": 5.38734,
           "y": 6.362065,
@@ -5944,7 +5945,7 @@ export const PRESETS = [
       {
         "id": "el-6",
         "type": "gate",
-        "name": "Table, left",
+        "name": str('presets.table_left'),
         "position": {
           "x": 5.38734,
           "y": 5.624195,
@@ -5965,7 +5966,7 @@ export const PRESETS = [
       {
         "id": "el-7",
         "type": "gate",
-        "name": "Table, right",
+        "name": str('presets.table_right'),
         "position": {
           "x": 6.12521,
           "y": 5.624195,
@@ -5986,7 +5987,7 @@ export const PRESETS = [
       {
         "id": "el-8",
         "type": "gate",
-        "name": "Table, far",
+        "name": str('presets.table_far'),
         "position": {
           "x": 5.756275,
           "y": 5.25526,
@@ -6007,7 +6008,7 @@ export const PRESETS = [
       {
         "id": "el-9",
         "type": "gate",
-        "name": "Over the table",
+        "name": str('presets.over_the_table'),
         "position": {
           "x": 5.756275,
           "y": 5.99313,
@@ -6028,7 +6029,7 @@ export const PRESETS = [
       {
         "id": "el-10",
         "type": "gate",
-        "name": "The end of the spur",
+        "name": str('presets.the_end_of_the_spur'),
         "position": {
           "x": 5.756275,
           "y": 6.731,
@@ -6049,7 +6050,7 @@ export const PRESETS = [
       {
         "id": "el-11",
         "type": "diveGate",
-        "name": "Table top",
+        "name": str('presets.table_top'),
         "position": {
           "x": 5.756275,
           "y": 5.624195,
@@ -6069,7 +6070,7 @@ export const PRESETS = [
       {
         "id": "el-12",
         "type": "pole",
-        "name": "Near pole",
+        "name": str('presets.near_pole'),
         "position": {
           "x": 3.9116,
           "y": 5.979795,
@@ -6087,7 +6088,7 @@ export const PRESETS = [
       {
         "id": "el-13",
         "type": "pole",
-        "name": "Far pole",
+        "name": str('presets.far_pole'),
         "position": {
           "x": 3.9116,
           "y": 5.268595,
@@ -6105,7 +6106,7 @@ export const PRESETS = [
       {
         "id": "el-14",
         "type": "pole",
-        "name": "Table post, near left",
+        "name": str('presets.table_post_near_left'),
         "position": {
           "x": 5.38734,
           "y": 5.99313,
@@ -6123,7 +6124,7 @@ export const PRESETS = [
       {
         "id": "el-15",
         "type": "pole",
-        "name": "Table post, near right",
+        "name": str('presets.table_post_near_right'),
         "position": {
           "x": 6.12521,
           "y": 5.99313,
@@ -6141,7 +6142,7 @@ export const PRESETS = [
       {
         "id": "el-16",
         "type": "waypoint",
-        "name": "Round the far pole",
+        "name": str('presets.round_the_far_pole'),
         "position": {
           "x": 4.405973,
           "y": 5.299532,
@@ -6159,7 +6160,7 @@ export const PRESETS = [
       {
         "id": "el-17",
         "type": "waypoint",
-        "name": "Up behind the gates",
+        "name": str('presets.up_behind_the_gates'),
         "position": {
           "x": 3.535286,
           "y": 5.365941,
@@ -6177,7 +6178,7 @@ export const PRESETS = [
       {
         "id": "el-18",
         "type": "waypoint",
-        "name": "Over the top",
+        "name": str('presets.over_the_top'),
         "position": {
           "x": 4.25102,
           "y": 6.871195,
@@ -6195,7 +6196,7 @@ export const PRESETS = [
       {
         "id": "el-19",
         "type": "waypoint",
-        "name": "Round the near pole",
+        "name": str('presets.round_the_near_pole'),
         "position": {
           "x": 3.34344,
           "y": 6.376822,
@@ -6213,7 +6214,7 @@ export const PRESETS = [
       {
         "id": "el-20",
         "type": "waypoint",
-        "name": "Out over the table",
+        "name": str('presets.out_over_the_table'),
         "position": {
           "x": 5.402097,
           "y": 4.096804,
@@ -6231,7 +6232,7 @@ export const PRESETS = [
       {
         "id": "el-21",
         "type": "waypoint",
-        "name": "Round the far corner",
+        "name": str('presets.round_the_far_corner'),
         "position": {
           "x": 5.771032,
           "y": 4.672343,
@@ -6249,7 +6250,7 @@ export const PRESETS = [
       {
         "id": "el-22",
         "type": "waypoint",
-        "name": "Round on to the spur",
+        "name": str('presets.round_on_to_the_spur'),
         "position": {
           "x": 5.490642,
           "y": 6.524396,
@@ -6267,7 +6268,7 @@ export const PRESETS = [
       {
         "id": "el-23",
         "type": "waypoint",
-        "name": "Back over the table",
+        "name": str('presets.back_over_the_table'),
         "position": {
           "x": 5.866956,
           "y": 5.793905,
@@ -6285,7 +6286,7 @@ export const PRESETS = [
       {
         "id": "el-24",
         "type": "waypoint",
-        "name": "Round the right side",
+        "name": str('presets.round_the_right_side'),
         "position": {
           "x": 6.508902,
           "y": 5.277396,
@@ -6303,7 +6304,7 @@ export const PRESETS = [
       {
         "id": "el-25",
         "type": "waypoint",
-        "name": "Away from the spur",
+        "name": str('presets.away_from_the_spur'),
         "position": {
           "x": 4.951997,
           "y": 6.074296,
@@ -6321,7 +6322,7 @@ export const PRESETS = [
       {
         "id": "el-26",
         "type": "waypoint",
-        "name": "Round the far corner again",
+        "name": str('presets.round_the_far_corner_again'),
         "position": {
           "x": 6.486766,
           "y": 4.952733,
@@ -6339,7 +6340,7 @@ export const PRESETS = [
       {
         "id": "el-27",
         "type": "waypoint",
-        "name": "Along the front",
+        "name": str('presets.along_the_front'),
         "position": {
           "x": 5.61608,
           "y": 5.25526,
@@ -6357,7 +6358,7 @@ export const PRESETS = [
       {
         "id": "el-28",
         "type": "waypoint",
-        "name": "Out to the near side",
+        "name": str('presets.out_to_the_near_side'),
         "position": {
           "x": 5.475884,
           "y": 4.849432,
@@ -6375,7 +6376,7 @@ export const PRESETS = [
       {
         "id": "el-29",
         "type": "waypoint",
-        "name": "On to the far gate",
+        "name": str('presets.on_to_the_far_gate'),
         "position": {
           "x": 3.468878,
           "y": 5.262639,
@@ -6393,7 +6394,7 @@ export const PRESETS = [
       {
         "id": "el-30",
         "type": "horizontalPole",
-        "name": "Ground bar, far gate to the table",
+        "name": str('presets.ground_bar_far_gate_to_the'),
         "position": {
           "x": 4.64947,
           "y": 5.25526,
@@ -6411,7 +6412,7 @@ export const PRESETS = [
       {
         "id": "el-31",
         "type": "horizontalPole",
-        "name": "The spur",
+        "name": str('presets.the_spur'),
         "position": {
           "x": 5.38734,
           "y": 6.362065,

@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * pilot.js: the name a person flies and publishes under.
  *
@@ -60,5 +61,5 @@ export function writePilotName(raw) {
 }
 
 export function nameRules() {
-  return 'Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.';
+  return str('pilot.two_to_twenty_four_letters_numbers');
 }

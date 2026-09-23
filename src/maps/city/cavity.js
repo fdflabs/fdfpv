@@ -60,6 +60,7 @@
 
 import * as THREE from 'three';
 import { drawnBoxes } from './drawn.js';
+import { str } from '../../strings/index.js';
 
 /* Scratch for the instanced pass, module level so the traversal allocates
  * nothing per instance. */
@@ -473,7 +474,7 @@ export function scanCavities(world, colliders, opts = {}) {
     if (colliders.fby[i] > yTop) { yTop = colliders.fby[i]; }
   }
   if (!(x1 > x0)) {
-    return { skipped: 'no colliders' };
+    return { skipped: str('cavity.no_colliders') };
   }
   const bx0 = opts.x0 ?? (Math.floor(x0) - 1);
   const bx1 = opts.x1 ?? (Math.ceil(x1) + 1);

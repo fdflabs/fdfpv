@@ -45,6 +45,7 @@ import { elevationProfile } from './path.js';
 import { drawProfile } from './profile.js';
 import { DEG, RAD } from './geometry.js';
 import { setYaw } from './faces.js';
+import { str } from '../strings/index.js';
 
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -130,7 +131,7 @@ function figureIcon(figId, levels) {
   const right = x + w + 6;
   const arrow = (x1, y1, x2, y2, dashed = false) => {
     const p = svgEl('path', {
-      d: `M${x1} ${y1} L${x2} ${y2}`,
+      d: str('ui.m_l', { x1, y1, x2, y2 }),
       fill: 'none',
       stroke: '#7dffb4',
       'stroke-width': 1.8,
@@ -173,7 +174,7 @@ function figureIcon(figId, levels) {
 }
 
 const FLAG_SIDE_LABEL = {
-  left: 'Left', right: 'Right', both: 'Both', top: 'On top',
+  left: 'Left', right: 'Right', both: 'Both', top: str('ui.on_top'),
 };
 
 /*
@@ -186,11 +187,11 @@ const FLAG_SIDE_LABEL = {
  * had to ask about: "what is level spacing".
  */
 const DIM_LABELS = {
-  levels: 'Levels', sillH: 'Sill height', clearW: 'Opening width', clearH: 'Opening height',
-  levelPitch: 'Level spacing', width: 'Width', depth: 'Depth', height: 'Height',
-  flagH: 'Flag height',
-  poleRadius: 'Pole radius', baseRadius: 'Base radius', clearance: 'Clearance',
-  pads: 'Pads', spacing: 'Pad spacing', padSize: 'Pad size', textHeight: 'Text height',
+  levels: 'Levels', sillH: str('ui.sill_height'), clearW: str('ui.opening_width'), clearH: str('ui.opening_height'),
+  levelPitch: str('ui.level_spacing'), width: 'Width', depth: 'Depth', height: 'Height',
+  flagH: str('ui.flag_height'),
+  poleRadius: str('ui.pole_radius'), baseRadius: str('ui.base_radius'), clearance: 'Clearance',
+  pads: 'Pads', spacing: str('ui.pad_spacing'), padSize: str('ui.pad_size'), textHeight: str('ui.text_height'),
 };
 
 function flagSideIcon(side) {
@@ -247,9 +248,9 @@ export class Panels {
     this.paletteButtons = new Map();
 
     const track = el('div', 'tb-group');
-    track.append(el('h3', null, 'Track'));
+    track.append(el('h3', null, str('ui.track')));
     const extra = el('div', 'tb-group');
-    extra.append(el('h3', null, 'Extra'));
+    extra.append(el('h3', null, str('ui.extra')));
 
     for (const def of paletteItems(cls)) {
       const b = el('button', 'tb-tool');
@@ -270,7 +271,7 @@ export class Panels {
     extra.append(pathBtn);
 
     host.append(track, extra);
-    host.append(el('p', 'tb-help', 'Press a key or click a tool, then click the field. The tool stays armed, so ten gates are ten clicks. Escape or right click puts it away.'));
+    host.append(el('p', 'tb-help', str('ui.press_a_key_or_click_a')));
   }
 
   renderPalette() {
@@ -406,7 +407,7 @@ export class Panels {
       return;
     }
     if (ids.length > 1) {
-      host.append(el('p', 'tb-help', 'Drag to move them together. Delete removes them. Select one to edit its dimensions.'));
+      host.append(el('p', 'tb-help', str('ui.drag_to_move_them_together_delete')));
       /*
        * A PRESET APPLIES TO THE WHOLE SELECTION, and this is the half of
        * the request the single element picker does not answer. "So the
@@ -427,7 +428,7 @@ export class Panels {
       return;
     }
     const def = ELEMENTS[element.type];
-    host.append(el('p', 'tb-kind', `${def.label}. ${def.note}`));
+    host.append(el('p', 'tb-kind', str('ui.text', { label: def.label, note: def.note })));
 
     host.append(this.field(`name-${element.id}`, 'Name', element.name, (val) => {
       this.host.edit('rename', (d) => { elementById(d, element.id).name = val; });
@@ -482,7 +483,7 @@ export class Panels {
           e2.pitch = Math.max(-90, Math.min(90, val)) * RAD;
         });
       }, { suffix: 'deg', step: 5, places: 1, min: -90, max: 90 }));
-      host.append(el('p', 'tb-help', 'Tilt 0 is a vertical gate. Tilt 90 lays the aperture flat, so it is flown straight down or straight up through. Anything between is an angled dive gate.'));
+      host.append(el('p', 'tb-help', str('ui.tilt_0_is_a_vertical_gate')));
     }
 
     /* Dimensions, all of them, named the way elements.js names them. */
@@ -547,18 +548,18 @@ export class Panels {
       const fig = matchingFigure(doc, element);
       const named = fig && fig !== 'single';
       host.append(el('h3', null, named
-        ? `Passes, ${entries.length}`
-        : (entries.length > 1 ? 'In the track, twice or more' : 'In the track')));
+        ? str('ui.passes', { length: entries.length })
+        : (entries.length > 1 ? str('ui.in_the_track_twice_or_more') : str('ui.in_the_track'))));
       if (!entries.length) {
-        host.append(el('p', 'tb-help', 'Not in the flying order.'));
-        host.append(button('Add to the track', 'tb-btn', () => this.host.addToSequence(element.id)));
+        host.append(el('p', 'tb-help', str('ui.not_in_the_flying_order')));
+        host.append(button(str('ui.add_to_the_track'), 'tb-btn', () => this.host.addToSequence(element.id)));
       }
       for (const { s, i } of entries) {
         host.append(this.sequenceCard(doc, element, s, i, named));
       }
       if (def.kind === KIND.APERTURE && aperturesOf(element).length > 1 && !named) {
-        host.append(button('Fly another level', 'tb-btn', () => this.host.addLevel(element.id),
-          'Add another gate on this stack, on the next unused opening.'));
+        host.append(button(str('ui.fly_another_level'), 'tb-btn', () => this.host.addLevel(element.id),
+          str('ui.add_another_gate_on_this_stack')));
       }
     }
   }
@@ -566,11 +567,11 @@ export class Panels {
   renderFigurePicker(host, doc, element) {
     const current = matchingFigure(doc, element);
     const n = aperturesOf(element).length;
-    host.append(el('h3', null, 'How it is flown'));
-    host.append(el('p', 'tb-help', 'Each hole is its own gate. Pick the figure, then fly that line. The racing line shows the wrap.'));
+    host.append(el('h3', null, str('ui.how_it_is_flown')));
+    host.append(el('p', 'tb-help', str('ui.each_hole_is_its_own_gate')));
     const grid = el('div', 'tb-fig-grid');
     for (const fig of figuresFor(element)) {
-      const b = el('button', current === fig.id ? 'tb-fig-card on' : 'tb-fig-card');
+      const b = el('button', current === fig.id ? str('ui.tb_fig_card_on') : 'tb-fig-card');
       b.type = 'button';
       b.title = fig.hint;
       b.append(figureIcon(fig.id, n));
@@ -581,7 +582,7 @@ export class Panels {
     host.append(grid);
     const blurb = current
       ? figureBlurb(element, current)
-      : 'This mix is not a named figure. Each hole you listed still counts as its own gate.';
+      : str('ui.this_mix_is_not_a_named');
     if (blurb) {
       host.append(el('p', 'tb-fig-blurb', blurb));
     }
@@ -600,20 +601,20 @@ export class Panels {
    * and points at the button that fixes it rather than showing an empty row.
    */
   renderDecalLogoPicker(host, doc, element) {
-    host.append(el('h3', null, 'Which logo'));
+    host.append(el('h3', null, str('ui.which_logo')));
     const logos = logosOf(doc);
     if (!logos.length) {
-      host.append(el('p', 'tb-help', 'This track carries no sponsor logos yet. Add one under Sponsor logos, and every footprint on the grass can wear it.'));
-      host.append(button('Sponsor logos', 'tb-btn', () => this.host.openLogo(),
-        'Upload up to five sponsors\u2019 logos for this track'));
+      host.append(el('p', 'tb-help', str('ui.this_track_carries_no_sponsor_logos')));
+      host.append(button(str('app.sponsor_logos'), 'tb-btn', () => this.host.openLogo(),
+        str('ui.upload_up_to_five_sponsors_logos')));
       return;
     }
     const current = logoForDecal(doc, element);
     const grid = el('div', 'tb-logo-grid');
     logos.forEach((logo, i) => {
-      const b = el('button', current === logo ? 'tb-logo-card on' : 'tb-logo-card');
+      const b = el('button', current === logo ? str('ui.tb_logo_card_on') : 'tb-logo-card');
       b.type = 'button';
-      b.title = logo.name || `Logo ${i + 1}`;
+      b.title = logo.name || str('app.logo', { v1: i + 1 });
       const img = el('img');
       img.src = logo.image;
       img.alt = '';
@@ -630,8 +631,8 @@ export class Panels {
     });
     host.append(grid);
     host.append(el('p', 'tb-help', current
-      ? `${current.name || `Logo ${logos.indexOf(current) + 1}`}, fitted inside the ${show(element.dims.width, 1)} by ${show(element.dims.depth, 1)} m footprint above. Resize the footprint to match its shape and it fills more of it.`
-      : 'The logo this footprint named is no longer on the track. Pick one, or the grass stays plain.'));
+      ? str('ui.fitted_inside_the_by_m_footprint', { v1: current.name || str('app.logo', { v1: logos.indexOf(current) + 1 }), show: show(element.dims.width, 1), show2: show(element.dims.depth, 1) })
+      : str('ui.the_logo_this_footprint_named_is')));
   }
 
   /*
@@ -652,12 +653,12 @@ export class Panels {
       return m && f && m.id === f.id;
     });
     const current = all ? matchingGatePreset(first.dims) : null;
-    host.append(el('h3', null, elements.length > 1 ? `Opening size, ${elements.length} gates` : 'Opening size'));
+    host.append(el('h3', null, elements.length > 1 ? str('ui.opening_size_gates', { length: elements.length }) : str('ui.opening_size')));
     const grid = el('div', 'tb-fig-grid');
     /* The class's own presets: MultiGP's four on a field, RaceGOW's two
      * legal sizes in a room. */
     for (const preset of gatePresetsFor(this.paletteClass ?? TRACK_CLASS_DEFAULT)) {
-      const b = el('button', current && current.id === preset.id ? 'tb-fig-card on' : 'tb-fig-card');
+      const b = el('button', current && current.id === preset.id ? str('ui.tb_fig_card_on') : 'tb-fig-card');
       b.type = 'button';
       b.title = preset.hint;
       b.append(el('strong', null, preset.label));
@@ -678,8 +679,8 @@ export class Panels {
     host.append(el('p', 'tb-help', current
       ? `${current.label}, ${current.size}. ${current.hint}`
       : (elements.length > 1
-        ? 'These gates are not all the same size. Pick one to set them all.'
-        : 'A size of your own. Pick a preset to go back to a standard one, or type the opening below.')));
+        ? str('ui.these_gates_are_not_all_the')
+        : str('ui.a_size_of_your_own_pick'))));
   }
 
   /*
@@ -695,24 +696,24 @@ export class Panels {
     const base = element.position.z;
     const top = base + elementHeight(def, element.dims);
     if (levels.length > 1) {
-      host.append(el('p', 'tb-help', 'Level spacing is the rise from one opening to the next, sill to sill. Two openings share one frame tube, so the natural spacing is the opening height plus the tube, which is what a preset sets.'));
+      host.append(el('p', 'tb-help', str('ui.level_spacing_is_the_rise_from')));
     }
     const sills = levels
-      .map((ap, i) => `${i + 1}: sill ${show(base + ap.sillH, 2)} m, centre ${show(base + ap.centerH, 2)} m`)
+      .map((ap, i) => str('ui.sill_m_centre_m', { v1: i + 1, show: show(base + ap.sillH, 2), show2: show(base + ap.centerH, 2) }))
       .join('. ');
     const what = levels.length > 1
-      ? `${levels.length} openings of ${show(element.dims.clearW, 2)} by ${show(element.dims.clearH, 2)} m. ${sills}.`
-      : `One opening ${show(element.dims.clearW, 2)} by ${show(element.dims.clearH, 2)} m, centre ${show(base + levels[0].centerH, 2)} m above the ground.`;
-    host.append(el('p', 'tb-fig-blurb', `${what} Top of the structure ${show(top, 2)} m.`));
+      ? str('ui.openings_of_by_m', { length: levels.length, show: show(element.dims.clearW, 2), show2: show(element.dims.clearH, 2), sills })
+      : str('ui.one_opening_by_m_centre_m', { show: show(element.dims.clearW, 2), show2: show(element.dims.clearH, 2), show3: show(base + levels[0].centerH, 2) });
+    host.append(el('p', 'tb-fig-blurb', str('ui.top_of_the_structure_m', { what, show: show(top, 2) })));
   }
 
   renderFlagSidePicker(host, element) {
     const current = flagSideOf(element);
-    host.append(el('h3', null, 'Header flag'));
-    host.append(el('p', 'tb-help', 'Where the pennant stands on the header, as seen facing the gate. On top puts one mast in the middle of the board, directly over the opening. Mast height is the flag height in the dimensions above, and the mast is solid: a pilot diving onto the top rail can hit it.'));
+    host.append(el('h3', null, str('ui.header_flag')));
+    host.append(el('p', 'tb-help', str('ui.where_the_pennant_stands_on_the')));
     const grid = el('div', 'tb-side-grid');
     for (const side of FLAG_SIDES) {
-      const b = el('button', current === side ? 'tb-fig-card on' : 'tb-fig-card');
+      const b = el('button', current === side ? str('ui.tb_fig_card_on') : 'tb-fig-card');
       b.type = 'button';
       b.append(flagSideIcon(side));
       b.append(el('strong', null, FLAG_SIDE_LABEL[side]));
@@ -733,7 +734,7 @@ export class Panels {
     const card = el('div', 'tb-card');
     const head = el('div', 'tb-card-head');
     const title = namedFigure
-      ? `${levelName(element, seq.apertureIndex)}, gate ${index + 1}`
+      ? str('ui.gate_2', { levelName: levelName(element, seq.apertureIndex), v2: index + 1 })
       : sequenceLabel(doc, seq);
     head.append(el('span', 'tb-num', String(index + 1)), el('span', 'tb-card-title', title));
     if (seq.overridden || element.yawOverridden) {
@@ -744,11 +745,11 @@ export class Panels {
     const levels = aperturesOf(element);
     if (levels.length > 1 && !namedFigure) {
       const row = el('label', 'tb-field');
-      row.append(el('span', 'tb-field-label', 'Hole'));
+      row.append(el('span', 'tb-field-label', str('ui.hole')));
       const sel = el('select');
       sel.dataset.tbkey = `lvl-${seq.id}`;
       levels.forEach((ap, i) => {
-        const opt = el('option', null, `${levelName(element, i)}, centre ${show(element.position.z + ap.centerH, 2)} m`);
+        const opt = el('option', null, str('ui.centre_m', { levelName: levelName(element, i), show: show(element.position.z + ap.centerH, 2) }));
         opt.value = String(i);
         if (i === (seq.apertureIndex ?? 0)) {
           opt.selected = true;
@@ -763,7 +764,7 @@ export class Panels {
     card.append(el('p', 'tb-face', faceLabel(doc, seq)));
 
     if (kindOf(element) === KIND.MARKER) {
-      card.append(el('p', 'tb-help', 'The green square is the space you have to fly through. Drag the round handle on the plan to swing it anywhere round the marker, all the way round. Flip side sends it to the opposite side, and Re-derive hands it back to the automatic rule, which is the outside of the turn.'));
+      card.append(el('p', 'tb-help', str('ui.the_green_square_is_the_space')));
       card.append(this.field(`clr-${seq.id}`, 'Clearance', seq.clearance ?? 0, (val) => {
         this.host.edit('clearance', (d) => {
           const s2 = d.sequence.find((x) => x.id === seq.id);
@@ -775,10 +776,10 @@ export class Panels {
     }
 
     const row = el('div', 'tb-row-btns');
-    row.append(button(kindOf(element) === KIND.MARKER ? 'Flip side' : 'Flip face', 'tb-btn', () => this.host.flipFace(seq.id), 'Shortcut: X'));
+    row.append(button(kindOf(element) === KIND.MARKER ? str('ui.flip_side') : str('ui.flip_face'), 'tb-btn', () => this.host.flipFace(seq.id), str('ui.shortcut_x')));
     if (seq.overridden || element.yawOverridden) {
       row.append(button('Re-derive', 'tb-btn', () => this.host.clearOverride(seq.id),
-        'Hand this back to the automatic rule, which points it along the line from the previous element to the next.'));
+        str('ui.hand_this_back_to_the_automatic')));
     }
     row.append(button('Remove', 'tb-btn tb-danger', () => this.host.removeSequenceEntry(seq.id)));
     card.append(row);
@@ -786,7 +787,7 @@ export class Panels {
   }
 
   renderFieldSettings(host, doc) {
-    host.append(el('p', 'tb-help', 'Nothing selected. Click an element to edit it, or drag a box on empty ground to select several.'));
+    host.append(el('p', 'tb-help', str('ui.nothing_selected_click_an_element_to')));
     /*
      * WHAT KIND OF TRACK THIS IS, said out loud, because everything else on
      * this screen is a consequence of it: the palette, the gate sizes, the
@@ -800,15 +801,15 @@ export class Panels {
      */
     {
       const micro = trackClassOf(doc) === 'micro';
-      host.append(el('h3', null, 'Track'));
+      host.append(el('h3', null, str('ui.track')));
       const line = el('p', 'tb-help');
-      line.append(el('strong', null, micro ? 'RaceGOW micro' : 'Full size'));
+      line.append(el('strong', null, micro ? str('ui.racegow_micro') : str('ui.full_size')));
       line.append(document.createTextNode(micro
-        ? ': a 65 mm whoop in a room. Gates 24 to 28 in, adjacent gates 30 in centre to centre, and the whole track inside 4 by 6 ft at the smallest gate, scaled up with them. Grid is one inch.'
-        : ': a 5 inch quad on a field. MultiGP gate sizes, grid in metres.'));
+        ? str('ui.a_65_mm_whoop_in_a')
+        : str('ui.a_5_inch_quad_on_a')));
       host.append(line);
     }
-    host.append(el('h3', null, 'Field'));
+    host.append(el('h3', null, str('ui.field')));
     const grid = el('div', 'tb-grid3');
     grid.append(
       this.field('field-w', 'Width', doc.field.width, (val) => {
@@ -832,15 +833,15 @@ export class Panels {
     );
     host.append(grid);
 
-    host.append(el('h3', null, 'Racing line'));
-    host.append(this.field('set-tangent', 'Tangent scale', doc.settings.tangentScale, (val) => {
+    host.append(el('h3', null, str('ui.racing_line')));
+    host.append(this.field('set-tangent', str('ui.tangent_scale'), doc.settings.tangentScale, (val) => {
       this.host.edit('settings', (d) => { d.settings.tangentScale = Math.max(0.01, val); });
     }, { step: 0.02, places: 3 }));
-    host.append(el('p', 'tb-help', 'How long the spline tangents are, as a fraction of the gap to the next knot. About a third draws a circular arc through a right angle. Higher bulges the line wide, lower squares off the corners.'));
-    host.append(this.field('set-radius', 'Warn under radius', doc.settings.minCurveRadius, (val) => {
+    host.append(el('p', 'tb-help', str('ui.how_long_the_spline_tangents_are')));
+    host.append(this.field('set-radius', str('ui.warn_under_radius'), doc.settings.minCurveRadius, (val) => {
       this.host.edit('settings', (d) => { d.settings.minCurveRadius = Math.max(0.1, val); });
     }, { suffix: 'm', step: 0.5 }));
-    host.append(this.field('set-samples', 'Samples per segment', doc.settings.samplesPerSegment, (val) => {
+    host.append(this.field('set-samples', str('ui.samples_per_segment'), doc.settings.samplesPerSegment, (val) => {
       this.host.edit('settings', (d) => { d.settings.samplesPerSegment = Math.max(4, Math.round(val)); });
     }, { step: 4, places: 0 }));
   }
@@ -851,10 +852,10 @@ export class Panels {
     const host = this.nodes.sequence;
     host.textContent = '';
     const doc = this.host.doc;
-    host.append(el('h3', null, `Flying order, ${doc.sequence.length}`));
+    host.append(el('h3', null, str('ui.flying_order', { length: doc.sequence.length })));
 
     if (!doc.sequence.length) {
-      host.append(el('p', 'tb-help', 'Empty. Placing a gate or a stack adds it to the order. A stack is one structure and several gates: pick how it is flown in the inspector.'));
+      host.append(el('p', 'tb-help', str('ui.empty_placing_a_gate_or_a')));
     }
 
     const list = el('ol', 'tb-seq');
@@ -878,8 +879,8 @@ export class Panels {
       if (seq.overridden) {
         li.append(el('span', 'tb-badge', 'set'));
       }
-      li.append(button('X', 'tb-mini', (e) => { e.stopPropagation(); this.host.flipFace(seq.id); }, 'Flip the face or the pass side'));
-      li.append(button('-', 'tb-mini tb-danger', (e) => { e.stopPropagation(); this.host.removeSequenceEntry(seq.id); }, 'Take it out of the order'));
+      li.append(button('X', 'tb-mini', (e) => { e.stopPropagation(); this.host.flipFace(seq.id); }, str('ui.flip_the_face_or_the_pass')));
+      li.append(button('-', 'tb-mini tb-danger', (e) => { e.stopPropagation(); this.host.removeSequenceEntry(seq.id); }, str('ui.take_it_out_of_the_order')));
 
       li.addEventListener('click', () => {
         if (element) {
@@ -913,7 +914,7 @@ export class Panels {
 
     const spare = unsequencedElements(doc);
     if (spare.length) {
-      host.append(el('h3', null, 'Not in the track'));
+      host.append(el('h3', null, str('ui.not_in_the_track')));
       const ul = el('div', 'tb-spare');
       for (const element of spare) {
         const row = el('div', 'tb-spare-row');
@@ -933,12 +934,12 @@ export class Panels {
     const doc = this.host.doc;
     const path = this.host.path;
 
-    host.append(el('h3', null, 'Results'));
+    host.append(el('h3', null, str('ui.results')));
     if (!path) {
-      host.append(el('p', 'tb-help', 'Nothing in the flying order yet. Place a gate and it appears here, with the lap figures and any warnings.'));
+      host.append(el('p', 'tb-help', str('ui.nothing_in_the_flying_order_yet')));
       appendTypeStats(host, doc);
       const empty = el('div', 'tb-profile-foot');
-      empty.append(el('h3', null, 'Elevation'), this.nodes.profile);
+      empty.append(el('h3', null, str('ui.elevation')), this.nodes.profile);
       host.append(empty);
       drawProfile(this.nodes.profile, null);
       return;
@@ -946,20 +947,20 @@ export class Panels {
 
     const stats = el('div', 'tb-stats');
     stats.append(
-      stat('Length', `${path.length.toFixed(1)} m`),
-      stat('In the order', String(doc.sequence.length)),
-      stat('Tightest radius', path.tightest && Number.isFinite(path.tightest.radius)
-        ? `${path.tightest.radius.toFixed(2)} m` : 'straight'),
-      stat('Lap', path.closed ? 'closes' : 'open'),
+      stat(str('ui.length'), `${path.length.toFixed(1)} m`),
+      stat(str('ui.in_the_order'), String(doc.sequence.length)),
+      stat(str('ui.tightest_radius'), path.tightest && Number.isFinite(path.tightest.radius)
+        ? `${path.tightest.radius.toFixed(2)} m` : str('ui.straight')),
+      stat(str('ui.lap_label'), path.closed ? str('ui.closes') : str('ui.open')),
     );
     host.append(stats);
     appendTypeStats(host, doc);
 
     const warnings = this.host.warnings ?? [];
     const bad = warnings.filter((w) => w.level === 'warn');
-    host.append(el('h3', null, bad.length ? `Warnings, ${bad.length}` : 'Warnings'));
+    host.append(el('h3', null, bad.length ? str('ui.warnings', { length: bad.length }) : 'Warnings'));
     if (!warnings.length) {
-      host.append(el('p', 'tb-help', 'Nothing to report. The line goes through every element in the right direction, inside the field, clear of the barriers.'));
+      host.append(el('p', 'tb-help', str('ui.nothing_to_report_the_line_goes')));
     }
     const ul = el('ul', 'tb-warn');
     for (const w of warnings) {
@@ -972,13 +973,13 @@ export class Panels {
       ul.append(li);
     }
     host.append(ul);
-    host.append(el('p', 'tb-help', 'Warnings are advisory. Nothing here stops a save or an export.'));
+    host.append(el('p', 'tb-help', str('ui.warnings_are_advisory_nothing_here_stops')));
 
     /* The chart is a long lived canvas rather than a fresh one per render:
      * the panel is rebuilt wholesale on every change and allocating a canvas
      * that often is the one thing here that would show up in a profile. */
     const foot = el('div', 'tb-profile-foot');
-    foot.append(el('h3', null, 'Elevation'), this.nodes.profile);
+    foot.append(el('h3', null, str('ui.elevation')), this.nodes.profile);
     host.append(foot);
     drawProfile(this.nodes.profile, elevationProfile(path));
   }
@@ -989,7 +990,7 @@ function appendTypeStats(host, doc) {
   if (!rows.length) {
     return;
   }
-  host.append(el('h3', null, 'On the field'));
+  host.append(el('h3', null, str('ui.on_the_field')));
   const stats = el('div', 'tb-stats');
   for (const row of rows) {
     stats.append(stat(row.label, String(row.count)));

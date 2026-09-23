@@ -83,6 +83,7 @@ import {
   GROUND, mats, slab, decal, hit, deck, post, wallPanel, ribs, board, patch,
 } from './kit.js';
 import { worksName, keepOut, safetyFirst, worksNotice, bayDigit } from './signs.js';
+import { str } from '../../../strings/index.js';
 
 /*
  * The plan, in metres, and the only place any of it is written down.
@@ -217,22 +218,22 @@ export function buildWorks(ctx) {
   out.references.worksShedDoor = {
     measured: +(SHED_DOOR.x1 - SHED_DOOR.x0).toFixed(2),
     unit: 'm',
-    real: 'a works sliding door, 3 to 5 m',
+    real: str('works.a_works_sliding_door_3_to'),
   };
   out.references.worksShedSpan = {
     measured: +(SHED.x1 - SHED.x0).toFixed(2),
     unit: 'm',
-    real: 'a single span steel portal shed, 12 to 24 m',
+    real: str('works.a_single_span_steel_portal_shed'),
   };
   out.references.worksStackHeight = {
     measured: +(STACK.h).toFixed(2),
     unit: 'm',
-    real: 'a small works stack, 12 to 20 m',
+    real: str('works.a_small_works_stack_12_to'),
   };
   out.references.worksClerestory = {
     measured: +(SHED.ridge - SHED.eave).toFixed(2),
     unit: 'm',
-    real: 'a sawtooth north light, 1.5 to 2.5 m',
+    real: str('works.a_sawtooth_north_light_1_5'),
   };
   return out;
 }

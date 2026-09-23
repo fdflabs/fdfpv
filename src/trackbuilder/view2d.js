@@ -45,6 +45,7 @@ import {
   add, apertureCorners, clamp, dist, leftOf, normalize, pointSegment, scale, sub, yawVector,
 } from './geometry.js';
 import { startBlockDims } from '../art/startblock.js';
+import { str } from '../strings/index.js';
 
 const RULER = 26;              /* pixels of ruler along the top and the left */
 const MIN_SCALE = 2;           /* pixels per metre */
@@ -661,7 +662,7 @@ export class View2D {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = selected ? C.selected : C.decal;
-      ctx.fillText('no logo', c.x, c.y);
+      ctx.fillText(str('view2d.no_logo'), c.x, c.y);
     }
   }
 

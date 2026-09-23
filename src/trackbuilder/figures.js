@@ -42,27 +42,28 @@ import {
 } from './model.js';
 import { applyAutoFaces } from './faces.js';
 import { add, leftOf, lerp, normalize, scale, sub } from './geometry.js';
+import { str } from '../strings/index.js';
 
 export const FIGURES = {
   single: {
     id: 'single',
-    label: 'One opening',
-    hint: 'One hole counts. The others are scenery. Pick which hole below.',
+    label: str('figures.one_opening'),
+    hint: str('figures.one_hole_counts_the_others_are'),
   },
   spiralUp: {
     id: 'spiralUp',
-    label: 'Spiral up',
-    hint: 'Each hole is its own gate. Bottom first, wrap around the side, then the next hole from the same face.',
+    label: str('figures.spiral_up'),
+    hint: str('figures.each_hole_is_its_own_gate'),
   },
   spiralDown: {
     id: 'spiralDown',
-    label: 'Spiral down',
-    hint: 'Each hole is its own gate. Top first, wrap around the side, then the next hole down from the other face.',
+    label: str('figures.spiral_down'),
+    hint: str('figures.each_hole_is_its_own_gate_2'),
   },
   splitS: {
     id: 'splitS',
-    label: 'Split-S',
-    hint: 'Two gates. Through the top, invert, back through the bottom the other way. A triple skips the middle.',
+    label: str('figures.split_s'),
+    hint: str('figures.two_gates_through_the_top_invert'),
   },
 };
 
@@ -74,19 +75,19 @@ export function figureBlurb(el, figureId) {
   const n = aperturesOf(el).length;
   if (figureId === 'spiralUp') {
     return n === 2
-      ? 'Two gates. Fly the bottom, wrap around the side, then the top from the same face.'
-      : 'Three gates. Bottom, wrap, middle from the same face, wrap, then the top.';
+      ? str('figures.two_gates_fly_the_bottom_wrap')
+      : str('figures.three_gates_bottom_wrap_middle_from');
   }
   if (figureId === 'spiralDown') {
-    return 'Three gates. Top, wrap, middle from the other face, wrap, then the bottom.';
+    return str('figures.three_gates_top_wrap_middle_from');
   }
   if (figureId === 'splitS') {
     return n === 2
-      ? 'Two gates. Through the top, flip, back through the bottom the other way.'
-      : 'Two gates. Through the top, flip, back through the bottom. The middle hole does not count.';
+      ? str('figures.two_gates_through_the_top_flip')
+      : str('figures.two_gates_through_the_top_flip_2');
   }
   return n > 1
-    ? 'One gate. Only the hole you pick below counts; the rest are just the frame.'
+    ? str('figures.one_gate_only_the_hole_you')
     : '';
 }
 

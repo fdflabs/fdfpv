@@ -33,6 +33,7 @@ import { duplicateTrack, toPlain } from '../trackbuilder/model.js';
 import { readAutosave, writeAutosave } from '../trackbuilder/storage.js';
 import { boardOrigin, fetchTrackDocument, fetchTrackList, publishTrack } from './board.js';
 import { readPilotName } from './pilot.js';
+import { str } from '../strings/index.js';
 import {
   clearShareImport,
   courseSeatKey,
@@ -174,7 +175,7 @@ export function isEmptyCanvas(doc) {
 }
 
 export function suggestRemixName(original) {
-  const base = String(original || '').trim() || 'Untitled track';
+  const base = String(original || '').trim() || str('ui.untitled_track');
   const tagged = / remix$/i.test(base) ? base : `${base} remix`;
   return tagged.slice(0, 80);
 }
@@ -203,7 +204,7 @@ function pick(parts, key, fallback) {
 
 function summaryOf(doc, extra) {
   return {
-    name: extra.name || (doc && doc.name) || 'Untitled track',
+    name: extra.name || (doc && doc.name) || str('ui.untitled_track'),
     /* GATES, NOT STEPS. A waypoint is a step in the flying order that
      * pins the line through a point and scores nothing, so counting the
      * order advertises gates a pilot will never fly through: the RaceGOW
@@ -435,55 +436,55 @@ export function hasFlyableTrack() {
  */
 export function courseChip(listing) {
   if (!listing || listing.kind === 'none') {
-    return { label: 'No track', tone: 'none', note: 'Nothing loaded to fly.' };
+    return { label: str('listing.no_track'), tone: 'none', note: str('listing.nothing_loaded_to_fly') };
   }
   if (listing.kind === 'owned') {
     if (listing.layoutDrift) {
       return {
-        label: 'Layout not on the board',
+        label: str('listing.layout_not_on_the_board'),
         tone: 'warn',
-        note: 'The layout changed since it was published. Update the board before uploading a time.',
+        note: str('listing.the_layout_changed_since_it_was'),
       };
     }
     if (listing.nameDrift) {
       return {
-        label: 'Rename waiting',
+        label: str('listing.rename_waiting'),
         tone: 'warn',
-        note: 'The board still carries the old name. Updating it keeps the times.',
+        note: str('listing.the_board_still_carries_the_old'),
       };
     }
-    return { label: 'On the board', tone: 'live', note: 'Yours, published. Fly it and upload a time.' };
+    return { label: str('listing.on_the_board'), tone: 'live', note: str('listing.yours_published_fly_it_and_upload') };
   }
   if (listing.kind === 'community') {
-    const by = listing.author ? ` by ${listing.author}` : '';
+    const by = listing.author ? str('ui.by_4', { author: listing.author }) : '';
     return {
-      label: 'On the board',
+      label: str('listing.on_the_board'),
       tone: 'live',
-      note: `Published${by}. Fly it and upload a time, or edit a copy under your own name.`,
+      note: str('listing.published_fly_it_and_upload_a', { by }),
     };
   }
   if (listing.kind === 'stock') {
-    const by = listing.author ? ` by ${listing.author}` : '';
+    const by = listing.author ? str('ui.by_4', { author: listing.author }) : '';
     return {
-      label: 'Shipped with the simulator',
+      label: str('listing.shipped_with_the_simulator'),
       tone: 'none',
-      note: `Ships with the simulator${by}. Fly it here, or open a copy in the builder to make it yours and publish it.`,
+      note: str('listing.ships_with_the_simulator_fly_it', { by }),
     };
   }
   if (listing.kind === 'remix') {
-    const of = listing.sourceName ? ` of ${listing.sourceName}` : '';
+    const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
     return {
-      label: `Copy${of}`,
+      label: str('listing.copy', { of }),
       tone: 'warn',
-      note: 'Your copy. Publish it under a new name to put it on the board.',
+      note: str('listing.your_copy_publish_it_under_a'),
     };
   }
   return {
-    label: 'Not on the board',
+    label: str('listing.not_on_the_board'),
     tone: 'none',
     note: listing.canPublishNew
-      ? 'Lives in this browser. Publish it to put it on the board, then you can upload a time.'
-      : 'Lives in this browser. It needs a flying order before it can be published.',
+      ? str('listing.lives_in_this_browser_publish_it')
+      : str('listing.lives_in_this_browser_it_needs'),
   };
 }
 

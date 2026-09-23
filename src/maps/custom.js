@@ -48,6 +48,7 @@ import { readAutosave } from '../trackbuilder/storage.js';
 import { activeTrackClass, courseSeatKey, readShareImport } from '../share/session.js';
 import { tuningFor } from '../trackbuilder/elements.js';
 import { qualityFor } from '../render/quality.js';
+import { str } from '../strings/index.js';
 
 /*
  * The document that will be built, or null. A share import wins, then the
@@ -126,7 +127,7 @@ function emptyCourse() {
   const micro = cls === 'micro';
   return {
     id: 'custom',
-    name: 'No track yet',
+    name: str('custom.no_track_yet'),
     documentId: null,
     trackClass: cls,
     field: { width: T.fieldWidth, depth: T.fieldDepth },
@@ -137,8 +138,8 @@ function emptyCourse() {
     samples: [{ x: 0, z: 0 }],
     guide: { samples: [], dashes: [], arrows: [], flagArcs: [], length: 0 },
     warnings: [micro
-      ? 'Nothing has been built yet. Open the whoop track builder from the title screen, place some gates in the room, then come back.'
-      : 'Nothing has been built yet. Open the track builder from the title screen, place some gates, then come back.'],
+      ? str('custom.nothing_has_been_built_yet_open')
+      : str('custom.nothing_has_been_built_yet_open_2')],
     lapLength: 0,
     closed: false,
   };

@@ -65,6 +65,7 @@ import { wrapBetween, figureCueOf, upgradeStackedFigures } from '../trackbuilder
 import { gateScaleFor, MICRO_SCALE } from './track.js';
 import { startBlockLaneOffset, startBlockDims } from '../art/startblock.js';
 import { guideFromKnots } from './guide.js';
+import { str } from '../strings/index.js';
 
 /*
  * How far behind the FIRST GATE the craft is parked when a track has no
@@ -554,7 +555,7 @@ function buildCourse(raw) {
       z: first.z + Math.cos(first.yaw) * back,
       yaw: first.yaw,
     };
-    warnings.push('No start pads in the track, so the quad is parked behind the first gate.');
+    warnings.push(str('trackdoc.no_start_pads_in_the_track'));
   } else {
     spawn = { x: 0, z: 0, yaw: 0 };
   }
@@ -584,7 +585,7 @@ function buildCourse(raw) {
   const guide = cls === 'micro' ? null : guideFromKnots(sceneKnots(path.knots, field), cls);
 
   if (!stations.length) {
-    warnings.push('This track has nothing to fly through, so there is no lap to time.');
+    warnings.push(str('trackdoc.this_track_has_nothing_to_fly'));
   }
 
   const out = {

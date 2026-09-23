@@ -48,6 +48,7 @@
  */
 
 import { readShareImport, writeShareImport } from './session.js';
+import { str } from '../strings/index.js';
 
 /*
  * Two named hosts, because this page is served from two kinds of place and
@@ -209,7 +210,7 @@ async function readJson(res) {
     body = null;
   }
   if (!res.ok) {
-    const message = (body && body.error) || text || `The board answered ${res.status}.`;
+    const message = (body && body.error) || text || str('board.the_board_answered', { status: res.status });
     const err = new Error(message);
     err.status = res.status;
     err.conflict = Boolean(body && body.conflict) || res.status === 409;
@@ -288,7 +289,7 @@ export async function fetchTrackList(origin = boardOrigin()) {
   const tracks = body && Array.isArray(body.tracks) ? body.tracks : [];
   return tracks.map((t) => ({
     id: String(t.id || ''),
-    name: String(t.name || 'Untitled track'),
+    name: String(t.name || str('ui.untitled_track')),
     author: String(t.author || ''),
     /*
      * WHO BUILT IT, WHERE THAT IS NOT WHO PUBLISHED IT. The board derives
@@ -402,7 +403,7 @@ export async function adoptMostFlownTrack(cls) {
     const tracks = body && Array.isArray(body.tracks) ? body.tracks : [];
     const list = tracks.map((t) => ({
       id: String(t.id || ''),
-      name: String(t.name || 'Untitled track'),
+      name: String(t.name || str('ui.untitled_track')),
       author: String(t.author || ''),
       designer: String(t.designer || ''),
       series: String(t.series || ''),
@@ -454,20 +455,20 @@ export async function fetchTrackDocument(id, origin = boardOrigin()) {
  * there does not need this file at all; adding or retiring an id does.
  */
 export const TRACK_TAGS = [
-  { id: 'race', label: 'Race track', note: 'Built to be raced against a clock.' },
-  { id: 'skills', label: 'Skills practice', note: 'Built to practise one thing until it is easy.' },
-  { id: 'experiment', label: 'Experiment', note: 'Built to find out whether something works.' },
-  { id: 'freestyle', label: 'Freestyle', note: 'Gates as furniture rather than as a track to be raced.' },
-  { id: 'beginner', label: 'Beginner', note: 'Wide gates, gentle lines, nothing that punishes a miss.' },
-  { id: 'technical', label: 'Technical', note: 'Tight, quick and unforgiving.' },
+  { id: 'race', label: str('board.race_track'), note: str('board.built_to_be_raced_against_a') },
+  { id: 'skills', label: str('board.skills_practice'), note: str('board.built_to_practise_one_thing_until') },
+  { id: 'experiment', label: str('board.experiment'), note: str('board.built_to_find_out_whether_something') },
+  { id: 'freestyle', label: str('ui.freestyle'), note: str('board.gates_as_furniture_rather_than_as') },
+  { id: 'beginner', label: str('board.beginner'), note: str('board.wide_gates_gentle_lines_nothing_that') },
+  { id: 'technical', label: str('board.technical'), note: str('board.tight_quick_and_unforgiving') },
   /* "Small field", not "Micro", and the id stays `micro` because published
    * tracks carry it. It means a FIVE INCH track with a small footprint and
    * has meant that since before there was a micro track class; beside a 65
    * mm whoop, a tag labelled "Micro" is two different things one word apart.
    * The board's src/validate.js carries the same rename. */
-  { id: 'micro', label: 'Small field', note: 'A five inch track that fits a small field or a garden.' },
-  { id: 'big', label: 'Big field', note: 'Wants the whole field and a lot of speed.' },
-  { id: 'showcase', label: 'Showcase', note: 'Built to be looked at.' },
+  { id: 'micro', label: str('board.small_field'), note: str('board.a_five_inch_track_that_fits') },
+  { id: 'big', label: str('board.big_field'), note: str('board.wants_the_whole_field_and_a') },
+  { id: 'showcase', label: str('board.showcase'), note: str('board.built_to_be_looked_at') },
 ];
 
 /* MIRRORS TAGS_MAX in the board's src/validate.js. Past five a tag stops

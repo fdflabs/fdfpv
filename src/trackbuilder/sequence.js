@@ -37,6 +37,7 @@ import {
 } from './model.js';
 import { applyAutoFaces } from './faces.js';
 import { matchingFigureOf, FIGURES, levelName, runContaining } from './figures.js';
+import { str } from '../strings/index.js';
 
 /*
  * Append an element to the flying order, or insert it at a position.
@@ -198,22 +199,22 @@ export function faceLabel(doc, seq) {
   }
   const kind = kindOf(el);
   if (kind === KIND.MARKER) {
-    return `pass on the ${seq.passSide}`;
+    return str('sequence.pass_on_the', { passSide: seq.passSide });
   }
   if (kind !== KIND.APERTURE) {
     return '';
   }
   if (seq.entry === 0) {
-    return 'no face set';
+    return str('sequence.no_face_set');
   }
   /* A steeply tilted aperture is flown up or down and saying "from the
    * front" about it would be a lie. */
   const n = el.pitch;
   if (Math.abs(n) > Math.PI / 4) {
     const upward = (n > 0 ? 1 : -1) * seq.entry > 0;
-    return upward ? 'enter from below' : 'enter from above';
+    return upward ? str('sequence.enter_from_below') : str('sequence.enter_from_above');
   }
-  return seq.entry === 1 ? 'enter from the back' : 'enter from the front';
+  return seq.entry === 1 ? str('sequence.enter_from_the_back') : str('sequence.enter_from_the_front');
 }
 
 /* Every element that could be in the order but is not. Feeds a warning and

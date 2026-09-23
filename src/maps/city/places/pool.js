@@ -80,6 +80,7 @@ import {
   GROUND, mats, slab, decal, hit, deck, post, wallPanel, board, patch,
 } from './kit.js';
 import { poolName, poolHours, poolRules, poolDepth } from './signs.js';
+import { str } from '../../../strings/index.js';
 
 /* The compound. X runs west (the gate end, nearest the works) to east; z runs
  * away from the works road, which is at z 78.8. */
@@ -197,22 +198,22 @@ export function buildPool(ctx) {
   out.references.poolLidoLength = {
     measured: +(LIDO.x1 - LIDO.x0).toFixed(2),
     unit: 'm',
-    real: 'a town pool, 25 m end to end',
+    real: str('pool.a_town_pool_25_m_end'),
   };
   out.references.poolLidoDeep = {
     measured: +LIDO.deep.toFixed(2),
     unit: 'm',
-    real: 'the deep end of a town pool, 1.8 to 2.8 m',
+    real: str('pool.the_deep_end_of_a_town'),
   };
   out.references.poolHallDoor = {
     measured: +(HALL_DOOR.z1 - HALL_DOOR.z0).toFixed(2),
     unit: 'm',
-    real: 'a hall door a five inch can leave by, 3 m and up',
+    real: str('pool.a_hall_door_a_five_inch'),
   };
   out.references.poolLaneWidth = {
     measured: +((LIDO.z1 - LIDO.z0) / 5).toFixed(2),
     unit: 'm',
-    real: 'a swimming lane, 1.8 to 2.5 m',
+    real: str('pool.a_swimming_lane_1_8_to'),
   };
   return out;
 }

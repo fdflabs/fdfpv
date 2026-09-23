@@ -37,6 +37,7 @@
  * builder must not import the game, so the constants they both need live in
  * a leaf module rather than being typed out twice. */
 import { FT, IN, FRAME_TUBE_OD } from '../units.js';
+import { str } from '../strings/index.js';
 import {
   GATE_OPENING_DEFAULT, GATE_OPENING_MAX, GATE_SPACING_NOMINAL,
   ELEVATED_SILL_MIN, PIPE_OD, POLE_FROM_GATE_MIN, ROOM_WIDTH, ROOM_DEPTH, GRID as MICRO_GRID,
@@ -362,11 +363,11 @@ export function virtualApertureDims(el, seq, cls = TRACK_CLASS_DEFAULT) {
 export const ELEMENTS = {
   gate: {
     id: 'gate',
-    label: 'Gate',
+    label: str('elements.gate'),
     key: 'G',
     group: 'track',
     kind: KIND.APERTURE,
-    note: 'Vertical square aperture. The standard element.',
+    note: str('elements.vertical_square_aperture_the_standard_element'),
     /* "5x5 Gate: opening 5 feet by 5 feet." The chapter standard gate.
      * VERIFY: the 5 ft by 5 ft clear opening on multigp.com. */
     pitch: 0,
@@ -383,7 +384,7 @@ export const ELEMENTS = {
   },
   flaggedGate: {
     id: 'flaggedGate',
-    label: 'Flagged gate',
+    label: str('elements.flagged_gate'),
     key: 'A',
     group: 'track',
     kind: KIND.APERTURE,
@@ -392,7 +393,7 @@ export const ELEMENTS = {
      * inspector offers left, right or both; this is the default a newly
      * placed one gets. */
     flagSide: 'left',
-    note: 'Standard square gate with a pennant on the header. Put it left, right, both ends or on top, and set how tall the mast is.',
+    note: str('elements.standard_square_gate_with_a_pennant'),
     /* Same 5 ft opening as `gate`. The pennant is dress on the header, not
      * a second sequence marker: the hole is still one gate.
      * VERIFY: nothing on multigp.com dimensions a header flag. 1.45 m of
@@ -414,11 +415,11 @@ export const ELEMENTS = {
   },
   doubleStack: {
     id: 'doubleStack',
-    label: 'Double stack',
+    label: str('elements.double_stack'),
     key: '2',
     group: 'track',
     kind: KIND.APERTURE,
-    note: 'Two standard gates stacked. Each hole is its own gate. Placing one writes a spiral up; pick split-S or one opening in the inspector.',
+    note: str('elements.two_standard_gates_stacked_each_hole'),
     /* "5x5 Double Gate Tower: two standard gates stacked vertically", sat
      * on the ground rather than elevated. The elevated version is `tower`.
      * VERIFY: whether the published double gate tower sits on the ground. */
@@ -437,14 +438,14 @@ export const ELEMENTS = {
   },
   flaggedDoubleStack: {
     id: 'flaggedDoubleStack',
-    label: 'Flagged double',
+    label: str('elements.flagged_double'),
     key: 'H',
     group: 'track',
     kind: KIND.APERTURE,
     /* Same header pennant as `flaggedGate`, stood on the top board of a
      * two hole stack. The flags are dress: the holes are still two gates. */
     flagSide: 'left',
-    note: 'Two standard gates stacked, with a pennant on the top header. Put it left, right, both ends or on top, and set how tall the mast is.',
+    note: str('elements.two_standard_gates_stacked_with_a'),
     pitch: 0,
     dims: {
       levels: 2, sillH: 0, clearW: 5 * FT, clearH: 5 * FT, levelPitch: 5 * FT + FRAME_TUBE_OD,
@@ -459,11 +460,11 @@ export const ELEMENTS = {
   },
   ladder: {
     id: 'ladder',
-    label: 'Triple stack',
+    label: str('elements.triple_stack'),
     key: 'R',
     group: 'track',
     kind: KIND.APERTURE,
-    note: 'Three standard gates stacked. Each hole is its own gate. Placing one writes a spiral up; pick spiral down, split-S or one opening in the inspector.',
+    note: str('elements.three_standard_gates_stacked_each_hole'),
     /* "5x5 Ladder: three standard gates stacked vertically." The openings
      * share a frame tube, so each sill sits one opening plus one tube above
      * the one below it.
@@ -483,11 +484,11 @@ export const ELEMENTS = {
   },
   tower: {
     id: 'tower',
-    label: 'Tower',
+    label: str('elements.tower'),
     key: 'T',
     group: 'track',
     kind: KIND.APERTURE,
-    note: 'Tall structure, apertures at multiple heights.',
+    note: str('elements.tall_structure_apertures_at_multiple_heights'),
     /* "5x5 Tower: opening 5 feet by 5 feet, elevation 5 feet off the
      * ground", and "5x5 Double Gate Tower: two standard gates stacked
      * vertically". The default here is the double gate tower standing on a
@@ -509,11 +510,11 @@ export const ELEMENTS = {
   },
   diveGate: {
     id: 'diveGate',
-    label: 'Dive Gate',
+    label: str('elements.dive_gate'),
     key: 'D',
     group: 'track',
     kind: KIND.APERTURE,
-    note: 'Aperture plane horizontal or angled, not vertical. Flown through vertically or on a slope.',
+    note: str('elements.aperture_plane_horizontal_or_angled_not'),
     /* "7x6 Dive Gate: elevation 15 ft. Slight angle for entry facilitation."
      * The angle is described but never dimensioned, so the default here is a
      * fully horizontal aperture, which is the honest reading of "flown
@@ -536,11 +537,11 @@ export const ELEMENTS = {
   },
   barrier: {
     id: 'barrier',
-    label: 'Barrier',
+    label: str('elements.barrier'),
     key: 'B',
     group: 'track',
     kind: KIND.OBSTACLE,
-    note: 'Solid obstacle. Not flown through. Collision geometry only.',
+    note: str('elements.solid_obstacle_not_flown_through_collision'),
     /* Not a MultiGP obstacle. A barrier is the tool's way of saying "the
      * racing line must not go here": a shipping container, a fence, a stand.
      * The default is a 4 m by 1 m panel 2 m tall, which is a plausible crowd
@@ -552,11 +553,11 @@ export const ELEMENTS = {
   },
   flag: {
     id: 'flag',
-    label: 'Flag',
+    label: str('elements.flag'),
     key: 'F',
     group: 'track',
     kind: KIND.MARKER,
-    note: 'Turn marker. The pass side is a virtual gate: a green square beside the pole that has to be flown through. Its inner edge is on the pole and it reaches past the clearance, so you do not have to shave the flag.',
+    note: str('elements.turn_marker_the_pass_side_is'),
     /* "Split-S Gate: flag placement 1.5 ft behind and to the side of the
      * gate" is the only flag dimension MultiGP publishes, and it is an
      * offset rather than a flag. A turn flag on a course is a pole with a
@@ -572,11 +573,11 @@ export const ELEMENTS = {
   },
   cone: {
     id: 'cone',
-    label: 'Cone',
+    label: str('elements.cone'),
     key: 'C',
     group: 'track',
     kind: KIND.MARKER,
-    note: 'Ground marker. The pass side is a virtual gate, exactly the same as a flag: same clearance, same square, same scoring.',
+    note: str('elements.ground_marker_the_pass_side_is'),
     /* A standard traffic cone: 28 in tall on a 14 in square base. Not a
      * MultiGP dimension, a highway one, and near enough for a ground marker.
      * VERIFY: nothing on multigp.com, this is a road cone.
@@ -599,11 +600,11 @@ export const ELEMENTS = {
   },
   waypoint: {
     id: 'waypoint',
-    label: 'Waypoint',
+    label: str('elements.waypoint'),
     key: 'W',
     group: 'track',
     kind: KIND.MARKER,
-    note: 'Nothing is standing here. The line is required to pass through this point, at this height. Not drawn on the track.',
+    note: str('elements.nothing_is_standing_here_the_line'),
     /*
      * NOT AN OBSTACLE, AND THAT IS THE WHOLE POINT.
      *
@@ -666,7 +667,7 @@ export const ELEMENTS = {
    */
   pole: {
     id: 'pole',
-    label: 'Pole',
+    label: str('elements.pole'),
     /* U for upright, not P. P has been the racing line toggle since before
      * this element existed and the key handler answers it first, so a pole
      * on P was a hotkey the palette advertised and the keyboard never
@@ -674,7 +675,7 @@ export const ELEMENTS = {
     key: 'U',
     group: 'track',
     kind: KIND.MARKER,
-    note: 'A bare upright pipe, flown around on one side. The pass side is a virtual gate, the same as a flag.',
+    note: str('elements.a_bare_upright_pipe_flown_around'),
     dims: { height: 2.5, poleRadius: 0.025, clearance: 1.5 },
     microDims: { height: 1.500, poleRadius: PIPE_OD / 2, clearance: POLE_FROM_GATE_MIN },
   },
@@ -691,11 +692,11 @@ export const ELEMENTS = {
    */
   horizontalPole: {
     id: 'horizontalPole',
-    label: 'Horizontal pole',
+    label: str('elements.horizontal_pole'),
     key: 'Z',
     group: 'track',
     kind: KIND.OBSTACLE,
-    note: 'A single bar across the track on two legs. Solid: fly over it or under it.',
+    note: str('elements.a_single_bar_across_the_track'),
     dims: { width: 3.0, depth: 0.08, height: 0.08 },
     defaultZ: 1.60,
     /* One pipe section wide and one pipe thick, raised to where a RaceGOW
@@ -708,11 +709,11 @@ export const ELEMENTS = {
   },
   startPads: {
     id: 'startPads',
-    label: 'Start Pads',
+    label: str('elements.start_pads'),
     key: 'S',
     group: 'extra',
     kind: KIND.START,
-    note: 'Lap start position and heading. Exactly one per track.',
+    note: str('elements.lap_start_position_and_heading_exactly'),
     /* A row of launch stands on the start line. MultiGP runs heats of four,
      * so four stands at 1.5 m spacing is the default grid. padSize is the
      * cell the stand sits in; the mesh is a two-rail wooden start block,
@@ -731,18 +732,18 @@ export const ELEMENTS = {
   },
   label: {
     id: 'label',
-    label: 'Label',
+    label: str('elements.label'),
     key: 'L',
     group: 'extra',
     kind: KIND.ANNOTATION,
-    note: 'Text annotation on the field. Not part of the track.',
+    note: str('elements.text_annotation_on_the_field_not'),
     /* Text height is a drawing size, not a course size, but it is a length
      * in metres on the field and so it lives here with the rest. */
     dims: { textHeight: 0.9 },
   },
   groundLogo: {
     id: 'groundLogo',
-    label: 'Ground logo',
+    label: str('elements.ground_logo'),
     key: 'O',
     group: 'extra',
     kind: KIND.DECAL,
@@ -751,7 +752,7 @@ export const ELEMENTS = {
      * dimension. Empty means the first logo the course carries, so a decal
      * dropped on a course with one sponsor needs no further decision. */
     logoId: '',
-    note: 'A sponsor logo painted on the grass. Pick which of the logos it wears, and its size, in the inspector.',
+    note: str('elements.a_sponsor_logo_painted_on_the'),
     /*
      * The footprint the logo is fitted inside, width along the element's own
      * heading and depth across it, the same way a barrier reads. Ten by four
@@ -799,37 +800,37 @@ export function levelPitchFor(clearH) {
 export const GATE_PRESETS = [
   {
     id: 'standard',
-    label: 'Standard',
+    label: str('elements.standard'),
     size: '5 x 5 ft',
     published: true,
-    hint: 'The MultiGP chapter gate, 5 ft by 5 ft. The size the whole world is scaled against.',
+    hint: str('elements.the_multigp_chapter_gate_5_ft'),
     clearW: 5 * FT,
     clearH: 5 * FT,
   },
   {
     id: 'championship',
-    label: 'Championship',
+    label: str('elements.championship'),
     size: '7 x 6 ft',
     published: true,
-    hint: 'MultiGP championship size, 7 ft wide by 6 ft high. What a dive gate and a launch gate are built at.',
+    hint: str('elements.multigp_championship_size_7_ft_wide'),
     clearW: 7 * FT,
     clearH: 6 * FT,
   },
   {
     id: 'whoop',
-    label: 'Whoop',
-    size: '19 x 19 in',
+    label: str('elements.whoop'),
+    size: str('elements.19_x_19_in'),
     published: true,
-    hint: 'Tiny whoop size, 19 in square. For an indoor scale track flown on a 65 mm machine.',
+    hint: str('elements.tiny_whoop_size_19_in_square'),
     clearW: 19 * IN,
     clearH: 19 * IN,
   },
   {
     id: 'trainer',
-    label: 'Trainer',
+    label: str('elements.trainer'),
     size: '10 x 8 ft',
     published: false,
-    hint: 'Not a MultiGP size. A deliberately forgiving hole for a first track or a first pilot.',
+    hint: str('elements.not_a_multigp_size_a_deliberately'),
     clearW: 10 * FT,
     clearH: 8 * FT,
   },
@@ -860,10 +861,10 @@ export const GATE_PRESETS = [
 export const MICRO_GATE_PRESETS = [
   {
     id: 'racegow28',
-    label: 'RaceGOW 28 in',
-    size: '28 x 28 in',
+    label: str('elements.racegow_28_in'),
+    size: str('elements.28_x_28_in'),
     published: true,
-    hint: 'The maximum RaceGOW allows, and what a 3/4 inch pipe cut at 26.5 to 27.25 in assembles to. What everybody builds.',
+    hint: str('elements.the_maximum_racegow_allows_and_what'),
     clearW: GATE_OPENING_MAX,
     clearH: GATE_OPENING_MAX,
   },
@@ -961,7 +962,7 @@ export const PALETTE_EXTRA = ['startPads', 'label', 'groundLogo'];
  * it is not an element: pressing P shows or hides the derived racing line.
  * It carries a key so the hotkey table has one source.
  */
-export const PATH_TOGGLE = { id: 'path', label: 'Path', key: 'P', note: 'Toggles display of the derived racing line.' };
+export const PATH_TOGGLE = { id: 'path', label: str('elements.path'), key: 'P', note: str('elements.toggles_display_of_the_derived_racing') };
 
 /*
  * Tuning. Every number the tool uses that is a length in metres, or that the
@@ -1144,7 +1145,7 @@ export function countElementsByType(elements) {
 /* "4 gates, 1 triple stack, 1 dive gate". Empty field: "no elements". */
 export function formatElementCounts(rows) {
   if (!rows || !rows.length) {
-    return 'no elements';
+    return str('elements.no_elements');
   }
   return rows.map((row) => {
     const word = row.count === 1 ? row.label : `${row.label}s`;

@@ -48,6 +48,7 @@
  * a leaf module rather than being typed out twice. */
 import { FT, IN, FRAME_TUBE_OD } from '../units.js';
 import { MICRO_SCALE } from '../../configs/airframes.js';
+import { str } from '../strings/index.js';
 
 /* Re-exported because this module's callers already read it from here. The
  * provenance of the 1.315 in figure is written down in src/units.js. */
@@ -201,157 +202,157 @@ export const OBSTACLES = {
    * frame." The standard chapter gate, and the unit the whole world is
    * scaled against. */
   standardGate: {
-    label: 'Standard gate, 5x5',
-    published: '5 ft by 5 ft opening',
+    label: str('track.standard_gate_5x5'),
+    published: str('track.5_ft_by_5_ft_opening'),
     clearW: 5 * FT,
     clearH: 5 * FT,
     sillH: 0,
-    panels: 'mesh side panels and a top panel',
+    panels: str('track.mesh_side_panels_and_a_top'),
   },
   /* The start and finish gate on a UTT diagram is drawn as a standard gate
    * with a chequered top panel. It is the same opening. */
   timingGate: {
-    label: 'Start and finish timing gate',
-    published: '1 standard MultiGP start/finish timing gate',
+    label: str('track.start_and_finish_timing_gate'),
+    published: str('track.1_standard_multigp_start_finish_timing'),
     clearW: 5 * FT,
     clearH: 5 * FT,
     sillH: 0,
-    panels: 'mesh side panels and a chequered top panel',
+    panels: str('track.mesh_side_panels_and_a_chequered'),
   },
   /* "7x6 Gate: Opening 7 feet x 6 feet." Championship size. */
   championshipGate: {
-    label: 'Championship gate, 7x6',
-    published: '7 ft by 6 ft opening',
+    label: str('track.championship_gate_7x6'),
+    published: str('track.7_ft_by_6_ft_opening'),
     clearW: 7 * FT,
     clearH: 6 * FT,
     sillH: 0,
-    panels: 'mesh side panels and a top panel',
+    panels: str('track.mesh_side_panels_and_a_top'),
   },
   /* "5x5 Tower: Opening 5 feet x 5 feet. Elevation: 5 feet off the ground." */
   tower5x5: {
-    label: 'Tower, 5x5',
-    published: '5x5 gate elevated 5 ft off the ground',
+    label: str('track.tower_5x5'),
+    published: str('track.5x5_gate_elevated_5_ft_off'),
     clearW: 5 * FT,
     clearH: 5 * FT,
     sillH: 5 * FT,
-    panels: 'mesh side panels and a top panel',
+    panels: str('track.mesh_side_panels_and_a_top'),
   },
   /* "7x6 Tower: Elevation 6 ft off the ground." */
   tower7x6: {
-    label: 'Tower, 7x6',
-    published: '7x6 gate elevated 6 ft off the ground',
+    label: str('track.tower_7x6'),
+    published: str('track.7x6_gate_elevated_6_ft_off'),
     clearW: 7 * FT,
     clearH: 6 * FT,
     sillH: 6 * FT,
-    panels: 'mesh side panels and a top panel',
+    panels: str('track.mesh_side_panels_and_a_top'),
   },
   /* "5x5 Double Gate Tower: two standard gates stacked vertically." The
    * second opening sits above the first, separated by the shared frame. */
   doubleGateTower: {
-    label: 'Double gate tower, 5x5',
-    published: 'two standard gates stacked vertically',
+    label: str('track.double_gate_tower_5x5'),
+    published: str('track.two_standard_gates_stacked_vertically'),
     clearW: 5 * FT,
     clearH: 5 * FT,
     sillH: 0,
     stack: 2,
-    panels: 'mesh side panels and a top panel',
+    panels: str('track.mesh_side_panels_and_a_top'),
   },
   /* "5x5 Ladder: three standard gates stacked vertically." */
   ladder: {
-    label: 'Ladder, 5x5',
-    published: 'three standard gates stacked vertically',
+    label: str('track.ladder_5x5'),
+    published: str('track.three_standard_gates_stacked_vertically'),
     clearW: 5 * FT,
     clearH: 5 * FT,
     sillH: 0,
     stack: 3,
-    panels: 'mesh side panels and a top panel',
+    panels: str('track.mesh_side_panels_and_a_top'),
   },
   /* "7x6 Topless Ladder: three gate ladder without the topmost panel." */
   toplessLadder: {
-    label: 'Topless ladder, 7x6',
-    published: 'three gate ladder without the topmost panel',
+    label: str('track.topless_ladder_7x6'),
+    published: str('track.three_gate_ladder_without_the_topmost'),
     clearW: 7 * FT,
     clearH: 6 * FT,
     sillH: 0,
     stack: 3,
-    panels: 'mesh side panels, no top panel',
+    panels: str('track.mesh_side_panels_no_top_panel'),
   },
   /* "7x6 Dive Gate: Elevation 15 ft. Slight angle for entry facilitation."
    * The angle itself is not dimensioned, so it is not stated here. */
   diveGate: {
-    label: 'Dive gate, 7x6',
-    published: '7x6 gate elevated 15 ft, slightly angled for entry',
+    label: str('track.dive_gate_7x6'),
+    published: str('track.7x6_gate_elevated_15_ft_slightly'),
     clearW: 7 * FT,
     clearH: 6 * FT,
     sillH: 15 * FT,
-    panels: 'mesh side panels and a top panel',
-    note: 'the entry angle is described but not dimensioned by MultiGP',
+    panels: str('track.mesh_side_panels_and_a_top'),
+    note: str('track.the_entry_angle_is_described_but'),
   },
   /* "7x6 Launch Gate: not angled; panels face ground for below-entry." */
   launchGate: {
-    label: 'Launch gate, 7x6',
-    published: '7x6, not angled, panels facing the ground for upward entry',
+    label: str('track.launch_gate_7x6'),
+    published: str('track.7x6_not_angled_panels_facing_the'),
     clearW: 7 * FT,
     clearH: 6 * FT,
     sillH: 15 * FT,
-    panels: 'panels facing the ground',
-    note: 'the elevation is not separately published; it is drawn as a dive gate without the angle',
+    panels: str('track.panels_facing_the_ground'),
+    note: str('track.the_elevation_is_not_separately_published'),
   },
   /* "7x6 Split-S Gate: flag placement 1.5 ft behind and to the side of the
    * gate." */
   splitSGate: {
-    label: 'Split-S gate, 7x6',
-    published: '7x6 with flags 1.5 ft behind and to the side',
+    label: str('track.split_s_gate_7x6'),
+    published: str('track.7x6_with_flags_1_5_ft'),
     clearW: 7 * FT,
     clearH: 6 * FT,
     sillH: 0,
     flagOffset: 1.5 * FT,
-    panels: 'mesh side panels and a top panel',
+    panels: str('track.mesh_side_panels_and_a_top'),
   },
   /* "Hurdle: Height 5 feet, Width 10 feet." A hurdle is flown OVER, so its
    * clear opening is the air above the bar and clearH is not an aperture. */
   hurdle: {
-    label: 'Hurdle',
-    published: '5 ft tall, 10 ft wide',
+    label: str('track.hurdle'),
+    published: str('track.5_ft_tall_10_ft_wide'),
     barH: 5 * FT,
     clearW: 10 * FT,
     clearH: null,
     sillH: 5 * FT,
-    panels: 'a bar between two uprights',
+    panels: str('track.a_bar_between_two_uprights'),
   },
   /* "h-Hurdle: standard hurdle plus 1 foot of additional pole height." */
   hHurdle: {
-    label: 'h-Hurdle',
-    published: 'standard hurdle, 5 ft tall and 10 ft wide, plus 1 ft of pole',
+    label: str('track.h_hurdle'),
+    published: str('track.standard_hurdle_5_ft_tall_and'),
     barH: 5 * FT,
     clearW: 10 * FT,
     clearH: null,
     sillH: 5 * FT,
     poleExtra: 1 * FT,
-    panels: 'a bar between two uprights with a gate leg panel addition',
+    panels: str('track.a_bar_between_two_uprights_with'),
   },
   /* "Gate + Flag: 5x5 opening, side panel minimum 5 ft tall and minimum
    * 1 ft wide." */
   gatePlusFlag: {
-    label: 'Gate plus flag, 5x5',
-    published: '5x5 gate with a side panel at least 5 ft tall and at least 1 ft wide',
+    label: str('track.gate_plus_flag_5x5'),
+    published: str('track.5x5_gate_with_a_side_panel'),
     clearW: 5 * FT,
     clearH: 5 * FT,
     sillH: 0,
     sidePanelH: 5 * FT,
     sidePanelW: 1 * FT,
-    panels: 'mesh side panels, a top panel, and a side flag panel',
+    panels: str('track.mesh_side_panels_a_top_panel'),
   },
   /* UTT 7's own requirement text: "5 Tiny Whoop size gates: 361 sq in
    * (19"x19" or 483mm x 483mm)". 19 inches is 0.4826 m, and the published
    * 483 mm is that rounded, so the computed figure is used. */
   whoopGate: {
-    label: 'Micro or whoop gate',
-    published: '19 in by 19 in, 361 square inches',
+    label: str('track.micro_or_whoop_gate'),
+    published: str('track.19_in_by_19_in_361'),
     clearW: 19 * IN,
     clearH: 19 * IN,
     sillH: 0,
-    panels: 'a soft square frame',
+    panels: str('track.a_soft_square_frame'),
   },
 };
 
@@ -410,20 +411,20 @@ export function builtObstacle(kind) {
  */
 export const UTT3 = {
   id: 'utt3',
-  name: 'UTT 3 Bessel Run',
-  designer: 'MultiGP, 2016 season, track #3 v002',
+  name: str('track.utt_3_bessel_run'),
+  designer: str('track.multigp_2016_season_track_3_v002'),
   source: 'https://www.multigp.com/universal-time-trial-utt/',
   fieldLength: 300 * FT,
   fieldWidth: 120 * FT,
   flagsAllowed: false,
   /* MultiGP's own wording, from the UTT 9 guide, which states the rule more
    * completely than UTT 3's does and applies to every UTT. */
-  rule: 'Obstacles must be traversed in the direction indicated by arrows. '
-      + 'Obstacles must be traversed in this numerical sequence. If any '
-      + 'obstacle is entered out of sequence or direction at any time the '
-      + 'run is invalid.',
+  rule: str('track.obstacles_must_be_traversed_in_the')
+      + str('track.obstacles_must_be_traversed_in_this')
+      + str('track.obstacle_is_entered_out_of_sequence')
+      + str('track.run_is_invalid'),
   gates: [
-    { n: 1, kind: 'timingGate', x: 0, z: -46 * FT, facing: 'x', role: 'start and finish' },
+    { n: 1, kind: 'timingGate', x: 0, z: -46 * FT, facing: 'x', role: str('track.start_and_finish') },
     { n: 2, kind: 'standardGate', x: 92 * FT, z: 0, facing: 'z' },
     { n: 3, kind: 'standardGate', x: 0, z: 0, facing: 'z' },
     { n: 4, kind: 'standardGate', x: -69 * FT, z: 0, facing: 'z' },

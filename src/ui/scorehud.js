@@ -50,6 +50,7 @@
  */
 
 import { formatScore } from '../game/score.js';
+import { str } from '../strings/index.js';
 
 /* Local, because ui.js keeps its own copy private and this file is meant to
  * be readable without it. */
@@ -152,8 +153,8 @@ export class ScoreHud {
      * next to "SCORE" so it reads as a qualifier on the number rather than
      * as an event that just happened.
      */
-    const label = el('div', 'score-label', 'Score');
-    label.append(el('span', 'score-beta', 'in development'));
+    const label = el('div', 'score-label', str('ui.score'));
+    label.append(el('span', 'score-beta', str('scorehud.in_development')));
     this.totalBox.append(label);
     this.totalValue = el('div', 'score-value score-cut', '0');
     this.totalBox.append(this.totalValue);
@@ -323,7 +324,7 @@ export class ScoreHud {
         this.showVerdict(`+${formatScore(e.points)}`, 'is-bank');
         this.ring('');
       } else if (e.kind === 'bail') {
-        this.showVerdict(e.points > 0 ? `Bailed  -${formatScore(e.points)}` : 'Bailed', 'is-bail');
+        this.showVerdict(e.points > 0 ? str('scorehud.bailed', { formatScore: formatScore(e.points) }) : 'Bailed', 'is-bail');
         this.ring('is-bail');
         this.names.textContent = '';
       }

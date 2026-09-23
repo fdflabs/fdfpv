@@ -100,6 +100,7 @@ import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, m
 import { GATE_SCALE } from './game/track.js';
 import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
+import { str } from './strings/index.js';
 
 /*
  * The module's bytes, resolved against this file rather than the site root.
@@ -352,12 +353,12 @@ const uiRoot = document.getElementById('ui');
  */
 function configFault(code) {
   if (code === -4) {
-    return 'It does not look like a Betaflight diff.';
+    return str('main.it_does_not_look_like_a');
   }
   if (code === -2) {
-    return 'The file was empty or too large.';
+    return str('main.the_file_was_empty_or_too');
   }
-  return 'The simulator refused it and kept your previous tune.';
+  return str('main.the_simulator_refused_it_and_kept');
 }
 
 /* Streamed, so the loading screen can report bytes rather than a spinner. */
@@ -419,7 +420,7 @@ async function loadMap(shell, id, loading, options) {
   const counter = moduleCounter(
     MAP_MODULE_PREFIX[id] ?? `/src/maps/${id}`,
     MAP_MODULE_COUNT[id] ?? 4,
-    (f, got, total) => loading.progress('module', f, `${got} of ${total} modules`),
+    (f, got, total) => loading.progress('module', f, str('main.of_modules', { got, total })),
   );
   let mod;
   try {
@@ -649,7 +650,7 @@ export async function boot({ loading, bootStart, mapId }) {
   let simProgress = null;
   let simStageLive = false;
   const simBytes = fetchBytes(WASM_URL, (f, got, total) => {
-    simProgress = [f, `${(got / 1024).toFixed(0)} of ${(total / 1024).toFixed(0)} kB`];
+    simProgress = [f, str('main.of_kb', { v1: (got / 1024).toFixed(0), v2: (total / 1024).toFixed(0) })];
     if (simStageLive) {
       loading.progress('sim', simProgress[0], simProgress[1]);
     }
@@ -695,7 +696,7 @@ export async function boot({ loading, bootStart, mapId }) {
       }
     }
   } catch (e) {
-    ui.setBanner(`Could not open that published track.\n${e.message ?? e}`, true);
+    ui.setBanner(str('main.could_not_open_that_published_track', { v1: e.message ?? e }), true);
   }
   /* Done either way: a board that was down is a board that has finished
    * being asked. Without this the stage records no duration and the bar
@@ -914,7 +915,7 @@ export async function boot({ loading, bootStart, mapId }) {
       configName = `${configId}.diff`;
       ui.persistSettings();
     } else {
-      configName = 'your edits';
+      configName = str('main.your_edits');
     }
   }
   if (tuneText == null) {
@@ -1020,7 +1021,7 @@ export async function boot({ loading, bootStart, mapId }) {
     /* The banner, not `notice`: that is declared with the frame loop's own
      * state further down and does not exist yet. This is the same way the
      * share adoption above reports a boot failure. */
-    ui.setBanner(`${failed} could not be loaded.\nThe track was loaded instead.`, true);
+    ui.setBanner(str('main.could_not_be_loaded_the_track', { failed }), true);
   }
   ui.setShare(view.share || null);
   loading.start('frame');
@@ -1314,13 +1315,13 @@ export async function boot({ loading, bootStart, mapId }) {
     if (on) {
       value = state === 'open'
         ? (livePeers.size ? `${livePeers.size} here` : 'Alone')
-        : (state === 'failed' ? 'No room' : 'Joining');
+        : (state === 'failed' ? str('main.no_room') : 'Joining');
     }
     ui.setLiveRow({
       value,
       note: on
-        ? 'Other pilots flying this track right now appear as ghost craft, and they see you. Nothing is scored between you.'
-        : 'See the other pilots flying this track right now as ghost craft, and let them see you. Opens a socket to the board.',
+        ? str('main.other_pilots_flying_this_track_right')
+        : str('main.see_the_other_pilots_flying_this'),
       cycle: () => {
         ui.settings.live = ui.settings.live === 'on' ? 'off' : 'on';
         ui.persistSettings();
@@ -1413,33 +1414,33 @@ export async function boot({ loading, bootStart, mapId }) {
   function ghostRowChoices() {
     const list = [
       { id: 'off', label: 'Off' },
-      { id: 'best', label: 'Your best this session' },
-      { id: 'previous', label: 'Your previous lap' },
+      { id: 'best', label: str('main.your_best_this_session') },
+      { id: 'previous', label: str('main.your_previous_lap') },
     ];
     for (const t of ghostBoardTimes || []) {
-      list.push({ id: `board:${t.id}`, label: `${t.name}  ${formatTime(t.lapMs)}` });
+      list.push({ id: `board:${t.id}`, label: str('main.text', { name: t.name, formatTime: formatTime(t.lapMs) }) });
     }
     return list;
   }
 
   function ghostRowNote() {
     if (ghostChoice === 'off') {
-      return 'Nobody to chase. Laps still record, so switching this on later has your session to race.';
+      return str('main.nobody_to_chase_laps_still_record');
     }
     if (ghostChoice.startsWith('board:')) {
       if (ghostBoardBusy) {
-        return 'Fetching that lap from the board.';
+        return str('main.fetching_that_lap_from_the_board');
       }
       return ghostBoardLap
-        ? 'A recorded lap from the public board flies beside you as a translucent pacer.'
-        : 'That lap could not be fetched from the board.';
+        ? str('main.a_recorded_lap_from_the_public')
+        : str('main.that_lap_could_not_be_fetched');
     }
     const key = ghostCourseKey();
     const have = ghostChoice === 'previous' ? ghostBook.previous(key) : ghostBook.best(key);
     if (!have) {
-      return 'No lap on record this session yet. Finish one and it flies beside you as a translucent pacer.';
+      return str('main.no_lap_on_record_this_session');
     }
-    return `A translucent pacer flying that lap, ${formatTime(have.durationMs)}. The OSD reads your gap at every gate.`;
+    return str('main.a_translucent_pacer_flying_that_lap', { formatTime: formatTime(have.durationMs) });
   }
 
   function syncGhostRow() {
@@ -1484,7 +1485,7 @@ export async function boot({ loading, bootStart, mapId }) {
 
   function adoptBoardGhost(payload, timeId) {
     const lap = new GhostLap(decodeGhost(ghostFromBase64(payload.ghost)), {
-      label: 'Board lap',
+      label: str('main.board_lap'),
       name: payload.name || '',
       source: 'board',
     });
@@ -1514,7 +1515,7 @@ export async function boot({ loading, bootStart, mapId }) {
           return;
         }
         ghostBoardLap = null;
-        notice = { text: `Could not fetch that ghost.\n${e.message ?? e}`, untilMs: performance.now() + 3600 };
+        notice = { text: str('main.could_not_fetch_that_ghost', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
       } finally {
         if (ghostCourseKey() === key) {
           ghostBoardBusy = false;
@@ -1706,16 +1707,16 @@ export async function boot({ loading, bootStart, mapId }) {
       return null;
     }
     const who = ghostChased.source === 'board'
-      ? (ghostChased.name || 'the board lap')
+      ? (ghostChased.name || str('main.the_board_lap'))
       : ghostChased.label.toLowerCase();
     const d = best - ghostChased.durationMs;
     if (Math.abs(d) < 10) {
-      return `Level with the ghost, ${who} at ${formatTime(ghostChased.durationMs)}.`;
+      return str('main.level_with_the_ghost_at', { who, formatTime: formatTime(ghostChased.durationMs) });
     }
     if (d < 0) {
-      return `You beat the ghost, ${who} at ${formatTime(ghostChased.durationMs)}, by ${(Math.abs(d) / 1000).toFixed(2)}.`;
+      return str('main.you_beat_the_ghost_at_by', { who, formatTime: formatTime(ghostChased.durationMs), v3: (Math.abs(d) / 1000).toFixed(2) });
     }
-    return `The ghost, ${who} at ${formatTime(ghostChased.durationMs)}, stayed ${(d / 1000).toFixed(2)} ahead.`;
+    return str('main.the_ghost_at_stayed_ahead', { who, formatTime: formatTime(ghostChased.durationMs), v3: (d / 1000).toFixed(2) });
   }
 
   /* The recording of a finished lap whose time is being uploaded, as wire
@@ -2623,21 +2624,21 @@ export async function boot({ loading, bootStart, mapId }) {
     if (turtleRecover && !turtleWait && !turtleFlip.active) {
       const src = turtleCueSource();
       if (src === 'touch') {
-        return 'Let go of the right pad, then fly';
+        return str('main.let_go_of_the_right_pad');
       }
       if (src === 'radio') {
-        return 'Centre the right stick, then fly';
+        return str('main.centre_the_right_stick_then_fly');
       }
-      return 'Let go of the arrows, then fly';
+      return str('main.let_go_of_the_arrows_then');
     }
     const src = turtleCueSource();
     if (src === 'touch') {
-      return 'TURTLE MODE\nRight pad\nPitch or roll to flip over';
+      return str('main.turtle_mode_right_pad_pitch_or');
     }
     if (src === 'radio') {
-      return 'TURTLE MODE\nRight stick\nPitch or roll to flip over';
+      return str('main.turtle_mode_right_stick_pitch_or');
     }
-    return 'TURTLE MODE\nArrow keys\nPitch or roll to flip over';
+    return str('main.turtle_mode_arrow_keys_pitch_or');
   }
 
   function pollTurtleSupport() {
@@ -3393,12 +3394,12 @@ export async function boot({ loading, bootStart, mapId }) {
         loading.start('frame');
         adoptLoadedView(keepPlace, stayMode, stayScreen);
         notice = {
-          text: `${entry.name} could not be loaded.`,
+          text: str('main.could_not_be_loaded', { name: entry.name }),
           untilMs: performance.now() + 4200,
         };
       } catch (e2) {
         console.error(e2);
-        loading.fail(`${entry.name} could not be loaded. ${e.message ?? e}`);
+        loading.fail(str('ui.could_not_be_loaded', { name: entry.name, v2: e.message ?? e }));
       }
     } finally {
       swapInFlight = false;
@@ -3620,8 +3621,8 @@ export async function boot({ loading, bootStart, mapId }) {
     }
     if (ui.setCraftCaption && !(showcase && showcase.failed)) {
       ui.setCraftCaption(want
-        ? 'Angle. Sticks are tilt. Hands off levels.'
-        : 'Acro. Sticks are rates. Hands off holds.');
+        ? str('main.angle_sticks_are_tilt_hands_off')
+        : str('ui.acro_sticks_are_rates_hands_off'));
     }
   }
 
@@ -3831,7 +3832,7 @@ export async function boot({ loading, bootStart, mapId }) {
           runWeight = wantWeight;
           runGravityScale = wantScale;
           if (midLap) {
-            race.voidLap('Weight changed\nLap voided', performance.now());
+            race.voidLap(str('main.weight_changed_lap_voided'), performance.now());
           }
         } else {
           ui.settings.weight = runWeight;
@@ -3981,7 +3982,7 @@ export async function boot({ loading, bootStart, mapId }) {
       text = readFcDump();
       if (text == null) {
         ui.settings.tune = configId;
-        notice = { text: 'No saved Flight controller edits to fly.', untilMs: performance.now() + 3200 };
+        notice = { text: str('main.no_saved_flight_controller_edits_to'), untilMs: performance.now() + 3200 };
         return;
       }
     } else {
@@ -3992,7 +3993,7 @@ export async function boot({ loading, bootStart, mapId }) {
           return;
         }
         ui.settings.tune = configId;
-        notice = { text: `${entry.name} could not be loaded.`, untilMs: performance.now() + 3200 };
+        notice = { text: str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + 3200 };
         console.error(e);
         return;
       }
@@ -4012,20 +4013,20 @@ export async function boot({ loading, bootStart, mapId }) {
       adoptSimClock();
       reset();
       publishPids();
-      notice = { text: `${entry.name} could not be read.\n${configFault(code)}`, untilMs: performance.now() + 3600 };
+      notice = { text: str('main.could_not_be_read', { name: entry.name, configFault: configFault(code) }), untilMs: performance.now() + 3600 };
       return;
     }
     configId = entry.id;
     tuneText = text;
     configText = nextText;
     pidsText = nextPids;
-    configName = entry.id === 'custom' ? 'your edits' : `${entry.id}.diff`;
+    configName = entry.id === 'custom' ? str('main.your_edits') : `${entry.id}.diff`;
     adoptSimClock();
     sim.setCellVoltage(runVoltage);
     race.setRecordKey(recordKey());
     ui.setBest(race.bestMs, view.mode);
     publishPids();
-    notice = { text: `Flying ${entry.name}`, untilMs: performance.now() + 2400 };
+    notice = { text: str('main.flying', { name: entry.name }), untilMs: performance.now() + 2400 };
     reset();
   }
 
@@ -4035,7 +4036,7 @@ export async function boot({ loading, bootStart, mapId }) {
      * mix is not a leaderboard. */
     if (runStyle === 'arcade') {
       notice = {
-        text: 'Arcade laps stay off the public board.\nSwitch Flight style to Expert and fly it again.',
+        text: str('main.arcade_laps_stay_off_the_public'),
         untilMs: performance.now() + 3600,
       };
       return;
@@ -4045,7 +4046,7 @@ export async function boot({ loading, bootStart, mapId }) {
      * a lap flown on a quad nobody else on the board is flying. */
     if (runWeight !== WEIGHT_STOCK) {
       notice = {
-        text: `Laps flown at ${runWeight} percent weight stay off the public board.\nPut the Weight slider back to 100 and fly it again.`,
+        text: str('main.laps_flown_at_percent_weight_stay', { runWeight }),
         untilMs: performance.now() + 3600,
       };
       return;
@@ -4054,8 +4055,8 @@ export async function boot({ loading, bootStart, mapId }) {
     const trackId = listing && listing.shareId;
     if (!trackId || !listing.canPostTime) {
       notice = { text: listing && listing.layoutDrift
-        ? 'Update this track on the board before uploading a time.'
-        : 'This track is not on the public board yet.', untilMs: performance.now() + 2800 };
+        ? str('main.update_this_track_on_the_board')
+        : str('main.this_track_is_not_on_the'), untilMs: performance.now() + 2800 };
       return;
     }
     /* race owns what a record lap is. This used to re-filter and re-min
@@ -4078,14 +4079,14 @@ export async function boot({ loading, bootStart, mapId }) {
         : (pending && pending.trackId === trackId ? pending.threeMs : null))
       : null;
     if (fastest == null) {
-      notice = { text: 'No clean lap to upload.', untilMs: performance.now() + 2800 };
+      notice = { text: str('main.no_clean_lap_to_upload'), untilMs: performance.now() + 2800 };
       return;
     }
     let name = readPilotName();
     if (!name) {
       name = await ui.askName({
-        title: 'Your name',
-        detail: 'A time on the public board needs a name. It stays in this browser.',
+        title: str('ui.your_name'),
+        detail: str('main.a_time_on_the_public_board'),
       });
     }
     if (!name) {
@@ -4145,8 +4146,8 @@ export async function boot({ loading, bootStart, mapId }) {
           });
           if (!twin.found) {
             throw new Error(twin.sameName
-              ? `The board's copy of ${twin.sameName.name} is a different layout, so this lap does not belong on it.`
-              : 'That track is no longer on the board, and nothing on it matches this layout.');
+              ? str('main.the_board_s_copy_of_is', { name: twin.sameName.name })
+              : str('main.that_track_is_no_longer_on'));
           }
           /* Re-seat before the retry, so the next lap and every screen that
            * reads the seat are on the live listing too rather than healing
@@ -4160,7 +4161,7 @@ export async function boot({ loading, bootStart, mapId }) {
           });
           trackIdNow = twin.found.id;
           boardNow = twin.found.board;
-          healed = ' The board had republished this track, so the seat was updated.';
+          healed = str('main.the_board_had_republished_this_track');
           posted = await send();
         } else {
           throw e;
@@ -4174,15 +4175,15 @@ export async function boot({ loading, bootStart, mapId }) {
       if (trackIdNow !== trackId) {
         clearPendingTime(trackIdNow);
       }
-      const rank = posted.rank != null ? ` Rank ${posted.rank}.` : '';
-      const withGhost = ghost ? ' Ghost attached, ready to be chased.' : '';
+      const rank = posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '';
+      const withGhost = ghost ? str('main.ghost_attached_ready_to_be_chased') : '';
       /* formatTime, the same one the menu row that triggered this upload is
        * labelled with. A confirmation that spells the time differently from
        * the button reads as a different number. */
-      notice = { text: `Uploaded ${name}, ${formatTime(fastest)}.${rank}${withGhost}${healed}`, untilMs: performance.now() + 3600 };
+      notice = { text: str('main.uploaded', { name, formatTime: formatTime(fastest), rank, withGhost, healed }), untilMs: performance.now() + 3600 };
       ui.markTimePosted(posted);
     } catch (e) {
-      notice = { text: `Could not upload that time.\n${e.message ?? e}`, untilMs: performance.now() + 3600 };
+      notice = { text: str('main.could_not_upload_that_time', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
     }
   }
 
@@ -4235,13 +4236,13 @@ export async function boot({ loading, bootStart, mapId }) {
      */
     if (summary.timed === false) {
       notice = {
-        text: 'Free flight has no clock, so it has no place on the board. Switch Run to Scored on the Freestyle screen.',
+        text: str('main.free_flight_has_no_clock_so'),
         untilMs: performance.now() + 4200,
       };
       return;
     }
     if (!summary.tricks || !(summary.total > 0)) {
-      notice = { text: 'A run with no tricks in it is not a score.', untilMs: performance.now() + 2800 };
+      notice = { text: str('main.a_run_with_no_tricks_in'), untilMs: performance.now() + 2800 };
       return;
     }
     /*
@@ -4250,7 +4251,7 @@ export async function boot({ loading, bootStart, mapId }) {
      * flown run and must not reach a public table as if it were.
      */
     if (summary.assisted) {
-      notice = { text: 'That run used the harness hooks, so it is not a flown score.', untilMs: performance.now() + 3200 };
+      notice = { text: str('main.that_run_used_the_harness_hooks'), untilMs: performance.now() + 3200 };
       return;
     }
     /*
@@ -4268,7 +4269,7 @@ export async function boot({ loading, bootStart, mapId }) {
      */
     if (runWeight !== WEIGHT_STOCK) {
       notice = {
-        text: `Runs flown at ${runWeight} percent weight stay off the public board.\nPut the Weight slider back to 100 and fly it again.`,
+        text: str('main.runs_flown_at_percent_weight_stay', { runWeight }),
         untilMs: performance.now() + 4200,
       };
       return;
@@ -4276,8 +4277,8 @@ export async function boot({ loading, bootStart, mapId }) {
     let name = readPilotName();
     if (!name) {
       name = await ui.askName({
-        title: 'Your name',
-        detail: 'A run on the public board needs a name. It stays in this browser.',
+        title: str('ui.your_name'),
+        detail: str('main.a_run_on_the_public_board'),
       });
     }
     if (!name) {
@@ -4296,56 +4297,56 @@ export async function boot({ loading, bootStart, mapId }) {
        * would only find by opening the board. */
       notice = posted.improved === false
         ? {
-          text: `Your ${formatScore(posted.score)} still stands. Only your best run is kept.`,
+          text: str('main.your_still_stands_only_your_best', { formatScore: formatScore(posted.score) }),
           untilMs: performance.now() + 3600,
         }
         : {
-          text: `Posted ${name}, ${formatScore(summary.total)}.${posted.rank != null ? ` Rank ${posted.rank}.` : ''}`,
+          text: str('main.posted', { name, formatScore: formatScore(summary.total), v3: posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '' }),
           untilMs: performance.now() + 3600,
         };
       ui.markRunPosted(posted);
     } catch (e) {
-      notice = { text: `Could not post that run.\n${e.message ?? e}`, untilMs: performance.now() + 3600 };
+      notice = { text: str('main.could_not_post_that_run', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
     }
   }
 
   async function submitCoursePublish() {
     const listing = inspectCourse();
     if (!listing || !listing.doc) {
-      notice = { text: 'Nothing to publish.', untilMs: performance.now() + 2800 };
+      notice = { text: str('main.nothing_to_publish'), untilMs: performance.now() + 2800 };
       return;
     }
     if (!listing.canPublishNew && !listing.canUpdateListing) {
-      notice = { text: 'This track is already on the public board.', untilMs: performance.now() + 2800 };
+      notice = { text: str('main.this_track_is_already_on_the'), untilMs: performance.now() + 2800 };
       return;
     }
     const remix = listing.kind === 'remix';
     const updating = listing.canUpdateListing && listing.layoutDrift;
-    const of = listing.sourceName ? ` of ${listing.sourceName}` : '';
-    const by = listing.sourceAuthor ? ` by ${listing.sourceAuthor}` : '';
+    const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
+    const by = listing.sourceAuthor ? str('ui.by_3', { sourceAuthor: listing.sourceAuthor }) : '';
     const detail = updating
-      ? 'The layout changed. Updating the board will clear posted times.'
+      ? str('main.the_layout_changed_updating_the_board')
       : remix
-        ? `This is your copy${of}${by}. It goes on the board as a new track. The original stays.`
-        : 'The public board keeps a copy of this track, including every mark on the gates, the flags and the grass.';
+        ? str('main.this_is_your_copy_it_goes', { of, by })
+        : str('main.the_public_board_keeps_a_copy');
     const values = await ui.askForm({
-      title: updating ? 'Update this track' : 'Publish this track',
+      title: updating ? str('ui.update_this_track') : str('ui.publish_this_track'),
       detail,
-      confirmLabel: updating ? 'Update the board' : 'Publish',
+      confirmLabel: updating ? str('main.update_the_board') : 'Publish',
       fields: [
         {
           key: 'course',
-          label: 'Track name',
+          label: str('main.track_name'),
           value: remix ? suggestRemixName(listing.name) : listing.name,
           maxLength: 80,
-          placeholder: 'Track name',
+          placeholder: str('main.track_name'),
         },
         {
           key: 'author',
-          label: 'Your name',
+          label: str('ui.your_name'),
           value: readPilotName() || '',
           maxLength: 24,
-          placeholder: 'Name',
+          placeholder: str('ui.name'),
           autocomplete: 'nickname',
           rules: nameRules(),
           save: writePilotName,
@@ -4363,10 +4364,10 @@ export async function boot({ loading, bootStart, mapId }) {
         courseName: values.course,
       });
       const cleared = result.posted.timesCleared
-        ? ' Old times were cleared because the layout changed.'
+        ? str('main.old_times_were_cleared_because_the')
         : '';
-      const forked = result.forked ? ' Published as a new track.' : '';
-      notice = { text: `Published "${result.posted.name}".${forked}${cleared}`, untilMs: performance.now() + 4000 };
+      const forked = result.forked ? str('main.published_as_a_new_track') : '';
+      notice = { text: str('main.published', { name: result.posted.name, forked, cleared }), untilMs: performance.now() + 4000 };
       ui.setShare({
         id: result.posted.id,
         name: result.posted.name,
@@ -4390,8 +4391,8 @@ export async function boot({ loading, bootStart, mapId }) {
       if (!card.skipped) {
         notice = {
           text: card.error
-            ? `Published "${result.posted.name}". Its card animation could not be sent.`
-            : `Published "${result.posted.name}", and its card on the board is a lap of it.`,
+            ? str('main.published_its_card_animation_could_not', { name: result.posted.name })
+            : str('main.published_and_its_card_on_the', { name: result.posted.name }),
           untilMs: performance.now() + 4000,
         };
       }
@@ -4407,7 +4408,7 @@ export async function boot({ loading, bootStart, mapId }) {
         });
       }
     } catch (e) {
-      notice = { text: `Could not publish that track.\n${e.message ?? e}`, untilMs: performance.now() + 3600 };
+      notice = { text: str('main.could_not_publish_that_track', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
     }
   }
 
@@ -4435,7 +4436,7 @@ export async function boot({ loading, bootStart, mapId }) {
     const nextText = composeConfig(body, nextRates, RATES_KEEP, '');
     const code = sim.init(nextText);
     if (code !== SIM_OK) {
-      notice = { text: `That dump could not be saved.\n${configFault(code)}`, untilMs: performance.now() + 3600 };
+      notice = { text: str('main.that_dump_could_not_be_saved', { configFault: configFault(code) }), untilMs: performance.now() + 3600 };
       sim.init(configText);
       adoptSimClock();
       reset();
@@ -4446,9 +4447,9 @@ export async function boot({ loading, bootStart, mapId }) {
     if (!writeFcDump(body)) {
       /* Storage refused (private mode). The save still FLIES, it just
        * does not survive a reload, and the pilot is told which. */
-      notice = { text: 'Saved for this session only.\nThis browser would not store the dump.', untilMs: performance.now() + 3600 };
+      notice = { text: str('main.saved_for_this_session_only_this'), untilMs: performance.now() + 3600 };
     } else {
-      notice = { text: 'Saved. Flying your edits.', untilMs: performance.now() + 2400 };
+      notice = { text: str('main.saved_flying_your_edits'), untilMs: performance.now() + 2400 };
     }
     ui.settings.rates = nextRates;
     clearPidsFor(ui.settings.pids, 'custom');
@@ -4456,7 +4457,7 @@ export async function boot({ loading, bootStart, mapId }) {
     menuTune = 'custom';
     ui.persistSettings();
     configId = 'custom';
-    configName = 'your edits';
+    configName = str('main.your_edits');
     tuneText = body;
     ratesText = ratesDiff(nextRates);
     pidsText = '';
@@ -4522,19 +4523,19 @@ export async function boot({ loading, bootStart, mapId }) {
   const guidedWords = () => {
     if (input.isTouchPrimary()) {
       return {
-        nose: 'Push the right plate up, then throttle on the left',
-        again: 'Pause, then Restart puts you back on the line',
+        nose: str('main.push_the_right_plate_up_then'),
+        again: str('main.pause_then_restart_puts_you_back'),
       };
     }
     if (input.firstGamepad()) {
       return {
-        nose: 'Ease the right stick forward, then throttle',
-        again: 'R puts you back on the line. Escape pauses',
+        nose: str('main.ease_the_right_stick_forward_then'),
+        again: str('main.r_puts_you_back_on_the'),
       };
     }
     return {
-      nose: 'Tip forward with the up arrow, then throttle',
-      again: 'R puts you back on the line. Escape pauses',
+      nose: str('main.tip_forward_with_the_up_arrow'),
+      again: str('main.r_puts_you_back_on_the'),
     };
   };
   const guidedPrompt = (race) => {
@@ -4544,12 +4545,12 @@ export async function boot({ loading, bootStart, mapId }) {
     }
     const words = guidedWords();
     if (race.next === 0) {
-      return `${words.nose}\nThe green gate starts your lap`;
+      return str('main.the_green_gate_starts_your_lap', { nose: words.nose });
     }
     if (race.next === 1) {
-      return 'Through. The next gate turns green\nRed is the same gate, wrong side';
+      return str('main.through_the_next_gate_turns_green');
     }
-    return `Gate by gate. ${words.again}`;
+    return str('main.gate_by_gate', { again: words.again });
   };
   /*
    * A published course chosen from the Courses grid. This is exactly what a
@@ -4592,9 +4593,9 @@ export async function boot({ loading, bootStart, mapId }) {
     const result = input.padPickResult;
     input.padPickResult = null;
     if (result === 'accepted') {
-      notice = { text: `Flying with ${sum.using}.`, untilMs: performance.now() + 2800 };
+      notice = { text: str('main.flying_with', { using: sum.using }), untilMs: performance.now() + 2800 };
     } else if (result === 'skipped') {
-      notice = { text: 'Keyboard sticks. Choose joystick in Settings to pick a radio.', untilMs: performance.now() + 3200 };
+      notice = { text: str('main.keyboard_sticks_choose_joystick_in_settings'), untilMs: performance.now() + 3200 };
     }
   }
 
@@ -4608,7 +4609,7 @@ export async function boot({ loading, bootStart, mapId }) {
     }
     if (!input.startPadPick(reason)) {
       if (reason === 'menu') {
-        notice = { text: 'No radio or gamepad found.\nPlug one in, set it to joystick mode, then move it.', untilMs: performance.now() + 3200 };
+        notice = { text: str('main.no_radio_or_gamepad_found_plug'), untilMs: performance.now() + 3200 };
       }
       return;
     }
@@ -4689,7 +4690,7 @@ export async function boot({ loading, bootStart, mapId }) {
         input.startCalibration();
         ui.show('calibrate');
       } else {
-        notice = { text: 'No radio or gamepad found.\nPlug one in, set it to joystick mode, and reload.', untilMs: performance.now() + 3200 };
+        notice = { text: str('main.no_radio_or_gamepad_found_plug_2'), untilMs: performance.now() + 3200 };
       }
     } else if (action === 'calibrate-check') {
       /* The check step on its own, against the mapping already saved. Same
@@ -4699,7 +4700,7 @@ export async function boot({ loading, bootStart, mapId }) {
       if (input.startCalibrationCheck()) {
         ui.show('calibrate');
       } else {
-        notice = { text: 'No radio or gamepad found.\nPlug one in, set it to joystick mode, and reload.', untilMs: performance.now() + 3200 };
+        notice = { text: str('main.no_radio_or_gamepad_found_plug_2'), untilMs: performance.now() + 3200 };
       }
     } else if (action === 'calibrate-cancel') {
       input.cancelCalibration();
@@ -4734,10 +4735,10 @@ export async function boot({ loading, bootStart, mapId }) {
          */
         notice = input.calResult === 'saved-unstored'
           ? {
-            text: 'Mapping live, gone on reload.',
+            text: str('main.mapping_live_gone_on_reload'),
             untilMs: performance.now() + 5200,
           }
-          : { text: 'Stick mapping saved.', untilMs: performance.now() + 2800 };
+          : { text: str('main.stick_mapping_saved'), untilMs: performance.now() + 2800 };
         input.calResult = null;
       }
     } else if (action === 'choosepad') {
@@ -4757,7 +4758,7 @@ export async function boot({ loading, bootStart, mapId }) {
     } else if (action === 'downloadflightlog') {
       if (flightLog.count < 2) {
         notice = {
-          text: 'Nothing recorded yet.\nTurn the flight log on in Settings, then fly.',
+          text: str('main.nothing_recorded_yet_turn_the_flight'),
           untilMs: performance.now() + 3600,
         };
       } else {
@@ -4765,15 +4766,15 @@ export async function boot({ loading, bootStart, mapId }) {
         const secs = flightLog.seconds;
         downloadText(flightLogName(ui.settings.map), flightLog.csv());
         notice = {
-          text: `Flight log saved.\n${rows} rows over ${secs.toFixed(1)} s.`,
+          text: str('main.flight_log_saved_rows_over_s', { rows, secs: secs.toFixed(1) }),
           untilMs: performance.now() + 3600,
         };
       }
     } else if (action === 'setname') {
       (async () => {
         const name = await ui.askName({
-          title: 'Your name',
-          detail: 'Posted times and published tracks carry this name. Changing it updates the board for tracks you published from this browser.',
+          title: str('ui.your_name'),
+          detail: str('ui.posted_times_and_published_tracks_carry'),
         });
         if (!name) {
           return;
@@ -4782,10 +4783,10 @@ export async function boot({ loading, bootStart, mapId }) {
           const result = await syncOwnedIdentity();
           const updated = Array.isArray(result.results) && result.results.some((r) => r.ok);
           if (updated) {
-            notice = { text: `Name on the board is now ${name}.`, untilMs: performance.now() + 3200 };
+            notice = { text: str('main.name_on_the_board_is_now', { name }), untilMs: performance.now() + 3200 };
           }
         } catch (e) {
-          notice = { text: `Name saved here. The board could not be updated.\n${e.message ?? e}`, untilMs: performance.now() + 3600 };
+          notice = { text: str('main.name_saved_here_the_board_could', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
         }
       })();
     } else if (action === 'exportkey') {
@@ -4798,32 +4799,32 @@ export async function boot({ loading, bootStart, mapId }) {
         } catch (e) {
         }
         if (copied) {
-          notice = { text: 'Pilot key copied. Paste it into Import pilot key on another browser, and keep it somewhere safe: whoever has it is you on the board.', untilMs: performance.now() + 5200 };
+          notice = { text: str('main.pilot_key_copied_paste_it_into'), untilMs: performance.now() + 5200 };
           return;
         }
         await ui.askForm({
-          title: 'Your pilot key',
-          detail: 'Copy this line. Paste it into Import pilot key on another browser, and keep it somewhere safe: whoever has it is you on the board.',
-          confirmLabel: 'Done',
+          title: str('main.your_pilot_key'),
+          detail: str('main.copy_this_line_paste_it_into'),
+          confirmLabel: str('main.done'),
           fields: [{ key: 'key', label: '', value: text, maxLength: 4000, placeholder: '', save: (v) => v }],
         });
       })();
     } else if (action === 'importkey') {
       (async () => {
         const values = await ui.askForm({
-          title: 'Import pilot key',
-          detail: 'Paste the line that Pilot key exported on your other browser. The key that is here now is replaced.',
-          confirmLabel: 'Import',
-          fields: [{ key: 'key', label: '', value: '', maxLength: 4000, placeholder: 'Pilot key', save: (v) => v }],
+          title: str('ui.import_pilot_key'),
+          detail: str('main.paste_the_line_that_pilot_key'),
+          confirmLabel: str('main.import'),
+          fields: [{ key: 'key', label: '', value: '', maxLength: 4000, placeholder: str('ui.pilot_key'), save: (v) => v }],
         });
         if (!values || !values.key) {
           return;
         }
         try {
           await identity.importText(values.key);
-          notice = { text: 'Pilot key imported. Times you post from here now count as that pilot.', untilMs: performance.now() + 3600 };
+          notice = { text: str('main.pilot_key_imported_times_you_post'), untilMs: performance.now() + 3600 };
         } catch (e) {
-          notice = { text: `That key was not imported.\n${e.message ?? e}`, untilMs: performance.now() + 3600 };
+          notice = { text: str('main.that_key_was_not_imported', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
         }
       })();
     } else if (action === 'posttime') {
@@ -4948,14 +4949,14 @@ export async function boot({ loading, bootStart, mapId }) {
     if (code === 'KeyL' && ui.screen === 'flight') {
       if (!ui.settings.launchControl) {
         notice = {
-          text: 'Launch control is off.\nTurn it on in Quad, then press L on the start line.',
+          text: str('main.launch_control_is_off_turn_it'),
           untilMs: performance.now() + 3200,
         };
         return;
       }
       if (!landed && !launchStaging) {
         notice = {
-          text: 'Launch control is for the start line.\nLand, then press L.',
+          text: str('main.launch_control_is_for_the_start'),
           untilMs: performance.now() + 2800,
         };
         return;
@@ -4963,11 +4964,11 @@ export async function boot({ loading, bootStart, mapId }) {
       applyLaunchSwitch(!lcArmed);
       if (lcArmed) {
         notice = {
-          text: 'LAUNCH CONTROL\nThrottle idle. Pitch forward, centre the stick, punch.',
+          text: str('main.launch_control_throttle_idle_pitch_forward'),
           untilMs: performance.now() + 2200,
         };
       } else {
-        notice = { text: 'Launch control off', untilMs: performance.now() + 1600 };
+        notice = { text: str('main.launch_control_off'), untilMs: performance.now() + 1600 };
       }
       return;
     }
@@ -4992,7 +4993,7 @@ export async function boot({ loading, bootStart, mapId }) {
       return;
     }
     notice = {
-      text: 'This page does not fly a dropped file any more.\nPick a tune on the menu, and set your rates on Rates.',
+      text: str('main.this_page_does_not_fly_a'),
       untilMs: performance.now() + 3600,
     };
   });
@@ -5950,7 +5951,7 @@ export async function boot({ loading, bootStart, mapId }) {
         window.__frameFault = { message, stack: e && e.stack ? String(e.stack) : '', atMs: Math.round(performance.now()) };
         console.error('frame fault', e);
         try {
-          ui.setBanner(`The simulator hit a fault and stopped flying.\nPress R to reset, or F8 to report it.\n${message}`, true);
+          ui.setBanner(str('main.the_simulator_hit_a_fault_and', { message }), true);
         } catch (inner) {
           /* The shell itself is the thing that broke. Nothing left to say
            * it with. */
@@ -7184,7 +7185,7 @@ export async function boot({ loading, bootStart, mapId }) {
           build: af.id === 'whoop65' ? buildWhoopCraft : undefined,
         });
         if (showcase.failed) {
-          ui.setCraftCaption('The 3D preview could not start.');
+          ui.setCraftCaption(str('main.the_3d_preview_could_not_start'));
         }
       }
       if (!showcase.failed) {
@@ -7414,7 +7415,7 @@ export async function boot({ loading, bootStart, mapId }) {
         if (ratesAreDefault(ui.settings.rates)) {
           ui.settings.rates = normaliseRates(TOUCH_RATE_DEFAULTS);
           notice = {
-            text: 'Rates eased for thumb flying.\n450 deg/s with expo. Yours to change on the Rates screen.',
+            text: str('main.rates_eased_for_thumb_flying_450'),
             untilMs: performance.now() + 4200,
           };
         }
@@ -7456,10 +7457,10 @@ export async function boot({ loading, bootStart, mapId }) {
       } else {
         ui.show('pilot');
         if (input.calResult === 'saved') {
-          notice = { text: 'Stick mapping saved.', untilMs: nowWall + 2800 };
+          notice = { text: str('main.stick_mapping_saved'), untilMs: nowWall + 2800 };
         } else if (input.calResult === 'saved-unstored') {
           notice = {
-            text: 'Mapping live, gone on reload.',
+            text: str('main.mapping_live_gone_on_reload'),
             untilMs: nowWall + 5200,
           };
         }
@@ -7486,9 +7487,9 @@ export async function boot({ loading, bootStart, mapId }) {
       const deg = Math.round(pitchNoseDownDeg(st));
       ui.setBanner(deg > 8
         ? (launchNow === 2
-          ? `LAUNCH ${deg}\nPunch throttle`
-          : `LAUNCH ${deg}\nCentre the stick, then punch`)
-        : 'LAUNCH CONTROL\nPitch forward, then centre the stick');
+          ? str('main.launch_punch_throttle', { deg })
+          : str('main.launch_centre_the_stick_then_punch', { deg }))
+        : str('main.launch_control_pitch_forward_then_centre'));
     } else if (!flownThisRun) {
       /*
        * THE SECOND LINE IS A PROMISE ABOUT WHAT STARTS, and in freestyle it
@@ -7509,13 +7510,13 @@ export async function boot({ loading, bootStart, mapId }) {
        * the scored run's sentence. Only a scored run gets the two minutes.
        */
       const start = ui.settings.launchControl
-        ? 'L for launch control, or throttle up'
-        : 'Throttle up to take off';
-      let second = '\nThe green gate starts your lap';
+        ? str('main.l_for_launch_control_or_throttle')
+        : str('main.throttle_up_to_take_off');
+      let second = str('main.the_green_gate_starts_your_lap_2');
       if (race.freestyle) {
         second = scoredRun()
-          ? '\nTwo minutes. The clock starts on your first trick.'
-          : (scoringWanted() ? '\nNo clock and no gates. A trick is named as you land it.' : '');
+          ? str('main.two_minutes_the_clock_starts_on')
+          : (scoringWanted() ? str('main.no_clock_and_no_gates_a') : '');
       }
       ui.setBanner(`${start}${second}`);
     } else if (guidedText) {
@@ -8090,7 +8091,7 @@ export async function boot({ loading, bootStart, mapId }) {
           len: +len.toFixed(2),
           thick: +thick.toFixed(2),
           clear: +clear.toFixed(2),
-          failed: thick > 0.8 ? 'too thick' : (clear < 1.5 ? 'no daylight under it' : 'too short'),
+          failed: thick > 0.8 ? 'too thick' : (clear < 1.5 ? str('main.no_daylight_under_it') : 'too short'),
         });
       }
     }
@@ -8152,7 +8153,7 @@ export async function boot({ loading, bootStart, mapId }) {
    * so a capture can fly a chase without a board running. */
   window.__ghostLoad = (b64, name) => {
     const lap = new GhostLap(decodeGhost(ghostFromBase64(b64)), {
-      label: 'Board lap',
+      label: str('main.board_lap'),
       name: name || 'Harness',
       source: 'board',
     });
@@ -8672,7 +8673,7 @@ export async function boot({ loading, bootStart, mapId }) {
         depth,
         screen: sc,
         aperturePx: apertureValid ? Math.abs(sb.y - st.y) : null,
-        aperturePxAxis: 'vertical chord only, not the width of a yawed gate',
+        aperturePxAxis: str('main.vertical_chord_only_not_the_width'),
         /* A single point test with no clipping and no occlusion. It answers
          * "is the aperture centre inside the frame", which is NOT "can the
          * pilot see the target": a gate whose ring fills a third of the
@@ -8767,7 +8768,7 @@ export async function boot({ loading, bootStart, mapId }) {
         distance: dist,
         boxPx: null,
         span250mmPx: null,
-        refused: `camera is ${dist.toFixed(3)} m from the craft, inside the ${shell.camera.near} m near plane, so nothing projects`,
+        refused: str('main.camera_is_m_from_the_craft', { dist: dist.toFixed(3), near: shell.camera.near }),
       };
     }
     const box = new THREE.Box3().setFromObject(shell.quad);
@@ -8805,7 +8806,7 @@ export async function boot({ loading, bootStart, mapId }) {
        * to motor diagonal that a 250 mm class quad is named for, and it must
        * not be quoted as the size of the quad. */
       worldSizeSampled: { x: size.x, y: size.y, z: size.z },
-      worldSizeNote: 'AABB of the whole group including spinning props, varies with prop angle, not the motor to motor diagonal',
+      worldSizeNote: str('main.aabb_of_the_whole_group_including'),
       boxPx: Number.isFinite(maxX - minX) ? { w: maxX - minX, h: maxY - minY, x: minX, y: minY } : null,
       span250mmPx: Number.isFinite(span) ? span : null,
     };

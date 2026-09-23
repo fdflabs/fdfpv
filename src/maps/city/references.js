@@ -44,6 +44,7 @@
  */
 
 import * as THREE from 'three';
+import { str } from '../../strings/index.js';
 
 /* The door material's colour, from the town's own buildings.js:
  * `M.door = cel({ color: 0x8a6f5c, ... })`. cel() caches by parameter
@@ -85,7 +86,7 @@ export function cityReferences(world) {
     const walk = world.heightAt(-4.0, z, -1000);
     kerbs.push(walk - road);
   }
-  out.kerbHeight = { measured: median(kerbs), samples: kerbs, unit: 'm', real: '0.10 to 0.20' };
+  out.kerbHeight = { measured: median(kerbs), samples: kerbs, unit: 'm', real: str('references.0_10_to_0_20') };
 
   /*
    * DOORWAY. The world bounding box height of every mesh drawn with the front
@@ -134,13 +135,13 @@ export function cityReferences(world) {
     measured: median(doorHeights),
     count: doorHeights.length,
     unit: 'm',
-    real: '1.90 to 2.10',
+    real: str('references.1_90_to_2_10'),
   };
   out.doorwayWidth = {
     measured: median(doorWidths),
     count: doorWidths.length,
     unit: 'm',
-    real: '0.75 to 1.70',
+    real: str('references.0_75_to_1_70'),
   };
 
   /*
@@ -175,7 +176,7 @@ export function cityReferences(world) {
     measured: median(rails),
     count: rails.length,
     unit: 'm',
-    real: '0.85 to 1.20',
+    real: str('references.0_85_to_1_20'),
   };
 
   /*
@@ -194,7 +195,7 @@ export function cityReferences(world) {
     boomGround = world.heightAt(p.x, p.z, -1000);
     boom = p.y - boomGround;
   }
-  out.crossingBoomHeight = { measured: boom, unit: 'm', real: '1.00 to 1.40' };
+  out.crossingBoomHeight = { measured: boom, unit: 'm', real: str('references.1_00_to_1_40') };
   out.crossingBoomGround = boomGround;
 
   return out;

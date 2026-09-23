@@ -34,6 +34,7 @@
  */
 
 import * as THREE from 'three';
+import { str } from '../strings/index.js';
 
 const CHANNELS = new Map([
   [THREE.RedFormat, 1],
@@ -280,7 +281,7 @@ export function measureBudget(shell, view, extra) {
     if (!rt) {
       continue;
     }
-    const t = targetBytes(rt, `${rt.width}x${rt.height} <- ${named.get(rt) || 'allocated, not bound this frame'}`);
+    const t = targetBytes(rt, str('budget.x', { width: rt.width, height: rt.height, v3: named.get(rt) || str('budget.allocated_not_bound_this_frame') }));
     if (t) {
       t.scales = !shadowRts.has(rt);
       targets.push(t);
@@ -300,7 +301,7 @@ export function measureBudget(shell, view, extra) {
   const attrs = gl.getContextAttributes ? gl.getContextAttributes() : {};
   const fbDepthBytes = (attrs.stencil ? 4 : (attrs.depth ? 4 : 0));
   targets.push({
-    label: `${canvasW}x${canvasH} <- the default framebuffer, rgba${attrs.depth ? ' + depth' : ''}${attrs.stencil ? ' + stencil' : ''}`,
+    label: str('budget.x_the_default_framebuffer_rgba', { canvasW, canvasH, v3: attrs.depth ? str('budget.depth') : '', v4: attrs.stencil ? str('budget.stencil') : '' }),
     w: canvasW,
     h: canvasH,
     samples: 1,

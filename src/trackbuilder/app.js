@@ -62,6 +62,13 @@ import {
 import { sendCardAnimation } from '../share/cardgif.js';
 import { BOARD_WINDOW, SIM_WINDOW, claimWindowName } from '../share/windows.js';
 import { nameRules, readPilotName, writePilotName } from '../share/pilot.js';
+import { str } from '../strings/index.js';
+
+/* Static sentences in index.html carry data-str keys; filled here so the
+ * markup stays greppable and the copy lives in one table. */
+for (const node of document.querySelectorAll('[data-str]')) {
+  node.textContent = str(node.dataset.str);
+}
 import {
   clearShareImport, readBuilderIntent, readEditKey, readShareImport,
   setActiveTrackClass, takeBuilderIntent,
@@ -194,7 +201,7 @@ export class App {
       upgradeStackedFigures(this.doc);
       applyAutoFaces(this.doc);
       if (saved.repairs.length) {
-        this.toast(`Recovered the working track. ${saved.repairs.length} thing${saved.repairs.length === 1 ? '' : 's'} needed repairing.`);
+        this.toast(str('app.recovered_the_working_track_thing_needed', { length: saved.repairs.length, v2: saved.repairs.length === 1 ? '' : 's' }));
       }
       return;
     }
@@ -206,7 +213,7 @@ export class App {
       const intent = takeBuilderIntent();
       if (intent && intent.kind === 'new') {
         clearShareImport();
-        this.loadDocument(createTrack(undefined, newTrackClass()), 'New map.');
+        this.loadDocument(createTrack(undefined, newTrackClass()), str('app.new_map'));
         return;
       }
       let share = readShareImport();
@@ -215,7 +222,7 @@ export class App {
         try {
           share = await adoptShareFromLocation();
         } catch (e) {
-          this.toast(`Could not open that published track. ${e.message || e}`);
+          this.toast(str('app.could_not_open_that_published_track', { v1: e.message || e }));
           return;
         }
       }
@@ -235,12 +242,12 @@ export class App {
       const incoming = normalize(share.document).doc;
       if (wantEdit) {
         const load = () => {
-          this.loadDocument(incoming, `Editing "${incoming.name}" on the board.`);
+          this.loadDocument(incoming, str('app.editing_on_the_board', { name: incoming.name }));
         };
         if (!isEmptyCanvas(this.doc) && this.doc.id !== incoming.id) {
           this.confirm(
-            'Replace the track on the canvas?',
-            'Your current canvas will be replaced with this published track. Save it first if you still need it.',
+            str('app.replace_the_track_on_the_canvas'),
+            str('app.your_current_canvas_will_be_replaced'),
             load,
           );
         } else {
@@ -260,12 +267,12 @@ export class App {
          * course this browser claims to own and has never seen. */
         commit();
         clearShareImport();
-        this.loadDocument(copy, `This is your copy of "${share.name || incoming.name}". Publish it under a new name to put it on the board.`);
+        this.loadDocument(copy, str('app.this_is_your_copy_of_publish', { v1: share.name || incoming.name }));
       };
       if (!isEmptyCanvas(this.doc) && this.doc.id !== share.id) {
         this.confirm(
-          `Open a copy of "${share.name || incoming.name}"?`,
-          'The track on your canvas will be replaced. Save it first if you still need it.',
+          str('app.open_a_copy_of', { v1: share.name || incoming.name }),
+          str('app.the_track_on_your_canvas_will'),
           load,
         );
       } else {
@@ -468,7 +475,7 @@ export class App {
     this.armedLogoId = typeof logoId === 'string' ? logoId : '';
     this.panels.renderPalette();
     this.requestDraw();
-    this.toast('Click the field where the paint goes. Its size is in the inspector.');
+    this.toast(str('app.click_the_field_where_the_paint'));
   }
 
   disarm() {
@@ -505,7 +512,7 @@ export class App {
           e.position.y = world.y;
         });
         this.setSelection([existing.id]);
-        this.toast('A track has one set of start pads, so this moved the ones you had.');
+        this.toast(str('app.a_track_has_one_set_of'));
         return;
       }
     }
@@ -540,7 +547,7 @@ export class App {
         if (!this.pathVisible) {
           this.togglePath();
         }
-        this.toast('Each hole is its own gate. This stack is a spiral up: bottom, wrap around, then the top. Change it under How it is flown.');
+        this.toast(str('app.each_hole_is_its_own_gate'));
       }
     }
   }
@@ -612,7 +619,7 @@ export class App {
     if (!this.nodes.readout || !world) {
       return;
     }
-    this.nodes.readout.textContent = `${world.x.toFixed(2)}, ${world.y.toFixed(2)} m`;
+    this.nodes.readout.textContent = str('app.m', { v1: world.x.toFixed(2), v2: world.y.toFixed(2) });
   }
 
   /* ---------------- faces and sequence ---------------- */
@@ -638,7 +645,7 @@ export class App {
   }
 
   addToSequence(elementId) {
-    this.edit('add to the track', (d) => { addToSequence(d, elementId, 0); });
+    this.edit(str('app.add_to_the_track'), (d) => { addToSequence(d, elementId, 0); });
   }
 
   addLevel(elementId) {
@@ -653,7 +660,7 @@ export class App {
   }
 
   removeSequenceEntry(seqId) {
-    this.edit('remove from the track', (d) => { removeFromSequence(d, seqId); });
+    this.edit(str('app.remove_from_the_track'), (d) => { removeFromSequence(d, seqId); });
   }
 
   setSequenceAperture(seqId, index) {
@@ -706,7 +713,7 @@ export class App {
      * of view3d.js for why the preview is not allowed to be load bearing. */
     this.view3d.setEnabled(mode === '3d').then((ok) => {
       if (!ok) {
-        this.toast(`The 3D preview could not load Three.js: ${this.view3d.loadError}. The 2D view is unaffected.`);
+        this.toast(str('app.the_3d_preview_could_not_load', { loadError: this.view3d.loadError }));
         this.setMode('2d');
       }
     });
@@ -767,21 +774,21 @@ export class App {
   }
 
   newTrack() {
-    this.confirm('Start a new track?', 'Anything unsaved in the current one is gone.', () => {
-      this.loadDocument(createTrack(undefined, newTrackClass()), 'New track.');
+    this.confirm(str('app.start_a_new_track'), str('app.anything_unsaved_in_the_current_one'), () => {
+      this.loadDocument(createTrack(undefined, newTrackClass()), str('app.new_track'));
     });
   }
 
   save() {
     const ok = saveTrack(this.doc);
-    this.toast(ok ? `Saved "${this.doc.name}".` : 'Could not save. Local storage is unavailable, so use Export instead.');
+    this.toast(ok ? str('app.saved', { name: this.doc.name }) : str('app.could_not_save_local_storage_is'));
     this.updateTopBar();
   }
 
   duplicate() {
     const copy = duplicateTrack(this.doc);
     saveTrack(copy);
-    this.loadDocument(copy, `Duplicated as "${copy.name}".`);
+    this.loadDocument(copy, str('app.duplicated_as', { name: copy.name }));
   }
 
   /* The bar's Delete. Named apart from removeCurrent so the confirm cannot
@@ -807,7 +814,7 @@ export class App {
   }
 
   removeCurrent() {
-    this.confirm(`Delete "${this.doc.name}"?`, 'It is removed from the saved list. This cannot be undone.', () => {
+    this.confirm(str('app.delete', { name: this.doc.name }), str('app.it_is_removed_from_the_saved'), () => {
       deleteTrack(this.doc.id);
       this.loadDocument(createTrack(undefined, newTrackClass()), 'Deleted.');
     });
@@ -819,7 +826,7 @@ export class App {
     if (!tracks.length) {
       const p = document.createElement('p');
       p.className = 'tb-help';
-      p.textContent = 'Nothing saved yet. Save the current track, or import a .json file.';
+      p.textContent = str('app.nothing_saved_yet_save_the_current');
       body.append(p);
     }
     for (const t of tracks) {
@@ -831,8 +838,8 @@ export class App {
       const meta = document.createElement('div');
       meta.className = 'tb-load-meta';
       meta.textContent = t.preset
-        ? `${t.mix}, ${t.sequence} in the order`
-        : `${t.mix}, ${t.sequence} in the order, changed ${t.modifiedUtc}`;
+        ? str('app.in_the_order', { mix: t.mix, sequence: t.sequence })
+        : str('app.in_the_order_changed', { mix: t.mix, sequence: t.sequence, modifiedUtc: t.modifiedUtc });
       name.append(meta);
       /*
        * WHOSE TRACK THIS IS, on the row.
@@ -849,21 +856,21 @@ export class App {
         const by = document.createElement('div');
         by.className = 'tb-load-meta';
         const bits = [];
-        if (t.credit.designer) bits.push(`by ${t.credit.designer}`);
+        if (t.credit.designer) bits.push(str('ui.by', { designer: t.credit.designer }));
         if (t.credit.series) bits.push(t.credit.series);
-        if (t.credit.sponsor) bits.push(`sponsored by ${t.credit.sponsor}`);
+        if (t.credit.sponsor) bits.push(str('app.sponsored_by', { sponsor: t.credit.sponsor }));
         by.textContent = bits.join(', ');
         name.append(by);
       }
       const open = document.createElement('button');
       open.type = 'button';
       open.className = 'tb-btn';
-      open.textContent = 'Open';
+      open.textContent = str('app.open');
       open.addEventListener('click', () => {
         const found = loadTrack(t.id);
         this.closeModal();
         if (found) {
-          this.loadDocument(found.doc, `Opened "${found.doc.name}".`);
+          this.loadDocument(found.doc, str('app.opened', { name: found.doc.name }));
         }
       });
       /* No Delete on a shipped track. There is nothing to delete: it is
@@ -885,7 +892,7 @@ export class App {
       }
       body.append(row);
     }
-    this.modal('Saved tracks', body);
+    this.modal(str('app.saved_tracks'), body);
   }
 
   exportFile() {
@@ -907,12 +914,12 @@ export class App {
    */
   async exportAnimation() {
     if (this.nameInput && this.nameInput.value) {
-      this.doc.name = this.nameInput.value.trim() || 'Untitled track';
+      this.doc.name = this.nameInput.value.trim() || str('ui.untitled_track');
     }
     /* One element is not a lap, which is the same rule the racing line
      * itself applies, so the refusal says the same thing. */
     if (this.doc.sequence.length < 2) {
-      this.toast('An animation needs at least two elements in the flying order.');
+      this.toast(str('app.an_animation_needs_at_least_two'));
       return;
     }
 
@@ -922,10 +929,10 @@ export class App {
     /* No duration named any more, because there is no one duration: the
      * quad flies a steady pace and a longer lap simply takes longer to go
      * round. See LAP_SPEED in stage.js. */
-    help.textContent = 'One lap of the racing line, 512 by 512, looping, flown at the '
-      + 'same pace whatever the track, so a longer lap is a longer clip. '
-      + 'It comes out around 1 to 2 MB, which posts anywhere. Rendering takes a minute '
-      + 'or so and this tab has to stay open while it does.';
+    help.textContent = str('app.one_lap_of_the_racing_line')
+      + str('app.same_pace_whatever_the_track_so')
+      + str('app.it_comes_out_around_1_to')
+      + str('app.or_so_and_this_tab_has');
     const status = document.createElement('p');
     status.className = 'tb-help';
     body.append(help, status);
@@ -933,21 +940,21 @@ export class App {
     const go = document.createElement('button');
     go.type = 'button';
     go.className = 'tb-btn tb-primary';
-    go.textContent = 'Render the animation';
+    go.textContent = str('app.render_the_animation');
     go.addEventListener('click', async () => {
       go.disabled = true;
-      status.textContent = 'Loading the renderer.';
+      status.textContent = str('app.loading_the_renderer');
       try {
         const { exportTrackGif } = await import('./animate.js');
         const bytes = await exportTrackGif(this.doc, {
           onProgress: (done, total) => {
-            status.textContent = `Frame ${done} of ${total}.`;
+            status.textContent = str('app.frame_of', { done, total });
           },
         });
         downloadBlob(bytes, animationFilename(this.doc), 'image/gif');
         const mb = (bytes.length / 1e6).toFixed(2);
-        status.textContent = `Done. ${mb} MB, saved as ${animationFilename(this.doc)}.`;
-        go.textContent = 'Render it again';
+        status.textContent = str('app.done_mb_saved_as', { mb, animationFilename: animationFilename(this.doc) });
+        go.textContent = str('app.render_it_again');
         go.disabled = false;
       } catch (e) {
         status.textContent = e && e.message ? e.message : String(e);
@@ -955,7 +962,7 @@ export class App {
       }
     });
     body.append(go);
-    this.modal('Export animation', body);
+    this.modal(str('app.export_animation'), body);
   }
 
   /*
@@ -974,7 +981,7 @@ export class App {
     const done = await sendCardAnimation(this.doc, {
       origin,
       onProgress: (n, total) => {
-        status.textContent = `${was} Drawing its card, frame ${n} of ${total}.`;
+        status.textContent = str('app.drawing_its_card_frame_of', { was, n, total });
       },
     });
     if (done.skipped) {
@@ -983,8 +990,8 @@ export class App {
     /* Said plainly, and said as what it is: the track went up, the picture
      * did not. */
     status.textContent = done.error
-      ? `${was} The track is up, but its card animation could not be sent: ${done.error}`
-      : `${was} Its card on the board is a lap of it.`;
+      ? str('app.the_track_is_up_but_its', { was, error: done.error })
+      : str('app.its_card_on_the_board_is', { was });
   }
 
   /*
@@ -1005,10 +1012,10 @@ export class App {
 
   openPublish() {
     if (this.nameInput && this.nameInput.value) {
-      this.doc.name = this.nameInput.value.trim() || 'Untitled track';
+      this.doc.name = this.nameInput.value.trim() || str('ui.untitled_track');
     }
     if (!this.doc.sequence.length) {
-      this.toast('A published track needs at least one gate in the flying order.');
+      this.toast(str('app.a_published_track_needs_at_least'));
       return;
     }
     this.autosaver.flush();
@@ -1019,15 +1026,15 @@ export class App {
     const help = document.createElement('p');
     help.className = 'tb-help';
     if (remix) {
-      const of = listing.sourceName ? ` of ${listing.sourceName}` : '';
-      const by = listing.sourceAuthor ? ` by ${listing.sourceAuthor}` : '';
-      help.textContent = `This is your copy${of}${by}. It goes on the board as a new track under the name below. The original stays.`;
+      const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
+      const by = listing.sourceAuthor ? str('ui.by_3', { sourceAuthor: listing.sourceAuthor }) : '';
+      help.textContent = str('app.this_is_your_copy_it_goes', { of, by });
     } else if (owned && listing.layoutDrift) {
-      help.textContent = 'The layout changed. Updating the board will clear posted times. A rename alone would have kept them.';
+      help.textContent = str('app.the_layout_changed_updating_the_board');
     } else if (owned) {
-      help.textContent = 'This track is already on the board. Updating it keeps the times if the flying layout has not changed.';
+      help.textContent = str('app.this_track_is_already_on_the');
     } else {
-      help.textContent = 'The public board keeps a copy of this track, including every sponsor logo on the gates, the flags and the grass. Times people post are stored there.';
+      help.textContent = str('app.the_public_board_keeps_a_copy');
     }
     body.append(help);
 
@@ -1035,7 +1042,7 @@ export class App {
     courseField.className = 'tb-field';
     const courseLabel = document.createElement('label');
     courseLabel.className = 'tb-field-label';
-    courseLabel.textContent = 'Track name';
+    courseLabel.textContent = str('main.track_name');
     const courseInput = document.createElement('input');
     courseInput.type = 'text';
     courseInput.maxLength = 80;
@@ -1047,7 +1054,7 @@ export class App {
     nameField.className = 'tb-field';
     const nameLabel = document.createElement('label');
     nameLabel.className = 'tb-field-label';
-    nameLabel.textContent = 'Your name';
+    nameLabel.textContent = str('ui.your_name');
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.maxLength = 24;
@@ -1084,15 +1091,15 @@ export class App {
     tagField.className = 'tb-field';
     const tagLabelEl = document.createElement('label');
     tagLabelEl.className = 'tb-field-label';
-    tagLabelEl.textContent = 'What it is for';
+    tagLabelEl.textContent = str('app.what_it_is_for');
     const tagRow = document.createElement('div');
     tagRow.className = 'tb-tags';
     const tagHelp = document.createElement('p');
     tagHelp.className = 'tb-help';
     const sayTags = () => {
       tagHelp.textContent = chosen.size
-        ? `${[...chosen].map(tagLabel).join(', ')}. People filter the board by these.`
-        : `Optional, and up to ${TRACK_TAGS_MAX}. People filter the board by these, so a track with none is harder to find.`;
+        ? str('app.people_filter_the_board_by_these', { v1: [...chosen].map(tagLabel).join(', ') })
+        : str('app.optional_and_up_to_people_filter', { TRACK_TAGS_MAX });
     };
     for (const tag of TRACK_TAGS) {
       const btn = document.createElement('button');
@@ -1108,7 +1115,7 @@ export class App {
           /* Refused rather than silently swapping one out, because a
            * control that quietly drops the thing you ticked first is worse
            * than one that says no. */
-          tagHelp.textContent = `That is ${TRACK_TAGS_MAX} already. Untick one to add another.`;
+          tagHelp.textContent = str('app.that_is_already_untick_one_to', { TRACK_TAGS_MAX });
           return;
         } else {
           chosen.add(tag.id);
@@ -1126,7 +1133,7 @@ export class App {
     boardField.className = 'tb-field';
     const boardLabel = document.createElement('label');
     boardLabel.className = 'tb-field-label';
-    boardLabel.textContent = 'Board address';
+    boardLabel.textContent = str('app.board_address');
     const boardInput = document.createElement('input');
     boardInput.type = 'url';
     boardInput.value = boardOrigin();
@@ -1140,21 +1147,21 @@ export class App {
     const send = document.createElement('button');
     send.type = 'button';
     send.className = 'tb-btn tb-primary';
-    send.textContent = owned ? 'Update the board' : (remix ? 'Publish as yours' : 'Publish this track');
+    send.textContent = owned ? str('main.update_the_board') : (remix ? str('app.publish_as_yours') : str('ui.publish_this_track'));
     send.addEventListener('click', async () => {
       const author = writePilotName(nameInput.value);
       if (!author) {
         status.textContent = nameRules();
         return;
       }
-      const courseName = String(courseInput.value || '').trim() || 'Untitled track';
+      const courseName = String(courseInput.value || '').trim() || str('ui.untitled_track');
       this.doc.name = courseName;
       if (this.nameInput) {
         this.nameInput.value = courseName;
       }
       const origin = setBoardOrigin(boardInput.value) || boardOrigin();
       send.disabled = true;
-      status.textContent = 'Sending the track, logos included.';
+      status.textContent = str('app.sending_the_track_logos_included');
       const tags = usableTags([...chosen]);
       const sendDoc = async (doc) => {
         const posted = await publishTrack({
@@ -1189,15 +1196,16 @@ export class App {
           commit();
           this.loadDocument(copy, '');
           posted = await sendDoc(this.doc);
-          status.textContent = `This id was already on the board, so it went up as a new track, "${posted.name}".`;
+          status.textContent = str('app.this_id_was_already_on_the', { name: posted.name });
         }
         const cleared = posted.timesCleared
-          ? ' The flying layout changed, so the old times were cleared.'
+          ? str('app.the_flying_layout_changed_so_the')
           : '';
-        if (!status.textContent.startsWith('This id')) {
-          status.textContent = `Published as "${posted.name}".${cleared}`;
+        /* The taken-id notice, whatever language it is in. */
+        if (!status.textContent.startsWith(str('app.this_id_was_already_on_the').slice(0, 12))) {
+          status.textContent = str('app.published_as', { name: posted.name, cleared });
         }
-        this.toast(`Published "${posted.name}" to the board.`);
+        this.toast(str('app.published_to_the_board', { name: posted.name }));
         /*
          * A ROOM'S CARD ON THE BOARD IS ITS ANIMATION, SO IT IS RENDERED
          * HERE, NOW.
@@ -1222,16 +1230,16 @@ export class App {
         /* The board's own tab, reused if it is already open. No rel here:
          * noopener would send this to a fresh tab every time. */
         open.target = BOARD_WINDOW;
-        open.textContent = 'Open Tracks and Statistics';
+        open.textContent = str('ui.open_tracks_and_statistics');
         send.replaceWith(open);
       } catch (e) {
         send.disabled = false;
-        status.textContent = e.message || 'The board could not take that track.';
-        this.toast(`Could not publish: ${e.message || e}`);
+        status.textContent = e.message || str('app.the_board_could_not_take_that');
+        this.toast(str('app.could_not_publish', { v1: e.message || e }));
       }
     });
     body.append(send);
-    this.modal(owned ? 'Update this track' : (remix ? 'Publish as yours' : 'Publish this track'), body);
+    this.modal(owned ? str('ui.update_this_track') : (remix ? str('app.publish_as_yours') : str('ui.publish_this_track')), body);
   }
 
   /* ---------------- the sponsors' logos ---------------- */
@@ -1272,7 +1280,7 @@ export class App {
     const body = document.createElement('div');
     const help = document.createElement('p');
     help.className = 'tb-help';
-    help.textContent = 'Up to five sponsors\u2019 logos. They are dealt out round the gates in flying order, so each sponsor gets a share of the boards, the upright banners and the flags, spread down the lap rather than bunched at the start. Any of them can also be painted on the grass: press Paint on the grass under it, then click the field. They travel inside the track file, so a track you send somebody arrives with its branding on.';
+    help.textContent = str('app.up_to_five_sponsors_logos_they');
     body.append(help);
 
     const list = document.createElement('div');
@@ -1340,14 +1348,14 @@ export class App {
           const note = document.createElement('p');
           note.className = 'tb-help';
           note.textContent = i === logos.length
-            ? 'Empty. Add a logo here and the gates start sharing it.'
+            ? str('app.empty_add_a_logo_here_and')
             : 'Empty.';
           slot.append(note);
           if (i === logos.length) {
             const add = document.createElement('button');
             add.type = 'button';
             add.className = 'tb-btn';
-            add.textContent = 'Add a logo';
+            add.textContent = str('app.add_a_logo');
             add.addEventListener('click', () => { target = i; file.click(); });
             const btns = document.createElement('div');
             btns.className = 'tb-row-btns';
@@ -1381,7 +1389,7 @@ export class App {
 
         const caption = document.createElement('p');
         caption.className = 'tb-help';
-        caption.textContent = `${mark.name || `Logo ${i + 1}`}, ${Math.round(mark.image.length / 1024)} kB, stored in the track.`;
+        caption.textContent = str('app.kb_stored_in_the_track', { v1: mark.name || str('app.logo', { v1: i + 1 }), v2: Math.round(mark.image.length / 1024) });
         slot.append(caption);
 
         const btns = document.createElement('div');
@@ -1389,7 +1397,7 @@ export class App {
         const swap = document.createElement('button');
         swap.type = 'button';
         swap.className = 'tb-btn';
-        swap.textContent = 'Replace';
+        swap.textContent = str('app.replace');
         swap.addEventListener('click', () => { target = i; file.click(); });
         /*
          * The one route from a logo to paint on the field. It arms the
@@ -1400,8 +1408,8 @@ export class App {
         const paint = document.createElement('button');
         paint.type = 'button';
         paint.className = 'tb-btn';
-        paint.textContent = 'Paint on the grass';
-        paint.title = 'Put this logo on the turf: click the field where you want it';
+        paint.textContent = str('app.paint_on_the_grass');
+        paint.title = str('app.put_this_logo_on_the_turf');
         paint.addEventListener('click', () => {
           this.armGroundLogo(mark.id);
           this.closeModal();
@@ -1409,13 +1417,13 @@ export class App {
         const drop = document.createElement('button');
         drop.type = 'button';
         drop.className = 'tb-btn tb-danger';
-        drop.textContent = 'Remove';
+        drop.textContent = str('app.remove');
         drop.addEventListener('click', () => {
           this.edit('remove logo', (d) => {
             d.branding.logos.splice(i, 1);
           });
           redraw();
-          this.toast('Logo removed. Any grass painted with it now shows nothing until you pick another.');
+          this.toast(str('app.logo_removed_any_grass_painted_with'));
         });
         btns.append(swap, paint, drop);
         slot.append(btns);
@@ -1429,18 +1437,18 @@ export class App {
       const gates = dressOrder(this.doc).size;
       const n = logos.length;
       const left = Math.max(0, BRANDING_MAX_CHARS - spent);
-      const budget = `${Math.round(spent / 1024)} kB of ${Math.round(BRANDING_MAX_CHARS / 1024)} kB used, ${Math.round(left / 1024)} kB left.`;
+      const budget = str('app.kb_of_kb_used_kb_left', { v1: Math.round(spent / 1024), v2: Math.round(BRANDING_MAX_CHARS / 1024), v3: Math.round(left / 1024) });
       if (!n) {
-        summary.textContent = `No logos yet. The gates carry a chequered flag device and their number. ${budget}`;
+        summary.textContent = str('app.no_logos_yet_the_gates_carry', { budget });
       } else if (!gates) {
-        summary.textContent = `Nothing is in the flying order yet, so nothing is wearing them. ${budget}`;
+        summary.textContent = str('app.nothing_is_in_the_flying_order', { budget });
       } else {
         const base = Math.floor(gates / n);
         const extra = gates % n;
         const share = extra === 0
           ? `${base} gate${base === 1 ? '' : 's'} each`
-          : `${base + 1} gates for the first ${extra}, ${base} for the rest`;
-        summary.textContent = `${gates} gate${gates === 1 ? '' : 's'} in the flying order, ${n} logo${n === 1 ? '' : 's'}: ${share}. ${budget}`;
+          : str('app.gates_for_the_first_for_the', { v1: base + 1, extra, base });
+        summary.textContent = str('app.gate_in_the_flying_order_logo', { gates, v2: gates === 1 ? '' : 's', n, v4: n === 1 ? '' : 's', share, budget });
       }
     };
 
@@ -1473,13 +1481,13 @@ export class App {
           }
         });
         redraw();
-        this.toast(`Logo ${slot + 1} set from ${logo.name}, ${logo.width} by ${logo.height}.`);
+        this.toast(str('app.logo_set_from_by', { v1: slot + 1, name: logo.name, width: logo.width, height: logo.height }));
       } catch (e) {
-        this.toast(`Could not use that image: ${e.message}`);
+        this.toast(str('app.could_not_use_that_image', { message: e.message }));
       }
     });
 
-    this.modal('Sponsor logos', body);
+    this.modal(str('app.sponsor_logos'), body);
     redraw();
   }
 
@@ -1491,21 +1499,21 @@ export class App {
       const text = await readFileText(file);
       const { doc, repairs, error } = deserialize(text);
       if (error) {
-        this.toast(`Could not import: ${error}`);
+        this.toast(str('app.could_not_import', { error }));
         return;
       }
       this.loadDocument(doc, repairs.length
-        ? `Imported "${doc.name}" with ${repairs.length} repair${repairs.length === 1 ? '' : 's'}: ${repairs[0]}`
-        : `Imported "${doc.name}".`);
+        ? str('app.imported_with_repair', { name: doc.name, length: repairs.length, v3: repairs.length === 1 ? '' : 's', v4: repairs[0] })
+        : str('app.imported', { name: doc.name }));
     } catch (e) {
-      this.toast(`Could not read the file: ${e.message}`);
+      this.toast(str('app.could_not_read_the_file', { message: e.message }));
     }
   }
 
   undo() {
     const doc = this.history.undo(this.doc);
     if (!doc) {
-      this.toast('Nothing to undo.');
+      this.toast(str('app.nothing_to_undo'));
       return;
     }
     this.doc = doc;
@@ -1516,7 +1524,7 @@ export class App {
   redo() {
     const doc = this.history.redo(this.doc);
     if (!doc) {
-      this.toast('Nothing to redo.');
+      this.toast(str('app.nothing_to_redo'));
       return;
     }
     this.doc = doc;
@@ -1563,8 +1571,8 @@ export class App {
     const held = readAutosave(want);
     const doc = (held && held.doc) || createTrack(undefined, want);
     this.loadDocument(doc, held && held.doc
-      ? `Back on the ${want === 'micro' ? 'whoop' : 'five inch'} builder, holding "${doc.name}".`
-      : `A new ${want === 'micro' ? 'whoop track, in a ten by twelve metre hall' : 'five inch track, on a sixty metre field'}.`);
+      ? str('app.back_on_the_builder_holding', { v1: want === 'micro' ? 'whoop' : 'five inch', name: doc.name })
+      : str('app.a_new', { v1: want === 'micro' ? str('app.whoop_track_in_a_ten_by') : str('app.five_inch_track_on_a_sixty') }));
   }
 
   buildTopBar() {
@@ -1577,7 +1585,7 @@ export class App {
     name.value = this.doc.name;
     name.dataset.tbkey = 'track-name';
     name.addEventListener('change', () => {
-      this.edit('rename track', (d) => { d.name = name.value || 'Untitled track'; });
+      this.edit('rename track', (d) => { d.name = name.value || str('ui.untitled_track'); });
       this.syncNameIfOwned();
     });
     this.nameInput = name;
@@ -1600,16 +1608,16 @@ export class App {
       return b;
     };
 
-    this.undoBtn = btn('Undo', () => this.undo(), 'Control Z');
-    this.redoBtn = btn('Redo', () => this.redo(), 'Control Shift Z');
-    this.mode2d = btn('2D', () => this.setMode('2d'), 'Top down authoring view');
-    this.mode3d = btn('3D', () => this.setMode('3d'), 'Preview. Drag an element to change its height.');
+    this.undoBtn = btn('Undo', () => this.undo(), str('app.control_z'));
+    this.redoBtn = btn('Redo', () => this.redo(), str('app.control_shift_z'));
+    this.mode2d = btn('2D', () => this.setMode('2d'), str('app.top_down_authoring_view'));
+    this.mode3d = btn('3D', () => this.setMode('3d'), str('app.preview_drag_an_element_to_change'));
     /* Plain, not primary. There is one green button on this bar and it is
      * the one that leaves for the air; a second would make neither read as
      * the thing to press. Show line goes amber while a line is showing,
      * which is the state that matters. */
     /* The line is derived on every edit now, so this only paints it. */
-    this.pathBtn = btn('Show line', () => this.togglePath(), 'Draw the racing line on the canvas');
+    this.pathBtn = btn(str('app.show_line'), () => this.togglePath(), str('app.draw_the_racing_line_on_the'));
 
     const file = document.createElement('input');
     file.type = 'file';
@@ -1629,15 +1637,15 @@ export class App {
      * somebody to remember to press Save before they fly is asking them to
      * fly the wrong track once.
      */
-    this.flyBtn = btn('Fly this track', () => this.flyThisTrack(), 'Build the world around this track and fly it', 'tb-btn tb-primary');
-    this.publishBtn = btn('Publish', () => this.openPublish(), 'Put this track on the public board, logos and all');
+    this.flyBtn = btn(str('ui.fly_this_track'), () => this.flyThisTrack(), str('app.build_the_world_around_this_track'), 'tb-btn tb-primary');
+    this.publishBtn = btn('Publish', () => this.openPublish(), str('app.put_this_track_on_the_public'));
     this.listingChip = document.createElement('span');
     this.listingChip.className = 'tb-listing';
 
     const back = document.createElement('a');
     back.className = 'tb-btn tb-quiet';
     back.href = '../../index.html';
-    back.textContent = 'Back to the simulator';
+    back.textContent = str('app.back_to_the_simulator');
 
     /*
      * THREE ZONES, NOT SEVENTEEN BUTTONS.
@@ -1655,16 +1663,16 @@ export class App {
      */
     this.moreWrap = document.createElement('div');
     this.moreWrap.className = 'tb-more';
-    this.moreBtn = btn('More', () => this.toggleMore(), 'Import, export, duplicate, delete');
+    this.moreBtn = btn('More', () => this.toggleMore(), str('app.import_export_duplicate_delete'));
     this.moreMenu = document.createElement('div');
     this.moreMenu.className = 'tb-more-menu';
     this.moreMenu.hidden = true;
     for (const [label, fn, title, cls] of [
-      ['Duplicate', () => this.duplicate(), 'Copy this track under a new name', ''],
-      ['Import', () => file.click(), 'Read a .json track file', ''],
-      ['Export', () => this.exportFile(), 'Write a .json track file', ''],
-      ['Export animation', () => this.exportAnimation(), 'Write a looping .gif of one lap', ''],
-      ['Delete', () => this.confirmRemove(), 'Remove this track from this browser', 'tb-danger'],
+      ['Duplicate', () => this.duplicate(), str('app.copy_this_track_under_a_new'), ''],
+      ['Import', () => file.click(), str('app.read_a_json_track_file'), ''],
+      ['Export', () => this.exportFile(), str('app.write_a_json_track_file'), ''],
+      [str('app.export_animation'), () => this.exportAnimation(), str('app.write_a_looping_gif_of_one'), ''],
+      ['Delete', () => this.confirmRemove(), str('app.remove_this_track_from_this_browser'), 'tb-danger'],
     ]) {
       const b = btn(label, () => { this.closeMore(); fn(); }, title, `tb-more-item ${cls}`.trim());
       this.moreMenu.append(b);
@@ -1699,11 +1707,11 @@ export class App {
     this.classToggle = document.createElement('div');
     this.classToggle.className = 'tb-class';
     this.classToggle.setAttribute('role', 'group');
-    this.classToggle.setAttribute('aria-label', 'Which builder');
+    this.classToggle.setAttribute('aria-label', str('app.which_builder'));
     this.classBtns = new Map();
     for (const [cls, label, hint] of [
-      ['full', '5 inch', 'MultiGP gates on a sixty metre field'],
-      ['micro', 'Whoop', 'RaceGOW gates in a ten by twelve metre hall'],
+      ['full', '5 inch', str('app.multigp_gates_on_a_sixty_metre')],
+      ['micro', 'Whoop', str('app.racegow_gates_in_a_ten_by')],
     ]) {
       const b = document.createElement('button');
       b.type = 'button';
@@ -1718,12 +1726,12 @@ export class App {
     const zoneFile = document.createElement('div');
     zoneFile.className = 'tb-zone tb-zone-file';
     zoneFile.append(
-      Object.assign(document.createElement('span'), { className: 'tb-title', textContent: 'Track Builder' }),
+      Object.assign(document.createElement('span'), { className: 'tb-title', textContent: str('app.track_builder') }),
       this.classToggle,
       name,
       group(
-        btn('New', () => this.newTrack(), 'Start a blank track'),
-        btn('Save', () => this.save(), 'Control S'),
+        btn('New', () => this.newTrack(), str('app.start_a_blank_track')),
+        btn('Save', () => this.save(), str('app.control_s')),
         btn('Load', () => this.openLoad()),
       ),
       this.moreWrap,
@@ -1735,9 +1743,9 @@ export class App {
       group(this.undoBtn, this.redoBtn),
       group(this.mode2d, this.mode3d),
       group(
-        btn('Fit', () => this.frameAll(), 'Frame the whole field'),
+        btn('Fit', () => this.frameAll(), str('app.frame_the_whole_field')),
         this.pathBtn,
-        btn('Sponsor logos', () => this.openLogo(), 'Up to five sponsors\u2019 logos, shared out over the gates, the flags and the grass'),
+        btn(str('app.sponsor_logos'), () => this.openLogo(), str('app.up_to_five_sponsors_logos_shared')),
       ),
     );
 
@@ -1759,8 +1767,8 @@ export class App {
     }
     this.undoBtn.disabled = !this.history.canUndo();
     this.redoBtn.disabled = !this.history.canRedo();
-    this.undoBtn.title = this.history.canUndo() ? `Undo ${this.history.undoLabel()}` : 'Nothing to undo';
-    this.redoBtn.title = this.history.canRedo() ? `Redo ${this.history.redoLabel()}` : 'Nothing to redo';
+    this.undoBtn.title = this.history.canUndo() ? str('app.undo', { v1: this.history.undoLabel() }) : str('app.nothing_to_undo_2');
+    this.redoBtn.title = this.history.canRedo() ? str('app.redo', { v1: this.history.redoLabel() }) : str('app.nothing_to_redo_2');
     this.mode2d.classList.toggle('on', this.mode === '2d');
     this.mode3d.classList.toggle('on', this.mode === '3d');
     if (this.classBtns) {
@@ -1786,16 +1794,16 @@ export class App {
         this.listingChip.classList.add('remix');
       }
       if (listing.kind === 'owned') {
-        this.publishBtn.textContent = listing.canUpdateListing ? 'Update board' : 'On the board';
+        this.publishBtn.textContent = listing.canUpdateListing ? str('app.update_board') : str('listing.on_the_board');
         this.publishBtn.title = listing.layoutDrift
-          ? 'The layout changed. Updating the board will clear posted times.'
-          : 'This track is on the public board. A rename updates the listing.';
+          ? str('main.the_layout_changed_updating_the_board')
+          : str('app.this_track_is_on_the_public');
       } else if (listing.kind === 'remix') {
-        this.publishBtn.textContent = 'Publish as yours';
-        this.publishBtn.title = 'Put this copy on the board under a new name. The original stays.';
+        this.publishBtn.textContent = str('app.publish_as_yours');
+        this.publishBtn.title = str('app.put_this_copy_on_the_board');
       } else {
-        this.publishBtn.textContent = 'Publish';
-        this.publishBtn.title = 'Put this track on the public board, logos and all';
+        this.publishBtn.textContent = str('app.publish');
+        this.publishBtn.title = str('app.put_this_track_on_the_public');
       }
     }
   }
@@ -1809,12 +1817,12 @@ export class App {
     try {
       const result = await syncOwnedName(toPlain(this.doc));
       if (result && result.ok) {
-        this.toast(`Name updated on the board: "${this.doc.name}".`);
+        this.toast(str('app.name_updated_on_the_board', { name: this.doc.name }));
       } else if (result && result.skipped === 'layout-changed') {
-        this.toast('The layout changed too. Update the board to send the new name.');
+        this.toast(str('app.the_layout_changed_too_update_the'));
       }
     } catch (e) {
-      this.toast(`Could not update the name on the board. ${e.message || e}`);
+      this.toast(str('app.could_not_update_the_name_on', { v1: e.message || e }));
     }
     this.updateTopBar();
   }

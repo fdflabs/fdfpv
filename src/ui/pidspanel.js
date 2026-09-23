@@ -42,6 +42,7 @@ import { PID_AXES, PID_FIELDS, STOCK_PIDS } from '../../configs/pids.js';
  * slate here exactly as they are on the rates curve. Only the stock notch
  * is this panel's own. */
 import { AXIS as AXIS_LINE, INK, LABEL, MINT, SAKURA, SLATE } from './ratespanel.js';
+import { str } from '../strings/index.js';
 
 const NOTCH = 'rgba(244, 236, 214, 0.75)';
 
@@ -49,7 +50,7 @@ const AXIS_COLOR = { roll: SAKURA, pitch: MINT, yaw: SLATE };
 const AXIS_LABEL = { roll: 'Roll', pitch: 'Pitch', yaw: 'Yaw' };
 /* Short group captions under the bars; the row notes carry the teaching. */
 const GROUP_LABEL = {
-  p: 'P', i: 'I', d: 'D', dmax: 'D max', f: 'FF',
+  p: 'P', i: 'I', d: 'D', dmax: str('pidspanel.d_max'), f: 'FF',
 };
 
 function el(tag, cls, text) {
@@ -67,9 +68,9 @@ function el(tag, cls, text) {
  * reference is formatted from STOCK_PIDS, the same table the notches are
  * drawn from, so the spoken numbers cannot drift from the drawn ones. */
 function describe(pids) {
-  const line = (a) => `P ${a.p}, I ${a.i}, D ${a.d}, D max ${a.dmax}, feedforward ${a.f}`;
+  const line = (a) => str('pidspanel.p_i_d_d_max_feedforward', { p: a.p, i: a.i, d: a.d, dmax: a.dmax, f: a.f });
   const parts = PID_AXES.map((axis) => `${AXIS_LABEL[axis]} ${line(pids[axis])}`);
-  return `PID values the module is flying. ${parts.join('. ')}. Stock roll is ${line(STOCK_PIDS.roll)}.`;
+  return str('pidspanel.pid_values_the_module_is_flying', { v1: parts.join('. '), line: line(STOCK_PIDS.roll) });
 }
 
 export function mountPidsPanel() {
@@ -184,7 +185,7 @@ export function mountPidsPanel() {
     for (const axis of PID_AXES) {
       const dd = cells.get(axis);
       if (!pids) {
-        dd.textContent = 'reading the module';
+        dd.textContent = str('pidspanel.reading_the_module');
       } else {
         const a = pids[axis];
         dd.textContent = PID_FIELDS
@@ -194,7 +195,7 @@ export function mountPidsPanel() {
     }
     canvas.setAttribute(
       'aria-label',
-      pids ? describe(pids) : 'PID values are being read from the module.',
+      pids ? describe(pids) : str('pidspanel.pid_values_are_being_read_from'),
     );
     draw();
   }

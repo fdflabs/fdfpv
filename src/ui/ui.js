@@ -51,14 +51,14 @@ import { LINK_PRESETS } from '../input/link.js';
 /* Wording for input.js's calibration steps. The order lives there. */
 const CAL_LABELS = {
   center: 'Centre',
-  sweep: 'Full range',
+  sweep: str('ui.full_range'),
   throttle: 'Throttle',
   roll: 'Roll',
   pitch: 'Pitch',
   yaw: 'Yaw',
   /* Only asked of a radio that reports no buttons. See SELECT_STEP in
    * input.js. */
-  select: 'Menu switch',
+  select: str('ui.menu_switch'),
   confirm: 'Check',
 };
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
@@ -176,6 +176,7 @@ import {
   downloadCli, drawAttitude, FcSession, paintPageStrip, paintTabStrip,
 } from './fc.js';
 import { FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY } from '../fc/dump.js';
+import { str } from '../strings/index.js';
 /*
  * The pilot's own tracks live in this browser, and the Track room lists
  * them now, so the shell reads the same library the builder's Load dialog
@@ -245,15 +246,15 @@ const SCREEN_TITLES = {
   freestyle: 'Freestyle',
   pilot: 'Settings',
   quad: 'Quad',
-  launch: 'Before you fly',
+  launch: str('ui.before_you_fly'),
   standings: 'Standings',
   rates: 'Rates',
   pids: 'PIDs',
-  fc: 'Firmware bench',
+  fc: str('ui.firmware_bench'),
   paused: 'Paused',
-  results: 'Run complete',
-  howto: 'How to fly',
-  tricks: 'Trick list',
+  results: str('ui.run_complete'),
+  howto: str('ui.how_to_fly'),
+  tricks: str('ui.trick_list'),
   credits: 'Credits',
 };
 const CRUMBS = {
@@ -261,15 +262,15 @@ const CRUMBS = {
   freestyle: ['Freestyle'],
   pilot: ['Settings'],
   quad: ['Quad'],
-  launch: ['Before you fly'],
+  launch: [str('ui.before_you_fly')],
   standings: ['Race', 'Standings'],
   rates: ['Settings', 'Rates'],
   pids: ['Quad', 'PIDs'],
-  fc: ['Quad', 'Firmware bench'],
+  fc: ['Quad', str('ui.firmware_bench')],
   paused: ['Paused'],
-  results: ['Run complete'],
-  howto: ['How to fly'],
-  tricks: ['Freestyle', 'Trick list'],
+  results: [str('ui.run_complete')],
+  howto: [str('ui.how_to_fly')],
+  tricks: ['Freestyle', str('ui.trick_list')],
   credits: ['Credits'],
   title: ['FDFPV'],
 };
@@ -452,23 +453,23 @@ export function gravityScaleFor(weight, airframeId) {
  * See DEFAULTS.freestyleScoring for why off is the default.
  */
 export const FREESTYLE_SCORING = ['off', 'free', 'scored'];
-const FREESTYLE_SCORING_LABEL = { off: 'Off', free: 'Free flight', scored: 'Scored run' };
+const FREESTYLE_SCORING_LABEL = { off: 'Off', free: str('ui.free_flight'), scored: str('ui.scored_run') };
 
 /*
  * THE WARNING, and it comes FIRST when scoring is on, because a row wearing
  * row-warn owes the pilot the reason before it offers them anything. The
  * argument for it is at DEFAULTS.freestyleScoring.
  */
-const SCORING_WARNING = 'This is an unfinished feature and it is still being built.'
-  + ' The recogniser misses tricks it should name and puts the wrong name on some of'
-  + ' the ones it catches, so read it as a work in progress rather than as a verdict'
-  + ' on your flying.';
+const SCORING_WARNING = str('ui.this_is_an_unfinished_feature_and')
+  + str('ui.the_recogniser_misses_tricks_it_should')
+  + str('ui.the_ones_it_catches_so_read')
+  + str('ui.on_your_flying');
 
-const SCORING_HOW = 'Off: no overlay, no names and no run clock, just the town and the quad.'
-  + ' Free flight: tricks are named and scored as you land them, with no clock and no'
-  + ' board, and the run never ends. That is the one to learn a Powerloop in.'
-  + ' Scored run: two minutes on the clock, and what you finish with goes to the high'
-  + ' score board.';
+const SCORING_HOW = str('ui.off_no_overlay_no_names_and')
+  + str('ui.free_flight_tricks_are_named_and')
+  + str('ui.board_and_the_run_never_ends')
+  + str('ui.scored_run_two_minutes_on_the')
+  + str('ui.score_board');
 
 function scoringNote(mode) {
   return mode === 'off' ? SCORING_HOW : `${SCORING_WARNING} ${SCORING_HOW}`;
@@ -486,9 +487,9 @@ function scoringNote(mode) {
  */
 function byLine(t) {
   if (t && t.designer) {
-    return `by ${t.designer}`;
+    return str('ui.by', { designer: t.designer });
   }
-  return t && t.author ? `by ${t.author}` : '';
+  return t && t.author ? str('ui.by_2', { author: t.author }) : '';
 }
 
 const DEFAULTS = {
@@ -1345,16 +1346,16 @@ function makeWeightSlider({ min, max, step, value, label }) {
 
   const hint = el('div', 'osd-air-hint');
   hint.hidden = true;
-  hint.append(el('p', 'osd-air-hint-title', 'Weight'));
+  hint.append(el('p', 'osd-air-hint-title', str('ui.weight')));
   hint.append(el(
     'p',
     'osd-air-hint-body',
-    'Drag this if the quad feels floaty or too heavy. Right makes it heavier,'
-    + ' so it drops when you chop the throttle and stops hanging at the top'
-    + ' of a jump. Left makes it lighter and it floats. Hover moves up and'
-    + ' down the stick with it, which is most of what you will feel.',
+    str('ui.drag_this_if_the_quad_feels')
+    + str('ui.so_it_drops_when_you_chop')
+    + str('ui.of_a_jump_left_makes_it')
+    + str('ui.down_the_stick_with_it_which'),
   ));
-  const dismiss = btn('osd-air-hint-btn', 'Got it');
+  const dismiss = btn('osd-air-hint-btn', str('ui.got_it'));
   hint.append(dismiss);
 
   const row = el('div', 'osd-air-row');
@@ -1366,7 +1367,7 @@ function makeWeightSlider({ min, max, step, value, label }) {
   range.step = String(step);
   range.value = String(value);
   range.setAttribute('aria-label', label);
-  row.append(el('span', 'osd-air-end', 'Floaty'), range, el('span', 'osd-air-end', 'Sinky'));
+  row.append(el('span', 'osd-air-end', str('ui.floaty')), range, el('span', 'osd-air-end', str('ui.sinky')));
 
   const cap = el('div', 'osd-air-cap', '');
   box.append(hint, row, cap);
@@ -1406,8 +1407,8 @@ function placeNub(nub, x, y) {
 function thrNote(mode, side) {
   const map = stickChannels(mode)[side];
   return map.vert === 'throttle'
-    ? ' Throttle STAYS where you leave it, like a real radio: trim a hover, lift the thumb, it holds.'
-    : ' Forward is nose down, fly forward. Springs back to centre when you let go.';
+    ? str('ui.throttle_stays_where_you_leave_it')
+    : str('ui.forward_is_nose_down_fly_forward');
 }
 
 /*
@@ -1418,16 +1419,16 @@ function thrNote(mode, side) {
 function keyHowtoRows(mode) {
   const c = stickChannels(mode);
   const say = {
-    throttle: 'Throttle. Tap for a nudge, hold to climb, long hold to punch. Let go and it holds height.',
-    pitch: 'Pitch. Forward is stick forward, nose down, fly forward.',
-    yaw: 'Yaw, left and right on the spot.',
+    throttle: str('ui.throttle_tap_for_a_nudge_hold'),
+    pitch: str('ui.pitch_forward_is_stick_forward_nose'),
+    yaw: str('ui.yaw_left_and_right_on_the'),
     roll: 'Roll.',
   };
   return [
-    ['W and S', say[c.left.vert]],
-    ['A and D', say[c.left.horiz]],
-    ['Up and down', say[c.right.vert]],
-    ['Left and right', say[c.right.horiz]],
+    [str('ui.w_and_s'), say[c.left.vert]],
+    [str('ui.a_and_d'), say[c.left.horiz]],
+    [str('ui.up_and_down'), say[c.right.vert]],
+    [str('ui.left_and_right'), say[c.right.horiz]],
   ];
 }
 
@@ -1563,14 +1564,14 @@ function trickStatus(t) {
   if (t.proven.landed >= t.proven.runs) {
     return {
       tag: 'Reliable',
-      line: `Scored on all ${t.proven.runs} test flights, across three bank`
-        + ' angles and three degrees of overshoot.',
+      line: str('ui.scored_on_all_test_flights_across', { runs: t.proven.runs })
+        + str('ui.angles_and_three_degrees_of_overshoot'),
     };
   }
   return {
     tag: 'Fussy',
-    line: `Scored on ${t.proven.landed} of ${t.proven.runs} test flights, so`
-      + ' it wants flying cleanly to register.',
+    line: str('ui.scored_on_of_test_flights_so', { landed: t.proven.landed, runs: t.proven.runs })
+      + str('ui.it_wants_flying_cleanly_to_register'),
   };
 }
 
@@ -1635,12 +1636,12 @@ function seatIsRace(s) {
  */
 function recordSentence(s, trackName) {
   const style = s.flightStyle === 'arcade' ? 'Arcade' : 'Expert';
-  const link = s.link === 'perfect' ? 'a perfect link' : LINK_PRESETS[s.link].label;
+  const link = s.link === 'perfect' ? str('ui.a_perfect_link') : LINK_PRESETS[s.link].label;
   const bits = [
     `${style} physics`,
-    `${s.packVoltage.toFixed(2)} V per cell`,
+    str('ui.v_per_cell', { v1: s.packVoltage.toFixed(2) }),
     `${s.laps} lap${s.laps === 1 ? '' : 's'}`,
-    `the ${tuneById(s.tune).name} tune`,
+    str('ui.the_tune', { name: tuneById(s.tune).name }),
   ];
   /* clampWeight rather than s.weight raw, the same guard bugSnapshot uses:
    * every settings object that reaches here has been through loadSettings,
@@ -1652,15 +1653,15 @@ function recordSentence(s, trackName) {
      * physics model: the slider on the flight screen scales the weight the
      * craft carries. A pilot who nudged it mid flight and forgot has exactly
      * the problem this sentence exists to prevent. */
-    bits.splice(1, 0, `weight at ${weight} percent`);
+    bits.splice(1, 0, str('ui.weight_at_percent', { weight }));
   }
-  return `Your best on ${trackName} is filed under exactly this: ${bits.join(', ')}.`
-    + ' Change any part of it and you are on a different board.'
+  return str('ui.your_best_on_is_filed_under', { trackName, v2: bits.join(', ') })
+    + str('ui.change_any_part_of_it_and')
     + (s.flightStyle === 'arcade'
-      ? ' Arcade times stay off the public board, so this run will not count there.'
+      ? str('ui.arcade_times_stay_off_the_public')
       : weight !== WEIGHT_STOCK
-        ? ' Times flown at a weight that is not 100 percent stay off the public board, so this run will not count there.'
-        : ` This run is on ${link}.`);
+        ? str('ui.times_flown_at_a_weight_that')
+        : str('ui.this_run_is_on', { link }));
 }
 
 /*
@@ -1693,13 +1694,13 @@ function padTroubleItem(info) {
   }
   if (!info.buttons && !info.hasSelect) {
     return {
-      label: 'Your radio has no buttons this browser can see',
+      label: str('ui.your_radio_has_no_buttons_this'),
       action: 'calibrate',
       rowClass: 'row-warn',
-      note: 'Every switch on it is arriving as an axis, so nothing on it can press Enter yet.'
-        + ' Hold any stick away from centre for about a second and that counts as one press,'
-        + ' which is enough to get in here and fix it properly. Calibrating ends by asking you'
-        + ' to throw the switch you want as Enter, and after that it works like a button.',
+      note: str('ui.every_switch_on_it_is_arriving')
+        + str('ui.hold_any_stick_away_from_centre')
+        + str('ui.which_is_enough_to_get_in')
+        + str('ui.to_throw_the_switch_you_want'),
     };
   }
   /*
@@ -1727,13 +1728,13 @@ function padTroubleItem(info) {
    */
   if (!info.calibrated && !info.mapUsable) {
     return {
-      label: 'This browser is guessing your stick order',
+      label: str('ui.this_browser_is_guessing_your_stick'),
       action: 'calibrate',
       rowClass: 'row-warn',
-      note: 'The axis it thinks is your throttle is sitting at the middle, and a real'
-        + ' throttle rests at one end because it has no centring spring. So the guess is'
-        + ' probably wrong, and a wrong guess means taking off at half power on a stick'
-        + ' that springs back. Calibrating takes about a minute and fixes it for good.',
+      note: str('ui.the_axis_it_thinks_is_your')
+        + str('ui.throttle_rests_at_one_end_because')
+        + str('ui.probably_wrong_and_a_wrong_guess')
+        + str('ui.that_springs_back_calibrating_takes_about'),
     };
   }
   /*
@@ -1751,14 +1752,14 @@ function padTroubleItem(info) {
    */
   if (!info.calibrated && info.guessNoYaw) {
     return {
-      label: 'This browser cannot see your yaw stick',
+      label: str('ui.this_browser_cannot_see_your_yaw'),
       action: 'calibrate',
       rowClass: 'row-warn',
-      note: 'The axis it guessed was yaw has not moved once, while a stick it does not'
-        + ' know about has been swept end to end. That is a radio reporting its channels'
-        + ' in some order other than the one being guessed, and the part of it you have'
-        + ' lost is yaw. Calibrating takes about a minute and tells this page which axis'
-        + ' is which.',
+      note: str('ui.the_axis_it_guessed_was_yaw')
+        + str('ui.know_about_has_been_swept_end')
+        + str('ui.in_some_order_other_than_the')
+        + str('ui.lost_is_yaw_calibrating_takes_about')
+        + str('ui.is_which'),
     };
   }
   return null;
@@ -2013,98 +2014,98 @@ function uploadAction(listing, { fastestMs, timePosted }) {
     ? fastestMs
     : (shareId && pending && pending.trackId === shareId ? pending.lapMs : null);
   if (timePosted && shareId) {
-    const rank = timePosted.rank != null ? ` Rank ${timePosted.rank}.` : '';
+    const rank = timePosted.rank != null ? str('ui.rank', { rank: timePosted.rank }) : '';
     return {
-      label: 'Time uploaded',
+      label: str('ui.time_uploaded'),
       action: 'posttime',
       disabled: true,
-      note: `That lap is on the public board.${rank}`,
+      note: str('ui.that_lap_is_on_the_public', { rank }),
     };
   }
   if (!listing || !shareId) {
     return {
-      label: 'Upload a time',
+      label: str('ui.upload_a_time'),
       action: 'posttime',
       disabled: true,
-      note: 'Only a track on the board can hold a time. Publish this one first.',
+      note: str('ui.only_a_track_on_the_board'),
     };
   }
   if (!listing.canPostTime) {
     return {
-      label: 'Upload a time',
+      label: str('ui.upload_a_time'),
       action: 'posttime',
       disabled: true,
-      note: 'The layout has changed since it was published. Update the track on the board first.',
+      note: str('ui.the_layout_has_changed_since_it'),
     };
   }
   if (ms == null) {
     return {
-      label: 'Upload a time',
+      label: str('ui.upload_a_time'),
       action: 'posttime',
       disabled: true,
-      note: 'Fly a clean lap on this track and the lap appears here.',
+      note: str('ui.fly_a_clean_lap_on_this'),
     };
   }
   const best = readPostedBest(shareId);
   const isNew = best != null && ms < best;
   return {
-    label: isNew ? `Upload new best, ${formatTime(ms)}` : `Upload ${formatTime(ms)}`,
+    label: isNew ? str('ui.upload_new_best', { formatTime: formatTime(ms) }) : str('ui.upload', { formatTime: formatTime(ms) }),
     action: 'posttime',
     note: isNew
-      ? 'Faster than the last time you uploaded from this browser. Sends this lap to the public board.'
-      : 'Send this lap to the public board under your name.',
+      ? str('ui.faster_than_the_last_time_you')
+      : str('ui.send_this_lap_to_the_public'),
   };
 }
 
 function publishAction(listing, published) {
   if (published) {
     return {
-      label: 'Published',
+      label: str('ui.published'),
       action: 'leaderboard',
-      note: 'This track is on the public board. Opens its page.',
+      note: str('ui.this_track_is_on_the_public'),
     };
   }
   if (listing && listing.canPublishNew) {
-    const of = listing.sourceName ? ` of ${listing.sourceName}` : '';
-    const by = listing.sourceAuthor ? ` by ${listing.sourceAuthor}` : '';
+    const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
+    const by = listing.sourceAuthor ? str('ui.by_3', { sourceAuthor: listing.sourceAuthor }) : '';
     return {
-      label: 'Publish this track',
+      label: str('ui.publish_this_track'),
       action: 'publishcourse',
       note: listing.remix
-        ? `Your copy${of}${by}. Goes on the board under a new name. Then you can upload a time.`
-        : 'Put this track on the public board. Then you can upload a time.',
+        ? str('ui.your_copy_goes_on_the_board', { of, by })
+        : str('ui.put_this_track_on_the_public'),
     };
   }
   if (listing && listing.canUpdateListing && listing.layoutDrift) {
     return {
-      label: 'Update this track',
+      label: str('ui.update_this_track'),
       action: 'publishcourse',
-      note: 'The layout changed. Updating the board will clear posted times, then you can upload a time.',
+      note: str('ui.the_layout_changed_updating_the_board'),
     };
   }
   if (listing && listing.kind === 'owned') {
     return {
-      label: 'Publish this track',
+      label: str('ui.publish_this_track'),
       action: 'publishcourse',
       disabled: true,
-      note: 'Already on the board, and nothing has changed since.',
+      note: str('ui.already_on_the_board_and_nothing'),
     };
   }
   if (listing && listing.kind === 'community') {
     return {
-      label: 'Publish this track',
+      label: str('ui.publish_this_track'),
       action: 'publishcourse',
       disabled: true,
-      note: 'Somebody else published this one. Edit a copy to put your own version on the board.',
+      note: str('ui.somebody_else_published_this_one_edit'),
     };
   }
   return {
-    label: 'Publish this track',
+    label: str('ui.publish_this_track'),
     action: 'publishcourse',
     disabled: true,
     note: listing && listing.kind === 'local'
-      ? 'A track needs a flying order before it can be published. Set one in the track builder.'
-      : 'Nothing to publish. Build a track, or pick one from the board.',
+      ? str('ui.a_track_needs_a_flying_order')
+      : str('ui.nothing_to_publish_build_a_track'),
   };
 }
 
@@ -2112,36 +2113,36 @@ function remixAction(listing) {
   if (listing && listing.canRemix) {
     const by = byLine(listing) ? ` ${byLine(listing)}` : '';
     return {
-      label: 'Edit a copy',
+      label: str('ui.edit_a_copy'),
       action: 'remix',
-      note: `Open ${listing.name}${by} in the track builder as your own track, under a new name.`,
+      note: str('ui.open_in_the_track_builder_as', { name: listing.name, by }),
     };
   }
   return {
-    label: 'Edit a copy',
+    label: str('ui.edit_a_copy'),
     action: 'remix',
     disabled: true,
     note: listing && listing.kind === 'owned'
-      ? 'This one is already yours. Edit this track instead.'
-      : 'Only a published track by somebody else can be copied.',
+      ? str('ui.this_one_is_already_yours_edit')
+      : str('ui.only_a_published_track_by_somebody'),
   };
 }
 
 function editOwnAction(listing) {
   if (listing && listing.kind === 'owned') {
     return {
-      label: 'Edit this track',
+      label: str('ui.edit_this_track'),
       action: 'editown',
-      note: 'Open this track in the track builder. A rename updates the name on the board. A layout change asks before clearing times.',
+      note: str('ui.open_this_track_in_the_track'),
     };
   }
   return {
-    label: 'Edit this track',
+    label: str('ui.edit_this_track'),
     action: 'editown',
     disabled: true,
     note: listing && listing.kind === 'community'
-      ? 'Somebody else published this one. Edit a copy to make it yours.'
-      : 'Nothing of yours on the board to edit.',
+      ? str('ui.somebody_else_published_this_one_edit_2')
+      : str('ui.nothing_of_yours_on_the_board'),
   };
 }
 
@@ -2222,33 +2223,33 @@ function courseCardRows(subject) {
      * that the two want joining in words. Not a cursor stop. */
     { label: name, section: true },
     {
-      label: 'Fly it',
+      label: str('ui.fly_it'),
       action: 'card-fly',
       note: board
-        ? `Load ${name} from the board and fly it here.`
-        : `Fly ${name}.`,
+        ? str('ui.load_from_the_board_and_fly', { name })
+        : str('ui.fly', { name }),
     },
     {
-      label: 'Open in the track builder',
+      label: str('ui.open_in_the_track_builder'),
       action: 'card-builder',
       note: board
-        ? `Open ${name} in the builder without flying it. Somebody else's track opens as a copy under your own name.`
-        : `Open ${name} in the builder. Nothing is flown.`,
+        ? str('ui.open_in_the_builder_without_flying', { name })
+        : str('ui.open_in_the_builder_nothing_is', { name }),
     },
   ];
   if (board) {
     rows.push({
-      label: 'Standings',
+      label: str('ui.standings'),
       action: 'card-standings',
-      note: `Every time posted on ${name}, fastest first, and who flew them. Opens here, not on another site.`,
+      note: str('ui.every_time_posted_on_fastest_first', { name }),
     });
     rows.push({
-      label: 'Open on the web',
+      label: str('ui.open_on_the_web'),
       action: 'card-board',
-      note: `The public page for ${name}. A link to send somebody. Opens in a new tab.`,
+      note: str('ui.the_public_page_for_a_link', { name }),
     });
   }
-  rows.push({ label: 'Back to the list', action: 'card-back' });
+  rows.push({ label: str('ui.back_to_the_list'), action: 'card-back' });
   return rows;
 }
 
@@ -2277,13 +2278,13 @@ function courseCardRows(subject) {
  * left behind: an arrow key on the pause menu cost a lap with no warning.
  * The row says so now, and so does the hint on the screen itself.
  */
-const MID_RUN_WARNING = ' Changing it during a run puts the quad back on the start line.';
+const MID_RUN_WARNING = str('ui.changing_it_during_a_run_puts');
 
 function tuneItem(s, midRun) {
   const name = tuneById(s.tune).name;
   const adjusted = pidsAdjusted(s.pids, s.tune);
   return {
-    label: 'Tune',
+    label: str('ui.tune'),
     /*
      * THE ADJUSTMENT STAYS ON THE ROW. That was the PIDs row's whole
      * contribution, and dropping it would have been the one thing lost in
@@ -2294,7 +2295,7 @@ function tuneItem(s, midRun) {
      */
     value: adjusted ? `${name}, ${pidsSummary(s.pids, s.tune).toLowerCase()}` : name,
     action: 'pids',
-    note: `${tuneById(s.tune).note} Opens ${SCREEN_TITLES.pids}, where the tune is chosen and Betaflight's own sliders adjust it. Your rates are kept.${midRun ? MID_RUN_WARNING : ''}`,
+    note: str('ui.opens_where_the_tune_is_chosen', { note: tuneById(s.tune).note, pids: SCREEN_TITLES.pids, v3: midRun ? MID_RUN_WARNING : '' }),
   };
 }
 
@@ -2321,11 +2322,11 @@ function tunePickItem(s, midRun) {
   const ownTune = ids.includes(CUSTOM_TUNE.id);
   const door = ownTune
     ? ''
-    : ` Stock is the only tune shipped. Edit one on ${SCREEN_TITLES.fc} and save it, and it joins this row as ${CUSTOM_TUNE.name}.`;
+    : str('ui.stock_is_the_only_tune_shipped', { fc: SCREEN_TITLES.fc, name: CUSTOM_TUNE.name });
   return {
     ...choice(
       'Tune',
-      `Everything below belongs to this one, and each tune keeps its own adjustment.${door}${midRun ? MID_RUN_WARNING : ''}`,
+      str('ui.everything_below_belongs_to_this_one', { door, v2: midRun ? MID_RUN_WARNING : '' }),
       ids,
       s.tune,
       (id) => tuneById(id).name,
@@ -2367,7 +2368,7 @@ function craftItem(s, midRun) {
   const other = AIRFRAMES.find((a) => a.id !== s.airframe) || af;
   return choice(
     'Aircraft',
-    `${af.blurb} Changing it loads that machine's tune, its pack and its camera, and switches the track builder between a ${other.trackClass === 'micro' ? 'sixty metre field and a living room' : 'living room and a sixty metre field'}. Your own rates are kept unless they are still the stock ones.${midRun ? MID_RUN_WARNING : ''}`,
+    str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v2: other.trackClass === 'micro' ? str('ui.sixty_metre_field_and_a_living') : str('ui.living_room_and_a_sixty_metre'), v3: midRun ? MID_RUN_WARNING : '' }),
     AIRFRAME_IDS,
     s.airframe,
     (id) => airframeById(id).name,
@@ -2403,7 +2404,7 @@ function ratesChanged(s) {
  * so a pilot can see what they are flying without opening it. */
 function ratesItem(s, midRun) {
   return {
-    label: 'Rates',
+    label: str('ui.rates'),
     value: ratesSummary(s.rates),
     action: 'rates',
     /*
@@ -2416,7 +2417,7 @@ function ratesItem(s, midRun) {
      * sentence would be a warning about something that does not happen.
      * The tune and the PIDs still carry it, because they still do it.
      */
-    note: `How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.`,
+    note: str('ui.how_far_the_sticks_go_and'),
   };
 }
 
@@ -2426,9 +2427,9 @@ function ratesItem(s, midRun) {
  * anything. */
 function feelItem() {
   return {
-    label: 'Flight feel',
+    label: str('ui.flight_feel'),
     action: 'feel',
-    note: 'Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.',
+    note: str('ui.tell_the_tune_work_how_the'),
   };
 }
 
@@ -2447,14 +2448,14 @@ function graphicsItem(s) {
 function gpuItem(info) {
   if (!info) {
     return {
-      label: 'GPU',
+      label: str('ui.gpu'),
       value: 'Detecting',
-      note: 'Read from the WebGL context that is drawing the world.',
+      note: str('ui.read_from_the_webgl_context_that'),
       info: true,
     };
   }
   return {
-    label: 'GPU',
+    label: str('ui.gpu'),
     value: info.display,
     note: info.note,
     info: true,
@@ -2464,12 +2465,12 @@ function gpuItem(info) {
 function padChooseNote(info) {
   const n = info && typeof info.count === 'number' ? info.count : 0;
   if (n <= 0) {
-    return 'Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.';
+    return str('ui.plug_in_a_radio_in_joystick');
   }
   if (n === 1) {
-    return `One device is plugged in, ${info.using}. Open this to confirm it, or to switch to the keyboard.`;
+    return str('ui.one_device_is_plugged_in_open', { using: info.using });
   }
-  return `${n} devices are plugged in. Move the one you want. Windows lists them in Game Controllers order; this screen is how you pick.`;
+  return str('ui.devices_are_plugged_in_move_the', { n });
 }
 
 /*
@@ -2579,31 +2580,31 @@ function craftSvg(a) {
   if (ducted) {
     /* The tub: the webs first so the rings sit on top of them. */
     parts.push(`<rect x="${c - off}" y="${c - off}" width="${off * 2}" height="${off * 2}"`
-      + ` rx="${prop * 0.35}" fill="none" stroke="currentColor" stroke-width="${prop * 0.42}"`
+      + str('ui.rx_fill_none_stroke_currentcolor_stroke', { v1: prop * 0.35, v2: prop * 0.42 })
       + ' stroke-opacity="0.30"/>');
     parts.push(`<line x1="${c - off}" y1="${c - off}" x2="${c + off}" y2="${c + off}"`
-      + ` stroke="currentColor" stroke-width="${prop * 0.34}" stroke-opacity="0.24"/>`);
+      + str('ui.stroke_currentcolor_stroke_width_stroke_opacity', { v1: prop * 0.34 }));
     parts.push(`<line x1="${c - off}" y1="${c + off}" x2="${c + off}" y2="${c - off}"`
-      + ` stroke="currentColor" stroke-width="${prop * 0.34}" stroke-opacity="0.24"/>`);
+      + str('ui.stroke_currentcolor_stroke_width_stroke_opacity', { v1: prop * 0.34 }));
   } else {
     for (const [mx, mz] of motors) {
       parts.push(`<line x1="${c}" y1="${c}" x2="${c + mx}" y2="${c + mz}"`
-        + ` stroke="currentColor" stroke-width="${prop * 0.20}" stroke-opacity="0.55"/>`);
+        + str('ui.stroke_currentcolor_stroke_width_stroke_opacity_2', { v1: prop * 0.20 }));
     }
     parts.push(`<rect x="${c - 22}" y="${c - 38}" width="44" height="76" rx="10"`
-      + ' fill="currentColor" fill-opacity="0.30"/>');
+      + str('ui.fill_currentcolor_fill_opacity_0_30'));
   }
   for (const [mx, mz] of motors) {
     if (ducted) {
       /* The duct wall, then the bore, so a ring reads as a ring. */
       parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${hull}"`
-        + ' fill="currentColor" fill-opacity="0.34"/>');
+        + str('ui.fill_currentcolor_fill_opacity_0_34'));
       parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${prop}"`
-        + ' fill="none" stroke="currentColor" stroke-width="1.1" stroke-opacity="0.85"/>');
+        + str('ui.fill_none_stroke_currentcolor_stroke_width'));
     } else {
       parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${prop}"`
-        + ' fill="currentColor" fill-opacity="0.16"'
-        + ' stroke="currentColor" stroke-width="1.4" stroke-opacity="0.8"/>');
+        + str('ui.fill_currentcolor_fill_opacity_0_16')
+        + str('ui.stroke_currentcolor_stroke_width_1_4'));
     }
   }
   if (ducted) {
@@ -2616,12 +2617,12 @@ function craftSvg(a) {
      * the craft frame and on this drawing.
      */
     parts.push(`<rect x="${c - 9}" y="${c - 9}" width="18" height="18" rx="2"`
-      + ' fill="currentColor" fill-opacity="0.42"/>');
+      + str('ui.fill_currentcolor_fill_opacity_0_42'));
     parts.push(`<rect x="${c - 7}" y="${c - 17}" width="14" height="11" rx="2"`
-      + ' fill="currentColor" fill-opacity="0.72"/>');
+      + str('ui.fill_currentcolor_fill_opacity_0_72'));
   }
   return `<svg viewBox="0 0 ${VB} ${VB}" role="img" aria-hidden="true"`
-    + ' preserveAspectRatio="xMidYMid meet" class="craft-plan">'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
     + parts.join('') + '</svg>';
 }
 
@@ -2663,41 +2664,41 @@ const WAYS = [
     id: 'race-5inch',
     airframe: '5inch',
     mode: 'race',
-    label: 'Five inch racing',
+    label: str('ui.five_inch_racing'),
     art: 'assets/gate/race.jpg',
-    blurb: 'A gated track on a sixty metre field, against the clock. A 710 gram 6S quad at forty metres a second, and every lap you finish goes to the public leaderboard.',
-    facts: ['6S', '220 mm', 'The board'],
+    blurb: str('ui.a_gated_track_on_a_sixty'),
+    facts: ['6S', '220 mm', str('ui.the_board')],
   },
   {
     id: 'race-whoop65',
     airframe: 'whoop65',
     mode: 'race',
-    label: 'Whoop racing',
+    label: str('ui.whoop_racing'),
     art: 'assets/gate/whoop.jpg',
     /* Says what configs/airframes.js says, in the same words: the machine
      * flies the five inch's model and the room is built to match, so the
      * picture is a whoop's and the hands get the five inch. The old line
      * promised three times the angular acceleration, which was true of a
      * plant nothing selects now. */
-    blurb: 'The same clock, indoors. A 65 mm ducted whoop through a track that fits in a living room, on 28 inch gates, flying the five inch\'s flight model.',
+    blurb: str('ui.the_same_clock_indoors_a_65'),
     facts: ['Indoors', '65 mm', '5 inch feel'],
   },
   {
     id: 'freestyle-5inch',
     airframe: '5inch',
     mode: 'freestyle',
-    label: 'Freestyle',
+    label: str('ui.freestyle'),
     art: 'assets/gate/freestyle.jpg',
     /* No clock and no score in the line, because neither is on until a
      * pilot asks for them. See DEFAULTS.freestyleScoring. The aircraft is
      * named because this card seats one: the town is five hundred metres
      * across and it is the five inch's. */
-    blurb: 'A whole town to fly around on the five inch. Roofs, alleys, a level crossing, a works, a municipal pool and a training field. No clock, no gates, and scoring is a switch inside.',
+    blurb: str('ui.a_whole_town_to_fly_around'),
     /* The mode's three, not the machine's, and the machine is on the card
      * anyway: the plan mark over the picture is the five inch's. Three
      * words that fit one line on a landscape phone, where the blurb is
      * hidden and these are the whole of the card. */
-    facts: ['No gates', 'No clock', 'One town'],
+    facts: [str('ui.no_gates'), str('ui.no_clock'), str('ui.one_town')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
@@ -3044,7 +3045,7 @@ export class Ui {
     const packBar = el('div', 'bar');
     packBar.append(this.osdPackBar);
     const packBlock = el('div', 'osd-corner osd-left');
-    packBlock.append(el('div', 'osd-label', 'Pack'), this.osdPack, packBar);
+    packBlock.append(el('div', 'osd-label', str('ui.pack')), this.osdPack, packBar);
     this.osdHits = el('div', 'osd-sub osd-hits', '');
     packBlock.append(this.osdHits);
     this.osdSpeed = el('div', 'osd-value', '');
@@ -3055,10 +3056,10 @@ export class Ui {
     const thrBar = el('div', 'bar');
     thrBar.append(this.osdThrBar);
     const flightBlock = el('div', 'osd-corner osd-right');
-    flightBlock.append(this.osdSpeed, this.osdFlight, this.osdAlt, el('div', 'osd-label', 'Throttle'), thrBar);
+    flightBlock.append(this.osdSpeed, this.osdFlight, this.osdAlt, el('div', 'osd-label', str('ui.throttle')), thrBar);
     const sticks = el('div', 'osd-sticks is-off');
-    this.osdStickLeft = makeGimbal('Yaw, throttle');
-    this.osdStickRight = makeGimbal('Roll, pitch');
+    this.osdStickLeft = makeGimbal(str('ui.yaw_throttle'));
+    this.osdStickRight = makeGimbal(str('ui.roll_pitch'));
     /*
      * BETWEEN THE GIMBALS, which is where the report that asked for it said
      * to put it. The container used to be hidden as a unit whenever a radio
@@ -3072,7 +3073,7 @@ export class Ui {
       max: WEIGHT_MAX,
       step: WEIGHT_STEP,
       value: this.settings.weight,
-      label: 'Weight, how heavy the quad feels',
+      label: str('ui.weight_how_heavy_the_quad_feels'),
     });
     sticks.append(this.osdStickLeft.box, this.osdAir.box, this.osdStickRight.box);
     this.osdSticks = sticks;
@@ -3168,19 +3169,19 @@ export class Ui {
      * being true by the second visit. */
     const beta = el('p', 'beta-note');
     beta.append(
-      el('span', 'beta-tag', 'Beta'),
-      el('span', null, 'Expect bugs and rough edges. It is still being built, and it will improve.'),
+      el('span', 'beta-tag', str('ui.beta')),
+      el('span', null, str('ui.expect_bugs_and_rough_edges_it')),
     );
     brand.append(beta);
     this.titleBest = el('div', 'brand-best', '');
     brand.append(this.titleBest);
-    this.keepNote = el('p', 'keep-note', 'Tracks you build stay in this browser. Clearing it, or another device, starts you from nothing. Publish a track to put it on the public board.');
+    this.keepNote = el('p', 'keep-note', str('ui.tracks_you_build_stay_in_this'));
     brand.append(this.keepNote);
     /* First run only. Replaced by the keep note once a lap has been flown. */
-    this.firstNote = el('p', 'keep-note first-note', 'A quad has no brakes and no wings. Point it where you want to go and push. Two minutes and you will be through a gate.');
+    this.firstNote = el('p', 'keep-note first-note', str('ui.a_quad_has_no_brakes_and'));
     brand.append(this.firstNote);
-    this.wikiTeaser = btn('wiki-teaser', 'Simulating FPV, for nerds');
-    this.wikiTeaser.setAttribute('aria-label', 'Open the FPV wiki');
+    this.wikiTeaser = btn('wiki-teaser', str('ui.simulating_fpv_for_nerds'));
+    this.wikiTeaser.setAttribute('aria-label', str('ui.open_the_fpv_wiki'));
     this.wikiTeaser.addEventListener('click', () => this.act('wiki'));
     brand.append(this.wikiTeaser);
     const titleBlock = wrapMenu();
@@ -3202,7 +3203,7 @@ export class Ui {
     /* Kept, because its keys and its copy change with the state the title
      * is in: the gate has nothing behind it for Escape to reach and the
      * menu does. See setTitleHint. */
-    this.titleHint = hintWithKeys(['↑↓', 'Enter'], 'Arrow keys move, Enter selects. A radio banks the quad. Any switch selects.');
+    this.titleHint = hintWithKeys(['↑↓', 'Enter'], str('ui.arrow_keys_move_enter_selects_a'));
     titleFoot.append(
       this.titleHint,
       titleBlock.stage,
@@ -3242,8 +3243,8 @@ export class Ui {
      * one it opens on.
      */
     const howto = el('div', 'screen screen-page screen-howto');
-    howto.append(el('h2', null, 'How to fly'));
-    howto.append(el('p', 'howto-lede', 'A quad has no brakes and no wings. Throttle only sets how hard the props push, so the way to slow down or turn is to point the quad somewhere else and push. Fly the pulsing gate: green is the way through, red is its wrong face.'));
+    howto.append(el('h2', null, str('ui.how_to_fly')));
+    howto.append(el('p', 'howto-lede', str('ui.a_quad_has_no_brakes_and_2')));
 
     const howtoTabs = el('div', 'howto-tabs');
     this.howtoTabs = {};
@@ -3252,7 +3253,7 @@ export class Ui {
      * most likely holding the machine. */
     const tabList = [
       ...(touchWanted() ? [['touch', 'Touch']] : []),
-      ['keyboard', 'Keyboard'], ['radio', 'Radio or gamepad'], ['launch', 'Launch control'],
+      ['keyboard', 'Keyboard'], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')],
     ];
     for (const [id, label] of tabList) {
       const b = btn('howto-tab', label);
@@ -3264,8 +3265,8 @@ export class Ui {
 
     const howtoBody = el('div', 'howto-body');
     const rig = el('div', 'howto-rig');
-    this.howtoStickLeft = makeGimbal('Yaw, throttle');
-    this.howtoStickRight = makeGimbal('Roll, pitch');
+    this.howtoStickLeft = makeGimbal(str('ui.yaw_throttle'));
+    this.howtoStickRight = makeGimbal(str('ui.roll_pitch'));
     const sticksRow = el('div', 'howto-sticks');
     sticksRow.append(this.howtoStickLeft.box, this.howtoStickRight.box);
     this.howtoLive = el('div', 'howto-live', '');
@@ -3276,14 +3277,14 @@ export class Ui {
 
     this.howtoMode = el('p', 'howto-mode', '');
     howto.append(this.howtoMode);
-    const howtoWiki = btn('howto-wiki', 'Why this works: the FPV wiki');
+    const howtoWiki = btn('howto-wiki', str('ui.why_this_works_the_fpv_wiki'));
     howtoWiki.addEventListener('click', () => this.act('wiki'));
     howto.append(howtoWiki);
 
     const howtoBlock = wrapMenu();
     this.howtoMenu = howtoBlock.menu;
     this.howtoHelp = howtoBlock.help;
-    howto.append(howtoBlock.stage, hintWithKeys(['Esc'], 'Goes back. Arrow keys still move the menu.'));
+    howto.append(howtoBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_arrow_keys_still_move')));
     this.screens.howto = howto;
     this.howtoSource = touchWanted() ? 'touch' : 'keyboard';
     this.renderHowto();
@@ -3299,8 +3300,8 @@ export class Ui {
      * shape the scorer does not want. See src/ui/trickfilm.js.
      */
     const tricks = el('div', 'screen screen-page screen-tricks');
-    tricks.append(el('h2', null, 'Trick list'));
-    tricks.append(el('p', 'rates-lede', 'Every trick the scorer is known to name, what it pays, and what it looks like. Pick one and watch it: the picture is drawn from the same definition the scorer matches against, so what you see is exactly what it is waiting for. Each one has been flown and scored in testing, which is what earns it a place here. Points are before the combo, which multiplies them.'));
+    tricks.append(el('h2', null, str('ui.trick_list')));
+    tricks.append(el('p', 'rates-lede', str('ui.every_trick_the_scorer_is_known')));
     const trickStage = el('div', 'trick-stage');
     this.trickCanvas = el('canvas', 'trick-film');
     const trickSide = el('div', 'trick-side');
@@ -3315,13 +3316,13 @@ export class Ui {
     this.trickMenu = trickBlock.menu;
     this.trickMenu.classList.add('menu-scroll');
     this.trickHelp = trickBlock.help;
-    tricks.append(trickBlock.stage, hintWithKeys(['Esc'], 'Goes back. Arrow keys move through the list.'));
+    tricks.append(trickBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_arrow_keys_move_through')));
     this.screens.tricks = tricks;
     this.trickPlayer = new TrickFilmPlayer(this.trickCanvas);
     this.trickShown = '';
 
     const credits = el('div', 'screen screen-page screen-credits');
-    credits.append(el('h2', null, 'Credits'));
+    credits.append(el('h2', null, str('ui.credits')));
     this.creditsRoll = el('div', 'credits-roll');
     fillCredits(this.creditsRoll, { assetBase: 'assets/credits' });
     const creditsBlock = wrapMenu();
@@ -3330,7 +3331,7 @@ export class Ui {
     credits.append(
       this.creditsRoll,
       creditsBlock.stage,
-      hintWithKeys(['Esc'], 'Goes back. Arrow keys still move the menu.'),
+      hintWithKeys(['Esc'], str('ui.goes_back_arrow_keys_still_move')),
     );
     this.screens.credits = credits;
 
@@ -3358,7 +3359,7 @@ export class Ui {
      * new one, then the track builder page itself.
      */
     const courses = el('div', 'screen screen-page screen-maps screen-courses');
-    courses.append(el('h2', null, 'Tracks'));
+    courses.append(el('h2', null, str('ui.tracks')));
     /*
      * WHICH AIRCRAFT THIS LIST IS FOR, said out loud.
      *
@@ -3395,7 +3396,7 @@ export class Ui {
        ordering that only ever applied to the board's half. Yours first
        because the track you were last working on is the one you came here
        to fly; the board's underneath, most flown first. */
-    this.courseStrip.append(el('div', 'strip-label', 'Yours first, then the board, most flown first'));
+    this.courseStrip.append(el('div', 'strip-label', str('ui.yours_first_then_the_board_most')));
     this.courseCardHost = el('div', 'map-cards course-cards');
     this.boardNote = el('div', 'board-note', '');
     this.courseStrip.append(this.courseCardHost, this.boardNote);
@@ -3406,14 +3407,14 @@ export class Ui {
     courses.append(
       this.courseStrip,
       coursesBlock.stage,
-      hintWithKeys(['↑↓', 'Enter', 'Esc'], 'Arrow keys move, Enter chooses. Escape goes back. On a radio: pitch to move, roll right to choose.'),
+      hintWithKeys(['↑↓', 'Enter', 'Esc'], str('ui.arrow_keys_move_enter_chooses_escape')),
     );
     this.screens.courses = courses;
 
     /* Freestyle. Same card machinery as Race, different contents, and no
      * publish cluster because nothing here is timed or posted. */
     const freestyle = el('div', 'screen screen-page screen-courses screen-freestyle');
-    freestyle.append(el('h2', null, 'Freestyle'));
+    freestyle.append(el('h2', null, str('ui.freestyle')));
     /*
      * The lede used to end "Pick one and fly it", which was the instruction
      * for a screen that offered four worlds, and it said "no board", which
@@ -3426,7 +3427,7 @@ export class Ui {
      * behind the door has to describe the door that is actually open: the
      * town and the quad, with the scoring named as a switch rather than as
      * the point. See DEFAULTS.freestyleScoring. */
-    freestyle.append(el('p', 'rates-lede', 'A whole town and no gates. Fly it, and this is where the machine you fly it on lives. Scoring is the switch below and it starts off, because the part that names what you flew is still being built.'));
+    freestyle.append(el('p', 'rates-lede', str('ui.a_whole_town_and_no_gates')));
     this.freestyleCards = el('div', 'map-cards');
     const freestyleBlock = wrapMenu();
     this.freestyleMenu = freestyleBlock.menu;
@@ -3457,29 +3458,29 @@ export class Ui {
      * quad above a list of the pilot's sound levels.
      */
     const quad = el('div', 'screen screen-page screen-quad');
-    quad.append(el('h2', null, 'Quad'));
-    quad.append(el('p', 'rates-lede', 'Everything about the machine. Carried with every time you post.'));
+    quad.append(el('h2', null, str('ui.quad')));
+    quad.append(el('p', 'rates-lede', str('ui.everything_about_the_machine_carried_with')));
     const quadBlock = wrapMenu();
     this.quadMenu = quadBlock.menu;
     this.quadMenu.classList.add('menu-scroll');
     this.quadHelp = quadBlock.help;
     this.craftQuadFrame = el('div', 'craft-showcase-frame');
     this.craftQuadFrame.append(this.craftCanvas);
-    this.craftCaption = el('div', 'craft-showcase-cap', 'Acro. Sticks are rates. Hands off holds.');
+    this.craftCaption = el('div', 'craft-showcase-cap', str('ui.acro_sticks_are_rates_hands_off'));
     const quadShowcase = el('div', 'craft-showcase');
     quadShowcase.append(this.craftQuadFrame, this.craftCaption);
     quadBlock.stage.prepend(quadShowcase);
-    quad.append(quadBlock.stage, hintWithKeys(['Esc'], 'Goes back. Changes are already stored. Arrow keys still move the menu.'));
+    quad.append(quadBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_changes_are_already_stored')));
     this.screens.quad = quad;
 
     const pilot = el('div', 'screen screen-page screen-pilot');
-    pilot.append(el('h2', null, 'Settings'));
-    pilot.append(el('p', 'rates-lede', 'You and your sticks. Rates are here because they are yours: they stay put when you switch tunes.'));
+    pilot.append(el('h2', null, str('ui.settings')));
+    pilot.append(el('p', 'rates-lede', str('ui.you_and_your_sticks_rates_are')));
     const pilotBlock = wrapMenu();
     this.pilotMenu = pilotBlock.menu;
     this.pilotMenu.classList.add('menu-scroll');
     this.pilotHelp = pilotBlock.help;
-    pilot.append(pilotBlock.stage, hintWithKeys(['Esc'], 'Goes back. Changes are already stored. Arrow keys still move the menu.'));
+    pilot.append(pilotBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_changes_are_already_stored')));
     this.screens.pilot = pilot;
 
     /*
@@ -3497,7 +3498,7 @@ export class Ui {
      * link for sending somebody rather than as the only way to see a time.
      */
     const standings = el('div', 'screen screen-page screen-standings');
-    standings.append(el('h2', null, 'Standings'));
+    standings.append(el('h2', null, str('ui.standings')));
     this.standingsLede = el('p', 'rates-lede', '');
     standings.append(this.standingsLede);
     this.standingsTable = el('div', 'standings-table');
@@ -3506,7 +3507,7 @@ export class Ui {
     this.standingsMenu.classList.add('menu-scroll');
     this.standingsHelp = standingsBlock.help;
     standingsBlock.stage.prepend(this.standingsTable);
-    standings.append(standingsBlock.stage, hintWithKeys(['Esc'], 'Goes back to the track list.'));
+    standings.append(standingsBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_to_the_track_list')));
     this.screens.standings = standings;
 
     /*
@@ -3531,14 +3532,14 @@ export class Ui {
      * readout for the one flag that does change a freestyle flight.
      */
     const launch = el('div', 'screen screen-page screen-launch');
-    launch.append(el('h2', null, 'Before you fly'));
+    launch.append(el('h2', null, str('ui.before_you_fly')));
     this.launchLede = el('p', 'rates-lede', '');
     launch.append(this.launchLede);
     const launchBlock = wrapMenu();
     this.launchMenu = launchBlock.menu;
     this.launchMenu.classList.add('menu-scroll');
     this.launchHelp = launchBlock.help;
-    launch.append(launchBlock.stage, hintWithKeys(['Enter', 'Esc'], 'Enter flies it. Escape goes back without flying.'));
+    launch.append(launchBlock.stage, hintWithKeys(['Enter', 'Esc'], str('ui.enter_flies_it_escape_goes_back')));
     this.screens.launch = launch;
 
     /*
@@ -3560,11 +3561,11 @@ export class Ui {
      * src/fc/ratescurve.js. The dots on it are the live sticks.
      */
     const rates = el('div', 'screen screen-page screen-rates');
-    rates.append(el('h2', null, 'Rates'));
+    rates.append(el('h2', null, str('ui.rates')));
     rates.append(el(
       'p',
       'rates-lede',
-      'How far the sticks go. Pick the rate system you think in and type your own numbers: all five of Betaflight\'s are here and the quad flies whichever you choose. Rates belong to you, not to the tune, so they stay put when you switch tunes. A radio in Acro flies this curve; keyboard flight is Angle and ignores it.',
+      str('ui.how_far_the_sticks_go_pick'),
     ));
     this.ratesPanel = mountRatesPanel();
     const ratesBlock = wrapMenu();
@@ -3595,11 +3596,11 @@ export class Ui {
      * the running module, so what is on this screen is what is flying.
      */
     const pids = el('div', 'screen screen-page screen-rates screen-pids');
-    pids.append(el('h2', null, 'PIDs'));
+    pids.append(el('h2', null, str('ui.pids')));
     pids.append(el(
       'p',
       'rates-lede',
-      'How hard the flight controller works. The sliders are Betaflight\'s own, applied by the firmware itself, and they adjust the tune you have loaded: 100 is that tune\'s stock, the master multiplier scales everything at once. Each tune keeps its own adjustment. Rates live on their own screen and are untouched by anything here.',
+      str('ui.how_hard_the_flight_controller_works'),
     ));
     this.pidsPanel = mountPidsPanel();
     const pidsBlock = wrapMenu();
@@ -3622,14 +3623,14 @@ export class Ui {
     const fc = el('div', 'screen screen-page screen-fc');
     const fcHead = el('div', 'fc-head');
     const fcBrand = el('div', 'fc-brand');
-    fcBrand.append(el('span', 'fc-wordmark', 'BETAFLIGHT'));
+    fcBrand.append(el('span', 'fc-wordmark', str('ui.betaflight')));
     fcBrand.append(el('span', 'fc-fw', '4.5.1'));
-    fcBrand.append(el('span', 'fc-conn', 'WASM'));
+    fcBrand.append(el('span', 'fc-conn', str('ui.wasm')));
     this.fcDirty = el('span', 'fc-dirty', '');
     fcBrand.append(this.fcDirty);
     fcHead.append(fcBrand);
     const homage = el('p', 'fc-homage');
-    const cfgLink = el('a', null, 'Betaflight Configurator');
+    const cfgLink = el('a', null, str('ui.betaflight_configurator'));
     cfgLink.href = 'https://github.com/betaflight/betaflight-configurator';
     cfgLink.target = '_blank';
     cfgLink.rel = 'noopener noreferrer';
@@ -3638,36 +3639,36 @@ export class Ui {
     bfLink.target = '_blank';
     bfLink.rel = 'noopener noreferrer';
     homage.append(
-      document.createTextNode('Homage of '),
+      document.createTextNode(str('ui.homage_of')),
       cfgLink,
-      document.createTextNode(' 10.10 colours and tabs, not that app. No Vue, no MSP, no iframe, no CLI paste. Firmware is compiled '),
+      document.createTextNode(str('ui.10_10_colours_and_tabs_not')),
       bfLink,
-      document.createTextNode(' 4.5.1. With thanks to the Betaflight developers. GPLv3.'),
+      document.createTextNode(str('ui.4_5_1_with_thanks_to')),
     );
     fcHead.append(homage);
     const fcExit = el('div', 'fc-exit');
-    this.fcSaveExit = btn('fc-exit-btn fc-exit-save', 'Save and exit');
+    this.fcSaveExit = btn('fc-exit-btn fc-exit-save', str('ui.save_and_exit'));
     this.fcSaveExit.addEventListener('click', (e) => {
       e.stopPropagation();
       this.act('fc-save-exit');
     });
-    this.fcLeave = btn('fc-exit-btn fc-exit-leave', 'Exit without saving');
+    this.fcLeave = btn('fc-exit-btn fc-exit-leave', str('ui.exit_without_saving'));
     this.fcLeave.addEventListener('click', (e) => {
       e.stopPropagation();
       this.act('fc-back');
     });
     const fcExitHint = el('div', 'fc-exit-hint');
     fcExitHint.append(el('kbd', null, 'Esc'));
-    this.fcExitCopy = el('span', 'fc-exit-copy', 'exits without saving');
+    this.fcExitCopy = el('span', 'fc-exit-copy', str('ui.exits_without_saving'));
     fcExitHint.append(this.fcExitCopy);
     fcExit.append(this.fcSaveExit, this.fcLeave, fcExitHint);
     this.fcExit = fcExit;
     const fcBody = el('div', 'fc-body');
     this.fcTabs = el('nav', 'fc-tabs');
-    this.fcTabs.setAttribute('aria-label', 'Configurator tabs');
+    this.fcTabs.setAttribute('aria-label', str('ui.configurator_tabs'));
     const fcWork = el('div', 'fc-work');
     this.fcPages = el('div', 'fc-pages');
-    this.fcPages.setAttribute('aria-label', 'PID Tuning pages');
+    this.fcPages.setAttribute('aria-label', str('ui.pid_tuning_pages'));
     this.fcPages.hidden = true;
     const fcBlock = wrapMenu();
     this.fcMenu = fcBlock.menu;
@@ -3676,22 +3677,22 @@ export class Ui {
     this.fcAttitude = el('canvas', 'fc-attitude');
     this.fcAttitude.width = 220;
     this.fcAttitude.height = 220;
-    this.fcAttitude.setAttribute('aria-label', 'Attitude');
+    this.fcAttitude.setAttribute('aria-label', str('ui.attitude'));
     this.fcAttitude.hidden = true;
     fcWork.append(this.fcPages, fcBlock.stage, this.fcAttitude);
     fcBody.append(this.fcTabs, fcWork);
-    const fcStatus = el('div', 'fc-status', 'Connected: WASM  ·  Betaflight 4.5.1  ·  PID 1 kHz  ·  Profile 0  ·  Homage of Configurator 10.10, not that app');
+    const fcStatus = el('div', 'fc-status', str('ui.connected_wasm_betaflight_4_5_1'));
     fc.append(fcHead, fcExit, fcBody, fcStatus);
     this.screens.fc = fc;
 
     const calibrate = el('div', 'screen screen-page screen-calibrate');
-    calibrate.append(el('h2', null, 'Calibrate sticks'));
+    calibrate.append(el('h2', null, str('ui.calibrate_sticks')));
     this.calKicker = el('div', 'cal-kicker', '');
     this.calPrompt = el('p', 'cal-prompt', '');
     this.calHint = el('p', 'cal-hint', '');
     const calSticks = el('div', 'cal-sticks');
-    this.calStickLeft = makeGimbal('Yaw, throttle');
-    this.calStickRight = makeGimbal('Roll, pitch');
+    this.calStickLeft = makeGimbal(str('ui.yaw_throttle'));
+    this.calStickRight = makeGimbal(str('ui.roll_pitch'));
     calSticks.append(this.calStickLeft.box, this.calStickRight.box);
     /*
      * THE RAW AXES, BECAUSE THE GIMBALS ABOVE CANNOT SHOW AN AXIS THEY HAVE
@@ -3708,15 +3709,15 @@ export class Ui {
     this.calAxisCells = [];
     this.calList = el('ol', 'cal-steps');
     const calBtns = el('div', 'cal-actions');
-    this.calCancelBtn = btn('name-dialog-btn', 'Cancel');
+    this.calCancelBtn = btn('name-dialog-btn', str('ui.cancel'));
     /* Only ever shown on the menu switch step, and only a radio reporting
      * no buttons is asked that. See skipCalibrationSelect in input.js. */
-    this.calSkipBtn = btn('name-dialog-btn', 'No switch, skip');
+    this.calSkipBtn = btn('name-dialog-btn', str('ui.no_switch_skip'));
     this.calSkipBtn.hidden = true;
     /* Only on the check step, and only when the throttle is reading high
      * enough to fly the quad with nobody touching it. See zeroThrottleHere
      * in input.js for the radio this exists for. */
-    this.calZeroBtn = btn('name-dialog-btn', 'Throttle zero is here');
+    this.calZeroBtn = btn('name-dialog-btn', str('ui.throttle_zero_is_here'));
     this.calZeroBtn.hidden = true;
     /*
      * REVERSE THE CHANNEL UNDER THEIR THUMB, and the label names it rather
@@ -3724,13 +3725,13 @@ export class Ui {
      * the pilot never has to choose from a list: whatever they are moving
      * is what the button is about. See movingChannel in input.js.
      */
-    this.calRevBtn = btn('name-dialog-btn', 'Reverse');
+    this.calRevBtn = btn('name-dialog-btn', str('ui.reverse'));
     this.calRevBtn.hidden = true;
     /* Only on the check step, where the two drawn gimbals are captioned
      * and a pilot can see that they are on the wrong hands. */
-    this.calModeBtn = btn('name-dialog-btn', 'Swap stick mode');
+    this.calModeBtn = btn('name-dialog-btn', str('ui.swap_stick_mode'));
     this.calModeBtn.hidden = true;
-    this.calSaveBtn = btn('name-dialog-btn on', 'Save mapping');
+    this.calSaveBtn = btn(str('ui.name_dialog_btn_on'), str('ui.save_mapping'));
     this.calSaveBtn.disabled = true;
     this.calCancelBtn.addEventListener('click', () => this.act('calibrate-cancel'));
     this.calSkipBtn.addEventListener('click', () => this.act('calibrate-skip'));
@@ -3750,22 +3751,22 @@ export class Ui {
       this.calAxes,
       this.calList,
       calBtns,
-      hintWithKeys(['Esc'], 'Cancels. Nothing is saved until Save mapping.'),
+      hintWithKeys(['Esc'], str('ui.cancels_nothing_is_saved_until_save')),
     );
     this.screens.calibrate = calibrate;
     this.calCanSave = false;
     this.calCanSkip = false;
 
     const padpick = el('div', 'screen screen-page screen-padpick');
-    padpick.append(el('h2', null, 'Choose joystick'));
-    this.padKicker = el('div', 'cal-kicker', 'Which device');
-    this.padPrompt = el('p', 'cal-prompt', 'Move the joystick you want to fly with.');
+    padpick.append(el('h2', null, str('ui.choose_joystick')));
+    this.padKicker = el('div', 'cal-kicker', str('ui.which_device'));
+    this.padPrompt = el('p', 'cal-prompt', str('ui.move_the_joystick_you_want_to'));
     this.padHint = el('p', 'cal-hint', '');
     this.padCards = el('div', 'pad-cards');
     const padBtns = el('div', 'cal-actions pad-actions');
-    this.padYesBtn = btn('name-dialog-btn on', 'Yes, use this');
-    this.padNoBtn = btn('name-dialog-btn', 'No, not this one');
-    this.padSkipBtn = btn('name-dialog-btn', 'Use keyboard instead');
+    this.padYesBtn = btn(str('ui.name_dialog_btn_on'), str('ui.yes_use_this'));
+    this.padNoBtn = btn('name-dialog-btn', str('ui.no_not_this_one'));
+    this.padSkipBtn = btn('name-dialog-btn', str('ui.use_keyboard_instead'));
     this.padYesBtn.addEventListener('click', () => this.act('padpick-yes'));
     this.padNoBtn.addEventListener('click', () => this.act('padpick-no'));
     this.padSkipBtn.addEventListener('click', () => {
@@ -3778,7 +3779,7 @@ export class Ui {
       this.padHint,
       this.padCards,
       padBtns,
-      hintWithKeys(['Enter', 'Esc'], 'Enter uses the highlighted joystick. Escape is No, or skip if none is highlighted.'),
+      hintWithKeys(['Enter', 'Esc'], str('ui.enter_uses_the_highlighted_joystick_escape')),
     );
     this.screens.padpick = padpick;
     this.padCardNodes = new Map();
@@ -3787,20 +3788,20 @@ export class Ui {
     this.padPickPhase = 'wiggle';
 
     const paused = el('div', 'screen screen-modal');
-    paused.append(el('h2', null, 'Paused'));
+    paused.append(el('h2', null, str('ui.paused')));
     const pausedBlock = wrapMenu();
     this.pausedMenu = pausedBlock.menu;
     this.pausedHelp = pausedBlock.help;
-    paused.append(pausedBlock.stage, hintWithKeys(['Esc'], 'Resumes. Resume is also the first row.'));
+    paused.append(pausedBlock.stage, hintWithKeys(['Esc'], str('ui.resumes_resume_is_also_the_first')));
     this.screens.paused = paused;
 
     const results = el('div', 'screen screen-results');
     const resultsCopy = el('div', 'results-copy');
     const resultsTop = el('div', 'results-top');
     this.resultsKicker = el('div', 'results-kicker', '');
-    this.resultsHead = el('h2', 'results-head', 'Run complete');
+    this.resultsHead = el('h2', 'results-head', str('ui.run_complete'));
     this.resultsHero = el('div', 'results-hero');
-    this.resultsHeroCap = el('div', 'results-hero-cap', 'Best lap');
+    this.resultsHeroCap = el('div', 'results-hero-cap', str('ui.best_lap'));
     this.resultsHeroTime = el('div', 'results-hero-time', '');
     this.resultsHeroMeta = el('div', 'results-hero-meta', '');
     this.resultsHero.append(this.resultsHeroCap, this.resultsHeroTime, this.resultsHeroMeta);
@@ -3817,14 +3818,14 @@ export class Ui {
      * builder draw it. A result read on a screen that never shows the shape
      * of the course is a number without its subject. */
     this.resultsPlanWrap = el('div', 'results-plan');
-    this.resultsPlan = planCanvas(null, 'Track plan');
+    this.resultsPlan = planCanvas(null, str('ui.track_plan'));
     this.resultsPlanWrap.append(this.resultsPlan);
     resultsTop.append(this.resultsPlanWrap);
     const resultsBlock = wrapMenu();
     this.resultsMenu = resultsBlock.menu;
     this.resultsHelp = resultsBlock.help;
     const resultsFoot = el('div', 'results-foot');
-    resultsFoot.append(resultsBlock.stage, hintWithKeys(['Esc'], 'Goes back to the title. Back to title is also a row.'));
+    resultsFoot.append(resultsBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_to_the_title_back')));
     resultsCopy.append(resultsTop, resultsFoot);
     results.append(resultsCopy);
     this.screens.results = results;
@@ -3850,8 +3851,8 @@ export class Ui {
      * report was about, and it is one press from any screen that has the
      * chip on it.
      */
-    this.bugChip = btn('bug-chip', 'Report bug, give feedback');
-    this.bugChip.title = 'F8 also opens this.';
+    this.bugChip = btn('bug-chip', str('ui.report_bug_give_feedback'));
+    this.bugChip.title = str('ui.f8_also_opens_this');
     this.bugChip.addEventListener('click', () => this.openBugReport());
 
     /*
@@ -3870,8 +3871,8 @@ export class Ui {
      * itself when the thumb sticks are up, because that overlay brings its
      * own and two Pause buttons in one corner is worse than none.
      */
-    this.pauseChip = btn('bug-chip pause-chip', 'Pause');
-    this.pauseChip.title = 'Escape also pauses.';
+    this.pauseChip = btn('bug-chip pause-chip', str('ui.pause'));
+    this.pauseChip.title = str('ui.escape_also_pauses');
     this.pauseChip.addEventListener('click', () => {
       if (this.screen !== 'flight') {
         return;
@@ -3882,12 +3883,12 @@ export class Ui {
 
     this.musicDock = el('div', 'music-dock');
     this.musicDock.setAttribute('role', 'group');
-    this.musicDock.setAttribute('aria-label', 'Music');
+    this.musicDock.setAttribute('aria-label', str('ui.music'));
     this.musicPrev = btn('music-skip', '‹');
-    this.musicPrev.setAttribute('aria-label', 'Previous track');
+    this.musicPrev.setAttribute('aria-label', str('ui.previous_track'));
     this.musicPrev.tabIndex = -1;
     this.musicNext = btn('music-skip', '›');
-    this.musicNext.setAttribute('aria-label', 'Next track');
+    this.musicNext.setAttribute('aria-label', str('ui.next_track'));
     this.musicNext.tabIndex = -1;
     /*
      * THE NAME IS THE MUTE, because the dock is already the shape of the
@@ -3970,7 +3971,7 @@ export class Ui {
       return [];
     }
     return [{
-      label: 'Live',
+      label: str('ui.live'),
       value: this.liveRow.value,
       note: this.liveRow.note,
       adjust: (d) => {
@@ -3989,7 +3990,7 @@ export class Ui {
       return [];
     }
     return [{
-      label: 'Ghost',
+      label: str('ui.ghost'),
       value: this.ghostRow.value,
       note: this.ghostRow.note,
       adjust: (d) => {
@@ -4029,14 +4030,14 @@ export class Ui {
         label: '',
         value: readPilotName() || '',
         maxLength: 24,
-        placeholder: 'Name',
+        placeholder: str('ui.name'),
         rules: nameRules(),
         save: writePilotName,
       }];
     return new Promise((resolve) => {
       this.nameWait = resolve;
       const box = el('div', 'name-dialog-box');
-      box.append(el('h2', null, title || 'Your name'));
+      box.append(el('h2', null, title || str('ui.your_name')));
       if (detail) {
         box.append(el('p', 'lede', detail));
       }
@@ -4061,8 +4062,8 @@ export class Ui {
         inputs.push({ spec, field });
       }
       const row = el('div', 'name-dialog-row');
-      const save = btn('name-dialog-btn on', confirmLabel || 'Save');
-      const cancel = btn('name-dialog-btn', 'Cancel');
+      const save = btn(str('ui.name_dialog_btn_on'), confirmLabel || 'Save');
+      const cancel = btn('name-dialog-btn', str('ui.cancel'));
       row.append(save, cancel);
       box.append(err, row);
       this.nameDialog.textContent = '';
@@ -4075,12 +4076,12 @@ export class Ui {
           if (spec.save) {
             value = spec.save(field.value);
             if (!value) {
-              err.textContent = spec.rules || 'That value is not usable.';
+              err.textContent = spec.rules || str('ui.that_value_is_not_usable');
               field.focus();
               return null;
             }
           } else if (spec.required !== false && !value) {
-            err.textContent = spec.empty || 'That needs a name.';
+            err.textContent = spec.empty || str('ui.that_needs_a_name');
             field.focus();
             return null;
           }
@@ -4154,7 +4155,7 @@ export class Ui {
   askRatePresetName(suggested = '') {
     const taken = presetNamed(suggested);
     return this.askForm({
-      title: 'Name this preset',
+      title: str('ui.name_this_preset'),
       detail: RATES_STORAGE_WARNING,
       confirmLabel: taken ? 'Replace' : 'Save',
       fields: [{
@@ -4162,8 +4163,8 @@ export class Ui {
         label: '',
         value: suggested,
         maxLength: PRESET_NAME_MAX,
-        placeholder: 'Preset name',
-        empty: 'A preset needs a name.',
+        placeholder: str('ui.preset_name'),
+        empty: str('ui.a_preset_needs_a_name'),
       }],
     }).then((values) => (values ? values.name : null));
   }
@@ -4187,7 +4188,7 @@ export class Ui {
         box.append(el('p', 'lede', detail));
       }
       const row = el('div', 'name-dialog-row');
-      const yesBtn = btn('name-dialog-btn on', yes || 'Yes');
+      const yesBtn = btn(str('ui.name_dialog_btn_on'), yes || 'Yes');
       const noBtn = btn('name-dialog-btn', no || 'No');
       row.append(noBtn, yesBtn);
       box.append(row);
@@ -4265,10 +4266,10 @@ export class Ui {
     const now = Math.round(yawNow * Math.sin(cameraTiltRad(s.cameraAngle)));
     const then = Math.round(YAW_TIP_RATE * Math.sin(cameraTiltRad(s.cameraAngle)));
     this.askConfirm({
-      title: 'Yaw will roll the horizon',
-      detail: `At ${s.cameraAngle} degrees of tilt, ${pct} percent of a yaw shows up as roll in the picture: ${now} deg/s of it at your ${yawNow} deg/s yaw rate. That is what a real tilted camera does, and the usual answer is a slower yaw. Dropping the yaw max rate to ${YAW_TIP_RATE} brings it back to ${then} deg/s. You can change it any time on the Rates screen.`,
-      yes: `Set yaw to ${YAW_TIP_RATE}`,
-      no: `Leave it at ${yawNow}`,
+      title: str('ui.yaw_will_roll_the_horizon'),
+      detail: str('ui.at_degrees_of_tilt_percent_of', { cameraAngle: s.cameraAngle, pct, now, yawNow, YAW_TIP_RATE, then }),
+      yes: str('ui.set_yaw_to', { YAW_TIP_RATE }),
+      no: str('ui.leave_it_at', { yawNow }),
     }).then((ok) => {
       if (!ok) {
         return;
@@ -4291,15 +4292,15 @@ export class Ui {
    */
   askName({ title, detail } = {}) {
     return this.askForm({
-      title: title || 'Your name',
-      detail: detail || 'Posted times and published tracks carry this name. Changing it updates the board for tracks you published from this browser.',
-      confirmLabel: 'Save',
+      title: title || str('ui.your_name'),
+      detail: detail || str('ui.posted_times_and_published_tracks_carry'),
+      confirmLabel: str('ui.save'),
       fields: [{
         key: 'name',
         label: '',
         value: readPilotName() || '',
         maxLength: 24,
-        placeholder: 'Name',
+        placeholder: str('ui.name'),
         autocomplete: 'nickname',
         rules: nameRules(),
         save: writePilotName,
@@ -4338,16 +4339,16 @@ export class Ui {
       return false;
     }
     const panel = el('div', 'name-dialog-box bug');
-    panel.append(el('h2', null, 'Keep this report?'));
+    panel.append(el('h2', null, str('ui.keep_this_report')));
     panel.append(el(
       'p',
       'lede',
-      'You have written something that has not been sent. Nothing here keeps a draft, so closing now loses it.',
+      str('ui.you_have_written_something_that_has'),
     ));
     const row = el('div', 'name-dialog-row');
-    const send = btn('name-dialog-btn on', 'Send it');
-    const keep = btn('name-dialog-btn', 'Keep editing');
-    const drop = btn('name-dialog-btn danger', 'Discard');
+    const send = btn(str('ui.name_dialog_btn_on'), str('ui.send_it'));
+    const keep = btn('name-dialog-btn', str('ui.keep_editing'));
+    const drop = btn('name-dialog-btn danger', str('ui.discard'));
     row.append(send, keep, drop);
     panel.append(row);
     /* Back to the form, untouched. Also what Escape means while this is
@@ -4486,7 +4487,7 @@ export class Ui {
     this.syncMusicDock();
     /* The Music row prints Off or a number, and it is one screen away. */
     this.renderMenu();
-    this.announce(s.musicLevel > 0 ? 'Music on' : 'Music muted');
+    this.announce(s.musicLevel > 0 ? str('ui.music_on') : str('ui.music_muted'));
   }
 
   setMusicNow(st) {
@@ -4513,7 +4514,7 @@ export class Ui {
     const name = (this.musicNow && this.musicNow.name) || MENU_TRACKS[0].name;
     this.musicTitle.textContent = name;
     /* The name, because it ellipsises, and then what the click does. */
-    this.musicTitle.title = muted ? `${name}. Click to unmute.` : `${name}. Click to mute.`;
+    this.musicTitle.title = muted ? str('ui.click_to_unmute', { name }) : str('ui.click_to_mute', { name });
   }
 
   bugSnapshot() {
@@ -4664,20 +4665,20 @@ export class Ui {
       this.closeNameDialog(null);
     }
     const box = el('div', 'name-dialog-box bug');
-    box.append(el('h2', null, 'Report a bug'));
+    box.append(el('h2', null, str('ui.report_a_bug')));
     box.append(el(
       'p',
       'lede',
-      'Title and what happened are enough. The map, graphics, GPU and browser go with the ticket so you do not have to type those.',
+      str('ui.title_and_what_happened_are_enough'),
     ));
     /* The other door. The chip says give feedback as well as report a bug,
      * and a pilot who came to say how the quad flies should not have to
      * dress an opinion up as a defect: this hands them to the flight feel
      * form, which asks the one question they came to answer. */
-    const feelDoor = btn('name-dialog-door', 'Just here to say how it flies? Give flight feel feedback instead.');
+    const feelDoor = btn('name-dialog-door', str('ui.just_here_to_say_how_it'));
     box.append(feelDoor);
 
-    const kindLabel = el('p', 'name-dialog-label', 'Kind');
+    const kindLabel = el('p', 'name-dialog-label', str('ui.kind'));
     const kind = document.createElement('select');
     kind.className = 'name-dialog-input';
     for (const opt of BUG_KINDS) {
@@ -4690,46 +4691,46 @@ export class Ui {
       kind.append(o);
     }
 
-    const titleLabel = el('p', 'name-dialog-label', 'Title');
+    const titleLabel = el('p', 'name-dialog-label', str('ui.title'));
     const title = document.createElement('input');
     title.type = 'text';
     title.className = 'name-dialog-input';
     title.maxLength = 120;
-    title.placeholder = 'Short, specific';
+    title.placeholder = str('ui.short_specific');
     title.autocomplete = 'off';
 
-    const whatLabel = el('p', 'name-dialog-label', 'What happened');
+    const whatLabel = el('p', 'name-dialog-label', str('ui.what_happened'));
     const what = document.createElement('textarea');
     what.className = 'name-dialog-input name-dialog-area';
     what.maxLength = 4000;
     what.rows = 4;
-    what.placeholder = 'What you saw, heard, or could not do.';
+    what.placeholder = str('ui.what_you_saw_heard_or_could');
 
-    const expectedLabel = el('p', 'name-dialog-label', 'What you expected (optional)');
+    const expectedLabel = el('p', 'name-dialog-label', str('ui.what_you_expected_optional'));
     const expected = document.createElement('textarea');
     expected.className = 'name-dialog-input name-dialog-area';
     expected.maxLength = 2000;
     expected.rows = 2;
 
-    const stepsLabel = el('p', 'name-dialog-label', 'How to reproduce (optional)');
+    const stepsLabel = el('p', 'name-dialog-label', str('ui.how_to_reproduce_optional'));
     const steps = document.createElement('textarea');
     steps.className = 'name-dialog-input name-dialog-area';
     steps.maxLength = 2000;
     steps.rows = 2;
 
-    const nameLabel = el('p', 'name-dialog-label', 'Your name (optional)');
+    const nameLabel = el('p', 'name-dialog-label', str('ui.your_name_optional'));
     const reporter = document.createElement('input');
     reporter.type = 'text';
     reporter.className = 'name-dialog-input';
     reporter.maxLength = 24;
     reporter.autocomplete = 'nickname';
     reporter.value = readPilotName() || '';
-    reporter.placeholder = 'Leave blank to stay Anonymous';
+    reporter.placeholder = str('ui.leave_blank_to_stay_anonymous');
 
     const err = el('p', 'name-dialog-err', '');
     const row = el('div', 'name-dialog-row');
-    const send = btn('name-dialog-btn on', 'Send');
-    const cancel = btn('name-dialog-btn', 'Cancel');
+    const send = btn(str('ui.name_dialog_btn_on'), str('ui.send'));
+    const cancel = btn('name-dialog-btn', str('ui.cancel'));
     row.append(send, cancel);
     box.append(
       kindLabel, kind,
@@ -4814,12 +4815,12 @@ export class Ui {
     const submit = async () => {
       err.textContent = '';
       if (title.value.trim().length < 8) {
-        err.textContent = 'A title needs at least eight characters.';
+        err.textContent = str('ui.a_title_needs_at_least_eight');
         title.focus();
         return;
       }
       if (what.value.trim().length < 20) {
-        err.textContent = 'Say what happened, at least a sentence.';
+        err.textContent = str('ui.say_what_happened_at_least_a');
         what.focus();
         return;
       }
@@ -4835,20 +4836,20 @@ export class Ui {
       sending = true;
       send.disabled = true;
       cancel.disabled = true;
-      send.textContent = 'Sending';
+      send.textContent = str('ui.sending');
       try {
         const posted = await submitBug(payload);
         sending = false;
         sent = true;
         box.textContent = '';
-        box.append(el('h2', null, 'Sent'));
+        box.append(el('h2', null, str('ui.sent')));
         box.append(el(
           'p',
           'lede',
-          `Ticket ${posted.id} is on the board. Thanks.`,
+          str('ui.ticket_is_on_the_board_thanks', { id: posted.id }),
         ));
         const doneRow = el('div', 'name-dialog-row');
-        const close = btn('name-dialog-btn on', 'Close');
+        const close = btn(str('ui.name_dialog_btn_on'), str('ui.close'));
         close.addEventListener('click', () => finish(posted));
         doneRow.append(close);
         box.append(doneRow);
@@ -4857,8 +4858,8 @@ export class Ui {
         sending = false;
         send.disabled = false;
         cancel.disabled = false;
-        send.textContent = 'Send';
-        err.textContent = e.message || 'The board could not take that report.';
+        send.textContent = str('ui.send');
+        err.textContent = e.message || str('ui.the_board_could_not_take_that');
       }
     };
     send.addEventListener('click', submit);
@@ -4930,35 +4931,35 @@ export class Ui {
       this.closeNameDialog(null);
     }
     const FEELS = [
-      { id: 'floppy', label: 'Floppy' },
-      { id: 'soft', label: 'Soft' },
-      { id: 'right', label: 'About right' },
-      { id: 'stiff', label: 'Stiff' },
-      { id: 'twitchy', label: 'Twitchy' },
+      { id: 'floppy', label: str('ui.floppy') },
+      { id: 'soft', label: str('ui.soft') },
+      { id: 'right', label: str('ui.about_right') },
+      { id: 'stiff', label: str('ui.stiff') },
+      { id: 'twitchy', label: str('ui.twitchy') },
     ];
     const ISSUES = [
-      { id: 'sluggish', label: 'Slow to answer the stick' },
-      { id: 'bounce', label: 'Bounces back after a stop' },
-      { id: 'propwash', label: 'Wobbles in propwash' },
-      { id: 'drift', label: 'Drifts off attitude' },
-      { id: 'yaw', label: 'Yaw is lazy' },
-      { id: 'throttle', label: 'Throttle is touchy' },
+      { id: 'sluggish', label: str('ui.slow_to_answer_the_stick') },
+      { id: 'bounce', label: str('ui.bounces_back_after_a_stop') },
+      { id: 'propwash', label: str('ui.wobbles_in_propwash') },
+      { id: 'drift', label: str('ui.drifts_off_attitude') },
+      { id: 'yaw', label: str('ui.yaw_is_lazy') },
+      { id: 'throttle', label: str('ui.throttle_is_touchy') },
       /*
        * FLOATY GETS ITS OWN CHIP, because it kept arriving in the free text
        * box instead. "About right" plus "its much too floaty" typed
        * underneath is a report the chip rows could not carry, and the row
        * below can now answer it on the spot the way the throttle row does.
        */
-      { id: 'floaty', label: 'Floaty, carries too far' },
-      { id: 'locked', label: 'Locked in, no complaints' },
+      { id: 'floaty', label: str('ui.floaty_carries_too_far') },
+      { id: 'locked', label: str('ui.locked_in_no_complaints') },
     ];
 
     const box = el('div', 'name-dialog-box bug feel');
-    box.append(el('h2', null, 'How does it fly?'));
+    box.append(el('h2', null, str('ui.how_does_it_fly')));
     box.append(el(
       'p',
       'lede',
-      `One honest word steers the tune work more than any telemetry. Only the first row is needed; your tune, PID adjustment and rates travel with the answer so the numbers behind the feel arrive too. You were flying ${context.tuneName}.`,
+      str('ui.one_honest_word_steers_the_tune', { tuneName: context.tuneName }),
     ));
 
     let feel = null;
@@ -5015,7 +5016,7 @@ export class Ui {
       const show = issues.has('floaty') && weight < WEIGHT_MAX;
       airHint.hidden = !show;
       if (show) {
-        airHint.textContent = `The Weight slider between the sticks on the flight screen is this exact complaint: it scales the weight the quad carries, so it drops when you chop the throttle instead of hanging. Yours is at ${weight} percent. From a hover with the throttle cut, the stock quad falls 10 metres in 1.20 s and balloons 1.6 m after a short punch; at 140 percent that is 1.01 s and 0.7 m. Hover moves up the stick with it, 35.0 percent at stock to 42.7 at 140. Worth dragging before you wait on us, and a lap flown on it stays off the public board.`;
+        airHint.textContent = str('ui.the_weight_slider_between_the_sticks', { weight });
       }
     };
     const refreshCapHint = () => {
@@ -5026,7 +5027,7 @@ export class Ui {
       if (show) {
         const eased = hoverStickPercent(75, this.settings.airframe);
         const now = hoverStickPercent(100, this.settings.airframe);
-        capHint.textContent = `This quad hovers at ${now.toFixed(1)} percent of stick with no throttle limit, so nearly all the travel is above hover. Rates, Throttle limit, 75 percent moves hover to ${eased.toFixed(1)} percent and gives the fine control back without losing any climb you can use indoors. Worth trying before you wait on us.`;
+        capHint.textContent = str('ui.this_quad_hovers_at_percent_of', { now: now.toFixed(1), eased: eased.toFixed(1) });
       }
     };
     const issueRow = chipRow(ISSUES, (id, chips) => {
@@ -5040,31 +5041,31 @@ export class Ui {
       refreshAirHint();
     });
 
-    const wordsLabel = el('p', 'name-dialog-label', 'In your own words (optional)');
+    const wordsLabel = el('p', 'name-dialog-label', str('ui.in_your_own_words_optional'));
     const words = document.createElement('textarea');
     words.className = 'name-dialog-input name-dialog-area';
     words.maxLength = 2000;
     words.rows = 3;
-    words.placeholder = 'What you would tell the person holding the screwdriver.';
+    words.placeholder = str('ui.what_you_would_tell_the_person');
 
-    const nameLabel = el('p', 'name-dialog-label', 'Your name (optional)');
+    const nameLabel = el('p', 'name-dialog-label', str('ui.your_name_optional'));
     const reporter = document.createElement('input');
     reporter.type = 'text';
     reporter.className = 'name-dialog-input';
     reporter.maxLength = 24;
     reporter.autocomplete = 'nickname';
     reporter.value = readPilotName() || '';
-    reporter.placeholder = 'Leave blank to stay Anonymous';
+    reporter.placeholder = str('ui.leave_blank_to_stay_anonymous');
 
     const err = el('p', 'name-dialog-err', '');
     const row = el('div', 'name-dialog-row');
-    const send = btn('name-dialog-btn on', 'Send');
-    const dismiss = btn('name-dialog-btn', 'Not now');
+    const send = btn(str('ui.name_dialog_btn_on'), str('ui.send'));
+    const dismiss = btn('name-dialog-btn', str('ui.not_now'));
     row.append(send, dismiss);
     box.append(
-      el('p', 'name-dialog-label', 'The quad felt'),
+      el('p', 'name-dialog-label', str('ui.the_quad_felt')),
       feelRow.wrap,
-      el('p', 'name-dialog-label', 'Anything specific (pick any)'),
+      el('p', 'name-dialog-label', str('ui.anything_specific_pick_any')),
       issueRow.wrap,
       capHint,
       airHint,
@@ -5132,12 +5133,12 @@ export class Ui {
     const submit = async () => {
       err.textContent = '';
       if (!feel) {
-        err.textContent = 'Pick a word on the first row. One is enough.';
+        err.textContent = str('ui.pick_a_word_on_the_first');
         return;
       }
       const feelLabel = FEELS.find((f) => f.id === feel).label.toLowerCase();
       const picked = ISSUES.filter((i) => issues.has(i.id)).map((i) => i.label.toLowerCase());
-      const lines = [`The quad felt ${feelLabel} this run.`];
+      const lines = [str('ui.the_quad_felt_this_run', { feelLabel })];
       /*
        * WHERE THE SLIDER WAS, in the sentence and not only in the context
        * blob, because the owner asked for it there and because it is the one
@@ -5146,16 +5147,16 @@ export class Ui {
        * on the whole band. The absolute multiple rides along so a ticket
        * from before the base moved reads correctly beside one from after.
        */
-      lines.push(`Weight slider at ${context.weight} percent, which is ${context.gravityScale.toFixed(2)} times g on this airframe.`);
+      lines.push(str('ui.weight_slider_at_percent_which_is', { weight: context.weight, v2: context.gravityScale.toFixed(2) }));
       if (picked.length) {
-        lines.push(`Noticed: ${picked.join('; ')}.`);
+        lines.push(str('ui.noticed', { v1: picked.join('; ') }));
       }
       if (words.value.trim()) {
         lines.push(words.value.trim());
       }
       const payload = {
         kind: 'feel',
-        title: `Flight feel: ${feelLabel}${picked.length ? `, ${picked[0]}` : ''}`,
+        title: str('ui.flight_feel_2', { feelLabel, v2: picked.length ? `, ${picked[0]}` : '' }),
         what: lines.join('\n'),
         reporter: reporter.value,
         context,
@@ -5163,20 +5164,20 @@ export class Ui {
       sending = true;
       send.disabled = true;
       dismiss.disabled = true;
-      send.textContent = 'Sending';
+      send.textContent = str('ui.sending');
       try {
         const posted = await submitBug(payload);
         sending = false;
         sent = true;
         box.textContent = '';
-        box.append(el('h2', null, 'Thanks'));
+        box.append(el('h2', null, str('ui.thanks')));
         box.append(el(
           'p',
           'lede',
-          'Landed, with your tune and rates attached. This is exactly what moves the flight model.',
+          str('ui.landed_with_your_tune_and_rates'),
         ));
         const doneRow = el('div', 'name-dialog-row');
-        const close = btn('name-dialog-btn on', 'Close');
+        const close = btn(str('ui.name_dialog_btn_on'), str('ui.close'));
         close.addEventListener('click', () => finish(posted));
         doneRow.append(close);
         box.append(doneRow);
@@ -5185,8 +5186,8 @@ export class Ui {
         sending = false;
         send.disabled = false;
         dismiss.disabled = false;
-        send.textContent = 'Send';
-        err.textContent = e.message || 'The board could not take that report.';
+        send.textContent = str('ui.send');
+        err.textContent = e.message || str('ui.the_board_could_not_take_that');
       }
     };
     send.addEventListener('click', submit);
@@ -5326,8 +5327,8 @@ export class Ui {
       const world = seatedFreestyleMap(s);
       const modeRow = this.mode === 'freestyle'
         ? {
-          label: 'The town',
-          value: world ? world.name : 'Not loaded',
+          label: str('ui.the_town'),
+          value: world ? world.name : str('ui.not_loaded'),
           action: 'freestyle',
           /*
            * Labelled for the ROOM rather than for the choice, because there
@@ -5337,16 +5338,16 @@ export class Ui {
            * picker with one option in it.
            */
           note: world
-            ? `${world.note} Your quad and the physics model are in here.`
-            : 'One town, no gates. Open it and fly.',
+            ? str('ui.your_quad_and_the_physics_model', { note: world.note })
+            : str('ui.one_town_no_gates_open_it'),
         }
         : {
-          label: 'Track',
-          value: seat ? seat.name : 'Choose one',
+          label: str('ui.track'),
+          value: seat ? seat.name : str('ui.choose_one'),
           action: 'courses',
           note: seat
-            ? `${seat.name}, and every other track. Gated, against the clock, and every time flown here goes to the leaderboard.`
-            : 'No track is seated yet. Your own tracks, every track the board is offering, and the builder, are in here.',
+            ? str('ui.and_every_other_track_gated_against', { name: seat.name })
+            : str('ui.no_track_is_seated_yet_your'),
         };
       /*
        * THREE ROOMS AND A VERB, in place of twelve typographic equals.
@@ -5390,12 +5391,12 @@ export class Ui {
       const guide = this.firstRun && this.mode === 'race' && this.seatMatchesMode();
       const flyRow = guide
         ? {
-          label: 'First flight',
+          label: str('ui.first_flight'),
           action: 'firstflight',
           primary: true,
           note: seat && seat.name
-            ? `${seat.name}, levelled off, with the sticks drawn on screen and a prompt at each step.`
-            : 'Levelled off, with the sticks drawn on screen and a prompt at each step.',
+            ? str('ui.levelled_off_with_the_sticks_drawn', { name: seat.name })
+            : str('ui.levelled_off_with_the_sticks_drawn_2'),
         }
         : { label: 'Fly', action: 'fly', primary: true };
       return [
@@ -5422,10 +5423,10 @@ export class Ui {
          * comment turned back into a row.
          */
         {
-          label: 'Quad',
+          label: str('ui.quad'),
           value: tuneById(s.tune).name,
           action: 'quad',
-          note: 'The machine. Tune, PIDs, camera angle, field of view, flight mode and the firmware bench, which is every Betaflight key the module compiles.',
+          note: str('ui.the_machine_tune_pids_camera_angle'),
         },
         {
           /*
@@ -5449,26 +5450,26 @@ export class Ui {
            * The row id is built from `action` rather than the label, so
            * this costs no id and nothing that names rows has to move.
            */
-          label: 'Settings',
-          value: readPilotName() || 'Not set',
+          label: str('ui.settings'),
+          value: readPilotName() || str('ui.not_set'),
           action: 'pilot',
-          note: 'You and your radio. Your name, choosing a joystick, Calibrate sticks, rates, graphics, sound and the flight log.',
+          note: str('ui.you_and_your_radio_your_name'),
         },
-        { label: 'How to fly', action: 'howto', note: 'The sticks, live, and what the keys do.' },
+        { label: str('ui.how_to_fly'), action: 'howto', note: str('ui.the_sticks_live_and_what_the') },
         {
-          label: 'FPV wiki',
+          label: str('ui.fpv_wiki'),
           action: 'wiki',
-          note: 'The closed loop, the plant, and every Betaflight 4.5.1 key. Opens the wiki on fdfpv.example.',
+          note: str('ui.the_closed_loop_the_plant_and'),
         },
         {
-          label: 'Tracks and Statistics',
+          label: str('ui.tracks_and_statistics'),
           action: 'leaderboard',
-          note: 'The public page: every published track with its times, and how the site is doing. Opens in a new tab.',
+          note: str('ui.the_public_page_every_published_track'),
         },
         {
-          label: 'Credits',
+          label: str('ui.credits'),
           action: 'credits',
-          note: 'Who made this, who flew it, and whose work it stands on.',
+          note: str('ui.who_made_this_who_flew_it'),
         },
         /*
          * THE WAY BACK TO THE GATE, AND IT IS A ROW NOW.
@@ -5492,14 +5493,14 @@ export class Ui {
          * game, and a pilot looking for the other mode or the other machine
          * is looking for the screen that offers both.
          */
-        { label: this.gateLabel(), action: 'mode-gate', note: 'The three cards: five inch racing, whoop racing or freestyle. Changing your mind about any of it starts here.' },
+        { label: this.gateLabel(), action: 'mode-gate', note: str('ui.the_three_cards_five_inch_racing') },
       ];
     }
     if (this.screen === 'howto') {
-      return [{ label: 'Back', action: 'back' }];
+      return [{ label: str('ui.back'), action: 'back' }];
     }
     if (this.screen === 'credits') {
-      return [{ label: 'Back', action: 'back' }];
+      return [{ label: str('ui.back'), action: 'back' }];
     }
     /*
      * Courses. ONE SCREEN WHERE THERE WERE THREE.
@@ -5519,8 +5520,8 @@ export class Ui {
     if (this.screen === 'courses') {
       if (this.coursesLede) {
         const af = airframeById(this.settings.airframe);
-        this.coursesLede.textContent = `Tracks for the ${af.name.toLowerCase()}.`
-          + ' Change the aircraft under Quad to see the other kind.';
+        this.coursesLede.textContent = str('ui.tracks_for_the', { v1: af.name.toLowerCase() })
+          + str('ui.change_the_aircraft_under_quad_to');
       }
       const listing = liveListing('custom');
       const loaded = hasLoadedTrack();
@@ -5536,7 +5537,7 @@ export class Ui {
         const chip = courseChip(listing);
         cards.push({
           label: seat.name,
-          note: `${chip.note} ${seat.gates} gate${seat.gates === 1 ? '' : 's'}.`,
+          note: str('ui.gate', { note: chip.note, gates: seat.gates, v3: seat.gates === 1 ? '' : 's' }),
           course: { kind: 'current', seat },
           action: 'map:custom',
         });
@@ -5582,7 +5583,7 @@ export class Ui {
         }
         cards.push({
           label: t.name,
-          note: `Yours, saved in this browser. ${t.gates} gate${t.gates === 1 ? '' : 's'}. Choosing it loads the track and flies it here.`,
+          note: str('ui.yours_saved_in_this_browser_gate', { gates: t.gates, v2: t.gates === 1 ? '' : 's' }),
           course: { kind: 'local', track: t },
           action: `local:${t.id}`,
         });
@@ -5591,10 +5592,10 @@ export class Ui {
         cards.push({
           label: t.name,
           note: t.designer
-            ? `Designed by ${t.designer}${t.series ? ` for ${t.series}` : ''}${t.author ? `, published by ${t.author}` : ''}. Choosing it loads the track and flies it here.`
+            ? str('ui.designed_by_choosing_it_loads_the', { designer: t.designer, v2: t.series ? str('ui.for', { series: t.series }) : '', v3: t.author ? str('ui.published_by', { author: t.author }) : '' })
             : (t.author
-              ? `Published by ${t.author}. Choosing it loads the track and flies it here.`
-              : 'A published track. Choosing it loads the track and flies it here.'),
+              ? str('ui.published_by_choosing_it_loads_the', { author: t.author })
+              : str('ui.a_published_track_choosing_it_loads')),
           course: { kind: 'board', track: t },
           action: `board:${t.id}`,
         });
@@ -5609,11 +5610,11 @@ export class Ui {
       }
       const rows = [
         {
-          label: loaded ? 'Open in the track builder' : 'Build a track',
+          label: loaded ? str('ui.open_in_the_track_builder') : str('ui.build_a_track'),
           action: 'trackbuilder',
           note: loaded
-            ? 'Opens the track builder on the track above. New in there starts a blank one.'
-            : 'Opens the track builder on an empty field.',
+            ? str('ui.opens_the_track_builder_on_the')
+            : str('ui.opens_the_track_builder_on_an'),
         },
         publishAction(listing, this.coursePublished),
         uploadAction(listing, { timePosted: this.timePosted }),
@@ -5627,19 +5628,19 @@ export class Ui {
          * it, and it is a screen in here now.
          */
         {
-          label: 'Standings',
+          label: str('ui.standings'),
           action: 'standings',
           note: seat
-            ? `Every time posted on ${seat.name}, fastest first. Opens here.`
-            : 'Every time posted on the track you are flying. Load one first.',
+            ? str('ui.every_time_posted_on_fastest_first_2', { name: seat.name })
+            : str('ui.every_time_posted_on_the_track'),
           disabled: !listing || !listing.shareId,
         },
         {
-          label: 'Tracks and Statistics on the web',
+          label: str('ui.tracks_and_statistics_on_the_web'),
           action: 'leaderboard',
-          note: 'The public page, for sending somebody a link. Everything on it is in here too. Opens in a new tab.',
+          note: str('ui.the_public_page_for_sending_somebody'),
         },
-        { label: 'Back', action: 'back' },
+        { label: str('ui.back'), action: 'back' },
       ];
       return [...cards, ...rows];
     }
@@ -5659,7 +5660,7 @@ export class Ui {
         label: t.name,
         value: `${formatScore(t.points)}`,
         note: `${t.status.tag}. ${t.difficulty}. ${t.how}`
-          + ` Seen ${VIEW_LABEL[t.view].replace('seen ', '')}.`,
+          + str('ui.seen', { v1: VIEW_LABEL[t.view].replace('seen ', '') }),
         action: 'noop',
       }));
     }
@@ -5736,10 +5737,10 @@ export class Ui {
          * What you are about to fly is still on it, as the value.
          */
         {
-          label: 'Quad',
+          label: str('ui.quad'),
           value: tuneById(s.tune).name,
           action: 'quad',
-          note: `The machine. Its Tune row opens ${SCREEN_TITLES.pids}, where the tune is chosen and Betaflight's own sliders adjust it, and the camera, the flight mode and the firmware bench are there too.`,
+          note: str('ui.the_machine_its_tune_row_opens', { pids: SCREEN_TITLES.pids }),
         },
         /*
          * SETTABLE HERE, because there is nowhere else a freestyle pilot
@@ -5758,16 +5759,16 @@ export class Ui {
          * a home elsewhere: freestyle IS the other home.
          */
         choice(
-          'Physics model',
+          str('ui.physics_model'),
           s.flightStyle === 'arcade'
-            ? 'Arcade: the ideal quad. No propwash shake, no gyro noise, no build asymmetry. It is a plant flag, so it changes a freestyle flight exactly as much as it changes a race.'
-            : 'Expert: the full physics, propwash, gyro noise and build tolerance included. Arcade turns the imperfections off for a friendlier machine. Takes effect on the next flight.',
+            ? str('ui.arcade_the_ideal_quad_no_propwash')
+            : str('ui.expert_the_full_physics_propwash_gyro'),
           FLIGHT_STYLES,
           s.flightStyle === 'arcade' ? 'arcade' : 'expert',
           (id) => (id === 'arcade' ? 'Arcade' : 'Expert'),
           (id) => { s.flightStyle = id; },
         ),
-        { label: 'Back', action: 'back' },
+        { label: str('ui.back'), action: 'back' },
       ];
     }
 
@@ -5803,17 +5804,17 @@ export class Ui {
          * 55 px to 135. The row is what the pilot needs; the heading was
          * decoration, and decoration is what gives way.
          */
-        { label: 'The machine', section: true },
+        { label: str('ui.the_machine'), section: true },
         craftItem(s, midRun),
         tuneItem(s, midRun),
         {
-          label: 'Firmware bench',
+          label: str('ui.firmware_bench'),
           action: 'fc',
-          note: `Every Betaflight 4.5.1 key the module compiles, tab by tab, in Configurator’s own colours. Opens as a tool, in its own frame. Save becomes Your edits and the Tune row above starts naming it; the picker that puts you back on stock is in ${SCREEN_TITLES.pids}. There is no CLI paste.`,
+          note: str('ui.every_betaflight_4_5_1_key', { pids: SCREEN_TITLES.pids }),
         },
-        { label: 'Camera', section: true },
+        { label: str('ui.camera'), section: true },
         stepper(
-          'Camera angle',
+          str('ui.camera_angle'),
           /*
            * The yaw sentence is not a caveat, it is the main thing a pilot
            * needs to know before they crank this up, and the menu never said
@@ -5822,7 +5823,7 @@ export class Ui {
            * what a real tilted camera does. At 30 that is half. At 40 it is
            * nearly two thirds, which is the tilt a pilot wrote in about.
            */
-          `How far the camera tilts up from the airframe. ${CAMERA_ANGLE_MIN} is flat, looking along the nose. ${CAMERA_ANGLE_DEFAULT} is a typical cruise. 45 to ${CAMERA_ANGLE_MAX} is race. Above about 30, yaw starts to roll the horizon: at ${s.cameraAngle} degrees, ${Math.round(Math.sin(cameraTiltRad(s.cameraAngle)) * 100)} percent of a yaw shows up as roll in the picture. That is what a real tilted camera does. Lower Yaw max rate on the Rates screen to tame it.`,
+          str('ui.how_far_the_camera_tilts_up', { CAMERA_ANGLE_MIN, CAMERA_ANGLE_DEFAULT, CAMERA_ANGLE_MAX, cameraAngle: s.cameraAngle, v5: Math.round(Math.sin(cameraTiltRad(s.cameraAngle)) * 100) }),
           `${s.cameraAngle} degrees`,
           (d) => {
             const before = s.cameraAngle;
@@ -5840,25 +5841,25 @@ export class Ui {
           },
         ),
         choice(
-          'Field of view',
-          'Wider sees more, narrower magnifies. 75 matches what an FPV lens does to the middle of the frame; 85 gives some of that back for width; 115 is the widest this projection can honestly offer, about 145 degrees corner to corner, and the gates will look smaller for it.',
+          str('ui.field_of_view'),
+          str('ui.wider_sees_more_narrower_magnifies_75'),
           CAMERA_FOVS,
           s.cameraFov,
           (n) => `${n} degrees vertical`,
           (n) => { s.cameraFov = n; },
         ),
-        { label: 'Flight', section: true },
+        { label: str('ui.flight'), section: true },
         choice(
-          'Flight mode',
-          'Acro: sticks are rates, hands off holds attitude. Angle: sticks are tilt, hands off levels. Racing on a keyboard always uses Angle. Freestyle uses this setting whatever you fly with, because Angle holds the craft to about thirty degrees of bank and no trick in the book can be flown in it.',
+          str('ui.flight_mode'),
+          str('ui.acro_sticks_are_rates_hands_off_2'),
           FLIGHT_MODES,
           s.flightMode === 'angle' ? 'angle' : 'acro',
           (id) => (id === 'angle' ? 'Angle' : 'Acro'),
           (id) => { s.flightMode = id; },
         ),
         toggle(
-          'Launch control',
-          'Betaflight race start, off by default. When on, press L on the start line, pitch forward, centre the stick, then punch throttle. The quad holds the angle until you go.',
+          str('ui.launch_control'),
+          str('ui.betaflight_race_start_off_by_default'),
           Boolean(s.launchControl),
           (v) => { s.launchControl = Boolean(v); },
         ),
@@ -5881,12 +5882,12 @@ export class Ui {
          * load bearing navigation as well as a signpost.
          */
         {
-          label: 'Rates',
+          label: str('ui.rates'),
           value: ratesSummary(s.rates),
           action: 'rates',
-          note: `Not the machine's. Rates are yours, so they live under ${SCREEN_TITLES.pilot} and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.`,
+          note: str('ui.not_the_machine_s_rates_are', { pilot: SCREEN_TITLES.pilot }),
         },
-        { label: 'Back', action: 'back' },
+        { label: str('ui.back'), action: 'back' },
       ];
     }
 
@@ -5901,32 +5902,32 @@ export class Ui {
       return [
         { label: 'You', section: true },
         {
-          label: 'Your name',
-          value: name || 'Not set',
+          label: str('ui.your_name'),
+          value: name || str('ui.not_set'),
           action: 'setname',
           note: name
-            ? 'Posted times and published tracks carry this name. Changing it updates the board for tracks you published from this browser.'
-            : `Needed to publish a track or post a time. ${nameRules()}`,
+            ? str('ui.posted_times_and_published_tracks_carry')
+            : str('ui.needed_to_publish_a_track_or', { nameRules: nameRules() }),
         },
         {
-          label: 'Pilot key',
-          value: 'This browser',
+          label: str('ui.pilot_key'),
+          value: str('ui.this_browser'),
           action: 'exportkey',
-          note: 'On the board your name belongs to a key kept in this browser, made the first time you post. Export copies it, to carry your name to another browser or to keep it safe.',
+          note: str('ui.on_the_board_your_name_belongs'),
         },
         {
-          label: 'Import pilot key',
+          label: str('ui.import_pilot_key'),
           action: 'importkey',
-          note: 'Paste a key exported from another browser. Times you post from here then count as that pilot, and the key that was here is gone.',
+          note: str('ui.paste_a_key_exported_from_another'),
         },
-        { label: 'Sticks', section: true },
+        { label: str('ui.sticks'), section: true },
         {
-          label: 'Choose joystick',
+          label: str('ui.choose_joystick'),
           value: (this.padInfo && this.padInfo.using) || 'Keyboard',
           action: 'choosepad',
           note: padChooseNote(this.padInfo),
         },
-        { label: 'Calibrate sticks', action: 'calibrate', note: 'Centre, full range, then one named move per stick. Saved after you check it.' },
+        { label: str('ui.calibrate_sticks'), action: 'calibrate', note: str('ui.centre_full_range_then_one_named') },
         /*
          * THE WAY BACK TO THE ONLY SCREEN THAT SHOWS A MAPPING.
          *
@@ -5939,11 +5940,11 @@ export class Ui {
          * saved, so a one channel repair costs one row instead of a minute.
          */
         {
-          label: 'Check sticks',
+          label: str('ui.check_sticks'),
           action: 'calibrate-check',
-          note: 'Your saved mapping, live, without calibrating again. Move a stick and watch it:'
-            + ' if it goes the wrong way, one key reverses that channel, and if the wrong stick'
-            + ' moves on screen, one key puts them on the other hands. Nothing is kept until you save.',
+          note: str('ui.your_saved_mapping_live_without_calibrating')
+            + str('ui.if_it_goes_the_wrong_way')
+            + str('ui.moves_on_screen_one_key_puts'),
         },
         /*
          * WHICH STICK CARRIES WHICH CHANNEL, and it sits here because the
@@ -5958,24 +5959,24 @@ export class Ui {
          * setting that only redraws the screen for them.
          */
         choice(
-          'Stick mode',
-          'Which stick is throttle and which is yaw, the way your radio is set up.'
-          + ' Mode 2 is throttle on the left, which is what this page has always been.'
-          + ' Mode 1 puts throttle on the right and pitch on the left.'
-          + ' This flies the THUMB STICKS and the KEYBOARD, which have no mode of their'
-          + ' own. A radio already applies its own mode before this page sees a stick,'
-          + ' so for a radio this only names the sticks drawn on screen.',
+          str('ui.stick_mode'),
+          str('ui.which_stick_is_throttle_and_which')
+          + str('ui.mode_2_is_throttle_on_the')
+          + str('ui.mode_1_puts_throttle_on_the')
+          + str('ui.this_flies_the_thumb_sticks_and')
+          + str('ui.own_a_radio_already_applies_its')
+          + str('ui.so_for_a_radio_this_only'),
           STICK_MODES,
           s.stickMode,
-          (n) => `Mode ${n}`,
+          (n) => str('ui.mode', { n }),
           (n) => { s.stickMode = normaliseStickMode(n); },
         ),
         ratesItem(s, midRun),
         choice(
-          'Radio link',
+          str('ui.radio_link'),
           s.link === 'perfect'
-            ? 'No radio: every frame arrives, exactly on time. Feedforward and RC smoothing read that cadence, so this is sharper than any real link.'
-            : `${LINK_PRESETS[s.link].hz} Hz, ${LINK_PRESETS[s.link].delayMs} ms delay, ${LINK_PRESETS[s.link].jitterMs} ms jitter. Records set on a perfect link are not comparable.`,
+            ? str('ui.no_radio_every_frame_arrives_exactly')
+            : str('ui.hz_ms_delay_ms_jitter_records', { hz: LINK_PRESETS[s.link].hz, delayMs: LINK_PRESETS[s.link].delayMs, jitterMs: LINK_PRESETS[s.link].jitterMs }),
           Object.keys(LINK_PRESETS),
           s.link,
           (id) => LINK_PRESETS[id].label,
@@ -5984,75 +5985,75 @@ export class Ui {
         /* The other half of the split, signposted. When you cut a list in
          * two you owe the reader a line saying where the rest went. */
         {
-          label: 'Tune, PIDs and the firmware',
+          label: str('ui.tune_pids_and_the_firmware'),
           action: 'quad',
-          note: `Those belong to the machine, not to you, so they are one room over under ${SCREEN_TITLES.quad}. Camera angle and flight mode are there too.`,
+          note: str('ui.those_belong_to_the_machine_not', { quad: SCREEN_TITLES.quad }),
         },
-        { label: 'Screen', section: true },
+        { label: str('ui.screen'), section: true },
         graphicsItem(s),
         gpuItem(this.gpuInfo),
         choice(
-          'Render scale',
-          'Fewer pixels, then stretched to fit. The one lever that always helps a starved GPU, at the price of sharpness. 100 is native for the preset.',
+          str('ui.render_scale'),
+          str('ui.fewer_pixels_then_stretched_to_fit'),
           RENDER_SCALES,
           s.renderScale,
           (n) => (n >= 100 ? 'Native' : `${n}%`),
           (n) => { s.renderScale = n; },
         ),
         choice(
-          'Frame cap',
-          'Caps how often the world is drawn. A steady 60 reads better than a heaving 90, and it spares the battery. Sticks are still read and the physics still steps every frame; only the picture waits.',
+          str('ui.frame_cap'),
+          str('ui.caps_how_often_the_world_is'),
           FPS_CAPS,
           s.fpsCap,
           (n) => (n === 0 ? 'Uncapped' : `${n} fps`),
           (n) => { s.fpsCap = n; },
         ),
-        { label: 'Sound', section: true },
-        toggle('Sound', 'All sound: motors, wind, music and cues.', s.sound, (v) => { s.sound = v; }),
-        stepper('Volume', 'Overall level. Zero to ten.', `${s.volume}`, (d) => {
+        { label: str('ui.sound'), section: true },
+        toggle('Sound', str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
+        stepper('Volume', str('ui.overall_level_zero_to_ten'), `${s.volume}`, (d) => {
           s.volume = Math.max(0, Math.min(10, s.volume + d));
         }),
-        stepper('Motors', 'The blade pass tone. You fly on its pitch, so keep some of it.', `${s.motorLevel}`, (d) => {
+        stepper('Motors', str('ui.the_blade_pass_tone_you_fly'), `${s.motorLevel}`, (d) => {
           s.motorLevel = Math.max(0, Math.min(10, s.motorLevel + d));
         }),
-        stepper('Wind', 'Air over the airframe. Rises with speed.', `${s.windLevel}`, (d) => {
+        stepper('Wind', str('ui.air_over_the_airframe_rises_with'), `${s.windLevel}`, (d) => {
           s.windLevel = Math.max(0, Math.min(10, s.windLevel + d));
         }),
         stepper(
           'Music',
-          'Recorded tracks in flight, and a quieter bed in the menus. One level for both. The skip buttons on screen jump a track.',
+          str('ui.recorded_tracks_in_flight_and_a'),
           s.musicLevel > 0 ? `${s.musicLevel}` : 'Off',
           (d) => { s.musicLevel = Math.max(0, Math.min(10, s.musicLevel + d)); },
         ),
         choice(
-          'Music track',
+          str('ui.music_track'),
           s.musicTrack === 'rotation'
-            ? 'What flies. A random start, then every track in turn.'
-            : 'What flies. This track loops until you skip or pick another.',
+            ? str('ui.what_flies_a_random_start_then')
+            : str('ui.what_flies_this_track_loops_until'),
           ids,
           s.musicTrack,
           (id) => (id === 'rotation' ? 'Rotation' : trackById(id).name),
           (id) => { s.musicTrack = id; },
         ),
         toggle(
-          'Binaural tone',
-          'A quiet 1000 Hz tone, 6 Hz apart between the ears. Needs headphones to do anything at all.',
+          str('ui.binaural_tone'),
+          str('ui.a_quiet_1000_hz_tone_6'),
           s.focusTone,
           (v) => { s.focusTone = v; },
         ),
-        { label: 'Diagnostics', section: true },
+        { label: str('ui.diagnostics'), section: true },
         toggle(
-          'Flight log',
-          'Record the run for download as a Betaflight blackbox CSV. Holds the whole flight in memory.',
+          str('ui.flight_log'),
+          str('ui.record_the_run_for_download_as'),
           s.flightLog,
           (v) => { s.flightLog = v; },
         ),
         {
-          label: 'Download flight log',
+          label: str('ui.download_flight_log'),
           action: 'downloadflightlog',
-          note: 'Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.',
+          note: str('ui.writes_what_was_recorded_as_blackbox'),
         },
-        { label: 'Back', action: 'back' },
+        { label: str('ui.back'), action: 'back' },
       ];
     }
 
@@ -6069,24 +6070,24 @@ export class Ui {
       if (!t) {
         return [
           {
-            label: 'No track chosen',
+            label: str('ui.no_track_chosen'),
             info: true,
             disabled: true,
-            note: 'Pick a track in the Race room and open its standings from there.',
+            note: str('ui.pick_a_track_in_the_race'),
           },
-          { label: 'Back', action: 'back' },
+          { label: str('ui.back'), action: 'back' },
         ];
       }
       const rows = [];
       const times = this.standingsTimes || [];
       const best = times.length ? times[0] : null;
       rows.push({
-        label: 'Fly this track',
+        label: str('ui.fly_this_track'),
         action: 'standings-fly',
         primary: true,
         note: best
-          ? `Loads ${t.name} and takes you to the launch card. The time to beat is ${formatTime(best.lapMs)} by ${best.name || 'an unnamed pilot'}.`
-          : `Loads ${t.name} and takes you to the launch card. Nobody has posted a time yet, so the first one is yours.`,
+          ? str('ui.loads_and_takes_you_to_the_2', { name: t.name, formatTime: formatTime(best.lapMs), v3: best.name || str('ui.an_unnamed_pilot') })
+          : str('ui.loads_and_takes_you_to_the', { name: t.name }),
       });
       /*
        * Racing a recorded lap is the one thing a standings table is FOR
@@ -6097,17 +6098,17 @@ export class Ui {
       const ghosts = times.filter((x) => x.hasGhost && x.id);
       if (ghosts.length) {
         rows.push({
-          label: 'Race the record',
+          label: str('ui.race_the_record'),
           action: 'standings-ghost',
-          note: `${ghosts[0].name || 'An unnamed pilot'}'s ${formatTime(ghosts[0].lapMs)} flown as a ghost beside you. Arms it for the next run on this track.`,
+          note: str('ui.s_flown_as_a_ghost_beside', { v1: ghosts[0].name || str('ui.an_unnamed_pilot_2'), formatTime: formatTime(ghosts[0].lapMs) }),
         });
       }
       rows.push({
-        label: 'Open on the web',
+        label: str('ui.open_on_the_web'),
         action: 'card-board',
-        note: `The public page for ${t.name}. A link to send somebody. Opens in a new tab.`,
+        note: str('ui.the_public_page_for_a_link', { name: t.name }),
       });
-      rows.push({ label: 'Back', action: 'back' });
+      rows.push({ label: str('ui.back'), action: 'back' });
       return rows;
     }
 
@@ -6125,51 +6126,51 @@ export class Ui {
       const trackName = seat && seat.name ? seat.name : m.name;
       return [
         {
-          label: 'Track',
+          label: str('ui.track'),
           value: trackName,
           info: true,
           note: seat && seat.gates
-            ? `${seat.gates} gates. This is what your time will be measured on.`
-            : 'This is what your time will be measured on.',
+            ? str('ui.gates_this_is_what_your_time', { gates: seat.gates })
+            : str('ui.this_is_what_your_time_will'),
         },
         {
-          label: 'Quad',
+          label: str('ui.quad'),
           value: tuneById(s.tune).name,
           action: 'quad',
-          note: `The tune, the PIDs, the camera and the firmware. Opens ${SCREEN_TITLES.quad}. Whatever is loaded there is what this run flies, and it goes to the board with the time.`,
+          note: str('ui.the_tune_the_pids_the_camera', { quad: SCREEN_TITLES.quad }),
         },
-        { label: 'What this run counts as', section: true },
+        { label: str('ui.what_this_run_counts_as'), section: true },
         choice(
           'Laps',
-          'How many laps a run lasts before the result screen. Latched when you launch, so changing it mid-run does nothing until the next one.',
+          str('ui.how_many_laps_a_run_lasts'),
           LAP_COUNTS,
           s.laps,
           (n) => `${n}`,
           (n) => { s.laps = n; },
         ),
         choice(
-          'Pack charge',
-          'A tired pack sags harder and gives less punch. Best laps are kept per charge level, so a time set on a fresh pack and a time set on a tired one are two different records.',
+          str('ui.pack_charge'),
+          str('ui.a_tired_pack_sags_harder_and'),
           PACK_VOLTAGES,
           s.packVoltage,
-          (n) => `${n.toFixed(2)} volts per cell`,
+          (n) => str('ui.volts_per_cell', { n: n.toFixed(2) }),
           (n) => { s.packVoltage = n; },
         ),
         choice(
-          'Flight model',
+          str('ui.flight_model'),
           s.flightStyle === 'arcade'
-            ? 'Arcade: the ideal quad. No propwash shake, no gyro noise, no build asymmetry, so any tune flies glass smooth. Times flown here stay off the public board.'
-            : 'Expert: the full physics, propwash, gyro noise and build tolerance included, which is what every board time is flown on. Arcade turns the imperfections off for a friendlier machine.',
+            ? str('ui.arcade_the_ideal_quad_no_propwash_2')
+            : str('ui.expert_the_full_physics_propwash_gyro_2'),
           FLIGHT_STYLES,
           s.flightStyle === 'arcade' ? 'arcade' : 'expert',
           (id) => (id === 'arcade' ? 'Arcade' : 'Expert'),
           (id) => { s.flightStyle = id; },
         ),
         choice(
-          'Radio link',
+          str('ui.radio_link'),
           s.link === 'perfect'
-            ? 'A perfect link is sharper than any real radio: every frame arrives, exactly on time. Times set on it are marked on the board.'
-            : `${LINK_PRESETS[s.link].hz} Hz, ${LINK_PRESETS[s.link].delayMs} ms delay, ${LINK_PRESETS[s.link].jitterMs} ms jitter.`,
+            ? str('ui.a_perfect_link_is_sharper_than')
+            : str('ui.hz_ms_delay_ms_jitter', { hz: LINK_PRESETS[s.link].hz, delayMs: LINK_PRESETS[s.link].delayMs, jitterMs: LINK_PRESETS[s.link].jitterMs }),
           Object.keys(LINK_PRESETS),
           s.link,
           (id) => LINK_PRESETS[id].label,
@@ -6186,7 +6187,7 @@ export class Ui {
           primary: true,
           note: recordSentence(s, trackName),
         },
-        { label: 'Back', action: 'back' },
+        { label: str('ui.back'), action: 'back' },
       ];
     }
 
@@ -6214,11 +6215,11 @@ export class Ui {
        * MID_RUN_WARNING on the way in.
        */
       return [
-        { label: 'Resume', action: 'resume', primary: true },
-        { label: 'Restart run', action: 'restart' },
+        { label: str('ui.resume'), action: 'resume', primary: true },
+        { label: str('ui.restart_run'), action: 'restart' },
         ...this.ghostItems(),
         ...this.liveItems(),
-        { label: 'Does it feel wrong?', section: true },
+        { label: str('ui.does_it_feel_wrong'), section: true },
         tuneItem(s, true),
         /*
          * RATES, ONE PRESS FROM THE PAUSE MENU, because that is when a pilot
@@ -6236,34 +6237,34 @@ export class Ui {
          * resetting the run.
          */
         {
-          label: 'Rates',
+          label: str('ui.rates'),
           value: ratesSummary(s.rates),
           action: 'rates',
-          note: 'How far the sticks go, and the throttle limit. Yours, not the tune\'s. Changing them here leaves the quad where it is and the clock running.',
+          note: str('ui.how_far_the_sticks_go_and_2'),
         },
         feelItem(),
-        { label: 'Elsewhere', section: true },
+        { label: str('ui.elsewhere'), section: true },
         {
-          label: 'Quad',
+          label: str('ui.quad'),
           value: tuneById(s.tune).name,
           action: 'quad',
-          note: `PIDs, camera, flight mode and the firmware bench.${MID_RUN_WARNING}`,
+          note: str('ui.pids_camera_flight_mode_and_the', { MID_RUN_WARNING }),
         },
         {
           /* Named for what is in it, as on the title. See there. */
-          label: 'Settings',
+          label: str('ui.settings'),
           value: ratesSummary(s.rates),
           action: 'pilot',
           /* Rates are the first thing in this room and they no longer cost
            * the run, so the blanket warning would be wrong more often than
            * right. The rows that still restart a run carry it themselves. */
-          note: 'Rates, your radio, graphics and sound.',
+          note: str('ui.rates_your_radio_graphics_and_sound'),
         },
         graphicsItem(s),
-        { label: 'How to fly', action: 'howto' },
-        { label: 'FPV wiki', action: 'wiki', note: 'The plant, the compiled controller, and every catalog key. Opens the wiki on fdfpv.example.' },
-        { label: 'Credits', action: 'credits', note: 'Who made this, who flew it, and whose work it stands on.' },
-        { label: 'Quit to title', action: 'title' },
+        { label: str('ui.how_to_fly'), action: 'howto' },
+        { label: str('ui.fpv_wiki'), action: 'wiki', note: str('ui.the_plant_the_compiled_controller_and') },
+        { label: str('ui.credits'), action: 'credits', note: str('ui.who_made_this_who_flew_it') },
+        { label: str('ui.quit_to_title'), action: 'title' },
       ];
     }
     if (this.screen === 'results') {
@@ -6291,18 +6292,18 @@ export class Ui {
         const run = this.freestyleRun;
         const nothing = !run || !(run.total > 0) || !(run.tricks > 0);
         return [
-          { label: 'Fly again', action: 'restart', primary: true },
+          { label: str('ui.fly_again'), action: 'restart', primary: true },
           this.runPosted
             ? {
-              label: this.runPosted.improved === false ? 'Your best still stands' : 'Run posted',
+              label: this.runPosted.improved === false ? str('ui.your_best_still_stands') : str('ui.run_posted'),
               action: 'postrun',
               disabled: true,
               note: this.runPosted.improved === false
-                ? `The board already holds a better run of yours, ${formatScore(this.runPosted.score)}. Only your best is kept.`
-                : `The board kept that run.${this.runPosted.rank != null ? ` Rank ${this.runPosted.rank}.` : ''}`,
+                ? str('ui.the_board_already_holds_a_better', { formatScore: formatScore(this.runPosted.score) })
+                : str('ui.the_board_kept_that_run', { v1: this.runPosted.rank != null ? str('ui.rank', { rank: this.runPosted.rank }) : '' }),
             }
             : {
-              label: 'Post this run',
+              label: str('ui.post_this_run'),
               action: 'postrun',
               /*
                * FREE FLIGHT IS REFUSED HERE, on the row, rather than by a
@@ -6314,31 +6315,31 @@ export class Ui {
               disabled: nothing || Boolean(run && run.assisted)
                 || (run && run.timed === false),
               note: nothing
-                ? 'A run with no tricks in it is not a score. Fly one and it appears here.'
+                ? str('ui.a_run_with_no_tricks_in')
                 : (run && run.timed === false
-                  ? 'Free flight has no clock, so there is nothing for a board to compare it against. Switch Run to Scored on the Freestyle screen and fly it again.'
+                  ? str('ui.free_flight_has_no_clock_so')
                   : (run && run.assisted
-                    ? 'This run used the harness hooks, so it is not a flown score and the board will not take it.'
-                    : `${formatScore(run.total)} from ${run.tricks} tricks. One entry per pilot on the board, and only your best.`)),
+                    ? str('ui.this_run_used_the_harness_hooks')
+                    : str('ui.from_tricks_one_entry_per_pilot', { formatScore: formatScore(run.total), tricks: run.tricks }))),
             },
           {
-            label: 'Open Tracks and Statistics',
+            label: str('ui.open_tracks_and_statistics'),
             action: 'leaderboard',
-            note: 'Every published track, and the times flown on it.',
+            note: str('ui.every_published_track_and_the_times'),
           },
           feelItem(),
-          { label: 'Back to title', action: 'title' },
+          { label: str('ui.back_to_title'), action: 'title' },
         ];
       }
       if (!listing) {
         return [
-          { label: 'Fly again', action: 'restart', primary: true },
+          { label: str('ui.fly_again'), action: 'restart', primary: true },
           feelItem(),
-          { label: 'Back to title', action: 'title' },
+          { label: str('ui.back_to_title'), action: 'title' },
         ];
       }
       return [
-        { label: 'Fly again', action: 'restart', primary: true },
+        { label: str('ui.fly_again'), action: 'restart', primary: true },
         uploadAction(listing, {
           fastestMs: this.resultsFastest,
           timePosted: this.timePosted,
@@ -6347,15 +6348,15 @@ export class Ui {
         remixAction(listing),
         editOwnAction(listing),
         {
-          label: 'Open Tracks and Statistics',
+          label: str('ui.open_tracks_and_statistics'),
           action: 'leaderboard',
           disabled: !(listing && (listing.published || listing.shareId || this.coursePublished)),
           note: listing && listing.name
-            ? `The public page for ${listing.name}.`
-            : 'The public page. A track has to be published before it has one.',
+            ? str('ui.the_public_page_for', { name: listing.name })
+            : str('ui.the_public_page_a_track_has'),
         },
         feelItem(),
-        { label: 'Back to title', action: 'title' },
+        { label: str('ui.back_to_title'), action: 'title' },
       ];
     }
     if (this.screen === 'rates') {
@@ -6384,10 +6385,10 @@ export class Ui {
         const spec = rateField(r.type, key);
         const bits = [spec.note];
         if (key !== 'expo') {
-          bits.push(`At full stick this axis is ${fullStickDeg(r, axis)} deg/s.`);
+          bits.push(str('ui.at_full_stick_this_axis_is', { fullStickDeg: fullStickDeg(r, axis) }));
         }
         if (axis === 'yaw' && key === 'srate') {
-          bits.push(`Quads yaw slower than they roll, so many pilots set yaw below roll. Your camera is tilted up ${s.cameraAngle} degrees, so ${Math.round(tilt * 100)} percent of a yaw rolls the horizon rather than turning it: ${Math.round(fullStickDeg(r, 'yaw') * tilt)} deg/s of picture roll at full pedal.`);
+          bits.push(str('ui.quads_yaw_slower_than_they_roll', { cameraAngle: s.cameraAngle, v2: Math.round(tilt * 100), v3: Math.round(fullStickDeg(r, 'yaw') * tilt) }));
         }
         return bits.join(' ');
       };
@@ -6427,18 +6428,18 @@ export class Ui {
       const loaded = presetMatching(r);
       const presetValue = loaded
         ? loaded.name
-        : (ratesAreDefault(r) ? 'Stock' : 'Not saved');
+        : (ratesAreDefault(r) ? 'Stock' : str('ui.not_saved'));
       const presetRow = presets.length === 0
         ? {
-          label: 'Preset',
-          value: 'None saved',
+          label: str('ui.preset'),
+          value: str('ui.none_saved'),
           info: true,
-          note: `Save the numbers below under a name and they come back in one press, which is what a second track wants. ${RATES_STORAGE_WARNING}`,
+          note: str('ui.save_the_numbers_below_under_a', { RATES_STORAGE_WARNING }),
         }
         : {
           ...choice(
             'Preset',
-            `${presets.length === 1 ? 'One saved profile' : `${presets.length} saved profiles`}. Loading one sets every number below, the throttle limit included, and does not put you back on the start line. ${RATES_STORAGE_WARNING}`,
+            str('ui.loading_one_sets_every_number_below', { v1: presets.length === 1 ? str('ui.one_saved_profile') : `${presets.length} saved profiles`, RATES_STORAGE_WARNING }),
             presets.map((p) => p.id),
             loaded ? loaded.id : '',
             (id) => (ratePresetById(id) || { name: presetValue }).name,
@@ -6455,18 +6456,18 @@ export class Ui {
         ...this.stickPathRow(),
         presetRow,
         choice(
-          'Rates type',
-          `Which rate system the numbers below are in. All five are Betaflight's own and all five fly: the curve is chosen in fc/rc.c by this one field. Actual is the Betaflight 4.5 default and the one whose Max rate column means exactly what it says at the stop. Changing this loads that system's own defaults, because a Betaflight RC rate of 1.00 and an Actual centre sensitivity of 70 are the same stored number and not the same setting.`,
+          str('ui.rates_type'),
+          str('ui.which_rate_system_the_numbers_below'),
           RATE_TYPES,
           r.type,
           (t) => RATE_TYPE_LABEL[t],
           (t) => { s.rates = profileForType(t, r); },
         ),
         toggle(
-          'Separate pitch',
+          str('ui.separate_pitch'),
           split
-            ? 'On. Pitch has its own three numbers and its own curve on the graph. Turning this off copies roll onto pitch.'
-            : 'Off. Roll and pitch share one set of numbers, which is how most quads are set up and what Betaflight ships. Turn it on to give pitch its own.',
+            ? str('ui.on_pitch_has_its_own_three')
+            : str('ui.off_roll_and_pitch_share_one'),
           split,
           (on) => {
             s.ratesSplitPitch = on;
@@ -6477,17 +6478,17 @@ export class Ui {
             }
           },
         ),
-        { label: split ? 'Roll' : 'Roll and pitch', section: true },
+        { label: split ? 'Roll' : str('ui.roll_and_pitch'), section: true },
         ...axisRows('roll'),
-        ...(split ? [{ label: 'Pitch', section: true }, ...axisRows('pitch')] : []),
+        ...(split ? [{ label: str('ui.pitch'), section: true }, ...axisRows('pitch')] : []),
         { label: 'Yaw', section: true },
         ...axisRows('yaw'),
-        { label: 'Throttle', section: true },
+        { label: str('ui.throttle'), section: true },
         choice(
-          'Throttle limit',
+          str('ui.throttle_limit'),
           r.throttleCap >= 100
-            ? `Off. This quad is almost nine to one thrust to weight and hovers at ${hover.toFixed(1)} percent of stick, so most of the travel is above hover. Capping it scales the whole stick down and gives the resolution back.`
-            : `Betaflight SCALE limit: full stick commands ${r.throttleCap} percent, and the whole travel is redistributed under it. Hover moves to about ${hover.toFixed(1)} percent of stick, so the throttle is less touchy.`,
+            ? str('ui.off_this_quad_is_almost_nine', { hover: hover.toFixed(1) })
+            : str('ui.betaflight_scale_limit_full_stick_commands', { throttleCap: r.throttleCap, hover: hover.toFixed(1) }),
           THROTTLE_CAP_CHOICES,
           r.throttleCap,
           (n) => (n >= 100 ? 'Off' : `${n}%`),
@@ -6500,7 +6501,7 @@ export class Ui {
          * curve, so a bent curve moves where hover sits on the stick. */
         number(
           THROTTLE_CURVE_FIELDS.thrMid.label,
-          `${THROTTLE_CURVE_FIELDS.thrMid.note} This quad hovers near ${hover.toFixed(1)} percent of stick on the factory curve.`,
+          str('ui.this_quad_hovers_near_percent_of', { note: THROTTLE_CURVE_FIELDS.thrMid.note, hover: hover.toFixed(1) }),
           THROTTLE_CURVE_FIELDS.thrMid,
           r.thrMid,
           (v) => { r.thrMid = v; },
@@ -6512,7 +6513,7 @@ export class Ui {
           r.thrExpo,
           (v) => { r.thrExpo = v; },
         ),
-        { label: 'Presets', section: true },
+        { label: str('ui.presets'), section: true },
         /*
          * ONLY HERE WHEN SOMETHING WENT WRONG. A refused write is state the
          * pilot has to know about and cannot see anywhere else, so it wears
@@ -6521,37 +6522,37 @@ export class Ui {
          * successful save says so by changing the Preset row's value.
          */
         ...(this.ratesNotice ? [{
-          label: 'Not saved',
+          label: str('ui.not_saved'),
           value: '',
           info: true,
           rowClass: 'row-warn',
           note: this.ratesNotice,
         }] : []),
         {
-          label: 'Save as preset',
+          label: str('ui.save_as_preset'),
           action: 'rates-save',
           note: loaded
-            ? `Save these numbers again under a name. They already match ${loaded.name}, so saving under that name replaces it and any other name makes a second profile. ${RATES_STORAGE_WARNING}`
-            : `Name these numbers and they come back in one press. ${RATES_STORAGE_WARNING}`,
+            ? str('ui.save_these_numbers_again_under_a', { name: loaded.name, RATES_STORAGE_WARNING })
+            : str('ui.name_these_numbers_and_they_come', { RATES_STORAGE_WARNING }),
         },
         {
-          label: 'Delete preset',
+          label: str('ui.delete_preset'),
           action: 'rates-delete',
           disabled: !loaded,
           rowClass: loaded ? undefined : 'row-grey',
           note: loaded
-            ? `Forget ${loaded.name}. This browser is the only copy, so it cannot be undone. The numbers stay on the quad; only the saved profile goes.`
-            : 'Load a preset first. This deletes the profile the rows below are flying, and they are not flying a saved one.',
+            ? str('ui.forget_this_browser_is_the_only', { name: loaded.name })
+            : str('ui.load_a_preset_first_this_deletes'),
         },
         {
-          label: 'Revert to defaults',
+          label: str('ui.revert_to_defaults'),
           action: 'rates-default',
           disabled: !ratesChanged(s),
           note: ratesChanged(s)
-            ? `Back to what a freshly flashed Betaflight 4.5.1 flies: Actual rates, ${formatRate(rateField('ACTUAL', 'rcRate'), RATE_DEFAULTS.roll.rcRate)} deg/s at centre, ${formatRate(rateField('ACTUAL', 'srate'), RATE_DEFAULTS.roll.srate)} deg/s at the stop on every axis, no expo, no throttle limit.`
-            : 'Already on the Betaflight 4.5.1 defaults.',
+            ? str('ui.back_to_what_a_freshly_flashed', { formatRate: formatRate(rateField('ACTUAL', 'rcRate'), RATE_DEFAULTS.roll.rcRate), formatRate2: formatRate(rateField('ACTUAL', 'srate'), RATE_DEFAULTS.roll.srate) })
+            : str('ui.already_on_the_betaflight_4_5'),
         },
-        { label: 'Back', action: 'back' },
+        { label: str('ui.back'), action: 'back' },
       ];
     }
     if (this.screen === 'pids') {
@@ -6576,7 +6577,7 @@ export class Ui {
       const expert = Boolean(entry && entry.mode === 'expert' && entry.pids);
       const tuneName = tuneById(s.tune).name;
       const yawNote = live && live.baselineMode === 'RP'
-        ? ` ${tuneName} runs the sliders in RP mode, so they reach roll and pitch and leave yaw at its stock values, exactly as Configurator would.`
+        ? str('ui.runs_the_sliders_in_rp_mode', { tuneName })
         : '';
       /* Only built when `live` is present, per the loading row below, so
        * the tune's baseline is always real and walking a slider back onto
@@ -6588,7 +6589,7 @@ export class Ui {
         const cur = moved ? entry.sliders[k] : tuneVal;
         const bits = [spec.note];
         if (moved) {
-          bits.push(`${tuneName} ships this at ${tuneVal}; setting it back there forgets the change.`);
+          bits.push(str('ui.ships_this_at_setting_it_back', { tuneName, tuneVal }));
         }
         if (k === 'master') {
           bits.push(yawNote.trim());
@@ -6651,23 +6652,23 @@ export class Ui {
       ];
       if (!live) {
         rows.push({
-          label: `Loading ${tuneName}`,
+          label: str('ui.loading', { tuneName }),
           info: true,
-          note: 'The tune is being fetched and applied. Its sliders appear the moment the module reads back.',
+          note: str('ui.the_tune_is_being_fetched_and'),
         });
       } else {
         rows.push(toggle(
-          'Set PIDs directly',
+          str('ui.set_pids_directly'),
           expert
-            ? 'On. The sliders are off (simplified_pids_mode OFF, as Configurator\'s expert mode sets it) and the table below is what flies. Turning this off restores the sliders and remembers the table.'
-            : 'Off. The sliders below drive the PIDs through the firmware\'s own simplified tuning. Turn this on to type every value yourself, starting from exactly what is flying now.',
+            ? str('ui.on_the_sliders_are_off_simplified')
+            : str('ui.off_the_sliders_below_drive_the'),
           expert,
           (on) => {
             setPidsExpert(s.pids, s.tune, on, live.pids);
           },
         ));
         if (!expert) {
-          rows.push({ label: 'Betaflight\'s tuning sliders', section: true });
+          rows.push({ label: str('ui.betaflight_s_tuning_sliders'), section: true });
           for (const k of SLIDER_KEYS) {
             rows.push(sliderRow(k));
           }
@@ -6683,19 +6684,19 @@ export class Ui {
       }
       rows.push(
         {
-          label: 'Every setting',
+          label: str('ui.every_setting'),
           action: 'fc',
-          note: 'The full Flight controller screen: filters, features and every firmware key, not just the PIDs. Configurator-shaped. No CLI paste.',
+          note: str('ui.the_full_flight_controller_screen_filters'),
         },
         {
-          label: 'Back to the tune\'s own values',
+          label: str('ui.back_to_the_tune_s_own'),
           action: 'pids-default',
           disabled: !pidsAdjusted(s.pids, s.tune),
           note: pidsAdjusted(s.pids, s.tune)
-            ? `Forgets every slider and hand-set PID for ${tuneName} and flies the tune as it ships. Other tunes' adjustments are kept.`
-            : `${tuneName} is already flying its own values.`,
+            ? str('ui.forgets_every_slider_and_hand_set', { tuneName })
+            : str('ui.is_already_flying_its_own_values', { tuneName }),
         },
-        { label: 'Back', action: 'back' },
+        { label: str('ui.back'), action: 'back' },
       );
       return rows;
     }
@@ -6976,8 +6977,8 @@ export class Ui {
       /* Same sentence the pause menu's row carries, because a pilot who got
        * here from a paused run needs it on the screen they are editing. */
       this.ratesHint.textContent = this.returnTo === 'paused'
-        ? 'Arrow keys move, left and right change a value, Enter types one. Escape leaves a field, then goes back. A change reaches the quad at once, and puts it back on the start line.'
-        : 'Arrow keys move, left and right change a value, Enter types one. Escape leaves a field, then goes back. Changes are stored and reach the quad at once.';
+        ? str('ui.arrow_keys_move_left_and_right')
+        : str('ui.arrow_keys_move_left_and_right_2');
     }
     this.ratesPanel.paint(this.settings.rates, this.ratesStick, this.settings.airframe);
   }
@@ -7003,8 +7004,8 @@ export class Ui {
     }
     if (this.pidsHint) {
       this.pidsHint.textContent = this.returnTo === 'paused'
-        ? 'Arrow keys move, left and right change a value, Enter types one. Escape leaves a field, then goes back. A change reaches the quad at once, and puts it back on the start line.'
-        : 'Arrow keys move, left and right change a value, Enter types one. Escape leaves a field, then goes back. Changes are stored and reach the quad at once.';
+        ? str('ui.arrow_keys_move_left_and_right')
+        : str('ui.arrow_keys_move_left_and_right_2');
     }
     const s = this.settings;
     const live = this.pidsLive && this.pidsLive.tune === s.tune ? this.pidsLive : null;
@@ -7012,13 +7013,13 @@ export class Ui {
     const name = tuneById(s.tune).name;
     let caption;
     if (!live) {
-      caption = `${name} is loading.`;
+      caption = str('ui.is_loading', { name });
     } else if (entry && entry.mode === 'expert' && entry.pids) {
-      caption = `${name}, PIDs set by hand. Read back from the module.`;
+      caption = str('ui.pids_set_by_hand_read_back', { name });
     } else if (pidsAdjusted(s.pids, s.tune)) {
-      caption = `${name} through your sliders. Read back from the module; the notch is stock 4.5.1.`;
+      caption = str('ui.through_your_sliders_read_back_from', { name });
     } else {
-      caption = `${name}, as it ships. Read back from the module; the notch is stock 4.5.1.`;
+      caption = str('ui.as_it_ships_read_back_from', { name });
     }
     this.pidsPanel.paint(live, caption);
   }
@@ -7086,7 +7087,7 @@ export class Ui {
       this.fcSaveExit.hidden = !dirty;
     }
     if (this.fcLeave) {
-      this.fcLeave.textContent = dirty ? 'Exit without saving' : 'Exit';
+      this.fcLeave.textContent = dirty ? str('ui.exit_without_saving') : 'Exit';
     }
     if (this.fcExitCopy) {
       this.fcExitCopy.textContent = dirty ? 'exits without saving' : 'returns';
@@ -7563,8 +7564,8 @@ export class Ui {
     const col = el('span', 'step-col');
     const up = btn('step', '▲');
     const down = btn('step', '▼');
-    up.setAttribute('aria-label', `Increase ${it.label}`);
-    down.setAttribute('aria-label', `Decrease ${it.label}`);
+    up.setAttribute('aria-label', str('ui.increase', { label: it.label }));
+    down.setAttribute('aria-label', str('ui.decrease', { label: it.label }));
     up.addEventListener('click', (e) => {
       e.stopPropagation();
       this.cursor = i;
@@ -7684,8 +7685,8 @@ export class Ui {
     const col = el('span', 'step-col');
     const up = btn('step', '▲');
     const down = btn('step', '▼');
-    up.setAttribute('aria-label', `Increase ${it.label}`);
-    down.setAttribute('aria-label', `Decrease ${it.label}`);
+    up.setAttribute('aria-label', str('ui.increase', { label: it.label }));
+    down.setAttribute('aria-label', str('ui.decrease', { label: it.label }));
     for (const [b, dir] of [[up, 1], [down, -1]]) {
       /* Keep the focus where it is: a blur here would rebuild the row and
        * take the button out from under the click that was already on its
@@ -7754,7 +7755,7 @@ export class Ui {
     field.autocomplete = 'off';
     field.spellcheck = false;
     field.value = it.num.text;
-    field.setAttribute('aria-label', `${it.label} value`);
+    field.setAttribute('aria-label', str('ui.value', { label: it.label }));
     field.addEventListener('click', (e) => e.stopPropagation());
     field.addEventListener('pointerdown', (e) => e.stopPropagation());
     field.addEventListener('focus', () => {
@@ -8186,14 +8187,14 @@ export class Ui {
     }
     this.trickShown = t.name;
     Ui.text(this.trickName, t.name);
-    Ui.text(this.trickMeta, `${formatScore(t.points)} points \u00b7 ${t.difficulty}`
+    Ui.text(this.trickMeta, str('ui.points', { formatScore: formatScore(t.points), difficulty: t.difficulty })
       + ` \u00b7 ${t.category} \u00b7 ${t.status.tag}`);
     Ui.text(this.trickHow, `${t.how} ${t.status.line}`);
     /* Which way the camera faces, because a roll seen from the side is a
      * craft that does not appear to move at all and the reader has to know
      * they are being shown the one angle it reads from. */
     const view = VIEW_LABEL[t.view].replace('seen ', '');
-    Ui.text(this.trickView, `Seen ${view}. The pink nose is the front of the quad, and the faded copies are where it was.`);
+    Ui.text(this.trickView, str('ui.seen_the_pink_nose_is_the', { view }));
     this.trickPlayer.show(t.film);
   }
 
@@ -8232,7 +8233,7 @@ export class Ui {
     }
     this.mapCards.forEach((c, i) => {
       c.card.classList.toggle('on', i === this.cursor);
-      c.tag.textContent = c.id === this.settings.map ? 'Flying now' : '';
+      c.tag.textContent = c.id === this.settings.map ? str('ui.flying_now') : '';
     });
   }
 
@@ -8269,7 +8270,7 @@ export class Ui {
         const plan = listed
           ? it.course.track.plan
           : currentPlan();
-        const canvas = planCanvas(plan, `Plan of ${it.label}`);
+        const canvas = planCanvas(plan, str('ui.plan_of', { label: it.label }));
         shot.append(canvas);
         const body = el('div', 'map-card-body');
         const name = el('div', 'map-card-name', it.label);
@@ -8319,7 +8320,7 @@ export class Ui {
       /* The list below belongs to one card. Say which, or the screen is back
        * to looking like a strip of cards over an unrelated menu. */
       c.card.classList.toggle('chosen', Boolean(this.cardSubject) && c.key === this.cardSubject);
-      c.tag.textContent = c.kind === 'current' && this.settings.map === 'custom' ? 'Flying now' : '';
+      c.tag.textContent = c.kind === 'current' && this.settings.map === 'custom' ? str('ui.flying_now') : '';
     });
   }
 
@@ -8416,7 +8417,7 @@ export class Ui {
         }
         out.push({
           id: doc.id,
-          name: doc.name || 'Untitled track',
+          name: doc.name || str('ui.untitled_track'),
           author: '',
           /* A track in this browser's library keeps the credit block it was
            * saved with, so a RaceGOW room opened from here names its
@@ -8474,7 +8475,7 @@ export class Ui {
     const found = loadTrack(id);
     const doc = found && found.doc ? found.doc : null;
     if (!doc) {
-      this.boardNote.textContent = 'That track is no longer saved in this browser.';
+      this.boardNote.textContent = str('ui.that_track_is_no_longer_saved');
       this.loadLocalCourses();
       return false;
     }
@@ -8494,7 +8495,7 @@ export class Ui {
      * just chosen and the pilot would fly the wrong one. */
     clearShareImport(cls);
     if (!writeAutosave(doc)) {
-      this.boardNote.textContent = 'This browser would not store that track.';
+      this.boardNote.textContent = str('ui.this_browser_would_not_store_that');
       return false;
     }
     this.setShare(null);
@@ -8516,7 +8517,7 @@ export class Ui {
       return;
     }
     this.boardLoading = true;
-    this.boardNote.textContent = 'Reading the board';
+    this.boardNote.textContent = str('ui.reading_the_board');
     fetchTrackList(this.share && this.share.board ? this.share.board : undefined)
       .then((list) => {
         this.boardLoading = false;
@@ -8571,10 +8572,10 @@ export class Ui {
           const other = list.some((t) => (t.trackClass === 'micro' ? 'micro' : 'full') !== want);
           const name = airframeById(this.settings.airframe).name.toLowerCase();
           this.boardNote.textContent = other
-            ? `No ${name} tracks on the board yet. Build one and publish it, or change aircraft.`
+            ? str('ui.no_tracks_on_the_board_yet', { name })
             : '';
         } else {
-          this.boardNote.textContent = 'No published tracks on the board yet. Build one and publish it.';
+          this.boardNote.textContent = str('ui.no_published_tracks_on_the_board');
         }
         if (this.screen === 'courses') {
           this.renderMenu();
@@ -8583,7 +8584,7 @@ export class Ui {
       .catch(() => {
         this.boardLoading = false;
         this.boardCourses = [];
-        this.boardNote.textContent = 'The board is not answering, so only your own tracks are listed.';
+        this.boardNote.textContent = str('ui.the_board_is_not_answering_so');
         if (this.screen === 'courses') {
           this.renderMenu();
         }
@@ -8639,7 +8640,7 @@ export class Ui {
         }
         this.standingsLoading = null;
         this.standingsTimes = [];
-        this.standingsError = 'The board is not answering, so its times cannot be shown.';
+        this.standingsError = str('ui.the_board_is_not_answering_so_2');
         if (this.screen === 'standings') {
           this.paintStandings();
           this.renderMenu();
@@ -8672,7 +8673,7 @@ export class Ui {
       return;
     }
     if (this.standingsTimes == null) {
-      table.append(el('div', 'standings-note', 'Reading the board'));
+      table.append(el('div', 'standings-note', str('ui.reading_the_board')));
       return;
     }
     if (this.standingsError) {
@@ -8680,13 +8681,13 @@ export class Ui {
       return;
     }
     if (!this.standingsTimes.length) {
-      table.append(el('div', 'standings-note', 'No times posted on this track yet. The first one is yours.'));
+      table.append(el('div', 'standings-note', str('ui.no_times_posted_on_this_track')));
       return;
     }
     const me = (readPilotName() || '').trim().toLowerCase();
     const head = el('div', 'standings-row standings-head');
     head.append(el('span', 'standings-rank', ''));
-    head.append(el('span', 'standings-pilot', 'Pilot'));
+    head.append(el('span', 'standings-pilot', str('ui.pilot')));
     head.append(el('span', 'standings-lap', 'Lap'));
     table.append(head);
     this.standingsTimes.forEach((row, i) => {
@@ -8698,7 +8699,7 @@ export class Ui {
         line.classList.add('is-record');
       }
       line.append(el('span', 'standings-rank', String(i + 1)));
-      const who = el('span', 'standings-pilot', row.name || 'Unnamed pilot');
+      const who = el('span', 'standings-pilot', row.name || str('ui.unnamed_pilot'));
       if (row.hasGhost) {
         /* A ghost is the difference between reading a time and racing it,
          * so the rows that carry one say so. */
@@ -8912,7 +8913,7 @@ export class Ui {
       c.wait = null;
       c.waitJoke = null;
       c.shot.replaceChildren();
-      c.still.textContent = 'Preview unavailable.';
+      c.still.textContent = str('ui.preview_unavailable');
     } finally {
       c.liveCanvas = null;
     }
@@ -8926,7 +8927,7 @@ export class Ui {
     c.still.textContent = '';
     const frame = document.createElement('iframe');
     frame.className = 'map-reel-view';
-    frame.title = 'World preview';
+    frame.title = str('ui.world_preview');
     frame.tabIndex = -1;
     frame.setAttribute('aria-hidden', 'true');
     c.shot.append(frame);
@@ -8987,7 +8988,7 @@ export class Ui {
       c.wait = null;
       c.waitJoke = null;
       c.shot.replaceChildren();
-      c.still.textContent = 'Preview unavailable.';
+      c.still.textContent = str('ui.preview_unavailable');
     } finally {
       if (frame.parentNode) {
         frame.remove();
@@ -9424,22 +9425,22 @@ export class Ui {
       return;
     }
     this.openingBoardCourse = true;
-    this.boardNote.textContent = `Loading ${track.name}`;
+    this.boardNote.textContent = str('ui.loading_2', { name: track.name });
     if (!this.onBoardCourse) {
       this.openingBoardCourse = false;
-      this.boardNote.textContent = `${track.name} could not be loaded from the board.`;
+      this.boardNote.textContent = str('ui.could_not_be_loaded_from_the', { name: track.name });
       return;
     }
     this.onBoardCourse(track).then((ok) => {
       this.openingBoardCourse = false;
       if (!ok) {
-        this.boardNote.textContent = `${track.name} could not be loaded from the board.`;
+        this.boardNote.textContent = str('ui.could_not_be_loaded_from_the', { name: track.name });
         return;
       }
       go();
     }).catch((err) => {
       this.openingBoardCourse = false;
-      this.boardNote.textContent = `${track.name} could not be loaded. ${err.message ?? err}`;
+      this.boardNote.textContent = str('ui.could_not_be_loaded', { name: track.name, v2: err.message ?? err });
     });
   }
 
@@ -9463,16 +9464,16 @@ export class Ui {
       return;
     }
     this.openingBoardCourse = true;
-    this.boardNote.textContent = `Loading ${track.name}`;
+    this.boardNote.textContent = str('ui.loading_2', { name: track.name });
     if (!this.onBoardCourse) {
       this.openingBoardCourse = false;
-      this.boardNote.textContent = `${track.name} could not be loaded from the board.`;
+      this.boardNote.textContent = str('ui.could_not_be_loaded_from_the', { name: track.name });
       return;
     }
     this.onBoardCourse(track).then((ok) => {
       this.openingBoardCourse = false;
       if (!ok) {
-        this.boardNote.textContent = `${track.name} could not be loaded from the board.`;
+        this.boardNote.textContent = str('ui.could_not_be_loaded_from_the', { name: track.name });
         return;
       }
       this.boardNote.textContent = '';
@@ -9482,7 +9483,7 @@ export class Ui {
       }
     }).catch((err) => {
       this.openingBoardCourse = false;
-      this.boardNote.textContent = `${track.name} could not be loaded. ${err.message ?? err}`;
+      this.boardNote.textContent = str('ui.could_not_be_loaded', { name: track.name, v2: err.message ?? err });
     });
   }
 
@@ -9509,56 +9510,56 @@ export class Ui {
     this.howtoKeys.textContent = '';
     const rows = source === 'touch'
       ? [
-        ['Left thumb', `${stickCaption(this.settings.stickMode, 'left')}.${thrNote(this.settings.stickMode, 'left')}`],
-        ['Right thumb', `${stickCaption(this.settings.stickMode, 'right')}.${thrNote(this.settings.stickMode, 'right')}`],
-        ['The whole corner', 'The pad is bigger than the drawing: the stick is wherever your thumb lands in the lower corner, and deflection is the drag from there.'],
-        ['Landscape', 'Turn the phone sideways. The pads sit under both thumbs, the way a radio sits in both hands.'],
-        ['Turtle', 'If you end up inverted on the ground, a TURTLE MODE prompt appears. Pitch or roll on the right pad to flip over. You do not have to time it. Let go, then take off.'],
-        ['Pause', 'The Pause chip, top right. Hits bounce. Time is the penalty. Resume, then pitch or roll if you are inverted.'],
+        [str('ui.left_thumb'), `${stickCaption(this.settings.stickMode, 'left')}.${thrNote(this.settings.stickMode, 'left')}`],
+        [str('ui.right_thumb'), `${stickCaption(this.settings.stickMode, 'right')}.${thrNote(this.settings.stickMode, 'right')}`],
+        [str('ui.the_whole_corner'), str('ui.the_pad_is_bigger_than_the')],
+        ['Landscape', str('ui.turn_the_phone_sideways_the_pads')],
+        ['Turtle', str('ui.if_you_end_up_inverted_on')],
+        ['Pause', str('ui.the_pause_chip_top_right_hits')],
       ]
       : source === 'radio'
       ? [
-        [`Left stick (Mode ${normaliseStickMode(this.settings.stickMode)})`, `${stickCaption(this.settings.stickMode, 'left')}. Set the mode on the radio; this page follows it in Settings.`],
-        ['Right stick', `${stickCaption(this.settings.stickMode, 'right')}.`],
-        ['Before you fly', 'Put the radio in joystick mode before loading this page, then run Calibrate sticks in Settings.'],
-        ['In the menus', 'Pitch moves the cursor, roll right selects, roll left goes back.'],
-        ['Acro', 'Hands off holds the attitude you left it in. Every turn has to be flown back out again.'],
-        ['Turtle', 'If you end up inverted on the ground, a TURTLE MODE prompt appears. Pitch or roll with the right stick to flip over. You do not have to time it. Centre the stick, then take off.'],
+        [str('ui.left_stick_mode', { normaliseStickMode: normaliseStickMode(this.settings.stickMode) }), str('ui.set_the_mode_on_the_radio', { stickCaption: stickCaption(this.settings.stickMode, 'left') })],
+        [str('ui.right_stick'), `${stickCaption(this.settings.stickMode, 'right')}.`],
+        [str('ui.before_you_fly'), str('ui.put_the_radio_in_joystick_mode')],
+        [str('ui.in_the_menus'), str('ui.pitch_moves_the_cursor_roll_right')],
+        ['Acro', str('ui.hands_off_holds_the_attitude_you')],
+        ['Turtle', str('ui.if_you_end_up_inverted_on_2')],
       ]
       : source === 'launch'
         ? [
-          ['What it is', 'Betaflight race start. Pitch the quad, let go of the stick, and it holds that angle at idle until you punch throttle. No looping off the blocks.'],
-          ['Turn it on', 'Quad, Launch control, On. It stays off until you do. Then press L on the start line, before you raise throttle.'],
-          ['Set the angle', 'Throttle at idle. Pitch forward until the OSD reads around 30 to 40 degrees. Centre the stick. The motors hold it.'],
-          ['Go', 'Punch throttle past about 20 percent. The hold dumps, the props bite, and you are flying. L again resets it after a launch.'],
-          ['Keyboard', 'Up arrow is pitch forward. W is throttle. Launch control switches you to Acro for the hold, then Angle comes back after you go.'],
-          ['Radio', 'Same sequence as a real board. L is the mode switch. Fine-tune launch_angle_limit and launch_trigger_throttle_percent on the Flight controller screen.'],
-          ['Turtle', 'If you tip over on the blocks, TURTLE MODE takes over. Pitch or roll to flip. You do not have to time it. Centre the stick, then press L and launch again.'],
+          [str('ui.what_it_is'), str('ui.betaflight_race_start_pitch_the_quad')],
+          [str('ui.turn_it_on'), str('ui.quad_launch_control_on_it_stays')],
+          [str('ui.set_the_angle'), str('ui.throttle_at_idle_pitch_forward_until')],
+          ['Go', str('ui.punch_throttle_past_about_20_percent')],
+          ['Keyboard', str('ui.up_arrow_is_pitch_forward_w')],
+          ['Radio', str('ui.same_sequence_as_a_real_board')],
+          ['Turtle', str('ui.if_you_tip_over_on_the')],
         ]
       : [
         ...keyHowtoRows(this.settings.stickMode),
-        ['L', 'Launch control, if you turned it on in Quad. Pitch, centre, punch.'],
-        ['R, then Escape', 'Back to the start line, and pause.'],
-        ['Turtle', 'If you end up inverted on the ground, a TURTLE MODE prompt appears. Pitch or roll with the arrow keys to flip over. You do not have to time it. Let go, then take off.'],
-        ['F8', 'Report a bug or give feedback. Pauses if you are in the air, then opens the form.'],
+        ['L', str('ui.launch_control_if_you_turned_it')],
+        [str('ui.r_then_escape'), str('ui.back_to_the_start_line_and')],
+        ['Turtle', str('ui.if_you_end_up_inverted_on_3')],
+        ['F8', str('ui.report_a_bug_or_give_feedback')],
       ];
     for (const [k, v] of rows) {
       this.howtoKeys.append(el('dt', null, k), el('dd', null, v));
     }
     this.howtoLive.textContent = source === 'touch'
-      ? 'The pads appear in flight, under your thumbs.'
+      ? str('ui.the_pads_appear_in_flight_under')
       : source === 'radio'
-        ? 'Move your sticks. These follow the radio.'
+        ? str('ui.move_your_sticks_these_follow_the')
         : source === 'launch'
-          ? 'L arms it. Pitch, centre, punch. The gimbals still follow your hands.'
-          : 'Press the keys. These follow your hands.';
+          ? str('ui.l_arms_it_pitch_centre_punch')
+          : str('ui.press_the_keys_these_follow_your');
     this.howtoMode.textContent = source === 'touch'
-      ? 'Thumb sticks are a real proportional stick, so they fly whichever Flight mode is set in Quad: Acro, like a radio, by default. Angle is gentler while you learn: let go of the right pad and the quad levels itself.'
+      ? str('ui.thumb_sticks_are_a_real_proportional')
       : source === 'radio'
-        ? 'A radio flies Acro by default: the sticks ask for a rate of rotation, and letting go asks for none, which holds whatever attitude the quad is in. Change it under Flight mode in Quad.'
+        ? str('ui.a_radio_flies_acro_by_default')
         : source === 'launch'
-          ? 'Off by default, because a punch from a hold is violent and not everyone wants it. Turn it on in Quad, then L on the pad. The green LAUNCH readout is the pitch angle. It blinks when throttle is close to firing.'
-          : 'Keys are on or off, so hold time is the analog: a tap moves the stick a little, a hold sits at a flyable amount, a long hold goes to full. Keyboard flight is Angle, so letting go brings the quad back to level.';
+          ? str('ui.off_by_default_because_a_punch')
+          : str('ui.keys_are_on_or_off_so');
   }
 
   /* Live channels for the tutorial's gimbals, fed by the shell's loop. */
@@ -9701,7 +9702,7 @@ export class Ui {
    * destination rather than saying Back is deliberate, see legendFor, and
    * "what to fly" is what the three cards between them ask. */
   gateLabel() {
-    return 'What to fly';
+    return str('ui.what_to_fly');
   }
 
   onGate() {
@@ -9764,9 +9765,9 @@ export class Ui {
       }
     }
     if (gate) {
-      copy.textContent = 'Left and right choose, Enter opens it. On a radio: pitch to move, roll right to choose.';
+      copy.textContent = str('ui.left_and_right_choose_enter_opens');
     } else {
-      copy.textContent = 'Arrow keys move, Enter selects, Escape goes back to what to fly. A radio banks the quad. Any switch selects.';
+      copy.textContent = str('ui.arrow_keys_move_enter_selects_escape');
     }
   }
 
@@ -9804,7 +9805,7 @@ export class Ui {
        * vocabulary. No gates is true in all three positions and is the
        * Freestyle room's own first sentence about the place.
        */
-      this.brandSub.textContent = freestyle ? `${worldName}, no gates` : `${worldName}, time trial`;
+      this.brandSub.textContent = freestyle ? str('ui.no_gates_2', { worldName }) : str('ui.time_trial', { worldName });
     }
     this.titleBest.textContent = '';
     if (freestyle) {
@@ -9824,17 +9825,17 @@ export class Ui {
        * the same trap.
        */
       this.titleBest.textContent = this.settings.freestyleScoring === 'scored'
-        ? 'No gates, no lap, two minutes'
-        : 'No gates, no lap, no clock';
+        ? str('ui.no_gates_no_lap_two_minutes')
+        : str('ui.no_gates_no_lap_no_clock');
       this.osdBest.textContent = '';
       return;
     }
     if (ms != null) {
-      this.titleBest.append('Track record ', el('span', 'brand-best-time', formatTime(ms)));
+      this.titleBest.append(str('ui.track_record'), el('span', 'brand-best-time', formatTime(ms)));
     } else {
-      this.titleBest.textContent = 'No lap recorded yet';
+      this.titleBest.textContent = str('ui.no_lap_recorded_yet');
     }
-    this.osdBest.textContent = ms != null ? `Record ${formatTime(ms)}` : 'No record yet';
+    this.osdBest.textContent = ms != null ? str('ui.record', { formatTime: formatTime(ms) }) : str('ui.no_record_yet');
   }
 
   /*
@@ -9909,15 +9910,15 @@ export class Ui {
 
     this.resultsKicker.textContent = this.resultsCourseName();
     if (!clean.length) {
-      this.resultsHead.textContent = 'Run ended';
+      this.resultsHead.textContent = str('ui.run_ended');
       this.resultsHeroTime.textContent = '';
       this.resultsHeroMeta.textContent = '';
       this.resultsHeroMeta.className = 'results-hero-meta';
-      this.resultsBody.append(el('p', 'results-empty', 'No clean lap this run. Hitting the ground or a gate frame costs the time it takes to get going again. Only an out of sequence gate voids the lap and sends you back to the mint ring.'));
+      this.resultsBody.append(el('p', 'results-empty', str('ui.no_clean_lap_this_run_hitting')));
     } else {
       this.resultsHead.textContent = isRecord
-        ? 'New track record'
-        : (matched ? 'Matched the record' : 'Run complete');
+        ? str('ui.new_track_record')
+        : (matched ? str('ui.matched_the_record') : str('ui.run_complete'));
       /*
        * RACEGOW IS SCORED ON THREE CONSECUTIVE LAPS, so on a micro track
        * that total is the headline and the best single lap moves to the
@@ -9934,34 +9935,34 @@ export class Ui {
       const three = Number.isFinite(opts.threeMs) ? opts.threeMs : null;
       const threeUp = opts.trackClass === 'micro' && three != null;
       this.resultsHeroCap.textContent = threeUp
-        ? 'Best three laps'
-        : (clean.length === 1 ? 'Lap time' : 'Best lap');
+        ? str('ui.best_three_laps')
+        : (clean.length === 1 ? str('ui.lap_time') : str('ui.best_lap'));
       this.resultsHeroTime.textContent = formatTime(threeUp ? three : fastest);
       if (threeUp) {
         /* Three consecutive is what the run is scored on, so the lap that
          * carries the record is named here rather than left to the rows. */
-        const lapWord = clean.length === 1 ? 'Lap' : 'Best lap';
+        const lapWord = clean.length === 1 ? 'Lap' : str('ui.best_lap');
         if (isRecord) {
-          this.resultsHeroMeta.textContent = `${lapWord} ${formatTime(fastest)}, a track record`;
+          this.resultsHeroMeta.textContent = str('ui.a_track_record', { lapWord, formatTime: formatTime(fastest) });
           this.resultsHeroMeta.className = 'results-hero-meta gain';
         } else if (matched) {
-          this.resultsHeroMeta.textContent = `${lapWord} ${formatTime(fastest)}, equals the record`;
+          this.resultsHeroMeta.textContent = str('ui.equals_the_record', { lapWord, formatTime: formatTime(fastest) });
           this.resultsHeroMeta.className = 'results-hero-meta gain';
         } else {
-          this.resultsHeroMeta.textContent = `${lapWord} ${formatTime(fastest)}, ${formatDelta(fastest - best)} off ${formatTime(best)}`;
+          this.resultsHeroMeta.textContent = str('ui.off', { lapWord, formatTime: formatTime(fastest), formatDelta: formatDelta(fastest - best), formatTime2: formatTime(best) });
           this.resultsHeroMeta.className = 'results-hero-meta off';
         }
       } else if (isRecord && hadRecord) {
-        this.resultsHeroMeta.textContent = `${formatDelta(fastest - recordAtStart)}  previous ${formatTime(recordAtStart)}`;
+        this.resultsHeroMeta.textContent = str('ui.previous', { formatDelta: formatDelta(fastest - recordAtStart), formatTime: formatTime(recordAtStart) });
         this.resultsHeroMeta.className = 'results-hero-meta gain';
       } else if (isRecord) {
-        this.resultsHeroMeta.textContent = 'First record on this track';
+        this.resultsHeroMeta.textContent = str('ui.first_record_on_this_track');
         this.resultsHeroMeta.className = 'results-hero-meta gain';
       } else if (matched) {
-        this.resultsHeroMeta.textContent = `Equals the record  ${formatTime(best)}`;
+        this.resultsHeroMeta.textContent = str('ui.equals_the_record_2', { formatTime: formatTime(best) });
         this.resultsHeroMeta.className = 'results-hero-meta gain';
       } else {
-        this.resultsHeroMeta.textContent = `${formatDelta(fastest - best)} off the record  ${formatTime(best)} to beat`;
+        this.resultsHeroMeta.textContent = str('ui.off_the_record_to_beat', { formatDelta: formatDelta(fastest - best), formatTime: formatTime(best) });
         this.resultsHeroMeta.className = 'results-hero-meta off';
       }
     }
@@ -9969,7 +9970,7 @@ export class Ui {
       const fastestRow = entry.ms != null && entry.ms === fastest;
       const row = el('div', `result-row${entry.ms == null ? ' void' : ''}${fastestRow ? ' fastest' : ''}`);
       const main = el('div', 'result-main');
-      main.append(el('span', 'result-label', `Lap ${entry.n}`));
+      main.append(el('span', 'result-label', str('ui.lap', { n: entry.n })));
       if (entry.ms == null) {
         main.append(el('span', 'result-time', 'void'));
         main.append(el('span', 'result-why', (entry.reason || '').replace(/\n/g, ' ').toLowerCase()));
@@ -10016,8 +10017,8 @@ export class Ui {
        * put a rule on the screen that does not apply to the run. */
       totalRow(
         opts.trackClass === 'micro' && three != null && three === total
-          ? 'Best three consecutive'
-          : (clean.length === log.length ? 'Total' : 'Clean laps total'),
+          ? str('ui.best_three_consecutive')
+          : (clean.length === log.length ? 'Total' : str('ui.clean_laps_total')),
         total,
       );
     }
@@ -10029,7 +10030,7 @@ export class Ui {
      * the race computes it for every class, but the sixty metre field is
      * scored on one lap and its sheet must not grow a RaceGOW row. */
     if (opts.trackClass === 'micro' && three != null && three !== total) {
-      totalRow('Best three consecutive', three);
+      totalRow(str('ui.best_three_consecutive'), three);
     }
     /* How the run went against the ghost that was being chased, one line,
      * written by the shell because only it knows who the ghost was. */
@@ -10043,18 +10044,18 @@ export class Ui {
     if (this.settings.map !== 'custom') {
       this.resultsNote.textContent = '';
     } else if (this.share && this.share.id) {
-      const by = this.share.author ? ` by ${this.share.author}` : '';
-      this.resultsNote.textContent = `${this.share.name || 'This track'}${by} is on the public board. Upload a time under your name to appear on it.`;
+      const by = this.share.author ? str('ui.by_4', { author: this.share.author }) : '';
+      this.resultsNote.textContent = str('ui.is_on_the_public_board_upload', { v1: this.share.name || str('ui.this_track'), by });
     } else {
       try {
         const listing = inspectCourse();
         if (listing && listing.kind === 'remix') {
-          const of = listing.sourceName ? ` of ${listing.sourceName}` : '';
-          this.resultsNote.textContent = `${listing.name} is your copy${of}. Publish it under a new name to put it on the board.`;
+          const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
+          this.resultsNote.textContent = str('ui.is_your_copy_publish_it_under', { name: listing.name, of });
         } else if (listing && listing.kind === 'local' && listing.canPublishNew) {
-          this.resultsNote.textContent = `${listing.name} lives in this browser. Publish it to put it on the board, then you can upload a time.`;
+          this.resultsNote.textContent = str('ui.lives_in_this_browser_publish_it', { name: listing.name });
         } else if (listing && listing.kind === 'owned' && listing.layoutDrift) {
-          this.resultsNote.textContent = `${listing.name} has a layout that is not on the board yet. Update the track before uploading a time.`;
+          this.resultsNote.textContent = str('ui.has_a_layout_that_is_not', { name: listing.name });
         }
       } catch (e) {
         /* A summary failure must not hide the times. */
@@ -10365,12 +10366,12 @@ export class Ui {
     if (freestyle) {
       Ui.text(this.osdGate, '');
     } else if (gateCue) {
-      Ui.text(this.osdGate, `Gate ${gate} of ${gateCount}, ${gateCue}`);
+      Ui.text(this.osdGate, str('ui.gate_of', { gate, gateCount, gateCue }));
     } else {
-      Ui.text(this.osdGate, `Gate ${gate} of ${gateCount}`);
+      Ui.text(this.osdGate, str('ui.gate_of_2', { gate, gateCount }));
     }
     Ui.text(this.osdPack, `${volts.toFixed(1)} volts`);
-    Ui.text(this.osdLast, !freestyle && lastLapMs != null ? `Last lap ${formatTime(lastLapMs)}` : '');
+    Ui.text(this.osdLast, !freestyle && lastLapMs != null ? str('ui.last_lap', { formatTime: formatTime(lastLapMs) }) : '');
     if (this.osdGhost) {
       if (ghostGapMs == null || freestyle) {
         Ui.klass(this.osdGhost, 'osd-ghost is-off');
@@ -10380,12 +10381,12 @@ export class Ui {
          * the readout cannot be mistaken for a lap time. */
         const ahead = ghostGapMs <= 0;
         const gap = `${ahead ? '-' : '+'}${(Math.abs(ghostGapMs) / 1000).toFixed(2)}`;
-        Ui.text(this.osdGhost, `${ghostFinal ? 'Ghost lap' : 'Ghost'} ${gap}`);
+        Ui.text(this.osdGhost, `${ghostFinal ? str('ui.ghost_lap') : 'Ghost'} ${gap}`);
         Ui.klass(this.osdGhost, `osd-ghost ${ahead ? 'ahead' : 'behind'}`);
       }
     }
     Ui.bar(this.osdPackBar, packFrac);
-    Ui.text(this.osdSpeed, `${speedKph.toFixed(0)} km/h`);
+    Ui.text(this.osdSpeed, str('ui.km_h', { speedKph: speedKph.toFixed(0) }));
     if (this.osdFlight) {
       Ui.text(this.osdFlight, flightMode === 'turtle'
         ? 'Turtle'
@@ -10405,10 +10406,10 @@ export class Ui {
         Ui.text(this.osdLaunch, 'GO');
       } else {
         const deg = Math.round(launchPitch || 0);
-        Ui.text(this.osdLaunch, deg > 2 ? `LAUNCH ${deg}` : 'LAUNCH');
+        Ui.text(this.osdLaunch, deg > 2 ? str('ui.launch', { deg }) : 'LAUNCH');
       }
     }
-    Ui.text(this.osdAlt, `${altitude.toFixed(1)} m above the ground`);
+    Ui.text(this.osdAlt, str('ui.m_above_the_ground', { altitude: altitude.toFixed(1) }));
     Ui.bar(this.osdThrBar, throttle);
     if (this.osdHits) {
       /*
@@ -10508,12 +10509,12 @@ export class Ui {
     screen.classList.add('is-in');
 
     this.resultsKicker.textContent = summary.timed === false
-      ? 'Freestyle city, free flight'
-      : 'Freestyle city';
+      ? str('ui.freestyle_city_free_flight')
+      : str('ui.freestyle_city');
     this.resultsHead.textContent = summary.tricks
-      ? (clean ? 'Clean run' : 'Run complete')
-      : 'Run ended';
-    this.resultsHeroCap.textContent = 'Score';
+      ? (clean ? str('ui.clean_run') : str('ui.run_complete'))
+      : str('ui.run_ended');
+    this.resultsHeroCap.textContent = str('ui.score');
     this.resultsHeroTime.textContent = formatScore(summary.total);
     /* A town has no plan drawing, and an empty blueprint plate beside a
      * freestyle score is a picture of nothing. */
@@ -10523,14 +10524,14 @@ export class Ui {
       this.resultsHeroMeta.textContent = '';
       this.resultsHeroMeta.className = 'results-hero-meta';
       this.resultsBody.append(el('p', 'results-empty', summary.timed === false
-        ? 'Nothing the recogniser could name. A trick is a whole rotation about one axis, or a lap around something: a flip, a roll, a 360 of yaw, a powerloop under a rail. Turning a corner is not a trick and is deliberately worth nothing.'
-        : 'Two minutes and nothing the recogniser could name. A trick is a whole rotation about one axis, or a lap around something: a flip, a roll, a 360 of yaw, a powerloop under a rail. Turning a corner is not a trick and is deliberately worth nothing.'));
+        ? str('ui.nothing_the_recogniser_could_name_a')
+        : str('ui.two_minutes_and_nothing_the_recogniser')));
     } else {
       const parts = [
-        `${summary.tricks} tricks, ${summary.unique} of them different`,
+        str('ui.tricks_of_them_different', { tricks: summary.tricks, unique: summary.unique }),
         summary.bestCombo > 0 ? `best chain ${formatScore(summary.bestCombo)}` : '',
         summary.bonus > 0 ? `variety bonus ${formatScore(summary.bonus)}` : '',
-        summary.crashes === 0 ? 'no crashes' : `${summary.crashes} crash${summary.crashes === 1 ? '' : 'es'}`,
+        summary.crashes === 0 ? str('ui.no_crashes') : `${summary.crashes} crash${summary.crashes === 1 ? '' : 'es'}`,
       ].filter(Boolean);
       this.resultsHeroMeta.textContent = parts.join('  ·  ');
       this.resultsHeroMeta.className = clean ? 'results-hero-meta gain' : 'results-hero-meta';
@@ -10564,8 +10565,8 @@ export class Ui {
       const hidden = summary.rows.length - 10;
       if (hidden > 0) {
         this.resultsNote.textContent = hidden === 1
-          ? 'And one more kind of trick, further down the list.'
-          : `And ${hidden} more kinds of trick, further down the list.`;
+          ? str('ui.and_one_more_kind_of_trick')
+          : str('ui.and_more_kinds_of_trick_further', { hidden });
       }
     }
     this.show('results');
@@ -10754,7 +10755,7 @@ export class Ui {
      * learns to stop reading it.
      */
     const stock = v === WEIGHT_STOCK;
-    air.cap.textContent = `Weight ${v}%`;
+    air.cap.textContent = str('ui.weight_2', { v });
     Ui.klass(air.cap, stock ? 'osd-air-cap is-stock' : 'osd-air-cap');
   }
 
@@ -10837,7 +10838,7 @@ export class Ui {
       return;
     }
     const n = view.stepIndex + 1;
-    this.calKicker.textContent = `Step ${n} of ${view.stepCount}, ${view.title}`;
+    this.calKicker.textContent = str('ui.step_of', { n, stepCount: view.stepCount, title: view.title });
     this.calPrompt.textContent = view.prompt;
     this.calHint.textContent = view.hint;
     this.calCanSave = Boolean(view.canSave);
@@ -10866,7 +10867,7 @@ export class Ui {
     }
     if (this.calModeBtn) {
       this.calModeBtn.hidden = !this.calOnConfirm;
-      Ui.text(this.calModeBtn, `Stick mode ${normaliseStickMode(this.settings.stickMode)}`);
+      Ui.text(this.calModeBtn, str('ui.stick_mode_2', { normaliseStickMode: normaliseStickMode(this.settings.stickMode) }));
     }
     const ch = view.channels || { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
     placeSticks(this.calStickLeft, this.calStickRight, ch, this.settings.stickMode);
@@ -10984,8 +10985,8 @@ export class Ui {
       return;
     }
     this.padKicker.textContent = view.pads.length > 1
-      ? `${view.pads.length} joysticks plugged in`
-      : (view.pads.length === 1 ? 'One joystick plugged in' : 'No joystick');
+      ? str('ui.joysticks_plugged_in', { length: view.pads.length })
+      : (view.pads.length === 1 ? str('ui.one_joystick_plugged_in') : str('ui.no_joystick'));
     this.padPrompt.textContent = view.prompt;
     this.padHint.textContent = view.hint;
     if (this.padYesBtn) {
@@ -11019,7 +11020,7 @@ export class Ui {
       node.title.textContent = pad.title;
       node.name.textContent = pad.name;
       node.status.textContent = pad.chosen
-        ? 'Use this one?'
+        ? str('ui.use_this_one')
         : (pad.live ? 'Moving' : 'Resting');
       node.card.classList.toggle('is-live', pad.live && !pad.chosen);
       node.card.classList.toggle('is-on', pad.chosen);
@@ -11085,18 +11086,18 @@ export class Ui {
     }
     if (String(st.source).includes('touch')) {
       return [{
-        label: 'Stick path',
-        value: 'Thumb sticks',
+        label: str('ui.stick_path'),
+        value: str('ui.thumb_sticks'),
         info: true,
-        note: 'A thumb on glass has about a quarter of a gimbal\'s travel and nothing centring it, so the numbers below are seeded gentler than the radio defaults. Roll, pitch and yaw spring back when you lift off; throttle stays where you left it, the way a radio\'s does.',
+        note: str('ui.a_thumb_on_glass_has_about'),
       }];
     }
     if (String(st.source).includes('keyboard')) {
       return [{
-        label: 'Stick path',
+        label: str('ui.stick_path'),
         value: 'Keyboard',
         info: true,
-        note: 'A key is not a stick. Holding one ramps the stick to 34 percent and stays there until about three quarters of a second, then stretches to full at one and a quarter. So the rates below are the rates a RADIO would fly: a tap reaches roughly a third of them, which is why keyboard flight feels firmer and slower to bite than the numbers say. A gamepad or a radio in USB joystick mode gets the whole curve.',
+        note: str('ui.a_key_is_not_a_stick'),
       }];
     }
     /*
@@ -11114,19 +11115,19 @@ export class Ui {
     const levels = Number(st.stickLevels) || 0;
     const bits = [];
     if (padHz <= 0) {
-      bits.push('Waiting for the radio to report. Move a stick.');
+      bits.push(str('ui.waiting_for_the_radio_to_report'));
     } else {
-      bits.push(`Your radio is refreshing ${padHz} times a second. Betaflight is flown on a fixed 250 Hz frame grid either way, so this is how fresh the value on each of those frames is.`);
+      bits.push(str('ui.your_radio_is_refreshing_times_a', { padHz }));
     }
     if (tracksFrames) {
-      bits.push(`That is your frame rate, ${fps} per second, which means this browser is only reading the radio once per drawn frame. Feedforward works on the CHANGE between frames, so a stick that steps once a frame is felt as a series of nudges rather than a push. Nothing in the rates below fixes that.`);
+      bits.push(str('ui.that_is_your_frame_rate_per', { fps }));
     }
     if (levels > 0 && levels < 512) {
-      bits.push(`This radio reports about ${levels} steps across a stick's full travel, which is coarse enough to feel at high rates. A radio with a finer USB report, or lower rates, both soften it.`);
+      bits.push(str('ui.this_radio_reports_about_steps_across', { levels }));
     }
     return [{
-      label: 'Stick path',
-      value: padHz > 0 ? `Radio, ${padHz} Hz` : 'Radio',
+      label: str('ui.stick_path'),
+      value: padHz > 0 ? str('ui.radio_hz', { padHz }) : 'Radio',
       info: true,
       rowClass: tracksFrames ? 'row-warn' : undefined,
       note: bits.join(' '),
@@ -11330,10 +11331,10 @@ export class Ui {
     }
     const seat = activeCourseSummary();
     const m = MAPS.find((x) => x.id === this.settings.map) ?? MAPS[0];
-    out.push({ label: 'Flying', value: seat && seat.name ? seat.name : m.name });
+    out.push({ label: str('ui.flying'), value: seat && seat.name ? seat.name : m.name });
     const name = readPilotName();
     if (name) {
-      out.push({ label: 'Pilot', value: name });
+      out.push({ label: str('ui.pilot'), value: name });
     }
     return out;
   }
@@ -11358,9 +11359,9 @@ export class Ui {
       && typeof navigator !== 'undefined' && (navigator.maxTouchPoints || 0) > 0;
     if (touch) {
       const out = [];
-      out.push({ keys: [], text: this.cardScreen() ? 'Tap a card' : 'Tap a row' });
+      out.push({ keys: [], text: this.cardScreen() ? str('ui.tap_a_card') : str('ui.tap_a_row') });
       if (this.screen !== 'title') {
-        out.push({ keys: [], text: 'Back', action: 'back' });
+        out.push({ keys: [], text: str('ui.back'), action: 'back' });
       }
       /* The title's own way out is the last row of its menu now, where a
        * thumb can find it without reading the legend. See titleItems. */
@@ -11372,17 +11373,17 @@ export class Ui {
        * treats roll right as choose and roll left as back, which is what the
        * Race room's own hint line has always said; this legend claimed Roll
        * and was simply wrong. */
-      out.push({ keys: pad ? ['Pitch'] : ['\u2190', '\u2192'], text: 'Move' });
+      out.push({ keys: pad ? ['Pitch'] : ['\u2190', '\u2192'], text: str('ui.move') });
     } else {
-      out.push({ keys: pad ? ['Pitch'] : ['\u2191', '\u2193'], text: 'Move' });
+      out.push({ keys: pad ? ['Pitch'] : ['\u2191', '\u2193'], text: str('ui.move') });
       const it = this.items()[this.cursor];
       if (this.rowKind(it) === 'value') {
-        out.push({ keys: pad ? ['Roll'] : ['\u2190', '\u2192'], text: 'Adjust' });
+        out.push({ keys: pad ? ['Roll'] : ['\u2190', '\u2192'], text: str('ui.adjust') });
       }
     }
-    out.push({ keys: [pad ? 'A' : 'Enter'], text: 'Choose' });
+    out.push({ keys: [pad ? 'A' : 'Enter'], text: str('ui.choose') });
     if (this.screen !== 'title') {
-      out.push({ keys: [pad ? 'B' : 'Esc'], text: 'Back' });
+      out.push({ keys: [pad ? 'B' : 'Esc'], text: str('ui.back') });
     } else if (!this.onGate()) {
       /* NOT ON THE GATE. The gate is the root and Escape does nothing
        * there, so offering the key is a joke. onGate() is the one
@@ -11968,7 +11969,7 @@ export class Ui {
       }
       this.showStandings({
         id: listing.shareId,
-        name: (seat && seat.name) || listing.name || 'This track',
+        name: (seat && seat.name) || listing.name || str('ui.this_track'),
         author: listing.author || '',
         designer: (seat && seat.designer) || listing.designer || '',
         series: (seat && seat.series) || listing.series || '',
@@ -12458,7 +12459,7 @@ export class Ui {
          */
         this.ratesNotice = res.ok
           ? null
-          : 'This browser would not store that preset. Your rates are still flying, but they are not saved.';
+          : str('ui.this_browser_would_not_store_that_2');
         this.renderMenu();
       });
       return;
@@ -12469,10 +12470,10 @@ export class Ui {
         return;
       }
       this.askConfirm({
-        title: `Delete ${loaded.name}?`,
-        detail: 'This browser is the only copy, so this cannot be undone. The numbers stay on the quad and keep flying; only the saved profile goes.',
+        title: str('ui.delete', { name: loaded.name }),
+        detail: str('ui.this_browser_is_the_only_copy'),
         yes: 'Delete',
-        no: 'Keep it',
+        no: str('ui.keep_it'),
       }).then((ok) => {
         if (!ok) {
           return;
@@ -12480,7 +12481,7 @@ export class Ui {
         const res = deleteRatePreset(loaded.id);
         this.ratesNotice = res.ok
           ? null
-          : 'This browser would not change stored presets, so that one is still saved.';
+          : str('ui.this_browser_would_not_change_stored');
         this.renderMenu();
       });
       return;

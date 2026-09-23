@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * racegow.js: the RaceGOW track specification, as numbers.
  *
@@ -211,24 +212,24 @@ export const GRID = 1 * IN;
  * single horizontal bar to be flown over or under.
  */
 export const RACEGOW_ELEMENTS = [
-  { racegow: 'Start/Finish Gate', type: 'gate', colour: 'green',
-    note: 'A ground gate, and the one the clock starts and stops on. Drawn green on every official diagram.' },
-  { racegow: 'Single Gate', type: 'gate', colour: 'yellow',
-    note: 'One square with its bottom bar on the floor.' },
-  { racegow: 'Side by Side Gates', type: 'sideBySide', colour: 'blue',
-    note: 'Two or three gates in a row sharing their verticals, 30 inches centre to centre.' },
-  { racegow: 'Double Stacked Gates', type: 'doubleStack', colour: 'purple',
-    note: 'Two gates vertically. The top one is at least 42 inches up.' },
-  { racegow: 'Triple Gate Stack', type: 'ladder', colour: 'purple',
-    note: 'Three high. The top one is at least 69 inches up.' },
-  { racegow: 'Elevated Gate', type: 'tower', colour: 'orange',
-    note: 'A gate carried above the ground gates, its bottom at least 56 inches up.' },
-  { racegow: 'Horizontal Gate', type: 'diveGate', colour: 'blue',
-    note: 'A gate in the horizontal plane. Also called a cube gate. Fly down through it.' },
-  { racegow: 'Vertical Pole', type: 'pole', colour: 'red',
-    note: 'A single upright pipe to be flown around. Red dot in plan on every diagram.' },
-  { racegow: 'Horizontal Pole', type: 'horizontalPole', colour: 'red',
-    note: 'A single horizontal pipe, flown over or under.' },
+  { racegow: str('racegow.start_finish_gate'), type: 'gate', colour: 'green',
+    note: str('racegow.a_ground_gate_and_the_one') },
+  { racegow: str('racegow.single_gate'), type: 'gate', colour: 'yellow',
+    note: str('racegow.one_square_with_its_bottom_bar') },
+  { racegow: str('racegow.side_by_side_gates'), type: 'sideBySide', colour: 'blue',
+    note: str('racegow.two_or_three_gates_in_a') },
+  { racegow: str('racegow.double_stacked_gates'), type: 'doubleStack', colour: 'purple',
+    note: str('racegow.two_gates_vertically_the_top_one') },
+  { racegow: str('racegow.triple_gate_stack'), type: 'ladder', colour: 'purple',
+    note: str('racegow.three_high_the_top_one_is') },
+  { racegow: str('racegow.elevated_gate'), type: 'tower', colour: 'orange',
+    note: str('racegow.a_gate_carried_above_the_ground') },
+  { racegow: str('racegow.horizontal_gate'), type: 'diveGate', colour: 'blue',
+    note: str('racegow.a_gate_in_the_horizontal_plane') },
+  { racegow: str('racegow.vertical_pole'), type: 'pole', colour: 'red',
+    note: str('racegow.a_single_upright_pipe_to_be') },
+  { racegow: str('racegow.horizontal_pole'), type: 'horizontalPole', colour: 'red',
+    note: str('racegow.a_single_horizontal_pipe_flown_over') },
 ];
 
 /*
@@ -254,48 +255,48 @@ export const GATE_OPENING_DEFAULT = GATE_OPENING_MAX;
 export const RULES = [
   {
     id: 'opening-range',
-    title: 'Gate opening',
-    detail: `RaceGOW gates are between ${inches(GATE_OPENING_MIN)} and ${inches(GATE_OPENING_MAX)} across the clear opening.`,
+    title: str('racegow.gate_opening'),
+    detail: str('racegow.racegow_gates_are_between_and_across', { inches: inches(GATE_OPENING_MIN), inches2: inches(GATE_OPENING_MAX) }),
   },
   {
     id: 'opening-uniform',
-    title: 'One gate size',
-    detail: 'Every gate on a RaceGOW track is the same size. "You must scale the entire track up equally based on your gate size."',
+    title: str('racegow.one_gate_size'),
+    detail: str('racegow.every_gate_on_a_racegow_track'),
   },
   {
     id: 'spacing',
-    title: 'Adjacent gates',
-    detail: `Adjacent gates sit ${inches(GATE_SPACING_MIN)} to ${inches(GATE_SPACING_MAX)} apart centre to centre, nominally ${inches(GATE_SPACING_NOMINAL)}. The rule covers side by side AND stacked.`,
+    title: str('racegow.adjacent_gates'),
+    detail: str('racegow.adjacent_gates_sit_to_apart_centre', { inches: inches(GATE_SPACING_MIN), inches2: inches(GATE_SPACING_MAX), inches3: inches(GATE_SPACING_NOMINAL) }),
   },
   {
     id: 'ground-centre',
-    title: 'Ground gates',
-    detail: `A gate on the ground has its centre ${inches(GROUND_GATE_CENTRE_MAX)} or lower.`,
+    title: str('racegow.ground_gates'),
+    detail: str('racegow.a_gate_on_the_ground_has', { inches: inches(GROUND_GATE_CENTRE_MAX) }),
   },
   {
     id: 'stack-2',
-    title: 'Second gate of a stack',
-    detail: `At least ${inches(STACK2_CENTRE_MIN)} above the ground.`,
+    title: str('racegow.second_gate_of_a_stack'),
+    detail: str('racegow.at_least_above_the_ground', { inches: inches(STACK2_CENTRE_MIN) }),
   },
   {
     id: 'stack-3',
-    title: 'Third gate of a stack',
-    detail: `At least ${inches(STACK3_CENTRE_MIN)} above the ground.`,
+    title: str('racegow.third_gate_of_a_stack'),
+    detail: str('racegow.at_least_above_the_ground', { inches: inches(STACK3_CENTRE_MIN) }),
   },
   {
     id: 'pole-clear',
-    title: 'Poles',
-    detail: `At least ${inches(POLE_FROM_GATE_MIN)} from the centre of a gate and ${inches(POLE_FROM_POLE_MIN)} from another pole.`,
+    title: str('racegow.poles'),
+    detail: str('racegow.at_least_from_the_centre_of', { inches: inches(POLE_FROM_GATE_MIN), inches2: inches(POLE_FROM_POLE_MIN) }),
   },
   {
     id: 'square-headings',
-    title: 'Gate headings',
-    detail: 'Every gate faces along one of the two track axes: the angle between any two gates is a multiple of 90 degrees. A kit of straight pipe and right angle fittings does not build a track on the diagonal.',
+    title: str('racegow.gate_headings'),
+    detail: str('racegow.every_gate_faces_along_one_of'),
   },
   {
     id: 'envelope',
-    title: 'The envelope',
-    detail: `The whole track fits a ${inches(ENVELOPE_W_AT_MIN)} by ${inches(ENVELOPE_D_AT_MIN)} rectangle at the minimum gate size, scaled with the gates.`,
+    title: str('racegow.the_envelope'),
+    detail: str('racegow.the_whole_track_fits_a_by', { inches: inches(ENVELOPE_W_AT_MIN), inches2: inches(ENVELOPE_D_AT_MIN) }),
   },
 ];
 
@@ -305,7 +306,7 @@ export const RULES = [
 export function inches(m) {
   const i = m / IN;
   const shown = Math.abs(i - Math.round(i)) < 0.02 ? String(Math.round(i)) : i.toFixed(1);
-  return `${shown} in (${Math.round(m * 1000)} mm)`;
+  return str('racegow.in_mm', { shown, v2: Math.round(m * 1000) });
 }
 
 /*

@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * quality.js: named graphics presets, and the only place they are defined.
  *
@@ -86,7 +87,7 @@ const PRESETS = {
   low: {
     id: 'low',
     name: 'Low',
-    note: 'Steam Deck and similar handhelds. Lower internal resolution, no shadow maps, cheaper post, and a thinner town. Still uses a GPU if the machine has one. Changing this rebuilds the world.',
+    note: str('quality.steam_deck_and_similar_handhelds_lower'),
     /* Cap at 1x, then 0.85: Deck native is 1280x800, so the compositor sees
      * about 1088x680. Fill rate is what a 4 to 15 W APU is short of. */
     pixelRatioCap: 1,
@@ -132,7 +133,7 @@ const PRESETS = {
   medium: {
     id: 'medium',
     name: 'Medium',
-    note: 'A 2020-era laptop with integrated graphics. Shadows at lower resolution, no bloom, and thinner planting in the town. Changing this rebuilds the world.',
+    note: str('quality.a_2020_era_laptop_with_integrated'),
     pixelRatioCap: 1.25,
     resolutionScale: 1,
     shadows: true,
@@ -166,7 +167,7 @@ const PRESETS = {
   high: {
     id: 'high',
     name: 'High',
-    note: 'A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows, bloom, and the town at full planting. Changing this rebuilds the world.',
+    note: str('quality.a_2021_era_pc_or_a'),
     /* Identical to the session default before this file existed. */
     pixelRatioCap: 2,
     resolutionScale: 1,

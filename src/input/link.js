@@ -1,3 +1,4 @@
+import { str } from '../strings/index.js';
 /*
  * link.js: the radio between the sticks and the flight controller.
  *
@@ -71,11 +72,11 @@
  * lap time.
  */
 export const LINK_PRESETS = {
-  perfect: { label: 'Perfect (no radio)', hz: 250, delayMs: 0, jitterMs: 0, lossPpm: 0 },
-  elrs500: { label: 'ELRS 500 Hz', hz: 500, delayMs: 3.0, jitterMs: 0.4, lossPpm: 200 },
-  elrs250: { label: 'ELRS 250 Hz', hz: 250, delayMs: 4.0, jitterMs: 0.8, lossPpm: 400 },
-  elrs150: { label: 'ELRS 150 Hz', hz: 150, delayMs: 6.0, jitterMs: 1.4, lossPpm: 800 },
-  crossfire: { label: 'Crossfire 150 Hz', hz: 150, delayMs: 7.5, jitterMs: 1.8, lossPpm: 1200 },
+  perfect: { label: str('link.perfect_no_radio'), hz: 250, delayMs: 0, jitterMs: 0, lossPpm: 0 },
+  elrs500: { label: str('link.elrs_500_hz'), hz: 500, delayMs: 3.0, jitterMs: 0.4, lossPpm: 200 },
+  elrs250: { label: str('link.elrs_250_hz'), hz: 250, delayMs: 4.0, jitterMs: 0.8, lossPpm: 400 },
+  elrs150: { label: str('link.elrs_150_hz'), hz: 150, delayMs: 6.0, jitterMs: 1.4, lossPpm: 800 },
+  crossfire: { label: str('link.crossfire_150_hz'), hz: 150, delayMs: 7.5, jitterMs: 1.8, lossPpm: 1200 },
 };
 
 export const LINK_DEFAULT = 'perfect';
