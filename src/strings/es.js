@@ -2065,4 +2065,9 @@ export default {
   "ui.volume": "Volumen",
   "ui.warnings_2": "Avisos",
   "ui.wind": "Viento",
+  "ui.fixed_wing": "Ala fija",
+  "ui.a_1000_mm_flying_wing_on": "Un ala voladora de 1000 mm en 4S, volada a mano. Lánzala con L, mantenla en vuelo, aterrízala sobre la panza. Sin puertas, sin reloj.",
+  "ui.manual": "Manual",
+  "main.thrown_keep_it_flying": "Lanzada. Mantenla en vuelo.",
+  "ui.fly_label": "Volar",
 };

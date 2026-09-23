@@ -24,7 +24,7 @@ is DONE only when its check ran green in the same session that wrote it.
 | 1 Deterministic maths | DONE | see git log | wing:math 9 of 9, 641,601 grid points within 1e-12 of the host; verify 16 of 16, quad hash de0401cd4266 unmoved |
 | 2 Wing plant | DONE | see git log | src/native/plant_wing.c behind airframe id 2, sim_wing_launch, sim_wing_surfaces and sim_wing_debug additive; builds clean, vendor tree unmodified, quad replay hash de0401cd4266c395 unmoved, verify 16 of 16 |
 | 3 Wing gates | DONE | see git log | wing:gates 11 of 11: W1 15.32 m/s, W2 7.73, W3 9.90, W4 23.74, W5 237 deg/s, W6 off 7 percent, W7 10.92 m/s, W8 5.4 m and 9.5 m/s, W9 7.9 deg, W10 hash unmoved, W11 node and chrome 5fb5c7f4ada5a87a. Three coefficient sign errors found and fixed by flying, recorded in docs/WING-STAGE1.md |
-| 4 Shell and input | pending | | |
+| 4 Shell and input | DONE | see git log | Fourth card on the gate (Fixed wing, freestyle, airframe wing1000, tune wing-manual); L throws the wing from a metre up at 10 m/s and takes it off the pad hold; pack gauge per cell (4S reads 16.8 V); shots through the card into flight and a throw with 0 console errors (thrown y 0.50 m at 1.2 s, belly down 10 m on at 3.7 s); lint:shell PASS with the gate pinned to four cards, lint:input 84, lint:copy, lint:nouns, strings 11, presets and catalog PASS; verify 16 of 16, quad hash de0401cd4266 unmoved. The wing flies the town until stage 8 lands and wears the quad mesh until stage 5 does |
 | 5 Rendering and sound | pending | | |
 | 6 Collision | pending | | |
 | 7 Wing track class | pending | | |

@@ -286,7 +286,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double inv_m = 1.0 / PLANT.mass_kg;
   s->vel[0] += Fw[0] * inv_m * WING_DT;
   s->vel[1] += Fw[1] * inv_m * WING_DT;
-  s->vel[2] += (Fw[2] * inv_m - PLANT.gravity) * WING_DT;
+  s->vel[2] += (Fw[2] * inv_m - PLANT.gravity * SIM_GRAVITY) * WING_DT; /* the weight slider scales it, as for the quad */
   s->pos[0] += s->vel[0] * WING_DT;
   s->pos[1] += s->vel[1] * WING_DT;
   s->pos[2] += s->vel[2] * WING_DT;

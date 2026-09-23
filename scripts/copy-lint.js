@@ -32,7 +32,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const SKIP_DIRS = new Set(['node_modules', '.git', 'vendor', 'dist', 'tests', 'tmp', 'strings', 'vendored', 'native']);
+const SKIP_DIRS = new Set(['node_modules', '.git', '.claude', 'vendor', 'dist', 'tests', 'tmp', 'strings', 'vendored', 'native']);
 
 /* Not scanned, and why. */
 const EXCUSED = new Map([

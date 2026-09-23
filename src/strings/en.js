@@ -2065,4 +2065,9 @@ export default {
   "works.a_single_span_steel_portal_shed": "a single span steel portal shed, 12 to 24 m",
   "works.a_small_works_stack_12_to": "a small works stack, 12 to 20 m",
   "works.a_works_sliding_door_3_to": "a works sliding door, 3 to 5 m",
+  "ui.fixed_wing": "Fixed wing",
+  "ui.a_1000_mm_flying_wing_on": "A 1000 mm flying wing on 4S, flown by hand. Throw it with L, keep it flying, land it on its belly. No gates, no clock.",
+  "ui.manual": "Manual",
+  "main.thrown_keep_it_flying": "Thrown. Keep it flying.",
+  "ui.fly_label": "Fly",
 };

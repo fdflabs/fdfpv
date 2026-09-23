@@ -52,7 +52,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 /* Directories that are not the product: vendored source, build output,
  * scratch, and the test suites, whose names describe code rather than
  * addressing a player. */
-const SKIP_DIRS = new Set(['node_modules', '.git', '.loop', 'vendor', 'dist', 'tests', 'tmp']);
+const SKIP_DIRS = new Set(['node_modules', '.git', '.claude', '.loop', 'vendor', 'dist', 'tests', 'tmp']);
 
 /*
  * Sightings that are allowed, with their reasons, because a blanket rule
