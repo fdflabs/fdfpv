@@ -28,7 +28,7 @@ is DONE only when its check ran green in the same session that wrote it.
 | 5 Rendering and sound | pending | | |
 | 6 Collision | pending | | |
 | 7 Wing track class | pending | | |
-| 8 Airfield | pending | | |
+| 8 Airfield | DONE | see git log | src/maps/airfield.js registered as 'airfield', freestyle, five inch for now; lint:memory PASS, airfield 1 module, 61 -> 49 -> 62 geometries, 5 -> 4 -> 6 textures; lint:boot 9 of 9; lint:shell PASS; attract-check through 0 of 320; title and runway shots through shots.js with 0 console errors |
 | 9 End to end, headless | pending | | |
 | 10 Wiring and docs | pending | | |
 | 11 Handover | pending | | |

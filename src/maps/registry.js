@@ -66,6 +66,14 @@ export const MAPS = [
     poster: 'assets/posters/city.jpg',
     load: () => import('./city/index.js'),
   },
+  {
+    id: 'airfield',
+    name: str('registry.airfield'),
+    mode: 'freestyle',
+    note: str('registry.five_hundred_metres_of_mown_grass'),
+    buildMs: MAP_BUILD_MS.airfield,
+    load: () => import('./airfield.js'),
+  },
 ];
 
 export function mapById(id) {
