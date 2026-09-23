@@ -56,9 +56,9 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-/* The four dressed worlds. `custom` is the field and is the baseline: it is
- * loaded at boot because the title screen has a world behind it. */
-const HEAVY = ['city'];
+/* The lazily loaded worlds. `custom` is the field and is the baseline: it
+ * is loaded at boot because the title screen has a world behind it. */
+const HEAVY = ['city', 'airfield'];
 
 /*
  * Every URL the page has fetched, as a plain list. Resource timing is the
@@ -78,8 +78,10 @@ const URL_COUNT = 'performance.getEntriesByType("resource").length';
 
 const MEMORY = 'JSON.stringify(window.__gpuMemory())';
 
+/* A world is a directory under src/maps or a single module beside them;
+ * the airfield is the second kind. */
 function underMap(urls, id) {
-  return urls.filter((u) => u.includes(`/src/maps/${id}/`));
+  return urls.filter((u) => u.includes(`/src/maps/${id}/`) || u.endsWith(`/src/maps/${id}.js`));
 }
 
 function parseArgs(argv) {

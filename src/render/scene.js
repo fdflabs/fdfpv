@@ -4013,7 +4013,7 @@ function attractOrbit(course, gates, tops, heightFn) {
   };
 }
 
-function skyDome() {
+export function skyDome() {
   const geo = new THREE.SphereGeometry(1500, 40, 24);
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
