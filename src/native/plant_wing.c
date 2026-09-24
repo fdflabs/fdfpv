@@ -1,17 +1,23 @@
 /*
- * plant_wing.c: a 1000 mm flying wing, flown by hand.
+ * plant_wing.c: the fixed wing plant, one plant for every fixed wing.
  *
- * The second plant. A six degree of freedom rigid body in the quad's
- * frames (world Z up, body X forward Y left Z up, SI, 1 ms steps) with
- * lift, drag and pitching moment from angle of attack and sideslip, a
- * smooth stall, two elevons driven straight from the sticks through rates
- * and expo, and one pusher motor whose thrust falls off with airspeed.
- * There is no flight controller in the loop: Betaflight 4.5 has no wing
- * support, and a wing in manual mode is what many pilots fly.
+ * A six degree of freedom rigid body in the quad's frames (world Z up,
+ * body X forward Y left Z up, SI, 1 ms steps) with lift, drag and
+ * pitching moment from angle of attack and sideslip, a smooth stall,
+ * control surfaces driven from the sticks through travel and expo, and
+ * one pusher motor whose thrust falls off with airspeed. There is no
+ * Betaflight in the loop: Betaflight 4.5 has no wing support. What there
+ * is instead is the stabiliser below, off in Manual.
  *
- * Every number comes from docs/WING-STAGE1.md, which derives it from
- * published figures and says which are estimated. The eleven bands in
- * scripts/wing-gates.js are what this file has to land in.
+ * Every number is per airframe, in the FixedWingParams tables at the end
+ * of this file: FW_WING1000, the 1000 mm flying wing of
+ * docs/WING-STAGE1.md, with elevons and no rudder; and FW_SKY1800, the
+ * Skyhunter of docs/SKYHUNTER-STAGE1.md, with ailerons, an elevator and a
+ * rudder on an H tail. A term an airframe does not have is zero in its
+ * table, and every term the Skyhunter added is written so that a zero
+ * leaves the wing's arithmetic bit for bit what it was: the wing's gates
+ * and its recorded trace hashes are the proof. The bands each airframe has
+ * to land in are scripts/wing-gates.js and scripts/skyhunter-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -40,116 +46,57 @@
 #define WING_PI 3.14159265358979323846
 #define WING_DT (1.0 / SIM_STEP_HZ)
 
-/* The aircraft. docs/WING-STAGE1.md, table by table. */
-static const double W_SPAN = 1.0;          /* m */
-static const double W_AREA = 0.22;         /* m^2 */
-static const double W_CHORD = 0.22;        /* m */
-static const double W_RHO = 1.225;         /* kg/m^3 */
-static const double W_CL_ALPHA = 4.36;     /* per rad, Helmbold at AR 4.55 */
-static const double W_CL_MAX = 0.90;
-static const double W_CD0 = 0.030;
-static const double W_K_INDUCED = 0.0875;  /* 1/(pi e AR) */
-static const double W_CL_DE = -0.35;       /* elevon lift, per rad: trailing edge up sheds lift */
-static const double W_CY_BETA = -0.30;
-static const double W_CL_BETA = -0.05;
-static const double W_CL_P = -0.40;
-static const double W_CL_DA = 0.10;
-static const double W_CM_0 = 0.02;         /* reflex */
-static const double W_CM_ALPHA = -0.30;
-static const double W_CM_Q = -4.0;
-static const double W_CM_DE = 0.60;        /* delta_e positive pitches the nose up */
-static const double W_CN_BETA = 0.05;      /* winglets */
-static const double W_CN_R = -0.10;
-static const double W_STALL_BLEND = 3.0 * WING_PI / 180.0; /* half width of the blend */
-/* The throws. A real 1000 mm wing is set up with far less elevator than
- * aileron: with a static margin of seven percent, twenty five degrees of
- * up puts the trim angle well past the stall, and a sixth of that stick
- * at throw speed pitched the plant to sixty degrees and dropped a wing.
- * Twelve degrees of elevator is the usual setup figure and still stalls
- * at full stick; roll keeps the full twenty five the roll rate band was
- * derived with. Each elevon is clipped at the aileron throw. */
-static const double W_SURFACE_MAX = 25.0 * WING_PI / 180.0;
-static const double W_ELEVATOR_MAX = 12.0 * WING_PI / 180.0;
-static const double W_EXPO = 0.30;
-static const double W_THRUST_STATIC = 11.5;   /* N */
-static const double W_PITCH_SPEED = 29.8;     /* m/s at full duty */
-static const double W_RPM_NO_LOAD = 20720.0;
-/* Prop reaction as a roll moment per newton of thrust. Ideal disc power
- * at static full thrust is T^1.5 / sqrt(2 rho A): 11.5 N through a 6 inch
- * disc is 184 W, at 17,600 rpm a torque of 0.10 N m, so 0.009 m per N.
- * The first figure here was 0.02, which rolled a thrown wing past sixty
- * degrees in four seconds with the sticks centred. */
-static const double W_TORQUE_ARM = 0.009;
-static const double W_CURRENT_FULL = 28.0;    /* A at static full thrust */
-static const double W_DUTY_MIN = 0.02;
-
-/* The elevons this step, radians, positive trailing edge up (nose up). */
-static double g_elevon_left = 0.0;
-static double g_elevon_right = 0.0;
+/* The surfaces this step, radians: left and right wing trailing edge
+ * surface (elevon or aileron) and elevator positive trailing edge up,
+ * rudder positive trailing edge left. The wing has no elevator or rudder
+ * and reads zero there. */
+static double g_surf[4] = { 0.0, 0.0, 0.0, 0.0 };
 
 /*
- * THE STABILISER, which is the one flight controller a wing gets here.
- * Betaflight has no wing mode, so this is not a port and not a
+ * THE STABILISER, which is the one flight controller a fixed wing gets
+ * here. Betaflight has no wing mode, so this is not a port and not a
  * reimplementation of one: it is the attitude loop the harness pilot
  * flies the gates with, in C, so it is deterministic and never touches
- * JS maths. Off, the sticks are the elevons. On, the roll stick asks for
+ * JS maths. Off, the sticks are the surfaces. On, the roll stick asks for
  * a bank and the pitch stick for a pitch, both held by a rate damped
- * proportional loop, and centred sticks hold the wing level with a
+ * proportional loop, and centred sticks hold the aircraft level with a
  * little nose up trim. Set from the shell by the tune; a reset keeps it.
+ * The gains are per airframe, in the tables below.
+ *
+ * ACRO, the stabiliser's second mode: sticks ask for a rotation rate, as
+ * on a quad, and centred sticks hold the attitude the aircraft is in, with
+ * no self levelling and no angle limits. A target attitude advances by the
+ * commanded rate each step and the loop flies the aircraft onto it, so
+ * there is nothing to drift: trim, prop torque and gusts all show up as an
+ * error against a target that is not moving. Yaw is left out of the
+ * target: the target is rebuilt from the real attitude plus only its roll
+ * and pitch error every step, so heading follows the aircraft through a
+ * turn. The error is clamped so the target cannot run far ahead of an
+ * aircraft that cannot keep up, which is what would otherwise make a stop
+ * overshoot. The same idea as ArduPlane's ACRO with ACRO_LOCKING.
+ *
+ * YAW, where there is a rudder. Manual: the yaw stick is the rudder.
+ * Stabilised and Acro: the yaw stick is still the rudder, and on top of it
+ * a yaw damper drives the body yaw rate toward the coordinated rate for
+ * the bank flown, g sin(bank) cos(pitch)/V, which is ArduPlane's turn
+ * coordination and what a pilot's feet do. It is not a yaw rate or heading
+ * hold, deliberately: a rudder commands sideslip, not a rate, and a plane
+ * turns by banking, so a loop that held heading against the stick would
+ * fight every banked turn the roll loop flies. With the stick the pilot
+ * can still slip, skid and hold a knife edge; with it centred the ball
+ * stays in the middle.
  */
 static int g_stab = 0;
-static const double W_STAB_BANK_MAX = 60.0 * WING_PI / 180.0;
-static const double W_STAB_PITCH_MAX = 30.0 * WING_PI / 180.0;
-static const double W_STAB_TRIM_PITCH = 2.0 * WING_PI / 180.0;
-/* A gimbal does not centre exactly, and in a hold a few percent of stick
- * is a few degrees of bank, which is a turn. Inside this the stick is
- * centred; outside it the target starts from zero, so there is no step. */
-static const double W_STAB_DEADBAND = 0.04;
-static const double W_STAB_ROLL_KP = 1.2;   /* stick per rad of bank error */
-static const double W_STAB_ROLL_KD = 0.12;  /* stick per rad/s of roll rate */
-static const double W_STAB_PITCH_KP = 5.0;  /* stick per rad of pitch error, through the 12 degree throw */
-static const double W_STAB_PITCH_KD = 0.5;  /* stick per rad/s of pitch rate */
-
-/*
- * ACRO, the stabiliser's second mode: sticks ask for a rotation rate, as
- * on a quad, and centred sticks hold the attitude the wing is in, with no
- * self levelling and no angle limits. A target attitude advances by the
- * commanded rate each step and the loop flies the wing onto it, so there
- * is nothing to drift: trim, prop torque and gusts all show up as an
- * error against a target that is not moving. Yaw is left out, because a
- * flying wing has no rudder: the target is rebuilt from the real attitude
- * plus only its roll and pitch error every step, so heading follows the
- * wing through a turn. The error is clamped so the target cannot run far
- * ahead of a wing that cannot keep up, which is what would otherwise make
- * a stop overshoot. The same idea as ArduPlane's ACRO with ACRO_LOCKING.
- */
-static const double W_ACRO_ROLL_RATE = 200.0 * WING_PI / 180.0;  /* rad/s at full stick */
-static const double W_ACRO_PITCH_RATE = 100.0 * WING_PI / 180.0; /* rad/s at full stick, nose up */
-static const double W_ACRO_EXPO = 0.30;
-static const double W_ACRO_ERR_MAX = 5.0 * WING_PI / 180.0;
-static const double W_ACRO_ROLL_KP = 3.0;   /* stick per rad of roll error */
-static const double W_ACRO_ROLL_KD = 0.25;  /* stick per rad/s of roll rate error */
-static const double W_ACRO_ROLL_FF = 0.30;  /* stick per rad/s asked for */
-static const double W_ACRO_PITCH_KP = 5.0;  /* stick per rad of pitch error, through the 12 degree throw */
-static const double W_ACRO_PITCH_KD = 0.5;  /* stick per rad/s of pitch rate error */
-static const double W_ACRO_PITCH_FF = 0.40; /* stick per rad/s asked for */
-/* The integral is what makes a held bank stay held: a banked wing rolls on
- * its own through sideslip, and a proportional loop answers a steady
- * moment only with a steady error, which is a slow drift. Clamped so a
- * wing held off target on the ground or in a stall does not wind it up. */
-static const double W_ACRO_ROLL_KI = 4.0;   /* stick per rad s of roll error */
-static const double W_ACRO_PITCH_KI = 8.0;  /* stick per rad s of pitch error */
-static const double W_ACRO_I_MAX = 0.30;    /* stick */
-/* The target, body to world like SimState.quat. Taken from the wing on the
- * first acro step after a reset or a mode change. */
+/* The target, body to world like SimState.quat. Taken from the aircraft
+ * on the first acro step after a reset or a mode change. */
 static double g_acro_q[4] = { 1.0, 0.0, 0.0, 0.0 };
 static int g_acro_held = 0;
 static double g_acro_i_roll = 0.0;
 static double g_acro_i_pitch = 0.0;
 
 /* What the last step saw and did, for the gates and for anyone chasing a
- * sign: alpha, beta, qbar, CL, CD, l m n (aero), thrust, F body x y z,
- * M body x y z, u v w. */
+ * sign: alpha (of the zero lift line), beta, qbar, CL, CD, l m n (aero),
+ * thrust, F body x y z, M body x y z, u v w, delta_e, delta_a. */
 static double g_debug[20];
 
 void plant_wing_debug(double out[20]) {
@@ -180,14 +127,14 @@ static void wquat_rotate_inv(const double q[4], const double v[3], double out[3]
   wquat_rotate(qc, v, out);
 }
 
-/* Stick to surface: 25 degrees at full stick, with expo, clipped. */
-static double surface_from_stick(double x, double throw_max) {
+/* Stick to surface: full travel at full stick, with expo, clipped. */
+static double surface_from_stick(double x, double throw_max, double expo) {
   if (x > 1.0) {
     x = 1.0;
   } else if (x < -1.0) {
     x = -1.0;
   }
-  const double shaped = x * x * x * W_EXPO + x * (1.0 - W_EXPO);
+  const double shaped = x * x * x * expo + x * (1.0 - expo);
   double d = shaped * throw_max;
   if (d > throw_max) {
     d = throw_max;
@@ -195,6 +142,25 @@ static double surface_from_stick(double x, double throw_max) {
     d = -throw_max;
   }
   return d;
+}
+
+static double clip(double x, double lim) {
+  if (x > lim) return lim;
+  if (x < -lim) return -lim;
+  return x;
+}
+
+/*
+ * sum + term, except that a term which is zero, of either sign, leaves sum
+ * exactly as it was. Plain addition does not: -0 + +0 is +0. The terms
+ * the Skyhunter brought (rudder, adverse yaw, roll from yaw rate, the zero
+ * lift line) are zero on the wing, and the wing's arithmetic has to stay
+ * bit for bit what it was, sign of zero included, or its recorded hashes
+ * move. a - (-b) is a + b exactly in IEEE 754, and 0 - (+-0) is +0, so
+ * this is the sum for every nonzero term and the identity for a zero one.
+ */
+static double add_term(double sum, double term) {
+  return sum - (0.0 - term);
 }
 
 /* Cubic smoothstep from 0 at a to 1 at b. */
@@ -213,13 +179,13 @@ static double clamp1(double x) {
   return x > 1.0 ? 1.0 : (x < -1.0 ? -1.0 : x);
 }
 
-static double deadband1(double x) {
+static double deadband1(double x, double band) {
   x = clamp1(x);
-  if (x > W_STAB_DEADBAND) {
-    return (x - W_STAB_DEADBAND) / (1.0 - W_STAB_DEADBAND);
+  if (x > band) {
+    return (x - band) / (1.0 - band);
   }
-  if (x < -W_STAB_DEADBAND) {
-    return (x + W_STAB_DEADBAND) / (1.0 - W_STAB_DEADBAND);
+  if (x < -band) {
+    return (x + band) / (1.0 - band);
   }
   return 0.0;
 }
@@ -250,20 +216,21 @@ int plant_wing_stab(void) {
 }
 
 void plant_wing_reset(void) {
-  g_elevon_left = 0.0;
-  g_elevon_right = 0.0;
+  for (int i = 0; i < 4; i += 1) {
+    g_surf[i] = 0.0;
+  }
   g_acro_held = 0;
 }
 
-static double acro_shape(double x) {
-  const double d = deadband1(x);
-  return d * d * d * W_ACRO_EXPO + d * (1.0 - W_ACRO_EXPO);
+static double acro_shape(const FixedWingParams *fw, double x) {
+  const double d = deadband1(x, fw->stab_deadband);
+  return d * d * d * fw->acro_expo + d * (1.0 - fw->acro_expo);
 }
 
-/* Acro: roll and pitch stick in, the stick that flies the wing onto the
- * advancing target out. Body axes: x forward, y left, so a right roll is
- * +omega[0] and nose up is -omega[1]. */
-static void acro_sticks(const SimState *s, double *roll, double *pitch) {
+/* Acro: roll and pitch stick in, the stick that flies the aircraft onto
+ * the advancing target out. Body axes: x forward, y left, so a right roll
+ * is +omega[0] and nose up is -omega[1]. */
+static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *roll, double *pitch) {
   if (!g_acro_held) {
     for (int i = 0; i < 4; i += 1) {
       g_acro_q[i] = s->quat[i];
@@ -272,10 +239,10 @@ static void acro_sticks(const SimState *s, double *roll, double *pitch) {
     g_acro_i_roll = 0.0;
     g_acro_i_pitch = 0.0;
   }
-  const double rate_roll = W_ACRO_ROLL_RATE * acro_shape(*roll);
-  const double rate_up = W_ACRO_PITCH_RATE * acro_shape(*pitch);
+  const double rate_roll = fw->acro_roll_rate * acro_shape(fw, *roll);
+  const double rate_up = fw->acro_pitch_rate * acro_shape(fw, *pitch);
 
-  /* Turn the target's heading with the wing's own. A banked wing turns
+  /* Turn the target's heading with the aircraft's own. A banked wing turns
    * about the world vertical, not its yaw axis, and a heading the wing
    * cannot hold would otherwise read as roll and pitch error and fight
    * the turn. Weighted by how level the nose is, because with the nose
@@ -284,9 +251,9 @@ static void acro_sticks(const SimState *s, double *roll, double *pitch) {
   double wv[3];
   wquat_rotate(s->quat, s->omega, wv);
   const double fwd[3] = { 1.0, 0.0, 0.0 };
-  double fw[3];
-  wquat_rotate(s->quat, fwd, fw);
-  const double level = fw[0] * fw[0] + fw[1] * fw[1];
+  double fwv[3];
+  wquat_rotate(s->quat, fwd, fwv);
+  const double level = fwv[0] * fwv[0] + fwv[1] * fwv[1];
   const double h = 0.5 * WING_DT;
   const double rz[4] = { 1.0, 0.0, 0.0, level * wv[2] * h };
   double tz[4];
@@ -297,7 +264,7 @@ static void acro_sticks(const SimState *s, double *roll, double *pitch) {
   double t[4];
   wquat_mul(tz, dq, t);
 
-  /* The error, target relative to the wing, as a body frame rotation
+  /* The error, target relative to the aircraft, as a body frame rotation
    * vector: e = axis * angle of conj(q) * t, taken the short way round. */
   const double qc[4] = { s->quat[0], -s->quat[1], -s->quat[2], -s->quat[3] };
   double qe[4];
@@ -312,14 +279,15 @@ static void acro_sticks(const SimState *s, double *roll, double *pitch) {
   double ex = qe[1] * k;
   double ey = qe[2] * k;
   const double en = sim_sqrt(ex * ex + ey * ey);
-  if (en > W_ACRO_ERR_MAX) {
-    ex *= W_ACRO_ERR_MAX / en;
-    ey *= W_ACRO_ERR_MAX / en;
+  if (en > fw->acro_err_max) {
+    ex *= fw->acro_err_max / en;
+    ey *= fw->acro_err_max / en;
   }
 
-  /* Rebuild the target from the wing and the roll and pitch error alone,
-   * which drops the yaw a wing cannot hold and the error past the clamp.
-   * The half angle is at most ten degrees, inside sim_sin_small's range. */
+  /* Rebuild the target from the aircraft and the roll and pitch error
+   * alone, which drops the yaw the target does not hold and the error past
+   * the clamp. The half angle is at most ten degrees, inside
+   * sim_sin_small's range. */
   const double ea = sim_sqrt(ex * ex + ey * ey);
   if (ea > 1e-12) {
     const double sh = sim_sin_small(0.5 * ea) / ea;
@@ -336,22 +304,40 @@ static void acro_sticks(const SimState *s, double *roll, double *pitch) {
     g_acro_q[i] /= n;
   }
 
-  g_acro_i_roll += W_ACRO_ROLL_KI * ex * WING_DT;
-  g_acro_i_pitch += W_ACRO_PITCH_KI * -ey * WING_DT;
-  if (g_acro_i_roll > W_ACRO_I_MAX) g_acro_i_roll = W_ACRO_I_MAX;
-  if (g_acro_i_roll < -W_ACRO_I_MAX) g_acro_i_roll = -W_ACRO_I_MAX;
-  if (g_acro_i_pitch > W_ACRO_I_MAX) g_acro_i_pitch = W_ACRO_I_MAX;
-  if (g_acro_i_pitch < -W_ACRO_I_MAX) g_acro_i_pitch = -W_ACRO_I_MAX;
+  g_acro_i_roll += fw->acro_roll_ki * ex * WING_DT;
+  g_acro_i_pitch += fw->acro_pitch_ki * -ey * WING_DT;
+  g_acro_i_roll = clip(g_acro_i_roll, fw->acro_i_max);
+  g_acro_i_pitch = clip(g_acro_i_pitch, fw->acro_i_max);
 
-  *roll = clamp1(W_ACRO_ROLL_KP * ex + g_acro_i_roll + W_ACRO_ROLL_KD * (rate_roll - s->omega[0]) +
-                 W_ACRO_ROLL_FF * rate_roll);
-  *pitch = clamp1(W_ACRO_PITCH_KP * -ey + g_acro_i_pitch + W_ACRO_PITCH_KD * (rate_up + s->omega[1]) +
-                  W_ACRO_PITCH_FF * rate_up);
+  *roll = clamp1(fw->acro_roll_kp * ex + g_acro_i_roll + fw->acro_roll_kd * (rate_roll - s->omega[0]) +
+                 fw->acro_roll_ff * rate_roll);
+  *pitch = clamp1(fw->acro_pitch_kp * -ey + g_acro_i_pitch + fw->acro_pitch_kd * (rate_up + s->omega[1]) +
+                  fw->acro_pitch_ff * rate_up);
+}
+
+/* The turn coordinator: the yaw stick that brings the body yaw rate onto
+ * the coordinated rate for the bank flown. In the body frame, y left and
+ * z up, a turn to the right is a negative r, and the coordinated rate is
+ * -g sin(bank) cos(pitch) / V, where sin(bank) cos(pitch) is the world up
+ * axis' body y component: no trigonometry. The speed is floored so a hand
+ * held aircraft does not ask for an infinite rate. */
+static double yaw_coordinated(const FixedWingParams *fw, const SimState *s, double V) {
+  const double w = s->quat[0], x = s->quat[1], y = s->quat[2], z = s->quat[3];
+  const double up_y = 2.0 * (y * z + w * x);
+  const double Vf = V > 5.0 ? V : 5.0;
+  const double r_coord = -PLANT.gravity * SIM_GRAVITY * up_y / Vf;
+  return fw->yaw_coord_k * (s->omega[2] - r_coord);
 }
 
 void plant_wing_surfaces(double out[2]) {
-  out[0] = g_elevon_left;
-  out[1] = g_elevon_right;
+  out[0] = g_surf[0];
+  out[1] = g_surf[1];
+}
+
+void plant_plane_surfaces(double out[4]) {
+  for (int i = 0; i < 4; i += 1) {
+    out[i] = g_surf[i];
+  }
 }
 
 /* A hand throw: the given speed along the body's own forward axis. */
@@ -365,33 +351,11 @@ void plant_wing_launch(SimState *s, double speed) {
 }
 
 void plant_wing_step(SimState *s, const double rc[4]) {
+  const FixedWingParams *fw = PLANT.fw;
   double roll = rc[0];
   double pitch = rc[1];
+  double yaw = rc[2];
   const double throttle = rc[3];
-
-  if (g_stab == 2) {
-    acro_sticks(s, &roll, &pitch);
-  } else if (g_stab == 1) {
-    double pitch_att, bank;
-    wing_attitude(s->quat, &pitch_att, &bank);
-    const double bank_t = W_STAB_BANK_MAX * deadband1(roll);
-    const double pitch_t = W_STAB_TRIM_PITCH + W_STAB_PITCH_MAX * deadband1(pitch);
-    roll = clamp1(-W_STAB_ROLL_KP * (bank - bank_t) - W_STAB_ROLL_KD * s->omega[0]);
-    pitch = clamp1(W_STAB_PITCH_KP * (pitch_t - pitch_att) - W_STAB_PITCH_KD * (-s->omega[1]));
-  }
-
-  /* Surfaces. Roll right needs the right elevon up and the left one down. */
-  const double de = surface_from_stick(pitch, W_ELEVATOR_MAX);
-  const double da = surface_from_stick(roll, W_SURFACE_MAX);
-  g_elevon_left = de - da;
-  g_elevon_right = de + da;
-  if (g_elevon_left > W_SURFACE_MAX) g_elevon_left = W_SURFACE_MAX;
-  if (g_elevon_left < -W_SURFACE_MAX) g_elevon_left = -W_SURFACE_MAX;
-  if (g_elevon_right > W_SURFACE_MAX) g_elevon_right = W_SURFACE_MAX;
-  if (g_elevon_right < -W_SURFACE_MAX) g_elevon_right = -W_SURFACE_MAX;
-  /* What the aero sees: the mean and the difference of the two. */
-  const double delta_e = 0.5 * (g_elevon_left + g_elevon_right);
-  const double delta_a = 0.5 * (g_elevon_right - g_elevon_left);
 
   /* Relative wind in the body frame. No wind in the world yet. */
   double vb[3];
@@ -399,34 +363,80 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double u = vb[0], v = vb[1], w = vb[2];
   const double V2 = u * u + v * v + w * w;
   const double V = sim_sqrt(V2);
+
+  if (g_stab == 2) {
+    acro_sticks(fw, s, &roll, &pitch);
+    yaw = clamp1(add_term(yaw, yaw_coordinated(fw, s, V)));
+  } else if (g_stab == 1) {
+    double pitch_att, bank;
+    wing_attitude(s->quat, &pitch_att, &bank);
+    const double bank_t = fw->stab_bank_max * deadband1(roll, fw->stab_deadband);
+    const double pitch_t = fw->stab_trim_pitch + fw->stab_pitch_max * deadband1(pitch, fw->stab_deadband);
+    roll = clamp1(-fw->stab_roll_kp * (bank - bank_t) - fw->stab_roll_kd * s->omega[0]);
+    pitch = clamp1(fw->stab_pitch_kp * (pitch_t - pitch_att) - fw->stab_pitch_kd * (-s->omega[1]));
+    yaw = clamp1(add_term(yaw, yaw_coordinated(fw, s, V)));
+  }
+
+  /*
+   * Surfaces. Roll right needs the right surface up and the left one down.
+   * The rudder is trailing edge left positive and the yaw stick nose right
+   * positive, so full right stick is full negative rudder. Two mixes and
+   * one branch, because they are two kinds of hardware: an elevon is one
+   * surface doing pitch and roll and is clipped as one, a tail's surfaces
+   * are separate.
+   */
+  const double de = surface_from_stick(pitch, fw->throw_e, fw->expo);
+  const double da = surface_from_stick(roll, fw->throw_a, fw->expo);
+  const double delta_r = -surface_from_stick(yaw, fw->throw_r, fw->expo);
+  double delta_e;
+  if (fw->mix == FW_MIX_ELEVON) {
+    g_surf[0] = clip(de - da, fw->surface_max);
+    g_surf[1] = clip(de + da, fw->surface_max);
+    g_surf[2] = 0.0;
+    g_surf[3] = 0.0;
+    /* What the aero sees of two elevons: their mean. */
+    delta_e = 0.5 * (g_surf[0] + g_surf[1]);
+  } else {
+    g_surf[0] = -da;
+    g_surf[1] = da;
+    g_surf[2] = de;
+    g_surf[3] = delta_r;
+    delta_e = de;
+  }
+  const double delta_a = 0.5 * (g_surf[1] - g_surf[0]);
+
   const double Vxz = sim_sqrt(u * u + w * w);
-  const double alpha = Vxz > 1e-6 ? sim_atan2(-w, u) : 0.0;
+  /* Angle of attack of the zero lift line, which is the body's on the wing. */
+  const double alpha = (Vxz > 1e-6 ? sim_atan2(-w, u) : 0.0) - fw->alpha_zl;
   const double beta = V > 1e-6 ? sim_atan2(-v, Vxz) : 0.0; /* wind from the right positive */
-  const double qbar = 0.5 * W_RHO * V2;
+  const double qbar = 0.5 * PLANT.rho * V2;
   const double Vrate = V > 1.0 ? V : 1.0; /* floor for the rate terms */
 
   /* Lift and drag coefficients, with the stall blend. */
-  const double alpha_stall = W_CL_MAX / W_CL_ALPHA;
+  const double alpha_stall = fw->cl_max / fw->cl_alpha;
   const double aa = sim_fabs(alpha);
-  const double sigma = smoothstep(alpha_stall - W_STALL_BLEND, alpha_stall + W_STALL_BLEND, aa);
-  const double cl_lin = W_CL_ALPHA * alpha + W_CL_DE * delta_e;
-  double sin_a = 0.0, cos_a = 1.0;
+  const double sigma = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, aa);
+  const double cl_lin = fw->cl_alpha * alpha + fw->cl_de * delta_e;
+  double sin_b = 0.0, cos_b = 1.0;
   if (Vxz > 0.5) {
-    sin_a = -w / Vxz;
-    cos_a = u / Vxz;
+    sin_b = -w / Vxz;
+    cos_b = u / Vxz;
   }
+  /* The flat plate after the stall, at the zero lift line's angle. */
+  const double sin_a = add_term(sin_b * fw->cos_zl, -(cos_b * fw->sin_zl));
+  const double cos_a = add_term(cos_b * fw->cos_zl, sin_b * fw->sin_zl);
   const double cl_flat = 2.0 * sin_a * cos_a;
-  const double cd_lin = W_CD0 + W_K_INDUCED * cl_lin * cl_lin;
-  const double cd_flat = W_CD0 + 2.0 * sin_a * sin_a;
+  const double cd_lin = fw->cd0 + fw->k_induced * cl_lin * cl_lin;
+  const double cd_flat = fw->cd0 + 2.0 * sin_a * sin_a;
   const double CL = (1.0 - sigma) * cl_lin + sigma * cl_flat;
   const double CD = (1.0 - sigma) * cd_lin + sigma * cd_flat;
 
   /* Forces in the body frame. */
   double F[3] = { 0.0, 0.0, 0.0 };
   if (V > 1e-6) {
-    const double L = qbar * W_AREA * CL;
-    const double D = qbar * W_AREA * CD;
-    const double Y = qbar * W_AREA * W_CY_BETA * beta;
+    const double L = qbar * fw->area * CL;
+    const double D = qbar * fw->area * CD;
+    const double Y = add_term(qbar * fw->area * fw->cy_beta * beta, qbar * fw->area * fw->cy_dr * delta_r);
     /* Lift is perpendicular to the wind in the x z plane, up in level flight. */
     if (Vxz > 1e-6) {
       F[0] += L * (-w / Vxz);
@@ -440,31 +450,39 @@ void plant_wing_step(SimState *s, const double rc[4]) {
 
   /* The motor: thrust along body x, falling with the forward airspeed. */
   double duty = throttle;
-  if (duty < W_DUTY_MIN) duty = W_DUTY_MIN;
+  if (duty < fw->duty_min) duty = fw->duty_min;
   if (duty > 1.0) duty = 1.0;
   const double u_pos = u > 0.0 ? u : 0.0;
-  double thrust = W_THRUST_STATIC * duty * duty * (1.0 - u_pos / (W_PITCH_SPEED * duty));
+  double thrust = fw->thrust_static * duty * duty * (1.0 - u_pos / (fw->pitch_speed * duty));
   if (thrust < 0.0) thrust = 0.0;
   F[0] += thrust;
-  const double rpm = 0.85 * duty * W_RPM_NO_LOAD;
+  const double rpm = 0.85 * duty * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = W_CURRENT_FULL * duty * duty;
+  s->pack_current = fw->current_full * duty * duty;
   s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
 
   /* Moments, in the aero convention, then into the body frame. */
   const double p = s->omega[0];
   const double q_aero = -s->omega[1]; /* nose up positive */
   const double r_aero = -s->omega[2]; /* nose right positive */
-  const double b2v = W_SPAN / (2.0 * Vrate);
-  const double c2v = W_CHORD / (2.0 * Vrate);
-  const double l_aero = qbar * W_AREA * W_SPAN * (W_CL_BETA * beta + W_CL_P * p * b2v + W_CL_DA * delta_a);
-  const double m_aero = qbar * W_AREA * W_CHORD * (W_CM_0 + W_CM_ALPHA * alpha + W_CM_Q * q_aero * c2v + W_CM_DE * delta_e);
-  const double n_aero = qbar * W_AREA * W_SPAN * (W_CN_BETA * beta + W_CN_R * r_aero * b2v);
+  const double b2v = fw->span / (2.0 * Vrate);
+  const double c2v = fw->chord / (2.0 * Vrate);
+  double cl_sum = fw->cl_beta * beta + fw->cl_p * p * b2v + fw->cl_da * delta_a;
+  cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * r_aero * b2v);
+  cl_sum = add_term(cl_sum, fw->cl_dr * delta_r);
+  double cn_sum = fw->cn_beta * beta + fw->cn_r * r_aero * b2v;
+  cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * p * b2v);
+  cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * delta_a);
+  cn_sum = add_term(cn_sum, fw->cn_dr * delta_r);
+  const double l_aero = qbar * fw->area * fw->span * cl_sum;
+  const double m_aero = qbar * fw->area * fw->chord * (fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v +
+                                                       fw->cm_de * delta_e);
+  const double n_aero = qbar * fw->area * fw->span * cn_sum;
   double M[3];
-  M[0] = l_aero - W_TORQUE_ARM * thrust; /* the prop turns one way; the airframe answers the other */
+  M[0] = l_aero - fw->torque_arm * thrust; /* the prop turns one way; the airframe answers the other */
   M[1] = -m_aero;
   M[2] = -n_aero;
 
@@ -510,3 +528,158 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   s->pos[1] += s->vel[1] * WING_DT;
   s->pos[2] += s->vel[2] * WING_DT;
 }
+
+/*
+ * THE AIRCRAFT. One table each, selected through PlantParams.fw.
+ */
+
+/* The 1000 mm flying wing, docs/WING-STAGE1.md, table by table. Each value
+ * is written as the expression it was before this file had tables, so the
+ * compiler folds it to the same double. */
+const FixedWingParams FW_WING1000 = {
+  .mix = FW_MIX_ELEVON,
+  .span = 1.0,
+  .area = 0.22,
+  .chord = 0.22,
+  .cl_alpha = 4.36,       /* per rad, Helmbold at AR 4.55 */
+  .cl_max = 0.90,
+  .alpha_zl = 0.0,        /* a reflexed section: zero lift on the body axis */
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.030,
+  .k_induced = 0.0875,    /* 1/(pi e AR) */
+  .cl_de = -0.35,         /* elevon lift, per rad: trailing edge up sheds lift */
+  .cy_beta = -0.30,
+  .cl_beta = -0.05,
+  .cl_p = -0.40,
+  .cl_da = 0.10,
+  .cm_0 = 0.02,           /* reflex */
+  .cm_alpha = -0.30,
+  .cm_q = -4.0,
+  .cm_de = 0.60,          /* delta_e positive pitches the nose up */
+  .cn_beta = 0.05,        /* winglets */
+  .cn_r = -0.10,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The throws. A real 1000 mm wing is set up with far less elevator than
+   * aileron: with a static margin of seven percent, twenty five degrees of
+   * up puts the trim angle well past the stall, and a sixth of that stick
+   * at throw speed pitched the plant to sixty degrees and dropped a wing.
+   * Twelve degrees of elevator is the usual setup figure and still stalls
+   * at full stick; roll keeps the full twenty five the roll rate band was
+   * derived with. Each elevon is clipped at the aileron throw. No rudder,
+   * so the yaw stick moves nothing. */
+  .throw_a = 25.0 * WING_PI / 180.0,
+  .throw_e = 12.0 * WING_PI / 180.0,
+  .throw_r = 0.0,
+  .surface_max = 25.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 11.5,  /* N */
+  .pitch_speed = 29.8,    /* m/s at full duty */
+  .rpm_no_load = 20720.0,
+  /* Prop reaction as a roll moment per newton of thrust. Ideal disc power
+   * at static full thrust is T^1.5 / sqrt(2 rho A): 11.5 N through a 6 inch
+   * disc is 184 W, at 17,600 rpm a torque of 0.10 N m, so 0.009 m per N.
+   * The first figure here was 0.02, which rolled a thrown wing past sixty
+   * degrees in four seconds with the sticks centred. */
+  .torque_arm = 0.009,
+  .current_full = 28.0,   /* A at static full thrust */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  /* A gimbal does not centre exactly, and in a hold a few percent of stick
+   * is a few degrees of bank, which is a turn. Inside this the stick is
+   * centred; outside it the target starts from zero, so there is no step. */
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 1.2,    /* stick per rad of bank error */
+  .stab_roll_kd = 0.12,   /* stick per rad/s of roll rate */
+  .stab_pitch_kp = 5.0,   /* stick per rad of pitch error, through the 12 degree throw */
+  .stab_pitch_kd = 0.5,   /* stick per rad/s of pitch rate */
+  .acro_roll_rate = 200.0 * WING_PI / 180.0,  /* rad/s at full stick */
+  .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* rad/s at full stick, nose up */
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,    /* stick per rad of roll error */
+  .acro_roll_kd = 0.25,   /* stick per rad/s of roll rate error */
+  .acro_roll_ff = 0.30,   /* stick per rad/s asked for */
+  .acro_pitch_kp = 5.0,   /* stick per rad of pitch error, through the 12 degree throw */
+  .acro_pitch_kd = 0.5,   /* stick per rad/s of pitch rate error */
+  .acro_pitch_ff = 0.40,  /* stick per rad/s asked for */
+  /* The integral is what makes a held bank stay held: a banked wing rolls
+   * on its own through sideslip, and a proportional loop answers a steady
+   * moment only with a steady error, which is a slow drift. Clamped so a
+   * wing held off target on the ground or in a stall does not wind it up. */
+  .acro_roll_ki = 4.0,    /* stick per rad s of roll error */
+  .acro_pitch_ki = 8.0,   /* stick per rad s of pitch error */
+  .acro_i_max = 0.30,     /* stick */
+  .yaw_coord_k = 0.0,     /* no rudder */
+};
+
+/* The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md, where each number has its
+ * formula and source and the estimated ones say so. */
+const FixedWingParams FW_SKY1800 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.80,
+  .area = 0.36,
+  .chord = 0.20,
+  .cl_alpha = 5.52,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_max = 1.10,
+  /* The zero lift line 4 degrees under the body axis: incidence and a
+   * cambered section. sin and cos of minus 4 degrees, to 17 digits. */
+  .alpha_zl = -4.0 * WING_PI / 180.0,
+  .sin_zl = -0.069756473744125302,
+  .cos_zl = 0.99756405025982420,
+  .cd0 = 0.033,
+  .k_induced = 0.0442,    /* 1/(pi 0.8 9) */
+  .cl_de = -0.36,         /* trailing edge up pushes the tail down */
+  .cy_beta = -0.45,
+  .cy_dr = 0.20,
+  .cl_beta = -0.096,      /* dihedral, the high wing and the fins */
+  .cl_p = -0.78,
+  .cl_da = 0.33,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.011,
+  .cm_0 = 0.071,          /* trims at 15 m/s with the elevator neutral */
+  .cm_alpha = -0.94,      /* static margin 0.17 */
+  .cm_q = -14.1,
+  .cm_de = 1.23,
+  .cn_beta = 0.140,
+  .cn_r = -0.126,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.112,
+  .cn_dr = -0.077,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  .throw_a = 15.0 * WING_PI / 180.0,
+  .throw_e = 15.0 * WING_PI / 180.0,
+  .throw_r = 25.0 * WING_PI / 180.0,
+  .surface_max = 15.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 27.0,  /* N, 950 kV on 4S with an 11 x 5.5 */
+  .pitch_speed = 27.8,
+  .rpm_no_load = 14060.0,
+  .torque_arm = 0.0107,   /* 362 W of disc power at 11,950 rpm is 0.29 N m at 27 N */
+  .current_full = 43.0,
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.2,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .acro_roll_rate = 120.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 80.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 5.0,
+  .acro_roll_kd = 0.4,
+  .acro_roll_ff = 0.5,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.0,
+};
