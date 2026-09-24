@@ -28,9 +28,10 @@ import { buildSkyCraft, SKY_DIMS } from '../../src/render/skycraft.js';
 import { buildCubCraft, CUB_DIMS } from '../../src/render/cubcraft.js';
 import { buildGliderCraft, GLIDER_DIMS } from '../../src/render/glidercraft.js';
 import { buildBramorCraft, BRAMOR_DIMS } from '../../src/render/bramorcraft.js';
+import { buildSlowStickCraft, SLOWSTICK_DIMS } from '../../src/render/slowstickcraft.js';
 
-const BUILDERS = { sky: buildSkyCraft, cub: buildCubCraft, glider: buildGliderCraft, bramor: buildBramorCraft };
-const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS };
+const BUILDERS = { sky: buildSkyCraft, cub: buildCubCraft, glider: buildGliderCraft, bramor: buildBramorCraft, stick: buildSlowStickCraft };
+const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
 const lite = params.get('lite') === '1';

@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -166,6 +166,32 @@ const BRAMOR_VIEWS = [
   ['launcher-front', NEUTRAL, [-25, 10, 6.0, 0, 0.8, 0.6], false, false, 0, 'window.__preview.launcher(true)'],
 ];
 
+/*
+ * The Slow Stick's own set: its prop at z = -0.31, its tail at +0.63, and
+ * the same rest flag as the Cub's, since it stands on a tailwheel too.
+ */
+const STICK_VIEWS = [
+  ['front', NEUTRAL, [0, 4, 3.2, 0, 0, 0]],
+  ['front-level', NEUTRAL, [0, 0, 3.2, 0, 0.05, 0]],
+  ['three-quarter', NEUTRAL, [-140, 24, 3.0, 0, 0, 0.15]],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 3.0, 0, 0, 0.05]],
+  ['side', NEUTRAL, [90, 0, 3.0, 0, 0, 0.16]],
+  ['side-rest', NEUTRAL, [90, 3, 3.0, 0, 0, 0.16], false, true],
+  ['three-quarter-rest', NEUTRAL, [-45, 14, 2.6, 0, 0, 0.1], false, true],
+  ['top', NEUTRAL, [0, 90, 3.2, 0, 0, 0.16]],
+  ['below', NEUTRAL, [0, -90, 3.2, 0, 0, 0.16]],
+  ['deflected-three-quarter', DEFLECT, [-150, 25, 3.0, 0, 0, 0.15]],
+  ['deflected-rear', DEFLECT, [180, 12, 3.0, 0, 0, 0.15]],
+  ['nose-close', NEUTRAL, [-40, 12, 0.7, 0, -0.02, -0.25]],
+  ['prop-blur', NEUTRAL, [-20, 10, 0.9, 0, 0, -0.28], true],
+  ['wing-root', NEUTRAL, [-60, 30, 0.7, 0, 0.03, -0.02]],
+  ['tail-close', DEFLECT, [-145, 20, 0.9, 0, 0.06, 0.55]],
+  ['tail-side', DEFLECT, [90, 0, 0.8, 0, 0.08, 0.56]],
+  ['tail-top', DEFLECT, [0, 90, 0.9, 0, 0.06, 0.55]],
+  ['gear-front', NEUTRAL, [0, -5, 0.9, 0, -0.08, -0.15]],
+  ['gear-side', NEUTRAL, [90, 0, 0.8, 0, -0.07, -0.12]],
+];
+
 const page = await openPage({
   root, width: 1280, height: 800, url: `/tests/browser/craft-preview.html?craft=${craft}${lite ? '&lite=1' : ''}`,
 });
@@ -173,7 +199,7 @@ try {
   await page.until('window.__previewReady === true', 60000);
   await mkdir(outDir, { recursive: true });
   const scale = 1;
-  const views = { cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS }[craft] ?? VIEWS;
+  const views = { cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS }[craft] ?? VIEWS;
   for (const [name, surf, cam, blur, rest, omega, setup] of views) {
     const [az, el, dist, tx, ty, tz] = cam;
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
@@ -230,6 +256,11 @@ try {
       ['elevator', [0, 0, FULL, 0], up],
       ['rudder', [0, 0, 0, FULL], left],
     ],
+    stick: [
+      ['elevator', [0, 0, FULL, 0], up],
+      ['rudder', [0, 0, 0, FULL], left],
+      ['tailwheel', [0, 0, 0, FULL], left],
+    ],
   };
   if (CASES[craft]) {
     const box = (n) => page.evaluate(`window.__preview.box('${n}')`);
@@ -247,7 +278,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (craft === 'sky' || craft === 'cub' || craft === 'glider' || craft === 'bramor') {
+  if (craft === 'sky' || craft === 'cub' || craft === 'glider' || craft === 'bramor' || craft === 'stick') {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
@@ -274,12 +305,13 @@ try {
    * spin: a blade pointing up must go right, +x, under a positive step of
    * the shell's spin, which is clockwise seen from the cockpit.
    */
-  if (craft === 'cub') {
+  if (craft === 'cub' || craft === 'stick') {
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     const d = await page.evaluate('window.__preview.dims');
+    const blackMesh = `${craft === 'cub' ? 'cub' : 'slowstick'}-black`;
     const wheels = [
-      ['main left', 'cub-black', -1, d.contact.mainLeft],
-      ['main right', 'cub-black', 1, d.contact.mainRight],
+      ['main left', blackMesh, -1, d.contact.mainLeft],
+      ['main right', blackMesh, 1, d.contact.mainRight],
       ['tail', 'tyre-tail', 0, d.contact.tail],
     ];
     for (const [what, mesh, side, claimed] of wheels) {
@@ -287,7 +319,7 @@ try {
       const off = Math.hypot(drawn[0] - claimed[0], drawn[1] - claimed[1], drawn[2] - claimed[2]);
       const ok = off <= 0.001;
       const f = (p) => p.map((c) => c.toFixed(4)).join(', ');
-      console.log(`${ok ? 'ok  ' : 'FAIL'} ${what} wheel lowest point: drawn (${f(drawn)}), CUB_DIMS (${f(claimed)}) m`);
+      console.log(`${ok ? 'ok  ' : 'FAIL'} ${what} wheel lowest point: drawn (${f(drawn)}), ${craft.toUpperCase()}_DIMS (${f(claimed)}) m`);
       if (!ok) {
         process.exitCode = 1;
       }
