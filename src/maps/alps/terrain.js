@@ -551,9 +551,20 @@ export function terrainMesh(field, tex) {
  * and nothing lands on it; the fog takes it before the field's edge is
  * noticed, and the sky dome takes it before the far plane does.
  */
-export function farRange() {
+/*
+ * The ranges beyond the valley, and since the pilot asked for a bigger
+ * world, ground a craft can fly over and hit rather than scenery it
+ * passes through: 24 km across against the valley's 6. Returns the mesh
+ * and a height sampler read on the mesh's own triangles, split on the
+ * diagonal PlaneGeometry uses, as the valley's heightfield is, so what
+ * stops a craft is what is drawn.
+ */
+export function farRange(field) {
   const size = 24000;
-  const n = 96;
+  /* 300 m cells: all of it stands in fog, and at 250 the strip's view
+   * swung over its 600k triangle budget with the traffic. 300 also puts a
+   * grid line on the field's edge at 3 km, so the seam is a shared edge. */
+  const n = 80;
   const geo = new THREE.PlaneGeometry(size, size, n, n);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.getAttribute('position');
@@ -573,7 +584,16 @@ export function farRange() {
      * stood up through the valley floor as a bare green wall a few
      * hundred metres past the lake's far shore. */
     const skirt = smoothstep(HALF - 100, HALF + 2300, r);
-    const h = skirt * (1500 + 900 * fbm(x / 2200, z / 2200, 4) + 350 * fbm(x / 700, z / 700, 3)) - 40 * (1 - skirt);
+    let h = skirt * (1500 + 900 * fbm(x / 2200, z / 2200, 4) + 350 * fbm(x / 700, z / 700, 3)) - 40 * (1 - skirt);
+    /* Past the field's edge the range starts where the valley's own ground
+     * stops and eases into its peaks. Without this the valley's side walls
+     * ended at 1.3 km and the range began at the bottom of a trench round
+     * the whole world. The heightfield clamps to its edge, so outside it
+     * reads the edge height straight out. */
+    const out = Math.max(Math.abs(x), Math.abs(z)) - HALF;
+    if (out >= 0) {
+      h = Math.max(h, field.height(x, z) * (1 - smoothstep(0, 2500, out)));
+    }
     pos.setY(k, h);
     const t = smoothstep(1300, 1900, h + 200 * fbm(x / 900, z / 900, 2));
     /* The lower slopes in forest and pasture, as the valley's own are. */
@@ -590,5 +610,29 @@ export function farRange() {
   mat.vertexColors = true;
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'far-range';
-  return mesh;
+  /* PlaneGeometry's vertex (i, j), laid flat, is at x = i * cell - size / 2
+   * and z = j * cell - size / 2, index i + (n + 1) * j. */
+  const cell = size / n;
+  const data = new Float32Array(pos.count);
+  for (let k = 0; k < pos.count; k += 1) {
+    data[k] = pos.getY(k);
+  }
+  const at = (i, j) => data[Math.max(0, Math.min(n, j)) * (n + 1) + Math.max(0, Math.min(n, i))];
+  const height = (x, z) => {
+    const u = (x + size / 2) / cell;
+    const v = (z + size / 2) / cell;
+    const i = Math.floor(u);
+    const j = Math.floor(v);
+    const fu = Math.max(0, Math.min(1, u - i));
+    const fv = Math.max(0, Math.min(1, v - j));
+    const h00 = at(i, j);
+    const h10 = at(i + 1, j);
+    const h01 = at(i, j + 1);
+    const h11 = at(i + 1, j + 1);
+    if (fu + fv <= 1) {
+      return h00 + (h10 - h00) * fu + (h01 - h00) * fv;
+    }
+    return h11 + (h01 - h11) * (1 - fu) + (h10 - h11) * (1 - fv);
+  };
+  return { mesh, height };
 }

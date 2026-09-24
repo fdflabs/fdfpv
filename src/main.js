@@ -8937,6 +8937,10 @@ export async function boot({ loading, bootStart, mapId }) {
   };
   /* Which world is loaded, what it cost, and what is solid in it. Harness
    * only; nothing in the shell reads these. */
+  /* The seated map's ground at (x, z), from above everything, so a check
+   * can prove what a craft would meet anywhere, not only under itself.
+   * Harness only. */
+  window.__heightAt = (x, z) => view.height(x, z, Infinity);
   window.__map = () => ({
     id: view.id,
     name: view.name,

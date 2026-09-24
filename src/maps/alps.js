@@ -111,7 +111,8 @@ async function buildAlps(shell, progress, q) {
 
   const field = buildHeightfield();
   scene.add(terrainMesh(field, groundTexture(field)));
-  scene.add(farRange());
+  const far = farRange(field);
+  scene.add(far.mesh);
   progress(0.45);
   await yieldToPaint();
 
@@ -220,7 +221,12 @@ async function buildAlps(shell, progress, q) {
      * the basin. fromY is taken for the shell's call shape and ignored:
      * nothing here is a deck a craft could be under. */
     height: (x, z) => {
-      const h = field.height(x, z);
+      /* Inside the field the far range sits under the valley's ground, so
+       * the higher of the two is the ground. Outside it only the far range
+       * is drawn: the heightfield there is its own edge clamped outward, an
+       * invisible floor that is not what the pilot sees. */
+      const inField = Math.abs(x) <= HALF && Math.abs(z) <= HALF;
+      const h = inField ? Math.max(field.height(x, z), far.height(x, z)) : far.height(x, z);
       if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
         return Math.max(h, STRIP_Y);
       }
