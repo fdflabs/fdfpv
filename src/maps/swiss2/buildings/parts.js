@@ -262,6 +262,132 @@ export function stair(wall, x0, x1, rise, key) {
   wall.put(key, box(1.1, 0.07, 0.07), lx, rise + 0.95, 1.1);
 }
 
+/*
+ * THE MASONRY STOREY. A Bernese house stands its timber on a ground
+ * floor of rubble walls sixty centimetres thick, rendered and limed, so
+ * a window there sits deep in its opening with the reveal round it lit
+ * and shadowed, and a door is let in under a lintel. The storey is a
+ * core set back REVEAL behind the face, and a skin REVEAL thick with the
+ * openings left in it: each wall's skin is the piers between its
+ * openings and the pieces over and under them. An opening is
+ * { x, y0, y1, w } in the wall's frame. The skin is only its faces that
+ * show, the face and the reveals: a village of boxes was a third back
+ * faces. Round its foot runs the socle, the stone band `band` high that
+ * takes the splash, broken for a door; a wall's band runs `bandLen`,
+ * round the corners.
+ */
+export const REVEAL = 0.2;
+
+export function masonry(f, w, d, y0, h, key, walls, band) {
+  f.put(key, boxUp(w - 2 * REVEAL, h, d - 2 * REVEAL), 0, y0, 0);
+  const y1 = y0 + h;
+  for (const { wall, len, openings, bandLen } of walls) {
+    const doors = openings.filter((o) => o.y0 < y0 + band).sort((a, b) => a.x - b.x);
+    let bx = -bandLen / 2;
+    for (const o of [...doors, { x: bandLen / 2, w: 0 }]) {
+      const xa = o.x - o.w / 2 - 0.12;
+      if (xa - bx > 0.01) {
+        wall.put('stone', boxUp(xa - bx, band, 0.08), (bx + xa) / 2, y0, 0.02);
+      }
+      bx = o.x + o.w / 2 + 0.12;
+    }
+    const holes = [...openings].sort((a, b) => a.x - b.x);
+    const face = (xa, xb, ya, yb) => {
+      if (xb - xa > 0.01 && yb - ya > 0.01) {
+        wall.put(key, plate(xb - xa, yb - ya), (xa + xb) / 2, (ya + yb) / 2, 0);
+      }
+    };
+    const side = (x, ya, yb, turn) => wall.put(key, plate(REVEAL, yb - ya), x, (ya + yb) / 2, -REVEAL / 2, turn);
+    let x = -len / 2;
+    side(x, y0, y1, -Math.PI / 2);
+    for (const o of holes) {
+      const xa = o.x - o.w / 2;
+      const xb = o.x + o.w / 2;
+      face(x, xa, y0, y1);
+      face(xa, xb, y0, o.y0);
+      face(xa, xb, o.y1, y1);
+      /* The reveals: the jambs, the sill's top and the lintel's soffit. */
+      side(xa, o.y0, o.y1, Math.PI / 2);
+      side(xb, o.y0, o.y1, -Math.PI / 2);
+      if (o.y0 > y0 + 0.01) {
+        wall.put(key, plate(o.w, REVEAL), o.x, o.y0, -REVEAL / 2, 0, -Math.PI / 2);
+      }
+      wall.put(key, plate(o.w, REVEAL), o.x, o.y1, -REVEAL / 2, 0, Math.PI / 2);
+      x = xb;
+    }
+    face(x, len / 2, y0, y1);
+    side(len / 2, y0, y1, Math.PI / 2);
+  }
+}
+
+/* A window in the masonry: its frame and glass back in the opening, the
+ * limed band round the opening on the face, a stone sill standing out
+ * under it, the shutters folded back against the face. Returns the
+ * opening. */
+export function deepWindow(wall, x, y, w, h, { shutter = null, seed = 0 } = {}) {
+  const win = frame(wall, x, y, -REVEAL, 0);
+  win.put('glass:o', plate(w - 0.1, h - 0.1), 0, 0, 0.03);
+  win.put(detail('trim'), ring(w, h, 0.08, 0.08), 0, 0, 0);
+  win.put(detail('trim'), plate(0.05, h - 0.14), 0, 0, 0.06);
+  win.put(detail('trim'), plate(w - 0.14, 0.035), 0, h * 0.17, 0.06);
+  win.put(detail('trim'), plate(w - 0.14, 0.035), 0, -h * 0.17, 0.06);
+  const face = frame(wall, x, y, 0, 0);
+  face.put(near('surround'), ring(w + 0.26, h + 0.26, 0.13, 0.015, false), 0, 0, 0);
+  face.put(near('stone'), box(w + 0.3, 0.07, REVEAL + 0.07), 0, -h / 2 - 0.035, -REVEAL / 2 + 0.035);
+  if (shutter) {
+    for (const s of [-1, 1]) {
+      const ajar = 0.05 + 0.09 * (((seed * 7 + s * 3) % 5 + 5) % 5) / 4;
+      const sw = w / 2;
+      const hx = s * (w / 2 + 0.16);
+      face.put(near(shutter), box(sw, h + 0.02, 0.035), hx + s * Math.cos(ajar) * sw / 2, 0, 0.04 + Math.sin(ajar) * sw / 2, -s * ajar);
+    }
+  }
+  return { x, y0: y - h / 2, y1: y + h / 2, w };
+}
+
+/* A door let into the masonry under its lintel: the leaf back in the
+ * opening, the stone surround on the face, the threshold and the step
+ * out, and over it a little roof on two brackets. Returns the opening. */
+export function deepDoor(wall, x, w, h, { key = 'larchDark', frameKey = 'stone', roofKey = null, board = 'larch', y0 = SOCLE } = {}) {
+  const d = frame(wall, x, y0 + h / 2, 0, 0);
+  d.put(`${key}:v`, box(w, h, 0.05), 0, 0, -REVEAL + 0.06);
+  d.put(near('boardLine'), box(0.03, h, 0.02), 0, 0, -REVEAL + 0.1);
+  d.put(detail('metal'), box(0.04, 0.04, 0.1), w / 2 - 0.12, -0.05, -REVEAL + 0.12);
+  d.put(near(frameKey), ring(w + 0.3, h + 0.15, 0.15, 0.05), 0, 0.075, 0);
+  d.put('stone', box(w + 0.1, 0.05, REVEAL + 0.02), 0, -h / 2 + 0.02, -REVEAL / 2);
+  d.put('stone', box(w + 0.7, y0 + 0.02, 0.6), 0, -h / 2 - y0 / 2 + 0.01, 0.3);
+  if (roofKey) {
+    const ry = h / 2 + 0.45;
+    d.put(roofKey, box(w + 0.9, 0.06, 1.05), 0, ry, 0.5, 0, 0.28);
+    d.put(near(board), box(w + 0.9, 0.12, 0.05), 0, ry - 0.2, 1.02);
+    for (const s of [-1, 1]) {
+      d.put(near(board), box(0.1, 0.1, 0.95), s * (w / 2 + 0.3), ry - 0.15, 0.5);
+      d.put(near(board), box(0.09, 0.09, 0.7), s * (w / 2 + 0.3), ry - 0.42, 0.26, 0, -0.75);
+    }
+  }
+  return { x, y0, y1: y0 + h, w };
+}
+
+/* A bench against a wall, the old kind: a plank on two stub legs and a
+ * back rail. */
+export function wallBench(wall, x, len) {
+  wall.put('fence', box(len, 0.05, 0.36), x, 0.47, 0.22);
+  wall.put(near('fence'), box(len, 0.1, 0.04), x, 0.8, 0.04);
+  for (const s of [-1, 1]) {
+    wall.put(near('larchDark'), boxUp(0.08, 0.45, 0.3), x + s * (len / 2 - 0.12), 0, 0.22);
+  }
+}
+
+/* The strip of gravel round a house's foot that keeps the splash off
+ * the wall. */
+export function dripEdge(f, w, d, key = 'dripEdge') {
+  const o = 0.45;
+  f.put(key, box(w + 0.24 + 2 * o, 0.14, o), 0, -0.06, d / 2 + 0.12 + o / 2);
+  f.put(key, box(w + 0.24 + 2 * o, 0.14, o), 0, -0.06, -d / 2 - 0.12 - o / 2);
+  f.put(key, box(o, 0.14, d + 0.24), w / 2 + 0.12 + o / 2, -0.06, 0);
+  f.put(key, box(o, 0.14, d + 0.24), -w / 2 - 0.12 - o / 2, -0.06, 0);
+}
+
 /* A stack of split logs under the eaves, cut ends out, a little uneven. */
 export function woodpile(wall, x, len, rows = 3) {
   const log = cached('s2log', () => new THREE.CylinderGeometry(0.12, 0.12, 0.5, 5, 1, true).rotateX(Math.PI / 2));
@@ -281,9 +407,11 @@ export function woodpile(wall, x, len, rows = 3) {
 
 /* The stone plinth under a footprint, from the cut foundation up, and a
  * socle band standing out round the foot of the walls. */
-export function plinth(f, w, d, found) {
+export function plinth(f, w, d, found, band = true) {
   f.put('stone', box(w + 0.2, found + SOCLE, d + 0.2), 0, (SOCLE - found) / 2, 0);
-  f.put('stone', boxUp(w + 0.12, 0.42, d + 0.12), 0, SOCLE, 0);
+  if (band) {
+    f.put('stone', boxUp(w + 0.12, 0.42, d + 0.12), 0, SOCLE, 0);
+  }
 }
 
 /* A chimney through the roof: a stone stack, a projecting cap, and the

@@ -33,6 +33,7 @@ import * as THREE from 'three';
 import {
   frame, box, boxUp, cached, prism, SOCLE, near, detail, own,
   casement, doorway, balcony, woodpile, plinth, logCorners, frieze, timberTop, ring, plate, stair,
+  REVEAL, masonry, deepWindow, deepDoor, wallBench, dripEdge,
 } from './parts.js';
 
 /* Joist ends under a jettied storey, along one wall frame. */
@@ -72,8 +73,8 @@ export function chalet(f, rng, spec) {
   const hw = w / 2;
   const hwu = wu / 2;
   const hd = d / 2;
-  plinth(f, w, d, found);
-  f.put(base, boxUp(w, baseH, d), 0, SOCLE, 0);
+  plinth(f, w, d, found, false);
+  dripEdge(f, w, d);
   const y1 = SOCLE + baseH;
   const top = timberTop(f, {
     w: wu, d, y0: y1, floors, floorH, kind: roof, key: board, roofKey,
@@ -142,18 +143,27 @@ export function chalet(f, rng, spec) {
       casement(frame(wall, 0, 0, 0.04, 0), 0, top.plate + 0.55, 0.6, 0.6, { shutter, key: board, bars: false });
     }
   }
-  /* Ground floor: the door and a window row on the front, windows and
-   * the woodpile on the back, one window each gable end. */
-  doorway(eastBase, -slot(0), 1.05, 2.05, { frameKey: board });
+  /* Ground floor, masonry: the door under its little roof and a window
+   * row on the front with the bench under the first, windows and the
+   * woodpile on the back, one window each gable end, every opening deep
+   * in the wall. */
+  const southBase = frame(f, 0, 0, hd, 0);
+  const northBase = frame(f, 0, 0, -hd, Math.PI);
+  const eastOpen = [deepDoor(eastBase, -slot(0), 1.05, 2.05, { frameKey: board, roofKey, board })];
   for (let c = 1; c < cols; c += 1) {
-    casement(eastBase, -slot(c), SOCLE + 1.35, 0.9, 1.0, { shutter, seed: c });
+    eastOpen.push(deepWindow(eastBase, -slot(c), SOCLE + 1.35, 0.9, 1.0, { shutter, seed: c }));
   }
-  casement(westBase, slot(0), SOCLE + 1.35, 0.9, 1.0, { shutter });
+  wallBench(eastBase, -slot(1), 1.5);
+  const westOpen = [deepWindow(westBase, slot(0), SOCLE + 1.35, 0.9, 1.0, { shutter })];
   woodpile(westBase, slot(cols - 1) - 0.2, Math.min(3.2, d / cols - 0.4));
-  casement(frame(f, 0, 0, hd, 0), hw / 2, SOCLE + 1.35, 0.9, 1.0, { shutter });
-  if (!blankA) {
-    casement(frame(f, 0, 0, -hd, Math.PI), hw / 2, SOCLE + 1.35, 0.9, 1.0, { shutter });
-  }
+  const southOpen = [deepWindow(southBase, hw / 2, SOCLE + 1.35, 0.9, 1.0, { shutter })];
+  const northOpen = blankA ? [] : [deepWindow(northBase, hw / 2, SOCLE + 1.35, 0.9, 1.0, { shutter })];
+  masonry(f, w, d, SOCLE, baseH, base, [
+    { wall: eastBase, len: d, openings: eastOpen, bandLen: d + 0.16 },
+    { wall: westBase, len: d, openings: westOpen, bandLen: d + 0.16 },
+    { wall: southBase, len: w - 2 * REVEAL, openings: southOpen, bandLen: w },
+    { wall: northBase, len: w - 2 * REVEAL, openings: northOpen, bandLen: w },
+  ], base === 'render' ? 0.7 : 0.42);
   const hb = balconies === 'none' ? 0 : 1.4;
   return { hw: Math.max(top.roof.ex, hwu + hb), hd: hd + Math.max(ovA, ovB), top: top.top };
 }
@@ -271,8 +281,8 @@ export function gasthof(f, rng, spec) {
   const floorH = 2.7;
   const hw = w / 2;
   const hd = d / 2;
-  plinth(f, w, d, found);
-  f.put('render', boxUp(w, baseH, d), 0, SOCLE, 0);
+  plinth(f, w, d, found, false);
+  dripEdge(f, w, d);
   const y1 = SOCLE + baseH;
   const top = timberTop(f, {
     w, d, y0: y1, floors: 2, floorH, kind: 'halfhip', key: board, roofKey: 'slate',
@@ -293,22 +303,28 @@ export function gasthof(f, rng, spec) {
       casement(west, slot(c), fy + 1.5, 0.95, 1.1, { shutter, key: board, seed: c + k });
     }
   }
-  /* The ground floor: a door in the middle, big windows either side. */
-  doorway(east, -slot(2), 1.3, 2.3, { frameKey: 'stone' });
+  /* The ground floor, masonry: a door in the middle under its roof,
+   * big windows either side, every opening deep in the wall. */
+  const eastOpen = [deepDoor(east, -slot(2), 1.3, 2.3, { frameKey: 'stone', roofKey: 'slate', board })];
   for (const c of [0, 1, 3, 4]) {
-    casement(east, -slot(c), SOCLE + 1.6, 1.5, 1.4, { shutter, seed: c });
+    eastOpen.push(deepWindow(east, -slot(c), SOCLE + 1.6, 1.5, 1.4, { shutter, seed: c }));
   }
-  for (const c of [0, 2, 4]) {
-    casement(west, slot(c), SOCLE + 1.6, 1.2, 1.2, { shutter, seed: c });
-  }
+  wallBench(east, -slot(1) - 1.2, 1.4);
+  const westOpen = [0, 2, 4].map((c) => deepWindow(west, slot(c), SOCLE + 1.6, 1.2, 1.2, { shutter, seed: c }));
+  const ends = [];
   for (const wall of [frame(f, 0, 0, hd, 0), frame(f, 0, 0, -hd, Math.PI)]) {
     for (let k = 0; k < 2; k += 1) {
       const fy = y1 + k * floorH;
       frieze(wall, w + 0.2, fy + 0.85);
       gableRow(wall, w, fy + 1.5, { shutter, key: board });
     }
-    casement(wall, 0, SOCLE + 1.6, 1.2, 1.2, { shutter });
+    ends.push({ wall, len: w - 2 * REVEAL, openings: [deepWindow(wall, 0, SOCLE + 1.6, 1.2, 1.2, { shutter })], bandLen: w });
   }
+  masonry(f, w, d, SOCLE, baseH, 'render', [
+    { wall: east, len: d, openings: eastOpen, bandLen: d + 0.16 },
+    { wall: west, len: d, openings: westOpen, bandLen: d + 0.16 },
+    ...ends,
+  ], 0.7);
   /* The sign: a board hung off a wrought bracket beside the door. */
   const sx = -slot(2) + 1.6;
   east.put('ink', box(0.06, 0.06, 1.3), sx, y1 - 0.5, 0.65);
@@ -346,8 +362,8 @@ export function shop(f, rng, spec) {
   const baseH = 2.9;
   const hw = w / 2;
   const hd = d / 2;
-  plinth(f, w, d, found);
-  f.put('render', boxUp(w, baseH, d), 0, SOCLE, 0);
+  plinth(f, w, d, found, false);
+  dripEdge(f, w, d);
   const y1 = SOCLE + baseH;
   const top = timberTop(f, {
     w: w + 0.4, d, y0: y1, floors: 1, floorH: 2.55, kind: 'gable', key: board, roofKey: 'shingle',
@@ -357,8 +373,10 @@ export function shop(f, rng, spec) {
   logCorners(f, board, hw + 0.2, hd, y1, top.plate);
   const east = frame(f, hw, 0, 0, Math.PI / 2);
   const eastUp = frame(f, hw + 0.2, 0, 0, Math.PI / 2);
-  doorway(east, -hd + 1.6, 1.1, 2.05, { frameKey: 'stone' });
-  casement(east, 1.2, SOCLE + 1.3, 4.2, 1.5, { bars: false });
+  const eastOpen = [
+    deepDoor(east, -hd + 1.6, 1.1, 2.05, { frameKey: 'stone' }),
+    deepWindow(east, 1.2, SOCLE + 1.3, 4.2, 1.5),
+  ];
   east.put('trim', box(d - 1.0, 0.6, 0.12), 0, y1 - 0.45, 0.06);
   east.put('signRed', box(d - 1.2, 0.5, 0.04), 0, y1 - 0.45, 0.13);
   awning(east, 1.2, y1 - 0.8, 4.8, 1.2);
@@ -375,14 +393,19 @@ export function shop(f, rng, spec) {
   for (const x of [-3, 0, 3]) {
     casement(westUp, x, y1 + 1.45, 0.95, 1.05, { shutter, key: board, seed: x });
   }
-  casement(frame(f, -hw, 0, 0, -Math.PI / 2), 0, SOCLE + 1.5, 1.0, 1.1, { shutter });
+  const westBase = frame(f, -hw, 0, 0, -Math.PI / 2);
+  const walls = [
+    { wall: east, len: d, openings: eastOpen, bandLen: d + 0.16 },
+    { wall: westBase, len: d, openings: [deepWindow(westBase, 0, SOCLE + 1.5, 1.0, 1.1, { shutter })], bandLen: d + 0.16 },
+  ];
   for (const wall of [frame(f, 0, 0, hd, 0), frame(f, 0, 0, -hd, Math.PI)]) {
     frieze(wall, w + 0.6, y1 + 0.8);
     casement(wall, -2, y1 + 1.45, 0.95, 1.05, { shutter, key: board });
     casement(wall, 2, y1 + 1.45, 0.95, 1.05, { shutter, key: board, seed: 1 });
     casement(frame(wall, 0, 0, 0.04, 0), 0, top.plate + 0.75, 0.7, 0.7, { shutter, key: board, bars: false });
-    casement(wall, 0, SOCLE + 1.5, 1.0, 1.1, { shutter });
+    walls.push({ wall, len: w - 2 * REVEAL, openings: [deepWindow(wall, 0, SOCLE + 1.5, 1.0, 1.1, { shutter })], bandLen: w });
   }
+  masonry(f, w, d, SOCLE, baseH, 'render', walls, 0.7);
   return { hw: top.roof.ex, hd: hd + 1.2, top: top.top };
 }
 

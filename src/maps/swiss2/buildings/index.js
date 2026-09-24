@@ -24,6 +24,7 @@
  */
 
 import { chalet, barn, farmhouse, gasthof, shop, church } from './houses.js';
+import { hangar } from './hangar.js';
 import { makeBakeAll } from './bake.js';
 
 /* A log is wider than the boards the photograph shows: the log walls'
@@ -33,5 +34,5 @@ const LOG_UV = 0.72;
 /* What alps/village.js takes from a style's look.buildings. */
 export function swissBuildings(look) {
   const uv = { larchDark: LOG_UV, larch: LOG_UV, honey: LOG_UV, weathered: LOG_UV };
-  return { chalet, barn, farmhouse, gasthof, shop, church, bakeAll: makeBakeAll(look, uv) };
+  return { chalet, barn, farmhouse, gasthof, shop, church, hangar, bakeAll: makeBakeAll(look, uv) };
 }
