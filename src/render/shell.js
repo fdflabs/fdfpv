@@ -330,6 +330,8 @@ export function buildShell(canvas, opts) {
     propSpin: craft.propSpin,
     /* Only a craft with control surfaces has one; the wing does. */
     setSurfaces: craft.setSurfaces ?? null,
+    /* Only a craft with a folding prop has one; the Radian does. */
+    setProp: craft.setProp ?? null,
     resize,
     swapCraft,
     keepAcrossMaps,
@@ -370,6 +372,7 @@ export function buildShell(canvas, opts) {
     api.cameraMount = next.cameraMount;
     api.propSpin = next.propSpin;
     api.setSurfaces = next.setSurfaces ?? null;
+    api.setProp = next.setProp ?? null;
     return next;
   }
 

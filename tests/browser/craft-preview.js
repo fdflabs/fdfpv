@@ -27,9 +27,10 @@ import { buildComposer } from '../../src/render/post.js';
 import { buildSkyCraft, SKY_DIMS } from '../../src/render/skycraft.js';
 import { buildWingCraft } from '../../src/render/wingcraft.js';
 import { buildCubCraft, CUB_DIMS } from '../../src/render/cubcraft.js';
+import { buildGliderCraft, GLIDER_DIMS } from '../../src/render/glidercraft.js';
 
-const BUILDERS = { sky: buildSkyCraft, wing: buildWingCraft, cub: buildCubCraft };
-const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS };
+const BUILDERS = { sky: buildSkyCraft, wing: buildWingCraft, cub: buildCubCraft, glider: buildGliderCraft };
+const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
 const lite = params.get('lite') === '1';
@@ -78,6 +79,9 @@ function count() {
   });
   return { tris, draws };
 }
+
+/* The fold the last prop() left the blades at. */
+let lastFold = null;
 
 window.__preview = {
   dims: DIMS[which] ?? null,
@@ -128,6 +132,24 @@ window.__preview = {
     craft.blades[0].visible = !blur;
     return true;
   },
+  /* A craft with a folding prop: the motor's rate, called enough times for
+   * the blades to finish swinging, then the rotor at angle if it is open.
+   * Returns the fold, 0 open to 1 folded. */
+  prop(omega, angle = 0.6) {
+    if (!craft.setProp) {
+      return null;
+    }
+    let f = 0;
+    for (let i = 0; i < 60; i += 1) {
+      f = craft.setProp(omega);
+    }
+    lastFold = f;
+    if (omega > 0) {
+      craft.blades[0].rotation.y = angle;
+    }
+    craft.blades[0].visible = true;
+    return f;
+  },
   count,
   /* Where a point one blade length up the rotor's blade axis goes, in the
    * craft frame, after the shell's spin turns it by a small positive step
@@ -171,7 +193,7 @@ window.__preview = {
   /* How far the drawn machine reaches, from every vertex of every visible
    * mesh, minus the outline hulls (paint) and the antenna (wire), which is
    * scripts/craft-check.js's rule. The disc is included: it is where the
-   * blades go. */
+   * blades go, on a fixed prop; a folding one is measured folded. */
   extents() {
     craft.group.updateMatrixWorld(true);
     const e = { xMax: 0, yMax: -1, yMin: 1, zMin: 1, zMax: -1 };
@@ -182,7 +204,9 @@ window.__preview = {
       }
       let shown = true;
       o.traverseAncestors((p) => { shown = shown && p.visible; });
-      if (!shown || (!o.visible && !craft.discs.includes(o))) {
+      /* A folding prop's disc is only where the blades go while it is
+       * open; folded, the blades are along the nose and it is hidden. */
+      if (!shown || (!o.visible && !(craft.discs.includes(o) && !craft.setProp))) {
         return;
       }
       const pos = o.geometry.attributes.position;
@@ -198,6 +222,32 @@ window.__preview = {
         e.zMax = Math.max(e.zMax, v.z);
       }
     });
+    return e;
+  },
+  /* Where the folding prop's blades are, in the craft frame: the fold, the
+   * disc, the blades' fore and aft reach and how far any blade vertex
+   * stands off the thrust line. */
+  bladeExtent() {
+    craft.group.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(craft.group.matrixWorld).invert();
+    const v = new THREE.Vector3();
+    const d = DIMS[which];
+    const e = { zMin: 1, zMax: -1, rMax: 0 };
+    craft.blades[0].traverse((o) => {
+      if (!o.isMesh || o.name === 'spinner') {
+        return;
+      }
+      const m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+      const pos = o.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i += 1) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(m);
+        e.zMin = Math.min(e.zMin, v.z);
+        e.zMax = Math.max(e.zMax, v.z);
+        e.rMax = Math.max(e.rMax, Math.hypot(v.x, v.y - d.thrustY));
+      }
+    });
+    e.fold = lastFold;
+    e.disc = craft.discs[0].visible;
     return e;
   },
   /* The craft frame box of a named part, so a hinge's direction can be

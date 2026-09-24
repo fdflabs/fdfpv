@@ -34,6 +34,7 @@ import { SIM_OK } from './simmod.js';
 export const WING_AIRFRAME = 2;
 export const SKY_AIRFRAME = 3;
 export const CUB_AIRFRAME = 4;
+export const GLIDER_AIRFRAME = 6;
 export const RC_STEP_MS = 4;
 
 export function must(code, where) {
@@ -73,15 +74,20 @@ export function wingDebug(sim) {
  * pitchMin, pitchMax, trimMax (rad), guard (the stall guard), t0Ms (where
  * the clock starts, so consecutive flights keep timestamps rising),
  * yawStick (fixed, 0 unless given; the wing has no rudder),
- * onStep({ ms, v, vz, bank, pitch, p, qAero, s }).
+ * onStep({ ms, v, vz, bank, pitch, p, qAero, s }), start (a pose, the
+ * seven numbers sim_set_pose takes, set before the throw; the reset's
+ * origin unless given).
  */
 export function fly(sim, opts) {
   const {
     duty, speed0 = 12, holdBank = 0, vzTarget = null, vTarget = null, pitchTargetFn = null,
     pitchHand = null, rollStick = null, seconds = 25, pitchMin = -0.2, pitchMax = 0.15,
-    trimMax = 0.2, guard = true, t0Ms = 0, onStep = null, yawStick = 0,
+    trimMax = 0.2, guard = true, t0Ms = 0, onStep = null, yawStick = 0, start = null,
   } = opts;
   must(sim.reset(), 'sim_reset');
+  if (start) {
+    must(sim.e.sim_set_pose(...start), 'sim_set_pose');
+  }
   must(sim.e.sim_wing_launch(speed0), 'sim_wing_launch');
   let trim = 0;
   const samples = [];
@@ -481,4 +487,101 @@ export function recordCubFlight(sim) {
     must(sim.step(RC_STEP_MS), 'sim_step');
   }
   return samples;
+}
+
+/* The Radian's recording, and every flight of it that starts in the air:
+ * its airframe and the shell's hand throw, 10 m/s. */
+export function gliderPrelude(sim) {
+  must(sim.e.sim_set_airframe(GLIDER_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(10), 'sim_wing_launch');
+}
+
+/*
+ * The Radian's recording for the cross-host check: the flight a glider is
+ * for. Thrown at 80 m, a hundred metres short of the strongest thermal and
+ * on the line that puts it at the centre of a 30 deg circle, a powered
+ * climb at full throttle for six seconds, the motor off and the prop
+ * folded, a glide to the thermal, forty seconds circling in it, then out
+ * of it level, half a second of full right roll, two and a half seconds
+ * of full right rudder, and the motor at 40 percent to the end. Seventy
+ * seconds at most, all of it clear of the ground, so the fold, the unfold
+ * and the rising air are all in the hashed trace. The pilot is the harness
+ * pilot's bank and airspeed hold.
+ */
+export const GLIDER_REC_START = [0, 82.8, 80];
+export function recordGliderFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  gliderRecPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  let circleFrom = null;
+  let phase = 0;
+  for (let ms = 0; ms < 70000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const v = Math.hypot(s[4], s[5], s[6]);
+    const holdBank = (target) => Math.max(-1, Math.min(1, -1.2 * (bank - target) - 0.12 * p));
+    /* An airspeed hold on the pitch attitude, as fly()'s, with its trim
+     * started afresh in each phase and a glider's stick: a little of it,
+     * because a glider held nose up past its stall mushes down stalled
+     * at the speed asked for, and a speed loop cannot tell. */
+    const holdSpeed = (vT, lo, hi, most = 1) => {
+      trim += 0.00002 * (v - vT);
+      trim = Math.max(-0.15, Math.min(0.15, trim));
+      const pitchT = Math.max(lo, Math.min(hi, 0.04 * (v - vT) + trim));
+      return Math.max(-most, Math.min(most, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+    };
+    if (circleFrom === null && ms >= 6000 && (s[1] >= 110 || ms >= 20000)) {
+      circleFrom = ms;
+    }
+    const nowPhase = ms < 6000 ? 0 : circleFrom === null ? 1 : 2;
+    if (nowPhase !== phase) {
+      trim = 0;
+      phase = nowPhase;
+    }
+    const t = circleFrom === null ? -1 : ms - circleFrom;
+    let sticks;
+    if (ms < 6000) {
+      sticks = [holdBank(0), holdSpeed(11, -0.2, 0.6), 0, 1];
+    } else if (circleFrom === null) {
+      sticks = [holdBank(0), holdSpeed(8.5, -0.3, 0.1, 0.3), 0, 0];
+    } else if (t < 40000) {
+      sticks = [holdBank(Math.PI / 6), holdSpeed(8.5, -0.3, 0.1, 0.3), 0, 0];
+    } else if (t < 44000) {
+      sticks = [holdBank(0), holdSpeed(9, -0.3, 0.1, 0.3), 0, 0];
+    } else if (t < 44500) {
+      sticks = [1, 0, 0, 0];
+    } else if (t < 47000) {
+      sticks = [holdBank(0), 0, 1, 0];
+    } else if (t < 50000) {
+      sticks = [holdBank(0), holdSpeed(9, -0.3, 0.1, 0.3), 0, 0.4];
+    } else {
+      break;
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/* The pose the recording starts from, facing along +x, 12.8 m to the left
+ * of the line through the thermal at (110, 70): a right hand circle at
+ * 30 deg and 8.5 m/s begun abeam the core is centred on it. No steps,
+ * because a replay's clock starts after it. */
+export function gliderRecPose(sim) {
+  const [x, y, z] = GLIDER_REC_START;
+  must(sim.e.sim_set_pose(x, y, z, 1, 0, 0, 0), 'sim_set_pose');
+}
+
+/* What a replay of the Radian's recording does before its first sample. */
+export function gliderRecPrelude(sim) {
+  must(sim.e.sim_set_airframe(GLIDER_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  gliderRecPose(sim);
+  must(sim.e.sim_wing_launch(10), 'sim_wing_launch');
 }

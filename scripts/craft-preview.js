@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|wing|cub] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|wing|cub|glider] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -108,6 +108,35 @@ const CUB_VIEWS = [
   ['aileron-left', DEFLECT, [-150, 6, 1.1, -0.5, 0.1, 0.0]],
 ];
 
+/*
+ * The Radian's set: its spinner is at z = -0.31, its fin at +0.83, and it
+ * is 2 m across, so the whole views stand further off. A fifth camera
+ * field is the motor's rate for the folding prop, rad/s: 0 folds it, and
+ * the prop views show it both ways. Its deflected set is the Cub's.
+ */
+const GLIDER_VIEWS = [
+  ['front', NEUTRAL, [0, 4, 5.4, 0, 0.03, 0], false, false, 0],
+  ['three-quarter', NEUTRAL, [-140, 24, 5.0, 0, 0, 0.2], false, false, 0],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 5.0, 0, 0, 0.1], false, false, 0],
+  ['side', NEUTRAL, [90, 0, 3.6, 0, 0.05, 0.26], false, false, 0],
+  ['top', NEUTRAL, [0, 90, 5.4, 0, 0, 0.2], false, false, 0],
+  ['below', NEUTRAL, [0, -90, 5.4, 0, 0, 0.2], false, false, 0],
+  ['deflected-three-quarter', DEFLECT, [-150, 25, 5.0, 0, 0, 0.2], false, false, 0],
+  ['deflected-rear', DEFLECT, [180, 12, 5.0, 0, 0, 0.2], false, false, 0],
+  ['deflected-top', DEFLECT, [0, 90, 5.4, 0, 0, 0.2], false, false, 0],
+  ['nose-folded', NEUTRAL, [-40, 12, 0.8, 0, 0, -0.22], false, false, 0],
+  ['nose-folded-top', NEUTRAL, [0, 90, 0.8, 0, 0, -0.22], false, false, 0],
+  ['nose-open', NEUTRAL, [-40, 12, 0.8, 0, 0, -0.22], false, false, 900],
+  ['nose-open-front', NEUTRAL, [0, 5, 0.9, 0, 0, -0.25], false, false, 900],
+  ['nose-blur', NEUTRAL, [-40, 12, 0.8, 0, 0, -0.22], true, false, 900],
+  ['canopy-side', NEUTRAL, [90, 5, 0.9, 0, 0.02, -0.12], false, false, 0],
+  ['tail-close', DEFLECT, [-145, 20, 1.1, 0, 0.12, 0.72], false, false, 0],
+  ['tail-side', DEFLECT, [90, 0, 1.0, 0, 0.12, 0.72], false, false, 0],
+  ['tail-top', DEFLECT, [0, 90, 1.0, 0, 0.1, 0.72], false, false, 0],
+  ['tip-right', DEFLECT, [150, 10, 1.4, 0.75, 0.12, 0.05], false, false, 0],
+  ['tip-left', DEFLECT, [-150, 10, 1.4, -0.75, 0.12, 0.05], false, false, 0],
+];
+
 const page = await openPage({
   root, width: 1280, height: 800, url: `/tests/browser/craft-preview.html?craft=${craft}${lite ? '&lite=1' : ''}`,
 });
@@ -115,11 +144,19 @@ try {
   await page.until('window.__previewReady === true', 60000);
   await mkdir(outDir, { recursive: true });
   const scale = craft === 'wing' ? 0.6 : 1;
-  for (const [name, surf, cam, blur, rest] of craft === 'cub' ? CUB_VIEWS : VIEWS) {
+  const views = { cub: CUB_VIEWS, glider: GLIDER_VIEWS }[craft] ?? VIEWS;
+  for (const [name, surf, cam, blur, rest, omega] of views) {
     const [az, el, dist, tx, ty, tz] = cam;
     await page.evaluate(`window.__preview.rest(${Boolean(rest)})`);
     await page.evaluate(`window.__preview.surfaces(${surf.join(',')})`);
-    await page.evaluate(`window.__preview.spin(0.6, ${Boolean(blur)})`);
+    if (omega === undefined) {
+      await page.evaluate(`window.__preview.spin(0.6, ${Boolean(blur)})`);
+    } else {
+      await page.evaluate(`window.__preview.prop(${omega})`);
+      if (blur) {
+        await page.evaluate('window.__preview.spin(0.6, true)');
+      }
+    }
     await page.evaluate(`window.__preview.view(${az}, ${el}, ${dist * scale}, ${tx}, ${ty}, ${tz * scale})`);
     const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
     const path = join(outDir, `${craft}-${name}.png`);
@@ -150,6 +187,12 @@ try {
       ['rudder', [0, 0, 0, FULL], left],
       ['tailwheel', [0, 0, 0, FULL], left],
     ],
+    glider: [
+      ['aileron-left', [FULL, 0, 0, 0], up],
+      ['aileron-right', [0, FULL, 0, 0], up],
+      ['elevator', [0, 0, FULL, 0], up],
+      ['rudder', [0, 0, 0, FULL], left],
+    ],
   };
   if (CASES[craft]) {
     const box = (n) => page.evaluate(`window.__preview.box('${n}')`);
@@ -167,8 +210,9 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (craft === 'sky' || craft === 'cub') {
+  if (craft === 'sky' || craft === 'cub' || craft === 'glider') {
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
+    await page.evaluate('window.__preview.prop(0)');
     const e = await page.evaluate('window.__preview.extents()');
     const d = await page.evaluate('window.__preview.dims');
     const rows = [
@@ -220,6 +264,37 @@ try {
     console.log(`${cw ? 'ok  ' : 'FAIL'} prop: axis (${f(spin.axis)}), a blade up at x ${spin.before[0].toFixed(4)} `
       + `goes to x ${spin.after[0].toFixed(4)}: clockwise from the cockpit`);
     if (!cw) {
+      process.exitCode = 1;
+    }
+  }
+  /*
+   * The Radian's folding prop: folded, the disc is gone and every blade
+   * vertex lies aft of the prop's plane, but for the 4 mm of blade root
+   * and yoke at the hinge, and within 6 cm of the thrust line, along the
+   * nose; open, the blades reach the disc's radius in the prop's plane.
+   * And the spin's sense, as the Cub's.
+   */
+  if (craft === 'glider') {
+    const d = await page.evaluate('window.__preview.dims');
+    const f = (p) => p.map((v) => v.toFixed(4)).join(', ');
+    const probe = (omega) => page.evaluate(`(() => {
+      window.__preview.prop(${omega});
+      return window.__preview.bladeExtent();
+    })()`);
+    const folded = await probe(0);
+    const okFold = folded.fold > 0.999 && !folded.disc && folded.zMin > d.propZ - 0.004 && folded.rMax < 0.06;
+    console.log(`${okFold ? 'ok  ' : 'FAIL'} folded: fold ${folded.fold.toFixed(3)}, disc ${folded.disc ? 'shown' : 'hidden'}, `
+      + `blades from z ${folded.zMin.toFixed(4)} (the prop's plane ${d.propZ.toFixed(4)}) to ${folded.zMax.toFixed(4)}, `
+      + `${folded.rMax.toFixed(4)} m off the thrust line at most`);
+    const open = await probe(900);
+    const okOpen = open.fold < 0.001 && open.disc && Math.abs(open.rMax - d.propR) < 0.004 && open.zMax - open.zMin < 0.03;
+    console.log(`${okOpen ? 'ok  ' : 'FAIL'} open: fold ${open.fold.toFixed(3)}, disc ${open.disc ? 'shown' : 'hidden'}, `
+      + `blades reach ${open.rMax.toFixed(4)} m against the disc's ${d.propR.toFixed(4)}, ${((open.zMax - open.zMin) * 1000).toFixed(1)} mm deep`);
+    const spin = await page.evaluate('window.__preview.spinProbe()');
+    const cw = spin.before[1] > 0 && spin.after[0] > spin.before[0] && spin.axis[2] < -0.99;
+    console.log(`${cw ? 'ok  ' : 'FAIL'} prop: axis (${f(spin.axis)}), a blade up at x ${spin.before[0].toFixed(4)} `
+      + `goes to x ${spin.after[0].toFixed(4)}: clockwise from the cockpit`);
+    if (!okFold || !okOpen || !cw) {
       process.exitCode = 1;
     }
   }

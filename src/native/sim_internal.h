@@ -187,7 +187,10 @@ typedef struct {
 #define SIM_AIRFRAME_WING1000 2
 #define SIM_AIRFRAME_SKY1800 3
 #define SIM_AIRFRAME_CUB1400 4
-#define SIM_AIRFRAME_COUNT 5
+/* 5 is reserved for the Slow Stick, which is being built alongside; until
+ * its entry lands the slot is zero and sim_set_airframe refuses it. */
+#define SIM_AIRFRAME_RADIAN2000 6
+#define SIM_AIRFRAME_COUNT 7
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -246,6 +249,8 @@ extern const PlantParams *PLANT_P;
  * axes, which are built from the airframe's own cant table. */
 void plant_set_airframe(int id);
 int plant_airframe(void);
+/* 1 if id names a table entry that is filled in, 0 for anything else. */
+int plant_airframe_exists(int id);
 
 /*
  * Flight style, set by sim_set_flight_style: 0 expert, 1 arcade. Owned by
@@ -443,11 +448,22 @@ typedef struct FixedWingParams {
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */
   double yaw_coord_k;
+  /* A folding prop: below this throttle the ESC brakes the motor, the prop
+   * stops and the air folds its blades back along the fuselage, so there
+   * is no thrust, no current and nothing turning. Above it the prop is
+   * open, and an open prop turning slower than the air would drive it
+   * brakes: its thrust carries on below zero instead of stopping there.
+   * Zero is a fixed prop, whose thrust stops at zero as it always did. */
+  double fold_duty;
+  /* 1 where the airframe flies in the rising air of plant_wing.c's
+   * thermals, 0 where the air is still. */
+  int air_lift;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
 extern const FixedWingParams FW_SKY1800;
 extern const FixedWingParams FW_CUB1400;
+extern const FixedWingParams FW_RADIAN2000;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
@@ -460,6 +476,9 @@ int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any
  * wheel carried load. The stabiliser reads it; nothing else does. */
 void plant_wing_set_on_wheels(int on);
+/* The rising air at a world position, m/s up: the thermals every airframe
+ * with air_lift flies in. */
+double plant_air_lift(const double pos[3]);
 
 /* Bridge: Betaflight control loop and config shim. */
 

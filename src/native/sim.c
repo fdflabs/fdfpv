@@ -1402,7 +1402,7 @@ SIM_EXPORT double sim_gravity(void) { return SIM_GRAVITY; }
  * the parked height the ground plane defaults to.
  */
 SIM_EXPORT int sim_set_airframe(int id) {
-  if (id < 0 || id >= SIM_AIRFRAME_COUNT) {
+  if (!plant_airframe_exists(id)) {
     return SIM_ERR_BAD_ARG;
   }
   if (id == plant_airframe()) {
@@ -1595,6 +1595,15 @@ SIM_EXPORT int sim_plane_surfaces(double *out) {
   }
   plant_plane_surfaces(out);
   return SIM_OK;
+}
+
+/* The rising air at a world position, m/s up, whichever airframe is
+ * selected: the thermals of plant_wing.c. Only an airframe whose table
+ * says so flies in them. For the gates, and for a shell that wants to
+ * show where they are. Additive, version unchanged. */
+SIM_EXPORT double sim_air_lift(double x, double y, double z) {
+  const double pos[3] = { x, y, z };
+  return plant_air_lift(pos);
 }
 
 /* The fixed libm's atan2, exported so a test can hold it against the host's

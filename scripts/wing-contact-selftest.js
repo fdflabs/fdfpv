@@ -10,8 +10,9 @@
  * The Cub stands on wheels, so its four are the same arrivals ending on
  * its gear rather than its belly: a level arrival that lands on the wheels
  * and rolls to a stop at its three point attitude, a wingtip strike that
- * falls back onto the wheels, the nose-in, and the throw. Run with
- * npm run wing:contact.
+ * falls back onto the wheels, the nose-in, and the throw. The Radian
+ * lands on its belly as the first two do, and gets their four, thrown
+ * with the stick that trims its climb. Run with npm run wing:contact.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -46,6 +47,7 @@ const PLANES = [
   { name: 'wing', id: 2, hx: 0.25, hy: 0.5, down: 0.035, up: 0.035, land: 8, nose: 10, toss: 10, tossSticks: [0, 0.15, 0, 0.7] },
   { name: 'skyhunter', id: 3, hx: 0.61, hy: 0.9, down: 0.12, up: 0.08, land: 11, nose: 13, toss: 12, tossSticks: [0, 0.3, 0, 0.8] },
   { name: 'cub', id: 4, hx: 0.30, hy: 0.70, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.18, 0, 0.8], wheels: { restPitchDeg: 11.0, restZ: 0.1463 } },
+  { name: 'radian', id: 6, hx: 0.45, hy: 0.55, down: 0.052, up: 0.08, land: 8, nose: 10, toss: 10, tossSticks: [0, -0.274, 0, 0.7] },
 ];
 
 let failed = 0;

@@ -523,6 +523,50 @@ export const AIRFRAMES = [
       bodyHeight: 0.323,
     },
   },
+  {
+    /*
+     * The E-flite Radian Pro, docs/GLIDER-STAGE1.md: a 2 m powered glider
+     * with ailerons, an elevator and a rudder, simId 6 on the fixed wing
+     * plant (5 is reserved for the Slow Stick). Thrown by hand and landed on
+     * its belly; its prop folds back when the throttle is closed, and it
+     * climbs in the thermals over the airfield, which only it flies in.
+     */
+    id: 'radian2000',
+    simId: 6,
+    fixedWing: true,
+    name: 'Radian',
+    short: 'Radian',
+    blurb: 'A 2 m E-flite Radian motor glider on 3S, with ailerons, elevator and rudder. Climb on the motor, fold the prop, and find the thermals over the field to stay up.',
+    facts: ['3S', '2000 mm', 'Glider'],
+    trackClass: 'wing',
+    cells: 3,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'radian-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/glidercraft.js GLIDER_DIMS: the tip's
+     * trailing corner (1.000 m out, 0.137 m aft), the belly 0.052 m under
+     * the CG, where the plant's hull rests it, and the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1238,
+      hullR: 1.0093,
+      vHalfDown: 0.052,
+      vHalfUp: 0.268,
+      bodyLength: 1.14,
+      bodyWidth: 2.0,
+      bodyHeight: 0.320,
+    },
+  },
 ];
 
 

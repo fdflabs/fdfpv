@@ -121,6 +121,28 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel.',
   },
   {
+    /* The Radian's three, the stabiliser's modes on its own plant. The
+     * throttle folds the prop in every mode: closed, it glides. */
+    id: 'radian-stab',
+    airframe: 'radian2000',
+    name: 'Stabilised',
+    note: 'A gyro holds the glider. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Close the throttle and it glides.',
+    wingStab: 1,
+  },
+  {
+    id: 'radian-acro',
+    airframe: 'radian2000',
+    name: 'Acro',
+    note: 'A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you. Close the throttle and it glides.',
+    wingStab: 2,
+  },
+  {
+    id: 'radian-manual',
+    airframe: 'radian2000',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder; closing the throttle folds the prop.',
+  },
+  {
     id: 'betaflight-default',
     airframe: '5inch',
     name: 'Betaflight default',
