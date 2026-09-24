@@ -58,7 +58,18 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /* The lazily loaded worlds. `custom` is the field and is the baseline: it
  * is loaded at boot because the title screen has a world behind it. */
-const HEAVY = ['city', 'airfield', 'alps', 'yellowstone'];
+const HEAVY = ['city', 'airfield', 'alps', 'yellowstone', 'swiss2'];
+
+/*
+ * Worlds built from another world's code on purpose, and whose graph that
+ * code is therefore part of. swiss2 is the Alps' valley drawn in a second
+ * style by the Alps' own builders (src/maps/swiss2.js), so choosing it
+ * fetches src/maps/alps.js and src/maps/alps/; copying them to keep the
+ * graphs apart would be six thousand lines kept twice. Only a declared
+ * dependency is let through: swiss2 pulling in the city is still a fault,
+ * and so is the Alps pulling in swiss2.
+ */
+const SHARES = { swiss2: ['alps'] };
 
 /*
  * Every URL the page has fetched, as a plain list. Resource timing is the
@@ -109,7 +120,12 @@ async function main() {
       s.graphics = 'low';
       s.graphicsAuto = false;
       localStorage.setItem(k, JSON.stringify(s));
-    } catch (e) { /* Storage refused. The run still boots. */ }`],
+    } catch (e) { /* Storage refused. The run still boots. */ }`,
+    /* The browser keeps 250 resource timing entries unless told otherwise
+     * and drops every one after that without a word. The boot and the
+     * city's graph alone come to more, so the fifth world's fetches were
+     * never recorded and it read as fetching nothing at all. */
+    'performance.setResourceTimingBufferSize(20000);'],
   });
 
   const failures = [];
@@ -166,7 +182,7 @@ async function main() {
       /* Choosing one world must not drag in another. This is what the
        * copied cel kits exist for. */
       for (const other of HEAVY) {
-        if (other === id) {
+        if (other === id || (SHARES[id] || []).includes(other)) {
           continue;
         }
         const bleed = underMap(afterUrls, other);
