@@ -1514,7 +1514,8 @@ SIM_EXPORT int sim_step(int n) {
 
 /*
  * The fixed wings' own entry points: every airframe of PLANT_KIND_WING,
- * the flying wing and the Skyhunter. Additive, version unchanged.
+ * the flying wing, the Skyhunter, the Cub, the Radian and the Bramor.
+ * Additive, version unchanged.
  *
  * sim_wing_launch: a hand throw at speed m/s along the body's forward axis.
  * sim_wing_surfaces: the two wing trailing edge surfaces, radians, left

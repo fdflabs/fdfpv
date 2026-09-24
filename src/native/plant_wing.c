@@ -17,13 +17,15 @@
  * docs/CUB-STAGE1.md, the same surfaces behind a tractor prop, which adds
  * a thrust line off the CG and P factor; and FW_RADIAN2000, the E-flite
  * Radian Pro powered glider of docs/GLIDER-STAGE1.md, which adds a folding
- * prop and flies in rising air. A term an airframe does not have
+ * prop and flies in rising air; and FW_BRAMOR2300, the C-Astral Bramor
+ * C4EYE of docs/BRAMOR-STAGE1.md, a blended wing body with elevons that
+ * brings a recovery parachute. A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
  * airframe has to land in are scripts/wing-gates.js,
- * scripts/skyhunter-gates.js, scripts/cub-gates.js and
- * scripts/glider-gates.js.
+ * scripts/skyhunter-gates.js, scripts/cub-gates.js,
+ * scripts/glider-gates.js and scripts/bramor-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -939,4 +941,79 @@ const FixedWingParams FW_RADIAN2000 = {
   .yaw_coord_k = 1.5,     /* nine tenths of the Skyhunter's rudder, and more adverse yaw */
   .fold_duty = 0.05,
   .air_lift = 1,
+};
+
+/* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
+ * its formula and source and the estimated ones say so; scripts/
+ * bramor-derive.js prints them. A 2.3 m blended wing body flying wing:
+ * elevons and no rudder like the wing above, a pusher on a raised tail
+ * cone, so its thrust line runs over the CG and pitches the nose down with
+ * power, and a recovery parachute whose risers meet the belly just ahead
+ * of the CG, so it hangs level on its back under the canopy. */
+const FixedWingParams FW_BRAMOR2300 = {
+  .mix = FW_MIX_ELEVON,
+  .span = 2.30,
+  .area = 0.591,          /* the drawn planform, pod included */
+  .chord = 0.257,         /* S / b */
+  .cl_alpha = 4.77,       /* Helmbold at AR 8.95, 21 deg of half chord sweep */
+  .cl_max = 0.722,        /* the published 13 m/s stall at 4.5 kg */
+  .alpha_zl = 0.0,        /* a reflexed section: zero lift on the body axis */
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.024,
+  .k_induced = 0.0418,    /* 1/(pi 0.85 8.95) */
+  .cl_de = -0.953,        /* both elevons, trailing edge up sheds lift */
+  .cy_beta = -0.329,      /* the winglets and the pod */
+  .cl_beta = -0.070,      /* sweep at the cruise CL and the winglets, less the root's anhedral */
+  .cl_p = -0.522,
+  .cl_da = 0.308,
+  .cl_r_per_cl = 0.25,
+  .cm_0 = 0.0533,         /* trims at 16 m/s, elevons neutral, cruise thrust */
+  .cm_alpha = -0.420,     /* static margin 0.07 of the MAC */
+  .cm_q = -4.0,
+  .cm_de = 0.894,         /* delta_e positive pitches the nose up */
+  .cn_beta = 0.0352,      /* the winglets, less the pod */
+  .cn_r = -0.0297,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.062, /* adverse yaw, -0.2 Cl_da (Roskam) */
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The throws. Elevator: six degrees, the down that trims level inverted
+   * at cruise; with 2.1 deg of angle of attack per deg of elevon, full up
+   * is past the stall at any speed, as on the flying wing. Aileron: ten, a
+   * survey wing's setup and a roll a little over 80 deg/s at cruise. Each
+   * elevon clips at the sum. */
+  .throw_a = 10.0 * WING_PI / 180.0,
+  .throw_e = 6.0 * WING_PI / 180.0,
+  .throw_r = 0.0,
+  .surface_max = 16.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 35.0,  /* N: the thrust that gives the published 5 m/s climb */
+  .pitch_speed = 30.0,    /* m/s, 470 kV on 6S with a 12 x 8 */
+  .rpm_no_load = 10434.0,
+  .torque_arm = 0.0151,   /* 490 W of disc power at 8,870 rpm is 0.53 N m at 35 N */
+  .thrust_z = 0.087,      /* the drawn hub over the CG */
+  .current_full = 45.0,   /* A: about 1 kW on 6S */
+  .duty_min = 0.02,
+  .stab_bank_max = 45.0 * WING_PI / 180.0,
+  .stab_pitch_max = 20.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.2,
+  .stab_pitch_kp = 6.0,
+  .stab_pitch_kd = 0.6,
+  .acro_roll_rate = 90.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 40.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 5.0,
+  .acro_roll_kd = 0.4,
+  .acro_roll_ff = 0.70,   /* the stick for a rate at cruise, pb/2V 0.103 */
+  .acro_pitch_kp = 6.0,
+  .acro_pitch_kd = 0.6,
+  .acro_pitch_ff = 0.70,  /* the stick for a pull's pitch rate at cruise */
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,     /* no rudder */
 };

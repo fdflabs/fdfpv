@@ -187,10 +187,12 @@ typedef struct {
 #define SIM_AIRFRAME_WING1000 2
 #define SIM_AIRFRAME_SKY1800 3
 #define SIM_AIRFRAME_CUB1400 4
-/* 5 is reserved for the Slow Stick, which is being built alongside; until
- * its entry lands the slot is zero and sim_set_airframe refuses it. */
+/* 5 is reserved for the Slow Stick and 7 for the Timber Evolution, which
+ * are being built alongside; until their entries land the slots are zero
+ * and sim_set_airframe refuses them. */
 #define SIM_AIRFRAME_RADIAN2000 6
-#define SIM_AIRFRAME_COUNT 7
+#define SIM_AIRFRAME_BRAMOR2300 8
+#define SIM_AIRFRAME_COUNT 9
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -464,6 +466,7 @@ extern const FixedWingParams FW_WING1000;
 extern const FixedWingParams FW_SKY1800;
 extern const FixedWingParams FW_CUB1400;
 extern const FixedWingParams FW_RADIAN2000;
+extern const FixedWingParams FW_BRAMOR2300;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
