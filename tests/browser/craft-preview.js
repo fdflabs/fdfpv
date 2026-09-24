@@ -26,8 +26,10 @@ import * as THREE from 'three';
 import { buildComposer } from '../../src/render/post.js';
 import { buildSkyCraft, SKY_DIMS } from '../../src/render/skycraft.js';
 import { buildWingCraft } from '../../src/render/wingcraft.js';
+import { buildCubCraft, CUB_DIMS } from '../../src/render/cubcraft.js';
 
-const BUILDERS = { sky: buildSkyCraft, wing: buildWingCraft };
+const BUILDERS = { sky: buildSkyCraft, wing: buildWingCraft, cub: buildCubCraft };
+const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
 const lite = params.get('lite') === '1';
@@ -47,6 +49,14 @@ scene.add(sun);
 
 const craft = BUILDERS[which]({ name: 'preview', fog: false, lite });
 scene.add(craft.group);
+
+/* A ground under a taildragger at rest, hidden until rest() asks for it. */
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(3, 3).rotateX(-Math.PI / 2),
+  new THREE.MeshLambertMaterial({ color: 0x8e9a7c }),
+);
+ground.visible = false;
+scene.add(ground);
 const composer = buildComposer(renderer, scene, camera, null);
 
 /* What the model alone costs: every visible mesh with triangles in it is
@@ -70,7 +80,24 @@ function count() {
 }
 
 window.__preview = {
-  dims: which === 'sky' ? SKY_DIMS : null,
+  dims: DIMS[which] ?? null,
+  /* Sit the craft on its wheels at the attitude its dims say it rests at,
+   * nose up about +x, with the ground drawn under it; or put it back level
+   * at the origin. The camera still targets craft frame numbers, which at
+   * rest are near enough the same place. */
+  rest(on) {
+    const r = DIMS[which]?.rest;
+    if (!on || !r) {
+      craft.group.rotation.set(0, 0, 0);
+      craft.group.position.set(0, 0, 0);
+      ground.visible = false;
+      return true;
+    }
+    craft.group.rotation.set(r.pitch, 0, 0);
+    craft.group.position.set(0, r.cgHeight, 0);
+    ground.visible = true;
+    return true;
+  },
   /* Camera by azimuth and elevation in degrees about a target, at dist
    * metres. Azimuth 0 looks at the nose from ahead, 90 from the right. */
   view(az, el, dist, tx = 0, ty = 0, tz = 0.2, fov = 30) {
@@ -102,6 +129,45 @@ window.__preview = {
     return true;
   },
   count,
+  /* Where a point one blade length up the rotor's blade axis goes, in the
+   * craft frame, after the shell's spin turns it by a small positive step
+   * times propSpin: so the spin's sense can be read as a number. */
+  spinProbe() {
+    const rotor = craft.blades[0];
+    const at = (turn) => {
+      rotor.rotation.y = turn;
+      craft.group.updateMatrixWorld(true);
+      const p = rotor.localToWorld(new THREE.Vector3(0, 0, 0.1));
+      return craft.group.worldToLocal(p).toArray();
+    };
+    const before = at(0);
+    const after = at(0.2 * craft.propSpin[0]);
+    const axis = craft.group.worldToLocal(rotor.localToWorld(new THREE.Vector3(0, 1, 0)))
+      .sub(craft.group.worldToLocal(rotor.localToWorld(new THREE.Vector3(0, 0, 0)))).toArray();
+    rotor.rotation.y = 0;
+    return { before, after, axis };
+  },
+  /* The lowest vertex of a named mesh, in the craft frame, on the side of
+   * x that side picks (0 for either), since merged parts share a mesh. */
+  lowest(name, side = 0) {
+    const o = craft.group.getObjectByName(name);
+    craft.group.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(craft.group.matrixWorld).invert();
+    const m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+    const pos = o.geometry.attributes.position;
+    const v = new THREE.Vector3();
+    let low = null;
+    for (let i = 0; i < pos.count; i += 1) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(m);
+      if (side * v.x < 0) {
+        continue;
+      }
+      if (!low || v.y < low[1]) {
+        low = v.toArray();
+      }
+    }
+    return low;
+  },
   /* How far the drawn machine reaches, from every vertex of every visible
    * mesh, minus the outline hulls (paint) and the antenna (wire), which is
    * scripts/craft-check.js's rule. The disc is included: it is where the
