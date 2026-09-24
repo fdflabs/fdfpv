@@ -26,7 +26,7 @@
  */
 
 import * as THREE from 'three';
-import { makeParts, bakeParts, partsMaterial, instanced, box, boxUp } from './parts.js';
+import { makeParts, bakeParts, instanced, box, boxUp } from './parts.js';
 import { makePath } from './path.js';
 
 const STEEL = 0x9aa0a6;
@@ -180,8 +180,8 @@ function station(P, x, y, z, yaw, h, found) {
  * the stats print.
  */
 export function buildLift(ctx) {
-  const { scene, heightAt, colliders, solids } = ctx;
-  const mat = partsMaterial({ rim: 0.2, spec: 0.1, specWidth: 0.012 });
+  const { scene, heightAt, colliders, solids, look } = ctx;
+  const mat = look.parts('lift', { rim: 0.2, spec: 0.1, specWidth: 0.012 });
   const TOP = 700;
   const CLEAR = 9;
   const SPAN = 150;

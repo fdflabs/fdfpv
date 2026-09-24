@@ -76,9 +76,16 @@ instanced. Cars are the town's builders and stay separate meshes.
   valley (north negative). The strip is at the origin along z, the
   village to the west, the road to the east, the lake south at z 2150.
 - `ctx` carries: `scene`, `heightAt(x, z)`, `valleyAxis(z)`, a seeded
-  `rng` of the module's own, `colliders`, `mats`, `paint(fraction)` to
-  let the loading bar breathe. Modules return what the title's stats
+  `rng` of the module's own, `colliders`, `mats`, `look`, `paint(fraction)`
+  to let the loading bar breathe. Modules return what the title's stats
   print.
+- A part never makes its own material. It asks `ctx.look.material(name,
+  opts)` or `ctx.look.parts(name, opts)` (`src/maps/alps/look.js`), or
+  takes one from `ctx.mats`, naming what the surface is and passing the
+  cel options that are the cel look's whole answer. The same parts build
+  swiss2 (`src/maps/swiss2.js`) in a photographic look that answers the
+  same names with physically based materials, so a new surface needs a
+  name there too, or swiss2 refuses to build.
 - Colliders: `addBox('wall', ...)` per building, `addPost('tree', ...)`
   and `addSphere('canopy', ...)` for trees within seven hundred metres
   of the strip, `addPost('pole', ...)` for masts. Nothing beyond that

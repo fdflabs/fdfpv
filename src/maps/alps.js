@@ -18,8 +18,15 @@
  *   village.js   the road, the street, the buildings and the fences
  *   life.js      the traffic, the cattle and the windsock
  *   kit.js       what the village is built from
+ *   look.js      where the parts get their materials
  *   ribbon.js    a surface laid along a line over the ground
  *   noise.js     the seeded noise all of it is shaped with
+ *
+ * The order and the contract are shared by every look of the valley.
+ * buildValley takes a style: the stage it is lit on, the ground it is
+ * painted with, the look its parts ask for materials, the nature it
+ * grows and the post chain it is seen through. The cel style is here;
+ * src/maps/swiss2.js is the same valley drawn to read as a photograph.
  *
  * Everything reads one heightfield through ctx.heightAt, so the ground
  * the wing lands on is the ground it sees, and the shell samples the same
@@ -48,7 +55,6 @@ import * as THREE from 'three';
 import { Colliders } from '../game/collide.js';
 import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
-import { celMaterial } from '../render/celmat.js';
 import { skyDome } from '../render/scene.js';
 import { attachComposer } from './field.js';
 import { yieldToPaint } from '../ui/loading.js';
@@ -62,10 +68,11 @@ import {
 import { buildNature } from './alps/nature.js';
 import { buildVillage, villageMaterials } from './alps/village.js';
 import { buildLife } from './alps/life.js';
+import { CEL_LOOK } from './alps/look.js';
 
 /* The wing spawns on the strip facing north, down the valley. Yaw 0 is
  * forward along -z, see src/render/frame.js. */
-const SPAWN = { x: 0, z: 40, yaw: 0 };
+export const SPAWN = { x: 0, z: 40, yaw: 0 };
 
 /* Alpine haze: the sky the field flies under, a longer fog so the far
  * ridges dissolve rather than end, and a camera that can see them. */
@@ -75,43 +82,90 @@ const FOG_NEAR = 1200;
 const FOG_FAR = 9000;
 const CAMERA_FAR = 14000;
 
-async function buildAlps(shell, progress, q) {
+/*
+ * The cel style: the sky dome, a sun whose shadow box follows the craft,
+ * the painted ground, the cel look, the nature as nature.js grows it and
+ * the race field's ink and bloom chain on top.
+ */
+const CEL_STYLE = {
+  id: 'alps',
+  name: () => str('registry.the_alps'),
+  look: CEL_LOOK,
+  mats: villageMaterials,
+  stage(shell, q) {
+    const renderer = shell.renderer;
+    const camera = shell.camera;
+    renderer.shadowMap.enabled = q.shadows;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(HORIZON);
+    scene.fog = new THREE.Fog(HORIZON, FOG_NEAR, FOG_FAR);
+    const sky = skyDome();
+    sky.layers.set(1);
+    scene.add(sky);
+    camera.far = CAMERA_FAR;
+    camera.updateProjectionMatrix();
+
+    const sun = new THREE.DirectionalLight(0xfff1dc, 1.5);
+    sun.castShadow = q.shadows;
+    const shadowMap = q.field.shadowMap || 2048;
+    const shadowHalf = q.field.shadowHalf || 72;
+    sun.shadow.mapSize.set(shadowMap, shadowMap);
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 600;
+    sun.shadow.camera.left = -shadowHalf;
+    sun.shadow.camera.right = shadowHalf;
+    sun.shadow.camera.top = shadowHalf;
+    sun.shadow.camera.bottom = -shadowHalf;
+    sun.shadow.bias = -0.0012;
+    sun.shadow.normalBias = 0.05;
+    scene.add(sun);
+    scene.add(sun.target);
+    scene.add(new THREE.HemisphereLight(0xa9c4e6, 0x55703a, 0.5));
+
+    const shadowTexel = q.field.shadowMap > 0 ? (2 * shadowHalf) / q.field.shadowMap : 0;
+    const shadowFocus = new THREE.Vector3();
+    function updateShadowFocus(target) {
+      if (shadowTexel > 0) {
+        shadowFocus.set(
+          Math.round(target.x / shadowTexel) * shadowTexel,
+          Math.round(target.y / shadowTexel) * shadowTexel,
+          Math.round(target.z / shadowTexel) * shadowTexel,
+        );
+      } else {
+        shadowFocus.copy(target);
+      }
+      sun.position.copy(shadowFocus).addScaledVector(SUN_DIR, 260);
+      sun.target.position.copy(shadowFocus);
+      sun.target.updateMatrixWorld();
+    }
+    return { scene, updateShadowFocus };
+  },
+  ground(field) {
+    return terrainMesh(field, groundTexture(field));
+  },
+  nature: buildNature,
+  compose: attachComposer,
+};
+
+/*
+ * Build the valley in a style. The stage, the ground and the range
+ * beyond, the strip, then the parts in the order they have always been
+ * built in, each with a seeded rng of its own, so every style stands the
+ * same village on the same ground.
+ */
+export async function buildValley(shell, progress, q, style) {
   const renderer = shell.renderer;
   const camera = shell.camera;
-  renderer.shadowMap.enabled = q.shadows;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(HORIZON);
-  scene.fog = new THREE.Fog(HORIZON, FOG_NEAR, FOG_FAR);
-  const sky = skyDome();
-  sky.layers.set(1);
-  scene.add(sky);
-  camera.far = CAMERA_FAR;
-  camera.updateProjectionMatrix();
-
-  const sun = new THREE.DirectionalLight(0xfff1dc, 1.5);
-  sun.castShadow = q.shadows;
-  const shadowMap = q.field.shadowMap || 2048;
-  const shadowHalf = q.field.shadowHalf || 72;
-  sun.shadow.mapSize.set(shadowMap, shadowMap);
-  sun.shadow.camera.near = 1;
-  sun.shadow.camera.far = 600;
-  sun.shadow.camera.left = -shadowHalf;
-  sun.shadow.camera.right = shadowHalf;
-  sun.shadow.camera.top = shadowHalf;
-  sun.shadow.camera.bottom = -shadowHalf;
-  sun.shadow.bias = -0.0012;
-  sun.shadow.normalBias = 0.05;
-  scene.add(sun);
-  scene.add(sun.target);
-  scene.add(new THREE.HemisphereLight(0xa9c4e6, 0x55703a, 0.5));
+  const stage = await style.stage(shell, q);
+  const { scene } = stage;
   progress(0.1);
   await yieldToPaint();
 
   const field = buildHeightfield();
-  scene.add(terrainMesh(field, groundTexture(field)));
-  const far = farRange(field);
+  scene.add(await style.ground(field, stage));
+  const far = farRange(field, style.look);
   scene.add(far.mesh);
   progress(0.45);
   await yieldToPaint();
@@ -119,7 +173,7 @@ async function buildAlps(shell, progress, q) {
   /* The strip, on the flat the terrain holds for it. */
   const strip = new THREE.Mesh(
     new THREE.PlaneGeometry(STRIP_W, STRIP_L),
-    celMaterial({ color: 0x8fb04a, rim: 0 }),
+    style.look.material('strip', { color: 0x8fb04a, rim: 0 }),
   );
   strip.rotation.x = -Math.PI / 2;
   strip.position.set(0, STRIP_Y, 0);
@@ -134,18 +188,24 @@ async function buildAlps(shell, progress, q) {
    */
   const colliders = new Colliders();
   const heightAt = (x, z) => field.height(x, z);
-  const mats = villageMaterials();
+  const mats = style.mats();
   const paint = async (fraction) => {
     progress(fraction);
     await yieldToPaint();
   };
-  const base = { scene, heightAt, valleyAxis, colliders, mats, paint };
+  const base = { scene, heightAt, valleyAxis, colliders, mats, paint, look: style.look };
 
-  const nature = await buildNature({ ...base, rng: makeRng(20260924) });
+  const nature = await style.nature({ ...base, rng: makeRng(20260924), stage, field, renderer, quality: q, camera });
   const village = await buildVillage({ ...base, rng: makeRng(20260925) });
   const life = buildLife({
     ...base, rng: makeRng(20260926), road: village.road, onGround: village.onGround, villageY: village.villageY,
   });
+  /* A style's finish sees the whole built world, the village's walls
+   * among the colliders included, and may still add colliders of its
+   * own, so the broadphase is built after it. */
+  if (style.finish) {
+    await style.finish(scene, stage, { field, far, colliders, heightAt, nature });
+  }
   colliders.build();
   progress(0.9);
   await yieldToPaint();
@@ -153,23 +213,6 @@ async function buildAlps(shell, progress, q) {
   scene.add(shell.quad);
   renderer.compile(scene, camera);
   progress(1);
-
-  const shadowTexel = q.field.shadowMap > 0 ? (2 * shadowHalf) / q.field.shadowMap : 0;
-  const shadowFocus = new THREE.Vector3();
-  function updateShadowFocus(target) {
-    if (shadowTexel > 0) {
-      shadowFocus.set(
-        Math.round(target.x / shadowTexel) * shadowTexel,
-        Math.round(target.y / shadowTexel) * shadowTexel,
-        Math.round(target.z / shadowTexel) * shadowTexel,
-      );
-    } else {
-      shadowFocus.copy(target);
-    }
-    sun.position.copy(shadowFocus).addScaledVector(SUN_DIR, 260);
-    sun.target.position.copy(shadowFocus);
-    sun.target.updateMatrixWorld();
-  }
 
   /*
    * The title shot: a long loop up the valley and back at a hundred and
@@ -200,8 +243,8 @@ async function buildAlps(shell, progress, q) {
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
   return {
-    id: 'alps',
-    name: str('registry.the_alps'),
+    id: style.id,
+    name: style.name(),
     mode: 'freestyle',
     graphics: q.id,
     scene,
@@ -238,8 +281,13 @@ async function buildAlps(shell, progress, q) {
     hasRacingLine: false,
     setRacingLine() {},
     updateRacingLine() { return null; },
-    updateShadowFocus,
-    updateWind: life.updateWind,
+    updateShadowFocus: stage.updateShadowFocus,
+    updateWind(t, focus, wash) {
+      life.updateWind(t, focus, wash);
+      if (nature.updateWind) {
+        nature.updateWind(t, focus, wash);
+      }
+    },
     updateAnim: life.updateAnim,
     references: {
       valleyFloorWidth: {
@@ -269,6 +317,9 @@ async function buildAlps(shell, progress, q) {
     dispose() {
       shell.evictSessionRoots(scene);
       disposeSceneGraph(scene, SESSION_TEXTURES);
+      if (stage.dispose) {
+        stage.dispose();
+      }
     },
   };
 }
@@ -278,5 +329,5 @@ async function buildAlps(shell, progress, q) {
 export async function buildMap(shell, onProgress, options) {
   const progress = onProgress ?? (() => {});
   const q = qualityFor(options && options.quality);
-  return attachComposer(shell, await buildAlps(shell, progress, q), q);
+  return CEL_STYLE.compose(shell, await buildValley(shell, progress, q, CEL_STYLE), q);
 }

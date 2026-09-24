@@ -26,7 +26,7 @@
  */
 
 import * as THREE from 'three';
-import { makeParts, bakeParts, partsMaterial, instanced, box, boxUp } from './parts.js';
+import { makeParts, bakeParts, instanced, box, boxUp } from './parts.js';
 import { makePath, arc } from './path.js';
 import { smoothstep } from './noise.js';
 import { streamX } from './terrain.js';
@@ -290,8 +290,8 @@ function verge(pts, d) {
  * fences.
  */
 export function buildFauna(ctx) {
-  const { scene, heightAt, rng, liftBase } = ctx;
-  const mat = partsMaterial({ rim: 0.18 });
+  const { scene, heightAt, rng, liftBase, look } = ctx;
+  const mat = look.parts('fauna', { rim: 0.18 });
   const updaters = [];
 
   /* THE HERD: twenty in the south pasture, ten in the north, and four
