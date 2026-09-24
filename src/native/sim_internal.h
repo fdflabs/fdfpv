@@ -159,7 +159,8 @@ typedef struct {
 #define SIM_AIRFRAME_WHOOP65 1
 #define SIM_AIRFRAME_WING1000 2
 #define SIM_AIRFRAME_SKY1800 3
-#define SIM_AIRFRAME_COUNT 4
+#define SIM_AIRFRAME_CUB1400 4
+#define SIM_AIRFRAME_COUNT 5
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -377,6 +378,15 @@ typedef struct FixedWingParams {
   double pitch_speed;   /* m/s at full duty */
   double rpm_no_load;
   double torque_arm;    /* prop reaction, roll moment per newton of thrust, m */
+  double thrust_z;      /* thrust line height above the CG, m: a line under
+                         * the CG pitches the nose up with power. Zero where
+                         * the thrust line runs through the CG. */
+  double pfactor;       /* P factor: the yaw arm of the thrust is this times
+                         * the body normal speed over the prop's rate, (-w)/omega,
+                         * which is V sin(alpha)/omega with no trigonometry.
+                         * Positive yaws the nose left at a positive alpha,
+                         * which is a prop turning clockwise seen from behind.
+                         * Zero leaves the yaw moment untouched. */
   double current_full;  /* A at static full thrust */
   double duty_min;
   /* Stabilised: a bank and a pitch held by a rate damped proportional loop. */
@@ -410,6 +420,7 @@ typedef struct FixedWingParams {
 
 extern const FixedWingParams FW_WING1000;
 extern const FixedWingParams FW_SKY1800;
+extern const FixedWingParams FW_CUB1400;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);

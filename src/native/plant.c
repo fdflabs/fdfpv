@@ -721,6 +721,40 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_z = 0.02,
   .fw = &FW_SKY1800,
 },
+/*
+ * The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, on the same terms: a
+ * 3S 2200 mAh pack and a tractor prop in the nose, 0.25 m ahead of the CG.
+ * The hull is the contact code's centred box, but on this airframe it is
+ * only what a crash lands on: the aircraft stands on its wheels, below.
+ * So the box is drawn inside the gear rather than round the fuselage. Its
+ * aft bottom corner clears the grass by 51 mm with the tailwheel down; a
+ * box as long as the fuselage would stand the tail on it, and a belly as
+ * low as the fuselage's would catch a wingtip at 10 deg of bank on the
+ * ground, where the real high wing clears to about 24.
+ */
+[SIM_AIRFRAME_CUB1400] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 1.32,
+  .inertia = { 0.060, 0.055, 0.100 },
+  .gravity = 9.81,
+  .cells = 3.0,
+  .r_cell = 0.012,
+  .rho = 1.225,
+  .prop_r = 0.1397,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.25, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.30,
+  .hull_hy = 0.70,
+  .hull_hz_down = 0.05,
+  .hull_hz_up = 0.12,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.77,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.10,
+  .camera_y = 0.0,
+  .camera_z = 0.05,
+  .fw = &FW_CUB1400,
+},
 };
 
 /*

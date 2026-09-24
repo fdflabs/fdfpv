@@ -328,10 +328,12 @@ int sim_set_flight_style(int arcade);
 /*
  * Choose the airframe: 0 is the five inch this project was built around and
  * is the default, 1 is a 65 mm 1S brushless whoop, 2 the 1000 mm flying
- * wing and 3 the Skyhunter 1800, a twin boom pusher with ailerons, an
- * elevator and a rudder. Returns SIM_ERR_BAD_ARG for anything else. 2 and
- * 3 are fixed wings: no Betaflight, the sticks go to the plant, and the
- * sim_wing_* and sim_plane_surfaces entry points below apply.
+ * wing, 3 the Skyhunter 1800, a twin boom pusher with ailerons, an
+ * elevator and a rudder, and 4 the Piper J-3 Cub 1400, a tractor
+ * taildragger with the same surfaces that stands on its own wheels.
+ * Returns SIM_ERR_BAD_ARG for anything else. 2, 3 and 4 are fixed wings:
+ * no Betaflight, the sticks go to the plant, and the sim_wing_* and
+ * sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
  * changed meaning, and a replay that never calls this is bit identical to
@@ -351,6 +353,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_WHOOP65_ID 1
 #define SIM_AIRFRAME_WING1000_ID 2
 #define SIM_AIRFRAME_SKY1800_ID 3
+#define SIM_AIRFRAME_CUB1400_ID 4
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -421,7 +424,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2 and 3. Additive, version unchanged; each
+ * The fixed wings, airframes 2, 3 and 4. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *

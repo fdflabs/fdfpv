@@ -11,13 +11,16 @@
  *
  * Every number is per airframe, in the FixedWingParams tables at the end
  * of this file: FW_WING1000, the 1000 mm flying wing of
- * docs/WING-STAGE1.md, with elevons and no rudder; and FW_SKY1800, the
+ * docs/WING-STAGE1.md, with elevons and no rudder; FW_SKY1800, the
  * Skyhunter of docs/SKYHUNTER-STAGE1.md, with ailerons, an elevator and a
- * rudder on an H tail. A term an airframe does not have is zero in its
- * table, and every term the Skyhunter added is written so that a zero
- * leaves the wing's arithmetic bit for bit what it was: the wing's gates
- * and its recorded trace hashes are the proof. The bands each airframe has
- * to land in are scripts/wing-gates.js and scripts/skyhunter-gates.js.
+ * rudder on an H tail; and FW_CUB1400, the Piper J-3 Cub of
+ * docs/CUB-STAGE1.md, the same surfaces behind a tractor prop, which adds
+ * a thrust line off the CG and P factor. A term an airframe does not have
+ * is zero in its table, and every term a later aircraft added is written
+ * so that a zero leaves the earlier ones' arithmetic bit for bit what it
+ * was: their gates and recorded trace hashes are the proof. The bands each
+ * airframe has to land in are scripts/wing-gates.js,
+ * scripts/skyhunter-gates.js and scripts/cub-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -483,8 +486,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
   double M[3];
   M[0] = l_aero - fw->torque_arm * thrust; /* the prop turns one way; the airframe answers the other */
-  M[1] = -m_aero;
-  M[2] = -n_aero;
+  /* A thrust line off the CG pitches with power, (0, z, 0) x (T, 0, 0).
+   * P factor: at an angle of attack the descending blade meets the air
+   * harder than the rising one, which moves the thrust off the axis toward
+   * it by a distance that grows with the inflow across the disc, V sin
+   * alpha = -w, over the blade speed. Both are zero on an airframe whose
+   * table leaves them out, and add_term keeps its arithmetic as it was. */
+  M[1] = add_term(-m_aero, fw->thrust_z * thrust);
+  M[2] = add_term(-n_aero, fw->pfactor * thrust * -w / s->motor_omega[0]);
 
   /* Rates: I omega_dot = M - omega x (I omega), diagonal inertia. */
   const double Ix = PLANT.inertia[0], Iy = PLANT.inertia[1], Iz = PLANT.inertia[2];
@@ -679,6 +688,82 @@ const FixedWingParams FW_SKY1800 = {
   .acro_pitch_kd = 0.5,
   .acro_pitch_ff = 0.40,
   .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.0,
+};
+
+/* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has
+ * its formula and source and the estimated ones say so. A tractor: the prop
+ * is in the nose, turning clockwise seen from the cockpit, so its reaction
+ * rolls the airframe left as the pushers' does, and its P factor yaws the
+ * nose left at a positive angle of attack. */
+const FixedWingParams FW_CUB1400 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.40,
+  .area = 0.28,
+  .chord = 0.20,
+  .cl_alpha = 5.21,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_max = 1.15,
+  /* The zero lift line 5 degrees under the body axis: a flat bottomed
+   * section of the USA 35B class set at about 1.5 degrees of incidence.
+   * sin and cos of minus 5 degrees, to 17 digits. */
+  .alpha_zl = -5.0 * WING_PI / 180.0,
+  .sin_zl = -0.08715574274765817,
+  .cos_zl = 0.9961946980917455,
+  .cd0 = 0.050,           /* struts, fixed gear, open cylinder heads */
+  .k_induced = 0.0606,    /* 1/(pi 0.75 7) */
+  .cl_de = -0.345,
+  .cy_beta = -0.29,
+  .cy_dr = 0.106,
+  .cl_beta = -0.089,
+  .cl_p = -0.81,
+  .cl_da = 0.40,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.008,
+  .cm_0 = 0.062,          /* trims at 12 m/s with the elevator neutral */
+  .cm_alpha = -0.62,      /* static margin 0.12 at the manual's 60 mm CG */
+  .cm_q = -7.7,
+  .cm_de = 0.89,
+  .cn_beta = 0.048,
+  .cn_r = -0.076,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.136,
+  .cn_dr = -0.043,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The manual's high rates, 16, 16 and 18 mm, over the surfaces' chords. */
+  .throw_a = 18.0 * WING_PI / 180.0,
+  .throw_e = 15.0 * WING_PI / 180.0,
+  .throw_r = 15.0 * WING_PI / 180.0,
+  .surface_max = 18.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 13.5,  /* N, 3536 850 kV on 3S with an 11 x 7 */
+  .pitch_speed = 23.8,
+  .rpm_no_load = 9435.0,
+  .torque_arm = 0.0113,   /* 128 W of disc power at 8,020 rpm is 0.15 N m at 13.5 N */
+  .thrust_z = -0.007,     /* the spinner sits 7 mm under the CG */
+  .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
+  .current_full = 27.0,
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 1.2,
+  .stab_roll_kd = 0.12,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .acro_roll_rate = 120.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 80.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.25,
+  .acro_roll_ff = 0.35,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 4.0,
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .yaw_coord_k = 1.0,
