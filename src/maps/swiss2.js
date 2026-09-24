@@ -343,6 +343,7 @@ function photoStyle() {
         rng: makeRng(20260928),
         colliders,
         footprints: stage.footprints,
+        sunDir: stage.sunDir,
       });
       scene.add(stage.veg.group);
       nature.pines = stage.veg.stats.trees;
