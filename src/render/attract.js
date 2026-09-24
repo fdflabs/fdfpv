@@ -211,6 +211,12 @@ function poseCraft(craft, from, toward, bank, flourish) {
   craft.rotateZ(bank + roll * 0.28);
   craft.rotateX(pitch * 0.18);
   craft.rotateY(-yaw * 0.22);
+  /* Object3D.lookAt turns +z toward the target, and every craft is built
+   * with its nose along -z (the shell's camera forward is (0, 0, -1)), so
+   * without this half turn the title flew each one tail first. Last, so
+   * the bank and flourish above still act on the end they were written
+   * for. */
+  craft.rotateY(Math.PI);
 }
 
 export function makeAttractCamera(view) {
