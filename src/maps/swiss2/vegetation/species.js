@@ -73,7 +73,7 @@ export const VARIANTS = [
  * top (radians, up positive); droop how far its curve falls per unit of
  * length; roll the tilt of its two cards either side of level. */
 const CONIFER = {
-  spruce: { region: 'spruce', pitch0: -0.42, pitch1: 0.35, droop: 0.34, tipUp: 0.22, roll: 0.72, curtain: 0.55, trunkR: 0.3, profile: (s) => Math.pow(1 - s, 0.92), bark: [0.95, 0.9, 0.86] },
+  spruce: { region: 'spruce', pitch0: -0.22, pitch1: 0.4, droop: 0.3, tipUp: 0.32, roll: 0.72, curtain: 0.55, trunkR: 0.3, profile: (s) => Math.pow(1 - s, 1.0), bark: [0.95, 0.9, 0.86] },
   fir: { region: 'fir', pitch0: -0.12, pitch1: 0.25, droop: 0.12, tipUp: 0.08, roll: 0.6, curtain: 0, trunkR: 0.32, profile: (s) => Math.min(1, 1.25 * Math.pow(1 - s, 0.62)) * (s > 0.9 ? 0.75 : 1), bark: [0.82, 0.84, 0.86] },
   larch: { region: 'larch', pitch0: -0.08, pitch1: 0.55, droop: 0.22, tipUp: 0.1, roll: 0.75, curtain: 0, trunkR: 0.28, profile: (s) => Math.pow(1 - s, 0.85), bark: [1.05, 0.86, 0.74] },
 };
@@ -223,7 +223,7 @@ function conifer(variant, lod) {
       const tangent = (u) => path(Math.min(1, u + 0.02)).sub(path(Math.max(0, u - 0.02))).normalize();
       /* Outward and a little up from the trunk, more up toward the top:
        * the normal the whole crown shades with. */
-      const upMix = 0.35 + 0.35 * s;
+      const upMix = 0.42 + 0.3 * s;
       const bent = (u, c) => new THREE.Vector3(c.x - ax, 0, c.z - az).normalize().multiplyScalar(1 - upMix).addScaledVector(UP, upMix).normalize();
       const tint = 0.88 + rng() * 0.24;
       const hue = (rng() - 0.5) * 0.08;

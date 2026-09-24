@@ -141,7 +141,7 @@ function spliceVertex(shader, uniforms, flexAttr) {
  * (inStart, inEnd, outStart, outEnd) in metres; the geometry must carry
  * aFlex for foliage.
  */
-export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, flutter = 0.06, translucency = 0.35 }) {
+export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, flutter = 0.06, translucency = 0.45 }) {
   const foliage = kind === 'foliage';
   const mat = new THREE.MeshStandardMaterial({
     map,
@@ -183,7 +183,7 @@ export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, f
             vec3 L = directionalLights[0].direction;
             float into = pow(saturate(dot(-geometryViewDir, L)), 3.0);
             float wrap = 0.35 + 0.65 * saturate(dot(-geometryNormal, L) * 0.5 + 0.5);
-            reflectedLight.directDiffuse += directionalLights[0].color * material.diffuseColor * uTransl * (0.25 + into) * wrap;
+            reflectedLight.directDiffuse += directionalLights[0].color * material.diffuseColor * uTransl * (0.4 + into) * wrap;
           }
           #endif`);
     }
@@ -196,10 +196,13 @@ export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, f
  * cut on the same atlas, packed depth as three's own. */
 export function plantDepthMaterial(kind, { map, wind, sway = 6e-5, flutter = 0.06 }) {
   const foliage = kind === 'foliage';
+  /* The shadow is cut at a higher alpha than the leaves are drawn at: a
+   * crown lets light through between its sprays, and at the drawing cut
+   * it threw a shadow as solid as a wall over its own far half. */
   const mat = new THREE.MeshDepthMaterial({
     depthPacking: THREE.RGBADepthPacking,
     map: foliage ? map : null,
-    alphaTest: foliage ? ALPHA_CUT : 0,
+    alphaTest: foliage ? 0.8 : 0,
     side: foliage ? THREE.DoubleSide : THREE.FrontSide,
   });
   const uniforms = { ...wind, uSway: { value: sway }, uFlutter: { value: foliage ? flutter : 0 } };

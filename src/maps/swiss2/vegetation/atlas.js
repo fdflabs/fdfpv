@@ -10,9 +10,13 @@
  * shipped is the photographs; the arrangement is code, so a spray can
  * change shape without a new file.
  *
- * Colour and coverage are drawn on two canvases and merged, so a texel
- * outside a leaf carries the foliage's own dark green rather than black
- * and the alpha tested edge never shows a halo. The mip chain is built
+ * Everything is drawn once on a clear canvas, whose alpha is the
+ * coverage, then laid over the foliage's own dark green for the colour,
+ * so a texel outside a leaf carries that green rather than black and the
+ * alpha tested edge never shows a halo. The species' colours are the
+ * photographs through canvas filters, applied once to a copy of each
+ * photograph rather than on every stamp: a filter per stamp was a second
+ * and a half of load. The mip chain is built
  * here too, with each level's alpha rescaled so it covers as much as the
  * full size level does: with the GPU's own mips a spruce thinned to a
  * skeleton a hundred metres out.
@@ -140,31 +144,44 @@ function canvas(w, h) {
 }
 
 /*
- * Something drawn twice: once in colour over the foliage's own ground
- * colour, once as a white silhouette on black, and the two merged into
- * one RGBA image. `paint(ctx, pass)` draws the same things both times;
- * pass is 'colour' or 'mask', and the mask pass has the silhouette filter
- * already set, so paint only has to leave ctx.filter alone on it.
+ * Paint on a clear canvas, then give the result the colour it has over
+ * `ground` and the alpha it has over nothing.
  */
-function twoPass(w, h, ground, paint) {
+function flatten(w, h, ground, paint) {
+  const layer = canvas(w, h);
+  const lc = layer.getContext('2d');
+  paint(lc);
   const col = canvas(w, h);
   const cc = col.getContext('2d');
   cc.fillStyle = ground;
   cc.fillRect(0, 0, w, h);
-  paint(cc, 'colour');
-  const mask = canvas(w, h);
-  const mc = mask.getContext('2d');
-  mc.fillStyle = '#000';
-  mc.fillRect(0, 0, w, h);
-  mc.filter = 'brightness(0) invert(1)';
-  paint(mc, 'mask');
+  cc.drawImage(layer, 0, 0);
   const img = cc.getImageData(0, 0, w, h);
-  const m = mc.getImageData(0, 0, w, h).data;
+  const a = lc.getImageData(0, 0, w, h).data;
   for (let k = 3; k < img.data.length; k += 4) {
-    img.data[k] = m[k - 3];
+    img.data[k] = a[k];
   }
   cc.putImageData(img, 0, 0);
   return col;
+}
+
+/* A photograph through a canvas filter, made once per filter. */
+const tints = new WeakMap();
+function tint(img, filter) {
+  let byFilter = tints.get(img);
+  if (!byFilter) {
+    byFilter = new Map();
+    tints.set(img, byFilter);
+  }
+  let c = byFilter.get(filter);
+  if (!c) {
+    c = canvas(img.width, img.height);
+    const x = c.getContext('2d');
+    x.filter = filter;
+    x.drawImage(img, 0, 0);
+    byFilter.set(filter, c);
+  }
+  return c;
 }
 
 /*
@@ -254,7 +271,7 @@ function stamp(ctx, img, box, x, y, angle, len, flip = false, thin = 1) {
 
 /* A tapering stem from (x0, y0) to (x1, y1), drawn as a stroked
  * polyline with a little wander. */
-function stem(ctx, pass, x0, y0, x1, y1, w0, w1, colour, rng) {
+function stem(ctx, x0, y0, x1, y1, w0, w1, colour, rng) {
   const n = 8;
   let px = x0;
   let py = y0;
@@ -266,7 +283,7 @@ function stem(ctx, pass, x0, y0, x1, y1, w0, w1, colour, rng) {
     ctx.moveTo(px, py);
     ctx.lineTo(x, y);
     ctx.lineWidth = w0 + (w1 - w0) * t;
-    ctx.strokeStyle = pass === 'mask' ? '#fff' : colour;
+    ctx.strokeStyle = colour;
     ctx.lineCap = 'round';
     ctx.stroke();
     px = x;
@@ -282,7 +299,7 @@ function stem(ctx, pass, x0, y0, x1, y1, w0, w1, colour, rng) {
  * long, and the colour filter that turns the fir's green into the
  * species'.
  */
-function spray(ctx, pass, twig, rect, spec, seed) {
+function spray(ctx, photo, rect, spec, seed) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
   const cx = x + w / 2;
@@ -290,10 +307,8 @@ function spray(ctx, pass, twig, rect, spec, seed) {
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  if (pass === 'colour') {
-    ctx.filter = spec.filter;
-  }
-  stem(ctx, pass, cx, y + h - 2, cx, y + 40, spec.stemW, 2, '#4b3524', rng);
+  const twig = tint(photo, spec.filter);
+  stem(ctx, cx, y + h - 2, cx, y + 40, spec.stemW, 2, '#4b3524', rng);
   const n = spec.count;
   for (let k = 0; k < n; k += 1) {
     const t = 0.04 + (0.9 * k) / n;
@@ -315,7 +330,7 @@ function spray(ctx, pass, twig, rect, spec, seed) {
 }
 
 /* Tufts for the larch: short needles in rosettes along a thin stem. */
-function tufts(ctx, pass, twig, rect, seed) {
+function tufts(ctx, photo, rect, seed) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
   const cx = x + w / 2;
@@ -323,7 +338,7 @@ function tufts(ctx, pass, twig, rect, seed) {
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  stem(ctx, pass, cx, y + h - 2, cx + 10, y + 30, 7, 2, '#6b4a33', rng);
+  stem(ctx, cx, y + h - 2, cx + 10, y + 30, 7, 2, '#6b4a33', rng);
   for (let k = 0; k < 16; k += 1) {
     const t = 0.05 + 0.9 * (k / 16);
     const bx = cx + 10 * t + (rng() - 0.5) * 50;
@@ -333,10 +348,8 @@ function tufts(ctx, pass, twig, rect, seed) {
     const len = (0.35 - 0.25 * t) * w;
     const ex = bx + side * len;
     const ey = by + len * 0.25;
-    stem(ctx, pass, cx + 10 * t, by, ex, ey, 3, 1, '#6b4a33', rng);
-    if (pass === 'colour') {
-      ctx.filter = 'brightness(1.3) saturate(1.1) hue-rotate(-9deg)';
-    }
+    stem(ctx, cx + 10 * t, by, ex, ey, 3, 1, '#6b4a33', rng);
+    const twig = tint(photo, 'brightness(1.3) saturate(1.1) hue-rotate(-9deg)');
     for (let r = 0; r < 5; r += 1) {
       const u = (r + 0.5) / 5;
       const rx = cx + 10 * t + (ex - cx - 10 * t) * u;
@@ -346,25 +359,20 @@ function tufts(ctx, pass, twig, rect, seed) {
         stamp(ctx, twig, box, rx, ry, (q / 5) * Math.PI * 2 + rng(), 26 + rng() * 22, rng() < 0.5);
       }
     }
-    if (pass === 'colour') {
-      ctx.filter = 'none';
-    }
   }
   ctx.restore();
 }
 
 /* Hanging branchlets for under a spruce's branch: a stem along the top
  * edge (the branch), twigs hanging from it to the bottom. */
-function curtain(ctx, pass, twig, rect, seed) {
+function curtain(ctx, photo, rect, seed) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  if (pass === 'colour') {
-    ctx.filter = 'brightness(0.88) saturate(0.9) hue-rotate(8deg)';
-  }
+  const twig = tint(photo, 'brightness(0.88) saturate(0.9) hue-rotate(8deg)');
   for (let k = 0; k < 11; k += 1) {
     const px = x + ((k + 0.5) / 11) * w + (rng() - 0.5) * 16;
     const len = h * (0.55 + rng() * 0.4);
@@ -377,7 +385,7 @@ function curtain(ctx, pass, twig, rect, seed) {
 /* A cluster of leaves on twigs fanning up from the bottom middle of
  * rect. `lobed` draws a five lobed maple leaf by clipping the leaf
  * photograph to that outline. */
-function leafCluster(ctx, pass, leaves, rect, spec, seed) {
+function leafCluster(ctx, photo, rect, spec, seed) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
   ctx.save();
@@ -392,12 +400,10 @@ function leafCluster(ctx, pass, leaves, rect, spec, seed) {
     const y0 = y + h - 4;
     const x1 = x0 + Math.sin(a) * len;
     const y1 = y0 - Math.cos(a) * len;
-    stem(ctx, pass, x0, y0, x1, y1, 7, 2, '#5d5347', rng);
+    stem(ctx, x0, y0, x1, y1, 7, 2, '#5d5347', rng);
     twigs.push([x0, y0, x1, y1, a]);
   }
-  if (pass === 'colour') {
-    ctx.filter = spec.filter;
-  }
+  const leaves = tint(photo, spec.filter);
   for (let k = 0; k < spec.count; k += 1) {
     const [x0, y0, x1, y1, a] = twigs[k % twigs.length];
     const t = 0.25 + 0.75 * rng();
@@ -459,14 +465,11 @@ function mapleLeaf(ctx, leaves, box, x, y, angle, len, rng) {
 }
 
 /* Bark as a strip for trunks too far off to earn the tiled bark. */
-function barkStrip(ctx, pass, rect, seed) {
+function barkStrip(ctx, rect, seed) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
-  ctx.fillStyle = pass === 'mask' ? '#fff' : '#4e4034';
+  ctx.fillStyle = '#4e4034';
   ctx.fillRect(x, y, w, h);
-  if (pass === 'mask') {
-    return;
-  }
   for (let k = 0; k < 220; k += 1) {
     const g = 50 + Math.floor(rng() * 40);
     ctx.fillStyle = `rgb(${g + 12}, ${g}, ${g - 10})`;
@@ -479,7 +482,11 @@ function barkStrip(ctx, pass, rect, seed) {
  * middle half, fanning out, taller in the middle, a few dry ones among
  * them; `flowers` paints what is in bloom over the top.
  */
-function clump(ctx, pass, blades, rect, seed, dryShare) {
+/* The meadow's shades: eight greens and two straws. */
+const GREEN_TINTS = Array.from({ length: 8 }, (_, k) => `brightness(${(0.7 + 0.045 * k).toFixed(3)}) saturate(${(1.1 + 0.1 * (k % 4)).toFixed(2)}) hue-rotate(${2 + ((k * 5) % 14)}deg)`);
+const DRY_TINTS = ['brightness(0.72) saturate(0.7)', 'brightness(0.9) saturate(0.7)'];
+
+function clump(ctx, blades, rect, seed, dryShare) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
   ctx.save();
@@ -495,13 +502,10 @@ function clump(ctx, pass, blades, rect, seed, dryShare) {
     const lean = (u - 0.5) * 0.9 + (rng() - 0.5) * 0.35;
     const dry = rng() < dryShare;
     const box = BLADES[dry ? GREEN_BLADES + Math.floor(rng() * 3) : Math.floor(rng() * GREEN_BLADES)];
-    if (pass === 'colour') {
-      const b = 0.7 + rng() * 0.35;
-      ctx.filter = dry ? `brightness(${b * 0.9}) saturate(0.7)` : `brightness(${b}) saturate(${1.1 + rng() * 0.3}) hue-rotate(${2 + rng() * 14}deg)`;
-    }
+    const shade = dry ? DRY_TINTS[Math.floor(rng() * DRY_TINTS.length)] : GREEN_TINTS[Math.floor(rng() * GREEN_TINTS.length)];
     /* The photographed blades are a hand's width: drawn at a third of
      * it they are a grass blade's. */
-    stamp(ctx, blades, box, bx, y + h + 2, lean, len, rng() < 0.5, 0.32);
+    stamp(ctx, tint(blades, shade), box, bx, y + h + 2, lean, len, rng() < 0.5, 0.32);
   }
   ctx.restore();
 }
@@ -509,7 +513,7 @@ function clump(ctx, pass, blades, rect, seed, dryShare) {
 /* Meadow flowers on thin stalks from the bottom of rect: buttercup,
  * ox eye daisy, red clover, harebell and the white umbels of wild
  * carrot, the Bernese hay meadow's commonest. */
-function flowers(ctx, pass, rect, kind, seed) {
+function flowers(ctx, rect, kind, seed) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
   ctx.save();
@@ -521,13 +525,13 @@ function flowers(ctx, pass, rect, kind, seed) {
     const bx = x + w * (0.15 + 0.7 * rng());
     const top = y + h * (0.12 + 0.45 * rng());
     const hx = bx + (rng() - 0.5) * 40;
-    ctx.strokeStyle = pass === 'mask' ? '#fff' : '#5b7a35';
+    ctx.strokeStyle = '#5b7a35';
     ctx.lineWidth = 2.2;
     ctx.beginPath();
     ctx.moveTo(bx, y + h);
     ctx.quadraticCurveTo(bx, (top + y + h) / 2, hx, top);
     ctx.stroke();
-    const col = (c) => (pass === 'mask' ? '#fff' : c);
+    const col = (c) => c;
     const s = 7 + rng() * 5;
     if (kind === 'buttercup') {
       for (let p = 0; p < 5; p += 1) {
@@ -598,36 +602,36 @@ export async function loadAtlases() {
     loadImage(assetUrl('grass-blades.webp')),
   ]);
   const R = FOLIAGE_RECTS;
-  const foliageCanvas = twoPass(FOLIAGE_PX, FOLIAGE_PX, '#223219', (ctx, pass) => {
-    spray(ctx, pass, twig, R.spruce, {
+  const foliageCanvas = flatten(FOLIAGE_PX, FOLIAGE_PX, '#223219', (ctx) => {
+    spray(ctx, twig, R.spruce, {
       angle: 1.0, count: 22, len0: 0.34, len1: 0.16, stemW: 10, fill: 0.7,
-      filter: 'brightness(1.0) saturate(0.95) hue-rotate(6deg)',
+      filter: 'brightness(0.92) saturate(0.85) hue-rotate(12deg)',
     }, 11);
-    spray(ctx, pass, twig, R.fir, {
+    spray(ctx, twig, R.fir, {
       angle: 1.35, count: 26, len0: 0.3, len1: 0.14, stemW: 9, fill: 0.3,
       filter: 'brightness(0.9) saturate(1.05) hue-rotate(2deg) contrast(1.05)',
     }, 23);
-    tufts(ctx, pass, twig, R.larch, 37);
-    curtain(ctx, pass, twig, R.curtain, 41);
-    barkStrip(ctx, pass, R.bark, 43);
-    leafCluster(ctx, pass, leaves, R.beech, {
+    tufts(ctx, twig, R.larch, 37);
+    curtain(ctx, twig, R.curtain, 41);
+    barkStrip(ctx, R.bark, 43);
+    leafCluster(ctx, leaves, R.beech, {
       count: 150, leafLen: 150, filter: 'brightness(0.85) saturate(1.15) hue-rotate(10deg)',
     }, 53);
-    leafCluster(ctx, pass, leaves, R.maple, {
+    leafCluster(ctx, leaves, R.maple, {
       count: 160, leafLen: 150, lobed: true, filter: 'brightness(0.8) saturate(1.2) hue-rotate(16deg)',
     }, 59);
   });
   const G = GRASS_RECTS;
   const kinds = ['buttercup', 'daisy', 'clover', 'harebell', 'umbel'];
-  const grassCanvas = twoPass(GRASS_PX, GRASS_PX, '#3e5226', (ctx, pass) => {
+  const grassCanvas = flatten(GRASS_PX, GRASS_PX, '#3e5226', (ctx) => {
     for (let k = 0; k < 6; k += 1) {
-      clump(ctx, pass, blades, G[`clump${k}`], 101 + k * 7, k < 3 ? 0.02 : 0.06);
+      clump(ctx, blades, G[`clump${k}`], 101 + k * 7, k < 3 ? 0.02 : 0.06);
     }
     for (let k = 0; k < 4; k += 1) {
-      clump(ctx, pass, blades, G[`flower${k}`], 201 + k, 0.05);
-      flowers(ctx, pass, G[`flower${k}`], kinds[k], 301 + k);
+      clump(ctx, blades, G[`flower${k}`], 201 + k, 0.05);
+      flowers(ctx, G[`flower${k}`], kinds[k], 301 + k);
       if (k === 1) {
-        flowers(ctx, pass, G[`flower${k}`], kinds[4], 311);
+        flowers(ctx, G[`flower${k}`], kinds[4], 311);
       }
     }
   });

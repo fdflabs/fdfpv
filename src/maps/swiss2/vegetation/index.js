@@ -47,7 +47,7 @@ import { FIELD, HALF } from '../../alps/terrain.js';
  * many and how far out the scanned near level reaches.
  */
 export const TIERS = {
-  high: { spacing: 4.4, near: 70, mid: 260, fade: 14, frame: 128, capNear: 1800, capMid: 9000, grass: 48, grassSpacing: 0.36, grassCap: 80000, rocks: 1800, rockNear: 160, chunk: 1500 },
+  high: { spacing: 4.4, near: 70, mid: 260, fade: 14, frame: 128, capNear: 1800, capMid: 9000, grass: 40, grassSpacing: 0.42, grassCap: 50000, rocks: 1800, rockNear: 160, chunk: 1500 },
   medium: { spacing: 5.6, near: 40, mid: 170, fade: 10, frame: 96, capNear: 900, capMid: 5000, grass: 30, grassSpacing: 0.48, grassCap: 36000, rocks: 1200, rockNear: 90, chunk: 1500 },
   low: { spacing: 7.5, near: 0, mid: 110, fade: 8, frame: 64, capNear: 0, capMid: 3000, grass: 0, grassSpacing: 0, grassCap: 0, rocks: 700, rockNear: 50, chunk: 3000 },
 };
@@ -61,11 +61,20 @@ export async function buildVegetation(ctx) {
   const tier = tierOf(ctx.quality);
   const Q = TIERS[tier];
   const t0 = performance.now();
+  /* Where the build's time goes, stage by stage, for the stats. */
+  const stages = {};
+  let tMark = t0;
+  const mark = (name) => {
+    const now = performance.now();
+    stages[name] = Math.round(now - tMark);
+    tMark = now;
+  };
   const rng = ctx.rng || makeRng(20260924);
   const layout = ctx.layout || valleyLayout(ctx.heightAt, ctx.footprints || []);
   const group = new THREE.Group();
   group.name = 'swiss2-vegetation';
   const atlases = await loadAtlases();
+  mark('atlases');
   const wind = windUniforms();
   if (ctx.windDir) {
     wind.uWindDir.value.set(ctx.windDir.x, ctx.windDir.y).normalize();
@@ -74,7 +83,9 @@ export async function buildVegetation(ctx) {
   /* The trees: every variant at both model levels, and photographed for
    * the impostors. */
   const builds = VARIANTS.map((v) => ({ near: buildVariant(v, 'near'), mid: buildVariant(v, 'mid') }));
+  mark('models');
   const baked = bakeImpostors(ctx.renderer, builds.map((b) => b.near), { foliage: atlases.foliage, bark: atlases.bark.map }, Q.frame);
+  mark('impostors');
   const bands = {
     near: [-2, -1, Q.near - Q.fade, Q.near],
     mid: Q.near > 0 ? [Q.near - Q.fade, Q.near, Q.mid - Q.fade, Q.mid] : [-2, -1, Q.mid - Q.fade, Q.mid],
@@ -95,6 +106,7 @@ export async function buildVegetation(ctx) {
     }
   }
   const forest = plantForest({ heightAt: ctx.heightAt, layout, rng, spacing: Q.spacing, colliders: ctx.colliders });
+  mark('planting');
   const lod = forestLod({
     forest,
     builds,
@@ -128,6 +140,7 @@ export async function buildVegetation(ctx) {
     group,
     envMap: ctx.envMap,
   });
+  mark('rocks');
 
   const grass = Q.grass > 0
     ? buildGrass({
@@ -161,6 +174,7 @@ export async function buildVegetation(ctx) {
     lod: lod.stats,
     grass: grass ? grass.stats : null,
     buildMs: 0,
+    stages,
   };
   const cam = new THREE.Vector3();
   let time = 0;
