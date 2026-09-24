@@ -197,7 +197,7 @@ export async function openPage({
    * before it gets there. */
   const dropProfile = () => {
     proc.kill();
-    rmSync(userDataDir, { recursive: true, force: true });
+    rmSync(userDataDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   };
   process.once('exit', dropProfile);
 
@@ -342,7 +342,10 @@ export async function openPage({
     await exited;
     await server.close();
     process.removeListener('exit', dropProfile);
-    await rm(userDataDir, { recursive: true, force: true });
+    /* Chrome's helpers outlive the main process by a moment and are still
+     * writing the profile, which fails the delete with ENOTEMPTY; rm
+     * retries exactly that. */
+    await rm(userDataDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   }
 
   return {
