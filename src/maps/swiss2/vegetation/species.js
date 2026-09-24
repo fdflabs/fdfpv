@@ -52,8 +52,14 @@ import { REGIONS } from './atlas.js';
  * The variants, each a species at one habit. `forest` variants are drawn
  * from a closed stand, the lower trunk bare where the neighbours shade
  * it; `open` ones grew alone, branches to the ground. h is the model's
- * height in metres (instances scale it by 0.7 to 1.25). At most ten: the
- * impostor atlas holds ten variants of twenty four views.
+ * height in metres (instances scale it by 0.7 to 1.25). At most twelve:
+ * the impostor atlas holds twelve variants of twenty four views.
+ *
+ * The snag is a spruce that died standing: a grey trunk broken off
+ * short of its height, and the stubs of its lower branches. It is drawn
+ * only as an impostor, at every distance (impostorOnly): a pole seen
+ * from the side is the same picture from any side, and as models it
+ * would have been two more draws for the view and each shadow map.
  */
 export const VARIANTS = [
   { name: 'spruce-forest', kind: 'spruce', seed: 101, h: 30, crownBase: 0.34, reach: 4.0, step: 0.62, per: 6 },
@@ -66,6 +72,7 @@ export const VARIANTS = [
   { name: 'beech-tall', kind: 'beech', seed: 401, h: 24, trunk: 0.34, rx: 0.3, ry: 0.36 },
   { name: 'beech-open', kind: 'beech', seed: 402, h: 17, trunk: 0.22, rx: 0.42, ry: 0.4 },
   { name: 'maple', kind: 'maple', seed: 501, h: 18, trunk: 0.28, rx: 0.4, ry: 0.38 },
+  { name: 'snag', kind: 'snag', seed: 601, h: 21, reach: 1.1, impostorOnly: true },
 ];
 
 /* The shapes of the conifer species, over what VARIANTS sets. pitch is
@@ -420,6 +427,65 @@ function broadleaf(variant, lod) {
   return { foliage: foliage.geometry(), bark: near ? barkB.geometry() : null };
 }
 
+/* The snag: the trunk silvered, its top broken off, and the stubs of
+ * dead branches hanging down from it, fewer and shorter going up. The
+ * stubs are cards of the atlas's bark strip, so they bake with the
+ * crown's cut. */
+function snag(variant) {
+  const rng = makeRng(variant.seed * 7);
+  const H = variant.h;
+  const foliage = new Builder();
+  const barkB = new Builder();
+  const top = H * (0.72 + 0.12 * rng());
+  const trunkR = 0.3 * (H / 26);
+  const bend = { x: (rng() - 0.5) * 0.6, z: (rng() - 0.5) * 0.6 };
+  const silver = (t) => {
+    const k = 1.5 + 0.25 * t;
+    return [k, k * 1.03, k * 1.1];
+  };
+  trunk(barkB, {
+    r0: trunkR,
+    top,
+    sides: 8,
+    rows: 8,
+    bend,
+    uvOf: (a, y, r) => [a * Math.max(1, Math.round((2 * Math.PI * r) / 0.9)), y / 1.1],
+    colour: silver,
+  });
+  const strip = REGIONS.bark;
+  for (let y = H * 0.18; y < top - 0.5; y += 0.9 + 0.8 * rng()) {
+    const t = y / H;
+    const s = y / top;
+    const ax = bend.x * t * t;
+    const az = bend.z * t * t;
+    for (let k = 0; k < 3; k += 1) {
+      if (rng() < 0.35) {
+        continue;
+      }
+      const a = rng() * Math.PI * 2;
+      const L = (1.9 - 1.3 * s) * (0.5 + 0.7 * rng());
+      const dir = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
+      const base = new THREE.Vector3(ax, y, az);
+      const fall = -0.25 - 0.35 * rng();
+      const path = (u) => base.clone().addScaledVector(dir, L * u).addScaledVector(UP, L * fall * u * u);
+      const side = new THREE.Vector3(-dir.z, 0, dir.x);
+      for (const sd of [side, UP]) {
+        card(foliage, {
+          path,
+          side: () => sd,
+          w: (u) => 0.07 * (1 - 0.7 * u),
+          segs: 2,
+          region: strip,
+          colour: () => silver(t),
+          normalAt: () => dir.clone().addScaledVector(UP, 0.4).normalize(),
+          flexAt: (u) => 0.3 * u,
+        });
+      }
+    }
+  }
+  return { foliage: foliage.geometry(), bark: barkB.geometry() };
+}
+
 /*
  * Build one variant at one level of detail. Returns { foliage, bark },
  * bark null at 'mid', and the numbers the placer and the impostors need:
@@ -427,7 +493,8 @@ function broadleaf(variant, lod) {
  * round its middle that holds all of it.
  */
 export function buildVariant(variant, lod) {
-  const out = variant.kind === 'beech' || variant.kind === 'maple' ? broadleaf(variant, lod) : conifer(variant, lod);
+  const out = variant.kind === 'snag' ? snag(variant)
+    : variant.kind === 'beech' || variant.kind === 'maple' ? broadleaf(variant, lod) : conifer(variant, lod);
   const box = new THREE.Box3();
   for (const g of [out.foliage, out.bark]) {
     if (g) {

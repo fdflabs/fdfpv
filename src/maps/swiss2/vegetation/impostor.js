@@ -38,7 +38,7 @@ import { DITHER_GLSL, LEAF_SPEC_GLSL } from './plantmat.js';
 export const AZIMUTHS = 8;
 export const ELEVATIONS = [0, 40, 75].map((d) => (d * Math.PI) / 180);
 const PER_VARIANT = AZIMUTHS * ELEVATIONS.length;
-const GRID = 16;
+const GRID = 17;
 export const MAX_VARIANTS = Math.floor((GRID * GRID) / PER_VARIANT);
 
 const BAKE_VERT = /* glsl */ `
@@ -211,10 +211,13 @@ function billboardVertex(shadow) {
         varying vec4 vImpW;
         varying vec2 vImpYaw;
         varying float vPlantDist;
-        varying float vImpTint;`,
+        varying float vImpTint;
+        varying vec4 vImpBand;`,
     body: `
         vec4 vi = uVar[int(aTree2.y + 0.5)];
         float S = aTree.w;
+        /* A variant with no models (its z set) is drawn at every distance. */
+        vImpBand = vi.z > 0.5 ? vec4(-2.0, -1.0, 1e9, 2e9) : uBand;
         vec3 centre = aTree.xyz + vec3(0.0, vi.y * S, 0.0);
         ${shadow ? `
         vec3 V = uImpLight;
@@ -250,7 +253,7 @@ function billboardVertex(shadow) {
         vec3 transformed = centre + V * pull + (position.x * right + position.y * upv) * R * k;
         ${shadow
     ? '/* A tree the models draw casts its own shadow. */\n        if (vPlantDist < 0.5 * (uBand.x + uBand.y)) {'
-    : 'if (plantOut(vPlantDist, uBand)) {'}
+    : 'if (plantOut(vPlantDist, vImpBand)) {'}
           transformed = centre;
         }
         vImpUv = position.xy * 0.5 + 0.5;
@@ -314,9 +317,10 @@ export function impostorMaterial(baked, band, envMapIntensity = 0.85) {
         uniform vec4 uBand;
         varying vec2 vImpYaw;
         varying float vPlantDist;
-        varying float vImpTint;`)
+        varying float vImpTint;
+        varying vec4 vImpBand;`)
       .replace('#include <clipping_planes_fragment>', `
-        if (!plantKeep(plantHash(gl_FragCoord.xy), vPlantDist, uBand)) discard;
+        if (!plantKeep(plantHash(gl_FragCoord.xy), vPlantDist, vImpBand)) discard;
         #include <clipping_planes_fragment>`)
       .replace('#include <map_fragment>', `
         vec2 f0 = impFrame(vImpF.x);
