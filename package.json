@@ -61,6 +61,7 @@
     "cub:stab": "node scripts/cub-stab-selftest.js",
     "cub:record": "node scripts/wing-record.js cub",
     "cub:derive": "node scripts/cub-derive.js",
+    "glider:derive": "node scripts/glider-derive.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",
