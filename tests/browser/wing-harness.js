@@ -3,8 +3,9 @@
  * cross-host check. Loads the module, puts it on the wing, flies the
  * script in tests/lib/wingpilot.js and hands the trace hash back through
  * window.__simHarnessResolve, the way harness.js does for the quad.
- * ?plane=sky replays the Skyhunter's recording on its airframe instead;
- * with no query it is the wing's, exactly as it always was.
+ * ?plane=sky replays the Skyhunter's recording on its airframe instead,
+ * and ?plane=cub the Cub's, from standing on its wheels; with no query it
+ * is the wing's, exactly as it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -25,11 +26,12 @@
 import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
-import { skyPrelude, wingPrelude } from '../lib/wingpilot.js';
+import { cubGroundPrelude, skyPrelude, wingPrelude } from '../lib/wingpilot.js';
 
 const PLANES = {
   wing: { rec: '/tests/inputs/wing-baseline.rec', prelude: wingPrelude },
   sky: { rec: '/tests/inputs/sky-baseline.rec', prelude: skyPrelude },
+  cub: { rec: '/tests/inputs/cub-baseline.rec', prelude: (sim) => cubGroundPrelude(sim) },
 };
 
 async function fetchBytes(url) {

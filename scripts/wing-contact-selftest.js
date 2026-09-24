@@ -7,7 +7,11 @@
  * stops, a wingtip touching first in a bank and the wing settling flat, a
  * nose-in that stops rather than tunnels, and a throw from the grass
  * that leaves it. The Skyhunter's hull, 1.8 m wide, gets the same four.
- * Run with npm run wing:contact.
+ * The Cub stands on wheels, so its four are the same arrivals ending on
+ * its gear rather than its belly: a level arrival that lands on the wheels
+ * and rolls to a stop at its three point attitude, a wingtip strike that
+ * falls back onto the wheels, the nose-in, and the throw. Run with
+ * npm run wing:contact.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -41,6 +45,7 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 const PLANES = [
   { name: 'wing', id: 2, hx: 0.25, hy: 0.5, down: 0.035, up: 0.035, land: 8, nose: 10, toss: 10, tossSticks: [0, 0.15, 0, 0.7] },
   { name: 'skyhunter', id: 3, hx: 0.61, hy: 0.9, down: 0.12, up: 0.08, land: 11, nose: 13, toss: 12, tossSticks: [0, 0.3, 0, 0.8] },
+  { name: 'cub', id: 4, hx: 0.30, hy: 0.70, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.18, 0, 0.8], wheels: { restPitchDeg: 11.0, restZ: 0.1463 } },
 ];
 
 let failed = 0;
@@ -89,6 +94,19 @@ function run(sim, ms, sticks = [0, 0, 0, 0]) {
   }
   return state(sim);
 }
+/* The load on each of the Cub's contact points: mains, tail, prop tip. */
+function loads(sim) {
+  const p = sim.e.malloc(4 * 8);
+  must(sim.e.sim_wheel_loads(p), 'wheel loads');
+  const out = Array.from(new Float64Array(sim.e.memory.buffer, p, 4));
+  sim.e.free(p);
+  return out;
+}
+const pitchOf = (s) => Math.asin(Math.max(-1, Math.min(1, 2 * (s[8] * s[10] - s[7] * s[9])))) * 180 / Math.PI;
+const onWheels = (plane, sim, s) => {
+  const l = loads(sim);
+  return l[0] > 0 && l[1] > 0 && l[2] > 0 && l[3] === 0 && Math.abs(pitchOf(s) - plane.wheels.restPitchDeg) < 1 && Math.abs(s[3] - plane.wheels.restZ) < 0.01;
+};
 const pitchQuat = (deg) => { const h = deg * Math.PI / 360; return [Math.cos(h), 0, Math.sin(h), 0]; };
 const rollQuat = (deg) => { const h = deg * Math.PI / 360; return [Math.cos(h), Math.sin(h), 0, 0]; };
 
@@ -98,10 +116,17 @@ for (const plane of PLANES) {
     const sim = await wing(plane);
     must(sim.e.sim_set_pose(0, 0, 0.30, 1, 0, 0, 0), 'pose');
     must(sim.e.sim_wing_launch(plane.land), 'launch');
-    const s = run(sim, 4000);
-    check(`a belly landing at ${plane.land} m/s comes to rest`, finite(s) && speed(s) < 0.3, `speed ${speed(s).toFixed(2)}`);
-    check('resting on the plane, not in it', Math.abs(lowestCorner(plane, s)) < 0.02 && s[3] > 0, `lowest corner ${lowestCorner(plane, s).toFixed(3)} m, z ${s[3].toFixed(3)}`);
-    check('and it slid, it did not stick', s[1] > 1.0, `${s[1].toFixed(1)} m along`);
+    if (plane.wheels) {
+      const s = run(sim, 12000);
+      check(`a level arrival at ${plane.land} m/s lands on the wheels and rolls to a stop`, finite(s) && Math.hypot(s[4], s[5]) < 0.05, `speed ${speed(s).toFixed(2)}`);
+      check('standing on its three wheels at its three point attitude, the hull clear', onWheels(plane, sim, s) && lowestCorner(plane, s) > 0.02, `pitch ${pitchOf(s).toFixed(2)} deg, z ${s[3].toFixed(4)}, loads ${loads(sim).map((f) => f.toFixed(2)).join(' ')}, lowest corner ${lowestCorner(plane, s).toFixed(3)}`);
+      check('and it rolled, it did not stick', s[1] > 5.0, `${s[1].toFixed(1)} m along`);
+    } else {
+      const s = run(sim, 4000);
+      check(`a belly landing at ${plane.land} m/s comes to rest`, finite(s) && speed(s) < 0.3, `speed ${speed(s).toFixed(2)}`);
+      check('resting on the plane, not in it', Math.abs(lowestCorner(plane, s)) < 0.02 && s[3] > 0, `lowest corner ${lowestCorner(plane, s).toFixed(3)} m, z ${s[3].toFixed(3)}`);
+      check('and it slid, it did not stick', s[1] > 1.0, `${s[1].toFixed(1)} m along`);
+    }
   }
   {
     const sim = await wing(plane);
@@ -111,6 +136,9 @@ for (const plane of PLANES) {
     const s = run(sim, 3000);
     const up = 1 - 2 * (s[8] * s[8] + s[9] * s[9]);
     check('a wingtip touching first ends with the wing flat', finite(s) && up > 0.95, `up ${up.toFixed(3)}`);
+    if (plane.wheels) {
+      check('and back on its wheels', onWheels(plane, sim, s), `pitch ${pitchOf(s).toFixed(2)} deg, z ${s[3].toFixed(4)}, loads ${loads(sim).map((f) => f.toFixed(2)).join(' ')}`);
+    }
     check('no corner below the plane after the tip strike', lowestCorner(plane, s) > -0.02, `${lowestCorner(plane, s).toFixed(3)}`);
   }
   {

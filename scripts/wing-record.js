@@ -1,7 +1,8 @@
 /*
  * wing-record.js: write tests/inputs/wing-baseline.rec, the stick stream
- * the cross-host wing check replays, or with `sky` the Skyhunter's
- * tests/inputs/sky-baseline.rec. Run it when the pilot in
+ * the cross-host wing check replays, with `sky` the Skyhunter's
+ * tests/inputs/sky-baseline.rec, or with `cub` the Cub's
+ * tests/inputs/cub-baseline.rec, which takes off from the ground. Run it when the pilot in
  * tests/lib/wingpilot.js changes; the recording is committed, like the
  * quad's baseline.rec, so the check never depends on JS maths. The wing's
  * committed recording was made against an earlier plant and this no longer
@@ -30,13 +31,15 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
-import { recordScriptedFlight, skyPrelude, wingPrelude } from '../tests/lib/wingpilot.js';
+import { recordCubFlight, recordScriptedFlight, skyPrelude, wingPrelude } from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
- * flight, for skyhunter-gates.js S16. */
+ * flight, for skyhunter-gates.js S16; `cub` the Cub's take off and flight
+ * for cub-gates.js C23. */
 const PLANES = {
-  wing: { file: 'tests/inputs/wing-baseline.rec', prelude: wingPrelude, rudder: false },
-  sky: { file: 'tests/inputs/sky-baseline.rec', prelude: skyPrelude, rudder: true },
+  wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
+  sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
+  cub: { file: 'tests/inputs/cub-baseline.rec', record: recordCubFlight },
 };
 const plane = PLANES[process.argv[2] || 'wing'];
 if (!plane) {
@@ -48,7 +51,7 @@ const sim = await loadSim(new Uint8Array(await readFile(join(root, 'dist/sim.was
 if (sim.init(await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8')) !== SIM_OK) {
   throw new Error('sim_init failed');
 }
-const samples = recordScriptedFlight(sim, { prelude: plane.prelude, rudder: plane.rudder });
+const samples = plane.record(sim);
 const out = join(root, plane.file);
 await writeFile(out, encodeRec(250, samples));
 console.log(`wrote ${out}: ${samples.length} samples at 250 Hz, ${(samples.length / 250).toFixed(1)} s`);

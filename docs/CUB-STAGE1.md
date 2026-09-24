@@ -81,7 +81,7 @@ to 0.198 m against 0.200.
 | Fuselage volume | 0.0091 m³ | 0.9 m by 0.12 by 0.14 with a 0.6 fill |
 | Aileron span, effectiveness τ_a | 0.28 to 0.66 m from the centreline, 0.45 | three view, and Nelson fig. 2.20 at a quarter of the chord |
 | Wing taper λ, effective dihedral Γ | 1.0, 3.5 deg | a constant chord wing; about 1.5 deg of geometric dihedral and 2 deg for the high wing, Raymer ch. 16. ESTIMATED |
-| Thrust line | 7 mm under the CG, 0.25 m ahead | three view: the spinner's centre against the CG at 60 mm behind the leading edge and about the fuselage's mid height |
+| Thrust line | 2 mm over the CG, the prop's plane 0.23 m ahead | the drawn model, src/render/cubcraft.js, whose CG is at the thrust line's height; the three view alone had put it 7 mm under |
 
 ## The coefficients
 
@@ -125,9 +125,10 @@ plant gains a term for the two that are worth one:
   the band's top, as for the Skyhunter. On the ground it loads the left
   wheel and swings the nose left on the take off roll, which the gear
   below produces with no term of its own.
-- **Thrust line.** The spinner sits 7 mm under the CG, so power pitches
-  the nose up by thrust x 0.007: 0.095 N m at full static thrust. A new
-  table entry, `thrust_z`, zero for the other two.
+- **Thrust line.** The spinner sits 2 mm over the CG, so power pitches
+  the nose down by thrust x 0.002: 0.027 N m at full static thrust, next
+  to nothing, which is what a well designed tractor aims for. A new table
+  entry, `thrust_z`, zero for the other two.
 - **P factor.** At an angle of attack the descending blade, the right one
   for a clockwise prop, meets the air harder than the rising one, and the
   thrust moves off the axis toward it. Blade element theory at 0.75 R: the
@@ -139,9 +140,9 @@ plant gains a term for the two that are worth one:
   0.12 at 0.75 R, so κ = 1.6; static it is 1.35. V sin α is the body
   normal speed −w, so the term is N = 1.6 T (−w)/Ω with no trigonometry,
   and it is zero on the ground at rest and zero on the other two.
-  It is small on a model: at full throttle and 9 m/s in a climb, −w is 0.57
-  m/s and N is 0.009 N m nose left, a twentieth of what full rudder gives
-  at that speed. That is the honest size of it; what swings a model
+  It is small on a model: at full throttle in level flight at 1.1 V_s,
+  8.9 m/s and 5.5 deg of body α, −w is 0.85 m/s and N is 0.0136 N m nose
+  left, a sixteenth of what full rudder gives at that speed. That is the honest size of it; what swings a model
   taildragger on its take off roll is the torque on the wheels, and in the
   air it is the slipstream's swirl on the fin, below.
 - **Not modelled, and why.** The slipstream: it speeds the air over the
@@ -172,20 +173,20 @@ than the Skyhunter's.
 | C5 roll rate, full aileron, as pb/2V | 0.155: 152 deg/s at 12 m/s | 0.11 to 0.21 |
 | C6 turn radius at 60 deg bank | V²/(g tan 60°) | within 15 percent of the formula at the speed flown |
 | C7 climb rate, full throttle, best | 4.9 m/s at 10.1 m/s | 3.4 to 5.8 |
-| C8 hand throw at 10 m/s, 70 percent throttle, for two seconds the up stick that trims 10 m/s | above 1 m and faster than 9 m/s after 3 s | pass or fail |
+| C8 hand throw at 10 m/s, 70 percent throttle, for two seconds the up stick that trims 10 m/s, 0.175 (1.87 deg of elevator through the expo) | above 1 m and faster than 9 m/s after 3 s | pass or fail |
 | C9 throttle chop from cruise | glides, pitch within ±30 deg for 3 s | pass or fail |
-| C10 phugoid period at 65 percent, sticks centred | 7.5 s, ζ 0.24: the phugoid root of the four state longitudinal model trimmed at the 11.2 m/s 65 percent holds (Nelson, ch. 4); short period 0.91 s, ζ 0.69 | 6.1 to 8.8 |
+| C10 phugoid period at 65 percent, sticks centred | 7.1 s, ζ 0.22: the phugoid root of the four state longitudinal model trimmed at the 11.2 m/s 65 percent holds (Nelson, ch. 4); short period 0.91 s, ζ 0.69 | 5.8 to 8.3 |
 | C11 full rudder at cruise, wings held level: steady sideslip | −Cnδr δr/Cnβ = 13.5 deg, nose to the rudder's side | 9 to 20 |
 | C12 full rudder at cruise, ailerons centred: peak yaw rate | 39 deg/s: the Dutch roll step, ω_n = sqrt(q S b Cnβ/Izz) = 4.1 rad/s, ζ = 0.24, peak β_ss ω_n exp(−ζ φ/sqrt(1 − ζ²)) | 26 to 58 |
 | C13 full rudder at cruise, ailerons centred: bank after 2 s | the rudder's way; steady roll rate 25 deg/s once the sideslip is built, from Clβ β against Clp | 15 to 80 deg, and the sign |
 | C14 prop torque, static full throttle | 0.152 N m, rolling left | 0.13 to 0.30 N m, and the sign |
-| C15 P factor, full throttle climb held at 9 m/s | 0.009 N m, nose left | 0.005 to 0.020 N m, and the sign (κ from 1 to 3) |
+| C15 P factor, full throttle, level at 1.1 V_s (8.9 m/s, 5.46 deg of body α), one step at that state as C14 measures the torque | 0.0136 N m, nose left | 0.008 to 0.026 N m, and the sign (κ from 1 to 3) |
 | C16 standing on its wheels | the drawn pose: 11.0 deg nose up, the CG 0.146 m over the grass, 14.4 percent of the weight on the tail | pitch 10.0 to 12.0 deg, CG 0.140 to 0.152 m, tail share 10 to 18 percent, no hull contact |
 | C17 take off roll on the strip, full throttle, the tail raised and rotated at 1.1 V_s | 6.2 m to liftoff at 8.9 m/s, 1.3 s (asphalt 5.9 m) | 4.5 to 9.0 m, and 8.1 to 10.5 m/s |
 | C18 the take off roll tracks straight, sticks centred but for the tail | heading within a few degrees of the runway by liftoff | under 10 deg, and under 1 m off the line |
 | C19 taxi turn, full rudder at walking pace | radius L/tan δ = 0.679/tan 15° = 2.5 m | 2.0 to 3.5 m, and the turn the rudder's way |
 | C20 a landing on the wheels from a powered approach | touches down on the mains, rolls out, comes to rest on three wheels | at rest, pitch within 1.5 deg of C16, no hull contact |
-| C21 full down elevator at full throttle on the roll | noses over | pitch below −15 deg, pass or fail |
+| C21 full down elevator at full throttle on the roll, from 8 m/s | pitches over the mains until the prop strikes, at 9.3 deg nose down | pitch below −8 deg with the prop's tip loaded, pass or fail |
 | C22 the five inch, the wing and the Skyhunter unmoved | their recorded trace hashes | identical |
 | C23 Node and Chrome agree on a Cub trace that takes off from the ground | SHA-256 | identical |
 
@@ -205,6 +206,66 @@ the two surfaces differ in, and with a thrust to weight of 1.04 it moves
 the roll by 6 percent: the Cub is short on grass and short on asphalt. The
 simulator's ground has one surface, and the gear ships grass.
 
+## What the plant measured, and what flying it corrected
+
+`npm run cub:gates`, on the plant as committed:
+
+| Check | Measured | Band |
+| --- | --- | --- |
+| C1 level at 75 percent | 13.23 m/s | 11.5 to 15.5 |
+| C2 stall | 8.64 m/s | 7.6 to 9.2 |
+| C3 glide at 10 m/s | 8.92 | 7.9 to 10.0 |
+| C4 top speed | 17.96 m/s | 16.8 to 20.7 |
+| C5 roll, pb/2V | 0.143, 231 deg/s at 19.6 m/s | 0.11 to 0.21 |
+| C6 turn radius at 59 deg | 18.3 m against 17.2, 6 percent | 15 percent |
+| C7 best climb | 5.06 m/s at 11.2 m/s | 3.4 to 5.8 |
+| C8 hand throw | 1.3 m and 10.8 m/s after 3 s | over 1 m, over 9 m/s |
+| C9 chop | worst pitch 11.0 deg | 30 deg |
+| C10 phugoid | 7.74 s, 3 cycles | 5.8 to 8.3 |
+| C11 rudder sideslip | 16.2 deg, wind from the left | 9 to 20 |
+| C12 rudder yaw rate | 38 deg/s | 26 to 58 |
+| C13 rudder roll | 29.9 deg, right wing down | 15 to 80 |
+| C14 prop torque | 0.153 N m, rolling left | 0.13 to 0.30 |
+| C15 P factor | 0.0137 N m, nose left | 0.008 to 0.026 |
+| C16 at rest | 11.00 deg, CG 0.1463 m, 14.6 percent on the tail, loads 5.53, 5.54, 1.89 N | 10 to 12, 0.140 to 0.152, 10 to 18 |
+| C17 take off roll | 8.11 m to liftoff at 9.55 m/s, 1.48 s | 4.5 to 9.0 m, 8.1 to 10.5 m/s |
+| C18 straight | heading within 1.3 deg, 0.02 m off the line | 10 deg, 1 m |
+| C19 taxi radius | 2.49 m at 1.68 m/s, turning right | 2.0 to 3.5 |
+| C20 landing | touched at 9.6 m/s sinking 0.38 m/s, one bounce, rolled 30 m to rest at 11.00 deg, no hull or prop | at rest within 1.5 deg, clear |
+| C21 prop strike | pitched to −10.3 deg, prop tip loaded 8.7 N | below −8 deg, touching |
+
+What flying the plant before the bands were final changed:
+
+- The gear was first measured off the three view alone: 13.9 deg on its
+  wheels and a 0.20 m track. The 3D model drew 11.0 deg on 0.238 m, and
+  the drawing won, as the gear section below says, so the aircraft the pilot
+  sees and the one the plant flies stand the same way.
+- The thrust line was first 7 mm under the CG from the three view; the
+  drawing puts the CG on it (2 mm under the line). That moved the
+  derivation's phugoid from 7.5 s to 7.1 s and the C10 band, which is the
+  Skyhunter's in proportion, from 6.1 to 8.8 to 5.8 to 8.3; the plant's
+  7.74 s is inside both. It also moved the up stick that trims the C8
+  throw from 0.15 to 0.175: at the first figure the throw gained 0.8 m in
+  3 s, not the metre the check asks for, and at the stick the derivation
+  says trims 10 m/s it gains 1.3.
+- C17 is 8.1 m against a derived 6.2, near the top of its band, and the
+  reason is visible in the trace: the stalled three point attitude holds
+  the tail down until 8 m/s, not the 7 the derivation assumed, and the Cub
+  flies off at 9.5 m/s as its tail comes up rather than at the 8.9 the
+  pilot rotates at. With the tail up at 8 the derivation gives 6.5 m; the
+  rest is the tail coming up and the liftoff overlapping, which a two
+  phase sum cannot hold. The band stays as derived.
+- C21 was first written as a nose over, pitch below −15 deg. The plant
+  would not do it, and the arithmetic in the section on nosing over below says
+  it should not: rolling resistance is a sixth of what it takes, and a
+  prop tip dragging ahead of and under the CG pitches the nose back up.
+  The prop tip became a contact point and the check became the prop
+  strike it is. Nosing over waits for brakes.
+- The turn coordinator at the Skyhunter's gain let a held 60 deg bank slip
+  2.1 deg; at the gain the Cub's rudder authority asks for, 1.7.
+- A wingtip strike left the aircraft perched on the tip and one wheel,
+  held there by the hull's settle; see the note on the settle below.
+
 ## The landing gear
 
 What the Cub has that neither other aircraft has, and the whole of what is
@@ -212,9 +273,10 @@ new in the contact path.
 
 ### The model, and why it is the simplest honest one
 
-Each wheel is a single contact point, the tyre's lowest spot with the
-strut unloaded, in the body frame. Against the ground plane each point
-gets:
+Each wheel is a circle, an axle and a radius in the body frame with the
+strut unloaded, and it touches the ground at one point, the rim's point
+nearest it, which walks round the tyre as the aircraft pitches. Against
+the ground plane that point gets:
 
 - **A spring and a damper along the ground normal**, F_n = k pen − c v_n,
   never negative. That is the leg and the tyre together. It is what lets
@@ -241,6 +303,13 @@ gets:
   the front of the wheel to the side the rudder's trailing edge goes, so
   right rudder turns the aircraft right. No brakes: the FMS Cub has none,
   and the stick has no channel for them.
+- **The prop's tip as a skid.** The fourth contact point is the lowest tip
+  of the prop disc with the aircraft level, 0.1377 m under a hub 0.23 m
+  ahead of the CG: a point with no radius and the same friction both
+  ways, stiff (3000 N/m, 40 N s/m) and with a blade's grip in the dirt,
+  0.8. It clears the grass by 25 mm with the aircraft level on its mains
+  and touches at 9.3 deg nose down about them. Its load is the prop strike
+  a shell can listen for.
 
 What it does not model, deliberately: tyre slip angle curves (a Pacejka
 tyre; the linear cone is enough at these speeds and loads), a castering
@@ -273,6 +342,7 @@ here was measured off the three view on its own and sat the aircraft at
 | Side grip mu_side | 0.70 mains, 0.60 tail | ESTIMATED: rubber on grass and dry ground; the tailwheel is smaller and harder |
 | Tailwheel steering | 1.0 x the rudder angle, ±15 deg | the kit's tailwheel is linked to the rudder horn |
 | Wheelbase on the ground | 0.679 m | the mains to the tailwheel, three point |
+| Prop tip skid | x +0.23, z −0.1377 m, r 0, 3000 N/m, 40 N s/m, friction 0.8 both ways | the drawn prop's lowest tip, level; see above |
 | Camera | x +0.165, z +0.0571 m | CUB_DIMS: on top of the cowl |
 
 ### The hull, which is only for crashes now
@@ -287,12 +357,37 @@ mm. A box as deep as the belly, 0.086 m, would catch a wingtip at 7 deg
 of bank on the ground, where the real high wing clears to about 23; 0.05
 catches it at 11. Upside down the box's top is the wing's top; the fin,
 0.16 m tall as drawn and at the tail outside the box, will show about 4
-cm into the grass on an aircraft lying on its back. The nose corner is the
-first thing to touch in a nose over, at 27 deg of pitch about the mains;
-the real prop's tip, 0.14 m round a hub near the CG's height, would touch
-within a few degrees of level. Both are the limits of a centred box, and
-the fix for both is the same: hull points the airframe declares, as the
-wheels now are, which is the next step if a pilot notices.
+cm into the grass on an aircraft lying on its back, the limit of a
+centred box; the fix is a skid at the fin's top, a contact point like the
+prop's, which is the next step if a pilot notices. In a nose down pitch
+the prop's tip touches first, at 9.3 deg, well before the box's nose
+corner at 27.
+
+### Nosing over, and why it takes brakes
+
+A taildragger goes over its mains when the drag at the wheels, acting
+0.163 m under the CG, turns it further than the load on them, acting 0.075
+m ahead of it, holds it back: a retarding force above 0.075/0.163 = 0.46
+of the mains' load. Rolling resistance on grass is 0.08 of it, so a Cub
+rolling on its wheels never goes over by itself; it takes a brake, a soft
+patch or a hole, and the FMS Cub has no brakes and this ground has no
+soft patches. Full down elevator at speed, C21, pitches it over the mains
+until the prop strikes at 9.3 deg, which in a real Cub is the end of the
+prop and of the flight; the tip then drags at 0.8 of its own load 0.14 m
+under the CG and 0.23 m ahead of it, which pitches the nose back up
+rather than over, so the aircraft rocks back onto its mains, usually with
+a swing that puts a wingtip in the grass. That is what the model does,
+and it is gated as the prop strike it is. When a brake channel arrives,
+a braking friction at the mains over 0.46 will turn it over with no
+further change to the contact path.
+
+One more thing the contact path had to learn. The hull's settle, which
+brings a belly slide to rest, stops any rotation slower than 0.35 rad/s
+outright while a hull corner touches. A Cub that strikes a wingtip and
+rocks back onto its gear starts that rock from rest, so the settle held it
+perched on the tip for ever. While any wheel carries load the settle now
+stands aside: the wheels are what the aircraft rests on. No other airframe
+has wheels, so for them it runs exactly as before.
 
 ## Conventions
 
