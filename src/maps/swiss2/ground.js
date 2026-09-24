@@ -194,6 +194,62 @@ export function pathMask() {
 }
 
 /*
+ * The ground at the foot of the village's walls. A house does not stand
+ * on a lawn: the eaves drip a strip of gravel or bare earth along every
+ * wall, and the grass for a few metres out is darker and ranker for the
+ * water and the shade. The walls are only known once the village is up,
+ * so the ground reads them through a shared uniform that starts as a
+ * texture saying "no wall anywhere" and is filled in by wallMask. The
+ * mask is a metre a texel over the WALL_SPAN metres square centred on
+ * the village plateau (the farms further out keep their lawn), and holds
+ * the distance to the nearest wall over WALL_REACH metres.
+ */
+export const WALL_SPAN = 1024;
+export const WALL_REACH = 4;
+export const WALL_ORIGIN = new THREE.Vector2(-647, -497);
+const WALL_MIN_AREA = 16;
+
+export function wallUniform() {
+  const t = new THREE.DataTexture(new Uint8Array([255]), 1, 1, THREE.RedFormat, THREE.UnsignedByteType);
+  t.needsUpdate = true;
+  return { value: t };
+}
+
+export function wallMask(footprints) {
+  const n = WALL_SPAN;
+  const d = new Uint8Array(n * n).fill(255);
+  for (const f of footprints) {
+    /* A parked car or a bench is a wall to the colliders, not a house. */
+    if ((f.maxX - f.minX) * (f.maxZ - f.minZ) < WALL_MIN_AREA) {
+      continue;
+    }
+    const i0 = Math.max(0, Math.floor(f.minX - WALL_ORIGIN.x - WALL_REACH));
+    const i1 = Math.min(n - 1, Math.ceil(f.maxX - WALL_ORIGIN.x + WALL_REACH));
+    const j0 = Math.max(0, Math.floor(f.minZ - WALL_ORIGIN.y - WALL_REACH));
+    const j1 = Math.min(n - 1, Math.ceil(f.maxZ - WALL_ORIGIN.y + WALL_REACH));
+    for (let j = j0; j <= j1; j += 1) {
+      const z = WALL_ORIGIN.y + j + 0.5;
+      const dz = Math.max(f.minZ - z, 0, z - f.maxZ);
+      for (let i = i0; i <= i1; i += 1) {
+        const x = WALL_ORIGIN.x + i + 0.5;
+        const dx = Math.max(f.minX - x, 0, x - f.maxX);
+        const v = Math.min(255, Math.round((Math.hypot(dx, dz) / WALL_REACH) * 255));
+        if (v < d[j * n + i]) {
+          d[j * n + i] = v;
+        }
+      }
+    }
+  }
+  const t = new THREE.DataTexture(d, n, n, THREE.RedFormat, THREE.UnsignedByteType);
+  t.magFilter = THREE.LinearFilter;
+  t.minFilter = THREE.LinearFilter;
+  t.wrapS = THREE.ClampToEdgeWrapping;
+  t.wrapT = THREE.ClampToEdgeWrapping;
+  t.needsUpdate = true;
+  return t;
+}
+
+/*
  * The valley floor's farming, shared with the meadow's blades (grass.js)
  * so the grass drawn near the camera is the colour and the height of the
  * field it stands in. s2Meadow(xz, dist) gives a multiplier for the
@@ -429,6 +485,8 @@ const GROUND_PARS = /* glsl */ `
   uniform sampler2D uS2Zone1;
   uniform sampler2D uS2Zone2;
   uniform sampler2D uS2Path;
+  uniform sampler2D uS2Walls;
+  uniform vec2 uS2WallAt;
   uniform highp sampler2DArray uS2Col;
   uniform highp sampler2DArray uS2Nrh;
   uniform float uS2Tile[9];
@@ -561,7 +619,12 @@ const GROUND_PARS = /* glsl */ `
     float lakeSide = inside * step(${(LAKE_N - 60).toFixed(1)}, p.z);
     float beachTop = uS2LakeY + 0.5 + 1.6 * meso + 0.7 * (fine - 0.5);
     cov[6] = max(z1.a, lakeSide * (1.0 - smoothstep(beachTop - 0.6, beachTop, p.y)));
-    cov[7] = path * 0.9;
+    /* How far to the nearest wall, in metres, WALL_REACH and beyond
+     * meaning none. */
+    vec2 wuv = (p.xz - uS2WallAt) / ${WALL_SPAN.toFixed(1)};
+    float wallD = any(greaterThan(abs(wuv - 0.5), vec2(0.5))) ? ${WALL_REACH.toFixed(1)} : ${WALL_REACH.toFixed(1)} * texture2D(uS2Walls, wuv).r;
+    float drip = (1.0 - smoothstep(0.25, 0.7, wallD + 0.3 * (fine - 0.5))) * inside;
+    cov[7] = max(path * 0.9, drip);
     /* A boulder, a snow patch: one layer and nothing else. */
     if (uS2Only >= 0.0) {
       for (int k = 1; k < 9; k++) {
@@ -706,6 +769,11 @@ const GROUND_PARS = /* glsl */ `
     float blotch = s2Fbm(p.xz / 5.5 + 3.7);
     albedo *= mix(vec3(1.0), mix(vec3(0.84, 0.9, 0.86), vec3(1.12, 1.07, 0.86), blotch), grass * (1.0 - smoothstep(60.0, 350.0, dist)));
     albedo *= 0.8 + 0.4 * macro;
+    /* The rank, shaded grass along a wall. */
+    float lee = (1.0 - smoothstep(0.6, 2.6 + 1.2 * fine, wallD)) * grass;
+    albedo *= mix(vec3(1.0), vec3(0.8, 0.88, 0.78), lee);
+    /* And the drip line itself wet and dark, not a raked path. */
+    albedo *= mix(1.0, 0.6, drip);
 
     /* The wet line along the shore and the bed going dark under water. */
     float wet = 1.0 - smoothstep(uS2LakeY + 0.2, uS2LakeY + 1.1, p.y);
@@ -738,12 +806,14 @@ const GROUND_PARS = /* glsl */ `
  * and its declarations land ahead of the splat's, so vS2World is declared
  * by the time the splat reads it.
  */
-export function groundMaterial({ arrays, zones, path, lit, only = -1, strip = 0 }) {
+export function groundMaterial({ arrays, zones, path, walls, lit, only = -1, strip = 0 }) {
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
   const uniforms = {
     uS2Zone1: { value: zones.zone1 },
     uS2Zone2: { value: zones.zone2 },
     uS2Path: { value: path },
+    uS2Walls: walls,
+    uS2WallAt: { value: WALL_ORIGIN },
     uS2Col: { value: arrays.col },
     uS2Nrh: { value: arrays.nrh },
     uS2Tile: { value: TILE },

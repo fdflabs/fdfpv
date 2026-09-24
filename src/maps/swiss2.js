@@ -73,7 +73,7 @@ import {
   loadTerrainArrays, loadSurface, loadSky, SURFACES, SKY_K, SKY_SPAN_DEG,
 } from './swiss2/assets.js';
 import {
-  groundMasks, pathMask, groundMaterial, floorUnderTrees,
+  groundMasks, pathMask, groundMaterial, floorUnderTrees, wallUniform, wallMask,
 } from './swiss2/ground.js';
 import {
   sunDirection, makeSun, makeLit, bakeTerrainShadow, SUN_COLOR,
@@ -214,9 +214,10 @@ function photoStyle() {
 
       const sun = makeSun(scene, q, sunDir);
       const lit = makeLit();
-      const masks = {};
+      const masks = { walls: wallUniform() };
+      own(masks.walls.value);
       const ground = (opts) => groundMaterial({
-        arrays, zones: masks.zones, path: masks.path, lit, ...opts,
+        arrays, zones: masks.zones, path: masks.path, walls: masks.walls, lit, ...opts,
       });
       const heights = { texture: { value: null }, grid: { value: new THREE.Vector3(HALF, CELL, CELLS + 1) } };
       style.look = makePhotoLook({ surfaces, ground, heights });
@@ -366,6 +367,7 @@ function photoStyle() {
       scene.add(stage.veg.group);
       nature.pines = stage.veg.stats.trees;
       floorUnderTrees(stage.masks.zones, stage.veg.forest);
+      stage.masks.walls.value = own(wallMask(stage.footprints));
       const baked = bakeTerrainShadow(stage.renderer, field, far, stage.sunDir);
       stage.shadowTarget = baked.shadow;
       stage.heights.texture.value = own(baked.height);
