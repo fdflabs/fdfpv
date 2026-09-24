@@ -51,6 +51,7 @@
 import * as THREE from 'three';
 import { FIELD, HALF, CELLS } from '../alps/terrain.js';
 import { SUN_U, SUN_ELEVATION_DEG } from './assets.js';
+import { LOW_COVER_GLSL, LOW_SHADOW_Y, LOW_SHADOW_DEPTH } from './clouds.js';
 
 /* Toward the sun, from the photograph's own sun: three's equirect maps u
  * to atan(z, x) / 2 pi + 0.5. */
@@ -232,6 +233,7 @@ const LIT_PARS = /* glsl */ `
   uniform vec2 uS2Field;
   uniform vec2 uS2CloudAt;
   uniform vec3 uS2SunDir;
+  ${LOW_COVER_GLSL}
   float s2cHash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -253,7 +255,15 @@ const LIT_PARS = /* glsl */ `
     vec2 at = p.xz + uS2SunDir.xz * ((${CLOUD_BASE.toFixed(1)} - p.y) / max(uS2SunDir.y, 0.1));
     vec2 q = (at + uS2CloudAt) / ${CLOUD_SIZE.toFixed(1)};
     float n = s2cNoise(q) * 0.55 + s2cNoise(q * 2.03 + 5.2) * 0.28 + s2cNoise(q * 4.11 + 1.7) * 0.17;
-    return 1.0 - ${CLOUD_DEPTH.toFixed(3)} * smoothstep(${(1 - CLOUD_COVER - 0.07).toFixed(3)}, ${(1 - CLOUD_COVER + 0.07).toFixed(3)}, n);
+    float deck = 1.0 - ${CLOUD_DEPTH.toFixed(3)} * smoothstep(${(1 - CLOUD_COVER - 0.07).toFixed(3)}, ${(1 - CLOUD_COVER + 0.07).toFixed(3)}, n);
+    /* And the low bank in the valley (clouds.js), where it stands between
+     * p and the sun: its cover taken through the bank's middle. */
+    float low = 1.0;
+    if (p.y < ${LOW_SHADOW_Y.toFixed(1)}) {
+      vec2 lat = p.xz + uS2SunDir.xz * ((${LOW_SHADOW_Y.toFixed(1)} - p.y) / max(uS2SunDir.y, 0.1));
+      low = 1.0 - ${LOW_SHADOW_DEPTH.toFixed(3)} * smoothstep(0.1, 0.6, s2LowCover(lat).x);
+    }
+    return deck * low;
   }
   /* The sun past every ridge: 1 in the sun, 0 in a mountain's shadow,
    * with a penumbra as wide as the sun's disc makes it at the ridge's
@@ -301,12 +311,14 @@ const LIT_LIGHT = /* glsl */ `getDirectionalLightInfo( directionalLight, directL
 /*
  * Make the injector. Its uniforms are shared by every material it
  * touches, so the terrain shadow is one texture however many materials
- * read it. The shadow is baked after the materials exist (it needs the
- * range beyond, which is built after the ground), so it is handed over
- * with lit.setShadow before anything compiles.
+ * read it; the low cloud's drift is the clouds' own uniform, so a bank's
+ * shadow moves with it. The shadow is baked after the materials exist
+ * (it needs the range beyond, which is built after the ground), so it is
+ * handed over with lit.setShadow before anything compiles.
  */
-export function makeLit() {
+export function makeLit(clouds) {
   const shared = {
+    uS2LowAt: clouds.uniforms.uS2LowAt,
     uS2Shadow: { value: null },
     uS2Field: { value: new THREE.Vector2(HALF, FIELD) },
     uS2CloudAt: { value: new THREE.Vector2() },
@@ -326,6 +338,7 @@ export function makeLit() {
     shader.uniforms.uS2Field = shared.uS2Field;
     shader.uniforms.uS2CloudAt = shared.uS2CloudAt;
     shader.uniforms.uS2SunDir = shared.uS2SunDir;
+    shader.uniforms.uS2LowAt = shared.uS2LowAt;
     shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
     if (shader.vertexShader.includes('#include <project_vertex>')) {
       shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>\n${LIT_VERTEX}`);
