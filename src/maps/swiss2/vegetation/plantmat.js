@@ -32,6 +32,11 @@
  *   it lit a crown's shaded inside as brightly as its sunny side, and
  *   every broadleaf read as one flat bright blob.
  *
+ *   A tint per tree. No two trees of a stand are the same green: each
+ *   is lighter or darker, yellower or bluer by a hash of where it stands,
+ *   the same hash the impostors use (PLANT_TINT_GLSL), so a tree keeps
+ *   its colour through the fade to its picture.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -79,6 +84,17 @@ bool plantKeep(float n, float d, vec4 band) {
 }
 bool plantOut(float d, vec4 band) {
   return d <= band.x || d >= band.w;
+}
+`;
+
+/* The tint a tree standing at `xz` gets: brightness 0.86 to 1.12, and
+ * between a yellower and a bluer green. */
+export const PLANT_TINT_GLSL = /* glsl */ `
+vec3 plantTint(vec2 xz) {
+  float a = fract(sin(dot(xz, vec2(12.9898, 78.233))) * 43758.5453);
+  float b = fract(sin(dot(xz, vec2(39.3468, 11.1353))) * 24634.6345);
+  vec3 hue = mix(vec3(0.93, 1.0, 1.05), vec3(1.07, 1.02, 0.84), b);
+  return (0.86 + 0.26 * a) * hue;
 }
 `;
 
@@ -147,8 +163,8 @@ function spliceVertex(shader, uniforms, flexAttr) {
   shader.uniforms.uSway = uniforms.uSway;
   shader.uniforms.uFlutter = uniforms.uFlutter;
   shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', `#include <common>\n${WIND_GLSL}\n${flexAttr ? 'attribute float aFlex;' : ''}\nvarying float vPlantDist;`)
-    .replace('#include <begin_vertex>', `${flexAttr ? 'float plantFlex = aFlex;' : 'float plantFlex = 0.0;'}\n${VERTEX_SPLICE}\nvPlantDist = distance(cameraPosition, plantOrigin + vec3(0.0, 10.0 * sqrt(plantS2), 0.0));`);
+    .replace('#include <common>', `#include <common>\n${WIND_GLSL}\n${PLANT_TINT_GLSL}\n${flexAttr ? 'attribute float aFlex;' : ''}\nvarying float vPlantDist;\nvarying vec3 vPlantTint;`)
+    .replace('#include <begin_vertex>', `${flexAttr ? 'float plantFlex = aFlex;' : 'float plantFlex = 0.0;'}\n${VERTEX_SPLICE}\nvPlantDist = distance(cameraPosition, plantOrigin + vec3(0.0, 10.0 * sqrt(plantS2), 0.0));\nvPlantTint = plantTint(plantOrigin.xz);`);
 }
 
 /*
@@ -183,7 +199,7 @@ export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, f
     shader.uniforms.uBand = uniforms.uBand;
     shader.uniforms.uTransl = uniforms.uTransl;
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${DITHER_GLSL}\nuniform vec4 uBand;\nuniform float uTransl;\nvarying float vPlantDist;`)
+      .replace('#include <common>', `#include <common>\n${DITHER_GLSL}\nuniform vec4 uBand;\nuniform float uTransl;\nvarying float vPlantDist;\nvarying vec3 vPlantTint;`)
       .replace('#include <clipping_planes_fragment>', `
         if (!plantKeep(plantHash(gl_FragCoord.xy), vPlantDist, uBand)) discard;
         #include <clipping_planes_fragment>`);
@@ -193,6 +209,8 @@ export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, f
           float faceDirection = gl_FrontFacing ? 1.0 : -1.0;
           vec3 normal = normalize(vNormal);
           vec3 nonPerturbedNormal = normal;`)
+        .replace('#include <color_fragment>', `#include <color_fragment>
+          diffuseColor.rgb *= vPlantTint;`)
         .replace('#include <lights_physical_pars_fragment>', `#include <lights_physical_pars_fragment>\n${PLANT_SUN_GLSL}`)
         .replace('#include <lights_physical_fragment>', LEAF_SPEC_GLSL)
         .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>

@@ -33,7 +33,7 @@
  */
 
 import * as THREE from 'three';
-import { DITHER_GLSL, LEAF_SPEC_GLSL } from './plantmat.js';
+import { DITHER_GLSL, LEAF_SPEC_GLSL, PLANT_TINT_GLSL } from './plantmat.js';
 
 export const AZIMUTHS = 8;
 export const ELEVATIONS = [0, 40, 75].map((d) => (d * Math.PI) / 180);
@@ -200,6 +200,7 @@ function billboardVertex(shadow) {
   return {
     pars: `
         ${DITHER_GLSL}
+        ${PLANT_TINT_GLSL}
         attribute vec4 aTree;
         attribute vec2 aTree2;
         uniform vec4 uVar[${MAX_VARIANTS}];
@@ -211,7 +212,7 @@ function billboardVertex(shadow) {
         varying vec4 vImpW;
         varying vec2 vImpYaw;
         varying float vPlantDist;
-        varying float vImpTint;
+        varying vec3 vImpTint;
         varying vec4 vImpBand;`,
     body: `
         vec4 vi = uVar[int(aTree2.y + 0.5)];
@@ -258,7 +259,7 @@ function billboardVertex(shadow) {
         }
         vImpUv = position.xy * 0.5 + 0.5;
         vImpYaw = vec2(cy, sy);
-        vImpTint = 0.9 + 0.2 * fract(sin(dot(aTree.xz, vec2(12.9898, 78.233))) * 43758.5453);`,
+        vImpTint = plantTint(aTree.xz);`,
   };
 }
 
@@ -317,7 +318,7 @@ export function impostorMaterial(baked, band, envMapIntensity = 0.85) {
         uniform vec4 uBand;
         varying vec2 vImpYaw;
         varying float vPlantDist;
-        varying float vImpTint;
+        varying vec3 vImpTint;
         varying vec4 vImpBand;`)
       .replace('#include <clipping_planes_fragment>', `
         if (!plantKeep(plantHash(gl_FragCoord.xy), vPlantDist, vImpBand)) discard;
