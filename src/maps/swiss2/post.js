@@ -9,25 +9,28 @@
  *    that depth at half resolution, into a target of its own.
  * 3. The low cloud in the valley (clouds.js), marched over that depth at
  *    half resolution into a target of its own.
- * 4. On High, bloom, kept to what a lens does: the sun and whatever the
+ * 4. Where the preset has it, the camera's meter (LENS below): the
+ *    scene's brightness, and how much of the sun the lens sees.
+ * 5. On High, bloom, kept to what a lens does: the sun and whatever the
  *    sun glints off, nothing else. The threshold is in the scene's own
  *    radiance, far above anything lit.
- * 5. One pass that is most of the look. The occlusion, then aerial
+ * 6. One pass that is most of the look. The occlusion, then aerial
  *    perspective from the depth:
  *    light from a surface is dimmed by the air it crosses and the air
  *    adds its own, bluer the further, whiter toward the horizon, and
  *    brighter toward the sun, with the air thinning with height so a
  *    ridge across the valley and the peaks ten kilometres off are veiled
  *    by different amounts, which is the whole difference between a model
- *    and a mountain. Then exposure, the AgX curve and a print's
- *    contrast, the FPV camera's mild barrel and a lens's vignette, and
- *    the sRGB transfer.
+ *    and a mountain. Then the lens's glare, the metered exposure, the
+ *    AgX curve and a print's contrast, the FPV camera's mild barrel,
+ *    its colour fringe and a lens's vignette, the sRGB transfer and the
+ *    sensor's grain.
  *    Doing the air here rather than in every material means the
  *    vegetation's and the water's materials are veiled exactly as the
  *    village is without either of them knowing. The cloud goes over
  *    the veiled scene there, brought up to full resolution with the
  *    depth as its guide.
- * 6. FXAA on the finished picture: there is no ink pass here to resolve
+ * 7. FXAA on the finished picture: there is no ink pass here to resolve
  *    silhouettes, and a photograph has no staircases.
  *
  * The object it returns has the shape post.js's does (render, setSize,
@@ -122,6 +125,234 @@ export const AIR_GLSL = /* glsl */ `
   }
 `;
 
+/*
+ * The camera. What makes a frame read as a photograph rather than a
+ * render is mostly that a camera took it: it chose its exposure from the
+ * scene, the sun near the frame fogged its lens, and its sensor added a
+ * little noise. Each is what a phone's camera does in daylight, and no
+ * more, and each preset keeps what it can afford: Low none of it, Medium
+ * the exposure and the grain, High all of it.
+ *
+ * The exposure is metered, not set. A camera exposes a valley in shade
+ * brighter than one in sun, which is the whole difference between a
+ * photograph of the fall's foot and a render of it: rendered at one
+ * exposure, a view in the mountains' shadow was half as bright as its
+ * photograph and a view into the sun a third brighter. The meter is the
+ * scene's centre weighted log mean luminance, after the air and the
+ * cloud, and the exposure moves toward KEY over it by ADAPT of the way
+ * (a phone goes nearly all the way; less keeps a shaded view darker than
+ * a sunlit one, as a photograph does too), within the range RANGE, at
+ * the pace of a camera's exposure, TAU seconds. A cut (the camera moving
+ * further in one frame than anything flies, CUT metres) sets it at once:
+ * a camera that has just been pointed somewhere has had its second to
+ * settle, and so every fixed view of the loop is metered from its own
+ * frame alone, the same on every run, whatever came before it.
+ *
+ * Glare is the sun's light scattered inside the lens: a veil round the
+ * sun that falls off as the square of the angle to it, some parts in ten
+ * thousand of the sun's light per square radian (GLARE), a lens's own
+ * haze, whether the sun is in the frame or just outside it, gone when the
+ * sun is behind a ridge or a cloud from where the camera stands, and cut
+ * by the lens's barrel as the sun goes behind the camera. No ghosts:
+ * at a coated lens's strength (its surfaces' reflectance squared, a few
+ * parts in a hundred thousand of the sun) they were lost against the
+ * sky and the cloud round the sun in every frame tried, and none of the
+ * photographs has one.
+ *
+ * Chromatic aberration (ca): the red and blue images scaled by 1 - ca
+ * and 1 + ca about the centre, two thirds of a pixel at the corners of a
+ * frame 1600 wide. Grain (grain, the noise's deviation in display
+ * values, one and a half levels in 255): a sensor's shot noise, which in
+ * display values is nearly the same at every brightness, fresh every
+ * frame.
+ *
+ * No depth of field: a phone's lens is so short that its hyperfocal
+ * distance is a metre or two, and every photograph the loop is judged
+ * against is sharp from its foreground grass to the peaks.
+ */
+export const LENS = {
+  high: { meter: true, glare: true, ca: 0.0008, grain: 0.006 },
+  medium: { meter: true, glare: false, ca: 0, grain: 0.006 },
+  low: { meter: false, glare: false, ca: 0, grain: 0 },
+};
+/* KEY is the geometric mean of the loop's thirteen views' metered
+ * luminance (0.086), so the valley's typical view keeps the exposure it
+ * had when AIR.exposure was the whole of it, and the colour match to the
+ * photographs (tools/swiss2-loop/colour.py) with it. */
+const KEY = 0.09;
+const ADAPT = 0.75;
+const RANGE = [0.45, 2.6];
+const TAU = 0.9;
+const CUT = 40;
+const GLARE = 1.5e-4;
+
+/*
+ * The meter's taps: a grid over the frame, each tap one texel of a small
+ * target, drawn in one draw so the taps are read in parallel, and then
+ * one texel that averages them and moves toward the average at the
+ * exposure's pace. Its green is how much of the sun the lens sees, moved
+ * at the same pace, so a glare fades as a ridge covers the sun.
+ */
+const METER_W = 16;
+const METER_H = 8;
+
+const MeterTapShader = (sunGlsl) => ({
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = vec4(position.xy, 0.0, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    #include <common>
+    varying vec2 vUv;
+    uniform sampler2D tDiffuse;
+    uniform highp sampler2D tDepth;
+    uniform sampler2D tCloud;
+    uniform mat4 uProjInv;
+    uniform mat4 uCamWorld;
+    ${AIR_GLSL}
+    void main() {
+      vec3 c = texture2D(tDiffuse, vUv).rgb;
+      float d = texture2D(tDepth, vUv).x;
+      if (d < 1.0) {
+        vec4 vp = uProjInv * vec4(vUv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+        c = aerial(c, (uCamWorld * vec4(vp.xyz / vp.w, 1.0)).xyz);
+      }
+      vec4 cl = texture2D(tCloud, vUv);
+      c = cl.rgb + c * cl.a;
+      /* The sun's disc is thousands of times the sky: clipped, as a
+       * meter's cell would be. */
+      float L = clamp(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-3, 30.0);
+      vec2 q = (vUv - 0.5) * vec2(1.0, 1.4);
+      float w = 1.0 - 0.6 * smoothstep(0.1, 0.55, length(q));
+      gl_FragColor = vec4(log2(L) * w, w, 0.0, 1.0);
+    }
+  `,
+  reduce: /* glsl */ `
+    #include <common>
+    uniform sampler2D tTaps;
+    uniform sampler2D tPrev;
+    uniform highp sampler2D tDepth;
+    uniform sampler2D tCloud;
+    uniform float uBlend;
+    uniform vec3 uCamPos;
+    uniform vec3 uSunUv;
+    ${sunGlsl}
+    void main() {
+      vec2 s = vec2(0.0);
+      for (int j = 0; j < ${METER_H}; j++) {
+        for (int i = 0; i < ${METER_W}; i++) {
+          s += texelFetch(tTaps, ivec2(i, j), 0).rg;
+        }
+      }
+      /* The sun past the ridges and the clouds from where the camera
+       * stands, and, with its disc in the frame, not behind whatever the
+       * scene or the low cloud has in front of it there. */
+      float vis = s2TerrainSun(uCamPos) * s2Cloud(uCamPos);
+      if (uSunUv.z > 0.5) {
+        vis *= step(1.0, texture2D(tDepth, uSunUv.xy).x) * texture2D(tCloud, uSunUv.xy).a;
+      }
+      vec2 now = vec2(s.x / max(s.y, 1e-4), vis);
+      vec2 prev = texture2D(tPrev, vec2(0.5)).rg;
+      gl_FragColor = vec4(mix(prev, now, uBlend), 0.0, 1.0);
+    }
+  `,
+});
+
+class MeterPass extends Pass {
+  constructor(camera, sun, sunDir) {
+    super();
+    this.needsSwap = false;
+    this.camera = camera;
+    this.sunDir = sunDir.clone();
+    const opts = { type: THREE.HalfFloatType, depthBuffer: false, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter };
+    this.taps = new THREE.WebGLRenderTarget(METER_W, METER_H, opts);
+    this.ping = [new THREE.WebGLRenderTarget(1, 1, opts), new THREE.WebGLRenderTarget(1, 1, opts)];
+    this.current = 0;
+    this.last = null;
+    const src = MeterTapShader(sun.glsl);
+    this.tapMat = new THREE.ShaderMaterial({
+      uniforms: {
+        tDiffuse: { value: null },
+        tDepth: { value: null },
+        tCloud: { value: null },
+        uProjInv: { value: new THREE.Matrix4() },
+        uCamWorld: { value: new THREE.Matrix4() },
+        uCamPos: { value: new THREE.Vector3() },
+        uSunDir: { value: sunDir.clone() },
+        uSunCol: { value: new THREE.Color() },
+        uHaze: { value: AIR.haze.clone() },
+        uBeta: { value: AIR.beta.clone() },
+        uScaleH: { value: AIR.scaleHeight },
+        uMie: { value: AIR.mie },
+      },
+      vertexShader: src.vertexShader,
+      fragmentShader: src.fragmentShader,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.reduceMat = new THREE.ShaderMaterial({
+      uniforms: {
+        ...sun.uniforms,
+        tTaps: { value: this.taps.texture },
+        tPrev: { value: null },
+        tDepth: { value: null },
+        tCloud: { value: null },
+        uBlend: { value: 1 },
+        uCamPos: this.tapMat.uniforms.uCamPos,
+        uSunUv: { value: new THREE.Vector3() },
+      },
+      vertexShader: src.vertexShader,
+      fragmentShader: src.reduce,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.tapQuad = new FullScreenQuad(this.tapMat);
+    this.reduceQuad = new FullScreenQuad(this.reduceMat);
+    this.sunNdc = new THREE.Vector3();
+  }
+
+  /* The metered value this frame: r the log2 luminance, g the sun seen. */
+  get texture() {
+    return this.ping[this.current].texture;
+  }
+
+  render(renderer, writeBuffer, readBuffer, deltaTime) {
+    const cam = this.camera;
+    const t = this.tapMat.uniforms;
+    t.tDiffuse.value = readBuffer.texture;
+    t.tDepth.value = readBuffer.depthTexture;
+    t.uProjInv.value.copy(cam.projectionMatrixInverse);
+    t.uCamWorld.value.copy(cam.matrixWorld);
+    t.uCamPos.value.setFromMatrixPosition(cam.matrixWorld);
+    const cut = this.last === null || this.last.distanceTo(t.uCamPos.value) > CUT;
+    this.last = (this.last || new THREE.Vector3()).copy(t.uCamPos.value);
+    renderer.setRenderTarget(this.taps);
+    this.tapQuad.render(renderer);
+
+    const r = this.reduceMat.uniforms;
+    r.tDepth.value = readBuffer.depthTexture;
+    r.tCloud.value = t.tCloud.value;
+    r.tPrev.value = this.ping[this.current].texture;
+    r.uBlend.value = cut ? 1 : 1 - Math.exp(-Math.max(0, deltaTime || 0) / TAU);
+    this.sunNdc.copy(this.sunDir).add(t.uCamPos.value).project(cam);
+    const inFrame = Math.abs(this.sunNdc.x) < 1 && Math.abs(this.sunNdc.y) < 1 && this.sunNdc.z < 1;
+    r.uSunUv.value.set(this.sunNdc.x * 0.5 + 0.5, this.sunNdc.y * 0.5 + 0.5, inFrame ? 1 : 0);
+    this.current = 1 - this.current;
+    renderer.setRenderTarget(this.ping[this.current]);
+    this.reduceQuad.render(renderer);
+  }
+
+  dispose() {
+    this.taps.dispose();
+    this.ping.forEach((p) => p.dispose());
+    this.tapMat.dispose();
+    this.reduceMat.dispose();
+  }
+}
+
 const PhotoShader = {
   uniforms: {
     tDiffuse: { value: null },
@@ -146,6 +377,11 @@ const PhotoShader = {
     uCloudTexel: { value: new THREE.Vector2(1, 1) },
     uCloud: { value: 0 },
     uNearFar: { value: new THREE.Vector2(0.1, 1000) },
+    tMeter: { value: null },
+    uCa: { value: 0 },
+    uGrain: { value: 0 },
+    uFrame: { value: 0 },
+    uGlare: { value: new THREE.Color(0, 0, 0) },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -172,9 +408,19 @@ const PhotoShader = {
     uniform vec2 uCloudTexel;
     uniform float uCloud;
     uniform vec2 uNearFar;
+    uniform sampler2D tMeter;
+    uniform float uCa;
+    uniform float uGrain;
+    uniform float uFrame;
+    uniform vec3 uGlare;
 
     ${AIR_GLSL}
 
+    float grainHash(vec2 p) {
+      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
     float linearDepth(float d) {
       return uNearFar.x * uNearFar.y / (uNearFar.y - d * (uNearFar.y - uNearFar.x));
     }
@@ -237,6 +483,10 @@ const PhotoShader = {
       float r2 = dot(uv, uv);
       vec2 duv = 0.5 + uv * (1.0 + uDistort * r2) / (1.0 + uDistort * 0.5);
       vec3 c = texture2D(tDiffuse, duv).rgb;
+      #ifdef LENS_CA
+        c.r = texture2D(tDiffuse, 0.5 + (duv - 0.5) * (1.0 - uCa)).r;
+        c.b = texture2D(tDiffuse, 0.5 + (duv - 0.5) * (1.0 + uCa)).b;
+      #endif
       float d = texture2D(tDepth, duv).x;
       if (d < 1.0) {
         vec4 vp = uProjInv * vec4(duv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
@@ -256,7 +506,20 @@ const PhotoShader = {
         vec4 cl = cloudAt(duv, d);
         c = cl.rgb + c * cl.a;
       }
-      c = agx(c * uExposure);
+      float ev = uExposure;
+      #ifdef LENS_METER
+        vec2 meter = texture2D(tMeter, vec2(0.5)).rg;
+        ev *= clamp(pow(${KEY.toFixed(4)} / exp2(meter.r), ${ADAPT.toFixed(3)}), ${RANGE[0].toFixed(3)}, ${RANGE[1].toFixed(3)});
+      #endif
+      #ifdef LENS_GLARE
+        /* The glare's angle to the sun: 2 (1 - cos) is its square, near
+         * enough, down to the sun's own radius. */
+        vec4 fp = uProjInv * vec4(duv * 2.0 - 1.0, 1.0, 1.0);
+        vec3 ray = normalize(mat3(uCamWorld) * (fp.xyz / fp.w));
+        float th2 = 2.0 * (1.0 - dot(ray, uSunDir));
+        c += uGlare * (meter.g / (th2 + 2.0e-5));
+      #endif
+      c = agx(c * ev);
       /* AgX's own curve is a flat negative; a print's S curve on the
        * display values, which keeps black and white where they are. */
       vec3 dv = pow(c, vec3(0.4545));
@@ -265,7 +528,15 @@ const PhotoShader = {
       c *= 1.0 - uVignette * smoothstep(0.16, 0.55, r2);
       vec3 lo = c * 12.92;
       vec3 hi = 1.055 * pow(c, vec3(0.41666667)) - 0.055;
-      gl_FragColor = vec4(mix(lo, hi, step(vec3(0.0031308), c)), 1.0);
+      vec3 o = mix(lo, hi, step(vec3(0.0031308), c));
+      #ifdef LENS_GRAIN
+        /* Triangular noise, the sum of two uniform ones: its deviation is
+         * 0.408 of its half width. */
+        vec2 gp = gl_FragCoord.xy + fract(uFrame * vec2(0.61803, 0.41421)) * 517.0;
+        float n = grainHash(gp) + grainHash(gp + 71.3) - 1.0;
+        o += n * (uGrain / 0.408);
+      #endif
+      gl_FragColor = vec4(o, 1.0);
     }
   `,
 };
@@ -390,10 +661,27 @@ class AoPass extends Pass {
 }
 
 class PhotoPass extends Pass {
-  constructor(camera, sunDir, sunColor) {
+  constructor(camera, sun, lens, meter) {
     super();
     this.camera = camera;
+    this.sun = sun;
+    this.lens = lens;
+    this.meter = meter;
+    const defines = {};
+    if (lens.meter) {
+      defines.LENS_METER = '';
+    }
+    if (lens.glare) {
+      defines.LENS_GLARE = '';
+    }
+    if (lens.ca > 0) {
+      defines.LENS_CA = '';
+    }
+    if (lens.grain > 0) {
+      defines.LENS_GRAIN = '';
+    }
     this.material = new THREE.ShaderMaterial({
+      defines,
       uniforms: THREE.UniformsUtils.clone(PhotoShader.uniforms),
       vertexShader: PhotoShader.vertexShader,
       fragmentShader: PhotoShader.fragmentShader,
@@ -401,8 +689,11 @@ class PhotoPass extends Pass {
       depthWrite: false,
     });
     const u = this.material.uniforms;
-    u.uSunDir.value.copy(sunDir);
-    u.uSunCol.value.copy(sunColor);
+    u.uSunDir.value.copy(sun.direction);
+    u.uSunCol.value.copy(sun.color);
+    u.uCa.value = lens.ca;
+    u.uGrain.value = lens.grain;
+    this.fwd = new THREE.Vector3();
     u.uHaze.value.copy(AIR.haze);
     u.uBeta.value.copy(AIR.beta);
     u.uScaleH.value = AIR.scaleHeight;
@@ -420,12 +711,34 @@ class PhotoPass extends Pass {
     u.uCamWorld.value.copy(this.camera.matrixWorld);
     u.uCamPos.value.setFromMatrixPosition(this.camera.matrixWorld);
     u.uNearFar.value.set(this.camera.near, this.camera.far);
+    u.uFrame.value = (u.uFrame.value + 1) % 4096;
+    if (this.meter) {
+      u.tMeter.value = this.meter.texture;
+    }
+    if (this.lens.glare) {
+      this.glare(u);
+    }
     renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
     this.fsQuad.render(renderer);
+  }
+
+  /* The glare's strength, the lens's barrel taking it away as the sun
+   * goes more than about sixty degrees off the axis. */
+  glare(u) {
+    this.camera.getWorldDirection(this.fwd);
+    const axis = THREE.MathUtils.smoothstep(this.fwd.dot(this.sun.direction), 0.25, 0.6);
+    u.uGlare.value.copy(this.sun.color).multiplyScalar(this.sun.irradiance * GLARE * axis);
   }
 }
 
 export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds) {
+  const lens = LENS[q.id];
+  if (!lens) {
+    throw new Error(`swiss2 post: no lens for the ${q.id} preset; say what it spends in src/maps/swiss2/post.js`);
+  }
+  if (lens.glare && !lens.meter) {
+    throw new Error('swiss2 post: the glare reads the meter for how much of the sun the lens sees');
+  }
   const size = new THREE.Vector2();
   renderer.getSize(size);
   const dpr = renderer.getPixelRatio();
@@ -456,12 +769,20 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds) {
    * writes over the colour. */
   const cloud = clouds.pass(camera, q, w, h);
   composer.addPass(cloud);
+  /* The meter reads the scene before the bloom adds to it: a camera
+   * meters the light, not its own glow. */
+  let meter = null;
+  if (lens.meter) {
+    meter = new MeterPass(camera, sun.at, sun.direction);
+    meter.tapMat.uniforms.tCloud.value = cloud.target.texture;
+    composer.addPass(meter);
+  }
   let bloom = null;
   if (wantBloom) {
     bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.12, 0.6, 6.0);
     composer.addPass(bloom);
   }
-  const photo = new PhotoPass(camera, sun.direction, sun.color);
+  const photo = new PhotoPass(camera, sun, lens, meter);
   if (ao) {
     photo.material.uniforms.tAo.value = ao.target.texture;
     photo.material.uniforms.uAo.value = 0.85;
@@ -507,6 +828,9 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds) {
       }
       photo.material.dispose();
       cloud.dispose();
+      if (meter) {
+        meter.dispose();
+      }
       if (ao) {
         ao.dispose();
       }

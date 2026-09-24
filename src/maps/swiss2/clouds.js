@@ -17,8 +17,9 @@
  *   The stratus. A thinner, paler layer under the bank, in bands long
  *   down the valley and short across it.
  *
- *   The mist. Faint puffs within a few tens of metres of the ground, on
- *   the forested middle of the walls only, in patches.
+ *   The mist. Lying on the forest of the walls' lower half, over the
+ *   crowns and among them, thickest in the gullies and in patches on
+ *   the slopes between.
  *
  * The bank and the stratus are both shaped as heaped cloud, not as
  * slabs (heap in the march): a billowing noise cut by the cover, domed,
@@ -84,7 +85,20 @@ const LOW_START = new THREE.Vector2(0, 12250);
 /* Extinction per metre in the densest cloud and in the mist: a cumulus's
  * mean free path is some tens of metres, a valley mist's a few hundred. */
 const SIGMA_BANK = 0.028;
-const SIGMA_MIST = 0.006;
+const SIGMA_MIST = 0.014;
+/* The lowest ground the mist lies on: the foot of the walls. */
+const MIST_FLOOR = 90;
+/*
+ * The mist is seen across the valley, not flown through: it fades in
+ * between these distances from the camera, in metres. The valley has
+ * one weather and the references two, mist lying in the forest across
+ * the valley (Lauterbrunnen) and a clear, sunlit day at the fall's foot
+ * (Staubbach); a camera two hundred metres from the fall stands in the
+ * forest the mist lies in, and it filled that view with fog. Kept to
+ * the far field, it is where every reference that has it shows it, and
+ * a pilot in the forest is not flying blind.
+ */
+const MIST_NEAR = [250, 700];
 /* The stratus under the bank: its base, its greatest depth, its
  * extinction. It is broken and pale enough that its shadow is left out
  * (light.js takes the bank's only), which saves every lit material a
@@ -372,34 +386,54 @@ const MarchShader = {
     }
 
     /*
-     * The mist: on the middle of the walls, in patches, in puffs that lie
-     * in the trees and rise a little off them. Not a film over the ground:
-     * a layer of even mist a few tens of metres deep, seen along a wall,
-     * is a long path through it and paints the wall white, which reads as
-     * snow. Only the billows of a noise a few hundred metres across
-     * stand, faintly, so the wall shows between them. It keeps off the cliffs, which are too
-     * steep for the forest it rises from.
+     * The mist: lying in the forest on the middle of the walls, thickest
+     * in the gullies, where the cold air drains and the cloud forms
+     * first, and in patches on the open slopes between them. Its density
+     * falls off with height over the ground, over a few tens of metres on
+     * a slope and more in a gully, so it lies among the trees (the
+     * crowns in front of it cut it, from the depth) rather than standing
+     * off them. Not a film: a layer of even mist seen along a wall is a
+     * long path through it and paints the wall white, which reads as
+     * snow, so its body is a soft noise that leaves the wall showing
+     * through, and away from the gullies only its patches stand. It keeps
+     * off the cliffs, which are too steep for the forest it lies in, and
+     * off the gentle ground at the walls' foot, where it stood as fog
+     * round the fall's pool.
      */
     float mist(vec3 p) {
-      if (p.y > 1200.0) {
+      if (p.y > 920.0) {
         return 0.0;
       }
       float g = groundAt(p.xz);
       float above = p.y - g;
-      float wall = smoothstep(200.0, 360.0, g) * (1.0 - smoothstep(850.0, 1100.0, g));
-      float patches = smoothstep(0.5, 0.78, s2lNoise((p.xz + 0.4 * uS2LowAt) / 380.0 + 21.0));
-      float lie = smoothstep(0.0, 10.0, above) * (1.0 - smoothstep(25.0, 95.0, above));
-      float here = wall * patches * lie;
+      if (above < -2.0 || above > 140.0) {
+        return 0.0;
+      }
+      float wall = smoothstep(${MIST_FLOOR.toFixed(1)}, ${(MIST_FLOOR + 110).toFixed(1)}, g) * (1.0 - smoothstep(620.0, 780.0, g))
+        * smoothstep(${MIST_NEAR[0].toFixed(1)}, ${MIST_NEAR[1].toFixed(1)}, distance(p, uCamPos));
+      if (wall < 0.01) {
+        return 0.0;
+      }
+      /* The ground two cells either way: its slope, and how far this
+       * point's ground lies under the ground round it, which is a gully. */
+      const float C = ${(2 * CELL).toFixed(4)};
+      float gx0 = groundAt(p.xz - vec2(C, 0.0));
+      float gx1 = groundAt(p.xz + vec2(C, 0.0));
+      float gz0 = groundAt(p.xz - vec2(0.0, C));
+      float gz1 = groundAt(p.xz + vec2(0.0, C));
+      float gully = smoothstep(2.0, 16.0, 0.25 * (gx0 + gx1 + gz0 + gz1) - g);
+      float slope = length(vec2(gx1 - gx0, gz1 - gz0)) / (2.0 * C);
+      float patches = smoothstep(0.55, 0.85, s2lNoise((p.xz + 0.4 * uS2LowAt) / 360.0 + 21.0));
+      float here = wall * smoothstep(0.3, 0.55, slope) * (1.0 - smoothstep(1.1, 1.6, slope)) * max(patches * 0.55, gully);
       if (here < 0.01) {
         return 0.0;
       }
-      vec2 slope = vec2(groundAt(p.xz + vec2(${CELL.toFixed(4)}, 0.0)) - g, groundAt(p.xz + vec2(0.0, ${CELL.toFixed(4)})) - g) / ${CELL.toFixed(4)};
-      here *= 1.0 - smoothstep(1.0, 1.5, length(slope));
-      vec3 wq = (p + vec3(uDrift, -0.3 * uDrift, 0.0)) / vec3(280.0, 90.0, 280.0);
+      float lie = smoothstep(4.0, 26.0, above) * exp(-max(above - 26.0, 0.0) / mix(20.0, 50.0, gully));
+      vec3 wq = (p + vec3(uDrift, -0.3 * uDrift, 0.0)) / vec3(150.0, 80.0, 150.0);
       vec2 puff = texture(uNoise, wq).rg;
-      float w = texture(uNoise, wq * 2.9 + vec3(0.19)).g;
-      float body = puff.g * 0.75 + puff.r * 0.25 - (1.0 - w) * 0.18;
-      return smoothstep(0.42, 0.85, body * (0.6 + 0.4 * here)) * here * ${SIGMA_MIST.toFixed(4)};
+      float w = texture(uNoise, wq * 3.1 + vec3(0.19)).r;
+      float body = puff.r * 0.55 + puff.g * 0.25 + w * 0.2;
+      return smoothstep(0.45, 0.72, body) * here * lie * ${SIGMA_MIST.toFixed(4)};
     }
 
     /* The two lobed phase function at cos angle mu, its forward lobe
@@ -429,7 +463,7 @@ const MarchShader = {
       vec3 rd = normalize(wp - ro);
       float tEnd = d < 1.0 ? length(wp - ro) : 1e5;
       /* Only the slab the cloud can be in. */
-      const float Y0 = ${Math.min(SHEET_Y, 200).toFixed(1)};
+      const float Y0 = ${Math.min(SHEET_Y - 60, MIST_FLOOR).toFixed(1)};
       const float Y1 = ${(LOW_BASE + LOW_LIFT + LOW_THICK + 20).toFixed(1)};
       float t0 = 0.0;
       float t1 = tEnd;
