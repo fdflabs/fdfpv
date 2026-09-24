@@ -14,12 +14,15 @@
  *   top and torn at the sides. Where it runs into a wall the wall's own
  *   depth cuts it, so it clings.
  *
- *   The stratus. A thin sheet under the bank, long down the valley and
- *   torn into strands across it.
+ *   The stratus. A thinner, paler layer under the bank, in bands long
+ *   down the valley and short across it.
  *
- *   The mist. Thin wisps within a few tens of metres of the ground, on
- *   the forested middle of the walls only, in patches, stretched along
- *   the contour the way valley mist lies.
+ *   The mist. Faint puffs within a few tens of metres of the ground, on
+ *   the forested middle of the walls only, in patches.
+ *
+ * The bank and the stratus are both shaped as heaped cloud, not as
+ * slabs (heap in the march): a billowing noise cut by the cover, domed,
+ * its edges eroded and faded, so no layer ends on a ruled line.
  *
  * Why a march in the post chain and not billboards: a cloud that clings
  * to a wall is cut by the wall, and a billboard cut by the ground shows
@@ -30,10 +33,11 @@
  * cloud with the cloud all round it (it is only light: nothing collides). It runs at half resolution into a target of its
  * own and is brought up to full size by post.js with the depth as guide.
  *
- * Each sample is lit by the sun (through the cloud toward it, and past
- * the ridges by light.js's baked terrain shadow, so a bank in a wall's
- * shadow is grey and blue) and by the sky, brighter at the top of a cloud
- * than under it. The bank's shadow on the ground is light.js's: it reads
+ * Each sample is lit by the sun (through the cloud toward it, in three
+ * orders of scattering so a rim against the sun is silver and a shaded
+ * flank grey, and past the ridges by light.js's baked terrain shadow, so
+ * a bank in a wall's shadow is grey and blue) and by the sky, full at the
+ * top of a cloud and dim under it. The bank's shadow on the ground is light.js's: it reads
  * the same cover (LOW_COVER_GLSL), so a cloud and its shadow agree.
  *
  * This file is part of WebFPVSimulator.
@@ -80,13 +84,14 @@ const LOW_START = new THREE.Vector2(0, 12250);
 /* Extinction per metre in the densest cloud and in the mist: a cumulus's
  * mean free path is some tens of metres, a valley mist's a few hundred. */
 const SIGMA_BANK = 0.028;
-const SIGMA_MIST = 0.005;
-/* The stratus sheet under the bank: its base, its depth, its extinction.
- * It is thin enough that its shadow is left out (light.js takes the
- * bank's only), which saves every lit material a second cover. */
+const SIGMA_MIST = 0.006;
+/* The stratus under the bank: its base, its greatest depth, its
+ * extinction. It is broken and pale enough that its shadow is left out
+ * (light.js takes the bank's only), which saves every lit material a
+ * second cover. */
 const SHEET_Y = 430;
-const SHEET_THICK = 110;
-const SIGMA_SHEET = 0.009;
+const SHEET_THICK = 200;
+const SIGMA_SHEET = 0.012;
 /* The march goes no further than this, in metres: the bank ends a
  * little past the field (s2LowCover), and from any point in the field
  * that is inside this. */
@@ -95,6 +100,19 @@ const MARCH_FAR = 9500;
 export const LOW_SHADOW_Y = LOW_BASE + 0.5 * LOW_LIFT + 0.4 * LOW_THICK;
 /* How much of the sun the thickest bank stops on the ground below. */
 export const LOW_SHADOW_DEPTH = 0.78;
+
+/*
+ * The march at each preset: its steps along the view, its taps toward the
+ * sun (the first tap0 metres out, each next tapGrow times further), and
+ * whether the edges are eroded. High spends about what the frame can
+ * spare on the look; Medium and Low give up the self shadow's depth and
+ * then the fine edges before they give up the cloud.
+ */
+const MARCH = {
+  high: { steps: 112, taps: 4, tap0: 20, tapGrow: 2.2, fine: true },
+  medium: { steps: 56, taps: 2, tap0: 40, tapGrow: 3.5, fine: true },
+  low: { steps: 32, taps: 1, tap0: 90, tapGrow: 1, fine: false },
+};
 
 /* The noise volume, NOISE_PX a side, tiling. */
 const NOISE_PX = 64;
@@ -125,6 +143,9 @@ export const LOW_COVER_GLSL = /* glsl */ `
    * thinned over the middle of the floor (the axis is terrain.js's
    * valleyAxis), and it ends a little past the field, where the ground
    * it would hang on ends. */
+  float s2LowLift(vec2 xz) {
+    return s2lNoise(xz / 2300.0 + 11.0);
+  }
   vec2 s2LowCover(vec2 xz) {
     vec2 q = (xz + uS2LowAt) / ${LOW_SIZE.toFixed(1)};
     float n = s2lNoise(q) * 0.6 + s2lNoise(q * 2.13 + 3.1) * 0.28 + s2lNoise(q * 4.37 + 7.7) * 0.12;
@@ -133,7 +154,7 @@ export const LOW_COVER_GLSL = /* glsl */ `
     vec2 out2 = abs(xz) - ${(HALF + 600).toFixed(1)};
     float inside = 1.0 - smoothstep(0.0, 900.0, max(out2.x, out2.y));
     float cover = smoothstep(${(1 - LOW_COVER - 0.08).toFixed(3)}, ${(1 - LOW_COVER + 0.2).toFixed(3)}, n * wall) * inside;
-    return vec2(cover, s2lNoise(xz / 2300.0 + 11.0));
+    return vec2(cover, s2LowLift(xz));
   }
 `;
 
@@ -229,7 +250,7 @@ const MarchShader = {
       gl_Position = vec4(position.xy, 0.0, 1.0);
     }
   `,
-  fragmentShader: (steps) => /* glsl */ `
+  fragmentShader: (q) => /* glsl */ `
     #include <common>
     precision highp sampler3D;
     varying vec2 vUv;
@@ -267,61 +288,129 @@ const MarchShader = {
       return smoothstep(s.x - w, s.x + w, p.y);
     }
 
-    /* Extinction per metre at p, and how far up its cloud p stands (0 at
-     * the base, 1 at the top), for the sky's light. */
-    vec2 density(vec3 p, bool mist) {
-      vec2 cv = s2LowCover(p.xz);
+    float remap01(float x, float lo, float hi) {
+      return clamp((x - lo) / max(hi - lo, 1e-4), 0.0, 1.0);
+    }
+
+    /*
+     * A layer of heaped cloud at p: 0 to 1 of its densest, and how far up
+     * in it p stands, 0 at the base and 1 at the top. cover is the layer's
+     * share of the sky over p, base and thick where it stands, and q is p
+     * in the noise's own units (each layer stretches and drifts its noise
+     * its own way). With fine, the edges are eroded; the taps toward the
+     * sun leave that out, which only makes the cloud they pass a little
+     * denser.
+     *
+     * The shape is a cumulus's, not a slab's. A billowing noise is cut by
+     * the cover, so where the cover is thin only its heaps stand and a
+     * layer's edge breaks into separate puffs instead of ending on a
+     * line. A heap is taller the deeper into the cover it stands, so it
+     * rounds into a dome, and its base curls up at the rim and sags and
+     * lifts with the billows over it. The fine noise then eats the edges:
+     * billows at the top, where a cumulus is heaped, and stretched wisps
+     * underneath, where it is ragged and torn. Density rises over a wide
+     * ramp from the edge in, so an edge is a fade and not a skin.
+     *
+     * Where the cover is thin there is no heap to build: the cloud there
+     * is a torn, pale wisp, shaped by the smooth noise and eroded by the
+     * stretched one. Small dense billows on their own, which is what the
+     * cumulus shape makes of a thin cover, read as popcorn.
+     */
+    float dome(float h) {
+      return (0.08 + 0.95 * h * h + 0.35 * (1.0 - smoothstep(0.0, 0.14, h)) + step(h, -0.02)) * 0.55;
+    }
+    vec2 heap(vec3 q, float y, float base, float thick, float cover, bool fine) {
+      vec2 big = texture(uNoise, q).rg;
+      float h = (y - base + 0.4 * thick * (big.r - 0.5)) / thick;
+      float heaped = smoothstep(0.2, 0.7, cover);
+      float shape = mix(big.r, big.g * 0.62 + big.r * 0.38, heaped);
+      float body = remap01(shape, 1.0 - cover * 0.9, 1.0) * sqrt(cover);
+      float d = body - dome(h);
+      if (fine && d > -0.15) {
+        vec2 fn = texture(uNoise, q * 3.7 + vec3(0.21, 0.0, 0.53)).rg;
+        vec2 wisp = texture(uNoise, q * vec3(9.0, 15.0, 9.0) + vec3(0.37)).rg;
+        /* The base sags into rags a few tens of metres deep. */
+        h += (fn.r - 0.55) * 0.3 * (1.0 - smoothstep(0.0, 0.35, h));
+        d = body - dome(h);
+        float up = smoothstep(0.1, 0.5, h) * heaped;
+        float e = mix(fn.r * 0.55 + wisp.r * 0.45, fn.g * 0.7 + wisp.g * 0.3, up);
+        d -= (1.0 - e) * 0.34 * (1.0 - smoothstep(0.0, 0.3, d));
+      }
+      return vec2(smoothstep(0.0, 0.45, d) * mix(0.3, 1.0, heaped), clamp(h, 0.0, 1.0));
+    }
+
+    /* The low bank, from s2LowCover's cover and lift over p (cv), which
+     * change over kilometres, so the taps toward the sun reuse the
+     * sample's. */
+    vec2 bank(vec3 p, vec2 cv, bool fine) {
       float base = ${LOW_BASE.toFixed(1)} + ${LOW_LIFT.toFixed(1)} * cv.y;
-      float thick = ${LOW_THICK.toFixed(1)} * (0.3 + 0.7 * cv.x);
-      float bank = 0.0;
-      float h = -1.0;
-      if (p.y > base - 90.0 && p.y < base + thick && cv.x > 0.01) {
-        vec3 q = p + vec3(uDrift, 0.0, -0.6 * uDrift);
-        vec2 big = texture(uNoise, q / vec3(560.0, 330.0, 560.0)).rg;
-        /* A base that sags and lifts with the billows over it rather than
-         * a ruled line, and a top as uneven. */
-        h = (p.y - base + 90.0 * (big.r - 0.5)) / thick;
-        float top = 0.45 + 0.55 * big.g;
-        float profile = smoothstep(0.0, 0.18, h) * (1.0 - smoothstep(top * 0.55, top, h));
-        vec2 fine = texture(uNoise, q / vec3(150.0, 110.0, 150.0)).rg;
-        float shape = cv.x * profile - (1.0 - (big.g * 0.65 + big.r * 0.2 + fine.g * 0.15)) * 0.7;
-        /* The edges torn finer than the body: where the shape is thin, a
-         * noise a few tens of metres across eats into it. */
-        if (shape > -0.1 && shape < 0.25) {
-          float tear = texture(uNoise, q / vec3(55.0, 40.0, 55.0) + vec3(0.37)).g;
-          shape -= (1.0 - tear) * 0.22 * (1.0 - smoothstep(0.0, 0.25, shape));
-        }
-        bank = clamp(shape * 3.4, 0.0, 1.0) * ${SIGMA_BANK.toFixed(4)};
+      float thick = ${LOW_THICK.toFixed(1)} * (0.35 + 0.65 * cv.x);
+      if (cv.x < 0.02 || p.y < base - 80.0 || p.y > base + thick + 60.0) {
+        return vec2(0.0);
       }
-      /* The stratus: a thin sheet lower down, long along the valley and
-       * short across it, torn into strands. */
-      float sheetH = (p.y - ${SHEET_Y.toFixed(1)} - 90.0 * cv.y - 60.0 * s2lNoise(p.xz / 350.0 + 13.0)) / ${SHEET_THICK.toFixed(1)};
-      if (sheetH > 0.0 && sheetH < 1.0) {
-        vec2 sq = (p.xz + uS2LowAt * 0.7) / vec2(700.0, 1600.0);
-        float lay = smoothstep(0.5, 0.8, s2lNoise(sq + 41.0) * 0.7 + s2lNoise(sq * 3.1 + 5.0) * 0.3);
-        if (lay > 0.01) {
-          float strand = texture(uNoise, (p + vec3(0.0, 0.0, uDrift)) / vec3(260.0, 60.0, 520.0)).r;
-          float prof = smoothstep(0.0, 0.35, sheetH) * (1.0 - smoothstep(0.55, 1.0, sheetH));
-          bank += clamp((lay * prof - (1.0 - strand) * 0.75) * 2.8, 0.0, 1.0) * ${SIGMA_SHEET.toFixed(4)};
-        }
+      vec3 q = (p + vec3(uDrift, 0.0, -0.6 * uDrift)) / vec3(640.0, 400.0, 640.0);
+      vec2 b = heap(q, p.y, base, thick, cv.x, fine);
+      return vec2(b.x * ${SIGMA_BANK.toFixed(4)}, b.y);
+    }
+
+    /* The stratus under it: the same heaped cloud, lower, thinner and
+     * paler, in bands long down the valley and short across it (lay, the
+     * layer's own cover, which like the bank's changes slowly). */
+    float strataLay(vec2 xz) {
+      vec2 sq = (xz + uS2LowAt * 0.7) / vec2(520.0, 1200.0);
+      return 0.95 * smoothstep(0.38, 0.85, s2lNoise(sq + 41.0) * 0.7 + s2lNoise(sq * 3.1 + 5.0) * 0.3);
+    }
+    vec2 strata(vec3 p, vec2 cv, float lay, bool fine) {
+      float base = ${SHEET_Y.toFixed(1)} + 90.0 * cv.y;
+      float thick = ${SHEET_THICK.toFixed(1)} * (0.5 + 0.8 * lay);
+      if (lay < 0.02 || p.y < base - 60.0 || p.y > base + thick + 40.0) {
+        return vec2(0.0);
       }
-      float m = 0.0;
-      if (mist && p.y < 1300.0) {
-        float g = groundAt(p.xz);
-        float above = p.y - g;
-        /* On the middle of the walls, where the forest is, in patches. */
-        float wall = smoothstep(200.0, 360.0, g) * (1.0 - smoothstep(850.0, 1100.0, g));
-        float patches = smoothstep(0.52, 0.8, s2lNoise((p.xz + 0.4 * uS2LowAt) / 380.0 + 21.0));
-        float lie = smoothstep(0.0, 12.0, above) * (1.0 - smoothstep(15.0, 70.0, above));
-        float here = wall * patches * lie;
-        if (here > 0.01) {
-          /* Stretched along the contour and torn across it. */
-          vec3 wq = p + vec3(uDrift, 0.0, 0.0);
-          float wisp = texture(uNoise, wq / vec3(300.0, 45.0, 300.0)).r * 0.7 + texture(uNoise, wq / vec3(90.0, 30.0, 90.0)).g * 0.3;
-          m = clamp((here - (1.0 - wisp) * 1.1) * 2.6, 0.0, 1.0) * ${SIGMA_MIST.toFixed(4)};
-        }
+      vec3 q = (p + vec3(0.0, 0.0, uDrift)) / vec3(380.0, 240.0, 700.0) + vec3(0.5, 0.31, 0.17);
+      vec2 b = heap(q, p.y, base, thick, lay, fine);
+      return vec2(b.x * ${SIGMA_SHEET.toFixed(4)}, b.y);
+    }
+
+    /*
+     * The mist: on the middle of the walls, in patches, in puffs that lie
+     * in the trees and rise a little off them. Not a film over the ground:
+     * a layer of even mist a few tens of metres deep, seen along a wall,
+     * is a long path through it and paints the wall white, which reads as
+     * snow. Only the billows of a noise a few hundred metres across
+     * stand, faintly, so the wall shows between them. It keeps off the cliffs, which are too
+     * steep for the forest it rises from.
+     */
+    float mist(vec3 p) {
+      if (p.y > 1200.0) {
+        return 0.0;
       }
-      return vec2(bank + m, clamp(h, 0.0, 1.0) * step(m, bank));
+      float g = groundAt(p.xz);
+      float above = p.y - g;
+      float wall = smoothstep(200.0, 360.0, g) * (1.0 - smoothstep(850.0, 1100.0, g));
+      float patches = smoothstep(0.5, 0.78, s2lNoise((p.xz + 0.4 * uS2LowAt) / 380.0 + 21.0));
+      float lie = smoothstep(0.0, 10.0, above) * (1.0 - smoothstep(25.0, 95.0, above));
+      float here = wall * patches * lie;
+      if (here < 0.01) {
+        return 0.0;
+      }
+      vec2 slope = vec2(groundAt(p.xz + vec2(${CELL.toFixed(4)}, 0.0)) - g, groundAt(p.xz + vec2(0.0, ${CELL.toFixed(4)})) - g) / ${CELL.toFixed(4)};
+      here *= 1.0 - smoothstep(1.0, 1.5, length(slope));
+      vec3 wq = (p + vec3(uDrift, -0.3 * uDrift, 0.0)) / vec3(280.0, 90.0, 280.0);
+      vec2 puff = texture(uNoise, wq).rg;
+      float w = texture(uNoise, wq * 2.9 + vec3(0.19)).g;
+      float body = puff.g * 0.75 + puff.r * 0.25 - (1.0 - w) * 0.18;
+      return smoothstep(0.42, 0.85, body * (0.6 + 0.4 * here)) * here * ${SIGMA_MIST.toFixed(4)};
+    }
+
+    /* The two lobed phase function at cos angle mu, its forward lobe
+     * narrowed by k: light scattered many times inside a cloud forgets
+     * the sun's direction, so each later order of scattering is rounder. */
+    float phase(float mu, float k) {
+      float g1 = 0.72 * k;
+      float g2 = -0.22 * k;
+      float hg1 = (1.0 - g1 * g1) / (4.0 * PI * pow(1.0 + g1 * g1 - 2.0 * g1 * mu, 1.5));
+      float hg2 = (1.0 - g2 * g2) / (4.0 * PI * pow(1.0 + g2 * g2 - 2.0 * g2 * mu, 1.5));
+      return mix(hg2, hg1, 0.6);
     }
 
     void main() {
@@ -360,13 +449,18 @@ const MarchShader = {
       /* Steps finer near the camera, where a cloud is big on the screen,
        * each started at a per pixel offset so the banding is noise. */
       float jitter = s2lHash(gl_FragCoord.xy * 1.37 + 0.5);
-      const int N = ${steps};
+      const int N = ${q.steps};
       float mu = dot(rd, uSunDir);
-      const float g1 = 0.6;
-      const float g2 = -0.2;
-      float hg1 = (1.0 - g1 * g1) / (4.0 * PI * pow(1.0 + g1 * g1 - 2.0 * g1 * mu, 1.5));
-      float hg2 = (1.0 - g2 * g2) / (4.0 * PI * pow(1.0 + g2 * g2 - 2.0 * g2 * mu, 1.5));
-      float phase = mix(hg2, hg1, 0.55);
+      /* The sun's light at a sample in three orders of scattering: the
+       * first keeps the sun's forward lobe (a cloud's rim against the sun
+       * is silver) and is put out quickly by the cloud toward the sun;
+       * the later ones are rounder and get through deeper, which is what
+       * keeps a shaded flank grey rather than black (Wrenninge's
+       * approximation: each order half as strong as the last, its
+       * extinction 0.35 of the last's, its forward lobe narrower). */
+      float ph0 = phase(mu, 1.0);
+      float ph1 = phase(mu, 0.55) * 0.5;
+      float ph2 = phase(mu, 0.3) * 0.25;
       vec3 L = vec3(0.0);
       float T = 1.0;
       float tw = 0.0;
@@ -379,18 +473,50 @@ const MarchShader = {
         float dt = max(t - prev, 1.0);
         prev = t;
         vec3 p = ro + rd * t;
-        vec2 dn = density(p, true);
-        if (dn.x < 1e-5) {
+        /* The cover and the stratus's bands cost more than the rest of a
+         * step, so they are only worked out at the heights their layers
+         * can be at over p. */
+        float lift = s2LowLift(p.xz);
+        float yb = p.y - ${LOW_BASE.toFixed(1)} - ${LOW_LIFT.toFixed(1)} * lift;
+        float ys = p.y - ${SHEET_Y.toFixed(1)} - 90.0 * lift;
+        bool inStrata = ys > -60.0 && ys < ${(SHEET_THICK * 1.3 + 40).toFixed(1)};
+        vec2 cv = vec2(0.0, lift);
+        if (inStrata || (yb > -80.0 && yb < ${(LOW_THICK + 60).toFixed(1)})) {
+          cv.x = s2LowCover(p.xz).x;
+        }
+        float lay = inStrata ? strataLay(p.xz) : 0.0;
+        vec2 bk = bank(p, cv, ${q.fine ? 'true' : 'false'});
+        vec2 st = strata(p, cv, lay, ${q.fine ? 'true' : 'false'});
+        float ms = mist(p);
+        float sigma = bk.x + st.x + ms;
+        if (sigma < 1e-5) {
           continue;
         }
-        /* Toward the sun, two taps through the cloud. */
-        float od = density(p + uSunDir * 50.0, false).x * 50.0 + density(p + uSunDir * 180.0, false).x * 130.0;
-        float sun = exp(-od) * sunPastRidges(p);
-        /* Light scattered many times inside a cloud does not keep the
-         * sun's phase: a floor of it keeps a cloud's shaded side from
-         * going black. */
-        vec3 S = uSunRad * sun * (phase + 0.06) + uSkyRad * mix(0.45, 0.9, dn.y);
-        float a = 1.0 - exp(-dn.x * dt);
+        /* Toward the sun through the bank and the stratus, taps spread
+         * wider as they go (a cone's worth of cloud for the cost of a
+         * line). */
+        float od = 0.0;
+        float s0 = 0.0;
+        for (int k = 0; k < ${q.taps}; k++) {
+          float s1 = ${q.tap0.toFixed(1)} * pow(${q.tapGrow.toFixed(2)}, float(k));
+          vec3 pk = p + uSunDir * (0.5 * (s0 + s1));
+          od += (bank(pk, cv, false).x + strata(pk, cv, lay, false).x) * (s1 - s0);
+          s0 = s1;
+        }
+        float sun = sunPastRidges(p);
+        /* The sky's light: full at the top of a heap, less under it, where
+         * the cloud above hides the sky and what comes up is the valley's
+         * green and shade. The mist sits in the forest and sees half the
+         * sky. */
+        float up = (bk.x * bk.y + st.x * st.y + ms * 0.6) / sigma;
+        vec3 amb = uSkyRad * mix(0.3, 1.0, smoothstep(0.0, 0.85, up)) + uSunRad * vec3(0.022, 0.028, 0.018) * (1.0 - up);
+        /* Seen with the sun behind, a cloud's creases and thin edges are
+         * darker than its heaped body: light enters a thin part and
+         * mostly leaves it on the far side (the "powder" term). Toward
+         * the sun it is the other way, and the edges are the bright ones. */
+        float powder = mix(1.0, 1.0 - exp(-sigma * 120.0), 0.6 * clamp(0.5 - 0.5 * mu, 0.0, 1.0));
+        vec3 S = uSunRad * sun * powder * (ph0 * exp(-od) + ph1 * exp(-0.35 * od) + ph2 * exp(-0.12 * od)) + amb;
+        float a = 1.0 - exp(-sigma * dt);
         L += T * a * S;
         tw += T * a * t;
         wsum += T * a;
@@ -415,7 +541,7 @@ const MarchShader = {
  * depth and writes its own half resolution target, which post.js reads.
  */
 class CloudPass extends Pass {
-  constructor(camera, uniforms, steps, w, h) {
+  constructor(camera, uniforms, march, w, h) {
     super();
     this.needsSwap = false;
     this.camera = camera;
@@ -433,7 +559,7 @@ class CloudPass extends Pass {
         uTexel: { value: new THREE.Vector2(1 / w, 1 / h) },
       },
       vertexShader: MarchShader.vertexShader,
-      fragmentShader: MarchShader.fragmentShader(steps),
+      fragmentShader: MarchShader.fragmentShader(march),
       depthTest: false,
       depthWrite: false,
     });
@@ -501,7 +627,11 @@ export function makeClouds({ sun, sky, air }) {
       uniforms.uDrift.value = seconds * 0.8;
     },
     pass(camera, q, w, h) {
-      return new CloudPass(camera, uniforms, q.id === 'high' ? 72 : 36, w, h);
+      const march = MARCH[q.id];
+      if (!march) {
+        throw new Error(`swiss2 clouds: no march for the ${q.id} preset; say what it spends in src/maps/swiss2/clouds.js`);
+      }
+      return new CloudPass(camera, uniforms, march, w, h);
     },
     dispose() {
       noise.dispose();
