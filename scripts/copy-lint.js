@@ -65,13 +65,18 @@ const SHAPE_OK = [
   /^[A-Z_0-9]+(\s+[A-Z_0-9]+)+$/,                                 /* constants */
   /^[\s\d.,+\-*/%()=<>!&|?:^~]+$/,                              /* numbers and operators */
   /^(source-over|destination-|lighter|multiply|screen|overlay|round|square|butt|miter|bevel|center|left|right|top|bottom|middle|alphabetic|hanging|ideographic|bold|italic|normal|small-caps)\b/,
-  /\b(vec[234]|mat[234]|texture2D|uniform|varying|gl_[A-Za-z]+|float [a-z]|#include|precision)\b/, /* GLSL */
+  /* GLSL. #include sits outside the \b group because # is not a word
+   * character, so \b before it never matched; and a float declaration is
+   * matched to the end of its name, so a camelCase attribute such as
+   * aSize, where a capital follows the first letter with no boundary,
+   * reads as GLSL too. */
+  /\b(vec[234]|mat[234]|texture2D|uniform|varying|attribute|gl_[A-Za-z]+|float [a-z][A-Za-z0-9_]*|precision)\b|#include\b/,
   /^[a-z_]+:\s*x\s*$/,                                             /* a key with a placeholder */
   /^[a-z_]+( x)+$/,                                                 /* a CLI line with placeholders */
   /\/api\//,                                                        /* a board route */
   /^\s*[a-z-]+=\\?"[^"]*\\?"/,                                      /* markup attributes */
 ];
-const CONTEXT_OK = /(new Error|new TypeError|new RangeError|throw |console\.[a-z]+|\.style\.[a-zA-Z]+ *=|setProperty\(|\.cssText|className *=|classList\.|setAttribute\((['"])(d|viewBox|points|fill|stroke|transform|style|class|font|font-family)\1|\.font *=|\.textBaseline|\.textAlign|\.globalCompositeOperation|\.filter *=|localStorage\.|sessionStorage\.|Symbol\(|new RegExp|assert\(|must\(|import\(|from |\.matchMedia\(|querySelector(All)?\(|getContext\(|new URL\(|fetch\(|performance\.mark|performance\.measure|dataset\.[a-zA-Z]+ *=)[^;]*$/;
+const CONTEXT_OK = /(new Error|new TypeError|new RangeError|throw |console\.[a-z]+|\.style\.[a-zA-Z]+ *=|setProperty\(|\.cssText|className *=|classList\.|setAttribute\((['"])(d|viewBox|points|fill|stroke|transform|style|class|font|font-family)\1|\.font *=|\.textBaseline|\.textAlign|\.globalCompositeOperation|\.filter *=|localStorage\.|sessionStorage\.|Symbol\(|new RegExp|assert\(|must\(|import\(|from |\.matchMedia\(|querySelector(All)?\(|getContext\(|new URL\(|fetch\(|performance\.mark|performance\.measure|dataset\.[a-zA-Z]+ *=|\b(bad|missing): *$)[^;]*$/;
 
 function literals(src) {
   const out = [];
