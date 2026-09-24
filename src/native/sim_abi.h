@@ -330,14 +330,16 @@ int sim_set_flight_style(int arcade);
  * is the default, 1 is a 65 mm 1S brushless whoop, 2 the 1000 mm flying
  * wing, 3 the Skyhunter 1800, a twin boom pusher with ailerons, an
  * elevator and a rudder, 4 the Piper J-3 Cub 1400, a tractor
- * taildragger with the same surfaces that stands on its own wheels, 6
- * the E-flite Radian Pro, a 2 m powered glider with the same surfaces, a
- * folding prop, and the thermals of sim_air_lift to climb in, and 8 the
- * C-Astral Bramor C4EYE, a 2.3 m blended wing body flying wing that is
- * catapult launched and recovered under a parachute. 5 and 7 are
- * reserved for airframes still being built.
+ * taildragger with the same surfaces that stands on its own wheels, 5
+ * the GWS Slow Stick, a three channel slow flyer on wheels with no
+ * ailerons, whose roll stick drives its rudder too, 6 the E-flite Radian
+ * Pro, a 2 m powered glider with the Cub's surfaces, a folding prop, and
+ * the thermals of sim_air_lift to climb in, and 8 the C-Astral Bramor
+ * C4EYE, a 2.3 m blended wing body flying wing that is catapult launched
+ * and recovered under a parachute. 7 is reserved for an airframe still
+ * being built.
  * Returns SIM_ERR_BAD_ARG for anything else, a reserved id included.
- * 2, 3, 4, 6 and 8 are fixed wings: no Betaflight, the sticks go to the
+ * 2 to 6 and 8 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply.
  *
@@ -360,6 +362,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_WING1000_ID 2
 #define SIM_AIRFRAME_SKY1800_ID 3
 #define SIM_AIRFRAME_CUB1400_ID 4
+#define SIM_AIRFRAME_SLOWSTICK1180_ID 5
 #define SIM_AIRFRAME_RADIAN2000_ID 6
 #define SIM_AIRFRAME_BRAMOR2300_ID 8
 int sim_set_airframe(int id);
@@ -432,7 +435,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2, 3, 4, 6 and 8. Additive, version unchanged; each
+ * The fixed wings, airframes 2 to 6 and 8. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *
@@ -451,7 +454,8 @@ double sim_gravity(void);
  * rudder, radians. Aileron and elevator positive trailing edge up; rudder
  * positive trailing edge to the LEFT, which yaws the nose left, so full
  * right yaw stick reads negative. On the flying wing out[2] and out[3]
- * are zero.
+ * are zero; on the Slow Stick, which has no ailerons, out[0] and out[1]
+ * are zero and the roll stick moves the rudder with the yaw stick.
  * sim_wing_debug(out[20]): what the last step saw, for the gates: alpha
  * (of the zero lift line), beta, qbar, CL, CD, l m n (aero convention),
  * thrust, force body x y z, moment body x y z, u v w, delta_e, delta_a.
@@ -465,8 +469,9 @@ int sim_wing_debug(double *out);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an
- * airframe declares, newtons, in its table's order; for the Cub, left
- * main, right main, tailwheel, and the prop's lowest tip, which reads
+ * airframe declares, newtons, in its table's order; for the Cub and the
+ * Slow Stick, left main, right main, tailwheel, and the prop's lowest
+ * tip, which reads
  * nonzero only in a prop strike. Zero for a point off the ground and for
  * every airframe without gear. The gates read liftoff and touchdown from
  * it, and a renderer can compress a strut by load / stiffness less its

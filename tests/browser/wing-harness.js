@@ -4,8 +4,9 @@
  * script in tests/lib/wingpilot.js and hands the trace hash back through
  * window.__simHarnessResolve, the way harness.js does for the quad.
  * ?plane=sky replays the Skyhunter's recording on its airframe instead,
- * ?plane=cub the Cub's, from standing on its wheels, and ?plane=glider
- * the Radian's, thrown at 80 m short of a thermal; with no query it is the
+ * ?plane=cub the Cub's, from standing on its wheels, ?plane=glider the
+ * Radian's, thrown at 80 m short of a thermal, and ?plane=slowstick the
+ * Slow Stick's, from standing on its wheels; with no query it is the
  * wing's, exactly as it always was.
  *
  * This file is part of WebFPVSimulator.
@@ -28,7 +29,8 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bramorChutePrelude, bramorPrelude, cubGroundPrelude, gliderRecPrelude, skyPrelude, wingPrelude,
+  bramorChutePrelude, bramorPrelude, cubGroundPrelude, gliderRecPrelude, skyPrelude, slowstickGroundPrelude,
+  wingPrelude,
 } from '../lib/wingpilot.js';
 
 const PLANES = {
@@ -38,6 +40,7 @@ const PLANES = {
   glider: { rec: '/tests/inputs/glider-baseline.rec', prelude: gliderRecPrelude },
   bramor: { rec: '/tests/inputs/bramor-baseline.rec', prelude: bramorPrelude },
   'bramor-chute': { rec: '/tests/inputs/bramor-chute.rec', prelude: bramorChutePrelude },
+  slowstick: { rec: '/tests/inputs/slowstick-baseline.rec', prelude: (sim) => slowstickGroundPrelude(sim) },
 };
 
 async function fetchBytes(url) {

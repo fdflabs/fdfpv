@@ -942,6 +942,22 @@ static void ground_apply(void) {
             break;
           }
         }
+      } else if (PLANT.kind == PLANT_KIND_WING) {
+        /* A wing past the vertical on its nose has its bump high in the
+         * air and a corner in the dirt. Projection alone holds the corner
+         * up with no impulse, so nothing stops the fall's speed and nothing
+         * topples it: it stood on its nose for ever while its velocity
+         * grew. The supporting vertex takes the impulse instead, as on
+         * its side. A wing has no turtle couple for this to weld, and a
+         * corner above the plane returns without touching anything, so a
+         * wing on its back on the bump, or in the air, is as it was. */
+        contact_support_neg_n(g_ground_n, r);
+        for (int iter = 0; iter < CONTACT_ITERS; iter += 1) {
+          if (!ground_hit_at(r, vs)) {
+            break;
+          }
+          hits = 1;
+        }
       }
     } else {
       /* Tumble on an arm, or on its side: the supporting vertex only. */

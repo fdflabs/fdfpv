@@ -15,17 +15,20 @@
  * Skyhunter of docs/SKYHUNTER-STAGE1.md, with ailerons, an elevator and a
  * rudder on an H tail; and FW_CUB1400, the Piper J-3 Cub of
  * docs/CUB-STAGE1.md, the same surfaces behind a tractor prop, which adds
- * a thrust line off the CG and P factor; and FW_RADIAN2000, the E-flite
+ * a thrust line off the CG and P factor; FW_RADIAN2000, the E-flite
  * Radian Pro powered glider of docs/GLIDER-STAGE1.md, which adds a folding
- * prop and flies in rising air; and FW_BRAMOR2300, the C-Astral Bramor
+ * prop and flies in rising air; FW_BRAMOR2300, the C-Astral Bramor
  * C4EYE of docs/BRAMOR-STAGE1.md, a blended wing body with elevons that
- * brings a recovery parachute. A term an airframe does not have
+ * brings a recovery parachute; and FW_SLOWSTICK1180, the GWS Slow Stick
+ * of docs/SLOWSTICK-STAGE1.md, which has no ailerons and banks on its
+ * rudder through its dihedral. A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
  * airframe has to land in are scripts/wing-gates.js,
  * scripts/skyhunter-gates.js, scripts/cub-gates.js,
- * scripts/glider-gates.js and scripts/bramor-gates.js.
+ * scripts/glider-gates.js, scripts/bramor-gates.js and
+ * scripts/slowstick-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -518,10 +521,19 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * one branch, because they are two kinds of hardware: an elevon is one
    * surface doing pitch and roll and is clipped as one, a tail's surfaces
    * are separate.
+   *
+   * Without ailerons the roll stick is a second rudder stick, the sum of
+   * the two clipped at full travel. A three channel aircraft on a four
+   * channel radio has its rudder on the stick that rolls a plane with
+   * ailerons, so an aileron pilot's right stick banks it the way they
+   * expect, through the rudder and the dihedral; the yaw stick stays live
+   * for a pilot who uses it. For every other mix the rudder's stick is the
+   * yaw stick, the same double.
    */
   const double de = surface_from_stick(pitch, fw->throw_e, fw->expo);
   const double da = surface_from_stick(roll, fw->throw_a, fw->expo);
-  const double delta_r = -surface_from_stick(yaw, fw->throw_r, fw->expo);
+  const double rudder_stick = fw->mix == FW_MIX_RUDDER ? clamp1(yaw + roll) : yaw;
+  const double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->expo);
   double delta_e;
   if (fw->mix == FW_MIX_ELEVON) {
     g_surf[0] = clip(de - da, fw->surface_max);
@@ -531,8 +543,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     /* What the aero sees of two elevons: their mean. */
     delta_e = 0.5 * (g_surf[0] + g_surf[1]);
   } else {
-    g_surf[0] = -da;
-    g_surf[1] = da;
+    /* A rudder mix has no ailerons, and their slots read zero. */
+    const int ailerons = fw->mix == FW_MIX_TAIL;
+    g_surf[0] = ailerons ? -da : 0.0;
+    g_surf[1] = ailerons ? da : 0.0;
     g_surf[2] = de;
     g_surf[3] = delta_r;
     delta_e = de;
@@ -621,8 +635,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * delta_a);
   cn_sum = add_term(cn_sum, fw->cn_dr * delta_r);
   const double l_aero = qbar * fw->area * fw->span * cl_sum;
-  const double m_aero = qbar * fw->area * fw->chord * (fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v +
-                                                       fw->cm_de * delta_e);
+  /* Past the stall the wing's lift no longer grows with alpha, and what is
+   * left of it, the flat plate's, acts well aft of the quarter chord. The
+   * linear moment above assumes neither, so it keeps pitching the nose up
+   * with the lift the wing no longer makes. Taken back through the stall
+   * blend: the linear lift at the CG's arm behind the wing's aerodynamic
+   * centre, and the plate's at its centre of pressure's arm behind the CG.
+   * Zero arms on an airframe that leaves them out, and add_term keeps its
+   * arithmetic as it was. */
+  const double cm_stall = -sigma * (fw->stall_arm_ac * cl_lin + fw->stall_arm_cp * cl_flat);
+  const double m_aero = qbar * fw->area * fw->chord * add_term(fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v +
+                                                               fw->cm_de * delta_e, cm_stall);
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
   double M[3];
   M[0] = l_aero - fw->torque_arm * thrust; /* the prop turns one way; the airframe answers the other */
@@ -1101,4 +1124,89 @@ const FixedWingParams FW_BRAMOR2300 = {
   .chute_cda = 1.687,
   .chute_open_s = 1.2,
   .chute_attach = { 0.0642, 0.0, -0.060 },
+};
+
+/* The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md, where each number has its
+ * formula and source and the estimated ones say so. Three channels: no
+ * ailerons, so it banks on its rudder, the roll stick's as well as the yaw
+ * stick's, through twelve degrees of dihedral each side, and that dihedral
+ * is also what brings the wings back level with the sticks centred. A
+ * geared can motor turning an 11 x 8 in front, clockwise seen from behind,
+ * on the stick's line 2.5 mm under the CG. */
+const FixedWingParams FW_SLOWSTICK1180 = {
+  .mix = FW_MIX_RUDDER,
+  .span = 1.176,
+  .area = 0.3264,
+  .chord = 0.2776,        /* S/b */
+  .cl_alpha = 4.58,       /* wing and tail, Nelson eq. 2.52, DATCOM downwash */
+  .cl_max = 1.05,
+  /* The zero lift line 6.06 degrees under the stick: a flat bottomed
+   * section on the saddles at 3 degrees of incidence, less the tail's
+   * share. sin and cos of minus 6.06 degrees, to 17 digits. */
+  .alpha_zl = -6.06 * WING_PI / 180.0,
+  .sin_zl = -0.10556986665660810,
+  .cos_zl = 0.99441188812991665,
+  .cd0 = 0.040,           /* the bare stick, wire gear, open gearbox, foam */
+  .k_induced = 0.0939,    /* 1/(pi 0.80 4.24) */
+  .cl_de = -0.400,
+  .cy_beta = -0.274,
+  .cy_dr = 0.1505,
+  .cl_beta = -0.2416,     /* twelve degrees of dihedral each side, and the fin */
+  .cl_p = -0.711,
+  .cl_da = 0.0,           /* no ailerons */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0100,
+  .cm_0 = 0.0496,         /* trims at 5.5 m/s with the elevator neutral */
+  .cm_alpha = -0.333,     /* static margin 0.073 at the 100 mm CG */
+  .cm_q = -4.19,
+  .cm_de = 0.737,
+  .cn_beta = 0.1233,
+  .cn_r = -0.1211,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = 0.0,
+  .cn_dr = -0.0678,
+  /* A thick flat bottomed section at a Reynolds number of 1e5 stalls from
+   * its trailing edge, and its lift curve rounds over twice the width the
+   * thinner sections of the other planes do. */
+  .stall_blend = 4.0 * WING_PI / 180.0,
+  .throw_a = 0.0,
+  .throw_e = 15.0 * WING_PI / 180.0,
+  .throw_r = 30.0 * WING_PI / 180.0,
+  .surface_max = 0.0,
+  .expo = 0.30,
+  .thrust_static = 2.69,  /* N, GWS's EPS-300C D with the EP1180 at 7.2 V */
+  .pitch_speed = 11.18,
+  .rpm_no_load = 3882.0,
+  .torque_arm = 0.0122,   /* 11.4 W of disc power at 3,300 rpm is 0.033 N m at 2.69 N */
+  .thrust_z = -0.0025,    /* the drawn model's shaft, 2.5 mm under the CG */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 6.1,
+  .duty_min = 0.02,
+  .stab_bank_max = 45.0 * WING_PI / 180.0,
+  .stab_pitch_max = 25.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.8,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .acro_roll_rate = 60.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 60.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.6,
+  .acro_roll_ff = 0.5,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 2.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
+  /* The air over the field is the air: a 420 g aircraft sinking 0.65 m/s
+   * is carried up by a thermal's core faster than anything else here. */
+  .air_lift = 1,
+  .stall_arm_ac = 0.0617, /* the CG 17 mm behind the wing's aerodynamic centre */
+  .stall_arm_cp = 0.097,  /* the plate's centre of pressure at 0.40 of the chord, 27 mm behind it */
 };

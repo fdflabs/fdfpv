@@ -12,7 +12,9 @@
  * and rolls to a stop at its three point attitude, a wingtip strike that
  * falls back onto the wheels, the nose-in, and the throw. The Radian
  * lands on its belly as the first two do, and gets their four, thrown
- * with the stick that trims its climb. Run with npm run wing:contact.
+ * with the stick that trims its climb. The Slow Stick stands on wheels
+ * and gets the Cub's four at its own slow speeds. Run with npm run
+ * wing:contact.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -48,6 +50,7 @@ const PLANES = [
   { name: 'skyhunter', id: 3, hx: 0.61, hy: 0.9, down: 0.12, up: 0.08, land: 11, nose: 13, toss: 12, tossSticks: [0, 0.3, 0, 0.8] },
   { name: 'cub', id: 4, hx: 0.30, hy: 0.70, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.18, 0, 0.8], wheels: { restPitchDeg: 11.0, restZ: 0.1463 } },
   { name: 'radian', id: 6, hx: 0.45, hy: 0.55, down: 0.052, up: 0.08, land: 8, nose: 10, toss: 10, tossSticks: [0, -0.274, 0, 0.7] },
+  { name: 'slowstick', id: 5, hx: 0.30, hy: 0.588, down: 0.03, up: 0.06, land: 5, nose: 6, toss: 6, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 6.91, restZ: 0.1349 } },
 ];
 
 let failed = 0;

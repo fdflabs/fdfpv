@@ -37,6 +37,7 @@ import { buildSkyCraft } from './skycraft.js';
 import { buildCubCraft } from './cubcraft.js';
 import { buildGliderCraft } from './glidercraft.js';
 import { buildBramorCraft } from './bramorcraft.js';
+import { buildSlowStickCraft } from './slowstickcraft.js';
 import { airframeById } from '../../configs/airframes.js';
 
 /*
@@ -56,6 +57,7 @@ const BUILDERS = {
   cub1400: buildCubCraft,
   radian2000: buildGliderCraft,
   bramor2300: buildBramorCraft,
+  slowstick1180: buildSlowStickCraft,
 };
 
 export function craftBuilderFor(airframeId) {

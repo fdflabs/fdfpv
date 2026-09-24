@@ -257,8 +257,12 @@ sf = surfaces();
 check('half left yaw: rudder trailing edge left, positive, with expo', sf[3] > 0 && sf[3] < 0.5 * R, sf.map(deg).join(' '));
 check('a null pointer is refused', sim.e.sim_plane_surfaces(0) !== SIM_OK);
 
+/* Slot 5 was the reserved and empty one when this was written, and is the
+ * Slow Stick now; 7, the Timber's, is reserved and empty until it lands,
+ * and one past the table is refused whatever lands. */
 console.log('the reserved slot');
-check('airframe 5, reserved and empty, is refused and the Radian stays selected', sim.e.sim_set_airframe(5) !== SIM_OK && sim.e.sim_airframe() === GLIDER_AIRFRAME, `airframe ${sim.e.sim_airframe()}`);
+check('airframe 7, reserved and empty, is refused and the Radian stays selected', sim.e.sim_set_airframe(7) !== SIM_OK && sim.e.sim_airframe() === GLIDER_AIRFRAME, `airframe ${sim.e.sim_airframe()}`);
+check('and so is one past the table', sim.e.sim_set_airframe(99) !== SIM_OK && sim.e.sim_airframe() === GLIDER_AIRFRAME, `airframe ${sim.e.sim_airframe()}`);
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);
