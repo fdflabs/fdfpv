@@ -247,3 +247,41 @@ physics and its own loop. Running in parallel with the loop now: four
 new aircraft (Slow Stick, powered glider, Timber Evolution, and the
 Bramor C4EYE replacing the flying wing); the plane you fly stays cel in
 swiss2 until they land, and a photoreal aircraft pass follows them.
+
+### Round 5 (PRs #26, #28, #29, main at 10827a7)
+
+Ground (#26): the far floor textured per field (mower passes, headlands,
+tracks, hedge shadows, clumps, drift, soft edges, grazing sheen) and the
+steep walls' smears fixed at their three causes. Camera and light
+(#28): metered exposure (reset per fixed view so rounds compare), sun
+glare that ridges hide, grain, edge fringing, forest mist at crown
+height; depth of field and lens ghosts left out because no reference
+has them. Nature (#29): foliage translucency lit by the sun each leaf
+actually gets (the lime crowns), broadleaf crowns rebuilt as lit clumps,
+weedy verges, delineator posts, gate, log stack, signpost, boat shed,
+hedgerows, orchards, a dark stream.
+
+| View | R4 | R5 | The tell now |
+| --- | --- | --- | --- |
+| strip | 5.5 | 5.5 | the near floor is even |
+| vista-high | 6.5 | 7 | trees and hedgerows on the floor; reads |
+| cruise | 6.5 | 7 | the same |
+| village-20m | 5 | 5 | white walls from above |
+| square-eye | 4.5 | 4.5 | the bus in the foreground |
+| meadow-eye | 5.5 | 6 | a treeline with depth |
+| east-wall | 6 | 6.5 | mist in the forest; mower bars read dashed |
+| lake-shore | 4.5 | 5.5 | a real verge; the weeds read a little white |
+| lake-high | 5.5 | 6 | |
+| waterfall | 5 | 5.5 | no lime crowns; the wall is dark |
+| into-sun | 6 | 6 | |
+| farm-low | 4.5 | 5.5 | a fence leading away, an orchard |
+| lake-edge | 5 | 5 | a plain shore |
+
+Mean of the thirteen: 5.38 to 5.77. Gate held: no view lower; at most
+244 calls and 1.76 M triangles; alps fingerprint unchanged.
+
+Round 6: the village from above and at eye level (still 5 and 4.5:
+large plain walls, the bus as the square-eye foreground, streets
+without people or clutter), the lake edge and near strip floor, and the
+aircraft in swiss2 now that the new airframes have landed (a
+photoreal pass on the plane you fly).
