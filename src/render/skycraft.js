@@ -1,7 +1,7 @@
 /*
  * skycraft.js: the Skyhunter's model, and nothing else.
  *
- * Its own file for the reason wingcraft.js is: a twin boom pusher does not
+ * Its own file for the reason bramorcraft.js is: a twin boom pusher does not
  * share a silhouette with a flying wing or a quad. It is a foam pod hung
  * under a straight wing, a pusher prop on the back of the pod, and two
  * carbon booms carrying an H tail clear of the prop disc.
@@ -39,10 +39,10 @@
  * at the clamps, skid and camera. The moving surfaces are the foam a shade
  * down, because on the real aircraft they are the same moulding cut on a
  * hinge line and the cut is what the eye reads. The pod carries an outline
- * hull; the wing and tail do not, for wingcraft.js's reason: a one percent
+ * hull; the wing and tail do not, for bramorcraft.js's reason: a one percent
  * copy of 1.8 m of span stands off the tips by nine millimetres.
  *
- * The contract with the shell is wingcraft.js's, field for field: group,
+ * The contract with the shell is bramorcraft.js's, field for field: group,
  * discs, blades, leds, cameraMount, stator, propSpin, four slots long, and
  * setSurfaces. Here setSurfaces takes FOUR angles in radians: left aileron,
  * right aileron, elevator, rudder. Ailerons and elevator are positive
@@ -261,7 +261,7 @@ function loft(sections) {
 /*
  * The wing, tip to tip in one loft. Across each aileron the section stops
  * at the hinge, and the step from a full section to a cut one at the same
- * station is the cut out's side wall, as on wingcraft.js's elevons.
+ * station is the cut out's side wall, as on bramorcraft.js's elevons.
  */
 function wingGeometry(lite) {
   const n = lite ? 9 : 14;

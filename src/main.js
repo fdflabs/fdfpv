@@ -94,19 +94,19 @@ import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
-import { WING_MOUNT_FORWARD, WING_MOUNT_UP } from './render/wingcraft.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
+import { BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP } from './render/bramorcraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
  * in the craft frame, from the module that draws it. A quad's comes from
  * src/render/lens.js. */
 const WING_MOUNTS = {
-  wing1000: [WING_MOUNT_FORWARD, WING_MOUNT_UP],
   sky1800: [SKY_MOUNT_FORWARD, SKY_MOUNT_UP],
   cub1400: [CUB_MOUNT_FORWARD, CUB_MOUNT_UP],
   radian2000: [GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP],
+  bramor2300: [BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP],
 };
 import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
@@ -1905,6 +1905,9 @@ export async function boot({ loading, bootStart, mapId }) {
     if (!stNow || speedNow >= 1.0 || typeof sim.e.sim_wing_launch !== 'function') {
       return false;
     }
+    if (airframeById(runAirframe).catapult) {
+      return catapultLaunch(stNow);
+    }
     /* Into the hand first: a hull on the grass is held by friction the
      * moment it moves. Level, too: a wing that came to rest on a wingtip
      * is picked up before it is thrown. */
@@ -1918,6 +1921,72 @@ export async function boot({ loading, bootStart, mapId }) {
     flownThisRun = true;
     adoptSimClock();
     notice = { text: str('main.thrown_keep_it_flying'), untilMs: performance.now() + 2200 };
+    return true;
+  }
+
+  /*
+   * A CATAPULT LAUNCHED AIRCRAFT IS NOT THROWN EITHER, IT IS SHOT OFF A
+   * RAIL: the Bramor. Parked, it is drawn on the rail, `catapult.height`
+   * over the ground and `catapult.pitchDeg` nose up, facing the way it
+   * faced; L, or throttle, puts the plant at exactly that pose and lets it
+   * go at the rail's release speed along its nose, which is the end of the
+   * shuttle's stroke. The launcher stays where it stood. From anywhere else
+   * (it came down under its chute in a field) the same release happens
+   * where it lies, the ground crew having carried the rail to it; a chute
+   * still out is packed first.
+   */
+  function catapultLaunch(stNow) {
+    const cat = airframeById(runAirframe).catapult;
+    const yaw = Math.atan2(2 * (stNow[7] * stNow[10] + stNow[8] * stNow[9]), 1 - 2 * (stNow[9] * stNow[9] + stNow[10] * stNow[10]));
+    const cy = Math.cos(yaw / 2);
+    const sy = Math.sin(yaw / 2);
+    const pitch = (cat.pitchDeg * Math.PI) / 180;
+    const cp = Math.cos(pitch / 2);
+    const sp = Math.sin(pitch / 2);
+    if (typeof sim.e.sim_wing_chute === 'function') {
+      sim.e.sim_wing_chute(0);
+    }
+    const code = sim.e.sim_set_pose(
+      stNow[1], stNow[2], stNow[3] - REST_HEIGHT + cat.height,
+      cy * cp, sy * sp, -cy * sp, sy * cp,
+    );
+    if (code !== SIM_OK || sim.e.sim_wing_launch(cat.speed) !== SIM_OK) {
+      return false;
+    }
+    if (shell.launcher && shell.launcher.visible && !flownThisRun) {
+      shell.quad.updateMatrixWorld(true);
+      launcherLeft = shell.launcher.matrixWorld.clone();
+    }
+    landed = false;
+    takingOff = false;
+    flownThisRun = true;
+    adoptSimClock();
+    stateCurr = readState();
+    statePrev = stateCurr;
+    notice = { text: str('main.catapulted_keep_it_flying'), untilMs: performance.now() + 2200 };
+    return true;
+  }
+
+  /*
+   * The recovery parachute, P, on an aircraft that has one. In the air
+   * only: on the ground there is nothing for it to do. Once out it stays
+   * out until the aircraft is relaunched or reset.
+   */
+  function pullChute() {
+    if (typeof sim.e.sim_wing_chute !== 'function' || !airframeById(runAirframe).chute) {
+      return false;
+    }
+    if (landed) {
+      notice = { text: str('main.the_parachute_is_for_the_air'), untilMs: performance.now() + 2200 };
+      return false;
+    }
+    if (sim.e.sim_wing_chute_open() > 0) {
+      return false;
+    }
+    if (sim.e.sim_wing_chute(1) !== SIM_OK) {
+      return false;
+    }
+    notice = { text: str('main.parachute_out_motor_cut'), untilMs: performance.now() + 2600 };
     return true;
   }
 
@@ -1957,6 +2026,83 @@ export async function boot({ loading, bootStart, mapId }) {
     stateCurr = readState();
     statePrev = stateCurr;
     return true;
+  }
+
+  /*
+   * The Bramor's canopy and its catapult, each frame (its folding prop is
+   * the Radian's setProp, above).
+   * The canopy hangs from its risers against the air they move through,
+   * which is the aircraft's own velocity turned into its body frame and
+   * handed to the model in the craft frame through the render boundary's
+   * one conversion; stopped, it lies on the grass. The launcher stands
+   * under a parked aircraft, stays at the spawn once it has left, and is
+   * not drawn otherwise.
+   */
+  const extraV = new THREE.Vector3();
+  const extraD = new THREE.Vector3();
+  function bodyOf(st, x, y, z, out) {
+    /* q^-1 v q for the plant's body to world quaternion. */
+    const w = st[7];
+    const qx = -st[8];
+    const qy = -st[9];
+    const qz = -st[10];
+    const tx = 2 * (qy * z - qz * y);
+    const ty = 2 * (qz * x - qx * z);
+    const tz = 2 * (qx * y - qy * x);
+    return simPosToThree(
+      x + w * tx + (qy * tz - qz * ty),
+      y + w * ty + (qz * tx - qx * tz),
+      z + w * tz + (qx * ty - qy * tx),
+      out,
+    );
+  }
+  function poseBramorExtras() {
+    const st = stateCurr;
+    if (shell.setChute && typeof sim.e.sim_wing_chute_open === 'function') {
+      const open = sim.e.sim_wing_chute_open();
+      if (!(open > 0)) {
+        shell.setChute(0);
+        chuteDownSaid = false;
+      } else {
+        bodyOf(st, st[4], st[5], st[6], extraV);
+        bodyOf(st, 0, 0, -1, extraD);
+        const speed = extraV.length();
+        if (speed > 0.3) {
+          extraV.multiplyScalar(-1 / speed);
+          chuteDir[0] = extraV.x;
+          chuteDir[1] = extraV.y;
+          chuteDir[2] = extraV.z;
+        }
+        const down = [extraD.x, extraD.y, extraD.z];
+        const dims = airframeById(runAirframe).dims;
+        const rest = plantUpZ(st) < 0 ? dims.vHalfUp : dims.vHalfDown;
+        shell.setChute(open, chuteDir, down, speed < 0.3 ? rest : null);
+        if (speed < 0.3 && !chuteDownSaid && mode === 'flight') {
+          chuteDownSaid = true;
+          notice = { text: str('main.down_under_its_parachute'), untilMs: performance.now() + 4000 };
+        }
+      }
+    }
+    const launcher = shell.launcher;
+    if (!launcher) {
+      launcherLeft = null;
+      return;
+    }
+    const parked = landed && !flownThisRun && Boolean(airframeById(runAirframe).catapult);
+    if (parked) {
+      launcherLeft = null;
+      launcher.position.copy(shell.launcherRest.position);
+      launcher.quaternion.copy(shell.launcherRest.quaternion);
+      launcher.scale.set(1, 1, 1);
+      launcher.visible = true;
+    } else if (launcherLeft) {
+      shell.quad.updateMatrixWorld(true);
+      launcherInv.copy(shell.quad.matrixWorld).invert().multiply(launcherLeft);
+      launcherInv.decompose(launcher.position, launcher.quaternion, launcher.scale);
+      launcher.visible = true;
+    } else {
+      launcher.visible = false;
+    }
   }
 
   function adoptSimClock() {
@@ -2351,6 +2497,20 @@ export async function boot({ loading, bootStart, mapId }) {
   let wingSurfPtr = 0;
   /* What the module was last told about the wing's stabiliser. */
   let wingStabApplied = -1;
+  /*
+   * The Bramor's catapult, once the aircraft has left it: the launcher's
+   * world matrix, held so it stays at the spawn while the aircraft it is
+   * parented to flies away (it is part of the craft's model, so it is
+   * built, swapped and disposed with it and needs no scene of its own).
+   * Null while it stands under a parked aircraft.
+   */
+  let launcherLeft = null;
+  const launcherInv = new THREE.Matrix4();
+  /* Where the canopy last hung, craft frame, for when the aircraft stops
+   * under it and there is no air to say. */
+  const chuteDir = [0, 1, 0];
+  /* Whether the pilot has been told the aircraft is down under its chute. */
+  let chuteDownSaid = false;
   let notice = null; /* { text, untilMs } for one off shell messages */
   /* The seated world's own note, waiting for a flight to be said over. See
    * showCourseNotes. */
@@ -2938,6 +3098,12 @@ export async function boot({ loading, bootStart, mapId }) {
 
   function tryEnterTurtle(st, inContact) {
     if (!st || turtleWait || turtleFlip.active || poseLock) {
+      return;
+    }
+    /* An aircraft that comes home under a parachute lands on its back on
+     * purpose, and a flying wing cannot turtle itself over: it lies there
+     * until L launches it again or R puts it back on the rail. */
+    if (airframeById(runAirframe).chute) {
       return;
     }
     if (launchStaging) {
@@ -5079,6 +5245,10 @@ export async function boot({ loading, bootStart, mapId }) {
       throwWing();
       return;
     }
+    if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).chute) {
+      pullChute();
+      return;
+    }
     if (code === 'KeyC' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
       const views = ['fpv', 'chase', 'los'];
       ui.settings.wingView = views[(views.indexOf(ui.settings.wingView) + 1) % views.length];
@@ -6699,6 +6869,16 @@ export async function boot({ loading, bootStart, mapId }) {
         qPad.setFromAxisAngle(AXIS_X, parkedGear.restPitch);
         qPrev.multiply(qPad);
       }
+      /* One on a catapult waits on the rail, nose up at the rail's angle
+       * and the rail's height over the ground, which is where the plant
+       * is put the moment it is let go. Only before its first flight of
+       * the run: after that it is wherever it came down. */
+      const parkedCat = airframeById(runAirframe).catapult;
+      if (parkedCat && !flownThisRun) {
+        qPad.setFromAxisAngle(AXIS_X, (parkedCat.pitchDeg * Math.PI) / 180);
+        qPrev.multiply(qPad);
+        pCurr.y += simLenToWorld(parkedCat.height - REST_HEIGHT);
+      }
     }
     shell.quad.position.copy(pCurr);
     shell.quad.quaternion.copy(qPrev);
@@ -7016,6 +7196,7 @@ export async function boot({ loading, bootStart, mapId }) {
         shell.setSurfaces(out[0], out[1], out[2], out[3]);
       }
     }
+    poseBramorExtras();
 
     /* The lens sits where herocraft.js bolts it, forward AND up, not at the
      * centre of gravity's height. src/render/lens.js carries both numbers and
@@ -7786,6 +7967,8 @@ export async function boot({ loading, bootStart, mapId }) {
       const isWing = Boolean(airframeById(runAirframe).fixedWing);
       const start = airframeById(runAirframe).gear
         ? str('main.throttle_up_to_take_off_from')
+        : airframeById(runAirframe).catapult
+        ? str('main.launch_it_off_the_catapult')
         : isWing
         ? str('main.throw_it_with_l')
         : ui.settings.launchControl

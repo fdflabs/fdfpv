@@ -136,6 +136,7 @@ import {
    * the pilot's own track. See seatLocal. A board track's seat is written
    * by main.js, which owns the fetch. */
   clearShareImport,
+  AIRFRAME_BY_CLASS,
 } from '../share/session.js';
 import {
   clipKeyForMap,
@@ -863,6 +864,14 @@ const SUPERSEDED_WHOOP = {
   pidsSeed: { tune: 'whoop-freestyle', sliders: { master: 150 } },
 };
 
+/*
+ * Airframes the shell no longer seats, and the one each is seated on
+ * instead: a stored profile, a link from the board (whose own table still
+ * names the flying wing, fdfpv-leaderboard public/app.js CRAFT_ID) and a
+ * Flight controller dump's stamp all go through this.
+ */
+const RETIRED_AIRFRAMES = { wing1000: 'bramor2300' };
+
 export function loadSettings() {
   let stored = {};
   try {
@@ -896,6 +905,27 @@ export function loadSettings() {
    * list and was chosen against a different camera model, so it goes back to
    * the default rather than being snapped to the nearest survivor.
    */
+  /*
+   * A RETIRED AIRFRAME IS RESEATED ON ITS SUCCESSOR, before the check below
+   * would send it to the five inch. The 1000 mm flying wing was replaced by
+   * the Bramor C4EYE (configs/airframes.js): a profile seated on it is a
+   * fixed wing pilot and flies the Bramor, keeping the tune, since the
+   * three wing tunes moved with it, and everything else the two share. No
+   * generation marker, unlike the migrations below: the old id can never be
+   * stored again, so reseating it is the same answer on every load. A Flight
+   * controller dump stamped with it goes with it.
+   */
+  if (RETIRED_AIRFRAMES[s.airframe]) {
+    s.airframe = RETIRED_AIRFRAMES[s.airframe];
+  }
+  try {
+    const stamped = localStorage.getItem(FC_DUMP_AIRFRAME_KEY);
+    if (RETIRED_AIRFRAMES[stamped]) {
+      localStorage.setItem(FC_DUMP_AIRFRAME_KEY, RETIRED_AIRFRAMES[stamped]);
+    }
+  } catch (e) {
+    /* Storage refused: the dump stays unoffered, which is what it was. */
+  }
   /*
    * The airframe is validated FIRST and on its own, because the tune list
    * below depends on it. A stored airframe the build no longer offers has to
@@ -1016,8 +1046,8 @@ export function loadSettings() {
    * who then picks Manual keeps it, the same rule as the whoop's.
    */
   if (!(s.wingDefaults >= 1)) {
-    if (s.airframe === 'wing1000' && s.tune === 'wing-manual') {
-      s.tune = airframeById('wing1000').defaultTune;
+    if (s.airframe === 'bramor2300' && s.tune === 'wing-manual') {
+      s.tune = airframeById('bramor2300').defaultTune;
     }
     s.wingDefaults = 1;
   }
@@ -1028,7 +1058,7 @@ export function loadSettings() {
    * once; a Stabilised picked after this is kept, the rule above.
    */
   if (!(s.wingDefaults >= 2)) {
-    const stock = { wing1000: 'wing-stab', sky1800: 'sky-stab' }[s.airframe];
+    const stock = { bramor2300: 'wing-stab', sky1800: 'sky-stab' }[s.airframe];
     if (stock && s.tune === stock) {
       s.tune = airframeById(s.airframe).defaultTune;
     }
@@ -2767,12 +2797,13 @@ const WAYS = [
   },
   {
     /* EVERY FIXED WING, ONE CARD. A card is a kind of flying, not a
-     * machine: the flying wing and the Skyhunter are both thrown, flown
-     * long and belly landed on the airfield, so they share a way in and
-     * the Plane row picks between them. The first is what the card seats
-     * when neither is; a pilot already on the other keeps it. */
+     * machine: every one of them is launched, flown long and brought home
+     * on the airfield, so they share a way in and the Plane row picks
+     * between them. The first, the Bramor, which took the 1000 mm flying
+     * wing's place, is what the card seats when none is; a pilot already on
+     * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['wing1000', 'sky1800', 'cub1400', 'radian2000'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000'],
     mode: 'freestyle',
     /* The wing's own world. A card with a home skips the picker: the
      * airfield was built for these aircraft and the town was not. The
@@ -2806,6 +2837,17 @@ function seatedWay(settings, mode) {
  * fallback, because "the link said something I do not understand" and "the
  * link said nothing" should both end up asking.
  */
+/*
+ * What a link to the board carries for the seated aircraft. The board takes
+ * an airframe id or a track class (src/share/board.js) and knows one
+ * airframe per class, which for the wing class is still the retired
+ * wing1000, so a fixed wing, any of them, is sent as its class.
+ */
+function boardCraft(id) {
+  const af = airframeById(id);
+  return af.fixedWing ? af.trackClass : af.id;
+}
+
 function linkedCraft() {
   let params;
   try {
@@ -2813,7 +2855,7 @@ function linkedCraft() {
   } catch (e) {
     return null;
   }
-  const wanted = params.get('craft');
+  const wanted = RETIRED_AIRFRAMES[params.get('craft')] ?? params.get('craft');
   return AIRFRAME_IDS.includes(wanted) ? wanted : null;
 }
 
@@ -9741,7 +9783,7 @@ export class Ui {
     if (have.trackClass === cls) {
       return null;
     }
-    const want = AIRFRAMES.find((a) => a.trackClass === cls);
+    const want = airframeById(AIRFRAME_BY_CLASS[cls]);
     if (!want || want.id === have.id) {
       return null;
     }
@@ -11994,7 +12036,7 @@ export class Ui {
      * share.board is the board origin when a published course is loaded,
      * otherwise the default board. */
     if (action === 'leaderboard') {
-      openNamedWindow(boardPageUrl(this.share && this.share.board, this.settings.airframe), BOARD_WINDOW);
+      openNamedWindow(boardPageUrl(this.share && this.share.board, boardCraft(this.settings.airframe)), BOARD_WINDOW);
       return;
     }
     if (action === 'reportbug') {
@@ -12117,7 +12159,7 @@ export class Ui {
      * the track it is showing is the subject. */
     if (action === 'card-board' && this.screen === 'standings') {
       if (this.standingsFor) {
-        openNamedWindow(boardPageUrl(this.standingsFor.board, this.settings.airframe), BOARD_WINDOW);
+        openNamedWindow(boardPageUrl(this.standingsFor.board, boardCraft(this.settings.airframe)), BOARD_WINDOW);
       }
       return;
     }
@@ -12134,7 +12176,7 @@ export class Ui {
         return;
       }
       if (action === 'card-board') {
-        openNamedWindow(boardPageUrl(card.course.track.board, this.settings.airframe), BOARD_WINDOW);
+        openNamedWindow(boardPageUrl(card.course.track.board, boardCraft(this.settings.airframe)), BOARD_WINDOW);
         return;
       }
       this.openInBuilder(card);

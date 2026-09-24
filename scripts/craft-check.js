@@ -68,11 +68,6 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *   whoop65   a 65 mm whoop: 65 mm motor to motor across the
  *             diagonal, 82.6 mm square over the ducts, 23.4 g.
  *
- *   wing1000  a 1000 mm flying wing: the span is the number on the box,
- *             and the diagonal reach is the winglet's trailing corner, half
- *             a metre out and 215 mm aft of the CG because of the sweep, so
- *             the wing reaches 44 mm further from its centre than its half
- *             span. src/render/wingcraft.js derives the planform.
  *   sky1800   an 1800 mm twin boom pusher: the span is the manufacturer's,
  *             and the reach is the wingtip, because the tail, 0.77 m aft,
  *             is only 0.23 m out. src/render/skycraft.js draws it.
@@ -83,6 +78,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             reach is the tip's trailing corner, 137 mm aft of the CG,
  *             since the fin's is 0.83 m aft on the centreline.
  *             src/render/glidercraft.js draws it.
+ *   bramor2300 the C-Astral Bramor C4EYE: the span is C-Astral's, 230 cm,
+ *             and the diagonal reach is the winglet's top trailing corner,
+ *             at the half span and 557 mm aft of the CG, so the aircraft
+ *             reaches 126 mm further from its centre than its half span.
+ *             src/render/bramorcraft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -93,10 +93,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const REAL = {
   '5inch': { spanMm: 282.6, sweepMm: 347.0, tolMm: 6, wheelbaseMm: 220 },
   whoop65: { spanMm: 82.6, sweepMm: 101.2, tolMm: 3, wheelbaseMm: 65 },
-  wing1000: { spanMm: 1000.0, sweepMm: 1088.6, tolMm: 6 },
   sky1800: { spanMm: 1800.0, sweepMm: 1800.0, tolMm: 6 },
   cub1400: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   radian2000: { spanMm: 2000.0, sweepMm: 2018.7, tolMm: 6 },
+  bramor2300: { spanMm: 2300.0, sweepMm: 2551.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
@@ -127,6 +127,11 @@ const MEASURE = `(() => {
      * camera and 21 mm over the five inch's, and a rigid contact hull that
      * covered it would make a quad bounce off its own aerial. */
     if (o.name === 'antenna' || (o.parent && o.parent.name === 'antenna')) { return; }
+    /* Nor is the Bramor's catapult, which stands under it while it is
+     * parked, or its parachute: see src/render/bramorcraft.js. */
+    let gear = false;
+    o.traverseAncestors((p) => { gear = gear || p.name === 'launcher' || p.name === 'chute'; });
+    if (gear || o.name === 'chute') { return; }
     const pos = o.geometry.getAttribute('position');
     if (!pos) { return; }
     o.updateMatrixWorld(true);
@@ -263,34 +268,27 @@ async function main() {
      * multiplication are ever seen together.
      */
     const k = af.trackClass === 'micro' ? MICRO_SCALE : 1;
-    if (af.id === 'wing1000') {
+    if (af.id === 'bramor2300') {
       /*
-       * THE WING'S COLLIDER IS A SLAB, AND THE DRAWN WING IS NOT ONLY A SLAB.
-       *
-       * The airframe table gives the wing a half span disc about the CG,
-       * 35 mm deep either way: the wing itself, which is what meets a gate.
-       * Two drawn things stand outside that on purpose. The swept back tips
-       * reach 44 mm further from the CG than the half span, because a
-       * 25 degree sweep puts the winglet's trailing corner 215 mm aft of
-       * the CG; and the pusher prop on its pylon stands 121 mm above the
-       * CG, with the winglets under it, where the slab stops at 35.
-       * Sweeping the disc out to the tips would make the wing 88 mm wider
-       * to the world than it is across its own span, and sweeping the slab
-       * up to the prop would make a wing that cannot pass under a bar its
-       * wing clears. Pinned at what was measured, so a model that grows
-       * past these numbers says so here.
+       * A SWEPT WING'S COLLIDER IS ITS HALF SPAN DISC, AND ITS TIPS REACH
+       * PAST IT, as the 1000 mm flying wing's did before it (the rule this
+       * replaces). The airframe table gives the Bramor a disc of its half
+       * span about the CG, which is what meets a gate; the sweep and the
+       * winglets carry their trailing corners 557 mm aft of the CG, 126 mm
+       * further from it than the half span. Sweeping the disc out to them
+       * would make the aircraft a quarter of a metre wider to the world
+       * than it is across its own span. Pinned at what was measured.
        */
-      pinned(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach, 44.3,
+      pinned(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach, 125.5,
         'the collider is the half span disc; the swept tips reach past it');
-      pinned(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp, 86.2,
-        'the collider is the wing slab; the prop and winglets stand above it');
+      near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp, real.tolMm);
     } else {
       near(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach * k, real.tolMm * k);
       near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp * k, real.tolMm * k);
     }
     if (af.fixedWing) {
-      /* The wing's prop disc bottom and the Skyhunter's belly skid are the
-       * lowest drawn things, and each hull reaches about as far. */
+      /* The Skyhunter's belly skid and the Bramor's belly are the lowest
+       * drawn things, and each hull reaches about as far. */
       near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
     } else if (af.id === '5inch') {
       pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 15.0,

@@ -404,49 +404,6 @@ export const AIRFRAMES = [
   },
   {
     /*
-     * The fixed wing, docs/WING-STAGE1.md. A 1000 mm flying wing on 4S,
-     * flown by hand: no flight controller, the sticks drive the elevons
-     * through rates and expo in src/native/plant_wing.c. Its own plant,
-     * simId 2. Its own track class too: five metre gates over a 400 by
-     * 300 m field, sized in src/trackbuilder/elements.js, because a wing
-     * at cruise cannot be aimed through a 5 ft hole sixty metres from the
-     * last one.
-     */
-    id: 'wing1000',
-    simId: 2,
-    fixedWing: true,
-    name: 'Fixed wing',
-    short: 'Wing',
-    blurb: 'A 1000 mm flying wing on 4S, flown by hand. Throw it, keep it flying, land it on its belly.',
-    facts: ['4S', '1000 mm', 'Manual'],
-    trackClass: 'wing',
-    cells: 4,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'wing-acro',
-    gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
-    cameraFov: 100,
-    cameraAngle: 5,
-    dims: {
-      arm: 0,
-      propR: 0.0762,
-      hullR: 0.50,
-      vHalfDown: 0.035,
-      vHalfUp: 0.035,
-      bodyLength: 0.25,
-      bodyWidth: 1.0,
-      bodyHeight: 0.07,
-    },
-  },
-  {
-    /*
      * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md: a twin boom pusher
      * with ailerons, an elevator and a rudder, simId 3, on the wing's
      * plant with its own table. It flies the wing's track class, the
@@ -577,6 +534,60 @@ export const AIRFRAMES = [
       bodyLength: 1.14,
       bodyWidth: 2.0,
       bodyHeight: 0.320,
+    },
+  },
+  {
+    /*
+     * The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md: a 2.3 m blended
+     * wing body flying wing with a gimballed camera ball in its nose,
+     * simId 8 on the fixed wing plant. It took the flying wing's place:
+     * the 1000 mm wing (simId 2) is still in the module, where its gates
+     * and recorded laps live, but the shell no longer seats it, and a
+     * profile or a link that names 'wing1000' is seated on this aircraft
+     * instead (src/ui/ui.js, RETIRED_AIRFRAMES). The three wing tunes are
+     * this aircraft's now for the same reason.
+     *
+     * It is launched off a catapult rather than thrown: `catapult` is the
+     * rail, BRAMOR_CATAPULT above, and where the aircraft sits on it at
+     * release. It comes home under a parachute, which `chute` says it
+     * carries. Parked, it is drawn on the rail.
+     */
+    id: 'bramor2300',
+    simId: 8,
+    fixedWing: true,
+    catapult: BRAMOR_CATAPULT,
+    chute: true,
+    name: 'Bramor C4EYE',
+    short: 'Bramor',
+    blurb: 'A 2.3 m C-Astral Bramor C4EYE on 6S, a survey flying wing with a camera ball in its nose. Catapult it off the rail, fly it long, bring it down under its parachute.',
+    facts: ['6S', '2300 mm', 'Catapult'],
+    trackClass: 'wing',
+    cells: 6,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'wing-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/bramorcraft.js BRAMOR_DIMS: half span,
+     * the belly 65 mm under the CG and the winglets' tops 0.25 m over it,
+     * the contact box's floor and roof in src/native/plant.c. */
+    dims: {
+      arm: 0,
+      propR: 0.1524,
+      hullR: 1.15,
+      vHalfDown: 0.065,
+      vHalfUp: 0.25,
+      bodyLength: 0.96,
+      bodyWidth: 2.3,
+      bodyHeight: 0.315,
     },
   },
 ];

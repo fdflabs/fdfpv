@@ -70,7 +70,7 @@ for (const node of document.querySelectorAll('[data-str]')) {
   node.textContent = str(node.dataset.str);
 }
 import {
-  AIRFRAME_BY_CLASS, classOfAirframe, clearShareImport, readBuilderIntent, readEditKey, readShareImport,
+  classOfAirframe, clearShareImport, readBuilderIntent, readEditKey, readShareImport,
   setActiveTrackClass, takeBuilderIntent,
 } from '../share/session.js';
 import {
@@ -1222,8 +1222,10 @@ export class App {
         const open = document.createElement('a');
         open.className = 'tb-btn tb-primary';
         /* The builder's class goes with the link, so an author on the
-         * whoop builder lands on the whoop board. */
-        open.href = boardPageUrl(origin, AIRFRAME_BY_CLASS[trackClassOf(this.doc)]);
+         * whoop builder lands on the whoop board. The class itself, which
+         * the board reads as well as an airframe id and which, unlike the
+         * wing class's seated airframe, it knows. */
+        open.href = boardPageUrl(origin, trackClassOf(this.doc));
         /* The board's own tab, reused if it is already open. No rel here:
          * noopener would send this to a fresh tab every time. */
         open.target = BOARD_WINDOW;

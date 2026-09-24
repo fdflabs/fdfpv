@@ -330,8 +330,14 @@ export function buildShell(canvas, opts) {
     propSpin: craft.propSpin,
     /* Only a craft with control surfaces has one; the wing does. */
     setSurfaces: craft.setSurfaces ?? null,
-    /* Only a craft with a folding prop has one; the Radian does. */
+    /* Only a craft with a folding prop has one; the Radian does, and the
+     * Bramor. */
     setProp: craft.setProp ?? null,
+    /* The Bramor's parachute and its catapult; null on every other
+     * aircraft. See src/render/bramorcraft.js. */
+    setChute: craft.setChute ?? null,
+    launcher: craft.launcher ?? null,
+    launcherRest: craft.launcherRest ?? null,
     resize,
     swapCraft,
     keepAcrossMaps,
@@ -373,6 +379,9 @@ export function buildShell(canvas, opts) {
     api.propSpin = next.propSpin;
     api.setSurfaces = next.setSurfaces ?? null;
     api.setProp = next.setProp ?? null;
+    api.setChute = next.setChute ?? null;
+    api.launcher = next.launcher ?? null;
+    api.launcherRest = next.launcherRest ?? null;
     return next;
   }
 
