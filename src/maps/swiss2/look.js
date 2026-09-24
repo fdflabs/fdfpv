@@ -292,7 +292,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
   const WEATHER_KIND = { ...WEATHER, none: 3 };
   const BUILDING = {
     stone: { group: 'stone', tint: [0.95, 0.95, 0.95], weather: 'wall' },
-    render: { group: 'render', tint: [0.66, 0.64, 0.6], normal: 1.6, weather: 'wall' },
+    render: { group: 'render', tint: [0.6, 0.585, 0.55], normal: 2.2, weather: 'wall' },
     trim: { group: 'render', tint: [0.72, 0.7, 0.66], normal: 0.3 },
     surround: { group: 'render', tint: [0.55, 0.53, 0.5], weather: 'wall' },
     larchDark: { group: 'boards', tint: [0.72, 0.62, 0.55], weather: 'wall', grey: 0.55 },
@@ -324,6 +324,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     lineYellow: { group: 'plain', tint: [0.7, 0.45, 0.02], rough: 0.65 },
     asphalt: { group: 'asphalt', tint: [0.85, 0.85, 0.85] },
     gravel: { group: 'gravel', tint: [0.8, 0.82, 0.85] },
+    dripEdge: { group: 'gravel', tint: [0.46, 0.44, 0.4] },
     cobble: { group: 'cobble', tint: [1.0, 1.0, 1.0], weather: 'paving' },
     concrete: { group: 'concrete', tint: [1.6, 1.6, 1.55] },
     geranium: { group: 'plain', tint: [0.62, 0.02, 0.03], rough: 0.75 },
