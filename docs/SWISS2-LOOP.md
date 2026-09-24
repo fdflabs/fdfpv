@@ -77,3 +77,39 @@ proposes it to the owner instead of spending itself on it.
 
 Mean 3.67. Round 1 goes after the broken reflection, the even floor and
 the waterfall.
+
+### Round 1 (PR #16, main at 0b7d9f2)
+
+The round found that round 0's two broken views were the lead's camera
+heights, not a reflection: the views gave an absolute Y and the floor
+there is 3 to 5 m above zero, so both cameras sat inside the hill. Their
+Y was raised to 1.6 m over the ground (X, Z and the look at unchanged),
+every view now fails the run if its camera is within 1 m of the ground,
+and a `lake-edge` view was added. The waterfall's 7.6 M triangles were
+the forest, drawn unculled behind the camera and into two shadow maps.
+
+| View | R0 | R1 | The tell now |
+| --- | --- | --- | --- |
+| strip | 4 | 4 | an even lawn from the strip |
+| vista-high | 5 | 5.5 | a patchwork at last, laid out with a ruler |
+| cruise | 5 | 5.5 | the same |
+| village-20m | 3 | 3 | box houses |
+| square-eye | 3 | 3 | the same |
+| meadow-eye | 1* | 4 | a plain meadow with lollipop trees |
+| east-wall | 5 | 5 | one field edge reads as a seam |
+| lake-shore | 1* | 4 | now a roadside view, plain |
+| lake-high | 4 | 4.5 | fields reach the shore |
+| waterfall | 3 | 3.5 | a better veil, still a white column and a blob |
+| into-sun | 5 | 5 | the floor is still one light |
+| farm-low | 4 | 4 | the near grass is good, the far is lawn |
+| lake-edge | | 4 | new: jetty, reeds, the reflection the right way up |
+
+Mean of the twelve: 3.67 to 4.25. *Round 0's two 1s were the lead's
+misplaced cameras; over the ten views valid in both rounds the mean went
+4.1 to 4.3. The gate held: no view lower, every view within budget
+(waterfall 2.23 M triangles), alps fingerprint unchanged.
+
+Round 2 goes after colour and atmosphere (every frame is a saturated,
+evenly lit green where the references are muted, hazed blue grey with
+distance and lit unevenly under cloud), the village (stuck at 3), and
+the ruler straight patchwork with its lollipop trees.
