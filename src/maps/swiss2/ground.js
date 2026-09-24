@@ -65,6 +65,11 @@ const SUN_XZ = [Math.cos((SUN_U - 0.5) * 2 * Math.PI), Math.sin((SUN_U - 0.5) * 
  * to about 1400, the trees stop about 700). */
 const CLIFF_LOW = 420;
 const CLIFF_HIGH = 1010;
+/* How much of the sun's light a meadow looked at straight into the sun
+ * loses to the blades' own shade. */
+const BACKLIT = 0.5;
+/* How much of a meadow's sheen its blades hide seen at a grazing angle. */
+const GRAZE_MASK = 0.8;
 const ROUGH = [0.96, 0.95, 0.92, 0.86, 0.82, 0.62, 0.86, 0.92, 0.9];
 const BUMP = [0.7, 0.75, 0.85, 1.0, 1.0, 0.5, 1.0, 0.85, 0.9];
 
@@ -547,7 +552,7 @@ const GROUND_PARS = /* glsl */ `
     return vec3(xy, sqrt(max(0.0, 1.0 - dot(xy, xy))));
   }
 
-  struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; };
+  struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; float backlit; float sheen; };
 
   S2Ground s2Ground(vec3 p, vec3 n) {
     vec2 fuv = (p.xz + uS2Field.x) / uS2Field.y;
@@ -852,6 +857,25 @@ const GROUND_PARS = /* glsl */ `
     g.normal = outN;
     g.rough = rough;
     g.ao = mix(1.0, 0.5 + 0.5 * clamp(hsum * 1.3, 0.0, 1.0), 0.65);
+    /* Grass is not a matt plane. Looked at with the sun behind the eye
+     * every blade shows its lit side; looked at toward the sun, the sides
+     * a camera sees are the ones in the blades' own shade, and a sunlit
+     * meadow goes darker and deeper the further the view turns into the
+     * light (the reason a photograph into the sun has a dark floor and
+     * one with it a pale one). Taken off the sun's light on the grass
+     * only, from nothing at right angles to the sun to BACKLIT straight
+     * into it. */
+    vec3 toEye = normalize(cameraPosition - p);
+    float into = -dot(toEye, uS2SunDir);
+    g.backlit = 1.0 - ${BACKLIT.toFixed(2)} * grass * smoothstep(0.0, 0.75, into);
+    /* And toward the sun a sward shows none of the glare a plane has
+     * there. Three draws a rough plane's grazing reflection strongest
+     * exactly where the sky is brightest, round the sun, and the meadow
+     * into the light was a pale sheet of it; in a real sward both the
+     * view and that reflection run into the blades. Only toward the sun:
+     * away from it the sheen is the pale cast a meadow does have, and
+     * the floor's colour was matched to the photographs with it. */
+    g.sheen = 1.0 - ${GRAZE_MASK.toFixed(2)} * grass * (1.0 - smoothstep(0.05, 0.5, dot(toEye, n))) * smoothstep(0.0, 0.75, into);
     return g;
   }
 `;
@@ -915,7 +939,7 @@ export function groundMaterial({ arrays, zones, path, walls, lit, only = -1, str
       .replace('#include <map_fragment>', 'S2Ground s2g = s2Ground(vS2World, normalize(vS2WNormal));\ndiffuseColor.rgb *= s2g.albedo;')
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness * s2g.rough;')
       .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(s2g.normal, 0.0)).xyz);')
-      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\nreflectedLight.indirectDiffuse *= s2g.ao;\nreflectedLight.indirectSpecular *= s2g.ao;');
+      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\nreflectedLight.indirectDiffuse *= s2g.ao;\nreflectedLight.indirectSpecular *= s2g.ao;\nreflectedLight.directDiffuse *= s2g.backlit;\nreflectedLight.directSpecular *= s2g.sheen;\nreflectedLight.indirectSpecular *= s2g.sheen;');
   };
   mat.customProgramCacheKey = () => 's2-ground';
   lit(mat);
