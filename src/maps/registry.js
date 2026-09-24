@@ -84,6 +84,19 @@ export const MAPS = [
     buildMs: MAP_BUILD_MS.alps,
     load: () => import('./alps.js'),
   },
+  /* The same valley, drawn to read as a photograph rather than a
+   * cartoon: src/maps/swiss2.js builds it through the alps' own
+   * builders, so choosing it fetches the alps modules too, and nothing
+   * of it is fetched until it is chosen. */
+  {
+    id: 'swiss2',
+    poster: 'assets/posters/swiss2.jpg',
+    name: str('registry.swiss2'),
+    mode: 'freestyle',
+    note: str('registry.swiss2_note'),
+    buildMs: MAP_BUILD_MS.swiss2,
+    load: () => import('./swiss2.js'),
+  },
   /* In development, and the name says so, so a pilot who picks it knows
    * what they are getting: rough edges, no roads, and a first build of
    * the streamed terrain. */

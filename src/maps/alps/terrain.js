@@ -255,6 +255,99 @@ export function groundPaths() {
   return [stream, side, zigzag];
 }
 
+/* The village plateau's footprint, the same terms terrainHeight holds it
+ * flat with, so the mown stripes stop where the plateau does. */
+function plateauAt(x, z) {
+  return (1 - smoothstep(STRIP_L / 2 + 60, STRIP_L / 2 + 260, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
+}
+
+/*
+ * What the ground is at (x, z), as weights from nought to one, read with
+ * the slope taken `d` metres either side. The cel paint mixes its colours
+ * from these and the photographic ground blends its texture layers by
+ * them, so both looks agree where the forest floor, the scree, the rock,
+ * the snow and the shore are. Fills and returns `out`:
+ *
+ *   y, slope, grain, patch  the height, the slope and two noises
+ *   flat                    the village plateau
+ *   up                      floor to pasture, by height
+ *   hay                     the hayfield patches (before `up` fades them)
+ *   bloom                   the flower patches on the pasture
+ *   forest                  forestDensity, exactly what the trees read
+ *   scree, screeLight       the fans below the cliffs, and which streak
+ *   rock, faces             rock above the trees and on steep ground, and
+ *                           the steep faces that carry strata
+ *   snow                    snow above the line and old snow in hollows
+ *   lake, shore, silt, bed  inside the basin: the gravel round the shore,
+ *                           and silt and the bed under it (times shore)
+ */
+export function groundZone(field, x, z, d, out) {
+  const y = field.height(x, z);
+  const sx = (field.height(x + d, z) - field.height(x - d, z)) / (2 * d);
+  const sz = (field.height(x, z + d) - field.height(x, z - d)) / (2 * d);
+  const slope = Math.hypot(sx, sz);
+  const grain = fbm(x / 80, z / 80, 2);
+  const patch = noise2(x / 34 + 9.1, z / 34 + 3.7);
+  out.y = y;
+  out.slope = slope;
+  out.grain = grain;
+  out.patch = patch;
+  out.flat = plateauAt(x, z);
+  /* The floor and the pasture. Hayfields are patches of a yellower
+   * green a hundred metres across. */
+  out.up = smoothstep(60, 500, y);
+  out.hay = smoothstep(0.55, 0.7, noise2(x / 140 + 3.3, z / 140 + 8.8));
+  /* Flower patches on the pasture below the tree line: a warmer
+   * green, and the texels speckle it. */
+  out.bloom = smoothstep(0.58, 0.7, patch) * smoothstep(40, 120, y) * (1 - smoothstep(TREE_LINE - 200, TREE_LINE, y)) * (1 - smoothstep(0.45, 0.7, slope));
+  /* The forest floor, exactly under the density the trees are
+   * planted with. */
+  out.forest = forestDensity(x, y, z, slope, sz);
+  /* Scree below the cliffs, streaked down the fall line. Uphill is
+   * against the gradient; steep ground forty five metres up from a
+   * moderate slope is where the cliff sheds. */
+  out.scree = 0;
+  out.screeLight = false;
+  if (slope > 0.04 && slope < 0.85) {
+    const ax = x - sx / slope * 45;
+    const az = z - sz / slope * 45;
+    const usx = (field.height(ax + 6, az) - field.height(ax - 6, az)) / 12;
+    const usz = (field.height(ax, az + 6) - field.height(ax, az - 6)) / 12;
+    const sc = smoothstep(0.85, 1.15, Math.hypot(usx, usz)) * smoothstep(0.3, 0.55, slope);
+    if (sc > 0.02) {
+      out.scree = sc;
+      out.screeLight = noise2((-sz * x + sx * z) / slope / 7 + 1.7, y / 40) > 0.5;
+    }
+  }
+  /* Rock on the steep faces and above the trees; the faces get
+   * their strata from the texels. */
+  const rockiness = Math.max(smoothstep(0.8, 1.05, slope), smoothstep(TREE_LINE + 80, TREE_LINE + 220, y + 60 * grain));
+  out.rock = rockiness;
+  out.faces = smoothstep(0.7, 1.0, slope) * rockiness;
+  /* Snow above the line on anything that will hold it, and old snow
+   * in the hollows below it. */
+  const line = SNOW_LINE + 150 * grain;
+  let snowy = smoothstep(line - 100, line + 100, y) * (1 - smoothstep(SNOW_MAX_SLOPE - 0.3, SNOW_MAX_SLOPE + 0.3, slope));
+  if (y > line - 330 && slope < 0.8) {
+    const hollow = smoothstep(0.66, 0.74, noise2(x / 60 + 2.2, z / 60 + 7.9)) * smoothstep(line - 330, line - 180, y) * (1 - smoothstep(0.5, 0.8, slope));
+    snowy = Math.max(snowy, hollow);
+  }
+  out.snow = snowy;
+  /* The lake basin: gravel round the shore, silt under the
+   * shallows, the bed under the deep water. */
+  out.lake = y < LAKE_Y + 3.5 && z > LAKE_N;
+  out.shore = 0;
+  out.silt = 0;
+  out.bed = 0;
+  if (out.lake) {
+    const basin = lakeBasin(z);
+    out.shore = (1 - smoothstep(LAKE_Y + 1.5, LAKE_Y + 3.5, y)) * smoothstep(0.2, 0.5, basin);
+    out.silt = 1 - smoothstep(LAKE_Y - 3, LAKE_Y - 1.2, y);
+    out.bed = 1 - smoothstep(LAKE_Y - 9, LAKE_Y - 4, y);
+  }
+  return out;
+}
+
 /*
  * The ground's colour, painted from the same terrain, a texel every
  * four metres: meadow on the floor with mown stripes on the village
@@ -279,9 +372,6 @@ export function groundPaths() {
  * shader, and that is not this file's to make.
  */
 export function groundTexture(field) {
-  /* The village plateau's footprint, the same terms terrainHeight holds
-   * it flat with, so the mown stripes stop where the plateau does. */
-  const plateau = (x, z) => (1 - smoothstep(STRIP_L / 2 + 60, STRIP_L / 2 + 260, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
   const PX = 1536;
   const PER = 6;
   const BLOCKS = PX / PER;
@@ -316,76 +406,38 @@ export function groundTexture(field) {
   const bGrain = new Float32Array(nb);
   const bPatch = new Float32Array(nb);
   const c = [0, 0, 0];
+  const zone = {};
   for (let j = 0; j < BLOCKS; j += 1) {
     const z = -HALF + (j + 0.5) * bstep;
     for (let i = 0; i < BLOCKS; i += 1) {
       const x = -HALF + (i + 0.5) * bstep;
       const k = j * BLOCKS + i;
-      const y = field.height(x, z);
-      const sx = (field.height(x + bstep, z) - field.height(x - bstep, z)) / (2 * bstep);
-      const sz = (field.height(x, z + bstep) - field.height(x, z - bstep)) / (2 * bstep);
-      const slope = Math.hypot(sx, sz);
-      const grain = fbm(x / 80, z / 80, 2);
-      const patch = noise2(x / 34 + 9.1, z / 34 + 3.7);
-      bGrain[k] = grain;
-      bPatch[k] = patch;
-      bFlat[k] = plateau(x, z);
+      groundZone(field, x, z, bstep, zone);
+      bGrain[k] = zone.grain;
+      bPatch[k] = zone.patch;
+      bFlat[k] = zone.flat;
 
-      /* The floor and the pasture. Hayfields are patches of a yellower
-       * green a hundred metres across. */
-      const up = smoothstep(60, 500, y);
       c[0] = meadow[0];
       c[1] = meadow[1];
       c[2] = meadow[2];
-      lerp3(c, hay, smoothstep(0.55, 0.7, noise2(x / 140 + 3.3, z / 140 + 8.8)) * (1 - up));
-      lerp3(c, pasture, up);
-      /* Flower patches on the pasture below the tree line: a warmer
-       * green, and the texels speckle it. */
-      const bloom = smoothstep(0.58, 0.7, patch) * smoothstep(40, 120, y) * (1 - smoothstep(TREE_LINE - 200, TREE_LINE, y)) * (1 - smoothstep(0.45, 0.7, slope));
-      bBloom[k] = bloom;
-      lerp3(c, flowers, bloom);
-      /* The forest floor, exactly under the density the trees are
-       * planted with. */
-      lerp3(c, forest, forestDensity(x, y, z, slope, sz) * 0.9);
-      /* Scree below the cliffs, streaked down the fall line. Uphill is
-       * against the gradient; steep ground forty five metres up from a
-       * moderate slope is where the cliff sheds. */
-      if (slope > 0.04 && slope < 0.85) {
-        const ax = x - sx / slope * 45;
-        const az = z - sz / slope * 45;
-        const usx = (field.height(ax + 6, az) - field.height(ax - 6, az)) / 12;
-        const usz = (field.height(ax, az + 6) - field.height(ax, az - 6)) / 12;
-        const sc = smoothstep(0.85, 1.15, Math.hypot(usx, usz)) * smoothstep(0.3, 0.55, slope);
-        if (sc > 0.02) {
-          const streak = noise2((-sz * x + sx * z) / slope / 7 + 1.7, y / 40);
-          lerp3(c, streak > 0.5 ? scree : screeDark, sc);
-        }
+      lerp3(c, hay, zone.hay * (1 - zone.up));
+      lerp3(c, pasture, zone.up);
+      bBloom[k] = zone.bloom;
+      lerp3(c, flowers, zone.bloom);
+      lerp3(c, forest, zone.forest * 0.9);
+      if (zone.scree > 0.02) {
+        lerp3(c, zone.screeLight ? scree : screeDark, zone.scree);
       }
-      /* Rock on the steep faces and above the trees; the faces get
-       * their strata from the texels. */
-      const rockiness = Math.max(smoothstep(0.8, 1.05, slope), smoothstep(TREE_LINE + 80, TREE_LINE + 220, y + 60 * grain));
-      lerp3(c, rock, rockiness);
-      bFaces[k] = smoothstep(0.7, 1.0, slope) * rockiness;
-      /* Snow above the line on anything that will hold it, and old snow
-       * in the hollows below it. */
-      const line = SNOW_LINE + 150 * grain;
-      let snowy = smoothstep(line - 100, line + 100, y) * (1 - smoothstep(SNOW_MAX_SLOPE - 0.3, SNOW_MAX_SLOPE + 0.3, slope));
-      if (y > line - 330 && slope < 0.8) {
-        const hollow = smoothstep(0.66, 0.74, noise2(x / 60 + 2.2, z / 60 + 7.9)) * smoothstep(line - 330, line - 180, y) * (1 - smoothstep(0.5, 0.8, slope));
-        snowy = Math.max(snowy, hollow);
+      lerp3(c, rock, zone.rock);
+      bFaces[k] = zone.faces;
+      bSnowy[k] = zone.snow;
+      lerp3(c, snow, zone.snow);
+      if (zone.lake) {
+        lerp3(c, gravel, zone.shore);
+        lerp3(c, silt, zone.silt * zone.shore);
+        lerp3(c, bed, zone.bed * zone.shore);
       }
-      bSnowy[k] = snowy;
-      lerp3(c, snow, snowy);
-      /* The lake basin: gravel round the shore, silt under the
-       * shallows, the bed under the deep water. */
-      if (y < LAKE_Y + 3.5 && z > LAKE_N) {
-        const basin = lakeBasin(z);
-        const shore = (1 - smoothstep(LAKE_Y + 1.5, LAKE_Y + 3.5, y)) * smoothstep(0.2, 0.5, basin);
-        lerp3(c, gravel, shore);
-        lerp3(c, silt, (1 - smoothstep(LAKE_Y - 3, LAKE_Y - 1.2, y)) * shore);
-        lerp3(c, bed, (1 - smoothstep(LAKE_Y - 9, LAKE_Y - 4, y)) * shore);
-      }
-      const tone = 1 + 0.04 * grain;
+      const tone = 1 + 0.04 * zone.grain;
       bCol[k * 3] = c[0] * tone;
       bCol[k * 3 + 1] = c[1] * tone;
       bCol[k * 3 + 2] = c[2] * tone;
@@ -527,9 +579,11 @@ export function groundTexture(field) {
   });
 }
 
-/* The terrain mesh from the heightfield, a plane on its side with every
- * vertex lifted, normals computed so the cel shading reads the relief. */
-export function terrainMesh(field, tex) {
+/* The terrain's geometry from the heightfield, a plane on its side with
+ * every vertex lifted, normals computed so the shading reads the relief.
+ * Every look draws this one shape, because it is the shape the craft
+ * lands on. */
+export function terrainGeometry(field) {
   const geo = new THREE.PlaneGeometry(FIELD, FIELD, CELLS, CELLS);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.getAttribute('position');
@@ -538,7 +592,12 @@ export function terrainMesh(field, tex) {
   }
   pos.needsUpdate = true;
   geo.computeVertexNormals();
-  const mesh = new THREE.Mesh(geo, celMaterial({ color: 0xffffff, rim: 0.12, map: tex, key: 'alps-ground' }));
+  return geo;
+}
+
+/* The cel look's terrain: the geometry under the painted ground. */
+export function terrainMesh(field, tex) {
+  const mesh = new THREE.Mesh(terrainGeometry(field), celMaterial({ color: 0xffffff, rim: 0.12, map: tex, key: 'alps-ground' }));
   mesh.receiveShadow = true;
   return mesh;
 }
@@ -559,7 +618,7 @@ export function terrainMesh(field, tex) {
  * diagonal PlaneGeometry uses, as the valley's heightfield is, so what
  * stops a craft is what is drawn.
  */
-export function farRange(field) {
+export function farRange(field, look) {
   const size = 24000;
   /* 300 m cells: all of it stands in fog, and at 250 the strip's view
    * swung over its 600k triangle budget with the traffic. 300 also puts a
@@ -606,9 +665,7 @@ export function farRange(field) {
   pos.needsUpdate = true;
   geo.setAttribute('color', new THREE.BufferAttribute(colour, 3));
   geo.computeVertexNormals();
-  const mat = celMaterial({ color: 0xffffff, rim: 0.1 });
-  mat.vertexColors = true;
-  const mesh = new THREE.Mesh(geo, mat);
+  const mesh = new THREE.Mesh(geo, look.parts('far-range', { rim: 0.1 }));
   mesh.name = 'far-range';
   /* PlaneGeometry's vertex (i, j), laid flat, is at x = i * cell - size / 2
    * and z = j * cell - size / 2, index i + (n + 1) * j. */

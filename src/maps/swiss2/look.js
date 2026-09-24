@@ -1,0 +1,356 @@
+/*
+ * look.js: the photographic valley's answer to every material the alps'
+ * builders ask for.
+ *
+ * The builders name what a surface is (src/maps/alps/look.js), and this
+ * look answers with a physically based material: the village's table by
+ * the same keys as villageMaterials, photographed boards, render, stone,
+ * shingle and slate where the cel look has a flat colour; painted metal
+ * with a clear coat where the cel look has a painted highlight; the
+ * ground's own splat on anything that is ground (the strip, the range
+ * beyond, the headwall, a boulder, a drift).
+ *
+ * The alps' geometry carries no texture coordinates worth the name: a
+ * baked village is thousands of boxes whose uvs run nought to one across
+ * every face whatever its size. So after the build, worldUv gives every
+ * textured mesh uvs in metres, per triangle, projected along the face:
+ * across a wall horizontally and up it, along a roof's eave and up its
+ * slope, so boards and shingle courses run level and a texture is the
+ * same size on a shed as on the church.
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import * as THREE from 'three';
+
+/* Metres one tile of each surface covers, read off the photographs'
+ * own published sizes where they have one. */
+const TILE = {
+  boards: 2.0,
+  render: 2.5,
+  stone: 2.0,
+  shingle: 1.4,
+  slate: 1.6,
+  asphalt: 3.0,
+  gravel: 2.25,
+  cobble: 2.4,
+  concrete: 3.0,
+  metal: 1.12,
+};
+
+/* A colour given in linear light, which is what a tint on an albedo is. */
+const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
+
+/*
+ * Give a geometry uvs in metres along its own faces. Per triangle: the
+ * face's normal picks a horizontal tangent (along a wall, along an eave)
+ * and the direction up the face; a flat face runs x and z. An indexed
+ * geometry is unindexed first, because a vertex shared by two faces at
+ * an angle cannot carry both faces' coordinates.
+ */
+export function worldUv(geometry) {
+  const g = geometry.index ? geometry.toNonIndexed() : geometry;
+  const pos = g.getAttribute('position');
+  const uv = new Float32Array(pos.count * 2);
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  const n = new THREE.Vector3();
+  const t = new THREE.Vector3();
+  const s = new THREE.Vector3();
+  const up = new THREE.Vector3(0, 1, 0);
+  for (let k = 0; k + 2 < pos.count; k += 3) {
+    a.fromBufferAttribute(pos, k);
+    b.fromBufferAttribute(pos, k + 1);
+    c.fromBufferAttribute(pos, k + 2);
+    n.subVectors(c, b).cross(t.subVectors(a, b)).normalize();
+    if (Math.abs(n.y) > 0.985) {
+      t.set(1, 0, 0);
+      s.set(0, 0, -1);
+    } else {
+      t.crossVectors(up, n).normalize();
+      s.crossVectors(n, t).normalize();
+    }
+    for (let q = 0; q < 3; q += 1) {
+      const p = q === 0 ? a : q === 1 ? b : c;
+      uv[(k + q) * 2] = p.dot(t);
+      uv[(k + q) * 2 + 1] = p.dot(s);
+    }
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+
+/*
+ * Weather on a wall. A new building in a render is one colour from sill
+ * to eave; a real one is splashed dark and brown for the first metre
+ * over the ground where rain bounces and grass grows against it, and no
+ * two walls have aged alike. The wall reads its height over the ground
+ * off the field's own heights (light.js hands them over after the bake,
+ * through `heights`), and its world position from vS2World, which lit()
+ * declares for every material it touches.
+ */
+const WEATHER_PARS = /* glsl */ `
+  uniform highp sampler2D uS2Height;
+  uniform vec3 uS2Grid;
+  float s2wHash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+  float s2wNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(s2wHash(i), s2wHash(i + vec2(1.0, 0.0)), u.x),
+               mix(s2wHash(i + vec2(0.0, 1.0)), s2wHash(i + vec2(1.0, 1.0)), u.x), u.y);
+  }
+`;
+const WEATHER_BODY = /* glsl */ `
+  {
+    vec3 wn = inverseTransformDirection(normal, viewMatrix);
+    float wall = 1.0 - smoothstep(0.35, 0.7, abs(wn.y));
+    vec2 f = (vS2World.xz + uS2Grid.x) / uS2Grid.y;
+    float groundY = texture2D(uS2Height, (f + 0.5) / uS2Grid.z).r;
+    float above = vS2World.y - groundY;
+    float n = s2wNoise(vS2World.xz * 0.9 + vS2World.y * 0.3);
+    float splash = (1.0 - smoothstep(0.1, 0.8 + 0.6 * n, above)) * wall;
+    diffuseColor.rgb *= mix(vec3(1.0), vec3(0.62, 0.58, 0.52), splash);
+    float age = s2wNoise(vS2World.xz / 13.0 + vec2(vS2World.y / 29.0));
+    diffuseColor.rgb *= mix(vec3(0.86, 0.85, 0.84), vec3(1.06, 1.04, 1.0), age);
+  }
+`;
+
+function weathered(mat, heights) {
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = function onBeforeCompile(shader, renderer) {
+    prev.call(this, shader, renderer);
+    shader.uniforms.uS2Height = heights.texture;
+    shader.uniforms.uS2Grid = heights.grid;
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\n${WEATHER_PARS}`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${WEATHER_BODY}`);
+  };
+  mat.customProgramCacheKey = () => 's2-weathered';
+  return mat;
+}
+
+/*
+ * Build the look. `surfaces` are assets.js's loaded texture sets by name,
+ * `ground(opts)` makes a ground material (ground.js), and `heights` is
+ * where the field's heights will be for the walls' weather ({ texture,
+ * grid } uniforms, filled after the bake).
+ */
+export function makePhotoLook({ surfaces, ground, heights }) {
+  for (const [name, set] of Object.entries(surfaces)) {
+    for (const t of [set.col, set.nrm, set.arm]) {
+      t.repeat.set(1 / TILE[name], 1 / TILE[name]);
+    }
+  }
+  /* A photographed surface: albedo times tint, the normal map, and the
+   * arm map's green for roughness (and its red for occlusion, its blue
+   * for metalness where the surface is metal). */
+  const textured = (name, tint, { rough = 1, metal = 0, normal = 1, side = THREE.FrontSide, weather = false } = {}) => {
+    const set = surfaces[name];
+    const m = new THREE.MeshStandardMaterial({
+      color: tint,
+      map: set.col,
+      normalMap: set.nrm,
+      normalScale: new THREE.Vector2(normal, normal),
+      roughnessMap: set.arm,
+      roughness: rough,
+      aoMap: set.arm,
+      aoMapIntensity: 1,
+      metalnessMap: metal > 0 ? set.arm : null,
+      metalness: metal,
+      side,
+    });
+    m.userData.s2WorldUv = true;
+    if (weather) {
+      weathered(m, heights);
+    }
+    return m;
+  };
+  const plain = (color, rough, metal = 0, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...extra });
+
+  const glass = () => new THREE.MeshPhysicalMaterial({
+    color: lin(0.012, 0.016, 0.02),
+    roughness: 0.05,
+    metalness: 0,
+    ior: 1.5,
+    specularIntensity: 1,
+  });
+
+  /* The village, by villageMaterials' keys. */
+  const village = () => ({
+    stone: textured('stone', lin(0.95, 0.95, 0.95), { weather: true }),
+    render: textured('render', lin(0.86, 0.84, 0.8), { normal: 1.6, weather: true }),
+    larchDark: textured('boards', lin(0.72, 0.62, 0.55), { weather: true }),
+    larch: textured('boards', lin(1.2, 1.0, 0.82), { weather: true }),
+    honey: textured('boards', lin(2.1, 1.6, 1.0), { weather: true }),
+    weathered: textured('boards', lin(1.5, 1.45, 1.45), { weather: true }),
+    boardLine: textured('boards', lin(0.35, 0.3, 0.28)),
+    shingle: textured('shingle', lin(1.0, 0.97, 0.95)),
+    shingleDark: textured('shingle', lin(0.7, 0.66, 0.62)),
+    slate: textured('slate', lin(1.15, 1.15, 1.2)),
+    trim: textured('render', lin(0.92, 0.9, 0.87), { normal: 0.3 }),
+    glass: glass(),
+    shutterGreen: textured('boards', lin(0.35, 1.1, 0.45), { normal: 0.6 }),
+    shutterRed: textured('boards', lin(1.9, 0.45, 0.35), { normal: 0.6 }),
+    geranium: plain(lin(0.62, 0.02, 0.03), 0.75),
+    metal: plain(lin(0.55, 0.56, 0.57), 0.42, 0.9),
+    ink: plain(lin(0.03, 0.03, 0.035), 0.5, 0.6),
+    hangar: textured('metal', lin(0.5, 0.58, 0.52), { rough: 1, metal: 0.4, weather: true }),
+    hangarRoof: textured('metal', lin(0.36, 0.4, 0.38), { rough: 1, metal: 0.4 }),
+    door: plain(lin(0.05, 0.06, 0.065), 0.55, 0.3),
+    cross: plain(lin(0.9, 0.62, 0.22), 0.3, 1),
+    fence: textured('boards', lin(1.35, 1.25, 1.15)),
+    asphalt: textured('asphalt', lin(0.85, 0.85, 0.85)),
+    gravel: textured('gravel', lin(0.8, 0.82, 0.85)),
+    cobble: textured('cobble', lin(1.0, 1.0, 1.0)),
+    concrete: textured('concrete', lin(1.6, 1.6, 1.55)),
+    paint: plain(lin(0.72, 0.72, 0.68), 0.55),
+    signBlue: plain(lin(0.012, 0.06, 0.3), 0.4, 0.2),
+    signRed: plain(lin(0.55, 0.018, 0.02), 0.4, 0.2),
+    cone: plain(lin(0.85, 0.2, 0.01), 0.55),
+    water: new THREE.MeshPhysicalMaterial({ color: lin(0.02, 0.04, 0.05), roughness: 0.06, metalness: 0 }),
+    fuel: plain(lin(0.5, 0.03, 0.02), 0.35, 0.2),
+    logEnd: textured('boards', lin(3.0, 2.4, 1.6), { normal: 0.4 }),
+  });
+
+  /*
+   * Everything painted and moving is one vertex coloured bake per kind, so
+   * one material draws the paint, the glass and the tyres of a car alike.
+   * The colours the vehicles are built from are known (vehicles.js's
+   * PAINT), so the shader finds the glass, the rubber and the chrome by
+   * their vertex colour and gives each its own finish.
+   */
+  const FINISH_GLSL = /* glsl */ `
+    uniform vec3 uS2Glass;
+    uniform vec3 uS2Tyre;
+    uniform vec3 uS2Chrome;
+    uniform vec3 uS2Rim;
+    float s2Is(vec3 c, vec3 k) {
+      vec3 d = c - k;
+      return 1.0 - smoothstep(0.00002, 0.0002, dot(d, d));
+    }
+  `;
+  const finishUniforms = {
+    uS2Glass: { value: new THREE.Color(0x27384b) },
+    uS2Tyre: { value: new THREE.Color(0x26272b) },
+    uS2Chrome: { value: new THREE.Color(0xd6d9dc) },
+    uS2Rim: { value: new THREE.Color(0xb4b8bc) },
+  };
+  const painted = ({ rough = 0.45, clearcoat = 0.8, side = THREE.FrontSide } = {}) => {
+    const m = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      vertexColors: true,
+      roughness: rough,
+      metalness: 0,
+      clearcoat,
+      clearcoatRoughness: 0.12,
+      side,
+    });
+    m.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, finishUniforms);
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', `#include <common>\n${FINISH_GLSL}`)
+        .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+          float s2Glass = s2Is(vColor.rgb, uS2Glass);
+          float s2Tyre = s2Is(vColor.rgb, uS2Tyre);
+          float s2Chrome = max(s2Is(vColor.rgb, uS2Chrome), s2Is(vColor.rgb, uS2Rim));
+          roughnessFactor = mix(roughnessFactor, 0.04, s2Glass);
+          roughnessFactor = mix(roughnessFactor, 0.9, s2Tyre);
+          roughnessFactor = mix(roughnessFactor, 0.22, s2Chrome);
+          diffuseColor.rgb *= 1.0 - 0.75 * s2Glass;`)
+        .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
+          metalnessFactor = mix(metalnessFactor, 1.0, s2Chrome);`)
+        .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
+          material.clearcoat *= 1.0 - s2Tyre;`);
+    };
+    m.customProgramCacheKey = () => 's2-painted';
+    return m;
+  };
+
+  /* What swiss2 builds from nature.js (the strip, the shore's timber and
+   * gravel, the reeds, the old snow) and the paths; the forests and the
+   * water are the vegetation's and the water's own. A name not here is a
+   * builder asking for a surface nobody has said the finish of, and fails
+   * loudly rather than drawing three's default white. */
+  const byName = {
+    strip: () => ground({ strip: 1 }),
+    timber: () => textured('boards', lin(0.8, 0.7, 0.6)),
+    'boat-hull': (opts) => textured('boards', lin(0.9, 0.7, 0.55), { side: opts.side ?? THREE.FrontSide }),
+    'gravel-path': () => textured('gravel', lin(0.75, 0.72, 0.7)),
+    path: () => textured('gravel', lin(0.62, 0.52, 0.42)),
+    drift: () => ground({ only: 5 }),
+    reeds: (opts) => plain(lin(0.1, 0.16, 0.035), 0.85, 0, { side: opts.side ?? THREE.FrontSide }),
+    'reeds-deep': (opts) => plain(lin(0.07, 0.11, 0.03), 0.85, 0, { side: opts.side ?? THREE.FrontSide }),
+    'reed-heads': (opts) => plain(lin(0.1, 0.06, 0.03), 0.85, 0, { side: opts.side ?? THREE.FrontSide }),
+  };
+  const partsByName = {
+    'far-range': () => ground({}),
+    paint: () => painted({}),
+    lift: () => painted({ rough: 0.4, clearcoat: 0.6 }),
+    windsock: (opts) => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: opts.side ?? THREE.FrontSide }),
+    fauna: () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 }),
+  };
+  const ask = (table, kind, name, opts) => {
+    const make = table[name];
+    if (!make) {
+      throw new Error(`swiss2 look: no ${kind} named ${name}; say what it is made of in src/maps/swiss2/look.js`);
+    }
+    return make(opts || {});
+  };
+  return {
+    style: 'photoreal',
+    material: (name, opts) => ask(byName, 'material', name, opts),
+    parts: (name, opts) => ask(partsByName, 'parts material', name, opts),
+    village,
+  };
+}
+
+/*
+ * After the build: give every textured mesh its metre uvs, once per
+ * geometry, and pass every material through `lit`, the builders' and the
+ * vegetation's and the water's alike.
+ */
+export function finishScene(scene, lit) {
+  /* A geometry two meshes share is given its uvs once, and both are
+   * pointed at the result. */
+  const remap = new Map();
+  scene.traverse((o) => {
+    if (!o.isMesh) {
+      return;
+    }
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    if (mats.some((m) => m && m.userData.s2WorldUv)) {
+      const before = o.geometry;
+      if (!remap.has(before)) {
+        const after = worldUv(before);
+        remap.set(before, after);
+        remap.set(after, after);
+        if (after !== before) {
+          before.dispose();
+        }
+      }
+      o.geometry = remap.get(before);
+    }
+    for (const m of mats) {
+      lit(m);
+    }
+  });
+}

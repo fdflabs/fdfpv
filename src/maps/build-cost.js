@@ -67,4 +67,14 @@ export const MAP_BUILD_MS = {
    * spawn, thermal.json and hydro.json, then the basin round the spawn.
    * From the public host it is longer by the round trips. */
   yellowstone: 3200,
+  /* The Alps' valley again, plus what makes it a photograph: nine terrain
+   * photographs decoded into two texture arrays, ten surfaces and the sky
+   * fetched, the ground's masks, the mountains' shadow baked on the GPU,
+   * the vegetation's forests (their impostors photographed at build) and
+   * the water, and every program compiled. World stage from the shell's
+   * loading ledger through shots.js with SIM_GPU=1 on this machine at 1600
+   * by 900 on Low, three warm runs: 2566, 2408 and 2519 ms; on High 2877,
+   * 2669 and 2692. The load average was near thirty from other sessions'
+   * test fleets, so these carry the Alps' figure's spread and more. */
+  swiss2: 2500,
 };

@@ -92,6 +92,15 @@ const CAMERAS = {
    */
   alps: [300, 260, 900, -120, 60, -400],
   /*
+   * The same valley from lower and further east, looking north over the
+   * village to the head of the valley: the meadows, the road, the forests
+   * on both walls, the rock and the snow over them, and the haze on the far
+   * wall, which is what tells it apart from the Alps' card at a glance.
+   * Made with SIM_GPU=1: this card is the photographic look, and the
+   * software rasteriser samples textures at lower precision than a GPU.
+   */
+  swiss2: [250, 140, 700, -150, 40, -500],
+  /*
    * The Upper Geyser Basin from 260 m south east of Old Faithful, looking
    * down the Firehole: the steam over the basins is how the place reads
    * from the air, and it needs SETTLE_MS below to be there at all.

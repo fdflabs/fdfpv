@@ -49,7 +49,7 @@
 
 import * as THREE from 'three';
 import { updateCelTime } from '../../render/celmat.js';
-import { makeParts, bakeParts, placeParts, partsMaterial, instanced } from './parts.js';
+import { makeParts, bakeParts, placeParts, instanced } from './parts.js';
 import {
   wheelGeometry, buildCar, buildPostbus, buildTractor, buildTrailer, buildMotorbike, buildAircraft,
   CAR_COLOURS, PAINT, TRAILER_HITCH,
@@ -82,7 +82,7 @@ const M2 = new THREE.Matrix4();
  * white, five of them tapering from the hoop at the mouth to the tail.
  * The sock hangs off a pivot at the masthead; updateWind swings it.
  */
-function windsock(mastMat) {
+function windsock(mastMat, look) {
   const g = new THREE.Group();
   const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, 4.5, 8), mastMat);
   mast.position.y = 2.25;
@@ -103,7 +103,7 @@ function windsock(mastMat) {
   P.push(0x3a3d42, new THREE.TorusGeometry(0.28, 0.018, 4, 16), 0, 0, 0, 0, Math.PI / 2, 0);
   const geo = bakeParts(P);
   geo.rotateZ(-Math.PI / 2);
-  const sock = new THREE.Mesh(geo, partsMaterial({ rim: 0.1, side: THREE.DoubleSide }));
+  const sock = new THREE.Mesh(geo, look.parts('windsock', { rim: 0.1, side: THREE.DoubleSide }));
   sock.castShadow = true;
   pivot.add(sock);
   g.add(pivot);
@@ -235,10 +235,10 @@ function overlaps(a, b) {
  * prints.
  */
 export function buildLife(ctx) {
-  const { scene, heightAt, valleyAxis, rng, colliders, mats, road } = ctx;
+  const { scene, heightAt, valleyAxis, rng, colliders, mats, road, look } = ctx;
   /* One finish for everything with paint on it, the wing's own: a rim
    * and a hard painted highlight. */
-  const paintMat = partsMaterial({ rim: 0.26, spec: 0.16, specWidth: 0.012 });
+  const paintMat = look.parts('paint', { rim: 0.26, spec: 0.16, specWidth: 0.012 });
   const wheelGeo = wheelGeometry();
   const pick = (list) => list[Math.floor(rng() * list.length)];
   const surface = makeSurface(road, heightAt, valleyAxis);
@@ -447,7 +447,7 @@ export function buildLife(ctx) {
   const lift = buildLift({ ...ctx, solids });
   const fauna = buildFauna({ ...ctx, liftBase: lift.base });
 
-  const sock = windsock(mats.metal);
+  const sock = windsock(mats.metal, look);
   sock.group.position.set(STRIP_W / 2 + 6, heightAt(STRIP_W / 2 + 6, 30), 30);
   scene.add(sock.group);
   colliders.addPost('pole', STRIP_W / 2 + 6, 30, sock.group.position.y, sock.group.position.y + 4.5, 0.045);
