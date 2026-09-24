@@ -2089,4 +2089,7 @@ export default {
   "registry.a_glacial_valley_six_kilometres": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock.",
   "references.400_to_1000": "400 to 1000",
   "references.1000_to_1500": "1000 to 1500",
+  "registry.yellowstone": "Yellowstone (in development)",
+  "registry.yellowstone_note": "In development: a hundred kilometres square of Yellowstone at real scale, streamed as you fly, with its geysers, hot springs, rivers and lakes. No roads yet, and rough edges. No gates, no clock.",
+  "references.yellowstone_old_faithful_asl": "about 2240",
 };

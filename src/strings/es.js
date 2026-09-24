@@ -2089,4 +2089,7 @@ export default {
   "registry.a_glacial_valley_six_kilometres": "Un valle glaciar de seis kilómetros entre crestas nevadas, pinos en las laderas, un pueblo y una pista de prado en el fondo y un lago a sus pies. Sin puertas, sin reloj.",
   "references.400_to_1000": "400 a 1000",
   "references.1000_to_1500": "1000 a 1500",
+  "registry.yellowstone": "Yellowstone (en desarrollo)",
+  "registry.yellowstone_note": "En desarrollo: cien kilómetros de lado de Yellowstone a escala real, cargados mientras vuelas, con sus géiseres, fuentes termales, ríos y lagos. Todavía sin caminos, y con asperezas. Sin puertas, sin reloj.",
+  "references.yellowstone_old_faithful_asl": "unos 2240",
 };

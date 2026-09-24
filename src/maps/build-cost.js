@@ -58,4 +58,13 @@ export const MAP_BUILD_MS = {
    * cannot see. The village's rebuild measured 1337 to 1466 ms earlier
    * under a load over thirty, which is the spread these numbers carry. */
   alps: 917,
+  /* The world stage from the shell's loading ledger on this machine, the
+   * real data served locally, 1280 by 720 on High, three runs with the
+   * thermal features and the water wired in: 2125, 3422 and 4075 ms, with
+   * a load average between thirty and forty from other sessions; the
+   * terrain alone was 1032 to 1476. Most of it is fetching and building
+   * behind the bar: the manifest, 49 land cover tiles, the tiles round the
+   * spawn, thermal.json and hydro.json, then the basin round the spawn.
+   * From the public host it is longer by the round trips. */
+  yellowstone: 3200,
 };
