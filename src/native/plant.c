@@ -721,6 +721,67 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_z = 0.02,
   .fw = &FW_SKY1800,
 },
+/*
+ * The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, on the same terms: a
+ * 3S 2200 mAh pack and a tractor prop in the nose, 0.23 m ahead of the CG.
+ * The hull is the contact code's centred box, but on this airframe it is
+ * only what a crash lands on: the aircraft stands on its wheels, below.
+ * So the box is drawn inside the gear rather than round the fuselage. Its
+ * aft bottom corner clears the grass by 40 mm with the tailwheel down; a
+ * box as long as the fuselage would stand the tail on it, and a belly as
+ * low as the fuselage's would catch a wingtip at 7 deg of bank on the
+ * ground, where the real high wing clears to about 23. The camera is the
+ * drawn one, on top of the cowl.
+ */
+[SIM_AIRFRAME_CUB1400] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 1.32,
+  .inertia = { 0.060, 0.055, 0.100 },
+  .gravity = 9.81,
+  .cells = 3.0,
+  .r_cell = 0.012,
+  .rho = 1.225,
+  .prop_r = 0.1397,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.23, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.30,
+  .hull_hy = 0.70,
+  .hull_hz_down = 0.05,
+  .hull_hz_up = 0.12,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.77,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.165,
+  .camera_y = 0.0,
+  .camera_z = 0.0571,
+  .fw = &FW_CUB1400,
+  /*
+   * The gear, as src/render/cubcraft.js draws it (CUB_DIMS, the J-3C-65 at
+   * 1:7.67): main axles 75 mm ahead of the CG and 128 mm under it on a
+   * 0.238 m track with 70 mm wheels, the tailwheel's axle 0.596 m behind
+   * and 21 mm under with a 24 mm wheel. The drawing is the aircraft at rest,
+   * so each axle here is lowered by its strut's static deflection, 4.7 mm
+   * on the mains and 6.3 on the tail, and under its own weight the plant
+   * settles onto exactly the drawn pose: 11.0 deg nose up, the CG 0.146 m
+   * over the grass, 14.4 percent of the weight on the tail. Stiffness for
+   * about 5 mm of that deflection, damping at 0.6 of critical. Rolling
+   * resistance is short grass for a 70 mm wheel; side grip a rubber tyre's,
+   * the tailwheel's a little less. The tailwheel steers with the rudder,
+   * one to one. docs/CUB-STAGE1.md has the derivation.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.075, 0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
+    { .pos = { 0.075, -0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
+    { .pos = { -0.596, 0.0, -0.0273 }, .r = 0.012, .k = 300.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0 },
+    /* The prop's lowest tip, a skid: 0.1397 m under a hub 0.23 m ahead of
+     * the CG and 2 mm over it. It clears the grass by 25 mm with the
+     * aircraft level on its mains and touches at 9 deg nose down, which on
+     * a real Cub is a prop strike and the end of the prop; its load is how
+     * a shell hears one. Stiff, with the grip of a blade in the dirt. */
+    { .pos = { 0.23, 0.0, -0.1377 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*

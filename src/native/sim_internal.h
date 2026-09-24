@@ -50,6 +50,29 @@
  * STAGE1.md is a plant tuning constant, chosen to land inside the
  * verification bands; the reasoning lives in PROGRESS.md.
  */
+/*
+ * A wheel, for an airframe that stands on landing gear. sim.c applies each
+ * one as a spring and damper along the ground normal at its tyre's contact
+ * point, and friction split along the wheel's own heading (rolling) and
+ * across it (side grip). With no radius and the two frictions equal it is
+ * a skid, a hard point that drags: the Cub's prop tip is one.
+ * docs/CUB-STAGE1.md derives the numbers and says why this is the model.
+ */
+#define SIM_WHEELS_MAX 4
+typedef struct {
+  double pos[3];  /* the axle's centre, body frame, strut unloaded */
+  double r;       /* tyre radius: the contact is the rim's point nearest
+                   * the ground, so it moves round the tyre as the aircraft
+                   * pitches instead of staying one point of the body */
+  double k;       /* strut and tyre stiffness, N/m */
+  double c;       /* damping, N s/m */
+  double mu_roll; /* rolling resistance along the wheel's heading */
+  double mu_side; /* side grip across it */
+  double steer;   /* wheel angle per radian of rudder, the same sign: a
+                   * tailwheel turns its front the way the rudder's trailing
+                   * edge goes, and 0 is a wheel that does not steer */
+} WheelParams;
+
 typedef struct {
   int kind;          /* PLANT_KIND_QUAD or PLANT_KIND_WING */
   double mass_kg;
@@ -148,6 +171,10 @@ typedef struct {
   /* The fixed wing's aero, surfaces, motor and stabiliser, for a table
    * entry of PLANT_KIND_WING; null for a quad, which never reads it. */
   const struct FixedWingParams *fw;
+  /* Landing gear. Zero wheels for every airframe that lands on its hull,
+   * which leaves sim.c's contact path exactly what it was for them. */
+  int wheel_count;
+  WheelParams wheel[SIM_WHEELS_MAX];
 } PlantParams;
 
 /*
@@ -159,7 +186,8 @@ typedef struct {
 #define SIM_AIRFRAME_WHOOP65 1
 #define SIM_AIRFRAME_WING1000 2
 #define SIM_AIRFRAME_SKY1800 3
-#define SIM_AIRFRAME_COUNT 4
+#define SIM_AIRFRAME_CUB1400 4
+#define SIM_AIRFRAME_COUNT 5
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -377,6 +405,15 @@ typedef struct FixedWingParams {
   double pitch_speed;   /* m/s at full duty */
   double rpm_no_load;
   double torque_arm;    /* prop reaction, roll moment per newton of thrust, m */
+  double thrust_z;      /* thrust line height above the CG, m: a line under
+                         * the CG pitches the nose up with power. Zero where
+                         * the thrust line runs through the CG. */
+  double pfactor;       /* P factor: the yaw arm of the thrust is this times
+                         * the body normal speed over the prop's rate, (-w)/omega,
+                         * which is V sin(alpha)/omega with no trigonometry.
+                         * Positive yaws the nose left at a positive alpha,
+                         * which is a prop turning clockwise seen from behind.
+                         * Zero leaves the yaw moment untouched. */
   double current_full;  /* A at static full thrust */
   double duty_min;
   /* Stabilised: a bank and a pitch held by a rate damped proportional loop. */
@@ -410,6 +447,7 @@ typedef struct FixedWingParams {
 
 extern const FixedWingParams FW_WING1000;
 extern const FixedWingParams FW_SKY1800;
+extern const FixedWingParams FW_CUB1400;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
@@ -419,6 +457,9 @@ void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
+/* Weight on wheels, set by sim.c after each step's contact: 1 while any
+ * wheel carried load. The stabiliser reads it; nothing else does. */
+void plant_wing_set_on_wheels(int on);
 
 /* Bridge: Betaflight control loop and config shim. */
 
