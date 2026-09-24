@@ -223,8 +223,9 @@ T = T_s d² (1 − V/(V_p d)) clipped at zero, duty floored at 0.02, rpm
 0.85 d times the no load figure, current 43 d² A.
 
 Ground: the wing's contact path. The hull is its eight corner box,
-1.22 m long, 1.8 m wide, from 0.07 m under the CG, which is the pod's
-belly under the high wing, to 0.08 m over it, between the wing's top
+1.22 m long, 1.8 m wide, from 0.12 m under the CG, which is the belly
+skid as src/render/skycraft.js draws it (0.07 was the first estimate,
+and it rested the drawn pod 5 cm into the ground), to 0.08 m over it, between the wing's top
 and the fins' tops, for an aircraft on its back. The box is centred on
 the CG while the aircraft is not (nose 0.45 m ahead, tail 0.77 m
 behind), so the nose corner stands 0.16 m proud of the real nose and

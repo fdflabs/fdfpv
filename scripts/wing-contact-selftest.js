@@ -40,7 +40,7 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
  * and a throw from the grass with the stick a hand would hold. */
 const PLANES = [
   { name: 'wing', id: 2, hx: 0.25, hy: 0.5, down: 0.035, up: 0.035, land: 8, nose: 10, toss: 10, tossSticks: [0, 0.15, 0, 0.7] },
-  { name: 'skyhunter', id: 3, hx: 0.61, hy: 0.9, down: 0.07, up: 0.08, land: 11, nose: 13, toss: 12, tossSticks: [0, 0.3, 0, 0.8] },
+  { name: 'skyhunter', id: 3, hx: 0.61, hy: 0.9, down: 0.12, up: 0.08, land: 11, nose: 13, toss: 12, tossSticks: [0, 0.3, 0, 0.8] },
 ];
 
 let failed = 0;

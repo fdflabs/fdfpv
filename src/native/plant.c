@@ -691,9 +691,11 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
  * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md, on the same terms as the
  * wing above: what sim.c reads for every airframe, and its FixedWingParams.
  * A 4S 5000 mAh pack, a pusher 0.12 m behind the CG. The hull is the
- * contact code's centred box: 1.22 m by 1.8 m, the pod's belly 0.07 m under
- * the CG of a high wing, the fins' tops and the wing's top averaged to
- * 0.08 m over it for an aircraft on its back. The camera is in the pod's
+ * contact code's centred box: 1.22 m by 1.8 m, the belly skid 0.12 m under
+ * the CG of a high wing (src/render/skycraft.js SKY_DIMS draws it 0.1197
+ * down; the first figure here, 0.07, rested the drawn pod 5 cm into the
+ * ground), the fins' tops and the wing's top averaged to 0.08 m over it
+ * for an aircraft on its back. The camera is in the pod's
  * nose, 0.42 m ahead.
  */
 [SIM_AIRFRAME_SKY1800] = {
@@ -709,7 +711,7 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .pos_x = { -0.12, 0.0, 0.0, 0.0 },
   .hull_hx = 0.61,
   .hull_hy = 0.90,
-  .hull_hz_down = 0.07,
+  .hull_hz_down = 0.12,
   .hull_hz_up = 0.08,
   .contact_patch_r = 0.10,
   .contact_arm_max = 1.09,
