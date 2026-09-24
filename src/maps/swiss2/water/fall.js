@@ -8,13 +8,18 @@
  * cells cannot hold a face steep enough for water to fall from. Here it
  * is dressed in a photographed CC0 rock (greyed toward the valley's
  * limestone), mapped along the face, with nature.js's strata as a darker
- * band in every three.
+ * band in every three, and dark and glossy in a band down from the lip
+ * where the water runs.
  *
- * THE FALL is a sheet from the lip to the pool, standing clear of the face
- * and bellying out as it drops, widening as it spreads, in two layers a
- * metre apart. Its streaks are the wave texture's height pulled long and
- * scrolled down, accelerating as water does, so the sheet is torn into
- * ropes near the top and a white veil lower down, thinning at its edges.
+ * THE FALL is the Staubbach's kind: a thin veil the wind blows about. A
+ * sheet from the lip to the pool, standing clear of the face and bellying
+ * out as it drops, narrow at the lip and fanning out, in two layers a
+ * metre apart, leaning downwind and swaying. Its streaks are the wave
+ * texture's height pulled long and scrolled down, accelerating as water
+ * does, so the sheet is glassy ropes near the top, torn streaks with the
+ * rock showing between them lower down, and gone to drizzle well above
+ * the pool. A third, wider and fainter sheet is the spray the wind
+ * strips off it.
  *
  * THE MIST is a few hundred soft sprites boiling up from the foot and
  * drifting downwind, each on its own cycle in the shader, larger and
@@ -111,8 +116,9 @@ export function headwallGeometry(heightAt, layout) {
 }
 
 /* The fall's sheet: rows down from the lip, columns across, uv (across,
- * down). `ahead` moves the whole sheet out from the face. */
-function sheetGeometry(layout, heightAt, pool, ahead) {
+ * down). `ahead` moves the whole sheet out from the face; it is `topW`
+ * metres wide at the lip and `footW` at the pool. */
+function sheetGeometry(layout, heightAt, pool, ahead, topW, footW) {
   const { fallX, fallZ, lipY } = layout;
   const ROWS = 28;
   const COLS = 12;
@@ -125,7 +131,8 @@ function sheetGeometry(layout, heightAt, pool, ahead) {
   const idx = [];
   for (let r = 0; r <= ROWS; r += 1) {
     const t = r / ROWS;
-    const w = 7 + 15 * Math.pow(t, 1.4) + ahead * 0.6;
+    /* Narrow off the lip, fanning out fast once the water has torn. */
+    const w = topW + (footW - topW) * Math.pow(t, 0.9) + ahead * 0.6;
     for (let c = 0; c <= COLS; c += 1) {
       const s = c / COLS;
       /* A little bow across: the sheet is fuller in the middle. */
@@ -152,7 +159,15 @@ function sheetGeometry(layout, heightAt, pool, ahead) {
 const V0 = 3;
 const G = 9.8;
 
-function fallMaterial(waves, time, height, seed, envMap) {
+/*
+ * The sheet's material. A `veil` is the water itself: glassy ropes off
+ * the lip that tear into streaks and thin to blown drizzle well above
+ * the pool, so the dark wet rock shows through the lower half. The
+ * `haze` is the spray the wind strips off it, a wide faint sheet that
+ * starts where the veil tears and hides its edges. Both lean downwind
+ * and sway with the gusts: the Staubbach never falls plumb.
+ */
+function fallMaterial(waves, time, wind, height, seed, envMap, haze) {
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(0.86, 0.9, 0.93),
     roughness: 0.3,
@@ -162,18 +177,36 @@ function fallMaterial(waves, time, height, seed, envMap) {
     side: THREE.DoubleSide,
     envMap,
   });
-  const uniforms = { uWaves: { value: waves }, uTime: time, uFallH: { value: height }, uSeed: { value: seed } };
+  const uniforms = {
+    uWaves: { value: waves }, uTime: time, uFallH: { value: height }, uSeed: { value: seed }, uWind: { value: wind }, uHaze: { value: haze ? 1 : 0 },
+  };
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vFall;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFall = uv;');
+      .replace('#include <common>', `#include <common>
+        uniform float uTime;
+        uniform vec2 uWind;
+        uniform float uSeed;
+        varying vec2 vFall;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vFall = uv;
+        {
+          /* Drift downwind, more the further the water has fallen and
+           * the slower the drizzle is, and a sway on two slow gusts. The
+           * push into the face is held small so the veil stays off it. */
+          float t2 = uv.y * uv.y;
+          float gust = 0.6 * sin(uTime * 0.37 + uSeed) + 0.4 * sin(uTime * 0.13 + 1.7 + uSeed * 0.5);
+          float lean = t2 * (7.0 + 4.0 * gust);
+          transformed.z += uWind.y * lean + 1.5 * t2 * sin(uTime * 0.6 + uv.x * 3.0 + uSeed);
+          transformed.x += clamp(uWind.x, -1.0, 1.0) * 3.0 * t2;
+        }`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
         uniform sampler2D uWaves;
         uniform float uTime;
         uniform float uFallH;
         uniform float uSeed;
+        uniform float uHaze;
         varying vec2 vFall;`)
       .replace('#include <map_fragment>', `
         /* The streaks ride the water. A parcel fallen f metres has been
@@ -192,18 +225,30 @@ function fallMaterial(waves, time, height, seed, envMap) {
         float ropes = texture2D(uWaves, vec2(q.x / 5.0, q.y / 40.0)).a;
         float fine = texture2D(uWaves, vec2(q.x / 1.1, q.y / 9.0)).a;
         float spray = texture2D(uWaves, vec2(q.x / 0.6, q.y / 2.5)).a;
-        /* Staubbach's way down: glassy ropes off the lip, torn into a
-         * white veil by a third of the way, thinning to blown spray
-         * with ragged edges at the foot. */
-        float spread = smoothstep(0.0, 0.45, vFall.y);
-        float blown = smoothstep(0.45, 1.0, vFall.y);
-        float body = smoothstep(0.46 - 0.3 * spread, 0.7 - 0.22 * spread, ropes * 0.6 + fine * 0.4);
-        float ragged = 0.1 + 0.18 * spread + 0.12 * (fine - 0.5);
-        float edge = smoothstep(0.0, ragged, vFall.x) * smoothstep(1.0, 1.0 - ragged, vFall.x);
-        float a = body * edge * mix(0.95, 0.42, spread) * mix(1.0, 0.4, blown) * (0.45 + 0.55 * spray);
-        a *= smoothstep(0.0, 0.02, vFall.y) * (1.0 - smoothstep(0.9, 1.0, vFall.y));
+        /* Where the veil has torn, how far toward drizzle, and where it
+         * has all gone to spray. */
+        float torn = smoothstep(0.08, 0.35, vFall.y);
+        float drizzle = smoothstep(0.3, 0.75, vFall.y);
+        float gone = smoothstep(0.45, 0.85, vFall.y);
+        float a;
+        /* One program for both, so the spray costs no compile of its own. */
+        if (uHaze > 0.5) {
+          float cloud = texture2D(uWaves, vec2(q.x / 9.0, q.y / 60.0) + 0.37).a;
+          float body = smoothstep(0.25, 0.75, cloud * 0.7 + fine * 0.3);
+          float edge = smoothstep(0.0, 0.4, vFall.x) * smoothstep(1.0, 0.6, vFall.x);
+          a = body * edge * 0.16 * smoothstep(0.15, 0.5, vFall.y) * (1.0 - smoothstep(0.85, 1.0, vFall.y));
+        } else {
+          /* Glassy ropes at the lip; below, streaks with gaps between them
+           * that widen as the water spreads, so the rock shows through. */
+          float strand = ropes * 0.55 + fine * 0.45;
+          float body = smoothstep(0.42 + 0.12 * torn, 0.62 + 0.1 * torn, strand);
+          float ragged = 0.12 + 0.3 * torn + 0.15 * (fine - 0.5);
+          float edge = smoothstep(0.0, ragged, vFall.x) * smoothstep(1.0, 1.0 - ragged, vFall.x);
+          a = body * edge * mix(0.95, 0.5, torn) * mix(1.0, 0.35, drizzle) * (1.0 - gone) * (0.5 + 0.5 * spray);
+        }
+        a *= smoothstep(0.0, 0.02, vFall.y);
         diffuseColor.a = a;
-        diffuseColor.rgb *= 0.88 + 0.2 * fine;`)
+        diffuseColor.rgb *= 0.9 + 0.18 * fine;`)
       .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
         {
           vec3 wn = texture2D(uWaves, vec2(q.x / 1.1, q.y / 9.0)).xyz * 2.0 - 1.0;
@@ -262,6 +307,7 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
       varying vec2 vUv;
       varying float vFade;
       varying vec2 vSeed;
+      varying float vLift;
       void main() {
         float age = fract(uTime / uShape.z + aSeed.x);
         float ang = aSeed.y * 6.2831853;
@@ -271,6 +317,10 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
         float size = mix(uSize.x, uSize.y, age) * (0.7 + 0.6 * aSeed.w);
         vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
         mvPosition.xy += position.xy * size;
+        /* How far this corner stands over the foot, near enough for a
+         * camera that is not rolled: sprites are flat, and one that
+         * reaches down into the pool or the rocks cut a hard line there. */
+        vLift = p.y + position.y * size - uCentre.y;
         gl_Position = projectionMatrix * mvPosition;
         vUv = position.xy * 0.5 + 0.5;
         vFade = sin(age * 3.14159) * (0.6 + 0.4 * aSeed.z);
@@ -286,11 +336,13 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
       varying vec2 vUv;
       varying float vFade;
       varying vec2 vSeed;
+      varying float vLift;
       void main() {
         vec2 c = vUv * 2.0 - 1.0;
         float d = dot(c, c);
         float puff = texture2D(uWaves, vUv * 0.35 + vSeed).a;
         float a = (1.0 - smoothstep(0.1, 1.0, d)) * smoothstep(0.15, 0.75, puff) * vFade * uShape.w;
+        a *= smoothstep(-1.0, 5.0, vLift);
         if (a < 0.003) discard;
         gl_FragColor = vec4(uLight, a);
         #include <tonemapping_fragment>
@@ -308,24 +360,78 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
 }
 
 /*
+ * The headwall's rock, dark and glossy where the fall runs down it: a
+ * band under the lip as wide as the veil, leaning downwind with it,
+ * streaked where the water finds the cracks, and wider round the foot
+ * where the spray soaks everything.
+ */
+function wetRock(rock, envMap, layout, pool) {
+  const mat = new THREE.MeshStandardMaterial({
+    map: rock.map, normalMap: rock.normalMap, vertexColors: true, roughness: 0.92, metalness: 0, envMap,
+  });
+  const uniforms = {
+    uFall: { value: new THREE.Vector4(layout.fallZ, layout.lipY, pool.y, 0) },
+  };
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWetW;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWetW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+        uniform vec4 uFall;
+        varying vec3 vWetW;
+        float wetHash(vec2 p) {
+          vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+          p3 += dot(p3, p3.yzx + 33.33);
+          return fract((p3.x + p3.y) * p3.z);
+        }
+        float wetNoise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          vec2 u = f * f * (3.0 - 2.0 * f);
+          return mix(mix(wetHash(i), wetHash(i + vec2(1.0, 0.0)), u.x), mix(wetHash(i + vec2(0.0, 1.0)), wetHash(i + vec2(1.0, 1.0)), u.x), u.y);
+        }`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+        float wetDown = clamp((uFall.y - vWetW.y) / max(uFall.y - uFall.z, 1.0), 0.0, 1.0);
+        float wetHalf = 3.0 + 16.0 * wetDown;
+        float wetAcross = abs(vWetW.z - uFall.x + 4.0 * wetDown * wetDown);
+        float wetStreak = wetNoise(vec2(vWetW.z / 1.7, vWetW.y / 24.0)) * 0.6 + wetNoise(vec2(vWetW.z / 0.6, vWetW.y / 7.0)) * 0.4;
+        float wet = 1.0 - smoothstep(wetHalf * 0.5, wetHalf, wetAcross + 6.0 * (wetStreak - 0.5));
+        wet *= 0.55 + 0.45 * smoothstep(0.35, 0.6, wetStreak);
+        float soaked = (1.0 - smoothstep(4.0, 22.0, vWetW.y - uFall.z)) * (1.0 - smoothstep(20.0, 50.0, wetAcross)) * 0.8;
+        wet = max(wet, soaked) * step(vWetW.y, uFall.y + 0.5);
+        diffuseColor.rgb *= 1.0 - 0.55 * wet;`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+        roughnessFactor = mix(roughnessFactor, 0.28, wet);`);
+  };
+  mat.customProgramCacheKey = () => 'swiss2-wet-rock';
+  return mat;
+}
+
+/*
  * The whole fall into `group`: returns the pieces' disposers and the
  * sheet's foot, where the pool churns.
  */
 export async function buildFall({ heightAt, layout, waves, time, wind, envMap, group, rock, light }) {
   const pool = layout.pool;
-  const wall = new THREE.Mesh(headwallGeometry(heightAt, layout), new THREE.MeshStandardMaterial({
-    map: rock.map, normalMap: rock.normalMap, vertexColors: true, roughness: 0.92, metalness: 0, envMap,
-  }));
+  const wall = new THREE.Mesh(headwallGeometry(heightAt, layout), wetRock(rock, envMap, layout, pool));
   wall.name = 'swiss2-headwall';
   wall.castShadow = true;
   wall.receiveShadow = true;
   group.add(wall);
   const sheets = [];
-  for (const [ahead, seed] of [[0, 0.0], [1.1, 3.7]]) {
-    const s = sheetGeometry(layout, heightAt, pool, ahead);
-    const m = new THREE.Mesh(s.geometry, fallMaterial(waves, time, s.height, seed, envMap));
+  /* Two veils a metre apart, and the spray the wind strips off them,
+   * wider and further out. */
+  for (const [ahead, seed, haze, topW, footW] of [[0, 0.0, false, 4, 24], [1.1, 3.7, false, 5, 30], [3, 7.1, true, 8, 46]]) {
+    const s = sheetGeometry(layout, heightAt, pool, ahead, topW, footW);
+    const m = new THREE.Mesh(s.geometry, fallMaterial(waves, time, wind, s.height, seed, envMap, haze));
     m.name = 'swiss2-fall';
     m.renderOrder = 1;
+    /* The vertex shader leans the sheet downwind by up to eleven metres
+     * and sways it by one and a half: bounds that reach that far. */
+    s.geometry.computeBoundingSphere();
+    s.geometry.boundingSphere.radius += 13;
     group.add(m);
     sheets.push(s);
   }
@@ -334,13 +440,14 @@ export async function buildFall({ heightAt, layout, waves, time, wind, envMap, g
    * flat, and centred on the sheet they cut into the rock behind in a
    * hard line. */
   const mistAt = foot.clone().setX(foot.x - 4);
+  mistAt.z += wind.y * 4;
   /* A thin cloud, not a ball: spray at the foot is lit through and the
    * cliff shows behind it, and the wind carries it off the fall. */
   const cloud = mist({
-    waves, time, wind, centre: mistAt, count: 260, spread: 22, rise: 48, life: 10, s0: 4, s1: 22, opacity: 0.04, light, seed: 71,
+    waves, time, wind, centre: mistAt, count: 200, spread: 18, rise: 50, life: 14, s0: 5, s1: 24, opacity: 0.022, light, seed: 71,
   });
   const spray = mist({
-    waves, time, wind, centre: mistAt, count: 140, spread: 7, rise: 9, life: 2.2, s0: 1.2, s1: 4.5, opacity: 0.1, light, seed: 73,
+    waves, time, wind, centre: mistAt, count: 140, spread: 10, rise: 12, life: 2.6, s0: 1.5, s1: 6, opacity: 0.05, light, seed: 73,
   });
   cloud.name = 'swiss2-mist';
   spray.name = 'swiss2-spray';

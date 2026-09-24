@@ -290,7 +290,20 @@ function photoStyle() {
         return addBox(kind, x0, y0, z0, x1, y1, z1);
       };
       const sites = natureSites(ctx);
+      const had = new Set(scene.children);
       buildShore(ctx, sites);
+      /* nature.js edges the north shore with a two metre gravel ribbon of
+       * one width all the way round, which from the air is a line drawn
+       * round the lake. The ground lays a beach there itself (ground.js),
+       * so the ribbon goes; the jetty's short track stays. */
+      for (const o of scene.children.filter((c) => !had.has(c) && c.isMesh)) {
+        o.geometry.computeBoundingBox();
+        const b = o.geometry.boundingBox;
+        if (b.max.x - b.min.x > 100) {
+          scene.remove(o);
+          o.geometry.dispose();
+        }
+      }
       const reeds = buildReeds(ctx, sites);
       buildDrifts(ctx, sites);
       /* The hiking paths the cel paint strokes, as gravel ribbons on the

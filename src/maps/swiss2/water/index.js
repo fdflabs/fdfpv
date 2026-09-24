@@ -72,7 +72,7 @@ export async function buildWater(ctx) {
   const { cx, cz, shore } = lakeShore(heightAt);
   const mirror = Q.mirror > 0 ? planarMirror(LAKE_Y, Q.mirror) : null;
   const lakeMat = waterMaterial({
-    waves, time, wind, colour: LAKE_BODY, clarity: 0.32, ripple: 0.22, roughness: 0.03, planar: mirror, envMap,
+    waves, time, wind, colour: LAKE_BODY, clarity: 0.22, ripple: 0.3, roughness: 0.03, planar: mirror, envMap, shoreFoam: 0.3,
   });
   const lake = new THREE.Mesh(lakeGeometry(heightAt, shore), lakeMat);
   lake.name = 'swiss2-lake';
@@ -105,7 +105,7 @@ export async function buildWater(ctx) {
     t.wrapT = THREE.RepeatWrapping;
     t.anisotropy = 8;
   }
-  const mistLight = ctx.mistLight || new THREE.Color(0.95, 0.98, 1.02);
+  const mistLight = ctx.mistLight || new THREE.Color(0.62, 0.66, 0.72);
   const fall = await buildFall({
     heightAt, layout, waves, time, wind: wind.value, envMap, group, rock: { map: cliffMap, normalMap: cliffNormal }, light: mistLight,
   });
@@ -129,7 +129,7 @@ export async function buildWater(ctx) {
   poolGeo.setAttribute('aWater', new THREE.BufferAttribute(pw, 4));
   const poolMat = waterMaterial({
     waves, time, wind, colour: LAKE_BODY, clarity: 0.5, ripple: 0.8, roughness: 0.05, envMap,
-    foamAt: [fall.foot.x, fall.foot.z, 16, 1],
+    foamAt: [fall.foot.x, fall.foot.z, 16, 0.7],
   });
   const poolMesh = new THREE.Mesh(poolGeo, poolMat);
   poolMesh.name = 'swiss2-pool';
