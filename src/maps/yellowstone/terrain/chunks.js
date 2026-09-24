@@ -104,13 +104,14 @@ const mix = (col, t) => {
  * land cover (landcover.js) when the data has it, and `footprint` the
  * metres one vertex stands for, which is how wide a patch of it is
  * averaged. Without land cover the grounds are guessed from height and
- * slope alone, which is what the synthetic tiles get.
+ * slope alone, which is what the synthetic tiles get, and the apron past
+ * where the land cover reaches.
  */
 export function paint(x, z, y, slope, out, k, cover, footprint) {
   const asl = y + Y0;
   const grain = fbm(x / 1400, z / 1400, 3);
   const fine = noise2(x / 90, z / 90);
-  if (cover) {
+  if (cover && cover.covers(x, z)) {
     const barren = cover.colourAt(x, z, footprint, lc);
     c.setRGB(lc[0], lc[1], lc[2]);
     /* Barren is sinter on the flat and bare rock on a slope or a peak. */

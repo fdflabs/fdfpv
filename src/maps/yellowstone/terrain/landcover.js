@@ -102,6 +102,14 @@ export class LandCover {
     return new LandCover(tiles);
   }
 
+  /* Whether the land cover reaches (x, z): its tiles start at the
+   * extent's west and north edges and stop 7.5 km past the others. */
+  covers(x, z) {
+    const i = Math.floor((x + HALF) / (CELL * TILE_CELLS));
+    const j = Math.floor((z + HALF) / (CELL * TILE_CELLS));
+    return this.tiles.has(i * 256 + j) && x >= -HALF && z >= -HALF;
+  }
+
   /* The class at a world point, nearest 60 m sample. */
   classAtWorld(x, z) {
     return this.classAt(Math.round((x + HALF) / CELL), Math.round((z + HALF) / CELL));
