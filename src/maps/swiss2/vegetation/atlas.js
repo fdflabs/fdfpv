@@ -510,6 +510,44 @@ function clump(ctx, blades, rect, seed, dryShare) {
   ctx.restore();
 }
 
+/* The seed heads of an uncut hay meadow in July: cocksfoot, oat grass
+ * and timothy gone to seed, pale straw panicles on stems over the
+ * blades, which is what makes a standing hay field silver in the wind
+ * where a pasture is green. */
+function seedHeads(ctx, rect, seed) {
+  const rng = makeRng(seed);
+  const [x, y, w, h] = rect;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  for (let k = 0; k < 34; k += 1) {
+    const bx = x + w * (0.1 + 0.8 * rng());
+    const top = y + h * (0.03 + 0.3 * rng());
+    const hx = bx + (bx - (x + w / 2)) * 0.25 + (rng() - 0.5) * 30;
+    ctx.strokeStyle = `hsl(${55 + rng() * 20}, 30%, ${38 + rng() * 14}%)`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(bx, y + h);
+    ctx.quadraticCurveTo(bx, (top + y + h) / 2, hx, top);
+    ctx.stroke();
+    /* The panicle: a spindle of grains down the stem's last hand span,
+     * nodding to one side. */
+    const len = 22 + rng() * 26;
+    const lean = (rng() - 0.5) * 0.7;
+    for (let g = 0; g < 16; g += 1) {
+      const f = g / 15;
+      const gx = hx + Math.sin(lean) * len * f + (rng() - 0.5) * 7 * Math.sin(f * Math.PI);
+      const gy = top + Math.cos(lean) * len * f;
+      ctx.fillStyle = `hsl(${40 + rng() * 14}, ${22 + rng() * 18}%, ${66 + rng() * 18}%)`;
+      ctx.beginPath();
+      ctx.ellipse(gx, gy, 2.2, 3.6, lean, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
 /* Meadow flowers on thin stalks from the bottom of rect: buttercup,
  * ox eye daisy, red clover, harebell and the white umbels of wild
  * carrot, the Bernese hay meadow's commonest. */
@@ -627,6 +665,9 @@ export async function loadAtlases() {
     for (let k = 0; k < 6; k += 1) {
       clump(ctx, blades, G[`clump${k}`], 101 + k * 7, k < 3 ? 0.02 : 0.06);
     }
+    /* clump4 and clump5 are the standing hay, gone to seed. */
+    seedHeads(ctx, G.clump4, 131);
+    seedHeads(ctx, G.clump5, 137);
     for (let k = 0; k < 4; k += 1) {
       clump(ctx, blades, G[`flower${k}`], 201 + k, 0.05);
       flowers(ctx, G[`flower${k}`], kinds[k], 301 + k);

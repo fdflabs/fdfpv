@@ -59,7 +59,7 @@ function s2Hash(x, y) {
   c += d;
   return fract((a + b) * c);
 }
-function s2Noise(x, y) {
+export function s2Noise(x, y) {
   const ix = Math.floor(x);
   const iy = Math.floor(y);
   const fx = x - ix;
