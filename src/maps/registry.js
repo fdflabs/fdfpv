@@ -68,6 +68,7 @@ export const MAPS = [
   },
   {
     id: 'airfield',
+    poster: 'assets/posters/airfield.jpg',
     name: str('registry.airfield'),
     mode: 'freestyle',
     note: str('registry.five_hundred_metres_of_mown_grass'),
@@ -76,6 +77,7 @@ export const MAPS = [
   },
   {
     id: 'alps',
+    poster: 'assets/posters/alps.jpg',
     name: str('registry.the_alps'),
     mode: 'freestyle',
     note: str('registry.a_glacial_valley_six_kilometres'),
@@ -87,6 +89,7 @@ export const MAPS = [
    * the streamed terrain. */
   {
     id: 'yellowstone',
+    poster: 'assets/posters/yellowstone.jpg',
     name: str('registry.yellowstone'),
     mode: 'freestyle',
     note: str('registry.yellowstone_note'),

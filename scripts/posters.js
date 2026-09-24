@@ -79,6 +79,25 @@ const CAMERAS = {
    */
   city: [2.6, 4.2, 26, 0, 3.0, 4],
   /*
+   * The runway from off the threshold's right shoulder, at about a hangar
+   * roof, so the piano keys, the length of the strip, the windsock and a
+   * pylon are all in one frame: what an airfield is, before anything is
+   * flown on it.
+   */
+  airfield: [22, 9, 78, -6, 1, 0],
+  /*
+   * Down the valley from 260 m over its south end: the village and its
+   * church by the river, the road, forest on both walls and the range
+   * closing the far end. The place, not a street in it.
+   */
+  alps: [300, 260, 900, -120, 60, -400],
+  /*
+   * The Upper Geyser Basin from 260 m south east of Old Faithful, looking
+   * down the Firehole: the steam over the basins is how the place reads
+   * from the air, and it needs SETTLE_MS below to be there at all.
+   */
+  yellowstone: [-25700, 260, 19300, -26500, 20, 17500],
+  /*
    * The works from the south east, over the forecourt. Far enough out that
    * the stack, the preheater and the length of the pack hall are all in one
    * frame with the sunset behind them, which is the thing the flythrough
@@ -97,6 +116,14 @@ const CAMERAS = {
    * cream box.
    */
 };
+
+/*
+ * A streamed world is not built when it says ready: its terrain and the
+ * features round the camera load for seconds after the camera moves, so
+ * a poster taken on the usual frames is bare ground. Milliseconds to wait
+ * after parking the camera, per world that needs it.
+ */
+const SETTLE_MS = { yellowstone: 15000 };
 
 /*
  * The overlay comes off entirely. og.js keeps the wordmark because a share
@@ -159,6 +186,7 @@ try {
        * animation frame, and a wall clock wait on a software rasteriser
        * sometimes captures the frame before the camera moved. */
       'until:window.__boot().frames > window.__posterFrame + 5',
+      ...(SETTLE_MS[map.id] ? [`wait:${SETTLE_MS[map.id]}`] : []),
       `shot:${map.id}`,
     ], { cwd: root, stdio: 'inherit' });
 
