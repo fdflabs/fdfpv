@@ -76,7 +76,7 @@ export const LOW_THICK = 420;
 export const LOW_COVER = 0.48;
 export const LOW_SIZE = 1300;
 const LOW_WIND = new THREE.Vector2(-1.6, 0.9);
-const LOW_START = new THREE.Vector2(750, 3500);
+const LOW_START = new THREE.Vector2(0, 12250);
 /* Extinction per metre in the densest cloud and in the mist: a cumulus's
  * mean free path is some tens of metres, a valley mist's a few hundred. */
 const SIGMA_BANK = 0.028;
@@ -295,12 +295,12 @@ const MarchShader = {
       }
       /* The stratus: a thin sheet lower down, long along the valley and
        * short across it, torn into strands. */
-      float sheetH = (p.y - ${SHEET_Y.toFixed(1)} - 90.0 * cv.y) / ${SHEET_THICK.toFixed(1)};
+      float sheetH = (p.y - ${SHEET_Y.toFixed(1)} - 90.0 * cv.y - 60.0 * s2lNoise(p.xz / 350.0 + 13.0)) / ${SHEET_THICK.toFixed(1)};
       if (sheetH > 0.0 && sheetH < 1.0) {
-        vec2 sq = (p.xz + uS2LowAt * 0.7) / vec2(900.0, 2600.0);
+        vec2 sq = (p.xz + uS2LowAt * 0.7) / vec2(700.0, 1600.0);
         float lay = smoothstep(0.5, 0.8, s2lNoise(sq + 41.0) * 0.7 + s2lNoise(sq * 3.1 + 5.0) * 0.3);
         if (lay > 0.01) {
-          float strand = texture(uNoise, (p + vec3(0.0, 0.0, uDrift)) / vec3(420.0, 50.0, 900.0)).r;
+          float strand = texture(uNoise, (p + vec3(0.0, 0.0, uDrift)) / vec3(260.0, 60.0, 520.0)).r;
           float prof = smoothstep(0.0, 0.35, sheetH) * (1.0 - smoothstep(0.55, 1.0, sheetH));
           bank += clamp((lay * prof - (1.0 - strand) * 0.75) * 2.8, 0.0, 1.0) * ${SIGMA_SHEET.toFixed(4)};
         }
