@@ -1431,7 +1431,7 @@ const BEHAVIOUR = `(() => {
      * has nothing to say about it. What act() does on the way is the same
      * code either way.
      */
-    ui.settings.airframe = 'wing1000';
+    ui.settings.airframe = 'bramor2300';
     ui.act('way-race-5inch');
     const landed = ui.screen;
     const seated = ui.seatMatchesMode();

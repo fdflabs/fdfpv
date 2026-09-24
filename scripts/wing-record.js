@@ -2,7 +2,9 @@
  * wing-record.js: write tests/inputs/wing-baseline.rec, the stick stream
  * the cross-host wing check replays, with `sky` the Skyhunter's
  * tests/inputs/sky-baseline.rec, or with `cub` the Cub's
- * tests/inputs/cub-baseline.rec, which takes off from the ground. Run it when the pilot in
+ * tests/inputs/cub-baseline.rec, which takes off from the ground, or with
+ * `bramor` and `bramor-chute` the Bramor's tests/inputs/bramor-baseline.rec
+ * and bramor-chute.rec. Run it when the pilot in
  * tests/lib/wingpilot.js changes; the recording is committed, like the
  * quad's baseline.rec, so the check never depends on JS maths. The wing's
  * committed recording was made against an earlier plant and this no longer
@@ -31,17 +33,22 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
-import { recordCubFlight, recordGliderFlight, recordScriptedFlight, skyPrelude, wingPrelude } from '../tests/lib/wingpilot.js';
+import {
+  bramorPrelude, recordChuteFlight, recordCubFlight, recordGliderFlight, recordScriptedFlight, skyPrelude, wingPrelude,
+} from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
  * flight, for skyhunter-gates.js S16; `cub` the Cub's take off and flight
  * for cub-gates.js C23; `glider` the Radian's climb, glide and thermal for
- * glider-gates.js G21. */
+ * glider-gates.js G21; `bramor` the Bramor off its catapult and
+ * `bramor-chute` its descent under the canopy, for bramor-gates.js. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
   sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
   cub: { file: 'tests/inputs/cub-baseline.rec', record: recordCubFlight },
   glider: { file: 'tests/inputs/glider-baseline.rec', record: recordGliderFlight },
+  bramor: { file: 'tests/inputs/bramor-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: bramorPrelude, rudder: false }) },
+  'bramor-chute': { file: 'tests/inputs/bramor-chute.rec', record: recordChuteFlight },
 };
 const plane = PLANES[process.argv[2] || 'wing'];
 if (!plane) {

@@ -330,12 +330,14 @@ int sim_set_flight_style(int arcade);
  * is the default, 1 is a 65 mm 1S brushless whoop, 2 the 1000 mm flying
  * wing, 3 the Skyhunter 1800, a twin boom pusher with ailerons, an
  * elevator and a rudder, 4 the Piper J-3 Cub 1400, a tractor
- * taildragger with the same surfaces that stands on its own wheels, and 6
+ * taildragger with the same surfaces that stands on its own wheels, 6
  * the E-flite Radian Pro, a 2 m powered glider with the same surfaces, a
- * folding prop, and the thermals of sim_air_lift to climb in. 5 is
- * reserved for an airframe still being built.
+ * folding prop, and the thermals of sim_air_lift to climb in, and 8 the
+ * C-Astral Bramor C4EYE, a 2.3 m blended wing body flying wing that is
+ * catapult launched and recovered under a parachute. 5 and 7 are
+ * reserved for airframes still being built.
  * Returns SIM_ERR_BAD_ARG for anything else, a reserved id included.
- * 2, 3, 4 and 6 are fixed wings: no Betaflight, the sticks go to the
+ * 2, 3, 4, 6 and 8 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply.
  *
@@ -359,6 +361,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_SKY1800_ID 3
 #define SIM_AIRFRAME_CUB1400_ID 4
 #define SIM_AIRFRAME_RADIAN2000_ID 6
+#define SIM_AIRFRAME_BRAMOR2300_ID 8
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -429,7 +432,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2, 3 and 4. Additive, version unchanged; each
+ * The fixed wings, airframes 2, 3, 4, 6 and 8. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *
@@ -480,6 +483,21 @@ int sim_wheel_loads(double *out);
  * still air and is unchanged. Additive, version unchanged.
  */
 double sim_air_lift(double x, double y, double z);
+
+/*
+ * sim_wing_chute(deploy): the recovery parachute of an aircraft that has
+ * one, the Bramor. 1 pulls it: the motor stops, the surfaces centre and a
+ * canopy opens over about a second, hanging from the risers' attachment
+ * point, and the aircraft comes down under it. 0 stows it again, which
+ * sim_reset and sim_set_airframe also do. SIM_ERR_BAD_ARG for 1 on an
+ * aircraft without a chute and for anything but 0 or 1; SIM_ERR_BAD_STATE
+ * before sim_init.
+ * sim_wing_chute_open(): how far the canopy is open, 0 stowed to 1 full.
+ * Additive, version unchanged: with the chute stowed no step reads any of
+ * it, so every trace from before it existed is bit identical.
+ */
+int sim_wing_chute(int deploy);
+double sim_wing_chute_open(void);
 
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);

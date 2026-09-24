@@ -818,6 +818,44 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_z = 0.035,
   .fw = &FW_RADIAN2000,
 },
+/*
+ * Slot 7 is reserved for the Timber Evolution being built alongside, and
+ * is zero until it lands; sim_set_airframe refuses a slot with no mass.
+ *
+ * The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, on the same terms as
+ * the other fixed wings: what sim.c reads for every airframe, and its
+ * FixedWingParams. 4.5 kg, the published take off mass, on a 6S pack (an
+ * estimate), a pusher 0.35 m behind the CG. The hull is the contact
+ * code's centred box as src/render/bramorcraft.js draws the aircraft:
+ * the half span, 0.45 m fore and aft (the gimbal ball's front is 0.41 m
+ * ahead, the tail cone 0.35 m behind), the belly 65 mm under the CG, and
+ * the winglets' tops 0.25 m over it, which is what it lies on when it
+ * comes down on its back under the chute; the prop folds when it stops.
+ * The camera is the C4EYE gimbal's, in the nose.
+ */
+[SIM_AIRFRAME_BRAMOR2300] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 4.5,
+  .inertia = { 0.589, 0.189, 0.778 },
+  .gravity = 9.81,
+  .cells = 6.0,
+  .r_cell = 0.010,
+  .rho = 1.225,
+  .prop_r = 0.1524,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -0.35, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.45,
+  .hull_hy = 1.15,
+  .hull_hz_down = 0.065,
+  .hull_hz_up = 0.25,
+  .contact_patch_r = 0.15,
+  .contact_arm_max = 1.24,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.39,
+  .camera_y = 0.0,
+  .camera_z = -0.01,
+  .fw = &FW_BRAMOR2300,
+},
 };
 
 /*

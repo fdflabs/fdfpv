@@ -17,13 +17,15 @@
  * docs/CUB-STAGE1.md, the same surfaces behind a tractor prop, which adds
  * a thrust line off the CG and P factor; and FW_RADIAN2000, the E-flite
  * Radian Pro powered glider of docs/GLIDER-STAGE1.md, which adds a folding
- * prop and flies in rising air. A term an airframe does not have
+ * prop and flies in rising air; and FW_BRAMOR2300, the C-Astral Bramor
+ * C4EYE of docs/BRAMOR-STAGE1.md, a blended wing body with elevons that
+ * brings a recovery parachute. A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
  * airframe has to land in are scripts/wing-gates.js,
- * scripts/skyhunter-gates.js, scripts/cub-gates.js and
- * scripts/glider-gates.js.
+ * scripts/skyhunter-gates.js, scripts/cub-gates.js,
+ * scripts/glider-gates.js and scripts/bramor-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -101,6 +103,19 @@ static int g_acro_held = 0;
 static int g_on_wheels = 0;
 static double g_acro_i_roll = 0.0;
 static double g_acro_i_pitch = 0.0;
+
+/*
+ * THE PARACHUTE, for an aircraft that recovers under one: the Bramor,
+ * docs/BRAMOR-STAGE1.md. Pulled, it cuts the motor and centres the
+ * surfaces, as the aircraft's own autopilot does, and hangs a canopy off
+ * the risers' attachment point: a drag area that grows over chute_open_s
+ * from the pull, acting against the air that point moves through, so its
+ * offset from the CG is a pendulum that swings the aircraft under the
+ * canopy and the point's own motion damps the swing. Stowed, none of it
+ * runs. g_chute_t is the time since the pull.
+ */
+static int g_chute = 0;
+static double g_chute_t = 0.0;
 
 /* What the last step saw and did, for the gates and for anyone chasing a
  * sign: alpha (of the zero lift line), beta, qbar, CL, CD, l m n (aero),
@@ -287,6 +302,32 @@ void plant_wing_reset(void) {
   }
   g_acro_held = 0;
   g_on_wheels = 0;
+  g_chute = 0;
+  g_chute_t = 0.0;
+}
+
+int plant_wing_chute(int deploy) {
+  if (!deploy) {
+    g_chute = 0;
+    g_chute_t = 0.0;
+    return 0;
+  }
+  if (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->chute_cda > 0.0)) {
+    return -1;
+  }
+  if (!g_chute) {
+    g_chute = 1;
+    g_chute_t = 0.0;
+    g_acro_held = 0;
+  }
+  return 0;
+}
+
+double plant_wing_chute_open(void) {
+  if (!g_chute) {
+    return 0.0;
+  }
+  return smoothstep(0.0, PLANT.fw->chute_open_s, g_chute_t);
 }
 
 static double acro_shape(const FixedWingParams *fw, double x) {
@@ -407,8 +448,15 @@ void plant_plane_surfaces(double out[4]) {
   }
 }
 
-/* A hand throw: the given speed along the body's own forward axis. */
+/* A hand throw or a catapult: the given speed along the body's own
+ * forward axis. A launch is a new flight, so Acro takes its target from
+ * the attitude it is launched at rather than from wherever the aircraft
+ * last flew: off a rail pitched up, holding the rail's angle, not diving
+ * for the level it sat at before it was put on the rail. Every recorded
+ * launch comes straight after a reset, where the target is already
+ * clear, so none of them moves. */
 void plant_wing_launch(SimState *s, double speed) {
+  g_acro_held = 0;
   const double fwd[3] = { speed, 0.0, 0.0 };
   double v[3];
   wquat_rotate(s->quat, fwd, v);
@@ -443,7 +491,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * the tailwheel the pilot steers with. So the sticks are the surfaces
    * there, in every mode, and Acro takes its target afresh each step, which
    * leaves it holding the attitude the aircraft leaves the ground in. */
-  if (g_on_wheels && g_stab != 0) {
+  if (g_chute) {
+    /* Under the canopy the autopilot has let go: surfaces centred. */
+    roll = 0.0;
+    pitch = 0.0;
+    yaw = 0.0;
+  } else if (g_on_wheels && g_stab != 0) {
     g_acro_held = 0;
   } else if (g_stab == 2) {
     acro_sticks(fw, s, &roll, &pitch);
@@ -544,13 +597,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   } else if (fw->fold_duty == 0.0 && thrust < 0.0) {
     thrust = 0.0;
   }
+  if (g_chute) thrust = 0.0; /* the motor is cut with the pull */
   F[0] += thrust;
-  const double rpm = folded ? 0.0 : 0.85 * duty * fw->rpm_no_load;
+  const double rpm = (folded || g_chute) ? 0.0 : 0.85 * duty * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = folded ? 0.0 : fw->current_full * duty * duty;
+  s->pack_current = (folded || g_chute) ? 0.0 : fw->current_full * duty * duty;
   s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
 
   /* Moments, in the aero convention, then into the body frame. */
@@ -580,9 +634,34 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * table leaves them out, and add_term keeps its arithmetic as it was. */
   M[1] = add_term(-m_aero, fw->thrust_z * thrust);
   M[2] = -n_aero;
-  /* A folded prop is not turning, and 0/0 would be a NaN, not a zero. */
+  /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
+   * is a prop whose motor the chute has cut. */
   if (s->motor_omega[0] > 0.0) {
     M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
+  }
+
+  /* The canopy: drag against the air the risers' attachment point moves
+   * through, the body's velocity plus omega x r there, applied at that
+   * point. Quadratic in that speed, like every other drag here. */
+  if (g_chute) {
+    g_chute_t += WING_DT;
+    const double open = smoothstep(0.0, fw->chute_open_s, g_chute_t);
+    const double *ra = fw->chute_attach;
+    const double *om = s->omega;
+    const double va[3] = {
+      u + (om[1] * ra[2] - om[2] * ra[1]),
+      v + (om[2] * ra[0] - om[0] * ra[2]),
+      w + (om[0] * ra[1] - om[1] * ra[0]),
+    };
+    const double vam = sim_sqrt(va[0] * va[0] + va[1] * va[1] + va[2] * va[2]);
+    const double kc = -0.5 * PLANT.rho * fw->chute_cda * open * vam;
+    const double Fc[3] = { kc * va[0], kc * va[1], kc * va[2] };
+    F[0] += Fc[0];
+    F[1] += Fc[1];
+    F[2] += Fc[2];
+    M[0] += ra[1] * Fc[2] - ra[2] * Fc[1];
+    M[1] += ra[2] * Fc[0] - ra[0] * Fc[2];
+    M[2] += ra[0] * Fc[1] - ra[1] * Fc[0];
   }
 
   /* Rates: I omega_dot = M - omega x (I omega), diagonal inertia. */
@@ -939,4 +1018,87 @@ const FixedWingParams FW_RADIAN2000 = {
   .yaw_coord_k = 1.5,     /* nine tenths of the Skyhunter's rudder, and more adverse yaw */
   .fold_duty = 0.05,
   .air_lift = 1,
+};
+
+/* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
+ * its formula and source and the estimated ones say so; scripts/
+ * bramor-derive.js prints them. A 2.3 m blended wing body flying wing:
+ * elevons and no rudder like the wing above, a pusher on a raised tail
+ * cone, so its thrust line runs over the CG and pitches the nose down with
+ * power, and a recovery parachute whose risers meet the belly just ahead
+ * of the CG, so it hangs level on its back under the canopy. */
+const FixedWingParams FW_BRAMOR2300 = {
+  .mix = FW_MIX_ELEVON,
+  .span = 2.30,
+  .area = 0.591,          /* the drawn planform, pod included */
+  .chord = 0.257,         /* S / b */
+  .cl_alpha = 4.77,       /* Helmbold at AR 8.95, 21 deg of half chord sweep */
+  .cl_max = 0.722,        /* the published 13 m/s stall at 4.5 kg */
+  .alpha_zl = 0.0,        /* a reflexed section: zero lift on the body axis */
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.024,
+  .k_induced = 0.0418,    /* 1/(pi 0.85 8.95) */
+  .cl_de = -0.953,        /* both elevons, trailing edge up sheds lift */
+  .cy_beta = -0.329,      /* the winglets and the pod */
+  .cl_beta = -0.070,      /* sweep at the cruise CL and the winglets, less the root's anhedral */
+  .cl_p = -0.522,
+  .cl_da = 0.308,
+  .cl_r_per_cl = 0.25,
+  .cm_0 = 0.0533,         /* trims at 16 m/s, elevons neutral, cruise thrust */
+  .cm_alpha = -0.420,     /* static margin 0.07 of the MAC */
+  .cm_q = -4.0,
+  .cm_de = 0.894,         /* delta_e positive pitches the nose up */
+  .cn_beta = 0.0352,      /* the winglets, less the pod */
+  .cn_r = -0.0297,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.062, /* adverse yaw, -0.2 Cl_da (Roskam) */
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The throws. Elevator: six degrees, the down that trims level inverted
+   * at cruise; with 2.1 deg of angle of attack per deg of elevon, full up
+   * is past the stall at any speed, as on the flying wing. Aileron: ten, a
+   * survey wing's setup and a roll a little over 80 deg/s at cruise. Each
+   * elevon clips at the sum. */
+  .throw_a = 10.0 * WING_PI / 180.0,
+  .throw_e = 6.0 * WING_PI / 180.0,
+  .throw_r = 0.0,
+  .surface_max = 16.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 35.0,  /* N: the thrust that gives the published 5 m/s climb */
+  .pitch_speed = 30.0,    /* m/s, 470 kV on 6S with a 12 x 8 */
+  .rpm_no_load = 10434.0,
+  .torque_arm = 0.0151,   /* 490 W of disc power at 8,870 rpm is 0.53 N m at 35 N */
+  .thrust_z = 0.087,      /* the drawn hub over the CG */
+  .current_full = 45.0,   /* A: about 1 kW on 6S */
+  .duty_min = 0.02,
+  .stab_bank_max = 45.0 * WING_PI / 180.0,
+  .stab_pitch_max = 20.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.2,
+  .stab_pitch_kp = 6.0,
+  .stab_pitch_kd = 0.6,
+  .acro_roll_rate = 90.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 40.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 5.0,
+  .acro_roll_kd = 0.4,
+  .acro_roll_ff = 0.70,   /* the stick for a rate at cruise, pb/2V 0.103 */
+  .acro_pitch_kp = 6.0,
+  .acro_pitch_kd = 0.6,
+  .acro_pitch_ff = 0.70,  /* the stick for a pull's pitch rate at cruise */
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,     /* no rudder */
+  /* A 1.64 m round canopy, C_D 0.8, sized for 5.0 m/s under it with the
+   * airframe's own flat plate drag; open in 1.2 s. The risers meet the
+   * belly 60 mm under the CG and 64 mm ahead of it, where the canopy's
+   * pull balances the airframe's pitching moment hanging flat on its back.
+   * All ESTIMATED: C-Astral publishes none of it. */
+  .chute_cda = 1.687,
+  .chute_open_s = 1.2,
+  .chute_attach = { 0.0642, 0.0, -0.060 },
 };
