@@ -60,7 +60,7 @@ const EXCUSED = new Map([
 
 const SHAPE_OK = [
   /^[MmLlHhVvCcSsQqTtAaZz0-9xX\s.,\-e]+$/,                      /* svg path, x for a blanked placeholder */
-  /(\d(px|em|rem|vh|vw|%|deg|ms|s)\b|rgba?\(|hsla?\(|var\(--|calc\(|translate|scale\(|url\(|!important|inset\b)/,
+  /(\d(px|em|rem|vh|vw|%|deg|ms|s)\b|rgba?\(|hsla?\(|var\(--|calc\(|translate|scale\(|url\(|(brightness|saturate|hue-rotate|contrast|grayscale|sepia|blur|drop-shadow|invert|opacity)\(|!important|inset\b)/,
   /^\s*[<{[]/,                                                    /* html or json */
   /^[A-Z_0-9]+(\s+[A-Z_0-9]+)+$/,                                 /* constants */
   /^[\s\d.,+\-*/%()=<>!&|?:^~]+$/,                              /* numbers and operators */
