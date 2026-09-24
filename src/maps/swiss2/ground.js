@@ -312,10 +312,12 @@ export const MEADOW_GLSL = /* glsl */ `
    * are cut at irregular places, some cuts left out so neighbouring
    * strips are farmed as one; each strip is cut into fields at its own
    * irregular places, on a slant of its own. Returns the field's id, the
-   * id across the nearest boundary, the distance to it in metres, and
-   * the point in the strip's frame, which the mown rows run along.
+   * id across the nearest boundary, the distance to it in metres, the
+   * point in the strip's frame, which the mown rows run along, the
+   * strip's slant, and the way to the nearest boundary on the ground
+   * (near enough: the bend of the stream is left out).
    */
-  struct S2Parcel { vec2 own; vec2 other; float edge; vec2 q; };
+  struct S2Parcel { vec2 own; vec2 other; float edge; vec2 q; float slant; vec2 toEdge; };
   /* Where the kth cut falls along a line of cells w metres apart, or
    * a very long way off when that cut is left out. */
   float s2Cut(float k, float w, float seed) {
@@ -362,15 +364,21 @@ export const MEADOW_GLSL = /* glsl */ `
     float eAlong = min(u + wu * s2Hash(vec2(strip, 3.3)) - su.x, su.y - u - wu * s2Hash(vec2(strip, 3.3))) / sqrt(1.0 + slant * slant);
     r.edge = min(eAcross, eAlong);
     r.other = eAcross < eAlong ? vec2(su.z, strip + (q.y - sv.x < sv.y - q.y ? -1.0 : 1.0) * 97.0) : vec2(su.z + 1.0, strip);
+    r.slant = slant;
+    r.toEdge = eAcross < eAlong ? vec2(0.0, q.y - sv.x < sv.y - q.y ? -1.0 : 1.0)
+      : normalize(vec2(1.0, slant)) * (u + wu * s2Hash(vec2(strip, 3.3)) - su.x < su.y - u - wu * s2Hash(vec2(strip, 3.3)) ? -1.0 : 1.0);
     return r;
   }
 
-  struct S2Meadow { vec3 tint; float mown; float edge; };
+  /* What s2Meadow makes of a field: the colour, how mown (0 to 1), how
+   * much of a boundary the point is on, whether that boundary is a
+   * hedge, and the mown rows: the coordinate across them in metres and
+   * the way they run on the ground. */
+  struct S2Meadow { vec3 tint; float mown; float edge; float hedgeOn; float across; vec2 along; };
 
-  S2Meadow s2Meadow(vec2 xz, float dist) {
+  S2Meadow s2MeadowAt(S2Parcel pc, vec2 xz, float dist) {
     /* A pixel's width on the ground, near enough, for fading lines. */
     float px = max(dist * 0.0011, 0.02);
-    S2Parcel pc = s2Parcel(xz);
     vec2 fid = pc.own;
     float edge = pc.edge;
     vec2 fq = pc.q;
@@ -380,7 +388,7 @@ export const MEADOW_GLSL = /* glsl */ `
      * and even, with no hedges and only a faint seam. */
     float plateau = (1.0 - smoothstep(140.0, 340.0, abs(xz.y))) * (1.0 - smoothstep(150.0, 320.0, abs(xz.x + 60.0)));
     float kind = s2Hash(fid + 4.4);
-    float lum = 0.84 + 0.3 * s2Hash(fid + 8.8);
+    float lum = 0.78 + 0.42 * s2Hash(fid + 8.8);
     vec3 tint;
     float mown = 0.0;
     float rowsDir = step(0.5, s2Hash(fid + 2.2));
@@ -446,7 +454,13 @@ export const MEADOW_GLSL = /* glsl */ `
     m.tint = tint;
     m.mown = mown;
     m.edge = clamp(hedge + seam, 0.0, 1.0);
+    m.hedgeOn = hedgeOn;
+    m.across = rowCoord;
+    m.along = rowsDir > 0.5 ? normalize(vec2(-pc.slant, 1.0)) : vec2(1.0, 0.0);
     return m;
+  }
+  S2Meadow s2Meadow(vec2 xz, float dist) {
+    return s2MeadowAt(s2Parcel(xz), xz, dist);
   }
 `;
 
@@ -522,23 +536,52 @@ const GROUND_PARS = /* glsl */ `
     float k = a - b - c + d;
     return vec3(a + (b - a) * u.x + (c - a) * u.y + k * u.x * u.y, du * (vec2(b - a, c - a) + k * u.yx));
   }
+  /* Value noise in three dimensions with its gradient (after Quilez). */
+  float s2Hash3(vec3 p) {
+    p = fract(p * 0.1031);
+    p += dot(p, p.zyx + 31.32);
+    return fract((p.x + p.y) * p.z);
+  }
+  vec3 s2NoiseG3(vec3 x) {
+    vec3 i = floor(x);
+    vec3 f = fract(x);
+    vec3 u = f * f * (3.0 - 2.0 * f);
+    vec3 du = 6.0 * f * (1.0 - f);
+    float a = s2Hash3(i);
+    float b = s2Hash3(i + vec3(1.0, 0.0, 0.0));
+    float c = s2Hash3(i + vec3(0.0, 1.0, 0.0));
+    float d = s2Hash3(i + vec3(1.0, 1.0, 0.0));
+    float e = s2Hash3(i + vec3(0.0, 0.0, 1.0));
+    float g = s2Hash3(i + vec3(1.0, 0.0, 1.0));
+    float h = s2Hash3(i + vec3(0.0, 1.0, 1.0));
+    float k = s2Hash3(i + vec3(1.0, 1.0, 1.0));
+    float k4 = a - b - c + d;
+    float k5 = a - c - e + h;
+    float k6 = a - b - e + g;
+    float k7 = -a + b + c - d + e - g - h + k;
+    return du * vec3(b - a + k4 * u.y + k6 * u.z + k7 * u.y * u.z,
+                     c - a + k5 * u.z + k4 * u.x + k7 * u.z * u.x,
+                     e - a + k6 * u.x + k5 * u.y + k7 * u.x * u.y);
+  }
   /*
-   * The slope of a relief laid over the mesh, in metres per metre: gullies
-   * and ribs a hundred metres to ten across, the kind a real wall is made
-   * of and a thirty metre grid smooths away. Deep on steep ground, faint
-   * on the floor. Octaves too fine for the distance are dropped, so the
-   * far walls do not shimmer.
+   * The gradient of a relief laid over the mesh, in metres per metre:
+   * gullies and ribs a hundred metres to ten across, the kind a real wall
+   * is made of and a thirty metre grid smooths away. Deep on steep
+   * ground, faint on the floor. It is a field in space, not a pattern
+   * laid on the ground's plan: read off the plan, a wall steeper than
+   * about fifty degrees saw each bump drawn out down its fall line, and
+   * the faces were smeared in long streaks. Octaves too fine for the
+   * distance are dropped, so the far walls do not shimmer.
    */
-  vec2 s2Relief(vec2 p, float amp, float dist) {
-    vec2 g = vec2(0.0);
+  vec3 s2Relief(vec3 p, float amp, float dist) {
+    vec3 g = vec3(0.0);
     float a = amp;
     float fq = 1.0 / 110.0;
     for (int o = 0; o < 4; o++) {
       /* A pixel is about dist / 1070 metres across at the default lens;
        * an octave goes before its wavelength is eight pixels. */
       float keep = 1.0 - smoothstep(0.12, 0.25, dist * 0.00093 * fq);
-      vec3 nd = s2NoiseD(p * fq + float(o) * 17.3);
-      g += nd.yz * a * fq * keep;
+      g += s2NoiseG3(p * fq + float(o) * 17.3) * a * fq * keep;
       a *= 0.48;
       fq *= 2.13;
     }
@@ -552,6 +595,138 @@ const GROUND_PARS = /* glsl */ `
     return vec3(xy, sqrt(max(0.0, 1.0 - dot(xy, xy))));
   }
 
+  /*
+   * The two planes a point of ground is read on (biplanar mapping, after
+   * Quilez): the one the face looks along most, and the next. Anything
+   * gentler than thirty five degrees is read on the plan alone, exactly
+   * as before: vegetation/zones.js repeats some of what is read there in
+   * JavaScript. Steeper faces are read more and more from the side, so
+   * neither a texture nor a noise is drawn out down them into streaks. w is how much
+   * each plane counts, and sums to one.
+   */
+  struct S2Planes { int a; int b; vec2 w; };
+  S2Planes s2Planes(vec3 n) {
+    vec3 an = abs(n);
+    S2Planes r;
+    r.a = an.x > an.y && an.x > an.z ? 0 : an.y > an.z ? 1 : 2;
+    int lo = an.x < an.y && an.x < an.z ? 0 : an.y < an.z ? 1 : 2;
+    r.b = 3 - lo - r.a;
+    vec2 w = clamp((vec2(an[r.a], an[r.b]) - 0.5773) / (1.0 - 0.5773), 0.0, 1.0);
+    w *= w;
+    r.w = w / (w.x + w.y);
+    return r;
+  }
+  vec2 s2On(vec3 v, int a) {
+    return a == 0 ? v.zy : a == 1 ? v.xz : v.xy;
+  }
+  /* A tangent space normal read on plane a, into the world about the
+   * ground's normal n (the whiteout blend, after Golus). */
+  vec3 s2Whiteout(vec3 t, vec3 n, int a) {
+    return a == 0 ? vec3(abs(t.z) * n.x, t.y + n.y, t.x + n.z)
+         : a == 1 ? vec3(t.x + n.x, abs(t.z) * n.y, t.y + n.z)
+         : vec3(t.x + n.x, t.y + n.y, abs(t.z) * n.z);
+  }
+  float s2FbmOn(vec3 p, S2Planes pl, float scale) {
+    float v = s2Fbm(s2On(p, pl.a) / scale) * pl.w.x;
+    if (pl.w.y > 0.0) {
+      v += s2Fbm(s2On(p, pl.b) / scale) * pl.w.y;
+    }
+    return v;
+  }
+  float s2NoiseOn(vec3 p, S2Planes pl, float scale) {
+    float v = s2Noise(s2On(p, pl.a) / scale) * pl.w.x;
+    if (pl.w.y > 0.0) {
+      v += s2Noise(s2On(p, pl.b) / scale) * pl.w.y;
+    }
+    return v;
+  }
+
+  /* A band w metres wide about x == 0, drawn a pixel wide at the
+   * contrast it would average to once it is narrower than one. */
+  float s2Band(float x, float w, float px) {
+    float wide = max(w, px);
+    return (1.0 - smoothstep(0.5 * (wide - px), 0.5 * (wide + px), abs(x))) * (w / wide);
+  }
+  /* Stripes of period one, plus and minus one, seen through a pixel fw
+   * periods wide: their edges a pixel soft, and gone before they are
+   * fine enough to shimmer. */
+  float s2Stripes(float x, float fw) {
+    float t = abs(fract(x) - 0.5) * 4.0 - 1.0;
+    return clamp(t / max(2.0 * fw, 1e-3), -1.0, 1.0) * (1.0 - smoothstep(0.2, 0.4, fw));
+  }
+
+  /*
+   * A field as it looks from the air. What made the floor read as lawn
+   * past the near grass was that every field was one flat colour with a
+   * ruled edge. A real one is textured at every scale down to the
+   * pixel: the mower's passes, each laying the grass one way so that
+   * alternate passes are light and dark as seen along them; the
+   * headland round the edge, mown last and round the field, with a
+   * darker line where the tractor turned; streaks along the passes where
+   * the cut grass lay thicker, clumps, and a drift of colour across the
+   * field where the ground is wetter or thinner. Where two fields meet
+   * the edge is uneven and neither colour stops dead. Some fields have a
+   * track along an edge, and a hedge throws its shadow away from the
+   * sun. The tint multiplies the albedo, the tilt leans the normal along
+   * the lie of the grass, the track is its two ruts and the shade is the
+   * hedge's shadow. fx and fy are the pixel's steps across the ground:
+   * a pattern is filtered by the pixel's reach across it, which looking
+   * along the ground is many times its reach the other way.
+   */
+  struct S2Field { vec3 tint; vec3 tilt; float track; float shade; };
+  float s2Reach(vec2 fx, vec2 fy, vec2 across) {
+    return max(abs(dot(fx, across)) + abs(dot(fy, across)), 0.02);
+  }
+  S2Field s2Field(vec2 xz, float dist, vec2 look, vec2 fx, vec2 fy) {
+    float px = max(max(length(fx), length(fy)), 0.02);
+    S2Parcel pc = s2Parcel(xz);
+    S2Meadow m = s2MeadowAt(pc, xz, dist);
+    S2Field f;
+    f.tint = m.tint;
+    float pxEdge = s2Reach(fx, fy, pc.toEdge);
+    float edge = pc.edge + 3.0 * (s2Noise(xz / 9.0 + 2.3) - 0.5);
+    /* Neither colour stops dead: over the last few metres each field
+     * goes halfway to its neighbour's, read just across the boundary. */
+    float soft = 0.5 * (1.0 - smoothstep(0.0, 3.0 + pxEdge, edge));
+    if (soft > 0.01) {
+      vec2 over = xz + pc.toEdge * (2.0 * max(pc.edge, 0.0) + 0.6);
+      f.tint = mix(f.tint, s2Meadow(over, dist).tint, soft);
+    }
+    float mownK = smoothstep(0.4, 0.9, m.mown);
+    float headW = 5.5 + 3.0 * s2Hash(pc.own + 5.1);
+    bool head = edge < headW;
+    float across = head ? edge : m.across;
+    vec2 along = head ? vec2(-pc.toEdge.y, pc.toEdge.x) : m.along;
+    float pxAcross = s2Reach(fx, fy, vec2(-along.y, along.x));
+    /* The passes, 2.7 m wide, each laid the other way. */
+    float lie = s2Stripes(across / 5.4, pxAcross / 5.4);
+    float g = 1.0 + (0.11 * mownK + 0.03) * lie * dot(look, along);
+    f.tilt = vec3(along.x, 0.0, along.y) * lie * 0.18 * mownK;
+    g *= 1.0 - 0.1 * mownK * s2Band(edge - headW, 1.4, pxEdge);
+    /* Streaks along the passes and clumps, each gone before it would
+     * shimmer. */
+    float streak = s2Noise(vec2(across / 3.0, dot(xz, along) / 26.0) + pc.own * 1.7);
+    g *= 1.0 + 0.2 * (streak - 0.5) * (1.0 - smoothstep(0.8, 1.6, pxAcross));
+    g *= 1.0 + 0.16 * (s2Noise(xz / 4.5 + 7.1) - 0.5) * (1.0 - smoothstep(0.9, 1.8, px));
+    g *= 1.0 + 0.2 * (s2Noise(xz / 14.0 + pc.own * 2.3) - 0.5) * (1.0 - smoothstep(2.5, 5.0, px));
+    g *= 1.0 + 0.3 * (s2Fbm(xz / 38.0 + pc.own * 1.1) - 0.5);
+    float wet = s2Noise(xz / 85.0 + pc.own * 3.7);
+    f.tint *= g * mix(vec3(0.93, 0.99, 0.97), vec3(1.07, 1.01, 0.9), wet);
+    /* A track inside some fields' edges: two ruts a tractor's gauge
+     * apart. */
+    float trackOn = step(0.8, s2Hash(pc.own + pc.other + 29.0)) * (1.0 - m.hedgeOn);
+    f.track = trackOn * max(s2Band(pc.edge - 1.2, 0.5, pxEdge), s2Band(pc.edge - 3.0, 0.5, pxEdge));
+    /* The hedge's shadow, on the side away from the sun, as long as a
+     * hedge two to six metres tall throws it: a hedge is a row of
+     * bushes and trees, not a wall. */
+    vec2 sunXZ = uS2SunDir.xz;
+    float sunward = dot(pc.toEdge, normalize(sunXZ + vec2(1e-4, 0.0)));
+    float tall = 2.0 + 4.0 * s2Noise(xz / 7.0 + 4.1);
+    float reach = tall * length(sunXZ) / max(uS2SunDir.y, 0.15) * max(sunward, 0.0);
+    f.shade = m.hedgeOn * (1.0 - smoothstep(reach * 0.5 + 2.0, reach + 2.0 + pxEdge, pc.edge)) * smoothstep(0.0, 0.3, sunward);
+    return f;
+  }
+
   struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; float backlit; float sheen; };
 
   S2Ground s2Ground(vec3 p, vec3 n) {
@@ -561,15 +736,18 @@ const GROUND_PARS = /* glsl */ `
     vec4 z2 = texture2D(uS2Zone2, fuv) * inside;
     float path = texture2D(uS2Path, fuv).r * inside;
     float dist = length(p - cameraPosition);
-    float macro = s2Fbm(p.xz / 190.0);
-    float meso = s2Fbm(p.xz / 41.0);
-    float fine = s2Noise(p.xz / 7.0);
+    vec3 n0 = n;
+    vec3 toEye = normalize(cameraPosition - p);
+    S2Planes pl = s2Planes(n);
+    float macro = s2FbmOn(p, pl, 190.0);
+    float meso = s2FbmOn(p, pl, 41.0);
+    float fine = s2NoiseOn(p, pl, 7.0);
     /* The relief first, so the rock finds the ribs it makes. */
     float steep0 = smoothstep(0.2, 0.9, sqrt(max(0.0, 1.0 - n.y * n.y)) / max(n.y, 0.05));
     /* Above the trees the mountain is bare and the relief is all there
      * is to see: deeper there, so a snowfield is not a sheet. */
     float bare = smoothstep(${TREE_LINE.toFixed(1)}, ${(TREE_LINE + 400).toFixed(1)}, p.y);
-    vec2 rg = s2Relief(p.xz, mix(1.5, 24.0, max(steep0, 0.6 * bare)) * (1.0 - z2.g), dist);
+    vec3 rg = s2Relief(p, mix(1.5, 24.0, max(steep0, 0.6 * bare)) * (1.0 - z2.g), dist);
     /* Gullies and the ribs between them, running down the face: a
      * mountain face is fluted, and the thirty metre grid is not. Grooves
      * about twenty metres across and deep to match, cut into the normal,
@@ -577,21 +755,27 @@ const GROUND_PARS = /* glsl */ `
      * Read on the two upright planes, weighted by the way the face turns,
      * so the grooves stay put as the normal swings: read across the
      * normal's own bearing, far from the origin a degree of turn slid
-     * them a whole groove and the face swirled like wood grain. */
+     * them a whole groove and the face swirled like wood grain. A groove
+     * runs three times as long as it is wide and wanders: drawn seven
+     * times as long and straight, a far face was brushed in streaks. */
     vec2 gw = n.xz * n.xz + 1e-4;
     gw /= gw.x + gw.y;
-    vec3 gx = s2NoiseD(vec2(p.z / 23.0, p.y / 170.0 + 0.3 * meso));
-    vec3 gz = s2NoiseD(vec2(p.x / 23.0 + 7.7, p.y / 170.0 + 0.3 * meso));
+    float wander = 0.9 * (meso - 0.5);
+    vec3 gx = s2NoiseD(vec2(p.z / 23.0 + wander, p.y / 70.0 + 0.3 * meso));
+    vec3 gz = s2NoiseD(vec2(p.x / 23.0 + 7.7 + wander, p.y / 70.0 + 0.3 * meso));
     float gully = gx.x * gw.x + gz.x * gw.y;
     float gullyKeep = 1.0 - smoothstep(0.12, 0.25, dist * 0.00093 / 23.0);
     float couloir = smoothstep(0.52, 0.8, gully) * steep0;
     float rib = smoothstep(0.45, 0.2, gully) * steep0;
-    rg += vec2(gz.y * gw.y, gx.y * gw.x) * (9.0 / 23.0) * steep0 * max(bare, 0.4) * gullyKeep;
+    rg += vec3(gz.y * gw.y, 0.0, gx.y * gw.x) * (9.0 / 23.0) * steep0 * max(bare, 0.4) * gullyKeep;
+    /* The relief's slope along the face only: what points out of it
+     * would tilt nothing. */
+    rg -= n * dot(n, rg);
     /* Half the relief decides where rock shows, all of it how the light
      * falls: ribs in shadow and gullies lit, without the whole wall
      * turning to bare rock. */
-    vec3 nCov = normalize(vec3(n.x - 0.5 * rg.x, n.y, n.z - 0.5 * rg.y));
-    n = normalize(vec3(n.x - rg.x, n.y, n.z - rg.y));
+    vec3 nCov = normalize(n - 0.5 * rg);
+    n = normalize(n - rg);
     float tanS = sqrt(max(0.0, 1.0 - nCov.y * nCov.y)) / max(nCov.y, 0.05);
     /*
      * A real wall changes with height. Two bands of pale limestone cliff
@@ -606,7 +790,7 @@ const GROUND_PARS = /* glsl */ `
      * few on each face, which is the scale the scrub, the scree and the
      * turf's edges follow. The gullies themselves are too fine for that
      * and brushed the whole face in streaks. */
-    float ravine = s2Noise(vec2(p.z / 130.0, p.y / 520.0 + 0.4 * macro)) * gw.x + s2Noise(vec2(p.x / 130.0 + 3.1, p.y / 520.0 + 0.4 * macro)) * gw.y;
+    float ravine = s2Noise(vec2(p.z / 130.0 + 0.5 * wander, p.y / 330.0 + 0.4 * macro)) * gw.x + s2Noise(vec2(p.x / 130.0 + 3.1 + 0.5 * wander, p.y / 330.0 + 0.4 * macro)) * gw.y;
     float b1 = ${CLIFF_LOW.toFixed(1)} + 150.0 * (s2Noise(p.xz / 1400.0 + 3.3) - 0.5);
     float b2 = ${CLIFF_HIGH.toFixed(1)} + 130.0 * (s2Noise(p.xz / 1700.0 + 8.1) - 0.5);
     float bw1 = 35.0 + 35.0 * meso;
@@ -681,21 +865,32 @@ const GROUND_PARS = /* glsl */ `
         cov[k] = float(k) == uS2Only ? 1.0 : 0.0;
       }
     }
-
+    /* The farmed floor (MEADOW_GLSL and s2Field). */
+    float grass = clamp(1.0 - cov[2] - cov[3] - cov[4] - cov[5] - cov[6] - cov[8], 0.0, 1.0);
+    float farm = grass * (1.0 - smoothstep(50.0, 140.0, p.y)) * (1.0 - smoothstep(0.12, 0.3, tanS)) * (1.0 - cov[1]);
+    vec2 look = normalize(p.xz - cameraPosition.xz + vec2(1e-3, 0.0));
     /* Every derivative taken here, where every pixel of the quad runs:
-     * inside the loop the branches differ from pixel to pixel and a
-     * derivative there is undefined. */
+     * inside a branch that goes differently from pixel to pixel, as the
+     * field's and the layer loop's do, a derivative is undefined. */
     vec3 dpx = dFdx(p);
     vec3 dpy = dFdy(p);
-    vec2 duvx = dpx.xz;
-    vec2 duvy = dpy.xz;
-    vec3 bw = pow(abs(n), vec3(4.0));
-    bw /= (bw.x + bw.y + bw.z);
+    S2Field field = S2Field(vec3(1.0), vec3(0.0), 0.0, 0.0);
+    if (farm > 0.0) {
+      field = s2Field(p.xz, dist, look, dpx.xz, dpy.xz);
+    }
+
+    vec2 uA = s2On(p, pl.a);
+    vec2 uB = s2On(p, pl.b);
+    vec2 dAx = s2On(dpx, pl.a);
+    vec2 dAy = s2On(dpy, pl.a);
+    vec2 dBx = s2On(dpx, pl.b);
+    vec2 dBy = s2On(dpy, pl.b);
+    /* A second read of each layer at a few times the scale, turned, so
+     * the tile's pattern does not repeat from the air. */
+    const mat2 TURN = mat2(0.8, -0.6, 0.6, 0.8);
 
     vec3 albedo = vec3(0.0);
-    vec3 tnormal = vec3(0.0);
-    vec3 rockNormal = vec3(0.0);
-    float rockW = 0.0;
+    vec3 wnormal = vec3(0.0);
     float rough = 0.0;
     float hsum = 0.0;
     float remaining = 1.0;
@@ -713,38 +908,36 @@ const GROUND_PARS = /* glsl */ `
         continue;
       }
       float s = 1.0 / uS2Tile[k];
-      vec3 col;
-      vec4 nh;
       float lk = float(k);
+      vec4 nh = textureGrad(uS2Nrh, vec3(uA * s, lk), dAx * s, dAy * s);
+      vec4 nhB = nh;
+      if (pl.w.y > 0.0) {
+        nhB = textureGrad(uS2Nrh, vec3(uB * s, lk), dBx * s, dBy * s);
+      }
+      float h = mix(nh.b, nhB.b, pl.w.y);
+      float cc = k == 0 ? 1.0 : clamp(c + (h - 0.5) * 3.2 * c * (1.0 - c), 0.0, 1.0);
+      /* The pasture shades into the meadow over tens of metres, the rock
+       * breaks up by its own heights alone; the rest meet at an edge the
+       * heights break up. */
+      cc = k == 0 || k == 1 || k == 4 ? cc : smoothstep(0.18, 0.82, cc);
+      float w = cc * remaining;
+      if (w < 0.004) {
+        continue;
+      }
+      remaining -= w;
+      vec3 col = textureGrad(uS2Col, vec3(uA * s, lk), dAx * s, dAy * s).rgb;
+      if (pl.w.y > 0.0) {
+        col = mix(col, textureGrad(uS2Col, vec3(uB * s, lk), dBx * s, dBy * s).rgb, pl.w.y);
+      }
+      /* Rock's second read is larger and counts for more: a kilometre
+       * of wall is not a thousand copies of one tile. */
+      float s2 = s * (k == 4 ? 0.23 : 0.29);
+      col = mix(col, textureGrad(uS2Col, vec3(TURN * uA * s2 + vec2(0.37, 0.71), lk), TURN * dAx * s2, TURN * dAy * s2).rgb, k == 4 ? 0.45 : 0.28);
+      vec3 wn = s2Whiteout(s2Tangent(nh, uS2Bump[k] * fade), n, pl.a) * pl.w.x;
+      if (pl.w.y > 0.0) {
+        wn += s2Whiteout(s2Tangent(nhB, uS2Bump[k] * fade), n, pl.b) * pl.w.y;
+      }
       if (k == 4) {
-        /* Rock from three sides, so a cliff reads as a cliff. */
-        vec2 ux = p.zy * s;
-        vec2 uy = p.xz * s;
-        vec2 uz = p.xy * s;
-        vec4 nx = textureGrad(uS2Nrh, vec3(ux, lk), dpx.zy * s, dpy.zy * s);
-        vec4 ny = textureGrad(uS2Nrh, vec3(uy, lk), duvx * s, duvy * s);
-        vec4 nz = textureGrad(uS2Nrh, vec3(uz, lk), dpx.xy * s, dpy.xy * s);
-        col = textureGrad(uS2Col, vec3(ux, lk), dpx.zy * s, dpy.zy * s).rgb * bw.x
-            + textureGrad(uS2Col, vec3(uy, lk), duvx * s, duvy * s).rgb * bw.y
-            + textureGrad(uS2Col, vec3(uz, lk), dpx.xy * s, dpy.xy * s).rgb * bw.z;
-        nh = nx * bw.x + ny * bw.y + nz * bw.z;
-        /* The face the cliff mostly shows, read again at a quarter of the
-         * scale and blended in, so a kilometre of wall is not a thousand
-         * copies of one tile. */
-        bool side = bw.y < max(bw.x, bw.z);
-        vec2 up2 = side ? (bw.x > bw.z ? p.zy : p.xy) : p.xz;
-        vec2 ugx = side ? (bw.x > bw.z ? dpx.zy : dpx.xy) : dpx.xz;
-        vec2 ugy = side ? (bw.x > bw.z ? dpy.zy : dpy.xy) : dpy.xz;
-        float s2 = s * 0.23;
-        col = mix(col, textureGrad(uS2Col, vec3(up2 * s2 + vec2(0.31, 0.57), lk), ugx * s2, ugy * s2).rgb, 0.45);
-        /* Whiteout blend per projection, after Golus. */
-        vec3 tx = s2Tangent(nx, uS2Bump[k] * fade);
-        vec3 ty = s2Tangent(ny, uS2Bump[k] * fade);
-        vec3 tz = s2Tangent(nz, uS2Bump[k] * fade);
-        vec3 wx = vec3(tx.xy + n.zy, abs(tx.z) * n.x).zyx;
-        vec3 wy = vec3(ty.xy + n.xz, abs(ty.z) * n.y).xzy;
-        vec3 wz = vec3(tz.xy + n.xy, abs(tz.z) * n.z);
-        vec3 rn = normalize(wx * bw.x + wy * bw.y + wz * bw.z);
         /* Strata: a darker band in every three, thirty metres tall,
          * warped by the noise so they never read as contour lines. */
         float band = fract((p.y + 22.0 * meso + 9.0 * fine) / 31.0);
@@ -753,44 +946,16 @@ const GROUND_PARS = /* glsl */ `
         /* Water streaks down the face: long dark stains, narrow across
          * and tall, where the runoff has darkened the limestone. */
         vec2 fall = normalize(n.xz + vec2(1e-4, 0.0));
-        float streak = s2Fbm(vec2(dot(p.xz, vec2(-fall.y, fall.x)) / 9.0, p.y / 140.0));
+        float streak = s2Fbm(vec2(dot(p.xz, vec2(-fall.y, fall.x)) / 9.0, p.y / 60.0));
         col *= 1.0 - 0.3 * smoothstep(0.52, 0.78, streak) * smoothstep(0.6, 1.2, tanS);
         /* The gullies shaded and damp, the ribs weathered pale. */
         col *= 1.0 - 0.22 * couloir + 0.12 * rib;
         /* The cliff bands are limestone, paler and warmer than the
          * broken rock round them. */
         col *= mix(vec3(1.0), vec3(1.55, 1.48, 1.34), cliff);
-        float h = nh.b;
-        float cc = clamp(c + (h - 0.5) * 3.2 * c * (1.0 - c), 0.0, 1.0);
-        float w = cc * remaining;
-        remaining -= w;
-        albedo += col * uS2Tint[k] * w;
-        rockNormal += rn * w;
-        rockW += w;
-        rough += uS2Rough[k] * w;
-        hsum += h * w;
-        continue;
       }
-      vec2 uv = p.xz * s;
-      nh = textureGrad(uS2Nrh, vec3(uv, lk), duvx * s, duvy * s);
-      float h = nh.b;
-      float cc = k == 0 ? 1.0 : clamp(c + (h - 0.5) * 3.2 * c * (1.0 - c), 0.0, 1.0);
-      /* The pasture shades into the meadow over tens of metres; the rest
-       * meet at an edge the heights break up. */
-      cc = k == 0 ? 1.0 : k == 1 ? cc : smoothstep(0.18, 0.82, cc);
-      float w = cc * remaining;
-      if (w < 0.004) {
-        continue;
-      }
-      remaining -= w;
-      col = textureGrad(uS2Col, vec3(uv, lk), duvx * s, duvy * s).rgb;
-      /* A second read at a third of the scale, turned, so the tile's
-       * pattern does not repeat from the air. */
-      vec2 uv2 = mat2(0.8, -0.6, 0.6, 0.8) * p.xz * (s * 0.29) + vec2(0.37, 0.71);
-      vec3 col2 = textureGrad(uS2Col, vec3(uv2, lk), mat2(0.8, -0.6, 0.6, 0.8) * duvx * (s * 0.29), mat2(0.8, -0.6, 0.6, 0.8) * duvy * (s * 0.29)).rgb;
-      col = mix(col, col2, 0.28);
       albedo += col * uS2Tint[k] * w;
-      tnormal += s2Tangent(nh, uS2Bump[k] * fade) * w;
+      wnormal += wn * w;
       rough += uS2Rough[k] * w;
       hsum += h * w;
     }
@@ -798,7 +963,6 @@ const GROUND_PARS = /* glsl */ `
     /* The meadow's life: hayfields a yellower green, a hue that wanders
      * across the valley, and the mown fields on the village plateau and
      * the strip striped the way a mower leaves them. */
-    float grass = clamp(1.0 - cov[2] - cov[3] - cov[4] - cov[5] - cov[6] - cov[8], 0.0, 1.0);
     vec3 hue = mix(vec3(0.92, 1.04, 0.86), vec3(1.1, 1.0, 0.78), meso);
     hue = mix(hue, vec3(1.16, 1.04, 0.72), z2.r * (1.0 - smoothstep(60.0, 300.0, p.y)) * 0.8);
     albedo *= mix(vec3(1.0), hue, grass);
@@ -812,18 +976,17 @@ const GROUND_PARS = /* glsl */ `
     albedo *= mix(vec3(1.0), alpTint, alpine);
     float scrub = smoothstep(0.6, 0.78, ravine + 0.2 * (meso - 0.5)) * smoothstep(220.0, 380.0, p.y) * (1.0 - smoothstep(900.0, 1100.0, p.y)) * steep0 * grass * inside;
     albedo *= mix(vec3(1.0), vec3(0.42, 0.56, 0.36), 0.85 * scrub);
-    /* The farmed floor (MEADOW_GLSL), and on mown ground the rows the
-     * mower left, lighter looking down them and darker looking against
-     * the lie of the grass, so a field changes as the camera turns. */
-    float farm = grass * (1.0 - smoothstep(50.0, 140.0, p.y)) * (1.0 - smoothstep(0.12, 0.3, tanS)) * (1.0 - cov[1]);
-    S2Meadow meadow = s2Meadow(p.xz, dist);
+    albedo *= mix(vec3(1.0), field.tint, farm);
+    albedo *= 1.0 - 0.35 * field.shade * farm;
+    /* The track's ruts are bare earth. Not the worn earth layer: its
+     * edge is broken by the photograph's heights, and a rut narrower
+     * than a pixel broke into dashes. */
+    albedo = mix(albedo, vec3(0.25, 0.21, 0.155) * (0.85 + 0.3 * fine), 0.75 * field.track * farm);
+    /* The strip's lawn, striped the way its mower leaves it. */
     vec2 fq = mat2(0.97, -0.24, 0.24, 0.97) * p.xz;
     float rows = step(0.5, fract(fq.y / 3.6)) * 2.0 - 1.0;
-    vec2 look = normalize(p.xz - cameraPosition.xz + vec2(1e-3, 0.0));
     float lie = rows * dot(look, vec2(0.97, -0.24));
-    float sheen = 1.0 + 0.035 * lie * max(smoothstep(0.8, 1.0, meadow.mown), uS2Strip) * (1.0 - smoothstep(120.0, 450.0, dist));
-    albedo *= mix(vec3(1.0), meadow.tint * sheen, farm);
-    albedo *= mix(1.0, sheen, uS2Strip * grass);
+    albedo *= 1.0 + 0.07 * lie * uS2Strip * grass * (1.0 - smoothstep(120.0, 450.0, dist));
     /* Close to, a meadow is never one green: clover and trodden patches
      * a few metres across, some darker and bluer, some yellower. */
     /* And the gaps between the blades are dark: the photograph's own
@@ -832,6 +995,13 @@ const GROUND_PARS = /* glsl */ `
     float blotch = s2Fbm(p.xz / 5.5 + 3.7);
     albedo *= mix(vec3(1.0), mix(vec3(0.84, 0.9, 0.86), vec3(1.12, 1.07, 0.86), blotch), grass * (1.0 - smoothstep(60.0, 350.0, dist)));
     albedo *= 0.8 + 0.4 * macro;
+    /* A sward is not a flat colour either. Looked down into, a camera
+     * sees the shade between the blades and the ground under them;
+     * looked along, only the blades' sides and their dry tips, so a
+     * meadow goes lighter and yellower toward the horizon and darker and
+     * bluer under the eye. */
+    float graze = 1.0 - clamp(dot(toEye, n0), 0.0, 1.0);
+    albedo *= mix(vec3(1.0), mix(vec3(0.86, 0.9, 0.95), vec3(1.14, 1.06, 1.0), smoothstep(0.35, 0.97, graze)), grass);
     /* The rank, shaded grass along a wall. */
     float lee = (1.0 - smoothstep(0.6, 2.6 + 1.2 * fine, wallD)) * grass;
     albedo *= mix(vec3(1.0), vec3(0.8, 0.88, 0.78), lee);
@@ -848,9 +1018,7 @@ const GROUND_PARS = /* glsl */ `
     float under = max(uS2LakeY - p.y, 0.0);
     albedo *= exp(-under * vec3(0.9, 0.2, 0.14));
 
-    vec3 tn = normalize(tnormal + vec3(0.0, 0.0, 1e-4));
-    vec3 planar = normalize(vec3(tn.x + n.x, abs(tn.z) * n.y, tn.y + n.z));
-    vec3 outN = rockW > 0.001 ? normalize(mix(planar, normalize(rockNormal), rockW)) : planar;
+    vec3 outN = normalize(normalize(wnormal + n * 1e-4) + field.tilt * farm);
 
     S2Ground g;
     g.albedo = albedo;
@@ -865,7 +1033,6 @@ const GROUND_PARS = /* glsl */ `
      * one with it a pale one). Taken off the sun's light on the grass
      * only, from nothing at right angles to the sun to BACKLIT straight
      * into it. */
-    vec3 toEye = normalize(cameraPosition - p);
     float into = -dot(toEye, uS2SunDir);
     g.backlit = 1.0 - ${BACKLIT.toFixed(2)} * grass * smoothstep(0.0, 0.75, into);
     /* And toward the sun a sward shows none of the glare a plane has
