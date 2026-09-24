@@ -9,17 +9,19 @@
  * stays wider and blunter. Larch takes over toward the tree line: light
  * green tufts on thin rising branches, the trunk seen through them.
  * Beech and sycamore maple stand on the lower slopes and along the
- * stream: a grey trunk into a few limbs and a round crown of leaf
- * clusters.
+ * stream: a grey trunk into a few limbs, branches, and a crown of
+ * separate clumps of leaves.
  *
  * A conifer's branch is two crossed cards of the species' spray along a
  * drooping curve, with a hanging curtain under it for the spruce; a
- * broadleaf's crown is leaf clusters scattered through an ellipsoid shell
- * round its limbs. Every card's normal is bent outward from the crown's
- * axis (or centre), so the crown shades as one soft mass the way a real
- * one does from any distance, and every vertex carries an occlusion
- * colour, dark at the trunk and low in the crown, and a flutter weight
- * for the wind (aFlex).
+ * broadleaf's crown is clumps of leaf sprays on the ends of its branches,
+ * apart, with the sky and the crown's dark inside between them. A
+ * conifer card's normal is bent outward from the crown's axis, so the
+ * crown shades as one soft mass the way a real one does from any
+ * distance; a broadleaf card's leans out from its clump, so each clump
+ * is its own lit dome. Every vertex carries an occlusion colour, dark at
+ * the trunk, inside and low in the crown, and a flutter weight for the
+ * wind (aFlex).
  *
  * Each variant is built twice: 'near', the whole tree with its bark as a
  * second geometry for the tiled bark material; and 'mid', a third of the
@@ -298,8 +300,49 @@ function conifer(variant, lod) {
   return { foliage: foliage.geometry(), bark: near ? barkB.geometry() : null };
 }
 
+/* A tapered tube from `from` to `to`, sagging `sag` metres at its middle,
+ * radius r0 at the start and r1 at the end, for a limb or a branch. */
+function limb(b, { from, to, r0, r1, sag, segs, sides, uvOf, colour, flex }) {
+  const dir = to.clone().sub(from).normalize();
+  let s1 = new THREE.Vector3().crossVectors(dir, UP);
+  s1 = s1.lengthSq() < 1e-6 ? new THREE.Vector3(1, 0, 0) : s1.normalize();
+  const s2 = new THREE.Vector3().crossVectors(s1, dir);
+  const rings = [];
+  for (let j = 0; j <= segs; j += 1) {
+    const t = j / segs;
+    const c = from.clone().lerp(to, t).addScaledVector(UP, -Math.sin(t * Math.PI) * sag);
+    const r = r0 + (r1 - r0) * t;
+    const ring = [];
+    for (let i = 0; i <= sides; i += 1) {
+      const ang = (i / sides) * Math.PI * 2;
+      const n = s1.clone().multiplyScalar(Math.cos(ang)).addScaledVector(s2, Math.sin(ang));
+      const [u, v] = uvOf(i / sides, t, c.y, r);
+      ring.push(b.vert(c.clone().addScaledVector(n, r), n, u, v, colour(t), flex * t));
+    }
+    rings.push(ring);
+  }
+  for (let j = 0; j < segs; j += 1) {
+    b.strip(rings[j], rings[j + 1]);
+  }
+}
+
+/*
+ * A beech or a sycamore. A broadleaf crown is not a ball of leaves: it
+ * is a few ascending limbs that fork into branches, each branch ending in
+ * a clump of leafy twigs, and the clumps stand apart with the sky and the
+ * crown's dark inside showing between them. Each clump shades as its own
+ * dome (its cards' normals lean out from the clump, a little from the
+ * crown), which is what makes a lit crown read as many bright caps over
+ * dark hollows; the cards on a clump's inner side and on the crown's
+ * inner clumps are darkened (the occlusion the leaves round them do),
+ * the undersides most. The clumps, their branches and the limbs come
+ * from one generator for both levels, so the far model is the near one
+ * with fewer, larger cards and the fade between them does not move the
+ * crown.
+ */
 function broadleaf(variant, lod) {
-  const rng = makeRng(variant.seed * 7 + (lod === 'near' ? 0 : 3));
+  const rng = makeRng(variant.seed * 7);
+  const cardRng = makeRng(variant.seed * 7 + (lod === 'near' ? 1 : 4));
   const H = variant.h;
   const near = lod === 'near';
   const foliage = new Builder();
@@ -307,7 +350,7 @@ function broadleaf(variant, lod) {
   const region = REGIONS[variant.kind];
   const strip = REGIONS.bark;
   const grey = variant.kind === 'beech' ? [0.78, 0.8, 0.84] : [0.85, 0.8, 0.74];
-  const trunkTop = variant.trunk * H;
+  const trunkTop = variant.trunk * H * 1.25;
   const trunkR = 0.3 * (H / 22);
   const centre = new THREE.Vector3(0, H * 0.6, 0);
   const rx = variant.rx * H;
@@ -316,113 +359,123 @@ function broadleaf(variant, lod) {
   const uvMid = (a, y) => [strip.u0 + a * strip.du, strip.v0 + Math.min(1, y / H) * strip.dv];
   trunk(barkB, {
     r0: trunkR,
-    top: trunkTop * 1.25,
+    top: trunkTop,
     sides: near ? 9 : 4,
     rows: near ? 4 : 1,
     bend: { x: 0, z: 0 },
     uvOf: near ? uvNear : uvMid,
     colour: () => grey,
   });
-  /* Limbs: from the top of the trunk out and up toward the crown's
-   * shell, each a tapered tube bent by gravity. Each carries a lobe of
-   * the crown at its end. */
-  const limbs = 4 + Math.floor(rng() * 2);
-  const lobes = [{ c: centre.clone(), rx: rx * 0.72, ry: ry * 0.72 }];
-  for (let k = 0; k < limbs; k += 1) {
-    const a = (k / limbs) * Math.PI * 2 + rng() * 0.8;
-    const from = new THREE.Vector3(0, trunkTop * (0.9 + rng() * 0.3), 0);
-    const to = new THREE.Vector3(Math.cos(a) * rx * 0.62, centre.y + ry * (rng() * 0.45 - 0.05), Math.sin(a) * rx * 0.62);
-    const lr = 0.42 + rng() * 0.2;
-    lobes.push({ c: to.clone().addScaledVector(UP, ry * 0.12), rx: rx * lr, ry: ry * lr * 0.85 });
-    const segs = near ? 4 : 1;
-    const sides = near ? 6 : 3;
-    const r0 = trunkR * 0.55;
-    const rings = [];
-    for (let j = 0; j <= segs; j += 1) {
-      const t = j / segs;
-      const c = from.clone().lerp(to, t).addScaledVector(UP, Math.sin(t * Math.PI) * H * 0.04);
-      const dir = to.clone().sub(from).normalize();
-      const s1 = new THREE.Vector3().crossVectors(dir, UP).normalize();
-      const s2 = new THREE.Vector3().crossVectors(s1, dir);
-      const r = r0 * (1 - 0.8 * t) + 0.02;
-      const ring = [];
-      for (let i = 0; i <= sides; i += 1) {
-        const ang = (i / sides) * Math.PI * 2;
-        const n = s1.clone().multiplyScalar(Math.cos(ang)).addScaledVector(s2, Math.sin(ang));
-        const p = c.clone().addScaledVector(n, r);
-        const [u, v] = near ? uvNear(i / sides, t * 4, r) : uvMid(i / sides, c.y);
-        ring.push(barkB.vert(p, n, u, v, grey.map((g) => g * (0.75 - 0.2 * t)), t * 0.3));
-      }
-      rings.push(ring);
+  /* The clumps: on the crown's shell, apart from each other, fewer
+   * underneath, and a few inside it that fill the middle. */
+  const clumps = [];
+  const rc0 = rx * 0.27;
+  const want = 22 + Math.floor(rng() * 6);
+  for (let tries = 0; clumps.length < want && tries < 4000; tries += 1) {
+    const d = new THREE.Vector3(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1);
+    if (d.lengthSq() > 1 || d.lengthSq() < 0.05 || (d.y < -0.4 && rng() < 0.7)) {
+      continue;
     }
-    for (let j = 0; j < segs; j += 1) {
-      barkB.strip(rings[j], rings[j + 1]);
-    }
-  }
-  /* A tree grown in the open keeps its lower limbs: a skirt of lobes
-   * hangs round the crown's lower half, so the crown comes down toward
-   * the ground instead of sitting on a bare pole as a ball. */
-  const skirt = 2 + Math.floor(rng() * 2);
-  for (let k = 0; k < skirt; k += 1) {
-    const a = rng() * Math.PI * 2;
-    const lr = 0.38 + rng() * 0.18;
-    lobes.push({
-      c: new THREE.Vector3(Math.cos(a) * rx * 0.5, centre.y - ry * (0.42 + rng() * 0.15), Math.sin(a) * rx * 0.5),
-      rx: rx * lr,
-      ry: ry * lr * 0.7,
-    });
-  }
-  /* Leaf clusters through the lobes' shells, fewer on their undersides:
-   * a crown of a few overlapping domes rather than one ball, with light
-   * between them. A card's normal leans out from its own lobe and from
-   * the crown as a whole. */
-  const count = near ? 440 : 130;
-  const size = (near ? 1.6 : 2.9) * (H / 20);
-  const weights = lobes.map((l) => l.rx * l.rx);
-  const total = weights.reduce((a, b) => a + b, 0);
-  const d = new THREE.Vector3();
-  for (let k = 0; k < count; k += 1) {
-    let pick = rng() * total;
-    let lobe = lobes[0];
-    for (let q = 0; q < lobes.length; q += 1) {
-      pick -= weights[q];
-      if (pick <= 0) {
-        lobe = lobes[q];
-        break;
-      }
-    }
-    do {
-      d.set(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1);
-    } while (d.lengthSq() > 1 || d.lengthSq() < 0.01 || (d.y < -0.55 && rng() < 0.6));
     d.normalize();
-    const f = 0.7 + 0.3 * Math.sqrt(rng());
-    const p = new THREE.Vector3(lobe.c.x + d.x * lobe.rx * f, lobe.c.y + d.y * lobe.ry * f, lobe.c.z + d.z * lobe.rx * f);
-    const out = p.clone().sub(centre).multiply(new THREE.Vector3(1 / rx, 1 / ry, 1 / rx));
-    const reachOut = Math.min(1, out.length());
-    const nOut = d.clone().multiplyScalar(0.5).addScaledVector(out.normalize(), 0.5).normalize();
-    const nC = nOut.clone().addScaledVector(new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5), 1.1).normalize();
-    let upC = nOut.clone().addScaledVector(UP, 0.6);
-    upC.addScaledVector(nC, -upC.dot(nC));
-    if (upC.lengthSq() < 1e-4) {
-      upC = new THREE.Vector3(1, 0, 0);
+    const f = 0.66 + 0.28 * rng();
+    const c = new THREE.Vector3(d.x * rx * f, centre.y + d.y * ry * f, d.z * rx * f);
+    const rc = rc0 * (0.8 + 0.45 * rng());
+    if (clumps.some((q) => q.c.distanceTo(c) < (q.rc + rc) * 0.78)) {
+      continue;
     }
-    upC.normalize();
-    const side = new THREE.Vector3().crossVectors(upC, nC).normalize();
-    const s = size * (0.75 + rng() * 0.5);
-    const base = p.clone().addScaledVector(upC, -s * 0.5);
-    const nrm = nOut.clone().multiplyScalar(0.8).addScaledVector(nC, 0.2).normalize();
-    const ao = (0.5 + 0.5 * reachOut) * (0.78 + 0.22 * (nOut.y * 0.5 + 0.5)) * (0.9 + rng() * 0.2);
-    const hue = (rng() - 0.5) * 0.1;
-    card(foliage, {
-      path: (u) => base.clone().addScaledVector(upC, u * s),
-      side: () => side,
-      w: () => s * 0.5,
-      segs: 1,
-      region,
-      colour: () => [ao * (1 + hue), ao, ao * (1 - hue)],
-      normalAt: () => nrm,
-      flexAt: (u) => 0.4 + 0.6 * u * reachOut,
+    clumps.push({ c, rc, depth: f });
+  }
+  for (let k = 0; k < 4; k += 1) {
+    const a = rng() * Math.PI * 2;
+    const f = 0.25 + 0.2 * rng();
+    clumps.push({
+      c: new THREE.Vector3(Math.cos(a) * rx * f, centre.y + ry * (rng() * 0.5 - 0.1), Math.sin(a) * rx * f),
+      rc: rc0 * 1.1,
+      depth: f,
     });
+  }
+  /* The limbs: four to six ascending from the top of the trunk, each
+   * ending half way out to the shell; every clump's branch starts at the
+   * limb end nearest it. */
+  const limbs = [];
+  const nLimbs = 4 + Math.floor(rng() * 3);
+  for (let k = 0; k < nLimbs; k += 1) {
+    const a = (k / nLimbs) * Math.PI * 2 + rng() * 0.7;
+    const from = new THREE.Vector3(0, trunkTop * (0.85 + rng() * 0.2), 0);
+    const to = new THREE.Vector3(Math.cos(a) * rx * 0.42, centre.y + ry * (rng() * 0.35 - 0.05), Math.sin(a) * rx * 0.42);
+    limbs.push(to);
+    limb(barkB, {
+      from, to, r0: trunkR * 0.62, r1: trunkR * 0.3, sag: -H * 0.02, segs: near ? 4 : 1, sides: near ? 7 : 3,
+      uvOf: near ? (a0, t, y, r) => uvNear(a0, t * 5, r) : (a0, t, y) => uvMid(a0, y),
+      colour: (t) => grey.map((g) => g * (0.8 - 0.2 * t)),
+      flex: 0.15,
+    });
+  }
+  const barkDark = grey.map((g) => g * 0.55);
+  for (const q of clumps) {
+    let from = limbs[0];
+    for (const l of limbs) {
+      if (l.distanceToSquared(q.c) < from.distanceToSquared(q.c)) {
+        from = l;
+      }
+    }
+    /* The far model carries only the limbs: a branch there is under a
+     * pixel wide. */
+    if (!near) {
+      continue;
+    }
+    const to = q.c.clone().lerp(from, 0.25);
+    limb(barkB, {
+      from, to, r0: trunkR * 0.26, r1: 0.025, sag: from.distanceTo(to) * 0.06, segs: 2, sides: 4,
+      uvOf: (a0, t, y, r) => uvNear(a0, t * 3, r),
+      colour: () => barkDark,
+      flex: 0.35,
+    });
+  }
+  /* The leaf cards, clump by clump. */
+  const perClump = near ? 17 : 6;
+  const size = near ? 1.0 : 1.45;
+  const d = new THREE.Vector3();
+  for (const q of clumps) {
+    const out = q.c.clone().sub(centre).multiply(new THREE.Vector3(1 / rx, 1 / ry, 1 / rx));
+    const outLen = out.length();
+    const outDir = outLen > 1e-3 ? out.clone().normalize() : UP.clone();
+    const n = Math.max(3, Math.round(perClump * (q.rc / rc0) ** 2));
+    for (let k = 0; k < n; k += 1) {
+      do {
+        d.set(cardRng() * 2 - 1, cardRng() * 2 - 1, cardRng() * 2 - 1);
+      } while (d.lengthSq() > 1 || d.lengthSq() < 0.02 || (d.dot(outDir) < -0.2 && cardRng() < 0.6) || (d.y < -0.5 && cardRng() < 0.5));
+      d.normalize();
+      const f = 0.45 + 0.55 * Math.sqrt(cardRng());
+      const p = q.c.clone().add(new THREE.Vector3(d.x * q.rc * f, d.y * q.rc * 0.78 * f, d.z * q.rc * f));
+      const nrm = d.clone().multiplyScalar(0.62).addScaledVector(outDir, 0.38).addScaledVector(UP, 0.12).normalize();
+      const nC = nrm.clone().addScaledVector(new THREE.Vector3(cardRng() - 0.5, cardRng() - 0.5, cardRng() - 0.5), 1.3).normalize();
+      let upC = d.clone().addScaledVector(outDir, 0.6).addScaledVector(UP, 0.5);
+      upC.addScaledVector(nC, -upC.dot(nC));
+      if (upC.lengthSq() < 1e-4) {
+        upC = new THREE.Vector3(1, 0, 0);
+      }
+      upC.normalize();
+      const side = new THREE.Vector3().crossVectors(upC, nC).normalize();
+      const s = size * q.rc * (0.8 + cardRng() * 0.45);
+      const base = p.clone().addScaledVector(upC, -s * 0.45);
+      /* Occlusion: the clump's inner side, the crown's inside, and the
+       * underside, each darker. */
+      const inner = d.dot(outDir) * 0.5 + 0.5;
+      const depth = Math.min(1, q.depth * f + 0.12);
+      const ao = (0.5 + 0.5 * inner) * (0.45 + 0.55 * depth) * (0.66 + 0.34 * (d.y * 0.5 + 0.5)) * (0.9 + cardRng() * 0.2);
+      const hue = (cardRng() - 0.5) * 0.12;
+      card(foliage, {
+        path: (u) => base.clone().addScaledVector(upC, u * s),
+        side: () => side,
+        w: () => s * 0.5,
+        segs: 1,
+        region,
+        colour: () => [ao * (1 + hue), ao, ao * (1 - hue)],
+        normalAt: () => nrm,
+        flexAt: (u) => 0.35 + 0.65 * u * Math.min(1, outLen),
+      });
+    }
   }
   return { foliage: foliage.geometry(), bark: near ? barkB.geometry() : null };
 }

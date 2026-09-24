@@ -382,9 +382,12 @@ function curtain(ctx, photo, rect, seed) {
   ctx.restore();
 }
 
-/* A cluster of leaves on twigs fanning up from the bottom middle of
- * rect. `lobed` draws a five lobed maple leaf by clipping the leaf
- * photograph to that outline. */
+/* A leafy spray: a twig up the middle of rect from its bottom edge with
+ * side twigs forking off it, and leaves set alternately along all of
+ * them, so the card is a spray with light between its twigs rather than
+ * a mat. Each leaf takes one of `spec.tones` filters, lighter or darker,
+ * as leaves turned more or less to the light are. `lobed` draws a five
+ * lobed maple leaf by clipping the leaf photograph to that outline. */
 function leafCluster(ctx, photo, rect, spec, seed) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
@@ -392,32 +395,44 @@ function leafCluster(ctx, photo, rect, spec, seed) {
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  const twigs = [];
-  for (let k = 0; k < 7; k += 1) {
-    const a = -1.2 + (2.4 * k) / 6 + (rng() - 0.5) * 0.25;
-    const len = h * (0.55 + rng() * 0.35);
-    const x0 = x + w / 2;
-    const y0 = y + h - 4;
-    const x1 = x0 + Math.sin(a) * len;
-    const y1 = y0 - Math.cos(a) * len;
-    stem(ctx, x0, y0, x1, y1, 7, 2, '#5d5347', rng);
-    twigs.push([x0, y0, x1, y1, a]);
+  const x0 = x + w / 2;
+  const y0 = y + h - 4;
+  const twigs = [[x0, y0, x0 + (rng() - 0.5) * w * 0.1, y + h * 0.06, 0]];
+  stem(ctx, ...twigs[0].slice(0, 4), 9, 2, '#554b40', rng);
+  for (let k = 0; k < spec.sides; k += 1) {
+    const t = 0.12 + (0.7 * k) / spec.sides + rng() * 0.05;
+    const side = k % 2 === 0 ? -1 : 1;
+    const a = side * (0.55 + rng() * 0.45);
+    const bx = x0 + (twigs[0][2] - x0) * t;
+    const by = y0 + (twigs[0][3] - y0) * t;
+    const len = h * (0.52 - 0.3 * t) * (0.85 + rng() * 0.3);
+    const ex = bx + Math.sin(a) * len;
+    const ey = by - Math.cos(a) * len;
+    stem(ctx, bx, by, ex, ey, 5, 1.5, '#554b40', rng);
+    twigs.push([bx, by, ex, ey, a]);
   }
-  const leaves = tint(photo, spec.filter);
-  for (let k = 0; k < spec.count; k += 1) {
-    const [x0, y0, x1, y1, a] = twigs[k % twigs.length];
-    const t = 0.25 + 0.75 * rng();
-    const px = x0 + (x1 - x0) * t;
-    const py = y0 + (y1 - y0) * t;
-    const side = rng() < 0.5 ? -1 : 1;
-    const ang = a + side * (0.5 + rng() * 0.9);
-    const len = spec.leafLen * (0.75 + rng() * 0.4) * (1.1 - 0.3 * t);
-    const box = LEAVES[Math.floor(rng() * LEAVES.length)];
-    if (spec.lobed) {
-      mapleLeaf(ctx, leaves, box, px, py, ang, len, rng);
-    } else {
-      stamp(ctx, leaves, box, px, py, ang, len, rng() < 0.5);
+  const tones = spec.tones.map((f) => tint(photo, f));
+  for (const [tx0, ty0, tx1, ty1, a] of twigs) {
+    const tlen = Math.hypot(tx1 - tx0, ty1 - ty0);
+    const n = Math.round(tlen / (spec.leafLen * 0.27));
+    for (let k = 0; k < n; k += 1) {
+      const t = 0.12 + (0.88 * (k + rng() * 0.5)) / n;
+      const px = tx0 + (tx1 - tx0) * t;
+      const py = ty0 + (ty1 - ty0) * t;
+      const side = k % 2 === 0 ? -1 : 1;
+      const ang = a + side * (0.7 + rng() * 0.5);
+      const len = spec.leafLen * (0.7 + rng() * 0.4) * (1.1 - 0.35 * t);
+      const box = LEAVES[Math.floor(rng() * LEAVES.length)];
+      const leaves = tones[Math.floor(rng() * tones.length)];
+      if (spec.lobed) {
+        mapleLeaf(ctx, leaves, box, px, py, ang, len, rng);
+      } else {
+        stamp(ctx, leaves, box, px, py, ang, len, rng() < 0.5);
+      }
     }
+    /* A leaf at the tip, pointing on. */
+    const box = LEAVES[Math.floor(rng() * LEAVES.length)];
+    stamp(ctx, tones[0], box, tx1, ty1, a, spec.leafLen * 0.7, rng() < 0.5);
   }
   ctx.restore();
 }
@@ -653,10 +668,15 @@ export async function loadAtlases() {
     curtain(ctx, twig, R.curtain, 41);
     barkStrip(ctx, R.bark, 43);
     leafCluster(ctx, leaves, R.beech, {
-      count: 150, leafLen: 150, filter: 'brightness(0.85) saturate(1.15) hue-rotate(10deg)',
+      sides: 7,
+      leafLen: 120,
+      tones: ['brightness(1.0) saturate(1.15) hue-rotate(10deg)', 'brightness(0.84) saturate(1.15) hue-rotate(12deg)', 'brightness(0.7) saturate(1.1) hue-rotate(14deg)', 'brightness(1.12) saturate(1.05) hue-rotate(6deg)'],
     }, 53);
     leafCluster(ctx, leaves, R.maple, {
-      count: 160, leafLen: 150, lobed: true, filter: 'brightness(0.8) saturate(1.2) hue-rotate(16deg)',
+      sides: 6,
+      leafLen: 150,
+      lobed: true,
+      tones: ['brightness(0.92) saturate(1.2) hue-rotate(16deg)', 'brightness(0.78) saturate(1.2) hue-rotate(18deg)', 'brightness(0.66) saturate(1.15) hue-rotate(20deg)', 'brightness(1.05) saturate(1.1) hue-rotate(12deg)'],
     }, 59);
   });
   const G = GRASS_RECTS;
