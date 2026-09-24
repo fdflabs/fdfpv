@@ -351,13 +351,14 @@ export function cubGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
   must(sim.e.sim_set_pose(0, 0, CUB_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
 }
 
-/* The load on each wheel, newtons: left main, right main, tailwheel. */
+/* The load on each contact point, newtons: left main, right main,
+ * tailwheel, and the prop's tip, which is zero unless it has struck. */
 export function wheelLoads(sim) {
   if (!sim.wheelPtr) {
-    sim.wheelPtr = sim.e.malloc(3 * 8);
+    sim.wheelPtr = sim.e.malloc(4 * 8);
   }
   must(sim.e.sim_wheel_loads(sim.wheelPtr), 'sim_wheel_loads');
-  return Array.from(new Float64Array(sim.e.memory.buffer, sim.wheelPtr, 3));
+  return Array.from(new Float64Array(sim.e.memory.buffer, sim.wheelPtr, 4));
 }
 
 /*
@@ -409,6 +410,72 @@ export function recordScriptedFlight(sim, { prelude = wingPrelude, rudder = fals
       pitchStick = 0;
     }
     const yaw = rudder && ms >= 16000 && ms < 18000 ? 1 : 0;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
+ * The Cub's take off, the way a taildragger is flown off a strip: full
+ * throttle, the wings held level on the ailerons, the stick well forward
+ * to bring the tail up to 2 deg of pitch, and at the rotation speed back to
+ * 8 deg, which it holds into the climb. The phase is the airspeed's, not
+ * the wheels', so a hop as the tail comes up does not rotate early. The
+ * rudder stays centred, so any swing is the aircraft's own. Returns the
+ * sticks for this step from the state.
+ */
+export function takeoffSticks(s, { vRotate = 8.9 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const pitchT = (v < vRotate ? 2 : 8) * Math.PI / 180;
+  const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 4 * (pitchT - pitch) - 0.5 * qAero));
+  return [roll, pitchStick, 0, 1];
+}
+
+/*
+ * The Cub's recording for the cross-host check: from standing on the strip,
+ * a second at idle, the take off above, eight seconds of climb, then level
+ * at 75 percent, half a second of full right roll, a held 45 deg bank, a
+ * chop and two seconds of full right rudder, twenty two seconds in all,
+ * clear of the ground from the climb on, 11 m at the lowest. The gear, the
+ * take off roll and the liftoff, is in the hashed trace.
+ */
+export function recordCubFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  cubGroundPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    let sticks;
+    const levelPitch = () => {
+      trim += 0.00002 * (0 - vz);
+      trim = Math.max(-0.2, Math.min(0.2, trim));
+      const pitchT = Math.max(-0.2, Math.min(0.15, 0.05 * (0 - vz) + trim));
+      return Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+    };
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 9000) {
+      sticks = takeoffSticks(s);
+    } else if (ms < 12000) {
+      sticks = [Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * p)), levelPitch(), 0, 0.75];
+    } else if (ms < 12500) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 18000) {
+      sticks = [Math.max(-1, Math.min(1, -1.2 * (bank - Math.PI / 4) - 0.12 * p)), levelPitch(), 0, 0.85];
+    } else {
+      sticks = [Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * p)), 0, ms >= 19000 && ms < 21000 ? 1 : 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
     samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
     must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');

@@ -903,8 +903,14 @@ static void ground_apply(void) {
   if (!g_ground_on || g_stand_on) {
     return;
   }
+  /* An aircraft on its wheels is resting on them, whatever else touches:
+   * a wingtip on the grass while it rocks back onto its gear must not be
+   * put to sleep by the hull's settle below, which stops a slow rotation
+   * outright and would hold it perched on the tip. */
+  int wheels_loaded = 0;
   if (PLANT.wheel_count > 0) {
-    plant_wing_set_on_wheels(ground_wheels() > 0);
+    wheels_loaded = ground_wheels() > 0;
+    plant_wing_set_on_wheels(wheels_loaded);
   }
   const double vn_plant = S.vel[0] * g_ground_n[0]
       + S.vel[1] * g_ground_n[1]
@@ -950,7 +956,9 @@ static void ground_apply(void) {
     }
     g_ground_hits = hits;
     ground_project_hull();
-    ground_settle(upz, vn_plant);
+    if (!wheels_loaded) {
+      ground_settle(upz, vn_plant);
+    }
     return;
   }
 
@@ -977,7 +985,9 @@ static void ground_apply(void) {
   }
   g_ground_hits = hits;
   ground_project_hull();
-  ground_settle(upz, vn_plant);
+  if (!wheels_loaded) {
+    ground_settle(upz, vn_plant);
+  }
 }
 
 SIM_EXPORT int sim_contact(double nx, double ny, double nz,
@@ -1566,8 +1576,8 @@ SIM_EXPORT int sim_wing_surfaces(double *out) {
 }
 
 /* The load on each wheel of an airframe with landing gear, newtons, in its
- * table's order (the Cub: left main, right main, tailwheel); zero for a
- * wheel off the ground and for every wheel an airframe does not have.
+ * table's order (the Cub: left main, right main, tailwheel, prop tip); zero
+ * for a wheel off the ground and for every wheel an airframe does not have.
  * Always SIM_WHEELS_MAX values. Additive, version unchanged. */
 SIM_EXPORT int sim_wheel_loads(double *out) {
   if (out == 0) {

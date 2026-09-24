@@ -456,12 +456,14 @@ int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 
 /*
- * sim_wheel_loads(out[3]): the normal load on each wheel of an airframe
- * with landing gear, newtons, in its table's order; for the Cub, left
- * main, right main, tailwheel. Zero for a wheel off the ground and for
+ * sim_wheel_loads(out[4]): the normal load on each ground contact point an
+ * airframe declares, newtons, in its table's order; for the Cub, left
+ * main, right main, tailwheel, and the prop's lowest tip, which reads
+ * nonzero only in a prop strike. Zero for a point off the ground and for
  * every airframe without gear. The gates read liftoff and touchdown from
- * it, and a renderer can compress a strut by load / stiffness. Additive,
- * version unchanged; SIM_ERR_BAD_ARG for a null pointer.
+ * it, and a renderer can compress a strut by load / stiffness less its
+ * static load / stiffness, since the drawn gear is the gear at rest.
+ * Additive, version unchanged; SIM_ERR_BAD_ARG for a null pointer.
  */
 int sim_wheel_loads(double *out);
 

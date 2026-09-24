@@ -723,7 +723,7 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
 },
 /*
  * The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, on the same terms: a
- * 3S 2200 mAh pack and a tractor prop in the nose, 0.25 m ahead of the CG.
+ * 3S 2200 mAh pack and a tractor prop in the nose, 0.23 m ahead of the CG.
  * The hull is the contact code's centred box, but on this airframe it is
  * only what a crash lands on: the aircraft stands on its wheels, below.
  * So the box is drawn inside the gear rather than round the fuselage. Its
@@ -743,7 +743,7 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .rho = 1.225,
   .prop_r = 0.1397,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
-  .pos_x = { 0.25, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.23, 0.0, 0.0, 0.0 },
   .hull_hx = 0.30,
   .hull_hy = 0.70,
   .hull_hz_down = 0.05,
@@ -769,11 +769,17 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    * the tailwheel's a little less. The tailwheel steers with the rudder,
    * one to one. docs/CUB-STAGE1.md has the derivation.
    */
-  .wheel_count = 3,
+  .wheel_count = 4,
   .wheel = {
     { .pos = { 0.075, 0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
     { .pos = { 0.075, -0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
     { .pos = { -0.596, 0.0, -0.0273 }, .r = 0.012, .k = 300.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0 },
+    /* The prop's lowest tip, a skid: 0.1397 m under a hub 0.23 m ahead of
+     * the CG and 2 mm over it. It clears the grass by 25 mm with the
+     * aircraft level on its mains and touches at 9 deg nose down, which on
+     * a real Cub is a prop strike and the end of the prop; its load is how
+     * a shell hears one. Stiff, with the grip of a blade in the dirt. */
+    { .pos = { 0.23, 0.0, -0.1377 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
 };

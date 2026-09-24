@@ -34,6 +34,7 @@ const Sh = 0.0470, lh = 0.517, bh = 0.38, eta = 0.9, tauE = 0.6;
 const Sv = 0.020, lv = 0.567, zv = 0.104, arV = 1.5, tauR = 0.55, fusVol = 0.0091;
 const gamma = 3.5 / DEG, taper = 1.0, tauA = 0.45, y1 = 0.28, y2 = 0.66;
 const hCG = 0.30;
+const thrustZ = 0.002;
 const Ts = 13.5, kv = 850, volts = 11.1, pitchIn = 7, propR = 0.1397;
 const Ixx = 0.060, Iyy = 0.055, Izz = 0.100;
 const throwA = 18 / DEG, throwE = 15 / DEG, throwR = 15 / DEG;
@@ -85,13 +86,21 @@ const betaSS = -Cndr * throwR / Cnb;
 const rPeak = betaSS * wnDR * Math.exp(-zetaDR / Math.sqrt(1 - zetaDR * zetaDR) * Math.atan2(Math.sqrt(1 - zetaDR * zetaDR), zetaDR));
 const rudderRoll = Math.abs(Clb * betaSS / Clp) * (2 * V12 / b);
 
-/* P factor in a full throttle climb held at 9 m/s. */
+/* P factor at full throttle in level flight at 1.1 Vs: the body alpha that
+ * level flight needs there, and the thrust at that speed. */
 function pfactorAt(V) {
   const thrust = T(V, 1);
-  const gammaC = Math.asin(Math.min(1, (thrust - D(V)) / W));
-  const CL = W * Math.cos(gammaC) / (0.5 * rho * V * V * S);
+  const CL = W / (0.5 * rho * V * V * S);
   const alphaBody = CL / CLa + alphaZL;
   return { V, thrust, alphaBodyDeg: alphaBody * DEG, N: 1.6 * thrust * V * Math.sin(alphaBody) / omegaLoaded };
+}
+
+/* The stick that gives a surface angle through the expo, 0.3 x^3 + 0.7 x. */
+function stickFor(delta, travel) {
+  const want = delta / travel;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (0.3 * mid * mid * mid + 0.7 * mid < want) lo = mid; else hi = mid; }
+  return lo;
 }
 
 /* The take off roll: three point until the tail comes up, then tail up at
@@ -136,7 +145,7 @@ function deriv(x, de, d) {
   const L = qb * S * CL, Dr = qb * S * CD, Tt = T(Math.max(0, u), d);
   const Fx = L * (-w / V) - Dr * u / V + Tt;
   const Fz = L * (u / V) - Dr * w / V;
-  const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) + 0.007 * Tt;
+  const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt;
   return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) - q * u, My / Iyy, q];
 }
 function solve3(A, bb) {
@@ -212,9 +221,10 @@ const rows = [
   ['C11 sideslip deg', f(betaSS * DEG, 1)],
   ['C12 Dutch roll wn, zeta, peak r deg/s', `${f(wnDR, 2)} ${f(zetaDR, 3)} ${f(rPeak * DEG, 1)}`],
   ['C13 steady roll from rudder deg/s', f(rudderRoll * DEG, 1)],
-  ['C15 P factor at 9 m/s', JSON.stringify(pfactorAt(9), (kk, v) => (typeof v === 'number' ? +v.toFixed(4) : v))],
+  ['C15 P factor, level at 1.1 Vs', JSON.stringify(pfactorAt(1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(4) : v))],
   ['C16 tail share, wheelbase m', `${f(tailShare, 4)} ${f(wheelbase, 3)}`],
   ['C17 grass, tail up at 7, rotate 1.1 Vs', JSON.stringify(takeoff(muGrass, 7, 1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
+  ['    the tail up at 8 instead', JSON.stringify(takeoff(muGrass, 8, 1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['    asphalt', JSON.stringify(takeoff(muAsphalt, 7, 1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['    three point, hands off: CL, liftoff', `${f(CL3)} ${f(V3, 2)} ${JSON.stringify(takeoff(muGrass, 99, V3), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))}`],
   ['C19 taxi radius m', f(wheelbase / Math.tan(throwR), 2)],
@@ -223,7 +233,7 @@ const lm = longitudinalModes(level(0.65));
 rows.push(['C10 trim at the 65 percent speed', `theta ${f(lm.thetaDeg, 2)} de ${f(lm.deDeg, 2)} duty ${f(lm.duty)}`]);
 rows.push(['    phugoid s, zeta; short period s, zeta', `${f(lm.phugoid.period, 2)} ${f(lm.phugoid.zeta)}; ${f(lm.short.period, 2)} ${f(lm.short.zeta)}`]);
 const lm10 = longitudinalModes(10);
-rows.push(['C8 trim at 10 m/s', `theta ${f(lm10.thetaDeg, 2)} de ${f(lm10.deDeg, 2)} duty ${f(lm10.duty)}`]);
+rows.push(['C8 trim at 10 m/s', `theta ${f(lm10.thetaDeg, 2)} de ${f(lm10.deDeg, 2)} duty ${f(lm10.duty)}, stick ${f(stickFor(lm10.deDeg / DEG, throwE))}`]);
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(48)} ${v}`);
 }

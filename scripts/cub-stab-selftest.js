@@ -297,7 +297,7 @@ for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
   const sit = roll(() => [0, 0, 0, 0], 5);
   const moved = Math.abs(attitude(sit.s).pitch - attitude(rest0).pitch) * DEG;
   check(`${name}, sitting on the grass for 5 s: every surface where the centred sticks put it`, sit.worstSurf.every((x) => x === 0), sit.worstSurf.map(deg).join(' '));
-  check('and the aircraft has not moved: pitch within 0.5 degrees, still on its wheels', moved < 0.5 && wheelLoads(sim).every((f) => f > 0), `moved ${moved.toFixed(2)} deg`);
+  check('and the aircraft has not moved: pitch within 0.5 degrees, still on its wheels', moved < 0.5 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `moved ${moved.toFixed(2)} deg`);
   const held = roll((ms) => [ms < 2000 ? 1 : 0, ms < 2000 ? 1 : 0, 0, 0], 2.02);
   const sf = surfaces();
   check('full right and up stick held 2 s on the ground is full aileron and elevator, nothing more', Math.abs(held.worstSurf[1] - 18 / DEG) < 1e-9 && Math.abs(held.worstSurf[2] - 15 / DEG) < 1e-9 && sf.every((x) => x === 0), `${held.worstSurf.map(deg).join(' ')}, then ${sf.map(deg).join(' ')}`);
@@ -325,7 +325,7 @@ for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
   const h0 = heading(sim.readState().state);
   const taxi = roll(() => [0, 0, 1, 0.35], 4);
   const turned = (heading(taxi.s) - h0) * DEG;
-  check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).every((f) => f > 0), `${turned.toFixed(0)} deg`);
+  check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);
 }
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);

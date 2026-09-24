@@ -54,10 +54,11 @@
  * A wheel, for an airframe that stands on landing gear. sim.c applies each
  * one as a spring and damper along the ground normal at its tyre's contact
  * point, and friction split along the wheel's own heading (rolling) and
- * across it (side grip). docs/CUB-STAGE1.md derives the numbers and says
- * why this is the model.
+ * across it (side grip). With no radius and the two frictions equal it is
+ * a skid, a hard point that drags: the Cub's prop tip is one.
+ * docs/CUB-STAGE1.md derives the numbers and says why this is the model.
  */
-#define SIM_WHEELS_MAX 3
+#define SIM_WHEELS_MAX 4
 typedef struct {
   double pos[3];  /* the axle's centre, body frame, strut unloaded */
   double r;       /* tyre radius: the contact is the rim's point nearest
