@@ -148,15 +148,52 @@ export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
   const vs = [];
   const opens = [];
   const counts = { spruce: 0, fir: 0, larch: 0, beech: 0, maple: 0, snag: 0 };
+  /*
+   * The fall's foot. Under the Staubbach the ground is a steep meadow
+   * with broadleaf trees round it, sycamore and beech in the spray, and
+   * the spruce stand only further off: a dark closed stand at the foot
+   * of a white fall read as a hole. So near the pool no tree stands, and
+   * out to a couple of hundred metres more and more of the conifers are
+   * broadleaves, in groups. -1 for no tree, else the variant to plant.
+   */
+  const pool = layout.pool;
+  const CONIFER = new Set(['spruce', 'fir', 'larch']);
+  const fallFoot = (x, z, v) => {
+    if (!pool) {
+      return v;
+    }
+    const d = Math.hypot(x - pool.x, z - pool.z) + 30 * (noise2(x / 40 + 2.7, z / 40 + 6.1) - 0.5);
+    if (d < 50) {
+      return -1;
+    }
+    if (!CONIFER.has(VARIANTS[v].kind)) {
+      return v;
+    }
+    const share = 0.85 * (1 - smoothstep(90, 230, d));
+    const pick = noise2(x / 13 + 0.3, z / 13 + 5.9);
+    if (smoothstep(0.35, 0.65, noise2(x / 55 + 8.1, z / 55 + 1.9)) * 0.4 + pick * 0.6 > 1 - share) {
+      return pick > 0.55 ? V.maple : V['beech-open'];
+    }
+    return v;
+  };
   /* `open`: the tree grew in the open (the open grown variants, and
    * whatever stands in the meadow, the mantle and the gallery included),
    * and alone of the far trees throws a shadow. */
-  const add = (x, y, z, s, v, open = OPEN[v]) => {
+  const add = (x, y, z, s, v0, open0) => {
+    /* The yaw is drawn first and always, so a tree the fall's foot turns
+     * away or changes costs the rest of the valley nothing: every tree
+     * after it stands where it stood. */
+    const yaw = rng();
+    const v = fallFoot(x, z, v0);
+    if (v < 0) {
+      return;
+    }
+    const open = v === v0 && open0 !== undefined ? open0 : OPEN[v];
     xs.push(x);
     ys.push(y - 0.2);
     zs.push(z);
     ss.push(s);
-    yaws.push(rng() * Math.PI * 2);
+    yaws.push(yaw * Math.PI * 2);
     vs.push(v);
     opens.push(open ? 1 : 0);
     counts[VARIANTS[v].kind] += 1;
