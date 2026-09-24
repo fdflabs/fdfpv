@@ -20,7 +20,7 @@
  *   swiss2/ground.js     the terrain's splat, and its masks
  *   swiss2/light.js      the sun, its cascades and the mountains' shadow
  *   swiss2/look.js       the material every builder asks for, by name
- *   swiss2/post.js       occlusion, aerial perspective, ACES, lens, FXAA
+ *   swiss2/post.js       occlusion, aerial perspective, the camera, AgX, FXAA
  *   swiss2/clouds.js     the low cloud in the valley, marched in the post chain
  *   swiss2/vegetation/   the forests, the boulders and the meadow
  *   swiss2/water/        the lake, the stream, the fall and its headwall
@@ -224,6 +224,7 @@ function photoStyle() {
         air: AIR,
       });
       const lit = makeLit(style.clouds);
+      style.sunAt = lit.sun;
       const masks = { walls: wallUniform() };
       own(masks.walls.value);
       const ground = (opts) => groundMaterial({
@@ -407,7 +408,9 @@ function photoStyle() {
       finishScene(scene, stage.lit);
     },
     compose(shell, map, q) {
-      const post = buildPhotoComposer(shell.renderer, map.scene, shell.camera, q, { direction: sunDir, color: SUN_COLOR }, style.clouds);
+      const post = buildPhotoComposer(shell.renderer, map.scene, shell.camera, q, {
+        direction: sunDir, color: SUN_COLOR, irradiance: SUN_IRRADIANCE, at: style.sunAt,
+      }, style.clouds);
       const d = shell.resize();
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;

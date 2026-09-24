@@ -227,8 +227,13 @@ export function bakeTerrainShadow(renderer, field, far, sun) {
   return { shadow: target, height: fieldTex };
 }
 
-const LIT_PARS = /* glsl */ `
-  varying vec3 vS2World;
+/*
+ * How much of the sun reaches a point: the terrain's shadow and the
+ * clouds'. Every lit material reads it for its own fragment, and the
+ * post chain (post.js) for the camera, where it is how much of the sun
+ * the lens sees.
+ */
+const SUN_GLSL = /* glsl */ `
   uniform highp sampler2D uS2Shadow;
   uniform vec2 uS2Field;
   uniform vec2 uS2CloudAt;
@@ -277,6 +282,11 @@ const LIT_PARS = /* glsl */ `
     float w = 2.5 + s.y * 0.0047;
     return smoothstep(s.x - w, s.x + w, p.y);
   }
+`;
+
+const LIT_PARS = /* glsl */ `
+  varying vec3 vS2World;
+  ${SUN_GLSL}
 `;
 
 const LIT_VERTEX = /* glsl */ `
@@ -362,6 +372,19 @@ export function makeLit(clouds) {
    * materials) have no light loop to put the sun in, and are left as
    * they are. */
   const LIT_TYPES = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial', 'MeshToonMaterial']);
+  /* The sun at any point, for a shader that is not a lit material: its
+   * GLSL and the uniforms it reads, the same objects every material
+   * shares. */
+  lit.sun = {
+    glsl: SUN_GLSL,
+    uniforms: {
+      uS2Shadow: shared.uS2Shadow,
+      uS2Field: shared.uS2Field,
+      uS2CloudAt: shared.uS2CloudAt,
+      uS2SunDir: shared.uS2SunDir,
+      uS2LowAt: shared.uS2LowAt,
+    },
+  };
   lit.setShadow = (texture) => {
     shared.uS2Shadow.value = texture;
   };
