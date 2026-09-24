@@ -74,14 +74,24 @@ const PACK_GLSL = /* glsl */ `
   }
 `;
 
+/*
+ * The prepass vertex stage goes through three's own chunks rather than a
+ * bare modelViewMatrix multiply, because the chunks carry the instance
+ * matrix. Written bare, every InstancedMesh in the scene was drawn ONCE
+ * at its own origin in the normal and depth buffers: an outline of one
+ * tree stood in the middle of the strip with nothing inside it, and the
+ * real trees had no outlines at all.
+ */
 const GEO_VERT = /* glsl */ `
   varying vec3 vNormalView;
   varying float vViewDepth;
   void main() {
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    vNormalView = normalMatrix * normal;
-    vViewDepth = -mv.z;
-    gl_Position = projectionMatrix * mv;
+    #include <beginnormal_vertex>
+    #include <defaultnormal_vertex>
+    #include <begin_vertex>
+    #include <project_vertex>
+    vNormalView = transformedNormal;
+    vViewDepth = -mvPosition.z;
   }
 `;
 
