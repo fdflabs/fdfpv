@@ -4042,7 +4042,24 @@ export function skyDome() {
       }
     `,
   });
-  return new THREE.Mesh(geo, mat);
+  /*
+   * THE SKY GOES WHERE THE CAMERA GOES. It was a 1500 m sphere fixed at the
+   * origin, which a town never leaves and the Alps, 24 km across with a
+   * 14 km camera, leave in a minute: past its shell the pilot saw the
+   * scene background, a near white, where the sky should be. Centred on
+   * the rendering camera each frame instead, drawn first and behind
+   * everything, so it is always the backdrop and never in front of a
+   * ridge further away than its radius.
+   */
+  mat.depthTest = false;
+  const sky = new THREE.Mesh(geo, mat);
+  sky.renderOrder = -1000;
+  sky.frustumCulled = false;
+  sky.onBeforeRender = (renderer, scene, camera) => {
+    sky.position.setFromMatrixPosition(camera.matrixWorld);
+    sky.updateMatrixWorld();
+  };
+  return sky;
 }
 
 /* Chunky stylised clouds: clustered flattened icospheres, unlit, so they
