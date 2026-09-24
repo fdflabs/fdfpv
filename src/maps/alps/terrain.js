@@ -24,12 +24,16 @@
 
 import * as THREE from 'three';
 import { celMaterial } from '../../render/celmat.js';
-import { fbm, smoothstep } from './noise.js';
+import { fbm, noise2, smoothstep } from './noise.js';
 
 /* The heightfield: a square this many metres on a side, centred on the
  * origin, sampled on a grid this fine. Thirty metre cells are coarse for a
  * hillside under a landing wing, which is why the floor near the strip is
- * flattened analytically rather than trusted to the grid. */
+ * flattened analytically rather than trusted to the grid. A twenty metre
+ * grid was considered for the cel bands and refused: the terrain is one
+ * mesh that is never culled, so it would be a hundred thousand more
+ * triangles in every frame, a sixth of the whole budget, for normals on
+ * a floor that is flat anyway. */
 export const FIELD = 6000;
 export const HALF = FIELD / 2;
 export const CELLS = 200;
@@ -51,18 +55,45 @@ export const STRIP_W = 12;
 export const STRIP_Y = 0.02;
 
 /* The lake fills the basin at the south end; its surface is a hair below
- * the meadow so the shore reads. */
+ * the meadow so the shore reads. The basin closes again before the
+ * field's edge so the lake has a far shore of its own rather than
+ * running under the range beyond. */
 export const LAKE_Z = 2150;
 export const LAKE_Y = -1.5;
+export const LAKE_END = 2750;
 
-/* Snow from here up on the average, wandering a hundred and fifty metres
- * either way with the noise, and never on a face steeper than this. */
-export const SNOW_LINE = 700;
+/* The side valley hangs, as a glacial side valley does: its floor stands
+ * this far above the main valley's wall behind a lip this far out from
+ * the axis, and the stream falls down the face of the lip into a pool
+ * scooped at its foot. The lip is what gives the valley a waterfall. */
+export const SIDE_Z = -1300;
+export const LIP_DX = 1060;
+export const LIP_RISE = 70;
+export const POOL = { dx: 985, z: -1300, r: 26, depth: 3.5, y: 176 };
+
+/* Trees stop here on the average, and the paint's forest floor with
+ * them; snow starts here, wandering a hundred and fifty metres either
+ * way with the noise, and never on a face steeper than this. Rock with
+ * its strata is what shows between the two. */
+export const TREE_LINE = 700;
+export const SNOW_LINE = 880;
 export const SNOW_MAX_SLOPE = 1.6;
 
 
 export function valleyAxis(z) {
   return 180 * Math.sin(z / 1500) + 60 * Math.sin(z / 430 + 1.2);
+}
+
+/*
+ * The stream's centre line, west of the axis down the floor and swinging
+ * east into the side valley north of SIDE_Z + 840. The village's bridge
+ * is built where this crosses the street, so the line is shape rather
+ * than placement and lives here, where the paint can follow it too.
+ */
+export function streamX(z) {
+  const t = (z - SIDE_Z) / 3350;
+  const side = t < 0.25 ? 1 - t / 0.25 : 0;
+  return valleyAxis(z) - 95 - 30 * Math.sin(z / 260) + side * side * 700;
 }
 
 export function terrainHeight(x, z) {
@@ -74,22 +105,59 @@ export function terrainHeight(x, z) {
   /* Peaks and shoulders on the walls, more the higher they stand. */
   h += (260 * fbm(x / 900, z / 900, 4) + 90 * fbm(x / 260, z / 260, 3)) * Math.pow(wall, 0.8);
   /* The side valley: a trough into the east wall a kilometre and a bit
-   * north of the strip, deep where the wall is high. */
+   * north of the strip, deep where the wall is high, hanging behind a
+   * lip with the pool at the lip's foot. */
   if (dx > 0) {
-    const t = Math.exp(-Math.pow((z + 1300) / 420, 2));
+    const t = Math.exp(-Math.pow((z - SIDE_Z) / 420, 2));
     h -= 0.55 * h * t;
+    h += LIP_RISE * smoothstep(LIP_DX - 30, LIP_DX + 30, dx) * t;
+    /* The pool: a level shelf at the lip's foot, scooped in the middle,
+     * blended into the trough over the next half radius out. */
+    const pd = Math.hypot(dx - POOL.dx, z - POOL.z);
+    if (pd < POOL.r * 1.6) {
+      const shelf = 1 - smoothstep(POOL.r, POOL.r * 1.6, pd);
+      const bowl = POOL.depth * (1 - smoothstep(POOL.r * 0.3, POOL.r, pd));
+      h = h * (1 - shelf) + (POOL.y - bowl) * shelf;
+    }
   }
   /* The floor: pasture with a roll to it, and the lake basin at the
-   * south end going below the water. */
+   * south end going below the water and coming back up for the far
+   * shore. */
   const floor = 1 - wall;
   h += floor * (7 * fbm(x / 300, z / 300, 3) + 3);
-  const basin = smoothstep(LAKE_Z - 900, LAKE_Z - 150, z) * (1 - smoothstep(FLOOR_HALF + 150, FLOOR_HALF + 500, across));
+  const basin = smoothstep(LAKE_Z - 900, LAKE_Z - 150, z) * (1 - smoothstep(LAKE_END - 250, LAKE_END + 50, z))
+    * (1 - smoothstep(FLOOR_HALF + 150, FLOOR_HALF + 500, across));
   h -= basin * 22;
   /* The strip, the hangar and the village stand on ground held flat: a
    * plateau from the east apron to the church, longer than the strip. */
   const flat = (1 - smoothstep(STRIP_L / 2 + 60, STRIP_L / 2 + 260, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
   h = h * (1 - flat) + 0 * flat;
   return h;
+}
+
+/* The tree line, wandering sixty metres either way with the noise. */
+export function treeLine(x, z) {
+  return TREE_LINE + 120 * (noise2(x / 700 + 3.1, z / 700 + 1.7) - 0.5);
+}
+
+/*
+ * Where the forest stands, as a density from nought to one, shared by
+ * the paint and the planting so the forest floor is painted exactly
+ * under the trees. Spruce from the foot of the walls to the tree line,
+ * thinning out over the last hundred and fifty metres, fuller on the
+ * north facing slopes, and broken into stands and meadows by the noise.
+ * `facing` is the terrain's slope along z: positive faces north.
+ */
+export function forestDensity(x, y, z, slope, facing) {
+  if (y < 30 || slope > 0.95) {
+    return 0;
+  }
+  const line = treeLine(x, z);
+  const band = smoothstep(30, 90, y) * (1 - smoothstep(line - 150, line, y));
+  const stands = 0.45 + 0.55 * fbm(x / 210, z / 210, 2);
+  const meadow = 1 - smoothstep(0.62, 0.72, noise2(x / 320 + 5.5, z / 320 + 2.5));
+  const north = 0.75 + 0.5 * smoothstep(-0.3, 0.4, facing);
+  return Math.max(0, Math.min(1, band * stands * meadow * north));
 }
 
 /*
@@ -133,50 +201,289 @@ export function canvasTexture(w, h, draw) {
   return tex;
 }
 
+/* The paths the paint draws on the ground, as polylines in metres: the
+ * track along the stream from the bridge to the lake, the track up the
+ * side valley to the pool, and a hiker's zigzag up the west wall from
+ * the church. Drawn as canvas strokes over the texels, which is the one
+ * cheap way to put a two metre line on a three metre texel. */
+export function groundPaths() {
+  const stream = [];
+  for (let z = 115; z <= 1330; z += 40) {
+    stream.push({ x: streamX(z) + 7, z });
+  }
+  const side = [];
+  for (let k = 0; k <= 16; k += 1) {
+    const t = k / 16;
+    const z = SIDE_Z + 60 * Math.sin(t * 5) - 10 * t;
+    const dx = 75 + t * (POOL.dx - 30 - 75);
+    side.push({ x: valleyAxis(z) + dx + 12 * Math.sin(t * 9), z });
+  }
+  const zigzag = [{ x: -250, z: 112 }];
+  for (let k = 1; k <= 8; k += 1) {
+    zigzag.push({ x: -250 - k * 95, z: 112 + (k % 2 === 0 ? 40 : -140) });
+  }
+  return [stream, side, zigzag];
+}
+
 /*
- * The ground's colour, painted from the same terrain: meadow on the floor,
- * pasture above it, pine on the lower slopes where they are not too
- * steep, rock where they are and above the trees, snow over the line on
- * anything that would hold it. One texel is six metres.
+ * The ground's colour, painted from the same terrain, a texel every
+ * four metres: meadow on the floor with mown stripes on the village
+ * plateau and hayfield patches beyond it, pasture with flowers above,
+ * the forest floor under the trees, scree fanning out below the cliffs,
+ * rock with its strata on the steep faces, snow with wind lines on the
+ * ridges, gravel round the lake with silt under the shallows, and the
+ * paths stroked on top.
+ *
+ * Two passes. The zones are mixed once per block of six texels,
+ * twenty three metres, where the slope, the forest and the noise are
+ * read, because nothing they drive is finer than the thirty metre
+ * heightfield and the ten noise reads a block are most of the cost;
+ * the texels then read the block colour bilinearly and add only what
+ * is finer than a block: the strata, the stripes, the wind lines and
+ * the flower speckle. Measured in headless Chrome on this box: the
+ * texel pass doing the zone mixing itself was over 600 ms, blocks of
+ * four texels were 210 to 230 ms of blocks and 285 to 320 ms of
+ * texels, and this is what fits the build budget. One canvas, one
+ * keyed texture: the cel material takes a map and nothing else, so a
+ * second tiling detail texture would mean a change to celmat.js's
+ * shader, and that is not this file's to make.
  */
 export function groundTexture(field) {
-  const PX = 1024;
+  /* The village plateau's footprint, the same terms terrainHeight holds
+   * it flat with, so the mown stripes stop where the plateau does. */
+  const plateau = (x, z) => (1 - smoothstep(STRIP_L / 2 + 60, STRIP_L / 2 + 260, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
+  const PX = 1536;
+  const PER = 6;
+  const BLOCKS = PX / PER;
   const step = FIELD / PX;
+  const bstep = FIELD / BLOCKS;
+
+  const meadow = [0x6f, 0x9a, 0x3e];
+  const hay = [0x82, 0xa3, 0x44];
+  const pasture = [0x8c, 0xa6, 0x4f];
+  const flowers = [0xa4, 0xb3, 0x58];
+  const forest = [0x3a, 0x59, 0x2c];
+  const scree = [0x9c, 0x99, 0x92];
+  const screeDark = [0x83, 0x80, 0x7a];
+  const rock = [0x6c, 0x6d, 0x6c];
+  const snow = [0xf4, 0xf6, 0xfa];
+  const gravel = [0xb6, 0xb0, 0xa1];
+  const silt = [0x98, 0xab, 0x86];
+  const bed = [0x2d, 0x55, 0x58];
+  const lerp3 = (out, b, t) => {
+    out[0] += (b[0] - out[0]) * t;
+    out[1] += (b[1] - out[1]) * t;
+    out[2] += (b[2] - out[2]) * t;
+  };
+
+  /* Per block: the zone colour and the weights the texels finish with. */
+  const nb = BLOCKS * BLOCKS;
+  const bCol = new Float32Array(nb * 3);
+  const bFaces = new Float32Array(nb);
+  const bSnowy = new Float32Array(nb);
+  const bFlat = new Float32Array(nb);
+  const bBloom = new Float32Array(nb);
+  const bGrain = new Float32Array(nb);
+  const bPatch = new Float32Array(nb);
+  const c = [0, 0, 0];
+  for (let j = 0; j < BLOCKS; j += 1) {
+    const z = -HALF + (j + 0.5) * bstep;
+    for (let i = 0; i < BLOCKS; i += 1) {
+      const x = -HALF + (i + 0.5) * bstep;
+      const k = j * BLOCKS + i;
+      const y = field.height(x, z);
+      const sx = (field.height(x + bstep, z) - field.height(x - bstep, z)) / (2 * bstep);
+      const sz = (field.height(x, z + bstep) - field.height(x, z - bstep)) / (2 * bstep);
+      const slope = Math.hypot(sx, sz);
+      const grain = fbm(x / 80, z / 80, 2);
+      const patch = noise2(x / 34 + 9.1, z / 34 + 3.7);
+      bGrain[k] = grain;
+      bPatch[k] = patch;
+      bFlat[k] = plateau(x, z);
+
+      /* The floor and the pasture. Hayfields are patches of a yellower
+       * green a hundred metres across. */
+      const up = smoothstep(60, 500, y);
+      c[0] = meadow[0];
+      c[1] = meadow[1];
+      c[2] = meadow[2];
+      lerp3(c, hay, smoothstep(0.55, 0.7, noise2(x / 140 + 3.3, z / 140 + 8.8)) * (1 - up));
+      lerp3(c, pasture, up);
+      /* Flower patches on the pasture below the tree line: a warmer
+       * green, and the texels speckle it. */
+      const bloom = smoothstep(0.58, 0.7, patch) * smoothstep(40, 120, y) * (1 - smoothstep(TREE_LINE - 200, TREE_LINE, y)) * (1 - smoothstep(0.45, 0.7, slope));
+      bBloom[k] = bloom;
+      lerp3(c, flowers, bloom);
+      /* The forest floor, exactly under the density the trees are
+       * planted with. */
+      lerp3(c, forest, forestDensity(x, y, z, slope, sz) * 0.9);
+      /* Scree below the cliffs, streaked down the fall line. Uphill is
+       * against the gradient; steep ground forty five metres up from a
+       * moderate slope is where the cliff sheds. */
+      if (slope > 0.04 && slope < 0.85) {
+        const ax = x - sx / slope * 45;
+        const az = z - sz / slope * 45;
+        const usx = (field.height(ax + 6, az) - field.height(ax - 6, az)) / 12;
+        const usz = (field.height(ax, az + 6) - field.height(ax, az - 6)) / 12;
+        const sc = smoothstep(0.85, 1.15, Math.hypot(usx, usz)) * smoothstep(0.3, 0.55, slope);
+        if (sc > 0.02) {
+          const streak = noise2((-sz * x + sx * z) / slope / 7 + 1.7, y / 40);
+          lerp3(c, streak > 0.5 ? scree : screeDark, sc);
+        }
+      }
+      /* Rock on the steep faces and above the trees; the faces get
+       * their strata from the texels. */
+      const rockiness = Math.max(smoothstep(0.8, 1.05, slope), smoothstep(TREE_LINE + 80, TREE_LINE + 220, y + 60 * grain));
+      lerp3(c, rock, rockiness);
+      bFaces[k] = smoothstep(0.7, 1.0, slope) * rockiness;
+      /* Snow above the line on anything that will hold it, and old snow
+       * in the hollows below it. */
+      const line = SNOW_LINE + 150 * grain;
+      let snowy = smoothstep(line - 100, line + 100, y) * (1 - smoothstep(SNOW_MAX_SLOPE - 0.3, SNOW_MAX_SLOPE + 0.3, slope));
+      if (y > line - 330 && slope < 0.8) {
+        const hollow = smoothstep(0.66, 0.74, noise2(x / 60 + 2.2, z / 60 + 7.9)) * smoothstep(line - 330, line - 180, y) * (1 - smoothstep(0.5, 0.8, slope));
+        snowy = Math.max(snowy, hollow);
+      }
+      bSnowy[k] = snowy;
+      lerp3(c, snow, snowy);
+      /* The lake basin: gravel round the shore, silt under the
+       * shallows, the bed under the deep water. */
+      if (y < LAKE_Y + 3.5 && z > LAKE_Z - 800) {
+        const basin = smoothstep(LAKE_Z - 900, LAKE_Z - 150, z) * (1 - smoothstep(LAKE_END - 250, LAKE_END + 50, z));
+        const shore = (1 - smoothstep(LAKE_Y + 1.5, LAKE_Y + 3.5, y)) * smoothstep(0.2, 0.5, basin);
+        lerp3(c, gravel, shore);
+        lerp3(c, silt, (1 - smoothstep(LAKE_Y - 3, LAKE_Y - 1.2, y)) * shore);
+        lerp3(c, bed, (1 - smoothstep(LAKE_Y - 9, LAKE_Y - 4, y)) * shore);
+      }
+      const tone = 1 + 0.04 * grain;
+      bCol[k * 3] = c[0] * tone;
+      bCol[k * 3 + 1] = c[1] * tone;
+      bCol[k * 3 + 2] = c[2] * tone;
+    }
+  }
+  const paths = groundPaths();
+
   return canvasTexture(PX, PX, (ctx, w, h) => {
     const img = ctx.createImageData(w, h);
     const px = img.data;
-    const meadow = [0x6f, 0x9a, 0x3e];
-    const pasture = [0x8f, 0xa8, 0x52];
-    const pine = [0x2c, 0x54, 0x2a];
-    const rock = [0x7a, 0x78, 0x74];
-    const scree = [0x97, 0x94, 0x8c];
-    const snow = [0xf3, 0xf5, 0xf9];
-    const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+    const last = BLOCKS - 1;
+    /* Which two blocks a texel sits between along x, and how far, worked
+     * out once per column rather than four million times. */
+    const col0 = new Int32Array(w);
+    const col1 = new Int32Array(w);
+    const colF = new Float32Array(w);
+    const colN = new Int32Array(w);
+    for (let i = 0; i < w; i += 1) {
+      const u = Math.max(0, Math.min(last, (i + 0.5) / PER - 0.5));
+      col0[i] = Math.floor(u);
+      col1[i] = Math.min(last, col0[i] + 1);
+      colF[i] = u - col0[i];
+      colN[i] = colF[i] < 0.5 ? col0[i] : col1[i];
+    }
     for (let j = 0; j < h; j += 1) {
       const z = -HALF + (j + 0.5) * step;
+      const v = Math.max(0, Math.min(last, (j + 0.5) / PER - 0.5));
+      const j0 = Math.floor(v);
+      const j1 = Math.min(last, j0 + 1);
+      const fv = v - j0;
+      const row0 = j0 * BLOCKS;
+      const row1 = j1 * BLOCKS;
+      const rowN = fv < 0.5 ? row0 : row1;
       for (let i = 0; i < w; i += 1) {
         const x = -HALF + (i + 0.5) * step;
-        const y = field.height(x, z);
-        const sx = (field.height(x + step, z) - field.height(x - step, z)) / (2 * step);
-        const sz = (field.height(x, z + step) - field.height(x, z - step)) / (2 * step);
-        const slope = Math.hypot(sx, sz);
-        const grain = fbm(x / 80, z / 80, 2);
-        let c = mix(meadow, pasture, smoothstep(60, 500, y));
-        const treeBand = smoothstep(40, 120, y) * (1 - smoothstep(620, 780, y + 60 * grain)) * (1 - smoothstep(0.55, 0.85, slope));
-        c = mix(c, pine, treeBand);
-        const rockiness = Math.max(smoothstep(0.7, 1.05, slope), smoothstep(780, 950, y + 40 * grain));
-        c = mix(c, mix(rock, scree, 0.5 + 0.5 * grain), rockiness);
-        const snowy = smoothstep(SNOW_LINE - 120, SNOW_LINE + 120, y + 150 * grain) * (1 - smoothstep(SNOW_MAX_SLOPE - 0.3, SNOW_MAX_SLOPE + 0.3, slope));
-        c = mix(c, snow, snowy);
+        const fu = colF[i];
+        const k00 = (row0 + col0[i]) * 3;
+        const k10 = (row0 + col1[i]) * 3;
+        const k01 = (row1 + col0[i]) * 3;
+        const k11 = (row1 + col1[i]) * 3;
+        const w00 = (1 - fu) * (1 - fv);
+        const w10 = fu * (1 - fv);
+        const w01 = (1 - fu) * fv;
+        const w11 = fu * fv;
+        let r = bCol[k00] * w00 + bCol[k10] * w10 + bCol[k01] * w01 + bCol[k11] * w11;
+        let g = bCol[k00 + 1] * w00 + bCol[k10 + 1] * w10 + bCol[k01 + 1] * w01 + bCol[k11 + 1] * w11;
+        let b = bCol[k00 + 2] * w00 + bCol[k10 + 2] * w10 + bCol[k01 + 2] * w01 + bCol[k11 + 2] * w11;
+        /* The nearest block's weights are enough for what follows: a
+         * stripe or a stratum edge crossing a block boundary is not a
+         * thing anyone sees. */
+        const kn = rowN + colN[i];
+        const snowy = bSnowy[kn];
+        const faces = bFaces[kn] * (1 - snowy);
+        if (faces > 0.02) {
+          /* Strata: bands thirty metres tall, warped a little by the
+           * grain so they never read as contour lines, a dark one and a
+           * light one to every four. */
+          const y = field.height(x, z);
+          const band = ((y + 16 * bGrain[kn] + 8 * bPatch[kn]) / 30) % 1;
+          if (band < 0.2) {
+            const t = 0.16 * faces;
+            r *= 1 - t;
+            g *= 1 - t;
+            b *= 1 - t;
+          } else if (band > 0.6 && band < 0.76) {
+            const t = 0.1 * faces;
+            r *= 1 + t;
+            g *= 1 + t;
+            b *= 1 + t;
+          }
+        }
+        if (snowy > 0.3) {
+          /* Wind lines combed across the snow from the south west. */
+          const wind = noise2((x - z) / 5.2, (x + z) / 260 + 4.4);
+          if (wind > 0.56) {
+            const t = 0.07 * snowy;
+            r *= 1 - t;
+            g *= 1 - t * 0.6;
+            b *= 1 - t * 0.2;
+          }
+        }
+        const flat = bFlat[kn];
+        if (flat > 0.02) {
+          /* Mown in nine metre stripes along the strip. */
+          const t = 1 + (Math.floor((x + 3000) / 9) % 2 === 0 ? 0.035 : -0.03) * flat;
+          r *= t;
+          g *= t;
+          b *= t;
+        }
+        const bloom = bBloom[kn];
+        if (bloom > 0.05) {
+          /* Yellow and white speckle in the flower patches. */
+          let hsh = (i * 374761393 + j * 668265263) | 0;
+          hsh = Math.imul(hsh ^ (hsh >>> 13), 1274126177);
+          const speck = ((hsh ^ (hsh >>> 16)) >>> 0) / 4294967296;
+          if (speck > 0.93) {
+            const t = bloom * 0.55;
+            const white = speck > 0.985;
+            r += ((white ? 0xf2 : 0xe9) - r) * t;
+            g += ((white ? 0xf2 : 0xd8) - g) * t;
+            b += ((white ? 0xe6 : 0x62) - b) * t;
+          }
+        }
         const k = (j * w + i) * 4;
-        const tone = 1 + 0.05 * grain;
-        px[k] = Math.max(0, Math.min(255, c[0] * tone));
-        px[k + 1] = Math.max(0, Math.min(255, c[1] * tone));
-        px[k + 2] = Math.max(0, Math.min(255, c[2] * tone));
+        px[k] = r;
+        px[k + 1] = g;
+        px[k + 2] = b;
         px[k + 3] = 255;
       }
     }
     ctx.putImageData(img, 0, 0);
+    /* The paths, stroked over the texels. The canvas's y runs with z. */
+    ctx.strokeStyle = '#b8ad95';
+    ctx.lineWidth = 0.8;
+    ctx.lineJoin = 'round';
+    for (const path of paths) {
+      ctx.beginPath();
+      path.forEach((p, k) => {
+        const u = (p.x + HALF) / step;
+        const v = (p.z + HALF) / step;
+        if (k === 0) {
+          ctx.moveTo(u, v);
+        } else {
+          ctx.lineTo(u, v);
+        }
+      });
+      ctx.stroke();
+    }
   });
 }
 
@@ -239,4 +546,3 @@ export function farRange() {
   mesh.name = 'far-range';
   return mesh;
 }
-
