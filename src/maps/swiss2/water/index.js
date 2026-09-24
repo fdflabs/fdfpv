@@ -129,7 +129,7 @@ export async function buildWater(ctx) {
   poolGeo.setAttribute('aWater', new THREE.BufferAttribute(pw, 4));
   const poolMat = waterMaterial({
     waves, time, wind, colour: LAKE_BODY, clarity: 0.5, ripple: 0.8, roughness: 0.05, envMap,
-    foamAt: [fall.foot.x, fall.foot.z, 16, 0.7],
+    foamAt: [fall.foot.x, fall.foot.z, 22, 1],
   });
   const poolMesh = new THREE.Mesh(poolGeo, poolMat);
   poolMesh.name = 'swiss2-pool';
