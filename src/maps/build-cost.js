@@ -46,8 +46,12 @@ export const MAP_BUILD_MS = {
    * 1600 by 900 on Low, two runs: 709 and 717 ms. */
   airfield: 713,
   /* A six kilometre heightfield, its painted texture, the range beyond,
-   * a baked village and three thousand instanced pines. World stage from
-   * the shell's loading ledger through shots.js on this machine at 1600 by
-   * 900 on Low, three runs after a warm cache: 862, 964 and 1003 ms. */
-  alps: 950,
+   * a baked village of forty buildings with their windows, balconies and
+   * fences, and three thousand instanced pines. World stage from the
+   * shell's loading ledger through shots.js on this machine at 1600 by
+   * 900 on Low, four runs after a warm cache: 1466, 1456, 1380 and 1337
+   * ms, measured with a load average over thirty from other sessions'
+   * Chromiums; the same box gave the previous village 514 to 1029 ms
+   * under the same load, so the village's rebuild is most of the rise. */
+  alps: 1410,
 };
