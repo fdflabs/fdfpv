@@ -22,11 +22,25 @@
 import http from 'node:http';
 import { stat } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
-import { join, normalize, extname, dirname } from 'node:path';
+import { join, normalize, extname, dirname, resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const port = Number(process.env.PORT || 8000);
+
+/* The Yellowstone data is built outside the repository
+   (docs/YELLOWSTONE-PLAN.md) and the map reads it from yellowstone-data/
+   beside the page, so that one path is served from the folder
+   FDFPV_YELLOWSTONE_DATA names, the pipeline's output by default. */
+const YS_PREFIX = 'yellowstone-data/';
+const ysRoot = resolve(process.env.FDFPV_YELLOWSTONE_DATA || join(homedir(), 'Desktop', 'fdfpv-yellowstone-data'));
+
+function servedPath(base, rel) {
+  const [dir, sub] = rel.startsWith(YS_PREFIX) ? [ysRoot, rel.slice(YS_PREFIX.length)] : [base, rel];
+  const path = join(dir, sub);
+  return path.startsWith(dir) ? path : null;
+}
 
 const MIME = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -167,8 +181,8 @@ http
       if (rel === '') {
         rel = 'index.html';
       }
-      const path = join(root, rel);
-      if (!path.startsWith(root)) {
+      const path = servedPath(root, rel);
+      if (!path) {
         res.writeHead(403);
         res.end('forbidden');
         return;
