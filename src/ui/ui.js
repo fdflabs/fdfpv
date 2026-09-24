@@ -2772,7 +2772,7 @@ const WAYS = [
      * the Plane row picks between them. The first is what the card seats
      * when neither is; a pilot already on the other keeps it. */
     id: 'freestyle-wing1000',
-    airframes: ['wing1000', 'sky1800'],
+    airframes: ['wing1000', 'sky1800', 'cub1400'],
     mode: 'freestyle',
     /* The wing's own world. A card with a home skips the picker: the
      * airfield was built for these aircraft and the town was not. The
@@ -2781,8 +2781,8 @@ const WAYS = [
     home: 'airfield',
     label: str('ui.fixed_wing'),
     art: 'assets/gate/freestyle.jpg',
-    blurb: str('ui.two_fixed_wings_on_4s'),
-    facts: ['4S', str('ui.two_planes'), str('ui.the_airfield')],
+    blurb: str('ui.three_fixed_wings'),
+    facts: [str('ui.three_planes'), str('ui.the_airfield')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 

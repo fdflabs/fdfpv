@@ -96,6 +96,7 @@ import { airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { WING_MOUNT_FORWARD, WING_MOUNT_UP } from './render/wingcraft.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
+import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP } from './render/cubcraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
  * in the craft frame, from the module that draws it. A quad's comes from
@@ -103,6 +104,7 @@ import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 const WING_MOUNTS = {
   wing1000: [WING_MOUNT_FORWARD, WING_MOUNT_UP],
   sky1800: [SKY_MOUNT_FORWARD, SKY_MOUNT_UP],
+  cub1400: [CUB_MOUNT_FORWARD, CUB_MOUNT_UP],
 };
 import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
@@ -167,9 +169,12 @@ let SPAWN_ALT = 0.045;
  * Identical to SPAWN_ALT so the parked pose, the spawn state and a landing
  * all agree about where the ground holds the craft. */
 let REST_HEIGHT = 0.045;
-/* One seat for both, so they cannot drift apart. */
-function seatRestHeight(dims) {
-  const h = dims && Number.isFinite(dims.vHalfDown) ? dims.vHalfDown : 0.045;
+/* One seat for both, so they cannot drift apart. An aircraft on wheels
+ * rests where its gear holds it, not on its lowest drawn point. */
+function seatRestHeight(af) {
+  const dims = af && af.dims;
+  const h = af && af.gear ? af.gear.restHeight
+    : dims && Number.isFinite(dims.vHalfDown) ? dims.vHalfDown : 0.045;
   SPAWN_ALT = h;
   REST_HEIGHT = h;
 }
@@ -1911,6 +1916,44 @@ export async function boot({ loading, bootStart, mapId }) {
     flownThisRun = true;
     adoptSimClock();
     notice = { text: str('main.thrown_keep_it_flying'), untilMs: performance.now() + 2200 };
+    return true;
+  }
+
+  /*
+   * A PLANE ON WHEELS IS NOT THROWN, IT IS LET GO. Parked, the plant is
+   * held, like any craft that is down; throttle releases it onto its gear
+   * at the pose the gear holds it in, CG gear.restHeight over the ground
+   * and gear.restPitch nose up, facing the way it faced, and the plant's
+   * wheels roll it down the strip from there. The wheels are not hull
+   * corners, so a plane rolling or sitting on them never trips the perch
+   * that parks a craft again.
+   */
+  function releaseOnWheels() {
+    const gear = airframeById(runAirframe).gear;
+    const stNow = readState();
+    if (!gear || !stNow) {
+      return false;
+    }
+    const yaw = Math.atan2(2 * (stNow[7] * stNow[10] + stNow[8] * stNow[9]), 1 - 2 * (stNow[9] * stNow[9] + stNow[10] * stNow[10]));
+    const cy = Math.cos(yaw / 2);
+    const sy = Math.sin(yaw / 2);
+    const cp = Math.cos(gear.restPitch / 2);
+    const sp = Math.sin(gear.restPitch / 2);
+    /* Yaw about world up, then the nose up pitch about the body's left
+     * axis, which is a negative rotation about +y in the plant's frame. */
+    const code = sim.e.sim_set_pose(
+      stNow[1], stNow[2], stNow[3] - REST_HEIGHT + gear.restHeight,
+      cy * cp, sy * sp, -cy * sp, sy * cp,
+    );
+    if (code !== SIM_OK) {
+      return false;
+    }
+    landed = false;
+    takingOff = false;
+    flownThisRun = true;
+    adoptSimClock();
+    stateCurr = readState();
+    statePrev = stateCurr;
     return true;
   }
 
@@ -3733,7 +3776,7 @@ export async function boot({ loading, bootStart, mapId }) {
     /* Where this aircraft's centre sits when it is parked, which is where
      * the shell puts the ground plane, the spawn and the landed test. See
      * SPAWN_ALT at the top of this file. */
-    seatRestHeight(airframeById(runAirframe).dims);
+    seatRestHeight(airframeById(runAirframe));
     if (typeof shell.swapCraft === 'function') {
       shell.swapCraft(runAirframe);
     }
@@ -6179,7 +6222,10 @@ export async function boot({ loading, bootStart, mapId }) {
     if (mode === 'flight' && landed && !crashed) {
       const thr = samples.length ? samples[samples.length - 1].throttle : input.channels.throttle;
       if (landed && thr > TAKEOFF_THROTTLE) {
-        if (airframeById(runAirframe).fixedWing) {
+        if (airframeById(runAirframe).gear) {
+          /* On wheels, throttle up is the takeoff roll. */
+          releaseOnWheels();
+        } else if (airframeById(runAirframe).fixedWing) {
           /* Throttle up on a wing that is down is the hand throw. */
           throwWing();
         } else if (turtleRecover) {
@@ -6642,6 +6688,13 @@ export async function boot({ loading, bootStart, mapId }) {
       pCurr.y = groundY + simLenToWorld(REST_HEIGHT) * Math.cos(startPitch);
       if (startPitch) {
         qPad.setFromAxisAngle(AXIS_X, -startPitch);
+        qPrev.multiply(qPad);
+      }
+      /* A plane on its gear parks tail down, nose up, as it will stand
+       * the moment throttle lets it go. */
+      const parkedGear = airframeById(runAirframe).gear;
+      if (parkedGear) {
+        qPad.setFromAxisAngle(AXIS_X, parkedGear.restPitch);
         qPrev.multiply(qPad);
       }
     }
@@ -7719,7 +7772,9 @@ export async function boot({ loading, bootStart, mapId }) {
        */
       /* A wing has no throttle to take off on: L throws it. */
       const isWing = Boolean(airframeById(runAirframe).fixedWing);
-      const start = isWing
+      const start = airframeById(runAirframe).gear
+        ? str('main.throttle_up_to_take_off_from')
+        : isWing
         ? str('main.throw_it_with_l')
         : ui.settings.launchControl
           ? str('main.l_for_launch_control_or_throttle')

@@ -98,6 +98,29 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder.',
   },
   {
+    /* The Cub's three, the stabiliser's modes on its own plant. On its
+     * wheels every mode flies as Manual, so a taxi or a takeoff roll is
+     * the sticks, and the modes take over once it is off the ground. */
+    id: 'cub-stab',
+    airframe: 'cub1400',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
+    wingStab: 1,
+  },
+  {
+    id: 'cub-acro',
+    airframe: 'cub1400',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you.',
+    wingStab: 2,
+  },
+  {
+    id: 'cub-manual',
+    airframe: 'cub1400',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel.',
+  },
+  {
     id: 'betaflight-default',
     airframe: '5inch',
     name: 'Betaflight default',

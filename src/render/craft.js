@@ -35,6 +35,7 @@ import { buildHeroCraft } from './herocraft.js';
 import { buildWhoopCraft } from './whoopcraft.js';
 import { buildWingCraft } from './wingcraft.js';
 import { buildSkyCraft } from './skycraft.js';
+import { buildCubCraft } from './cubcraft.js';
 import { airframeById } from '../../configs/airframes.js';
 
 /*
@@ -52,6 +53,7 @@ const BUILDERS = {
   whoop65: buildWhoopCraft,
   wing1000: buildWingCraft,
   sky1800: buildSkyCraft,
+  cub1400: buildCubCraft,
 };
 
 export function craftBuilderFor(airframeId) {

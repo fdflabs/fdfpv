@@ -477,6 +477,52 @@ export const AIRFRAMES = [
       bodyHeight: 0.339,
     },
   },
+  {
+    /*
+     * The Piper J-3 Cub, docs/CUB-STAGE1.md: the FMS 1400 mm, a high wing
+     * taildragger with a tractor prop, simId 4 on the fixed wing plant.
+     * The first aircraft here with wheels: it sits on its gear and takes
+     * off down the strip rather than being thrown (L still throws it).
+     * `gear` is where it rests, from the plant's settled pose, which the
+     * drawn wheels in src/render/cubcraft.js match: the CG 0.1463 m over
+     * the ground and 11 degrees nose up, tail down.
+     */
+    id: 'cub1400',
+    simId: 4,
+    fixedWing: true,
+    gear: { restHeight: 0.1463, restPitch: 11.0 * Math.PI / 180 },
+    name: 'Piper Cub',
+    short: 'Cub',
+    blurb: 'A 1400 mm Piper J-3 Cub on 3S, a taildragger with ailerons, elevator and rudder. Take off from the strip on its wheels and land it back on them.',
+    facts: ['3S', '1400 mm', 'Taildragger'],
+    trackClass: 'wing',
+    cells: 3,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'cub-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/cubcraft.js CUB_DIMS: half span, the
+     * wheels' lowest drawn point and the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1397,
+      hullR: 0.70,
+      vHalfDown: 0.163,
+      vHalfUp: 0.160,
+      bodyLength: 0.9,
+      bodyWidth: 1.4,
+      bodyHeight: 0.323,
+    },
+  },
 ];
 
 

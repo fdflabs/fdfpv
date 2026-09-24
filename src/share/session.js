@@ -63,7 +63,7 @@ const SETTINGS_KEY = 'webfpv.settings.v3';
  * class each airframe flies, and the one a class seats when it has to
  * choose.
  */
-const CLASS_OF_AIRFRAME = { '5inch': 'full', whoop65: 'micro', wing1000: 'wing', sky1800: 'wing' };
+const CLASS_OF_AIRFRAME = { '5inch': 'full', whoop65: 'micro', wing1000: 'wing', sky1800: 'wing', cub1400: 'wing' };
 export const AIRFRAME_BY_CLASS = { full: '5inch', micro: 'whoop65', wing: 'wing1000' };
 
 /* The class an airframe id flies, 'full' for anything not in the table. */

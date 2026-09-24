@@ -76,6 +76,9 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *   sky1800   an 1800 mm twin boom pusher: the span is the manufacturer's,
  *             and the reach is the wingtip, because the tail, 0.77 m aft,
  *             is only 0.23 m out. src/render/skycraft.js draws it.
+ *   cub1400   a 1400 mm Piper J-3 Cub: the span is FMS's, and the reach is
+ *             the tip, the tail being 0.6 m aft on the centreline.
+ *             src/render/cubcraft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -88,6 +91,7 @@ const REAL = {
   whoop65: { spanMm: 82.6, sweepMm: 101.2, tolMm: 3, wheelbaseMm: 65 },
   wing1000: { spanMm: 1000.0, sweepMm: 1088.6, tolMm: 6 },
   sky1800: { spanMm: 1800.0, sweepMm: 1800.0, tolMm: 6 },
+  cub1400: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
