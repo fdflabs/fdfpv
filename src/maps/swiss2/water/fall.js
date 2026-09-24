@@ -125,7 +125,7 @@ function sheetGeometry(layout, heightAt, pool, ahead) {
   const idx = [];
   for (let r = 0; r <= ROWS; r += 1) {
     const t = r / ROWS;
-    const w = 9 + 7 * t + ahead * 0.6;
+    const w = 7 + 15 * Math.pow(t, 1.4) + ahead * 0.6;
     for (let c = 0; c <= COLS; c += 1) {
       const s = c / COLS;
       /* A little bow across: the sheet is fuller in the middle. */
@@ -147,6 +147,10 @@ function sheetGeometry(layout, heightAt, pool, ahead) {
   g.computeVertexNormals();
   return { geometry: g, footX, bottom, height: top - bottom };
 }
+
+/* The lip's speed and gravity, for where a parcel of the sheet is. */
+const V0 = 3;
+const G = 9.8;
 
 function fallMaterial(waves, time, height, seed, envMap) {
   const mat = new THREE.MeshStandardMaterial({
@@ -172,21 +176,34 @@ function fallMaterial(waves, time, height, seed, envMap) {
         uniform float uSeed;
         varying vec2 vFall;`)
       .replace('#include <map_fragment>', `
-        /* Distance fallen, and how far the water has come in that time:
-         * free fall, so the texture runs faster lower down. */
+        /* The streaks ride the water. A parcel fallen f metres has been
+         * falling tau(f) seconds (free fall from the lip's speed), so the
+         * pattern is read at tau minus the time: it moves with the water
+         * and stretches as the water speeds up. Reading it at the height
+         * minus time times a speed that grows down the sheet, as this did,
+         * squeezes the pattern harder every second the map runs, and a
+         * minute in the sheet was a lattice of chips. The time is wrapped
+         * at a period every sample repeats over. */
         float fallen = vFall.y * uFallH;
-        float scroll = uTime * (4.0 + 1.8 * sqrt(max(fallen, 0.0)));
-        vec2 q = vec2(vFall.x * 15.0 + uSeed, fallen - scroll);
+        float tau = (sqrt(${(V0 * V0).toFixed(2)} + ${(2 * G).toFixed(2)} * max(fallen, 0.0)) - ${V0.toFixed(2)}) / ${G.toFixed(2)};
+        float run = (tau - mod(uTime, 45.0)) * 8.0;
+        float across = vFall.x * 15.0 + uSeed;
+        vec2 q = vec2(across, run);
         float ropes = texture2D(uWaves, vec2(q.x / 5.0, q.y / 40.0)).a;
         float fine = texture2D(uWaves, vec2(q.x / 1.1, q.y / 9.0)).a;
         float spray = texture2D(uWaves, vec2(q.x / 0.6, q.y / 2.5)).a;
-        float spread = smoothstep(0.0, 0.5, vFall.y);
-        float body = smoothstep(0.42 - 0.25 * spread, 0.72 - 0.2 * spread, ropes * 0.65 + fine * 0.35);
-        float edge = smoothstep(0.0, 0.12 + 0.1 * spread, vFall.x) * smoothstep(1.0, 0.88 - 0.1 * spread, vFall.x);
-        float a = body * edge * mix(0.9, 0.55, spread) * (0.6 + 0.4 * spray);
-        a *= smoothstep(0.0, 0.02, vFall.y);
+        /* Staubbach's way down: glassy ropes off the lip, torn into a
+         * white veil by a third of the way, thinning to blown spray
+         * with ragged edges at the foot. */
+        float spread = smoothstep(0.0, 0.45, vFall.y);
+        float blown = smoothstep(0.45, 1.0, vFall.y);
+        float body = smoothstep(0.46 - 0.3 * spread, 0.7 - 0.22 * spread, ropes * 0.6 + fine * 0.4);
+        float ragged = 0.1 + 0.18 * spread + 0.12 * (fine - 0.5);
+        float edge = smoothstep(0.0, ragged, vFall.x) * smoothstep(1.0, 1.0 - ragged, vFall.x);
+        float a = body * edge * mix(0.95, 0.42, spread) * mix(1.0, 0.4, blown) * (0.45 + 0.55 * spray);
+        a *= smoothstep(0.0, 0.02, vFall.y) * (1.0 - smoothstep(0.9, 1.0, vFall.y));
         diffuseColor.a = a;
-        diffuseColor.rgb *= 0.9 + 0.15 * fine;`)
+        diffuseColor.rgb *= 0.88 + 0.2 * fine;`)
       .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
         {
           vec3 wn = texture2D(uWaves, vec2(q.x / 1.1, q.y / 9.0)).xyz * 2.0 - 1.0;
@@ -313,11 +330,17 @@ export async function buildFall({ heightAt, layout, waves, time, wind, envMap, g
     sheets.push(s);
   }
   const foot = new THREE.Vector3(sheets[0].footX - 1, sheets[0].bottom + 0.5, layout.fallZ);
+  /* The mist boils up a few metres out from the face: its sprites are
+   * flat, and centred on the sheet they cut into the rock behind in a
+   * hard line. */
+  const mistAt = foot.clone().setX(foot.x - 4);
+  /* A thin cloud, not a ball: spray at the foot is lit through and the
+   * cliff shows behind it, and the wind carries it off the fall. */
   const cloud = mist({
-    waves, time, wind, centre: foot, count: 260, spread: 11, rise: 34, life: 7, s0: 3, s1: 13, opacity: 0.2, light, seed: 71,
+    waves, time, wind, centre: mistAt, count: 260, spread: 22, rise: 48, life: 10, s0: 4, s1: 22, opacity: 0.04, light, seed: 71,
   });
   const spray = mist({
-    waves, time, wind, centre: foot, count: 140, spread: 5, rise: 9, life: 2.2, s0: 1.2, s1: 4, opacity: 0.35, light, seed: 73,
+    waves, time, wind, centre: mistAt, count: 140, spread: 7, rise: 9, life: 2.2, s0: 1.2, s1: 4.5, opacity: 0.1, light, seed: 73,
   });
   cloud.name = 'swiss2-mist';
   spray.name = 'swiss2-spray';
