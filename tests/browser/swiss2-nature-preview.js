@@ -128,7 +128,11 @@ async function main() {
   const buildMs = performance.now() - t0;
 
   const target = new THREE.Vector3();
+  /* The frame's draws are counted across every pass in it, the lake's
+   * mirror and the shadow map included, not only the last render call. */
+  renderer.info.autoReset = false;
   const frame = (dt) => {
+    renderer.info.reset();
     for (const p of parts) {
       p.update(dt, camera);
     }
@@ -193,6 +197,35 @@ async function main() {
       }
       times.sort((p, q) => p - q);
       return { median: times[Math.floor(n / 2)], p90: times[Math.floor(n * 0.9)], calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+    },
+    /* The GPU's own time for a frame, from a timer query round it: the
+     * wall clock above is at the mercy of whatever else the box is
+     * running, this is not. Median of n frames, in milliseconds. */
+    async gpu(n = 20) {
+      const gl = renderer.getContext();
+      const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+      if (!ext) {
+        return null;
+      }
+      const times = [];
+      for (let k = 0; k < n; k += 1) {
+        const q = gl.createQuery();
+        gl.beginQuery(ext.TIME_ELAPSED_EXT, q);
+        frame(16.7);
+        gl.endQuery(ext.TIME_ELAPSED_EXT);
+        for (;;) {
+          await raf();
+          if (gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) {
+            break;
+          }
+        }
+        if (!gl.getParameter(ext.GPU_DISJOINT_EXT)) {
+          times.push(gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6);
+        }
+        gl.deleteQuery(q);
+      }
+      times.sort((p, q) => p - q);
+      return times[Math.floor(times.length / 2)];
     },
   };
   window.__previewReady = true;

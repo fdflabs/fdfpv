@@ -165,7 +165,8 @@ try {
     let line = `shot ${path}: ${s.calls} draws, ${(s.triangles / 1000).toFixed(0)}k triangles`;
     if (bench) {
       const b = await page.evaluate('window.__preview.bench(30)');
-      line += `, frame ${b.median.toFixed(1)} ms median, ${b.p90.toFixed(1)} ms p90`;
+      const g = await page.evaluate('window.__preview.gpu(20)');
+      line += `, GPU ${g === null ? 'n/a' : g.toFixed(2)} ms, wall ${b.median.toFixed(1)} ms median ${b.p90.toFixed(1)} p90`;
     }
     console.log(line);
   }
