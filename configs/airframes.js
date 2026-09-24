@@ -402,6 +402,7 @@ export const AIRFRAMES = [
      */
     id: 'wing1000',
     simId: 2,
+    fixedWing: true,
     name: 'Fixed wing',
     short: 'Wing',
     blurb: 'A 1000 mm flying wing on 4S, flown by hand. Throw it, keep it flying, land it on its belly.',
@@ -430,6 +431,50 @@ export const AIRFRAMES = [
       bodyLength: 0.25,
       bodyWidth: 1.0,
       bodyHeight: 0.07,
+    },
+  },
+  {
+    /*
+     * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md: a twin boom pusher
+     * with ailerons, an elevator and a rudder, simId 3, on the wing's
+     * plant with its own table. It flies the wing's track class, the
+     * airfield, because it is the same kind of flying. The stock kit has
+     * no rudder servo; this one has one, so the yaw stick does something.
+     */
+    id: 'sky1800',
+    simId: 3,
+    fixedWing: true,
+    name: 'Skyhunter',
+    short: 'Skyhunter',
+    blurb: 'An 1800 mm twin boom FPV plane on 4S, with ailerons, elevator and rudder. Throw it, fly it long, land it on its skid.',
+    facts: ['4S', '1800 mm', 'Twin boom'],
+    trackClass: 'wing',
+    cells: 4,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'sky-stab',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/skycraft.js SKY_DIMS: half span, the
+     * skid 0.12 m under the CG (the contact box's floor, src/native/plant.c)
+     * and the fins' tops 0.219 m over it. */
+    dims: {
+      arm: 0,
+      propR: 0.1397,
+      hullR: 0.90,
+      vHalfDown: 0.12,
+      vHalfUp: 0.219,
+      bodyLength: 1.225,
+      bodyWidth: 1.8,
+      bodyHeight: 0.339,
     },
   },
 ];

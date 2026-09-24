@@ -55,17 +55,20 @@ import { str } from '../strings/index.js';
 const SETTINGS_KEY = 'webfpv.settings.v3';
 
 /*
- * MIRRORS trackClass in configs/airframes.js, one airframe per class. A
- * mirror rather than an import because this file imports nothing (see
- * above); an airframe added there without a row here reads as the field,
- * which is the safe way to be wrong.
+ * MIRRORS trackClass in configs/airframes.js. A mirror rather than an
+ * import because this file imports nothing (see above); an airframe added
+ * there without a row here reads as the field, which is the safe way to be
+ * wrong. A class can be flown by more than one airframe since the
+ * Skyhunter joined the wing on the airfield, so there are two tables: the
+ * class each airframe flies, and the one a class seats when it has to
+ * choose.
  */
+const CLASS_OF_AIRFRAME = { '5inch': 'full', whoop65: 'micro', wing1000: 'wing', sky1800: 'wing' };
 export const AIRFRAME_BY_CLASS = { full: '5inch', micro: 'whoop65', wing: 'wing1000' };
 
 /* The class an airframe id flies, 'full' for anything not in the table. */
 export function classOfAirframe(id) {
-  const hit = Object.entries(AIRFRAME_BY_CLASS).find(([, airframe]) => airframe === id);
-  return hit ? hit[0] : 'full';
+  return CLASS_OF_AIRFRAME[id] ?? 'full';
 }
 
 export function activeTrackClass() {
@@ -100,7 +103,11 @@ export function setActiveTrackClass(cls) {
     const raw = localStorage.getItem(SETTINGS_KEY);
     const s = raw ? JSON.parse(raw) : {};
     const next = (s && typeof s === 'object' && !Array.isArray(s)) ? s : {};
-    next.airframe = want;
+    /* An aircraft already seated in the class stays: moving to the wing
+     * class with the Skyhunter seated must not swap it for the wing. */
+    if (classOfAirframe(next.airframe) !== cls) {
+      next.airframe = want;
+    }
     next.airframeAsked = true;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
     return true;

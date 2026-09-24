@@ -95,6 +95,15 @@ import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { WING_MOUNT_FORWARD, WING_MOUNT_UP } from './render/wingcraft.js';
+import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
+
+/* Where each fixed wing carries its FPV camera, forward and up from the CG
+ * in the craft frame, from the module that draws it. A quad's comes from
+ * src/render/lens.js. */
+const WING_MOUNTS = {
+  wing1000: [WING_MOUNT_FORWARD, WING_MOUNT_UP],
+  sky1800: [SKY_MOUNT_FORWARD, SKY_MOUNT_UP],
+};
 import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
@@ -2293,7 +2302,7 @@ export async function boot({ loading, bootStart, mapId }) {
   /* Which aircraft the Settings studio last built, so it is rebuilt when
    * the aircraft changes rather than posing the old one. */
   let showcaseCraft = '5inch';
-  /* Two doubles in the module's heap for sim_wing_surfaces, taken once. */
+  /* Four doubles in the module's heap for sim_plane_surfaces, taken once. */
   let wingSurfPtr = 0;
   /* What the module was last told about the wing's stabiliser. */
   let wingStabApplied = -1;
@@ -3729,10 +3738,9 @@ export async function boot({ loading, bootStart, mapId }) {
       shell.swapCraft(runAirframe);
     }
     swapGhostRig();
-    const isWing = airframeById(runAirframe).simId === 2;
+    const isWing = Boolean(airframeById(runAirframe).fixedWing);
     audio.setVoice(isWing ? 'wing' : 'quad');
-    camMountFwd = isWing ? WING_MOUNT_FORWARD : CAMERA_MOUNT_FORWARD;
-    camMountUp = isWing ? WING_MOUNT_UP : CAMERA_MOUNT_UP;
+    [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
     /*
      * The ground PLANE needs no raising here: raiseGroundFromState asserts
      * it from the craft's own pose every step it matters, and the shell
@@ -5022,7 +5030,7 @@ export async function boot({ loading, bootStart, mapId }) {
       finishClipCrash();
       return;
     }
-    if (code === 'KeyL' && ui.screen === 'flight' && airframeById(runAirframe).simId === 2) {
+    if (code === 'KeyL' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
       throwWing();
       return;
     }
@@ -6150,7 +6158,7 @@ export async function boot({ loading, bootStart, mapId }) {
     if (mode === 'flight' && landed && !crashed) {
       const thr = samples.length ? samples[samples.length - 1].throttle : input.channels.throttle;
       if (landed && thr > TAKEOFF_THROTTLE) {
-        if (airframeById(runAirframe).simId === 2) {
+        if (airframeById(runAirframe).fixedWing) {
           /* Throttle up on a wing that is down is the hand throw. */
           throwWing();
         } else if (turtleRecover) {
@@ -6913,16 +6921,17 @@ export async function boot({ loading, bootStart, mapId }) {
         wingStabApplied = wantStab;
       }
     }
-    /* The wing's elevons follow the plant's, read back each frame. Only a
-     * craft with surfaces has the setter, and only the wing plant fills
-     * the two doubles. */
+    /* A fixed wing's surfaces follow the plant's, read back each frame:
+     * left and right aileron (the wing's elevons), elevator, rudder, the
+     * convention in src/native/sim_abi.h. Only a craft with surfaces has
+     * the setter; the wing's takes the first two. */
     if (shell.setSurfaces) {
       if (!wingSurfPtr) {
-        wingSurfPtr = sim.e.malloc(2 * 8);
+        wingSurfPtr = sim.e.malloc(4 * 8);
       }
-      if (sim.e.sim_wing_surfaces(wingSurfPtr) === SIM_OK) {
-        const out = new Float64Array(sim.e.memory.buffer, wingSurfPtr, 2);
-        shell.setSurfaces(out[0], out[1]);
+      if (sim.e.sim_plane_surfaces(wingSurfPtr) === SIM_OK) {
+        const out = new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4);
+        shell.setSurfaces(out[0], out[1], out[2], out[3]);
       }
     }
 
@@ -7614,7 +7623,7 @@ export async function boot({ loading, bootStart, mapId }) {
        * the scored run's sentence. Only a scored run gets the two minutes.
        */
       /* A wing has no throttle to take off on: L throws it. */
-      const isWing = airframeById(runAirframe).simId === 2;
+      const isWing = Boolean(airframeById(runAirframe).fixedWing);
       const start = isWing
         ? str('main.throw_it_with_l')
         : ui.settings.launchControl

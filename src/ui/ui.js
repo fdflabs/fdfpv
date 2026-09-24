@@ -2728,6 +2728,17 @@ const WAYS = [
     blurb: str('ui.a_1000_mm_flying_wing_on'),
     facts: ['4S', '1000 mm', str('ui.manual')],
   },
+  {
+    id: 'freestyle-sky1800',
+    airframe: 'sky1800',
+    mode: 'freestyle',
+    /* The wing's airfield, for the wing's reason. */
+    home: 'airfield',
+    label: str('ui.skyhunter'),
+    art: 'assets/gate/freestyle.jpg',
+    blurb: str('ui.an_1800_mm_twin_boom_fpv'),
+    facts: ['4S', '1800 mm', str('ui.twin_boom')],
+  },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
 /* The way that is seated right now, which is what the gate's cursor opens

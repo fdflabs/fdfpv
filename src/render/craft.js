@@ -34,6 +34,7 @@ import { CRAFT_ARM, CRAFT_PROP_R, CRAFT_HULL_R } from '../game/collide.js';
 import { buildHeroCraft } from './herocraft.js';
 import { buildWhoopCraft } from './whoopcraft.js';
 import { buildWingCraft } from './wingcraft.js';
+import { buildSkyCraft } from './skycraft.js';
 import { airframeById } from '../../configs/airframes.js';
 
 /*
@@ -50,6 +51,7 @@ import { airframeById } from '../../configs/airframes.js';
 const BUILDERS = {
   whoop65: buildWhoopCraft,
   wing1000: buildWingCraft,
+  sky1800: buildSkyCraft,
 };
 
 export function craftBuilderFor(airframeId) {

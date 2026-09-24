@@ -73,6 +73,9 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             a metre out and 215 mm aft of the CG because of the sweep, so
  *             the wing reaches 44 mm further from its centre than its half
  *             span. src/render/wingcraft.js derives the planform.
+ *   sky1800   an 1800 mm twin boom pusher: the span is the manufacturer's,
+ *             and the reach is the wingtip, because the tail, 0.77 m aft,
+ *             is only 0.23 m out. src/render/skycraft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -84,6 +87,7 @@ const REAL = {
   '5inch': { spanMm: 282.6, sweepMm: 347.0, tolMm: 6, wheelbaseMm: 220 },
   whoop65: { spanMm: 82.6, sweepMm: 101.2, tolMm: 3, wheelbaseMm: 65 },
   wing1000: { spanMm: 1000.0, sweepMm: 1088.6, tolMm: 6 },
+  sky1800: { spanMm: 1800.0, sweepMm: 1800.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
@@ -275,9 +279,9 @@ async function main() {
       near(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach * k, real.tolMm * k);
       near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp * k, real.tolMm * k);
     }
-    if (af.id === 'wing1000') {
-      /* The prop disc's bottom edge is the lowest drawn thing, and the slab
-       * reaches about as far. */
+    if (af.fixedWing) {
+      /* The wing's prop disc bottom and the Skyhunter's belly skid are the
+       * lowest drawn things, and each hull reaches about as far. */
       near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
     } else if (af.id === '5inch') {
       pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 15.0,

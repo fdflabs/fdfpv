@@ -75,6 +75,29 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the elevons: 12 degrees of pitch and 25 of roll at full stick, with a little expo.',
   },
   {
+    /* The Skyhunter's three, the same stabiliser modes on its own plant.
+     * With a rudder, Stabilised and Acro add a turn coordinator to the
+     * yaw stick; Manual is the four surfaces straight from the sticks. */
+    id: 'sky-stab',
+    airframe: 'sky1800',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
+    wingStab: 1,
+  },
+  {
+    id: 'sky-acro',
+    airframe: 'sky1800',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you.',
+    wingStab: 2,
+  },
+  {
+    id: 'sky-manual',
+    airframe: 'sky1800',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder.',
+  },
+  {
     id: 'betaflight-default',
     airframe: '5inch',
     name: 'Betaflight default',

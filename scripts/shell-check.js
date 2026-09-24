@@ -1448,16 +1448,16 @@ const BEHAVIOUR = `(() => {
       cards,
       backFromWhoop,
       whoop,
-      /* Four cards, every one of them with a photograph AND a plan drawing,
-       * and not a row among them: the whole point of the screen is that it
-       * is not a menu. */
-      asksThree: gate.length === 4 && gate.join() === 'Five inch racing,Whoop racing,Freestyle,Fixed wing'
+      /* Five cards since the Skyhunter, every one of them with a photograph
+       * AND a plan drawing, and not a row among them: the whole point of the
+       * screen is that it is not a menu. */
+      asksThree: gate.length === 5 && gate.join() === 'Five inch racing,Whoop racing,Freestyle,Fixed wing,Skyhunter'
         && gateItems.filter((it) => !it.card).length === 0,
-      asCards: cards.length === 4 && cards.every((c) => c.shot && c.drawn),
+      asCards: cards.length === 5 && cards.every((c) => c.shot && c.drawn),
       modeSetGate,
-      /* Four cards, laid out and visible, and the menu's own copy off the
-       * screen, when the mode is answered and the aircraft is not. */
-      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 4
+      /* All five cards, laid out and visible, and the menu's own copy off
+       * the screen, when the mode is answered and the aircraft is not. */
+      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 5
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
       /* One press: the whoop is seated, the mode is race, the seat is a
        * track rather than a world, the gate is gone and no Freestyle row
@@ -1835,7 +1835,7 @@ async function main() {
     } else {
       const g = b.modeGate;
       if (!g.asksThree) {
-        failures.push(`the gate opens on ${g.gate.join(', ') || 'nothing'}, not on the four ways in`);
+        failures.push(`the gate opens on ${g.gate.join(', ') || 'nothing'}, not on the five ways in`);
       }
       if (!g.asCards) {
         failures.push(
