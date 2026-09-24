@@ -507,8 +507,8 @@ function merged(parts) {
  * against the drawn machine rather than a figure typed twice. `dims` is
  * the shape configs/airframes.js keeps per aircraft, filled the way the
  * wing's entry fills it: hullR is the half span, vHalfUp is the fins' tops,
- * which stand above the prop disc, and vHalfDown is the skid, which stands 10 mm below the disc's
- * bottom so the belly lands before the prop does.
+ * which stand above the prop disc, and vHalfDown is the skid, which stands
+ * 12 mm below the disc's bottom so the belly lands before the prop does.
  */
 const SKID_T = 0.008;
 const SKID_Y = podAt(-0.05).yc - podAt(-0.05).h - 0.001;
