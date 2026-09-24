@@ -151,6 +151,22 @@ CG, at 0.40 of the mean chord (Hoerner, Fluid Dynamic Lift, ch. 3: a
 plate's moves from the quarter chord toward 0.4 by 20 to 40 deg). With
 them full up trims at 17.9 deg, just past the stall: the mush.
 
+**One change to the contact path**, in `src/native/sim.c`, and why. A
+Slow Stick that noses in above about 6 m/s goes over onto its nose past
+the vertical, as a tall light aircraft does. The inverted branch supports
+an aircraft on its "bump" at the top of the hull through the CG; past the
+vertical on its nose that bump is high in the air, and the only thing
+under the ground is a hull corner, which the projection held up with no
+impulse. So nothing stopped the fall's speed, the velocity in the state
+grew by g every second while the position stood still, and nothing
+toppled it. For a wing, when the bump does not touch, the supporting
+vertex now takes the impulse, as it already does on a wing's side, and a
+nose-in from 6 to 10 m/s comes to rest nose down on the prop and the
+hull's front, where the Cub's nose-in comes to rest too. A wing
+on its back on the bump, or in the air, goes through exactly the old path;
+wing:contact, every airframe's gates and the recorded hashes are
+unchanged.
+
 ## The intended behaviour, and how each part is proven
 
 The owner asked for this aircraft "along with the intended behavior". Each
