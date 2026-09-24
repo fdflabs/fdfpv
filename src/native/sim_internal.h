@@ -50,6 +50,25 @@
  * STAGE1.md is a plant tuning constant, chosen to land inside the
  * verification bands; the reasoning lives in PROGRESS.md.
  */
+/*
+ * A wheel, for an airframe that stands on landing gear. sim.c applies each
+ * one as a spring and damper along the ground normal at its tyre's contact
+ * point, and friction split along the wheel's own heading (rolling) and
+ * across it (side grip). docs/CUB-STAGE1.md derives the numbers and says
+ * why this is the model.
+ */
+#define SIM_WHEELS_MAX 3
+typedef struct {
+  double pos[3];  /* the tyre's lowest point, body frame, strut unloaded */
+  double k;       /* strut and tyre stiffness, N/m */
+  double c;       /* damping, N s/m */
+  double mu_roll; /* rolling resistance along the wheel's heading */
+  double mu_side; /* side grip across it */
+  double steer;   /* wheel angle per radian of rudder, the same sign: a
+                   * tailwheel turns its front the way the rudder's trailing
+                   * edge goes, and 0 is a wheel that does not steer */
+} WheelParams;
+
 typedef struct {
   int kind;          /* PLANT_KIND_QUAD or PLANT_KIND_WING */
   double mass_kg;
@@ -148,6 +167,10 @@ typedef struct {
   /* The fixed wing's aero, surfaces, motor and stabiliser, for a table
    * entry of PLANT_KIND_WING; null for a quad, which never reads it. */
   const struct FixedWingParams *fw;
+  /* Landing gear. Zero wheels for every airframe that lands on its hull,
+   * which leaves sim.c's contact path exactly what it was for them. */
+  int wheel_count;
+  WheelParams wheel[SIM_WHEELS_MAX];
 } PlantParams;
 
 /*

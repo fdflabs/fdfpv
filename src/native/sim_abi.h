@@ -455,6 +455,16 @@ int sim_wing_surfaces(double *out);
 int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 
+/*
+ * sim_wheel_loads(out[3]): the normal load on each wheel of an airframe
+ * with landing gear, newtons, in its table's order; for the Cub, left
+ * main, right main, tailwheel. Zero for a wheel off the ground and for
+ * every airframe without gear. The gates read liftoff and touchdown from
+ * it, and a renderer can compress a strut by load / stiffness. Additive,
+ * version unchanged; SIM_ERR_BAD_ARG for a null pointer.
+ */
+int sim_wheel_loads(double *out);
+
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);
 

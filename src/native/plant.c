@@ -754,6 +754,23 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_y = 0.0,
   .camera_z = 0.05,
   .fw = &FW_CUB1400,
+  /*
+   * The gear, from the J-3 three view scaled to 1.4 m: mains 53 mm ahead of
+   * the CG and 190 mm under it on a 0.20 m track, the tailwheel 0.626 m
+   * behind and 22 mm under, which sits the aircraft at 13.9 deg nose up on
+   * its three wheels. Stiffness for about 5 mm of static deflection under
+   * the three point loads (5.6 N on each main, 1.8 N on the tail), damping
+   * at 0.6 of critical. Rolling resistance is short grass for a 60 mm
+   * wheel; side grip is a rubber tyre's, the tailwheel's a little less. The
+   * tailwheel steers with the rudder, one to one. docs/CUB-STAGE1.md has
+   * the derivation.
+   */
+  .wheel_count = 3,
+  .wheel = {
+    { .pos = { 0.053, 0.10, -0.19 }, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
+    { .pos = { 0.053, -0.10, -0.19 }, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
+    { .pos = { -0.626, 0.0, -0.022 }, .k = 300.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0 },
+  },
 },
 };
 

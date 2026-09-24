@@ -734,12 +734,155 @@ static void ground_settle(double upz, double vn_plant) {
   }
 }
 
+/*
+ * LANDING GEAR, for an airframe that declares wheels (the Cub; every other
+ * airframe has none and never enters the loop below).
+ *
+ * Each wheel is a point at its tyre's lowest spot, and the ground pushes on
+ * it with a spring and a damper along the plane's normal, F = k pen - c vn,
+ * never pulling. That is the strut and the tyre, and it is what lets the
+ * aircraft stand level on three points of different heights and settle
+ * onto them from a landing instead of bouncing off a rigid corner.
+ * Friction is split along the wheel's own heading and across it, because a
+ * wheel is the one contact whose friction is not isotropic: along its
+ * heading it rolls, and costs only its rolling resistance, mu_roll N;
+ * across it the tyre grips up to mu_side N. Each is an impulse that would
+ * stop the point's velocity along that direction, through the same
+ * effective mass the hull's contact uses, clipped at its cone. The
+ * tailwheel's heading turns with the rudder, so it steers.
+ *
+ * The heading is the wheel's forward axis laid onto the ground plane; a
+ * wheel whose axis stands nearly on end, an aircraft on its side, has no
+ * rolling direction and gets the normal force alone. Order is the table's,
+ * one pass per step, deterministic.
+ */
+static double g_wheel_load[SIM_WHEELS_MAX];
+
+static void contact_point_vel(const double r[3], double out[3]) {
+  double w[3];
+  contact_rotate(S.omega, w);
+  out[0] = S.vel[0] + (w[1] * r[2] - w[2] * r[1]);
+  out[1] = S.vel[1] + (w[2] * r[0] - w[0] * r[2]);
+  out[2] = S.vel[2] + (w[0] * r[1] - w[1] * r[0]);
+}
+
+/* 1 / (effective mass) of the body at r along the unit direction d. */
+static double contact_k_along(const double r[3], const double d[3]) {
+  double rd[3];
+  rd[0] = r[1] * d[2] - r[2] * d[1];
+  rd[1] = r[2] * d[0] - r[0] * d[2];
+  rd[2] = r[0] * d[1] - r[1] * d[0];
+  double ird[3];
+  contact_iinv(rd, ird);
+  return 1.0 / PLANT.mass_kg + (rd[0] * ird[0] + rd[1] * ird[1] + rd[2] * ird[2]);
+}
+
+/* The impulse j along the unit direction d at r. */
+static void contact_push(const double r[3], const double d[3], double j) {
+  const double J[3] = { j * d[0], j * d[1], j * d[2] };
+  const double invm = 1.0 / PLANT.mass_kg;
+  S.vel[0] += J[0] * invm;
+  S.vel[1] += J[1] * invm;
+  S.vel[2] += J[2] * invm;
+  double w[3];
+  contact_rotate(S.omega, w);
+  double tau[3];
+  tau[0] = r[1] * J[2] - r[2] * J[1];
+  tau[1] = r[2] * J[0] - r[0] * J[2];
+  tau[2] = r[0] * J[1] - r[1] * J[0];
+  double dw[3];
+  contact_iinv(tau, dw);
+  w[0] += dw[0];
+  w[1] += dw[1];
+  w[2] += dw[2];
+  contact_rotate_inv(w, S.omega);
+}
+
+/* Friction along d at r: the impulse that stops the point along d, at most
+ * jmax either way. */
+static void wheel_friction(const double r[3], const double d[3], double jmax) {
+  double vp[3];
+  contact_point_vel(r, vp);
+  const double vd = vp[0] * d[0] + vp[1] * d[1] + vp[2] * d[2];
+  const double kd = contact_k_along(r, d);
+  if (!(kd > 1e-12)) {
+    return;
+  }
+  double j = -vd / kd;
+  if (j > jmax) {
+    j = jmax;
+  } else if (j < -jmax) {
+    j = -jmax;
+  }
+  contact_push(r, d, j);
+}
+
+/* Returns the number of wheels carrying load this step. */
+static int ground_wheels(void) {
+  const double *n = g_ground_n;
+  double surf[4];
+  plant_plane_surfaces(surf);
+  int loaded = 0;
+  for (int i = 0; i < PLANT.wheel_count; i += 1) {
+    const WheelParams *wp = &PLANT.wheel[i];
+    g_wheel_load[i] = 0.0;
+    double r[3];
+    contact_rotate(wp->pos, r);
+    const double side = n[0] * (S.pos[0] + r[0]) + n[1] * (S.pos[1] + r[1]) + n[2] * (S.pos[2] + r[2]);
+    const double pen = g_ground_d - side;
+    if (!(pen > 0.0)) {
+      continue;
+    }
+    double vp[3];
+    contact_point_vel(r, vp);
+    const double vn = vp[0] * n[0] + vp[1] * n[1] + vp[2] * n[2];
+    const double fn = wp->k * pen - wp->c * vn;
+    if (!(fn > 0.0)) {
+      continue;
+    }
+    const double jn = fn * SIM_DT;
+    contact_push(r, n, jn);
+    g_wheel_load[i] = fn;
+    loaded += 1;
+
+    /* The rudder's trailing edge left, positive, turns the wheel's front to
+     * the right, which is the body heading rotated by minus the angle. */
+    const double delta = wp->steer * surf[3];
+    const double hb[3] = { sim_cos_small(delta), -sim_sin_small(delta), 0.0 };
+    double hw[3];
+    contact_rotate(hb, hw);
+    const double hn = hw[0] * n[0] + hw[1] * n[1] + hw[2] * n[2];
+    double h[3] = { hw[0] - hn * n[0], hw[1] - hn * n[1], hw[2] - hn * n[2] };
+    const double hl = sim_sqrt(h[0] * h[0] + h[1] * h[1] + h[2] * h[2]);
+    if (!(hl > 0.1)) {
+      continue;
+    }
+    h[0] /= hl;
+    h[1] /= hl;
+    h[2] /= hl;
+    const double l[3] = {
+      n[1] * h[2] - n[2] * h[1],
+      n[2] * h[0] - n[0] * h[2],
+      n[0] * h[1] - n[1] * h[0],
+    };
+    wheel_friction(r, l, wp->mu_side * jn);
+    wheel_friction(r, h, wp->mu_roll * jn);
+  }
+  return loaded;
+}
+
 static void ground_apply(void) {
   g_ground_hits = 0;
   g_ground_projected = 0;
   g_ground_near = 0;
+  for (int i = 0; i < SIM_WHEELS_MAX; i += 1) {
+    g_wheel_load[i] = 0.0;
+  }
   if (!g_ground_on || g_stand_on) {
     return;
+  }
+  if (PLANT.wheel_count > 0) {
+    ground_wheels();
   }
   const double vn_plant = S.vel[0] * g_ground_n[0]
       + S.vel[1] * g_ground_n[1]
@@ -1397,6 +1540,20 @@ SIM_EXPORT int sim_wing_surfaces(double *out) {
     return SIM_ERR_BAD_ARG;
   }
   plant_wing_surfaces(out);
+  return SIM_OK;
+}
+
+/* The load on each wheel of an airframe with landing gear, newtons, in its
+ * table's order (the Cub: left main, right main, tailwheel); zero for a
+ * wheel off the ground and for every wheel an airframe does not have.
+ * Always SIM_WHEELS_MAX values. Additive, version unchanged. */
+SIM_EXPORT int sim_wheel_loads(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 0; i < SIM_WHEELS_MAX; i += 1) {
+    out[i] = i < PLANT.wheel_count ? g_wheel_load[i] : 0.0;
+  }
   return SIM_OK;
 }
 
