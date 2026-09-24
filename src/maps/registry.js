@@ -74,6 +74,14 @@ export const MAPS = [
     buildMs: MAP_BUILD_MS.airfield,
     load: () => import('./airfield.js'),
   },
+  {
+    id: 'alps',
+    name: str('registry.the_alps'),
+    mode: 'freestyle',
+    note: str('registry.a_glacial_valley_six_kilometres'),
+    buildMs: MAP_BUILD_MS.alps,
+    load: () => import('./alps.js'),
+  },
 ];
 
 export function mapById(id) {

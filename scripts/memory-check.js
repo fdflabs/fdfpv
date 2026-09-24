@@ -58,7 +58,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /* The lazily loaded worlds. `custom` is the field and is the baseline: it
  * is loaded at boot because the title screen has a world behind it. */
-const HEAVY = ['city', 'airfield'];
+const HEAVY = ['city', 'airfield', 'alps'];
 
 /*
  * Every URL the page has fetched, as a plain list. Resource timing is the

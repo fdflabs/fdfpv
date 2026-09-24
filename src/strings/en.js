@@ -2078,4 +2078,8 @@ export default {
   "elements.wing": "Wing",
   "elements.5_x_5_m": "5 x 5 m",
   "elements.a_five_metre_square_for_a": "A five metre square for a 1000 mm wing at cruise. The tool's own size: no series publishes a wing gate.",
+  "registry.the_alps": "The Alps",
+  "registry.a_glacial_valley_six_kilometres": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock.",
+  "references.400_to_1000": "400 to 1000",
+  "references.1000_to_1500": "1000 to 1500",
 };
