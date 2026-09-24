@@ -82,6 +82,7 @@ import { makePhotoLook, finishScene } from './swiss2/look.js';
 import { buildPhotoComposer, AIR } from './swiss2/post.js';
 import { buildVegetation } from './swiss2/vegetation/index.js';
 import { buildWater } from './swiss2/water/index.js';
+import { swissBuildings } from './swiss2/buildings/index.js';
 
 const CAMERA_FAR = 14000;
 
@@ -221,6 +222,7 @@ function photoStyle() {
       });
       const heights = { texture: { value: null }, grid: { value: new THREE.Vector3(HALF, CELL, CELLS + 1) } };
       style.look = makePhotoLook({ surfaces, ground, heights });
+      style.look.buildings = swissBuildings(style.look);
       style.mats = style.look.village;
       const stage = {
         scene,

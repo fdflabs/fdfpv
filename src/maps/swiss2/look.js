@@ -163,7 +163,7 @@ const WEATHER_BODY = /* glsl */ `
       float streak = s2wNoise(vec2(dot(vS2World.xz, across) * 2.6, dot(vS2World.xz, fall) * 0.18));
       diffuseColor.rgb *= 1.0 - 0.28 * smoothstep(0.5, 0.9, streak) * roof;
       diffuseColor.rgb *= 0.82 + 0.34 * s2wNoise(vec2(dot(vS2World.xz, across) * 0.5, dot(vS2World.xz, fall) * 2.2));
-    } else {
+    } else if (uS2Kind < 2.5) {
       float worn = s2wNoise(vS2World.xz / 4.0) * 0.65 + s2wNoise(vS2World.xz / 0.9) * 0.35;
       diffuseColor.rgb *= mix(vec3(0.7, 0.69, 0.66), vec3(1.12, 1.1, 1.06), smoothstep(0.3, 0.75, worn));
     }
@@ -238,42 +238,164 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     envMapIntensity: 2.4,
   });
 
-  /* The village, by villageMaterials' keys. */
-  const village = () => ({
-    stone: textured('stone', lin(0.95, 0.95, 0.95), { weather: true }),
-    render: textured('render', lin(0.8, 0.78, 0.74), { normal: 1.6, weather: true }),
-    larchDark: textured('boards', lin(0.72, 0.62, 0.55), { weather: true, grey: 0.55 }),
-    larch: textured('boards', lin(1.2, 1.0, 0.82), { weather: true, grey: 0.7 }),
-    honey: textured('boards', lin(2.1, 1.6, 1.0), { weather: true, grey: 0.5 }),
-    weathered: textured('boards', lin(1.5, 1.45, 1.45), { weather: true, grey: 0.8 }),
-    boardLine: textured('boards', lin(0.35, 0.3, 0.28)),
-    shingle: textured('shingle', lin(1.0, 0.97, 0.95), { weather: 'roof', grey: 1 }),
-    shingleDark: textured('shingle', lin(0.7, 0.66, 0.62), { weather: 'roof', grey: 1 }),
-    slate: textured('slate', lin(1.15, 1.15, 1.2), { weather: 'roof', grey: 0.45 }),
-    trim: textured('render', lin(0.72, 0.7, 0.66), { normal: 0.3 }),
-    glass: glass(),
-    shutterGreen: textured('boards', lin(0.35, 1.1, 0.45), { normal: 0.6 }),
-    shutterRed: textured('boards', lin(1.9, 0.45, 0.35), { normal: 0.6 }),
-    geranium: plain(lin(0.62, 0.02, 0.03), 0.75),
-    metal: plain(lin(0.55, 0.56, 0.57), 0.42, 0.9),
-    ink: plain(lin(0.03, 0.03, 0.035), 0.5, 0.6),
-    hangar: textured('metal', lin(0.5, 0.58, 0.52), { rough: 1, metal: 0.4, weather: true }),
-    hangarRoof: textured('metal', lin(0.36, 0.4, 0.38), { rough: 1, metal: 0.4 }),
-    door: plain(lin(0.05, 0.06, 0.065), 0.55, 0.3),
-    cross: plain(lin(0.9, 0.62, 0.22), 0.3, 1),
-    fence: textured('boards', lin(1.35, 1.25, 1.15)),
-    asphalt: textured('asphalt', lin(0.85, 0.85, 0.85)),
-    gravel: textured('gravel', lin(0.8, 0.82, 0.85)),
-    cobble: textured('cobble', lin(1.0, 1.0, 1.0), { weather: 'paving' }),
-    concrete: textured('concrete', lin(1.6, 1.6, 1.55)),
-    paint: plain(lin(0.72, 0.72, 0.68), 0.55),
-    signBlue: plain(lin(0.012, 0.06, 0.3), 0.4, 0.2),
-    signRed: plain(lin(0.55, 0.018, 0.02), 0.4, 0.2),
-    cone: plain(lin(0.85, 0.2, 0.01), 0.55),
-    water: new THREE.MeshPhysicalMaterial({ color: lin(0.02, 0.04, 0.05), roughness: 0.06, metalness: 0 }),
-    fuel: plain(lin(0.5, 0.03, 0.02), 0.35, 0.2),
-    logEnd: textured('boards', lin(3.0, 2.4, 1.6), { normal: 0.4 }),
+  /*
+   * The buildings, by group rather than by key (src/maps/swiss2/buildings/
+   * bakes them). Every key of one photographed surface is one material
+   * and one draw: the key's tint rides in the vertex colour, and its
+   * weather, its grey and its normal's strength in s2Finish, so a
+   * shutter, a log end and a balcony board are the boards drawn once.
+   * The plain paints are one material the same way, their roughness and
+   * metalness per vertex. The glass and the fountain's water are
+   * physical and stay their own.
+   */
+  const WEATHER_KIND = { ...WEATHER, none: 3 };
+  const BUILDING = {
+    stone: { group: 'stone', tint: [0.95, 0.95, 0.95], weather: 'wall' },
+    render: { group: 'render', tint: [0.66, 0.64, 0.6], normal: 1.6, weather: 'wall' },
+    trim: { group: 'render', tint: [0.72, 0.7, 0.66], normal: 0.3 },
+    surround: { group: 'render', tint: [0.55, 0.53, 0.5], weather: 'wall' },
+    larchDark: { group: 'boards', tint: [0.72, 0.62, 0.55], weather: 'wall', grey: 0.55 },
+    larch: { group: 'boards', tint: [1.2, 1.0, 0.82], weather: 'wall', grey: 0.7 },
+    honey: { group: 'boards', tint: [2.1, 1.6, 1.0], weather: 'wall', grey: 0.5 },
+    weathered: { group: 'boards', tint: [1.5, 1.45, 1.45], weather: 'wall', grey: 0.8 },
+    boardLine: { group: 'boards', tint: [0.35, 0.3, 0.28] },
+    shutterGreen: { group: 'boards', tint: [0.35, 1.1, 0.45], normal: 0.6 },
+    shutterRed: { group: 'boards', tint: [1.9, 0.45, 0.35], normal: 0.6 },
+    fence: { group: 'boards', tint: [1.35, 1.25, 1.15] },
+    logEnd: { group: 'boards', tint: [2.1, 1.6, 1.1], normal: 0.4 },
+    frieze: { group: 'boards', tint: [0.8, 0.52, 0.38], weather: 'wall', grey: 0.3 },
+    baluster: { group: 'boards', tint: [1.35, 1.05, 0.78], weather: 'wall', grey: 0.6 },
+    shingle: { group: 'shingle', tint: [0.62, 0.58, 0.55], weather: 'roof', grey: 1 },
+    shingleDark: { group: 'shingle', tint: [0.5, 0.47, 0.44], weather: 'roof', grey: 1 },
+    slate: { group: 'slate', tint: [1.15, 1.15, 1.2], weather: 'roof', grey: 0.45 },
+    hangar: { group: 'metal', tint: [0.5, 0.58, 0.52], weather: 'wall' },
+    hangarRoof: { group: 'metal', tint: [0.36, 0.4, 0.38] },
+    asphalt: { group: 'asphalt', tint: [0.85, 0.85, 0.85] },
+    gravel: { group: 'gravel', tint: [0.8, 0.82, 0.85] },
+    cobble: { group: 'cobble', tint: [1.0, 1.0, 1.0], weather: 'paving' },
+    concrete: { group: 'concrete', tint: [1.6, 1.6, 1.55] },
+    geranium: { group: 'plain', tint: [0.62, 0.02, 0.03], rough: 0.75 },
+    leaf: { group: 'plain', tint: [0.035, 0.1, 0.025], rough: 0.8 },
+    shade: { group: 'plain', tint: [0.014, 0.012, 0.01], rough: 0.9 },
+    metal: { group: 'plain', tint: [0.55, 0.56, 0.57], rough: 0.42, metal: 0.9 },
+    ink: { group: 'plain', tint: [0.03, 0.03, 0.035], rough: 0.5, metal: 0.6 },
+    door: { group: 'plain', tint: [0.05, 0.06, 0.065], rough: 0.55, metal: 0.3 },
+    cross: { group: 'plain', tint: [0.9, 0.62, 0.22], rough: 0.3, metal: 1 },
+    paint: { group: 'plain', tint: [0.72, 0.72, 0.68], rough: 0.55 },
+    signBlue: { group: 'plain', tint: [0.012, 0.06, 0.3], rough: 0.4, metal: 0.2 },
+    signRed: { group: 'plain', tint: [0.55, 0.018, 0.02], rough: 0.4, metal: 0.2 },
+    cone: { group: 'plain', tint: [0.85, 0.2, 0.01], rough: 0.55 },
+    fuel: { group: 'plain', tint: [0.5, 0.03, 0.02], rough: 0.35, metal: 0.2 },
+    glass: { group: 'glass' },
+    water: { group: 'water' },
+  };
+  const FINISH_PARS = /* glsl */ `
+    varying vec3 vS2Finish;
+    #define uS2Grey vS2Finish.x
+    #define uS2Kind vS2Finish.y
+  `;
+  const grouped = (name, { metal = 0, rough = 1 } = {}) => {
+    const set = surfaces[name];
+    const m = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      vertexColors: true,
+      map: set.col,
+      normalMap: set.nrm,
+      roughnessMap: set.arm,
+      roughness: rough,
+      aoMap: set.arm,
+      aoMapIntensity: 1,
+      metalnessMap: metal > 0 ? set.arm : null,
+      metalness: metal,
+    });
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uS2Height = heights.texture;
+      shader.uniforms.uS2Grid = heights.grid;
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nattribute vec3 s2Finish;\nvarying vec3 vS2Finish;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvS2Finish = s2Finish;');
+      /* three's own normal map chunk, with the key's strength on it. */
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', `#include <common>\n${FINISH_PARS}\n${WEATHER_PARS}`)
+        .replace('#include <normal_fragment_maps>', `
+          vec3 mapN = texture2D(normalMap, vNormalMapUv).xyz * 2.0 - 1.0;
+          mapN.xy *= normalScale * vS2Finish.z;
+          normal = normalize(tbn * mapN);
+          ${WEATHER_BODY}`);
+    };
+    m.customProgramCacheKey = () => 's2-building';
+    return m;
+  };
+  const plainGroup = () => {
+    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 1, metalness: 1 });
+    m.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nattribute vec3 s2Finish;\nvarying vec3 vS2Finish;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvS2Finish = s2Finish;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vS2Finish;')
+        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor *= vS2Finish.x;')
+        .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor *= vS2Finish.y;');
+    };
+    m.customProgramCacheKey = () => 's2-building-plain';
+    return m;
+  };
+  /*
+   * What a key is finished with: its group, its colour (linear) and its
+   * s2Finish triple, (grey, weather kind, normal strength) on a textured
+   * group and (roughness, metalness, 0) on the plain one. A key nobody
+   * has said the finish of fails loudly.
+   */
+  const buildingFinish = (key) => {
+    const b = BUILDING[key];
+    if (!b) {
+      throw new Error(`swiss2 look: no building finish named ${key}; say what it is made of in src/maps/swiss2/look.js`);
+    }
+    const finish = b.group === 'plain'
+      ? [b.rough ?? 1, b.metal ?? 0, 0]
+      : [b.grey ?? 0, WEATHER_KIND[b.weather ?? 'none'], b.normal ?? 1];
+    return { group: b.group, tint: b.tint ?? [1, 1, 1], finish };
+  };
+  /* One material per group, made when the village is baked; `glass` and
+   * `water` are the village table's own. */
+  const buildingGroups = (mats) => ({
+    /* Weathered timber and old shingle are matt: the photographs' own
+     * roughness (0.63 and 0.78) made a roof seen against the sky a sheet
+     * of white and every board's edge a highlight. */
+    boards: grouped('boards', { rough: 1.35 }),
+    render: grouped('render', { rough: 1.1 }),
+    stone: grouped('stone'),
+    shingle: grouped('shingle', { rough: 1.25 }),
+    slate: grouped('slate'),
+    metal: grouped('metal', { metal: 0.4 }),
+    asphalt: grouped('asphalt'),
+    gravel: grouped('gravel'),
+    cobble: grouped('cobble'),
+    concrete: grouped('concrete'),
+    plain: plainGroup(),
+    glass: mats.glass,
+    water: mats.water,
   });
+
+  /* The village by villageMaterials' keys, one material each, from the
+   * same finishes: what is not baked (the instanced fence posts, the
+   * poles' insulators, the cones) and what nature.js and life.js borrow
+   * from the table (the jetty's timber, the windsock's mast). */
+  const keyMaterial = (b) => {
+    if (b.group === 'glass') {
+      return glass();
+    }
+    if (b.group === 'water') {
+      return new THREE.MeshPhysicalMaterial({ color: lin(0.02, 0.04, 0.05), roughness: 0.06, metalness: 0 });
+    }
+    if (b.group === 'plain') {
+      return plain(lin(...b.tint), b.rough ?? 1, b.metal ?? 0);
+    }
+    return textured(b.group, lin(...b.tint), {
+      metal: b.group === 'metal' ? 0.4 : 0, normal: b.normal ?? 1, weather: b.weather ?? false, grey: b.grey ?? 0,
+    });
+  };
+  const village = () => Object.fromEntries(Object.entries(BUILDING).map(([key, b]) => [key, keyMaterial(b)]));
 
   /*
    * Everything painted and moving is one vertex coloured bake per kind, so
@@ -364,6 +486,8 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     material: (name, opts) => ask(byName, 'material', name, opts),
     parts: (name, opts) => ask(partsByName, 'parts material', name, opts),
     village,
+    buildingFinish,
+    buildingGroups,
   };
 }
 

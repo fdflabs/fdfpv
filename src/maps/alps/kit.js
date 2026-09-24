@@ -1259,3 +1259,11 @@ export function fence(bake, heightAt, ax, az, bx, bz, skip = null) {
     }
   }
 }
+
+/*
+ * The style hook. A style that builds its own houses (swiss2 does, in
+ * src/maps/swiss2/buildings/) writes into the same bake with the same
+ * shapes underneath: these are the pieces it reuses. The cel alps never
+ * reach them through here; exporting them changes nothing it builds.
+ */
+export { box, boxUp, cyl, cached, disposeSources, polySolid, prism, roofShell, gableProfile, SOCLE };
