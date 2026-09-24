@@ -377,42 +377,25 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     water: mats.water,
   });
 
-  /* The village, by villageMaterials' keys. */
-  const village = () => ({
-    stone: textured('stone', lin(0.95, 0.95, 0.95), { weather: true }),
-    render: textured('render', lin(0.8, 0.78, 0.74), { normal: 1.6, weather: true }),
-    larchDark: textured('boards', lin(0.72, 0.62, 0.55), { weather: true, grey: 0.55 }),
-    larch: textured('boards', lin(1.2, 1.0, 0.82), { weather: true, grey: 0.7 }),
-    honey: textured('boards', lin(2.1, 1.6, 1.0), { weather: true, grey: 0.5 }),
-    weathered: textured('boards', lin(1.5, 1.45, 1.45), { weather: true, grey: 0.8 }),
-    boardLine: textured('boards', lin(0.35, 0.3, 0.28)),
-    shingle: textured('shingle', lin(1.0, 0.97, 0.95), { weather: 'roof', grey: 1 }),
-    shingleDark: textured('shingle', lin(0.7, 0.66, 0.62), { weather: 'roof', grey: 1 }),
-    slate: textured('slate', lin(1.15, 1.15, 1.2), { weather: 'roof', grey: 0.45 }),
-    trim: textured('render', lin(0.72, 0.7, 0.66), { normal: 0.3 }),
-    glass: glass(),
-    shutterGreen: textured('boards', lin(0.35, 1.1, 0.45), { normal: 0.6 }),
-    shutterRed: textured('boards', lin(1.9, 0.45, 0.35), { normal: 0.6 }),
-    geranium: plain(lin(0.62, 0.02, 0.03), 0.75),
-    metal: plain(lin(0.55, 0.56, 0.57), 0.42, 0.9),
-    ink: plain(lin(0.03, 0.03, 0.035), 0.5, 0.6),
-    hangar: textured('metal', lin(0.5, 0.58, 0.52), { rough: 1, metal: 0.4, weather: true }),
-    hangarRoof: textured('metal', lin(0.36, 0.4, 0.38), { rough: 1, metal: 0.4 }),
-    door: plain(lin(0.05, 0.06, 0.065), 0.55, 0.3),
-    cross: plain(lin(0.9, 0.62, 0.22), 0.3, 1),
-    fence: textured('boards', lin(1.35, 1.25, 1.15)),
-    asphalt: textured('asphalt', lin(0.85, 0.85, 0.85)),
-    gravel: textured('gravel', lin(0.8, 0.82, 0.85)),
-    cobble: textured('cobble', lin(1.0, 1.0, 1.0), { weather: 'paving' }),
-    concrete: textured('concrete', lin(1.6, 1.6, 1.55)),
-    paint: plain(lin(0.72, 0.72, 0.68), 0.55),
-    signBlue: plain(lin(0.012, 0.06, 0.3), 0.4, 0.2),
-    signRed: plain(lin(0.55, 0.018, 0.02), 0.4, 0.2),
-    cone: plain(lin(0.85, 0.2, 0.01), 0.55),
-    water: new THREE.MeshPhysicalMaterial({ color: lin(0.02, 0.04, 0.05), roughness: 0.06, metalness: 0 }),
-    fuel: plain(lin(0.5, 0.03, 0.02), 0.35, 0.2),
-    logEnd: textured('boards', lin(3.0, 2.4, 1.6), { normal: 0.4 }),
-  });
+  /* The village by villageMaterials' keys, one material each, from the
+   * same finishes: what is not baked (the instanced fence posts, the
+   * poles' insulators, the cones) and what nature.js and life.js borrow
+   * from the table (the jetty's timber, the windsock's mast). */
+  const keyMaterial = (b) => {
+    if (b.group === 'glass') {
+      return glass();
+    }
+    if (b.group === 'water') {
+      return new THREE.MeshPhysicalMaterial({ color: lin(0.02, 0.04, 0.05), roughness: 0.06, metalness: 0 });
+    }
+    if (b.group === 'plain') {
+      return plain(lin(...b.tint), b.rough ?? 1, b.metal ?? 0);
+    }
+    return textured(b.group, lin(...b.tint), {
+      metal: b.group === 'metal' ? 0.4 : 0, normal: b.normal ?? 1, weather: b.weather ?? false, grey: b.grey ?? 0,
+    });
+  };
+  const village = () => Object.fromEntries(Object.entries(BUILDING).map(([key, b]) => [key, keyMaterial(b)]));
 
   /*
    * Everything painted and moving is one vertex coloured bake per kind, so
