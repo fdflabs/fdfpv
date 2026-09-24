@@ -20,8 +20,9 @@ out around the camera, and drawn at a detail that falls with distance.
 - Projection: UTM zone 12N, EPSG:32612, metres.
 - Origin: E0 = 540000, N0 = 4941000, the centre of the park's bounding
   box (E 487 521 to 593 996, N 4 886 546 to 4 995 731, so the park is
-  about 106 by 109 km and the 100 km square leaves 3 to 5 km off each
-  edge) moved a kilometre west so West Yellowstone's airport is inside.
+  about 106 by 109 km and the 100 km square cuts 2.5 to 4.7 km off its
+  edges) moved 759 m west and 139 m south, to the kilometre, which is what
+  puts West Yellowstone's airport inside, 665 m from the west edge.
   World x = E - E0 (east), world z = -(N - N0) (north is -z, the shell's
   forward), world y = elevation in metres above sea level minus Y0 = 2200
   (Old Faithful is about 2240 m).
@@ -31,13 +32,18 @@ out around the camera, and drawn at a detail that falls with distance.
   in world metres.
 
 Landmarks, projected with pyproj from their published coordinates, so
-every part places them the same way (world x, z in metres):
+every part places them the same way (world x, z in metres). Mammoth's row
+was -16 630, -39 394, which has no thermal feature within 300 m of it:
+the NPS inventory's Mammoth terraces (84 features, ids MA...) centre on
+-17 178, -38 321, Wikipedia's coordinate projects to -17 305, -38 318, and
+the row is now GNIS's Mammoth Hot Springs, inside that cluster (found by
+the thermal part, 2026-09-24):
 
 | Landmark | x | z |
 | --- | --- | --- |
 | Old Faithful | -26 325 | 17 964 |
 | Grand Prismatic Spring | -27 143 | 10 790 |
-| Mammoth Hot Springs | -16 630 | -39 394 |
+| Mammoth Hot Springs | -17 033 | -38 420 |
 | Lower Falls, Grand Canyon of the Yellowstone | -83 | -10 748 |
 | Yellowstone Lake, near its centre | 11 718 | 18 939 |
 | West Yellowstone airport | -49 335 | -7 343 |
@@ -125,3 +131,95 @@ the craft the finest level is always loaded before the ground is asked.
 The engine starts on synthetic tiles in the contract's format so it does
 not wait for the data; the features part builds its landmarks against a
 flat test ground and a placement function the engine exposes.
+
+## Thermal features and water: the interface
+
+What `src/maps/yellowstone/thermal/` and `src/maps/yellowstone/water/`
+need from the terrain engine and the map module, and what they give back.
+Built and checked standalone against a stand in for the engine
+(`tests/browser/yellowstone-standin.js`); the lead reconciles this with
+the engine's own API.
+
+**Asked of the engine.**
+
+- `heightAt(x, z)`: the ground's world y, read on the drawn triangles
+  (split (i, j + 1) to (i + 1, j)) of the finest level loaded there, and
+  answering anywhere in the extent. Everything the features lay on the
+  ground is built on a drape grid of 10 / k metres on the contract's
+  origin with the same split, which refines every level, so a surface
+  whose vertices are at `heightAt` lies exactly in the drawn ground's
+  plane (measured under Node: worst gap 0.03 mm, on 10 m and 30 m ground).
+  That holds only for the level `heightAt` read when the region was built.
+- Regions: call `loadRegion(region)` on both parts when a level 0 tile is
+  drawn at its finest (level 0, or hero where it has hero tiles), and
+  `unloadRegion(key)` when it stops. `region` is
+  `{ key: 'i_j', i, j, x0, z0, x1, z1 }`, the level 0 tile, exactly what
+  `regionOf(x, z)` in `thermal/catalog.js` returns. A landmark reaches up
+  to 2 km past its tile (the canyon walls below the Lower Falls), so
+  `heightAt` should answer at the finest level over the tile's neighbours
+  too; the engine's ring of loaded tiles round the camera gives that.
+  Build cost on the real data, the four tiles round a landmark loaded
+  together: 140 to 320 ms for the thermal features and 90 to 320 ms for
+  the water, all synchronous; the engine may want to spread tiles over
+  frames. The Lower Geyser Basin's tile is the heaviest, 1 442 features
+  and 213 000 triangles built (a view sees its chunks, not all of it).
+- The step clock: the map's `updateAnim(stepMs)` calls both parts'
+  `updateAnim(stepMs)`. Eruptions are pure functions of it.
+- Depth: every surface laid on the ground is lifted by polygon offset in
+  layers four units apart (`LAYER` in `thermal/paint.js`; one unit apart
+  still fought at 250 m). That works with the standard depth buffer. With
+  `logarithmicDepthBuffer`, which writes `gl_FragDepth`, polygon offset
+  does nothing and every one of them would fight the ground: say so before
+  turning it on, and the overlays will take a view ray pull instead.
+- Layers: particles (steam, water in the air) and the lakes are on layer 1,
+  the colour pass only, so they need nothing from `promoteToPrepass`; all
+  else is layer 0, drawn by the prepass whenever it is added.
+- `sunDir`: the map's sun, for the steam's painted terminator.
+- NLCD's barren class should paint pale in the geyser basins: the features'
+  own sinter flats reach only a few tens of metres round them.
+
+**Given back.**
+
+- `buildThermal({ scene, heightAt, thermal, rivers, sunDir })` and
+  `buildWater({ scene, heightAt, hydro, sunDir, clock, wind, warmAt,
+  drawnBy })`, where `clock`, `wind` and `warmAt` come from the thermal
+  part (`thermal.env.clock`, `thermal.env.wind`, `thermal.warmAt`) so the
+  Firehole steams where the basins are, and `drawnBy: thermal.drawsLake`
+  leaves to a landmark the NHD lakes that are its own water (NHD maps
+  Excelsior Geyser Crater as a lake).
+- `water.surfaceAt(x, z)`: a lake's y or null, for the map's `height()`.
+- `thermal.hero('lower-falls').ground(x, z)`: the rock step built over the
+  30 m ground's ramp at the brink (the 94 m drop is three cells of slope in
+  the data), or null: `height()` should take the higher.
+- `thermal.setDemo(true | false | seconds)`: compressed geyser intervals
+  (Old Faithful every 4 minutes by default, or the seconds given).
+- `thermal.hero(id).geyser.schedule`: `at(t)` and `nextStart(t)`, for a
+  title camera that wants to be on an eruption.
+
+**Open.** `roads.json` has boardwalks and nobody owns drawing it. The
+landmarks build their own short boardwalks (Old Faithful's ring, Grand
+Prismatic's, Morning Glory's, Fountain Paint Pot's) because the brief asked
+for them; if roads.json's are drawn as well they will double there, and the
+lead should say which goes.
+
+## Thermal features and water: budgets
+
+For the thermal features and the water alone, the whole frame (ink
+prepass, colour pass, post) with them less the same frame without, as
+`renderer.info` counts it, which is what the shell's `__renderStats`
+reads; particles are the instances of particle meshes whose bounds are in
+view. The Upper Geyser Basin is the densest ground in the park for these
+parts, where they are most of the scene, so they take a quarter of the
+draw calls and two thirds of the triangles the Alps allow a whole frame
+(250 and 600 000); the terrain engine's own budget is set beside them.
+
+| View | Draw calls | Triangles | Particles |
+| --- | --- | --- | --- |
+| Over the Upper Geyser Basin at 100 m | 60 | 400 000 | 9 000 |
+| Over the Upper Geyser Basin at 1 km | 60 | 500 000 | 12 000 |
+
+Measured by `node scripts/yellowstone-thermal-preview.js` on the real
+data, 1280 by 720, SwiftShader, 2026-09-24: 43 draws, 307 236 triangles,
+5 275 particles at 100 m; 53 draws, 329 364 triangles, 5 275 particles at
+1 km. The draw calls are the tighter of the three. What they are made of
+is `window.__ys.drawn()` in the preview page.
