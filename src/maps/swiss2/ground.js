@@ -37,9 +37,9 @@
 
 import * as THREE from 'three';
 import {
-  FIELD, HALF, LAKE_Y, LAKE_N, SIDE_Z, groundZone, groundPaths,
+  FIELD, HALF, LAKE_Y, LAKE_N, SIDE_Z, TREE_LINE, groundZone, groundPaths,
 } from '../alps/terrain.js';
-import { LAYERS } from './assets.js';
+import { LAYERS, SUN_U } from './assets.js';
 
 /* Per layer, in LAYERS order: metres a texture tile covers, a tint on
  * the photograph's own albedo (linear), the roughness, and how hard the
@@ -58,6 +58,9 @@ const TINT = [
   [0.85, 0.85, 0.85],
   [0.72, 0.86, 0.72],
 ];
+/* The sun's bearing on the ground, for the faces snow lingers on (the
+ * photograph's sun, as light.js takes it). */
+const SUN_XZ = [Math.cos((SUN_U - 0.5) * 2 * Math.PI), Math.sin((SUN_U - 0.5) * 2 * Math.PI)];
 const ROUGH = [0.96, 0.95, 0.92, 0.86, 0.82, 0.62, 0.86, 0.92, 0.9];
 const BUMP = [0.7, 0.75, 0.85, 1.0, 1.0, 0.5, 1.0, 0.85, 0.9];
 
@@ -335,6 +338,46 @@ export const MEADOW_GLSL = /* glsl */ `
   }
 `;
 
+/*
+ * The far ridges' crests, broken. The heightfield's thirty metre cells
+ * draw every ridgeline as a run of straight edges, sixteen pixels long
+ * each at two kilometres, and snowcaps as soft blankets. Above the snow
+ * line the drawn ground is raised by up to RIDGE_M metres of ridged
+ * noise seventy metres across, so the skyline is jagged, but only past
+ * RIDGE_NEAR metres from the camera, faded in over the next 1200 m:
+ * wherever a craft can reach the ground in the next few seconds it is
+ * drawn exactly where the collider has it. Up only, so nothing a craft
+ * could hit is ever drawn below where it is. The grid still sets the
+ * limit: a crest has a vertex every thirty metres, and the noise can
+ * only move those.
+ */
+const RIDGE_FROM = 950;
+const RIDGE_M = 30;
+const RIDGE_NEAR = 800;
+const RIDGE_GLSL = /* glsl */ `
+  uniform float uS2Ridge;
+  float s2rHash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+  float s2rNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(s2rHash(i), s2rHash(i + vec2(1.0, 0.0)), u.x),
+               mix(s2rHash(i + vec2(0.0, 1.0)), s2rHash(i + vec2(1.0, 1.0)), u.x), u.y);
+  }
+  float s2Ridge(vec3 w) {
+    float high = smoothstep(${RIDGE_FROM.toFixed(1)}, ${(RIDGE_FROM + 350).toFixed(1)}, w.y);
+    float far = smoothstep(${RIDGE_NEAR.toFixed(1)}, ${(RIDGE_NEAR + 1200).toFixed(1)}, distance(w, cameraPosition));
+    vec2 q = w.xz / 70.0;
+    float r1 = 1.0 - abs(2.0 * s2rNoise(q) - 1.0);
+    float r2 = 1.0 - abs(2.0 * s2rNoise(q * 2.3 + 5.1) - 1.0);
+    return ${RIDGE_M.toFixed(1)} * high * far * (r1 * r1 * 0.7 + r2 * r2 * 0.3);
+  }
+`;
+
 const GROUND_PARS = /* glsl */ `
   uniform sampler2D uS2Zone1;
   uniform sampler2D uS2Zone2;
@@ -409,7 +452,27 @@ const GROUND_PARS = /* glsl */ `
     float fine = s2Noise(p.xz / 7.0);
     /* The relief first, so the rock finds the ribs it makes. */
     float steep0 = smoothstep(0.2, 0.9, sqrt(max(0.0, 1.0 - n.y * n.y)) / max(n.y, 0.05));
-    vec2 rg = s2Relief(p.xz, mix(1.5, 24.0, steep0) * (1.0 - z2.g), dist);
+    /* Above the trees the mountain is bare and the relief is all there
+     * is to see: deeper there, so a snowfield is not a sheet. */
+    float bare = smoothstep(${TREE_LINE.toFixed(1)}, ${(TREE_LINE + 400).toFixed(1)}, p.y);
+    vec2 rg = s2Relief(p.xz, mix(1.5, 24.0, max(steep0, 0.6 * bare)) * (1.0 - z2.g), dist);
+    /* Gullies and the ribs between them, running down the face: a
+     * mountain face is fluted, and the thirty metre grid is not. Grooves
+     * about twenty metres across and deep to match, cut into the normal,
+     * and kept as where the snow collects and where the wind strips it.
+     * Read on the two upright planes, weighted by the way the face turns,
+     * so the grooves stay put as the normal swings: read across the
+     * normal's own bearing, far from the origin a degree of turn slid
+     * them a whole groove and the face swirled like wood grain. */
+    vec2 gw = n.xz * n.xz + 1e-4;
+    gw /= gw.x + gw.y;
+    vec3 gx = s2NoiseD(vec2(p.z / 23.0, p.y / 170.0 + 0.3 * meso));
+    vec3 gz = s2NoiseD(vec2(p.x / 23.0 + 7.7, p.y / 170.0 + 0.3 * meso));
+    float gully = gx.x * gw.x + gz.x * gw.y;
+    float gullyKeep = 1.0 - smoothstep(0.12, 0.25, dist * 0.00093 / 23.0);
+    float couloir = smoothstep(0.52, 0.8, gully) * steep0;
+    float rib = smoothstep(0.45, 0.2, gully) * steep0;
+    rg += vec2(gz.y * gw.y, gx.y * gw.x) * (9.0 / 23.0) * steep0 * max(bare, 0.4) * gullyKeep;
     /* Half the relief decides where rock shows, all of it how the light
      * falls: ribs in shadow and gullies lit, without the whole wall
      * turning to bare rock. */
@@ -434,7 +497,15 @@ const GROUND_PARS = /* glsl */ `
     float rockHigh = inside > 0.5 ? z2.a : smoothstep(650.0, 950.0, p.y + 200.0 * macro);
     cov[8] = rockHigh;
     float snowHigh = inside > 0.5 ? z2.b : smoothstep(1350.0, 1800.0, p.y + 260.0 * macro);
-    cov[5] = smoothstep(0.3, 0.7, (snowHigh - 0.5) * 1.7 + 0.5 + (meso - 0.5) * 0.5 + (fine - 0.5) * 0.3) * (1.0 - smoothstep(1.0, 1.55, tanS));
+    /* Snow lies where it can hold: on anything gentler than about forty
+     * degrees, steeper in the gullies it fills, and stripped by the wind
+     * off the ribs and the steep faces, so the rock shows through in
+     * bands down the face. It lies longer on the faces turned from the
+     * sun, and its edge is broken by the ground's own heights. */
+    float shade = -dot(nCov.xz, vec2(${SUN_XZ[0].toFixed(3)}, ${SUN_XZ[1].toFixed(3)})) / max(length(nCov.xz), 0.05) * smoothstep(0.1, 0.5, tanS);
+    float snowLie = (snowHigh - 0.5) * 1.7 + 0.5 + (meso - 0.5) * 0.5 + (fine - 0.5) * 0.3 + 0.18 * shade + 0.2 * couloir - 0.3 * rib * smoothstep(0.3, 0.9, tanS);
+    float hold = 1.0 - smoothstep(0.8 + 0.5 * couloir - 0.2 * rib, 1.3 + 0.5 * couloir, tanS + 0.2 * (fine - 0.5));
+    cov[5] = smoothstep(0.3, 0.7, snowLie) * hold;
     /* The shore: a gravel beach up from the water, as wide as the
      * ground is flat, its top wandering half a metre to two over the
      * water, so the lake is edged by a strand and not a drawn line. The
@@ -524,6 +595,8 @@ const GROUND_PARS = /* glsl */ `
         vec2 fall = normalize(n.xz + vec2(1e-4, 0.0));
         float streak = s2Fbm(vec2(dot(p.xz, vec2(-fall.y, fall.x)) / 9.0, p.y / 140.0));
         col *= 1.0 - 0.3 * smoothstep(0.52, 0.78, streak) * smoothstep(0.6, 1.2, tanS);
+        /* The gullies shaded and damp, the ribs weathered pale. */
+        col *= 1.0 - 0.22 * couloir + 0.12 * rib;
         float h = nh.b;
         float cc = clamp(c + (h - 0.5) * 3.2 * c * (1.0 - c), 0.0, 1.0);
         float w = cc * remaining;
@@ -633,6 +706,7 @@ export function groundMaterial({ arrays, zones, path, lit, only = -1, strip = 0 
     uS2LakeY: { value: LAKE_Y },
     uS2Strip: { value: strip },
     uS2Only: { value: only },
+    uS2Ridge: { value: only < 0 && !strip ? 1 : 0 },
   };
   if (LAYERS.length !== TILE.length) {
     throw new Error('swiss2 ground: one tile size per layer');
@@ -645,8 +719,13 @@ export function groundMaterial({ arrays, zones, path, lit, only = -1, strip = 0 
       }
     };
     need(shader.vertexShader, '#include <beginnormal_vertex>');
+    need(shader.vertexShader, '#include <begin_vertex>');
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vS2WNormal;')
+      .replace('#include <common>', `#include <common>\nvarying vec3 vS2WNormal;\n${RIDGE_GLSL}`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        #ifndef USE_INSTANCING
+          transformed.y += s2Ridge((modelMatrix * vec4(transformed, 1.0)).xyz) * uS2Ridge;
+        #endif`)
       .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
         #ifdef USE_INSTANCING
           vS2WNormal = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * objectNormal);
