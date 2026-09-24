@@ -202,3 +202,48 @@ edges, the east wall's ridge slab), the made things (photoreal vehicles
 through a style hook, the hangar, the chalets' plain ground floors),
 and nature (the waterfall's cascade, splash zone and wet rock; the far
 meadow's flowers and uneven growth).
+
+### Round 4 (PRs #22, #23, #24, main at 9ab79ec)
+
+Nature (#22): the fall lands on a stepped apron and cascades into the
+pool, moss in the spray, broadleaf trees at the foot, a mid distance
+grass layer following the field types, clover on the strip, shore
+boulders. Sky (#23): the bank and stratus share one cumulus shape with
+worn edges and self shadowing, the mist no longer paints the walls, and
+the pass is cheaper. Made things (#24): the PostAuto, cars, tractor and
+motorbike through a style hook, the hangar as a steel portal shed with
+its apron, and the chalets' ground floors finished.
+
+| View | R3 | R4 | The tell now |
+| --- | --- | --- | --- |
+| strip | 5 | 5.5 | the hangar reads; the far floor is lawn |
+| vista-high | 6.5 | 6.5 | the floor past 200 m is flat lawn tiles |
+| cruise | 6.5 | 6.5 | the same |
+| village-20m | 4.5 | 5 | big plain white walls from above |
+| square-eye | 3.5 | 4.5 | the bus reads; it leans mustard in shade |
+| meadow-eye | 5 | 5.5 | good |
+| east-wall | 5.5 | 6 | the ridge lens is gone; the floor |
+| lake-shore | 4.5 | 4.5 | a roadside, plain |
+| lake-high | 5.5 | 5.5 | |
+| waterfall | 4.5 | 5 | the cascade reads; the broadleaf trees at the foot are bright blobs |
+| into-sun | 5.5 | 6 | cloud on the headwall; small puffs read as popcorn |
+| farm-low | 4.5 | 4.5 | the far floor |
+| lake-edge | 5 | 5 | |
+
+Mean of the thirteen: 5.08 to 5.38. Gate held: no view lower; at most
+242 calls and 1.69 M triangles; alps fingerprint and colliders
+unchanged.
+
+The biggest tell left is the same in five views: the floor past the
+grass radius is flat, even lawn tiles. Round 5, a team: ground (the far
+floor, and the smeared streaks on steep far walls), camera and light
+(the lens that makes a render read as a photograph: exposure, flare,
+vignette, grain, depth of field on low views; the fall's foot in the
+baked shadow; mist in the forest), and nature (the broadleaf trees'
+look, the lake-shore and farm-low foregrounds).
+
+Queued by the owner for after round 10: a plan for complex crash
+physics and its own loop. Running in parallel with the loop now: four
+new aircraft (Slow Stick, powered glider, Timber Evolution, and the
+Bramor C4EYE replacing the flying wing); the plane you fly stays cel in
+swiss2 until they land, and a photoreal aircraft pass follows them.
