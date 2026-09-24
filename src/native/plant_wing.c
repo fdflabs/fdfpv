@@ -1204,6 +1204,9 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
+  /* The air over the field is the air: a 420 g aircraft sinking 0.65 m/s
+   * is carried up by a thermal's core faster than anything else here. */
+  .air_lift = 1,
   .stall_arm_ac = 0.0617, /* the CG 17 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.097,  /* the plate's centre of pressure at 0.40 of the chord, 27 mm behind it */
 };

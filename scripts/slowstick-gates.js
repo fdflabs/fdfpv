@@ -16,10 +16,10 @@
  * recorded hashes, the Radian's and the Bramor's included, where they were
  * before this one existed, and S18 flies the Slow Stick's recording in Node
  * and in headless Chrome and holds the two hashes equal. There is no wind
- * in the simulator's world, so drifting on it is not gated; the document
- * says so.
- * Bands are never widened here: a plant outside one is a finding for the
- * derivation. Run with npm run slowstick:gates.
+ * in the simulator's world, but there are the airfield's thermals, and S19
+ * flies the Slow Stick through the strongest and measures what the rising
+ * air does to it. Bands are never widened here: a plant outside one is a
+ * finding for the derivation. Run with npm run slowstick:gates.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -83,8 +83,11 @@ const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /* The level flight pilot for this aircraft: fly()'s own loops, with the
  * stall guard off, since the guard's 9.5 m/s is faster than a Slow Stick
- * goes, and thrown at its cruise. */
-const slow = { guard: false, speed0: 6 };
+ * goes, and thrown at its cruise. The performance is still air's, and the
+ * Slow Stick flies in the airfield's thermals, so these flights start
+ * 600 m to the side of the field, clear of every one of them. */
+const STILL_AIR = [0, 600, 0, 1, 0, 0, 0];
+const slow = { guard: false, speed0: 6, start: STILL_AIR };
 
 /* A clock that keeps rising across the steps of one flight. */
 let clockMs = 0;
@@ -118,7 +121,7 @@ check: {
 
   let stallV = null;
   fly(sim, {
-    duty: 0, speed0: 7, seconds: 12, pitchMax: 0.7, pitchMin: -0.3, guard: false,
+    duty: 0, speed0: 7, seconds: 12, pitchMax: 0.7, pitchMin: -0.3, guard: false, start: STILL_AIR,
     pitchTargetFn: (ms) => Math.min(0.6, 0.06 * ms / 1000),
     onStep: (o) => { if (stallV == null && o.ms > 1000 && wingDebug(sim)[0] > th.s2_stall.alphaStall) stallV = o.v; },
   });
@@ -133,7 +136,7 @@ check: {
 
   let best = null;
   for (const vT of th.s5_climb.speeds) {
-    const r = fly(sim, { duty: 1, speed0: vT, vTarget: vT, seconds: 25, pitchMax: 1.2, pitchMin: -0.5, trimMax: 1.0, guard: false });
+    const r = fly(sim, { duty: 1, speed0: vT, vTarget: vT, seconds: 25, pitchMax: 1.2, pitchMin: -0.5, trimMax: 1.0, guard: false, start: STILL_AIR });
     if (!best || r.vz > best.vz) best = { v: r.v, vz: r.vz, pitchDeg: r.pitch * DEG };
   }
   gate('S5', 'best climb, full throttle', within(best.vz, th.s5_climb), `${best.vz.toFixed(2)} m/s at ${best.v.toFixed(1)} m/s, pitch ${best.pitchDeg.toFixed(0)} deg`, band(th.s5_climb));
@@ -192,6 +195,7 @@ check: {
   {
     const t8 = th.s8_turn;
     must(sim.reset(), 'sim_reset');
+    must(sim.e.sim_set_pose(...STILL_AIR), 'sim_set_pose');
     must(sim.e.sim_wing_launch(6.5), 'sim_wing_launch');
     clockMs = 0;
     const want = t8.bankDeg / DEG;
@@ -318,6 +322,38 @@ check: {
     const lost = 1.8 - o.s[3];
     gate('S13', 'a hand throw flies away, sticks centred', lost <= t13.maxLoss && speed(o.s) >= t13.minSpeed,
       `${lost > 0 ? `lost ${lost.toFixed(2)}` : `gained ${(-lost).toFixed(2)}`} m and ${speed(o.s).toFixed(2)} m/s after 3 s`, `lost under ${t13.maxLoss} m, faster than ${t13.minSpeed} m/s`);
+  }
+
+  /* S19: blown about. The airfield has no wind, but it has thermals, and
+   * the Slow Stick flies in them: level at cruise with the pitch stick
+   * centred and the wings and heading held on the rudder, straight through
+   * the strongest core at 50 m, against the same flight 600 m to the side. It
+   * rises with the air it is in, so the difference is the thermal's. */
+  {
+    const t19 = th.s19_thermal;
+    const pass = (y) => {
+      must(sim.reset(), 'sim_reset');
+      must(sim.e.sim_set_pose(t19.core[0] - t19.lead, y, t19.z, 1, 0, 0, 0), 'sim_set_pose');
+      must(sim.e.sim_wing_launch(t19.speed), 'sim_wing_launch');
+      clockMs = 0;
+      let o = { s: sim.readState().state };
+      let peak = 0;
+      while (o.s[1] < t19.core[0] + t19.lead && clockMs < 60000) {
+        /* Wings level, and on the line: the prop's torque turns a Slow
+         * Stick left, and the rudder is what brings the nose back. */
+        const onLine = 1.0 * heading(o.s) + 0.03 * (o.s[2] - y);
+        const roll = Math.max(-1, Math.min(1, -1.2 * attitude(o.s).bank - 0.12 * o.s[11] + onLine));
+        o = step(sim, [roll, 0, 0, t19.duty]);
+        peak = Math.max(peak, o.s[6]);
+      }
+      return { dz: o.s[3] - t19.z, peak, t: clockMs / 1000, y: o.s[2] };
+    };
+    const inAir = pass(t19.core[1]);
+    const still = pass(t19.core[1] + 600);
+    const gain = inAir.dz - still.dz;
+    gate('S19', 'a pass through a thermal lifts it', within(gain, t19),
+      `${gain.toFixed(1)} m (${inAir.dz.toFixed(1)} against ${still.dz.toFixed(1)} in still air), climbing up to ${inAir.peak.toFixed(2)} m/s, ${inAir.t.toFixed(1)} s, ${(inAir.y - t19.core[1]).toFixed(1)} m off the core's line`,
+      `${band(t19)} m`);
   }
 
   /* S14: standing on its wheels on the strip. */

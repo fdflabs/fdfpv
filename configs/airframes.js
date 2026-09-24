@@ -498,7 +498,8 @@ export const AIRFRAMES = [
      * with ailerons, an elevator and a rudder, simId 6 on the fixed wing
      * plant (5 is the Slow Stick). Thrown by hand and landed on
      * its belly; its prop folds back when the throttle is closed, and it
-     * climbs in the thermals over the airfield, which only it flies in.
+     * climbs in the thermals over the airfield, which it and the Slow
+     * Stick fly in.
      */
     id: 'radian2000',
     simId: 6,
@@ -596,7 +597,8 @@ export const AIRFRAMES = [
      * on the fixed wing plant. Three channels and no ailerons: the roll
      * stick drives the rudder as well as the yaw stick does, and it banks
      * through its dihedral, which also levels it when the sticks are let
-     * go. It stands on a wire gear and a tailwheel like the Cub, so
+     * go, and it rises in the airfield's thermals as the Radian does. It
+     * stands on a wire gear and a tailwheel like the Cub, so
      * throttle rolls it off the strip (L still throws it); `gear` is the
      * plant's settled pose, which the drawn wheels in
      * src/render/slowstickcraft.js match: the CG 0.1349 m over the ground

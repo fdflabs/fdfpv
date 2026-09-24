@@ -151,6 +151,11 @@ CG, at 0.40 of the mean chord (Hoerner, Fluid Dynamic Lift, ch. 3: a
 plate's moves from the quarter chord toward 0.4 by 20 to 40 deg). With
 them full up trims at 17.9 deg, just past the stall: the mush.
 
+**The air it flies in.** The Radian brought thermals to the airfield, three
+columns of rising air, and a table flag for an airframe that flies in them.
+The Slow Stick sets it: the air is the air, and a 420 g aircraft that
+sinks 0.65 m/s is carried up by a core faster than anything else here.
+
 **One change to the contact path**, in `src/native/sim.c`, and why. A
 Slow Stick that noses in above about 6 m/s goes over onto its nose past
 the vertical, as a tall light aircraft does. The inverted branch supports
@@ -181,7 +186,7 @@ is the airframe doing it and not a stabiliser.
 | Very hard to stall viciously | S9a and S9b: full up held 8 s from cruise, power off and on: no wing drop (bank under 15 deg), no yaw that is a spin (under 20 deg/s), no plunge (pitch over −35 deg), and power off, a mush at the sink the moment's trim gives | 17.9 deg of alpha, 5.7 m/s, 2.09 m/s of sink |
 | Flown in small spaces | S8: a level 45 deg bank held on the rudder at 90 percent: the radius; and S15, the take off roll | 4.66 m; 4.9 m of roll |
 | Lands at a jog on a small gear | S16: a glide from 3 m, a flare, touchdown speed over the ground, rest on three wheels | 1.1 V_s = 4.9 m/s |
-| Blown about by wind | not gated | the simulator's world has no wind: the plant's relative wind is its own velocity. When wind arrives this aircraft, at 12.6 N/m² and 5.6 m/s, is the one that will show it first |
+| Blown about by the air | S19: a straight pass at cruise, pitch stick centred, through the core of the airfield's strongest thermal at 50 m, against the same flight in still air | 21.5 m gained: it rises with the air it is in. The world has no horizontal wind to drift it; it has the Radian's thermals, and the Slow Stick flies in them |
 
 "Stalls at walking pace" in the brief is a figure of speech: its stall is
 4.4 m/s, 16 km/h, which is a run. It lands at a jog into any breeze, and
@@ -213,6 +218,7 @@ in proportion about the derived figure unless it says otherwise.
 | S15 take off, sticks centred | 4.9 m to liftoff at 5.2 m/s | 3.5 to 7.5 m, 4.5 to 6.0 m/s |
 | S16 a landing on its wheels | touches at 1.1 V_s | under 5.5 m/s, at rest within 1.5 deg of S14, no hull or prop |
 | S17 the five inch, wing, Skyhunter, Cub, Radian and Bramor unmoved | their recorded trace hashes | identical |
+| S19 a pass through the strongest thermal at cruise | 21.5 m, w0 (16/15) R / V | 16.1 to 26.9 (25 percent) |
 | S18 Node and Chrome agree on a Slow Stick trace that takes off | SHA-256 | identical |
 
 ## What the plant measured, and what flying it corrected
@@ -238,6 +244,7 @@ in proportion about the derived figure unless it says otherwise.
 | S14 at rest | 6.89 deg, CG 0.1348 m, 25.9 percent on the tail | |
 | S15 take off | 4.38 m to liftoff at 5.08 m/s, 1.45 s, straight | |
 | S16 landing | touched at 4.99 m/s, rolled 10.6 m, at rest at 6.89 deg | |
+| S19 thermal | 22.0 m (23.2 against 1.2 in still air), climbing up to 2.55 m/s | 16.1 to 26.9 |
 
 What flying the plant before the bands were final changed:
 
@@ -259,6 +266,11 @@ What flying the plant before the bands were final changed:
 - The level turn in the derivation first had no pitch damping and no
   elevator lift; with both, 45 deg at 75 percent has no level solution, and
   the gate flies it at 90.
+- With the thermals on, a full throttle climb flown from the field's
+  origin drifted left on the prop's torque into the strongest core and
+  read 2.12 m/s. The performance gates now fly 600 m to the side of the
+  field, in still air, as a performance test is flown; nothing they
+  measured moved.
 - A plant wide finding for the lead, not changed here: with the stall
   blend the plant's lift curve peaks well under CLmax on the unstalled
   branch, 0.81 against 1.05 here (0.85 against 1.15 on the Cub's numbers),

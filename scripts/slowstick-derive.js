@@ -446,6 +446,10 @@ rows.push(['stall arms ac, cp (per chord)', `${f(armAc, 4)} ${f(armCp, 4)}`]);
 rows.push(['full up mush', JSON.stringify(mush(throwE), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 90 percent', JSON.stringify(levelTurn(45 / DEG, 0.9), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 100 percent', JSON.stringify(levelTurn(45 / DEG, 1.0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
+/* A straight pass at cruise through the core of the strongest thermal,
+ * plant_wing.c's 2.5 m/s over 45 m: the aircraft rises with the air, so
+ * its gain is the air's rise integrated over the time it spends in it. */
+rows.push(['thermal pass at cruise: gain m', f(2.5 * (16 / 15) * 45 / Vcruise, 1)]);
 rows.push(['level turn at 30 deg, 75 percent', JSON.stringify(levelTurn(30 / DEG, 0.75), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(48)} ${v}`);
