@@ -79,6 +79,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *   cub1400   a 1400 mm Piper J-3 Cub: the span is FMS's, and the reach is
  *             the tip, the tail being 0.6 m aft on the centreline.
  *             src/render/cubcraft.js draws it.
+ *   radian2000 a 2000 mm E-flite Radian: the span is E-flite's, and the
+ *             reach is the tip's trailing corner, 137 mm aft of the CG,
+ *             since the fin's is 0.83 m aft on the centreline.
+ *             src/render/glidercraft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -92,6 +96,7 @@ const REAL = {
   wing1000: { spanMm: 1000.0, sweepMm: 1088.6, tolMm: 6 },
   sky1800: { spanMm: 1800.0, sweepMm: 1800.0, tolMm: 6 },
   cub1400: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
+  radian2000: { spanMm: 2000.0, sweepMm: 2018.7, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

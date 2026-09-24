@@ -97,6 +97,7 @@ import { craftBuilderFor } from './render/craft.js';
 import { WING_MOUNT_FORWARD, WING_MOUNT_UP } from './render/wingcraft.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP } from './render/cubcraft.js';
+import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
  * in the craft frame, from the module that draws it. A quad's comes from
@@ -105,6 +106,7 @@ const WING_MOUNTS = {
   wing1000: [WING_MOUNT_FORWARD, WING_MOUNT_UP],
   sky1800: [SKY_MOUNT_FORWARD, SKY_MOUNT_UP],
   cub1400: [CUB_MOUNT_FORWARD, CUB_MOUNT_UP],
+  radian2000: [GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP],
 };
 import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
@@ -6982,6 +6984,12 @@ export async function boot({ loading, bootStart, mapId }) {
         const dir = shell.propSpin ? shell.propSpin[m] : 1;
         shell.blades[m].rotation.y += vis * dir;
       }
+    }
+    /* A folding prop folds from the plant's motor rate, which the plant
+     * sets to exactly zero when it has stopped and folded it; after the
+     * spin above, so a folded rotor stays parked whatever it was given. */
+    if (shell.setProp) {
+      shell.setProp(stateCurr[14]);
     }
     if (shell.cameraMount) {
       shell.cameraMount.rotation.x = cameraTiltRad(camTilt);

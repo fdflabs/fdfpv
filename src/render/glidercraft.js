@@ -900,6 +900,7 @@ export function buildGliderCraft(opts = {}) {
       arm.rotation.y = turn;
       rotor.add(arm);
       const hinge = new THREE.Group();
+      hinge.name = 'prop-hinge';
       hinge.position.set(0, -0.002, HINGE_R);
       arm.add(hinge);
       const blade = new THREE.Mesh(bladeGeo, propMat);
@@ -914,6 +915,7 @@ export function buildGliderCraft(opts = {}) {
       new THREE.MeshBasicMaterial({ color: 0x5a6558, transparent: true, opacity: 0.12, depthWrite: false, fog }),
     );
     disc.renderOrder = 1;
+    disc.name = 'prop-disc';
     propMount.add(disc);
     discs.push(disc);
   }

@@ -195,8 +195,10 @@ static double smoothstep(double a, double b, double x) {
  * glider can climb in one but not for ever. There is no sink round them:
  * the air between is still. The sizes and strengths are a small field's
  * afternoon, docs/GLIDER-STAGE1.md; the places are in the plant's world
- * frame, the runway along x through the origin, clear of the strip and the
- * pylons along y = -70.
+ * frame, whose origin the shell puts at the map's spawn facing +x: on the
+ * airfield that is the strip's south end facing up it, so the runway runs
+ * along x from -8 to 112 m and the pylons stand along y = -70, and the
+ * three cores are clear of both.
  *
  * Only an airframe whose table sets air_lift flies in it. Every other one
  * flies in still air, as it always has, so its trace is untouched.

@@ -177,8 +177,12 @@ computed from the body's velocity alone exactly as before. G20 holds the
 five inch's, the wing's, the Skyhunter's and the Cub's recorded hashes.
 
 **Thermals, and only thermals.** Three columns of rising air over the
-airfield, fixed in the plant's world frame (x along the runway, y to the
-left of it, z up), clear of the strip and of the pylon line at y = −70:
+airfield, fixed in the plant's world frame. The shell puts that frame's
+origin at the map's spawn facing +x, which on the airfield is the strip's
+south end facing up it: x runs along the runway (which covers x = −8 to
+112 m), y to the left of it, z up, and the pylons stand along y = −70. In
+the map's own coordinates (three.js, x east, z south) thermal A is at
+(−70, −58), B at (90, 192) and C at (170, −8), all on the 500 m field:
 
 | Thermal | Core x, y | Radius R | Rise at the core w0 |
 | --- | --- | --- | --- |
@@ -366,3 +370,23 @@ little slower than that and climbs gently under power. The turn
 coordinator's gain is 1.5: the Radian's rudder gives nine tenths of the
 Skyhunter's yaw acceleration per stick at cruise, and its long ailerons
 more adverse yaw.
+
+## In the shell
+
+The Radian is `radian2000` on simId 6, the fourth plane behind the Fixed
+wing card, in the wing class, with Acro (the default), Stabilised and
+Manual tune rows, its FPV camera under the canopy, and the chase and line
+of sight views the other planes have. It is thrown, as the wing and the
+Skyhunter are: throttle up or L. The shell tells the model the motor's
+rate every frame, so the prop folds and opens with the throttle.
+
+Flown headless in Chrome on the airfield, sticks through the harness
+override: it seats as module 6 on radian-acro, the HUD reading Acro and
+12.6 V, parked on its belly 0.05 m up with the prop folded (73 deg, no
+disc); full throttle throws it and it climbs at 2 m/s with the prop open,
+19 m/s after 6 s; throttle closed, the blades fold within a second and it
+glides, 8.8 m/s and sinking 0.14 m/s eight seconds later, still coming out
+of the zoom. A pilot written in the page then flew it to thermal A under a
+little power, closed the throttle, and circled 22 to 33 m from the core at
+30 deg of bank: 31 m to 79 m in 75 s with the prop folded. The same crude
+circle over still air sank 0.49 m/s all the way to the grass.
