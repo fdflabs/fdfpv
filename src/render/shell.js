@@ -328,6 +328,8 @@ export function buildShell(canvas, opts) {
     blades: craft.blades,
     cameraMount: craft.cameraMount,
     propSpin: craft.propSpin,
+    /* Only a craft with control surfaces has one; the wing does. */
+    setSurfaces: craft.setSurfaces ?? null,
     resize,
     swapCraft,
     keepAcrossMaps,
@@ -367,6 +369,7 @@ export function buildShell(canvas, opts) {
     api.blades = next.blades;
     api.cameraMount = next.cameraMount;
     api.propSpin = next.propSpin;
+    api.setSurfaces = next.setSurfaces ?? null;
     return next;
   }
 

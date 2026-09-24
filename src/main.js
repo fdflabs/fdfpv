@@ -93,7 +93,9 @@ import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { airframeById, simIdFor } from '../configs/airframes.js';
-import { buildWhoopCraft } from './render/whoopcraft.js';
+import { craftBuilderFor } from './render/craft.js';
+import { WING_MOUNT_FORWARD, WING_MOUNT_UP } from './render/wingcraft.js';
+import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
@@ -1209,7 +1211,7 @@ export async function boot({ loading, bootStart, mapId }) {
    */
   const ghostRecorder = new GhostRecorder();
   const ghostBook = new GhostBook();
-  const ghostRig = buildGhostCraft();
+  let ghostRig = buildGhostCraft();
   /*
    * Session lived, like the craft. It is parented into whichever scene
    * holds the hero craft, below, and nothing used to take it out again, so
@@ -1220,6 +1222,32 @@ export async function boot({ loading, bootStart, mapId }) {
    * back without having to know it exists.
    */
   shell.keepAcrossMaps(ghostRig.group);
+  /* The ghost is the seated aircraft again, so it is rebuilt when that
+   * changes: a wing chasing a wing's lap, not a five inch. Between runs
+   * only, from syncCraftScale, the same moment the hero craft swaps. */
+  let ghostRigAirframe = '5inch';
+  function swapGhostRig() {
+    if (ghostRigAirframe === runAirframe) {
+      return;
+    }
+    const old = ghostRig;
+    const next = buildGhostCraft(runAirframe);
+    next.group.position.copy(old.group.position);
+    next.group.quaternion.copy(old.group.quaternion);
+    next.group.visible = old.group.visible;
+    next.setPresence(0);
+    if (ghostLap) {
+      next.setLabel(ghostLabelFor(ghostLap));
+    }
+    if (old.group.parent) {
+      old.group.parent.add(next.group);
+      old.group.parent.remove(old.group);
+    }
+    shell.keepAcrossMaps(next.group);
+    disposeSceneGraph(old.group);
+    ghostRig = next;
+    ghostRigAirframe = runAirframe;
+  }
 
   /*
    * Live: the other pilots on this board track, each a ghost craft fed from
@@ -2225,11 +2253,17 @@ export async function boot({ loading, bootStart, mapId }) {
    * which is a few hundred triangles once.
    */
   let runAirframe = '5inch';
+  /* Where the seated aircraft bolts its camera, in its own frame. The quad's
+   * numbers are lens.js's; the wing's are in the nose of its pod. */
+  let camMountFwd = CAMERA_MOUNT_FORWARD;
+  let camMountUp = CAMERA_MOUNT_UP;
   /* The seated airframe's cell count, for the pack gauge. */
   let runCells = airframeById(runAirframe).cells;
   /* Which aircraft the Settings studio last built, so it is rebuilt when
    * the aircraft changes rather than posing the old one. */
   let showcaseCraft = '5inch';
+  /* Two doubles in the module's heap for sim_wing_surfaces, taken once. */
+  let wingSurfPtr = 0;
   let notice = null; /* { text, untilMs } for one off shell messages */
   /* The seated world's own note, waiting for a flight to be said over. See
    * showCourseNotes. */
@@ -3661,6 +3695,11 @@ export async function boot({ loading, bootStart, mapId }) {
     if (typeof shell.swapCraft === 'function') {
       shell.swapCraft(runAirframe);
     }
+    swapGhostRig();
+    const isWing = airframeById(runAirframe).simId === 2;
+    audio.setVoice(isWing ? 'wing' : 'quad');
+    camMountFwd = isWing ? WING_MOUNT_FORWARD : CAMERA_MOUNT_FORWARD;
+    camMountUp = isWing ? WING_MOUNT_UP : CAMERA_MOUNT_UP;
     /*
      * The ground PLANE needs no raising here: raiseGroundFromState asserts
      * it from the craft's own pose every step it matters, and the shell
@@ -6848,6 +6887,18 @@ export async function boot({ loading, bootStart, mapId }) {
     if (shell.cameraMount) {
       shell.cameraMount.rotation.x = cameraTiltRad(camTilt);
     }
+    /* The wing's elevons follow the plant's, read back each frame. Only a
+     * craft with surfaces has the setter, and only the wing plant fills
+     * the two doubles. */
+    if (shell.setSurfaces) {
+      if (!wingSurfPtr) {
+        wingSurfPtr = sim.e.malloc(2 * 8);
+      }
+      if (sim.e.sim_wing_surfaces(wingSurfPtr) === SIM_OK) {
+        const out = new Float64Array(sim.e.memory.buffer, wingSurfPtr, 2);
+        shell.setSurfaces(out[0], out[1]);
+      }
+    }
 
     /* The lens sits where herocraft.js bolts it, forward AND up, not at the
      * centre of gravity's height. src/render/lens.js carries both numbers and
@@ -6855,8 +6906,8 @@ export async function boot({ loading, bootStart, mapId }) {
     camFwd.set(0, 0, -1).applyQuaternion(qPrev);
     camUp.set(0, 1, 0).applyQuaternion(qPrev);
     fpvPos.copy(pCurr)
-      .addScaledVector(camFwd, simLenToWorld(CAMERA_MOUNT_FORWARD))
-      .addScaledVector(camUp, simLenToWorld(CAMERA_MOUNT_UP));
+      .addScaledVector(camFwd, simLenToWorld(camMountFwd))
+      .addScaledVector(camUp, simLenToWorld(camMountUp));
     {
       /* Near plane is 0.2 m. Camera-down or inverted on the grass puts
        * the lens inside that band, so the terrain is clipped even when
@@ -7209,7 +7260,7 @@ export async function boot({ loading, bootStart, mapId }) {
         showcaseCraft = runAirframe;
         showcase = createShowcase(ui.craftCanvas, {
           sweep: af.dims.arm + (af.dims.hullR ?? af.dims.propR),
-          build: af.id === 'whoop65' ? buildWhoopCraft : undefined,
+          build: craftBuilderFor(af.id),
         });
         if (showcase.failed) {
           ui.setCraftCaption(str('main.the_3d_preview_could_not_start'));
@@ -7536,9 +7587,13 @@ export async function boot({ loading, bootStart, mapId }) {
        * and no end either, so it says what it does have rather than borrowing
        * the scored run's sentence. Only a scored run gets the two minutes.
        */
-      const start = ui.settings.launchControl
-        ? str('main.l_for_launch_control_or_throttle')
-        : str('main.throttle_up_to_take_off');
+      /* A wing has no throttle to take off on: L throws it. */
+      const isWing = airframeById(runAirframe).simId === 2;
+      const start = isWing
+        ? str('main.throw_it_with_l')
+        : ui.settings.launchControl
+          ? str('main.l_for_launch_control_or_throttle')
+          : str('main.throttle_up_to_take_off');
       let second = str('main.the_green_gate_starts_your_lap_2');
       if (race.freestyle) {
         second = scoredRun()
@@ -8387,8 +8442,8 @@ export async function boot({ loading, bootStart, mapId }) {
     camFwd.set(0, 0, -1).applyQuaternion(qPrev);
     camUp.set(0, 1, 0).applyQuaternion(qPrev);
     fpvPos.copy(pCurr)
-      .addScaledVector(camFwd, simLenToWorld(CAMERA_MOUNT_FORWARD))
-      .addScaledVector(camUp, simLenToWorld(CAMERA_MOUNT_UP));
+      .addScaledVector(camFwd, simLenToWorld(camMountFwd))
+      .addScaledVector(camUp, simLenToWorld(camMountUp));
     lastCamFwdY = camFwd.y;
     lastCamUpY = camUp.y;
     lastCamClear = fpvLensClear(camFwd.y, camUp.y);

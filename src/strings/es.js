@@ -2073,4 +2073,5 @@ export default {
   "ui.manual": "Manual",
   "main.thrown_keep_it_flying": "Lanzada. Mantenla en vuelo.",
   "ui.fly_label": "Volar",
+  "main.throw_it_with_l": "Lánzala con L",
 };

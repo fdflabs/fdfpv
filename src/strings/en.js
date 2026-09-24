@@ -2073,4 +2073,5 @@ export default {
   "ui.manual": "Manual",
   "main.thrown_keep_it_flying": "Thrown. Keep it flying.",
   "ui.fly_label": "Fly",
+  "main.throw_it_with_l": "Throw it with L",
 };
