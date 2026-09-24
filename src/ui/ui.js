@@ -685,6 +685,10 @@ const DEFAULTS = {
   live: 'off',
   cameraAngle: CAMERA_ANGLE_DEFAULT,
   cameraFov: CAMERA_FOV_DEFAULT,
+  /* A fixed wing's view, cycled with C in flight: the FPV lens, a chase
+   * camera behind the plane, or line of sight from a pilot at the strip.
+   * A quad flies FPV only. */
+  wingView: 'fpv',
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
@@ -875,6 +879,9 @@ export function loadSettings() {
   }
   if (s.flightMode !== 'angle') {
     s.flightMode = 'acro';
+  }
+  if (!['fpv', 'chase', 'los'].includes(s.wingView)) {
+    s.wingView = 'fpv';
   }
   s.stickMode = normaliseStickMode(s.stickMode);
   /*

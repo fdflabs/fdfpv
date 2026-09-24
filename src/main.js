@@ -5034,6 +5034,15 @@ export async function boot({ loading, bootStart, mapId }) {
       throwWing();
       return;
     }
+    if (code === 'KeyC' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
+      const views = ['fpv', 'chase', 'los'];
+      ui.settings.wingView = views[(views.indexOf(ui.settings.wingView) + 1) % views.length];
+      ui.persistSettings();
+      chaseValid = false;
+      const said = { fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los') };
+      notice = { text: said[ui.settings.wingView], untilMs: performance.now() + 1800 };
+      return;
+    }
     if (code === 'KeyL' && ui.screen === 'flight') {
       if (!ui.settings.launchControl) {
         notice = {
@@ -5134,6 +5143,18 @@ export async function boot({ loading, bootStart, mapId }) {
   const introQuat = new THREE.Quaternion();
     const fpvPos = new THREE.Vector3();
     const fpvQuat = new THREE.Quaternion();
+    /* The chase camera's own smoothed position and travel direction, and
+     * the craft position it last saw, so the direction comes from where
+     * the plane is going rather than where its nose points. chaseValid
+     * false means the next frame snaps rather than sweeping in. */
+    const chasePos = new THREE.Vector3();
+    const chaseDir = new THREE.Vector3(0, 0, -1);
+    const chaseLast = new THREE.Vector3();
+    const chaseAim = new THREE.Vector3();
+    const chaseStep = new THREE.Vector3();
+    let chaseValid = false;
+    const losPos = new THREE.Vector3();
+    const losBack = new THREE.Vector3();
     const finishFpvPos = new THREE.Vector3();
     const finishFpvQuat = new THREE.Quaternion();
     /* -1: not on the finish shot. 0+: milliseconds into the pull-out. */
@@ -7170,9 +7191,78 @@ export async function boot({ loading, bootStart, mapId }) {
         shell.camera.fov = ui.settings.cameraFov;
         shell.camera.updateProjectionMatrix();
       }
+    } else if (airframeById(runAirframe).fixedWing && ui.settings.wingView !== 'fpv') {
+      /*
+       * A FIXED WING'S OTHER TWO VIEWS, both with the plane in the picture
+       * and the horizon level. Render only: nothing here reaches the plant.
+       *
+       * Chase sits behind the plane along the way it is TRAVELLING, not
+       * the way its nose points, so a loop or a roll reads as a loop or a
+       * roll instead of spinning the camera round the plane, and trails it
+       * by a quarter second so a turn has somewhere to go. Its distance
+       * is scaled by the span, so the wing and the Skyhunter sit the same
+       * size in the frame.
+       *
+       * Line of sight is a pilot standing beside the strip at eye height,
+       * the way a real plane is flown from the ground, turning to keep the
+       * plane in view. Beside, not behind: from behind the throw a plane at
+       * eye level is edge on, a grey line in grey haze. The view narrows as
+       * the plane goes out so it stays about the same size on screen, as an
+       * eye does not but a screen of pixels has to.
+       */
+      shell.quad.visible = true;
+      shell.camera.up.set(0, 1, 0);
+      const span = airframeById(runAirframe).dims.bodyWidth;
+      let fov = ui.settings.cameraFov;
+      if (ui.settings.wingView === 'chase') {
+        const k = 1 - Math.exp(-dt / 120);
+        chaseStep.copy(pCurr).sub(chaseLast);
+        if (!chaseValid) {
+          chaseDir.copy(camFwd);
+        } else if (chaseStep.lengthSq() > 1e-6) {
+          chaseDir.lerp(chaseStep.normalize(), Math.min(1, 1 - Math.exp(-dt / 120))).normalize();
+        }
+        chaseLast.copy(pCurr);
+        const back = Math.max(2.5, span * 2.4);
+        chaseAim.copy(pCurr)
+          .addScaledVector(chaseDir, -back)
+          .addScaledVector(introUp, back * 0.28);
+        const floor = view.height(chaseAim.x, chaseAim.z, chaseAim.y) + 0.5;
+        if (chaseAim.y < floor) {
+          chaseAim.y = floor;
+        }
+        if (chaseValid) {
+          chasePos.lerp(chaseAim, k);
+        } else {
+          chasePos.copy(chaseAim);
+          chaseValid = true;
+        }
+        shell.camera.position.copy(chasePos);
+        shell.camera.lookAt(introLook.copy(pCurr).addScaledVector(chaseDir, span));
+        fov = 70;
+      } else {
+        /* 20 m to the right of the throw line and 15 m down it. */
+        losBack.set(1, 0, 0).applyQuaternion(qSpawn);
+        losBack.y = 0;
+        losPos.set(startX, 0, startZ).addScaledVector(losBack.normalize(), 20);
+        losBack.set(0, 0, -1).applyQuaternion(qSpawn);
+        losBack.y = 0;
+        losPos.addScaledVector(losBack.normalize(), 15);
+        losPos.y = view.height(losPos.x, losPos.z, Infinity) + 1.7;
+        shell.camera.position.copy(losPos);
+        shell.camera.lookAt(pCurr);
+        const d = Math.max(1, losPos.distanceTo(pCurr));
+        fov = Math.min(45, Math.max(12, 2 * Math.atan((span * 5) / d) * 180 / Math.PI));
+        chaseValid = false;
+      }
+      if (Math.abs(shell.camera.fov - fov) > 0.05) {
+        shell.camera.fov = fov;
+        shell.camera.updateProjectionMatrix();
+      }
     } else {
       /* The camera sits inside the airframe, so the quad must be hidden or
        * you fly looking at the inside of its own outline hull. */
+      chaseValid = false;
       shell.quad.visible = false;
       shell.camera.position.copy(fpvPos);
       shell.camera.quaternion.copy(fpvQuat);
@@ -9004,6 +9094,10 @@ export async function boot({ loading, bootStart, mapId }) {
     x: shell.camera.position.x,
     y: shell.camera.position.y,
     z: shell.camera.position.z,
+    /* Where it looks and how wide, so a capture can project a point. */
+    quat: shell.camera.quaternion.toArray(),
+    fov: shell.camera.fov,
+    aspect: shell.camera.aspect,
     ground: view.height(shell.camera.position.x, shell.camera.position.z,
                         shell.camera.position.y),
     clearance: shell.camera.position.y
