@@ -27,13 +27,13 @@ this simulator is flying the light build.
 | Quantity | Value | How |
 | --- | --- | --- |
 | Span b | 1.800 m | manufacturer |
-| Length | 1.40 m, adjustable | manufacturer; the booms slide, which is also how the CG is set |
-| Wing area S | 0.360 m² | manufacturer, main wing only |
+| Length | 1.22 m | Model Aviation review; the maker's 1.40 m is with the booms, which slide, run fully out |
+| Wing area S | 0.360 m² | manufacturer, main wing only; the review's wing loading implies 0.39 m² on its own reference |
 | Mean chord c = S/b | 0.200 m | derived |
 | Aspect ratio AR = b²/S | 9.0 | derived |
 | All-up mass m | 2.10 kg | Model Aviation review: 74 oz flying with a 4S 5000 mAh pack and a GoPro |
 | Weight W = mg | 20.6 N | g = 9.81 |
-| Wing loading W/S | 57.2 N/m² | derived; the review's 17.6 oz/ft² is the same order on a larger reference area |
+| Wing loading W/S | 57.2 N/m² | derived; the review's 17.6 oz/ft² is 53.7 N/m² on its 0.39 m² |
 | CG | 1/3 of the chord from the leading edge | manufacturer |
 | CL max | 1.10 | ESTIMATED: a flat bottomed, cambered foam section of the Clark Y class, section cl max about 1.3 at Re 1.4e5 (V = 10 m/s, c = 0.2 m), times 0.85 for the three dimensional wing and the trim load on the tail; Anderson, Introduction to Flight, ch. 5 |
 | Zero lift line | 4 deg below the body x axis | ESTIMATED: about 1.5 deg of wing incidence and the section's own zero lift angle of about minus 3.5 deg (Clark Y); it is what makes the pod fly level at cruise |
@@ -51,31 +51,35 @@ this simulator is flying the light build.
 | Inertia Ixx, Iyy, Izz | 0.15, 0.14, 0.27 kg m² | ESTIMATED: the wing as a 0.45 kg bar of 1.8 m (0.12) plus the pod and tail; in pitch a 1.2 kg pod over 0.6 m (0.036), 0.16 kg of tail at 0.75 m (0.09) and the booms (0.011); Izz as Ixx plus Iyy for a flat airframe. The wing's own figure scaled by m b² gives Ixx 0.17, a cross check |
 | Aileron, elevator, rudder travel | ±15, ±15, ±25 deg | ESTIMATED: the usual first setup for the class; the manufacturer publishes none |
 
-The kit is sold with three servos, two for the ailerons and one for the
-elevator, and the reviewed aircraft flew three channel; several PNP
-listings add a rudder servo driving both rudders. This model has the
-rudder, since the airframe carries the hinged surfaces and a pilot will
-want it; a pilot who flies it without the yaw stick flies the three
-channel aircraft.
+The rudder is an addition to the stock aircraft. The kit and the PNP
+listings give it three servos, two for the ailerons and one for the
+elevator, and the reviewed aircraft flew three channel ("rudder control
+absent but not missed" for sedate FPV). Many builders add a servo that
+drives both rudders on the fins, and this model does, so the yaw stick
+has a job; its throw and effectiveness are sized from the fins' own
+area below, not from any published rudder. A pilot who leaves the yaw
+stick centred in Manual flies the stock three channel aircraft.
 
 ### The tail
 
-Measured from the owner's reference photograph against the published
-span and length, so ESTIMATED to about 15 percent.
+Measured from photographs of the aircraft against the published span
+and length, so ESTIMATED to about 15 percent. The same figures drive
+the 3D model: boom spacing 0.464 m, stabiliser 0.456 by 0.130 m, fins
+0.19 m tall.
 
 | Quantity | Value | How |
 | --- | --- | --- |
-| Horizontal tail span, area | 0.40 m, 0.052 m² | photograph: the boom spacing, chord 0.13 m |
-| Tail arm l_h, wing to tail aerodynamic centre | 0.73 m | photograph and the 1.4 m length |
-| Tail aspect ratio, lift slope a_t | 3.08, 3.81 /rad | 2π AR/(AR+2) |
+| Horizontal tail span, area | 0.456 m, 0.0593 m² | photographs, chord 0.130 m |
+| Tail arm l_h, wing to tail aerodynamic centre | 0.69 m | the 1.22 m length: wing leading edge 0.38 m aft of the nose, tail quarter chord 1.12 m |
+| Tail aspect ratio, lift slope a_t | 3.51, 4.00 /rad | 2π AR/(AR+2) |
 | Tail efficiency η | 0.9 | Nelson, Flight Stability and Automatic Control, ch. 2 |
 | Downwash gradient dε/dα = 2 a_w/(π AR) | 0.364 | Nelson, eq. 2.22 |
-| Horizontal tail volume V_H = S_h l_h/(S c) | 0.53 | derived; 0.35 to 0.6 is the usual range |
+| Horizontal tail volume V_H = S_h l_h/(S c) | 0.57 | derived; 0.35 to 0.6 is the usual range |
 | Elevator effectiveness τ_e | 0.6 | Nelson, fig. 2.20, elevator 40 percent of the tail chord |
-| Fins, two, total area S_v | 0.034 m² | photograph: 0.16 m tall, 0.13 root and 0.08 tip chord each |
-| Fin arm l_v, height above the CG z_v | 0.73 m, 0.10 m | photograph |
-| Fin effective aspect ratio, lift slope a_v | 2.3, 3.36 /rad | each fin's 1.5, raised half again by the stabiliser as an end plate |
-| Vertical tail volume V_V = S_v l_v/(S b) | 0.038 | derived |
+| Fins, two, total area S_v | 0.040 m² | photographs: 0.19 m tall, about 0.105 m mean chord each |
+| Fin arm l_v, height above the CG z_v | 0.69 m, 0.10 m | photographs |
+| Fin effective aspect ratio, lift slope a_v | 2.7, 3.61 /rad | each fin's 1.8, raised half again by the stabiliser as an end plate |
+| Vertical tail volume V_V = S_v l_v/(S b) | 0.043 | derived |
 | Rudder effectiveness τ_r | 0.5 | Nelson, fig. 2.20 |
 | Aileron span, effectiveness τ_a | 0.45 to 0.85 m from the centreline, 0.40 | photograph, and Nelson fig. 2.20 at a fifth of the chord |
 | Wing taper λ, effective dihedral Γ | 0.7, 3.5 deg | ESTIMATED: about 2 deg of geometric dihedral and 1.5 deg for the high wing, Raymer, ch. 16 |
@@ -88,26 +92,26 @@ are. Every one is per radian.
 
 | Coefficient | Value | Formula |
 | --- | --- | --- |
-| CLα, aircraft | 5.46 | a_w + a_t (S_h/S) η (1 − dε/dα), Nelson eq. 2.52 |
-| Neutral point h_n | 0.474 c | 0.25 + V_H η (a_t/a_w)(1 − dε/dα) |
-| Static margin | 0.14 | h_n − 1/3 |
-| Cmα | −0.77 | −CLα x static margin |
-| Cm0 | +0.058 | the value that trims at the cruise CL of 0.415 (15 m/s) with the elevator at zero, which is how a pilot trims it |
-| Cmq | −13.2 | −2 η a_t V_H l_h/c, Nelson eq. 3.43 |
-| Cmδe | 1.08 | η V_H a_t τ_e, positive with the trailing edge up |
-| CLδe | −0.30 | −η (S_h/S) a_t τ_e: trailing edge up pushes the tail down |
-| CYβ | −0.37 | −a_v S_v/S, and −0.05 for the pod |
-| Cnβ | +0.115 | a_v V_V, less the pod's −1.3 Vol/(S b) = −0.014 (Nelson eq. 2.72) |
-| Cnr | −0.113 | −2 a_v V_V l_v/b, and −CD0/4 for the wing |
-| Clβ | −0.092 | −a_w Γ (1+2λ)/(6(1+λ)) for the dihedral, and −a_v (S_v/S)(z_v/b) for the fins |
+| CLα, aircraft | 5.52 | a_w + a_t (S_h/S) η (1 − dε/dα), Nelson eq. 2.52 |
+| Neutral point h_n | 0.503 c | 0.25 + V_H η (a_t/a_w)(1 − dε/dα) |
+| Static margin | 0.17 | h_n − 1/3 |
+| Cmα | −0.94 | −CLα x static margin |
+| Cm0 | +0.071 | the value that trims at the cruise CL of 0.415 (15 m/s) with the elevator at zero, which is how a pilot trims it |
+| Cmq | −14.1 | −2 η a_t V_H l_h/c, Nelson eq. 3.43 |
+| Cmδe | 1.23 | η V_H a_t τ_e, positive with the trailing edge up |
+| CLδe | −0.36 | −η (S_h/S) a_t τ_e: trailing edge up pushes the tail down |
+| CYβ | −0.45 | −a_v S_v/S, and −0.05 for the pod |
+| Cnβ | +0.140 | a_v V_V, less the pod's −1.3 Vol/(S b) = −0.014 (Nelson eq. 2.72) |
+| Cnr | −0.126 | −2 a_v V_V l_v/b, and −CD0/4 for the wing |
+| Clβ | −0.096 | −a_w Γ (1+2λ)/(6(1+λ)) for the dihedral, and −a_v (S_v/S)(z_v/b) for the fins |
 | Clp | −0.78 | −a_w (1+3λ)/(12(1+λ)), strip theory |
 | Clδa | +0.33 | 2 a_w τ_a c (y_2² − y_1²)/(2 S b), strip theory, Nelson eq. 5.95 |
 | Clr | +CL/4 | Nelson, table 3.4, straight wing: the advancing wing lifts more in a yaw |
 | Cnp | −CL/8 | the same: the down going wing's lift tilts forward, adverse yaw |
 | Cnδa | −0.112 CL | 2 K CL Clδa with K = −0.17, Nelson, ch. 5: the adverse yaw of plain ailerons |
-| Cnδr | −0.064 | −V_V a_v τ_r: trailing edge left, nose left |
-| CYδr | +0.159 | a_v (S_v/S) τ_r |
-| Clδr | +0.0088 | CYδr z_v/b: the fins sit above the CG |
+| Cnδr | −0.077 | −V_V a_v τ_r: trailing edge left, nose left |
+| CYδr | +0.20 | a_v (S_v/S) τ_r |
+| Clδr | +0.011 | CYδr z_v/b: the fins sit above the CG |
 
 Strip theory makes both roll figures large, and it overstates both by
 about the same factor, which is why they are taken together: the roll
@@ -139,9 +143,9 @@ wing's bands were, in proportion.
 | S8 hand throw at 11 m/s, 60 percent throttle, an eighth of up for two seconds | above 1 m and faster than 10 m/s after 3 s | pass or fail |
 | S9 throttle chop from cruise | glides, pitch within ±30 deg for 3 s | pass or fail |
 | S10 phugoid period at 15 m/s, sticks centred | π sqrt(2) V/g = 6.8 s (Lanchester) | 5.5 to 8.5 |
-| S11 full rudder at cruise, wings held level with aileron: steady sideslip | −Cnδr δr/Cnβ = 14.0 deg, nose to the rudder's side | 9 to 20 |
-| S12 full rudder at cruise, ailerons centred: peak yaw rate | 63 deg/s: the Dutch roll step, ω_n = sqrt(q S b Cnβ/Izz) = 6.2 rad/s, ζ = 0.23 | 40 to 95 |
-| S13 full rudder at cruise, ailerons centred: bank after 2 s | the rudder's way; steady roll rate 23 deg/s once the sideslip is built, from Clβ β against Clp | 15 to 80 deg, and the sign |
+| S11 full rudder at cruise, wings held level with aileron: steady sideslip | −Cnδr δr/Cnβ = 13.7 deg, nose to the rudder's side | 9 to 20 |
+| S12 full rudder at cruise, ailerons centred: peak yaw rate | 68 deg/s: the Dutch roll step, ω_n = sqrt(q S b Cnβ/Izz) = 6.8 rad/s, ζ = 0.24 | 45 to 100 |
+| S13 full rudder at cruise, ailerons centred: bank after 2 s | the rudder's way; steady roll rate 22 deg/s once the sideslip is built, from Clβ β against Clp | 15 to 80 deg, and the sign |
 | S14 prop torque, static full throttle | 0.29 N m, rolling left | 0.25 to 0.45 N m, and the sign |
 | S15 the wing and the five inch unmoved | their recorded trace hashes | identical |
 | S16 Node and Chrome agree on a Skyhunter trace | SHA-256 | identical |
@@ -192,12 +196,13 @@ T = T_s d² (1 − V/(V_p d)) clipped at zero, duty floored at 0.02, rpm
 0.85 d times the no load figure, current 43 d² A.
 
 Ground: the wing's contact path. The hull is its eight corner box,
-1.3 m long, 1.8 m wide, from 0.07 m under the CG, which is the pod's
-belly under the high wing, to 0.12 m over it, the top of the fins. The
-box is centred on the CG while the aircraft is not (nose 0.45 m ahead,
-tail 0.85 m behind), so the nose corner stands 0.2 m proud of the real
-nose and the tail corner 0.2 m short of the real tail; an offset box
-would need the contact code to learn one, which it has not.
+1.22 m long, 1.8 m wide, from 0.07 m under the CG, which is the pod's
+belly under the high wing, to 0.08 m over it, between the wing's top
+and the fins' tops, for an aircraft on its back. The box is centred on
+the CG while the aircraft is not (nose 0.45 m ahead, tail 0.77 m
+behind), so the nose corner stands 0.16 m proud of the real nose and
+the tail corner 0.16 m short of the real tail; an offset box would need
+the contact code to learn one, which it has not.
 
 ## The script that made the numbers
 
