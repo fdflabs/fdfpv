@@ -174,16 +174,16 @@ than the Skyhunter's.
 | C7 climb rate, full throttle, best | 4.9 m/s at 10.1 m/s | 3.4 to 5.8 |
 | C8 hand throw at 10 m/s, 70 percent throttle, for two seconds the up stick that trims 10 m/s | above 1 m and faster than 9 m/s after 3 s | pass or fail |
 | C9 throttle chop from cruise | glides, pitch within ±30 deg for 3 s | pass or fail |
-| C10 phugoid period at 65 percent, sticks centred | 7.9 s, ζ 0.26: the phugoid root of the four state longitudinal model trimmed at the 11.8 m/s the aircraft settles at (Nelson, ch. 4); short period 0.87 s, ζ 0.69 | 6.5 to 9.5 |
+| C10 phugoid period at 65 percent, sticks centred | 7.5 s, ζ 0.24: the phugoid root of the four state longitudinal model trimmed at the 11.2 m/s 65 percent holds (Nelson, ch. 4); short period 0.91 s, ζ 0.69 | 6.1 to 8.8 |
 | C11 full rudder at cruise, wings held level: steady sideslip | −Cnδr δr/Cnβ = 13.5 deg, nose to the rudder's side | 9 to 20 |
 | C12 full rudder at cruise, ailerons centred: peak yaw rate | 39 deg/s: the Dutch roll step, ω_n = sqrt(q S b Cnβ/Izz) = 4.1 rad/s, ζ = 0.24, peak β_ss ω_n exp(−ζ φ/sqrt(1 − ζ²)) | 26 to 58 |
 | C13 full rudder at cruise, ailerons centred: bank after 2 s | the rudder's way; steady roll rate 25 deg/s once the sideslip is built, from Clβ β against Clp | 15 to 80 deg, and the sign |
 | C14 prop torque, static full throttle | 0.152 N m, rolling left | 0.13 to 0.30 N m, and the sign |
 | C15 P factor, full throttle climb held at 9 m/s | 0.009 N m, nose left | 0.005 to 0.020 N m, and the sign (κ from 1 to 3) |
-| C16 standing on its wheels | 13.9 deg nose up on three wheels, 13.9 percent of the weight on the tail | pitch 12.5 to 15.5 deg, tail share 10 to 18 percent, no hull contact |
-| C17 take off roll on the strip, full throttle, the tail raised and rotated at 1.1 V_s | 6.4 m to liftoff at 8.9 m/s, 1.3 s (asphalt 6.0 m) | 4.5 to 9.0 m, and 8.1 to 10.5 m/s |
+| C16 standing on its wheels | the drawn pose: 11.0 deg nose up, the CG 0.146 m over the grass, 14.4 percent of the weight on the tail | pitch 10.0 to 12.0 deg, CG 0.140 to 0.152 m, tail share 10 to 18 percent, no hull contact |
+| C17 take off roll on the strip, full throttle, the tail raised and rotated at 1.1 V_s | 6.2 m to liftoff at 8.9 m/s, 1.3 s (asphalt 5.9 m) | 4.5 to 9.0 m, and 8.1 to 10.5 m/s |
 | C18 the take off roll tracks straight, sticks centred but for the tail | heading within a few degrees of the runway by liftoff | under 10 deg, and under 1 m off the line |
-| C19 taxi turn, full rudder at walking pace | radius L/tan δ = 0.70/tan 15° = 2.6 m | 2.0 to 3.5 m, and the turn the rudder's way |
+| C19 taxi turn, full rudder at walking pace | radius L/tan δ = 0.679/tan 15° = 2.5 m | 2.0 to 3.5 m, and the turn the rudder's way |
 | C20 a landing on the wheels from a powered approach | touches down on the mains, rolls out, comes to rest on three wheels | at rest, pitch within 1.5 deg of C16, no hull contact |
 | C21 full down elevator at full throttle on the roll | noses over | pitch below −15 deg, pass or fail |
 | C22 the five inch, the wing and the Skyhunter unmoved | their recorded trace hashes | identical |
@@ -195,12 +195,12 @@ measured at, so the roll is flown from the fastest the Cub goes and the
 figure is made independent of where exactly that is.
 
 The take off roll is derived in two phases, as a taildragger takes off:
-on three points, where the wing is at 19 deg to the zero lift line and
-stalled (the plant's flat plate, CL 0.62, CD 0.26), until the tail comes
+on three points, where the wing is at 16 deg to the zero lift line and
+stalled (the plant's flat plate, CL 0.53, CD 0.20), until the tail comes
 up at about 7 m/s, then tail up at 2 deg of pitch until the rotation at
-1.1 V_s. Left on three points with the sticks centred the Cub flies off
-at the flat plate's own lift, 11.1 m/s, after 17 m; the pilot raising
-the tail is worth 10 m of strip. The rolling resistance is the one number
+1.1 V_s. Left on three points with the sticks centred the Cub would fly
+off at the flat plate's own lift, 11.9 m/s, after 20 m; the pilot raising
+the tail is worth 14 m of strip. The rolling resistance is the one number
 the two surfaces differ in, and with a thrust to weight of 1.04 it moves
 the roll by 6 percent: the Cub is short on grass and short on asphalt. The
 simulator's ground has one surface, and the gear ships grass.
@@ -251,22 +251,29 @@ curve that nobody could check against this aircraft.
 
 ### The numbers
 
-From the three view as the geometry above, the CG at 60 mm behind the
-leading edge and 7 mm over the thrust line.
+The wheels are where `src/render/cubcraft.js` draws them (its CUB_DIMS,
+the J-3C-65 at 1:7.67), converted from its frame (x right, y up, z back,
+CG at the origin) to the body frame (x forward, y left, z up), so the
+drawn tyres and the physics' tyres are the same tyres. The first gear
+here was measured off the three view on its own and sat the aircraft at
+13.9 deg on a 0.20 m track; the drawn model's is the one kept.
 
 | Quantity | Value | How |
 | --- | --- | --- |
-| Main wheels, contact points | x +0.053, y ±0.100, z −0.190 m | three view: the axle 53 mm ahead of the CG, the 60 mm tyre's bottom 190 mm under it; the track 0.20 m, the full size Cub's 6 ft scaled |
-| Tailwheel, contact point | x −0.626, y 0, z −0.022 m | three view |
-| Three point attitude | 13.9 deg nose up | atan((0.190 − 0.022)/(0.053 + 0.626)); the full size J-3 sits at about 11 |
-| Static loads | 5.6 N on each main, 1.8 N on the tail (13.9 percent) | moments about the ground contacts in the three point attitude |
+| Main wheels, axle centre | x +0.075, y ±0.119, z −0.128 m as drawn, −0.1327 unloaded | CUB_DIMS: axle (∓0.119, −0.128, −0.075) in the craft frame; the 0.238 m track is the full size Cub's scaled |
+| Main tyre radius | 0.035 m | CUB_DIMS, 70 mm wheels |
+| Tailwheel, axle centre, radius | x −0.596, y 0, z −0.021 m as drawn, −0.0273 unloaded; 0.012 m | CUB_DIMS |
+| Contact point | the rim's point nearest the ground | the axle less r along the ground normal's part in the wheel's plane, so it walks round the tyre as the aircraft pitches, as a wheel's does |
+| Three point attitude | 11.0 deg nose up, the CG 0.146 m over the grass | the drawn model at rest, which touches at (0.0683, ±0.119, −0.1624) and (−0.5983, 0, −0.0328); the full size J-3 sits at about 11 |
+| Static loads | 5.54 N on each main, 1.87 N on the tail (14.4 percent) | moments about the ground contacts in the three point attitude |
+| Unloaded axles | the drawn axles lowered by the static deflection, 4.7 mm mains, 6.3 mm tail | the drawing is the aircraft standing, so under its own weight the plant settles exactly onto it |
 | Main leg stiffness, damping | 1200 N/m, 34 N s/m | 4.6 mm of static deflection; damping 0.6 of critical on half the mass, 2 x 0.6 sqrt(k m/2) |
-| Tailwheel stiffness, damping | 300 N/m, 10 N s/m | 6 mm static; 0.6 of critical on the tail's effective mass about the mains, (Iyy + m d²)/l², 0.23 kg |
-| Rolling resistance mu_roll | 0.08 | ESTIMATED: short grass for a 60 mm foam and rubber wheel, 0.05 to 0.12; asphalt would be 0.02 to 0.03 |
+| Tailwheel stiffness, damping | 300 N/m, 10 N s/m | 6.2 mm static; 0.6 of critical on the tail's effective mass about the mains, (Iyy + m d²)/l², 0.21 kg |
+| Rolling resistance mu_roll | 0.08 | ESTIMATED: short grass for a 70 mm foam and rubber wheel, 0.05 to 0.12; asphalt would be 0.02 to 0.03 |
 | Side grip mu_side | 0.70 mains, 0.60 tail | ESTIMATED: rubber on grass and dry ground; the tailwheel is smaller and harder |
 | Tailwheel steering | 1.0 x the rudder angle, ±15 deg | the kit's tailwheel is linked to the rudder horn |
-| Wheelbase on the ground | 0.70 m | the mains to the tailwheel, three point |
-| Nose over, pivoting on the mains | the hull's nose corner at 29 deg nose down | from the hull below; the prop's tip would be at about 12, see below |
+| Wheelbase on the ground | 0.679 m | the mains to the tailwheel, three point |
+| Camera | x +0.165, z +0.0571 m | CUB_DIMS: on top of the cowl |
 
 ### The hull, which is only for crashes now
 
@@ -274,18 +281,18 @@ The contact code's hull is an eight corner box centred on the CG, the
 same box every airframe has. On the Cub it is drawn inside the gear,
 because standing on it is the wheels' job: hx 0.30, hy 0.70, 0.05 down
 and 0.12 up. A box the length of the fuselage would put its aft bottom
-corner 24 mm under the grass in the three point attitude, since the real
-fuselage sweeps up to the tail and a box cannot; this one clears it by 51
-mm. A box as deep as the belly, 0.086 m, would catch a wingtip at 10 deg
-of bank on the ground, where the real high wing clears to about 24; 0.05
-catches it at 13. Upside down the box's top is the wing's top; the fin,
-0.18 m tall at the tail and outside the box, will show about 6 cm into
-the grass on an aircraft lying on its back. The nose corner is the
-first thing to touch in a nose over, at 29 deg of pitch; the real prop's
-tip, 0.14 m round a hub 7 mm under the CG, would touch at about 12. Both
-are the limits of a centred box, and the fix for both is the same: hull
-points the airframe declares, as the wheels now are, which is the next
-step if a pilot notices.
+corner under the grass in the three point attitude, since the real
+fuselage sweeps up to the tail and a box cannot; this one clears it by 40
+mm. A box as deep as the belly, 0.086 m, would catch a wingtip at 7 deg
+of bank on the ground, where the real high wing clears to about 23; 0.05
+catches it at 11. Upside down the box's top is the wing's top; the fin,
+0.16 m tall as drawn and at the tail outside the box, will show about 4
+cm into the grass on an aircraft lying on its back. The nose corner is the
+first thing to touch in a nose over, at 27 deg of pitch about the mains;
+the real prop's tip, 0.14 m round a hub near the CG's height, would touch
+within a few degrees of level. Both are the limits of a centred box, and
+the fix for both is the same: hull points the airframe declares, as the
+wheels now are, which is the next step if a pilot notices.
 
 ## Conventions
 
@@ -326,7 +333,7 @@ this one, 1.7.
 On the wheels, a stabiliser has nothing to hold. The gear sets the
 attitude, so an attitude loop would only wind its error up against the
 ground, the Stabilised pitch loop asking for 2 deg with the aircraft
-sitting at 14 and holding full down elevator, and let it go at liftoff;
+sitting at 11 and holding full down elevator, and let it go at liftoff;
 the turn coordinator would fight the tailwheel the pilot is steering with,
 since a taxiing aircraft turning on its wheels is exactly a yaw rate with
 no bank. So while any wheel carries load, every mode is Manual: the sticks
@@ -337,6 +344,11 @@ wheels is the gear's own load, handed to the plant one step late, which is
 the millisecond a flight controller's own switch would take.
 
 ## The script that made the numbers
+
+`scripts/cub-derive.js` (`npm run cub:derive`) does all of the above from
+the inputs in the tables and prints every coefficient and every derived
+figure in the band table. It never loads the plant, since it is what the
+plant is checked against. In outline:
 
 ```
 rho=1.225 g=9.81 b=1.4 S=0.28 m=1.32 CLmax=1.15 CD0=0.050 e=0.75
@@ -350,7 +362,7 @@ phugoid: trim level for alpha, delta_e and duty, finite difference the
 four state (u, w, q, theta) equations, roots of the characteristic
 polynomial
 take off: integrate m dV/dt = T(V,1) - q S CD - mu (W - q S CL), three
-point (CL 0.62, CD 0.26) to 7 m/s, then CL at 7 deg of zero lift angle,
+point (CL 0.53, CD 0.20) to 7 m/s, then CL at 7 deg of zero lift angle,
 to 1.1 Vs
 gear: loads by moments about the contacts; k from a static deflection,
 c = 2 zeta sqrt(k m_eff) at zeta 0.6

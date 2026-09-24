@@ -339,9 +339,10 @@ export function cubPrelude(sim) {
 /* The Cub on the ground, standing on its three wheels at the end of the
  * strip, facing down it (world +x), with the ground plane at z = 0 as
  * the shell raises it. The pose is where it settles, so a recording can
- * start at once: the CG 0.1673 m up and 14.0 deg nose up. No steps here,
+ * start at once: the CG 0.1463 m up and 11.0 deg nose up, the drawn
+ * model's pose (src/render/cubcraft.js). No steps here,
  * because a replay's clock starts after the prelude. */
-export const CUB_REST = { z: 0.1673, pitchDeg: 14.0 };
+export const CUB_REST = { z: 0.1463, pitchDeg: 11.0 };
 export function cubGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
   must(sim.e.sim_set_airframe(CUB_AIRFRAME), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');

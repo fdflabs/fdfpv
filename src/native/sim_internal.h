@@ -59,7 +59,10 @@
  */
 #define SIM_WHEELS_MAX 3
 typedef struct {
-  double pos[3];  /* the tyre's lowest point, body frame, strut unloaded */
+  double pos[3];  /* the axle's centre, body frame, strut unloaded */
+  double r;       /* tyre radius: the contact is the rim's point nearest
+                   * the ground, so it moves round the tyre as the aircraft
+                   * pitches instead of staying one point of the body */
   double k;       /* strut and tyre stiffness, N/m */
   double c;       /* damping, N s/m */
   double mu_roll; /* rolling resistance along the wheel's heading */

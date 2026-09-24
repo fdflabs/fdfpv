@@ -738,8 +738,8 @@ static void ground_settle(double upz, double vn_plant) {
  * LANDING GEAR, for an airframe that declares wheels (the Cub; every other
  * airframe has none and never enters the loop below).
  *
- * Each wheel is a point at its tyre's lowest spot, and the ground pushes on
- * it with a spring and a damper along the plane's normal, F = k pen - c vn,
+ * Each wheel touches at its tyre's point nearest the ground, and the ground
+ * pushes there with a spring and a damper along the plane's normal, F = k pen - c vn,
  * never pulling. That is the strut and the tyre, and it is what lets the
  * aircraft stand level on three points of different heights and settle
  * onto them from a landing instead of bouncing off a rigid corner.
@@ -822,12 +822,33 @@ static int ground_wheels(void) {
   const double *n = g_ground_n;
   double surf[4];
   plant_plane_surfaces(surf);
+  /* The wheels' axles are along body y, so each tyre is a circle in the
+   * body's x z plane and its point nearest the ground is the axle less r
+   * along the ground normal's part in that plane. */
+  const double yb[3] = { 0.0, 1.0, 0.0 };
+  double axle[3];
+  contact_rotate(yb, axle);
+  const double na = n[0] * axle[0] + n[1] * axle[1] + n[2] * axle[2];
+  double down[3] = { n[0] - na * axle[0], n[1] - na * axle[1], n[2] - na * axle[2] };
+  const double dl = sim_sqrt(down[0] * down[0] + down[1] * down[1] + down[2] * down[2]);
+  if (dl > 1e-6) {
+    down[0] /= dl;
+    down[1] /= dl;
+    down[2] /= dl;
+  } else {
+    down[0] = n[0];
+    down[1] = n[1];
+    down[2] = n[2];
+  }
   int loaded = 0;
   for (int i = 0; i < PLANT.wheel_count; i += 1) {
     const WheelParams *wp = &PLANT.wheel[i];
     g_wheel_load[i] = 0.0;
     double r[3];
     contact_rotate(wp->pos, r);
+    r[0] -= wp->r * down[0];
+    r[1] -= wp->r * down[1];
+    r[2] -= wp->r * down[2];
     const double side = n[0] * (S.pos[0] + r[0]) + n[1] * (S.pos[1] + r[1]) + n[2] * (S.pos[2] + r[2]);
     const double pen = g_ground_d - side;
     if (!(pen > 0.0)) {
