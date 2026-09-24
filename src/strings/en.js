@@ -2070,7 +2070,7 @@ export default {
   "ui.manual": "Manual",
   "main.thrown_keep_it_flying": "Thrown. Keep it flying.",
   "ui.fly_label": "Fly",
-  "main.throw_it_with_l": "Throw it with L",
+  "main.throw_it_with_l": "Throttle up to throw it, or press L",
   "ui.the_world": "The world",
   "app.five_metre_gates_on_a_four": "Five metre gates on a four hundred metre airfield",
   "app.wing_track_on_a_four_hundred": "wing track, on a four hundred by three hundred metre airfield",

@@ -1874,6 +1874,37 @@ export async function boot({ loading, bootStart, mapId }) {
    * equals the leftover. That was round 16b (lap clock) and the tune-swap
    * lag (async sim_init). Read the module every time the stream can restart.
    */
+  /*
+   * The wing's take off is a hand throw: ten metres a second along its
+   * own nose from a metre and a bit up, the way a hand does it. Only from
+   * rest, so a wing already flying is left alone. A landed craft is frozen
+   * with the integrator until the throttle comes up, which a wing on the
+   * grass never does on its own, so the throw is also what releases the
+   * pad hold, the way throttle does for a quad. L throws, and so does
+   * raising the throttle on a wing that is down.
+   */
+  function throwWing() {
+    const stNow = readState();
+    const speedNow = stNow ? Math.hypot(stNow[4], stNow[5], stNow[6]) : 0;
+    if (!stNow || speedNow >= 1.0 || typeof sim.e.sim_wing_launch !== 'function') {
+      return false;
+    }
+    /* Into the hand first: a hull on the grass is held by friction the
+     * moment it moves. Level, too: a wing that came to rest on a wingtip
+     * is picked up before it is thrown. */
+    const yaw = Math.atan2(2 * (stNow[7] * stNow[10] + stNow[8] * stNow[9]), 1 - 2 * (stNow[9] * stNow[9] + stNow[10] * stNow[10]));
+    sim.e.sim_set_pose(stNow[1], stNow[2], stNow[3] + 1.2, Math.cos(yaw / 2), 0, 0, Math.sin(yaw / 2));
+    if (sim.e.sim_wing_launch(10) !== SIM_OK) {
+      return false;
+    }
+    landed = false;
+    takingOff = false;
+    flownThisRun = true;
+    adoptSimClock();
+    notice = { text: str('main.thrown_keep_it_flying'), untilMs: performance.now() + 2200 };
+    return true;
+  }
+
   function adoptSimClock() {
     const st = readState();
     simStepIdx = Math.round(st[0] * SIM_HZ);
@@ -4990,26 +5021,7 @@ export async function boot({ loading, bootStart, mapId }) {
       return;
     }
     if (code === 'KeyL' && ui.screen === 'flight' && airframeById(runAirframe).simId === 2) {
-      /* A wing is thrown, not stood on the line: ten metres a second along
-       * its own nose, the way a hand does it. Only from rest. */
-      const stNow = readState();
-      const speedNow = stNow ? Math.hypot(stNow[4], stNow[5], stNow[6]) : 0;
-      /* Into the hand first: a hull on the grass is held by friction the
-       * moment it moves, so the throw starts a metre and a bit up. */
-      if (stNow && speedNow < 1.0) {
-        sim.e.sim_set_pose(stNow[1], stNow[2], stNow[3] + 1.2, stNow[7], stNow[8], stNow[9], stNow[10]);
-      }
-      if (speedNow < 1.0 && typeof sim.e.sim_wing_launch === 'function' && sim.e.sim_wing_launch(10) === SIM_OK) {
-        /* A landed craft is frozen with the integrator until the throttle
-         * comes up, which a wing on the grass never does: the throw is its
-         * take off, so it leaves the ground here the way the quad does on
-         * throttle. */
-        landed = false;
-        takingOff = false;
-        flownThisRun = true;
-        adoptSimClock();
-        notice = { text: str('main.thrown_keep_it_flying'), untilMs: performance.now() + 2200 };
-      }
+      throwWing();
       return;
     }
     if (code === 'KeyL' && ui.screen === 'flight') {
@@ -6136,7 +6148,10 @@ export async function boot({ loading, bootStart, mapId }) {
     if (mode === 'flight' && landed && !crashed) {
       const thr = samples.length ? samples[samples.length - 1].throttle : input.channels.throttle;
       if (landed && thr > TAKEOFF_THROTTLE) {
-        if (turtleRecover) {
+        if (airframeById(runAirframe).simId === 2) {
+          /* Throttle up on a wing that is down is the hand throw. */
+          throwWing();
+        } else if (turtleRecover) {
           /* Recover owns the stick. Throttle is not takeoff until they
            * centre, or the leftover punch flies them out of turtle. */
         } else if (stateCurr && plantUpZ(stateCurr) < 0) {

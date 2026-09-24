@@ -6,7 +6,8 @@ upstream author rejected a whoop plant that passed every band, on feel.
 This page asks for that judgement once, with something concrete to fly
 each time, so a "feels wrong" comes back as a thing that can be measured.
 
-Pick the fourth card on the title, Fixed wing. Press L to throw. The
+Pick the fourth card on the title, Fixed wing. Raise the throttle, or
+press L, and the wing leaves your hand at ten metres a second. The
 sticks are the elevons: pitch and roll on the right stick in mode 2,
 throttle on the left. Yaw does nothing; a flying wing has no rudder.
 There is no flight controller and nothing levels the wing for you.
@@ -24,8 +25,8 @@ for a moment, picks up speed, and is flying by the time it is a wing
 length ahead of you. With no power it settles onto the grass a few
 lengths out.
 
-Try: throw with L at half throttle, sticks neutral, then throw again at
-zero throttle.
+Try: raise the throttle to half with the sticks neutral, then land and
+press L with the throttle at zero.
 
 Wrong if: it climbs away on its own at half throttle without you pulling
 back (a real one does not), or it pitches up and stalls straight off the

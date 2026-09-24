@@ -2070,7 +2070,7 @@ export default {
   "ui.manual": "Manual",
   "main.thrown_keep_it_flying": "Lanzada. Mantenla en vuelo.",
   "ui.fly_label": "Volar",
-  "main.throw_it_with_l": "Lánzala con L",
+  "main.throw_it_with_l": "Sube el acelerador para lanzarla, o pulsa L",
   "ui.the_world": "El mundo",
   "app.five_metre_gates_on_a_four": "Puertas de cinco metros en un aeródromo de cuatrocientos metros",
   "app.wing_track_on_a_four_hundred": "pista de ala fija, en un aeródromo de cuatrocientos por trescientos metros",
