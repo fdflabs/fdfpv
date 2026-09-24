@@ -1,0 +1,213 @@
+# Skyhunter, stage 1: the aircraft and the model
+
+The second fixed wing, and the first with a tail: every number the plant
+is built from with its formula and source, the conventions, and the
+check table with its bands. It follows `docs/WING-STAGE1.md`, which did
+the same for the 1000 mm flying wing, and uses the same model with a
+second parameter table. Where this file says "the wing" it means that
+flying wing.
+
+## The aircraft
+
+The X-UAV (Sonicmodell, sold also as ZOHD) Skyhunter 1800: a pod
+fuselage, a straight high mounted wing with ailerons, a pusher motor
+behind the wing between two carbon tail booms, and an H tail, a
+horizontal stabiliser with an elevator between two fins with rudders.
+It is the long range FPV platform most pilots move to after a small
+wing: slow, stable, and big enough to carry a 4S 5000 mAh pack and a
+camera.
+
+Where the sources disagree the numbers below are one aircraft: the
+Skyhunter as flown in the Model Aviation review, 2.10 kg on a 4S 5000
+mAh pack with a 950 kV 2820 class motor and an 11 x 5.5 prop. The
+manufacturer's 3.0 to 3.5 kg is a maximum take off weight for long
+range builds with big packs, not a flying weight, and a pilot flying
+this simulator is flying the light build.
+
+| Quantity | Value | How |
+| --- | --- | --- |
+| Span b | 1.800 m | manufacturer |
+| Length | 1.40 m, adjustable | manufacturer; the booms slide, which is also how the CG is set |
+| Wing area S | 0.360 m² | manufacturer, main wing only |
+| Mean chord c = S/b | 0.200 m | derived |
+| Aspect ratio AR = b²/S | 9.0 | derived |
+| All-up mass m | 2.10 kg | Model Aviation review: 74 oz flying with a 4S 5000 mAh pack and a GoPro |
+| Weight W = mg | 20.6 N | g = 9.81 |
+| Wing loading W/S | 57.2 N/m² | derived; the review's 17.6 oz/ft² is the same order on a larger reference area |
+| CG | 1/3 of the chord from the leading edge | manufacturer |
+| CL max | 1.10 | ESTIMATED: a flat bottomed, cambered foam section of the Clark Y class, section cl max about 1.3 at Re 1.4e5 (V = 10 m/s, c = 0.2 m), times 0.85 for the three dimensional wing and the trim load on the tail; Anderson, Introduction to Flight, ch. 5 |
+| Zero lift line | 4 deg below the body x axis | ESTIMATED: about 1.5 deg of wing incidence and the section's own zero lift angle of about minus 3.5 deg (Clark Y); it is what makes the pod fly level at cruise |
+| CD0 | 0.033 | ESTIMATED by the equivalent skin friction method, Raymer, Aircraft Design, eq. 12.23: wetted area about 1.2 m² (wing 0.74, tail and fins 0.22, pod 0.19, booms 0.05), S_wet/S = 3.33, C_fe = 0.009 for low Reynolds number foam, plus 10 percent for the camera, servo horns and gaps |
+| Oswald e | 0.80 | straight wing of AR 9 with a pod; Beard and McLain, Small Unmanned Aircraft, appendix E, the class value |
+| Induced drag factor k = 1/(π e AR) | 0.0442 | derived |
+| Wing lift slope a_w = 2π AR/(AR+2) | 5.14 /rad | the lifting line form the wing used |
+| Motor, cells, kV | 2820 class, 4S, 950 kV | Model Aviation review; the manufacturer asks for 2820 to 3542 at about 900 kV |
+| Prop | 11 x 5.5 in | Model Aviation review; the manufacturer's range is 11 x 7 to 12 x 6 |
+| No-load rpm = kV x 14.8 V | 14,060 | derived |
+| Pitch speed V_p = rpm/60 x pitch x 0.85 | 27.8 m/s | derived, 0.85 for slip, as the wing |
+| Static thrust T_s | 27.0 N | ESTIMATED from two published figures: the review measured 669 W and 43.2 A static on this power system, and SunnySky's bench table for its X2820 on an 11 x 5.5 reads 2.65 kg at 603 W and 2.90 kg at 728 W, so 2.78 kg at 669 W |
+| Thrust to weight | 1.31 | derived |
+| Full throttle current | 43 A | Model Aviation review |
+| Inertia Ixx, Iyy, Izz | 0.15, 0.14, 0.27 kg m² | ESTIMATED: the wing as a 0.45 kg bar of 1.8 m (0.12) plus the pod and tail; in pitch a 1.2 kg pod over 0.6 m (0.036), 0.16 kg of tail at 0.75 m (0.09) and the booms (0.011); Izz as Ixx plus Iyy for a flat airframe. The wing's own figure scaled by m b² gives Ixx 0.17, a cross check |
+| Aileron, elevator, rudder travel | ±15, ±15, ±25 deg | ESTIMATED: the usual first setup for the class; the manufacturer publishes none |
+
+The kit is sold with three servos, two for the ailerons and one for the
+elevator, and the reviewed aircraft flew three channel; several PNP
+listings add a rudder servo driving both rudders. This model has the
+rudder, since the airframe carries the hinged surfaces and a pilot will
+want it; a pilot who flies it without the yaw stick flies the three
+channel aircraft.
+
+### The tail
+
+Measured from the owner's reference photograph against the published
+span and length, so ESTIMATED to about 15 percent.
+
+| Quantity | Value | How |
+| --- | --- | --- |
+| Horizontal tail span, area | 0.40 m, 0.052 m² | photograph: the boom spacing, chord 0.13 m |
+| Tail arm l_h, wing to tail aerodynamic centre | 0.73 m | photograph and the 1.4 m length |
+| Tail aspect ratio, lift slope a_t | 3.08, 3.81 /rad | 2π AR/(AR+2) |
+| Tail efficiency η | 0.9 | Nelson, Flight Stability and Automatic Control, ch. 2 |
+| Downwash gradient dε/dα = 2 a_w/(π AR) | 0.364 | Nelson, eq. 2.22 |
+| Horizontal tail volume V_H = S_h l_h/(S c) | 0.53 | derived; 0.35 to 0.6 is the usual range |
+| Elevator effectiveness τ_e | 0.6 | Nelson, fig. 2.20, elevator 40 percent of the tail chord |
+| Fins, two, total area S_v | 0.034 m² | photograph: 0.16 m tall, 0.13 root and 0.08 tip chord each |
+| Fin arm l_v, height above the CG z_v | 0.73 m, 0.10 m | photograph |
+| Fin effective aspect ratio, lift slope a_v | 2.3, 3.36 /rad | each fin's 1.5, raised half again by the stabiliser as an end plate |
+| Vertical tail volume V_V = S_v l_v/(S b) | 0.038 | derived |
+| Rudder effectiveness τ_r | 0.5 | Nelson, fig. 2.20 |
+| Aileron span, effectiveness τ_a | 0.45 to 0.85 m from the centreline, 0.40 | photograph, and Nelson fig. 2.20 at a fifth of the chord |
+| Wing taper λ, effective dihedral Γ | 0.7, 3.5 deg | ESTIMATED: about 2 deg of geometric dihedral and 1.5 deg for the high wing, Raymer, ch. 16 |
+
+## The coefficients
+
+Written in the aero convention (x forward, y right, z down), as the wing's
+are, and turned into the body frame in the plant exactly as the wing's
+are. Every one is per radian.
+
+| Coefficient | Value | Formula |
+| --- | --- | --- |
+| CLα, aircraft | 5.46 | a_w + a_t (S_h/S) η (1 − dε/dα), Nelson eq. 2.52 |
+| Neutral point h_n | 0.474 c | 0.25 + V_H η (a_t/a_w)(1 − dε/dα) |
+| Static margin | 0.14 | h_n − 1/3 |
+| Cmα | −0.77 | −CLα x static margin |
+| Cm0 | +0.058 | the value that trims at the cruise CL of 0.415 (15 m/s) with the elevator at zero, which is how a pilot trims it |
+| Cmq | −13.2 | −2 η a_t V_H l_h/c, Nelson eq. 3.43 |
+| Cmδe | 1.08 | η V_H a_t τ_e, positive with the trailing edge up |
+| CLδe | −0.30 | −η (S_h/S) a_t τ_e: trailing edge up pushes the tail down |
+| CYβ | −0.37 | −a_v S_v/S, and −0.05 for the pod |
+| Cnβ | +0.115 | a_v V_V, less the pod's −1.3 Vol/(S b) = −0.014 (Nelson eq. 2.72) |
+| Cnr | −0.113 | −2 a_v V_V l_v/b, and −CD0/4 for the wing |
+| Clβ | −0.092 | −a_w Γ (1+2λ)/(6(1+λ)) for the dihedral, and −a_v (S_v/S)(z_v/b) for the fins |
+| Clp | −0.78 | −a_w (1+3λ)/(12(1+λ)), strip theory |
+| Clδa | +0.33 | 2 a_w τ_a c (y_2² − y_1²)/(2 S b), strip theory, Nelson eq. 5.95 |
+| Clr | +CL/4 | Nelson, table 3.4, straight wing: the advancing wing lifts more in a yaw |
+| Cnp | −CL/8 | the same: the down going wing's lift tilts forward, adverse yaw |
+| Cnδa | −0.112 CL | 2 K CL Clδa with K = −0.17, Nelson, ch. 5: the adverse yaw of plain ailerons |
+| Cnδr | −0.064 | −V_V a_v τ_r: trailing edge left, nose left |
+| CYδr | +0.159 | a_v (S_v/S) τ_r |
+| Clδr | +0.0088 | CYδr z_v/b: the fins sit above the CG |
+
+Strip theory makes both roll figures large, and it overstates both by
+about the same factor, which is why they are taken together: the roll
+rate is their ratio. The ratio is what the band below is about.
+
+Motor torque reaction: ideal disc power at static full thrust,
+T^1.5/sqrt(2 ρ A), is 362 W for 27 N through an 11 inch disc; at the
+loaded 11,950 rpm that is 0.29 N m, so 0.0107 m per newton, the same
+method as the wing. The electrical route, 80 percent of the measured
+669 W at that rpm, gives 0.43 N m, which is the band's top. The prop
+turns as the wing's does, so the reaction rolls the airframe left.
+
+## Derived performance, the bands the plant must land in
+
+Computed from the numbers above with L = W, T = D and the thrust model
+below, by the script at the end of this file. The band is the derived
+figure with room for the estimated inputs, and never wider than the
+wing's bands were, in proportion.
+
+| Check | Derived | Band |
+| --- | --- | --- |
+| S1 level speed at 65 percent throttle | 14.9 m/s | 13.0 to 17.0 |
+| S2 stall speed, level, power off | 9.2 m/s | 8.6 to 10.4 |
+| S3 glide ratio, power off, at 11 m/s | 13.0 (best 13.1 at 10.4 m/s) | 11.5 to 14.5 |
+| S4 top speed, level, full throttle | 23.5 m/s | 21.5 to 26.5 |
+| S5 roll rate, full aileron at 20 m/s | 141 deg/s, pb/2V = 0.11 | 100 to 190 |
+| S6 turn radius at 60 deg bank | V²/(g tan 60°) | within 15 percent of the formula at the speed flown |
+| S7 climb rate, full throttle, best | 8.0 m/s at 12.5 m/s | 5.5 to 9.5 |
+| S8 hand throw at 11 m/s, 60 percent throttle, an eighth of up for two seconds | above 1 m and faster than 10 m/s after 3 s | pass or fail |
+| S9 throttle chop from cruise | glides, pitch within ±30 deg for 3 s | pass or fail |
+| S10 phugoid period at 15 m/s, sticks centred | π sqrt(2) V/g = 6.8 s (Lanchester) | 5.5 to 8.5 |
+| S11 full rudder at cruise, wings held level with aileron: steady sideslip | −Cnδr δr/Cnβ = 14.0 deg, nose to the rudder's side | 9 to 20 |
+| S12 full rudder at cruise, ailerons centred: peak yaw rate | 63 deg/s: the Dutch roll step, ω_n = sqrt(q S b Cnβ/Izz) = 6.2 rad/s, ζ = 0.23 | 40 to 95 |
+| S13 full rudder at cruise, ailerons centred: bank after 2 s | the rudder's way; steady roll rate 23 deg/s once the sideslip is built, from Clβ β against Clp | 15 to 80 deg, and the sign |
+| S14 prop torque, static full throttle | 0.29 N m, rolling left | 0.25 to 0.45 N m, and the sign |
+| S15 the wing and the five inch unmoved | their recorded trace hashes | identical |
+| S16 Node and Chrome agree on a Skyhunter trace | SHA-256 | identical |
+
+S10 to S13 have no counterpart in the wing's table: a flying wing has no
+tail to give it a phugoid worth timing and no rudder. S13 is the
+dihedral effect, the thing that lets a three channel trainer turn on
+rudder alone, and it is gated on its sign as much as its size.
+
+## Conventions
+
+The wing's, unchanged: world right handed, Z up; body X forward, Y
+left, Z up; SI; 1000 Hz fixed step; the state block's twenty doubles
+with the motor in RPM slot 0 and zeros in slots 1 to 3; α and β from
+the body frame wind as in `docs/WING-STAGE1.md`. The only addition is
+the zero lift line: the aero works on α + α_0, where α_0 is 4 deg here
+and zero for the wing, and the post stall flat plate turns with it.
+
+Sticks: roll rc[0] to the ailerons, pitch rc[1] to the elevator, yaw
+rc[2] to the rudder, throttle rc[3] to the motor, each with the wing's
+expo of 0.3 and its own travel. Yaw stick positive is nose right, the
+channel convention in `src/native/sim_abi.h`, so it moves the rudder
+trailing edge right, which is a negative rudder angle below.
+
+Surface angles, radians, for the renderer through
+`sim_plane_surfaces(out[4])`: left aileron, right aileron, elevator,
+rudder. Ailerons and elevator positive trailing edge up; rudder positive
+trailing edge to the left, which yaws the nose left. Both rudders move
+together and report as one. Full right roll reads the right aileron up
+(positive) and the left down (negative).
+
+## The model
+
+The wing's model, term by term, with its coefficients from the table
+above and these terms added, all of them zero on the wing:
+
+- Side force gains CYδr δr, roll gains Clr r b/2V and Clδr δr, yaw gains
+  Cnp p b/2V, Cnδa δa and Cnδr δr. Clr, Cnp and Cnδa are written per
+  unit CL and multiplied by the CL of the step, so they grow at low
+  speed as they do on a real aircraft.
+- The zero lift line above.
+- A conventional mix: ailerons are ±δa on the two wing surfaces, the
+  elevator is its own surface and δe is it; the wing keeps its elevons,
+  δe ± δa on each clipped at 25 deg.
+
+Motor: the wing's thrust model with the Skyhunter's T_s and V_p, thrust
+T = T_s d² (1 − V/(V_p d)) clipped at zero, duty floored at 0.02, rpm
+0.85 d times the no load figure, current 43 d² A.
+
+Ground: the wing's contact path. The hull is its eight corner box,
+1.3 m long, 1.8 m wide, from 0.07 m under the CG, which is the pod's
+belly under the high wing, to 0.12 m over it, the top of the fins. The
+box is centred on the CG while the aircraft is not (nose 0.45 m ahead,
+tail 0.85 m behind), so the nose corner stands 0.2 m proud of the real
+nose and the tail corner 0.2 m short of the real tail; an offset box
+would need the contact code to learn one, which it has not.
+
+## The script that made the numbers
+
+```
+rho=1.225 g=9.81 b=1.8 S=0.36 m=2.10 CLmax=1.10 CD0=0.033 e=0.80
+aw=2 pi AR/(AR+2); CLa=aw + at (Sh/S) eta (1 - 2 aw/(pi AR))
+Vs=sqrt(2W/(rho S CLmax)); CLopt=sqrt(CD0/k); LDmax=CLopt/(2 CD0)
+T(V,d)=max(0, Ts d^2 (1 - V/(Vp d))); D(V)=q S (CD0 + k CL^2) with CL=W/(q S)
+level speed at duty d: bisect T(V,d)=D(V); climb=(T-D)V/W
+roll: pb/2V = Clda da/(-Clp); sideslip: -Cndr dr/Cnb
+Dutch roll: wn=sqrt(q S b Cnb/Izz), zeta from Cnr and CYb, peak r of the step
+phugoid: pi sqrt(2) V/g
+```
