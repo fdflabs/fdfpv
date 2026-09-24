@@ -65,6 +65,7 @@ import * as THREE from 'three';
 import { noise2, smoothstep } from '../../alps/noise.js';
 import { FIELD, HALF, LAKE_Y, TREE_LINE, treeLine, forestDensity, valleyAxis } from '../../alps/terrain.js';
 import { VARIANTS } from './species.js';
+import { meadowCuts } from './zones.js';
 
 const V = Object.fromEntries(VARIANTS.map((v, k) => [v.name, k]));
 const OPEN = VARIANTS.map((v) => v.name.endsWith('-open') || v.kind === 'maple');
@@ -376,6 +377,74 @@ export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
       add(x, heightAt(x, z), z, 0.5 + rng() * 0.25, rng() < 0.5 ? V.maple : V['beech-open']);
     }
   }
+  /* Planted after everything above, so none of it moves. */
+  const floorTree = (x, z, s, v) => {
+    const y = heightAt(x, z);
+    if (floorOk(x, y, z) && !layout.coverOff(x, z) && streamDist(x, z) >= 6) {
+      add(x, y, z, s, v);
+    }
+  };
+  /* Hedgerows. The references' floor has trees everywhere, and most of
+   * them stand on the lines between the fields: a row of ash, sycamore
+   * and hazel along a ditch or a fence, gapped where a gate or a track
+   * goes through. A quarter of the lines between the paint's fields
+   * (zones.js meadowCuts) grow one, a couple of metres to one side, a
+   * tree every nine to twenty five metres with bushes between. */
+  meadowCuts(heightAt).forEach((line, li) => {
+    const pick = noise2(li * 0.731 + 0.5, 3.3);
+    if (pick < 0.62) {
+      return;
+    }
+    const side = pick > 0.81 ? 1 : -1;
+    let next = rng() * 10;
+    for (let k = 1; k < line.length; k += 1) {
+      if (k < next) {
+        continue;
+      }
+      next = k + 9 + 16 * rng();
+      const a = line[k - 1];
+      const b = line[k];
+      const l = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      const off = side * (1.6 + rng());
+      const x = b.x - ((b.z - a.z) / l) * off;
+      const z = b.z + ((b.x - a.x) / l) * off;
+      if (noise2(x / 45 + 2.9, z / 45 + 6.6) < 0.38) {
+        continue;
+      }
+      if (rng() < 0.4) {
+        const y = heightAt(x, z);
+        if (floorOk(x, y, z) && !layout.coverOff(x, z)) {
+          bush(x, y, z, 0.18 + 0.2 * rng());
+        }
+      } else {
+        floorTree(x, z, 0.55 + 0.6 * rng(), rng() < 0.5 ? V.maple : V['beech-open']);
+      }
+    }
+  });
+  /* Orchards: standard fruit trees, the Hochstamm every Bernese farm
+   * keeps in the meadow beside it, a few rows eleven metres apart with a
+   * tree missing here and there, round crowns on two metre trunks. By the
+   * east farm and on the village's outskirts. */
+  const orchard = (cx, cz, yaw, cols, rows) => {
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+    for (let i = 0; i < cols; i += 1) {
+      for (let j = 0; j < rows; j += 1) {
+        const u = (i - (cols - 1) / 2) * 11 + (rng() - 0.5) * 1.5;
+        const v = (j - (rows - 1) / 2) * 11 + (rng() - 0.5) * 1.5;
+        if (rng() < 0.15) {
+          continue;
+        }
+        floorTree(cx + u * c - v * s, cz + u * s + v * c, 0.46 + 0.1 * rng(), rng() < 0.7 ? V['beech-open'] : V.maple);
+      }
+    }
+  };
+  const farm = layout.eastFarm;
+  orchard(farm.x + 10, farm.z + 112, 0.1, 5, 3);
+  orchard(farm.x - 20, farm.z - 110, -0.15, 4, 3);
+  orchard(-300, 405, 0.3, 4, 4);
+  orchard(-150, 390, -0.2, 5, 3);
+  orchard(-250, -365, 0.05, 5, 3);
   return {
     x: Float32Array.from(xs),
     y: Float32Array.from(ys),

@@ -394,6 +394,7 @@ function photoStyle() {
         colliders,
         footprints: stage.footprints,
         gardens,
+        margins: stage.props.margins,
         sunDir: stage.sunDir,
       });
       scene.add(stage.veg.group);

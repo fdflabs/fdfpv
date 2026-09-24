@@ -24,7 +24,10 @@
  * each field grows as the paint farms it (zones.js's meadowField):
  * standing hay thigh high and gone to seed, windrows on a field cut this
  * week, a pasture tufted and worn along the cattle's paths. Flowers in
- * drifts of one colour where the paint puts its flower patches.
+ * drifts of one colour where the paint puts its flower patches. What the
+ * mower leaves, the road's verge past its cut shoulder and a metre either
+ * side of the line between two fields, stands waist high in seeding
+ * grass with hogweed, dock, nettles and knapweed through it.
  *
  * The cards' normals are the ground's, tipped a little toward the card:
  * lit like the turf it stands in rather than like a stack of paper.
@@ -47,13 +50,21 @@
 
 import * as THREE from 'three';
 import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
-import { LAKE_Y, STRIP_L, STRIP_W, TREE_LINE, SNOW_LINE, forestDensity, treeLine } from '../../alps/terrain.js';
+import {
+  LAKE_Y, STRIP_L, STRIP_W, TREE_LINE, SNOW_LINE, forestDensity, treeLine, valleyAxis,
+} from '../../alps/terrain.js';
 import { ALPHA_CUT, GRASS_REGIONS } from './atlas.js';
 import { LEAF_SPEC_GLSL } from './plantmat.js';
 import { MEADOW_GLSL } from '../ground.js';
-import { meadowField, s2Noise, beachTop } from './zones.js';
+import {
+  meadowField, s2Noise, beachTop, ROAD_DX, ROAD_END,
+} from './zones.js';
 
-const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3'];
+const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3', 'weed0', 'weed1', 'weed2', 'weed3'];
+const WEED0 = REGION_KEYS.indexOf('weed0');
+/* Added to a clump's region where it stands in a margin the mower
+ * leaves, so the shader does not cut it with the field round it. */
+const UNMOWN = 16;
 /* Floats per clump: x, y, z, yaw, height, width, region, tint. */
 const STRIDE = 8;
 
@@ -90,6 +101,22 @@ function clumpGeometry() {
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
   g.setIndex(idx);
   return g;
+}
+
+/* The verge's mown shoulder, from the road's middle: to VERGE[0] cut
+ * short, from there to VERGE[1] left to grow. */
+const VERGE = [4.9, 8.5];
+
+/* How far (x, z) is from the nearest of `lines` ({ ax, az, bx, bz }). */
+function fenceDist(x, z, lines) {
+  let best = Infinity;
+  for (const l of lines) {
+    const dx = l.bx - l.ax;
+    const dz = l.bz - l.az;
+    const t = Math.max(0, Math.min(1, ((x - l.ax) * dx + (z - l.az) * dz) / (dx * dx + dz * dz)));
+    best = Math.min(best, Math.hypot(x - l.ax - dx * t, z - l.az - dz * t));
+  }
+  return best;
 }
 
 /*
@@ -184,10 +211,32 @@ function coverAt(x, z, heightAt, layout) {
   const hue = noise2(x / 71 + 1.1, z / 71 + 7.3);
   const tone = hue < 0.4 ? 0 : hue < 0.52 ? 1 : hue < 0.64 ? 2 : 3;
   const flowering = kind === 'uncut' ? 1 : kind === 'pasture' ? 0.55 : kind === 'regrown' ? 0.5 : kind === 'cut' ? 0.15 : 0.2;
-  return {
-    p, h, bloom: (0.2 + 0.8 * drift) * flowering, tone, seeds, pasture: kind === 'pasture', forest,
+  const cover = {
+    p, h, bloom: (0.2 + 0.8 * drift) * flowering, tone, seeds, pasture: kind === 'pasture', forest, weeds: 0, unmown: false,
   };
+  /* What the mower leaves: the road's verge past the strip mown at the
+   * tarmac's edge, and a metre either side of the line between two
+   * fields (under the fence, where there is one). Both stand knee to
+   * waist high in seeding grass, with the verge's weeds through it:
+   * hogweed and cow parsley, dock, nettles, knapweed. */
+  const roadOff = Math.abs(x - (valleyAxis(z) + ROAD_DX));
+  const verge = z > -2720 && z < ROAD_END + 4 && roadOff < VERGE[1] ? smoothstep(VERGE[0], VERGE[0] + 0.8, roadOff) : 0;
+  const edge = Math.min(field ? field.edge : Infinity, fenceDist(x, z, layout.margins || []));
+  const margin = field && field.plateau < 0.2 && !layout.lakeWet(x, z) ? 1 - smoothstep(0.6, 1.2, edge) : 0;
+  const wild = Math.max(verge, margin) * (1 - forest);
+  if (wild > 0.5) {
+    cover.h = Math.max(h, 0.55 + 0.25 * noise2(x / 9 + 1.7, z / 9 + 4.1));
+    cover.seeds = 0.12;
+    cover.weeds = 0.28 * smoothstep(0.4, 0.75, noise2(x / 13 + 5.5, z / 13 + 2.2) + 0.25);
+    cover.bloom = Math.max(cover.bloom, 0.35);
+    cover.unmown = true;
+  } else if (z > -2720 && z < ROAD_END + 4 && roadOff < VERGE[0] + 0.8) {
+    cover.h = 0.22;
+    cover.seeds = 0;
+  }
+  return cover;
 }
+
 
 /* A tile's clumps. `wide` scales the clumps' width, for the middle
  * distance's layer, whose clumps stand for a patch of meadow each. */
@@ -213,11 +262,17 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
         tone = t < 0.4 ? 0 : t < 0.75 ? 1 : t < 0.92 ? 2 : 3;
       }
       const hay = rng() < c.seeds;
-      const region = flower ? 6 + tone : hay ? 4 + Math.floor(rng() * 2) : Math.floor(rng() * 4);
-      const h = (flower ? Math.max(0.3, c.h * 1.05) : c.h) * (0.7 + rng() * 0.6);
-      const w = (flower ? 0.45 : 0.85 + rng() * 0.45) * wide;
+      const weed = !flower && rng() < c.weeds;
+      let region = flower ? 6 + tone : hay ? 4 + Math.floor(rng() * 2) : Math.floor(rng() * 4);
+      let h = (flower ? Math.max(0.3, c.h * 1.05) : c.h) * (0.7 + rng() * 0.6);
+      let w = (flower ? 0.45 : 0.85 + rng() * 0.45) * wide;
+      if (weed) {
+        region = WEED0 + Math.floor(rng() * 4);
+        h = 0.85 + 0.65 * rng();
+        w = (0.5 + 0.25 * rng()) * wide;
+      }
       const tint = (0.82 + rng() * 0.3) * (1 - 0.3 * c.forest);
-      out.push(x, heightAt(x, z) - 0.03, z, rng() * Math.PI * 2, h, w, region, tint);
+      out.push(x, heightAt(x, z) - 0.03, z, rng() * Math.PI * 2, h, w, region + (c.unmown ? UNMOWN : 0), tint);
     }
   }
   return Float32Array.from(out);
@@ -288,7 +343,8 @@ export function buildGrass({
         varying vec3 vGrassTint;
         varying float vGrassUp;`)
       .replace('#include <uv_vertex>', `#include <uv_vertex>
-        vec4 reg = uRegions[int(aClump2.z + 0.5)];
+        float gUnmown = step(${UNMOWN - 0.5}, aClump2.z);
+        vec4 reg = uRegions[int(aClump2.z - ${UNMOWN}.0 * gUnmown + 0.5)];
         vMapUv = reg.xy + uv * reg.zw;`)
       .replace('#include <beginnormal_vertex>', `
         float gc = cos(aClump.w);
@@ -304,7 +360,7 @@ export function buildGrass({
          * and on the valley floor cut short where the field is mown. */
         S2Meadow field = s2Meadow(aClump.xz, gDist);
         float farmed = 1.0 - smoothstep(50.0, 140.0, aClump.y);
-        grow *= mix(1.0, 0.32, field.mown * farmed);
+        grow *= mix(1.0, 0.32, field.mown * farmed * (1.0 - gUnmown));
         vec3 p = position * vec3(aClump2.y, aClump2.x * grow, aClump2.y);
         vec3 transformed = aClump.xyz + vec3(gc * p.x + gs * p.z, p.y, -gs * p.x + gc * p.z);
         /* Wind: waves of gusts rolling across the meadow downwind, the

@@ -101,7 +101,10 @@ const FOLIAGE_RECTS = {
   beech: [0, 1024, 1024, 1024],
   maple: [1024, 1024, 1024, 1024],
 };
-const GRASS_PX = 1024;
+/* The grass atlas is 1024 wide and 1536 high: the meadow's clumps and
+ * flowers in the top 1024, and under them the tall weeds of a verge or a
+ * field's unmown margin, each a card twice as high as it is wide. */
+const GRASS_PX = [1024, 1536];
 const GRASS_RECTS = {
   clump0: [0, 0, 512, 256],
   clump1: [512, 0, 512, 256],
@@ -113,18 +116,22 @@ const GRASS_RECTS = {
   flower1: [256, 768, 256, 256],
   flower2: [512, 768, 256, 256],
   flower3: [768, 768, 256, 256],
+  weed0: [0, 1024, 256, 512],
+  weed1: [256, 1024, 256, 512],
+  weed2: [512, 1024, 256, 512],
+  weed3: [768, 1024, 256, 512],
 };
 
 /* A rectangle in pixels as a uv rectangle with v up: u0, v0 at the
- * region's bottom left, and its size. */
-function uvRects(rects, px) {
+ * region's bottom left, and its size, on an atlas [pw, ph] pixels. */
+function uvRects(rects, [pw, ph]) {
   const out = {};
   for (const [k, [x, y, w, h]] of Object.entries(rects)) {
-    out[k] = { u0: x / px, v0: 1 - (y + h) / px, du: w / px, dv: h / px };
+    out[k] = { u0: x / pw, v0: 1 - (y + h) / ph, du: w / pw, dv: h / ph };
   }
   return out;
 }
-export const REGIONS = uvRects(FOLIAGE_RECTS, FOLIAGE_PX);
+export const REGIONS = uvRects(FOLIAGE_RECTS, [FOLIAGE_PX, FOLIAGE_PX]);
 export const GRASS_REGIONS = uvRects(GRASS_RECTS, GRASS_PX);
 
 function loadImage(url) {
@@ -382,9 +389,12 @@ function curtain(ctx, photo, rect, seed) {
   ctx.restore();
 }
 
-/* A cluster of leaves on twigs fanning up from the bottom middle of
- * rect. `lobed` draws a five lobed maple leaf by clipping the leaf
- * photograph to that outline. */
+/* A leafy spray: a twig up the middle of rect from its bottom edge with
+ * side twigs forking off it, and leaves set alternately along all of
+ * them, so the card is a spray with light between its twigs rather than
+ * a mat. Each leaf takes one of `spec.tones` filters, lighter or darker,
+ * as leaves turned more or less to the light are. `lobed` draws a five
+ * lobed maple leaf by clipping the leaf photograph to that outline. */
 function leafCluster(ctx, photo, rect, spec, seed) {
   const rng = makeRng(seed);
   const [x, y, w, h] = rect;
@@ -392,32 +402,44 @@ function leafCluster(ctx, photo, rect, spec, seed) {
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  const twigs = [];
-  for (let k = 0; k < 7; k += 1) {
-    const a = -1.2 + (2.4 * k) / 6 + (rng() - 0.5) * 0.25;
-    const len = h * (0.55 + rng() * 0.35);
-    const x0 = x + w / 2;
-    const y0 = y + h - 4;
-    const x1 = x0 + Math.sin(a) * len;
-    const y1 = y0 - Math.cos(a) * len;
-    stem(ctx, x0, y0, x1, y1, 7, 2, '#5d5347', rng);
-    twigs.push([x0, y0, x1, y1, a]);
+  const x0 = x + w / 2;
+  const y0 = y + h - 4;
+  const twigs = [[x0, y0, x0 + (rng() - 0.5) * w * 0.1, y + h * 0.06, 0]];
+  stem(ctx, ...twigs[0].slice(0, 4), 9, 2, '#554b40', rng);
+  for (let k = 0; k < spec.sides; k += 1) {
+    const t = 0.12 + (0.7 * k) / spec.sides + rng() * 0.05;
+    const side = k % 2 === 0 ? -1 : 1;
+    const a = side * (0.55 + rng() * 0.45);
+    const bx = x0 + (twigs[0][2] - x0) * t;
+    const by = y0 + (twigs[0][3] - y0) * t;
+    const len = h * (0.52 - 0.3 * t) * (0.85 + rng() * 0.3);
+    const ex = bx + Math.sin(a) * len;
+    const ey = by - Math.cos(a) * len;
+    stem(ctx, bx, by, ex, ey, 5, 1.5, '#554b40', rng);
+    twigs.push([bx, by, ex, ey, a]);
   }
-  const leaves = tint(photo, spec.filter);
-  for (let k = 0; k < spec.count; k += 1) {
-    const [x0, y0, x1, y1, a] = twigs[k % twigs.length];
-    const t = 0.25 + 0.75 * rng();
-    const px = x0 + (x1 - x0) * t;
-    const py = y0 + (y1 - y0) * t;
-    const side = rng() < 0.5 ? -1 : 1;
-    const ang = a + side * (0.5 + rng() * 0.9);
-    const len = spec.leafLen * (0.75 + rng() * 0.4) * (1.1 - 0.3 * t);
-    const box = LEAVES[Math.floor(rng() * LEAVES.length)];
-    if (spec.lobed) {
-      mapleLeaf(ctx, leaves, box, px, py, ang, len, rng);
-    } else {
-      stamp(ctx, leaves, box, px, py, ang, len, rng() < 0.5);
+  const tones = spec.tones.map((f) => tint(photo, f));
+  for (const [tx0, ty0, tx1, ty1, a] of twigs) {
+    const tlen = Math.hypot(tx1 - tx0, ty1 - ty0);
+    const n = Math.round(tlen / (spec.leafLen * 0.27));
+    for (let k = 0; k < n; k += 1) {
+      const t = 0.12 + (0.88 * (k + rng() * 0.5)) / n;
+      const px = tx0 + (tx1 - tx0) * t;
+      const py = ty0 + (ty1 - ty0) * t;
+      const side = k % 2 === 0 ? -1 : 1;
+      const ang = a + side * (0.7 + rng() * 0.5);
+      const len = spec.leafLen * (0.7 + rng() * 0.4) * (1.1 - 0.35 * t);
+      const box = LEAVES[Math.floor(rng() * LEAVES.length)];
+      const leaves = tones[Math.floor(rng() * tones.length)];
+      if (spec.lobed) {
+        mapleLeaf(ctx, leaves, box, px, py, ang, len, rng);
+      } else {
+        stamp(ctx, leaves, box, px, py, ang, len, rng() < 0.5);
+      }
     }
+    /* A leaf at the tip, pointing on. */
+    const box = LEAVES[Math.floor(rng() * LEAVES.length)];
+    stamp(ctx, tones[0], box, tx1, ty1, a, spec.leafLen * 0.7, rng() < 0.5);
   }
   ctx.restore();
 }
@@ -629,6 +651,158 @@ function flowers(ctx, rect, kind, seed) {
 }
 
 /*
+ * The tall weeds of a Swiss verge and field margin in summer, each in a
+ * rect twice as high as wide, rooted on its bottom edge.
+ *
+ * Hogweed and cow parsley: a few stout stems to near the top, each
+ * opening into a flat topped umbel of white florets on rays, with the
+ * divided leaves low down.
+ */
+function umbellifer(ctx, leaves, rect, seed) {
+  const rng = makeRng(seed);
+  const [x, y, w, h] = rect;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  const leaf = tint(leaves, 'brightness(0.62) saturate(1.2) hue-rotate(18deg)');
+  for (let k = 0; k < 3; k += 1) {
+    const bx = x + w * (0.3 + 0.4 * rng());
+    const tx = bx + (rng() - 0.5) * w * 0.35;
+    const ty = y + h * (0.08 + 0.25 * rng());
+    stem(ctx, bx, y + h, tx, ty + 10, 5, 3, '#5f7340', rng);
+    for (let q = 0; q < 4; q += 1) {
+      const t = 0.15 + 0.3 * rng();
+      const lx = bx + (tx - bx) * t;
+      const ly = y + h - (y + h - ty) * t;
+      stamp(ctx, leaf, LEAVES[Math.floor(rng() * LEAVES.length)], lx, ly, (rng() < 0.5 ? -1 : 1) * (0.9 + rng() * 0.6), 40 + rng() * 30, rng() < 0.5);
+    }
+    /* The rays, then an umbellet at the end of each, in a shallow dome. */
+    const R = w * (0.13 + 0.06 * rng());
+    const rays = 11 + Math.floor(rng() * 6);
+    for (let r = 0; r < rays; r += 1) {
+      const u = ((r + rng()) / rays) * 2 - 1;
+      const ex = tx + u * R;
+      const ey = ty - R * 0.12 - Math.sqrt(1 - u * u) * R * 0.3 * (0.4 + 0.6 * rng());
+      ctx.strokeStyle = '#6d8048';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty + 10);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      for (let f = 0; f < 16; f += 1) {
+        ctx.fillStyle = `hsl(${50 + rng() * 20}, ${12 + rng() * 10}%, ${84 + rng() * 12}%)`;
+        ctx.beginPath();
+        ctx.arc(ex + (rng() - 0.5) * 14, ey + (rng() - 0.5) * 8, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+/* Broad leaved dock, the weed every Swiss farmer pulls: big leaves at
+ * the root and tall stems of rust brown seed whorls. */
+function dock(ctx, leaves, rect, seed) {
+  const rng = makeRng(seed);
+  const [x, y, w, h] = rect;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  for (let k = 0; k < 2; k += 1) {
+    const bx = x + w * (0.35 + 0.3 * rng());
+    const tx = bx + (rng() - 0.5) * 40;
+    const ty = y + h * (0.05 + 0.2 * rng());
+    stem(ctx, bx, y + h, tx, ty, 4, 2, '#6a4a30', rng);
+    for (let g = 0; g < 40; g += 1) {
+      const t = rng() * 0.55;
+      const gx = tx + (bx - tx) * t + (rng() - 0.5) * 18 * (1 - t);
+      const gy = ty + (y + h - ty) * t;
+      ctx.fillStyle = `hsl(${12 + rng() * 16}, ${40 + rng() * 20}%, ${24 + rng() * 14}%)`;
+      ctx.beginPath();
+      ctx.ellipse(gx, gy, 3.4, 2.4, rng(), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  const leaf = tint(leaves, 'brightness(0.66) saturate(1.1) hue-rotate(8deg)');
+  for (let k = 0; k < 7; k += 1) {
+    const a = (rng() - 0.5) * 2.4;
+    stamp(ctx, leaf, LEAVES[Math.floor(rng() * LEAVES.length)], x + w * (0.4 + 0.2 * rng()), y + h - 2, a, h * (0.28 + 0.12 * rng()), rng() < 0.5, 1.3);
+  }
+  ctx.restore();
+}
+
+/* Stinging nettles, in a patch: upright stems set with pairs of dark,
+ * narrowing leaves. */
+function nettle(ctx, leaves, rect, seed) {
+  const rng = makeRng(seed);
+  const [x, y, w, h] = rect;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  const shades = ['brightness(0.5) saturate(1.3) hue-rotate(22deg)', 'brightness(0.62) saturate(1.25) hue-rotate(20deg)'].map((f) => tint(leaves, f));
+  for (let k = 0; k < 6; k += 1) {
+    const bx = x + w * (0.15 + 0.7 * rng());
+    const tx = bx + (rng() - 0.5) * 30;
+    const ty = y + h * (0.12 + 0.35 * rng());
+    stem(ctx, bx, y + h, tx, ty, 3.5, 1.5, '#4b5a30', rng);
+    for (let t = 0.1; t < 0.98; t += 0.09 + 0.03 * rng()) {
+      const px = bx + (tx - bx) * t;
+      const py = y + h - (y + h - ty) * t;
+      const len = 74 * (1.1 - 0.6 * t);
+      for (const side of [-1, 1]) {
+        stamp(ctx, shades[Math.floor(rng() * 2)], LEAVES[Math.floor(rng() * LEAVES.length)], px, py, side * (1.0 + rng() * 0.5), len, side < 0);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+/* The tall flowers of a margin left uncut: knapweed and field scabious
+ * over the seeding grass, and yarrow's small white heads. */
+function tallFlowers(ctx, rect, seed) {
+  const rng = makeRng(seed);
+  const [x, y, w, h] = rect;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  for (let k = 0; k < 9; k += 1) {
+    const bx = x + w * (0.1 + 0.8 * rng());
+    const tx = bx + (rng() - 0.5) * 50;
+    const ty = y + h * (0.1 + 0.4 * rng());
+    ctx.strokeStyle = '#5b7236';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bx, y + h);
+    ctx.quadraticCurveTo(bx, (ty + y + h) / 2, tx, ty);
+    ctx.stroke();
+    const kind = k % 3;
+    if (kind === 0) {
+      ctx.fillStyle = `hsl(${295 + rng() * 20}, 45%, ${40 + rng() * 10}%)`;
+      ctx.beginPath();
+      ctx.ellipse(tx, ty, 8, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 1) {
+      ctx.fillStyle = `hsl(${250 + rng() * 20}, 40%, ${66 + rng() * 10}%)`;
+      ctx.beginPath();
+      ctx.ellipse(tx, ty, 11, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      for (let f = 0; f < 16; f += 1) {
+        ctx.fillStyle = `hsl(60, 10%, ${86 + rng() * 10}%)`;
+        ctx.beginPath();
+        ctx.arc(tx + (rng() - 0.5) * 22, ty + (rng() - 0.5) * 6, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+/*
  * Load the photographs and compose both atlases, and the conifer bark.
  * Returns { foliage, grass, bark: { map, normalMap } } as textures,
  * ready for materials; dispose() frees them all.
@@ -653,15 +827,20 @@ export async function loadAtlases() {
     curtain(ctx, twig, R.curtain, 41);
     barkStrip(ctx, R.bark, 43);
     leafCluster(ctx, leaves, R.beech, {
-      count: 150, leafLen: 150, filter: 'brightness(0.85) saturate(1.15) hue-rotate(10deg)',
+      sides: 7,
+      leafLen: 120,
+      tones: ['brightness(1.0) saturate(1.15) hue-rotate(10deg)', 'brightness(0.84) saturate(1.15) hue-rotate(12deg)', 'brightness(0.7) saturate(1.1) hue-rotate(14deg)', 'brightness(1.12) saturate(1.05) hue-rotate(6deg)'],
     }, 53);
     leafCluster(ctx, leaves, R.maple, {
-      count: 160, leafLen: 150, lobed: true, filter: 'brightness(0.8) saturate(1.2) hue-rotate(16deg)',
+      sides: 6,
+      leafLen: 150,
+      lobed: true,
+      tones: ['brightness(0.92) saturate(1.2) hue-rotate(16deg)', 'brightness(0.78) saturate(1.2) hue-rotate(18deg)', 'brightness(0.66) saturate(1.15) hue-rotate(20deg)', 'brightness(1.05) saturate(1.1) hue-rotate(12deg)'],
     }, 59);
   });
   const G = GRASS_RECTS;
   const kinds = ['buttercup', 'daisy', 'clover', 'harebell', 'umbel'];
-  const grassCanvas = flatten(GRASS_PX, GRASS_PX, '#3e5226', (ctx) => {
+  const grassCanvas = flatten(GRASS_PX[0], GRASS_PX[1], '#3e5226', (ctx) => {
     for (let k = 0; k < 6; k += 1) {
       clump(ctx, blades, G[`clump${k}`], 101 + k * 7, k < 3 ? 0.02 : 0.06);
     }
@@ -675,6 +854,15 @@ export async function loadAtlases() {
         flowers(ctx, G[`flower${k}`], kinds[4], 311);
       }
     }
+    clump(ctx, blades, G.weed0, 401, 0.08);
+    umbellifer(ctx, leaves, G.weed0, 411);
+    clump(ctx, blades, G.weed1, 403, 0.12);
+    dock(ctx, leaves, G.weed1, 413);
+    clump(ctx, blades, G.weed2, 405, 0.05);
+    nettle(ctx, leaves, G.weed2, 417);
+    clump(ctx, blades, G.weed3, 407, 0.15);
+    seedHeads(ctx, G.weed3, 419);
+    tallFlowers(ctx, G.weed3, 421);
   });
   const foliage = mippedTexture(foliageCanvas);
   const grass = mippedTexture(grassCanvas, 1.4);

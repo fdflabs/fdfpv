@@ -324,7 +324,7 @@ export function valleyLayout(heightAt, footprints = []) {
     if (Math.abs(x) < STRIP_W / 2 + 1.5 && Math.abs(z) < STRIP_L / 2 + 4) {
       return true;
     }
-    const road = z > -2720 && z < ROAD_END + 4 && Math.abs(x - (valleyAxis(z) + ROAD_DX)) < 4.6;
+    const road = z > -2720 && z < ROAD_END + 4 && Math.abs(x - (valleyAxis(z) + ROAD_DX)) < 3.7;
     if (road || (Math.abs(z - STREET_Z) < 3.6 && x < valleyAxis(STREET_Z) + ROAD_DX && x > SQUARE.x)) {
       return true;
     }

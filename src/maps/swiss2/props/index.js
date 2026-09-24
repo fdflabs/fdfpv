@@ -28,18 +28,31 @@
  *   and in its sheltered corners, dense where nature.js's reeds are
  *   scattered clumps.
  *
- * The huts, the bales, the bars and the reeds are one static mesh (a few
- * hundred huts and bales at a few tens of triangles apiece, the reeds a
- * blade two triangles); the fences are an instanced span of two posts
- * and two rails, refilled from the spans near the camera and in its view
- * as the trees are, since a valley of fence posts is tens of thousands
- * of triangles and a post is under a pixel past a few hundred metres.
+ *   THE ROADSIDE: a delineator post either side of the valley road
+ *   every fifty metres.
+ *
+ *   Two places set by hand, as a farm's things are, where the lake-shore
+ *   and farm-low views stand: at the road's end by the lake a fence
+ *   along the verge with a gate, a stack of logs under a lean of tin, a
+ *   hay hut, a yellow hiking signpost and a boat shed in the reeds; on
+ *   the floor west of the strip a pasture fence with a gate and a stack
+ *   of logs. Their fence lines are handed to the grass (`margins`),
+ *   which leaves them long.
+ *
+ * The huts, the bales, the bars, the reeds and the roadside are one
+ * static mesh (a few hundred huts and bales at a few tens of triangles
+ * apiece, the reeds a blade two triangles); the fences are an instanced
+ * span of two posts and two rails, refilled from the spans near the
+ * camera and in its view as the trees are, since a valley of fence posts
+ * is tens of thousands of triangles and a post is under a pixel past a
+ * few hundred metres.
  * Two draws in all (and the same two in each shadow map), which the
  * rocks paid for (vegetation/rocks.js), with one vertex coloured
  * material (propMaterial says why). What a craft can hit has a collider,
  * within 700 m of the strip as nature.js's have: a hut its box (noted
  * as a wall, so the meadow keeps off it and the ground under it is the
- * village's), a bale a sphere, a fence span a capsule.
+ * village's), a bale a sphere, a fence span, a gate and a delineator a
+ * capsule, a stack of logs a box.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -63,7 +76,7 @@ import {
   HALF, LAKE_Y, LAKE_N, TREE_LINE, forestDensity, valleyAxis,
 } from '../../alps/terrain.js';
 import {
-  valleyLayout, meadowField, meadowCuts, lakeShore, jettyClear, ROAD_DX, ROAD_END,
+  valleyLayout, meadowField, meadowCuts, lakeShore, jettyClear, ROAD_DX, ROAD_END, STREET_Z,
 } from '../vegetation/zones.js';
 import { gravelBarGeometry } from '../water/stream.js';
 
@@ -311,6 +324,238 @@ function reedClump(m, rng, x, y, z, s) {
   }
 }
 
+/* A box with its centre at c, its axes ex, ey, ez (unit) and half sizes
+ * hx, hy, hz, wound to face out. `tones` shades its six faces from one
+ * colour, the top lightest. */
+function box(m, c, ex, ey, ez, hx, hy, hz, colour, tones = [0.92, 0.92, 1.05, 0.7, 0.86, 0.86]) {
+  const at = (a, b, d) => c.clone().addScaledVector(ex, a * hx).addScaledVector(ey, b * hy).addScaledVector(ez, d * hz);
+  const faces = [
+    [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]],
+    [[-1, -1, 1], [-1, 1, 1], [-1, 1, -1], [-1, -1, -1]],
+    [[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1]],
+    [[-1, -1, 1], [-1, -1, -1], [1, -1, -1], [1, -1, 1]],
+    [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]],
+    [[1, -1, -1], [-1, -1, -1], [-1, 1, -1], [1, 1, -1]],
+  ];
+  faces.forEach((f, k) => {
+    m.quad(...f.map((q) => at(...q)), shade(colour, tones[k]));
+  });
+}
+
+/* The frame (ex along the ground, ez across, ey up) of a thing standing
+ * at yaw. */
+const frame = (yaw) => [new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw)), UP.clone(), new THREE.Vector3(-Math.sin(yaw), 0, Math.cos(yaw))];
+
+/* A log from a to b, r thick: `sides` of bark and two cut ends, the ends
+ * the pale wood of a freshly split stack. */
+function log(m, a, b, r, rng) {
+  const axis = b.clone().sub(a).normalize();
+  let u = new THREE.Vector3().crossVectors(axis, UP);
+  u = u.lengthSq() < 1e-6 ? new THREE.Vector3(1, 0, 0) : u.normalize();
+  const v = new THREE.Vector3().crossVectors(u, axis);
+  const sides = 6;
+  const turn = rng() * Math.PI;
+  const ring = (c, k) => {
+    const t = turn + (k / sides) * Math.PI * 2;
+    return c.clone().addScaledVector(u, Math.cos(t) * r).addScaledVector(v, Math.sin(t) * r);
+  };
+  const bark = shade(LOG_BARK, 0.8 + 0.4 * rng());
+  const wood = shade(LOG_END, 0.8 + 0.35 * rng());
+  for (let k = 0; k < sides; k += 1) {
+    m.quad(ring(a, k), ring(a, k + 1), ring(b, k + 1), ring(b, k), bark);
+    m.tri(a, ring(a, k + 1), ring(a, k), wood);
+    m.tri(b, ring(b, k), ring(b, k + 1), wood);
+  }
+}
+
+const LOG_BARK = [0.06, 0.045, 0.032];
+const LOG_END = [0.42, 0.3, 0.17];
+const POST_WHITE = [0.62, 0.62, 0.6];
+const HIKING_YELLOW = [0.78, 0.5, 0.02];
+
+/*
+ * A stack of firewood against the weather, the Holzbeige every farm
+ * keeps by a fence or a hut: split logs a metre long laid across the
+ * stack's length, their ends out, on two rails, under a lean of tin on
+ * four posts. At (x, z), `len` long along yaw.
+ */
+function logStack(m, heightAt, rng, { x, z, yaw, len, high }) {
+  const [ex, ey, ez] = frame(yaw);
+  const y0 = Math.max(...[-1, 1].map((s) => heightAt(x + ex.x * s * len * 0.5, z + ex.z * s * len * 0.5))) + 0.12;
+  const at = (a, b, d) => new THREE.Vector3(x, y0, z).addScaledVector(ex, a).addScaledVector(ey, b).addScaledVector(ez, d);
+  for (const d of [-0.35, 0.35]) {
+    box(m, at(0, -0.06, d), ex, ey, ez, len / 2 + 0.1, 0.07, 0.07, LOG_BARK);
+  }
+  for (let y = 0.05; y < high; ) {
+    const r = 0.08 + 0.05 * rng();
+    for (let a = -len / 2 + r; a < len / 2 - r; a += 2 * r * (1 + 0.1 * rng())) {
+      const rr = r * (0.85 + 0.3 * rng());
+      const off = (rng() - 0.5) * 0.08;
+      log(m, at(a, y + rr, -0.5 + off), at(a, y + rr, 0.5 + off), rr, rng);
+    }
+    y += 2 * r * 0.92;
+  }
+  /* The lean of tin, falling toward +ez, on a post at each corner. */
+  const top = high + 0.35;
+  const fall = 0.12;
+  for (const a of [-len / 2 - 0.05, len / 2 + 0.05]) {
+    for (const d of [-0.55, 0.55]) {
+      const post = top + (d < 0 ? fall : 0) + 0.1;
+      box(m, at(a, post / 2 - 0.1, d), ex, ey, ez, 0.05, post / 2, 0.05, LOG_BARK);
+    }
+  }
+  const roof = [0.2, 0.2, 0.21];
+  const e = len / 2 + 0.3;
+  m.quad(at(-e, top + fall, -0.8), at(e, top + fall, -0.8), at(e, top, 0.8), at(-e, top, 0.8), shade(roof, 0.35));
+  m.quad(at(-e, top - 0.02, 0.8), at(e, top - 0.02, 0.8), at(e, top + fall - 0.02, -0.8), at(-e, top + fall - 0.02, -0.8), shade(roof, 0.9));
+  return { top: y0 + top + 0.2, low: y0 - 0.2 };
+}
+
+/* A field gate, closed, between two stout posts `w` apart along yaw:
+ * five boards and a brace. */
+function gate(m, heightAt, { x, z, yaw, w }) {
+  const [ex, ey, ez] = frame(yaw);
+  const y0 = heightAt(x, z);
+  const at = (a, b) => new THREE.Vector3(x, y0, z).addScaledVector(ex, a).addScaledVector(ey, b);
+  for (const a of [-w / 2, w / 2]) {
+    box(m, at(a, 0.55), ex, ey, ez, 0.09, 0.8, 0.09, FENCE);
+  }
+  const boards = shade(FENCE, 1.9);
+  for (let k = 0; k < 5; k += 1) {
+    box(m, at(0, 0.22 + k * 0.23), ex, ey, ez, w / 2 - 0.1, 0.045, 0.025, shade(boards, 0.9 + 0.08 * (k % 2)));
+  }
+  const b0 = at(-w / 2 + 0.15, 0.22);
+  const b1 = at(w / 2 - 0.15, 1.14);
+  const mid = b0.clone().add(b1).multiplyScalar(0.5);
+  const along = b1.clone().sub(b0);
+  const half = along.length() / 2;
+  along.normalize();
+  const upv = new THREE.Vector3().crossVectors(ez, along).normalize();
+  box(m, mid.addScaledVector(ez, 0.05), along, upv, ez, half, 0.045, 0.025, boards);
+}
+
+/* A delineator post at the road's edge, the Swiss kind: a white post a
+ * metre high, black at the top with its reflector facing the traffic. */
+function delineator(m, heightAt, { x, z, yaw }) {
+  const [ex, ey, ez] = frame(yaw);
+  const y0 = heightAt(x, z);
+  box(m, new THREE.Vector3(x, y0 + 0.4, z), ex, ey, ez, 0.06, 0.4, 0.05, POST_WHITE);
+  box(m, new THREE.Vector3(x, y0 + 0.92, z), ex, ey, ez, 0.06, 0.12, 0.05, [0.012, 0.012, 0.012]);
+  for (const s of [-1, 1]) {
+    const c = new THREE.Vector3(x, y0 + 0.93, z).addScaledVector(ex, s * 0.062);
+    m.quad(
+      c.clone().addScaledVector(ez, s * 0.03).addScaledVector(ey, -0.06),
+      c.clone().addScaledVector(ez, -s * 0.03).addScaledVector(ey, -0.06),
+      c.clone().addScaledVector(ez, -s * 0.03).addScaledVector(ey, 0.06),
+      c.clone().addScaledVector(ez, s * 0.03).addScaledVector(ey, 0.06),
+      [0.7, 0.3, 0.02],
+    );
+  }
+  return y0;
+}
+
+/* A yellow hiking signpost, as at every Swiss junction of paths: a grey
+ * pole with its arrows pointing the ways, `arms` their yaws. */
+function signpost(m, heightAt, { x, z, arms }) {
+  const y0 = heightAt(x, z);
+  const [ex, ey, ez] = frame(0);
+  box(m, new THREE.Vector3(x, y0 + 1.3, z), ex, ey, ez, 0.04, 1.3, 0.04, [0.2, 0.2, 0.2]);
+  arms.forEach((yaw, k) => {
+    const [ax, ay, az] = frame(yaw);
+    const y = y0 + 2.35 - k * 0.2;
+    const c = new THREE.Vector3(x, y, z).addScaledVector(ax, 0.36);
+    box(m, c, ax, ay, az, 0.32, 0.075, 0.012, HIKING_YELLOW, [1, 1, 1, 0.7, 1, 1]);
+    /* The point, a wedge at the arrow's end. */
+    const tip = c.clone().addScaledVector(ax, 0.44);
+    const hi = c.clone().addScaledVector(ax, 0.32).addScaledVector(ay, 0.075);
+    const lo = c.clone().addScaledVector(ax, 0.32).addScaledVector(ay, -0.075);
+    m.tri(lo, tip, hi, HIKING_YELLOW);
+    m.tri(hi, tip, lo, HIKING_YELLOW);
+    /* The white field with the black lettering, as a darker band. */
+    const f = c;
+    for (const s of [1, -1]) {
+      const o = az.clone().multiplyScalar(0.014 * s);
+      const q = [
+        f.clone().addScaledVector(ax, -0.24).addScaledVector(ay, -0.03).add(o),
+        f.clone().addScaledVector(ax, 0.2).addScaledVector(ay, -0.03).add(o),
+        f.clone().addScaledVector(ax, 0.2).addScaledVector(ay, 0.03).add(o),
+        f.clone().addScaledVector(ax, -0.24).addScaledVector(ay, 0.03).add(o),
+      ];
+      m.quad(...(s > 0 ? q : q.reverse()), [0.05, 0.04, 0.02]);
+    }
+  });
+  box(m, new THREE.Vector3(x, y0 + 2.62, z), ex, ey, ez, 0.12, 0.06, 0.012, [0.7, 0.7, 0.68]);
+  return y0;
+}
+
+/*
+ * A boat shed at the water, its gable to the lake: a timber box on piles
+ * with its lake end open over a slip. At (x, z) on the shore, its length
+ * along `yaw` pointing out over the water.
+ */
+function boatShed(m, heightAt, rng, { x, z, yaw, len, w, h }) {
+  const [ex, ey, ez] = frame(yaw);
+  const y0 = Math.max(LAKE_Y + 0.6, heightAt(x, z) + 0.1);
+  const at = (a, b, d) => new THREE.Vector3(x, y0, z).addScaledVector(ex, a).addScaledVector(ey, b).addScaledVector(ez, d);
+  const wall = [0.07, 0.048, 0.032];
+  /* The piles, down into the lake bed. */
+  for (let a = -len / 2; a <= len / 2 + 0.01; a += len / 4) {
+    for (const d of [-w / 2, w / 2]) {
+      const p = at(a, 0, d);
+      const bed = Math.min(heightAt(p.x, p.z), y0) - 0.8;
+      box(m, new THREE.Vector3(p.x, (bed + y0) / 2, p.z), ex, ey, ez, 0.11, (y0 - bed) / 2, 0.11, shade(wall, 0.7));
+    }
+  }
+  /* The side walls and the landward gable in boards, the lake end open
+   * down to a lintel. */
+  const rows = Math.round(h / 0.28);
+  for (let r = 0; r < rows; r += 1) {
+    const ya = (h * r) / rows;
+    const yb = (h * (r + 1)) / rows;
+    const tone = shade(wall, 0.8 + 0.35 * rng());
+    m.quad(at(-len / 2, ya, w / 2), at(len / 2, ya, w / 2), at(len / 2, yb, w / 2), at(-len / 2, yb, w / 2), tone);
+    m.quad(at(len / 2, ya, -w / 2), at(-len / 2, ya, -w / 2), at(-len / 2, yb, -w / 2), at(len / 2, yb, -w / 2), tone);
+    m.quad(at(-len / 2, ya, -w / 2), at(-len / 2, ya, w / 2), at(-len / 2, yb, w / 2), at(-len / 2, yb, -w / 2), tone);
+    if (ya > h * 0.72) {
+      m.quad(at(len / 2, ya, w / 2), at(len / 2, ya, -w / 2), at(len / 2, yb, -w / 2), at(len / 2, yb, w / 2), tone);
+    }
+  }
+  /* The dark inside, seen through the open end. */
+  m.quad(at(-len / 2, 0, -w / 2), at(-len / 2, 0, w / 2), at(len / 2 - 0.1, 0, w / 2), at(len / 2 - 0.1, 0, -w / 2), [0.015, 0.013, 0.011]);
+  m.quad(at(-len / 2 + 0.05, 0, w / 2), at(-len / 2 + 0.05, 0, -w / 2), at(-len / 2 + 0.05, h, -w / 2), at(-len / 2 + 0.05, h, w / 2), [0.01, 0.009, 0.008]);
+  const pitch = 0.62;
+  const ridge = h + (w / 2) * Math.tan(pitch);
+  for (const a of [-len / 2, len / 2]) {
+    m.tri(at(a, h, -w / 2), at(a, ridge, 0), at(a, h, w / 2), shade(wall, 0.9));
+    m.tri(at(a, h, w / 2), at(a, ridge, 0), at(a, h, -w / 2), shade(wall, 0.9));
+  }
+  const roof = [0.1, 0.05, 0.03];
+  const o = 0.5;
+  const drop = o * Math.tan(pitch);
+  for (const s of [1, -1]) {
+    const courses = 5;
+    for (let r = 0; r < courses; r += 1) {
+      const t0 = r / courses;
+      const t1 = (r + 1) / courses;
+      const y = (t) => ridge + 0.06 + (h - drop - ridge - 0.06) * t;
+      const d = (t) => s * (w / 2 + o) * t;
+      const a = at(len / 2 + o, y(t0), d(t0));
+      const b = at(-len / 2 - o, y(t0), d(t0));
+      const c = at(-len / 2 - o, y(t1), d(t1));
+      const e = at(len / 2 + o, y(t1), d(t1));
+      const tone = shade(roof, 0.85 + 0.25 * rng());
+      if (s > 0) {
+        m.quad(a, b, c, e, tone);
+        m.quad(a, e, c, b, shade(roof, 0.4));
+      } else {
+        m.quad(b, a, e, c, tone);
+        m.quad(b, c, e, a, shade(roof, 0.4));
+      }
+    }
+  }
+  return { top: y0 + ridge + 0.2, low: y0 - 1 };
+}
+
 /*
  * Build the props. ctx: heightAt, rng, colliders, and footprints, the
  * village's walls, which the huts keep clear of.
@@ -470,6 +715,123 @@ export function buildProps(ctx) {
       }
     }
   }
+  /*
+   * THE ROADSIDE. A delineator either side of the valley road every
+   * fifty metres, as on every Swiss road outside a village.
+   */
+  const roadX = (z) => valleyAxis(z) + ROAD_DX;
+  const roadYaw = (z) => Math.atan2(1, (valleyAxis(z + 1) - valleyAxis(z - 1)) / 2);
+  let delineators = 0;
+  for (let z = -2650; z < ROAD_END - 20; z += 50) {
+    for (const s of [-1, 1]) {
+      const x = roadX(z) + s * 4.3;
+      if ((s < 0 && Math.abs(z - STREET_Z) < 14) || heightAt(x, z) > 40 || layout.solidAt(x, z)) {
+        continue;
+      }
+      const y = delineator(m, heightAt, { x, z, yaw: roadYaw(z) });
+      delineators += 1;
+      if (near(x, z)) {
+        colliders.add('pole', x, y, z, x, y + 1.04, z, 0.08);
+      }
+    }
+  }
+
+  /* A fence along `pts` (a polyline), in spans drawn with the others,
+   * and its colliders. */
+  const fenceAlong = (pts) => {
+    for (let k = 0; k + 1 < pts.length; k += 1) {
+      const a = pts[k];
+      const b = pts[k + 1];
+      const n = Math.floor(Math.hypot(b.x - a.x, b.z - a.z) / SPAN);
+      for (let q = 0; q < n; q += 1) {
+        const t0 = (q * SPAN) / Math.hypot(b.x - a.x, b.z - a.z);
+        const t1 = ((q + 1) * SPAN) / Math.hypot(b.x - a.x, b.z - a.z);
+        const ax = a.x + (b.x - a.x) * t0;
+        const az = a.z + (b.z - a.z) * t0;
+        const bx = a.x + (b.x - a.x) * t1;
+        const bz = a.z + (b.z - a.z) * t1;
+        const ay = heightAt(ax, az);
+        const by = heightAt(bx, bz);
+        spans.push({ ax, ay, az, bx, by, bz });
+        if (near((ax + bx) / 2, (az + bz) / 2)) {
+          colliders.add('pole', ax, ay + 0.75, az, bx, by + 0.75, bz, 0.35);
+        }
+      }
+    }
+  };
+  /* The hand placed fences' lines, where the grass grows long. */
+  const margins = [];
+  /* A gate and the fence either side of it along a straight line from
+   * a to b, the gate `at` (0 to 1) of the way along. */
+  const gatedFence = (a, b, at) => {
+    const len = Math.hypot(b.x - a.x, b.z - a.z);
+    const ux = (b.x - a.x) / len;
+    const uz = (b.z - a.z) / len;
+    const g = { x: a.x + ux * len * at, z: a.z + uz * len * at };
+    const w = 3.6;
+    fenceAlong([a, { x: g.x - ux * (w / 2 + 0.1), z: g.z - uz * (w / 2 + 0.1) }]);
+    fenceAlong([{ x: g.x + ux * (w / 2 + 0.1), z: g.z + uz * (w / 2 + 0.1) }, b]);
+    const yaw = Math.atan2(uz, ux);
+    gate(m, heightAt, { ...g, yaw, w });
+    margins.push({ ax: a.x, az: a.z, bx: b.x, bz: b.z });
+    if (near(g.x, g.z)) {
+      const y = heightAt(g.x, g.z);
+      colliders.add('pole', g.x - ux * w / 2, y + 0.7, g.z - uz * w / 2, g.x + ux * w / 2, y + 0.7, g.z + uz * w / 2, 0.45);
+    }
+    return { ...g, ux, uz };
+  };
+  const stack = (spec) => {
+    const built = logStack(m, heightAt, rng, spec);
+    if (near(spec.x, spec.z)) {
+      const r = spec.len / 2 + 0.4;
+      colliders.addBox('wall', spec.x - r, built.low, spec.z - r, spec.x + r, built.top, spec.z + r);
+    }
+  };
+
+  /*
+   * THE ROAD'S END AT THE LAKE, where the lake-shore view stands: the
+   * pasture east of the road fenced along its verge with a gate, logs
+   * stacked inside the gate, a hay hut in the field, the yellow sign
+   * where the shore path leaves the road, and a boat shed in the reeds
+   * west of the jetty. Placed by hand, as a farm's things are.
+   */
+  const eastFence = (z) => ({ x: roadX(z) + 8.8, z });
+  const lakeGate = gatedFence(eastFence(1792), eastFence(1944), (1900 - 1792) / (1944 - 1792));
+  stack({ x: lakeGate.x + 3.2, z: lakeGate.z + 8.5, yaw: Math.atan2(lakeGate.uz, lakeGate.ux), len: 3.4, high: 1.35 });
+  {
+    const x = roadX(1928) + 26;
+    const z = 1928;
+    hut(m, heightAt, rng, {
+      x, z, yaw: 0.08, w: 6, d: 4.6, h: 2.7, pitch: 0.5, wall: [0.05, 0.034, 0.022], roof: [0.12, 0.052, 0.03],
+    });
+    huts.push({ x, z });
+  }
+  signpost(m, heightAt, { x: roadX(1936) - 5.4, z: 1936, arms: [Math.PI + 0.1, 0.05, -Math.PI / 2] });
+  const { shore: rim, cx: lakeX, cz: lakeZ } = lakeShore(heightAt, 288);
+  const shedAt = rim.filter((p) => p.z < lakeZ).reduce((best, p) => (Math.abs(p.x - 162) < Math.abs(best.x - 162) ? p : best));
+  const shed = (() => {
+    const ox = lakeX - shedAt.x;
+    const oz = lakeZ - shedAt.z;
+    const l = Math.hypot(ox, oz);
+    const x = shedAt.x + (ox / l) * 1.5;
+    const z = shedAt.z + (oz / l) * 1.5;
+    boatShed(m, heightAt, rng, { x, z, yaw: Math.atan2(oz, ox), len: 9, w: 5.2, h: 2.7 });
+    return { x, z };
+  })();
+
+  /*
+   * THE PASTURE FENCE the farm-low view stands at: from a few metres in
+   * front of it away up the field to the north west, a gate in it and a
+   * stack of logs inside the gate, the hay meadow either side left long
+   * under it (grass.js reads `margins`).
+   */
+  {
+    const a = { x: -45, z: 421 };
+    const b = { x: -103, z: 489 };
+    const g = gatedFence(a, b, 0.25);
+    stack({ x: g.x + g.ux * 7 - g.uz * 2.4, z: g.z + g.uz * 7 + g.ux * 2.4, yaw: Math.atan2(g.uz, g.ux), len: 3, high: 1.25 });
+  }
+
   const fenceMat = propMaterial();
   const fence = new THREE.InstancedMesh(spanGeometry(), fenceMat, Math.max(1, spans.length));
   fence.count = 0;
@@ -496,21 +858,28 @@ export function buildProps(ctx) {
     fence.setMatrixAt(k, spanMatrix);
   };
 
-  /* THE GRAVEL BARS, in the static mesh with the rest: pale grey stones
-   * blotched by the noise at a stone's scale and a bar's, since a bar
-   * is mostly seen from the air, and one more draw for the view and each
-   * shadow map was more than its texture was worth. */
+  /* THE GRAVEL BARS, in the static mesh with the rest: grey stones
+   * blotched by the noise at a bar's scale, since a bar is mostly seen
+   * from the air, and one more draw for the view and each shadow map was
+   * more than its texture was worth. Dark and wet at the water, and at
+   * the grass's edge grown over; drawn an even pale grey, a bar read from
+   * the air as a kerb poured along the stream. */
   const barGeo = gravelBarGeometry(layout.lower, 5.2, layout.groundAt, rng);
   {
     const p = barGeo.getAttribute('position');
     const nr = barGeo.getAttribute('normal');
     const at = new THREE.Vector3();
     const n = new THREE.Vector3();
+    const grown = [0.07, 0.08, 0.04];
     for (const i of barGeo.index.array) {
       at.fromBufferAttribute(p, i);
       n.fromBufferAttribute(nr, i);
-      const k = 0.75 + 0.3 * noise2(at.x / 2.5, at.z / 2.5) + 0.15 * noise2(at.x / 17 + 3.1, at.z / 17);
-      m.vert(at, n, [0.27 * k, 0.26 * k, 0.24 * k]);
+      const k = 0.55 + 0.6 * noise2(at.x / 5, at.z / 5) + 0.3 * noise2(at.x / 17 + 3.1, at.z / 17);
+      const off = streamDist(at.x, at.z);
+      const wet = 1 - 0.5 * (1 - smoothstep(2.4, 3.8, off));
+      const g = Math.min(1, smoothstep(4, 7.5, off) * 0.6 + smoothstep(0.55, 0.8, noise2(at.x / 7 + 7.7, at.z / 7)));
+      const stone = [0.15 * k * wet, 0.145 * k * wet, 0.135 * k * wet];
+      m.vert(at, n, stone.map((c, q) => c + (grown[q] - c) * g));
     }
     barGeo.dispose();
   }
@@ -521,8 +890,7 @@ export function buildProps(ctx) {
   const clear = jettyClear(heightAt);
   const jettyX = valleyAxis(ROAD_END) + ROAD_DX;
   let reeds = 0;
-  const { shore } = lakeShore(heightAt, 288);
-  for (const s of shore) {
+  for (const s of rim) {
     const north = Math.sin(s.a) < -0.3;
     /* Beds wherever the noise says, and on the north shore a bank either
      * side of the jetty broken only by a gap here and there. */
@@ -537,7 +905,7 @@ export function buildProps(ctx) {
       const x = s.x - Math.cos(s.a) * inward + (rng() - 0.5) * 7;
       const z = s.z - Math.sin(s.a) * inward + (rng() - 0.5) * 7;
       const depth = LAKE_Y - heightAt(x, z);
-      if (depth < 0.02 || depth > 0.85 || clear(x, z)) {
+      if (depth < 0.02 || depth > 0.85 || clear(x, z) || Math.hypot(x - shed.x, z - shed.z) < 9) {
         continue;
       }
       reedClump(m, rng, x, LAKE_Y - depth, z, 0.8 + 0.4 * rng());
@@ -595,7 +963,8 @@ export function buildProps(ctx) {
   return {
     group,
     update,
-    stats: { huts: huts.length, bales, spans: spans.length, reeds },
+    margins,
+    stats: { huts: huts.length, bales, spans: spans.length, reeds, delineators },
     dispose() {
       group.removeFromParent();
       for (const o of [staticMesh, fence]) {

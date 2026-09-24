@@ -87,6 +87,7 @@ soft sprites cycling in the shader.
 | `colliders` | optional | a `Colliders`: trees within 700 m of the strip get a post (and beeches a canopy sphere), rocks and stones over half a metre a sphere, as nature.js does. 3,756 trees fall inside that radius on High (round 3) |
 | `footprints` | optional | the buildings as `{ minX, minZ, maxX, maxZ }` boxes; the meadow keeps 2 m off each. Without them it keeps off a box round the village core |
 | `gardens` | optional | the footprints that are houses, which get a garden tree or two; the rest (swiss2's hay huts) only keep the trees and the meadow off. Defaults to `footprints` |
+| `margins` | optional | hand placed fence lines as `{ ax, az, bx, bz }` (swiss2's props give them); the meadow grows long, with the verge's weeds, a metre either side of each, as it does along the lines between the fields and on the road's verge |
 | `grassTint` | optional | `[r, g, b]` multiplier for the meadow, to meet the terrain splat's grass where the meadow fades out |
 | `windDir` | optional | `{ x, y }`, the direction the wind blows toward in the ground plane |
 | `sunDir` | optional | a unit `Vector3` toward the sun. The trees are filled only where they or their shadows are in the camera's view; without it a tree behind the camera casts no shadow into the view |
@@ -100,7 +101,9 @@ directly rather than passed.
 
 What the pipeline must provide: the sun as the scene's first
 `DirectionalLight` (the light through leaves and through the fall reads
-`directionalLights[0]`), `update(dtMs, camera)` on both before each render,
+`directionalLights[0]`'s direction; through leaves, the sun it adds is
+what the light loop let reach the leaf, after every shadow),
+`update(dtMs, camera)` on both before each render,
 and shadow maps enabled if the trees should cast (every tree and rock
 level casts, with depth materials that carry the wind and the alpha cut).
 `ctx.sunDirection` is not read: the lights carry it.
