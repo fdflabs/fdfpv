@@ -72,6 +72,12 @@ const CHALETS = [
  */
 export async function buildVillage(ctx) {
   const { scene, heightAt, valleyAxis, rng, colliders, mats } = ctx;
+  /* A style may bring its own houses and its own bake (swiss2 does, see
+   * src/maps/swiss2/buildings/). They stand on the same footprints with
+   * the same extents and draw the rng as these do, so the layout, the
+   * colliders and everything placed round them are the same; the cel
+   * look has none and builds exactly what it always has. */
+  const kit = { chalet, barn, farmhouse, gasthof, shop, church, bakeAll, ...ctx.look?.buildings };
   const bake = makeBake();
   const villageY = heightAt(-90, STREET_Z);
   const onGround = (x, z) => heightAt(x, z) - villageY;
@@ -113,7 +119,7 @@ export async function buildVillage(ctx) {
     if (!s.shutter) {
       s.shutter = rng() < 0.7 ? 'shutterGreen' : 'shutterRed';
     }
-    place((f, found) => chalet(f, rng, { ...s, found }), x, z, ry, s.w / 2 + 1.3, s.d / 2 + 1.2);
+    place((f, found) => kit.chalet(f, rng, { ...s, found }), x, z, ry, s.w / 2 + 1.3, s.d / 2 + 1.2);
     houses += 1;
     return s;
   };
@@ -215,14 +221,14 @@ export async function buildVillage(ctx) {
     bench(frame(bake, SQUARE.x + 2 + dx, onGround(SQUARE.x, SQUARE.z) + 0.06, SQUARE.z + dz, ry));
   }
   place((f) => busShelter(f), squareEast + 7, STREET_Z + 6.5, Math.PI, 2.4, 1.3);
-  place((f, found) => gasthof(f, rng, { found }), SQUARE.x, SQUARE.z - 23, -Math.PI / 2, 7.5, 8.5);
-  place((f, found) => shop(f, rng, { found }), SQUARE.x + 4, SQUARE.z + 23, Math.PI / 2, 5.5, 5);
+  place((f, found) => kit.gasthof(f, rng, { found }), SQUARE.x, SQUARE.z - 23, -Math.PI / 2, 7.5, 8.5);
+  place((f, found) => kit.shop(f, rng, { found }), SQUARE.x + 4, SQUARE.z + 23, Math.PI / 2, 5.5, 5);
   houses += 2;
   {
     const x = SQUARE.x - 42;
     const { y, found } = site(x, STREET_Z, Math.PI / 2, 12, 11);
     const f = frame(bake, x, y, STREET_Z, Math.PI / 2);
-    const k = church(f, { found });
+    const k = kit.church(f, { found });
     wallBox(x, STREET_Z, Math.PI / 2, k.hw + 0.6, k.hd + 0.5, y, found, k.top);
     const t = f.at(0, 0, k.tower.z);
     colliders.addBox('wall', t.x - k.tower.half, villageY + y, t.z - k.tower.half, t.x + k.tower.half, villageY + y + k.tower.top, t.z + k.tower.half);
@@ -331,10 +337,10 @@ export async function buildVillage(ctx) {
     }
   };
   const farm = ({ x, z, ry, barnKind, barnAt, board, gap }) => {
-    place((f, found) => farmhouse(f, rng, { found, board }), x, z, ry, 7, 15);
+    place((f, found) => kit.farmhouse(f, rng, { found, board }), x, z, ry, 7, 15);
     houses += 1;
     const b = barnAt;
-    place((f, found) => barn(f, { kind: barnKind, found, w: 10, d: 14 }), x + b.dx, z + b.dz, b.ry, 6, 8);
+    place((f, found) => kit.barn(f, { kind: barnKind, found, w: 10, d: 14 }), x + b.dx, z + b.dz, b.ry, 6, 8);
     yardFence(x + b.dx / 2, z + b.dz / 2, 34, gap);
   };
   farm({ x: -275, z: -175, ry: 0.5, barnKind: 'hay', barnAt: { dx: 26, dz: 14, ry: 2.1 }, board: 'larch', gap: 2 });
@@ -362,8 +368,8 @@ export async function buildVillage(ctx) {
   };
   ring([[-40, 195], [-255, 205], [-262, 335], [-30, 325]]);
   ring([[-10, -145], [-232, -155], [-242, -295], [-20, -300]]);
-  place((f, found) => barn(f, { kind: 'hay', found, w: 11, d: 15 }), -150, 245, 0.3, 7, 9);
-  place((f, found) => barn(f, { kind: 'stall', found, w: 10, d: 16 }), -60, -195, -0.2, 6, 9);
+  place((f, found) => kit.barn(f, { kind: 'hay', found, w: 11, d: 15 }), -150, 245, 0.3, 7, 9);
+  place((f, found) => kit.barn(f, { kind: 'stall', found, w: 10, d: 16 }), -60, -195, -0.2, 6, 9);
   await ctx.paint(0.62);
 
   /*
@@ -388,7 +394,7 @@ export async function buildVillage(ctx) {
     bake.push('paint', new THREE.BoxGeometry(STRIP_W - 2, 0.03, 0.6), 0, STRIP_Y - villageY + 0.035, end * (STRIP_L / 2 - 2));
   }
 
-  const villageGroup = bakeAll(bake, mats);
+  const villageGroup = kit.bakeAll(bake, mats);
   villageGroup.position.y = villageY;
   scene.add(villageGroup);
   await ctx.paint(0.7);
