@@ -568,7 +568,11 @@ async function main() {
       const id = af.simId;
       const cfg = id === AF_WHOOP ? whoopCfg : fiveCfg;
       const sim = await fresh(wasm, cfg, id, id === AF_WHOOP ? 4.2 : 4.0);
-      const rest = af.dims.vHalfDown;
+      /* An aircraft on wheels rests where its gear holds it, which is
+       * where the shell parks it too (seatRestHeight in src/main.js), not
+       * on its lowest drawn point: the Cub's tyres stand 16.7 mm below
+       * its gear's rest height because the struts compress under load. */
+      const rest = af.gear ? af.gear.restHeight : af.dims.vHalfDown;
       const rc = sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, -rest, 0.8, 0.2);
       if (rc !== SIM_OK) {
         throw new Error(`sim_set_ground returned ${rc}`);
@@ -586,7 +590,10 @@ async function main() {
        * the whoop and this reads 37 mm low. */
       let z = 0;
       fly(sim, [{ ms: 2000, thr: 0 }], (t, st) => { z = st[ST.PZ]; });
-      report(`W15 parked-${af.id}`, Math.abs(z + SLOP) < 0.0005,
+      /* The slop is the hull's; wheels sit on their springs at exactly
+       * the rest height the plant was measured settling to. */
+      const expect = af.gear ? 0 : -SLOP;
+      report(`W15 parked-${af.id}`, Math.abs(z - expect) < 0.0005,
         `${(z * 1000).toFixed(2)} mm from the parked origin`,
         `vHalfDown ${(rest * 1000).toFixed(0)} mm, resting on the ${(SLOP * 1000).toFixed(0)} mm slop`);
     }
