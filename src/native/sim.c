@@ -875,6 +875,7 @@ static void ground_apply(void) {
   g_ground_hits = 0;
   g_ground_projected = 0;
   g_ground_near = 0;
+  plant_wing_set_on_wheels(0);
   for (int i = 0; i < SIM_WHEELS_MAX; i += 1) {
     g_wheel_load[i] = 0.0;
   }
@@ -882,7 +883,7 @@ static void ground_apply(void) {
     return;
   }
   if (PLANT.wheel_count > 0) {
-    ground_wheels();
+    plant_wing_set_on_wheels(ground_wheels() > 0);
   }
   const double vn_plant = S.vel[0] * g_ground_n[0]
       + S.vel[1] * g_ground_n[1]

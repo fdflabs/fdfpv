@@ -94,6 +94,8 @@ static int g_stab = 0;
  * on the first acro step after a reset or a mode change. */
 static double g_acro_q[4] = { 1.0, 0.0, 0.0, 0.0 };
 static int g_acro_held = 0;
+/* Weight on wheels, from sim.c's gear. Always 0 on an airframe without. */
+static int g_on_wheels = 0;
 static double g_acro_i_roll = 0.0;
 static double g_acro_i_pitch = 0.0;
 
@@ -218,11 +220,16 @@ int plant_wing_stab(void) {
   return g_stab;
 }
 
+void plant_wing_set_on_wheels(int on) {
+  g_on_wheels = on;
+}
+
 void plant_wing_reset(void) {
   for (int i = 0; i < 4; i += 1) {
     g_surf[i] = 0.0;
   }
   g_acro_held = 0;
+  g_on_wheels = 0;
 }
 
 static double acro_shape(const FixedWingParams *fw, double x) {
@@ -367,7 +374,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double V2 = u * u + v * v + w * w;
   const double V = sim_sqrt(V2);
 
-  if (g_stab == 2) {
+  /* On its wheels a stabiliser has nothing to hold: the gear holds the
+   * attitude, so an attitude loop would only wind its error up against the
+   * ground and let it go at liftoff, and the turn coordinator would fight
+   * the tailwheel the pilot steers with. So the sticks are the surfaces
+   * there, in every mode, and Acro takes its target afresh each step, which
+   * leaves it holding the attitude the aircraft leaves the ground in. */
+  if (g_on_wheels && g_stab != 0) {
+    g_acro_held = 0;
+  } else if (g_stab == 2) {
     acro_sticks(fw, s, &roll, &pitch);
     yaw = clamp1(add_term(yaw, yaw_coordinated(fw, s, V)));
   } else if (g_stab == 1) {
@@ -766,5 +781,5 @@ const FixedWingParams FW_CUB1400 = {
   .acro_roll_ki = 4.0,
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
-  .yaw_coord_k = 1.0,
+  .yaw_coord_k = 3.0,     /* a third of the Skyhunter's yaw authority per stick */
 };

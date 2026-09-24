@@ -453,6 +453,9 @@ void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
+/* Weight on wheels, set by sim.c after each step's contact: 1 while any
+ * wheel carried load. The stabiliser reads it; nothing else does. */
+void plant_wing_set_on_wheels(int on);
 
 /* Bridge: Betaflight control loop and config shim. */
 

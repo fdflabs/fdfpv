@@ -33,6 +33,7 @@ import { SIM_OK } from './simmod.js';
 
 export const WING_AIRFRAME = 2;
 export const SKY_AIRFRAME = 3;
+export const CUB_AIRFRAME = 4;
 export const RC_STEP_MS = 4;
 
 export function must(code, where) {
@@ -326,6 +327,36 @@ export function skyPrelude(sim) {
   must(sim.e.sim_set_airframe(SKY_AIRFRAME), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_wing_launch(12), 'sim_wing_launch');
+}
+
+/* The Cub's, thrown: its airframe and a throw a little over its stall. */
+export function cubPrelude(sim) {
+  must(sim.e.sim_set_airframe(CUB_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(11), 'sim_wing_launch');
+}
+
+/* The Cub on the ground, standing on its three wheels at the end of the
+ * strip, facing down it (world +x), with the ground plane at z = 0 as
+ * the shell raises it. The pose is where it settles, so a recording can
+ * start at once: the CG 0.1673 m up and 14.0 deg nose up. No steps here,
+ * because a replay's clock starts after the prelude. */
+export const CUB_REST = { z: 0.1673, pitchDeg: 14.0 };
+export function cubGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(CUB_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = CUB_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, CUB_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/* The load on each wheel, newtons: left main, right main, tailwheel. */
+export function wheelLoads(sim) {
+  if (!sim.wheelPtr) {
+    sim.wheelPtr = sim.e.malloc(3 * 8);
+  }
+  must(sim.e.sim_wheel_loads(sim.wheelPtr), 'sim_wheel_loads');
+  return Array.from(new Float64Array(sim.e.memory.buffer, sim.wheelPtr, 3));
 }
 
 /*

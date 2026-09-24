@@ -316,7 +316,12 @@ The roll gains are the flying wing's, 1.2 and 0.12 in Stabilised and 3.0,
 authority per stick at a given speed, (Clδa δa/(−Clp)) 2V/b, is the
 wing's to within three percent and about twice the Skyhunter's. The pitch
 loops are the other two's. Acro asks for up to 120 deg/s of roll and 80
-of pitch.
+of pitch. The turn coordinator's gain is 3 stick per rad/s of yaw rate
+error where the Skyhunter's is 1: full rudder on the Cub gives a third of
+the Skyhunter's yaw acceleration, Cnδr δr q S b/Izz, 3.9 against 11.1
+rad/s² at cruise, so it needs three times the stick for the same loop. At
+the Skyhunter's gain the Cub slipped 2.1 deg in a held 60 deg bank; at
+this one, 1.7.
 
 On the wheels, a stabiliser has nothing to hold. The gear sets the
 attitude, so an attitude loop would only wind its error up against the

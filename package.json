@@ -57,6 +57,7 @@
     "skyhunter:gates": "node scripts/skyhunter-gates.js",
     "skyhunter:stab": "node scripts/skyhunter-stab-selftest.js",
     "skyhunter:record": "node scripts/wing-record.js sky",
+    "cub:stab": "node scripts/cub-stab-selftest.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",
