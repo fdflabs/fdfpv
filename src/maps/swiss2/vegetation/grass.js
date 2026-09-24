@@ -226,7 +226,7 @@ function coverAt(x, z, heightAt, layout) {
   const wild = Math.max(verge, margin) * (1 - forest);
   if (wild > 0.5) {
     cover.h = Math.max(h, 0.55 + 0.25 * noise2(x / 9 + 1.7, z / 9 + 4.1));
-    cover.seeds = 0.3;
+    cover.seeds = 0.12;
     cover.weeds = 0.28 * smoothstep(0.4, 0.75, noise2(x / 13 + 5.5, z / 13 + 2.2) + 0.25);
     cover.bloom = Math.max(cover.bloom, 0.35);
     cover.unmown = true;
