@@ -23,10 +23,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { chalet, barn, farmhouse, gasthof, shop, church } from '../../alps/kit.js';
+import { chalet, barn, farmhouse, gasthof, shop, church } from './houses.js';
 import { makeBakeAll } from './bake.js';
+
+/* A log is wider than the boards the photograph shows: the log walls'
+ * texture is stretched to about eighteen centimetres a course. */
+const LOG_UV = 0.72;
 
 /* What alps/village.js takes from a style's look.buildings. */
 export function swissBuildings(look) {
-  return { chalet, barn, farmhouse, gasthof, shop, church, bakeAll: makeBakeAll(look) };
+  const uv = { larchDark: LOG_UV, larch: LOG_UV, honey: LOG_UV, weathered: LOG_UV };
+  return { chalet, barn, farmhouse, gasthof, shop, church, bakeAll: makeBakeAll(look, uv) };
 }

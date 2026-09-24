@@ -251,8 +251,9 @@ export function makePhotoLook({ surfaces, ground, heights }) {
   const WEATHER_KIND = { ...WEATHER, none: 3 };
   const BUILDING = {
     stone: { group: 'stone', tint: [0.95, 0.95, 0.95], weather: 'wall' },
-    render: { group: 'render', tint: [0.8, 0.78, 0.74], normal: 1.6, weather: 'wall' },
+    render: { group: 'render', tint: [0.7, 0.68, 0.64], normal: 1.6, weather: 'wall' },
     trim: { group: 'render', tint: [0.72, 0.7, 0.66], normal: 0.3 },
+    surround: { group: 'render', tint: [0.55, 0.53, 0.5], weather: 'wall' },
     larchDark: { group: 'boards', tint: [0.72, 0.62, 0.55], weather: 'wall', grey: 0.55 },
     larch: { group: 'boards', tint: [1.2, 1.0, 0.82], weather: 'wall', grey: 0.7 },
     honey: { group: 'boards', tint: [2.1, 1.6, 1.0], weather: 'wall', grey: 0.5 },
@@ -262,7 +263,8 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     shutterRed: { group: 'boards', tint: [1.9, 0.45, 0.35], normal: 0.6 },
     fence: { group: 'boards', tint: [1.35, 1.25, 1.15] },
     logEnd: { group: 'boards', tint: [3.0, 2.4, 1.6], normal: 0.4 },
-    shingle: { group: 'shingle', tint: [1.0, 0.97, 0.95], weather: 'roof', grey: 1 },
+    frieze: { group: 'boards', tint: [0.8, 0.52, 0.38], weather: 'wall', grey: 0.3 },
+    shingle: { group: 'shingle', tint: [0.78, 0.74, 0.7], weather: 'roof', grey: 1 },
     shingleDark: { group: 'shingle', tint: [0.7, 0.66, 0.62], weather: 'roof', grey: 1 },
     slate: { group: 'slate', tint: [1.15, 1.15, 1.2], weather: 'roof', grey: 0.45 },
     hangar: { group: 'metal', tint: [0.5, 0.58, 0.52], weather: 'wall' },
@@ -272,6 +274,8 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     cobble: { group: 'cobble', tint: [1.0, 1.0, 1.0], weather: 'paving' },
     concrete: { group: 'concrete', tint: [1.6, 1.6, 1.55] },
     geranium: { group: 'plain', tint: [0.62, 0.02, 0.03], rough: 0.75 },
+    leaf: { group: 'plain', tint: [0.035, 0.1, 0.025], rough: 0.8 },
+    shade: { group: 'plain', tint: [0.014, 0.012, 0.01], rough: 0.9 },
     metal: { group: 'plain', tint: [0.55, 0.56, 0.57], rough: 0.42, metal: 0.9 },
     ink: { group: 'plain', tint: [0.03, 0.03, 0.035], rough: 0.5, metal: 0.6 },
     door: { group: 'plain', tint: [0.05, 0.06, 0.065], rough: 0.55, metal: 0.3 },
@@ -289,7 +293,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     #define uS2Grey vS2Finish.x
     #define uS2Kind vS2Finish.y
   `;
-  const grouped = (name, { metal = 0 } = {}) => {
+  const grouped = (name, { metal = 0, rough = 1 } = {}) => {
     const set = surfaces[name];
     const m = new THREE.MeshStandardMaterial({
       color: 0xffffff,
@@ -297,7 +301,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
       map: set.col,
       normalMap: set.nrm,
       roughnessMap: set.arm,
-      roughness: 1,
+      roughness: rough,
       aoMap: set.arm,
       aoMapIntensity: 1,
       metalnessMap: metal > 0 ? set.arm : null,
@@ -354,10 +358,13 @@ export function makePhotoLook({ surfaces, ground, heights }) {
   /* One material per group, made when the village is baked; `glass` and
    * `water` are the village table's own. */
   const buildingGroups = (mats) => ({
-    boards: grouped('boards'),
-    render: grouped('render'),
+    /* Weathered timber and old shingle are matt: the photographs' own
+     * roughness (0.63 and 0.78) made a roof seen against the sky a sheet
+     * of white and every board's edge a highlight. */
+    boards: grouped('boards', { rough: 1.35 }),
+    render: grouped('render', { rough: 1.1 }),
     stone: grouped('stone'),
-    shingle: grouped('shingle'),
+    shingle: grouped('shingle', { rough: 1.25 }),
     slate: grouped('slate'),
     metal: grouped('metal', { metal: 0.4 }),
     asphalt: grouped('asphalt'),
