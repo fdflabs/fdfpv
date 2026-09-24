@@ -1409,6 +1409,8 @@ SIM_EXPORT int sim_set_airframe(int id) {
     return SIM_OK;
   }
   plant_set_airframe(id);
+  /* A canopy belongs to the aircraft that pulled it. */
+  plant_wing_chute(0);
   contact_build_corners();
   /* Only if the host has not raised its own plane. A shell that has already
    * called sim_set_ground owns that number and must not have it taken back. */
@@ -1574,6 +1576,29 @@ SIM_EXPORT int sim_wing_surfaces(double *out) {
   }
   plant_wing_surfaces(out);
   return SIM_OK;
+}
+
+/*
+ * The recovery parachute, on an aircraft that carries one (the Bramor).
+ * sim_wing_chute(1) pulls it: the motor stops, the surfaces centre, and a
+ * canopy opens over the next second or so. sim_wing_chute(0) stows it
+ * again, which a reset also does; a host that relaunches from rest stows
+ * it first. SIM_ERR_BAD_ARG for 1 on an aircraft without one.
+ * sim_wing_chute_open: how far the canopy is open, 0 stowed to 1 full,
+ * for the renderer. Additive, version unchanged.
+ */
+SIM_EXPORT int sim_wing_chute(int deploy) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (deploy != 0 && deploy != 1) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return plant_wing_chute(deploy) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
+}
+
+SIM_EXPORT double sim_wing_chute_open(void) {
+  return plant_wing_chute_open();
 }
 
 /* The load on each wheel of an airframe with landing gear, newtons, in its

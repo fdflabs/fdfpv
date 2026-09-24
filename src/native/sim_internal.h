@@ -460,6 +460,13 @@ typedef struct FixedWingParams {
   /* 1 where the airframe flies in the rising air of plant_wing.c's
    * thermals, 0 where the air is still. */
   int air_lift;
+  /* A recovery parachute, docs/BRAMOR-STAGE1.md. Zero chute_cda is an
+   * aircraft without one, which sim_wing_chute refuses, and then nothing
+   * below is read: every step of an aircraft whose chute is stowed runs
+   * exactly the arithmetic it ran before the chute existed. */
+  double chute_cda;       /* canopy drag area fully open, C_D times area, m^2 */
+  double chute_open_s;    /* seconds from the pull to a full canopy */
+  double chute_attach[3]; /* where the risers meet the airframe, body frame, m */
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -482,6 +489,11 @@ void plant_wing_set_on_wheels(int on);
 /* The rising air at a world position, m/s up: the thermals every airframe
  * with air_lift flies in. */
 double plant_air_lift(const double pos[3]);
+/* The parachute: 1 pulls it on an airframe that has one and returns 0,
+ * anything else returns -1; 0 stows it again, which a reset also does.
+ * plant_wing_chute_open is how far the canopy is open, 0 stowed to 1. */
+int plant_wing_chute(int deploy);
+double plant_wing_chute_open(void);
 
 /* Bridge: Betaflight control loop and config shim. */
 

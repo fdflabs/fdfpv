@@ -484,6 +484,21 @@ int sim_wheel_loads(double *out);
  */
 double sim_air_lift(double x, double y, double z);
 
+/*
+ * sim_wing_chute(deploy): the recovery parachute of an aircraft that has
+ * one, the Bramor. 1 pulls it: the motor stops, the surfaces centre and a
+ * canopy opens over about a second, hanging from the risers' attachment
+ * point, and the aircraft comes down under it. 0 stows it again, which
+ * sim_reset and sim_set_airframe also do. SIM_ERR_BAD_ARG for 1 on an
+ * aircraft without a chute and for anything but 0 or 1; SIM_ERR_BAD_STATE
+ * before sim_init.
+ * sim_wing_chute_open(): how far the canopy is open, 0 stowed to 1 full.
+ * Additive, version unchanged: with the chute stowed no step reads any of
+ * it, so every trace from before it existed is bit identical.
+ */
+int sim_wing_chute(int deploy);
+double sim_wing_chute_open(void);
+
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);
 

@@ -104,6 +104,19 @@ static int g_on_wheels = 0;
 static double g_acro_i_roll = 0.0;
 static double g_acro_i_pitch = 0.0;
 
+/*
+ * THE PARACHUTE, for an aircraft that recovers under one: the Bramor,
+ * docs/BRAMOR-STAGE1.md. Pulled, it cuts the motor and centres the
+ * surfaces, as the aircraft's own autopilot does, and hangs a canopy off
+ * the risers' attachment point: a drag area that grows over chute_open_s
+ * from the pull, acting against the air that point moves through, so its
+ * offset from the CG is a pendulum that swings the aircraft under the
+ * canopy and the point's own motion damps the swing. Stowed, none of it
+ * runs. g_chute_t is the time since the pull.
+ */
+static int g_chute = 0;
+static double g_chute_t = 0.0;
+
 /* What the last step saw and did, for the gates and for anyone chasing a
  * sign: alpha (of the zero lift line), beta, qbar, CL, CD, l m n (aero),
  * thrust, F body x y z, M body x y z, u v w, delta_e, delta_a. */
@@ -289,6 +302,32 @@ void plant_wing_reset(void) {
   }
   g_acro_held = 0;
   g_on_wheels = 0;
+  g_chute = 0;
+  g_chute_t = 0.0;
+}
+
+int plant_wing_chute(int deploy) {
+  if (!deploy) {
+    g_chute = 0;
+    g_chute_t = 0.0;
+    return 0;
+  }
+  if (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->chute_cda > 0.0)) {
+    return -1;
+  }
+  if (!g_chute) {
+    g_chute = 1;
+    g_chute_t = 0.0;
+    g_acro_held = 0;
+  }
+  return 0;
+}
+
+double plant_wing_chute_open(void) {
+  if (!g_chute) {
+    return 0.0;
+  }
+  return smoothstep(0.0, PLANT.fw->chute_open_s, g_chute_t);
 }
 
 static double acro_shape(const FixedWingParams *fw, double x) {
@@ -409,8 +448,15 @@ void plant_plane_surfaces(double out[4]) {
   }
 }
 
-/* A hand throw: the given speed along the body's own forward axis. */
+/* A hand throw or a catapult: the given speed along the body's own
+ * forward axis. A launch is a new flight, so Acro takes its target from
+ * the attitude it is launched at rather than from wherever the aircraft
+ * last flew: off a rail pitched up, holding the rail's angle, not diving
+ * for the level it sat at before it was put on the rail. Every recorded
+ * launch comes straight after a reset, where the target is already
+ * clear, so none of them moves. */
 void plant_wing_launch(SimState *s, double speed) {
+  g_acro_held = 0;
   const double fwd[3] = { speed, 0.0, 0.0 };
   double v[3];
   wquat_rotate(s->quat, fwd, v);
@@ -445,7 +491,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * the tailwheel the pilot steers with. So the sticks are the surfaces
    * there, in every mode, and Acro takes its target afresh each step, which
    * leaves it holding the attitude the aircraft leaves the ground in. */
-  if (g_on_wheels && g_stab != 0) {
+  if (g_chute) {
+    /* Under the canopy the autopilot has let go: surfaces centred. */
+    roll = 0.0;
+    pitch = 0.0;
+    yaw = 0.0;
+  } else if (g_on_wheels && g_stab != 0) {
     g_acro_held = 0;
   } else if (g_stab == 2) {
     acro_sticks(fw, s, &roll, &pitch);
@@ -546,13 +597,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   } else if (fw->fold_duty == 0.0 && thrust < 0.0) {
     thrust = 0.0;
   }
+  if (g_chute) thrust = 0.0; /* the motor is cut with the pull */
   F[0] += thrust;
-  const double rpm = folded ? 0.0 : 0.85 * duty * fw->rpm_no_load;
+  const double rpm = (folded || g_chute) ? 0.0 : 0.85 * duty * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = folded ? 0.0 : fw->current_full * duty * duty;
+  s->pack_current = (folded || g_chute) ? 0.0 : fw->current_full * duty * duty;
   s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
 
   /* Moments, in the aero convention, then into the body frame. */
@@ -582,9 +634,34 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * table leaves them out, and add_term keeps its arithmetic as it was. */
   M[1] = add_term(-m_aero, fw->thrust_z * thrust);
   M[2] = -n_aero;
-  /* A folded prop is not turning, and 0/0 would be a NaN, not a zero. */
+  /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
+   * is a prop whose motor the chute has cut. */
   if (s->motor_omega[0] > 0.0) {
     M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
+  }
+
+  /* The canopy: drag against the air the risers' attachment point moves
+   * through, the body's velocity plus omega x r there, applied at that
+   * point. Quadratic in that speed, like every other drag here. */
+  if (g_chute) {
+    g_chute_t += WING_DT;
+    const double open = smoothstep(0.0, fw->chute_open_s, g_chute_t);
+    const double *ra = fw->chute_attach;
+    const double *om = s->omega;
+    const double va[3] = {
+      u + (om[1] * ra[2] - om[2] * ra[1]),
+      v + (om[2] * ra[0] - om[0] * ra[2]),
+      w + (om[0] * ra[1] - om[1] * ra[0]),
+    };
+    const double vam = sim_sqrt(va[0] * va[0] + va[1] * va[1] + va[2] * va[2]);
+    const double kc = -0.5 * PLANT.rho * fw->chute_cda * open * vam;
+    const double Fc[3] = { kc * va[0], kc * va[1], kc * va[2] };
+    F[0] += Fc[0];
+    F[1] += Fc[1];
+    F[2] += Fc[2];
+    M[0] += ra[1] * Fc[2] - ra[2] * Fc[1];
+    M[1] += ra[2] * Fc[0] - ra[0] * Fc[2];
+    M[2] += ra[0] * Fc[1] - ra[1] * Fc[0];
   }
 
   /* Rates: I omega_dot = M - omega x (I omega), diagonal inertia. */
@@ -1016,4 +1093,12 @@ const FixedWingParams FW_BRAMOR2300 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .yaw_coord_k = 0.0,     /* no rudder */
+  /* A 1.64 m round canopy, C_D 0.8, sized for 5.0 m/s under it with the
+   * airframe's own flat plate drag; open in 1.2 s. The risers meet the
+   * belly 60 mm under the CG and 64 mm ahead of it, where the canopy's
+   * pull balances the airframe's pitching moment hanging flat on its back.
+   * All ESTIMATED: C-Astral publishes none of it. */
+  .chute_cda = 1.687,
+  .chute_open_s = 1.2,
+  .chute_attach = { 0.0642, 0.0, -0.060 },
 };
