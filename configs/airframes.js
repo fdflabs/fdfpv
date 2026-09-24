@@ -395,10 +395,10 @@ export const AIRFRAMES = [
      * The fixed wing, docs/WING-STAGE1.md. A 1000 mm flying wing on 4S,
      * flown by hand: no flight controller, the sticks drive the elevons
      * through rates and expo in src/native/plant_wing.c. Its own plant,
-     * simId 2. The track class is the five inch's until the wing's own
-     * class exists (docs/WING-PLAN.md stage 7), which keeps every gate on
-     * the field and the board out of its way; it flies the freestyle
-     * worlds until then.
+     * simId 2. Its own track class too: five metre gates over a 400 by
+     * 300 m field, sized in src/trackbuilder/elements.js, because a wing
+     * at cruise cannot be aimed through a 5 ft hole sixty metres from the
+     * last one.
      */
     id: 'wing1000',
     simId: 2,
@@ -406,7 +406,7 @@ export const AIRFRAMES = [
     short: 'Wing',
     blurb: 'A 1000 mm flying wing on 4S, flown by hand. Throw it, keep it flying, land it on its belly.',
     facts: ['4S', '1000 mm', 'Manual'],
-    trackClass: 'full',
+    trackClass: 'wing',
     cells: 4,
     packVoltages: [4.2, 3.8, 3.5],
     packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
@@ -499,8 +499,9 @@ export function simIdFor(id) {
 
 /*
  * Which track class an airframe flies. 'full' is the 60 by 40 m field the
- * builder has always drawn; 'micro' is a RaceGOW room. The builder, the
- * world, the gate meshes and the board all read this.
+ * builder has always drawn; 'micro' is a RaceGOW room; 'wing' is a 400 by
+ * 300 m airfield. The builder, the world, the gate meshes and the board
+ * all read this.
  */
 export function trackClassFor(id) {
   return airframeById(id).trackClass;

@@ -30,7 +30,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { ELEMENTS, KIND, elementByKey, trackClassOf } from './elements.js';
+import { ELEMENTS, KIND, TRACK_CLASSES, TRACK_CLASS_DEFAULT, elementByKey, trackClassOf } from './elements.js';
 import {
   createTrack, createElement, deepClone, deserialize, duplicateTrack,
   elementById, kindOf, isSequenceable, normalize, startPadsOf, touch,
@@ -70,7 +70,7 @@ for (const node of document.querySelectorAll('[data-str]')) {
   node.textContent = str(node.dataset.str);
 }
 import {
-  clearShareImport, readBuilderIntent, readEditKey, readShareImport,
+  AIRFRAME_BY_CLASS, classOfAirframe, clearShareImport, readBuilderIntent, readEditKey, readShareImport,
   setActiveTrackClass, takeBuilderIntent,
 } from '../share/session.js';
 import {
@@ -114,12 +114,11 @@ import {
  * inch shows you a RaceGOW track.
  */
 const SHELL_SETTINGS_KEY = 'webfpv.settings.v3';
-const WHOOP_AIRFRAME_ID = 'whoop65';
 
 export function newTrackClass() {
   try {
     const wanted = new URLSearchParams(window.location.search).get('class');
-    if (wanted === 'micro' || wanted === 'full') {
+    if (TRACK_CLASSES.includes(wanted)) {
       return wanted;
     }
   } catch (e) {
@@ -129,9 +128,7 @@ export function newTrackClass() {
     const raw = localStorage.getItem(SHELL_SETTINGS_KEY);
     if (raw) {
       const s = JSON.parse(raw);
-      if (s && s.airframe === WHOOP_AIRFRAME_ID) {
-        return 'micro';
-      }
+      return classOfAirframe(s && s.airframe);
     }
   } catch (e) {
     /* Private mode, or a blob that is not JSON. Fall through. */
@@ -1226,7 +1223,7 @@ export class App {
         open.className = 'tb-btn tb-primary';
         /* The builder's class goes with the link, so an author on the
          * whoop builder lands on the whoop board. */
-        open.href = boardPageUrl(origin, trackClassOf(this.doc) === 'micro' ? 'whoop65' : '5inch');
+        open.href = boardPageUrl(origin, AIRFRAME_BY_CLASS[trackClassOf(this.doc)]);
         /* The board's own tab, reused if it is already open. No rel here:
          * noopener would send this to a fresh tab every time. */
         open.target = BOARD_WINDOW;
@@ -1556,7 +1553,7 @@ export class App {
    * track nobody designed. Two canvases is what an author actually has.
    */
   setTrackClass(cls) {
-    const want = cls === 'micro' ? 'micro' : 'full';
+    const want = TRACK_CLASSES.includes(cls) ? cls : TRACK_CLASS_DEFAULT;
     if (trackClassOf(this.doc) === want) {
       return;
     }
@@ -1570,9 +1567,15 @@ export class App {
      * of the toggle. */
     const held = readAutosave(want);
     const doc = (held && held.doc) || createTrack(undefined, want);
+    const named = { full: 'five inch', micro: 'whoop', wing: 'wing' };
+    const fresh = {
+      full: str('app.five_inch_track_on_a_sixty'),
+      micro: str('app.whoop_track_in_a_ten_by'),
+      wing: str('app.wing_track_on_a_four_hundred'),
+    };
     this.loadDocument(doc, held && held.doc
-      ? str('app.back_on_the_builder_holding', { v1: want === 'micro' ? 'whoop' : 'five inch', name: doc.name })
-      : str('app.a_new', { v1: want === 'micro' ? str('app.whoop_track_in_a_ten_by') : str('app.five_inch_track_on_a_sixty') }));
+      ? str('app.back_on_the_builder_holding', { v1: named[want], name: doc.name })
+      : str('app.a_new', { v1: fresh[want] }));
   }
 
   buildTopBar() {
@@ -1712,6 +1715,7 @@ export class App {
     for (const [cls, label, hint] of [
       ['full', '5 inch', str('app.multigp_gates_on_a_sixty_metre')],
       ['micro', 'Whoop', str('app.racegow_gates_in_a_ten_by')],
+      ['wing', 'Wing', str('app.five_metre_gates_on_a_four')],
     ]) {
       const b = document.createElement('button');
       b.type = 'button';

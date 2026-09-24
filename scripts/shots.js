@@ -132,10 +132,12 @@ async function main() {
     /* Into the seat the document's own class belongs in. There is one canvas
      * per class now, so a room seeded into the five inch chair is a room
      * nothing ever reads. See autosaveKey in src/trackbuilder/storage.js. */
-    const docCls = JSON.parse(docText).trackClass === 'micro' ? 'micro' : 'full';
-    const autosaveKey = docCls === 'micro'
-      ? 'webfpv.trackbuilder.autosave.micro.v1'
-      : 'webfpv.trackbuilder.autosave.v1';
+    const autosaveKeys = {
+      full: 'webfpv.trackbuilder.autosave.v1',
+      micro: 'webfpv.trackbuilder.autosave.micro.v1',
+      wing: 'webfpv.trackbuilder.autosave.wing.v1',
+    };
+    const autosaveKey = autosaveKeys[JSON.parse(docText).trackClass] ?? autosaveKeys.full;
     seed.push(`try {
       localStorage.setItem(${JSON.stringify(autosaveKey)},
         JSON.stringify(${docText}));

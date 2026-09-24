@@ -53,7 +53,20 @@ import { str } from '../strings/index.js';
  * This file still imports nothing. See the note under readJson.
  */
 const SETTINGS_KEY = 'webfpv.settings.v3';
-const WHOOP_AIRFRAME_ID = 'whoop65';
+
+/*
+ * MIRRORS trackClass in configs/airframes.js, one airframe per class. A
+ * mirror rather than an import because this file imports nothing (see
+ * above); an airframe added there without a row here reads as the field,
+ * which is the safe way to be wrong.
+ */
+export const AIRFRAME_BY_CLASS = { full: '5inch', micro: 'whoop65', wing: 'wing1000' };
+
+/* The class an airframe id flies, 'full' for anything not in the table. */
+export function classOfAirframe(id) {
+  const hit = Object.entries(AIRFRAME_BY_CLASS).find(([, airframe]) => airframe === id);
+  return hit ? hit[0] : 'full';
+}
 
 export function activeTrackClass() {
   try {
@@ -62,7 +75,7 @@ export function activeTrackClass() {
       return 'full';
     }
     const s = JSON.parse(raw);
-    return s && s.airframe === WHOOP_AIRFRAME_ID ? 'micro' : 'full';
+    return classOfAirframe(s && s.airframe);
   } catch (e) {
     /* Private mode, or a blob that is not JSON. The field is what this
      * simulator has always been. */
@@ -82,7 +95,7 @@ export function activeTrackClass() {
  * it in to draw a toggle.
  */
 export function setActiveTrackClass(cls) {
-  const want = cls === 'micro' ? WHOOP_AIRFRAME_ID : '5inch';
+  const want = AIRFRAME_BY_CLASS[cls] ?? AIRFRAME_BY_CLASS.full;
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     const s = raw ? JSON.parse(raw) : {};
@@ -99,16 +112,20 @@ export function setActiveTrackClass(cls) {
 /*
  * The share seat, one per class.
  *
- * A pilot holding a published room and a published field track is holding
- * two different things, and the shell reads whichever the seated aircraft
- * flies. The five inch keeps the original key, so a pilot who has been here
- * before still holds what they were holding.
+ * A pilot holding a published room, a published field track and a
+ * published wing course is holding three different things, and the shell
+ * reads whichever the seated aircraft flies. The five inch keeps the
+ * original key, so a pilot who has been here before still holds what they
+ * were holding.
  */
-const IMPORT_KEY = 'webfpv.share.import.v1';
-const IMPORT_KEY_MICRO = 'webfpv.share.import.micro.v1';
+const IMPORT_KEYS = {
+  full: 'webfpv.share.import.v1',
+  micro: 'webfpv.share.import.micro.v1',
+  wing: 'webfpv.share.import.wing.v1',
+};
 
 function importKey(cls) {
-  return (cls ?? activeTrackClass()) === 'micro' ? IMPORT_KEY_MICRO : IMPORT_KEY;
+  return IMPORT_KEYS[cls ?? activeTrackClass()] ?? IMPORT_KEYS.full;
 }
 
 const EDIT_KEY = 'webfpv.share.editkeys.v1';
@@ -187,8 +204,8 @@ export function writeShareImport(payload) {
   /* The seat the DOCUMENT belongs in, not the one currently seated: a pilot
    * on a five inch who opens a room from the board is holding a room, and it
    * has to be there when they change aircraft. */
-  const cls = payload.document.trackClass === 'micro' ? 'micro' : 'full';
-  return writeJson(importKey(cls), {
+  const cls = payload.document.trackClass;
+  return writeJson(importKey(Object.hasOwn(IMPORT_KEYS, cls) ? cls : 'full'), {
     id: String(payload.id),
     name: String(payload.name || payload.document.name || str('ui.untitled_track')),
     author: String(payload.author || ''),

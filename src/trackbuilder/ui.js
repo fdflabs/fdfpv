@@ -800,13 +800,16 @@ export class Panels {
      * is chosen when the track is made, from the aircraft that is seated.
      */
     {
-      const micro = trackClassOf(doc) === 'micro';
+      const named = {
+        full: [str('ui.full_size'), str('ui.a_5_inch_quad_on_a')],
+        micro: [str('ui.racegow_micro'), str('ui.a_65_mm_whoop_in_a')],
+        wing: [str('ui.fixed_wing'), str('ui.a_1000_mm_wing_on_an')],
+      };
+      const [title, blurb] = named[trackClassOf(doc)];
       host.append(el('h3', null, str('ui.track')));
       const line = el('p', 'tb-help');
-      line.append(el('strong', null, micro ? str('ui.racegow_micro') : str('ui.full_size')));
-      line.append(document.createTextNode(micro
-        ? str('ui.a_65_mm_whoop_in_a')
-        : str('ui.a_5_inch_quad_on_a')));
+      line.append(el('strong', null, title));
+      line.append(document.createTextNode(blurb));
       host.append(line);
     }
     host.append(el('h3', null, str('ui.field')));

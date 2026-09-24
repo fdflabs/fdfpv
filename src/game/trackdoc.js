@@ -84,10 +84,12 @@ import { str } from '../strings/index.js';
  * gate. On a RaceGOW course the whole track fits in 1.42 by 2.13 m and the
  * room is 5 by 6, so 7.5 m behind the first gate is outside the building.
  * 1.2 is the same idea at the same scale: about two gate widths, which on a
- * whoop at 4 m/s is a second of run up.
+ * whoop at 4 m/s is a second of run up. A wing is thrown rather than
+ * parked, at 10 m/s, and needs a few seconds to be flying before it is
+ * asked to hit a five metre hole: 40 is two seconds at cruise.
  */
 const SPAWN_BACK = 7.5;
-const SPAWN_BACK_MICRO = 1.2;
+const SPAWN_BACK_BY_CLASS = { full: SPAWN_BACK, micro: 1.2, wing: 40 };
 
 /*
  * The direction of travel through a gate is MINUS its plane normal, which is
@@ -549,7 +551,7 @@ function buildCourse(raw) {
     };
   } else if (stations.length) {
     const first = stations[0];
-    const back = (cls === 'micro' ? SPAWN_BACK_MICRO : SPAWN_BACK) * SCALE;
+    const back = (SPAWN_BACK_BY_CLASS[cls] ?? SPAWN_BACK) * SCALE;
     spawn = {
       x: first.x + Math.sin(first.yaw) * back,
       z: first.z + Math.cos(first.yaw) * back,

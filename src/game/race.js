@@ -100,6 +100,28 @@ const PASS_MARGIN = 0.02;
  * collision owns that.
  */
 const PASS_MARGIN_MICRO = 0.008;
+/*
+ * A wing track's five metre gate, flown at 15 to 25 m/s by an aircraft
+ * that cannot slow down for it. Half a metre of depth is a fiftieth of a
+ * second at cruise, and a wing banked through the hole at forty degrees
+ * crosses the midplane with its tips a metre either side of it. Two metres
+ * is the frame plus the aircraft's own length plus a little, the same
+ * reasoning as the field's half metre for a machine four times the size,
+ * and the nearest two wing gates can stand is much further than a four
+ * metre box. The margin is the field's: the tube is the same tube.
+ */
+const PASS_DEPTH_WING = 2.0;
+
+/*
+ * The scoring box per class, in the class's own metres, and the factor
+ * that turns those into scene metres. See the derivations above and the
+ * note in the constructor on why the room's factor is paid here.
+ */
+const PASS_BY_CLASS = {
+  full: { depth: PASS_DEPTH, margin: PASS_MARGIN, scale: 1 },
+  micro: { depth: PASS_DEPTH_MICRO, margin: PASS_MARGIN_MICRO, scale: MICRO_SCALE },
+  wing: { depth: PASS_DEPTH_WING, margin: PASS_MARGIN, scale: 1 },
+};
 
 const DEFAULT_KEY = 'webfpv.bestLapMs';
 
@@ -155,9 +177,10 @@ export class Race {
      * lap and three consecutive is three consecutive whatever size the
      * aircraft is. But the box a pass is measured against is a LENGTH, and
      * the full sized one is wider than the gap RaceGOW leaves between two
-     * gates.
+     * gates, and a wing's is deeper than both.
      */
     this.micro = trackClass === 'micro';
+    const pass = PASS_BY_CLASS[trackClass] ?? PASS_BY_CLASS.full;
     /*
      * THROUGH THE ROOM'S FACTOR, BECAUSE BOTH MICRO FIGURES ARE DERIVED FROM
      * RACEGOW'S REAL PIPE AND THE PIPE IS NOT BUILT AT THAT SIZE.
@@ -181,9 +204,8 @@ export class Race {
      * The constants stay in RaceGOW's own metres where their derivations can
      * be checked against the rulebook, and the factor is paid here, once.
      */
-    const k = this.micro ? MICRO_SCALE : 1;
-    this.passDepth = (this.micro ? PASS_DEPTH_MICRO : PASS_DEPTH) * k;
-    this.passMargin = (this.micro ? PASS_MARGIN_MICRO : PASS_MARGIN) * k;
+    this.passDepth = pass.depth * pass.scale;
+    this.passMargin = pass.margin * pass.scale;
     /*
      * A map with no gates is a freestyle map, and it is not an error.
      *
