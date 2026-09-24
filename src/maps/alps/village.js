@@ -123,9 +123,38 @@ export async function buildVillage(ctx) {
    * to the lake shore, two lanes of asphalt with a painted centre line,
    * following the valley's own axis. Telegraph poles keep it company.
    */
-  const roadPts = [];
-  for (let z = -2700; z <= 1950; z += 50) {
-    roadPts.push({ x: valleyAxis(z) + 55, z });
+  /* Fifty metre spans, each split as finely as the ground under it needs.
+   * At a flat fifty the asphalt ran as straight chords over ground that
+   * rolls between them, and a fifth of it sank under the grass, a third of
+   * a metre at the worst; five metres everywhere cost three thousand
+   * triangles the budget does not have. A span is split until no chord
+   * sits more than half the road's lift below the ground. */
+  const roadPts = [{ x: valleyAxis(-2700) + 55, z: -2700 }];
+  const chordSag = (z0, z1) => {
+    let worst = 0;
+    for (const w of [-3.25, 0, 3.25]) {
+      const y0 = heightAt(valleyAxis(z0) + 55 + w, z0);
+      const y1 = heightAt(valleyAxis(z1) + 55 + w, z1);
+      for (let z = z0 + 1; z < z1; z += 1) {
+        const t = (z - z0) / (z1 - z0);
+        worst = Math.max(worst, heightAt(valleyAxis(z) + 55 + w, z) - (y0 + (y1 - y0) * t));
+      }
+    }
+    return worst;
+  };
+  for (let z = -2700; z < 1950; z += 50) {
+    const pieces = [1, 2, 5, 10].find((n) => {
+      for (let k = 0; k < n; k += 1) {
+        if (chordSag(z + (50 * k) / n, z + (50 * (k + 1)) / n) > 0.03) {
+          return false;
+        }
+      }
+      return true;
+    }) ?? 10;
+    for (let k = 1; k <= pieces; k += 1) {
+      const zk = z + (50 * k) / pieces;
+      roadPts.push({ x: valleyAxis(zk) + 55, z: zk });
+    }
   }
   const road = ribbon(roadPts, 6.5, 0.06, heightAt, mats.asphalt);
   scene.add(road.mesh);

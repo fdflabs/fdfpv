@@ -183,9 +183,10 @@ export function forestDensity(x, y, z, slope, facing) {
 
 /*
  * The heightfield the mesh and the collider read, sampled once from the
- * analytic terrain and read back bilinearly. Bilinear so the plane the
- * shell lays under the craft is continuous across a cell edge; a step
- * there would read as a kerb to a landing wing.
+ * analytic terrain and read back on the mesh's own triangles, so what
+ * stands on it stands on what is drawn. Continuous across a cell edge,
+ * as the bilinear read before it was; a step there would read as a kerb
+ * to a landing wing.
  */
 export function buildHeightfield() {
   const n = CELLS + 1;
@@ -207,7 +208,15 @@ export function buildHeightfield() {
     const h10 = at(i + 1, j);
     const h01 = at(i, j + 1);
     const h11 = at(i + 1, j + 1);
-    return (h00 + (h10 - h00) * fu) + ((h01 + (h11 - h01) * fu) - (h00 + (h10 - h00) * fu)) * fv;
+    /* The two triangles the mesh draws, split on the diagonal from
+     * (i, j + 1) to (i + 1, j) as PlaneGeometry rotated flat indexes them,
+     * rather than a bilinear patch: the two disagree mid-cell by up to
+     * fifteen centimetres on the valley floor, which sank the road and the
+     * cars on it under the drawn grass. Still continuous across edges. */
+    if (fu + fv <= 1) {
+      return h00 + (h10 - h00) * fu + (h01 - h00) * fv;
+    }
+    return h11 + (h01 - h11) * (1 - fu) + (h10 - h11) * (1 - fv);
   };
   return { data, n, height };
 }
