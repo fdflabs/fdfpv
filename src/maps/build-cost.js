@@ -47,11 +47,15 @@ export const MAP_BUILD_MS = {
   airfield: 713,
   /* A six kilometre heightfield, its painted texture, the range beyond,
    * a baked village of forty buildings with their windows, balconies and
-   * fences, and three thousand instanced pines. World stage from the
-   * shell's loading ledger through shots.js on this machine at 1600 by
-   * 900 on Low, four runs after a warm cache: 1466, 1456, 1380 and 1337
-   * ms, measured with a load average over thirty from other sessions'
-   * Chromiums; the same box gave the previous village 514 to 1029 ms
-   * under the same load, so the village's rebuild is most of the rise. */
-  alps: 1410,
+   * fences, the forests, the lake and the fall, and what moves: the
+   * traffic, the PostAuto, the tractor, the herd, the hikers, the
+   * paragliders and the gondola. World stage from the shell's loading
+   * ledger through shots.js on this machine at 1600 by 900 on Low, three
+   * runs after a warm cache: 921, 912 and 919 ms, with a load average
+   * near seventeen from other sessions' Chromiums. main without the life
+   * and vehicles work, run interleaved with those, gave 853, 935 and 885
+   * ms, so what moves costs a few tens of milliseconds a loading bar
+   * cannot see. The village's rebuild measured 1337 to 1466 ms earlier
+   * under a load over thirty, which is the spread these numbers carry. */
+  alps: 917,
 };

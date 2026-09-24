@@ -3,7 +3,7 @@
  *
  * The chalets, the farms, the barns, the Gasthof, the shop, the church,
  * the hangar and the strip's furniture, the bridge, the fountain, the
- * benches, the poles, the signs, the fences and the cattle. Everything
+ * benches, the poles, the signs and the fences. Everything
  * is authored at the origin on flat ground in its own frame and placed
  * by the valley, which knows the terrain; nothing here reads a height.
  *
@@ -66,8 +66,6 @@ export function villageMaterials() {
     door: celMaterial({ color: 0x3a3f42, rim: 0.2 }),
     cross: celMaterial({ color: 0xd8b04a, rim: 0.3 }),
     fence: celMaterial({ color: 0x7a6a52, rim: 0.1 }),
-    cowWhite: celMaterial({ color: 0xf2eee6, rim: 0.15 }),
-    cowBrown: celMaterial({ color: 0x6b4a33, rim: 0.15 }),
     asphalt: celMaterial({ color: 0x4a4c50, rim: 0 }),
     gravel: celMaterial({ color: 0x9c9483, rim: 0 }),
     cobble: celMaterial({ color: 0x8f8a82, rim: 0.05 }),
@@ -1258,21 +1256,6 @@ export function fence(bake, heightAt, ax, az, bx, bz, skip = null) {
       for (const h of [0.5, 0.95]) {
         bake.push('fence', box(+seg.toFixed(2), 0.08, 0.06), (p.x + q.x) / 2, (p.y + q.y) / 2 + h, (p.z + q.z) / 2, yaw, 0, tilt);
       }
-    }
-  }
-}
-
-/* Cattle: a body, a head and four legs, brown or white, standing where
- * the valley puts them. Cheap and unmistakable from the air. */
-export function cow(bake, rng, { x, y, z, ry }) {
-  const key = rng() < 0.6 ? 'cowBrown' : 'cowWhite';
-  const cx = Math.cos(ry);
-  const sx = Math.sin(ry);
-  bake.push(key, box(2.0, 1.0, 0.9), x, y + 1.1, z, ry);
-  bake.push(key, box(0.7, 0.6, 0.5), x + 1.2 * cx, y + 1.35, z - 1.2 * sx, ry);
-  for (const lx of [-0.7, 0.7]) {
-    for (const lz of [-0.3, 0.3]) {
-      bake.push(key, boxUp(0.18, 0.7, 0.18), x + lx * cx + lz * sx, y, z - lx * sx + lz * cx, ry);
     }
   }
 }
