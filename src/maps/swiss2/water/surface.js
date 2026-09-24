@@ -148,7 +148,7 @@ export function waterMaterial({
           float h2 = texture2D(uWaves, vec2(q.x / 0.7 + 0.5, q.y / 0.9 - uTime * speed * 1.3 / 0.9)).a;
           float rough = smoothstep(0.08, 0.4, vWater.w);
           float bank = smoothstep(0.6, 1.0, abs(vWater.z));
-          wFoam = smoothstep(0.62 - 0.2 * rough, 0.8 - 0.1 * rough, h1 * 0.6 + h2 * 0.4) * max(rough, bank * 0.3);
+          wFoam = smoothstep(0.62 - 0.2 * rough, 0.8 - 0.1 * rough, h1 * 0.6 + h2 * 0.4) * max(rough, bank * 0.12);
         }
         #else
         {
@@ -196,6 +196,18 @@ export function waterMaterial({
         material.specularColor = vec3(0.02);
         material.specularF90 = 1.0;`)
       .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>
+        #ifdef WATER_FLOW
+        {
+          /* A stream runs a metre down between its banks: what it
+           * mirrors low toward the horizon is the far bank and its
+           * grass, not the sky, and from the air a stream that mirrored
+           * the sky at every grazing angle was a pale ribbon. */
+          vec3 wView = normalize(vWaterWorld - cameraPosition);
+          vec3 wR = reflect(wView, normalize(vec3(-wSlope.x, 1.0, -wSlope.y)));
+          float wSky = smoothstep(0.25, 0.8, wR.y) * (1.0 - 0.5 * smoothstep(0.4, 1.0, abs(vWater.z)));
+          radiance *= mix(0.07, 1.0, max(wSky, wFoam));
+        }
+        #endif
         #ifdef WATER_PLANAR
         {
           vec4 rc = vReflCoord;
@@ -210,7 +222,7 @@ export function waterMaterial({
          * gives body times cover plus reflection. */
         float cover = clamp(1.0 - exp(-max(vWater.x, 0.0) * uClarity), 0.0, 1.0);
         #ifdef WATER_FLOW
-          cover *= 1.0 - smoothstep(0.75, 1.0, abs(vWater.z));
+          cover *= 1.0 - 0.5 * smoothstep(0.8, 1.0, abs(vWater.z));
         #endif
         cover = max(cover, wFoam * 0.95);
         vec3 wSpec = totalSpecular;

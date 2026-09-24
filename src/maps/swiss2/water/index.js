@@ -50,9 +50,11 @@ export const WATER_TIERS = {
 };
 
 /* The water's colours, linear: a glacier fed lake is milky turquoise,
- * the stream the same water thinner and greyer. */
+ * the stream the same water over a dark stony bed between banks that
+ * shade it, which from the air is a dark line with white where it runs
+ * fast, not a pale one. */
 const LAKE_BODY = new THREE.Color(0.006, 0.028, 0.03);
-const STREAM_BODY = new THREE.Color(0.03, 0.06, 0.06);
+const STREAM_BODY = new THREE.Color(0.014, 0.032, 0.034);
 
 export async function buildWater(ctx) {
   const id = typeof ctx.quality === 'string' ? ctx.quality : ctx.quality?.id;
@@ -81,7 +83,7 @@ export async function buildWater(ctx) {
 
   /* The stream. */
   const streamMat = waterMaterial({
-    waves, time, wind, flow: true, colour: STREAM_BODY, clarity: 1.4, ripple: 0.6, roughness: 0.06, envMap, width: 4,
+    waves, time, wind, flow: true, colour: STREAM_BODY, clarity: 3, ripple: 0.6, roughness: 0.06, envMap, width: 4,
   });
   const runs = [[layout.aboveFall, 3.6], [layout.belowFall, 3.6], [layout.lower, 5.2]]
     .filter(([pts]) => pts.length > 1)

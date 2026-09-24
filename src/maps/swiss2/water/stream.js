@@ -115,9 +115,9 @@ export function gravelBarGeometry(pts, width, groundAt, rng) {
   const pos = [];
   const idx = [];
   const half = width / 2;
-  /* Rows every third of the line's step, so the bar follows the ground
+  /* Rows every sixth of the line's step, so the bar follows the ground
    * between the line's points rather than cutting under it. */
-  const SUB = 3;
+  const SUB = 6;
   const bar = (k0, k1, side, reach) => {
     const first = pos.length / 3;
     const rows = (k1 - k0) * SUB;
@@ -133,7 +133,8 @@ export function gravelBarGeometry(pts, width, groundAt, rng) {
       const nx = (-(b.z - a.z) / tl) * side;
       const nz = ((b.x - a.x) / tl) * side;
       const t = r / Math.max(1, rows);
-      const w = reach * Math.sin(Math.PI * t) ** 0.7;
+      /* A lens, its outer edge ragged where the grass has taken it. */
+      const w = reach * Math.sin(Math.PI * t) ** 0.7 * (0.55 + 0.45 * rng());
       for (const off of [half - 0.8, half + 0.2 + 0.5 * w, half + 0.2 + w]) {
         const x = cx + nx * off;
         const z = cz + nz * off;

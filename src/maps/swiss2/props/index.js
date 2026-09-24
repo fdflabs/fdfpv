@@ -858,21 +858,28 @@ export function buildProps(ctx) {
     fence.setMatrixAt(k, spanMatrix);
   };
 
-  /* THE GRAVEL BARS, in the static mesh with the rest: pale grey stones
-   * blotched by the noise at a stone's scale and a bar's, since a bar
-   * is mostly seen from the air, and one more draw for the view and each
-   * shadow map was more than its texture was worth. */
+  /* THE GRAVEL BARS, in the static mesh with the rest: grey stones
+   * blotched by the noise at a bar's scale, since a bar is mostly seen
+   * from the air, and one more draw for the view and each shadow map was
+   * more than its texture was worth. Dark and wet at the water, and at
+   * the grass's edge grown over; drawn an even pale grey, a bar read from
+   * the air as a kerb poured along the stream. */
   const barGeo = gravelBarGeometry(layout.lower, 5.2, layout.groundAt, rng);
   {
     const p = barGeo.getAttribute('position');
     const nr = barGeo.getAttribute('normal');
     const at = new THREE.Vector3();
     const n = new THREE.Vector3();
+    const grown = [0.07, 0.08, 0.04];
     for (const i of barGeo.index.array) {
       at.fromBufferAttribute(p, i);
       n.fromBufferAttribute(nr, i);
-      const k = 0.75 + 0.3 * noise2(at.x / 2.5, at.z / 2.5) + 0.15 * noise2(at.x / 17 + 3.1, at.z / 17);
-      m.vert(at, n, [0.27 * k, 0.26 * k, 0.24 * k]);
+      const k = 0.55 + 0.6 * noise2(at.x / 5, at.z / 5) + 0.3 * noise2(at.x / 17 + 3.1, at.z / 17);
+      const off = streamDist(at.x, at.z);
+      const wet = 1 - 0.5 * (1 - smoothstep(2.4, 3.8, off));
+      const g = Math.min(1, smoothstep(4, 7.5, off) * 0.6 + smoothstep(0.55, 0.8, noise2(at.x / 7 + 7.7, at.z / 7)));
+      const stone = [0.15 * k * wet, 0.145 * k * wet, 0.135 * k * wet];
+      m.vert(at, n, stone.map((c, q) => c + (grown[q] - c) * g));
     }
     barGeo.dispose();
   }
