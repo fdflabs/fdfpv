@@ -782,6 +782,42 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.23, 0.0, -0.1377 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * The E-flite Radian Pro powered glider, docs/GLIDER-STAGE1.md, on the
+ * same terms as the other planes: a 3S 1300 mAh pack and a folding tractor
+ * prop 0.293 m ahead of the CG. It is hand launched and lands on its
+ * belly, so the hull is what it rests on: the belly 52 mm under the CG
+ * (src/render/glidercraft.js GLIDER_DIMS), the canopy's top 80 mm over it.
+ * The box is 0.9 m long and 1.1 m wide, not the 1.14 by 2 m of the
+ * aircraft, because it is centred and the aircraft is not: a box as long
+ * as the fuselage would stand 0.26 m of air ahead of the nose, and one as
+ * wide as the span would put its bottom corners at the wingtips, which
+ * the polyhedral lifts 0.13 m over the belly. The camera is the drawn one,
+ * in the canopy.
+ */
+[SIM_AIRFRAME_RADIAN2000] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 0.98,
+  .inertia = { 0.075, 0.068, 0.140 },
+  .gravity = 9.81,
+  .cells = 3.0,
+  .r_cell = 0.015,
+  .rho = 1.225,
+  .prop_r = 0.1238,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.293, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.45,
+  .hull_hy = 0.55,
+  .hull_hz_down = 0.052,
+  .hull_hz_up = 0.08,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.72,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.23,
+  .camera_y = 0.0,
+  .camera_z = 0.035,
+  .fw = &FW_RADIAN2000,
+},
 };
 
 /*
@@ -922,7 +958,7 @@ static void plant_build_axes(void) {
 }
 
 void plant_set_airframe(int id) {
-  if (id < 0 || id >= SIM_AIRFRAME_COUNT) {
+  if (!plant_airframe_exists(id)) {
     return;
   }
   g_airframe = id;
@@ -930,6 +966,12 @@ void plant_set_airframe(int id) {
 }
 
 int plant_airframe(void) { return g_airframe; }
+
+/* In range and filled in: a slot reserved for an airframe that has not
+ * landed yet is all zeros, and a massless craft would divide by zero. */
+int plant_airframe_exists(int id) {
+  return id >= 0 && id < SIM_AIRFRAME_COUNT && PLANT_TABLE[id].mass_kg > 0.0;
+}
 /* .pos_x and .pos_y live in the table above. */
 
 /*

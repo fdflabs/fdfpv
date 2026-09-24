@@ -15,12 +15,15 @@
  * Skyhunter of docs/SKYHUNTER-STAGE1.md, with ailerons, an elevator and a
  * rudder on an H tail; and FW_CUB1400, the Piper J-3 Cub of
  * docs/CUB-STAGE1.md, the same surfaces behind a tractor prop, which adds
- * a thrust line off the CG and P factor. A term an airframe does not have
+ * a thrust line off the CG and P factor; and FW_RADIAN2000, the E-flite
+ * Radian Pro powered glider of docs/GLIDER-STAGE1.md, which adds a folding
+ * prop and flies in rising air. A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
  * airframe has to land in are scripts/wing-gates.js,
- * scripts/skyhunter-gates.js and scripts/cub-gates.js.
+ * scripts/skyhunter-gates.js, scripts/cub-gates.js and
+ * scripts/glider-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -178,6 +181,58 @@ static double smoothstep(double a, double b, double x) {
   }
   const double t = (x - a) / (b - a);
   return t * t * (3.0 - 2.0 * t);
+}
+
+/*
+ * THE RISING AIR. Three thermals over the airfield, each a column of air
+ * going up, fastest at its core and smoothly nothing at its edge:
+ * w0 (1 - (r/R)^2)^2, which has no kink anywhere, so a wing flying through
+ * one feels a gust and not a step. The columns stand still (there is no
+ * wind to drift them) and never change, so the field is a function of
+ * position alone and a replay meets exactly the air it met before. They
+ * start a few metres off the ground, are whole by 40 m, and fade out
+ * between 250 and 300 m, the base of the cloud they would be feeding, so a
+ * glider can climb in one but not for ever. There is no sink round them:
+ * the air between is still. The sizes and strengths are a small field's
+ * afternoon, docs/GLIDER-STAGE1.md; the places are in the plant's world
+ * frame, the runway along x through the origin, clear of the strip and the
+ * pylons along y = -70.
+ *
+ * Only an airframe whose table sets air_lift flies in it. Every other one
+ * flies in still air, as it always has, so its trace is untouched.
+ */
+typedef struct {
+  double x, y; /* core, world frame, m */
+  double r;    /* radius where the rise has died away, m */
+  double w0;   /* rise at the core, m/s */
+} Thermal;
+static const Thermal THERMALS[] = {
+  { 110.0, 70.0, 45.0, 2.5 },
+  { -140.0, -90.0, 40.0, 2.0 },
+  { 60.0, -170.0, 35.0, 1.6 },
+};
+#define THERMAL_COUNT ((int)(sizeof(THERMALS) / sizeof(THERMALS[0])))
+#define THERMAL_FORM_LO 5.0
+#define THERMAL_FORM_HI 40.0
+#define THERMAL_TOP_LO 250.0
+#define THERMAL_TOP_HI 300.0
+
+double plant_air_lift(const double pos[3]) {
+  const double fade = smoothstep(THERMAL_FORM_LO, THERMAL_FORM_HI, pos[2]) *
+                      (1.0 - smoothstep(THERMAL_TOP_LO, THERMAL_TOP_HI, pos[2]));
+  if (!(fade > 0.0)) {
+    return 0.0;
+  }
+  double w = 0.0;
+  for (int i = 0; i < THERMAL_COUNT; i += 1) {
+    const double dx = pos[0] - THERMALS[i].x;
+    const double dy = pos[1] - THERMALS[i].y;
+    const double f = 1.0 - (dx * dx + dy * dy) / (THERMALS[i].r * THERMALS[i].r);
+    if (f > 0.0) {
+      w += THERMALS[i].w0 * f * f;
+    }
+  }
+  return w * fade;
 }
 
 static double clamp1(double x) {
@@ -367,9 +422,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double yaw = rc[2];
   const double throttle = rc[3];
 
-  /* Relative wind in the body frame. No wind in the world yet. */
+  /* Relative wind in the body frame: still air, or for an airframe that
+   * flies in it, the thermals' rise, which is a wind from below. */
   double vb[3];
-  wquat_rotate_inv(s->quat, s->vel, vb);
+  if (fw->air_lift) {
+    const double va[3] = { s->vel[0], s->vel[1], s->vel[2] - plant_air_lift(s->pos) };
+    wquat_rotate_inv(s->quat, va, vb);
+  } else {
+    wquat_rotate_inv(s->quat, s->vel, vb);
+  }
   const double u = vb[0], v = vb[1], w = vb[2];
   const double V2 = u * u + v * v + w * w;
   const double V = sim_sqrt(V2);
@@ -472,14 +533,22 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (duty > 1.0) duty = 1.0;
   const double u_pos = u > 0.0 ? u : 0.0;
   double thrust = fw->thrust_static * duty * duty * (1.0 - u_pos / (fw->pitch_speed * duty));
-  if (thrust < 0.0) thrust = 0.0;
+  /* A folding prop under its throttle is stopped and folded: no thrust,
+   * no rpm, no current. Open, it brakes past its pitch speed rather than
+   * stopping at zero. A fixed prop stops at zero. */
+  const int folded = fw->fold_duty > 0.0 && throttle < fw->fold_duty;
+  if (folded) {
+    thrust = 0.0;
+  } else if (fw->fold_duty == 0.0 && thrust < 0.0) {
+    thrust = 0.0;
+  }
   F[0] += thrust;
-  const double rpm = 0.85 * duty * fw->rpm_no_load;
+  const double rpm = folded ? 0.0 : 0.85 * duty * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = fw->current_full * duty * duty;
+  s->pack_current = folded ? 0.0 : fw->current_full * duty * duty;
   s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
 
   /* Moments, in the aero convention, then into the body frame. */
@@ -508,7 +577,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * alpha = -w, over the blade speed. Both are zero on an airframe whose
    * table leaves them out, and add_term keeps its arithmetic as it was. */
   M[1] = add_term(-m_aero, fw->thrust_z * thrust);
-  M[2] = add_term(-n_aero, fw->pfactor * thrust * -w / s->motor_omega[0]);
+  M[2] = -n_aero;
+  /* A folded prop is not turning, and 0/0 would be a NaN, not a zero. */
+  if (s->motor_omega[0] > 0.0) {
+    M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
+  }
 
   /* Rates: I omega_dot = M - omega x (I omega), diagonal inertia. */
   const double Ix = PLANT.inertia[0], Iy = PLANT.inertia[1], Iz = PLANT.inertia[2];
@@ -782,4 +855,86 @@ const FixedWingParams FW_CUB1400 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .yaw_coord_k = 3.0,     /* a third of the Skyhunter's yaw authority per stick */
+};
+
+/* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
+ * formula and source and the estimated ones say so: the 2 m Radian's
+ * published wing, fuselage and power system, with the Pro's ailerons. A
+ * powered glider: a tractor prop that folds when the motor stops, and the
+ * only airframe that flies in the thermals above. */
+const FixedWingParams FW_RADIAN2000 = {
+  .mix = FW_MIX_TAIL,
+  .span = 2.00,
+  .area = 0.355,
+  .chord = 0.1866,        /* the mean aerodynamic chord of the drawn planform */
+  .cl_alpha = 5.709,      /* wing and tail, Nelson eq. 2.52 */
+  .cl_max = 1.05,
+  /* The zero lift line 5 degrees under the body axis: a cambered glider
+   * section at about 1.5 degrees of incidence. sin and cos of minus 5
+   * degrees, to 17 digits. */
+  .alpha_zl = -5.0 * WING_PI / 180.0,
+  .sin_zl = -0.08715574274765817,
+  .cos_zl = 0.9961946980917455,
+  .cd0 = 0.021,           /* a clean foam glider, built up part by part */
+  .k_induced = 0.03323,   /* 1/(pi 0.85 11.27) */
+  .cl_de = -0.257,
+  .cy_beta = -0.376,
+  .cy_dr = 0.179,
+  .cl_beta = -0.182,      /* the polyhedral, 7.3 degrees of it in effect, and the fin */
+  .cl_p = -0.786,
+  .cl_da = 0.334,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0116,
+  .cm_0 = 0.170,          /* trims at 7.7 m/s, the best glide, with the elevator neutral */
+  .cm_alpha = -1.304,     /* static margin 0.23 at the manual's 63 mm CG */
+  .cm_q = -14.6,
+  .cm_de = 0.949,
+  .cn_beta = 0.0967,
+  .cn_r = -0.0719,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.114, /* long outboard ailerons: plenty of adverse yaw */
+  .cn_dr = -0.0573,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The manual's high rates, 12 mm of elevator and 40 mm of rudder, over
+   * the surfaces' chords at the horn, 29 and 80 mm; the Pro's aileron
+   * travel is not published and is a sailplane's usual 15 degrees. */
+  .throw_a = 15.0 * WING_PI / 180.0,
+  .throw_e = 24.4 * WING_PI / 180.0,
+  .throw_r = 30.0 * WING_PI / 180.0,
+  .surface_max = 15.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 9.28,  /* N, a 480 960 kV on 3S with a 9.75 x 7.5 at 196 W */
+  .pitch_speed = 28.76,
+  .rpm_no_load = 10656.0,
+  .torque_arm = 0.00994,  /* 82 W of disc power at 8,516 rpm is 0.092 N m at 9.28 N */
+  .thrust_z = -0.008,     /* the drawn thrust line, 8 mm under the CG: power lifts the nose */
+  .pfactor = 1.6,         /* the Cub's blade element figure, a tractor turning the same way */
+  .current_full = 21.8,   /* A, measured on the same power system */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  /* Centred sticks glide at the trim: the best glide flies 0.6 degrees
+   * nose down, so level on the stick is a little slower than that. */
+  .stab_trim_pitch = 0.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,    /* the Skyhunter's: the same roll authority per stick */
+  .stab_roll_kd = 0.2,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .acro_roll_rate = 80.0 * WING_PI / 180.0,  /* a glider rolls at 77 deg/s at 12 m/s */
+  .acro_pitch_rate = 60.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 5.0,
+  .acro_roll_kd = 0.4,
+  .acro_roll_ff = 0.7,    /* full aileron rolls 1.34 rad/s at 12 m/s */
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.5,     /* nine tenths of the Skyhunter's rudder, and more adverse yaw */
+  .fold_duty = 0.05,
+  .air_lift = 1,
 };

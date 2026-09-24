@@ -38,6 +38,8 @@ jobs:
       - run: npm run skyhunter:stab
       - run: npm run cub:gates
       - run: npm run cub:stab
+      - run: npm run glider:gates
+      - run: npm run glider:stab
       - run: npm run input:selftest
       - run: npm run ghost:selftest
       - run: npm run contact:selftest

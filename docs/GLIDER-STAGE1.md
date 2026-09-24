@@ -260,6 +260,61 @@ this aircraft: a slow climb, not a cruise. A glider's phugoid is long and
 barely damped, ζ near 1/(√2 L/D), 0.03 in the glide; that is Lanchester's
 result and the reason a thrown glider balloons.
 
+## What the plant measured, and what flying it corrected
+
+`npm run glider:gates`, on the plant as committed:
+
+| Check | Measured | Band |
+| --- | --- | --- |
+| G1 glide ratio, folded | 18.66 at 7.89 m/s, sinking 0.422 | 16.0 to 21.5 |
+| G2 least sink | 0.402 m/s at 7.61 m/s | 0.30 to 0.46 |
+| G3 stall | 6.71 m/s | 6.1 to 7.4 |
+| G4 best climb | 5.95 m/s at 11.2 m/s, 30 deg nose up | 4.0 to 6.9 |
+| G5 level at 65 percent | 14.06 m/s, level to 0.001 m/s, the stick at −0.419 | 12.2 to 16.2 |
+| G6 roll, pb/2V | 0.105, 72 deg/s at 11.9 m/s | 0.08 to 0.15 |
+| G7 turn radius at 58 deg | 22.7 m against 21.1, 7 percent | 15 percent |
+| G8 rudder sideslip | 18.0 deg, wind from the left | 12 to 25 |
+| G9 rudder yaw rate | 93 deg/s at 14.1 m/s | 63 to 140 |
+| G10 rudder roll | 76.5 deg, right wing down | 30 to 120 |
+| G11 the fold | folded: 0 N, 0 rad/s; open: 0.106 N of drag, 453 rad/s | 0.06 to 0.16 N |
+| G12 glide ratio, open at 5 percent | 15.51, against 18.66 folded | 13.0 to 17.8 |
+| G13 prop torque | 0.092 N m, rolling left | 0.08 to 0.24 |
+| G14 circling in thermal A | 1.48 m/s up at 8.8 m/s and 31 deg, the circle 4.6 m off the core | 1.1 to 2.1 |
+| G15 the same circle, still air | 0.544 m/s down | 0.40 to 0.70 |
+| G16 over thermal A's top | 0.544 m/s down, still air's | within 0.02 of G15 |
+| G17 hand throw | 5.0 m up and 9.6 m/s after 3 s | over 1 m, over 8 m/s |
+| G18 chop | worst pitch 10.4 deg | 30 deg |
+| G19 phugoid, hands off | 5.25 s over 5 cycles | 4.6 to 6.6 |
+
+What flying the plant before the bands were final changed:
+
+- The phugoid, the chop and the throw were first the Cub's checks as
+  they stand: hands off at the same throttle, sticks centred after a
+  chop, a throw with the stick at zero. On the glider all three measured
+  the elevator's trim, not the check: neutral trims the 7.7 m/s glide, so
+  hands off at 65 percent it climbed at 7.4 m/s (phugoid 5.3 s against a
+  derived 10.3 for a level cruise the aircraft was no longer flying), the
+  chop pitched up 40 deg toward its trim speed, and the throw zoomed to
+  5.3 m/s. The derivation was redone for what each of those actually
+  flies (above), and the checks now fly them that way. No band moved
+  after it was measured.
+- The first level hold was the harness pilot's, and it held 65 percent
+  at 12.2 m/s climbing 0.7 m/s; it is a proportional attitude loop that
+  cannot hold the third of down elevator a glider needs there. G5 and the
+  rudder checks fly the integrating hold, and G9 then flew at the 14.1
+  m/s its band was derived at (the first run flew it at 8.4).
+- The recording's first pilot stalled it. Circling after a powered zoom,
+  with its airspeed trim wound up in the zoom, it held 0.65 of up stick
+  at 16 deg of angle of attack and mushed down at 3 m/s, banked 23 deg,
+  flying the airspeed it was asked for: a glider held nose up past its
+  stall does exactly that, and an airspeed loop cannot see it. The
+  recording pilot now starts its trim afresh in each phase and holds at
+  most 0.3 of pitch stick while gliding, and climbs 1 m/s in the thermal.
+- The first circle for G14 was begun level and rolled in, which walks the
+  circle's centre a turn's radius downwind of where it was aimed; it is
+  begun already banked at the point that puts the centre on the core, and
+  lands 4.6 m off it.
+
 ## Conventions
 
 The other three's, unchanged: world right handed, Z up; body X forward, Y

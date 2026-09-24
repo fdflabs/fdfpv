@@ -31,15 +31,17 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
-import { recordCubFlight, recordScriptedFlight, skyPrelude, wingPrelude } from '../tests/lib/wingpilot.js';
+import { recordCubFlight, recordGliderFlight, recordScriptedFlight, skyPrelude, wingPrelude } from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
  * flight, for skyhunter-gates.js S16; `cub` the Cub's take off and flight
- * for cub-gates.js C23. */
+ * for cub-gates.js C23; `glider` the Radian's climb, glide and thermal for
+ * glider-gates.js G21. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
   sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
   cub: { file: 'tests/inputs/cub-baseline.rec', record: recordCubFlight },
+  glider: { file: 'tests/inputs/glider-baseline.rec', record: recordGliderFlight },
 };
 const plane = PLANES[process.argv[2] || 'wing'];
 if (!plane) {
