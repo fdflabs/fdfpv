@@ -83,6 +83,15 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             at the half span and 557 mm aft of the CG, so the aircraft
  *             reaches 126 mm further from its centre than its half span.
  *             src/render/bramorcraft.js draws it.
+ *   slowstick1180  a 1176 mm GWS Slow Stick, whose tail reaches further
+ *             from the CG than its tips do: the rudder's trailing edge is
+ *             0.632 m aft, GWS's 954 mm length less the CG's 320 mm, and
+ *             the tips 0.588 m out. The axis aligned width this file
+ *             measures is the larger of the two doubled, so 1264 mm here
+ *             rather than GWS's 1176 mm span, which craft-preview.js holds
+ *             to 2 mm as the drawn half span. The reach is the elevator's
+ *             outer trailing corner, 0.639 m. src/render/slowstickcraft.js
+ *             draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -97,6 +106,7 @@ const REAL = {
   cub1400: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   radian2000: { spanMm: 2000.0, sweepMm: 2018.7, tolMm: 6 },
   bramor2300: { spanMm: 2300.0, sweepMm: 2551.0, tolMm: 6 },
+  slowstick1180: { spanMm: 1264.0, sweepMm: 1278.1, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

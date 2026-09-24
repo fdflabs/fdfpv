@@ -496,7 +496,7 @@ export const AIRFRAMES = [
     /*
      * The E-flite Radian Pro, docs/GLIDER-STAGE1.md: a 2 m powered glider
      * with ailerons, an elevator and a rudder, simId 6 on the fixed wing
-     * plant (5 is reserved for the Slow Stick). Thrown by hand and landed on
+     * plant (5 is the Slow Stick). Thrown by hand and landed on
      * its belly; its prop folds back when the throttle is closed, and it
      * climbs in the thermals over the airfield, which only it flies in.
      */
@@ -588,6 +588,55 @@ export const AIRFRAMES = [
       bodyLength: 0.96,
       bodyWidth: 2.3,
       bodyHeight: 0.315,
+    },
+  },
+  {
+    /*
+     * The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md: 1176 mm, 420 g, simId 5
+     * on the fixed wing plant. Three channels and no ailerons: the roll
+     * stick drives the rudder as well as the yaw stick does, and it banks
+     * through its dihedral, which also levels it when the sticks are let
+     * go. It stands on a wire gear and a tailwheel like the Cub, so
+     * throttle rolls it off the strip (L still throws it); `gear` is the
+     * plant's settled pose, which the drawn wheels in
+     * src/render/slowstickcraft.js match: the CG 0.1349 m over the ground
+     * and 6.9 degrees nose up.
+     */
+    id: 'slowstick1180',
+    simId: 5,
+    fixedWing: true,
+    gear: { restHeight: 0.1349, restPitch: 6.91 * Math.PI / 180 },
+    name: 'Slow Stick',
+    short: 'Stick',
+    blurb: 'A 1176 mm GWS Slow Stick on 2S: rudder, elevator and throttle, no ailerons. The roll stick works the rudder, it floats at a jog, and it levels itself when you let go.',
+    facts: ['2S', '1176 mm', 'Three channels'],
+    trackClass: 'wing',
+    cells: 2,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'slowstick-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/slowstickcraft.js SLOWSTICK_DIMS: the
+     * furthest reach in plan, the elevator's outer trailing corner, the
+     * wheels' lowest drawn point and the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1397,
+      hullR: 0.6391,
+      vHalfDown: 0.1575,
+      vHalfUp: 0.1975,
+      bodyLength: 0.952,
+      bodyWidth: 1.176,
+      bodyHeight: 0.355,
     },
   },
 ];

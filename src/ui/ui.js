@@ -2803,7 +2803,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180'],
     mode: 'freestyle',
     /* The wing's own world. A card with a home skips the picker: the
      * airfield was built for these aircraft and the town was not. The

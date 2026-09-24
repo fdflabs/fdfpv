@@ -313,6 +313,24 @@ rudder, clipped together, cancelling opposed); and on the wheels, no wind
 up, a straight take off in every mode, and the roll stick steering the
 tailwheel.
 
+The default tune is Acro, as it is for the other planes. Manual is where
+this aircraft's character is: in Acro a held bank stays held, and in
+Stabilised a gyro levels it, where the real thing levels itself.
+
+## In the shell
+
+`slowstick1180`, simId 5, is the fifth plane behind the Fixed wing card,
+in the wing class, with Acro (the default), Stabilised and Manual rows, its
+FPV camera on the stick behind the gearbox, and `gear` from the plant's
+settled pose, so throttle on the strip rolls it off its wheels and L still
+throws it. In headless Chrome on the airfield: the setting, the drawn
+model and the module all read the Slow Stick, module 5 on slowstick-acro
+with the stabiliser in mode 2; parked 0.1349 m over the ground, which is
+the plant's rest; the start prompt the Cub's. Full throttle rolls it off
+at about 4.5 m/s in a little over a second, and 10 s later it is 6.8 m up
+at 6.84 m/s, holding its liftoff attitude in Acro; full roll stick banks
+it right on the rudder.
+
 ## Conventions
 
 The Cub's, unchanged: world right handed, Z up; body X forward, Y left, Z

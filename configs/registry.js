@@ -169,6 +169,31 @@ export const TUNES = [
     name: 'Whoop freestyle',
     note: 'The 25000 kV variant on the bigger GF1219S prop. The highest gains of the three, and the only one the maker ships on Betaflight rates rather than Actual.',
   },
+  {
+    /* The Slow Stick's three. It has no ailerons, so in every mode the
+     * roll stick works the rudder and the stabiliser's roll loop does too;
+     * there is no turn coordinator. On its wheels every mode flies as
+     * Manual, as the Cub's does. Manual is where its dihedral shows: let
+     * go and it levels itself. */
+    id: 'slowstick-stab',
+    airframe: 'slowstick1180',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 45 degrees, flown on the rudder, pitch stick for a pitch up to 25, and centred sticks fly level.',
+    wingStab: 1,
+  },
+  {
+    id: 'slowstick-acro',
+    airframe: 'slowstick1180',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate, flown on the rudder, and a pitch rate, and centred sticks hold the attitude. It will not roll inverted: a rudder cannot do that.',
+    wingStab: 2,
+  },
+  {
+    id: 'slowstick-manual',
+    airframe: 'slowstick1180',
+    name: 'Manual',
+    note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the tailwheel, and the pitch stick the elevator. Let go and the dihedral levels the wings.',
+  },
 ];
 
 /*
