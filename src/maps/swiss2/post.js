@@ -66,7 +66,7 @@ export const AIR = {
   scaleHeight: 1400,
   haze: new THREE.Color().setRGB(0.4, 0.44, 0.5, THREE.LinearSRGBColorSpace),
   mie: 0.5,
-  exposure: 1.7,
+  exposure: 1.45,
   contrast: 0.6,
 };
 
