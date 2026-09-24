@@ -209,7 +209,7 @@ export function valleyLayout(heightAt, footprints = []) {
   return {
     slopeAt, trough, fallZ, BAND, inBand, faceDx, BACK_DX, bandTop, groundAt, lipY, fallX, pool,
     keepOff, coverOff, lakeWet, streamDist, upper, lower, aboveFall, belowFall, onLedge,
-    eastFarm,
+    eastFarm, footprints,
   };
 }
 

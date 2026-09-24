@@ -205,7 +205,33 @@ export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
     }
     const s = 0.8 + rng() * 0.5;
     const r = rng();
-    add(x, y, z, s, r < 0.35 ? V.maple : r < 0.75 ? V['beech-open'] : V['beech-tall']);
+    /* Field and bank trees grew in the open: the open grown forms only,
+     * the tall forest beech being a trunk under a ball out here. */
+    add(x, y, z, s, r < 0.4 ? V.maple : V['beech-open']);
+  }
+  /* The gardens. No house in the reference photographs stands on bare
+   * lawn: most have a tree or two beside them, kept small and clear of
+   * the roof. Planted round the village's own walls (a parked car or a
+   * church is too small or too big to be a house), a crown's width off
+   * every wall, never on a road, the square or the strip. */
+  const walls = layout.footprints || [];
+  const clearOf = (x, z, d) => walls.every((f) => Math.hypot(Math.max(f.minX - x, 0, x - f.maxX), Math.max(f.minZ - z, 0, z - f.maxZ)) >= d);
+  for (const f of walls) {
+    const area = (f.maxX - f.minX) * (f.maxZ - f.minZ);
+    if (area < 20 || area > 450) {
+      continue;
+    }
+    const n = rng() < 0.3 ? 0 : rng() < 0.6 ? 1 : 2;
+    for (let k = 0; k < n; k += 1) {
+      const a = rng() * Math.PI * 2;
+      const out = 6 + rng() * 6;
+      const x = Math.max(f.minX, Math.min(f.maxX, (f.minX + f.maxX) / 2 + Math.cos(a) * 50)) + Math.cos(a) * out;
+      const z = Math.max(f.minZ, Math.min(f.maxZ, (f.minZ + f.maxZ) / 2 + Math.sin(a) * 50)) + Math.sin(a) * out;
+      if (layout.coverOff(x, z) || !clearOf(x, z, 5.5) || streamDist(x, z) < 5) {
+        continue;
+      }
+      add(x, heightAt(x, z), z, 0.5 + rng() * 0.25, rng() < 0.5 ? V.maple : V['beech-open']);
+    }
   }
   return {
     x: Float32Array.from(xs),

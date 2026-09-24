@@ -352,11 +352,24 @@ function broadleaf(variant, lod) {
       barkB.strip(rings[j], rings[j + 1]);
     }
   }
+  /* A tree grown in the open keeps its lower limbs: a skirt of lobes
+   * hangs round the crown's lower half, so the crown comes down toward
+   * the ground instead of sitting on a bare pole as a ball. */
+  const skirt = 2 + Math.floor(rng() * 2);
+  for (let k = 0; k < skirt; k += 1) {
+    const a = rng() * Math.PI * 2;
+    const lr = 0.38 + rng() * 0.18;
+    lobes.push({
+      c: new THREE.Vector3(Math.cos(a) * rx * 0.5, centre.y - ry * (0.42 + rng() * 0.15), Math.sin(a) * rx * 0.5),
+      rx: rx * lr,
+      ry: ry * lr * 0.7,
+    });
+  }
   /* Leaf clusters through the lobes' shells, fewer on their undersides:
    * a crown of a few overlapping domes rather than one ball, with light
    * between them. A card's normal leans out from its own lobe and from
    * the crown as a whole. */
-  const count = near ? 320 : 96;
+  const count = near ? 440 : 130;
   const size = (near ? 1.6 : 2.9) * (H / 20);
   const weights = lobes.map((l) => l.rx * l.rx);
   const total = weights.reduce((a, b) => a + b, 0);
@@ -373,7 +386,7 @@ function broadleaf(variant, lod) {
     }
     do {
       d.set(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1);
-    } while (d.lengthSq() > 1 || d.lengthSq() < 0.01 || (d.y < -0.4 && rng() < 0.75));
+    } while (d.lengthSq() > 1 || d.lengthSq() < 0.01 || (d.y < -0.55 && rng() < 0.6));
     d.normalize();
     const f = 0.7 + 0.3 * Math.sqrt(rng());
     const p = new THREE.Vector3(lobe.c.x + d.x * lobe.rx * f, lobe.c.y + d.y * lobe.ry * f, lobe.c.z + d.z * lobe.rx * f);

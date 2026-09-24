@@ -33,7 +33,7 @@ import { valleyLayout } from './zones.js';
 import { loadAtlases } from './atlas.js';
 import { VARIANTS, buildVariant, triangles } from './species.js';
 import { windUniforms, plantMaterial, plantDepthMaterial } from './plantmat.js';
-import { bakeImpostors, impostorMaterial, impostorMesh } from './impostor.js';
+import { bakeImpostors, impostorMaterial, impostorDepthMaterial, impostorMesh } from './impostor.js';
 import { plantForest, forestLod } from './forest.js';
 import { buildRocks } from './rocks.js';
 import { buildGrass } from './grass.js';
@@ -99,7 +99,14 @@ export async function buildVegetation(ctx) {
     barkDepth: plantDepthMaterial('bark', { wind }),
   };
   const impMat = impostorMaterial(baked, bands.far);
-  const lit = [mats.nearFoliage, mats.nearBark, mats.mid, impMat];
+  const impDepth = impostorDepthMaterial(impMat);
+  /* The shadow pass draws a front sided material's back faces, and the
+   * shadow billboard shows the sun its front. */
+  impMat.shadowSide = THREE.DoubleSide;
+  if (ctx.sunDir) {
+    impMat.userData.impostor.uImpLight.value.copy(ctx.sunDir).normalize();
+  }
+  const lit =[mats.nearFoliage, mats.nearBark, mats.mid, impMat];
   if (ctx.envMap) {
     for (const m of lit) {
       m.envMap = ctx.envMap;
@@ -117,15 +124,23 @@ export async function buildVegetation(ctx) {
     group,
     sunDir: ctx.sunDir,
   });
-  /* The impostors, in chunks the camera's frustum can drop. */
+  /* The impostors, in chunks the camera's frustum can drop, and apart
+   * from them the trees that grew in the open (the field, bank and
+   * garden trees and a stand's edge), which alone cast a far shadow: in
+   * a closed stand a tree's shadow falls on the next tree, and drawing
+   * the whole forest into both shadow maps again cost a quarter of a
+   * million triangles for nothing a view could see. */
   const cn = Math.ceil(FIELD / Q.chunk);
-  const chunks = Array.from({ length: cn * cn }, () => []);
+  const chunks = Array.from({ length: cn * cn * 2 }, () => []);
+  const open = VARIANTS.map((v) => v.name.endsWith('-open') || v.kind === 'maple');
   for (let t = 0; t < forest.count; t += 1) {
     const i = Math.min(cn - 1, Math.floor((forest.x[t] + HALF) / Q.chunk));
     const j = Math.min(cn - 1, Math.floor((forest.z[t] + HALF) / Q.chunk));
-    chunks[j * cn + i].push(t);
+    chunks[(j * cn + i) * 2 + (open[forest.v[t]] ? 1 : 0)].push(t);
   }
-  const impostors = chunks.filter((c) => c.length).map((c) => impostorMesh(forest, c, impMat));
+  const impostors = chunks
+    .map((c, k) => (c.length ? impostorMesh(forest, c, impMat, k % 2 && ctx.sunDir ? impDepth : null) : null))
+    .filter(Boolean);
   for (const m of impostors) {
     group.add(m);
   }
@@ -184,6 +199,7 @@ export async function buildVegetation(ctx) {
     wind.uTime.value = time;
     camera.getWorldPosition(cam);
     lod.update(camera);
+    impMat.userData.impostor.uImpView.value.copy(cam);
     rocks.update(cam);
     if (grass) {
       grass.update(cam);
@@ -212,7 +228,7 @@ export async function buildVegetation(ctx) {
       for (const m of impostors) {
         m.geometry.dispose();
       }
-      for (const m of [...lit, mats.foliageDepth, mats.barkDepth]) {
+      for (const m of [...lit, mats.foliageDepth, mats.barkDepth, impDepth]) {
         m.dispose();
       }
       baked.dispose();
