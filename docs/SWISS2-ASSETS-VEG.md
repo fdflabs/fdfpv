@@ -100,7 +100,9 @@ directly rather than passed.
 
 What the pipeline must provide: the sun as the scene's first
 `DirectionalLight` (the light through leaves and through the fall reads
-`directionalLights[0]`), `update(dtMs, camera)` on both before each render,
+`directionalLights[0]`'s direction; through leaves, the sun it adds is
+what the light loop let reach the leaf, after every shadow),
+`update(dtMs, camera)` on both before each render,
 and shadow maps enabled if the trees should cast (every tree and rock
 level casts, with depth materials that carry the wind and the alpha cut).
 `ctx.sunDirection` is not read: the lights carry it.

@@ -27,7 +27,10 @@
  *
  *   Light through the leaves. Looking toward the sun through a crown,
  *   needles and leaves glow; a share of the sun's light reaches the eye
- *   through the foliage in a lobe round the sun's direction.
+ *   through the foliage in a lobe round the sun's direction. It is the
+ *   sun as it reaches that leaf, after the shadow maps: taken unshadowed,
+ *   it lit a crown's shaded inside as brightly as its sunny side, and
+ *   every broadleaf read as one flat bright blob.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -77,6 +80,20 @@ bool plantKeep(float n, float d, vec4 band) {
 bool plantOut(float d, vec4 band) {
   return d <= band.x || d >= band.w;
 }
+`;
+
+/* The sun each fragment of foliage receives, shadowed, summed over the
+ * cascades: three's physical RE_Direct wrapped so the light loop, which
+ * has already multiplied each light's colour by its shadow, leaves the
+ * sum behind for the light through the leaves. */
+const PLANT_SUN_GLSL = /* glsl */ `
+vec3 plantSun = vec3(0.0);
+void RE_Direct_Plant(const in IncidentLight directLight, const in vec3 geometryPosition, const in vec3 geometryNormal, const in vec3 geometryViewDir, const in vec3 geometryClearcoatNormal, const in PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+  plantSun += directLight.color;
+  RE_Direct_Physical(directLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight);
+}
+#undef RE_Direct
+#define RE_Direct RE_Direct_Plant
 `;
 
 /* Leaves and needles are not glossy: three's standard material reflects
@@ -176,6 +193,7 @@ export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, f
           float faceDirection = gl_FrontFacing ? 1.0 : -1.0;
           vec3 normal = normalize(vNormal);
           vec3 nonPerturbedNormal = normal;`)
+        .replace('#include <lights_physical_pars_fragment>', `#include <lights_physical_pars_fragment>\n${PLANT_SUN_GLSL}`)
         .replace('#include <lights_physical_fragment>', LEAF_SPEC_GLSL)
         .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
           #if NUM_DIR_LIGHTS > 0
@@ -183,7 +201,7 @@ export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, f
             vec3 L = directionalLights[0].direction;
             float into = pow(saturate(dot(-geometryViewDir, L)), 3.0);
             float wrap = 0.35 + 0.65 * saturate(dot(-geometryNormal, L) * 0.5 + 0.5);
-            reflectedLight.directDiffuse += directionalLights[0].color * material.diffuseColor * uTransl * (0.4 + into) * wrap;
+            reflectedLight.directDiffuse += plantSun * material.diffuseColor * uTransl * (0.4 + into) * wrap;
           }
           #endif`);
     }
