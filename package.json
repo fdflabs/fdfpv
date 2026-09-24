@@ -65,6 +65,7 @@
     "glider:stab": "node scripts/glider-stab-selftest.js",
     "glider:record": "node scripts/wing-record.js glider",
     "glider:derive": "node scripts/glider-derive.js",
+    "bramor:derive": "node scripts/bramor-derive.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",
