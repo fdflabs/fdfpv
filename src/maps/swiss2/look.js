@@ -251,7 +251,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
   const WEATHER_KIND = { ...WEATHER, none: 3 };
   const BUILDING = {
     stone: { group: 'stone', tint: [0.95, 0.95, 0.95], weather: 'wall' },
-    render: { group: 'render', tint: [0.7, 0.68, 0.64], normal: 1.6, weather: 'wall' },
+    render: { group: 'render', tint: [0.66, 0.64, 0.6], normal: 1.6, weather: 'wall' },
     trim: { group: 'render', tint: [0.72, 0.7, 0.66], normal: 0.3 },
     surround: { group: 'render', tint: [0.55, 0.53, 0.5], weather: 'wall' },
     larchDark: { group: 'boards', tint: [0.72, 0.62, 0.55], weather: 'wall', grey: 0.55 },
@@ -262,10 +262,11 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     shutterGreen: { group: 'boards', tint: [0.35, 1.1, 0.45], normal: 0.6 },
     shutterRed: { group: 'boards', tint: [1.9, 0.45, 0.35], normal: 0.6 },
     fence: { group: 'boards', tint: [1.35, 1.25, 1.15] },
-    logEnd: { group: 'boards', tint: [3.0, 2.4, 1.6], normal: 0.4 },
+    logEnd: { group: 'boards', tint: [2.1, 1.6, 1.1], normal: 0.4 },
     frieze: { group: 'boards', tint: [0.8, 0.52, 0.38], weather: 'wall', grey: 0.3 },
-    shingle: { group: 'shingle', tint: [0.78, 0.74, 0.7], weather: 'roof', grey: 1 },
-    shingleDark: { group: 'shingle', tint: [0.7, 0.66, 0.62], weather: 'roof', grey: 1 },
+    baluster: { group: 'boards', tint: [1.35, 1.05, 0.78], weather: 'wall', grey: 0.6 },
+    shingle: { group: 'shingle', tint: [0.62, 0.58, 0.55], weather: 'roof', grey: 1 },
+    shingleDark: { group: 'shingle', tint: [0.5, 0.47, 0.44], weather: 'roof', grey: 1 },
     slate: { group: 'slate', tint: [1.15, 1.15, 1.2], weather: 'roof', grey: 0.45 },
     hangar: { group: 'metal', tint: [0.5, 0.58, 0.52], weather: 'wall' },
     hangarRoof: { group: 'metal', tint: [0.36, 0.4, 0.38] },

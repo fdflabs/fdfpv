@@ -146,7 +146,7 @@ function blob() {
 export function casement(wall, x, y, w, h, { shutter = null, bars = true, sill = true, key = null, seed = 0 } = {}) {
   const win = frame(wall, x, y, 0, 0);
   win.put('glass:o', plate(w - 0.12, h - 0.12), 0, 0, 0.02);
-  win.put(near('trim'), ring(w, h, 0.09, 0.11), 0, 0, 0);
+  win.put(detail('trim'), ring(w, h, 0.09, 0.11), 0, 0, 0);
   if (!key) {
     win.put(detail('surround'), ring(w + 0.3, h + 0.3, 0.15, 0.03, false), 0, 0, 0);
   }
@@ -195,7 +195,7 @@ export function doorway(wall, x, w, h, { key = 'larchDark', frameKey = 'larch', 
 export function balcony(wall, len, { out = 1.3, board = 'larch', flowers = true } = {}) {
   wall.put(board, box(len, 0.14, out), 0, 0.07, out / 2);
   wall.put('shade', box(len - 0.1, 0.84, 0.03), 0, 0.14 + 0.42, out - 0.12);
-  wall.put(near(board), balusterRow(len - 0.1, 0.82), 0, 0.14, out - 0.08);
+  wall.put(detail('baluster'), balusterRow(len - 0.1, 0.82), 0, 0.14, out - 0.08);
   wall.put(board, box(len + 0.12, 0.08, 0.16), 0, 1.0, out - 0.08);
   wall.put(board, box(len, 0.06, 0.06), 0, 0.17, out - 0.07);
   const posts = Math.max(2, Math.round(len / 2.6));
@@ -402,14 +402,23 @@ export function dressRoof(rf, roof, { roofKey, key, edgeKey = key, snowGuard = f
     }
   }
   if (snowGuard) {
+    /* On shingle a squared log held by iron hooks, the old way; on
+     * slate a pair of iron rails. */
+    const iron = roofKey === 'slate';
     for (const side of [-1, 1]) {
-      const x = side * (ex - 0.7);
-      const ySurf = yT + 0.7 * tanP;
-      rf.put(detail('metal'), box(0.05, 0.05, zB - zA - 0.8), x, ySurf + 0.24, 0);
-      const n = Math.max(2, Math.round((zB - zA) / 3));
+      const x = side * (ex - 0.8);
+      const ySurf = yT + 0.8 * tanP;
+      const len = zB - zA - 0.8;
+      if (iron) {
+        rf.put(detail('metal'), box(0.05, 0.05, len), x, ySurf + 0.24, 0);
+        rf.put(detail('metal'), box(0.05, 0.05, len), x, ySurf + 0.12, 0);
+      } else {
+        rf.put(near(key), box(0.16, 0.16, len), x, ySurf + 0.13, 0, 0, 0, -side * slope * 0.5);
+      }
+      const n = Math.max(2, Math.round((zB - zA) / 2.5));
       for (let k = 0; k < n; k += 1) {
         const z = zA + 0.5 + (k + 0.5) * ((zB - zA - 1) / n);
-        rf.put(detail('metal'), box(0.04, 0.3, 0.04), x, ySurf + 0.1, z);
+        rf.put(detail('ink'), box(0.04, 0.3, 0.04), x + side * 0.1, ySurf + 0.1, z);
       }
     }
   }

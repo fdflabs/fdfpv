@@ -77,7 +77,7 @@ export function chalet(f, rng, spec) {
   const y1 = SOCLE + baseH;
   const top = timberTop(f, {
     w: wu, d, y0: y1, floors, floorH, kind: roof, key: board, roofKey,
-    ov, ovA, ovB, pitch, snowGuard: true, chimneyAt: [-w / 4, d / 5], sag: 0.03 + 0.1 * own(f),
+    ov, ovA, ovB, pitch, snowGuard: true, chimneyAt: [-w / 4, d / 5], sag: own(f) < 0.5 ? 0.05 + 0.16 * own(f) : 0,
   });
   /* The sill log the storey stands on, proud of the logs above it. */
   f.put(board, box(wu + 0.08, 0.26, d + 0.08), 0, y1 + 0.13, 0);
@@ -129,7 +129,16 @@ export function chalet(f, rng, spec) {
       frieze(wall, wu + 0.2, fy + 0.8);
       gableRow(wall, wu, fy + 1.45, { shutter, key: board });
     }
-    if (roof !== 'hip') {
+    /* Under a full gable the front has its own small Laube, as wide as
+     * the roof leaves a man's height over the geraniums, with a door
+     * onto it; elsewhere a small window lights the loft. */
+    const tanP = top.roof.tanP;
+    const laube = 2 * (hwu - 1.65 / tanP);
+    if (roof === 'gable' && wall === south && laube >= 2.6) {
+      const gable = frame(wall, 0, 0, 0.04, 0);
+      balcony(frame(gable, 0, top.plate, 0, 0), laube, { out: 1.0, board });
+      casement(gable, 0, top.plate + 0.97, 0.8, 1.7, { key: board, sill: false });
+    } else if (roof !== 'hip') {
       casement(frame(wall, 0, 0, 0.04, 0), 0, top.plate + 0.55, 0.6, 0.6, { shutter, key: board, bars: false });
     }
   }
@@ -447,7 +456,16 @@ export function church(f, spec) {
   f.put('cross', ball, 0, SOCLE + towerH + 13.3, tz);
   f.put('cross', boxUp(0.12, 2.0, 0.12), 0, SOCLE + towerH + 13.5, tz);
   f.put('cross', box(1.0, 0.12, 0.12), 0, SOCLE + towerH + 14.9, tz);
-  doorway(frame(f, 0, 0, tz + tw / 2, 0), 0, 1.6, 2.8, { frameKey: 'stone' });
+  /* The tower door under its little roof on two brackets. */
+  const porch = frame(f, 0, 0, tz + tw / 2, 0);
+  doorway(porch, 0, 1.6, 2.8, { frameKey: 'stone' });
+  const py = SOCLE + 3.35;
+  for (const s of [-1, 1]) {
+    porch.put('slate', box(1.45, 0.06, 1.35), s * 0.66, py + 0.3, 0.62, 0, 0, -s * 0.42);
+    porch.put(near('larchDark'), box(0.1, 0.1, 1.0), s * 1.15, py - 0.3, 0.5, 0, -0.75);
+  }
+  porch.put('larchDark', box(2.6, 0.14, 0.14), 0, py - 0.02, 1.2);
+  porch.put('larchDark', box(0.12, 0.16, 1.3), 0, py + 0.58, 0.62);
   for (let k = 0; k < 4; k += 1) {
     const a = k * Math.PI / 2;
     const face = frame(f, Math.sin(a) * tw / 2, 0, tz + Math.cos(a) * tw / 2, a);
