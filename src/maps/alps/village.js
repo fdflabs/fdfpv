@@ -77,7 +77,7 @@ export async function buildVillage(ctx) {
    * the same extents and draw the rng as these do, so the layout, the
    * colliders and everything placed round them are the same; the cel
    * look has none and builds exactly what it always has. */
-  const kit = { chalet, barn, farmhouse, gasthof, shop, church, bakeAll, ...ctx.look?.buildings };
+  const kit = { chalet, barn, farmhouse, gasthof, shop, church, hangar, bakeAll, ...ctx.look?.buildings };
   const bake = makeBake();
   const villageY = heightAt(-90, STREET_Z);
   const onGround = (x, z) => heightAt(x, z) - villageY;
@@ -378,7 +378,7 @@ export async function buildVillage(ctx) {
    * behind it, cones down both edges of the strip and a threshold bar
    * painted at each end. The strip itself is alps.js's plane.
    */
-  place((f, found) => hangar(f, { found }), 44, -70, -Math.PI / 2, 15, 12);
+  place((f, found) => kit.hangar(f, { found }), 44, -70, -Math.PI / 2, 15, 12);
   bake.push('gravel', new THREE.BoxGeometry(12, 0.06, 16), 66, onGround(66, -49) + 0.03, -49);
   const ground = frame(bake, 0, 0, 0, 0);
   for (let z = -STRIP_L / 2; z <= STRIP_L / 2; z += 20) {

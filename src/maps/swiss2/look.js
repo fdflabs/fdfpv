@@ -187,6 +187,46 @@ function weathered(mat, heights, kind = 'wall', grey = 0) {
 }
 
 /*
+ * Trapezoidal steel sheet, the hangar's cladding: the photographed
+ * corrugated iron's colour and roughness, and a normal map drawn here of
+ * four ribs a metre, each a valley, a flank, a crest and a flank. As
+ * geometry the ribs shimmered at the strip's hundred metres, two pixels
+ * apart; a mipmapped normal map averages them away with distance and
+ * shows them near.
+ */
+const RIB_TILE = 1;
+function ribbedSheet(metal) {
+  const w = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = 4;
+  const g = canvas.getContext('2d');
+  const img = g.createImageData(w, 4);
+  for (let x = 0; x < w; x += 1) {
+    const f = (x % 32) / 32;
+    const nx = f >= 0.42 && f < 0.52 ? -0.8 : f >= 0.9 ? 0.8 : 0;
+    const nz = Math.sqrt(1 - nx * nx);
+    for (let y = 0; y < 4; y += 1) {
+      const i = (y * w + x) * 4;
+      img.data[i] = Math.round((nx * 0.5 + 0.5) * 255);
+      img.data[i + 1] = 128;
+      img.data[i + 2] = Math.round((nz * 0.5 + 0.5) * 255);
+      img.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const nrm = new THREE.CanvasTexture(canvas);
+  nrm.wrapS = THREE.RepeatWrapping;
+  nrm.wrapT = THREE.RepeatWrapping;
+  nrm.anisotropy = metal.nrm.anisotropy;
+  const set = { col: metal.col.clone(), nrm, arm: metal.arm.clone() };
+  for (const t of [set.col, set.nrm, set.arm]) {
+    t.repeat.set(1 / RIB_TILE, 1 / RIB_TILE);
+  }
+  return set;
+}
+
+/*
  * Build the look. `surfaces` are assets.js's loaded texture sets by name,
  * `ground(opts)` makes a ground material (ground.js), and `heights` is
  * where the field's heights will be for the walls' weather ({ texture,
@@ -248,6 +288,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
    * metalness per vertex. The glass and the fountain's water are
    * physical and stay their own.
    */
+  surfaces.ribbed = ribbedSheet(surfaces.metal);
   const WEATHER_KIND = { ...WEATHER, none: 3 };
   const BUILDING = {
     stone: { group: 'stone', tint: [0.95, 0.95, 0.95], weather: 'wall' },
@@ -268,8 +309,19 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     shingle: { group: 'shingle', tint: [0.62, 0.58, 0.55], weather: 'roof', grey: 1 },
     shingleDark: { group: 'shingle', tint: [0.5, 0.47, 0.44], weather: 'roof', grey: 1 },
     slate: { group: 'slate', tint: [1.15, 1.15, 1.2], weather: 'roof', grey: 0.45 },
-    hangar: { group: 'metal', tint: [0.5, 0.58, 0.52], weather: 'wall' },
-    hangarRoof: { group: 'metal', tint: [0.36, 0.4, 0.38] },
+    hangar: { group: 'ribbed', tint: [0.36, 0.42, 0.39], weather: 'wall' },
+    hangarRoof: { group: 'ribbed', tint: [0.34, 0.36, 0.36] },
+    hangarDoor: { group: 'ribbed', tint: [0.46, 0.5, 0.5], weather: 'wall' },
+    /* The hangar's inside, what the open door shows: the sky does not
+     * reach it, and the look's light cannot know that, so it is dark. */
+    hangarIn: { group: 'plain', tint: [0.018, 0.019, 0.02], rough: 0.9 },
+    steel: { group: 'plain', tint: [0.1, 0.11, 0.12], rough: 0.5, metal: 0.4 },
+    flashing: { group: 'plain', tint: [0.42, 0.44, 0.44], rough: 0.45, metal: 0.7 },
+    lightPanel: { group: 'plain', tint: [0.42, 0.42, 0.36], rough: 0.3 },
+    lamp: { group: 'plain', tint: [0.25, 0.26, 0.27], rough: 0.35, metal: 0.6 },
+    joint: { group: 'plain', tint: [0.03, 0.03, 0.028], rough: 0.85 },
+    stain: { group: 'plain', tint: [0.035, 0.033, 0.03], rough: 0.25 },
+    lineYellow: { group: 'plain', tint: [0.7, 0.45, 0.02], rough: 0.65 },
     asphalt: { group: 'asphalt', tint: [0.85, 0.85, 0.85] },
     gravel: { group: 'gravel', tint: [0.8, 0.82, 0.85] },
     cobble: { group: 'cobble', tint: [1.0, 1.0, 1.0], weather: 'paving' },
@@ -368,6 +420,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     shingle: grouped('shingle', { rough: 1.25 }),
     slate: grouped('slate'),
     metal: grouped('metal', { metal: 0.4 }),
+    ribbed: grouped('ribbed', { metal: 0.4 }),
     asphalt: grouped('asphalt'),
     gravel: grouped('gravel'),
     cobble: grouped('cobble'),
@@ -392,7 +445,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
       return plain(lin(...b.tint), b.rough ?? 1, b.metal ?? 0);
     }
     return textured(b.group, lin(...b.tint), {
-      metal: b.group === 'metal' ? 0.4 : 0, normal: b.normal ?? 1, weather: b.weather ?? false, grey: b.grey ?? 0,
+      metal: b.group === 'metal' || b.group === 'ribbed' ? 0.4 : 0, normal: b.normal ?? 1, weather: b.weather ?? false, grey: b.grey ?? 0,
     });
   };
   const village = () => Object.fromEntries(Object.entries(BUILDING).map(([key, b]) => [key, keyMaterial(b)]));
