@@ -162,3 +162,43 @@ buildings (the kit), sky and atmosphere (low cloud in the valley and on
 the walls, the pale floor into the sun, the walls' uniformity with
 height), and the floor and forest detail (forest structure and edges,
 hay huts, fences, bales, the stream's rocky banks, a reed bank).
+
+### Round 3 (PRs #19, #20, #21, main at 014398c): the first parallel team
+
+Buildings (#19): swiss2's own Bernese chalets, farmhouse, barns,
+Gasthof, bakery and church through a `look.buildings` hook, colliders
+and the alps fingerprint identical, and the village merged from 36
+meshes to 13 (up to 47 draw calls freed per view). Sky and landscape
+(#20): low cloud in three layers drawn in the post pass (fly through,
+casts shadow), walls banded by height (rock only on cliffs and ribs,
+turf above the tree line, limestone bands with scree), the grass sheen
+into the sun hidden. Floor and forest (#21): a ragged, varied forest
+edge, gullies, larch groups and snags, stream banks with stones and
+gravel bars, a reed bank, hay huts, fences and bales in two draws, and
+about 900 k invisible rock triangles per view removed.
+
+| View | R2 | R3 | The tell now |
+| --- | --- | --- | --- |
+| strip | 4.5 | 5 | a mown lawn to the hangar |
+| vista-high | 6 | 6.5 | cloud edges are hard slabs |
+| cruise | 6 | 6.5 | the same |
+| village-20m | 3.5 | 4.5 | plain white ground floors; toy cars |
+| square-eye | 3 | 3.5 | the bus fills the frame and reads as a toy |
+| meadow-eye | 4.5 | 5 | good; the far meadow is even |
+| east-wall | 5.5 | 5.5 | a flat cloud slab along the ridge |
+| lake-shore | 4 | 4.5 | a roadside, now fenced |
+| lake-high | 5.5 | 5.5 | |
+| waterfall | 4.5 | 4.5 | a column straight into a round mist |
+| into-sun | 5 | 5.5 | good; cloud flecks |
+| farm-low | 4 | 4.5 | the far floor is lawn |
+| lake-edge | 4.5 | 5 | reeds; the shore is plain |
+
+Mean of the thirteen: 4.65 to 5.08. Gate held: no view lower; the most
+calls 241, the most triangles 1.42 M (strip), every view cheaper than
+round 2; alps fingerprint unchanged.
+
+Round 4, a team: sky (soft, volumetric looking cloud without slab
+edges, the east wall's ridge slab), the made things (photoreal vehicles
+through a style hook, the hangar, the chalets' plain ground floors),
+and nature (the waterfall's cascade, splash zone and wet rock; the far
+meadow's flowers and uneven growth).
