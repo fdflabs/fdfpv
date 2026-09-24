@@ -47,6 +47,15 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  * lake is centred on x 173, z 2150 with its north shore at z 1860; the
  * fall's pool is at x 827, z -1295, 190 m up, its lip 70 m above that
  * (src/maps/alps/terrain.js POOL, LIP_RISE).
+ *
+ * Y is absolute, not above the ground, and the floor is not at zero: it
+ * rises to 5 m at the meadow and 3.4 m at the lake's north shore. Round 0
+ * put meadow-eye at 1.6 and lake-shore at 3, both under the ground, and
+ * scored the terrain's underside as a broken reflection. Round 1 raised
+ * those two to 1.6 m above the ground under them, and every view now
+ * fails the run if its camera is less than a metre above the ground.
+ * Raised, lake-shore stands behind the shore's rise and sees a strip of
+ * water, so round 1 also added lake-edge, at the water's edge.
  */
 const VIEWS = [
   { id: 'strip', cam: [0, 2, 40, 0, 3, -100], ref: 'valley-vista' },
@@ -54,13 +63,14 @@ const VIEWS = [
   { id: 'cruise', cam: [0, 300, -200, 0, 80, -1500], ref: 'valley-vista-2' },
   { id: 'village-20m', cam: [-120, 22, 150, -185, 4, 112], ref: 'village' },
   { id: 'square-eye', cam: [-160, 2.2, 112, -205, 5, 118], ref: 'village' },
-  { id: 'meadow-eye', cam: [60, 1.6, 300, -60, 4, 500], ref: 'barn' },
+  { id: 'meadow-eye', cam: [60, 6.4, 300, -60, 4, 500], ref: 'barn' },
   { id: 'east-wall', cam: [100, 30, -300, 700, 150, -350], ref: 'peaks' },
-  { id: 'lake-shore', cam: [193, 3, 1880, 173, 4, 2400], ref: 'lake' },
+  { id: 'lake-shore', cam: [193, 5, 1880, 173, 4, 2400], ref: 'lake' },
   { id: 'lake-high', cam: [420, 200, 1650, 173, 0, 2250], ref: 'lake' },
   { id: 'waterfall', cam: [650, 200, -1150, 827, 230, -1295], ref: 'waterfall' },
   { id: 'into-sun', cam: [0, 40, 0, 450, 200, 640], ref: 'valley-vista' },
   { id: 'farm-low', cam: [-40, 8, 420, -120, 4, 470], ref: 'barn' },
+  { id: 'lake-edge', cam: [193, 2.2, 1985, 173, 1, 2400], ref: 'lake' },
 ];
 
 /* Median of a frame's duration over sixty frames, in the page. */
@@ -79,6 +89,7 @@ const steps = [
 ];
 for (const v of VIEWS) {
   steps.push(
+    `expect:window.__heightAt(${v.cam[0]}, ${v.cam[2]}) < ${v.cam[1] - 1}`,
     `eval:(window.__setCam(${v.cam.join(',')}), "")`,
     'wait:2500',
     `shot:${v.id}`,
