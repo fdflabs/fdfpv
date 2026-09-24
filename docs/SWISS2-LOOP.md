@@ -17,7 +17,12 @@ round that was busy and changed nothing on the sheet is not progress.
 2. The lead scores every view against its reference by the rubric below
    and picks the two or three biggest remaining tells: what hurts the
    picture most, not what is easiest.
-3. One agent builds the fixes in its own worktree and opens a PR.
+3. The fixes are built in worktrees and each opens a PR. From round 3
+   on (the owner's call, 2026-09-24) a round is a parallel team: one
+   agent per target, each owning named files and told which files the
+   others own, so they cannot collide; the lead merges their PRs in
+   turn, re-rendering after each, and scores the round on the last
+   merge. Round 2 ran as two agents (2 and 2b) the same way.
 4. The gate. The PR merges only if: no view scores lower and the mean
    rises; no view's draw calls or triangles grow past the budget below
    and none drops under 60 fps; the cel `alps` map is unchanged (the
