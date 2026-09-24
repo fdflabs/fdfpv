@@ -54,7 +54,7 @@ export const TUNES = [
     id: 'wing-manual',
     airframe: 'wing1000',
     name: 'Manual',
-    note: 'No flight controller. The sticks are the elevons, 25 degrees at full stick with a little expo.',
+    note: 'No flight controller. The sticks are the elevons: 12 degrees of pitch and 25 of roll at full stick, with a little expo.',
   },
   {
     id: 'betaflight-default',

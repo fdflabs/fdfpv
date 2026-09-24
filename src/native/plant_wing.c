@@ -61,12 +61,25 @@ static const double W_CM_DE = 0.60;        /* delta_e positive pitches the nose 
 static const double W_CN_BETA = 0.05;      /* winglets */
 static const double W_CN_R = -0.10;
 static const double W_STALL_BLEND = 3.0 * WING_PI / 180.0; /* half width of the blend */
+/* The throws. A real 1000 mm wing is set up with far less elevator than
+ * aileron: with a static margin of seven percent, twenty five degrees of
+ * up puts the trim angle well past the stall, and a sixth of that stick
+ * at throw speed pitched the plant to sixty degrees and dropped a wing.
+ * Twelve degrees of elevator is the usual setup figure and still stalls
+ * at full stick; roll keeps the full twenty five the roll rate band was
+ * derived with. Each elevon is clipped at the aileron throw. */
 static const double W_SURFACE_MAX = 25.0 * WING_PI / 180.0;
+static const double W_ELEVATOR_MAX = 12.0 * WING_PI / 180.0;
 static const double W_EXPO = 0.30;
 static const double W_THRUST_STATIC = 11.5;   /* N */
 static const double W_PITCH_SPEED = 29.8;     /* m/s at full duty */
 static const double W_RPM_NO_LOAD = 20720.0;
-static const double W_TORQUE_ARM = 0.02;      /* m, prop reaction as a roll moment per N */
+/* Prop reaction as a roll moment per newton of thrust. Ideal disc power
+ * at static full thrust is T^1.5 / sqrt(2 rho A): 11.5 N through a 6 inch
+ * disc is 184 W, at 17,600 rpm a torque of 0.10 N m, so 0.009 m per N.
+ * The first figure here was 0.02, which rolled a thrown wing past sixty
+ * degrees in four seconds with the sticks centred. */
+static const double W_TORQUE_ARM = 0.009;
 static const double W_CURRENT_FULL = 28.0;    /* A at static full thrust */
 static const double W_DUTY_MIN = 0.02;
 
@@ -108,18 +121,18 @@ static void wquat_rotate_inv(const double q[4], const double v[3], double out[3]
 }
 
 /* Stick to surface: 25 degrees at full stick, with expo, clipped. */
-static double surface_from_stick(double x) {
+static double surface_from_stick(double x, double throw_max) {
   if (x > 1.0) {
     x = 1.0;
   } else if (x < -1.0) {
     x = -1.0;
   }
   const double shaped = x * x * x * W_EXPO + x * (1.0 - W_EXPO);
-  double d = shaped * W_SURFACE_MAX;
-  if (d > W_SURFACE_MAX) {
-    d = W_SURFACE_MAX;
-  } else if (d < -W_SURFACE_MAX) {
-    d = -W_SURFACE_MAX;
+  double d = shaped * throw_max;
+  if (d > throw_max) {
+    d = throw_max;
+  } else if (d < -throw_max) {
+    d = -throw_max;
   }
   return d;
 }
@@ -162,8 +175,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double throttle = rc[3];
 
   /* Surfaces. Roll right needs the right elevon up and the left one down. */
-  const double de = surface_from_stick(pitch);
-  const double da = surface_from_stick(roll);
+  const double de = surface_from_stick(pitch, W_ELEVATOR_MAX);
+  const double da = surface_from_stick(roll, W_SURFACE_MAX);
   g_elevon_left = de - da;
   g_elevon_right = de + da;
   if (g_elevon_left > W_SURFACE_MAX) g_elevon_left = W_SURFACE_MAX;

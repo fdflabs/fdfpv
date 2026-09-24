@@ -106,12 +106,18 @@ dimensionless by b/2V and c/2V, V floored at 1 m/s:
 - Roll: q S b [ Clβ β + Clp p b/2V + Clδa δa ], Clβ = -0.05, Clp = -0.40, Clδa = 0.10.
 - Pitch: q S c [ Cm0 + Cmα α + Cmq q c/2V + Cmδe δe ], Cm0 = +0.02 (reflex), Cmα = -0.30, Cmq = -4.0, Cmδe = -0.60.
 - Yaw: q S b [ Cnβ β + Cnr r b/2V ], Cnβ = 0.05 (winglets), Cnr = -0.10.
-- Motor torque reaction: a roll moment of 0.02 m times thrust, the
-  sign of the prop's rotation.
+- Motor torque reaction: a roll moment of 0.009 m times thrust, the
+  sign of the prop's rotation. Ideal disc power at static full thrust,
+  T^1.5 / sqrt(2 rho A), is 184 W for 11.5 N through a 6 inch disc; at
+  17,600 rpm that is 0.10 N m. (The first figure was 0.02 m, which rolled
+  a thrown wing past sixty degrees with the sticks centred.)
 
 Elevons: the right and left surfaces are δe ± δa, each clipped to
-±25 deg, from the sticks through the rates and expo in the wing's tune
-diff, computed in C. Yaw stick does nothing; a flying wing has no
+±25 deg, from the sticks with a little expo, computed in C. The pitch
+stick reaches 12 deg of elevator and the roll stick 25 deg of aileron,
+the dual rates a real wing is set up with: with a seven percent static
+margin, 25 deg of up trims far past the stall, and a sixth of that stick
+at throw speed pitched the plant to sixty degrees and dropped a wing. Yaw stick does nothing; a flying wing has no
 rudder, and the note in Settings says so.
 
 Motor: duty d from the throttle stick, floored at 0.02 so the prop never
