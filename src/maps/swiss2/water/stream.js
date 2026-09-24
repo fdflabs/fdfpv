@@ -101,3 +101,79 @@ export function streamGeometry(pts, width, groundAt, lift = 0.16) {
   g.computeBoundingSphere();
   return g;
 }
+
+/*
+ * The gravel bars along the floor's stream: where the stream bends, the
+ * slow water on the inside of the bend drops its gravel, and a bar of
+ * it lies there bare, a lens a few metres wide and a few tens long from
+ * under the water's edge out into the grass; on the straight reaches a
+ * thin strip here and there. `pts` is the stream's line in flow order,
+ * `width` its water's width, `rng` the map's. One ribbon per bar, three
+ * vertices across, laid a few centimetres over the ground, facing up.
+ */
+export function gravelBarGeometry(pts, width, groundAt, rng) {
+  const pos = [];
+  const idx = [];
+  const half = width / 2;
+  /* Rows every third of the line's step, so the bar follows the ground
+   * between the line's points rather than cutting under it. */
+  const SUB = 3;
+  const bar = (k0, k1, side, reach) => {
+    const first = pos.length / 3;
+    const rows = (k1 - k0) * SUB;
+    for (let r = 0; r <= rows; r += 1) {
+      const k = k0 + Math.floor(r / SUB);
+      const f = (r % SUB) / SUB;
+      const a = pts[Math.max(0, k - 1)];
+      const b = pts[Math.min(pts.length - 1, k + 1)];
+      const p = pts[Math.min(pts.length - 1, k + 1)];
+      const cx = pts[k].x + (p.x - pts[k].x) * f;
+      const cz = pts[k].z + (p.z - pts[k].z) * f;
+      const tl = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      const nx = (-(b.z - a.z) / tl) * side;
+      const nz = ((b.x - a.x) / tl) * side;
+      const t = r / Math.max(1, rows);
+      const w = reach * Math.sin(Math.PI * t) ** 0.7;
+      for (const off of [half - 0.8, half + 0.2 + 0.5 * w, half + 0.2 + w]) {
+        const x = cx + nx * off;
+        const z = cz + nz * off;
+        pos.push(x, groundAt(x, z) + 0.08, z);
+      }
+    }
+    /* Wound to face up on either bank. */
+    for (let k = 0; k < rows; k += 1) {
+      for (let c = 0; c < 2; c += 1) {
+        const a = first + k * 3 + c;
+        if (side > 0) {
+          idx.push(a, a + 1, a + 3, a + 1, a + 4, a + 3);
+        } else {
+          idx.push(a, a + 3, a + 1, a + 1, a + 3, a + 4);
+        }
+      }
+    }
+  };
+  let k = 1;
+  while (k + 3 < pts.length) {
+    const a = pts[k - 1];
+    const b = pts[k];
+    const c = pts[k + 1];
+    const turn = (b.x - a.x) * (c.z - b.z) - (b.z - a.z) * (c.x - b.x);
+    const len = 2 + Math.floor(rng() * 4);
+    if (Math.abs(turn) > 3 && rng() < 0.7) {
+      /* The inside of the bend: toward the side the stream turns to. */
+      bar(k, Math.min(pts.length - 1, k + len), turn > 0 ? 1 : -1, 2.5 + 4 * rng());
+      k += len + 2;
+    } else if (rng() < 0.12) {
+      bar(k, Math.min(pts.length - 1, k + len), rng() < 0.5 ? 1 : -1, 1 + 1.5 * rng());
+      k += len + 2;
+    } else {
+      k += 1;
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  g.computeBoundingSphere();
+  return g;
+}
