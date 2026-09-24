@@ -87,6 +87,25 @@ static const double W_DUTY_MIN = 0.02;
 static double g_elevon_left = 0.0;
 static double g_elevon_right = 0.0;
 
+/*
+ * THE STABILISER, which is the one flight controller a wing gets here.
+ * Betaflight has no wing mode, so this is not a port and not a
+ * reimplementation of one: it is the attitude loop the harness pilot
+ * flies the gates with, in C, so it is deterministic and never touches
+ * JS maths. Off, the sticks are the elevons. On, the roll stick asks for
+ * a bank and the pitch stick for a pitch, both held by a rate damped
+ * proportional loop, and centred sticks hold the wing level with a
+ * little nose up trim. Set from the shell by the tune; a reset keeps it.
+ */
+static int g_stab = 0;
+static const double W_STAB_BANK_MAX = 60.0 * WING_PI / 180.0;
+static const double W_STAB_PITCH_MAX = 30.0 * WING_PI / 180.0;
+static const double W_STAB_TRIM_PITCH = 2.0 * WING_PI / 180.0;
+static const double W_STAB_ROLL_KP = 1.2;   /* stick per rad of bank error */
+static const double W_STAB_ROLL_KD = 0.12;  /* stick per rad/s of roll rate */
+static const double W_STAB_PITCH_KP = 5.0;  /* stick per rad of pitch error, through the 12 degree throw */
+static const double W_STAB_PITCH_KD = 0.5;  /* stick per rad/s of pitch rate */
+
 /* What the last step saw and did, for the gates and for anyone chasing a
  * sign: alpha, beta, qbar, CL, CD, l m n (aero), thrust, F body x y z,
  * M body x y z, u v w. */
@@ -149,6 +168,31 @@ static double smoothstep(double a, double b, double x) {
   return t * t * (3.0 - 2.0 * t);
 }
 
+static double clamp1(double x) {
+  return x > 1.0 ? 1.0 : (x < -1.0 ? -1.0 : x);
+}
+
+/* Pitch and bank from the body to world quaternion, the same two the
+ * harness reads: pitch from the forward axis' world z, bank from the
+ * left axis' world z, right wing down positive. atan2 rather than asin
+ * because the fixed libm has the one and not the other. */
+static void wing_attitude(const double q[4], double *pitch, double *bank) {
+  const double w = q[0], x = q[1], y = q[2], z = q[3];
+  const double bxz = 2.0 * (x * z - w * y);
+  const double byz = 2.0 * (y * z + w * x);
+  const double bzz = 1.0 - 2.0 * (x * x + y * y);
+  *pitch = sim_atan2(bxz, sim_sqrt(byz * byz + bzz * bzz));
+  *bank = sim_atan2(byz, bzz);
+}
+
+void plant_wing_set_stab(int on) {
+  g_stab = on ? 1 : 0;
+}
+
+int plant_wing_stab(void) {
+  return g_stab;
+}
+
 void plant_wing_reset(void) {
   g_elevon_left = 0.0;
   g_elevon_right = 0.0;
@@ -170,9 +214,18 @@ void plant_wing_launch(SimState *s, double speed) {
 }
 
 void plant_wing_step(SimState *s, const double rc[4]) {
-  const double roll = rc[0];
-  const double pitch = rc[1];
+  double roll = rc[0];
+  double pitch = rc[1];
   const double throttle = rc[3];
+
+  if (g_stab) {
+    double pitch_att, bank;
+    wing_attitude(s->quat, &pitch_att, &bank);
+    const double bank_t = W_STAB_BANK_MAX * clamp1(roll);
+    const double pitch_t = W_STAB_TRIM_PITCH + W_STAB_PITCH_MAX * clamp1(pitch);
+    roll = clamp1(-W_STAB_ROLL_KP * (bank - bank_t) - W_STAB_ROLL_KD * s->omega[0]);
+    pitch = clamp1(W_STAB_PITCH_KP * (pitch_t - pitch_att) - W_STAB_PITCH_KD * (-s->omega[1]));
+  }
 
   /* Surfaces. Roll right needs the right elevon up and the left one down. */
   const double de = surface_from_stick(pitch, W_ELEVATOR_MAX);

@@ -120,6 +120,17 @@ margin, 25 deg of up trims far past the stall, and a sixth of that stick
 at throw speed pitched the plant to sixty degrees and dropped a wing. Yaw stick does nothing; a flying wing has no
 rudder, and the note in Settings says so.
 
+Stabiliser: the wing's one flight controller, in C in the plant, switched
+on by the Stabilised tune and off by Manual. Betaflight has no wing mode,
+so this is neither a port of it nor a reimplementation: it is the attitude
+loop the harness pilot flies the gates with. Roll stick asks for a bank up
+to 60 deg and pitch stick for a pitch up to 30 deg about a 2 deg nose up
+trim; each is held by a proportional term on the attitude error and a
+damping term on the body rate (1.2 and 0.12 stick per rad and rad/s in
+roll, 5.0 and 0.5 in pitch through the 12 deg throw), then goes through
+the same throws and expo as a hand. Centred sticks fly level. The gates
+above are flown with it off; scripts/wing-stab-selftest.js checks it on.
+
 Motor: duty d from the throttle stick, floored at 0.02 so the prop never
 stops on screen, thrust T = T_s d² (1 − V / (V_p d)) clipped at zero, rpm
 for the renderer and the sound = 0.85 d rpm_no_load.

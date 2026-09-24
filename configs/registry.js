@@ -48,9 +48,19 @@ import { AIRFRAMES } from './airframes.js';
 
 export const TUNES = [
   {
-    /* The wing has no flight controller. This diff is the stock Betaflight
-     * one, parsed and ignored, so the Tune row has something honest to
-     * say: the rates and expo the elevons fly are in plant_wing.c. */
+    /* The wing's flight controller is the stabiliser in plant_wing.c, not
+     * Betaflight, which has no wing mode. The diff is the stock one,
+     * parsed and ignored; the row is what switches the stabiliser on. */
+    id: 'wing-stab',
+    airframe: 'wing1000',
+    name: 'Stabilised',
+    note: 'A gyro holds the wing. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, and centred sticks fly level.',
+    wingStab: true,
+  },
+  {
+    /* The same diff, parsed and ignored, with the stabiliser off: the
+     * sticks are the elevons, 12 degrees of pitch and 25 of roll at full
+     * stick with a little expo, all in plant_wing.c. */
     id: 'wing-manual',
     airframe: 'wing1000',
     name: 'Manual',

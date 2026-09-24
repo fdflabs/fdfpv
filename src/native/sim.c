@@ -1363,6 +1363,20 @@ SIM_EXPORT int sim_wing_debug(double *out) {
   return SIM_OK;
 }
 
+/* The wing's stabiliser, on or off. Kept across resets, like the
+ * airframe; the shell sets it from the tune. Additive. */
+SIM_EXPORT int sim_wing_set_stab(int on) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  plant_wing_set_stab(on);
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wing_stab(void) {
+  return plant_wing_stab();
+}
+
 SIM_EXPORT int sim_wing_surfaces(double *out) {
   if (out == 0) {
     return SIM_ERR_BAD_ARG;

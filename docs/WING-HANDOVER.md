@@ -8,9 +8,15 @@ each time, so a "feels wrong" comes back as a thing that can be measured.
 
 Pick the fourth card on the title, Fixed wing. Raise the throttle, or
 press L, and the wing leaves your hand at ten metres a second. The
-sticks are the elevons: pitch and roll on the right stick in mode 2,
-throttle on the left. Yaw does nothing; a flying wing has no rudder.
-There is no flight controller and nothing levels the wing for you.
+sticks are on the right in mode 2, throttle on the left. Yaw does
+nothing; a flying wing has no rudder.
+
+It comes with the stabiliser on, the Stabilised tune: a gyro holds the
+wing, the roll stick asks for a bank, the pitch stick for a pitch, and
+centred sticks fly level. Under Quad, the Tune row switches to Manual,
+where the sticks are the elevons and nothing levels the wing for you.
+Fly the six below on Stabilised first, then again on Manual; the stall
+and the roll are the two that feel most different.
 
 Fly each of the six below, in order. For each, the paragraph says what a
 real 1000 mm wing does, then what would count as wrong here. Write down

@@ -2295,6 +2295,8 @@ export async function boot({ loading, bootStart, mapId }) {
   let showcaseCraft = '5inch';
   /* Two doubles in the module's heap for sim_wing_surfaces, taken once. */
   let wingSurfPtr = 0;
+  /* What the module was last told about the wing's stabiliser. */
+  let wingStabApplied = -1;
   let notice = null; /* { text, untilMs } for one off shell messages */
   /* The seated world's own note, waiting for a flight to be said over. See
    * showCourseNotes. */
@@ -6901,6 +6903,15 @@ export async function boot({ loading, bootStart, mapId }) {
     }
     if (shell.cameraMount) {
       shell.cameraMount.rotation.x = cameraTiltRad(camTilt);
+    }
+    /* The wing's stabiliser follows the seated tune: on for a tune that
+     * says so, off otherwise. Compared here rather than pushed from every
+     * place the tune changes, because there are five of those. */
+    if (typeof sim.e.sim_wing_set_stab === 'function') {
+      const wantStab = tuneById(configId).wingStab ? 1 : 0;
+      if (wantStab !== wingStabApplied && sim.e.sim_wing_set_stab(wantStab) === SIM_OK) {
+        wingStabApplied = wantStab;
+      }
     }
     /* The wing's elevons follow the plant's, read back each frame. Only a
      * craft with surfaces has the setter, and only the wing plant fills
