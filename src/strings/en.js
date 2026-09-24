@@ -1895,7 +1895,6 @@ export default {
   "ui.the_same_clock_indoors_a_65": "The same clock, indoors. A 65 mm ducted whoop through a track that fits in a living room, on 28 inch gates, flying the five inch's flight model.",
   "ui.the_sticks_live_and_what_the": "The sticks, live, and what the keys do.",
   "ui.the_three_cards_five_inch_racing": "The three cards: five inch racing, whoop racing or freestyle. Changing your mind about any of it starts here.",
-  "ui.the_town": "The town",
   "ui.the_tune": "the {name} tune",
   "ui.the_tune_is_being_fetched_and": "The tune is being fetched and applied. Its sliders appear the moment the module reads back.",
   "ui.the_tune_the_pids_the_camera": "The tune, the PIDs, the camera and the firmware. Opens {quad}. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
@@ -2074,4 +2073,5 @@ export default {
   "main.thrown_keep_it_flying": "Thrown. Keep it flying.",
   "ui.fly_label": "Fly",
   "main.throw_it_with_l": "Throw it with L",
+  "ui.the_world": "The world",
 };

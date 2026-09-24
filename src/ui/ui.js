@@ -2704,6 +2704,11 @@ const WAYS = [
     id: 'freestyle-wing1000',
     airframe: 'wing1000',
     mode: 'freestyle',
+    /* The wing's own world. A card with a home skips the picker: the
+     * airfield was built for this aircraft and the town was not. The
+     * Freestyle menu's own row still opens the picker for anyone who wants
+     * the town anyway. */
+    home: 'airfield',
     label: str('ui.fixed_wing'),
     art: 'assets/gate/freestyle.jpg',
     blurb: str('ui.a_1000_mm_flying_wing_on'),
@@ -5336,7 +5341,7 @@ export class Ui {
       const world = seatedFreestyleMap(s);
       const modeRow = this.mode === 'freestyle'
         ? {
-          label: str('ui.the_town'),
+          label: str('ui.the_world'),
           value: world ? world.name : str('ui.not_loaded'),
           action: 'freestyle',
           /*
@@ -12171,11 +12176,15 @@ export class Ui {
           (x) => x.id === this.settings.freestyleMap && x.mode === 'freestyle',
         );
         const worlds = MAPS.filter((x) => x.mode === 'freestyle');
-        const want = remembered || (worlds.length === 1 ? worlds[0] : null);
+        const home = way.home ? worlds.find((x) => x.id === way.home) : null;
+        const want = home || remembered || (worlds.length === 1 ? worlds[0] : null);
         if (!want) {
           this.show('freestyle');
           return;
         }
+        /* The cursor lands on Fly when the world comes back, for the same
+         * reason as below: the fourth card is not the menu's fourth row. */
+        this.setCursor(this.titleStop());
         this.seatMap(want.id);
         return;
       }

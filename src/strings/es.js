@@ -1859,7 +1859,6 @@ export default {
   "ui.the_same_clock_indoors_a_65": "El mismo reloj, bajo techo. Un whoop de 65 mm con ductos por una pista que cabe en una sala de estar, con puertas de 28 pulgadas, volando el modelo de vuelo del cinco pulgadas.",
   "ui.the_sticks_live_and_what_the": "Los sticks, en vivo, y qué hacen las teclas.",
   "ui.the_three_cards_five_inch_racing": "Las tres tarjetas: carreras de cinco pulgadas, carreras de whoop o freestyle. Cambiar de idea sobre cualquiera de esas cosas empieza aquí.",
-  "ui.the_town": "El pueblo",
   "ui.the_tune": "el tune {name}",
   "ui.the_tune_is_being_fetched_and": "El tune se está descargando y aplicando. Sus sliders aparecen en cuanto el módulo lo devuelve.",
   "ui.the_tune_the_pids_the_camera": "El tune, los PIDs, la cámara y el firmware. Abre {quad}. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
@@ -2074,4 +2073,5 @@ export default {
   "main.thrown_keep_it_flying": "Lanzada. Mantenla en vuelo.",
   "ui.fly_label": "Volar",
   "main.throw_it_with_l": "Lánzala con L",
+  "ui.the_world": "El mundo",
 };

@@ -1476,7 +1476,7 @@ const BEHAVIOUR = `(() => {
       free,
       raceNamesTrack: race.includes('Track') && !race.includes('Race') && !race.includes('Freestyle'),
       /*
-       * "The town", and it used to be "Map".
+       * "The world", and it used to be "The town" and before that "Map".
        *
        * What this assertion is FOR is unchanged: after the gate has been
        * answered, the title carries one row for the PLACE and does not ask
@@ -1487,7 +1487,7 @@ const BEHAVIOUR = `(() => {
        * catch, just spelled differently. See the WAYS branch of act() and
        * the freestyle branch of items() in src/ui/ui.js.
        */
-      freeNamesMap: free.includes('The town') && !free.includes('Race') && !free.includes('Freestyle'),
+      freeNamesMap: free.includes('The world') && !free.includes('Race') && !free.includes('Freestyle'),
     };
   } catch (e) {
     out.modeGate = { error: String(e && e.message ? e.message : e) };
@@ -1861,7 +1861,7 @@ async function main() {
         failures.push(`the title in Race names ${g.race.join(', ')}, which is not a Track row without a mode beside it`);
       }
       if (!g.freeNamesMap) {
-        failures.push(`the title in Freestyle names ${g.free.join(', ')}, which is not a The town row without a mode beside it`);
+        failures.push(`the title in Freestyle names ${g.free.join(', ')}, which is not a The world row without a mode beside it`);
       }
     }
 
