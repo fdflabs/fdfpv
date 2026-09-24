@@ -43,13 +43,16 @@ import { FIELD, HALF } from '../../alps/terrain.js';
  * The quality tiers. spacing is the closed forest's grid in metres;
  * near and mid the outer edges of the full model and the reduced model
  * bands, fade the width they dissolve over; frame the impostor view in
- * pixels; grass the meadow's radius (0 for none) and its grid; rocks how
- * many and how far out the scanned near level reaches.
+ * pixels; grass the meadow's radius (0 for none) and its grid; meadow
+ * the middle distance's layer beyond it, its radius and grid, drawn only
+ * in the camera's view and from under fifteen metres, where the eye is
+ * low enough to see a meadow's grass as grass; rocks how many and how far out the scanned near
+ * level reaches.
  */
 export const TIERS = {
-  high: { spacing: 4.4, near: 70, mid: 260, fade: 14, frame: 128, capNear: 1800, capMid: 9000, grass: 40, grassSpacing: 0.42, grassCap: 50000, rocks: 1800, rockNear: 160, chunk: 1500 },
-  medium: { spacing: 5.6, near: 40, mid: 170, fade: 10, frame: 96, capNear: 900, capMid: 5000, grass: 30, grassSpacing: 0.48, grassCap: 36000, rocks: 1200, rockNear: 90, chunk: 1500 },
-  low: { spacing: 7.5, near: 0, mid: 110, fade: 8, frame: 64, capNear: 0, capMid: 3000, grass: 0, grassSpacing: 0, grassCap: 0, rocks: 700, rockNear: 50, chunk: 3000 },
+  high: { spacing: 4.4, near: 70, mid: 260, fade: 14, frame: 128, capNear: 1800, capMid: 9000, grass: 40, grassSpacing: 0.42, grassCap: 50000, meadow: 260, meadowSpacing: 1.25, meadowCap: 36000, rocks: 1800, rockNear: 160, chunk: 1500 },
+  medium: { spacing: 5.6, near: 40, mid: 170, fade: 10, frame: 96, capNear: 900, capMid: 5000, grass: 30, grassSpacing: 0.48, grassCap: 36000, meadow: 110, meadowSpacing: 1.3, meadowCap: 12000, rocks: 1200, rockNear: 90, chunk: 1500 },
+  low: { spacing: 7.5, near: 0, mid: 110, fade: 8, frame: 64, capNear: 0, capMid: 3000, grass: 0, grassSpacing: 0, grassCap: 0, meadow: 0, meadowSpacing: 0, meadowCap: 0, rocks: 700, rockNear: 50, chunk: 3000 },
 };
 
 export function tierOf(quality) {
@@ -184,8 +187,34 @@ export async function buildVegetation(ctx) {
       tint: ctx.grassTint,
     })
     : null;
-  if (grass && ctx.envMap) {
-    grass.mesh.material.envMap = ctx.envMap;
+  /* Past the blades, out to where the paint alone can carry it, the
+   * same meadow in clumps twice the width on a grid three times as
+   * coarse, in the view only: without it the floor beyond forty metres
+   * was a mown lawn, whatever the field. */
+  const meadow = Q.meadow > 0 && grass
+    ? buildGrass({
+      heightAt: ctx.heightAt,
+      layout,
+      atlas: atlases.grass,
+      wind,
+      radius: Q.meadow,
+      inner: [Q.grass * 0.45, Q.grass * 0.8],
+      spacing: Q.meadowSpacing,
+      tile: 32,
+      wide: 2,
+      cap: Q.meadowCap,
+      cull: true,
+      perFrame: 4,
+      ceiling: 15,
+      group,
+      tint: ctx.grassTint,
+      name: 'swiss2-meadow',
+    })
+    : null;
+  for (const g of [grass, meadow]) {
+    if (g && ctx.envMap) {
+      g.mesh.material.envMap = ctx.envMap;
+    }
   }
 
   const modelTris = builds.map((b, v) => ({
@@ -202,6 +231,7 @@ export async function buildVegetation(ctx) {
     modelTris,
     lod: lod.stats,
     grass: grass ? grass.stats : null,
+    meadow: meadow ? meadow.stats : null,
     buildMs: 0,
     stages,
   };
@@ -215,7 +245,10 @@ export async function buildVegetation(ctx) {
     impMat.userData.impostor.uImpView.value.copy(cam);
     rocks.update(camera);
     if (grass) {
-      grass.update(cam);
+      grass.update(camera);
+    }
+    if (meadow) {
+      meadow.update(camera);
     }
   };
   stats.buildMs = Math.round(performance.now() - t0);
@@ -249,6 +282,9 @@ export async function buildVegetation(ctx) {
       rocks.dispose();
       if (grass) {
         grass.dispose();
+      }
+      if (meadow) {
+        meadow.dispose();
       }
       for (const level of lod.levels) {
         for (const m of [level.near, level.bark, level.mid]) {

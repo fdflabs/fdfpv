@@ -42,7 +42,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { noise2, smoothstep } from '../../alps/noise.js';
+import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
 import { FIELD, SNOW_LINE, LAKE_Y } from '../../alps/terrain.js';
 import { assetUrl } from './atlas.js';
 import { DITHER_GLSL } from './plantmat.js';
@@ -200,6 +200,25 @@ export function waterStones({ heightAt, layout, rng, shore, keepClear }) {
       const z = s.z + Math.sin(s.a) * r + (rng() - 0.5) * 6;
       if (heightAt(x, z) > LAKE_Y - 1.2) {
         out.push({ x, z, size: 0.4 + 0.9 * rng() * rng(), sink: 0.3 });
+      }
+    }
+  }
+  /* Boulders the glacier left along the shore, in twos and threes, some
+   * on the beach and some standing in the shallows: a lake's edge is
+   * never only gravel. Their own generator, so the stones above stand
+   * where they stood. */
+  const brng = makeRng(20261001);
+  for (const s of shore) {
+    if (brng() > 0.5 || keepClear(s.x, s.z)) {
+      continue;
+    }
+    const n = 1 + Math.floor(brng() * 2.6);
+    for (let q = 0; q < n; q += 1) {
+      const r = (brng() - 0.55) * 9;
+      const x = s.x + Math.cos(s.a) * r + (brng() - 0.5) * 5;
+      const z = s.z + Math.sin(s.a) * r + (brng() - 0.5) * 5;
+      if (!keepClear(x, z) && heightAt(x, z) > LAKE_Y - 1.5) {
+        out.push({ x, z, size: 1.2 + 1.6 * brng() * brng(), sink: 0.35 });
       }
     }
   }

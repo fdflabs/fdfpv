@@ -3,19 +3,28 @@
  * the time the terrain's own paint can carry it.
  *
  * Clumps of grass (three crossed cards from the grass atlas, some of them
- * carrying the meadow's flowers) are scattered on tiles sixteen metres
- * square round the camera. A tile is worked out once, when it first comes
- * into range, and kept: its clumps' positions, turns, heights and tints.
- * The instanced draw is refilled from the tiles in range whenever the
- * camera crosses into a new tile. In the shader a clump shrinks into the
- * ground over the outer third of the radius, so the edge of the grass is
- * never a line.
+ * carrying the meadow's flowers) are scattered on tiles round the camera,
+ * in two layers: the blades, on tiles sixteen metres square out to forty
+ * metres, and past them the middle distance, clumps twice as wide on a
+ * grid three times as coarse on tiles of thirty two, out to a couple of
+ * hundred metres and only in the camera's view. A tile is worked out
+ * once, when it first comes into range, and kept: its clumps' positions,
+ * turns, heights and tints. The instanced draw is refilled from the
+ * tiles in range whenever the camera crosses into a new tile (or, for
+ * the middle layer, turns onto new ones). In the shader a clump shrinks
+ * into the ground over the outer third of its layer's radius, and the
+ * middle layer grows in where the blades thin out, so neither edge is a
+ * line.
  *
  * What grows where: hay meadow knee high on the valley floor, mown short
- * on the village's plateau, thin and short under the forest, alpine turf
- * above the tree line, nothing on rock, snow, water, the strip, the road
- * or the buildings (layout.coverOff), and lush along the stream's banks.
- * Flowers where the paint puts its flower patches.
+ * on the village's plateau and the strip, thin and short under the
+ * forest, alpine turf above the tree line, nothing on rock, snow, water,
+ * the road or the buildings (layout.coverOff), tufts breaking up over the
+ * lake's upper beach, and lush along the stream's banks. On the floor
+ * each field grows as the paint farms it (zones.js's meadowField):
+ * standing hay thigh high and gone to seed, windrows on a field cut this
+ * week, a pasture tufted and worn along the cattle's paths. Flowers in
+ * drifts of one colour where the paint puts its flower patches.
  *
  * The cards' normals are the ground's, tipped a little toward the card:
  * lit like the turf it stands in rather than like a stack of paper.
@@ -38,12 +47,12 @@
 
 import * as THREE from 'three';
 import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
-import { STRIP_L, TREE_LINE, SNOW_LINE, forestDensity, treeLine } from '../../alps/terrain.js';
+import { LAKE_Y, STRIP_L, STRIP_W, TREE_LINE, SNOW_LINE, forestDensity, treeLine } from '../../alps/terrain.js';
 import { ALPHA_CUT, GRASS_REGIONS } from './atlas.js';
 import { LEAF_SPEC_GLSL } from './plantmat.js';
 import { MEADOW_GLSL } from '../ground.js';
+import { meadowField, s2Noise, beachTop } from './zones.js';
 
-const TILE = 16;
 const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3'];
 /* Floats per clump: x, y, z, yaw, height, width, region, tint. */
 const STRIDE = 8;
@@ -89,8 +98,25 @@ function clumpGeometry() {
  * grows.
  */
 function coverAt(x, z, heightAt, layout) {
-  if (layout.coverOff(x, z) || layout.lakeWet(x, z)) {
+  /* The strip is grass too, a mown one: clover and a daisy or two in
+   * turf cut to the ankle, which at eye height is what tells a grass
+   * strip from a painted one. */
+  if (Math.abs(x) < STRIP_W / 2 + 1.5 && Math.abs(z) < STRIP_L / 2 + 4) {
+    return { p: 0.9, h: 0.22, bloom: 0.12, tone: 1, seeds: 0, pasture: true, forest: 0 };
+  }
+  if (layout.coverOff(x, z)) {
     return null;
+  }
+  if (layout.lakeWet(x, z)) {
+    /* The turf does not stop in a line at the beach: it breaks up into
+     * tufts over the upper gravel, the last of them a metre or so above
+     * the water. */
+    const y = heightAt(x, z);
+    const below = beachTop(x, z) - 0.3 - y;
+    if (y < LAKE_Y + 0.35 || below > 0.9) {
+      return null;
+    }
+    return { p: 0.55 * (1 - below / 0.9), h: 0.2, bloom: 0.05, tone: 1, seeds: 0, pasture: false, forest: 0 };
   }
   const bank = layout.streamDist(x, z);
   if (bank < 3.2) {
@@ -118,33 +144,78 @@ function coverAt(x, z, heightAt, layout) {
    * to the knee in patches. */
   const hay = smoothstep(0.55, 0.7, noise2(x / 140 + 3.3, z / 140 + 8.8));
   let h = (0.26 + 0.24 * hay) * (1 - 0.4 * alpine) * (1 - 0.5 * forest);
-  h = h * (1 - mown) + 0.13 * mown;
+  h = h * (1 - mown) + 0.22 * mown;
   if (bank < 9) {
     h *= 1.3;
   }
   if (y > TREE_LINE + 250) {
     p *= 0.6;
   }
-  const bloom = smoothstep(0.58, 0.7, noise2(x / 34 + 9.1, z / 34 + 3.7)) * (1 - forest) * (1 - mown * 0.8);
-  return { p, h, bloom: 0.12 + 0.55 * bloom, forest };
+  /* The field the paint lays here (zones.js's meadowField, the paint's
+   * own parcels): standing hay is knee to thigh high and gone to seed,
+   * a pasture is tufted where the cattle left it and worn along their
+   * paths, and flowers stand in drifts of one colour, which is how a
+   * meadow flowers: a sheet of buttercup yellow here, ox eye white or
+   * clover pink there, sown by the last year's seed where it fell. */
+  const field = y < 60 ? meadowField(x, z) : null;
+  const kind = field ? field.kind : 'regrown';
+  let seeds = 0;
+  if (kind === 'uncut') {
+    h *= 1 + 0.55 * (1 - mown);
+    seeds = 0.55;
+  } else if (kind === 'pasture') {
+    const w0 = x + 14 * s2Noise(x / 37, z / 37);
+    const w1 = z + 14 * s2Noise(x / 41 + 5, z / 41 + 5);
+    const v = (w0 * 0.6 + w1 * 0.8) / 23;
+    const trod = 1 - smoothstep(0.35, 0.9, Math.abs(v - Math.floor(v) - 0.5) * 23);
+    p *= 1 - 0.15 * trod;
+    h *= 1 - 0.4 * trod;
+  } else if (kind === 'cut') {
+    /* Cut this week: the hay lies in windrows along the paint's rows,
+     * stubble between them. */
+    const r = (field.rowsOnU ? field.u : field.v) / 5.5;
+    const row = 1 - smoothstep(0.08, 0.2, Math.abs(r - Math.floor(r) - 0.5));
+    p *= 0.8 + 0.2 * row;
+    h *= 0.6 + 1.0 * row;
+  } else if (kind === 'dry') {
+    p *= 0.7;
+  }
+  const drift = smoothstep(0.55, 0.72, noise2(x / 34 + 9.1, z / 34 + 3.7)) * (1 - forest) * (1 - mown * 0.8);
+  const hue = noise2(x / 71 + 1.1, z / 71 + 7.3);
+  const tone = hue < 0.4 ? 0 : hue < 0.52 ? 1 : hue < 0.64 ? 2 : 3;
+  const flowering = kind === 'uncut' ? 1 : kind === 'pasture' ? 0.55 : kind === 'regrown' ? 0.5 : kind === 'cut' ? 0.15 : 0.2;
+  return {
+    p, h, bloom: (0.2 + 0.8 * drift) * flowering, tone, seeds, pasture: kind === 'pasture', forest,
+  };
 }
 
-function buildTile(ti, tj, heightAt, layout, spacing) {
-  const rng = makeRng((ti * 73856093) ^ (tj * 19349663) ^ 0x5bd1e995);
+/* A tile's clumps. `wide` scales the clumps' width, for the middle
+ * distance's layer, whose clumps stand for a patch of meadow each. */
+function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
+  const rng = makeRng((ti * 73856093) ^ (tj * 19349663) ^ 0x5bd1e995 ^ Math.round(tile * 7919));
   const out = [];
-  const n = Math.floor(TILE / spacing);
+  const n = Math.floor(tile / spacing);
   for (let j = 0; j < n; j += 1) {
     for (let i = 0; i < n; i += 1) {
-      const x = ti * TILE + (i + rng()) * spacing;
-      const z = tj * TILE + (j + rng()) * spacing;
+      const x = ti * tile + (i + rng()) * spacing;
+      const z = tj * tile + (j + rng()) * spacing;
       const c = coverAt(x, z, heightAt, layout);
       if (!c || rng() > c.p) {
         continue;
       }
-      const flower = rng() < c.bloom * 0.35;
-      const region = flower ? 6 + Math.floor(rng() * 4) : Math.floor(rng() * 6);
+      const flower = rng() < c.bloom * 0.4;
+      /* In a drift most flowers are the drift's; a pasture's are
+       * mostly dandelion and white clover (buttercup and daisy on the
+       * atlas), with red clover and the odd harebell. */
+      let tone = rng() < 0.75 ? c.tone : Math.floor(rng() * 4);
+      if (c.pasture) {
+        const t = rng();
+        tone = t < 0.4 ? 0 : t < 0.75 ? 1 : t < 0.92 ? 2 : 3;
+      }
+      const hay = rng() < c.seeds;
+      const region = flower ? 6 + tone : hay ? 4 + Math.floor(rng() * 2) : Math.floor(rng() * 4);
       const h = (flower ? Math.max(0.3, c.h * 1.05) : c.h) * (0.7 + rng() * 0.6);
-      const w = flower ? 0.45 : 0.85 + rng() * 0.45;
+      const w = (flower ? 0.45 : 0.85 + rng() * 0.45) * wide;
       const tint = (0.82 + rng() * 0.3) * (1 - 0.3 * c.forest);
       out.push(x, heightAt(x, z) - 0.03, z, rng() * Math.PI * 2, h, w, region, tint);
     }
@@ -153,12 +224,21 @@ function buildTile(ti, tj, heightAt, layout, spacing) {
 }
 
 /*
- * The meadow round the camera. `radius` is where it has shrunk to
- * nothing, `spacing` the jittered grid it is scattered on, `cap` the most
- * clumps drawn at once. Returns the mesh (added to group), update(camera
- * position) and dispose().
+ * A layer of the meadow round the camera. `radius` is where it has
+ * shrunk to nothing, `inner` the band [from, to] it grows in over from
+ * nothing (none for the near layer, which starts at the camera),
+ * `spacing` the jittered grid it is scattered on in tiles `tile` metres
+ * square, `wide` the clumps' width against the near layer's, `cap` the
+ * most clumps drawn at once, `cull` whether only the tiles in the
+ * camera's view are drawn (the near layer draws round the camera, so a
+ * turn needs no refill), `perFrame` how many new tiles may be worked out
+ * in one frame, `ceiling` the height over the ground it is drawn up to.
+ * Returns the mesh (added to group), update(camera) and dispose().
  */
-export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap, group, tint = [0.82, 0.95, 0.72] }) {
+export function buildGrass({
+  heightAt, layout, atlas, wind, radius, spacing, cap, group, tint = [0.82, 0.95, 0.72],
+  tile = 16, inner = [-2, -1], wide = 1, cull = false, perFrame = Infinity, ceiling = radius, name = 'swiss2-grass',
+}) {
   const base = clumpGeometry();
   const geo = new THREE.InstancedBufferGeometry();
   for (const k of ['position', 'uv', 'normal']) {
@@ -188,6 +268,7 @@ export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap
     ...wind,
     uRegions: { value: regions },
     uRadius: { value: radius },
+    uInner: { value: new THREE.Vector2(...inner) },
     uTint: { value: new THREE.Color(...tint) },
   };
   mat.onBeforeCompile = (shader) => {
@@ -201,6 +282,7 @@ export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap
         uniform float uWind;
         uniform vec4 uRegions[${REGION_KEYS.length}];
         uniform float uRadius;
+        uniform vec2 uInner;
         uniform vec3 uTint;
         ${MEADOW_GLSL}
         varying vec3 vGrassTint;
@@ -214,10 +296,10 @@ export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap
         vec3 objectNormal = vec3(gc * normal.x + gs * normal.z, normal.y, -gs * normal.x + gc * normal.z);`)
       .replace('#include <begin_vertex>', `
         float gDist = distance(cameraPosition.xz, aClump.xz);
-        /* Each clump has its own edge between half the radius and all
-         * of it, so the meadow thins out rather than stopping. */
-        float edge = uRadius * (0.5 + 0.5 * fract(aClump.x * 12.9898 + aClump.z * 78.233));
-        float grow = 1.0 - smoothstep(edge * 0.75, edge, gDist);
+        /* Each clump has its own edge between two thirds of the radius
+         * and all of it, so the meadow thins out rather than stopping. */
+        float edge = uRadius * (0.67 + 0.33 * fract(aClump.x * 12.9898 + aClump.z * 78.233));
+        float grow = (1.0 - smoothstep(edge * 0.75, edge, gDist)) * smoothstep(uInner.x, uInner.y, gDist);
         /* The field it stands in, as the ground paints it: its colour,
          * and on the valley floor cut short where the field is mown. */
         S2Meadow field = s2Meadow(aClump.xz, gDist);
@@ -266,54 +348,96 @@ export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap
   mesh.frustumCulled = false;
   mesh.receiveShadow = true;
   mesh.castShadow = false;
-  mesh.name = 'swiss2-grass';
+  mesh.name = name;
   group.add(mesh);
 
   const tiles = new Map();
   let lastKey = '';
-  const stats = { clumps: 0, tiles: 0 };
-  const update = (pos) => {
-    const ci = Math.floor(pos.x / TILE);
-    const cj = Math.floor(pos.z / TILE);
-    /* Above the grass's radius there is nothing to draw. */
-    const ground = heightAt(pos.x, pos.z);
-    if (pos.y - ground > radius) {
+  const stats = { clumps: 0, tiles: 0, pending: 0 };
+  const frustum = new THREE.Frustum();
+  const viewProj = new THREE.Matrix4();
+  const box = new THREE.Box3();
+  const pos = new THREE.Vector3();
+  /* A tile's box, from its corners' and middle's ground and the tallest
+   * clump, for the frustum. */
+  const tileBox = (ti, tj) => {
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1], [0.5, 0.5]]) {
+      const y = heightAt((ti + u) * tile, (tj + v) * tile);
+      lo = Math.min(lo, y);
+      hi = Math.max(hi, y);
+    }
+    return box.set(pos.set(ti * tile, lo - 2, tj * tile), new THREE.Vector3((ti + 1) * tile, hi + 3, (tj + 1) * tile));
+  };
+  const update = (camera) => {
+    camera.getWorldPosition(pos);
+    const px = pos.x;
+    const pz = pos.z;
+    const ci = Math.floor(px / tile);
+    const cj = Math.floor(pz / tile);
+    /* Above the ceiling there is nothing to draw, or nothing worth it:
+     * a clump seen from above is a star of cards, not a tuft. */
+    const ground = heightAt(px, pz);
+    if (pos.y - ground > ceiling) {
       geo.instanceCount = 0;
       lastKey = '';
       return;
     }
-    const key = `${ci},${cj}`;
-    if (key === lastKey) {
-      return;
+    const span = Math.ceil(radius / tile) + 1;
+    const wanted = [];
+    if (cull) {
+      camera.updateMatrixWorld();
+      viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      frustum.setFromProjectionMatrix(viewProj);
     }
-    lastKey = key;
-    const span = Math.ceil(radius / TILE) + 1;
-    let n = 0;
-    const keep = new Set();
     for (let dj = -span; dj <= span; dj += 1) {
       for (let di = -span; di <= span; di += 1) {
         const ti = ci + di;
         const tj = cj + dj;
-        const cx = (ti + 0.5) * TILE - pos.x;
-        const cz = (tj + 0.5) * TILE - pos.z;
-        if (Math.hypot(cx, cz) > radius + TILE * 0.75) {
+        const cx = (ti + 0.5) * tile - px;
+        const cz = (tj + 0.5) * tile - pz;
+        if (Math.hypot(cx, cz) > radius + tile * 0.75) {
           continue;
         }
-        const tk = `${ti},${tj}`;
-        keep.add(tk);
-        let t = tiles.get(tk);
-        if (!t) {
-          t = buildTile(ti, tj, heightAt, layout, spacing);
-          tiles.set(tk, t);
+        if (cull && !frustum.intersectsBox(tileBox(ti, tj))) {
+          continue;
         }
-        const room = Math.min(t.length, (cap - n) * STRIDE);
-        data.set(t.subarray(0, room), n * STRIDE);
-        n += room / STRIDE;
+        wanted.push(ti, tj);
       }
+    }
+    const key = `${ci},${cj}${cull ? `:${wanted.join(',')}` : ''}`;
+    if (key === lastKey && stats.pending === 0) {
+      return;
+    }
+    lastKey = key;
+    let n = 0;
+    let built = 0;
+    let pending = 0;
+    const keep = new Set();
+    for (let k = 0; k < wanted.length; k += 2) {
+      const tk = `${wanted[k]},${wanted[k + 1]}`;
+      keep.add(tk);
+      let t = tiles.get(tk);
+      if (!t) {
+        /* Working a tile out is the costly part: a few a frame, so a
+         * fast pass over new ground fills in over a few frames instead
+         * of stalling one. */
+        if (built >= perFrame) {
+          pending += 1;
+          continue;
+        }
+        t = buildTile(wanted[k], wanted[k + 1], heightAt, layout, tile, spacing, wide);
+        tiles.set(tk, t);
+        built += 1;
+      }
+      const room = Math.min(t.length, (cap - n) * STRIDE);
+      data.set(t.subarray(0, room), n * STRIDE);
+      n += room / STRIDE;
     }
     /* Tiles well out of range are forgotten, so a long flight does not
      * keep the whole valley's grass. */
-    if (tiles.size > keep.size * 3) {
+    if (tiles.size > Math.max(keep.size, 64) * 3) {
       for (const k of tiles.keys()) {
         if (!keep.has(k)) {
           tiles.delete(k);
@@ -326,6 +450,7 @@ export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap
     buf.needsUpdate = true;
     stats.clumps = n;
     stats.tiles = keep.size;
+    stats.pending = pending;
   };
   return {
     mesh,
