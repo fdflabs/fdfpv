@@ -7457,7 +7457,12 @@ export async function boot({ loading, bootStart, mapId }) {
         altitude: p.y - view.height(p.x, p.z, p.y - SURFACE_BIAS),
         speedKph: speed * 3.6,
         throttle: input.channels.throttle,
-        flightMode: (turtleWait || turtleFlip.active) ? 'turtle' : (angleModeOn ? 'angle' : 'acro'),
+        /* A fixed wing flies the stabiliser in its plant, not Betaflight, so
+         * its mode is the tune's, not the angle switch's, which a wing on
+         * Stabilised used to read as Acro. */
+        flightMode: airframeById(runAirframe).fixedWing
+          ? (['manual', 'stab', 'acro'][tuneById(configId).wingStab || 0])
+          : (turtleWait || turtleFlip.active) ? 'turtle' : (angleModeOn ? 'angle' : 'acro'),
         /* No damage model, so nothing to count down. How much this run has
          * bounced is still worth telling a pilot, and the OSD says nothing
          * at all until there is something to say. */

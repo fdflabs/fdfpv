@@ -2068,6 +2068,7 @@ export default {
   "ui.fixed_wing": "Fixed wing",
   "ui.a_1000_mm_flying_wing_on": "A 1000 mm flying wing on 4S, flown by hand. Throw it with L, keep it flying, land it on its belly. No gates, no clock.",
   "ui.manual": "Manual",
+  "ui.stabilised": "Stabilised",
   "ui.skyhunter": "Skyhunter",
   "ui.an_1800_mm_twin_boom_fpv": "An 1800 mm twin boom FPV plane on 4S, with ailerons, elevator and rudder. Throw it with L, fly it long, land it on its skid. No gates, no clock.",
   "ui.twin_boom": "Twin boom",

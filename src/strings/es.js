@@ -2068,6 +2068,7 @@ export default {
   "ui.fixed_wing": "Ala fija",
   "ui.a_1000_mm_flying_wing_on": "Un ala voladora de 1000 mm en 4S, volada a mano. Lánzala con L, mantenla en vuelo, aterrízala sobre la panza. Sin puertas, sin reloj.",
   "ui.manual": "Manual",
+  "ui.stabilised": "Estabilizado",
   "ui.skyhunter": "Skyhunter",
   "ui.an_1800_mm_twin_boom_fpv": "Un avión FPV de doble botalón de 1800 mm en 4S, con alerones, elevador y timón. Lánzalo con L, vuélalo lejos, aterrízalo sobre su patín. Sin puertas, sin reloj.",
   "ui.twin_boom": "Doble botalón",

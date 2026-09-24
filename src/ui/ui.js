@@ -10443,7 +10443,7 @@ export class Ui {
         ? str('ui.turtle')
         : (launchState === 1 || launchState === 2
           ? str('ui.launch_2')
-          : (flightMode === 'angle' ? str('ui.angle') : str('ui.acro'))));
+          : ({ angle: str('ui.angle'), stab: str('ui.stabilised'), manual: str('ui.manual') }[flightMode] ?? str('ui.acro'))));
     }
     if (this.osdLaunch) {
       const on = launchState > 0;
