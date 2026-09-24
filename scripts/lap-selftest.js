@@ -6,8 +6,10 @@
  * gate, two metres out of every gate in flying order, back through the
  * timing gate, sampled at the ghost rate at a steady speed and encoded with
  * the real encoder. Then the same lap is broken one way at a time, and each
- * break must be refused for the reason the check names. Run with
- * npm run lap:selftest.
+ * break must be refused for the reason the check names. Then a wing course
+ * of five metre gates on the 400 by 300 m airfield is built with the
+ * builder's own model and flown at cruise, and the same skip is refused.
+ * Run with npm run lap:selftest.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -30,7 +32,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { encodeGhost } from '../src/share/ghostdata.js';
-import { checkLap, LAP_TOLERANCE_MS } from '../src/game/verify.js';
+import { checkLap, gatesFromCourse, LAP_TOLERANCE_MS } from '../src/game/verify.js';
+import { courseFromDocument } from '../src/game/trackdoc.js';
+import { Race } from '../src/game/race.js';
+import { trackClassOf } from '../src/trackbuilder/elements.js';
+import { createElement, createSequenceEntry, createTrack } from '../src/trackbuilder/model.js';
+import { applyAutoFaces } from '../src/trackbuilder/faces.js';
 import { syntheticLap } from '../tests/lib/synthlap.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -95,6 +102,38 @@ check('the lap flown backwards is refused', bad6.ok === false, bad6.reason);
 
 const junk = checkLap(doc, new Uint8Array(10), honest.lapMs);
 check('ten bytes of nothing are refused as a ghost', junk.ok === false && /^ghost:/.test(junk.reason), junk.reason);
+
+/*
+ * The wing course: four five metre gates round the 400 by 300 m airfield,
+ * built by the builder's own model so the check flies what the WING
+ * toggle would make, and flown at the wing's cruise. The ghost is threaded
+ * two metres either side of each centre, which is exactly the depth of a
+ * wing gate's scoring box, so a box any shallower than the class asks for
+ * would still pass here: the depth itself is asserted on the race.
+ */
+console.log('\nwing course');
+const wing = createTrack('Wing check', 'wing');
+check('a new wing track is the wing class', trackClassOf(wing) === 'wing', trackClassOf(wing));
+check('on the 400 by 300 m airfield', wing.field.width === 400 && wing.field.depth === 300, `${wing.field.width} by ${wing.field.depth}`);
+for (const [x, y] of [[100, 75], [300, 75], [300, 225], [100, 225]]) {
+  const gate = createElement(wing, 'gate', { x, y }, 0);
+  wing.elements.push(gate);
+  wing.sequence.push(createSequenceEntry(wing, gate.id));
+}
+applyAutoFaces(wing);
+check('a wing gate is five metres square', wing.elements.every((e) => e.dims.clearW === 5 && e.dims.clearH === 5), JSON.stringify(wing.elements[0].dims));
+const wingCourse = courseFromDocument(wing);
+check('the course is built one to one', wingCourse.stations.every((st) => Math.abs(st.clearW - 5) < 1e-9), `${wingCourse.stations[0].clearW}`);
+const wingRace = new Race(gatesFromCourse(wingCourse), wingCourse.trackClass);
+check('a wing gate scores two metres deep', wingRace.passDepth === 2, `${wingRace.passDepth}`);
+const wingLap = syntheticLap(wing, { speed: 20 });
+const wingOk = checkLap(wing, encodeGhost(wingLap), wingLap.lapMs);
+check('an honest wing lap at cruise is accepted', wingOk.ok === true, wingOk.reason);
+check('and it passed every gate', wingOk.gates === 4, `${wingOk.gates}`);
+check('and the top speed is cruise', wingOk.ok && Math.abs(wingOk.topSpeed - 20) < 0.5, `${wingOk.topSpeed}`);
+const wingSkipped = syntheticLap(wing, { speed: 20, skip: 2 });
+const wingBad = checkLap(wing, encodeGhost(wingSkipped), wingSkipped.durationMs);
+check('a wing lap that skips a gate is refused', wingBad.ok === false && /never closed/.test(wingBad.reason), wingBad.reason);
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);

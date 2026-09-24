@@ -84,9 +84,10 @@ function pipeline(cls) {
   const types = paletteFor(cls);
   let i = 0;
   for (const type of types) {
-    /* Spread out enough that the elements do not overlap on either field:
-     * a RaceGOW room is 5 by 6 m and a MultiGP field is 60 by 40. */
-    const step = cls === 'micro' ? 0.9 : 12;
+    /* Spread out enough that the elements do not overlap on any field: a
+     * RaceGOW room is 5 by 6 m, a MultiGP field is 60 by 40 and an airfield
+     * is 400 by 300. */
+    const step = { micro: 0.9, full: 12, wing: 40 }[cls];
     const el = createElement(doc, type, {
       x: -1.5 * step + (i % 4) * step,
       y: -1.0 * step + Math.floor(i / 4) * step,
@@ -140,11 +141,13 @@ function pipeline(cls) {
    * two numbers being one multiply apart is the whole of what changed: this
    * asserts the multiply happened exactly once.
    */
-  const want = cls === 'micro' ? GATE_OPENING_MAX * MICRO_SCALE : 1.524 * GATE_SCALE;
-  check(cls === 'micro'
-    ? 'a RaceGOW gate is built at the micro scale'
-    : 'a MultiGP gate keeps the 15 percent',
-  gate && Math.abs(gate.clearW - want) < 1e-9, gate ? `${gate.clearW} wanted ${want}` : 'no gate');
+  const built = {
+    micro: ['a RaceGOW gate is built at the micro scale', GATE_OPENING_MAX * MICRO_SCALE],
+    full: ['a MultiGP gate keeps the 15 percent', 1.524 * GATE_SCALE],
+    wing: ['a wing gate is built one to one', 5],
+  };
+  const [name, want] = built[cls];
+  check(name, gate && Math.abs(gate.clearW - want) < 1e-9, gate ? `${gate.clearW} wanted ${want}` : 'no gate');
 
   const plan = planFromDocument(back);
   check('the plan builds', Boolean(plan));
@@ -827,6 +830,7 @@ function specGuard() {
 
 pipeline('micro');
 pipeline('full');
+pipeline('wing');
 raceDemo();
 raceTheDerivedLine();
 presetSet();

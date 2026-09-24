@@ -47,26 +47,29 @@ import {
 export { FRAME_TUBE_OD };
 
 /*
- * THE TWO TRACK CLASSES.
+ * THE THREE TRACK CLASSES.
  *
  * 'full' is the sixty metre field this builder has always drawn, flown on a
  * 5 inch quad through MultiGP sized gates. 'micro' is a RaceGOW room: a
  * course inside 1.42 by 2.13 m, built out of 3/4 inch PVC, flown on a 65 mm
- * whoop, in somebody's living room.
+ * whoop, in somebody's living room. 'wing' is an airfield: five metre gates
+ * and pylons over four hundred by three hundred metres, flown on a 1000 mm
+ * flying wing that cruises at 15 to 25 m/s and turns in about twenty
+ * metres (docs/WING-STAGE1.md).
  *
  * IT IS A PROPERTY OF THE TRACK, not of the pilot and not of the session.
- * A micro course is a different object from a full sized one: different
- * element sizes, a different field, a different grid, different warnings,
- * and a lap that is three seconds rather than thirty. So it is stored in the
+ * Each class is a different object from the others: different element
+ * sizes, a different field, a different grid, different warnings, and a lap
+ * that is three seconds, thirty, or a minute. So it is stored in the
  * document, defaulted to 'full' on read so that every track ever written
  * stays exactly what it was, and the builder picks the class for a NEW
  * track from the aircraft the pilot has seated.
  *
  * The class chooses which dims block each element definition below hands to
  * a newly placed instance, and nothing else in this file branches on it.
- * That is deliberate: a micro gate is a gate.
+ * That is deliberate: a micro gate is a gate, and so is a wing gate.
  */
-export const TRACK_CLASSES = ['full', 'micro'];
+export const TRACK_CLASSES = ['full', 'micro', 'wing'];
 export const TRACK_CLASS_DEFAULT = 'full';
 
 export function trackClassOf(doc) {
@@ -76,20 +79,20 @@ export function trackClassOf(doc) {
 /*
  * The dims a newly placed element of `type` gets on a track of `cls`.
  *
- * Falls back to the full sized block for any element that has no micro
- * variant, which is the right answer for the two that genuinely have none:
- * a label is text and a ground logo is paint, and neither has a size that
- * depends on how big the quad is.
+ * `dims` is the full sized block. A class with its own sizes names a second
+ * block on the element, and falls back to the full sized one for any
+ * element that has no variant, which is the right answer for the two that
+ * genuinely have none: a label is text and a ground logo is paint, and
+ * neither has a size that depends on how big the aircraft is.
  */
+const CLASS_DIMS = { micro: 'microDims', wing: 'wingDims' };
+
 export function defaultDims(type, cls) {
   const def = ELEMENTS[type];
   if (!def) {
     return null;
   }
-  if (cls === 'micro' && def.microDims) {
-    return { ...def.microDims };
-  }
-  return { ...def.dims };
+  return { ...(def[CLASS_DIMS[cls]] ?? def.dims) };
 }
 
 /*
@@ -166,6 +169,10 @@ export const KIND = {
  */
 export const GATE_FLAG_H = 1.45;
 export const GATE_FLAG_POLE_R = 0.012;
+
+/* The wing gate's clear opening, metres, one number for the three elements
+ * and the preset that carry it. See the gate entry for why five. */
+export const WING_GATE = 5.0;
 
 /*
  * WHERE ON THE HEADER THE MAST STANDS.
@@ -307,13 +314,30 @@ export const MICRO_MARKER_GATE_PAD = POLE_FROM_GATE_MIN;
 export const MICRO_MARKER_GATE_MIN_W = POLE_FROM_GATE_MIN * 2;
 
 /*
+ * And on a wing track, where the marker is a pylon the wing rounds at
+ * cruise. The pylon's clearance is 5 m, the same relationship to the
+ * aircraft the flag's 1.5 m has to a five inch (about three spans off the
+ * pole), so the pad is that clearance and the floor is twice it, the way
+ * the micro pair is built from RaceGOW's 14 inch rule. A 15 m square
+ * beside a pylon is what a 1000 mm wing at 20 m/s can be asked to hit.
+ */
+export const WING_MARKER_GATE_PAD = 5.0;
+export const WING_MARKER_GATE_MIN_W = 10.0;
+
+const MARKER_GATE = {
+  full: { pad: MARKER_GATE_PAD, minW: MARKER_GATE_MIN_W },
+  micro: { pad: MICRO_MARKER_GATE_PAD, minW: MICRO_MARKER_GATE_MIN_W },
+  wing: { pad: WING_MARKER_GATE_PAD, minW: WING_MARKER_GATE_MIN_W },
+};
+
+/*
  * The scoring square a flag or a cone assigns on its pass side.
  *
- * Width is the clearance corridor plus MARKER_GATE_PAD, never less than
- * MARKER_GATE_MIN_W, with the inner edge still on the pole. Height is at
- * least that wide, and at least as tall as the marker, so a 2.5 m flag is
- * not scored by a waist-high slot. Waypoints keep a clearance of zero and
- * do not get one of these: they pin the line, they are not a hole.
+ * Width is the clearance corridor plus the class's pad, never less than its
+ * floor, with the inner edge still on the pole. Height is at least that
+ * wide, and at least as tall as the marker, so a 2.5 m flag is not scored
+ * by a waist-high slot. Waypoints keep a clearance of zero and do not get
+ * one of these: they pin the line, they are not a hole.
  *
  * `outward` is how far the square's CENTRE sits beyond the racing line
  * knot, along the pass direction, which is what keeps the inner edge on the
@@ -323,9 +347,7 @@ export const MICRO_MARKER_GATE_MIN_W = POLE_FROM_GATE_MIN * 2;
  */
 export function virtualApertureDims(el, seq, cls = TRACK_CLASS_DEFAULT) {
   const clearance = Math.max(0, seq?.clearance ?? el?.dims?.clearance ?? 0);
-  const micro = cls === 'micro';
-  const pad = micro ? MICRO_MARKER_GATE_PAD : MARKER_GATE_PAD;
-  const minW = micro ? MICRO_MARKER_GATE_MIN_W : MARKER_GATE_MIN_W;
+  const { pad, minW } = MARKER_GATE[cls] ?? MARKER_GATE[TRACK_CLASS_DEFAULT];
   const clearW = Math.max(minW, clearance * 2 + pad);
   const poleH = Math.max(0, el?.dims?.height ?? 0);
   const clearH = Math.max(clearW, poleH);
@@ -381,6 +403,11 @@ export const ELEMENTS = {
       clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
       levelPitch: GATE_SPACING_NOMINAL,
     },
+    /* A wing gate is the tool's own size: no series publishes one. Five
+     * metres is five spans of the 1000 mm wing, which is the same margin a
+     * 5 ft gate gives a five inch's 0.35 m sweep, and it is a hole a wing
+     * at cruise can be aimed through rather than threaded. */
+    wingDims: { levels: 1, sillH: 0, clearW: WING_GATE, clearH: WING_GATE, levelPitch: WING_GATE + FRAME_TUBE_OD },
   },
   flaggedGate: {
     id: 'flaggedGate',
@@ -411,6 +438,12 @@ export const ELEMENTS = {
       clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
       levelPitch: GATE_SPACING_NOMINAL,
       flagH: 0.42,
+    },
+    /* Same five metre hole as `gate`; the mast is three metres so the
+     * pennant reads over a gate that size. */
+    wingDims: {
+      levels: 1, sillH: 0, clearW: WING_GATE, clearH: WING_GATE, levelPitch: WING_GATE + FRAME_TUBE_OD,
+      flagH: 3.0,
     },
   },
   doubleStack: {
@@ -570,6 +603,11 @@ export const ELEMENTS = {
      * RaceGOW's own 14 inch pole rule, which is the distance the diagrams
      * dimension from a gate centre to a pole. */
     microDims: { height: 0.90, poleRadius: PIPE_OD / 2, clearance: POLE_FROM_GATE_MIN },
+    /* A pylon on an airfield: a six metre pole a wing can see from the far
+     * end of a 400 m field, rounded five metres off, which is about three
+     * spans, the same relationship the flag's 1.5 m has to a five inch.
+     * WING_MARKER_GATE_PAD is built on this clearance. */
+    wingDims: { height: 6.0, poleRadius: 0.05, clearance: 5.0 },
   },
   cone: {
     id: 'cone',
@@ -870,9 +908,26 @@ export const MICRO_GATE_PRESETS = [
   },
 ];
 
+/* THE WING PRESET: the five metre square the palette places, and only
+ * that. It is the tool's own size, so `published` is false the way the
+ * trainer's is: no series publishes a wing gate to cite. */
+export const WING_GATE_PRESETS = [
+  {
+    id: 'wing5',
+    label: str('elements.wing'),
+    size: str('elements.5_x_5_m'),
+    published: false,
+    hint: str('elements.a_five_metre_square_for_a'),
+    clearW: WING_GATE,
+    clearH: WING_GATE,
+  },
+];
+
+const GATE_PRESETS_BY_CLASS = { full: GATE_PRESETS, micro: MICRO_GATE_PRESETS, wing: WING_GATE_PRESETS };
+
 /* The presets offered on a track of this class. */
 export function gatePresetsFor(cls) {
-  return cls === 'micro' ? MICRO_GATE_PRESETS : GATE_PRESETS;
+  return GATE_PRESETS_BY_CLASS[cls] ?? GATE_PRESETS;
 }
 
 /* Within a millimetre, which is finer than anything an author types and
@@ -886,10 +941,10 @@ export function matchingGatePreset(dims) {
   if (!dims) {
     return null;
   }
-  /* Both lists, because the answer to "which preset IS this" cannot depend
+  /* Every list, because the answer to "which preset IS this" cannot depend
    * on which class is open: a 19 inch whoop gate on a full sized track is
    * still the Whoop preset. */
-  return [...GATE_PRESETS, ...MICRO_GATE_PRESETS]
+  return [...GATE_PRESETS, ...MICRO_GATE_PRESETS, ...WING_GATE_PRESETS]
     .find((p) => Math.abs(dims.clearW - p.clearW) < PRESET_TOL
       && Math.abs(dims.clearH - p.clearH) < PRESET_TOL) || null;
 }
@@ -951,9 +1006,19 @@ export const MICRO_PALETTE_ORDER = [
   'pole', 'horizontalPole', 'cone', 'barrier', 'waypoint',
 ];
 
+/*
+ * The WING palette. Gates, pylons and the waypoints that pin a line
+ * between them, which is what a wing course is: an aircraft that cannot
+ * hover has no use for a stack, a ladder, a dive gate or a ground cone,
+ * and a barrier on an airfield is a tree.
+ */
+export const WING_PALETTE_ORDER = ['gate', 'flaggedGate', 'flag', 'waypoint'];
+
+const PALETTES = { full: PALETTE_ORDER, micro: MICRO_PALETTE_ORDER, wing: WING_PALETTE_ORDER };
+
 /* The palette for a track class. */
 export function paletteFor(cls) {
-  return cls === 'micro' ? MICRO_PALETTE_ORDER : PALETTE_ORDER;
+  return PALETTES[cls] ?? PALETTE_ORDER;
 }
 export const PALETTE_EXTRA = ['startPads', 'label', 'groundLogo'];
 
@@ -1017,6 +1082,31 @@ export const TUNING = {
      * the same way the full sized one is: the opening plus its frame plus a
      * body length, which on a 711 mm gate out of 27 mm pipe is 0.84 m. */
     stackWrap: 0.84,
+  },
+  /*
+   * THE WING SET, built the same way against docs/WING-STAGE1.md: a 1000 mm
+   * wing sweeping 0.5 m to a tip, cruising 15 to 25 m/s, turning in about
+   * twenty metres. No stackWrap, because the wing palette has no stacks;
+   * the field's value falls through and is never read.
+   */
+  wing: {
+    /* An airfield. A lap of six pylons sixty metres apart is a minute at
+     * cruise, and 400 by 300 holds that with room to line up on a gate. */
+    fieldWidth: 400,
+    fieldDepth: 300,
+    /* Five metres, one gate width: nothing on a wing course is placed to
+     * the metre, and a metre grid on a 400 m field is noise. */
+    gridSize: 5,
+    /* W6: a 60 degree bank at 20 m/s is 23.5 m of radius, and the wing is
+     * flown at up to 25 m/s. A line tighter than 20 m is one the aircraft
+     * cannot follow. */
+    minCurveRadius: 20,
+    /* Five metres on a 400 m field is the same fraction of the field the
+     * full sized metre is of sixty. */
+    boundarySlack: 5,
+    /* A metre of clearance for a 0.5 m sweep, the same two sweeps the full
+     * sized 0.35 gives a 0.17 m five inch. */
+    barrierClearance: 1.0,
   },
 
   /*
@@ -1086,15 +1176,13 @@ export const TUNING = {
 
 /*
  * The tuning for a track class. Falls through to the full sized value for
- * anything the micro block does not name, which is every ratio and count in
- * TUNING: a tangent scale and a samples per segment are dimensionless and do
- * not care how big the track is.
+ * anything the class's block does not name, which is every ratio and count
+ * in TUNING: a tangent scale and a samples per segment are dimensionless
+ * and do not care how big the track is.
  */
 export function tuningFor(cls) {
-  if (cls !== 'micro') {
-    return TUNING;
-  }
-  return { ...TUNING, ...TUNING.micro };
+  const block = cls !== TRACK_CLASS_DEFAULT && TRACK_CLASSES.includes(cls) ? TUNING[cls] : null;
+  return block ? { ...TUNING, ...block } : TUNING;
 }
 
 /* Convenience: every element definition in palette order, extras last. */

@@ -127,7 +127,10 @@ const TAIL_FRACTION = 0.09;
  * src/share/plan.js carries the same two numbers for the course card, with
  * the same note, so a card and a GIF of one track still move together.
  */
-export const LAP_SPEED = { micro: 3.73, full: 12.7 };
+export const LAP_SPEED = { micro: 3.73, full: 12.7, wing: 20 };
+/* The wing's is its cruise, the middle of the 15 to 25 m/s band in
+ * docs/WING-STAGE1.md, because a wing does not slow for the corners the
+ * way the two quads do; a lap of pylons is flown at one speed. */
 /*
  * THE MICRO PACE IS NOW ALSO THE FULL PACE DIVIDED BY MICRO_SCALE, and it
  * was not arranged to be.
@@ -156,7 +159,7 @@ const LAP_FRAMES_MAX = 600;
 
 /* How many frames one lap of this track is, at this frame delay. */
 export function lapFrames(lengthM, cls, delayCs) {
-  const speed = LAP_SPEED[cls === 'micro' ? 'micro' : 'full'];
+  const speed = LAP_SPEED[cls] ?? LAP_SPEED.full;
   const fps = 100 / (delayCs > 0 ? delayCs : 4);
   const want = Math.round((lengthM / speed) * fps);
   if (!Number.isFinite(want)) {

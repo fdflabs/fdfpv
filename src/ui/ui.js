@@ -1122,26 +1122,26 @@ function saveSettings(s) {
  */
 function reseatIfForeign(s) {
   const a = airframeById(s.airframe);
-  const other = AIRFRAMES.find((x) => x.id !== a.id);
+  /* Any of the others, not the first one that is not this: with three
+   * aircraft, a setting still wearing the wing's stock value is foreign on
+   * the five inch whether or not it happens to match the whoop's too. */
+  const others = AIRFRAMES.filter((x) => x.id !== a.id);
   if (!tuneChoices(a.id).includes(s.tune)) {
     s.tune = a.defaultTune;
   }
   if (!a.packVoltages.includes(s.packVoltage)) {
     s.packVoltage = a.packVoltages[0];
   }
-  if (!other) {
-    return s;
-  }
-  if (ratesMatch(s.rates, other.rates)) {
+  if (others.some((o) => ratesMatch(s.rates, o.rates))) {
     s.rates = normaliseRates({ ...s.rates, ...structuredCloneRates(a.rates) });
   }
-  if (s.rates && s.rates.throttleCap === other.rates.throttleCap) {
+  if (s.rates && others.some((o) => s.rates.throttleCap === o.rates.throttleCap)) {
     s.rates = normaliseRates({ ...s.rates, throttleCap: a.rates.throttleCap });
   }
-  if (s.cameraFov === other.cameraFov) {
+  if (others.some((o) => s.cameraFov === o.cameraFov)) {
     s.cameraFov = a.cameraFov;
   }
-  if (s.cameraAngle === clampCameraAngle(other.cameraAngle)) {
+  if (others.some((o) => s.cameraAngle === clampCameraAngle(o.cameraAngle))) {
     s.cameraAngle = clampCameraAngle(a.cameraAngle);
   }
   return s;
@@ -2359,16 +2359,15 @@ function tunePickItem(s, midRun) {
  * change on the screen. Everything else here adjusts one machine; this one
  * swaps the machine, and it takes the tune, the pack charge and the camera
  * with it because none of those means anything on the other aircraft. It
- * also changes what a track IS: a whoop flies a 1.22 by 1.83 m RaceGOW room
- * and a five inch flies a sixty metre field, so the seated track goes with
- * it too.
+ * also changes what a track IS: a whoop flies a 1.22 by 1.83 m RaceGOW room,
+ * a five inch flies a sixty metre field and a wing flies an airfield, so
+ * the seated track goes with it too.
  */
 function craftItem(s, midRun) {
   const af = airframeById(s.airframe);
-  const other = AIRFRAMES.find((a) => a.id !== s.airframe) || af;
   return choice(
     str('ui.aircraft'),
-    str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v2: other.trackClass === 'micro' ? str('ui.sixty_metre_field_and_a_living') : str('ui.living_room_and_a_sixty_metre'), v3: midRun ? MID_RUN_WARNING : '' }),
+    str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v3: midRun ? MID_RUN_WARNING : '' }),
     AIRFRAME_IDS,
     s.airframe,
     (id) => airframeById(id).name,
@@ -8562,13 +8561,13 @@ export class Ui {
          * is offering a five inch pilot a list where half the entries put
          * them in a living room the moment they press Fly.
          *
-         * The board says the class on every listing. One published before
-         * there were two is a field track, which is what it is, so the
-         * default here has to be 'full' rather than "show it anyway".
+         * The board says the class on every listing, and fetchTrackList has
+         * already read it the way the builder does: one published before
+         * there were classes is a field track, which is what it is, so the
+         * default is 'full' rather than "show it anyway".
          */
         const want = airframeById(this.settings.airframe).trackClass;
-        const rest = list.filter((t) => t.id !== seatId
-          && (t.trackClass === 'micro' ? 'micro' : 'full') === want);
+        const rest = list.filter((t) => t.id !== seatId && t.trackClass === want);
         /*
          * EVERY TRACK, not five.
          *
@@ -8590,7 +8589,7 @@ export class Ui {
           /* Say WHICH list came back empty. "Nothing here" in front of a
            * pilot who can see the board has tracks on it reads as broken;
            * "none for this aircraft" is a fact they can act on. */
-          const other = list.some((t) => (t.trackClass === 'micro' ? 'micro' : 'full') !== want);
+          const other = list.some((t) => t.trackClass !== want);
           const name = airframeById(this.settings.airframe).name.toLowerCase();
           this.boardNote.textContent = other
             ? str('ui.no_tracks_on_the_board_yet', { name })

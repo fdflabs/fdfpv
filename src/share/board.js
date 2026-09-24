@@ -47,6 +47,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { trackClassOf } from '../trackbuilder/elements.js';
 import { readShareImport, writeShareImport } from './session.js';
 import { str, currentLocale } from '../strings/index.js';
 
@@ -314,12 +315,12 @@ export async function fetchTrackList(origin = boardOrigin()) {
      * usableTags, because the Race room prints these and a tag from a newer
      * board should show under its own id rather than disappear. */
     tags: Array.isArray(t.tags) ? t.tags.map((x) => String(x)) : [],
-    /* Which aircraft flies it: 'micro' is a RaceGOW room and everything else
-     * is the sixty metre field, which is what every track published before
-     * there were two classes is. The board derives it from the stored
-     * document, so an older board that does not send it leaves every listing
-     * reading as the field, correctly. */
-    trackClass: t.trackClass === 'micro' ? 'micro' : 'full',
+    /* Which aircraft flies it: 'micro' is a RaceGOW room, 'wing' is an
+     * airfield, and anything else is the sixty metre field, which is what
+     * every track published before there were classes is. The board derives
+     * it from the stored document, so an older board that does not send it
+     * leaves every listing reading as the field, correctly. */
+    trackClass: trackClassOf(t),
     board,
   })).filter((t) => t.id);
 }
@@ -391,7 +392,7 @@ export async function adoptMostFlownTrack(cls) {
    * the one being filled, so the "already seated, leave it alone" rule below
    * is per class too.
    */
-  const want = cls === 'micro' ? 'micro' : 'full';
+  const want = trackClassOf({ trackClass: cls });
   if (readShareImport()) {
     return null;
   }
@@ -414,7 +415,7 @@ export async function adoptMostFlownTrack(cls) {
       gates: Number(t.gates) || 0,
       times: Number(t.times) || 0,
       publishedUtc: t.publishedUtc ? String(t.publishedUtc) : '',
-      trackClass: t.trackClass === 'micro' ? 'micro' : 'full',
+      trackClass: trackClassOf(t),
       board: trimOrigin(origin),
     })).filter((t) => t.id && t.trackClass === want);
     const top = pickMostFlownTrack(list);

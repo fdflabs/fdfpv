@@ -29,6 +29,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { trackClassOf } from '../trackbuilder/elements.js';
 import { duplicateTrack, toPlain } from '../trackbuilder/model.js';
 import { readAutosave, writeAutosave } from '../trackbuilder/storage.js';
 import { boardOrigin, fetchTrackDocument, fetchTrackList, publishTrack } from './board.js';
@@ -132,7 +133,7 @@ export async function findBoardTwin({ doc, name, trackClass, origin } = {}) {
   }
   const board = origin || boardOrigin();
   const list = await fetchTrackList(board);
-  const cls = trackClass === 'micro' ? 'micro' : 'full';
+  const cls = trackClassOf({ trackClass });
   const wanted = String(name || '').trim().toLowerCase();
   const pool = list
     .filter((t) => t.id && t.trackClass === cls)

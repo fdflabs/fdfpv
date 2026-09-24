@@ -258,6 +258,11 @@ function isMicro(plan) {
   return Boolean(plan) && plan.trackClass === 'micro';
 }
 
+/* MIRRORS TRACK_CLASSES in src/trackbuilder/elements.js, and the board's
+ * src/validate.js mirrors it again. A mirror rather than an import because
+ * the board's public/plan.js is this file with the imports taken out. */
+const PLAN_CLASSES = ['full', 'micro', 'wing'];
+
 const LEVELS = {
   gate: 1,
   flaggedGate: 1,
@@ -901,8 +906,10 @@ export function planFromDocument(doc) {
   return {
     /* The class travels with the plan for the same reason it travels with
      * the course: the drawer has three sizes it cannot read off a mark, and
-     * without this it would have to guess them from the field. */
-    trackClass: small ? 'micro' : 'full',
+     * without this it would have to guess them from the field. A wing plan
+     * draws with the field's sizes, which are right for it: five metre
+     * gates on 400 m read at the same proportion 5 ft ones do on sixty. */
+    trackClass: PLAN_CLASSES.includes(doc.trackClass) ? doc.trackClass : 'full',
     width: Number(field.width) || (small ? MICRO_FIELD_W : 60),
     depth: Number(field.depth) || (small ? MICRO_FIELD_D : 40),
     marks,
@@ -950,7 +957,7 @@ const ISO_TAIL = 0.09;
  * the row of cards had no common pace at all. Now they all move at the same
  * speed and a longer course simply takes longer to go round.
  */
-const ISO_SPEED = { micro: 3.73, full: 12.7 };
+const ISO_SPEED = { micro: 3.73, full: 12.7, wing: 20 };
 /* A lap must not be so brief that it reads as a flicker or so long that a
  * card looks still. The exporter clamps its frame count the same way. */
 const ISO_LAP_MS_MIN = 2000;
@@ -1255,8 +1262,7 @@ export function isoLapLength(plan) {
 
 export function isoLapMs(plan) {
   const lap = isoLap(plan);
-  const small = String(plan && plan.trackClass) === 'micro';
-  const speed = small ? ISO_SPEED.micro : ISO_SPEED.full;
+  const speed = ISO_SPEED[String(plan && plan.trackClass)] ?? ISO_SPEED.full;
   if (!lap || !(lap.total > 0) || !(speed > 0)) {
     return ISO_LAP_MS_MAX;
   }

@@ -182,8 +182,17 @@ export const GATE_SCALE = 1.15;
  */
 export { MICRO_SCALE };
 
+/*
+ * How much larger than the author's figures each class is built. The field
+ * gets the 15 percent above; a room gets the change of units; a wing track
+ * is built at one to one, because its five metre gate is already five spans
+ * of the aircraft and the 15 percent was asked for against a five inch on a
+ * 5 ft opening, not against a hole nobody has flown yet.
+ */
+const GATE_SCALE_BY_CLASS = { full: GATE_SCALE, micro: MICRO_SCALE, wing: 1 };
+
 export function gateScaleFor(cls) {
-  return cls === 'micro' ? MICRO_SCALE : GATE_SCALE;
+  return GATE_SCALE_BY_CLASS[cls] ?? GATE_SCALE;
 }
 
 /* The frame tube as BUILT, which is the one the scene draws and the one a

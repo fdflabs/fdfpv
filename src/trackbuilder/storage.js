@@ -33,7 +33,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { countElementsByType, formatElementCounts } from './elements.js';
+import { countElementsByType, formatElementCounts, trackClassOf } from './elements.js';
 import { normalize, serialize, toPlain, touch } from './model.js';
 
 const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
@@ -53,11 +53,14 @@ const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
  * a list of everything this browser has ever built, which is what a library
  * is for.
  */
-const AUTOSAVE_KEY = 'webfpv.trackbuilder.autosave.v1';
-const AUTOSAVE_KEY_MICRO = 'webfpv.trackbuilder.autosave.micro.v1';
+const AUTOSAVE_KEYS = {
+  full: 'webfpv.trackbuilder.autosave.v1',
+  micro: 'webfpv.trackbuilder.autosave.micro.v1',
+  wing: 'webfpv.trackbuilder.autosave.wing.v1',
+};
 
 function autosaveKey(cls) {
-  return (cls ?? activeTrackClass()) === 'micro' ? AUTOSAVE_KEY_MICRO : AUTOSAVE_KEY;
+  return AUTOSAVE_KEYS[cls ?? activeTrackClass()] ?? AUTOSAVE_KEYS.full;
 }
 
 /* readJson and writeJson come from src/share/session.js, which had the same
@@ -158,8 +161,7 @@ export function trackExists(id) {
 /* Into the seat the DOCUMENT belongs in, read off the document, so an
  * autosave cannot land in the other class's chair. */
 export function writeAutosave(doc) {
-  const cls = doc && doc.trackClass === 'micro' ? 'micro' : 'full';
-  return writeJson(autosaveKey(cls), toPlain(doc));
+  return writeJson(autosaveKey(trackClassOf(doc)), toPlain(doc));
 }
 
 export function readAutosave(cls) {
