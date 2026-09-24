@@ -47,6 +47,11 @@ import { attachComposer } from './field.js';
 import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
+import { makeVehicle, CAR } from './city/vendored/world/vehicles.js';
+import {
+  villageMaterials, makeBake, bakeAll, chalet, barn, church, hangar, fence, cow,
+  pineForest, broadleafGrove, ribbon, alongRibbon,
+} from './alps-kit.js';
 
 /* The heightfield: a square this many metres on a side, centred on the
  * origin, sampled on a grid this fine. Thirty metre cells are coarse for a
@@ -64,7 +69,7 @@ const CELL = FIELD / CELLS;
  * a little tighter so a wing sees both walls at once. */
 const FLOOR_HALF = 220;
 const WALL_REACH = 2100;
-const RIDGE = 1150;
+const RIDGE = 1400;
 
 /* The strip: grass, this long along the valley and this wide, at the
  * origin, and the village beside it. */
@@ -79,7 +84,7 @@ const LAKE_Y = -1.5;
 
 /* Snow from here up on the average, wandering a hundred and fifty metres
  * either way with the noise, and never on a face steeper than this. */
-const SNOW_LINE = 920;
+const SNOW_LINE = 700;
 const SNOW_MAX_SLOPE = 1.6;
 
 /* The wing spawns on the strip facing north, down the valley. Yaw 0 is
@@ -152,8 +157,12 @@ function smoothstep(a, b, v) {
  * noise; a side valley is cut out of the east wall; the south end drops
  * into the lake basin; and the strip's own ground is held dead flat.
  */
+function valleyAxis(z) {
+  return 180 * Math.sin(z / 1500) + 60 * Math.sin(z / 430 + 1.2);
+}
+
 function terrainHeight(x, z) {
-  const axis = 180 * Math.sin(z / 1500) + 60 * Math.sin(z / 430 + 1.2);
+  const axis = valleyAxis(z);
   const dx = x - axis;
   const across = Math.abs(dx);
   const wall = smoothstep(FLOOR_HALF, WALL_REACH, across);
@@ -172,8 +181,9 @@ function terrainHeight(x, z) {
   h += floor * (7 * fbm(x / 300, z / 300, 3) + 3);
   const basin = smoothstep(LAKE_Z - 900, LAKE_Z - 150, z) * (1 - smoothstep(FLOOR_HALF + 150, FLOOR_HALF + 500, across));
   h -= basin * 22;
-  /* The strip and the village stand on ground held flat. */
-  const flat = (1 - smoothstep(STRIP_L / 2 + 40, STRIP_L / 2 + 220, Math.abs(z))) * (1 - smoothstep(60, 220, Math.abs(x)));
+  /* The strip, the hangar and the village stand on ground held flat: a
+   * plateau from the east apron to the church, longer than the strip. */
+  const flat = (1 - smoothstep(STRIP_L / 2 + 60, STRIP_L / 2 + 260, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
   h = h * (1 - flat) + 0 * flat;
   return h;
 }
@@ -282,115 +292,6 @@ function terrainMesh(field, tex) {
   return mesh;
 }
 
-/*
- * Pines: one instanced cone, a few thousand of them on the lower slopes
- * where the ground colour says forest, thinning with height the way a
- * tree line does. Placed by the same noise as the paint so the trees stand
- * on the dark green rather than beside it. Colliders only within reach of
- * the strip: a wing that flies into the far forest hits the hillside first.
- */
-function pines(field, rng, colliders) {
-  const count = 3200;
-  const geo = new THREE.ConeGeometry(4.2, 11, 6);
-  geo.translate(0, 5.5, 0);
-  const mat = celMaterial({ color: 0x2f5c2c, rim: 0.15 });
-  const mesh = new THREE.InstancedMesh(geo, mat, count);
-  const m = new THREE.Matrix4();
-  const p = new THREE.Vector3();
-  const q = new THREE.Quaternion();
-  const s = new THREE.Vector3();
-  let placed = 0;
-  let tries = 0;
-  while (placed < count && tries < count * 40) {
-    tries += 1;
-    const x = (rng() - 0.5) * FIELD * 0.9;
-    const z = (rng() - 0.5) * FIELD * 0.9;
-    const y = field.height(x, z);
-    if (y < 45 || y > 720) {
-      continue;
-    }
-    const sx = (field.height(x + 12, z) - field.height(x - 12, z)) / 24;
-    const sz = (field.height(x, z + 12) - field.height(x, z - 12)) / 24;
-    if (Math.hypot(sx, sz) > 0.7) {
-      continue;
-    }
-    if (Math.abs(x) < 140 && Math.abs(z) < STRIP_L / 2 + 120) {
-      continue;
-    }
-    const density = (1 - smoothstep(560, 720, y)) * (0.55 + 0.45 * fbm(x / 140, z / 140, 2));
-    if (rng() > density) {
-      continue;
-    }
-    const scale = 0.8 + rng() * 0.6;
-    p.set(x, y - 0.3, z);
-    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rng() * Math.PI * 2);
-    s.set(scale, scale * (0.9 + rng() * 0.3), scale);
-    m.compose(p, q, s);
-    mesh.setMatrixAt(placed, m);
-    if (Math.hypot(x, z) < 600) {
-      colliders.addPost('tree', x, z, y, y + 11 * s.y, 3.2 * scale);
-    }
-    placed += 1;
-  }
-  mesh.count = placed;
-  mesh.castShadow = true;
-  return { mesh, placed };
-}
-
-/*
- * A chalet: a stone lower floor, a timber upper, and a wide gable roof
- * with the eaves out past the walls, the one silhouette that says where
- * this is. The roof is a box on its edge, which at this scale reads as
- * a gable and costs six faces.
- */
-function chalet(x, z, y, yaw, rng, mats) {
-  const g = new THREE.Group();
-  const w = 8 + rng() * 4;
-  const d = 10 + rng() * 5;
-  const stone = new THREE.Mesh(new THREE.BoxGeometry(w, 2.2, d), mats.stone);
-  stone.position.y = 1.1;
-  stone.castShadow = true;
-  stone.receiveShadow = true;
-  g.add(stone);
-  const timber = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 2.6, d + 0.6), mats.timber);
-  timber.position.y = 2.2 + 1.3;
-  timber.castShadow = true;
-  g.add(timber);
-  const roofH = w * 0.55;
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 0.78, w * 0.78, d + 2.4), mats.roof);
-  roof.rotation.z = Math.PI / 4;
-  roof.position.y = 4.8 + roofH * 0.35;
-  roof.castShadow = true;
-  g.add(roof);
-  g.position.set(x, y, z);
-  g.rotation.y = yaw;
-  return { group: g, w, d, top: 4.8 + roofH };
-}
-
-function church(x, z, y, mats) {
-  const g = new THREE.Group();
-  const nave = new THREE.Mesh(new THREE.BoxGeometry(9, 6, 16), mats.stone);
-  nave.position.y = 3;
-  nave.castShadow = true;
-  g.add(nave);
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(7, 7, 17.5), mats.roof);
-  roof.rotation.z = Math.PI / 4;
-  roof.position.y = 7.2;
-  roof.castShadow = true;
-  g.add(roof);
-  const tower = new THREE.Mesh(new THREE.BoxGeometry(4, 16, 4), mats.stone);
-  tower.position.set(0, 8, -9);
-  tower.castShadow = true;
-  g.add(tower);
-  const spire = new THREE.Mesh(new THREE.ConeGeometry(2.9, 9, 4), mats.spire);
-  spire.position.set(0, 20.5, -9);
-  spire.rotation.y = Math.PI / 4;
-  spire.castShadow = true;
-  g.add(spire);
-  g.position.set(x, y, z);
-  return g;
-}
-
 function windsock(mastMat) {
   const g = new THREE.Group();
   const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, 4.5, 8), mastMat);
@@ -407,6 +308,50 @@ function windsock(mastMat) {
   pivot.add(sock);
   g.add(pivot);
   return { group: g, pivot };
+}
+
+/*
+ * THE RANGE BEYOND. The valley's own field ends at three kilometres, and
+ * a valley in the Alps does not: past every ridge there is a higher one.
+ * A coarse ring of peaks, twenty four kilometres across, snow above the
+ * rock, stands outside the field to fill the horizon. It has no collider
+ * and nothing lands on it; the fog takes it before the field's edge is
+ * noticed, and the sky dome takes it before the far plane does.
+ */
+function farRange() {
+  const size = 24000;
+  const n = 96;
+  const geo = new THREE.PlaneGeometry(size, size, n, n);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.getAttribute('position');
+  const colour = new Float32Array(pos.count * 3);
+  const rock = new THREE.Color(0x7d7b77);
+  const snow = new THREE.Color(0xf4f6fa);
+  const green = new THREE.Color(0x4f7a3a);
+  const c = new THREE.Color();
+  for (let k = 0; k < pos.count; k += 1) {
+    const x = pos.getX(k);
+    const z = pos.getZ(k);
+    const r = Math.hypot(x, z);
+    /* Nothing inside the field, a rising skirt across the field's edge,
+     * peaks to two and a half kilometres beyond it. */
+    const skirt = smoothstep(HALF - 600, HALF + 1800, r);
+    const h = skirt * (1500 + 900 * fbm(x / 2200, z / 2200, 4) + 350 * fbm(x / 700, z / 700, 3)) - 40 * (1 - skirt);
+    pos.setY(k, h);
+    const t = smoothstep(1300, 1900, h + 200 * fbm(x / 900, z / 900, 2));
+    c.copy(green).lerp(rock, smoothstep(700, 1300, h)).lerp(snow, t);
+    colour[k * 3] = c.r;
+    colour[k * 3 + 1] = c.g;
+    colour[k * 3 + 2] = c.b;
+  }
+  pos.needsUpdate = true;
+  geo.setAttribute('color', new THREE.BufferAttribute(colour, 3));
+  geo.computeVertexNormals();
+  const mat = celMaterial({ color: 0xffffff, rim: 0.1 });
+  mat.vertexColors = true;
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = 'far-range';
+  return mesh;
 }
 
 async function buildAlps(shell, progress, q) {
@@ -446,6 +391,8 @@ async function buildAlps(shell, progress, q) {
   const field = buildHeightfield();
   const ground = terrainMesh(field, groundTexture(field));
   scene.add(ground);
+  scene.add(farRange());
+  const mats = villageMaterials();
   progress(0.45);
   await yieldToPaint();
 
@@ -471,38 +418,206 @@ async function buildAlps(shell, progress, q) {
 
   const colliders = new Colliders();
   const rng = makeRng(20260924);
-  const forest = pines(field, rng, colliders);
-  scene.add(forest.mesh);
+  const heightAt = (x, z) => field.height(x, z);
+
+  /*
+   * THE ROAD, down the east side of the floor from the head of the valley
+   * to the lake shore, two lanes of asphalt with a painted centre line,
+   * following the valley's own axis. The village street branches off it
+   * across the south end of the strip.
+   */
+  const roadPts = [];
+  for (let z = -2700; z <= 1950; z += 50) {
+    roadPts.push({ x: valleyAxis(z) + 55, z });
+  }
+  const road = ribbon(roadPts, 6.5, 0.06, heightAt, mats.asphalt);
+  scene.add(road.mesh);
+  scene.add(ribbon(roadPts, 0.18, 0.09, heightAt, mats.paint).mesh);
+  const streetPts = [];
+  for (let x = valleyAxis(115) + 55; x >= -200; x -= 20) {
+    streetPts.push({ x, z: 115 });
+  }
+  scene.add(ribbon(streetPts, 5, 0.06, heightAt, mats.asphalt).mesh);
+
+  /*
+   * THE STREAM, out of the side valley and down the floor to the lake,
+   * west of the strip. Water a hair over the meadow; the meadow's own
+   * roll gives it its bends.
+   */
+  const streamPts = [];
+  for (let k = 0; k <= 40; k += 1) {
+    const t = k / 40;
+    const z = -1300 + t * 3350;
+    const side = t < 0.25 ? (1 - t / 0.25) : 0;
+    streamPts.push({ x: valleyAxis(z) - 95 - 30 * Math.sin(z / 260) + side * side * 700, z });
+  }
+  scene.add(ribbon(streamPts, 5, 0.1, heightAt, celMaterial({ color: 0x3d7a97, rim: 0.4, rimColor: 0xe6f3ff })).mesh);
+  progress(0.55);
+  await yieldToPaint();
+
+  /*
+   * THE VILLAGE: chalets along both sides of the street, a second row
+   * behind, the church at the west end, two barns out in the pasture, the
+   * hangar across the strip with its door on the apron. The plateau under
+   * it is flat to a few centimetres, so the whole village is baked at one
+   * height and drawn as one mesh per material.
+   */
+  const village = makeBake();
+  const walls = [];
+  let houses = 0;
+  const villageY = heightAt(-90, 115);
+  const placeChalet = (x, z, ry, w, d) => {
+    const h = chalet(village, rng, { x, z, ry, w, d });
+    walls.push({ x0: x - h.halfW, z0: z - h.halfD, x1: x + h.halfW, z1: z + h.halfD, top: h.top, y: villageY });
+    houses += 1;
+  };
+  for (let k = 0; k < 7; k += 1) {
+    const x = -38 - k * 24 - rng() * 4;
+    placeChalet(x, 128 + rng() * 6, Math.PI / 2 + (rng() - 0.5) * 0.25, 8.5 + rng() * 2.5, 11 + rng() * 4);
+    placeChalet(x - 6, 96 - rng() * 6, -Math.PI / 2 + (rng() - 0.5) * 0.25, 8.5 + rng() * 2.5, 11 + rng() * 4);
+  }
+  for (let k = 0; k < 5; k += 1) {
+    const x = -50 - k * 30 - rng() * 6;
+    placeChalet(x, 162 + rng() * 10, (rng() - 0.5) * 0.4, 8 + rng() * 2, 10 + rng() * 3);
+    placeChalet(x - 8, 60 - rng() * 10, Math.PI + (rng() - 0.5) * 0.4, 8 + rng() * 2, 10 + rng() * 3);
+  }
+  const kirche = church(village, { x: -232, z: 112, ry: Math.PI / 2 });
+  walls.push({ x0: -232 - kirche.halfD, z0: 112 - kirche.halfW, x1: -232 + kirche.halfD, z1: 112 + kirche.halfW, top: 9, y: villageY });
+  walls.push({ x0: kirche.towerX - 3, z0: kirche.towerZ - 3, x1: kirche.towerX + 3, z1: kirche.towerZ + 3, top: kirche.top, y: villageY });
+  for (const b of [{ x: -150, z: 240, ry: 0.3 }, { x: -60, z: -195, ry: -0.2 }]) {
+    const h = barn(village, b);
+    walls.push({ x0: b.x - h.halfW, z0: b.z - h.halfD, x1: b.x + h.halfW, z1: b.z + h.halfD, top: h.top, y: villageY });
+  }
+  const hang = hangar(village, { x: 42, z: -70, ry: -Math.PI / 2 });
+  walls.push({ x0: 42 - hang.halfD, z0: -70 - hang.halfW, x1: 42 + hang.halfD, z1: -70 + hang.halfW, top: hang.top, y: villageY });
+  /* Fields: fence lines round the pastures the cattle stand in. Fences
+   * and cattle stand on the real ground, so they carry their own height
+   * and the bake's shared height is taken back off them. */
+  const onGround = (x, z) => heightAt(x, z) - villageY;
+  fence(village, onGround, -40, 195, -260, 205);
+  fence(village, onGround, -260, 205, -270, 335);
+  fence(village, onGround, -270, 335, -30, 325);
+  fence(village, onGround, -30, 325, -40, 195);
+  fence(village, onGround, -10, -145, -230, -155);
+  fence(village, onGround, -230, -155, -240, -295);
+  for (let k = 0; k < 34; k += 1) {
+    const inNorth = k >= 20;
+    const x = inNorth ? -40 - rng() * 170 : -60 - rng() * 190;
+    const z = inNorth ? -165 - rng() * 120 : 215 + rng() * 100;
+    cow(village, rng, { x, y: onGround(x, z), z, ry: rng() * Math.PI * 2 });
+  }
+  const villageGroup = bakeAll(village, mats);
+  villageGroup.position.y = villageY;
+  scene.add(villageGroup);
+  for (const wl of walls) {
+    colliders.addBox('wall', wl.x0, wl.y, wl.z0, wl.x1, wl.y + wl.top, wl.z1);
+  }
   progress(0.7);
   await yieldToPaint();
 
-  /* The village: a dozen chalets west of the strip and a church at its
-   * head, each on the ground it stands on. */
-  const mats = {
-    stone: celMaterial({ color: 0xbfb8ad, rim: 0.12 }),
-    timber: celMaterial({ color: 0x8a5a33, rim: 0.12 }),
-    roof: celMaterial({ color: 0x5b4636, rim: 0.1 }),
-    spire: celMaterial({ color: 0x6a6d72, rim: 0.2 }),
+  /*
+   * CARS: the town's, parked along the village street and outside the
+   * hangar, and a handful driving the valley road on the wall clock.
+   */
+  const kinds = ['hatch', 'sedan', 'wagon', 'minivan', 'van', 'kei', 'keitruck', 'boxtruck'];
+  const colours = [CAR.white, CAR.silver, CAR.wine, CAR.forest, CAR.skyblue, CAR.cream, CAR.slate];
+  let parked = 0;
+  const parkAt = (x, z, ry) => {
+    const kind = kinds[Math.floor(rng() * kinds.length)];
+    const y = heightAt(x, z);
+    scene.add(makeVehicle({ kind, color: colours[Math.floor(rng() * colours.length)], x, y: y + 0.02, z, ry }));
+    colliders.addBox('wall', x - 2.3, y, z - 2.3, x + 2.3, y + 1.6, z + 2.3);
+    parked += 1;
   };
-  let houses = 0;
-  for (let i = 0; i < 12; i += 1) {
-    const x = -60 - (i % 3) * 26 - rng() * 6;
-    const z = -70 + Math.floor(i / 3) * 34 + rng() * 8;
-    const y = field.height(x, z);
-    const h = chalet(x, z, y, (rng() - 0.5) * 0.6, rng, mats);
-    scene.add(h.group);
-    colliders.addBox('wall', x - h.w / 2 - 0.5, y, z - h.d / 2 - 0.5, x + h.w / 2 + 0.5, y + h.top, z + h.d / 2 + 0.5);
-    houses += 1;
+  for (let k = 0; k < 7; k += 1) {
+    parkAt(-45 - k * 26, 120.5, Math.PI + (rng() - 0.5) * 0.2);
   }
-  const churchZ = -STRIP_L / 2 - 60;
-  const churchY = field.height(-40, churchZ);
-  scene.add(church(-40, churchZ, churchY, mats));
-  colliders.addBox('wall', -45, churchY, churchZ - 9, -35, churchY + 10, churchZ + 8);
-  colliders.addBox('wall', -42, churchY, churchZ - 11, -38, churchY + 25, churchZ - 7);
+  parkAt(64, -46, Math.PI / 2);
+  parkAt(64, -52, Math.PI / 2);
+  parkAt(14, 92, 0);
+  const movers = [];
+  for (let k = 0; k < 6; k += 1) {
+    const dir = k % 2 === 0 ? 1 : -1;
+    const kind = kinds[Math.floor(rng() * 5)];
+    const v = makeVehicle({ kind, color: colours[Math.floor(rng() * colours.length)], x: 0, y: 0, z: 0, ry: 0 });
+    scene.add(v);
+    movers.push({ group: v, dir, offset: k * 780 + rng() * 200, lane: dir * 1.7 });
+  }
+  const roadLen = road.dist[road.dist.length - 1];
+  function placeMovers(tMs) {
+    for (const mv of movers) {
+      const run = (mv.offset + tMs * 0.014) % roadLen;
+      const at = alongRibbon(road, mv.dir > 0 ? run : roadLen - run);
+      const nx = -Math.sin(at.yaw);
+      const nz = -Math.cos(at.yaw);
+      const px = at.x + nx * mv.lane;
+      const pz = at.z + nz * mv.lane;
+      mv.group.position.set(px, heightAt(px, pz) + 0.08, pz);
+      mv.group.rotation.y = at.yaw + (mv.dir > 0 ? 0 : Math.PI);
+    }
+  }
+  placeMovers(0);
 
-  const mastMat = celMaterial({ color: 0xd7dbe0, rim: 0.2 });
-  const sock = windsock(mastMat);
-  sock.group.position.set(STRIP_W / 2 + 6, field.height(STRIP_W / 2 + 6, 30), 30);
+  /*
+   * TREES. Pines on the slopes where the paint says forest, thinning to
+   * the tree line; broadleaf on the floor along the stream and round the
+   * village. Both instanced, three draw calls each. Colliders only within
+   * reach of the strip: further out the hillside is the first thing hit.
+   */
+  const pinePlaces = [];
+  let tries = 0;
+  while (pinePlaces.length < 3400 && tries < 200000) {
+    tries += 1;
+    const x = (rng() - 0.5) * FIELD * 0.92;
+    const z = (rng() - 0.5) * FIELD * 0.92;
+    const y = heightAt(x, z);
+    if (y < 40 || y > 720) {
+      continue;
+    }
+    const sx = (heightAt(x + 12, z) - heightAt(x - 12, z)) / 24;
+    const sz = (heightAt(x, z + 12) - heightAt(x, z - 12)) / 24;
+    if (Math.hypot(sx, sz) > 0.72) {
+      continue;
+    }
+    const density = (1 - smoothstep(560, 720, y)) * (0.55 + 0.45 * fbm(x / 140, z / 140, 2));
+    if (rng() > density) {
+      continue;
+    }
+    const scale = 0.75 + rng() * 0.7;
+    pinePlaces.push({ x, y, z, yaw: rng() * Math.PI * 2, scale, tall: 0.9 + rng() * 0.35 });
+    if (Math.hypot(x, z) < 700) {
+      colliders.addPost('tree', x, z, y, y + 14 * scale, 3.2 * scale);
+    }
+  }
+  scene.add(pineForest(pinePlaces));
+  const grove = [];
+  for (let k = 0; k < 220; k += 1) {
+    let x;
+    let z;
+    if (rng() < 0.6) {
+      const at = streamPts[Math.floor(rng() * streamPts.length)];
+      x = at.x + (rng() - 0.5) * 40;
+      z = at.z + (rng() - 0.5) * 80;
+    } else {
+      x = -60 - rng() * 250;
+      z = -300 + rng() * 700;
+    }
+    if (Math.abs(x) < 20 && Math.abs(z) < STRIP_L / 2 + 40) {
+      continue;
+    }
+    const y = heightAt(x, z);
+    if (y > 60) {
+      continue;
+    }
+    grove.push({ x, y, z, yaw: rng() * Math.PI * 2, scale: 0.7 + rng() * 0.8 });
+    if (Math.hypot(x, z) < 500) {
+      colliders.addSphere('canopy', x, y + 5.4, z, 3.2);
+    }
+  }
+  scene.add(broadleafGrove(grove));
+
+  const sock = windsock(mats.metal);
+  sock.group.position.set(STRIP_W / 2 + 6, heightAt(STRIP_W / 2 + 6, 30), 30);
   scene.add(sock.group);
   colliders.addPost('pole', STRIP_W / 2 + 6, 30, sock.group.position.y, sock.group.position.y + 4.5, 0.045);
   colliders.build();
@@ -602,7 +717,7 @@ async function buildAlps(shell, progress, q) {
     updateRacingLine() { return null; },
     updateShadowFocus,
     updateWind,
-    updateAnim() {},
+    updateAnim(stepMs) { placeMovers(stepMs); },
     references: {
       valleyFloorWidth: {
         measured: floorWidth,
@@ -622,8 +737,10 @@ async function buildAlps(shell, progress, q) {
     },
     stats: () => ({
       colliders: colliders.stats(),
-      pines: forest.placed,
+      pines: pinePlaces.length,
+      broadleaf: grove.length,
       houses,
+      cars: movers.length + parked,
     }),
     dispose() {
       shell.evictSessionRoots(scene);

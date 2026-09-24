@@ -45,8 +45,9 @@ export const MAP_BUILD_MS = {
    * own loading ledger reports it, through shots.js on this container at
    * 1600 by 900 on Low, two runs: 709 and 717 ms. */
   airfield: 713,
-  /* A six kilometre heightfield, its painted texture and three thousand
-   * pines. World stage from the shell's loading ledger through shots.js on
-   * this machine at 1600 by 900 on Low, two runs: 1834 and 1793 ms. */
-  alps: 1810,
+  /* A six kilometre heightfield, its painted texture, the range beyond,
+   * a baked village and three thousand instanced pines. World stage from
+   * the shell's loading ledger through shots.js on this machine at 1600 by
+   * 900 on Low, three runs after a warm cache: 862, 964 and 1003 ms. */
+  alps: 950,
 };
