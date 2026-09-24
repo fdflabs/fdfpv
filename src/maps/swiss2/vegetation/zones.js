@@ -34,7 +34,7 @@
 
 import { noise2, smoothstep } from '../../alps/noise.js';
 import {
-  STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,
+  STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL, FIELD, HALF,
   valleyAxis, streamX,
 } from '../../alps/terrain.js';
 
@@ -74,6 +74,155 @@ function s2Noise(x, y) {
 }
 function s2Fbm(x, y) {
   return s2Noise(x, y) * 0.55 + s2Noise(x * 2.07 + 17.1, y * 2.07 + 17.1) * 0.3 + s2Noise(x * 4.13 + 3.7, y * 4.13 + 3.7) * 0.15;
+}
+
+/* ground.js's parcels (MEADOW_GLSL's s2Parcel and the kind s2Meadow
+ * reads off it), in JavaScript, so a fence can stand on the line
+ * between two fields the paint draws, and a bale lie in a field the
+ * paint has mown. Term for term: a change there has to be made here.
+ * (Its s2StreamX is terrain.js's streamX.) */
+function s2Cut(k, w, seed) {
+  return s2Hash(k, seed) < 0.3 ? 1e7 : (k + 0.8 * (s2Hash(k, seed + 1.3) - 0.5)) * w;
+}
+function s2Cuts(x, w, seed) {
+  const k0 = Math.floor(x / w);
+  let lo = -1e7;
+  let hi = 1e7;
+  let klo = k0 - 4;
+  for (let i = -3; i <= 4; i += 1) {
+    const k = k0 + i;
+    const c = s2Cut(k, w, seed);
+    if (c > 1e6) {
+      continue;
+    }
+    if (c <= x && c > lo) {
+      lo = c;
+      klo = k;
+    }
+    if (c > x && c < hi) {
+      hi = c;
+    }
+  }
+  return [lo, hi, klo];
+}
+/*
+ * The field at (x, z): its id (own), the distance to its nearest
+ * boundary (edge), the point in its strip's frame (u, v), and what the
+ * paint makes of it (kind: 'uncut', 'regrown', 'cut', 'pasture' or
+ * 'dry'), with `plateau`, how far into the kept short village greens.
+ */
+export function meadowField(x, z) {
+  let qx = x - streamX(z);
+  let qy = z;
+  qy += 60 * (s2Noise(x / 700 + 4, z / 700 + 4) - 0.5) + 14 * (s2Noise(x / 140 + 9, z / 140 + 9) - 0.5);
+  qx += 40 * (s2Noise(x / 520 + 7, z / 520 + 7) - 0.5);
+  const sv = s2Cuts(qy, 42, 5.7);
+  const strip = sv[2];
+  const slant = 0.9 * (s2Hash(strip, 2.9) - 0.5);
+  const u = qx + slant * (qy - 0.5 * (sv[0] + sv[1]));
+  const wu = 90 + 140 * s2Hash(strip, 6.1);
+  const off = wu * s2Hash(strip, 3.3);
+  const su = s2Cuts(u + off, wu, strip * 1.7 + 0.4);
+  const eAcross = Math.min(qy - sv[0], sv[1] - qy);
+  const eAlong = Math.min(u + off - su[0], su[1] - u - off) / Math.sqrt(1 + slant * slant);
+  const own = [su[2], strip];
+  const k = s2Hash(own[0] + 4.4, own[1] + 4.4);
+  const kind = k < 0.28 ? 'uncut' : k < 0.5 ? 'regrown' : k < 0.7 ? 'cut' : k < 0.93 ? 'pasture' : 'dry';
+  const plateau = (1 - smoothstep(140, 340, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
+  return {
+    own, edge: Math.min(eAcross, eAlong), across: eAcross < eAlong, u, v: qy, kind, plateau,
+    /* Whether the mown rows are lines of one u (else of one v). */
+    rowsOnU: s2Hash(own[0] + 2.2, own[1] + 2.2) >= 0.5,
+    /* The ground by the stream is left uncut. */
+    damp: 1 - smoothstep(18, 75, Math.abs(x - streamX(z)) + 25 * (s2Noise(x / 45, z / 45) - 0.5)),
+  };
+}
+
+/*
+ * The lines between the parcels on the floor (ground under 40 m), as
+ * polylines in metre steps: the strips' sides across the valley, and
+ * each strip's cuts into fields along it. Each is walked in the frame
+ * meadowField reads (the strips bend with the stream and wander by the
+ * noise), solving for the world point on it by a few fixed point steps,
+ * which converge because the wander is slow.
+ */
+export function meadowCuts(heightAt) {
+  const warpY = (x, z) => 60 * (s2Noise(x / 700 + 4, z / 700 + 4) - 0.5) + 14 * (s2Noise(x / 140 + 9, z / 140 + 9) - 0.5);
+  const warpX = (x, z) => 40 * (s2Noise(x / 520 + 7, z / 520 + 7) - 0.5);
+  const lines = [];
+  let run = [];
+  const end = () => {
+    if (run.length > 3) {
+      lines.push(run);
+    }
+    run = [];
+  };
+  const visit = (x, z) => {
+    if (heightAt(x, z) < 40) {
+      run.push({ x, z });
+    } else {
+      end();
+    }
+  };
+  const cuts = [];
+  for (let k = Math.floor(-2850 / 42); k <= Math.ceil(2000 / 42); k += 1) {
+    const c = s2Cut(k, 42, 5.7);
+    if (c < 1e6) {
+      cuts.push({ k, c });
+    }
+  }
+  for (const { c } of cuts) {
+    const ax = valleyAxis(c);
+    for (let x = ax - 560; x <= ax + 560; x += 1) {
+      let z = c;
+      for (let i = 0; i < 4; i += 1) {
+        z = c - warpY(x, z);
+      }
+      visit(x, z);
+    }
+    end();
+  }
+  for (let i = 0; i + 1 < cuts.length; i += 1) {
+    const strip = cuts[i].k;
+    const v0 = cuts[i].c;
+    const v1 = cuts[i + 1].c;
+    const mid = 0.5 * (v0 + v1);
+    const slant = 0.9 * (s2Hash(strip, 2.9) - 0.5);
+    const wu = 90 + 140 * s2Hash(strip, 6.1);
+    const off = wu * s2Hash(strip, 3.3);
+    const seed = strip * 1.7 + 0.4;
+    for (let j = Math.floor((off - 640) / wu); j <= Math.ceil((off + 640) / wu); j += 1) {
+      const c = s2Cut(j, wu, seed);
+      if (c > 1e6) {
+        continue;
+      }
+      const target = c - off;
+      for (let v = v0; v <= v1; v += 1) {
+        let z = v;
+        let x = target + streamX(v);
+        for (let n = 0; n < 4; n += 1) {
+          z = v - warpY(x, z);
+          x = target - slant * (v - mid) + streamX(z) - warpX(x, z);
+        }
+        visit(x, z);
+      }
+      end();
+    }
+  }
+  return lines;
+}
+
+/* Whether (x, z) is by nature.js's jetty, which it builds off the north
+ * shore in line with the road's end (buildShore), or the boat it pulls
+ * up on the gravel beside it: the water and the beach there are kept
+ * clear of stones and reeds. */
+export function jettyClear(heightAt) {
+  const jx = valleyAxis(ROAD_END) + ROAD_DX;
+  let jz = ROAD_END;
+  while (heightAt(jx, jz) > LAKE_Y && jz < LAKE_END) {
+    jz += 1;
+  }
+  return (x, z) => (Math.abs(x - jx) < 9 && z > jz - 14 && z < jz + 32) || Math.hypot(x - (jx - 14), z - (jz - 6)) < 6;
 }
 
 /* How high the lake's gravel beach reaches over the water at (x, z), as
@@ -206,10 +355,31 @@ export function valleyLayout(heightAt, footprints = []) {
     return Infinity;
   };
 
+  /* Whether a tree's trunk would stand on or against a wall (a house's
+   * or a hay hut's): the footprints three metres wide on a grid of four
+   * metre cells, so the forest's million candidates each read one cell. */
+  const SOLID = 4;
+  const solidN = Math.ceil(FIELD / SOLID);
+  const solid = new Uint8Array(solidN * solidN);
+  for (const f of footprints) {
+    const i0 = Math.max(0, Math.floor((f.minX - 3 + HALF) / SOLID));
+    const i1 = Math.min(solidN - 1, Math.floor((f.maxX + 3 + HALF) / SOLID));
+    const j0 = Math.max(0, Math.floor((f.minZ - 3 + HALF) / SOLID));
+    const j1 = Math.min(solidN - 1, Math.floor((f.maxZ + 3 + HALF) / SOLID));
+    for (let j = j0; j <= j1; j += 1) {
+      solid.fill(1, j * solidN + i0, j * solidN + i1 + 1);
+    }
+  }
+  const solidAt = (x, z) => {
+    const i = Math.floor((x + HALF) / SOLID);
+    const j = Math.floor((z + HALF) / SOLID);
+    return i >= 0 && j >= 0 && i < solidN && j < solidN && solid[j * solidN + i] === 1;
+  };
+
   return {
     slopeAt, trough, fallZ, BAND, inBand, faceDx, BACK_DX, bandTop, groundAt, lipY, fallX, pool,
     keepOff, coverOff, lakeWet, streamDist, upper, lower, aboveFall, belowFall, onLedge,
-    eastFarm, footprints,
+    eastFarm, footprints, solidAt,
   };
 }
 

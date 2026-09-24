@@ -29,13 +29,13 @@
 
 import * as THREE from 'three';
 import { makeRng } from '../../alps/noise.js';
-import { valleyLayout } from './zones.js';
+import { valleyLayout, lakeShore, jettyClear } from './zones.js';
 import { loadAtlases } from './atlas.js';
 import { VARIANTS, buildVariant, triangles } from './species.js';
 import { windUniforms, plantMaterial, plantDepthMaterial } from './plantmat.js';
 import { bakeImpostors, impostorMaterial, impostorDepthMaterial, impostorMesh } from './impostor.js';
 import { plantForest, forestLod } from './forest.js';
-import { buildRocks } from './rocks.js';
+import { buildRocks, waterStones } from './rocks.js';
 import { buildGrass } from './grass.js';
 import { FIELD, HALF } from '../../alps/terrain.js';
 
@@ -71,6 +71,9 @@ export async function buildVegetation(ctx) {
   };
   const rng = ctx.rng || makeRng(20260924);
   const layout = ctx.layout || valleyLayout(ctx.heightAt, ctx.footprints || []);
+  /* The gardens are the village's houses, not every wall the map has
+   * noted: a hay hut in a field has no garden. */
+  layout.gardens = ctx.gardens || layout.footprints;
   const group = new THREE.Group();
   group.name = 'swiss2-vegetation';
   const atlases = await loadAtlases();
@@ -82,7 +85,7 @@ export async function buildVegetation(ctx) {
 
   /* The trees: every variant at both model levels, and photographed for
    * the impostors. */
-  const builds = VARIANTS.map((v) => ({ near: buildVariant(v, 'near'), mid: buildVariant(v, 'mid') }));
+  const builds = VARIANTS.map((v) => ({ near: buildVariant(v, 'near'), mid: v.impostorOnly ? null : buildVariant(v, 'mid') }));
   mark('models');
   const baked = bakeImpostors(ctx.renderer, builds.map((b) => b.near), { foliage: atlases.foliage, bark: atlases.bark.map }, Q.frame);
   mark('impostors');
@@ -106,6 +109,9 @@ export async function buildVegetation(ctx) {
   if (ctx.sunDir) {
     impMat.userData.impostor.uImpLight.value.copy(ctx.sunDir).normalize();
   }
+  VARIANTS.forEach((v, k) => {
+    impMat.userData.impostor.uVar.value[k].z = v.impostorOnly ? 1 : 0;
+  });
   const lit =[mats.nearFoliage, mats.nearBark, mats.mid, impMat];
   if (ctx.envMap) {
     for (const m of lit) {
@@ -132,11 +138,10 @@ export async function buildVegetation(ctx) {
    * million triangles for nothing a view could see. */
   const cn = Math.ceil(FIELD / Q.chunk);
   const chunks = Array.from({ length: cn * cn * 2 }, () => []);
-  const open = VARIANTS.map((v) => v.name.endsWith('-open') || v.kind === 'maple');
   for (let t = 0; t < forest.count; t += 1) {
     const i = Math.min(cn - 1, Math.floor((forest.x[t] + HALF) / Q.chunk));
     const j = Math.min(cn - 1, Math.floor((forest.z[t] + HALF) / Q.chunk));
-    chunks[(j * cn + i) * 2 + (open[forest.v[t]] ? 1 : 0)].push(t);
+    chunks[(j * cn + i) * 2 + forest.open[t]].push(t);
   }
   const impostors = chunks
     .map((c, k) => (c.length ? impostorMesh(forest, c, impMat, k % 2 && ctx.sunDir ? impDepth : null) : null))
@@ -145,6 +150,13 @@ export async function buildVegetation(ctx) {
     group.add(m);
   }
 
+  const stones = waterStones({
+    heightAt: ctx.heightAt,
+    layout,
+    rng: makeRng(20260929),
+    shore: lakeShore(ctx.heightAt).shore,
+    keepClear: jettyClear(ctx.heightAt),
+  });
   const rocks = await buildRocks({
     heightAt: ctx.heightAt,
     layout,
@@ -155,6 +167,7 @@ export async function buildVegetation(ctx) {
     colliders: ctx.colliders,
     group,
     envMap: ctx.envMap,
+    extra: stones,
   });
   mark('rocks');
 
@@ -178,7 +191,7 @@ export async function buildVegetation(ctx) {
   const modelTris = builds.map((b, v) => ({
     name: VARIANTS[v].name,
     near: triangles(b.near.foliage) + triangles(b.near.bark),
-    mid: triangles(b.mid.foliage),
+    mid: b.mid ? triangles(b.mid.foliage) : 0,
   }));
   const stats = {
     tier,
@@ -200,7 +213,7 @@ export async function buildVegetation(ctx) {
     camera.getWorldPosition(cam);
     lod.update(camera);
     impMat.userData.impostor.uImpView.value.copy(cam);
-    rocks.update(cam);
+    rocks.update(camera);
     if (grass) {
       grass.update(cam);
     }
@@ -219,7 +232,7 @@ export async function buildVegetation(ctx) {
     dispose() {
       group.removeFromParent();
       for (const b of builds) {
-        for (const g of [b.near.foliage, b.near.bark, b.mid.foliage]) {
+        for (const g of [b.near.foliage, b.near.bark, b.mid?.foliage]) {
           if (g) {
             g.dispose();
           }

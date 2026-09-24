@@ -85,6 +85,7 @@ import { makeClouds } from './swiss2/clouds.js';
 import { buildVegetation } from './swiss2/vegetation/index.js';
 import { buildWater } from './swiss2/water/index.js';
 import { swissBuildings } from './swiss2/buildings/index.js';
+import { buildProps } from './swiss2/props/index.js';
 
 const CAMERA_FAR = 14000;
 
@@ -236,6 +237,7 @@ function photoStyle() {
         renderer,
         quality: q,
         footprints: [],
+        props: null,
         veg: null,
         water: null,
         lit,
@@ -254,6 +256,9 @@ function photoStyle() {
         dispose() {
           if (stage.veg) {
             stage.veg.dispose();
+          }
+          if (stage.props) {
+            stage.props.dispose();
           }
           if (stage.water) {
             stage.water.dispose();
@@ -353,6 +358,7 @@ function photoStyle() {
           style.clouds.setClock(t - first);
           if (stage.veg) {
             stage.veg.update(dtMs, camera);
+            stage.props.update(camera);
           }
           stage.water.update(dtMs, camera);
         },
@@ -364,6 +370,17 @@ function photoStyle() {
      * and the water's included. The craft is added after this and is
      * never touched: its cel materials are the session's. */
     async finish(scene, stage, { field, far, colliders, heightAt, nature }) {
+      /* The huts, fences and bales before the forests, so the trees and
+       * the meadow keep off the huts, whose wall colliders note them as
+       * footprints; the houses noted before them are the gardens. */
+      const gardens = stage.footprints.slice();
+      stage.props = buildProps({
+        heightAt,
+        rng: makeRng(20260930),
+        colliders,
+        footprints: gardens,
+      });
+      scene.add(stage.props.group);
       stage.veg = await buildVegetation({
         scene,
         renderer: stage.renderer,
@@ -373,6 +390,7 @@ function photoStyle() {
         rng: makeRng(20260928),
         colliders,
         footprints: stage.footprints,
+        gardens,
         sunDir: stage.sunDir,
       });
       scene.add(stage.veg.group);

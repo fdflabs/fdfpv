@@ -1,6 +1,8 @@
 /*
  * rocks.js: the boulders under the cliffs, on the scree and along the
- * torrent, as photogrammetry scans rather than icosahedra.
+ * torrent, and the stones the map lays on the stream's banks, the lake's
+ * shore and the field walls, as photogrammetry scans rather than
+ * icosahedra.
  *
  * Four stones from a CC0 scanned set (docs/SWISS2-ASSETS-VEG.md),
  * decimated offline to nine hundred triangles for near and a hundred and
@@ -10,9 +12,17 @@
  * keepOff says. Each is turned about its axis, tilted part way to the
  * slope and sunk by the slope so its downhill edge does not float.
  *
- * The far level holds every rock and dissolves itself out near the
- * camera in the shader; the near level is refilled from the rocks near
- * the camera when it has moved, as the trees are.
+ * Every level is refilled, when the camera has moved or turned, from
+ * the rocks it can see: the near level from those inside the near band,
+ * the far level from those past it. A static far level held all
+ * eighteen hundred boulders and was drawn whole for the view and for
+ * both shadow maps, nine hundred thousand triangles in every view, most
+ * of them behind the camera or collapsed in the shader to nothing. The
+ * far level is two of the scans, which is variety enough past the near
+ * band with every stone turned and squashed its own way. Stones under a
+ * metre and a bit are a third level that keeps the far scan at every
+ * distance, since the near one would be nine hundred triangles for a
+ * few pixels, and is drawn only as far as a stone that size can be seen.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -33,17 +43,24 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { noise2, smoothstep } from '../../alps/noise.js';
-import { FIELD, SNOW_LINE } from '../../alps/terrain.js';
+import { FIELD, SNOW_LINE, LAKE_Y } from '../../alps/terrain.js';
 import { assetUrl } from './atlas.js';
 import { DITHER_GLSL } from './plantmat.js';
 
 const SHAPES = ['rock1', 'rock3', 'rock4', 'rock6'];
 const COLLIDE_R = 700;
+/* The near level's room per shape. */
+const NEAR_CAP = 1200;
+/* A stone under this size in metres is drawn at the far scan's detail
+ * wherever it is, and no further off than STONE_R. */
+const STONE = 1.1;
+const STONE_R = 900;
+/* Past this a boulder is under a pixel. */
+const FAR_R = 4500;
 
 /* An instanced standard material that draws only inside a distance band
  * (from the instance's origin), dissolving across its edges on the
- * plants' hash, and collapsing its vertices outside it so the far level's
- * thousands of rocks cost nothing where the near level stands. */
+ * plants' hash, and collapsing its vertices outside it. */
 function bandedRockMaterial(maps, band) {
   const mat = new THREE.MeshStandardMaterial({
     map: maps.map,
@@ -74,21 +91,24 @@ function bandedRockMaterial(maps, band) {
   return mat;
 }
 
-/* Where the boulders lie, nature.js's two passes. */
-function placeRocks({ heightAt, layout, rng, count, colliders }) {
+/* Where the boulders lie, nature.js's two passes, and then the stones
+ * the map asks for. A stone asked for with `sink` is set that share of
+ * its height into the ground (or the stream's bed) rather than by the
+ * slope. */
+function placeRocks({ heightAt, layout, rng, count, colliders, extra }) {
   const { keepOff, slopeAt, upper } = layout;
   const rocks = [];
   const up = new THREE.Vector3(0, 1, 0);
-  const drop = (x, z, size) => {
+  const drop = (x, z, size, sink = null) => {
     const sl = slopeAt(x, z);
     const n = new THREE.Vector3(-sl.sx, 1, -sl.sz).normalize();
     const q = new THREE.Quaternion().setFromUnitVectors(up, up.clone().lerp(n, 0.6).normalize());
     q.multiply(new THREE.Quaternion().setFromAxisAngle(up, rng() * Math.PI * 2));
     const s = size * (0.8 + rng() * 0.4);
-    const y = heightAt(x, z) - s * (0.08 + 0.35 * Math.min(1, sl.s));
     const sy = 0.75 + rng() * 0.5;
+    const y = heightAt(x, z) - s * (sink === null ? 0.08 + 0.35 * Math.min(1, sl.s) : sink * sy);
     rocks.push({ x, y, z, q, s, sy, shape: Math.floor(rng() * SHAPES.length) });
-    if (colliders && Math.hypot(x, z) < COLLIDE_R) {
+    if (colliders && Math.hypot(x, z) < COLLIDE_R && s > 0.45) {
       colliders.addSphere('rock', x, y + 0.25 * s * sy, z, 0.42 * s);
     }
   };
@@ -109,8 +129,8 @@ function placeRocks({ heightAt, layout, rng, count, colliders }) {
     const size = pick < 0.55 ? 1.6 : pick < 0.87 ? 3.2 : 5.8;
     drop(x, z, size);
     /* A few smaller stones round a boulder, as there are. */
-    const extra = Math.floor(rng() * 3);
-    for (let k = 0; k < extra; k += 1) {
+    const more = Math.floor(rng() * 3);
+    for (let k = 0; k < more; k += 1) {
       const a = rng() * Math.PI * 2;
       const r = size * (0.8 + rng() * 1.5);
       const ex = x + Math.cos(a) * r;
@@ -129,14 +149,70 @@ function placeRocks({ heightAt, layout, rng, count, colliders }) {
       drop(x, z, rng() < 0.7 ? 1.3 : 2.6);
     }
   }
+  for (const e of extra) {
+    drop(e.x, e.z, e.size, e.sink ?? null);
+  }
   return rocks;
 }
 
 /*
- * Load the scans, place the rocks and build both levels into `group`.
- * Returns update(position), the counts, and dispose().
+ * The stones the water has laid: along the floor's stream, where round
+ * 2's banks were grass to the water's edge, reaches of stones down both
+ * banks and a boulder in the bed now and then, broken by grassy reaches;
+ * and round the lake, stones along the waterline, fewer where the jetty
+ * and the village's beach are. Returns { x, z, size, sink } for
+ * buildRocks's `extra`.
  */
-export async function buildRocks({ heightAt, layout, rng, count, nearR, fade, colliders, group, envMap }) {
+export function waterStones({ heightAt, layout, rng, shore, keepClear }) {
+  const out = [];
+  const { lower } = layout;
+  for (let k = 0; k + 1 < lower.length; k += 1) {
+    const a = lower[k];
+    const b = lower[k + 1];
+    const tx = b.x - a.x;
+    const tz = b.z - a.z;
+    const tl = Math.hypot(tx, tz) || 1;
+    for (const side of [-1, 1]) {
+      const rocky = smoothstep(0.35, 0.6, noise2(a.z / 45 + side * 7.3, 5.1 + side));
+      const n = Math.round(rocky * (2 + 5 * rng()));
+      for (let q = 0; q < n; q += 1) {
+        const along = rng();
+        const off = 2.1 + rng() * 2.6;
+        const x = a.x + tx * along + side * (-tz / tl) * off;
+        const z = a.z + tz * along + side * (tx / tl) * off;
+        out.push({ x, z, size: 0.35 + 0.7 * rng() * rng(), sink: 0.3 });
+      }
+    }
+    if (rng() < 0.12) {
+      const along = rng();
+      const off = (rng() - 0.5) * 3;
+      out.push({ x: a.x + tx * along - (tz / tl) * off, z: a.z + tz * along + (tx / tl) * off, size: 0.8 + 0.8 * rng(), sink: 0.45 });
+    }
+  }
+  for (const s of shore) {
+    if (rng() > 0.45 || keepClear(s.x, s.z)) {
+      continue;
+    }
+    const n = 1 + Math.floor(rng() * 3);
+    for (let q = 0; q < n; q += 1) {
+      const r = (rng() - 0.35) * 5;
+      const x = s.x + Math.cos(s.a) * r + (rng() - 0.5) * 6;
+      const z = s.z + Math.sin(s.a) * r + (rng() - 0.5) * 6;
+      if (heightAt(x, z) > LAKE_Y - 1.2) {
+        out.push({ x, z, size: 0.4 + 0.9 * rng() * rng(), sink: 0.3 });
+      }
+    }
+  }
+  return out;
+}
+
+/*
+ * Load the scans, place the rocks and build their levels into `group`.
+ * `extra` is the stones the map lays by its own rules, as
+ * { x, z, size, sink }. Returns update(camera), the counts, and
+ * dispose().
+ */
+export async function buildRocks({ heightAt, layout, rng, count, nearR, fade, colliders, group, envMap, extra = [] }) {
   const loader = new GLTFLoader();
   const tl = new THREE.TextureLoader();
   const [gltf, map, normalMap, arm] = await Promise.all([
@@ -157,71 +233,119 @@ export async function buildRocks({ heightAt, layout, rng, count, nearR, fade, co
       geos[o.name] = o.geometry;
     }
   });
-  const rocks = placeRocks({ heightAt, layout, rng, count, colliders });
+  const rocks = placeRocks({ heightAt, layout, rng, count, colliders, extra });
   const maps = { map, normalMap, arm };
   const nearMat = bandedRockMaterial(maps, [-2, -1, nearR - fade, nearR]);
   const farMat = bandedRockMaterial(maps, [nearR - fade, nearR, 1e9, 2e9]);
-  for (const m of [nearMat, farMat]) {
+  const stoneMat = bandedRockMaterial(maps, [-2, -1, 1e9, 2e9]);
+  for (const m of [nearMat, farMat, stoneMat]) {
     if (envMap) {
       m.envMap = envMap;
     }
   }
-  const byShape = SHAPES.map(() => []);
-  rocks.forEach((r) => byShape[r.shape].push(r));
   const m4 = new THREE.Matrix4();
   const p = new THREE.Vector3();
   const s = new THREE.Vector3();
   const matrixOf = (r) => m4.compose(p.set(r.x, r.y, r.z), r.q, s.set(r.s, r.s * r.sy, r.s));
-  const near = [];
-  const cap = 1200;
-  SHAPES.forEach((name, k) => {
-    const list = byShape[k];
-    const far = new THREE.InstancedMesh(geos[`${name}_far`], farMat, Math.max(1, list.length));
-    list.forEach((r, i) => far.setMatrixAt(i, matrixOf(r)));
-    far.count = list.length;
-    far.computeBoundingSphere();
-    far.castShadow = true;
-    far.receiveShadow = true;
-    far.name = `swiss2-${name}-far`;
-    group.add(far);
-    const nm = new THREE.InstancedMesh(geos[`${name}_near`], nearMat, cap);
-    nm.count = 0;
-    nm.frustumCulled = false;
-    nm.castShadow = true;
-    nm.receiveShadow = true;
-    nm.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    nm.name = `swiss2-${name}-near`;
-    group.add(nm);
-    near.push({ mesh: nm, list });
-  });
+  const mk = (geo, mat, cap, name) => {
+    const m = new THREE.InstancedMesh(geo, mat, Math.max(1, cap));
+    m.count = 0;
+    m.visible = false;
+    m.frustumCulled = false;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    m.name = name;
+    group.add(m);
+    return m;
+  };
+  /* A level: the rocks it may draw, the distances it draws them
+   * between, and a mesh per shape, `shapeOf` choosing the mesh. */
+  const stones = rocks.filter((r) => r.s < STONE);
+  const big = rocks.filter((r) => r.s >= STONE);
+  const levels = [
+    {
+      list: big,
+      from: 0,
+      to: nearR + fade,
+      shapeOf: (r) => r.shape,
+      meshes: SHAPES.map((name) => mk(geos[`${name}_near`], nearMat, NEAR_CAP, `swiss2-${name}-near`)),
+    },
+    {
+      list: big,
+      from: nearR - fade,
+      to: FAR_R,
+      shapeOf: (r) => r.shape % 2,
+      meshes: [0, 1].map((k) => mk(geos[`${SHAPES[k]}_far`], farMat, big.filter((r) => r.shape % 2 === k).length, `swiss2-${SHAPES[k]}-far`)),
+    },
+    {
+      list: stones,
+      from: 0,
+      to: STONE_R,
+      shapeOf: () => 0,
+      meshes: [mk(geos[`${SHAPES[2]}_far`], stoneMat, stones.length, 'swiss2-stones')],
+    },
+  ];
+  /* A stone under a metre, bedded a third into the ground, throws a
+   * shadow a hand wide: not worth a draw in each shadow map. */
+  levels[2].meshes[0].castShadow = false;
   const last = new THREE.Vector3(Infinity, 0, 0);
-  const reach = nearR + fade;
-  const update = (pos) => {
-    if (pos.distanceToSquared(last) < 16) {
+  const lastDir = new THREE.Vector3();
+  const here = new THREE.Vector3();
+  const dir = new THREE.Vector3();
+  const frustum = new THREE.Frustum();
+  const viewProj = new THREE.Matrix4();
+  const sphere = new THREE.Sphere();
+  /* Refilled when the camera has moved three metres or turned two
+   * degrees, as the trees are. */
+  const update = (camera) => {
+    const pos = camera.getWorldPosition(here);
+    camera.getWorldDirection(dir);
+    if (pos.distanceToSquared(last) < 9 && dir.dot(lastDir) > 0.9994) {
       return;
     }
     last.copy(pos);
-    for (const { mesh, list } of near) {
-      let n = 0;
-      for (const r of list) {
+    lastDir.copy(dir);
+    camera.updateMatrixWorld();
+    viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(viewProj);
+    for (const L of levels) {
+      const n = L.meshes.map(() => 0);
+      for (const r of L.list) {
         const dx = r.x - pos.x;
         const dy = r.y - pos.y;
         const dz = r.z - pos.z;
-        if (dx * dx + dy * dy + dz * dz < reach * reach && n < cap) {
-          mesh.setMatrixAt(n, matrixOf(r));
-          n += 1;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < L.from * L.from || d2 > L.to * L.to) {
+          continue;
+        }
+        /* The stone and the shadow it throws, with a margin for turning
+         * between refills. */
+        sphere.center.set(r.x, r.y, r.z);
+        sphere.radius = r.s * 2.5 + 3 + 0.06 * Math.sqrt(d2);
+        if (!frustum.intersectsSphere(sphere)) {
+          continue;
+        }
+        const k = L.shapeOf(r);
+        const mesh = L.meshes[k];
+        if (n[k] < mesh.instanceMatrix.count) {
+          mesh.setMatrixAt(n[k], matrixOf(r));
+          n[k] += 1;
         }
       }
-      mesh.count = n;
-      mesh.visible = n > 0;
-      mesh.instanceMatrix.clearUpdateRanges();
-      mesh.instanceMatrix.addUpdateRange(0, n * 16);
-      mesh.instanceMatrix.needsUpdate = true;
+      L.meshes.forEach((mesh, k) => {
+        mesh.count = n[k];
+        mesh.visible = n[k] > 0;
+        mesh.instanceMatrix.clearUpdateRanges();
+        mesh.instanceMatrix.addUpdateRange(0, n[k] * 16);
+        mesh.instanceMatrix.needsUpdate = true;
+      });
     }
   };
   return {
     update,
     count: rocks.length,
+    stones: stones.length,
     dispose() {
       for (const t of [map, normalMap, arm]) {
         t.dispose();
@@ -231,6 +355,7 @@ export async function buildRocks({ heightAt, layout, rng, count, nearR, fade, co
       }
       nearMat.dispose();
       farMat.dispose();
+      stoneMat.dispose();
     },
   };
 }
