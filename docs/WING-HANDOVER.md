@@ -11,16 +11,17 @@ press L, and the wing leaves your hand at ten metres a second. The
 sticks are on the right in mode 2, throttle on the left. Yaw does
 nothing; a flying wing has no rudder.
 
-It comes with the stabiliser on, the Stabilised tune: a gyro holds the
-wing, the roll stick asks for a bank, the pitch stick for a pitch, and
-centred sticks fly level. Under Quad, the Tune row switches to Manual,
-where the sticks are the elevons and nothing levels the wing for you, or
-to Acro, between the two: the sticks ask for a roll and a pitch rate as
-on a quad, nothing levels the wing and nothing limits the angle, but
-centred sticks hold the attitude you left it in, inverted included, so
-it does not drift.
-Fly the six below on Stabilised first, then again on Manual; the stall
-and the roll are the two that feel most different.
+It comes on Acro, every fixed wing's default: the sticks ask for a roll
+and a pitch rate as on a quad, nothing levels the wing and nothing
+limits the angle, but centred sticks hold the attitude you left it in,
+inverted included, so it does not drift. Under Plane, the Tune row
+switches to Stabilised, where the roll stick asks for a bank, the pitch
+stick for a pitch and centred sticks fly level, or to Manual, where the
+sticks are the elevons and nothing holds the wing for you. The Aircraft
+row there picks the flying wing or the Skyhunter; both are behind the
+one Fixed wing card on the title.
+Fly the six below on Acro first, then again on Manual; the stall and
+the roll are the two that feel most different.
 
 Fly each of the six below, in order. For each, the paragraph says what a
 real 1000 mm wing does, then what would count as wrong here. Write down

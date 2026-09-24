@@ -411,7 +411,7 @@ export const AIRFRAMES = [
     cells: 4,
     packVoltages: [4.2, 3.8, 3.5],
     packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'wing-stab',
+    defaultTune: 'wing-acro',
     gravityBase: 1.0,
     rates: {
       type: 'ACTUAL',
@@ -452,7 +452,7 @@ export const AIRFRAMES = [
     cells: 4,
     packVoltages: [4.2, 3.8, 3.5],
     packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'sky-stab',
+    defaultTune: 'sky-acro',
     gravityBase: 1.0,
     rates: {
       type: 'ACTUAL',

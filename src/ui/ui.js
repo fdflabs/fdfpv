@@ -1015,6 +1015,19 @@ export function loadSettings() {
     s.wingDefaults = 1;
   }
   /*
+   * AND THEN ACRO BECAME EVERY FIXED WING'S DEFAULT, at the pilot's word:
+   * sticks that ask for a rate and hold the attitude, with no levelling.
+   * A profile still on Stabilised only because it was the default moves
+   * once; a Stabilised picked after this is kept, the rule above.
+   */
+  if (!(s.wingDefaults >= 2)) {
+    const stock = { wing1000: 'wing-stab', sky1800: 'sky-stab' }[s.airframe];
+    if (stock && s.tune === stock) {
+      s.tune = airframeById(s.airframe).defaultTune;
+    }
+    s.wingDefaults = 2;
+  }
+  /*
    * The seated aircraft's starting PID adjustment, after normalisePids so it
    * is not stripped as an unknown entry, and after the tune is final so it
    * lands on the tune it was chosen against. One shot: see seedAirframePids.
