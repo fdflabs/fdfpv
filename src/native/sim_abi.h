@@ -327,8 +327,11 @@ int sim_set_flight_style(int arcade);
 
 /*
  * Choose the airframe: 0 is the five inch this project was built around and
- * is the default, 1 is a 65 mm 1S brushless whoop. Returns SIM_ERR_BAD_ARG
- * for anything else.
+ * is the default, 1 is a 65 mm 1S brushless whoop, 2 the 1000 mm flying
+ * wing and 3 the Skyhunter 1800, a twin boom pusher with ailerons, an
+ * elevator and a rudder. Returns SIM_ERR_BAD_ARG for anything else. 2 and
+ * 3 are fixed wings: no Betaflight, the sticks go to the plant, and the
+ * sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
  * changed meaning, and a replay that never calls this is bit identical to
@@ -346,6 +349,8 @@ int sim_set_flight_style(int arcade);
  */
 #define SIM_AIRFRAME_5IN_ID 0
 #define SIM_AIRFRAME_WHOOP65_ID 1
+#define SIM_AIRFRAME_WING1000_ID 2
+#define SIM_AIRFRAME_SKY1800_ID 3
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -414,6 +419,38 @@ int sim_set_gravity(double scale);
 
 /* The gravity scale in force. */
 double sim_gravity(void);
+
+/*
+ * The fixed wings, airframes 2 and 3. Additive, version unchanged; each
+ * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
+ * SIM_ERR_BAD_STATE before sim_init.
+ *
+ * sim_wing_launch(speed): a hand throw, speed m/s along the body's forward
+ * axis, 0 to 60. Refused on a quad.
+ * sim_wing_set_stab(mode), sim_wing_stab(): the stabiliser, 0 Manual (the
+ * sticks are the surfaces), 1 Stabilised (roll and pitch stick ask for a
+ * bank and a pitch, centred flies level), 2 Acro (sticks ask for a roll
+ * and pitch rate, centred holds the attitude). With a rudder, the yaw
+ * stick is the rudder in every mode, and in 1 and 2 a turn coordinator
+ * adds the rudder that keeps a banked turn from slipping. A mode, kept
+ * across resets.
+ * sim_wing_surfaces(out[2]): left and right wing trailing edge surface,
+ * radians, positive trailing edge up: the elevons, or the ailerons.
+ * sim_plane_surfaces(out[4]): left aileron, right aileron, elevator,
+ * rudder, radians. Aileron and elevator positive trailing edge up; rudder
+ * positive trailing edge to the LEFT, which yaws the nose left, so full
+ * right yaw stick reads negative. On the flying wing out[2] and out[3]
+ * are zero.
+ * sim_wing_debug(out[20]): what the last step saw, for the gates: alpha
+ * (of the zero lift line), beta, qbar, CL, CD, l m n (aero convention),
+ * thrust, force body x y z, moment body x y z, u v w, delta_e, delta_a.
+ */
+int sim_wing_launch(double speed);
+int sim_wing_set_stab(int mode);
+int sim_wing_stab(void);
+int sim_wing_surfaces(double *out);
+int sim_plane_surfaces(double *out);
+int sim_wing_debug(double *out);
 
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);

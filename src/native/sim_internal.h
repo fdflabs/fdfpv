@@ -145,6 +145,9 @@ typedef struct {
   double camera_x;      /* lens glass in the body frame */
   double camera_y;
   double camera_z;
+  /* The fixed wing's aero, surfaces, motor and stabiliser, for a table
+   * entry of PLANT_KIND_WING; null for a quad, which never reads it. */
+  const struct FixedWingParams *fw;
 } PlantParams;
 
 /*
@@ -155,7 +158,8 @@ typedef struct {
 #define SIM_AIRFRAME_5IN 0
 #define SIM_AIRFRAME_WHOOP65 1
 #define SIM_AIRFRAME_WING1000 2
-#define SIM_AIRFRAME_COUNT 3
+#define SIM_AIRFRAME_SKY1800 3
+#define SIM_AIRFRAME_COUNT 4
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -316,11 +320,102 @@ double sim_sqrt_pub(double x);
  */
 void plant_step(SimState *s, const double duty[SIM_MOTOR_COUNT]);
 
-/* The wing plant, src/native/plant_wing.c. Sticks in, no controller. */
+/*
+ * The fixed wing plant, src/native/plant_wing.c: one plant for every table
+ * entry of PLANT_KIND_WING, driven by the entry's FixedWingParams. The
+ * derivations are docs/WING-STAGE1.md for the flying wing and
+ * docs/SKYHUNTER-STAGE1.md for the Skyhunter. Coefficients are per radian
+ * in the aero convention (x forward, y right, z down); the plant turns
+ * them into the body frame. A term an airframe does not have is zero.
+ */
+#define FW_MIX_ELEVON 0 /* two elevons, delta_e plus and minus delta_a; no rudder */
+#define FW_MIX_TAIL 1   /* ailerons, an elevator and a rudder, each its own surface */
+
+typedef struct FixedWingParams {
+  int mix;             /* FW_MIX_ELEVON or FW_MIX_TAIL */
+  double span;         /* m */
+  double area;         /* m^2 */
+  double chord;        /* m */
+  double cl_alpha;
+  double cl_max;
+  double alpha_zl;     /* zero lift angle of attack, rad, negative when the
+                        * zero lift line sits below the body x axis. Zero on
+                        * the wing, and subtracted rather than an offset
+                        * added, because x - (+0) keeps the sign of a zero
+                        * and x + 0 does not: the wing's trace depends on it. */
+  double sin_zl;       /* sin and cos of alpha_zl, precomputed so the plant */
+  double cos_zl;       /* needs no trigonometry for the post stall plate */
+  double cd0;
+  double k_induced;    /* 1/(pi e AR) */
+  double cl_de;        /* lift per rad of delta_e, trailing edge up positive */
+  double cy_beta;
+  double cy_dr;
+  double cl_beta;      /* roll */
+  double cl_p;
+  double cl_da;
+  double cl_r_per_cl;  /* Clr as a multiple of the step's CL */
+  double cl_dr;
+  double cm_0;         /* pitch */
+  double cm_alpha;
+  double cm_q;
+  double cm_de;        /* delta_e positive pitches the nose up */
+  double cn_beta;      /* yaw */
+  double cn_r;
+  double cn_p_per_cl;  /* Cnp as a multiple of CL */
+  double cn_da_per_cl; /* Cn delta_a as a multiple of CL: adverse aileron yaw */
+  double cn_dr;        /* delta_r positive is trailing edge left, nose left */
+  double stall_blend;  /* half width of the stall smoothstep, rad */
+  /* Surfaces: travel at full stick, rad, and expo. surface_max clips each
+   * elevon; for a tail it equals the aileron travel. */
+  double throw_a;
+  double throw_e;
+  double throw_r;
+  double surface_max;
+  double expo;
+  /* The motor. */
+  double thrust_static; /* N */
+  double pitch_speed;   /* m/s at full duty */
+  double rpm_no_load;
+  double torque_arm;    /* prop reaction, roll moment per newton of thrust, m */
+  double current_full;  /* A at static full thrust */
+  double duty_min;
+  /* Stabilised: a bank and a pitch held by a rate damped proportional loop. */
+  double stab_bank_max;
+  double stab_pitch_max;
+  double stab_trim_pitch;
+  double stab_deadband;
+  double stab_roll_kp;
+  double stab_roll_kd;
+  double stab_pitch_kp;
+  double stab_pitch_kd;
+  /* Acro: sticks ask for a rate, a target attitude advances by it. */
+  double acro_roll_rate;
+  double acro_pitch_rate;
+  double acro_expo;
+  double acro_err_max;
+  double acro_roll_kp;
+  double acro_roll_kd;
+  double acro_roll_ff;
+  double acro_pitch_kp;
+  double acro_pitch_kd;
+  double acro_pitch_ff;
+  double acro_roll_ki;
+  double acro_pitch_ki;
+  double acro_i_max;
+  /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
+   * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
+   * Zero where there is no rudder. */
+  double yaw_coord_k;
+} FixedWingParams;
+
+extern const FixedWingParams FW_WING1000;
+extern const FixedWingParams FW_SKY1800;
+
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
 void plant_wing_launch(SimState *s, double speed);
 void plant_wing_surfaces(double out[2]);
+void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);

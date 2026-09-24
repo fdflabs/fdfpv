@@ -3,6 +3,8 @@
  * cross-host check. Loads the module, puts it on the wing, flies the
  * script in tests/lib/wingpilot.js and hands the trace hash back through
  * window.__simHarnessResolve, the way harness.js does for the quad.
+ * ?plane=sky replays the Skyhunter's recording on its airframe instead;
+ * with no query it is the wing's, exactly as it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -23,7 +25,12 @@
 import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
-import { wingPrelude } from '../lib/wingpilot.js';
+import { skyPrelude, wingPrelude } from '../lib/wingpilot.js';
+
+const PLANES = {
+  wing: { rec: '/tests/inputs/wing-baseline.rec', prelude: wingPrelude },
+  sky: { rec: '/tests/inputs/sky-baseline.rec', prelude: skyPrelude },
+};
 
 async function fetchBytes(url) {
   const res = await fetch(url);
@@ -36,13 +43,17 @@ async function fetchBytes(url) {
 async function run() {
   const th = JSON.parse(await (await fetch('/tests/thresholds.json')).text());
   const configText = await (await fetch('/tests/fixtures/config-baseline.diff')).text();
-  const rec = decodeRec(await fetchBytes('/tests/inputs/wing-baseline.rec'));
+  const plane = PLANES[new URLSearchParams(window.location.search).get('plane') || 'wing'];
+  if (!plane) {
+    throw new Error(`unknown plane ${window.location.search}`);
+  }
+  const rec = decodeRec(await fetchBytes(plane.rec));
   const sim = await loadSim(await fetchBytes('/dist/sim.wasm'));
   const hash = await replayTrace(sim, rec, {
     configText,
     renderHz: th.replay.canonical_render_hz.value,
     traceStrideMs: th.replay.trace_stride_ms.value,
-    prelude: wingPrelude,
+    prelude: plane.prelude,
   });
   return { ok: true, hash };
 }

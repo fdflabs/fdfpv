@@ -659,9 +659,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
 /*
  * The 1000 mm flying wing, docs/WING-STAGE1.md. Only what sim.c reads for
  * every airframe is filled in: mass, inertia, gravity, the pack, the hull
- * the contact code builds its corners from, and the camera. The aero and
- * the motor live in plant_wing.c, which is the plant this entry selects
- * through kind; the quad's fields below stay zero and are never read.
+ * the contact code builds its corners from, and the camera. The aero, the
+ * surfaces and the motor are its FixedWingParams in plant_wing.c, which is
+ * the plant this entry selects through kind; the quad's fields below stay
+ * zero and are never read.
  */
 [SIM_AIRFRAME_WING1000] = {
   .kind = PLANT_KIND_WING,
@@ -684,6 +685,39 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_x = 0.20,
   .camera_y = 0.0,
   .camera_z = 0.02,
+  .fw = &FW_WING1000,
+},
+/*
+ * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md, on the same terms as the
+ * wing above: what sim.c reads for every airframe, and its FixedWingParams.
+ * A 4S 5000 mAh pack, a pusher 0.12 m behind the CG. The hull is the
+ * contact code's centred box: 1.22 m by 1.8 m, the pod's belly 0.07 m under
+ * the CG of a high wing, the fins' tops and the wing's top averaged to
+ * 0.08 m over it for an aircraft on its back. The camera is in the pod's
+ * nose, 0.42 m ahead.
+ */
+[SIM_AIRFRAME_SKY1800] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 2.10,
+  .inertia = { 0.15, 0.14, 0.27 },
+  .gravity = 9.81,
+  .cells = 4.0,
+  .r_cell = 0.008,
+  .rho = 1.225,
+  .prop_r = 0.1397,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -0.12, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.61,
+  .hull_hy = 0.90,
+  .hull_hz_down = 0.07,
+  .hull_hz_up = 0.08,
+  .contact_patch_r = 0.10,
+  .contact_arm_max = 1.09,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.42,
+  .camera_y = 0.0,
+  .camera_z = 0.02,
+  .fw = &FW_SKY1800,
 },
 };
 

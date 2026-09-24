@@ -32,6 +32,7 @@
 import { SIM_OK } from './simmod.js';
 
 export const WING_AIRFRAME = 2;
+export const SKY_AIRFRAME = 3;
 export const RC_STEP_MS = 4;
 
 export function must(code, where) {
@@ -70,13 +71,14 @@ export function wingDebug(sim) {
  * value, bypassing the attitude loop), rollStick (fixed), seconds,
  * pitchMin, pitchMax, trimMax (rad), guard (the stall guard), t0Ms (where
  * the clock starts, so consecutive flights keep timestamps rising),
+ * yawStick (fixed, 0 unless given; the wing has no rudder),
  * onStep({ ms, v, vz, bank, pitch, p, qAero, s }).
  */
 export function fly(sim, opts) {
   const {
     duty, speed0 = 12, holdBank = 0, vzTarget = null, vTarget = null, pitchTargetFn = null,
     pitchHand = null, rollStick = null, seconds = 25, pitchMin = -0.2, pitchMax = 0.15,
-    trimMax = 0.2, guard = true, t0Ms = 0, onStep = null,
+    trimMax = 0.2, guard = true, t0Ms = 0, onStep = null, yawStick = 0,
   } = opts;
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_launch(speed0), 'sim_wing_launch');
@@ -108,7 +110,7 @@ export function fly(sim, opts) {
     const pitchStick = pitchHand
       ? pitchHand(ms)
       : Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
-    must(sim.input((t0Ms + ms) / 1000, roll, pitchStick, 0, duty), 'sim_input');
+    must(sim.input((t0Ms + ms) / 1000, roll, pitchStick, yawStick, duty), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');
     if (ms >= total - 5000) {
       samples.push({ v, vz, bank, pitch, p, x: s[1], y: s[2], z: s[3], t: ms / 1000 });
@@ -201,10 +203,11 @@ export function stallSpeed(sim, alphaStall) {
   return stallV;
 }
 
-/* A hand throw at 10 m/s, sixty percent throttle, an eighth of up stick
- * for two seconds, wings held level: where the wing is after three. */
-export function throwTest(sim) {
-  fly(sim, { duty: 0.6, speed0: 10, seconds: 3, pitchHand: (ms) => (ms < 2000 ? 0.12 : 0) });
+/* A hand throw, by default at 10 m/s and sixty percent throttle, an
+ * eighth of up stick for two seconds, wings held level: where the wing is
+ * after three. */
+export function throwTest(sim, { speed = 10, duty = 0.6, up = 0.12 } = {}) {
+  fly(sim, { duty, speed0: speed, seconds: 3, pitchHand: (ms) => (ms < 2000 ? up : 0) });
   const s = sim.readState().state;
   return { z: s[3], v: Math.hypot(s[4], s[5], s[6]) };
 }
@@ -225,11 +228,104 @@ export function chop(sim) {
   return { worstPitchDeg: worst * 180 / Math.PI };
 }
 
+/*
+ * The two manoeuvres only an aircraft with a tail has a band for. Both
+ * start from level flight at 65 percent held by fly(), then carry on from
+ * where it left the aircraft, with the clock still rising.
+ */
+
+/* The phugoid: level at 65 percent, a second of a little up stick, then
+ * hands off with the wings held level. The period is the mean spacing of
+ * the airspeed's upward crossings of the speed it settles at, over thirty
+ * seconds. */
+export function phugoid(sim) {
+  const r = fly(sim, { duty: 0.65, speed0: 15, vzTarget: 0, seconds: 15 });
+  const vs = [];
+  for (let ms = 0; ms < 32000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { bank } = attitude(s);
+    const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
+    must(sim.input((r.endMs + ms) / 1000, roll, ms < 1000 ? 0.3 : 0, 0, 0.65), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+    if (ms >= 2000) {
+      vs.push({ t: ms / 1000, v: Math.hypot(s[4], s[5], s[6]) });
+    }
+  }
+  /* Crossings of where the speed settles, not of the window's mean: a
+   * damped oscillation's mean is dragged toward its first, largest swing. */
+  const tail = vs.filter((o) => o.t >= vs[vs.length - 1].t - 5);
+  const mean = tail.reduce((a, o) => a + o.v, 0) / tail.length;
+  const ups = [];
+  for (let i = 1; i < vs.length; i += 1) {
+    const a = vs[i - 1].v - mean;
+    const b = vs[i].v - mean;
+    if (a < 0 && b >= 0) {
+      ups.push(vs[i - 1].t + (vs[i].t - vs[i - 1].t) * (-a / (b - a)));
+    }
+  }
+  const period = ups.length >= 2 ? (ups[ups.length - 1] - ups[0]) / (ups.length - 1) : null;
+  const vMax = Math.max(...vs.map((o) => o.v));
+  const vMin = Math.min(...vs.map((o) => o.v));
+  return { period, cycles: ups.length - 1, mean, swing: vMax - vMin };
+}
+
+/* Full right rudder from level at 65 percent, the pitch stick at neutral.
+ * wingsLevel: the roll stick holds the wings level, and the result is the
+ * mean sideslip over the last two of six seconds (aero sign: positive is
+ * the wind from the right). Otherwise the ailerons stay centred for two
+ * seconds, and the result is the peak nose right yaw rate in the first one
+ * and a half and the bank at two (right wing down positive). */
+export function rudderStep(sim, { wingsLevel }) {
+  const r = fly(sim, { duty: 0.65, speed0: 15, vzTarget: 0, seconds: 15 });
+  const total = wingsLevel ? 6000 : 2000;
+  let peakR = 0;
+  let sumBeta = 0;
+  let n = 0;
+  let s = null;
+  for (let ms = 0; ms < total; ms += RC_STEP_MS) {
+    s = sim.readState().state;
+    const { bank } = attitude(s);
+    const roll = wingsLevel ? Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11])) : 0;
+    must(sim.input((r.endMs + ms) / 1000, roll, 0, 1, 0.65), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+    s = sim.readState().state;
+    if (ms < 1500) {
+      peakR = Math.max(peakR, -s[13]);
+    }
+    if (ms >= total - 2000) {
+      sumBeta += wingDebug(sim)[1];
+      n += 1;
+    }
+  }
+  const w = s[7], x = s[8], y = s[9], z = s[10];
+  const bank = Math.atan2(2 * (y * z + w * x), 1 - 2 * (x * x + y * y));
+  return { betaDeg: (sumBeta / n) * 180 / Math.PI, peakRDegS: peakR * 180 / Math.PI, bankDeg: bank * 180 / Math.PI, v: Math.hypot(s[4], s[5], s[6]) };
+}
+
+/* The prop's reaction at a standstill and full throttle: one step from
+ * rest, where the air has nothing to say yet, so the roll moment is the
+ * motor's alone. Returns the torque about body x, negative rolling left. */
+export function propTorque(sim) {
+  must(sim.reset(), 'sim_reset');
+  must(sim.e.sim_set_pose(0, 0, 50, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.input(0, 0, 0, 0, 1), 'sim_input');
+  must(sim.step(1), 'sim_step');
+  const d = wingDebug(sim);
+  return { rollMoment: d[12], thrust: d[8], aeroRoll: d[5] };
+}
+
 /* What every replay of the wing recording does before its first sample. */
 export function wingPrelude(sim) {
   must(sim.e.sim_set_airframe(WING_AIRFRAME), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_wing_launch(10), 'sim_wing_launch');
+}
+
+/* The same for the Skyhunter's recording: its airframe, a harder throw. */
+export function skyPrelude(sim) {
+  must(sim.e.sim_set_airframe(SKY_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(12), 'sim_wing_launch');
 }
 
 /*
@@ -239,11 +335,13 @@ export function wingPrelude(sim) {
  * uses JS maths, which is not bit specified between engines, so it is not
  * allowed to run inside the check: it runs once here, in Node, and the
  * recording is what ships. Twenty seconds: a throw and level at 65
- * percent, full right stick, a held bank, a chop.
+ * percent, full right stick, a held bank, a chop. With rudder, the chop
+ * also gets two seconds of full right yaw stick, so an aircraft that has
+ * one has it in the hashed trace; the wing's recording is made without.
  */
-export function recordScriptedFlight(sim) {
+export function recordScriptedFlight(sim, { prelude = wingPrelude, rudder = false } = {}) {
   must(sim.reset(), 'sim_reset');
-  wingPrelude(sim);
+  prelude(sim);
   const samples = [];
   let trim = 0;
   for (let ms = 0; ms < 20000; ms += RC_STEP_MS) {
@@ -278,8 +376,9 @@ export function recordScriptedFlight(sim) {
       roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * p));
       pitchStick = 0;
     }
-    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw: 0, throttle: duty });
-    must(sim.input(ms / 1000, roll, pitchStick, 0, duty), 'sim_input');
+    const yaw = rudder && ms >= 16000 && ms < 18000 ? 1 : 0;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');
   }
   return samples;

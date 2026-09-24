@@ -1338,11 +1338,22 @@ SIM_EXPORT int sim_step(int n) {
 }
 
 /*
- * The wing's own entry points. Additive, version unchanged.
+ * The fixed wings' own entry points: every airframe of PLANT_KIND_WING,
+ * the flying wing and the Skyhunter. Additive, version unchanged.
  *
  * sim_wing_launch: a hand throw at speed m/s along the body's forward axis.
- * sim_wing_surfaces: the two elevon angles, radians, left then right,
- * positive trailing edge up, for the renderer.
+ * sim_wing_surfaces: the two wing trailing edge surfaces, radians, left
+ * then right, positive trailing edge up, for the renderer: the elevons on
+ * the flying wing, the ailerons on the Skyhunter.
+ * sim_plane_surfaces: four angles, radians, for an aircraft with a tail:
+ *   out[0] left aileron, positive trailing edge up
+ *   out[1] right aileron, positive trailing edge up
+ *   out[2] elevator, positive trailing edge up (nose up)
+ *   out[3] rudder, positive trailing edge to the LEFT (nose left)
+ * Full right roll reads out[1] positive and out[0] negative; full right
+ * yaw stick reads out[3] negative. Both rudders move together and report
+ * as one. On the flying wing out[0] and out[1] are the elevons and out[2]
+ * and out[3] read zero, since it has neither surface.
  */
 SIM_EXPORT int sim_wing_launch(double speed) {
   if (!g_initialised) {
@@ -1386,6 +1397,14 @@ SIM_EXPORT int sim_wing_surfaces(double *out) {
     return SIM_ERR_BAD_ARG;
   }
   plant_wing_surfaces(out);
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_plane_surfaces(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_plane_surfaces(out);
   return SIM_OK;
 }
 
