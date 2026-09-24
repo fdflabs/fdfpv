@@ -6,8 +6,10 @@
  * water's physics spliced in:
  *
  *   Normals from the wave texture: on still water three scales of ripple
- *   drifting downwind, damped in broad patches where the wind does not
- *   reach, which is what makes a real lake read as a lake from the air;
+ *   drifting downwind, laid in long streaks along the wind and gusty
+ *   patches with glassy calm between them, the rough water a pale sheen
+ *   of sky and the calm a sharp mirror, which is what makes a real lake
+ *   read as a lake from the air;
  *   on running water the ripples stream along the flow, faster where the
  *   bed is steeper.
  *
@@ -128,6 +130,10 @@ export function waterMaterial({
         /* The water's slope in the ground plane, and its foam. */
         vec2 wSlope;
         float wFoam = 0.0;
+        /* How much the ripples too fine to see still rough the water:
+         * from far off a windy band is a paler sheen of sky, not a
+         * mirror. */
+        float wSheen = 0.0;
         #ifdef WATER_FLOW
         {
           vec2 T = normalize(vFlow);
@@ -148,14 +154,23 @@ export function waterMaterial({
         {
           vec2 p = vWaterWorld.xz;
           vec2 drift = uWind * uTime;
-          float calm = smoothstep(0.3, 0.7, texture2D(uWaves, p / 610.0 + drift * 0.0009).a);
+          /* Wind lies on a lake in streaks along it and in gusts that
+           * rough a patch and move on, and between them the water is a
+           * mirror. The streaks are the wave height read long downwind
+           * and narrow across it. */
+          vec2 wd = normalize(uWind + vec2(1e-4, 0.0));
+          vec2 wq = vec2(dot(p, wd), dot(p, vec2(-wd.y, wd.x)));
+          float streaks = texture2D(uWaves, vec2(wq.x / 3200.0, wq.y / 300.0) - vec2(uTime * 0.0009, 0.0)).a;
+          float gusts = texture2D(uWaves, p / 610.0 + drift * 0.0009).a;
+          float windy = smoothstep(0.5, 0.72, streaks * 0.6 + gusts * 0.4);
           vec2 s = waveSlope(p / 47.0 + drift * 0.011) * 0.45
             + waveSlope(vec2(p.y, -p.x) / 13.0 + drift * 0.023) * 0.35
             + waveSlope(p / 3.7 - drift * 0.05) * 0.2;
           /* Far water is smoother than near: a pixel there averages many
            * ripples, and the mirror image in it is sharper for it. */
           float far = smoothstep(40.0, 600.0, distance(cameraPosition, vWaterWorld));
-          wSlope = s * uRipple * mix(0.12, 1.0, calm) * (1.0 - 0.6 * far);
+          wSlope = s * uRipple * mix(0.05, 1.0, windy) * (1.0 - 0.6 * far);
+          wSheen = windy * (0.1 + 0.25 * far);
           float h = texture2D(uWaves, p / 2.9 + drift * 0.03).a;
           float shore = 1.0 - smoothstep(0.02, 0.3, vWater.x);
           wFoam = shore * smoothstep(0.45, 0.8, h) * uShoreFoam;
@@ -170,7 +185,8 @@ export function waterMaterial({
         #endif
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.86, 0.88), wFoam);`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = mix(roughnessFactor, 0.65, wFoam);`)
+        roughnessFactor = mix(roughnessFactor, 0.65, wFoam);
+        roughnessFactor = mix(roughnessFactor, 0.22, wSheen);`)
       .replace('#include <normal_fragment_begin>', `
         float faceDirection = gl_FrontFacing ? 1.0 : -1.0;
         vec3 waterN = normalize(vec3(-wSlope.x, 1.0, -wSlope.y));
@@ -185,7 +201,7 @@ export function waterMaterial({
           vec4 rc = vReflCoord;
           rc.xy += wSlope * 0.06 * rc.w * (1.0 - wFoam);
           vec3 mirror = texture2DProj(uReflect, rc).rgb;
-          radiance = mix(mirror, radiance, wFoam);
+          radiance = mix(mirror, radiance, max(wFoam, wSheen));
         }
         #endif`)
       .replace('#include <opaque_fragment>', `

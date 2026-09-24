@@ -72,7 +72,7 @@ export async function buildWater(ctx) {
   const { cx, cz, shore } = lakeShore(heightAt);
   const mirror = Q.mirror > 0 ? planarMirror(LAKE_Y, Q.mirror) : null;
   const lakeMat = waterMaterial({
-    waves, time, wind, colour: LAKE_BODY, clarity: 0.32, ripple: 0.22, roughness: 0.03, planar: mirror, envMap,
+    waves, time, wind, colour: LAKE_BODY, clarity: 0.22, ripple: 0.3, roughness: 0.03, planar: mirror, envMap, shoreFoam: 0.3,
   });
   const lake = new THREE.Mesh(lakeGeometry(heightAt, shore), lakeMat);
   lake.name = 'swiss2-lake';

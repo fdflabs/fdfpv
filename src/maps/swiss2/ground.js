@@ -36,7 +36,9 @@
  */
 
 import * as THREE from 'three';
-import { FIELD, HALF, LAKE_Y, SIDE_Z, groundZone, groundPaths } from '../alps/terrain.js';
+import {
+  FIELD, HALF, LAKE_Y, LAKE_N, SIDE_Z, groundZone, groundPaths,
+} from '../alps/terrain.js';
 import { LAYERS } from './assets.js';
 
 /* Per layer, in LAYERS order: metres a texture tile covers, a tint on
@@ -433,7 +435,14 @@ const GROUND_PARS = /* glsl */ `
     cov[8] = rockHigh;
     float snowHigh = inside > 0.5 ? z2.b : smoothstep(1350.0, 1800.0, p.y + 260.0 * macro);
     cov[5] = smoothstep(0.3, 0.7, (snowHigh - 0.5) * 1.7 + 0.5 + (meso - 0.5) * 0.5 + (fine - 0.5) * 0.3) * (1.0 - smoothstep(1.0, 1.55, tanS));
-    cov[6] = z1.a;
+    /* The shore: a gravel beach up from the water, as wide as the
+     * ground is flat, its top wandering half a metre to two over the
+     * water, so the lake is edged by a strand and not a drawn line. The
+     * mask alone is 23 m a texel and left a thin band. The bed under
+     * the water is the same gravel. */
+    float lakeSide = inside * step(${(LAKE_N - 60).toFixed(1)}, p.z);
+    float beachTop = uS2LakeY + 0.5 + 1.6 * meso + 0.7 * (fine - 0.5);
+    cov[6] = max(z1.a, lakeSide * (1.0 - smoothstep(beachTop - 0.6, beachTop, p.y)));
     cov[7] = path * 0.9;
     /* A boulder, a snow patch: one layer and nothing else. */
     if (uS2Only >= 0.0) {
@@ -582,7 +591,11 @@ const GROUND_PARS = /* glsl */ `
     float wet = 1.0 - smoothstep(uS2LakeY + 0.2, uS2LakeY + 1.1, p.y);
     albedo *= 1.0 - 0.35 * wet;
     rough = mix(rough, 0.35, wet * 0.8);
-    albedo *= 1.0 - 0.6 * smoothstep(uS2LakeY - 1.0, uS2LakeY - 9.0, p.y);
+    /* Seen through the water, the bed loses its red first: light gravel
+     * a metre down is the turquoise of a glacier lake, and it goes to
+     * blue green and dark with depth. Down and back up, per metre. */
+    float under = max(uS2LakeY - p.y, 0.0);
+    albedo *= exp(-under * vec3(0.9, 0.2, 0.14));
 
     vec3 tn = normalize(tnormal + vec3(0.0, 0.0, 1e-4));
     vec3 planar = normalize(vec3(tn.x + n.x, abs(tn.z) * n.y, tn.y + n.z));

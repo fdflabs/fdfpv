@@ -46,6 +46,42 @@ export const ROAD_END = 1950;
 export const STREET_Z = 115;
 export const SQUARE = { x: -190, z: 115, w: 34, d: 30 };
 
+/* ground.js's s2Hash, s2Noise and s2Fbm, in JavaScript, so what is
+ * planted can agree with what the splat paints. */
+const fract = (v) => v - Math.floor(v);
+function s2Hash(x, y) {
+  let a = fract(x * 0.1031);
+  let b = fract(y * 0.1031);
+  let c = fract(x * 0.1031);
+  const d = a * (b + 33.33) + b * (c + 33.33) + c * (a + 33.33);
+  a += d;
+  b += d;
+  c += d;
+  return fract((a + b) * c);
+}
+function s2Noise(x, y) {
+  const ix = Math.floor(x);
+  const iy = Math.floor(y);
+  const fx = x - ix;
+  const fy = y - iy;
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+  const a = s2Hash(ix, iy);
+  const b = s2Hash(ix + 1, iy);
+  const c = s2Hash(ix, iy + 1);
+  const e = s2Hash(ix + 1, iy + 1);
+  return (a + (b - a) * ux) + ((c + (e - c) * ux) - (a + (b - a) * ux)) * uy;
+}
+function s2Fbm(x, y) {
+  return s2Noise(x, y) * 0.55 + s2Noise(x * 2.07 + 17.1, y * 2.07 + 17.1) * 0.3 + s2Noise(x * 4.13 + 3.7, y * 4.13 + 3.7) * 0.15;
+}
+
+/* How high the lake's gravel beach reaches over the water at (x, z), as
+ * ground.js lays it (its beachTop): half a metre to two. */
+export function beachTop(x, z) {
+  return LAKE_Y + 0.5 + 1.6 * s2Fbm(x / 41, z / 41) + 0.7 * (s2Noise(x / 7, z / 7) - 0.5);
+}
+
 /*
  * The layout for one heightfield. Everything here is a pure function of
  * heightAt and the terrain's constants, so the vegetation and the water
@@ -160,9 +196,9 @@ export function valleyLayout(heightAt, footprints = []) {
     }
     return false;
   };
-  /* Water under a point, and how far it is from the stream's line: the
-   * ground cover thins to nothing on the banks. */
-  const lakeWet = (x, z) => z > LAKE_N - 40 && heightAt(x, z) < LAKE_Y + 0.35;
+  /* Water or the lake's beach under a point, and how far it is from the
+   * stream's line: the ground cover thins to nothing on the banks. */
+  const lakeWet = (x, z) => z > LAKE_N - 60 && heightAt(x, z) < beachTop(x, z) - 0.3;
   const streamDist = (x, z) => {
     if (z > SIDE_Z - 40 && z < LAKE_END) {
       return Math.abs(x - streamX(z));
