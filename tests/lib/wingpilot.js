@@ -30,11 +30,13 @@
  */
 
 import { SIM_OK } from './simmod.js';
+import { BRAMOR_CATAPULT } from '../../configs/airframes.js';
 
 export const WING_AIRFRAME = 2;
 export const SKY_AIRFRAME = 3;
 export const CUB_AIRFRAME = 4;
 export const GLIDER_AIRFRAME = 6;
+export const BRAMOR_AIRFRAME = 8;
 export const RC_STEP_MS = 4;
 
 export function must(code, where) {
@@ -195,11 +197,12 @@ export function bestClimb(sim, speeds = [11, 12, 13, 14, 15, 16, 17, 18]) {
 }
 
 /* Power off, the nose raised steadily: the speed at which the angle of
- * attack reaches the stall. */
-export function stallSpeed(sim, alphaStall) {
+ * attack reaches the stall. Thrown at 13 m/s unless told otherwise, which
+ * is where the Bramor already stalls. */
+export function stallSpeed(sim, alphaStall, { speed0 = 13 } = {}) {
   let stallV = null;
   fly(sim, {
-    duty: 0, speed0: 13, seconds: 12, pitchMax: 0.7, pitchMin: -0.3, guard: false,
+    duty: 0, speed0, seconds: 12, pitchMax: 0.7, pitchMin: -0.3, guard: false,
     pitchTargetFn: (ms) => Math.min(0.6, 0.06 * ms / 1000),
     onStep: (o) => {
       if (stallV == null && o.ms > 1000 && wingDebug(sim)[0] > alphaStall) {
@@ -319,6 +322,160 @@ export function propTorque(sim) {
   must(sim.step(1), 'sim_step');
   const d = wingDebug(sim);
   return { rollMoment: d[12], thrust: d[8], aeroRoll: d[5] };
+}
+
+/*
+ * The Bramor's catapult: the aircraft at the rail's front end, `height`
+ * metres up with the nose `pitchDeg` up along the rail, heading down world
+ * +x, released at `speed` along the rail, the rail the shell draws
+ * (configs/airframes.js). A chute still out is stowed first, as the shell
+ * does. No steps: a replay's clock starts after the prelude.
+ */
+export { BRAMOR_CATAPULT };
+/* cos and sin of 10 deg to 17 digits: half the rail's 20, and the Bramor
+ * chute recording's half bank. Literals, because a recording's prelude is
+ * part of the hashed trace and JS Math.cos is not specified to the bit. */
+const COS_10 = 0.98480775301220802;
+const SIN_10 = 0.17364817766693033;
+export function catapultRelease(sim, { speed, pitchDeg, height } = BRAMOR_CATAPULT) {
+  if (pitchDeg !== 20) {
+    throw new Error(`catapultRelease: the rail is 20 deg, not ${pitchDeg}`);
+  }
+  must(sim.e.sim_wing_chute(0), 'sim_wing_chute');
+  must(sim.e.sim_set_pose(0, 0, height, COS_10, 0, -SIN_10, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(speed), 'sim_wing_launch');
+}
+
+/*
+ * Off the catapult at full throttle with the harness pilot's hand on it:
+ * the wings held level and, after `holdMs` with the stick centred (the
+ * aircraft left alone to fly off the rail's angle), an airspeed hold at
+ * `climbSpeed`, which is the best climb. Returns the lowest airspeed and
+ * the lowest height above the release point over the whole run, and the
+ * height gained and the speed at the end.
+ */
+export function catapultTest(sim, { climbSpeed = 16, seconds = 10, holdMs = 1000, launch = BRAMOR_CATAPULT } = {}) {
+  must(sim.reset(), 'sim_reset');
+  catapultRelease(sim, launch);
+  let vMin = Infinity;
+  let dzMin = Infinity;
+  let trim = 0.1;
+  let s = sim.readState().state;
+  for (let ms = 0; ms < seconds * 1000; ms += RC_STEP_MS) {
+    s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const v = Math.hypot(s[4], s[5], s[6]);
+    vMin = Math.min(vMin, v);
+    dzMin = Math.min(dzMin, s[3] - launch.height);
+    const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
+    let pitchStick = 0;
+    if (ms >= holdMs) {
+      trim += 0.00002 * (v - climbSpeed);
+      trim = Math.max(-1, Math.min(1, trim));
+      const pitchT = Math.max(-0.5, Math.min(1.2, 0.04 * (v - climbSpeed) + trim));
+      pitchStick = Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * -s[12]));
+    }
+    must(sim.input(ms / 1000, roll, pitchStick, 0, 1), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  s = sim.readState().state;
+  return { vMin, dzMin, dz: s[3] - launch.height, v: Math.hypot(s[4], s[5], s[6]), vz: s[6] };
+}
+
+/*
+ * The parachute from cruise: level at `duty` in Stabilised with the sticks
+ * centred, `height` metres over a ground plane at z = 0, then the pull and
+ * the sticks left alone. The pull is from level flight, not a dive, so
+ * the descent is never arrested in the air after the first two seconds. Returns the descent rate and the attitude over
+ * the last `settleS` seconds before touchdown, the peak load in the first
+ * two seconds, and how and where it came to rest.
+ */
+export function chuteTest(sim, { height = 60, speed = 16, duty = 0.667, cruiseMs = 4000, settleS = 5, mu = 1.4 } = {}) {
+  must(sim.reset(), 'sim_reset');
+  must(sim.e.sim_wing_set_stab(1), 'sim_wing_set_stab');
+  must(sim.e.sim_set_pose(0, 0, height, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(speed), 'sim_wing_launch');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, 0), 'sim_set_ground');
+  let ms = 0;
+  for (; ms < cruiseMs; ms += RC_STEP_MS) {
+    must(sim.input(ms / 1000, 0, 0, 0, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  const pulledAt = sim.readState().state;
+  must(sim.e.sim_wing_chute(1), 'sim_wing_chute');
+  const trace = [];
+  let prev = pulledAt;
+  let peakG = 0;
+  let touchdown = null;
+  const upz = (s) => 1 - 2 * (s[8] * s[8] + s[9] * s[9]);
+  for (let t = 0; t < 60000; t += RC_STEP_MS, ms += RC_STEP_MS) {
+    must(sim.input(ms / 1000, 0, 0, 0, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+    const s = sim.readState().state;
+    if (t < 2000) {
+      const dt = RC_STEP_MS / 1000;
+      const a = Math.hypot(s[4] - prev[4], s[5] - prev[5], s[6] - prev[6] + 9.81 * dt) / dt / 9.81;
+      peakG = Math.max(peakG, a);
+    }
+    prev = s;
+    trace.push({ t: t / 1000, z: s[3], vz: s[6], upz: upz(s), rpm: s[14] });
+    /* Touchdown: the first step the descent is arrested, read off the
+     * state rather than the contact count, which a resting hull settles to
+     * zero inside one RC slice. */
+    if (touchdown === null && t > 2000 && s[6] > -1.0) {
+      touchdown = { t: t / 1000, vz: trace.length > 1 ? trace[trace.length - 2].vz : s[6], z: s[3] };
+    }
+    if (touchdown !== null && t / 1000 > touchdown.t + 3) {
+      break;
+    }
+  }
+  const before = trace.filter((o) => touchdown && o.t < touchdown.t - 0.5 && o.t >= touchdown.t - 0.5 - settleS);
+  const mean = (k) => before.reduce((a, o) => a + o[k], 0) / before.length;
+  const end = sim.readState().state;
+  return {
+    sink: -mean('vz'), upzMean: mean('upz'), upzWorst: Math.max(...before.map((o) => o.upz)),
+    peakG, touchdown, rest: { z: end[3], upz: upz(end), v: Math.hypot(end[4], end[5], end[6]), w: Math.hypot(end[11], end[12], end[13]) },
+    rpmAfter: trace.length > 250 ? trace[250].rpm : null, drift: Math.hypot(end[1] - pulledAt[1], end[2] - pulledAt[2]),
+    open: sim.e.sim_wing_chute_open(),
+  };
+}
+
+/* What the Bramor's recording does before its first sample: its airframe
+ * and the catapult. */
+export function bramorPrelude(sim) {
+  must(sim.e.sim_set_airframe(BRAMOR_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  catapultRelease(sim);
+}
+
+/* The Bramor's chute recording: at cruise speed 60 m up, banked 20 deg
+ * right so the swing onto its back is not symmetric, the chute pulled the
+ * moment the replay starts. */
+export function bramorChutePrelude(sim) {
+  must(sim.e.sim_set_airframe(BRAMOR_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_chute(0), 'sim_wing_chute');
+  must(sim.e.sim_set_pose(0, 0, 60, COS_10, SIN_10, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(16), 'sim_wing_launch');
+  must(sim.e.sim_wing_chute(1), 'sim_wing_chute');
+}
+
+/*
+ * Fifteen seconds under the canopy with every stick held at full and the
+ * throttle open, so the hashed trace carries the pull, the opening, the
+ * swing onto its back and the descent, and shows that the motor and the
+ * surfaces ignore the sticks while the chute is out.
+ */
+export function recordChuteFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  bramorChutePrelude(sim);
+  const samples = [];
+  for (let ms = 0; ms < 15000; ms += RC_STEP_MS) {
+    samples.push({ tUs: ms * 1000, roll: 1, pitch: 1, yaw: 1, throttle: 1 });
+    must(sim.input(ms / 1000, 1, 1, 1, 1), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
 }
 
 /* What every replay of the wing recording does before its first sample. */

@@ -72,6 +72,18 @@ export const WHOOP_TRUE_DIMS = {
   bodyHeight: 0.028,
 };
 
+/*
+ * THE BRAMOR'S CATAPULT, named on its own because three things read it:
+ * the airframe below, the drawn launcher (src/render/bramorcraft.js) and
+ * the harness's release (tests/lib/wingpilot.js), and the last two must
+ * not disagree with the first about where the aircraft leaves the rail.
+ * From the Italian Army's photograph, docs/BRAMOR-STAGE1.md, all of it
+ * ESTIMATED: a 3.1 m rail at 20 deg with its foot on the ground, the
+ * aircraft's CG 1.17 m up on the cradle at the top, let go at 17 m/s,
+ * 1.3 times its stall.
+ */
+export const BRAMOR_CATAPULT = { speed: 17, pitchDeg: 20, railLength: 3.1, height: 1.17 };
+
 export const AIRFRAMES = [
   {
     id: '5inch',

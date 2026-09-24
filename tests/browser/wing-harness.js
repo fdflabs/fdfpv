@@ -27,13 +27,17 @@
 import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
-import { cubGroundPrelude, gliderRecPrelude, skyPrelude, wingPrelude } from '../lib/wingpilot.js';
+import {
+  bramorChutePrelude, bramorPrelude, cubGroundPrelude, gliderRecPrelude, skyPrelude, wingPrelude,
+} from '../lib/wingpilot.js';
 
 const PLANES = {
   wing: { rec: '/tests/inputs/wing-baseline.rec', prelude: wingPrelude },
   sky: { rec: '/tests/inputs/sky-baseline.rec', prelude: skyPrelude },
   cub: { rec: '/tests/inputs/cub-baseline.rec', prelude: (sim) => cubGroundPrelude(sim) },
   glider: { rec: '/tests/inputs/glider-baseline.rec', prelude: gliderRecPrelude },
+  bramor: { rec: '/tests/inputs/bramor-baseline.rec', prelude: bramorPrelude },
+  'bramor-chute': { rec: '/tests/inputs/bramor-chute.rec', prelude: bramorChutePrelude },
 };
 
 async function fetchBytes(url) {
