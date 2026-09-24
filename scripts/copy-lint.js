@@ -53,6 +53,8 @@ const EXCUSED = new Map([
   ['src/render/scene.js', 'material keys and assertions; nothing the pilot reads'],
   ['src/render/celmat.js', 'GLSL patches'],
   ['src/render/post.js', 'GLSL'],
+  ['src/maps/swiss2/ground.js', 'GLSL patches'],
+  ['src/maps/swiss2/light.js', 'GLSL patches'],
   ['src/fc/dump.js', 'Betaflight CLI lines'],
   ['src/fc/catalog-data.js', 'the Betaflight value table, firmware data'],
   ['src/render/budget.js', 'a developer overlay of GPU allocations'],

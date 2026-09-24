@@ -2087,6 +2087,8 @@ export default {
   "elements.a_five_metre_square_for_a": "Un cuadrado de cinco metros para un ala de 1000 mm en crucero. Tamaño propio de la herramienta: ninguna serie publica una puerta para alas.",
   "registry.the_alps": "Los Alpes",
   "registry.a_glacial_valley_six_kilometres": "Un valle glaciar de seis kilómetros entre crestas nevadas, pinos en las laderas, un pueblo y una pista de prado en el fondo y un lago a sus pies. Sin puertas, sin reloj.",
+  "registry.swiss2": "Valle suizo, fotorrealista",
+  "registry.swiss2_note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj.",
   "references.400_to_1000": "400 a 1000",
   "references.1000_to_1500": "1000 a 1500",
   "registry.yellowstone": "Yellowstone (en desarrollo)",
