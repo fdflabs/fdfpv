@@ -2735,27 +2735,18 @@ function craftSvg(a) {
  */
 const WAYS = [
   {
+    /* EVERY RACING QUAD, ONE CARD, as every fixed wing is one card: the
+     * five inch on a sixty metre field and the whoop in a living room are
+     * the same thing to do, gates against the clock, and the Aircraft row
+     * on the Quad screen picks between them. The five inch is what the
+     * card seats when neither is; a pilot on the whoop keeps it. */
     id: 'race-5inch',
-    airframes: ['5inch'],
+    airframes: ['5inch', 'whoop65'],
     mode: 'race',
-    label: str('ui.five_inch_racing'),
+    label: str('ui.track_mode'),
     art: 'assets/gate/race.jpg',
-    blurb: str('ui.a_gated_track_on_a_sixty'),
-    facts: ['6S', '220 mm', str('ui.the_board')],
-  },
-  {
-    id: 'race-whoop65',
-    airframes: ['whoop65'],
-    mode: 'race',
-    label: str('ui.whoop_racing'),
-    art: 'assets/gate/whoop.jpg',
-    /* Says what configs/airframes.js says, in the same words: the machine
-     * flies the five inch's model and the room is built to match, so the
-     * picture is a whoop's and the hands get the five inch. The old line
-     * promised three times the angular acceleration, which was true of a
-     * plant nothing selects now. */
-    blurb: str('ui.the_same_clock_indoors_a_65'),
-    facts: [str('ui.indoors'), '65 mm', '5 inch feel'],
+    blurb: str('ui.gates_against_the_clock_the_five'),
+    facts: [str('ui.gates'), str('ui.the_clock'), str('ui.the_board')],
   },
   {
     id: 'freestyle-5inch',

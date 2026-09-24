@@ -1349,7 +1349,8 @@ const BEHAVIOUR = `(() => {
      * is what makes the seat readable, so a card that moved the mode and
      * not the machine would send a whoop pilot to the five inch's track.
      */
-    ui.act('way-race-whoop65');
+    ui.settings.airframe = 'whoop65';
+    ui.act('way-race-5inch');
     const whoop = {
       craft: ui.settings.airframe,
       mode: ui.mode,
@@ -1430,6 +1431,7 @@ const BEHAVIOUR = `(() => {
      * has nothing to say about it. What act() does on the way is the same
      * code either way.
      */
+    ui.settings.airframe = 'wing1000';
     ui.act('way-race-5inch');
     const landed = ui.screen;
     const seated = ui.seatMatchesMode();
@@ -1448,16 +1450,17 @@ const BEHAVIOUR = `(() => {
       cards,
       backFromWhoop,
       whoop,
-      /* Four cards, every one of them with a photograph AND a plan drawing,
-       * and not a row among them: the whole point of the screen is that it
-       * is not a menu. Every fixed wing is behind the fourth. */
-      asksThree: gate.length === 4 && gate.join() === 'Five inch racing,Whoop racing,Freestyle,Fixed wing'
+      /* Three cards, every one of them with a photograph AND a plan
+       * drawing, and not a row among them: the whole point of the screen is
+       * that it is not a menu. Every racing quad is behind the first and
+       * every fixed wing behind the third. */
+      asksThree: gate.length === 3 && gate.join() === 'Track mode,Freestyle,Fixed wing'
         && gateItems.filter((it) => !it.card).length === 0,
-      asCards: cards.length === 4 && cards.every((c) => c.shot && c.drawn),
+      asCards: cards.length === 3 && cards.every((c) => c.shot && c.drawn),
       modeSetGate,
-      /* Four cards, laid out and visible, and the menu's own copy off the
+      /* Three cards, laid out and visible, and the menu's own copy off the
        * screen, when the mode is answered and the aircraft is not. */
-      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 4
+      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 3
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
       /* One press: the whoop is seated, the mode is race, the seat is a
        * track rather than a world, the gate is gone and no Freestyle row
@@ -1835,7 +1838,7 @@ async function main() {
     } else {
       const g = b.modeGate;
       if (!g.asksThree) {
-        failures.push(`the gate opens on ${g.gate.join(', ') || 'nothing'}, not on the four ways in`);
+        failures.push(`the gate opens on ${g.gate.join(', ') || 'nothing'}, not on the three ways in`);
       }
       if (!g.asCards) {
         failures.push(
@@ -1846,13 +1849,13 @@ async function main() {
         failures.push(`the gate: with the mode already answered it drew ${g.modeSetGate.cards.length} card(s), ${g.modeSetGate.cards.filter((c) => c.wide).length} of them visible, is-gate ${g.modeSetGate.isGate}, ${g.modeSetGate.keepNote} menu note(s) still showing`);
       }
       if (!g.onePress) {
-        failures.push(`the gate: one press of Whoop racing seated ${g.whoop.craft} in ${g.whoop.mode} on ${g.whoop.map}, gate ${g.whoop.gate}, and landed on ${g.whoop.menu.join(', ') || 'nothing'}`);
+        failures.push(`the gate: Track mode with the whoop seated left ${g.whoop.craft} in ${g.whoop.mode} on ${g.whoop.map}, gate ${g.whoop.gate}, and landed on ${g.whoop.menu.join(', ') || 'nothing'}`);
       }
       if (!g.escapeToGate) {
         failures.push(`the gate: Escape from the menu reached ${g.backFromWhoop.join(', ') || 'nothing'}, not the three cards`);
       }
       if (!g.answered) {
-        failures.push(`the gate: answering Five inch racing left nothing seated and stayed on ${g.landed}`);
+        failures.push(`the gate: answering Track mode left nothing seated and stayed on ${g.landed}`);
       }
       if (g.fiveCraft !== '5inch') {
         failures.push(`the gate: the five inch card seated ${g.fiveCraft}, so a card moves the mode and not the machine`);
