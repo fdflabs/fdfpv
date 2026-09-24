@@ -2378,6 +2378,18 @@ function tunePickItem(s, midRun) {
  * a five inch flies a sixty metre field and a wing flies an airfield, so
  * the seated track goes with it too.
  */
+/* The main menu's door to the machine. A plane is not a quad, and it is
+ * where a fixed wing pilot changes plane, so for one it says which plane
+ * is seated as well as its tune. */
+function machineLabel(s) {
+  return airframeById(s.airframe).fixedWing ? str('ui.plane') : str('ui.quad');
+}
+
+function machineValue(s) {
+  const af = airframeById(s.airframe);
+  return af.fixedWing ? `${af.short}, ${tuneById(s.tune).name}` : tuneById(s.tune).name;
+}
+
 function craftItem(s, midRun) {
   const af = airframeById(s.airframe);
   return choice(
@@ -2550,6 +2562,31 @@ function linkedMode() {
 }
 
 /*
+ * A fixed wing in plan, as a SYMBOL rather than to scale: a metre and more
+ * of span cannot share the quads' 300 mm box, and at its own scale the
+ * card would only say "bigger". So it says what the X says for a quad,
+ * which kind of machine this is: nose up, a straight wing across, a
+ * fuselage and a tailplane, in the quads' fills and strokes. One card
+ * covers every fixed wing, so it is not either plane's outline.
+ */
+function planeSvg() {
+  const parts = [
+    /* Fuselage, nose up. */
+    '<rect x="138" y="38" width="24" height="222" rx="12" fill="currentColor" fill-opacity="0.55"'
+      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9"/>',
+    /* Wing, a little taper to the tips. */
+    '<path d="M 22 128 L 278 128 L 270 166 L 30 166 Z" fill="currentColor" fill-opacity="0.38"'
+      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
+    /* Tailplane. */
+    '<path d="M 96 226 L 204 226 L 198 250 L 102 250 Z" fill="currentColor" fill-opacity="0.38"'
+      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
+  ];
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + parts.join('') + '</svg>';
+}
+
+/*
  * The two aircraft in plan, drawn TO ONE SCALE.
  *
  * The viewBox is 300 mm across for both, so the five inch fills it and the
@@ -2568,6 +2605,9 @@ function linkedMode() {
  * an airframe's dimensions redraws its card.
  */
 function craftSvg(a) {
+  if (a.fixedWing) {
+    return planeSvg();
+  }
   const VB = 300;           /* viewBox side, millimetres */
   const c = VB / 2;
   /*
@@ -2676,7 +2716,7 @@ function craftSvg(a) {
 const WAYS = [
   {
     id: 'race-5inch',
-    airframe: '5inch',
+    airframes: ['5inch'],
     mode: 'race',
     label: str('ui.five_inch_racing'),
     art: 'assets/gate/race.jpg',
@@ -2685,7 +2725,7 @@ const WAYS = [
   },
   {
     id: 'race-whoop65',
-    airframe: 'whoop65',
+    airframes: ['whoop65'],
     mode: 'race',
     label: str('ui.whoop_racing'),
     art: 'assets/gate/whoop.jpg',
@@ -2699,7 +2739,7 @@ const WAYS = [
   },
   {
     id: 'freestyle-5inch',
-    airframe: '5inch',
+    airframes: ['5inch'],
     mode: 'freestyle',
     label: str('ui.freestyle'),
     art: 'assets/gate/freestyle.jpg',
@@ -2715,29 +2755,23 @@ const WAYS = [
     facts: [str('ui.no_gates'), str('ui.no_clock'), str('ui.one_town')],
   },
   {
+    /* EVERY FIXED WING, ONE CARD. A card is a kind of flying, not a
+     * machine: the flying wing and the Skyhunter are both thrown, flown
+     * long and belly landed on the airfield, so they share a way in and
+     * the Plane row picks between them. The first is what the card seats
+     * when neither is; a pilot already on the other keeps it. */
     id: 'freestyle-wing1000',
-    airframe: 'wing1000',
+    airframes: ['wing1000', 'sky1800'],
     mode: 'freestyle',
     /* The wing's own world. A card with a home skips the picker: the
-     * airfield was built for this aircraft and the town was not. The
+     * airfield was built for these aircraft and the town was not. The
      * Freestyle menu's own row still opens the picker for anyone who wants
      * the town anyway. */
     home: 'airfield',
     label: str('ui.fixed_wing'),
     art: 'assets/gate/freestyle.jpg',
-    blurb: str('ui.a_1000_mm_flying_wing_on'),
-    facts: ['4S', '1000 mm', str('ui.manual')],
-  },
-  {
-    id: 'freestyle-sky1800',
-    airframe: 'sky1800',
-    mode: 'freestyle',
-    /* The wing's airfield, for the wing's reason. */
-    home: 'airfield',
-    label: str('ui.skyhunter'),
-    art: 'assets/gate/freestyle.jpg',
-    blurb: str('ui.an_1800_mm_twin_boom_fpv'),
-    facts: ['4S', '1800 mm', str('ui.twin_boom')],
+    blurb: str('ui.two_fixed_wings_on_4s'),
+    facts: ['4S', str('ui.two_planes'), str('ui.the_airfield')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
@@ -2746,8 +2780,8 @@ const WAYS = [
  * only set once the gate has been answered, so before that the racing card
  * of the seated aircraft is the standing answer. */
 function seatedWay(settings, mode) {
-  return WAYS.find((w) => w.airframe === settings.airframe && w.mode === (mode || 'race'))
-    || WAYS.find((w) => w.airframe === settings.airframe)
+  return WAYS.find((w) => w.airframes.includes(settings.airframe) && w.mode === (mode || 'race'))
+    || WAYS.find((w) => w.airframes.includes(settings.airframe))
     || WAYS[0];
 }
 
@@ -5326,7 +5360,7 @@ export class Ui {
             label: w.label,
             card: w.id,
             art: w.art,
-            svg: craftSvg(airframeById(w.airframe)),
+            svg: craftSvg(airframeById(w.airframes[0])),
             blurb: w.blurb,
             facts: w.facts,
             action: w.action,
@@ -5462,8 +5496,8 @@ export class Ui {
          * comment turned back into a row.
          */
         {
-          label: str('ui.quad'),
-          value: tuneById(s.tune).name,
+          label: machineLabel(s),
+          value: machineValue(s),
           action: 'quad',
           note: str('ui.the_machine_tune_pids_camera_angle'),
         },
@@ -5776,8 +5810,8 @@ export class Ui {
          * What you are about to fly is still on it, as the value.
          */
         {
-          label: str('ui.quad'),
-          value: tuneById(s.tune).name,
+          label: machineLabel(s),
+          value: machineValue(s),
           action: 'quad',
           note: str('ui.the_machine_its_tune_row_opens', { pids: SCREEN_TITLES.pids }),
         },
@@ -6185,8 +6219,8 @@ export class Ui {
             : str('ui.this_is_what_your_time_will'),
         },
         {
-          label: str('ui.quad'),
-          value: tuneById(s.tune).name,
+          label: machineLabel(s),
+          value: machineValue(s),
           action: 'quad',
           note: str('ui.the_tune_the_pids_the_camera', { quad: SCREEN_TITLES.quad }),
         },
@@ -6296,8 +6330,8 @@ export class Ui {
         feelItem(),
         { label: str('ui.elsewhere'), section: true },
         {
-          label: str('ui.quad'),
-          value: tuneById(s.tune).name,
+          label: machineLabel(s),
+          value: machineValue(s),
           action: 'quad',
           note: str('ui.pids_camera_flight_mode_and_the', { MID_RUN_WARNING }),
         },
@@ -12155,8 +12189,8 @@ export class Ui {
        * called it unconditionally too, so this is older than the three
        * cards; it is fixed here because this is the line that does it.
        */
-      if (way.airframe !== this.settings.airframe) {
-        seatAirframe(this.settings, way.airframe);
+      if (!way.airframes.includes(this.settings.airframe)) {
+        seatAirframe(this.settings, way.airframes[0]);
       }
       this.settings.airframeAsked = true;
       this.craftGate = false;
