@@ -1,5 +1,5 @@
 /*
- * alps-kit.js: what stands in the valley.
+ * kit.js: what is built in the valley.
  *
  * The chalets, the church, the barns, the hangar, the fences, the cattle,
  * the pines and the road. Everything is authored at the origin on flat
@@ -8,10 +8,6 @@
  * valley can bake a whole village into a handful of meshes: a chalet is
  * forty boxes and thirty chalets are one draw call per material, not
  * twelve hundred.
- *
- * The cars are the town's, from src/maps/city/vendored/world/vehicles.js,
- * because nine cel shaded bodies already exist there and a second set
- * would drift out of style.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -31,7 +27,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { celMaterial } from '../render/celmat.js';
+import { celMaterial } from '../../render/celmat.js';
 
 /* The village's palette: one material per surface, shared by every
  * building, so a baked village is one mesh per entry. */
@@ -366,152 +362,3 @@ export function cow(bake, rng, { x, y, z, ry }) {
   }
 }
 
-/*
- * Pines as three instanced meshes: a trunk and two cone tiers sharing the
- * same transforms, so a forest is three draw calls whatever its size.
- * Trunk of one shared height; the tiers scale with the tree.
- */
-export function pineForest(placements) {
-  const count = placements.length;
-  const trunkGeo = new THREE.CylinderGeometry(0.22, 0.34, 3.2, 6);
-  trunkGeo.translate(0, 1.6, 0);
-  const lower = new THREE.ConeGeometry(3.4, 6.5, 7);
-  lower.translate(0, 3.2 + 3.25, 0);
-  const upper = new THREE.ConeGeometry(2.3, 5.5, 7);
-  upper.translate(0, 3.2 + 4.5 + 2.75, 0);
-  const trunkMat = celMaterial({ color: 0x5a3f2a, rim: 0.12 });
-  const lowerMat = celMaterial({ color: 0x2b552a, rim: 0.16 });
-  const upperMat = celMaterial({ color: 0x376b33, rim: 0.16 });
-  const meshes = [
-    new THREE.InstancedMesh(trunkGeo, trunkMat, count),
-    new THREE.InstancedMesh(lower, lowerMat, count),
-    new THREE.InstancedMesh(upper, upperMat, count),
-  ];
-  const m = new THREE.Matrix4();
-  const p = new THREE.Vector3();
-  const q = new THREE.Quaternion();
-  const s = new THREE.Vector3();
-  const up = new THREE.Vector3(0, 1, 0);
-  placements.forEach((t, i) => {
-    p.set(t.x, t.y - 0.2, t.z);
-    q.setFromAxisAngle(up, t.yaw);
-    s.set(t.scale, t.scale * t.tall, t.scale);
-    m.compose(p, q, s);
-    for (const mesh of meshes) {
-      mesh.setMatrixAt(i, m);
-    }
-  });
-  const group = new THREE.Group();
-  for (const mesh of meshes) {
-    mesh.castShadow = true;
-    group.add(mesh);
-  }
-  return group;
-}
-
-/* Broadleaf trees for the valley floor: a trunk and a crown of two blobs,
- * instanced the same way. */
-export function broadleafGrove(placements) {
-  const count = placements.length;
-  const trunkGeo = new THREE.CylinderGeometry(0.28, 0.42, 3.6, 6);
-  trunkGeo.translate(0, 1.8, 0);
-  const crownA = new THREE.IcosahedronGeometry(3.4, 1);
-  crownA.translate(0, 5.4, 0);
-  const crownB = new THREE.IcosahedronGeometry(2.4, 1);
-  crownB.translate(1.4, 7.4, -0.8);
-  const meshes = [
-    new THREE.InstancedMesh(trunkGeo, celMaterial({ color: 0x6b4a2f, rim: 0.14 }), count),
-    new THREE.InstancedMesh(crownA, celMaterial({ color: 0x4f8f3c, rim: 0.28 }), count),
-    new THREE.InstancedMesh(crownB, celMaterial({ color: 0x64a64a, rim: 0.28 }), count),
-  ];
-  const m = new THREE.Matrix4();
-  const p = new THREE.Vector3();
-  const q = new THREE.Quaternion();
-  const s = new THREE.Vector3();
-  const up = new THREE.Vector3(0, 1, 0);
-  placements.forEach((t, i) => {
-    p.set(t.x, t.y - 0.2, t.z);
-    q.setFromAxisAngle(up, t.yaw);
-    s.set(t.scale, t.scale, t.scale);
-    m.compose(p, q, s);
-    for (const mesh of meshes) {
-      mesh.setMatrixAt(i, m);
-    }
-  });
-  const group = new THREE.Group();
-  for (const mesh of meshes) {
-    mesh.castShadow = true;
-    group.add(mesh);
-  }
-  return group;
-}
-
-/*
- * A ribbon of surface along a polyline, hugging the ground: the road and
- * the stream. Each segment is a quad between offset edge points, lifted a
- * little off the terrain so it does not fight it. Returns the mesh and
- * the cumulative distances so something can drive along it.
- */
-export function ribbon(points, width, lift, heightAt, material) {
-  const pos = [];
-  const uv = [];
-  const idx = [];
-  const dist = [0];
-  for (let i = 1; i < points.length; i += 1) {
-    dist.push(dist[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].z - points[i - 1].z));
-  }
-  for (let i = 0; i < points.length; i += 1) {
-    const a = points[Math.max(0, i - 1)];
-    const b = points[Math.min(points.length - 1, i + 1)];
-    let tx = b.x - a.x;
-    let tz = b.z - a.z;
-    const len = Math.hypot(tx, tz) || 1;
-    tx /= len;
-    tz /= len;
-    const nx = -tz;
-    const nz = tx;
-    for (const side of [-1, 1]) {
-      const px = points[i].x + side * nx * width / 2;
-      const pz = points[i].z + side * nz * width / 2;
-      pos.push(px, heightAt(px, pz) + lift, pz);
-      uv.push(side > 0 ? 1 : 0, dist[i] / width);
-    }
-    if (i > 0) {
-      const k = i * 2;
-      idx.push(k - 2, k, k - 1, k - 1, k, k + 1);
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  geo.setIndex(idx);
-  geo.computeVertexNormals();
-  /* A ribbon on a slope can face either way from a given side, so both
-   * faces draw. */
-  material.side = THREE.DoubleSide;
-  const mesh = new THREE.Mesh(geo, material);
-  mesh.receiveShadow = true;
-  return { mesh, dist, points };
-}
-
-/* Where a distance along a polyline lands, and which way it faces. */
-export function alongRibbon(rib, s) {
-  const total = rib.dist[rib.dist.length - 1];
-  let d = s % total;
-  if (d < 0) {
-    d += total;
-  }
-  let i = 1;
-  while (i < rib.dist.length - 1 && rib.dist[i] < d) {
-    i += 1;
-  }
-  const a = rib.points[i - 1];
-  const b = rib.points[i];
-  const span = rib.dist[i] - rib.dist[i - 1];
-  const u = span > 0 ? (d - rib.dist[i - 1]) / span : 0;
-  return {
-    x: a.x + (b.x - a.x) * u,
-    z: a.z + (b.z - a.z) * u,
-    yaw: Math.atan2(-(b.z - a.z), b.x - a.x),
-  };
-}
