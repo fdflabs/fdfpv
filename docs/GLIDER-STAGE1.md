@@ -315,6 +315,32 @@ What flying the plant before the bands were final changed:
   begun already banked at the point that puts the centre on the core, and
   lands 4.6 m off it.
 
+## The model, and the hull it rests on
+
+`src/render/glidercraft.js` draws the aircraft from the same measurements:
+the planform table, the polyhedral's integral, the fuselage's sections
+and the fin's outline are the ones above, so the drawn machine and the
+flown one are one machine. `node scripts/craft-preview.js glider` holds
+the drawing to its own numbers (the half span 1.000 m, the nose 0.3085 m
+ahead of the CG, the fin's trailing corner 0.8315 m behind it, its top
+0.268 m over it, the belly 0.052 m under it), checks each hinge's sense
+and the prop's spin, and checks the fold: folded, the disc is gone and
+the blades lie along the nose within 6 cm of the thrust line; open, they
+reach the disc's 0.1238 m in the prop's plane.
+
+What the plant takes from the drawing, and where the two part:
+
+| Quantity | Plant | Drawn | Why they are the same, or not |
+| --- | --- | --- | --- |
+| Prop's plane | 0.293 m ahead of the CG | the same | the spinner's tip is the station origin, the prop 15.5 mm behind it |
+| Thrust line | 8 mm under the CG | the same | |
+| Camera | 0.230 m ahead, 0.035 m up | the same | under the canopy's front |
+| Hull, down | 0.052 m | the belly's lowest point, 0.052 m | what a belly landing rests on |
+| Hull, up | 0.08 m | the canopy's top 0.071 m, the tips 0.14 m, the fin 0.268 m | a centred box cannot hold a polyhedral: 0.08 is between the canopy and the tips, and the fin shows into the grass on an aircraft lying on its back, as the Cub's does |
+| Hull, length and width | 0.9 by 1.1 m | 1.14 by 2.0 m | a centred box as long as the fuselage stands 0.26 m of air ahead of the nose; one as wide as the span puts its bottom corners at the tips, which the polyhedral lifts 0.13 m over the belly |
+| Resting pose | level on the belly | level on the belly | the real one's lowest point is 15 cm ahead of its CG, so on the grass it rocks back about 5 deg onto its tail; the box rests level, and so the model is drawn level |
+| Tail arm | 0.69 m | 0.689 m | the drawn stabiliser's quarter chord to the wing's |
+
 ## Conventions
 
 The other three's, unchanged: world right handed, Z up; body X forward, Y
