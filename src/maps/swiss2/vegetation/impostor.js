@@ -113,7 +113,11 @@ export function bakeImpostors(renderer, builds, maps, frame = 128) {
   };
   renderer.autoClear = false;
   const info = [];
-  const passes = [[albedo, 0, 0x2a3a22], [normal, 1, 0x80c080]];
+  /* The albedo is cleared to black with no alpha, so a mip that averages
+   * leaf and gap holds the leaf colour times its coverage, and the far
+   * tree divides the coverage back out: cleared to a dark green, the gaps
+   * bled into every far crown's edge as a dark rim. */
+  const passes = [[albedo, 0, 0x000000], [normal, 1, 0x80c080]];
   for (const [rt, pass, clear] of passes) {
     renderer.setRenderTarget(rt);
     rt.scissorTest = false;
@@ -185,51 +189,41 @@ export function bakeImpostors(renderer, builds, maps, frame = 128) {
   };
 }
 
-/*
- * The material far trees are drawn with: three's standard material, its
- * vertex stage replaced by the billboard and its colour and normal read
- * from the atlases. `band` is the distance band it draws in.
- */
-export function impostorMaterial(baked, band, envMapIntensity = 0.85) {
-  const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, envMapIntensity });
-  const vars = [];
-  for (let v = 0; v < MAX_VARIANTS; v += 1) {
-    const i = baked.info[v] || { radius: 1, cy: 0 };
-    vars.push(new THREE.Vector4(i.radius, i.cy, 0, 0));
-  }
-  const uniforms = {
-    uAlbedo: { value: baked.albedo },
-    uNormalAtlas: { value: baked.normal },
-    uVar: { value: vars },
-    uBand: { value: new THREE.Vector4(...band) },
-    uPad: { value: 1.5 / baked.frame },
-  };
-  mat.userData.impostor = uniforms;
+/* The billboard's vertex stage, shared by the far trees and their
+ * shadow. Drawn, a tree faces the camera and is pulled to the front of
+ * its sphere; in the shadow pass it faces the sun (uImpLight, the
+ * cascade's camera being orthographic) and its band is read from the
+ * viewer (uImpView), not from the light. */
+function billboardVertex(shadow) {
   const el1 = ELEVATIONS[1].toFixed(5);
   const el2 = ELEVATIONS[2].toFixed(5);
-  mat.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>
+  return {
+    pars: `
         ${DITHER_GLSL}
         attribute vec4 aTree;
         attribute vec2 aTree2;
         uniform vec4 uVar[${MAX_VARIANTS}];
         uniform vec4 uBand;
+        uniform vec3 uImpLight;
+        uniform vec3 uImpView;
         varying vec2 vImpUv;
         varying vec4 vImpF;
         varying vec4 vImpW;
         varying vec2 vImpYaw;
         varying float vPlantDist;
-        varying float vImpTint;`)
-      .replace('#include <begin_vertex>', `
+        varying float vImpTint;`,
+    body: `
         vec4 vi = uVar[int(aTree2.y + 0.5)];
         float S = aTree.w;
         vec3 centre = aTree.xyz + vec3(0.0, vi.y * S, 0.0);
+        ${shadow ? `
+        vec3 V = uImpLight;
+        float dist = 1e5;
+        vPlantDist = distance(uImpView, aTree.xyz + vec3(0.0, 10.0 * S, 0.0));` : `
         vec3 toCam = cameraPosition - centre;
         float dist = max(length(toCam), 1e-3);
         vec3 V = toCam / dist;
-        vPlantDist = distance(cameraPosition, aTree.xyz + vec3(0.0, 10.0 * S, 0.0));
+        vPlantDist = distance(cameraPosition, aTree.xyz + vec3(0.0, 10.0 * S, 0.0));`}
         float cy = cos(aTree2.x);
         float sy = sin(aTree2.x);
         vec3 Vo = vec3(cy * V.x - sy * V.z, V.y, sy * V.x + cy * V.z);
@@ -254,29 +248,73 @@ export function impostorMaterial(baked, band, envMapIntensity = 0.85) {
         float pull = min(R * 0.6, dist * 0.5);
         float k = (dist - pull) / dist;
         vec3 transformed = centre + V * pull + (position.x * right + position.y * upv) * R * k;
-        if (plantOut(vPlantDist, uBand)) {
+        ${shadow
+    ? '/* A tree the models draw casts its own shadow. */\n        if (vPlantDist < 0.5 * (uBand.x + uBand.y)) {'
+    : 'if (plantOut(vPlantDist, uBand)) {'}
           transformed = centre;
         }
         vImpUv = position.xy * 0.5 + 0.5;
         vImpYaw = vec2(cy, sy);
-        vImpTint = 0.9 + 0.2 * fract(sin(dot(aTree.xz, vec2(12.9898, 78.233))) * 43758.5453);`);
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>
-        ${DITHER_GLSL}
+        vImpTint = 0.9 + 0.2 * fract(sin(dot(aTree.xz, vec2(12.9898, 78.233))) * 43758.5453);`,
+  };
+}
+
+const IMP_FRAME_GLSL = `
         uniform sampler2D uAlbedo;
-        uniform sampler2D uNormalAtlas;
-        uniform vec4 uBand;
         uniform float uPad;
         varying vec2 vImpUv;
         varying vec4 vImpF;
         varying vec4 vImpW;
-        varying vec2 vImpYaw;
-        varying float vPlantDist;
-        varying float vImpTint;
         vec2 impFrame(float f) {
           vec2 cell = vec2(mod(f, ${GRID}.0), floor(f / ${GRID}.0));
           return (cell + uPad + vImpUv * (1.0 - 2.0 * uPad)) / ${GRID}.0;
-        }`)
+        }
+        vec4 impAlbedo() {
+          return texture2D(uAlbedo, impFrame(vImpF.x)) * vImpW.x + texture2D(uAlbedo, impFrame(vImpF.y)) * vImpW.y
+            + texture2D(uAlbedo, impFrame(vImpF.z)) * vImpW.z + texture2D(uAlbedo, impFrame(vImpF.w)) * vImpW.w;
+        }`;
+
+function impostorUniforms(baked, band) {
+  const vars = [];
+  for (let v = 0; v < MAX_VARIANTS; v += 1) {
+    const i = baked.info[v] || { radius: 1, cy: 0 };
+    vars.push(new THREE.Vector4(i.radius, i.cy, 0, 0));
+  }
+  return {
+    uAlbedo: { value: baked.albedo },
+    uNormalAtlas: { value: baked.normal },
+    uVar: { value: vars },
+    uBand: { value: new THREE.Vector4(...band) },
+    uPad: { value: 1.5 / baked.frame },
+    uImpLight: { value: new THREE.Vector3(0, 1, 0) },
+    uImpView: { value: new THREE.Vector3() },
+  };
+}
+
+/*
+ * The material far trees are drawn with: three's standard material, its
+ * vertex stage replaced by the billboard and its colour and normal read
+ * from the atlases. `band` is the distance band it draws in.
+ */
+export function impostorMaterial(baked, band, envMapIntensity = 0.85) {
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, envMapIntensity });
+  const uniforms = impostorUniforms(baked, band);
+  mat.userData.impostor = uniforms;
+  const vert = billboardVertex(false);
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>${vert.pars}`)
+      .replace('#include <begin_vertex>', vert.body);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+        ${DITHER_GLSL}
+        ${IMP_FRAME_GLSL}
+        uniform sampler2D uNormalAtlas;
+        uniform vec4 uBand;
+        varying vec2 vImpYaw;
+        varying float vPlantDist;
+        varying float vImpTint;`)
       .replace('#include <clipping_planes_fragment>', `
         if (!plantKeep(plantHash(gl_FragCoord.xy), vPlantDist, uBand)) discard;
         #include <clipping_planes_fragment>`)
@@ -285,15 +323,14 @@ export function impostorMaterial(baked, band, envMapIntensity = 0.85) {
         vec2 f1 = impFrame(vImpF.y);
         vec2 f2 = impFrame(vImpF.z);
         vec2 f3 = impFrame(vImpF.w);
-        vec4 impA = texture2D(uAlbedo, f0) * vImpW.x + texture2D(uAlbedo, f1) * vImpW.y
-          + texture2D(uAlbedo, f2) * vImpW.z + texture2D(uAlbedo, f3) * vImpW.w;
+        vec4 impA = impAlbedo();
         /* Mips average the coverage away: lift the alpha by how far down
          * the chain this pixel reads, so a far forest stays as dense as a
          * near one. */
         vec2 texel = fwidth(vImpUv) * float(textureSize(uAlbedo, 0).x) / ${GRID}.0;
         float lod = max(0.0, log2(max(max(texel.x, texel.y), 1e-4)));
         if (impA.a * (1.0 + 0.3 * lod) < 0.5) discard;
-        diffuseColor.rgb = impA.rgb * vImpTint;
+        diffuseColor.rgb = impA.rgb / max(impA.a, 0.05) * vImpTint;
         vec3 impN = (texture2D(uNormalAtlas, f0).xyz * vImpW.x + texture2D(uNormalAtlas, f1).xyz * vImpW.y
           + texture2D(uNormalAtlas, f2).xyz * vImpW.z + texture2D(uNormalAtlas, f3).xyz * vImpW.w) * 2.0 - 1.0;
         impN = normalize(vec3(vImpYaw.x * impN.x + vImpYaw.y * impN.z, impN.y, -vImpYaw.y * impN.x + vImpYaw.x * impN.z));
@@ -309,11 +346,38 @@ export function impostorMaterial(baked, band, envMapIntensity = 0.85) {
 }
 
 /*
+ * Their shadow. A far tree with no shadow under it floats on the floor:
+ * seen from the air past the models' band, every tree along the stream
+ * was a dark ball on an unbroken lawn. The same billboard turned to the
+ * sun and cut by the same alpha writes the shadow maps, for the trees
+ * past the models' band only; `material` is the drawn impostor material,
+ * whose uniforms this shares.
+ */
+export function impostorDepthMaterial(material) {
+  const uniforms = material.userData.impostor;
+  const mat = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+  const vert = billboardVertex(true);
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>${vert.pars}`)
+      .replace('#include <begin_vertex>', vert.body);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>${IMP_FRAME_GLSL}`)
+      .replace('#include <clipping_planes_fragment>', `
+        if (impAlbedo().a < 0.5) discard;
+        #include <clipping_planes_fragment>`);
+  };
+  mat.customProgramCacheKey = () => 'swiss2-impostor-depth';
+  return mat;
+}
+
+/*
  * One draw of far trees: a quad instanced over `trees` (indices into the
  * forest's arrays), with its bounding sphere round the chunk so three
  * culls it when it is out of view.
  */
-export function impostorMesh(forest, indices, material) {
+export function impostorMesh(forest, indices, material, depth = null) {
   const geo = new THREE.InstancedBufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0], 3));
   geo.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
@@ -341,7 +405,10 @@ export function impostorMesh(forest, indices, material) {
   geo.boundingBox = box.expandByScalar(rMax);
   const mesh = new THREE.Mesh(geo, material);
   mesh.receiveShadow = true;
-  mesh.castShadow = false;
+  mesh.castShadow = Boolean(depth);
+  if (depth) {
+    mesh.customDepthMaterial = depth;
+  }
   mesh.name = 'swiss2-impostors';
   return mesh;
 }

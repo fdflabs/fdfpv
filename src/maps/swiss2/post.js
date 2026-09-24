@@ -17,8 +17,9 @@
  *    brighter toward the sun, with the air thinning with height so a
  *    ridge across the valley and the peaks ten kilometres off are veiled
  *    by different amounts, which is the whole difference between a model
- *    and a mountain. Then exposure and the ACES filmic curve, the FPV
- *    camera's mild barrel and a lens's vignette, and the sRGB transfer.
+ *    and a mountain. Then exposure, the AgX curve and a print's
+ *    contrast, the FPV camera's mild barrel and a lens's vignette, and
+ *    the sRGB transfer.
  *    Doing the air here rather than in every material means the
  *    vegetation's and the water's materials are veiled exactly as the
  *    village is without either of them knowing.
@@ -61,11 +62,12 @@ import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
  * into a grey of its own.
  */
 export const AIR = {
-  beta: new THREE.Vector3(4.5e-5, 6.5e-5, 1.0e-4),
+  beta: new THREE.Vector3(4.5e-5, 6.0e-5, 8.5e-5),
   scaleHeight: 1400,
-  haze: new THREE.Color().setRGB(0.36, 0.39, 0.42, THREE.LinearSRGBColorSpace),
-  mie: 0.9,
-  exposure: 1.1,
+  haze: new THREE.Color().setRGB(0.4, 0.44, 0.5, THREE.LinearSRGBColorSpace),
+  mie: 0.5,
+  exposure: 1.45,
+  contrast: 0.6,
 };
 
 const PhotoShader = {
@@ -82,6 +84,7 @@ const PhotoShader = {
     uScaleH: { value: 1000 },
     uMie: { value: 1 },
     uExposure: { value: 1 },
+    uContrast: { value: 0 },
     uDistort: { value: 0.045 },
     uVignette: { value: 0.12 },
     tAo: { value: null },
@@ -110,6 +113,7 @@ const PhotoShader = {
     uniform float uScaleH;
     uniform float uMie;
     uniform float uExposure;
+    uniform float uContrast;
     uniform float uDistort;
     uniform float uVignette;
     uniform sampler2D tAo;
@@ -137,19 +141,28 @@ const PhotoShader = {
       return col * T + air * (1.0 - T);
     }
 
-    /* The ACES filmic fit three.js uses (Stephen Hill's), with its
-     * exposure over 0.6, so the curve here is the one three would apply. */
-    vec3 rrtOdt(vec3 v) {
-      vec3 a = v * (v + 0.0245786) - 0.000090537;
-      vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
-      return a / b;
+    /*
+     * AgX (Sobotka's, as three r160 ships it), not ACES. The Hill ACES
+     * fit pushes a saturated mid tone further out and turns a bright green
+     * meadow into a lawn in a game; AgX desaturates toward white as a
+     * value climbs, which is what film and a camera's sensor do, so a lit
+     * field and a cloud roll off instead of clipping to a hue.
+     */
+    vec3 agxContrast(vec3 x) {
+      vec3 x2 = x * x;
+      vec3 x4 = x2 * x2;
+      return 15.5 * x4 * x2 - 40.14 * x4 * x + 31.96 * x4 - 6.868 * x2 * x + 0.4298 * x2 + 0.1191 * x - 0.00232;
     }
-    vec3 acesFilmic(vec3 c) {
-      const mat3 inM = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
-      const mat3 outM = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
-      c = inM * (c / 0.6);
-      c = rrtOdt(c);
-      return clamp(outM * c, 0.0, 1.0);
+    vec3 agx(vec3 c) {
+      const mat3 toRec2020 = mat3(vec3(0.6274, 0.0691, 0.0164), vec3(0.3293, 0.9195, 0.0880), vec3(0.0433, 0.0113, 0.8956));
+      const mat3 fromRec2020 = mat3(vec3(1.6605, -0.1246, -0.0182), vec3(-0.5876, 1.1329, -0.1006), vec3(-0.0728, -0.0083, 1.1187));
+      const mat3 inset = mat3(vec3(0.856627153315983, 0.137318972929847, 0.11189821299995), vec3(0.0951212405381588, 0.761241990602591, 0.0767994186031903), vec3(0.0482516061458583, 0.101439036467562, 0.811302368396859));
+      const mat3 outset = mat3(vec3(1.1271005818144368, -0.1413297634984383, -0.14132976349843826), vec3(-0.11060664309660323, 1.157823702216272, -0.11060664309660294), vec3(-0.016493938717834573, -0.016493938717834257, 1.2519364065950405));
+      c = inset * (toRec2020 * c);
+      c = clamp((log2(max(c, 1e-10)) + 12.47393) / 16.5, 0.0, 1.0);
+      c = outset * agxContrast(c);
+      c = pow(max(vec3(0.0), c), vec3(2.2));
+      return clamp(fromRec2020 * c, 0.0, 1.0);
     }
 
     void main() {
@@ -172,7 +185,12 @@ const PhotoShader = {
         }
         c = aerial(c, (uCamWorld * vec4(vp.xyz, 1.0)).xyz);
       }
-      c = acesFilmic(c * uExposure);
+      c = agx(c * uExposure);
+      /* AgX's own curve is a flat negative; a print's S curve on the
+       * display values, which keeps black and white where they are. */
+      vec3 dv = pow(c, vec3(0.4545));
+      dv = mix(dv, dv * dv * (3.0 - 2.0 * dv), uContrast);
+      c = pow(dv, vec3(2.2));
       c *= 1.0 - uVignette * smoothstep(0.16, 0.55, r2);
       vec3 lo = c * 12.92;
       vec3 hi = 1.055 * pow(c, vec3(0.41666667)) - 0.055;
@@ -319,6 +337,7 @@ class PhotoPass extends Pass {
     u.uScaleH.value = AIR.scaleHeight;
     u.uMie.value = AIR.mie;
     u.uExposure.value = AIR.exposure;
+    u.uContrast.value = AIR.contrast;
     this.fsQuad = new FullScreenQuad(this.material);
   }
 

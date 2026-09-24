@@ -119,29 +119,67 @@ const WEATHER_PARS = /* glsl */ `
                mix(s2wHash(i + vec2(0.0, 1.0)), s2wHash(i + vec2(1.0, 1.0)), u.x), u.y);
   }
 `;
+/*
+ * Three kinds of age. A wall: the rain splash dark and green along its
+ * foot, grime run down from every sill, and on the weather side, where
+ * the rain and the wind off the west reach it, timber silvered grey
+ * (uS2Grey says how far a surface goes: boards all the way, render and
+ * stone not at all). A roof: moss and lichen in the damp (as far as
+ * uS2Grey says), streaks down the fall line, and courses replaced in
+ * different years. Paving: worn lighter where the feet go and dark with
+ * grime where they do not. One program for all three, the kind a
+ * uniform, and the window trim is left out of it: a program compiled
+ * for a new combination mid flight (the trim is instanced as well as
+ * baked) raised the loop's views run from 14 GL_INVALID_VALUE warnings
+ * to 26, and to 50 with a program per kind (PR #17 met the same).
+ */
+const WEATHER = { wall: 0, roof: 1, paving: 2 };
 const WEATHER_BODY = /* glsl */ `
   {
     vec3 wn = inverseTransformDirection(normal, viewMatrix);
-    float wall = 1.0 - smoothstep(0.35, 0.7, abs(wn.y));
-    vec2 f = (vS2World.xz + uS2Grid.x) / uS2Grid.y;
-    float groundY = texture2D(uS2Height, (f + 0.5) / uS2Grid.z).r;
-    float above = vS2World.y - groundY;
-    float n = s2wNoise(vS2World.xz * 0.9 + vS2World.y * 0.3);
-    float splash = (1.0 - smoothstep(0.1, 0.8 + 0.6 * n, above)) * wall;
-    diffuseColor.rgb *= mix(vec3(1.0), vec3(0.62, 0.58, 0.52), splash);
-    float age = s2wNoise(vS2World.xz / 13.0 + vec2(vS2World.y / 29.0));
-    diffuseColor.rgb *= mix(vec3(0.86, 0.85, 0.84), vec3(1.06, 1.04, 1.0), age);
+    if (uS2Kind < 0.5) {
+      float wall = 1.0 - smoothstep(0.35, 0.7, abs(wn.y));
+      vec2 f = (vS2World.xz + uS2Grid.x) / uS2Grid.y;
+      float groundY = texture2D(uS2Height, (f + 0.5) / uS2Grid.z).r;
+      float above = vS2World.y - groundY;
+      float n = s2wNoise(vS2World.xz * 0.9 + vS2World.y * 0.3);
+      float splash = (1.0 - smoothstep(0.05, 0.6 + 0.6 * n, above)) * wall;
+      diffuseColor.rgb *= mix(vec3(1.0), vec3(0.42, 0.43, 0.34), splash);
+      vec2 along = normalize(vec2(wn.z, -wn.x) + 1e-4);
+      float run = s2wNoise(vec2(dot(vS2World.xz, along) * 1.9, vS2World.y * 0.07));
+      diffuseColor.rgb *= 1.0 - 0.16 * smoothstep(0.55, 0.85, run) * wall;
+      float age = s2wNoise(vS2World.xz / 13.0 + vec2(vS2World.y / 29.0));
+      float weatherSide = smoothstep(-0.3, 0.7, dot(normalize(wn.xz + 1e-4), vec2(-0.95, 0.3))) * wall;
+      float grey = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.02, 1.0, 0.97) * (0.1 + 1.1 * grey), uS2Grey * weatherSide * (0.55 + 0.45 * age));
+      diffuseColor.rgb *= mix(vec3(0.86, 0.85, 0.84), vec3(1.06, 1.04, 1.0), age);
+    } else if (uS2Kind < 1.5) {
+      float roof = smoothstep(0.25, 0.55, wn.y);
+      float m = s2wNoise(vS2World.xz * 0.45) * 0.6 + s2wNoise(vS2World.xz * 1.7 + 7.0) * 0.4;
+      float moss = smoothstep(0.52, 0.78, m) * roof;
+      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.58, 0.74, 0.36), moss * uS2Grey);
+      vec2 fall = normalize(wn.xz + 1e-4);
+      vec2 across = vec2(-fall.y, fall.x);
+      float streak = s2wNoise(vec2(dot(vS2World.xz, across) * 2.6, dot(vS2World.xz, fall) * 0.18));
+      diffuseColor.rgb *= 1.0 - 0.28 * smoothstep(0.5, 0.9, streak) * roof;
+      diffuseColor.rgb *= 0.82 + 0.34 * s2wNoise(vec2(dot(vS2World.xz, across) * 0.5, dot(vS2World.xz, fall) * 2.2));
+    } else {
+      float worn = s2wNoise(vS2World.xz / 4.0) * 0.65 + s2wNoise(vS2World.xz / 0.9) * 0.35;
+      diffuseColor.rgb *= mix(vec3(0.7, 0.69, 0.66), vec3(1.12, 1.1, 1.06), smoothstep(0.3, 0.75, worn));
+    }
   }
 `;
 
-function weathered(mat, heights) {
+function weathered(mat, heights, kind = 'wall', grey = 0) {
   const prev = mat.onBeforeCompile;
   mat.onBeforeCompile = function onBeforeCompile(shader, renderer) {
     prev.call(this, shader, renderer);
     shader.uniforms.uS2Height = heights.texture;
     shader.uniforms.uS2Grid = heights.grid;
+    shader.uniforms.uS2Kind = { value: WEATHER[kind] };
+    shader.uniforms.uS2Grey = { value: grey };
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${WEATHER_PARS}`)
+      .replace('#include <common>', `#include <common>\nuniform float uS2Kind;\nuniform float uS2Grey;\n${WEATHER_PARS}`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${WEATHER_BODY}`);
   };
   mat.customProgramCacheKey = () => 's2-weathered';
@@ -163,7 +201,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
   /* A photographed surface: albedo times tint, the normal map, and the
    * arm map's green for roughness (and its red for occlusion, its blue
    * for metalness where the surface is metal). */
-  const textured = (name, tint, { rough = 1, metal = 0, normal = 1, side = THREE.FrontSide, weather = false } = {}) => {
+  const textured = (name, tint, { rough = 1, metal = 0, normal = 1, side = THREE.FrontSide, weather = false, grey = 0 } = {}) => {
     const set = surfaces[name];
     const m = new THREE.MeshStandardMaterial({
       color: tint,
@@ -180,33 +218,39 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     });
     m.userData.s2WorldUv = true;
     if (weather) {
-      weathered(m, heights);
+      weathered(m, heights, weather === true ? 'wall' : weather, grey);
     }
     return m;
   };
   const plain = (color, rough, metal = 0, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...extra });
 
+  /* Old window glass is dark from outside and the sky is in it: the
+   * reflection is lifted over three's physically plain one because a
+   * room behind the pane is darker than the black the glass is drawn
+   * as, which reads as a hole, and a pane seen from the street mostly
+   * shows the sky and the eaves. */
   const glass = () => new THREE.MeshPhysicalMaterial({
-    color: lin(0.012, 0.016, 0.02),
-    roughness: 0.05,
+    color: lin(0.02, 0.024, 0.028),
+    roughness: 0.03,
     metalness: 0,
     ior: 1.5,
     specularIntensity: 1,
+    envMapIntensity: 2.4,
   });
 
   /* The village, by villageMaterials' keys. */
   const village = () => ({
     stone: textured('stone', lin(0.95, 0.95, 0.95), { weather: true }),
-    render: textured('render', lin(0.86, 0.84, 0.8), { normal: 1.6, weather: true }),
-    larchDark: textured('boards', lin(0.72, 0.62, 0.55), { weather: true }),
-    larch: textured('boards', lin(1.2, 1.0, 0.82), { weather: true }),
-    honey: textured('boards', lin(2.1, 1.6, 1.0), { weather: true }),
-    weathered: textured('boards', lin(1.5, 1.45, 1.45), { weather: true }),
+    render: textured('render', lin(0.8, 0.78, 0.74), { normal: 1.6, weather: true }),
+    larchDark: textured('boards', lin(0.72, 0.62, 0.55), { weather: true, grey: 0.55 }),
+    larch: textured('boards', lin(1.2, 1.0, 0.82), { weather: true, grey: 0.7 }),
+    honey: textured('boards', lin(2.1, 1.6, 1.0), { weather: true, grey: 0.5 }),
+    weathered: textured('boards', lin(1.5, 1.45, 1.45), { weather: true, grey: 0.8 }),
     boardLine: textured('boards', lin(0.35, 0.3, 0.28)),
-    shingle: textured('shingle', lin(1.0, 0.97, 0.95)),
-    shingleDark: textured('shingle', lin(0.7, 0.66, 0.62)),
-    slate: textured('slate', lin(1.15, 1.15, 1.2)),
-    trim: textured('render', lin(0.92, 0.9, 0.87), { normal: 0.3 }),
+    shingle: textured('shingle', lin(1.0, 0.97, 0.95), { weather: 'roof', grey: 1 }),
+    shingleDark: textured('shingle', lin(0.7, 0.66, 0.62), { weather: 'roof', grey: 1 }),
+    slate: textured('slate', lin(1.15, 1.15, 1.2), { weather: 'roof', grey: 0.45 }),
+    trim: textured('render', lin(0.72, 0.7, 0.66), { normal: 0.3 }),
     glass: glass(),
     shutterGreen: textured('boards', lin(0.35, 1.1, 0.45), { normal: 0.6 }),
     shutterRed: textured('boards', lin(1.9, 0.45, 0.35), { normal: 0.6 }),
@@ -220,7 +264,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     fence: textured('boards', lin(1.35, 1.25, 1.15)),
     asphalt: textured('asphalt', lin(0.85, 0.85, 0.85)),
     gravel: textured('gravel', lin(0.8, 0.82, 0.85)),
-    cobble: textured('cobble', lin(1.0, 1.0, 1.0)),
+    cobble: textured('cobble', lin(1.0, 1.0, 1.0), { weather: 'paving' }),
     concrete: textured('concrete', lin(1.6, 1.6, 1.55)),
     paint: plain(lin(0.72, 0.72, 0.68), 0.55),
     signBlue: plain(lin(0.012, 0.06, 0.3), 0.4, 0.2),

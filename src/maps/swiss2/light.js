@@ -78,7 +78,31 @@ export const SUN_IRRADIANCE = 2.7 * 1.3;
  * is taken down to this fraction; its reflections, in glass and water,
  * are left at full strength so they still match the sky behind them.
  */
-const SKY_DIFFUSE = 0.75;
+const SKY_DIFFUSE = 0.62;
+
+/*
+ * The clouds. The photographed sky is a broken summer cumulus, and under
+ * a sky like that the valley is never lit evenly: the reference
+ * photographs all have a wall in shade next to one in sun and dark
+ * patches drifting over the floor. Their shadow is the one light here
+ * that changes (at the wind's speed, CLOUD_WIND m/s), and it takes the
+ * sun only: the sky still lights the ground under a cloud, which is why
+ * a cloud's shadow is blue and not black.
+ *
+ * CLOUD_COVER is the share of the ground in shadow; the size is the
+ * noise's scale in metres, a cloud a few hundred metres across; the depth
+ * is how much of the sun a cumulus stops. CLOUD_START is where the deck
+ * stands when the valley is first drawn, chosen (with the loop's views'
+ * cameras and times) so that no fixed view opens with its own foreground
+ * under a cloud: a view is judged once, and a picture that happens to
+ * start in shade says nothing about the valley it was meant to show.
+ */
+const CLOUD_BASE = 2600;
+const CLOUD_SIZE = 1100;
+const CLOUD_COVER = 0.36;
+const CLOUD_DEPTH = 0.82;
+const CLOUD_WIND = new THREE.Vector2(-7, 4);
+const CLOUD_START = new THREE.Vector2(1055, 3940);
 
 /* The terrain shadow is baked at this many texels a side over the field,
  * 5.9 m a texel. */
@@ -206,6 +230,31 @@ const LIT_PARS = /* glsl */ `
   varying vec3 vS2World;
   uniform highp sampler2D uS2Shadow;
   uniform vec2 uS2Field;
+  uniform vec2 uS2CloudAt;
+  uniform vec3 uS2SunDir;
+  float s2cHash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+  float s2cNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(s2cHash(i), s2cHash(i + vec2(1.0, 0.0)), u.x),
+               mix(s2cHash(i + vec2(0.0, 1.0)), s2cHash(i + vec2(1.0, 1.0)), u.x), u.y);
+  }
+  /* The clouds' shadow: a deck ${CLOUD_BASE} m up, its gaps and its
+   * clouds a fractal noise drifting with the wind, projected down the
+   * sun's direction so a wall and the floor under it agree. 1 in a gap,
+   * 1 - CLOUD_DEPTH under a cloud, with the soft edge a cloud's shadow has
+   * at that height. */
+  float s2Cloud(vec3 p) {
+    vec2 at = p.xz + uS2SunDir.xz * ((${CLOUD_BASE.toFixed(1)} - p.y) / max(uS2SunDir.y, 0.1));
+    vec2 q = (at + uS2CloudAt) / ${CLOUD_SIZE.toFixed(1)};
+    float n = s2cNoise(q) * 0.55 + s2cNoise(q * 2.03 + 5.2) * 0.28 + s2cNoise(q * 4.11 + 1.7) * 0.17;
+    return 1.0 - ${CLOUD_DEPTH.toFixed(3)} * smoothstep(${(1 - CLOUD_COVER - 0.07).toFixed(3)}, ${(1 - CLOUD_COVER + 0.07).toFixed(3)}, n);
+  }
   /* The sun past every ridge: 1 in the sun, 0 in a mountain's shadow,
    * with a penumbra as wide as the sun's disc makes it at the ridge's
    * distance (0.0093 rad across, so half of it either side). */
@@ -231,7 +280,7 @@ const LIT_VERTEX = /* glsl */ `
 `;
 
 const LIT_PRELUDE = /* glsl */ `
-  float s2Sun = s2TerrainSun(vS2World);
+  float s2Sun = s2TerrainSun(vS2World) * s2Cloud(vS2World);
   #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
     vec3 s2c = vDirectionalShadowCoord[ 0 ].xyz / vDirectionalShadowCoord[ 0 ].w;
     vec2 s2e = min(s2c.xy, 1.0 - s2c.xy);
@@ -260,6 +309,8 @@ export function makeLit() {
   const shared = {
     uS2Shadow: { value: null },
     uS2Field: { value: new THREE.Vector2(HALF, FIELD) },
+    uS2CloudAt: { value: new THREE.Vector2() },
+    uS2SunDir: { value: sunDirection() },
   };
   const loop = THREE.ShaderChunk.lights_fragment_begin;
   const find = 'getDirectionalLightInfo( directionalLight, directLight );';
@@ -273,6 +324,8 @@ export function makeLit() {
     }
     shader.uniforms.uS2Shadow = shared.uS2Shadow;
     shader.uniforms.uS2Field = shared.uS2Field;
+    shader.uniforms.uS2CloudAt = shared.uS2CloudAt;
+    shader.uniforms.uS2SunDir = shared.uS2SunDir;
     shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
     if (shader.vertexShader.includes('#include <project_vertex>')) {
       shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>\n${LIT_VERTEX}`);
@@ -298,6 +351,11 @@ export function makeLit() {
   const LIT_TYPES = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial', 'MeshToonMaterial']);
   lit.setShadow = (texture) => {
     shared.uS2Shadow.value = texture;
+  };
+  /* Where the clouds have drifted to, `seconds` after the valley was
+   * first drawn. */
+  lit.setClock = (seconds) => {
+    shared.uS2CloudAt.value.copy(CLOUD_START).addScaledVector(CLOUD_WIND, -seconds);
   };
   return lit;
   function lit(mat) {
