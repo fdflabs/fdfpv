@@ -107,6 +107,18 @@ function clumpGeometry() {
  * short, from there to VERGE[1] left to grow. */
 const VERGE = [4.9, 8.5];
 
+/* How far (x, z) is from the nearest of `lines` ({ ax, az, bx, bz }). */
+function fenceDist(x, z, lines) {
+  let best = Infinity;
+  for (const l of lines) {
+    const dx = l.bx - l.ax;
+    const dz = l.bz - l.az;
+    const t = Math.max(0, Math.min(1, ((x - l.ax) * dx + (z - l.az) * dz) / (dx * dx + dz * dz)));
+    best = Math.min(best, Math.hypot(x - l.ax - dx * t, z - l.az - dz * t));
+  }
+  return best;
+}
+
 /*
  * What the ground at (x, z) grows: the chance a clump stands, its height
  * in metres, and the share of flower clumps. Zero chance where nothing
@@ -209,7 +221,8 @@ function coverAt(x, z, heightAt, layout) {
    * hogweed and cow parsley, dock, nettles, knapweed. */
   const roadOff = Math.abs(x - (valleyAxis(z) + ROAD_DX));
   const verge = z > -2720 && z < ROAD_END + 4 && roadOff < VERGE[1] ? smoothstep(VERGE[0], VERGE[0] + 0.8, roadOff) : 0;
-  const margin = field && field.plateau < 0.2 && !layout.lakeWet(x, z) ? 1 - smoothstep(0.6, 1.2, field.edge) : 0;
+  const edge = Math.min(field ? field.edge : Infinity, fenceDist(x, z, layout.margins || []));
+  const margin = field && field.plateau < 0.2 && !layout.lakeWet(x, z) ? 1 - smoothstep(0.6, 1.2, edge) : 0;
   const wild = Math.max(verge, margin) * (1 - forest);
   if (wild > 0.5) {
     cover.h = Math.max(h, 0.55 + 0.25 * noise2(x / 9 + 1.7, z / 9 + 4.1));

@@ -77,6 +77,8 @@ export async function buildVegetation(ctx) {
   /* The gardens are the village's houses, not every wall the map has
    * noted: a hay hut in a field has no garden. */
   layout.gardens = ctx.gardens || layout.footprints;
+  /* The props' hand placed fence lines, whose grass is left long. */
+  layout.margins = ctx.margins || [];
   const group = new THREE.Group();
   group.name = 'swiss2-vegetation';
   const atlases = await loadAtlases();
