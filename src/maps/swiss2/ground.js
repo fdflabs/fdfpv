@@ -36,7 +36,7 @@
  */
 
 import * as THREE from 'three';
-import { FIELD, HALF, LAKE_Y, groundZone, groundPaths } from '../alps/terrain.js';
+import { FIELD, HALF, LAKE_Y, SIDE_Z, groundZone, groundPaths } from '../alps/terrain.js';
 import { LAYERS } from './assets.js';
 
 /* Per layer, in LAYERS order: metres a texture tile covers, a tint on
@@ -188,21 +188,26 @@ export function pathMask() {
   return dataTexture(r, PATH_PX, THREE.RedFormat);
 }
 
-const GROUND_PARS = /* glsl */ `
-  uniform sampler2D uS2Zone1;
-  uniform sampler2D uS2Zone2;
-  uniform sampler2D uS2Path;
-  uniform highp sampler2DArray uS2Col;
-  uniform highp sampler2DArray uS2Nrh;
-  uniform float uS2Tile[9];
-  uniform vec3 uS2Tint[9];
-  uniform float uS2Rough[9];
-  uniform float uS2Bump[9];
-  uniform float uS2LakeY;
-  uniform float uS2Strip;
-  uniform float uS2Only;
-  varying vec3 vS2WNormal;
-
+/*
+ * The valley floor's farming, shared with the meadow's blades (grass.js)
+ * so the grass drawn near the camera is the colour and the height of the
+ * field it stands in. s2Meadow(xz, dist) gives a multiplier for the
+ * grass's colour, how freshly mown the field is (0 to 1), and how much of
+ * a field boundary the point is on.
+ *
+ * What a Swiss floor is from the air: long parcels across the valley,
+ * split into strips each farmed on its own day. Hay meadows uncut
+ * (deep, blue green, flowering), cut this week (yellow, the windrows of
+ * drying hay in lines along the strip), grown back (a fresh even green);
+ * pastures darker, blotched where the cattle have grazed and not, with
+ * their trodden paths; the odd dry, burnt strip. Hedges and lines of
+ * scrub on some boundaries, a darker seam on the rest. The ground by the
+ * stream stays damp, darker and lusher, and is not mown. Over all of it
+ * a drift of hue a kilometre across, so no two ends of the valley are
+ * the same green. Every line finer than a pixel fades with distance
+ * rather than shimmering.
+ */
+export const MEADOW_GLSL = /* glsl */ `
   float s2Hash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -218,6 +223,132 @@ const GROUND_PARS = /* glsl */ `
   float s2Fbm(vec2 p) {
     return s2Noise(p) * 0.55 + s2Noise(p * 2.07 + 17.1) * 0.3 + s2Noise(p * 4.13 + 3.7) * 0.15;
   }
+  /* src/maps/alps/terrain.js streamX, for the damp ground along it. */
+  float s2StreamX(float z) {
+    float axis = 180.0 * sin(z / 1500.0) + 60.0 * sin(z / 430.0 + 1.2);
+    float t = (z - ${SIDE_Z.toFixed(1)}) / 3350.0;
+    float side = t < 0.25 ? 1.0 - t / 0.25 : 0.0;
+    return axis - 95.0 - 30.0 * sin(z / 260.0) + side * side * 700.0;
+  }
+
+  struct S2Meadow { vec3 tint; float mown; float edge; };
+
+  S2Meadow s2Meadow(vec2 xz, float dist) {
+    /* A pixel's width on the ground, near enough, for fading lines. */
+    float px = max(dist * 0.0011, 0.02);
+    /* Boundaries follow old walls and ditches, never a ruler: the
+     * parcel grid is warped a few metres by the noise. */
+    vec2 fq = mat2(0.97, -0.24, 0.24, 0.97) * xz;
+    fq.y += 28.0 * sin(fq.x / 260.0) + 12.0 * sin(fq.x / 97.0 + 1.3);
+    fq += 9.0 * vec2(s2Noise(xz / 70.0 + 2.0), s2Noise(xz / 63.0 + 9.0)) - 4.5;
+    float band = floor(fq.y / 150.0);
+    float inBand = fract(fq.y / 150.0);
+    /* Some parcels are split along their depth as well. */
+    float cutAt = 0.3 + 0.4 * s2Hash(vec2(band, 9.2));
+    float split = step(0.55, s2Hash(vec2(band, 5.7)));
+    float half2 = split * step(cutAt, inBand);
+    float across = split > 0.5 ? (half2 > 0.5 ? (inBand - cutAt) / (1.0 - cutAt) : inBand / cutAt) : inBand;
+    float depth = 150.0 * (split > 0.5 ? (half2 > 0.5 ? 1.0 - cutAt : cutAt) : 1.0);
+    vec2 bid = vec2(band, half2);
+    float pw = 22.0 + 60.0 * s2Hash(bid + 7.1);
+    float along = (fq.x + s2Hash(bid + 3.3) * pw) / pw;
+    vec2 fid = vec2(floor(along), band * 2.0 + half2);
+    float eAlong = (0.5 - abs(fract(along) - 0.5)) * pw;
+    float eAcross = (0.5 - abs(across - 0.5)) * depth;
+    float edge = min(eAlong, eAcross);
+
+    /* The plateau the strip and the village stand on (terrain.js holds
+     * it flat) is village greens and the strip's own grass: kept short
+     * and even, with no hedges and only a faint seam. */
+    float plateau = (1.0 - smoothstep(140.0, 340.0, abs(xz.y))) * (1.0 - smoothstep(150.0, 320.0, abs(xz.x + 60.0)));
+    float kind = s2Hash(fid + 4.4);
+    float lum = 0.94 + 0.12 * s2Hash(fid + 8.8);
+    vec3 tint;
+    float mown = 0.0;
+    float rowsDir = step(0.5, s2Hash(fid + 2.2));
+    /* Rows along the strip, or across it on some. */
+    float rowCoord = rowsDir > 0.5 ? fq.x : fq.y;
+    float rowFade = 1.0 - smoothstep(0.35, 0.9, px / 1.2);
+    if (kind < 0.28) {
+      /* Uncut hay: deep, bluish, flowering. */
+      float bloom = s2Fbm(xz / 6.0 + fid);
+      tint = mix(vec3(0.8, 0.9, 0.76), vec3(0.98, 0.98, 0.86), 0.35 * bloom);
+    } else if (kind < 0.5) {
+      /* Grown back after a cut: an even fresh green. */
+      tint = vec3(1.0, 1.04, 0.86);
+      mown = 0.55;
+    } else if (kind < 0.7) {
+      /* Cut this week: the stubble yellow, and the hay lying to dry in
+       * windrows. */
+      float row = 1.0 - smoothstep(0.08, 0.2, abs(fract(rowCoord / 5.5) - 0.5));
+      tint = mix(vec3(1.2, 1.12, 0.72), vec3(1.42, 1.22, 0.6), row * rowFade);
+      mown = 1.0;
+    } else if (kind < 0.93) {
+      /* Pasture: grazed short in patches, the rejected tufts darker,
+       * and the cattle's paths worn pale. */
+      float graze = s2Fbm(xz / 11.0 + fid * 3.1);
+      tint = mix(vec3(0.7, 0.8, 0.64), vec3(0.95, 1.0, 0.8), smoothstep(0.3, 0.7, graze));
+      vec2 w = xz + 14.0 * vec2(s2Noise(xz / 37.0), s2Noise(xz / 41.0 + 5.0));
+      float trod = 1.0 - smoothstep(0.35, 0.9, abs(fract(dot(w, vec2(0.6, 0.8)) / 23.0) - 0.5) * 23.0);
+      tint = mix(tint, vec3(1.08, 1.0, 0.8), 0.25 * trod * (1.0 - smoothstep(0.3, 0.8, px)));
+      mown = 0.7 * smoothstep(0.35, 0.65, graze);
+    } else {
+      /* A dry strip, burnt by a hot week on thin soil. */
+      tint = vec3(1.28, 1.12, 0.7);
+      mown = 0.8;
+    }
+    tint *= lum;
+
+    /* Damp ground along the stream: lusher, darker, left uncut. */
+    float sd = abs(xz.x - s2StreamX(xz.y)) + 25.0 * (s2Noise(xz / 45.0) - 0.5);
+    float damp = 1.0 - smoothstep(18.0, 75.0, sd);
+    tint = mix(tint, vec3(0.72, 0.86, 0.74), 0.75 * damp);
+    mown *= 1.0 - damp;
+
+    /* Hedges on some parcel ends and strip sides, broken by gaps, and a
+     * darker seam on every other boundary. A line narrower than a pixel
+     * is drawn a pixel wide at the contrast it would average to. */
+    float hedgeW = 3.5 + 2.5 * s2Noise(xz / 9.0);
+    float hedgeOn = step(0.5, s2Hash(vec2(band, half2 + 11.0))) * step(eAcross, eAlong)
+      + step(0.78, s2Hash(fid + 13.0)) * step(eAlong, eAcross);
+    hedgeOn *= step(0.3, s2Noise(xz / 23.0));
+    hedgeOn *= 1.0 - plateau;
+    float wide = max(hedgeW, px * 1.5);
+    float hedge = hedgeOn * (1.0 - smoothstep(wide * 0.6, wide, edge)) * (hedgeW / wide);
+    float seam = (1.0 - smoothstep(0.3, max(1.6, px * 1.5), edge)) * min(1.0, 1.6 / max(1.6, px * 1.5));
+    tint *= 1.0 - 0.12 * seam * (1.0 - 0.7 * plateau);
+    tint = mix(tint, vec3(0.5, 0.6, 0.42), 0.85 * clamp(hedge, 0.0, 1.0));
+
+    tint = mix(tint, vec3(1.0, 1.03, 0.88), 0.6 * plateau);
+
+    /* The drift of hue across the valley. */
+    float drift = s2Fbm(xz / 900.0 + 31.0);
+    tint *= mix(vec3(0.97, 1.0, 0.9), vec3(1.09, 1.02, 0.82), drift);
+
+    S2Meadow m;
+    m.tint = tint;
+    m.mown = mown;
+    m.edge = clamp(hedge + seam, 0.0, 1.0);
+    return m;
+  }
+`;
+
+const GROUND_PARS = /* glsl */ `
+  uniform sampler2D uS2Zone1;
+  uniform sampler2D uS2Zone2;
+  uniform sampler2D uS2Path;
+  uniform highp sampler2DArray uS2Col;
+  uniform highp sampler2DArray uS2Nrh;
+  uniform float uS2Tile[9];
+  uniform vec3 uS2Tint[9];
+  uniform float uS2Rough[9];
+  uniform float uS2Bump[9];
+  uniform float uS2LakeY;
+  uniform float uS2Strip;
+  uniform float uS2Only;
+  varying vec3 vS2WNormal;
+
+  ${MEADOW_GLSL}
   /* Value noise with its gradient, for relief the thirty metre grid
    * cannot hold. */
   vec3 s2NoiseD(vec2 p) {
@@ -426,30 +557,18 @@ const GROUND_PARS = /* glsl */ `
     vec3 hue = mix(vec3(0.92, 1.04, 0.86), vec3(1.1, 1.0, 0.78), meso);
     hue = mix(hue, vec3(1.16, 1.04, 0.72), z2.r * (1.0 - smoothstep(60.0, 300.0, p.y)) * 0.8);
     albedo *= mix(vec3(1.0), hue, grass);
-    /*
-     * The floor is farmed: a patchwork of meadows, each cut on its own
-     * day, so from the air it is fields of slightly different greens and
-     * the yellow of a fresh cut, with a darker seam where two meet and
-     * the mower's rows running along it. Fields are long parcels, as
-     * the valley's inheritance has cut them: bands across the valley a
-     * hundred and sixty metres deep, gently bent, each split into strips
-     * of its own width.
-     */
-    vec2 fq = mat2(0.97, -0.24, 0.24, 0.97) * p.xz;
-    fq.y += 28.0 * sin(fq.x / 260.0) + 12.0 * sin(fq.x / 97.0 + 1.3);
-    float band = floor(fq.y / 160.0);
-    float pw = 32.0 + 46.0 * s2Hash(vec2(band, 7.1));
-    float along = (fq.x + s2Hash(vec2(band, 3.3)) * pw) / pw;
-    vec2 fid = vec2(floor(along), band);
-    float edge = min((0.5 - abs(fract(along) - 0.5)) * pw, (0.5 - abs(fract(fq.y / 160.0) - 0.5)) * 160.0);
+    /* The farmed floor (MEADOW_GLSL), and on mown ground the rows the
+     * mower left, lighter looking down them and darker looking against
+     * the lie of the grass, so a field changes as the camera turns. */
     float farm = grass * (1.0 - smoothstep(50.0, 140.0, p.y)) * (1.0 - smoothstep(0.12, 0.3, tanS)) * (1.0 - cov[1]);
-    float kind = s2Hash(fid + 4.4);
-    vec3 fieldTint = kind < 0.5 ? vec3(1.0) : kind < 0.75 ? vec3(0.92, 0.97, 0.9) : kind < 0.93 ? vec3(1.08, 1.05, 0.86) : vec3(1.2, 1.12, 0.78);
-    float seam = 1.0 - smoothstep(0.3, 1.6, edge);
+    S2Meadow meadow = s2Meadow(p.xz, dist);
+    vec2 fq = mat2(0.97, -0.24, 0.24, 0.97) * p.xz;
     float rows = step(0.5, fract(fq.y / 3.6)) * 2.0 - 1.0;
-    float cut = kind > 0.75 ? 1.0 : 0.0;
-    vec3 farmTint = fieldTint * (1.0 + 0.04 * rows * max(cut, uS2Strip) * (1.0 - smoothstep(150.0, 600.0, dist))) * (1.0 - 0.1 * seam);
-    albedo *= mix(vec3(1.0), farmTint, max(farm, uS2Strip * grass));
+    vec2 look = normalize(p.xz - cameraPosition.xz + vec2(1e-3, 0.0));
+    float lie = rows * dot(look, vec2(0.97, -0.24));
+    float sheen = 1.0 + 0.035 * lie * max(smoothstep(0.8, 1.0, meadow.mown), uS2Strip) * (1.0 - smoothstep(120.0, 450.0, dist));
+    albedo *= mix(vec3(1.0), meadow.tint * sheen, farm);
+    albedo *= mix(1.0, sheen, uS2Strip * grass);
     /* Close to, a meadow is never one green: clover and trodden patches
      * a few metres across, some darker and bluer, some yellower. */
     /* And the gaps between the blades are dark: the photograph's own

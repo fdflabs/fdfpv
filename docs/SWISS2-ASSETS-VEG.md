@@ -88,6 +88,7 @@ soft sprites cycling in the shader.
 | `footprints` | optional | the buildings as `{ minX, minZ, maxX, maxZ }` boxes; the meadow keeps 2 m off each. Without them it keeps off a box round the village core |
 | `grassTint` | optional | `[r, g, b]` multiplier for the meadow, to meet the terrain splat's grass where the meadow fades out |
 | `windDir` | optional | `{ x, y }`, the direction the wind blows toward in the ground plane |
+| `sunDir` | optional | a unit `Vector3` toward the sun. The trees are filled only where they or their shadows are in the camera's view; without it a tree behind the camera casts no shadow into the view |
 | `mirrorHide` | optional | objects hidden while the lake's mirror renders (the preview hides the meadow) |
 | `mistLight` | optional | a `Color`, the flat light the mist is drawn in (linear) |
 | `layout` | optional | a shared `valleyLayout(heightAt, footprints)`, to work it out once for both builders |

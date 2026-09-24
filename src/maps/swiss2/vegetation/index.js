@@ -115,6 +115,7 @@ export async function buildVegetation(ctx) {
     fade: Q.fade,
     caps: { near: Q.capNear, mid: Q.capMid },
     group,
+    sunDir: ctx.sunDir,
   });
   /* The impostors, in chunks the camera's frustum can drop. */
   const cn = Math.ceil(FIELD / Q.chunk);
@@ -182,7 +183,7 @@ export async function buildVegetation(ctx) {
     time += Math.min(dtMs, 100) / 1000;
     wind.uTime.value = time;
     camera.getWorldPosition(cam);
-    lod.update(cam);
+    lod.update(camera);
     rocks.update(cam);
     if (grass) {
       grass.update(cam);

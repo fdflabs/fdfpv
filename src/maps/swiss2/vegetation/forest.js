@@ -23,8 +23,13 @@
  * impostors are static, every tree in the valley in a few big chunks,
  * and dissolve themselves out inside their band in the shader. The two
  * model levels are instanced meshes refilled from a grid of the trees
- * whenever the camera has moved a few metres; the bands overlap by a fade
- * width and the materials dissolve across it (plantmat.js).
+ * whenever the camera has moved a few metres or turned a few degrees;
+ * the bands overlap by a fade width and the materials dissolve across it
+ * (plantmat.js). Only the trees in the camera's view, or whose shadow
+ * falls into it, are filled: the meshes are not frustum culled as a whole
+ * (they span the camera), so without this every tree within the mid band,
+ * behind the camera too, was drawn once for the view and once for each
+ * shadow map, which was 7.6 M triangles over the waterfall's forest.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -243,9 +248,10 @@ function treeGrid(forest, cell) {
  * geometry; `mats` the materials: nearFoliage, nearBark, mid (and their
  * depth materials). `bands` is { near, mid } in metres: the near level
  * draws to near, the mid level from near to mid, each with `fade` of
- * overlap. Returns the meshes (added to `group`) and update(position).
+ * overlap. `sunDir` points toward the sun, for the shadows the view must
+ * keep. Returns the meshes (added to `group`) and update(camera).
  */
-export function forestLod({ forest, builds, mats, bands, fade, caps, group }) {
+export function forestLod({ forest, builds, mats, bands, fade, caps, group, sunDir }) {
   const grid = treeGrid(forest, 50);
   const nearOn = bands.near > 0;
   const levels = [];
@@ -278,6 +284,20 @@ export function forestLod({ forest, builds, mats, bands, fade, caps, group }) {
   const midFrom = Math.max(0, bands.near - fade);
   const reach = bands.mid + fade;
   const last = new THREE.Vector3(Infinity, 0, 0);
+  const lastDir = new THREE.Vector3();
+  const here = new THREE.Vector3();
+  const dir = new THREE.Vector3();
+  const frustum = new THREE.Frustum();
+  const viewProj = new THREE.Matrix4();
+  const sphere = new THREE.Sphere();
+  /* Where a tree's shadow falls, per metre of the tree's height: away
+   * from the sun, along the ground, at the sun's elevation. */
+  const shadowRun = new THREE.Vector3();
+  if (sunDir) {
+    const flat = Math.hypot(sunDir.x, sunDir.z);
+    const run = flat / Math.max(sunDir.y, 0.2);
+    shadowRun.set(-sunDir.x / flat, 0, -sunDir.z / flat).multiplyScalar(run);
+  }
   const put = (arr, k, t) => {
     const s = forest.s[t];
     const c = Math.cos(forest.yaw[t]) * s;
@@ -302,11 +322,35 @@ export function forestLod({ forest, builds, mats, bands, fade, caps, group }) {
   };
   let dropped = 0;
   const stats = { near: 0, mid: 0, dropped: 0 };
-  const update = (pos, force = false) => {
-    if (!force && pos.distanceToSquared(last) < 9) {
+  /*
+   * Whether tree t, `h` metres tall, or its shadow, is in the frustum: one
+   * sphere round the crown and the ground its shadow covers, grown by a
+   * margin so a camera turning between refills does not show the edge.
+   */
+  const seen = (t, h, d) => {
+    const x = forest.x[t];
+    const y = forest.y[t];
+    const z = forest.z[t];
+    const top = y + h;
+    const sx = x + shadowRun.x * h;
+    const sz = z + shadowRun.z * h;
+    sphere.center.set((x + sx) * 0.5, (y + top) * 0.5, (z + sz) * 0.5);
+    sphere.radius = 0.5 * Math.hypot(sx - x, h, sz - z) + 0.25 * h + 4 + 0.06 * d;
+    return frustum.intersectsSphere(sphere);
+  };
+  /* The camera's position and view: refilled when it has moved three
+   * metres or turned two degrees. */
+  const update = (camera, force = false) => {
+    const pos = camera.getWorldPosition(here);
+    camera.getWorldDirection(dir);
+    if (!force && pos.distanceToSquared(last) < 9 && dir.dot(lastDir) > 0.9994) {
       return;
     }
     last.copy(pos);
+    lastDir.copy(dir);
+    camera.updateMatrixWorld();
+    viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(viewProj);
     const nNear = new Uint32Array(levels.length);
     const nMid = new Uint32Array(levels.length);
     const { n, cell, start, items } = grid;
@@ -328,6 +372,9 @@ export function forestLod({ forest, builds, mats, bands, fade, caps, group }) {
             continue;
           }
           const v = forest.v[t];
+          if (!seen(t, VARIANTS[v].h * forest.s[t], d)) {
+            continue;
+          }
           const L = levels[v];
           if (nearOn && d < reachNear) {
             if (nNear[v] < caps.near) {

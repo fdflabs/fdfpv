@@ -41,6 +41,7 @@ import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
 import { STRIP_L, TREE_LINE, SNOW_LINE, forestDensity, treeLine } from '../../alps/terrain.js';
 import { ALPHA_CUT, GRASS_REGIONS } from './atlas.js';
 import { LEAF_SPEC_GLSL } from './plantmat.js';
+import { MEADOW_GLSL } from '../ground.js';
 
 const TILE = 16;
 const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3'];
@@ -201,6 +202,7 @@ export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap
         uniform vec4 uRegions[${REGION_KEYS.length}];
         uniform float uRadius;
         uniform vec3 uTint;
+        ${MEADOW_GLSL}
         varying vec3 vGrassTint;
         varying float vGrassUp;`)
       .replace('#include <uv_vertex>', `#include <uv_vertex>
@@ -216,6 +218,11 @@ export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap
          * of it, so the meadow thins out rather than stopping. */
         float edge = uRadius * (0.5 + 0.5 * fract(aClump.x * 12.9898 + aClump.z * 78.233));
         float grow = 1.0 - smoothstep(edge * 0.75, edge, gDist);
+        /* The field it stands in, as the ground paints it: its colour,
+         * and on the valley floor cut short where the field is mown. */
+        S2Meadow field = s2Meadow(aClump.xz, gDist);
+        float farmed = 1.0 - smoothstep(50.0, 140.0, aClump.y);
+        grow *= mix(1.0, 0.32, field.mown * farmed);
         vec3 p = position * vec3(aClump2.y, aClump2.x * grow, aClump2.y);
         vec3 transformed = aClump.xyz + vec3(gc * p.x + gs * p.z, p.y, -gs * p.x + gc * p.z);
         /* Wind: waves of gusts rolling across the meadow downwind, the
@@ -226,7 +233,7 @@ export function buildGrass({ heightAt, layout, atlas, wind, radius, spacing, cap
         bend += uv.y * aClump2.x * 0.06 * sin(uTime * 3.3 + aClump.x * 1.3 + aClump.z * 1.7);
         transformed.xz += uWindDir * bend;
         transformed.y -= abs(bend) * 0.35 * uv.y;
-        vGrassTint = uTint * aClump2.w;
+        vGrassTint = uTint * aClump2.w * mix(vec3(1.0), field.tint, farmed);
         vGrassUp = uv.y;
         if (grow <= 0.0) transformed = aClump.xyz;`)
       .replace('#include <project_vertex>', `
