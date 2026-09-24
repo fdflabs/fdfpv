@@ -33,8 +33,8 @@
  */
 
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -190,6 +190,17 @@ export async function openPage({
     `--user-data-dir=${userDataDir}`,
     'about:blank',
   ]);
+  /* THE PROFILE IS A FEW HUNDRED FILES AND UP TO 150 MB, and /tmp here is a
+   * tmpfs. Nothing removed it, so four hundred runs left 10.8 GB behind and
+   * filled the quota until no process could write a byte. close() removes
+   * it after Chrome has exited; this covers a run that throws or is killed
+   * before it gets there. */
+  const dropProfile = () => {
+    proc.kill();
+    rmSync(userDataDir, { recursive: true, force: true });
+  };
+  process.once('exit', dropProfile);
+
 
   let stderrBuf = '';
   const wsUrl = await new Promise((resolve, reject) => {
@@ -324,8 +335,14 @@ export async function openPage({
     try {
       ws.close();
     } catch (e) { /* The socket is already gone. Nothing to close. */ }
+    const exited = proc.exitCode !== null || proc.signalCode !== null
+      ? Promise.resolve()
+      : new Promise((done) => proc.once('exit', done));
     proc.kill();
+    await exited;
     await server.close();
+    process.removeListener('exit', dropProfile);
+    await rm(userDataDir, { recursive: true, force: true });
   }
 
   return {
