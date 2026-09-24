@@ -14,7 +14,11 @@ nothing; a flying wing has no rudder.
 It comes with the stabiliser on, the Stabilised tune: a gyro holds the
 wing, the roll stick asks for a bank, the pitch stick for a pitch, and
 centred sticks fly level. Under Quad, the Tune row switches to Manual,
-where the sticks are the elevons and nothing levels the wing for you.
+where the sticks are the elevons and nothing levels the wing for you, or
+to Acro, between the two: the sticks ask for a roll and a pitch rate as
+on a quad, nothing levels the wing and nothing limits the angle, but
+centred sticks hold the attitude you left it in, inverted included, so
+it does not drift.
 Fly the six below on Stabilised first, then again on Manual; the stall
 and the roll are the two that feel most different.
 

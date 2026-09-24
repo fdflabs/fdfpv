@@ -55,7 +55,15 @@ export const TUNES = [
     airframe: 'wing1000',
     name: 'Stabilised',
     note: 'A gyro holds the wing. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, and centred sticks fly level.',
-    wingStab: true,
+    wingStab: 1,
+  },
+  {
+    /* The stabiliser's acro mode, the same diff parsed and ignored. */
+    id: 'wing-acro',
+    airframe: 'wing1000',
+    name: 'Acro',
+    note: 'A gyro holds the wing where you leave it. Sticks ask for a roll rate up to 200 degrees a second and a pitch rate up to 100, and centred sticks hold the attitude: no levelling, no limits, no drift.',
+    wingStab: 2,
   },
   {
     /* The same diff, parsed and ignored, with the stabiliser off: the

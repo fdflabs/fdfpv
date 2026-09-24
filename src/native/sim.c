@@ -1363,13 +1363,17 @@ SIM_EXPORT int sim_wing_debug(double *out) {
   return SIM_OK;
 }
 
-/* The wing's stabiliser, on or off. Kept across resets, like the
- * airframe; the shell sets it from the tune. Additive. */
-SIM_EXPORT int sim_wing_set_stab(int on) {
+/* The wing's stabiliser: 0 off, 1 stabilised, 2 acro. Kept across
+ * resets, like the airframe; the shell sets it from the tune. Additive:
+ * 2 arrived after 0 and 1 and they mean what they did. */
+SIM_EXPORT int sim_wing_set_stab(int mode) {
   if (!g_initialised) {
     return SIM_ERR_BAD_STATE;
   }
-  plant_wing_set_stab(on);
+  if (mode < 0 || mode > 2) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_set_stab(mode);
   return SIM_OK;
 }
 

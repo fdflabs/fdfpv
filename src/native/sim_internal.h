@@ -322,7 +322,7 @@ void plant_wing_reset(void);
 void plant_wing_launch(SimState *s, double speed);
 void plant_wing_surfaces(double out[2]);
 void plant_wing_debug(double out[20]);
-void plant_wing_set_stab(int on);
+void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 
 /* Bridge: Betaflight control loop and config shim. */

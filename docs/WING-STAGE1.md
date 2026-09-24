@@ -131,6 +131,24 @@ roll, 5.0 and 0.5 in pitch through the 12 deg throw), then goes through
 the same throws and expo as a hand. Centred sticks fly level. The gates
 above are flown with it off; scripts/wing-stab-selftest.js checks it on.
 
+Acro: the stabiliser's second mode, the Acro tune. Sticks ask for a body
+rate, up to 200 deg/s of roll and 100 deg/s of nose up pitch with 0.3
+expo past the same 4 percent deadband, and a target attitude advances by
+that rate every step. The loop flies the wing onto the target: 3.0 stick
+per rad of roll error, 0.25 per rad/s of rate error and 0.30 per rad/s
+of feedforward; 5.0, 0.5 and 0.40 in pitch; an integral of 4.0 in roll
+and 8.0 in pitch per rad s, clamped at 0.3 stick. Centred sticks stop
+the target, so the wing holds the attitude it is in, at any angle and
+inverted, with nothing to drift. Yaw is not held, since there is no
+rudder: the target turns its heading with the wing's own turn about the
+world vertical, weighted by how level the nose is so a vertical line
+keeps its roll lock, and only roll and pitch error is flown. The error
+is clamped at 5 deg, which keeps the target from running ahead of a
+wing rolling at full rate: at 20 deg the wing stopped 13 deg past where
+the stick was centred, at 5 deg about 4. The integral is what holds a
+banked wing's bank against its own sideslip roll, which a proportional
+term alone let creep 5 deg in 3 s.
+
 Motor: duty d from the throttle stick, floored at 0.02 so the prop never
 stops on screen, thrust T = T_s d² (1 − V / (V_p d)) clipped at zero, rpm
 for the renderer and the sound = 0.85 d rpm_no_load.

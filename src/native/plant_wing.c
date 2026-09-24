@@ -110,6 +110,43 @@ static const double W_STAB_ROLL_KD = 0.12;  /* stick per rad/s of roll rate */
 static const double W_STAB_PITCH_KP = 5.0;  /* stick per rad of pitch error, through the 12 degree throw */
 static const double W_STAB_PITCH_KD = 0.5;  /* stick per rad/s of pitch rate */
 
+/*
+ * ACRO, the stabiliser's second mode: sticks ask for a rotation rate, as
+ * on a quad, and centred sticks hold the attitude the wing is in, with no
+ * self levelling and no angle limits. A target attitude advances by the
+ * commanded rate each step and the loop flies the wing onto it, so there
+ * is nothing to drift: trim, prop torque and gusts all show up as an
+ * error against a target that is not moving. Yaw is left out, because a
+ * flying wing has no rudder: the target is rebuilt from the real attitude
+ * plus only its roll and pitch error every step, so heading follows the
+ * wing through a turn. The error is clamped so the target cannot run far
+ * ahead of a wing that cannot keep up, which is what would otherwise make
+ * a stop overshoot. The same idea as ArduPlane's ACRO with ACRO_LOCKING.
+ */
+static const double W_ACRO_ROLL_RATE = 200.0 * WING_PI / 180.0;  /* rad/s at full stick */
+static const double W_ACRO_PITCH_RATE = 100.0 * WING_PI / 180.0; /* rad/s at full stick, nose up */
+static const double W_ACRO_EXPO = 0.30;
+static const double W_ACRO_ERR_MAX = 5.0 * WING_PI / 180.0;
+static const double W_ACRO_ROLL_KP = 3.0;   /* stick per rad of roll error */
+static const double W_ACRO_ROLL_KD = 0.25;  /* stick per rad/s of roll rate error */
+static const double W_ACRO_ROLL_FF = 0.30;  /* stick per rad/s asked for */
+static const double W_ACRO_PITCH_KP = 5.0;  /* stick per rad of pitch error, through the 12 degree throw */
+static const double W_ACRO_PITCH_KD = 0.5;  /* stick per rad/s of pitch rate error */
+static const double W_ACRO_PITCH_FF = 0.40; /* stick per rad/s asked for */
+/* The integral is what makes a held bank stay held: a banked wing rolls on
+ * its own through sideslip, and a proportional loop answers a steady
+ * moment only with a steady error, which is a slow drift. Clamped so a
+ * wing held off target on the ground or in a stall does not wind it up. */
+static const double W_ACRO_ROLL_KI = 4.0;   /* stick per rad s of roll error */
+static const double W_ACRO_PITCH_KI = 8.0;  /* stick per rad s of pitch error */
+static const double W_ACRO_I_MAX = 0.30;    /* stick */
+/* The target, body to world like SimState.quat. Taken from the wing on the
+ * first acro step after a reset or a mode change. */
+static double g_acro_q[4] = { 1.0, 0.0, 0.0, 0.0 };
+static int g_acro_held = 0;
+static double g_acro_i_roll = 0.0;
+static double g_acro_i_pitch = 0.0;
+
 /* What the last step saw and did, for the gates and for anyone chasing a
  * sign: alpha, beta, qbar, CL, CD, l m n (aero), thrust, F body x y z,
  * M body x y z, u v w. */
@@ -200,8 +237,12 @@ static void wing_attitude(const double q[4], double *pitch, double *bank) {
   *bank = sim_atan2(byz, bzz);
 }
 
-void plant_wing_set_stab(int on) {
-  g_stab = on ? 1 : 0;
+/* 0 off, 1 stabilised, 2 acro. The caller has range checked it. */
+void plant_wing_set_stab(int mode) {
+  if (mode != g_stab) {
+    g_acro_held = 0;
+  }
+  g_stab = mode;
 }
 
 int plant_wing_stab(void) {
@@ -211,6 +252,101 @@ int plant_wing_stab(void) {
 void plant_wing_reset(void) {
   g_elevon_left = 0.0;
   g_elevon_right = 0.0;
+  g_acro_held = 0;
+}
+
+static double acro_shape(double x) {
+  const double d = deadband1(x);
+  return d * d * d * W_ACRO_EXPO + d * (1.0 - W_ACRO_EXPO);
+}
+
+/* Acro: roll and pitch stick in, the stick that flies the wing onto the
+ * advancing target out. Body axes: x forward, y left, so a right roll is
+ * +omega[0] and nose up is -omega[1]. */
+static void acro_sticks(const SimState *s, double *roll, double *pitch) {
+  if (!g_acro_held) {
+    for (int i = 0; i < 4; i += 1) {
+      g_acro_q[i] = s->quat[i];
+    }
+    g_acro_held = 1;
+    g_acro_i_roll = 0.0;
+    g_acro_i_pitch = 0.0;
+  }
+  const double rate_roll = W_ACRO_ROLL_RATE * acro_shape(*roll);
+  const double rate_up = W_ACRO_PITCH_RATE * acro_shape(*pitch);
+
+  /* Turn the target's heading with the wing's own. A banked wing turns
+   * about the world vertical, not its yaw axis, and a heading the wing
+   * cannot hold would otherwise read as roll and pitch error and fight
+   * the turn. Weighted by how level the nose is, because with the nose
+   * straight up the world vertical is the roll axis, and following it
+   * there would let the roll drift. */
+  double wv[3];
+  wquat_rotate(s->quat, s->omega, wv);
+  const double fwd[3] = { 1.0, 0.0, 0.0 };
+  double fw[3];
+  wquat_rotate(s->quat, fwd, fw);
+  const double level = fw[0] * fw[0] + fw[1] * fw[1];
+  const double h = 0.5 * WING_DT;
+  const double rz[4] = { 1.0, 0.0, 0.0, level * wv[2] * h };
+  double tz[4];
+  wquat_mul(rz, g_acro_q, tz);
+
+  /* Advance the target by the asked rate, in its own body frame. */
+  const double dq[4] = { 1.0, rate_roll * h, -rate_up * h, 0.0 };
+  double t[4];
+  wquat_mul(tz, dq, t);
+
+  /* The error, target relative to the wing, as a body frame rotation
+   * vector: e = axis * angle of conj(q) * t, taken the short way round. */
+  const double qc[4] = { s->quat[0], -s->quat[1], -s->quat[2], -s->quat[3] };
+  double qe[4];
+  wquat_mul(qc, t, qe);
+  if (qe[0] < 0.0) {
+    for (int i = 0; i < 4; i += 1) {
+      qe[i] = -qe[i];
+    }
+  }
+  const double vn = sim_sqrt(qe[1] * qe[1] + qe[2] * qe[2] + qe[3] * qe[3]);
+  const double k = vn > 1e-12 ? 2.0 * sim_atan2(vn, qe[0]) / vn : 2.0;
+  double ex = qe[1] * k;
+  double ey = qe[2] * k;
+  const double en = sim_sqrt(ex * ex + ey * ey);
+  if (en > W_ACRO_ERR_MAX) {
+    ex *= W_ACRO_ERR_MAX / en;
+    ey *= W_ACRO_ERR_MAX / en;
+  }
+
+  /* Rebuild the target from the wing and the roll and pitch error alone,
+   * which drops the yaw a wing cannot hold and the error past the clamp.
+   * The half angle is at most ten degrees, inside sim_sin_small's range. */
+  const double ea = sim_sqrt(ex * ex + ey * ey);
+  if (ea > 1e-12) {
+    const double sh = sim_sin_small(0.5 * ea) / ea;
+    const double r[4] = { sim_cos_small(0.5 * ea), ex * sh, ey * sh, 0.0 };
+    wquat_mul(s->quat, r, g_acro_q);
+  } else {
+    for (int i = 0; i < 4; i += 1) {
+      g_acro_q[i] = s->quat[i];
+    }
+  }
+  const double n = sim_sqrt(g_acro_q[0] * g_acro_q[0] + g_acro_q[1] * g_acro_q[1] +
+                            g_acro_q[2] * g_acro_q[2] + g_acro_q[3] * g_acro_q[3]);
+  for (int i = 0; i < 4; i += 1) {
+    g_acro_q[i] /= n;
+  }
+
+  g_acro_i_roll += W_ACRO_ROLL_KI * ex * WING_DT;
+  g_acro_i_pitch += W_ACRO_PITCH_KI * -ey * WING_DT;
+  if (g_acro_i_roll > W_ACRO_I_MAX) g_acro_i_roll = W_ACRO_I_MAX;
+  if (g_acro_i_roll < -W_ACRO_I_MAX) g_acro_i_roll = -W_ACRO_I_MAX;
+  if (g_acro_i_pitch > W_ACRO_I_MAX) g_acro_i_pitch = W_ACRO_I_MAX;
+  if (g_acro_i_pitch < -W_ACRO_I_MAX) g_acro_i_pitch = -W_ACRO_I_MAX;
+
+  *roll = clamp1(W_ACRO_ROLL_KP * ex + g_acro_i_roll + W_ACRO_ROLL_KD * (rate_roll - s->omega[0]) +
+                 W_ACRO_ROLL_FF * rate_roll);
+  *pitch = clamp1(W_ACRO_PITCH_KP * -ey + g_acro_i_pitch + W_ACRO_PITCH_KD * (rate_up + s->omega[1]) +
+                  W_ACRO_PITCH_FF * rate_up);
 }
 
 void plant_wing_surfaces(double out[2]) {
@@ -233,7 +369,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double pitch = rc[1];
   const double throttle = rc[3];
 
-  if (g_stab) {
+  if (g_stab == 2) {
+    acro_sticks(s, &roll, &pitch);
+  } else if (g_stab == 1) {
     double pitch_att, bank;
     wing_attitude(s->quat, &pitch_att, &bank);
     const double bank_t = W_STAB_BANK_MAX * deadband1(roll);

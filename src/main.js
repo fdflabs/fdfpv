@@ -6904,11 +6904,11 @@ export async function boot({ loading, bootStart, mapId }) {
     if (shell.cameraMount) {
       shell.cameraMount.rotation.x = cameraTiltRad(camTilt);
     }
-    /* The wing's stabiliser follows the seated tune: on for a tune that
-     * says so, off otherwise. Compared here rather than pushed from every
+    /* The wing's stabiliser follows the seated tune: the mode the tune
+     * names, off otherwise. Compared here rather than pushed from every
      * place the tune changes, because there are five of those. */
     if (typeof sim.e.sim_wing_set_stab === 'function') {
-      const wantStab = tuneById(configId).wingStab ? 1 : 0;
+      const wantStab = tuneById(configId).wingStab || 0;
       if (wantStab !== wingStabApplied && sim.e.sim_wing_set_stab(wantStab) === SIM_OK) {
         wingStabApplied = wantStab;
       }
