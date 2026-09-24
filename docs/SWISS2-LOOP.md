@@ -118,3 +118,47 @@ Round 2 goes after colour and atmosphere (every frame is a saturated,
 evenly lit green where the references are muted, hazed blue grey with
 distance and lit unevenly under cloud), the village (stuck at 3), and
 the ruler straight patchwork with its lollipop trees.
+
+### Round 2 (PRs #17 and #18, main at f730e7b)
+
+Two agents in parallel: 2b the waterfall, the lake and the peaks; 2 the
+colour and atmosphere, the village's materials, the patchwork and the
+lone trees. Round 2 found the views never pinned their field of view
+(the parked camera took the pilot's 100 degrees at a load dependent
+moment); `__setCam` now takes the fov and the views pass 44, which
+earlier rounds were shot at. Colour measured against the photographs
+(tools/swiss2-loop/colour.py): saturation 0.36 to 0.32 (photos 0.32),
+greens 0.42 to 0.38 (0.37), far blue shift now matching.
+
+| View | R1 | R2 | The tell now |
+| --- | --- | --- | --- |
+| strip | 4 | 4.5 | the strip's own lawn |
+| vista-high | 5.5 | 6 | the walls are one texture from top to floor |
+| cruise | 5.5 | 6 | the same |
+| village-20m | 3 | 3.5 | box houses, now weathered |
+| square-eye | 3 | 3 | box houses |
+| meadow-eye | 4 | 4.5 | the treeline is a single row |
+| east-wall | 5 | 5.5 | the forest wall is uniform |
+| lake-shore | 4 | 4 | a roadside |
+| lake-high | 4.5 | 5.5 | good; streaks a little regular |
+| waterfall | 3.5 | 4.5 | falls straight into a round mist |
+| into-sun | 5 | 5 | the floor toward the sun is pale |
+| farm-low | 4 | 4 | the floor behind the near grass |
+| lake-edge | 4 | 4.5 | no reeds, a plain shore |
+
+Mean of the thirteen: 4.23 to 4.65. Gate held: no view lower, the
+most calls 289 (vista-high) and triangles 2.32 M (waterfall), alps
+fingerprint unchanged (scripts/scene-fingerprint.js, committed).
+
+Decision, the first wall (the owner is away and asked for no check ins):
+the village cannot pass about 3.5 while its houses are boxes, and their
+shapes are built in src/maps/alps/kit.js, which the cel alps shares.
+Round 3 builds a swiss2 only building kit behind a style hook in kit.js,
+with alps proven unchanged by the fingerprint.
+
+Round 3, a parallel team with shared budget (each agent at most +3 draw
+calls and +50 k triangles per view unless it frees as much elsewhere):
+buildings (the kit), sky and atmosphere (low cloud in the valley and on
+the walls, the pale floor into the sun, the walls' uniformity with
+height), and the floor and forest detail (forest structure and edges,
+hay huts, fences, bales, the stream's rocky banks, a reed bank).
