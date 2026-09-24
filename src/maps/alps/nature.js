@@ -31,7 +31,7 @@ import { celMaterial } from '../../render/celmat.js';
 import { noise2, smoothstep } from './noise.js';
 import { ribbon } from './ribbon.js';
 import {
-  FIELD, HALF, STRIP_L, STRIP_W, LAKE_Z, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,
+  FIELD, HALF, STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,
   TREE_LINE, SNOW_LINE, streamX, treeLine, forestDensity,
 } from './terrain.js';
 
@@ -60,7 +60,9 @@ function tinted(geo, hex) {
   return g;
 }
 
-function trunk(r0, r1, h, hex, sides = 5) {
+/* Four sides for a conifer's trunk, which shows only below the first
+ * tier; the triangles go to the tiers. */
+function trunk(r0, r1, h, hex, sides = 4) {
   const g = new THREE.CylinderGeometry(r0, r1, h, sides, 1, true);
   g.translate(0, h / 2, 0);
   return tinted(g, hex);
@@ -77,7 +79,11 @@ function tier(y, r, h, turn, hex) {
 }
 
 /* A canopy blob with smooth normals, so it shades as one round mass with
- * a curved band edge rather than as a crumple of facets. */
+ * a curved band edge rather than as a crumple of facets. Twenty faces
+ * a blob: a crown is five of them, and with smooth normals the cel
+ * bands round them off. At eighty faces, the next subdivision, the
+ * beeches alone were a hundred and eighteen thousand triangles in view
+ * at the strip, a fifth of the whole budget. */
 function blob(r, detail, x, y, z, hex) {
   let g = new THREE.IcosahedronGeometry(r, detail);
   g = mergeVertices(g);
@@ -93,7 +99,7 @@ const merge = (parts) => mergeGeometries(parts, false);
  * nominal height that the instance scales. Spruce: a dark tree of four
  * close tiers over a short bare trunk, sixteen metres, and a squat
  * three tier one. Larch: taller, thinner, lighter and looser, the trunk
- * showing between the tiers. Beech: a trunk and a crown of four blobs.
+ * showing between the tiers. Beech: a trunk and a crown of five blobs.
  */
 function spruceTall() {
   return merge([
@@ -124,8 +130,9 @@ function larch() {
 function beech() {
   return merge([
     trunk(0.3, 0.46, 4.4, 0x5b4230, 6),
-    blob(2.9, 1, 0, 6.3, 0, 0x4d8c3a),
-    blob(2.1, 1, -1.5, 7.6, 0.6, 0x5a9c44),
+    blob(2.9, 0, 0, 6.3, 0, 0x4d8c3a),
+    blob(2.1, 0, -1.5, 7.6, 0.6, 0x5a9c44),
+    blob(2.0, 0, 1.4, 7.3, 1.1, 0x55963f),
     blob(1.7, 0, 1.6, 7.9, -0.8, 0x62a64a),
     blob(1.5, 0, 0.3, 8.9, 1.2, 0x69ad4e),
   ]);
@@ -194,8 +201,8 @@ function ring(outer, inner, y) {
 }
 
 /* A rowing boat: a lathed hull open at the top, two thwarts and a keel
- * strip, three and a half metres long, in the village's timber. */
-function rowingBoat(mats) {
+ * strip, three and a half metres long, in the jetty's timber. */
+function rowingBoat(mats, timber) {
   const g = new THREE.Group();
   const hull = new THREE.LatheGeometry([
     new THREE.Vector2(0.03, 0),
@@ -214,7 +221,7 @@ function rowingBoat(mats) {
     seat.position.set(0, 0.36, z);
     g.add(seat);
   }
-  const keel = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 3.4), mats.timberDark);
+  const keel = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 3.4), timber);
   keel.position.y = -0.02;
   g.add(keel);
   return g;
@@ -233,20 +240,74 @@ export async function buildNature(ctx) {
     const sz = (heightAt(x, z + 10) - heightAt(x, z - 10)) / 20;
     return { sx, sz, s: Math.hypot(sx, sz) };
   };
-  /* Where nothing grows: the strip and its approaches, the village
-   * plateau, the road with its verges and the street. The plateau's
-   * box is the brief's; the garden trees are placed by hand inside it. */
+  /*
+   * The side valley's trough, which the stream follows up to the fall,
+   * and the cliff band the fall drops over. The band runs along the
+   * hanging valley's lip, its foot twenty metres short of LIP_DX and its
+   * top the ground thirty metres past it, with a level ledge between
+   * the two over the slope the heightfield can hold. It is full height
+   * across the side valley and dies away into the hillside either side
+   * as the lip does, so its ends are the lip's own ends. faceDx is how
+   * far out from the axis the face stands at z, wandering a little.
+   */
+  const trough = (dx) => SIDE_Z + 10 * smoothstep(700, 1000, dx) + 6 * Math.sin(dx / 60);
+  const fallZ = trough(POOL.dx + POOL.r);
+  const BAND = 430;
+  const inBand = (z) => Math.abs(z - fallZ) < BAND;
+  const faceDx = (z) => LIP_DX - 20 + 7 * (noise2(z / 45 + 3.3, 8.1) - 0.5);
+  const BACK_DX = LIP_DX + 30;
+  const bandTop = (z, foot) => {
+    const full = heightAt(valleyAxis(z) + BACK_DX, z);
+    const w = smoothstep(0.35, 0.75, Math.exp(-Math.pow((z - SIDE_Z) / 420, 2)));
+    return foot + Math.max(0, full - foot) * w;
+  };
+  /* The ground with the ledge on it: what the stream above the fall
+   * lies on. */
+  const groundAt = (x, z) => {
+    const h = heightAt(x, z);
+    const dx = x - valleyAxis(z);
+    if (!inBand(z) || dx < faceDx(z) || dx > BACK_DX) {
+      return h;
+    }
+    return Math.max(h, bandTop(z, heightAt(valleyAxis(z) + faceDx(z), z)));
+  };
+  const lipY = bandTop(fallZ, heightAt(valleyAxis(fallZ) + faceDx(fallZ), fallZ));
+  const fallX = valleyAxis(fallZ) + faceDx(fallZ);
+
+  /*
+   * Where nothing grows: the strip and its approaches, the road with its
+   * verges, the street out to it, the headwall and its ledge, the pool,
+   * and the village. The village is built after this module, so its
+   * footprints cannot be read here; the two boxes are drawn round what
+   * village.js stands: every house, the
+   * square, the street and its lanes, both western farms with their
+   * yards and pastures, and the hangar, and the eastern farm up the
+   * valley. Measured off its wall colliders, the furthest of which are
+   * at x -334 and z 312, and x 235, z 491 for the eastern farm; each box
+   * is at least fifteen metres clear of them so no canopy reaches a
+   * roof.
+   */
+  const eastFarm = { x: valleyAxis(450) + 105, z: 468 };
   const keepOff = (x, z) => {
     if (Math.abs(x) < STRIP_W / 2 + 25 && Math.abs(z) < STRIP_L / 2 + 70) {
       return true;
     }
-    if (x > -320 && x < 60 && z > -260 && z < 260) {
+    if (x > -355 && x < 85 && z > -320 && z < 350) {
       return true;
     }
-    if (z > -2720 && z < 1980 && Math.abs(x - (valleyAxis(z) + 55)) < 9) {
+    if (Math.abs(x - eastFarm.x) < 75 && Math.abs(z - eastFarm.z) < 70) {
       return true;
     }
-    return Math.abs(z - 115) < 8 && x < valleyAxis(115) + 70 && x > -215;
+    if (inBand(z) && x - valleyAxis(z) > faceDx(z) - 30 && x - valleyAxis(z) < BACK_DX + 6) {
+      return true;
+    }
+    if (Math.hypot(x - valleyAxis(POOL.z) - POOL.dx, z - POOL.z) < POOL.r + 12) {
+      return true;
+    }
+    if (Math.abs(z - 115) < 8 && x < valleyAxis(115) + 70 && x > -215) {
+      return true;
+    }
+    return z > -2720 && z < 1980 && Math.abs(x - (valleyAxis(z) + 55)) < 9;
   };
   const near = (x, z) => Math.hypot(x, z) < COLLIDE_R;
 
@@ -260,8 +321,8 @@ export async function buildNature(ctx) {
    * sheets that do not write depth, so the ink pass draws the shore
    * once, from the body.
    */
-  const lakeCx = valleyAxis(LAKE_Z);
-  const lakeCz = (LAKE_Z - 800 + LAKE_END) / 2;
+  const lakeCz = (LAKE_N + LAKE_END) / 2;
+  const lakeCx = valleyAxis(lakeCz);
   const RAYS = 144;
   const shore = [];
   const wet = [];
@@ -308,12 +369,21 @@ export async function buildNature(ctx) {
 
   /* Reeds in the shallows, in clumps, thick round the sheltered east and
    * west shores and thin where the jetty and the path are. */
-  const bladeGeo = new THREE.ConeGeometry(0.06, 1, 4, 1, true);
-  bladeGeo.translate(0, 0.5, 0);
-  const headGeo = new THREE.ConeGeometry(0.07, 0.42, 4, 1);
+  /* A blade is two crossed triangles and a head a three sided spike:
+   * there are three and a half thousand blades, and as four sided cones
+   * they were twenty seven thousand triangles for something a few
+   * pixels wide. */
+  const bladeGeo = new THREE.BufferGeometry();
+  bladeGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+    -0.06, 0, 0, 0.06, 0, 0, 0, 1, 0,
+    0, 0, -0.06, 0, 0, 0.06, 0, 1, 0,
+  ], 3));
+  bladeGeo.computeVertexNormals();
+  const headGeo = new THREE.ConeGeometry(0.07, 0.42, 3, 1, true);
   headGeo.translate(0, 0.21, 0);
   const blades = [[], []];
   const heads = [];
+  const tip = new THREE.Vector3();
   let reedClumps = 0;
   for (let k = 0; k < 4000 && reedClumps < 420; k += 1) {
     const s = shore[Math.floor(rng() * RAYS)];
@@ -339,30 +409,39 @@ export async function buildNature(ctx) {
       const hh = 1.1 + rng() * 0.8;
       const lean = 0.05 + rng() * 0.2;
       const la = rng() * Math.PI * 2;
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(lean * Math.sin(la), 0, -lean * Math.cos(la)));
-      blades[b % 2].push({ x: x + Math.cos(a) * rr, y: LAKE_Y - d, z: z + Math.sin(a) * rr, quat: q, sx: 1, sy: hh, sz: 1 });
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(lean * Math.sin(la), rng() * Math.PI, -lean * Math.cos(la), 'YXZ'));
+      const rx = x + Math.cos(a) * rr;
+      const rz = z + Math.sin(a) * rr;
+      blades[b % 2].push({ x: rx, y: LAKE_Y - d, z: rz, quat: q, sx: 1, sy: hh, sz: 1 });
       if (rng() < 0.3) {
-        heads.push({ x: x + Math.cos(a) * rr + Math.sin(la) * lean * hh * 0.5, y: LAKE_Y - d + hh * 0.97, z: z + Math.sin(a) * rr - Math.cos(la) * lean * hh * 0.5, quat: q, sx: 1, sy: 1, sz: 1 });
+        tip.set(0, hh * 0.97, 0).applyQuaternion(q);
+        heads.push({ x: rx + tip.x, y: LAKE_Y - d + tip.y, z: rz + tip.z, quat: q, sx: 1, sy: 1, sz: 1 });
       }
     }
   }
-  scene.add(instanced(bladeGeo, celMaterial({ color: 0x86a34e, rim: 0.1 }), blades[0], 'reeds'));
-  scene.add(instanced(bladeGeo, celMaterial({ color: 0x6b8a3c, rim: 0.1 }), blades[1], 'reeds-deep'));
-  scene.add(instanced(headGeo, celMaterial({ color: 0x6b4e2e, rim: 0.1 }), heads, 'reed-heads'));
+  scene.add(instanced(bladeGeo, celMaterial({ color: 0x86a34e, rim: 0.1, side: THREE.DoubleSide }), blades[0], 'reeds'));
+  scene.add(instanced(bladeGeo, celMaterial({ color: 0x6b8a3c, rim: 0.1, side: THREE.DoubleSide }), blades[1], 'reeds-deep'));
+  scene.add(instanced(headGeo, celMaterial({ color: 0x6b4e2e, rim: 0.1, side: THREE.DoubleSide }), heads, 'reed-heads'));
 
   /*
    * THE JETTY, off the north shore in line with the road, with a boat
-   * tied up alongside and another pulled up on the gravel; and the
-   * shore path along the north shore either side of it.
+   * tied up alongside and another pulled up on the gravel; the shore
+   * path along the north shore either side of it, and a gravel track on
+   * from where the road ends to the jetty's foot. ROAD_END is where
+   * village.js stops the road.
    */
-  const jettyX = valleyAxis(LAKE_Z - 800) + 55;
-  let jettyZ = LAKE_Z - 900;
-  while (heightAt(jettyX, jettyZ) > LAKE_Y && jettyZ < LAKE_Z) {
+  const ROAD_END = 1950;
+  const jettyX = valleyAxis(ROAD_END) + 55;
+  let jettyZ = ROAD_END;
+  while (heightAt(jettyX, jettyZ) > LAKE_Y && jettyZ < LAKE_END) {
     jettyZ += 1;
   }
   const deckY = LAKE_Y + 0.75;
+  /* The village's materials have no dark timber, and a missing one draws
+   * as three's default white, which is what the deck did. */
+  const timber = celMaterial({ color: 0x5b4632, rim: 0.1 });
   const jetty = new THREE.Group();
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.14, 24), mats.timberDark);
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.14, 24), timber);
   deck.position.set(0, deckY, 6);
   deck.castShadow = true;
   jetty.add(deck);
@@ -374,16 +453,16 @@ export async function buildNature(ctx) {
       jetty.add(post);
     }
   }
-  const bollard = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.7, 6), mats.timberDark);
+  const bollard = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.7, 6), timber);
   bollard.position.set(0.8, deckY + 0.4, 17.5);
   jetty.add(bollard);
   jetty.position.set(jettyX, 0, jettyZ);
   scene.add(jetty);
-  const moored = rowingBoat(mats);
+  const moored = rowingBoat(mats, timber);
   moored.position.set(jettyX + 2.3, LAKE_Y - 0.1, jettyZ + 12);
   moored.rotation.y = 0.08;
   scene.add(moored);
-  const beached = rowingBoat(mats);
+  const beached = rowingBoat(mats, timber);
   const bx = jettyX - 14;
   const bz = jettyZ - 6;
   beached.position.set(bx, heightAt(bx, bz) + 0.1, bz);
@@ -397,6 +476,12 @@ export async function buildNature(ctx) {
   }
   const gravelMat = celMaterial({ color: 0xb8ad95, rim: 0 });
   scene.add(ribbon(shorePath, 2, 0.06, heightAt, gravelMat).mesh);
+  const track = [];
+  for (let z = ROAD_END - 4; z < jettyZ - 5; z += 6) {
+    track.push({ x: jettyX, z });
+  }
+  track.push({ x: jettyX, z: jettyZ - 4 });
+  scene.add(ribbon(track, 3.2, 0.05, heightAt, gravelMat).mesh);
   await ctx.paint(0.5);
 
   /*
@@ -408,7 +493,6 @@ export async function buildNature(ctx) {
    * on up the hanging valley. Three ribbons: a dark wet bank under a
    * gravel bed under the water, the water seen through to the bed.
    */
-  const trough = (dx) => SIDE_Z + 10 * smoothstep(700, 1000, dx) + 6 * Math.sin(dx / 60);
   const topDx = streamX(SIDE_Z) - valleyAxis(SIDE_Z);
   const upper = [];
   for (let dx = LIP_DX + 260; dx > topDx; dx -= 5) {
@@ -416,26 +500,154 @@ export async function buildNature(ctx) {
     upper.push({ x: valleyAxis(z) + dx, z });
   }
   const lower = [];
-  for (let z = SIDE_Z; z <= LAKE_Z && heightAt(streamX(z), z) > LAKE_Y + 0.2; z += 12) {
+  for (let z = SIDE_Z; z <= LAKE_END && heightAt(streamX(z), z) > LAKE_Y + 0.2; z += 12) {
     lower.push({ x: streamX(z), z });
   }
   const streamPts = upper.concat(lower);
+  /* Above the headwall the stream runs on its ledge; the one segment
+   * that would span the face is the fall, and is left out. */
+  const onLedge = (p) => inBand(p.z) && p.x - valleyAxis(p.z) >= faceDx(p.z);
+  const aboveFall = upper.filter(onLedge);
+  const belowFall = upper.filter((p) => !onLedge(p));
   const bankMat = celMaterial({ color: 0x4d6a31, rim: 0.05 });
   const bedMat = celMaterial({ color: 0x8f8a78, rim: 0.05 });
   const streamMat = celMaterial({ color: 0x3d7a97, rim: 0.4, rimColor: 0xe6f3ff, transparent: true, opacity: 0.72 });
-  for (const [pts, w] of [[upper, 3.6], [lower, 5.2]]) {
-    scene.add(ribbon(pts, w * 1.5, 0.04, heightAt, bankMat).mesh);
-    scene.add(ribbon(pts, w * 1.1, 0.08, heightAt, bedMat).mesh);
-    scene.add(ribbon(pts, w, 0.14, heightAt, streamMat).mesh);
+  for (const [pts, w] of [[aboveFall, 3.6], [belowFall, 3.6], [lower, 5.2]]) {
+    scene.add(ribbon(pts, w * 1.5, 0.04, groundAt, bankMat).mesh);
+    scene.add(ribbon(pts, w * 1.1, 0.08, groundAt, bedMat).mesh);
+    scene.add(ribbon(pts, w, 0.14, groundAt, streamMat).mesh);
   }
-  /* The fall: the water over the lip drawn white, a ribbon of foam laid
-   * on the water down the face, and the pool it lands in. */
-  const foamMat = celMaterial({ color: 0xf3f8fb, rim: 0.05 });
-  const fall = upper.filter((p) => {
-    const dx = p.x - valleyAxis(p.z);
-    return dx > POOL.dx + POOL.r * 0.75 && dx < LIP_DX + 40;
-  });
-  scene.add(ribbon(fall, 5, 0.3, heightAt, foamMat).mesh);
+
+  /*
+   * THE HEADWALL. The heightfield's thirty metre cells cannot hold a
+   * face much steeper than forty five degrees, and water laid down a
+   * slope that shallow read as a white stripe painted on the hill. So
+   * the lip gets a cliff of its own: banded rock from the foot of the
+   * lip to its top, broken into crags by the noise, with a turf ledge
+   * back to where the ground comes up to meet it. No collider: its
+   * nearest end is twelve hundred metres from the strip, past the seven
+   * hundred the brief gives colliders.
+   */
+  {
+    const COLS = Math.round((2 * BAND) / 6);
+    const ROWS = 16;
+    const pos = [];
+    const col = [];
+    const face = [];
+    const ledge = [];
+    const rockLight = new THREE.Color(0xa99c8a);
+    const rockDark = new THREE.Color(0x88796a);
+    const turf = new THREE.Color(0x6d7f45);
+    for (let k = 0; k <= COLS; k += 1) {
+      const z = fallZ - BAND + (2 * BAND * k) / COLS;
+      const ax = valleyAxis(z);
+      const fx = ax + faceDx(z);
+      const foot = heightAt(fx, z);
+      const top = bandTop(z, foot);
+      const base = foot - 3;
+      const rows = [];
+      for (let r = 0; r <= ROWS; r += 1) {
+        const y = base + ((top - base) * r) / ROWS;
+        const crag = r === 0 || r === ROWS ? 0 : 3.2 * (noise2(k * 0.83 + 4.1, r * 0.91 + 2.3) - 0.5);
+        rows.push([fx - crag, y, z]);
+      }
+      face.push(rows);
+      ledge.push([[fx, top, z], [ax + BACK_DX, top, z]]);
+    }
+    const tri = (a, b, c, colour) => {
+      pos.push(...a, ...b, ...c);
+      for (let q = 0; q < 3; q += 1) {
+        col.push(colour.r, colour.g, colour.b);
+      }
+    };
+    /* Winding: the face looks down the valley at the pool, the ledge
+     * looks up. */
+    for (let k = 0; k < COLS; k += 1) {
+      for (let r = 0; r < ROWS; r += 1) {
+        const a = face[k][r];
+        const b = face[k][r + 1];
+        const c = face[k + 1][r];
+        const d = face[k + 1][r + 1];
+        /* Strata: a dark band in three, following the rows round. */
+        const band = r % 3 === 1;
+        tri(a, c, b, band ? rockDark : rockLight);
+        tri(c, d, b, band ? rockDark : rockLight);
+      }
+      const a = ledge[k][0];
+      const b = ledge[k][1];
+      const c = ledge[k + 1][0];
+      const d = ledge[k + 1][1];
+      tri(a, c, b, turf);
+      tri(c, d, b, turf);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    geo.computeVertexNormals();
+    const mat = celMaterial({ color: 0xffffff, rim: 0.2 });
+    mat.vertexColors = true;
+    const wall = new THREE.Mesh(geo, mat);
+    wall.name = 'headwall';
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    scene.add(wall);
+  }
+
+  /*
+   * THE FALL: a curtain from the lip to the pool, standing clear of the
+   * face and bellying out as it drops, streaked white and pale blue,
+   * with spray heaped at its foot. Double sided, because the wing can
+   * fly behind it.
+   */
+  {
+    const ROWS = 12;
+    const STREAKS = [0xffffff, 0xe4f0f6, 0xffffff, 0xd3e6f0, 0xf4f9fb, 0xe4f0f6, 0xffffff];
+    const pos = [];
+    const col = [];
+    const top = lipY + 0.4;
+    const out = (t) => 2.5 + 8 * Math.pow(t, 1.5);
+    const footX = fallX - out(1);
+    const bottom = Math.min(heightAt(footX, fallZ), POOL.y) - 0.6;
+    const at = (t, s) => {
+      const w = 9 + 7 * t;
+      return [fallX - out(t), top + (bottom - top) * t, fallZ + (s - 0.5) * w];
+    };
+    for (let r = 0; r < ROWS; r += 1) {
+      for (let q = 0; q < STREAKS.length; q += 1) {
+        const t0 = r / ROWS;
+        const t1 = (r + 1) / ROWS;
+        const s0 = q / STREAKS.length;
+        const s1 = (q + 1) / STREAKS.length;
+        const quad = [at(t0, s0), at(t0, s1), at(t1, s0), at(t1, s1)];
+        const c = new THREE.Color(STREAKS[q]);
+        for (const v of [quad[0], quad[2], quad[1], quad[1], quad[2], quad[3]]) {
+          pos.push(...v);
+          col.push(c.r, c.g, c.b);
+        }
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    geo.computeVertexNormals();
+    const mat = celMaterial({ color: 0xffffff, rim: 0.3, rimColor: 0xffffff, side: THREE.DoubleSide });
+    mat.vertexColors = true;
+    const curtain = new THREE.Mesh(geo, mat);
+    curtain.name = 'fall';
+    scene.add(curtain);
+    const spray = [];
+    for (let q = 0; q < 9; q += 1) {
+      const a = rng() * Math.PI * 2;
+      const rr = rng() * 7;
+      const r = 2.5 + rng() * 3.5;
+      spray.push(blob(r, 0, footX + Math.cos(a) * rr * 0.7, bottom + r * 0.2, fallZ + Math.sin(a) * rr * 1.3, 0xf4f8fb));
+    }
+    const sprayMat = celMaterial({ color: 0xffffff, rim: 0.25, rimColor: 0xffffff });
+    sprayMat.vertexColors = true;
+    const mist = new THREE.Mesh(merge(spray), sprayMat);
+    mist.name = 'spray';
+    scene.add(mist);
+  }
   const poolX = valleyAxis(POOL.z) + POOL.dx;
   const pool = new THREE.Mesh(new THREE.CircleGeometry(POOL.r * 0.9, 24), waterMat);
   pool.rotation.x = -Math.PI / 2;
@@ -450,8 +662,8 @@ export async function buildNature(ctx) {
   for (let k = 1; k < streamPts.length; k += 1) {
     const a = streamPts[k - 1];
     const b = streamPts[k];
-    const drop = (heightAt(a.x, a.z) - heightAt(b.x, b.z)) / Math.hypot(b.x - a.x, b.z - a.z);
-    if (drop < 0.22) {
+    const drop = (groundAt(a.x, a.z) - groundAt(b.x, b.z)) / Math.hypot(b.x - a.x, b.z - a.z);
+    if (drop < 0.22 || onLedge(a) !== onLedge(b)) {
       continue;
     }
     const n = 1 + Math.floor(drop * 6);
@@ -460,14 +672,14 @@ export async function buildNature(ctx) {
       const x = a.x + (b.x - a.x) * t + (rng() - 0.5) * 2.2;
       const z = a.z + (b.z - a.z) * t + (rng() - 0.5) * 2.2;
       const w = 0.7 + rng() * 1.1;
-      foam.push({ x, y: heightAt(x, z) + 0.2, z, yaw: rng() * Math.PI, sx: w, sy: 1, sz: w * 0.55 });
+      foam.push({ x, y: groundAt(x, z) + 0.2, z, yaw: rng() * Math.PI, sx: w, sy: 1, sz: w * 0.55 });
     }
   }
   for (let q = 0; q < 26; q += 1) {
     const a = rng() * Math.PI * 2;
     const rr = 3 + rng() * 8;
-    const x = poolX + POOL.r * 0.6 + Math.cos(a) * rr;
-    const z = POOL.z + Math.sin(a) * rr;
+    const x = fallX - 16 + Math.cos(a) * rr;
+    const z = fallZ + Math.sin(a) * rr;
     foam.push({ x, y: POOL.y - 0.5, z, yaw: rng() * Math.PI, sx: 1.5 + rng() * 2, sy: 1, sz: 1 + rng() * 1.5 });
   }
   scene.add(instanced(foamGeo, celMaterial({ color: 0xf3f8fb, rim: 0.05, side: THREE.DoubleSide }), foam, 'foam'));
@@ -551,7 +763,7 @@ export async function buildNature(ctx) {
     }
   }
   /* The floor: beech in clumps along the stream's banks and singly in
-   * the fields, and the village's garden trees by hand. */
+   * the fields. */
   for (let k = 0; k < 900; k += 1) {
     let x;
     let z;
@@ -573,9 +785,6 @@ export async function buildNature(ctx) {
     }
     plant('beech', x, y, z, 0.8 + rng() * 0.8);
   }
-  for (const g of [[-262, 140], [-262, 84], [-155, 187], [-95, 189], [-215, 186], [-70, 34], [-140, 32], [-205, 38], [-300, 60], [-296, 180]]) {
-    plant('beech', g[0], heightAt(g[0], g[1]), g[1], 0.8 + rng() * 0.4);
-  }
   for (const name of Object.keys(species)) {
     stands[name].forEach((places, b) => {
       if (places.length) {
@@ -586,14 +795,15 @@ export async function buildNature(ctx) {
   await ctx.paint(0.6);
 
   /*
-   * BOULDERS. Three sizes of dodecahedron, seeded onto the steep ground
+   * BOULDERS. Three sizes of icosahedron, seeded onto the steep ground
    * and the scree, thickest under the cliffs, with a scatter along the
    * torrent in the side valley. Rocks within reach of the strip get a
-   * sphere.
+   * sphere. Twenty faces a rock rather than a dodecahedron's thirty six,
+   * which over a thousand rocks is sixteen thousand triangles.
    */
   const rockMat = celMaterial({ color: 0x8b8880, rim: 0.26 });
   const sizes = [0.9, 1.7, 3.0];
-  const rockGeos = sizes.map((r) => new THREE.DodecahedronGeometry(r, 0));
+  const rockGeos = sizes.map((r) => new THREE.IcosahedronGeometry(r, 0));
   const rocks = sizes.map(() => Array.from({ length: BANDS }, () => []));
   const dropRock = (x, z, y, size) => {
     const r = sizes[size];
@@ -625,13 +835,12 @@ export async function buildNature(ctx) {
   }
   for (let k = 0; k < 70; k += 1) {
     const at = upper[Math.floor(rng() * upper.length)];
-    const dx = at.x - valleyAxis(at.z);
-    if (dx > LIP_DX - 50 && dx < LIP_DX + 50) {
-      continue;
-    }
     const side = rng() < 0.5 ? -1 : 1;
     const x = at.x + (rng() - 0.5) * 4;
     const z = at.z + side * (2.5 + rng() * 7);
+    if (keepOff(x, z)) {
+      continue;
+    }
     dropRock(x, z, heightAt(x, z), rng() < 0.7 ? 0 : 1);
     rockCount += 1;
   }

@@ -55,21 +55,32 @@ export const STRIP_W = 12;
 export const STRIP_Y = 0.02;
 
 /* The lake fills the basin at the south end; its surface is a hair below
- * the meadow so the shore reads. The basin closes again before the
- * field's edge so the lake has a far shore of its own rather than
- * running under the range beyond. */
+ * the meadow so the shore reads. The basin starts going down at LAKE_N,
+ * past the end of the valley road at z 1950 so the road and its traffic
+ * stop on the shore rather than driving on under the water, and closes
+ * again before the field's edge so the lake has a far shore of its own
+ * rather than running under the range beyond. */
+export const LAKE_N = 1860;
 export const LAKE_Z = 2150;
 export const LAKE_Y = -1.5;
 export const LAKE_END = 2750;
 
+/* How far into the basin z is, nought on the meadow to one at the lake's
+ * full depth, before the walls close it in across the valley. */
+export function lakeBasin(z) {
+  return smoothstep(LAKE_N, LAKE_Z + 150, z) * (1 - smoothstep(LAKE_END - 250, LAKE_END + 50, z));
+}
+
 /* The side valley hangs, as a glacial side valley does: its floor stands
  * this far above the main valley's wall behind a lip this far out from
  * the axis, and the stream falls down the face of the lip into a pool
- * scooped at its foot. The lip is what gives the valley a waterfall. */
+ * scooped at its foot. The lip is what gives the valley a waterfall;
+ * nature.js stands its headwall on the lip's lower edge, twenty metres
+ * short of LIP_DX, so the pool is scooped right under it. */
 export const SIDE_Z = -1300;
 export const LIP_DX = 1060;
 export const LIP_RISE = 70;
-export const POOL = { dx: 985, z: -1300, r: 26, depth: 3.5, y: 176 };
+export const POOL = { dx: 1022, z: -1295, r: 24, depth: 3.5, y: 190 };
 
 /* Trees stop here on the average, and the paint's forest floor with
  * them; snow starts here, wandering a hundred and fifty metres either
@@ -100,7 +111,13 @@ export function terrainHeight(x, z) {
   const axis = valleyAxis(z);
   const dx = x - axis;
   const across = Math.abs(dx);
-  const wall = smoothstep(FLOOR_HALF, WALL_REACH, across);
+  /* Behind the side valley's lip the wall climbs at a third of its
+   * pace, which is the hanging valley's floor: without it the ground
+   * went on up at the wall's own slope and the lip was only a kink in
+   * the hillside, with nothing level for the stream to come over. */
+  const side = dx > LIP_DX ? Math.exp(-Math.pow((z - SIDE_Z) / 420, 2)) : 0;
+  const reach = across - (across - LIP_DX) * 0.65 * side;
+  const wall = smoothstep(FLOOR_HALF, WALL_REACH, reach);
   let h = Math.pow(wall, 1.35) * RIDGE;
   /* Peaks and shoulders on the walls, more the higher they stand. */
   h += (260 * fbm(x / 900, z / 900, 4) + 90 * fbm(x / 260, z / 260, 3)) * Math.pow(wall, 0.8);
@@ -125,9 +142,13 @@ export function terrainHeight(x, z) {
    * shore. */
   const floor = 1 - wall;
   h += floor * (7 * fbm(x / 300, z / 300, 3) + 3);
-  const basin = smoothstep(LAKE_Z - 900, LAKE_Z - 150, z) * (1 - smoothstep(LAKE_END - 250, LAKE_END + 50, z))
-    * (1 - smoothstep(FLOOR_HALF + 150, FLOOR_HALF + 500, across));
+  const basin = lakeBasin(z) * (1 - smoothstep(FLOOR_HALF + 150, FLOOR_HALF + 500, across));
   h -= basin * 22;
+  /* Past the lake the floor climbs to a wooded shoulder that closes the
+   * valley at the field's edge. Without it the floor ran flat off the
+   * edge and the range beyond stood up behind the far shore as a bare
+   * green wall. */
+  h += 200 * Math.pow(smoothstep(LAKE_END - 60, HALF, z), 1.3) * floor * (0.8 + 0.4 * fbm(x / 400 + 2.1, z / 400, 2));
   /* The strip, the hangar and the village stand on ground held flat: a
    * plateau from the east apron to the church, longer than the strip. */
   const flat = (1 - smoothstep(STRIP_L / 2 + 60, STRIP_L / 2 + 260, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
@@ -348,8 +369,8 @@ export function groundTexture(field) {
       lerp3(c, snow, snowy);
       /* The lake basin: gravel round the shore, silt under the
        * shallows, the bed under the deep water. */
-      if (y < LAKE_Y + 3.5 && z > LAKE_Z - 800) {
-        const basin = smoothstep(LAKE_Z - 900, LAKE_Z - 150, z) * (1 - smoothstep(LAKE_END - 250, LAKE_END + 50, z));
+      if (y < LAKE_Y + 3.5 && z > LAKE_N) {
+        const basin = lakeBasin(z);
         const shore = (1 - smoothstep(LAKE_Y + 1.5, LAKE_Y + 3.5, y)) * smoothstep(0.2, 0.5, basin);
         lerp3(c, gravel, shore);
         lerp3(c, silt, (1 - smoothstep(LAKE_Y - 3, LAKE_Y - 1.2, y)) * shore);
@@ -439,11 +460,21 @@ export function groundTexture(field) {
         }
         const flat = bFlat[kn];
         if (flat > 0.02) {
-          /* Mown in nine metre stripes along the strip. */
-          const t = 1 + (Math.floor((x + 3000) / 9) % 2 === 0 ? 0.035 : -0.03) * flat;
-          r *= t;
-          g *= t;
-          b *= t;
+          /* Mown fields, a hundred and twenty five metres square, each
+           * striped one way or the other or left long, five texels to a
+           * stripe. One set of stripes over the whole plateau converged
+           * on the vanishing point and read from the air as a fan of
+           * light rays; a stripe that is not a whole number of texels
+           * wide beats between two and three texel bands. */
+          let fh = Math.imul((i >> 5) + 7, 73856093) ^ Math.imul((j >> 5) + 3, 19349663);
+          fh = (Math.imul(fh ^ (fh >>> 13), 1274126177) >>> 0) % 3;
+          if (fh > 0) {
+            const lane = fh === 1 ? i : j;
+            const t = 1 + (Math.floor(lane / 5) % 2 === 0 ? 0.035 : -0.03) * flat;
+            r *= t;
+            g *= t;
+            b *= t;
+          }
         }
         const bloom = bBloom[kn];
         if (bloom > 0.05) {
@@ -521,18 +552,24 @@ export function farRange() {
   const rock = new THREE.Color(0x7d7b77);
   const snow = new THREE.Color(0xf4f6fa);
   const green = new THREE.Color(0x4f7a3a);
+  const forest = new THREE.Color(0x2f4a26);
   const c = new THREE.Color();
   for (let k = 0; k < pos.count; k += 1) {
     const x = pos.getX(k);
     const z = pos.getZ(k);
     const r = Math.hypot(x, z);
-    /* Nothing inside the field, a rising skirt across the field's edge,
-     * peaks to two and a half kilometres beyond it. */
-    const skirt = smoothstep(HALF - 600, HALF + 1800, r);
+    /* Nothing inside the field, a skirt rising from the field's edge,
+     * peaks to two and a half kilometres beyond it. The skirt starts at
+     * the edge rather than inside it: begun six hundred metres in, it
+     * stood up through the valley floor as a bare green wall a few
+     * hundred metres past the lake's far shore. */
+    const skirt = smoothstep(HALF - 100, HALF + 2300, r);
     const h = skirt * (1500 + 900 * fbm(x / 2200, z / 2200, 4) + 350 * fbm(x / 700, z / 700, 3)) - 40 * (1 - skirt);
     pos.setY(k, h);
     const t = smoothstep(1300, 1900, h + 200 * fbm(x / 900, z / 900, 2));
-    c.copy(green).lerp(rock, smoothstep(700, 1300, h)).lerp(snow, t);
+    /* The lower slopes in forest and pasture, as the valley's own are. */
+    c.copy(green).lerp(forest, smoothstep(0.38, 0.55, fbm(x / 600 + 4.2, z / 600 + 1.3, 2)) * (1 - smoothstep(450, 750, h)));
+    c.lerp(rock, smoothstep(450, 1000, h)).lerp(snow, t);
     colour[k * 3] = c.r;
     colour[k * 3 + 1] = c.g;
     colour[k * 3 + 2] = c.b;
