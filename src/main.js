@@ -7350,6 +7350,10 @@ export async function boot({ loading, bootStart, mapId }) {
       shell.camera.position.set(camOverride[0], camOverride[1], camOverride[2]);
       shell.camera.up.set(0, 1, 0);
       shell.camera.lookAt(camLookAt.set(camOverride[3], camOverride[4], camOverride[5]));
+      if (camOverride[6] && shell.camera.fov !== camOverride[6]) {
+        shell.camera.fov = camOverride[6];
+        shell.camera.updateProjectionMatrix();
+      }
     }
 
     /* Attract clock and scenery only while this context is actually
@@ -8047,8 +8051,12 @@ export async function boot({ loading, bootStart, mapId }) {
     rest: REST_HEIGHT,
     hits: lastGroundHits,
   });
-  window.__setCam = (a, b, c, d, e, f) => {
-    camOverride = a == null ? null : [a, b, c, d, e, f];
+  /* An optional seventh argument pins the vertical fov as well: without it
+   * the parked camera keeps whatever lens the shell last set, which is the
+   * title's 44 degrees until the settings are applied and the pilot's lens
+   * after, at a moment that depends on the machine's speed. */
+  window.__setCam = (a, b, c, d, e, f, fov) => {
+    camOverride = a == null ? null : [a, b, c, d, e, f, fov];
   };
   window.__intro = () => ({
     ms: introMs,

@@ -57,6 +57,17 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  * Raised, lake-shore stands behind the shore's rise and sees a strip of
  * water, so round 1 also added lake-edge, at the water's edge.
  */
+/*
+ * Every view is taken through the title camera's 44 degree vertical lens.
+ * Rounds 0 and 1 did not pin it: the parked camera kept whatever lens the
+ * shell had last set, which was the title's 44 until the shell applied the
+ * pilot's settings and their 100 after, part way through the run at a
+ * moment that moved with the machine's load. Round 1's thirteen pictures
+ * were all taken before that moment, at 44, so pinning 44 keeps them
+ * comparable; a loaded run had started shooting the later views at 100.
+ */
+const FOV = 44;
+
 const VIEWS = [
   { id: 'strip', cam: [0, 2, 40, 0, 3, -100], ref: 'valley-vista' },
   { id: 'vista-high', cam: [300, 260, 900, -120, 60, -400], ref: 'valley-high' },
@@ -90,7 +101,7 @@ const steps = [
 for (const v of VIEWS) {
   steps.push(
     `expect:window.__heightAt(${v.cam[0]}, ${v.cam[2]}) < ${v.cam[1] - 1}`,
-    `eval:(window.__setCam(${v.cam.join(',')}), "")`,
+    `eval:(window.__setCam(${v.cam.join(',')}, ${FOV}), "")`,
     'wait:2500',
     `shot:${v.id}`,
     `eval:(${FRAME_MS}, "")`,
