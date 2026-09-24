@@ -324,9 +324,12 @@ function photoStyle() {
       await ctx.paint(0.56);
       const camera = ctx.camera;
       let last = null;
+      let first = null;
       /* The shell calls updateWind every drawn frame, before it draws,
        * with the wall clock in seconds: the vegetation's and the water's
-       * update(dtMs, camera) ride on it. */
+       * update(dtMs, camera) ride on it, and so do the clouds, from the
+       * first frame drawn, so however long the build took the valley
+       * starts under the same sky. */
       return {
         pines: 0,
         broadleaf: 0,
@@ -334,6 +337,8 @@ function photoStyle() {
         updateWind(t) {
           const dtMs = last === null ? 0 : Math.max(0, (t - last) * 1000);
           last = t;
+          first ??= t;
+          stage.lit.setClock(t - first);
           if (stage.veg) {
             stage.veg.update(dtMs, camera);
           }
