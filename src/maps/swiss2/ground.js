@@ -61,6 +61,15 @@ const TINT = [
 /* The sun's bearing on the ground, for the faces snow lingers on (the
  * photograph's sun, as light.js takes it). */
 const SUN_XZ = [Math.cos((SUN_U - 0.5) * 2 * Math.PI), Math.sin((SUN_U - 0.5) * 2 * Math.PI)];
+/* The heights of the walls' two cliff bands, in metres (the walls rise
+ * to about 1400, the trees stop about 700). */
+const CLIFF_LOW = 420;
+const CLIFF_HIGH = 1010;
+/* How much of the sun's light a meadow looked at straight into the sun
+ * loses to the blades' own shade. */
+const BACKLIT = 0.5;
+/* How much of a meadow's sheen its blades hide seen at a grazing angle. */
+const GRAZE_MASK = 0.8;
 const ROUGH = [0.96, 0.95, 0.92, 0.86, 0.82, 0.62, 0.86, 0.92, 0.9];
 const BUMP = [0.7, 0.75, 0.85, 1.0, 1.0, 0.5, 1.0, 0.85, 0.9];
 
@@ -543,7 +552,7 @@ const GROUND_PARS = /* glsl */ `
     return vec3(xy, sqrt(max(0.0, 1.0 - dot(xy, xy))));
   }
 
-  struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; };
+  struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; float backlit; float sheen; };
 
   S2Ground s2Ground(vec3 p, vec3 n) {
     vec2 fuv = (p.xz + uS2Field.x) / uS2Field.y;
@@ -584,6 +593,36 @@ const GROUND_PARS = /* glsl */ `
     vec3 nCov = normalize(vec3(n.x - 0.5 * rg.x, n.y, n.z - 0.5 * rg.y));
     n = normalize(vec3(n.x - rg.x, n.y, n.z - rg.y));
     float tanS = sqrt(max(0.0, 1.0 - nCov.y * nCov.y)) / max(nCov.y, 0.05);
+    /*
+     * A real wall changes with height. Two bands of pale limestone cliff
+     * run along each wall, at heights that wander with the noise and
+     * broken where the noise says, the lower one about ${CLIFF_LOW} m up and the
+     * upper one about ${CLIFF_HIGH} m; the grid's slope is a smooth ramp there, so
+     * the band's light is turned toward the cliff it stands for. Under
+     * each, a fan of scree down the gullies it sheds into.
+     */
+    float wallTo = smoothstep(0.3, 0.6, tanS) * inside * step(uS2Only, -0.5);
+    /* The ravines: the gullies' pattern again at five times the size, a
+     * few on each face, which is the scale the scrub, the scree and the
+     * turf's edges follow. The gullies themselves are too fine for that
+     * and brushed the whole face in streaks. */
+    float ravine = s2Noise(vec2(p.z / 130.0, p.y / 520.0 + 0.4 * macro)) * gw.x + s2Noise(vec2(p.x / 130.0 + 3.1, p.y / 520.0 + 0.4 * macro)) * gw.y;
+    float b1 = ${CLIFF_LOW.toFixed(1)} + 150.0 * (s2Noise(p.xz / 1400.0 + 3.3) - 0.5);
+    float b2 = ${CLIFF_HIGH.toFixed(1)} + 130.0 * (s2Noise(p.xz / 1700.0 + 8.1) - 0.5);
+    float bw1 = 35.0 + 35.0 * meso;
+    float bw2 = 45.0 + 45.0 * s2Noise(p.xz / 300.0 + 2.9);
+    float warp = 25.0 * (meso - 0.5) + 8.0 * (fine - 0.5);
+    float d1 = abs(p.y + warp - b1);
+    float d2 = abs(p.y + warp - b2);
+    float cliff = max((1.0 - smoothstep(bw1 * 0.55, bw1, d1)) * smoothstep(0.38, 0.55, s2Noise(p.xz / 330.0 + 1.7)),
+                      (1.0 - smoothstep(bw2 * 0.55, bw2, d2)) * smoothstep(0.3, 0.5, s2Noise(p.xz / 410.0 + 6.2)));
+    cliff *= wallTo;
+    float under1 = (b1 - bw1) - (p.y + warp);
+    float under2 = (b2 - bw2) - (p.y + warp);
+    float shed = max(smoothstep(0.0, 25.0, under1) * (1.0 - smoothstep(60.0, 190.0, under1)),
+                     smoothstep(0.0, 25.0, under2) * (1.0 - smoothstep(80.0, 260.0, under2)));
+    float screeFan = shed * smoothstep(0.5, 0.7, ravine + 0.2 * (meso - 0.5)) * wallTo;
+    n = normalize(vec3(n.x * (1.0 + 1.6 * cliff), n.y, n.z * (1.0 + 1.6 * cliff)));
 
     /* Coverage per layer, from nought to one, before the heights break
      * its edges. Outside the field there are no masks, and the range is
@@ -596,11 +635,22 @@ const GROUND_PARS = /* glsl */ `
      * vegetation is built); before that it is forestDensity. */
     cov[2] = clamp(smoothstep(0.15, 0.6, z1.r) + forestOut, 0.0, 1.0);
     cov[3] = z1.b;
-    /* Bare rock on the faces too steep to hold soil; above the trees the
-     * broken alpine ground of rock and turf the aerial photograph is. */
-    cov[4] = smoothstep(0.78 + 0.3 * fine, 1.1 + 0.25 * fine, tanS);
+    /* Bare rock is the cliffs, the ribs and the faces too steep for any
+     * turf (a fifty degree slope in the Alps is grass); above the trees,
+     * the broken alpine ground of rock and turf the aerial photograph
+     * is. */
+    float rockFace = smoothstep(1.05 + 0.3 * fine, 1.45 + 0.25 * fine, tanS);
+    float ribRock = smoothstep(0.35, 0.2, ravine) * smoothstep(0.75, 1.1, tanS + 0.3 * (meso - 0.5));
+    cov[4] = max(max(rockFace, 0.85 * ribRock), cliff);
+    cov[3] = max(cov[3], screeFan);
     float rockHigh = inside > 0.5 ? z2.a : smoothstep(650.0, 950.0, p.y + 200.0 * macro);
-    cov[8] = rockHigh;
+    /* Above the trees the mountain is not all broken rock: turf holds on
+     * everything but the steep and the highest ground, in sweeps the
+     * noise lays out, and the broken ground keeps the ribs and the
+     * steep. */
+    float turf = (1.0 - smoothstep(1.0, 1.5, tanS + 0.7 * (macro - 0.5) + 0.45 * (meso - 0.5) - 0.5 * (ravine - 0.5)))
+      * (1.0 - smoothstep(1150.0, 1400.0, p.y + 200.0 * macro));
+    cov[8] = rockHigh * (1.0 - 0.85 * turf);
     float snowHigh = inside > 0.5 ? z2.b : smoothstep(1350.0, 1800.0, p.y + 260.0 * macro);
     /* Snow lies where it can hold: on anything gentler than about forty
      * degrees, steeper in the gullies it fills, and stripped by the wind
@@ -707,6 +757,9 @@ const GROUND_PARS = /* glsl */ `
         col *= 1.0 - 0.3 * smoothstep(0.52, 0.78, streak) * smoothstep(0.6, 1.2, tanS);
         /* The gullies shaded and damp, the ribs weathered pale. */
         col *= 1.0 - 0.22 * couloir + 0.12 * rib;
+        /* The cliff bands are limestone, paler and warmer than the
+         * broken rock round them. */
+        col *= mix(vec3(1.0), vec3(1.55, 1.48, 1.34), cliff);
         float h = nh.b;
         float cc = clamp(c + (h - 0.5) * 3.2 * c * (1.0 - c), 0.0, 1.0);
         float w = cc * remaining;
@@ -749,6 +802,16 @@ const GROUND_PARS = /* glsl */ `
     vec3 hue = mix(vec3(0.92, 1.04, 0.86), vec3(1.1, 1.0, 0.78), meso);
     hue = mix(hue, vec3(1.16, 1.04, 0.72), z2.r * (1.0 - smoothstep(60.0, 300.0, p.y)) * 0.8);
     albedo *= mix(vec3(1.0), hue, grass);
+    /* The turf above the trees: gold and brown where the sun has dried
+     * it, a cooler green on the faces turned from it, in patches. And in
+     * the gullies of the middle wall the dark green of alder scrub, so
+     * the wall is fingered up its gullies rather than one green. */
+    float alpine = smoothstep(560.0, 780.0, p.y + 90.0 * meso) * grass;
+    vec3 dry = mix(vec3(1.5, 1.14, 0.55), vec3(1.35, 0.95, 0.6), smoothstep(0.45, 0.7, s2Fbm(p.xz / 120.0 + 5.5)));
+    vec3 alpTint = mix(dry, vec3(0.92, 1.0, 0.82), clamp(0.5 + 1.2 * shade, 0.0, 1.0));
+    albedo *= mix(vec3(1.0), alpTint, alpine);
+    float scrub = smoothstep(0.6, 0.78, ravine + 0.2 * (meso - 0.5)) * smoothstep(220.0, 380.0, p.y) * (1.0 - smoothstep(900.0, 1100.0, p.y)) * steep0 * grass * inside;
+    albedo *= mix(vec3(1.0), vec3(0.42, 0.56, 0.36), 0.85 * scrub);
     /* The farmed floor (MEADOW_GLSL), and on mown ground the rows the
      * mower left, lighter looking down them and darker looking against
      * the lie of the grass, so a field changes as the camera turns. */
@@ -794,6 +857,25 @@ const GROUND_PARS = /* glsl */ `
     g.normal = outN;
     g.rough = rough;
     g.ao = mix(1.0, 0.5 + 0.5 * clamp(hsum * 1.3, 0.0, 1.0), 0.65);
+    /* Grass is not a matt plane. Looked at with the sun behind the eye
+     * every blade shows its lit side; looked at toward the sun, the sides
+     * a camera sees are the ones in the blades' own shade, and a sunlit
+     * meadow goes darker and deeper the further the view turns into the
+     * light (the reason a photograph into the sun has a dark floor and
+     * one with it a pale one). Taken off the sun's light on the grass
+     * only, from nothing at right angles to the sun to BACKLIT straight
+     * into it. */
+    vec3 toEye = normalize(cameraPosition - p);
+    float into = -dot(toEye, uS2SunDir);
+    g.backlit = 1.0 - ${BACKLIT.toFixed(2)} * grass * smoothstep(0.0, 0.75, into);
+    /* And toward the sun a sward shows none of the glare a plane has
+     * there. Three draws a rough plane's grazing reflection strongest
+     * exactly where the sky is brightest, round the sun, and the meadow
+     * into the light was a pale sheet of it; in a real sward both the
+     * view and that reflection run into the blades. Only toward the sun:
+     * away from it the sheen is the pale cast a meadow does have, and
+     * the floor's colour was matched to the photographs with it. */
+    g.sheen = 1.0 - ${GRAZE_MASK.toFixed(2)} * grass * (1.0 - smoothstep(0.05, 0.5, dot(toEye, n))) * smoothstep(0.0, 0.75, into);
     return g;
   }
 `;
@@ -857,7 +939,7 @@ export function groundMaterial({ arrays, zones, path, walls, lit, only = -1, str
       .replace('#include <map_fragment>', 'S2Ground s2g = s2Ground(vS2World, normalize(vS2WNormal));\ndiffuseColor.rgb *= s2g.albedo;')
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness * s2g.rough;')
       .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(s2g.normal, 0.0)).xyz);')
-      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\nreflectedLight.indirectDiffuse *= s2g.ao;\nreflectedLight.indirectSpecular *= s2g.ao;');
+      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\nreflectedLight.indirectDiffuse *= s2g.ao;\nreflectedLight.indirectSpecular *= s2g.ao;\nreflectedLight.directDiffuse *= s2g.backlit;\nreflectedLight.directSpecular *= s2g.sheen;\nreflectedLight.indirectSpecular *= s2g.sheen;');
   };
   mat.customProgramCacheKey = () => 's2-ground';
   lit(mat);

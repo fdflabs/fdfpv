@@ -7,10 +7,12 @@
  * 1. The scene into a half float target that keeps its depth texture.
  * 2. Where there are shadows (Medium and High), ambient occlusion from
  *    that depth at half resolution, into a target of its own.
- * 3. On High, bloom, kept to what a lens does: the sun and whatever the
+ * 3. The low cloud in the valley (clouds.js), marched over that depth at
+ *    half resolution into a target of its own.
+ * 4. On High, bloom, kept to what a lens does: the sun and whatever the
  *    sun glints off, nothing else. The threshold is in the scene's own
  *    radiance, far above anything lit.
- * 4. One pass that is most of the look. The occlusion, then aerial
+ * 5. One pass that is most of the look. The occlusion, then aerial
  *    perspective from the depth:
  *    light from a surface is dimmed by the air it crosses and the air
  *    adds its own, bluer the further, whiter toward the horizon, and
@@ -22,8 +24,10 @@
  *    the sRGB transfer.
  *    Doing the air here rather than in every material means the
  *    vegetation's and the water's materials are veiled exactly as the
- *    village is without either of them knowing.
- * 5. FXAA on the finished picture: there is no ink pass here to resolve
+ *    village is without either of them knowing. The cloud goes over
+ *    the veiled scene there, brought up to full resolution with the
+ *    depth as its guide.
+ * 6. FXAA on the finished picture: there is no ink pass here to resolve
  *    silhouettes, and a photograph has no staircases.
  *
  * The object it returns has the shape post.js's does (render, setSize,
@@ -70,6 +74,54 @@ export const AIR = {
   contrast: 0.6,
 };
 
+/*
+ * The air, as GLSL both this pass and the clouds' march (clouds.js) use,
+ * so a cloud is veiled by the air in front of it exactly as a wall at the
+ * same distance is.
+ */
+export const AIR_GLSL = /* glsl */ `
+  uniform vec3 uCamPos;
+  uniform vec3 uSunDir;
+  uniform vec3 uSunCol;
+  uniform vec3 uHaze;
+  uniform vec3 uBeta;
+  uniform float uScaleH;
+  uniform float uMie;
+  /* Air thinning with height: the optical depth along the ray is the
+   * integral of exp(-y / H), which has this closed form between the
+   * two heights. Returns the transmittance, and the air's own light in
+   * the rgb of air. */
+  vec3 airT(vec3 wp, out vec3 air) {
+    vec3 dv = wp - uCamPos;
+    float dist = length(dv);
+    vec3 dir = dv / max(dist, 1e-3);
+    float h0 = max(uCamPos.y, -50.0);
+    float h1 = max(wp.y, -50.0);
+    float e0 = exp(-h0 / uScaleH);
+    float e1 = exp(-h1 / uScaleH);
+    float dh = h1 - h0;
+    float od = abs(dh) > 1.0 ? dist * uScaleH * (e0 - e1) / dh : dist * e0;
+    float mu = dot(dir, uSunDir);
+    const float g = 0.72;
+    float mie = (1.0 - g * g) / (4.0 * PI * pow(1.0 + g * g - 2.0 * g * mu, 1.5));
+    air = uHaze + uSunCol * (uMie * mie);
+    return exp(-uBeta * od);
+  }
+  vec3 aerial(vec3 col, vec3 wp) {
+    vec3 air;
+    vec3 T = airT(wp, air);
+    return col * T + air * (1.0 - T);
+  }
+  /* Light from a cloud of opacity alpha at wp, premultiplied: the air
+   * in front of it adds only where the cloud hides what is behind, the
+   * rest of that air being in the veil of the ground behind it. */
+  vec3 airOver(vec3 light, vec3 wp, float alpha) {
+    vec3 air;
+    vec3 T = airT(wp, air);
+    return light * T + air * (1.0 - T) * alpha;
+  }
+`;
+
 const PhotoShader = {
   uniforms: {
     tDiffuse: { value: null },
@@ -90,6 +142,10 @@ const PhotoShader = {
     tAo: { value: null },
     uAoTexel: { value: new THREE.Vector2(1, 1) },
     uAo: { value: 0 },
+    tCloud: { value: null },
+    uCloudTexel: { value: new THREE.Vector2(1, 1) },
+    uCloud: { value: 0 },
+    uNearFar: { value: new THREE.Vector2(0.1, 1000) },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -105,13 +161,6 @@ const PhotoShader = {
     uniform highp sampler2D tDepth;
     uniform mat4 uProjInv;
     uniform mat4 uCamWorld;
-    uniform vec3 uCamPos;
-    uniform vec3 uSunDir;
-    uniform vec3 uSunCol;
-    uniform vec3 uHaze;
-    uniform vec3 uBeta;
-    uniform float uScaleH;
-    uniform float uMie;
     uniform float uExposure;
     uniform float uContrast;
     uniform float uDistort;
@@ -119,26 +168,44 @@ const PhotoShader = {
     uniform sampler2D tAo;
     uniform vec2 uAoTexel;
     uniform float uAo;
+    uniform sampler2D tCloud;
+    uniform vec2 uCloudTexel;
+    uniform float uCloud;
+    uniform vec2 uNearFar;
 
-    /* Air thinning with height: the optical depth along the ray is the
-     * integral of exp(-y / H), which has this closed form between the
-     * two heights. */
-    vec3 aerial(vec3 col, vec3 wp) {
-      vec3 dv = wp - uCamPos;
-      float dist = length(dv);
-      vec3 dir = dv / max(dist, 1e-3);
-      float h0 = max(uCamPos.y, -50.0);
-      float h1 = max(wp.y, -50.0);
-      float e0 = exp(-h0 / uScaleH);
-      float e1 = exp(-h1 / uScaleH);
-      float dh = h1 - h0;
-      float od = abs(dh) > 1.0 ? dist * uScaleH * (e0 - e1) / dh : dist * e0;
-      vec3 T = exp(-uBeta * od);
-      float mu = dot(dir, uSunDir);
-      const float g = 0.72;
-      float mie = (1.0 - g * g) / (4.0 * PI * pow(1.0 + g * g - 2.0 * g * mu, 1.5));
-      vec3 air = uHaze + uSunCol * (uMie * mie);
-      return col * T + air * (1.0 - T);
+    ${AIR_GLSL}
+
+    float linearDepth(float d) {
+      return uNearFar.x * uNearFar.y / (uNearFar.y - d * (uNearFar.y - uNearFar.x));
+    }
+    /*
+     * The clouds' half resolution march brought up to this pixel, and
+     * smoothed: of the nine half resolution texels round it, each is
+     * weighted by a tent over the distance and by how near the depth it
+     * was marched to (clouds.js marches each from one full resolution
+     * texel) is to this pixel's own, so the march's per pixel jitter is
+     * averaged away but a cloud behind a ridge does not bleed over the
+     * ridge's edge.
+     */
+    vec4 cloudAt(vec2 uv, float d) {
+      vec2 hs = 2.0 * uCloudTexel;
+      vec2 f = uv / hs - 0.5;
+      vec2 ic = floor(f + 0.5);
+      float z = linearDepth(d);
+      vec4 sum = vec4(0.0);
+      float wsum = 0.0;
+      for (int k = 0; k < 9; k++) {
+        vec2 o = vec2(float(k - 3 * (k / 3)) - 1.0, float(k / 3) - 1.0);
+        vec2 cuv = (ic + o + 0.5) * hs;
+        vec2 duv0 = (floor(cuv / uCloudTexel / 2.0) * 2.0 + 0.5) * uCloudTexel;
+        float zk = linearDepth(texture2D(tDepth, duv0).x);
+        vec2 r = f - (ic + o);
+        float bw = max(0.0, 1.6 - abs(r.x)) * max(0.0, 1.6 - abs(r.y));
+        float w = bw / (0.02 + abs(zk - z) / max(z, 1.0) * 60.0);
+        sum += texture2D(tCloud, cuv) * w;
+        wsum += w;
+      }
+      return sum / max(wsum, 1e-6);
     }
 
     /*
@@ -184,6 +251,10 @@ const PhotoShader = {
           c *= mix(1.0, ao, uAo);
         }
         c = aerial(c, (uCamWorld * vec4(vp.xyz, 1.0)).xyz);
+      }
+      if (uCloud > 0.0) {
+        vec4 cl = cloudAt(duv, d);
+        c = cl.rgb + c * cl.a;
       }
       c = agx(c * uExposure);
       /* AgX's own curve is a flat negative; a print's S curve on the
@@ -348,12 +419,13 @@ class PhotoPass extends Pass {
     u.uProjInv.value.copy(this.camera.projectionMatrixInverse);
     u.uCamWorld.value.copy(this.camera.matrixWorld);
     u.uCamPos.value.setFromMatrixPosition(this.camera.matrixWorld);
+    u.uNearFar.value.set(this.camera.near, this.camera.far);
     renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
     this.fsQuad.render(renderer);
   }
 }
 
-export function buildPhotoComposer(renderer, scene, camera, q, sun) {
+export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds) {
   const size = new THREE.Vector2();
   renderer.getSize(size);
   const dpr = renderer.getPixelRatio();
@@ -380,6 +452,10 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun) {
     ao = new AoPass(camera, w, h);
     composer.addPass(ao);
   }
+  /* The low cloud (clouds.js), marched over the depth before the bloom
+   * writes over the colour. */
+  const cloud = clouds.pass(camera, q, w, h);
+  composer.addPass(cloud);
   let bloom = null;
   if (wantBloom) {
     bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.12, 0.6, 6.0);
@@ -391,6 +467,9 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun) {
     photo.material.uniforms.uAo.value = 0.85;
     photo.material.uniforms.uAoTexel.value.set(1 / ao.target.width, 1 / ao.target.height);
   }
+  photo.material.uniforms.tCloud.value = cloud.target.texture;
+  photo.material.uniforms.uCloud.value = 1;
+  photo.material.uniforms.uCloudTexel.value.set(1 / w, 1 / h);
   composer.addPass(photo);
   const fxaa = new ShaderPass(FXAAShader);
   fxaa.material.uniforms.resolution.value.set(1 / w, 1 / h);
@@ -404,6 +483,7 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun) {
     if (ao) {
       photo.material.uniforms.uAoTexel.value.set(1 / ao.target.width, 1 / ao.target.height);
     }
+    photo.material.uniforms.uCloudTexel.value.set(1 / Math.max(1, Math.floor(width * p)), 1 / Math.max(1, Math.floor(height * p)));
   }
 
   return {
@@ -426,6 +506,7 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun) {
         bloom.dispose();
       }
       photo.material.dispose();
+      cloud.dispose();
       if (ao) {
         ao.dispose();
       }

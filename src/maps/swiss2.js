@@ -21,6 +21,7 @@
  *   swiss2/light.js      the sun, its cascades and the mountains' shadow
  *   swiss2/look.js       the material every builder asks for, by name
  *   swiss2/post.js       occlusion, aerial perspective, ACES, lens, FXAA
+ *   swiss2/clouds.js     the low cloud in the valley, marched in the post chain
  *   swiss2/vegetation/   the forests, the boulders and the meadow
  *   swiss2/water/        the lake, the stream, the fall and its headwall
  *
@@ -76,10 +77,11 @@ import {
   groundMasks, pathMask, groundMaterial, floorUnderTrees, wallUniform, wallMask,
 } from './swiss2/ground.js';
 import {
-  sunDirection, makeSun, makeLit, bakeTerrainShadow, SUN_COLOR,
+  sunDirection, makeSun, makeLit, bakeTerrainShadow, SUN_COLOR, SUN_IRRADIANCE,
 } from './swiss2/light.js';
 import { makePhotoLook, finishScene } from './swiss2/look.js';
 import { buildPhotoComposer, AIR } from './swiss2/post.js';
+import { makeClouds } from './swiss2/clouds.js';
 import { buildVegetation } from './swiss2/vegetation/index.js';
 import { buildWater } from './swiss2/water/index.js';
 import { swissBuildings } from './swiss2/buildings/index.js';
@@ -214,7 +216,12 @@ function photoStyle() {
       camera.updateProjectionMatrix();
 
       const sun = makeSun(scene, q, sunDir);
-      const lit = makeLit();
+      style.clouds = makeClouds({
+        sun: { direction: sunDir, color: SUN_COLOR, irradiance: SUN_IRRADIANCE },
+        sky: AIR.haze,
+        air: AIR,
+      });
+      const lit = makeLit(style.clouds);
       const masks = { walls: wallUniform() };
       own(masks.walls.value);
       const ground = (opts) => groundMaterial({
@@ -252,6 +259,7 @@ function photoStyle() {
             stage.water.dispose();
           }
           envTarget.dispose();
+          style.clouds.dispose();
           for (const t of owned) {
             t.dispose();
           }
@@ -342,6 +350,7 @@ function photoStyle() {
           last = t;
           first ??= t;
           stage.lit.setClock(t - first);
+          style.clouds.setClock(t - first);
           if (stage.veg) {
             stage.veg.update(dtMs, camera);
           }
@@ -374,10 +383,11 @@ function photoStyle() {
       stage.shadowTarget = baked.shadow;
       stage.heights.texture.value = own(baked.height);
       stage.lit.setShadow(stage.shadowTarget.texture);
+      style.clouds.setTerrain(baked.height, stage.shadowTarget.texture);
       finishScene(scene, stage.lit);
     },
     compose(shell, map, q) {
-      const post = buildPhotoComposer(shell.renderer, map.scene, shell.camera, q, { direction: sunDir, color: SUN_COLOR });
+      const post = buildPhotoComposer(shell.renderer, map.scene, shell.camera, q, { direction: sunDir, color: SUN_COLOR }, style.clouds);
       const d = shell.resize();
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
