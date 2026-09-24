@@ -312,10 +312,12 @@ export const MEADOW_GLSL = /* glsl */ `
    * are cut at irregular places, some cuts left out so neighbouring
    * strips are farmed as one; each strip is cut into fields at its own
    * irregular places, on a slant of its own. Returns the field's id, the
-   * id across the nearest boundary, the distance to it in metres, and
-   * the point in the strip's frame, which the mown rows run along.
+   * id across the nearest boundary, the distance to it in metres, the
+   * point in the strip's frame, which the mown rows run along, the
+   * strip's slant, and the way to the nearest boundary on the ground
+   * (near enough: the bend of the stream is left out).
    */
-  struct S2Parcel { vec2 own; vec2 other; float edge; vec2 q; };
+  struct S2Parcel { vec2 own; vec2 other; float edge; vec2 q; float slant; vec2 toEdge; };
   /* Where the kth cut falls along a line of cells w metres apart, or
    * a very long way off when that cut is left out. */
   float s2Cut(float k, float w, float seed) {
@@ -362,15 +364,21 @@ export const MEADOW_GLSL = /* glsl */ `
     float eAlong = min(u + wu * s2Hash(vec2(strip, 3.3)) - su.x, su.y - u - wu * s2Hash(vec2(strip, 3.3))) / sqrt(1.0 + slant * slant);
     r.edge = min(eAcross, eAlong);
     r.other = eAcross < eAlong ? vec2(su.z, strip + (q.y - sv.x < sv.y - q.y ? -1.0 : 1.0) * 97.0) : vec2(su.z + 1.0, strip);
+    r.slant = slant;
+    r.toEdge = eAcross < eAlong ? vec2(0.0, q.y - sv.x < sv.y - q.y ? -1.0 : 1.0)
+      : normalize(vec2(1.0, slant)) * (u + wu * s2Hash(vec2(strip, 3.3)) - su.x < su.y - u - wu * s2Hash(vec2(strip, 3.3)) ? -1.0 : 1.0);
     return r;
   }
 
-  struct S2Meadow { vec3 tint; float mown; float edge; };
+  /* What s2Meadow makes of a field: the colour, how mown (0 to 1), how
+   * much of a boundary the point is on, whether that boundary is a
+   * hedge, and the mown rows: the coordinate across them in metres and
+   * the way they run on the ground. */
+  struct S2Meadow { vec3 tint; float mown; float edge; float hedgeOn; float across; vec2 along; };
 
-  S2Meadow s2Meadow(vec2 xz, float dist) {
+  S2Meadow s2MeadowAt(S2Parcel pc, vec2 xz, float dist) {
     /* A pixel's width on the ground, near enough, for fading lines. */
     float px = max(dist * 0.0011, 0.02);
-    S2Parcel pc = s2Parcel(xz);
     vec2 fid = pc.own;
     float edge = pc.edge;
     vec2 fq = pc.q;
@@ -380,7 +388,7 @@ export const MEADOW_GLSL = /* glsl */ `
      * and even, with no hedges and only a faint seam. */
     float plateau = (1.0 - smoothstep(140.0, 340.0, abs(xz.y))) * (1.0 - smoothstep(150.0, 320.0, abs(xz.x + 60.0)));
     float kind = s2Hash(fid + 4.4);
-    float lum = 0.84 + 0.3 * s2Hash(fid + 8.8);
+    float lum = 0.78 + 0.42 * s2Hash(fid + 8.8);
     vec3 tint;
     float mown = 0.0;
     float rowsDir = step(0.5, s2Hash(fid + 2.2));
@@ -446,7 +454,13 @@ export const MEADOW_GLSL = /* glsl */ `
     m.tint = tint;
     m.mown = mown;
     m.edge = clamp(hedge + seam, 0.0, 1.0);
+    m.hedgeOn = hedgeOn;
+    m.across = rowCoord;
+    m.along = rowsDir > 0.5 ? normalize(vec2(-pc.slant, 1.0)) : vec2(1.0, 0.0);
     return m;
+  }
+  S2Meadow s2Meadow(vec2 xz, float dist) {
+    return s2MeadowAt(s2Parcel(xz), xz, dist);
   }
 `;
 
@@ -627,6 +641,92 @@ const GROUND_PARS = /* glsl */ `
     return v;
   }
 
+  /* A band w metres wide about x == 0, drawn a pixel wide at the
+   * contrast it would average to once it is narrower than one. */
+  float s2Band(float x, float w, float px) {
+    float wide = max(w, px);
+    return (1.0 - smoothstep(0.5 * (wide - px), 0.5 * (wide + px), abs(x))) * (w / wide);
+  }
+  /* Stripes of period one, plus and minus one, seen through a pixel fw
+   * periods wide: their edges a pixel soft, and gone before they are
+   * fine enough to shimmer. */
+  float s2Stripes(float x, float fw) {
+    float t = abs(fract(x) - 0.5) * 4.0 - 1.0;
+    return clamp(t / max(2.0 * fw, 1e-3), -1.0, 1.0) * (1.0 - smoothstep(0.2, 0.4, fw));
+  }
+
+  /*
+   * A field as it looks from the air. What made the floor read as lawn
+   * past the near grass was that every field was one flat colour with a
+   * ruled edge. A real one is textured at every scale down to the
+   * pixel: the mower's passes, each laying the grass one way so that
+   * alternate passes are light and dark as seen along them; the
+   * headland round the edge, mown last and round the field, with a
+   * darker line where the tractor turned; streaks along the passes where
+   * the cut grass lay thicker, clumps, and a drift of colour across the
+   * field where the ground is wetter or thinner. Where two fields meet
+   * the edge is uneven and neither colour stops dead. Some fields have a
+   * track along an edge, and a hedge throws its shadow away from the
+   * sun. The tint multiplies the albedo, the tilt leans the normal along
+   * the lie of the grass, the track is its two ruts and the shade is the
+   * hedge's shadow. fx and fy are the pixel's steps across the ground:
+   * a pattern is filtered by the pixel's reach across it, which looking
+   * along the ground is many times its reach the other way.
+   */
+  struct S2Field { vec3 tint; vec3 tilt; float track; float shade; };
+  float s2Reach(vec2 fx, vec2 fy, vec2 across) {
+    return max(abs(dot(fx, across)) + abs(dot(fy, across)), 0.02);
+  }
+  S2Field s2Field(vec2 xz, float dist, vec2 look, vec2 fx, vec2 fy) {
+    float px = max(max(length(fx), length(fy)), 0.02);
+    S2Parcel pc = s2Parcel(xz);
+    S2Meadow m = s2MeadowAt(pc, xz, dist);
+    S2Field f;
+    f.tint = m.tint;
+    float pxEdge = s2Reach(fx, fy, pc.toEdge);
+    float edge = pc.edge + 3.0 * (s2Noise(xz / 9.0 + 2.3) - 0.5);
+    /* Neither colour stops dead: over the last few metres each field
+     * goes halfway to its neighbour's, read just across the boundary. */
+    float soft = 0.5 * (1.0 - smoothstep(0.0, 3.0 + pxEdge, edge));
+    if (soft > 0.01) {
+      vec2 over = xz + pc.toEdge * (2.0 * max(pc.edge, 0.0) + 0.6);
+      f.tint = mix(f.tint, s2Meadow(over, dist).tint, soft);
+    }
+    float mownK = smoothstep(0.4, 0.9, m.mown);
+    float headW = 5.5 + 3.0 * s2Hash(pc.own + 5.1);
+    bool head = edge < headW;
+    float across = head ? edge : m.across;
+    vec2 along = head ? vec2(-pc.toEdge.y, pc.toEdge.x) : m.along;
+    float pxAcross = s2Reach(fx, fy, vec2(-along.y, along.x));
+    /* The passes, 2.7 m wide, each laid the other way. */
+    float lie = s2Stripes(across / 5.4, pxAcross / 5.4);
+    float g = 1.0 + (0.11 * mownK + 0.03) * lie * dot(look, along);
+    f.tilt = vec3(along.x, 0.0, along.y) * lie * 0.18 * mownK;
+    g *= 1.0 - 0.1 * mownK * s2Band(edge - headW, 1.4, pxEdge);
+    /* Streaks along the passes and clumps, each gone before it would
+     * shimmer. */
+    float streak = s2Noise(vec2(across / 3.0, dot(xz, along) / 26.0) + pc.own * 1.7);
+    g *= 1.0 + 0.2 * (streak - 0.5) * (1.0 - smoothstep(0.8, 1.6, pxAcross));
+    g *= 1.0 + 0.16 * (s2Noise(xz / 4.5 + 7.1) - 0.5) * (1.0 - smoothstep(0.9, 1.8, px));
+    g *= 1.0 + 0.2 * (s2Noise(xz / 14.0 + pc.own * 2.3) - 0.5) * (1.0 - smoothstep(2.5, 5.0, px));
+    g *= 1.0 + 0.3 * (s2Fbm(xz / 38.0 + pc.own * 1.1) - 0.5);
+    float wet = s2Noise(xz / 85.0 + pc.own * 3.7);
+    f.tint *= g * mix(vec3(0.93, 0.99, 0.97), vec3(1.07, 1.01, 0.9), wet);
+    /* A track inside some fields' edges: two ruts a tractor's gauge
+     * apart. */
+    float trackOn = step(0.8, s2Hash(pc.own + pc.other + 29.0)) * (1.0 - m.hedgeOn);
+    f.track = trackOn * max(s2Band(pc.edge - 1.2, 0.5, pxEdge), s2Band(pc.edge - 3.0, 0.5, pxEdge));
+    /* The hedge's shadow, on the side away from the sun, as long as a
+     * hedge two to six metres tall throws it: a hedge is a row of
+     * bushes and trees, not a wall. */
+    vec2 sunXZ = uS2SunDir.xz;
+    float sunward = dot(pc.toEdge, normalize(sunXZ + vec2(1e-4, 0.0)));
+    float tall = 2.0 + 4.0 * s2Noise(xz / 7.0 + 4.1);
+    float reach = tall * length(sunXZ) / max(uS2SunDir.y, 0.15) * max(sunward, 0.0);
+    f.shade = m.hedgeOn * (1.0 - smoothstep(reach * 0.5 + 2.0, reach + 2.0 + pxEdge, pc.edge)) * smoothstep(0.0, 0.3, sunward);
+    return f;
+  }
+
   struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; float backlit; float sheen; };
 
   S2Ground s2Ground(vec3 p, vec3 n) {
@@ -636,6 +736,8 @@ const GROUND_PARS = /* glsl */ `
     vec4 z2 = texture2D(uS2Zone2, fuv) * inside;
     float path = texture2D(uS2Path, fuv).r * inside;
     float dist = length(p - cameraPosition);
+    vec3 n0 = n;
+    vec3 toEye = normalize(cameraPosition - p);
     S2Planes pl = s2Planes(n);
     float macro = s2FbmOn(p, pl, 190.0);
     float meso = s2FbmOn(p, pl, 41.0);
@@ -763,12 +865,20 @@ const GROUND_PARS = /* glsl */ `
         cov[k] = float(k) == uS2Only ? 1.0 : 0.0;
       }
     }
-
+    /* The farmed floor (MEADOW_GLSL and s2Field). */
+    float grass = clamp(1.0 - cov[2] - cov[3] - cov[4] - cov[5] - cov[6] - cov[8], 0.0, 1.0);
+    float farm = grass * (1.0 - smoothstep(50.0, 140.0, p.y)) * (1.0 - smoothstep(0.12, 0.3, tanS)) * (1.0 - cov[1]);
+    vec2 look = normalize(p.xz - cameraPosition.xz + vec2(1e-3, 0.0));
     /* Every derivative taken here, where every pixel of the quad runs:
-     * inside the loop the branches differ from pixel to pixel and a
-     * derivative there is undefined. */
+     * inside a branch that goes differently from pixel to pixel, as the
+     * field's and the layer loop's do, a derivative is undefined. */
     vec3 dpx = dFdx(p);
     vec3 dpy = dFdy(p);
+    S2Field field = S2Field(vec3(1.0), vec3(0.0), 0.0, 0.0);
+    if (farm > 0.0) {
+      field = s2Field(p.xz, dist, look, dpx.xz, dpy.xz);
+    }
+
     vec2 uA = s2On(p, pl.a);
     vec2 uB = s2On(p, pl.b);
     vec2 dAx = s2On(dpx, pl.a);
@@ -853,7 +963,6 @@ const GROUND_PARS = /* glsl */ `
     /* The meadow's life: hayfields a yellower green, a hue that wanders
      * across the valley, and the mown fields on the village plateau and
      * the strip striped the way a mower leaves them. */
-    float grass = clamp(1.0 - cov[2] - cov[3] - cov[4] - cov[5] - cov[6] - cov[8], 0.0, 1.0);
     vec3 hue = mix(vec3(0.92, 1.04, 0.86), vec3(1.1, 1.0, 0.78), meso);
     hue = mix(hue, vec3(1.16, 1.04, 0.72), z2.r * (1.0 - smoothstep(60.0, 300.0, p.y)) * 0.8);
     albedo *= mix(vec3(1.0), hue, grass);
@@ -867,18 +976,17 @@ const GROUND_PARS = /* glsl */ `
     albedo *= mix(vec3(1.0), alpTint, alpine);
     float scrub = smoothstep(0.6, 0.78, ravine + 0.2 * (meso - 0.5)) * smoothstep(220.0, 380.0, p.y) * (1.0 - smoothstep(900.0, 1100.0, p.y)) * steep0 * grass * inside;
     albedo *= mix(vec3(1.0), vec3(0.42, 0.56, 0.36), 0.85 * scrub);
-    /* The farmed floor (MEADOW_GLSL), and on mown ground the rows the
-     * mower left, lighter looking down them and darker looking against
-     * the lie of the grass, so a field changes as the camera turns. */
-    float farm = grass * (1.0 - smoothstep(50.0, 140.0, p.y)) * (1.0 - smoothstep(0.12, 0.3, tanS)) * (1.0 - cov[1]);
-    S2Meadow meadow = s2Meadow(p.xz, dist);
+    albedo *= mix(vec3(1.0), field.tint, farm);
+    albedo *= 1.0 - 0.35 * field.shade * farm;
+    /* The track's ruts are bare earth. Not the worn earth layer: its
+     * edge is broken by the photograph's heights, and a rut narrower
+     * than a pixel broke into dashes. */
+    albedo = mix(albedo, vec3(0.25, 0.21, 0.155) * (0.85 + 0.3 * fine), 0.75 * field.track * farm);
+    /* The strip's lawn, striped the way its mower leaves it. */
     vec2 fq = mat2(0.97, -0.24, 0.24, 0.97) * p.xz;
     float rows = step(0.5, fract(fq.y / 3.6)) * 2.0 - 1.0;
-    vec2 look = normalize(p.xz - cameraPosition.xz + vec2(1e-3, 0.0));
     float lie = rows * dot(look, vec2(0.97, -0.24));
-    float sheen = 1.0 + 0.035 * lie * max(smoothstep(0.8, 1.0, meadow.mown), uS2Strip) * (1.0 - smoothstep(120.0, 450.0, dist));
-    albedo *= mix(vec3(1.0), meadow.tint * sheen, farm);
-    albedo *= mix(1.0, sheen, uS2Strip * grass);
+    albedo *= 1.0 + 0.07 * lie * uS2Strip * grass * (1.0 - smoothstep(120.0, 450.0, dist));
     /* Close to, a meadow is never one green: clover and trodden patches
      * a few metres across, some darker and bluer, some yellower. */
     /* And the gaps between the blades are dark: the photograph's own
@@ -887,6 +995,13 @@ const GROUND_PARS = /* glsl */ `
     float blotch = s2Fbm(p.xz / 5.5 + 3.7);
     albedo *= mix(vec3(1.0), mix(vec3(0.84, 0.9, 0.86), vec3(1.12, 1.07, 0.86), blotch), grass * (1.0 - smoothstep(60.0, 350.0, dist)));
     albedo *= 0.8 + 0.4 * macro;
+    /* A sward is not a flat colour either. Looked down into, a camera
+     * sees the shade between the blades and the ground under them;
+     * looked along, only the blades' sides and their dry tips, so a
+     * meadow goes lighter and yellower toward the horizon and darker and
+     * bluer under the eye. */
+    float graze = 1.0 - clamp(dot(toEye, n0), 0.0, 1.0);
+    albedo *= mix(vec3(1.0), mix(vec3(0.86, 0.9, 0.95), vec3(1.14, 1.06, 1.0), smoothstep(0.35, 0.97, graze)), grass);
     /* The rank, shaded grass along a wall. */
     float lee = (1.0 - smoothstep(0.6, 2.6 + 1.2 * fine, wallD)) * grass;
     albedo *= mix(vec3(1.0), vec3(0.8, 0.88, 0.78), lee);
@@ -903,7 +1018,7 @@ const GROUND_PARS = /* glsl */ `
     float under = max(uS2LakeY - p.y, 0.0);
     albedo *= exp(-under * vec3(0.9, 0.2, 0.14));
 
-    vec3 outN = normalize(wnormal + n * 1e-4);
+    vec3 outN = normalize(normalize(wnormal + n * 1e-4) + field.tilt * farm);
 
     S2Ground g;
     g.albedo = albedo;
@@ -918,7 +1033,6 @@ const GROUND_PARS = /* glsl */ `
      * one with it a pale one). Taken off the sun's light on the grass
      * only, from nothing at right angles to the sun to BACKLIT straight
      * into it. */
-    vec3 toEye = normalize(cameraPosition - p);
     float into = -dot(toEye, uS2SunDir);
     g.backlit = 1.0 - ${BACKLIT.toFixed(2)} * grass * smoothstep(0.0, 0.75, into);
     /* And toward the sun a sward shows none of the glare a plane has
