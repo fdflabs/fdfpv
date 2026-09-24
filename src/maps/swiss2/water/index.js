@@ -41,6 +41,8 @@ import { buildFall } from './fall.js';
 
 const BASE = new URL('../../../../assets/swiss2/water/', import.meta.url);
 
+const MIRROR_REACH = 2000;
+
 export const WATER_TIERS = {
   high: { mirror: 0.5, spray: true, mist: 1 },
   medium: { mirror: 0.34, spray: true, mist: 1 },
@@ -142,6 +144,9 @@ export async function buildWater(ctx) {
     buildMs: 0,
   };
   let clock = 0;
+  const frustum = new THREE.Frustum();
+  const viewProj = new THREE.Matrix4();
+  const lakeSphere = lake.geometry.boundingSphere;
   /* Hidden while the mirror is drawn: the water itself, and whatever the
    * map lists as not worth reflecting (ctx.mirrorHide, the meadow). */
   const hide = [group, ...(ctx.mirrorHide || [])];
@@ -151,9 +156,17 @@ export async function buildWater(ctx) {
     if (!mirror) {
       return;
     }
-    /* Only when the lake could be on screen: near enough and in front. */
-    const d = Math.hypot(camera.position.x - cx, camera.position.z - cz);
-    if (d < 6000) {
+    /* The mirror is a whole second scene render: only when the lake is in
+     * the camera's frustum. At the strip, looking up the valley, it is
+     * not. */
+    camera.updateMatrixWorld();
+    viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(viewProj);
+    /* Past two kilometres from its nearest shore the lake is a sliver
+     * whose reflection the sky's light carries well enough. */
+    stats.mirrorDrawn = frustum.intersectsSphere(lakeSphere)
+      && camera.position.distanceTo(lakeSphere.center) - lakeSphere.radius < MIRROR_REACH;
+    if (stats.mirrorDrawn) {
       mirror.render(ctx.renderer, ctx.scene, camera, hide);
     }
   };
