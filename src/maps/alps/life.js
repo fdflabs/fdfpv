@@ -145,6 +145,55 @@ function mover(built, mat, wheelGeo) {
 }
 
 /*
+ * How the vehicles are made and drawn. This is the cel look's: one
+ * vertex coloured bake per vehicle with the paint finish, the wheels an
+ * instanced mesh of their own. A style may bring its own as
+ * look.vehicles (swiss2 does, see src/maps/swiss2/vehicles/): builders
+ * that return the same sizes and wheels as these, so the paths, the
+ * moving boxes and the parked colliders are the same, and a mover, a
+ * parked bake and the aircraft drawn its way.
+ */
+function celVehicles(look) {
+  /* One finish for everything with paint on it, the wing's own: a rim
+   * and a hard painted highlight. */
+  const paintMat = look.parts('paint', { rim: 0.26, spec: 0.16, specWidth: 0.012 });
+  const wheelGeo = wheelGeometry();
+  return {
+    buildCar,
+    buildPostbus,
+    buildTractor,
+    buildTrailer,
+    buildMotorbike,
+    mover: (built) => mover(built, paintMat, wheelGeo),
+    parked(name) {
+      const bake = makeParts();
+      return {
+        add(built, x, y, z, yaw) {
+          for (const w of built.wheels) {
+            built.parts.pushBaked(wheelGeo, w.x, w.r, w.z, 0, 0, 0, w.r, w.r, w.w);
+          }
+          placeParts(bake, built.parts, x, y, z, yaw);
+        },
+        mesh() {
+          const mesh = new THREE.Mesh(bakeParts(bake), paintMat);
+          mesh.name = name;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          return mesh;
+        },
+      };
+    },
+    aircraft() {
+      const cub = buildAircraft();
+      const plane = new THREE.Mesh(cub.geometry, paintMat);
+      plane.castShadow = true;
+      plane.receiveShadow = true;
+      return { object: plane, size: cub.size };
+    },
+  };
+}
+
+/*
  * Moving boxes for everything that drives, and the one rule for moving
  * them. A box may only be MOVED by what its vehicle could cover since
  * the last update; a jump of the clock (title to flight, a capture that
@@ -236,10 +285,7 @@ function overlaps(a, b) {
  */
 export function buildLife(ctx) {
   const { scene, heightAt, valleyAxis, rng, colliders, mats, road, look } = ctx;
-  /* One finish for everything with paint on it, the wing's own: a rim
-   * and a hard painted highlight. */
-  const paintMat = look.parts('paint', { rim: 0.26, spec: 0.16, specWidth: 0.012 });
-  const wheelGeo = wheelGeometry();
+  const V = look.vehicles ?? celVehicles(look);
   const pick = (list) => list[Math.floor(rng() * list.length)];
   const surface = makeSurface(road, heightAt, valleyAxis);
   const solids = makeSolids(colliders);
@@ -267,15 +313,12 @@ export function buildLife(ctx) {
    */
   /* Two bakes, the street's and the hangar's, so a camera at the strip
    * looking up the valley does not draw the street's cars behind it. */
-  const streetBake = makeParts();
-  const hangarBake = makeParts();
+  const streetBake = V.parked('parked-street');
+  const hangarBake = V.parked('parked-hangar');
   let parked = 0;
   const park = (bake, built, x, z, yaw) => {
     const y = surface(x, z);
-    for (const w of built.wheels) {
-      built.parts.pushBaked(wheelGeo, w.x, w.r, w.z, 0, 0, 0, w.r, w.r, w.w);
-    }
-    placeParts(bake, built.parts, x, y, z, yaw);
+    bake.add(built, x, y, z, yaw);
     const c = Math.abs(Math.cos(yaw));
     const s = Math.abs(Math.sin(yaw));
     const hw = (c * built.size.L + s * built.size.W) / 2;
@@ -283,31 +326,25 @@ export function buildLife(ctx) {
     colliders.addBox('wall', x - hw, y, z - hd, x + hw, y + built.size.H, z + hd);
     parked += 1;
   };
-  const streetCar = () => buildCar(pick(['hatch', 'hatch', 'hatch', 'estate', 'van']), pick(CAR_COLOURS));
+  const streetCar = () => V.buildCar(pick(['hatch', 'hatch', 'hatch', 'estate', 'van']), pick(CAR_COLOURS));
   for (const x of [-55, -62, -80, -99, -118, -152]) {
     park(streetBake, streetCar(), x + (rng() - 0.5) * 1.5, STREET_Z + 4.3, (rng() - 0.5) * 0.06);
   }
   for (const x of [-72, -108, -142]) {
     park(streetBake, streetCar(), x + (rng() - 0.5) * 1.5, STREET_Z - 4.4, Math.PI + (rng() - 0.5) * 0.06);
   }
-  park(hangarBake, buildCar('estate', PAINT.green), 63.5, -50, Math.PI / 2);
-  park(hangarBake, buildCar('hatch', PAINT.white), 68.5, -49.5, Math.PI / 2 + 0.05);
-  park(hangarBake, buildMotorbike(PAINT.red), 39.5, -56.3, 0.12);
-  for (const [name, bake] of [['parked-street', streetBake], ['parked-hangar', hangarBake]]) {
-    const mesh = new THREE.Mesh(bakeParts(bake), paintMat);
-    mesh.name = name;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
+  park(hangarBake, V.buildCar('estate', PAINT.green), 63.5, -50, Math.PI / 2);
+  park(hangarBake, V.buildCar('hatch', PAINT.white), 68.5, -49.5, Math.PI / 2 + 0.05);
+  park(hangarBake, V.buildMotorbike(PAINT.red), 39.5, -56.3, 0.12);
+  for (const bake of [streetBake, hangarBake]) {
+    scene.add(bake.mesh());
   }
 
   /* THE AIRCRAFT on the apron, nose to the strip, its wing over the
    * middle pair of the hangar's tie down rings. */
-  const cub = buildAircraft();
-  const plane = new THREE.Mesh(cub.geometry, paintMat);
+  const cub = V.aircraft();
+  const plane = cub.object;
   plane.name = 'aircraft';
-  plane.castShadow = true;
-  plane.receiveShadow = true;
   const planeAt = { x: 19.25, z: -70 };
   plane.position.set(planeAt.x, surface(planeAt.x, planeAt.z) + 0.05, planeAt.z);
   plane.rotation.y = Math.PI;
@@ -355,7 +392,7 @@ export function buildLife(ctx) {
     }
     return laneAt(road, detour.sOut + (u - u1), 1);
   };
-  const bus = mover(buildPostbus(), paintMat, wheelGeo);
+  const bus = V.mover(V.buildPostbus());
   bus.group.name = 'postbus';
   scene.add(bus.group);
   const busSolid = solids.add(bus.size.L, 2.5, bus.size.H, 20);
@@ -371,19 +408,19 @@ export function buildLife(ctx) {
    */
   const roadTime = roadLen / ROAD_V;
   const south = [
-    { built: buildCar('hatch', PAINT.silver), offset: 95 },
-    { built: buildCar('estate', PAINT.blue), offset: 190 },
-    { built: buildCar('van', PAINT.white), offset: 280 },
+    { built: V.buildCar('hatch', PAINT.silver), offset: 95 },
+    { built: V.buildCar('estate', PAINT.blue), offset: 190 },
+    { built: V.buildCar('van', PAINT.white), offset: 280 },
   ];
   const north = [
-    { built: buildCar('hatch', PAINT.red), offset: 30 },
-    { built: buildCar('hatch', PAINT.white), offset: 120 },
-    { built: buildMotorbike(PAINT.blue), offset: 170 },
-    { built: buildCar('estate', PAINT.silver), offset: 230 },
-    { built: buildCar('van', PAINT.silver), offset: 300 },
+    { built: V.buildCar('hatch', PAINT.red), offset: 30 },
+    { built: V.buildCar('hatch', PAINT.white), offset: 120 },
+    { built: V.buildMotorbike(PAINT.blue), offset: 170 },
+    { built: V.buildCar('estate', PAINT.silver), offset: 230 },
+    { built: V.buildCar('van', PAINT.silver), offset: 300 },
   ];
   [...south, ...north].forEach((c, i) => {
-    c.mover = mover(c.built, paintMat, wheelGeo);
+    c.mover = V.mover(c.built);
     c.mover.group.name = `car${i}`;
     c.solid = solids.add(c.built.size.L, c.built.size.W, c.built.size.H, ROAD_V + 1);
     scene.add(c.mover.group);
@@ -435,8 +472,8 @@ export function buildLife(ctx) {
     fieldPts.push({ x: FIELD.x + FIELD.rx * Math.cos(a), z: FIELD.z + FIELD.rz * Math.sin(a) });
   }
   const field = makePath(fieldPts, true);
-  const tractor = mover(buildTractor(), paintMat, wheelGeo);
-  const trailer = mover(buildTrailer(), paintMat, wheelGeo);
+  const tractor = V.mover(V.buildTractor());
+  const trailer = V.mover(V.buildTrailer());
   tractor.group.name = 'tractor';
   trailer.group.name = 'trailer';
   scene.add(tractor.group);
