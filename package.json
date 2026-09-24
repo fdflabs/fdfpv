@@ -52,6 +52,7 @@
     "wing:gates": "node scripts/wing-gates.js",
     "wing:record": "node scripts/wing-record.js",
     "wing:contact": "node scripts/wing-contact-selftest.js",
+    "wing:e2e": "node scripts/wing-e2e.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",
