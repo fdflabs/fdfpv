@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|wing|cub|glider] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -137,17 +137,50 @@ const GLIDER_VIEWS = [
   ['tip-left', DEFLECT, [-150, 10, 1.4, -0.75, 0.12, 0.05], false, false, 0],
 ];
 
+/*
+ * The Bramor's own set: a 2.3 m wing, so the cameras stand further off,
+ * its elevons (only the first two surfaces mean anything), the gimbal
+ * ball, the prop open and folded, the canopy open and on the grass, and
+ * the catapult. The seventh field is what to set up before the shot.
+ */
+const B_DEFLECT = [-FULL / 2, FULL / 2, 0, 0];
+const BRAMOR_VIEWS = [
+  ['front', NEUTRAL, [0, 4, 5.5, 0, 0, 0], false, false, 900],
+  ['three-quarter', NEUTRAL, [-140, 28, 5.2, 0, 0, 0.1], false, false, 900],
+  ['three-quarter-front', NEUTRAL, [-35, 25, 5.2, 0, 0, 0], false, false, 900],
+  ['side', NEUTRAL, [90, 0, 4.2, 0, 0, 0.1], false, false, 900],
+  ['top', NEUTRAL, [0, 90, 5.6, 0, 0, 0.1], false, false, 900],
+  ['below', NEUTRAL, [0, -90, 5.6, 0, 0, 0.1], false, false, 900],
+  ['deflected-rear', B_DEFLECT, [180, 12, 5.0, 0, 0, 0.1], false, false, 900],
+  ['deflected-top', B_DEFLECT, [0, 90, 5.6, 0, 0, 0.1], false, false, 900],
+  ['nose-close', NEUTRAL, [-30, 12, 0.9, 0, -0.01, -0.33], false, false, 900],
+  ['nose-front', NEUTRAL, [0, 5, 0.7, 0, -0.01, -0.36], false, false, 900],
+  ['tail-close', NEUTRAL, [-150, 22, 1.2, 0, 0.06, 0.30], false, false, 900],
+  ['prop-folded', NEUTRAL, [-120, 30, 1.2, 0, 0.06, 0.30], false, false, 0],
+  ['prop-blur', NEUTRAL, [-150, 22, 1.2, 0, 0.06, 0.30], true, false, 900],
+  ['winglet', NEUTRAL, [-120, 15, 1.4, 1.1, 0.1, 0.1], false, false, 900],
+  ['chute-open', NEUTRAL, [-120, 5, 9.0, 0, 1.6, 0.1], false, false, 0, 'window.__preview.chute(1)'],
+  ['chute-opening', NEUTRAL, [-120, 5, 9.0, 0, 1.6, 0.1], false, false, 0, 'window.__preview.chute(0.3)'],
+  ['chute-down', NEUTRAL, [-60, 30, 6.0, 0, 0, 1.0], false, false, 0, 'window.__preview.chute(1, true)'],
+  ['launcher', NEUTRAL, [-110, 12, 7.0, 0, 0.6, 1.2], false, false, 0, 'window.__preview.launcher(true)'],
+  ['launcher-front', NEUTRAL, [-25, 10, 6.0, 0, 0.8, 0.6], false, false, 0, 'window.__preview.launcher(true)'],
+];
+
 const page = await openPage({
   root, width: 1280, height: 800, url: `/tests/browser/craft-preview.html?craft=${craft}${lite ? '&lite=1' : ''}`,
 });
 try {
   await page.until('window.__previewReady === true', 60000);
   await mkdir(outDir, { recursive: true });
-  const scale = craft === 'wing' ? 0.6 : 1;
-  const views = { cub: CUB_VIEWS, glider: GLIDER_VIEWS }[craft] ?? VIEWS;
-  for (const [name, surf, cam, blur, rest, omega] of views) {
+  const scale = 1;
+  const views = { cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS }[craft] ?? VIEWS;
+  for (const [name, surf, cam, blur, rest, omega, setup] of views) {
     const [az, el, dist, tx, ty, tz] = cam;
+    await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate(`window.__preview.rest(${Boolean(rest)})`);
+    if (setup) {
+      await page.evaluate(setup);
+    }
     await page.evaluate(`window.__preview.surfaces(${surf.join(',')})`);
     if (omega === undefined) {
       await page.evaluate(`window.__preview.spin(0.6, ${Boolean(blur)})`);
@@ -180,6 +213,10 @@ try {
       ['rudder-left', [0, 0, 0, FULL], left],
       ['rudder-right', [0, 0, 0, FULL], left],
     ],
+    bramor: [
+      ['elevon-left', [FULL, 0, 0, 0], up],
+      ['elevon-right', [0, FULL, 0, 0], up],
+    ],
     cub: [
       ['aileron-left', [FULL, 0, 0, 0], up],
       ['aileron-right', [0, FULL, 0, 0], up],
@@ -210,7 +247,8 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (craft === 'sky' || craft === 'cub' || craft === 'glider') {
+  if (craft === 'sky' || craft === 'cub' || craft === 'glider' || craft === 'bramor') {
+    await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
     const e = await page.evaluate('window.__preview.extents()');

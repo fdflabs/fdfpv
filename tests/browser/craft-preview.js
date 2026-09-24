@@ -25,12 +25,12 @@
 import * as THREE from 'three';
 import { buildComposer } from '../../src/render/post.js';
 import { buildSkyCraft, SKY_DIMS } from '../../src/render/skycraft.js';
-import { buildWingCraft } from '../../src/render/wingcraft.js';
 import { buildCubCraft, CUB_DIMS } from '../../src/render/cubcraft.js';
 import { buildGliderCraft, GLIDER_DIMS } from '../../src/render/glidercraft.js';
+import { buildBramorCraft, BRAMOR_DIMS } from '../../src/render/bramorcraft.js';
 
-const BUILDERS = { sky: buildSkyCraft, wing: buildWingCraft, cub: buildCubCraft, glider: buildGliderCraft };
-const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS };
+const BUILDERS = { sky: buildSkyCraft, cub: buildCubCraft, glider: buildGliderCraft, bramor: buildBramorCraft };
+const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
 const lite = params.get('lite') === '1';
@@ -254,8 +254,35 @@ window.__preview = {
    * read as a number and not only off a picture. */
   box(name) {
     const o = craft.group.getObjectByName(name);
+    /* Box3 updates the part's own matrices and not its parents', so a
+     * group moved since the last frame, as the launcher view moves it,
+     * would be measured where it was. */
+    craft.group.updateMatrixWorld(true);
     const b = new THREE.Box3().setFromObject(o);
     return { min: b.min.toArray(), max: b.max.toArray() };
+  },
+  /* The Bramor's extras: the canopy open over it (hanging straight up from
+   * a level aircraft) or lying on the grass, and the catapult under it,
+   * pitched up on the rail with the ground drawn. A craft without them
+   * ignores the call. */
+  chute(open, grounded = false) {
+    if (!craft.setChute) return true;
+    craft.setChute(open, [0, 1, 0], [0, -1, 0], grounded ? 0.065 : null);
+    return true;
+  },
+  launcher(on) {
+    if (!craft.launcher) return true;
+    const cat = DIMS[which]?.catapult;
+    craft.launcher.visible = on;
+    if (on && cat) {
+      craft.group.rotation.set((cat.pitchDeg * Math.PI) / 180, 0, 0);
+      craft.group.position.set(0, cat.height, 0);
+      ground.visible = true;
+      ground.scale.setScalar(2);
+    } else {
+      ground.scale.setScalar(1);
+    }
+    return true;
   },
 };
 window.__previewReady = true;
