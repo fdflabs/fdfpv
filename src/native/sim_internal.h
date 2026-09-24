@@ -187,9 +187,10 @@ typedef struct {
 #define SIM_AIRFRAME_WING1000 2
 #define SIM_AIRFRAME_SKY1800 3
 #define SIM_AIRFRAME_CUB1400 4
-/* 5 is reserved for the Slow Stick and 7 for the Timber Evolution, which
- * are being built alongside; until their entries land the slots are zero
- * and sim_set_airframe refuses them. */
+#define SIM_AIRFRAME_SLOWSTICK1180 5
+/* 7 is reserved for the Timber Evolution, which is being built
+ * alongside; until its entry lands the slot is zero and sim_set_airframe
+ * refuses it. */
 #define SIM_AIRFRAME_RADIAN2000 6
 #define SIM_AIRFRAME_BRAMOR2300 8
 #define SIM_AIRFRAME_COUNT 9
@@ -365,9 +366,10 @@ void plant_step(SimState *s, const double duty[SIM_MOTOR_COUNT]);
  */
 #define FW_MIX_ELEVON 0 /* two elevons, delta_e plus and minus delta_a; no rudder */
 #define FW_MIX_TAIL 1   /* ailerons, an elevator and a rudder, each its own surface */
+#define FW_MIX_RUDDER 2 /* no ailerons: an elevator, and a rudder the roll stick drives too */
 
 typedef struct FixedWingParams {
-  int mix;             /* FW_MIX_ELEVON or FW_MIX_TAIL */
+  int mix;             /* FW_MIX_ELEVON, FW_MIX_TAIL or FW_MIX_RUDDER */
   double span;         /* m */
   double area;         /* m^2 */
   double chord;        /* m */
@@ -467,6 +469,13 @@ typedef struct FixedWingParams {
   double chute_cda;       /* canopy drag area fully open, C_D times area, m^2 */
   double chute_open_s;    /* seconds from the pull to a full canopy */
   double chute_attach[3]; /* where the risers meet the airframe, body frame, m */
+  /* Past the stall: the CG's distance behind the wing's aerodynamic centre,
+   * and the flat plate's centre of pressure's behind the CG, both per
+   * chord. They take back the linear moment's lift the stalled wing does
+   * not make and put the plate's where it acts. Zero leaves the moment
+   * linear through the stall. */
+  double stall_arm_ac;
+  double stall_arm_cp;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -474,6 +483,7 @@ extern const FixedWingParams FW_SKY1800;
 extern const FixedWingParams FW_CUB1400;
 extern const FixedWingParams FW_RADIAN2000;
 extern const FixedWingParams FW_BRAMOR2300;
+extern const FixedWingParams FW_SLOWSTICK1180;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);

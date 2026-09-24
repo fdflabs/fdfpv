@@ -856,6 +856,60 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_z = -0.01,
   .fw = &FW_BRAMOR2300,
 },
+/*
+ * The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md: 420 g on a 2S pack, the
+ * prop 0.31 m ahead of the CG on a geared can motor. The hull is the
+ * contact code's centred box, and as on the Cub it is only what a crash
+ * lands on: the aircraft stands on its wheels. The box is the half span
+ * wide, the pack's bottom under the CG and the wing's top at the root over
+ * it; the fin, 0.2 m tall at the tail, and the tips, raised 0.125 m by the
+ * dihedral, stand outside a centred box and are left to their own bumps.
+ * The camera is the drawn one, on the stick behind the gearbox.
+ */
+[SIM_AIRFRAME_SLOWSTICK1180] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 0.42,
+  .inertia = { 0.0125, 0.022, 0.033 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.1397,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.31, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.30,
+  .hull_hy = 0.588,
+  .hull_hz_down = 0.03,
+  .hull_hz_up = 0.06,
+  .contact_patch_r = 0.06,
+  .contact_arm_max = 0.67,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.22,
+  .camera_y = 0.0,
+  .camera_z = 0.0165,
+  .fw = &FW_SLOWSTICK1180,
+  /*
+   * The gear, as src/render/slowstickcraft.js draws it: the wire V's axles
+   * 0.18 m ahead of the CG and 0.1275 m under it on a 0.17 m track with
+   * 60 mm wheels, the tailwheel's 0.568 m behind and 0.0545 m under with a
+   * 25 mm wheel. Each axle is lowered here by its strut's 5 mm of static
+   * deflection, so under its own weight the plant settles onto the drawn
+   * pose: 6.9 deg nose up, the CG 0.135 m over the grass, 26 percent of
+   * the weight on the tail. Stiffness for that deflection, damping at 0.6
+   * of critical, the Cub's rule; the thin moulded tyres grip less across
+   * than the Cub's rubber. The tailwheel steers with the rudder, one to one.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.18, 0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0 },
+    { .pos = { 0.18, -0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0 },
+    { .pos = { -0.568, 0.0, -0.0595 }, .r = 0.0125, .k = 210.0, .c = 4.5, .mu_roll = 0.08, .mu_side = 0.50, .steer = 1.0 },
+    /* The prop's lowest tip, a skid, 0.1397 m under the shaft: 15 mm over
+     * the grass with the aircraft level on its mains, touching at 7 deg
+     * nose down about them. */
+    { .pos = { 0.31, 0.0, -0.1422 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*
