@@ -8292,6 +8292,8 @@ export async function boot({ loading, bootStart, mapId }) {
   };
   window.__craftState = () => ({
     mode,
+    wingStab: typeof sim.e.sim_wing_stab === 'function' ? sim.e.sim_wing_stab() : null,
+    tune: configId,
     flownThisRun,
     landed,
     crashed,

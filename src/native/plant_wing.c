@@ -101,6 +101,10 @@ static int g_stab = 0;
 static const double W_STAB_BANK_MAX = 60.0 * WING_PI / 180.0;
 static const double W_STAB_PITCH_MAX = 30.0 * WING_PI / 180.0;
 static const double W_STAB_TRIM_PITCH = 2.0 * WING_PI / 180.0;
+/* A gimbal does not centre exactly, and in a hold a few percent of stick
+ * is a few degrees of bank, which is a turn. Inside this the stick is
+ * centred; outside it the target starts from zero, so there is no step. */
+static const double W_STAB_DEADBAND = 0.04;
 static const double W_STAB_ROLL_KP = 1.2;   /* stick per rad of bank error */
 static const double W_STAB_ROLL_KD = 0.12;  /* stick per rad/s of roll rate */
 static const double W_STAB_PITCH_KP = 5.0;  /* stick per rad of pitch error, through the 12 degree throw */
@@ -172,6 +176,17 @@ static double clamp1(double x) {
   return x > 1.0 ? 1.0 : (x < -1.0 ? -1.0 : x);
 }
 
+static double deadband1(double x) {
+  x = clamp1(x);
+  if (x > W_STAB_DEADBAND) {
+    return (x - W_STAB_DEADBAND) / (1.0 - W_STAB_DEADBAND);
+  }
+  if (x < -W_STAB_DEADBAND) {
+    return (x + W_STAB_DEADBAND) / (1.0 - W_STAB_DEADBAND);
+  }
+  return 0.0;
+}
+
 /* Pitch and bank from the body to world quaternion, the same two the
  * harness reads: pitch from the forward axis' world z, bank from the
  * left axis' world z, right wing down positive. atan2 rather than asin
@@ -221,8 +236,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (g_stab) {
     double pitch_att, bank;
     wing_attitude(s->quat, &pitch_att, &bank);
-    const double bank_t = W_STAB_BANK_MAX * clamp1(roll);
-    const double pitch_t = W_STAB_TRIM_PITCH + W_STAB_PITCH_MAX * clamp1(pitch);
+    const double bank_t = W_STAB_BANK_MAX * deadband1(roll);
+    const double pitch_t = W_STAB_TRIM_PITCH + W_STAB_PITCH_MAX * deadband1(pitch);
     roll = clamp1(-W_STAB_ROLL_KP * (bank - bank_t) - W_STAB_ROLL_KD * s->omega[0]);
     pitch = clamp1(W_STAB_PITCH_KP * (pitch_t - pitch_att) - W_STAB_PITCH_KD * (-s->omega[1]));
   }

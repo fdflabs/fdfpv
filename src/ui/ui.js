@@ -591,6 +591,9 @@ const DEFAULTS = {
    * migration itself says what each generation moved.
    */
   whoopDefaults: 0,
+  /* The same marker for the wing: 0 is a profile from before the wing had
+   * a stabiliser, when Manual was its only tune and never a choice. */
+  wingDefaults: 0,
   /*
    * Whether the flight feel question has been offered. It offers itself
    * exactly once, after the first finished race, and never again: the
@@ -999,6 +1002,18 @@ export function loadSettings() {
     }
   }
   s.whoopDefaults = SUPERSEDED_WHOOP.GENERATION;
+  /*
+   * THE WING GREW A STABILISER and became Stabilised by default. A profile
+   * that seated the wing before then holds Manual, which was the only row
+   * and so was never chosen; it moves to the new default once, and a pilot
+   * who then picks Manual keeps it, the same rule as the whoop's.
+   */
+  if (!(s.wingDefaults >= 1)) {
+    if (s.airframe === 'wing1000' && s.tune === 'wing-manual') {
+      s.tune = airframeById('wing1000').defaultTune;
+    }
+    s.wingDefaults = 1;
+  }
   /*
    * The seated aircraft's starting PID adjustment, after normalisePids so it
    * is not stripped as an unknown entry, and after the tune is final so it
