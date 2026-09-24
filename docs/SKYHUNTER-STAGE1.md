@@ -140,9 +140,9 @@ wing's bands were, in proportion.
 | S5 roll rate, full aileron at 20 m/s | 141 deg/s, pb/2V = 0.11 | 100 to 190 |
 | S6 turn radius at 60 deg bank | V²/(g tan 60°) | within 15 percent of the formula at the speed flown |
 | S7 climb rate, full throttle, best | 8.0 m/s at 12.5 m/s | 5.5 to 9.5 |
-| S8 hand throw at 11 m/s, 60 percent throttle, an eighth of up for two seconds | above 1 m and faster than 10 m/s after 3 s | pass or fail |
+| S8 hand throw at 11 m/s, 60 percent throttle, for two seconds the up stick that trims 11 m/s | above 1 m and faster than 10 m/s after 3 s | pass or fail |
 | S9 throttle chop from cruise | glides, pitch within ±30 deg for 3 s | pass or fail |
-| S10 phugoid period at 15 m/s, sticks centred | π sqrt(2) V/g = 6.8 s (Lanchester) | 5.5 to 8.5 |
+| S10 phugoid period at 15 m/s, sticks centred | 9.8 s, ζ 0.29: the phugoid root of the four state longitudinal model (Nelson, ch. 4) from the derivatives above | 8.0 to 11.5 |
 | S11 full rudder at cruise, wings held level with aileron: steady sideslip | −Cnδr δr/Cnβ = 13.7 deg, nose to the rudder's side | 9 to 20 |
 | S12 full rudder at cruise, ailerons centred: peak yaw rate | 68 deg/s: the Dutch roll step, ω_n = sqrt(q S b Cnβ/Izz) = 6.8 rad/s, ζ = 0.24 | 45 to 100 |
 | S13 full rudder at cruise, ailerons centred: bank after 2 s | the rudder's way; steady roll rate 22 deg/s once the sideslip is built, from Clβ β against Clp | 15 to 80 deg, and the sign |
@@ -154,6 +154,33 @@ S10 to S13 have no counterpart in the wing's table: a flying wing has no
 tail to give it a phugoid worth timing and no rudder. S13 is the
 dihedral effect, the thing that lets a three channel trainer turn on
 rudder alone, and it is gated on its sign as much as its size.
+
+## What the first flights corrected
+
+Two things this derivation had wrong, found by flying the plant headless
+before any band was written into a check:
+
+- S10 was first derived with Lanchester's π sqrt(2) V/g, 6.8 s, and a
+  band of 5.5 to 8.5. The plant flew 9.2 s. Lanchester's figure assumes
+  the aircraft keeps its angle of attack through the cycle and that
+  thrust does not change with speed; with a tail volume of 0.57 the
+  pitch damping is large, and this motor's thrust falls steeply with
+  speed. The four state longitudinal model built from the same
+  derivatives, trimmed at 15 m/s and linearised (u, w, q, θ; Nelson,
+  ch. 4), puts the phugoid at 9.8 s with a damping ratio of 0.29 and
+  the short period at 0.77 s, ζ 0.69. The band is that figure with the
+  room the estimated inputs need. The gate also measures against the
+  speed the aircraft settles at rather than the window's mean, since a
+  mode damped this well has only two cycles worth counting in thirty
+  seconds.
+- S8's hand, an eighth of up for two seconds, was the wing's. The
+  Skyhunter trims hands off at 15 m/s, and at the 11 m/s throw it needs
+  2.9 deg of up elevator to hold its height, which is 0.28 of stick
+  through the expo; an eighth sank it 3 m. The check now holds the
+  stick that trims the throw speed, which is what a pilot's thumb does
+  on a launch, and the band is unchanged. It passes with 0.1 m to spare,
+  which is the honest picture of a Skyhunter thrown at 1.2 times its
+  stall speed: it does not climb away until it has accelerated.
 
 ## Conventions
 
@@ -204,6 +231,35 @@ behind), so the nose corner stands 0.16 m proud of the real nose and
 the tail corner 0.16 m short of the real tail; an offset box would need
 the contact code to learn one, which it has not.
 
+## The stabiliser, and what yaw does
+
+The wing's stabiliser and acro, from `docs/WING-STAGE1.md`, with the
+Skyhunter's own numbers. Stabilised asks for up to 60 deg of bank and 30
+deg of pitch about a 2 deg trim, held with 2.0 stick per rad and 0.2 per
+rad/s in roll and the wing's 5.0 and 0.5 in pitch: the roll gains are
+the wing's scaled by the two aircraft's roll authority, since the
+Skyhunter gets about half the wing's roll rate per degree of aileron.
+Acro asks for up to 120 deg/s of roll and 80 deg/s of pitch, about what
+the ailerons and elevator give at cruise, with 5.0, 0.4 and 0.5 stick in
+roll (error, rate error, feedforward), 6.0 of integral, and the wing's
+pitch loop.
+
+Yaw is a decision the wing never had to make. In every mode the yaw
+stick is the rudder, through its travel and expo. In Stabilised and Acro
+a turn coordinator adds rudder on top: one stick per rad/s of body yaw
+rate away from the coordinated rate, g sin(bank) cos(pitch)/V, which is
+the rate a banked aircraft with the ball centred yaws at. That is what
+ArduPlane's coordination does and what a pilot's feet do. It is not a
+yaw rate or heading hold, on purpose: a rudder commands sideslip, not a
+rate, and an aeroplane turns by banking, so a loop that held heading
+against the stick would fight every turn the roll loop flies. With the
+coordinator the sideslip in a held 60 deg bank reads 1 deg; the pilot
+can still slip, skid or hold a knife edge with the stick, and Acro's
+target turns its heading with the aircraft exactly as the wing's does,
+so a rudder input never shows up as roll or pitch error. Manual is the
+bare aircraft: the stock three channel Skyhunter if the yaw stick stays
+centred.
+
 ## The script that made the numbers
 
 ```
@@ -214,5 +270,7 @@ T(V,d)=max(0, Ts d^2 (1 - V/(Vp d))); D(V)=q S (CD0 + k CL^2) with CL=W/(q S)
 level speed at duty d: bisect T(V,d)=D(V); climb=(T-D)V/W
 roll: pb/2V = Clda da/(-Clp); sideslip: -Cndr dr/Cnb
 Dutch roll: wn=sqrt(q S b Cnb/Izz), zeta from Cnr and CYb, peak r of the step
-phugoid: pi sqrt(2) V/g
+phugoid: trim level at 15 m/s for alpha, delta_e and duty, finite difference
+the four state (u, w, q, theta) equations, roots of the characteristic
+polynomial
 ```

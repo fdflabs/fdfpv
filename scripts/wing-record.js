@@ -1,8 +1,12 @@
 /*
  * wing-record.js: write tests/inputs/wing-baseline.rec, the stick stream
- * the cross-host wing check replays. Run it when the pilot in
+ * the cross-host wing check replays, or with `sky` the Skyhunter's
+ * tests/inputs/sky-baseline.rec. Run it when the pilot in
  * tests/lib/wingpilot.js changes; the recording is committed, like the
- * quad's baseline.rec, so the check never depends on JS maths.
+ * quad's baseline.rec, so the check never depends on JS maths. The wing's
+ * committed recording was made against an earlier plant and this no longer
+ * writes the same bytes; the hash is pinned to the committed stream, so
+ * it stays as it is.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -26,14 +30,25 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
-import { recordScriptedFlight } from '../tests/lib/wingpilot.js';
+import { recordScriptedFlight, skyPrelude, wingPrelude } from '../tests/lib/wingpilot.js';
+
+/* The wing by default; `sky` records the Skyhunter, with its rudder in the
+ * flight, for skyhunter-gates.js S16. */
+const PLANES = {
+  wing: { file: 'tests/inputs/wing-baseline.rec', prelude: wingPrelude, rudder: false },
+  sky: { file: 'tests/inputs/sky-baseline.rec', prelude: skyPrelude, rudder: true },
+};
+const plane = PLANES[process.argv[2] || 'wing'];
+if (!plane) {
+  throw new Error(`wing-record: unknown plane ${process.argv[2]}; one of ${Object.keys(PLANES).join(', ')}`);
+}
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const sim = await loadSim(new Uint8Array(await readFile(join(root, 'dist/sim.wasm'))));
 if (sim.init(await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8')) !== SIM_OK) {
   throw new Error('sim_init failed');
 }
-const samples = recordScriptedFlight(sim);
-const out = join(root, 'tests/inputs/wing-baseline.rec');
+const samples = recordScriptedFlight(sim, { prelude: plane.prelude, rudder: plane.rudder });
+const out = join(root, plane.file);
 await writeFile(out, encodeRec(250, samples));
 console.log(`wrote ${out}: ${samples.length} samples at 250 Hz, ${(samples.length / 250).toFixed(1)} s`);

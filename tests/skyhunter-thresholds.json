@@ -1,0 +1,19 @@
+{
+  "note": "The bands the Skyhunter plant has to land in, from docs/SKYHUNTER-STAGE1.md, which derives each from published figures for the X-UAV Skyhunter 1800. Never widened to pass; argue in the derivation instead.",
+  "s1_level_65": { "duty": 0.65, "min": 13.0, "max": 17.0, "unit": "m/s", "source": "level speed at 65 percent throttle, derived 14.9" },
+  "s2_stall": { "alphaStall": 0.19927536231884058, "min": 8.6, "max": 10.4, "unit": "m/s", "source": "sqrt(2W / rho S CLmax), derived 9.2; alphaStall is CLmax / CLalpha, 1.10 / 5.52, of the zero lift line" },
+  "s3_glide": { "speed": 11, "min": 11.5, "max": 14.5, "source": "L/D at 11 m/s, derived 13.0" },
+  "s4_top": { "duty": 1.0, "min": 21.5, "max": 26.5, "unit": "m/s", "source": "level speed at full throttle, derived 23.5" },
+  "s5_roll": { "duty": 0.85, "min": 100, "max": 190, "unit": "deg/s", "source": "full aileron at about 20 m/s, derived 141; 85 percent is the throttle that holds 20 m/s level" },
+  "s6_turn": { "duty": 0.85, "bankDeg": 60, "maxOffPercent": 15, "source": "radius against V^2 / (g tan bank) at the bank and speed flown" },
+  "s7_climb": { "min": 5.5, "max": 9.5, "unit": "m/s", "source": "full throttle, best over a sweep of airspeeds, derived 8.0" },
+  "s8_throw": { "speed": 11, "duty": 0.6, "up": 0.28, "minAltitude": 1.0, "minSpeed": 10.0, "source": "a throw at 11 m/s, 60 percent, for two seconds the up stick that trims 11 m/s (2.9 deg of elevator); airborne and flying after three" },
+  "s9_chop": { "maxPitchDeg": 30, "source": "throttle off from cruise, pitch stick neutral: a glide, not a tumble" },
+  "s10_phugoid": { "min": 8.0, "max": 11.5, "unit": "s", "source": "the phugoid root of the four state longitudinal model at 15 m/s built from the derivatives in docs/SKYHUNTER-STAGE1.md, derived 9.8 (Lanchester's 6.8 leaves out the pitch damping and the thrust's fall with speed)" },
+  "s11_sideslip": { "min": 9, "max": 20, "unit": "deg", "source": "full rudder, wings held level: -Cndr dr / Cnb, derived 13.7, the wind from the left" },
+  "s12_yaw_rate": { "min": 45, "max": 100, "unit": "deg/s", "source": "full rudder, ailerons centred: the Dutch roll step's peak rate, derived 68" },
+  "s13_rudder_roll": { "min": 15, "max": 80, "unit": "deg", "source": "full rudder, ailerons centred: bank after 2 s, the rudder's way, from dihedral; steady roll rate derived 22 deg/s" },
+  "s14_prop_torque": { "min": 0.25, "max": 0.45, "unit": "N m", "source": "static full throttle, rolling left: ideal disc power 0.29, measured electrical power 0.43" },
+  "s15_unmoved": { "quad": "de0401cd4266c395", "wing": "acdf88a78f9e60fc", "source": "the five inch's canonical replay hash and the wing's recorded flight hash in Node, both from before the Skyhunter existed; the Skyhunter must move neither" },
+  "s16_cross_host": { "source": "the Skyhunter's scripted flight state trace hash, Node against headless Chrome" }
+}
