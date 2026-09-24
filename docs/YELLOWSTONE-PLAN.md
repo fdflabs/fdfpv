@@ -26,8 +26,13 @@ out around the camera, and drawn at a detail that falls with distance.
   World x = E - E0 (east), world z = -(N - N0) (north is -z, the shell's
   forward), world y = elevation in metres above sea level minus Y0 = 2200
   (Old Faithful is about 2240 m).
-- Extent: x and z in [-50000, 50000]. Everything outside is not drawn and
-  not ground.
+- Extent: x and z in [-50000, 50000]. Nothing past it comes from the
+  tiles and nothing is placed there. It was "not drawn and not ground",
+  which left a pale void under the horizon from altitude (from Old
+  Faithful the west edge is 24 km off) and nothing under a craft that
+  crossed it; the terrain now draws a coarse apron outside, grown from
+  level 5's border heights into invented foothills, tucked under the
+  border, and it is ground (src/maps/yellowstone/terrain/apron.js).
 - The map module converts nothing at run time: the data files are already
   in world metres.
 
@@ -81,7 +86,11 @@ the thermal part, 2026-09-24):
   -19280, z -3920 to 21680: Madison Junction to 3.7 km south of Old
   Faithful), 60 tiles; every third hero sample is a level 0 sample.
 - `manifest.json` lists levels, tile counts, the hero tile set, sources
-  with their dates and licences, and a checksum per file.
+  with their dates and licences, and a checksum per file. The engine
+  reads which tiles exist from the keys of its `files` map (path to
+  checksum) and nothing else, so a tile the map does not list is never
+  asked for and a region with no hero tiles is drawn at level 0 without a
+  404 per frame.
 
 ## Other data, in world metres
 
@@ -109,16 +118,141 @@ the thermal part, 2026-09-24):
 ## Hosting
 
 The data is built outside this repository, which is already large, into
-`~/Desktop/fdfpv-yellowstone-data/`. The map loads it from a base URL. In
-development `scripts/serve.js` serves that folder; where it is hosted for
-the public site is decided when the data exists.
+`~/Desktop/fdfpv-yellowstone-data/`, and published to the public
+repository fdflabs/fdfpv-yellowstone-data on GitHub Pages. The map reads
+it from one base URL:
+
+- The public site reads `DATA_BASE` in `src/maps/yellowstone.js`,
+  `https://fdflabs.github.io/fdfpv-yellowstone-data/`, which serves
+  `access-control-allow-origin: *`. That constant is the one place the
+  address is written, so a rebuild of the data is a push to that
+  repository and nothing here changes.
+- A page served from this machine (localhost or 127.0.0.1: `npm run
+  serve` and every headless check) reads `yellowstone-data/` beside the
+  page instead. `scripts/serve.js` and `tests/lib/server.js` serve that
+  path from the folder `FDFPV_YELLOWSTONE_DATA` names, by default the
+  pipeline's output folder above. Where the real data is not, point it at
+  synthetic tiles: `node src/maps/yellowstone/terrain/synth-tiles.js DIR`
+  writes the whole pyramid in this format (no land cover, thermal or
+  hydro files, so the map builds the terrain alone).
+- `?ysdata=URL` on the page overrides both.
 
 ## Ground
 
-The map's ground height is read on the same triangles the nearest drawn
-level draws, split on the diagonal the valley heightfield uses (see the
-note in src/maps/alps/terrain.js), so a craft meets what is drawn. Under
-the craft the finest level is always loaded before the ground is asked.
+`map.height(x, z)` is the terrain the current frame draws at (x, z), read
+on that chunk's own two triangles, split on the diagonal from (i, j + 1)
+to (i + 1, j) as the valley heightfield is (src/maps/alps/terrain.js),
+and over it the higher of a lake's surface (`water.surfaceAt`) and the
+Lower Falls' rock step where those are drawn. Outside the extent it is
+the apron's triangles. The selection changes only between frames, so the
+physics steps of one frame all read one ground.
+
+The chunk under the craft is always split as far as the loaded data
+allows, because the craft is a focus of the selection and its own chunk
+is at distance nought from it; the finest tiles in a disc round the craft
+(6 km of level 0, 3 km of hero) are fetched before the selection needs
+them. So in flight the ground under the craft is the finest level. If
+the craft outruns the fetches, or a tile fails, the ground there is the
+next coarser level that is loaded, which is what is drawn there: never a
+hole. Before the first frame the whole selection round the spawn is
+loaded and built behind the loading bar.
+
+`heightAt(x, z)` for the parts that build on the ground (placement below)
+is a different function on purpose: the finest data loaded at (x, z),
+whatever is drawn there. Near the camera the two are the same; further
+out the terrain draws a coarser level and they can differ by a metre or
+two.
+
+## Terrain engine
+
+`src/maps/yellowstone/terrain/`. A chunked quadtree of plain meshes, not
+a geometry clipmap: a clipmap's triangles move with the camera, so "the
+ground is what is drawn" would change whenever it snapped, and it needs a
+vertex shader the cel material does not take. A quadtree node is 64 cells
+of its own level (1920 m at level 0, 640 m hero, 61 km at level 5), every
+sample drawn, so a chunk's triangles are its level's grid and the ground
+reads them back exactly. Four level 5 roots cover the extent. A level L
+node splits into the four level L - 1 nodes under it, which read one
+tile; a level 0 node into the nine hero nodes under it where the hero set
+has them. A node splits when a focus (the camera, the craft) is nearer
+its box than SPLIT times its children's side doubled, and only once the
+children's tiles are in and their meshes built, until when it is drawn
+itself. Cracks between levels are closed with skirts hung below each
+chunk's lowest sample by its relief, and on the extent's edge deep enough
+to meet the apron. The paint is NLCD land cover from the level 1 grid
+(all 49 tiles held, 3.2 MB) for every level, averaged over a coarse
+cell's footprint, with rock on steep faces and snow on the high ground;
+a grey grain texture tiled every 160 m in world space gives it texture
+near the ground. Chunks at 120 m cells and coarser are left out of the
+ink prepass.
+
+Budgets, High, set before measuring; `node scripts/yellowstone-check.js`
+asserts them (SIM_GPU=1 renders on the GPU):
+
+| What | Budget |
+| --- | --- |
+| Terrain draw calls in the camera's frustum, at the ground and at 3 km | 120 |
+| Terrain triangles in the camera's frustum, same views | 400 000 |
+| Main thread terrain work in any frame of the flown lines | 5 ms |
+| Chunk vertex buffers resident | 48 MB |
+| JS heap growth over 60 km flown | 64 MB |
+| Tile bytes not pinned | 24 MB |
+
+Per preset: SPLIT 1, 0.85 and 0.7 on High, Medium and Low; chunk builds
+2, 2 and 1.5 ms a frame, sliced by rows so a build never runs past its
+frame's ration by more than a row; 300, 250 and 200 chunk meshes kept.
+
+Measured 2026-09-24 on the real data, SIM_GPU=1 (RTX 3060 Ti), 1280 by
+720, High, with a load average of 30 to 37 from other sessions on the
+host. Terrain in view at the ground: 43 calls, 376 768 triangles; at
+3 km: 36 and 309 504. Every drawn border crack free (132 301 samples
+round the spawn); the ground within 2.1e-5 m of a ray cast onto the
+drawn meshes at 600 points. Main thread terrain work per frame on the
+flown lines: median 0.1 ms, p99 2.2 to 2.6 ms, worst 5.8 to 6.6 ms in 1
+to 5 frames of about 5 000 per line, which fails the 5 ms budget; a
+fixed control timed the same way every frame ran to 18 to 36 ms at
+worst on the same host, so most of that is the host descheduling the
+main thread, but it is left failing rather than argued away. After
+60 km flown: 22.5 MB of tiles (8.3 MB pinned for the features'
+regions), 36.3 MB of chunk buffers, heap lower than at the start. The
+synthetic tiles pass every assertion on the same host.
+
+With the thermal features and the water over the Upper Geyser Basin, the
+whole frame as `__renderStats` counts it (ink prepass, colour, post, the
+title quad when it is in view): 140 calls and 978 875 triangles at
+100 m, of which the features and water are 49 and 321 724; 304 calls and
+980 135 triangles at 1 km (about 160 of those calls are the title quad
+flying through the view). That is over the Alps' whole frame figure of
+600 000 triangles: the terrain alone is about 650 000 whole frame, half
+of it the ink prepass drawing the near chunks a second time.
+
+A region's build by the features or the water is one synchronous call of
+90 to 110 ms on this host (140 to 440 ms measured by that part at a
+landmark); the engine makes one a frame, and a pilot entering a new
+basin sees each as a dropped frame or several. The engine cannot split
+it: the fix is an incremental build in thermal/ and water/.
+
+## Placement: what the engine gives the other parts
+
+On the map instance as `map.placement`, and to the parts built in
+`src/maps/yellowstone.js`:
+
+- `groundAt(x, z)`: the finest data loaded there (the `heightAt` above).
+- `drawnAt(x, z)`: the terrain this frame draws, the same as the ground
+  under a craft.
+- `anchor({ x, z, range, build(y, groundAt), unload(obj) })`: a thing
+  built when the camera is within `range` metres and the finest ground
+  under it is loaded, taken down past `range` times 1.1. `build` returns
+  an Object3D in world coordinates; the default unload frees its
+  geometries and leaves materials, which are usually shared. Builds are
+  rationed per frame by time. Returns `{ object, remove() }`.
+- Regions for the thermal features and the water, as their interface
+  below asks: `loadRegion(region)` once some chunk inside a level 0 tile
+  is drawn at the finest level there within 2.5 km of the eye, after the
+  finest tiles of it and its eight neighbours are loaded; they stay pinned
+  while it is loaded, so `heightAt` cannot change under what was built.
+  `unloadRegion(key)` 90 frames after the last such chunk goes. At most
+  one part's load runs in a frame (terrain/regions.js).
 
 ## Ownership
 

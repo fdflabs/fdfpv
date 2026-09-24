@@ -175,11 +175,18 @@ export async function openPage({
   }
   const server = await startServer(root);
   const userDataDir = await mkdtemp(join(tmpdir(), 'sim-page-'));
+  /* SIM_GPU=1 renders on this machine's GPU instead of SwiftShader, for a
+   * check that measures frame time (scripts/yellowstone-check.js): a CPU
+   * rasteriser's frame says nothing about a GPU's, and its threads compete
+   * with the page's main thread for the cores. Every other run keeps the
+   * software rasteriser every machine has. */
+  const raster = process.env.SIM_GPU === '1'
+    ? ['--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu']
+    : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
   const proc = spawn(chrome, [
     '--headless=new',
     '--no-sandbox',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader',
+    ...raster,
     '--disable-dev-shm-usage',
     '--no-first-run',
     '--no-default-browser-check',

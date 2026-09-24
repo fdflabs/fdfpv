@@ -82,6 +82,17 @@ export const MAPS = [
     buildMs: MAP_BUILD_MS.alps,
     load: () => import('./alps.js'),
   },
+  /* In development, and the name says so, so a pilot who picks it knows
+   * what they are getting: rough edges, no roads, and a first build of
+   * the streamed terrain. */
+  {
+    id: 'yellowstone',
+    name: str('registry.yellowstone'),
+    mode: 'freestyle',
+    note: str('registry.yellowstone_note'),
+    buildMs: MAP_BUILD_MS.yellowstone,
+    load: () => import('./yellowstone.js'),
+  },
 ];
 
 export function mapById(id) {

@@ -405,6 +405,34 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
   rooms.append(roomList);
   host.append(rooms);
 
+  /*
+   * Yellowstone is built from public data, and one inventory that is not
+   * public domain and is used with credit on the owner's decision. Each
+   * source by name, beside what the map takes from it.
+   */
+  const park = section(str('credits.yellowstone'), str('credits.yellowstone_heading'));
+  const parkList = el('div', 'credit-rooms');
+  for (const [who, what] of [
+    ['credits.ys_src_3dep', 'credits.ys_elevation'],
+    ['credits.ys_src_nhd', 'credits.ys_water'],
+    ['credits.ys_src_nlcd', 'credits.ys_landcover'],
+    ['credits.ys_src_gnis', 'credits.ys_names'],
+    ['credits.ys_src_roads', 'credits.ys_roads'],
+    ['credits.ys_src_nps', 'credits.ys_geysers'],
+  ]) {
+    const line = el('p', 'credit-room');
+    line.append(el('b', null, str(who)));
+    line.append(document.createTextNode(str('credits.text', { v1: str(what) })));
+    parkList.append(line);
+  }
+  parkList.append(el('p', 'credit-room-note', str('credits.ys_public_domain')));
+  const rcn = el('p', 'credit-room');
+  rcn.append(el('b', null, str('credits.ys_rcn')));
+  rcn.append(document.createTextNode(str('credits.text', { v1: str('credits.ys_thermal') })));
+  parkList.append(rcn);
+  park.append(parkList);
+  host.append(park);
+
   const horde = section(str('credits.the_horde'), str('credits.written_with_grok_built_with_claude'));
   const ai = el('div', 'credit-row pair');
   const grokBody = el('p');
