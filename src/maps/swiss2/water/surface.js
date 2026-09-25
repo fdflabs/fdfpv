@@ -29,6 +29,13 @@
  *   water over the rapids and at the foot of the fall, from the wave
  *   texture's height so it breaks up and moves with the water.
  *
+ *   On the lake, what a lake shows from above: a boat's wake (the Kelvin
+ *   wedge and the churned trail behind her), the stream's milky plume
+ *   fanned out from its mouth, broad patches of darker and paler water
+ *   over what lies on the bed, and the sun's glitter off ripple facets
+ *   too small to draw, broad where the wind roughens the water and small
+ *   on a slick.
+ *
  * The geometry carries aWater (depth in metres, distance along the flow
  * in metres, position across -1 to 1, slope of the bed) and, for running
  * water, aFlow (the flow's direction in the ground plane).
@@ -102,7 +109,7 @@ export function bedMaterial(options, absorb) {
  */
 export function waterMaterial({
   waves, time, wind, flow = false, colour, shallow = colour, deep = colour, clarity = 0.4, ripple = 1, roughness = 0.04,
-  planar = null, foamAt = null, envMap = null, shoreFoam = 1, width = 4,
+  planar = null, foamAt = null, envMap = null, shoreFoam = 1, width = 4, boat = null, inflow = null,
 }) {
   const mat = new THREE.MeshStandardMaterial({
     color: colour,
@@ -128,6 +135,8 @@ export function waterMaterial({
     uDeep: { value: deep.clone().sub(colour) },
     uAbsorb: { value: new THREE.Vector3() },
     uBedPass: { value: 0 },
+    uBoat: boat ?? { value: new THREE.Vector4() },
+    uInflow: { value: inflow ? inflow.clone() : new THREE.Vector4() },
   };
   mat.userData.water = uniforms;
   const defines = `${flow ? '#define WATER_FLOW\n' : ''}${planar ? '#define WATER_PLANAR\n' : ''}`;
@@ -167,6 +176,8 @@ export function waterMaterial({
         uniform vec3 uDeep;
         uniform vec3 uAbsorb;
         uniform float uBedPass;
+        uniform vec4 uBoat;
+        uniform vec4 uInflow;
         varying vec4 vWater;
         varying vec3 vWaterWorld;
         varying vec4 vReflCoord;
@@ -192,6 +203,13 @@ export function waterMaterial({
          * from far off a windy band is a paler sheen of sky, not a
          * mirror. */
         float wSheen = 0.0;
+        /* How roughened the still water is by the wind, for the sun's
+         * glitter, and how much of the stream's milky water it holds. */
+        float wWindy = 0.0;
+        float wPlume = 0.0;
+        /* The pale line of bubbles a boat's screw and keel leave behind
+         * her, which from the air outlasts the foam by far. */
+        float wBubbles = 0.0;
         #ifdef WATER_FLOW
         {
           vec2 T = normalize(vFlow);
@@ -220,7 +238,36 @@ export function waterMaterial({
           vec2 wq = vec2(dot(p, wd), dot(p, vec2(-wd.y, wd.x)));
           float streaks = texture2D(uWaves, vec2(wq.x / 3200.0, wq.y / 300.0) - vec2(uTime * 0.0009, 0.0)).a;
           float gusts = texture2D(uWaves, p / 610.0 + drift * 0.0009).a;
-          float windy = smoothstep(0.5, 0.72, streaks * 0.6 + gusts * 0.4);
+          /* Most of the lake carries a breeze's ripple; a gust roughens a
+           * patch further, and long narrow slicks lie glassy down the
+           * wind between them. Their edges are sharp: the wind either
+           * lifts the ripples or it does not. */
+          float gust = smoothstep(0.56, 0.62, gusts * 0.65 + streaks * 0.35);
+          float lanes = texture2D(uWaves, vec2(wq.x / 2100.0, wq.y / 110.0) + vec2(0.37, 0.61)).a;
+          float slick = smoothstep(0.62, 0.66, lanes) * (1.0 - gust);
+          float windy = max(0.4 * (1.0 - slick), gust);
+          /* A boat's wake: the two arms of the Kelvin wedge, nineteen and
+           * a half degrees either side of her track whatever her speed,
+           * roughening the water for a few hundred metres behind her and
+           * widening as they go, and the churned trail straight behind. */
+          float wake = 0.0;
+          float wakeFoam = 0.0;
+          if (dot(uBoat.zw, uBoat.zw) > 0.01) {
+            vec2 hd = normalize(uBoat.zw);
+            vec2 rel = uBoat.xy - hd * 3.0 - p;
+            float behind = dot(rel, hd);
+            float side = abs(dot(rel, vec2(-hd.y, hd.x)));
+            float ab = max(behind, 0.0);
+            float arm = abs(side - ab * 0.354);
+            float arms = (1.0 - smoothstep(0.3 + 0.03 * ab, 1.2 + 0.07 * ab, arm)) * exp(-ab / 190.0) * smoothstep(-2.0, 6.0, behind);
+            arms *= 0.65 + 0.35 * sin(ab * 1.55 + side * 0.9);
+            float trail = (1.0 - smoothstep(0.5 + 0.02 * ab, 1.4 + 0.05 * ab, side)) * exp(-ab / 70.0) * step(0.0, behind);
+            wake = max(arms, trail);
+            wakeFoam = trail * exp(-ab / 14.0);
+            wBubbles = trail * 0.35 * exp(-ab / 110.0);
+          }
+          windy = max(windy, wake);
+          wWindy = windy;
           vec2 s = waveSlope(p / 47.0 + drift * 0.011) * 0.45
             + waveSlope(vec2(p.y, -p.x) / 13.0 + drift * 0.023) * 0.35
             + waveSlope(p / 3.7 - drift * 0.05) * 0.2;
@@ -228,10 +275,25 @@ export function waterMaterial({
            * ripples, and the mirror image in it is sharper for it. */
           float far = smoothstep(40.0, 600.0, distance(cameraPosition, vWaterWorld));
           wSlope = s * uRipple * mix(0.05, 1.0, windy) * (1.0 - 0.6 * far);
-          wSheen = windy * (0.1 + 0.25 * far);
+          wSheen = max(windy * (0.12 + 0.3 * far), wake * 0.7);
           float h = texture2D(uWaves, p / 2.9 + drift * 0.03).a;
           float shore = 1.0 - smoothstep(0.02, 0.3, vWater.x);
           wFoam = shore * smoothstep(0.45, 0.8, h) * uShoreFoam;
+          wFoam = max(wFoam, wakeFoam * smoothstep(0.35, 0.7, h));
+          /* Where the stream comes in: its milky water fanned out over the
+           * lake's in a plume, torn at the edges by the lake's own
+           * currents and sharp edged, as a sediment plume is from above. */
+          if (uInflow.z != 0.0 || uInflow.w != 0.0) {
+            float reach = length(uInflow.zw);
+            vec2 fd = uInflow.zw / reach;
+            vec2 d0 = p - uInflow.xy;
+            float along = dot(d0, fd);
+            float across = dot(d0, vec2(-fd.y, fd.x));
+            float warp = texture2D(uWaves, p / 140.0 + vec2(0.13, 0.71)).a * 0.7 + texture2D(uWaves, p / 37.0 + vec2(0.4, 0.2)).a * 0.3 - 0.5;
+            float width = 7.0 + 0.3 * max(along, 0.0) + 10.0 * warp;
+            float edge = abs(across + 0.18 * along * warp) / max(width, 4.0) + 0.5 * warp;
+            wPlume = (1.0 - smoothstep(0.7, 0.82, edge)) * smoothstep(-20.0, 4.0, along) * (1.0 - smoothstep(0.35, 1.0, (along + 60.0 * warp) / reach));
+          }
           if (uFoamAt.z > 0.0) {
             float d = distance(p, uFoamAt.xy) / uFoamAt.z;
             float churn = texture2D(uWaves, p / 1.9 + vec2(0.0, uTime * 0.4)).a;
@@ -246,7 +308,20 @@ export function waterMaterial({
          * sends the light back up through it, teal over the shelf, and a
          * darker blue green where it is deep. */
         diffuseColor.rgb += uShallow * (1.0 - smoothstep(0.5, 4.0, vWater.x)) + uDeep * smoothstep(4.0, 18.0, vWater.x);
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.86, 0.88), wFoam);`)
+        #ifndef WATER_FLOW
+        {
+          /* Seen from above a lake is never one colour at a depth: weed
+           * beds and shelves darken it in broad patches, pale sand and
+           * marl lighten it, and the stream's plume lies milky over it. */
+          vec2 mq = vWaterWorld.xz;
+          float mott = texture2D(uWaves, mq / 900.0 + vec2(0.31, 0.17)).a * 0.6 + texture2D(uWaves, mq / 260.0 + vec2(0.7, 0.2)).a * 0.4;
+          float mid = smoothstep(1.5, 5.0, vWater.x) * (1.0 - 0.5 * smoothstep(20.0, 40.0, vWater.x));
+          diffuseColor.rgb *= mix(1.0, mix(0.72, 1.22, smoothstep(0.3, 0.7, mott)), mid);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.22, 0.2), wPlume * 0.75);
+        }
+        #endif
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.86, 0.88), wFoam);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.3, 0.4, 0.4), wBubbles);`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = mix(roughnessFactor, 0.65, wFoam);
         roughnessFactor = mix(roughnessFactor, 0.22, wSheen);`)
@@ -271,6 +346,34 @@ export function waterMaterial({
           radiance *= mix(0.07, 1.0, max(wSky, wFoam));
         }
         #endif
+        #if !defined( WATER_FLOW ) && NUM_DIR_LIGHTS > 0
+        {
+          /* The sun's glitter: the light off the thousands of ripple
+           * facets tilted just so, which one normal per pixel cannot
+           * find. Their slopes spread as the wind lifts them (Cox and
+           * Munk: a variance of a few hundredths in a breeze), so a calm
+           * slick holds the sun's image small and a windy patch smears it
+           * into a broad glade of sparks. directLight is the sun as the
+           * light loop left it, the mountains' and clouds' shadow and
+           * the cascades' in it. */
+          vec3 gN = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+          vec3 gH = normalize(directLight.direction + geometryViewDir);
+          float gNH = max(dot(gN, gH), 1e-3);
+          float gS2 = mix(0.004, 0.034, wWindy);
+          float gT2 = (1.0 - gNH * gNH) / (gNH * gNH);
+          float gD = exp(-gT2 / gS2) / (PI * gS2 * gNH * gNH * gNH * gNH);
+          float gNL = max(dot(gN, directLight.direction), 0.0);
+          float gNV = max(dot(gN, geometryViewDir), 0.08);
+          float gF = 0.02 + 0.98 * pow(1.0 - max(dot(gH, geometryViewDir), 0.0), 5.0);
+          /* Near, the glade is sparks on the ripples; far, a pixel holds
+           * many and it is a sheen. */
+          vec2 gq = vWaterWorld.xz;
+          float spark = texture2D(uWaves, gq / 1.3 + uWind * uTime * 0.05).a * texture2D(uWaves, gq.yx / 0.83 - uWind * uTime * 0.07).a;
+          float gFar = smoothstep(30.0, 250.0, distance(cameraPosition, vWaterWorld));
+          float gSpark = mix(smoothstep(0.3, 0.55, spark) * 3.5, 1.0, gFar);
+          reflectedLight.directSpecular += directLight.color * gF * gD * gNL / (4.0 * gNV * max(gNL, 0.05)) * gSpark * (1.0 - wFoam) * (1.0 - wPlume * 0.5);
+        }
+        #endif
         #ifdef WATER_PLANAR
         {
           vec4 rc = vReflCoord;
@@ -287,7 +390,7 @@ export function waterMaterial({
         #ifdef WATER_FLOW
           cover *= 1.0 - 0.5 * smoothstep(0.8, 1.0, abs(vWater.z));
         #endif
-        cover = max(cover, wFoam * 0.95);
+        cover = max(cover, max(wFoam * 0.95, wPlume * 0.6));
         /* The light the body scatters back leaves through the surface,
          * which reflects its Fresnel share of it back down: toward the
          * horizon the water is more mirror than body. Never all mirror:

@@ -186,6 +186,49 @@ export function casement(wall, x, y, w, h, { shutter = null, bars = true, sill =
   }
 }
 
+/*
+ * A hanging basket off a wall at (x, y), `out` from it: a wrought arm, a
+ * chain, the moss basket, and geraniums heaped on it with trailing green
+ * spilling below. What an inn hangs by its door and under its Laube.
+ */
+export function hangingBasket(wall, x, y, out, bloom = 'geranium') {
+  wall.put(near('ink'), box(0.03, 0.03, out + 0.05), x, y, out / 2);
+  wall.put(detail('ink'), box(0.02, 0.2, 0.02), x, y - 0.06, 0.12, 0, -0.6);
+  wall.put(detail('ink'), box(0.012, 0.3, 0.012), x, y - 0.15, out);
+  wall.put(near('larchDark'), blob(), x, y - 0.42, out, 0.4, 0, 0, 0.2, 0.13, 0.2);
+  wall.put(near('leaf'), blob(), x, y - 0.4, out, 0.9, 0, 0, 0.27, 0.16, 0.27);
+  wall.put(detail('leaf'), blob(), x + 0.05, y - 0.62, out + 0.04, 0.2, 0, 0, 0.14, 0.22, 0.14);
+  wall.put(detail('leaf'), blob(), x - 0.08, y - 0.58, out - 0.06, 1.3, 0, 0, 0.1, 0.18, 0.1);
+  for (let k = 0; k < 4; k += 1) {
+    const a = k * 1.7 + x;
+    wall.put(detail(bloom), blob(), x + Math.cos(a) * 0.14, y - 0.3 - 0.06 * (k % 2), out + Math.sin(a) * 0.14, a, 0.4, 0, 0.1, 0.09, 0.1);
+  }
+}
+
+/*
+ * The dressing of a church's great door, over what doorway() draws: the
+ * two leaves in raised panels, iron strap hinges across them, a ring on
+ * each, a dressed stone lintel over the frame, and a second, wider step.
+ * The doorway is w wide and h high at x.
+ */
+export function churchDoor(wall, x, w, h, y0 = SOCLE) {
+  const d = frame(wall, x, y0, 0, 0);
+  for (const s of [-1, 1]) {
+    const cx = s * w / 4;
+    for (const [py, ph] of [[0.25, h * 0.38], [0.35 + h * 0.4, h * 0.44]]) {
+      d.put(near('larchDark'), box(w / 2 - 0.22, ph, 0.03), cx, py + ph / 2, 0.055);
+    }
+    for (const hy of [0.45, h * 0.5, h - 0.45]) {
+      d.put(detail('ink'), box(w / 2 - 0.12, 0.06, 0.02), cx, hy, 0.075);
+      d.put(detail('ink'), box(0.08, 0.08, 0.02), cx + s * (w / 4 - 0.15), hy, 0.085, Math.PI / 4);
+    }
+    d.put(detail('metal'), cached('s2doorring', () => new THREE.TorusGeometry(0.07, 0.012, 4, 10)), cx - s * (w / 4 - 0.14), h * 0.46, 0.09);
+  }
+  d.put(near('ink'), box(0.03, h, 0.05), 0, h / 2, 0.06);
+  d.put(near('stone'), box(w + 0.7, 0.22, 0.2), 0, h + 0.3, 0.06);
+  d.put('stone', box(w + 1.2, 0.14, 0.9), 0, -y0 + 0.07, 0.55);
+}
+
 /* A door in a heavy frame, the leaf set back, the step outside. */
 export function doorway(wall, x, w, h, { key = 'larchDark', frameKey = 'larch', step = 'stone', y0 = SOCLE } = {}) {
   const d = frame(wall, x, y0 + h / 2, 0, 0);

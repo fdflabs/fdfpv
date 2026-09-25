@@ -1,7 +1,8 @@
 /*
  * village/: what makes the photographic village lived in. The houses are
  * buildings/'s; this is what stands between them: the square's café and
- * flag and lanterns, its kerbs, drains and puddles, the street's lamps
+ * flag and lanterns, its kerbs, drains and puddles, the market stall by
+ * the churchyard, the street's lamps
  * and gutters, and round every house a garden with its beds, its washing,
  * its bicycles and its wood.
  *
@@ -40,7 +41,7 @@ import { frame, box, near, detail, blob as blobOf, notes } from '../buildings/pa
 import { postbusDetour } from '../../alps/routes.js';
 import {
   bicycle, lampPost, poleLamp, flagpole, cafeSet, gardenTable, vegBed, washingLine, picketFence,
-  woodRick, planter, noticeBoard, hikeSign, hydrant, postBox, drain, puddle,
+  woodRick, planter, noticeBoard, hikeSign, hydrant, postBox, drain, puddle, marketStall,
 } from './pieces.js';
 
 /* The bus's half width with its mirrors, and the clear air kept past it. */
@@ -203,6 +204,30 @@ export function furnish(ctx) {
   }
   for (const [x, z] of [[sq.x1 - 0.6, streetZ - 2.2], [square.x - 3, square.z + 7.5], [square.x - 3, square.z - 7.5]]) {
     drain(at(x, z, 0, true));
+  }
+  /* The market stall in the lane between the square and the churchyard
+   * wall, its front to the square, where the square-eye view sees it
+   * between the flag and the café. The customers and the stallholder
+   * are people.js's; `stall` tells them where it stands. Its colliders
+   * are capsules, not a wall box: a wall is noted as a garden, and one
+   * more garden moves hundreds of the forest's trees. */
+  let stall = null;
+  {
+    const x = sq.x0 - 2.8;
+    const z = sq.z0 + 1.2;
+    if (free(x, z, 1.5)) {
+      const ry = Math.PI / 2;
+      marketStall(at(x, z, ry));
+      take(x, z, 1.5);
+      stall = { x, z, ry };
+      const y = houseY(x, z);
+      for (const dz of [-1.35, 1.35]) {
+        post('pole', x - 0.6, z + dz, 2.35, 0.05);
+        post('pole', x + 0.85, z + dz, 2.05, 0.05);
+      }
+      colliders.add('canopy', x + 0.12, y + 2.2, z - 1.45, x + 0.12, y + 2.2, z + 1.45, 0.75);
+      colliders.add('obstacle', x, y + 0.55, z - 1.1, x, y + 0.55, z + 1.1, 0.55);
+    }
   }
 
   /*
@@ -398,6 +423,7 @@ export function furnish(ctx) {
     slabY,
     chairs,
     benches: ctx.benches,
+    stall,
     busClear,
   };
 }

@@ -85,6 +85,10 @@ import {
 } from '../vegetation/zones.js';
 import { RUNWAY_HALF } from '../ground.js';
 import { gravelBarGeometry } from '../water/stream.js';
+import {
+  UP, Mesher, propMaterial, shade, box, frame,
+} from './mesh.js';
+import { boatShed } from './lakeside.js';
 
 const COLLIDE_R = 700;
 /* Fence spans are drawn this far from the camera. */
@@ -92,73 +96,11 @@ const FENCE_R = 420;
 /* A fence span, post to post, in metres along the ground. */
 const SPAN = 2.5;
 
-const UP = new THREE.Vector3(0, 1, 0);
-
 /* Colours are albedos in linear light: sun blackened larch, silvered
  * larch, shingle, stone, the wrap on a bale. */
 const FENCE = [0.1, 0.086, 0.072];
 const STONE = [0.16, 0.155, 0.145];
 const DOOR = [0.012, 0.01, 0.009];
-
-/*
- * Triangles in world space with flat normals and vertex colours, for the
- * one static mesh.
- */
-class Mesher {
-  constructor() {
-    this.pos = [];
-    this.nrm = [];
-    this.col = [];
-  }
-
-  /* One vertex with its own normal and colour. */
-  vert(p, n, colour) {
-    this.pos.push(p.x, p.y, p.z);
-    this.nrm.push(n.x, n.y, n.z);
-    this.col.push(colour[0], colour[1], colour[2]);
-  }
-
-  tri(a, b, c, colour) {
-    const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)).normalize();
-    for (const p of [a, b, c]) {
-      this.vert(p, n, colour);
-    }
-  }
-
-  /* A quad a, b, c, d counter clockwise seen from its front. */
-  quad(a, b, c, d, colour) {
-    this.tri(a, b, c, colour);
-    this.tri(a, c, d, colour);
-  }
-
-  geometry() {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nrm, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
-    g.computeBoundingSphere();
-    return g;
-  }
-}
-
-/*
- * The props' material: vertex colour and nothing else, the same program
- * as the cattle's (look.js's 'fauna' parts). A textured material of its
- * own was a new shader program, and every program swiss2 adds past the
- * ones it has costs twelve console warnings at load (GL_INVALID_VALUE,
- * glGetProgramiv: three's bake materials are disposed while the new
- * programs link), which the views' gate holds at fourteen. The boards'
- * grain is laid as geometry instead: a hut's walls are strips of board
- * each its own shade, which is what the photograph showed from thirty
- * metres anyway.
- */
-function propMaterial() {
-  return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.88 });
-}
-
-/* A colour a little lighter or darker, for one board or one row of
- * shingles. */
-const shade = (c, k) => [c[0] * k, c[1] * k, c[2] * k];
 
 /*
  * A hay hut at (x, z), its ridge along `yaw`, w along the ridge and d
@@ -434,28 +376,6 @@ function reedClump(m, rng, x, y, z, s) {
   }
 }
 
-/* A box with its centre at c, its axes ex, ey, ez (unit) and half sizes
- * hx, hy, hz, wound to face out. `tones` shades its six faces from one
- * colour, the top lightest. */
-function box(m, c, ex, ey, ez, hx, hy, hz, colour, tones = [0.92, 0.92, 1.05, 0.7, 0.86, 0.86]) {
-  const at = (a, b, d) => c.clone().addScaledVector(ex, a * hx).addScaledVector(ey, b * hy).addScaledVector(ez, d * hz);
-  const faces = [
-    [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]],
-    [[-1, -1, 1], [-1, 1, 1], [-1, 1, -1], [-1, -1, -1]],
-    [[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1]],
-    [[-1, -1, 1], [-1, -1, -1], [1, -1, -1], [1, -1, 1]],
-    [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]],
-    [[1, -1, -1], [-1, -1, -1], [-1, 1, -1], [1, 1, -1]],
-  ];
-  faces.forEach((f, k) => {
-    m.quad(...f.map((q) => at(...q)), shade(colour, tones[k]));
-  });
-}
-
-/* The frame (ex along the ground, ez across, ey up) of a thing standing
- * at yaw. */
-const frame = (yaw) => [new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw)), UP.clone(), new THREE.Vector3(-Math.sin(yaw), 0, Math.cos(yaw))];
-
 /* A log from a to b, r thick: `sides` of bark and two cut ends, the ends
  * the pale wood of a freshly split stack. */
 function log(m, a, b, r, rng) {
@@ -596,74 +516,6 @@ function signpost(m, heightAt, { x, z, arms }) {
   });
   box(m, new THREE.Vector3(x, y0 + 2.62, z), ex, ey, ez, 0.12, 0.06, 0.012, [0.7, 0.7, 0.68]);
   return y0;
-}
-
-/*
- * A boat shed at the water, its gable to the lake: a timber box on piles
- * with its lake end open over a slip. At (x, z) on the shore, its length
- * along `yaw` pointing out over the water.
- */
-function boatShed(m, heightAt, rng, { x, z, yaw, len, w, h }) {
-  const [ex, ey, ez] = frame(yaw);
-  const y0 = Math.max(LAKE_Y + 0.6, heightAt(x, z) + 0.1);
-  const at = (a, b, d) => new THREE.Vector3(x, y0, z).addScaledVector(ex, a).addScaledVector(ey, b).addScaledVector(ez, d);
-  const wall = [0.07, 0.048, 0.032];
-  /* The piles, down into the lake bed. */
-  for (let a = -len / 2; a <= len / 2 + 0.01; a += len / 4) {
-    for (const d of [-w / 2, w / 2]) {
-      const p = at(a, 0, d);
-      const bed = Math.min(heightAt(p.x, p.z), y0) - 0.8;
-      box(m, new THREE.Vector3(p.x, (bed + y0) / 2, p.z), ex, ey, ez, 0.11, (y0 - bed) / 2, 0.11, shade(wall, 0.7));
-    }
-  }
-  /* The side walls and the landward gable in boards, the lake end open
-   * down to a lintel. */
-  const rows = Math.round(h / 0.28);
-  for (let r = 0; r < rows; r += 1) {
-    const ya = (h * r) / rows;
-    const yb = (h * (r + 1)) / rows;
-    const tone = shade(wall, 0.8 + 0.35 * rng());
-    m.quad(at(-len / 2, ya, w / 2), at(len / 2, ya, w / 2), at(len / 2, yb, w / 2), at(-len / 2, yb, w / 2), tone);
-    m.quad(at(len / 2, ya, -w / 2), at(-len / 2, ya, -w / 2), at(-len / 2, yb, -w / 2), at(len / 2, yb, -w / 2), tone);
-    m.quad(at(-len / 2, ya, -w / 2), at(-len / 2, ya, w / 2), at(-len / 2, yb, w / 2), at(-len / 2, yb, -w / 2), tone);
-    if (ya > h * 0.72) {
-      m.quad(at(len / 2, ya, w / 2), at(len / 2, ya, -w / 2), at(len / 2, yb, -w / 2), at(len / 2, yb, w / 2), tone);
-    }
-  }
-  /* The dark inside, seen through the open end. */
-  m.quad(at(-len / 2, 0, -w / 2), at(-len / 2, 0, w / 2), at(len / 2 - 0.1, 0, w / 2), at(len / 2 - 0.1, 0, -w / 2), [0.015, 0.013, 0.011]);
-  m.quad(at(-len / 2 + 0.05, 0, w / 2), at(-len / 2 + 0.05, 0, -w / 2), at(-len / 2 + 0.05, h, -w / 2), at(-len / 2 + 0.05, h, w / 2), [0.01, 0.009, 0.008]);
-  const pitch = 0.62;
-  const ridge = h + (w / 2) * Math.tan(pitch);
-  for (const a of [-len / 2, len / 2]) {
-    m.tri(at(a, h, -w / 2), at(a, ridge, 0), at(a, h, w / 2), shade(wall, 0.9));
-    m.tri(at(a, h, w / 2), at(a, ridge, 0), at(a, h, -w / 2), shade(wall, 0.9));
-  }
-  const roof = [0.1, 0.05, 0.03];
-  const o = 0.5;
-  const drop = o * Math.tan(pitch);
-  for (const s of [1, -1]) {
-    const courses = 5;
-    for (let r = 0; r < courses; r += 1) {
-      const t0 = r / courses;
-      const t1 = (r + 1) / courses;
-      const y = (t) => ridge + 0.06 + (h - drop - ridge - 0.06) * t;
-      const d = (t) => s * (w / 2 + o) * t;
-      const a = at(len / 2 + o, y(t0), d(t0));
-      const b = at(-len / 2 - o, y(t0), d(t0));
-      const c = at(-len / 2 - o, y(t1), d(t1));
-      const e = at(len / 2 + o, y(t1), d(t1));
-      const tone = shade(roof, 0.85 + 0.25 * rng());
-      if (s > 0) {
-        m.quad(a, b, c, e, tone);
-        m.quad(a, e, c, b, shade(roof, 0.4));
-      } else {
-        m.quad(b, a, e, c, tone);
-        m.quad(b, c, e, a, shade(roof, 0.4));
-      }
-    }
-  }
-  return { top: y0 + ridge + 0.2, low: y0 - 1 };
 }
 
 /*
