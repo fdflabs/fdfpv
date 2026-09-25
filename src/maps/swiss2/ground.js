@@ -372,9 +372,12 @@ export const MEADOW_GLSL = /* glsl */ `
 
   /* What s2Meadow makes of a field: the colour, how mown (0 to 1), how
    * much of a boundary the point is on, whether that boundary is a
-   * hedge, and the mown rows: the coordinate across them in metres and
-   * the way they run on the ground. */
-  struct S2Meadow { vec3 tint; float mown; float edge; float hedgeOn; float across; vec2 along; };
+   * hedge, and the mown rows: the coordinate across them in metres, the
+   * way they run on the ground, and how plainly the mower's passes show.
+   * The passes are the field's, one value over all of it: read off the
+   * grazed patches, as mown is, a pasture's passes came and went every
+   * few metres and read as rows of dashes. */
+  struct S2Meadow { vec3 tint; float mown; float edge; float hedgeOn; float across; vec2 along; float passes; };
 
   S2Meadow s2MeadowAt(S2Parcel pc, vec2 xz, float dist) {
     /* A pixel's width on the ground, near enough, for fading lines. */
@@ -391,6 +394,7 @@ export const MEADOW_GLSL = /* glsl */ `
     float lum = 0.78 + 0.42 * s2Hash(fid + 8.8);
     vec3 tint;
     float mown = 0.0;
+    float passes = 0.0;
     float rowsDir = step(0.5, s2Hash(fid + 2.2));
     /* Rows along the strip, or across it on some. */
     float rowCoord = rowsDir > 0.5 ? fq.x : fq.y;
@@ -403,12 +407,14 @@ export const MEADOW_GLSL = /* glsl */ `
       /* Grown back after a cut: an even fresh green. */
       tint = vec3(1.06, 1.1, 0.86);
       mown = 0.55;
+      passes = 0.55;
     } else if (kind < 0.7) {
       /* Cut this week: the stubble yellow, and the hay lying to dry in
        * windrows. */
       float row = 1.0 - smoothstep(0.08, 0.2, abs(fract(rowCoord / 5.5) - 0.5));
       tint = mix(vec3(1.1, 1.06, 0.8), vec3(1.3, 1.16, 0.7), row * rowFade);
       mown = 1.0;
+      passes = 1.0;
     } else if (kind < 0.93) {
       /* Pasture: grazed short in patches, the rejected tufts darker,
        * and the cattle's paths worn pale. */
@@ -418,10 +424,13 @@ export const MEADOW_GLSL = /* glsl */ `
       float trod = 1.0 - smoothstep(0.35, 0.9, abs(fract(dot(w, vec2(0.6, 0.8)) / 23.0) - 0.5) * 23.0);
       tint = mix(tint, vec3(1.08, 1.0, 0.8), 0.25 * trod * (1.0 - smoothstep(0.3, 0.8, px)));
       mown = 0.7 * smoothstep(0.35, 0.65, graze);
+      /* Topped after the cattle, as a whole field. */
+      passes = 0.6;
     } else {
       /* A dry strip, burnt by a hot week on thin soil. */
       tint = vec3(1.16, 1.07, 0.8);
       mown = 0.8;
+      passes = 0.8;
     }
     tint *= lum;
 
@@ -430,6 +439,7 @@ export const MEADOW_GLSL = /* glsl */ `
     float damp = 1.0 - smoothstep(18.0, 75.0, sd);
     tint = mix(tint, vec3(0.72, 0.86, 0.74), 0.75 * damp);
     mown *= 1.0 - damp;
+    passes *= 1.0 - damp;
 
     /* Hedges on some parcel ends and strip sides, broken by gaps, and a
      * darker seam on every other boundary. A line narrower than a pixel
@@ -457,6 +467,7 @@ export const MEADOW_GLSL = /* glsl */ `
     m.hedgeOn = hedgeOn;
     m.across = rowCoord;
     m.along = rowsDir > 0.5 ? normalize(vec2(-pc.slant, 1.0)) : vec2(1.0, 0.0);
+    m.passes = passes;
     return m;
   }
   S2Meadow s2Meadow(vec2 xz, float dist) {
@@ -692,7 +703,7 @@ const GROUND_PARS = /* glsl */ `
       vec2 over = xz + pc.toEdge * (2.0 * max(pc.edge, 0.0) + 0.6);
       f.tint = mix(f.tint, s2Meadow(over, dist).tint, soft);
     }
-    float mownK = smoothstep(0.4, 0.9, m.mown);
+    float mownK = smoothstep(0.4, 0.9, m.passes);
     float headW = 5.5 + 3.0 * s2Hash(pc.own + 5.1);
     bool head = edge < headW;
     float across = head ? edge : m.across;
