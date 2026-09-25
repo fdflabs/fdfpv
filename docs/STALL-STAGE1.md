@@ -944,3 +944,46 @@ contact and rest distance: sky-stall 186 g, 2.85 m/s, 21.7 m; cub-stall
 slowstick-stall 17 g, 1.74, 9.3; timber-stall 8 g, 2.15, 23.3 (inside
 every band); bramor-stall 193 g, 6.39, 3.8; bramor-catapult-stall 58 g,
 4.27, 14.0.
+
+### The lead's decision on the Radian: 6 deg, FITTED, past the bound
+
+On the round 5 record above (merged as #71), the lead decided the Radian
+takes 6 deg of washout, FITTED, and flagged as past the 5 deg bound the
+other fits stopped at: the gentle entry is the one a pilot meets. The
+abrupt full back pull the crash suite flies stays a known gap; 10 deg is
+not taken. This is a lead decision, not a sign off from an owner's
+flight.
+
+| Airframe | washout, FITTED | The review | Criterion read from it | Result |
+| --- | --- | --- | --- | --- |
+| Radian | 6.0 deg, **past the 5 deg bound** | "stalls are extremely gentle. More of a flat mush than an abrupt drop of the nose" (RCGroups, an aft CG) | the Cub's: wing drop under 10 deg and 10 s bank under 30 | drop 3.5, 10 s bank 24 (5.5 deg gives 5.7 and 32) |
+
+What it does, `npm run stall:probe` against main 41f0610:
+
+| | main | 6 deg |
+| --- | --- | --- |
+| A: nose drop, wing drop, 10 s bank | 51, 72, 72 | 15, 3.5, 24 |
+| B: spin | yes, 409 deg/s | yes, 391 deg/s |
+| C: spin recovery | 0.38 s | 0.34 s |
+| D: stall recovery | none in 7 s | 0.16 s |
+| E: Acro wing drop, largest bank | 40, 52 | 14, 14 |
+| F: abrupt entry, wing drop | 67 | 41, the known gap |
+
+`npm run stall:crossing`: every recording identical to main but the
+Radian's, which first differs at 7.778 s, at 10.40 deg against its first
+strip's 10.38, in the stall. Its two stalls: 7.78 to 8.93 s (lowest
+pitch −24.5 both, largest bank 2.9 to 0.5) and 54.13 to 55.61 s in a
+turn (lowest pitch −38.9 to −18.4, bank 49.1 to 30.7). It ends 6.1 m
+apart. Its hash goes from 9eb65aac246a3ee0 to the one each gate now
+stores, re-recorded in its own commit.
+
+The crash suite: only the Radian's scenarios can move, and only
+radian-stall does in its bands. It arrives sinking 5.16 m/s instead of
+7.04, with minUpZ 0.77 instead of 0.28, and peaks at 177 g instead of
+135; the abrupt entry still drops the wing, so it still fails
+mustNotBreak and restAttitude, and now peakG (50 to 150), where it no
+longer fails mustBreak. radian-cartwheel moves by a hundredth in minUpZ
+and 0.1 m of rest distance, inside the same failures.
+
+glider:stab's rudder roll check, whose Manual reference stalled, is
+rewritten in its own commit.

@@ -1548,7 +1548,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .stall_k = 0.84,
   .stall_top = 1.4 * WING_PI / 180.0,
   .strip_c = { 1.101, 1.096, 1.074, 0.775 },
-  .washout = 0.0,          /* no fit within a few degrees, docs/STALL-STAGE1.md */
+  .washout = 6.0 * WING_PI / 180.0, /* FITTED, past the 5 deg bound by lead decision, docs/STALL-STAGE1.md */
 };
 
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
