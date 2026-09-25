@@ -414,3 +414,105 @@ trajectory, and the regression stays on the record until then. Also
 accepted: two round 1 core cases that asserted damage on and off give
 identical grass landings now assert no damage, a softer blow and the
 same rest within 1 mm, under the round 2 rule.
+
+### Round 3, core (branch crash-core-round3)
+
+Against main 613cd0c (the suite's round 3 merged; its Node run: 7 of 60,
+142 failing checks), the core's four commits give 8 of 60 inside every
+band and 129 failing checks, all 60 deterministic (Node, replay and
+Chrome); damage off identical on all 24 identity scripts (wing:e2e with
+FDFPV_BOARD). Most failed metrics before and after: peakG 39 to 36,
+timeToRestS 29 to 18.
+
+- **Stalls (item 1).** Three changes, each sourced. A part that meets
+  grass flat on a face slides at a sled's 0.45 (Linthorne and Cooper
+  2013), an edge or a tip keeps the shell's 1.40, and the resting slide
+  counts the ground's grip once. A wing panel on a carbon spar, and the
+  Skyhunter's carbon booms, ring through their first bending mode (E I
+  from the tables' own spar limits and pultruded carbon's 127 GPa, 8 to
+  13 Hz) instead of being judged as rigid bodies. Every part meets the
+  ground through its own spring over its travel (below). Stall peaks,
+  g: Skyhunter 168 to 201, Cub 261 to 98, Radian 205 to 160, Timber 250
+  to 96, Bramor 129 to 89, the Bramor's catapult stall 132 to 57. The
+  Cub's and the Timber's wings now stay on; the Timber's stall is inside
+  every band but its rest attitude. The Skyhunter's peak is its pusher's
+  prop touching down behind the boom in one step, and its tail's
+  stabiliser still breaks; the Cub's and the Radian's foam tail booms,
+  which have no carbon section in the tables, still break in their
+  stalls (see round 4).
+- **Fuselage break (item 2): built, measured, not shipped.** A nose part
+  ahead of the battery bay's rear wall, carrying the pack, the camera and
+  a tractor's motor, on a joint of the bay's section (a U channel with
+  its hatch open, 6 mm walls, EPP's tensile strength at 30 g/L, 0.38 to
+  0.45 MPa: JSP ARPRO 55.5 psi, BASF Neopolen P 0.30 to 0.74 MPa at 20 to
+  50 g/L). It broke the nose off in all four foam nose ins (Skyhunter,
+  Cub, Radian, Timber), but also in seven scenarios that must not break
+  the fuselage (belly landing, cartwheels, poles) and in both floats' nose
+  digs, which then stopped flipping: 131 to 142 failing checks. The
+  section is judged quasi statically like the wings were, and a belly
+  contact is two or four box corners, so the nose with the pack in it is
+  cantilevered off one corner; the section needs its own ring (EPO's
+  modulus is not in any datasheet found) or a distributed belly contact.
+  Two of the four nose ins (Skyhunter, Radian) now break the fuselage
+  anyway, by crushing through, with the wings kept on longer.
+- **Quad props (item 3).** A spinning blade that strikes something hard
+  enough to stop its tip (the existing impedance limit) is stopped by its
+  own spring, v_tip sqrt(k m_blade / 3), and that blow at its root can
+  shear it off in the strike. Both taildraggers' nose overs on sand now
+  shed the prop, and the Cub's rests on its nose. The five inch's gate
+  clip does not: its props turn at about 7,300 rpm at the strike, a 48 m/s
+  tip under the 71 m/s a pvc gate asks of glass nylon. The gate clip's
+  one impulse per host call is unchanged.
+- **Soft parts (item 4).** Every part's travel is how far it stands out
+  past the stiffer parts along the contact; it springs (its own and the
+  ground's in series) until that runs out, then the stiffer part adds its
+  spring at its own point and carries its share through its own joint.
+  Concrete is no longer rigid for every part. Wire (whips, gear legs)
+  keeps the rigid contact: sprung, even capped at its yield, it broke the
+  taildraggers' wings on the nose over and the five inch's whip and pack
+  on its back. The Bramor under its canopy peaks at 136 g where it read
+  303 (bramor-chute, band 10 to 40), and comes to rest on its fuselage,
+  the winglets' magnets letting go under it (bramor:gates B12 fails with
+  the mode on, passes off).
+- **Grip (item 5).** Not reproduced: the grip on the part hulls at main
+  reads 1.39 (Skyhunter) and 1.16 (five inch) with damage on, and the
+  crush does not cap the normal force. What measuring it found is the
+  double count above (0.88 g on a 0.45 face), fixed.
+
+Regressions against main, per scenario per metric, each with its cause:
+
+- cub-cartwheel peakG 54 to 473 g and restDistM 10.2 to 4.5 m: the new
+  trajectory lands on a wire gear leg, whose contact is still the rigid
+  one step impulse (4.6 N s).
+- radian-cartwheel and slowstick-cartwheel mustBreak wing: the Radian's
+  panel now rings through the tip strike and stays on; the Slow Stick's
+  one piece wing no longer comes off the belly flop that follows, which
+  was the quasi static break the stalls had.
+- timber-nose-in mustBreak fuselage and retainedFirst 0.035 to 0.179: with
+  the wings ringing the root no longer crushes through, and the wreck
+  slides on at the face grip.
+- timber-cartwheel peakG 76 to 264 g and restDistM 10.4 to 2.2 m: it now
+  cartwheels (minUpZ 0.77 to -0.53, the wing breaks, both into their
+  bands) and the peak is the tumble's.
+- timber-pole restDistM, timeToRestS, retainedFirst: after the pole it
+  slides at the lawn's 0.45 where 1.40 stopped it.
+- bramor-stall restDistM 0.3 to 5.4 m and bramor-belly-fast 9 to 44 m:
+  the composite belly slides at 0.45; from 26 m/s even R-SLIDE's upper
+  0.6 gives 57 m, so bramor-belly-fast's band (8 to 30 m, derived for
+  10 m/s) is the suite's to revisit.
+- cubf-capsize restAttitude: it still capsizes (minUpZ -1.00), and the
+  wreck comes to rest upright again on the water.
+
+Checks: crash:core 146 of 147; the one failing is round 2's "a five inch
+dropped flat from 1.5 m rests within 2 mm of the rigid contact": 2.72 mm,
+the landing's lateral kick sliding on at the lawn's grip counted once
+where the rigid contact's doubled grip stopped it dead. Left loud for
+the lead: the threshold was not widened.
+
+Left for round 4, in the core's files: foam booms and fuselage sections
+need a sourced EPO modulus to ring like the spars (the Cub's and the
+Radian's stall tail breaks, and the nose part above); wire parts need a
+model of folding; the pusher's prop touching down behind the boom is
+still a one step contact in the Skyhunter's stall; the Bramor's
+composite panels have no spar section in the tables; the gate clip's one
+impulse per host call.

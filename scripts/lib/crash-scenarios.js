@@ -225,7 +225,6 @@ export const CRASH_SCENARIOS = [
         }],
         ['a Cub lands on its wheels at 9 m/s', { id: 4 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.launch(9); r.run(6000); }],
         ['a Timber lands on its wheels at 9 m/s', { id: 7 }, (r) => { r.pose([0, 0, 0.35], [1, 0, 0, 0]); r.launch(9); r.run(6000); }],
-        ['a Radian belly lands at 8 m/s', { id: 6 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.launch(8); r.run(4000); }],
         /* A graze from below at 5 cm/s in cruise, which lands on the
          * turning prop's lowest tip: under the blade's impact limit on any
          * face, so nothing at all, whatever the face is made of. */
@@ -239,6 +238,41 @@ export const CRASH_SCENARIOS = [
         fly(off);
         checks.push({ name: `${name}: trace identical with it on and off`, ok: on.plant.hex() === off.plant.hex() && on.events.length === 0 && on.damageSum === 0, detail: `${on.plant.hex()} ${on.summary()}, damage ${on.damageSum.toExponential(1)}` });
       }
+      return checks;
+    },
+  },
+  {
+    /* Round 3 (crash.c, THE FACE A PART SLIDES ON): with the mode on, a
+     * part that meets grass flat on a face slides at a sled's grip, the
+     * 0.45 Linthorne and Cooper measured on a rugby pitch, where the shell's
+     * 1.40 stays for an edge or a tip. A belly slide under every limit
+     * writes nothing, and takes the sled's deceleration, not the shell's. */
+    name: 'under every limit, a face slides on grass at a sled\'s grip',
+    async run(mk) {
+      const checks = [];
+      const slide = async (damage) => {
+        const r = await mk({ id: 3, damage });
+        r.pose([0, 0, 0.3], [1, 0, 0, 0]);
+        r.run(1500);
+        r.velocity([4, 0, 0]);
+        let v0 = 0;
+        let v1 = 0;
+        r.run(300, [0, 0, 0, 0], (s, k) => {
+          if (k === 50) v0 = s[4];
+          if (k === 250) v1 = s[4];
+        });
+        return { r, mu: (v0 - v1) / 0.2 / 9.80665 };
+      };
+      const on = await slide(1);
+      const off = await slide(0);
+      checks.push({ name: 'a Skyhunter slid on its belly at 4 m/s: nothing written', ok: on.r.events.length === 0 && on.r.damageSum === 0 && on.r.silent === 0, detail: on.r.summary() });
+      checks.push({ name: 'it slows at the sled\'s grip, 0.45, with the mode on', ok: Math.abs(on.mu - 0.45) < 0.02, detail: `${on.mu.toFixed(3)} g` });
+      checks.push({ name: 'and at the shell\'s 1.40 with it off', ok: Math.abs(off.mu - 1.40) < 0.05, detail: `${off.mu.toFixed(3)} g` });
+      const radian = await mk({ id: 6, damage: 1 });
+      radian.pose([0, 0, 0.3], [1, 0, 0, 0]);
+      radian.launch(8);
+      radian.run(4000);
+      checks.push({ name: 'a Radian belly lands at 8 m/s: nothing written', ok: radian.events.length === 0 && radian.damageSum === 0 && radian.silent === 0, detail: radian.summary() });
       return checks;
     },
   },
@@ -467,9 +501,12 @@ export const CRASH_SCENARIOS = [
     async run(mk) {
       /* The props stand further out than the camera every way but up, so
        * a camera is knocked by the stop, not by being struck: a flat drop
-       * from 3 m onto concrete, some 500 g on the pack. */
+       * from 5 m onto concrete, some 500 g on the pack. It was 3 m until
+       * round 3, whose contacts (a face's grip, and concrete met through
+       * each part's own spring) leave that drop's stop at 380 g, under the
+       * knock, or roll the pack onto a corner that tears its strap. */
       const r = await mk({ id: 0, ground: 'concrete' });
-      r.pose([0, 0, 3], [1, 0, 0, 0]);
+      r.pose([0, 0, 5], [1, 0, 0, 0]);
       const cam = r.index('camera');
       r.run(1500);
       const f = r.flags();

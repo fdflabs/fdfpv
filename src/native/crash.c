@@ -70,28 +70,38 @@ int SIM_DAMAGE = SIM_DAMAGE_DEFAULT;
  * ------------------------------------------------------------------- */
 typedef struct {
   double mu, e, k, hard;
+  double mu_face; /* a smooth face sliding on it, where it differs */
 } Surface;
 
 /* The default is two things: the ground plane's default is the shell's
  * grass (GROUND_MU and GROUND_E), and an obstacle's, a sim_contact or a
  * sim_contact_at with no material named, is a hard generic face, the one
- * past the table's end. */
+ * past the table's end.
+ *
+ * mu_face is what a smooth face slides at. The shell's grass grips at 1.40,
+ * a quad's arms and blades ploughing into turf; a smooth body sliding on a
+ * natural grass pitch was measured at 0.45 (Linthorne and Cooper, Sports
+ * Biomechanics 12(2), 2013: a steel runnered sled towed over a rugby pitch,
+ * the gradient of tow force on weight up to 55 kg; they put the effective
+ * value on uneven turf nearer 0.6). A foam belly, a pack's wrap and a
+ * canopy are smooth faces. Where nothing was measured it is the surface's
+ * own mu. docs/CRASH-STAGE1.md, Surfaces. */
 #define SURF_OBSTACLE SIM_SURFACES
 static const Surface SURF[SIM_SURFACES + 1] = {
-  [SIM_SURF_DEFAULT] = { 1.40, 0.0, 5.0e4, 0.01 },
-  [SIM_SURF_GRASS] = { 1.40, 0.0, 5.0e4, 0.01 },
-  [SIM_SURF_DIRT] = { 1.00, 0.05, 2.0e5, 0.30 },
-  [SIM_SURF_ASPHALT] = { 0.60, 0.12, 3.0e7, 0.90 },
-  [SIM_SURF_CONCRETE] = { 0.42, 0.15, 5.0e7, 1.00 },
-  [SIM_SURF_ROCK] = { 0.42, 0.15, 5.0e7, 1.00 },
-  [SIM_SURF_SNOW] = { 0.20, 0.0, 1.0e4, 0.02 },
-  [SIM_SURF_WOOD] = { 0.50, 0.12, 5.0e6, 0.60 },
-  [SIM_SURF_METAL] = { 0.35, 0.20, 1.0e8, 1.00 },
-  [SIM_SURF_PVC] = { 0.30, 0.22, 2.0e5, 0.40 },
-  [SIM_SURF_FOLIAGE] = { 1.00, 0.0, 2.0e3, 0.02 },
-  [SIM_SURF_WATER] = { 0.05, 0.0, 1.0e4, 0.01 },
-  [SIM_SURF_SAND] = { 0.60, 0.0, 1.0e5, 0.40 },
-  [SURF_OBSTACLE] = { 0.40, 0.15, 2.0e6, 0.50 },
+  [SIM_SURF_DEFAULT] = { 1.40, 0.0, 5.0e4, 0.01, 0.45 },
+  [SIM_SURF_GRASS] = { 1.40, 0.0, 5.0e4, 0.01, 0.45 },
+  [SIM_SURF_DIRT] = { 1.00, 0.05, 2.0e5, 0.30, 1.00 },
+  [SIM_SURF_ASPHALT] = { 0.60, 0.12, 3.0e7, 0.90, 0.60 },
+  [SIM_SURF_CONCRETE] = { 0.42, 0.15, 5.0e7, 1.00, 0.42 },
+  [SIM_SURF_ROCK] = { 0.42, 0.15, 5.0e7, 1.00, 0.42 },
+  [SIM_SURF_SNOW] = { 0.20, 0.0, 1.0e4, 0.02, 0.20 },
+  [SIM_SURF_WOOD] = { 0.50, 0.12, 5.0e6, 0.60, 0.50 },
+  [SIM_SURF_METAL] = { 0.35, 0.20, 1.0e8, 1.00, 0.35 },
+  [SIM_SURF_PVC] = { 0.30, 0.22, 2.0e5, 0.40, 0.30 },
+  [SIM_SURF_FOLIAGE] = { 1.00, 0.0, 2.0e3, 0.02, 1.00 },
+  [SIM_SURF_WATER] = { 0.05, 0.0, 1.0e4, 0.01, 0.05 },
+  [SIM_SURF_SAND] = { 0.60, 0.0, 1.0e5, 0.40, 0.60 },
+  [SURF_OBSTACLE] = { 0.40, 0.15, 2.0e6, 0.50, 0.40 },
 };
 
 /* ---------------------------------------------------------------------
@@ -109,6 +119,8 @@ typedef struct {
   int wheel_part[SIM_WHEELS_MAX];    /* the part carrying each wheel, -1 */
   int float_part[2];                 /* left, right, -1 */
   double wing_area;                  /* plan area of the wing panels */
+  double w1[SIM_PARTS_MAX];          /* a ringing panel's first bending
+                                      * mode, rad/s; 0 rigid */
 } Table;
 
 static Table T[SIM_AIRFRAME_COUNT];
@@ -167,6 +179,28 @@ static void table_add(Table *t, const PartDef *d, int airframe) {
   t->n += 1;
 }
 
+/*
+ * A WING PANEL RINGS ON ITS SPAR, A BOOM ON ITS TUBE. The first bending
+ * mode is a cantilever's, w = sqrt(3 E I / (L^3 (0.2427 m + M))), m its own
+ * mass spread along it, M the parts it carries taken at its tip (Rayleigh's
+ * tip mass form; with M = 0 it is 3.516 sqrt(E I / (m L^3)), the exact
+ * first mode), L the reach from the root to its farthest hull point. The
+ * joiner's E I follows from the limit the table already derives from it,
+ * M = sigma I / r: E I = (E / sigma) M r. Pultruded carbon
+ * tube, TAP Plastics' minimum properties: flexural modulus 127 GPa; the
+ * tables take its bending strength at 1,000 MPa (the datasheet's minimum
+ * is 1,370), so E / sigma = 127. The spar alone is stiffer than the panel
+ * with its outboard foam, so this is an upper bound on the frequency, and
+ * the shortest period a panel rings with: 8 to 13 Hz for the foam planes'
+ * panels, inside the 5 to 20 Hz small UAV wings' ground vibration tests
+ * put their first bending. RING_ZETA, its damping, is chosen: a few percent
+ * of critical, a lightly damped structure. docs/CRASH-STAGE1.md, Damage.
+ */
+#define SPAR_E_OVER_S 127.0
+#define RING_OWN 0.2427   /* 33 / 140, a cantilever's own mass at its tip */
+#define RING_ZETA 0.03
+#define RING_STILL 1.0e-3 /* N and N m: a ring below this is over */
+
 /* Masses, centres, boxes, subtrees and the root's residual. */
 static void table_finish(Table *t, int airframe) {
   const PlantParams *P = &PLANT_TABLE[airframe];
@@ -219,6 +253,31 @@ static void table_finish(Table *t, int airframe) {
     const int par = t->p[i].parent;
     if (par >= 0) {
       t->sub[par] |= t->sub[i];
+    }
+  }
+  for (int i = 0; i < t->n; i += 1) {
+    t->w1[i] = 0.0;
+    if (!(t->p[i].spar_r > 0.0) || i == 0) {
+      continue;
+    }
+    double reach = 0.0;
+    for (int k = 0; k < t->p[i].npts; k += 1) {
+      const double e[3] = { t->p[i].pts[k][0] - t->p[i].joint[0], t->p[i].pts[k][1] - t->p[i].joint[1],
+                            t->p[i].pts[k][2] - t->p[i].joint[2] };
+      const double r = sim_sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
+      if (r > reach) reach = r;
+    }
+    /* The parts it carries ride at its tip. */
+    double m_eff = RING_OWN * t->p[i].mass;
+    for (int c = i + 1; c < t->n; c += 1) {
+      if (t->sub[i] & (1u << c)) {
+        m_eff += t->p[c].mass;
+      }
+    }
+    const double ei = SPAR_E_OVER_S * t->p[i].m_max * t->p[i].spar_r;
+    const double w = sim_sqrt(3.0 * ei / (m_eff * reach * reach * reach));
+    if (w * SIM_DT < 0.5) {
+      t->w1[i] = w;
     }
   }
   for (int w = 0; w < SIM_WHEELS_MAX; w += 1) {
@@ -412,6 +471,8 @@ typedef struct {
   double dent[3];    /* m, body frame */
   double energy;     /* J */
   double damage;
+  double ring[6];    /* a ringing panel's joint force and moment, body */
+  double ring_d[6];  /* and their rates */
 } PartState;
 
 static PartState PS[SIM_PARTS_MAX];
@@ -1038,6 +1099,10 @@ void crash_reset(void) {
       p->bend[a] = 0.0;
       p->dent[a] = 0.0;
     }
+    for (int a = 0; a < 6; a += 1) {
+      p->ring[a] = 0.0;
+      p->ring_d[a] = 0.0;
+    }
     FB[i].state = 0;
   }
   g_shift[0] = g_shift[1] = g_shift[2] = 0.0;
@@ -1079,6 +1144,7 @@ void crash_reset(void) {
 
 static int g_att_part = 0;
 static double g_att_b[3];
+static double g_att_nb[3]; /* the contact's normal, body frame */
 static int g_hint = -1;
 
 /* The solver is resolving the parts' own sampler k: it is that part's
@@ -1089,6 +1155,7 @@ void crash_hint_sampler(int k) {
 
 static void attribute(const SimState *s, const double r[3], const double n[3]) {
   const Table *t = tab();
+  qrot_inv(s->quat, n, g_att_nb);
   if (g_hint >= 0 && g_hint < g_nsamp) {
     g_att_part = g_samp_part[g_hint];
     g_att_b[0] = g_samp[g_hint][0];
@@ -1190,6 +1257,8 @@ typedef struct {
 } Hit;
 
 static Hit H[HITS_MAX];
+static double g_bb[HITS_MAX][3]; /* each hit's point, body live, judge's */
+static double g_blow[SIM_PARTS_MAX]; /* a struck blade's own root moment, N m */
 static int g_nh = 0;
 static double g_pre_vel[3];
 static double g_pre_w[3];
@@ -1327,7 +1396,22 @@ void crash_contact_depth(double pen) {
  */
 #define SPRING_GOING 0.05
 
-static void spring_pre(int i, double k, double vin, double kn, double *e_used, double *jn_cap) {
+/* The spring a part meets the ground through, at depth x: its own and the
+ * surface's in series, k1, over its travel tr, and past that the stiffer
+ * airframe behind it as well, k2. A stiff part's travel is unbounded. */
+static double g_sp_k1, g_sp_k2, g_sp_tr;
+static int g_sp_stiff = -1;       /* the stiffer part past the travel, or -1 */
+static double g_sp_bstiff[3];     /* its point, body live */
+static double g_sp_frac = 1.0;    /* the soft part's share of the force */
+
+static double spring_force(double x) {
+  if (!(x > g_sp_tr)) {
+    return g_sp_k1 * x;
+  }
+  return g_sp_k1 * g_sp_tr + g_sp_k2 * (x - g_sp_tr);
+}
+
+static void spring_pre(int i, double vin, double kn, double *e_used, double *jn_cap) {
   const unsigned int bit = 1u << i;
   if (g_pen > g_batch_pen[i]) {
     g_batch_pen[i] = g_pen;
@@ -1343,7 +1427,7 @@ static void spring_pre(int i, double k, double vin, double kn, double *e_used, d
       }
       return;
     }
-    const int held = !((1.0 + *e_used) * vin / kn > k * g_batch_pen[i] * g_batch_dt);
+    const int held = !((1.0 + *e_used) * vin / kn > spring_force(g_batch_pen[i]) * g_batch_dt);
     if (!going && held) {
       return;
     }
@@ -1363,9 +1447,36 @@ static void spring_pre(int i, double k, double vin, double kn, double *e_used, d
     }
     g_spring_npts[i] += 1;
   }
-  const int share = g_spring_npts_last[i] > 1 ? g_spring_npts_last[i] : 1;
-  double cap = k * g_batch_pen[i] * g_batch_dt - g_crush_used[i];
-  const double own = k * g_pen * g_batch_dt / (double)share;
+  /* How many points it meets the ground at: those the last step met, and
+   * in the first step of a contact its hull points within the attribution
+   * band of its lowest, so the first corner the solver visits does not
+   * take the whole blow on a pack landed flat. */
+  int share = g_spring_npts_last[i];
+  {
+    const Table *t = tab();
+    double hmax = -1.0e9;
+    int band = 0;
+    for (int q = 0; q < t->p[i].npts; q += 1) {
+      double p[3];
+      live_pt(t->p[i].pts[q], p);
+      const double h = -dot(g_att_nb, p);
+      if (h > hmax) hmax = h;
+    }
+    for (int q = 0; q < t->p[i].npts; q += 1) {
+      double p[3];
+      live_pt(t->p[i].pts[q], p);
+      band += -dot(g_att_nb, p) >= hmax - ATTR_BAND;
+    }
+    if (band > share) share = band;
+  }
+  if (share < 1) share = 1;
+  {
+    const double x = g_batch_pen[i];
+    const double ft = spring_force(x);
+    g_sp_frac = x > g_sp_tr && ft > 0.0 ? g_sp_k1 * x / ft : 1.0;
+  }
+  double cap = spring_force(g_batch_pen[i]) * g_batch_dt - g_crush_used[i];
+  const double own = spring_force(g_pen) * g_batch_dt / (double)share;
   if (cap > own) {
     cap = own;
   }
@@ -1390,6 +1501,16 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
     return;
   }
   attribute(s, r, n);
+  if (g_surf_ground) {
+    /* The depth the spring is at is the part's own point's: the solver's
+     * box corner can stand some way past a round prop disc or a tapered
+     * nose, and a spring taken at the corner's depth pushes as if the part
+     * were that far in. */
+    double rb[3];
+    qrot_inv(s->quat, r, rb);
+    const double past = dot(g_att_nb, g_att_b) - dot(g_att_nb, rb);
+    g_pen = past > 0.0 && past < g_pen ? g_pen - past : (past > 0.0 ? 0.0 : g_pen);
+  }
   const Table *t = tab();
   const int i = g_att_part;
   const PartDef *d = &t->p[i];
@@ -1428,14 +1549,135 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
       return;
     }
   }
-  /* A part softer than the ground (a blade, a whip, a wing's tip, a wire
-   * leg) bends, and the stiffer airframe behind it is what stops the craft;
-   * how far it bends before that is not in the tables, so its contact stays
-   * the rigid one. The whoop the shell flies lives in a room scaled 3.43
-   * times, whose floor the surfaces table does not scale; it keeps the
-   * rigid contact too. */
-  if (g_surf_ground && d->k >= SURF[g_surf].k && tab() != &T_WHOOP_SCALED) {
-    spring_pre(i, k, vin, kn, e_used, jn_cap);
+  /* A part meets the ground through its own spring and the surface's in
+   * series. It gives until the stiffer airframe behind it meets the
+   * ground too: its travel is how far it stands out past the stiffer parts
+   * along the contact, from the parts' own hulls, and past it the one of
+   * them that stands out furthest adds its spring. The stiffest part has no
+   * travel to run out of. A slender wire (a whip, a gear leg) keeps the
+   * rigid contact: loaded along its length it buckles and folds over,
+   * which is not a spring, and what it then carries is not in the tables
+   * (round 3 sprung it too, and the taildraggers' wire gear broke the wing
+   * off on a nose over and the five inch's whip broke on its back, both
+   * against their references). The whoop the shell flies
+   * lives in a room scaled 3.43 times, whose floor the surfaces table does
+   * not scale; it keeps the rigid contact. */
+  if (!g_surf_ground || tab() == &T_WHOOP_SCALED) {
+    return;
+  }
+  if (d->mat == SIM_MAT_WIRE) {
+    return;
+  }
+  g_sp_k1 = k;
+  g_sp_k2 = k;
+  g_sp_tr = 1.0e9;
+  g_sp_stiff = -1;
+  g_sp_frac = 1.0;
+  const double mn[3] = { -n[0], -n[1], -n[2] };
+  double db[3];
+  qrot_inv(s->quat, mn, db);
+  double h_part = -1.0e9, h_stiff = -1.0e9;
+  int stiff = -1;
+  for (int j = 0; j < t->n; j += 1) {
+    if (!attached(j) || !(t->p[j].k > d->k)) {
+      continue;
+    }
+    for (int q = 0; q < t->p[j].npts; q += 1) {
+      double p[3];
+      live_pt(t->p[j].pts[q], p);
+      const double h = dot(db, p);
+      if (h > h_stiff) {
+        h_stiff = h;
+        stiff = j;
+        g_sp_bstiff[0] = p[0];
+        g_sp_bstiff[1] = p[1];
+        g_sp_bstiff[2] = p[2];
+      }
+    }
+  }
+  if (stiff >= 0) {
+    for (int q = 0; q < d->npts; q += 1) {
+      double p[3];
+      live_pt(d->pts[q], p);
+      const double h = dot(db, p);
+      if (h > h_part) {
+        h_part = h;
+      }
+    }
+    g_sp_tr = h_part > h_stiff ? h_part - h_stiff : 0.0;
+    g_sp_k2 = k + series_k(t->p[stiff].k, SURF[g_surf].k);
+    g_sp_stiff = stiff;
+  }
+  spring_pre(i, vin, kn, e_used, jn_cap);
+}
+
+/*
+ * THE FACE A PART SLIDES ON. A part that meets the ground flat on one of
+ * its faces, within 25 degrees as a belly slam's crush is taken, slides on
+ * it as a sled does; one driven in on an edge, a corner or a tip (a nose
+ * dug in, a wing tip, a blade) ploughs, the shell's grip. Faded between the
+ * two over those 25 degrees, as crush_area fades its patch in.
+ */
+static double flatness(const Table *t, int i, const double nb[3]) {
+  const double sx = t->hi[i][0] - t->lo[i][0];
+  const double sy = t->hi[i][1] - t->lo[i][1];
+  const double sz = t->hi[i][2] - t->lo[i][2];
+  const double face[3] = { sy * sz, sx * sz, sx * sy };
+  double flat = 0.0;
+  for (int k = 0; k < 3; k += 1) {
+    if (!(face[k] > 0.0)) {
+      continue;
+    }
+    double w = (sim_fabs(nb[k]) - CRUSH_FLAT) / (1.0 - CRUSH_FLAT);
+    if (w < 0.0) w = 0.0;
+    if (w > 1.0) w = 1.0;
+    if (w > flat) flat = w;
+  }
+  return flat;
+}
+
+static double face_mu(int surf, double flat, double mu) {
+  const double mf = SURF[surf].mu_face;
+  return mf < mu ? mu + flat * (mf - mu) : mu;
+}
+
+double crash_contact_mu(double mu) {
+  if (!SIM_DAMAGE || !g_surf_ground) {
+    return mu;
+  }
+  return face_mu(g_surf, flatness(tab(), g_att_part, g_att_nb), mu);
+}
+
+static double g_ground_jn = 0.0; /* this step's normal impulse on the ground */
+
+double crash_settle_share(double w) {
+  if (!(w > 0.0) || !(g_ground_jn < w)) {
+    return 0.0;
+  }
+  return 1.0 - g_ground_jn / w;
+}
+
+double crash_settle_mu(const SimState *s, const double n[3], double mu) {
+  const double at[3] = { 0.0, 0.0, 0.0 };
+  attribute(s, at, n);
+  return face_mu(g_ground_mat, flatness(tab(), g_att_part, g_att_nb), mu);
+}
+
+static void hit_add(Hit *h, double jn, const double jt[3], const double n[3], const double b[3],
+                    const double rb[3], double vin) {
+  h->jn += jn;
+  for (int a = 0; a < 3; a += 1) {
+    h->J[a] += jn * n[a] + jt[a];
+    h->bsum[a] += jn * b[a];
+    h->rsum[a] += jn * (rb[a] + g_shift[a]);
+  }
+  if (vin > h->vin) {
+    h->vin = vin;
+  }
+  if (h->n[0] == 0.0 && h->n[1] == 0.0 && h->n[2] == 0.0) {
+    h->n[0] = n[0];
+    h->n[1] = n[1];
+    h->n[2] = n[2];
   }
 }
 
@@ -1449,6 +1691,9 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
   if (!h) {
     return;
   }
+  if (g_surf_ground && g_from_step) {
+    g_ground_jn += jn;
+  }
   if (g_capped_now) {
     g_crush_used[g_att_part] += jn;
     if (g_soft_now) {
@@ -1458,24 +1703,25 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
       h->fc = g_capped_fc;
     }
   }
-  h->jn += jn;
-  for (int a = 0; a < 3; a += 1) {
-    h->J[a] += jn * n[a] + jt[a];
-    h->bsum[a] += jn * g_att_b[a];
-  }
   double rb[3];
   qrot_inv(s->quat, r, rb);
-  for (int a = 0; a < 3; a += 1) {
-    h->rsum[a] += jn * (rb[a] + g_shift[a]);
+  /* Past a soft part's travel the stiffer part behind it bears the rest of
+   * the spring's force at its own point: the soft part carries only its
+   * own spring's share through its joint. */
+  double f = 1.0;
+  if (g_soft_now && g_sp_stiff >= 0 && g_sp_frac < 1.0) {
+    f = g_sp_frac;
+    Hit *hs = hit_get(g_sp_stiff, 0);
+    if (hs) {
+      const double js[3] = { (1.0 - f) * jt[0], (1.0 - f) * jt[1], (1.0 - f) * jt[2] };
+      hs->soft = 1;
+      hit_add(hs, (1.0 - f) * jn, js, n, g_sp_bstiff, rb, vin);
+    } else {
+      f = 1.0;
+    }
   }
-  if (vin > h->vin) {
-    h->vin = vin;
-  }
-  if (h->n[0] == 0.0 && h->n[1] == 0.0 && h->n[2] == 0.0) {
-    h->n[0] = n[0];
-    h->n[1] = n[1];
-    h->n[2] = n[2];
-  }
+  const double jp[3] = { f * jt[0], f * jt[1], f * jt[2] };
+  hit_add(h, f * jn, jp, n, g_att_b, rb, vin);
 }
 
 void crash_force_note(const SimState *s, const double r[3], const double F[3], int part) {
@@ -1528,6 +1774,7 @@ void crash_batch_begin(const SimState *s, int from_step) {
   g_batch_spring = 0;
   g_from_step = from_step;
   if (from_step) {
+    g_ground_jn = 0.0;
     for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
       g_spring_npts_last[i] = g_spring_npts[i];
       g_spring_npts[i] = 0;
@@ -1819,11 +2066,115 @@ SIM_EXPORT int sim_crash_debug(double *out, int max) {
   return n;
 }
 
+/* The craft's rigid body response to the batch's contact loads F (forces,
+ * or impulses for the momentum they carry), body frame, each scaled by
+ * sc, over the mass m still on. */
+static void craft_accel(const double F[][3], const double *sc, double m, double acc[3], double alp[3]) {
+  double Ft[3] = { 0.0, 0.0, 0.0 }, tau[3] = { 0.0, 0.0, 0.0 };
+  for (int h = 0; h < g_nh; h += 1) {
+    const double f[3] = { sc[h] * F[h][0], sc[h] * F[h][1], sc[h] * F[h][2] };
+    double c[3];
+    cross(g_bb[h], f, c);
+    for (int a = 0; a < 3; a += 1) {
+      Ft[a] += f[a];
+      tau[a] += c[a];
+    }
+  }
+  for (int a = 0; a < 3; a += 1) {
+    acc[a] = Ft[a] / m;
+    alp[a] = tau[a] / PLANT.inertia[a];
+  }
+}
+
+/* Joint j's load, body frame: what its subtree's share of the craft's
+ * motion asks of it, less the contacts on the subtree itself. Returns 1
+ * when a contact is on the subtree (the joint is on a load path). */
+static int joint_load(const Table *t, int j, const double F[][3], const double *sc, unsigned int gone,
+                      const double acc[3], const double alp[3], double Fj[3], double Mj[3]) {
+  const int n = t->n;
+  int path = 0;
+  double pj[3];
+  live_pt(t->p[j].joint, pj);
+  for (int a = 0; a < 3; a += 1) {
+    Fj[a] = 0.0;
+    Mj[a] = 0.0;
+  }
+  for (int i = 0; i < n; i += 1) {
+    if (!(t->sub[j] & (1u << i)) || !attached(i) || (gone & (1u << i))) {
+      continue;
+    }
+    double ci[3];
+    live_pt(t->cg[i], ci);
+    double ai[3];
+    cross(alp, ci, ai);
+    const double mi = t->p[i].mass;
+    double fi[3];
+    for (int a = 0; a < 3; a += 1) {
+      fi[a] = mi * (acc[a] + ai[a]);
+      Fj[a] += fi[a];
+    }
+    const double arm[3] = { ci[0] - pj[0], ci[1] - pj[1], ci[2] - pj[2] };
+    double c[3];
+    cross(arm, fi, c);
+    for (int a = 0; a < 3; a += 1) Mj[a] += c[a];
+  }
+  for (int h = 0; h < g_nh; h += 1) {
+    if (!(t->sub[j] & (1u << H[h].part))) {
+      continue;
+    }
+    if (sc[h] > 0.0) {
+      path = 1;
+    }
+    const double f[3] = { sc[h] * F[h][0], sc[h] * F[h][1], sc[h] * F[h][2] };
+    const double arm[3] = { g_bb[h][0] - pj[0], g_bb[h][1] - pj[1], g_bb[h][2] - pj[2] };
+    double c[3];
+    cross(arm, f, c);
+    for (int a = 0; a < 3; a += 1) {
+      Fj[a] -= f[a];
+      Mj[a] -= c[a];
+    }
+  }
+  return path;
+}
+
+/* A joint carries a push that seats the part on its parent in bearing, the
+ * part's face against the frame's, not through its strap or screws: a pack
+ * under the frame landed on is pressed into it, not torn off. That
+ * component counts at BEARING_SHARE, the seated push grips the pad before
+ * the strap takes a sideways load, and a push inside the seat's footprint
+ * does not lever the part off. The magnitudes the limits are held to. */
+static void seat_load(const Table *t, int j, const double Fj[3], const double Mj[3], double *fm_out, double *mm_out) {
+  double fm = norm(Fj);
+  double mm = norm(Mj);
+  double pj[3], cj[3];
+  live_pt(t->p[j].joint, pj);
+  live_pt(t->cg[j], cj);
+  const double u[3] = { cj[0] - pj[0], cj[1] - pj[1], cj[2] - pj[2] };
+  const double ul = norm(u);
+  if (ul > 1e-6) {
+    const double fb = dot(Fj, u) / ul;
+    if (fb > 0.0) {
+      const double perp2 = fm * fm - fb * fb;
+      double perp = sim_sqrt(perp2 > 0.0 ? perp2 : 0.0) - SEAT_GRIP * fb;
+      if (perp < 0.0) perp = 0.0;
+      const double seat = fb * BEARING_SHARE;
+      fm = sim_sqrt(perp * perp + seat * seat);
+      mm -= fb * t->seat[j];
+      if (mm < 0.0) mm = 0.0;
+    }
+  }
+  *fm_out = fm;
+  *mm_out = mm;
+}
+
 static void judge(SimState *s) {
   const Table *t = tab();
   const int n = t->n;
+  for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
+    g_blow[i] = 0.0;
+  }
   double Fb[HITS_MAX][3];
-  double bb[HITS_MAX][3];
+  double (*bb)[3] = g_bb;
   double sc[HITS_MAX];
   int changed = 0;
   Break brk[BREAKS_MAX];
@@ -1943,6 +2294,22 @@ static void judge(SimState *s) {
       /* Past the limit the chip grows at the old rate, faded in from
        * nothing at the limit so the damage is continuous in the load. */
       const double over = sigma > strength ? 1.0 - strength / sigma : 0.0;
+      /* Past the limit the surface stops the tip rather than giving way,
+       * and the blade is stopped by its own spring: the tip's blow is
+       * v sqrt(k m), its effective mass a third of a blade's (a rod turned
+       * about the hub, struck at its end) and k the blade's tip stiffness
+       * and the surface's in series, at the tip's own speed (the model's,
+       * for the whoop the shell flies, whose limits are scaled with it).
+       * It bends the blade at its root, the lever its radius. */
+      if (over > 0.0) {
+        const int nb = d->blades > 0 ? d->blades : 2;
+        const double m_tip = d->mass / (3.0 * (double)nb);
+        const double k_tip = series_k(d->k, SURF[x->surf].k);
+        const double blow = tip * life * sim_sqrt(k_tip * m_tip) * 0.5 * span;
+        if (blow > g_blow[i]) {
+          g_blow[i] = blow;
+        }
+      }
       const double vt = tip / 100.0;
       const double dc = vt * vt * SURF[x->surf].hard * SIM_DT / CHIP_SPIN_T * over;
       if (dc > 0.0) {
@@ -1995,13 +2362,28 @@ static void judge(SimState *s) {
    * has to be given its share of that through its joint, less the contact
    * forces that act on it directly. Weakest link first: when a joint
    * fails, the loads that went through it are capped at what it carried,
-   * and the rest is judged again without it. */
+   * and the rest is judged again without it. A panel that rings (a wing on
+   * its spar) is loaded through its first bending mode, below. */
+  double Jb[HITS_MAX][3];
+  for (int h = 0; h < g_nh; h += 1) {
+    double Jw[3];
+    for (int a = 0; a < 3; a += 1) {
+      Jw[a] = H[h].force ? H[h].F[a] * g_batch_dt : H[h].J[a];
+    }
+    qrot_inv(s->quat, Jw, Jb[h]);
+  }
+  const double adv = g_from_step ? SIM_DT : 0.0;
+  double ring[SIM_PARTS_MAX][12];
   unsigned int gone = 0;
   double rho0[SIM_PARTS_MAX];
   double M0[SIM_PARTS_MAX][3];
   for (int j = 0; j < n; j += 1) {
     rho0[j] = 0.0;
     M0[j][0] = M0[j][1] = M0[j][2] = 0.0;
+    for (int a = 0; a < 6; a += 1) {
+      ring[j][a] = PS[j].ring[a];
+      ring[j][6 + a] = PS[j].ring_d[a];
+    }
   }
   for (int iter = 0; iter < BREAKS_MAX; iter += 1) {
     double m = 0.0;
@@ -2013,21 +2395,9 @@ static void judge(SimState *s) {
     if (!(m > 0.0)) {
       break;
     }
-    double Ft[3] = { 0.0, 0.0, 0.0 }, tau[3] = { 0.0, 0.0, 0.0 };
-    for (int h = 0; h < g_nh; h += 1) {
-      const double f[3] = { sc[h] * Fb[h][0], sc[h] * Fb[h][1], sc[h] * Fb[h][2] };
-      double c[3];
-      cross(bb[h], f, c);
-      for (int a = 0; a < 3; a += 1) {
-        Ft[a] += f[a];
-        tau[a] += c[a];
-      }
-    }
-    double acc[3], alp[3];
-    for (int a = 0; a < 3; a += 1) {
-      acc[a] = Ft[a] / m;
-      alp[a] = tau[a] / PLANT.inertia[a];
-    }
+    double acc[3], alp[3], accJ[3], alpJ[3];
+    craft_accel(Fb, sc, m, acc, alp);
+    craft_accel(Jb, sc, m, accJ, alpJ);
     /* Two kinds of joint: those a contact's force goes through on its way
      * to the root, and those that only carry their parts' share of the
      * craft's deceleration. The first kind fails first: until the joints
@@ -2041,74 +2411,37 @@ static void judge(SimState *s) {
         continue;
       }
       const PartDef *dj = &t->p[j];
-      int path = 0;
-      double pj[3];
-      live_pt(dj->joint, pj);
-      double Fj[3] = { 0.0, 0.0, 0.0 }, Mj[3] = { 0.0, 0.0, 0.0 };
-      for (int i = 0; i < n; i += 1) {
-        if (!(t->sub[j] & (1u << i)) || !attached(i) || (gone & (1u << i))) {
-          continue;
+      double Fj[3], Mj[3];
+      int path = joint_load(t, j, Fb, sc, gone, acc, alp, Fj, Mj);
+      if (t->w1[j] > 0.0) {
+        /* The panel's first mode, a spring of its own frequency driven by
+         * the joint's quasi static load: it takes the batch's momentum as a
+         * kick and rings on through the steps. The root sees the mode's
+         * force, not the rigid body's, so a blow short against the period
+         * loads it by the impulse it carried, not by its peak. */
+        double FJ[3], MJ[3];
+        joint_load(t, j, Jb, sc, gone, accJ, alpJ, FJ, MJ);
+        const double w = t->w1[j];
+        const double *y = PS[j].ring;
+        const double *yd = PS[j].ring_d;
+        double *c = ring[j];
+        for (int a = 0; a < 6; a += 1) {
+          const double kick = a < 3 ? FJ[a] : MJ[a - 3];
+          c[6 + a] = yd[a] + w * w * kick - (w * w * y[a] + 2.0 * RING_ZETA * w * yd[a]) * adv;
+          c[a] = y[a] + c[6 + a] * adv;
         }
-        double ci[3];
-        live_pt(t->cg[i], ci);
-        double ai[3];
-        cross(alp, ci, ai);
-        const double mi = t->p[i].mass;
-        double fi[3];
         for (int a = 0; a < 3; a += 1) {
-          fi[a] = mi * (acc[a] + ai[a]);
-          Fj[a] += fi[a];
-        }
-        const double arm[3] = { ci[0] - pj[0], ci[1] - pj[1], ci[2] - pj[2] };
-        double c[3];
-        cross(arm, fi, c);
-        for (int a = 0; a < 3; a += 1) Mj[a] += c[a];
-      }
-      for (int h = 0; h < g_nh; h += 1) {
-        if (!(t->sub[j] & (1u << H[h].part))) {
-          continue;
-        }
-        if (sc[h] > 0.0) {
-          path = 1;
-        }
-        const double f[3] = { sc[h] * Fb[h][0], sc[h] * Fb[h][1], sc[h] * Fb[h][2] };
-        const double arm[3] = { bb[h][0] - pj[0], bb[h][1] - pj[1], bb[h][2] - pj[2] };
-        double c[3];
-        cross(arm, f, c);
-        for (int a = 0; a < 3; a += 1) {
-          Fj[a] -= f[a];
-          Mj[a] -= c[a];
+          Fj[a] = c[a];
+          Mj[a] = c[3 + a];
         }
       }
       const double st = PS[j].strength;
-      /* A joint carries a push that seats the part on its parent in
-       * bearing, the part's face against the frame's, not through its
-       * strap or screws: a pack under the frame landed on is pressed into
-       * it, not torn off. That component counts at a tenth. */
-      double fm = norm(Fj);
-      double mm = norm(Mj);
-      {
-        double cj[3];
-        live_pt(t->cg[j], cj);
-        const double u[3] = { cj[0] - pj[0], cj[1] - pj[1], cj[2] - pj[2] };
-        const double ul = norm(u);
-        if (ul > 1e-6) {
-          const double fb = dot(Fj, u) / ul;
-          if (fb > 0.0) {
-            /* And the push that seats it grips it: the pad's friction
-             * takes a share of the sideways load before the strap does. */
-            const double perp2 = fm * fm - fb * fb;
-            double perp = sim_sqrt(perp2 > 0.0 ? perp2 : 0.0) - SEAT_GRIP * fb;
-            if (perp < 0.0) perp = 0.0;
-            const double seat = fb * BEARING_SHARE;
-            fm = sim_sqrt(perp * perp + seat * seat);
-            /* Nor does a push inside the seat's footprint lever the part
-             * off: it has to overcome the seated force at the footprint's
-             * edge first. */
-            mm -= fb * t->seat[j];
-            if (mm < 0.0) mm = 0.0;
-          }
-        }
+      double fm, mm;
+      seat_load(t, j, Fj, Mj, &fm, &mm);
+      if (g_blow[j] > mm) {
+        /* A blade's own blow at its root, about its disc's axis. */
+        mm = g_blow[j];
+        path = 1;
       }
       double rho = mm / (dj->m_max * st);
       if (fm / (dj->f_max * st) > rho) {
@@ -2154,6 +2487,16 @@ static void judge(SimState *s) {
     brk[nbrk].forced = 0;
     nbrk += 1;
     gone |= t->sub[best];
+  }
+  /* The rings go on from the last pass's state. */
+  for (int j = 1; j < n; j += 1) {
+    if (!(t->w1[j] > 0.0) || !attached(j) || (gone & (1u << j))) {
+      continue;
+    }
+    for (int a = 0; a < 6; a += 1) {
+      PS[j].ring[a] = ring[j][a];
+      PS[j].ring_d[a] = ring[j][6 + a];
+    }
   }
 
   /* Under the break: each part's new peak, and what its material does. */
@@ -2247,6 +2590,32 @@ static void judge(SimState *s) {
   }
 }
 
+/* A panel still ringing after its contact has ended goes on being judged
+ * until its ring has died away, and is then set still. */
+static int ring_live(void) {
+  const Table *t = tab();
+  int live = 0;
+  for (int i = 1; i < t->n; i += 1) {
+    if (!(t->w1[i] > 0.0) || !attached(i)) {
+      continue;
+    }
+    double e = 0.0;
+    for (int a = 0; a < 6; a += 1) {
+      const double v = PS[i].ring_d[a] / t->w1[i];
+      e += PS[i].ring[a] * PS[i].ring[a] + v * v;
+    }
+    if (e < RING_STILL * RING_STILL) {
+      for (int a = 0; a < 6; a += 1) {
+        PS[i].ring[a] = 0.0;
+        PS[i].ring_d[a] = 0.0;
+      }
+      continue;
+    }
+    live = 1;
+  }
+  return live;
+}
+
 void crash_batch_end(SimState *s) {
   if (!SIM_DAMAGE || !g_batch_open) {
     return;
@@ -2257,7 +2626,7 @@ void crash_batch_end(SimState *s) {
   if (g_from_step) {
     g_spring_mask = g_batch_spring;
   }
-  if (g_nh == 0) {
+  if (g_nh == 0 && !(g_from_step && ring_live())) {
     const Table *t = tab();
     for (int i = 0; i < t->n; i += 1) {
       PS[i].peak = 0.0;
