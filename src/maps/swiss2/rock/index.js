@@ -12,7 +12,7 @@
  *
  * LEVELS. The skin is cut into chunks of CHUNK cells a side, each drawn
  * at one of four meshes by its distance: a metre and a half grid near,
- * two and a half metres out to a kilometre, then five and fifteen. The
+ * two and a half metres out to a kilometre, then five and ten. The
  * two coarse ones are built for every chunk at load and are small; the
  * two fine ones would be tens of megabytes for the whole valley, so
  * they are built as the camera comes near a chunk, three milliseconds a
@@ -46,12 +46,15 @@ import { carveMask, carveAt, carvedAt, PROUD, SUNK } from './carve.js';
 const CHUNK = 4;
 const NCH = CELLS / CHUNK;
 /* Grid steps per cell, and the distance out to which each level is
- * drawn, in metres from the camera to the chunk's box. */
+ * drawn, in metres from the camera to the chunk's box. Every n is a
+ * multiple of the field's FINE, so a level's grid holds every point of
+ * the ground's own fine grid and, where the carving is nought, lies on
+ * the drawn ground exactly. */
 const LEVELS = [
-  { n: 20, reach: 260 },
+  { n: 21, reach: 260 },
   { n: 12, reach: 1000 },
   { n: 6, reach: 2600 },
-  { n: 2, reach: Infinity },
+  { n: 3, reach: Infinity },
 ];
 /* The fine levels' slots: enough for every carved chunk inside their
  * reach and HOLD from anywhere over the field, which at most is 32 and
@@ -258,22 +261,20 @@ export function occupiedCells(scene, heightAt, skip) {
 }
 
 /*
- * Take the carved cells out of the ground's mesh. The ground is
- * terrainGeometry's PlaneGeometry laid flat, whose quad (i, j) is the
- * six indices at 6 * (j * CELLS + i).
+ * Take the carved cells out of the ground's mesh. Each cell's triangles
+ * are a run of the index, which swissGroundGeometry notes per cell.
  */
 export function trimGround(geometry, mask) {
   const src = geometry.getIndex().array;
+  const { start, count } = geometry.userData.cells;
   const out = new (src.constructor)(src.length);
   let w = 0;
   for (let q = 0; q < CELLS * CELLS; q += 1) {
     if (mask[q]) {
       continue;
     }
-    for (let k = 0; k < 6; k += 1) {
-      out[w + k] = src[q * 6 + k];
-    }
-    w += 6;
+    out.set(src.subarray(start[q], start[q] + count[q]), w);
+    w += count[q];
   }
   geometry.setIndex(new THREE.BufferAttribute(out.slice(0, w), 1));
 }

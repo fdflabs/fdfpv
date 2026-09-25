@@ -41,6 +41,8 @@ import {
 } from '../alps/terrain.js';
 import { LAYERS, SUN_U } from './assets.js';
 import { CLIFF_LOW, CLIFF_HIGH, LOW_HALF, LOW_GATE } from './rock/carve.js';
+import { apronAt } from './terrain.js';
+import { noise2, smoothstep } from '../alps/noise.js';
 
 /* Per layer, in LAYERS order: metres a texture tile covers, a tint on
  * the photograph's own albedo (linear), the roughness, and how hard the
@@ -161,7 +163,11 @@ export function groundMasks(field) {
       const k = (j * ZONES + i) * 4;
       z1[k] = b(zone.forest);
       z1[k + 1] = b(zone.bloom);
-      z1[k + 2] = b(zone.scree);
+      /* Scree at the foot of the walls' faces (swiss2/terrain.js), which
+       * a 23 m texel reading the slope misses (the apron is three wide):
+       * in fans under the gullies, grassed over between them. */
+      const fans = smoothstep(0.4, 0.7, noise2(x / 55 + 1.3, z / 55 + 7.7));
+      z1[k + 2] = b(Math.max(zone.scree, 0.9 * fans * apronAt(x, z)));
       z1[k + 3] = b(zone.shore);
       z2[k] = b(zone.hay);
       z2[k + 1] = b(zone.flat);
@@ -960,7 +966,13 @@ const GROUND_PARS = /* glsl */ `
     /* Above the trees the mountain is bare and the relief is all there
      * is to see: deeper there, so a snowfield is not a sheet. */
     float bare = smoothstep(${TREE_LINE.toFixed(1)}, ${(TREE_LINE + 400).toFixed(1)}, p.y);
-    vec3 rg = s2Relief(p, mix(1.5, 24.0, max(steep0, 0.6 * bare)) * (1.0 - z2.g), dist);
+    /* The walls' sheer faces (swiss2/terrain.js) are smooth slabs, and
+     * the relief at a steep slope's depth quilted them into a sheet of
+     * bumps hung down the wall: there it is shallow, and lies in beds
+     * longer across than tall. */
+    float sheer = smoothstep(1.4, 2.6, sqrt(max(0.0, 1.0 - n.y * n.y)) / max(n.y, 0.05));
+    vec3 beds = vec3(1.0, mix(1.0, 1.8, sheer), 1.0);
+    vec3 rg = s2Relief(p * beds, mix(1.5, 24.0, max(steep0, 0.6 * bare)) * (1.0 - 0.75 * sheer) * (1.0 - z2.g), dist) * beds;
     /* Gullies and the ribs between them, running down the face: a
      * mountain face is fluted, and the thirty metre grid is not. Grooves
      * about twenty metres across and deep to match, cut into the normal,
@@ -1017,7 +1029,13 @@ const GROUND_PARS = /* glsl */ `
     float d2 = abs(p.y + warp - b2);
     float cliff = max((1.0 - smoothstep(bw1 * 0.55, bw1, d1)) * smoothstep(${LOW_GATE[0].toFixed(2)}, ${LOW_GATE[1].toFixed(2)}, s2Noise(p.xz / 330.0 + 1.7)),
                       (1.0 - smoothstep(bw2 * 0.55, bw2, d2)) * smoothstep(0.3, 0.5, s2Noise(p.xz / 410.0 + 6.2)));
-    cliff *= wallTo;
+    /* On a real face the bands' edges drew their warped contours across
+     * it as lines: the face is the limestone itself. */
+    cliff *= wallTo * (1.0 - sheer);
+    /* The walls' real faces (swiss2/terrain.js), which the bands only
+     * stood in for: the same pale limestone, clouded grey and cream. */
+    float face = smoothstep(1.4, 2.6, tanS) * inside * step(uS2Only, -0.5);
+    float limestone = max(cliff, face * (0.7 + 0.3 * smoothstep(0.3, 0.7, macro)));
     float under1 = (b1 - bw1) - (p.y + warp);
     float under2 = (b2 - bw2) - (p.y + warp);
     float shed = max(smoothstep(0.0, 25.0, under1) * (1.0 - smoothstep(60.0, 190.0, under1)),
@@ -1060,6 +1078,11 @@ const GROUND_PARS = /* glsl */ `
     float turf = (1.0 - smoothstep(1.0, 1.5, tanS + 0.7 * (macro - 0.5) + 0.45 * (meso - 0.5) - 0.5 * (ravine - 0.5)))
       * (1.0 - smoothstep(1150.0, 1400.0, p.y + 200.0 * macro));
     cov[8] = rockHigh * (1.0 - 0.85 * turf);
+    /* The broken alpine ground's photograph, read on a face three hundred
+     * metres tall, is a ruling of vertical streaks: a sheer face is the
+     * limestone. */
+    cov[8] *= 1.0 - face;
+    cov[4] = max(cov[4], face);
     float snowHigh = inside > 0.5 ? z2.b : smoothstep(1350.0, 1800.0, p.y + 260.0 * macro);
     /* Snow lies where it can hold: on anything gentler than about forty
      * degrees, steeper in the gullies it fills, and stripped by the wind
@@ -1179,13 +1202,21 @@ const GROUND_PARS = /* glsl */ `
         /* Water streaks down the face: long dark stains, narrow across
          * and tall, where the runoff has darkened the limestone. */
         vec2 fall = normalize(n.xz + vec2(1e-4, 0.0));
-        float streak = s2Fbm(vec2(dot(p.xz, vec2(-fall.y, fall.x)) / 9.0, p.y / 60.0));
-        col *= 1.0 - 0.3 * smoothstep(0.52, 0.78, streak) * smoothstep(0.6, 1.2, tanS);
+        float along = dot(p.xz, vec2(-fall.y, fall.x));
+        float streak = s2Fbm(vec2(along / mix(9.0, 16.0, face), p.y / 60.0));
+        col *= 1.0 - mix(0.3, 0.22, face) * smoothstep(mix(0.52, 0.62, face), 0.8, streak) * smoothstep(0.6, 1.2, tanS);
+        /* A face hundreds of metres tall is slabs and beds, each its own
+         * shade, longer across than down, not one texture ruled with
+         * streaks. */
+        col *= mix(1.0, 0.72 + 0.5 * smoothstep(0.3, 0.7, s2Noise(vec2(along / 130.0 + 2.3, p.y / 38.0 + 0.2 * meso))), face);
+        /* The black stains where water runs over the rim, a few and long. */
+        float stain = s2Noise(vec2(along / 16.0 + 7.1, p.y / 260.0 + 0.3 * macro));
+        col *= 1.0 - 0.4 * face * smoothstep(0.7, 0.86, stain);
         /* The gullies shaded and damp, the ribs weathered pale. */
         col *= 1.0 - 0.22 * couloir + 0.12 * rib;
         /* The cliff bands are limestone, paler and warmer than the
          * broken rock round them. */
-        col *= mix(vec3(1.0), vec3(1.55, 1.48, 1.34), cliff);
+        col *= mix(vec3(1.0), vec3(1.55, 1.48, 1.34), limestone);
       }
       albedo += col * uS2Tint[k] * w;
       wnormal += wn * w;
