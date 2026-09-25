@@ -1092,6 +1092,7 @@ static void effects_clear(void) {
 }
 
 static void own_clear(void);
+static void skid_clear(void);
 
 void crash_reset(void) {
   if (!g_ready) {
@@ -1136,6 +1137,7 @@ void crash_reset(void) {
   g_crown_step = -1000000;
   g_surf = SIM_SURF_DEFAULT;
   g_ground_mat = SIM_SURF_DEFAULT;
+  skid_clear();
   g_crush_mask = 0;
   g_crushing = 0;
   g_capped_now = 0;
@@ -1626,11 +1628,51 @@ static double fold_travel(const Table *t, int i) {
   return t->hi[i][2] - t->lo[i][2];
 }
 
+/*
+ * A SKID THAT IS A PART STARTS FROM NOTHING. The plant's wheels are springs
+ * with a linear damper, F = k x - c v, which at the first touch is c v with
+ * no depth at all: the prop tip's skid (k 3000 N/m, c 40 N s/m) met the grass
+ * at 5 m/s with 200 N in its first millisecond, 45 g on a Bombshell, and
+ * that one step broke both wing panels under their own weight. With the
+ * mode on a skid that is a part (a prop's tip) is that part's spring and
+ * the surface's in series, as the part's own hull meets the ground
+ * (crash_contact_pre): the blade gives before the nose behind it takes the
+ * rest. And it meets the ground through Lankarani and Nikravesh's
+ * hysteresis damping ("A contact force model with hysteresis
+ * damping for impact analysis of multibody systems", J. Mech. Design 112,
+ * 1990), F = k x (1 + 3 (1 - e^2) / 4 v / v_in), v_in the closing speed the
+ * contact began at and e the surface's restitution: it rises from zero with
+ * the depth, and a blow at v_in gives back e of it. A wire leg's wheel is
+ * capped at its fold (below); a wheel with no part keeps the plant's.
+ */
+static long long g_skid_step[SIM_WHEELS_MAX];
+static double g_skid_vin[SIM_WHEELS_MAX];
+
+static void skid_clear(void) {
+  for (int w = 0; w < SIM_WHEELS_MAX; w += 1) {
+    g_skid_step[w] = -1000000;
+    g_skid_vin[w] = 0.0;
+  }
+}
+
+static double skid_force(const SimState *s, int w, const PartDef *d, double pen, double vn) {
+  const double k = series_k(d->k, SURF[g_ground_mat].k);
+  if (g_skid_step[w] != s->step_index - 1 && g_skid_step[w] != s->step_index) {
+    g_skid_vin[w] = -vn > SPRING_GOING ? -vn : SPRING_GOING;
+  }
+  g_skid_step[w] = s->step_index;
+  const double e = SURF[g_ground_mat].e;
+  return k * pen * (1.0 + 0.75 * (1.0 - e * e) * -vn / g_skid_vin[w]);
+}
+
 double crash_wheel_force(const SimState *s, int w, const double r[3], const double n[3], double pen, double vn) {
   const WheelParams *wp = &PLANT.wheel[w];
   const Table *t = tab();
   const int i = t->wheel_part[w];
-  if (i < 0 || !attached(i) || !wire_leg(&t->p[i])) {
+  if (i >= 0 && attached(i) && !wire_leg(&t->p[i])) {
+    return skid_force(s, w, &t->p[i], pen, vn);
+  }
+  if (i < 0 || !attached(i)) {
     return wp->k * pen - wp->c * vn;
   }
   PartState *p = &PS[i];
@@ -1719,6 +1761,17 @@ static double g_sever_fs = 0.0, g_sever_rho = 0.0, g_sever_m = 0.0;
 /* The chain from part i to the root, met at the attributed point: its
  * weakest joint (-1 for none), the force at the point that joint holds, its
  * moment there, and the chain's bending compliance at the point. */
+/* A joint's moment limit about the body axis u (unit): m_max every way, or
+ * for a panel stronger in its own plane (m_max_z, crash_parts.h) the
+ * ellipsoid through both, 1 / |(ux, uy) / m_max, uz / m_max_z|. */
+static double joint_m_lim(const PartDef *d, const double u[3]) {
+  if (!(d->m_max_z > 0.0)) {
+    return d->m_max;
+  }
+  const double a = u[0] / d->m_max, b = u[1] / d->m_max, c = u[2] / d->m_max_z;
+  return 1.0 / sim_sqrt(a * a + b * b + c * c);
+}
+
 static int chain_hold(const Table *t, int i, double *f_lim_out, double *m_at_out, double *compliance_out) {
   const double *b = g_att_b;
   const double *nb = g_att_nb;
@@ -1733,6 +1786,10 @@ static int chain_hold(const Table *t, int i, double *f_lim_out, double *m_at_out
     cross(e, nb, c);
     const double a = norm(c);
     const double st = PS[j].strength;
+    /* The spar's limit every way, in its own plane too: a solid met at a
+     * point crushes its way through the slab to the spar, which is then
+     * what holds (a panel's own plane is its slab's only under a load
+     * spread along it, joint_m_lim). */
     double f = d->f_max * st;
     if (a > 1.0e-6 && d->m_max * st / a < f) {
       f = d->m_max * st / a;
@@ -2497,8 +2554,22 @@ SIM_EXPORT int sim_crash_debug(double *out, int max) {
 
 /* The craft's rigid body response to the batch's contact loads F (forces,
  * or impulses for the momentum they carry), body frame, each scaled by
- * sc, over the mass m still on. */
-static void craft_accel(const double F[][3], const double *sc, double m, double acc[3], double alp[3]) {
+ * sc, over the mass m still on, and the pull of the joints that let go on
+ * inertia alone in this batch (below), their forces times ps.
+ *
+ * A JOINT THAT LETS GO HELD UNTIL IT DID. A part torn off by the craft's
+ * deceleration, not by a contact on it, was pulled on by its joint up to
+ * the joint's limit, its load over rho, and that pull is on the rest of the
+ * craft in the same batch. Judged again with the part simply gone, the same
+ * contacts stopped a lighter craft harder, so every other part saw more
+ * than before the first let go: a Skyhunter's pack, torn out in a stall,
+ * put its 0.5 kg of deceleration onto the rest of a 2.1 kg craft and broke
+ * the canopy in the same step. */
+#define PULLS_MAX BREAKS_MAX
+static double g_pull_f[PULLS_MAX][3], g_pull_at[PULLS_MAX][3];
+static int g_npull = 0;
+
+static void craft_accel(const double F[][3], const double *sc, double m, double ps, double acc[3], double alp[3]) {
   double Ft[3] = { 0.0, 0.0, 0.0 }, tau[3] = { 0.0, 0.0, 0.0 };
   for (int h = 0; h < g_nh; h += 1) {
     const double f[3] = { sc[h] * F[h][0], sc[h] * F[h][1], sc[h] * F[h][2] };
@@ -2509,10 +2580,24 @@ static void craft_accel(const double F[][3], const double *sc, double m, double 
       tau[a] += c[a];
     }
   }
+  for (int k = 0; k < g_npull; k += 1) {
+    const double f[3] = { ps * g_pull_f[k][0], ps * g_pull_f[k][1], ps * g_pull_f[k][2] };
+    double c[3];
+    cross(g_pull_at[k], f, c);
+    for (int a = 0; a < 3; a += 1) {
+      Ft[a] += f[a];
+      tau[a] += c[a];
+    }
+  }
   for (int a = 0; a < 3; a += 1) {
     acc[a] = Ft[a] / m;
     alp[a] = tau[a] / PLANT.inertia[a];
   }
+}
+
+/* A part whose crush is its parent's foam behind it, not its own. */
+static int nose_crush(const PartDef *d) {
+  return d->crush_s > 0.0 && d->mat != SIM_MAT_EPO && d->mat != SIM_MAT_EPP;
 }
 
 /* Joint j's load, body frame: what its subtree's share of the craft's
@@ -2549,6 +2634,12 @@ static int joint_load(const Table *t, int j, const double F[][3], const double *
   }
   for (int h = 0; h < g_nh; h += 1) {
     if (!(t->sub[j] & (1u << H[h].part))) {
+      continue;
+    }
+    /* A tractor's motor crushing the nose behind it (NOSE_CRUSH) bears on
+     * the foam round it: the plateau is the nose's, carried into the
+     * fuselage, not through the motor's four screws. */
+    if (H[h].crush && H[h].part == j && nose_crush(&t->p[j])) {
       continue;
     }
     if (sc[h] > 0.0) {
@@ -2594,6 +2685,48 @@ static void seat_load(const Table *t, int j, const double Fj[3], const double Mj
   }
   *fm_out = fm;
   *mm_out = mm;
+}
+
+/*
+ * A PART IN A BAY. A foam plane's pack sits in a bay in the fuselage and its
+ * hatch in a recess, and a crash's deceleration presses them into its floor
+ * and its walls, not against their hook and loop or magnets: judged as a
+ * part hung on its strap, a Skyhunter's pack was torn off at 6.4 times the
+ * strap's 144 N in a stall it met the grass flat in, pushed forward against
+ * the bay's front wall. A part with a bay (crash_parts.h, IN_BAY) is judged
+ * by what holds it each way: pulled out through the opening, its own force
+ * limit; pushed against a wall or the floor, the parent's foam crush plateau
+ * over the part's face on that side, past which it crushes its way through.
+ * The three are one load ratio, |(F_a / limit_a)|. The walls take the
+ * moments. A parent that does not crush (the Bramor's composite, the
+ * Bombshell's balsa) gives no wall, and the part is judged on its strap.
+ */
+static double bay_wall(const Table *t, int j) {
+  const PartDef *d = &t->p[j];
+  if (!(d->bay[0] != 0.0 || d->bay[1] != 0.0 || d->bay[2] != 0.0)) {
+    return 0.0;
+  }
+  return t->p[d->parent].crush_s;
+}
+
+static double bay_load(const Table *t, int j, const double Fj[3], double wall, double st) {
+  const PartDef *d = &t->p[j];
+  const double sx = t->hi[j][0] - t->lo[j][0];
+  const double sy = t->hi[j][1] - t->lo[j][1];
+  const double sz = t->hi[j][2] - t->lo[j][2];
+  const double face[3] = { sy * sz, sx * sz, sx * sy };
+  double r2 = 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    /* The joint's force on the part: along the way out it is the floor
+     * pushing, against it the strap pulling back in. */
+    double lim = wall * face[a];
+    if (d->bay[a] != 0.0 && Fj[a] * d->bay[a] < 0.0) {
+      lim = d->f_max * st;
+    }
+    const double r = Fj[a] / lim;
+    r2 += r * r;
+  }
+  return sim_sqrt(r2);
 }
 
 static void judge(SimState *s) {
@@ -2824,6 +2957,8 @@ static void judge(SimState *s) {
     nbrk += 1;
     gone |= t->sub[j];
   }
+  g_npull = 0;
+  double F0[SIM_PARTS_MAX][3];
   double rho0[SIM_PARTS_MAX];
   double M0[SIM_PARTS_MAX][3];
   for (int j = 0; j < n; j += 1) {
@@ -2845,8 +2980,8 @@ static void judge(SimState *s) {
       break;
     }
     double acc[3], alp[3], accJ[3], alpJ[3];
-    craft_accel(Fb, sc, m, acc, alp);
-    craft_accel(Jb, sc, m, accJ, alpJ);
+    craft_accel(Fb, sc, m, 1.0, acc, alp);
+    craft_accel(Jb, sc, m, g_batch_dt, accJ, alpJ);
     /* Two kinds of joint: those a contact's force goes through on its way
      * to the root, and those that only carry their parts' share of the
      * craft's deceleration. The first kind fails first: until the joints
@@ -2900,18 +3035,51 @@ static void judge(SimState *s) {
       }
       const double st = PS[j].strength;
       double fm, mm;
+      const double wall = bay_wall(t, j);
+      if (wall > 0.0) {
+        /* In a bay only the pull out through its opening is the strap's or
+         * the magnets'; every other push bears on a wall, which holds until
+         * the part crushes through it, and the walls take the moments. */
+        fm = bay_load(t, j, Fj, wall, st);
+        mm = 0.0;
+        rho0[j] = fm;
+        for (int a = 0; a < 3; a += 1) F0[j][a] = Fj[a];
+        for (int a = 0; a < 3; a += 1) M0[j][a] = 0.0;
+        if (fm > best_rho) {
+          best_rho = fm;
+          best = j;
+          best_F = norm(Fj);
+          best_M = 0.0;
+        }
+        if (path && fm > bp_rho) {
+          bp_rho = fm;
+          best_p = j;
+          bp_F = norm(Fj);
+          bp_M = 0.0;
+        }
+        continue;
+      }
       seat_load(t, j, Fj, Mj, &fm, &mm);
       if (g_blow[j] > mm) {
         /* A blade's own blow at its root, about its disc's axis. */
         mm = g_blow[j];
         path = 1;
       }
-      double rho = mm / (dj->m_max * st);
+      /* The moment against the limit about its own axis: a panel bent in
+       * its own plane holds its chord's depth, not its spar's. */
+      double m_lim = dj->m_max;
+      const double ml = norm(Mj);
+      if (dj->m_max_z > 0.0 && ml > 0.0) {
+        const double u[3] = { Mj[0] / ml, Mj[1] / ml, Mj[2] / ml };
+        m_lim = joint_m_lim(dj, u);
+      }
+      double rho = mm / (m_lim * st);
       if (fm / (dj->f_max * st) > rho) {
         rho = fm / (dj->f_max * st);
       }
       /* The last pass's, once the load path has given what it will. */
       rho0[j] = rho;
+      for (int a = 0; a < 3; a += 1) F0[j][a] = Fj[a];
       for (int a = 0; a < 3; a += 1) M0[j][a] = Mj[a];
       if (rho > best_rho) {
         best_rho = rho;
@@ -2950,6 +3118,14 @@ static void judge(SimState *s) {
     brk[nbrk].forced = 0;
     nbrk += 1;
     gone |= t->sub[best];
+    if (!side && g_npull < PULLS_MAX) {
+      /* It pulled on the rest, as the rest held it, up to its limit. */
+      live_pt(t->p[best].joint, g_pull_at[g_npull]);
+      for (int a = 0; a < 3; a += 1) {
+        g_pull_f[g_npull][a] = -F0[best][a] / best_rho;
+      }
+      g_npull += 1;
+    }
   }
   /* The rings go on from the last pass's state. */
   for (int j = 1; j < n; j += 1) {

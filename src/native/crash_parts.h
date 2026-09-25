@@ -50,7 +50,13 @@ typedef struct {
   double mass;    /* kg; ignored for the root */
   double joint[3];
   double m_max;   /* the joint's bending moment limit, N m */
+  double m_max_z; /* a panel's limit about body z, in its own plane (its
+                   * chord is its depth that way), N m; 0 for a part as
+                   * strong every way (crash.c, joint_m_lim) */
   double f_max;   /* the joint's force limit, N */
+  double bay[3];  /* a part seated in a bay or a recess of its parent: the
+                   * way out, body frame, unit; zero for none (crash.c, A
+                   * PART IN A BAY) */
   double k;       /* contact stiffness at its surface, N/m */
   double crush_s; /* crush plateau stress, Pa, 0 for none */
   double crush_a; /* crush area, m^2 */
@@ -140,6 +146,30 @@ typedef struct {
  * softer end, so this bounds the frequency from above as the spar's does). */
 #define SHELL_EOS (70.0 / 0.6)
 #define SHELL_SECTION(c) .sect_c = (c), .sect_eos = SHELL_EOS
+/* The same box bent in its own plane: its top and bottom skins, which are
+ * its flanges flapwise (Z about s c t for a skin s thick over the chord c
+ * at the depth t), are its webs fore and aft (Z about 2 s c^2 / 6), so it
+ * holds c / (3 t) times its flapwise limit. */
+#define SHELL_IN(m, c, t) ((m) * (c) / (3.0 * (t)))
+
+/* A PANEL IN ITS OWN PLANE. A wing panel's limit is its flapwise one, the
+ * spar's; bent in its own plane, fore and aft (a tip caught in the grass, a
+ * belly stopped under a panel still going), its depth is its chord and the
+ * foam slab carries it: sigma t c^2 / 6 over the root's chord c and depth t
+ * as drawn. The slab cracks first (EPO at 2.4 percent strain, 0.465 MPa over
+ * bead foam's 19.7 MPa, where the carbon spar at the section's middle is
+ * still at a tenth of its own), so this bounds it from below and the spar's
+ * share is left out. EPO's tensile strength is the low end of NOVA's ARCEL
+ * 730 sheet, 0.465 to 0.58 MPa over 30 to 35 g/L; EPP's is JSP ARPRO's 55.5
+ * psi at 30 g/L, 0.38 MPa (docs/CRASH-STAGE1.md, round 3). */
+#define EPO_TENSILE 0.465e6
+#define EPP_TENSILE 0.38e6
+#define SLAB_M(sigma, c, t) ((sigma) * (t) * (c) * (c) / 6.0)
+
+/* A foam plane's pack in its bay and its hatch in its recess, both open
+ * upward: only a pull out through the top is its hook and loop's or its
+ * magnets'. */
+#define IN_BAY .bay = { 0.0, 0.0, 1.0 }
 
 /* A tractor's motor sits in the foam nose on its firewall: struck head on,
  * it is the nose behind it that crushes, over the nose's section. */
@@ -281,12 +311,12 @@ static const PartDef PARTS_WING1000[] = {
     BOX(-0.10, 0.22, -0.06, 0.06, -0.035, 0.035) },
   /* 1, 2 the panels, swept, the rod joiner's 21 N m. */
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPP, .motor = -1, .wheel = -1,
-    .mass = 0.09, .joint = { 0.0, 0.06, 0.0 }, CARBON_SPAR(0.003), .m_max = 21.0, .f_max = 400.0, .k = 3000.0,
+    .mass = 0.09, .joint = { 0.0, 0.06, 0.0 }, CARBON_SPAR(0.003), .m_max = 21.0, .m_max_z = SLAB_M(EPP_TENSILE, 0.26, 0.04), .f_max = 400.0, .k = 3000.0,
     .crush_s = EPP_CRUSH, .crush_a = 0.0012, .crush_d = 0.10,
     .npts = 8, .pts = { { 0.12, 0.06, -0.02 }, { -0.14, 0.06, -0.02 }, { -0.06, 0.50, -0.01 }, { -0.22, 0.50, -0.01 },
                         { 0.12, 0.06, 0.02 }, { -0.14, 0.06, 0.02 }, { -0.06, 0.50, 0.01 }, { -0.22, 0.50, 0.01 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPP, .motor = -1, .wheel = -1,
-    .mass = 0.09, .joint = { 0.0, -0.06, 0.0 }, CARBON_SPAR(0.003), .m_max = 21.0, .f_max = 400.0, .k = 3000.0,
+    .mass = 0.09, .joint = { 0.0, -0.06, 0.0 }, CARBON_SPAR(0.003), .m_max = 21.0, .m_max_z = SLAB_M(EPP_TENSILE, 0.26, 0.04), .f_max = 400.0, .k = 3000.0,
     .crush_s = EPP_CRUSH, .crush_a = 0.0012, .crush_d = 0.10,
     .npts = 8, .pts = { { 0.12, -0.06, -0.02 }, { -0.14, -0.06, -0.02 }, { -0.06, -0.50, -0.01 }, { -0.22, -0.50, -0.01 },
                         { 0.12, -0.06, 0.02 }, { -0.14, -0.06, 0.02 }, { -0.06, -0.50, 0.01 }, { -0.22, -0.50, 0.01 } } },
@@ -304,7 +334,7 @@ static const PartDef PARTS_WING1000[] = {
   { .kind = SIM_PART_PROP, .parent = 5, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = -1, .shape = SH_DISCX,
     .mass = 0.008, .joint = { -0.125, 0.0, 0.0 }, .m_max = 3.0, .f_max = 200.0, .k = 1500.0,
     .npts = 8, .pts = { { -0.13, 0.0, 0.0 }, { 0.0762, 0.0, 0.0 } } },
-  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.20, .joint = { 0.06, 0.0, -0.02 }, .m_max = 4.0, .f_max = VELCRO_12, .k = 3.0e5,
     BOX(0.0, 0.12, -0.02, 0.02, -0.02, 0.015) },
   { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
@@ -327,12 +357,12 @@ static const PartDef PARTS_SKY1800[] = {
     BOX(-0.235, 0.385, -0.068, 0.068, -0.1195, 0.060) },
   /* 1, 2 the panels on two spars, 60 N m at the root. */
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.225, .joint = { -0.04, 0.068, 0.045 }, CARBON_SPAR(0.004), .m_max = 60.0, .f_max = 600.0, .k = 3000.0,
+    .mass = 0.225, .joint = { -0.04, 0.068, 0.045 }, CARBON_SPAR(0.004), .m_max = 60.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.2447, 0.030), .f_max = 600.0, .k = 3000.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.0015, .crush_d = 0.12,
     .npts = 8, .pts = { { 0.0817, 0.068, 0.030 }, { -0.163, 0.068, 0.030 }, { 0.0817, 0.90, 0.070 }, { -0.088, 0.90, 0.070 },
                         { 0.0817, 0.068, 0.060 }, { -0.163, 0.068, 0.060 }, { 0.0817, 0.90, 0.098 }, { -0.088, 0.90, 0.098 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.225, .joint = { -0.04, -0.068, 0.045 }, CARBON_SPAR(0.004), .m_max = 60.0, .f_max = 600.0, .k = 3000.0,
+    .mass = 0.225, .joint = { -0.04, -0.068, 0.045 }, CARBON_SPAR(0.004), .m_max = 60.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.2447, 0.030), .f_max = 600.0, .k = 3000.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.0015, .crush_d = 0.12,
     .npts = 8, .pts = { { 0.0817, -0.068, 0.030 }, { -0.163, -0.068, 0.030 }, { 0.0817, -0.90, 0.070 }, { -0.088, -0.90, 0.070 },
                         { 0.0817, -0.068, 0.060 }, { -0.163, -0.068, 0.060 }, { 0.0817, -0.90, 0.098 }, { -0.088, -0.90, 0.098 } } },
@@ -376,10 +406,10 @@ static const PartDef PARTS_SKY1800[] = {
     .mass = 0.020, .joint = { -0.262, 0.0, 0.032 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
     .npts = 8, .pts = { { -0.268, 0.0, 0.032 }, { 0.1397, 0.0, 0.0 } } },
   /* 14 a 4S 5000 in the bay on hook and loop, 15 the hatch on magnets. */
-  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.50, .joint = { 0.10, 0.0, -0.09 }, .m_max = 8.0, .f_max = 1.5 * VELCRO_12, .k = 3.0e5,
     BOX(0.02, 0.18, -0.025, 0.025, -0.09, -0.04) },
-  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.030, .joint = { 0.21, 0.0, 0.043 }, .m_max = 1.0, .f_max = MAGNET_2, .k = 2.0e4,
     BOX(0.092, 0.325, -0.05, 0.05, 0.030, 0.060) },
   { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
@@ -419,11 +449,11 @@ static const PartDef PARTS_CUB1400[] = {
     BOX(-0.640, -0.578, -0.004, 0.004, 0.006, 0.160) },
   /* 6, 7 the panels, strut braced, 40 N m at the root. */
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.150, .joint = { -0.02, 0.048, 0.099 }, CARBON_SPAR(0.004), .m_max = 40.0, .f_max = 500.0, .k = 3000.0,
+    .mass = 0.150, .joint = { -0.02, 0.048, 0.099 }, CARBON_SPAR(0.004), .m_max = 40.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.2085, 0.036), .f_max = 500.0, .k = 3000.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.00115, .crush_d = 0.10,
     BOX(-0.1485, 0.060, 0.048, 0.70, 0.087, 0.123) },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.150, .joint = { -0.02, -0.048, 0.099 }, CARBON_SPAR(0.004), .m_max = 40.0, .f_max = 500.0, .k = 3000.0,
+    .mass = 0.150, .joint = { -0.02, -0.048, 0.099 }, CARBON_SPAR(0.004), .m_max = 40.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.2085, 0.036), .f_max = 500.0, .k = 3000.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.00115, .crush_d = 0.10,
     BOX(-0.1485, 0.060, -0.70, -0.048, 0.087, 0.123) },
   { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
@@ -440,10 +470,10 @@ static const PartDef PARTS_CUB1400[] = {
     .mass = 0.020, .joint = { 0.226, 0.0, 0.002 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
     .npts = 8, .pts = { { 0.230, 0.0, 0.002 }, { 0.1397, 0.0, 0.0 } } },
   /* 12 the 3S 2200 at 0.12 ahead on hook and loop, 13 the cabin hatch. */
-  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.190, .joint = { 0.12, 0.0, -0.054 }, .m_max = 4.0, .f_max = VELCRO_12, .k = 3.0e5,
     BOX(0.070, 0.175, -0.017, 0.017, -0.054, -0.020) },
-  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.020, .joint = { -0.02, 0.0, 0.090 }, .m_max = 0.5, .f_max = MAGNET_2, .k = 2.0e4,
     BOX(-0.10, 0.06, -0.045, 0.045, 0.080, 0.100) },
   /* 14, 15 the mains on 3.2 mm wire, 16 the tailwheel on 1.5 mm. */
@@ -497,12 +527,12 @@ static const PartDef PARTS_RADIAN2000[] = {
     BOX(-0.8315, -0.785, -0.004, 0.004, 0.095, 0.200) },
   /* 6, 7 the panels, polyhedral to 0.14 at the tips, 45 N m at the joiner. */
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.135, .joint = { -0.03, 0.042, 0.030 }, CARBON_SPAR(0.0045), .m_max = 45.0, .f_max = 400.0, .k = 2500.0,
+    .mass = 0.135, .joint = { -0.03, 0.042, 0.030 }, CARBON_SPAR(0.0045), .m_max = 45.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.200, 0.018), .f_max = 400.0, .k = 2500.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.0009, .crush_d = 0.10,
     .npts = 8, .pts = { { 0.063, 0.042, 0.021 }, { -0.137, 0.042, 0.021 }, { 0.063, 0.60, 0.050 }, { -0.137, 0.60, 0.050 },
                         { 0.063, 0.042, 0.039 }, { -0.137, 0.042, 0.039 }, { -0.030, 1.00, 0.130 }, { -0.080, 1.00, 0.140 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.135, .joint = { -0.03, -0.042, 0.030 }, CARBON_SPAR(0.0045), .m_max = 45.0, .f_max = 400.0, .k = 2500.0,
+    .mass = 0.135, .joint = { -0.03, -0.042, 0.030 }, CARBON_SPAR(0.0045), .m_max = 45.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.200, 0.018), .f_max = 400.0, .k = 2500.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.0009, .crush_d = 0.10,
     .npts = 8, .pts = { { 0.063, -0.042, 0.021 }, { -0.137, -0.042, 0.021 }, { 0.063, -0.60, 0.050 }, { -0.137, -0.60, 0.050 },
                         { 0.063, -0.042, 0.039 }, { -0.137, -0.042, 0.039 }, { -0.030, -1.00, 0.130 }, { -0.080, -1.00, 0.140 } } },
@@ -519,10 +549,10 @@ static const PartDef PARTS_RADIAN2000[] = {
   { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = -1, .shape = SH_DISCX,
     .mass = 0.020, .joint = { 0.285, 0.0, -0.008 }, .m_max = 2.0 * PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
     .npts = 8, .pts = { { 0.293, 0.0, -0.008 }, { 0.1238, 0.0, 0.0 } } },
-  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.110, .joint = { 0.12, 0.0, -0.035 }, .m_max = 3.0, .f_max = VELCRO_12, .k = 3.0e5,
     BOX(0.08, 0.17, -0.015, 0.015, -0.035, -0.005) },
-  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.015, .joint = { 0.17, 0.0, 0.05 }, .m_max = 0.5, .f_max = MAGNET_2, .k = 2.0e4,
     BOX(0.067, 0.2725, -0.040, 0.040, 0.030, 0.071) },
   { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
@@ -546,11 +576,11 @@ static const PartDef PARTS_BRAMOR2300[] = {
   { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
     .k = 2.0e6, BOX(-0.332, 0.4097, -0.30, 0.30, -0.065, 0.087) },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
-    .mass = 0.50, .joint = { -0.08, 0.30, 0.008 }, SHELL_SECTION(0.017), .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
+    .mass = 0.50, .joint = { -0.08, 0.30, 0.008 }, SHELL_SECTION(0.017), .m_max = 300.0, .m_max_z = SHELL_IN(300.0, 0.26, 0.034), .f_max = 2500.0, .k = 1.0e4,
     .npts = 8, .pts = { { 0.050, 0.30, -0.009 }, { -0.210, 0.30, -0.009 }, { -0.347, 1.15, 0.006 }, { -0.467, 1.15, 0.006 },
                         { 0.050, 0.30, 0.025 }, { -0.210, 0.30, 0.025 }, { -0.347, 1.15, 0.018 }, { -0.467, 1.15, 0.018 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
-    .mass = 0.50, .joint = { -0.08, -0.30, 0.008 }, SHELL_SECTION(0.017), .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
+    .mass = 0.50, .joint = { -0.08, -0.30, 0.008 }, SHELL_SECTION(0.017), .m_max = 300.0, .m_max_z = SHELL_IN(300.0, 0.26, 0.034), .f_max = 2500.0, .k = 1.0e4,
     .npts = 8, .pts = { { 0.050, -0.30, -0.009 }, { -0.210, -0.30, -0.009 }, { -0.347, -1.15, 0.006 }, { -0.467, -1.15, 0.006 },
                         { 0.050, -0.30, 0.025 }, { -0.210, -0.30, 0.025 }, { -0.347, -1.15, 0.018 }, { -0.467, -1.15, 0.018 } } },
   { .kind = SIM_PART_ELEVON, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
@@ -673,12 +703,12 @@ static const PartDef PARTS_TIMBER1500[] = {
     .mass = 0.012, .joint = { -0.650, 0.0, 0.08 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
     BOX(-0.715, -0.650, -0.005, 0.005, -0.036, 0.195) },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.200, .joint = { -0.06, 0.057, 0.080 }, CARBON_SPAR(0.005), .m_max = 58.0, .f_max = 600.0, .k = 3000.0,
+    .mass = 0.200, .joint = { -0.06, 0.057, 0.080 }, CARBON_SPAR(0.005), .m_max = 58.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.240, 0.034), .f_max = 600.0, .k = 3000.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.0017, .crush_d = 0.12,
     .npts = 8, .pts = { { 0.060, 0.057, 0.063 }, { -0.180, 0.057, 0.063 }, { 0.060, 0.7775, 0.023 }, { -0.180, 0.7775, 0.023 },
                         { 0.076, 0.057, 0.097 }, { -0.180, 0.057, 0.097 }, { 0.076, 0.70, 0.097 }, { -0.180, 0.70, 0.097 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.200, .joint = { -0.06, -0.057, 0.080 }, CARBON_SPAR(0.005), .m_max = 58.0, .f_max = 600.0, .k = 3000.0,
+    .mass = 0.200, .joint = { -0.06, -0.057, 0.080 }, CARBON_SPAR(0.005), .m_max = 58.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.240, 0.034), .f_max = 600.0, .k = 3000.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.0017, .crush_d = 0.12,
     .npts = 8, .pts = { { 0.060, -0.057, 0.063 }, { -0.180, -0.057, 0.063 }, { 0.060, -0.7775, 0.023 }, { -0.180, -0.7775, 0.023 },
                         { 0.076, -0.057, 0.097 }, { -0.180, -0.057, 0.097 }, { 0.076, -0.70, 0.097 }, { -0.180, -0.70, 0.097 } } },
@@ -694,10 +724,10 @@ static const PartDef PARTS_TIMBER1500[] = {
   { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = 3, .shape = SH_DISCX,
     .mass = 0.025, .joint = { 0.285, 0.0, 0.0 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
     .npts = 8, .pts = { { 0.290, 0.0, 0.0 }, { 0.1397, 0.0, 0.0 } } },
-  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.330, .joint = { 0.15, 0.0, -0.050 }, .m_max = 6.0, .f_max = 1.5 * VELCRO_12, .k = 3.0e5,
     BOX(0.090, 0.210, -0.022, 0.022, -0.050, -0.010) },
-  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1, IN_BAY,
     .mass = 0.030, .joint = { -0.05, 0.0, 0.065 }, .m_max = 0.8, .f_max = MAGNET_2, .k = 2.0e4,
     BOX(-0.18, 0.063, -0.050, 0.050, 0.055, 0.074) },
   /* 14, 15 the mains on 4 mm wire, 16 the tailwheel on 1.5 mm. */
@@ -782,15 +812,19 @@ static const PartDef PARTS_BOMBSHELL1118[] = {
     BOX(-0.128, 0.063, -0.04, 0.04, 0.062, 0.084) },
   /* 7, 8 the panels on the centre section, the spar 3/16 in square, the
    * leading edge 1/4 in square and the trailing edge 1 x 1/8 in: 0.37,
-   * 0.87 and 0.87 N m at balsa's rupture, 2.1 N m together. */
+   * 0.87 and 0.87 N m at balsa's rupture, 2.1 N m together. Fore and aft
+   * the trailing edge's plank is on edge, 6.9 N m, 8.1 together: each
+   * stick about its own axis, a lower bound, the ribs' frame left out. */
   { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
     .mass = 0.045, .joint = { -0.03, 0.04, 0.070 },
-    .m_max = BALSA_M(0.0048, 0.0048) + BALSA_M(0.0064, 0.0064) + BALSA_M(0.0254, 0.0032), .f_max = 80.0, .k = 2000.0,
+    .m_max = BALSA_M(0.0048, 0.0048) + BALSA_M(0.0064, 0.0064) + BALSA_M(0.0254, 0.0032),
+    .m_max_z = BALSA_M(0.0048, 0.0048) + BALSA_M(0.0064, 0.0064) + BALSA_M(0.0032, 0.0254), .f_max = 80.0, .k = 2000.0,
     .npts = 8, .pts = { { 0.063, 0.04, 0.063 }, { -0.128, 0.04, 0.058 }, { 0.063, 0.379, 0.094 }, { -0.128, 0.379, 0.090 },
                         { 0.063, 0.04, 0.085 }, { -0.128, 0.04, 0.075 }, { 0.030, 0.559, 0.175 }, { -0.090, 0.559, 0.170 } } },
   { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
     .mass = 0.045, .joint = { -0.03, -0.04, 0.070 },
-    .m_max = BALSA_M(0.0048, 0.0048) + BALSA_M(0.0064, 0.0064) + BALSA_M(0.0254, 0.0032), .f_max = 80.0, .k = 2000.0,
+    .m_max = BALSA_M(0.0048, 0.0048) + BALSA_M(0.0064, 0.0064) + BALSA_M(0.0254, 0.0032),
+    .m_max_z = BALSA_M(0.0048, 0.0048) + BALSA_M(0.0064, 0.0064) + BALSA_M(0.0032, 0.0254), .f_max = 80.0, .k = 2000.0,
     .npts = 8, .pts = { { 0.063, -0.04, 0.063 }, { -0.128, -0.04, 0.058 }, { 0.063, -0.379, 0.094 }, { -0.128, -0.379, 0.090 },
                         { 0.063, -0.04, 0.085 }, { -0.128, -0.04, 0.075 }, { 0.030, -0.559, 0.175 }, { -0.090, -0.559, 0.170 } } },
   /* 9 the Cox Texaco .049, 45 g with its tank, on two #2 screws through
