@@ -1269,6 +1269,10 @@ typedef struct {
   int soft;         /* its impulses were the ground's spring's */
   double fc;        /* the plateau force it crushed at, N */
   int ground;       /* the ground plane's contact */
+  int sever;        /* the joint the blow broke on its way in, + 1, or 0 */
+  double fs;        /* the force that joint held until it let go, N */
+  double srho;      /* the blow's force over it */
+  double sm;        /* and the joint's moment at it, N m */
 } Hit;
 
 static Hit H[HITS_MAX];
@@ -1348,6 +1352,10 @@ static Hit *hit_get(int part, int force) {
   h->soft = 0;
   h->fc = 0.0;
   h->ground = g_surf_ground;
+  h->sever = 0;
+  h->fs = 0.0;
+  h->srho = 0.0;
+  h->sm = 0.0;
   for (int a = 0; a < 3; a += 1) {
     h->J[a] = 0.0;
     h->bsum[a] = 0.0;
@@ -1624,10 +1632,103 @@ static void fold_pre(const Table *t, int i, double vin, double kn, double *e_use
   g_soft_now = 1;
 }
 
+/*
+ * A STRUCK PART TAKES THE BLOW. The rest of the craft is reached only
+ * through the joints between the struck part and the root, and it can be
+ * pushed no harder than the weakest of them holds. A wingtip that meets a
+ * pole at cruise loads the panel's root with the contact force times its
+ * lever; once that is past the root's limit the panel lets go, and what the
+ * fuselage took was the root's load for as long as it rose to the limit,
+ * not the pole's stopping of the whole rigid craft at the tip.
+ *
+ * The weakest joint on the chain is the one with the least force at the
+ * contact point: F_lim = min(F_max, M_max / a) for each, a the contact's
+ * lever about it across the normal. The blow on the chain is the contact's
+ * peak through the part's spring, the surface's and the chain's bending in
+ * series, v sqrt(k m_eff) (m_eff the point's own effective mass), or the
+ * part's crush plateau if it crushes first. Past F_lim the joint fails in
+ * this contact: the force at the point rose through that series spring to
+ * F_lim and no further, so the craft is given F_lim^2 / (2 k v), the
+ * impulse of a linear ramp to F_lim at closing speed v, and no bounce; the
+ * judge breaks the joint, and the part and what it carries leave with the
+ * craft's motion to meet the obstacle as a free body.
+ *
+ * The chain's bending is each ringing joint's cantilever at the point,
+ * 3 E I / a^3, E I the one its ring is built on (table_finish): a foam
+ * panel on its spar is far softer across its span than its skin is under
+ * the pole, and that is what makes the ramp long enough to carry anything.
+ * Only an obstacle: the ground's contact is its spring, which already
+ * shares the load along the airframe (crash_contact_pre).
+ */
+static int g_sever_now = 0;
+static int g_sever_j = -1;
+static double g_sever_fs = 0.0, g_sever_rho = 0.0, g_sever_m = 0.0;
+
+static int sever_pre(const Table *t, int i, double vin, double kn, double k, double *e_used, double *jn_cap) {
+  if (!(vin > SPRING_GOING) || !(kn > 0.0)) {
+    return 0;
+  }
+  const double *b = g_att_b;
+  const double *nb = g_att_nb;
+  int weak = -1;
+  double f_lim = 1.0e30, m_at = 0.0, compliance = 0.0;
+  for (int j = i; j > 0; j = t->p[j].parent) {
+    const PartDef *d = &t->p[j];
+    double pj[3];
+    live_pt(d->joint, pj);
+    const double e[3] = { b[0] - pj[0], b[1] - pj[1], b[2] - pj[2] };
+    double c[3];
+    cross(e, nb, c);
+    const double a = norm(c);
+    const double st = PS[j].strength;
+    double f = d->f_max * st;
+    if (a > 1.0e-6 && d->m_max * st / a < f) {
+      f = d->m_max * st / a;
+    }
+    if (f < f_lim) {
+      f_lim = f;
+      weak = j;
+      m_at = f * a;
+    }
+    if (t->w1[j] > 0.0 && a > 1.0e-6) {
+      const double ei = d->sect_eos * d->m_max * d->sect_c;
+      compliance += a * a * a / (3.0 * ei);
+    }
+  }
+  if (weak < 0) {
+    return 0;
+  }
+  const double k_path = 1.0 / (1.0 / k + compliance);
+  double f_drive = vin * sim_sqrt(k_path / kn);
+  const PartDef *d = &t->p[i];
+  if (d->crush_s > 0.0 && PS[i].crush < d->crush_d) {
+    const double fc = d->crush_s * crush_area(t, i, nb, 0);
+    if (fc < f_drive) {
+      f_drive = fc;
+    }
+  }
+  if (!(f_drive > f_lim)) {
+    return 0;
+  }
+  double cap = f_lim * f_lim / (2.0 * k_path * vin);
+  if (cap > f_lim * g_batch_dt) {
+    cap = f_lim * g_batch_dt;
+  }
+  *jn_cap = cap;
+  *e_used = 0.0;
+  g_sever_now = 1;
+  g_sever_j = weak;
+  g_sever_fs = f_lim;
+  g_sever_rho = f_drive / f_lim;
+  g_sever_m = m_at;
+  return 1;
+}
+
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
                        double vin, double kn, double *e_used, double *jn_cap) {
   g_capped_now = 0;
   g_soft_now = 0;
+  g_sever_now = 0;
   if (!SIM_DAMAGE) {
     return;
   }
@@ -1650,6 +1751,9 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
     return;
   }
   const double k = series_k(d->k, SURF[g_surf].k);
+  if (!g_surf_ground && i > 0 && attached(i) && sever_pre(t, i, vin, kn, k, e_used, jn_cap)) {
+    return;
+  }
   if (d->crush_s > 0.0 && p->crush < d->crush_d) {
     /* Against the ground the whole craft is driven into the part, which is
      * the momentum the batch's merged impulse shows; against an obstacle it
@@ -1828,6 +1932,12 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
   }
   if (g_surf_ground && g_from_step) {
     g_ground_jn += jn;
+  }
+  if (g_sever_now && g_sever_rho > h->srho) {
+    h->sever = g_sever_j + 1;
+    h->fs = g_sever_fs;
+    h->srho = g_sever_rho;
+    h->sm = g_sever_m;
   }
   if (g_capped_now) {
     g_crush_used[g_att_part] += jn;
@@ -2340,7 +2450,10 @@ static void judge(SimState *s) {
       const double k = series_k(d->k, SURF[x->surf].k);
       double fp = sim_sqrt(k * x->jn * x->vin);
       const double en = 0.5 * x->jn * x->vin;
-      if (x->soft) {
+      if (x->sever) {
+        /* Its joint let go at its limit: that is what reached the rest. */
+        fp = x->fs;
+      } else if (x->soft) {
         /* The spring's force is the force: what the solver gave it. */
         fp = x->jn / g_batch_dt;
       } else if (x->crush && attached(i)) {
@@ -2511,6 +2624,23 @@ static void judge(SimState *s) {
   const double adv = g_from_step ? SIM_DT : 0.0;
   double ring[SIM_PARTS_MAX][12];
   unsigned int gone = 0;
+  /* A joint the blow broke on its way in (sever_pre) goes first: the
+   * craft was only given what it held, so the rest is judged without it
+   * and nothing is handed back. */
+  for (int h = 0; h < g_nh && nbrk < BREAKS_MAX; h += 1) {
+    const int j = H[h].sever - 1;
+    if (j <= 0 || !attached(j) || (gone & (1u << j))) {
+      continue;
+    }
+    brk[nbrk].part = j;
+    brk[nbrk].rho = H[h].srho;
+    brk[nbrk].F = H[h].fs;
+    brk[nbrk].M = H[h].sm;
+    brk[nbrk].contact_side = 1;
+    brk[nbrk].forced = 1;
+    nbrk += 1;
+    gone |= t->sub[j];
+  }
   double rho0[SIM_PARTS_MAX];
   double M0[SIM_PARTS_MAX][3];
   for (int j = 0; j < n; j += 1) {
