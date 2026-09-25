@@ -357,30 +357,70 @@ function takeoffTailUp(mu) {
 }
 
 /*
- * Past the stall: the arms the plant takes the linear moment back through,
- * the CG behind the wing's aerodynamic centre, and the flat plate's centre
- * of pressure, 0.40 of the mean chord (Hoerner, Fluid Dynamic Lift, ch. 3:
- * a plate's moves from the quarter chord to about 0.4 by 20 to 40 deg),
- * behind the CG. Then full up elevator: the angle where the moment is
- * zero, and the steady descent there, a glide at the plate's own lift to
- * drag, which is the mush.
+ * Past the stall, the plant's model since crash round 4 (docs/STALL-
+ * STAGE1.md, src/native/plant_wing.c), at a chord Reynolds number over 5e4
+ * where all of it is taken. Short of the stall angle the lift and the
+ * moment are the plant's earlier ones: the blend to the flat plate, and the
+ * linear moment taken back through the blend at the CG's arm behind the
+ * wing's aerodynamic centre and the plate's centre of pressure, 0.40 of the
+ * mean chord (Hoerner, Fluid Dynamic Lift, ch. 3), behind the CG. Past it,
+ * brought in over a blend: the wing holds the peak lift the plant's own
+ * curve reaches (the UIUC sections hold theirs flat), for stall_top, then
+ * falls to stall_k of it over two blends and decays to the plate as
+ * Viterna and Corrigan's A2 cos^2 a / sin a; its normal force acts at the
+ * aerodynamic centre while it holds its lift and at the centre of pressure
+ * as it falls; and the tail lifts as the downwash goes with the wing's
+ * lift, stall_dw per unit of lift lost. The section's numbers are
+ * scripts/stall-derive.js's for this aircraft: the Clark-Y class at 8e4,
+ * held 3.7 deg and falling to 0.72. Then full up elevator: the angle where
+ * the moment is zero, and the steady descent there, which is the mush.
  */
 const armAc = (xCG - xAcWing) / c;
 const armCp = (wingLE + macLE + 0.40 * mac - xCG) / c;
-function cmAt(alpha, de) {
+const stallTop = 3.7 / DEG, stallK = 0.72;
+const stallDw = eta * VH * at * deda / aw;
+const smooth = (a0, a1, x) => {
+  const t = Math.min(1, Math.max(0, (x - a0) / (a1 - a0)));
+  return t * t * (3 - 2 * t);
+};
+function stalledAt(alpha, de) {
   const aStall = CLmax / CLa;
   const x = Math.abs(alpha);
-  const t = Math.min(1, Math.max(0, (x - (aStall - stallBlend)) / (2 * stallBlend)));
-  const sigma = t * t * (3 - 2 * t);
+  const sigma = smooth(aStall - stallBlend, aStall + stallBlend, x);
   const clLin = CLa * alpha + CLde * de;
-  const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
-  return Cm0 + Cma * alpha + Cmde * de - sigma * (armAc * clLin + armCp * clFlat);
+  const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const clOld = (1 - sigma) * clLin + sigma * plate;
+  const cmLow = -sigma * (armAc * clLin + armCp * plate);
+  const past = smooth(aStall, aStall + stallBlend, x);
+  if (!(sigma > 0)) return { CL: clOld, cmStall: cmLow };
+  let hold = 0;
+  for (let i = 0; i <= 16; i += 1) {
+    const ai = aStall - stallBlend + stallBlend * 0.125 * i;
+    const si = smooth(aStall - stallBlend, aStall + stallBlend, ai);
+    hold = Math.max(hold, (1 - si) * (CLa * ai + CLde * de) + si * 2 * Math.sin(ai) * Math.cos(ai));
+  }
+  const a0 = aStall + stallTop, a1 = a0 + 2 * stallBlend;
+  const fall = smooth(a0, a1, x);
+  let viterna = 0;
+  if (Math.cos(alpha) > 0 && Math.abs(Math.sin(alpha)) > 0.05) {
+    const a2 = (stallK * hold - 2 * Math.sin(a1) * Math.cos(a1)) * Math.sin(a1) / Math.cos(a1) ** 2;
+    viterna = a2 * Math.cos(alpha) ** 2 / Math.sin(alpha);
+  }
+  const sgn = alpha < 0 ? -1 : 1;
+  const clSt = (1 - fall) * sgn * hold + fall * (plate + viterna);
+  const cnSt = 2 * Math.sin(alpha) + (clSt - plate) * Math.cos(alpha);
+  const cmPost = sigma * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * clLin - stallDw * (clLin - clSt));
+  return { CL: clOld + past * (clSt - clOld), cmStall: cmLow + past * (cmPost - cmLow) };
+}
+function cmAt(alpha, de) {
+  return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
 }
 function mush(de) {
   let lo = 0.05, hi = 1.2;
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (cmAt(mid, de) > 0) lo = mid; else hi = mid; }
   const alpha = lo;
-  const { CL, CD } = coeffs(alpha);
+  const CL = stalledAt(alpha, de).CL;
+  const { CD } = coeffs(alpha);
   const V = Math.sqrt(2 * W / (rho * S * Math.hypot(CL, CD)));
   const gamma = Math.atan2(CD, CL);
   return { alphaDeg: alpha * DEG, CL, CD, V, sink: V * Math.sin(gamma), pathDeg: gamma * DEG, pitchDeg: (alpha + alphaZL - gamma) * DEG };
