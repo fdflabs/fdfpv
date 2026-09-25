@@ -58,7 +58,7 @@ import { loadSim } from '../tests/lib/simmod.js';
 import { decodeRec } from '../tests/lib/recfile.js';
 import {
   must, wingDebug, wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude,
-  bramorChutePrelude, slowstickGroundPrelude, timberRecPrelude, timberFloatRecPrelude,
+  bramorChutePrelude, slowstickGroundPrelude, timberRecPrelude, timberFloatRecPrelude, bombshellGroundPrelude,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -85,6 +85,7 @@ const T = {
   bramor: { b: 2.30, c: 0.257, cla: 4.77, clmax: 0.722, asym: 0.00389 },
   slowstick: { b: 1.176, c: 0.2776, cla: 4.58, clmax: 1.05, asym: 0.0036 },
   timber: { b: 1.555, c: 0.2322, cla: 5.25, clmax: 1.15 + 0.305, asym: 0.00431, cldf: 1.2391, cldf2: -0.6681, clmaxdf: 0.7689 },
+  bombshell: { b: 1.1176, c: 0.1905, cla: 4.991, clmax: 1.0, asym: 0.00525 },
 };
 T.bramorChute = T.bramor;
 T.timberf = T.timber;
@@ -102,6 +103,7 @@ const RECS = [
   ['slowstick', 'tests/inputs/slowstick-baseline.rec', (s) => slowstickGroundPrelude(s)],
   ['timber', 'tests/inputs/timber-baseline.rec', timberRecPrelude],
   ['timberf', 'tests/inputs/timberf-baseline.rec', timberFloatRecPrelude],
+  ['bombshell', 'tests/inputs/bombshell-baseline.rec', (s) => bombshellGroundPrelude(s)],
 ];
 
 async function rig(bytes, prelude) {

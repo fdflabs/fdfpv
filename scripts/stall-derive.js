@@ -167,6 +167,18 @@ planes.FW_BRAMOR2300 = tailless({ c: 0.257, clAlpha: 4.77, cmAlpha: -0.420 });
  * share their landplane's numbers. */
 planes.FW_TIMBER1500 = tailed({ b: 1.555, S: 0.361, c: 0.361 / 1.555, hCG: 0.060 / 0.240, Sh: 0.071, lh: 0.548, bh: 0.56 });
 planes.FW_TIMBER1500F = planes.FW_TIMBER1500;
+
+/* The Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md and scripts/bombshell-
+ * derive.js: its own stall arms, which it was built with, and the tail's
+ * share from the derivation's a_w (its polyhedral panels' cos^2 in it),
+ * a_t, V_H and DATCOM's downwash. */
+planes.FW_BOMBSHELL1118 = {
+  arm_ac: 0.0761,
+  arm_cp: 0.0703,
+  dw: 0.9 * 0.680 * 4.013 * 0.341 / 4.453,
+  asym: TE_TOLERANCE / 0.1905,
+  note: 'a_w 4.453, a_t 4.013, V_H 0.680, deps/dalpha 0.341 (DATCOM), its own arms',
+};
 planes.FW_CUB1400F = planes.FW_CUB1400;
 
 /* The four strips' chords over the mean chord, from a planform chord(eta),
@@ -211,6 +223,9 @@ const STRIPS = {
   FW_BRAMOR2300: strips(bramorChord),
   FW_SLOWSTICK1180: strips(rect),
   FW_TIMBER1500: strips(rect),
+  /* Constant chord; the balsa tips' rounding over the outer 1.8 of 22 in
+   * is left out. */
+  FW_BOMBSHELL1118: strips(rect),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -222,7 +237,7 @@ STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
  * tested. Clark-Y (B), vol. 3 fig. 5.22: at 1e5 held to +4.4 deg then 0.93
  * of 1.30; at 2e5 to +6.7 deg then 0.93 to 0.95 of 1.32. SD7037 (A), vol.
  * 1 fig. 4.134: at 6e4 +1.8 deg then about 1.05 of 1.21; at 1e5 +1.1 deg
- * then 0.96 of 1.18. NACA 2415, vol. 2 fig. 5.52: at 1e5 +2.9 deg then
+ * then 0.96 of 1.18; at 6e4 +3.0 deg then 0.9 of 1.25. NACA 2415, vol. 2 fig. 5.52: at 1e5 +2.9 deg then
  * 0.73 to 0.80 of 1.18; at 2e5 +4.2 deg then 0.76 of 1.22. MH45, vol. 1
  * fig. 4.61: at 1e5 +2.5 deg then 0.80 of 1.09; at 2e5 +2.8 then 0.92 of
  * 1.14; at 3e5 +0.6 then a trailing edge stall, 1.05 of 1.16 five degrees
@@ -236,6 +251,9 @@ const SECTION = {
   FW_BRAMOR2300: { sec: 'MH45 at 2.8e5', top: 0.6, k: 0.89 },
   FW_SLOWSTICK1180: { sec: 'Clark-Y at 1e5', top: 4.4, k: 0.72 },
   FW_TIMBER1500: { sec: 'NACA 2415 at 1.6e5', top: 3.7, k: 0.63 },
+  /* A 10 percent flat bottomed section at 8e4: the Clark-Y's at 6e4 held
+   * +3.0 deg then 0.9 of 1.25, at 1e5 +4.4 deg then 0.93 of 1.30. */
+  FW_BOMBSHELL1118: { sec: 'Clark-Y at 8e4', top: 3.7, k: 0.72 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

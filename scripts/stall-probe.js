@@ -77,6 +77,7 @@ const PLANES = {
   bramor: { sim: 8, Vs: 13.0, alphaStall: 0.722 / 4.77, rudder: false },
   timberf: { sim: 9, Vs: 7.1, alphaStall: (1.15 + 0.305) / 5.25, rudder: true },
   cubf: { sim: 10, Vs: 8.7, alphaStall: 1.15 / 5.21, rudder: true },
+  bombshell: { sim: 11, Vs: 6.49, alphaStall: 1.0 / 4.991, rudder: true },
 };
 
 const onlyArg = process.argv.indexOf('--only');

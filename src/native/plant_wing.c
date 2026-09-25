@@ -2078,4 +2078,13 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stall_arm_ac = 0.0761, /* the CG 14.5 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.0703, /* the plate's centre of pressure at 0.40 of the chord */
   .throttle_idle = 0.40,  /* the Cox throttle conversion's 6,500 of 16,000 rpm */
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .lowre_arm_ac = 0.0761, /* the same arms, its first post stall moment, kept short of */
+  .lowre_arm_cp = 0.0703, /* the stall angle and below the section data's Reynolds numbers */
+  .stall_dw = 0.1881,
+  .stall_asym = 0.00525,
+  .stall_k = 0.72,
+  .stall_top = 3.7 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
