@@ -885,16 +885,16 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustNotBreak | wing, fuselage, tail, prop | R-SLOWSTICK ("Almost every landing so far has been a shallow or steep dive into the weeds. The plane holds up well to these landings") | LOW |
 | restDistM | 0 to 7.4 | R-SLIDE, DERIVED (the most it can arrive with is 4.84 m/s plus a 1 m drop without drag, 6.6 m/s; a foam belly on grass at mu 0.3 slides v squared over 2 mu g, 7.4 m, the farthest a nose in can go) | LOW |
 
-**slowstick-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**slowstick-pole.** Reference still: A wing hits a wooden pole at cruise: the one piece wing is torn off its mount, and the stick with its motor and tail carries on past the pole, slowed, and drops onto the grass a few metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 0.5 to 6.2 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.5 to 2.1 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.08 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **slowstick-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
