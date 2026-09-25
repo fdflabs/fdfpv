@@ -10259,6 +10259,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   window.__crashWater = () => (view.water || []).map((w) => ({ spawn: w.spawn, surfaceY: w.surfaceY }));
   window.__crashBreak = (part) => simErrorName(sim.e.sim_part_break(part));
   window.__crashSetDamage = (part, d) => simErrorName(sim.e.sim_part_set_damage(part, d));
+  /* Each drawn piece's farthest vertex outside its part's hull box, for a
+   * check that no stray triangle rides off with a broken part. */
+  window.__wreckAudit = () => wreckRig.audit();
   /*
    * Which tune the module is actually running, read back from the module
    * rather than from the menu, plus the config coverage counters from

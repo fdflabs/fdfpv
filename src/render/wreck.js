@@ -177,9 +177,19 @@ export function createWreck() {
     return best;
   }
 
+  /* Only what is drawn is cut. Every model carries a hidden measurement box
+   * as wide as its span and as long as its fuselage (check 15's contract,
+   * herocraft.js), and a piece is always drawn: cut with the rest, that box's
+   * faces landed on whichever part held their centres and were drawn as
+   * slabs across the whole aircraft. The blur discs are hidden and shown by
+   * the prop's speed, so they are cut whatever they are now, to leave with
+   * their prop. The craft's own visibility is the FPV view, not the model. */
   function isAirframe(o) {
     for (let p = o; p && p !== craft; p = p.parent) {
       if (NOT_THE_AIRFRAME.has(p.name)) {
+        return false;
+      }
+      if (!p.visible && !skip.has(p)) {
         return false;
       }
     }
@@ -345,6 +355,7 @@ export function createWreck() {
         continue;
       }
       const mesh = new THREE.Mesh(g, c.mesh.material);
+      mesh.name = c.mesh.name || (c.mesh.parent && c.mesh.parent.name) || '';
       mesh.castShadow = c.mesh.castShadow;
       mesh.receiveShadow = c.mesh.receiveShadow;
       mesh.renderOrder = c.mesh.renderOrder;
@@ -521,5 +532,35 @@ export function createWreck() {
     return out;
   }
 
-  return { group, attach, reset, update, setCraftVisible, summary, pieceCount: () => pieces.size };
+  /* For the harness: per piece, how far its farthest vertex stands outside
+   * its part's grown hull box, metres, and from which mesh. A triangle
+   * goes to the part holding its centre, so a vertex may reach past the box
+   * by up to about a triangle's own size at a seam; a triangle that belongs
+   * to no part, stretched across the aircraft, reads as metres. */
+  function audit() {
+    const out = [];
+    for (const [i, piece] of pieces) {
+      const b = boxes[i].box;
+      const origin = bodyToLocal(table[i].cg, new THREE.Vector3());
+      let worst = 0;
+      let where = '';
+      let tris = 0;
+      for (const mesh of piece.children) {
+        const p = mesh.geometry.attributes.position;
+        tris += p.count / 3;
+        for (let v = 0; v < p.count; v += 1) {
+          va.fromBufferAttribute(p, v).add(origin);
+          const d = b.distanceToPoint(va);
+          if (d > worst) {
+            worst = d;
+            where = mesh.name || mesh.material.type;
+          }
+        }
+      }
+      out.push({ part: i, kind: table[i].kindName, tris, overhang: worst, mesh: where });
+    }
+    return out;
+  }
+
+  return { group, attach, reset, update, setCraftVisible, summary, audit, pieceCount: () => pieces.size };
 }
