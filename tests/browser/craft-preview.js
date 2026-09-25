@@ -29,9 +29,10 @@ import { buildCubCraft, CUB_DIMS } from '../../src/render/cubcraft.js';
 import { buildGliderCraft, GLIDER_DIMS } from '../../src/render/glidercraft.js';
 import { buildBramorCraft, BRAMOR_DIMS } from '../../src/render/bramorcraft.js';
 import { buildSlowStickCraft, SLOWSTICK_DIMS } from '../../src/render/slowstickcraft.js';
+import { buildTimberCraft, TIMBER_DIMS } from '../../src/render/timbercraft.js';
 
-const BUILDERS = { sky: buildSkyCraft, cub: buildCubCraft, glider: buildGliderCraft, bramor: buildBramorCraft, stick: buildSlowStickCraft };
-const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS };
+const BUILDERS = { sky: buildSkyCraft, cub: buildCubCraft, glider: buildGliderCraft, bramor: buildBramorCraft, stick: buildSlowStickCraft, timber: buildTimberCraft };
+const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
 const lite = params.get('lite') === '1';
@@ -125,6 +126,13 @@ window.__preview = {
   },
   surfaces(...rad) {
     craft.setSurfaces(...rad);
+    return true;
+  },
+  /* A craft with flaps: both lowered by rad, trailing edge down. */
+  flaps(rad) {
+    if (craft.setFlaps) {
+      craft.setFlaps(rad);
+    }
     return true;
   },
   spin(angle, blur) {

@@ -75,6 +75,7 @@ const CLASS_OF_AIRFRAME = {
   radian2000: 'wing',
   bramor2300: 'wing',
   slowstick1180: 'wing',
+  timber1500: 'wing',
 };
 export const AIRFRAME_BY_CLASS = { full: '5inch', micro: 'whoop65', wing: 'bramor2300' };
 

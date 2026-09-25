@@ -811,3 +811,92 @@ export function recordSlowStickFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * The Timber, docs/TIMBER-STAGE1.md: airframe 7, a STOL taildragger with
+ * flaps and slats. On the strip, standing on its three wheels facing down
+ * it, at the pose the plant settles to, the drawn model's
+ * (src/render/timbercraft.js): the CG 0.2117 m up and 11.81 deg nose up.
+ * The flaps are the notch given, set before the pose so a reset has them
+ * there; the slats on, as the kit is flown for STOL. No steps here.
+ */
+export const TIMBER_AIRFRAME = 7;
+export const TIMBER_REST = { z: 0.2117, pitchDeg: 11.81 };
+export function timberPrelude(sim, { flaps = 0 } = {}) {
+  must(sim.e.sim_set_airframe(TIMBER_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  must(sim.e.sim_wing_launch(12), 'sim_wing_launch');
+}
+export function timberGroundPrelude(sim, { mu = 1.4, e = 0, flaps = 0 } = {}) {
+  must(sim.e.sim_set_airframe(TIMBER_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = TIMBER_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, TIMBER_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/*
+ * The Timber's take off, a STOL one: full throttle from standing with the
+ * stick forward to bring the tail up to 9 deg of pitch, which keeps the
+ * flapped wing short of its stall, and once clear of the grass by a metre
+ * 12 deg into the climb. The wings held level on the ailerons; the rudder
+ * centred, so any swing is the aircraft's own. The sticks for this step.
+ */
+export function timberTakeoffSticks(s, { pitchDeg = 9, climbDeg = 12 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const pitchT = (s[3] > 1.2 ? climbDeg : pitchDeg) * Math.PI / 180;
+  const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 10 * (pitchT - pitch) - 0.5 * -s[12]));
+  return [roll, pitchStick, 0, 1];
+}
+
+/*
+ * The Timber's recording for the cross-host check, flown on half flaps,
+ * the manual's take off setting, so the flaps' lift, drag, moment and mix
+ * are all in the hashed trace: from standing on the strip, a second at
+ * idle, the take off above and its climb, then level at 65 percent, half
+ * a second of full right roll, a held 45 deg bank, and a chop with two
+ * seconds of full right rudder. Twenty two seconds.
+ */
+export const timberRecPrelude = (sim) => timberGroundPrelude(sim, { flaps: 1 });
+export function recordTimberFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  timberRecPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -1.2 * (bank - b) - 0.12 * p));
+    const levelPitch = () => {
+      trim += 0.00002 * (0 - vz);
+      trim = Math.max(-0.2, Math.min(0.2, trim));
+      const pitchT = Math.max(-0.2, Math.min(0.15, 0.05 * (0 - vz) + trim));
+      return Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+    };
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 8000) {
+      sticks = timberTakeoffSticks(s);
+    } else if (ms < 11000) {
+      sticks = [hold(0), levelPitch(), 0, 0.65];
+    } else if (ms < 11500) {
+      sticks = [1, 0, 0, 0.65];
+    } else if (ms < 18000) {
+      sticks = [hold(Math.PI / 4), levelPitch(), 0, 0.8];
+    } else {
+      sticks = [hold(0), 0, ms >= 19000 && ms < 21000 ? 1 : 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}

@@ -2803,7 +2803,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500'],
     mode: 'freestyle',
     /* The wing's own world. A card with a home skips the picker: the
      * airfield was built for these aircraft and the town was not. The
@@ -3176,13 +3176,15 @@ export class Ui {
     packBlock.append(this.osdHits);
     this.osdSpeed = el('div', 'osd-value', '');
     this.osdFlight = el('div', 'osd-sub osd-mode', '');
+    /* The flaps' notch, on an aircraft that has them; empty on the rest. */
+    this.osdFlaps = el('div', 'osd-sub osd-mode', '');
     this.osdLaunch = el('div', 'osd-launch is-off', '');
     this.osdAlt = el('div', 'osd-sub', '');
     this.osdThrBar = el('div', 'bar-fill warm');
     const thrBar = el('div', 'bar');
     thrBar.append(this.osdThrBar);
     const flightBlock = el('div', 'osd-corner osd-right');
-    flightBlock.append(this.osdSpeed, this.osdFlight, this.osdAlt, el('div', 'osd-label', str('ui.throttle')), thrBar);
+    flightBlock.append(this.osdSpeed, this.osdFlight, this.osdFlaps, this.osdAlt, el('div', 'osd-label', str('ui.throttle')), thrBar);
     const sticks = el('div', 'osd-sticks is-off');
     this.osdStickLeft = makeGimbal(str('ui.yaw_throttle'));
     this.osdStickRight = makeGimbal(str('ui.roll_pitch'));
@@ -10456,7 +10458,7 @@ export class Ui {
     }
   }
 
-  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, bounces, launchState, launchPitch, ghostGapMs, ghostFinal, runState, runRemainMs, runTimed, runScored }) {
+  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal, runState, runRemainMs, runTimed, runScored }) {
     const freestyle = mode === 'freestyle';
     /* Before the first gate there is no lap to time, so the clock reads
      * zero and dims rather than showing a row of dashes. */
@@ -10531,6 +10533,9 @@ export class Ui {
         : (launchState === 1 || launchState === 2
           ? str('ui.launch_2')
           : ({ angle: str('ui.angle'), stab: str('ui.stabilised'), manual: str('ui.manual') }[flightMode] ?? str('ui.acro'))));
+    }
+    if (this.osdFlaps) {
+      Ui.text(this.osdFlaps, flaps == null ? '' : [str('ui.flaps_up'), str('ui.flaps_half'), str('ui.flaps_full')][flaps]);
     }
     if (this.osdLaunch) {
       const on = launchState > 0;

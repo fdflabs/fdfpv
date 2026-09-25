@@ -353,6 +353,8 @@ export function buildShell(canvas, opts) {
     /* The Bramor's parachute and its catapult; null on every other
      * aircraft. See src/render/bramorcraft.js. */
     setChute: craft.setChute ?? null,
+    /* Only a craft with flaps has one; the Timber does. */
+    setFlaps: craft.setFlaps ?? null,
     launcher: craft.launcher ?? null,
     launcherRest: craft.launcherRest ?? null,
     resize,
@@ -402,6 +404,7 @@ export function buildShell(canvas, opts) {
     api.setSurfaces = next.setSurfaces ?? null;
     api.setProp = next.setProp ?? null;
     api.setChute = next.setChute ?? null;
+    api.setFlaps = next.setFlaps ?? null;
     api.launcher = next.launcher ?? null;
     api.launcherRest = next.launcherRest ?? null;
     return next;

@@ -19,16 +19,18 @@
  * Radian Pro powered glider of docs/GLIDER-STAGE1.md, which adds a folding
  * prop and flies in rising air; FW_BRAMOR2300, the C-Astral Bramor
  * C4EYE of docs/BRAMOR-STAGE1.md, a blended wing body with elevons that
- * brings a recovery parachute; and FW_SLOWSTICK1180, the GWS Slow Stick
+ * brings a recovery parachute; FW_SLOWSTICK1180, the GWS Slow Stick
  * of docs/SLOWSTICK-STAGE1.md, which has no ailerons and banks on its
- * rudder through its dihedral. A term an airframe does not have
+ * rudder through its dihedral; and FW_TIMBER1500, the E-flite Turbo
+ * Timber Evolution of docs/TIMBER-STAGE1.md, a STOL taildragger that adds
+ * flaps and slats. A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
  * airframe has to land in are scripts/wing-gates.js,
  * scripts/skyhunter-gates.js, scripts/cub-gates.js,
- * scripts/glider-gates.js, scripts/bramor-gates.js and
- * scripts/slowstick-gates.js.
+ * scripts/glider-gates.js, scripts/bramor-gates.js,
+ * scripts/slowstick-gates.js and scripts/timber-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -119,6 +121,19 @@ static double g_acro_i_pitch = 0.0;
  */
 static int g_chute = 0;
 static double g_chute_t = 0.0;
+
+/*
+ * THE FLAPS AND SLATS, for an aircraft that has them: the Timber,
+ * docs/TIMBER-STAGE1.md. The notch is the radio's three position switch, a
+ * mode like the stabiliser's, kept across resets; the flaps' angle follows
+ * it at the table's flap_rate, which is the radio's slowed flap channel,
+ * and a reset puts them where the notch has them. The slats are fixed
+ * parts, fitted or not, fitted by default. On every aircraft without flaps
+ * the notch cannot leave 0, so the angle is +0 and stays +0.
+ */
+static int g_flap_notch = 0;
+static double g_flap = 0.0;
+static int g_slats = 1;
 
 /* What the last step saw and did, for the gates and for anyone chasing a
  * sign: alpha (of the zero lift line), beta, qbar, CL, CD, l m n (aero),
@@ -299,6 +314,18 @@ void plant_wing_set_on_wheels(int on) {
   g_on_wheels = on;
 }
 
+/* The flap angle the notch asks for on the airframe in force: zero on a
+ * quad, which has no table, and on every wing without flaps. */
+static double flap_target(void) {
+  if (PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0) {
+    return 0.0;
+  }
+  if (g_flap_notch == 2) {
+    return PLANT.fw->flap_full;
+  }
+  return g_flap_notch == 1 ? PLANT.fw->flap_half : 0.0;
+}
+
 void plant_wing_reset(void) {
   for (int i = 0; i < 4; i += 1) {
     g_surf[i] = 0.0;
@@ -307,6 +334,32 @@ void plant_wing_reset(void) {
   g_on_wheels = 0;
   g_chute = 0;
   g_chute_t = 0.0;
+  g_flap = flap_target();
+}
+
+int plant_wing_set_flaps(int notch) {
+  if (notch != 0 && (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->flap_full > 0.0))) {
+    return -1;
+  }
+  g_flap_notch = notch;
+  return 0;
+}
+
+double plant_wing_flaps(void) {
+  return g_flap;
+}
+
+void plant_wing_flaps_stow(void) {
+  g_flap_notch = 0;
+  g_flap = 0.0;
+}
+
+void plant_wing_flaps_settle(void) {
+  g_flap = flap_target();
+}
+
+void plant_wing_set_slats(int fitted) {
+  g_slats = fitted;
 }
 
 int plant_wing_chute(int deploy) {
@@ -514,6 +567,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     yaw = clamp1(add_term(yaw, yaw_coordinated(fw, s, V)));
   }
 
+  /* The flaps travel toward the notch's angle at the servo's rate. */
+  const double flap_t = flap_target();
+  if (g_flap < flap_t) {
+    g_flap += fw->flap_rate * WING_DT;
+    if (g_flap > flap_t) g_flap = flap_t;
+  } else if (g_flap > flap_t) {
+    g_flap -= fw->flap_rate * WING_DT;
+    if (g_flap < flap_t) g_flap = flap_t;
+  }
+  const double df = g_flap;
+
   /*
    * Surfaces. Roll right needs the right surface up and the left one down.
    * The rudder is trailing edge left positive and the yaw stick nose right
@@ -529,6 +593,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * expect, through the rudder and the dihedral; the yaw stick stays live
    * for a pilot who uses it. For every other mix the rudder's stick is the
    * yaw stick, the same double.
+   *
+   * The elevator carries the radio's flap mix on top of the stick, within
+   * its travel, as a transmitter's mix does. Without flaps it adds a zero.
    */
   const double de = surface_from_stick(pitch, fw->throw_e, fw->expo);
   const double da = surface_from_stick(roll, fw->throw_a, fw->expo);
@@ -547,9 +614,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const int ailerons = fw->mix == FW_MIX_TAIL;
     g_surf[0] = ailerons ? -da : 0.0;
     g_surf[1] = ailerons ? da : 0.0;
-    g_surf[2] = de;
+    g_surf[2] = clip(add_term(de, fw->de_df * df), fw->throw_e);
     g_surf[3] = delta_r;
-    delta_e = de;
+    delta_e = g_surf[2];
   }
   const double delta_a = 0.5 * (g_surf[1] - g_surf[0]);
 
@@ -560,11 +627,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double qbar = 0.5 * PLANT.rho * V2;
   const double Vrate = V > 1.0 ? V : 1.0; /* floor for the rate terms */
 
-  /* Lift and drag coefficients, with the stall blend. */
-  const double alpha_stall = fw->cl_max / fw->cl_alpha;
-  const double aa = sim_fabs(alpha);
+  /* Lift and drag coefficients, with the stall blend. The flaps add lift
+   * at every alpha, which brings the stall to a lower alpha by their own
+   * share of it, and raise the CLmax the stall is reached at; the slats
+   * raise the CLmax alone, which moves the stall along the same lift
+   * curve to a higher alpha. All of it zero without them. */
+  const double dcl_f = fw->cl_df * df + fw->cl_df2 * df * df;
+  const double clmax = add_term(add_term(fw->cl_max, fw->clmax_df * df), g_slats ? fw->slat_dclmax : 0.0);
+  const double alpha_stall = clmax / fw->cl_alpha;
+  const double aa = sim_fabs(add_term(alpha, dcl_f / fw->cl_alpha));
   const double sigma = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, aa);
-  const double cl_lin = fw->cl_alpha * alpha + fw->cl_de * delta_e;
+  const double cl_lin = add_term(fw->cl_alpha * alpha + fw->cl_de * delta_e, dcl_f);
   double sin_b = 0.0, cos_b = 1.0;
   if (Vxz > 0.5) {
     sin_b = -w / Vxz;
@@ -574,8 +647,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double sin_a = add_term(sin_b * fw->cos_zl, -(cos_b * fw->sin_zl));
   const double cos_a = add_term(cos_b * fw->cos_zl, sin_b * fw->sin_zl);
   const double cl_flat = 2.0 * sin_a * cos_a;
-  const double cd_lin = fw->cd0 + fw->k_induced * cl_lin * cl_lin;
-  const double cd_flat = fw->cd0 + 2.0 * sin_a * sin_a;
+  const double cd0 = add_term(add_term(fw->cd0, g_slats ? fw->slat_cd0 : 0.0), fw->cd_df2 * df * df);
+  const double cd_lin = cd0 + fw->k_induced * cl_lin * cl_lin;
+  const double cd_flat = cd0 + 2.0 * sin_a * sin_a;
   const double CL = (1.0 - sigma) * cl_lin + sigma * cl_flat;
   const double CD = (1.0 - sigma) * cd_lin + sigma * cd_flat;
 
@@ -644,8 +718,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * Zero arms on an airframe that leaves them out, and add_term keeps its
    * arithmetic as it was. */
   const double cm_stall = -sigma * (fw->stall_arm_ac * cl_lin + fw->stall_arm_cp * cl_flat);
-  const double m_aero = qbar * fw->area * fw->chord * add_term(fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v +
-                                                               fw->cm_de * delta_e, cm_stall);
+  /* The flaps' own moment rides on the lift they add: the section's nose
+   * down moment and the downwash they add at the tail, nose up net. */
+  const double m_aero = qbar * fw->area * fw->chord *
+                        add_term(add_term(fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v + fw->cm_de * delta_e,
+                                          cm_stall),
+                                 fw->cm_dcl_f * dcl_f);
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
   double M[3];
   M[0] = l_aero - fw->torque_arm * thrust; /* the prop turns one way; the airframe answers the other */
@@ -1209,4 +1287,97 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .air_lift = 1,
   .stall_arm_ac = 0.0617, /* the CG 17 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.097,  /* the plate's centre of pressure at 0.40 of the chord, 27 mm behind it */
+};
+
+/* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
+ * each number has its formula and source and the estimated ones say so. A
+ * STOL bush plane: a cantilever high wing with slotted flaps inboard,
+ * ailerons outboard and fixed slats along the leading edge, a tractor
+ * three blade prop on 4S, clockwise seen from behind, on the CG's height,
+ * and a big tail. */
+const FixedWingParams FW_TIMBER1500 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.555,
+  .area = 0.361,
+  .chord = 0.2322,        /* S/b */
+  .cl_alpha = 5.25,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_max = 1.15,         /* clean, without the slats */
+  /* The zero lift line 5 degrees under the body axis, the Cub's: a thick
+   * semi symmetric section at 1.5 degrees of incidence. */
+  .alpha_zl = -5.0 * WING_PI / 180.0,
+  .sin_zl = -0.08715574274765817,
+  .cos_zl = 0.9961946980917455,
+  .cd0 = 0.042,           /* cantilever wing, tundra tyres, no slats */
+  .k_induced = 0.0609,    /* 1/(pi 0.78 6.70) */
+  .cl_de = -0.498,
+  .cy_beta = -0.369,
+  .cy_dr = 0.155,
+  .cl_beta = -0.047,      /* a flat wing on top, its tips drooped */
+  .cl_p = -0.806,
+  .cl_da = 0.391,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.009,
+  .cm_0 = 0.0853,         /* trims at 13 m/s with the elevator neutral */
+  .cm_alpha = -1.004,     /* static margin 0.19 at E-flite's 60 mm CG */
+  .cm_q = -8.53,
+  .cm_de = 1.175,
+  .cn_beta = 0.087,
+  .cn_r = -0.095,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.133,
+  .cn_dr = -0.0624,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* E-flite's high rates, 33, 20 and 30 mm, over the surfaces' chords. */
+  .throw_a = 30.0 * WING_PI / 180.0,
+  .throw_e = 20.0 * WING_PI / 180.0,
+  .throw_r = 27.0 * WING_PI / 180.0,
+  .surface_max = 30.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 25.0,  /* N, BL10 800 kV on 4S with the 11 x 7.5 three blade */
+  .pitch_speed = 31.95,
+  .rpm_no_load = 11840.0,
+  .torque_arm = 0.0122,   /* 322 W of disc power at 10,060 rpm is 0.31 N m at 25 N */
+  .thrust_z = 0.0,        /* the thrust line through the CG */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 44.0,   /* A, the review's bench figure on 4S */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 1.2,
+  .stab_roll_kd = 0.12,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .acro_roll_rate = 180.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 100.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.30,
+  .acro_roll_ff = 0.25,   /* under the Cub's: it rolls faster per stick, and overshot a stop at 0.35 */
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 4.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 2.0,     /* 1.4 times the Cub's yaw authority per stick */
+  /* The flaps: E-flite's 20 and 35 mm at the trailing edge of a 64.8 mm
+   * flap, 18.0 and 32.7 degrees, across in 2 s (the manual's flap speed).
+   * Lift, CLmax, drag and moment from Raymer and thin aerofoil theory; the
+   * mix is the manual's 30 percent of the elevator's travel down at full
+   * flap, 16 at half, as a line through both. */
+  .flap_half = 0.31376497222433070,
+  .flap_full = 0.57058379792549596,
+  .flap_rate = 0.285292,
+  .cl_df = 1.2391,
+  .cl_df2 = -0.6681,
+  .clmax_df = 0.7689,
+  .cd_df2 = 0.0666,
+  .cm_dcl_f = 0.0940,
+  .de_df = -0.183531,
+  /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
+  .slat_dclmax = 0.305,
+  .slat_cd0 = 0.004,
 };

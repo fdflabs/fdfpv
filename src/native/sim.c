@@ -1425,8 +1425,9 @@ SIM_EXPORT int sim_set_airframe(int id) {
     return SIM_OK;
   }
   plant_set_airframe(id);
-  /* A canopy belongs to the aircraft that pulled it. */
+  /* A canopy belongs to the aircraft that pulled it, and so do flaps. */
   plant_wing_chute(0);
+  plant_wing_flaps_stow();
   contact_build_corners();
   /* Only if the host has not raised its own plane. A shell that has already
    * called sim_set_ground owns that number and must not have it taken back. */
@@ -1532,8 +1533,8 @@ SIM_EXPORT int sim_step(int n) {
 
 /*
  * The fixed wings' own entry points: every airframe of PLANT_KIND_WING,
- * the flying wing, the Skyhunter, the Cub, the Radian and the Bramor.
- * Additive, version unchanged.
+ * the flying wing, the Skyhunter, the Cub, the Radian, the Bramor, the
+ * Slow Stick and the Timber. Additive, version unchanged.
  *
  * sim_wing_launch: a hand throw at speed m/s along the body's forward axis.
  * sim_wing_surfaces: the two wing trailing edge surfaces, radians, left
@@ -1615,6 +1616,50 @@ SIM_EXPORT int sim_wing_chute(int deploy) {
 
 SIM_EXPORT double sim_wing_chute_open(void) {
   return plant_wing_chute_open();
+}
+
+/*
+ * The flaps and slats, on an aircraft that has them (the Timber).
+ * sim_wing_set_flaps(notch): 0 up, 1 half, 2 full, the radio's three
+ * position switch; the flaps travel there at the aircraft's own rate. A
+ * mode, kept across resets, which put the flaps where the notch has them;
+ * an airframe change raises them. SIM_ERR_BAD_ARG for a notch past 0 on an
+ * aircraft without flaps. sim_wing_flaps: their angle now, radians,
+ * trailing edge down, for the renderer. sim_wing_set_slats(fitted): 1 the
+ * slats on, the default, 0 off; no effect on an aircraft without them.
+ * Additive, version unchanged.
+ */
+SIM_EXPORT int sim_wing_set_flaps(int notch) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (notch < 0 || notch > 2) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return plant_wing_set_flaps(notch) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
+}
+
+SIM_EXPORT double sim_wing_flaps(void) {
+  return plant_wing_flaps();
+}
+
+/* The flaps where the notch has them, at once, as sim_reset puts them: for
+ * a host that holds a parked aircraft by not stepping it, during which the
+ * servos would have finished moving. */
+SIM_EXPORT int sim_wing_flaps_settle(void) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  plant_wing_flaps_settle();
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wing_set_slats(int fitted) {
+  if (fitted != 0 && fitted != 1) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_set_slats(fitted);
+  return SIM_OK;
 }
 
 /* The load on each wheel of an airframe with landing gear, newtons, in its

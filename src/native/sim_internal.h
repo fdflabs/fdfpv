@@ -188,10 +188,8 @@ typedef struct {
 #define SIM_AIRFRAME_SKY1800 3
 #define SIM_AIRFRAME_CUB1400 4
 #define SIM_AIRFRAME_SLOWSTICK1180 5
-/* 7 is reserved for the Timber Evolution, which is being built
- * alongside; until its entry lands the slot is zero and sim_set_airframe
- * refuses it. */
 #define SIM_AIRFRAME_RADIAN2000 6
+#define SIM_AIRFRAME_TIMBER1500 7
 #define SIM_AIRFRAME_BRAMOR2300 8
 #define SIM_AIRFRAME_COUNT 9
 
@@ -476,6 +474,33 @@ typedef struct FixedWingParams {
    * linear through the stall. */
   double stall_arm_ac;
   double stall_arm_cp;
+  /*
+   * FLAPS AND SLATS, docs/TIMBER-STAGE1.md. Zero flap_full is an aircraft
+   * without flaps, which sim_wing_set_flaps refuses past notch 0, so its
+   * flap angle stays exactly +0 and every term below adds a zero through
+   * add_term: its arithmetic is what it was before flaps existed. The flap
+   * angle is positive trailing edge down and moves toward the notch's at
+   * flap_rate, the radio's slowed flap channel. Its lift is fitted as
+   * cl_df d + cl_df2 d^2 through the two notches, its drag as cd_df2 d^2,
+   * its CLmax increment as clmax_df d, and its pitching moment, the
+   * section's own and the downwash it adds at the tail, per unit of the
+   * lift it adds. de_df is the radio's flap to elevator mix, elevator
+   * radians (trailing edge up positive) per radian of flap.
+   */
+  double flap_half;       /* rad at the middle notch */
+  double flap_full;       /* rad at the last notch; 0 without flaps */
+  double flap_rate;       /* rad/s the flaps move at */
+  double cl_df;           /* lift per rad of flap */
+  double cl_df2;          /* lift per rad^2 of flap */
+  double clmax_df;        /* CLmax per rad of flap */
+  double cd_df2;          /* drag per rad^2 of flap */
+  double cm_dcl_f;        /* pitching moment per unit of flap lift, nose up + */
+  double de_df;           /* the radio's mix: elevator rad per rad of flap */
+  /* Fixed leading edge slats, fitted or not (sim_wing_set_slats): the
+   * CLmax they add, which moves the stall to a higher alpha on the same
+   * lift curve, and the drag they cost. Zero on an aircraft without. */
+  double slat_dclmax;
+  double slat_cd0;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -484,6 +509,7 @@ extern const FixedWingParams FW_CUB1400;
 extern const FixedWingParams FW_RADIAN2000;
 extern const FixedWingParams FW_BRAMOR2300;
 extern const FixedWingParams FW_SLOWSTICK1180;
+extern const FixedWingParams FW_TIMBER1500;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
@@ -504,6 +530,19 @@ double plant_air_lift(const double pos[3]);
  * plant_wing_chute_open is how far the canopy is open, 0 stowed to 1. */
 int plant_wing_chute(int deploy);
 double plant_wing_chute_open(void);
+/* Flaps: 0 up, 1 half, 2 full; returns -1 for a notch past 0 on an
+ * aircraft without flaps. A mode, kept across resets, which put the flaps
+ * where the notch has them; plant_wing_flaps is their angle now, rad,
+ * trailing edge down. plant_wing_flaps_stow raises them at once and
+ * selects notch 0, for an airframe change. */
+int plant_wing_set_flaps(int notch);
+double plant_wing_flaps(void);
+void plant_wing_flaps_stow(void);
+/* The flaps where the notch has them, at once, as a reset puts them. */
+void plant_wing_flaps_settle(void);
+/* Slats: 1 fitted, the default, 0 removed. A mode; no effect on an
+ * aircraft without slats. */
+void plant_wing_set_slats(int fitted);
 
 /* Bridge: Betaflight control loop and config shim. */
 
