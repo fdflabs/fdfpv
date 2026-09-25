@@ -4,11 +4,12 @@
  * its foot) under the buildings' own keys, so they bake into the
  * village's meshes and cost no draw of their own.
  *
- * Near only, all of it (buildings/bake.js): a bicycle or a garden chair
- * is a speck past a couple of hundred metres. What throws a shadow worth
- * having (a parasol, a bed's boards, the washing) is near(); the thin
- * and the small (spokes, a flag's cross, a lettuce) are detail(), which
- * the shadow maps skip.
+ * Near only, all of it but the yards' sheds and hedges, which are
+ * buildings and lines seen from far off (buildings/bake.js): a bicycle
+ * or a garden chair is a speck past a couple of hundred metres. What
+ * throws a shadow worth having (a parasol, a bed's boards, the washing)
+ * is near(); the thin and the small (spokes, a flag's cross, a lettuce)
+ * are detail(), which the shadow maps skip.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -27,8 +28,8 @@
  */
 
 import * as THREE from 'three';
-import { cyl } from '../../alps/kit.js';
-import { box, boxUp, cached, near, detail, blob, plate, own } from '../buildings/parts.js';
+import { cyl, roofShell, gableProfile } from '../../alps/kit.js';
+import { box, boxUp, cached, near, detail, blob, plate, own, frame, prism } from '../buildings/parts.js';
 
 /* A hash of a frame's own place and a salt, for the little differences
  * no rng should be drawn for. */
@@ -444,4 +445,173 @@ export function marketStall(f) {
   f.put(detail('clothWhite'), plate(0.36, 0.03), -len / 2 + 0.2, 0.75, deep / 2 + 0.785, 0, -0.25);
   f.put(detail('clothWhite'), plate(0.28, 0.03), -len / 2 + 0.2, 0.62, deep / 2 + 0.765, 0, -0.25);
   f.put(near('larchDark'), boxUp(0.03, 0.95, 0.03), -len / 2 + 0.2, 0, deep / 2 + 0.9, 0, 0.3);
+}
+
+/*
+ * The yards' outbuildings (village/yards.js), each along z with its
+ * front, where the doors are, toward +z. Their walls and roofs are
+ * drawn at any distance, as the houses' are: from the air a village's
+ * sheds and garages are half of what makes it a village and not a plan.
+ *
+ *   shed      a garden shed of weathered boards under a gable of old
+ *             shingle or tin, a plank door, a window in the side;
+ *   garage    a rendered box under a shallow gable of eternit, its door
+ *             a sheet of painted steel;
+ *   woodshed  a lean to open at the front, the winter's wood stacked in
+ *             it to the roof, its back and sides boards.
+ *
+ * Returns the height of its top over its foot.
+ */
+export function outbuilding(f, { kind, w, d, h, wall, roofKey }) {
+  const hw = w / 2;
+  const hd = d / 2;
+  if (kind === 'woodshed') {
+    const back = h + 0.45;
+    f.put(wall, boxUp(w, back, 0.08), 0, 0, -hd + 0.04);
+    for (const sx of [-1, 1]) {
+      f.put(wall, boxUp(0.08, back, d - 0.1), sx * (hw - 0.04), 0, -0.05);
+      f.put('larchDark', boxUp(0.12, h, 0.12), sx * (hw - 0.06), 0, hd - 0.06);
+    }
+    const slope = Math.atan2(back - h, d);
+    f.put(roofKey, box(w + 0.5, 0.08, Math.hypot(d, back - h) + 0.7), 0, (back + h) / 2 + 0.05, 0.1, 0, slope);
+    /* The wood, split and stacked, end on to the front. */
+    const rows = Math.max(3, Math.floor((h - 0.15) / 0.24));
+    const log = cached('s2logend', () => new THREE.CircleGeometry(0.12, 5));
+    f.put('larchDark', boxUp(w - 0.2, rows * 0.24, d - 0.5), 0, 0.05, -0.15);
+    const n = Math.max(2, Math.floor((w - 0.3) / 0.25));
+    for (let r = 0; r < rows; r += 1) {
+      for (let k = 0; k < n - (r % 2); k += 1) {
+        f.put(detail('logEnd'), log, -hw + 0.28 + k * 0.25 + (r % 2) * 0.12, 0.17 + r * 0.24, hd - 0.4 + ((k * 7 + r) % 3) * 0.02);
+      }
+    }
+    return back + 0.2;
+  }
+  const pitch = kind === 'garage' ? 0.22 : 0.62;
+  f.put(wall, boxUp(w, h, d), 0, 0, 0);
+  f.put(kind === 'garage' ? 'stone' : 'larchDark', boxUp(w + 0.06, 0.22, d + 0.06), 0, -0.1, 0);
+  const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.35, ovA: 0.35, ovB: 0.55, pitch, t: 0.12 });
+  const gable = gableProfile(roof, 'gable', hw);
+  f.put(wall, prism(gable.map(([x, y]) => [x, y + h]), -hd, hd));
+  frame(f, 0, h, 0, 0).put(roofKey, roof.geo);
+  const front = frame(f, 0, 0, hd + 0.02, 0);
+  if (kind === 'garage') {
+    front.put(near('door'), box(w - 0.9, h - 0.4, 0.05), 0, (h - 0.4) / 2, 0);
+    for (let k = 1; k < 6; k += 1) {
+      front.put(detail('joint'), box(w - 0.95, 0.02, 0.02), 0, (k * (h - 0.4)) / 6, 0.03);
+    }
+    front.put(detail('lamp'), box(0.2, 0.14, 0.14), 0, h - 0.15, 0.08);
+  } else {
+    front.put('larchDark:fv', box(0.95, 1.85, 0.05), -hw + 0.8, 0.93, 0);
+    front.put(detail('ink'), box(0.03, 0.03, 0.08), -hw + 1.15, 0.95, 0.05);
+    frame(f, hw + 0.02, 0, 0, Math.PI / 2).put(detail('ink'), plate(0.55, 0.45), 0, h - 0.7, 0.01);
+    /* Tools leant by the door, a watering can. */
+    front.put(detail('larch'), box(0.03, 1.4, 0.03), hw - 0.35, 0.68, 0.1, 0, 0.12);
+    front.put(detail('metal'), box(0.2, 0.28, 0.02), hw - 0.42, 0.14, 0.14, 0, 0.12);
+    front.put(detail('shutterGreen'), cyl(0.12, 0.12, 0.28, 8), hw - 0.8, 0, 0.3);
+  }
+  return h + roof.yR + 0.1;
+}
+
+/* A compost bin of boards, open at the front, heaped with what the
+ * garden gave up, a fork stuck in it. 1.3 m square. */
+export function compost(f) {
+  const s = 1.3;
+  for (const [x, z, w, d] of [[0, -s / 2, s, 0.06], [-s / 2, 0, 0.06, s], [s / 2, 0, 0.06, s]]) {
+    f.put(near('weathered'), boxUp(w, 0.8, d), x, 0, z);
+  }
+  f.put(near('soil'), blob(), 0, 0.3, 0, own(f, 3), 0, 0, s * 0.46, 0.5, s * 0.5);
+  f.put(detail('leaf'), blob(), 0.2, 0.62, 0.1, own(f, 4) * 3, 0, 0, 0.35, 0.16, 0.3);
+  f.put(detail('lettuce'), blob(), -0.25, 0.58, -0.1, own(f, 5) * 3, 0, 0, 0.3, 0.14, 0.25);
+  f.put(detail('larch'), box(0.03, 1.3, 0.03), 0.3, 0.9, 0.2, 0, 0.2, 0.3);
+}
+
+/* A round clump of leaves: smooth shaded, so a bush or a row of
+ * potatoes is soft at any distance and not a cut stone. */
+function lump() {
+  return cached('s2lump', () => new THREE.SphereGeometry(1, 6, 3));
+}
+
+/*
+ * A vegetable plot on the open ground, w across and d along z: the earth
+ * turned and raked (the ground's own worn earth lies under it, and this
+ * is its raised tilth), rows of potatoes, cabbages and lettuces along z,
+ * and a path of old boards down the middle.
+ */
+export function plot(f, w, d) {
+  const leaf = lump();
+  f.put(near('soil'), box(w, 0.05, d), 0, 0.02, 0);
+  const rows = Math.max(3, Math.floor(w / 0.7));
+  for (let r = 0; r < rows; r += 1) {
+    const x = -w / 2 + (r + 0.5) * (w / rows);
+    if (r === Math.floor(rows / 2)) {
+      f.put(near('weathered'), box(0.3, 0.04, d - 0.4), x, 0.06, 0);
+      continue;
+    }
+    const kind = pick(f, 300 + r, 3);
+    const key = ['cabbage', 'lettuce', 'leaf'][kind];
+    const size = [0.2, 0.14, 0.26][kind];
+    const n = Math.max(3, Math.round(d / (size * 2.4)));
+    for (let k = 0; k < n; k += 1) {
+      const z = -d / 2 + (k + 0.5) * (d / n);
+      const q = own(f, 320 + r * 31 + k);
+      f.put(detail(key), leaf, x + (q - 0.5) * 0.08, 0.05 + size * 0.35, z, q * 6, 0, 0, size, size * 0.7, size);
+    }
+  }
+}
+
+/*
+ * A garden shrub `s` metres across: a lilac, a hydrangea, a box ball, a
+ * currant, a mound of leaf clumps each of its own shade, a few in
+ * flower. The clumps over the top are drawn at any distance; the ones
+ * low round the sides only near.
+ */
+const SHRUB_BLOOM = [null, null, 'roseWhite', 'geraniumPink', 'rose', null, 'clothBlue'];
+export function shrub(f, s) {
+  const leaf = lump();
+  const tints = ['leaf', 'hedge', 'hedgeLight', 'hedgeDark', 'ivyLight'];
+  const bloom = SHRUB_BLOOM[pick(f, 400, SHRUB_BLOOM.length)];
+  const n = 5 + pick(f, 401, 3);
+  for (let k = 0; k < n; k += 1) {
+    const a = (k / n) * Math.PI * 2 + own(f, 410 + k);
+    const r = own(f, 430 + k);
+    const top = k < 2;
+    const x = top ? (r - 0.5) * s * 0.25 : Math.cos(a) * s * 0.26;
+    const z = top ? (own(f, 450 + k) - 0.5) * s * 0.25 : Math.sin(a) * s * 0.26;
+    const y = top ? s * (0.48 + 0.1 * r) : s * (0.28 + 0.1 * r);
+    const key = tints[pick(f, 470 + k, tints.length)];
+    f.put(top ? near(key) : detail(key), leaf, x, y, z, a, 0, 0, s * (0.3 + 0.08 * r), s * (0.26 + 0.06 * r), s * (0.3 + 0.08 * r));
+  }
+  if (bloom) {
+    for (let k = 0; k < 7; k += 1) {
+      const a = own(f, 490 + k) * Math.PI * 2;
+      const r = own(f, 500 + k);
+      f.put(detail(bloom), blob(), Math.cos(a) * s * 0.34 * r, s * (0.45 + 0.28 * r), Math.sin(a) * s * 0.34 * r, a, 0.5, 0, 0.1 * s, 0.08 * s, 0.1 * s);
+    }
+  }
+}
+
+/*
+ * A clipped hedge along x, `len` long: beech or privet grown into a wall
+ * and cut each summer. A body, and over its sides and top the leaves in
+ * clumps of their own shades, a little higher and paler where the
+ * summer's growth has come since the shears, so the light breaks on it
+ * as on a hedge and not on a board.
+ */
+export function hedge(f, len, h = 1.5, thick = 1.0) {
+  const leaf = lump();
+  const tints = ['hedge', 'hedgeDark', 'hedgeLight', 'hedge'];
+  f.put('hedgeDark', boxUp(len - 0.2, h * 0.9, thick * 0.8), 0, 0, 0);
+  /* Round the section: down each side and over the top. */
+  const SECTION = [[0.55, -0.4], [0.92, 0], [0.55, 0.4]];
+  const n = Math.max(2, Math.round(len / 0.75));
+  for (let k = 0; k < n; k += 1) {
+    const x = -len / 2 + (k + 0.5) * (len / n);
+    SECTION.forEach(([y, z], q) => {
+      const r = own(f, 110 + k * 3 + q);
+      const s = own(f, 700 + k * 3 + q);
+      const key = tints[Math.floor(r * 4)];
+      f.put(q === 1 ? near(key) : detail(key), leaf, x + (r - 0.5) * 0.15, h * (y + 0.05 * (s - 0.5)), thick * z + (s - 0.5) * 0.06,
+        0, 0, 0, 0.42 + 0.1 * s, q === 1 ? 0.2 + 0.06 * r : h * 0.42, q === 1 ? thick * 0.45 : 0.18 + 0.05 * r);
+    });
+  }
 }

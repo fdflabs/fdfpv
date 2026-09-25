@@ -29,7 +29,9 @@
  *   scattered clumps.
  *
  *   THE ROADSIDE: a delineator post either side of the valley road
- *   every fifty metres.
+ *   every fifty metres, and the road's own furniture (roadside.js): its
+ *   worn edge lines, grates and patches, and where it comes down to the
+ *   lake a crash barrier, a lay-by, a bus stop and a row of trees.
  *
  *   THE LAKE'S EDGE: silvered driftwood along the line the waves reach,
  *   and a bed of water lilies in the lee of the reed bank.
@@ -89,6 +91,7 @@ import {
   UP, Mesher, propMaterial, shade, box, frame,
 } from './mesh.js';
 import { boatShed } from './lakeside.js';
+import { roadside } from './roadside.js';
 
 const COLLIDE_R = 700;
 /* Fence spans are drawn this far from the camera. */
@@ -1056,6 +1059,10 @@ export function buildProps(ctx) {
     }
   }
 
+  /* The road's own furniture, and its end at the lake (roadside.js),
+   * from a generator of its own so nothing above moves. */
+  const road = roadside(m, heightAt, makeRng(20261005));
+
   /* The huts, the bales, the bars and the reeds: one draw. */
   const staticMat = propMaterial();
   const staticMesh = new THREE.Mesh(m.geometry(), staticMat);
@@ -1107,6 +1114,8 @@ export function buildProps(ctx) {
     group,
     update,
     margins,
+    pads: road.pads,
+    roadTrees: road.trees,
     stats: {
       huts: huts.length, bales, spans: spans.length, reeds, delineators, driftwoods, lilies, molehills,
     },

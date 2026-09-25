@@ -90,10 +90,12 @@ const DGRID = 20;
  * (vegetation/index.js). A floor tree is then drawn as the alps would
  * draw it, and turned away after its draws where the ground under it is
  * not the alps'. `standsOnly` stops after the stands and returns only how
- * many draws they took.
+ * many draws they took. `planted` is the map's own trees ({ x, z, kind,
+ * s }: a lime, a walnut or a fruit tree and its size in [0, 1)), planted
+ * after everything else.
  */
 export function plantForest({
-  heightAt: groundAt, layout: ground, rng: standRng, spacing, colliders, floor = null, standsOnly = false,
+  heightAt: groundAt, layout: ground, rng: standRng, spacing, colliders, floor = null, standsOnly = false, planted = null,
 }) {
   let heightAt = groundAt;
   let layout = ground;
@@ -494,6 +496,26 @@ export function plantForest({
   orchard(-300, 405, 0.3, 4, 4);
   orchard(-150, 390, -0.2, 5, 3);
   orchard(-250, -365, 0.05, 5, 3);
+  /* The village's own trees (swiss2/village/yards.js), last of all so
+   * nothing above moves: big old limes and walnuts between the houses and
+   * fruit trees in the gardens, where the village's plan put them. One
+   * that would stand within four metres of a tree already here is left
+   * out. All of one broadleaf model at three sizes: a second model
+   * newly in a view is a mesh more to draw in it and in both shadow
+   * maps, and the square's view had only this one. */
+  const tagged = xs.length;
+  const SIZE = { lime: [0.8, 0.3], walnut: [0.68, 0.22], fruit: [0.4, 0.14] };
+  for (const p of planted ?? []) {
+    const near = (k) => Math.abs(xs[k] - p.x) < 4 && Math.abs(zs[k] - p.z) < 4;
+    let crowded = false;
+    for (let k = 0; k < tagged && !crowded; k += 1) {
+      crowded = near(k);
+    }
+    if (!crowded) {
+      const [s0, ds] = SIZE[p.kind];
+      add(p.x, heightAt(p.x, p.z), p.z, s0 + ds * p.s, V.maple);
+    }
+  }
   return {
     x: Float32Array.from(xs),
     y: Float32Array.from(ys),

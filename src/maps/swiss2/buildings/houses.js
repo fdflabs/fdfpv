@@ -84,6 +84,25 @@ function roofOf(f) {
   return { solar: own(f, 31) < 0.22, dormer: own(f, 32) < 0.3 };
 }
 
+/* What the roof is covered with. The village's plan gives each kind of
+ * house one, and from the air eight chalets in the same grey shingle
+ * were one roof printed eight times: here a few were re-covered in new
+ * larch not yet grey, some have gone green under their trees, some were
+ * re-done in eternit, the rest are as the plan says. */
+function coverOf(f, planned) {
+  const r = own(f, 33);
+  if (r < 0.14) {
+    return 'shingleNew';
+  }
+  if (r < 0.34) {
+    return planned === 'slate' ? 'slateNew' : 'shingleMossy';
+  }
+  if (r < 0.46) {
+    return 'slateNew';
+  }
+  return planned;
+}
+
 /* Joist ends under a jettied storey, along one wall frame. */
 function joists(wall, len, y) {
   const n = Math.max(3, Math.round(len / 1.3));
@@ -111,9 +130,10 @@ function gableRow(wall, len, y, opts) {
 export function chalet(f, rng, spec) {
   const {
     w = 9, d = 12, floors = 1, roof = 'gable', board = 'larch', base = 'stone',
-    balconies = 'one', shutter = 'shutterGreen', roofKey = 'shingle',
+    balconies = 'one', shutter = 'shutterGreen', roofKey: planned = 'shingle',
     found = 0.3, pitch = 0.46, ov = 1.3, ovE = 1.2, ovA = ovE, ovB = ovE, blankA = false,
   } = spec;
+  const roofKey = coverOf(f, planned);
   const baseH = 2.5;
   const floorH = 2.55;
   const jet = 0.3;

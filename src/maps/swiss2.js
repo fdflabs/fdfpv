@@ -75,6 +75,7 @@ import {
   natureSites, buildShore, buildReeds, buildDrifts,
 } from './alps/nature.js';
 import { ribbon } from './alps/ribbon.js';
+import { PAINT } from './alps/vehicles.js';
 import {
   loadTerrainArrays, loadSurface, loadSky, SURFACES, SKY_K, SKY_SPAN_DEG,
 } from './swiss2/assets.js';
@@ -99,6 +100,9 @@ import { buildCliffs, occupiedCells, trimGround } from './swiss2/rock/index.js';
 import { valleyLayout } from './swiss2/vegetation/zones.js';
 
 const CAMERA_FAR = 14000;
+/* The paints the cars in the village's yards come in, by yards.js's
+ * choice of one of six. */
+const YARD_PAINTS = [PAINT.white, PAINT.silver, PAINT.anthracite, PAINT.blue, PAINT.red, PAINT.green];
 /* The forests' seed: the floor's trees are drawn from it as though the
  * walls were still the alps' (vegetation/index.js decideAt). */
 const FOREST_SEED = 20260928;
@@ -473,6 +477,7 @@ function photoStyle() {
        * the meadow keep off the huts, whose wall colliders note them as
        * footprints; the houses noted before them are the gardens. */
       const gardens = stage.footprints.slice();
+      const { yards: yard } = style.look.buildings.layout;
       /* The farm-low view's farm is walled after the gardens are taken
        * (swiss2/village/farm.js). */
       for (const b of style.look.buildings.farmWalls) {
@@ -494,6 +499,9 @@ function photoStyle() {
        * map's before the forests keep off them (swiss2/props/lakeside.js). */
       stage.lakeside = buildLakeside({ heightAt, footprints: stage.footprints });
       scene.add(stage.lakeside.group);
+      /* The lakeside road's lay-by and bus stop (swiss2/props/roadside.js),
+       * which the grass keeps off. */
+      stage.footprints.push(...stage.props.pads);
       /* The lake draws the wake of the sailing boat on it. */
       stage.water.boat.value = stage.lakeside.boat;
       /* The carved rock on the walls, in place of the ground's own
@@ -523,20 +531,54 @@ function photoStyle() {
         margins: stage.props.margins,
         sunDir: stage.sunDir,
         craft: stage.craft,
+        planted: [...yard.trees, ...stage.props.roadTrees],
       });
       scene.add(stage.veg.group);
       stage.mirrorSkip = ['swiss2-grass', 'swiss2-meadow'].map((n) => stage.veg.group.getObjectByName(n)).filter(Boolean);
+      /* What the yards built, solid only now that the forest is planted,
+       * and the cars and tractors parked in them (swiss2/village/yards.js). */
+      for (const [how, ...args] of yard.later) {
+        colliders[how](...args);
+      }
+      const V = style.look.vehicles;
+      const park = (bake, built, c) => {
+        const y = heightAt(c.x, c.z);
+        bake.add(built, c.x, y, c.z, c.yaw);
+        const cs = Math.abs(Math.cos(c.yaw));
+        const sn = Math.abs(Math.sin(c.yaw));
+        const hw = (cs * built.size.L + sn * built.size.W) / 2;
+        const hd = (sn * built.size.L + cs * built.size.W) / 2;
+        colliders.addBox('wall', c.x - hw, y, c.z - hd, c.x + hw, y + built.size.H, c.z + hd);
+      };
+      const yards = V.parked('parked-yards');
+      for (const c of yard.cars) {
+        park(yards, c.kind === 'tractor' ? V.buildTractor() : V.buildCar(c.kind, YARD_PAINTS[c.paint]), c);
+      }
+      if (yard.cars.length) {
+        scene.add(yards.mesh());
+      }
       nature.pines = stage.veg.stats.trees;
       floorUnderTrees(stage.masks.zones, stage.veg.forest);
       /* The villagers in the square, drawn the vehicles' way. */
       stage.people = buildPeople({ layout: style.look.buildings.layout, heightAt, material: style.look.vehicles.material });
       scene.add(stage.people.mesh);
-      stage.masks.walls.value = own(wallMask(stage.footprints));
+      stage.masks.walls.value = own(wallMask(stage.footprints, yard.marks));
       const baked = bakeTerrainShadow(stage.renderer, field, far, stage.sunDir);
       stage.shadowTarget = baked.shadow;
       stage.heights.texture.value = own(baked.height);
       stage.lit.setShadow(stage.shadowTarget.texture);
       style.clouds.setTerrain(baked.height, stage.shadowTarget.texture);
+      /* The strip before the ground under it. It lies two centimetres
+       * over the ground, and drawn after it the ground's whole splat was
+       * run under the strip for nothing, 1.3 ms a frame in craft-chase
+       * at High (scripts/swiss2-perf.js); drawn first, the depth test
+       * turns the ground away there before its splat is run. The picture
+       * is the same: the nearer surface wins in either order. */
+      scene.traverse((o) => {
+        if (o.material && o.material.userData && o.material.userData.s2Strip) {
+          o.renderOrder = -1;
+        }
+      });
       finishScene(scene, stage.lit);
     },
     compose(shell, map, q) {

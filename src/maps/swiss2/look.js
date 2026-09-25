@@ -322,6 +322,15 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     shingle: { group: 'shingle', tint: [0.62, 0.58, 0.55], weather: 'roof', grey: 1 },
     shingleDark: { group: 'shingle', tint: [0.5, 0.47, 0.44], weather: 'roof', grey: 1 },
     slate: { group: 'slate', tint: [1.15, 1.15, 1.2], weather: 'roof', grey: 0.45 },
+    /* No two roofs in a village were laid in the same year: a few of
+     * new larch shingle not yet gone grey, some gone green with moss
+     * under the trees, some re-covered in dark eternit, the sheds' in
+     * tin, and here and there a sheet of it rusted. */
+    shingleNew: { group: 'shingle', tint: [0.95, 0.72, 0.52], weather: 'roof', grey: 0.12 },
+    shingleMossy: { group: 'shingle', tint: [0.52, 0.5, 0.45], weather: 'roof', grey: 1.7 },
+    slateNew: { group: 'slate', tint: [0.6, 0.62, 0.66], weather: 'roof', grey: 0.08 },
+    tin: { group: 'plain', tint: [0.14, 0.14, 0.135], rough: 0.75, metal: 0.2 },
+    tinRust: { group: 'plain', tint: [0.2, 0.085, 0.04], rough: 0.8, metal: 0.1 },
     hangar: { group: 'ribbed', tint: [0.36, 0.42, 0.39], weather: 'wall' },
     hangarRoof: { group: 'ribbed', tint: [0.34, 0.36, 0.36] },
     hangarDoor: { group: 'ribbed', tint: [0.46, 0.5, 0.5], weather: 'wall' },
@@ -348,6 +357,11 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     geranium: { group: 'plain', tint: [0.62, 0.02, 0.03], rough: 0.75 },
     geraniumPink: { group: 'plain', tint: [0.62, 0.05, 0.2], rough: 0.75 },
     leaf: { group: 'plain', tint: [0.035, 0.1, 0.025], rough: 0.8 },
+    /* A clipped hedge: beech and privet, dark in the body and paler
+     * where the summer's growth has come since the shears. */
+    hedge: { group: 'plain', tint: [0.026, 0.058, 0.02], rough: 0.85 },
+    hedgeLight: { group: 'plain', tint: [0.05, 0.095, 0.028], rough: 0.8 },
+    hedgeDark: { group: 'plain', tint: [0.014, 0.034, 0.012], rough: 0.9 },
     ivy: { group: 'plain', tint: [0.018, 0.05, 0.014], rough: 0.6 },
     ivyLight: { group: 'plain', tint: [0.04, 0.085, 0.02], rough: 0.65 },
     rose: { group: 'plain', tint: [0.5, 0.04, 0.09], rough: 0.8 },
@@ -564,7 +578,11 @@ export function makePhotoLook({ surfaces, ground, heights }) {
    * builder asking for a surface nobody has said the finish of, and fails
    * loudly rather than drawing three's default white. */
   const byName = {
-    strip: () => ground({ strip: 1 }),
+    strip: () => {
+      const m = ground({ strip: 1 });
+      m.userData.s2Strip = true;
+      return m;
+    },
     timber: () => textured('boards', lin(0.8, 0.7, 0.6)),
     'boat-hull': (opts) => textured('boards', lin(0.9, 0.7, 0.55), { side: opts.side ?? THREE.FrontSide }),
     'gravel-path': () => textured('gravel', lin(0.75, 0.72, 0.7)),
