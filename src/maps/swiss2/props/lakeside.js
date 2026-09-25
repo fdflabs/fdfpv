@@ -165,12 +165,15 @@ function house(m, heightAt, rng, spec) {
     const e0 = at(s * (w / 2 + eave), top - drop + 0.22, -d / 2 - over);
     const e1 = at(s * (w / 2 + eave), top - drop + 0.22, d / 2 + over);
     const tone = shade(roof, 0.9 + 0.2 * rng());
+    /* The covering faces up and the boards under it down: wound the
+     * other way, the sky saw the dark boards and the covering only
+     * showed from under the eaves. */
     if (s > 0) {
-      m.quad(r0, e0, e1, r1, tone);
-      m.quad(r0.clone().setY(r0.y - 0.22), r1.clone().setY(r1.y - 0.22), e1.clone().setY(e1.y - 0.22), e0.clone().setY(e0.y - 0.22), shade(TIMBER, 0.6));
+      m.quad(r0, r1, e1, e0, tone);
+      m.quad(r0.clone().setY(r0.y - 0.22), e0.clone().setY(e0.y - 0.22), e1.clone().setY(e1.y - 0.22), r1.clone().setY(r1.y - 0.22), shade(TIMBER, 0.6));
     } else {
-      m.quad(r1, e1, e0, r0, tone);
-      m.quad(r1.clone().setY(r1.y - 0.22), r0.clone().setY(r0.y - 0.22), e0.clone().setY(e0.y - 0.22), e1.clone().setY(e1.y - 0.22), shade(TIMBER, 0.6));
+      m.quad(r1, r0, e0, e1, tone);
+      m.quad(r1.clone().setY(r1.y - 0.22), e1.clone().setY(e1.y - 0.22), e0.clone().setY(e0.y - 0.22), r0.clone().setY(r0.y - 0.22), shade(TIMBER, 0.6));
     }
     const fa = e0.clone().setY(e0.y - 0.22);
     const fb = e1.clone().setY(e1.y - 0.22);
@@ -266,7 +269,8 @@ function church(m, heightAt, { x, z, yaw }) {
     const r1 = at(0, h + rise + 0.2, d / 2 + 0.4);
     const e0 = at(s * (w / 2 + 0.5), h - 0.3, -d / 2 - 0.4);
     const e1 = at(s * (w / 2 + 0.5), h - 0.3, d / 2 + 0.4);
-    m.quad(...(s > 0 ? [r0, e0, e1, r1] : [r1, e1, e0, r0]), roof);
+    /* Facing up: wound the other way it showed only from inside. */
+    m.quad(...(s > 0 ? [r0, r1, e1, e0] : [r1, r0, e0, e1]), roof);
   }
   m.tri(at(-w / 2, h, d / 2), at(0, h + rise, d / 2), at(w / 2, h, d / 2), white);
   /* Tall windows down the nave's sides. */
