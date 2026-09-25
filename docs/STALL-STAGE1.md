@@ -752,3 +752,195 @@ Open, each left failing or unmet on purpose:
   not published.
 - **The Bramor**, untwisted by decision, tip stalls into a flat spin its
   elevons do not recover; the chute recovers it at its rated sink.
+
+## Round 5: the four open items, measured, and why none is built
+
+Crash round 5's aero brief (docs/CRASH-PLAN.md, "Round 5") took the four
+open items above. Each was measured on main 9f4c313, and again on
+0eaa193 (#70's part data, which moves no flight), against what it would
+take to meet it. None could be met inside the rules this model works
+under: flight short of the stall byte for byte what it was, no band or
+bound moved, washout FITTED only up to the 5 deg the Skyhunter's fit
+stopped at. So the plant is unchanged, and what each item needs is here
+for the lead and the owner. The numbers come from `npm run stall:probe`,
+`node scripts/crash-suite.js` and the gates, run on scratch builds that
+changed one thing each; none of those builds is committed.
+
+The probe gained one column, F: A's flight with the stick brought full
+back at once instead of over 2 s. That is the entry the crash suite's
+stall ins fly (tests/crash/scenarios.js) and the Slow Stick's S9, and it
+is not the handbook's: the elevator overshoots the angle of attack well
+past the stall before the pitch break comes. The probe's stall time also
+skips its first sample, which is read before the step and held the
+previous flight's angle (the Bramor's E read "stall at 0.00 s", now 0.92
+s); no other number moved.
+
+### The Radian
+
+**Which Radian.** The model is the Radian Pro: ailerons on the roll stick
+(`FW_MIX_TAIL`), on the classic 2 m Radian's wing (docs/GLIDER-STAGE1.md,
+"Which Radian, and why"). The one review ("extremely gentle. More of a
+flat mush than an abrupt drop of the nose", RCGroups, an aft CG) does not
+say which variant it flew, and RCGroups still does not answer a fetch.
+
+**The geometry is already in.** The brief asked for a drawing of the
+wing. The Radian's derivation already measured one: the EFL4750 manual's
+top view, a constant 0.200 m chord to 0.60 m out, the leading edge
+curving back to 0.110 m at 0.95 m, a rounded tip, the trailing edge
+straight (`strip_c` 1.101, 1.096, 1.074, 0.775 of the mean chord).
+Averaging the tip strip over the rounded tip instead of reading it at
+seven eighths gives the same Schrenk load, 0.897 of the wing's. The
+planform loads the root most, so the root strip stalls first, at 10.5
+deg, and the tip last, at 12.6: not a tip stall. The polyhedral's
+dihedral effect is in Clβ (−0.182, the drawn 2 to 14 deg curve by strip
+theory) at every angle, past the stall too. One geometric effect is not
+modelled: a panel with local dihedral Γ meets the air at
+atan(tan α cos Γ). At the tip strip, 11.2 deg of local dihedral, that is
+0.3 deg less at 16 deg of angle of attack; at five eighths, 0.1. As
+geometry it is worth about 0.3 deg of washout against the 6 the fit
+below needs, so it was not added.
+
+**Washout, FITTED by the rule, is not met within the bound.** The probe's
+A (the handbook's entry), D, and F (the crash suite's entry):
+
+| washout, deg | A: wing drop, 10 s bank | D: stall recovery | F: wing drop, 10 s bank |
+| --- | --- | --- | --- |
+| 0 (main) | 72, 72 | none in 7 s | 67, 70 |
+| 2 | 66, 66 | none in 7 s | 61, 66 |
+| 4 | 54, 59 | 0.11 s | 53, 63 |
+| 5 (the bound) | 43, 43 | 0.12 s | 48, 48 |
+| 5.5 | 5.7, 32 | 0.15 s | 45, 45 |
+| 6 | 3.5, 24 | 0.16 s | 41, 41 |
+| 8 | 1.3, 11 | 0.16 s | 27, 27 |
+| 10 | 1.2, 11 | 0.16 s | 5.0, 13 |
+
+- **D was not a stall that would not recover.** Centred, the wing
+  unstalls within half a second (alpha 3.6 deg at 5.5 s). The probe also
+  waits for the yaw rate to fall under 20 deg/s, and the Radian, left
+  banked 57 deg with its ailerons centred, flies a banked phugoid that
+  does not get there in 7 s.
+- **6 deg meets the handbook's entry and not the suite's.** In the crash
+  suite's radian-stall, 6 deg of washout arrives sinking 5.2 m/s with
+  minUpZ 0.77, against main's 7.0 m/s and 0.28, still a wing drop, and
+  its peak g goes from 135 to 177. The abrupt pull takes the angle of
+  attack to 22.5 deg, past the washed out tips' stall as well, and a
+  washout moves the tips' fall into that overshoot. A mush on the abrupt
+  entry needs 10 deg, which no foam glider is built with.
+- **The section is not the lever.** A longer top, the Clark-Y class's
+  3.7 or 4.6 deg instead of the SD7037 class's 1.4, drops it further
+  under A (74 and 75 deg): a section on its flat top has no roll damping,
+  and a longer top holds more of the wing there.
+
+**A check that moves with any fit: glider:stab's rudder roll.** "The roll
+lock holds back at least three quarters of the roll that rudder gives in
+Manual" flies its Manual reference from a 14 m/s throw with the pitch
+stick at neutral. The Radian's neutral elevator trims 7.7 m/s, so it
+zooms, and by the end of the 1 s rudder hold it is at 3.7 m/s and 21 deg
+of angle of attack: the 53.4 deg it reads on main is partly a stalled
+wing's drop. Any washout of 5 deg or more takes some of that drop away
+and the reference falls to 45 to 47 deg, under the 47.6 the check needs
+against Acro's 11.9. Flown with the elevator Acro holds level on, so the
+rudder meets the same speed, Manual rolls 37.0 deg on main, with or
+without washout, and 11.9 is 32 percent of it: the check fails on main
+as well once its reference does not stall. That is a question for the
+Acro roll lock, not for the stall, and the check is left as it is.
+
+### The Timber held full back
+
+The drift is not the section's fall and not the tips. Held full back the
+wing mushes at about 20 deg, where the root strip is past its top, the
+middle two are on theirs and the tips are short of their stall. On a
+flat top a strip has no roll damping, so the roll is left to the
+dihedral (Clβ −0.047, 1.5 deg effective, ESTIMATED for a flat high wing
+with drooped tips) against the yaw rate's roll, Clr = CL/4 at the mush's
+lift. Seeded by the build asymmetry, the bank grows through the turn it
+makes; with no asymmetry it stays level to the hundredth of a degree.
+
+| Change, slats on unless said | 10 s bank |
+| --- | --- |
+| main | 50.5 (slats off 49.8) |
+| no build asymmetry | 0.0 |
+| washout 4, 5 (fitted 2) | 37.8, 35.1 (slats off 41.0, 33.0) |
+| the slats' fall, slat_k 0.95 and 1.0 (0.84) | 50.9, 51.0 |
+| the slats on their drawn span, 0.10 to 0.69 m, instead of spread over every strip | 42.8 |
+
+The slats' span is a real correction the plant does not make: the
+derivation puts them on 78 percent of the span (docs/TIMBER-STAGE1.md)
+and the plant spreads their CLmax increment evenly, where by strip it is
+0.47, 1, 1 and 0.68 of the full slat's. It helps and does not meet the
+item, and it changes the Timber's recorded stalls, so it is left for
+when the Timber's dihedral is looked at. What would meet the item is
+more dihedral effect than 1.5 deg, and Clβ acts at every angle, so it
+moves every Timber flight short of the stall too.
+
+### The Slow Stick's S9b
+
+Full up held under power: a steady turn to the left at 5.5 m/s that
+tightens, 28.7 deg of bank and 44.5 deg/s at 8 s, not a spin. The
+propeller terms, checked against the motor and prop (the GWS 11 x 8 at
+75 percent, 2,475 rpm in the plant, 0.55 N at 5.5 m/s):
+
+- **Torque.** The plant scales torque with thrust at the static ratio,
+  0.0122 N m per N, 0.0067 N m here. By momentum theory the torque in
+  flight is T (V + v_i)/Ω: v_i is 0.62 m/s, so 0.013 N m, about twice.
+- **P factor.** The Cub's κ = 1 + φ/(2 α_b) at 0.75 R on this prop:
+  blade angle 17.2 deg, inflow 12.7 deg, so κ is about 2.4 against the
+  table's 1.6.
+- **Slipstream.** Not modelled. Here it would raise the dynamic pressure
+  over the wing's root and the tail by half, and take about 2 deg off the
+  root strip's angle.
+
+Both sized terms would turn it harder, not softer: with the torque
+removed S9b reads 24.9 deg, with the P factor removed 24.9. So S9b is not
+a propeller term that is too big. It is the Timber's drift again: the
+wing on its flat top has no roll damping, and the torque and P factor
+seed the turn that the yaw rate's roll then tightens. Washout 3, 4 and
+5 deg (fitted 2) give 24.0, 19.2 and 15.9 deg of bank, still out at the
+bound; with the strips removed, 7.7. The RCM&E review ("only if bags of
+elevator is fed in while the model is virtually stationary") speaks of
+the stall, not of a held powered pull.
+
+### The Bombshell's take off heading
+
+6.6 deg and 0.80 m off at lift off against 5 and 0.5; 4.85 deg before
+#59. The propeller terms, against the Cox Texaco .049 on its 7 x 3.5:
+
+- **P factor.** The Cub's κ on this prop: 12.0 deg of blade angle at
+  0.75 R and 979 rad/s. Static, 6.8 m/s of induced velocity puts κ at
+  1.50, and at 5 m/s of roll 1.75. The table's 1.6 is this prop's value
+  over the roll.
+- **Torque.** The ideal disc's 0.0197 N m at static full thrust, inside
+  S11's band.
+
+One thing at a time, the heading at lift off: no P factor −7.2 (it swings
+right), no torque 9.1, no build asymmetry 6.8, no strips 6.8. With the
+stalled wing's lift put back to the plate's (the lift before #59,
+everything else as now), 4.5. That is the change: the three point
+attitude sits at 13.2 deg against the 11.5 deg stall, where the section
+holds its lift. The skid unloads sooner (0.06 N at 2.0 s against 0.14)
+and the tail comes up at 2.5 s and 6.1 m/s instead of 3.0 s and 6.6
+m/s, with less air on the fin, and the P factor and torque swing it
+through that half second. The skid's friction is the gear's, ESTIMATED,
+and not an aero number. Ground effect, which lowers the stall's angle
+near the grass, is not modelled; it would act the other way, but it acts
+short of the stall as well.
+
+### What is left for a decision
+
+- **The Radian:** a washout past the 5 deg bound (6 meets the handbook's
+  entry, 10 the suite's), or leave it; and glider:stab's rudder roll
+  reference, which stalls.
+- **The Timber and S9b:** both criteria read a 10 s or 8 s wander, where
+  a wing on its flat top has no roll damping. Meeting them needs the
+  Timber's effective dihedral or the Slow Stick's propeller model, both
+  of which act short of the stall.
+- **The Bombshell:** its band was at its edge before the stall model,
+  and the held lift on the three point roll is what the owner signed off.
+
+The crash suite on main 0eaa193, which this round does not change: 60
+deterministic, 11 inside every band. The stall ins, peak g, sink at the
+contact and rest distance: sky-stall 186 g, 2.85 m/s, 21.7 m; cub-stall
+10 g, 2.24, 18.4 (inside every band); radian-stall 135 g, 7.04, 1.2;
+slowstick-stall 17 g, 1.74, 9.3; timber-stall 8 g, 2.15, 23.3 (inside
+every band); bramor-stall 193 g, 6.39, 3.8; bramor-catapult-stall 58 g,
+4.27, 14.0.
