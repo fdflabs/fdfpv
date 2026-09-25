@@ -1693,12 +1693,16 @@ SIM_EXPORT int sim_contact(double nx, double ny, double nz,
  */
 /* The material sim_contact_at_mat hands its body, for one call. */
 static int g_contact_mat = SIM_SURF_DEFAULT;
+/* The part the host says its next contact is on, sim_contact_part. */
+static int g_contact_part = -1;
 
 SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
                               double restitution, double mu,
                               double px, double py, double pz,
                               double vsx, double vsy, double vsz,
                               double rx, double ry, double rz) {
+  const int host_part = g_contact_part;
+  g_contact_part = -1;
   if (!g_initialised) {
     return SIM_ERR_BAD_STATE;
   }
@@ -1748,10 +1752,28 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   }
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
-   * side of the face. The impulse still sees the inbound velocity. */
+   * side of the face. The impulse still sees the inbound velocity. The
+   * host's part goes with the host's point, not with the plant's own. */
+  crash_host_part(place == SIM_PLACE_OWN ? -1 : host_part);
   crash_batch_begin(&S, 0);
   contact_impulse(n, r, vs, restitution, mu, 0.0);
   crash_batch_end(&S);
+  crash_host_part(-1);
+  return SIM_OK;
+}
+
+/*
+ * The part the host's next sim_contact_at (or sim_contact_at_mat) is on,
+ * at the arm it passes: sim_abi.h. Consumed by that call whatever it does.
+ */
+SIM_EXPORT int sim_contact_part(int part) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (part < -1 || part >= SIM_PARTS_MAX) {
+    return SIM_ERR_BAD_ARG;
+  }
+  g_contact_part = part;
   return SIM_OK;
 }
 

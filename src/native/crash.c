@@ -1163,11 +1163,18 @@ static int g_att_part = 0;
 static double g_att_b[3];
 static double g_att_nb[3]; /* the contact's normal, body frame */
 static int g_hint = -1;
+static int g_host_part = -1;
 
 /* The solver is resolving the parts' own sampler k: it is that part's
  * contact, at that point. */
 void crash_hint_sampler(int k) {
   g_hint = k;
+}
+
+/* The host's contact is on part i, at the arm it gave (sim_contact_part),
+ * -1 for a host that does not say. */
+void crash_host_part(int i) {
+  g_host_part = i;
 }
 
 static void attribute(const SimState *s, const double r[3], const double n[3]) {
@@ -1178,6 +1185,21 @@ static void attribute(const SimState *s, const double r[3], const double n[3]) {
     g_att_b[0] = g_samp[g_hint][0];
     g_att_b[1] = g_samp[g_hint][1];
     g_att_b[2] = g_samp[g_hint][2];
+    return;
+  }
+  /* A host that meets the world with the parts' own boxes (a fixed wing
+   * in the shell, src/game/airframehull.js) knows which part it met and
+   * where: a pole met by a wing panel is the panel's, though the nose
+   * stands further toward the pole. Its point, held to that part's box. */
+  if (g_host_part >= 0 && g_host_part < t->n && attached(g_host_part)) {
+    double rb[3];
+    qrot_inv(s->quat, r, rb);
+    g_att_part = g_host_part;
+    for (int a = 0; a < 3; a += 1) {
+      const double lo = t->lo[g_host_part][a] - g_shift[a];
+      const double hi = t->hi[g_host_part][a] - g_shift[a];
+      g_att_b[a] = rb[a] < lo ? lo : (rb[a] > hi ? hi : rb[a]);
+    }
     return;
   }
   const double mn[3] = { -n[0], -n[1], -n[2] };
