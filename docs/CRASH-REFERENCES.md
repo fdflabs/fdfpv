@@ -237,6 +237,19 @@ and a fall.
 2015).** https://ntrs.nasa.gov/api/citations/20160006503/downloads/20160006503.pdf
 Test 1, a stalled flare onto concrete: tail strike at 0.125 s, 4.1 to 5.9 g
 sustained, a rebound keeping most of the forward speed, little damage.
+Reread in round 5 (the report's Table 4 and "Test 1 Results"): "Test 1 was
+designed to simulate a flare to stall onto a rigid surface such as
+concrete", while "Tests 2 and 3 were designed to simulate controlled
+flight into terrain conditions". Test 1 arrived at 60.2 ft/s (18.3 m/s)
+forward and 23 ft/s (7.0 m/s) down, pitched 1.48 deg nose up, nose gear
+first and the mains 6 ms later; "The airframe main gear compressed almost
+to the point of belly impact", "the aircraft rebounded with most its
+horizontal velocity maintained", "With the exception of the tail, there
+was no noticeable damage on the fuselage". DERIVED Froude scaling to a 1.4
+m model (span ratio 0.127, speeds times its square root, 0.357): 6.5 m/s
+forward, 2.5 m/s down, the sink a Cub's own wing gives mushing at its
+CLmax (docs/STALL-STAGE1.md: 1.5 to 2.5 m/s). Test 1 is the report's only
+stall; test 2 below is a flight into terrain, not a stall.
 Test 2, nose down into soft soil at 20.9 m/s forward and 8.6 m/s down: the
 left wing and nose gear broke away at about 0.10 s, "After 0.240-seconds the
 airplane started to flip over", "landed upside-down approximately
@@ -257,7 +270,15 @@ leads to a more rapid and less predictable descent to the ground".
 
 **R-SLIDE.** A belly slide from 1.5 to 2 times the stall: stopping distance
 v squared over 2 mu g with a foam belly on grass at mu 0.3 to 0.6
-(ASSUMPTION): 10 m/s slides 8.5 to 17 m (DERIVED). LOW.
+(ASSUMPTION): 10 m/s slides 8.5 to 17 m (DERIVED). LOW. Round 5: the
+bands were one 8 to 30 m (2 to 5 s) for every belly slide, derived at 10
+m/s, while the scenarios arrive at the aircraft's own 1.5 to 2 times the
+stall (the premise above; the approach flown on the sink rate touches
+down anywhere in it). Each belly band is now R-SLIDE at that aircraft's
+own V_s (tests/crash/scenarios.js CRAFT): the shortest slide is 1.5 V_s
+at mu 0.6, the longest 2 V_s at mu 0.3, the times v over mu g at the same
+ends, rounded outward. Neglected, in both directions: the wing's lift
+unloading the belly (longer) and the airframe's drag (shorter).
 
 **R-SEAPLANE. FAA Seaplane, Skiplane, and Float/Ski Equipped Helicopter
 Operations Handbook, FAA-H-8083-23.**
@@ -386,6 +407,74 @@ propeller dug into the sand, the airplane nosed over and came to rest
 inverted". Full size, one report each: the mechanism (a blade that digs
 into soft ground holds the nose while the aircraft goes over it), not a
 number. No figure for how hard a blade grips as it digs was found.
+
+**R-MUSH. What an RC trainer does held full back from low (round 5).**
+The kits' own published stall, collected in docs/STALL-STAGE1.md (the
+Round 4 aero record): a HobbyZone Carbon Cub, "stalls are uneventful"
+(Greg Gimlick, Model Aviation, May 2018); a HobbyKing Cub, "nice stall
+characteristics but it's easy to get into a wingtip stall" (Flite Test);
+the Turbo Timber with its slats, "they just sort of mush along and never
+drop a wing" (Greg Gimlick, Model Aviation, February 2020); the Slow
+Stick, "She'll stall if pushed but only if bags of elevator is fed in
+while the model is virtually stationary" (RCM&E, 2008). None of them
+says the nose or a wing goes down hard, and the owner flew the Cub's
+stall on this model and signed it off ("works", docs/CRASH-PLAN.md,
+Round 4 aero). An aircraft that mushes arrives the way R-C172 test 1 did,
+nose near level and sinking onto its gear, not the way R-DIG's Hatz did.
+LOW to MED: the reviews give the behaviour, not a number, and test 1
+gives the numbers of a full size arrival in that attitude.
+
+**R-POLE. A wing into a pole, from the aircraft's own part table (round
+5).** The pole bands were "the aircraft whips round it and drops at its
+foot", keeping at most 0.3 of its energy, sourced to R-AFH, whose words
+are the other way: an uneven contact risks "the loss of one wing, which
+invariably leads to a more rapid and less predictable descent to the
+ground", a descent, not a stop. The owner's report of the Cub on the real
+shell asks for the same ("it's not like just the wing falls off", PR
+#67). No measured model pole strike was found (the round's web search
+budget was spent before this item; section 5). DERIVED from the part
+table (docs/CRASH-STAGE1.md, read from dist/sim.wasm with
+`sim_part_info`), for a pole of 25 cm met at 60 percent of the half span
+at cruise (V_c, 2.5 m up):
+
+- The struck panel's root holds at most F_lim = min(F_max, M_max / a) at
+  the pole, a the pole's lever about the panel's joint across the flight
+  path. It carries that for no longer than the pole takes to cross the
+  panel's chord and its own diameter, (c + 0.25) / V_c, whether the
+  joint fails first or the leading edge crushes through (either ends the
+  panel's hold). The rest of the craft loses at most J = F_lim (c + 0.25)
+  / V_c of its momentum m V_c, and the kept speed is at least V_c - J / m.
+- **retainedFirst** at least that speed, less 100 ms at a drag ceiling of
+  0.3 g (ASSUMPTION, a tumbling airframe), squared over V_c squared; at
+  most 1, since the throttle closes at the hit.
+- **restDistM** from the pole: at least the kept speed over the shortest
+  fall, the lowest tip (2.5 m less the half span) at 1.5 g (the other
+  panel's cruise lift, half the weight, turned down as it rolls over), less
+  0.3 g of drag; at most V_c over the longest fall, the hull's belly (2.5 m
+  less vHalfDown) at 0.5 g (that lift still up, the stick centred and
+  the trim held, ASSUMPTION), plus R-A4-REBOUND's fixed wing travel after a
+  30 deg arrival, 2.5 m at 20 m/s scaled by the arrival speed squared
+  (the arrival sqrt(V_c^2 + 2 x 1.5 g x h), and 30 deg is about its path).
+- **timeToRestS** at least the shortest fall; at most the longest fall
+  plus the rebound's travel at the average of R-A4-REBOUND's slowest
+  rebound, 0.12 of the arrival speed.
+- **peakG** is unchanged at 20 to 100: at the pole the table allows at
+  most F_lim / m (3.7 to 17 g), so the band judges the ground impact that
+  follows, which R-AFH and R-FOAM still describe.
+
+| Airframe | F_lim N (joint) | J of m V_c, N s | kept | retainedFirst | restDistM | timeToRestS |
+| --- | --- | --- | --- | --- | --- | --- |
+| Skyhunter | 127 (60 N m at 0.472 m) | 4.22 of 31.3 | 0.865 | 0.71 to 1 | 5.6 to 16.6 | 0.45 to 2.8 |
+| Cub | 108 (40 N m at 0.372 m) | 3.65 of 17.8 | 0.795 | 0.59 to 1 | 4.9 to 14.8 | 0.45 to 2.7 |
+| Radian | 80 (45 N m at 0.564 m) | 2.53 of 13.9 | 0.818 | 0.63 to 1 | 4.9 to 15.9 | 0.45 to 2.8 |
+| Slow Stick | 15.7 (6 N m at 0.383 m, the one piece wing) | 1.55 of 2.35 | 0.342 | 0.08 to 1 | 0.5 to 6.2 | 0.5 to 2.1 |
+| Timber | 137 (58 N m at 0.422 m) | 3.86 of 30.6 | 0.874 | 0.73 to 1 | 7.2 to 19.8 | 0.45 to 3.1 |
+| Bramor | 769 (300 N m at 0.390 m) | 36.9 of 72.0 | 0.488 | 0.22 to 1 | 3.0 to 18.0 | 0.4 to 2.9 |
+
+LOW: the joint limits are the table's (themselves MED to LOW), and the
+lift during the fall is an assumption. What would raise it: a measured
+foam wing root failure, or model crash footage of a pole or trunk strike
+measured frame by frame.
 
 ## 3. Footage to measure
 
@@ -589,19 +678,19 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustNotBreak | wing, fuselage | R-C172 test 1, R-A14-FOAM (foam belly landings are routine) | MED |
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
-| restDistM | 8 to 30 | R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6) | LOW |
-| timeToRestS | 2 to 5 | R-SLIDE | LOW |
+| restDistM | 16 to 58 | R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v squared over 2 mu g | LOW |
+| timeToRestS | 2.3 to 6.3 | R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v over mu g | LOW |
 
-**sky-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**sky-pole.** Reference still: A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 5.6 to 16.6 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.45 to 2.8 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.71 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **sky-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
@@ -615,16 +704,13 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 
 ### J-3 Cub
 
-**cub-stall.** Reference still: Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.
+**cub-stall.** Reference still: Stalled low with the stick held back: the nose drops a little and it mushes down with the wings nearly level, lands hard on its gear, bounces and rolls on upright, nothing broken.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
-| mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
-| peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
-| restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
-| timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
+| mustNotBreak | wing, tail | R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH | MED |
+| peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged) | MED |
+| restAttitude | upright | R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH | MED |
 
 **cub-nose-in.** Reference still: A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.
 
@@ -665,16 +751,16 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted) | LOW |
 | restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
-**cub-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**cub-pole.** Reference still: A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 4.9 to 14.8 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.45 to 2.7 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.59 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **cub-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
@@ -728,19 +814,19 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustNotBreak | wing, fuselage | R-C172 test 1, R-A14-FOAM (foam belly landings are routine) | MED |
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
-| restDistM | 8 to 30 | R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6) | LOW |
-| timeToRestS | 2 to 5 | R-SLIDE | LOW |
+| restDistM | 8 to 29 | R-SLIDE at V_s 6.5 m/s: 1.5 V_s (9.75 m/s) at mu 0.6 to 2 V_s (13 m/s) at mu 0.3, v squared over 2 mu g | LOW |
+| timeToRestS | 1.6 to 4.5 | R-SLIDE at V_s 6.5 m/s: 1.5 V_s (9.75 m/s) at mu 0.6 to 2 V_s (13 m/s) at mu 0.3, v over mu g | LOW |
 
-**radian-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**radian-pole.** Reference still: A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 4.9 to 15.9 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.45 to 2.8 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.63 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **radian-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
@@ -754,16 +840,13 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 
 ### Slow Stick
 
-**slowstick-stall.** Reference still: Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.
+**slowstick-stall.** Reference still: Stalled low with the stick held back: it barely breaks, mushes down with the nose a little low, lands hard on its gear, bounces and rolls on upright, nothing broken.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
-| mustNotBreak | wing | R-A14-FOAM, R-SLOWSTICK | MED |
-| peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
-| restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
-| timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
+| mustNotBreak | wing, tail | R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH | MED |
+| peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged) | MED |
+| restAttitude | upright | R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH | MED |
 
 **slowstick-nose-in.** Reference still: A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.
 
@@ -802,16 +885,16 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustNotBreak | wing, fuselage, tail, prop | R-SLOWSTICK ("Almost every landing so far has been a shallow or steep dive into the weeds. The plane holds up well to these landings") | LOW |
 | restDistM | 0 to 7.4 | R-SLIDE, DERIVED (the most it can arrive with is 4.84 m/s plus a 1 m drop without drag, 6.6 m/s; a foam belly on grass at mu 0.3 slides v squared over 2 mu g, 7.4 m, the farthest a nose in can go) | LOW |
 
-**slowstick-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**slowstick-pole.** Reference still: A wing hits a wooden pole at cruise: the one piece wing is torn off its mount, and the stick with its motor and tail carries on past the pole, slowed, and drops onto the grass a few metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 0.5 to 6.2 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.5 to 2.1 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.08 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **slowstick-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
@@ -825,16 +908,13 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 
 ### Turbo Timber
 
-**timber-stall.** Reference still: Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.
+**timber-stall.** Reference still: Stalled low with the stick held back: it mushes down with the wings level, never dropping one, lands hard on its gear, bounces and rolls on upright, nothing broken.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
-| mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
-| peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
-| restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
-| timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
+| mustNotBreak | wing, tail | R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH | MED |
+| peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged) | MED |
+| restAttitude | upright | R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH | MED |
 
 **timber-nose-in.** Reference still: A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.
 
@@ -875,16 +955,16 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted) | LOW |
 | restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
-**timber-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**timber-pole.** Reference still: A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 7.2 to 19.8 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.45 to 3.1 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.73 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **timber-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
@@ -938,19 +1018,19 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustNotBreak | wing, fuselage | R-C172 test 1, R-A14-FOAM (foam belly landings are routine) | MED |
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
-| restDistM | 8 to 30 | R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6) | LOW |
-| timeToRestS | 2 to 5 | R-SLIDE | LOW |
+| restDistM | 32 to 115 | R-SLIDE at V_s 13 m/s: 1.5 V_s (19.5 m/s) at mu 0.6 to 2 V_s (26 m/s) at mu 0.3, v squared over 2 mu g | LOW |
+| timeToRestS | 3.3 to 8.9 | R-SLIDE at V_s 13 m/s: 1.5 V_s (19.5 m/s) at mu 0.6 to 2 V_s (26 m/s) at mu 0.3, v over mu g | LOW |
 
-**bramor-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**bramor-pole.** Reference still: A wing hits a wooden pole at cruise: the struck composite panel lets go at its root, the rest of the aircraft carries on past the pole, slowed, rolls toward the lost wing and comes down on the grass some metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 3 to 18 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.4 to 2.9 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.22 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **bramor-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
@@ -1198,3 +1278,67 @@ mis-staged test. What was restaged, and what was found to be the plant's.
   sourced better here was: the stall and nose over rest attitudes (R-DIG,
   above), the Slow Stick's ground accident (R-SLOWSTICK's landings) and
   the quad pilot after a hit (R-DISARM).
+
+## 8. Round 5: bands whose premise the physics disproved
+
+Against main ae57a29 (the plane hull, #68): 8 of 60 inside every band,
+147 failing checks of 303. After: 10 of 60 (cub-stall and timber-stall
+join), 122 failing of 294, all 60 deterministic in Node, replay and
+Chrome. Of the 25, 9 are checks removed with the reference they came
+from (all nine were failing) and 16 are checks that now pass; none that
+passed now fails. Every change is its own commit with its derivation.
+
+- **Stall ins, Cub, Timber, Slow Stick: R-C172 test 1 and R-MUSH
+  govern.** The nose low bands cited R-C172 test 2, which the NASA
+  report itself calls controlled flight into terrain; its one stall is
+  test 1, nose 1.5 deg up onto the gear, and Froude scaled its sink is
+  the mush's (R-C172). The kits' reviews and the owner's sign off say
+  these three mush (R-MUSH). Bands now: wing and tail whole, 3 to 10 g,
+  at rest upright. The rest distance and time went with test 2; test 1
+  gives none (a net stopped its roll), as for the wheeled fast landings.
+- **Stall ins still on test 2: Skyhunter, Radian, Bramor.** Their rest
+  attitude and time bands cite test 2 for a stall, which it was not.
+  Left unchanged, and LOW, because no source says how these three arrive
+  held full back: the Skyhunter has no stall report, the Radian's one
+  ("a flat mush", RCGroups, an aft CG) is weak and the plant does not
+  match it (the aero agent's), and the Bramor's manual gives none.
+  Whether they too follow test 1 is the lead's call.
+- **Belly slides: R-SLIDE at each aircraft's own V_s** (R-SLIDE).
+- **Poles: R-POLE**, from the part table, replacing a whip round that
+  R-AFH never said.
+
+### Staging, checked against each reference on ae57a29
+
+- The pole scenarios now meet the struck panel at the pole's own span
+  station (the suite's firstObstacle: sky, cub, radian, timber and bramor
+  on the right panel, the Slow Stick on its one piece wing, gap 0), and
+  only that panel and its aileron or elevon leave at the pole: they
+  reproduce R-POLE's event.
+- The five inch's gate, branch and wall clips meet a prop first, as
+  their references do; the whoop's wall and gate meet the frame (duct).
+- The belly slides touch down at 1.54 (Radian) to 1.96 (Skyhunter) times
+  the stall, inside R-SLIDE's 1.5 to 2; the Bramor's entry, 2 V_s, is
+  above its 25 m/s top speed, so it can only be reached in a dive; it
+  touches down at 1.67 V_s. Kept.
+- The cartwheels touch the grass within 1 to 89 ms of launch (the tip is
+  placed 10 cm up by the half span, and the hull's box reaches lower):
+  the event is still a banked tip catch at 1.3 V_s, so kept.
+- The Radian's and the Bramor's stall ins arrive in a wing drop (7.0 m/s
+  down) and a flat spin (6.4 m/s): the aero, not the staging.
+
+### Every LOW band, and what would raise it
+
+185 of the 294 checks are LOW. By source: R-AFH 84 (every cartwheel, the
+poles' break and peak checks, every tree), R-POLE 18, R-SEAPLANE 14,
+R-WHOOP 12, R-C172 10 (the three stall ins above and the float nose digs'
+Froude scaled times), R-A4-REBOUND 9 and R-A4-OFFSET 8 (the five inch's
+obstacles), R-SLIDE 7, R-ARM 6, R-NOSEOVER 6, R-LAUNCH 5, R-A14-FOAM 2,
+R-TURTLE, R-PROPLOSS, R-SLOWSTICK and R-CHUTE 1 each. What was raised
+this round: the three mushing stall ins, from LOW to MED, on test 1's
+own numbers. What was not, and why: the web search budget of this
+round's session ran out before any new report could be found, so the
+NTSB wing strike, AAIB and AMA reports, published drop tests and further
+ASSURE work this round meant to look for were not searched. They remain
+section 5's list, with the footage of section 3 measured frame by frame
+first for the five inch and the whoop, and a measured foam wing root
+failure for R-POLE.
