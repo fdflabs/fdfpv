@@ -217,8 +217,6 @@ export const CRASH_SCENARIOS = [
     async run(mk) {
       const checks = [];
       const cases = [
-        ['a five inch settling onto grass at 1 m/s', { id: 0 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.velocity([0, 0, -1]); r.run(1500, [0, 0, 0, 0.2]); }],
-        ['a five inch dropped flat from 1.5 m onto grass', { id: 0 }, (r) => { r.pose([0, 0, 1.5], [1, 0, 0, 0]); r.run(1500); }],
         ['a five inch taps a wall at 2 m/s', { id: 0 }, (r) => {
           r.pose([0, 0, 1], [1, 0, 0, 0]); r.velocity([2, 0, 0]);
           const s = r.state();
@@ -240,6 +238,36 @@ export const CRASH_SCENARIOS = [
         fly(on);
         fly(off);
         checks.push({ name: `${name}: trace identical with it on and off`, ok: on.plant.hex() === off.plant.hex() && on.events.length === 0 && on.damageSum === 0, detail: `${on.plant.hex()} ${on.summary()}, damage ${on.damageSum.toExponential(1)}` });
+      }
+      return checks;
+    },
+  },
+  {
+    /* The lead's round 2 rule (docs/CRASH-PLAN.md, "Decision on contact
+     * duration"): with the mode on every contact may have its physical
+     * duration. A part stiffer than the ground driven into it meets the
+     * ground's spring (crash.c, THE GROUND IS A SPRING), so these traces
+     * move with the mode on; what must still hold is that nothing is
+     * written, the blow is softer than the rigid one, and the craft comes to
+     * rest where it did. */
+    name: 'under every limit, the ground\'s spring is the only change',
+    async run(mk) {
+      const checks = [];
+      const cases = [
+        ['a five inch settling onto grass at 1 m/s', { id: 0 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.velocity([0, 0, -1]); r.run(1500, [0, 0, 0, 0.2]); }],
+        ['a five inch dropped flat from 1.5 m onto grass', { id: 0 }, (r) => { r.pose([0, 0, 1.5], [1, 0, 0, 0]); r.run(1500); }],
+      ];
+      for (const [name, opts, fly] of cases) {
+        const on = await mk({ ...opts, damage: 1 });
+        const off = await mk({ ...opts, damage: 0 });
+        fly(on);
+        fly(off);
+        const a = on.state();
+        const b = off.state();
+        const moved = Math.hypot(a[1] - b[1], a[2] - b[2], a[3] - b[3]);
+        checks.push({ name: `${name}: nothing written`, ok: on.events.length === 0 && on.damageSum === 0 && on.silent === 0, detail: `${on.summary()}, damage ${on.damageSum.toExponential(1)}` });
+        checks.push({ name: `${name}: a softer blow than the rigid contact's`, ok: on.peakG < off.peakG, detail: `${on.peakG.toFixed(0)} g against ${off.peakG.toFixed(0)} g` });
+        checks.push({ name: `${name}: at rest where the rigid contact left it`, ok: moved < 0.002, detail: `${(moved * 1000).toFixed(2)} mm apart` });
       }
       return checks;
     },

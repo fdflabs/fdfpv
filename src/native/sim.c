@@ -413,6 +413,7 @@ static int contact_impulse(const double n[3], const double r[3], const double vs
    * call returns having written nothing. */
   double jn_cap = -1.0;
   if (SIM_DAMAGE) {
+    crash_contact_depth(pen);
     crash_contact_pre(&S, r, n, vin, kn, &e_used, &jn_cap);
   }
 
@@ -683,7 +684,11 @@ static void ground_settle(double upz, double vn_plant) {
    * step. So in wind a wing's ground contact is Coulomb all the way down,
    * the friction below and the corners' own. Without wind nothing changes,
    * bit identical. */
-  const int coulomb = SIM_WIND_ON && PLANT.kind == PLANT_KIND_WING;
+  /* A part still being driven into the ground (crash.c, a crush or the
+   * ground's spring) is being stopped by its own impulses: the stops would
+   * end the blow in one step, so it too is Coulomb while it lasts. */
+  const int coulomb = (SIM_WIND_ON && PLANT.kind == PLANT_KIND_WING)
+      || (SIM_DAMAGE && crash_crushing());
 
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.

@@ -90,7 +90,12 @@ mode on.
   (or -1), this step's peak load over its limit, its permanent
   deformation (a dent in metres for a crushable part, a rotation vector
   in radians for a bent arm, boom or gear leg and for a knocked camera or
-  antenna), the energy it has absorbed, kind and parent.
+  antenna), the energy it has absorbed (J: its crush at the plateau, the
+  plastic work of a bend, M times the turn it took, and when it breaks the
+  strain energy it held at its limit, F^2 / 2k for a force or (M / L)^2 /
+  2k for a moment, L the reach from its joint to its farthest hull point;
+  the five inch arm's is 1.97 J, R-ARM derives 2.5; a crack's fracture
+  energy is not counted), kind and parent.
 - `sim_damage_events(out[max x 16], max)`: the events since the last call,
   oldest first, returns the count. Each: step, part, type (1 break, 2
   crush, 3 chip, 4 bend, 5 knock, 6 crack, 7 settle, 8 water, 9 tree;
@@ -278,7 +283,16 @@ dirt, and past 700 m/s, beyond any tip speed a hobby prop reaches, on
 grass, snow, foliage and water: props that brush grass at
 full power come back unmarked, props that touch concrete at hover come
 back nicked. DERIVED from the material data; the hardness column is still
-chosen (section 5). Under the limit a spinning contact writes nothing at
+chosen (section 5). A whoop's blades are polycarbonate, Makrolon 2407
+(R-PROPS, the datasheet: 2400 MPa, 1200 kg/m^3, yield 66 MPa), so Z_b =
+1.70e6 and the limit is the yield: a 46 m/s tip on concrete. The whoop the
+shell flies is the five inch's plant in a room 3.43 (L) times life size
+with time unscaled, so its speeds are L times a real whoop's; stresses
+scale by M / L and impedances by M / L^2, which puts its blade limit at L
+times the real tip speed. The plant takes its tip back to life size and
+meets it with the real blade and surface (round 2; before, the scaled
+whoop used the five inch's glass nylon at an unscaled limit). Under the
+limit a spinning contact writes nothing at
 all, so hardness changes the damage only through a contact past the limit.
 Past it the chip grows at the rate in the table, faded in from nothing at
 the limit, and a strike is one chip event when it starts (a blade that
@@ -312,13 +326,45 @@ it gives). Against the ground the decision uses the craft's whole mass,
 against an obstacle the point's effective mass. A tractor's motor crushes
 with the nose behind it.
 
-**Impacts under every limit stay one step impulses.** That is the bit
-identity rule: a contact that damages nothing cannot be given a duration
-without moving every gate. The suite's peak load bands for undamaging
-impacts (a 5 inch dropped flat, a prop strike on a bank, an inverted
-landing) therefore still read the one step value. Giving every contact
-compliance is the lead's decision; it moves every flight that touches
-anything.
+**The ground is a spring** (round 2, by the lead's decision that with
+the mode on every contact may have its physical duration, docs/CRASH-PLAN.md).
+Until round 2 an impact under every limit was a one step impulse, so the
+craft took its whole change of speed inside a millisecond (a Skyhunter
+stalled in from 8 m read 380 g, a Timber 716) while the judge estimated
+the joints' loads as `F = sqrt(k J v)`, the peak of a linear contact of
+stiffness k. The two now agree: a part driven into the ground plane is
+stopped by that spring, the part's k and the surface's in series, at the
+depth x its deepest point has reached, `F = k x`:
+
+- While a part is going in, its normal impulse in a step is at most
+  `k x dt`, shared among the points it meets the ground at by each point's
+  own depth (so a pack landed flat is pushed at its middle, whatever order
+  the solver visits its corners in), and never more than stops it (no bias
+  push, no bounce). The solver's position corrections stand aside, as
+  for a crush, and the resting stops (`ground_settle`) turn to Coulomb
+  friction, as they do for a canopy in wind.
+- When it has stopped going in (under 0.05 m/s, as a crush), the contact
+  is the rigid one again and the position correction brings the part out
+  of its depth without throwing it (no bias impulse in that step).
+- A contact the spring already holds at its point's depth, a craft standing
+  on its belly or its pack, is rigid from the start.
+- The judge takes a sprung part's force as what the solver gave it,
+  `jn / dt`.
+- Not sprung: parts softer than the ground (props, whips, wing tips, wire
+  gear, cameras on grass), because a soft part bends until the stiffer
+  airframe behind it meets the ground, and how far is not in the tables
+  yet; the whoop the shell flies, whose room is scaled 3.43 times but whose
+  surfaces are not; obstacles, which are the host's one impulse per call;
+  and wheels and floats, which were springs already.
+
+Measured, crash:core: a five inch dropped flat from 1.5 m onto grass peaks
+at 130 g where the rigid contact gave 526, and comes to rest within 1 mm
+of the rigid contact's rest; settling at 1 m/s, 46 g against 188. The
+crash suite on main da32758, per scenario, is in docs/CRASH-PLAN.md,
+round 2. The rule under every limit is now: with the mode off every
+flight is byte identical (scripts/crash-identity.js); with it on, nothing
+is written and the craft comes to the same rest, but a ground contact of a
+stiff part has its duration.
 
 ### Flight effects
 
@@ -579,6 +625,15 @@ rigid hull that crash physics replaces; with the mode off, which is what
 they run, they pass. Recorded flights with crashes in them: none of the
 existing recordings has a damaging contact, so nothing was re-recorded.
 
+Round 2 (the ground's spring), against main da32758: off is identical
+on all 24. On, 19 are identical; floats:gates F1t creeps 0.040 m/s for
+0.039 (its F5c is round 1's, below); whoop:gates W15's parked Skyhunter
+rests 1.99 mm from its origin for 2.00; wing:contact and
+contact:selftest fail with the mode on as they do on main (6 and 2
+checks against 7 and 2 there: the crushed nose in the ground, the hull
+slide), both checks of the rigid hull that crash physics replaces, and pass with it off, which is how
+they run.
+
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched.
 
@@ -622,8 +677,8 @@ predates this work, reported and not touched.
 - **The 1000 mm wing has no drawn model** any more; its table is from the
   plant and WING-STAGE1.
 - **Peak loads from contact duration**: crush gives foam impacts a
-  duration; an impact under every limit cannot get one without breaking
-  the bit identity rule (section 3).
+  duration; since round 2 the ground's spring gives every stiff part's
+  ground contact one too, with the mode on (section 3).
 - **"Detached parts collide with the obstacles the shell declares"**: the
   shell had no way to declare any to the plant; `sim_obstacle_*` and
   `sim_tree_add` are new.

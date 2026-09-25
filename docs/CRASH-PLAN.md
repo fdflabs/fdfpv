@@ -349,3 +349,51 @@ cannot drag the Bramor over the ground.
 - ground: the wheel and ground code in plant.c and plant_wing.c, plus
   the Bramor chute metric in the suite. Rolling resistance by surface, a
   wheel brake in the ABI, canopy drag over the ground.
+
+Round 2, impact (branch crash-impact-round2), against main da32758 (5
+of 60, 146 failing checks): 6 of 60, 145 failing, 60 deterministic
+(Node, replay and Chrome). With damage on, a stiff part's ground contact
+is the spring the judge always assumed (part and surface in series)
+instead of a one step impulse: stall peaks 380 to 168 g (Skyhunter), 716
+to 250 (Timber), 532 to 261 (Cub), 373 to 205 (Radian), 475 to 129
+(Bramor); nose ins 1877 to 440 (Bramor), 561 to 354 (Slow Stick, now in
+band). The whoop's spinning blades are met as life size polycarbonate;
+the parts' energy tally counts breaks and bends. One passing check
+moved: q5-gate-15 loses its pack strap at a 16.6 m/s ground impact 4.9 s
+after the gate, which the rigid contact survived at 1717 g. Damage off
+is byte identical on all 24 identity scripts.
+
+What round 2 found and left for round 3, in the impact agent's files:
+
+- The stalls still break wings and packs, at 30 to 60 g of normal load.
+  Three causes, each needing a decision or data rather than a tuned
+  number: the plant arrives flat (16 deg nose down on a 36 deg path),
+  not nose low as the references assume; grass friction is the shell's
+  1.40 for every part, so a foam belly is stopped dead sideways and the
+  judge adds that deceleration to every joint (no foam on grass source
+  found; R-SLIDE assumes 0.3 to 0.6); and the joints are judged
+  quasi statically as rigid bodies, while a foam wing's first bending
+  period is long against a 20 ms blow, and a pack in a bay bears on its
+  walls rather than its strap.
+- The root cannot break except by crushing through, and in 5 of 6 nose
+  ins it does not: the pack and motor break loose in the first
+  millisecond and fly through the fuselage as free bodies instead of
+  loading the nose, and the root alone (the Cub's 0.5 kg at 23 m/s, 132
+  J) is just under its crush capacity (136 J). A nose part with a
+  section strength, or parts contained by their bay, needs EPO section
+  data that R-FOAM does not have.
+- Quad props still only chip on gate, slope and branch: a spinning
+  blade striking a pole is judged by the craft's closing speed, not by
+  its own tip's blow; the gate clip's peak is the host's one impulse
+  per call and cannot get a duration from the plant side alone.
+- Parts softer than the ground (blades, whips, wing tips, wire gear)
+  keep the rigid contact: letting them bend until the airframe behind
+  meets the ground needs each one's travel (tried: routing their load to
+  the stiffer parent moved turtle mode and cartwheels the wrong way).
+  The Bramor under its canopy lands on its winglets and antenna, so it
+  still peaks at 303 g (ground agent's finding).
+- The whoop keeps the rigid contact: its room is scaled 3.43 times, its
+  surfaces' stiffness is not, and scaling it moves the limits round 1
+  calibrated the whoop on.
+- The ground agent's lower grip on the part hulls with damage on (0.76
+  where 1.40 is expected) is not confirmed or explained yet.
