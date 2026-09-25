@@ -705,3 +705,50 @@ checks 134 to 133, 60 deterministic. Stall ins, peak g and rest
 distance: Skyhunter 65 to 186 g, 3.0 to 21.7 m; Cub 37 to 10 g, 4.8 to
 18.4 m; Radian 140 to 135 g; Slow Stick 30 to 17 g; Timber 29 to 8 g,
 10.5 to 23.3 m; Bramor 89 to 129 g; catapult 57 to 58 g; all upright.
+
+## Sign-off, re-recording, and what stays open
+
+The owner flew the Cub's stall on b69e0df and signed it off ("works").
+On that, the lead decided the stored hashes are re-recorded. With main
+fa6d228 merged (#65's Stabilised pitch-down law), each gate's hashes were
+re-recorded from the merged build, one commit per gate, each naming what
+in its recordings crosses the stall (npm run stall:crossing):
+
+| Recording | Before | After | Where it crosses the stall |
+| --- | --- | --- | --- |
+| Skyhunter | cd36bb2fa1e28654 | 6b509cb9135b1740 | 7.66 to 11.42 s, its rolling manoeuvre, to 20 deg |
+| Cub | 6b17876c611e2f16 | d71e921bcbbf0b5e | its take off roll's three point attitude, 1.25 to 2.49 s |
+| Radian | 21aa64a437a83a43 | 9eb65aac246a3ee0 | 7.78 to 8.96 s, and 54.1 to 55.7 s in a turn |
+| Bramor | b89d463766f03c1a | e6574d76eb555a92 | 7.40 to 15.21 s, a tip stall into a dive |
+| Bramor chute | deb8e145e13643a0 | 0751523e69b3683d | from the pull (the risers moved) and under the canopy |
+| Timber | fff2e89112b65a67 | e2997c1ee95aa05f | its flapped take off roll, and a chop with full rudder at 12 s |
+| Timber on floats | f6add9915fed1541 | b99b736a464c870a | on the step at 2.35 s, and at 22.2 and 24.5 s |
+
+The five inch's, the wing's and the Slow Stick's recordings are
+unchanged. stab:glide --check reports no drift and stab:chop holds: the
+Stabilised glides are all short of the stall.
+
+The Bombshell's S9a sink band was derived on the flat plate past the stall
+(3.00 m/s), a premise the model no longer has. bombshell-derive.js now
+derives its mush on the post stall model, from its own geometry: 15.3 deg,
+7.7 m/s, 1.98 m/s; the band is that within 25 percent, 1.48 to 2.47, and
+the plant flies it at 1.91.
+
+Open, each left failing or unmet on purpose:
+
+- **Slow Stick S9b**, full up held under power: bank 28.7 and yaw 44.5
+  deg/s against 15 and 20. A torque turn that tightens as the inner wing
+  sinks into its stall; washout up to 4 deg does not bring it inside. No
+  source describes a Slow Stick held full up under power.
+- **The Bombshell's take off heading** (bombshell:stab): 6.6 deg and 0.80 m
+  against 5 and 0.5, where main reads 4.9 and 0.50. The three point roll
+  sits past the stall, where the section's lift now holds; washout does
+  not move it.
+- **The Timber held full back in Manual** wanders into 50 deg of bank in
+  10 s; the break is gentle (7 deg), but no washout up to 5 deg holds the
+  10 s bank under 30. In Stabilised and Acro it holds wings level.
+- **The Radian** drops 72 deg against a review of "extremely gentle"; no
+  washout within a few degrees fits, and its section, twist and tips are
+  not published.
+- **The Bramor**, untwisted by decision, tip stalls into a flat spin its
+  elevons do not recover; the chute recovers it at its rated sink.

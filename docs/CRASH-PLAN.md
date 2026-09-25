@@ -564,46 +564,47 @@ needs a host change and stays open.
 
 ### Round 4, aero (branch crash-aero-round4, #59)
 
-The model and its record are docs/STALL-STAGE1.md. The first version gave
-every plane a pitch break, a two panel wing whose roll damping reversed
-past the stall, and a build tolerance asymmetry; held full back, the
-trainers rolled past inverted into a spiral. The lead sent it back for
-sourced severity, an unchanged ground roll and an account of the stored
-hashes. The second version:
+The model and its record are docs/STALL-STAGE1.md; four returns from the
+lead and one from the owner's flight shaped it. As it stands:
 
-- Past the stall angle the lift is its section's measured curve (UIUC
-  low speed data at each kit's Reynolds number): held for stall_top, then
-  a fall to stall_k of it, then Viterna and Corrigan to the plate. Short
-  of the stall angle it is the plant's own curve, which every band was
-  derived on.
+- Past the stall angle the lift is the section's measured curve (UIUC
+  low speed data at each kit's Reynolds number): the peak the plant's own
+  curve reaches, held for stall_top, then a fall to stall_k of it, then
+  Viterna and Corrigan to the plate. Short of the stall angle it is the
+  plant's own curve, which every band was derived on.
 - The wing is four spanwise strips a side, loaded by Schrenk's
-  approximation, so a rectangular wing stalls at the root first and a
-  tapered or cranked one further out. Each strip's roll and yaw rate terms
-  take back the table's roll damping as it stalls.
-- The pitch break moves the stalled wing's force from the aerodynamic
-  centre to its centre of pressure as the lift falls, with the tail's
-  downwash term.
+  approximation, each strip's lift its own wing lift; its stall follows the
+  steady one with Leishman and Beddoes' separation time constant.
+- The pitch break moves the stalled wing's force aft as its lift falls,
+  with the tail's downwash term.
+- A washout per airframe, FITTED (not sourced) to its reviewed stall
+  behaviour: Cub 3, Skyhunter 5, Timber 2, Slow Stick 2, Bombshell 3 deg.
 - Nothing is taken short of the stall angle or below a chord Reynolds
-  number of 3e4 (Lissaman 1983), which keeps every gear settle and taxi,
-  the Slow Stick's and the wing's recordings, T10 and cub:stab passing.
-- The asymmetry picks the side; at 0.1 and 4 times its value the outcome
-  barely moves.
+  number of 3e4 (Lissaman 1983).
 
-Held full back: the Cub, the Skyhunter and the Timber drop the nose 8 to
-13 deg with a wing drop of 1 to 3 deg and mush, as their reviews say; the
-Slow Stick barely moves; full rudder spins the Skyhunter, the Cub and the
-Timber without slats toward it, and opposite rudder stops it. Gaps for
-the lead: the Radian drops 66 deg (reviewed as "extremely gentle"; its
-SD7037 class holds lift only 1.4 deg); the Bramor tip stalls into a flat
-spin its elevons do not recover, and B1, which throws it under its stall,
-fails on that; the Timber without slats drops 14 deg on the NACA 2415
-class, where the one review says it barely stalls, and no source was found
-for a sharp stall without slats.
+The owner flew the Cub (b69e0df) and signed the stall off ("works"); the
+stored hashes of the recordings that cross the stall (C22, G20, B13, S17,
+T14, F9, the Bombshell's S17) were re-recorded on that sign-off, one
+commit each. The Bombshell's S9a mush band was re-derived on the new model
+(1.98 m/s derived, 1.91 flown). B1 now starts at the Bramor's published
+cruise instead of under its stall. stab:glide and stab:chop hold
+unchanged (the glides are short of the stall).
 
-Suite against 16ac766: 9 of 60 in every band before and after, failing
-checks 134 to 135, 60 deterministic. The Cub and Timber stalls do not come
-back: sourced as their reviews describe, they mush down onto the gear and
-roll on (16.9 and 26.0 m), where the bands expect a nose low hit; that is
-the lead's call. Failing gates: the stored hashes C22, G20, B13, S17, T14,
-F9 (each recording's stall accounted for in the doc), S9a and S9b (bank
-21.5 and 27 against 15), B1. crash:core 148 of 148.
+Open, each failing or unmet on purpose, the reason in docs/STALL-STAGE1.md:
+
+- Slow Stick S9b, full up held under power: bank 28.7 and yaw 44.5 against
+  15 and 20. A torque turn that tightens as the inner wing sinks into its
+  stall; no source describes a Slow Stick held full up under power.
+- The Bombshell's take off heading (bombshell:stab): 6.6 deg and 0.80 m
+  against 5 and 0.5; 4.9 and 0.50 on main. Its three point roll sits past
+  the stall, where the section's lift now holds; washout does not move it.
+- The Timber held full back in Manual wanders into 50 deg of bank in 10 s;
+  no washout up to 5 deg brings it under 30.
+- The Radian drops 72 deg against a review of "extremely gentle"; no fit
+  within a few degrees, and its section, twist and tips are unpublished.
+- The Bramor, untwisted by decision, tip stalls into a flat spin its
+  elevons do not recover; the chute does, at its rated sink, from 17 to
+  197 m (scripts/bramor-spin-chute.js).
+- The Cub and Timber stall ins mush onto their gear and roll on, where the
+  bands expect a nose low hit: the kits' reviews and the full scale
+  references behind the bands disagree.
