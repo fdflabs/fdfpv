@@ -88,6 +88,7 @@ import { buildWater } from './swiss2/water/index.js';
 import { swissBuildings } from './swiss2/buildings/index.js';
 import { swissVehicles } from './swiss2/vehicles/index.js';
 import { buildProps } from './swiss2/props/index.js';
+import { buildLakeside } from './swiss2/props/lakeside.js';
 import { photoCraftLook } from './swiss2/craftlook.js';
 import { buildPeople } from './swiss2/village/people.js';
 import { buildCliffs, occupiedCells, trimGround } from './swiss2/rock/index.js';
@@ -276,6 +277,9 @@ function photoStyle() {
           if (stage.props) {
             stage.props.dispose();
           }
+          if (stage.lakeside) {
+            stage.lakeside.dispose();
+          }
           if (stage.water) {
             stage.water.dispose();
           }
@@ -396,6 +400,9 @@ function photoStyle() {
             stage.cliffs.update(camera);
           }
           craftFootprint(style.shell && style.shell.quad, stage.craft);
+          if (stage.lakeside) {
+            stage.lakeside.update(dtMs);
+          }
           stage.water.update(dtMs, camera);
         },
       };
@@ -423,6 +430,10 @@ function photoStyle() {
         footprints: gardens,
       });
       scene.add(stage.props.group);
+      /* The lake's village, boats and promenade, their footprints the
+       * map's before the forests keep off them (swiss2/props/lakeside.js). */
+      stage.lakeside = buildLakeside({ heightAt, footprints: stage.footprints, path: style.look.material('path', {}) });
+      scene.add(stage.lakeside.group);
       /* The carved rock on the walls, in place of the ground's own
        * triangles there, before the forests so nothing is planted on
        * ground the rock has moved, and never under anything already
