@@ -34,8 +34,11 @@
 import * as THREE from 'three';
 import { makeKit, FIN, fin, round, sweep, poly, strut, box, v3 } from './kit.js';
 
-/* PostAuto's yellow and the cream of its roof. */
-const YELLOW = 0xf2b800;
+/* PostAuto's yellow and the cream of its roof. The yellow is the Post's
+ * own, 0xffcc00: at 0xf2b800 the flank in shade, lit by the sky alone
+ * and toned, came out mustard, its hue 44 degrees where the paint's is
+ * 48. */
+const YELLOW = 0xffcc00;
 const CREAM = 0xefe9d6;
 const NEAR = 70;
 /* The seats' moquette, dark with the headrest a shade of the red. */
@@ -46,7 +49,10 @@ const SEAT_TOP = fin(0x5a1c1c, 0.9, 0, 0, 0.45);
 export function postbus() {
   const K = makeKit();
   const G = makeKit();
-  const paint = FIN.paint(YELLOW);
+  /* A working bus's paint, not a showroom car's: a thinner clear coat
+   * and a duller one, so its flank in shade shows the yellow rather than
+   * a sheen of the grey sky over it. */
+  const paint = fin(YELLOW, 0.4, 0, 0.35);
   const cream = FIN.paint(CREAM);
   const L = 10.6;
   const HW = 1.25;
