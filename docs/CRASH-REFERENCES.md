@@ -293,6 +293,43 @@ after the launch "The plane basically pitch up and flipped over", then a
 nose first impact. An anecdote: LOW. No investigation report of a catapult
 stall was found.
 
+**R-NOSEOVER. A taildragger nosing over on the take off roll.** FAA
+Airplane Flying Handbook, FAA-H-8083-3C, chapter 14, Transition to
+Tailwheel Airplanes (copy used:
+https://dl.videos.sportys.com/onlinecourse/documents/references/afh2021/afh_ch14.pdf):
+on the normal take off "positive forward elevator should be applied to
+smoothly lift the tail"; on a soft field "There is not only the danger of
+the airplane bogging down, but also a danger of it tipping up onto its
+nose", and the tail is kept low "to avoid any tendency of the airplane to
+nose over as a result of soft spots, tall grass, or deep snow"; on landing,
+back elevator "minimizes any tendency for the airplane to nose over".
+Ruskin gliding club, tailwheel operations,
+https://www.ruskin.me.uk/flying-training/tmg-extension/tailwheel-operations :
+"Aircraft with a tailwheel have nothing to stop them nosing over except
+the propeller"; "The thrust line is above the axle line. Any power against
+one or both brakes may try to pitch the aircraft forward over the wheels",
+and the same on soft ground; as the tail rises the tendency grows until it
+becomes a full flip. Wikipedia, Propeller strike,
+https://en.wikipedia.org/wiki/Propeller_strike : "Propeller strikes can be
+the result of the propeller contacting the ground due to landing gear
+collapse, failure to extend the landing gear, or nose-over." Wikipedia,
+Conventional landing gear,
+https://en.wikipedia.org/wiki/Conventional_landing_gear : "Tailwheel
+aircraft are more subject to 'nose-over' accidents due to incorrect
+application of brakes by the pilot." NTSB final reports of full size
+aircraft that "nosed over and came to rest inverted" (CEN22LA367,
+https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/105688/pdf ,
+a forced landing in a plowed field, the damage to the wing, the
+empennage, the rudder and the fin). RC: rcindia.org's nose over thread,
+https://www.rcindia.org/rc-maneuvers-and-skills/nose-over-take-off-and-landing-on-tail-draggers/ ,
+"Small patches of dense grass can create resistance for wheels", "the
+thrust line tends to be above the drag line (on ground) and it tends to
+creat a couple which tips the nose down". No measured model nose over
+(speeds, loads, times) was found, so the bands are the outcome classes
+these give: the prop strikes, the aircraft stands on its nose or goes over
+onto its back, and it goes no further than it can pivot. MED for the prop,
+LOW for the rest.
+
 ## 3. Footage to measure
 
 The plan asks for crash footage measured frame by frame. That cannot be
@@ -333,8 +370,9 @@ are defined in section 1. Plane bands follow the aircraft's layout:
 tractors (Cub, Timber, Radian Pro, Slow Stick) carry R-A14-FOAM's puller
 penalty at the nose, pushers (Skyhunter, Bramor) its crumple zone. The
 Bramor is carbon, kevlar and vectran rather than foam, so its plane bands
-borrow the foam pusher's and are LOW. The tail strike on take off is only
-flown by the aircraft that take off on wheels: the Skyhunter and the
+borrow the foam pusher's and are LOW. The nose over on take off (which
+replaced the plan's tail strike, section 6) is only flown by the aircraft
+that take off on wheels, the three taildraggers: the Skyhunter and the
 Radian are hand launched and the Bramor catapulted.
 
 ### Five inch
@@ -559,12 +597,14 @@ Radian are hand launched and the Bramor catapulted.
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
 
-**cub-tail-strike.** Reference still: Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.
+**cub-nose-over.** Reference still: Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustNotBreak | tail | R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail) | LOW |
-| peakG | 0 to 10 | R-C172 test 1 | LOW |
+| mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
+| mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **cub-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
@@ -696,12 +736,14 @@ Radian are hand launched and the Bramor catapulted.
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
 
-**slowstick-tail-strike.** Reference still: Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.
+**slowstick-nose-over.** Reference still: Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustNotBreak | tail | R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail) | LOW |
-| peakG | 0 to 10 | R-C172 test 1 | LOW |
+| mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
+| mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **slowstick-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
@@ -767,12 +809,14 @@ Radian are hand launched and the Bramor catapulted.
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
 
-**timber-tail-strike.** Reference still: Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.
+**timber-nose-over.** Reference still: Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustNotBreak | tail | R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail) | LOW |
-| peakG | 0 to 10 | R-C172 test 1 | LOW |
+| mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
+| mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **timber-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
@@ -996,7 +1040,14 @@ Recorded here because the loop will build on the plan.
   too steep, which the band (a scrape, under 10 g) then fails. Whether to
   keep, rename or replace the scenario (a nose over or prop strike from
   too much down elevator is the taildragger's real take off accident) is
-  the owner's call.
+  the owner's call. **Decided after the baseline:** replaced by the nose
+  over (R-NOSEOVER). The references' nose overs come from soft ground,
+  tall grass and brakes, and the plant can fly none of them: its wheels
+  roll at one resistance (0.08) whatever the ground's material, and have
+  no brakes. So the suite flies the one the elevator makes, full down
+  elevator at full power half a second into the roll, which tips the
+  thrust line over the axles; the soft ground and brake versions wait for
+  the core to give the wheels a surface's rolling drag and a brake.
 - **Two scenarios need wind the plant does not have.** The floats'
   "capsize in a crosswind gust" and the Bramor's "chute landing in wind,
   drag and rest": the air model has no horizontal wind (sim_air_lift is

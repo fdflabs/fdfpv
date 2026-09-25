@@ -600,13 +600,21 @@ function planeScenarios(key) {
     },
   });
   if (c.wheels) {
+    /* The taildragger's take off accident (docs/CRASH-PLAN.md, lead
+     * decision after the baseline; docs/CRASH-REFERENCES.md R-NOSEOVER).
+     * The plant's wheels roll at one resistance on every surface and have
+     * no brakes, so the soft ground and the hard brake that nose a real
+     * one over cannot be flown yet; what can is the same moment from the
+     * elevator: the tail pushed up with full down elevator at full power
+     * before the aircraft has the speed to fly, so the thrust line above
+     * the axles tips it forward onto the prop. */
     out.push({
-      id: `${key}-tail-strike`,
-      title: 'Take off with full up elevator from standing: over rotation, tail strike',
-      family: 'tail strike',
+      id: `${key}-nose-over`,
+      title: 'Take off roll at full power, full down elevator pushed too early: tail up, nose over onto the prop',
+      family: 'nose over',
       seconds: 10,
       /* Standing on its wheels from the start: the impact is the first
-       * touch of anything that is not a wheel. */
+       * touch of anything that is not a wheel, the prop's tip or the hull. */
       impactOn: ['hull', 'prop tip'],
       setup(h) {
         grass(h);
@@ -615,11 +623,13 @@ function planeScenarios(key) {
         h.arm();
       },
       pilot(h) {
-        /* The whole take off with the stick held back: the tail comes down
-         * onto the grass as the nose comes up, and if it leaves the ground
-         * it leaves too slow. The pilot does not let go at the first touch
-         * here, because a tail strike is a touch during the take off. */
-        return [0, 1, 0, 1];
+        /* Half a second of acceleration with the stick neutral, then full
+         * down elevator held until something other than a wheel touches;
+         * then the throttle is chopped, the reflex after a prop strike. */
+        if (h.hit) {
+          return HANDS_OFF;
+        }
+        return h.ms < 500 ? [0, 0, 0, 1] : [0, -1, 0, 1];
       },
     });
   }
