@@ -27,17 +27,23 @@
  * texture's height pulled long and scrolled down, accelerating as water
  * does, so the sheet is glassy ropes near the top, torn streaks with the
  * rock showing between them lower down, and gone to drizzle well above
- * the pool. A third, wider and fainter sheet is the spray the wind
- * strips off it.
+ * the pool. A third sheet, far wider, is the plume the veil tears into:
+ * most of the fall's light, as in the photographs, bright and billowing
+ * and fuller the further down.
  *
  * THE CASCADE is a skin of white water over the apron's middle, braided
  * into channels that wander down it, sheeting white off the risers and
  * churning on the treads.
  *
  * THE MIST is a few hundred soft sprites boiling off where the veil
- * lands and drifting downwind, each on its own cycle in the shader,
- * larger and fainter as it rises, and a low drift of spray over the
- * cascade and the pool.
+ * lands and rising most of the way back up the face beside the fall,
+ * drifting along the wall, each on its own cycle in the shader, larger
+ * and fainter as it rises, and a low drift of spray over the cascade and
+ * the pool.
+ *
+ * No rainbow: the fixed view looks east at the fall with the sun in the
+ * east, 74 degrees from the line of sight, and a bow stands 42 degrees
+ * from the point opposite the sun, behind the viewer.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -315,9 +321,9 @@ const G = 9.8;
  * The fall's material, in one of three modes. A VEIL is the water
  * itself: glassy ropes off the lip that tear into streaks and thin to
  * blown drizzle by the time they land, so the dark wet rock shows
- * through the lower half. The HAZE is the spray the wind strips off it,
- * a wide faint sheet that starts where the veil tears and hides its
- * edges. Both lean downwind and sway with the gusts: the Staubbach never
+ * through the lower half. The HAZE is the plume the veil tears into, a
+ * wide sheet of spray that starts where the veil tears, hides its edges
+ * and thickens toward the foot. Both lean downwind and sway with the gusts: the Staubbach never
  * falls plumb. The CASCADE is the white water down the apron, braided
  * into channels, sheeting off the risers and churning on the treads; it
  * lies on the rock and does not sway.
@@ -420,10 +426,15 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
           float foam = mix(0.3 + 0.7 * smoothstep(0.4, 0.75, churn), smoothstep(0.42, 0.7, streak * 0.7 + churn * 0.3), riser);
           a = chan * edge * (0.12 + 0.8 * foam) * smoothstep(0.0, 0.04, vFall.y);
         } else if (uMode > 0.5) {
+          /* The plume: what the veil tears into is most of the fall's
+           * light, a broad bright body of spray fuller the further down,
+           * its edges billowing. */
           float cloud = texture2D(uWaves, vec2(q.x / 9.0, q.y / 60.0) + 0.37).a;
-          float body = smoothstep(0.25, 0.75, cloud * 0.7 + fine * 0.3);
-          float edge = smoothstep(0.0, 0.4, vFall.x) * smoothstep(1.0, 0.6, vFall.x);
-          a = body * edge * 0.16 * smoothstep(0.15, 0.5, vFall.y) * (1.0 - smoothstep(0.85, 1.0, vFall.y));
+          float billow = texture2D(uWaves, vec2(q.x / 14.0 + 0.61, q.y / 25.0)).a;
+          float body = smoothstep(0.15, 0.7, cloud * 0.55 + fine * 0.2 + billow * 0.25);
+          float side = abs(vFall.x - 0.5) * 2.0 + 0.35 * (billow - 0.5);
+          float edge = 1.0 - smoothstep(0.25, 0.95, side);
+          a = body * edge * mix(0.1, 0.62, smoothstep(0.12, 0.75, vFall.y)) * smoothstep(0.08, 0.3, vFall.y) * (1.0 - smoothstep(0.62 + 0.2 * billow, 0.98, vFall.y));
         } else {
           /* Glassy ropes at the lip; below, streaks with gaps between them
            * that widen as the water spreads, so the rock shows through. */
@@ -431,7 +442,7 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
           float body = smoothstep(0.42 + 0.12 * torn, 0.62 + 0.1 * torn, strand);
           float ragged = 0.12 + 0.3 * torn + 0.15 * (fine - 0.5);
           float edge = smoothstep(0.0, ragged, vFall.x) * smoothstep(1.0, 1.0 - ragged, vFall.x);
-          a = body * edge * mix(0.95, 0.5, torn) * mix(1.0, 0.35, drizzle) * (1.0 - gone) * (0.5 + 0.5 * spray);
+          a = body * edge * mix(0.95, 0.6, torn) * mix(1.0, 0.55, drizzle) * (1.0 - gone) * (0.5 + 0.5 * spray);
         }
         a *= smoothstep(0.0, 0.02, vFall.y);
         diffuseColor.a = a;
@@ -588,7 +599,7 @@ function wetRock(rock, envMap, layout, pool, impact) {
         }`)
       .replace('#include <map_fragment>', `#include <map_fragment>
         float wetDown = clamp((uFall.y - vWetW.y) / max(uFall.y - uFall.z, 1.0), 0.0, 1.0);
-        float wetHalf = 3.0 + 16.0 * wetDown;
+        float wetHalf = 5.0 + 26.0 * wetDown;
         float wetAcross = abs(vWetW.z - uFall.x + 4.0 * wetDown * wetDown);
         float wetStreak = wetNoise(vec2(vWetW.z / 1.7, vWetW.y / 24.0)) * 0.6 + wetNoise(vec2(vWetW.z / 0.6, vWetW.y / 7.0)) * 0.4;
         float wet = 1.0 - smoothstep(wetHalf * 0.5, wetHalf, wetAcross + 6.0 * (wetStreak - 0.5));
@@ -598,9 +609,9 @@ function wetRock(rock, envMap, layout, pool, impact) {
         float reach = 1.0 - smoothstep(30.0, 70.0, distance(vWetW, uImpact) + 14.0 * (wetNoise(vWetW.zy / 9.0) - 0.5));
         float moss = smoothstep(0.3, 0.75, normalize(vWetN).y) * reach * (1.0 - smoothstep(0.55, 0.9, wet)) * smoothstep(0.3, 0.6, wetNoise(vWetW.xz / 2.3 + vWetW.y / 5.0));
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.1, 0.16, 0.035), moss);
-        diffuseColor.rgb *= 1.0 - 0.55 * wet;`)
+        diffuseColor.rgb *= 1.0 - 0.7 * wet;`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = mix(mix(roughnessFactor, 0.28, wet), 0.85, moss);`);
+        roughnessFactor = mix(mix(roughnessFactor, 0.42, wet), 0.85, moss);`);
   };
   mat.customProgramCacheKey = () => 'swiss2-wet-rock';
   return mat;
@@ -623,7 +634,7 @@ export async function buildFall({ heightAt, layout, waves, time, wind, envMap, g
   /* Two veils a metre apart, and the spray the wind strips off them,
    * wider and further out, all ending on the apron. */
   const parts = [];
-  for (const [ahead, seed, mode, topW, footW] of [[0, 0.0, FALL_MODE.veil, 4, 20], [1.1, 3.7, FALL_MODE.veil, 5, 25], [3, 7.1, FALL_MODE.haze, 8, 40]]) {
+  for (const [ahead, seed, mode, topW, footW] of [[0, 0.0, FALL_MODE.veil, 4, 26], [1.1, 3.7, FALL_MODE.veil, 5, 32], [3, 7.1, FALL_MODE.haze, 7, 72]]) {
     const s = sheetGeometry(layout, land.y - 1.5, ahead, topW, footW);
     const m = new THREE.Mesh(s.geometry, fallMaterial(waves, time, wind, s.height, seed, envMap, mode));
     m.name = 'swiss2-fall';
@@ -647,15 +658,21 @@ export async function buildFall({ heightAt, layout, waves, time, wind, envMap, g
    * rock: its sprites are flat, and centred on the rock they cut into it
    * in a hard line. A thin cloud, not a ball: spray is lit through and
    * the cliff shows behind it, and the wind carries it off the fall. */
-  const mistAt = impact.clone().setX(impact.x - 5);
+  const mistAt = impact.clone().setX(impact.x - 7);
   mistAt.z += wind.y * 4;
+  /* The Staubbach's cloud: the spray rises most of the way back up the
+   * face and the wind carries it along the wall (z) and a little out
+   * from it (-x), never into it, a pale drift beside the fall; lit a
+   * little brighter than the spray at the foot, being higher, where more
+   * of the sky reaches it. */
+  const along = new THREE.Vector2(-0.35, Math.sign(wind.y) || 1).multiplyScalar(0.5);
   const cloud = mist({
-    waves, time, wind, centre: mistAt, count: 200, spread: 8, rise: 30, life: 14, s0: 3, s1: 10, opacity: 0.011, light, seed: 71,
+    waves, time, wind: along, centre: mistAt, count: 240, spread: 9, rise: 58, life: 22, s0: 5, s1: 17, opacity: 0.013, light: light.clone().multiplyScalar(1.3), seed: 71,
   });
   /* and a low drift of spray down the cascade to the pool. */
   const sprayAt = new THREE.Vector3((impact.x + foot.x) / 2 - 3, (impact.y + foot.y) / 2 - 8, layout.fallZ);
   const spray = mist({
-    waves, time, wind, centre: sprayAt, count: 140, spread: 15, rise: 12, life: 4, s0: 2.5, s1: 7, opacity: 0.026, light, seed: 73,
+    waves, time, wind, centre: sprayAt, count: 160, spread: 16, rise: 22, life: 5, s0: 3, s1: 12, opacity: 0.034, light, seed: 73,
   });
   cloud.name = 'swiss2-mist';
   spray.name = 'swiss2-spray';
