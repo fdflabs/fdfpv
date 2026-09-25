@@ -287,6 +287,24 @@ and 470 N against about 22 N of ground friction (mu 0.5 ASSUMED): above
 about 3.3 m/s of wind the aircraft is dragged until the canopy collapses
 or is released.
 
+**R-ROLLING. Rolling resistance by ground.** Marchman, Aerodynamics and
+Aircraft Performance, 3rd ed., Virginia Tech, chapter 7, Table 7.1,
+https://eng.libretexts.org/Bookshelves/Aerospace_Engineering/Aerodynamics_and_Aircraft_Performance_3e_(Marchman)/07%3A_Accelerated_Performance-_Takeoff_and_Landing :
+"Concrete, asphalt 0.02 - 0.05; Hard Turf 0.04 - 0.05; Normal turf, short
+grass 0.05; Normal turf, long grass 0.07 - 0.10; Soft ground 0.10 -
+0.30". Wikipedia, Rolling resistance,
+https://en.wikipedia.org/wiki/Rolling_resistance : "0.3 Ordinary car
+tires on sand", and for a wheel sinking into its ground c = sqrt(z / d),
+so on a given ground a small wheel's coefficient is larger than a big
+one's in the same ratio for every surface. DERIVED (src/native/plant.c
+plant_wheel_roll): each model wheel's own short grass value (0.08,
+docs/CUB-STAGE1.md) scaled by the table's ratio to short grass: hard
+faces 0.4 of it, bare earth as hard turf 1, snow soft ground's middle 4,
+loose sand its top 6, so the Cub's mains roll at 0.032 on asphalt and
+0.48 in sand, over the 0.46 of the mains' load that tips it onto its
+prop (docs/CUB-STAGE1.md). A skid, a point with no tyre such as a prop
+tip, keeps its own friction on every ground.
+
 **R-LAUNCH. A bungee launch into a stall.** ArduPilot forum,
 https://discuss.ardupilot.org/t/fixed-wing-uav-crashed-10-seconds-after-bungee-launch-need-log-analysis/143698 :
 after the launch "The plane basically pitch up and flipped over", then a
@@ -1042,12 +1060,14 @@ Recorded here because the loop will build on the plan.
   too much down elevator is the taildragger's real take off accident) is
   the owner's call. **Decided after the baseline:** replaced by the nose
   over (R-NOSEOVER). The references' nose overs come from soft ground,
-  tall grass and brakes, and the plant can fly none of them: its wheels
-  roll at one resistance (0.08) whatever the ground's material, and have
-  no brakes. So the suite flies the one the elevator makes, full down
-  elevator at full power half a second into the roll, which tips the
-  thrust line over the axles; the soft ground and brake versions wait for
-  the core to give the wheels a surface's rolling drag and a brake.
+  tall grass and brakes. At first the plant could fly none of them, its
+  wheels rolling at 0.08 whatever the ground and having no brakes, so the
+  suite flew the one the elevator makes alone, and nothing went over.
+  Round 2 gave the wheels each material's rolling resistance (R-ROLLING)
+  and a brake (sim_set_brake), and the scenario is now flown on loose
+  sand with that same early push of the stick, the soft field take off
+  the Airplane Flying Handbook warns about. The FMS models have no
+  brakes, so the brake is not the cause flown.
 - **Two scenarios need wind the plant does not have.** The floats'
   "capsize in a crosswind gust" and the Bramor's "chute landing in wind,
   drag and rest": the air model has no horizontal wind (sim_air_lift is

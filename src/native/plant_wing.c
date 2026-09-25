@@ -115,6 +115,8 @@ static double g_acro_q[4] = { 1.0, 0.0, 0.0, 0.0 };
 static int g_acro_held = 0;
 /* Weight on wheels, from sim.c's gear. Always 0 on an airframe without. */
 static int g_on_wheels = 0;
+/* The wheel brake, 0 to 1, sim_set_brake; sim.c's gear reads it. */
+static double g_brake = 0.0;
 static double g_acro_i_roll = 0.0;
 static double g_acro_i_pitch = 0.0;
 
@@ -361,6 +363,14 @@ int plant_wing_stab(void) {
   return g_stab;
 }
 
+void plant_wing_set_brake(double b) {
+  g_brake = b;
+}
+
+double plant_wing_brake(void) {
+  return g_brake;
+}
+
 void plant_wing_set_on_wheels(int on) {
   g_on_wheels = on;
 }
@@ -383,6 +393,7 @@ void plant_wing_reset(void) {
   }
   g_acro_held = 0;
   g_on_wheels = 0;
+  g_brake = 0.0;
   g_chute = 0;
   g_chute_t = 0.0;
   g_flap = flap_target();

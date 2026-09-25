@@ -71,6 +71,7 @@ typedef struct {
   double steer;   /* wheel angle per radian of rudder, the same sign: a
                    * tailwheel turns its front the way the rudder's trailing
                    * edge goes, and 0 is a wheel that does not steer */
+  double brake;   /* 1 on a wheel the brake channel acts on, 0 elsewhere */
 } WheelParams;
 
 /*
@@ -570,6 +571,13 @@ int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any
  * wheel carried load. The stabiliser reads it; nothing else does. */
 void plant_wing_set_on_wheels(int on);
+/* The wheel brake, sim_set_brake: 0 off to 1 full, an input cleared by a
+ * reset. */
+void plant_wing_set_brake(double b);
+double plant_wing_brake(void);
+/* A wheel's resistance along its heading on ground of material `surf`
+ * (SIM_SURF_*), with the brake at `brake`, as a fraction of its load. */
+double plant_wheel_roll(const WheelParams *wp, int surf, double brake);
 /* The rising air at a world position, m/s up: the thermals every airframe
  * with air_lift flies in. */
 double plant_air_lift(const double pos[3]);

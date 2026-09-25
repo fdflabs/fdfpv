@@ -204,7 +204,9 @@ off at the flat plate's own lift, 11.9 m/s, after 20 m; the pilot raising
 the tail is worth 14 m of strip. The rolling resistance is the one number
 the two surfaces differ in, and with a thrust to weight of 1.04 it moves
 the roll by 6 percent: the Cub is short on grass and short on asphalt. The
-simulator's ground has one surface, and the gear ships grass.
+gear is derived on grass; since crash round 2 the ground's material scales
+the rolling resistance (src/native/plant.c plant_wheel_roll), and the
+default ground is grass.
 
 ## What the plant measured, and what flying it corrected
 
@@ -377,9 +379,14 @@ prop and of the flight; the tip then drags at 0.8 of its own load 0.14 m
 under the CG and 0.23 m ahead of it, which pitches the nose back up
 rather than over, so the aircraft rocks back onto its mains, usually with
 a swing that puts a wingtip in the grass. That is what the model does,
-and it is gated as the prop strike it is. When a brake channel arrives,
-a braking friction at the mains over 0.46 will turn it over with no
-further change to the contact path.
+and it is gated as the prop strike it is. Crash round 2 added both
+causes: loose sand rolls at 0.48 of the load (R-ROLLING in
+docs/CRASH-REFERENCES.md), and sim_set_brake, whose full brake skids the
+mains at their side grip, 0.70. Either tips it onto the prop; the prop
+tip's skid then does what is described above, so on sand with the tail
+pushed up the plant's Cub strikes the prop and rocks back rather than
+going on over. Whether a blade digging into sand holds harder than a
+0.8 skid is the open question.
 
 One more thing the contact path had to learn. The hull's settle, which
 brings a belly slide to rest, stops any rotation slower than 0.35 rad/s

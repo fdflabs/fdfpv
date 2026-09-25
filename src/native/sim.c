@@ -798,7 +798,9 @@ static void ground_settle(double upz, double vn_plant) {
  * onto them from a landing instead of bouncing off a rigid corner.
  * Friction is split along the wheel's own heading and across it, because a
  * wheel is the one contact whose friction is not isotropic: along its
- * heading it rolls, and costs only its rolling resistance, mu_roll N;
+ * heading it rolls, and costs only its rolling resistance, mu_roll N on
+ * short grass and the ground's material's share of it elsewhere, more
+ * with the brake on (plant_wheel_roll);
  * across it the tyre grips up to mu_side N. Each is an impulse that would
  * stop the point's velocity along that direction, through the same
  * effective mass the hull's contact uses, clipped at its cone. The
@@ -947,7 +949,7 @@ static int ground_wheels(void) {
       n[0] * h[1] - n[1] * h[0],
     };
     wheel_friction(r, l, wp->mu_side * jn);
-    wheel_friction(r, h, wp->mu_roll * jn);
+    wheel_friction(r, h, plant_wheel_roll(wp, crash_ground_material(), plant_wing_brake()) * jn);
   }
   return loaded;
 }
@@ -2399,6 +2401,14 @@ SIM_EXPORT int sim_set_wind(double vx, double vy, double gust) {
   SIM_WIND[1] = vy;
   SIM_GUST = gust;
   SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_set_brake(double b) {
+  if (!finite_d(b) || !(b >= 0.0) || !(b <= 1.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_set_brake(b);
   return SIM_OK;
 }
 

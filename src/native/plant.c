@@ -771,8 +771,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .wheel_count = 4,
   .wheel = {
-    { .pos = { 0.075, 0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
-    { .pos = { 0.075, -0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
+    { .pos = { 0.075, 0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0 },
+    { .pos = { 0.075, -0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0 },
     { .pos = { -0.596, 0.0, -0.0273 }, .r = 0.012, .k = 300.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0 },
     /* The prop's lowest tip, a skid: 0.1397 m under a hub 0.23 m ahead of
      * the CG and 2 mm over it. It clears the grass by 25 mm with the
@@ -898,8 +898,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .wheel_count = 4,
   .wheel = {
-    { .pos = { 0.18, 0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0 },
-    { .pos = { 0.18, -0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0 },
+    { .pos = { 0.18, 0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0, .brake = 1.0 },
+    { .pos = { 0.18, -0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0, .brake = 1.0 },
     { .pos = { -0.568, 0.0, -0.0595 }, .r = 0.0125, .k = 210.0, .c = 4.5, .mu_roll = 0.08, .mu_side = 0.50, .steer = 1.0 },
     /* The prop's lowest tip, a skid, 0.1397 m under the shaft: 15 mm over
      * the grass with the aircraft level on its mains, touching at 7 deg
@@ -957,8 +957,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .wheel_count = 4,
   .wheel = {
-    { .pos = { 0.057, 0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
-    { .pos = { 0.057, -0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
+    { .pos = { 0.057, 0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0 },
+    { .pos = { 0.057, -0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0 },
     { .pos = { -0.650, 0.0, -0.0711 }, .r = 0.015, .k = 350.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0 },
     /* The prop's lowest tip, a skid, 0.1397 m under the shaft: 87 mm over
      * the grass with the aircraft level on its mains. */
@@ -1219,7 +1219,65 @@ int plant_airframe(void) { return g_airframe; }
 int plant_airframe_exists(int id) {
   return id >= 0 && id < SIM_AIRFRAME_COUNT && PLANT_TABLE[id].mass_kg > 0.0;
 }
+
 /* .pos_x and .pos_y live in the table above. */
+
+/*
+ * ROLLING RESISTANCE BY SURFACE. A wheel's mu_roll is its own on short
+ * grass, the ground the gear was derived on (docs/CUB-STAGE1.md). Another
+ * ground scales it by what that ground costs a full size tyre over what
+ * short grass does, Marchman, Aerodynamics and Aircraft Performance, 3rd
+ * ed., Table 7.1: concrete and asphalt 0.02 to 0.05, hard turf 0.04 to
+ * 0.05, short grass 0.05, long grass 0.07 to 0.10, soft ground 0.10 to
+ * 0.30. The ratio carries over to a model's wheel to first order: a
+ * wheel's resistance on a yielding ground goes as the square root of its
+ * sinkage over its diameter, c = sqrt(z / d), so the small wheel pays more
+ * on every ground by about the same factor. Hard faces take the table's
+ * low end, 0.02, which puts the Cub's 70 mm wheel at 0.032 on asphalt, the
+ * 0.02 to 0.03 its derivation estimated. Loose sand is the softest ground
+ * named, the top of soft ground, 0.30, which is also a car tyre's on sand
+ * (the rolling resistance survey Wikipedia tabulates). Snow is soft ground
+ * of unknown depth, its middle, 0.20. Bare earth is hard turf. The default
+ * is the plane's own ground and grass is grass, so both are exactly 1 and
+ * the gear on them is what it always was.
+ */
+static const double ROLL_VS_GRASS[SIM_SURFACES] = {
+  [SIM_SURF_DEFAULT] = 1.0,
+  [SIM_SURF_GRASS] = 1.0,
+  [SIM_SURF_DIRT] = 1.0,
+  [SIM_SURF_ASPHALT] = 0.4,
+  [SIM_SURF_CONCRETE] = 0.4,
+  [SIM_SURF_ROCK] = 0.4,
+  [SIM_SURF_SNOW] = 4.0,
+  [SIM_SURF_WOOD] = 0.4,
+  [SIM_SURF_METAL] = 0.4,
+  [SIM_SURF_PVC] = 0.4,
+  [SIM_SURF_FOLIAGE] = 1.0,
+  [SIM_SURF_WATER] = 1.0,
+  [SIM_SURF_SAND] = 6.0,
+};
+
+/*
+ * The brake. A braked wheel turns slower than the ground goes by, and a
+ * locked one skids on its tyre at the grip it has across its heading, or
+ * ploughs at the ground's own resistance where that is more; in between
+ * the resistance goes linearly with the channel. Only a wheel the table
+ * gives a brake feels it, never a tailwheel or a prop tip. A skid, a
+ * point with no tyre, does not roll, so no ground scales its friction.
+ */
+double plant_wheel_roll(const WheelParams *wp, int surf, double brake) {
+  if (!(wp->r > 0.0)) {
+    return wp->mu_roll;
+  }
+  const double k = (surf >= 0 && surf < SIM_SURFACES) ? ROLL_VS_GRASS[surf] : 1.0;
+  const double roll = wp->mu_roll * k;
+  const double b = brake * wp->brake;
+  if (!(b > 0.0)) {
+    return roll;
+  }
+  const double lock = wp->mu_side > roll ? wp->mu_side : roll;
+  return roll + b * (lock - roll);
+}
 
 /*
  * THE ROTOR DISCS ARE ABOVE THE CENTRE OF GRAVITY, AND THAT IS WHY A QUAD

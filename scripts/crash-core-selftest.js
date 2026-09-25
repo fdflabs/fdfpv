@@ -16,6 +16,7 @@
  * 4. The free bodies: a part that leaves falls, lands and comes to rest; at
  *    most twelve move at once; the same run twice is byte identical.
  * 5. Surfaces, water and trees.
+ * 6. The gear: each ground's rolling resistance, and the wheel brake.
  *
  * Every trace digest it prints is the Node half of the Node and Chrome
  * comparison that tests/browser/crash-harness.js makes.
@@ -148,6 +149,46 @@ if (!findChrome()) {
   } finally {
     await server.close();
   }
+}
+
+console.log('6. the gear: rolling resistance by surface, and the brake');
+{
+  /* The Cub on its wheels at the drawn rest pose, taxiing at half throttle
+   * for 3 s: how far it gets says what holds it back. */
+  const taxi = async (mat, brake, thr = 0.5) => {
+    const sim = await fresh(4);
+    must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'ground');
+    if (mat !== null) {
+      must(sim.e.sim_set_ground_material(mat), 'material');
+    }
+    if (brake !== null) {
+      must(sim.e.sim_set_brake(brake), 'brake');
+    }
+    must(sim.e.sim_wing_set_stab(0), 'stab');
+    const half = -11.0 * Math.PI / 360;
+    must(sim.e.sim_set_pose(0, 0, 0.1463, Math.cos(half), 0, Math.sin(half), 0), 'pose');
+    must(sim.rest(), 'rest');
+    for (let ms = 0; ms < 3000; ms += 4) {
+      must(sim.input(ms / 1000, 0, 0, 0, thr), 'input');
+      must(sim.step(4), 'step');
+    }
+    return Array.from(sim.readState().state);
+  };
+  const same = (a, b) => a.every((v, i) => Object.is(v, b[i]));
+  const plain = await taxi(null, null);
+  const grass = await taxi(SURFACE.grass, null);
+  check('grass and the default ground roll the same, to the bit', same(plain, grass));
+  check('a brake at 0 is no brake, to the bit', same(plain, await taxi(null, 0)));
+  const asphalt = await taxi(SURFACE.asphalt, null);
+  const sand = await taxi(SURFACE.sand, null);
+  check('asphalt rolls further than grass, and sand much less far', asphalt[1] > grass[1] && sand[1] < 0.5 * grass[1],
+    `${asphalt[1].toFixed(2)} m, ${grass[1].toFixed(2)} m, ${sand[1].toFixed(2)} m`);
+  const braked = await taxi(null, 1);
+  check('the full brake holds it at half throttle', Math.abs(braked[1]) < 0.05 && braked[4] * braked[4] + braked[5] * braked[5] < 1e-4,
+    `${braked[1].toFixed(3)} m`);
+  const sim = await fresh(4);
+  check('sim_set_brake refuses a value past 0 to 1, and NaN',
+    sim.e.sim_set_brake(1.01) !== SIM_OK && sim.e.sim_set_brake(-0.01) !== SIM_OK && sim.e.sim_set_brake(NaN) !== SIM_OK);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

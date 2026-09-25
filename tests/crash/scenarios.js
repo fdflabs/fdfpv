@@ -603,16 +603,18 @@ function planeScenarios(key) {
   });
   if (c.wheels) {
     /* The taildragger's take off accident (docs/CRASH-PLAN.md, lead
-     * decision after the baseline; docs/CRASH-REFERENCES.md R-NOSEOVER).
-     * The plant's wheels roll at one resistance on every surface and have
-     * no brakes, so the soft ground and the hard brake that nose a real
-     * one over cannot be flown yet; what can is the same moment from the
-     * elevator: the tail pushed up with full down elevator at full power
-     * before the aircraft has the speed to fly, so the thrust line above
-     * the axles tips it forward onto the prop. */
+     * decision after the baseline; docs/CRASH-REFERENCES.md R-NOSEOVER),
+     * flown on the ground the references name: a soft field, loose sand,
+     * whose rolling resistance holds the wheels back (src/native/plant.c
+     * plant_wheel_roll), with the tail pushed up by full down elevator at
+     * full power before the aircraft has the speed to fly, which the
+     * Airplane Flying Handbook's soft field take off keeps low for exactly
+     * this reason. The drag at the wheels under the CG and the thrust line
+     * above the axles tip it forward onto the prop. The FMS models have
+     * no brakes (sim_set_brake), so the soft ground is the cause. */
     out.push({
       id: `${key}-nose-over`,
-      title: 'Take off roll at full power, full down elevator pushed too early: tail up, nose over onto the prop',
+      title: 'Take off roll on soft sand at full power, full down elevator pushed too early: tail up, nose over onto the prop',
       family: 'nose over',
       seconds: 10,
       /* Standing on its wheels from the start: the impact is the first
@@ -620,6 +622,7 @@ function planeScenarios(key) {
       impactOn: ['hull', 'prop tip'],
       setup(h) {
         grass(h);
+        h.call('sim_set_ground_material', SURFACE.sand);
         stab0(h);
         onWheels(h, c);
         h.arm();
