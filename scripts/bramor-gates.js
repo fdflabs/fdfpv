@@ -80,7 +80,7 @@ check: {
     break check;
   }
 
-  const b1 = levelSpeed(sim, th.b1_cruise.duty);
+  const b1 = levelSpeed(sim, th.b1_cruise.duty, th.b1_cruise.speed0);
   gate('B1', 'cruise, level at the cruise throttle', within(b1.v, th.b1_cruise), `${b1.v.toFixed(2)} m/s, sink ${(-b1.vz).toFixed(2)}`, band(th.b1_cruise));
 
   const b2 = stallSpeed(sim, th.b2_stall.alphaStall, { speed0: th.b2_stall.speed0 });

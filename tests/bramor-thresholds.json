@@ -1,6 +1,6 @@
 {
   "note": "The bands the Bramor plant has to land in, from docs/BRAMOR-STAGE1.md, which derives each from C-Astral's published figures for the Bramor C4EYE and the drawn planform (scripts/bramor-derive.js). Never widened to pass; argue in the derivation instead.",
-  "b1_cruise": { "duty": 0.666, "min": 14.5, "max": 17.5, "unit": "m/s", "source": "level speed at the throttle the thrust model says holds the published 16 m/s cruise, derived 16.0" },
+  "b1_cruise": { "duty": 0.666, "speed0": 16, "speed0_source": "the flight starts at the Bramor user manual's Best Endurance Speed, VBE 16 m/s, the cruise it is measuring; the shared 12 m/s throw is under the manual's 13 m/s stall (VST)", "min": 14.5, "max": 17.5, "unit": "m/s", "source": "level speed at the throttle the thrust model says holds the published 16 m/s cruise, derived 16.0" },
   "b2_stall": { "alphaStall": 0.15136268343815515, "speed0": 17, "min": 12.2, "max": 14.7, "unit": "m/s", "source": "the published 13 m/s at 4.5 kg, which is CL max 0.722 on the drawn 0.591 m2; alphaStall is CLmax / CLalpha, 0.722 / 4.77; the band the flying wing's, minus 6 and plus 13 percent" },
   "b3_glide": { "speed": 16, "min": 12.5, "max": 16.0, "source": "L/D at the 16 m/s cruise, power off, derived 14.2" },
   "b4_top": { "duty": 1.0, "min": 22.0, "max": 28.0, "unit": "m/s", "source": "level speed at full throttle, derived 25.0; above the published 22 m/s the autopilot flies to and below the 30 m/s never exceed speed (UST 011)" },
