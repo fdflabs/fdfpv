@@ -212,6 +212,23 @@ export function buildShell(canvas, opts) {
   camera.layers.enable(2);
 
   let craft = buildCraft(opts.airframe);
+  /*
+   * A map may dress the aircraft in its own look: swiss2 draws it
+   * physically based where every other map keeps the builders' cel. A
+   * look is a function of a built craft that restyles it and returns its
+   * own undo. It is applied to each craft swapCraft builds and undone
+   * before one is disposed, so no builder knows about it; null is the
+   * craft as built. The ghost is its own flat mint and is not dressed.
+   */
+  let craftLook = null;
+  let undoCraftLook = null;
+  function setCraftLook(look) {
+    if (undoCraftLook) {
+      undoCraftLook();
+    }
+    craftLook = look;
+    undoCraftLook = look ? look(craft) : null;
+  }
 
   function resize() {
     /*
@@ -340,6 +357,7 @@ export function buildShell(canvas, opts) {
     launcherRest: craft.launcherRest ?? null,
     resize,
     swapCraft,
+    setCraftLook,
     keepAcrossMaps,
     evictSessionRoots,
   };
@@ -370,8 +388,12 @@ export function buildShell(canvas, opts) {
       parent.add(next.group);
       parent.remove(old.group);
     }
+    if (undoCraftLook) {
+      undoCraftLook();
+    }
     disposeTree(old.group);
     craft = next;
+    undoCraftLook = craftLook ? craftLook(next) : null;
     api.quad = next.group;
     api.discs = next.discs;
     api.blades = next.blades;

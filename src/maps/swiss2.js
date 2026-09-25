@@ -87,6 +87,7 @@ import { buildWater } from './swiss2/water/index.js';
 import { swissBuildings } from './swiss2/buildings/index.js';
 import { swissVehicles } from './swiss2/vehicles/index.js';
 import { buildProps } from './swiss2/props/index.js';
+import { photoCraftLook } from './swiss2/craftlook.js';
 
 const CAMERA_FAR = 14000;
 
@@ -225,6 +226,7 @@ function photoStyle() {
       });
       const lit = makeLit(style.clouds);
       style.sunAt = lit.sun;
+      style.lit = lit;
       const masks = { walls: wallUniform() };
       own(masks.walls.value);
       const ground = (opts) => groundMaterial({
@@ -371,7 +373,8 @@ function photoStyle() {
      * (baked now that the range beyond exists), then metre uvs and the
      * light injection for every material in the scene, the vegetation's
      * and the water's included. The craft is added after this and is
-     * never touched: its cel materials are the session's. */
+     * not walked here: its cel materials are the session's, and it is
+     * dressed apart, reversibly (craftlook.js, from compose). */
     async finish(scene, stage, { field, far, colliders, heightAt, nature }) {
       /* The huts, fences and bales before the forests, so the trees and
        * the meadow keep off the huts, whose wall colliders note them as
@@ -416,7 +419,11 @@ function photoStyle() {
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* The flown aircraft in the valley's materials, for as long as the
+       * valley is seated; the cel craft comes back before the world goes. */
+      shell.setCraftLook(photoCraftLook(style.lit));
       map.dispose = () => {
+        shell.setCraftLook(null);
         post.dispose();
         sceneDispose();
       };
