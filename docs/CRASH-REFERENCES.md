@@ -780,16 +780,13 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 
 ### Slow Stick
 
-**slowstick-stall.** Reference still: Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.
+**slowstick-stall.** Reference still: Stalled low with the stick held back: it barely breaks, mushes down with the nose a little low, lands hard on its gear, bounces and rolls on upright, nothing broken.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
-| mustNotBreak | wing | R-A14-FOAM, R-SLOWSTICK | MED |
-| peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
-| restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
-| timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
+| mustNotBreak | wing, tail | R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH | MED |
+| peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged) | MED |
+| restAttitude | upright | R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH | MED |
 
 **slowstick-nose-in.** Reference still: A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.
 

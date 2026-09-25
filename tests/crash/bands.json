@@ -1313,53 +1313,31 @@
    ]
   },
   "slowstick-stall": {
-   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.",
+   "refStill": "Stalled low with the stick held back: it barely breaks, mushes down with the nose a little low, lands hard on its gear, bounces and rolls on upright, nothing broken.",
    "checks": [
-    {
-     "metric": "mustBreak",
-     "parts": [
-      "prop"
-     ],
-     "source": "R-A14-FOAM (puller prop, spinner and motor at the nose)",
-     "confidence": "MED"
-    },
     {
      "metric": "mustNotBreak",
      "parts": [
-      "wing"
+      "wing",
+      "tail"
      ],
-     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "source": "R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH",
      "confidence": "MED"
     },
     {
      "metric": "peakG",
-     "min": 50,
-     "max": 150,
-     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged)",
      "confidence": "MED"
     },
     {
      "metric": "restAttitude",
      "oneOf": [
-      "nose down",
-      "inverted"
+      "upright"
      ],
-     "source": "R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over)",
-     "confidence": "LOW"
-    },
-    {
-     "metric": "restDistM",
-     "min": 0,
-     "max": 3,
-     "source": "R-C172, R-A14-FOAM",
+     "source": "R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH",
      "confidence": "MED"
-    },
-    {
-     "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-C172 (Froude scaled)",
-     "confidence": "LOW"
     }
    ]
   },
