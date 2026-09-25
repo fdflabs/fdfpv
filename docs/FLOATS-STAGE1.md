@@ -46,47 +46,53 @@ struts to the fuselage's belly with cross wires, a water rudder on each
 stern.
 
 **Neither maker publishes the floats' dimensions or mass.** Every float
-number below is ESTIMATED: from the manuals' drawings, the aircraft's own
-dimensions, the full size J-3's EDO 1320 floats scaled 1:7.67 for the Cub,
-and the float design rules of thumb (Langley and NACA practice as Diehl,
-Engineering Aerodynamics, and the EDO manuals put them: the float about
-three quarters of the fuselage, each float's volume several times the
-share of the weight it carries, the step 10 to 15 deg behind a vertical
-through the CG, the afterbody rising 7 to 9 deg). Where a real float set
-is measured one day, these are the numbers to replace, and nothing else
-changes.
+number below is ESTIMATED: the length, the depth and where the bows stand
+from photographs of each aircraft on its floats, scaled to its published
+length (Model Aviation's review of the E-flite Timber 1.5 m, whose float
+set, EFL5261, is the Evolution's, a side view in flight and the parts laid
+out flat; Flite Test's FMS J-3 V3 article, three photographs on the
+water), the struts and rudders from the manuals' drawings, and what a
+photograph cannot give from the float design rules (Langley and NACA
+practice as Diehl, Engineering Aerodynamics, and the EDO manuals put them:
+each float's volume several times the share of the weight it carries, the
+step 10 to 15 deg behind a vertical through the CG, the afterbody rising
+7 to 9 deg). The Timber's floats in the photographs are white with the
+aircraft's red and black lightning on their sides; FMS's are plain white
+foam, deep and slab sided, their bows under the spinner. Where a real
+float set is measured one day, these are the numbers to replace, and
+nothing else changes.
 
 | Quantity | Timber | Cub | How |
 | --- | --- | --- | --- |
-| Float length | 0.80 m | 0.70 m | the manual drawings: 0.77 of the fuselage; the Cub's EDO 1320 at 1:7.67 |
-| Beam, depth | 0.085, 0.080 m | 0.075, 0.070 m | a length to beam of 9.4, a model float's |
+| Float length | 0.72 m, the bow 0.33 m ahead of the CG | 0.72 m, the bow 0.27 m ahead | the photographs: 0.69 and 0.80 of the fuselage, the Timber's bows at the spinner, the Cub's under it |
+| Beam, depth | 0.085, 0.075 m | 0.080, 0.080 m | the photographs' depth; a length to beam of 8.5 to 9, a model float's |
 | Deadrise | 15 deg | 15 deg | a moulded foam float's shallow V |
 | Track (centre to centre) | 0.36 m | 0.30 m | a quarter of the span, the spreader bars' |
-| Step, behind the CG | 50 mm, 11.2 deg off its vertical | 40 mm, 10.4 deg | the 10 to 15 deg rule |
+| Step, behind the CG | 50 mm, 11.4 deg off its vertical | 40 mm, 10.4 deg | the 10 to 15 deg rule |
 | Step height | 10 mm | 9 mm | 12 percent of the beam, model practice |
 | Afterbody | rising 8 deg | 8 deg | EDO practice |
-| Bow | the keel rising 64 mm over the forebody's front 0.21 m | 56 mm over 0.18 m | the drawings |
-| Forebody keel under the wheeled aircraft's CG | 0.285 m | 0.245 m | the prop's tip 0.12 m (Timber) and 87 mm (Cub) over still water at rest |
-| Float set mass | 0.28 kg (floats 0.24, struts 0.04) | 0.20 kg (0.17, 0.03) | 3.4 and 2.3 litres of moulded foam at about 35 g per litre, the struts music wire |
+| Bow | the keel rising 60 mm over the front 0.19 m | 64 mm over 0.18 m | the photographs |
+| Forebody keel under the wheeled aircraft's CG | 0.275 m | 0.245 m | the photographs; the prop's tip 107 mm (Timber) and 69 mm (Cub) over still water at rest |
+| Float set mass | 0.234 kg (floats 0.194, struts 0.04) | 0.212 kg (0.182, 0.03) | 2.8 and 2.6 litres a float of moulded foam at about 35 g per litre, the struts music wire |
 | Water rudder | 35 by 50 mm, 50 mm under the stern | 30 by 45 mm | the drawings; turned one to one with the air rudder |
 
 ### What the floats change on the aircraft
 
 | Quantity | Timber | Cub | How |
 | --- | --- | --- | --- |
-| Mass | 1.98 kg | 1.52 kg | the wheeled aircraft's and the float set's; the wheels' own few grams are left in, the set's figure being an estimate to far more than that |
-| CG | 32.7 mm lower | 26.1 mm lower | the float set hung 0.23 and 0.21 m under the old CG; fore and aft it is put back where the manuals have it with nose weight, as a pilot does (Model Aviation's review of the Timber: "the floats shifted the CG to the rear enough to be noticeable") |
-| Thrust line | 32.7 mm over the CG | 28.1 mm | the CG moved down under it: power pitches the nose down, which is what a float plane does |
-| Ixx, Iyy, Izz | 0.1115, 0.1210, 0.1912 kg m² | 0.0711, 0.0689, 0.1111 | the wheeled aircraft's, the floats as two bars and the struts as points, all about the new CG |
-| CD0 | 0.0609 (+0.0189) | 0.0706 (+0.0206) | the floats' wetted area, 0.42 and 0.32 m², at the equivalent skin friction 0.009 (Raymer eq. 12.23); the struts and spreaders on their frontal area, 0.0053 and 0.0040 m², at a wire's C_D 1.0; less the wheels and legs they replace |
-| CYβ | −0.460 (−0.091) | −0.380 (−0.090) | the floats' side, 0.80 of their outline, at the fuselage's −0.32 per unit of side area over wing area |
-| Cnβ | 0.0712 (−0.0158) | 0.0329 (−0.0151) | Nelson eq. 2.72 on the floats' volume, 6.8 and 4.6 litres: a float, like a fuselage, is a body the sideslip turns further |
-| Clβ | −0.0346 (+0.0124) | −0.0772 (+0.0118) | the floats' side force acting at their mid depth, 0.21 and 0.18 m under the CG, takes some of the dihedral effect |
+| Mass | 1.934 kg | 1.532 kg | the wheeled aircraft's and the float set's; the wheels' own few grams are left in, the set's figure being an estimate to far more than that |
+| CG | 26.6 mm lower | 26.4 mm lower | the float set hung 0.22 and 0.19 m under the old CG; fore and aft it is put back where the manuals have it with nose weight, as a pilot does (Model Aviation's review of the Timber: "the floats shifted the CG to the rear enough to be noticeable") |
+| Thrust line | 26.6 mm over the CG | 28.4 mm | the CG moved down under it: power pitches the nose down, which is what a float plane does |
+| Ixx, Iyy, Izz | 0.1070, 0.1135, 0.1852 kg m² | 0.0712, 0.0697, 0.1123 | the wheeled aircraft's, the floats as two bars and the struts as points, all about the new CG |
+| CD0 | 0.0595 (+0.0175) | 0.0715 (+0.0215) | the floats' wetted area, 0.36 and 0.35 m², at the equivalent skin friction 0.009 (Raymer eq. 12.23); the struts and spreaders on their frontal area, 0.0053 and 0.0040 m², at a wire's C_D 1.0; less the wheels and legs they replace |
+| CYβ | −0.446 (−0.077) | −0.395 (−0.105) | the floats' side, 0.80 of their outline, at the fuselage's −0.32 per unit of side area over wing area |
+| Cnβ | 0.0741 (−0.0129) | 0.0308 (−0.0172) | Nelson eq. 2.72 on the floats' volume, 5.6 and 5.2 litres: a float, like a fuselage, is a body the sideslip turns further |
+| Clβ | −0.0366 (+0.0104) | −0.0756 (+0.0134) | the floats' side force acting at their mid depth, 0.21 and 0.18 m under the CG, takes some of the dihedral effect |
 | Cm0 | unchanged | unchanged | the floats' drag under the CG is a constant moment coefficient, which the rigging's trim takes out, as it did the wheels' |
 
-Measured in the plant (not gated): level at 75 percent, 16.41 m/s against
-the wheeled Timber's 17.63, 12.66 against the Cub's 13.28; top speed
-22.2 against 24.0 and 16.9 against 18.1. Floats cost a model about a
+Measured in the plant (not gated): level at 75 percent, 16.48 m/s against
+the wheeled Timber's 17.63, 12.63 against the Cub's 13.28; top speed
+22.4 against 24.0 and 16.9 against 18.1. Floats cost a model about a
 tenth of its speed, which is the full size figure too.
 
 ## The water
@@ -231,7 +237,7 @@ Each float then gets:
   falls in the literature's range, 0.12 to 0.25 of the weight at a
   volumetric Froude number of 1.5 to 2.5 (Savitsky 1964; Hoerner, Fluid
   Dynamic Drag, ch. 11). Measured on the Timber's take off: the water's
-  drag 3.8 N at 2.66 m/s, 0.20 of the weight, 2.4 N of it wave making.
+  drag 3.45 N at 2.73 m/s, 0.18 of the weight, 2.1 N of it wave making.
 - **A water rudder** at the stern: a low aspect ratio foil, a lift slope
   of 2.7 per rad and a CL of 0.9 at most, at the air rudder's angle plus
   the flow's own at the stern, working in proportion to how much of its
@@ -242,9 +248,9 @@ Every force is an impulse at its point through the body's effective mass,
 the wheels' path (`contact_push`), after the air's step. While the floats
 are wet the stabiliser is in Manual, as on wheels.
 
-**On land** the keels' knee, step and stern are skids against the ground
-plane, 3000 N/m and 40 N s/m each, and they slide at mu 0.35 every way: a
-float's plastic on grass. That is the decision: **floats slide, they do
+**On land** the keels' bow, knee, step and stern are skids against the
+ground plane, 3000 N/m and 40 N s/m each, and they slide at mu 0.35 every
+way: a float's plastic on grass. That is the decision: **floats slide, they do
 not roll or taxi**. Under the throttle that carries 0.35 of the weight, 52
 percent on the Timber and 62 on the Cub, it does not move; over it, it
 slides and, at full power, drags itself off, which real float planes do
@@ -254,8 +260,8 @@ has no slipstream to work in, so there is no steering there.
 ### What it does not model, and why
 
 - **Added mass in heave and pitch.** A float's heave added mass is about
-  twice the aircraft's own mass, so the plant's natural periods (0.28 s
-  heave, 0.36 s pitch) are about half what they would be. Everything the
+  twice the aircraft's own mass, so the plant's natural periods (0.29 s
+  heave, 0.44 to 0.53 s pitch) are about half what they would be. Everything the
   plant is asked to do, a swell of seconds, a take off, a landing, is far
   slower than either, so it rides as the real one does; a fast chop at a
   second would ride a little stiffly. Adding it needs an implicit step.
@@ -284,34 +290,39 @@ is what makes it a check on the plant rather than a copy of it. Printed:
 
 ```
 === Turbo Timber on floats
-mass 1.980 kg, W 19.42 N; CG -32.7 mm lower; Ixx 0.1115 Iyy 0.1210 Izz 0.1912
-floats' volume 6.80 l, reserve 3.44 x the weight; wetted area 0.419 m2
-dCD0 0.0189 -> CD0 0.0609; CYb -0.460; Cnb 0.0712; Clb -0.0346; thrust line 32.7 mm over the CG
-at rest on still water: trim 3.42 deg nose up, the CG 0.2131 m over the water, the keel at the step 41.7 mm under it; the prop's tip 124 mm over it
-the step 11.2 deg behind the CG's vertical
-waterplane 0.1037 m2; natural periods: heave 0.277 s, pitch 0.362 s, roll 0.366 s (no added mass, so short)
-swell 0.3 m at 2.5 s: wavelength 9.76 m, slope 5.53 deg; quasi static heave 0.302 m, pitch +-5.63 deg, both at 2.5 s
-hull speed 1.00 m/s; the hump between 1.48 and 2.47 m/s
-stall on floats at the take off notch 7.20 m/s; the attitude full up elevator holds at liftoff 6.99 deg; liftoff 8.30 m/s, 1.15 of the stall
-on the step at 2.83 m/s (Cv 3.10): trim 10.1 deg, wetted 0.230 m, water drag 0.196 of the weight
-take off run to 8.30 m/s: 3.99 m in 0.89 s with a hump of 0.12 W, 4.03 m in 0.91 s at 0.25 W
-landing from 7.83 m/s (stall 6.81 full flaps) to 1 m/s: 16.8 m with a hump of 0.25 W, 18.6 m at 0.12 W
-water rudder taxi turn at 0.9 m/s, full rudder: radius 2.31 m
+mass 1.934 kg, W 18.97 N; CG -26.6 mm lower; Ixx 0.1070 Iyy 0.1135 Izz 0.1852
+float: 0.72 m long, 0.085 m beam, 0.075 m deep, deadrise 15 deg, forebody keel -0.2484 m under the CG, step -0.05 m
+floats' volume 5.56 l, reserve 2.87 x the weight; wetted area 0.363 m2
+dCD0 0.0175 -> CD0 0.0595; CYb -0.446 (-0.077); Cnb 0.0741 (-0.0129); Clb -0.0366 (0.0104); thrust line 26.6 mm over the CG
+at rest on still water: trim 2.52 deg nose up, the CG 0.2074 m over the water, the keel at the step 43.0 mm under it; the prop's tip 107 mm over it; buoyancy 18.97 N, its centre 0.00 mm from the CG
+the step 11.4 deg behind the CG's vertical
+waterplane 0.0941 m2; BG 0.2209 m; pitch stiffness 27.13 less 4.19 N m/rad, roll 29.90 less the same
+natural periods: heave 0.288 s, pitch 0.442 s, roll 0.405 s (no added mass, so short)
+swell 0.3 m at 2.5 s: wavelength 9.76 m, slope 5.53 deg; quasi static heave 0.302 m crest to trough, pitch +-6.73 deg, from the side roll +-6.61 deg, all at 2.5 s
+hull speed 0.95 m/s; the hump between 1.48 and 2.46 m/s
+stall on floats at the take off notch 7.11 m/s; the attitude full up elevator holds at liftoff 6.99 deg (sternpost at 9.7); liftoff 8.20 m/s, 1.15 of the stall
+on the step at 3.53 m/s (Cv 3.87): trim 8.1 deg, wetted 0.190 m, water drag 0.171 of the weight
+take off run to 8.20 m/s: 3.73 m in 0.84 s with a hump of 0.12 W, 3.79 m in 0.87 s at 0.25 W
+landing from 7.74 m/s (stall 6.73 full flaps) to 1 m/s: 16.8 m with a hump of 0.25 W, 19.8 m at 0.12 W
+water rudder taxi turn at 0.9 m/s, full rudder: radius 2.20 m, sideslip -15.1 deg
 on grass at mu 0.35 it breaks away at 52 percent throttle
 
 === Piper Cub on floats
-mass 1.520 kg, W 14.91 N; CG -26.1 mm lower; Ixx 0.0711 Iyy 0.0689 Izz 0.1111
-floats' volume 4.56 l, reserve 3.00 x the weight; wetted area 0.321 m2
-dCD0 0.0206 -> CD0 0.0706; CYb -0.380; Cnb 0.0329; Clb -0.0772; thrust line 28.1 mm over the CG
-at rest on still water: trim 3.32 deg nose up, the CG 0.1819 m over the water, the keel at the step 39.0 mm under it; the prop's tip 87 mm over it
+mass 1.532 kg, W 15.03 N; CG -26.4 mm lower; Ixx 0.0712 Iyy 0.0697 Izz 0.1123
+float: 0.72 m long, 0.08 m beam, 0.08 m deep, deadrise 15 deg, forebody keel -0.2186 m under the CG, step -0.04 m
+floats' volume 5.20 l, reserve 3.39 x the weight; wetted area 0.349 m2
+dCD0 0.0215 -> CD0 0.0715; CYb -0.395 (-0.105); Cnb 0.0308 (-0.0172); Clb -0.0756 (0.0134); thrust line 28.4 mm over the CG
+at rest on still water: trim 0.64 deg nose up, the CG 0.1765 m over the water, the keel at the step 42.5 mm under it; the prop's tip 69 mm over it; buoyancy 15.03 N, its centre 0.00 mm from the CG
 the step 10.4 deg behind the CG's vertical
-swell 0.3 m at 2.5 s: quasi static heave 0.302 m, pitch +-5.62 deg
-hull speed 0.94 m/s; the hump between 1.42 and 2.37 m/s
-stall on floats 8.70 m/s; the attitude full up elevator holds at liftoff 4.65 deg; liftoff 10.51 m/s, 1.21 of the stall
-on the step at 2.60 m/s (Cv 3.03): trim 12.0 deg, wetted 0.199 m, water drag 0.227 of the weight
-take off run to 10.51 m/s: 12.51 m in 2.10 s at a hump of 0.12 W, 12.58 m at 0.25 W
-landing from 10.00 m/s to 1 m/s: 24.7 m with a hump of 0.25 W, 26.2 m at 0.12 W
-water rudder taxi turn at 0.9 m/s, full rudder: radius 4.62 m
+waterplane 0.0712 m2; BG 0.1909 m; pitch stiffness 12.62 less 2.87 N m/rad, roll 15.71 less the same
+natural periods: heave 0.294 s, pitch 0.531 s, roll 0.468 s (no added mass, so short)
+swell 0.3 m at 2.5 s: wavelength 9.76 m, slope 5.53 deg; quasi static heave 0.302 m crest to trough, pitch +-7.47 deg, from the side roll +-7.02 deg, all at 2.5 s
+hull speed 0.95 m/s; the hump between 1.42 and 2.37 m/s
+stall on floats at the take off notch 8.73 m/s; the attitude full up elevator holds at liftoff 4.65 deg (sternpost at 9.3); liftoff 10.55 m/s, 1.21 of the stall
+on the step at 5.89 m/s (Cv 6.65): trim 3.8 deg, wetted 0.130 m, water drag 0.171 of the weight
+take off run to 10.55 m/s: 12.50 m in 2.05 s with a hump of 0.12 W, 13.02 m in 2.17 s at 0.25 W
+landing from 10.04 m/s (stall 8.73 ) to 1 m/s: 25.1 m with a hump of 0.25 W, 34.3 m at 0.12 W
+water rudder taxi turn at 0.9 m/s, full rudder: radius 5.00 m, sideslip -9.4 deg
 on grass at mu 0.35 it breaks away at 62 percent throttle
 ```
 
@@ -319,16 +330,19 @@ In outline:
 
 - **At rest**: the heave and the trim at which the buoyancy, integrated on
   4000 strips a float, carries the weight with its centre under the CG,
-  by nested bisection. Both float nose up by a little over 3 deg, the
-  afterbody's volume sitting lower, which is how a float plane sits.
-  Reserve buoyancy 3.4 and 3.0 times the weight, where full size practice
-  wants 1.8 at least.
+  by nested bisection. The Timber floats 2.5 deg nose up and the Cub
+  nearly level, the afterbody's volume sitting lower, which is how a float
+  plane sits. Reserve buoyancy 2.9 and 3.4 times the weight, where full
+  size practice wants 1.8 at least.
 - **In a swell**: every natural period is far under the swell's 2.5 s, so
   the aircraft follows the water quasi statically: it heaves the swell's
   height times sin(x)/x of its waterline and pitches the slope times
-  3 (sin x − x cos x)/x³, x = k L/2, by the dynamic magnification of its
-  own natural period, which here is 1.02. A beam swell rolls it at the
-  slope the same way.
+  3 (sin x − x cos x)/x³, x = k L/2. And times ρ g I / (ρ g I − W BG):
+  the CG stands 0.22 and 0.19 m over the centre of buoyancy, so as the
+  swell tilts the aircraft its own weight's moment helps it along, which
+  is the metacentric height's arithmetic (Rawson and Tupper, Basic Ship
+  Theory, ch. 4) and costs the Cub a fifth of its pitch stiffness. A beam
+  swell rolls it on the floats' track the same way.
 - **The step**: Savitsky's lift C_Lβ = C_L0 − 0.0065 β C_L0^0.6, C_L0 =
   τ^1.1 (0.012 λ^0.5 + 0.0055 λ^2.5 / Cv²), gives the wetted length λb
   that carries the water's share at a speed and a trim; its centre of
@@ -361,12 +375,12 @@ In outline:
 
 | Check | Derived (Timber, Cub) | Band |
 | --- | --- | --- |
-| F1 floating at rest | trim 3.42, 3.32 deg; CG 0.2131, 0.1819 m over the water; the step 41.7, 39.0 mm deep | trim within 0.5 deg, CG within 3 mm, draft within 10 percent (the plant integrates 20 strips against the derivation's 4000) |
-| F2 a 0.3 m, 2.5 s swell from ahead | heave 0.302 m; pitch ±5.63, ±5.62 deg; at 2.5 s | heave within 10 percent; pitch 0.8 to 1.3 of it; both periods within 2 percent; roll under 2 deg |
-| F3 the swell from the side | roll ±5.53 deg at 2.5 s | 0.7 to 1.4 of it, period within 2 percent |
-| F4 the take off | on the step above the hump's start, 1.48 and 1.42 m/s; liftoff 8.30 and 10.51 m/s after 4.0 and 12.5 m | on the step under 0.6 of the liftoff speed, the manual's "below flight speed"; liftoff speed 0.9 to 1.2 of the derived, the run 0.7 to 2.0 of it |
-| F5 landing on the water | 17.7 and 25.5 m from 1.15 of the landing stall to 1 m/s | 0.6 to 1.5 of it; at rest within a degree of F1; never over 30 deg of pitch or bank; no hull contact |
-| F6 the water rudders | 2.31 and 4.62 m at 0.9 m/s | 0.7 to 1.5 of it, turning the rudder's way |
+| F1 floating at rest | trim 2.52, 0.64 deg; CG 0.2074, 0.1765 m over the water; the step 43.0, 42.5 mm deep | trim within 0.5 deg, CG within 3 mm, draft within 10 percent (the plant integrates 20 strips against the derivation's 4000) |
+| F2 a 0.3 m, 2.5 s swell from ahead | heave 0.302 m; pitch ±6.73, ±7.47 deg; at 2.5 s | heave within 10 percent; pitch 0.8 to 1.3 of it; both periods within 2 percent; roll under 2 deg |
+| F3 the swell from the side | roll ±6.61, ±7.02 deg at 2.5 s | 0.7 to 1.4 of it, period within 2 percent |
+| F4 the take off | on the step above the hump's start, 1.48 and 1.42 m/s; liftoff 8.20 and 10.55 m/s after 3.8 and 12.8 m | on the step under 0.6 of the liftoff speed, the manual's "below flight speed"; liftoff speed 0.9 to 1.2 of the derived, the run 0.7 to 2.0 of it |
+| F5 landing on the water | 18.3 and 29.7 m from 1.15 of the landing stall to 1 m/s | 0.6 to 1.5 of it; at rest within a degree of F1; never over 30 deg of pitch or bank; no hull contact |
+| F6 the water rudders | 2.20 and 5.00 m at 0.9 m/s | 0.7 to 1.5 of it, turning the rudder's way |
 | F7 nose low at speed | flagged, not gated | see the failure modes |
 | F8 on grass | breaks away at 52 and 62 percent throttle | still 8 points under, sliding 8 points over |
 | F9 every other aircraft | their recorded hashes | identical |
@@ -384,14 +398,14 @@ The liftoff speed and the step are the tighter checks.
 
 | Check | Timber | Cub | Band |
 | --- | --- | --- | --- |
-| F1 at rest | 3.44 deg, CG 0.2130 m, step 41.9 mm | 3.34 deg, 0.1818 m, 39.1 mm | as derived, 0.5 deg, 3 mm, 10 percent |
-| F2 swell from ahead | heave 0.302 m at 2.507 s, pitch ±6.62 deg (1.18) at 2.508 s, roll ±0.32 | 0.302 m at 2.501 s, ±6.60 deg (1.17), roll ±0.45 | 10 percent, 0.8 to 1.3, 2 percent, under 2 deg |
-| F3 swell from the side | roll ±6.45 deg (1.17) at 2.506 s | ±6.65 deg (1.20) at 2.508 s | 0.7 to 1.4, 2 percent |
-| F4 take off | on the step at 3.37 m/s; 5.60 m to liftoff at 9.45 m/s (1.14), 1.09 s | on the step at 3.86 m/s; 16.46 m at 10.51 m/s (1.00), 2.58 s | step under 4.98 and 6.31 m/s; 0.9 to 1.2; 2.8 to 8.0 and 8.8 to 25.0 m |
-| F5 landing | touched at 8.45 m/s, 15.4 m to 1 m/s (0.87), at rest at 3.47 deg | touched at 9.70 m/s, 15.6 m (0.61), at rest at 3.35 deg | 0.6 to 1.5 |
-| F6 water rudders | 2.86 m at 0.97 m/s (1.24), turning right | 5.68 m at 0.81 m/s (1.23) | 0.7 to 1.5 |
-| F7 nose low at 14 m/s (flag) | 3.1 g, pitch to −16.3 deg, did not go over | 3.4 g, −11.8 deg, did not go over | not gated |
-| F8 grass | still at 44 percent, 4.1 m in 3 s at 60 | still at 54, 3.3 m at 70 | still under, sliding over |
+| F1 at rest | 2.57 deg, CG 0.2076 m, step 42.8 mm | 0.67 deg, 0.1767 m, 42.4 mm | as derived, 0.5 deg, 3 mm, 10 percent |
+| F2 swell from ahead | heave 0.302 m at 2.509 s, pitch ±7.10 deg (1.06) at 2.510 s, roll ±0.23 | 0.303 m at 2.506 s, ±8.05 deg (1.08), roll ±0.07 | 10 percent, 0.8 to 1.3, 2 percent, under 2 deg |
+| F3 swell from the side | roll ±6.55 deg (0.99) at 2.505 s | ±6.95 deg (0.99) at 2.512 s | 0.7 to 1.4, 2 percent |
+| F4 take off | on the step at 3.29 m/s; 5.33 m to liftoff at 9.49 m/s (1.16), 1.04 s | on the step at 2.97 m/s; 14.09 m at 10.39 m/s (0.99), 2.25 s | step under 4.92 and 6.33 m/s; 0.9 to 1.2; 2.7 to 7.6 and 9.0 to 25.6 m |
+| F5 landing | touched at 8.33 m/s, 15.3 m to 1 m/s (0.84), at rest at 2.61 deg | touched at 9.78 m/s, 21.4 m (0.72), at rest at 0.72 deg | 0.6 to 1.5 |
+| F6 water rudders | 2.74 m at 0.95 m/s (1.25), turning right | 6.46 m at 0.75 m/s (1.29) | 0.7 to 1.5 |
+| F7 nose low at 14 m/s (flag) | 3.7 g, pitch to −21.0 deg, did not go over | 2.4 g, −11.5 deg, did not go over | not gated |
+| F8 grass | still at 44 percent, 4.4 m in 3 s at 60 | still at 54, 1.4 m at 70, tipped 19 deg onto its bows | still under, sliding over |
 | F9 others unmoved | all nine hashes as recorded | | identical |
 | F10 Node and Chrome | identical | | identical |
 
@@ -412,14 +426,29 @@ What measuring it changed:
   full up elevator: the Cub ran 26 m and flew off at 12.3 m/s at 2 deg
   of pitch. The derivation's liftoff is the attitude full up elevator
   holds, so the pilot now pulls all the way at 1.05 of the stall, as the
-  manual's "pull back to rotate" does, and the Cub leaves at exactly the
-  derived 10.51 m/s. The Timber leaves at 1.14 of its derived speed at
-  4.6 deg rather than 7.0: the water's drag, low under the CG, still
-  holds the nose down as it lets go.
+  manual's "pull back to rotate" does, and the Cub leaves within 2
+  percent of the derived speed. The Timber leaves at 1.16 of its derived
+  speed at 4.8 deg rather than 7.0: the water's drag, low under the CG,
+  still holds the nose down as it lets go.
 - F1 was first written to hold the aircraft still. The motor's idle,
   2 percent, pushes 10 mN, and a float at rest on still water has no
   friction to stop it: it creeps, 4 cm/s after 8 s, as a real one does
   with the motor running. The pose is what F1 holds.
+- The floats were first drawn from the manuals alone, 0.80 and 0.70 m
+  long with their bows well ahead of the props. The photographs put the
+  Timber's bows at the spinner and the Cub's under it, both floats about
+  0.72 m, the Cub's deeper; the floats here are those.
+- The swell's pitch first came out 1.41 times the Cub's derived figure,
+  for every swell height and period tried, which is a stiffness and not a
+  dynamic. The derivation had left out the weight's own moment about the
+  centre of buoyancy, W BG, which on a CG this high takes a fifth of the
+  pitch stiffness; with it the plant is within 8 percent of the
+  derivation in pitch and 1 percent in roll. The plant was right.
+- On grass the Cub, pulled by a thrust line over its CG and dragged at
+  its keels 0.22 m under it, tipped forward past the floats' knees and
+  onto its hull. The bows are skids now too: it tips 19 deg onto them and
+  slides on, which is what a float plane under power on grass does
+  without its pilot's full up elevator.
 
 ## Failure modes, for the crash physics plan
 
@@ -430,8 +459,8 @@ Flagged here, not built. The crash physics plan owns breakup.
   curved bow sucks it down, the bow buries, the drag low and far ahead of
   the CG pitches it over, and the aircraft goes onto its back, often
   breaking the struts. F7 arrives 12 deg nose down at 14 m/s and lets go
-  of the sticks: the plant decelerates at up to 3.1 g (Timber) and 3.4 g
-  (Cub) and pitches on down, to −16.3 and −11.8 deg, then the bows' buoyancy
+  of the sticks: the plant decelerates at up to 3.7 g (Timber) and 2.4 g
+  (Cub) and pitches on down, to −21.0 and −11.5 deg, then the bows' buoyancy
   and their rocker's planing force lift the nose and it skips on. **It
   does not go over**, and that is the model's limit, not the aircraft's:
   (1) water is only ever pushed, so a nose down forebody has no suction
@@ -456,11 +485,17 @@ Flagged here, not built. The crash physics plan owns breakup.
   water, so a capsized aircraft floats on its floats' tops.
 - **Porpoising.** A planing hull at too high or too low a trim for its
   load oscillates in pitch and heave, growing (Day and Haag 1952, Savitsky
-  1964's stability limits). The plant shows it mildly: planing at 10 m/s
-  on 60 percent throttle with the stick 0.6 back, the trim swings 2.2 to
-  5.0 deg and settles into that; at other trims it planes steadily. Not
+  1964's stability limits). The plant shows it mildly: the Timber planing
+  at 9.9 m/s on 60 percent throttle with the stick 0.6 back swings its
+  trim between 1.6 and 4.1 deg and settles into that; at other trims it
+  planes steadily. (The Cub on 60 percent does not get over the hump at
+  all, 3.1 m/s, which is its thrust to weight of 0.9 on floats.) Not
   checked against the Day and Haag limit for a 15 deg V, which is the
   first thing to do if a pilot reports a nose that will not settle.
+- **Tipping onto the bows on land.** On grass under power the Cub tips
+  19 deg forward onto its float bows (F8) and slides there: the drag at
+  the keels is far under the CG. Nothing breaks, and a real one would
+  likely bend a bow; a pilot holds the stick back.
 - **Sinking.** A float cannot fill, and nothing leaks. A water landing
   on the wheels of a wheeled aircraft still stands on the lake's surface
   as on ground (the shell's map height), as it always has.

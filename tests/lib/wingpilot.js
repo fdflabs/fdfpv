@@ -913,8 +913,8 @@ export function recordTimberFlight(sim) {
 export const TIMBERF_AIRFRAME = 9;
 export const CUBF_AIRFRAME = 10;
 export const FLOAT_REST = {
-  [TIMBERF_AIRFRAME]: { z: 0.2131, pitchDeg: 3.42 },
-  [CUBF_AIRFRAME]: { z: 0.1819, pitchDeg: 3.32 },
+  [TIMBERF_AIRFRAME]: { z: 0.2074, pitchDeg: 2.52 },
+  [CUBF_AIRFRAME]: { z: 0.1765, pitchDeg: 0.64 },
 };
 export function floatsWaterPrelude(sim, airframe, { flaps = 0, swell = null, wind = null } = {}) {
   must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
@@ -1002,7 +1002,7 @@ export function recordTimberFloatFlight(sim) {
       sticks = [0, 0, 0, 0];
     } else if (ms < 6000) {
       if (!onStep) {
-        onStep = floatState(sim)[0] < 0.25 * 1.98 * 9.81 && ms > 1200;
+        onStep = floatState(sim)[0] < 0.25 * 1.934 * 9.81 && ms > 1200;
       }
       if (s[3] > 6) {
         sticks = [hold(0), levelPitch(), 0, 0.65];

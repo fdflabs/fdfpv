@@ -1048,8 +1048,8 @@ static void ground_apply(void) {
  * much of its span is in the water.
  *
  * Every force is an impulse at its point through the body's effective
- * mass, contact_push, the wheels' path. On land the keel's knee, step
- * and stern are skids against the ground plane, sliding at mu_ground
+ * mass, contact_push, the wheels' path. On land the keel's bow, knee,
+ * step and stern are skids against the ground plane, sliding at mu_ground
  * every way: a float has no wheel.
  *
  * Deterministic: sqrt, the fixed atan2 and the wave field's fixed sin
@@ -1095,10 +1095,10 @@ static double float_ground(const FloatParams *fp) {
   }
   const double *n = g_ground_n;
   double total = 0.0;
-  const double xs[3] = { fp->x_knee, fp->x_step, fp->x_stern };
+  const double xs[4] = { fp->x_bow, fp->x_knee, fp->x_step, fp->x_stern };
   for (int f = 0; f < 2; f += 1) {
     const double yf = f == 0 ? fp->y : -fp->y;
-    for (int k = 0; k < 3; k += 1) {
+    for (int k = 0; k < 4; k += 1) {
       double r[3];
       float_to_world(xs[k], yf, float_keel(fp, xs[k]), r);
       const double side = n[0] * (S.pos[0] + r[0]) + n[1] * (S.pos[1] + r[1]) + n[2] * (S.pos[2] + r[2]);

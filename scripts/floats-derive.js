@@ -47,12 +47,12 @@ const PLANES = {
     CLa: 5.25, CLde: -0.498, Cm0: 0.0853, Cma: -1.004, Cmde: 1.175, alphaZL: -5 / DEG, throwE: 20 / DEG,
     flapHalf: 0.31376497222433070, clDf: 1.2391, clDf2: -0.6681, cmDclF: 0.0940, deDf: -0.183531, CLmax: 1.15, slatDclmax: 0.305, clmaxDf: 0.7689,
     Ts: 25.0, Vp: 31.95, thrustZ0: 0.0, wheelsCD: 0.0062,
-    set: { floatMass: 0.12, floatY: 0.18, floatZ: -0.245, floatL: 0.80, strutMass: 0.04, strutY: 0.12, strutZ: -0.15 },
+    set: { floatMass: 0.097, floatY: 0.18, floatZ: -0.234, floatL: 0.72, strutMass: 0.04, strutY: 0.12, strutZ: -0.15 },
     /* The float, in the wheeled aircraft's frame. */
-    fl: { y: 0.18, xBow: 0.39, xKnee: 0.18, xStep: -0.05, xStern: -0.41, zKeel0: -0.285, bowRise: 0.064, stepH: 0.010, aftSlope: Math.tan(8 / DEG), depth: 0.080, beam: 0.085, deadrise: 15 / DEG },
+    fl: { y: 0.18, xBow: 0.33, xKnee: 0.14, xStep: -0.05, xStern: -0.39, zKeel0: -0.275, bowRise: 0.060, stepH: 0.010, aftSlope: Math.tan(8 / DEG), depth: 0.075, beam: 0.085, deadrise: 15 / DEG },
     struts: { frontal: 0.0053, cd: 1.0 },
     propTip0: -0.1397,
-    rudder: { x: -0.40, z0: -0.2167 - 0.0327, span: 0.05, chord: 0.035 },
+    rudder: { x: -0.38, z0: -0.2436, span: 0.05, chord: 0.035 },
   },
   cub: {
     name: 'Piper Cub on floats',
@@ -61,11 +61,11 @@ const PLANES = {
     CLa: 5.21, CLde: -0.345, Cm0: 0.062, Cma: -0.62, Cmde: 0.89, alphaZL: -5 / DEG, throwE: 15 / DEG,
     flapHalf: 0, clDf: 0, clDf2: 0, cmDclF: 0, deDf: 0, CLmax: 1.15, slatDclmax: 0, clmaxDf: 0,
     Ts: 13.5, Vp: 23.8, thrustZ0: 0.002, wheelsCD: 0.004,
-    set: { floatMass: 0.085, floatY: 0.15, floatZ: -0.21, floatL: 0.70, strutMass: 0.03, strutY: 0.10, strutZ: -0.13 },
-    fl: { y: 0.15, xBow: 0.34, xKnee: 0.16, xStep: -0.04, xStern: -0.36, zKeel0: -0.245, bowRise: 0.056, stepH: 0.009, aftSlope: Math.tan(8 / DEG), depth: 0.070, beam: 0.075, deadrise: 15 / DEG },
+    set: { floatMass: 0.091, floatY: 0.15, floatZ: -0.201, floatL: 0.72, strutMass: 0.03, strutY: 0.10, strutZ: -0.13 },
+    fl: { y: 0.15, xBow: 0.27, xKnee: 0.09, xStep: -0.04, xStern: -0.45, zKeel0: -0.245, bowRise: 0.064, stepH: 0.009, aftSlope: Math.tan(8 / DEG), depth: 0.080, beam: 0.080, deadrise: 15 / DEG },
     struts: { frontal: 0.0040, cd: 1.0 },
     propTip0: 0.002 - 0.1397,
-    rudder: { x: -0.35, z0: -0.1875 - 0.0261, span: 0.045, chord: 0.030 },
+    rudder: { x: -0.44, z0: -0.2023, span: 0.045, chord: 0.030 },
   },
 };
 
@@ -175,37 +175,55 @@ for (const [key, P] of Object.entries(PLANES)) {
   pr(`at rest on still water: trim ${(th * DEG).toFixed(2)} deg nose up, the CG ${cgOver.toFixed(4)} m over the water, the keel at the step ${(stepDraft * 1000).toFixed(1)} mm under it; the prop's tip ${(propClear * 1000).toFixed(0)} mm over it; buoyancy ${hs.B.toFixed(2)} N, its centre ${(hs.xb * 1000).toFixed(2)} mm from the CG`);
   pr(`the step ${stepAngle.toFixed(1)} deg behind the CG's vertical`);
 
-  /* Waterplane and the natural periods of heave and pitch, quasi static
-   * response to a long swell. */
+  /* Waterplane, the centre of buoyancy's height and the metacentric
+   * stiffnesses, the natural periods, and the quasi static response to a
+   * long swell. The aircraft's CG stands high over its centre of
+   * buoyancy, BG, so the waterplane's stiffness rho g I is less the
+   * weight times BG, the metacentric height's (Rawson and Tupper, Basic
+   * Ship Theory, ch. 4): pitched by the swell's slope, the weight's own
+   * moment helps the swell along, and the aircraft pitches further than
+   * the slope by rho g I / (rho g I - W BG). */
   let Awp = 0;
   let Iwp = 0;
   let Ixwp = 0;
+  let zbSum = 0;
+  let volSum = 0;
   {
     const n = 4000;
     const dx = (F.xBow - F.xStern) / n;
     for (let i = 0; i < n; i += 1) {
       const x = F.xBow - (i + 0.5) * dx;
-      const zw = zc + x * Math.sin(th) + keel(x) * Math.cos(th);
-      if (zw >= 0) continue;
-      const d = Math.min(-zw * Math.cos(th), F.zKeel + F.depth - keel(x));
+      const zkw = zc + x * Math.sin(th) + keel(x) * Math.cos(th);
+      if (zkw >= 0) continue;
+      const d = Math.min(-zkw * Math.cos(th), F.zKeel + F.depth - keel(x));
       const width = d <= hc ? 2 * d / tanDr : F.beam;
+      /* The section's first moment about its keel, V then walls. */
+      const mom = d <= hc ? 2 * d * d * d / (3 * tanDr) : 2 * hc * hc * hc / (3 * tanDr) + F.beam * (d * d - hc * hc) / 2;
+      const a = section(d);
+      zbSum += 2 * a * dx * (zkw + mom / a);
+      volSum += 2 * a * dx;
       Awp += 2 * width * dx;
       Iwp += 2 * width * dx * (x - hs.xb) ** 2;
       Ixwp += 2 * width * dx * F.y * F.y;
     }
   }
+  const BG = zc - zbSum / volSum;
+  const kPitch = rhoW * g * Iwp - W * BG;
+  const kRoll = rhoW * g * Ixwp - W * BG;
   const wHeave = Math.sqrt(rhoW * g * Awp / m);
-  const wPitch = Math.sqrt(rhoW * g * Iwp / Iyy);
-  const wRoll = Math.sqrt(rhoW * g * Ixwp / Ixx);
-  pr(`waterplane ${Awp.toFixed(4)} m2; natural periods: heave ${(2 * Math.PI / wHeave).toFixed(3)} s, pitch ${(2 * Math.PI / wPitch).toFixed(3)} s, roll ${(2 * Math.PI / wRoll).toFixed(3)} s (no added mass, so short)`);
+  const wPitch = Math.sqrt(kPitch / Iyy);
+  const wRoll = Math.sqrt(kRoll / Ixx);
+  pr(`waterplane ${Awp.toFixed(4)} m2; BG ${BG.toFixed(4)} m; pitch stiffness ${(rhoW * g * Iwp).toFixed(2)} less ${(W * BG).toFixed(2)} N m/rad, roll ${(rhoW * g * Ixwp).toFixed(2)} less the same`);
+  pr(`natural periods: heave ${(2 * Math.PI / wHeave).toFixed(3)} s, pitch ${(2 * Math.PI / wPitch).toFixed(3)} s, roll ${(2 * Math.PI / wRoll).toFixed(3)} s (no added mass, so short)`);
   const swell = { H: 0.3, T: 2.5 };
   const om = 2 * Math.PI / swell.T;
   const kw = om * om / g;
   const Lwl = 0.8 * (F.xBow - F.xStern);
   const xk = kw * Lwl / 2;
   const heaveF = Math.sin(xk) / xk / Math.abs(1 - (om / wHeave) ** 2);
-  const pitchF = 3 * (Math.sin(xk) - xk * Math.cos(xk)) / xk ** 3 / Math.abs(1 - (om / wPitch) ** 2);
-  pr(`swell ${swell.H} m at ${swell.T} s: wavelength ${(2 * Math.PI / kw).toFixed(2)} m, slope ${(kw * swell.H / 2 * DEG).toFixed(2)} deg; quasi static heave ${(swell.H * heaveF).toFixed(3)} m crest to trough, pitch +-${(kw * swell.H / 2 * pitchF * DEG).toFixed(2)} deg, both at ${swell.T} s`);
+  const pitchF = 3 * (Math.sin(xk) - xk * Math.cos(xk)) / xk ** 3 * (rhoW * g * Iwp / kPitch) / Math.abs(1 - (om / wPitch) ** 2);
+  const rollF = (rhoW * g * Ixwp / kRoll) / Math.abs(1 - (om / wRoll) ** 2);
+  pr(`swell ${swell.H} m at ${swell.T} s: wavelength ${(2 * Math.PI / kw).toFixed(2)} m, slope ${(kw * swell.H / 2 * DEG).toFixed(2)} deg; quasi static heave ${(swell.H * heaveF).toFixed(3)} m crest to trough, pitch +-${(kw * swell.H / 2 * pitchF * DEG).toFixed(2)} deg, from the side roll +-${(kw * swell.H / 2 * rollF * DEG).toFixed(2)} deg, all at ${swell.T} s`);
 
   /* Hull speed and the hump: the length Froude number 0.4 of the resting
    * waterline, and the volumetric Froude number 1.5 to 2.5 of the hump in

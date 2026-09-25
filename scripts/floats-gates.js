@@ -102,8 +102,8 @@ if (sim.init(configText) !== SIM_OK) throw new Error('sim_init failed');
 must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
 
 const PLANES = [
-  { key: 'timber', tag: 't', airframe: TIMBERF_AIRFRAME, name: 'Timber', mass: 1.98 },
-  { key: 'cub', tag: 'c', airframe: CUBF_AIRFRAME, name: 'Cub', mass: 1.52 },
+  { key: 'timber', tag: 't', airframe: TIMBERF_AIRFRAME, name: 'Timber', mass: 1.934 },
+  { key: 'cub', tag: 'c', airframe: CUBF_AIRFRAME, name: 'Cub', mass: 1.532 },
 ];
 
 for (const P of PLANES) {
@@ -127,7 +127,7 @@ for (const P of PLANES) {
     /* The keel's depth under the water at the step, from the pose: the
      * floats' own geometry is the plant's, read back through the state. */
     const stepX = P.key === 'timber' ? -0.05 : -0.04;
-    const keelZ = P.key === 'timber' ? -0.2523 : -0.2189;
+    const keelZ = P.key === 'timber' ? -0.2484 : -0.2186;
     const draft = -(o.s[3] + stepX * Math.sin(pitch) + keelZ * Math.cos(pitch));
     rest = { pitch: pitch * DEG, z: o.s[3], draft, v: Math.hypot(o.s[4], o.s[5]) };
     gate(tag(1), `${P.name}: floating at rest on still water`,
@@ -170,11 +170,11 @@ for (const P of PLANES) {
       `${want.heave} m +-${b.heaveTol * 100} percent, +-${want.pitch} deg x ${b.pitchMin} to ${b.pitchMax}, at ${b.period} s +-${b.periodTol * 100} percent, roll under ${b.rollMaxDeg}`);
     const bb = th.f3_swell_beam;
     const s3 = swellRun(0, 1);
-    const rr = s3.roll / bb.slopeDeg;
+    const rr = s3.roll / bb[P.key].roll;
     gate(tag(3), `${P.name}: the swell from the side`,
       rr >= bb.rollMin && rr <= bb.rollMax && s3.tr != null && Math.abs(s3.tr / bb.period - 1) <= bb.periodTol,
-      `roll +-${s3.roll.toFixed(2)} deg (${rr.toFixed(2)} of the slope) at ${s3.tr ? s3.tr.toFixed(3) : '?'} s, heave ${s3.heave.toFixed(3)} m`,
-      `${bb.rollMin} to ${bb.rollMax} of ${bb.slopeDeg} deg, at ${bb.period} s`);
+      `roll +-${s3.roll.toFixed(2)} deg (${rr.toFixed(2)} of it) at ${s3.tr ? s3.tr.toFixed(3) : '?'} s, heave ${s3.heave.toFixed(3)} m`,
+      `${bb.rollMin} to ${bb.rollMax} of +-${bb[P.key].roll} deg, at ${bb.period} s`);
   }
 
   /* F4: the take off. */
@@ -311,7 +311,7 @@ for (const P of PLANES) {
       must(sim.reset(), 'sim_reset');
       floatsWaterPrelude(sim, P.airframe);
       must(sim.e.sim_water_clear(), 'sim_water_clear');
-      const keelZ = P.key === 'timber' ? -0.2523 : -0.2189;
+      const keelZ = P.key === 'timber' ? -0.2484 : -0.2186;
       must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, keelZ - 0.005, 1.4, 0), 'sim_set_ground');
       must(sim.e.sim_set_pose(0, 0, 0, 1, 0, 0, 0), 'sim_set_pose');
       clockMs = 0;
@@ -319,12 +319,12 @@ for (const P of PLANES) {
       for (let ms = 0; ms < 1000; ms += RC_STEP_MS) o = step(sim, [0, 0, 0, 0]);
       const x0 = o.s[1];
       for (let ms = 0; ms < 3000; ms += RC_STEP_MS) o = step(sim, [0, 0, 0, duty]);
-      return { dx: o.s[1] - x0, load: o.f[6], hull: sim.e.sim_ground_contacts() };
+      return { dx: o.s[1] - x0, load: o.f[6], hull: sim.e.sim_ground_contacts(), pitch: attitude(o.s).pitch * DEG };
     };
     const under = slide(want.breakaway - b.margin);
     const over = slide(want.breakaway + b.margin);
     gate(tag(8), `${P.name}: on grass the floats slide, they do not roll`, Math.abs(under.dx) < 0.02 && over.dx > 0.3 && under.hull === 0,
-      `at ${((want.breakaway - b.margin) * 100).toFixed(0)} percent ${under.dx.toFixed(3)} m in 3 s on ${under.load.toFixed(1)} N, at ${((want.breakaway + b.margin) * 100).toFixed(0)} percent ${over.dx.toFixed(2)} m`,
+      `at ${((want.breakaway - b.margin) * 100).toFixed(0)} percent ${under.dx.toFixed(3)} m in 3 s on ${under.load.toFixed(1)} N, at ${((want.breakaway + b.margin) * 100).toFixed(0)} percent ${over.dx.toFixed(2)} m, pitched ${over.pitch.toFixed(1)} deg`,
       `still under ${((want.breakaway - b.margin) * 100).toFixed(0)} percent, sliding over ${((want.breakaway + b.margin) * 100).toFixed(0)}`);
   }
 }

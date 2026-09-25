@@ -968,17 +968,17 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
 /*
  * The Turbo Timber on its floats, docs/FLOATS-STAGE1.md: the E-flite float
  * set the Evolution ships with in its box, fitted in place of the wheels.
- * The floats and their struts are 0.28 kg hung 0.23 m under the old CG,
- * so the aircraft is 1.98 kg and its CG 32.7 mm lower: every height here
- * is from the new CG, the thrust line now 32.7 mm over it (FW_TIMBER1500F),
+ * The floats and their struts are 0.234 kg hung 0.22 m under the old CG,
+ * so the aircraft is 1.934 kg and its CG 26.6 mm lower: every height here
+ * is from the new CG, the thrust line now 26.6 mm over it (FW_TIMBER1500F),
  * and the inertia is the Timber's with the floats and struts added and
  * moved to the new CG. No wheels: on land the keels are skids. The hull
  * box is the Timber's, its floor and roof moved with the CG.
  */
 [SIM_AIRFRAME_TIMBER1500F] = {
   .kind = PLANT_KIND_WING,
-  .mass_kg = 1.98,
-  .inertia = { 0.1115, 0.1210, 0.1912 },
+  .mass_kg = 1.934,
+  .inertia = { 0.1070, 0.1135, 0.1852 },
   .gravity = 9.81,
   .cells = 4.0,
   .r_cell = 0.008,
@@ -988,30 +988,30 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .pos_x = { 0.29, 0.0, 0.0, 0.0 },
   .hull_hx = 0.30,
   .hull_hy = 0.60,
-  .hull_hz_down = 0.0827,
-  .hull_hz_up = 0.0873,
+  .hull_hz_down = 0.0766,
+  .hull_hz_up = 0.0934,
   .contact_patch_r = 0.08,
   .contact_arm_max = 0.68,
   .vib_ref_w = 1000.0,
   .camera_x = 0.205,
   .camera_y = 0.0,
-  .camera_z = 0.0817,
+  .camera_z = 0.0756,
   .fw = &FW_TIMBER1500F,
   /*
-   * The floats, ESTIMATED off E-flite's manual drawing and the
-   * aircraft's own proportions, since E-flite publishes no dimensions:
-   * 0.80 m long, 85 mm across and 80 mm deep, a V bottom of 15 deg of
-   * deadrise, the step 50 mm behind the CG and 10 mm deep, the afterbody
-   * rising 8 deg, 0.36 m apart. The forebody keel is 0.285 m under the old
-   * CG, which leaves the prop's tip 0.12 m over still water at rest. Each
+   * The floats, ESTIMATED off E-flite's manual drawing and photographs
+   * of the aircraft on them, since E-flite publishes no dimensions: 0.72 m
+   * long, 85 mm across and 75 mm deep, a V bottom of 15 deg of deadrise,
+   * the step 50 mm behind the CG and 10 mm deep, the afterbody rising
+   * 8 deg, 0.36 m apart. The forebody keel is 0.275 m under the old CG,
+   * which leaves the prop's tip 107 mm over still water at rest. Each
    * float's water rudder hangs 50 mm under its stern, 35 mm of chord.
    */
   .floats = {
     .count = 2, .y = 0.18,
-    .x_bow = 0.39, .x_knee = 0.18, .x_step = -0.05, .x_stern = -0.41,
-    .z_keel = -0.2523, .bow_rise = 0.064, .step_h = 0.010, .aft_slope = 0.1405,
-    .depth = 0.080, .beam = 0.085, .tan_dr = 0.26795,
-    .rudder_x = -0.40, .rudder_z = -0.2167, .rudder_span = 0.05, .rudder_area = 0.00175,
+    .x_bow = 0.33, .x_knee = 0.14, .x_step = -0.05, .x_stern = -0.39,
+    .z_keel = -0.2484, .bow_rise = 0.060, .step_h = 0.010, .aft_slope = 0.1405,
+    .depth = 0.075, .beam = 0.085, .tan_dr = 0.26795,
+    .rudder_x = -0.38, .rudder_z = -0.2170, .rudder_span = 0.05, .rudder_area = 0.00175,
     .rudder_a = 2.7, .rudder_clmax = 0.9, .rudder_steer = 1.0,
     .cf = 0.0045, .c_cross = 1.0, .c_side = 1.0, .k_rad = 0.3,
     .wave_k = 0.25, .wave_fr0 = 0.45,
@@ -1020,14 +1020,14 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
 },
 /*
  * The FMS Cub on the floats FMS sells for it, docs/FLOATS-STAGE1.md, on
- * the same terms as the Timber's: 0.20 kg of floats and struts 0.21 m
- * under the old CG make it 1.52 kg with the CG 26.1 mm lower, and every
+ * the same terms as the Timber's: 0.212 kg of floats and struts 0.19 m
+ * under the old CG make it 1.532 kg with the CG 26.4 mm lower, and every
  * height here is from there.
  */
 [SIM_AIRFRAME_CUB1400F] = {
   .kind = PLANT_KIND_WING,
-  .mass_kg = 1.52,
-  .inertia = { 0.0711, 0.0689, 0.1111 },
+  .mass_kg = 1.532,
+  .inertia = { 0.0712, 0.0697, 0.1123 },
   .gravity = 9.81,
   .cells = 3.0,
   .r_cell = 0.012,
@@ -1037,28 +1037,28 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .pos_x = { 0.23, 0.0, 0.0, 0.0 },
   .hull_hx = 0.30,
   .hull_hy = 0.70,
-  .hull_hz_down = 0.0761,
-  .hull_hz_up = 0.0939,
+  .hull_hz_down = 0.0764,
+  .hull_hz_up = 0.0936,
   .contact_patch_r = 0.08,
   .contact_arm_max = 0.77,
   .vib_ref_w = 1000.0,
   .camera_x = 0.165,
   .camera_y = 0.0,
-  .camera_z = 0.0832,
+  .camera_z = 0.0835,
   .fw = &FW_CUB1400F,
   /*
-   * The floats, ESTIMATED off FMS's manual drawings and the full size
-   * J-3's EDO 1320 floats at the model's 1:7.67: 0.70 m long, 75 mm
-   * across and 70 mm deep, 15 deg of deadrise, the step 40 mm behind the
+   * The floats, ESTIMATED off FMS's manual drawings and photographs of
+   * the aircraft on them: 0.72 m long, their bows under the spinner, 80 mm
+   * across and 80 mm deep, 15 deg of deadrise, the step 40 mm behind the
    * CG and 9 mm deep, 0.30 m apart, the forebody keel 0.245 m under the
-   * old CG for the prop's 87 mm over still water.
+   * old CG for the prop's 69 mm over still water.
    */
   .floats = {
     .count = 2, .y = 0.15,
-    .x_bow = 0.34, .x_knee = 0.16, .x_step = -0.04, .x_stern = -0.36,
-    .z_keel = -0.2189, .bow_rise = 0.056, .step_h = 0.009, .aft_slope = 0.1405,
-    .depth = 0.070, .beam = 0.075, .tan_dr = 0.26795,
-    .rudder_x = -0.35, .rudder_z = -0.1875, .rudder_span = 0.045, .rudder_area = 0.00135,
+    .x_bow = 0.27, .x_knee = 0.09, .x_step = -0.04, .x_stern = -0.45,
+    .z_keel = -0.2186, .bow_rise = 0.064, .step_h = 0.009, .aft_slope = 0.1405,
+    .depth = 0.080, .beam = 0.080, .tan_dr = 0.26795,
+    .rudder_x = -0.44, .rudder_z = -0.1759, .rudder_span = 0.045, .rudder_area = 0.00135,
     .rudder_a = 2.7, .rudder_clmax = 0.9, .rudder_steer = 1.0,
     .cf = 0.0045, .c_cross = 1.0, .c_side = 1.0, .k_rad = 0.3,
     .wave_k = 0.25, .wave_fr0 = 0.45,

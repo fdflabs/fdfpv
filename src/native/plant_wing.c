@@ -1386,10 +1386,10 @@ const FixedWingParams FW_TIMBER1500 = {
 
 /* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
  * what the floats change in the air. Their wetted area, struts and
- * spreader bars less the wheels and legs they replace add 0.019 of drag;
+ * spreader bars less the wheels and legs they replace add 0.0175 of drag;
  * their sides add side force, under the CG, so a little of the dihedral
  * effect goes; their volume ahead of and behind the CG takes some of the
- * weathercock stability, Nelson eq. 2.72 on 6.8 litres; and they lower
+ * weathercock stability, Nelson eq. 2.72 on 5.6 litres; and they lower
  * the CG under the thrust line, so power pitches the nose down. The
  * floats' drag under the CG is a constant moment coefficient, which the
  * rigging's trim takes out as it did the wheels'; cm_0 is unchanged. */
@@ -1405,12 +1405,12 @@ const FixedWingParams FW_TIMBER1500F = {
   .alpha_zl = -5.0 * WING_PI / 180.0,
   .sin_zl = -0.08715574274765817,
   .cos_zl = 0.9961946980917455,
-  .cd0 = 0.0609,          /* the wheels off, the floats, their struts and spreaders on */
+  .cd0 = 0.0595,          /* the wheels off, the floats, their struts and spreaders on */
   .k_induced = 0.0609,    /* 1/(pi 0.78 6.70) */
   .cl_de = -0.498,
-  .cy_beta = -0.460,      /* and the floats' sides */
+  .cy_beta = -0.446,      /* and the floats' sides */
   .cy_dr = 0.155,
-  .cl_beta = -0.0346,     /* the floats' side force acts under the CG */
+  .cl_beta = -0.0366,     /* the floats' side force acts under the CG */
   .cl_p = -0.806,
   .cl_da = 0.391,
   .cl_r_per_cl = 0.25,
@@ -1419,7 +1419,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .cm_alpha = -1.004,     /* static margin 0.19 at E-flite's 60 mm CG */
   .cm_q = -8.53,
   .cm_de = 1.175,
-  .cn_beta = 0.0712,      /* less the floats' volume, Munk's moment */
+  .cn_beta = 0.0741,      /* less the floats' volume, Munk's moment */
   .cn_r = -0.095,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.133,
@@ -1435,7 +1435,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .pitch_speed = 31.95,
   .rpm_no_load = 11840.0,
   .torque_arm = 0.0122,   /* 322 W of disc power at 10,060 rpm is 0.31 N m at 25 N */
-  .thrust_z = 0.0327,     /* the floats lower the CG under the thrust line */
+  .thrust_z = 0.0266,     /* the floats lower the CG under the thrust line */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 44.0,   /* A, the review's bench figure on 4S */
   .duty_min = 0.02,
@@ -1481,7 +1481,7 @@ const FixedWingParams FW_TIMBER1500F = {
 };
 
 /* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
- * floats change in the air, by the Timber's reasoning above, on 4.6
+ * floats change in the air, by the Timber's reasoning above, on 5.2
  * litres of float, 0.28 m^2 of wing and 1.4 m of span. */
 const FixedWingParams FW_CUB1400F = {
   .mix = FW_MIX_TAIL,
@@ -1496,12 +1496,12 @@ const FixedWingParams FW_CUB1400F = {
   .alpha_zl = -5.0 * WING_PI / 180.0,
   .sin_zl = -0.08715574274765817,
   .cos_zl = 0.9961946980917455,
-  .cd0 = 0.0706,          /* the wheels off, the floats and their struts on */
+  .cd0 = 0.0715,          /* the wheels off, the floats and their struts on */
   .k_induced = 0.0606,    /* 1/(pi 0.75 7) */
   .cl_de = -0.345,
-  .cy_beta = -0.380,      /* and the floats' sides */
+  .cy_beta = -0.395,      /* and the floats' sides */
   .cy_dr = 0.106,
-  .cl_beta = -0.0772,     /* the floats' side force acts under the CG */
+  .cl_beta = -0.0756,     /* the floats' side force acts under the CG */
   .cl_p = -0.81,
   .cl_da = 0.40,
   .cl_r_per_cl = 0.25,
@@ -1510,7 +1510,7 @@ const FixedWingParams FW_CUB1400F = {
   .cm_alpha = -0.62,      /* static margin 0.12 at the manual's 60 mm CG */
   .cm_q = -7.7,
   .cm_de = 0.89,
-  .cn_beta = 0.0329,      /* less the floats' volume, Munk's moment */
+  .cn_beta = 0.0308,      /* less the floats' volume, Munk's moment */
   .cn_r = -0.076,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.136,
@@ -1526,7 +1526,7 @@ const FixedWingParams FW_CUB1400F = {
   .pitch_speed = 23.8,
   .rpm_no_load = 9435.0,
   .torque_arm = 0.0113,   /* 128 W of disc power at 8,020 rpm is 0.15 N m at 13.5 N */
-  .thrust_z = 0.0281,     /* 2 mm over the old CG, which the floats lower 26.1 mm */
+  .thrust_z = 0.0284,     /* 2 mm over the old CG, which the floats lower 26.4 mm */
   .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
   .current_full = 27.0,
   .duty_min = 0.02,

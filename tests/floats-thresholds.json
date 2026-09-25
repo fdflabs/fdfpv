@@ -2,39 +2,41 @@
   "note": "The bands the Timber and the Cub on floats have to land in, from docs/FLOATS-STAGE1.md, which derives each figure (scripts/floats-derive.js prints them): the hydrostatics exactly, the planing by Savitsky's empirical method, which is independent of the plant's strip theory, and the rest from the aircraft's own tables. Never widened to pass; argue in the derivation instead.",
   "f1_rest": {
     "source": "floating on still water, the sticks centred and the motor at idle (it creeps forward on the idling prop, as a real one does; the pose is what is held): the heave and trim at which the buoyancy carries the weight with its centre under the CG, integrated on 4000 strips per float. The plant integrates 20, so the CG's height is held to 3 mm, the trim to half a degree and the keel's depth at the step to a tenth",
-    "timber": { "pitch": 3.42, "z": 0.2131, "draft": 0.0417 },
-    "cub": { "pitch": 3.32, "z": 0.1819, "draft": 0.0390 },
+    "timber": { "pitch": 2.52, "z": 0.2074, "draft": 0.0430 },
+    "cub": { "pitch": 0.64, "z": 0.1765, "draft": 0.0425 },
     "pitchTolDeg": 0.5, "zTol": 0.003, "draftTol": 0.10
   },
   "f2_swell_head": {
     "height": 0.3, "period": 2.5,
-    "source": "a 0.3 m swell of 2.5 s, 9.76 m long, from ahead: every natural period of the floats (0.28 to 0.55 s without added mass, under a second with it) is far under the swell's, so the aircraft follows the water quasi statically, heaving the swell's 0.3 m times sin(x)/x of the waterline, and pitching its 5.53 deg slope times the waterline's averaging, 3 (sin x - x cos x) / x^3, x = k L / 2: derived 0.302 m and 5.63 deg (Timber), 0.302 m and 5.62 deg (Cub), both at the swell's period. Heave held to a tenth, the period to 2 percent, the pitch to 0.8 to 1.3 of the quasi static figure (the strip model adds the swell's orbital flow under the forebody, which pitches it a little more), the roll under 2 deg",
+    "source": "a 0.3 m swell of 2.5 s, 9.76 m long, from ahead: every natural period of the floats (0.29 to 0.53 s without added mass, under a second with it) is far under the swell's, so the aircraft follows the water quasi statically, heaving the swell's 0.3 m times sin(x)/x of the waterline, and pitching its 5.53 deg slope times the waterline's averaging, 3 (sin x - x cos x) / x^3, x = k L / 2, and times rho g I / (rho g I - W BG), the weight's own moment about a CG 0.22 m (Timber) and 0.19 m (Cub) over the centre of buoyancy helping the swell along: derived 0.302 m and 6.73 deg (Timber), 0.302 m and 7.47 deg (Cub), both at the swell's period. Heave held to a tenth, the period to 2 percent, the pitch to 0.8 to 1.3 of the quasi static figure (the strip model adds the swell's orbital flow under the forebody), the roll under 2 deg",
     "heaveTol": 0.10, "periodTol": 0.02, "pitchMin": 0.8, "pitchMax": 1.3, "rollMaxDeg": 2,
-    "timber": { "heave": 0.302, "pitch": 5.63 },
-    "cub": { "heave": 0.302, "pitch": 5.62 }
+    "timber": { "heave": 0.302, "pitch": 6.73 },
+    "cub": { "heave": 0.302, "pitch": 7.47 }
   },
   "f3_swell_beam": {
     "height": 0.3, "period": 2.5,
-    "source": "the same swell from the side: the roll follows the slope, 5.53 deg, at the swell's period, the roll's natural period 0.37 to 0.39 s. Held to 0.7 to 1.4 of the slope, the period to 2 percent",
-    "slopeDeg": 5.53, "rollMin": 0.7, "rollMax": 1.4, "periodTol": 0.02
+    "source": "the same swell from the side: the roll follows the 5.53 deg slope times rho g I / (rho g I - W BG) on the floats' track, derived 6.61 deg (Timber) and 7.02 (Cub), at the swell's period, the roll's natural period 0.41 to 0.47 s. Held to 0.7 to 1.4 of it, the period to 2 percent",
+    "timber": { "roll": 6.61 },
+    "cub": { "roll": 7.02 },
+    "rollMin": 0.7, "rollMax": 1.4, "periodTol": 0.02
   },
   "f4_takeoff": {
-    "source": "full throttle from floating at rest, the manual's take off: flaps half on the Timber, the stick back until the floats are on the step (their buoyancy under a quarter of the weight), relaxed to hold 4 deg, and back again, all the way, at 1.05 of the stall, so it takes the attitude full up elevator holds once the water lets go, which is the moment balance of the air and the thrust alone (no slipstream over the tail, as on the wheels). Liftoff is when that attitude's lift is the weight: derived 8.30 m/s at 7.0 deg (Timber, 1.15 of its 7.20 m/s stall on half flaps) and 10.51 at 4.65 (Cub, 1.21 of 8.70). The run to it, integrated with the hump at 0.12 to 0.25 of the weight and Savitsky's planing drag above the step speed, 4.0 m (Timber) and 12.5 m (Cub). Bands: liftoff speed 0.9 to 1.2 of the derived figure, the run 0.7 to 2.0 of it (strip theory against Savitsky, and a pilot), the step reached above the hump's lower end and under 0.6 of the liftoff speed, the manual's 'a speed below flight speed'",
-    "timber": { "flaps": 1, "vRotate": 7.56, "vLof": 8.30, "run": 4.0, "humpLo": 1.48 },
-    "cub": { "flaps": 0, "vRotate": 9.14, "vLof": 10.51, "run": 12.5, "humpLo": 1.42 },
+    "source": "full throttle from floating at rest, the manual's take off: flaps half on the Timber, the stick back until the floats are on the step (their buoyancy under a quarter of the weight), relaxed to hold 4 deg, and back again, all the way, at 1.05 of the stall, so it takes the attitude full up elevator holds once the water lets go, which is the moment balance of the air and the thrust alone (no slipstream over the tail, as on the wheels). Liftoff is when that attitude's lift is the weight: derived 8.20 m/s at 7.0 deg (Timber, 1.15 of its 7.11 m/s stall on half flaps) and 10.55 at 4.65 (Cub, 1.21 of 8.73). The run to it, integrated with the hump at 0.12 to 0.25 of the weight and Savitsky's planing drag above the step speed, 3.73 to 3.79 m (Timber) and 12.50 to 13.02 m (Cub). Bands: liftoff speed 0.9 to 1.2 of the derived figure, the run 0.7 to 2.0 of it (strip theory against Savitsky, and a pilot), the step reached above the hump's lower end and under 0.6 of the liftoff speed, the manual's 'a speed below flight speed'",
+    "timber": { "flaps": 1, "vRotate": 7.47, "vLof": 8.20, "run": 3.8, "humpLo": 1.48 },
+    "cub": { "flaps": 0, "vRotate": 9.17, "vLof": 10.55, "run": 12.8, "humpLo": 1.42 },
     "vMin": 0.9, "vMax": 1.2, "runMin": 0.7, "runMax": 2.0, "stepMaxOfLof": 0.6
   },
   "f5_landing": {
-    "source": "the manual's water landing: full flaps on the Timber, a powered approach, the throttle closed and a flare in ground effect, the stick held back through the touchdown and the run. From the first touch to a walking pace, 1 m/s, derived from 1.15 of the landing stall on Savitsky's drag and the hump: 16.8 to 18.6 m (Timber), 24.7 to 26.2 m (Cub). Band 0.6 to 1.5 of the mean, at rest within a degree of F1's trim, never over 30 deg of bank or pitch, no hull contact",
-    "timber": { "flaps": 2, "speed": 8.5, "run": 17.7 },
-    "cub": { "flaps": 0, "speed": 10.0, "run": 25.5 },
+    "source": "the manual's water landing: full flaps on the Timber, a powered approach, the throttle closed and a flare in ground effect, the stick held back through the touchdown and the run. From the first touch to a walking pace, 1 m/s, derived from 1.15 of the landing stall on Savitsky's drag and the hump: 16.8 to 19.8 m (Timber), 25.1 to 34.3 m (Cub). Band 0.6 to 1.5 of the mean, at rest within a degree of F1's trim, never over 30 deg of bank or pitch, no hull contact",
+    "timber": { "flaps": 2, "speed": 8.5, "run": 18.3 },
+    "cub": { "flaps": 0, "speed": 10.0, "run": 29.7 },
     "runMin": 0.6, "runMax": 1.5, "pitchTolDeg": 1.0, "attitudeMaxDeg": 30
   },
   "f6_taxi": {
     "duty": 0.3, "pitchStick": 0.5,
-    "source": "full right rudder at a walking pace on the water, the stick held back half as the manual says, so the water rudders stay in: the rudders' side force against the floats' sideways crossflow drag and the turn's own acceleration, a steady turn solved at 0.9 m/s, derived 2.31 m (Timber) and 4.62 m (Cub). Band 0.7 to 1.5 of it, turning right",
-    "timber": { "radius": 2.31 },
-    "cub": { "radius": 4.62 },
+    "source": "full right rudder at a walking pace on the water, the stick held back half as the manual says, so the water rudders stay in: the rudders' side force against the floats' sideways crossflow drag and the turn's own acceleration, a steady turn solved at 0.9 m/s, derived 2.20 m (Timber) and 5.00 m (Cub). Band 0.7 to 1.5 of it, turning right",
+    "timber": { "radius": 2.20 },
+    "cub": { "radius": 5.00 },
     "min": 0.7, "max": 1.5
   },
   "f7_nose_dig": {

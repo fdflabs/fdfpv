@@ -80,7 +80,7 @@ typedef struct {
  * gets its buoyancy, the planing force of the water it pushes down, the
  * drag of the water across and along it; each float gets its wave making
  * drag and a water rudder at its stern, steered with the air rudder. On
- * land the keel's bow, step and stern are skids. docs/FLOATS-STAGE1.md
+ * land the keel's bow, knee, step and stern are skids. docs/FLOATS-STAGE1.md
  * derives every number and says why this is the model.
  *
  * The keel, in the body frame: flat at z_keel from the step forward to
