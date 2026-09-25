@@ -64,6 +64,9 @@ import {
 import { cityReferences, boomColliderExtent } from './references.js';
 import { buildPlaces } from './places/index.js';
 import { drawnBoxes } from './drawn.js';
+import {
+  roofRecord, frameElements, makeRoofs, roofTop, gableSolids,
+} from '../alps/roofs.js';
 import { yieldToPaint } from '../../ui/loading.js';
 import { qualityFor } from '../../render/quality.js';
 import { str } from '../../strings/index.js';
@@ -1630,6 +1633,164 @@ function fitRect(c, y0, y1, boxes, grid, floorAt, scratch, { roof = true } = {})
   return out;
 }
 
+/*
+ * THE PITCHED ROOFS, as ground.
+ *
+ * A flat roof here was always a platform a quad lands on. A pitched one was
+ * the collider fit's staircase: boxes a metre across hugging the tiles, each
+ * step a vertical face, so a plane skidding up a roof met a wall every metre
+ * and a quad set down on one stood on a step. The owner asked for every roof
+ * to be ground a plane can land on, skid along and bounce off, so each roof
+ * the town draws becomes what alps/roofs.js makes of a village's: its drawn
+ * upper faces, planes over their own triangles, offered by height() within
+ * a step of fromY as a platform is, and the fit's boxes under and in it
+ * letting the sweep through while that roof is the craft's ground. Where
+ * the fit's lift stopped short of a tall gable (ROOF_LIFT_MAX), the gable
+ * is closed as a village gable is, by the thin wall under it
+ * (alps/roofs.js gableSolids), piece by piece where no box of the fit
+ * already stands.
+ *
+ * A roof is a mesh drawn in one of the town's roof coverings, found by its
+ * colour: the four house roofs, the tiled roofs of the old houses, the
+ * onsen and the shrine, the school's and the gym's. Its faces are its
+ * triangles that face up and stand over the ground; the fit's boxes are its
+ * own when their middle is under it and their top no higher than it there.
+ * The staircase stays as it is; only while the roof is ground does it let
+ * a craft through, as a village roof's walls do. Runs on the collider
+ * set before build(), so the gables it adds are in the broadphase. What is not in a roof colour (a
+ * carport's clear sheet, a train's roof) is not a roof here.
+ */
+const ROOF_COVERINGS = new Map([
+  [PAL.roofSlate, 'tile'], [PAL.roofBlue, 'tile'], [PAL.roofBrown, 'tile'], [PAL.roofTeal, 'tile'],
+  [0x5a5f6e, 'tile'], [PAL.onsenTile, 'tile'], [PAL.shrineRoof, 'tile'],
+  [PAL.schoolRoof, 'metalRoof'], [PAL.gymRoof, 'metalRoof'],
+]);
+/* A face this steep or steeper is a wall, not ground: 72 degrees. */
+const ROOF_MIN_NY = 0.3;
+/* A roof starts this far over the ground under it. */
+const ROOF_MIN_LIFT = 1.2;
+const roofTri = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+function cityRoofs(world, colliders) {
+  const records = [];
+  world.root.updateMatrixWorld(true);
+  world.root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || !o.geometry || FIT_MOVING.test(o.name || '')) {
+      return;
+    }
+    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+    const key = mat && mat.color ? ROOF_COVERINGS.get(mat.color.getHex()) : undefined;
+    if (!key) {
+      return;
+    }
+    const pos = o.geometry.getAttribute('position');
+    const idx = o.geometry.index;
+    const n = idx ? idx.count : pos.count;
+    const e = o.matrixWorld.elements;
+    const len = Math.hypot(e[0], e[8]) || 1;
+    let c = e[0] / len;
+    let sn = e[8] / len;
+    const tris = [];
+    for (let t = 0; t < n; t += 3) {
+      for (let k = 0; k < 3; k += 1) {
+        roofTri[k].fromBufferAttribute(pos, idx ? idx.getX(t + k) : t + k).applyMatrix4(o.matrixWorld);
+      }
+      const [a, b, d] = roofTri;
+      const ux = b.x - a.x; const uy = b.y - a.y; const uz = b.z - a.z;
+      const vx = d.x - a.x; const vy = d.y - a.y; const vz = d.z - a.z;
+      const nx = uy * vz - uz * vy; const ny = uz * vx - ux * vz; const nz = ux * vy - uy * vx;
+      const area = Math.hypot(nx, ny, nz);
+      if (!(area > 1e-6) || ny / area < ROOF_MIN_NY) {
+        continue;
+      }
+      const low = Math.min(a.y, b.y, d.y);
+      if (low - world.heightAt((a.x + b.x + d.x) / 3, (a.z + b.z + d.z) / 3, -1000) < ROOF_MIN_LIFT) {
+        continue;
+      }
+      tris.push({ p: [[a.x, a.y, a.z], [b.x, b.y, b.z], [d.x, d.y, d.z]], nx, ny, nz, area });
+    }
+    if (!tris.length) {
+      return;
+    }
+    /* The frame: the mesh's own turn, a quarter more if its slopes fall
+     * along its z, so the ridge is the frame's z as a village roof's is. */
+    let alongX = 0;
+    let alongZ = 0;
+    for (const t of tris) {
+      alongX += Math.abs(c * t.nx - sn * t.nz);
+      alongZ += Math.abs(sn * t.nx + c * t.nz);
+    }
+    if (alongZ > alongX) {
+      [c, sn] = [-sn, c];
+    }
+    let x0 = Infinity; let x1 = -Infinity; let z0 = Infinity; let z1 = -Infinity; let y0 = Infinity;
+    for (const t of tris) {
+      for (const [x, y, z] of t.p) {
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+        z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+        y0 = Math.min(y0, y);
+      }
+    }
+    const cx = (x0 + x1) / 2;
+    const cz = (z0 + z1) / 2;
+    const local = ([x, y, z]) => [c * (x - cx) - sn * (z - cz), y - y0, sn * (x - cx) + c * (z - cz)];
+    const top = tris.map((t) => t.p.map(local));
+    let hw = 0;
+    let hd = 0;
+    for (const f of top) {
+      for (const [lx, , lz] of f) {
+        hw = Math.max(hw, Math.abs(lx));
+        hd = Math.max(hd, Math.abs(lz));
+      }
+    }
+    const rec = roofRecord({ top, dy: 0.2, hw, hd, kind: 'cityRoof' }, frameElements(cx, y0, cz, Math.atan2(sn, c)), key);
+    /* Its own boxes: under it at their middle, reaching up into it. */
+    const C = colliders;
+    let wx = 0;
+    let wz = 0;
+    const near = [];
+    for (let i = 0; i < C.ax.length; i += 1) {
+      if (!C.box[i] || C.bx[i] < rec.minX || C.ax[i] > rec.maxX || C.bz[i] < rec.minZ || C.az[i] > rec.maxZ) {
+        continue;
+      }
+      near.push(i);
+      const mx = (C.ax[i] + C.bx[i]) / 2;
+      const mz = (C.az[i] + C.bz[i]) / 2;
+      const over = roofTop(rec, mx, mz);
+      if (!(C.by[i] > y0 - 1 && C.by[i] <= over + 0.6)) {
+        continue;
+      }
+      rec.solids.push(i);
+      for (const [px, pz] of [[C.ax[i], C.az[i]], [C.bx[i], C.bz[i]]]) {
+        wx = Math.max(wx, Math.abs(c * (px - cx) - sn * (pz - cz)));
+        wz = Math.max(wz, Math.abs(sn * (px - cx) + c * (pz - cz)));
+      }
+    }
+    /* The walls it covers, for a check that flies at them, and its
+     * gables closed where the fit left them open. */
+    if (rec.solids.length) {
+      rec.hw = Math.min(hw, wx);
+      rec.hd = Math.min(hd, wz);
+      /* What is under its eaves, for a craft coming in over them
+       * (alps/roofs.js cover): the fit's boxes but those at its gable
+       * ends, which close its attic. */
+      for (const i of rec.solids) {
+        const mz = sn * ((C.ax[i] + C.bx[i]) / 2 - cx) + c * ((C.az[i] + C.bz[i]) / 2 - cz);
+        if (Math.abs(mz) < rec.hd - 0.6) {
+          rec.eaves.push(i);
+        }
+      }
+      const standing = (x, y, z) => near.some((i) => x > C.ax[i] && x < C.bx[i] && y > C.ay[i] && y < C.by[i] && z > C.az[i] && z < C.bz[i]);
+      for (const b of gableSolids(rec)) {
+        if (!standing((b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2)) {
+          rec.solids.push(C.addBox('wall', ...b));
+        }
+      }
+    }
+    records.push(rec);
+  });
+  return records;
+}
+
 function buildColliders(world) {
   const colliders = new Colliders();
   let noTop = 0;
@@ -2180,6 +2341,9 @@ export async function buildMap(shell, onProgress, options) {
     });
   }
 
+  /* The roofs, before the broadphase is built, so the gables they close
+   * are in it, and before the merge takes the meshes they are read from. */
+  const roofs = makeRoofs(cityRoofs(world, colliders));
   colliders.build();
   progress(0.9);
 
@@ -2462,7 +2626,14 @@ export async function buildMap(shell, onProgress, options) {
      * eligible if it is within a step of it, so a quad above the overbridge
      * lands on the deck and a quad under it sees the road.
      */
-    height: (x, z, fromY) => world.heightAt(x, z, fromY),
+    height: (x, z, fromY) => roofs.height(x, z, fromY, world.heightAt(x, z, fromY)),
+    /* The pitched roofs, as the alps' are (cityRoofs above): a roof that
+     * is the craft's ground lets the sweep through its boxes, and the
+     * crash physics reads its covering. */
+    cover: (x, z, fromY) => roofs.cover(colliders, x, z, fromY),
+    roofs: roofs.records,
+    roofTop: (i, x, z) => roofs.top(i, x, z),
+    surfaceAt: (x, z, y) => (y == null ? null : roofs.materialAt(x, z, y)),
     setNextGate() {},
     /* No gates, so nothing is ever the next one. Present so the shell has
      * one call shape for both maps and the target mark stays off here. */
