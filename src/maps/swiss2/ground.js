@@ -1082,7 +1082,11 @@ const GROUND_PARS = /* glsl */ `
      * meaning none. */
     vec2 wuv = (p.xz - uS2WallAt) / ${WALL_SPAN.toFixed(1)};
     float wallD = any(greaterThan(abs(wuv - 0.5), vec2(0.5))) ? ${WALL_REACH.toFixed(1)} : ${WALL_REACH.toFixed(1)} * texture2D(uS2Walls, wuv).r;
-    float drip = (1.0 - smoothstep(0.25, 0.7, wallD + 0.3 * (fine - 0.5))) * inside;
+    /* Trodden, not paved: where a footprint reaches past its building (a
+     * farm's yard, a raised floor's pad) the earth under it read as a
+     * ruled slab, so its edge wanders and the grass comes through it. */
+    float drip = (1.0 - smoothstep(0.15, 0.7, wallD + 0.5 * (fine - 0.5) + 0.4 * (meso - 0.5))) * inside
+      * (0.45 + 0.45 * smoothstep(0.35, 0.65, s2Noise(p.xz / 1.7 + 4.4)));
     cov[7] = max(path * 0.9, drip);
     /* A boulder, a snow patch: one layer and nothing else. */
     if (uS2Only >= 0.0) {
@@ -1247,7 +1251,7 @@ const GROUND_PARS = /* glsl */ `
     float lee = (1.0 - smoothstep(0.6, 2.6 + 1.2 * fine, wallD)) * grass;
     albedo *= mix(vec3(1.0), vec3(0.8, 0.88, 0.78), lee);
     /* And the drip line itself wet and dark, not a raked path. */
-    albedo *= mix(1.0, 0.6, drip);
+    albedo *= mix(1.0, 0.7, drip);
 
     /* The shore's stones, on the beach and on through the shallows,
      * where the ripples bend the bed to and fro. */
