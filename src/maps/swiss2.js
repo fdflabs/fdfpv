@@ -499,6 +499,9 @@ function photoStyle() {
        * map's before the forests keep off them (swiss2/props/lakeside.js). */
       stage.lakeside = buildLakeside({ heightAt, footprints: stage.footprints });
       scene.add(stage.lakeside.group);
+      /* The lakeside road's lay-by and bus stop (swiss2/props/roadside.js),
+       * which the grass keeps off. */
+      stage.footprints.push(...stage.props.pads);
       /* The lake draws the wake of the sailing boat on it. */
       stage.water.boat.value = stage.lakeside.boat;
       /* The carved rock on the walls, in place of the ground's own
@@ -528,7 +531,7 @@ function photoStyle() {
         margins: stage.props.margins,
         sunDir: stage.sunDir,
         craft: stage.craft,
-        planted: yard.trees,
+        planted: [...yard.trees, ...stage.props.roadTrees],
       });
       scene.add(stage.veg.group);
       stage.mirrorSkip = ['swiss2-grass', 'swiss2-meadow'].map((n) => stage.veg.group.getObjectByName(n)).filter(Boolean);
