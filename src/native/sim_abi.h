@@ -531,6 +531,48 @@ double sim_wing_flaps(void);
 int sim_wing_flaps_settle(void);
 int sim_wing_set_slats(int fitted);
 
+/*
+ * WATER, src/native/water.c and docs/FLOATS-STAGE1.md. A host declares the
+ * bodies of water in its world, in the plant's frame like the ground
+ * plane, and the waves on each; an aircraft on floats floats on them and
+ * the renderer draws the same surface. Nothing is declared by default, and
+ * with nothing declared nothing reads any of it. Kept across sim_reset and
+ * sim_init; sim_water_clear removes every body. Additive, version
+ * unchanged.
+ *
+ * sim_water_add(z0, ox, oy): a body of still water at world z0, its wave
+ * phases measured from (ox, oy). Returns its index, 0 to 3, or
+ * SIM_ERR_BAD_STATE when four are declared already.
+ * sim_water_vertex(body, x, y): the next corner of its outline, world x y,
+ * up to 256; a body with fewer than three corners is water everywhere.
+ * sim_water_wind(body, speed, dx, dy, fetch): the wind over it, m/s along
+ * the unit (dx, dy) it blows toward, over fetch metres of open water: the
+ * wind sea it raises, by the SPM's fetch limited growth laws, as six
+ * linear components. 0 to 30 m/s, 0 to 1e6 m.
+ * sim_water_swell(body, height, period, dx, dy): one more component,
+ * crest to trough metres (0 to 5), period seconds (0.5 to 30), travelling
+ * along the unit (dx, dy).
+ * sim_water_sample(x, y, t, out[7]): the surface under (x, y) at sim time
+ * t: out[0] the body's index or -1, out[1] the surface's world z, out[2]
+ * and out[3] its slope along x and y, out[4..6] the water's velocity.
+ * sim_water_components(body, out[6 + 5 x 7]): the count, z0, the origin,
+ * the wind sea's significant height and peak period, then per component
+ * amplitude, kx, ky, omega and phase, which is everything a shader needs
+ * to draw the surface the plant feels: z = z0 + sum a cos(kx (x - ox) +
+ * ky (y - oy) - omega t + phase).
+ * sim_math_sin, sim_math_cos: the fixed libm's full range sin and cos,
+ * for the tests' mirror.
+ */
+int sim_water_clear(void);
+int sim_water_add(double z0, double ox, double oy);
+int sim_water_vertex(int body, double x, double y);
+int sim_water_wind(int body, double speed, double dx, double dy, double fetch);
+int sim_water_swell(int body, double height, double period, double dx, double dy);
+int sim_water_sample(double x, double y, double t, double *out);
+int sim_water_components(int body, double *out);
+double sim_math_sin(double x);
+double sim_math_cos(double x);
+
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);
 

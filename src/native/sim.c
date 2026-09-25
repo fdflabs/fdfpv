@@ -1693,6 +1693,116 @@ SIM_EXPORT double sim_air_lift(double x, double y, double z) {
   return plant_air_lift(pos);
 }
 
+/*
+ * The water bodies and their waves, src/native/water.c. A world the host
+ * declares, like the ground plane, in the plant's world frame; unlike the
+ * ground it is kept across sim_reset, since a lake does not move when the
+ * aircraft is put back, and sim_water_clear takes it away. Each declaring
+ * call checks what it is handed and refuses rather than clamps. Additive,
+ * version unchanged: with no body declared nothing reads any of it.
+ */
+SIM_EXPORT int sim_water_clear(void) {
+  water_clear();
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_water_add(double z0, double ox, double oy) {
+  if (!sim_finite(z0) || !sim_finite(ox) || !sim_finite(oy)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const int i = water_add(z0, ox, oy);
+  return i < 0 ? SIM_ERR_BAD_STATE : i;
+}
+
+SIM_EXPORT int sim_water_vertex(int body, double x, double y) {
+  if (!sim_finite(x) || !sim_finite(y)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return water_vertex(body, x, y) < 0 ? SIM_ERR_BAD_ARG : SIM_OK;
+}
+
+/* A unit direction, or the refusal: |d| within 3 percent of one. */
+static int water_unit2(double dx, double dy) {
+  const double d2 = dx * dx + dy * dy;
+  return sim_finite(d2) && d2 > 0.97 && d2 < 1.03;
+}
+
+SIM_EXPORT int sim_water_wind(int body, double speed, double dx, double dy, double fetch) {
+  if (!sim_finite(speed) || !(speed >= 0.0) || !(speed <= 30.0)
+      || !sim_finite(fetch) || !(fetch >= 0.0) || !(fetch <= 1.0e6) || !water_unit2(dx, dy)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return water_wind(body, speed, dx, dy, fetch) < 0 ? SIM_ERR_BAD_ARG : SIM_OK;
+}
+
+SIM_EXPORT int sim_water_swell(int body, double height, double period, double dx, double dy) {
+  if (!sim_finite(height) || !(height >= 0.0) || !(height <= 5.0)
+      || !sim_finite(period) || !(period >= 0.5) || !(period <= 30.0) || !water_unit2(dx, dy)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return water_swell(body, height, period, dx, dy) < 0 ? SIM_ERR_BAD_ARG : SIM_OK;
+}
+
+/*
+ * The surface under (x, y) at time t, sim seconds: out[0] the body's index
+ * or -1 where there is no water, out[1] the surface's height, world z,
+ * out[2] and out[3] its slope along x and y, out[4..6] the water's
+ * velocity. Where there is no water out[1..6] are zero. For the gates and
+ * for the renderer's cross check; the plant samples the same function.
+ */
+SIM_EXPORT int sim_water_sample(double x, double y, double t, double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const int b = water_body_at(x, y);
+  out[0] = (double)b;
+  if (b < 0) {
+    for (int i = 1; i < 7; i += 1) {
+      out[i] = 0.0;
+    }
+    return SIM_OK;
+  }
+  water_sample(b, x, y, t, out + 1);
+  return SIM_OK;
+}
+
+/*
+ * What the renderer uploads as uniforms: out[0] the count n, out[1] still
+ * water z, out[2] out[3] the phase origin, out[4] out[5] the wind sea's
+ * significant height and peak period, then per component a, kx, ky, omega
+ * and phase, five doubles each. Room for 6 + 5 x WATER_COMP_MAX doubles.
+ */
+SIM_EXPORT int sim_water_components(int body, double *out) {
+  const WaterBody *b = water_body(body);
+  if (out == 0 || b == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  out[0] = (double)b->ncomp;
+  out[1] = b->z0;
+  out[2] = b->ox;
+  out[3] = b->oy;
+  out[4] = b->hs;
+  out[5] = b->tp;
+  for (int c = 0; c < b->ncomp; c += 1) {
+    out[6 + 5 * c] = b->comp[c].a;
+    out[7 + 5 * c] = b->comp[c].kx;
+    out[8 + 5 * c] = b->comp[c].ky;
+    out[9 + 5 * c] = b->comp[c].om;
+    out[10 + 5 * c] = b->comp[c].ph;
+  }
+  return SIM_OK;
+}
+
+/* The fixed libm's full range sin and cos, for the wave field's JS mirror
+ * to be held against. Additive; not part of the flight ABI. */
+SIM_EXPORT double sim_math_sin(double x) {
+  return sim_sin(x);
+}
+
+SIM_EXPORT double sim_math_cos(double x) {
+  return sim_cos(x);
+}
+
 /* The fixed libm's atan2, exported so a test can hold it against the host's
  * on a grid. Additive; not part of the flight ABI. */
 SIM_EXPORT double sim_math_atan2(double y, double x) {

@@ -544,6 +544,50 @@ void plant_wing_flaps_settle(void);
  * aircraft without slats. */
 void plant_wing_set_slats(int fitted);
 
+/*
+ * WATER, src/native/water.c: the bodies of water a host declares, still
+ * water at a height over a polygon in the plant's world frame, and the
+ * waves on each, a sum of linear deep water components raised by a wind
+ * over a fetch and an optional swell. docs/FLOATS-STAGE1.md.
+ */
+#define WATER_BODIES_MAX 4
+#define WATER_VERTS_MAX 256
+#define WATER_SEA 6
+#define WATER_COMP_MAX (WATER_SEA + 1)
+
+typedef struct {
+  double a;      /* amplitude, m */
+  double kx, ky; /* wavenumber along world x and y, rad/m */
+  double om;     /* angular frequency, rad/s */
+  double ph;     /* phase at the body's origin at t = 0, rad */
+} WaterComp;
+
+typedef struct {
+  double z0;                /* still water, world z, m */
+  double ox, oy;            /* where the phases are measured from */
+  int nvert;                /* polygon, world x y; under 3 is everywhere */
+  double vx[WATER_VERTS_MAX];
+  double vy[WATER_VERTS_MAX];
+  double xmin, xmax, ymin, ymax;
+  double wind, wdx, wdy, fetch; /* m/s, the unit direction it blows to, m */
+  double swell_h, swell_t, sdx, sdy; /* crest to trough m, s, the unit direction */
+  double hs, tp;            /* the wind sea's significant height and peak period */
+  int ncomp;
+  WaterComp comp[WATER_COMP_MAX];
+} WaterBody;
+
+void water_clear(void);
+int water_count(void);
+/* Each returns the body's index, or 0, or -1 for a bad index or a full table. */
+int water_add(double z0, double ox, double oy);
+int water_vertex(int i, double x, double y);
+int water_wind(int i, double speed, double dx, double dy, double fetch);
+int water_swell(int i, double height, double period, double dx, double dy);
+int water_body_at(double x, double y);
+/* out[6]: surface z, dz/dx, dz/dy, and the water's velocity x y z. */
+void water_sample(int i, double x, double y, double t, double out[6]);
+const WaterBody *water_body(int i);
+
 /* Bridge: Betaflight control loop and config shim. */
 
 int bridge_parse_config(const unsigned char *diff_utf8, int len);
