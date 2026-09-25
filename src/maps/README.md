@@ -61,21 +61,39 @@ the argument; it takes it anyway so `main.js` has one call shape.
 city adds a thin slab collider under every raised platform. See
 `city/index.js`.
 
-### Roofs on alps and swiss2
+### Roofs on alps, swiss2 and the city
 
-The village's roofs are ground (`alps/roofs.js`). Every roof shell a village
-frame puts is recorded as its upper faces, and `height(x, z, fromY)` offers
-the highest roof within the same 0.55 m step of `fromY` as a deck, so the
-plant's own ground contact lands, slides and bounces a craft on a pitched
-roof as on a hillside, and a craft under the eaves still sees the street.
+Every roof a map draws is ground (`alps/roofs.js`). A roof is recorded as
+its drawn upper faces: a roof shell a village frame puts, a lean-to, the
+bus shelter, a gondola station's slabs, a spire, a dormer, a garden shed,
+a hut, a boathouse, the lake hamlet's houses and church, the ticket hut on
+the landing stage, and on the city every mesh drawn in a roof covering
+(`city/index.js` cityRoofs). `height(x, z, fromY)` offers the highest roof
+within the same 0.55 m step of `fromY` as a deck, so the plant's own ground
+contact lands, slides and bounces a craft on a pitched roof as on a
+hillside, and a craft under the eaves still sees the street.
+
 The walls under a roof stay walls: the walls up to the plate and a thin
-wall under each gable, in axis aligned boxes under the shell's underside,
-with the building's old keep out box noted as its footprint so nothing
-placed round it moved. The attic between them is left empty; the roof
-shell over it is ground the plant keeps a craft out of from above. While a roof is the craft's
-ground, `cover(x, z, fromY)` lets the obstacle sweep through that roof's
-walls, because the sweep's ellipsoid grows to a wing's half span as it
-banks onto the slope and would reach them through the shell.
+wall under each gable, in axis aligned boxes held into the shell and never
+over its upper face, with the building's old keep out box noted as its
+footprint so nothing placed round it moved, and none noted for a building
+that never had one. A building's other solid
+parts, noted by its builder in its own frame, are walls too: balconies,
+the bus shelter's three walls, a lean-to's posts, a woodshed's walls and
+wood, a spire's inside (its faces are too steep to be ground a fast craft
+meets level), and chimneys. The attic is left empty; the roof shell over
+it is ground the plant keeps a craft out of from above. On the city the
+walls are the collider fit's, untouched, and the gables its roof lift
+stopped short of are closed the same way.
+
+While a roof is the craft's ground, `cover(x, z, fromY)` lets the obstacle
+sweep through that roof's solids, because the sweep's ellipsoid grows to a
+wing's half span as it banks onto the slope and would reach them through
+the shell. A chimney stands on the roof and stays solid. A craft within a
+metre of a roof's edge, with no roof over it and not more than half a
+metre under the edge's level, has what stands under that roof's eaves let
+through (the walls up to the plate and the posts, not the gables): coming
+in over short eaves its ellipsoid meets them before it is over the roof.
 
 `surfaceAt(x, z, y)` takes the ground height too, so the crash physics
 reads the covering where the ground is a roof. The module has no tile,
@@ -88,12 +106,16 @@ roofs included, is the shell's grass, as it always was.
 | --- | --- | --- | --- | --- |
 | larch shingle (`shingle*`) | wood | 0.50 | 0.12 | wood on wood, oak dry, sliding 0.32 across the grain to 0.48 along it, static 0.54 to 0.62 [1] |
 | slate, eternit (`slate*`) | rock | 0.42 | 0.15 | wood on stone 0.2 to 0.4, nylon on steel 0.4 [1]; slate is a rock and fibre cement board its class |
-| standing seam (`hangarRoof`) | metal | 0.35 | 0.20 | polystyrene on steel 0.3 to 0.35, nylon on steel 0.4 [1] |
+| standing seam (`hangarRoof`), tin (`tin*`) | metal | 0.35 | 0.20 | polystyrene on steel 0.3 to 0.35, nylon on steel 0.4 [1] |
+| clay tile (`tile`: the lake hamlet's red roofs, the city's tiled roofs) | rock | 0.42 | 0.15 | fired clay is a ceramic, and rock is the module's one hard mineral surface |
 
-There is no clay tile on either map. A wheel rolls on a roof at the hard
-face value of R-ROLLING in docs/CRASH-REFERENCES.md (concrete and asphalt
-0.02 to 0.05 against short grass 0.05 [2]), which `plant_wheel_roll` gives
-wood, rock and metal alike.
+The city's school and gym roofs are drawn as sheet (`metalRoof`, metal).
+The lake hamlet's roofs are read off the colour they are drawn in (red is
+tile, grey slate, brown shingle); the huts' off the draw that chose it.
+
+A wheel rolls on a roof at the hard face value of R-ROLLING in
+docs/CRASH-REFERENCES.md (concrete and asphalt 0.02 to 0.05 against short
+grass 0.05 [2]), which `plant_wheel_roll` gives wood, rock and metal alike.
 
 A covering of its own (a `SIM_SURF_TILE`, `SIM_SURF_SLATE`,
 `SIM_SURF_SHINGLE` with their own mu, e, stiffness and blade hardness in
