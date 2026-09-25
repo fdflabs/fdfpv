@@ -26,14 +26,22 @@ drop test's 2,833 N peak.
 
 ## 1. How the suite measures, and what that means for the bands
 
+- **Every scenario is flown with crash damage on** (`sim_set_damage(1)`;
+  the whoop on the whoop's own part table, `sim_set_part_table(1)`, as
+  the shell flies it). The rigid hull's expectations do not carry over:
+  a band is judged against what the damaging plant does, and every band
+  is still from a reference, never from that plant.
 - **Peak load (peakG)** is the largest change of the CG's velocity over one
-  1 ms step, less gravity, in g. The plant resolves a contact as an impulse
-  inside one step (src/native/sim.c, and the shell's `sim_contact_at`), so
-  this is an upper bound: real contacts last milliseconds (R-A3-DROP: about
-  11 ms for a plastic quad, 0.4 to 2.8 ms for a motor or a battery on its
-  own). A peak load inside its band therefore needs a contact that lasts,
-  which is the damage model's crush, not a change to how the suite reads
-  it. peakForceN is the same times the mass.
+  1 ms step, less gravity, in g. The plant resolves a contact that
+  damages nothing as an impulse inside one step (src/native/sim.c, and the
+  shell's `sim_contact_at`), so for those this is an upper bound: real
+  contacts last milliseconds (R-A3-DROP: about 11 ms for a plastic quad,
+  0.4 to 2.8 ms for a motor or a battery on its own). With damage on, a
+  contact that crushes foam lasts as long as the crush does
+  (docs/CRASH-STAGE1.md, "Crush is the contact's duration"), and that is
+  the physical duration the bands mean; a contact under every limit is
+  still one step, by the bit identity rule. peakForceN is the same times
+  the mass.
 - **retainedFirst** is the energy kept through the first contact: kinetic
   energy 100 ms after it, plus the height gained, over the kinetic energy
   it arrived with. One minus the references' "energy dissipated".
@@ -47,21 +55,45 @@ drop test's 2,833 N peak.
   or on its side. **minUpZ** is the lowest the body's up axis got after the
   first contact, 1 upright to minus 1 inverted: a cartwheel or a flip has
   to pass through its back.
-- **What broke (mustBreak, mustNotBreak)** is read from the crash core's
-  damage readback (tests/crash/readback.js) once dist/sim.wasm has one.
-  Until then nothing can break: every must break band fails with "damage
-  readback not available", and every must not break band passes, marked
-  vacuous in the report so nobody counts it.
+- **What broke (mustBreak, mustNotBreak, mustDamage)** is read from the
+  crash core's damage readback (tests/crash/readback.js, through the
+  shell's own reader, src/game/damage.js) after every step. A part is
+  broken when it has left the aircraft or its damage is 1, damaged when
+  its damage is above 0 (a chipped prop, a crushed nose, a bent arm), the
+  definitions docs/CRASH-STAGE1.md gives. Bands name parts by the module's
+  kinds (configs/parts.js PART_KINDS) and one group, `tail`, which is the
+  stabiliser, the fin, the boom, the elevator and the rudder. mustBreak
+  asks every part named to be broken, mustDamage every part named to be at
+  least damaged, mustNotBreak none of them broken.
+- **Reported from the readback, not banded:** the damage flags seen, the
+  events by type, the energy the parts absorbed (their own tally and the
+  events' sum), each part's peak load over its limit (the larger of its
+  state's per step peak and its events' ratios, since a part that breaks
+  leaves in the step that loaded it), the first break after the first
+  contact (firstBreakS), and how many pieces left and how far the
+  farthest lies (debrisCount, debrisMaxDistM).
 - **The whoop** in the shell is the five inch's plant flown in a room built
   MICRO_SCALE (3.43) times life size (configs/airframes.js). Its scenarios
   are flown at a real whoop's speeds times 3.43 and read back divided by
   it: speeds, distances and peak g are real whoop units. Energies are not
   comparable, because the mass is the five inch's 0.71 kg, not 23 g.
 - **The contact** with an obstacle is the shell's call (src/main.js: the
-  material from src/game/collide.js `contactMaterial`, the patch from
-  `contactPatch`, a blade strike of 0.28 times the impulse over 12 m/s).
+  patch from `contactPatch`, a blade strike of 0.28 times the impulse over
+  12 m/s, and `sim_contact_at_mat` with the module's material where its
+  numbers are the shell's own for that kind, src/game/crashworld.js
+  `obstacleSurfaces`, else `sim_contact_at` with `contactMaterial`).
   Detection is the suite's own, the airframe's sweep disc against a plane,
   a capsule or a sphere, because the plant has no scene geometry.
+- **The world is named to the plant as the shell names it:** the ground's
+  material (grass outdoors, including the 30 degree slope; today's
+  contact on a whoop's floor), every solid as `sim_obstacle_box` or
+  `sim_obstacle_cylinder` for the parts that break off, and a tree as
+  `sim_tree_add`: its trunk a solid the sweep meets, its crown a cylinder
+  the plant holds and the craft flies into, which counts as a contact
+  (`crown`) while the craft is in it.
+- **Determinism** hashes the state block and every part's state, and the
+  damage readback each replay ends with (Node and Chrome) must equal the
+  live run's.
 
 ## 2. The references
 
@@ -261,6 +293,43 @@ after the launch "The plane basically pitch up and flipped over", then a
 nose first impact. An anecdote: LOW. No investigation report of a catapult
 stall was found.
 
+**R-NOSEOVER. A taildragger nosing over on the take off roll.** FAA
+Airplane Flying Handbook, FAA-H-8083-3C, chapter 14, Transition to
+Tailwheel Airplanes (copy used:
+https://dl.videos.sportys.com/onlinecourse/documents/references/afh2021/afh_ch14.pdf):
+on the normal take off "positive forward elevator should be applied to
+smoothly lift the tail"; on a soft field "There is not only the danger of
+the airplane bogging down, but also a danger of it tipping up onto its
+nose", and the tail is kept low "to avoid any tendency of the airplane to
+nose over as a result of soft spots, tall grass, or deep snow"; on landing,
+back elevator "minimizes any tendency for the airplane to nose over".
+Ruskin gliding club, tailwheel operations,
+https://www.ruskin.me.uk/flying-training/tmg-extension/tailwheel-operations :
+"Aircraft with a tailwheel have nothing to stop them nosing over except
+the propeller"; "The thrust line is above the axle line. Any power against
+one or both brakes may try to pitch the aircraft forward over the wheels",
+and the same on soft ground; as the tail rises the tendency grows until it
+becomes a full flip. Wikipedia, Propeller strike,
+https://en.wikipedia.org/wiki/Propeller_strike : "Propeller strikes can be
+the result of the propeller contacting the ground due to landing gear
+collapse, failure to extend the landing gear, or nose-over." Wikipedia,
+Conventional landing gear,
+https://en.wikipedia.org/wiki/Conventional_landing_gear : "Tailwheel
+aircraft are more subject to 'nose-over' accidents due to incorrect
+application of brakes by the pilot." NTSB final reports of full size
+aircraft that "nosed over and came to rest inverted" (CEN22LA367,
+https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/105688/pdf ,
+a forced landing in a plowed field, the damage to the wing, the
+empennage, the rudder and the fin). RC: rcindia.org's nose over thread,
+https://www.rcindia.org/rc-maneuvers-and-skills/nose-over-take-off-and-landing-on-tail-draggers/ ,
+"Small patches of dense grass can create resistance for wheels", "the
+thrust line tends to be above the drag line (on ground) and it tends to
+creat a couple which tips the nose down". No measured model nose over
+(speeds, loads, times) was found, so the bands are the outcome classes
+these give: the prop strikes, the aircraft stands on its nose or goes over
+onto its back, and it goes no further than it can pivot. MED for the prop,
+LOW for the rest.
+
 ## 3. Footage to measure
 
 The plan asks for crash footage measured frame by frame. That cannot be
@@ -301,8 +370,9 @@ are defined in section 1. Plane bands follow the aircraft's layout:
 tractors (Cub, Timber, Radian Pro, Slow Stick) carry R-A14-FOAM's puller
 penalty at the nose, pushers (Skyhunter, Bramor) its crumple zone. The
 Bramor is carbon, kevlar and vectran rather than foam, so its plane bands
-borrow the foam pusher's and are LOW. The tail strike on take off is only
-flown by the aircraft that take off on wheels: the Skyhunter and the
+borrow the foam pusher's and are LOW. The nose over on take off (which
+replaced the plan's tail strike, section 6) is only flown by the aircraft
+that take off on wheels, the three taildraggers: the Skyhunter and the
 Radian are hand launched and the Bramor catapulted.
 
 ### Five inch
@@ -385,7 +455,7 @@ Radian are hand launched and the Bramor catapulted.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustBreak | prop | R-PROPLOSS (the loss is the event) | HIGH |
+| mustBreak | prop | R-PROPLOSS (the loss is the event; the scenario breaks it with sim_part_break, so this checks the break took) | HIGH |
 | lossToGroundS | 1 to 5 | R-PROPLOSS (from 10 m: free fall is 1.4 s, a partly thrusting spin longer) | LOW |
 | flyingAtEnd | no | R-PROPLOSS (unrecoverable without a spinning controller) | MED |
 
@@ -527,12 +597,14 @@ Radian are hand launched and the Bramor catapulted.
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
 
-**cub-tail-strike.** Reference still: Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.
+**cub-nose-over.** Reference still: Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustNotBreak | tail | R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail) | LOW |
-| peakG | 0 to 10 | R-C172 test 1 | LOW |
+| mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
+| mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **cub-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
@@ -664,12 +736,14 @@ Radian are hand launched and the Bramor catapulted.
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
 
-**slowstick-tail-strike.** Reference still: Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.
+**slowstick-nose-over.** Reference still: Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustNotBreak | tail | R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail) | LOW |
-| peakG | 0 to 10 | R-C172 test 1 | LOW |
+| mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
+| mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **slowstick-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
@@ -735,12 +809,14 @@ Radian are hand launched and the Bramor catapulted.
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
 
-**timber-tail-strike.** Reference still: Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.
+**timber-nose-over.** Reference still: Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustNotBreak | tail | R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail) | LOW |
-| peakG | 0 to 10 | R-C172 test 1 | LOW |
+| mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
+| mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **timber-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
@@ -964,15 +1040,27 @@ Recorded here because the loop will build on the plan.
   too steep, which the band (a scrape, under 10 g) then fails. Whether to
   keep, rename or replace the scenario (a nose over or prop strike from
   too much down elevator is the taildragger's real take off accident) is
-  the owner's call.
+  the owner's call. **Decided after the baseline:** replaced by the nose
+  over (R-NOSEOVER). The references' nose overs come from soft ground,
+  tall grass and brakes, and the plant can fly none of them: its wheels
+  roll at one resistance (0.08) whatever the ground's material, and have
+  no brakes. So the suite flies the one the elevator makes, full down
+  elevator at full power half a second into the roll, which tips the
+  thrust line over the axles; the soft ground and brake versions wait for
+  the core to give the wheels a surface's rolling drag and a brake.
 - **Two scenarios need wind the plant does not have.** The floats'
   "capsize in a crosswind gust" and the Bramor's "chute landing in wind,
   drag and rest": the air model has no horizontal wind (sim_air_lift is
   vertical, and the water's wind only raises waves). Both are flown in the
-  suite and marked blocked.
-- **Nothing can detach a prop today,** so "lose one prop in flight" is
-  flown with the bench override holding one motor at zero duty, and says
-  so in the report.
+  suite and marked blocked. They name the entry point they need
+  (tests/crash/scenarios.js `WIND_ENTRY`, `sim_set_wind(vx, vy, vz)` world
+  m/s, a guess at the core's name): once the module exports it they are
+  flown in that wind (15 m/s across the float plane, 10 m/s along the
+  Bramor's descent) and judged, with no other change.
+- **Nothing could detach a prop at the baseline,** so "lose one prop in
+  flight" was flown with the bench override holding one motor at zero
+  duty. With the crash core it is the real thing: the prop on motor 0
+  leaves through `sim_part_break` and is a free body.
 - **Obstacles are not in the plant.** "Contact is one rigid body against
   the ground plane, obstacles and water" holds for the ground and the
   water; for obstacles the plant only answers a contact the shell detects

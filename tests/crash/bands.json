@@ -336,7 +336,8 @@
       "prop"
      ],
      "source": "R-PROPLOSS (the loss is the event)",
-     "confidence": "HIGH"
+     "confidence": "HIGH",
+     "imposed": "the scenario breaks it (sim_part_break); this checks the break took"
     },
     {
      "metric": "lossToGroundS",
@@ -922,22 +923,40 @@
     }
    ]
   },
-  "cub-tail-strike": {
-   "refStill": "Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.",
+  "cub-nose-over": {
+   "refStill": "Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.",
    "checks": [
+    {
+     "metric": "mustDamage",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike)",
+     "confidence": "MED"
+    },
     {
      "metric": "mustNotBreak",
      "parts": [
-      "tail"
+      "wing",
+      "fuselage"
      ],
-     "source": "R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail)",
+     "source": "R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM",
      "confidence": "LOW"
     },
     {
-     "metric": "peakG",
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
      "min": 0,
-     "max": 10,
-     "source": "R-C172 test 1",
+     "max": 2,
+     "source": "R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most)",
      "confidence": "LOW"
     }
    ]
@@ -1495,22 +1514,40 @@
     }
    ]
   },
-  "slowstick-tail-strike": {
-   "refStill": "Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.",
+  "slowstick-nose-over": {
+   "refStill": "Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.",
    "checks": [
+    {
+     "metric": "mustDamage",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike)",
+     "confidence": "MED"
+    },
     {
      "metric": "mustNotBreak",
      "parts": [
-      "tail"
+      "wing",
+      "fuselage"
      ],
-     "source": "R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail)",
+     "source": "R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM",
      "confidence": "LOW"
     },
     {
-     "metric": "peakG",
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
      "min": 0,
-     "max": 10,
-     "source": "R-C172 test 1",
+     "max": 2,
+     "source": "R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most)",
      "confidence": "LOW"
     }
    ]
@@ -1785,22 +1822,40 @@
     }
    ]
   },
-  "timber-tail-strike": {
-   "refStill": "Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.",
+  "timber-nose-over": {
+   "refStill": "Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.",
    "checks": [
+    {
+     "metric": "mustDamage",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike)",
+     "confidence": "MED"
+    },
     {
      "metric": "mustNotBreak",
      "parts": [
-      "tail"
+      "wing",
+      "fuselage"
      ],
-     "source": "R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail)",
+     "source": "R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM",
      "confidence": "LOW"
     },
     {
-     "metric": "peakG",
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
      "min": 0,
-     "max": 10,
-     "source": "R-C172 test 1",
+     "max": 2,
+     "source": "R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most)",
      "confidence": "LOW"
     }
    ]

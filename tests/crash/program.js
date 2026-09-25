@@ -15,6 +15,12 @@
  * Calls that only read the module (sim_state, sim_wheel_loads, the damage
  * readback) are not written down: they change nothing the trace can see.
  *
+ * The trace is the state block and, on a module with the crash ABI, every
+ * part's state (sim_parts_state) at each sample: a part that broke off,
+ * where it flew and where it lies are hashed with the craft, so a
+ * divergence in the damage model fails the check even when the craft's own
+ * state agrees.
+ *
  * Environment neutral: runs unchanged in Node and in the browser.
  *
  * This file is part of WebFPVSimulator.
@@ -35,12 +41,35 @@
 
 import { SIM_OK } from '../lib/simmod.js';
 import { sha256Hex } from '../lib/replay.js';
+import { PARTS_MAX, PART_STATE_DOUBLES } from '../../configs/parts.js';
+import { damageReader } from './readback.js';
 
 /* The state is captured into the hash every this many milliseconds of sim
  * time, and once more at the end. Every step would be 4 times the bytes
  * and no more evidence: a divergence anywhere carries into every later
  * sample. */
 export const TRACE_STRIDE_MS = 4;
+
+/* The state block and every part's state, as bytes. The parts buffer is
+ * allocated once per module; reading it writes nothing the plant sees. */
+function sample(sim) {
+  const { code, bytes } = sim.readStateBytes();
+  if (code !== SIM_OK) {
+    throw new Error(`sim_state: ${code}`);
+  }
+  if (typeof sim.e.sim_parts_state !== 'function') {
+    return [bytes];
+  }
+  if (!sim.crashPartsPtr) {
+    sim.crashPartsPtr = sim.e.malloc(PARTS_MAX * PART_STATE_DOUBLES * 8);
+  }
+  const c = sim.e.sim_parts_state(sim.crashPartsPtr);
+  if (c !== SIM_OK) {
+    throw new Error(`sim_parts_state: ${c}`);
+  }
+  const n = sim.e.sim_parts_count() * PART_STATE_DOUBLES * 8;
+  return [bytes, new Uint8Array(new Uint8Array(sim.e.memory.buffer, sim.crashPartsPtr, n))];
+}
 
 /*
  * The one stepper both sides use, so the live run and its replay capture
@@ -56,11 +85,7 @@ function stepCapture(sim, n, clock, chunks, onMs) {
     }
     clock.ms += 1;
     if (clock.ms % TRACE_STRIDE_MS === 0) {
-      const { code: c, bytes } = sim.readStateBytes();
-      if (c !== SIM_OK) {
-        throw new Error(`sim_state: ${c}`);
-      }
-      chunks.push(bytes);
+      chunks.push(...sample(sim));
     }
     if (onMs) {
       onMs(clock.ms);
@@ -114,20 +139,21 @@ export class Recorder {
   }
 
   capture() {
-    const { bytes } = this.sim.readStateBytes();
-    this.chunks.push(bytes);
+    this.chunks.push(...sample(this.sim));
   }
 
   async hash() {
-    const { bytes } = this.sim.readStateBytes();
-    return sha256Hex([...this.chunks, bytes]);
+    return sha256Hex([...this.chunks, ...sample(this.sim)]);
   }
 }
 
 /*
- * Replay a program on a freshly loaded module and return the trace hash.
- * The same bytes in the same order as the Recorder that wrote it, or the
- * program did not capture everything the live run did to the module.
+ * Replay a program on a freshly loaded module and return the trace hash
+ * and the damage readback at the end (null on a module without the crash
+ * ABI). The same bytes in the same order as the Recorder that wrote it, or
+ * the program did not capture everything the live run did to the module.
+ * The readback's per step memory (events, peak loads) is the live run's
+ * alone, so what the replay's summary is compared on is its end state.
  */
 export async function replayProgram(sim, configText, ops) {
   const chunks = [];
@@ -139,8 +165,7 @@ export async function replayProgram(sim, configText, ops) {
       if (code !== SIM_OK) {
         throw new Error(`sim_init: ${code}`);
       }
-      const { bytes } = sim.readStateBytes();
-      chunks.push(bytes);
+      chunks.push(...sample(sim));
     } else if (name === 'step') {
       stepCapture(sim, args[0], clock, chunks, null);
     } else {
@@ -151,6 +176,17 @@ export async function replayProgram(sim, configText, ops) {
       fn(...args);
     }
   }
-  const { bytes } = sim.readStateBytes();
-  return sha256Hex([...chunks, bytes]);
+  const hash = await sha256Hex([...chunks, ...sample(sim)]);
+  const reader = damageReader(sim);
+  return { hash, damage: reader ? endState(reader.read()) : null };
+}
+
+/* The part of a readback both hosts can compare: the end state. */
+export function endState(d) {
+  return {
+    broken: [...d.broken].sort(),
+    damaged: [...d.damaged].sort(),
+    flags: d.flags,
+    parts: d.parts.map((p) => [p.status, p.damage, p.energyJ, ...p.pos]),
+  };
 }
