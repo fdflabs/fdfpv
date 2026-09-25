@@ -639,16 +639,16 @@
     },
     {
      "metric": "restDistM",
-     "min": 8,
-     "max": 30,
-     "source": "R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6)",
+     "min": 16,
+     "max": 58,
+     "source": "R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v squared over 2 mu g",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 2,
-     "max": 5,
-     "source": "R-SLIDE",
+     "min": 2.3,
+     "max": 6.3,
+     "source": "R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v over mu g",
      "confidence": "LOW"
     }
    ]

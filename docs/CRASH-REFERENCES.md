@@ -270,7 +270,15 @@ leads to a more rapid and less predictable descent to the ground".
 
 **R-SLIDE.** A belly slide from 1.5 to 2 times the stall: stopping distance
 v squared over 2 mu g with a foam belly on grass at mu 0.3 to 0.6
-(ASSUMPTION): 10 m/s slides 8.5 to 17 m (DERIVED). LOW.
+(ASSUMPTION): 10 m/s slides 8.5 to 17 m (DERIVED). LOW. Round 5: the
+bands were one 8 to 30 m (2 to 5 s) for every belly slide, derived at 10
+m/s, while the scenarios arrive at the aircraft's own 1.5 to 2 times the
+stall (the premise above; the approach flown on the sink rate touches
+down anywhere in it). Each belly band is now R-SLIDE at that aircraft's
+own V_s (tests/crash/scenarios.js CRAFT): the shortest slide is 1.5 V_s
+at mu 0.6, the longest 2 V_s at mu 0.3, the times v over mu g at the same
+ends, rounded outward. Neglected, in both directions: the wing's lift
+unloading the belly (longer) and the airframe's drag (shorter).
 
 **R-SEAPLANE. FAA Seaplane, Skiplane, and Float/Ski Equipped Helicopter
 Operations Handbook, FAA-H-8083-23.**
@@ -618,8 +626,8 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustNotBreak | wing, fuselage | R-C172 test 1, R-A14-FOAM (foam belly landings are routine) | MED |
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
-| restDistM | 8 to 30 | R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6) | LOW |
-| timeToRestS | 2 to 5 | R-SLIDE | LOW |
+| restDistM | 16 to 58 | R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v squared over 2 mu g | LOW |
+| timeToRestS | 2.3 to 6.3 | R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v over mu g | LOW |
 
 **sky-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
