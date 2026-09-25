@@ -170,7 +170,7 @@ const shade = (c, k) => [c[0] * k, c[1] * k, c[2] * k];
  * out at the corners, the gables over the byre in upright boards gone
  * silver with the dark of the loft between them, a closed plank door
  * below and the hay door above, a roof of shingle with a thickness to
- * its eaves and verges and a cap along its ridge. The village's rng is
+ * its eaves and verges and a cap along its ridge. The props' rng is
  * drawn exactly as many times as the round 3 hut drew it, so every hut,
  * bale and reed after this one stands where it stood; what is new is
  * chosen by the hut's own place.
