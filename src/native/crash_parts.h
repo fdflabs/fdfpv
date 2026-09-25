@@ -690,6 +690,108 @@ static const PartDef PARTS_TIMBER1500[] = {
     .npts = 2, .pts = { { -0.20, 0.0, 0.06 }, { -0.20, 0.0, 0.13 } } },
 };
 
+/* ------------------------------------------------------------------------
+ * BUZZARD BOMBSHELL, SIM_AIRFRAME_BOMBSHELL1118, bombshellcraft.js. 0.56 kg
+ * of balsa under doped tissue, docs/BOMBSHELL-STAGE1.md: nothing foam, so
+ * nothing crushes. Balsa splits along its grain and a joint that cracks
+ * loses its strength (crash.c's default, "cracks"); the one piece wing sits
+ * on the cabin under rubber bands, which let it go before its spar breaks
+ * as often as not, and each panel then breaks off the centre section on
+ * its spar. A Cox .049 on two screws through the firewall, wire gear, a
+ * wire skid.
+ * --------------------------------------------------------------------- */
+/* Balsa, 150 to 175 kg/m^3 (the kit's medium grade): modulus of rupture
+ * about 20 MPa along the grain (Gibson and Ashby, Cellular Solids, ch. 10;
+ * the Forest Products Laboratory's Wood Handbook, balsa). A square stick
+ * of side a breaks at 20 MPa a^3 / 6. */
+#define BALSA_MOR 20.0e6
+#define BALSA_M(b, h) (BALSA_MOR * (b) * (h) * (h) / 6.0)
+static const PartDef PARTS_BOMBSHELL1118[] = {
+  /* 0 the fuselage forward of the wing's trailing edge: the cabin, the
+   * nose and the firewall, 1/16 in balsa sides and bottom. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 1.5e5, BOX(-0.13, 0.155, -0.027, 0.027, -0.066, 0.064) },
+  /* 1 the fuselage aft of the wing, a tapering box of 1/16 in sheet on
+   * 1/8 in square longerons, judged at its weakest section, the
+   * stabiliser's leading edge, 22 x 33 mm: the longerons, the sides and
+   * the bottom make Z 1.8e-6 m^3, 36 N m at balsa's rupture, and half of
+   * it for the glue joints and the sheet's cross grain: 18 N m. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.035, .joint = { -0.13, 0.0, 0.0 }, .m_max = 18.0, .f_max = 200.0, .k = 2.0e4,
+    .npts = 8, .pts = { { -0.13, 0.026, -0.058 }, { -0.13, -0.026, -0.058 }, { -0.13, 0.026, 0.057 }, { -0.13, -0.026, 0.057 },
+                        { -0.652, 0.0045, -0.020 }, { -0.652, -0.0045, -0.020 }, { -0.652, 0.0045, 0.0 }, { -0.652, -0.0045, 0.0 } } },
+  /* 2 the stabiliser, a 3/16 x 5/16 in leading edge and 3/16 x 3/8 in
+   * trailing edge frame glued on the deck: 1.0 and 1.4 N m, 2.4
+   * together. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.58, 0.0, 0.001 }, .m_max = BALSA_M(0.0048, 0.0079) + BALSA_M(0.0048, 0.0095),
+    .f_max = 50.0, .k = 2000.0, BOX(-0.615, -0.496, -0.206, 0.206, 0.0, 0.004) },
+  /* 3 the elevator on tissue and thread hinges, which tear. */
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.615, 0.0, 0.002 }, .m_max = 0.4, .f_max = 20.0, .k = 1500.0,
+    BOX(-0.652, -0.615, -0.19, 0.19, 0.0, 0.004) },
+  /* 4 the fin, a 3/16 x 3/8 in post glued to the deck, 1.4 N m. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.006, .joint = { -0.52, 0.0, 0.005 }, .m_max = BALSA_M(0.0048, 0.0095), .f_max = 40.0, .k = 1500.0,
+    BOX(-0.563, -0.477, -0.003, 0.003, 0.0, 0.124) },
+  /* 5 the rudder, on the same hinges as the elevator. */
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.563, 0.0, 0.06 }, .m_max = 0.4, .f_max = 20.0, .k = 1500.0,
+    BOX(-0.652, -0.563, -0.003, 0.003, 0.0, 0.12) },
+  /* 6 the wing's centre section, sheeted and glassed, on the cabin under
+   * four #32 rubber bands: each about 5 N stretched on its dowels, so 20
+   * N hold it down and 20 N over half the chord's 95 mm, 1.9 N m, tip it
+   * off its saddle. ESTIMATED: no one publishes a band's tension. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.020, .joint = { -0.03, 0.0, 0.064 }, .m_max = 1.9, .f_max = 20.0, .k = 2000.0,
+    BOX(-0.128, 0.063, -0.04, 0.04, 0.062, 0.084) },
+  /* 7, 8 the panels on the centre section, the spar 3/16 in square, the
+   * leading edge 1/4 in square and the trailing edge 1 x 1/8 in: 0.37,
+   * 0.87 and 0.87 N m at balsa's rupture, 2.1 N m together. */
+  { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.045, .joint = { -0.03, 0.04, 0.070 },
+    .m_max = BALSA_M(0.0048, 0.0048) + BALSA_M(0.0064, 0.0064) + BALSA_M(0.0254, 0.0032), .f_max = 80.0, .k = 2000.0,
+    .npts = 8, .pts = { { 0.063, 0.04, 0.063 }, { -0.128, 0.04, 0.058 }, { 0.063, 0.379, 0.094 }, { -0.128, 0.379, 0.090 },
+                        { 0.063, 0.04, 0.085 }, { -0.128, 0.04, 0.075 }, { 0.030, 0.559, 0.175 }, { -0.090, 0.559, 0.170 } } },
+  { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.045, .joint = { -0.03, -0.04, 0.070 },
+    .m_max = BALSA_M(0.0048, 0.0048) + BALSA_M(0.0064, 0.0064) + BALSA_M(0.0254, 0.0032), .f_max = 80.0, .k = 2000.0,
+    .npts = 8, .pts = { { 0.063, -0.04, 0.063 }, { -0.128, -0.04, 0.058 }, { 0.063, -0.379, 0.094 }, { -0.128, -0.379, 0.090 },
+                        { 0.063, -0.04, 0.085 }, { -0.128, -0.04, 0.075 }, { 0.030, -0.559, 0.175 }, { -0.090, -0.559, 0.170 } } },
+  /* 9 the Cox Texaco .049, 45 g with its tank, on two #2 screws through
+   * the 1/8 in ply firewall: the screws pull out of the ply at about 200
+   * N each on the 20 mm between them, 4 N m. ESTIMATED. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.045, .joint = { 0.107, 0.0, -0.005 }, .m_max = 4.0, .f_max = 200.0, .k = 1.0e6,
+    BOX(0.107, 0.160, -0.010, 0.010, -0.015, 0.047) },
+  /* 10 Cox's grey 7 x 3.5, unfilled nylon: a 12 x 3 mm root at 150 MPa
+   * yields at 2.7 N m, and a tough unfilled prop sheds a blade at twice
+   * that. */
+  { .kind = SIM_PART_PROP, .parent = 9, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.006, .joint = { 0.162, 0.0, -0.0053 }, .m_max = 2.0 * 2.7, .f_max = 100.0, .k = 700.0,
+    .npts = 8, .pts = { { 0.170, 0.0, -0.0053 }, { 0.0889, 0.0, 0.0 } } },
+  /* 11 BMJR's 3S 850 for the radio, in the cabin on hook and loop. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+    .mass = 0.070, .joint = { 0.10, 0.0, -0.04 }, .m_max = 2.0, .f_max = 0.6 * VELCRO_12, .k = 3.0e5,
+    BOX(0.07, 0.13, -0.015, 0.015, -0.055, -0.03) },
+  /* 12, 13 the mains on 1/16 in wire, 14 the skid on 1/16 in. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
+    .mass = 0.006, .joint = { 0.03, 0.018, -0.065 }, .m_max = WIRE_M(0.0016), .f_max = 80.0, .k = 473.0,
+    BOX(0.03, 0.08, 0.0, 0.098, -0.146, -0.065) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 1,
+    .mass = 0.006, .joint = { 0.03, -0.018, -0.065 }, .m_max = WIRE_M(0.0016), .f_max = 80.0, .k = 473.0,
+    BOX(0.03, 0.08, -0.098, 0.0, -0.146, -0.065) },
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.002, .joint = { -0.567, 0.0, -0.024 }, .m_max = WIRE_M(0.0016), .f_max = 30.0, .k = 153.0,
+    BOX(-0.590, -0.565, -0.003, 0.003, -0.046, -0.024) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.010, .joint = { 0.11, 0.0, 0.020 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.100, 0.125, -0.0095, 0.0095, 0.021, 0.041) },
+  { .kind = SIM_PART_ANTENNA, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.003, .joint = { -0.193, 0.0, 0.040 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.193, 0.0, 0.040 }, { -0.19, 0.0, 0.105 } } },
+};
+
 /*
  * The two aircraft on floats are built in crash.c from the wheeled tables
  * above: their gear taken off, every part raised by the CG drop the floats

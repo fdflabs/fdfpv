@@ -80,6 +80,9 @@ const SHED = {
   'nylon-gf': [0x222226, 4, [0.03, 0.01, 0.004]],
   pc: [0xdadde2, 4, [0.025, 0.02, 0.003]],
   ply: [0xc49a64, 5, [0.05, 0.012, 0.004]],
+  /* Balsa splinters: long, thin and pale, the way a stick and a sheet
+   * break along the grain. */
+  balsa: [0xe6d3a3, 9, [0.07, 0.005, 0.003]],
 };
 
 function softDot() {

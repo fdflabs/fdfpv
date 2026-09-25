@@ -238,7 +238,8 @@ typedef struct {
 #define SIM_AIRFRAME_BRAMOR2300 8
 #define SIM_AIRFRAME_TIMBER1500F 9
 #define SIM_AIRFRAME_CUB1400F 10
-#define SIM_AIRFRAME_COUNT 11
+#define SIM_AIRFRAME_BOMBSHELL1118 11
+#define SIM_AIRFRAME_COUNT 12
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -590,6 +591,12 @@ typedef struct FixedWingParams {
    * lift curve, and the drag they cost. Zero on an aircraft without. */
   double slat_dclmax;
   double slat_cd0;
+  /* A glow engine's throttle, docs/BOMBSHELL-STAGE1.md: a carburettor
+   * whose stop leaves the engine running at this fraction of its full
+   * rpm, so the stick runs the rpm from it to full, linearly, and the
+   * engine never stops. Zero is an electric motor's duty, the stick
+   * itself, and leaves every other aircraft's arithmetic as it was. */
+  double throttle_idle;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -601,6 +608,7 @@ extern const FixedWingParams FW_SLOWSTICK1180;
 extern const FixedWingParams FW_TIMBER1500;
 extern const FixedWingParams FW_TIMBER1500F;
 extern const FixedWingParams FW_CUB1400F;
+extern const FixedWingParams FW_BOMBSHELL1118;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);

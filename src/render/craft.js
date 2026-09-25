@@ -38,6 +38,7 @@ import { buildCubCraft } from './cubcraft.js';
 import { buildGliderCraft } from './glidercraft.js';
 import { buildBramorCraft } from './bramorcraft.js';
 import { buildSlowStickCraft } from './slowstickcraft.js';
+import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { airframeById } from '../../configs/airframes.js';
 
@@ -59,6 +60,7 @@ const BUILDERS = {
   radian2000: buildGliderCraft,
   bramor2300: buildBramorCraft,
   slowstick1180: buildSlowStickCraft,
+  bombshell1118: buildBombshellCraft,
   timber1500: buildTimberCraft,
   /* On floats, the same builders with the float set in place of the gear. */
   timber1500f: (opts) => buildTimberCraft({ ...opts, floats: true }),

@@ -24,7 +24,10 @@
  * rudder through its dihedral; and FW_TIMBER1500, the E-flite Turbo
  * Timber Evolution of docs/TIMBER-STAGE1.md, a STOL taildragger that adds
  * flaps and slats; and FW_TIMBER1500F and FW_CUB1400F, the Timber and the
- * Cub on floats, docs/FLOATS-STAGE1.md, whose water is sim.c's. A term an
+ * Cub on floats, docs/FLOATS-STAGE1.md, whose water is sim.c's; and
+ * FW_BOMBSHELL1118, BMJR's 1/2A Texaco Buzzard Bombshell of
+ * docs/BOMBSHELL-STAGE1.md, the Slow Stick's three channels on a balsa
+ * old timer, which adds a glow engine's throttle. A term an
  * airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
@@ -32,7 +35,8 @@
  * airframe has to land in are scripts/wing-gates.js,
  * scripts/skyhunter-gates.js, scripts/cub-gates.js,
  * scripts/glider-gates.js, scripts/bramor-gates.js,
- * scripts/slowstick-gates.js and scripts/timber-gates.js.
+ * scripts/slowstick-gates.js, scripts/timber-gates.js and
+ * scripts/bombshell-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -936,8 +940,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     m_crash[2] = -CRASH.lift_y * dF0;
   }
 
-  /* The motor: thrust along body x, falling with the forward airspeed. */
+  /* The motor: thrust along body x, falling with the forward airspeed. A
+   * glow engine's stick runs its rpm from the carburettor's idle to full,
+   * so its duty is never under the idle's. */
   double duty = throttle;
+  if (fw->throttle_idle > 0.0) {
+    duty = fw->throttle_idle + (1.0 - fw->throttle_idle) * throttle;
+  }
   if (duty < fw->duty_min) duty = fw->duty_min;
   if (duty > 1.0) duty = 1.0;
   const double u_pos = u > 0.0 ? u : 0.0;
@@ -1982,4 +1991,91 @@ const FixedWingParams FW_CUB1400F = {
   .stall_top = 4.6 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 1.5 * WING_PI / 180.0, /* the Cub's wing, FITTED, docs/STALL-STAGE1.md */
+};
+
+/* BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md, where
+ * each number has its formula and source and the estimated ones say so.
+ * The Slow Stick's three channels on Joe Konefes' 1940 free flight cabin
+ * model: no ailerons, so it banks on its rudder, the roll stick's as well
+ * as the yaw stick's, through a polyhedral wing, which also brings the
+ * wings back level with the sticks centred; a big stabiliser on a long
+ * arm. A Cox Texaco .049 on Cox's 7 x 3.5, clockwise seen from behind,
+ * 5.3 mm under the CG, on the Cox throttle conversion: the stick runs it
+ * from 40 percent of its rpm to full and it never stops. */
+const FixedWingParams FW_BOMBSHELL1118 = {
+  .mix = FW_MIX_RUDDER,
+  .span = 1.1176,         /* BMJR, 44 in */
+  .area = 0.212903,       /* BMJR, 330 sq in */
+  .chord = 0.1905,        /* S/b */
+  .cl_alpha = 4.991,      /* wing (its panels' cos^2) and tail, DATCOM downwash */
+  .cl_max = 1.0,
+  /* The zero lift line 5.02 degrees under the thrust line: a flat bottomed
+   * section at the plan's 2 degrees of incidence, less the tail's share.
+   * sin and cos of minus 5.02 degrees, to 17 digits. */
+  .alpha_zl = -5.02 * WING_PI / 180.0,
+  .sin_zl = -0.087503474980217169,
+  .cos_zl = 0.99616421430725288,
+  .cd0 = 0.045,           /* tissue over balsa, an open engine, wire gear */
+  .k_induced = 0.07234,   /* 1/(pi 0.75 5.87) */
+  .cl_de = -0.425,
+  .cy_beta = -0.195,
+  .cy_dr = 0.1323,
+  .cl_beta = -0.2949,     /* 5 and 23 degrees of polyhedral, 14.7 as one, and the fin */
+  .cl_p = -0.742,
+  .cl_da = 0.0,           /* no ailerons */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0062,
+  .cm_0 = 0.1892,         /* trims at 8 m/s with the elevator neutral */
+  .cm_alpha = -1.4345,    /* static margin 0.287 at 33 percent of the chord */
+  .cm_q = -14.784,
+  .cm_de = 1.277,
+  .cn_beta = 0.0810,      /* the fin's, less the cabin fuselage's */
+  .cn_r = -0.1002,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = 0.0,
+  .cn_dr = -0.0632,
+  /* A 10 percent flat bottomed section at a Reynolds number of 8e4
+   * stalls from its trailing edge. */
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  .throw_a = 0.0,
+  .throw_e = 15.0 * WING_PI / 180.0,
+  .throw_r = 20.0 * WING_PI / 180.0,
+  .surface_max = 0.0,
+  .expo = 0.30,
+  .thrust_static = 2.824, /* N, Cox's 7 x 3.5 at Cox's 9,350 rpm */
+  .pitch_speed = 13.85,
+  .rpm_no_load = 11000.0,
+  .torque_arm = 0.0070,   /* 19.2 W of disc power at 9,350 rpm is 0.0197 N m at 2.82 N */
+  .thrust_z = -0.0053,    /* the drawn model's shaft, 5.3 mm under the CG */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 0.0,    /* the engine burns fuel, not the pack */
+  .duty_min = 0.02,
+  .stab_bank_max = 45.0 * WING_PI / 180.0,
+  .stab_pitch_max = 12.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 1.6,
+  .stab_roll_kd = 0.6,
+  .stab_pitch_kp = 3.0,
+  .stab_pitch_kd = 0.5,
+  .acro_roll_rate = 45.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 30.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.6,
+  .acro_roll_ff = 0.5,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 2.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
+  /* A free flight thermal machine: the 1940 Nationals' record flight
+   * "grabbed a honey of a rising air current". */
+  .air_lift = 1,
+  .stall_arm_ac = 0.0761, /* the CG 14.5 mm behind the wing's aerodynamic centre */
+  .stall_arm_cp = 0.0703, /* the plate's centre of pressure at 0.40 of the chord */
+  .throttle_idle = 0.40,  /* the Cox throttle conversion's 6,500 of 16,000 rpm */
 };

@@ -99,6 +99,15 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *   timber1500f, cub1400f  the same two on their floats: the span and the
  *             reach are the wings', since the floats stay well inside
  *             them. src/render/floatset.js draws the floats.
+ *   bombshell1118  BMJR's 44 in (1118 mm) Buzzard Bombshell, whose tail,
+ *             like the Slow Stick's, reaches further from the CG than its
+ *             tips: the stabiliser's trailing edge is 0.652 m aft, the
+ *             Baby Bombshell plan's 30.75 in less the CG's 6.25 in at
+ *             44/42, and the tips 0.559 m out, so the width this file
+ *             measures is 1304 mm and BMJR's 1118 mm span is held by
+ *             craft-preview.js's half span row. The reach is the
+ *             elevator's rounded outer trailing corner, 0.673 m.
+ *             src/render/bombshellcraft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -117,6 +126,7 @@ const REAL = {
   timber1500: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
   timber1500f: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
   cub1400f: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
+  bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
