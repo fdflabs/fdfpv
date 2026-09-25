@@ -163,7 +163,17 @@ const shade = (c, k) => [c[0] * k, c[1] * k, c[2] * k];
 /*
  * A hay hut at (x, z), its ridge along `yaw`, w along the ridge and d
  * across it, walls h high at the uphill end. It stands level on the
- * highest of its corners, on a stone plinth down to the lowest.
+ * highest of its corners, on a footing of rubble down to the lowest.
+ *
+ * Built as the Stadel in the farm-low view is (buildings/houses.js):
+ * the walls in courses of sun blackened log with their ends standing
+ * out at the corners, the gables over the byre in upright boards gone
+ * silver with the dark of the loft between them, a closed plank door
+ * below and the hay door above, a roof of shingle with a thickness to
+ * its eaves and verges and a cap along its ridge. The village's rng is
+ * drawn exactly as many times as the round 3 hut drew it, so every hut,
+ * bale and reed after this one stands where it stood; what is new is
+ * chosen by the hut's own place.
  */
 function hut(m, heightAt, rng, { x, z, yaw, w, d, h, pitch, wall, roof }) {
   const ex = new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw));
@@ -179,48 +189,106 @@ function hut(m, heightAt, rng, { x, z, yaw, w, d, h, pitch, wall, roof }) {
   const low = Math.min(...ground);
   const y0 = top + 0.2;
   const eave = y0 + h;
-  const ridge = eave + hd * Math.tan(pitch);
-  /* The walls, round the four sides in boards a hand and a half wide,
-   * and the plinth under them. Wound to face out. */
-  const corners = [[hw, hd], [hw, -hd], [-hw, -hd], [-hw, hd]];
+  const tanP = Math.tan(pitch);
+  const ridge = eave + hd * tanP;
   const rows = Math.round(h / 0.3);
+  const courses = 5;
+  const tones = Array.from({ length: rows * 4 + courses * 2 }, () => rng());
+  const own = (k) => {
+    const v = Math.sin(x * 12.9898 + z * 78.233 + k * 37.719) * 43758.5453;
+    return v - Math.floor(v);
+  };
+  /* A face between plan points a and b (wound to face out, as the
+   * corners run), from ya to yTop(u), pushed `out` off the wall. */
+  const face = (a, b, out, ya, yA, yB, colour) => {
+    const nx = Math.sign(a[0] === b[0] ? a[0] : 0) * out;
+    const nz = Math.sign(a[1] === b[1] ? a[1] : 0) * out;
+    m.quad(at(a[0] + nx, ya, a[1] + nz), at(b[0] + nx, ya, b[1] + nz), at(b[0] + nx, yB, b[1] + nz), at(a[0] + nx, yA, a[1] + nz), colour);
+  };
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  /* The loft's floor on the gables: logs under it, boards over it. */
+  const loft = y0 + h * 0.5;
+  const silver = shade([0.085, 0.08, 0.072], 0.8 + 0.4 * own(1));
+  /* Round 3's walls were so dark that a hut in shade was a black box:
+   * weathered larch is darker than new, not that dark. */
+  const logs = shade(wall, 1.7);
+  const corners = [[hw, hd], [hw, -hd], [-hw, -hd], [-hw, hd]];
   for (let k = 0; k < 4; k += 1) {
-    const [ax, az] = corners[k];
-    const [bx, bz] = corners[(k + 1) % 4];
+    const a = corners[k];
+    const b = corners[(k + 1) % 4];
+    const gable = k % 2 === 0;
+    const logTop = gable ? loft : eave;
+    /* Each course a log, the shadowed seam under it a line of its own:
+     * in the shade of a wall the seams are what says log from thirty
+     * metres. */
     for (let r = 0; r < rows; r += 1) {
       const ya = y0 + (h * r) / rows;
-      const yb = y0 + (h * (r + 1)) / rows;
-      m.quad(at(ax, ya, az), at(bx, ya, bz), at(bx, yb, bz), at(ax, yb, az), shade(wall, 0.82 + 0.3 * rng()));
+      const yb = Math.min(logTop, y0 + (h * (r + 1)) / rows);
+      if (ya < logTop) {
+        face(a, b, 0, ya, yb, yb, shade(logs, 0.82 + 0.3 * tones[k * rows + r]));
+        face(a, b, 0.012, ya, ya + 0.045, ya + 0.045, shade(logs, 0.35));
+      }
     }
-    const o = 0.06;
-    const pa = [ax + Math.sign(ax) * o, az + Math.sign(az) * o];
-    const pb = [bx + Math.sign(bx) * o, bz + Math.sign(bz) * o];
-    m.quad(at(pa[0], low - 0.4, pa[1]), at(pb[0], low - 0.4, pb[1]), at(pb[0], y0 + 0.25, pb[1]), at(pa[0], y0 + 0.25, pa[1]), STONE);
+    /* The rubble footing, in three blocks of stone a side. */
+    for (let q = 0; q < 3; q += 1) {
+      const pa = lerp(a, b, q / 3);
+      const pb = lerp(a, b, (q + 1) / 3);
+      const hTop = y0 + 0.2 + 0.1 * own(10 + k * 3 + q);
+      face(pa, pb, 0.08, low - 0.4, hTop, hTop, shade(STONE, 0.55 + 0.45 * own(20 + k * 3 + q)));
+    }
+    /* The log ends out past the corner at a, a hand proud of the other
+     * wall, up the log courses. */
+    const along = [b[0] - a[0], b[1] - a[1]];
+    const len = Math.hypot(along[0], along[1]);
+    const back = [a[0] - (along[0] / len) * 0.22, a[1] - (along[1] / len) * 0.22];
+    face(back, a, 0.02, y0, loft + (gable ? 0 : h * 0.5), loft + (gable ? 0 : h * 0.5), shade(logs, 0.7));
+    if (!gable) {
+      continue;
+    }
+    /* The gable's boards over the loft: the dark between them first,
+     * then each board, its top under the roof. */
+    const s = Math.sign(a[0]);
+    const under = (u) => eave + (hd - Math.abs(u)) * tanP - 0.04;
+    face(a, b, 0.01, loft, eave, eave, DOOR);
+    m.tri(at(s * (hw + 0.01), eave, b[1]), at(s * (hw + 0.01), ridge - 0.04, 0), at(s * (hw + 0.01), eave, a[1]), DOOR);
+    const n = Math.max(6, Math.round(d / 0.32));
+    for (let q = 0; q < n; q += 1) {
+      const t0 = q / n + 0.06 / n;
+      const t1 = (q + 1) / n - 0.06 / n;
+      const pa = lerp(a, b, t0);
+      const pb = lerp(a, b, t1);
+      /* A board's top is the lower of its two edges' under the roof, cut
+       * square: a gable is boarded board by board. */
+      const yTop = Math.min(under(pa[1]), under(pb[1]));
+      const tone = own(40 + q + (s > 0 ? 0 : 50)) < 0.12 ? shade(logs, 1.1) : shade(silver, 0.85 + 0.3 * own(100 + q + (s > 0 ? 0 : 50)));
+      face(pa, pb, 0.04, loft, yTop, yTop, tone);
+    }
+    face(a, b, 0.07, loft - 0.12, loft + 0.08, loft + 0.08, shade(logs, 0.6));
   }
-  /* The gables, and a door in the downhill one with the hay door over
-   * it. */
-  for (const s of [1, -1]) {
-    m.tri(at(s * hw, eave, -s * hd), at(s * hw, ridge, 0), at(s * hw, eave, s * hd), shade(wall, 0.9));
-  }
-  const dx = -hw - 0.03;
-  m.quad(at(dx, y0, 0.6), at(dx, y0 + 1.9, 0.6), at(dx, y0 + 1.9, -0.5), at(dx, y0, -0.5), DOOR);
-  m.quad(at(dx, eave - 0.3, 0.45), at(dx, eave + 0.55, 0.45), at(dx, eave + 0.55, -0.45), at(dx, eave - 0.3, -0.45), DOOR);
-  /* The roof: two planes over the eaves and the gables in rows of
-   * shingle, and their undersides in the shade of the eaves. */
+  /* The doors in the downhill gable, closed: the byre's in the logs and
+   * the hay door in the boards over it, each in a darker frame. */
+  const door = (y1, y2, za, zb, colour) => {
+    m.quad(at(-hw - 0.09, y1 - 0.08, za + 0.08), at(-hw - 0.09, y2 + 0.08, za + 0.08), at(-hw - 0.09, y2 + 0.08, zb - 0.08), at(-hw - 0.09, y1 - 0.08, zb - 0.08), shade(logs, 0.45));
+    m.quad(at(-hw - 0.1, y1, za), at(-hw - 0.1, y2, za), at(-hw - 0.1, y2, zb), at(-hw - 0.1, y1, zb), colour);
+  };
+  door(y0 + 0.05, y0 + 1.85, 0.6, -0.5, shade(logs, 1.25));
+  door(Math.max(loft + 0.15, eave - 0.3), eave + 0.55, 0.5, -0.5, shade(silver, 1.1));
+  /* The roof: two planes over the eaves and the gables in courses of
+   * shingle and their undersides in the shade of the eaves, the edge
+   * boards on the eaves and the verges, the cap along the ridge. */
   const o = 0.55;
-  const drop = o * Math.tan(pitch);
-  const courses = 5;
+  const drop = o * tanP;
+  const yAt = (t) => ridge + 0.08 + (eave - drop - ridge - 0.08) * t;
   for (const s of [1, -1]) {
     for (let r = 0; r < courses; r += 1) {
       const t0 = r / courses;
       const t1 = (r + 1) / courses;
-      const y = (t) => ridge + 0.08 + (eave - drop - ridge - 0.08) * t;
       const zz = (t) => s * (hd + o) * t;
-      const a = at(hw + o, y(t0), zz(t0));
-      const b = at(-hw - o, y(t0), zz(t0));
-      const c = at(-hw - o, y(t1), zz(t1));
-      const e = at(hw + o, y(t1), zz(t1));
-      const tone = shade(roof, 0.85 + 0.25 * rng());
+      const a = at(hw + o, yAt(t0), zz(t0));
+      const b = at(-hw - o, yAt(t0), zz(t0));
+      const c = at(-hw - o, yAt(t1), zz(t1));
+      const e = at(hw + o, yAt(t1), zz(t1));
+      const tone = shade(roof, 0.85 + 0.25 * tones[rows * 4 + (s > 0 ? 0 : courses) + r]);
       if (s > 0) {
         m.quad(a, b, c, e, tone);
         m.quad(a, e, c, b, shade(roof, 0.4));
@@ -228,6 +296,42 @@ function hut(m, heightAt, rng, { x, z, yaw, w, d, h, pitch, wall, roof }) {
         m.quad(b, a, e, c, tone);
         m.quad(b, c, e, a, shade(roof, 0.4));
       }
+    }
+    /* The eave's edge, a shingle's thickness and the board under it. */
+    const ze = s * (hd + o);
+    const eaveY = yAt(1);
+    const ea = at(hw + o, eaveY, ze);
+    const eb = at(-hw - o, eaveY, ze);
+    const ec = at(-hw - o, eaveY - 0.16, ze);
+    const ed = at(hw + o, eaveY - 0.16, ze);
+    if (s > 0) {
+      m.quad(ea, eb, ec, ed, shade(roof, 0.55));
+    } else {
+      m.quad(eb, ea, ed, ec, shade(roof, 0.55));
+    }
+    /* The verges: a board down each gable's edge of the roof. */
+    for (const g of [1, -1]) {
+      const gx = g * (hw + o);
+      const va = at(gx, ridge + 0.08, 0);
+      const vb = at(gx, eaveY, ze);
+      const vc = at(gx, eaveY - 0.2, ze);
+      const vd = at(gx, ridge - 0.12, 0);
+      if (g * s > 0) {
+        m.quad(va, vb, vc, vd, shade(silver, 0.8));
+      } else {
+        m.quad(vb, va, vd, vc, shade(silver, 0.8));
+      }
+    }
+  }
+  const capA = at(hw + o, ridge + 0.1, 0);
+  const capB = at(-hw - o, ridge + 0.1, 0);
+  for (const s of [1, -1]) {
+    const ca = at(hw + o, ridge + 0.03, s * 0.18);
+    const cb = at(-hw - o, ridge + 0.03, s * 0.18);
+    if (s > 0) {
+      m.quad(capA, capB, cb, ca, shade(roof, 0.7));
+    } else {
+      m.quad(capB, capA, ca, cb, shade(roof, 0.7));
     }
   }
   return { top: ridge + 0.1, low: low - 0.4 };
