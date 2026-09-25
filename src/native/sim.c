@@ -701,8 +701,19 @@ static void ground_settle(double upz, double vn_plant) {
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.
    * A live flip whose lowest corner just entered that halo must keep
-   * vel and omega until it actually hits. */
-  if (upz < CONTACT_INVERT_UPZ && !coulomb) {
+   * vel and omega until it actually hits.
+   *
+   * With the damage mode on, only once it has all but stopped: a wreck
+   * that arrives on its back at speed slides and turns on under its own
+   * contacts' friction, where the stop took a Timber sliding inverted at
+   * 4.4 m/s, and a five inch at 10, to rest in one millisecond (454 and
+   * 1,096 g in the crash suite). */
+  const int sliding = SIM_DAMAGE && crash_life_size()
+      && (S.vel[0] * S.vel[0] + S.vel[1] * S.vel[1] + S.vel[2] * S.vel[2]
+            > CONTACT_SLIDE_STOP * CONTACT_SLIDE_STOP
+          || S.omega[0] * S.omega[0] + S.omega[1] * S.omega[1] + S.omega[2] * S.omega[2]
+            > CONTACT_OMEGA_STOP * CONTACT_OMEGA_STOP);
+  if (upz < CONTACT_INVERT_UPZ && !coulomb && !sliding) {
     const int touching = g_ground_hits || g_ground_projected;
     const int seated_halo = g_ground_near
         && upz < CONTACT_INVERT_HALO_UPZ
