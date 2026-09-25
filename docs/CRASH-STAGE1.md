@@ -278,7 +278,16 @@ dirt, and past 700 m/s, beyond any tip speed a hobby prop reaches, on
 grass, snow, foliage and water: props that brush grass at
 full power come back unmarked, props that touch concrete at hover come
 back nicked. DERIVED from the material data; the hardness column is still
-chosen (section 5). Under the limit a spinning contact writes nothing at
+chosen (section 5). A whoop's blades are polycarbonate, Makrolon 2407
+(R-PROPS, the datasheet: 2400 MPa, 1200 kg/m^3, yield 66 MPa), so Z_b =
+1.70e6 and the limit is the yield: a 46 m/s tip on concrete. The whoop the
+shell flies is the five inch's plant in a room 3.43 (L) times life size
+with time unscaled, so its speeds are L times a real whoop's; stresses
+scale by M / L and impedances by M / L^2, which puts its blade limit at L
+times the real tip speed. The plant takes its tip back to life size and
+meets it with the real blade and surface (round 2; before, the scaled
+whoop used the five inch's glass nylon at an unscaled limit). Under the
+limit a spinning contact writes nothing at
 all, so hardness changes the damage only through a contact past the limit.
 Past it the chip grows at the rate in the table, faded in from nothing at
 the limit, and a strike is one chip event when it starts (a blade that

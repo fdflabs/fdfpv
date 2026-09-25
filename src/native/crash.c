@@ -1319,8 +1319,9 @@ void crash_contact_depth(double pen) {
  * millisecond.
  *
  * Once the part has stopped going in (under SPRING_GOING, as a crush) the
- * contact is the rigid one again, with its own restitution and position
- * corrections: the spring shapes the blow, not the rest. A contact the
+ * contact is the rigid one again and the position corrections bring it out
+ * of its depth, without the bias impulse that would throw it out: the
+ * spring shapes the blow, not the rest. A contact the
  * spring already holds at the depth its point is at, a craft standing on
  * its belly, is rigid from the start.
  */
@@ -1591,6 +1592,11 @@ void crash_batch_begin(const SimState *s, int from_step) {
 #define BLADE_Z 3.194e6       /* sqrt(E rho), Pa s/m */
 #define CONCRETE_Z 9.0e6
 #define BLADE_STRENGTH 120.0e6
+/* A whoop's blades are polycarbonate, Makrolon 2407 (R-PROPS): 2400 MPa,
+ * 1200 kg/m^3, yield 66 MPa. PC yields rather than cracks, and the yield is
+ * where a blade starts to bend and nick. */
+#define PC_BLADE_Z 1.697e6
+#define PC_BLADE_STRENGTH 66.0e6
 #define BEARING_SHARE 0.02    /* a seating push, against the joint's limit */
 #define SEAT_GRIP 1.00        /* friction of a seated face on a rubber pad */
 
@@ -1884,12 +1890,20 @@ static void judge(SimState *s) {
       const double w = s->motor_omega[d->motor];
       double span = t->hi[i][1] - t->lo[i][1];
       if (t->hi[i][0] - t->lo[i][0] > span) span = t->hi[i][0] - t->lo[i][0];
-      const double tip = sim_fabs(w) * 0.5 * span;
+      /* The whoop the shell flies is a model L times life size with time
+       * unscaled, so its speeds are L times a real whoop's; stresses scale
+       * by M / L and impedances by M / L^2, which puts the blade's limit at
+       * L times the real tip speed. So the tip is taken back to life size
+       * and met with the real blade and the real surface. */
+      const double life = tab() == &T_WHOOP_SCALED ? WHOOP_L : 1.0;
+      const double tip = sim_fabs(w) * 0.5 * span / life;
+      const double zb = d->mat == SIM_MAT_PC ? PC_BLADE_Z : BLADE_Z;
+      const double strength = d->mat == SIM_MAT_PC ? PC_BLADE_STRENGTH : BLADE_STRENGTH;
       const double zs = SURF[x->surf].hard * CONCRETE_Z;
-      const double sigma = tip * BLADE_Z * zs / (BLADE_Z + zs);
+      const double sigma = tip * zb * zs / (zb + zs);
       /* Past the limit the chip grows at the old rate, faded in from
        * nothing at the limit so the damage is continuous in the load. */
-      const double over = sigma > BLADE_STRENGTH ? 1.0 - BLADE_STRENGTH / sigma : 0.0;
+      const double over = sigma > strength ? 1.0 - strength / sigma : 0.0;
       const double vt = tip / 100.0;
       const double dc = vt * vt * SURF[x->surf].hard * SIM_DT / CHIP_SPIN_T * over;
       if (dc > 0.0) {
@@ -1918,7 +1932,7 @@ static void judge(SimState *s) {
           p->damage = part_damage(i);
           double pw[3];
           world_of(s, bb[h], pw);
-          event_push(s, i, SIM_EVENT_CHIP, sigma / BLADE_STRENGTH, norm(Fw), 0.0, 0.0, pw, x->n, x->vin, x->surf);
+          event_push(s, i, SIM_EVENT_CHIP, sigma / strength, norm(Fw), 0.0, 0.0, pw, x->n, x->vin, x->surf);
         }
       }
     }
