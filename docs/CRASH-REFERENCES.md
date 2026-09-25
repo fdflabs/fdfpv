@@ -77,6 +77,11 @@ drop test's 2,833 N peak.
   are flown at a real whoop's speeds times 3.43 and read back divided by
   it: speeds, distances and peak g are real whoop units. Energies are not
   comparable, because the mass is the five inch's 0.71 kg, not 23 g.
+- **The pilot after the hit.** Every pilot centres the sticks and closes
+  the throttle at the first contact. A five inch pilot also disarms 250 ms
+  later (R-DISARM), with the shell's own disarm, the motors parked by
+  `sim_motor_override(-1, 0)`, in every five inch scenario but the turtle
+  one; the whoop's pilot flies on, as its references do.
 - **The contact** with an obstacle is the shell's call (src/main.js: the
   patch from `contactPatch`, a blade strike of 0.28 times the impulse over
   12 m/s, and `sim_contact_at_mat` with the module's material where its
@@ -208,7 +213,11 @@ so EPO is taken as EPP's order of stress that keeps its dent (ASSUMPTION).
 **R-SLOWSTICK. The Slow Stick's failures.** Crodog's log,
 https://www.crodog.org/slowstick/slowstick.htm : "the prop shaft was
 slightly bent", "broke a bit of the plastic piece that holds the landing
-gear", "torn and punctured wing" from a tree. The aluminium boom (6063,
+gear", "torn and punctured wing" from a tree, and on its landings, "Almost
+every landing so far has been a shallow or steep dive into the weeds. The
+plane holds up well to these landings"; its first take offs from the
+ground "would barely get into the air", and after that it was hand
+launched. The aluminium boom (6063,
 yield about 97 MPa, https://en.wikipedia.org/wiki/6063_aluminium_alloy)
 bends and kinks rather than breaking; its section was not verified.
 
@@ -305,6 +314,23 @@ loose sand its top 6, so the Cub's mains roll at 0.032 on asphalt and
 prop (docs/CUB-STAGE1.md). A skid, a point with no tyre such as a prop
 tip, keeps its own friction on every ground.
 
+**R-DISARM. What a quad pilot does after a hit.** Oscar Liang, Betaflight
+airmode, https://oscarliang.com/betaflight-airmode/ : "a collision while
+Airmode is active could cause the motors to throttle up aggressively,
+increasing both damage and danger"; airmode holds attitude with the whole
+motor range at zero throttle, so the pilot's answer to a crash is the arm
+switch, not the throttle stick. Betaflight itself offers the same as an
+option, `crash_recovery = DISARM` (vendor/betaflight src/main/flight/pid.c
+detectAndSetCrashRecovery), off by default. How soon: Wikipedia, Mental
+chronometry, https://en.wikipedia.org/wiki/Mental_chronometry : the mean
+simple reaction to a visual stimulus is "approximately 190 milliseconds"
+for college age adults. The suite's quad pilot disarms 250 ms after the
+first contact (ASSUMPTION: the reaction plus the flick of a switch). Run at
+150 and 400 ms the gate clip at 15 m/s comes to rest 5.0 and 3.1 m on and
+the branch clip 7.5 and 14.0 m on, so the outcome class (it tumbles to the
+grass a few metres on) holds across the range while what breaks in the
+landing does not.
+
 **R-LAUNCH. A bungee launch into a stall.** ArduPilot forum,
 https://discuss.ardupilot.org/t/fixed-wing-uav-crashed-10-seconds-after-bungee-launch-need-log-analysis/143698 :
 after the launch "The plane basically pitch up and flipped over", then a
@@ -348,6 +374,19 @@ these give: the prop strikes, the aircraft stands on its nose or goes over
 onto its back, and it goes no further than it can pivot. MED for the prop,
 LOW for the rest.
 
+**R-DIG. A propeller digging in turns an aircraft over.** NTSB
+CEN20CA250, a Hatz CB-1 taildragger,
+https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/101504/pdf :
+"The airplane stalled and impacted terrain in a nose low attitude. The
+propeller "dug in" the terrain and the airplane nosed over", with
+substantial damage to the empennage. NTSB CEN24LA142, a Cessna 182F,
+https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/194010/pdf :
+landed hard on sand beside the runway, "The nose landing gear and
+propeller dug into the sand, the airplane nosed over and came to rest
+inverted". Full size, one report each: the mechanism (a blade that digs
+into soft ground holds the nose while the aircraft goes over it), not a
+number. No figure for how hard a blade grips as it digs was found.
+
 ## 3. Footage to measure
 
 The plan asks for crash footage measured frame by frame. That cannot be
@@ -390,8 +429,10 @@ penalty at the nose, pushers (Skyhunter, Bramor) its crumple zone. The
 Bramor is carbon, kevlar and vectran rather than foam, so its plane bands
 borrow the foam pusher's and are LOW. The nose over on take off (which
 replaced the plan's tail strike, section 6) is only flown by the aircraft
-that take off on wheels, the three taildraggers: the Skyhunter and the
-Radian are hand launched and the Bramor catapulted.
+that take off on wheels and can go over their mains, the Cub and the
+Timber: the Skyhunter and the Radian are hand launched and the Bramor
+catapulted, and the Slow Stick's mains stand too far ahead of its CG for
+any ground to tip it (section 6), so it flies its landing dive instead.
 
 ### Five inch
 
@@ -581,7 +622,7 @@ Radian are hand launched and the Bramor catapulted.
 | mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
 | mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
 | peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted) | LOW |
+| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
 | restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
 | timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
 
@@ -621,7 +662,7 @@ Radian are hand launched and the Bramor catapulted.
 | --- | --- | --- | --- |
 | mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
 | mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
-| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted) | LOW |
 | restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **cub-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
@@ -654,7 +695,7 @@ Radian are hand launched and the Bramor catapulted.
 | mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
 | mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
 | peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted) | LOW |
+| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
 | restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
 | timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
 
@@ -720,7 +761,7 @@ Radian are hand launched and the Bramor catapulted.
 | mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
 | mustNotBreak | wing | R-A14-FOAM, R-SLOWSTICK | MED |
 | peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted) | LOW |
+| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
 | restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
 | timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
 
@@ -754,14 +795,12 @@ Radian are hand launched and the Bramor catapulted.
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
 
-**slowstick-nose-over.** Reference still: Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.
+**slowstick-landing-dive.** Reference still: On final too slow and pushed into a shallow dive with the power off: the nose goes into the grass at a walking pace, the aircraft stops within a few metres and flies again after.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
-| mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
-| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
-| restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
+| mustNotBreak | wing, fuselage, tail, prop | R-SLOWSTICK ("Almost every landing so far has been a shallow or steep dive into the weeds. The plane holds up well to these landings") | LOW |
+| restDistM | 0 to 7.4 | R-SLIDE, DERIVED (the most it can arrive with is 4.84 m/s plus a 1 m drop without drag, 6.6 m/s; a foam belly on grass at mu 0.3 slides v squared over 2 mu g, 7.4 m, the farthest a nose in can go) | LOW |
 
 **slowstick-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
@@ -793,7 +832,7 @@ Radian are hand launched and the Bramor catapulted.
 | mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
 | mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
 | peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted) | LOW |
+| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
 | restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
 | timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
 
@@ -833,7 +872,7 @@ Radian are hand launched and the Bramor catapulted.
 | --- | --- | --- | --- |
 | mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
 | mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
-| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted) | LOW |
 | restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **timber-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
@@ -1076,7 +1115,9 @@ Recorded here because the loop will build on the plan.
   (tests/crash/scenarios.js `WIND_ENTRY`, `sim_set_wind(vx, vy, vz)` world
   m/s, a guess at the core's name): once the module exports it they are
   flown in that wind (15 m/s across the float plane, 10 m/s along the
-  Bramor's descent) and judged, with no other change.
+  Bramor's descent) and judged, with no other change. Round 1's core added
+  `sim_set_wind(vx, vy, gust)`, and since then all three are flown and
+  judged: no scenario is blocked or a stand in.
 - **Nothing could detach a prop at the baseline,** so "lose one prop in
   flight" was flown with the bench override holding one motor at zero
   duty. With the crash core it is the real thing: the prop on motor 0
@@ -1096,3 +1137,64 @@ Recorded here because the loop will build on the plan.
   is what brings it into band.
 - **The 1000 mm wing** (airframe 2) is still in the module but the shell
   no longer offers it, so "each plane" is the six the shell flies.
+
+## 7. Round 3: is each scenario staged like its reference
+
+The suite's own audit, so that a failing band is the plant's and not a
+mis-staged test. What was restaged, and what was found to be the plant's.
+
+- **The five inch pilot stayed armed after a crash.** Sticks centred and
+  throttle closed, but airmode on, so a quad knocked spinning was flown
+  back up at full power: the 15 m/s gate clip climbed to 22 m and hit the
+  grass at 16.6 m/s 4.9 s later, the branch clip climbed to 13 m. Now the
+  pilot disarms 250 ms after the first contact (R-DISARM), in every five
+  inch scenario but the turtle one. The gate clip tumbles to the grass 4.9
+  m on, as its reference does.
+- **The stalls are staged as the reference's straight ahead power off
+  full stall and are kept.** The Airplane Flying Handbook defines a full
+  stall by "an uncommanded nose down pitch [that] cannot be readily
+  arrested, and may be accompanied by an uncommanded rolling motion"
+  (FAA-H-8083-3C chapter 5), and R-DIG's Hatz stalled into "a nose low
+  attitude". The plant's planes, held full back from 1.15 V_s at 8 m,
+  instead settle into a steady stalled descent, the body 18 to 33 deg past
+  the path until the grass: Skyhunter pitch minus 16 on a minus 36 path,
+  Cub minus 18.5 on minus 40, Radian minus 10 on minus 29, Timber minus 17
+  on minus 39, Bramor minus 10 on minus 30, and wings level to the
+  hundredth of a degree in all of them. That is the plant's stall, not the
+  staging, and goes to the core. A turning stall with inside rudder, the
+  handbook's base to final accident, was flown as a trial: it arrives
+  nose low (minus 35 to minus 37 deg) but by a spiral with the wing
+  unstalled (7 to 11 deg), still ends upright, and was not kept, since
+  the scenario and its bands are the straight ahead stall.
+- **The Slow Stick cannot nose over on its take off roll,** and no
+  reference says it does: its mains stand 0.18 m ahead of the CG, so the
+  wheels' drag has to reach about 1.1 (tail up) to 1.3 (tail down) of
+  their load, against 0.48 in loose sand and 0.70 on a skidding brake.
+  The plant is right to refuse it. Its pilots write about its landings
+  instead (R-SLOWSTICK), so its scenario is now the landing dive.
+- **The Cub on sand tips onto its prop and rocks back.** The prop tip is
+  a skid at 0.8 on every ground (R-ROLLING), 0.14 m under the CG and 0.23
+  m ahead of it, so it pivots the aircraft over only above about 1.6.
+  Real blades dig into soft ground and turn aircraft over (R-DIG), but no
+  number for that grip was found: left to the core as a finding, not
+  staged round. The Timber on the same program goes over.
+- **The stalls' rest attitude band is borrowed from a test that was not a
+  stall.** R-C172 test 2 flew the aircraft into soft soil at 20.9 m/s
+  forward and 8.6 m/s down, a 22 deg path; R-DIG's Hatz is the nearer
+  case (stalled, nose low, prop dug in, over). The band is unchanged and
+  still LOW; R-DIG is added to its sources on the four tractors (Cub,
+  Radian, Slow Stick, Timber), and its Cessna in the sand to the nose
+  overs' rest attitude.
+- **Blocked and stand in: none left.** The wind landed in round 1, so the
+  chute drag and both capsizes are flown and judged, and the prop loss is
+  a real break (section 6).
+- **LOW bands that a better source would raise,** and why this round did
+  not: every five inch obstacle band (R-A4-OFFSET, R-A4-REBOUND) and every
+  whoop band (R-WHOOP) wants the footage of section 3 measured frame by
+  frame, which needs a person with the clips; the cartwheels, poles and
+  trees (R-AFH) want measured model crashes, none published; the belly
+  slides (R-SLIDE) want a foam on grass friction, still not found; the
+  float bands (R-SEAPLANE) have mechanisms and no numbers. What could be
+  sourced better here was: the stall and nose over rest attitudes (R-DIG,
+  above), the Slow Stick's ground accident (R-SLOWSTICK's landings) and
+  the quad pilot after a hit (R-DISARM).

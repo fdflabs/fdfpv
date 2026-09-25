@@ -158,6 +158,30 @@ function quadSetup(h, z) {
  * centre: the crash reflex, and what disarming does to the sticks. */
 const HANDS_OFF = [0, 0, 0, 0];
 
+/*
+ * A quad pilot's crash reflex is the arm switch, not only the sticks.
+ * Armed with airmode on, sticks centred and throttle at zero, Betaflight
+ * still holds attitude with the whole motor range, so a quad knocked
+ * spinning is driven back up at full power: on this plant the gate clip
+ * climbed to 22 m and fell 16.6 m/s onto the grass 4.9 s later, and Oscar
+ * Liang warns of exactly that, "a collision while Airmode is active could
+ * cause the motors to throttle up aggressively" (R-DISARM). So the hand
+ * disarms one reaction time after the hit, parking the motors the way the
+ * shell's own disarm does (src/main.js enterWreck, sim_motor_override(-1,
+ * 0)); the plant's Betaflight has no arming state to switch off. The
+ * reaction time is the mean simple visual reaction, 190 ms (R-DISARM), plus
+ * a flick of the switch: 250 ms, an ASSUMPTION.
+ */
+const DISARM_REACTION_MS = 250;
+
+function crashReflex(h) {
+  if (!h.mem.disarmed && h.ms - h.hit.ms >= DISARM_REACTION_MS) {
+    h.mem.disarmed = true;
+    h.call('sim_motor_override', -1, 0);
+  }
+  return HANDS_OFF;
+}
+
 /* ---- the planes' pilot: the harness hand of tests/lib/wingpilot.js, a
  * bank hold on the roll stick and a pitch hold on the pitch stick. */
 function planeHold(h, { bank = 0, pitch = 0, thr = 0 }) {
@@ -243,7 +267,7 @@ function gateClip(v) {
     },
     pilot(h) {
       if (h.hit) {
-        return HANDS_OFF;
+        return crashReflex(h);
       }
       if (!h.mem.placed && h.ms > 500 && atSpeed(h, v)) {
         /* A 1 inch PVC upright (MultiGP's gate is 1 inch schedule 40, 33 mm
@@ -276,7 +300,7 @@ export const SCENARIOS = [
     },
     pilot(h) {
       if (h.hit) {
-        return HANDS_OFF;
+        return crashReflex(h);
       }
       /* Full speed in angle mode on this plant is about 35 m/s (measured
        * flat out at the angle limit); 32 is reached with stick to spare. */
@@ -309,7 +333,7 @@ export const SCENARIOS = [
     pilot(h) {
       /* Angle mode holds the bank on the roll stick with no throttle: the
        * pilot who chopped it too high and caught it too late. */
-      return h.hit ? HANDS_OFF : [25 / 55, 0, 0, 0];
+      return h.hit ? crashReflex(h) : [25 / 55, 0, 0, 0];
     },
   },
   {
@@ -337,7 +361,7 @@ export const SCENARIOS = [
       h.arm();
     },
     pilot(h) {
-      return h.hit ? HANDS_OFF : quadHold(h, { v: 12, z: 2 });
+      return h.hit ? crashReflex(h) : quadHold(h, { v: 12, z: 2 });
     },
   },
   {
@@ -353,7 +377,7 @@ export const SCENARIOS = [
     },
     pilot(h) {
       if (h.hit) {
-        return HANDS_OFF;
+        return crashReflex(h);
       }
       const v = 10;
       if (!h.mem.placed && h.ms > 500 && atSpeed(h, v)) {
@@ -429,7 +453,7 @@ export const SCENARIOS = [
         h.arm();
       }
       if (h.hit) {
-        return HANDS_OFF;
+        return crashReflex(h);
       }
       /* The pilot keeps trying: level, height held, which is what a hand
        * does in the half second before it knows. */
@@ -601,7 +625,38 @@ function planeScenarios(key) {
       return planeHold(h, { pitch, thr: 0 });
     },
   });
-  if (c.wheels) {
+  if (key === 'slowstick') {
+    /*
+     * The Slow Stick is the one taildragger here that cannot nose over on
+     * its take off roll, and no reference says it does: its mains stand
+     * 0.18 m ahead of the CG on a wire V raked forward, so the wheels'
+     * drag has to reach about 1.1 of their load (tail up, level) to 1.3
+     * (tail down) before it tips, where loose sand gives 0.48 and a
+     * skidding brake 0.70 (R-ROLLING; docs/SLOWSTICK-STAGE1.md, the
+     * landing gear). What its pilots write about is the landing:
+     * "Almost every landing so far has been a shallow or steep dive into
+     * the weeds. The plane holds up well to these landings" (R-SLOWSTICK).
+     * So its ground accident is that one: on final at its landing speed,
+     * 1.1 V_s (S16 in the gates), 1 m up, power off, pushed into a
+     * shallow dive, 20 deg nose down (ASSUMPTION for "shallow"), held
+     * into the grass.
+     */
+    out.push({
+      id: 'slowstick-landing-dive',
+      title: 'Landing at 1.1 times the stall, power off, a shallow dive held into the grass',
+      family: 'landing dive',
+      seconds: 10,
+      setup(h) {
+        grass(h);
+        stab0(h);
+        planeLaunch(h, { z: 1, pitch: -20, v: 1.1 * c.Vs });
+        h.arm();
+      },
+      pilot(h) {
+        return h.hit ? HANDS_OFF : planeHold(h, { pitch: -20, thr: 0 });
+      },
+    });
+  } else if (c.wheels) {
     /* The taildragger's take off accident (docs/CRASH-PLAN.md, lead
      * decision after the baseline; docs/CRASH-REFERENCES.md R-NOSEOVER),
      * flown on the ground the references name: a soft field, loose sand,
