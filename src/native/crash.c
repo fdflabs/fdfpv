@@ -72,9 +72,14 @@ typedef struct {
   double mu, e, k, hard;
 } Surface;
 
-static const Surface SURF[SIM_SURFACES] = {
-  [SIM_SURF_DEFAULT] = { 1.40, 0.0, 2.0e5, 0.30 },
-  [SIM_SURF_GRASS] = { 1.40, 0.0, 5.0e4, 0.05 },
+/* The default is two things: the ground plane's default is the shell's
+ * grass (GROUND_MU and GROUND_E), and an obstacle's, a sim_contact or a
+ * sim_contact_at with no material named, is a hard generic face, the one
+ * past the table's end. */
+#define SURF_OBSTACLE SIM_SURFACES
+static const Surface SURF[SIM_SURFACES + 1] = {
+  [SIM_SURF_DEFAULT] = { 1.40, 0.0, 5.0e4, 0.01 },
+  [SIM_SURF_GRASS] = { 1.40, 0.0, 5.0e4, 0.01 },
   [SIM_SURF_DIRT] = { 1.00, 0.05, 2.0e5, 0.30 },
   [SIM_SURF_ASPHALT] = { 0.60, 0.12, 3.0e7, 0.90 },
   [SIM_SURF_CONCRETE] = { 0.42, 0.15, 5.0e7, 1.00 },
@@ -86,6 +91,7 @@ static const Surface SURF[SIM_SURFACES] = {
   [SIM_SURF_FOLIAGE] = { 1.00, 0.0, 2.0e3, 0.02 },
   [SIM_SURF_WATER] = { 0.05, 0.0, 1.0e4, 0.01 },
   [SIM_SURF_SAND] = { 0.60, 0.0, 1.0e5, 0.40 },
+  [SURF_OBSTACLE] = { 0.40, 0.15, 2.0e6, 0.50 },
 };
 
 /* ---------------------------------------------------------------------
@@ -99,6 +105,7 @@ typedef struct {
   double lo[SIM_PARTS_MAX][3];
   double hi[SIM_PARTS_MAX][3];
   unsigned int sub[SIM_PARTS_MAX];   /* the part and everything under it */
+  double seat[SIM_PARTS_MAX];        /* half the footprint it seats on, m */
   int wheel_part[SIM_WHEELS_MAX];    /* the part carrying each wheel, -1 */
   int float_part[2];                 /* left, right, -1 */
   double wing_area;                  /* plan area of the wing panels */
@@ -197,6 +204,14 @@ static void table_finish(Table *t, int airframe) {
   }
   for (int i = 0; i < t->n; i += 1) {
     t->sub[i] = 1u << i;
+    /* The footprint is the part's box less its longest side: half the
+     * mean of the two shorter. */
+    double d[3];
+    for (int a = 0; a < 3; a += 1) d[a] = t->hi[i][a] - t->lo[i][a];
+    double mx = d[0];
+    if (d[1] > mx) mx = d[1];
+    if (d[2] > mx) mx = d[2];
+    t->seat[i] = 0.25 * (d[0] + d[1] + d[2] - mx);
   }
   /* Parents precede children in every table, so one backward pass folds
    * each subtree into its parent. */
@@ -256,7 +271,7 @@ static void table_floats(Table *t, const PartDef *base, int nbase, int airframe,
     const double yf = f == 0 ? fp->y : -fp->y;
     PartDef d = {
       .kind = SIM_PART_FLOAT, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-      .mass = float_mass, .m_max = FLOAT_STRUT_M, .f_max = 400.0, .k = 1.0e4,
+      .mass = float_mass, .m_max = FLOAT_STRUT_M, .f_max = FLOAT_STRUT_F, .k = 1.0e4,
       .crush_s = EPO_CRUSH, .crush_a = 0.5 * fp->beam * fp->depth, .crush_d = 0.05,
     };
     d.joint[0] = 0.5 * (strut_x0 + strut_x1);
@@ -280,6 +295,43 @@ static void table_floats(Table *t, const PartDef *base, int nbase, int airframe,
 }
 
 #define COUNT(a) ((int)(sizeof(a) / sizeof((a)[0])))
+
+/*
+ * THE WHOOP THE SHELL FLIES. The shell's whoop is the five inch's plant, its
+ * mass and its hull, in a room built MICRO_SCALE times life size
+ * (configs/airframes.js: 0.1735 m over 0.0506 m, the two airframes' prop
+ * tip sweeps). So it gets the real whoop's parts scaled to that world as a
+ * dynamically similar model: lengths by L = 3.4289, masses by M = 0.71 /
+ * 0.0234, and every limit by what those do to the loads of the same crash,
+ * forces by M L, moments by M L^2, stiffness by M, stresses by M / L. A
+ * wall or floor bounce the real 23 g whoop survives maps onto one this
+ * survives, which is the lead's decision after the suite's baseline.
+ */
+#define WHOOP_L (0.1735 / 0.0506)
+#define WHOOP_M (0.71 / 0.0234)
+static Table T_WHOOP_SCALED;
+
+static void whoop_scaled_build(void) {
+  Table *t = &T_WHOOP_SCALED;
+  t->n = 0;
+  for (int i = 0; i < COUNT(PARTS_WHOOP65); i += 1) {
+    PartDef d = PARTS_WHOOP65[i];
+    part_expand(&d, SIM_AIRFRAME_WHOOP65);
+    for (int k = 0; k < d.npts; k += 1) {
+      for (int a = 0; a < 3; a += 1) d.pts[k][a] *= WHOOP_L;
+    }
+    for (int a = 0; a < 3; a += 1) d.joint[a] *= WHOOP_L;
+    d.mass *= WHOOP_M;
+    d.m_max *= WHOOP_M * WHOOP_L * WHOOP_L;
+    d.f_max *= WHOOP_M * WHOOP_L;
+    d.k *= WHOOP_M;
+    d.crush_s *= WHOOP_M / WHOOP_L;
+    d.crush_a *= WHOOP_L * WHOOP_L;
+    d.crush_d *= WHOOP_L;
+    table_add(t, &d, SIM_AIRFRAME_5IN);
+  }
+  table_finish(t, SIM_AIRFRAME_5IN);
+}
 
 static void tables_build(void) {
   struct { int id; const PartDef *p; int n; } src[] = {
@@ -311,14 +363,35 @@ static void tables_build(void) {
   table_floats(&T[SIM_AIRFRAME_CUB1400F], PARTS_CUB1400, COUNT(PARTS_CUB1400),
                SIM_AIRFRAME_CUB1400F, 0.0264, 0.07, -0.02, -0.056, 0.106);
   table_finish(&T[SIM_AIRFRAME_CUB1400F], SIM_AIRFRAME_CUB1400F);
+  whoop_scaled_build();
   g_ready = 1;
 }
+
+/* The part table in force: the airframe's own, or the whoop drawn on the
+ * five inch's plant (sim_set_part_table). */
+static int g_table_sel = SIM_PARTS_OWN;
 
 static const Table *tab(void) {
   if (!g_ready) {
     tables_build();
   }
+  if (g_table_sel == SIM_PARTS_WHOOP_SCALED && plant_airframe() == SIM_AIRFRAME_5IN) {
+    return &T_WHOOP_SCALED;
+  }
   return &T[plant_airframe()];
+}
+
+SIM_EXPORT int sim_set_part_table(int which) {
+  if (which != SIM_PARTS_OWN && which != SIM_PARTS_WHOOP_SCALED) {
+    return SIM_ERR_BAD_ARG;
+  }
+  g_table_sel = which;
+  crash_reset();
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_part_table(void) {
+  return g_table_sel;
 }
 
 /* ---------------------------------------------------------------------
@@ -365,6 +438,17 @@ static int g_flags_extra = 0; /* IN_TREE, IN_WATER: this step's */
 /* The surface the solver is meeting now. */
 static int g_surf = SIM_SURF_DEFAULT;
 static int g_ground_mat = SIM_SURF_DEFAULT;
+static int g_surf_ground = 0;          /* the contact is the ground plane's */
+static unsigned int g_batch_crush = 0; /* parts crushing in this batch */
+
+/* Crush in progress, crash_contact_pre. */
+static double g_batch_dt = SIM_DT;
+static double g_crush_used[SIM_PARTS_MAX];
+static int g_capped_now = 0;
+static double g_capped_fc = 0.0;
+static int g_crushing = 0;
+static unsigned int g_crush_mask = 0;
+static long long g_last_contact_step = -1000000;
 
 /* ---------------------------------------------------------------------
  * SMALL VECTOR HELPERS
@@ -464,7 +548,7 @@ static void event_push(const SimState *s, int part, int type, double ratio, doub
     e[10 + a] = nw ? nw[a] : 0.0;
   }
   e[13] = vin;
-  e[14] = (double)surf;
+  e[14] = (double)(surf == SURF_OBSTACLE ? SIM_SURF_DEFAULT : surf);
   e[15] = PS[part].damage;
 }
 
@@ -621,7 +705,7 @@ static int fb_spawn(const SimState *s, unsigned int mask, const double vel_w[3],
     }
   }
   /* A thin part still has some inertia about its thin axis. */
-  const double floor = 1e-3 * f->m * 0.0025;
+  const double floor = f->m * 1.0e-4;
   for (int a = 0; a < 3; a += 1) {
     if (f->I[a] < floor) f->I[a] = floor;
   }
@@ -951,6 +1035,10 @@ void crash_reset(void) {
   g_flags_extra = 0;
   g_surf = SIM_SURF_DEFAULT;
   g_ground_mat = SIM_SURF_DEFAULT;
+  g_crush_mask = 0;
+  g_crushing = 0;
+  g_capped_now = 0;
+  g_last_contact_step = -1000000;
   effects_clear();
 }
 
@@ -965,9 +1053,23 @@ void crash_reset(void) {
 
 static int g_att_part = 0;
 static double g_att_b[3];
+static int g_hint = -1;
+
+/* The solver is resolving the parts' own sampler k: it is that part's
+ * contact, at that point. */
+void crash_hint_sampler(int k) {
+  g_hint = k;
+}
 
 static void attribute(const SimState *s, const double r[3], const double n[3]) {
   const Table *t = tab();
+  if (g_hint >= 0 && g_hint < g_nsamp) {
+    g_att_part = g_samp_part[g_hint];
+    g_att_b[0] = g_samp[g_hint][0];
+    g_att_b[1] = g_samp[g_hint][1];
+    g_att_b[2] = g_samp[g_hint][2];
+    return;
+  }
   const double mn[3] = { -n[0], -n[1], -n[2] };
   double d[3];
   qrot_inv(s->quat, mn, d);
@@ -1049,10 +1151,15 @@ typedef struct {
   double jn;        /* summed normal impulse, N s */
   double J[3];      /* summed impulse, world */
   double bsum[3];   /* impulse weighted point, body live */
+  double rsum[3];   /* the solver's own point, impulse weighted, table
+                     * frame: where the impulse was actually applied */
   double F[3];      /* a force note's summed force, world */
   double b[3];      /* a force note's point */
   double vin;       /* the largest closing speed */
   double n[3];
+  int crush;        /* its impulses were capped: the part was crushing */
+  double fc;        /* the plateau force it crushed at, N */
+  int ground;       /* the ground plane's contact */
 } Hit;
 
 static Hit H[HITS_MAX];
@@ -1062,7 +1169,48 @@ static double g_pre_w[3];
 static int g_batch_open = 0;
 
 void crash_set_contact_surface(int mat) {
-  g_surf = (mat >= 0 && mat < SIM_SURFACES) ? mat : SIM_SURF_DEFAULT;
+  g_surf = (mat >= 0 && mat <= SURF_OBSTACLE) ? mat : SIM_SURF_DEFAULT;
+  g_surf_ground = 0;
+}
+
+void crash_set_ground_contact(void) {
+  g_surf = g_ground_mat;
+  g_surf_ground = 1;
+}
+
+/*
+ * THE CRUSH AREA. The table's is the section a part crushes through when it
+ * meets something with an edge or a corner first: the cowl's front for a
+ * nose in, a pole's width of a wing's leading edge. A part that meets the
+ * ground plane nearly flat on one of its faces, a belly slam, crushes over
+ * as much of that face as meets it, half of it, faded in over the last 25
+ * degrees to flat, and being larger takes far more before it gives.
+ * Against an obstacle the plant does not know the shape it meets, and the
+ * table's is used.
+ */
+#define CRUSH_PATCH 0.5
+#define CRUSH_FLAT 0.90  /* cos 25 degrees */
+static double crush_area(const Table *t, int i, const double nb[3], int ground) {
+  const double a = t->p[i].crush_a;
+  if (!ground) {
+    return a;
+  }
+  const double sx = t->hi[i][0] - t->lo[i][0];
+  const double sy = t->hi[i][1] - t->lo[i][1];
+  const double sz = t->hi[i][2] - t->lo[i][2];
+  const double face[3] = { sy * sz, sx * sz, sx * sy };
+  double flat = 0.0;
+  for (int k = 0; k < 3; k += 1) {
+    double w = (sim_fabs(nb[k]) - CRUSH_FLAT) / (1.0 - CRUSH_FLAT);
+    if (w < 0.0) w = 0.0;
+    if (w > 1.0) w = 1.0;
+    flat += w * CRUSH_PATCH * face[k];
+  }
+  return flat > a ? flat : a;
+}
+
+int crash_obstacle_surface(void) {
+  return SURF_OBSTACLE;
 }
 
 int crash_ground_material(void) {
@@ -1085,9 +1233,13 @@ static Hit *hit_get(int part, int force) {
   h->force = force;
   h->jn = 0.0;
   h->vin = 0.0;
+  h->crush = 0;
+  h->fc = 0.0;
+  h->ground = g_surf_ground;
   for (int a = 0; a < 3; a += 1) {
     h->J[a] = 0.0;
     h->bsum[a] = 0.0;
+    h->rsum[a] = 0.0;
     h->F[a] = 0.0;
     h->b[a] = 0.0;
     h->n[a] = 0.0;
@@ -1099,32 +1251,74 @@ static double series_k(double a, double b) {
   return 1.0 / (1.0 / a + 1.0 / b);
 }
 
+/*
+ * CRUSH IS WHAT MAKES A CONTACT LAST. A foam part struck harder than its
+ * plateau stress over its crush area can take crushes at that stress: the
+ * force on the craft is the plateau force for as long as the foam lasts,
+ * and the craft keeps moving into the surface by the depth it crushes. So
+ * while a part crushes, the normal impulse the solver may give it in one
+ * batch is capped at the plateau force times the batch's time, the
+ * restitution is zero (crushed cells give nothing back), and the solver's
+ * position corrections stand aside (crash_crushing) so the craft can move
+ * in. Under the plateau, which is a damage limit, none of this happens and
+ * the contact is the rigid one it always was.
+ */
+
+int crash_crushing(void) {
+  return g_crushing;
+}
+
+int crash_last_capped(void) {
+  return g_capped_now;
+}
+
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
-                       double vin, double kn, double *e_used) {
+                       double vin, double kn, double *e_used, double *jn_cap) {
+  g_capped_now = 0;
   if (!SIM_DAMAGE) {
     return;
   }
   attribute(s, r, n);
   const Table *t = tab();
-  const PartDef *d = &t->p[g_att_part];
-  const PartState *p = &PS[g_att_part];
-  if (!(d->crush_s > 0.0) || !(p->crush < d->crush_d) || !(kn > 0.0)) {
+  const int i = g_att_part;
+  const PartDef *d = &t->p[i];
+  const PartState *p = &PS[i];
+  if (!(d->crush_s > 0.0) || !(p->crush < d->crush_d) || !(kn > 0.0) || !g_batch_open) {
     return;
   }
-  /* A foam part that will crush in this impact gives nothing back: the
-   * energy goes into the crushed cells. Only past the plateau, which is a
-   * damage limit, so an impact under it keeps its restitution. */
   const double k = series_k(d->k, SURF[g_surf].k);
-  const double f = vin * sim_sqrt(k / kn);
-  if (f > d->crush_s * d->crush_a) {
-    *e_used = 0.0;
+  /* Against the ground the whole craft is driven into the part, which is
+   * the momentum the batch's merged impulse shows; against an obstacle it
+   * is the point's own effective mass. */
+  const double m_dec = g_surf_ground ? PLANT.mass_kg : 1.0 / kn;
+  const double f = vin * sim_sqrt(k * m_dec);
+  double nb[3];
+  qrot_inv(s->quat, n, nb);
+  const double fc = d->crush_s * crush_area(t, i, nb, g_surf_ground);
+  /* Crushing already, the front keeps advancing while the part is driven
+   * in at all; a new impact starts it only past the plateau; and once a
+   * part crushes in a batch every contact it takes in that batch shares
+   * the plateau's budget, or a point met after the first would be stopped
+   * rigidly in its place. */
+  const unsigned int bit = 1u << i;
+  const int going = ((g_crush_mask & bit) && vin > 0.05) || (g_batch_crush & bit);
+  if (!(f > fc) && !going) {
+    return;
   }
+  g_batch_crush |= bit;
+  *e_used = 0.0;
+  g_capped_fc = fc;
+  double cap = fc * g_batch_dt - g_crush_used[i];
+  if (cap < 0.0) {
+    cap = 0.0;
+  }
+  *jn_cap = cap;
+  g_capped_now = 1;
+  g_crushing = 1;
 }
 
 void crash_contact_post(const SimState *s, const double r[3], const double n[3],
                         double vin, double kn, double jn, const double jt[3]) {
-  (void)s;
-  (void)r;
   (void)kn;
   if (!SIM_DAMAGE || !g_batch_open) {
     return;
@@ -1133,10 +1327,20 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
   if (!h) {
     return;
   }
+  if (g_capped_now) {
+    g_crush_used[g_att_part] += jn;
+    h->crush = 1;
+    h->fc = g_capped_fc;
+  }
   h->jn += jn;
   for (int a = 0; a < 3; a += 1) {
     h->J[a] += jn * n[a] + jt[a];
     h->bsum[a] += jn * g_att_b[a];
+  }
+  double rb[3];
+  qrot_inv(s->quat, r, rb);
+  for (int a = 0; a < 3; a += 1) {
+    h->rsum[a] += jn * (rb[a] + g_shift[a]);
   }
   if (vin > h->vin) {
     h->vin = vin;
@@ -1187,12 +1391,28 @@ int crash_float_part(int f) {
   return tab()->float_part[f];
 }
 
-void crash_batch_begin(const SimState *s) {
+void crash_batch_begin(const SimState *s, int from_step) {
   if (!SIM_DAMAGE) {
     return;
   }
   g_nh = 0;
   g_batch_open = 1;
+  g_crushing = 0;
+  g_batch_crush = 0;
+  /* A step is a millisecond. A host's contact call stands for the time
+   * since its last one, which is a frame's steps, and at most 20 ms. */
+  if (from_step) {
+    g_batch_dt = SIM_DT;
+  } else {
+    long long gap = s->step_index - g_last_contact_step;
+    if (gap < 1) gap = 1;
+    if (gap > 20) gap = 20;
+    g_batch_dt = SIM_DT * (double)gap;
+    g_last_contact_step = s->step_index;
+  }
+  for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
+    g_crush_used[i] = 0.0;
+  }
   for (int a = 0; a < 3; a += 1) {
     g_pre_vel[a] = s->vel[a];
     g_pre_w[a] = s->omega[a];
@@ -1209,13 +1429,16 @@ void crash_batch_begin(const SimState *s) {
 #define ALU_BEND_ONSET 0.70   /* 6061 yields at 276 of 310 MPa, less the
                                * section's shape factor */
 #define ALU_BEND_MAX 0.15
-#define KNOCK_ONSET 0.30      /* a camera turns in its mount */
+#define KNOCK_ONSET 0.50      /* a camera turns in its mount */
 #define KNOCK_MAX 0.60
-#define CHIP_ONSET 0.50       /* a blade nicks before it snaps */
+#define CHIP_ONSET 0.33       /* a blade yields, bends and nicks, at a
+                               * third of its shearing off */
 #define CRACK_ONSET 0.70      /* a brittle joint cracks before it fails */
 #define CRACK_LOSS 0.50       /* strength a crack at the break would take */
 #define CHIP_SPIN_T 0.20      /* s of a (100 m/s)^2 tip on concrete to lose
                                * a blade set */
+#define BEARING_SHARE 0.02    /* a seating push, against the joint's limit */
+#define SEAT_GRIP 1.00        /* friction of a seated face on a rubber pad */
 
 static double part_damage(int i) {
   const Table *t = tab();
@@ -1385,6 +1608,18 @@ static void world_of(const SimState *s, const double b[3], double out[3]) {
   out[2] += s->pos[2];
 }
 
+/* The last judged batch's hits, for the plant tests: part, force body,
+ * point body, closing speed, impulse, crushing. 11 doubles each. */
+static double g_dbg[HITS_MAX][11];
+static int g_ndbg = 0;
+SIM_EXPORT int sim_crash_debug(double *out, int max) {
+  int n = 0;
+  for (; n < g_ndbg && n < max; n += 1) {
+    for (int k = 0; k < 11; k += 1) out[11 * n + k] = g_dbg[n][k];
+  }
+  return n;
+}
+
 static void judge(SimState *s) {
   const Table *t = tab();
   const int n = t->n;
@@ -1419,8 +1654,30 @@ static void judge(SimState *s) {
       const double k = series_k(d->k, SURF[x->surf].k);
       double fp = sim_sqrt(k * x->jn * x->vin);
       const double en = 0.5 * x->jn * x->vin;
-      if (d->crush_s > 0.0 && p->crush < d->crush_d && attached(i)) {
-        const double fc = d->crush_s * d->crush_a;
+      if (x->crush && attached(i)) {
+        /* Crushing: the force is the plateau's, and the front advanced as
+         * far as the part moved into the surface in the batch. */
+        const double fc = x->fc;
+        double dl = x->vin * g_batch_dt;
+        const double avail = d->crush_d - p->crush;
+        if (dl > avail) dl = avail;
+        const int first = !(g_crush_mask & (1u << i));
+        p->crush += dl;
+        p->energy += fc * dl;
+        for (int a = 0; a < 3; a += 1) {
+          p->dent[a] += dl * nb[a];
+        }
+        g_crush_mask |= 1u << i;
+        fp = x->jn / g_batch_dt;
+        p->damage = part_damage(i);
+        changed = 1;
+        if (first || !(p->crush < d->crush_d)) {
+          double pw[3];
+          world_of(s, bb[h], pw);
+          event_push(s, i, SIM_EVENT_CRUSH, sim_sqrt(k * x->jn * x->vin) / fc, fc, 0.0, p->energy, pw, x->n, x->vin, x->surf);
+        }
+      } else if (d->crush_s > 0.0 && p->crush < d->crush_d && attached(i)) {
+        const double fc = d->crush_s * crush_area(t, i, nb, x->ground);
         if (fp > fc) {
           const double el = fc * fc / (2.0 * k);
           double dl = (en - el) / fc;
@@ -1497,6 +1754,19 @@ static void judge(SimState *s) {
     }
   }
 
+  g_ndbg = g_nh;
+  for (int h = 0; h < g_nh; h += 1) {
+    g_dbg[h][0] = (double)H[h].part;
+    for (int a = 0; a < 3; a += 1) {
+      g_dbg[h][1 + a] = Fb[h][a];
+      g_dbg[h][4 + a] = bb[h][a];
+    }
+    g_dbg[h][7] = H[h].vin;
+    g_dbg[h][8] = H[h].jn;
+    g_dbg[h][9] = (double)H[h].crush;
+    g_dbg[h][10] = (double)H[h].force;
+  }
+
   /* The joints: the free body diagram of each part's subtree. The rest of
    * the craft decelerates as a rigid body under every contact; a subtree
    * has to be given its share of that through its joint, less the contact
@@ -1535,13 +1805,20 @@ static void judge(SimState *s) {
       acc[a] = Ft[a] / m;
       alp[a] = tau[a] / PLANT.inertia[a];
     }
-    int best = -1;
+    /* Two kinds of joint: those a contact's force goes through on its way
+     * to the root, and those that only carry their parts' share of the
+     * craft's deceleration. The first kind fails first: until the joints
+     * on the load path have taken what they can, the rest of the craft has
+     * not been decelerated by more than they let through. */
+    int best = -1, best_p = -1;
     double best_rho = 0.0, best_F = 0.0, best_M = 0.0;
+    double bp_rho = 0.0, bp_F = 0.0, bp_M = 0.0;
     for (int j = 1; j < n; j += 1) {
       if (!attached(j) || (gone & (1u << j))) {
         continue;
       }
       const PartDef *dj = &t->p[j];
+      int path = 0;
       double pj[3];
       live_pt(dj->joint, pj);
       double Fj[3] = { 0.0, 0.0, 0.0 }, Mj[3] = { 0.0, 0.0, 0.0 };
@@ -1568,6 +1845,9 @@ static void judge(SimState *s) {
         if (!(t->sub[j] & (1u << H[h].part))) {
           continue;
         }
+        if (sc[h] > 0.0) {
+          path = 1;
+        }
         const double f[3] = { sc[h] * Fb[h][0], sc[h] * Fb[h][1], sc[h] * Fb[h][2] };
         const double arm[3] = { bb[h][0] - pj[0], bb[h][1] - pj[1], bb[h][2] - pj[2] };
         double c[3];
@@ -1578,21 +1858,60 @@ static void judge(SimState *s) {
         }
       }
       const double st = PS[j].strength;
-      const double fm = norm(Fj), mm = norm(Mj);
+      /* A joint carries a push that seats the part on its parent in
+       * bearing, the part's face against the frame's, not through its
+       * strap or screws: a pack under the frame landed on is pressed into
+       * it, not torn off. That component counts at a tenth. */
+      double fm = norm(Fj);
+      double mm = norm(Mj);
+      {
+        double cj[3];
+        live_pt(t->cg[j], cj);
+        const double u[3] = { cj[0] - pj[0], cj[1] - pj[1], cj[2] - pj[2] };
+        const double ul = norm(u);
+        if (ul > 1e-6) {
+          const double fb = dot(Fj, u) / ul;
+          if (fb > 0.0) {
+            /* And the push that seats it grips it: the pad's friction
+             * takes a share of the sideways load before the strap does. */
+            const double perp2 = fm * fm - fb * fb;
+            double perp = sim_sqrt(perp2 > 0.0 ? perp2 : 0.0) - SEAT_GRIP * fb;
+            if (perp < 0.0) perp = 0.0;
+            const double seat = fb * BEARING_SHARE;
+            fm = sim_sqrt(perp * perp + seat * seat);
+            /* Nor does a push inside the seat's footprint lever the part
+             * off: it has to overcome the seated force at the footprint's
+             * edge first. */
+            mm -= fb * t->seat[j];
+            if (mm < 0.0) mm = 0.0;
+          }
+        }
+      }
       double rho = mm / (dj->m_max * st);
       if (fm / (dj->f_max * st) > rho) {
         rho = fm / (dj->f_max * st);
       }
-      if (iter == 0) {
-        rho0[j] = rho;
-        for (int a = 0; a < 3; a += 1) M0[j][a] = Mj[a];
-      }
+      /* The last pass's, once the load path has given what it will. */
+      rho0[j] = rho;
+      for (int a = 0; a < 3; a += 1) M0[j][a] = Mj[a];
       if (rho > best_rho) {
         best_rho = rho;
         best = j;
         best_F = fm;
         best_M = mm;
       }
+      if (path && rho > bp_rho) {
+        bp_rho = rho;
+        best_p = j;
+        bp_F = fm;
+        bp_M = mm;
+      }
+    }
+    if (best_p >= 0 && bp_rho >= 1.0) {
+      best = best_p;
+      best_rho = bp_rho;
+      best_F = bp_F;
+      best_M = bp_M;
     }
     if (best < 0 || best_rho < 1.0 || nbrk >= BREAKS_MAX) {
       break;
@@ -1672,12 +1991,13 @@ static void judge(SimState *s) {
           }
           surf = H[h].surf;
         }
-        if (bk->contact_side && !bk->forced && !H[h].force && ncorr < HITS_MAX && bk->rho > 1.0) {
+        if (bk->contact_side && !bk->forced && !H[h].force && ncorr < HITS_MAX && bk->rho > 1.0
+            && H[h].jn > 0.0) {
           const double f = 1.0 - 1.0 / bk->rho;
           for (int a = 0; a < 3; a += 1) {
             corr[ncorr][a] = -f * H[h].J[a];
             /* The table frame, until the CG has moved. */
-            corr_at[ncorr][a] = t->p[bk->part].joint[a];
+            corr_at[ncorr][a] = H[h].rsum[a] / H[h].jn;
           }
           ncorr += 1;
         }
@@ -1711,9 +2031,19 @@ void crash_batch_end(SimState *s) {
     for (int i = 0; i < t->n; i += 1) {
       PS[i].peak = 0.0;
     }
+    g_crush_mask = 0;
     return;
   }
   judge(s);
+  /* A crush goes on while the part is still being driven in; a batch that
+   * did not cap it has ended it. */
+  unsigned int now = 0;
+  for (int h = 0; h < g_nh; h += 1) {
+    if (H[h].crush) {
+      now |= 1u << H[h].part;
+    }
+  }
+  g_crush_mask &= now;
 }
 
 /* ---------------------------------------------------------------------
@@ -2092,6 +2422,7 @@ static void craft_crowns(SimState *s) {
 #define FB_REST_W 0.50
 #define FB_REST_MS 300
 #define FB_ITERS 2
+#define FB_W_MAX 300.0
 
 /* The rigid body impulse of sim.c's contact_impulse, for a free body:
  * restitution falling past the same knee, Coulomb friction. r world. */
@@ -2214,6 +2545,28 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
     if (worst > 0.002) {
       for (int a = 0; a < 3; a += 1) f->pos[a] += gn[a] * (worst - 0.002);
     }
+    /* Lying on it: the impulses above only act on a point driven in, so a
+     * part at rest on its face slid and spun on the slop for ever. The
+     * weight it lays on the ground brakes the slide at mu g and the spin
+     * about the normal at mu g over its own radius of gyration, like the
+     * craft's own settle, never reversing either. */
+    if (worst > -0.002) {
+      const double vn = dot(f->vel, gn);
+      const double vt[3] = { f->vel[0] - vn * gn[0], f->vel[1] - vn * gn[1], f->vel[2] - vn * gn[2] };
+      const double vtm = norm(vt);
+      const double dv = su->mu * g * SIM_DT;
+      const double keep = vtm > dv ? (vtm - dv) / vtm : 0.0;
+      for (int a = 0; a < 3; a += 1) {
+        f->vel[a] = vn * gn[a] + vt[a] * keep;
+      }
+      const double rg = sim_sqrt((f->I[0] + f->I[1] + f->I[2]) / (1.5 * f->m));
+      const double wm = norm(f->w);
+      const double dw = rg > 1e-4 ? su->mu * g / rg * SIM_DT : wm;
+      const double wkeep = wm > dw ? (wm - dw) / wm : 0.0;
+      for (int a = 0; a < 3; a += 1) {
+        f->w[a] *= wkeep;
+      }
+    }
   }
   /* Obstacles and the trunks. */
   for (int k = 0; k < f->npts; k += 1) {
@@ -2287,6 +2640,12 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
         for (int a = 0; a < 3; a += 1) f->w[a] *= 1.0 - 0.02 * fr;
       }
     }
+  }
+  /* A splinter struck at a corner cannot spin faster than the air and its
+   * own flex let it; 300 rad/s is a prop's hub spun off its shaft. */
+  const double wcap = norm(f->w);
+  if (wcap > FB_W_MAX) {
+    for (int a = 0; a < 3; a += 1) f->w[a] *= FB_W_MAX / wcap;
   }
   /* At rest: slow and touching something for long enough. */
   const double wm = norm(f->w);

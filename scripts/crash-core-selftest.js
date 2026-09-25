@@ -46,6 +46,8 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { PART_KINDS, PARTS_MAX, DAMAGE_FLAGS, SURFACE } from '../configs/parts.js';
 import { readPartTable, readPartsState, readDamageEvents, readMotorDamage } from './lib/crash.js';
 import { CRASH_SCENARIOS, runScenario } from './lib/crash-scenarios.js';
+import { findChrome, runBrowserHarness } from '../tests/lib/browser.js';
+import { startServer } from '../tests/lib/server.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -117,10 +119,34 @@ console.log('2. configs/parts.js against the module');
 }
 
 console.log('3. the scenarios');
+const nodeDigests = [];
 for (const sc of CRASH_SCENARIOS) {
   const r = await runScenario(loadSim, wasmBytes, configText, sc);
   for (const c of r.checks) {
     check(`${sc.name}: ${c.name}`, c.ok, c.detail);
+  }
+  nodeDigests.push(`${sc.name}: ${r.digests.join(' ')}`);
+}
+
+console.log('4. Node and Chrome');
+if (!findChrome()) {
+  console.log('  SKIP  no Chrome here; a skip is not a pass');
+} else {
+  const server = await startServer(root);
+  try {
+    const out = await runBrowserHarness(`${server.origin}/tests/browser/crash-harness.html`, { timeoutMs: 600000 });
+    const res = out.result || {};
+    if (!res.ok) {
+      check('the Chrome run completes', false, res.message || res.errorName || JSON.stringify(out).slice(0, 200));
+    } else {
+      for (let i = 0; i < nodeDigests.length; i += 1) {
+        const same = res.digests[i] === nodeDigests[i];
+        check(`every trace digest identical: ${nodeDigests[i].split(':')[0]}`, same,
+          same ? nodeDigests[i].split(': ')[1] : `node ${nodeDigests[i]} / chrome ${res.digests[i]}`);
+      }
+    }
+  } finally {
+    await server.close();
   }
 }
 

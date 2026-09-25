@@ -42,6 +42,7 @@ const v3 = (a, i) => [a[i], a[i + 1], a[i + 2]];
 /* The airframe's part table: [{ index, kind, kindName, label, parent, ... }]. */
 export function readPartTable(sim) {
   const n = sim.e.sim_parts_count();
+  const quad = n > 0 && withBuffer(sim, PART_INFO_DOUBLES, (p) => sim.e.sim_part_info(0, p)).data[INFO.kind] === 0;
   const parts = [];
   for (let i = 0; i < n; i += 1) {
     const { rc, data } = withBuffer(sim, PART_INFO_DOUBLES, (p) => sim.e.sim_part_info(i, p));
@@ -58,7 +59,7 @@ export function readPartTable(sim) {
       index: i,
       kind: data[INFO.kind],
       kindName: PART_KINDS[data[INFO.kind]],
-      label: partLabel(data[INFO.kind], cg[1]),
+      label: partLabel(data[INFO.kind], cg[0], cg[1], quad),
       parent: data[INFO.parent],
       material: data[INFO.material],
       motor: data[INFO.motor],

@@ -72,21 +72,30 @@ typedef struct {
 #define M5_ARM_M 73.9
 /* Its tip stiffness, 3 E I / L^3: E 50 GPa, I 5.853e-10 m^4, L 0.0635 m. */
 #define M5_ARM_K 3.43e5
-/* 5 inch tri blade root, 12 x 2.5 mm, PA66 GF30 conditioned 200 MPa. */
-#define M5_PROP_M 2.5
+/* 5 inch tri blade root, 12 x 2.5 mm, PA66 GF30 conditioned 200 MPa: the
+ * blade yields at 2.5 N m. Race props are ductile, polycarbonate or glass
+ * nylon, and fly on bent: the blades shear off the hub at about three times
+ * the yield (plastic hinge and strain hardening), which is the joint's
+ * limit; from the yield up they chip (CHIP_ONSET in crash.c). */
+#define M5_PROP_M (3.0 * 2.5)
 #define M5_PROP_K 1690.0
 /* 2207 motor on four M3 in an aluminium base: two screws' pull out, 1.5 kN
  * each, on the 16 mm pattern. */
 #define M5_MOTOR_M 48.0
 /* Whoop 0702 on its moulded mount, two M1.4 screws in PP. */
 #define WH_MOTOR_M 0.25
-/* A press fit 1 mm shaft prop: a few newtons pull it off. */
-#define WH_PROP_F 4.0
+/* A press fit 1 mm shaft prop: a few newtons pull it off, and its PC
+ * blades flex rather than snap. Set so the 300 g a wall at a brisk walk
+ * gives (R-WHOOP) leaves it on, which is what whoops do. */
+#define WH_PROP_F 6.0
+#define WH_PROP_M 0.10
 /* EPO and EPP at 30 to 35 g/L: the compressive plateau at 25 percent. */
 #define EPO_CRUSH 200.0e3
 #define EPP_CRUSH 180.0e3
-/* An 11 inch nylon prop blade root, 20 x 4 mm at 150 MPa. */
-#define PL_PROP_M 8.0
+/* An 11 inch nylon prop blade root, 20 x 4 mm at 150 MPa, yields at 8 N m;
+ * glass filled electric props are less ductile than a quad's, and shed a
+ * blade at twice it. */
+#define PL_PROP_M (2.0 * 8.0)
 #define PL_PROP_K 1110.0
 /* Hook and loop in shear, 8 N/cm^2, over a 12 cm^2 strip. */
 #define VELCRO_12 96.0
@@ -96,14 +105,18 @@ typedef struct {
  * hinge, 1.7 times the yield moment, at the ultimate 1.3 times the yield. */
 #define WIRE_M(d) (1600.0e6 * 3.14159265358979323846 * (d) * (d) * (d) / 32.0 * 2.21)
 
+/* A tractor's motor sits in the foam nose on its firewall: struck head on,
+ * it is the nose behind it that crushes, over the nose's section. */
+#define NOSE_CRUSH(area, depth) .crush_s = EPO_CRUSH, .crush_a = (area), .crush_d = (depth)
+
 /* Joints of the plane parts that recur. */
 #define PL_MOTOR_M 10.0  /* a 3 mm ply or moulded firewall, four screws */
 #define PL_SURF_F 40.0   /* a foam or tape hinge line pulling out */
 #define PL_SURF_M 1.0
 #define FPV_CAM_M 0.8    /* a TPU mount's side screws, the camera leaves */
 #define FPV_CAM_F 60.0
-#define FPV_ANT_M 0.3
-#define FPV_ANT_F 25.0
+#define FPV_ANT_M 1.0   /* a whip in a TPU mount flexes a long way before it tears out */
+#define FPV_ANT_F 40.0
 
 /* ------------------------------------------------------------------------
  * 5 INCH, SIM_AIRFRAME_5IN, herocraft.js. 0.71 kg. Motors in Betaflight
@@ -157,7 +170,7 @@ static const PartDef PARTS_5IN[] = {
   /* 13 the 6S 1300 under the frame, its bottom at the plant's measured
    * 45 mm (configs/airframes.js), on a strap that slips at 250 N. */
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 0.200, .joint = { -0.012, 0.0, -0.006 }, .m_max = 6.0, .f_max = 250.0, .k = 2.0e6,
+    .mass = 0.200, .joint = { -0.012, 0.0, -0.006 }, .m_max = 6.0, .f_max = 250.0, .k = 3.0e5,
     BOX(-0.048, 0.024, -0.018, 0.018, -0.045, -0.006) },
   /* 14 the FPV camera in its TPU mount, glass at the plant's 0.104. */
   { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
@@ -192,24 +205,24 @@ static const PartDef PARTS_WHOOP65[] = {
     BOX(QW - 0.004, QW + 0.004, QW - 0.004, QW + 0.004, 0.0, 0.006) },
   /* 5..8 31 mm PC tri blades on 1 mm shafts, inside the ducts. */
   { .kind = SIM_PART_PROP, .parent = 1, .mat = SIM_MAT_PC, .motor = 0, .wheel = -1, .shape = SH_DISCZ,
-    .mass = 0.0005, .joint = { -QW, -QW, 0.0035 }, .m_max = 0.05, .f_max = WH_PROP_F, .k = 800.0,
+    .mass = 0.0005, .joint = { -QW, -QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { -QW, -QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
   { .kind = SIM_PART_PROP, .parent = 2, .mat = SIM_MAT_PC, .motor = 1, .wheel = -1, .shape = SH_DISCZ,
-    .mass = 0.0005, .joint = { QW, -QW, 0.0035 }, .m_max = 0.05, .f_max = WH_PROP_F, .k = 800.0,
+    .mass = 0.0005, .joint = { QW, -QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { QW, -QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
   { .kind = SIM_PART_PROP, .parent = 3, .mat = SIM_MAT_PC, .motor = 2, .wheel = -1, .shape = SH_DISCZ,
-    .mass = 0.0005, .joint = { -QW, QW, 0.0035 }, .m_max = 0.05, .f_max = WH_PROP_F, .k = 800.0,
+    .mass = 0.0005, .joint = { -QW, QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { -QW, QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
   { .kind = SIM_PART_PROP, .parent = 4, .mat = SIM_MAT_PC, .motor = 3, .wheel = -1, .shape = SH_DISCZ,
-    .mass = 0.0005, .joint = { QW, QW, 0.0035 }, .m_max = 0.05, .f_max = WH_PROP_F, .k = 800.0,
+    .mass = 0.0005, .joint = { QW, QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { QW, QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
   /* 9 the 1S 300 mAh in its holder, which lets go at a few newtons. */
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
     .mass = 0.0068, .joint = { 0.0, 0.0, -0.0036 }, .m_max = 0.10, .f_max = 5.0, .k = 5.0e5,
     BOX(-0.0195, 0.0135, -0.0079, 0.0079, -0.010, -0.0036) },
-  /* 10 canopy, two screws in PP. */
+  /* 10 canopy, two M1.4 screws in PP 10 mm apart, 20 N each. */
   { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
-    .mass = 0.0015, .joint = { 0.0, 0.0, 0.006 }, .m_max = 0.10, .f_max = 15.0, .k = 5.0e4,
+    .mass = 0.0015, .joint = { 0.0, 0.0, 0.006 }, .m_max = 0.30, .f_max = 20.0, .k = 5.0e4,
     BOX(-0.012, 0.030, -0.012, 0.012, 0.0055, 0.018) },
   /* 11 nano camera in the canopy. */
   { .kind = SIM_PART_CAMERA, .parent = 10, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
@@ -217,7 +230,7 @@ static const PartDef PARTS_WHOOP65[] = {
     BOX(0.017, 0.026, -0.0045, 0.0045, 0.007, 0.016) },
   /* 12 the whip antenna. */
   { .kind = SIM_PART_ANTENNA, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
-    .mass = 0.0003, .joint = { -0.009, 0.0018, 0.006 }, .m_max = 0.005, .f_max = 2.0, .k = 200.0,
+    .mass = 0.0003, .joint = { -0.009, 0.0018, 0.006 }, .m_max = 0.02, .f_max = 3.0, .k = 200.0,
     .npts = 2, .pts = { { -0.009, 0.0018, 0.006 }, { -0.009, 0.0018, 0.0285 } } },
 };
 
@@ -256,7 +269,7 @@ static const PartDef PARTS_WING1000[] = {
     .mass = 0.008, .joint = { -0.125, 0.0, 0.0 }, .m_max = 3.0, .f_max = 200.0, .k = 1500.0,
     .npts = 8, .pts = { { -0.13, 0.0, 0.0 }, { 0.0762, 0.0, 0.0 } } },
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 0.20, .joint = { 0.05, 0.0, 0.0 }, .m_max = 4.0, .f_max = VELCRO_12, .k = 2.0e6,
+    .mass = 0.20, .joint = { 0.06, 0.0, -0.02 }, .m_max = 4.0, .f_max = VELCRO_12, .k = 3.0e5,
     BOX(0.0, 0.12, -0.02, 0.02, -0.02, 0.015) },
   { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
     .mass = 0.010, .joint = { 0.19, 0.0, 0.02 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
@@ -328,7 +341,7 @@ static const PartDef PARTS_SKY1800[] = {
     .npts = 8, .pts = { { -0.268, 0.0, 0.032 }, { 0.1397, 0.0, 0.0 } } },
   /* 14 a 4S 5000 in the bay on hook and loop, 15 the hatch on magnets. */
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 0.50, .joint = { 0.10, 0.0, -0.06 }, .m_max = 8.0, .f_max = 1.5 * VELCRO_12, .k = 2.0e6,
+    .mass = 0.50, .joint = { 0.10, 0.0, -0.09 }, .m_max = 8.0, .f_max = 1.5 * VELCRO_12, .k = 3.0e5,
     BOX(0.02, 0.18, -0.025, 0.025, -0.09, -0.04) },
   { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.030, .joint = { 0.21, 0.0, 0.043 }, .m_max = 1.0, .f_max = MAGNET_2, .k = 2.0e4,
@@ -386,13 +399,13 @@ static const PartDef PARTS_CUB1400[] = {
   /* 10 the motor on its firewall, 11 the 11x7 and spinner. */
   { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
     .mass = 0.100, .joint = { 0.200, 0.0, 0.002 }, .m_max = PL_MOTOR_M, .f_max = 400.0, .k = 1.0e6,
-    BOX(0.200, 0.226, -0.018, 0.018, -0.016, 0.020) },
+    NOSE_CRUSH(0.0068, 0.10), BOX(0.200, 0.226, -0.018, 0.018, -0.016, 0.020) },
   { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = 3, .shape = SH_DISCX,
     .mass = 0.020, .joint = { 0.226, 0.0, 0.002 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
     .npts = 8, .pts = { { 0.230, 0.0, 0.002 }, { 0.1397, 0.0, 0.0 } } },
   /* 12 the 3S 2200 at 0.12 ahead on hook and loop, 13 the cabin hatch. */
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 0.190, .joint = { 0.12, 0.0, -0.02 }, .m_max = 4.0, .f_max = VELCRO_12, .k = 2.0e6,
+    .mass = 0.190, .joint = { 0.12, 0.0, -0.054 }, .m_max = 4.0, .f_max = VELCRO_12, .k = 3.0e5,
     BOX(0.070, 0.175, -0.017, 0.017, -0.054, -0.020) },
   { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.020, .joint = { -0.02, 0.0, 0.090 }, .m_max = 0.5, .f_max = MAGNET_2, .k = 2.0e4,
@@ -459,13 +472,13 @@ static const PartDef PARTS_RADIAN2000[] = {
     BOX(-0.137, -0.087, -0.95, -0.55, 0.060, 0.110) },
   { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
     .mass = 0.070, .joint = { 0.26, 0.0, -0.008 }, .m_max = PL_MOTOR_M, .f_max = 400.0, .k = 1.0e6,
-    BOX(0.255, 0.285, -0.015, 0.015, -0.023, 0.007) },
+    NOSE_CRUSH(0.0040, 0.08), BOX(0.255, 0.285, -0.015, 0.015, -0.023, 0.007) },
   /* 11 the folding 9.75x7.5: its blades fold back and survive more. */
   { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = -1, .shape = SH_DISCX,
     .mass = 0.020, .joint = { 0.285, 0.0, -0.008 }, .m_max = 2.0 * PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
     .npts = 8, .pts = { { 0.293, 0.0, -0.008 }, { 0.1238, 0.0, 0.0 } } },
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 0.110, .joint = { 0.12, 0.0, -0.01 }, .m_max = 3.0, .f_max = VELCRO_12, .k = 2.0e6,
+    .mass = 0.110, .joint = { 0.12, 0.0, -0.035 }, .m_max = 3.0, .f_max = VELCRO_12, .k = 3.0e5,
     BOX(0.08, 0.17, -0.015, 0.015, -0.035, -0.005) },
   { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
     .mass = 0.015, .joint = { 0.17, 0.0, 0.05 }, .m_max = 0.5, .f_max = MAGNET_2, .k = 2.0e4,
@@ -517,7 +530,7 @@ static const PartDef PARTS_BRAMOR2300[] = {
     .npts = 8, .pts = { { -0.350, 0.0, 0.087 }, { 0.1524, 0.0, 0.0 } } },
   /* 9 the 1.3 kg Li-ion pack under a latched hatch. */
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 1.30, .joint = { 0.05, 0.0, 0.0 }, .m_max = 40.0, .f_max = 400.0, .k = 2.0e6,
+    .mass = 1.30, .joint = { 0.05, 0.0, -0.05 }, .m_max = 40.0, .f_max = 400.0, .k = 3.0e5,
     BOX(-0.05, 0.15, -0.045, 0.045, -0.050, 0.030) },
   /* 10 the chute bay lid, held down by the canopy's own pack. */
   { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
@@ -570,7 +583,7 @@ static const PartDef PARTS_SLOWSTICK1180[] = {
     .mass = 0.012, .joint = { 0.305, 0.0, -0.0025 }, .m_max = 0.6 * PL_PROP_M, .f_max = 150.0, .k = 900.0,
     .npts = 8, .pts = { { 0.310, 0.0, -0.0025 }, { 0.1397, 0.0, 0.0 } } },
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 0.100, .joint = { 0.155, 0.0, -0.0075 }, .m_max = 1.5, .f_max = 0.6 * VELCRO_12, .k = 2.0e6,
+    .mass = 0.100, .joint = { 0.155, 0.0, -0.0075 }, .m_max = 1.5, .f_max = 0.6 * VELCRO_12, .k = 3.0e5,
     BOX(0.119, 0.191, -0.015, 0.015, -0.0245, -0.0075) },
   /* 10, 11 the mains on 2 mm wire, 12 the tailwheel on 1.2 mm. */
   { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
@@ -632,12 +645,12 @@ static const PartDef PARTS_TIMBER1500[] = {
     BOX(-0.180, -0.115, -0.700, -0.340, 0.070, 0.090) },
   { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
     .mass = 0.180, .joint = { 0.255, 0.0, 0.0 }, .m_max = PL_MOTOR_M, .f_max = 500.0, .k = 1.0e6,
-    BOX(0.255, 0.285, -0.020, 0.020, -0.020, 0.020) },
+    NOSE_CRUSH(0.0095, 0.10), BOX(0.255, 0.285, -0.020, 0.020, -0.020, 0.020) },
   { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = 3, .shape = SH_DISCX,
     .mass = 0.025, .joint = { 0.285, 0.0, 0.0 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
     .npts = 8, .pts = { { 0.290, 0.0, 0.0 }, { 0.1397, 0.0, 0.0 } } },
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 0.330, .joint = { 0.15, 0.0, -0.02 }, .m_max = 6.0, .f_max = 1.5 * VELCRO_12, .k = 2.0e6,
+    .mass = 0.330, .joint = { 0.15, 0.0, -0.050 }, .m_max = 6.0, .f_max = 1.5 * VELCRO_12, .k = 3.0e5,
     BOX(0.090, 0.210, -0.022, 0.022, -0.050, -0.010) },
   { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.030, .joint = { -0.05, 0.0, 0.065 }, .m_max = 0.8, .f_max = MAGNET_2, .k = 2.0e4,
@@ -667,6 +680,13 @@ static const PartDef PARTS_TIMBER1500[] = {
  * plant's float geometry, each on two music wire struts. That keeps one
  * copy of each airframe's numbers.
  */
-#define FLOAT_STRUT_M (2.0 * WIRE_M(0.003))
+/* Each float hangs on a fore and an aft strut 0.14 m apart, braced
+ * corner to corner with 1 mm music wire, as a model float set is: a
+ * braced truss, so a pitching load is taken by a bracing wire in tension,
+ * 2000 MPa on 0.785 mm^2, 1570 N, on the struts' spacing; a strut alone
+ * would buckle at Euler's 348 N (3 mm wire, 0.15 m). */
+#define BRACE_WIRE (2000.0e6 * 3.14159265358979323846 * 0.0005 * 0.0005)
+#define FLOAT_STRUT_M (BRACE_WIRE * 0.14)
+#define FLOAT_STRUT_F (2.0 * BRACE_WIRE)
 
 #endif /* CRASH_PARTS_H */

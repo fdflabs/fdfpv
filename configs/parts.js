@@ -106,12 +106,18 @@ export const EVENT = {
   point: 7, normal: 10, closing: 13, surface: 14, damage: 15,
 };
 
-/* A part's name for a person: its kind, and its side when it has one. The
- * body frame's y is left. */
-export function partLabel(kindId, cgY) {
+/* A part's name for a person: its kind, and where it is when it has a
+ * twin. The body frame's x is forward and y is left. A quad's arms, motors
+ * and props are front or rear as well as left or right. */
+const QUAD_CORNER = new Set(['arm', 'motor', 'prop']);
+export function partLabel(kindId, cgX, cgY, quad = false) {
   const kind = PART_KINDS[kindId] ?? `kind${kindId}`;
   if (Math.abs(cgY) < 1e-3) {
     return kind;
   }
-  return `${kind} ${cgY > 0 ? 'left' : 'right'}`;
+  const side = cgY > 0 ? 'left' : 'right';
+  if (quad && QUAD_CORNER.has(kind)) {
+    return `${kind} ${cgX > 0 ? 'front' : 'rear'} ${side}`;
+  }
+  return `${kind} ${side}`;
 }

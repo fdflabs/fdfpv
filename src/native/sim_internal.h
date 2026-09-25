@@ -686,7 +686,7 @@ extern int SIM_DAMAGE;
  * e_used, when a foam part crushes and gives nothing back. post records the
  * impulse (jn along n, jt the friction vector) for the step's judgement. */
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
-                       double vin, double kn, double *e_used);
+                       double vin, double kn, double *e_used, double *jn_cap);
 void crash_contact_post(const SimState *s, const double r[3], const double n[3],
                         double vin, double kn, double jn, const double jt[3]);
 /* A force contact, one whose force is known rather than an impulse: a
@@ -696,10 +696,18 @@ void crash_force_note(const SimState *s, const double r[3], const double F[3], i
  * spinning prop in that contact would chip. */
 void crash_set_contact_surface(int mat);
 int crash_ground_material(void);
+/* The contacts that follow are the ground plane's, its material's. */
+void crash_set_ground_contact(void);
+/* The surface a contact with no material named meets: a hard generic face. */
+int crash_obstacle_surface(void);
 /* Start of a contact batch (a step, or one sim_contact_at): remembers the
  * craft's motion before the impulses. End of it: judges the batch's loads,
  * breaks and damages, and rebuilds CRASH. */
-void crash_batch_begin(const SimState *s);
+void crash_batch_begin(const SimState *s, int from_step);
+/* A foam part is crushing this batch, and the last contact's impulse was
+ * capped at its plateau: the solver's position corrections stand aside. */
+int crash_crushing(void);
+int crash_last_capped(void);
 void crash_batch_end(SimState *s);
 /* Every step, after the contacts: the free bodies, the water and the crowns
  * on the craft's parts. */
@@ -720,6 +728,9 @@ int crash_part_set_damage(SimState *s, int part, double dmg);
 /* The contact samplers once a part has left, the attached parts' hull
  * points, body frame about the live CG, and the part each belongs to. */
 int crash_samplers(const double **pts, const int **part);
+/* The next contact is the solver's sampler k, -1 for none: it belongs to
+ * that sampler's part. */
+void crash_hint_sampler(int k);
 /* The part a body frame point belongs to, for a contact there: the
  * attached part with the hull point nearest it. */
 int crash_part_at(const double b[3]);

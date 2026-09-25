@@ -699,6 +699,21 @@ int sim_set_velocity(double vx, double vy, double vz, double p, double q, double
 #define SIM_MAT_PLY 10        /* plywood, formers */
 #define SIM_MATERIALS 11
 
+/*
+ * sim_set_part_table(which): SIM_PARTS_OWN (0, the default) is the
+ * airframe's own table. SIM_PARTS_WHOOP_SCALED (1) is for the shell's whoop,
+ * which is the five inch's plant flown in a room MICRO_SCALE times life
+ * size: the real whoop's parts scaled to that world with limits scaled so a
+ * crash the real whoop survives this survives (docs/CRASH-STAGE1.md). It
+ * applies only while the five inch's plant is selected; on any other
+ * airframe the airframe's own table is used. A mode, kept across resets;
+ * setting it clears the damage state. sim_part_table() reads it back.
+ */
+#define SIM_PARTS_OWN 0
+#define SIM_PARTS_WHOOP_SCALED 1
+int sim_set_part_table(int which);
+int sim_part_table(void);
+
 int sim_parts_count(void);
 int sim_part_info(int part, double *out);
 int sim_part_hull(int part, double *out);
@@ -715,7 +730,7 @@ int sim_part_hull(int part, double *out);
  *            the craft's, times its own knock or bend if it has one
  *   [9..11]  its centre of mass velocity, world, m/s
  *   [12..14] its angular velocity, world, rad/s
- *   [15] the free body it rides on, 0..SIM_FREE_BODIES_MAX-1, or -1
+ *   [15] the free body it rides on, 0..SIM_PARTS_MAX-1, or -1
  *   [16] its peak load this step over its limit, 0 when untouched
  *   [17..19] its permanent deformation, body frame: a crushed part's dent,
  *            m, pointing into it; an arm, a boom or a gear leg's bend and

@@ -411,8 +411,9 @@ static int contact_impulse(const double n[3], const double r[3], const double vs
   /* Crash physics reads the contact here, and may only lower e_used, and
    * only for a foam part crushing past its plateau: under every limit this
    * call returns having written nothing. */
+  double jn_cap = -1.0;
   if (SIM_DAMAGE) {
-    crash_contact_pre(&S, r, n, vin, kn, &e_used);
+    crash_contact_pre(&S, r, n, vin, kn, &e_used, &jn_cap);
   }
 
   double bias = 0.0;
@@ -428,6 +429,10 @@ static int contact_impulse(const double n[3], const double r[3], const double vs
   double jn = (vn_target - vn) / kn;
   if (jn < 0.0) {
     return 0;
+  }
+  /* A foam part crushing takes no more than its plateau force. */
+  if (jn_cap >= 0.0 && jn > jn_cap) {
+    jn = jn_cap;
   }
 
   double jt[3] = { 0.0, 0.0, 0.0 };
@@ -543,7 +548,7 @@ static int ground_hit_at(const double r[3], const double vs[3]) {
   }
   const double use_p = pen > 0.0 ? pen : 0.0;
   contact_impulse(g_ground_n, r, vs, g_ge, g_gmu, use_p);
-  if (pen > CONTACT_SLOP) {
+  if (pen > CONTACT_SLOP && !(SIM_DAMAGE && crash_last_capped())) {
     const double push = (pen - CONTACT_SLOP) * CONTACT_POS_PUSH;
     S.pos[0] += g_ground_n[0] * push;
     S.pos[1] += g_ground_n[1] * push;
@@ -595,6 +600,11 @@ static void ground_project_hull(void) {
   g_ground_projected = 0;
   g_ground_near = (worst > -CONTACT_NEAR) ? 1 : 0;
   if (!(worst > CONTACT_SLOP)) {
+    return;
+  }
+  /* A foam nose crushing is meant to be in the ground by the depth it has
+   * crushed; the crush's own cap is what stops it. */
+  if (SIM_DAMAGE && crash_crushing()) {
     return;
   }
   g_ground_projected = 1;
@@ -949,7 +959,7 @@ static void ground_apply(void) {
   g_gmu = g_ground_mu;
   g_ge = g_ground_e;
   crash_surface_mu_e(crash_ground_material(), &g_gmu, &g_ge);
-  crash_set_contact_surface(crash_ground_material());
+  crash_set_ground_contact();
   plant_wing_set_on_wheels(0);
   for (int i = 0; i < SIM_WHEELS_MAX; i += 1) {
     g_wheel_load[i] = 0.0;
@@ -1052,7 +1062,14 @@ static void ground_apply(void) {
     for (int c = 0; c < nsamp; c += 1) {
       double r[3];
       contact_rotate(&samp[3 * c], r);
-      if (ground_hit_at(r, vs)) {
+      if (CRASH.hull_parts) {
+        crash_hint_sampler(c);
+      }
+      const int hit = ground_hit_at(r, vs);
+      if (CRASH.hull_parts) {
+        crash_hint_sampler(-1);
+      }
+      if (hit) {
         nuse += 1;
         hit_any[c] = 1;
       }
@@ -1123,6 +1140,9 @@ static void ground_apply(void) {
  * and cos, a fixed order of strips and floats.
  */
 static double g_float_diag[10];
+/* A buried deck's drag coefficient: a flat plate broadside, Hoerner's 1.17,
+ * less for the rounded deck edge. */
+#define FLOAT_BURY_CD 1.0
 
 static double float_keel(const FloatParams *fp, double x) {
   if (x > fp->x_knee) {
@@ -1328,6 +1348,26 @@ static void float_apply(void) {
         double Fw[3];
         float_to_world(fx, fy, fz, Fw);
         Fw[2] += fb + fr;
+        /* Crash physics: a bow driven under its own deck. The strip theory
+         * above caps a float's immersion at its deck, which is right for a
+         * float that floats and says nothing about one that has dived: the
+         * water then flows over the deck as well as under the keel, and
+         * that drag, low and far ahead of the CG, is what pitches a float
+         * plane over its bows (docs/FLOATS-STAGE1.md, nose dig, flagged).
+         * A plate's drag on the deck's strip, faded in over half a beam of
+         * burial. Only with the damage mode on, and only under the deck,
+         * which a float that floats and planes never is. */
+        if (SIM_DAMAGE && h * cz > cap) {
+          double bur = (h * cz - cap) / (0.5 * fp->beam);
+          if (bur > 1.0) {
+            bur = 1.0;
+          }
+          const double vm = sim_sqrt(vr[0] * vr[0] + vr[1] * vr[1] + vr[2] * vr[2]);
+          const double kb = -0.5 * rho * FLOAT_BURY_CD * fp->beam * dx * bur * vm;
+          Fw[0] += kb * vr[0];
+          Fw[1] += kb * vr[1];
+          Fw[2] += kb * vr[2];
+        }
         float_force(r, Fw);
         buoy += fb;
         xb += fb * x;
@@ -1432,8 +1472,8 @@ SIM_EXPORT int sim_contact(double nx, double ny, double nz,
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
    * side of the face. The impulse still sees the inbound velocity. */
-  crash_set_contact_surface(SIM_SURF_DEFAULT);
-  crash_batch_begin(&S);
+  crash_set_contact_surface(crash_obstacle_surface());
+  crash_batch_begin(&S, 0);
   contact_impulse(n, r, vs, restitution, mu, 0.0);
   crash_batch_end(&S);
   return SIM_OK;
@@ -1494,7 +1534,7 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   S.pos[0] = px;
   S.pos[1] = py;
   S.pos[2] = pz;
-  crash_set_contact_surface(g_contact_mat);
+  crash_set_contact_surface(g_contact_mat == SIM_SURF_DEFAULT ? crash_obstacle_surface() : g_contact_mat);
   g_contact_mat = SIM_SURF_DEFAULT;
   double r[3] = { rx, ry, rz };
   const double r2 = r[0] * r[0] + r[1] * r[1] + r[2] * r[2];
@@ -1507,7 +1547,7 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
    * side of the face. The impulse still sees the inbound velocity. */
-  crash_batch_begin(&S);
+  crash_batch_begin(&S, 0);
   contact_impulse(n, r, vs, restitution, mu, 0.0);
   crash_batch_end(&S);
   return SIM_OK;
@@ -1994,7 +2034,7 @@ SIM_EXPORT int sim_step(int n) {
     } else {
       plant_step(&S, duty);
     }
-    crash_batch_begin(&S);
+    crash_batch_begin(&S, 1);
     ground_apply();
     float_apply();
     crash_step(&S, g_ground_on && !g_stand_on, g_ground_n, g_ground_d);
