@@ -53,14 +53,15 @@ export const WATER_TIERS = {
  * its rock flour scattering light back out of it (the lake's body, set
  * so lake-high's water measures the hue of Brienz's in the village
  * photograph, 173 degrees), and it swallows red first (LAKE_ABSORB, per
- * metre); the stream the same water over a dark stony bed between banks
- * that shade it, which from the air is a dark line with white where it
- * runs fast, not a pale one. */
+ * metre); the stream the same milky water, greyer, over a dark stony bed
+ * between banks that shade it, which from the air is a dark teal line
+ * with white where it runs fast: not a pale one, and not the asphalt grey
+ * of the road beside it, which a near black body read as. */
 const LAKE_SHALLOW = new THREE.Color(0.07, 0.3, 0.22);
 const LAKE_BODY = new THREE.Color(0.028, 0.16, 0.13);
 const LAKE_DEEP = new THREE.Color(0.012, 0.09, 0.095);
 const LAKE_ABSORB = new THREE.Vector3(0.45, 0.07, 0.09);
-const STREAM_BODY = new THREE.Color(0.014, 0.032, 0.034);
+const STREAM_BODY = new THREE.Color(0.03, 0.08, 0.075);
 
 export async function buildWater(ctx) {
   const id = typeof ctx.quality === 'string' ? ctx.quality : ctx.quality?.id;
