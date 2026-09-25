@@ -675,6 +675,11 @@ export function createWreck() {
       }
     }
     if (changed) {
+      /* The craft was posed this frame and not yet drawn, so its meshes'
+       * world matrices are last frame's: a piece baked from them on a later
+       * break than the first sat a frame's travel off its part, 14 cm on a
+       * tumbling Skyhunter's aileron, standing in the grass. */
+      craft.updateMatrixWorld(true);
       if (!cut) {
         buildCut();
       }
@@ -767,7 +772,21 @@ export function createWreck() {
           }
         }
       }
-      out.push({ part: i, kind: table[i].kindName, tris, overhang: worst, mesh: where });
+      /* The lowest corner of the part's own hull box where the piece is
+       * drawn, world: what the plant rests on, for a check that a piece
+       * drawn in the ground is the plant's pose and not the drawing's. */
+      piece.updateMatrixWorld(true);
+      let low = null;
+      const lo = table[i].boxMin;
+      const hi = table[i].boxMax;
+      for (let k = 0; k < 8; k += 1) {
+        bodyToLocal([k & 1 ? hi[0] : lo[0], k & 2 ? hi[1] : lo[1], k & 4 ? hi[2] : lo[2]], vb)
+          .sub(origin).applyMatrix4(piece.matrixWorld);
+        if (!low || vb.y < low[1]) {
+          low = [vb.x, vb.y, vb.z];
+        }
+      }
+      out.push({ part: i, kind: table[i].kindName, tris, overhang: worst, mesh: where, hullLow: low });
     }
     return out;
   }
