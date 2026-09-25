@@ -2248,10 +2248,10 @@
      "confidence": "MED"
     },
     {
-     "metric": "impactSpeed",
+     "metric": "sinkRate",
      "min": 4.1,
      "max": 5.5,
-     "source": "R-CHUTE (4.1 to 4.6 m/s rated, 5.5 m/s floor)",
+     "source": "R-CHUTE (4.1 to 4.6 m/s rated, 5.5 m/s floor, rates of descent: the vertical speed at touchdown, not the wind's drift)",
      "confidence": "MED"
     },
     {

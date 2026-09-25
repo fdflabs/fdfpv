@@ -535,6 +535,10 @@ function outcomeOf(run) {
   const rs = M.restState ?? end;
   const vEnd = Math.hypot(rs[4], rs[5], rs[6]);
   o.impactSpeed = v0 / scale;
+  /* The descent at touchdown, what a parachute's rating means: in wind
+   * the craft also drifts with the air, which adds to its speed over the
+   * ground but not to the rate it comes down at. */
+  o.sinkRate = -s0[6] / scale;
   o.impactMs = M.impact.ms;
   /* The plant resolves a contact as an impulse inside one step, so this is
    * the velocity change over a millisecond: an upper bound on the real

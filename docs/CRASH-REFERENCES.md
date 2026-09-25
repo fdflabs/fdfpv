@@ -928,7 +928,7 @@ Radian are hand launched and the Bramor catapulted.
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustNotBreak | fuselage, wing, tail | R-CHUTE | MED |
-| impactSpeed | 4.1 to 5.5 | R-CHUTE (4.1 to 4.6 m/s rated, 5.5 m/s floor) | MED |
+| sinkRate | 4.1 to 5.5 | R-CHUTE (4.1 to 4.6 m/s rated, 5.5 m/s floor, rates of descent: the vertical speed at touchdown, not the wind's drift) | MED |
 | peakG | 10 to 40 | R-CHUTE | MED |
 | restDistM | 5 to 100 | R-CHUTE drag (dragged 5 to 100 m without a release above about 3 m/s of wind) | LOW |
 
