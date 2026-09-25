@@ -43,7 +43,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
-import { FIELD, SNOW_LINE, LAKE_Y } from '../../alps/terrain.js';
+import { FIELD, SNOW_LINE, LAKE_Y, valleyAxis } from '../../alps/terrain.js';
+import { ROAD_DX, ROAD_END } from './zones.js';
 import { assetUrl } from './atlas.js';
 import { DITHER_GLSL } from './plantmat.js';
 
@@ -219,6 +220,28 @@ export function waterStones({ heightAt, layout, rng, shore, keepClear }) {
       const z = s.z + Math.sin(s.a) * r + (brng() - 0.5) * 5;
       if (!keepClear(x, z) && heightAt(x, z) > LAKE_Y - 1.5) {
         out.push({ x, z, size: 1.2 + 1.6 * brng() * brng(), sink: 0.35 });
+      }
+    }
+  }
+  /* Cobbles the waves have sorted along the waterline, from the wash
+   * down into the shallows, where the water shows them: the shingle the
+   * ground paints stands up in them. Thickest on the north shore either
+   * side of the jetty, where the views stand; a lake's worth of them at
+   * that density would be a quarter of a million triangles from the air.
+   * Their own generator again. */
+  const crng = makeRng(20261002);
+  const jx = valleyAxis(ROAD_END) + ROAD_DX;
+  for (const s of shore) {
+    const north = Math.sin(s.a) < -0.3;
+    const n = Math.floor(crng() * (north ? 8 + 44 * (1 - smoothstep(60, 160, Math.abs(s.x - jx))) : 5));
+    for (let q = 0; q < n; q += 1) {
+      const along = (crng() - 0.5) * 22;
+      const r = (crng() - 0.6) * 7;
+      const x = s.x + Math.cos(s.a) * r - Math.sin(s.a) * along;
+      const z = s.z + Math.sin(s.a) * r + Math.cos(s.a) * along;
+      const y = heightAt(x, z);
+      if (!keepClear(x, z) && y > LAKE_Y - 0.8 && y < LAKE_Y + 0.6) {
+        out.push({ x, z, size: 0.16 + 0.3 * crng() * crng(), sink: 0.35 });
       }
     }
   }

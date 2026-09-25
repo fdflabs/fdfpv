@@ -656,6 +656,7 @@ const GROUND_PARS = /* glsl */ `
   uniform float uS2Rough[9];
   uniform float uS2Bump[9];
   uniform float uS2LakeY;
+  uniform float uS2Clock;
   ${CRAFT_GLSL}
   uniform float uS2Only;
   varying vec3 vS2WNormal;
@@ -792,6 +793,75 @@ const GROUND_PARS = /* glsl */ `
   float s2Stripes(float x, float fw) {
     float t = abs(fract(x) - 0.5) * 4.0 - 1.0;
     return clamp(t / max(2.0 * fw, 1e-3), -1.0, 1.0) * (1.0 - smoothstep(0.2, 0.4, fw));
+  }
+
+  /*
+   * Stones, a cell each of a jittered grid one unit across (Voronoi):
+   * which stone (its cell), how far the point is from the gap to the next
+   * one, and where the stone's middle is from the point, for the swell of
+   * its face.
+   */
+  struct S2Stone { vec2 id; float edge; vec2 mid; };
+  S2Stone s2Stone(vec2 q) {
+    vec2 i = floor(q);
+    vec2 f = fract(q);
+    float d1 = 8.0;
+    float d2 = 8.0;
+    S2Stone s;
+    s.id = i;
+    s.mid = vec2(0.0);
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 r = g + 0.1 + 0.8 * vec2(s2Hash(i + g), s2Hash(i + g + 17.3)) - f;
+        float d = dot(r, r);
+        if (d < d1) {
+          d2 = d1;
+          d1 = d;
+          s.id = i + g;
+          s.mid = r;
+        } else if (d < d2) {
+          d2 = d;
+        }
+      }
+    }
+    s.edge = sqrt(d2) - sqrt(d1);
+    return s;
+  }
+  /*
+   * The lake's shore up close. What made it a plain line from the water's
+   * edge was the gravel photograph at three metres a tile: one grey. A
+   * real alpine shore is stones of every colour the valley's rocks are,
+   * pale limestone, dark schist, rusty and greenish, pebbles with cobbles
+   * among them in drifts, sand in the gaps. Returns the albedo's
+   * multiplier in rgb and in a how much of it is stone, with the tilt
+   * of the stones' faces in tilt; px is the pixel's reach on the ground.
+   */
+  vec4 s2Shingle(vec2 xz, float px, out vec2 tilt) {
+    tilt = vec2(0.0);
+    /* Cobbles in drifts over the pebbles, darker than them; finer than a
+     * pixel, a layer is its average. */
+    float drift = smoothstep(0.45, 0.7, s2Noise(xz / 3.1 + 2.6));
+    vec3 tone = mix(vec3(0.74, 0.72, 0.68), vec3(0.58, 0.56, 0.53), drift) * (0.8 + 0.4 * s2Noise(xz / 1.1 + 4.2));
+    float keep = 0.0;
+    for (int k = 0; k < 2; k++) {
+      float cell = k == 0 ? 0.075 : 0.2;
+      float on = 1.0 - smoothstep(0.35, 0.9, px / cell);
+      if (on <= 0.0 || (k == 1 && drift <= 0.0)) {
+        continue;
+      }
+      S2Stone s = s2Stone(xz / cell + float(k) * 31.7);
+      float h = s2Hash(s.id + 3.1);
+      vec3 c = h < 0.35 ? vec3(1.05, 1.0, 0.92) : h < 0.6 ? vec3(0.4, 0.41, 0.44) : h < 0.8 ? vec3(0.85, 0.66, 0.5) : vec3(0.6, 0.67, 0.63);
+      c *= 0.7 + 0.45 * s2Hash(s.id + 8.8);
+      float gap = 1.0 - smoothstep(0.03, 0.16, s.edge);
+      float stone = k == 1 ? drift * step(0.3, s2Hash(s.id + 5.5)) * (1.0 - gap) : 1.0;
+      stone *= on;
+      tone = mix(tone, mix(c, vec3(0.42, 0.39, 0.35), gap), stone);
+      tilt = mix(tilt, -s.mid * cell * (1.0 - gap) * 5.0, stone);
+      keep = max(keep, stone);
+    }
+    return vec4(tone, keep);
   }
 
   /*
@@ -1037,6 +1107,7 @@ const GROUND_PARS = /* glsl */ `
     float rough = 0.0;
     float hsum = 0.0;
     float remaining = 1.0;
+    float shoreW = 0.0;
     float fade = 1.0 - 0.65 * smoothstep(60.0, 700.0, dist);
 
     /* Top layer first: what lies on top is laid first and takes its share,
@@ -1068,6 +1139,9 @@ const GROUND_PARS = /* glsl */ `
         continue;
       }
       remaining -= w;
+      if (k == 6) {
+        shoreW = w;
+      }
       vec3 col = textureGrad(uS2Col, vec3(uA * s, lk), dAx * s, dAy * s).rgb;
       if (pl.w.y > 0.0) {
         col = mix(col, textureGrad(uS2Col, vec3(uB * s, lk), dBx * s, dBy * s).rgb, pl.w.y);
@@ -1163,17 +1237,47 @@ const GROUND_PARS = /* glsl */ `
     /* And the drip line itself wet and dark, not a raked path. */
     albedo *= mix(1.0, 0.6, drip);
 
-    /* The wet line along the shore and the bed going dark under water. */
-    float wet = 1.0 - smoothstep(uS2LakeY + 0.2, uS2LakeY + 1.1, p.y);
-    albedo *= 1.0 - 0.35 * wet;
-    rough = mix(rough, 0.35, wet * 0.8);
+    /* The shore's stones, on the beach and on through the shallows,
+     * where the ripples bend the bed to and fro. */
+    float under = max(uS2LakeY - p.y, 0.0);
+    vec2 stoneTilt = vec2(0.0);
+    if (shoreW > 0.01 && dist < 120.0) {
+      vec2 bend = 0.025 * smoothstep(0.0, 0.3, under) * (vec2(s2Noise(p.xz * 2.1 + uS2Clock * 0.9), s2Noise(p.xz * 2.3 + 7.3 - uS2Clock * 0.8)) - 0.5);
+      float pxS = sqrt(length(dpx) * length(dpy));
+      vec4 sh = s2Shingle(p.xz + bend, pxS, stoneTilt);
+      albedo *= mix(vec3(1.0), sh.rgb, shoreW);
+      stoneTilt *= shoreW;
+      /* The light the ripples focus on the bed: a moving web, brightest
+       * a metre down and gone by a few. */
+      vec2 cq = p.xz * 1.6;
+      float c1 = s2Noise(cq + uS2Clock * vec2(0.23, 0.11));
+      float c2 = s2Noise(cq * 1.37 + vec2(5.2, 1.3) - uS2Clock * vec2(0.13, -0.21));
+      float web = pow(1.0 - abs(c1 - c2), 10.0) * (1.0 - smoothstep(0.1, 0.35, pxS));
+      albedo *= 1.0 + 1.4 * web * smoothstep(0.03, 0.25, under) * (1.0 - smoothstep(1.2, 3.5, under));
+    }
+    /* Above the water the stones the waves wash are dark and glossy to a
+     * line that wanders with them, with a wrack of twigs and weed along
+     * it; over that the beach is dry, damp only in a band. */
+    float washTop = uS2LakeY + 0.16 + 0.12 * s2Noise(p.xz / 2.3 + 1.7) + 0.04 * s2Noise(p.xz / 0.4 + 3.3);
+    float pxY = abs(dpx.y) + abs(dpy.y) + 1e-3;
+    float washed = (1.0 - smoothstep(washTop - 0.5 * pxY, washTop + 0.5 * pxY + 0.01, p.y)) * step(uS2LakeY, p.y);
+    float wrack = (1.0 - smoothstep(0.012, 0.012 + pxY, abs(p.y - washTop - 0.025))) * smoothstep(0.35, 0.6, s2Noise(p.xz / 1.3 + 9.1));
+    float damp = 1.0 - smoothstep(uS2LakeY + 0.2, uS2LakeY + 1.1, p.y);
+    albedo *= 1.0 - 0.15 * damp;
+    /* The waterline whatever the ground is there (the shore path runs
+     * down to it too). */
+    float edgeW = max(shoreW, step(${(LAKE_N - 60).toFixed(1)}, p.z) * inside * (1.0 - smoothstep(uS2LakeY + 0.3, uS2LakeY + 0.8, p.y)));
+    albedo *= mix(1.0, 0.45, washed * edgeW);
+    albedo *= mix(1.0, 0.8, step(p.y, uS2LakeY) * edgeW);
+    albedo = mix(albedo, vec3(0.05, 0.04, 0.03), 0.7 * wrack * edgeW);
+    rough = mix(rough, 0.35, damp * 0.6);
+    rough = mix(rough, 0.3, washed * edgeW);
     /* Seen through the water, the bed loses its red first: light gravel
      * a metre down is the turquoise of a glacier lake, and it goes to
      * blue green and dark with depth. Down and back up, per metre. */
-    float under = max(uS2LakeY - p.y, 0.0);
     albedo *= exp(-under * vec3(0.9, 0.2, 0.14));
 
-    vec3 outN = normalize(normalize(wnormal + n * 1e-4) + field.tilt * farm);
+    vec3 outN = normalize(normalize(wnormal + n * 1e-4) + field.tilt * farm + vec3(stoneTilt.x, 0.0, stoneTilt.y));
 
     S2Ground g;
     g.albedo = albedo;
@@ -1210,13 +1314,14 @@ const GROUND_PARS = /* glsl */ `
  * LAYERS, wherever the material is (a boulder is rock, a drift is snow);
  * `strip` is the strip's plane, which lies over the ground and is not
  * raised with the far crests (the airfield's grass is s2Air's, by where
- * it is). `craft` is craftUniforms' pair. `lit` is light.js's injector:
- * the ground is lit the same way everything else in swiss2 is,
+ * it is). `craft` is craftUniforms' pair, `clock` the seconds the lake's
+ * bed shimmers by. `lit` is light.js's injector: the ground is lit the
+ * same way everything else in swiss2 is,
  * and its declarations land ahead of the splat's, so vS2World is declared
  * by the time the splat reads it.
  */
 export function groundMaterial({
-  arrays, zones, path, walls, lit, craft = craftUniforms(), only = -1, strip = 0,
+  arrays, zones, path, walls, lit, craft = craftUniforms(), clock = { value: 0 }, only = -1, strip = 0,
 }) {
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
   const uniforms = {
@@ -1232,6 +1337,7 @@ export function groundMaterial({
     uS2Rough: { value: ROUGH },
     uS2Bump: { value: BUMP },
     uS2LakeY: { value: LAKE_Y },
+    uS2Clock: clock,
     uS2Only: { value: only },
     uS2Ridge: { value: only < 0 && !strip ? 1 : 0 },
     ...craft,

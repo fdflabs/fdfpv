@@ -232,8 +232,11 @@ function photoStyle() {
       own(masks.walls.value);
       /* Where the flown craft rests, for the grass and ground under it. */
       const craft = craftUniforms();
+      /* Seconds since the valley was first drawn, for the light on the
+       * lake's bed. */
+      const groundClock = { value: 0 };
       const ground = (opts) => groundMaterial({
-        arrays, zones: masks.zones, path: masks.path, walls: masks.walls, lit, craft, ...opts,
+        arrays, zones: masks.zones, path: masks.path, walls: masks.walls, lit, craft, clock: groundClock, ...opts,
       });
       const heights = { texture: { value: null }, grid: { value: new THREE.Vector3(HALF, CELL, CELLS + 1) } };
       style.look = makePhotoLook({ surfaces, ground, heights });
@@ -253,6 +256,7 @@ function photoStyle() {
         sun,
         masks,
         craft,
+        groundClock,
         heights,
         ground,
         envTarget,
@@ -365,6 +369,7 @@ function photoStyle() {
           first ??= t;
           stage.lit.setClock(t - first);
           style.clouds.setClock(t - first);
+          stage.groundClock.value = t - first;
           if (stage.veg) {
             stage.veg.update(dtMs, camera);
             stage.props.update(camera);
