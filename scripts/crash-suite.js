@@ -456,6 +456,11 @@ async function fly(sc) {
     if (wet) {
       kinds.push('water');
     }
+    /* A solid the plant knows (a pole, a trunk) is met by the plant
+     * itself since round 5 (#73), with no host contact call to date it by. */
+    if (sim.e.sim_obstacle_contacts && sim.e.sim_obstacle_contacts() > 0) {
+      kinds.push('obstacle');
+    }
     /* Inside a crown the plant holds: the tree's contact is the drag of
      * its twigs, which no counter above sees. */
     if (sim.e.sim_damage_flags() & DAMAGE_FLAGS.inTree) {
