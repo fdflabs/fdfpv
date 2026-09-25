@@ -320,6 +320,7 @@ function photoStyle() {
             stage.cliffs.dispose();
           }
           envTarget.dispose();
+          lit.dispose();
           style.clouds.dispose();
           for (const t of owned) {
             t.dispose();
@@ -418,6 +419,7 @@ function photoStyle() {
           last = t;
           first ??= t;
           stage.lit.setClock(t - first);
+          stage.lit.update(stage.renderer);
           style.clouds.setClock(t - first);
           stage.groundClock.value = t - first;
           if (stage.veg) {
