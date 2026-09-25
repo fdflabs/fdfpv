@@ -675,11 +675,21 @@ static void ground_settle(double upz, double vn_plant) {
     vn = 0.0;
   }
 
+  /* The stops below hold a slow hull still outright. That is static
+   * friction only while nothing but gravity pulls along the ground, and
+   * for a quad on its back, whose props dig in. A wind is a sustained pull
+   * on a wing at rest, a canopy's above all: past the grass's static limit
+   * it must slide however slowly it starts, and a stop would zero it every
+   * step. So in wind a wing's ground contact is Coulomb all the way down,
+   * the friction below and the corners' own. Without wind nothing changes,
+   * bit identical. */
+  const int coulomb = SIM_WIND_ON && PLANT.kind == PLANT_KIND_WING;
+
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.
    * A live flip whose lowest corner just entered that halo must keep
    * vel and omega until it actually hits. */
-  if (upz < CONTACT_INVERT_UPZ) {
+  if (upz < CONTACT_INVERT_UPZ && !coulomb) {
     const int touching = g_ground_hits || g_ground_projected;
     const int seated_halo = g_ground_near
         && upz < CONTACT_INVERT_HALO_UPZ
@@ -729,8 +739,14 @@ static void ground_settle(double upz, double vn_plant) {
   if (PLANT.kind == PLANT_KIND_WING && !(upz >= CONTACT_WING_REST_UPZ)) {
     return;
   }
+  /* The corners that took an impulse this step carried their own friction
+   * against the load they took; this one again would count the ground
+   * twice, which in wind held a canopy's pull at twice the grass's grip. */
+  if (coulomb && g_ground_hits) {
+    return;
+  }
   const double vt2 = vtx * vtx + vty * vty + vtz * vtz;
-  if (vt2 < CONTACT_SLIDE_STOP * CONTACT_SLIDE_STOP) {
+  if (vt2 < CONTACT_SLIDE_STOP * CONTACT_SLIDE_STOP && !coulomb) {
     S.vel[0] = nx * vn;
     S.vel[1] = ny * vn;
     S.vel[2] = nz * vn;

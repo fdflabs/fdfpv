@@ -507,7 +507,9 @@ double sim_air_lift(double x, double y, double z);
  * out of range. A world property, not state: kept across sim_reset and
  * sim_init, like the water; sim_set_wind(0, 0, 0) is still air, the
  * default, and then no step reads any of it, so every flight without wind
- * is bit identical to one from before it existed.
+ * is bit identical to one from before it existed. In wind a plane on the
+ * ground holds by Coulomb friction alone, with no stop for a slow slide,
+ * so a pull past the ground's grip, its canopy's above all, drags it.
  * sim_wind(out[2]): the wind acting now, at the current step, m/s world x
  * and y, gusts included. SIM_ERR_BAD_ARG for a null pointer.
  * Additive, version unchanged.

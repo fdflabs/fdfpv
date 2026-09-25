@@ -189,6 +189,34 @@ console.log('6. the gear: rolling resistance by surface, and the brake');
   const sim = await fresh(4);
   check('sim_set_brake refuses a value past 0 to 1, and NaN',
     sim.e.sim_set_brake(1.01) !== SIM_OK && sim.e.sim_set_brake(-0.01) !== SIM_OK && sim.e.sim_set_brake(NaN) !== SIM_OK);
+
+  /* The Bramor lying on its back on the grass under its open canopy, as a
+   * chute landing leaves it: the wind's pull on the canopy (about 100 N
+   * at 10 m/s) is past what the grass holds (mu 1.40 of 44 N), so it is
+   * dragged, with the damage mode on or off; in still air it stays put. */
+  const dragged = async (wind, damage) => {
+    const sim = await fresh(8);
+    must(sim.e.sim_set_damage(damage), 'damage');
+    must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'ground');
+    must(sim.e.sim_set_ground_material(SURFACE.grass), 'material');
+    must(sim.e.sim_set_wind(wind, 0, 0), 'wind');
+    must(sim.e.sim_set_pose(0, 0, 0.26, 0, 0, 1, 0), 'pose');
+    must(sim.rest(), 'rest');
+    must(sim.e.sim_wing_chute(1), 'chute');
+    for (let ms = 0; ms < 6000; ms += 4) {
+      must(sim.input(ms / 1000, 0, 0, 0, 0), 'input');
+      must(sim.step(4), 'step');
+    }
+    const s = sim.readState().state;
+    must(sim.e.sim_set_wind(0, 0, 0), 'still');
+    return s;
+  };
+  const pulled = await dragged(10, 1);
+  const pulledOff = await dragged(10, 0);
+  const still = await dragged(0, 1);
+  check('the canopy in a 10 m/s wind drags the Bramor over the grass, and still air leaves it',
+    pulled[1] > 5 && pulledOff[1] > 5 && Math.abs(still[1]) < 0.05,
+    `damage on ${pulled[1].toFixed(2)} m, off ${pulledOff[1].toFixed(2)} m, still air ${still[1].toFixed(3)} m`);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
