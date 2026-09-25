@@ -266,3 +266,22 @@ the air is an owner decision before two scenarios can be flown at all.
   bit identical; it unblocks the float capsize and the Bramor's chute
   drag, and later the Timber's short landings and the floats'
   weathervaning.
+
+### Phase A progress and decisions (2026-09-25)
+
+The suite (#46) and the core (#48) are merged; the shell and look agent
+is building against the core's readback ABI; the moving water (#47) is
+being rebased onto the core.
+
+Decision on contact duration: the core could give only damaging
+contacts a duration, because giving every contact one would change every
+existing gate. The rule is refined: **with damage OFF every flight is
+byte identical to before the crash work** (proved by
+scripts/crash-identity.js across 24 scripts); **with damage ON, every
+contact may have its physical duration and crush**, because that is
+what makes loads real, and damage on gets its own expectations in the
+crash suite rather than borrowing the rigid hull's. The two rigid hull
+self tests keep running with damage off, as they do now.
+
+Decision on the floats' stopped prop tips dipping into a swell with
+damage on: kept, it is a real contact.
