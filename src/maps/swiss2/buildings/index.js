@@ -26,13 +26,23 @@
 import { chalet, barn, farmhouse, gasthof, shop, church } from './houses.js';
 import { hangar } from './hangar.js';
 import { makeBakeAll } from './bake.js';
+import { furnish } from '../village/index.js';
 
 /* A log is wider than the boards the photograph shows: the log walls'
  * texture is stretched to about eighteen centimetres a course. */
 const LOG_UV = 0.72;
 
-/* What alps/village.js takes from a style's look.buildings. */
+/* What alps/village.js takes from a style's look.buildings. furnish()
+ * leaves the village's layout on the hook for the people who walk it
+ * (village/people.js), who are placed after the village is built. */
 export function swissBuildings(look) {
   const uv = { larchDark: LOG_UV, larch: LOG_UV, honey: LOG_UV, weathered: LOG_UV };
-  return { chalet, barn, farmhouse, gasthof, shop, church, hangar, bakeAll: makeBakeAll(look, uv) };
+  const hook = {
+    chalet, barn, farmhouse, gasthof, shop, church, hangar, bakeAll: makeBakeAll(look, uv),
+    layout: null,
+    furnish(ctx) {
+      hook.layout = furnish(ctx);
+    },
+  };
+  return hook;
 }

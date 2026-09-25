@@ -194,9 +194,11 @@ export async function buildVillage(ctx) {
   streetRun(bx - span.ext.hw - 0.1, squareEast + 0.1);
   /* No pole near the bridge, and none within forty metres of the
    * strip's centreline: the street is under the approach. */
+  const streetPoles = [];
   for (let x = 120; x >= -160; x -= 35) {
     if (Math.abs(x - bx) > 6 && Math.abs(x) > 40) {
       pole(x, STREET_Z - 4.5);
+      streetPoles.push({ x, z: STREET_Z - 4.5 });
     }
   }
   /* The village's name at the junction, the limit a little in, and the
@@ -217,8 +219,10 @@ export async function buildVillage(ctx) {
    */
   bake.push('cobble', new THREE.BoxGeometry(SQUARE.w, 0.06, SQUARE.d), SQUARE.x, onGround(SQUARE.x, SQUARE.z) + 0.03, SQUARE.z);
   place((f) => fountain(f), SQUARE.x + 2, SQUARE.z, 0, 2.6, 2.6);
+  const benches = [];
   for (const [dx, dz, ry] of [[-6, -6, -Math.PI / 4], [-6, 6, -3 * Math.PI / 4], [8, -6, Math.PI / 4], [8, 6, 3 * Math.PI / 4]]) {
     bench(frame(bake, SQUARE.x + 2 + dx, onGround(SQUARE.x, SQUARE.z) + 0.06, SQUARE.z + dz, ry));
+    benches.push({ x: SQUARE.x + 2 + dx, z: SQUARE.z + dz, ry });
   }
   place((f) => busShelter(f), squareEast + 7, STREET_Z + 6.5, Math.PI, 2.4, 1.3);
   place((f, found) => kit.gasthof(f, rng, { found }), SQUARE.x, SQUARE.z - 23, -Math.PI / 2, 7.5, 8.5);
@@ -394,6 +398,13 @@ export async function buildVillage(ctx) {
     bake.push('paint', new THREE.BoxGeometry(STRIP_W - 2, 0.03, 0.6), 0, STRIP_Y - villageY + 0.035, end * (STRIP_L / 2 - 2));
   }
 
+  /* A style may furnish what it built before the bake is merged (swiss2
+   * lays its gardens and the square's clutter, src/maps/swiss2/village/),
+   * drawing nothing from the village's rng. The cel look has no furnish. */
+  kit.furnish?.({
+    bake, onGround, villageY, colliders, road, valleyAxis, square: SQUARE, streetZ: STREET_Z,
+    bridgeX: bx, lanes: { north: LANE_N, south: LANE_S }, streetPoles, benches,
+  });
   const villageGroup = kit.bakeAll(bake, mats);
   villageGroup.position.y = villageY;
   scene.add(villageGroup);

@@ -350,6 +350,27 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     /* A solar panel is glass over near black cells: smooth, a little
      * blue, the sky in it at a glance. */
     solar: { group: 'plain', tint: [0.012, 0.016, 0.03], rough: 0.18, metal: 0.2 },
+    /* The village's furniture (src/maps/swiss2/village/): the municipal
+     * iron, the café's canvas, the flag, the gardens and the washing,
+     * the yellow of the hiking signs and the post, rain on the paving. */
+    castIron: { group: 'plain', tint: [0.018, 0.028, 0.022], rough: 0.5, metal: 0.5 },
+    lanternGlass: { group: 'plain', tint: [0.55, 0.53, 0.46], rough: 0.15 },
+    flagRed: { group: 'plain', tint: [0.6, 0.012, 0.016], rough: 0.85 },
+    canvas: { group: 'plain', tint: [0.64, 0.6, 0.52], rough: 0.9 },
+    canvasRed: { group: 'plain', tint: [0.4, 0.03, 0.03], rough: 0.9 },
+    clothWhite: { group: 'plain', tint: [0.7, 0.7, 0.68], rough: 0.95 },
+    clothBlue: { group: 'plain', tint: [0.07, 0.14, 0.34], rough: 0.95 },
+    clothRose: { group: 'plain', tint: [0.62, 0.3, 0.33], rough: 0.95 },
+    clothYellow: { group: 'plain', tint: [0.7, 0.55, 0.14], rough: 0.95 },
+    fenceWhite: { group: 'boards', tint: [2.2, 2.2, 2.15], normal: 0.4, weather: 'wall', grey: 0.2 },
+    hikeYellow: { group: 'plain', tint: [0.78, 0.5, 0.0], rough: 0.45 },
+    postYellow: { group: 'plain', tint: [0.85, 0.58, 0.0], rough: 0.35, metal: 0.1 },
+    bikeTeal: { group: 'plain', tint: [0.02, 0.2, 0.2], rough: 0.35, metal: 0.3 },
+    soil: { group: 'gravel', tint: [0.3, 0.21, 0.15] },
+    pathGravel: { group: 'gravel', tint: [0.66, 0.6, 0.52], weather: 'paving' },
+    lettuce: { group: 'plain', tint: [0.1, 0.22, 0.035], rough: 0.7 },
+    cabbage: { group: 'plain', tint: [0.06, 0.12, 0.085], rough: 0.55 },
+    puddle: { group: 'plain', tint: [0.03, 0.031, 0.033], rough: 0.03 },
     shade: { group: 'plain', tint: [0.014, 0.012, 0.01], rough: 0.9 },
     metal: { group: 'plain', tint: [0.55, 0.56, 0.57], rough: 0.42, metal: 0.9 },
     ink: { group: 'plain', tint: [0.03, 0.03, 0.035], rough: 0.5, metal: 0.6 },
