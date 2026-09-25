@@ -9,14 +9,17 @@
  * than moving one: moving a camera would make the before and after
  * pictures of different things.
  *
- *     SIM_GPU=1 node scripts/swiss2-views.js OUT_DIR
+ *     SIM_GPU=1 node scripts/swiss2-views.js OUT_DIR [--waves]
  *
  * Writes OUT_DIR/<view>.png and OUT_DIR/stats.json (draw calls,
  * triangles and the median frame time in each view, and which reference
  * photograph each is judged against). Needs the real GPU: the default
  * CPU rasteriser cannot judge a photoreal look, and its frame times mean
  * nothing. The page's board client calls a local board; run one or the
- * console errors fail the run (see scripts/posters.js).
+ * console errors fail the run (see scripts/posters.js). --waves declares
+ * the lake's water and hands its waves to the map before the first view
+ * (window.__wavesOn), so the lake is shot as a pilot on it sees it; the
+ * loop's rounds were shot without, on still water.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -102,12 +105,14 @@ const FRAME_MS = '(() => new Promise((done) => { const t = []; let last = perfor
   + ' else { t.shift(); t.sort((a, b) => a - b); window.__frameMs = t[30]; done(); } };'
   + ' requestAnimationFrame(tick); }))()';
 
-const outDir = resolve(process.argv[2] || join(root, 'tmp', 'swiss2-views'));
+const waves = process.argv.includes('--waves');
+const outDir = resolve(process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'tmp', 'swiss2-views'));
 await mkdir(outDir, { recursive: true });
 
 const steps = [
   'until:window.__map && window.__map().id === "swiss2" && window.__map().ready',
   'eval:(document.getElementById("ui").style.display = "none", "")',
+  ...(waves ? ['expect:window.__wavesOn()'] : []),
   'wait:2500',
 ];
 for (const v of VIEWS) {

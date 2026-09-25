@@ -13,7 +13,7 @@
  * which throws for anything else, so a shell cannot pick it up by
  * accident.
  *
- * THE GLSL PORT, for the rendering work that follows: upload the numbers
+ * THE GLSL PORT, which src/render/lakewaves.js is: upload the numbers
  * sim_water_components returns (per component a, kx, ky, omega, phase,
  * and the body's z0 and origin) as uniforms, in the plant's world frame,
  * which is the map's frame turned by the spawn yaw and moved to the

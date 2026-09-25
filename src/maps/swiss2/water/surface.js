@@ -57,6 +57,7 @@
  */
 
 import * as THREE from 'three';
+import { WAVE_VERTEX_DECL, WAVE_VERTEX, WAVE_FRAGMENT_DECL } from '../../../render/lakewaves.js';
 
 /* How far light seen at a point on the surface travels through the
  * water, per metre of depth, over what it travels looking straight down:
@@ -110,6 +111,7 @@ export function bedMaterial(options, absorb) {
 export function waterMaterial({
   waves, time, wind, flow = false, colour, shallow = colour, deep = colour, clarity = 0.4, ripple = 1, roughness = 0.04,
   planar = null, foamAt = null, envMap = null, shoreFoam = 1, width = 4, boat = null, inflow = null,
+  field = null, patch = null,
 }) {
   const mat = new THREE.MeshStandardMaterial({
     color: colour,
@@ -137,14 +139,42 @@ export function waterMaterial({
     uBedPass: { value: 0 },
     uBoat: boat ?? { value: new THREE.Vector4() },
     uInflow: { value: inflow ? inflow.clone() : new THREE.Vector4() },
+    uWaveRes: { value: 5 },
+    uDepth: { value: patch ? patch.texture : null },
+    uDepthGrid: { value: patch ? patch.grid : new THREE.Vector4() },
   };
+  if (field) {
+    Object.assign(uniforms, field.uniforms);
+  }
   mat.userData.water = uniforms;
-  const defines = `${flow ? '#define WATER_FLOW\n' : ''}${planar ? '#define WATER_PLANAR\n' : ''}`;
+  const defines = `${flow ? '#define WATER_FLOW\n' : ''}${planar ? '#define WATER_PLANAR\n' : ''}`
+    + `${field ? '#define WATER_WAVES\n' : ''}${patch ? '#define WAVE_PATCH\n' : ''}${field && !patch ? '#define WAVE_HOLE\n' : ''}`;
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `${defines}#include <common>
-        attribute vec4 aWater;
+        #ifdef WATER_WAVES
+          ${WAVE_VERTEX_DECL}
+        #endif
+        #ifdef WAVE_PATCH
+          /* The patch has no depth of its own: the lake's grid's, from
+           * lakeGeometry, bilinear as the grid's cells are nearly. */
+          uniform sampler2D uDepth;
+          uniform vec4 uDepthGrid;
+          float lakeDepth(vec2 p) {
+            ivec2 n = textureSize(uDepth, 0);
+            vec2 g = clamp((p - uDepthGrid.xy) * uDepthGrid.z, vec2(0.0), vec2(n - 1) - 1e-3);
+            ivec2 i = ivec2(floor(g));
+            vec2 f = g - vec2(i);
+            float a = texelFetch(uDepth, i, 0).r;
+            float b = texelFetch(uDepth, i + ivec2(1, 0), 0).r;
+            float c = texelFetch(uDepth, i + ivec2(0, 1), 0).r;
+            float d = texelFetch(uDepth, i + ivec2(1, 1), 0).r;
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+          }
+        #else
+          attribute vec4 aWater;
+        #endif
         #ifdef WATER_FLOW
           attribute vec2 aFlow;
           varying vec2 vFlow;
@@ -153,10 +183,18 @@ export function waterMaterial({
         varying vec4 vWater;
         varying vec3 vWaterWorld;
         varying vec4 vReflCoord;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        #ifdef WATER_WAVES
+          ${WAVE_VERTEX}
+        #endif`)
       .replace('#include <project_vertex>', `#include <project_vertex>
         vec4 waterWorld = modelMatrix * vec4(transformed, 1.0);
         vWaterWorld = waterWorld.xyz;
-        vWater = aWater;
+        #ifdef WAVE_PATCH
+          vWater = vec4(lakeDepth(waterWorld.xz), 0.0, 0.0, 0.0);
+        #else
+          vWater = aWater;
+        #endif
         vReflCoord = uReflMatrix * waterWorld;
         #ifdef WATER_FLOW
           vFlow = aFlow;
@@ -184,12 +222,32 @@ export function waterMaterial({
         #ifdef WATER_FLOW
           varying vec2 vFlow;
         #endif
+        #ifdef WATER_WAVES
+          ${WAVE_FRAGMENT_DECL}
+        #endif
         ${WATER_PATH}
         vec2 waveSlope(vec2 uv) {
           vec3 n = texture2D(uWaves, uv).xyz * 2.0 - 1.0;
           return n.xy / max(n.z, 0.2);
         }`)
+      .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+        #ifdef WAVE_HOLE
+          if (waveUnderPatch()) {
+            discard;
+          }
+        #endif
+        #ifdef WAVE_PATCH
+          if (vWater.x < -0.5) {
+            discard;
+          }
+        #endif`)
       .replace('#include <map_fragment>', `
+        /* The plant's waves' slope here (docs/FLOATS-STAGE1.md), on top
+         * of the ripples too fine for it. */
+        vec2 wWave = vec2(0.0);
+        #ifdef WATER_WAVES
+          wWave = waveSlopeHere();
+        #endif
         if (uBedPass > 0.5) {
           float bedCos = abs(normalize(vWaterWorld - cameraPosition).y);
           vec3 bedT = exp(-uAbsorb * max(vWater.x, 0.0) * 2.0 * waterPath(vWaterWorld));
@@ -274,7 +332,7 @@ export function waterMaterial({
           /* Far water is smoother than near: a pixel there averages many
            * ripples, and the mirror image in it is sharper for it. */
           float far = smoothstep(40.0, 600.0, distance(cameraPosition, vWaterWorld));
-          wSlope = s * uRipple * mix(0.05, 1.0, windy) * (1.0 - 0.6 * far);
+          wSlope = s * uRipple * mix(0.05, 1.0, windy) * (1.0 - 0.6 * far) + wWave;
           wSheen = max(windy * (0.12 + 0.3 * far), wake * 0.7);
           float h = texture2D(uWaves, p / 2.9 + drift * 0.03).a;
           float shore = 1.0 - smoothstep(0.02, 0.3, vWater.x);
@@ -356,7 +414,7 @@ export function waterMaterial({
            * into a broad glade of sparks. directLight is the sun as the
            * light loop left it, the mountains' and clouds' shadow and
            * the cascades' in it. */
-          vec3 gN = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+          vec3 gN = normalize((viewMatrix * vec4(-wWave.x, 1.0, -wWave.y, 0.0)).xyz);
           vec3 gH = normalize(directLight.direction + geometryViewDir);
           float gNH = max(dot(gN, gH), 1e-3);
           float gS2 = mix(0.004, 0.034, wWindy);
@@ -413,6 +471,6 @@ export function waterMaterial({
         float wAlpha = clamp(max(cover, glint), 0.0, 1.0);
         gl_FragColor = vec4((totalDiffuse * cover + wSpec) / max(wAlpha, 1e-3), wAlpha);`);
   };
-  mat.customProgramCacheKey = () => `swiss2-water-${flow ? 'flow' : 'still'}-${planar ? 'planar' : 'env'}`;
+  mat.customProgramCacheKey = () => `swiss2-water-${flow ? 'flow' : 'still'}-${planar ? 'planar' : 'env'}-${field ? 'waves' : 'calm'}-${patch ? 'patch' : 'sheet'}`;
   return mat;
 }

@@ -84,6 +84,7 @@
     "floats:record": "node scripts/wing-record.js timberf",
     "floats:derive": "node scripts/floats-derive.js",
     "floats:shell": "node scripts/floats-shell.js",
+    "water:render": "node scripts/water-render.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",

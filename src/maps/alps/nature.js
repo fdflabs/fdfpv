@@ -39,6 +39,7 @@ import {
   FIELD, HALF, STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,
   TREE_LINE, SNOW_LINE, streamX, treeLine, forestDensity,
 } from './terrain.js';
+import { makeWaves, patchGeometry, placePatch, injectWaves, starLoops, outlineBox, probeSurface } from '../../render/lakewaves.js';
 
 /* Colliders and the fine detail stop here: further out the hillside is
  * the first thing a wing hits. */
@@ -397,23 +398,133 @@ export function natureSites(ctx) {
  * two and a half metres down for the shallows, silt seen through water,
  * and a fan over the deep middle to darken it. The rings are sheets that
  * do not write depth, so the ink pass draws the shore once, from the
- * body. Returns the water's material, which the pool shares. */
+ * body. Returns the water's material, which the pool shares, and the
+ * waves' hook (lakeWaves). */
 export function buildLake(ctx, sites) {
   const { scene, look } = ctx;
   const { lakeCx, lakeCz, shore, wet, shallow, deep } = sites;
-  const waterMat = look.material('lake', { color: 0x3b6d8c, rim: 0.38, rimColor: 0xdfeeff, transparent: true, opacity: 0.9 });
-  const sheet = (name, color, opacity) => {
-    const m = look.material(name, { color, rim: 0.2, rimColor: 0xdfeeff, transparent: true, opacity });
+  const bodyOpts = { color: 0x3b6d8c, rim: 0.38, rimColor: 0xdfeeff, transparent: true, opacity: 0.9 };
+  const waterMat = look.material('lake', bodyOpts);
+  const sheetOpts = (color, opacity) => ({ color, rim: 0.2, rimColor: 0xdfeeff, transparent: true, opacity });
+  const sheet = (name, opts) => {
+    const m = look.material(name, opts);
     m.depthWrite = false;
     return m;
   };
   const lake = new THREE.Mesh(fan(lakeCx, lakeCz, shore, LAKE_Y), waterMat);
   lake.name = 'lake';
   scene.add(lake);
-  scene.add(new THREE.Mesh(ring(shore, wet, LAKE_Y + 0.035), sheet('lake-wet', 0xd6e6ec, 0.75)));
-  scene.add(new THREE.Mesh(ring(wet, shallow, LAKE_Y + 0.025), sheet('lake-shallow', 0x79ad9c, 0.5)));
-  scene.add(new THREE.Mesh(fan(lakeCx, lakeCz, deep, LAKE_Y + 0.015), sheet('lake-deep', 0x2a4f70, 0.5)));
-  return waterMat;
+  /* Each sheet with the loops it lies between (rows of starLoops below,
+   * -1 for none) and its lift over the water, for the waves. */
+  const layers = [{ mesh: lake, name: 'lake', opts: bodyOpts, outer: 0, inner: -1, lift: 0 }];
+  for (const [name, color, opacity, outer, inner, lift, geo] of [
+    ['lake-wet', 0xd6e6ec, 0.75, 0, 1, 0.035, ring(shore, wet, LAKE_Y + 0.035)],
+    ['lake-shallow', 0x79ad9c, 0.5, 1, 2, 0.025, ring(wet, shallow, LAKE_Y + 0.025)],
+    ['lake-deep', 0x2a4f70, 0.5, 3, -1, 0.015, fan(lakeCx, lakeCz, deep, LAKE_Y + 0.015)],
+  ]) {
+    const opts = sheetOpts(color, opacity);
+    const mesh = new THREE.Mesh(geo, sheet(name, opts));
+    scene.add(mesh);
+    layers.push({ mesh, name, opts, outer, inner, lift });
+  }
+  return { waterMat, waves: lakeWaves(ctx, sites, layers) };
+}
+
+/*
+ * THE LAKE'S WAVES, the plant's (src/render/lakewaves.js), when the shell
+ * declares them: nothing is built or changed until it does, so the valley
+ * with still water is the valley as it was, to the scene's fingerprint.
+ * Then each sheet is drawn over again on the dense patch near the
+ * aircraft or the camera, in its own look, cut to the part of the patch
+ * its own fan or ring covers, and the sheets themselves cut a hole there;
+ * all of them take the waves' slope for their light. The patch's sheets
+ * are drawn first of everything see through, in the sheets' own order,
+ * as the lake's are, whatever their distance.
+ */
+function lakeWaves(ctx, sites, layers) {
+  const { lakeCx, lakeCz, shore, wet, shallow, deep } = sites;
+  const centre = { x: lakeCx, z: lakeCz };
+  const box = outlineBox(shore, 10);
+  let built = null;
+  const build = () => {
+    const waves = makeWaves();
+    const star = starLoops(centre, [shore, wet, shallow, deep]);
+    const geo = patchGeometry();
+    const near = new THREE.Group();
+    near.name = 'lake-near';
+    near.renderOrder = -1;
+    const patches = layers.map((l, k) => {
+      injectWaves(l.mesh.material, waves, { hole: true, res: 1000 });
+      const mat = ctx.look.material(`${l.name}-near`, l.opts);
+      mat.depthWrite = l.mesh.material.depthWrite;
+      injectWaves(mat, waves, { patch: true, clip: { ...star, outer: l.outer, inner: l.inner } });
+      const m = new THREE.Mesh(geo, mat);
+      m.name = `${l.name}-near`;
+      m.renderOrder = k;
+      m.userData.waveLift = l.lift;
+      m.userData.zone = [l.outer, l.inner];
+      near.add(m);
+      return m;
+    });
+    /* How far out each loop reaches, least and most, so a sheet whose
+     * zone the patch does not touch is not drawn. */
+    const reach = [shore, wet, shallow, deep].map((loop) => {
+      const r = loop.map((p) => Math.hypot(p.x - lakeCx, p.z - lakeCz));
+      return [Math.min(...r), Math.max(...r)];
+    });
+    ctx.scene.add(near);
+    layers[0].mesh.userData.waveRes = 1000;
+    return { waves, patches, reach, near, star, geo };
+  };
+  return {
+    setWaves(bodies) {
+      let best = null;
+      for (const b of bodies || []) {
+        if (!best || Math.hypot(b.ox - lakeCx, b.oz - lakeCz) < Math.hypot(best.ox - lakeCx, best.oz - lakeCz)) {
+          best = b;
+        }
+      }
+      if (!best && !built) {
+        return;
+      }
+      built ??= build();
+      built.waves.set(best);
+    },
+    updateWaves(t, craft) {
+      if (!built) {
+        return;
+      }
+      const { waves, patches, reach } = built;
+      waves.tick(t);
+      const onLake = craft && waves.body && Math.abs(craft.position.y - waves.body.y0) < 10 ? craft.position : null;
+      if (placePatch(waves, patches, ctx.camera, onLake, box)) {
+        const u = waves.uniforms.uPatch.value;
+        const d = Math.hypot(u.x - lakeCx, u.y - lakeCz);
+        const r = u.w * Math.SQRT2;
+        for (const m of patches) {
+          const [outer, inner] = m.userData.zone;
+          m.visible = d - r < reach[outer][1] && (inner < 0 || d + r > reach[inner][0]);
+        }
+      }
+    },
+    /* What the scene's own disposal cannot find: the zones' texture is a
+     * uniform of a material three does not list. The rest goes with the
+     * scene. */
+    dispose() {
+      if (built) {
+        built.star.texture.dispose();
+      }
+    },
+    probeWater(x, z) {
+      if (!built || !built.waves.body) {
+        return null;
+      }
+      const u = built.waves.uniforms.uPatch.value;
+      const inPatch = u.w > 0 && Math.max(Math.abs(x - u.x), Math.abs(z - u.y)) < u.w;
+      const mesh = inPatch ? built.patches[0] : layers[0].mesh;
+      return { y: probeSurface(ctx.renderer, mesh, built.waves, x, z), patch: inPatch, t: built.waves.t };
+    },
+  };
 }
 
 /* Reeds in the shallows, in clumps, thick round the sheltered east and
@@ -1010,7 +1121,7 @@ export function buildDrifts(ctx, sites) {
  */
 export async function buildNature(ctx) {
   const sites = natureSites(ctx);
-  const waterMat = buildLake(ctx, sites);
+  const { waterMat, waves } = buildLake(ctx, sites);
   const reedClumps = buildReeds(ctx, sites);
   buildShore(ctx, sites);
   await ctx.paint(0.5);
@@ -1029,5 +1140,8 @@ export async function buildNature(ctx) {
   buildDrifts(ctx, sites);
   await ctx.paint(0.64);
 
-  return { pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps };
+  return {
+    pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps,
+    setWaves: waves.setWaves, updateWaves: waves.updateWaves, probeWater: waves.probeWater, disposeWaves: waves.dispose,
+  };
 }

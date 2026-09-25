@@ -96,11 +96,11 @@ import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
-import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP } from './render/cubcraft.js';
+import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
 import { BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP } from './render/bramorcraft.js';
 import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickcraft.js';
-import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP } from './render/timbercraft.js';
+import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
  * in the craft frame, from the module that draws it. A quad's comes from
@@ -1153,6 +1153,7 @@ export async function boot({ loading, bootStart, mapId }) {
       return;
     }
     sim.e.sim_water_clear();
+    const bodies = [];
     for (const w of (view && view.water) || []) {
       worldPosToSim(w.centre.x, w.surfaceY, w.centre.z, waterSim);
       const body = sim.e.sim_water_add(waterSim.z, waterSim.x, waterSim.y);
@@ -1166,7 +1167,98 @@ export async function boot({ loading, bootStart, mapId }) {
       worldDirToSim(w.wind.toX, 0, w.wind.toZ, waterSim);
       const n = Math.hypot(waterSim.x, waterSim.y);
       sim.e.sim_water_wind(body, w.wind.speed, waterSim.x / n, waterSim.y / n, w.wind.fetch);
+      bodies.push(body);
     }
+    handWaves(bodies);
+  }
+
+  /*
+   * THE WAVES, HANDED TO THE MAP: what the plant built from the water just
+   * declared, read back with sim_water_components and turned into the
+   * map's frame, the inverse of declareWater's path (poseFromState's for
+   * the waves' origin and still water height, the same basis change and
+   * spawn yaw without the offset for each wave vector). A wave vector is
+   * per metre, so it takes the frame's scale the other way round to a
+   * length. The map draws its water from these (src/render/lakewaves.js);
+   * a map without the hook, or a plant without waves, draws still water.
+   *
+   * Handed over by showWaves, once a frame, and only while a run is up:
+   * the boot's reset declares the water too, but on the title nothing
+   * steps the sim clock, so its waves would stand still, and the title's
+   * still lake is the one the map was built with (the cel alps' scene
+   * fingerprint, the swiss2 loop's views). window.__wavesOn shows them
+   * there for a check.
+   */
+  let wavesPtr = 0;
+  const waveO = new THREE.Vector3();
+  const waveK = new THREE.Vector3();
+  const STILL_WATER = [];
+  let wavesMap = STILL_WATER;
+  let wavesHanded = null;
+  let wavesHandedTo = null;
+  let wavesAtTitle = false;
+  function handWaves(bodies) {
+    wavesMap = STILL_WATER;
+    if (typeof sim.e.sim_water_components !== 'function') {
+      return;
+    }
+    if (!wavesPtr) {
+      wavesPtr = sim.e.malloc(41 * 8);
+    }
+    const perLength = 1 / simLenToWorld(1);
+    const out = [];
+    for (const b of bodies) {
+      const code = sim.e.sim_water_components(b, wavesPtr);
+      if (code !== SIM_OK) {
+        throw new Error(`sim_water_components: ${simErrorName(code)}`);
+      }
+      const c = new Float64Array(sim.e.memory.buffer, wavesPtr, 41);
+      simPosToThree(c[2], c[3], c[1] + SPAWN_ALT, waveO).applyQuaternion(qSpawn);
+      const comps = [];
+      for (let i = 0; i < c[0]; i += 1) {
+        const o = 6 + i * 5;
+        simPosToThree(c[o + 1], c[o + 2], 0, waveK).applyQuaternion(qSpawn).multiplyScalar(perLength * perLength);
+        comps.push({ a: simLenToWorld(c[o]), kx: waveK.x, kz: waveK.z, omega: c[o + 3], phase: c[o + 4] });
+      }
+      out.push({ y0: waveO.y + startY, ox: waveO.x + startX, oz: waveO.z + startZ, comps });
+    }
+    wavesMap = out;
+  }
+  function showWaves() {
+    if (typeof view.setWaves !== 'function') {
+      return;
+    }
+    const want = mode === 'title' && !wavesAtTitle ? STILL_WATER : wavesMap;
+    if (want !== wavesHanded || view !== wavesHandedTo) {
+      view.setWaves(want);
+      wavesHanded = want;
+      wavesHandedTo = view;
+    }
+  }
+
+  /* An aircraft on floats as the water reads it: its drawn pose, which
+   * the near patch is laid round, its velocity in the map, what the
+   * floats did on the last step, and its floats' geometry. Null for
+   * anything else. */
+  const FLOAT_GEOMETRY = { timber1500f: TIMBER_FLOATS, cub1400f: CUB_FLOATS };
+  const craftWaterVel = new THREE.Vector3();
+  let craftWaterState = null;
+  function craftOnWater() {
+    const floats = FLOAT_GEOMETRY[runAirframe];
+    if (!floats || !stateCurr || mode === 'title' || typeof sim.e.sim_float_state !== 'function') {
+      return null;
+    }
+    if (!floatStatePtr) {
+      floatStatePtr = sim.e.malloc(10 * 8);
+    }
+    sim.e.sim_float_state(floatStatePtr);
+    if (!craftWaterState || craftWaterState.buffer !== sim.e.memory.buffer) {
+      craftWaterState = new Float64Array(sim.e.memory.buffer, floatStatePtr, 10);
+    }
+    simPosToThree(stateCurr[4], stateCurr[5], stateCurr[6], craftWaterVel).applyQuaternion(qSpawn);
+    return {
+      position: shell.quad.position, quaternion: shell.quad.quaternion, velocity: craftWaterVel, state: craftWaterState, floats,
+    };
   }
 
   function adoptSpawn() {
@@ -2369,6 +2461,10 @@ export async function boot({ loading, bootStart, mapId }) {
   let takingOff = false;
   let statePrev = null;
   let stateCurr = null;
+  /* The sim clock at the drawn pose, between the two states, s: what the
+   * water is drawn at, so the waves on screen are the ones under the
+   * drawn floats. */
+  let renderSimT = 0;
   /* Ground sweep state. groundPrev is where the craft was last frame, so the
    * terrain test can be a segment rather than a point. */
   const groundPrev = new THREE.Vector3();
@@ -6968,6 +7064,7 @@ export async function boot({ loading, bootStart, mapId }) {
     simQuatToThree(statePrev[7], statePrev[8], statePrev[9], statePrev[10], qPrev);
     simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], qCurr);
     qPrev.slerp(qCurr, a);
+    renderSimT = statePrev[0] + (stateCurr[0] - statePrev[0]) * a;
     pCurr.applyQuaternion(qSpawn);
     pCurr.x += startX;
     pCurr.z += startZ;
@@ -7707,6 +7804,10 @@ export async function boot({ loading, bootStart, mapId }) {
         ? 0.85
         : Math.min(1.3, meanRpm / 9000);
       view.updateWind(nowWall * 0.001, focus, wash);
+      showWaves();
+      if (view.updateWaves) {
+        view.updateWaves(renderSimT, craftOnWater());
+      }
     }
     /* info is accumulated across the whole frame (prepass, shadow map,
      * composer passes) and read back through __renderStats. */
@@ -9438,6 +9539,46 @@ export async function boot({ loading, bootStart, mapId }) {
    * can prove what a craft would meet anywhere, not only under itself.
    * Harness only. */
   window.__heightAt = (x, z) => view.height(x, z, Infinity);
+  /*
+   * The drawn water against the plant's at a map point: the map's lake as
+   * the GPU drew it (probeWater, read back off a one texel render of the
+   * same displaced mesh), and sim_water_sample at the same point and the
+   * same sim clock, both as a map height. Null where the map has no waves
+   * hook or the plant no water there. For scripts/water-render.js.
+   */
+  const probeSim = { x: 0, y: 0, z: 0 };
+  const probeMap = new THREE.Vector3();
+  window.__water = (x, z) => {
+    const drawn = view.probeWater ? view.probeWater(x, z) : null;
+    if (!drawn || typeof sim.e.sim_water_sample !== 'function') {
+      return null;
+    }
+    const ptr = sim.e.malloc(7 * 8);
+    worldPosToSim(x, 0, z, probeSim);
+    const code = sim.e.sim_water_sample(probeSim.x, probeSim.y, drawn.t, ptr);
+    const out = Array.from(new Float64Array(sim.e.memory.buffer, ptr, 7));
+    sim.e.free(ptr);
+    if (code !== SIM_OK || out[0] < 0) {
+      return { drawn, plant: null };
+    }
+    simPosToThree(probeSim.x, probeSim.y, out[1] + SPAWN_ALT, probeMap).applyQuaternion(qSpawn);
+    return { t: drawn.t, drawn: drawn.y, patch: drawn.patch, plant: probeMap.y + startY, body: out[0] };
+  };
+  /* Put the spawn somewhere else, facing another way, as a crash recovery
+   * does, and reset there: the water is declared again in the new spawn's
+   * frame, which is what a check of the waves' frame needs. Harness only. */
+  window.__respawn = (x, z, yaw) => {
+    resetCraft({ x, z, yaw });
+    return true;
+  };
+  /* Show the map's waves on the title too, so a parked camera
+   * (scripts/swiss2-views.js, swiss2-perf.js with --waves) sees the lake
+   * as a pilot on it would, stood still at the sim clock where it is. */
+  window.__wavesOn = () => {
+    declareWater();
+    wavesAtTitle = true;
+    return Boolean(view.setWaves);
+  };
   window.__map = () => ({
     id: view.id,
     name: view.name,

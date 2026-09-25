@@ -164,7 +164,7 @@ declared, so every trace recorded before it existed is bit identical
 `src/game/waves.js` is the same arithmetic in JS, operation for
 operation, reached only through `mirrorWaves('tests')` and never in the
 physics path; `waves:selftest` holds it to the module's to the bit. For
-the GLSL port, which is the rendering follow-up:
+the GLSL port, which src/render/lakewaves.js is:
 
 - Read the components once per declaration with `sim_water_components`
   and upload them as uniforms: per component a, kx, ky, omega, phase, and
@@ -528,13 +528,33 @@ floatset.js). Where they start depends on the map:
   not move them, full throttle drags them off, and a pilot who wants water
   picks the Alps.
 
-**What a pilot sees**: the lake is drawn flat, because its moving surface
-belongs to the rendering work that follows. The aircraft rocks on it all
-the same, a few degrees at a little over half a second, on the 3 cm chop
-the breeze raises, so for now it rocks on water that looks still. It
-heaves and pitches with waves nobody can see, which is honest physics and
-a strange picture; the rendering follow-up closes the gap by drawing the
-surface sim_water_components describes.
+**What a pilot sees**: the lake drawn from the plant's own waves
+(src/render/lakewaves.js). At every reset the shell reads
+sim_water_components back, turns it into the map's frame and hands it to
+the map (`handWaves` in src/main.js), and every drawn frame it hands over
+the sim clock at the drawn pose, between the two states the pose is
+interpolated from, so the water under the drawn floats is the water the
+plant floated them on. The chop is a few millimetres high and ten
+centimetres to a metre long, so the lake's own sheet is displaced only by
+what its cells can carry (for this breeze, nothing), and a dense patch,
+seven centimetres a cell for seven metres round the aircraft (or under the
+camera when there is none on the water) and coarser out to 44 m, carries
+the rest; every component the pixel can show lights the water by its
+slope. `npm run water:render` (scripts/water-render.js) reads the drawn
+surface back off the GPU under the floats and holds it to
+sim_water_sample's within a centimetre: 5.2 mm at worst over some twelve
+hundred samples on each lake, against a plant surface that ranges over
+±2 cm. The waves shorter than two grid cells are left out of the mesh,
+and those are the error.
+
+On the title nothing steps the sim clock, so the lake there is still, as
+the map was built; the waves are handed over when a run starts.
+
+The six components the wind sea is spread over are few enough that, close
+to, the two shortest (0.33 and 0.45 of the peak period, 70 and 55 deg off
+the wind, both at the steepness cap) read as a regular crosshatch on the
+water. That is the plant's sea drawn faithfully; a sea that looks like a
+lake's up close needs more components with spread phases in the plant.
 
 `npm run floats:shell` proves it headless: the Timber on floats seated on
 the Alps' lake, afloat and rocking before the throttle (pitch −1.2 to

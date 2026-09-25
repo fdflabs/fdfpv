@@ -94,6 +94,10 @@ export function lakeGeometry(heightAt, shore) {
   g.setAttribute('aWater', new THREE.Float32BufferAttribute(water, 4));
   g.setIndex(idx);
   g.computeBoundingSphere();
+  /* The depth on every grid corner, for the dense patch the near water is
+   * drawn on when the lake has waves (index.js), which has none of its
+   * own. */
+  g.userData.depth = { data: depth, w: nx + 1, h: nz + 1, x0, z0, cell: CELL };
   return g;
 }
 
