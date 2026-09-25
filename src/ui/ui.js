@@ -2742,7 +2742,10 @@ function craftSvg(a) {
 }
 
 /*
- * THE THREE WAYS IN, and they are the whole of the front door.
+ * THE WAYS IN, and they are the whole of the front door. There were
+ * three until the owner retired the five inch's Freestyle card
+ * (2026-09-25): the town and the Freestyle menu are still there, but the
+ * front door is racing or free flight.
  *
  * This used to be two questions in a row. Which aircraft, five inch or
  * whoop, and then race or freestyle, and the second one was skipped on the
@@ -2790,23 +2793,6 @@ const WAYS = [
     facts: [str('ui.gates'), str('ui.the_clock'), str('ui.the_board')],
   },
   {
-    id: 'freestyle-5inch',
-    airframes: ['5inch'],
-    mode: 'freestyle',
-    label: str('ui.freestyle'),
-    art: 'assets/gate/freestyle.jpg',
-    /* No clock and no score in the line, because neither is on until a
-     * pilot asks for them. See DEFAULTS.freestyleScoring. The aircraft is
-     * named because this card seats one: the town is five hundred metres
-     * across and it is the five inch's. */
-    blurb: str('ui.a_whole_town_to_fly_around'),
-    /* The mode's three, not the machine's, and the machine is on the card
-     * anyway: the plan mark over the picture is the five inch's. Three
-     * words that fit one line on a landscape phone, where the blurb is
-     * hidden and these are the whole of the card. */
-    facts: [str('ui.no_gates'), str('ui.no_clock'), str('ui.one_town')],
-  },
-  {
     /* EVERY FIXED WING, ONE CARD. A card is a kind of flying, not a
      * machine: every one of them is launched, flown long and brought home
      * on the airfield, so they share a way in and the Plane row picks
@@ -2821,7 +2807,7 @@ const WAYS = [
      * Freestyle menu's own row still opens the picker for anyone who wants
      * the town anyway. */
     home: 'airfield',
-    label: str('ui.fixed_wing'),
+    label: str('ui.free_flight_card'),
     art: 'assets/gate/freestyle.jpg',
     blurb: str('ui.eight_fixed_wings'),
     facts: [str('ui.eight_planes'), str('ui.the_airfield')],

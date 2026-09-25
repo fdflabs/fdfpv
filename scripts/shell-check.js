@@ -124,7 +124,7 @@ const SCREENS = [
 /*
  * Every walk below starts PAST the gate.
  *
- * A fresh load opens on it: three cards, and the menu these checks are about
+ * A fresh load opens on it: two cards, and the menu these checks are about
  * is behind them. BOTH halves are answered here, the mode and the aircraft,
  * because the gate is up while either is open. They are set rather than
  * pressed, because act() would also navigate to a picker when there is
@@ -1281,9 +1281,9 @@ const BEHAVIOUR = `(() => {
   }
 
   /*
-   * THE GATE IS ONE SCREEN, THREE CARDS, AND ONE PRESS.
+   * THE GATE IS ONE SCREEN, TWO CARDS, AND ONE PRESS.
    *
-   * A visit opens on what to fly: five inch racing, whoop racing, freestyle.
+   * A visit opens on what to fly: racing (five inch or whoop) or free flight.
    * Answering any of them seats an aircraft AND a mode and lands on the menu
    * behind, and the menu names a track or a map and never a mode. It used to
    * be two screens in a row, the second of which was skipped on the whoop,
@@ -1450,17 +1450,18 @@ const BEHAVIOUR = `(() => {
       cards,
       backFromWhoop,
       whoop,
-      /* Three cards, every one of them with a photograph AND a plan
+      /* Two cards, every one of them with a photograph AND a plan
        * drawing, and not a row among them: the whole point of the screen is
        * that it is not a menu. Every racing quad is behind the first and
-       * every fixed wing behind the third. */
-      asksThree: gate.length === 3 && gate.join() === 'Track mode,Freestyle,Fixed wing'
+       * every fixed wing behind the second; the owner retired the five
+       * inch's Freestyle card on 2026-09-25. */
+      asksWays: gate.length === 2 && gate.join() === 'Track mode,Free Flight'
         && gateItems.filter((it) => !it.card).length === 0,
-      asCards: cards.length === 3 && cards.every((c) => c.shot && c.drawn),
+      asCards: cards.length === 2 && cards.every((c) => c.shot && c.drawn),
       modeSetGate,
-      /* Three cards, laid out and visible, and the menu's own copy off the
+      /* Every card, laid out and visible, and the menu's own copy off the
        * screen, when the mode is answered and the aircraft is not. */
-      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 3
+      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 2
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
       /* One press: the whoop is seated, the mode is race, the seat is a
        * track rather than a world, the gate is gone and no Freestyle row
@@ -1837,8 +1838,8 @@ async function main() {
       failures.push(`the gate: ${b.modeGate ? b.modeGate.error : 'no result'}`);
     } else {
       const g = b.modeGate;
-      if (!g.asksThree) {
-        failures.push(`the gate opens on ${g.gate.join(', ') || 'nothing'}, not on the three ways in`);
+      if (!g.asksWays) {
+        failures.push(`the gate opens on ${g.gate.join(', ') || 'nothing'}, not on the two ways in`);
       }
       if (!g.asCards) {
         failures.push(
