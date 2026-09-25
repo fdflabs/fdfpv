@@ -163,7 +163,9 @@ export async function buildValley(shell, progress, q, style) {
   progress(0.1);
   await yieldToPaint();
 
-  const field = buildHeightfield();
+  /* A style may bring its own field (swiss2's walls, swiss2/terrain.js);
+   * the cel style reads the valley's own. */
+  const field = style.heightfield ? style.heightfield() : buildHeightfield();
   scene.add(await style.ground(field, stage));
   const far = farRange(field, style.look);
   scene.add(far.mesh);

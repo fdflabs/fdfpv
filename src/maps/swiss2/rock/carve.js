@@ -41,6 +41,7 @@
 
 import { noise2, smoothstep } from '../../alps/noise.js';
 import { HALF, CELL, CELLS } from '../../alps/terrain.js';
+import { apronAt } from '../terrain.js';
 
 /* The most the drawn rock stands out of the ground a craft meets, and
  * the most it sinks into it, in metres along the wall's normal. */
@@ -118,6 +119,12 @@ export function paintRock(x, y, z, tan, nx, nz) {
   return Math.max(face, 0.85 * rib, cliff);
 }
 
+/* A cell that climbs this far is one of the walls' sheer faces
+ * (swiss2/terrain.js), where carveAt would leave the ground nearly
+ * smooth (see there): it is not carved at all, and the ground's own ten
+ * metre grid draws it at a fraction of the skin's triangles. */
+const SHEER_RELIEF = 100;
+
 /*
  * The carved cells: one byte per heightfield cell, row j at z = -HALF +
  * j * CELL, set where the paint makes the cell's middle rock and the
@@ -128,10 +135,20 @@ export function paintRock(x, y, z, tan, nx, nz) {
  */
 export function carveMask(field, keep) {
   const mask = new Uint8Array(CELLS * CELLS);
+  const n = CELLS + 1;
+  const d = field.data;
   for (let j = 1; j < CELLS - 1; j += 1) {
     for (let i = 1; i < CELLS - 1; i += 1) {
+      const corners = [d[j * n + i], d[j * n + i + 1], d[(j + 1) * n + i], d[(j + 1) * n + i + 1]];
+      if (Math.max(...corners) - Math.min(...corners) > SHEER_RELIEF) {
+        continue;
+      }
       const x = -HALF + (i + 0.5) * CELL;
       const z = -HALF + (j + 0.5) * CELL;
+      /* Nor the scree at a face's foot, which is loose and painted so. */
+      if (apronAt(x, z) > 0.3) {
+        continue;
+      }
       const y = field.height(x, z);
       const sx = (field.height(x + 15, z) - field.height(x - 15, z)) / 30;
       const sz = (field.height(x, z + 15) - field.height(x, z - 15)) / 30;
@@ -238,7 +255,13 @@ export function carveAt(field, mask, x, z, lod, out) {
   out.e = 0;
   out.cav = 1;
   out.bare = 1;
-  const w = smoothstep(0, FADE, toUncarved(mask, x, z)) * smoothstep(0.35, 0.6, tan);
+  /* A face far steeper than a ramp (the walls of swiss2/terrain.js) is
+   * a grid laid on the plan seen edge on: a row of vertices every twenty
+   * metres up it and one every few metres along it, so anything carved
+   * there is drawn out into stripes the height of the face. The sheer
+   * faces are left nearly smooth, and the paint's own relief, read per
+   * pixel, is their texture. */
+  const w = smoothstep(0, FADE, toUncarved(mask, x, z)) * smoothstep(0.35, 0.6, tan) * (1 - 0.85 * smoothstep(1.8, 3.5, tan));
   if (w <= 0) {
     return out;
   }

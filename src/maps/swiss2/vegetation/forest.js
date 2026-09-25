@@ -79,10 +79,36 @@ const DGRID = 20;
  * Plant the valley. `spacing` is the jittered grid's cell in metres: the
  * spacing of a closed stand. Returns the trees as parallel arrays (x, y,
  * z, scale s, yaw, variant v) and counts by species.
+ *
+ * The stands on the walls are drawn from `rng` first, and every tree on
+ * the floor after them (the stream's gallery, the field trees, the
+ * gardens, the hedgerows, the orchards) from where it left off, each kept
+ * or passed over by the ground it would stand on, so a change to the
+ * walls' shape moved every tree on the floor. `floor`, when given, is the
+ * world the floor's trees are decided in instead: { heightAt, layout,
+ * rng }, the alps' own ground and the stream as their stands leave it
+ * (vegetation/index.js). A floor tree is then drawn as the alps would
+ * draw it, and turned away after its draws where the ground under it is
+ * not the alps'. `standsOnly` stops after the stands and returns only how
+ * many draws they took.
  */
-export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
-  const { keepOff, streamDist, lower } = layout;
-  const solidAt = layout.solidAt || (() => false);
+export function plantForest({
+  heightAt: groundAt, layout: ground, rng: standRng, spacing, colliders, floor = null, standsOnly = false,
+}) {
+  let heightAt = groundAt;
+  let layout = ground;
+  let rng = standRng;
+  let draws = 0;
+  if (standsOnly) {
+    rng = () => {
+      draws += 1;
+      return standRng();
+    };
+  }
+  let { keepOff, streamDist, lower } = layout;
+  let solidAt = layout.solidAt || (() => false);
+  const carved = layout.carved;
+  let moved = null;
   /* The density and slope on a grid, once. */
   const n = Math.round(FIELD / DGRID) + 1;
   const dens = new Float32Array(n * n);
@@ -113,6 +139,12 @@ export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
         const hollow = (heightAt(x + 40 * tx, z + 40 * tz) + heightAt(x - 40 * tx, z - 40 * tz)) / 2 - y;
         const above = forestDensity(x, Math.max(y, 95), z, s, sz);
         d = Math.max(d, above * smoothstep(0.8, 4, hollow) * smoothstep(3, 16, y));
+      }
+      /* The scree at a cliff's foot (layout.apron, swiss2/terrain.js) is
+       * wooded, in stands the scree's fans break: the wood under every
+       * face in the photographs. */
+      if (layout.apron) {
+        d = Math.max(d, 0.8 * layout.apron(x, z) * smoothstep(0.3, 0.55, noise2(x / 70 + 4.9, z / 70 + 0.6)));
       }
       dens[j * n + i] = d;
     }
@@ -186,7 +218,7 @@ export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
      * the valley nothing: every tree after it stands where it stood. */
     const yaw = rng();
     const v = fallFoot(x, z, v0);
-    if (v < 0 || (layout.carved && layout.carved(x, z))) {
+    if (v < 0 || (carved && carved(x, z)) || (moved && moved(x, z))) {
       return;
     }
     const open = v === v0 && open0 !== undefined ? open0 : OPEN[v];
@@ -251,6 +283,14 @@ export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
       if (y < LAKE_Y + 2.5 || streamDist(x, z) < 6) {
         continue;
       }
+      /* The density is read off a twenty metre grid, which carries a
+       * stand at a cliff's foot or rim some way up or down its face: no
+       * tree stands where the ground itself is a face. (Not in the
+       * count of the alps' own stands, which is of the draws as they
+       * were made.) */
+      if (!standsOnly && Math.hypot(heightAt(x + 3, z) - heightAt(x - 3, z), heightAt(x, z + 3) - heightAt(x, z - 3)) > 6 * 1.2) {
+        continue;
+      }
       const line = treeLine(x, z);
       if (r0 > keep) {
         /* A mantle tree: a young spruce, or up to a hundred metres over
@@ -300,6 +340,15 @@ export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
         add(x, y, z, scale, rng() < 0.6 ? V['spruce-open'] : V['spruce-young']);
       }
     }
+  }
+  if (standsOnly) {
+    return draws;
+  }
+  if (floor) {
+    moved = (x, z) => Math.abs(groundAt(x, z) - floor.heightAt(x, z)) > 0.01;
+    ({ heightAt, layout, rng } = floor);
+    ({ keepOff, streamDist, lower } = layout);
+    solidAt = layout.solidAt || (() => false);
   }
   /* Field and bank trees grew in the open: the open grown forms only,
    * the tall forest beech being a trunk under a ball out here. */

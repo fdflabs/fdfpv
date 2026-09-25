@@ -396,6 +396,16 @@ export function waterMaterial({
          * horizon the water is more mirror than body. Never all mirror:
          * the wavelets too small to draw tilt toward the eye, and a
          * glacial lake stays turquoise to its far shore. */
+        #ifndef WATER_FLOW
+        {
+          /* In a wall's shadow (s2Sun, light.js) the body is lit by the
+           * sky alone, and glacial water, a cloud of rock flour, sends far
+           * more of the sky's light back up than the Lambert body term
+           * gives it: a lake in shade is a deep blue teal, not black. */
+          float wShade = 1.0 - s2Sun;
+          totalDiffuse += diffuseColor.rgb * vec3(0.7, 0.95, 1.3) * iblIrradiance * 0.55 * wShade;
+        }
+        #endif
         float wCos = clamp(dot(normal, geometryViewDir), 0.15, 1.0);
         totalDiffuse *= 1.0 - (0.02 + 0.98 * pow(1.0 - wCos, 5.0)) * (1.0 - wFoam);
         vec3 wSpec = totalSpecular;

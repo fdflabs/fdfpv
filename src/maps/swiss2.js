@@ -17,6 +17,7 @@
  * The shell, the HUD and the other maps see a MapInstance like any other.
  *
  *   swiss2/assets.js     the photographs: texture arrays, surfaces, sky
+ *   swiss2/terrain.js    the walls' shape, the field and the ground's mesh
  *   swiss2/ground.js     the terrain's splat, and its masks
  *   swiss2/light.js      the sun, its cascades and the mountains' shadow
  *   swiss2/look.js       the material every builder asks for, by name
@@ -65,8 +66,11 @@ import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
 import { makeRng } from './alps/noise.js';
 import {
-  HALF, CELL, CELLS, terrainGeometry, groundPaths,
+  HALF, CELL, CELLS, groundPaths, buildHeightfield,
 } from './alps/terrain.js';
+import {
+  buildSwissField, swissGroundGeometry, wallRise, apronAt,
+} from './swiss2/terrain.js';
 import {
   natureSites, buildShore, buildReeds, buildDrifts,
 } from './alps/nature.js';
@@ -95,6 +99,9 @@ import { buildCliffs, occupiedCells, trimGround } from './swiss2/rock/index.js';
 import { valleyLayout } from './swiss2/vegetation/zones.js';
 
 const CAMERA_FAR = 14000;
+/* The forests' seed: the floor's trees are drawn from it as though the
+ * walls were still the alps' (vegetation/index.js decideAt). */
+const FOREST_SEED = 20260928;
 
 /*
  * The photographed sky as the backdrop: a sphere round the camera, as
@@ -169,6 +176,32 @@ function densify(points, step) {
     }
   }
   return out;
+}
+
+/*
+ * nature.js lays its old snow in the hollows between 550 and 790 m,
+ * which on the alps' walls is a kilometre out, near the ridges. On
+ * swiss2's walls that band is the forested bench over the cliffs, the
+ * length of the valley, where no snow lies in summer; and one instanced
+ * mesh spread from end to end was drawn, with its shadow, in every view.
+ * The drifts on ground the walls moved (swiss2/terrain.js) are dropped;
+ * the rest stand where they always stood.
+ */
+function keepDriftsOffTheWalls(scene) {
+  const drifts = scene.getObjectByName('drifts');
+  const m = new THREE.Matrix4();
+  let n = 0;
+  for (let i = 0; i < drifts.count; i += 1) {
+    drifts.getMatrixAt(i, m);
+    if (wallRise(m.elements[12], m.elements[14]) === 0) {
+      drifts.setMatrixAt(n, m);
+      n += 1;
+    }
+  }
+  drifts.count = n;
+  drifts.instanceMatrix.needsUpdate = true;
+  drifts.computeBoundingSphere();
+  drifts.computeBoundingBox();
 }
 
 /*
@@ -298,7 +331,10 @@ function photoStyle() {
       };
       return stage;
     },
-    /* The ground: the alps' own geometry under the splat. The masks are
+    /* The valley with Lauterbrunnen's walls, the alps' own everywhere
+     * else (swiss2/terrain.js). */
+    heightfield: buildSwissField,
+    /* The ground: the field's own mesh under the splat. The masks are
      * made here because they need the field, and the materials asked for
      * later (the strip, the range beyond) share them. */
     ground(field, stage) {
@@ -307,7 +343,7 @@ function photoStyle() {
       own(stage.masks.zones.zone1);
       own(stage.masks.zones.zone2);
       own(stage.masks.path);
-      const mesh = new THREE.Mesh(terrainGeometry(field), stage.ground({}));
+      const mesh = new THREE.Mesh(swissGroundGeometry(field), stage.ground({}));
       mesh.receiveShadow = true;
       mesh.name = 'ground';
       stage.groundMesh = mesh;
@@ -346,6 +382,7 @@ function photoStyle() {
       }
       const reeds = buildReeds(ctx, sites);
       buildDrifts(ctx, sites);
+      keepDriftsOffTheWalls(scene);
       /* The hiking paths the cel paint strokes, as gravel ribbons on the
        * worn earth the ground already lays under them. */
       const pathMat = ctx.look.material('path', {});
@@ -425,8 +462,13 @@ function photoStyle() {
       for (const b of style.look.buildings.farmWalls) {
         colliders.addBox('wall', ...b);
       }
+      /* What is scattered over the floor (the huts, the bales, the trees)
+       * is decided on the alps' own ground, so the walls (swiss2/terrain.js)
+       * move none of it; what the walls themselves moved is left out. */
+      const alps = buildHeightfield();
       stage.props = buildProps({
         heightAt,
+        decideAt: alps.height,
         rng: makeRng(20260930),
         colliders,
         footprints: gardens,
@@ -444,6 +486,7 @@ function photoStyle() {
        * standing on the ground (the paths, the stream, the fall, the
        * lift). */
       const layout = valleyLayout(heightAt, stage.footprints);
+      layout.apron = apronAt;
       const taken = occupiedCells(scene, heightAt, new Set([stage.groundMesh, far.mesh, scene.getObjectByName('sky')]));
       stage.cliffs = buildCliffs({ field, keep: (x, z) => layout.keepOff(x, z) || taken(x, z), material: stage.ground({ carved: 1 }) });
       trimGround(stage.groundMesh.geometry, stage.cliffs.mask);
@@ -455,7 +498,9 @@ function photoStyle() {
         quality: stage.quality,
         heightAt,
         envMap: scene.environment,
-        rng: makeRng(20260928),
+        rng: makeRng(FOREST_SEED),
+        seed: FOREST_SEED,
+        decideAt: alps.height,
         colliders,
         footprints: stage.footprints,
         gardens,
