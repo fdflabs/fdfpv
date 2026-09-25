@@ -649,4 +649,21 @@ instability in plant.c when a whoop loses its pack (the tumble runs
 away and hung crash.c's free body loop; #73 kept the whoop on host
 contacts to avoid it).
 
+The gyroscopic instability, fixed (branch fix/damaged-gyro-integration):
+the cause was the explicit step itself, not a reduced inertia (the pack
+out airframe keeps about 95% of its inertia, and the explicit step pumps
+a torque free tumble at the intact inertia too); with the pack gone
+nothing powered takes the energy back out. A damaged airframe
+(CRASH.active) now steps its rates with an axis split of the free rigid
+body that holds |L|, and a rate guard stops any body past 10,000 rad/s
+before a halving loop can hang (sim_rate_guard_trips counts it). Intact
+flight is bit identical. The whoop then goes on the plant's obstacle
+contacts like every other craft: in whoop-gate it now loses its pack at
+the gate, the case that ran away, and peaks at 186 rad/s. Suite on that
+branch: 9 of 60 in every band, 115 of 294 checks failing (main 10 and
+115); whoop-wall no longer breaks its prop and pack (mustNotBreak into
+band), whoop-gate's peak falls to 230 g (band 300 to 1,500) and it rests
+in 2.01 s (band 0 to 2), the spring contact's softer blow as the five
+inch's gate clip had in #73.
+
 Next: the feel round, then the owner's sign off.

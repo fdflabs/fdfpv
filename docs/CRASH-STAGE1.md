@@ -479,9 +479,12 @@ inside a solid the plant knows: a quad's host hands the plant its prop
 disc's centre, not the rim that met the gate. `sim_obstacle_contacts()`
 says how many parts met one in the last step, for a host that dated a hit
 by its own call. A contact on anything the plant was not told of is the
-host's, as always. The whoop the shell flies keeps the host's contact, as
-it keeps the rigid ground, since its room is scaled and its surfaces are
-not.
+host's, as always. The whoop the shell flies meets the solids the same
+way, with its parts' springs scaled with it, and keeps only the rigid
+ground, since its room is scaled and the floor's surface is not. (Round 5
+kept it on the host's contact because losing its pack at a gate set off
+the explicit gyroscopic step's runaway, fixed since: THE RATES OF A
+DAMAGED AIRFRAME in plant.c.)
 
 Measured (crash suite, Node, against main d043d2a): the gate clip at 15
 m/s 1,102 to 244 g, a prop now breaks at the gate and the quad tumbles 20 m

@@ -848,8 +848,8 @@ void crash_host_part(int i);
 /* The part a body frame point belongs to, for a contact there: the
  * attached part with the hull point nearest it. */
 int crash_part_at(const double b[3]);
-/* 0 for the whoop the shell flies, whose room is scaled and whose contacts
- * stay the rigid ones; 1 for every craft at life size. */
+/* 0 for the whoop the shell flies, whose room is scaled and whose ground
+ * stops stay the rigid contact's; 1 for every craft at life size. */
 int crash_life_size(void);
 /* Whether a host's obstacle contact at hw (world), along n, is on a solid
  * the plant knows and meets itself (crash_touches): then the host's call
