@@ -93,7 +93,8 @@ mode on.
   antenna), the energy it has absorbed, kind and parent.
 - `sim_damage_events(out[max x 16], max)`: the events since the last call,
   oldest first, returns the count. Each: step, part, type (1 break, 2
-  crush, 3 chip, 4 bend, 5 knock, 6 crack, 7 settle), the load over the
+  crush, 3 chip, 4 bend, 5 knock, 6 crack, 7 settle, 8 water, 9 tree;
+  8 and 9 are entries, below), the load over the
   limit that decided it, peak force (N), joint moment (N m), energy
   absorbed (J), contact point and normal (world), closing speed, surface
   material, the part's damage after. The queue holds 64;
@@ -418,6 +419,19 @@ mu and e are `src/game/collide.js`'s where the shell already had them
 hardness are chosen, soft ground softer, and are numbers for the loop to
 band. The default ground is the shell's grass; the default obstacle is a
 hard generic face, since an unnamed obstacle could be anything.
+
+**Entries.** The craft going into the water (a part other than a float
+wet) or into a crown (a hull point inside one) is an event of its own,
+type 8 or 9, whether or not anything breaks: the part, the point, the
+surface's normal (for a crown, out from the trunk's axis), the speed the
+point comes in at, and the surface, water or foliage. So the suite and the
+shell learn that a craft hit water or went into a tree however many steps
+they take between reads; the flags `SIM_DMG_IN_WATER` and `SIM_DMG_IN_TREE`
+are only the last step's. An entry rearms after 250 ms out, so a tip
+dipping into every crest of a swell is one entry. Measured (`crash:core`):
+a five inch let down onto a lake reads one water entry on its pack at 2.4
+m/s and no damage; a Slow Stick flown into a crown at 7 m/s reads one
+entry on its prop and breaks nothing.
 
 **Trees.** In a crown every part's hull points are dragged as twigs in a
 porous medium, 0.5 rho_c A v^2 with rho_c 15 kg/m^3 on each part's area

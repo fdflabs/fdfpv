@@ -517,6 +517,32 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
+    name: 'into water and into a crown, an event even when nothing breaks',
+    async run(mk) {
+      const damaging = (r) => r.events.filter((e) => !['water', 'tree', 'settle'].includes(e.typeName));
+      /* A five inch let down onto a lake at 1 m/s, motors idle. */
+      const w = await mk({ id: 0, ground: null });
+      w.sim.e.sim_water_add(0, 0, 0);
+      w.pose([0, 0, 0.3], [1, 0, 0, 0]);
+      w.velocity([0, 0, -1]);
+      w.run(1500);
+      /* A Slow Stick, the lightest plane, flown slowly into a crown. */
+      const t = await mk({ id: 5 });
+      t.sim.e.sim_tree_add(8, 0, 0, 0.15, 3, 9, 3);
+      t.pose([0, 0, 6], [1, 0, 0, 0]);
+      t.launch(7);
+      t.run(3000, [0, 0, 0, 0.3]);
+      const wet = w.events.filter((e) => e.typeName === 'water');
+      const leaves = t.events.filter((e) => e.typeName === 'tree');
+      return [
+        { name: 'the five inch reads one water entry, at the surface', ok: wet.length === 1 && Math.abs(wet[0].point[2]) < 0.02 && wet[0].closing > 0.5 && wet[0].surface === SURFACE.water, detail: wet.map((e) => `${w.parts[e.part].label} z ${e.point[2].toFixed(3)} at ${e.closing.toFixed(2)} m/s`).join(', ') || 'none' },
+        { name: 'and nothing in it is damage', ok: damaging(w).length === 0 && w.damageSum === 0, detail: w.summary() },
+        { name: 'the Slow Stick reads one crown entry', ok: leaves.length === 1 && leaves[0].surface === SURFACE.foliage, detail: leaves.map((e) => `${t.parts[e.part].label} at (${e.point.map((v) => v.toFixed(2)).join(', ')}) ${e.closing.toFixed(1)} m/s`).join(', ') || 'none' },
+        { name: 'and it breaks nothing', ok: damaging(t).length === 0, detail: t.summary() },
+      ];
+    },
+  },
+  {
     name: 'a Timber on floats catches a wing tip in the water',
     async run(mk) {
       /* Rolled onto its right float at speed, as in a hard turn on the

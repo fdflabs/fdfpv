@@ -63,7 +63,7 @@ export const SURFACE = Object.fromEntries(SURFACES.map((name, id) => [name, id])
 export const PART_STATUS = ['attached', 'free', 'resting', 'retired'];
 
 /* SIM_EVENT_*, event [2]. Index 0 is unused. */
-export const EVENT_TYPES = ['', 'break', 'crush', 'chip', 'bend', 'knock', 'crack', 'settle'];
+export const EVENT_TYPES = ['', 'break', 'crush', 'chip', 'bend', 'knock', 'crack', 'settle', 'water', 'tree'];
 
 /* SIM_DMG_*, sim_damage_flags(). */
 export const DAMAGE_FLAGS = {

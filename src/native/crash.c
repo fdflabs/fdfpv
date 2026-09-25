@@ -435,6 +435,8 @@ static int g_ev_head = 0;
 static int g_ev_count = 0;
 static int g_ev_dropped = 0;
 static int g_flags_extra = 0; /* IN_TREE, IN_WATER: this step's */
+static long long g_wet_step = -1000000;   /* the last step the craft was wet */
+static long long g_crown_step = -1000000; /* and the last it was in a crown */
 
 /* The surface the solver is meeting now. */
 static int g_surf = SIM_SURF_DEFAULT;
@@ -1035,6 +1037,8 @@ void crash_reset(void) {
   g_ev_count = 0;
   g_ev_dropped = 0;
   g_flags_extra = 0;
+  g_wet_step = -1000000;
+  g_crown_step = -1000000;
   g_surf = SIM_SURF_DEFAULT;
   g_ground_mat = SIM_SURF_DEFAULT;
   g_crush_mask = 0;
@@ -2304,6 +2308,18 @@ static void craft_force(SimState *s, int part, const double r[3], const double F
   crash_force_note(s, r, F, part);
 }
 
+/*
+ * ENTRY EVENTS. The craft going into the water or into a crown is an event
+ * of its own, whether or not anything breaks, so a host that steps many
+ * milliseconds between reads, or keeps no flags, still learns that it
+ * happened and where: the shell throws spray or leaves from it. An entry
+ * is the first step a part other than a float is wet (the floats' water is
+ * sim_float_state's), or the first a hull point is inside a crown, after
+ * ENTRY_REARM steps of neither, so a tip dipping in and out of every
+ * crest of a swell is one entry and not one an oscillation.
+ */
+#define ENTRY_REARM 250
+
 static void craft_water(SimState *s) {
   if (water_count() == 0) {
     return;
@@ -2322,6 +2338,7 @@ static void craft_water(SimState *s) {
   const double tnow = (double)(s->step_index + 1) * SIM_DT;
   double ww[3];
   qrot(s->quat, s->omega, ww);
+  int wet_now = 0;
   for (int i = 0; i < t->n; i += 1) {
     if (!attached(i) || t->p[i].kind == SIM_PART_FLOAT) {
       continue;
@@ -2353,6 +2370,18 @@ static void craft_water(SimState *s) {
       cross(ww, r, wr);
       const double v[3] = { s->vel[0] + wr[0] - ws[3], s->vel[1] + wr[1] - ws[4], s->vel[2] + wr[2] - ws[5] };
       const double vm = norm(v);
+      if (!wet_now) {
+        wet_now = 1;
+        if (s->step_index - g_wet_step > ENTRY_REARM) {
+          /* The surface's normal from its slope, and the speed the point
+           * closes on it. */
+          double nw[3] = { -ws[1], -ws[2], 1.0 };
+          const double nl = norm(nw);
+          for (int a = 0; a < 3; a += 1) nw[a] /= nl;
+          const double vc = -dot(v, nw);
+          event_push(s, i, SIM_EVENT_WATER, 0.0, 0.0, 0.0, 0.0, p, nw, vc > 0.0 ? vc : 0.0, SIM_SURF_WATER);
+        }
+      }
       double F[3] = { 0.0, 0.0, 0.0 };
       if (vm > 1e-6) {
         double vb[3];
@@ -2365,6 +2394,9 @@ static void craft_water(SimState *s) {
       craft_force(s, i, r, F, vm);
     }
   }
+  if (wet_now) {
+    g_wet_step = s->step_index;
+  }
 }
 
 static void craft_crowns(SimState *s) {
@@ -2376,6 +2408,7 @@ static void craft_crowns(SimState *s) {
   qrot(s->quat, s->omega, ww);
   double hold_area = 0.0;
   int inside = 0;
+  int entered = 0;
   for (int c = 0; c < g_ntr; c += 1) {
     const Tree *tr = &TR[c];
     const double dx = s->pos[0] - tr->x, dy = s->pos[1] - tr->y;
@@ -2405,6 +2438,14 @@ static void craft_crowns(SimState *s) {
         cross(ww, r, wr);
         const double v[3] = { s->vel[0] + wr[0], s->vel[1] + wr[1], s->vel[2] + wr[2] };
         const double vm = norm(v);
+        if (!inside && !entered && s->step_index - g_crown_step > ENTRY_REARM) {
+          /* Into the crown: its normal, out from the trunk's axis, and the
+           * speed the point came in at, the twigs being everywhere. */
+          entered = 1;
+          const double eh = sim_sqrt(ex * ex + ey * ey);
+          const double nw[3] = { eh > 1e-9 ? ex / eh : 0.0, eh > 1e-9 ? ey / eh : 0.0, eh > 1e-9 ? 0.0 : 1.0 };
+          event_push(s, i, SIM_EVENT_TREE, 0.0, 0.0, 0.0, 0.0, p, nw, vm, SIM_SURF_FOLIAGE);
+        }
         if (!(vm > 1e-6)) {
           continue;
         }
@@ -2424,6 +2465,7 @@ static void craft_crowns(SimState *s) {
   if (!inside) {
     return;
   }
+  g_crown_step = s->step_index;
   g_flags_extra |= SIM_DMG_IN_TREE;
   const double vm = norm(s->vel);
   if (!(vm < CROWN_HOLD_V)) {

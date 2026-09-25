@@ -778,6 +778,19 @@ int sim_parts_state(double *out);
 #define SIM_EVENT_KNOCK 5  /* a camera or antenna knocked askew */
 #define SIM_EVENT_CRACK 6  /* damage under the break: a part weakened */
 #define SIM_EVENT_SETTLE 7 /* a free body came to rest */
+/*
+ * Entries, events whether or not anything breaks (damage mode on only, as
+ * the water and the crowns are read only then). SIM_EVENT_WATER: the first
+ * step a part other than a float is wet, the part and its hull point, the
+ * surface's normal, the speed the point closes on it, surface
+ * SIM_SURF_WATER. SIM_EVENT_TREE: the first step a hull point is inside a
+ * tree's crown, the part and the point, the normal out from the trunk's
+ * axis (up if the point is on it), the point's speed, surface
+ * SIM_SURF_FOLIAGE. Either rearms only after 250 ms out, so a tip dipping
+ * in every crest of a swell is one entry. [3] to [6] are 0.
+ */
+#define SIM_EVENT_WATER 8
+#define SIM_EVENT_TREE 9
 int sim_damage_events(double *out, int max);
 int sim_damage_events_dropped(void);
 
