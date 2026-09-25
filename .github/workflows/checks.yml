@@ -47,3 +47,4 @@ jobs:
       - run: npm run music:selftest
       - run: npm run test:edge
       - run: npm run check:clip
+      - run: npm run builder:selftest
