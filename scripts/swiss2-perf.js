@@ -12,7 +12,7 @@
  * switched off, so nothing waits on the display.
  *
  *     SIM_GPU=1 node scripts/swiss2-perf.js OUT_DIR [--presets=high,medium,low]
- *         [--views=strip,waterfall] [--frames=40] [--repeat=3] [--objects]
+ *         [--views=strip,waterfall] [--frames=40] [--repeat=3] [--objects] [--waves]
  *
  * Writes OUT_DIR/perf.json and prints a table: per view and preset, the
  * GPU milliseconds of each part (the two shadow cascades, the lake's
@@ -26,7 +26,10 @@
  * times every mesh's own draws, in the scene and in the mirror, lists
  * those over a tenth of a millisecond, and sums the least of every
  * segment into the "fine floor", the frame's cost with the least of the
- * desktop's drawing in it (see __s2objects).
+ * desktop's drawing in it (see __s2objects). --waves declares the lake's
+ * water to the plant and hands its waves to the map first (window.__wavesOn),
+ * so the lake is measured as a pilot on it sees it, moving, with its near
+ * patch under the camera where the camera is low over it.
  *
  * The views are swiss2-views.js's own list, read from that file, so the
  * two can never measure different places. The page is the real shell at
@@ -62,7 +65,7 @@ import { airframeById } from '../configs/airframes.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 const opts = {
-  presets: 'high,medium,low', views: '', frames: 40, repeat: 3, objects: false,
+  presets: 'high,medium,low', views: '', frames: 40, repeat: 3, objects: false, waves: false,
 };
 const positional = [];
 for (const a of process.argv.slice(2)) {
@@ -292,6 +295,9 @@ async function runPreset(preset) {
   try {
     await page.until('window.__map && window.__map().id === "swiss2" && window.__map().ready', 180000);
     await page.evaluate('(document.getElementById("ui").style.display = "none", "")');
+    if (opts.waves && !(await page.evaluate('window.__wavesOn()'))) {
+      throw new Error('swiss2-perf: --waves, and the map took no waves');
+    }
     const info = JSON.parse(await page.evaluate(INSTALL));
     if (info.quality !== preset) {
       throw new Error(`swiss2-perf: asked for ${preset}, the map was built at ${info.quality}`);

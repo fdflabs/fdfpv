@@ -135,19 +135,26 @@ and the fetch F by the Shore Protection Manual's fetch limited growth
 laws (SPM 1984, eqs. 3-33 and 3-34, the JONSWAP fits):
 g Hs / U² = 1.6e-3 (g F / U²)^(1/2) and g Tp / U = 0.2857 (g F / U²)^(1/3),
 capped at the fully developed sea, 0.2433 and 8.134. It is spread over
-six components: four swells round the peak and two short chop waves,
-periods 1.00, 0.85, 0.72, 0.60, 0.45 and 0.33 of Tp, directions 0, +20,
-−25, +40, −55 and +70 deg off the wind, and 0.34, 0.24, 0.17, 0.11, 0.08
-and 0.06 of the sea's energy (a coarse JONSWAP spectrum and a cos²
-spread), each amplitude sqrt(2 e) Hs / 4 so the variance is Hs²/16, at
-fixed phases with no common factor. **The swell** is one more component,
+six components at 0.82, 1.00, 1.18, 1.40, 1.68 and 2.05 of the peak
+frequency (periods 1.2195, 1.0, 0.8475, 0.7143, 0.5952 and 0.4878 of Tp),
+each carrying the energy a JONSWAP spectrum (gamma 3.3) has between its
+neighbours' midpoints, 0.72 to 2.5 of the peak: 0.1214, 0.4589, 0.1961,
+0.1106, 0.0681 and 0.0449 of the sea's. Their directions, +4, −19, +27,
+−41, +52 and −67 deg off the wind, alternate about it and widen away from
+the peak, as a sea's directional spread does, and their phases are 2 pi
+times the fractional part of 0.137 + 0.618034 n, so no two line up.
+Each amplitude is sqrt(2 e) Hs / 4, so the variance is Hs²/16. (The
+first spectrum ran to 3 times the peak frequency with a sixth of the
+energy in its two shortest waves, both at the steepness cap; drawn, they
+read as a regular crosshatch on the lake. A real sea's tail carries
+far less.) **The swell** is one more component,
 a height, a period and a direction, for water that is not raised by its
 own wind; a lake has none, and the gates use one because a single period
 is what a rocking can be measured against. Each component is held under
 a k = 0.1, a fifth of the steepness at which a deep water wave breaks,
-which trims the shortest chop in a stiff wind: `npm run waves:selftest`
-measures 4 sd of the surface at 0.955 of the SPM's Hs for 5 m/s over
-900 m.
+which trims the shortest waves only in a stiff wind: `npm run
+waves:selftest` measures 4 sd of the surface at 1.001 of the SPM's Hs for
+5 m/s over 900 m.
 
 The phases need sine and cosine at any angle, so the fixed libm gained
 `sim_sin` and `sim_cos` (Cody and Waite's reduction by pi/2 held as a
@@ -164,7 +171,7 @@ declared, so every trace recorded before it existed is bit identical
 `src/game/waves.js` is the same arithmetic in JS, operation for
 operation, reached only through `mirrorWaves('tests')` and never in the
 physics path; `waves:selftest` holds it to the module's to the bit. For
-the GLSL port, which is the rendering follow-up:
+the GLSL port, which src/render/lakewaves.js is:
 
 - Read the components once per declaration with `sim_water_components`
   and upload them as uniforms: per component a, kx, ky, omega, phase, and
@@ -528,13 +535,42 @@ floatset.js). Where they start depends on the map:
   not move them, full throttle drags them off, and a pilot who wants water
   picks the Alps.
 
-**What a pilot sees**: the lake is drawn flat, because its moving surface
-belongs to the rendering work that follows. The aircraft rocks on it all
-the same, a few degrees at a little over half a second, on the 3 cm chop
-the breeze raises, so for now it rocks on water that looks still. It
-heaves and pitches with waves nobody can see, which is honest physics and
-a strange picture; the rendering follow-up closes the gap by drawing the
-surface sim_water_components describes.
+**What a pilot sees**: the lake drawn from the plant's own waves
+(src/render/lakewaves.js). At every reset the shell reads
+sim_water_components back, turns it into the map's frame and hands it to
+the map (`handWaves` in src/main.js), and every drawn frame it hands over
+the sim clock at the drawn pose, between the two states the pose is
+interpolated from, so the water under the drawn floats is the water the
+plant floated them on. The chop is a few millimetres high and ten
+centimetres to a metre long, so the lake's own sheet is displaced only by
+what its cells can carry (for this breeze, nothing), and a dense patch,
+seven centimetres a cell for seven metres round the aircraft (or under the
+camera when there is none on the water) and coarser out to 44 m, carries
+the rest; every component the pixel can show lights the water by its
+slope. `npm run water:render` (scripts/water-render.js) reads the drawn
+surface back off the GPU under the floats and holds it to
+sim_water_sample's within a centimetre: 5.2 mm at worst over some twelve
+hundred samples on each lake, against a plant surface that ranges over
+±2 cm. The waves shorter than two grid cells are left out of the mesh,
+and those are the error.
+
+On the title nothing steps the sim clock, so the lake there is still, as
+the map was built; the waves are handed over when a run starts.
+
+On them an aircraft on floats throws spray from the front of each float's
+wetted length once it moves faster than a walk, splashes where a float
+comes down dry, and leaves a wake: Kelvin's two arms from the bows,
+closing as the float gets on the step, and churned water behind each
+float while it planes (src/render/spray.js, render only, from
+sim_float_state). What the plant does not model, the spray, the bow wave
+and the wake (below), is drawn from what it does.
+
+Six plane waves are still a sea with few parts, so the light on the water
+also takes wavelets finer than the plant's shortest wave, 0.35 and 0.14 m
+noise that does not repeat, drifting downwind, at a slope of a few
+hundredths and faded out as a pixel outgrows it: light only, never the
+surface the floats ride. The wake is foam that breaks up along its
+length and opens out as it ages.
 
 `npm run floats:shell` proves it headless: the Timber on floats seated on
 the Alps' lake, afloat and rocking before the throttle (pitch −1.2 to

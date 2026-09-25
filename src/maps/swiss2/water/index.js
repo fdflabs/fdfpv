@@ -1,7 +1,9 @@
 /*
  * index.js: swiss2's water, one call for the map to make.
  *
- *   buildWater(ctx) -> { group, update(dtMs, camera), dispose(), stats }
+ *   buildWater(ctx) -> { group, update(dtMs, camera), setWaves(bodies),
+ *                        updateWaves(t, craft, camera), probe(x, z),
+ *                        dispose(), stats }
  *
  * The lake with its mirror, the stream in its three runs, the pool, and
  * the fall with its headwall and mist, laid out by the alps map's own
@@ -13,6 +15,13 @@
  * reflects the sky's image based light only, which is right for the sky
  * and wrong for the mountains in it). Low also drops the spray and halves
  * the mist.
+ *
+ * The lake moves with the plant's own waves once the shell hands them over
+ * (setWaves at every reset, updateWaves on the sim clock every frame; see
+ * src/render/lakewaves.js): the sheet takes what its five metre cells can
+ * carry, a dense patch round the aircraft or under the camera the rest,
+ * and an aircraft on floats throws spray and leaves a wake on it
+ * (src/render/spray.js). Until then it is the still lake it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -38,6 +47,8 @@ import { waterMaterial, bedMaterial } from './surface.js';
 import { lakeGeometry, planarMirror } from './lake.js';
 import { streamGeometry } from './stream.js';
 import { buildFall } from './fall.js';
+import { makeWaves, patchGeometry, placePatch, outlineBox, probeSurface } from '../../../render/lakewaves.js';
+import { buildSpray } from '../../../render/spray.js';
 
 const BASE = new URL('../../../../assets/swiss2/water/', import.meta.url);
 
@@ -90,20 +101,53 @@ export async function buildWater(ctx) {
   const mouth = layout.lower[layout.lower.length - 1];
   const toMiddle = Math.hypot(cx - mouth.x, cz - mouth.z);
   const inflow = new THREE.Vector4(mouth.x, mouth.z, ((cx - mouth.x) / toMiddle) * INFLOW_REACH, ((cz - mouth.z) / toMiddle) * INFLOW_REACH);
+  const lakeWaves = makeWaves();
   const lakeWater = {
     waves, time, wind, colour: LAKE_BODY, shallow: LAKE_SHALLOW, deep: LAKE_DEEP, clarity: 0.6, ripple: 0.3, roughness: 0.03, planar: mirror, envMap, shoreFoam: 0.08, boat, inflow,
   };
-  const lakeMat = waterMaterial(lakeWater);
+  const lakeMat = waterMaterial({ ...lakeWater, field: lakeWaves });
   const lake = new THREE.Mesh(lakeGeometry(heightAt, shore), lakeMat);
+  lake.userData.waveRes = 5;
   lake.name = 'swiss2-lake';
   lake.receiveShadow = true;
   /* The bed's light, tinted by the water it comes up through, drawn
    * just before the water's own sheet. */
-  const bedMat = bedMaterial(lakeWater, LAKE_ABSORB);
+  const bedMat = bedMaterial({ ...lakeWater, field: lakeWaves }, LAKE_ABSORB);
   const lakeBed = new THREE.Mesh(lake.geometry, bedMat);
   lakeBed.name = 'swiss2-lake-bed';
   lakeBed.renderOrder = -1;
   group.add(lakeBed, lake);
+
+  /* The near water, when the lake has waves: the same water and bed on
+   * the dense patch, which reads its depth off the lake's own grid. Not
+   * drawn until placePatch says so. */
+  const dg = lake.geometry.userData.depth;
+  const depthTex = new THREE.DataTexture(dg.data, dg.w, dg.h, THREE.RedFormat, THREE.FloatType);
+  depthTex.needsUpdate = true;
+  const patchOpts = { ...lakeWater, field: lakeWaves, patch: { texture: depthTex, grid: new THREE.Vector4(dg.x0, dg.z0, 1 / dg.cell, 0) } };
+  const patchGeo = patchGeometry();
+  const patchMat = waterMaterial(patchOpts);
+  const patchBedMat = bedMaterial(patchOpts, LAKE_ABSORB);
+  const patch = new THREE.Mesh(patchGeo, patchMat);
+  patch.name = 'swiss2-lake-near';
+  patch.receiveShadow = true;
+  const patchBed = new THREE.Mesh(patchGeo, patchBedMat);
+  patchBed.name = 'swiss2-lake-near-bed';
+  patchBed.renderOrder = -1;
+  patch.visible = false;
+  patchBed.visible = false;
+  /* Drawn before everything else see through: the patch lies round the
+   * aircraft, and sorted by its own distance it would be drawn over the
+   * aircraft's see through parts, which write no depth. */
+  const near = new THREE.Group();
+  near.name = 'swiss2-lake-patch';
+  near.renderOrder = -1;
+  near.add(patchBed, patch);
+  const lakeBox = outlineBox(shore, 20);
+  /* Spray and wake, drawn in the lake's own foam white as the sun and
+   * the sky light it, the wake fainter than on the cel lake: here the
+   * water's own ripples and sheen carry most of it. */
+  const spray = buildSpray({ waves: lakeWaves, color: new THREE.Color(0.78, 0.82, 0.84), wakeColor: new THREE.Color(0.72, 0.78, 0.8), strength: 0.6 });
 
   /* The stream. */
   const streamMat = waterMaterial({
@@ -205,10 +249,54 @@ export async function buildWater(ctx) {
       stats.mirrorTriangles = info.triangles - triangles;
     }
   };
+  /* The shell's bodies, in the map's frame: the lake's is the one whose
+   * waves are measured from nearest its middle. */
+  const setWaves = (bodies) => {
+    let best = null;
+    for (const b of bodies || []) {
+      if (!best || Math.hypot(b.ox - cx, b.oz - cz) < Math.hypot(best.ox - cx, best.oz - cz)) {
+        best = b;
+      }
+    }
+    lakeWaves.set(best);
+    spray.clear();
+    /* Into the scene with the first waves, not at the build: each
+     * program a still lake never draws, compiled by the build's
+     * renderer.compile all the same, cost the fixed views twelve GL
+     * warnings (glGetProgramiv). The scene's light injection has been by
+     * then, so the patch takes it here. */
+    if (best && !near.parent) {
+      if (ctx.lit) {
+        ctx.lit(patchMat);
+        ctx.lit(patchBedMat);
+      }
+      group.add(near, spray.group);
+    }
+  };
+  const updateWaves = (t, craft, camera) => {
+    lakeWaves.tick(t);
+    const onLake = craft && lakeWaves.body && Math.abs(craft.position.y - lakeWaves.body.y0) < 10 ? craft.position : null;
+    stats.nearWater = placePatch(lakeWaves, [patch, patchBed], camera, onLake, lakeBox);
+    spray.update(t, craft, camera, ctx.renderer);
+    stats.spray = spray.stats;
+  };
+  /* The lake's drawn height at (x, z), off the GPU: the patch where it
+   * lies, else the sheet. */
+  const probe = (x, z) => {
+    if (!lakeWaves.body) {
+      return null;
+    }
+    const u = lakeWaves.uniforms.uPatch.value;
+    const inPatch = u.w > 0 && Math.max(Math.abs(x - u.x), Math.abs(z - u.y)) < u.w;
+    return { y: probeSurface(ctx.renderer, inPatch ? patch : lake, lakeWaves, x, z), patch: inPatch, t: lakeWaves.t };
+  };
   stats.buildMs = Math.round(performance.now() - t0);
   return {
     group,
     update,
+    setWaves,
+    updateWaves,
+    probe,
     boat,
     stats,
     layout,
@@ -222,12 +310,14 @@ export async function buildWater(ctx) {
         mirror.dispose();
       }
       fall.dispose();
-      for (const m of [lake, poolMesh, ...runs]) {
+      for (const m of [lake, poolMesh, patch, ...runs]) {
         m.geometry.dispose();
       }
-      for (const m of [lakeMat, bedMat, streamMat, poolMat]) {
+      for (const m of [lakeMat, bedMat, streamMat, poolMat, patchMat, patchBedMat]) {
         m.dispose();
       }
+      depthTex.dispose();
+      spray.dispose();
     },
   };
 }

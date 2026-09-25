@@ -291,6 +291,21 @@ export async function buildValley(shell, progress, q, style) {
       }
     },
     updateAnim: life.updateAnim,
+    /* The plant's waves on the lake: the shell hands them over at every
+     * reset in the map's frame, and the sim clock every drawn frame
+     * (src/render/lakewaves.js). probeWater is the drawn surface's height
+     * at a point, for the check that it is the plant's. */
+    setWaves(bodies) {
+      if (nature.setWaves) {
+        nature.setWaves(bodies);
+      }
+    },
+    updateWaves(t, craft) {
+      if (nature.updateWaves) {
+        nature.updateWaves(t, craft);
+      }
+    },
+    probeWater: (x, z) => (nature.probeWater ? nature.probeWater(x, z) : null),
     references: {
       valleyFloorWidth: {
         measured: floorWidth,
@@ -317,6 +332,9 @@ export async function buildValley(shell, progress, q, style) {
       cattle: life.cattle,
     }),
     dispose() {
+      if (nature.disposeWaves) {
+        nature.disposeWaves();
+      }
       shell.evictSessionRoots(scene);
       disposeSceneGraph(scene, SESSION_TEXTURES);
       if (stage.dispose) {

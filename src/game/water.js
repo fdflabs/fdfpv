@@ -32,8 +32,9 @@
  * never written. Light air, 2 m/s, down the valley from the north, which
  * over the lake's 0.9 km raises a chop of 3.1 cm at 0.76 s: enough that an
  * aircraft afloat rocks a few degrees, as a model on a lake does, and no
- * more, while the lake is still drawn flat (docs/FLOATS-STAGE1.md). The
- * aircraft spawns in the middle facing into it, up the lake.
+ * more; the map draws the lake from the same waves (src/render/
+ * lakewaves.js, docs/FLOATS-STAGE1.md). The aircraft spawns in the middle
+ * facing into it, up the lake.
  *
  * Every other map has no water, and there an aircraft on floats stands on
  * its keels on the strip.

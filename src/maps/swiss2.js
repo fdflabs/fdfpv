@@ -466,6 +466,10 @@ function photoStyle() {
           stage.water.update(dtMs, camera);
           skip.forEach((o, k) => { o.visible = shown[k]; });
         },
+        /* The lake's waves, from the shell (alps.js, buildValley). */
+        setWaves: (bodies) => stage.water.setWaves(bodies),
+        updateWaves: (t, craft) => stage.water.updateWaves(t, craft, camera),
+        probeWater: (x, z) => stage.water.probe(x, z),
       };
       style.stage = stage;
       style.updateWind = out.updateWind;

@@ -13,7 +13,7 @@
  * which throws for anything else, so a shell cannot pick it up by
  * accident.
  *
- * THE GLSL PORT, for the rendering work that follows: upload the numbers
+ * THE GLSL PORT, which src/render/lakewaves.js is: upload the numbers
  * sim_water_components returns (per component a, kx, ky, omega, phase,
  * and the body's z0 and origin) as uniforms, in the plant's world frame,
  * which is the map's frame turned by the spawn yaw and moved to the
@@ -44,11 +44,11 @@
 const G = 9.81;
 const TWO_PI = 6.28318530717958647692;
 const STEEP_MAX = 0.1;
-const SEA_T = [1.00, 0.85, 0.72, 0.60, 0.45, 0.33];
-const SEA_COS = [1.0, 0.93969262078590838, 0.90630778703664994, 0.76604444311897801, 0.57357643635104609, 0.34202014332566871];
-const SEA_SIN = [0.0, 0.34202014332566871, -0.42261826174069944, 0.64278760968653933, -0.81915204428899178, 0.93969262078590838];
-const SEA_E = [0.34, 0.24, 0.17, 0.11, 0.08, 0.06];
-const SEA_PHASE = [0.0, 2.1, 4.3, 1.3, 5.5, 3.7];
+const SEA_T = [1.2195, 1.0, 0.8475, 0.7143, 0.5952, 0.4878];
+const SEA_COS = [0.9975640502598242, 0.9455185755993168, 0.8910065241883679, 0.754709580222772, 0.6156614753256583, 0.3907311284892737];
+const SEA_SIN = [0.0697564737441253, -0.3255681544571567, 0.45399049973954675, -0.6560590289905073, 0.788010753606722, -0.9205048534524404];
+const SEA_E = [0.1214, 0.4589, 0.1961, 0.1106, 0.0681, 0.0449];
+const SEA_PHASE = [4.744, 2.3441, 6.2273, 3.8273, 1.4274, 5.3106];
 
 const PIO2_HI = 1.57079632673412561417e+00;
 const PIO2_LO = 6.07710050650619224932e-11;
