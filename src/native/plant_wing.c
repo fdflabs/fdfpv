@@ -1418,12 +1418,13 @@ const FixedWingParams FW_BRAMOR2300 = {
   .yaw_coord_k = 0.0,     /* no rudder */
   /* A 1.64 m round canopy, C_D 0.8, sized for 5.0 m/s under it with the
    * airframe's own flat plate drag; open in 1.2 s. The risers meet the
-   * belly 60 mm under the CG and 64 mm ahead of it, where the canopy's
-   * pull balances the airframe's pitching moment hanging flat on its back.
+   * belly 60 mm under the CG and 48 mm ahead of it, where the canopy's
+   * pull balances the airframe's pitching moment hanging flat on its back,
+   * its post stall moment included (scripts/bramor-derive.js).
    * All ESTIMATED: C-Astral publishes none of it. */
   .chute_cda = 1.687,
   .chute_open_s = 1.2,
-  .chute_attach = { 0.0642, 0.0, -0.060 },
+  .chute_attach = { 0.0477, 0.0, -0.060 },
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = -0.0881,
   .stall_arm_cp = 0.2381,

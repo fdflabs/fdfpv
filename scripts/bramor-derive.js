@@ -235,11 +235,18 @@ const chuteCda = cdaTotal - cdaAirframe;
 const canopyCd0 = 0.80; /* a round canopy */
 const canopyD = 2 * Math.sqrt(chuteCda / canopyCd0 / Math.PI);
 /* Hanging inverted and flat the air meets the airframe at -90 deg, where
- * the linear pitching moment reads cm0 + cm_alpha (-pi/2); the risers'
+ * the plant's pitching moment is the linear cm0 + cm_alpha (-pi/2) with
+ * the post stall terms of docs/STALL-STAGE1.md on it, fully stalled: the
+ * linear lift's moment about the neutral point taken back, and the plate's
+ * normal force, 2 sin(alpha), at its centre of pressure (the table's
+ * stall_arm_ac and stall_arm_cp, scripts/stall-derive.js). The risers'
  * attachment point sits that far ahead of the CG that the canopy's pull
  * balances it and the aircraft hangs level on its back. */
 const qChute = 0.5 * rho * vChute * vChute;
-const cmHang = cm0 + cmAlpha * (-Math.PI / 2);
+const stallArmAc = cmAlpha / clAlpha;
+const stallArmCp = 0.40 - (0.25 + stallArmAc);
+const cmHang = cm0 + cmAlpha * (-Math.PI / 2)
+  - (stallArmAc * clAlpha * (-Math.PI / 2) + stallArmCp * 2 * Math.sin(-Math.PI / 2));
 const canopyPull = 0.5 * rho * chuteCda * vChute * vChute;
 const attachX = (qChute * S * cRef * cmHang) / canopyPull;
 const attachZ = -0.060; /* the belly: the aircraft hangs on its back */
