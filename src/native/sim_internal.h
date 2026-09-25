@@ -514,23 +514,50 @@ typedef struct FixedWingParams {
   double chute_cda;       /* canopy drag area fully open, C_D times area, m^2 */
   double chute_open_s;    /* seconds from the pull to a full canopy */
   double chute_attach[3]; /* where the risers meet the airframe, body frame, m */
-  /* Past the stall: the CG's distance behind the wing's aerodynamic centre,
-   * and the flat plate's centre of pressure's behind the CG, both per
-   * chord. They take back the linear moment's lift the stalled wing does
-   * not make and put the plate's normal force where it acts. stall_dw is the tail's
-   * share: the downwash at the tail follows the lift the wing makes
-   * (Nelson eq. 2.22, 2 CL_w / (pi AR)), so as the stalled wing sheds
-   * lift the downwash goes with it and the tail lifts, nose down, by
-   * eta V_H a_t (d epsilon/d alpha) / a_w per unit of lift lost. Zero on
-   * a flying wing, which has no tail. docs/STALL-STAGE1.md. */
+  /*
+   * PAST THE STALL, docs/STALL-STAGE1.md. Nothing here is taken short of
+   * the stall angle, CLmax over CLalpha, and every term is scaled by the
+   * wing chord's Reynolds number, full above 5e4 and nothing below 3e4,
+   * where no section data exist and a low Reynolds number section's
+   * separated flow does not reattach (Lissaman 1983). Where it is not
+   * taken the plant keeps the model it had, the stall blend to the flat
+   * plate and the lowre_arm_* moment, which only the Slow Stick has.
+   *
+   * stall_top: how far past the stall angle the section holds its lift,
+   * rad; stall_k: the share of that lift it keeps once it falls. Both
+   * from the section's measured lift curve at the kit's Reynolds number
+   * (Selig et al., Summary of Low-Speed Airfoil Data).
+   * Past the fall the lift decays to the flat plate's at 90 deg as
+   * Viterna and Corrigan's post stall extrapolation does. slat_k: stall_k
+   * with the slats fitted; zero where there are none.
+   *
+   * stall_arm_ac and stall_arm_cp: the CG's distance behind the wing's
+   * aerodynamic centre, and the stalled wing's centre of pressure's behind
+   * the CG, both per chord. They take back the linear moment's lift the
+   * stalled wing does not make and put its normal force where it acts.
+   * stall_dw is the tail's share: the downwash at the tail follows the
+   * lift the wing makes (Nelson eq. 2.22, 2 CL_w / (pi AR)), so as the
+   * stalled wing sheds lift the downwash goes with it and the tail lifts,
+   * nose down, by eta V_H a_t (d epsilon/d alpha) / a_w per unit of lift
+   * lost. Zero on a flying wing, which has no tail.
+   *
+   * stall_asym: how much sooner the left half of the wing stalls than the
+   * right, rad of angle of attack: the build's asymmetry, which trim
+   * takes out of the lift below the stall and nothing takes out of the
+   * stall itself. strip_c: the chords of the four strips each half wing
+   * is taken in past the stall, at an eighth, three, five and seven
+   * eighths of the semispan, over the mean chord S/b, from the planform.
+   */
+  double stall_k;
+  double slat_k;
+  double stall_top;
   double stall_arm_ac;
   double stall_arm_cp;
   double stall_dw;
-  /* How much sooner the left wing panel stalls than the right, rad of
-   * angle of attack: the rigging's asymmetry, which trim takes out of the
-   * lift below the stall and nothing takes out of the stall itself.
-   * docs/STALL-STAGE1.md. */
   double stall_asym;
+  double strip_c[4];
+  double lowre_arm_ac;
+  double lowre_arm_cp;
   /*
    * FLAPS AND SLATS, docs/TIMBER-STAGE1.md. Zero flap_full is an aircraft
    * without flaps, which sim_wing_set_flaps refuses past notch 0, so its

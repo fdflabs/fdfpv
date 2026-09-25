@@ -67,6 +67,16 @@
 #define WING_BODY_CM_0 (-0.05)
 #define WING_BODY_CN_BETA (-0.02)
 #define WING_DT (1.0 / SIM_STEP_HZ)
+/* The chord Reynolds numbers the post stall model fades in between: under
+ * 3e4 a low Reynolds number section's laminar separation runs into the
+ * wake and does not reattach, and 5e4 is the Reynolds number of the
+ * separation to reattachment distance, so a chord shorter than that cannot
+ * reattach either (Lissaman, Low-Reynolds-Number Airfoils, Ann. Rev. Fluid
+ * Mech. 15, 1983, after Carmichael, NASA CR-165803). The section data the
+ * model is built from start at 6e4. Air's viscosity at sea level, ISA. */
+#define STALL_RE_LO 3.0e4
+#define STALL_RE_HI 5.0e4
+#define AIR_MU 1.789e-5
 
 /* The surfaces this step, radians: left and right wing trailing edge
  * surface (elevon or aileron) and elevator positive trailing edge up,
@@ -584,35 +594,81 @@ void plant_wing_launch(SimState *s, double speed) {
 }
 
 /*
- * ONE WING PANEL PAST THE STALL, docs/STALL-STAGE1.md. The plant's lift and
- * drag are the whole wing's at the centreline's angle of attack, and its
- * roll damping is the table's linear cl_p. Past the stall the two halves
- * of the wing no longer agree: each is taken at its lift's centroid, where
- * its angle of attack is the centreline's plus da, the roll rate's
- * p y_c / V that the table's cl_p is built on, plus dr, what the yaw rate
- * adds: the retreating panel meets the air slower along the chord for the
- * same flow across it, so at a higher angle, sin(alpha) r y_c / V, which
- * linear theory drops as second order and a spin lives on. It has its own
- * stall blend, from its own stall angle. What it returns is how far the
- * panel falls short of the linear wing, per unit of the centre's q S / 2:
+ * THE STALLED WING'S LIFT, past the stall angle, docs/STALL-STAGE1.md. Its
+ * section's measured lift curve (Selig et al., Summary of Low-Speed Airfoil
+ * Data) holds its lift, flat, for stall_top past the stall, then falls to
+ * k of it; the plant takes that fall over the same 2 stall_blend it takes
+ * the stall's onset over, the span spreading what a section does at once.
+ * Past the fall the lift is the flat plate's 2 sin a cos a plus Viterna
+ * and Corrigan's A2 cos^2 a / sin a (NASA CP-2230, 1982), A2 set so the
+ * lift is k of the held lift where the fall ends; that term decays to
+ * nothing at 90 deg, where the plate alone is right, and is not taken past
+ * 90 deg, where the flow is from behind.
  *
- *   out[0]  the lift deficit, sigma (CL_plate - CL_lin), the plate at
- *           da + dr and CL_lin at da. Across the two panels its linear
- *           part is exactly the table's roll damping, which it takes back
- *           as the panel stalls, so what is left is the plate's.
- *   out[1]  the drag excess, sigma (CD_plate - CD_lin). The plate's angle
- *           is held within 0.5 rad of the centre's, where the small angle
- *           sine is good; past that the panel is stalled through anyway.
- *
- * Below the panel's stall sigma is exactly zero and so is every output, of
- * one sign or the other, which add_term then leaves out.
+ * cl_s: the lift held; stall: the stall angle on aa's scale, and shift
+ * what the flaps add to it, so stall - shift is the plate's; aa: the angle
+ * the stall is judged on, flaps included, whose sign the lift takes;
+ * sin_a and cos_a: the zero lift line's, which the plate is taken at.
+ * Returns the lift; *fall is how far through the fall it is, and *past how
+ * far past the stall angle, 0 at it and 1 a stall_blend on, which is how
+ * the caller brings this curve in.
  */
-static void panel_stall(const FixedWingParams *fw, double alpha, double sin_a, double cos_a, double da,
-                        double dr, double cl_lin, double dcl_f, double stall, double out[2]) {
+static double stalled_lift(const FixedWingParams *fw, double k, double cl_s, double stall, double shift,
+                           double aa, double sin_a, double cos_a, double *fall, double *past) {
+  const double a0 = stall + fw->stall_top;
+  const double a1 = a0 + 2.0 * fw->stall_blend;
+  const double t = smoothstep(a0, a1, sim_fabs(aa));
+  const double plate = 2.0 * sin_a * cos_a;
+  const double sgn = aa < 0.0 ? -1.0 : 1.0;
+  double viterna = 0.0;
+  if (cos_a > 0.0 && sim_fabs(sin_a) > 0.05) {
+    const double st = clip(a1 - shift, 0.5);
+    const double ss = sim_sin_small(st), cs = sim_cos_small(st);
+    const double a2 = (k * cl_s - 2.0 * ss * cs) * ss / (cs * cs);
+    viterna = a2 * cos_a * cos_a / sin_a;
+  }
+  *fall = t;
+  *past = smoothstep(stall, stall + fw->stall_blend, sim_fabs(aa));
+  return (1.0 - t) * sgn * cl_s + t * (plate + viterna);
+}
+
+/*
+ * ONE STRIP OF THE WING PAST THE STALL, docs/STALL-STAGE1.md. The plant's
+ * lift and drag are the whole wing's at the centreline's angle of attack,
+ * and its roll damping is the table's linear cl_p. Past the stall the wing
+ * no longer acts as one: each half is taken as four spanwise strips, each
+ * at its own angle of attack, the centreline's plus da, the roll rate's
+ * p y / V that the table's cl_p is built on, plus dr, what the yaw rate
+ * adds: a retreating strip meets the air slower along the chord for the
+ * same flow across it, so at a higher angle, sin(alpha) r y / V, which
+ * linear theory drops as second order and a spin lives on. A strip
+ * carries r times the wing's lift coefficient (Schrenk's loading), so it
+ * reaches its section's clmax, and its stall, at its own angle, stall.
+ * What it returns is how far the strip falls short of the linear wing:
+ *
+ *   out[0]  the lift deficit, the strip's lift less its linear lift, r CL_lin
+ *           at da: the stall blend from the linear lift to the stalled
+ *           lift above, which holds the section's clmax and then falls.
+ *           Across the strips its linear part is the wing's strip theory
+ *           roll damping, which it takes back as a strip stalls, so what
+ *           is left is the stalled lift's.
+ *   out[1]  the drag excess, sigma (CD_plate - CD_lin). The angle is held
+ *           within 0.5 rad of the centre's, where the small angle sine is
+ *           good; past that the strip is stalled through anyway.
+ *
+ * k is the table's stall_k (or slat_k), clmax the section's. Both are
+ * taken only past the strip's stall angle, scaled in over a stall_blend:
+ * short of it a strip is the linear wing the plant's roll damping was
+ * always taken for, and a flight that stays short of every strip's stall
+ * is what it was.
+ */
+static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, double cos_a, double da,
+                        double dr, double r, double cl_lin, double dcl_f, double stall, double k, double clmax,
+                        double out[2]) {
   out[0] = 0.0;
   out[1] = 0.0;
-  const double sigma = smoothstep(stall - fw->stall_blend, stall + fw->stall_blend,
-                                  sim_fabs(add_term(alpha + (da + dr), dcl_f / fw->cl_alpha)));
+  const double aa = add_term(alpha + (da + dr), dcl_f / fw->cl_alpha);
+  const double sigma = smoothstep(stall - fw->stall_blend, stall + fw->stall_blend, sim_fabs(aa));
   if (!(sigma > 0.0)) {
     return;
   }
@@ -620,9 +676,12 @@ static void panel_stall(const FixedWingParams *fw, double alpha, double sin_a, d
   const double sd = sim_sin_small(dc), cd = sim_cos_small(dc);
   const double sp = sin_a * cd + cos_a * sd;
   const double cp = cos_a * cd - sin_a * sd;
-  const double plate = 2.0 * sp * cp;
-  out[0] = sigma * (plate - (cl_lin + fw->cl_alpha * da));
-  out[1] = sigma * (2.0 * sp * sp - fw->k_induced * cl_lin * cl_lin);
+  double fall, past;
+  const double lift = stalled_lift(fw, k, clmax, stall, dcl_f / fw->cl_alpha, aa, sp, cp, &fall, &past);
+  const double lin = r * cl_lin + fw->cl_alpha * da;
+  const double blended = (1.0 - sigma) * lin + sigma * lift;
+  out[0] = past * (blended - lin);
+  out[1] = past * sigma * (2.0 * sp * sp - fw->k_induced * cl_lin * cl_lin);
 }
 
 void plant_wing_step(SimState *s, const double rc[4]) {
@@ -800,7 +859,27 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double cd0 = add_term(add_term(fw->cd0, g_slats ? fw->slat_cd0 : 0.0), fw->cd_df2 * df * df);
   const double cd_lin = cd0 + fw->k_induced * cl_lin * cl_lin;
   const double cd_flat = cd0 + 2.0 * sin_a * sin_a;
-  const double CL = (1.0 - sigma) * cl_lin + sigma * cl_flat;
+  /* Up to its stall angle the wing's lift is the plant's own curve, the
+   * blend from the linear lift to the flat plate every gate's band was
+   * derived on. Past it the lift is its section's, stalled_lift above: the
+   * plant's lift at the stall angle held, then the fall, brought in over a
+   * stall_blend; as far as the Reynolds number the section data reach, and
+   * the plate below them. fre and past are exactly zero where it is not
+   * taken, and every post stall term below is a zero added through
+   * add_term. */
+  const double re = V * fw->chord * PLANT.rho / AIR_MU;
+  const double fre = smoothstep(STALL_RE_LO, STALL_RE_HI, re);
+  const double k_stall = (g_slats && fw->slat_k > 0.0) ? fw->slat_k : fw->stall_k;
+  const double cl_old = (1.0 - sigma) * cl_lin + sigma * cl_flat;
+  double cl_st = cl_old, fall = 0.0, past = 0.0;
+  if (sigma > 0.0 && fre > 0.0) {
+    const double shift = dcl_f / fw->cl_alpha;
+    const double sg = clip(alpha_stall - shift, 0.5);
+    const double ss = sim_sin_small(sg), cs = sim_cos_small(sg);
+    const double cl_s = 0.5 * add_term(clmax, fw->cl_de * delta_e) + ss * cs;
+    cl_st = stalled_lift(fw, k_stall, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
+  }
+  const double CL = add_term(cl_old, fre * past * (cl_st - cl_old));
   const double CD = (1.0 - sigma) * cd_lin + sigma * cd_flat;
 
   /* Forces in the body frame. */
@@ -878,17 +957,25 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * delta_a);
   cn_sum = add_term(cn_sum, fw->cn_dr * delta_r);
   const double l_aero = qbar * fw->area * fw->span * cl_sum;
-  /* Past the stall the wing's lift no longer grows with alpha, and what is
-   * left of it, the flat plate's, acts well aft of the quarter chord. The
+  /* Past the stall the wing's lift no longer grows with alpha, and once it
+   * falls what is left of it acts well aft of the quarter chord. The
    * linear moment above assumes neither, so it keeps pitching the nose up
-   * with the lift the wing no longer makes. Taken back through the stall
-   * blend: the linear lift at the CG's arm behind the wing's aerodynamic
-   * centre, and the plate's normal force, 2 sin(alpha), at its centre of
-   * pressure's arm behind the CG; and the tail's lift that the downwash, going with the wing's lift,
-   * no longer holds down. Below the stall sigma is zero, and add_term
-   * keeps the arithmetic there what it was. */
-  const double cm_stall = -sigma * add_term(fw->stall_arm_ac * cl_lin + fw->stall_arm_cp * 2.0 * sin_a,
-                                            fw->stall_dw * (cl_lin - cl_flat));
+   * with the lift the wing no longer makes. Through the stall blend: the
+   * linear lift taken back at the CG's arm behind the wing's aerodynamic
+   * centre; the stalled wing's normal force put back, at the aerodynamic
+   * centre while it holds its lift and at its centre of pressure's arm
+   * behind the CG as it falls (Hoerner, Fluid Dynamic Lift, ch. 3); and
+   * the tail's lift that the downwash, going with the wing's lift, no
+   * longer holds down. Short of the stall angle, and below the Reynolds
+   * number the section data reach, the moment is the plant's earlier one,
+   * the lowre arms on the plate's lift, which only the Slow Stick has;
+   * past and fre are zero there and add_term keeps that arithmetic what
+   * it was. */
+  const double cm_low = -sigma * (fw->lowre_arm_ac * cl_lin + fw->lowre_arm_cp * cl_flat);
+  const double cn_st = add_term(2.0 * sin_a, (cl_st - cl_flat) * cos_a);
+  const double cm_post = sigma * (((1.0 - fall) * fw->stall_arm_ac - fall * fw->stall_arm_cp) * cn_st
+                                  - fw->stall_arm_ac * cl_lin - fw->stall_dw * (cl_lin - cl_st));
+  const double cm_stall = add_term(cm_low, fre * past * (cm_post - cm_low));
   /* The flaps' own moment rides on the lift they add: the section's nose
    * down moment and the downwash they add at the tail, nose up net. */
   const double m_aero = qbar * fw->area * fw->chord *
@@ -912,26 +999,54 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
   }
 
-  /* The two wing panels past the stall, panel_stall above: a panel that
-   * stalls first drops, by the lift it loses at its arm; a descending
-   * panel is pushed deeper into its stall by its own roll rate, which is
-   * roll damping turning into autorotation; and the stalled panel's drag
-   * yaws the nose toward it. The yaw its lift makes through a roll rate is
-   * the table's cn_p_per_cl, on the stalled CL already. y_c is where strip
-   * theory puts a panel's share of the table's roll damping,
-   * -cl_p = 2 cl_alpha (y_c/b)^2, so it is not a number of its own.
-   * Sideslip is left out of the panels' angles on purpose, docs/STALL-
-   * STAGE1.md. Moments only: the wing's force is the centreline's above. */
-  if (V > 1e-6 && Vxz > 0.5) {
-    const double yc = fw->span * sim_sqrt(-fw->cl_p / (2.0 * fw->cl_alpha));
-    const double da = p * yc / Vrate;
-    const double dr = (-w / V) * s->omega[2] * yc / Vrate;
-    double fl[2], fr[2];
-    panel_stall(fw, alpha, sin_a, cos_a, -da, dr, cl_lin, dcl_f, alpha_stall - 0.5 * fw->stall_asym, fl);
-    panel_stall(fw, alpha, sin_a, cos_a, da, -dr, cl_lin, dcl_f, alpha_stall + 0.5 * fw->stall_asym, fr);
-    const double k = 0.5 * qbar * fw->area * yc;
-    M[0] = add_term(M[0], k * (u / Vxz) * (fl[0] - fr[0]));
-    M[2] = add_term(M[2], k * (u / V) * (fl[1] - fr[1]));
+  /* The wing's strips past the stall, strip_stall above. A strip that
+   * stalls first drops its side, by the lift it loses at its arm; a
+   * descending strip is pushed deeper into its stall by its own roll rate,
+   * which is roll damping turning into autorotation; and a stalled strip's
+   * drag yaws the nose toward it. Each half is four strips of equal span,
+   * at an eighth, three, five and seven eighths of the semispan, their
+   * chords the table's strip_c over the mean chord; each carries r of the
+   * wing's lift coefficient, Schrenk's (c + c_elliptic) / 2c (NACA TM 948),
+   * so the most loaded strip stalls where the wing's CLmax says and the
+   * others later. The left half stalls stall_asym sooner. The moments are
+   * scaled by kr so that the strips' linear part is exactly the table's
+   * roll damping, which they take back as they stall. The yaw a lift makes
+   * through a roll rate is the table's cn_p_per_cl, on the stalled CL
+   * already. Sideslip is left out of the strips' angles on purpose,
+   * docs/STALL-STAGE1.md. Moments only: the wing's force is the
+   * centreline's above. Scaled by the Reynolds number's fre, as the rest
+   * of the post stall model is, and not taken at all where that is zero. */
+  if (V > 1e-6 && Vxz > 0.5 && fre > 0.0) {
+    const double half = 0.5 * fw->span;
+    double rr[4], rmax = 0.0, cyy = 0.0;
+    for (int i = 0; i < 4; i += 1) {
+      const double eta = 0.125 + 0.25 * i;
+      rr[i] = 0.5 * (1.0 + 4.0 / WING_PI * sim_sqrt(1.0 - eta * eta) / fw->strip_c[i]);
+      rmax = rr[i] > rmax ? rr[i] : rmax;
+      cyy += fw->strip_c[i] * eta * eta * 0.25;
+    }
+    const double chord_mean = fw->area / fw->span;
+    const double kr = -fw->cl_p * fw->area * fw->span * fw->span /
+                      (4.0 * fw->cl_alpha * chord_mean * half * half * half * cyy);
+    const double clmax_sec = rmax * clmax;
+    double ml = 0.0, mn = 0.0;
+    for (int i = 0; i < 4; i += 1) {
+      const double y = (0.125 + 0.25 * i) * half;
+      const double da = p * y / Vrate;
+      const double dr = (-w / V) * s->omega[2] * y / Vrate;
+      const double st = alpha_stall * rmax / rr[i];
+      double fl[2], fr[2];
+      strip_stall(fw, alpha, sin_a, cos_a, -da, dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall,
+                  clmax_sec, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, da, -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall,
+                  clmax_sec, fr);
+      const double arm = fw->strip_c[i] * chord_mean * 0.25 * half * y;
+      ml += arm * (fl[0] - fr[0]);
+      mn += arm * (fl[1] - fr[1]);
+    }
+    const double k = qbar * kr * fre;
+    M[0] = add_term(M[0], k * (u / Vxz) * ml);
+    M[2] = add_term(M[2], k * (u / V) * mn);
   }
 
   /* The canopy: drag against the air the risers' attachment point moves
@@ -1099,6 +1214,9 @@ const FixedWingParams FW_WING1000 = {
   .stall_arm_ac = -0.0688,
   .stall_arm_cp = 0.2188,
   .stall_asym = 0.00455,
+  .stall_k = 0.76,
+  .stall_top = 2.6 * WING_PI / 180.0,
+  .strip_c = { 1.250, 1.083, 0.917, 0.750 },
 };
 
 /* The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md, where each number has its
@@ -1173,6 +1291,9 @@ const FixedWingParams FW_SKY1800 = {
   .stall_arm_cp = 0.0667,
   .stall_dw = 0.1448,
   .stall_asym = 0.005,
+  .stall_k = 0.72,
+  .stall_top = 5.3 * WING_PI / 180.0,
+  .strip_c = { 1.132, 1.044, 0.956, 0.868 },
 };
 
 /* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has
@@ -1254,6 +1375,9 @@ const FixedWingParams FW_CUB1400 = {
   .stall_arm_cp = 0.1,
   .stall_dw = 0.1352,
   .stall_asym = 0.005,
+  .stall_k = 0.72,
+  .stall_top = 4.6 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
 };
 
 /* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
@@ -1341,6 +1465,9 @@ const FixedWingParams FW_RADIAN2000 = {
   .stall_arm_cp = 0.1343,
   .stall_dw = 0.1117,
   .stall_asym = 0.00536,
+  .stall_k = 0.84,
+  .stall_top = 1.4 * WING_PI / 180.0,
+  .strip_c = { 1.101, 1.096, 1.074, 0.775 },
 };
 
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
@@ -1429,6 +1556,9 @@ const FixedWingParams FW_BRAMOR2300 = {
   .stall_arm_ac = -0.0881,
   .stall_arm_cp = 0.2381,
   .stall_asym = 0.00389,
+  .stall_k = 0.89,
+  .stall_top = 0.6 * WING_PI / 180.0,
+  .strip_c = { 2.041, 0.875, 0.701, 0.527 },
 };
 
 /* The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md, where each number has its
@@ -1514,8 +1644,13 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .air_lift = 1,
   .stall_arm_ac = 0.0617, /* the CG 17 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.097,  /* the plate's centre of pressure at 0.40 of the chord, 27 mm behind it */
+  .lowre_arm_ac = 0.0617, /* the same, its first post stall moment, kept short of the stall */
+  .lowre_arm_cp = 0.097,  /* angle and below the section data's Reynolds numbers */
   .stall_dw = 0.1313,     /* the tail's lift as the downwash goes, docs/STALL-STAGE1.md */
   .stall_asym = 0.00360,  /* the left panel stalls first, docs/STALL-STAGE1.md */
+  .stall_k = 0.72,
+  .stall_top = 4.4 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
 };
 
 /* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
@@ -1613,6 +1748,10 @@ const FixedWingParams FW_TIMBER1500 = {
   .stall_arm_cp = 0.15,
   .stall_dw = 0.1717,
   .stall_asym = 0.00431,
+  .stall_k = 0.63,
+  .slat_k = 0.84,
+  .stall_top = 3.7 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
 };
 
 /* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
@@ -1713,6 +1852,10 @@ const FixedWingParams FW_TIMBER1500F = {
   .stall_arm_cp = 0.15,
   .stall_dw = 0.1717,
   .stall_asym = 0.00431,
+  .stall_k = 0.63,
+  .slat_k = 0.84,
+  .stall_top = 3.7 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
 };
 
 /* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
@@ -1792,4 +1935,7 @@ const FixedWingParams FW_CUB1400F = {
   .stall_arm_cp = 0.1,
   .stall_dw = 0.1352,
   .stall_asym = 0.005,
+  .stall_k = 0.72,
+  .stall_top = 4.6 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
 };

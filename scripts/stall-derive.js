@@ -19,6 +19,18 @@
  *   stall_asym    how much sooner the left panel stalls: 1 mm of trailing
  *                 edge over the chord, ESTIMATED as a foam or composite
  *                 kit's build tolerance at the panel joint.
+ *   strip_c       the chord of each of the four strips a half wing is
+ *                 taken in, at an eighth, three, five and seven eighths of
+ *                 the semispan, over the mean chord S/b, from the drawn
+ *                 planform. The plant loads them by Schrenk's approximation
+ *                 (NACA TM 948, 1940), c cl / (c_mean CL) = (c +
+ *                 c_elliptic) / (2 c_mean), so a rectangular wing loads its
+ *                 root most and stalls there first, and a tapered one
+ *                 further out. Sweep, which the approximation leaves out,
+ *                 moves the loading outboard again.
+ *   stall_top,    from each section's measured lift curve at the kit's
+ *   stall_k       Reynolds number, read off Selig et al., Summary of
+ *                 Low-Speed Airfoil Data (UIUC), in the table below.
  *
  * The geometry is copied from each aircraft's derivation, which it names;
  * a figure changed there must change here.
@@ -157,6 +169,81 @@ planes.FW_TIMBER1500 = tailed({ b: 1.555, S: 0.361, c: 0.361 / 1.555, hCG: 0.060
 planes.FW_TIMBER1500F = planes.FW_TIMBER1500;
 planes.FW_CUB1400F = planes.FW_CUB1400;
 
+/* The four strips' chords over the mean chord, from a planform chord(eta),
+ * eta 0 at the root and 1 at the tip. */
+function strips(chord) {
+  const N = 4000;
+  let mean = 0;
+  for (let i = 0; i < N; i += 1) mean += chord((i + 0.5) / N) / N;
+  return [0.125, 0.375, 0.625, 0.875].map((e) => chord(e) / mean);
+}
+const rect = () => 1;
+const taper = (l) => (eta) => 1 - (1 - l) * eta;
+const radianHalf = [
+  [0.00, 0.200], [0.60, 0.198], [0.70, 0.185], [0.80, 0.164], [0.85, 0.149],
+  [0.90, 0.132], [0.95, 0.110], [0.98, 0.092], [1.00, 0.050],
+];
+const radianChord = (eta) => {
+  for (let i = 0; i + 1 < radianHalf.length; i += 1) {
+    const [y0, c0] = radianHalf[i];
+    const [y1, c1] = radianHalf[i + 1];
+    if (eta <= y1) return c0 + (c1 - c0) * (eta - y0) / (y1 - y0);
+  }
+  return radianHalf[radianHalf.length - 1][1];
+};
+/* The Bramor as scripts/bramor-derive.js draws it: chord 0.62 m to 0.11 m
+ * out, the cranked delta to 0.26 m at 0.30 m, then straight to 0.12 m at
+ * the 1.15 m tip. */
+const bramorChord = (eta) => {
+  const y = eta * 1.15;
+  if (y <= 0.11) return 0.62;
+  if (y <= 0.30) return 0.62 - 0.36 * (y - 0.11) / 0.19;
+  return 0.26 - 0.14 * (y - 0.30) / 0.85;
+};
+/* The 1000 mm wing's derivation has no planform: ESTIMATED as the usual
+ * foam wing of its class, a taper of 0.5. The Slow Stick's raked tips are
+ * left out: its strips are a rectangle's. */
+const STRIPS = {
+  FW_WING1000: strips(taper(0.5)),
+  FW_SKY1800: strips(taper(0.7)),
+  FW_CUB1400: strips(rect),
+  FW_RADIAN2000: strips(radianChord),
+  FW_BRAMOR2300: strips(bramorChord),
+  FW_SLOWSTICK1180: strips(rect),
+  FW_TIMBER1500: strips(rect),
+};
+STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
+STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
+
+/* The sections, UIUC figures read at the kit's Reynolds number (the
+ * derivations' own): where the lift leaves the linear curve's CLmax
+ * (top, deg past the angle the linear curve reaches CLmax at) and what it
+ * falls to (k, of CLmax), interpolated between the Reynolds numbers
+ * tested. Clark-Y (B), vol. 3 fig. 5.22: at 1e5 held to +4.4 deg then 0.93
+ * of 1.30; at 2e5 to +6.7 deg then 0.93 to 0.95 of 1.32. SD7037 (A), vol.
+ * 1 fig. 4.134: at 6e4 +1.8 deg then about 1.05 of 1.21; at 1e5 +1.1 deg
+ * then 0.96 of 1.18. NACA 2415, vol. 2 fig. 5.52: at 1e5 +2.9 deg then
+ * 0.73 to 0.80 of 1.18; at 2e5 +4.2 deg then 0.76 of 1.22. MH45, vol. 1
+ * fig. 4.61: at 1e5 +2.5 deg then 0.80 of 1.09; at 2e5 +2.8 then 0.92 of
+ * 1.14; at 3e5 +0.6 then a trailing edge stall, 1.05 of 1.16 five degrees
+ * on. Which section stands for which kit is each derivation's own choice
+ * of class; no kit publishes its section. */
+const SECTION = {
+  FW_WING1000: { sec: 'MH45 at 1.3e5', top: 2.6, k: 0.76 },
+  FW_SKY1800: { sec: 'Clark-Y at 1.4e5', top: 5.3, k: 0.72 },
+  FW_CUB1400: { sec: 'Clark-Y at 1.1e5', top: 4.6, k: 0.72 },
+  FW_RADIAN2000: { sec: 'SD7037 at 8e4', top: 1.4, k: 0.84 },
+  FW_BRAMOR2300: { sec: 'MH45 at 2.8e5', top: 0.6, k: 0.89 },
+  FW_SLOWSTICK1180: { sec: 'Clark-Y at 1e5', top: 4.4, k: 0.72 },
+  FW_TIMBER1500: { sec: 'NACA 2415 at 1.6e5', top: 3.7, k: 0.63 },
+};
+SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
+SECTION.FW_CUB1400F = SECTION.FW_CUB1400;
+
+for (const [name, p] of Object.entries(planes)) {
+  const sc = SECTION[name];
+  console.log(`${name.padEnd(17)} ${sc.sec}: stall_top ${sc.top} deg, stall_k ${sc.k}; strip_c ${STRIPS[name].map((x) => x.toFixed(3)).join(', ')}`);
+}
 for (const [name, p] of Object.entries(planes)) {
   console.log(`${name.padEnd(17)} stall_arm_ac ${p.arm_ac.toFixed(4).padStart(7)}  stall_arm_cp ${p.arm_cp.toFixed(4)}  `
     + `stall_dw ${p.dw.toFixed(4)}  stall_asym ${p.asym.toFixed(5)} (${(p.asym * DEG).toFixed(2)} deg)   ${p.note}`);
