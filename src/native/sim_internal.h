@@ -402,6 +402,26 @@ double sim_sqrt_pub(double x);
  */
 void plant_step(SimState *s, const double duty[SIM_MOTOR_COUNT]);
 
+/* One step of I omega_dot = tau - omega x (I omega + h), diagonal I, body
+ * frame, by an integrator that cannot pump energy into a free tumble
+ * (plant.c, THE RATES OF A DAMAGED AIRFRAME). w in and out; h the rotors'
+ * angular momentum, held over the step. */
+void plant_rates_step(double w[3], const double I[3], const double h[3], const double tau[3], double dt);
+
+/* No rigid body here turns faster than this, rad/s: a free body is capped
+ * at 300 (crash.c, FB_W_MAX) and a craft's tumble is a few hundred, where
+ * this would move a five inch's prop tip at over 1,000 m/s on the spin
+ * alone. It bounds the attitude update's subdivision loops, which halve
+ * the step's angle until it is under 0.4 rad and so never end on an
+ * infinite rate. */
+#define SIM_RATE_MAX 1.0e4
+/* 1 when |w| is at most SIM_RATE_MAX. Otherwise (a rate past it, or not a
+ * number) w is zeroed, SIM_RATE_GUARD_TRIPS counts it and 0 comes back:
+ * a state that bad is a bug upstream, and the count, read by
+ * sim_rate_guard_trips(), is how the tests see it rather than a hung page. */
+int plant_rate_guard(double w[3]);
+extern int SIM_RATE_GUARD_TRIPS;
+
 /*
  * The fixed wing plant, src/native/plant_wing.c: one plant for every table
  * entry of PLANT_KIND_WING, driven by the entry's FixedWingParams. The

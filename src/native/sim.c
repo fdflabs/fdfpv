@@ -1969,6 +1969,10 @@ SIM_EXPORT int sim_parts_state(double *out) {
   return crash_parts_state(&S, out);
 }
 
+SIM_EXPORT int sim_rate_guard_trips(void) {
+  return SIM_RATE_GUARD_TRIPS;
+}
+
 SIM_EXPORT int sim_part_break(int part) {
   if (!g_initialised) {
     return SIM_ERR_BAD_STATE;

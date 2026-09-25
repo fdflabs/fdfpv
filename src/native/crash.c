@@ -3950,7 +3950,11 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
   for (int a = 0; a < 3; a += 1) {
     f->w[a] *= 1.0 - 0.5 * SIM_DT;
   }
-  /* Rates then attitude then position, as the plant does. */
+  /* Rates then attitude then position, as the plant does. The guard is
+   * what bounds the halving loop below: a body spawned with a runaway
+   * craft's spin (FB_W_MAX caps it only at the end of its first step) hung
+   * the page there once. */
+  plant_rate_guard(f->w);
   const double wx = f->w[0] * SIM_DT, wy = f->w[1] * SIM_DT, wz = f->w[2] * SIM_DT;
   const double ang = sim_sqrt(wx * wx + wy * wy + wz * wz);
   if (ang > 1e-12) {

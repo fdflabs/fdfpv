@@ -907,6 +907,15 @@ int sim_part_set_damage(int part, double damage);
 int sim_free_bodies_active(void);
 
 /*
+ * sim_rate_guard_trips(): how many times since the last sim_reset a body
+ * (the craft or a free body) came to its attitude update turning faster
+ * than any rigid body here can, or with a rate that is not a number, and
+ * had its rates zeroed instead of hanging the update's subdivision loop.
+ * Always 0 in a sound run; anything else is a bug for the tests to catch.
+ */
+int sim_rate_guard_trips(void);
+
+/*
  * SURFACES. A material per contact. SIM_SURF_DEFAULT is today's contact:
  * the restitution and friction the caller passes, a rigid surface. The
  * others carry their own friction, restitution and give (a stiffness, and
