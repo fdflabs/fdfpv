@@ -119,6 +119,8 @@ typedef struct {
   int wheel_part[SIM_WHEELS_MAX];    /* the part carrying each wheel, -1 */
   int float_part[2];                 /* left, right, -1 */
   double wing_area;                  /* plan area of the wing panels */
+  double w1[SIM_PARTS_MAX];          /* a ringing panel's first bending
+                                      * mode, rad/s; 0 rigid */
 } Table;
 
 static Table T[SIM_AIRFRAME_COUNT];
@@ -177,6 +179,28 @@ static void table_add(Table *t, const PartDef *d, int airframe) {
   t->n += 1;
 }
 
+/*
+ * A WING PANEL RINGS ON ITS SPAR, A BOOM ON ITS TUBE. The first bending
+ * mode is a cantilever's, w = sqrt(3 E I / (L^3 (0.2427 m + M))), m its own
+ * mass spread along it, M the parts it carries taken at its tip (Rayleigh's
+ * tip mass form; with M = 0 it is 3.516 sqrt(E I / (m L^3)), the exact
+ * first mode), L the reach from the root to its farthest hull point. The
+ * joiner's E I follows from the limit the table already derives from it,
+ * M = sigma I / r: E I = (E / sigma) M r. Pultruded carbon
+ * tube, TAP Plastics' minimum properties: flexural modulus 127 GPa; the
+ * tables take its bending strength at 1,000 MPa (the datasheet's minimum
+ * is 1,370), so E / sigma = 127. The spar alone is stiffer than the panel
+ * with its outboard foam, so this is an upper bound on the frequency, and
+ * the shortest period a panel rings with: 8 to 13 Hz for the foam planes'
+ * panels, inside the 5 to 20 Hz small UAV wings' ground vibration tests
+ * put their first bending. RING_ZETA, its damping, is chosen: a few percent
+ * of critical, a lightly damped structure. docs/CRASH-STAGE1.md, Damage.
+ */
+#define SPAR_E_OVER_S 127.0
+#define RING_OWN 0.2427   /* 33 / 140, a cantilever's own mass at its tip */
+#define RING_ZETA 0.03
+#define RING_STILL 1.0e-3 /* N and N m: a ring below this is over */
+
 /* Masses, centres, boxes, subtrees and the root's residual. */
 static void table_finish(Table *t, int airframe) {
   const PlantParams *P = &PLANT_TABLE[airframe];
@@ -229,6 +253,31 @@ static void table_finish(Table *t, int airframe) {
     const int par = t->p[i].parent;
     if (par >= 0) {
       t->sub[par] |= t->sub[i];
+    }
+  }
+  for (int i = 0; i < t->n; i += 1) {
+    t->w1[i] = 0.0;
+    if (!(t->p[i].spar_r > 0.0) || i == 0) {
+      continue;
+    }
+    double reach = 0.0;
+    for (int k = 0; k < t->p[i].npts; k += 1) {
+      const double e[3] = { t->p[i].pts[k][0] - t->p[i].joint[0], t->p[i].pts[k][1] - t->p[i].joint[1],
+                            t->p[i].pts[k][2] - t->p[i].joint[2] };
+      const double r = sim_sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
+      if (r > reach) reach = r;
+    }
+    /* The parts it carries ride at its tip. */
+    double m_eff = RING_OWN * t->p[i].mass;
+    for (int c = i + 1; c < t->n; c += 1) {
+      if (t->sub[i] & (1u << c)) {
+        m_eff += t->p[c].mass;
+      }
+    }
+    const double ei = SPAR_E_OVER_S * t->p[i].m_max * t->p[i].spar_r;
+    const double w = sim_sqrt(3.0 * ei / (m_eff * reach * reach * reach));
+    if (w * SIM_DT < 0.5) {
+      t->w1[i] = w;
     }
   }
   for (int w = 0; w < SIM_WHEELS_MAX; w += 1) {
@@ -422,6 +471,8 @@ typedef struct {
   double dent[3];    /* m, body frame */
   double energy;     /* J */
   double damage;
+  double ring[6];    /* a ringing panel's joint force and moment, body */
+  double ring_d[6];  /* and their rates */
 } PartState;
 
 static PartState PS[SIM_PARTS_MAX];
@@ -1048,6 +1099,10 @@ void crash_reset(void) {
       p->bend[a] = 0.0;
       p->dent[a] = 0.0;
     }
+    for (int a = 0; a < 6; a += 1) {
+      p->ring[a] = 0.0;
+      p->ring_d[a] = 0.0;
+    }
     FB[i].state = 0;
   }
   g_shift[0] = g_shift[1] = g_shift[2] = 0.0;
@@ -1202,6 +1257,7 @@ typedef struct {
 } Hit;
 
 static Hit H[HITS_MAX];
+static double g_bb[HITS_MAX][3]; /* each hit's point, body live, judge's */
 static int g_nh = 0;
 static double g_pre_vel[3];
 static double g_pre_w[3];
@@ -1887,11 +1943,112 @@ SIM_EXPORT int sim_crash_debug(double *out, int max) {
   return n;
 }
 
+/* The craft's rigid body response to the batch's contact loads F (forces,
+ * or impulses for the momentum they carry), body frame, each scaled by
+ * sc, over the mass m still on. */
+static void craft_accel(const double F[][3], const double *sc, double m, double acc[3], double alp[3]) {
+  double Ft[3] = { 0.0, 0.0, 0.0 }, tau[3] = { 0.0, 0.0, 0.0 };
+  for (int h = 0; h < g_nh; h += 1) {
+    const double f[3] = { sc[h] * F[h][0], sc[h] * F[h][1], sc[h] * F[h][2] };
+    double c[3];
+    cross(g_bb[h], f, c);
+    for (int a = 0; a < 3; a += 1) {
+      Ft[a] += f[a];
+      tau[a] += c[a];
+    }
+  }
+  for (int a = 0; a < 3; a += 1) {
+    acc[a] = Ft[a] / m;
+    alp[a] = tau[a] / PLANT.inertia[a];
+  }
+}
+
+/* Joint j's load, body frame: what its subtree's share of the craft's
+ * motion asks of it, less the contacts on the subtree itself. Returns 1
+ * when a contact is on the subtree (the joint is on a load path). */
+static int joint_load(const Table *t, int j, const double F[][3], const double *sc, unsigned int gone,
+                      const double acc[3], const double alp[3], double Fj[3], double Mj[3]) {
+  const int n = t->n;
+  int path = 0;
+  double pj[3];
+  live_pt(t->p[j].joint, pj);
+  for (int a = 0; a < 3; a += 1) {
+    Fj[a] = 0.0;
+    Mj[a] = 0.0;
+  }
+  for (int i = 0; i < n; i += 1) {
+    if (!(t->sub[j] & (1u << i)) || !attached(i) || (gone & (1u << i))) {
+      continue;
+    }
+    double ci[3];
+    live_pt(t->cg[i], ci);
+    double ai[3];
+    cross(alp, ci, ai);
+    const double mi = t->p[i].mass;
+    double fi[3];
+    for (int a = 0; a < 3; a += 1) {
+      fi[a] = mi * (acc[a] + ai[a]);
+      Fj[a] += fi[a];
+    }
+    const double arm[3] = { ci[0] - pj[0], ci[1] - pj[1], ci[2] - pj[2] };
+    double c[3];
+    cross(arm, fi, c);
+    for (int a = 0; a < 3; a += 1) Mj[a] += c[a];
+  }
+  for (int h = 0; h < g_nh; h += 1) {
+    if (!(t->sub[j] & (1u << H[h].part))) {
+      continue;
+    }
+    if (sc[h] > 0.0) {
+      path = 1;
+    }
+    const double f[3] = { sc[h] * F[h][0], sc[h] * F[h][1], sc[h] * F[h][2] };
+    const double arm[3] = { g_bb[h][0] - pj[0], g_bb[h][1] - pj[1], g_bb[h][2] - pj[2] };
+    double c[3];
+    cross(arm, f, c);
+    for (int a = 0; a < 3; a += 1) {
+      Fj[a] -= f[a];
+      Mj[a] -= c[a];
+    }
+  }
+  return path;
+}
+
+/* A joint carries a push that seats the part on its parent in bearing, the
+ * part's face against the frame's, not through its strap or screws: a pack
+ * under the frame landed on is pressed into it, not torn off. That
+ * component counts at BEARING_SHARE, the seated push grips the pad before
+ * the strap takes a sideways load, and a push inside the seat's footprint
+ * does not lever the part off. The magnitudes the limits are held to. */
+static void seat_load(const Table *t, int j, const double Fj[3], const double Mj[3], double *fm_out, double *mm_out) {
+  double fm = norm(Fj);
+  double mm = norm(Mj);
+  double pj[3], cj[3];
+  live_pt(t->p[j].joint, pj);
+  live_pt(t->cg[j], cj);
+  const double u[3] = { cj[0] - pj[0], cj[1] - pj[1], cj[2] - pj[2] };
+  const double ul = norm(u);
+  if (ul > 1e-6) {
+    const double fb = dot(Fj, u) / ul;
+    if (fb > 0.0) {
+      const double perp2 = fm * fm - fb * fb;
+      double perp = sim_sqrt(perp2 > 0.0 ? perp2 : 0.0) - SEAT_GRIP * fb;
+      if (perp < 0.0) perp = 0.0;
+      const double seat = fb * BEARING_SHARE;
+      fm = sim_sqrt(perp * perp + seat * seat);
+      mm -= fb * t->seat[j];
+      if (mm < 0.0) mm = 0.0;
+    }
+  }
+  *fm_out = fm;
+  *mm_out = mm;
+}
+
 static void judge(SimState *s) {
   const Table *t = tab();
   const int n = t->n;
   double Fb[HITS_MAX][3];
-  double bb[HITS_MAX][3];
+  double (*bb)[3] = g_bb;
   double sc[HITS_MAX];
   int changed = 0;
   Break brk[BREAKS_MAX];
@@ -2063,13 +2220,28 @@ static void judge(SimState *s) {
    * has to be given its share of that through its joint, less the contact
    * forces that act on it directly. Weakest link first: when a joint
    * fails, the loads that went through it are capped at what it carried,
-   * and the rest is judged again without it. */
+   * and the rest is judged again without it. A panel that rings (a wing on
+   * its spar) is loaded through its first bending mode, below. */
+  double Jb[HITS_MAX][3];
+  for (int h = 0; h < g_nh; h += 1) {
+    double Jw[3];
+    for (int a = 0; a < 3; a += 1) {
+      Jw[a] = H[h].force ? H[h].F[a] * g_batch_dt : H[h].J[a];
+    }
+    qrot_inv(s->quat, Jw, Jb[h]);
+  }
+  const double adv = g_from_step ? SIM_DT : 0.0;
+  double ring[SIM_PARTS_MAX][12];
   unsigned int gone = 0;
   double rho0[SIM_PARTS_MAX];
   double M0[SIM_PARTS_MAX][3];
   for (int j = 0; j < n; j += 1) {
     rho0[j] = 0.0;
     M0[j][0] = M0[j][1] = M0[j][2] = 0.0;
+    for (int a = 0; a < 6; a += 1) {
+      ring[j][a] = PS[j].ring[a];
+      ring[j][6 + a] = PS[j].ring_d[a];
+    }
   }
   for (int iter = 0; iter < BREAKS_MAX; iter += 1) {
     double m = 0.0;
@@ -2081,21 +2253,9 @@ static void judge(SimState *s) {
     if (!(m > 0.0)) {
       break;
     }
-    double Ft[3] = { 0.0, 0.0, 0.0 }, tau[3] = { 0.0, 0.0, 0.0 };
-    for (int h = 0; h < g_nh; h += 1) {
-      const double f[3] = { sc[h] * Fb[h][0], sc[h] * Fb[h][1], sc[h] * Fb[h][2] };
-      double c[3];
-      cross(bb[h], f, c);
-      for (int a = 0; a < 3; a += 1) {
-        Ft[a] += f[a];
-        tau[a] += c[a];
-      }
-    }
-    double acc[3], alp[3];
-    for (int a = 0; a < 3; a += 1) {
-      acc[a] = Ft[a] / m;
-      alp[a] = tau[a] / PLANT.inertia[a];
-    }
+    double acc[3], alp[3], accJ[3], alpJ[3];
+    craft_accel(Fb, sc, m, acc, alp);
+    craft_accel(Jb, sc, m, accJ, alpJ);
     /* Two kinds of joint: those a contact's force goes through on its way
      * to the root, and those that only carry their parts' share of the
      * craft's deceleration. The first kind fails first: until the joints
@@ -2109,75 +2269,33 @@ static void judge(SimState *s) {
         continue;
       }
       const PartDef *dj = &t->p[j];
-      int path = 0;
-      double pj[3];
-      live_pt(dj->joint, pj);
-      double Fj[3] = { 0.0, 0.0, 0.0 }, Mj[3] = { 0.0, 0.0, 0.0 };
-      for (int i = 0; i < n; i += 1) {
-        if (!(t->sub[j] & (1u << i)) || !attached(i) || (gone & (1u << i))) {
-          continue;
+      double Fj[3], Mj[3];
+      const int path = joint_load(t, j, Fb, sc, gone, acc, alp, Fj, Mj);
+      if (t->w1[j] > 0.0) {
+        /* The panel's first mode, a spring of its own frequency driven by
+         * the joint's quasi static load: it takes the batch's momentum as a
+         * kick and rings on through the steps. The root sees the mode's
+         * force, not the rigid body's, so a blow short against the period
+         * loads it by the impulse it carried, not by its peak. */
+        double FJ[3], MJ[3];
+        joint_load(t, j, Jb, sc, gone, accJ, alpJ, FJ, MJ);
+        const double w = t->w1[j];
+        const double *y = PS[j].ring;
+        const double *yd = PS[j].ring_d;
+        double *c = ring[j];
+        for (int a = 0; a < 6; a += 1) {
+          const double kick = a < 3 ? FJ[a] : MJ[a - 3];
+          c[6 + a] = yd[a] + w * w * kick - (w * w * y[a] + 2.0 * RING_ZETA * w * yd[a]) * adv;
+          c[a] = y[a] + c[6 + a] * adv;
         }
-        double ci[3];
-        live_pt(t->cg[i], ci);
-        double ai[3];
-        cross(alp, ci, ai);
-        const double mi = t->p[i].mass;
-        double fi[3];
         for (int a = 0; a < 3; a += 1) {
-          fi[a] = mi * (acc[a] + ai[a]);
-          Fj[a] += fi[a];
-        }
-        const double arm[3] = { ci[0] - pj[0], ci[1] - pj[1], ci[2] - pj[2] };
-        double c[3];
-        cross(arm, fi, c);
-        for (int a = 0; a < 3; a += 1) Mj[a] += c[a];
-      }
-      for (int h = 0; h < g_nh; h += 1) {
-        if (!(t->sub[j] & (1u << H[h].part))) {
-          continue;
-        }
-        if (sc[h] > 0.0) {
-          path = 1;
-        }
-        const double f[3] = { sc[h] * Fb[h][0], sc[h] * Fb[h][1], sc[h] * Fb[h][2] };
-        const double arm[3] = { bb[h][0] - pj[0], bb[h][1] - pj[1], bb[h][2] - pj[2] };
-        double c[3];
-        cross(arm, f, c);
-        for (int a = 0; a < 3; a += 1) {
-          Fj[a] -= f[a];
-          Mj[a] -= c[a];
+          Fj[a] = c[a];
+          Mj[a] = c[3 + a];
         }
       }
       const double st = PS[j].strength;
-      /* A joint carries a push that seats the part on its parent in
-       * bearing, the part's face against the frame's, not through its
-       * strap or screws: a pack under the frame landed on is pressed into
-       * it, not torn off. That component counts at a tenth. */
-      double fm = norm(Fj);
-      double mm = norm(Mj);
-      {
-        double cj[3];
-        live_pt(t->cg[j], cj);
-        const double u[3] = { cj[0] - pj[0], cj[1] - pj[1], cj[2] - pj[2] };
-        const double ul = norm(u);
-        if (ul > 1e-6) {
-          const double fb = dot(Fj, u) / ul;
-          if (fb > 0.0) {
-            /* And the push that seats it grips it: the pad's friction
-             * takes a share of the sideways load before the strap does. */
-            const double perp2 = fm * fm - fb * fb;
-            double perp = sim_sqrt(perp2 > 0.0 ? perp2 : 0.0) - SEAT_GRIP * fb;
-            if (perp < 0.0) perp = 0.0;
-            const double seat = fb * BEARING_SHARE;
-            fm = sim_sqrt(perp * perp + seat * seat);
-            /* Nor does a push inside the seat's footprint lever the part
-             * off: it has to overcome the seated force at the footprint's
-             * edge first. */
-            mm -= fb * t->seat[j];
-            if (mm < 0.0) mm = 0.0;
-          }
-        }
-      }
+      double fm, mm;
+      seat_load(t, j, Fj, Mj, &fm, &mm);
       double rho = mm / (dj->m_max * st);
       if (fm / (dj->f_max * st) > rho) {
         rho = fm / (dj->f_max * st);
@@ -2222,6 +2340,16 @@ static void judge(SimState *s) {
     brk[nbrk].forced = 0;
     nbrk += 1;
     gone |= t->sub[best];
+  }
+  /* The rings go on from the last pass's state. */
+  for (int j = 1; j < n; j += 1) {
+    if (!(t->w1[j] > 0.0) || !attached(j) || (gone & (1u << j))) {
+      continue;
+    }
+    for (int a = 0; a < 6; a += 1) {
+      PS[j].ring[a] = ring[j][a];
+      PS[j].ring_d[a] = ring[j][6 + a];
+    }
   }
 
   /* Under the break: each part's new peak, and what its material does. */
@@ -2315,6 +2443,32 @@ static void judge(SimState *s) {
   }
 }
 
+/* A panel still ringing after its contact has ended goes on being judged
+ * until its ring has died away, and is then set still. */
+static int ring_live(void) {
+  const Table *t = tab();
+  int live = 0;
+  for (int i = 1; i < t->n; i += 1) {
+    if (!(t->w1[i] > 0.0) || !attached(i)) {
+      continue;
+    }
+    double e = 0.0;
+    for (int a = 0; a < 6; a += 1) {
+      const double v = PS[i].ring_d[a] / t->w1[i];
+      e += PS[i].ring[a] * PS[i].ring[a] + v * v;
+    }
+    if (e < RING_STILL * RING_STILL) {
+      for (int a = 0; a < 6; a += 1) {
+        PS[i].ring[a] = 0.0;
+        PS[i].ring_d[a] = 0.0;
+      }
+      continue;
+    }
+    live = 1;
+  }
+  return live;
+}
+
 void crash_batch_end(SimState *s) {
   if (!SIM_DAMAGE || !g_batch_open) {
     return;
@@ -2325,7 +2479,7 @@ void crash_batch_end(SimState *s) {
   if (g_from_step) {
     g_spring_mask = g_batch_spring;
   }
-  if (g_nh == 0) {
+  if (g_nh == 0 && !(g_from_step && ring_live())) {
     const Table *t = tab();
     for (int i = 0; i < t->n; i += 1) {
       PS[i].peak = 0.0;
