@@ -501,6 +501,10 @@ rows.push(['alpha trim at full up, linear moment; alpha stall (deg)', `${f((Cm0 
 rows.push(['plant CL max on the unstalled branch, its stall m/s', `${f(plantCLmax)} ${f(Math.sqrt(2 * W / (rho * S * plantCLmax)), 2)}`]);
 rows.push(['stall arms ac, cp (per chord)', `${f(armAc, 4)} ${f(armCp, 4)}`]);
 rows.push(['full up mush', JSON.stringify(mush(throwE), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
+/* The same balance with the elevator neutral is the throttle chop with the
+ * sticks let go: the idle's thrust is nil over its 5.5 m/s pitch speed, so
+ * the aircraft settles on the glide its pitching moment trims. */
+rows.push(['hands off glide, throttle closed', JSON.stringify(mush(0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 90 percent', JSON.stringify(levelTurn(45 / DEG, 0.9), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 100 percent', JSON.stringify(levelTurn(45 / DEG, 1.0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 /* A straight pass at cruise through the core of the strongest thermal,
