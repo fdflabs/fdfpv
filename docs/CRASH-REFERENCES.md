@@ -213,7 +213,11 @@ so EPO is taken as EPP's order of stress that keeps its dent (ASSUMPTION).
 **R-SLOWSTICK. The Slow Stick's failures.** Crodog's log,
 https://www.crodog.org/slowstick/slowstick.htm : "the prop shaft was
 slightly bent", "broke a bit of the plastic piece that holds the landing
-gear", "torn and punctured wing" from a tree. The aluminium boom (6063,
+gear", "torn and punctured wing" from a tree, and on its landings, "Almost
+every landing so far has been a shallow or steep dive into the weeds. The
+plane holds up well to these landings"; its first take offs from the
+ground "would barely get into the air", and after that it was hand
+launched. The aluminium boom (6063,
 yield about 97 MPa, https://en.wikipedia.org/wiki/6063_aluminium_alloy)
 bends and kinks rather than breaking; its section was not verified.
 
@@ -370,6 +374,19 @@ these give: the prop strikes, the aircraft stands on its nose or goes over
 onto its back, and it goes no further than it can pivot. MED for the prop,
 LOW for the rest.
 
+**R-DIG. A propeller digging in turns an aircraft over.** NTSB
+CEN20CA250, a Hatz CB-1 taildragger,
+https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/101504/pdf :
+"The airplane stalled and impacted terrain in a nose low attitude. The
+propeller "dug in" the terrain and the airplane nosed over", with
+substantial damage to the empennage. NTSB CEN24LA142, a Cessna 182F,
+https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/194010/pdf :
+landed hard on sand beside the runway, "The nose landing gear and
+propeller dug into the sand, the airplane nosed over and came to rest
+inverted". Full size, one report each: the mechanism (a blade that digs
+into soft ground holds the nose while the aircraft goes over it), not a
+number. No figure for how hard a blade grips as it digs was found.
+
 ## 3. Footage to measure
 
 The plan asks for crash footage measured frame by frame. That cannot be
@@ -412,8 +429,10 @@ penalty at the nose, pushers (Skyhunter, Bramor) its crumple zone. The
 Bramor is carbon, kevlar and vectran rather than foam, so its plane bands
 borrow the foam pusher's and are LOW. The nose over on take off (which
 replaced the plan's tail strike, section 6) is only flown by the aircraft
-that take off on wheels, the three taildraggers: the Skyhunter and the
-Radian are hand launched and the Bramor catapulted.
+that take off on wheels and can go over their mains, the Cub and the
+Timber: the Skyhunter and the Radian are hand launched and the Bramor
+catapulted, and the Slow Stick's mains stand too far ahead of its CG for
+any ground to tip it (section 6), so it flies its landing dive instead.
 
 ### Five inch
 
@@ -776,14 +795,12 @@ Radian are hand launched and the Bramor catapulted.
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
 
-**slowstick-nose-over.** Reference still: Pushed tail up too early at full power: the tail rises, the nose tips forward over the wheels, the prop digs into the grass and chips or snaps, and it stops standing on its nose or flips onto its back within about its own length.
+**slowstick-landing-dive.** Reference still: On final too slow and pushed into a shallow dive with the power off: the nose goes into the grass at a walking pace, the aircraft stops within a few metres and flies again after.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
-| mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
-| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
-| restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
+| mustNotBreak | wing, fuselage, tail, prop | R-SLOWSTICK ("Almost every landing so far has been a shallow or steep dive into the weeds. The plane holds up well to these landings") | LOW |
+| restDistM | 0 to 7.4 | R-SLIDE, DERIVED (the most it can arrive with is 4.84 m/s plus a 1 m drop without drag, 6.6 m/s; a foam belly on grass at mu 0.3 slides v squared over 2 mu g, 7.4 m, the farthest a nose in can go) | LOW |
 
 **slowstick-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
@@ -1118,3 +1135,28 @@ Recorded here because the loop will build on the plan.
   is what brings it into band.
 - **The 1000 mm wing** (airframe 2) is still in the module but the shell
   no longer offers it, so "each plane" is the six the shell flies.
+
+## 7. Round 3: is each scenario staged like its reference
+
+The suite's own audit, so that a failing band is the plant's and not a
+mis-staged test. What was restaged, and what was found to be the plant's.
+
+- **The five inch pilot stayed armed after a crash.** Sticks centred and
+  throttle closed, but airmode on, so a quad knocked spinning was flown
+  back up at full power: the 15 m/s gate clip climbed to 22 m and hit the
+  grass at 16.6 m/s 4.9 s later, the branch clip climbed to 13 m. Now the
+  pilot disarms 250 ms after the first contact (R-DISARM), in every five
+  inch scenario but the turtle one. The gate clip tumbles to the grass 4.9
+  m on, as its reference does.
+- **The Slow Stick cannot nose over on its take off roll,** and no
+  reference says it does: its mains stand 0.18 m ahead of the CG, so the
+  wheels' drag has to reach about 1.1 (tail up) to 1.3 (tail down) of
+  their load, against 0.48 in loose sand and 0.70 on a skidding brake.
+  The plant is right to refuse it. Its pilots write about its landings
+  instead (R-SLOWSTICK), so its scenario is now the landing dive.
+- **The Cub on sand tips onto its prop and rocks back.** The prop tip is
+  a skid at 0.8 on every ground (R-ROLLING), 0.14 m under the CG and 0.23
+  m ahead of it, so it pivots the aircraft over only above about 1.6.
+  Real blades dig into soft ground and turn aircraft over (R-DIG), but no
+  number for that grip was found: left to the core as a finding, not
+  staged round. The Timber on the same program goes over.

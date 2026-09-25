@@ -625,7 +625,38 @@ function planeScenarios(key) {
       return planeHold(h, { pitch, thr: 0 });
     },
   });
-  if (c.wheels) {
+  if (key === 'slowstick') {
+    /*
+     * The Slow Stick is the one taildragger here that cannot nose over on
+     * its take off roll, and no reference says it does: its mains stand
+     * 0.18 m ahead of the CG on a wire V raked forward, so the wheels'
+     * drag has to reach about 1.1 of their load (tail up, level) to 1.3
+     * (tail down) before it tips, where loose sand gives 0.48 and a
+     * skidding brake 0.70 (R-ROLLING; docs/SLOWSTICK-STAGE1.md, the
+     * landing gear). What its pilots write about is the landing:
+     * "Almost every landing so far has been a shallow or steep dive into
+     * the weeds. The plane holds up well to these landings" (R-SLOWSTICK).
+     * So its ground accident is that one: on final at its landing speed,
+     * 1.1 V_s (S16 in the gates), 1 m up, power off, pushed into a
+     * shallow dive, 20 deg nose down (ASSUMPTION for "shallow"), held
+     * into the grass.
+     */
+    out.push({
+      id: 'slowstick-landing-dive',
+      title: 'Landing at 1.1 times the stall, power off, a shallow dive held into the grass',
+      family: 'landing dive',
+      seconds: 10,
+      setup(h) {
+        grass(h);
+        stab0(h);
+        planeLaunch(h, { z: 1, pitch: -20, v: 1.1 * c.Vs });
+        h.arm();
+      },
+      pilot(h) {
+        return h.hit ? HANDS_OFF : planeHold(h, { pitch: -20, thr: 0 });
+      },
+    });
+  } else if (c.wheels) {
     /* The taildragger's take off accident (docs/CRASH-PLAN.md, lead
      * decision after the baseline; docs/CRASH-REFERENCES.md R-NOSEOVER),
      * flown on the ground the references name: a soft field, loose sand,
