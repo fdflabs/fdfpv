@@ -37,6 +37,9 @@ import {
   climber, paintedBand, paintedQuoins, notes, dressRoof, hangingBasket, churchDoor,
 } from './parts.js';
 import { roofShell, gableProfile } from '../../alps/kit.js';
+import {
+  flatTop, pyramidTop, shedTop, spireCore,
+} from '../../alps/roofs.js';
 
 /*
  * How a house's masonry storey is finished and what grows on it. No two
@@ -328,9 +331,14 @@ export function barn(f, spec) {
     const y0 = SOCLE + footH + wallH - 1.2;
     const shed = prism([[hw, y0 + 0.9], [hw + out, y0], [hw + out, y0 + 0.16], [hw, y0 + 1.06]], -hd + 0.5, hd - 0.5);
     f.put(roofKey, shed);
+    /* Ground, on posts: its frame at its middle, falling toward +x. */
+    frame(f, hw + out / 2, y0, 0).roofFaces({
+      top: shedTop(-out / 2, 1.06, out / 2, 0.16, -hd + 0.5, hd - 0.5), dy: 0.16, hw: out / 2, hd: hd - 0.5, open: true, kind: 'leanTo',
+    }, roofKey);
     f.put(board, box(0.2, 0.22, d - 1.0), hw + out - 0.2, y0 - 0.12, 0);
     for (const z of [-hd + 0.8, 0, hd - 0.8]) {
       f.put(board, boxUp(0.18, y0 - 0.2, 0.18), hw + out - 0.2, SOCLE, z);
+      f.solid(hw + out - 0.29, SOCLE, z - 0.09, hw + out - 0.11, y0 - 0.2, z + 0.09);
       f.put(near(board), box(0.12, 0.12, 1.1), hw + out - 0.2, y0 - 0.5, z + 0.45, 0, -0.785);
     }
     woodpile(frame(f, hw, 0, 0, Math.PI / 2), 0, d * 0.5, 4);
@@ -676,6 +684,16 @@ export function church(f, spec) {
    * inside the cap so nothing overhangs unsupported. */
   const spire = cached('s2spire', () => new THREE.ConeGeometry(tw * 0.58, 13, 8).translate(0, 6.5, 0));
   f.put('slate', spire, 0, SOCLE + towerH + 0.3, tz, Math.PI / 8);
+  /* The cap and the spire are ground over the tower's walls, as the cel
+   * church's are (alps/kit.js). */
+  const cap = frame(f, 0, SOCLE + towerH + 0.3, tz);
+  cap.roofFaces({
+    top: [...flatTop(-(tw + 0.5) / 2, -(tw + 0.5) / 2, (tw + 0.5) / 2, (tw + 0.5) / 2, 0), ...pyramidTop(8, tw * 0.58, 0, 13, -Math.PI / 8)],
+    dy: 0.3, hw: tw / 2, hd: tw / 2, kind: 'spire',
+  }, 'slate');
+  for (const b of spireCore(tw * 0.58, 0, 13)) {
+    cap.solid(...b);
+  }
   const ball = cached('s2ball', () => new THREE.SphereGeometry(0.32, 8, 6));
   f.put('cross', ball, 0, SOCLE + towerH + 13.3, tz);
   f.put('cross', boxUp(0.12, 2.0, 0.12), 0, SOCLE + towerH + 13.5, tz);

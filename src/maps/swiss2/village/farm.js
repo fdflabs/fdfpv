@@ -73,8 +73,8 @@ function farOnly(bake) {
 }
 
 /* Bake the farm; returns its buildings' keep out boxes, [x0, y0, z0, x1,
- * y1, z1], each with the roofs it put and the village datum they are
- * over (alps/roofs.js standWalls). */
+ * y1, z1], each with the roofs and solid parts it put and the village
+ * datum they are over (alps/roofs.js standWalls). */
 export function farmstead(ctx) {
   const { bake, onGround, villageY } = ctx;
   const walls = [];
@@ -88,6 +88,7 @@ export function farmstead(ctx) {
     const y = Math.max(...pts);
     const found = y - Math.min(...pts) + 0.4;
     const from = bake.roofs.length;
+    const fromSolids = bake.solids.length;
     const ext = build(frame(into, x, y, z, ry), found);
     const box = corners(x, z, ry, ext.hw, ext.hd);
     const xs = box.map((p) => p.x);
@@ -95,6 +96,7 @@ export function farmstead(ctx) {
     walls.push({
       box: [Math.min(...xs), villageY + y - found, Math.min(...zs), Math.max(...xs), villageY + y + ext.top, Math.max(...zs)],
       roofs: bake.roofs.slice(from),
+      parts: bake.solids.slice(fromSolids),
       lift: villageY,
     });
   };

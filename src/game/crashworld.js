@@ -268,9 +268,10 @@ export function nearestTrees(trees, x, z, reach, max, out) {
  * (x, y, z) within `reach`, trees excluded (sim_tree_add gives every tree
  * it holds a trunk for the free bodies, and a crown is foliage). Each is { box, kind, i } with a box's world
  * corners or a capsule's two ends and radius, nearest first by the
- * distance to its bounding box.
+ * distance to its bounding box. `skip`, when given, marks colliders to
+ * leave out: the walls under a roof the craft is on (src/main.js).
  */
-export function nearestSolids(colliders, x, y, z, reach, max, out) {
+export function nearestSolids(colliders, x, y, z, reach, max, out, skip = null) {
   out.length = 0;
   if (!colliders || !colliders.built) {
     return out;
@@ -278,7 +279,7 @@ export function nearestSolids(colliders, x, y, z, reach, max, out) {
   const CANOPY = KINDS.indexOf('canopy');
   const TREE = KINDS.indexOf('tree');
   for (let i = 0; i < colliders.count; i += 1) {
-    if (colliders.fkind[i] === CANOPY || colliders.fkind[i] === TREE) {
+    if (colliders.fkind[i] === CANOPY || colliders.fkind[i] === TREE || (skip && skip[i])) {
       continue;
     }
     const r = colliders.fbox[i] ? 0 : colliders.fr[i];

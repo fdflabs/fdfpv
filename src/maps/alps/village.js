@@ -101,21 +101,23 @@ export async function buildVillage(ctx) {
     const top = Math.max(...pts);
     return { y: top - villageY, found: top - Math.min(...pts) + 0.4 };
   };
-  /* `from` is where the building's roofs start in the bake's record: a
-   * roofed building stands on walls cut under its roofs (roofs.js). */
+  /* `from` is where the building's roofs and solid parts start in the
+   * bake's records: a roofed building stands on walls cut under its
+   * roofs, and its balconies and chimneys (roofs.js). */
+  const mark = () => ({ roofs: bake.roofs.length, solids: bake.solids.length });
   const wallBox = (x, z, ry, hw, hd, y, found, top, from) => {
     const pts = corners(x, z, ry, hw, hd);
     const xs = pts.map((p) => p.x);
     const zs = pts.map((p) => p.z);
     const box = [Math.min(...xs), villageY + y - found, Math.min(...zs), Math.max(...xs), villageY + y + top, Math.max(...zs)];
-    standWalls(colliders, box, bake.roofs.slice(from), villageY);
+    standWalls(colliders, box, bake.roofs.slice(from.roofs), villageY, { parts: bake.solids.slice(from.solids) });
   };
   /* Stand a builder at (x, z) facing ry. hw and hd are the footprint the
    * site is read under; the builder's own extents make the collider. */
   const place = (build, x, z, ry, hw, hd) => {
     const { y, found } = site(x, z, ry, hw, hd);
     const f = frame(bake, x, y, z, ry);
-    const from = bake.roofs.length;
+    const from = mark();
     const ext = build(f, found);
     wallBox(x, z, ry, ext.hw, ext.hd, y, found, ext.top, from);
     return { f, ext, y, found };
@@ -238,11 +240,13 @@ export async function buildVillage(ctx) {
     const x = SQUARE.x - 42;
     const { y, found } = site(x, STREET_Z, Math.PI / 2, 12, 11);
     const f = frame(bake, x, y, STREET_Z, Math.PI / 2);
-    const from = bake.roofs.length;
+    const from = mark();
     const k = kit.church(f, { found });
     wallBox(x, STREET_Z, Math.PI / 2, k.hw + 0.6, k.hd + 0.5, y, found, k.top, from);
+    /* The tower is walls under its cap and spire now (kit.js church), and
+     * its old box still keeps things off it where a style asks. */
     const t = f.at(0, 0, k.tower.z);
-    colliders.addBox('wall', t.x - k.tower.half, villageY + y, t.z - k.tower.half, t.x + k.tower.half, villageY + y + k.tower.top, t.z + k.tower.half);
+    colliders.noteFootprint?.(t.x - k.tower.half, t.z - k.tower.half, t.x + k.tower.half, t.z + k.tower.half);
   }
 
   /*
@@ -412,6 +416,11 @@ export async function buildVillage(ctx) {
     bake, onGround, villageY, colliders, road, valleyAxis, square: SQUARE, streetZ: STREET_Z,
     bridgeX: bx, lanes: { north: LANE_N, south: LANE_S }, streetPoles, benches,
   });
+  /* Every roof the bake holds is over the village's datum, walled or
+   * not (a garden shed's, the top station's). */
+  for (const r of bake.roofs) {
+    r.lift = villageY;
+  }
   const villageGroup = kit.bakeAll(bake, mats);
   villageGroup.position.y = villageY;
   scene.add(villageGroup);

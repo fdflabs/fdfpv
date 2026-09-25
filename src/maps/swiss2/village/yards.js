@@ -87,7 +87,7 @@ function hash(x, z, salt) {
  * t: furnish's { houses, at, houseY, free, take, onRoads, inSquare }.
  */
 export function yards(t) {
-  const { houses, at, houseY, take } = t;
+  const { houses, at, houseY, take, bake, villageY } = t;
   const paths = [...groundPaths(), ...TRACKS];
   const free = (x, z, r) => t.free(x, z, r)
     && Math.hypot(x - LIFT.x, z - LIFT.z) > LIFT.r + r
@@ -109,14 +109,14 @@ export function yards(t) {
     }
     return true;
   };
-  /* A wall box round a turned rectangle, for later. */
+  /* The axis aligned box round a turned rectangle. */
   const wallFor = (x, z, ry, w, d, top) => {
     const c = Math.abs(Math.cos(ry));
     const s = Math.abs(Math.sin(ry));
     const hx = (w * c + d * s) / 2;
     const hz = (w * s + d * c) / 2;
     const y = houseY(x, z);
-    later.push(['addBox', 'wall', x - hx, y, z - hz, x + hx, y + top, z + hz]);
+    return [x - hx, y, z - hz, x + hx, y + top, z + hz];
   };
   /* A quad on the ground for the marks, as its four corners. */
   const quad = (x, z, ry, w, d) => {
@@ -195,9 +195,17 @@ export function yards(t) {
         if (!fits(p.x, p.z, turn, spec.w + 0.6, spec.d + 0.8)) {
           continue;
         }
+        const from = { roofs: bake.roofs.length, solids: bake.solids.length };
         const top = outbuilding(at(p.x, p.z, turn), spec);
         take(p.x, p.z, spec.w / 2 + 0.5, turn, spec.d / 2 + 0.6);
-        wallFor(p.x, p.z, turn, spec.w + 0.4, spec.d + 0.4, top);
+        /* Its walls under its roof, which is ground, with the old box
+         * its footprint (alps/roofs.js standWalls). */
+        const roofs = bake.roofs.slice(from.roofs);
+        for (const r of roofs) {
+          r.kind ??= spec.kind;
+        }
+        const box = wallFor(p.x, p.z, turn, spec.w + 0.4, spec.d + 0.4, top);
+        later.push(['stand', box, roofs, villageY, { parts: bake.solids.slice(from.solids) }]);
         /* Trodden earth round its door, and for a garage gravel out to
          * the road. */
         const door = { x: p.x + Math.sin(turn) * (spec.d / 2 + 1.4), z: p.z + Math.cos(turn) * (spec.d / 2 + 1.4) };
@@ -221,7 +229,7 @@ export function yards(t) {
         }
         compost(at(p.x, p.z, ry + Math.PI / 2));
         take(p.x, p.z, 1.0);
-        wallFor(p.x, p.z, ry, 1.4, 1.4, 0.95);
+        later.push(['addBox', 'wall', ...wallFor(p.x, p.z, ry, 1.4, 1.4, 0.95)]);
         const back = local(-hw, lz * 0.3);
         marks.earth.push({ line: [back, p], width: 0.9, v: 0.55 });
         break;

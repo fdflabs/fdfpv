@@ -1238,12 +1238,15 @@ function solids() {
   wall(D.midX0, D.midEave - 0.24, D.midBack, D.midX1, D.midEave, 0);
   wall(D.eastX0, D.eastEave - 0.24, D.eastBack, D.eastX1, D.eastEave, 0);
 
-  wall(D.westX0, D.westEave, D.westRidgeZ - 2.0, D.westX1, D.westRidge, D.westRidgeZ + 2.0);
-  wall(D.eastX0, D.eastEave, D.eastRidgeZ - 2.0, D.eastX1, D.eastRidge, D.eastRidgeZ + 2.0);
-  /* The two cross gables. Their ridges run ACROSS the building, so the upper
-   * box follows the depth and is narrow in x, twice. */
-  for (const m of [(D.midX0 + D.midSplit) * 0.5, (D.midSplit + D.midX1) * 0.5]) {
-    wall(m - 1.4, D.midEave, D.midBack - D.overhang, m + 1.4, D.midRidge, D.overhang);
+  /* Everything to here is the shell under the roofs, which the world
+   * lets a craft through while a roof over it is the craft's ground
+   * (src/render/scene.js, src/maps/alps/roofs.js). The attics over the
+   * ceilings are closed by the roofs themselves, which are ground, and by
+   * the gables the world stands under them (clubhouseRoofs): the boxes
+   * from the eaves to the ridges that were here stood a metre out of the
+   * roof planes either side of each ridge, invisible. */
+  for (const c of out) {
+    c.part = 'shell';
   }
 
   /*
@@ -1271,6 +1274,11 @@ function solids() {
       post: [px, pz, D.terraceTop, D.verLow - 0.2, D.postR * 1.35],
     });
   }
+  /* The verandah's roof boxes and its posts are under the verandah roof,
+   * which is ground a craft skids on and lets them through. */
+  for (let k = out.length - 1; k >= 0 && !out[k].part; k -= 1) {
+    out[k].part = 'verandah';
+  }
 
   /* The terrace and apron edges, which are the two kerbs a low pass meets. */
   wall(D.verX0 - 0.12, 0, D.terraceZ1, D.verX1 + 0.12, D.terraceTop, D.terraceZ1 + 0.12);
@@ -1283,6 +1291,90 @@ function solids() {
       cx - TABLE_HALF_W, D.terraceTop + 0.5, TABLE_Z - TABLE_HALF_D,
       cx + TABLE_HALF_W, D.terraceTop + TABLE_H, TABLE_Z + TABLE_HALF_D,
     );
+  }
+  return out;
+}
+
+/*
+ * THE ROOFS AS GROUND, each its drawn upper faces (roof() and verandah()
+ * above, the same numbers) in a frame of its own in the local frame, in
+ * the convention src/maps/alps/roofs.js reads: `at` is [x, y, z, ry], the
+ * plate over the datum and a turn so the ridge runs along the frame's z,
+ * and `top` the faces over the plate, x across the ridge. hw by hd is the
+ * walls the roof stands on. The verandah is a roof on posts falling
+ * toward the field, framed as a lean-to is, its high side at the wall.
+ */
+export function clubhouseRoofs() {
+  const oh = D.overhang;
+  const bg = D.barge;
+  const inFrame = (polys, cx, cy, cz, ry) => {
+    const c = Math.cos(ry);
+    const s = Math.sin(ry);
+    return polys.map((p) => p.map(([x, y, z]) => [c * (x - cx) - s * (z - cz), y - cy, s * (x - cx) + c * (z - cz)]));
+  };
+  const slopeX = (x0, x1, zA, yA, zB, yB) => [[x1, yA, zA], [x0, yA, zA], [x0, yB, zB], [x1, yB, zB]];
+  const slopeZ = (z0, z1, xA, yA, xB, yB) => [[xA, yA, z1], [xA, yA, z0], [xB, yB, z0], [xB, yB, z1]];
+  const out = [];
+  {
+    const zBack = D.westBack - oh;
+    const zR = D.westRidgeZ;
+    const yE = D.westEave;
+    const yR = D.westRidge;
+    const hx = D.westHipX;
+    const xE = D.westX0 - oh;
+    const cx = (D.westX0 + D.westX1) / 2;
+    const cz = D.westBack / 2;
+    out.push({
+      at: [cx, yE, cz, Math.PI / 2],
+      top: inFrame([
+        slopeX(hx, D.westX1, zR, yR, zBack, yE), slopeX(hx, D.westX1, zR, yR, oh, yE),
+        [[hx, yR, zR], [hx, yE, zBack], [xE, yE, zBack]], [[hx, yR, zR], [hx, yE, oh], [xE, yE, oh]],
+        [[hx, yR, zR], [xE, yE, zBack], [xE, yE, oh]],
+      ], cx, yE, cz, Math.PI / 2),
+      dy: D.soffit, hw: -D.westBack / 2, hd: (D.westX1 - D.westX0) / 2, kind: 'clubhouse',
+    });
+  }
+  for (const [a, b] of [[D.midX0, D.midSplit], [D.midSplit, D.midX1 + bg]]) {
+    const mid = (a + b) * 0.5;
+    const zBack = D.midBack - oh;
+    const cz = D.midBack / 2;
+    out.push({
+      at: [mid, D.midEave, cz, 0],
+      top: inFrame([
+        slopeZ(zBack, oh, mid, D.midRidge, a, D.midEave), slopeZ(zBack, oh, mid, D.midRidge, b, D.midEave),
+      ], mid, D.midEave, cz, 0),
+      dy: D.soffit, hw: (b - a) / 2, hd: -cz, kind: 'clubhouse',
+    });
+  }
+  {
+    const zBack = D.eastBack - oh;
+    const zR = D.eastRidgeZ;
+    const xE = D.eastX1 + bg;
+    const cx = (D.eastX0 + D.eastX1) / 2;
+    const cz = D.eastBack / 2;
+    out.push({
+      at: [cx, D.eastEave, cz, Math.PI / 2],
+      top: inFrame([
+        slopeX(D.eastX0, xE, zR, D.eastRidge, zBack, D.eastEave), slopeX(D.eastX0, xE, zR, D.eastRidge, oh, D.eastEave),
+      ], cx, D.eastEave, cz, Math.PI / 2),
+      dy: D.soffit, hw: -D.eastBack / 2, hd: (D.eastX1 - D.eastX0) / 2, kind: 'clubhouse',
+    });
+  }
+  {
+    /* The verandah's plate is the top of the boxes under its roof, so
+     * those are what stands under its eaves (roofs.js cover). */
+    const cy = D.verHigh + 0.06;
+    const cz = D.verOut / 2;
+    const pw = D.westX0;
+    const pe = D.eastX1;
+    const front = [[pe, D.verHigh, 0], [pw, D.verHigh, 0], [D.verX0, D.verLow, D.verOut], [D.verX1, D.verLow, D.verOut]];
+    const west = [[pw, D.verHigh, D.westBack], [pw, D.verHigh, 0], [D.verX0, D.verLow, D.verOut], [D.verX0, D.verLow, D.westBack]];
+    const east = [[pe, D.verHigh, 0], [pe, D.verHigh, D.eastBack], [D.verX1, D.verLow, D.eastBack], [D.verX1, D.verLow, D.verOut]];
+    out.push({
+      at: [0, cy, cz, -Math.PI / 2],
+      top: inFrame([front, west, east], 0, cy, cz, -Math.PI / 2),
+      dy: 0.18, hw: cz, hd: D.verX1, open: true, kind: 'verandah',
+    });
   }
   return out;
 }

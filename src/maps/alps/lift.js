@@ -28,7 +28,7 @@
 import * as THREE from 'three';
 import { makeParts, bakeParts, instanced, box, boxUp } from './parts.js';
 import { makePath } from './path.js';
-import { standWalls } from './roofs.js';
+import { standWalls, recordAt, gableTop } from './roofs.js';
 
 const STEEL = 0x9aa0a6;
 const STEEL_DARK = 0x5d6369;
@@ -174,6 +174,41 @@ function station(P, x, y, z, yaw, h, found) {
 }
 
 /*
+ * The cel station's two roofs as roofs.js records, in world space: the
+ * long gable over the deck and the wheel, and the machine house's under
+ * its end, each its slabs' upper faces (station() draws them). A record's
+ * ridge runs along its own z, which is the station's line, so each is
+ * framed a quarter turn from the station.
+ */
+function stationRoofs(x, y, z, yaw, h) {
+  const at = (lx) => [x + lx * Math.cos(yaw), z - lx * Math.sin(yaw)];
+  const out = [];
+  /* A gable of two slabs `thick` deep, each tilted by pitch round its
+   * middle at `u` across the line, `half` of its width along the slope:
+   * the record's top faces relative to `plate`, over `len` along it. */
+  const slabs = (lx, plate, mid, u, width, thick, pitch, len, hw, hd) => {
+    const tan = Math.tan(pitch);
+    const up = thick / 2 / Math.cos(pitch);
+    const ex = u + (width / 2) * Math.cos(pitch);
+    const [px, pz] = at(lx);
+    out.push(recordAt({
+      top: gableTop(ex, mid - plate + (u - ex) * tan + up, mid - plate + u * tan + up, -len / 2, len / 2),
+      dy: thick / Math.cos(pitch), hw, hd, kind: 'station',
+    }, 'slate', px, y + plate, pz, yaw - Math.PI / 2));
+  };
+  const eave = h + 0.6;
+  const rise = 1.1;
+  const half = 5.4;
+  slabs(0, eave, eave + rise / 2, half / 2, Math.hypot(rise, half) + 0.1, 0.18, Math.atan2(rise, half), 14.4, 4.5, 7.2);
+  const wallH = h - 1.4;
+  const gRise = 1.6;
+  const hPitch = Math.atan2(gRise, 4.5);
+  const hSlab = Math.hypot(gRise, 4.5) + 0.5;
+  slabs(-6.5, 0.3 + wallH, 0.3 + wallH + gRise / 2 + 0.08, (hSlab / 2 - 0.25) * Math.cos(hPitch), hSlab, 0.16, hPitch, 4.8, 4.5, 2);
+  return out;
+}
+
+/*
  * Where the line runs and where its stations stand. The line runs from
  * the base station straight up the west wall on a fixed bearing until
  * the ground reaches TOP metres. Exported so a style that builds its
@@ -291,17 +326,28 @@ export function buildLift(ctx) {
    * village, src/maps/swiss2/buildings/station.js) on liftLine's sites
    * and inside FOOT, so the collider below is theirs too; the cel look
    * has no station of its own and builds these, as it always has. */
+  const roofs = ctx.roofs ?? [];
   if (!look.buildings?.station) {
     for (const s of stations) {
       station(P, s.x, s.y, s.z, s.yaw, STATION_H, s.found);
+      roofs.push(...stationRoofs(s.x, s.y, s.z, s.yaw, STATION_H));
     }
   }
-  /* The base station's keep out box, or, where the style baked the
-   * station with a roof, the walls under that roof (roofs.js): the roof
-   * itself is ground a craft can land on. */
-  const baseBox = [base.x - 8.5, baseY - baseSite.found, base.z - 8.5, base.x + 8.5, baseY + STATION_H + 1.8, base.z + 8.5];
-  const baseRoofs = (ctx.roofs ?? []).filter((r) => r.tx > baseBox[0] && r.tx < baseBox[3] && r.tz > baseBox[2] && r.tz < baseBox[5]);
-  standWalls(colliders, baseBox, baseRoofs, ctx.villageY);
+  /* Each station is the walls under its roofs (roofs.js), the roofs
+   * themselves ground a craft can land on: the style's, baked with its
+   * village over the village's datum, or the cel ones just recorded in
+   * world space. The base station's old keep out box stays its footprint
+   * where a style keeps things off the village's walls; the top station
+   * never had one, so it notes none. */
+  stations.forEach((s, k) => {
+    const box = [s.x - 8.5, s.y - s.found, s.z - 8.5, s.x + 8.5, s.y + STATION_H + 1.8, s.z + 8.5];
+    const own = roofs.filter((r) => r.tx > box[0] && r.tx < box[3] && r.tz > box[2] && r.tz < box[5]);
+    for (const r of own) {
+      r.kind ??= 'station';
+    }
+    const lift = look.buildings?.station ? ctx.villageY : 0;
+    standWalls(colliders, box, own, lift, { note: k === 0 });
+  });
   for (const t of towers) {
     const x = base.x + dir.x * t.d;
     const z = base.z + dir.y * t.d;

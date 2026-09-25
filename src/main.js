@@ -2533,6 +2533,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let lastDescent = 0;
   let lastTiltDeg = 0;
   let lastHitKind = 'none';
+  /* Which collider that was, so a check can tell a building's own wall
+   * from its neighbour's (scripts/roof-check.js). Harness only. */
+  let lastHitIndex = -1;
   let lastGroundHits = 0;
   /* Every 1 ms step that ended with the hull on the ground plane or a
    * wheel loaded on it, since the page loaded: a touch too short for a
@@ -3568,6 +3571,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let crashTreesFrom = null;
   const treePick = [];
   const solidPick = [];
+  /* The colliders a roof covers, marked for nearestSolids to leave out;
+   * made once for the map's collider count. */
+  let crashSkip = null;
+  /* What coveredAt answered when the solids were declared: the same array
+   * for the same roof and extent, which is how a change is seen. */
+  let crashCovered = null;
   const passSet = [];
   let crashWorldPhase = 0;
   let crashWorldX = NaN;
@@ -3605,6 +3614,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   const CRASH_WORLD_MOVE = 12;
   const TREE_REACH = 80;
   const SOLID_REACH = 40;
+  /* And the roof cover looked at every this many steps: 10 ms is 0.14 m
+   * at 14 m/s, inside the 0.25 m a wall column is wide. */
+  const CRASH_COVER_STEP = 10;
   /* How long a dead feed is shown before the chase camera takes over: long
    * enough to see it die, which is how a pilot knows what happened. */
   const FEED_BEAT_MS = 1500;
@@ -3746,6 +3758,22 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX)) {
       crashWorldPhase = 0;
       refreshCrashWorld(st);
+      return;
+    }
+    /* The solids again when the roof the craft is covered by changes,
+     * which happens within a metre of an eave, between two refreshes. */
+    if (crashWorldPhase % CRASH_COVER_STEP === 0) {
+      refreshCrashCover(st);
+    }
+  }
+
+  function refreshCrashCover(st) {
+    if (!view.coveredAt) {
+      return;
+    }
+    poseFromState(st, crashProbe);
+    if (view.coveredAt(crashProbe.x, crashProbe.z, crashProbe.y - SURFACE_BIAS) !== crashCovered) {
+      declareCrashSolids();
     }
   }
 
@@ -3794,9 +3822,37 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         passSet.push(t.post);
       }
     }
+    declareCrashSolids();
+  }
+
+  /* The solids near crashProbe for the free bodies. A roof the craft is
+   * on stands over the walls under it, and the city's staircase stands up
+   * into it: the parts meet the roof, which is the ground, not them. The
+   * same solids the sweep lets through (src/maps/alps/roofs.js cover),
+   * chosen from where the plant is, so the set stays a function of the
+   * flight. */
+  function declareCrashSolids() {
+    const col = view.colliders;
     sim.e.sim_obstacle_clear();
     crashSolidsDeclared = 0;
-    nearestSolids(col, crashProbe.x, crashProbe.y, crashProbe.z, SOLID_REACH, OBSTACLES_MAX, solidPick);
+    const covered = view.coveredAt
+      ? view.coveredAt(crashProbe.x, crashProbe.z, crashProbe.y - SURFACE_BIAS)
+      : null;
+    crashCovered = covered;
+    if (covered && covered.length) {
+      if (!crashSkip || crashSkip.length !== col.count) {
+        crashSkip = new Uint8Array(col.count);
+      }
+      for (const i of covered) {
+        crashSkip[i] = 1;
+      }
+    }
+    nearestSolids(col, crashProbe.x, crashProbe.y, crashProbe.z, SOLID_REACH, OBSTACLES_MAX, solidPick, covered && covered.length ? crashSkip : null);
+    if (covered && covered.length) {
+      for (const i of covered) {
+        crashSkip[i] = 0;
+      }
+    }
     boxQuat.copy(qSpawnInv);
     for (const { i } of solidPick) {
       if (declareSolid(col, i) < 0) {
@@ -4232,6 +4288,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     lastClosing = 0;
     lastUpDot = 0;
     lastHitKind = 'none';
+    lastHitIndex = -1;
     groundCueAtWall = -1e9;
     takeoffUntil = 0;
     input.keys.clear();
@@ -6986,6 +7043,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         passPressing = true;
       }
       lastHitKind = col.kindName(k);
+      lastHitIndex = col.hitIndex;
       lastClosing = speedNow * col.hitNormalDot;
       obsTouched = true;
       if (lastClosing > obsClosing) {
@@ -9732,7 +9790,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       if (Math.hypot(cx - x, cz - z) > r) {
         continue;
       }
-      out.push([c.fax[i], c.fay[i], c.faz[i], c.fbx[i], c.fby[i], c.fbz[i]]);
+      /* The seventh number is the collider's index, which a roof's
+       * `solids` (window.__roofs) name. */
+      out.push([c.fax[i], c.fay[i], c.faz[i], c.fbx[i], c.fby[i], c.fbz[i], i]);
     }
     return out;
   };
@@ -10028,6 +10088,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     descentRate: lastDescent,
     tiltDeg: lastTiltDeg,
     lastHitKind,
+    lastHitIndex,
     lastClosingSpeed: lastClosing,
     lastUpDot,
     grazeSpeedMax: GRAZE_SPEED_MAX,
@@ -10260,6 +10321,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], qCollide);
     qCollide.premultiply(qSpawn);
     vHalfFrame = craftVerticalHalf(Math.sqrt(1 - craftUpY() * craftUpY()));
+    /* A throw is a teleport, and the plant keeps the solids it was told
+     * of across sim_reset: its first step would meet the ones declared
+     * where the craft was (a quad thrown onto the race field's verandah
+     * after one on the pavilion was inside the verandah's roof box, which
+     * the pavilion's cover had not taken out). The world is declared
+     * where the throw puts it, before that step. */
+    if (runDamage) {
+      crashWorldX = NaN;
+      crashWorldPhase = 0;
+      refreshCrashWorld(stateCurr);
+    }
     /* `hold` keeps the integrator still until __releasePose, so a capture
      * can photograph the moment before. */
     poseLock = Boolean(o.hold);
@@ -10756,13 +10828,27 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* The city's own world object, for measurements that need its platform and
    * collider lists. Null on a map that has no town. Harness only. */
   window.__cityWorld = () => view.world ?? null;
-  /* The alps and swiss2 roofs (src/maps/alps/roofs.js): each one's frame,
-   * wall rectangle, covering and the collider indices of the walls under
-   * it, so a capture can fly at a real roof. Empty elsewhere. Harness only. */
+  /* The roofs (src/maps/alps/roofs.js): each one's frame, plate, wall
+   * rectangle, covering, what building it is and the collider indices of
+   * the walls under it, so a capture can fly at a real roof. Empty where
+   * a map has none. Harness only. */
   window.__roofs = () => (view.roofs ?? []).map((r) => ({
-    key: r.key, material: r.material, c: r.c, s: r.s, x: r.tx, z: r.tz, hw: r.hw, hd: r.hd, dy: r.dy,
-    minX: r.minX, maxX: r.maxX, minZ: r.minZ, maxZ: r.maxZ, solids: r.solids.slice(),
+    key: r.key, kind: r.kind, open: r.open, material: r.material, c: r.c, s: r.s, x: r.tx, z: r.tz, plate: r.lift + r.ty,
+    hw: r.hw, hd: r.hd, dy: r.dy, minX: r.minX, maxX: r.maxX, minZ: r.minZ, maxZ: r.maxZ, solids: r.solids.slice(),
+    eaves: r.eaves.slice(),
   }));
+  /* Roof i's own top at a map point, NaN off it: which roof a point is
+   * under, where roofs overlap. Harness only. */
+  window.__roofTop = (i, x, z) => (view.roofTop ? view.roofTop(i, x, z) : NaN);
+  /* The roofs' cover for a craft at a map point, as the obstacle pass
+   * sets it for its next sweep (fromY biased as that pass biases it), so
+   * a probe's __hit meets what the craft's would. The next frame sets it
+   * again from the craft. Harness only. */
+  window.__cover = (x, y, z) => {
+    if (view.cover) {
+      view.cover(x, z, y - SURFACE_BIAS);
+    }
+  };
   /* Set the active map's distance cull radius, for the sweep that chooses it.
    * Null restores the map's own value. Harness only. */
   window.__cullRadius = (r) => (view.setCullRadius ? view.setCullRadius(r) : null);

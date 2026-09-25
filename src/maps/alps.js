@@ -206,14 +206,17 @@ export async function buildValley(shell, progress, q, style) {
   });
   /* A style's finish sees the whole built world, the village's walls
    * among the colliders included, and may still add colliders of its
-   * own, so the broadphase is built after it. */
+   * own, so the broadphase is built after it, and roofs of its own, into
+   * the village's list. */
   if (style.finish) {
-    await style.finish(scene, stage, { field, far, colliders, heightAt, nature });
+    await style.finish(scene, stage, {
+      field, far, colliders, heightAt, nature, roofs: village.roofs,
+    });
   }
   colliders.build();
-  /* Every roof the village baked, the farm's and the gondola's included,
-   * as ground a craft can land on (alps/roofs.js). */
-  const roofs = makeRoofs(village.roofs, village.villageY);
+  /* Every roof the valley has, the village's, the farm's, the gondola's
+   * and a style's own, as ground a craft can land on (alps/roofs.js). */
+  const roofs = makeRoofs(village.roofs);
   progress(0.9);
   await yieldToPaint();
 
@@ -310,6 +313,9 @@ export async function buildValley(shell, progress, q, style) {
      * ground, the walls under it let the sweep through (roofs.js). */
     cover: (x, z, fromY) => roofs.cover(colliders, x, z, fromY),
     roofs: roofs.records,
+    roofTop: (i, x, z) => roofs.top(i, x, z),
+    /* What a roof the craft is on covers, for the crash physics' solids. */
+    coveredAt: (x, z, fromY) => roofs.covered(x, z, fromY),
     /* What the ground is, for the crash physics (src/game/crashworld.js):
      * a roof's covering where y is a roof's top, else read off the same
      * zones the ground is painted by, so the snow a wing digs into is the

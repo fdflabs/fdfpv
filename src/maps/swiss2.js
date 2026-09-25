@@ -488,7 +488,9 @@ function photoStyle() {
      * and the water's included. The craft is added after this and is
      * not walked here: its cel materials are the session's, and it is
      * dressed apart, reversibly (craftlook.js, from compose). */
-    async finish(scene, stage, { field, far, colliders, heightAt, nature }) {
+    async finish(scene, stage, {
+      field, far, colliders, heightAt, nature, roofs,
+    }) {
       /* The huts, fences and bales before the forests, so the trees and
        * the meadow keep off the huts, whose wall colliders note them as
        * footprints; the houses noted before them are the gardens. */
@@ -496,8 +498,8 @@ function photoStyle() {
       const { yards: yard } = style.look.buildings.layout;
       /* The farm-low view's farm is walled after the gardens are taken
        * (swiss2/village/farm.js). */
-      for (const { box, roofs, lift } of style.look.buildings.farmWalls) {
-        standWalls(colliders, box, roofs, lift);
+      for (const { box, roofs, parts, lift } of style.look.buildings.farmWalls) {
+        standWalls(colliders, box, roofs, lift, { parts });
       }
       /* What is scattered over the floor (the huts, the bales, the trees)
        * is decided on the alps' own ground, so the walls (swiss2/terrain.js)
@@ -509,11 +511,14 @@ function photoStyle() {
         rng: makeRng(20260930),
         colliders,
         footprints: gardens,
+        roofs,
       });
       scene.add(stage.props.group);
       /* The lake's village, boats and promenade, their footprints the
        * map's before the forests keep off them (swiss2/props/lakeside.js). */
-      stage.lakeside = buildLakeside({ heightAt, footprints: stage.footprints });
+      stage.lakeside = buildLakeside({
+        heightAt, footprints: stage.footprints, colliders, roofs,
+      });
       scene.add(stage.lakeside.group);
       /* The lakeside road's lay-by and bus stop (swiss2/props/roadside.js),
        * which the grass keeps off. */
@@ -555,7 +560,11 @@ function photoStyle() {
       /* What the yards built, solid only now that the forest is planted,
        * and the cars and tractors parked in them (swiss2/village/yards.js). */
       for (const [how, ...args] of yard.later) {
-        colliders[how](...args);
+        if (how === 'stand') {
+          standWalls(colliders, ...args);
+        } else {
+          colliders[how](...args);
+        }
       }
       const V = style.look.vehicles;
       const park = (bake, built, c) => {
