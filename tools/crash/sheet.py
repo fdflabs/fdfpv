@@ -18,6 +18,7 @@ from PIL import Image, ImageDraw
 
 summary, frames, out = sys.argv[1], sys.argv[2], sys.argv[3]
 report = json.load(open(summary))
+os.makedirs(out, exist_ok=True)
 W, H, LABEL, PANEL = 480, 270, 20, 560
 FRAMES = ['before', 'impact', 'after', 'rest']
 

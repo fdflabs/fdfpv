@@ -955,7 +955,16 @@ Recorded here because the loop will build on the plan.
 - **"Each plane" includes a tail strike on take off,** but only the Cub,
   the Timber and the Slow Stick take off on wheels. The Skyhunter and the
   Radian are hand launched and the Bramor catapulted; the suite flies the
-  scenario for the three that can have one.
+  scenario for those three. And all three are taildraggers, whose tail
+  already sits on its wheel: a tail strike in the tricycle sense cannot
+  happen to any aircraft in the fleet. What the suite flies is the
+  taildragger's version, the whole take off with the stick held back,
+  where the first touch of anything but a wheel is the event; on the Cub
+  and the Timber that is the aircraft coming back down after lifting off
+  too steep, which the band (a scrape, under 10 g) then fails. Whether to
+  keep, rename or replace the scenario (a nose over or prop strike from
+  too much down elevator is the taildragger's real take off accident) is
+  the owner's call.
 - **Two scenarios need wind the plant does not have.** The floats'
   "capsize in a crosswind gust" and the Bramor's "chute landing in wind,
   drag and rest": the air model has no horizontal wind (sim_air_lift is
