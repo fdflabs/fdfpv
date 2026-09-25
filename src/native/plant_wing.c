@@ -891,7 +891,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* Up to its stall angle the wing's lift is the plant's own curve, the
    * blend from the linear lift to the flat plate every gate's band was
    * derived on. Past it the lift is its section's, stalled_lift above: the
-   * plant's lift at the stall angle held, then the fall, brought in over a
+   * plant's peak lift held, then the fall, brought in over a
    * stall_blend; as far as the Reynolds number the section data reach, and
    * the plate below them. fre and past are exactly zero where it is not
    * taken, and every post stall term below is a zero added through
@@ -903,9 +903,22 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double cl_st = cl_old, fall = 0.0, past = 0.0;
   if (sigma > 0.0 && fre > 0.0) {
     const double shift = dcl_f / fw->cl_alpha;
-    const double sg = clip(alpha_stall - shift, 0.5);
-    const double ss = sim_sin_small(sg), cs = sim_cos_small(sg);
-    const double cl_s = 0.5 * add_term(clmax, fw->cl_de * delta_e) + ss * cs;
+    /* What the stalled wing holds is the most lift the plant's own curve
+     * reaches through its stall blend, found on sixteen steps across it:
+     * a section holds its peak flat past the stall (the UIUC curves), and
+     * this is the peak the plant's wing actually reaches. The lift at the
+     * stall angle itself, the blend's midpoint, is some 0.1 under it, and
+     * holding that sank a stalled Cub at 2.7 m/s. The elevator's lift is
+     * in the curve, as it is in the lift the step flies on. */
+    double cl_s = 0.0;
+    for (int i = 0; i <= 16; i += 1) {
+      const double ai = alpha_stall - fw->stall_blend + fw->stall_blend * 0.125 * i;
+      const double si = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, ai);
+      const double ag = clip(ai - shift, 0.5);
+      const double lin = fw->cl_alpha * ai + fw->cl_de * delta_e;
+      const double c = (1.0 - si) * lin + si * 2.0 * sim_sin_small(ag) * sim_cos_small(ag);
+      cl_s = c > cl_s ? c : cl_s;
+    }
     cl_st = stalled_lift(fw, k_stall, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
   }
   const double CL = add_term(cl_old, fre * past * (cl_st - cl_old));
@@ -1340,7 +1353,7 @@ const FixedWingParams FW_SKY1800 = {
   .stall_k = 0.72,
   .stall_top = 5.3 * WING_PI / 180.0,
   .strip_c = { 1.132, 1.044, 0.956, 0.868 },
-  .washout = 4.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  .washout = 5.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has
@@ -1425,7 +1438,7 @@ const FixedWingParams FW_CUB1400 = {
   .stall_k = 0.72,
   .stall_top = 4.6 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 1.5 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
@@ -1700,7 +1713,7 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .stall_k = 0.72,
   .stall_top = 4.4 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 1.5 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
@@ -1802,7 +1815,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .slat_k = 0.84,
   .stall_top = 3.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
@@ -1907,7 +1920,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .slat_k = 0.84,
   .stall_top = 3.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 3.0 * WING_PI / 180.0, /* the Timber's wing, FITTED, docs/STALL-STAGE1.md */
+  .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
@@ -1990,7 +2003,7 @@ const FixedWingParams FW_CUB1400F = {
   .stall_k = 0.72,
   .stall_top = 4.6 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 1.5 * WING_PI / 180.0, /* the Cub's wing, FITTED, docs/STALL-STAGE1.md */
+  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md, where
@@ -2086,5 +2099,5 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stall_k = 0.72,
   .stall_top = 3.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
