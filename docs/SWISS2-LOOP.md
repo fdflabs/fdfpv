@@ -325,3 +325,42 @@ visual rock geometry to swiss2's cliff bands and headwall (within a
 few metres of the ground a craft meets, which stays unchanged), plus
 the water's glacial colour and clarity, and the made things still
 plain in frame (a barn and hay barns for farm-low, the gondola station).
+
+### Round 7 (PRs #34, #35, #36, main at the merge of #36)
+
+Water (#34): milky glacial turquoise by measurement (lake hue 174
+against Brienz's 173), a broad spray plume on the fall with mist along
+the wall, the stream no longer a second road. Made things (#35): a hay
+barn and a farm where farm-low looks, hay huts rebuilt, real gondola
+stations. Cliffs (#36): the rock cells carved out and redrawn as
+stepped limestone beds with ledges, lips, fluting and cracks, within
+1.4 m of the collision ground (ground heights hash unchanged).
+
+| View | R6 | R7 | The tell now |
+| --- | --- | --- | --- |
+| strip | 6 | 6 | |
+| vista-high | 7 | 7 | the walls are slopes, not the references' sheer faces |
+| cruise | 7 | 7 | the same |
+| village-20m | 5.5 | 5.5 | |
+| square-eye | 5.5 | 5.5 | |
+| meadow-eye | 6 | 6 | |
+| east-wall | 6.5 | 6.5 | a stepped band; still a slope |
+| lake-shore | 5.5 | 5.5 | |
+| lake-high | 6 | 6.5 | turquoise; a little flat and even |
+| waterfall | 5.5 | 6 | a plume; the mist reads as a white puff |
+| into-sun | 6 | 6 | |
+| farm-low | 5.5 | 6 | the barn |
+| lake-edge | 5 | 5.5 | turquoise water |
+| craft-chase | 5.5 | 5.5 | |
+
+Mean of the thirteen: 5.92 to 6.08. Gate held.
+
+The honest ceiling now: every valley reference is Lauterbrunnen, whose
+walls are sheer faces hundreds of metres tall; ours are 30 m cell
+slopes, and round 7 showed relief of a few metres cannot close that.
+Decided without a check in, as the owner asked: round 8 gives swiss2
+its own valley walls: steeper, cliffed walls from a finer heightfield
+near them, the floor, the strip, the village, the lake and the fall's
+lip where they are, and the ground a craft meets following what is
+drawn (swiss2's ground heights change on the walls by design; the cel
+alps must not change at all).
