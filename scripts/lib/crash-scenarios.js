@@ -789,6 +789,68 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
+    /*
+     * The owner's wing clip: a Cub at cruise puts its right wing into a
+     * 25 cm wooden pole 0.42 m out, 60 percent of the half span. The host
+     * is the shell's (src/game/collide.js): the plane is a disc of its half
+     * span in its own plane, met every 4 ms, placed off the pole and struck
+     * at the disc's edge (crash.c, A STRUCK PART TAKES THE BLOW and A
+     * CONTACT ON A PART THAT HAS GONE). The root holds 40 N m, about 110 N
+     * at the pole's lever; the fuselage passes the pole in about 40 ms, so
+     * the most the pole can take from the craft through the root is about
+     * 4.3 N s of its 17.8: at least 0.75 of its speed is kept.
+     */
+    name: 'a Cub clips a pole with its right wing at cruise',
+    async run(mk) {
+      const r = await mk({ id: 4 });
+      const pole = [3, -0.42, 0.125];
+      r.sim.e.sim_wing_set_stab(0);
+      r.sim.e.sim_obstacle_cylinder(pole[0], pole[1], 0, 30, pole[2], SURFACE.wood);
+      r.pose([0, 0, 20], [1, 0, 0, 0]);
+      r.launch(13.5);
+      const v0 = speedOf(r.state());
+      const DISC = 0.70;
+      let first = null;
+      let shoved = 0;
+      for (let ms = 0; ms < 600; ms += 4) {
+        r.run(4, [0, 0, 0, 0.75]);
+        const s = r.state();
+        const dx = s[1] - pole[0];
+        const dy = s[2] - pole[1];
+        const d = Math.hypot(dx, dy);
+        const n = [dx / d, dy / d, 0];
+        const gap = d - pole[2] - DISC;
+        if (gap >= 0 || s[4] * n[0] + s[5] * n[1] > -0.05) {
+          continue;
+        }
+        first = first ?? ms;
+        const sep = -gap + 0.008;
+        const gone = r.broke('wing');
+        r.sim.e.sim_contact_at_mat(n[0], n[1], 0, SURFACE.wood, s[1] + n[0] * sep, s[2] + n[1] * sep, s[3],
+          0, 0, 0, -n[0] * DISC, -n[1] * DISC, 0);
+        const a = r.state();
+        if (gone) {
+          shoved = Math.max(shoved, Math.hypot(a[1] - s[1], a[2] - s[2]));
+        }
+        r.prev = a;
+      }
+      const s = r.state();
+      const keep = speedOf(s) / v0;
+      const right = r.index('wing', (p) => p.cg[1] < 0);
+      const aileron = r.index('aileron', (p) => p.cg[1] < 0);
+      const broken = r.events.filter((e) => e.typeName === 'break');
+      const others = broken.filter((e) => e.part !== right && e.part !== aileron);
+      const st = r.partsState();
+      return [
+        { name: 'the host met the pole', ok: first !== null, detail: `first contact at ${first} ms` },
+        { name: 'the right panel lets go at the pole', ok: broken.some((e) => e.part === right) && st[right].status !== 0 && st[aileron].status !== 0, detail: r.summary() },
+        { name: 'nothing else breaks at the pole', ok: others.length === 0, detail: others.map((e) => r.parts[e.part].label).join(', ') || 'nothing' },
+        { name: 'the rest keeps at least 0.75 of its speed through the clip', ok: keep >= 0.75, detail: `${keep.toFixed(3)} of ${v0.toFixed(1)} m/s` },
+        { name: 'past the break the host\'s hull, still spanning the panel, shoves nothing', ok: shoved === 0, detail: `${shoved.toFixed(4)} m` },
+      ];
+    },
+  },
+  {
     name: 'into water and into a crown, an event even when nothing breaks',
     async run(mk) {
       const damaging = (r) => r.events.filter((e) => !['water', 'tree', 'settle'].includes(e.typeName));
