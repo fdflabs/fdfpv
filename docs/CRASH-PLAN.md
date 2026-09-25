@@ -139,3 +139,116 @@ missing added mass, which makes their bob livelier than a real plane's.
 ## Rounds
 
 (appended by the loop)
+
+### Baseline (before the foundation)
+
+Run 2026-09-25 on main at 50afb75 plus the suite (module dist/sim.wasm
+sha256 afa65731...), `node scripts/crash-suite.js`: 60 scenarios, 4 inside
+every band, 56 outside at least one; all 60 deterministic (the Node run,
+its Node replay and the Chrome replay hash identically); no damage
+readback in the module. Bands and their sources: docs/CRASH-REFERENCES.md,
+which also lists what this plan got wrong (section 6: the whoop is the
+five inch's plant in a scaled room; the tail strike applies only to the
+three taildraggers, and not as a tail strike; the floats' gust capsize and
+the Bramor's drag in wind need horizontal wind the air model does not
+have; nothing can detach a prop).
+
+Why they fail, by how many scenarios:
+
+- **Nothing breaks (34).** Every must break band fails: the module has no
+  parts and no damage. The 60 must not break bands pass only because
+  nothing can break, and the report marks them vacuous.
+- **Peak load (44).** Every contact is a one step impulse, so the CG sees
+  its whole change of speed inside a millisecond: up to 2,000 g, several
+  to tens of times what the references put for the same hit. The contact needs a duration, which
+  is the damage model's crush and compliance.
+- **Time to rest and rest distance (25 and 16).** The quad's gate, branch
+  and wall hits roll on for seconds on the grass (the wall one slides down
+  the face for 7 s); the quad on the slope sticks within 0.65 m where it
+  should tumble 2 to 20 m; planes stop dead on a stall or nose in (0.05 s)
+  or roll 7 to 14 m on their gear after a stall; float planes never come to rest.
+- **Rest attitude and flips (18 and 11).** No plane cartwheels off a
+  wingtip (the lowest the up axis gets is 0.77, still upright); stalls end
+  upright instead of on the nose or back; the float planes' nose dig does
+  not flip (minimum up 0.92 and 0.96) and the gust cannot capsize them.
+  The Timber on floats does go over in the hard turn, the one flip today.
+- **Trees (6).** Every plane bounces off the canopy to the ground; none is
+  caught.
+- **Floats' porpoise (2).** Held full back, both leave the water above the
+  stall (1.6 and 1.25 times it) rather than prematurely.
+- **The whoop against a wall (1).** It pins itself to the wall, nose down,
+  and slides down it instead of bouncing off and flying on.
+
+The four inside every band are the whoop's floor drop and gate clip, the
+Slow Stick's taildragger take off and the Timber's fast landing on its
+gear, all of which ask nothing to break.
+
+What the loop should fix first, by what is most wrong: parts and damage
+(34 scenarios cannot pass without them), then contact duration and crush
+(44, and it is what makes the peak loads and the energy kept through a
+hit physical), then the flips and cartwheels (a tip or a bow that digs in
+must be able to throw the aircraft over), then trees that catch. Wind in
+the air is an owner decision before two scenarios can be flown at all.
+
+| Scenario | Result | Outside its band (measured, band) |
+| --- | --- | --- |
+| q5-gate-15 | fail | nothing broke (must break prop); peakG 1717 (50 to 300); timeToRestS 4.96 (1 to 4); retainedFirst 0.14 (0.3 to 0.7) |
+| q5-gate-30 | fail | nothing broke (must break prop); peakG 889 (100 to 500); timeToRestS 1.73 (2 to 6) |
+| q5-wall | fail | nothing broke (must break prop arm); timeToRestS 6.94 (0.5 to 2) |
+| q5-prop-strike | fail | peakG 254 (10 to 50); timeToRestS 0.16 (0.2 to 1) |
+| q5-slope | fail | nothing broke (must break prop); peakG 812 (20 to 150); restDistM 0.65 (2 to 20); retainedFirst 0.08 (0.25 to 0.5) |
+| q5-branch | fail | nothing broke (must break prop); peakG 1453 (20 to 200); restDistM 17.82 (0 to 10); timeToRestS 3.55 (0.5 to 3) |
+| q5-inverted | fail | peakG 726 (0 to 20) |
+| q5-prop-loss | fail, stand in | nothing broke (must break prop) |
+| whoop-wall | fail | retainedFirst 0.05 (0.2 to 0.7); flyingAtEnd False (true) |
+| whoop-floor | pass | inside every band |
+| whoop-gate | pass | inside every band |
+| sky-stall | fail | peakG 429 (20 to 60); restAttitude upright (nose down or inverted); timeToRestS 0.05 (0.5 to 2) |
+| sky-nose-in | fail | nothing broke (must break fuselage wing); peakG 1646 (100 to 400) |
+| sky-cartwheel | fail | nothing broke (must break wing); peakG 248 (20 to 80); minUpZ 0.77 (at most -0.5); restAttitude upright (inverted or on its side); timeToRestS 0.64 (1 to 3) |
+| sky-belly-fast | fail | peakG 53.79 (3 to 10); restDistM 7.41 (8 to 30); timeToRestS 0.77 (2 to 5) |
+| sky-pole | fail | nothing broke (must break wing); peakG 1309 (20 to 100) |
+| sky-tree | fail | nothing broke (must break prop); peakG 961 (5 to 30); restHeightM 0.12 (at least 2) |
+| cub-stall | fail | nothing broke (must break prop); restAttitude upright (nose down or inverted); restDistM 6.82 (0 to 3); timeToRestS 3.87 (0.5 to 2) |
+| cub-nose-in | fail | nothing broke (must break fuselage wing); peakG 1523 (100 to 400) |
+| cub-cartwheel | fail | nothing broke (must break wing); minUpZ 0.77 (at most -0.5); restAttitude upright (inverted or on its side); timeToRestS 4.22 (1 to 3) |
+| cub-belly-fast | fail | peakG 29.77 (3 to 10) |
+| cub-tail-strike | fail | peakG 302 (0 to 10) |
+| cub-pole | fail | nothing broke (must break wing); peakG 1197 (20 to 100) |
+| cub-tree | fail | nothing broke (must break prop); peakG 964 (5 to 30); restHeightM 0.32 (at least 2) |
+| radian-stall | fail | nothing broke (must break prop); peakG 407 (50 to 150); restAttitude upright (nose down or inverted); timeToRestS 0.06 (0.5 to 2) |
+| radian-nose-in | fail | nothing broke (must break fuselage wing); peakG 1998 (100 to 400); retainedFirst -0.00 (0 to 0.05) |
+| radian-cartwheel | fail | nothing broke (must break wing); peakG 158 (20 to 80); minUpZ 0.80 (at most -0.5); restAttitude upright (inverted or on its side); restDistM 2.33 (5 to 20); timeToRestS 0.53 (1 to 3) |
+| radian-belly-fast | fail | peakG 19.83 (3 to 10); restDistM 2.22 (8 to 30); timeToRestS 0.41 (2 to 5) |
+| radian-pole | fail | nothing broke (must break wing); peakG 1181 (20 to 100) |
+| radian-tree | fail | nothing broke (must break prop); peakG 1424 (5 to 30); restHeightM 0.05 (at least 2) |
+| slowstick-stall | fail | nothing broke (must break prop); peakG 30.39 (50 to 150); restAttitude upright (nose down or inverted); restDistM 7.81 (0 to 3); timeToRestS 4.06 (0.5 to 2) |
+| slowstick-nose-in | fail | nothing broke (must break fuselage wing); retainedFirst 0.07 (0 to 0.05) |
+| slowstick-cartwheel | fail | nothing broke (must break wing); minUpZ 0.80 (at most -0.5); restAttitude upright (inverted or on its side); restDistM 1.98 (5 to 20) |
+| slowstick-belly-fast | fail | peakG 26.76 (3 to 10) |
+| slowstick-tail-strike | pass | inside every band |
+| slowstick-pole | fail | nothing broke (must break wing); peakG 540 (20 to 100) |
+| slowstick-tree | fail | nothing broke (must break prop); peakG 426 (5 to 30); restHeightM 0.29 (at least 2) |
+| timber-stall | fail | nothing broke (must break prop); peakG 40.19 (50 to 150); restAttitude upright (nose down or inverted); restDistM 14.12 (0 to 3); timeToRestS 5.57 (0.5 to 2) |
+| timber-nose-in | fail | nothing broke (must break fuselage wing); peakG 843 (100 to 400) |
+| timber-cartwheel | fail | nothing broke (must break wing); minUpZ 0.77 (at most -0.5); restAttitude upright (inverted or on its side); timeToRestS 4.51 (1 to 3) |
+| timber-belly-fast | pass | inside every band |
+| timber-tail-strike | fail | peakG 445 (0 to 10) |
+| timber-pole | fail | nothing broke (must break wing); peakG 1584 (20 to 100); restDistM 6.66 (0 to 5); timeToRestS 3.16 (0.5 to 2) |
+| timber-tree | fail | nothing broke (must break prop); peakG 1580 (5 to 30); restHeightM 0.30 (at least 2) |
+| bramor-stall | fail | peakG 711 (20 to 60); restAttitude upright (nose down or inverted); timeToRestS 0.08 (0.5 to 2) |
+| bramor-nose-in | fail | nothing broke (must break fuselage wing); peakG 1880 (100 to 400); retainedFirst -0.00 (0 to 0.05) |
+| bramor-cartwheel | fail | nothing broke (must break wing); peakG 205 (20 to 80); minUpZ 0.77 (at most -0.5); restAttitude upright (inverted or on its side); timeToRestS 0.74 (1 to 3) |
+| bramor-belly-fast | fail | peakG 44.99 (3 to 10); timeToRestS 0.79 (2 to 5) |
+| bramor-pole | fail | nothing broke (must break wing); peakG 1373 (20 to 100) |
+| bramor-tree | fail | nothing broke (must break prop); peakG 637 (5 to 30); restHeightM 0.45 (at least 2) |
+| bramor-chute | fail, blocked | peakG 511 (10 to 40); restDistM 0.00 (5 to 100) |
+| bramor-catapult-stall | fail | peakG 361 (20 to 80); restAttitude upright (nose down or inverted); restDistM 1.65 (5 to 30); timeToRestS 0.33 (0.5 to 2) |
+| timberf-nose-dig | fail | peakG 44.29 (3 to 15); minUpZ 0.92 (at most -0.7); restAttitude upright (inverted); restDistM 41.34 (2 to 10); timeToRestS none (2 to 5) |
+| timberf-float-catch | fail | peakG 397 (3 to 10); restDistM 10.16 (1 to 5); timeToRestS none (1 to 3) |
+| timberf-capsize | fail, blocked | restAttitude upright (inverted or on its side); minUpZ 0.93 (at most 0) |
+| timberf-porpoise | fail | liftoffOverStall 1.60 (at most 1) |
+| cubf-nose-dig | fail | peakG 61.18 (3 to 15); minUpZ 0.96 (at most -0.7); restAttitude upright (inverted); restDistM 57.32 (2 to 10); timeToRestS none (2 to 5) |
+| cubf-float-catch | fail | peakG 14.74 (3 to 10); minUpZ 0.40 (at most 0); restAttitude upright (inverted or on its side); restDistM 15.43 (1 to 5); timeToRestS none (1 to 3) |
+| cubf-capsize | fail, blocked | restAttitude upright (inverted or on its side); minUpZ 0.93 (at most 0) |
+| cubf-porpoise | fail | liftoffOverStall 1.25 (at most 1) |
