@@ -1,0 +1,2532 @@
+{
+ "note": "Bands for scripts/crash-suite.js. Every band is from docs/CRASH-REFERENCES.md, whose ids the sources name, never from the plant. Confidence HIGH, MED or LOW as that file grades it.",
+ "scenarios": {
+  "q5-gate-15": {
+   "refStill": "A 5 inch racer clips a 1 inch PVC gate upright with one arm: the struck prop bends or snaps, the quad spins away from the pole and tumbles to the grass several metres on, frame whole.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-PROPS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "frame",
+      "battery"
+     ],
+     "source": "R-ARM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 50,
+     "max": 300,
+     "source": "R-A4-OFFSET, R-A3-DROP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 30,
+     "source": "R-A4-REBOUND",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 4,
+     "source": "R-A4-REBOUND",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.3,
+     "max": 0.7,
+     "source": "R-A4-OFFSET",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "q5-gate-30": {
+   "refStill": "The same clip at race speed: props on the struck side gone, an arm possibly snapped at the motor, the quad cartwheels 10 to 60 m down the course, battery still strapped on.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-PROPS, R-ARM",
+     "confidence": "MED"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "battery"
+     ],
+     "source": "R-ARM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 100,
+     "max": 500,
+     "source": "R-A4-OFFSET, R-ARM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 10,
+     "max": 60,
+     "source": "R-A4-REBOUND",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 2,
+     "max": 6,
+     "source": "R-A4-REBOUND",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.2,
+     "max": 0.6,
+     "source": "R-A4-OFFSET",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "q5-wall": {
+   "refStill": "Square into masonry at full speed: every prop gone, an arm broken, the camera knocked askew or out of its mount, the battery often thrown; the quad drops at the foot of the wall.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop",
+      "arm"
+     ],
+     "source": "R-ARM, R-PROPS, R-A3-PARTS",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 500,
+     "max": 2000,
+     "source": "R-ARM (320 to 719 J over 15 to 40 mm)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 3,
+     "source": "R-A4-REBOUND",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-A4-REBOUND",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.01,
+     "max": 0.1,
+     "source": "R-A4-REBOUND",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "q5-prop-strike": {
+   "refStill": "A hard landing on a bank: one pair of blade tips hits the grass, the props chip or bend, the quad slaps down upright where it landed.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "frame",
+      "arm",
+      "motor"
+     ],
+     "source": "R-A3-DROP (a Phantom leg failed at 10.1 m/s, this is under half that)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 10,
+     "max": 50,
+     "source": "R-A3-DROP",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "upright"
+     ],
+     "source": "R-A3-DROP",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 1,
+     "source": "R-A3-DROP",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.2,
+     "max": 1,
+     "source": "R-A3-DROP",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "q5-slope": {
+   "refStill": "Into a grass hillside: the quad bounces and tumbles down the slope over several contacts, props breaking one by one, and stops well down it.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-PROPS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "frame"
+     ],
+     "source": "R-ARM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 150,
+     "source": "R-A4-REBOUND, R-A3-DROP",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 2,
+     "max": 20,
+     "source": "R-A4-REBOUND (6.5 to 8.4 m per rebound at 20 m/s, 30 deg; scaled by v squared)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 6,
+     "source": "R-A4-REBOUND",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.25,
+     "max": 0.5,
+     "source": "R-A4-REBOUND (rebound speed 0.5 to 0.7 at 30 deg)",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "q5-branch": {
+   "refStill": "An arm catches a thin branch: the struck prop is chewed, the quad spins off the branch and drops near the tree.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-PROPS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "frame"
+     ],
+     "source": "R-ARM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 200,
+     "source": "R-A4-OFFSET",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 10,
+     "source": "R-A4-OFFSET",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 3,
+     "source": "R-A4-OFFSET",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.4,
+     "max": 0.8,
+     "source": "R-A4-OFFSET",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "q5-inverted": {
+   "refStill": "Upside down onto the grass at walking pace: nothing breaks, it lies on its back, and turtle mode rolls it over (less reliably on long grass).",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "frame",
+      "arm",
+      "prop"
+     ],
+     "source": "R-TURTLE",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 0,
+     "max": 20,
+     "source": "R-TURTLE, R-A3-DROP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted"
+     ],
+     "source": "R-TURTLE",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 2,
+     "source": "R-TURTLE",
+     "confidence": "MED"
+    },
+    {
+     "metric": "turtlePeakUpZ",
+     "min": 0.0,
+     "source": "R-TURTLE (turtle recovers on flat ground; the contact self-test proof is crossing out of inverted)",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "q5-prop-loss": {
+   "refStill": "A prop leaves at speed: the quad yaws into a fast spin, cannot hold attitude and falls out of the sky.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-PROPLOSS (the loss is the event)",
+     "confidence": "HIGH"
+    },
+    {
+     "metric": "lossToGroundS",
+     "min": 1,
+     "max": 5,
+     "source": "R-PROPLOSS (from 10 m: free fall is 1.4 s, a partly thrusting spin longer)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "flyingAtEnd",
+     "equals": false,
+     "source": "R-PROPLOSS (unrecoverable without a spinning controller)",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "whoop-wall": {
+   "refStill": "A 65 mm whoop bumps a wall at a brisk walk: it bounces off, wobbles and keeps flying, nothing damaged.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "frame",
+      "prop",
+      "motor"
+     ],
+     "source": "R-WHOOP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 50,
+     "max": 500,
+     "source": "R-WHOOP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.2,
+     "max": 0.7,
+     "source": "R-WHOOP (20 to 70 percent dissipated)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "flyingAtEnd",
+     "equals": true,
+     "source": "R-WHOOP, docs/CRASH-PLAN.md (a whoop is built to survive this)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "whoop-floor": {
+   "refStill": "Dropped onto the floor from head height: a bounce, it stays upright or flips, the pilot punches out and flies on.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "frame",
+      "prop",
+      "motor"
+     ],
+     "source": "R-WHOOP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 100,
+     "max": 800,
+     "source": "R-WHOOP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "flyingAtEnd",
+     "equals": true,
+     "source": "R-WHOOP, docs/CRASH-PLAN.md",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "whoop-gate": {
+   "refStill": "Full speed into a gate side: the duct takes it, the whoop tumbles a metre or two to the floor, perhaps a chipped blade, frame and motors whole.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "frame",
+      "motor"
+     ],
+     "source": "R-WHOOP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 300,
+     "max": 1500,
+     "source": "R-WHOOP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 1,
+     "max": 5,
+     "source": "R-WHOOP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0,
+     "max": 2,
+     "source": "R-WHOOP",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.1,
+     "max": 0.5,
+     "source": "R-WHOOP (50 to 90 percent dissipated)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "sky-stall": {
+   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, and it stops on its nose or flops onto its back within a couple of metres.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-A14-FOAM (a pusher prop is behind the crumple zone)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "tail"
+     ],
+     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 60,
+     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 3,
+     "source": "R-C172, R-A14-FOAM",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "sky-nose-in": {
+   "refStill": "A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "fuselage",
+      "wing"
+     ],
+     "source": "R-A14-FOAM (eBee+ nose broke off from 7.6 m/s on a rigid target), R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 100,
+     "max": 400,
+     "source": "R-A14-FOAM, R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 15,
+     "source": "R-A3-PARTS, R-A4-REBOUND (fixed wing rebound 0.03 to 0.2 of impact speed)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.3,
+     "max": 2,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.05,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "sky-cartwheel": {
+   "refStill": "A banked low pass catches a wingtip: the aircraft pivots on it and cartwheels, one to three rotations, the tip crushed and the prop broken, ending on its back or side.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (wingtip strike and cartwheel)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 80,
+     "source": "R-AFH, R-A14-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": -0.5,
+     "source": "R-AFH (cartwheels: at least onto its back once)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 20,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "sky-belly-fast": {
+   "refStill": "Belly landed at twice the stall: a slap, a long slide across the grass, upright and undamaged.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "fuselage"
+     ],
+     "source": "R-C172 test 1, R-A14-FOAM (foam belly landings are routine)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "upright"
+     ],
+     "source": "R-C172 test 1",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 8,
+     "max": 30,
+     "source": "R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 2,
+     "max": 5,
+     "source": "R-SLIDE",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "sky-pole": {
+   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (asymmetric contact, the loss of one wing), R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 100,
+     "source": "R-AFH, R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 5,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "sky-tree": {
+   "refStill": "Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-AFH trees, R-SLOWSTICK (stuck in a tree, torn wing)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (\"considerable cushioning and braking effect without destroying the airplane\")",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 5,
+     "max": 30,
+     "source": "R-AFH (branches decelerate over 0.5 to 2 m)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restHeightM",
+     "min": 2,
+     "source": "R-AFH (\"hang the airplane in the tree branches\")",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "cub-stall": {
+   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-A14-FOAM (puller prop, spinner and motor at the nose)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "tail"
+     ],
+     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 50,
+     "max": 150,
+     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 3,
+     "source": "R-C172, R-A14-FOAM",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "cub-nose-in": {
+   "refStill": "A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "fuselage",
+      "wing"
+     ],
+     "source": "R-A14-FOAM (eBee+ nose broke off from 7.6 m/s on a rigid target), R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 100,
+     "max": 400,
+     "source": "R-A14-FOAM, R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 15,
+     "source": "R-A3-PARTS, R-A4-REBOUND (fixed wing rebound 0.03 to 0.2 of impact speed)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.3,
+     "max": 2,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.05,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "cub-cartwheel": {
+   "refStill": "A banked low pass catches a wingtip: the aircraft pivots on it and cartwheels, one to three rotations, the tip crushed and the prop broken, ending on its back or side.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (wingtip strike and cartwheel)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 80,
+     "source": "R-AFH, R-A14-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": -0.5,
+     "source": "R-AFH (cartwheels: at least onto its back once)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 20,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "cub-belly-fast": {
+   "refStill": "Onto its wheels at twice the stall and sinking: a hard bounce on the wire gear, which may bend, then it rolls out upright.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "fuselage"
+     ],
+     "source": "R-C172 test 1, R-A14-FOAM (foam belly landings are routine)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "upright"
+     ],
+     "source": "R-C172 test 1",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "cub-tail-strike": {
+   "refStill": "Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "tail"
+     ],
+     "source": "R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 0,
+     "max": 10,
+     "source": "R-C172 test 1",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "cub-pole": {
+   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (asymmetric contact, the loss of one wing), R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 100,
+     "source": "R-AFH, R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 5,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "cub-tree": {
+   "refStill": "Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-AFH trees, R-SLOWSTICK (stuck in a tree, torn wing)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (\"considerable cushioning and braking effect without destroying the airplane\")",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 5,
+     "max": 30,
+     "source": "R-AFH (branches decelerate over 0.5 to 2 m)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restHeightM",
+     "min": 2,
+     "source": "R-AFH (\"hang the airplane in the tree branches\")",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "radian-stall": {
+   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-A14-FOAM (puller prop, spinner and motor at the nose)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "tail"
+     ],
+     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 50,
+     "max": 150,
+     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 3,
+     "source": "R-C172, R-A14-FOAM",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "radian-nose-in": {
+   "refStill": "A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "fuselage",
+      "wing"
+     ],
+     "source": "R-A14-FOAM (eBee+ nose broke off from 7.6 m/s on a rigid target), R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 100,
+     "max": 400,
+     "source": "R-A14-FOAM, R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 15,
+     "source": "R-A3-PARTS, R-A4-REBOUND (fixed wing rebound 0.03 to 0.2 of impact speed)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.3,
+     "max": 2,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.05,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "radian-cartwheel": {
+   "refStill": "A banked low pass catches a wingtip: the aircraft pivots on it and cartwheels, one to three rotations, the tip crushed and the prop broken, ending on its back or side.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (wingtip strike and cartwheel)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 80,
+     "source": "R-AFH, R-A14-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": -0.5,
+     "source": "R-AFH (cartwheels: at least onto its back once)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 20,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "radian-belly-fast": {
+   "refStill": "Belly landed at twice the stall: a slap, a long slide across the grass, upright and undamaged.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "fuselage"
+     ],
+     "source": "R-C172 test 1, R-A14-FOAM (foam belly landings are routine)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "upright"
+     ],
+     "source": "R-C172 test 1",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 8,
+     "max": 30,
+     "source": "R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 2,
+     "max": 5,
+     "source": "R-SLIDE",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "radian-pole": {
+   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (asymmetric contact, the loss of one wing), R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 100,
+     "source": "R-AFH, R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 5,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "radian-tree": {
+   "refStill": "Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-AFH trees, R-SLOWSTICK (stuck in a tree, torn wing)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (\"considerable cushioning and braking effect without destroying the airplane\")",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 5,
+     "max": 30,
+     "source": "R-AFH (branches decelerate over 0.5 to 2 m)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restHeightM",
+     "min": 2,
+     "source": "R-AFH (\"hang the airplane in the tree branches\")",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "slowstick-stall": {
+   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-A14-FOAM (puller prop, spinner and motor at the nose)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 50,
+     "max": 150,
+     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 3,
+     "source": "R-C172, R-A14-FOAM",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "slowstick-nose-in": {
+   "refStill": "A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "fuselage",
+      "wing"
+     ],
+     "source": "R-A14-FOAM (eBee+ nose broke off from 7.6 m/s on a rigid target), R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 100,
+     "max": 400,
+     "source": "R-A14-FOAM, R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 15,
+     "source": "R-A3-PARTS, R-A4-REBOUND (fixed wing rebound 0.03 to 0.2 of impact speed)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.3,
+     "max": 2,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.05,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "slowstick-cartwheel": {
+   "refStill": "A banked low pass catches a wingtip: the aircraft pivots on it and cartwheels, one to three rotations, the tip crushed and the prop broken, ending on its back or side.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (wingtip strike and cartwheel)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 80,
+     "source": "R-AFH, R-A14-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": -0.5,
+     "source": "R-AFH (cartwheels: at least onto its back once)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 20,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "slowstick-belly-fast": {
+   "refStill": "Onto its wheels at twice the stall and sinking: a hard bounce on the wire gear, which may bend, then it rolls out upright.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "fuselage"
+     ],
+     "source": "R-C172 test 1, R-A14-FOAM (foam belly landings are routine)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "upright"
+     ],
+     "source": "R-C172 test 1",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "slowstick-tail-strike": {
+   "refStill": "Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "tail"
+     ],
+     "source": "R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 0,
+     "max": 10,
+     "source": "R-C172 test 1",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "slowstick-pole": {
+   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (asymmetric contact, the loss of one wing), R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 100,
+     "source": "R-AFH, R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 5,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "slowstick-tree": {
+   "refStill": "Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-AFH trees, R-SLOWSTICK (stuck in a tree, torn wing)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (\"considerable cushioning and braking effect without destroying the airplane\")",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 5,
+     "max": 30,
+     "source": "R-AFH (branches decelerate over 0.5 to 2 m)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restHeightM",
+     "min": 2,
+     "source": "R-AFH (\"hang the airplane in the tree branches\")",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "timber-stall": {
+   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-A14-FOAM (puller prop, spinner and motor at the nose)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "tail"
+     ],
+     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 50,
+     "max": 150,
+     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 3,
+     "source": "R-C172, R-A14-FOAM",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "timber-nose-in": {
+   "refStill": "A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "fuselage",
+      "wing"
+     ],
+     "source": "R-A14-FOAM (eBee+ nose broke off from 7.6 m/s on a rigid target), R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 100,
+     "max": 400,
+     "source": "R-A14-FOAM, R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 15,
+     "source": "R-A3-PARTS, R-A4-REBOUND (fixed wing rebound 0.03 to 0.2 of impact speed)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.3,
+     "max": 2,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.05,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "timber-cartwheel": {
+   "refStill": "A banked low pass catches a wingtip: the aircraft pivots on it and cartwheels, one to three rotations, the tip crushed and the prop broken, ending on its back or side.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (wingtip strike and cartwheel)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 80,
+     "source": "R-AFH, R-A14-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": -0.5,
+     "source": "R-AFH (cartwheels: at least onto its back once)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 20,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "timber-belly-fast": {
+   "refStill": "Onto its wheels at twice the stall and sinking: a hard bounce on the wire gear, which may bend, then it rolls out upright.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "fuselage"
+     ],
+     "source": "R-C172 test 1, R-A14-FOAM (foam belly landings are routine)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "upright"
+     ],
+     "source": "R-C172 test 1",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "timber-tail-strike": {
+   "refStill": "Yanked off the ground: the tail scrapes the grass as the nose comes up, no damage beyond a scuffed tail skid.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "tail"
+     ],
+     "source": "R-C172 test 1 (tail strike at 0.125 s, no damage beyond the tail)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 0,
+     "max": 10,
+     "source": "R-C172 test 1",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "timber-pole": {
+   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (asymmetric contact, the loss of one wing), R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 100,
+     "source": "R-AFH, R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 5,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "timber-tree": {
+   "refStill": "Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-AFH trees, R-SLOWSTICK (stuck in a tree, torn wing)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (\"considerable cushioning and braking effect without destroying the airplane\")",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 5,
+     "max": 30,
+     "source": "R-AFH (branches decelerate over 0.5 to 2 m)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restHeightM",
+     "min": 2,
+     "source": "R-AFH (\"hang the airplane in the tree branches\")",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "bramor-stall": {
+   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, and it stops on its nose or flops onto its back within a couple of metres.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-A14-FOAM (a pusher prop is behind the crumple zone)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "tail"
+     ],
+     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 60,
+     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 3,
+     "source": "R-C172, R-A14-FOAM",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "bramor-nose-in": {
+   "refStill": "A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "fuselage",
+      "wing"
+     ],
+     "source": "R-A14-FOAM (eBee+ nose broke off from 7.6 m/s on a rigid target), R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 100,
+     "max": 400,
+     "source": "R-A14-FOAM, R-A3-PARTS",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 15,
+     "source": "R-A3-PARTS, R-A4-REBOUND (fixed wing rebound 0.03 to 0.2 of impact speed)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.3,
+     "max": 2,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.05,
+     "source": "R-A4-REBOUND",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "bramor-cartwheel": {
+   "refStill": "A banked low pass catches a wingtip: the aircraft pivots on it and cartwheels, one to three rotations, the tip crushed and the prop broken, ending on its back or side.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (wingtip strike and cartwheel)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 80,
+     "source": "R-AFH, R-A14-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": -0.5,
+     "source": "R-AFH (cartwheels: at least onto its back once)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 20,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "bramor-belly-fast": {
+   "refStill": "Belly landed at twice the stall: a slap, a long slide across the grass, upright and undamaged.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "fuselage"
+     ],
+     "source": "R-C172 test 1, R-A14-FOAM (foam belly landings are routine)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "upright"
+     ],
+     "source": "R-C172 test 1",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 8,
+     "max": 30,
+     "source": "R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 2,
+     "max": 5,
+     "source": "R-SLIDE",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "bramor-pole": {
+   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (asymmetric contact, the loss of one wing), R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 100,
+     "source": "R-AFH, R-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 0,
+     "max": 5,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "retainedFirst",
+     "min": 0.0,
+     "max": 0.3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "bramor-tree": {
+   "refStill": "Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.",
+   "checks": [
+    {
+     "metric": "mustBreak",
+     "parts": [
+      "prop"
+     ],
+     "source": "R-AFH trees, R-SLOWSTICK (stuck in a tree, torn wing)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing"
+     ],
+     "source": "R-AFH (\"considerable cushioning and braking effect without destroying the airplane\")",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 5,
+     "max": 30,
+     "source": "R-AFH (branches decelerate over 0.5 to 2 m)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restHeightM",
+     "min": 2,
+     "source": "R-AFH (\"hang the airplane in the tree branches\")",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 3,
+     "source": "R-AFH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "bramor-chute": {
+   "refStill": "Under the canopy in a breeze: touches down at about 5 m/s, then the inflated canopy drags it downwind across the ground until it collapses.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage",
+      "wing",
+      "tail"
+     ],
+     "source": "R-CHUTE",
+     "confidence": "MED"
+    },
+    {
+     "metric": "impactSpeed",
+     "min": 4.1,
+     "max": 5.5,
+     "source": "R-CHUTE (4.1 to 4.6 m/s rated, 5.5 m/s floor)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 10,
+     "max": 40,
+     "source": "R-CHUTE",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 100,
+     "source": "R-CHUTE drag (dragged 5 to 100 m without a release above about 3 m/s of wind)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "bramor-catapult-stall": {
+   "refStill": "Off the rail too slow: it pitches up, stalls, drops a wing and goes in nose first some metres ahead of the catapult.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "fuselage"
+     ],
+     "source": "R-LAUNCH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "peakG",
+     "min": 20,
+     "max": 80,
+     "source": "R-LAUNCH, R-A14-FOAM",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "nose down",
+      "inverted"
+     ],
+     "source": "R-LAUNCH (pitched up, flipped, nose first)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restDistM",
+     "min": 5,
+     "max": 30,
+     "source": "R-LAUNCH",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 0.5,
+     "max": 2,
+     "source": "R-LAUNCH",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "timberf-nose-dig": {
+   "refStill": "Touched down nose low: the float bows dig in, the tail comes over and the aircraft flips onto its back, hanging upside down from its floats.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "float"
+     ],
+     "source": "R-SEAPLANE",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 15,
+     "source": "R-SEAPLANE, R-C172 (water)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": -0.7,
+     "source": "R-SEAPLANE (\"flip over\"), R-TSB",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted"
+     ],
+     "source": "R-TSB (\"inverted in the water, suspended by the floats\")",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 2,
+     "max": 10,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 2,
+     "max": 5,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "timberf-float-catch": {
+   "refStill": "A fast turn on the step: the outside float buries, the wingtip goes in and the aircraft waterloops over onto its side or back.",
+   "checks": [
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 10,
+     "source": "R-SEAPLANE",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": 0.0,
+     "source": "R-SEAPLANE (waterloop, may capsize)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-SEAPLANE, R-TSB",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 1,
+     "max": 5,
+     "source": "R-SEAPLANE",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 3,
+     "source": "R-SEAPLANE",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "timberf-capsize": {
+   "refStill": "A gust across the lake lifts the upwind wing, the downwind float buries and the aircraft rolls over onto its back.",
+   "checks": [
+    {
+     "metric": "peakG",
+     "min": 0,
+     "max": 3,
+     "source": "R-SEAPLANE",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-SEAPLANE (\"tipping could continue until the seaplane capsizes\"), R-TSB",
+     "confidence": "MED"
+    },
+    {
+     "metric": "minUpZ",
+     "max": 0.0,
+     "source": "R-SEAPLANE",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "timberf-porpoise": {
+   "refStill": "Held nose high on the step: it rocks bow to stern, each cycle worse, leaves the water too slow, stalls and drops back in.",
+   "checks": [
+    {
+     "metric": "pitchReversalsOnWater",
+     "min": 4,
+     "max": 8,
+     "source": "R-SEAPLANE (\"each oscillation becomes increasingly severe\"; 2 to 4 cycles uncorrected, an estimate)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "liftoffOverStall",
+     "max": 1.0,
+     "source": "R-SEAPLANE (\"premature lift-off with an extremely high angle of attack\")",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "cubf-nose-dig": {
+   "refStill": "Touched down nose low: the float bows dig in, the tail comes over and the aircraft flips onto its back, hanging upside down from its floats.",
+   "checks": [
+    {
+     "metric": "mustNotBreak",
+     "parts": [
+      "wing",
+      "float"
+     ],
+     "source": "R-SEAPLANE",
+     "confidence": "MED"
+    },
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 15,
+     "source": "R-SEAPLANE, R-C172 (water)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": -0.7,
+     "source": "R-SEAPLANE (\"flip over\"), R-TSB",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted"
+     ],
+     "source": "R-TSB (\"inverted in the water, suspended by the floats\")",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 2,
+     "max": 10,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 2,
+     "max": 5,
+     "source": "R-C172 (Froude scaled)",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "cubf-float-catch": {
+   "refStill": "A fast turn on the step: the outside float buries, the wingtip goes in and the aircraft waterloops over onto its side or back.",
+   "checks": [
+    {
+     "metric": "peakG",
+     "min": 3,
+     "max": 10,
+     "source": "R-SEAPLANE",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "minUpZ",
+     "max": 0.0,
+     "source": "R-SEAPLANE (waterloop, may capsize)",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-SEAPLANE, R-TSB",
+     "confidence": "MED"
+    },
+    {
+     "metric": "restDistM",
+     "min": 1,
+     "max": 5,
+     "source": "R-SEAPLANE",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "timeToRestS",
+     "min": 1,
+     "max": 3,
+     "source": "R-SEAPLANE",
+     "confidence": "LOW"
+    }
+   ]
+  },
+  "cubf-capsize": {
+   "refStill": "A gust across the lake lifts the upwind wing, the downwind float buries and the aircraft rolls over onto its back.",
+   "checks": [
+    {
+     "metric": "peakG",
+     "min": 0,
+     "max": 3,
+     "source": "R-SEAPLANE",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "restAttitude",
+     "oneOf": [
+      "inverted",
+      "on its side"
+     ],
+     "source": "R-SEAPLANE (\"tipping could continue until the seaplane capsizes\"), R-TSB",
+     "confidence": "MED"
+    },
+    {
+     "metric": "minUpZ",
+     "max": 0.0,
+     "source": "R-SEAPLANE",
+     "confidence": "MED"
+    }
+   ]
+  },
+  "cubf-porpoise": {
+   "refStill": "Held nose high on the step: it rocks bow to stern, each cycle worse, leaves the water too slow, stalls and drops back in.",
+   "checks": [
+    {
+     "metric": "pitchReversalsOnWater",
+     "min": 4,
+     "max": 8,
+     "source": "R-SEAPLANE (\"each oscillation becomes increasingly severe\"; 2 to 4 cycles uncorrected, an estimate)",
+     "confidence": "LOW"
+    },
+    {
+     "metric": "liftoffOverStall",
+     "max": 1.0,
+     "source": "R-SEAPLANE (\"premature lift-off with an extremely high angle of attack\")",
+     "confidence": "LOW"
+    }
+   ]
+  }
+ }
+}
