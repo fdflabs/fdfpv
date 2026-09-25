@@ -63,7 +63,7 @@ import { str } from '../strings/index.js';
 import { makeRng } from './alps/noise.js';
 import {
   HALF, CELL, STRIP_L, STRIP_W, STRIP_Y, LAKE_Y,
-  valleyAxis, buildHeightfield, groundTexture, terrainMesh, farRange,
+  valleyAxis, buildHeightfield, groundTexture, terrainMesh, farRange, groundZone,
 } from './alps/terrain.js';
 import { buildNature } from './alps/nature.js';
 import { buildVillage, villageMaterials } from './alps/village.js';
@@ -244,6 +244,7 @@ export async function buildValley(shell, progress, q, style) {
   }
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
+  const zone = {};
   return {
     id: style.id,
     name: style.name(),
@@ -276,6 +277,28 @@ export async function buildValley(shell, progress, q, style) {
         return Math.max(h, STRIP_Y);
       }
       return h < LAKE_Y ? LAKE_Y : h;
+    },
+    /* What the ground is, for the crash physics (src/game/crashworld.js):
+     * read off the same zones the ground is painted by, so the snow a wing
+     * digs into is the snow on screen. The far range is rock. */
+    surfaceAt: (x, z) => {
+      if (!(Math.abs(x) <= HALF && Math.abs(z) <= HALF)) {
+        return 'rock';
+      }
+      if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
+        return 'grass';
+      }
+      groundZone(field, x, z, 2, zone);
+      if (zone.snow > 0.5) {
+        return 'snow';
+      }
+      if (zone.rock > 0.5 || zone.scree > 0.5) {
+        return 'rock';
+      }
+      if (zone.lake && zone.shore > 0.5) {
+        return 'dirt';
+      }
+      return 'grass';
     },
     setNextGate() {},
     targetAim: () => AIM,

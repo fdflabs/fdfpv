@@ -997,6 +997,12 @@ export class Colliders {
     }
     this.grid = grid;
     this.stamp = new Int32Array(n);
+    /* Solids the craft's sweep passes through, one flag each, all clear
+     * unless the crash physics has taken a solid over: a tree's crown the
+     * plant models as foliage the craft flies INTO (sim_tree_add) must not
+     * also be a ball the sweep bounces it off. src/game/crashworld.js
+     * sets and clears them; with none set, hit() is what it always was. */
+    this.pass = new Uint8Array(n);
     this.count = n;
     this.built = true;
     /* The construction arrays are dead now and they are the larger copy. */
@@ -1722,6 +1728,9 @@ export class Colliders {
             continue;
           }
           this.stamp[i] = id;
+          if (this.pass[i] !== 0) {
+            continue;
+          }
           candidates += 1;
 
           if (this.fbox[i]) {
