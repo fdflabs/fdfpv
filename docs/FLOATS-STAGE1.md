@@ -569,7 +569,8 @@ Six plane waves are still a sea with few parts, so the light on the water
 also takes wavelets finer than the plant's shortest wave, 0.35 and 0.14 m
 noise that does not repeat, drifting downwind, at a slope of a few
 hundredths and faded out as a pixel outgrows it: light only, never the
-surface the floats ride.
+surface the floats ride. The wake is foam that breaks up along its
+length and opens out as it ages.
 
 `npm run floats:shell` proves it headless: the Timber on floats seated on
 the Alps' lake, afloat and rocking before the throttle (pitch −1.2 to

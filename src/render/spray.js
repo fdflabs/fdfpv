@@ -54,7 +54,7 @@
  */
 
 import * as THREE from 'three';
-import { injectWaves } from './lakewaves.js';
+import { WAVE_VERTEX_DECL, WAVE_VERTEX, WAVE_NOISE } from './lakewaves.js';
 
 const G = 9.81;
 const DROPS = 1600;
@@ -62,7 +62,7 @@ const TRAIL = 120;
 /* Kelvin's half angle, and the length a float's Froude number is on. */
 const KELVIN = Math.asin(1 / 3);
 /* How long the churned water and the arms last, s. */
-const CHURN_S = 0.7;
+const CHURN_S = 1.2;
 const ARM_S = 5;
 
 /* A small repeatable generator, so two runs of the same flight throw the
@@ -74,6 +74,59 @@ function rng(seed) {
     s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
     return s / 4294967296;
   };
+}
+
+/*
+ * The wake's foam. Each vertex carries where it is across its strip (-1
+ * to 1), how far along the track it was laid (m, fixed to the water so
+ * the foam does not slide), its age (s) and its strength. The foam is
+ * the noise's: its edge wanders in and out along the strip, it breaks
+ * into patches that open up as it ages until only flecks are left, and
+ * its brightness varies, so no strip reads as a painted line. Laid on the
+ * waves as the lake is (lakewaves.js).
+ */
+function wakeMaterial(waves, color) {
+  return new THREE.ShaderMaterial({
+    uniforms: { ...waves.uniforms, uWaveRes: { value: 0.1 }, uColor: { value: color.clone() } },
+    vertexShader: /* glsl */ `
+      ${WAVE_VERTEX_DECL}
+      attribute vec4 aWake;
+      varying vec4 vWake;
+      void main() {
+        vec3 transformed = position;
+        ${WAVE_VERTEX}
+        vWake = aWake;
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(transformed, 1.0);
+      }`,
+    fragmentShader: /* glsl */ `
+      ${WAVE_NOISE}
+      uniform vec3 uColor;
+      varying vec4 vWake;
+      void main() {
+        float across = abs(vWake.x);
+        float along = vWake.y;
+        float age = vWake.z;
+        vec3 n1 = waveNoise(vec2(along * 2.3, vWake.x * 1.4 + age * 0.8));
+        vec3 n2 = waveNoise(vec2(along * 7.1 + 31.0, vWake.x * 3.9 - age * 1.6));
+        float edge = 0.45 + 0.55 * n1.x;
+        float profile = 1.0 - smoothstep(edge * 0.35, edge, across);
+        float open = 0.3 + 0.35 * min(age / 2.5, 1.0);
+        float foam = smoothstep(open, open + 0.25, n1.x * 0.55 + n2.x * 0.45);
+        float a = vWake.w * profile * foam;
+        if (a < 0.004) {
+          discard;
+        }
+        gl_FragColor = vec4(uColor * (0.8 + 0.3 * n2.x), a);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -4,
+  });
 }
 
 function dropMaterial(color) {
@@ -192,20 +245,17 @@ export function buildSpray({ waves, color = new THREE.Color(0.9, 0.93, 0.95), wa
   const trail = [];
   const WAKE_V = TRAIL * 12;
   const wakePos = new Float32Array(WAKE_V * 3);
-  const wakeCol = new Float32Array(WAKE_V * 4);
+  const wakeAttr = new Float32Array(WAKE_V * 4);
   const wakeIdx = new Uint16Array((TRAIL - 1) * 8 * 6);
   const wakeGeo = new THREE.BufferGeometry();
   const wakePosAttr = new THREE.BufferAttribute(wakePos, 3).setUsage(THREE.DynamicDrawUsage);
-  const wakeColAttr = new THREE.BufferAttribute(wakeCol, 4).setUsage(THREE.DynamicDrawUsage);
+  const wakeColAttr = new THREE.BufferAttribute(wakeAttr, 4).setUsage(THREE.DynamicDrawUsage);
   wakeGeo.setAttribute('position', wakePosAttr);
-  wakeGeo.setAttribute('color', wakeColAttr);
+  wakeGeo.setAttribute('aWake', wakeColAttr);
   const wakeIdxAttr = new THREE.BufferAttribute(wakeIdx, 1).setUsage(THREE.DynamicDrawUsage);
   wakeGeo.setIndex(wakeIdxAttr);
   wakeGeo.setDrawRange(0, 0);
-  const wakeMat = injectWaves(new THREE.MeshBasicMaterial({
-    vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide,
-    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
-  }), waves, { res: 0.1, normals: false });
+  const wakeMat = wakeMaterial(waves, wakeColor);
   const wake = new THREE.Mesh(wakeGeo, wakeMat);
   wake.name = 'float-wake';
   wake.frustumCulled = false;
@@ -236,14 +286,14 @@ export function buildSpray({ waves, color = new THREE.Color(0.9, 0.93, 0.95), wa
   function buildWake(t) {
     let v = 0;
     let n = 0;
-    const put = (x, y, z, a) => {
+    const put = (x, y, z, across, along, age, a) => {
       wakePos[v * 3] = x;
       wakePos[v * 3 + 1] = y;
       wakePos[v * 3 + 2] = z;
-      wakeCol[v * 4] = wakeColor.r;
-      wakeCol[v * 4 + 1] = wakeColor.g;
-      wakeCol[v * 4 + 2] = wakeColor.b;
-      wakeCol[v * 4 + 3] = a;
+      wakeAttr[v * 4] = across;
+      wakeAttr[v * 4 + 1] = along;
+      wakeAttr[v * 4 + 2] = age;
+      wakeAttr[v * 4 + 3] = a;
       v += 1;
     };
     /* The wake's vertices are tens of centimetres apart, and the water
@@ -260,10 +310,10 @@ export function buildSpray({ waves, color = new THREE.Color(0.9, 0.93, 0.95), wa
      * each float. A run of the track fades in over its first points, so a
      * wake does not start on a hard edge. */
     const first = [];
-    const section = (x, z, nx, nz, w, a) => {
-      put(x + nx * w, base, z + nz * w, 0);
-      put(x, base, z, a);
-      put(x - nx * w, base, z - nz * w, 0);
+    const section = (x, z, nx, nz, w, along, age, a) => {
+      put(x + nx * w, base, z + nz * w, -1, along, age, a);
+      put(x, base, z, 0, along, age, a);
+      put(x - nx * w, base, z - nz * w, 1, along, age, a);
     };
     for (let i = 0; i < trail.length; i += 1) {
       const p = trail[i];
@@ -272,20 +322,19 @@ export function buildSpray({ waves, color = new THREE.Color(0.9, 0.93, 0.95), wa
       const nz = p.dx;
       const lead = Math.min(1, p.run / 4);
       /* The arms: out from the bows at the wake's angle, as far as the
-       * bows have gone since, widening and fading, broken along their
-       * length as the crests of a real one are. */
+       * bows have gone since, widening, breaking up and fading. */
       const spread = p.w + Math.tan(p.angle) * p.v * a;
-      const armW = 0.03 + 0.02 * a;
-      const armA = p.wet ? 0.3 * strength * lead * (0.55 + 0.45 * p.j) * Math.min(1, p.v / 2) * Math.exp(-a / ARM_S) * Math.min(1, a / 0.2) : 0;
-      /* Behind each float on the step: as wide as its beam, spreading and
-       * thinning. */
-      const churnW = p.beam * (0.6 + 1.2 * a);
-      const churnA = p.wet ? 0.45 * strength * lead * p.plane * (0.5 + 0.5 * p.j) * Math.exp(-a / CHURN_S) : 0;
+      const armW = 0.05 + 0.06 * a;
+      const armA = p.wet ? 0.55 * strength * lead * Math.min(1, p.v / 2) * Math.exp(-a / ARM_S) * Math.min(1, a / 0.2) : 0;
+      /* Behind each float on the step, churned white as wide as its beam,
+       * spreading into a broken trail. */
+      const churnW = p.beam * (0.7 + 1.6 * a);
+      const churnA = p.wet ? 0.8 * strength * lead * p.plane * Math.exp(-a / CHURN_S) : 0;
       first.push(v);
-      section(p.bx + nx * spread, p.bz + nz * spread, nx, nz, armW, armA);
-      section(p.bx - nx * spread, p.bz - nz * spread, nx, nz, armW, armA);
-      section(p.sx + nx * p.fy, p.sz + nz * p.fy, nx, nz, churnW, churnA);
-      section(p.sx - nx * p.fy, p.sz - nz * p.fy, nx, nz, churnW, churnA);
+      section(p.bx + nx * spread, p.bz + nz * spread, nx, nz, armW, p.s, a, armA);
+      section(p.bx - nx * spread, p.bz - nz * spread, nx, nz, armW, p.s + 100, a, armA);
+      section(p.sx + nx * p.fy, p.sz + nz * p.fy, nx, nz, churnW, p.s * 1.7 + 200, a * 1.8, churnA);
+      section(p.sx - nx * p.fy, p.sz - nz * p.fy, nx, nz, churnW, p.s * 1.7 + 300, a * 1.8, churnA);
     }
     for (let i = 1; i < trail.length; i += 1) {
       if (trail[i].gap) {
@@ -409,7 +458,7 @@ export function buildSpray({ waves, color = new THREE.Color(0.9, 0.93, 0.95), wa
         trail.push({
           t, bx: bow.x, bz: bow.z, sx: stern.x, sz: stern.z, dx: hx, dz: hz, v: wakeV, angle,
           w: f.y + f.beam * 0.5, fy: f.y, beam: f.beam, plane: speed > 2 ? plane : 0, wet: true, gap,
-          run: gap ? 0 : last.run + 1, j: rand(),
+          run: gap ? 0 : last.run + 1, s: (last ? last.s : 0) + (Number.isFinite(moved) && moved < 3 ? moved : 0),
         });
       } else if (!wet && last && last.wet) {
         trail.push({ ...last, t, wet: false, gap: true });
