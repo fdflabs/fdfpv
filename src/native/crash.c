@@ -4105,6 +4105,120 @@ static void fb_impulse(FreeBody *f, const double r[3], const double n[3], double
   }
 }
 
+/*
+ * A BODY RESTS ONLY WHERE IT CAN STAND. A part slow on the ground is still
+ * falling over while its centre stands outside what it touches the ground
+ * with: a wing panel on its tip or a boom on its end has no speed yet at the
+ * top of its topple. So a body on the ground plane comes to rest (and gets
+ * the slow body's friction) only while its centre, seen along the normal,
+ * is inside the hull of its points within 5 mm of the ground. A body on
+ * anything else (a box, a trunk, the water, a crown) keeps the old test.
+ */
+#define FB_SUPPORT 0.005
+static int fb_stable(const FreeBody *f, const double gn[3], double gd) {
+  double u[3] = { 1.0, 0.0, 0.0 };
+  if (sim_fabs(gn[0]) > 0.9) {
+    u[0] = 0.0;
+    u[1] = 1.0;
+  }
+  double e1[3], e2[3];
+  cross(gn, u, e1);
+  const double l1 = norm(e1);
+  for (int a = 0; a < 3; a += 1) e1[a] /= l1;
+  cross(gn, e1, e2);
+  double px[FB_PTS], py[FB_PTS];
+  int np = 0;
+  for (int k = 0; k < f->npts; k += 1) {
+    double r[3];
+    qrot(f->q, f->pts[k], r);
+    const double pen = gd - (gn[0] * (f->pos[0] + r[0]) + gn[1] * (f->pos[1] + r[1]) + gn[2] * (f->pos[2] + r[2]));
+    if (!(pen > -FB_SUPPORT)) {
+      continue;
+    }
+    /* Relative to the centre, so the centre is the origin. */
+    px[np] = dot(r, e1);
+    py[np] = dot(r, e2);
+    np += 1;
+  }
+  if (np == 0) {
+    return 1;
+  }
+  /* The origin is inside the convex hull of the points exactly when no
+   * line through it has every point strictly on one side: for each point
+   * direction, the points' angles about the origin leave no gap past pi.
+   * Gift wrap the hull and test each edge. */
+  int start = 0;
+  for (int k = 1; k < np; k += 1) {
+    if (px[k] < px[start] || (px[k] == px[start] && py[k] < py[start])) start = k;
+  }
+  int cur = start, edges = 0;
+  do {
+    int next = cur == 0 ? 1 % np : 0;
+    for (int k = 0; k < np; k += 1) {
+      if (k == cur) continue;
+      const double c = (px[next] - px[cur]) * (py[k] - py[cur]) - (py[next] - py[cur]) * (px[k] - px[cur]);
+      if (c < 0.0 || next == cur) next = k;
+    }
+    if (next == cur) {
+      break;
+    }
+    /* The centre must be on the hull's inner (left) side of every edge,
+     * within 1 mm. */
+    const double ex = px[next] - px[cur], ey = py[next] - py[cur];
+    const double el = sim_sqrt(ex * ex + ey * ey);
+    if (el > 1e-9 && (ex * (0.0 - py[cur]) - ey * (0.0 - px[cur])) / el < -0.001) {
+      return 0;
+    }
+    cur = next;
+    edges += 1;
+  } while (cur != start && edges <= np);
+  if (edges >= 3) {
+    return 1;
+  }
+  /* A point or a line: the centre must stand on it, within 1 mm. */
+  int far = start;
+  double dmax = 0.0;
+  for (int k = 0; k < np; k += 1) {
+    const double dx = px[k] - px[start], dy = py[k] - py[start];
+    if (dx * dx + dy * dy > dmax) {
+      dmax = dx * dx + dy * dy;
+      far = k;
+    }
+  }
+  if (!(dmax > 1.0e-12)) {
+    return px[start] * px[start] + py[start] * py[start] < 1.0e-6;
+  }
+  const double ex = px[far] - px[start], ey = py[far] - py[start];
+  const double tt = (-px[start] * ex - py[start] * ey) / dmax;
+  const double off = (ex * -py[start] - ey * -px[start]) / sim_sqrt(dmax);
+  return tt >= 0.0 && tt <= 1.0 && sim_fabs(off) < 0.001;
+}
+
+/* Lying on a face whose normal is n: the slide braked at mu g and the spin
+ * about n at mu g over its radius of gyration, never reversing either. Only
+ * the spin about n: braking every axis also stopped a panel toppling off
+ * its end, and it rested standing up. */
+static void fb_lie(FreeBody *f, const double n[3], double mu, double g) {
+  const double vn = dot(f->vel, n);
+  const double vt[3] = { f->vel[0] - vn * n[0], f->vel[1] - vn * n[1], f->vel[2] - vn * n[2] };
+  const double vtm = norm(vt);
+  const double dv = mu * g * SIM_DT;
+  const double keep = vtm > dv ? (vtm - dv) / vtm : 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    f->vel[a] = vn * n[a] + vt[a] * keep;
+  }
+  const double rg = sim_sqrt((f->I[0] + f->I[1] + f->I[2]) / (1.5 * f->m));
+  double nb[3];
+  qrot_inv(f->q, n, nb);
+  const double wn = dot(f->w, nb);
+  const double wm = sim_fabs(wn);
+  const double dw = rg > 1e-4 ? mu * g / rg * SIM_DT : wm;
+  const double wkeep = wm > dw ? (wm - dw) / wm : 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    f->w[a] -= (1.0 - wkeep) * wn * nb[a];
+  }
+}
+
 static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double gn[3], double gd) {
   const double g = PLANT_TABLE[plant_airframe()].gravity * SIM_GRAVITY;
   const double rho = 1.225;
@@ -4154,6 +4268,7 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
     f->pos[a] += f->vel[a] * SIM_DT;
   }
   f->touching = 0;
+  int other = 0; /* touching a box, a trunk, a crown or the water */
   /* The ground plane. */
   if (ground_on) {
     const Surface *su = &SURF[g_ground_mat];
@@ -4183,25 +4298,18 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
      * part at rest on its face slid and spun on the slop for ever. The
      * weight it lays on the ground brakes the slide at mu g and the spin
      * about the normal at mu g over its own radius of gyration, like the
-     * craft's own settle, never reversing either. */
-    if (worst > -0.002) {
-      const double vn = dot(f->vel, gn);
-      const double vt[3] = { f->vel[0] - vn * gn[0], f->vel[1] - vn * gn[1], f->vel[2] - vn * gn[2] };
-      const double vtm = norm(vt);
-      const double dv = su->mu * g * SIM_DT;
-      const double keep = vtm > dv ? (vtm - dv) / vtm : 0.0;
-      for (int a = 0; a < 3; a += 1) {
-        f->vel[a] = vn * gn[a] + vt[a] * keep;
-      }
-      const double rg = sim_sqrt((f->I[0] + f->I[1] + f->I[2]) / (1.5 * f->m));
-      const double wm = norm(f->w);
-      const double dw = rg > 1e-4 ? su->mu * g / rg * SIM_DT : wm;
-      const double wkeep = wm > dw ? (wm - dw) / wm : 0.0;
-      for (int a = 0; a < 3; a += 1) {
-        f->w[a] *= wkeep;
-      }
+     * craft's own settle, never reversing either. Not while it falls over
+     * (fb_stable): its centre then moves about the edge it stands on, and
+     * braking that held a panel on its end for seconds. */
+    if (worst > -0.002 && fb_stable(f, gn, gd)) {
+      fb_lie(f, gn, su->mu, g);
     }
   }
+  /* A box's top it lies on brakes it the same way: with no brake a body
+   * rocked and crept on a gate's base for good (the feel round's gate
+   * clip). */
+  double top[3] = { 0.0, 0.0, 0.0 };
+  double top_mu = 0.0;
   /* Obstacles and the trunks. */
   for (int k = 0; k < f->npts; k += 1) {
     double r[3];
@@ -4219,6 +4327,11 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
         continue;
       }
       f->touching = 1;
+      other = 1;
+      if (nrm[2] > 0.7) {
+        for (int a = 0; a < 3; a += 1) top[a] = nrm[a];
+        top_mu = SURF[OB[o].mat].mu;
+      }
       fb_impulse(f, r, nrm, SURF[OB[o].mat].e, SURF[OB[o].mat].mu, pen);
       for (int a = 0; a < 3; a += 1) f->pos[a] += nrm[a] * pen * 0.2;
     }
@@ -4227,6 +4340,7 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
       double nrm[3], pen;
       if (tr->tr > 0.0 && cylinder_pen(tr->x, tr->y, tr->z0, tr->cz1, tr->tr, p, nrm, &pen)) {
         f->touching = 1;
+        other = 1;
         fb_impulse(f, r, nrm, SURF[SIM_SURF_WOOD].e, SURF[SIM_SURF_WOOD].mu, pen);
         for (int a = 0; a < 3; a += 1) f->pos[a] += nrm[a] * pen * 0.2;
       }
@@ -4243,9 +4357,13 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
           f->vel[1] *= 0.9;
           f->vel[2] = f->vel[2] * 0.9 + g * SIM_DT;
           f->touching = 1;
+          other = 1;
         }
       }
     }
+  }
+  if (top[2] > 0.0) {
+    fb_lie(f, top, top_mu, g);
   }
   /* Water: buoyancy on its volume's wet share, drag on its area's. */
   if (water_count() > 0) {
@@ -4263,6 +4381,7 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
           continue;
         }
         f->touching = 1;
+        other = 1;
         const double fr = h < 0.02 ? h / 0.02 : 1.0;
         const double fb = RHO_WATER * g * f->vol / (double)f->npts * fr;
         f->vel[2] += fb / f->m * SIM_DT;
@@ -4283,7 +4402,8 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
   }
   /* At rest: slow and touching something for long enough. */
   const double wm = norm(f->w);
-  if (f->touching && norm(f->vel) < FB_REST_V && wm < FB_REST_W) {
+  const int stable = !ground_on || other || fb_stable(f, gn, gd);
+  if (f->touching && stable && norm(f->vel) < FB_REST_V && wm < FB_REST_W) {
     f->still_ms += 1;
     if (f->touching) {
       /* Friction's last word: a slow body on the ground does not creep. */
