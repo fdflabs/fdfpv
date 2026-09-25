@@ -274,7 +274,9 @@ async function shoot(page, name, meta) {
 }
 
 async function run(sc) {
-  const page = await openPage({ root, width: W, height: H, seed: [...seeds(sc), ...await courseSeed(sc)] });
+  /* The map is named in the address as well as seated: a page that names
+   * no world opens on the Alps (src/boot.js), not on the seat. */
+  const page = await openPage({ root, width: W, height: H, url: `/index.html?map=${sc.map}`, seed: [...seeds(sc), ...await courseSeed(sc)] });
   const log = [];
   try {
     await page.until('window.__shellReady && window.__map && window.__map().ready', 120000);

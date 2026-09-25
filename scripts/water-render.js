@@ -213,7 +213,9 @@ const page = await openPage({
   root,
   width: 1280,
   height: 720,
-  url: '/index.html',
+  /* Named as well as seated: a page that names no world opens on the
+   * Alps (src/boot.js), and this waits for its map on the title. */
+  url: `/index.html?map=${map}`,
   seed: [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
