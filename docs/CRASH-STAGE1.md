@@ -306,9 +306,30 @@ what it carries is at its tip in the ring's mass, so a part whose nearest
 ringing ancestor is ringing takes that ancestor's acceleration, the ring's
 force over the mass it rings with, in place of the craft's (and no angular
 term: the ring carries it). A part with no section (every quad part, the
-fuselages, the Bramor's composite panels, whose spar section is not in
-the tables) and not riding on one is judged as before, with the same
+fuselages) and not riding on one is judged as before, with the same
 arithmetic in the same order.
+
+**A composite panel rings on its shell** (round 5). The Bramor's outer
+panels had no section, so they were judged as rigid bodies and broke on
+the craft's deceleration: on main ae57a29 a panel came off in the tree
+crown (bramor-tree, at 1.31 times its limit) and both under the chute's 5
+m/s landing (1.21 and 1.24). With the ring neither does. Its
+construction is published: "the fully composite structure ... uses only
+carbon- and Kevlar-reinforced plastic ... to form skins separated and
+stiffened by a non-metallic honeycomb", "no structural metal", and each
+wing "slides ... over the end of a carbon fibre guide rod" and clicks into
+place (UST 011, pp. 22 and 25, on the Bramor ppX, the same airframe). So a
+panel is a sandwich box whose bending is carried by its carbon skins, and
+it rings the same way as a spar, E I = (E / sigma) M c, with c the panel's
+half depth at its root, 17 mm (the drawn 34 mm, BRAMOR-STAGE1's planform
+at y 0.30), and E / sigma woven carbon laminate's, 70 GPa over 600 MPa,
+117 (DragonPlate, R-ARM; Easy Composites' sheet, 45 to 55 GPa at 571 to
+880 MPa, is the softer end, so like the spar's this is an upper bound on
+the frequency). At the table's 300 N m, E I is 595 N m^2 and a panel
+carrying its elevon and winglet rings at 17.5 Hz, inside the 5 to 20 Hz of
+small UAV wings' first bending. The 300 N m itself is still chosen: the
+skins' thickness and the guide rod's diameter are not published, and
+neither is a design load factor for the Bramor.
 
 Weakest link first: joints on a contact's path to the root fail before
 joints that only carry inertia; a joint that fails caps the loads through
@@ -637,8 +658,8 @@ rigid contact left it (0.26 mm).
 | Timber panel | 58 N m | 10/8 mm joiner, Z 5.80e-8 m^3 | as above |
 | Skyhunter panel | 60 N m | two spars | as above |
 | Radian panel | 45 N m | carbon joiner | as above |
-| Bramor panel | 300 N m | composite spar | chosen for a 4.5 kg composite wing |
-| Bramor winglet | 1.5 N m, 15 N | magnets | BRAMOR-STAGE1 |
+| Bramor panel | 300 N m | carbon skins on a honeycomb core, plugged onto a carbon guide rod (UST 011) | chosen: neither the skins nor the rod is published |
+| Bramor winglet | 1.5 N m, 15 N | Kevlar, 20 g, on magnets (UST 011) | chosen; a lower bound: at the 30 m/s never exceed speed (551 Pa) a 0.020 m^2 winglet at the stall of a surface of its aspect ratio, CL about 1.1, carries 12 N at about 0.1 m, 1.2 N m, so the magnets hold at least that in flight |
 | hinge line | 1 N m, 40 N | foam or tape hinge pulling out | chosen |
 | hook and loop | 96 N | 8 N/cm^2 over 12 cm^2 | VELCRO brand shear, about 8 N/cm^2 |
 | hatch magnets | 20 N | two 6 x 3 mm N52 | magnet pull, about 10 N each |
@@ -648,6 +669,7 @@ rigid contact left it (0.26 mm).
 | Skyhunter booms | 180 N m | two 12/10 mm carbon tubes | UD carbon tube |
 | a spar's bending stiffness, for its ring (round 3) | E I = 127 M r: wing1000 3 mm, Skyhunter 4 (two spars) and booms 6, Cub 4, Radian 4.5, Timber 5 mm outer radius | M = sigma I / r at the tables' 1,000 MPa, E 127 GPa | TAP Plastics pultruded carbon tube, minimum properties (flexural 127 GPa, 1,370 MPa) |
 | a ring's damping | 3 percent of critical | a lightly damped structure | chosen |
+| a composite panel's bending stiffness, for its ring (round 5) | E I = 117 M c: Bramor 17 mm half depth, 595 N m^2, 17.5 Hz | woven carbon laminate, 70 GPa over 600 MPa | DragonPlate (R-ARM); construction from UST 011, pp. 22 and 25 |
 | a foam boom's bending stiffness, for its ring (round 4) | E I = 33 M c: Cub 35 mm, Radian 20, Timber 45 mm half depth | bead foam E = 0.82 rho - 4.9 MPa, 19.7 MPa at 30 g/L, over EPO's 0.6 MPa | Negussey and Anasthas 2001, simple bending of EPS beams |
 | a music wire leg's fold (round 4) | 1.7 x the yield moment over the leg's lever | a round section's plastic hinge | ASTM A228 (E 207 GPa, 1,600 MPa) |
 | a blade's tip blow (round 3) | v_tip sqrt(k m_blade / 3) at its radius | the blade's spring against its own inertia | derived |

@@ -121,6 +121,12 @@ typedef struct {
 #define CARBON_SPAR(r) .sect_c = (r), .sect_eos = 127.0
 #define FOAM_EOS (19.7 / 0.6)
 #define FOAM_SECTION(c) .sect_c = (c), .sect_eos = FOAM_EOS
+/* A composite shell's own section, carbon skins on a honeycomb core, c its
+ * half depth: woven carbon laminate's 70 GPa over its 600 MPa (DragonPlate,
+ * R-ARM; Easy Composites' sheet, 45 to 55 GPa at 571 to 880 MPa, is the
+ * softer end, so this bounds the frequency from above as the spar's does). */
+#define SHELL_EOS (70.0 / 0.6)
+#define SHELL_SECTION(c) .sect_c = (c), .sect_eos = SHELL_EOS
 
 /* A tractor's motor sits in the foam nose on its firewall: struck head on,
  * it is the nose behind it that crushes, over the nose's section. */
@@ -510,19 +516,22 @@ static const PartDef PARTS_RADIAN2000[] = {
 
 /* ------------------------------------------------------------------------
  * BRAMOR C4EYE 2300, SIM_AIRFRAME_BRAMOR2300, bramorcraft.js. 4.5 kg of
- * carbon, Kevlar and Vectran; the outer panels plug in on a spar, the
- * winglets are held on by magnets. A composite shell cracks rather than
- * crushes, so nothing here crushes.
+ * carbon and Kevlar skins on a non-metallic honeycomb, no structural metal;
+ * the outer panels slide onto a carbon guide rod and click in, the 20 g
+ * Kevlar winglets are held on by magnets (UST 011, pp. 22 and 25). A
+ * composite shell cracks rather than crushes, so nothing here crushes. A
+ * panel rings on its shell, 17 mm its root's half depth; its 300 N m is
+ * chosen, since neither the skins nor the rod is published.
  * --------------------------------------------------------------------- */
 static const PartDef PARTS_BRAMOR2300[] = {
   { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
     .k = 2.0e6, BOX(-0.332, 0.4097, -0.30, 0.30, -0.065, 0.087) },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
-    .mass = 0.50, .joint = { -0.08, 0.30, 0.008 }, .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
+    .mass = 0.50, .joint = { -0.08, 0.30, 0.008 }, SHELL_SECTION(0.017), .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
     .npts = 8, .pts = { { 0.050, 0.30, -0.009 }, { -0.210, 0.30, -0.009 }, { -0.347, 1.15, 0.006 }, { -0.467, 1.15, 0.006 },
                         { 0.050, 0.30, 0.025 }, { -0.210, 0.30, 0.025 }, { -0.347, 1.15, 0.018 }, { -0.467, 1.15, 0.018 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
-    .mass = 0.50, .joint = { -0.08, -0.30, 0.008 }, .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
+    .mass = 0.50, .joint = { -0.08, -0.30, 0.008 }, SHELL_SECTION(0.017), .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
     .npts = 8, .pts = { { 0.050, -0.30, -0.009 }, { -0.210, -0.30, -0.009 }, { -0.347, -1.15, 0.006 }, { -0.467, -1.15, 0.006 },
                         { 0.050, -0.30, 0.025 }, { -0.210, -0.30, 0.025 }, { -0.347, -1.15, 0.018 }, { -0.467, -1.15, 0.018 } } },
   { .kind = SIM_PART_ELEVON, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
