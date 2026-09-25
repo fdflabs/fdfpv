@@ -265,14 +265,43 @@ E I follows from the limit the tables already derive from the spar, M =
 sigma I / r, so E I = (E / sigma) M r, with pultruded carbon tube's
 flexural modulus of 127 GPa (TAP Plastics, "Pultruded Carbon Rods and
 Tubes", minimum properties; flexural strength 1,370 MPa where the tables
-take 1,000) and each spar's outer radius (`spar_r` in the tables): the
+take 1,000) and each spar's outer radius (`CARBON_SPAR` in the tables): the
 foam planes' panels ring at 8 to 13 Hz, inside the 5 to 20 Hz that small
 UAV wings' ground vibration tests report for their first bending, and the
 Skyhunter's booms at about 15. The spar alone is stiffer than a panel
-with its outboard foam, so these are the fastest the parts ring. A part
-with no spar radius (every quad part, the foam booms and fuselages, the
-Bramor's composite panels, whose spar section is not in the tables) is
-judged as before, with the same arithmetic in the same order.
+with its outboard foam, so these are the fastest the parts ring.
+
+**A foam boom rings on its own walls** (round 4). The Cub's, the Radian's
+and the Timber's tail booms are the foam fuselage aft of the wing, with no
+carbon in the tables, and judged as rigid bodies they broke in the stalls
+(the Cub's at 1.18 times its limit, the Radian's at 3.7) on the craft's
+deceleration in the millisecond the nose met the grass. They ring the same
+way, E I = (E / sigma) M c, with bead foam's flexural modulus and c the
+section's half depth (the tables' `sect_c` and `sect_eos`,
+`FOAM_SECTION`). The modulus: simple bending of bead foam beams at 10 to
+30 kg/m^3, Negussey and Anasthas ("Young's modulus of EPS geofoam by
+simple bending test", EPS Geofoam 2001, Syracuse), E = 0.82 rho - 4.9 MPa,
+19.7 MPa at 30 g/L, with flexural strength 16.9 rho - 86 kPa (421 kPa);
+their tension and compression moduli agree within 3 percent below 0.5
+percent strain, so the bending modulus is the section's. No datasheet for
+EPO (a polystyrene and polyethylene bead copolymer, ARCEL's 70/30 class)
+gives a modulus; polystyrene bead foam is the stiffer of the two, so this
+is an upper bound on the frequency, as the carbon spar's is. Over the 0.6
+MPa the boom limits take for EPO, E / sigma is 33: the Cub's boom (c 35
+mm) rings at about 37 Hz, the Timber's (45 mm) at 31, the Radian's (20
+mm, a thin boom) at 10.
+
+**A part riding on a ringing part is shaken by it** (round 4). A tail on
+its boom, a fin on a boom, was judged by the craft's rigid deceleration
+even once the boom rang: the Radian's fin broke at 2.6 times its limit the
+moment its boom stopped breaking. The boom's tip moves with the ring, and
+what it carries is at its tip in the ring's mass, so a part whose nearest
+ringing ancestor is ringing takes that ancestor's acceleration, the ring's
+force over the mass it rings with, in place of the craft's (and no angular
+term: the ring carries it). A part with no section (every quad part, the
+fuselages, the Bramor's composite panels, whose spar section is not in
+the tables) and not riding on one is judged as before, with the same
+arithmetic in the same order.
 
 Weakest link first: joints on a contact's path to the root fail before
 joints that only carry inertia; a joint that fails caps the loads through
@@ -289,7 +318,7 @@ panel that meets a pole at speed leaves and the fuselage goes on.
 | prop spinning in a contact | the tip's impact stress over the blade's strength, 1 | chip += (tip speed / 100 m/s)^2 x hardness x dt / 0.2 s x (1 - strength / stress) | as above; lost at chip 1 |
 | prop spinning past that limit | its tip's blow at its root over the blade's limits (round 3) | the blow, v_tip sqrt(k m), bends the blade at its root: chip past the yield, lost past the shear | as above |
 | arm | 0.60 | the mount twists in its clamp, up to 0.10 rad | that motor's thrust axis turns |
-| music wire (gear, struts) | 0.45, yield at 1 / 2.21 of the break | bends, up to 0.20 rad | recorded for the shell |
+| music wire (gear, struts) | 0.45, yield at 1 / 2.21 of the break | bends, up to 0.20 rad; a gear leg in contact folds at its plastic hinge, 0.77 of the break (round 4) | recorded for the shell |
 | aluminium boom or gear | 0.70 | bends, up to 0.15 rad | recorded |
 | camera, antenna | 0.50 | knocked, up to 0.60 rad | the camera part's orientation: the FPV picture tilts |
 | anything else | 0.70 | cracks: its joint loses up to half its strength | the next hit breaks it sooner |
@@ -406,26 +435,59 @@ depth x its deepest point has reached, `F = k x`:
   its hull points within the attribution band of its lowest (after that,
   by the points it met in the last step), so the first corner the solver
   visits does not take a flat pack's whole landing.
-- Not sprung: a slender wire (a whip, a wire gear leg), which loaded along
-  its length buckles and folds, not a spring (sprung, and capped at its
-  yield, it broke the taildraggers' wing on a nose over and the five
-  inch's whip and pack on its back, against their references); the whoop
-  the shell flies, whose room is scaled 3.43 times but whose surfaces are
-  not; obstacles, which are the host's one impulse per call; and wheels
-  and floats, which were springs already.
+- Not sprung: a whip, which loaded along its length buckles and folds
+  (sprung, and capped at its yield, it broke the five inch's whip and pack
+  on its back, against the references); the whoop the shell flies, whose
+  room is scaled 3.43 times but whose surfaces are not; obstacles, which
+  are the host's one impulse per call; and wheels and floats, which were
+  springs already.
+- **A music wire gear leg folds** (round 4). Round 3 left it the rigid one
+  step contact, and landing on one was 473 g in the Cub's cartwheel; its
+  wheel's spring and damper, elastic to the end, broke the Cub's and the
+  Timber's legs off in the stalls at 1.02 to 1.15 times the break (the
+  damper alone gives 245 N a leg at a 5.7 m/s touchdown). A leg is a
+  spring until the moment at its root reaches the plastic hinge's, 1.7
+  times the yield moment of a round section (ASTM A228: 1,600 MPa in
+  bending, E 207 GPa; the tables' `WIRE_M`, the break, is 2.21 times the
+  yield), and then bends at that moment without carrying more, until it
+  has folded as far as it reaches below its root, when the fuselage meets
+  the ground. The hinge's force is the moment over the leg's own lever,
+  root to foot (its hull point farthest from the root), across the
+  contact's normal, and when the leg itself is met, plus the ground's
+  friction at the foot on the whole reach (mu times the reach), since the
+  friction bends it too. Through the wheel (`crash_wheel_force`, the one
+  hook in sim.c's gear) the strut force, spring and damper, is capped at
+  it, and the plastic set grows by what the elastic leg would carry past
+  it; on the leg's own hull the solver's impulse is capped at it while the
+  leg is driven in, as a crush is, and the leg's box, which is the leg
+  unfolded, goes on giving at it until the airframe beside it meets the
+  ground, which is where a folded leg lies. The legs' wheel stiffness in
+  plant.c is within a third of 3 E I / L^3 for their drawn wire (the
+  Timber's 4 mm leg over 0.16 m: 1,900 N/m, the plant's 1,500). The
+  Timber's two legs fold at 141 N each, 17 g on its 1.7 kg; the Slow
+  Stick's 2 mm legs at about 20 N. The judge then sees the leg at 0.77 of
+  its break, a bend, not a break.
 
 Measured, crash:core: a five inch dropped flat from 1.5 m onto grass peaks
-at 130 g where the rigid contact gave 526, and comes to rest within 1 mm
-of the rigid contact's rest; settling at 1 m/s, 46 g against 188. The
+at 126 g where the rigid contact gave 526 (130 g in round 2, when it came
+to rest within 1 mm of the rigid contact's rest); settling at 1 m/s, 46 g
+against 188. The
 crash suite on main da32758, per scenario, is in docs/CRASH-PLAN.md,
 round 2. The rule under every limit is now: with the mode off every
 flight is byte identical (scripts/crash-identity.js); with it on, nothing
-is written and the craft comes to the same rest, but a ground contact of a
-stiff part has its duration. Since round 3 the flat drop rests 2.72 mm
-from the rigid contact's rest (the check holds it to 2 mm and fails,
-reported rather than widened): the landing's small lateral kick now
-slides on at the lawn's grip counted once, where the rigid contact's
-doubled grip stopped it dead (section 5).
+is written, the blow of a stiff part's ground contact has its duration,
+and the craft comes to rest where the ground's grip puts it. Since round 3
+the flat drop rests 2.72 mm from the rigid contact's rest: the landing
+leaves a small sideways kick, and a flat pack slides that out at a sled's
+grip counted once, where the rigid contact makes a larger kick (0.45 m/s)
+and stops it dead with the shell's grip counted twice (section 5). Round
+4 replaced that check's premise, since the rigid contact's rest is not a
+reference once the grip is a sourced one: crash:core now holds the drop to
+the grip it should have, the kick left when the blow ends (0.189 m/s)
+sliding out at 0.461 g against the sled's 0.45 (within 0.02, as the
+Skyhunter's belly slide is held), and at rest 2.44 mm on, inside the 4.03
+mm that grip stops that kick in. The settle at 1 m/s still rests where the
+rigid contact left it (0.26 mm).
 
 ### Flight effects
 
@@ -481,6 +543,8 @@ doubled grip stopped it dead (section 5).
 | Skyhunter booms | 180 N m | two 12/10 mm carbon tubes | UD carbon tube |
 | a spar's bending stiffness, for its ring (round 3) | E I = 127 M r: wing1000 3 mm, Skyhunter 4 (two spars) and booms 6, Cub 4, Radian 4.5, Timber 5 mm outer radius | M = sigma I / r at the tables' 1,000 MPa, E 127 GPa | TAP Plastics pultruded carbon tube, minimum properties (flexural 127 GPa, 1,370 MPa) |
 | a ring's damping | 3 percent of critical | a lightly damped structure | chosen |
+| a foam boom's bending stiffness, for its ring (round 4) | E I = 33 M c: Cub 35 mm, Radian 20, Timber 45 mm half depth | bead foam E = 0.82 rho - 4.9 MPa, 19.7 MPa at 30 g/L, over EPO's 0.6 MPa | Negussey and Anasthas 2001, simple bending of EPS beams |
+| a music wire leg's fold (round 4) | 1.7 x the yield moment over the leg's lever | a round section's plastic hinge | ASTM A228 (E 207 GPa, 1,600 MPa) |
 | a blade's tip blow (round 3) | v_tip sqrt(k m_blade / 3) at its radius | the blade's spring against its own inertia | derived |
 
 "Chosen" is an engineering estimate with its reasoning in the table's
@@ -736,6 +800,19 @@ and 8 checks with the mode on (6 and 2 in round 2): the springs now let
 every part, and so the box's corners, into the ground by their depth,
 and a face slides further, both what the rigid hull checks exist to
 forbid, and both pass with the mode off.
+
+Round 4 (the foam booms' ring, the parts riding on a ring, the wire
+gear's fold), against main c0cb07f, with FDFPV_BOARD set for wing:e2e: off
+is identical on all 24. On, the same 18 are identical and the same six
+move as in round 3 (cub:gates C21, bramor:gates B12, floats:gates F1t,
+whoop:gates W15, wing:contact, contact:selftest), each against round 3's
+own mode on output unchanged but for two: floats:gates' flagged, ungated
+F7 nose digs (peak 20.9 to 20.6 g on the Timber, 25.0 to 28.9 on the
+Cub), and wing:contact, 7 to 9 checks failing with the mode on: a Slow
+Stick nosing in whose leg folds lets a box corner 0.118 m into the
+ground, and a Timber after its tip strike rests on its box with its
+folded legs' wheels unloaded. Both are checks of the rigid hull, as a
+crush already fails them there, and both pass with the mode off.
 
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched.
