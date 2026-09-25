@@ -125,6 +125,10 @@ mode on.
   shell already names a material (`src/game/collide.js`
   `contactMaterial`, `GROUND_MU`, `GROUND_E`) the module's mu and e are the
   same numbers.
+- `sim_contact_part(part)`: the host's next `sim_contact_at` (or
+  `sim_contact_at_mat`) is on that part, at the arm it passes (section 3,
+  the parts' hull). Consumed by that call; changes nothing with the mode
+  off.
 - `sim_obstacle_box`, `sim_obstacle_cylinder`, `sim_obstacle_clear`: what
   the free bodies meet, which the shell does not track. The craft itself
   still meets the world through the shell's `sim_contact_at`.
@@ -359,8 +363,9 @@ its right wing at cruise": 0.964; on main 0.386, with the boom, the left
 panel and the prop off).
 
 **A contact on a part that has gone.** The host meets the world with its
-own hull, and a plane's is a disc of its half span in its own plane
-(`src/game/collide.js`, `contactPatch`): it meets a pole 0.42 m out 0.56 m
+own hull, and a plane's was a disc of its half span in its own plane
+(`src/game/collide.js`, `contactPatch`; since the parts' hull below, a
+quad's only): it meets a pole 0.42 m out 0.56 m
 ahead of a Cub's CG, about half a metre before the wing does, and once the panel has left, the next passes still meet the
 pole the panel met, a few centimetres on, with nothing of the aircraft
 there. On main those contacts were put onto the nearest part left and
@@ -381,6 +386,34 @@ the trunk by the host's pose, and its hull point stood 1.13 m ahead of its
 CG). A contact with no solid named near is the host's, as always. The
 hook is in `sim.c` (`sim_contact`, `sim_contact_at`), before the pose is
 written, and only with the mode on.
+
+**The parts' hull** (the wing clip's open item). The disc did worse than
+meet a pole early: the point it handed the plant stood in the air ahead of
+the aircraft, and the plant gives a host's contact to the part whose hull
+stands furthest toward the solid, so the Slow Stick's pole went to its
+motor and the Bramor's to its nose, which stopped it dead at 1357 g. A
+fixed wing now meets the world with its parts (`src/game/airframehull.js`,
+`collide.js` `setCraftParts`): one box per part of this table
+(`sim_part_info`'s hull box), swept by the shell's contact pass every 4 ms
+at the craft's attitude, exactly against a box (the fifteen separating
+axes of two boxes, one moving) and by a conservative advance on the
+exact axis to box distance against a capsule. The contact reports the
+point on the part it met and the part, the shell hands the plant that
+point and names the part (`sim_contact_part`), and with the mode on the
+contact is that part's, at that point held to its hull box, in place of
+the furthest part's. A part the readback says has left is out of the hull,
+its boxes placed about the live CG the plant has moved to. Quads keep the
+discs. With it every plane's pole scenario meets the wing panel where the
+pole stands, and only the panel and what it carries leave at the pole
+(the crash suite's `firstObstacle`; `crash:core`, "a pole met by the parts'
+hull is the wing panel's"; the real shell, `scripts/wing-hull-check.js`).
+
+Chosen over the plant resolving its own parts against `sim_obstacle_*`
+every step, as the free bodies do: the plant knows only the 64 solids
+nearest the craft, refreshed every 12 m, and none with the mode off, so a
+plane would have met a city with two hulls at once; the shell's sweep
+already holds every collider on the sim clock, and its clip watch,
+sounds and scoring read it.
 
 ### Under the break, per material (`crash.c`)
 
@@ -893,6 +926,10 @@ gone), against main 5a72379: off is identical on all 24. On, every
 script's output is byte for byte the output main's own mode on build
 gives, the same six moving against base as in round 4: none of the gates
 flies a host contact past a joint's limit or after a part has left.
+
+The parts' hull (`sim_contact_part`), against main 4a9a30b: off is
+identical on all 24. On, every script's output is byte for byte main's own
+mode on build's (26 files): no gate names a part.
 
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched.
