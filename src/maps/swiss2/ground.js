@@ -104,6 +104,47 @@ function dataTexture(data, size, format) {
 }
 
 /*
+ * A craft resting on the ground shades it. Its own shadow falls away
+ * from the sun, and with the sun behind the eye that is under the wing,
+ * out of sight, so a parked aircraft stood on the grass as if pasted on:
+ * what a photograph shows there is the sky's light shut out under the
+ * wing and the grass pressed down under the fuselage. The ground and the
+ * meadow read the craft's footprint from CRAFT_GLSL's two uniforms,
+ * which craftFootprint fills each frame from the craft's bounds: the
+ * middle and lowest point, and the half sizes across the ground. Nothing
+ * is shaded once the craft is further off the ground than it is long.
+ */
+export function craftUniforms() {
+  return { uS2Craft: { value: new THREE.Vector4(0, -1e5, 0, 0) }, uS2CraftR: { value: new THREE.Vector2(1, 1) } };
+}
+const craftBox = new THREE.Box3();
+export function craftFootprint(object, uniforms) {
+  const at = uniforms.uS2Craft.value;
+  if (!object || !object.visible || !object.parent) {
+    at.y = -1e5;
+    return;
+  }
+  craftBox.setFromObject(object);
+  if (craftBox.isEmpty()) {
+    at.y = -1e5;
+    return;
+  }
+  at.set((craftBox.min.x + craftBox.max.x) / 2, craftBox.min.y, (craftBox.min.z + craftBox.max.z) / 2, 0);
+  uniforms.uS2CraftR.value.set(Math.max(0.05, (craftBox.max.x - craftBox.min.x) / 2), Math.max(0.05, (craftBox.max.z - craftBox.min.z) / 2));
+}
+/* How far under the craft a point of ground p is: one at its middle,
+ * nought past its outline or once it is off the ground. */
+export const CRAFT_GLSL = /* glsl */ `
+  uniform vec4 uS2Craft;
+  uniform vec2 uS2CraftR;
+  float s2UnderCraft(vec3 p) {
+    vec2 d = (p.xz - uS2Craft.xz) / uS2CraftR;
+    float reach = max(uS2CraftR.x, uS2CraftR.y);
+    return (1.0 - smoothstep(0.35, 1.05, length(d))) * (1.0 - smoothstep(0.1, reach, uS2Craft.y - p.y));
+  }
+`;
+
+/*
  * The two zone masks, row j at z = -HALF + (j + 0.5) * cell so the
  * texture's v runs with z:
  *   zone1 = forest, bloom, scree, shore
@@ -605,6 +646,7 @@ const GROUND_PARS = /* glsl */ `
   uniform float uS2Rough[9];
   uniform float uS2Bump[9];
   uniform float uS2LakeY;
+  ${CRAFT_GLSL}
   uniform float uS2Only;
   varying vec3 vS2WNormal;
 
@@ -1128,6 +1170,8 @@ const GROUND_PARS = /* glsl */ `
     g.normal = outN;
     g.rough = rough;
     g.ao = mix(1.0, 0.5 + 0.5 * clamp(hsum * 1.3, 0.0, 1.0), 0.65);
+    float craft = s2UnderCraft(p);
+    g.ao *= 1.0 - 0.7 * craft;
     /* Grass is not a matt plane. Looked at with the sun behind the eye
      * every blade shows its lit side; looked at toward the sun, the sides
      * a camera sees are the ones in the blades' own shade, and a sunlit
@@ -1138,6 +1182,7 @@ const GROUND_PARS = /* glsl */ `
      * into it. */
     float into = -dot(toEye, uS2SunDir);
     g.backlit = 1.0 - ${BACKLIT.toFixed(2)} * grass * smoothstep(0.0, 0.75, into);
+    g.backlit *= 1.0 - 0.35 * craft * craft;
     /* And toward the sun a sward shows none of the glare a plane has
      * there. Three draws a rough plane's grazing reflection strongest
      * exactly where the sky is brightest, round the sun, and the meadow
@@ -1155,12 +1200,14 @@ const GROUND_PARS = /* glsl */ `
  * LAYERS, wherever the material is (a boulder is rock, a drift is snow);
  * `strip` is the strip's plane, which lies over the ground and is not
  * raised with the far crests (the airfield's grass is s2Air's, by where
- * it is). `lit` is light.js's injector: the ground is lit the same way
- * everything else in swiss2 is,
+ * it is). `craft` is craftUniforms' pair. `lit` is light.js's injector:
+ * the ground is lit the same way everything else in swiss2 is,
  * and its declarations land ahead of the splat's, so vS2World is declared
  * by the time the splat reads it.
  */
-export function groundMaterial({ arrays, zones, path, walls, lit, only = -1, strip = 0 }) {
+export function groundMaterial({
+  arrays, zones, path, walls, lit, craft = craftUniforms(), only = -1, strip = 0,
+}) {
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
   const uniforms = {
     uS2Zone1: { value: zones.zone1 },
@@ -1177,6 +1224,7 @@ export function groundMaterial({ arrays, zones, path, walls, lit, only = -1, str
     uS2LakeY: { value: LAKE_Y },
     uS2Only: { value: only },
     uS2Ridge: { value: only < 0 && !strip ? 1 : 0 },
+    ...craft,
   };
   if (LAYERS.length !== TILE.length) {
     throw new Error('swiss2 ground: one tile size per layer');

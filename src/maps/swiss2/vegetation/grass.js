@@ -55,7 +55,7 @@ import {
 } from '../../alps/terrain.js';
 import { ALPHA_CUT, GRASS_REGIONS } from './atlas.js';
 import { LEAF_SPEC_GLSL } from './plantmat.js';
-import { MEADOW_GLSL } from '../ground.js';
+import { MEADOW_GLSL, CRAFT_GLSL, craftUniforms } from '../ground.js';
 import {
   meadowField, airfield, s2Noise, beachTop, ROAD_DX, ROAD_END,
 } from './zones.js';
@@ -321,6 +321,7 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
 export function buildGrass({
   heightAt, layout, atlas, wind, radius, spacing, cap, group, tint = [0.82, 0.95, 0.72],
   tile = 16, inner = [-2, -1], wide = 1, cull = false, perFrame = Infinity, ceiling = radius, name = 'swiss2-grass',
+  craft = craftUniforms(),
 }) {
   const base = clumpGeometry();
   const geo = new THREE.InstancedBufferGeometry();
@@ -353,6 +354,7 @@ export function buildGrass({
     uRadius: { value: radius },
     uInner: { value: new THREE.Vector2(...inner) },
     uTint: { value: new THREE.Color(...tint) },
+    ...craft,
   };
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -368,6 +370,7 @@ export function buildGrass({
         uniform vec2 uInner;
         uniform vec3 uTint;
         ${MEADOW_GLSL}
+        ${CRAFT_GLSL}
         varying vec3 vGrassTint;
         varying float vGrassUp;`)
       .replace('#include <uv_vertex>', `#include <uv_vertex>
@@ -388,8 +391,13 @@ export function buildGrass({
          * and on the valley floor cut short where the field is mown. */
         S2Meadow field = s2Meadow(aClump.xz, gDist);
         float farmed = 1.0 - smoothstep(50.0, 140.0, aClump.y);
-        grow *= mix(1.0, 0.32, field.mown * farmed * (1.0 - gUnmown));
-        vec3 p = position * vec3(aClump2.y, aClump2.x * grow, aClump2.y);
+        float cut = mix(1.0, 0.32, field.mown * farmed * (1.0 - gUnmown));
+        /* Pressed down under a craft at rest, and in its shade. */
+        float gCraft = s2UnderCraft(aClump.xyz);
+        grow *= cut * (1.0 - 0.6 * gCraft);
+        /* A clump cut to the ankle is narrower too: cards a metre wide and
+         * a hand high read from above as a floor of scalloped tiles. */
+        vec3 p = position * vec3(aClump2.y * mix(0.45, 1.0, cut), aClump2.x * grow, aClump2.y * mix(0.45, 1.0, cut));
         vec3 transformed = aClump.xyz + vec3(gc * p.x + gs * p.z, p.y, -gs * p.x + gc * p.z);
         /* Wind: waves of gusts rolling across the meadow downwind, the
          * blade tips bending most. */
@@ -399,8 +407,10 @@ export function buildGrass({
         bend += uv.y * aClump2.x * 0.06 * sin(uTime * 3.3 + aClump.x * 1.3 + aClump.z * 1.7);
         transformed.xz += uWindDir * bend;
         transformed.y -= abs(bend) * 0.35 * uv.y;
-        vGrassTint = uTint * aClump2.w * mix(vec3(1.0), field.tint, farmed);
-        vGrassUp = uv.y;
+        vGrassTint = uTint * aClump2.w * mix(vec3(1.0), field.tint, farmed) * (1.0 - 0.5 * gCraft);
+        /* Turf cut short is lit to its roots: dark at the foot, each short
+         * clump read from above as a dark tuft. */
+        vGrassUp = mix(uv.y, 0.35 + 0.65 * uv.y, (1.0 - cut) / 0.68);
         if (grow <= 0.0) transformed = aClump.xyz;`)
       .replace('#include <project_vertex>', `
         vec4 mvPosition = viewMatrix * vec4(transformed, 1.0);

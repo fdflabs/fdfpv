@@ -187,6 +187,7 @@ export async function buildVegetation(ctx) {
       cap: Q.grassCap,
       group,
       tint: ctx.grassTint,
+      craft: ctx.craft,
     })
     : null;
   /* Past the blades, out to where the paint alone can carry it, the
@@ -210,6 +211,7 @@ export async function buildVegetation(ctx) {
       ceiling: 15,
       group,
       tint: ctx.grassTint,
+      craft: ctx.craft,
       name: 'swiss2-meadow',
     })
     : null;
