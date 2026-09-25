@@ -66,7 +66,8 @@ import { SCENARIOS, CRAFT, attitude } from '../tests/crash/scenarios.js';
 import { damageReader } from '../tests/crash/readback.js';
 import { setCraftAirframe, contactMaterial, contactPatch, BOUNCE_SEPARATION, KINDS } from '../src/game/collide.js';
 import { obstacleSurfaces, solidSurface } from '../src/game/crashworld.js';
-import { DAMAGE_FLAGS } from '../configs/parts.js';
+import { createDamageLink, PART_STATE_DOUBLES, STATE } from '../src/game/damage.js';
+import { DAMAGE_FLAGS, partLabel } from '../configs/parts.js';
 import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -157,6 +158,70 @@ function gapTo(dims, s, solid) {
   return { n, gap: dist - r - support(dims, s, [-n[0], -n[1], -n[2]]) };
 }
 
+/* The point of a capsule's or a sphere's axis nearest c, or null: where
+ * a pole stands relative to the craft at a contact. */
+function solidAxisNear(solid, c) {
+  if (solid.shape === 'sphere') {
+    return solid.c;
+  }
+  return solid.shape === 'capsule' ? closestOnSegment(solid.a, solid.b, c) : null;
+}
+
+/* A world vector into the body frame of the attitude q (w, x, y, z). */
+function toBody(q, v) {
+  const [w, x, y, z] = q;
+  const r = [
+    [1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+    [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+    [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)],
+  ];
+  return [0, 1, 2].map((a) => r[0][a] * v[0] + r[1][a] * v[1] + r[2][a] * v[2]);
+}
+
+/*
+ * Where the first obstacle contact landed on the airframe: the contact
+ * point (the arm the plant was handed) in the body frame, the solid's
+ * axis there, and the part whose hull box is nearest the point with how
+ * far outside that box it lies (0 on the part). A disc's point can stand
+ * in the air ahead of every part; that distance says so.
+ */
+function firstContactOf(log, table, left) {
+  const f = log[0];
+  if (!f) {
+    return null;
+  }
+  const arm = toBody(f.q, f.arm);
+  const axis = f.axis ? toBody(f.q, [f.axis[0] - f.cg[0], f.axis[1] - f.cg[1], f.axis[2] - f.cg[2]]) : null;
+  let part = null;
+  let gap = Infinity;
+  for (const p of table) {
+    let g2 = 0;
+    for (let a = 0; a < 3; a += 1) {
+      const e = Math.max(p.boxMin[a] - arm[a], 0, arm[a] - p.boxMax[a]);
+      g2 += e * e;
+    }
+    if (Math.sqrt(g2) < gap) {
+      gap = Math.sqrt(g2);
+      part = p;
+    }
+  }
+  const round = (v) => Math.round(v * 1000) / 1000;
+  return {
+    ms: f.ms,
+    kind: f.kind,
+    armBody: arm.map(round),
+    solidBody: axis ? axis.map(round) : null,
+    part: part ? partName(part) : null,
+    partGapM: round(gap),
+    /* What left within 150 ms of it: what the obstacle itself took. */
+    left: table.filter((p, i) => left[i] !== null && left[i] >= f.ms - 1 && left[i] <= f.ms + 150).map(partName),
+  };
+}
+
+function partName(p) {
+  return partLabel(p.kind, p.cg[0], p.cg[1]);
+}
+
 /* Plant frame to the shell's Three.js frame and back (src/render/frame.js,
  * spawn yaw zero): what contactPatch is written in. */
 const toThree = (v) => [-v[1], v[2], -v[0]];
@@ -198,7 +263,7 @@ function obstaclePass(rec, sim, dims, solids, kindSurface, log, ms) {
       if (dv > 0) {
         must(rec.call('sim_prop_strike', IMPACT_PROP_MAX * Math.min(1, dv / IMPACT_FULL)), 'sim_prop_strike');
       }
-      log.push({ ms, kind: solid.kind, vn, dv });
+      log.push({ ms, kind: solid.kind, vn, dv, cg: [s[1], s[2], s[3]], q: [s[7], s[8], s[9], s[10]], arm, axis: solidAxisNear(solid, [s[1], s[2], s[3]]) });
       hit = hit ?? { kind: solid.kind, dv };
     } else if (g.gap < -0.02) {
       /* Buried and not closing: moved onto the free side without an
@@ -302,12 +367,14 @@ async function fly(sc) {
     prev: null, restStart: null, restMs: null, minUpz: 1, rotAfter: 0, wetMs: 0,
     samples: [], obstacleLog: [], events: [], pitchSignChanges: 0, lastPitchRate: 0,
     liftoffMs: null, liftoffV: null, maxBankAfterLiftoff: 0, minVAirborne: Infinity,
+    left: [],
   };
   let rec = null;
   const reader = damageReader(sim);
   if (!reader) {
     throw new Error('dist/sim.wasm has no crash physics ABI (sim_set_damage): rebuild it');
   }
+  const link = createDamageLink(sim);
   const onMs = (ms) => {
     const s = sim.readState().state;
     const prev = M.prev;
@@ -318,6 +385,13 @@ async function fly(sc) {
     reader.sample(ms, M.armMs !== null);
     if (M.armMs === null) {
       return;
+    }
+    /* When each part left, for what an obstacle took (firstObstacle). */
+    const ps = link.parts();
+    for (let i = 0; i < M.left.length; i += 1) {
+      if (M.left[i] === null && ps[i * PART_STATE_DOUBLES + STATE.status] !== 0) {
+        M.left[i] = ms;
+      }
     }
     const hullN = sim.e.sim_ground_contacts();
     const wheels = readVec(sim, 'sim_wheel_loads', 4) ?? [0, 0, 0, 0];
@@ -432,6 +506,7 @@ async function fly(sc) {
     return [d[0], d[1]];
   });
   const solids = [];
+  M.left = reader.table().map(() => null);
   const h = {
     s: null,
     ms: 0,
@@ -498,7 +573,7 @@ async function fly(sc) {
   const hash = await rec.hash();
   const end = sim.readState().state;
   const damage = reader.read();
-  return { sc, c, dims, massKg, scale, M, has: h.has, end, endMs: rec.clock.ms, hash, ops: rec.ops, solids, t0, damage, extra: sc.outcome ? sc.outcome(h) : {} };
+  return { sc, c, dims, massKg, scale, M, has: h.has, end, endMs: rec.clock.ms, hash, ops: rec.ops, solids, t0, damage, table: reader.table(), extra: sc.outcome ? sc.outcome(h) : {} };
 }
 
 /* ---- what happened, as numbers ---- */
@@ -511,6 +586,7 @@ function outcomeOf(run) {
     impactKinds: M.impact ? M.impact.kinds : [],
     contacts: M.contacts,
     obstacleContacts: M.obstacleLog.length,
+    firstObstacle: firstContactOf(M.obstacleLog, run.table, M.left),
     events: M.events,
     massKg,
     /* What the damage readback says (tests/crash/readback.js). */
@@ -879,6 +955,10 @@ for (const s of report.scenarios) {
   }
   console.log(`    ${s.determinism.status === 'pass' ? 'pass' : 'FAIL'}  determinism           node ${s.determinism.node.slice(0, 12)} replay ${s.determinism.nodeReplay.slice(0, 12)} chrome ${s.determinism.chrome ? s.determinism.chrome.slice(0, 12) : report.chrome}; wreck replay ${s.determinism.damageNodeReplay} chrome ${s.determinism.damageChrome ?? report.chrome}`);
   const o = s.outcome;
+  if (o.firstObstacle) {
+    const f = o.firstObstacle;
+    console.log(`          first obstacle        ${f.kind} at ${f.ms} ms, point ${f.armBody.join(' ')} body${f.solidBody ? `, its axis ${f.solidBody.join(' ')}` : ''}; nearest part ${f.part}, ${f.partGapM} m off it; left within 150 ms: ${f.left.length ? f.left.join(', ') : 'nothing'}`);
+  }
   console.log(`          readback              broken ${fmt(o.broken)}; damaged ${fmt(o.damaged)}; flags ${fmt(o.damageFlagsSeen)}; absorbed ${fmt(o.partsEnergyJ)} J (events ${fmt(o.eventsEnergyJ)} J); peak part load ${fmt(o.peakPartLoad)} x limit (${o.peakPartLoadPart ?? '-'})`);
 }
 console.log('\nFailure histogram (scenarios failing each metric; blocked apart):');
