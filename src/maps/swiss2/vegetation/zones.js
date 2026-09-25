@@ -33,6 +33,7 @@
  */
 
 import { noise2, smoothstep } from '../../alps/noise.js';
+import { RUNWAY_HALF, APRON } from '../ground.js';
 import {
   STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL, FIELD, HALF,
   valleyAxis, streamX,
@@ -135,6 +136,45 @@ export function meadowField(x, z) {
     rowsOnU: s2Hash(own[0] + 2.2, own[1] + 2.2) >= 0.5,
     /* The ground by the stream is left uncut. */
     damp: 1 - smoothstep(18, 75, Math.abs(x - streamX(z)) + 25 * (s2Noise(x / 45, z / 45) - 0.5)),
+  };
+}
+
+/*
+ * The airfield as ground.js's s2Air lays it, for the grass: the runway,
+ * the long grass beside it, the wheel tracks and the ground worn where
+ * the aircraft turn and stand, each nought to one, as seen from far
+ * enough that none of it is finer than a pixel. Term for term: a change
+ * there has to be made here.
+ */
+/* ground.js's s2Line and s2Rut with the pixel left out: a line w wide
+ * about 0, shading off to its edges. */
+const line = (x, w) => 1 - smoothstep(0.1 * w, 0.5 * w, Math.abs(x));
+export function airfield(x, z) {
+  const ax = Math.abs(x);
+  const az = Math.abs(z);
+  const wob = 0.5 * (s2Noise(x / 9 + 3.1, z / 9 + 3.1) - 0.5) + 0.2 * (s2Noise(x / 1.7 + 8.3, z / 1.7 + 8.3) - 0.5);
+  const ends = 1 - smoothstep(STRIP_L / 2 + 5, STRIP_L / 2 + 8, az + 2 * (s2Noise(x / 6 + 1.9, z / 6 + 1.9) - 0.5));
+  const runway = (1 - smoothstep(RUNWAY_HALF, RUNWAY_HALF + 0.25, ax + wob)) * ends;
+  const side = 1 - smoothstep(16, 30, ax + 10 * (s2Noise(x / 27 + 5.3, z / 27 + 5.3) - 0.5));
+  const along = 1 - smoothstep(STRIP_L / 2 + 8, STRIP_L / 2 + 30, az);
+  const rough = (1 - runway) * side * along;
+  const lane = x - 0.5 * Math.sin(z / 41) - 0.25 * Math.sin(z / 13 + 1.3);
+  const tw = 0.45 + 0.3 * s2Noise(x / 3 + 7, z / 3 + 7);
+  const mains = Math.max(line(lane - 1, tw), line(lane + 1, tw));
+  const tail = 0.5 * line(lane, 0.3);
+  const use = 0.4 + 0.6 * smoothstep(15, 60, az);
+  const patchy = smoothstep(0.2, 0.65, s2Noise(x * 0.3 + 11, z * 0.25 + 11));
+  const track = Math.max(mains, tail) * use * runway * patchy * (0.65 + 0.35 * s2Noise(x / 4 + 2.2, z / 4 + 2.2));
+  const turn = 1 - smoothstep(5, 10, Math.hypot(x, az - (STRIP_L / 2 - 6)) + 3 * (s2Noise(x / 3.5 + 4.4, z / 3.5 + 4.4) - 0.5));
+  const ax2 = Math.max(Math.abs(x - APRON.x) - APRON.hx, 0);
+  const az2 = Math.max(Math.abs(z - APRON.z) - APRON.hz, 0);
+  const apron = (1 - smoothstep(0.5, 4, Math.hypot(ax2, az2) + 2.5 * (s2Noise(x / 3 + 6.6, z / 3 + 6.6) - 0.5)))
+    * (0.35 + 0.65 * smoothstep(0.3, 0.6, s2Noise(x / 5.5 + 1.4, z / 5.5 + 1.4)));
+  const worn = Math.max(turn * (0.55 + 0.45 * s2Noise(x / 2.5, z / 2.5)), apron);
+  /* On the apron's concrete itself. */
+  const paved = Math.abs(x - APRON.x) < APRON.hx - 0.2 && Math.abs(z - APRON.z) < APRON.hz - 0.2;
+  return {
+    runway, rough, track, worn, paved,
   };
 }
 

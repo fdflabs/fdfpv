@@ -31,6 +31,8 @@
  *   THE ROADSIDE: a delineator post either side of the valley road
  *   every fifty metres.
  *
+ *   MOLEHILLS on the plateau round the strip.
+ *
  *   Two places set by hand, as a farm's things are, where the lake-shore
  *   and farm-low views stand: at the road's end by the lake a fence
  *   along the verge with a gate, a stack of logs under a lean of tin, a
@@ -71,13 +73,14 @@
  */
 
 import * as THREE from 'three';
-import { noise2, smoothstep } from '../../alps/noise.js';
+import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
 import {
   HALF, LAKE_Y, LAKE_N, TREE_LINE, forestDensity, valleyAxis,
 } from '../../alps/terrain.js';
 import {
-  valleyLayout, meadowField, meadowCuts, lakeShore, jettyClear, ROAD_DX, ROAD_END, STREET_Z,
+  valleyLayout, meadowField, meadowCuts, lakeShore, jettyClear, airfield, ROAD_DX, ROAD_END, STREET_Z,
 } from '../vegetation/zones.js';
+import { RUNWAY_HALF } from '../ground.js';
 import { gravelBarGeometry } from '../water/stream.js';
 
 const COLLIDE_R = 700;
@@ -557,6 +560,29 @@ function boatShed(m, heightAt, rng, { x, z, yaw, len, w, h }) {
 }
 
 /*
+ * A molehill: a low dome of fresh dark earth r across at its foot,
+ * crumbled paler and drier on top, bedded a little into the grass.
+ */
+const SOIL = [0.05, 0.036, 0.025];
+const SOIL_DRY = [0.1, 0.075, 0.05];
+function molehill(m, heightAt, rng, x, z, r) {
+  const y = heightAt(x, z) - 0.03;
+  const h = r * (0.45 + 0.2 * rng());
+  const sides = 9;
+  const turn = rng() * Math.PI;
+  const ring = (k, t) => {
+    const a = turn + (k / sides) * Math.PI * 2;
+    const rr = r * t * (0.85 + 0.3 * noise2(x * 3 + k * 0.7, z * 3));
+    return new THREE.Vector3(x + Math.cos(a) * rr, y + h * (1 - t * t), z + Math.sin(a) * rr);
+  };
+  const top = new THREE.Vector3(x, y + h, z);
+  for (let k = 0; k < sides; k += 1) {
+    m.tri(top, ring(k + 1, 0.55), ring(k, 0.55), shade(SOIL_DRY, 0.8 + 0.4 * rng()));
+    m.quad(ring(k, 0.55), ring(k + 1, 0.55), ring(k + 1, 1), ring(k, 1), shade(SOIL, 0.8 + 0.4 * rng()));
+  }
+}
+
+/*
  * Build the props. ctx: heightAt, rng, colliders, and footprints, the
  * village's walls, which the huts keep clear of.
  */
@@ -913,6 +939,39 @@ export function buildProps(ctx) {
     }
   }
 
+  /*
+   * THE AIRFIELD'S MOLES: runs of molehills over the plateau round the
+   * strip and in the long grass beside it, and a few fresh ones thrown up
+   * at the runway's edges since it was last rolled, as on every grass
+   * strip; never in the wheel tracks. None has a collider: a heap of
+   * earth a hand high.
+   */
+  const mrng = makeRng(20261004);
+  let molehills = 0;
+  const runs = [{ x: -7.2, z: 22 }, { x: 7.6, z: -4 }, { x: -6.8, z: -30 }, { x: 34, z: 20 }, { x: -36, z: -10 }];
+  for (let k = 0; k < 14; k += 1) {
+    const side = mrng() < 0.5 ? -1 : 1;
+    runs.push({ x: side * (RUNWAY_HALF + 3 + 40 * mrng()), z: (mrng() - 0.5) * 220 });
+  }
+  for (const run of runs) {
+    let { x, z } = run;
+    let heading = mrng() * Math.PI * 2;
+    const n = 3 + Math.floor(mrng() * 5);
+    for (let q = 0; q < n; q += 1) {
+      const air = airfield(x, z);
+      /* coverOff holds the strip clear of the meadow's clumps, not of moles. */
+      const runway = Math.abs(x) < RUNWAY_HALF + 1 && Math.abs(z) < 90;
+      if (Math.abs(x) > 3.5 && air.track < 0.05 && air.worn < 0.3 && !air.paved && (runway || !coverOff(x, z))) {
+        molehill(m, heightAt, mrng, x, z, 0.2 + 0.14 * mrng());
+        molehills += 1;
+      }
+      heading += (mrng() - 0.5) * 1.2;
+      const step = 1.1 + 1.6 * mrng();
+      x += Math.cos(heading) * step;
+      z += Math.sin(heading) * step;
+    }
+  }
+
   /* The huts, the bales, the bars and the reeds: one draw. */
   const staticMat = propMaterial();
   const staticMesh = new THREE.Mesh(m.geometry(), staticMat);
@@ -964,7 +1023,9 @@ export function buildProps(ctx) {
     group,
     update,
     margins,
-    stats: { huts: huts.length, bales, spans: spans.length, reeds, delineators },
+    stats: {
+      huts: huts.length, bales, spans: spans.length, reeds, delineators, molehills,
+    },
     dispose() {
       group.removeFromParent();
       for (const o of [staticMesh, fence]) {

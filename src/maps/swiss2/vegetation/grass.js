@@ -51,13 +51,13 @@
 import * as THREE from 'three';
 import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
 import {
-  LAKE_Y, STRIP_L, STRIP_W, TREE_LINE, SNOW_LINE, forestDensity, treeLine, valleyAxis,
+  LAKE_Y, STRIP_L, TREE_LINE, SNOW_LINE, forestDensity, treeLine, valleyAxis,
 } from '../../alps/terrain.js';
 import { ALPHA_CUT, GRASS_REGIONS } from './atlas.js';
 import { LEAF_SPEC_GLSL } from './plantmat.js';
 import { MEADOW_GLSL } from '../ground.js';
 import {
-  meadowField, s2Noise, beachTop, ROAD_DX, ROAD_END,
+  meadowField, airfield, s2Noise, beachTop, ROAD_DX, ROAD_END,
 } from './zones.js';
 
 const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3', 'weed0', 'weed1', 'weed2', 'weed3'];
@@ -125,11 +125,27 @@ function fenceDist(x, z, lines) {
  * grows.
  */
 function coverAt(x, z, heightAt, layout) {
-  /* The strip is grass too, a mown one: clover and a daisy or two in
-   * turf cut to the ankle, which at eye height is what tells a grass
-   * strip from a painted one. */
-  if (Math.abs(x) < STRIP_W / 2 + 1.5 && Math.abs(z) < STRIP_L / 2 + 4) {
-    return { p: 0.9, h: 0.22, bloom: 0.12, tone: 1, seeds: 0, pasture: true, forest: 0 };
+  /* The strip is grass too, a mown one: clover and daisies in turf cut
+   * to the ankle, which at eye height is what tells a grass strip from a
+   * painted one, thinner down the wheel tracks and where the aircraft
+   * turn (zones.js airfield, as the paint lays them). */
+  const air = Math.abs(x) < 50 && Math.abs(z) < STRIP_L / 2 + 40 ? airfield(x, z) : null;
+  if (air && air.paved) {
+    return null;
+  }
+  if (air && air.runway > 0.5) {
+    /* Thicker and thinner in patches a few metres across, so the cut
+     * turf is not an even pile of clumps. */
+    const thick = noise2(x / 3.3 + 7.7, z / 3.3 + 1.9);
+    return {
+      p: 0.9 * (0.55 + 0.45 * thick) * (1 - 0.65 * air.track) * (1 - 0.35 * air.worn),
+      h: 0.27 * (0.8 + 0.4 * noise2(x / 5.1 + 3.1, z / 5.1 + 6.2)),
+      bloom: 0.22,
+      tone: 1,
+      seeds: 0,
+      pasture: true,
+      forest: 0,
+    };
   }
   if (layout.coverOff(x, z)) {
     return null;
@@ -233,6 +249,18 @@ function coverAt(x, z, heightAt, layout) {
   } else if (z > -2720 && z < ROAD_END + 4 && roadOff < VERGE[0] + 0.8) {
     cover.h = 0.22;
     cover.seeds = 0;
+  }
+  /* Beside the runway the grass is left long, knee high and flowering,
+   * and where the aircraft stand and taxi it is trodden short. */
+  if (air && air.rough > 0.3) {
+    cover.h = Math.max(cover.h, 0.3 + 0.25 * air.rough * noise2(x / 6 + 2.3, z / 6 + 8.1));
+    cover.bloom = Math.max(cover.bloom, 0.45 * air.rough);
+    cover.seeds = Math.max(cover.seeds, 0.05 * air.rough);
+    cover.pasture = false;
+  }
+  if (air && air.worn > 0.3) {
+    cover.p *= 1 - 0.4 * air.worn;
+    cover.h = Math.min(cover.h, 0.16);
   }
   return cover;
 }
