@@ -107,10 +107,14 @@ import {
 /* The club's pavilion. Both race maps get one, because a race field is a
  * club's field; the freestyle city is a different world and does not. */
 import {
-  assembleClubhouse, assembleCarPark, assembleDriveway, paintPlaque,
+  assembleClubhouse, assembleCarPark, assembleDriveway, paintPlaque, clubhouseRoofs,
   CLUBHOUSE_PAD, CLUBHOUSE_TOP, PLAQUE_PX, CAR_PARK,
 } from '../art/clubhouse.js';
 import { Colliders } from '../game/collide.js';
+/* The pavilion's roofs as ground, by the same rules as every other roof. */
+import {
+  roofRecord, frameElements, makeRoofs, gableSolids,
+} from '../maps/alps/roofs.js';
 
 /*
  * Static scenery merger. A forest of individual Groups costs a draw call
@@ -5416,6 +5420,7 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
   await report(0.64);
   const clubY = height(clubSite.x, clubSite.z);
   const clubDecks = [];
+  const clubRoofs = [];
   let clubVerandahClear = 0;
   if (!indoor) {
     const clubMat = celMaterial({
@@ -5456,22 +5461,48 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
     const sn = Math.round(Math.sin(clubSite.yaw));
     const wx = (lx, lz) => clubSite.x + lx * cs + lz * sn;
     const wz = (lx, lz) => clubSite.z - lx * sn + lz * cs;
+    /* Which of them stand under the roofs, by part, for the roofs' cover. */
+    const parts = { shell: [], verandah: [] };
     for (const solid of club.colliders) {
       if (solid.post) {
         const [lx, lz, y0, y1, r] = solid.post;
         colliders.addPost(solid.kind, wx(lx, lz), wz(lx, lz), clubY + y0, clubY + y1, r);
-        continue;
+      } else {
+        const [x0, y0, z0, x1, y1, z1] = solid.box;
+        const ax = wx(x0, z0);
+        const az = wz(x0, z0);
+        const bx = wx(x1, z1);
+        const bz = wz(x1, z1);
+        colliders.addBox(
+          solid.kind,
+          Math.min(ax, bx), clubY + y0, Math.min(az, bz),
+          Math.max(ax, bx), clubY + y1, Math.max(az, bz),
+        );
       }
-      const [x0, y0, z0, x1, y1, z1] = solid.box;
-      const ax = wx(x0, z0);
-      const az = wz(x0, z0);
-      const bx = wx(x1, z1);
-      const bz = wz(x1, z1);
-      colliders.addBox(
-        solid.kind,
-        Math.min(ax, bx), clubY + y0, Math.min(az, bz),
-        Math.max(ax, bx), clubY + y1, Math.max(az, bz),
-      );
+      parts[solid.part]?.push(colliders.ax.length - 1);
+    }
+    /*
+     * THE ROOFS, ground a craft lands on and skids along (src/maps/alps/
+     * roofs.js): each mass's planes over its walls and ceiling, its gables
+     * closed by thin walls under them, and the verandah's on its posts.
+     * While a roof is the craft's ground the shell or the verandah's boxes
+     * under it let the sweep through, and a craft coming in over the eaves
+     * has what stands no higher than a plate let through.
+     */
+    for (const shape of clubhouseRoofs()) {
+      const [lx, ly, lz, ry] = shape.at;
+      const rec = roofRecord(shape, frameElements(wx(lx, lz), clubY + ly, wz(lx, lz), clubSite.yaw + ry), shape.open ? 'tin' : 'tinRoof');
+      const plate = rec.ty;
+      const own = shape.open ? parts.verandah : parts.shell;
+      rec.solids = own.slice();
+      rec.eaves = own.filter((i) => colliders.by[i] <= plate + 0.05);
+      if (!shape.open) {
+        for (const b of gableSolids(rec)) {
+          colliders.addBox('wall', ...b);
+          rec.solids.push(colliders.ax.length - 1);
+        }
+      }
+      clubRoofs.push(rec);
     }
     for (const d of club.decks) {
       const ax = wx(d.x0, d.z0);
@@ -5936,6 +5967,7 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
   /* Every collider is in by now, so freeze the flat arrays and build the
    * broadphase grid. Nothing may be added after this. */
   colliders.build();
+  const clubRoofSet = makeRoofs(clubRoofs);
 
   progress(1);
 
@@ -6087,7 +6119,7 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
     height: (x, z, fromY) => {
       const g = height(x, z);
       if (!padDecks.length && !clubDecks.length) {
-        return g;
+        return clubRoofSet.height(x, z, fromY, g);
       }
       /*
        * THE HIGHEST SURFACE WITHIN A STEP OF WHERE THE QUERY WAS MADE FROM,
@@ -6134,8 +6166,16 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
         }
         offer(g + deck);
       }
-      return best;
+      /* And the pavilion's roofs, by the same step (clubhouseRoofs). */
+      return clubRoofSet.height(x, z, fromY, best);
     },
+    /* The pavilion's roofs as the villages' are (src/maps/alps/roofs.js):
+     * a roof that is the craft's ground lets the sweep through what stands
+     * under it, and the crash physics reads its steel. */
+    cover: (x, z, fromY) => clubRoofSet.cover(colliders, x, z, fromY),
+    roofs: clubRoofSet.records,
+    roofTop: (i, x, z) => clubRoofSet.top(i, x, z),
+    surfaceAt: (x, z, y) => (y == null ? null : clubRoofSet.materialAt(x, z, y)),
     /* No animation on the field depends on the physics clock: the flags and
      * the glow pulse are wall clock decoration and updateWind already drives
      * them. Present so the shell has one call shape. */
