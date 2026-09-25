@@ -67,7 +67,7 @@ const config = await readFile(join(root, 'tests/fixtures/config-baseline.diff'),
 
 /* The module's airframes the shell flies (configs/airframes.js simId). */
 const AIRFRAMES = [
-  ['5inch and whoop65', 0], ['sky1800', 3], ['cub1400', 4], ['slowstick1180', 5],
+  ['5inch', 0], ['whoop65', 0, 1], ['sky1800', 3], ['cub1400', 4], ['slowstick1180', 5],
   ['radian2000', 6], ['timber1500', 7], ['bramor2300', 8], ['timber1500f', 9], ['cub1400f', 10],
 ];
 
@@ -80,13 +80,17 @@ const GATE = KINDS.indexOf('gate');
  * 40 m up at cruise, since the shell's ground plane under a parked plane
  * is its gear's business and not this check's.
  */
-async function fly(simId, mode, shell, hard) {
+async function fly(simId, mode, shell, hard, partTable = 0) {
   const sim = await loadSim(wasm);
   const code = sim.init(config);
   if (code !== SIM_OK) {
     throw new Error(`sim_init ${code}`);
   }
   sim.e.sim_set_airframe(simId);
+  if (partTable && typeof sim.e.sim_set_part_table === 'function') {
+    /* The shell's whoop: the five inch's plant with the whoop's parts. */
+    sim.e.sim_set_part_table(partTable);
+  }
   sim.reset();
   const buf = sim.e.malloc(32);
   const table = obstacleSurfaces((m) => {
@@ -170,10 +174,10 @@ async function fly(simId, mode, shell, hard) {
 let shellFailed = 0;
 let plantFailed = 0;
 console.log('crash shell identity, per airframe: off (mode off, old calls), on (mode on, old calls), shell (mode on, the crash shell\'s calls)');
-for (const [name, id] of AIRFRAMES) {
-  const off = await fly(id, false, false, false);
-  const on = await fly(id, true, false, false);
-  const shell = await fly(id, true, true, false);
+for (const [name, id, table] of AIRFRAMES) {
+  const off = await fly(id, false, false, false, table);
+  const on = await fly(id, true, false, false, table);
+  const shell = await fly(id, true, true, false, table);
   const quiet = shell.events === 0 && on.events === 0;
   /* Unreported damage is the plant's: the flight did damage something,
    * and a material's hardness then rightly changes how much, so the

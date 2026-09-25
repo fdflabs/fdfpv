@@ -3415,6 +3415,7 @@ export async function boot({ loading, bootStart, mapId }) {
 
   /* Between runs, from applySettings: the mode this run flies. */
   function applyCrashMode(s) {
+    syncPartTable();
     const want = damage.available && s.crashDamage !== false;
     if (want === runDamage) {
       return;
@@ -3425,6 +3426,25 @@ export async function boot({ loading, bootStart, mapId }) {
       clearCrashWorld();
     }
     crashReset();
+  }
+
+  /*
+   * THE WHOOP'S PARTS. The shell flies the whoop on the five inch's plant
+   * in a room MICRO_SCALE times life size, so the plant's own table for
+   * that plant would break it like a five inch. The module keeps a table
+   * of the real whoop's parts scaled to that world (sim_set_part_table),
+   * which is what this machine is made of here. Setting it clears the
+   * damage state, so it is only set when it changes, between runs.
+   */
+  function syncPartTable() {
+    if (typeof sim.e.sim_set_part_table !== 'function') {
+      return;
+    }
+    const want = airframeById(runAirframe).id === 'whoop65' ? 1 : 0;
+    if (sim.e.sim_part_table() !== want) {
+      sim.e.sim_set_part_table(want);
+      wreckCraft = null;
+    }
   }
 
   /* From resetCraft, after sim_reset has cleared the damage state. */
@@ -4653,9 +4673,6 @@ export async function boot({ loading, bootStart, mapId }) {
       if (typeof sim.e.sim_set_flight_style === 'function') {
         sim.e.sim_set_flight_style(runStyle === 'arcade' ? 1 : 0);
       }
-      /* Crash damage rides the same rule: a run is flown on one set of
-       * physics from its start. See THE CRASH SHELL. */
-      applyCrashMode(s);
       /*
        * THE AIRFRAME, on the same between-runs rule and for a stronger
        * version of the same reason. Pack charge and flight style change what
@@ -4715,6 +4732,10 @@ export async function boot({ loading, bootStart, mapId }) {
           });
         }
       }
+      /* Crash damage rides the same rule: a run is flown on one set of
+       * physics from its start. After the airframe, whose part table it
+       * picks. See THE CRASH SHELL. */
+      applyCrashMode(s);
     }
     /*
      * THE AIR, OUTSIDE THE BETWEEN-RUNS BLOCK ON PURPOSE.
