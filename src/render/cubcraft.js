@@ -72,6 +72,15 @@
  * tailwheel turns with it the same way, because on the aircraft it is
  * steered off the rudder horn by springs.
  *
+ * ON FLOATS, opts.floats: the floats FMS sells for this Cub, white foam,
+ * deep and slab sided, their bows under the spinner, in place of the main
+ * gear, docs/FLOATS-STAGE1.md. The CG drops 26.4 mm with them on and the
+ * craft frame's origin is the CG, so the aircraft goes up that much in the
+ * group and the float set (src/render/floatset.js) is drawn in the new
+ * frame, its struts to the gear legs' mounts; CUB_FLOATS is the plant's
+ * geometry (src/native/plant.c, SIM_AIRFRAME_CUB1400F). The water rudders
+ * turn with setSurfaces' rudder.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -92,6 +101,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
+import { buildFloatSet } from './floatset.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -786,6 +796,26 @@ export const CUB_MOUNT_FORWARD = -st(CAM_S);
 export const CUB_MOUNT_UP = fuseAt(CAM_S).yc + fuseAt(CAM_S).h + 0.011;
 
 /*
+ * THE FLOATS, body frame of the aircraft on them (x forward, y left, z up,
+ * the CG with the floats on at the origin), the plant's numbers exactly:
+ * src/native/plant.c SIM_AIRFRAME_CUB1400F, docs/FLOATS-STAGE1.md.
+ */
+export const CUB_FLOAT_DZ = 0.0264;
+export const CUB_FLOATS = {
+  y: 0.15, xBow: 0.27, xKnee: 0.09, xStep: -0.04, xStern: -0.45,
+  zKeel: -0.2186, bowRise: 0.064, stepH: 0.009, aftSlope: 0.1405,
+  depth: 0.080, beam: 0.080, tanDr: 0.26795,
+  rudder: { x: -0.44, chord: 0.030, span: 0.045 },
+  struts: { front: 0.07, rear: -0.02 },
+};
+export const CUB_FLOAT_DIMS = {
+  vHalfDown: -CUB_FLOATS.zKeel,
+  vHalfUp: TAIL_TOP + CUB_FLOAT_DZ,
+  rest: { pitch: (0.64 * Math.PI) / 180, pitchDeg: 0.64, cgHeight: 0.1765 },
+};
+export const CUB_FLOAT_MOUNT_UP = CUB_MOUNT_UP + CUB_FLOAT_DZ;
+
+/*
  * A tractor turning clockwise seen from the cockpit, as a Cub's does. The
  * prop mount turns the rotor's y onto the craft's forward axis, -z, and a
  * positive turn about an axis pointing away from the eye is clockwise, so
@@ -796,6 +826,7 @@ export const CUB_PROP_SPIN = [1, 0, 0, 0];
 export function buildCubCraft(opts = {}) {
   const fog = opts.fog !== false;
   const lite = Boolean(opts.lite);
+  const onFloats = Boolean(opts.floats);
   const inkOn = !lite;
   const shade = !lite;
   const cel = (o) => celMaterial({ fog, cloudShadow: 0, ...o });
@@ -880,9 +911,11 @@ export function buildCubCraft(opts = {}) {
         parts.push(rod(j, new THREE.Vector3(j.x, top.y, j.z), 0.0016, lite ? 4 : 6));
       }
       /* The gear: a V of legs from the lower longeron to the axle. */
-      const axle = new THREE.Vector3(sign * (MAIN_X - MAIN_W / 2 - 0.002), MAIN_Y, st(MAIN_S));
-      parts.push(rod(new THREE.Vector3(sign * 0.040, -0.050, st(0.148)), axle, 0.0028, rodSeg, 1.6));
-      parts.push(rod(new THREE.Vector3(sign * 0.040, -0.052, st(0.238)), axle, 0.0028, rodSeg, 1.6));
+      if (!onFloats) {
+        const axle = new THREE.Vector3(sign * (MAIN_X - MAIN_W / 2 - 0.002), MAIN_Y, st(MAIN_S));
+        parts.push(rod(new THREE.Vector3(sign * 0.040, -0.050, st(0.148)), axle, 0.0028, rodSeg, 1.6));
+        parts.push(rod(new THREE.Vector3(sign * 0.040, -0.052, st(0.238)), axle, 0.0028, rodSeg, 1.6));
+      }
     }
     const airframe = new THREE.Mesh(merged(parts), yellow);
     airframe.name = 'cub-airframe';
@@ -896,7 +929,7 @@ export function buildCubCraft(opts = {}) {
    */
   {
     const parts = [...stripeGeometry(1, lite), ...stripeGeometry(-1, lite)];
-    for (const sign of [-1, 1]) {
+    for (const sign of onFloats ? [] : [-1, 1]) {
       const axle = new THREE.Vector3(sign * (MAIN_X - MAIN_W / 2 - 0.002), MAIN_Y, st(MAIN_S));
       const root = new THREE.Vector3(sign * 0.040, -0.052, st(0.238));
       parts.push(rod(
@@ -929,14 +962,16 @@ export function buildCubCraft(opts = {}) {
     }
     parts.push(rod(new THREE.Vector3(0.018, -0.046, st(0.110)), new THREE.Vector3(0.020, -0.066, st(0.118)),
       0.0030, seg));
-    for (const sign of [-1, 1]) {
-      const hub = new THREE.CylinderGeometry(0.0125, 0.0125, MAIN_W + 0.002, seg);
-      hub.rotateZ(Math.PI / 2);
-      hub.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
-      parts.push(hub);
+    if (!onFloats) {
+      for (const sign of [-1, 1]) {
+        const hub = new THREE.CylinderGeometry(0.0125, 0.0125, MAIN_W + 0.002, seg);
+        hub.rotateZ(Math.PI / 2);
+        hub.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
+        parts.push(hub);
+      }
+      parts.push(rod(new THREE.Vector3(-(MAIN_X - MAIN_W / 2), MAIN_Y, st(MAIN_S)),
+        new THREE.Vector3(MAIN_X - MAIN_W / 2, MAIN_Y, st(MAIN_S)), 0.0024, seg));
     }
-    parts.push(rod(new THREE.Vector3(-(MAIN_X - MAIN_W / 2), MAIN_Y, st(MAIN_S)),
-      new THREE.Vector3(MAIN_X - MAIN_W / 2, MAIN_Y, st(MAIN_S)), 0.0024, seg));
     parts.push(rod(new THREE.Vector3(0, fuseAt(0.800).yc - fuseAt(0.800).h + 0.002, st(0.800)),
       new THREE.Vector3(0, -0.003, st(TAIL_PIVOT_S)), 0.0022, lite ? 4 : 6, 0.4));
     const metalMesh = new THREE.Mesh(merged(parts), metal);
@@ -1161,7 +1196,42 @@ export function buildCubCraft(opts = {}) {
     rudder.pivot.quaternion.copy(q.setFromAxisAngle(rudder.axis, -rudRad));
     tailwheel.pivot.quaternion.copy(q.setFromAxisAngle(tailwheel.axis, -rudRad));
   }
-  setSurfaces(0, 0, 0, 0);
+
+  /*
+   * On floats: the aircraft goes up CUB_FLOAT_DZ in a group of its own, the
+   * floats lowering the CG that much, and the float set is drawn in the new
+   * frame under it, its struts to the gear legs' two mounts on the lower
+   * longeron.
+   */
+  let floatSet = null;
+  if (onFloats) {
+    const lifted = new THREE.Group();
+    lifted.name = 'cub-on-floats';
+    lifted.position.y = CUB_FLOAT_DZ;
+    while (group.children.length) {
+      lifted.add(group.children[0]);
+    }
+    group.add(lifted);
+    const mounts = { front: [-0.050, st(0.148)], rear: [-0.052, st(0.238)] };
+    floatSet = buildFloatSet({
+      f: CUB_FLOATS,
+      struts: CUB_FLOATS.struts,
+      roots: (sign, which) => new THREE.Vector3(sign * 0.040, mounts[which][0] + CUB_FLOAT_DZ, mounts[which][1]),
+      rudder: CUB_FLOATS.rudder,
+      mats: { hull: cel({ color: 0xf2f1ec, rim: 0.28, spec: 0.22, specWidth: 0.014 }), stripe: black, trim: black, metal },
+      stripe: false,
+      lite,
+      shade,
+    });
+    group.add(floatSet.group);
+  }
+  const setAll = (leftRad, rightRad, elevRad = 0, rudRad = 0) => {
+    setSurfaces(leftRad, rightRad, elevRad, rudRad);
+    if (floatSet) {
+      floatSet.setRudder(rudRad);
+    }
+  };
+  setAll(0, 0, 0, 0);
 
   return {
     group,
@@ -1171,6 +1241,6 @@ export function buildCubCraft(opts = {}) {
     cameraMount,
     stator,
     propSpin: CUB_PROP_SPIN,
-    setSurfaces,
+    setSurfaces: setAll,
   };
 }

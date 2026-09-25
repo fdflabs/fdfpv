@@ -263,12 +263,17 @@ export const OFFERED_TUNES = TUNES.filter((t) => t.airframe != null);
  * the whoop changing plants: an airframe is offered the tunes written for the
  * plant it selects. A tune with a null airframe is offered to nobody, which
  * is the retirement above.
+ *
+ * An aircraft on floats is its own plant, since the floats change its mass
+ * and its air, but its stabiliser is the wheeled aircraft's to the gain, so
+ * it names that aircraft in `tunesOf` and flies its tunes.
  */
 export function tunesFor(airframeId) {
-  const want = AIRFRAMES.find((a) => a.id === airframeId);
-  if (!want) {
+  const seated = AIRFRAMES.find((a) => a.id === airframeId);
+  if (!seated) {
     return [];
   }
+  const want = seated.tunesOf ? AIRFRAMES.find((a) => a.id === seated.tunesOf) : seated;
   return TUNES.filter((t) => {
     const owner = t.airframe && AIRFRAMES.find((a) => a.id === t.airframe);
     return Boolean(owner) && owner.simId === want.simId;

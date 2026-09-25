@@ -58,4 +58,22 @@ double sim_cos_small(double x);
 double sim_atan(double x);
 double sim_atan2(double y, double x);
 
+/*
+ * sin and cos at any angle up to 1e6 rad, for the wave field, whose phase
+ * is a wavenumber times a distance less a frequency times the sim clock.
+ * The angle is brought to within pi/4 of a multiple of pi/2 by Cody and
+ * Waite's reduction, pi/2 held as a 33 bit head and a tail so the head
+ * times the multiple is exact for every multiple under 2^20, and then the
+ * odd and even Taylor series to x^17 and x^18, whose truncation is under
+ * 1e-17 at pi/4. The multiple is rounded by a truncating cast of x times
+ * 2/pi plus or minus a half, one wasm instruction. Every step is an exact
+ * IEEE operation, so the result is the same on every host, and a JS
+ * mirror doing the same operations in the same order is bit identical
+ * (src/game/waves.js). Past 1e6 rad the reduction loses digits it cannot
+ * afford and the answer is 0, which the wave field never asks for: its
+ * phases stay under 1e6 for more than a day of sim clock.
+ */
+double sim_sin(double x);
+double sim_cos(double x);
+
 #endif /* SIM_MATH_H */

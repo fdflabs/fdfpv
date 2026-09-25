@@ -58,6 +58,15 @@
  * setFlaps(rad): both flaps, positive trailing edge down, as
  * sim_wing_flaps reports them.
  *
+ * ON FLOATS, opts.floats: the E-flite float set the Evolution ships with,
+ * in place of the main gear, docs/FLOATS-STAGE1.md. The floats hang the
+ * CG 26.6 mm lower, and the craft frame's origin is the CG, so everything
+ * above is drawn that much higher in the group and the float set, from
+ * src/render/floatset.js, is drawn in the new frame; TIMBER_FLOATS is its
+ * geometry, the plant's (src/native/plant.c, SIM_AIRFRAME_TIMBER1500F),
+ * and TIMBER_FLOAT_DIMS the drawn machine's reach. The water rudders turn
+ * with setSurfaces' rudder.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -78,6 +87,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
+import { buildFloatSet } from './floatset.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -770,6 +780,29 @@ export const TIMBER_DIMS = {
 };
 
 /*
+ * THE FLOATS, body frame of the aircraft on them (x forward, y left, z up,
+ * the CG with the floats on at the origin), the plant's numbers exactly:
+ * src/native/plant.c SIM_AIRFRAME_TIMBER1500F, docs/FLOATS-STAGE1.md. The
+ * struts leave the decks at `front` and `rear` for the belly where the
+ * main gear's legs were and under the cabin.
+ */
+export const TIMBER_FLOAT_DZ = 0.0266;
+export const TIMBER_FLOATS = {
+  y: 0.18, xBow: 0.33, xKnee: 0.14, xStep: -0.05, xStern: -0.39,
+  zKeel: -0.2484, bowRise: 0.060, stepH: 0.010, aftSlope: 0.1405,
+  depth: 0.075, beam: 0.085, tanDr: 0.26795,
+  rudder: { x: -0.38, chord: 0.035, span: 0.05 },
+  struts: { front: 0.12, rear: -0.02 },
+};
+/* The drawn machine on its floats: the keels are its lowest point and the
+ * fin's top is the CG's drop higher; the tip still reaches furthest. */
+export const TIMBER_FLOAT_DIMS = {
+  vHalfDown: -TIMBER_FLOATS.zKeel,
+  vHalfUp: TAIL_TOP + TIMBER_FLOAT_DZ,
+  rest: { pitch: (2.52 * Math.PI) / 180, pitchDeg: 2.52, cgHeight: 0.2074 },
+};
+
+/*
  * The camera mount: the FPV camera on top of the cowl, just ahead of the
  * windscreen, looking over the nose through the prop. 205 mm ahead of the
  * CG and 49 mm above it.
@@ -777,6 +810,7 @@ export const TIMBER_DIMS = {
 const CAM_S = 0.120;
 export const TIMBER_MOUNT_FORWARD = -st(CAM_S);
 export const TIMBER_MOUNT_UP = fuseAt(CAM_S).yc + fuseAt(CAM_S).h + 0.011;
+export const TIMBER_FLOAT_MOUNT_UP = TIMBER_MOUNT_UP + TIMBER_FLOAT_DZ;
 
 /*
  * A tractor turning clockwise seen from the cockpit. The prop mount turns
@@ -788,6 +822,7 @@ export const TIMBER_PROP_SPIN = [1, 0, 0, 0];
 export function buildTimberCraft(opts = {}) {
   const fog = opts.fog !== false;
   const lite = Boolean(opts.lite);
+  const onFloats = Boolean(opts.floats);
   const inkOn = !lite;
   const shade = !lite;
   const cel = (o) => celMaterial({ fog, cloudShadow: 0, ...o });
@@ -953,8 +988,9 @@ export function buildTimberCraft(opts = {}) {
    * The tyres, one draw: fat foam tundra tyres, a torus whose outermost
    * ring has a vertex straight under the axle (tubular segments a multiple
    * of four), so the lowest vertex is the axle less the radius, exactly.
+   * Not on floats, which take the main gear's place.
    */
-  {
+  if (!onFloats) {
     const parts = [];
     const tube = MAIN_W / 2;
     for (const sign of [-1, 1]) {
@@ -983,24 +1019,28 @@ export function buildTimberCraft(opts = {}) {
     for (const sign of [-1, 1]) {
       const root = new THREE.Vector3(sign * 0.040, -0.066, st(0.240));
       const axle = new THREE.Vector3(sign * (MAIN_X - MAIN_W / 2 - 0.004), MAIN_Y, st(MAIN_S));
-      parts.push(rod(root, axle, 0.0075, rodSeg, 2.4));
-      const hub = new THREE.CylinderGeometry(0.016, 0.016, MAIN_W + 0.003, seg);
-      hub.rotateZ(Math.PI / 2);
-      hub.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
-      parts.push(hub);
-      /* The bungee: from the leg's middle to the block under the belly. */
-      const mid = new THREE.Vector3().lerpVectors(root, axle, 0.55);
-      const block = new THREE.Vector3(0, -0.105, st(0.250));
-      parts.push(rod(new THREE.Vector3().lerpVectors(mid, block, 0.15), new THREE.Vector3().lerpVectors(mid, block, 0.55), 0.0040, rodSeg));
-      parts.push(rod(mid, block, 0.0008, 3));
-      parts.push(rod(block, new THREE.Vector3(sign * 0.030, -0.069, st(0.250)), 0.0008, 3));
+      if (!onFloats) {
+        parts.push(rod(root, axle, 0.0075, rodSeg, 2.4));
+        const hub = new THREE.CylinderGeometry(0.016, 0.016, MAIN_W + 0.003, seg);
+        hub.rotateZ(Math.PI / 2);
+        hub.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
+        parts.push(hub);
+        /* The bungee: from the leg's middle to the block under the belly. */
+        const mid = new THREE.Vector3().lerpVectors(root, axle, 0.55);
+        const block = new THREE.Vector3(0, -0.105, st(0.250));
+        parts.push(rod(new THREE.Vector3().lerpVectors(mid, block, 0.15), new THREE.Vector3().lerpVectors(mid, block, 0.55), 0.0040, rodSeg));
+        parts.push(rod(mid, block, 0.0008, 3));
+        parts.push(rod(block, new THREE.Vector3(sign * 0.030, -0.069, st(0.250)), 0.0008, 3));
+      }
       /* The exhaust stack: a short tube out of the cowl's side, raked aft. */
       const s0 = 0.100;
       const out = fusePoint(s0, sign * Math.PI / 2, 0.004);
       parts.push(rod(new THREE.Vector3(out.x - sign * 0.006, out.y + 0.004, st(s0)),
         new THREE.Vector3(out.x + sign * 0.006, out.y + 0.001, st(s0 + 0.060)), 0.0085, seg));
     }
-    parts.push(new THREE.BoxGeometry(0.014, 0.010, 0.012).translate(0, -0.105, st(0.250)));
+    if (!onFloats) {
+      parts.push(new THREE.BoxGeometry(0.014, 0.010, 0.012).translate(0, -0.105, st(0.250)));
+    }
     parts.push(rod(new THREE.Vector3(0, fuseAt(0.955).yc - fuseAt(0.955).h + 0.002, st(0.945)),
       new THREE.Vector3(0, TAIL_WHEEL_Y + 0.030, st(TAIL_PIVOT_S)), 0.0018, lite ? 4 : 6));
     const metalMesh = new THREE.Mesh(merged(parts), metal);
@@ -1216,7 +1256,50 @@ export function buildTimberCraft(opts = {}) {
     leftFlap.pivot.quaternion.copy(q.setFromAxisAngle(leftFlap.axis, rad));
     rightFlap.pivot.quaternion.copy(q.setFromAxisAngle(rightFlap.axis, rad));
   }
-  setSurfaces(0, 0, 0, 0);
+
+  /*
+   * On floats: everything drawn so far is the aircraft about its own CG,
+   * and the floats lower the CG TIMBER_FLOAT_DZ, so it all goes up that
+   * much in a group of its own and the float set is drawn in the new frame
+   * under it, the struts to the belly where the gear's legs were and under
+   * the cabin.
+   */
+  let floatSet = null;
+  if (onFloats) {
+    const lifted = new THREE.Group();
+    lifted.name = 'timber-on-floats';
+    lifted.position.y = TIMBER_FLOAT_DZ;
+    while (group.children.length) {
+      lifted.add(group.children[0]);
+    }
+    group.add(lifted);
+    const f = TIMBER_FLOATS;
+    const belly = (x) => {
+      const at = fuseAt(CG_S - x);
+      return at.yc - at.h + 0.004 + TIMBER_FLOAT_DZ;
+    };
+    floatSet = buildFloatSet({
+      f,
+      struts: f.struts,
+      roots: (sign, which) => {
+        const x = f.struts[which];
+        return new THREE.Vector3(sign * 0.036, belly(x), -x);
+      },
+      rudder: f.rudder,
+      mats: { hull: white, stripe: red, trim: black, metal },
+      stripe: true,
+      lite,
+      shade,
+    });
+    group.add(floatSet.group);
+  }
+  const setAll = (leftRad, rightRad, elevRad = 0, rudRad = 0) => {
+    setSurfaces(leftRad, rightRad, elevRad, rudRad);
+    if (floatSet) {
+      floatSet.setRudder(rudRad);
+    }
+  };
+  setAll(0, 0, 0, 0);
   setFlaps(0);
 
   return {
@@ -1227,7 +1310,7 @@ export function buildTimberCraft(opts = {}) {
     cameraMount,
     stator,
     propSpin: TIMBER_PROP_SPIN,
-    setSurfaces,
+    setSurfaces: setAll,
     setFlaps,
   };
 }

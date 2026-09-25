@@ -900,3 +900,129 @@ export function recordTimberFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * THE FLOATS, docs/FLOATS-STAGE1.md: the Timber and the Cub on floats,
+ * airframes 9 and 10, on a body of water declared everywhere at z = 0 with
+ * no ground under it. REST is each one's pose floating on still water, from
+ * scripts/floats-derive.js's hydrostatics: the CG's height over the water
+ * and the trim, nose up. The prelude clears the water, declares it, with a
+ * swell or a wind if asked, and puts the aircraft there; no steps. Water is
+ * kept across a reset, so a prelude declares it every time.
+ */
+export const TIMBERF_AIRFRAME = 9;
+export const CUBF_AIRFRAME = 10;
+export const FLOAT_REST = {
+  [TIMBERF_AIRFRAME]: { z: 0.2074, pitchDeg: 2.52 },
+  [CUBF_AIRFRAME]: { z: 0.1765, pitchDeg: 0.64 },
+};
+export function floatsWaterPrelude(sim, airframe, { flaps = 0, swell = null, wind = null } = {}) {
+  must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  if (airframe === TIMBERF_AIRFRAME) {
+    must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  }
+  must(sim.e.sim_set_ground(0, 0, 0, 1, 0, 0, 0, 0, 0), 'sim_set_ground');
+  must(sim.e.sim_water_clear(), 'sim_water_clear');
+  const body = sim.e.sim_water_add(0, 0, 0);
+  if (body < 0) {
+    throw new Error(`sim_water_add: ${body}`);
+  }
+  if (swell) {
+    must(sim.e.sim_water_swell(body, swell.height, swell.period, swell.dx, swell.dy), 'sim_water_swell');
+  }
+  if (wind) {
+    must(sim.e.sim_water_wind(body, wind.speed, wind.dx, wind.dy, wind.fetch), 'sim_water_wind');
+  }
+  const rest = FLOAT_REST[airframe];
+  const h = rest.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, rest.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/* What the floats did on the last step, sim_float_state's ten numbers. */
+export function floatState(sim) {
+  if (!sim.floatPtr) {
+    sim.floatPtr = sim.e.malloc(10 * 8);
+  }
+  must(sim.e.sim_float_state(sim.floatPtr), 'sim_float_state');
+  return Array.from(new Float64Array(sim.e.memory.buffer, sim.floatPtr, 10));
+}
+
+/*
+ * The take off off the water as the manual flies it: full throttle, the
+ * stick held back to bring the floats onto the step, relaxed once they are
+ * on it to hold stepDeg while the speed builds, and back again, all the
+ * way, to rotate at vRotate, so the aircraft takes the attitude full up
+ * elevator holds; the wings held level on the ailerons, the rudder
+ * centred. `onStep` is the pilot's own judgement, the floats carrying
+ * under a quarter of the weight on their buoyancy, which the caller
+ * passes in; once on the step the pilot does not go back.
+ */
+export function floatTakeoffSticks(s, { onStep, vRotate, stepDeg = 4 }) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
+  if (!onStep || v >= vRotate) {
+    return [roll, 1, 0, 1];
+  }
+  const pitchStick = Math.max(-1, Math.min(1, 10 * (stepDeg * Math.PI / 180 - pitch) - 0.5 * -s[12]));
+  return [roll, pitchStick, 0, 1];
+}
+
+/*
+ * The Timber on floats' recording for the cross-host check, half flaps,
+ * the manual's take off setting, on a light swell so the wave field is in
+ * the hashed trace: a second floating at idle, the take off above, the
+ * climb, level flight at 65 percent with a held bank, a descent on the
+ * half flaps it took off with (a recording carries sticks and nothing
+ * else, so the flaps cannot move in it) and a landing held off nose up
+ * back on the water, and a taxi with full right rudder. Thirty seconds.
+ */
+export const TIMBERF_SWELL = { height: 0.1, period: 2.0, dx: 0.6, dy: 0.8 };
+export const timberFloatRecPrelude = (sim) => floatsWaterPrelude(sim, TIMBERF_AIRFRAME, { flaps: 1, swell: TIMBERF_SWELL });
+export function recordTimberFloatFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  timberFloatRecPrelude(sim);
+  const samples = [];
+  let onStep = false;
+  let trim = 0;
+  for (let ms = 0; ms < 30000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const hold = (b) => Math.max(-1, Math.min(1, -1.2 * (bank - b) - 0.12 * s[11]));
+    const levelPitch = () => {
+      trim += 0.00002 * (0 - s[6]);
+      trim = Math.max(-0.2, Math.min(0.2, trim));
+      const pitchT = Math.max(-0.2, Math.min(0.15, 0.05 * (0 - s[6]) + trim));
+      return Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) + 0.25 * s[12]));
+    };
+    const toPitch = (deg) => Math.max(-1, Math.min(1, 3 * (deg * Math.PI / 180 - pitch) + 0.3 * s[12]));
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 6000) {
+      if (!onStep) {
+        onStep = floatState(sim)[0] < 0.25 * 1.934 * 9.81 && ms > 1200;
+      }
+      if (s[3] > 6) {
+        sticks = [hold(0), levelPitch(), 0, 0.65];
+      } else if (s[3] > 1.5) {
+        sticks = [hold(0), toPitch(10), 0, 1];
+      } else {
+        sticks = floatTakeoffSticks(s, { onStep, vRotate: 7.6 });
+      }
+    } else if (ms < 12000) {
+      sticks = [hold(ms >= 7500 && ms < 10000 ? 0.5 : 0), levelPitch(), 0, 0.65];
+    } else if (ms < 26000) {
+      const air = s[3] > 0.45;
+      sticks = air ? [hold(0), toPitch(s[3] > 1.0 ? -6 : 7), 0, s[3] > 1.0 ? 0.15 : 0] : [hold(0), 1, 0, 0];
+    } else {
+      sticks = [0, 0.5, 1, 0.3];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}

@@ -1,5 +1,5 @@
 /*
- * sim_math.c: deterministic small-angle trig for the integrator.
+ * sim_math.c: deterministic trig for the integrator and the wave field.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -85,4 +85,71 @@ double sim_atan2(double y, double x) {
     return -SIM_PI_2;
   }
   return 0.0;
+}
+
+/* pi/2 as fdlibm holds it for its medium range: the first 33 bits, and
+ * the rest. 2/pi rounded to a double. */
+static const double SIM_PIO2_HI = 1.57079632673412561417e+00;
+static const double SIM_PIO2_LO = 6.07710050650619224932e-11;
+static const double SIM_INV_PIO2 = 6.36619772367581382433e-01;
+#define SIM_TRIG_MAX 1.0e6
+
+static double sin_poly(double r) {
+  const double r2 = r * r;
+  double p = 1.0 / 355687428096000.0;
+  p = p * r2 - 1.0 / 1307674368000.0;
+  p = p * r2 + 1.0 / 6227020800.0;
+  p = p * r2 - 1.0 / 39916800.0;
+  p = p * r2 + 1.0 / 362880.0;
+  p = p * r2 - 1.0 / 5040.0;
+  p = p * r2 + 1.0 / 120.0;
+  p = p * r2 - 1.0 / 6.0;
+  return r + r * r2 * p;
+}
+
+static double cos_poly(double r) {
+  const double r2 = r * r;
+  double p = 1.0 / 6402373705728000.0;
+  p = p * r2 - 1.0 / 20922789888000.0;
+  p = p * r2 + 1.0 / 87178291200.0;
+  p = p * r2 - 1.0 / 479001600.0;
+  p = p * r2 + 1.0 / 3628800.0;
+  p = p * r2 - 1.0 / 40320.0;
+  p = p * r2 + 1.0 / 720.0;
+  p = p * r2 - 1.0 / 24.0;
+  p = p * r2 + 0.5;
+  return 1.0 - r2 * p;
+}
+
+/* The quadrant and the remainder: x = k pi/2 + r, |r| <= pi/4. */
+static long long trig_reduce(double x, double *r) {
+  const double kd = x * SIM_INV_PIO2;
+  const long long k = (long long)(kd >= 0.0 ? kd + 0.5 : kd - 0.5);
+  const double kf = (double)k;
+  *r = (x - kf * SIM_PIO2_HI) - kf * SIM_PIO2_LO;
+  return k;
+}
+
+double sim_sin(double x) {
+  if (!(sim_fabs(x) <= SIM_TRIG_MAX)) {
+    return 0.0;
+  }
+  double r;
+  const long long q = trig_reduce(x, &r) & 3;
+  if (q == 0) return sin_poly(r);
+  if (q == 1) return cos_poly(r);
+  if (q == 2) return -sin_poly(r);
+  return -cos_poly(r);
+}
+
+double sim_cos(double x) {
+  if (!(sim_fabs(x) <= SIM_TRIG_MAX)) {
+    return 0.0;
+  }
+  double r;
+  const long long q = trig_reduce(x, &r) & 3;
+  if (q == 0) return cos_poly(r);
+  if (q == 1) return -sin_poly(r);
+  if (q == 2) return -cos_poly(r);
+  return sin_poly(r);
 }

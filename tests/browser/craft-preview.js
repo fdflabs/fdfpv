@@ -25,14 +25,26 @@
 import * as THREE from 'three';
 import { buildComposer } from '../../src/render/post.js';
 import { buildSkyCraft, SKY_DIMS } from '../../src/render/skycraft.js';
-import { buildCubCraft, CUB_DIMS } from '../../src/render/cubcraft.js';
+import { buildCubCraft, CUB_DIMS, CUB_FLOATS, CUB_FLOAT_DIMS } from '../../src/render/cubcraft.js';
 import { buildGliderCraft, GLIDER_DIMS } from '../../src/render/glidercraft.js';
 import { buildBramorCraft, BRAMOR_DIMS } from '../../src/render/bramorcraft.js';
 import { buildSlowStickCraft, SLOWSTICK_DIMS } from '../../src/render/slowstickcraft.js';
-import { buildTimberCraft, TIMBER_DIMS } from '../../src/render/timbercraft.js';
+import { buildTimberCraft, TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS } from '../../src/render/timbercraft.js';
 
-const BUILDERS = { sky: buildSkyCraft, cub: buildCubCraft, glider: buildGliderCraft, bramor: buildBramorCraft, stick: buildSlowStickCraft, timber: buildTimberCraft };
-const DIMS = { sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS };
+/* On floats, the float variants: the same aircraft, its reach down and up
+ * and its rest the floats', its nose the floats' bows where they reach
+ * past the spinner, and the "ground" the preview draws is the water. */
+const onFloats = (dims, floats, fd) => ({ ...dims, ...fd, noseZ: Math.min(dims.noseZ, -floats.xBow) });
+const BUILDERS = {
+  sky: buildSkyCraft, cub: buildCubCraft, glider: buildGliderCraft, bramor: buildBramorCraft, stick: buildSlowStickCraft, timber: buildTimberCraft,
+  timberf: (o) => buildTimberCraft({ ...o, floats: true }),
+  cubf: (o) => buildCubCraft({ ...o, floats: true }),
+};
+const DIMS = {
+  sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS,
+  timberf: onFloats(TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS),
+  cubf: onFloats(CUB_DIMS, CUB_FLOATS, CUB_FLOAT_DIMS),
+};
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
 const lite = params.get('lite') === '1';

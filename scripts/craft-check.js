@@ -96,6 +96,9 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             E-flite's, and the reach is the drooped tip's trailing
  *             corner, 0.778 m out and 0.180 m aft of the CG.
  *             src/render/timbercraft.js draws it.
+ *   timber1500f, cub1400f  the same two on their floats: the span and the
+ *             reach are the wings', since the floats stay well inside
+ *             them. src/render/floatset.js draws the floats.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -112,6 +115,8 @@ const REAL = {
   bramor2300: { spanMm: 2300.0, sweepMm: 2551.0, tolMm: 6 },
   slowstick1180: { spanMm: 1264.0, sweepMm: 1278.1, tolMm: 6 },
   timber1500: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
+  timber1500f: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
+  cub1400f: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

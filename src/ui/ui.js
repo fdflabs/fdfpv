@@ -2803,7 +2803,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f'],
     mode: 'freestyle',
     /* The wing's own world. A card with a home skips the picker: the
      * airfield was built for these aircraft and the town was not. The
@@ -2812,8 +2812,8 @@ const WAYS = [
     home: 'airfield',
     label: str('ui.fixed_wing'),
     art: 'assets/gate/freestyle.jpg',
-    blurb: str('ui.six_fixed_wings'),
-    facts: [str('ui.six_planes'), str('ui.the_airfield')],
+    blurb: str('ui.eight_fixed_wings'),
+    facts: [str('ui.eight_planes'), str('ui.the_airfield')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 

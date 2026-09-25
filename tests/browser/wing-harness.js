@@ -7,8 +7,9 @@
  * ?plane=cub the Cub's, from standing on its wheels, ?plane=glider the
  * Radian's, thrown at 80 m short of a thermal, ?plane=slowstick the
  * Slow Stick's, from standing on its wheels, and ?plane=timber the
- * Timber's, from standing on its wheels with half flaps; with no query it
- * is the wing's, exactly as it always was.
+ * Timber's, from standing on its wheels with half flaps, and
+ * ?plane=timberf the Timber on floats', floating on a light swell; with
+ * no query it is the wing's, exactly as it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -31,7 +32,7 @@ import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
   bramorChutePrelude, bramorPrelude, cubGroundPrelude, gliderRecPrelude, skyPrelude, slowstickGroundPrelude,
-  timberRecPrelude, wingPrelude,
+  timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
 
 const PLANES = {
@@ -43,6 +44,7 @@ const PLANES = {
   'bramor-chute': { rec: '/tests/inputs/bramor-chute.rec', prelude: bramorChutePrelude },
   slowstick: { rec: '/tests/inputs/slowstick-baseline.rec', prelude: (sim) => slowstickGroundPrelude(sim) },
   timber: { rec: '/tests/inputs/timber-baseline.rec', prelude: timberRecPrelude },
+  timberf: { rec: '/tests/inputs/timberf-baseline.rec', prelude: timberFloatRecPrelude },
 };
 
 async function fetchBytes(url) {

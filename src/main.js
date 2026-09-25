@@ -96,11 +96,11 @@ import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
-import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP } from './render/cubcraft.js';
+import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
 import { BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP } from './render/bramorcraft.js';
 import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickcraft.js';
-import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP } from './render/timbercraft.js';
+import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP } from './render/timbercraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
  * in the craft frame, from the module that draws it. A quad's comes from
@@ -112,6 +112,9 @@ const WING_MOUNTS = {
   bramor2300: [BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP],
   slowstick1180: [SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
+  /* On floats the CG is lower, so the camera stands higher over it. */
+  timber1500f: [TIMBER_MOUNT_FORWARD, TIMBER_FLOAT_MOUNT_UP],
+  cub1400f: [CUB_MOUNT_FORWARD, CUB_FLOAT_MOUNT_UP],
 };
 import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
@@ -121,6 +124,7 @@ import { GATE_SCALE } from './game/track.js';
 import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { str } from './strings/index.js';
+import { insideWater, waterFor } from './game/water.js';
 
 /*
  * The module's bytes, resolved against this file rather than the site root.
@@ -177,10 +181,12 @@ let SPAWN_ALT = 0.045;
  * all agree about where the ground holds the craft. */
 let REST_HEIGHT = 0.045;
 /* One seat for both, so they cannot drift apart. An aircraft on wheels
- * rests where its gear holds it, not on its lowest drawn point. */
-function seatRestHeight(af) {
+ * rests where its gear holds it, not on its lowest drawn point; one on
+ * floats rests where they float it when it starts on water. */
+function seatRestHeight(af, onWater = false) {
   const dims = af && af.dims;
-  const h = af && af.gear ? af.gear.restHeight
+  const h = onWater && af.floats ? af.floats.restHeight
+    : af && af.gear ? af.gear.restHeight
     : dims && Number.isFinite(dims.vHalfDown) ? dims.vHalfDown : 0.045;
   SPAWN_ALT = h;
   REST_HEIGHT = h;
@@ -458,6 +464,8 @@ async function loadMap(shell, id, loading, options) {
   await yieldToPaint();
   const map = await mod.buildMap(shell, (f) => loading.progress('world', f), options);
   map.graphics = normalizeGraphics(options && options.quality);
+  /* The map's water, as the plant is told it: src/game/water.js. */
+  map.water = await waterFor(id);
   loading.done('world');
   return map;
 }
@@ -1094,16 +1102,85 @@ export async function boot({ loading, bootStart, mapId }) {
     return u < -1 ? -1 : u;
   }
 
+  /*
+   * AN AIRCRAFT ON FLOATS ON A MAP WITH WATER starts afloat on it, at the
+   * water's own spawn, and rests at its floats' height; anywhere else it is
+   * on the strip on its keels. Everything that asks where the craft rests
+   * asks restPose().
+   */
+  function floatsOnWater() {
+    return Boolean(airframeById(runAirframe).floats && view && view.water && view.water.length);
+  }
+  function restPose() {
+    const af = airframeById(runAirframe);
+    if (floatsOnWater()) {
+      return af.floats;
+    }
+    return af.gear || null;
+  }
+  /* The water body under a map point, or null. */
+  function waterAt(x, z) {
+    return (view && view.water || []).find((b) => insideWater(b, x, z)) || null;
+  }
+  /*
+   * WHERE THE PLANT'S GROUND GOES under an aircraft on floats over water:
+   * the lake's bed, since view.height answers the surface there so that
+   * everything else rests on the water as it always has, and the floats
+   * float on the water the plant was told of instead. Everything else,
+   * and the floats anywhere but over water, gets view.height itself.
+   */
+  function floorHeight(x, z, fromY) {
+    const h = view.height(x, z, fromY);
+    if (!airframeById(runAirframe).floats) {
+      return h;
+    }
+    const w = waterAt(x, z);
+    if (!w || h > w.surfaceY + 1e-6) {
+      return h;
+    }
+    return Math.min(h, w.bed(x, z));
+  }
+  /*
+   * Tell the plant the map's water, in its own frame, which is the spawn's:
+   * so at every reset, since a reset can move the spawn. The surface, the
+   * outline and the waves' origin go through worldPosToSim like the ground
+   * plane's point, the wind's direction through worldDirToSim like its
+   * normal. A map without water clears whatever the last one declared.
+   */
+  const waterSim = { x: 0, y: 0, z: 0 };
+  function declareWater() {
+    if (typeof sim.e.sim_water_clear !== 'function') {
+      return;
+    }
+    sim.e.sim_water_clear();
+    for (const w of (view && view.water) || []) {
+      worldPosToSim(w.centre.x, w.surfaceY, w.centre.z, waterSim);
+      const body = sim.e.sim_water_add(waterSim.z, waterSim.x, waterSim.y);
+      if (body < 0) {
+        continue;
+      }
+      for (const p of w.outline) {
+        worldPosToSim(p.x, w.surfaceY, p.z, waterSim);
+        sim.e.sim_water_vertex(body, waterSim.x, waterSim.y);
+      }
+      worldDirToSim(w.wind.toX, 0, w.wind.toZ, waterSim);
+      const n = Math.hypot(waterSim.x, waterSim.y);
+      sim.e.sim_water_wind(body, w.wind.speed, waterSim.x / n, waterSim.y / n, w.wind.fetch);
+    }
+  }
+
   function adoptSpawn() {
-    startX = view.spawn.x;
-    startZ = view.spawn.z;
-    startYaw = view.spawn.yaw;
-    startPitch = view.spawn.pitch || 0;
+    seatRestHeight(airframeById(runAirframe), floatsOnWater());
+    const sp = floatsOnWater() ? view.water[0].spawn : view.spawn;
+    startX = sp.x;
+    startZ = sp.z;
+    startYaw = sp.yaw;
+    startPitch = sp.pitch || 0;
     /* Terrain here is not at y = 0. Spawning without its height puts the
      * craft underground, looking up at the lit underside of the terrain.
      * spawn.y is a fromY hint so a deck spawn is not the grass under it. */
-    startY = view.spawn.y != null
-      ? view.height(startX, startZ, view.spawn.y)
+    startY = sp.y != null
+      ? view.height(startX, startZ, sp.y)
       : groundAt(startX, startZ);
     qSpawn.setFromAxisAngle(AXIS_Y, startYaw);
     qSpawnInv.copy(qSpawn).invert();
@@ -2005,7 +2082,7 @@ export async function boot({ loading, bootStart, mapId }) {
    * that parks a craft again.
    */
   function releaseOnWheels() {
-    const gear = airframeById(runAirframe).gear;
+    const gear = restPose();
     const stNow = readState();
     if (!gear || !stNow) {
       return false;
@@ -2509,6 +2586,8 @@ export async function boot({ loading, bootStart, mapId }) {
   /* Which aircraft the Settings studio last built, so it is rebuilt when
    * the aircraft changes rather than posing the old one. */
   let showcaseCraft = '5inch';
+  /* Ten doubles for sim_float_state, for the harness's reading, taken once. */
+  let floatStatePtr = 0;
   /* Four doubles in the module's heap for sim_plane_surfaces, taken once. */
   let wingSurfPtr = 0;
   /* What the module was last told about the wing's stabiliser. */
@@ -3229,6 +3308,7 @@ export async function boot({ loading, bootStart, mapId }) {
     }
     sim.reset();
     sim.setCellVoltage(runVoltage);
+    declareWater();
     /*
      * THE LAP CLOCK IS NOT TOUCHED, and the two clocks being separate
      * variables is what makes that possible. simStepIdx mirrors the module's
@@ -3976,7 +4056,7 @@ export async function boot({ loading, bootStart, mapId }) {
     /* Where this aircraft's centre sits when it is parked, which is where
      * the shell puts the ground plane, the spawn and the landed test. See
      * SPAWN_ALT at the top of this file. */
-    seatRestHeight(airframeById(runAirframe));
+    seatRestHeight(airframeById(runAirframe), floatsOnWater());
     if (typeof shell.swapCraft === 'function') {
       shell.swapCraft(runAirframe);
     }
@@ -5539,14 +5619,14 @@ export async function boot({ loading, bootStart, mapId }) {
    */
   function sampleGroundNormal(wx, wz, fromY, out) {
     const eps = 0.35;
-    const h0 = view.height(wx, wz, fromY);
+    const h0 = floorHeight(wx, wz, fromY);
     const nx = limitSlope(
-      h0 - view.height(wx + eps, wz, fromY),
-      view.height(wx - eps, wz, fromY) - h0,
+      h0 - floorHeight(wx + eps, wz, fromY),
+      floorHeight(wx - eps, wz, fromY) - h0,
     );
     const nz = limitSlope(
-      h0 - view.height(wx, wz + eps, fromY),
-      view.height(wx, wz - eps, fromY) - h0,
+      h0 - floorHeight(wx, wz + eps, fromY),
+      floorHeight(wx, wz - eps, fromY) - h0,
     );
     const ny = eps;
     const n2 = nx * nx + ny * ny + nz * nz;
@@ -5566,7 +5646,7 @@ export async function boot({ loading, bootStart, mapId }) {
 
   function raiseGroundFromState(st) {
     poseFromState(st, pProbe);
-    const hy = view.height(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
+    const hy = floorHeight(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
     worldPosToSim(pProbe.x, hy, pProbe.z, pSim);
     /*
      * The plane's POINT goes through worldPosToSim, which undoes the spawn
@@ -6439,7 +6519,11 @@ export async function boot({ loading, bootStart, mapId }) {
 
     if (mode === 'flight' && landed && !crashed) {
       const thr = samples.length ? samples[samples.length - 1].throttle : input.channels.throttle;
-      if (landed && thr > TAKEOFF_THROTTLE) {
+      /* Afloat, an aircraft on floats is never parked: water moves, so it
+       * is let go onto the water at once and rocks there. */
+      if (landed && floatsOnWater()) {
+        releaseOnWheels();
+      } else if (landed && thr > TAKEOFF_THROTTLE) {
         if (airframeById(runAirframe).gear) {
           /* On wheels, throttle up is the takeoff roll. */
           releaseOnWheels();
@@ -6910,7 +6994,7 @@ export async function boot({ loading, bootStart, mapId }) {
       }
       /* A plane on its gear parks tail down, nose up, as it will stand
        * the moment throttle lets it go. */
-      const parkedGear = airframeById(runAirframe).gear;
+      const parkedGear = restPose();
       if (parkedGear) {
         qPad.setFromAxisAngle(AXIS_X, parkedGear.restPitch);
         qPrev.multiply(qPad);
@@ -8017,7 +8101,9 @@ export async function boot({ loading, bootStart, mapId }) {
        */
       /* A wing has no throttle to take off on: L throws it. */
       const isWing = Boolean(airframeById(runAirframe).fixedWing);
-      const start = airframeById(runAirframe).flaps
+      const start = floatsOnWater()
+        ? str('main.throttle_up_on_the_water')
+        : airframeById(runAirframe).flaps
         ? str('main.throttle_up_flaps_f')
         : airframeById(runAirframe).gear
         ? str('main.throttle_up_to_take_off_from')
@@ -8757,6 +8843,19 @@ export async function boot({ loading, bootStart, mapId }) {
       ? Math.sqrt(stateCurr[4] * stateCurr[4] + stateCurr[5] * stateCurr[5]
         + stateCurr[6] * stateCurr[6])
       : 0,
+    /* An aircraft on floats: what the water did on the last step, the ten
+     * numbers of sim_float_state (buoyancy, planing force, drag, volume,
+     * the two wetted lengths, the keels' load on land, the water rudders,
+     * the wave drag, the water body), and whether it started afloat. */
+    floats: airframeById(runAirframe).floats && typeof sim.e.sim_float_state === 'function'
+      ? (() => {
+        if (!floatStatePtr) {
+          floatStatePtr = sim.e.malloc(10 * 8);
+        }
+        sim.e.sim_float_state(floatStatePtr);
+        return { state: Array.from(new Float64Array(sim.e.memory.buffer, floatStatePtr, 10)), onWater: floatsOnWater() };
+      })()
+      : null,
     /*
      * World velocity, so a guidance law can close a loop on where the craft
      * is GOING as well as where it is.

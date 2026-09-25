@@ -336,11 +336,12 @@ int sim_set_flight_style(int arcade);
  * Pro, a 2 m powered glider with the Cub's surfaces, a folding prop, and
  * the thermals of sim_air_lift to climb in, 8 the C-Astral Bramor
  * C4EYE, a 2.3 m blended wing body flying wing that is catapult launched
- * and recovered under a parachute, and 7 the E-flite Turbo Timber
+ * and recovered under a parachute, 7 the E-flite Turbo Timber
  * Evolution, a 1.5 m STOL taildragger with flaps and slats that stands on
- * its own wheels.
- * Returns SIM_ERR_BAD_ARG for anything else.
- * 2 to 8 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * its own wheels, and 9 and 10 the Timber and the Cub on floats
+ * (docs/FLOATS-STAGE1.md), which float on the water bodies below and slide
+ * on their keels on land. Returns SIM_ERR_BAD_ARG for anything else.
+ * 2 to 10 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -366,6 +367,8 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_RADIAN2000_ID 6
 #define SIM_AIRFRAME_TIMBER1500_ID 7
 #define SIM_AIRFRAME_BRAMOR2300_ID 8
+#define SIM_AIRFRAME_TIMBER1500F_ID 9
+#define SIM_AIRFRAME_CUB1400F_ID 10
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -436,7 +439,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2 to 6 and 8. Additive, version unchanged; each
+ * The fixed wings, airframes 2 to 10. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *
@@ -530,6 +533,63 @@ int sim_wing_set_flaps(int notch);
 double sim_wing_flaps(void);
 int sim_wing_flaps_settle(void);
 int sim_wing_set_slats(int fitted);
+
+/*
+ * WATER, src/native/water.c and docs/FLOATS-STAGE1.md. A host declares the
+ * bodies of water in its world, in the plant's frame like the ground
+ * plane, and the waves on each; an aircraft on floats floats on them and
+ * the renderer draws the same surface. Nothing is declared by default, and
+ * with nothing declared nothing reads any of it. Kept across sim_reset and
+ * sim_init; sim_water_clear removes every body. Additive, version
+ * unchanged.
+ *
+ * sim_water_add(z0, ox, oy): a body of still water at world z0, its wave
+ * phases measured from (ox, oy). Returns its index, 0 to 3, or
+ * SIM_ERR_BAD_STATE when four are declared already.
+ * sim_water_vertex(body, x, y): the next corner of its outline, world x y,
+ * up to 256; a body with fewer than three corners is water everywhere.
+ * sim_water_wind(body, speed, dx, dy, fetch): the wind over it, m/s along
+ * the unit (dx, dy) it blows toward, over fetch metres of open water: the
+ * wind sea it raises, by the SPM's fetch limited growth laws, as six
+ * linear components. 0 to 30 m/s, 0 to 1e6 m.
+ * sim_water_swell(body, height, period, dx, dy): one more component,
+ * crest to trough metres (0 to 5), period seconds (0.5 to 30), travelling
+ * along the unit (dx, dy).
+ * sim_water_sample(x, y, t, out[7]): the surface under (x, y) at sim time
+ * t: out[0] the body's index or -1, out[1] the surface's world z, out[2]
+ * and out[3] its slope along x and y, out[4..6] the water's velocity.
+ * sim_water_components(body, out[6 + 5 x 7]): the count, z0, the origin,
+ * the wind sea's significant height and peak period, then per component
+ * amplitude, kx, ky, omega and phase, which is everything a shader needs
+ * to draw the surface the plant feels: z = z0 + sum a cos(kx (x - ox) +
+ * ky (y - oy) - omega t + phase).
+ * sim_math_sin, sim_math_cos: the fixed libm's full range sin and cos,
+ * for the tests' mirror.
+ */
+int sim_water_clear(void);
+int sim_water_add(double z0, double ox, double oy);
+int sim_water_vertex(int body, double x, double y);
+int sim_water_wind(int body, double speed, double dx, double dy, double fetch);
+int sim_water_swell(int body, double height, double period, double dx, double dy);
+int sim_water_sample(double x, double y, double t, double *out);
+int sim_water_components(int body, double *out);
+
+/*
+ * sim_float_state(out[10]): what the floats of an airframe that has them
+ * did on the last step: out[0] their buoyancy, N; out[1] the rest of the
+ * water's push along the body's up axis, the planing force and the
+ * damping, N; out[2] the water's drag along the keels, N, positive
+ * holding the aircraft back; out[3] the displaced volume, m^3; out[4] and
+ * out[5] the wetted length of the left and the right float, m; out[6]
+ * the load on the keels on land, N; out[7] the water rudders' side force,
+ * N, body y; out[8] the wave making drag, N; out[9] the water body under
+ * the aircraft, or -1. All zero on an airframe without floats. While the
+ * floats are wet or on the ground the stabiliser is in Manual, as on
+ * wheels. Additive, version unchanged; SIM_ERR_BAD_ARG for a null pointer.
+ */
+int sim_float_state(double *out);
+double sim_math_sin(double x);
+double sim_math_cos(double x);
 
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);
