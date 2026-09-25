@@ -934,6 +934,19 @@ int sim_contact_at_mat(double nx, double ny, double nz, int mat,
                        double rx, double ry, double rz);
 
 /*
+ * sim_contact_part(part): the host's next sim_contact_at (or
+ * sim_contact_at_mat) is on that part of the table, at the arm it passes.
+ * With the damage mode on, the contact is then that part's, at that point
+ * held to its hull box, instead of the part the plant finds furthest
+ * toward the contact: a host whose hull is the parts' own boxes (a fixed
+ * wing in the shell) knows a pole met the wing panel, though the nose
+ * stands further forward. -1 is no part. Consumed by the next call
+ * whatever it does; with the mode off it changes nothing. Additive, a
+ * host that never calls it is the host it was.
+ */
+int sim_contact_part(int part);
+
+/*
  * OBSTACLES for the free bodies, which the shell does not track: boxes and
  * vertical cylinders, plant frame, each with a material. The craft itself
  * keeps meeting the world through the shell's sim_contact_at, as before.

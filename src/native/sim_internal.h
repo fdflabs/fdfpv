@@ -823,6 +823,8 @@ int crash_samplers(const double **pts, const int **part);
 /* The next contact is the solver's sampler k, -1 for none: it belongs to
  * that sampler's part. */
 void crash_hint_sampler(int k);
+/* The host's next contact is on part i, at its arm; -1 for none. */
+void crash_host_part(int i);
 /* The part a body frame point belongs to, for a contact there: the
  * attached part with the hull point nearest it. */
 int crash_part_at(const double b[3]);
