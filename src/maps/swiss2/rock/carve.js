@@ -41,7 +41,7 @@
 
 import { noise2, smoothstep } from '../../alps/noise.js';
 import { HALF, CELL, CELLS } from '../../alps/terrain.js';
-import { apronAt } from '../terrain.js';
+import { apronAt, inBay } from '../terrain.js';
 
 /* The most the drawn rock stands out of the ground a craft meets, and
  * the most it sinks into it, in metres along the wall's normal. */
@@ -145,8 +145,9 @@ export function carveMask(field, keep) {
       }
       const x = -HALF + (i + 0.5) * CELL;
       const z = -HALF + (j + 0.5) * CELL;
-      /* Nor the scree at a face's foot, which is loose and painted so. */
-      if (apronAt(x, z) > 0.3) {
+      /* Nor the scree at a face's foot, which is loose and painted so,
+       * nor the fall's bay (terrain.js inBay). */
+      if (apronAt(x, z) > 0.3 || inBay(x, z)) {
         continue;
       }
       const y = field.height(x, z);
