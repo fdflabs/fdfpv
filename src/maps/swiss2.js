@@ -69,7 +69,7 @@ import {
   HALF, CELL, CELLS, groundPaths, buildHeightfield,
 } from './alps/terrain.js';
 import {
-  buildSwissField, swissGroundGeometry, wallRise, apronAt,
+  buildSwissField, swissGroundGeometry, wallRise, apronAt, bayLayout,
 } from './swiss2/terrain.js';
 import {
   natureSites, buildShore, buildReeds, buildDrifts,
@@ -401,9 +401,14 @@ function photoStyle() {
         renderer: ctx.renderer,
         quality: ctx.quality,
         heightAt: ctx.heightAt,
+        /* The fall laid out on the bay's pool (swiss2/terrain.js). */
+        layout: bayLayout(valleyLayout(ctx.heightAt)),
         envMap: scene.environment,
         /* The sun at any point and its light, for the fall's mist. */
         sun: { at: stage.lit.sun, color: SUN_COLOR.clone().multiplyScalar(SUN_IRRADIANCE) },
+        /* The light injection, for the fall's pieces that join the scene
+         * after finishScene has walked it. */
+        lit: stage.lit,
       });
       scene.add(stage.water.group);
       await ctx.paint(0.56);
@@ -509,7 +514,7 @@ function photoStyle() {
        * ground the rock has moved, and never under anything already
        * standing on the ground (the paths, the stream, the fall, the
        * lift). */
-      const layout = valleyLayout(heightAt, stage.footprints);
+      const layout = bayLayout(valleyLayout(heightAt, stage.footprints));
       layout.apron = apronAt;
       const taken = occupiedCells(scene, heightAt, new Set([stage.groundMesh, far.mesh, scene.getObjectByName('sky')]));
       stage.cliffs = buildCliffs({ field, keep: (x, z) => layout.keepOff(x, z) || taken(x, z), material: stage.ground({ carved: 1 }) });

@@ -133,7 +133,7 @@ export async function buildWater(ctx) {
   }
   const mistLight = ctx.mistLight || new THREE.Color(0.62, 0.66, 0.72);
   const fall = await buildFall({
-    heightAt, layout, waves, time, wind: wind.value, envMap, group, rock: { map: cliffMap, normalMap: cliffNormal }, light: mistLight, sun: ctx.sun,
+    heightAt, layout, waves, time, wind: wind.value, envMap, group, rock: { map: cliffMap, normalMap: cliffNormal }, light: mistLight, sun: ctx.sun, lit: ctx.lit,
   });
   if (!Q.spray) {
     group.getObjectByName('swiss2-spray').visible = false;
@@ -180,6 +180,7 @@ export async function buildWater(ctx) {
   const update = (dtMs, camera) => {
     clock += Math.min(dtMs, 100) / 1000;
     time.value = clock;
+    fall.show();
     if (!mirror) {
       return;
     }

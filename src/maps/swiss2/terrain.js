@@ -59,9 +59,9 @@
  */
 
 import * as THREE from 'three';
-import { noise2, smoothstep } from '../alps/noise.js';
+import { fbm, noise2, smoothstep } from '../alps/noise.js';
 import {
-  HALF, CELL, CELLS, FLOOR_HALF, WALL_REACH, RIDGE, SIDE_Z, terrainHeight, valleyAxis,
+  HALF, CELL, CELLS, FLOOR_HALF, WALL_REACH, RIDGE, SIDE_Z, LIP_DX, LIP_RISE, POOL, terrainHeight, valleyAxis,
 } from '../alps/terrain.js';
 
 /* Fine steps per coarse cell on the walls: ten metres. */
@@ -173,8 +173,9 @@ function smax0(d, k) {
 }
 
 const P = {};
-/* What the walls add to the alps' ground at (x, z). */
-export function wallRise(x, z) {
+/* What the walls add to the alps' ground at (x, z), before the fall's
+ * bay (below) is cut. */
+function wallsRise(x, z) {
   const dx = x - valleyAxis(z);
   const east = dx > 0;
   const a = Math.abs(dx);
@@ -201,9 +202,182 @@ export function wallRise(x, z) {
   return w * smoothstep(a0, a0 + 6, a) * (1 - smoothstep(RISE_TO - 550, RISE_TO, a)) * smax0(over, k);
 }
 
+/*
+ * THE FALL'S BAY. The alps' side valley climbs from the floor up a
+ * trough to a pool 190 m up and a lip 70 m over it, and the fall off
+ * that lip was 70 m tall between walls that stand 300. The Staubbach
+ * falls three hundred metres off the rim of a sheer face to the valley
+ * floor. So here the trough's lower part is gone: the floor runs on into
+ * the east wall as a bay, flat but for the fan the stream has spread and
+ * the talus under its faces, to a headwall standing where the alps' lip
+ * stood; the hanging valley behind it is the alps' own, lifted where the
+ * lip was so it runs level out to the rim, and the bay's sides are steep
+ * slopes that sweep out to meet the main walls' faces. The rim follows
+ * nature.js's face line (vegetation/zones.js faceDx, restated), so the
+ * fall's layout, its lip, its ledge and its stream above it stand where
+ * they always stood; only the pool comes down, to the floor at the foot.
+ *
+ * It is a change on the east wall within BAY.to metres of SIDE_Z and
+ * nowhere else: past that the walls are exactly what wallsRise makes.
+ * The fixed waterfall view's camera (scripts/swiss2-views.js) stands in
+ * the bay, a hundred and fifty metres off the fall's line, as it stood
+ * in the trough.
+ */
+const FALL_Z = SIDE_Z + 10 * smoothstep(700, 1000, POOL.dx + POOL.r) + 6 * Math.sin((POOL.dx + POOL.r) / 60);
+const BACK_DX = LIP_DX + 30;
+export const BAY = {
+  /* The headwall is straight for `half` metres either side of the fall
+   * and its ends sweep out to the main walls' feet by `open`. */
+  half: 130,
+  open: 420,
+  /* How far across the ground the faces fall, rim to toe, and how much
+   * further half way along the sweep. A face as sheer as the headwall
+   * running across the valley at a slant is drawn by the ten metre grid
+   * as a stair of pillars, one a cell; the bay's sides are the steep
+   * rock slopes of a glacial trough's end instead, sheer again where
+   * they meet the main walls. */
+  face: 14,
+  side: 170,
+  /* The ground behind the rim, lifted by this much at the rim and
+   * nothing `back` metres behind it. */
+  lift: 24,
+  back: 320,
+  /* The band of z it is eased back to the walls over. */
+  from: 400,
+  to: 480,
+};
+
+/* nature.js's face line, where the rim stands. */
+const rimDx = (z) => LIP_DX - 20 + 7 * (noise2(z / 45 + 3.3, 8.1) - 0.5) + 1;
+
+/* The alps' ground on the side valley's side of the axis with the lip's
+ * step all the way up and no pool: terrainHeight's own terms, restated,
+ * for the stretch of the valley the bay is on (no lake, no plateau). */
+function hanging(x, z) {
+  const dx = x - valleyAxis(z);
+  const across = Math.abs(dx);
+  const t = Math.exp(-Math.pow((z - SIDE_Z) / 420, 2));
+  const side = dx > LIP_DX ? t : 0;
+  const wall = smoothstep(FLOOR_HALF, WALL_REACH, across - (across - LIP_DX) * 0.65 * side);
+  let h = Math.pow(wall, 1.35) * RIDGE;
+  h += (260 * fbm(x / 900, z / 900, 4) + 90 * fbm(x / 260, z / 260, 3)) * Math.pow(wall, 0.8);
+  h -= 0.55 * h * t;
+  h += LIP_RISE * t;
+  h += (1 - wall) * (7 * fbm(x / 300, z / 300, 3) + 3);
+  return h;
+}
+
+/* How far the bay reaches into the wall at z: the rim's distance from
+ * the axis, and 0 to 1 for how far z is along its sweep. */
+function bayFace(z) {
+  const sweep = smoothstep(BAY.half, BAY.open, Math.abs(z - FALL_Z));
+  profile(z, true, P);
+  return { rim: rimDx(z) + (P.foot + BAY.face - rimDx(z)) * sweep, sweep };
+}
+
+/* The bay's floor, before the pool: the valley floor's height at the
+ * wall line, the stream's fan climbing twenty metres to the headwall,
+ * and a talus under the faces, thin under the fall itself, where the
+ * water carries it off. */
+function bayFloor(x, z, a, toe) {
+  const ax = valleyAxis(z);
+  const base = terrainHeight(ax + WALL_FROM, z);
+  const fan = 20 * Math.pow(smoothstep(WALL_FROM, toe, a), 1.4);
+  const tt = Math.max(0, 1 - (toe - a) / 60);
+  const talus = 26 * tt * tt * (0.25 + 0.75 * smoothstep(30, 110, Math.abs(z - FALL_Z)));
+  return base + fan + talus + 2.5 * (fbm(x / 70, z / 70, 2) - 0.5);
+}
+
+/* The pool at the headwall's foot, in the fan: where the veil lands. */
+export const BAY_POOL = (() => {
+  const z = POOL.z;
+  const dx = rimDx(z) - BAY.face - 36;
+  const x = valleyAxis(z) + dx;
+  return {
+    dx, x, z, r: 22, depth: 3.5, y: bayFloor(x, z, dx, rimDx(z) - BAY.face) - 1,
+  };
+})();
+
+/*
+ * The water's and the forest's layout (vegetation/zones.js valleyLayout,
+ * which lays the fall out on the alps' constants) with the pool where
+ * the bay has it, at the headwall's foot on the floor, and the torrent
+ * out of it starting in it rather than on the face above. The pool
+ * object is the one the layout's own keep off rules read, so they move
+ * with it. The alps' headwall was a band drawn over the ground with a
+ * turf ledge behind it, and the layout keeps the trees and the grass off
+ * that ledge; here the ground behind the rim is the hanging valley's
+ * own, and the forest grows out to the rim, as it does over the
+ * Staubbach, but for the stream's banks. Returns the layout.
+ */
+export function bayLayout(layout) {
+  Object.assign(layout.pool, {
+    x: BAY_POOL.x, z: BAY_POOL.z, r: BAY_POOL.r, y: BAY_POOL.y,
+  });
+  layout.belowFall = layout.belowFall.filter((p) => p.x - valleyAxis(p.z) <= BAY_POOL.dx);
+  const { keepOff, coverOff, trough, BAND } = layout;
+  const behind = (x, z) => {
+    const dx = x - valleyAxis(z);
+    return Math.abs(z - FALL_Z) < BAND && dx > rimDx(z) + 4 && dx < BACK_DX + 10;
+  };
+  layout.keepOff = (x, z) => (behind(x, z) ? Math.abs(z - trough(x - valleyAxis(z))) < 9 : keepOff(x, z));
+  layout.coverOff = (x, z) => (behind(x, z) ? false : coverOff(x, z));
+  return layout;
+}
+
+/* The ground at (x, z) as the bay makes it, given what the walls made
+ * of it (`walls`, the alps' ground plus wallsRise). */
+function bayGround(x, z, a, walls) {
+  const m = 1 - smoothstep(BAY.from, BAY.to, Math.abs(z - SIDE_Z));
+  const { rim, sweep } = bayFace(z);
+  const toe = rim - BAY.face - BAY.side * Math.sin(Math.PI * sweep);
+  const floor = terrainHeight(x, z) + (bayFloor(x, z, a, toe) - terrainHeight(x, z)) * smoothstep(WALL_FROM, WALL_FROM + 100, a);
+  let top = Math.max(walls, hanging(x, z) + BAY.lift * (1 - smoothstep(rim, rim + BAY.back, a)));
+  /* Level from the rim back to nature.js's ledge, so the stream runs
+   * out to the edge and the ledge's line is the ground's. */
+  if (a < BACK_DX + 15) {
+    const ledge = hanging(valleyAxis(z) + BACK_DX, z) + BAY.lift * (1 - smoothstep(rim, rim + BAY.back, BACK_DX));
+    top = Math.max(top, top + (ledge - top) * (1 - sweep));
+  }
+  let y = floor + (top - floor) * smoothstep(toe, rim, a);
+  const pd = Math.hypot(a - BAY_POOL.dx, z - BAY_POOL.z);
+  if (pd < BAY_POOL.r * 1.6) {
+    const shelf = 1 - smoothstep(BAY_POOL.r, BAY_POOL.r * 1.6, pd);
+    const bowl = BAY_POOL.depth * (1 - smoothstep(BAY_POOL.r * 0.3, BAY_POOL.r, pd));
+    y += (BAY_POOL.y - bowl - y) * shelf;
+  }
+  return walls + (y - walls) * m;
+}
+
+/* Whether (x, z) is on the fall's bay, its floor or its faces, up to
+ * the rim: the carved rock keeps off it (rock/carve.js), whose ledges
+ * and fluting are laid for faces that run along the valley and stood on
+ * the bay's sweeping sides as a row of organ pipes. */
+export function inBay(x, z) {
+  const dx = x - valleyAxis(z);
+  if (dx <= WALL_FROM || Math.abs(z - SIDE_Z) >= BAY.to) {
+    return false;
+  }
+  return dx < bayFace(z).rim + 40;
+}
+
+/* What the walls and the fall's bay add to the alps' ground at (x, z):
+ * nought on the floor, negative where the bay is cut below the alps'
+ * trough. */
+export function wallRise(x, z) {
+  const r = wallsRise(x, z);
+  const dx = x - valleyAxis(z);
+  if (dx <= WALL_FROM || Math.abs(z - SIDE_Z) >= BAY.to) {
+    return r;
+  }
+  const h = terrainHeight(x, z);
+  return bayGround(x, z, dx, h + r) - h;
+}
+
 /* How much of the scree apron at a face's foot (x, z) is on, nought to
  * one: the ground's paint lays scree there (ground.js groundMasks), and
- * the carved rock keeps off it (rock/carve.js). */
+ * the carved rock keeps off it (rock/carve.js). None in the fall's bay,
+ * whose talus is its own. */
 export function apronAt(x, z) {
   const dx = x - valleyAxis(z);
   const east = dx > 0;
@@ -213,7 +387,8 @@ export function apronAt(x, z) {
     return 0;
   }
   profile(z, east, P);
-  return w * smoothstep(footOf(P), footOf(P) + 20, a) * (1 - smoothstep(P.foot + 5, P.foot + 25, a));
+  const bay = east ? 1 - smoothstep(BAY.from, BAY.to, Math.abs(z - SIDE_Z)) : 0;
+  return (1 - bay) * w * smoothstep(footOf(P), footOf(P) + 20, a) * (1 - smoothstep(P.foot + 5, P.foot + 25, a));
 }
 
 function swissHeight(x, z) {
@@ -239,7 +414,8 @@ export function buildSwissField() {
 
   /* A cell is fine where the walls' rise inside it strays from the two
    * triangles its corners make by more than TOL. The floor never is: the
-   * rise is nought there. */
+   * rise is nought there. (The fall's bay is cut below the alps' ground,
+   * so the rise is negative there, and counts.) */
   const fine = new Uint8Array(CELLS * CELLS);
   for (let j = 0; j < CELLS; j += 1) {
     for (let i = 0; i < CELLS; i += 1) {
@@ -249,7 +425,7 @@ export function buildSwissField() {
       const r11 = rise[(j + 1) * n + i + 1];
       const x0 = -HALF + i * CELL;
       const z0 = -HALF + j * CELL;
-      if (Math.max(r00, r10, r01, r11) <= 0 && wallRise(x0 + CELL / 2, z0 + CELL / 2) <= 0) {
+      if (Math.max(Math.abs(r00), Math.abs(r10), Math.abs(r01), Math.abs(r11), Math.abs(wallRise(x0 + CELL / 2, z0 + CELL / 2))) <= 0) {
         continue;
       }
       let worst = 0;
