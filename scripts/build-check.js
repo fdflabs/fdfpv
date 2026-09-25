@@ -87,6 +87,12 @@ function say(ok, what) {
 const f1 = (x) => Number(x).toFixed(1);
 const f3 = (v) => v.map((x) => Number(x).toFixed(2)).join(', ');
 
+/*
+ * The page's settings, and no gamepads. The browser hands the page every
+ * joystick the host has, and a radio left plugged into this machine is a
+ * pad whose sticks drive the free camera: the crosshair then never rests
+ * and every placement times out. The keyboard is the pilot here.
+ */
 function seedFor(graphics) {
   const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
   return [`try {
@@ -97,7 +103,8 @@ function seedFor(graphics) {
     s.fpsCap = 0;
     ${graphics ? `s.graphics = ${JSON.stringify(graphics)}; s.graphicsAuto = false;` : ''}
     localStorage.setItem(k, JSON.stringify(s));
-  } catch (e) { /* storage refused; the checks below will say so */ }`];
+  } catch (e) { /* storage refused; the checks below will say so */ }
+  navigator.getGamepads = () => [];`];
 }
 
 async function shot(page, name) {
