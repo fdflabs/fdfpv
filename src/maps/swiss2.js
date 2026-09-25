@@ -516,6 +516,7 @@ function photoStyle() {
        * lift). */
       const layout = bayLayout(valleyLayout(heightAt, stage.footprints));
       layout.apron = apronAt;
+      layout.screeToes = stage.masks.path.userData.screeToes;
       const taken = occupiedCells(scene, heightAt, new Set([stage.groundMesh, far.mesh, scene.getObjectByName('sky')]));
       stage.cliffs = buildCliffs({ field, keep: (x, z) => layout.keepOff(x, z) || taken(x, z), material: stage.ground({ carved: 1 }) });
       trimGround(stage.groundMesh.geometry, stage.cliffs.mask);
