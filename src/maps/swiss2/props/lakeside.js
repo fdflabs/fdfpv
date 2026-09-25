@@ -563,8 +563,13 @@ function bin(m, x, y, z) {
 
 /* The sailing boat's course: back and forth across the wind, which blows
  * down the valley toward +x, -z, from one side of the lake to the other,
- * turning at each end. Position and heading at `s` metres along it. */
-const COURSE = { cx: 185, cz: 2360, ux: 0.6, uz: 0.8, half: 230, turn: 28 };
+ * turning at each end. Position and heading at `s` metres along it. It
+ * lies 150 m to the north west of the lake's middle, where an aircraft on
+ * floats starts (src/game/water.js, x 196, z 2305): through the middle,
+ * her wake's arms and trail swept the floats' spawn, a hard edged band of
+ * roughened water round the aircraft that read as the edge of something
+ * drawn. Out here the nearest leg passes 160 m off it. */
+const COURSE = { cx: 65, cz: 2450, ux: 0.6, uz: 0.8, half: 230, turn: 28 };
 function onCourse(s) {
   const { cx, cz, ux, uz, half, turn } = COURSE;
   const leg = 2 * half;
