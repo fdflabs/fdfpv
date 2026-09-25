@@ -2093,6 +2093,13 @@ export async function boot({ loading, bootStart, mapId }) {
       launcherLeft = null;
       return;
     }
+    /* Whatever a run left behind, the title's showpiece flight carries no
+     * catapult: the launcher belongs to a seated run's pad. */
+    if (mode === 'title') {
+      launcherLeft = null;
+      launcher.visible = false;
+      return;
+    }
     /* The title flies the aircraft round the world as a showpiece, and a
      * catapult carried along under a flying aircraft is nonsense: the
      * launcher belongs to the pad, so it stands only once a run is seated. */
