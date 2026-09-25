@@ -458,6 +458,30 @@ curved bow running nose low; it belongs to the floats' model and is the
 first thing to add for the nose dig bands. The capsize needs horizontal
 wind, which the lead gave to the loop's first round.
 
+**Wind** (round 1). `sim_set_wind(vx, vy, gust)`: a horizontal wind, the
+air's velocity in m/s in the plant's world frame, z up, so (vx, vy) is the
+way it blows; and gusts on top, their RMS per horizontal axis. Every
+aerodynamic term reads the craft's velocity less the wind: the quad's
+rotors and body drag, a plane's whole aerodynamics and thrust, the
+Bramor's canopy, and with the damage mode on the free bodies' drag. The
+gusts are a fixed sum of seven cosines per axis on the sim clock, periods
+30 to 1.5 s, each carrying its band's share of a Dryden spectrum with a
+4 s time scale (40 m in a 10 m/s wind), the two axes the same RMS as
+MIL-F-8785C's low altitude turbulence has it and uncorrelated. It is the
+same everywhere and a function of time alone: no random numbers, no host
+maths, so a gust is exactly repeatable. Still air, (0, 0, 0), is the
+default and a world property kept across resets like the water; with it
+no step reads any of the wind, so every flight without it is bit
+identical. The sea's wind, `sim_water_wind`, is a separate declaration: a
+host that wants the air and the waves to agree sets both. Measured
+(`crash:core`): `sim_set_wind(0, 0, 0)` flies the plain trace to the bit;
+a Cub launched at 14 m/s through the air into a 5 m/s headwind flies the
+same airspeed as in still air, 12.033 m/s after 4 s, to the ninth digit,
+and 5 m/s less over the ground; a five inch falling at idle is carried
+1.85 m/s down a 5 m/s crosswind in 4 s; the Bramor under its canopy drifts
+at the wind's 6.00 m/s; gusts asked for at 2 m/s about 4 m/s read 2.05 and
+2.08 RMS about 4.06 over 120 s, and the same twice.
+
 ## 6. Bit identity
 
 `node scripts/crash-identity.js` runs every script that loads the module

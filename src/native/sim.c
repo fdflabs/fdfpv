@@ -2229,6 +2229,36 @@ SIM_EXPORT double sim_air_lift(double x, double y, double z) {
   return plant_air_lift(pos);
 }
 
+/* The horizontal wind, plant_wing.c at plant_wind. A world the host
+ * declares, kept across sim_reset and sim_init like the water; refused
+ * rather than clamped outside what a model flies in. */
+static int finite_d(double x) {
+  return x == x && x - x == 0.0;
+}
+
+SIM_EXPORT int sim_set_wind(double vx, double vy, double gust) {
+  if (!finite_d(vx) || !finite_d(vy) || !finite_d(gust)
+      || !(vx * vx + vy * vy <= 30.0 * 30.0) || !(gust >= 0.0) || !(gust <= 10.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  SIM_WIND[0] = vx;
+  SIM_WIND[1] = vy;
+  SIM_GUST = gust;
+  SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wind(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  double w[3];
+  plant_wind(S.step_index, w);
+  out[0] = w[0];
+  out[1] = w[1];
+  return SIM_OK;
+}
+
 /*
  * The water bodies and their waves, src/native/water.c. A world the host
  * declares, like the ground plane, in the plant's world frame; unlike the

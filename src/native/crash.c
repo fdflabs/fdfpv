@@ -2562,11 +2562,18 @@ static void fb_impulse(FreeBody *f, const double r[3], const double n[3], double
 static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double gn[3], double gd) {
   const double g = PLANT_TABLE[plant_airframe()].gravity * SIM_GRAVITY;
   const double rho = 1.225;
-  /* Gravity, and the air's drag on its biggest face. */
-  const double vm = norm(f->vel);
+  /* Gravity, and the air's drag on its biggest face, through the air. */
+  double va[3] = { f->vel[0], f->vel[1], f->vel[2] };
+  if (SIM_WIND_ON) {
+    double wa[3];
+    plant_wind(s->step_index, wa);
+    va[0] -= wa[0];
+    va[1] -= wa[1];
+  }
+  const double vm = norm(va);
   const double kd = -0.5 * rho * f->cda * vm / f->m;
   for (int a = 0; a < 3; a += 1) {
-    f->vel[a] += kd * f->vel[a] * SIM_DT;
+    f->vel[a] += kd * va[a] * SIM_DT;
   }
   f->vel[2] -= g * SIM_DT;
   /* A tumbling part loses its spin to the air too, slowly. */

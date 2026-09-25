@@ -279,6 +279,48 @@ double plant_air_lift(const double pos[3]) {
   return w * fade;
 }
 
+/*
+ * HORIZONTAL WIND, sim_set_wind. A mean wind and gusts on top of it, the
+ * same at every point, a function of the sim clock alone, so it is exactly
+ * repeatable and costs nothing to evaluate. Each horizontal axis gusts
+ * independently with the same RMS, as the low altitude turbulence of
+ * MIL-F-8785C does (sigma_v = sigma_u near the ground). The gust on an axis
+ * is a fixed sum of seven cosines, the way water.c builds a sea: periods
+ * 30 to 1.5 s, spaced by a factor 1.65, each carrying the share of the
+ * variance a Dryden spectrum, S(w) = (2 sigma^2 T / pi) / (1 + (T w)^2),
+ * puts in its band with T = 4 s (a scale length of 40 m in a 10 m/s wind),
+ * normalised so the sum's RMS is the RMS asked for; the peaks reach about
+ * 2.5 times it. The phases are 2 pi times the fractional part of 0.137 +
+ * 0.618034 n, n 0 to 6 on x and 7 to 13 on y, so the axes are
+ * uncorrelated and nothing repeats inside ten minutes. Taylor's frozen
+ * field would make the gust a craft meets depend on its airspeed through
+ * it; this is time alone, which a craft at rest on the water, the case the
+ * gusts are for, cannot tell apart.
+ */
+#define GUST_N 7
+static const double GUST_W[GUST_N] = { 0.20944, 0.349066, 0.571199, 0.966644, 1.570796, 2.617994, 4.18879 };
+static const double GUST_A[GUST_N] = { 0.7228, 0.7088, 0.6243, 0.5072, 0.4059, 0.3169, 0.2512 };
+static const double GUST_PX[GUST_N] = { 0.8608, 4.744, 2.3441, 6.2273, 3.8273, 1.4274, 5.3106 };
+static const double GUST_PY[GUST_N] = { 2.9106, 0.5106, 4.3939, 1.9939, 5.8771, 3.4772, 1.0772 };
+
+int SIM_WIND_ON = 0;
+double SIM_WIND[2] = { 0.0, 0.0 };
+double SIM_GUST = 0.0;
+
+void plant_wind(long long step, double out[3]) {
+  out[0] = SIM_WIND[0];
+  out[1] = SIM_WIND[1];
+  out[2] = 0.0;
+  if (!(SIM_GUST > 0.0)) {
+    return;
+  }
+  const double t = (double)step * SIM_DT;
+  for (int k = 0; k < GUST_N; k += 1) {
+    out[0] += SIM_GUST * GUST_A[k] * sim_cos(GUST_W[k] * t + GUST_PX[k]);
+    out[1] += SIM_GUST * GUST_A[k] * sim_cos(GUST_W[k] * t + GUST_PY[k]);
+  }
+}
+
 static double clamp1(double x) {
   return x > 1.0 ? 1.0 : (x < -1.0 ? -1.0 : x);
 }
@@ -564,13 +606,22 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double throttle = rc[3];
 
   /* Relative wind in the body frame: still air, or for an airframe that
-   * flies in it, the thermals' rise, which is a wind from below. */
+   * flies in it, the thermals' rise, which is a wind from below, and the
+   * horizontal wind when a host has set one. Everything aerodynamic below,
+   * the chute's drag with it, reads this. */
   double vb[3];
+  double vg[3] = { s->vel[0], s->vel[1], s->vel[2] };
+  if (SIM_WIND_ON) {
+    double wa[3];
+    plant_wind(s->step_index, wa);
+    vg[0] -= wa[0];
+    vg[1] -= wa[1];
+  }
   if (fw->air_lift) {
-    const double va[3] = { s->vel[0], s->vel[1], s->vel[2] - plant_air_lift(s->pos) };
+    const double va[3] = { vg[0], vg[1], vg[2] - plant_air_lift(s->pos) };
     wquat_rotate_inv(s->quat, va, vb);
   } else {
-    wquat_rotate_inv(s->quat, s->vel, vb);
+    wquat_rotate_inv(s->quat, vg, vb);
   }
   const double u = vb[0], v = vb[1], w = vb[2];
   const double V2 = u * u + v * v + w * w;

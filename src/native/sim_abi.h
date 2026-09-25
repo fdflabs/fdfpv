@@ -494,6 +494,28 @@ int sim_wheel_loads(double *out);
 double sim_air_lift(double x, double y, double z);
 
 /*
+ * WIND. sim_set_wind(vx, vy, gust): a horizontal wind, the air's velocity,
+ * m/s, plant world frame (z up, so vx vy is the direction it blows TOWARD),
+ * mean speed at most 30 m/s, and gusts on top, their RMS per horizontal
+ * axis, m/s, 0 to 10. Every airframe flies through it: a quad's rotor and
+ * body terms and a plane's aerodynamics, the Bramor's canopy among them,
+ * read the craft's velocity less the wind, and with the damage mode on so
+ * do the parts that have broken off. The gusts are a fixed sum of seven
+ * cosines per axis on the sim clock, the same everywhere
+ * (src/native/plant_wing.c at plant_wind): exactly repeatable, no random
+ * numbers, no host maths. SIM_ERR_BAD_ARG for a non finite value or one
+ * out of range. A world property, not state: kept across sim_reset and
+ * sim_init, like the water; sim_set_wind(0, 0, 0) is still air, the
+ * default, and then no step reads any of it, so every flight without wind
+ * is bit identical to one from before it existed.
+ * sim_wind(out[2]): the wind acting now, at the current step, m/s world x
+ * and y, gusts included. SIM_ERR_BAD_ARG for a null pointer.
+ * Additive, version unchanged.
+ */
+int sim_set_wind(double vx, double vy, double gust);
+int sim_wind(double *out);
+
+/*
  * sim_wing_chute(deploy): the recovery parachute of an aircraft that has
  * one, the Bramor. 1 pulls it: the motor stops, the surfaces centre and a
  * canopy opens over about a second, hanging from the risers' attachment

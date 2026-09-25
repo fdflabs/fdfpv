@@ -279,9 +279,11 @@ has no slipstream to work in, so there is no steering there.
   aircraft the plant flies.
 - **Spray, the bow wave's shape, the wake.** The hump closure stands for
   all of them.
-- **Wind.** The waves carry a wind but the air does not: an aircraft on
-  the water weathercocks only on its own motion, and a crosswind taxi is
-  not a thing yet.
+- **Wind.** The waves carry a wind but the air did not: an aircraft on
+  the water weathercocked only on its own motion. Since the crash loop's
+  first round the air has one, `sim_set_wind` (docs/CRASH-STAGE1.md,
+  section 5), declared apart from the sea's `sim_water_wind`; a host that
+  wants them to agree sets both.
 - **Suction under a nose down forebody.** Water is only pushed; see the
   failure modes.
 - **Anything but the floats in the water.** The fuselage, the wing and the

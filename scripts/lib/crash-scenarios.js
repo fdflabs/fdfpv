@@ -543,6 +543,85 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
+    name: 'wind: still air by default, and every craft flies through it',
+    async run(mk) {
+      const hover = (r) => { r.pose([0, 0, 50], [1, 0, 0, 0]); r.run(2000, [0, 0, 0, HOVER]); };
+      const plain = await mk({ id: 0, damage: 0, ground: null });
+      hover(plain);
+      const zero = await mk({ id: 0, damage: 0, ground: null });
+      const rc0 = zero.sim.e.sim_set_wind(0, 0, 0);
+      hover(zero);
+      const refused = [[31, 0, 0], [0, NaN, 0], [0, 0, 11], [0, 0, -1]]
+        .every(([x, y, g]) => zero.sim.e.sim_set_wind(x, y, g) !== SIM_OK);
+      /* A five inch falling with its motors at idle in a 5 m/s crosswind
+       * is carried along it by its body's drag. */
+      const fall = async (wind) => {
+        const r = await mk({ id: 0, damage: 0, ground: null });
+        r.sim.e.sim_set_wind(0, wind, 0);
+        r.pose([0, 0, 300], [1, 0, 0, 0]);
+        return r.run(4000);
+      };
+      const qs = await fall(5);
+      const q0 = await fall(0);
+      /* A Cub at cruise into a 5 m/s headwind: the same airspeed, 5 m/s
+       * less over the ground. */
+      const cub = async (wind) => {
+        const r = await mk({ id: 4, damage: 0, ground: null });
+        r.sim.e.sim_set_wind(-wind, 0, 0);
+        r.pose([0, 0, 100], [1, 0, 0, 0]);
+        r.launch(14 - wind);
+        let air = 0;
+        let ground = 0;
+        r.run(6000, [0, 0, 0, 0.6], (s, i) => {
+          if (i >= 4000) {
+            air += Math.hypot(s[4] + wind, s[5], s[6]) / 2000;
+            ground += s[4] / 2000;
+          }
+        });
+        return { air, ground };
+      };
+      const still = await cub(0);
+      const head = await cub(5);
+      /* The Bramor under its canopy in a 6 m/s wind drifts with it. */
+      const b = await mk({ id: 8, damage: 0, ground: null });
+      b.sim.e.sim_set_wind(6, 0, 0);
+      b.pose([0, 0, 300], [1, 0, 0, 0]);
+      b.launch(18);
+      b.run(500, [0, 0, 0, 0]);
+      b.sim.e.sim_wing_chute(1);
+      let drift = 0;
+      b.run(15000, [0, 0, 0, 0], (s, i) => { if (i >= 12000) drift += s[4] / 3000; });
+      /* Gusts: their RMS per axis is what was asked, about the mean, and
+       * the same twice. */
+      const gust = async () => {
+        const r = await mk({ id: 0, damage: 0, ground: null });
+        r.sim.e.sim_set_wind(4, 0, 2);
+        const buf = r.sim.e.malloc(16);
+        let sx = 0, sy = 0, sxx = 0, syy = 0, n = 0;
+        for (let k = 0; k < 1200; k += 1) {
+          r.sim.step(100);
+          r.sim.e.sim_wind(buf);
+          const w = new Float64Array(r.sim.e.memory.buffer, buf, 2);
+          sx += w[0]; sy += w[1]; sxx += w[0] * w[0]; syy += w[1] * w[1]; n += 1;
+        }
+        r.sim.e.free(buf);
+        const mx = sx / n, my = sy / n;
+        return { mx, my, rx: Math.sqrt(sxx / n - mx * mx), ry: Math.sqrt(syy / n - my * my) };
+      };
+      const g1 = await gust();
+      const g2 = await gust();
+      return [
+        { name: 'sim_set_wind(0, 0, 0) is the flight without it, to the bit', ok: rc0 === SIM_OK && zero.plant.hex() === plain.plant.hex(), detail: plain.plant.hex() },
+        { name: 'out of range is refused', ok: refused },
+        { name: 'a five inch falling at idle is carried down a 5 m/s crosswind', ok: qs[5] > 1 && qs[5] < 5 && Math.abs(q0[5]) < 0.1, detail: `${qs[5].toFixed(2)} m/s along it after 4 s, ${q0[5].toFixed(2)} in still air` },
+        { name: 'a Cub launched into a 5 m/s headwind at 14 m/s through the air flies as in still air, 5 m/s less over the ground', ok: Math.abs(still.air - head.air) < 1e-9 && Math.abs(still.ground - head.ground - 5) < 1e-9, detail: `airspeed ${still.air.toFixed(3)} still, ${head.air.toFixed(3)} into it; over the ground ${still.ground.toFixed(3)} and ${head.ground.toFixed(3)}` },
+        { name: 'the Bramor under its canopy drifts at the wind\'s 6 m/s', ok: Math.abs(drift - 6) < 0.5, detail: `${drift.toFixed(2)} m/s` },
+        { name: 'gusts of 2 m/s RMS about a 4 m/s mean', ok: Math.abs(g1.mx - 4) < 0.5 && Math.abs(g1.my) < 0.5 && g1.rx > 1.6 && g1.rx < 2.4 && g1.ry > 1.6 && g1.ry < 2.4, detail: `mean ${g1.mx.toFixed(2)}, ${g1.my.toFixed(2)}; RMS ${g1.rx.toFixed(2)}, ${g1.ry.toFixed(2)} over 120 s` },
+        { name: 'and the same gusts twice', ok: g1.mx === g2.mx && g1.rx === g2.rx && g1.ry === g2.ry },
+      ];
+    },
+  },
+  {
     name: 'a Timber on floats catches a wing tip in the water',
     async run(mk) {
       /* Rolled onto its right float at speed, as in a hard turn on the

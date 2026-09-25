@@ -573,6 +573,15 @@ void plant_wing_set_on_wheels(int on);
 /* The rising air at a world position, m/s up: the thermals every airframe
  * with air_lift flies in. */
 double plant_air_lift(const double pos[3]);
+/* Horizontal wind, sim_set_wind: the mean, m/s world frame, and the gusts'
+ * RMS per axis. SIM_WIND_ON is 0 while all three are zero, and then no
+ * step reads any of it, which is what keeps every trace without wind bit
+ * identical. plant_wind is the air's velocity at step `step`, world x y
+ * (z is always 0), the same everywhere. */
+extern int SIM_WIND_ON;
+extern double SIM_WIND[2];
+extern double SIM_GUST;
+void plant_wind(long long step, double out[3]);
 /* The parachute: 1 pulls it on an airframe that has one and returns 0,
  * anything else returns -1; 0 stows it again, which a reset also does.
  * plant_wing_chute_open is how far the canopy is open, 0 stowed to 1. */
