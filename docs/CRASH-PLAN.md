@@ -285,3 +285,23 @@ self tests keep running with damage off, as they do now.
 
 Decision on the floats' stopped prop tips dipping into a swell with
 damage on: kept, it is a real contact.
+
+### Round 1 (started 2026-09-25)
+
+Baseline on main a86859f, after the shell (#49): 60 scenarios, 4 inside
+every band, 56 outside at least one, 60 deterministic, damage readback
+not wired. Damage off is byte identical across scripts/crash-identity.js.
+
+Team, with owned files:
+
+- suite: scripts/crash-suite.js, tests/crash/**, docs/CRASH-REFERENCES.md.
+  Wire the readback to the core ABI with damage on, replace the tail
+  strike with a nose over, keep the wind scenarios blocked until wind
+  lands.
+- core: src/native/**, dist/sim.wasm. The silent prop chip, material
+  hardness only through events, water and tree entry readback, horizontal
+  wind (zero by default, bit identical without it), float bow suction and
+  added mass.
+
+Round 2's targets are picked from the suite's failure histogram once the
+readback is wired.
