@@ -6360,6 +6360,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * does not jump the camera. */
     const chaseAnchor = new THREE.Vector3();
     let chaseLift = 0;
+    let chaseWaterY = 0;
     let chaseValid = false;
     const losPos = new THREE.Vector3();
     const losBack = new THREE.Vector3();
@@ -8508,17 +8509,25 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         const k = 1 - Math.exp(-dt / 120);
         const water = craftOnWater();
         const afloat = Boolean(water && water.state[3] > 0);
-        chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / 700));
+        /* Eased in over 0.7 s as the floats settle, out over 0.25 s as
+         * they leave: a plane climbing away at take off should have the
+         * camera with it, not a metre below it catching up. */
+        chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / (afloat ? 700 : 250)));
         if (!chaseValid) {
-          chaseAnchor.copy(pCurr);
+          chaseWaterY = pCurr.y;
         }
-        chaseAnchor.x = pCurr.x;
-        chaseAnchor.z = pCurr.z;
-        /* Air: a 40 ms lag, the plane itself. Afloat: 1.5 s, several swell
-         * periods, so the camera sees the waves pass under a steady plane
-         * rather than the world heaving round it. */
-        const tauY = 40 + chaseLift * 1460;
-        chaseAnchor.y += (pCurr.y - chaseAnchor.y) * (1 - Math.exp(-dt / tauY));
+        /* The swell's mean under the plane, 1.5 s of it, several swell
+         * periods, and held still once the floats leave the water. */
+        if (afloat) {
+          chaseWaterY += (pCurr.y - chaseWaterY) * (1 - Math.exp(-dt / 1500));
+        }
+        /* A blend, not a lag: afloat the camera rides the mean, in the air
+         * the plane itself, and between them a mix of the two. A filter
+         * whose time constant shrank as the plane climbed away let the
+         * camera sag behind the climb and then catch up, the small jolt
+         * the owner felt at take off. */
+        chaseAnchor.copy(pCurr);
+        chaseAnchor.y += chaseLift * (chaseWaterY - pCurr.y);
         chaseStep.copy(chaseAnchor).sub(chaseLast);
         chaseStep.y *= 1 - chaseLift;
         if (!chaseValid) {

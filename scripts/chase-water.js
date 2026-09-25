@@ -8,7 +8,8 @@
  * Samples the camera's height and pitch and the plane's height once a
  * frame while it sits afloat, then while it taxis, and fails if the
  * camera moves more than a third as much as the plane does: the waves
- * should pass under a steady picture, not heave the picture.
+ * should pass under a steady picture, not heave the picture. Then a take
+ * off. CHASE_DUMP=file writes the take off's samples for a closer look.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -48,7 +49,7 @@ window.__chaseLog = [];
     const c = window.__camGround();
     const [x, y, z, w] = c.quat;
     const pitch = Math.asin(Math.max(-1, Math.min(1, 2 * (w * x - y * z)))) * 180 / Math.PI;
-    window.__chaseLog.push([c.y, pitch, window.__craftState().worldY]);
+    window.__chaseLog.push([c.y, pitch, window.__craftState().worldY, performance.now()]);
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
@@ -83,6 +84,35 @@ async function phase(name, seconds) {
     failed += 1;
   }
 }
+/*
+ * The take off: full throttle and a little up elevator until it is off
+ * the water and climbing. The camera's height is fitted, a frame at a
+ * time, with the parabola through its neighbours; how far a frame sits
+ * off that curve is a jolt a pilot would see. It fails past 5 cm. The
+ * owner felt a faint disturbance at take off on 2026-09-25 that this
+ * measure reads as 0.1 cm before and after the fix, so it guards
+ * against a gross jolt and does not prove the faint one gone.
+ */
+async function takeoff() {
+  await page.evaluate('window.__chaseLog.length = 0; window.__stick(0, 0.3, 0, 1); true');
+  await page.sleep(15000);
+  const log = await page.evaluate('window.__chaseLog.slice(10)');
+  let worst = 0;
+  for (let i = 2; i < log.length - 2; i += 1) {
+    const [a, b, c, d, e] = [log[i - 2], log[i - 1], log[i], log[i + 1], log[i + 2]];
+    const smooth = (-a[0] + 4 * b[0] + 4 * d[0] - e[0]) / 6;
+    worst = Math.max(worst, Math.abs(c[0] - smooth));
+  }
+  if (process.env.CHASE_DUMP) {
+    (await import('node:fs')).writeFileSync(process.env.CHASE_DUMP, JSON.stringify(log));
+  }
+  const rose = log[log.length - 1][2] - log[0][2];
+  const ok = rose > 3 && worst < 0.05;
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'}  take off: climbed ${rose.toFixed(1)} m, the camera's worst jolt off its own smooth path ${(worst * 100).toFixed(1)} cm, ${log.length} frames`);
+  if (!ok) {
+    failed += 1;
+  }
+}
 try {
   await page.until('!!window.__shellReady', 240000);
   await page.until('window.__map && window.__map().ready', 240000);
@@ -93,6 +123,7 @@ try {
   await phase('afloat', 12);
   await page.evaluate('window.__stick(0, 0, 0, 0.35); true');
   await phase('taxiing', 12);
+  await takeoff();
 } finally {
   await page.close();
 }
