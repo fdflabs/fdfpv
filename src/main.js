@@ -8724,9 +8724,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           chaseDir.normalize();
         }
         const back = Math.max(2.5, span * 2.4);
+        /* A wreck lies in the grass, and swiss2's meadow grass stands a
+         * metre tall: from the flying height, 0.28 of the stand off, the
+         * pilot looked at blades and not at the wreck. A pilot walking up
+         * to a wreck looks down on it. */
         chaseAim.copy(chaseAnchor)
           .addScaledVector(chaseDir, -back)
-          .addScaledVector(introUp, back * 0.28);
+          .addScaledVector(introUp, back * (wrecked ? 0.7 : 0.28));
         const floor = view.height(chaseAim.x, chaseAim.z, chaseAim.y) + 0.5;
         if (chaseAim.y < floor) {
           chaseAim.y = floor;
