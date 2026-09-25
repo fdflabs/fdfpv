@@ -357,6 +357,11 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     geranium: { group: 'plain', tint: [0.62, 0.02, 0.03], rough: 0.75 },
     geraniumPink: { group: 'plain', tint: [0.62, 0.05, 0.2], rough: 0.75 },
     leaf: { group: 'plain', tint: [0.035, 0.1, 0.025], rough: 0.8 },
+    /* A clipped hedge: beech and privet, dark in the body and paler
+     * where the summer's growth has come since the shears. */
+    hedge: { group: 'plain', tint: [0.026, 0.058, 0.02], rough: 0.85 },
+    hedgeLight: { group: 'plain', tint: [0.05, 0.095, 0.028], rough: 0.8 },
+    hedgeDark: { group: 'plain', tint: [0.014, 0.034, 0.012], rough: 0.9 },
     ivy: { group: 'plain', tint: [0.018, 0.05, 0.014], rough: 0.6 },
     ivyLight: { group: 'plain', tint: [0.04, 0.085, 0.02], rough: 0.65 },
     rose: { group: 'plain', tint: [0.5, 0.04, 0.09], rough: 0.8 },

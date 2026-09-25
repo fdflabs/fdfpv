@@ -152,7 +152,7 @@ export async function buildVegetation(ctx) {
     }
   }
   const forest = plantForest({
-    heightAt: ctx.heightAt, layout, rng, spacing: Q.spacing, colliders: ctx.colliders, floor,
+    heightAt: ctx.heightAt, layout, rng, spacing: Q.spacing, colliders: ctx.colliders, floor, planted: ctx.planted,
   });
   mark('planting');
   const lod = forestLod({

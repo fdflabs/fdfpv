@@ -9,6 +9,8 @@
  *   furnish(ctx)  alps/village.js calls it through the buildings hook,
  *                 into the village's own bake before it is merged, so all
  *                 of it is drawn by the village's meshes and costs no draw
+ *   yards.js      between the houses: the trees, sheds, hedges, shrubs,
+ *                 plots, parked cars and the ground under them, laid last
  *   people.js     the villagers and hikers, posed each frame
  *
  * Nothing here draws the village's rng: every choice is a house's own
@@ -43,6 +45,7 @@ import {
   bicycle, lampPost, poleLamp, flagpole, cafeSet, gardenTable, vegBed, washingLine, picketFence,
   woodRick, planter, noticeBoard, hikeSign, hydrant, postBox, drain, puddle, marketStall,
 } from './pieces.js';
+import { yards } from './yards.js';
 
 /* The bus's half width with its mirrors, and the clear air kept past it. */
 const BUS_REACH = 1.25 + 0.3 + 0.9;
@@ -417,6 +420,11 @@ export function furnish(ctx) {
     }
   }
 
+  /* THE YARDS, last, so nothing above moves (village/yards.js). */
+  const yard = yards({
+    houses: built.houses, at, houseY, free, take, onRoads, inSquare,
+  });
+
   return {
     square,
     villageY,
@@ -425,6 +433,7 @@ export function furnish(ctx) {
     benches: ctx.benches,
     stall,
     busClear,
+    yards: yard,
   };
 }
 

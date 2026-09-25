@@ -356,12 +356,62 @@ export const WALL_ORIGIN = new THREE.Vector2(-647, -497);
 const WALL_MIN_AREA = 16;
 
 export function wallUniform() {
-  const t = new THREE.DataTexture(new Uint8Array([255]), 1, 1, THREE.RedFormat, THREE.UnsignedByteType);
+  const t = new THREE.DataTexture(new Uint8Array([255, 0, 0, 128]), 1, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
   t.needsUpdate = true;
   return { value: t };
 }
 
-export function wallMask(footprints) {
+/*
+ * The village's yards on the same texels (village/yards.js's marks): in
+ * green the gravel of a yard, a drive or a car's pad, in blue bare earth
+ * where a path is worn or a shed's door is, in alpha how each garden's
+ * lawn is kept, from let grow rank (0) through the farmed floor's own
+ * (128, no garden) to kept short (255). Each is a canvas drawn in metres and
+ * blurred a little, so a yard's edge is not a ruled line; the fragment
+ * breaks it up further.
+ */
+function yardChannels(marks) {
+  const n = WALL_SPAN;
+  const draw = (fill, items, blur) => {
+    const c = document.createElement('canvas');
+    c.width = n;
+    c.height = n;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.fillStyle = fill;
+    g.fillRect(0, 0, n, n);
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (const it of items) {
+      const shade = it.shade;
+      g.filter = `blur(${it.blur ?? blur}px)`;
+      if (it.pts) {
+        g.fillStyle = shade;
+        g.beginPath();
+        it.pts.forEach((p, k) => (k ? g.lineTo(p.x - WALL_ORIGIN.x, p.z - WALL_ORIGIN.y) : g.moveTo(p.x - WALL_ORIGIN.x, p.z - WALL_ORIGIN.y)));
+        g.closePath();
+        g.fill();
+      } else {
+        g.strokeStyle = shade;
+        g.lineWidth = it.width;
+        g.beginPath();
+        it.line.forEach((p, k) => (k ? g.lineTo(p.x - WALL_ORIGIN.x, p.z - WALL_ORIGIN.y) : g.moveTo(p.x - WALL_ORIGIN.x, p.z - WALL_ORIGIN.y)));
+        g.stroke();
+      }
+    }
+    return g.getImageData(0, 0, n, n).data;
+  };
+  const grey = (v) => {
+    const b = Math.max(0, Math.min(255, Math.round(v * 255)));
+    return `rgb(${b},${b},${b})`;
+  };
+  return {
+    gravel: draw('#000', marks.gravel.map((m) => ({ ...m, shade: grey(m.v) })), 1.2),
+    earth: draw('#000', marks.earth.map((m) => ({ ...m, shade: grey(m.v) })), 1.2),
+    lawn: draw(grey(0.5), marks.lawn.map((m) => ({ ...m, shade: grey(0.5 + 0.5 * m.v) })), 3.5),
+  };
+}
+
+export function wallMask(footprints, marks = null) {
   const n = WALL_SPAN;
   const d = new Uint8Array(n * n).fill(255);
   for (const f of footprints) {
@@ -386,7 +436,15 @@ export function wallMask(footprints) {
       }
     }
   }
-  const t = new THREE.DataTexture(d, n, n, THREE.RedFormat, THREE.UnsignedByteType);
+  const rgba = new Uint8Array(n * n * 4);
+  const yard = marks ? yardChannels(marks) : null;
+  for (let k = 0; k < n * n; k += 1) {
+    rgba[k * 4] = d[k];
+    rgba[k * 4 + 1] = yard ? yard.gravel[k * 4] : 0;
+    rgba[k * 4 + 2] = yard ? yard.earth[k * 4] : 0;
+    rgba[k * 4 + 3] = yard ? yard.lawn[k * 4] : 128;
+  }
+  const t = new THREE.DataTexture(rgba, n, n, THREE.RGBAFormat, THREE.UnsignedByteType);
   t.magFilter = THREE.LinearFilter;
   t.minFilter = THREE.LinearFilter;
   t.wrapS = THREE.ClampToEdgeWrapping;
@@ -1447,24 +1505,40 @@ const GROUND_PARS = /* glsl */ `
     float scrub = smoothstep(0.6, 0.78, ravine + 0.2 * (meso - 0.5)) * smoothstep(220.0, 380.0, p.y) * (1.0 - smoothstep(900.0, 1100.0, p.y)) * steep0 * grass * inside;
     albedo *= mix(vec3(1.0), vec3(0.42, 0.56, 0.36), 0.85 * scrub);
     /*
-     * What the aprons do to the ground's colour. Their mask is read
-     * again here, after the layers' loop (the texel read before it, from
-     * the cache), rather than its values carried across it: every value
-     * carried across the loop costs every pixel of the valley, 0.3 to
-     * 0.7 ms a frame at High in every view (scripts/swiss2-perf.js),
-     * where reading it again costs next to none.
+     * What the aprons and the village's yards do to the ground's colour.
+     * Their masks are read again here, after the layers' loop (the texels
+     * read before it, from the cache), rather than their values carried
+     * across it: every value carried across the loop costs every pixel
+     * of the valley, and these cost 0.3 to 0.7 ms a frame at High in
+     * every view that way (scripts/swiss2-perf.js), where reading them
+     * again costs next to none. So the yards' gravel and earth are laid
+     * here as colours, not as the gravel and earth layers, and the
+     * fields' mower stripes are kept out of the gardens here.
      *
      * The scree cones: pale fresh stone down a cone's middle, grey
      * lichen at its sides, and blocks from a hand to a couple of metres
      * across, the big ones out toward the toe. Between the cones the
      * apron is avalanche grass: long, pale and yellowed, flattened each
      * spring by the snow that comes down the same gullies.
+     *
+     * A garden's lawn is not the farmed floor's: shaded by the house and
+     * its trees, fed and watered, a deeper green, and never even. A kept
+     * one is short and even; a let one rank, darker still, gone to seed
+     * in yellow patches. A yard's gravel is the pale limestone grit the
+     * valley's roads are dressed with, not the lake's dark shingle.
      */
     {
       vec2 fuvL = (p.xz + uS2Field.x) / uS2Field.y;
       float apronCone = texture2D(uS2Path, fuvL).g * inside;
+      vec2 wuvL = (p.xz - uS2WallAt) / ${WALL_SPAN.toFixed(1)};
+      vec4 wallM = any(greaterThan(abs(wuvL - 0.5), vec2(0.5))) ? vec4(1.0, 0.0, 0.0, 0.5) : texture2D(uS2Walls, wuvL);
       float screeApron = smoothstep(0.01, 0.06, apronCone);
       float cone = smoothstep(0.47, 0.53, apronCone + 0.08 * (fine - 0.5));
+      /* The noise breaks a yard's edge; the mask says where a yard is at all. */
+      float yardGravel = smoothstep(0.1, 0.6, wallM.g + 0.35 * (fine - 0.5) + 0.2 * (meso - 0.5)) * smoothstep(0.02, 0.2, wallM.g) * inside;
+      float yardEarth = smoothstep(0.1, 0.6, wallM.b + 0.4 * (fine - 0.5)) * smoothstep(0.02, 0.2, wallM.b) * inside;
+      float lawnV = wallM.a * 2.0 - 1.0;
+      float garden = smoothstep(0.08, 0.28, abs(lawnV)) * inside;
       vec3 local = vec3(1.0);
       if (cone > 0.0) {
         float lichen = smoothstep(0.35, 0.65, s2Noise(vec2(p.z / 6.0 + 1.3, p.x / 25.0)));
@@ -1473,7 +1547,13 @@ const GROUND_PARS = /* glsl */ `
         local = mix(vec3(1.0), mix(vec3(0.74, 0.78, 0.7), vec3(1.06, 1.04, 1.0), max(fresh, 0.3 * lichen)) * (1.0 - 0.5 * blocks), cone);
       }
       local *= mix(vec3(1.0), vec3(1.22, 1.1, 0.68), grass * screeApron * (1.0 - cone) * 0.8);
+      float kept = clamp(lawnV, -1.0, 1.0) * garden * grass * (0.65 + 0.7 * fine);
+      local *= mix(vec3(1.0), vec3(0.8, 0.9, 0.74) * (0.84 + 0.32 * meso), garden * grass * 0.85);
+      local *= mix(vec3(1.0), kept > 0.0 ? vec3(0.9, 0.97, 0.86) : mix(vec3(0.7, 0.8, 0.64), vec3(1.0, 0.92, 0.6), smoothstep(0.55, 0.75, fine)), abs(kept));
       albedo *= local;
+      albedo = mix(albedo, vec3(0.3, 0.28, 0.245) * (0.75 + 0.5 * fine), yardGravel);
+      albedo = mix(albedo, vec3(0.15, 0.115, 0.08) * (0.8 + 0.4 * fine), 0.85 * yardEarth);
+      farm *= 1.0 - 0.8 * garden;
     }
     albedo *= mix(vec3(1.0), field.tint, farm);
     /* The airfield's wear on the ground itself, under the grass and
