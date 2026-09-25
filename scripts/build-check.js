@@ -40,6 +40,8 @@
  *  11. An old field track (the reference course, schemaVersion 1) on the
  *      custom map still loads with every station and still counts a pass.
  *
+ * The music dock is off while building and back for the flight.
+ *
  * Pictures land in OUT_DIR (tmp/build-check by default). They are evidence
  * for one look, not for the repository: delete them after.
  *
@@ -148,6 +150,9 @@ async function ctrlTap(page, code) {
 
 const B = (expr) => `window.__build.state()${expr}`;
 
+/* Whether the music dock (the record's name and its skips) can be seen. */
+const dockShown = (page) => page.evaluate("(() => { const d = document.querySelector('.music-dock'); return d && !d.hidden ? getComputedStyle(d).visibility : 'none'; })()");
+
 async function flyAndBuild(page) {
   await page.until('!!window.__shellReady', 240000);
   await page.until(`window.__map && window.__map().id === ${JSON.stringify(opts.map)} && window.__map().ready`, 300000);
@@ -202,6 +207,7 @@ async function proof() {
     await page.sleep(800);
     const c1 = await page.evaluate('window.__craftState()');
     say(Math.hypot(c1.worldX - c0.worldX, c1.worldY - c0.worldY, c1.worldZ - c0.worldZ) < 1e-6, 'the aircraft stays exactly where it was parked');
+    say((await dockShown(page)) === 'hidden', 'the music dock is off while building, so no record name sits over the build panel');
     await page.evaluate("window.__build.rename('Cliff drop'); true");
 
     /* The steepest thirty metres of the valley floor's walls, read off the
@@ -372,6 +378,7 @@ async function proof() {
     const race = await page.evaluate('({ n: window.__race().gates.length, key: window.__race().key, next: window.__race().next, freestyle: window.__race().freestyle })');
     say(mapNow.mode === 'race' && mapNow.gates === 3 && race.n === 3 && !race.freestyle, `B flies it: the map reads as a race with ${mapNow.gates} gates, the race has ${race.n}`);
     say(race.key.endsWith(`.build.${st.doc.id}`), `its record is its own: ${race.key}`);
+    say((await dockShown(page)) === 'visible', 'the music dock is back for the flight');
     const start = gatesAfter[0];
     const sp = mapNow.spawn;
     say(Math.abs(Math.hypot(sp.x - start[0], sp.z - start[2]) - 7.5) < 0.05, `the run starts ${f1(Math.hypot(sp.x - start[0], sp.z - start[2]))} m behind the start gate`);
