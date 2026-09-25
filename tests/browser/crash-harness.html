@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  crash-harness.html: the browser side of scripts/crash-core-selftest.js.
+  Flies every plant crash scenario of scripts/lib/crash-scenarios.js in
+  Chrome from the same modules and resolves window.__simHarnessResult with
+  every module's trace digest, the state block and every part's state at
+  every step, so the self test can hold them against Node's.
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FDFPV crash harness</title>
+    <link rel="icon" href="data:," />
+    <script>
+      window.__simHarnessResult = new Promise((resolve) => {
+        window.__simHarnessResolve = resolve;
+      });
+    </script>
+    <script type="module" src="/tests/browser/crash-harness.js"></script>
+  </head>
+  <body>
+    <p>FDFPV headless crash harness.</p>
+  </body>
+</html>

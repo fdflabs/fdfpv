@@ -285,7 +285,9 @@ static void sim_gyro_add_vibration(const SimState *s) {
     }
     g_vib_phase[m] = p;
     const double r = w / PLANT.vib_ref_w;
-    const double a_line = GYRO_VIB_LINE_DPS * r * r * GYRO_VIB_IMBALANCE[m];
+    /* A chipped prop (crash.c) is a worse imbalance at the same line. */
+    const double a_line = GYRO_VIB_LINE_DPS * r * r
+        * (CRASH.active ? GYRO_VIB_IMBALANCE[m] * CRASH.imbalance[m] : GYRO_VIB_IMBALANCE[m]);
     if (a_line < 1e-4 || SIM_ARCADE) {
       continue;
     }
@@ -690,6 +692,9 @@ double sim_bf_debug(int what) {
   case 68: return PLANT_DBG_DUCT;
   case 69: return PLANT_DBG_VPERP;
   case 70: return PLANT_DBG_PITCH_UP;
+  /* The sensor's own roll reading, deg/s, before any filter: what a chipped
+   * prop's imbalance line is put into (crash.c's plant test reads it). */
+  case 71: return g_gyro_dps[FD_ROLL];
   default: return 0.0;
   }
 }

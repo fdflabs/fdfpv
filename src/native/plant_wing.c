@@ -59,6 +59,13 @@
 #include "libm/sim_math.h"
 
 #define WING_PI 3.14159265358979323846
+/* A tailless wing and fuselage, for an aircraft whose tail has gone:
+ * statically unstable in pitch by a few percent of the chord per radian,
+ * a nose down section moment, and a slightly unstable body in yaw. Chosen
+ * in docs/CRASH-STAGE1.md from the tail volume argument. */
+#define WING_BODY_CM_ALPHA 0.10
+#define WING_BODY_CM_0 (-0.05)
+#define WING_BODY_CN_BETA (-0.02)
 #define WING_DT (1.0 / SIM_STEP_HZ)
 
 /* The surfaces this step, radians: left and right wing trailing edge
@@ -525,6 +532,32 @@ void plant_wing_launch(SimState *s, double speed) {
 
 void plant_wing_step(SimState *s, const double rc[4]) {
   const FixedWingParams *fw = PLANT.fw;
+  /*
+   * Crash damage (crash.c, docs/CRASH-STAGE1.md) that changes the aircraft's
+   * own derivatives: a stabiliser gone takes the tail's pitch stability,
+   * damping and elevator with it, a fin gone takes the weathercock
+   * stability, the yaw damping and the rudder. What is left is the wing and
+   * body's own, which is unstable. A copy, so the table is never written
+   * and an intact aircraft reads exactly the table it always did.
+   */
+  FixedWingParams fw_dmg;
+  if (CRASH.active && (CRASH.hstab_keep < 1.0 || CRASH.fin_keep < 1.0 || CRASH.rudder_keep < 1.0)) {
+    fw_dmg = *fw;
+    const double h = CRASH.hstab_keep, f = CRASH.fin_keep;
+    fw_dmg.cm_alpha = h * fw->cm_alpha + (1.0 - h) * WING_BODY_CM_ALPHA;
+    fw_dmg.cm_0 = h * fw->cm_0 + (1.0 - h) * WING_BODY_CM_0;
+    fw_dmg.cm_q = fw->cm_q * (0.2 + 0.8 * h);
+    fw_dmg.cm_de = fw->cm_de * h;
+    fw_dmg.cl_de = fw->cl_de * h;
+    fw_dmg.cn_beta = f * fw->cn_beta + (1.0 - f) * WING_BODY_CN_BETA;
+    fw_dmg.cn_r = fw->cn_r * (0.3 + 0.7 * f);
+    fw_dmg.cy_beta = fw->cy_beta * (0.5 + 0.5 * f);
+    const double r = f < CRASH.rudder_keep ? f : CRASH.rudder_keep;
+    fw_dmg.cn_dr = fw->cn_dr * r;
+    fw_dmg.cl_dr = fw->cl_dr * r;
+    fw_dmg.cy_dr = fw->cy_dr * r;
+    fw = &fw_dmg;
+  }
   double roll = rc[0];
   double pitch = rc[1];
   double yaw = rc[2];
@@ -602,7 +635,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double de = surface_from_stick(pitch, fw->throw_e, fw->expo);
   const double da = surface_from_stick(roll, fw->throw_a, fw->expo);
   const double rudder_stick = fw->mix == FW_MIX_RUDDER ? clamp1(yaw + roll) : yaw;
-  const double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->expo);
+  double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->expo);
   double delta_e;
   if (fw->mix == FW_MIX_ELEVON) {
     g_surf[0] = clip(de - da, fw->surface_max);
@@ -619,6 +652,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_surf[2] = clip(add_term(de, fw->de_df * df), fw->throw_e);
     g_surf[3] = delta_r;
     delta_e = g_surf[2];
+  }
+  /* A surface that has left moves nothing, and with the pack gone every
+   * servo goes limp and trails. */
+  if (CRASH.active) {
+    for (int k = 0; k < 4; k += 1) {
+      if (CRASH.surf_lost[k] || CRASH.no_power) {
+        g_surf[k] = 0.0;
+      }
+    }
+    delta_e = fw->mix == FW_MIX_ELEVON ? 0.5 * (g_surf[0] + g_surf[1]) : g_surf[2];
+    delta_r = g_surf[3];
   }
   const double delta_a = 0.5 * (g_surf[1] - g_surf[0]);
 
@@ -671,6 +715,18 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     F[2] -= D * w / V;
     F[1] -= Y; /* aero y is right, body y is left */
   }
+  /* A wing panel that has left takes its share of the lift, from where it
+   * was: less lift, and a roll toward the side that lost it. */
+  double m_crash[3] = { 0.0, 0.0, 0.0 };
+  if (CRASH.active && CRASH.lift_keep < 1.0 && V > 1e-6 && Vxz > 1e-6) {
+    const double lost = (1.0 - CRASH.lift_keep) * qbar * fw->area * CL;
+    const double dF0 = -lost * (-w / Vxz);
+    const double dF2 = -lost * (u / Vxz);
+    F[0] += dF0;
+    F[2] += dF2;
+    m_crash[0] = CRASH.lift_y * dF2;
+    m_crash[2] = -CRASH.lift_y * dF0;
+  }
 
   /* The motor: thrust along body x, falling with the forward airspeed. */
   double duty = throttle;
@@ -688,14 +744,21 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     thrust = 0.0;
   }
   if (g_chute) thrust = 0.0; /* the motor is cut with the pull */
+  const int dead = CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power);
+  if (CRASH.active) {
+    thrust = dead ? 0.0 : thrust * CRASH.kt[0];
+  }
   F[0] += thrust;
-  const double rpm = (folded || g_chute) ? 0.0 : 0.85 * duty * fw->rpm_no_load;
+  const double rpm = (folded || g_chute || dead) ? 0.0 : 0.85 * duty * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = (folded || g_chute) ? 0.0 : fw->current_full * duty * duty;
+  s->pack_current = (folded || g_chute || dead) ? 0.0 : fw->current_full * duty * duty;
   s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
+  if (CRASH.active && CRASH.no_power) {
+    s->vbat_load = 0.0;
+  }
 
   /* Moments, in the aero convention, then into the body frame. */
   const double p = s->omega[0];
@@ -765,6 +828,16 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     M[0] += ra[1] * Fc[2] - ra[2] * Fc[1];
     M[1] += ra[2] * Fc[0] - ra[0] * Fc[2];
     M[2] += ra[0] * Fc[1] - ra[1] * Fc[0];
+  }
+
+  /* Crash damage: the lost panel's roll, and the forces' arm about a CG a
+   * lost part has moved. The aero was taken about the table's CG, so about
+   * the new one every force has the arm minus the shift. */
+  if (CRASH.active) {
+    const double *c = CRASH.cg_shift;
+    M[0] += m_crash[0] - (c[1] * F[2] - c[2] * F[1]);
+    M[1] += m_crash[1] - (c[2] * F[0] - c[0] * F[2]);
+    M[2] += m_crash[2] - (c[0] * F[1] - c[1] * F[0]);
   }
 
   /* Rates: I omega_dot = M - omega x (I omega), diagonal inertia. */

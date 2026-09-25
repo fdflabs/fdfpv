@@ -636,6 +636,105 @@ int water_body_at(double x, double y);
 void water_sample(int i, double x, double y, double t, double out[6]);
 const WaterBody *water_body(int i);
 
+/*
+ * CRASH PHYSICS, src/native/crash.c and docs/CRASH-STAGE1.md: the parts, the
+ * damage they take and what it does to the flight, the free bodies that
+ * break off, the surfaces, the obstacles and the trees.
+ *
+ * CRASH is what the plants read, and CRASH.active is the only thing they
+ * test on the hot path: it is 0 on an intact aircraft, with the damage mode
+ * off and with it on, so every branch below it is skipped and every
+ * expression the plants computed before this existed is computed exactly as
+ * it was. That is the whole of the bit identity argument on the flight side;
+ * the contact side's is at crash_contact_pre. crash.c owns the struct and
+ * writes it only when a limit is crossed.
+ */
+typedef struct {
+  int active;              /* any flight effect in force */
+  int hull_parts;          /* a part has left: contact samples the parts' hulls */
+  /* Per motor, Betaflight order on a quad, motor 0 on a plane. */
+  double kt[SIM_MOTOR_COUNT];        /* thrust coefficient scale */
+  double kq[SIM_MOTOR_COUNT];        /* prop torque coefficient scale */
+  double jr[SIM_MOTOR_COUNT];        /* rotor inertia scale */
+  int motor_dead[SIM_MOTOR_COUNT];   /* no drive: motor, arm or power gone */
+  double imbalance[SIM_MOTOR_COUNT]; /* gyro line amplitude multiple, 1 sound */
+  int bent;                          /* an arm is bent: turn the axes by bend[] */
+  double bend[SIM_MOTOR_COUNT][3];   /* each thrust axis's turn, a rotation
+                                      * vector, body frame, rad */
+  int no_power;                      /* the pack has left */
+  /* The fixed wing. */
+  double lift_keep;        /* the wing area left, fraction */
+  double lift_y;           /* the lost area's centroid, body y, m: its lift
+                            * now missing there is a roll moment */
+  int surf_lost[4];        /* left aileron or elevon, right, elevator, rudder */
+  double rudder_keep;      /* fraction of the rudders left */
+  double hstab_keep;       /* the horizontal tail left, fraction */
+  double fin_keep;         /* the fins left, fraction */
+  double cg_shift[3];      /* where the CG moved, body frame, m, from the
+                            * table's origin; the wing's aero reference stays
+                            * where it was, so its forces get this arm */
+  int wheel_lost[SIM_WHEELS_MAX];
+  int float_lost[2];       /* left, right */
+} CrashEffects;
+extern CrashEffects CRASH;
+/* The damage mode, sim_set_damage. A mode: kept across sim_reset. */
+extern int SIM_DAMAGE;
+
+/* The contact solver's hooks, sim.c. A contact at world offset r from the
+ * CG against unit normal n (out of the surface), closing speed vin, inverse
+ * effective mass kn, restitution e_used about to be applied: pre may lower
+ * e_used, when a foam part crushes and gives nothing back. post records the
+ * impulse (jn along n, jt the friction vector) for the step's judgement. */
+void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
+                       double vin, double kn, double *e_used, double *jn_cap);
+void crash_contact_post(const SimState *s, const double r[3], const double n[3],
+                        double vin, double kn, double jn, const double jt[3]);
+/* A force contact, one whose force is known rather than an impulse: a
+ * wheel's strut, a float, the water or a crown on a part. World frame. */
+void crash_force_note(const SimState *s, const double r[3], const double F[3], int part);
+/* The surface the next contacts are against, SIM_SURF_*, and whether a
+ * spinning prop in that contact would chip. */
+void crash_set_contact_surface(int mat);
+int crash_ground_material(void);
+/* The contacts that follow are the ground plane's, its material's. */
+void crash_set_ground_contact(void);
+/* The surface a contact with no material named meets: a hard generic face. */
+int crash_obstacle_surface(void);
+/* Start of a contact batch (a step, or one sim_contact_at): remembers the
+ * craft's motion before the impulses. End of it: judges the batch's loads,
+ * breaks and damages, and rebuilds CRASH. */
+void crash_batch_begin(const SimState *s, int from_step);
+/* A foam part is crushing this batch, and the last contact's impulse was
+ * capped at its plateau: the solver's position corrections stand aside. */
+int crash_crushing(void);
+int crash_last_capped(void);
+void crash_batch_end(SimState *s);
+/* Every step, after the contacts: the free bodies, the water and the crowns
+ * on the craft's parts. */
+void crash_step(SimState *s, int ground_on, const double gn[3], double gd);
+/* Dynamic state cleared: every part attached and whole, no free bodies, no
+ * events, CRASH inactive and the plant table in force again. */
+void crash_reset(void);
+/* The part carrying a PlantParams wheel, or a float (0 left, 1 right). */
+int crash_wheel_part(int w);
+int crash_float_part(int f);
+/* A non default surface's own mu and e, written over the caller's. */
+void crash_surface_mu_e(int mat, double *mu, double *e);
+/* The readback and set up that need the craft's state, for sim.c's
+ * exports. */
+int crash_parts_state(const SimState *s, double *out);
+int crash_part_break(SimState *s, int part);
+int crash_part_set_damage(SimState *s, int part, double dmg);
+/* The contact samplers once a part has left, the attached parts' hull
+ * points, body frame about the live CG, and the part each belongs to. */
+int crash_samplers(const double **pts, const int **part);
+/* The next contact is the solver's sampler k, -1 for none: it belongs to
+ * that sampler's part. */
+void crash_hint_sampler(int k);
+/* The part a body frame point belongs to, for a contact there: the
+ * attached part with the hull point nearest it. */
+int crash_part_at(const double b[3]);
+
 /* Bridge: Betaflight control loop and config shim. */
 
 int bridge_parse_config(const unsigned char *diff_utf8, int len);
