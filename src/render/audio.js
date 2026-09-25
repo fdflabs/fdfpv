@@ -610,6 +610,31 @@ export class MotorAudio {
     this.crashGain = crashGain;
     this.crashLp = crashLp;
 
+    /*
+     * The wreck's voice: a third pooled noise chain, band passed, for the
+     * sounds a breaking aircraft makes that the crash cue's low thump does
+     * not: a carbon arm or a prop snapping (a hard, bright crack), foam
+     * crushing (a short grainy crunch), a blade chipping on the ground (a
+     * tick) and a splash. Its own chain so a snap and the thump of the same
+     * hit sound together rather than one cancelling the other's envelope.
+     * Three nodes, created once, like every cue here.
+     */
+    const wreckSrc = keep(ctx.createBufferSource());
+    wreckSrc.buffer = buf;
+    wreckSrc.loop = true;
+    const wreckBp = keep(ctx.createBiquadFilter());
+    wreckBp.type = 'bandpass';
+    wreckBp.frequency.value = 2400;
+    wreckBp.Q.value = 1.2;
+    const wreckGain = keep(ctx.createGain());
+    wreckGain.gain.value = 0;
+    wreckSrc.connect(wreckBp);
+    wreckBp.connect(wreckGain);
+    wreckGain.connect(shaper);
+    wreckSrc.start();
+    this.wreckGain = wreckGain;
+    this.wreckBp = wreckBp;
+
     /* The bed. It brings its own nodes and counts them through keep. */
     this.music.attach(ctx, shaper, keep);
     this.music.setLevel(this.mix.music);
@@ -746,6 +771,65 @@ export class MotorAudio {
     g.exponentialRampToValueAtTime(0.0001, t + dur);
     this.duckFlight(t, 0.66, 0.26);
     this.music.duckNow(t, 0.6, 0.3);
+  }
+
+  /*
+   * A part of the aircraft breaking, crushing or chipping, or a splash:
+   * kind is 'snap', 'crunch', 'chip' or 'splash', `level` 0 to 1 how hard.
+   * On the wreck's own voice, so it lays over the crash cue's thump rather
+   * than replacing it. Only a snap and a splash duck the flight, and
+   * lightly: a chip is a tick the motors should not dip for.
+   */
+  wreck(kind, level, atTime) {
+    if (!this.ctx || !this.wreckGain) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const lv = level == null || level !== level ? 1 : 0.35 + 0.65 * Math.min(1, Math.max(0, level));
+    const g = this.wreckGain.gain;
+    const f = this.wreckBp.frequency;
+    const q = this.wreckBp.Q;
+    g.cancelScheduledValues(t);
+    f.cancelScheduledValues(t);
+    q.cancelScheduledValues(t);
+    g.setValueAtTime(0.0001, t);
+    if (kind === 'snap') {
+      /* Carbon and nylon fail in a crack well above the motors' band,
+       * falling fast as the pieces separate. */
+      f.setValueAtTime(3800, t);
+      f.exponentialRampToValueAtTime(1500, t + 0.05);
+      q.setValueAtTime(2.2, t);
+      g.exponentialRampToValueAtTime(3.2 * lv, t + 0.0015);
+      g.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      this.duckFlight(t, 0.5, 0.25);
+      return;
+    }
+    if (kind === 'crunch') {
+      /* Foam gives in grains: three quick bumps in the mids. */
+      f.setValueAtTime(900, t);
+      q.setValueAtTime(0.9, t);
+      for (let k = 0; k < 3; k += 1) {
+        const tk = t + k * 0.028;
+        g.setValueAtTime(0.0001, tk);
+        g.exponentialRampToValueAtTime((2.0 - 0.45 * k) * lv, tk + 0.004);
+        g.exponentialRampToValueAtTime(0.0001, tk + 0.026);
+      }
+      return;
+    }
+    if (kind === 'chip') {
+      f.setValueAtTime(3000, t);
+      q.setValueAtTime(3.0, t);
+      g.exponentialRampToValueAtTime(1.4 * lv, t + 0.001);
+      g.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      return;
+    }
+    /* A splash: a wide burst that darkens as the water falls back. */
+    f.setValueAtTime(2200, t);
+    f.exponentialRampToValueAtTime(420, t + 0.55);
+    q.setValueAtTime(0.6, t);
+    g.exponentialRampToValueAtTime(2.2 * lv, t + 0.012);
+    g.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    this.duckFlight(t, 0.6, 0.4);
   }
 
   /*
