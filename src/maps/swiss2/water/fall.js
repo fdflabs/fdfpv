@@ -466,10 +466,15 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
 /*
  * Soft sprites that rise, spread and fade on their own cycles: `count`
  * of them round `centre`, `spread` metres out, climbing `rise` metres
- * over a `life` second cycle, from size s0 to s1, at `opacity`. Lit flat
- * by `light` (linear), which the map sets from its sky and sun.
+ * over a `life` second cycle, from size s0 to s1, at `opacity`. Lit by
+ * the sky, `light` (linear), and by the sun where it reaches them (`sun`,
+ * the map's sun at any point, light.js's lit.sun, and its direction and
+ * colour), scattered forward as fine spray scatters it: bright looking
+ * toward the sun, faint across it. A drift thins as it spreads: each
+ * sprite is at its most opaque young and small, and fades as it grows,
+ * so the cloud has no core to pile up into a ball.
  */
-function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, opacity, light, seed }) {
+function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, opacity, light, seed, sun }) {
   const rng = makeRng(seed);
   const geo = new THREE.InstancedBufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0], 3));
@@ -489,12 +494,15 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
       uShape: { value: new THREE.Vector4(spread, rise, life, opacity) },
       uSize: { value: new THREE.Vector2(s0, s1) },
       uLight: { value: light },
+      uSunColor: { value: sun ? sun.color : new THREE.Color(0, 0, 0) },
+      ...(sun ? sun.at.uniforms : {}),
       fogColor: { value: new THREE.Color() },
       fogNear: { value: 1 },
       fogFar: { value: 1000 },
       fogDensity: { value: 0.00025 },
     },
     vertexShader: /* glsl */ `
+      ${sun ? '#define MIST_SUN' : ''}
       #include <common>
       #include <fog_pars_vertex>
       attribute vec4 aSeed;
@@ -503,10 +511,14 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
       uniform vec3 uCentre;
       uniform vec4 uShape;
       uniform vec2 uSize;
+      uniform vec3 uLight;
+      uniform vec3 uSunColor;
       varying vec2 vUv;
       varying float vFade;
       varying vec2 vSeed;
       varying float vLift;
+      varying vec3 vLit;
+      ${sun ? sun.at.glsl : ''}
       void main() {
         float age = fract(uTime / uShape.z + aSeed.x);
         float ang = aSeed.y * 6.2831853;
@@ -522,8 +534,20 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
         vLift = p.y + position.y * size - uCentre.y;
         gl_Position = projectionMatrix * mvPosition;
         vUv = position.xy * 0.5 + 0.5;
-        vFade = sin(age * 3.14159) * (0.6 + 0.4 * aSeed.z);
+        vFade = smoothstep(0.0, 0.12, age) * pow(1.0 - age, 1.6) * (0.6 + 0.4 * aSeed.z);
         vSeed = aSeed.zw;
+        vLit = uLight;
+        #ifdef MIST_SUN
+        {
+          /* Henyey and Greenstein's phase, g 0.6, for the sun's light
+           * turned toward the eye; the sun past every ridge and cloud. */
+          vec3 toEye = normalize(cameraPosition - p);
+          float c = dot(-toEye, uS2SunDir);
+          float g = 0.6;
+          float phase = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * c, 1.5) / (4.0 * PI);
+          vLit += uSunColor * phase * s2TerrainSun(p) * s2Cloud(p);
+        }
+        #endif
         #include <fog_vertex>
       }`,
     fragmentShader: /* glsl */ `
@@ -531,11 +555,11 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
       #include <fog_pars_fragment>
       uniform sampler2D uWaves;
       uniform vec4 uShape;
-      uniform vec3 uLight;
       varying vec2 vUv;
       varying float vFade;
       varying vec2 vSeed;
       varying float vLift;
+      varying vec3 vLit;
       void main() {
         vec2 c = vUv * 2.0 - 1.0;
         float d = dot(c, c);
@@ -543,7 +567,7 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
         float a = (1.0 - smoothstep(0.1, 1.0, d)) * smoothstep(0.15, 0.75, puff) * vFade * uShape.w;
         a *= smoothstep(-1.0, 5.0, vLift);
         if (a < 0.003) discard;
-        gl_FragColor = vec4(uLight, a);
+        gl_FragColor = vec4(vLit, a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
         #include <fog_fragment>
@@ -621,7 +645,7 @@ function wetRock(rock, envMap, layout, pool, impact) {
  * The whole fall into `group`: returns the pieces' disposers and the
  * sheet's foot, where the pool churns.
  */
-export async function buildFall({ heightAt, layout, waves, time, wind, envMap, group, rock, light }) {
+export async function buildFall({ heightAt, layout, waves, time, wind, envMap, group, rock, light, sun = null }) {
   const pool = layout.pool;
   const apron = apronShape(layout);
   const land = landing(layout, apron);
@@ -662,17 +686,18 @@ export async function buildFall({ heightAt, layout, waves, time, wind, envMap, g
   mistAt.z += wind.y * 4;
   /* The Staubbach's cloud: the spray rises most of the way back up the
    * face and the wind carries it along the wall (z) and a little out
-   * from it (-x), never into it, a pale drift beside the fall; lit a
-   * little brighter than the spray at the foot, being higher, where more
-   * of the sky reaches it. */
-  const along = new THREE.Vector2(-0.35, Math.sign(wind.y) || 1).multiplyScalar(0.5);
+   * from it (-x), never into it, a thin drift beside the fall that
+   * spreads and fades as it goes. Round 7's was a white ball: two
+   * hundred and forty small sprites lit flat and brightest at the middle
+   * of their lives, piled up round the foot. */
+  const along = new THREE.Vector2(-0.35, Math.sign(wind.y) || 1).multiplyScalar(0.95);
   const cloud = mist({
-    waves, time, wind: along, centre: mistAt, count: 240, spread: 9, rise: 58, life: 22, s0: 5, s1: 17, opacity: 0.013, light: light.clone().multiplyScalar(1.3), seed: 71,
+    waves, time, wind: along, centre: mistAt, count: 150, spread: 12, rise: 70, life: 26, s0: 5, s1: 38, opacity: 0.022, light: light.clone().multiplyScalar(0.72), seed: 71, sun,
   });
   /* and a low drift of spray down the cascade to the pool. */
   const sprayAt = new THREE.Vector3((impact.x + foot.x) / 2 - 3, (impact.y + foot.y) / 2 - 8, layout.fallZ);
   const spray = mist({
-    waves, time, wind, centre: sprayAt, count: 160, spread: 16, rise: 22, life: 5, s0: 3, s1: 12, opacity: 0.034, light, seed: 73,
+    waves, time, wind, centre: sprayAt, count: 120, spread: 22, rise: 20, life: 6, s0: 4, s1: 20, opacity: 0.016, light: light.clone().multiplyScalar(0.72), seed: 73, sun,
   });
   cloud.name = 'swiss2-mist';
   spray.name = 'swiss2-spray';

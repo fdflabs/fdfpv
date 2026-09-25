@@ -359,6 +359,8 @@ function photoStyle() {
         quality: ctx.quality,
         heightAt: ctx.heightAt,
         envMap: scene.environment,
+        /* The sun at any point and its light, for the fall's mist. */
+        sun: { at: stage.lit.sun, color: SUN_COLOR.clone().multiplyScalar(SUN_IRRADIANCE) },
       });
       scene.add(stage.water.group);
       await ctx.paint(0.56);
