@@ -429,3 +429,76 @@ What would be wrong:
 - A conventional aircraft that will not come out of a spin on opposite
   rudder and forward stick.
 - A Cub or Timber that rolls past 30 deg the moment it stalls.
+
+## The second return: the Radian, the Bramor, B1 and S9
+
+The lead sent #59 back once more on four points. What was found, in order.
+
+**B1 was the test's input.** levelSpeed threw every airframe at a shared
+12 m/s, under the Bramor's published 13 m/s stall (the user manual's VST),
+so its cruise gate began with a stall. It now starts at the manual's Best
+Endurance Speed, VBE 16 m/s (also C-Astral's published cruise, "16 m/s"),
+in its own commit, with the band unchanged: 16.62 m/s on this module and
+on main's.
+
+**S9: the dynamic pull differed because the stall took no time.** A
+sudden full up from cruise overshoots the angle of attack past every
+strip's fall within a few tenths of a second (it did on main too, to 26.6
+deg), and the model met the whole separation at once. The RCM&E review
+says it stalls "only if bags of elevator is fed in while the model is
+virtually stationary". Each strip's shortfall now follows its steady value
+with Leishman and Beddoes' separation time constant, T_f = 3 semichords
+(J. American Helicopter Society 34(3), 1989). S9a now passes: 2.7 deg of
+bank, 4.9 deg/s. The gentle probe did not move by more than a tenth of a
+degree. S9b, power on, still fails, and it is a different thing: not a
+drop at the pull but a slow torque turn that tightens, the bank growing
+about 2.5 deg a second to 22 deg at 8 s, the inner wing retreating deeper
+into its stall. No source describes a Slow Stick held full up under power.
+
+**The Radian: the data insist, given the geometry nobody publishes.** No
+source was found for the Radian's section, twist or tips (E-flite says
+"efficient airfoil" and "curved polyhedral wing"; RCGroups was not
+reachable). Why it drops, exactly: its strips stall at 10.5 to 12.6 deg
+(the drawn planform, loaded by Schrenk), the SD7037 class holds its lift
+only 1.4 deg past that, and its 24.4 deg of up elevator holds 13.9 deg,
+past every strip's stall and into the roots' fall. The Cub, by contrast,
+holds 16 deg against strips that stall at 12.6 to 17.7 deg and a Clark-Y
+top 4.6 deg long, so its tips are still flying. Held at part stick the
+Radian still drops (18 deg at 40 percent, 10 at 50, 45 at 70). What would
+change it is a source for washout, a longer top (a thicker section) or
+the rates the review flew on; none was found.
+
+**The Bramor: nothing published says it is spin resistant, or twisted.**
+C-Astral's manual gives the stall speed, cruise and warnings about low
+airspeed, and no stall or spin behaviour; recovery is the autopilot and
+the parachute. The general sources (the washout and swept wing literature,
+RC flying wing practice, "2 to 6 degrees" of washout) put a swept flying
+wing's spin resistance in washout or in extra reflex at the tips, and say
+sweep alone promotes tip stall. The model's Bramor has neither: the drawn
+cranked planform loads five eighths of the way out, so that strip stalls
+first, and there is no twist because none is published. Its flat spin is
+therefore what an untwisted Bramor would do, not a sourced Bramor; with
+the chute the answer, as the lead said.
+
+**A finding against the version the lead liked.** Each strip's shortfall
+is taken against r times the plant's linear CL, which carries the
+elevator's lift, the tail's. With full up that is about 0.1 of lift the
+strip's reference lacks and its held CLmax does not, and through the stall
+blend it adds roll damping, about 1.5 per rad on the Radian. That is what
+kept the trainers level at the break. Taken consistently (the strip's own
+wing lift against the linear wing's share; branch
+crash-aero-round4-strip-ref, not on #59), a flat topped section has no
+roll damping on its top, as a flat lift curve does not, and held full back
+the Cub, the Timber and the Slow Stick still break gently (1 to 9 deg) but
+wander into 40 to 50 deg of bank over 10 s, the Skyhunter drops 61 deg and
+the Radian 75, and S9a fails again. Which one the owner flies is the
+lead's call: #59 as it is flies as the reviews describe but rests on that
+term; the consistent one needs a source for washout, or tip strips that
+keep flying, to be as gentle.
+
+Crash suite with the separation lag, against main 16ac766: 9 of 60 inside
+every band, failing checks 134 to 138, 60 deterministic. Stall ins, peak g
+and rest distance: Skyhunter 65 to 127 g and 3.0 to 13.3 m, Cub 37 to 21
+g and 4.8 to 16.9 m, Radian 140 to 110 g, Slow Stick 30 to 24 g, Timber
+29 to 15 g and 10.5 to 25.4 m, Bramor 89 to 144 g, catapult 57 to 58 g;
+all rest upright, as on main.
