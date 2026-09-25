@@ -34,7 +34,7 @@ import {
   frame, box, boxUp, cached, prism, SOCLE, near, detail, own,
   casement, doorway, balcony, woodpile, plinth, logCorners, frieze, timberTop, ring, plate, stair,
   REVEAL, masonry, deepWindow, deepDoor, wallBench, dripEdge,
-  climber, paintedBand, paintedQuoins, notes, dressRoof,
+  climber, paintedBand, paintedQuoins, notes, dressRoof, hangingBasket, churchDoor,
 } from './parts.js';
 import { roofShell, gableProfile } from '../../alps/kit.js';
 
@@ -466,6 +466,14 @@ export function gasthof(f, rng, spec) {
     eastOpen.push(deepWindow(east, -slot(c), SOCLE + 1.6, 1.5, 1.4, { ...win, seed: c }));
   }
   wallBench(east, -slot(1) - 1.2, 1.4);
+  /* Hanging baskets: one either side of the door on its bracket, and one
+   * under the Laube between each pair of windows. */
+  for (const s of [-1, 1]) {
+    hangingBasket(east, -slot(2) + s * 1.25, SOCLE + 2.75, 0.55);
+  }
+  for (const c of [0, 3]) {
+    hangingBasket(east, -(slot(c) + slot(c + 1)) / 2, y1 - 0.05, 1.05, c ? 'geraniumPink' : 'geranium');
+  }
   const westOpen = [0, 2, 4].map((c) => deepWindow(west, slot(c), SOCLE + 1.6, 1.2, 1.2, { ...win, seed: c }));
   const ends = [];
   for (const wall of [frame(f, 0, 0, hd, 0), frame(f, 0, 0, -hd, Math.PI)]) {
@@ -648,6 +656,7 @@ export function church(f, spec) {
   /* The tower door under its little roof on two brackets. */
   const porch = frame(f, 0, 0, tz + tw / 2, 0);
   doorway(porch, 0, 1.6, 2.8, { frameKey: 'stone' });
+  churchDoor(porch, 0, 1.6, 2.8);
   const py = SOCLE + 3.35;
   for (const s of [-1, 1]) {
     porch.put('slate', box(1.45, 0.06, 1.35), s * 0.66, py + 0.3, 0.62, 0, 0, -s * 0.42);
