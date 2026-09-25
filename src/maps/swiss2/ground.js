@@ -986,11 +986,17 @@ const GROUND_PARS = /* glsl */ `
      * it has stood longest. */
     float wash = s2Noise(vec2(a / 120.0 + 4.4, y / 600.0));
     tint *= mix(vec3(0.7, 0.72, 0.74), vec3(1.2, 1.12, 0.96), wash);
-    /* Under the lip of the bed above: the overhang's shadow, as deep as
-     * the lip stands out, which wanders along the bed. */
-    float lipOn = smoothstep(0.45, 0.65, s2Noise(vec2(a / 80.0 + i1 * 1.9, i1 * 0.7))) * smoothstep(0.3, 0.5, s2Noise(vec2(a / 23.0 + i1 * 4.1, i1 + 7.0)));
-    float lipW = (0.6 + 1.8 * s2Noise(vec2(a / 25.0 + i1, 2.2))) * lipOn;
-    float lip = s2FaceLine(24.0 - h1, lipW, px);
+    /* Under the lip of the bed above: the overhang's shadow. Not every
+     * bed has one, and where one does it runs in pieces tens of metres to
+     * a couple of hundred long, thick where the lip stands far out and
+     * tapering to nothing at its ends, wandering up and down the bed's
+     * top as the lip is eaten back, and darker where it is deeper. */
+    float lipBed = step(0.35, s2Hash(vec2(i1, 5.9)));
+    float run = s2Noise(vec2(a / (40.0 + 90.0 * s2Hash(vec2(i1, 2.7))) + i1 * 1.9, i1 * 0.7));
+    float lipOn = lipBed * smoothstep(0.5, 0.75, run) * smoothstep(0.25, 0.55, s2Noise(vec2(a / 13.0 + i1 * 4.1, i1 + 7.0)));
+    float lipW = (0.3 + 3.0 * lipOn * lipOn) * (0.6 + 0.8 * s2Noise(vec2(a / 7.0 + i1, 2.2)));
+    float sag = 2.5 * (s2Noise(vec2(a / 35.0 + i1 * 3.3, i1 + 1.1)) - 0.5) + 1.0 * (s2Noise(vec2(a / 9.0, i1 + 4.4)) - 0.5);
+    float lip = s2FaceLine(max(0.0, 24.0 - h1 + sag), lipW, px) * (0.45 + 0.55 * s2Hash(vec2(i1, 8.3))) * step(0.001, lipOn);
     /* On the bed's top, a ledge where the noise says, turf and scrub on
      * some of them. */
     float ledgeOn = smoothstep(0.5, 0.7, s2Noise(vec2(a / 70.0 + i1 * 2.3, i1 * 1.3 + 4.0)));
