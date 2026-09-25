@@ -119,8 +119,11 @@ typedef struct {
   int wheel_part[SIM_WHEELS_MAX];    /* the part carrying each wheel, -1 */
   int float_part[2];                 /* left, right, -1 */
   double wing_area;                  /* plan area of the wing panels */
-  double w1[SIM_PARTS_MAX];          /* a ringing panel's first bending
+  double w1[SIM_PARTS_MAX];          /* a ringing part's first bending
                                       * mode, rad/s; 0 rigid */
+  double ring_m[SIM_PARTS_MAX];      /* and the mass it rings with at its tip */
+  int ring_up[SIM_PARTS_MAX];        /* the nearest ringing part a part rides
+                                      * on, -1 */
 } Table;
 
 static Table T[SIM_AIRFRAME_COUNT];
@@ -180,23 +183,21 @@ static void table_add(Table *t, const PartDef *d, int airframe) {
 }
 
 /*
- * A WING PANEL RINGS ON ITS SPAR, A BOOM ON ITS TUBE. The first bending
- * mode is a cantilever's, w = sqrt(3 E I / (L^3 (0.2427 m + M))), m its own
- * mass spread along it, M the parts it carries taken at its tip (Rayleigh's
- * tip mass form; with M = 0 it is 3.516 sqrt(E I / (m L^3)), the exact
- * first mode), L the reach from the root to its farthest hull point. The
- * joiner's E I follows from the limit the table already derives from it,
- * M = sigma I / r: E I = (E / sigma) M r. Pultruded carbon
- * tube, TAP Plastics' minimum properties: flexural modulus 127 GPa; the
- * tables take its bending strength at 1,000 MPa (the datasheet's minimum
- * is 1,370), so E / sigma = 127. The spar alone is stiffer than the panel
- * with its outboard foam, so this is an upper bound on the frequency, and
- * the shortest period a panel rings with: 8 to 13 Hz for the foam planes'
- * panels, inside the 5 to 20 Hz small UAV wings' ground vibration tests
- * put their first bending. RING_ZETA, its damping, is chosen: a few percent
- * of critical, a lightly damped structure. docs/CRASH-STAGE1.md, Damage.
+ * A PART RINGS ON ITS SECTION: a wing panel on its spar, a boom on its tube
+ * or its own foam walls. The first bending mode is a cantilever's, w =
+ * sqrt(3 E I / (L^3 (0.2427 m + M))), m its own mass spread along it, M the
+ * parts it carries taken at its tip (Rayleigh's tip mass form; with M = 0 it
+ * is 3.516 sqrt(E I / (m L^3)), the exact first mode), L the reach from the
+ * root to its farthest hull point. The section's E I follows from the limit
+ * the table already derives from it, M = sigma I / c: E I = (E / sigma) M c,
+ * E / sigma the table's sect_eos (crash_parts.h: carbon 127, bead foam 33).
+ * A spar alone is stiffer than the panel with its outboard foam, so a panel's
+ * frequency is an upper bound: 8 to 13 Hz for the foam planes' panels, inside
+ * the 5 to 20 Hz small UAV wings' ground vibration tests put their first
+ * bending. A foam boom rings at 10 to 40 Hz. RING_ZETA, its damping, is
+ * chosen: a few percent of critical, a lightly damped structure.
+ * docs/CRASH-STAGE1.md, Damage.
  */
-#define SPAR_E_OVER_S 127.0
 #define RING_OWN 0.2427   /* 33 / 140, a cantilever's own mass at its tip */
 #define RING_ZETA 0.03
 #define RING_STILL 1.0e-3 /* N and N m: a ring below this is over */
@@ -257,7 +258,7 @@ static void table_finish(Table *t, int airframe) {
   }
   for (int i = 0; i < t->n; i += 1) {
     t->w1[i] = 0.0;
-    if (!(t->p[i].spar_r > 0.0) || i == 0) {
+    if (!(t->p[i].sect_c > 0.0) || i == 0) {
       continue;
     }
     double reach = 0.0;
@@ -274,11 +275,16 @@ static void table_finish(Table *t, int airframe) {
         m_eff += t->p[c].mass;
       }
     }
-    const double ei = SPAR_E_OVER_S * t->p[i].m_max * t->p[i].spar_r;
+    const double ei = t->p[i].sect_eos * t->p[i].m_max * t->p[i].sect_c;
     const double w = sim_sqrt(3.0 * ei / (m_eff * reach * reach * reach));
     if (w * SIM_DT < 0.5) {
       t->w1[i] = w;
+      t->ring_m[i] = m_eff;
     }
+  }
+  for (int i = 0; i < t->n; i += 1) {
+    const int par = t->p[i].parent;
+    t->ring_up[i] = par <= 0 ? -1 : (t->w1[par] > 0.0 ? par : t->ring_up[par]);
   }
   for (int w = 0; w < SIM_WHEELS_MAX; w += 1) {
     t->wheel_part[w] = -1;
@@ -2411,8 +2417,22 @@ static void judge(SimState *s) {
         continue;
       }
       const PartDef *dj = &t->p[j];
+      /* A part that rides on a ringing one (a tail on its boom) is shaken by
+       * that part's tip, whose motion is the ring's, not the craft's: the
+       * ring's force over the mass it rings with. */
+      const double *aj = acc, *lj = alp;
+      double a_up[3];
+      const double still[3] = { 0.0, 0.0, 0.0 };
+      const int up = t->ring_up[j];
+      if (up >= 0 && attached(up) && !(gone & (1u << up))) {
+        for (int a = 0; a < 3; a += 1) {
+          a_up[a] = ring[up][a] / t->ring_m[up];
+        }
+        aj = a_up;
+        lj = still;
+      }
       double Fj[3], Mj[3];
-      int path = joint_load(t, j, Fb, sc, gone, acc, alp, Fj, Mj);
+      int path = joint_load(t, j, Fb, sc, gone, aj, lj, Fj, Mj);
       if (t->w1[j] > 0.0) {
         /* The panel's first mode, a spring of its own frequency driven by
          * the joint's quasi static load: it takes the batch's momentum as a
