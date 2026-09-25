@@ -378,6 +378,49 @@ models of the same water that agree on the lift and not exactly on
 where it acts, and a take off is a pilot's as much as the aircraft's.
 The liftoff speed and the step are the tighter checks.
 
+## What the plant measured
+
+`npm run floats:gates`, on the plant as committed:
+
+| Check | Timber | Cub | Band |
+| --- | --- | --- | --- |
+| F1 at rest | 3.44 deg, CG 0.2130 m, step 41.9 mm | 3.34 deg, 0.1818 m, 39.1 mm | as derived, 0.5 deg, 3 mm, 10 percent |
+| F2 swell from ahead | heave 0.302 m at 2.507 s, pitch ±6.62 deg (1.18) at 2.508 s, roll ±0.32 | 0.302 m at 2.501 s, ±6.60 deg (1.17), roll ±0.45 | 10 percent, 0.8 to 1.3, 2 percent, under 2 deg |
+| F3 swell from the side | roll ±6.45 deg (1.17) at 2.506 s | ±6.65 deg (1.20) at 2.508 s | 0.7 to 1.4, 2 percent |
+| F4 take off | on the step at 3.37 m/s; 5.60 m to liftoff at 9.45 m/s (1.14), 1.09 s | on the step at 3.86 m/s; 16.46 m at 10.51 m/s (1.00), 2.58 s | step under 4.98 and 6.31 m/s; 0.9 to 1.2; 2.8 to 8.0 and 8.8 to 25.0 m |
+| F5 landing | touched at 8.45 m/s, 15.4 m to 1 m/s (0.87), at rest at 3.47 deg | touched at 9.70 m/s, 15.6 m (0.61), at rest at 3.35 deg | 0.6 to 1.5 |
+| F6 water rudders | 2.86 m at 0.97 m/s (1.24), turning right | 5.68 m at 0.81 m/s (1.23) | 0.7 to 1.5 |
+| F7 nose low at 14 m/s (flag) | 3.1 g, pitch to −16.3 deg, did not go over | 3.4 g, −11.8 deg, did not go over | not gated |
+| F8 grass | still at 44 percent, 4.1 m in 3 s at 60 | still at 54, 3.3 m at 70 | still under, sliding over |
+| F9 others unmoved | all nine hashes as recorded | | identical |
+| F10 Node and Chrome | identical | | identical |
+
+What measuring it changed:
+
+- The planing force was first the strip's own normal speed through the
+  water, −w, times the growth of its added mass. That counts the steady
+  flow along a trimmed keel as a normal speed everywhere, and with the
+  nose a little down it turned into suction along the whole forebody: the
+  first full throttle run dug in at 4 m/s and pitched to −65 deg. The
+  normal speed is now the growth of the immersion under a passing slice
+  of water plus the strip's own sinking, which is what the momentum
+  theory means by it, and the forebody's rocker at the bow now planes as
+  it should. The radiation damping had the same mistake, damping the
+  steady planing flow as if it were heave: it is on the strip's vertical
+  rate through the surface now.
+- The take off pilot first held a pitch on a gentle gain and never got
+  full up elevator: the Cub ran 26 m and flew off at 12.3 m/s at 2 deg
+  of pitch. The derivation's liftoff is the attitude full up elevator
+  holds, so the pilot now pulls all the way at 1.05 of the stall, as the
+  manual's "pull back to rotate" does, and the Cub leaves at exactly the
+  derived 10.51 m/s. The Timber leaves at 1.14 of its derived speed at
+  4.6 deg rather than 7.0: the water's drag, low under the CG, still
+  holds the nose down as it lets go.
+- F1 was first written to hold the aircraft still. The motor's idle,
+  2 percent, pushes 10 mN, and a float at rest on still water has no
+  friction to stop it: it creeps, 4 cm/s after 8 s, as a real one does
+  with the motor running. The pose is what F1 holds.
+
 ## Failure modes, for the crash physics plan
 
 Flagged here, not built. The crash physics plan owns breakup.
