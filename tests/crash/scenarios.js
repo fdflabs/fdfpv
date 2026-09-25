@@ -202,15 +202,17 @@ function water(h) {
  * sim_water_wind only raises waves); round 1's core work adds it, zero by
  * default. When the module exports WIND_ENTRY a scenario that `needs` it
  * is flown with it and judged; until then it is flown still air and
- * reported blocked. The name and the arguments below are this file's guess
- * at that entry point (world frame m/s, the plant's axes): when it lands,
- * this constant and this one call are the whole of the change.
+ * reported blocked. The entry point landed in round 1 as sim_set_wind(vx,
+ * vy, gust) (src/native/sim_abi.h): the mean wind, world frame m/s in the
+ * plant's axes, and the gusts' RMS per horizontal axis, m/s. The third
+ * argument is the gusts, not a vertical wind; the scenarios pass 0, still
+ * air on top of the mean.
  */
 export const WIND_ENTRY = 'sim_set_wind';
 
-function wind(h, vx, vy, vz) {
+function wind(h, vx, vy, gust) {
   if (h.has(WIND_ENTRY)) {
-    h.call(WIND_ENTRY, vx, vy, vz);
+    h.call(WIND_ENTRY, vx, vy, gust);
   }
 }
 
