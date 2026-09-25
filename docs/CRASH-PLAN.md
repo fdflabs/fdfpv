@@ -622,3 +622,48 @@ stall-in and belly bands whose premise the physics has disproved, and
 source the LOW bands), aero (plant_wing.c: Radian, Timber drift, Slow
 Stick S9b, the Bombshell's take off heading), parts (crash_parts.h:
 Bramor composite sections, balsa and EPO data).
+
+### The finish line, changed by the owner (2026-09-25)
+
+Asked how long "perfectly" would take (estimated 4 to 6 more rounds,
+one to two days, plus the contact sheet rounds), the owner set the
+finish line for now to FEELS RIGHT: the crashes a pilot meets (a
+wingtip clip, a cartwheel, a stall into the ground, a nose over, a
+float nose dig and flip, a quad clipping a gate, a quad into a wall)
+look and feel right when flown, judged by the owner's flights and by
+headless real shell checks the lead runs on each. The suite's bands
+stay as the measure and keep improving in the background, but they no
+longer block the loop's end. Round 5 finishes as planned; then one
+feel round on the owner's list above, then the owner's sign off.
+
+Round 5 closed (lead, 2026-09-25): hull #68, suite bands #69, parts #70,
+aero #71 and #72 (Radian washout 6 deg FITTED, past the 5 deg bound by
+lead decision), ground impact #73, and the suite counting the plant's
+own obstacle contacts (875c186). Suite on main: 10 of 60 in every band,
+115 of 294 checks failing (147 of 303 at the round's start), all 60
+deterministic. Open, recorded: Timber drift held full back in Manual,
+Slow Stick S9b, the Bombshell's take off heading, q5-wall at about 2300
+g (a frame crush value), quads stopping dead on grass (a depth
+dependent grass grip), the Bramor's flat spin, and a gyroscopic
+instability in plant.c when a whoop loses its pack (the tumble runs
+away and hung crash.c's free body loop; #73 kept the whoop on host
+contacts to avoid it).
+
+The gyroscopic instability, fixed (branch fix/damaged-gyro-integration):
+the cause was the explicit step itself, not a reduced inertia (the pack
+out airframe keeps about 95% of its inertia, and the explicit step pumps
+a torque free tumble at the intact inertia too); with the pack gone
+nothing powered takes the energy back out. A damaged airframe
+(CRASH.active) now steps its rates with an axis split of the free rigid
+body that holds |L|, and a rate guard stops any body past 10,000 rad/s
+before a halving loop can hang (sim_rate_guard_trips counts it). Intact
+flight is bit identical. The whoop then goes on the plant's obstacle
+contacts like every other craft: in whoop-gate it now loses its pack at
+the gate, the case that ran away, and peaks at 186 rad/s. Suite on that
+branch: 9 of 60 in every band, 115 of 294 checks failing (main 10 and
+115); whoop-wall no longer breaks its prop and pack (mustNotBreak into
+band), whoop-gate's peak falls to 230 g (band 300 to 1,500) and it rests
+in 2.01 s (band 0 to 2), the spring contact's softer blow as the five
+inch's gate clip had in #73.
+
+Next: the feel round, then the owner's sign off.

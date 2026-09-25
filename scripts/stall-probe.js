@@ -28,6 +28,10 @@
  *      and height until the wing flies again.
  *   E  A in Acro: the stabiliser does not stop a pilot who holds full back
  *      from stalling, and what the wing does then.
+ *   F  A with the stick brought full back at once instead of over 2 s,
+ *      the entry the crash suite's stall ins and the Slow Stick's S9 fly:
+ *      the elevator overshoots the angle of attack past the stall, which
+ *      the handbook's entry does not.
  *
  * Harness arithmetic in JS maths, which is allowed: nothing it prints is
  * hashed.
@@ -136,9 +140,11 @@ function flight(sim, p, seconds, hands, stab = 0) {
 const mean = (a, k) => a.reduce((x, o) => x + o[k], 0) / a.length;
 const f1 = (x) => (x * DEG).toFixed(1);
 
-function stallA(sim, p, stab = 0) {
-  const tr = flight(sim, p, 10, (ms) => [0, ramp(ms), 0, 0], stab);
-  const iStall = tr.findIndex((o) => o.alpha > p.alphaStall);
+function stallA(sim, p, stab = 0, back = ramp) {
+  const tr = flight(sim, p, 10, (ms) => [0, back(ms), 0, 0], stab);
+  /* The first sample's angle is read before the step and still holds the
+   * previous flight's last one. */
+  const iStall = tr.findIndex((o, i) => i > 0 && o.alpha > p.alphaStall);
   if (iStall < 0) {
     return 'never stalled';
   }
@@ -227,4 +233,5 @@ for (const [key, p] of Object.entries(PLANES)) {
   console.log(`  C  spin recovery:    ${recover(sim, p, spinHands(p), anti)}`);
   console.log(`  D  stall recovery:   ${recover(sim, p, (ms) => [0, ramp(ms), 0, 0], [0, 0, 0, 0])}`);
   console.log(`  E  full back, Acro:  ${stallA(sim, p, 2)}`);
+  console.log(`  F  full back at once: ${stallA(sim, p, 0, () => 1)}`);
 }

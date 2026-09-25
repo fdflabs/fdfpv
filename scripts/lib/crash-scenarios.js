@@ -29,6 +29,7 @@
 
 import { DAMAGE_FLAGS, PART_STATE_DOUBLES, SURFACE } from '../../configs/parts.js';
 import { readDamageEvents, readMotorDamage, readPartTable, readPartsState } from './crash.js';
+import { airframeHull, bodyAxes, hullContact, hullFromPartsState, sweepPartCapsule, PLANT_BODY } from '../../src/game/airframehull.js';
 
 const SIM_OK = 0;
 
@@ -851,6 +852,96 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
+    /*
+     * The same clip with the host the shell now is for a fixed wing: its
+     * hull the parts' own boxes (src/game/airframehull.js), met every
+     * 4 ms, naming the part it met (sim_contact_part) at the point on it.
+     * On the disc the Slow Stick's contact went to its motor and the
+     * Bramor's to its nose, and the Bramor stopped dead (docs/CRASH-STAGE1.md
+     * section 3). Now a pole 60 percent of the half span out meets the wing
+     * panel there, the panel takes it, and the nose keeps its parts.
+     */
+    name: 'a pole met by the parts\' hull is the wing panel\'s',
+    async run(mk) {
+      const out = [];
+      for (const [id, name, speed] of [[5, 'Slow Stick', 5.6], [8, 'Bramor', 16]]) {
+        const r = await mk({ id });
+        const hull = airframeHull(r.parts, PLANT_BODY, 1);
+        const half = Math.max(...r.parts.map((p) => Math.max(-p.boxMin[1], p.boxMax[1])));
+        const pole = [3, -0.6 * half, 0.125];
+        r.sim.e.sim_wing_set_stab(0);
+        r.sim.e.sim_obstacle_cylinder(pole[0], pole[1], 0, 30, pole[2], SURFACE.wood);
+        r.pose([0, 0, 20], [1, 0, 0, 0]);
+        r.launch(speed);
+        const v0 = speedOf(r.state());
+        const ax = new Float64Array(9);
+        const got = hullContact();
+        let first = null;
+        let firstPart = -1;
+        let firstY = 0;
+        let keepAt = null;
+        for (let ms = 0; ms < 1200; ms += 4) {
+          r.run(4, [0, 0, 0, 0.75]);
+          if (first !== null && keepAt === null && Math.round(r.state()[0] * 1000) >= first + 150) {
+            keepAt = speedOf(r.state()) / v0;
+          }
+          const s = r.state();
+          const st = r.sim.readState().state;
+          const ps = new Float64Array(r.n * PART_STATE_DOUBLES);
+          r.partsState().forEach((p, i) => {
+            ps[i * PART_STATE_DOUBLES] = p.status;
+            ps[i * PART_STATE_DOUBLES + 2] = p.pos[0];
+            ps[i * PART_STATE_DOUBLES + 3] = p.pos[1];
+            ps[i * PART_STATE_DOUBLES + 4] = p.pos[2];
+          });
+          hullFromPartsState(hull, ps, PART_STATE_DOUBLES, 0, 2, st);
+          bodyAxes(s[8], s[9], s[10], s[7], ax);
+          let best = null;
+          for (let k = 0; k < hull.n; k += 1) {
+            if (!hull.live[k]) {
+              continue;
+            }
+            const t = sweepPartCapsule(hull, k, ax, s[1], s[2], s[3], 0, 0, 0, pole[0], pole[1], 0, pole[0], pole[1], 30, pole[2], got);
+            if (t >= 0 && (!best || got.depth > best.depth)) {
+              best = { ...got };
+            }
+          }
+          if (!best || s[4] * best.nx + s[5] * best.ny + s[6] * best.nz > -0.05) {
+            continue;
+          }
+          if (first === null) {
+            first = Math.round(s[0] * 1000);
+            firstPart = best.part;
+            const dx = best.px - s[1];
+            const dy = best.py - s[2];
+            const dz = best.pz - s[3];
+            /* The contact point's body y, level and heading along x. */
+            firstY = 2 * (s[8] * s[9] - s[7] * s[10]) * dx + (1 - 2 * (s[8] * s[8] + s[10] * s[10])) * dy + 2 * (s[9] * s[10] + s[7] * s[8]) * dz;
+          }
+          const sep = best.depth + 0.008;
+          r.sim.e.sim_contact_part(best.part);
+          r.sim.e.sim_contact_at_mat(best.nx, best.ny, best.nz, SURFACE.wood,
+            s[1] + best.nx * sep, s[2] + best.ny * sep, s[3] + best.nz * sep,
+            0, 0, 0, best.px - s[1], best.py - s[2], best.pz - s[3]);
+          r.prev = r.state();
+        }
+        const panel = r.parts[firstPart];
+        const breaks = r.events.filter((e) => e.typeName === 'break' && first !== null && e.step >= first - 4 && e.step <= first + 150);
+        /* What the disc's contact broke: the nose and what rides in it. A
+         * far winglet or surface may still go on the craft's kick, which is
+         * the judgement's and is shown in the detail. */
+        const NOSE = ['fuselage', 'motor', 'prop', 'battery', 'camera', 'canopy'];
+        const nose = breaks.filter((e) => NOSE.includes(r.parts[e.part].kindName));
+        out.push(
+          { name: `${name}: the pole meets the wing panel where it stands`, ok: panel && panel.kindName === 'wing' && Math.abs(firstY - pole[1]) < 0.01, detail: first === null ? 'no contact' : `${panel.label} at ${first} ms, point y ${firstY.toFixed(3)} against the pole at ${pole[1].toFixed(3)}` },
+          { name: `${name}: the struck panel leaves, the nose keeps its parts`, ok: breaks.some((e) => e.part === firstPart) && nose.length === 0, detail: `first contact ${first} ms; ${breaks.map((e) => `${r.parts[e.part].label} ${e.step} ms ${e.ratio.toFixed(2)} x`).join(', ') || 'nothing'}` },
+          { name: `${name}: the rest keeps at least 0.75 of its speed through the clip`, ok: keepAt !== null && keepAt >= 0.75, detail: `${keepAt === null ? '-' : keepAt.toFixed(3)} of ${v0.toFixed(1)} m/s` },
+        );
+      }
+      return out;
+    },
+  },
+  {
     name: 'into water and into a crown, an event even when nothing breaks',
     async run(mk) {
       const damaging = (r) => r.events.filter((e) => !['water', 'tree', 'settle'].includes(e.typeName));
@@ -1088,6 +1179,55 @@ export const CRASH_SCENARIOS = [
         { name: 'head height onto a hard floor breaks nothing', ok: f.events.filter((e) => e.typeName === 'break').length === 0, detail: f.summary() },
         { name: 'full speed into a gate side: frame and motors whole', ok: whole(g, ['motor']), detail: g.summary() },
       ];
+    },
+  },
+  {
+    /* Crash round 5's finding: the shell's whoop lost its pack at a gate
+     * and its tumble grew from 150 to 100,000 rad/s in 1.5 s, until the
+     * page hung. With the pack gone nothing powered damps a tumble, and
+     * the plant's explicit gyroscopic step pumped it. Here in still air,
+     * high above any ground, so only the rigid body is being judged. With
+     * no torque |L| holds, so |omega| can reach at most the start rate
+     * times the live airframe's largest over smallest inertia: 2.0 for
+     * the five inch's table with its pack gone (Iz 0.0068 about Ix 0.0033
+     * kg m^2), 2.5 allowing for the air. The run stops at 5,000 rad/s so
+     * a runaway fails here instead of hanging the test. */
+    name: 'a pack lost mid tumble: the wreck\'s spin cannot run away',
+    async run(mk) {
+      const w0 = [150, 20, 60];
+      const start = Math.hypot(...w0);
+      const out = [];
+      for (const [label, table] of [['a five inch', 0], ['the shell\'s whoop', 1]]) {
+        const r = await mk({ id: 0, ground: null });
+        r.sim.e.sim_set_part_table(table);
+        r.parts = readPartTable(r.sim);
+        r.pose([0, 0, 500], [1, 0, 0, 0]);
+        r.velocity([0, 0, 0], w0);
+        r.sim.e.sim_part_break(r.index('battery'));
+        let peak = 0;
+        let ms = 0;
+        for (; ms < 1500 && peak < 5000; ms += 1) {
+          const s = r.run(1);
+          peak = Math.max(peak, Math.hypot(s[11], s[12], s[13]));
+        }
+        const trips = typeof r.sim.e.sim_rate_guard_trips === 'function' ? r.sim.e.sim_rate_guard_trips() : -1;
+        out.push({ name: `${label}: the pack is out`, ok: (r.flags() & DAMAGE_FLAGS.batteryEjected) !== 0, detail: r.summary() });
+        out.push({ name: `${label}: its tumble stays under 2.5 times the start rate for 1.5 s`, ok: ms === 1500 && peak < 2.5 * start,
+          detail: `peak ${peak.toFixed(0)} rad/s from ${start.toFixed(0)}${ms < 1500 ? `, stopped at ${ms} ms` : ''}` });
+        out.push({ name: `${label}: the rate guard never trips`, ok: trips === 0, detail: `${trips}` });
+      }
+      /* A body set turning at 1e6 rad/s, far past any rigid body here: the
+       * craft and the part that leaves it in that step both meet the guard
+       * (SIM_RATE_MAX), are stopped and counted, and the step returns. */
+      const b = await mk({ id: 0, ground: null });
+      b.pose([0, 0, 500], [1, 0, 0, 0]);
+      b.velocity([0, 0, 0], [1e6, 0, 0]);
+      b.sim.e.sim_part_break(b.index('antenna'));
+      const s = b.run(2);
+      const trips = typeof b.sim.e.sim_rate_guard_trips === 'function' ? b.sim.e.sim_rate_guard_trips() : -1;
+      out.push({ name: 'a body turning at 1e6 rad/s is stopped and counted by the rate guard, craft and part',
+        ok: trips === 2 && Math.hypot(s[11], s[12], s[13]) < 1, detail: `${trips} trips, ${Math.hypot(s[11], s[12], s[13]).toFixed(3)} rad/s after` });
+      return out;
     },
   },
 ];

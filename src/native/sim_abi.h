@@ -237,6 +237,15 @@ int sim_set_ground(int on,
 int sim_ground_contacts(void);
 
 /*
+ * How many parts met a solid the plant knows (sim_obstacle_*, a tree's
+ * trunk) on the last step. With the damage mode on the plant meets those
+ * solids itself, every step, and drops a host's contact on one, so a host
+ * that knew a hit only by its own contact call learns it here. Zero with
+ * the mode off. Additive.
+ */
+int sim_obstacle_contacts(void);
+
+/*
  * Enable or disable Betaflight crashflip (turtle mode). Off (0) is the
  * default and the path every harness replay takes. On (non-zero) makes
  * mixTable take applyFlipOverAfterCrashModeToMotors, which is already
@@ -898,6 +907,15 @@ int sim_part_set_damage(int part, double damage);
 int sim_free_bodies_active(void);
 
 /*
+ * sim_rate_guard_trips(): how many times since the last sim_reset a body
+ * (the craft or a free body) came to its attitude update turning faster
+ * than any rigid body here can, or with a rate that is not a number, and
+ * had its rates zeroed instead of hanging the update's subdivision loop.
+ * Always 0 in a sound run; anything else is a bug for the tests to catch.
+ */
+int sim_rate_guard_trips(void);
+
+/*
  * SURFACES. A material per contact. SIM_SURF_DEFAULT is today's contact:
  * the restitution and friction the caller passes, a rigid surface. The
  * others carry their own friction, restitution and give (a stiffness, and
@@ -932,6 +950,19 @@ int sim_contact_at_mat(double nx, double ny, double nz, int mat,
                        double px, double py, double pz,
                        double vsx, double vsy, double vsz,
                        double rx, double ry, double rz);
+
+/*
+ * sim_contact_part(part): the host's next sim_contact_at (or
+ * sim_contact_at_mat) is on that part of the table, at the arm it passes.
+ * With the damage mode on, the contact is then that part's, at that point
+ * held to its hull box, instead of the part the plant finds furthest
+ * toward the contact: a host whose hull is the parts' own boxes (a fixed
+ * wing in the shell) knows a pole met the wing panel, though the nose
+ * stands further forward. -1 is no part. Consumed by the next call
+ * whatever it does; with the mode off it changes nothing. Additive, a
+ * host that never calls it is the host it was.
+ */
+int sim_contact_part(int part);
 
 /*
  * OBSTACLES for the free bodies, which the shell does not track: boxes and

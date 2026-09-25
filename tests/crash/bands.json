@@ -639,22 +639,22 @@
     },
     {
      "metric": "restDistM",
-     "min": 8,
-     "max": 30,
-     "source": "R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6)",
+     "min": 16,
+     "max": 58,
+     "source": "R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v squared over 2 mu g",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 2,
-     "max": 5,
-     "source": "R-SLIDE",
+     "min": 2.3,
+     "max": 6.3,
+     "source": "R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v over mu g",
      "confidence": "LOW"
     }
    ]
   },
   "sky-pole": {
-   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "refStill": "A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.",
    "checks": [
     {
      "metric": "mustBreak",
@@ -681,23 +681,23 @@
     },
     {
      "metric": "restDistM",
-     "min": 0,
-     "max": 5,
-     "source": "R-AFH",
+     "min": 5.6,
+     "max": 16.6,
+     "source": "R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-AFH",
+     "min": 0.45,
+     "max": 2.8,
+     "source": "R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "retainedFirst",
-     "min": 0.0,
-     "max": 0.3,
-     "source": "R-AFH",
+     "min": 0.71,
+     "max": 1,
+     "source": "R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent)",
      "confidence": "LOW"
     }
    ]
@@ -744,54 +744,31 @@
    ]
   },
   "cub-stall": {
-   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.",
+   "refStill": "Stalled low with the stick held back: the nose drops a little and it mushes down with the wings nearly level, lands hard on its gear, bounces and rolls on upright, nothing broken.",
    "checks": [
-    {
-     "metric": "mustBreak",
-     "parts": [
-      "prop"
-     ],
-     "source": "R-A14-FOAM (puller prop, spinner and motor at the nose)",
-     "confidence": "MED"
-    },
     {
      "metric": "mustNotBreak",
      "parts": [
       "wing",
       "tail"
      ],
-     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "source": "R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH",
      "confidence": "MED"
     },
     {
      "metric": "peakG",
-     "min": 50,
-     "max": 150,
-     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged)",
      "confidence": "MED"
     },
     {
      "metric": "restAttitude",
      "oneOf": [
-      "nose down",
-      "inverted"
+      "upright"
      ],
-     "source": "R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over)",
-     "confidence": "LOW"
-    },
-    {
-     "metric": "restDistM",
-     "min": 0,
-     "max": 3,
-     "source": "R-C172, R-A14-FOAM",
+     "source": "R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH",
      "confidence": "MED"
-    },
-    {
-     "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-C172 (Froude scaled)",
-     "confidence": "LOW"
     }
    ]
   },
@@ -962,7 +939,7 @@
    ]
   },
   "cub-pole": {
-   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "refStill": "A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.",
    "checks": [
     {
      "metric": "mustBreak",
@@ -989,23 +966,23 @@
     },
     {
      "metric": "restDistM",
-     "min": 0,
-     "max": 5,
-     "source": "R-AFH",
+     "min": 4.9,
+     "max": 14.8,
+     "source": "R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-AFH",
+     "min": 0.45,
+     "max": 2.7,
+     "source": "R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "retainedFirst",
-     "min": 0.0,
-     "max": 0.3,
-     "source": "R-AFH",
+     "min": 0.59,
+     "max": 1,
+     "source": "R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent)",
      "confidence": "LOW"
     }
    ]
@@ -1232,21 +1209,21 @@
     {
      "metric": "restDistM",
      "min": 8,
-     "max": 30,
-     "source": "R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6)",
+     "max": 29,
+     "source": "R-SLIDE at V_s 6.5 m/s: 1.5 V_s (9.75 m/s) at mu 0.6 to 2 V_s (13 m/s) at mu 0.3, v squared over 2 mu g",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 2,
-     "max": 5,
-     "source": "R-SLIDE",
+     "min": 1.6,
+     "max": 4.5,
+     "source": "R-SLIDE at V_s 6.5 m/s: 1.5 V_s (9.75 m/s) at mu 0.6 to 2 V_s (13 m/s) at mu 0.3, v over mu g",
      "confidence": "LOW"
     }
    ]
   },
   "radian-pole": {
-   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "refStill": "A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.",
    "checks": [
     {
      "metric": "mustBreak",
@@ -1273,23 +1250,23 @@
     },
     {
      "metric": "restDistM",
-     "min": 0,
-     "max": 5,
-     "source": "R-AFH",
+     "min": 4.9,
+     "max": 15.9,
+     "source": "R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-AFH",
+     "min": 0.45,
+     "max": 2.8,
+     "source": "R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "retainedFirst",
-     "min": 0.0,
-     "max": 0.3,
-     "source": "R-AFH",
+     "min": 0.63,
+     "max": 1,
+     "source": "R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent)",
      "confidence": "LOW"
     }
    ]
@@ -1336,53 +1313,31 @@
    ]
   },
   "slowstick-stall": {
-   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.",
+   "refStill": "Stalled low with the stick held back: it barely breaks, mushes down with the nose a little low, lands hard on its gear, bounces and rolls on upright, nothing broken.",
    "checks": [
-    {
-     "metric": "mustBreak",
-     "parts": [
-      "prop"
-     ],
-     "source": "R-A14-FOAM (puller prop, spinner and motor at the nose)",
-     "confidence": "MED"
-    },
     {
      "metric": "mustNotBreak",
      "parts": [
-      "wing"
+      "wing",
+      "tail"
      ],
-     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "source": "R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH",
      "confidence": "MED"
     },
     {
      "metric": "peakG",
-     "min": 50,
-     "max": 150,
-     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged)",
      "confidence": "MED"
     },
     {
      "metric": "restAttitude",
      "oneOf": [
-      "nose down",
-      "inverted"
+      "upright"
      ],
-     "source": "R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over)",
-     "confidence": "LOW"
-    },
-    {
-     "metric": "restDistM",
-     "min": 0,
-     "max": 3,
-     "source": "R-C172, R-A14-FOAM",
+     "source": "R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH",
      "confidence": "MED"
-    },
-    {
-     "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-C172 (Froude scaled)",
-     "confidence": "LOW"
     }
    ]
   },
@@ -1538,7 +1493,7 @@
    ]
   },
   "slowstick-pole": {
-   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "refStill": "A wing hits a wooden pole at cruise: the one piece wing is torn off its mount, and the stick with its motor and tail carries on past the pole, slowed, and drops onto the grass a few metres on.",
    "checks": [
     {
      "metric": "mustBreak",
@@ -1565,23 +1520,23 @@
     },
     {
      "metric": "restDistM",
-     "min": 0,
-     "max": 5,
-     "source": "R-AFH",
+     "min": 0.5,
+     "max": 6.2,
+     "source": "R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
      "min": 0.5,
-     "max": 2,
-     "source": "R-AFH",
+     "max": 2.1,
+     "source": "R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "retainedFirst",
-     "min": 0.0,
-     "max": 0.3,
-     "source": "R-AFH",
+     "min": 0.08,
+     "max": 1,
+     "source": "R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent)",
      "confidence": "LOW"
     }
    ]
@@ -1628,54 +1583,31 @@
    ]
   },
   "timber-stall": {
-   "refStill": "Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.",
+   "refStill": "Stalled low with the stick held back: it mushes down with the wings level, never dropping one, lands hard on its gear, bounces and rolls on upright, nothing broken.",
    "checks": [
-    {
-     "metric": "mustBreak",
-     "parts": [
-      "prop"
-     ],
-     "source": "R-A14-FOAM (puller prop, spinner and motor at the nose)",
-     "confidence": "MED"
-    },
     {
      "metric": "mustNotBreak",
      "parts": [
       "wing",
       "tail"
      ],
-     "source": "R-A14-FOAM, R-SLOWSTICK",
+     "source": "R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH",
      "confidence": "MED"
     },
     {
      "metric": "peakG",
-     "min": 50,
-     "max": 150,
-     "source": "R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check",
+     "min": 3,
+     "max": 10,
+     "source": "R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged)",
      "confidence": "MED"
     },
     {
      "metric": "restAttitude",
      "oneOf": [
-      "nose down",
-      "inverted"
+      "upright"
      ],
-     "source": "R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over)",
-     "confidence": "LOW"
-    },
-    {
-     "metric": "restDistM",
-     "min": 0,
-     "max": 3,
-     "source": "R-C172, R-A14-FOAM",
+     "source": "R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH",
      "confidence": "MED"
-    },
-    {
-     "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-C172 (Froude scaled)",
-     "confidence": "LOW"
     }
    ]
   },
@@ -1846,7 +1778,7 @@
    ]
   },
   "timber-pole": {
-   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "refStill": "A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.",
    "checks": [
     {
      "metric": "mustBreak",
@@ -1873,23 +1805,23 @@
     },
     {
      "metric": "restDistM",
-     "min": 0,
-     "max": 5,
-     "source": "R-AFH",
+     "min": 7.2,
+     "max": 19.8,
+     "source": "R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-AFH",
+     "min": 0.45,
+     "max": 3.1,
+     "source": "R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "retainedFirst",
-     "min": 0.0,
-     "max": 0.3,
-     "source": "R-AFH",
+     "min": 0.73,
+     "max": 1,
+     "source": "R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent)",
      "confidence": "LOW"
     }
    ]
@@ -2115,22 +2047,22 @@
     },
     {
      "metric": "restDistM",
-     "min": 8,
-     "max": 30,
-     "source": "R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6)",
+     "min": 32,
+     "max": 115,
+     "source": "R-SLIDE at V_s 13 m/s: 1.5 V_s (19.5 m/s) at mu 0.6 to 2 V_s (26 m/s) at mu 0.3, v squared over 2 mu g",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 2,
-     "max": 5,
-     "source": "R-SLIDE",
+     "min": 3.3,
+     "max": 8.9,
+     "source": "R-SLIDE at V_s 13 m/s: 1.5 V_s (19.5 m/s) at mu 0.6 to 2 V_s (26 m/s) at mu 0.3, v over mu g",
      "confidence": "LOW"
     }
    ]
   },
   "bramor-pole": {
-   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "refStill": "A wing hits a wooden pole at cruise: the struck composite panel lets go at its root, the rest of the aircraft carries on past the pole, slowed, rolls toward the lost wing and comes down on the grass some metres on.",
    "checks": [
     {
      "metric": "mustBreak",
@@ -2157,23 +2089,23 @@
     },
     {
      "metric": "restDistM",
-     "min": 0,
-     "max": 5,
-     "source": "R-AFH",
+     "min": 3,
+     "max": 18,
+     "source": "R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-AFH",
+     "min": 0.4,
+     "max": 2.9,
+     "source": "R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "retainedFirst",
-     "min": 0.0,
-     "max": 0.3,
-     "source": "R-AFH",
+     "min": 0.22,
+     "max": 1,
+     "source": "R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent)",
      "confidence": "LOW"
     }
    ]

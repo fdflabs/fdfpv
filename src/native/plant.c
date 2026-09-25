@@ -24,7 +24,8 @@
  * absolute RPM, and the trade is recorded in PROGRESS.md.
  *
  * Determinism: fixed operation order, IEEE basic arithmetic and
- * sim_sqrt/sim_sin_small/sim_cos_small only. No libc libm.
+ * sim_sqrt/sim_sin_small/sim_cos_small, and sim_sin/sim_cos for a damaged
+ * airframe's rates, only. No libc libm.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -1548,6 +1549,7 @@ static double plant_wash_noise(SimState *s) {
 #define PLANT_WASH_CLAMP 3.0
 
 void plant_reset(SimState *s) {
+  SIM_RATE_GUARD_TRIPS = 0;
   for (int i = 0; i < 3; i += 1) {
     s->pos[i] = 0.0;
     s->vel[i] = 0.0;
@@ -1598,6 +1600,70 @@ static void quat_rotate(const double q[4], const double v[3], double out[3]) {
 static void quat_rotate_inv(const double q[4], const double v[3], double out[3]) {
   const double qc[4] = { q[0], -q[1], -q[2], -q[3] };
   quat_rotate(qc, v, out);
+}
+
+/* The body's angular momentum turned about body axis i by the rate that
+ * axis has while the turn lasts: the exact flow of the (L_i - h_i)^2 / 2 I_i
+ * part of the energy, which leaves L_i and |L| as they were. */
+static void rates_spin(double L[3], const double I[3], const double h[3], int i, double t) {
+  const int j = (i + 1) % 3;
+  const int k = (i + 2) % 3;
+  const double phi = t * (L[i] - h[i]) / I[i];
+  const double c = sim_cos(phi);
+  const double sn = sim_sin(phi);
+  const double lj = L[j] * c + L[k] * sn;
+  const double lk = L[k] * c - L[j] * sn;
+  L[j] = lj;
+  L[k] = lk;
+}
+
+/*
+ * THE RATES OF A DAMAGED AIRFRAME, I omega_dot = tau - omega x (I omega + h).
+ *
+ * The explicit step the intact plants take adds |dt omega x L|^2 to |L|^2
+ * in every step with nothing to take it out again, so a free tumble gains
+ * energy at a rate that grows with its own square. Under power the
+ * controller and the rotors' drag take it out far faster; with the pack
+ * gone nothing does, and a five inch or a whoop that lost its pack in a
+ * 150 rad/s tumble reached 100,000 rad/s in 1.5 s (docs/CRASH-PLAN.md,
+ * round 5). This is the free rigid body split by axis (McLachlan 1993,
+ * the symmetric x y z y x order), each part an exact rotation of L, with
+ * the applied torque as a half kick either side. A rotation cannot change
+ * |L|, so with no torque |omega| stays under (|L| + |h|) / min I for any
+ * inertia and any rate, and the energy is conserved to the splitting's
+ * second order error rather than pumped.
+ *
+ * Only the damaged airframe takes it (CRASH.active): an intact flight is
+ * the explicit step it always was, bit for bit.
+ */
+void plant_rates_step(double w[3], const double I[3], const double h[3], const double tau[3], double dt) {
+  const double half = 0.5 * dt;
+  double L[3];
+  for (int a = 0; a < 3; a += 1) {
+    L[a] = I[a] * w[a] + h[a] + half * tau[a];
+  }
+  rates_spin(L, I, h, 0, half);
+  rates_spin(L, I, h, 1, half);
+  rates_spin(L, I, h, 2, dt);
+  rates_spin(L, I, h, 1, half);
+  rates_spin(L, I, h, 0, half);
+  for (int a = 0; a < 3; a += 1) {
+    w[a] = (L[a] + half * tau[a] - h[a]) / I[a];
+  }
+}
+
+int SIM_RATE_GUARD_TRIPS = 0;
+
+int plant_rate_guard(double w[3]) {
+  const double m = sim_sqrt(w[0] * w[0] + w[1] * w[1] + w[2] * w[2]);
+  if (m <= SIM_RATE_MAX) {
+    return 1;
+  }
+  SIM_RATE_GUARD_TRIPS += 1;
+  w[0] = 0.0;
+  w[1] = 0.0;
+  w[2] = 0.0;
+  return 0;
 }
 
 void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
@@ -2392,24 +2458,30 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     tau[1] += PLANT_POS_Z[m] * fx - PLANT_POS_X[m] * fz;
     tau[2] += PLANT_POS_X[m] * fy - PLANT_POS_Y[m] * fx;
   }
-  /* omega x (I omega + h_prop) */
-  const double lx = PLANT.inertia[0] * s->omega[0] + h_prop[0];
-  const double ly = PLANT.inertia[1] * s->omega[1] + h_prop[1];
-  const double lz = PLANT.inertia[2] * s->omega[2] + h_prop[2];
-  const double cx = s->omega[1] * lz - s->omega[2] * ly;
-  const double cy = s->omega[2] * lx - s->omega[0] * lz;
-  const double cz = s->omega[0] * ly - s->omega[1] * lx;
-  tau[0] -= cx;
-  tau[1] -= cy;
-  tau[2] -= cz;
-
   /* 5. Angular rate update, diagonal inertia. */
-  s->omega[0] += (tau[0] / PLANT.inertia[0]) * SIM_DT;
-  s->omega[1] += (tau[1] / PLANT.inertia[1]) * SIM_DT;
-  s->omega[2] += (tau[2] / PLANT.inertia[2]) * SIM_DT;
+  if (CRASH.active) {
+    plant_rates_step(s->omega, PLANT.inertia, h_prop, tau, SIM_DT);
+  } else {
+    /* omega x (I omega + h_prop) */
+    const double lx = PLANT.inertia[0] * s->omega[0] + h_prop[0];
+    const double ly = PLANT.inertia[1] * s->omega[1] + h_prop[1];
+    const double lz = PLANT.inertia[2] * s->omega[2] + h_prop[2];
+    const double cx = s->omega[1] * lz - s->omega[2] * ly;
+    const double cy = s->omega[2] * lx - s->omega[0] * lz;
+    const double cz = s->omega[0] * ly - s->omega[1] * lx;
+    tau[0] -= cx;
+    tau[1] -= cy;
+    tau[2] -= cz;
+    s->omega[0] += (tau[0] / PLANT.inertia[0]) * SIM_DT;
+    s->omega[1] += (tau[1] / PLANT.inertia[1]) * SIM_DT;
+    s->omega[2] += (tau[2] / PLANT.inertia[2]) * SIM_DT;
+  }
 
   /* 6. Attitude update: q = q * exp(omega dt / 2), subdivided so the
-   * small angle trig stays inside its accurate range. */
+   * small angle trig stays inside its accurate range. The guard bounds the
+   * subdivision: a rate past SIM_RATE_MAX (or not a number) would halve
+   * for ever. */
+  plant_rate_guard(s->omega);
   const double wx = s->omega[0], wy = s->omega[1], wz = s->omega[2];
   const double wmag = sim_sqrt(wx * wx + wy * wy + wz * wz);
   if (wmag > 1e-12) {

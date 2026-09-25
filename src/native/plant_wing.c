@@ -1153,14 +1153,20 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     M[2] += m_crash[2] - (c[0] * F[1] - c[1] * F[0]);
   }
 
-  /* Rates: I omega_dot = M - omega x (I omega), diagonal inertia. */
-  const double Ix = PLANT.inertia[0], Iy = PLANT.inertia[1], Iz = PLANT.inertia[2];
-  const double qb = s->omega[1], r = s->omega[2];
-  const double hx = Ix * p, hy = Iy * qb, hz = Iz * r;
-  const double gyro[3] = { qb * hz - r * hy, r * hx - p * hz, p * hy - qb * hx };
-  s->omega[0] += (M[0] - gyro[0]) / Ix * WING_DT;
-  s->omega[1] += (M[1] - gyro[1]) / Iy * WING_DT;
-  s->omega[2] += (M[2] - gyro[2]) / Iz * WING_DT;
+  /* Rates: I omega_dot = M - omega x (I omega), diagonal inertia. A damaged
+   * airframe takes the step that cannot pump its tumble (plant.c). */
+  if (CRASH.active) {
+    const double h0[3] = { 0.0, 0.0, 0.0 };
+    plant_rates_step(s->omega, PLANT.inertia, h0, M, WING_DT);
+  } else {
+    const double Ix = PLANT.inertia[0], Iy = PLANT.inertia[1], Iz = PLANT.inertia[2];
+    const double qb = s->omega[1], r = s->omega[2];
+    const double hx = Ix * p, hy = Iy * qb, hz = Iz * r;
+    const double gyro[3] = { qb * hz - r * hy, r * hx - p * hz, p * hy - qb * hx };
+    s->omega[0] += (M[0] - gyro[0]) / Ix * WING_DT;
+    s->omega[1] += (M[1] - gyro[1]) / Iy * WING_DT;
+    s->omega[2] += (M[2] - gyro[2]) / Iz * WING_DT;
+  }
 
   /* Attitude: quaternion increment from the body rates, small angle. */
   const double wx = s->omega[0] * WING_DT, wy = s->omega[1] * WING_DT, wz = s->omega[2] * WING_DT;
@@ -1548,7 +1554,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .stall_k = 0.84,
   .stall_top = 1.4 * WING_PI / 180.0,
   .strip_c = { 1.101, 1.096, 1.074, 0.775 },
-  .washout = 0.0,          /* no fit within a few degrees, docs/STALL-STAGE1.md */
+  .washout = 6.0 * WING_PI / 180.0, /* FITTED, past the 5 deg bound by lead decision, docs/STALL-STAGE1.md */
 };
 
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has

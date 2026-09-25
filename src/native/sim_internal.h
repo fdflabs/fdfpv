@@ -402,6 +402,26 @@ double sim_sqrt_pub(double x);
  */
 void plant_step(SimState *s, const double duty[SIM_MOTOR_COUNT]);
 
+/* One step of I omega_dot = tau - omega x (I omega + h), diagonal I, body
+ * frame, by an integrator that cannot pump energy into a free tumble
+ * (plant.c, THE RATES OF A DAMAGED AIRFRAME). w in and out; h the rotors'
+ * angular momentum, held over the step. */
+void plant_rates_step(double w[3], const double I[3], const double h[3], const double tau[3], double dt);
+
+/* No rigid body here turns faster than this, rad/s: a free body is capped
+ * at 300 (crash.c, FB_W_MAX) and a craft's tumble is a few hundred, where
+ * this would move a five inch's prop tip at over 1,000 m/s on the spin
+ * alone. It bounds the attitude update's subdivision loops, which halve
+ * the step's angle until it is under 0.4 rad and so never end on an
+ * infinite rate. */
+#define SIM_RATE_MAX 1.0e4
+/* 1 when |w| is at most SIM_RATE_MAX. Otherwise (a rate past it, or not a
+ * number) w is zeroed, SIM_RATE_GUARD_TRIPS counts it and 0 comes back:
+ * a state that bad is a bug upstream, and the count, read by
+ * sim_rate_guard_trips(), is how the tests see it rather than a hung page. */
+int plant_rate_guard(double w[3]);
+extern int SIM_RATE_GUARD_TRIPS;
+
 /*
  * The fixed wing plant, src/native/plant_wing.c: one plant for every table
  * entry of PLANT_KIND_WING, driven by the entry's FixedWingParams. The
@@ -823,19 +843,24 @@ int crash_samplers(const double **pts, const int **part);
 /* The next contact is the solver's sampler k, -1 for none: it belongs to
  * that sampler's part. */
 void crash_hint_sampler(int k);
+/* The host's next contact is on part i, at its arm; -1 for none. */
+void crash_host_part(int i);
 /* The part a body frame point belongs to, for a contact there: the
  * attached part with the hull point nearest it. */
 int crash_part_at(const double b[3]);
-/* Where a host's obstacle contact puts the craft. SIM_PLACE_HOST: at the
- * host's pose, as always. Once a part has left and the plant knows the
- * solids near the craft, the host's hull is not the airframe's:
- * SIM_PLACE_NONE, no part still on it is at a solid, so no contact and no
- * pose; SIM_PLACE_OWN, at pos, out of the solid by its parts' own depth,
- * met at arm (world axes, from the CG) on its own part. */
-#define SIM_PLACE_HOST 0
-#define SIM_PLACE_NONE 1
-#define SIM_PLACE_OWN 2
-int crash_contact_place(const SimState *s, const double n[3], double pos[3], double arm[3]);
+/* 0 for the whoop the shell flies, whose room is scaled and whose ground
+ * stops stay the rigid contact's; 1 for every craft at life size. */
+int crash_life_size(void);
+/* Whether a host's obstacle contact at hw (world), along n, is on a solid
+ * the plant knows and meets itself (crash_touches): then the host's call
+ * is dropped, its pose with it. Damage mode only. */
+int crash_contact_known(const SimState *s, const double n[3], const double hw[3]);
+/* Every step, damage mode only: the parts that are in a solid the plant
+ * knows, one contact each, and the count. crash_touch(k) hands the solver
+ * contact k, its arm r (world, from the CG), normal n, depth, e and mu, and
+ * makes it the next contact's; k -1 ends the pass. */
+int crash_touches(const SimState *s);
+int crash_touch(const SimState *s, int k, double r[3], double n[3], double *pen, double *e, double *mu);
 
 /* Bridge: Betaflight control loop and config shim. */
 

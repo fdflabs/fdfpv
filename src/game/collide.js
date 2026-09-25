@@ -59,6 +59,8 @@
  * metres exactly once. frame.js owns that conversion and has no dependencies
  * of its own. */
 import { simLenToWorld } from '../render/frame.js';
+/* A fixed wing's parts as its hull: see setCraftParts. */
+import { bodyAxes, hullContact, partCentre, sweepPartBox, sweepPartCapsule } from './airframehull.js';
 
 /*
  * The craft's size, in metres, and the ONE place any of it is written down.
@@ -239,6 +241,28 @@ export function setCraftAirframe(dims) {
   CRAFT_WORLD_HULL = simLenToWorld(CRAFT_HULL_R);
   CRAFT_WORLD_V_HALF = simLenToWorld(CRAFT_V_HALF);
   CRAFT_WORLD_V_OFF = simLenToWorld(CRAFT_V_OFF);
+}
+
+/*
+ * A FIXED WING IS MET BY ITS PARTS, not by a disc.
+ *
+ * The prop discs above are a quad's hull, and for a plane (arm 0, a hull
+ * radius of its half span) they are a disc as wide as the wingspan about
+ * the CG. A pole meets that disc about half a metre ahead of the wing,
+ * at a point in the air in front of the aircraft, and the plant was
+ * handed that point (docs/CRASH-STAGE1.md section 3, the wing clip). So a
+ * fixed wing's hull is its parts' boxes from the crash core's own table
+ * (src/game/airframehull.js), and hit() sweeps those, reporting where on
+ * them the contact is (hitArm). The shell seats it with the airframe and
+ * keeps its live parts to the plant's readback. null, which every quad
+ * is, keeps the discs exactly as they were.
+ */
+let CRAFT_PARTS = null;
+export function setCraftParts(hull) {
+  CRAFT_PARTS = hull;
+}
+export function craftParts() {
+  return CRAFT_PARTS;
 }
 
 /* The vertical semi-axis at a given tilt of the prop plane from level, in
@@ -677,6 +701,24 @@ export function contactPatch(nx, ny, nz, qx, qy, qz, qw, out) {
   return r;
 }
 
+/* Whether contact a comes before b: earlier along the travel, or at the
+ * same parameter deeper in. */
+function partBetter(a, b) {
+  return b.t < 0 || a.t < b.t || (a.t === b.t && a.depth > b.depth);
+}
+
+function copyContact(from, to) {
+  to.t = from.t;
+  to.nx = from.nx;
+  to.ny = from.ny;
+  to.nz = from.nz;
+  to.depth = from.depth;
+  to.px = from.px;
+  to.py = from.py;
+  to.pz = from.pz;
+  to.part = from.part;
+}
+
 export class Colliders {
   constructor() {
     /* Construction time storage. Plain arrays here on purpose: this runs
@@ -728,6 +770,22 @@ export class Colliders {
     this.hitNy = 0;
     this.hitNz = 0;
     this.hitMoving = -1;
+    /* Where on the craft the contact is, world metres from its centre at
+     * hitT, when the hull is a fixed wing's parts (hitArm true); a quad's
+     * contact point is contactPatch's to derive. hitPart is the part's
+     * table index, -1 for none. */
+    this.hitArm = false;
+    this.hitArmX = 0;
+    this.hitArmY = 0;
+    this.hitArmZ = 0;
+    this.hitPart = -1;
+    /* Scratch for the parts' sweep, allocated once. */
+    this.partAxes = new Float64Array(9);
+    this.partHit = hullContact();
+    this.partBest = hullContact();
+    this.partLo = new Float64Array(3);
+    this.partHi = new Float64Array(3);
+    this.partC = new Float64Array(3);
     /* Scratch for axisToPoint, written per call, never allocated. */
     this.nx = 0;
     this.ny = 0;
@@ -1729,6 +1787,8 @@ export class Colliders {
     this.hitPen = 0;
     this.hitOverlap = 0;
     this.hitMoving = -1;
+    this.hitArm = false;
+    this.hitPart = -1;
     if (!this.built) {
       return -1;
     }
@@ -1747,6 +1807,9 @@ export class Colliders {
       || !Number.isFinite(qx) || !Number.isFinite(qy) || !Number.isFinite(qz)
     ) {
       return -1;
+    }
+    if (CRAFT_PARTS) {
+      return this.hitParts(px, py, pz, qx, qy, qz, aqX, aqY, aqZ, aqW);
     }
     this.queryId += 1;
     const id = this.queryId;
@@ -2139,6 +2202,214 @@ export class Colliders {
     }
     this.finishHitNormal(nx, ny, nz, d1x, d1y, d1z);
     return this.hitKind;
+  }
+
+  /*
+   * hit() for a fixed wing: the same query, the craft its live parts'
+   * boxes at the attitude aq, translated from p to q. The broadphase is
+   * hit()'s, padded by the parts' reach; a candidate the reach's sphere
+   * does not touch is passed over before any part is tried. Among the
+   * parts that touch, the earliest wins, and at the same parameter the
+   * deepest. The contact is reported as hit() reports it, plus where on
+   * the craft it is (hitArm) and which part (hitPart).
+   *
+   * The depths mean what they mean for the discs: against a capsule the
+   * overlap is hitPen and hitOverlap both, against a box it is hitOverlap,
+   * and hitPen only when the craft's centre is itself inside the box.
+   */
+  hitParts(px, py, pz, qx, qy, qz, aqX, aqY, aqZ, aqW) {
+    const hull = CRAFT_PARTS;
+    this.queryId += 1;
+    const id = this.queryId;
+    const ax = bodyAxes(aqX, aqY, aqZ, aqW, this.partAxes);
+    const reach = hull.reach;
+    const pad = (reach > CRAFT_WORLD_R ? reach : CRAFT_WORLD_R) + this.maxR;
+    const cx0 = clampCell(Math.floor((Math.min(px, qx) - pad) / CELL));
+    const cx1 = clampCell(Math.floor((Math.max(px, qx) + pad) / CELL));
+    const cz0 = clampCell(Math.floor((Math.min(pz, qz) - pad) / CELL));
+    const cz1 = clampCell(Math.floor((Math.max(pz, qz) + pad) / CELL));
+    const d1x = qx - px;
+    const d1y = qy - py;
+    const d1z = qz - pz;
+    const a = d1x * d1x + d1y * d1y + d1z * d1z;
+    const lo = this.partLo;
+    const hi = this.partHi;
+    const got = this.partHit;
+    const best = this.partBest;
+    best.t = -1;
+    best.depth = 0;
+    let bestI = -1;
+    let bestMoving = -1;
+    let candidates = 0;
+
+    for (let cx = cx0; cx <= cx1; cx += 1) {
+      for (let cz = cz0; cz <= cz1; cz += 1) {
+        const bucket = this.grid.get((cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF));
+        if (bucket === undefined) {
+          continue;
+        }
+        for (let bi = 0; bi < bucket.length; bi += 1) {
+          const i = bucket[bi];
+          if (this.stamp[i] === id) {
+            continue;
+          }
+          this.stamp[i] = id;
+          if (this.pass[i] !== 0) {
+            continue;
+          }
+          candidates += 1;
+          if (this.fbox[i]) {
+            if (
+              (px < this.fax[i] - reach && qx < this.fax[i] - reach)
+              || (px > this.fbx[i] + reach && qx > this.fbx[i] + reach)
+              || (py < this.fay[i] - reach && qy < this.fay[i] - reach)
+              || (py > this.fby[i] + reach && qy > this.fby[i] + reach)
+              || (pz < this.faz[i] - reach && qz < this.faz[i] - reach)
+              || (pz > this.fbz[i] + reach && qz > this.fbz[i] + reach)
+            ) {
+              continue;
+            }
+            lo[0] = this.fax[i];
+            lo[1] = this.fay[i];
+            lo[2] = this.faz[i];
+            hi[0] = this.fbx[i];
+            hi[1] = this.fby[i];
+            hi[2] = this.fbz[i];
+            if (this.partsAgainstBox(hull, ax, px, py, pz, d1x, d1y, d1z, lo, hi, got, best)) {
+              bestI = i;
+            }
+          } else {
+            const r = this.fr[i];
+            const reachR = reach + r;
+            if (this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reachR * reachR) < 0) {
+              continue;
+            }
+            let won = false;
+            const c = this.partC;
+            for (let k = 0; k < hull.n; k += 1) {
+              if (!hull.live[k]) {
+                continue;
+              }
+              /* The part's own sphere first: most parts are nowhere near. */
+              partCentre(hull, k, ax, px, py, pz, c);
+              const rr = hull.rho[k] + r;
+              if (this.capsuleEarliestT(i, c[0], c[1], c[2], d1x, d1y, d1z, a, rr * rr) < 0) {
+                continue;
+              }
+              const t = sweepPartCapsule(
+                hull, k, ax, px, py, pz, d1x, d1y, d1z,
+                this.fax[i], this.fay[i], this.faz[i], this.fbx[i], this.fby[i], this.fbz[i], r, got,
+              );
+              if (t >= 0 && partBetter(got, best)) {
+                copyContact(got, best);
+                won = true;
+              }
+            }
+            if (won) {
+              bestI = i;
+            }
+          }
+        }
+      }
+    }
+
+    /* The moving boxes, each in its own frame as hit() has them: the
+     * craft's travel less the box's. The contact point comes back in that
+     * frame and is moved to the world's at the same parameter. */
+    for (let m = 0; m < this.movingCount; m += 1) {
+      const rpx = px - this.movingPx[m];
+      const rpy = py - this.movingPy[m];
+      const rpz = pz - this.movingPz[m];
+      const rdx = (qx - this.movingCx[m]) - rpx;
+      const rdy = (qy - this.movingCy[m]) - rpy;
+      const rdz = (qz - this.movingCz[m]) - rpz;
+      const gx = this.movingHx[m] + reach;
+      const gy = this.movingHy[m] + reach;
+      const gz = this.movingHz[m] + reach;
+      if (
+        (rpx < -gx && rpx + rdx < -gx) || (rpx > gx && rpx + rdx > gx)
+        || (rpy < -gy && rpy + rdy < -gy) || (rpy > gy && rpy + rdy > gy)
+        || (rpz < -gz && rpz + rdz < -gz) || (rpz > gz && rpz + rdz > gz)
+      ) {
+        continue;
+      }
+      lo[0] = -this.movingHx[m];
+      lo[1] = -this.movingHy[m];
+      lo[2] = -this.movingHz[m];
+      hi[0] = this.movingHx[m];
+      hi[1] = this.movingHy[m];
+      hi[2] = this.movingHz[m];
+      if (this.partsAgainstBox(hull, ax, rpx, rpy, rpz, rdx, rdy, rdz, lo, hi, got, best)) {
+        bestMoving = m;
+        bestI = -1;
+        best.px += (px + d1x * best.t) - (rpx + rdx * best.t);
+        best.py += (py + d1y * best.t) - (rpy + rdy * best.t);
+        best.pz += (pz + d1z * best.t) - (rpz + rdz * best.t);
+      }
+    }
+
+    this.lastCandidates = candidates;
+    this.queries += 1;
+    this.candidateTotal += candidates;
+    if (bestI < 0 && bestMoving < 0) {
+      return -1;
+    }
+    const t = best.t;
+    const ccx = px + d1x * t;
+    const ccy = py + d1y * t;
+    const ccz = pz + d1z * t;
+    this.hitIndex = bestI;
+    this.hitMoving = bestMoving;
+    this.hitKind = bestMoving >= 0 ? this.movingKind[bestMoving] : this.fkind[bestI];
+    this.hitT = t;
+    this.hitArm = true;
+    this.hitArmX = best.px - ccx;
+    this.hitArmY = best.py - ccy;
+    this.hitArmZ = best.pz - ccz;
+    this.hitPart = best.part;
+    const depth = best.depth > 8 ? 8 : best.depth;
+    this.hitOverlap = depth;
+    if (bestMoving >= 0) {
+      const m = bestMoving;
+      const rx = ccx - (this.movingPx[m] + (this.movingCx[m] - this.movingPx[m]) * t);
+      const ry = ccy - (this.movingPy[m] + (this.movingCy[m] - this.movingPy[m]) * t);
+      const rz = ccz - (this.movingPz[m] + (this.movingCz[m] - this.movingPz[m]) * t);
+      this.hitPen = Math.abs(rx) < this.movingHx[m] && Math.abs(ry) < this.movingHy[m]
+        && Math.abs(rz) < this.movingHz[m] ? depth : 0;
+    } else if (!this.fbox[bestI]) {
+      this.hitPen = depth;
+    } else {
+      this.hitPen = this.interiorAt(bestI, ccx, ccy, ccz) > 0 ? depth : 0;
+    }
+    this.finishHitNormal(best.nx, best.ny, best.nz, d1x, d1y, d1z);
+    return this.hitKind;
+  }
+
+  /* Every live part against one box; true when one of them beat `best`. */
+  partsAgainstBox(hull, ax, px, py, pz, dx, dy, dz, lo, hi, got, best) {
+    let won = false;
+    const c = this.partC;
+    for (let k = 0; k < hull.n; k += 1) {
+      if (!hull.live[k]) {
+        continue;
+      }
+      /* The part's own sphere against the box grown by it first. */
+      partCentre(hull, k, ax, px, py, pz, c);
+      const g = hull.rho[k];
+      if (
+        (c[0] < lo[0] - g && c[0] + dx < lo[0] - g) || (c[0] > hi[0] + g && c[0] + dx > hi[0] + g)
+        || (c[1] < lo[1] - g && c[1] + dy < lo[1] - g) || (c[1] > hi[1] + g && c[1] + dy > hi[1] + g)
+        || (c[2] < lo[2] - g && c[2] + dz < lo[2] - g) || (c[2] > hi[2] + g && c[2] + dz > hi[2] + g)
+      ) {
+        continue;
+      }
+      const t = sweepPartBox(hull, k, ax, px, py, pz, dx, dy, dz, lo, hi, got);
+      if (t >= 0 && partBetter(got, best)) {
+        copyContact(got, best);
+        won = true;
+      }
+    }
+    return won;
   }
 
   /*
