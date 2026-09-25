@@ -91,7 +91,7 @@ export const TUNES = [
     id: 'sky-acro',
     airframe: 'sky1800',
     name: 'Acro',
-    note: 'A gyro holds the plane where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you.',
+    note: 'A gyro holds the plane where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
     wingStab: 2,
   },
   {
@@ -114,7 +114,7 @@ export const TUNES = [
     id: 'cub-acro',
     airframe: 'cub1400',
     name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you.',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
     wingStab: 2,
   },
   {
@@ -136,7 +136,7 @@ export const TUNES = [
     id: 'radian-acro',
     airframe: 'radian2000',
     name: 'Acro',
-    note: 'A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you. Close the throttle and it glides.',
+    note: 'A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone. Close the throttle and it glides.',
     wingStab: 2,
   },
   {
@@ -209,7 +209,7 @@ export const TUNES = [
     id: 'timber-acro',
     airframe: 'timber1500',
     name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder is coordinated for you. F sets the flaps.',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps.',
     wingStab: 2,
   },
   {

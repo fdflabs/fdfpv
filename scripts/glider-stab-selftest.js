@@ -97,6 +97,8 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
   let sumP = 0;
   let sumQ = 0;
   let sumR = 0;
+  let sumRAll = 0;
+  let mAll = 0;
   let m = 0;
   let s = null;
   for (let ms = 0; ms < total; ms += RC_STEP_MS) {
@@ -116,6 +118,8 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
       sumBeta += wingDebug(sim)[1];
       n += 1;
     }
+    sumRAll += -s[13];
+    mAll += 1;
     if (ms >= total - 250) {
       sumP += s[11];
       sumQ += -s[12];
@@ -126,7 +130,7 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
   clockMs += total;
   return {
     bank: sumBank / n, endBank: fullBank(s), pitch: sumPitch / n, endPitch: attitude(s).pitch, beta: sumBeta / n,
-    worstBank, worst: worstRef, p: sumP / m, q: sumQ / m, r: sumR / m,
+    worstBank, worst: worstRef, p: sumP / m, q: sumQ / m, r: sumR / m, rAll: sumRAll / mAll,
     v: Math.hypot(s[4], s[5], s[6]), vz: s[6], z: s[3], y: s[2], omega: s[14],
   };
 }
@@ -209,8 +213,25 @@ throwAt(150, 14);
 fly(0, 0, 0, 0.6, 1);
 const beforeYaw = fly(0, 0, 0, 0.6, 0.5);
 const acroYaw = fly(0, 0, 1, 0.6, 1);
-check('full right yaw stick yaws the nose right', acroYaw.r * DEG > 3, `${deg(acroYaw.r)} deg/s`);
-check('and the roll lock holds the bank against it, within 5 degrees', Math.abs((acroYaw.endBank - beforeYaw.endBank) * DEG) < 5, `${deg(beforeYaw.endBank)} -> ${deg(acroYaw.endBank)} deg`);
+/* Over the whole hold, not its last quarter second: with no turn
+ * coordinator in Acro (2026-09-25) the rudder's yaw overshoots and the nose
+ * fishtails before it settles, and a quarter second sample can land in the
+ * swing back. */
+check('full right yaw stick yaws the nose right', acroYaw.rAll * DEG > 3, `${deg(acroYaw.rAll)} deg/s over the hold`);
+/* Against the same rudder in Manual. With the turn coordinator in Acro the
+ * rudder was mostly taken back and the bank moved under 5 degrees; with the
+ * rudder the pilot's alone (2026-09-25), full rudder on a polyhedral wing
+ * rolls it 53 degrees in a second in Manual, more than the ailerons can
+ * cancel, so the lock's job is to hold most of that back, not all of it. */
+must(sim.e.sim_wing_set_stab(0), 'manual for the rudder roll');
+throwAt(150, 14);
+fly(0, 0, 0, 0.6, 1);
+const beforeYawManual = fly(0, 0, 0, 0.6, 0.5);
+const manualYaw = fly(0, 0, 1, 0.6, 1);
+must(sim.e.sim_wing_set_stab(2), 'back to acro');
+const acroRoll = Math.abs(acroYaw.endBank - beforeYaw.endBank);
+const manualRoll = Math.abs(manualYaw.endBank - beforeYawManual.endBank);
+check('and the roll lock holds back at least three quarters of the roll that rudder gives in Manual', acroRoll < 0.25 * manualRoll, `${deg(acroRoll)} deg against ${deg(manualRoll)} in Manual`);
 
 throwAt(100, 10);
 const acroGlide = fly(0, 0, 0, 0, 6);

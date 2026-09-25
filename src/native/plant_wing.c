@@ -111,8 +111,8 @@ static double g_surf[4] = { 0.0, 0.0, 0.0, 0.0 };
  * aircraft that cannot keep up, which is what would otherwise make a stop
  * overshoot. The same idea as ArduPlane's ACRO with ACRO_LOCKING.
  *
- * YAW, where there is a rudder. Manual: the yaw stick is the rudder.
- * Stabilised and Acro: the yaw stick is still the rudder, and on top of it
+ * YAW, where there is a rudder. Manual and Acro: the yaw stick is the
+ * rudder and nothing else. Stabilised: the yaw stick is still the rudder, and on top of it
  * a yaw damper drives the body yaw rate toward the coordinated rate for
  * the bank flown, g sin(bank) cos(pitch)/V, which is ArduPlane's turn
  * coordination and what a pilot's feet do. It is not a yaw rate or heading
@@ -782,8 +782,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   } else if (g_on_wheels && g_stab != 0) {
     g_acro_held = 0;
   } else if (g_stab == 2) {
+    /* Acro leaves the yaw stick as the rudder alone. The owner flew the
+     * Cub with the turn coordinator on (2026-09-25): every bank brought
+     * its own yaw, and the damper pulled the yaw rate back onto the
+     * coordinated rate against the pilot's own rudder, so rudder felt
+     * mixed into the ailerons and never independent. Stabilised keeps
+     * the coordinator; Acro is flown on the pilot's feet. */
     acro_sticks(fw, s, &roll, &pitch);
-    yaw = clamp1(add_term(yaw, yaw_coordinated(fw, s, V)));
   } else if (g_stab == 1) {
     double pitch_att, bank;
     wing_attitude(s->quat, &pitch_att, &bank);
