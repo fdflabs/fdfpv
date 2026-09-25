@@ -415,6 +415,7 @@ static int contact_impulse(const double n[3], const double r[3], const double vs
   if (SIM_DAMAGE) {
     crash_contact_depth(pen);
     crash_contact_pre(&S, r, n, vin, kn, &e_used, &jn_cap);
+    mu = crash_contact_mu(mu);
   }
 
   double bias = 0.0;
@@ -689,6 +690,13 @@ static void ground_settle(double upz, double vn_plant) {
    * end the blow in one step, so it too is Coulomb while it lasts. */
   const int coulomb = (SIM_WIND_ON && PLANT.kind == PLANT_KIND_WING)
       || (SIM_DAMAGE && crash_crushing());
+  /* With the damage mode on, the grip of the part the craft lies on. */
+  const double settle_mu = SIM_DAMAGE ? crash_settle_mu(&S, g_ground_n, g_gmu) : g_gmu;
+  /* And the share of the weight this step's corner impulses did not
+   * already carry, with their own friction: the ground's grip counted once. */
+  const double settle_share = SIM_DAMAGE
+      ? crash_settle_share(PLANT.mass_kg * PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0) * SIM_DT)
+      : 1.0;
 
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.
@@ -761,8 +769,8 @@ static void ground_settle(double upz, double vn_plant) {
       S.vel[2] = 0.0;
     }
   } else {
-    const double load = PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0);
-    double dv = g_gmu * load * SIM_DT;
+    const double load = settle_share * PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0);
+    double dv = settle_mu * load * SIM_DT;
     const double vtm = sim_sqrt(vt2);
     if (dv > vtm) {
       dv = vtm;
@@ -794,8 +802,8 @@ static void ground_settle(double upz, double vn_plant) {
       const double i_eff = ux * ux * PLANT.inertia[0]
           + uy * uy * PLANT.inertia[1]
           + uz * uz * PLANT.inertia[2];
-      const double load = PLANT.gravity * SIM_GRAVITY * PLANT.mass_kg * (nz > 0.0 ? nz : 0.0);
-      const double tau = g_gmu * load * CONTACT_PATCH_R;
+      const double load = settle_share * PLANT.gravity * SIM_GRAVITY * PLANT.mass_kg * (nz > 0.0 ? nz : 0.0);
+      const double tau = settle_mu * load * CONTACT_PATCH_R;
       double dw = (i_eff > 1e-12) ? (tau / i_eff) * SIM_DT : wm;
       if (dw > wm) {
         dw = wm;

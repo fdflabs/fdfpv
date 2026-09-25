@@ -70,28 +70,38 @@ int SIM_DAMAGE = SIM_DAMAGE_DEFAULT;
  * ------------------------------------------------------------------- */
 typedef struct {
   double mu, e, k, hard;
+  double mu_face; /* a smooth face sliding on it, where it differs */
 } Surface;
 
 /* The default is two things: the ground plane's default is the shell's
  * grass (GROUND_MU and GROUND_E), and an obstacle's, a sim_contact or a
  * sim_contact_at with no material named, is a hard generic face, the one
- * past the table's end. */
+ * past the table's end.
+ *
+ * mu_face is what a smooth face slides at. The shell's grass grips at 1.40,
+ * a quad's arms and blades ploughing into turf; a smooth body sliding on a
+ * natural grass pitch was measured at 0.45 (Linthorne and Cooper, Sports
+ * Biomechanics 12(2), 2013: a steel runnered sled towed over a rugby pitch,
+ * the gradient of tow force on weight up to 55 kg; they put the effective
+ * value on uneven turf nearer 0.6). A foam belly, a pack's wrap and a
+ * canopy are smooth faces. Where nothing was measured it is the surface's
+ * own mu. docs/CRASH-STAGE1.md, Surfaces. */
 #define SURF_OBSTACLE SIM_SURFACES
 static const Surface SURF[SIM_SURFACES + 1] = {
-  [SIM_SURF_DEFAULT] = { 1.40, 0.0, 5.0e4, 0.01 },
-  [SIM_SURF_GRASS] = { 1.40, 0.0, 5.0e4, 0.01 },
-  [SIM_SURF_DIRT] = { 1.00, 0.05, 2.0e5, 0.30 },
-  [SIM_SURF_ASPHALT] = { 0.60, 0.12, 3.0e7, 0.90 },
-  [SIM_SURF_CONCRETE] = { 0.42, 0.15, 5.0e7, 1.00 },
-  [SIM_SURF_ROCK] = { 0.42, 0.15, 5.0e7, 1.00 },
-  [SIM_SURF_SNOW] = { 0.20, 0.0, 1.0e4, 0.02 },
-  [SIM_SURF_WOOD] = { 0.50, 0.12, 5.0e6, 0.60 },
-  [SIM_SURF_METAL] = { 0.35, 0.20, 1.0e8, 1.00 },
-  [SIM_SURF_PVC] = { 0.30, 0.22, 2.0e5, 0.40 },
-  [SIM_SURF_FOLIAGE] = { 1.00, 0.0, 2.0e3, 0.02 },
-  [SIM_SURF_WATER] = { 0.05, 0.0, 1.0e4, 0.01 },
-  [SIM_SURF_SAND] = { 0.60, 0.0, 1.0e5, 0.40 },
-  [SURF_OBSTACLE] = { 0.40, 0.15, 2.0e6, 0.50 },
+  [SIM_SURF_DEFAULT] = { 1.40, 0.0, 5.0e4, 0.01, 0.45 },
+  [SIM_SURF_GRASS] = { 1.40, 0.0, 5.0e4, 0.01, 0.45 },
+  [SIM_SURF_DIRT] = { 1.00, 0.05, 2.0e5, 0.30, 1.00 },
+  [SIM_SURF_ASPHALT] = { 0.60, 0.12, 3.0e7, 0.90, 0.60 },
+  [SIM_SURF_CONCRETE] = { 0.42, 0.15, 5.0e7, 1.00, 0.42 },
+  [SIM_SURF_ROCK] = { 0.42, 0.15, 5.0e7, 1.00, 0.42 },
+  [SIM_SURF_SNOW] = { 0.20, 0.0, 1.0e4, 0.02, 0.20 },
+  [SIM_SURF_WOOD] = { 0.50, 0.12, 5.0e6, 0.60, 0.50 },
+  [SIM_SURF_METAL] = { 0.35, 0.20, 1.0e8, 1.00, 0.35 },
+  [SIM_SURF_PVC] = { 0.30, 0.22, 2.0e5, 0.40, 0.30 },
+  [SIM_SURF_FOLIAGE] = { 1.00, 0.0, 2.0e3, 0.02, 1.00 },
+  [SIM_SURF_WATER] = { 0.05, 0.0, 1.0e4, 0.01, 0.05 },
+  [SIM_SURF_SAND] = { 0.60, 0.0, 1.0e5, 0.40, 0.60 },
+  [SURF_OBSTACLE] = { 0.40, 0.15, 2.0e6, 0.50, 0.40 },
 };
 
 /* ---------------------------------------------------------------------
@@ -1079,6 +1089,7 @@ void crash_reset(void) {
 
 static int g_att_part = 0;
 static double g_att_b[3];
+static double g_att_nb[3]; /* the contact's normal, body frame */
 static int g_hint = -1;
 
 /* The solver is resolving the parts' own sampler k: it is that part's
@@ -1089,6 +1100,7 @@ void crash_hint_sampler(int k) {
 
 static void attribute(const SimState *s, const double r[3], const double n[3]) {
   const Table *t = tab();
+  qrot_inv(s->quat, n, g_att_nb);
   if (g_hint >= 0 && g_hint < g_nsamp) {
     g_att_part = g_samp_part[g_hint];
     g_att_b[0] = g_samp[g_hint][0];
@@ -1439,6 +1451,58 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
   }
 }
 
+/*
+ * THE FACE A PART SLIDES ON. A part that meets the ground flat on one of
+ * its faces, within 25 degrees as a belly slam's crush is taken, slides on
+ * it as a sled does; one driven in on an edge, a corner or a tip (a nose
+ * dug in, a wing tip, a blade) ploughs, the shell's grip. Faded between the
+ * two over those 25 degrees, as crush_area fades its patch in.
+ */
+static double flatness(const Table *t, int i, const double nb[3]) {
+  const double sx = t->hi[i][0] - t->lo[i][0];
+  const double sy = t->hi[i][1] - t->lo[i][1];
+  const double sz = t->hi[i][2] - t->lo[i][2];
+  const double face[3] = { sy * sz, sx * sz, sx * sy };
+  double flat = 0.0;
+  for (int k = 0; k < 3; k += 1) {
+    if (!(face[k] > 0.0)) {
+      continue;
+    }
+    double w = (sim_fabs(nb[k]) - CRUSH_FLAT) / (1.0 - CRUSH_FLAT);
+    if (w < 0.0) w = 0.0;
+    if (w > 1.0) w = 1.0;
+    if (w > flat) flat = w;
+  }
+  return flat;
+}
+
+static double face_mu(int surf, double flat, double mu) {
+  const double mf = SURF[surf].mu_face;
+  return mf < mu ? mu + flat * (mf - mu) : mu;
+}
+
+double crash_contact_mu(double mu) {
+  if (!SIM_DAMAGE || !g_surf_ground) {
+    return mu;
+  }
+  return face_mu(g_surf, flatness(tab(), g_att_part, g_att_nb), mu);
+}
+
+static double g_ground_jn = 0.0; /* this step's normal impulse on the ground */
+
+double crash_settle_share(double w) {
+  if (!(w > 0.0) || !(g_ground_jn < w)) {
+    return 0.0;
+  }
+  return 1.0 - g_ground_jn / w;
+}
+
+double crash_settle_mu(const SimState *s, const double n[3], double mu) {
+  const double at[3] = { 0.0, 0.0, 0.0 };
+  attribute(s, at, n);
+  return face_mu(g_ground_mat, flatness(tab(), g_att_part, g_att_nb), mu);
+}
+
 void crash_contact_post(const SimState *s, const double r[3], const double n[3],
                         double vin, double kn, double jn, const double jt[3]) {
   (void)kn;
@@ -1448,6 +1512,9 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
   Hit *h = hit_get(g_att_part, 0);
   if (!h) {
     return;
+  }
+  if (g_surf_ground && g_from_step) {
+    g_ground_jn += jn;
   }
   if (g_capped_now) {
     g_crush_used[g_att_part] += jn;
@@ -1528,6 +1595,7 @@ void crash_batch_begin(const SimState *s, int from_step) {
   g_batch_spring = 0;
   g_from_step = from_step;
   if (from_step) {
+    g_ground_jn = 0.0;
     for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
       g_spring_npts_last[i] = g_spring_npts[i];
       g_spring_npts[i] = 0;
