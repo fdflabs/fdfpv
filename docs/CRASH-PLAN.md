@@ -549,3 +549,36 @@ or the failure stays loud.
   stall, so no wing drops and no spin starts.
 - Suite: bramor-belly-fast's band for its real entry speed; the crash:core
   2 mm premise; the quad's grass rebound against R-A4-REBOUND.
+
+### Round 4, aero (branch crash-aero-round4)
+
+The model and its record are docs/STALL-STAGE1.md. Against main c0cb07f:
+every fixed wing now has a pitch break (the linear lift's moment taken
+back past the stall, the plate's normal force at its centre of pressure,
+and the tail's lift as the stalled wing's downwash goes), and each wing
+half stalls on its own at its roll and yaw rates' angle, the left one a
+build tolerance first, so the damping reverses, a wing drops and a stall
+with rudder spins toward it. Held full back, every plane now drops its
+left wing within about a second of the stall instead of settling nose
+high; with full rudder the conventional ones spin at 390 to 750 deg/s and
+come out on opposite rudder and forward stick; the Bramor goes flat and
+does not come out on its elevons.
+
+Suite (fresh wasm both): 8 of 60 inside every band to 6, failing checks
+130 to 129, all 60 deterministic. The stall ins now meet the grass banked:
+peak g Skyhunter 201 to 186, Cub 98 to 248, Radian 160 to 61, Slow Stick
+30 to 296, Timber 96 to 190, Bramor 89 to 97, catapult 57 to 62; all rest
+upright as before but the Slow Stick, on its side.
+
+Every recorded flight hash moves (proven to part only inside the stall
+blend: scripts/stall-crossing.js), so the unmoved gates fail (C22, G20,
+B13, S17, T14, F9) and are left for the lead to re-record. Also failing,
+for the lead: slowstick S9a/S9b (it now drops a wing; the plant's lift
+curve past CLmax is not a trailing edge stall), timber T5 and T10 and
+cub:stab's three take off headings (three point rolls past the stall),
+crash:core's Cub and Timber rollout identity (a part other than the gear
+touches) and its floats digest (the scenario's JavaScript pilot steers on
+Math.atan2, which differs between Node 22 and Chrome 151; the plant's
+replays agree). The Bramor's risers move from 64 to 48 mm ahead of the CG
+by their own rule. In CI, cub:gates (C22) and glider:gates (G20) fail on
+the hashes and cub:stab on the take off headings.
