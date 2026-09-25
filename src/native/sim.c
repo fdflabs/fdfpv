@@ -1642,6 +1642,16 @@ SIM_EXPORT int sim_contact(double nx, double ny, double nz,
   if (!contact_unit3(nx, ny, nz, n)) {
     return SIM_ERR_BAD_ARG;
   }
+  double own[3], own_arm[3];
+  const int place = SIM_DAMAGE ? crash_contact_place(&S, n, own, own_arm) : SIM_PLACE_HOST;
+  if (place == SIM_PLACE_NONE) {
+    return SIM_OK;
+  }
+  if (place == SIM_PLACE_OWN) {
+    px = own[0];
+    py = own[1];
+    pz = own[2];
+  }
   S.pos[0] = px;
   S.pos[1] = py;
   S.pos[2] = pz;
@@ -1708,6 +1718,20 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   double n[3];
   if (!contact_unit3(nx, ny, nz, n)) {
     return SIM_ERR_BAD_ARG;
+  }
+  double own[3], own_arm[3];
+  const int place = SIM_DAMAGE ? crash_contact_place(&S, n, own, own_arm) : SIM_PLACE_HOST;
+  if (place == SIM_PLACE_NONE) {
+    g_contact_mat = SIM_SURF_DEFAULT;
+    return SIM_OK;
+  }
+  if (place == SIM_PLACE_OWN) {
+    px = own[0];
+    py = own[1];
+    pz = own[2];
+    rx = own_arm[0];
+    ry = own_arm[1];
+    rz = own_arm[2];
   }
   S.pos[0] = px;
   S.pos[1] = py;
