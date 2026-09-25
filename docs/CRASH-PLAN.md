@@ -252,3 +252,17 @@ the air is an owner decision before two scenarios can be flown at all.
 | cubf-float-catch | fail | peakG 14.74 (3 to 10); minUpZ 0.40 (at most 0); restAttitude upright (inverted or on its side); restDistM 15.43 (1 to 5); timeToRestS none (1 to 3) |
 | cubf-capsize | fail, blocked | restAttitude upright (inverted or on its side); minUpZ 0.93 (at most 0) |
 | cubf-porpoise | fail | liftoffOverStall 1.25 (at most 1) |
+
+### Lead decisions after the baseline (2026-09-25)
+
+- The whoop is the five inch plant flown in a room built at MICRO_SCALE
+  (3.43): it gets its own part table whose limits let it survive what a
+  real 65 mm whoop survives, rather than a five inch's.
+- Tail strike on takeoff fits no aircraft here (the wheeled planes are
+  taildraggers, the rest are thrown or catapulted); the suite replaces
+  it with a nose over, the taildragger's takeoff accident.
+- Horizontal wind is added to the air model in the loop's first round,
+  deterministic and zero by default so every flight without it stays
+  bit identical; it unblocks the float capsize and the Bramor's chute
+  drag, and later the Timber's short landings and the floats'
+  weathervaning.
