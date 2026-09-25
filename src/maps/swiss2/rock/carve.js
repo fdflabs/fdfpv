@@ -50,11 +50,13 @@ export const SUNK = 3.6;
 /* The walls' two cliff bands, which ground.js paints from these and
  * this file carves: their heights in metres, and the lower one's half
  * height (a base and how much the noise adds) and the noise's range over
- * which it goes from broken to whole along the wall. */
+ * which it goes from broken to whole along the wall. The lower band is
+ * the valley's great wall, as Lauterbrunnen's is, and runs most of its
+ * length; the upper is broken into crags. */
 export const CLIFF_LOW = 420;
 export const CLIFF_HIGH = 1010;
-export const LOW_HALF = [35, 35];
-export const LOW_GATE = [0.38, 0.55];
+export const LOW_HALF = [60, 40];
+export const LOW_GATE = [0.26, 0.44];
 
 /* Metres over which the carving fades out toward an uncarved cell. */
 const FADE = 9;
