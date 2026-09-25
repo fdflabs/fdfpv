@@ -2529,6 +2529,28 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let lastTiltDeg = 0;
   let lastHitKind = 'none';
   let lastGroundHits = 0;
+  /* Every 1 ms step that ended with the hull on the ground plane or a
+   * wheel loaded on it, since the page loaded: a touch too short for a
+   * frame's own count to see, and gear rolling, which the hull count does
+   * not see at all. Harness only, through window.__ground. */
+  let groundContactSteps = 0;
+  let wheelPtr = 0;
+  let wheelLoads = null;
+  function wheelsLoaded() {
+    if (typeof sim.e.sim_wheel_loads !== 'function') {
+      return false;
+    }
+    /* A view kept across steps, remade only when the module's memory
+     * grows, so the step loop allocates nothing. */
+    if (!wheelPtr) {
+      wheelPtr = sim.e.malloc(4 * 8);
+    }
+    if (!wheelLoads || wheelLoads.buffer !== sim.e.memory.buffer) {
+      wheelLoads = new Float64Array(sim.e.memory.buffer, wheelPtr, 4);
+    }
+    sim.e.sim_wheel_loads(wheelPtr);
+    return wheelLoads[0] > 0 || wheelLoads[1] > 0 || wheelLoads[2] > 0 || wheelLoads[3] > 0;
+  }
   let lastClearance = 1;
   let lastUpz = 1;
   let lastFpvY = 0;
@@ -7640,6 +7662,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
             if (i === steps - 2) {
               statePrev = stNow;
             }
+            if (sim.e.sim_ground_contacts() > 0 || wheelsLoaded()) {
+              groundContactSteps += 1;
+            }
             if (sim.e.sim_ground_contacts() > 0) {
               sawGroundHit = true;
               const inbound = -vzBefore;
@@ -9323,6 +9348,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     landed,
     rest: REST_HEIGHT,
     hits: lastGroundHits,
+    contactSteps: groundContactSteps,
   });
   /* An optional seventh argument pins the vertical fov as well: without it
    * the parked camera keeps whatever lens the shell last set, which is the
