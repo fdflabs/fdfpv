@@ -173,18 +173,15 @@ function station(P, x, y, z, yaw, h, found) {
 }
 
 /*
- * Build the lift into ctx.scene. The line runs from the base station
- * straight up the west wall on a fixed bearing until the ground reaches
- * TOP metres, towers every span along it as tall as the rope needs to
- * clear the ground between them. Returns the step clock update and what
- * the stats print.
+ * Where the line runs and where its stations stand. The line runs from
+ * the base station straight up the west wall on a fixed bearing until
+ * the ground reaches TOP metres. Exported so a style that builds its
+ * own stations (swiss2 bakes them with its village, before the lift is
+ * built) stands them exactly where these would stand.
  */
-export function buildLift(ctx) {
-  const { scene, heightAt, colliders, solids, look } = ctx;
-  const mat = look.parts('lift', { rim: 0.2, spec: 0.1, specWidth: 0.012 });
+export const STATION_H = 9;
+export function liftLine(heightAt) {
   const TOP = 700;
-  const CLEAR = 9;
-  const SPAN = 150;
   const base = { x: -300, z: 150 };
   /* Bearing: west with a little south, up the wall where it is a wall.
    * A real line runs up an aisle cut through the forest; this one is
@@ -203,7 +200,6 @@ export function buildLift(ctx) {
     }
   }
   const top = { x: base.x + dir.x * run, z: base.z + dir.y * run };
-  const groundAt = (d) => heightAt(base.x + dir.x * d, base.z + dir.y * d);
   /* A station stands at its middle's height, a little over the mean of
    * its footprint, and its plinth is cut down to the lowest corner: on
    * the floor that is a step of a few centimetres, at the top of the wall
@@ -223,11 +219,33 @@ export function buildLift(ctx) {
     const y = Math.max(hs[4], (Math.max(...hs) + lo) / 2) + 0.1;
     return { y, found: y - lo + 0.4 };
   };
+  const yaw = Math.atan2(-dir.y, dir.x);
   const baseSite = site(0, 1);
   const topSite = site(run, -1);
+  return {
+    base, top, dir, right, run, yaw,
+    stations: [
+      { x: base.x, y: baseSite.y, z: base.z, yaw, found: baseSite.found },
+      { x: top.x, y: topSite.y, z: top.z, yaw: yaw + Math.PI, found: topSite.found },
+    ],
+  };
+}
+
+/*
+ * Build the lift into ctx.scene: the line liftLine lays, towers every
+ * span along it as tall as the rope needs to clear the ground between
+ * them. Returns the step clock update and what the stats print.
+ */
+export function buildLift(ctx) {
+  const { scene, heightAt, colliders, solids, look } = ctx;
+  const mat = look.parts('lift', { rim: 0.2, spec: 0.1, specWidth: 0.012 });
+  const CLEAR = 9;
+  const SPAN = 150;
+  const { base, top, dir, right, run, yaw, stations } = liftLine(heightAt);
+  const groundAt = (d) => heightAt(base.x + dir.x * d, base.z + dir.y * d);
+  const [baseSite, topSite] = stations;
   const baseY = baseSite.y;
   const topY = topSite.y;
-  const STATION_H = 9;
 
   /* Towers at fixed spacing, each 14 m to start, then raised until every
    * rope segment clears the ground between its ends. A rope is straight
@@ -268,9 +286,15 @@ export function buildLift(ctx) {
 
   /* The structures, one bake. */
   const P = makeParts();
-  const yaw = Math.atan2(-dir.y, dir.x);
-  station(P, base.x, baseY, base.z, yaw, STATION_H, baseSite.found);
-  station(P, top.x, topY, top.z, yaw + Math.PI, STATION_H, topSite.found);
+  /* A style may build the stations itself (swiss2 bakes them with its
+   * village, src/maps/swiss2/buildings/station.js) on liftLine's sites
+   * and inside FOOT, so the collider below is theirs too; the cel look
+   * has no station of its own and builds these, as it always has. */
+  if (!look.buildings?.station) {
+    for (const s of stations) {
+      station(P, s.x, s.y, s.z, s.yaw, STATION_H, s.found);
+    }
+  }
   colliders.addBox('wall', base.x - 8.5, baseY - baseSite.found, base.z - 8.5, base.x + 8.5, baseY + STATION_H + 1.8, base.z + 8.5);
   for (const t of towers) {
     const x = base.x + dir.x * t.d;

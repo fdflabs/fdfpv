@@ -393,6 +393,11 @@ function photoStyle() {
        * the meadow keep off the huts, whose wall colliders note them as
        * footprints; the houses noted before them are the gardens. */
       const gardens = stage.footprints.slice();
+      /* The farm-low view's farm is walled after the gardens are taken
+       * (swiss2/village/farm.js). */
+      for (const b of style.look.buildings.farmWalls) {
+        colliders.addBox('wall', ...b);
+      }
       stage.props = buildProps({
         heightAt,
         rng: makeRng(20260930),

@@ -16,6 +16,12 @@
  * compiles nothing new mid flight. `o`, casts no shadow: a glazing bar
  * or a flower head is below what the shadow maps resolve, and costs a
  * draw and its triangles in each of them. `v`, the boards run upright.
+ * `a`, apart: a building far from the village (the gondola's top
+ * station, seven hundred metres up the wall) is baked into meshes of
+ * its own cell, drawn at any distance as the far meshes are but culled
+ * on its own: in the village's meshes it would stretch their bounds over
+ * the valley, and every view and shadow map that saw any of it would
+ * draw the whole village.
  *
  * Every part is given its texture coordinates here, in metres along its
  * own faces (look.js's worldUv), scaled by the key's own `uv`, before the
@@ -84,6 +90,7 @@ export function makeBakeAll(look, uvScale = {}) {
     const materials = look.buildingGroups(mats);
     const far = {};
     const cells = new Map();
+    const apart = new Map();
     const at = new THREE.Vector3();
     for (const key of Object.keys(bake.parts)) {
       const [name, mark = ''] = key.split(':');
@@ -92,17 +99,18 @@ export function makeBakeAll(look, uvScale = {}) {
         const g = prepare(src, finish, uvScale[name] ?? 1, mark.includes('v'));
         src.dispose();
         const bucket = `${finish.group}|${mark.includes('o') ? 'flat' : 'casts'}`;
-        if (!mark.includes('f')) {
+        if (!mark.includes('f') && !mark.includes('a')) {
           (far[bucket] ??= []).push(g);
           continue;
         }
         g.computeBoundingBox();
         g.boundingBox.getCenter(at);
         const id = `${Math.floor(at.x / CELL)},${Math.floor(at.z / CELL)}`;
-        let cell = cells.get(id);
+        const into = mark.includes('a') ? apart : cells;
+        let cell = into.get(id);
         if (!cell) {
           cell = { groups: {}, box: new THREE.Box3() };
-          cells.set(id, cell);
+          into.set(id, cell);
         }
         cell.box.union(g.boundingBox);
         (cell.groups[bucket] ??= []).push(g);
@@ -123,15 +131,28 @@ export function makeBakeAll(look, uvScale = {}) {
     for (const [bucket, geos] of Object.entries(far)) {
       root.add(mesh(bucket, geos, `village-${bucket.replace('|', '-')}`));
     }
+    /* A cell's meshes about the cell's centre, so their vertices stay
+     * small; the caller stands the group there. */
+    const cellGroup = (id, cell, centre, kind) => {
+      const g = new THREE.Group();
+      for (const [bucket, geos] of Object.entries(cell.groups)) {
+        const m = mesh(bucket, geos, `village-${bucket.replace('|', '-')}-${kind}-${id}`);
+        m.geometry.translate(-centre.x, -centre.y, -centre.z);
+        g.add(m);
+      }
+      return g;
+    };
+    for (const [id, cell] of apart) {
+      const centre = cell.box.getCenter(new THREE.Vector3());
+      const g = cellGroup(id, cell, centre, 'apart');
+      g.name = `village-apart-${id}`;
+      g.position.copy(centre);
+      root.add(g);
+    }
     for (const [id, cell] of cells) {
       const centre = cell.box.getCenter(new THREE.Vector3());
       const radius = cell.box.getSize(at).length() / 2;
-      const near = new THREE.Group();
-      for (const [bucket, geos] of Object.entries(cell.groups)) {
-        const m = mesh(bucket, geos, `village-${bucket.replace('|', '-')}-near-${id}`);
-        m.geometry.translate(-centre.x, -centre.y, -centre.z);
-        near.add(m);
-      }
+      const near = cellGroup(id, cell, centre, 'near');
       const lod = new THREE.LOD();
       lod.name = `village-near-${id}`;
       lod.position.copy(centre);

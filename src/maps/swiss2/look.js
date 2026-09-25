@@ -340,6 +340,11 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     dripEdge: { group: 'gravel', tint: [0.46, 0.44, 0.4] },
     cobble: { group: 'cobble', tint: [1.0, 1.0, 1.0], weather: 'paving' },
     concrete: { group: 'concrete', tint: [1.6, 1.6, 1.55] },
+    /* The gondola stations' concrete, on the render's photograph: the
+     * concrete group is the hangar's apron alone, and a station in it
+     * would stretch that mesh's bounds over the valley and into views
+     * and shadow maps it has kept out of. */
+    liftConcrete: { group: 'render', tint: [0.42, 0.42, 0.4], normal: 0.7, weather: 'wall' },
     geranium: { group: 'plain', tint: [0.62, 0.02, 0.03], rough: 0.75 },
     geraniumPink: { group: 'plain', tint: [0.62, 0.05, 0.2], rough: 0.75 },
     leaf: { group: 'plain', tint: [0.035, 0.1, 0.025], rough: 0.8 },
