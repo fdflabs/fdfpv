@@ -673,15 +673,14 @@ static double stalled_lift(const FixedWingParams *fw, double k, double cl_s, dou
  *           within 0.5 rad of the centre's, where the small angle sine is
  *           good; past that the strip is stalled through anyway.
  *
- * k is the table's stall_k (or slat_k), clmax the section's. Both are
+ * k is the table's stall_k (or slat_k). Both are
  * taken only past the strip's stall angle, scaled in over a stall_blend:
  * short of it a strip is the linear wing the plant's roll damping was
  * always taken for, and a flight that stays short of every strip's stall
  * is what it was.
  */
 static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, double cos_a, double da,
-                        double dr, double r, double cl_lin, double dcl_f, double stall, double k, double clmax,
-                        double out[2]) {
+                        double dr, double r, double cl_lin, double dcl_f, double stall, double k, double out[2]) {
   out[0] = 0.0;
   out[1] = 0.0;
   const double aa = add_term(alpha + (da + dr), dcl_f / fw->cl_alpha);
@@ -694,10 +693,19 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
   const double sp = sin_a * cd + cos_a * sd;
   const double cp = cos_a * cd - sin_a * sd;
   double fall, past;
-  const double lift = stalled_lift(fw, k, clmax, stall, dcl_f / fw->cl_alpha, aa, sp, cp, &fall, &past);
-  const double lin = r * cl_lin + fw->cl_alpha * da;
+  /* The strip's own wing lift: r CLalpha times its whole angle, the rates'
+   * included, up to its stall angle, where it holds r CLalpha times that
+   * angle; no elevator in it, which is the tail's lift. The shortfall is
+   * taken against what the plant's linear wing gives the strip, its share
+   * of the wing's lift and the roll damping's cla da, so on the held lift
+   * a strip's roll damping is gone and a rate that pushes it deeper takes
+   * nothing more. */
+  const double lin = r * fw->cl_alpha * aa;
+  const double hold = r * fw->cl_alpha * stall;
+  const double lift = stalled_lift(fw, k, hold, stall, dcl_f / fw->cl_alpha, aa, sp, cp, &fall, &past);
   const double blended = (1.0 - sigma) * lin + sigma * lift;
-  out[0] = past * (blended - lin);
+  const double ref = r * fw->cl_alpha * add_term(alpha, dcl_f / fw->cl_alpha) + fw->cl_alpha * da;
+  out[0] = past * (blended - ref);
   out[1] = past * sigma * (2.0 * sp * sp - fw->k_induced * cl_lin * cl_lin);
 }
 
@@ -1045,7 +1053,6 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double chord_mean = fw->area / fw->span;
     const double kr = -fw->cl_p * fw->area * fw->span * fw->span /
                       (4.0 * fw->cl_alpha * chord_mean * half * half * half * cyy);
-    const double clmax_sec = rmax * clmax;
     double ml = 0.0, mn = 0.0;
     for (int i = 0; i < 4; i += 1) {
       const double y = (0.125 + 0.25 * i) * half;
@@ -1053,10 +1060,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       const double dr = (-w / V) * s->omega[2] * y / Vrate;
       const double st = alpha_stall * rmax / rr[i];
       double fl[2], fr[2];
-      strip_stall(fw, alpha, sin_a, cos_a, -da, dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall,
-                  clmax_sec, fl);
-      strip_stall(fw, alpha, sin_a, cos_a, da, -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall,
-                  clmax_sec, fr);
+      strip_stall(fw, alpha, sin_a, cos_a, -da, dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, da, -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall, fr);
       const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
       const double lag = WING_DT / (tau + WING_DT);
       for (int j = 0; j < 2; j += 1) {
