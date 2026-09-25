@@ -67,14 +67,28 @@ import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
  * horizon takes it to white. The haze colour is the photographed sky's
  * own horizon, so a far ridge fades into the sky behind it rather than
  * into a grey of its own.
+ *
+ * The extinction was lifted a quarter in round 8 with the print's slope
+ * below: steepened, the far ridges kept too little of the air between
+ * them, and the photographs have each ridge paler than the one in front
+ * (tools/swiss2-loop/contrast.py's layer, +0.06 over the photographs).
+ *
+ * slope and pivot are the print's: its lightness steepened about pivot
+ * by slope. Measured against the photographs (contrast.py), the frames
+ * were flat, the ground's 5th to 95th percentile of lightness 0.19 to
+ * 0.65 against the photographs' 0.13 to 0.77 and the local contrast
+ * 0.055 against 0.077, with the middle value the same (0.38); slope
+ * 1.45 is what closes it, with a saturation that does not move.
  */
 export const AIR = {
-  beta: new THREE.Vector3(4.5e-5, 6.0e-5, 8.5e-5),
+  beta: new THREE.Vector3(5.6e-5, 7.5e-5, 10.6e-5),
   scaleHeight: 1400,
   haze: new THREE.Color().setRGB(0.4, 0.44, 0.5, THREE.LinearSRGBColorSpace),
   mie: 0.5,
   exposure: 1.45,
   contrast: 0.6,
+  slope: 1.45,
+  pivot: 0.38,
 };
 
 /*
@@ -368,6 +382,7 @@ const PhotoShader = {
     uMie: { value: 1 },
     uExposure: { value: 1 },
     uContrast: { value: 0 },
+    uSlope: { value: 1 },
     uDistort: { value: 0.045 },
     uVignette: { value: 0.12 },
     tAo: { value: null },
@@ -399,6 +414,7 @@ const PhotoShader = {
     uniform mat4 uCamWorld;
     uniform float uExposure;
     uniform float uContrast;
+    uniform float uSlope;
     uniform float uDistort;
     uniform float uVignette;
     uniform sampler2D tAo;
@@ -524,6 +540,14 @@ const PhotoShader = {
        * display values, which keeps black and white where they are. */
       vec3 dv = pow(c, vec3(0.4545));
       dv = mix(dv, dv * dv * (3.0 - 2.0 * dv), uContrast);
+      /* The print's slope (AIR.slope): the lightness steepened about the
+       * frame's middle value, with a soft toe and shoulder, and the
+       * colour scaled with it so its saturation is what it was. */
+      float l0 = max(dot(dv, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
+      float l1 = ${AIR.pivot.toFixed(3)} + (l0 - ${AIR.pivot.toFixed(3)}) * uSlope;
+      l1 = l1 < 0.14 ? 0.14 * exp((l1 - 0.14) / 0.14) : l1;
+      l1 = l1 > 0.85 ? 1.0 - 0.15 * exp((0.85 - l1) / 0.15) : l1;
+      dv = clamp(dv * (l1 / l0), 0.0, 1.0);
       c = pow(dv, vec3(2.2));
       c *= 1.0 - uVignette * smoothstep(0.16, 0.55, r2);
       vec3 lo = c * 12.92;
@@ -700,6 +724,7 @@ class PhotoPass extends Pass {
     u.uMie.value = AIR.mie;
     u.uExposure.value = AIR.exposure;
     u.uContrast.value = AIR.contrast;
+    u.uSlope.value = AIR.slope;
     this.fsQuad = new FullScreenQuad(this.material);
   }
 
