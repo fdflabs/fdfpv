@@ -550,6 +550,14 @@ and those are the error.
 On the title nothing steps the sim clock, so the lake there is still, as
 the map was built; the waves are handed over when a run starts.
 
+On them an aircraft on floats throws spray from the front of each float's
+wetted length once it moves faster than a walk, splashes where a float
+comes down dry, and leaves a wake: Kelvin's two arms from the bows,
+closing as the float gets on the step, and churned water behind each
+float while it planes (src/render/spray.js, render only, from
+sim_float_state). What the plant does not model, the spray, the bow wave
+and the wake (below), is drawn from what it does.
+
 The six components the wind sea is spread over are few enough that, close
 to, the two shortest (0.33 and 0.45 of the peak period, 70 and 55 deg off
 the wind, both at the steepness cap) read as a regular crosshatch on the

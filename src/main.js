@@ -1237,9 +1237,9 @@ export async function boot({ loading, bootStart, mapId }) {
   }
 
   /* An aircraft on floats as the water reads it: its drawn pose, which
-   * the near patch is laid round, its velocity in the map, what the
-   * floats did on the last step, and its floats' geometry. Null for
-   * anything else. */
+   * the near patch is laid round, and for its spray and wake (src/render/
+   * spray.js) its velocity in the map, what the floats did on the last
+   * step, and its floats' geometry. Null for anything else. */
   const FLOAT_GEOMETRY = { timber1500f: TIMBER_FLOATS, cub1400f: CUB_FLOATS };
   const craftWaterVel = new THREE.Vector3();
   let craftWaterState = null;

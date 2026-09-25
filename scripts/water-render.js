@@ -19,7 +19,8 @@
  * the worst difference against the plant's own range over the same
  * samples, both printed.
  *
- * With OUT_DIR it writes a picture of each phase: sitting,
+ * It also counts the spray and the wake the map drew (src/render/spray.js)
+ * in each phase, and with OUT_DIR writes a picture of each: sitting,
  * taxiing, planing on the step, lifting off, touching down, slowed. The pictures
  * are for looking at, not for the repository.
  *
@@ -82,7 +83,7 @@ const F = new Function(`return ${floatsSrc[1]};`)();
 const POINTS = [[0, 0, 0], [F.xBow, F.y, F.zKeel], [F.xStep, F.y, F.zKeel], [F.xBow, -F.y, F.zKeel], [F.xStep, -F.y, F.zKeel]];
 
 const PILOT = `
-window.__waterLog = { phase: 'wait', events: [], match: [], shots: [], done: false };
+window.__waterLog = { phase: 'wait', events: [], match: [], spray: {}, shots: [], done: false };
 (() => {
   const L = window.__waterLog;
   const POINTS = ${JSON.stringify(POINTS)};
@@ -94,11 +95,16 @@ window.__waterLog = { phase: 'wait', events: [], match: [], shots: [], done: fal
   let onStep = false;
   let frames = 0;
   let wasWet = true;
+  const scene = window.__mapScene();
+  const find = (name) => { let o = null; scene.traverse((c) => { if (!o && c.name === name && c.visible !== false) o = c; }); return o; };
   const shoot = (name, delayMs = 0) => L.shots.push({ name, at: performance.now() + delayMs });
   /* What each picture has in it, read as the picture is taken. */
   window.__waterShotInfo = () => {
     const c = window.__craftState();
-    return { speed: c.speed, height: c.worldY - ${LAKE_Y}, wet: c.floats ? c.floats.state[4] + c.floats.state[5] : 0 };
+    const drops = find('float-spray-drops');
+    const wake = find('float-wake');
+    return { speed: c.speed, height: c.worldY - ${LAKE_Y}, wet: c.floats ? c.floats.state[4] + c.floats.state[5] : 0,
+      drops: drops ? drops.geometry.drawRange.count : 0, wake: wake ? wake.geometry.drawRange.count / 3 : 0 };
   };
   const mark = (what, c) => {
     L.events.push({ what, t: (performance.now() - t0) / 1000, speed: c.speed, y: c.worldY, pitch: Math.asin(c.fwd.y) * 180 / Math.PI, floats: c.floats && c.floats.state.slice() });
@@ -144,7 +150,7 @@ window.__waterLog = { phase: 'wait', events: [], match: [], shots: [], done: fal
       if (inPhase > 120) next('failed-takeoff', c);
     } else if (phase === 'planing') {
       /* On the step and held there on part throttle, a few seconds of
-       * planing, then on with the take off. */
+       * planing to see the spray and the wake, then on with the take off. */
       sticks = [roll, hold(3), 0, 0.45];
       if (!wet) { dryMs += dt; } else { dryMs = 0; }
       if (dryMs > 300) next('climb', c);
@@ -186,6 +192,11 @@ window.__waterLog = { phase: 'wait', events: [], match: [], shots: [], done: fal
           L.match.push([phase, wet ? 1 : 0, 0, null, null]);
         }
       }
+      const drops = find('float-spray-drops');
+      const wake = find('float-wake');
+      const s = L.spray[phase] || (L.spray[phase] = { drops: 0, wake: 0 });
+      s.drops = Math.max(s.drops, drops ? drops.geometry.drawRange.count : 0);
+      s.wake = Math.max(s.wake, wake ? wake.geometry.drawRange.count / 3 : 0);
     }
     if (!L.done) {
       window.__stick(sticks[0], sticks[1], sticks[2], sticks[3]);
@@ -231,7 +242,7 @@ const shot = async (name) => {
   }
   const i = await page.evaluate('window.__waterShotInfo()');
   await writeFile(join(outDir, `${map}-${name}.png`), Buffer.from(r.data, 'base64'));
-  console.log(`  shot ${map}-${name}.png: ${i.speed.toFixed(2)} m/s, CG ${i.height.toFixed(3)} m over the still water, wetted ${i.wet.toFixed(2)} m`);
+  console.log(`  shot ${map}-${name}.png: ${i.speed.toFixed(2)} m/s, CG ${i.height.toFixed(3)} m over the still water, wetted ${i.wet.toFixed(2)} m, ${i.drops} droplets, ${i.wake} wake triangles`);
 };
 try {
   if (outDir) await mkdir(outDir, { recursive: true });
@@ -302,6 +313,14 @@ try {
   }
   say(wetN > 50 && wetMissing === 0 && worstWet <= MATCH, `the drawn surface under the floats is the plant's within ${MATCH * 100} cm: worst ${(worstWet * 1000).toFixed(2)} mm over ${wetN} samples with the floats wet (${wetMissing} unread)`);
 
+  console.log('\n  spray and wake, the most drawn in each phase:');
+  for (const [phase, s] of Object.entries(log.spray)) {
+    console.log(`    ${phase.padEnd(12)} droplets ${String(s.drops).padStart(5)}, wake triangles ${s.wake}`);
+  }
+  const sp = log.spray;
+  say((sp.sitting?.drops ?? 0) === 0, 'no spray while it sits');
+  say((sp.planing?.drops ?? 0) > 50 && (sp.planing?.wake ?? 0) > 20, 'spray and a wake on the step');
+  say((sp.touchdown?.drops ?? 0) > 50, 'a splash and spray on touching down');
   const ev = (w) => log.events.find((e) => e.what === w);
   say(Boolean(ev('onstep')) && Boolean(ev('planing')) && Boolean(ev('climb')) && Boolean(ev('touchdown')) && Boolean(ev('done')), 'sat, taxied, got on the step and planed, lifted off, touched down, slowed');
   /* The frame: the run above spawns facing yaw 0. A crash recovery puts

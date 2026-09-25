@@ -40,6 +40,7 @@ import {
   TREE_LINE, SNOW_LINE, streamX, treeLine, forestDensity,
 } from './terrain.js';
 import { makeWaves, patchGeometry, placePatch, injectWaves, starLoops, outlineBox, probeSurface } from '../../render/lakewaves.js';
+import { buildSpray } from '../../render/spray.js';
 
 /* Colliders and the fine detail stop here: further out the hillside is
  * the first thing a wing hits. */
@@ -472,9 +473,10 @@ function lakeWaves(ctx, sites, layers) {
       const r = loop.map((p) => Math.hypot(p.x - lakeCx, p.z - lakeCz));
       return [Math.min(...r), Math.max(...r)];
     });
-    ctx.scene.add(near);
+    const spray = buildSpray({ waves, color: new THREE.Color(0xf4fbff), wakeColor: new THREE.Color(0xeef7fb) });
+    ctx.scene.add(near, spray.group);
     layers[0].mesh.userData.waveRes = 1000;
-    return { waves, patches, reach, near, star, geo };
+    return { waves, patches, reach, spray, near, star, geo };
   };
   return {
     setWaves(bodies) {
@@ -489,12 +491,13 @@ function lakeWaves(ctx, sites, layers) {
       }
       built ??= build();
       built.waves.set(best);
+      built.spray.clear();
     },
     updateWaves(t, craft) {
       if (!built) {
         return;
       }
-      const { waves, patches, reach } = built;
+      const { waves, patches, reach, spray } = built;
       waves.tick(t);
       const onLake = craft && waves.body && Math.abs(craft.position.y - waves.body.y0) < 10 ? craft.position : null;
       if (placePatch(waves, patches, ctx.camera, onLake, box)) {
@@ -506,6 +509,7 @@ function lakeWaves(ctx, sites, layers) {
           m.visible = d - r < reach[outer][1] && (inner < 0 || d + r > reach[inner][0]);
         }
       }
+      spray.update(t, craft, ctx.camera, ctx.renderer);
     },
     /* What the scene's own disposal cannot find: the zones' texture is a
      * uniform of a material three does not list. The rest goes with the

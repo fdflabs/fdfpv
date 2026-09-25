@@ -19,8 +19,9 @@
  * The lake moves with the plant's own waves once the shell hands them over
  * (setWaves at every reset, updateWaves on the sim clock every frame; see
  * src/render/lakewaves.js): the sheet takes what its five metre cells can
- * carry, a dense patch round the aircraft or under the camera the rest.
- * Until then it is the still lake it always was.
+ * carry, a dense patch round the aircraft or under the camera the rest,
+ * and an aircraft on floats throws spray and leaves a wake on it
+ * (src/render/spray.js). Until then it is the still lake it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -47,6 +48,7 @@ import { lakeGeometry, planarMirror } from './lake.js';
 import { streamGeometry } from './stream.js';
 import { buildFall } from './fall.js';
 import { makeWaves, patchGeometry, placePatch, outlineBox, probeSurface } from '../../../render/lakewaves.js';
+import { buildSpray } from '../../../render/spray.js';
 
 const BASE = new URL('../../../../assets/swiss2/water/', import.meta.url);
 
@@ -142,6 +144,10 @@ export async function buildWater(ctx) {
   near.renderOrder = -1;
   near.add(patchBed, patch);
   const lakeBox = outlineBox(shore, 20);
+  /* Spray and wake, drawn in the lake's own foam white as the sun and
+   * the sky light it, the wake fainter than on the cel lake: here the
+   * water's own ripples and sheen carry most of it. */
+  const spray = buildSpray({ waves: lakeWaves, color: new THREE.Color(0.78, 0.82, 0.84), wakeColor: new THREE.Color(0.72, 0.78, 0.8), strength: 0.6 });
 
   /* The stream. */
   const streamMat = waterMaterial({
@@ -253,6 +259,7 @@ export async function buildWater(ctx) {
       }
     }
     lakeWaves.set(best);
+    spray.clear();
     /* Into the scene with the first waves, not at the build: each
      * program a still lake never draws, compiled by the build's
      * renderer.compile all the same, cost the fixed views twelve GL
@@ -263,13 +270,15 @@ export async function buildWater(ctx) {
         ctx.lit(patchMat);
         ctx.lit(patchBedMat);
       }
-      group.add(near);
+      group.add(near, spray.group);
     }
   };
   const updateWaves = (t, craft, camera) => {
     lakeWaves.tick(t);
     const onLake = craft && lakeWaves.body && Math.abs(craft.position.y - lakeWaves.body.y0) < 10 ? craft.position : null;
     stats.nearWater = placePatch(lakeWaves, [patch, patchBed], camera, onLake, lakeBox);
+    spray.update(t, craft, camera, ctx.renderer);
+    stats.spray = spray.stats;
   };
   /* The lake's drawn height at (x, z), off the GPU: the patch where it
    * lies, else the sheet. */
@@ -308,6 +317,7 @@ export async function buildWater(ctx) {
         m.dispose();
       }
       depthTex.dispose();
+      spray.dispose();
     },
   };
 }
