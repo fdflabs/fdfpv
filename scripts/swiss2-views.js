@@ -45,8 +45,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  * Camera, look at, and the reference photograph (a name in the local
  * reference folder, see docs/SWISS2-LOOP.md). World metres, Y up. The
  * lake is centred on x 173, z 2150 with its north shore at z 1860; the
- * fall's pool is at x 827, z -1295, 190 m up, its lip 70 m above that
- * (src/maps/alps/terrain.js POOL, LIP_RISE).
+ * fall leaves its rim at x 846, z -1296, 320 m up, and falls to its pool
+ * at x 794, z -1295, 23 m up, on the floor of the bay round 10 cut into
+ * the east wall (src/maps/swiss2/terrain.js BAY, BAY_POOL). Until round
+ * 10 the pool stood 190 m up in the alps' side valley with the lip 70 m
+ * over it (src/maps/alps/terrain.js POOL, LIP_RISE), and the waterfall
+ * view was framed on that; it now frames the upper two thirds of the
+ * fall.
  *
  * Y is absolute, not above the ground, and the floor is not at zero: it
  * rises to 5 m at the meadow and 3.4 m at the lake's north shore. Round 0
@@ -86,6 +91,9 @@ const VIEWS = [
    * rests the craft at the spawn on the strip (x 0, z 40), nose to -z, so
    * this looks over its right shoulder from three metres behind. */
   { id: 'craft-chase', cam: [1.0, 1.1, 42.6, 0, 0.2, 39.7], ref: 'craft' },
+  /* Round 10: the whole fall, rim to pool, from the bay's floor 430 m out,
+   * twenty metres up: the waterfall view above sees its upper part only. */
+  { id: 'fall-foot', cam: [420, 30, -1210, 846, 165, -1296], ref: 'waterfall' },
 ];
 
 /* Median of a frame's duration over sixty frames, in the page. */
