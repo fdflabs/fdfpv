@@ -11,6 +11,8 @@
  * part table itself: every triangle of every mesh under the craft goes to
  * the part whose hull box it lies in (the smallest box that holds it, since
  * a motor sits inside its arm's box), and to the root when it lies in none.
+ * A triangle that reaches from one part's box into another's is halved
+ * first, so a long face breaks where the parts do.
  * That works for every airframe without a list per model, and it follows a
  * part table the crash core retunes without anything here changing.
  *
@@ -65,6 +67,14 @@ const BOX_SLACK_SHARE = 0.04;
 
 const ATTR_GET = ['getX', 'getY', 'getZ', 'getW'];
 
+/* A triangle reaching from one part into another is halved until its
+ * edges are this short, metres, or this many times. At 3 cm a piece's
+ * farthest vertex stands a few centimetres past its part and the Slow
+ * Stick's 6588 triangles become 9889; at 5 mm they became 24611, on the
+ * one frame the cut runs. */
+const SPLIT_EDGE = 0.03;
+const SPLIT_DEPTH = 14;
+
 /* Body frame (plant, z up) to the craft's local Three.js frame, the one
  * conversion src/render/frame.js does for positions, applied to a body
  * vector: x forward is -z, y left is -x, z up is y. */
@@ -102,6 +112,7 @@ export function createWreck() {
   const qc = new THREE.Quaternion();
   const qi = new THREE.Quaternion();
   const rel = new THREE.Vector3();
+  const meshBox = new THREE.Box3();
 
   function reset() {
     for (const piece of pieces.values()) {
@@ -118,10 +129,13 @@ export function createWreck() {
     if (cut) {
       for (const c of cut) {
         if (c.hidden) {
-          c.mesh.geometry.dispose();
-          c.mesh.geometry = c.geometry;
+          c.hidden.dispose();
           c.hidden = null;
         }
+        if (c.geometry !== c.original && !c.inherited) {
+          c.geometry.dispose();
+        }
+        c.mesh.geometry = c.original;
       }
     }
     cut = null;
@@ -177,9 +191,19 @@ export function createWreck() {
     return best;
   }
 
+  /* Only what is drawn is cut. Every model carries a hidden measurement box
+   * as wide as its span and as long as its fuselage (check 15's contract,
+   * herocraft.js), and a piece is always drawn: cut with the rest, that box's
+   * faces landed on whichever part held their centres and were drawn as
+   * slabs across the whole aircraft. The blur discs are hidden and shown by
+   * the prop's speed, so they are cut whatever they are now, to leave with
+   * their prop. The craft's own visibility is the FPV view, not the model. */
   function isAirframe(o) {
     for (let p = o; p && p !== craft; p = p.parent) {
       if (NOT_THE_AIRFRAME.has(p.name)) {
+        return false;
+      }
+      if (!p.visible && !skip.has(p)) {
         return false;
       }
     }
@@ -202,6 +226,197 @@ export function createWreck() {
     return geo.index ? geo.index.getX(t * 3 + k) : t * 3 + k;
   }
 
+  /* Which part's box holds a point, the root's own box counted, or -1 for
+   * none: the test for a triangle that reaches from one part into another. */
+  function holderOf(v) {
+    let best = -1;
+    let bestVol = Infinity;
+    for (let p = 0; p < boxes.length; p += 1) {
+      if (boxes[p].box.containsPoint(v) && boxes[p].volume < bestVol) {
+        bestVol = boxes[p].volume;
+        best = p;
+      }
+    }
+    return best;
+  }
+
+  function crosses(a, b, c) {
+    const ha = holderOf(a);
+    const hb = holderOf(b);
+    const hc = holderOf(c);
+    const first = ha >= 0 ? ha : hb >= 0 ? hb : hc;
+    return (ha >= 0 && ha !== first) || (hb >= 0 && hb !== first) || (hc >= 0 && hc !== first);
+  }
+
+  /*
+   * The mesh's geometry with every triangle that reaches from one part's
+   * box into another's cut in two along its longest edge, again and again,
+   * until each half lies in one part or is too small to matter; null when no
+   * triangle crosses. Models are built from long primitives: the Slow
+   * Stick's fuselage is one box from the gearbox to the tail, whose side
+   * faces are two triangles each, and whichever part held a face's centre
+   * took the whole stick with it. A vertex in no box is not a vote, so a
+   * wing's rounded tip past its hull box stays whole with the wing.
+   * Non indexed, every attribute interpolated, the normals renormalised, and
+   * the material groups kept, so the craft draws the same until it breaks.
+   */
+  function bisected(geo, mat4, multi) {
+    const pa = geo.attributes.position;
+    const n = triCount(geo);
+    /* Most meshes (a motor, a wheel, a servo) lie in one box with none
+     * smaller reaching into them, and nothing in them can cross. */
+    if (!geo.boundingBox) {
+      geo.computeBoundingBox();
+    }
+    meshBox.copy(geo.boundingBox).applyMatrix4(mat4);
+    let inside = -1;
+    for (let p = 0; p < boxes.length; p += 1) {
+      if (boxes[p].box.containsBox(meshBox) && (inside < 0 || boxes[p].volume < boxes[inside].volume)) {
+        inside = p;
+      }
+    }
+    if (inside >= 0 && !boxes.some((b) => b.volume < boxes[inside].volume && b.box.intersectsBox(meshBox))) {
+      return null;
+    }
+    /* The part holding each vertex, once per vertex: a mesh of thousands of
+     * triangles is cut on the frame of the crash. */
+    const held = new Int8Array(pa.count);
+    for (let v = 0; v < pa.count; v += 1) {
+      held[v] = holderOf(va.fromBufferAttribute(pa, v).applyMatrix4(mat4));
+    }
+    const crossing = [];
+    for (let t = 0; t < n; t += 1) {
+      const ha = held[vertexOf(geo, t, 0)];
+      const hb = held[vertexOf(geo, t, 1)];
+      const hc = held[vertexOf(geo, t, 2)];
+      const first = ha >= 0 ? ha : hb >= 0 ? hb : hc;
+      if ((ha >= 0 && ha !== first) || (hb >= 0 && hb !== first) || (hc >= 0 && hc !== first)) {
+        crossing.push(t);
+      }
+    }
+    if (crossing.length === 0) {
+      return null;
+    }
+    const names = Object.keys(geo.attributes);
+    const src = names.map((name) => geo.attributes[name]);
+    const stride = src.reduce((s, a) => s + a.itemSize, 0);
+    let posAt = 0;
+    let normalAt = -1;
+    for (let j = 0, o = 0; j < names.length; o += src[j].itemSize, j += 1) {
+      if (names[j] === 'position') {
+        posAt = o;
+      } else if (names[j] === 'normal') {
+        normalAt = o;
+      }
+    }
+    const read = (v) => {
+      const r = new Float64Array(stride);
+      let o = 0;
+      for (const a of src) {
+        for (let k = 0; k < a.itemSize; k += 1) {
+          r[o] = a[ATTR_GET[k]](v);
+          o += 1;
+        }
+      }
+      return r;
+    };
+    const mid = (a, b) => {
+      const r = new Float64Array(stride);
+      for (let i = 0; i < stride; i += 1) {
+        r[i] = (a[i] + b[i]) / 2;
+      }
+      if (normalAt >= 0) {
+        const l = Math.hypot(r[normalAt], r[normalAt + 1], r[normalAt + 2]) || 1;
+        r[normalAt] /= l;
+        r[normalAt + 1] /= l;
+        r[normalAt + 2] /= l;
+      }
+      return r;
+    };
+    const pt = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    const edge2 = (a, b) => a.distanceToSquared(b);
+    /* The halves of one crossing triangle, in order, as vertex records. */
+    const split = (v, depth, into) => {
+      for (let k = 0; k < 3; k += 1) {
+        pt[k].set(v[k][posAt], v[k][posAt + 1], v[k][posAt + 2]).applyMatrix4(mat4);
+      }
+      const e = [edge2(pt[0], pt[1]), edge2(pt[1], pt[2]), edge2(pt[2], pt[0])];
+      const longest = e.indexOf(Math.max(e[0], e[1], e[2]));
+      if (depth >= SPLIT_DEPTH || e[longest] < SPLIT_EDGE * SPLIT_EDGE || !crosses(pt[0], pt[1], pt[2])) {
+        into.push(v[0], v[1], v[2]);
+        return;
+      }
+      /* Turned so the longest edge is the first, which keeps the winding. */
+      const x = v[longest];
+      const y = v[(longest + 1) % 3];
+      const z = v[(longest + 2) % 3];
+      const mxy = mid(x, y);
+      split([x, mxy, z], depth + 1, into);
+      split([mxy, y, z], depth + 1, into);
+    };
+    const halves = new Map();
+    let total = n - crossing.length;
+    for (const t of crossing) {
+      const into = [];
+      split([read(vertexOf(geo, t, 0)), read(vertexOf(geo, t, 1)), read(vertexOf(geo, t, 2))], 0, into);
+      halves.set(t, into);
+      total += into.length / 3;
+    }
+    const groupOf = new Int16Array(n).fill(-1);
+    if (multi) {
+      for (const g of geo.groups) {
+        for (let t = g.start / 3; t < Math.min(n, (g.start + g.count) / 3); t += 1) {
+          groupOf[t] = g.materialIndex;
+        }
+      }
+    }
+    const arrs = src.map((a) => new Float32Array(total * 3 * a.itemSize));
+    /* The plain arrays, read directly: a crash frame copies every vertex. */
+    const raw = src.map((a) => (a.isInterleavedBufferAttribute || a.normalized ? null : a.array));
+    const mats = new Int16Array(total);
+    let w = 0;
+    for (let t = 0; t < n; t += 1) {
+      const part = halves.get(t);
+      const count = part ? part.length / 3 : 1;
+      for (let k = 0; k < count * 3; k += 1) {
+        const at = w * 3 + k;
+        if (part) {
+          for (let j = 0, o = 0; j < src.length; o += src[j].itemSize, j += 1) {
+            for (let q = 0; q < src[j].itemSize; q += 1) {
+              arrs[j][at * src[j].itemSize + q] = part[k][o + q];
+            }
+          }
+        } else {
+          const v = vertexOf(geo, t, k);
+          for (let j = 0; j < src.length; j += 1) {
+            for (let q = 0; q < src[j].itemSize; q += 1) {
+              const size = src[j].itemSize;
+              arrs[j][at * size + q] = raw[j] ? raw[j][v * size + q] : src[j][ATTR_GET[q]](v);
+            }
+          }
+        }
+      }
+      mats.fill(groupOf[t], w, w + count);
+      w += count;
+    }
+    const out = new THREE.BufferGeometry();
+    names.forEach((name, j) => out.setAttribute(name, new THREE.BufferAttribute(arrs[j], src[j].itemSize)));
+    if (multi) {
+      let start = 0;
+      for (let t = 1; t <= total; t += 1) {
+        if (t === total || mats[t] !== mats[start]) {
+          if (mats[start] >= 0) {
+            out.addGroup(start * 3, (t - start) * 3, mats[start]);
+          }
+          start = t;
+        }
+      }
+    }
+    out.boundingSphere = geo.boundingSphere;
+    out.boundingBox = geo.boundingBox;
+    return out;
+  }
+
   /* Cut every mesh under the craft by the part table, once. */
   function buildCut() {
     craft.updateMatrixWorld(true);
@@ -214,20 +429,25 @@ export function createWreck() {
       if (!isAirframe(mesh)) {
         return;
       }
-      const geo = mesh.geometry;
+      const original = mesh.geometry;
       /* An outline hull is a scaled copy of its parent on the parent's own
        * geometry (src/render/celmat.js outlineHull), so it takes its
        * parent's cut: cut on its own, the scale would move a triangle near a
        * seam into the next part and leave its outline behind. */
-      const inherited = mesh.parent && mesh.parent.isMesh && mesh.parent.geometry === geo
-        ? byGeometry.get(geo)
+      const inherited = mesh.parent && mesh.parent.isMesh && byGeometry.has(original)
+        && byGeometry.get(original).mesh === mesh.parent
+        ? byGeometry.get(original)
         : null;
       let tri = null;
       let owner = -1;
+      let geo = original;
       if (inherited) {
-        ({ tri, owner } = inherited);
+        ({ tri, owner, geo } = inherited);
+        mesh.geometry = geo;
       } else {
         localMatrix(mesh, m);
+        geo = bisected(original, m, Array.isArray(mesh.material) && original.groups.length > 0) || original;
+        mesh.geometry = geo;
         const pa = geo.attributes.position;
         const n = triCount(geo);
         tri = new Uint8Array(n);
@@ -250,9 +470,9 @@ export function createWreck() {
           owner = first < 0 ? 0 : first;
           tri = null;
         }
-        byGeometry.set(geo, { tri, owner });
+        byGeometry.set(original, { tri, owner, geo, mesh });
       }
-      cut.push({ mesh, owner, tri, geometry: geo, hidden: null });
+      cut.push({ mesh, owner, tri, geometry: geo, original, inherited: Boolean(inherited), hidden: null });
     });
   }
 
@@ -345,6 +565,7 @@ export function createWreck() {
         continue;
       }
       const mesh = new THREE.Mesh(g, c.mesh.material);
+      mesh.name = c.mesh.name || (c.mesh.parent && c.mesh.parent.name) || '';
       mesh.castShadow = c.mesh.castShadow;
       mesh.receiveShadow = c.mesh.receiveShadow;
       mesh.renderOrder = c.mesh.renderOrder;
@@ -454,6 +675,11 @@ export function createWreck() {
       }
     }
     if (changed) {
+      /* The craft was posed this frame and not yet drawn, so its meshes'
+       * world matrices are last frame's: a piece baked from them on a later
+       * break than the first sat a frame's travel off its part, 14 cm on a
+       * tumbling Skyhunter's aileron, standing in the grass. */
+      craft.updateMatrixWorld(true);
       if (!cut) {
         buildCut();
       }
@@ -521,5 +747,52 @@ export function createWreck() {
     return out;
   }
 
-  return { group, attach, reset, update, setCraftVisible, summary, pieceCount: () => pieces.size };
+  /* For the harness: per piece, how far its farthest vertex stands outside
+   * its part's grown hull box, metres, and from which mesh. A triangle
+   * goes to the part holding its centre, so a vertex may reach past the box
+   * by up to about a triangle's own size at a seam; a triangle that belongs
+   * to no part, stretched across the aircraft, reads as metres. */
+  function audit() {
+    const out = [];
+    for (const [i, piece] of pieces) {
+      const b = boxes[i].box;
+      const origin = bodyToLocal(table[i].cg, new THREE.Vector3());
+      let worst = 0;
+      let where = '';
+      let tris = 0;
+      for (const mesh of piece.children) {
+        const p = mesh.geometry.attributes.position;
+        tris += p.count / 3;
+        for (let v = 0; v < p.count; v += 1) {
+          va.fromBufferAttribute(p, v).add(origin);
+          const d = b.distanceToPoint(va);
+          if (d > worst) {
+            worst = d;
+            where = mesh.name || mesh.material.type;
+          }
+        }
+      }
+      /* The lowest corner of the part's own hull box where the piece is
+       * drawn, world: what the plant rests on, for a check that a piece
+       * drawn in the ground is the plant's pose and not the drawing's. */
+      piece.updateMatrixWorld(true);
+      let low = null;
+      const lo = table[i].boxMin;
+      const hi = table[i].boxMax;
+      for (let k = 0; k < 8; k += 1) {
+        bodyToLocal([k & 1 ? hi[0] : lo[0], k & 2 ? hi[1] : lo[1], k & 4 ? hi[2] : lo[2]], vb)
+          .sub(origin).applyMatrix4(piece.matrixWorld);
+        if (!low || vb.y < low[1]) {
+          low = [vb.x, vb.y, vb.z];
+        }
+      }
+      out.push({
+        part: i, kind: table[i].kindName, parent: table[i].parent, tris, overhang: worst, mesh: where, hullLow: low,
+        free: free[i] === 1,
+      });
+    }
+    return out;
+  }
+
+  return { group, attach, reset, update, setCraftVisible, summary, audit, pieceCount: () => pieces.size };
 }

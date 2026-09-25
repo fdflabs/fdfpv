@@ -138,7 +138,9 @@ import { insideWater, waterFor } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, solidSurface } from './game/crashworld.js';
-import { DAMAGE_FLAGS, EVENT, MATERIALS, OBSTACLES_MAX, SURFACE, TREES_MAX, partLabel } from '../configs/parts.js';
+import {
+  DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, SURFACE, SURFACES, TREES_MAX, partLabel,
+} from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
 import { createFpvFail } from './render/fpvfail.js';
@@ -3583,6 +3585,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let splashCueAtWall = -1e9;
   let treeCueAtWall = -1e9;
   let crashEvents = 0;
+  /* Harness only: the run's damage events and the sounds they cued, for a
+   * check that reads what broke, when and how hard (window.__crashLog).
+   * Bounded, the oldest kept: a crash's story is how it started. */
+  const crashLog = [];
+  const CRASH_LOG_MAX = 400;
   let crashTreesDeclared = 0;
   let crashSolidsDeclared = 0;
   let fpvLensLive = false;
@@ -3670,6 +3677,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     wreckStillSince = -1;
     crashFlags = 0;
     lastParts = null;
+    crashLog.length = 0;
     wreckRig.reset();
     debris.clear();
     fpvFail.clear();
@@ -3912,6 +3920,19 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function onDamageEvent(ev, o) {
     crashEvents += 1;
     const type = ev[o + EVENT.type];
+    if (crashLog.length < CRASH_LOG_MAX) {
+      const p = partTable[ev[o + EVENT.part]];
+      crashLog.push({
+        t: stateCurr ? stateCurr[0] : 0,
+        part: p ? partLabel(p.kind, p.cg[0], p.cg[1], !airframeById(runAirframe).fixedWing) : String(ev[o + EVENT.part]),
+        type: EVENT_TYPES[type] ?? String(type),
+        ratio: ev[o + EVENT.ratio],
+        force: ev[o + EVENT.force],
+        moment: ev[o + EVENT.moment],
+        closing: ev[o + EVENT.closing],
+        surface: SURFACES[ev[o + EVENT.surface]] ?? String(ev[o + EVENT.surface]),
+      });
+    }
     if (type === 1) {
       partsLeft = true;
     }
@@ -4036,6 +4057,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     crashAt.set(pCurr.x, w.surfaceY, pCurr.z);
     crashNormal.set(0, 1, 0);
     debris.emit(crashAt, crashNormal, Math.max(sink * 3, speed * 0.6), SURFACE.water, null, w.surfaceY, 'hit');
+    if (crashLog.length < CRASH_LOG_MAX) {
+      crashLog.push({ t: stateCurr[0], part: 'craft', type: 'splash', ratio: 0, force: 0, moment: 0, closing: Math.max(sink, speed), surface: 'water' });
+    }
     if (sink > 1.5 && typeof audio.wreck === 'function') {
       audio.wreck('splash', Math.min(1, sink / 4));
     }
@@ -8758,9 +8782,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           chaseDir.normalize();
         }
         const back = Math.max(2.5, span * 2.4);
+        /* A wreck lies in the grass, and swiss2's meadow grass stands a
+         * metre tall: from the flying height, 0.28 of the stand off, the
+         * pilot looked at blades and not at the wreck. A pilot walking up
+         * to a wreck looks down on it. */
         chaseAim.copy(chaseAnchor)
           .addScaledVector(chaseDir, -back)
-          .addScaledVector(introUp, back * 0.28);
+          .addScaledVector(introUp, back * (wrecked ? 0.7 : 0.28));
         const floor = view.height(chaseAim.x, chaseAim.z, chaseAim.y) + 0.5;
         if (chaseAim.y < floor) {
           chaseAim.y = floor;
@@ -10283,6 +10311,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     obsHasPrev = false;
     obsPhase = 0;
     contactLog.length = 0;
+    crashLog.length = 0;
     contactLogOn = true;
     stateCurr = readState();
     statePrev = stateCurr;
@@ -10331,6 +10360,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   window.__crashWater = () => (view.water || []).map((w) => ({ spawn: w.spawn, surfaceY: w.surfaceY }));
   window.__crashBreak = (part) => simErrorName(sim.e.sim_part_break(part));
   window.__crashSetDamage = (part, d) => simErrorName(sim.e.sim_part_set_damage(part, d));
+  /* Each drawn piece's farthest vertex outside its part's hull box, for a
+   * check that no stray triangle rides off with a broken part. */
+  window.__wreckAudit = () => wreckRig.audit();
+  /* The damage events since the last reset or throw, oldest first: { t sim s, part,
+   * type, ratio of the load to its limit, force N, moment N m, closing
+   * m/s, surface }. A break cues the snap, a crush the crunch, a chip the
+   * chip, water the splash. */
+  window.__crashLog = () => crashLog.slice();
   /*
    * Which tune the module is actually running, read back from the module
    * rather than from the menu, plus the config coverage counters from
