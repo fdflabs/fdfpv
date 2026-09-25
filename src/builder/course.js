@@ -421,6 +421,39 @@ export function spawnFor(gates) {
 }
 
 /*
+ * Where a test flight starts, on the ground or in the air.
+ *
+ * THE RULE. A start gate whose opening is hung more than one opening's
+ * height over the ground under it cannot be flown from the ground behind
+ * it without climbing first, so the run starts in the air: SPAWN_BACK
+ * before the opening along its own line of travel, which is the opening's
+ * height for a level gate, lined up to fly straight through it. The spawn
+ * says so with `air: { y }` and the shell (src/main.js airStart) puts the
+ * craft there. Any other start gate, a gate on the ground among them, is
+ * spawnFor's ground start as before. So is a hung one whose start point is
+ * not at least half an opening clear of the ground under it, a gate hung
+ * off a slope that rises behind it: the ground there is the start line.
+ *
+ * `heightAt(x, z)` is the map's.
+ */
+export function startFor(gates, heightAt) {
+  const ground = spawnFor(gates);
+  if (!ground) {
+    return null;
+  }
+  const g = gates[0];
+  const t = g.axes.travel;
+  const c = g.centre;
+  const p = v3(c.x - t.x * SPAWN_BACK, c.y - t.y * SPAWN_BACK, c.z - t.z * SPAWN_BACK);
+  const hung = c.y - heightAt(c.x, c.z) > g.aperture.clearH;
+  const clear = p.y - heightAt(p.x, p.z) >= g.aperture.clearH / 2;
+  if (!hung || !clear) {
+    return ground;
+  }
+  return { x: p.x, z: p.z, yaw: ground.yaw, air: { y: p.y } };
+}
+
+/*
  * What the builder reads out for one gate: its opening's height over the
  * ground under it, and the next gate in the lap's distance and drop (drop
  * positive when the next one is lower). `heightAt(x, z)` is the map's.

@@ -31,6 +31,12 @@
  *   world froze at build() answers exactly as it did before, while they
  *   are there and after.
  *
+ *   A test flight from a start gate hung more than an opening over the
+ *   ground starts in the air before it, at its height on its line of
+ *   travel; from any other start gate it starts on the ground as before.
+ *   A fixed wing starts at 1.3 times its stall, the Bramor catapult's own
+ *   margin, and a quad at rest.
+ *
  * The browser half, the builder itself in the real page, is
  * scripts/build-check.js.
  *
@@ -61,9 +67,12 @@ import { PRESETS } from '../src/trackbuilder/presets.js';
 import { Race } from '../src/game/race.js';
 import {
   addGate, axesOf, makeStart, moveInLap, newCourse, openingCentre, orderOf, poseOf, qAxis, qMul,
-  qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, turnGate, worldCaps, SPAWN_BACK,
+  qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
 import { Colliders } from '../src/game/collide.js';
+import {
+  AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
+} from '../configs/airframes.js';
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../src/render/frame.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -323,6 +332,44 @@ console.log('the built gates are solid');
   check('deleted, nothing is left', col.hit(...through(onUpright2)) === -1 && col.count === baseCount);
   check('every cell is the frozen one again', col.grid.size === cellsBefore.size && [...col.grid].every(([k, v]) => cellsBefore.get(k) === v));
   check('and every query answers as before', probes.map(answer).join('|') === before.join('|') && col.gapAt(0, 3, -50, 5) === gapBefore);
+}
+
+/* ------------------------------------------------------------------ */
+console.log('where a test flight starts');
+{
+  const flat = () => 100;
+  const d = newCourse('alps', 'Start');
+  addGate(d, 'gate', { x: 0, y: 100, z: 0 }, qAxis(0, 1, 0, 30 * DEG));
+  let gates = raceGatesOf(d);
+  const onGround = startFor(gates, flat);
+  check('a start gate on the ground starts on the ground behind it, as before', !onGround.air && JSON.stringify(onGround) === JSON.stringify(spawnFor(gates)));
+  const h = newCourse('alps', 'Hung');
+  addGate(h, 'gate', { x: 0, y: 130, z: 0 }, qAxis(0, 1, 0, 30 * DEG));
+  gates = raceGatesOf(h);
+  const g = gates[0];
+  const air = startFor(gates, flat);
+  check('a hung start gate starts in the air', Boolean(air.air));
+  check('at its height', near(air.air.y, g.centre.y, 1e-9), `${air.air.y} vs ${g.centre.y}`);
+  const back = { x: g.centre.x - air.x, y: g.centre.y - air.air.y, z: g.centre.z - air.z };
+  check('SPAWN_BACK before it, on its line of travel', near(Math.hypot(back.x, back.y, back.z), SPAWN_BACK, 1e-9)
+    && near((back.x * g.axes.travel.x + back.y * g.axes.travel.y + back.z * g.axes.travel.z) / SPAWN_BACK, 1, 1e-9));
+  check('facing through it', near(air.yaw, g.heading, 1e-9));
+  const hill = (x, z) => (Math.hypot(x - air.x, z - air.z) < 1 ? g.centre.y - 0.5 : 100);
+  check('with the ground behind it risen to the start point, the ground start again', !startFor(gates, hill).air);
+  const low = newCourse('alps', 'Low');
+  addGate(low, 'gate', { x: 0, y: 100.8, z: 0 }, qAxis(0, 1, 0, 0));
+  check('a gate on a low stand is still a ground start', !startFor(raceGatesOf(low), flat).air);
+}
+
+console.log('an air start\'s speed');
+{
+  const wings = AIRFRAMES.filter((af) => af.fixedWing);
+  check('every fixed wing names its stall', wings.every((af) => af.stall > 0), wings.filter((af) => !(af.stall > 0)).map((af) => af.id).join());
+  check('a quad starts at rest', airStartSpeed(airframeById('5inch')) === 0 && airStartSpeed(airframeById('whoop65')) === 0);
+  const bramor = airframeById('bramor2300');
+  check('the margin is the Bramor catapult\'s: its air start is its release speed',
+    Math.abs(airStartSpeed(bramor) - BRAMOR_CATAPULT.speed) / BRAMOR_CATAPULT.speed < 0.01, `${airStartSpeed(bramor)} vs ${BRAMOR_CATAPULT.speed}`);
+  console.log(`  ${wings.map((af) => `${af.id} ${airStartSpeed(af).toFixed(2)} m/s`).join(', ')}`);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

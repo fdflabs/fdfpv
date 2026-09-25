@@ -93,7 +93,7 @@ import { createShowcase } from './render/showcase.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
-import { airframeById, simIdFor } from '../configs/airframes.js';
+import { airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
@@ -1270,7 +1270,7 @@ export async function boot({ loading, bootStart, mapId }) {
 
   function adoptSpawn() {
     seatRestHeight(airframeById(runAirframe), floatsOnWater());
-    const sp = floatsOnWater() ? view.water[0].spawn : view.spawn;
+    const sp = floatsOnWater() && !view.spawn.air ? view.water[0].spawn : view.spawn;
     startX = sp.x;
     startZ = sp.z;
     startYaw = sp.yaw;
@@ -2458,6 +2458,10 @@ export async function boot({ loading, bootStart, mapId }) {
    * the parked overlay or the intro orbit. Used by __seatCraft so a
    * camera-down crash can be photographed before the hull tumbles. */
   let poseLock = false;
+  /* An air start's countdown, milliseconds of the flight screen still to
+   * hold it for, and the wall time its GO leaves the banner. See airStart. */
+  let airHoldMs = 0;
+  let airGoUntil = 0;
   /*
    * Between committing to a takeoff and getting the collision sphere clear
    * of the surface. While this is set, ground contact does not re-land the
@@ -3977,6 +3981,8 @@ export async function boot({ loading, bootStart, mapId }) {
     turtleOnSupport = false;
     setTurtleParkMotors(false);
     poseLock = false;
+    airHoldMs = 0;
+    airGoUntil = 0;
     obsHasPrev = false;
     obsContact = false;
     obsTouched = false;
@@ -4290,6 +4296,57 @@ export async function boot({ loading, bootStart, mapId }) {
     ghostRig.setPresence(0);
     runLaps = ui.settings.laps;
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+    /* Not on the way to the title: that reset parks the craft for a menu. */
+    if (view.spawn && view.spawn.air && mode !== 'title') {
+      airStart(view.spawn.air.y);
+    }
+  }
+
+  /*
+   * AN AIR START, for a spawn that names a height: the in-sim builder's test
+   * flight through a start gate hung in the air (src/builder/course.js
+   * startFor). The craft is put at that height over the spawn point,
+   * level on the spawn's heading, a quad at rest and a fixed wing at its
+   * air start speed along its nose (configs/airframes.js airStartSpeed), and
+   * held there for AIR_START_MS of the flight screen while the banner
+   * counts down, so the pilot has the sticks before it flies.
+   */
+  const AIR_START_MS = 3000;
+  const AIR_GO_MS = 700;
+  function airStart(y) {
+    worldPosToSim(startX, y, startZ, pSim);
+    if (sim.e.sim_set_pose(pSim.x, pSim.y, pSim.z, 1, 0, 0, 0) !== SIM_OK) {
+      throw new Error(`air start at ${y} refused`);
+    }
+    sim.rest();
+    const af = airframeById(runAirframe);
+    if (af.fixedWing && sim.e.sim_wing_launch(airStartSpeed(af)) !== SIM_OK) {
+      throw new Error(`air start: ${af.id} refused its launch`);
+    }
+    landed = false;
+    takingOff = false;
+    flownThisRun = true;
+    poseLock = true;
+    airHoldMs = AIR_START_MS;
+    adoptSimClock();
+    stateCurr = readState();
+    statePrev = stateCurr;
+  }
+
+  /* The countdown, on the flight screen's own time: a pause holds it. */
+  function tickAirStart(dt, nowWall) {
+    if (!(airHoldMs > 0) || mode !== 'flight' || ui.screen !== 'flight') {
+      return;
+    }
+    airHoldMs -= dt;
+    if (airHoldMs > 0) {
+      return;
+    }
+    airHoldMs = 0;
+    poseLock = false;
+    adoptSimClock();
+    acc = 0;
+    airGoUntil = nowWall + AIR_GO_MS;
   }
 
   /*
@@ -7184,6 +7241,7 @@ export async function boot({ loading, bootStart, mapId }) {
     input.poll(nowWall);
     pollManualFlip();
     const launchNow = syncLaunchControl(nowWall);
+    tickAirStart(dt, nowWall);
     input.forcePadRest = launchStaging;
     syncAngleMode();
     const samples = input.drain();
@@ -8858,6 +8916,10 @@ export async function boot({ loading, bootStart, mapId }) {
       && ui.screen === 'flight'
     ) {
       ui.setBanner(turtleBannerText(), true);
+    } else if (airHoldMs > 0 && !ui.isModal()) {
+      ui.setBanner(String(Math.ceil(airHoldMs / 1000)));
+    } else if (nowWall < airGoUntil && !ui.isModal()) {
+      ui.setBanner('GO');
     } else if (notice && nowWall < notice.untilMs && !(launchNow > 0) && !crashflipOn) {
       ui.setBanner(notice.text);
     } else if (ui.isModal()) {

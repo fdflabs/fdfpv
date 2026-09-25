@@ -69,7 +69,7 @@ import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
   BUILD_TYPES, SNAP_MODES, addGate, gateFlags, gateSpec, headingOf, makeStart, moveInLap, newCourse,
   openingCentre, openingsOf, orderOf, poseOf, qAxis, raceGatesOf, readoutFor, removeGate, setPose, snapPose,
-  spawnFor, turnGate, worldCaps,
+  startFor, turnGate, worldCaps,
 } from './course.js';
 
 /* The camera's two speeds, metres a second: a slow one to put a gate on a
@@ -677,7 +677,7 @@ export function createBuildMode(host) {
     view.setNextGate = setNextGate;
     view.targetAim = () => aim;
     view.approachSide = approachSide;
-    view.spawn = spawnFor(gates);
+    view.spawn = startFor(gates, host.heightAt);
     view.mode = 'race';
   }
 

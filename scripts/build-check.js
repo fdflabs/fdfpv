@@ -31,8 +31,13 @@
  *      it meets the frame and the crash physics takes the hit. Moved, the
  *      old place is air and the new one solid; deleted, nothing is left. A
  *      double stack's two openings are open and the bar between them solid.
- *      Then Esc leaves.
- *   9. An old field track (the reference course, schemaVersion 1) on the
+ *   9. The air start. A level gate hung out over the drop made the start:
+ *      B starts the craft in the air 7.5 m before it on its line of travel
+ *      at its height, held through a countdown, and a pilot in the page
+ *      flies it through and the lap starts. Then Esc leaves.
+ *  10. The same air start on a fixed wing, the Slow Stick, at its air start
+ *      speed (configs/airframes.js airStartSpeed).
+ *  11. An old field track (the reference course, schemaVersion 1) on the
  *      custom map still loads with every station and still counts a pass.
  *
  * Pictures land in OUT_DIR (tmp/build-check by default). They are evidence
@@ -67,7 +72,7 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage, keyInfo } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
-import { airframeById } from '../configs/airframes.js';
+import { airStartSpeed, airframeById } from '../configs/airframes.js';
 import { courseFromDocument } from '../src/game/trackdoc.js';
 import { openingsOf } from '../src/builder/course.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
@@ -100,16 +105,22 @@ const f3 = (v) => v.map((x) => Number(x).toFixed(2)).join(', ');
  * The page's settings, and no gamepads. The browser hands the page every
  * joystick the host has, and a radio left plugged into this machine is a
  * pad whose sticks drive the free camera: the crosshair then never rests
- * and every placement times out. The keyboard is the pilot here.
+ * and every placement times out. The keyboard is the pilot here. Angle
+ * mode, so the pilot in the page that flies an air start asks for an
+ * attitude; `airframe` and `tune` seat another aircraft.
  */
-function seedFor(graphics) {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+function seedFor(graphics, airframe = '5inch', tune = null) {
+  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+  if (tune) {
+    seated.tune = tune;
+  }
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
     Object.assign(s, ${JSON.stringify(seated)});
     s.airframeAsked = true;
     s.fpsCap = 0;
+    s.flightMode = 'angle';
     ${graphics ? `s.graphics = ${JSON.stringify(graphics)}; s.graphicsAuto = false;` : ''}
     localStorage.setItem(k, JSON.stringify(s));
   } catch (e) { /* storage refused; the checks below will say so */ }
@@ -180,6 +191,7 @@ async function settleCrosshair(page) {
 }
 
 async function proof() {
+  let out = null;
   console.log(`build mode on ${opts.map}`);
   const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed: seedFor(null) });
   try {
@@ -400,7 +412,11 @@ async function proof() {
     say((await page.evaluate('window.__map().mode')) === 'freestyle' && (await page.evaluate('window.__race().freestyle')), 'and the map is freestyle again underneath');
 
     /* Out over the drop, where nothing but a built gate is in the air. */
-    await solidGates(page, { edge, drop, yawOut, at });
+    out = { edge, drop, yawOut, at };
+    await solidGates(page, out);
+    await airStartFlight(page, out, 'quad');
+    await page.tap('KeyB');
+    await page.until(`${B('.state')} === 'building'`, 10000);
     await page.tap('Escape');
     await page.until(`${B('.state')} === 'off'`, 10000);
     await page.until("window.__craftState().mode === 'flight'", 10000);
@@ -410,10 +426,11 @@ async function proof() {
   } finally {
     await page.close();
   }
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
-/* Solid gates                                                         */
+/* Solid gates and the air start                                       */
 /* ------------------------------------------------------------------ */
 
 const OPENING = openingsOf({ type: 'gate', dims: ELEMENTS.gate.dims })[0];
@@ -553,6 +570,103 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
     await page.tap('KeyT');
   }
   say((await page.evaluate(B('.type'))) === 'gate' && (await page.evaluate('window.__colliders()')).count === count0, 'deleted, and back to placing gates');
+}
+
+/*
+ * A test flight from a start gate hung level in the air: the craft starts
+ * in the air in front of it at its height, counts down, and is flown
+ * through it by a pilot in the page holding the height on the sticks, and
+ * the race starts the lap. `craft` names what flies, for the lines.
+ */
+async function airStartFlight(page, { edge, drop, yawOut, at }, craft) {
+  console.log(`  air start, ${craft}`);
+  const eye = at(edge + 25, drop.h + 10);
+  const g = await hangGate(page, eye, yawOut);
+  /* And one after it, so the start gate is not also the whole lap. */
+  await hangGate(page, vAdd(eye, [drop.dx, 0, drop.dz], 30), yawOut);
+  await select(page, g.id);
+  await page.tap('Home');
+  await page.tap('Escape');
+  const first = (await page.evaluate(B('.gates')))[0];
+  say(first.id === g.id, 'Home makes the hung gate the start');
+  const af = await page.evaluate('window.__ui.settings.airframe');
+  const want = airStartSpeed(airframeById(af));
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+  await page.sleep(300);
+  const c0 = await page.evaluate('window.__craftState()');
+  const rel = [c0.worldX - g.centre[0], c0.worldY - g.centre[1], c0.worldZ - g.centre[2]];
+  const behind = -vDot(rel, g.travel);
+  const off = Math.hypot(...vAdd(rel, g.travel, behind));
+  const under = await page.evaluate(`window.__heightAt(${c0.worldX}, ${c0.worldZ})`);
+  say(Math.abs(behind - 7.5) < 0.05 && off < 0.05, `${af} starts ${behind.toFixed(2)} m before the start gate on its line of travel, ${off.toFixed(3)} m off it, at its height`);
+  say(c0.worldY - under > 20 && !c0.landed, `in the air: ${f1(c0.worldY - under)} m over the ground under it`);
+  const along = c0.vel ? vDot([c0.vel.x, c0.vel.y, c0.vel.z], g.travel) : NaN;
+  say(Math.abs(c0.speed - want) < 0.05 && Math.abs(along - want) < 0.05, `at ${c0.speed.toFixed(2)} m/s along its travel, the air start speed for ${af} is ${want.toFixed(2)}`);
+  say(/^[123]$/.test(c0.banner), `the countdown is up: "${c0.banner}"`);
+  await page.sleep(1200);
+  const c1 = await page.evaluate('window.__craftState()');
+  say(Math.hypot(c1.worldX - c0.worldX, c1.worldY - c0.worldY, c1.worldZ - c0.worldZ) < 1e-6, 'held still through the countdown');
+  await shot(page, `8-air-start-${craft}`);
+
+  /* The pilot: height on the throttle (a quad) or the elevator (a wing),
+   * the line on the roll stick, pushed along on the pitch stick for a quad
+   * and on its cruise throttle for a wing, in angle mode and stabilised
+   * mode so a stick is an attitude. A positive pitch stick raises the nose. */
+  await page.evaluate(`(() => {
+    const T = ${JSON.stringify(g.travel)};
+    const C = ${JSON.stringify(g.centre)};
+    const A = [T[2], 0, -T[0]];
+    const wing = ${JSON.stringify(want > 0)};
+    const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+    window.__pilot = true;
+    window.__trail = [];
+    const step = () => {
+      if (!window.__pilot) { window.__stick(); return; }
+      const c = window.__craftState();
+      const dy = C[1] - c.worldY;
+      const vy = c.vel ? c.vel.y : 0;
+      const side = (c.worldX - C[0]) * A[0] + (c.worldZ - C[2]) * A[2];
+      const vs = c.vel ? c.vel.x * A[0] + c.vel.z * A[2] : 0;
+      const roll = cl(0.25 * side + 0.1 * vs, -0.4, 0.4);
+      const u = (c.worldX - C[0]) * T[0] + (c.worldY - C[1]) * T[1] + (c.worldZ - C[2]) * T[2];
+      window.__trail.push([+u.toFixed(2), +side.toFixed(2), +(-dy).toFixed(2), +c.speed.toFixed(1), c.banner, c.lastHitKind]);
+      if (wing) {
+        window.__stick(roll, cl(0.25 * dy - 0.08 * vy, -0.6, 0.6), 0, 0.75);
+      } else {
+        window.__stick(roll, -0.2, 0, cl(0.37 + 0.1 * dy - 0.08 * vy, 0.1, 0.9));
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    return true;
+  })()`);
+  await page.until('window.__race().next === 1', 60000).catch(() => {});
+  await page.evaluate('window.__pilot = false');
+  const r = await page.evaluate('({ next: window.__race().next, lap: window.__race().lapStartMs, c: window.__craftState() })');
+  if (r.next !== 1) {
+    const tr = await page.evaluate('window.__trail');
+    console.log(`  mode ${await page.evaluate('window.__mode')}, screen ${await page.evaluate('window.__screen')}, fault ${JSON.stringify(await page.evaluate('window.__frameFault || null'))}`);
+    console.log(`  the flight, along the travel, across, up, speed: ${JSON.stringify(tr.filter((_, i) => i % Math.max(1, Math.floor(tr.length / 40)) === 0))}`);
+  }
+  say(r.next === 1 && r.lap != null && r.c.lastHitKind === 'none', `flown through the start gate: the lap clock starts, next is gate ${r.next + 1}, touched ${r.c.lastHitKind}`);
+  await page.sleep(300);
+}
+
+/* The same air start on a fixed wing, the Slow Stick: at 1.18 m the one
+ * whose span goes through a 1.75 m opening with room to fly it. Its
+ * stabilised mode, so a centred stick flies level. */
+async function wingStart({ edge, drop, yawOut, at }) {
+  console.log(`air start on a fixed wing, ${opts.map}`);
+  const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed: seedFor(null, 'slowstick1180', 'slowstick-stab') });
+  try {
+    await flyAndBuild(page);
+    await airStartFlight(page, { edge, drop, yawOut, at }, 'fixed wing');
+    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  } finally {
+    await page.close();
+  }
 }
 
 async function fieldTrack() {
@@ -713,7 +827,8 @@ try {
   if (opts.perf) {
     await perf();
   } else {
-    await proof();
+    const out = await proof();
+    await wingStart(out);
     await fieldTrack();
   }
 } catch (e) {
