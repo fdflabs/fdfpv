@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -192,6 +192,43 @@ const STICK_VIEWS = [
   ['gear-side', NEUTRAL, [90, 0, 0.8, 0, -0.07, -0.12]],
 ];
 
+/*
+ * The Timber's own set: its spinner at z = -0.33, its rudder at +0.72,
+ * resting on its tailwheel as the Cub does, and the flaps, which are what
+ * it is for: half and full, from the side and from behind, where the slot
+ * they open shows.
+ */
+const FLAPS_HALF = 'window.__preview.flaps(0.3137)';
+const FLAPS_FULL = 'window.__preview.flaps(0.5705)';
+const TIMBER_VIEWS = [
+  ['front', NEUTRAL, [0, 4, 3.6, 0, 0, 0]],
+  ['front-level', NEUTRAL, [0, 0, 3.6, 0, 0.05, 0]],
+  ['three-quarter', NEUTRAL, [-140, 24, 3.2, 0, 0, 0.15]],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 3.2, 0, 0, 0.05]],
+  ['side', NEUTRAL, [90, 0, 3.2, 0, 0, 0.19]],
+  ['side-rest', NEUTRAL, [90, 3, 3.2, 0, 0, 0.19], false, true],
+  ['three-quarter-rest', NEUTRAL, [-45, 12, 2.8, 0, 0, 0.1], false, true],
+  ['front-rest', NEUTRAL, [-12, 6, 2.6, 0, 0.05, 0.0], false, true],
+  ['top', NEUTRAL, [0, 90, 3.6, 0, 0, 0.19]],
+  ['below', NEUTRAL, [0, -90, 3.6, 0, 0, 0.19]],
+  ['deflected-three-quarter', DEFLECT, [-150, 25, 3.2, 0, 0, 0.15]],
+  ['deflected-rear', DEFLECT, [180, 12, 3.2, 0, 0, 0.15]],
+  ['flaps-half-side', NEUTRAL, [90, 4, 1.6, 0.2, 0.05, -0.05], false, false, undefined, FLAPS_HALF],
+  ['flaps-full-side', NEUTRAL, [90, 4, 1.6, 0.2, 0.05, -0.05], false, false, undefined, FLAPS_FULL],
+  ['flaps-full-rear', NEUTRAL, [160, 10, 1.6, 0.25, 0.05, 0.0], false, false, undefined, FLAPS_FULL],
+  ['flaps-full-rest', NEUTRAL, [-120, 14, 2.8, 0, 0, 0.1], false, true, undefined, FLAPS_FULL],
+  ['slat-close', NEUTRAL, [70, 12, 0.55, 0.45, 0.08, -0.06]],
+  ['nose-close', NEUTRAL, [-40, 12, 0.8, 0, -0.01, -0.25]],
+  ['prop-blur', NEUTRAL, [-20, 10, 0.9, 0, 0, -0.29], true],
+  ['cabin-close', NEUTRAL, [-70, 15, 0.9, 0, 0.03, 0.05]],
+  ['tail-close', DEFLECT, [-145, 20, 1.0, 0, 0.06, 0.62]],
+  ['tail-side', DEFLECT, [90, 0, 0.9, 0, 0.06, 0.62]],
+  ['tail-top', DEFLECT, [0, 90, 1.0, 0, 0.06, 0.62]],
+  ['gear-front', NEUTRAL, [0, -5, 1.0, 0, -0.10, -0.06]],
+  ['gear-close', NEUTRAL, [-60, 0, 0.9, 0, -0.10, -0.06]],
+  ['tip-close', NEUTRAL, [-110, 8, 0.7, -0.72, 0.05, -0.05]],
+];
+
 const page = await openPage({
   root, width: 1280, height: 800, url: `/tests/browser/craft-preview.html?craft=${craft}${lite ? '&lite=1' : ''}`,
 });
@@ -199,10 +236,10 @@ try {
   await page.until('window.__previewReady === true', 60000);
   await mkdir(outDir, { recursive: true });
   const scale = 1;
-  const views = { cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS }[craft] ?? VIEWS;
+  const views = { cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS, timber: TIMBER_VIEWS }[craft] ?? VIEWS;
   for (const [name, surf, cam, blur, rest, omega, setup] of views) {
     const [az, el, dist, tx, ty, tz] = cam;
-    await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
+    await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0); window.__preview.flaps(0)');
     await page.evaluate(`window.__preview.rest(${Boolean(rest)})`);
     if (setup) {
       await page.evaluate(setup);
@@ -256,6 +293,13 @@ try {
       ['elevator', [0, 0, FULL, 0], up],
       ['rudder', [0, 0, 0, FULL], left],
     ],
+    timber: [
+      ['aileron-left', [FULL, 0, 0, 0], up],
+      ['aileron-right', [0, FULL, 0, 0], up],
+      ['elevator', [0, 0, FULL, 0], up],
+      ['rudder', [0, 0, 0, FULL], left],
+      ['tailwheel', [0, 0, 0, FULL], left],
+    ],
     stick: [
       ['elevator', [0, 0, FULL, 0], up],
       ['rudder', [0, 0, 0, FULL], left],
@@ -278,7 +322,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (craft === 'sky' || craft === 'cub' || craft === 'glider' || craft === 'bramor' || craft === 'stick') {
+  if (craft === 'sky' || craft === 'cub' || craft === 'glider' || craft === 'bramor' || craft === 'stick' || craft === 'timber') {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
@@ -305,10 +349,10 @@ try {
    * spin: a blade pointing up must go right, +x, under a positive step of
    * the shell's spin, which is clockwise seen from the cockpit.
    */
-  if (craft === 'cub' || craft === 'stick') {
+  if (craft === 'cub' || craft === 'stick' || craft === 'timber') {
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     const d = await page.evaluate('window.__preview.dims');
-    const blackMesh = `${craft === 'cub' ? 'cub' : 'slowstick'}-black`;
+    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres' }[craft];
     const wheels = [
       ['main left', blackMesh, -1, d.contact.mainLeft],
       ['main right', blackMesh, 1, d.contact.mainRight],
@@ -336,6 +380,29 @@ try {
     if (!cw) {
       process.exitCode = 1;
     }
+  }
+  /*
+   * The Timber's flaps: each lowered to the full 32.7 degrees must drop its
+   * trailing edge, the box's bottom, and move it aft, the slotted flap's
+   * two motions, and both the same.
+   */
+  if (craft === 'timber') {
+    await page.evaluate('window.__preview.surfaces(0, 0, 0, 0); window.__preview.flaps(0)');
+    const box = (n) => page.evaluate(`window.__preview.box('${n}')`);
+    for (const name of ['flap-left', 'flap-right']) {
+      await page.evaluate('window.__preview.flaps(0)');
+      const a = await box(name);
+      await page.evaluate(FLAPS_FULL);
+      const b = await box(name);
+      const down = (a.min[1] - b.min[1]) * 1000;
+      const aft = (b.max[2] - a.max[2]) * 1000;
+      const ok = down > 20 && aft > -2;
+      console.log(`${ok ? 'ok  ' : 'FAIL'} ${name} full lowers its trailing edge ${down.toFixed(1)} mm and moves it ${aft.toFixed(1)} mm aft`);
+      if (!ok) {
+        process.exitCode = 1;
+      }
+    }
+    await page.evaluate('window.__preview.flaps(0)');
   }
   /*
    * The Radian's folding prop: folded, the disc is gone and every blade
