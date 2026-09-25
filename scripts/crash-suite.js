@@ -570,7 +570,13 @@ function bandText(b) {
   if (typeof b.equals === 'boolean') {
     return String(b.equals);
   }
-  return `${b.min ?? ''} to ${b.max ?? ''}`;
+  if (b.min === undefined) {
+    return `at most ${b.max}`;
+  }
+  if (b.max === undefined) {
+    return `at least ${b.min}`;
+  }
+  return `${b.min} to ${b.max}`;
 }
 
 /* ---- main ---- */
