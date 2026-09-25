@@ -193,6 +193,9 @@ export class Rig {
  * sticks centred. What it takes to hold height here is not the point; a
  * crash is. */
 const HOVER = 0.33;
+/* Under this the craft has stopped going into the ground (crash.c,
+ * SPRING_GOING). */
+const SPRING_GOING = 0.05;
 
 /* A Slow Stick in cruise met from below by a face closing at 5 cm/s, as
  * scripts/crash-shell-identity.js's gate member does. mat -1 is the plain
@@ -282,26 +285,70 @@ export const CRASH_SCENARIOS = [
      * duration. A part stiffer than the ground driven into it meets the
      * ground's spring (crash.c, THE GROUND IS A SPRING), so these traces
      * move with the mode on; what must still hold is that nothing is
-     * written, the blow is softer than the rigid one, and the craft comes to
-     * rest where it did. */
+     * written and the blow is softer than the rigid one.
+     *
+     * Where it comes to rest is the ground's grip's to say, not the rigid
+     * contact's. Settled onto the grass it rests where the rigid contact
+     * left it. Dropped flat from 1.5 m, the landing leaves a small sideways
+     * kick (the rigid contact's own is larger, 0.45 m/s, and it stops it
+     * dead at the shell's grip counted twice), and since round 3 a flat pack
+     * slides that out at a sled's grip on turf, 0.45 (Linthorne and Cooper
+     * 2013, crash.c SURF): the check is that it does, and rests no farther
+     * than that grip stops its kick. */
     name: 'under every limit, the ground\'s spring is the only change',
     async run(mk) {
       const checks = [];
+      const settle = (on, off) => {
+        const a = on.state();
+        const b = off.state();
+        const moved = Math.hypot(a[1] - b[1], a[2] - b[2], a[3] - b[3]);
+        return [{ ok: moved < 0.002, what: 'at rest where the rigid contact left it', detail: `${(moved * 1000).toFixed(2)} mm apart` }];
+      };
+      const slide = (on) => {
+        const k = on.kick;
+        const e = on.state();
+        const mu = k ? (k.v - k.vEnd) / ((k.msEnd - k.ms) * 0.001) / 9.80665 : NaN;
+        const reach = k ? (k.v * k.v) / (2 * 0.45 * 9.80665) : NaN;
+        const slid = k ? Math.hypot(e[1] - k.x, e[2] - k.y) : NaN;
+        return [
+          { ok: Math.abs(mu - 0.45) < 0.02, what: 'slides out its landing kick at the sled\'s grip, 0.45', detail: k ? `${mu.toFixed(3)} g from ${k.v.toFixed(3)} m/s` : 'no kick found' },
+          { ok: slid <= reach, what: 'at rest within that grip\'s stopping distance of the kick', detail: `${(slid * 1000).toFixed(2)} mm, at most ${(reach * 1000).toFixed(2)}` },
+        ];
+      };
+      /* The blow is over when the craft stops going in; from then until it
+       * stops, the kick it kept slides out. */
+      const drop = (r) => {
+        r.pose([0, 0, 1.5], [1, 0, 0, 0]);
+        let falling = false;
+        let sliding = false;
+        r.run(1500, [0, 0, 0, 0], (s, ms) => {
+          const v = Math.hypot(s[4], s[5]);
+          falling = falling || s[6] < -1;
+          if (!r.kick && falling && s[6] > -SPRING_GOING) {
+            r.kick = { ms, x: s[1], y: s[2], v, msEnd: ms, vEnd: v };
+            sliding = v > 0;
+          } else if (sliding && v > 0) {
+            r.kick.msEnd = ms;
+            r.kick.vEnd = v;
+          } else {
+            sliding = false;
+          }
+        });
+      };
       const cases = [
-        ['a five inch settling onto grass at 1 m/s', { id: 0 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.velocity([0, 0, -1]); r.run(1500, [0, 0, 0, 0.2]); }],
-        ['a five inch dropped flat from 1.5 m onto grass', { id: 0 }, (r) => { r.pose([0, 0, 1.5], [1, 0, 0, 0]); r.run(1500); }],
+        ['a five inch settling onto grass at 1 m/s', { id: 0 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.velocity([0, 0, -1]); r.run(1500, [0, 0, 0, 0.2]); }, settle],
+        ['a five inch dropped flat from 1.5 m onto grass', { id: 0 }, drop, slide],
       ];
-      for (const [name, opts, fly] of cases) {
+      for (const [name, opts, fly, rest] of cases) {
         const on = await mk({ ...opts, damage: 1 });
         const off = await mk({ ...opts, damage: 0 });
         fly(on);
         fly(off);
-        const a = on.state();
-        const b = off.state();
-        const moved = Math.hypot(a[1] - b[1], a[2] - b[2], a[3] - b[3]);
         checks.push({ name: `${name}: nothing written`, ok: on.events.length === 0 && on.damageSum === 0 && on.silent === 0, detail: `${on.summary()}, damage ${on.damageSum.toExponential(1)}` });
         checks.push({ name: `${name}: a softer blow than the rigid contact's`, ok: on.peakG < off.peakG, detail: `${on.peakG.toFixed(0)} g against ${off.peakG.toFixed(0)} g` });
-        checks.push({ name: `${name}: at rest where the rigid contact left it`, ok: moved < 0.002, detail: `${(moved * 1000).toFixed(2)} mm apart` });
+        for (const c of rest(on, off)) {
+          checks.push({ name: `${name}: ${c.what}`, ok: c.ok, detail: c.detail });
+        }
       }
       return checks;
     },
