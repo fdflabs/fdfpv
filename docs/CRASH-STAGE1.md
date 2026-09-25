@@ -298,6 +298,23 @@ MPa the boom limits take for EPO, E / sigma is 33: the Cub's boom (c 35
 mm) rings at about 37 Hz, the Timber's (45 mm) at 31, the Radian's (20
 mm, a thin boom) at 10.
 
+**EPO's own numbers** (round 5). Still no modulus: NOVA's "ARCEL versus
+EPS" sheet draws ARCEL as more flexible than EPS at every density, with no
+numbers on the axis, which confirms that the bead foam modulus bounds it
+from above. NOVA's "ARCEL 730 Property Comparison" (AC0111-1158, the 70/30
+grade) plots two strengths against density: the crush at 25 percent, 26 to
+31 psi over 30 to 35 g/L, 179 to 214 kPa, which sources EPO_CRUSH's 200
+kPa; and the tensile strength, 67.5 to 84 psi, 0.465 to 0.58 MPa, so the
+booms' 0.6 MPa is its top, about 36 g/L. Taken alone it would cut the
+booms' limits by up to a quarter (the Cub's 16 N m to 12.4); tried, it
+broke the Cub's tail at the pole in crash:core's wing clip, which the
+owner's flight had judged wrong, and the Timber's in its nose over and on
+its float. It was not shipped: the ring's stiffness is still the upper
+bound, and a stiffer boom rings harder on the same kick, so a sourced
+strength paired with a modulus bounded from above breaks booms that a
+real EPO boom, more flexible, would ring through. The two move together
+once EPO's modulus is found.
+
 **A part riding on a ringing part is shaken by it** (round 4). A tail on
 its boom, a fin on a boom, was judged by the craft's rigid deceleration
 even once the boom rang: the Radian's fin broke at 2.6 times its limit the
@@ -651,7 +668,8 @@ rigid contact left it (0.26 mm).
 | whoop motor | 0.25 N m, 30 N | two M1.4 in PP | chosen |
 | whoop prop press fit | 0.10 N m, 6 N | 1 mm shaft, set so R-WHOOP's walls leave it on | R-WHOOP, chosen |
 | whoop canopy | 0.30 N m, 20 N | two M1.4 in PP 10 mm apart | chosen |
-| EPO, EPP crush | 200, 180 kPa | plateau at 25 percent strain, 30 to 35 g/L | JSP ARPRO EPP data; R-A14-FOAM's own nose check uses 0.2 MPa |
+| EPO, EPP crush | 200, 180 kPa | plateau at 25 percent strain, 30 to 35 g/L | EPO: NOVA ARCEL 730, 179 to 214 kPa at 25 percent over 30 to 35 g/L (round 5); EPP: JSP ARPRO data; R-A14-FOAM's own nose check uses 0.2 MPa |
+| EPO's strength in the foam booms | 0.6 MPa | the outer fibre of the Cub's, Timber's and Radian's booms | the top of NOVA ARCEL 730's tensile strength, 0.465 to 0.58 MPa over 30 to 35 g/L; kept at the top while the modulus is an upper bound (round 5) |
 | 11 inch plane prop | yields 8 N m, sheds a blade at 16 | 20 x 4 mm root at 150 MPa | R-PROPS (glass nylon snaps at 3 to 5 percent) |
 | plane firewall | 10 N m, 400 N | ply or moulded, four screws | chosen |
 | Cub panel | 40 N m | 8/6 mm carbon joiner and struts | UD carbon tube, 1,000 MPa in bending |

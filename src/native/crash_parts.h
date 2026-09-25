@@ -96,7 +96,11 @@ typedef struct {
  * gives (R-WHOOP) leaves it on, which is what whoops do. */
 #define WH_PROP_F 6.0
 #define WH_PROP_M 0.10
-/* EPO and EPP at 30 to 35 g/L: the compressive plateau at 25 percent. */
+/* EPO and EPP at 30 to 35 g/L: the compressive plateau at 25 percent. EPO
+ * is a polystyrene and polyethylene bead copolymer, NOVA's ARCEL class:
+ * ARCEL 730 (70/30) crushes at 26 to 31 psi at 25 percent over 30 to 35
+ * g/L, 179 to 214 kPa (NOVA, "ARCEL 730 Property Comparison",
+ * AC0111-1158). */
 #define EPO_CRUSH 200.0e3
 #define EPP_CRUSH 180.0e3
 /* An 11 inch nylon prop blade root, 20 x 4 mm at 150 MPa, yields at 8 N m;
@@ -117,7 +121,13 @@ typedef struct {
  * MPa the limits take (TAP Plastics, minimum properties). A foam boom's own
  * section, c its half depth: bead foam's flexural modulus at 30 g/L, E =
  * 0.82 rho - 4.9 MPa = 19.7 MPa (Negussey and Anasthas 2001, simple bending
- * of EPS), over EPO's 0.6 MPa the boom limits take. */
+ * of EPS), an upper bound for EPO, which NOVA's "ARCEL versus EPS" sheet
+ * draws as more flexible than EPS at every density; over EPO's 0.6 MPa the
+ * boom limits take. ARCEL 730's tensile strength is 0.465 to 0.58 MPa over
+ * 30 to 35 g/L (the same NOVA sheet), so 0.6 is its top, about 36 g/L; it
+ * is kept there while the modulus is a bound from above, since a stiffer
+ * boom rings harder on the same kick and the two bounds lean the same way
+ * only together (docs/CRASH-STAGE1.md, round 5). */
 #define CARBON_SPAR(r) .sect_c = (r), .sect_eos = 127.0
 #define FOAM_EOS (19.7 / 0.6)
 #define FOAM_SECTION(c) .sect_c = (c), .sect_eos = FOAM_EOS
