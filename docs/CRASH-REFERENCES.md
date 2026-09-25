@@ -1148,6 +1148,22 @@ mis-staged test. What was restaged, and what was found to be the plant's.
   pilot disarms 250 ms after the first contact (R-DISARM), in every five
   inch scenario but the turtle one. The gate clip tumbles to the grass 4.9
   m on, as its reference does.
+- **The stalls are staged as the reference's straight ahead power off
+  full stall and are kept.** The Airplane Flying Handbook defines a full
+  stall by "an uncommanded nose down pitch [that] cannot be readily
+  arrested, and may be accompanied by an uncommanded rolling motion"
+  (FAA-H-8083-3C chapter 5), and R-DIG's Hatz stalled into "a nose low
+  attitude". The plant's planes, held full back from 1.15 V_s at 8 m,
+  instead settle into a steady stalled descent, the body 18 to 33 deg past
+  the path until the grass: Skyhunter pitch minus 16 on a minus 36 path,
+  Cub minus 18.5 on minus 40, Radian minus 10 on minus 29, Timber minus 17
+  on minus 39, Bramor minus 10 on minus 30, and wings level to the
+  hundredth of a degree in all of them. That is the plant's stall, not the
+  staging (below, for the core). A turning stall with inside rudder, the
+  handbook's base to final accident, was flown as a trial: it arrives
+  nose low (minus 35 to minus 37 deg) but by a spiral with the wing
+  unstalled (7 to 11 deg), still ends upright, and was not kept, since
+  the scenario and its bands are the straight ahead stall.
 - **The Slow Stick cannot nose over on its take off roll,** and no
   reference says it does: its mains stand 0.18 m ahead of the CG, so the
   wheels' drag has to reach about 1.1 (tail up) to 1.3 (tail down) of
