@@ -317,3 +317,35 @@ stops it dead in 0.03 to 0.06 s; the fuselage is the root part, so
 gate clip peaks at 1717 g); no taildragger noses over, because the
 wheels roll at 0.08 on every surface with no brake; floats come apart
 porpoising; the energy tally counts only crush.
+
+Round 1, core (#51, merged): a blade chips only past glass filled
+nylon's strength, so no damage without an event (8 silent scenarios to
+0); water and tree entry events (8, 9); horizontal wind
+`sim_set_wind(vx, vy, gust)`, still air bit identical; float bow
+suction and implicit added mass (Timber 3.47 kg, Cub 2.53 kg, heave 0.29
+to 0.49 s), damage on only. Suite after: 4 of 60, failing checks 159 to
+151, all deterministic, verify 16 of 16, damage off identical on 24
+scripts.
+
+Lead decisions: added mass and suction stay damage on only for now,
+because turning them on for every flight re-records floats:gates; the
+Cub's F5c water landing reads 0.59 of the derived distance with damage
+on against a band starting at 0.6, caused by the added mass, and the band
+is not moved. wing:e2e's exit 1 in worktrees is a missing
+../fdfpv-leaderboard (passes with FDFPV_BOARD set); score:selftest's
+"Maverick Loop" failure predates the crash work and stays loud.
+
+### Round 2 (started 2026-09-25)
+
+Targets, worst first: stalls shatter every plane at 370 to 720 g and stop
+it in 0.05 s (peakG, timeToRestS, restAttitude are the three most
+failed metrics); the fuselage can never break; the energy tally counts
+only crush; quad props never break; no taildragger noses over; a canopy
+cannot drag the Bramor over the ground.
+
+- impact: crash.c, crash_parts.h. Foam and airframe crush that spreads
+  a plane's impact over a real duration, the root part's break rule,
+  energy from breaks, blade breaks on quads and the whoop's scaled limit.
+- ground: the wheel and ground code in plant.c and plant_wing.c, plus
+  the Bramor chute metric in the suite. Rolling resistance by surface, a
+  wheel brake in the ABI, canopy drag over the ground.
