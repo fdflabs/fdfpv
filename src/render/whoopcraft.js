@@ -218,9 +218,18 @@ export function buildWhoopCraft(opts = {}) {
    * the one place nobody would catch it.
    */
   group.scale.setScalar(MICRO_SCALE / (opts.worldScale ? WORLD_SCALE : 1));
+  /* `t` is the ink's thickness in metres at the mesh's farthest point from
+   * its own origin. outlineHull takes a scale factor, and was handed these
+   * thicknesses (0.0005 to 0.0009) as one, so every whoop outline was a
+   * shell shrunk to nothing at the origin and none ever drew. */
   const hull = (mesh, t, c) => {
     if (inkOn) {
-      outlineHull(mesh, t, c);
+      const g = mesh.geometry;
+      if (!g.boundingSphere) {
+        g.computeBoundingSphere();
+      }
+      const reach = g.boundingSphere.center.length() + g.boundingSphere.radius;
+      outlineHull(mesh, 1 + t / reach, c);
     }
     return mesh;
   };
