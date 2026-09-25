@@ -106,6 +106,7 @@ export function worldUv(geometry) {
 const WEATHER_PARS = /* glsl */ `
   uniform highp sampler2D uS2Height;
   uniform vec3 uS2Grid;
+  float s2Pool = 0.0;
   float s2wHash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -120,20 +121,23 @@ const WEATHER_PARS = /* glsl */ `
   }
 `;
 /*
- * Three kinds of age. A wall: the rain splash dark and green along its
+ * Four kinds of age. A wall: the rain splash dark and green along its
  * foot, grime run down from every sill, and on the weather side, where
  * the rain and the wind off the west reach it, timber silvered grey
  * (uS2Grey says how far a surface goes: boards all the way, render and
  * stone not at all). A roof: moss and lichen in the damp (as far as
  * uS2Grey says), streaks down the fall line, and courses replaced in
  * different years. Paving: worn lighter where the feet go and dark with
- * grime where they do not. One program for all three, the kind a
- * uniform, and the window trim is left out of it: a program compiled
- * for a new combination mid flight (the trim is instanced as well as
- * baked) raised the loop's views run from 14 GL_INVALID_VALUE warnings
- * to 26, and to 50 with a program per kind (PR #17 met the same).
+ * grime where they do not, moss in the joints, no two setts alike. A
+ * road: patched, its photograph's crack filled. Both lie wet where the
+ * ground has settled, with puddles in the wet. One program for all
+ * four, the kind a uniform, and the window trim is left out of it: a
+ * program compiled for a new combination mid flight (the trim is
+ * instanced as well as baked) raised the loop's views run from 14
+ * GL_INVALID_VALUE warnings to 26, and to 50 with a program per kind
+ * (PR #17 met the same).
  */
-const WEATHER = { wall: 0, roof: 1, paving: 2 };
+const WEATHER = { wall: 0, roof: 1, paving: 2, road: 3, none: 4 };
 const WEATHER_BODY = /* glsl */ `
   {
     vec3 wn = inverseTransformDirection(normal, viewMatrix);
@@ -163,11 +167,57 @@ const WEATHER_BODY = /* glsl */ `
       float streak = s2wNoise(vec2(dot(vS2World.xz, across) * 2.6, dot(vS2World.xz, fall) * 0.18));
       diffuseColor.rgb *= 1.0 - 0.28 * smoothstep(0.5, 0.9, streak) * roof;
       diffuseColor.rgb *= 0.82 + 0.34 * s2wNoise(vec2(dot(vS2World.xz, across) * 0.5, dot(vS2World.xz, fall) * 2.2));
-    } else if (uS2Kind < 2.5) {
-      float worn = s2wNoise(vS2World.xz / 4.0) * 0.65 + s2wNoise(vS2World.xz / 0.9) * 0.35;
-      diffuseColor.rgb *= mix(vec3(0.7, 0.69, 0.66), vec3(1.12, 1.1, 1.06), smoothstep(0.3, 0.75, worn));
+    } else if (uS2Kind < 3.5) {
+      vec2 wp = vS2World.xz;
+      /* The photograph's own light and dark, a tile across, repeats
+       * down a street as a grid: taken out against the photograph's
+       * mean (its last mip) and the ground's own put back. */
+      vec3 tileMean = texture2D(map, vMapUv, 6.0).rgb;
+      vec3 photoMean = texture2D(map, vMapUv, 14.0).rgb;
+      diffuseColor.rgb *= clamp(photoMean / max(tileMean, vec3(0.01)), 0.6, 1.6);
+      float worn = s2wNoise(wp / 4.0) * 0.65 + s2wNoise(wp / 0.9) * 0.35;
+      float patches = s2wNoise(wp / 7.3 + 3.1) * 0.6 + s2wNoise(wp / 1.9 + 8.4) * 0.4;
+      if (uS2Kind < 2.5) {
+        diffuseColor.rgb *= mix(vec3(0.7, 0.69, 0.66), vec3(1.12, 1.1, 1.06), smoothstep(0.3, 0.75, worn));
+        /* No two setts are one stone: each a shade of its own, the
+         * noise at a sett's size. */
+        diffuseColor.rgb *= 0.86 + 0.28 * s2wNoise(wp * 3.7 + 1.3);
+        /* The joints, dark in the occlusion's red: filled with grit and,
+         * where feet do not wear them clean, with moss. */
+        float joint = 1.0 - smoothstep(0.6, 0.86, texture2D(aoMap, vAoMapUv).r);
+        float mossy = smoothstep(0.4, 0.7, patches) * (1.0 - 0.7 * smoothstep(0.45, 0.8, worn));
+        diffuseColor.rgb *= 1.0 - 0.35 * joint;
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.045, 0.07, 0.022), joint * mossy * 0.85);
+      } else {
+        /* Asphalt: the crack the photograph has would cross the road
+         * every tile, so its dark is filled but for a few, and the road
+         * is patched and stained in places. */
+        float cracked = smoothstep(0.62, 0.72, s2wNoise(wp / 5.1 + 7.7));
+        float dark = 1.0 - smoothstep(0.55, 0.95, texture2D(map, vMapUv).g / max(tileMean.g, 0.01));
+        diffuseColor.rgb *= mix(1.0, 2.1, dark * (1.0 - cracked));
+        diffuseColor.rgb *= mix(vec3(0.82, 0.82, 0.83), vec3(1.14, 1.13, 1.1), smoothstep(0.25, 0.75, patches));
+      }
+      /* Rain lies where the ground has settled: dark and glossy round a
+       * puddle, and in its middle flat water with the sky in it. */
+      float settle = s2wNoise(wp / 1.5 + 11.0) * 0.72 + s2wNoise(wp / 0.5 + 2.0) * 0.28 - 0.04 * step(2.5, uS2Kind);
+      float wet = smoothstep(0.63, 0.7, settle);
+      float pool = smoothstep(0.735, 0.75, settle);
+      diffuseColor.rgb *= 1.0 - 0.5 * wet;
+      roughnessFactor = mix(roughnessFactor, 0.7, wet);
+      roughnessFactor = mix(roughnessFactor, 0.02, pool);
+      normal = normalize(mix(normal, nonPerturbedNormal, pool));
+      s2Pool = pool;
     }
   }
+`;
+/* A puddle in a street holds the houses and the far side of the square
+ * as much as the sky, and those are darker than the sky the environment
+ * gives it: without them a puddle read as a pale patch of paint. */
+const POOL_LIGHT = /* glsl */ `
+  #include <lights_fragment_maps>
+  #if defined( RE_IndirectSpecular )
+    radiance *= 1.0 - 0.6 * s2Pool;
+  #endif
 `;
 
 function weathered(mat, heights, kind = 'wall', grey = 0) {
@@ -180,7 +230,8 @@ function weathered(mat, heights, kind = 'wall', grey = 0) {
     shader.uniforms.uS2Grey = { value: grey };
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\nuniform float uS2Kind;\nuniform float uS2Grey;\n${WEATHER_PARS}`)
-      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${WEATHER_BODY}`);
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${WEATHER_BODY}`)
+      .replace('#include <lights_fragment_maps>', POOL_LIGHT);
   };
   mat.customProgramCacheKey = () => 's2-weathered';
   return mat;
@@ -257,9 +308,12 @@ export function makePhotoLook({ surfaces, ground, heights }) {
       side,
     });
     m.userData.s2WorldUv = true;
-    if (weather) {
-      weathered(m, heights, weather === true ? 'wall' : weather, grey);
-    }
+    /* Every photographed surface is the one weathered program, its kind
+     * 'none' where it has no weather: the road's asphalt weathered while
+     * the paths' gravel and the jetty's timber were not made a second
+     * program, and raised the views run's GL_INVALID_VALUE warnings from
+     * 14 to 26. */
+    weathered(m, heights, weather === true ? 'wall' : weather || 'none', grey);
     return m;
   };
   const plain = (color, rough, metal = 0, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...extra });
@@ -289,7 +343,6 @@ export function makePhotoLook({ surfaces, ground, heights }) {
    * physical and stay their own.
    */
   surfaces.ribbed = ribbedSheet(surfaces.metal);
-  const WEATHER_KIND = { ...WEATHER, none: 3 };
   const BUILDING = {
     stone: { group: 'stone', tint: [0.95, 0.95, 0.95], weather: 'wall' },
     render: { group: 'render', tint: [0.6, 0.585, 0.55], normal: 2.2, weather: 'wall' },
@@ -302,6 +355,9 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     renderGrey: { group: 'render', tint: [0.41, 0.42, 0.41], normal: 2.2, weather: 'wall' },
     renderRose: { group: 'render', tint: [0.62, 0.44, 0.38], normal: 2.2, weather: 'wall' },
     surroundGrey: { group: 'render', tint: [0.3, 0.31, 0.3], weather: 'wall' },
+    /* The church's dressed corner stones, a sandstone's warm grey. */
+    quoin: { group: 'render', tint: [0.48, 0.44, 0.36], normal: 1.4, weather: 'wall' },
+    quoinDark: { group: 'render', tint: [0.4, 0.37, 0.31], normal: 1.4, weather: 'wall' },
     surroundWhite: { group: 'render', tint: [0.7, 0.69, 0.66], weather: 'wall' },
     surroundOchre: { group: 'render', tint: [0.52, 0.36, 0.16], weather: 'wall' },
     frescoRed: { group: 'render', tint: [0.42, 0.12, 0.08], normal: 0.5, weather: 'wall' },
@@ -344,10 +400,13 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     joint: { group: 'plain', tint: [0.03, 0.03, 0.028], rough: 0.85 },
     stain: { group: 'plain', tint: [0.035, 0.033, 0.03], rough: 0.25 },
     lineYellow: { group: 'plain', tint: [0.7, 0.45, 0.02], rough: 0.65 },
-    asphalt: { group: 'asphalt', tint: [0.85, 0.85, 0.85] },
+    asphalt: { group: 'asphalt', tint: [0.85, 0.85, 0.85], normal: 0.5, weather: 'road' },
     gravel: { group: 'gravel', tint: [0.8, 0.82, 0.85] },
     dripEdge: { group: 'gravel', tint: [0.46, 0.44, 0.4] },
     cobble: { group: 'cobble', tint: [1.0, 1.0, 1.0], weather: 'paving' },
+    /* Dressed granite, the kerbs and the square's edge: the gravel's
+     * photograph is a granite's grain, greyed. */
+    kerb: { group: 'gravel', tint: [0.6, 0.92, 1.55], normal: 0.35 },
     concrete: { group: 'concrete', tint: [1.6, 1.6, 1.55] },
     /* The gondola stations' concrete, on the render's photograph: the
      * concrete group is the hangar's apron alone, and a station in it
@@ -356,7 +415,15 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     liftConcrete: { group: 'render', tint: [0.42, 0.42, 0.4], normal: 0.7, weather: 'wall' },
     geranium: { group: 'plain', tint: [0.62, 0.02, 0.03], rough: 0.75 },
     geraniumPink: { group: 'plain', tint: [0.62, 0.05, 0.2], rough: 0.75 },
+    /* No two heads on a plant are one red: the new ones scarlet, the
+     * old ones gone dark before they drop, the leaves dark round the
+     * stalk and fresh at the tips. */
+    geraniumDeep: { group: 'plain', tint: [0.4, 0.012, 0.022], rough: 0.8 },
+    geraniumLight: { group: 'plain', tint: [0.8, 0.09, 0.05], rough: 0.7 },
+    geraniumPinkDeep: { group: 'plain', tint: [0.42, 0.03, 0.14], rough: 0.8 },
+    geraniumPinkLight: { group: 'plain', tint: [0.75, 0.22, 0.38], rough: 0.7 },
     leaf: { group: 'plain', tint: [0.035, 0.1, 0.025], rough: 0.8 },
+    leafDark: { group: 'plain', tint: [0.02, 0.058, 0.016], rough: 0.85 },
     /* A clipped hedge: beech and privet, dark in the body and paler
      * where the summer's growth has come since the shears. */
     hedge: { group: 'plain', tint: [0.026, 0.058, 0.02], rough: 0.85 },
@@ -441,7 +508,8 @@ export function makePhotoLook({ surfaces, ground, heights }) {
           vec3 mapN = texture2D(normalMap, vNormalMapUv).xyz * 2.0 - 1.0;
           mapN.xy *= normalScale * vS2Finish.z;
           normal = normalize(tbn * mapN);
-          ${WEATHER_BODY}`);
+          ${WEATHER_BODY}`)
+        .replace('#include <lights_fragment_maps>', POOL_LIGHT);
     };
     m.customProgramCacheKey = () => 's2-building';
     return m;
@@ -473,7 +541,7 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     }
     const finish = b.group === 'plain'
       ? [b.rough ?? 1, b.metal ?? 0, 0]
-      : [b.grey ?? 0, WEATHER_KIND[b.weather ?? 'none'], b.normal ?? 1];
+      : [b.grey ?? 0, WEATHER[b.weather ?? 'none'], b.normal ?? 1];
     return { group: b.group, tint: b.tint ?? [1, 1, 1], finish };
   };
   /* One material per group, made when the village is baked; `glass` and

@@ -139,7 +139,10 @@ export function furnish(ctx) {
       const ground = onGround(x, z);
       const top = Math.max(slabY, ground + 0.03) + 0.02;
       const low = Math.min(slabY, ground) - 0.25;
-      bake.push(near('stone'), box(len / n - 0.03, top - low, 0.28), x, (top + low) / 2, z, Math.atan2(-(z1 - z0), x1 - x0));
+      /* Each stone set by hand: a few millimetres proud or sunk, a
+       * little off the line. */
+      const q = own2(x, z);
+      bake.push(near('kerb'), box(len / n - 0.03, top - low + 0.012 * (q - 0.5), 0.28), x, (top + low) / 2, z, Math.atan2(-(z1 - z0), x1 - x0) + 0.012 * (own2(z, x) - 0.5));
     }
   };
   const streetHalf = 2.6;
@@ -247,7 +250,7 @@ export function furnish(ctx) {
         continue;
       }
       const g = onGround(x + 1, z);
-      bake.push(near('stone'), box(1.98, 0.3, 0.2), x + 1, g - 0.02, z);
+      bake.push(near('kerb'), box(1.98, 0.3 + 0.012 * (own2(x, z) - 0.5), 0.2), x + 1, g - 0.02, z, 0.01 * (own2(z, x) - 0.5));
     }
     for (let x = sq.x1 + 12; x < bridgeX - 10; x += 25) {
       if (Math.abs(x - laneX) > 4) {

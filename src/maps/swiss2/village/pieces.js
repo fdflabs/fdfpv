@@ -29,7 +29,9 @@
 
 import * as THREE from 'three';
 import { cyl, roofShell, gableProfile } from '../../alps/kit.js';
-import { box, boxUp, cached, near, detail, blob, plate, own, frame, prism } from '../buildings/parts.js';
+import {
+  box, boxUp, cached, near, detail, blob, plate, own, frame, prism, bloomShade, leafShade,
+} from '../buildings/parts.js';
 
 /* A hash of a frame's own place and a salt, for the little differences
  * no rng should be drawn for. */
@@ -138,17 +140,32 @@ export function flagpole(f, h = 8) {
 
 /* A café table, round on its iron foot, with its chairs about it, and
  * a parasol on the table if it is given one. Returns the chairs, where
- * each stands in the world and which way it faces, for whoever sits. */
+ * each stands in the world and which way it faces, for whoever sits.
+ * The table is in use: a cup on its saucer at each place, a bottle of
+ * mineral water and a glass, the card with the day's menu; and no two
+ * chairs stand alike, each pushed back and turned as whoever got up
+ * left it. */
 export function cafeSet(f, { chairs = 3, parasol = null } = {}) {
   f.put(near('lamp'), cyl(0.04, 0.04, 0.72, 6), 0, 0, 0);
   f.put(detail('lamp'), cyl(0.25, 0.25, 0.03, 8), 0, 0, 0);
   f.put(near('fence'), cyl(0.38, 0.38, 0.04, 12), 0, 0.72, 0);
+  const top = 0.76;
+  f.put(detail('glass'), cyl(0.032, 0.036, 0.24, 6), 0.08, top, -0.06);
+  f.put(detail('glass'), cyl(0.03, 0.026, 0.1, 6), -0.05, top, 0.1);
+  f.put(detail('paint'), box(0.1, 0.14, 0.012), -0.04, top + 0.07, -0.1, own(f, 9) * 3, 0.25);
   const yaw = Math.atan2(-f.m.elements[2], f.m.elements[0]);
   const seats = [];
   for (let k = 0; k < chairs; k += 1) {
     const a = (k / chairs) * Math.PI * 2 + own(f, 3) * 1.2;
-    const c = { x: Math.cos(a) * 0.72, z: Math.sin(a) * 0.72 };
-    const ry = -a - Math.PI / 2 + (own(f, 4 + k) - 0.5) * 0.4;
+    const cx = Math.cos(a);
+    const cz = Math.sin(a);
+    if (own(f, 12 + k) < 0.75) {
+      f.put(detail('paint'), cyl(0.075, 0.07, 0.012, 10), cx * 0.24, top, cz * 0.24);
+      f.put(detail('paint'), cyl(0.042, 0.034, 0.065, 8), cx * 0.24, top + 0.012, cz * 0.24);
+    }
+    const back = 0.66 + 0.4 * own(f, 20 + k) ** 2;
+    const c = { x: cx * back, z: cz * back };
+    const ry = -a - Math.PI / 2 + (own(f, 4 + k) - 0.5) * 0.9;
     gardenChair(f, c.x, c.z, ry);
     const w = f.at(c.x, 0, c.z);
     seats.push({ x: w.x, z: w.z, ry: yaw + ry });
@@ -291,13 +308,26 @@ export function woodRick(f, len) {
 export function planter(f, len, bloom = 'geranium', key = 'larchDark') {
   f.put(near(key), boxUp(len, 0.5, 0.5), 0, 0, 0);
   f.put(detail('soil'), box(len - 0.08, 0.02, 0.42), 0, 0.49, 0);
-  const n = Math.max(2, Math.round(len / 0.3));
+  /* Seen from a bench, not a balcony: leaves in a low mound round the
+   * edge and spilling over it, the heads held up over them on their
+   * stalks, each a ball of florets in its own shade. */
+  const n = Math.max(2, Math.round(len / 0.22));
   for (let k = 0; k < n; k += 1) {
     const x = -len / 2 + (k + 0.5) * (len / n);
     const r = own(f, 60 + k);
-    f.put(detail('leaf'), blob(), x, 0.58, 0, r * 4, 0.2, 0, 0.2, 0.16, 0.24);
-    f.put(detail(bloom), blob(), x + 0.06 - 0.12 * r, 0.7, 0.1 - 0.2 * r, r * 3, 0.5, 0, 0.09, 0.08, 0.09);
-    f.put(detail(bloom), blob(), x - 0.06 + 0.1 * r, 0.66, -0.1 + 0.16 * r, r, 0.3, 0, 0.08, 0.07, 0.08);
+    const q = own(f, 90 + k);
+    for (const s of [-1, 1]) {
+      f.put(detail(leafShade((r + 0.3 * s + 1) % 1)), blob(), x + 0.04 * s, 0.55, s * (0.17 + 0.05 * q), r * 4 + s, 0.2 + 0.5 * s, 0, 0.13, 0.08, 0.13);
+    }
+    f.put(detail(leafShade(q)), blob(), x, 0.6, 0.02 - 0.08 * r, q * 4, 0.2, 0, 0.14, 0.1, 0.14);
+    for (let h = 0; h < 3; h += 1) {
+      const a = r * 6 + h * 2.1;
+      const hx = x + Math.cos(a) * 0.07;
+      const hz = Math.sin(a) * 0.14;
+      const hy = 0.72 + 0.07 * own(f, 120 + k * 3 + h);
+      f.put(detail('leaf'), box(0.008, hy - 0.58, 0.008), hx, (hy + 0.58) / 2, hz);
+      f.put(detail(bloomShade(bloom, own(f, 150 + k * 3 + h))), blob(), hx, hy, hz, a, 0.4, 0, 0.055, 0.05, 0.055);
+    }
   }
 }
 

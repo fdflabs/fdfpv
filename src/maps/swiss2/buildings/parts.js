@@ -140,6 +140,17 @@ function balusterRow(len, h, { width = 0.17, gap = 0.08 } = {}) {
   });
 }
 
+/* The shade of one head of `bloom` (a geranium key), by a number in
+ * [0, 1): mostly the plant's own red, some fresh, some going over; and
+ * of one leaf. */
+export function bloomShade(bloom, r) {
+  if (bloom !== 'geranium' && bloom !== 'geraniumPink') {
+    return bloom;
+  }
+  return r < 0.22 ? `${bloom}Deep` : r > 0.78 ? `${bloom}Light` : bloom;
+}
+export const leafShade = (r) => (r < 0.4 ? 'leafDark' : 'leaf');
+
 /* A leafy mound or a flower head: an octahedron, squashed by the put. */
 export function blob() {
   return cached('s2blob', () => new THREE.OctahedronGeometry(1, 0));
@@ -280,11 +291,11 @@ export function balcony(wall, len, { out = 1.3, board = 'larch', flowers = true 
     const x = -boxLen / 2 + (k + 0.5) * (boxLen / n);
     const r = ((k * 37) % 11) / 11;
     const q = ((k * 53) % 13) / 13;
-    wall.put(detail('leaf'), blob(), x, 1.29, out + 0.1 + 0.04 * q, r * 3, q, 0, 0.3, 0.13, 0.17);
-    wall.put(detail('geranium'), blob(), x - 0.1 + 0.08 * q, 1.4 + 0.05 * r, out + 0.06 + 0.1 * r, r * 5, 0.7, q, 0.09, 0.08, 0.09);
-    wall.put(detail('geranium'), blob(), x + 0.1 - 0.06 * r, 1.36 + 0.04 * q, out + 0.18, q * 4, r, 0.5, 0.08, 0.07, 0.08);
+    wall.put(detail(leafShade(q)), blob(), x, 1.29, out + 0.1 + 0.04 * q, r * 3, q, 0, 0.3, 0.13, 0.17);
+    wall.put(detail(bloomShade('geranium', r)), blob(), x - 0.1 + 0.08 * q, 1.4 + 0.05 * r, out + 0.06 + 0.1 * r, r * 5, 0.7, q, 0.09, 0.08, 0.09);
+    wall.put(detail(bloomShade('geranium', q)), blob(), x + 0.1 - 0.06 * r, 1.36 + 0.04 * q, out + 0.18, q * 4, r, 0.5, 0.08, 0.07, 0.08);
     if (k % 2 === 0) {
-      wall.put(detail('leaf'), blob(), x + 0.05, 1.12, out + 0.21, r, 0.4, 0, 0.14, 0.16, 0.06);
+      wall.put(detail(leafShade(r)), blob(), x + 0.05, 1.12, out + 0.21, r, 0.4, 0, 0.14, 0.16, 0.06);
     }
   }
 }
@@ -744,12 +755,12 @@ export function flowerBox(win, w, y, z, bloom) {
     const x = -len / 2 + (k + 0.5) * (len / n);
     const r = ((k * 37 + seed * 11) % 11) / 11;
     const q = ((k * 53 + seed * 5) % 13) / 13;
-    win.put(detail('leaf'), blob(), x, y + 0.05, z + 0.1 + 0.04 * q, r * 3, q, 0, 0.19, 0.12, 0.14);
-    win.put(detail(bloom), blob(), x - 0.05 + 0.08 * q, y + 0.15 + 0.06 * r, z + 0.08 + 0.08 * r, r * 5, 0.7, q, 0.085, 0.075, 0.085);
-    win.put(detail(bloom), blob(), x + 0.07 - 0.06 * r, y + 0.11 + 0.05 * q, z + 0.2, q * 4, r, 0.5, 0.075, 0.065, 0.075);
+    win.put(detail(leafShade(q)), blob(), x, y + 0.05, z + 0.1 + 0.04 * q, r * 3, q, 0, 0.19, 0.12, 0.14);
+    win.put(detail(bloomShade(bloom, r)), blob(), x - 0.05 + 0.08 * q, y + 0.15 + 0.06 * r, z + 0.08 + 0.08 * r, r * 5, 0.7, q, 0.085, 0.075, 0.085);
+    win.put(detail(bloomShade(bloom, q)), blob(), x + 0.07 - 0.06 * r, y + 0.11 + 0.05 * q, z + 0.2, q * 4, r, 0.5, 0.075, 0.065, 0.075);
     if (k % 2 === 0) {
-      win.put(detail('leaf'), blob(), x + 0.04, y - 0.12, z + 0.22, r, 0.4, 0, 0.12, 0.17, 0.05);
-      win.put(detail(bloom), blob(), x + 0.02, y - 0.2 - 0.06 * q, z + 0.24, q, r, 0, 0.06, 0.06, 0.05);
+      win.put(detail(leafShade(r)), blob(), x + 0.04, y - 0.12, z + 0.22, r, 0.4, 0, 0.12, 0.17, 0.05);
+      win.put(detail(bloomShade(bloom, (r + q) % 1)), blob(), x + 0.02, y - 0.2 - 0.06 * q, z + 0.24, q, r, 0, 0.06, 0.06, 0.05);
     }
   }
 }
