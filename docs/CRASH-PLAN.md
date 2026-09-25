@@ -562,35 +562,48 @@ for sourced severity and an unchanged ground roll) owns. The Skyhunter
 pusher item dissolved with the ringing booms; the gate clip's duration
 needs a host change and stays open.
 
-### Round 4, aero (branch crash-aero-round4)
+### Round 4, aero (branch crash-aero-round4, #59)
 
-The model and its record are docs/STALL-STAGE1.md. Against main c0cb07f:
-every fixed wing now has a pitch break (the linear lift's moment taken
-back past the stall, the plate's normal force at its centre of pressure,
-and the tail's lift as the stalled wing's downwash goes), and each wing
-half stalls on its own at its roll and yaw rates' angle, the left one a
-build tolerance first, so the damping reverses, a wing drops and a stall
-with rudder spins toward it. Held full back, every plane now drops its
-left wing within about a second of the stall instead of settling nose
-high; with full rudder the conventional ones spin at 390 to 750 deg/s and
-come out on opposite rudder and forward stick; the Bramor goes flat and
-does not come out on its elevons.
+The model and its record are docs/STALL-STAGE1.md. The first version gave
+every plane a pitch break, a two panel wing whose roll damping reversed
+past the stall, and a build tolerance asymmetry; held full back, the
+trainers rolled past inverted into a spiral. The lead sent it back for
+sourced severity, an unchanged ground roll and an account of the stored
+hashes. The second version:
 
-Suite (fresh wasm both): 8 of 60 inside every band to 6, failing checks
-130 to 129, all 60 deterministic. The stall ins now meet the grass banked:
-peak g Skyhunter 201 to 186, Cub 98 to 248, Radian 160 to 61, Slow Stick
-30 to 296, Timber 96 to 190, Bramor 89 to 97, catapult 57 to 62; all rest
-upright as before but the Slow Stick, on its side.
+- Past the stall angle the lift is its section's measured curve (UIUC
+  low speed data at each kit's Reynolds number): held for stall_top, then
+  a fall to stall_k of it, then Viterna and Corrigan to the plate. Short
+  of the stall angle it is the plant's own curve, which every band was
+  derived on.
+- The wing is four spanwise strips a side, loaded by Schrenk's
+  approximation, so a rectangular wing stalls at the root first and a
+  tapered or cranked one further out. Each strip's roll and yaw rate terms
+  take back the table's roll damping as it stalls.
+- The pitch break moves the stalled wing's force from the aerodynamic
+  centre to its centre of pressure as the lift falls, with the tail's
+  downwash term.
+- Nothing is taken short of the stall angle or below a chord Reynolds
+  number of 3e4 (Lissaman 1983), which keeps every gear settle and taxi,
+  the Slow Stick's and the wing's recordings, T10 and cub:stab passing.
+- The asymmetry picks the side; at 0.1 and 4 times its value the outcome
+  barely moves.
 
-Every recorded flight hash moves (proven to part only inside the stall
-blend: scripts/stall-crossing.js), so the unmoved gates fail (C22, G20,
-B13, S17, T14, F9) and are left for the lead to re-record. Also failing,
-for the lead: slowstick S9a/S9b (it now drops a wing; the plant's lift
-curve past CLmax is not a trailing edge stall), timber T5 and T10 and
-cub:stab's three take off headings (three point rolls past the stall),
-crash:core's Cub and Timber rollout identity (a part other than the gear
-touches) and its floats digest (the scenario's JavaScript pilot steers on
-Math.atan2, which differs between Node 22 and Chrome 151; the plant's
-replays agree). The Bramor's risers move from 64 to 48 mm ahead of the CG
-by their own rule. In CI, cub:gates (C22) and glider:gates (G20) fail on
-the hashes and cub:stab on the take off headings.
+Held full back: the Cub, the Skyhunter and the Timber drop the nose 8 to
+13 deg with a wing drop of 1 to 3 deg and mush, as their reviews say; the
+Slow Stick barely moves; full rudder spins the Skyhunter, the Cub and the
+Timber without slats toward it, and opposite rudder stops it. Gaps for
+the lead: the Radian drops 66 deg (reviewed as "extremely gentle"; its
+SD7037 class holds lift only 1.4 deg); the Bramor tip stalls into a flat
+spin its elevons do not recover, and B1, which throws it under its stall,
+fails on that; the Timber without slats drops 14 deg on the NACA 2415
+class, where the one review says it barely stalls, and no source was found
+for a sharp stall without slats.
+
+Suite against 16ac766: 9 of 60 in every band before and after, failing
+checks 134 to 135, 60 deterministic. The Cub and Timber stalls do not come
+back: sourced as their reviews describe, they mush down onto the gear and
+roll on (16.9 and 26.0 m), where the bands expect a nose low hit; that is
+the lead's call. Failing gates: the stored hashes C22, G20, B13, S17, T14,
+F9 (each recording's stall accounted for in the doc), S9a and S9b (bank
+21.5 and 27 against 15), B1. crash:core 148 of 148.
