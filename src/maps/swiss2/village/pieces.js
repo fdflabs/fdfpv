@@ -379,3 +379,69 @@ export function puddle(f, r) {
   });
   f.put(detail('puddle'), g, 0, 0.004, 0, own(f, 72) * Math.PI, 0, 0, r, 1, r);
 }
+
+/*
+ * A market stall, the kind a farm sets up by the church on market day:
+ * a trestle table under a striped awning on four poles, its crates of
+ * fruit and vegetables tipped toward the customers, more crates stacked
+ * beside it, the prices on a slate. Along x, 2.6 m; its front, where the
+ * customers stand, toward +z.
+ */
+const PRODUCE = ['apple', 'pear', 'lettuce', 'fruitOrange', 'plum', 'apple', 'cabbage', 'pear'];
+export function marketStall(f) {
+  const len = 2.6;
+  const deep = 1.0;
+  const top = 0.86;
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      f.put(near('larchDark'), boxUp(0.06, top, 0.06), sx * (len / 2 - 0.12), 0, sz * (deep / 2 - 0.08));
+    }
+  }
+  f.put(near('larch'), box(len + 0.1, 0.05, deep + 0.1), 0, top + 0.025, 0);
+  f.put(near('canvasRed'), box(len + 0.12, 0.62, 0.02), 0, top - 0.3, deep / 2 + 0.06);
+  /* Two rows of crates on the table, the front row tipped toward the
+   * customers, each heaped with what it holds. */
+  const n = 5;
+  for (let row = 0; row < 2; row += 1) {
+    for (let k = 0; k < n; k += 1) {
+      const x = -len / 2 + (k + 0.5) * (len / n);
+      const z = row === 0 ? 0.2 : -0.24;
+      const tip = row === 0 ? 0.28 : 0.1;
+      const y = top + 0.1 + (row === 0 ? 0.02 : 0.12);
+      const what = PRODUCE[(k + row * 3 + pick(f, 81, 8)) % PRODUCE.length];
+      f.put(near('larch'), box(len / n - 0.05, 0.16, 0.4), x, y, z, 0, tip);
+      for (let q = 0; q < 3; q += 1) {
+        const r = own(f, 90 + k * 7 + row * 3 + q);
+        f.put(detail(what), blob(), x - 0.16 + q * 0.16, y + 0.1 + 0.03 * r, z + 0.05 * (r - 0.5), r * 3, 0.4, 0, 0.13, 0.06, 0.16);
+      }
+    }
+  }
+  /* The awning: poles higher at the back so the rain runs forward, a
+   * canvas in red and white stripes, a valance along its front. */
+  const back = 2.35;
+  const front = 2.05;
+  for (const sx of [-1, 1]) {
+    f.put(near('castIron'), boxUp(0.04, back, 0.04), sx * (len / 2 + 0.05), 0, -deep / 2 - 0.1);
+    f.put(near('castIron'), boxUp(0.04, front, 0.04), sx * (len / 2 + 0.05), 0, deep / 2 + 0.35);
+  }
+  const run = deep + 0.45;
+  const slope = Math.atan2(back - front, run);
+  const stripes = 8;
+  const width = (len + 0.3) / stripes;
+  for (let k = 0; k < stripes; k += 1) {
+    const x = -len / 2 - 0.15 + (k + 0.5) * width;
+    const key = k % 2 ? 'canvas' : 'canvasRed';
+    f.put(near(key), box(width, 0.02, Math.hypot(run, back - front) + 0.3), x, (back + front) / 2 + 0.03, 0.12, 0, slope);
+    f.put(near(key), box(width, 0.22, 0.015), x, front - 0.08, deep / 2 + 0.5);
+  }
+  /* Crates stacked at the end of the table, the top one of apples. */
+  for (let k = 0; k < 3; k += 1) {
+    f.put(near('larch'), boxUp(0.5, 0.26, 0.36), len / 2 + 0.45, k * 0.27, -0.1 + (k % 2) * 0.04, (k % 2) * 0.12);
+  }
+  f.put(detail('apple'), blob(), len / 2 + 0.45, 0.83, -0.08, 0.3, 0, 0, 0.2, 0.07, 0.14);
+  /* The slate of prices on its easel, out front. */
+  f.put(near('ink'), box(0.5, 0.65, 0.03), -len / 2 + 0.2, 0.62, deep / 2 + 0.75, 0, -0.25);
+  f.put(detail('clothWhite'), plate(0.36, 0.03), -len / 2 + 0.2, 0.75, deep / 2 + 0.785, 0, -0.25);
+  f.put(detail('clothWhite'), plate(0.28, 0.03), -len / 2 + 0.2, 0.62, deep / 2 + 0.765, 0, -0.25);
+  f.put(near('larchDark'), boxUp(0.03, 0.95, 0.03), -len / 2 + 0.2, 0, deep / 2 + 0.9, 0, 0.3);
+}

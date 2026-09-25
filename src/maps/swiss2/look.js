@@ -375,6 +375,12 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     pathGravel: { group: 'gravel', tint: [0.66, 0.6, 0.52], weather: 'paving' },
     lettuce: { group: 'plain', tint: [0.1, 0.22, 0.035], rough: 0.7 },
     cabbage: { group: 'plain', tint: [0.06, 0.12, 0.085], rough: 0.55 },
+    /* What the market stall sells: waxy apples and plums, pears, the
+     * orange of apricots. */
+    apple: { group: 'plain', tint: [0.42, 0.03, 0.02], rough: 0.35 },
+    pear: { group: 'plain', tint: [0.4, 0.38, 0.06], rough: 0.5 },
+    fruitOrange: { group: 'plain', tint: [0.72, 0.25, 0.02], rough: 0.5 },
+    plum: { group: 'plain', tint: [0.08, 0.02, 0.07], rough: 0.4 },
     puddle: { group: 'plain', tint: [0.03, 0.031, 0.033], rough: 0.03 },
     shade: { group: 'plain', tint: [0.014, 0.012, 0.01], rough: 0.9 },
     metal: { group: 'plain', tint: [0.55, 0.56, 0.57], rough: 0.42, metal: 0.9 },

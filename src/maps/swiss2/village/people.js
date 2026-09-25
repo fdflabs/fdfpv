@@ -4,7 +4,9 @@
  * A dozen figures, each with its own height, build and clothes: two at a
  * café table, the waiter, two hikers at the yellow sign, two neighbours
  * talking by the fountain, one on each of two benches, one pacing inside
- * the bus's loop and two walking the path along the churchyard wall. The
+ * the bus's loop and two walking the path along the churchyard wall;
+ * since round 8 three children, the market stall's stallholder and a
+ * customer, a cyclist stopped astride his bike, and two dogs. The
  * body is jointed where a body bends (hips, knees, shoulders, elbows,
  * the neck), each part a shape of its own proportion, and a walker's
  * legs and arms swing in a gait with the knee flexing through the swing.
@@ -116,7 +118,105 @@ function figureParts(look) {
       K.push(skin, new THREE.SphereGeometry(0.045, 6, 4), 0.012, -FORE * s - 0.05, 0, 0, 0, 0, 0.55, 1.35, 0.8);
     });
   }
+  if (look.bike) {
+    parts.push({ bone: 'root', geometry: bikeGeometry(look.bike) });
+  }
   return { parts, s, w };
+}
+
+/*
+ * A bicycle under a rider who has stopped astride it, in the rider's
+ * frame (forward +x, the hips over x 0): the saddle just behind the
+ * hips, the bars ahead of them, the left pedal forward and up where
+ * that foot rests.
+ */
+function bikeGeometry(colour) {
+  const K = makeKit();
+  const paint = fin(colour, 0.35, 0, 0.8);
+  const tyre = fin(0x151516, 0.88);
+  const steel = fin(0xb9bcbf, 0.3, 1);
+  const black = fin(0x1c1c1e, 0.6);
+  const r = 0.34;
+  const rear = -0.74;
+  const front = 0.36;
+  for (const x of [rear, front]) {
+    K.push(tyre, new THREE.TorusGeometry(r, 0.022, 5, 20), x, r, 0);
+    K.push(steel, new THREE.TorusGeometry(r - 0.035, 0.008, 3, 20), x, r, 0);
+    K.push(steel, new THREE.CylinderGeometry(0.025, 0.025, 0.1, 6), x, r, 0, 0, Math.PI / 2);
+  }
+  const tube = (x0, y0, x1, y1, t, f = paint, z = 0) => {
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    K.push(f, new THREE.BoxGeometry(len, t, t), (x0 + x1) / 2, (y0 + y1) / 2, z, 0, 0, Math.atan2(y1 - y0, x1 - x0));
+  };
+  const bb = [-0.12, 0.3];
+  const seat = [-0.3, 0.84];
+  const head = [0.24, 0.84];
+  tube(rear, r, bb[0], bb[1], 0.024);
+  tube(rear, r, seat[0], seat[1] - 0.04, 0.022);
+  tube(bb[0], bb[1], seat[0], seat[1], 0.034);
+  tube(bb[0], bb[1], head[0], head[1] - 0.12, 0.036);
+  tube(seat[0], seat[1] - 0.04, head[0], head[1] - 0.02, 0.032);
+  tube(head[0], head[1] + 0.12, front, r, 0.026, steel);
+  K.push(black, new THREE.BoxGeometry(0.26, 0.06, 0.14), seat[0] - 0.02, seat[1] + 0.07, 0);
+  K.push(steel, new THREE.BoxGeometry(0.03, 0.2, 0.03), head[0] - 0.02, head[1] + 0.1, 0);
+  K.push(black, new THREE.BoxGeometry(0.03, 0.03, 0.58), head[0] + 0.02, head[1] + 0.2, 0);
+  /* The cranks and the left pedal, forward and up, under that foot. */
+  tube(bb[0], bb[1], bb[0] + 0.16, bb[1] + 0.02, 0.02, steel, 0.09);
+  K.push(black, new THREE.BoxGeometry(0.1, 0.02, 0.08), bb[0] + 0.17, bb[1] + 0.02, 0.12);
+  tube(bb[0], bb[1], bb[0] - 0.16, bb[1] - 0.02, 0.02, steel, -0.09);
+  /* A basket on the carrier with the shopping in it. */
+  K.push(fin(0x3a2a1c, 0.9), new THREE.BoxGeometry(0.36, 0.2, 0.3), rear + 0.08, r + 0.46, 0);
+  K.push(fin(0x2a5a1c, 0.7), new THREE.BoxGeometry(0.2, 0.12, 0.2), rear + 0.06, r + 0.6, 0);
+  return K.bake();
+}
+
+/*
+ * A dog, in its own frame (its nose toward +x): a Bernese lying down,
+ * black with a white chest and rust on its cheeks and legs, or a border
+ * collie sitting up, black and white.
+ */
+function dogGeometry(kind) {
+  const K = makeKit();
+  const coat = (c) => fin(c, 0.9);
+  const sphere = (r) => new THREE.SphereGeometry(r, 8, 6);
+  const cylX = (r0, r1, len) => new THREE.CylinderGeometry(r0, r1, len, 8).rotateZ(Math.PI / 2);
+  if (kind === 'bernese') {
+    const black = coat(0x121011);
+    const white = coat(0xe0dad0);
+    const rust = coat(0x6a3014);
+    K.push(black, cylX(0.2, 0.19, 0.72), 0, 0.21, 0, 0, 0, 0, 1, 0.85, 1);
+    K.push(black, sphere(0.2), -0.34, 0.2, 0, 0, 0, 0, 1, 0.85, 1);
+    K.push(white, sphere(0.17), 0.34, 0.22, 0, 0, 0, 0, 0.9, 1, 0.95);
+    K.push(black, sphere(0.14), 0.5, 0.4, 0);
+    K.push(white, new THREE.BoxGeometry(0.16, 0.08, 0.09), 0.62, 0.36, 0);
+    K.push(black, new THREE.BoxGeometry(0.03, 0.03, 0.04), 0.71, 0.39, 0);
+    for (const z of [-1, 1]) {
+      K.push(black, new THREE.BoxGeometry(0.1, 0.14, 0.03), 0.46, 0.38, z * 0.13, 0, z * 0.3);
+      K.push(rust, sphere(0.03), 0.6, 0.45, z * 0.05);
+      K.push(black, cylX(0.045, 0.04, 0.34), 0.56, 0.05, z * 0.09);
+      K.push(white, sphere(0.05), 0.74, 0.04, z * 0.09);
+      K.push(rust, sphere(0.05), 0.42, 0.07, z * 0.09);
+      K.push(black, sphere(0.14), -0.26, 0.13, z * 0.14, 0, 0, 0, 1.2, 0.9, 0.8);
+    }
+    K.push(black, cylX(0.06, 0.03, 0.4), -0.62, 0.06, 0.12, 0.35);
+    K.push(white, sphere(0.035), -0.8, 0.05, 0.19);
+  } else {
+    const black = coat(0x151414);
+    const white = coat(0xe4e0d8);
+    K.push(black, new THREE.CylinderGeometry(0.13, 0.11, 0.46, 8), 0.08, 0.32, 0, 0, 0, -0.45);
+    K.push(white, sphere(0.1), 0.18, 0.42, 0, 0, 0, 0, 0.8, 1.1, 1);
+    K.push(black, sphere(0.095), 0.22, 0.64, 0);
+    K.push(white, new THREE.BoxGeometry(0.12, 0.06, 0.07), 0.31, 0.61, 0);
+    K.push(white, new THREE.BoxGeometry(0.1, 0.1, 0.025), 0.26, 0.68, 0);
+    for (const z of [-1, 1]) {
+      K.push(black, new THREE.BoxGeometry(0.05, 0.09, 0.03), 0.19, 0.74, z * 0.06, 0, z * 0.25, 0.4);
+      K.push(white, new THREE.CylinderGeometry(0.03, 0.028, 0.32, 6), 0.2, 0.16, z * 0.06);
+      K.push(black, sphere(0.12), -0.02, 0.12, z * 0.09, 0, 0, 0, 1.1, 0.9, 0.8);
+    }
+    K.push(black, cylX(0.05, 0.02, 0.36), -0.26, 0.05, 0.1, 0.5);
+    K.push(white, sphere(0.03), -0.42, 0.04, 0.18);
+  }
+  return K.bake();
 }
 
 /*
@@ -143,9 +243,32 @@ function cast(layout) {
     { look: { height: 1.74, build: 1.1, jacket: 0x5b5e63, trousers: 0x3a3730 }, do: 'sit', ...seat(benches[2], 0.55) },
     { look: { height: 1.64, build: 0.96, jacket: 0x31465e, trousers: 0x2a2a2e, coat: true }, do: 'sit', ...seat(benches[0], 0.55) },
     { look: { height: 1.72, build: 0.97, jacket: 0xc79a3a, trousers: 0x27334a }, do: 'walk', route: [at(-3.0, 4.6), at(-7.8, 3.2), at(-10.0, -0.5), at(-9.4, -3.6)], v: 1.1, t0: 0 },
-    { look: { height: 1.84, build: 1.02, jacket: 0x2d6b4e, trousers: 0x4a4a4e, pack: 0xc05a1a }, do: 'walk', route: [at(-20.5, -11), at(-20.5, 11)], v: 1.3, t0: 3 },
+    { look: { height: 1.84, build: 1.02, jacket: 0x2d6b4e, trousers: 0x4a4a4e, pack: 0xc05a1a }, do: 'walk', route: [at(-21.3, -11), at(-21.3, 11)], v: 1.3, t0: 3 },
     { look: { height: 1.7, build: 0.98, jacket: 0xd46a2a, trousers: 0x2f3440, pack: 0x384048, cap: 0xc9c2b0 }, do: 'walk', route: [at(-20.5, -11), at(-20.5, 11)], v: 1.3, t0: 14 },
+    /* Round 8: children, the walker's daughter at his side, one at the
+     * fountain's rim and one running round inside the bus's loop. */
+    { look: { height: 1.22, build: 0.8, jacket: 0xd8b21e, trousers: 0x2d4f8a, shortSleeves: true }, do: 'walk', route: [at(-22.1, -11), at(-22.1, 11)], v: 1.3, t0: 3 },
+    { look: { height: 1.3, build: 0.82, jacket: 0xc23a6a, trousers: 0x33333a }, do: 'stand', ...at(0.7, 3.6), face: at(2, 0) },
+    { look: { height: 1.12, build: 0.8, jacket: 0x2f7ab8, trousers: 0x4a3a2a, shortSleeves: true }, do: 'walk', route: [at(-1.5, 4.2), at(-1.1, -4.4)], v: 2.1, t0: 5 },
   ];
+  /* The market stall's stallholder behind it, a customer at its front
+   * and a cyclist stopped astride his bike beside her. The stall faces
+   * +x (village/index.js). */
+  const { stall } = layout;
+  if (stall) {
+    const sa = (dx, dz) => ({ x: stall.x + dx, z: stall.z + dz });
+    list.push(
+      { look: { height: 1.7, build: 1.08, jacket: 0x3a5a7a, trousers: 0x2a2a2e, cap: 0x5a4632 }, do: 'talk', ...sa(-1.05, 0.3), face: sa(1.3, -0.4) },
+      { look: { height: 1.64, build: 0.94, jacket: 0x9a3a2a, trousers: 0x3a3e4a, coat: true }, do: 'talk', ...sa(1.3, -0.4), face: sa(-1.05, 0.3) },
+      { look: { height: 1.78, build: 1.0, jacket: 0x2a6a3a, trousers: 0x1e2230, shortSleeves: true, bike: 0x1a4a8a }, do: 'straddle', ...sa(1.9, 1.6), yaw: Math.PI / 2 + 0.25 },
+    );
+  }
+  /* Two dogs: a Bernese lying by the café's tables, a collie sitting by
+   * the hikers at the sign. */
+  list.push(
+    { dog: 'bernese', x: square.x + 9.2, z: square.z - 7.4, yaw: 0.4 },
+    { dog: 'collie', x: square.x - 14.3, z: square.z + 12.8, yaw: 2.4 },
+  );
   return list.filter((p) => p.x !== undefined || p.route);
 }
 
@@ -162,15 +285,18 @@ export function buildPeople({ layout, heightAt, material }) {
     return on ? layout.villageY + layout.slabY : heightAt(x, z);
   };
   const figures = people.map((p, k) => {
-    const look = {
-      skin: SKIN[k % SKIN.length], hair: HAIR[(k * 5 + 2) % HAIR.length], ...p.look,
-    };
     const spots = p.route ?? [p];
     for (const q of spots) {
       if (!layout.busClear(q.x, q.z, p.do === 'sit' ? 0 : 0.4)) {
         throw new Error(`swiss2 people: figure ${k} stands in the PostAuto's way at ${q.x.toFixed(1)}, ${q.z.toFixed(1)}`);
       }
     }
+    if (p.dog) {
+      return { ...p, parts: [{ bone: 'root', geometry: dogGeometry(p.dog) }] };
+    }
+    const look = {
+      skin: SKIN[k % SKIN.length], hair: HAIR[(k * 5 + 2) % HAIR.length], ...p.look,
+    };
     let route = null;
     if (p.route) {
       const pts = [...p.route, ...p.route.slice(1, -1).reverse()];
@@ -315,6 +441,19 @@ export function buildPeople({ layout, heightAt, material }) {
       q.elbowR = 0.3 + 1.1 * g;
       q.head = 0.1 * Math.sin(idle * 1.3);
       q.nod = 0.05 * Math.sin(t * 2.1 + f.phase);
+    } else if (f.do === 'straddle') {
+      /* Stopped astride the bike: the right foot down on the ground,
+       * the left on its pedal, leaning on the bars. */
+      q.thighR = 0.1;
+      q.kneeR = 0.05;
+      q.thighL = 0.85;
+      q.kneeL = 1.45;
+      q.armL = 0.95;
+      q.armR = 0.9;
+      q.elbowL = 0.35;
+      q.elbowR = 0.3;
+      q.lean = 0.32;
+      q.head = -0.5 + 0.15 * Math.sin(idle * 0.5);
     } else if (f.lookUp) {
       q.nod = -0.18;
       q.armL = 0.1;
@@ -324,6 +463,11 @@ export function buildPeople({ layout, heightAt, material }) {
   };
 
   const place = (f, t) => {
+    if (f.dog) {
+      const root = new THREE.Matrix4().makeRotationY(f.yaw).setPosition(f.x, floor(f.x, f.z), f.z);
+      write(f.parts[0], root);
+      return;
+    }
     let x = f.x;
     let z = f.z;
     let yaw = f.yaw ?? 0;
@@ -340,6 +484,7 @@ export function buildPeople({ layout, heightAt, material }) {
     const s = f.s;
     const y = floor(x, z);
     const root = new THREE.Matrix4().makeRotationY(yaw).setPosition(x, y, z);
+    bones.root = root;
     /* The pelvis stands as high as the straighter leg reaches, so the
      * foot under the body is on the ground whatever the gait. */
     const reach = (th, kn) => 0.04 + THIGH * s * Math.cos(th) + (SHIN + 0.022) * s * Math.cos(th - kn);
