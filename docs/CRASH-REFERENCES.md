@@ -622,7 +622,7 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
 | mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
 | peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted) | LOW |
+| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
 | restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
 | timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
 
@@ -662,7 +662,7 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | --- | --- | --- | --- |
 | mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
 | mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
-| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted) | LOW |
 | restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **cub-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
@@ -695,7 +695,7 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
 | mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
 | peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted) | LOW |
+| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
 | restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
 | timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
 
@@ -761,7 +761,7 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
 | mustNotBreak | wing | R-A14-FOAM, R-SLOWSTICK | MED |
 | peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted) | LOW |
+| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
 | restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
 | timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
 
@@ -832,7 +832,7 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
 | mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
 | peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted) | LOW |
+| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
 | restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
 | timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
 
@@ -872,7 +872,7 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | --- | --- | --- | --- |
 | mustDamage | prop | R-NOSEOVER (a tailwheel aircraft has nothing to stop it nosing over except the propeller; a nose over is a prop strike) | MED |
 | mustNotBreak | wing, fuselage | R-NOSEOVER (a nose over from a take off roll; the damage in the reports is the prop, and the fin and rudder when it goes onto its back), R-FOAM | LOW |
-| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted) | LOW |
+| restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted) | LOW |
 | restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
 **timber-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
@@ -1115,7 +1115,9 @@ Recorded here because the loop will build on the plan.
   (tests/crash/scenarios.js `WIND_ENTRY`, `sim_set_wind(vx, vy, vz)` world
   m/s, a guess at the core's name): once the module exports it they are
   flown in that wind (15 m/s across the float plane, 10 m/s along the
-  Bramor's descent) and judged, with no other change.
+  Bramor's descent) and judged, with no other change. Round 1's core added
+  `sim_set_wind(vx, vy, gust)`, and since then all three are flown and
+  judged: no scenario is blocked or a stand in.
 - **Nothing could detach a prop at the baseline,** so "lose one prop in
   flight" was flown with the bench override holding one motor at zero
   duty. With the crash core it is the real thing: the prop on motor 0
@@ -1159,7 +1161,7 @@ mis-staged test. What was restaged, and what was found to be the plant's.
   Cub minus 18.5 on minus 40, Radian minus 10 on minus 29, Timber minus 17
   on minus 39, Bramor minus 10 on minus 30, and wings level to the
   hundredth of a degree in all of them. That is the plant's stall, not the
-  staging (below, for the core). A turning stall with inside rudder, the
+  staging, and goes to the core. A turning stall with inside rudder, the
   handbook's base to final accident, was flown as a trial: it arrives
   nose low (minus 35 to minus 37 deg) but by a spiral with the wing
   unstalled (7 to 11 deg), still ends upright, and was not kept, since
@@ -1176,3 +1178,23 @@ mis-staged test. What was restaged, and what was found to be the plant's.
   Real blades dig into soft ground and turn aircraft over (R-DIG), but no
   number for that grip was found: left to the core as a finding, not
   staged round. The Timber on the same program goes over.
+- **The stalls' rest attitude band is borrowed from a test that was not a
+  stall.** R-C172 test 2 flew the aircraft into soft soil at 20.9 m/s
+  forward and 8.6 m/s down, a 22 deg path; R-DIG's Hatz is the nearer
+  case (stalled, nose low, prop dug in, over). The band is unchanged and
+  still LOW; R-DIG is added to its sources on the four tractors (Cub,
+  Radian, Slow Stick, Timber), and its Cessna in the sand to the nose
+  overs' rest attitude.
+- **Blocked and stand in: none left.** The wind landed in round 1, so the
+  chute drag and both capsizes are flown and judged, and the prop loss is
+  a real break (section 6).
+- **LOW bands that a better source would raise,** and why this round did
+  not: every five inch obstacle band (R-A4-OFFSET, R-A4-REBOUND) and every
+  whoop band (R-WHOOP) wants the footage of section 3 measured frame by
+  frame, which needs a person with the clips; the cartwheels, poles and
+  trees (R-AFH) want measured model crashes, none published; the belly
+  slides (R-SLIDE) want a foam on grass friction, still not found; the
+  float bands (R-SEAPLANE) have mechanisms and no numbers. What could be
+  sourced better here was: the stall and nose over rest attitudes (R-DIG,
+  above), the Slow Stick's ground accident (R-SLOWSTICK's landings) and
+  the quad pilot after a hit (R-DISARM).

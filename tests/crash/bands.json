@@ -776,7 +776,7 @@
       "nose down",
       "inverted"
      ],
-     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over)",
      "confidence": "LOW"
     },
     {
@@ -949,7 +949,7 @@
       "nose down",
       "inverted"
      ],
-     "source": "R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted)",
+     "source": "R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted)",
      "confidence": "LOW"
     },
     {
@@ -1084,7 +1084,7 @@
       "nose down",
       "inverted"
      ],
-     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over)",
      "confidence": "LOW"
     },
     {
@@ -1367,7 +1367,7 @@
       "nose down",
       "inverted"
      ],
-     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over)",
      "confidence": "LOW"
     },
     {
@@ -1660,7 +1660,7 @@
       "nose down",
       "inverted"
      ],
-     "source": "R-C172 (nose down into soft ground, pivots and ends inverted)",
+     "source": "R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over)",
      "confidence": "LOW"
     },
     {
@@ -1833,7 +1833,7 @@
       "nose down",
       "inverted"
      ],
-     "source": "R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted)",
+     "source": "R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted)",
      "confidence": "LOW"
     },
     {
