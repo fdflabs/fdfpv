@@ -654,7 +654,7 @@
    ]
   },
   "sky-pole": {
-   "refStill": "A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.",
+   "refStill": "A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.",
    "checks": [
     {
      "metric": "mustBreak",
@@ -681,23 +681,23 @@
     },
     {
      "metric": "restDistM",
-     "min": 0,
-     "max": 5,
-     "source": "R-AFH",
+     "min": 5.6,
+     "max": 16.6,
+     "source": "R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 0.5,
-     "max": 2,
-     "source": "R-AFH",
+     "min": 0.45,
+     "max": 2.8,
+     "source": "R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel)",
      "confidence": "LOW"
     },
     {
      "metric": "retainedFirst",
-     "min": 0.0,
-     "max": 0.3,
-     "source": "R-AFH",
+     "min": 0.71,
+     "max": 1,
+     "source": "R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent)",
      "confidence": "LOW"
     }
    ]

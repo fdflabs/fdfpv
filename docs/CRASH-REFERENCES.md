@@ -681,16 +681,16 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | restDistM | 16 to 58 | R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v squared over 2 mu g | LOW |
 | timeToRestS | 2.3 to 6.3 | R-SLIDE at V_s 9.2 m/s: 1.5 V_s (13.8 m/s) at mu 0.6 to 2 V_s (18.4 m/s) at mu 0.3, v over mu g | LOW |
 
-**sky-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**sky-pole.** Reference still: A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 5.6 to 16.6 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.45 to 2.8 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.71 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **sky-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
