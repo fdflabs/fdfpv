@@ -135,19 +135,26 @@ and the fetch F by the Shore Protection Manual's fetch limited growth
 laws (SPM 1984, eqs. 3-33 and 3-34, the JONSWAP fits):
 g Hs / U² = 1.6e-3 (g F / U²)^(1/2) and g Tp / U = 0.2857 (g F / U²)^(1/3),
 capped at the fully developed sea, 0.2433 and 8.134. It is spread over
-six components: four swells round the peak and two short chop waves,
-periods 1.00, 0.85, 0.72, 0.60, 0.45 and 0.33 of Tp, directions 0, +20,
-−25, +40, −55 and +70 deg off the wind, and 0.34, 0.24, 0.17, 0.11, 0.08
-and 0.06 of the sea's energy (a coarse JONSWAP spectrum and a cos²
-spread), each amplitude sqrt(2 e) Hs / 4 so the variance is Hs²/16, at
-fixed phases with no common factor. **The swell** is one more component,
+six components at 0.82, 1.00, 1.18, 1.40, 1.68 and 2.05 of the peak
+frequency (periods 1.2195, 1.0, 0.8475, 0.7143, 0.5952 and 0.4878 of Tp),
+each carrying the energy a JONSWAP spectrum (gamma 3.3) has between its
+neighbours' midpoints, 0.72 to 2.5 of the peak: 0.1214, 0.4589, 0.1961,
+0.1106, 0.0681 and 0.0449 of the sea's. Their directions, +4, −19, +27,
+−41, +52 and −67 deg off the wind, alternate about it and widen away from
+the peak, as a sea's directional spread does, and their phases are 2 pi
+times the fractional part of 0.137 + 0.618034 n, so no two line up.
+Each amplitude is sqrt(2 e) Hs / 4, so the variance is Hs²/16. (The
+first spectrum ran to 3 times the peak frequency with a sixth of the
+energy in its two shortest waves, both at the steepness cap; drawn, they
+read as a regular crosshatch on the lake. A real sea's tail carries
+far less.) **The swell** is one more component,
 a height, a period and a direction, for water that is not raised by its
 own wind; a lake has none, and the gates use one because a single period
 is what a rocking can be measured against. Each component is held under
 a k = 0.1, a fifth of the steepness at which a deep water wave breaks,
-which trims the shortest chop in a stiff wind: `npm run waves:selftest`
-measures 4 sd of the surface at 0.955 of the SPM's Hs for 5 m/s over
-900 m.
+which trims the shortest waves only in a stiff wind: `npm run
+waves:selftest` measures 4 sd of the surface at 1.001 of the SPM's Hs for
+5 m/s over 900 m.
 
 The phases need sine and cosine at any angle, so the fixed libm gained
 `sim_sin` and `sim_cos` (Cody and Waite's reduction by pi/2 held as a
@@ -558,11 +565,9 @@ float while it planes (src/render/spray.js, render only, from
 sim_float_state). What the plant does not model, the spray, the bow wave
 and the wake (below), is drawn from what it does.
 
-The six components the wind sea is spread over are few enough that, close
-to, the two shortest (0.33 and 0.45 of the peak period, 70 and 55 deg off
-the wind, both at the steepness cap) read as a regular crosshatch on the
-water. That is the plant's sea drawn faithfully; a sea that looks like a
-lake's up close needs more components with spread phases in the plant.
+The six components the wind sea is spread over are still few, so close to
+they can read as a pattern on the water, and a picture has to add what
+they leave out.
 
 `npm run floats:shell` proves it headless: the Timber on floats seated on
 the Alps' lake, afloat and rocking before the throttle (pitch −1.2 to

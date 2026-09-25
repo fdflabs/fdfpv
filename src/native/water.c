@@ -63,24 +63,29 @@
 
 /*
  * The wind sea's six components: period as a share of the peak period,
- * direction off the wind (cos, sin of 0, +20, -25, +40, -55 and +70 deg,
- * to 17 digits), share of the sea's energy (summing to one), and phase.
- * The periods and shares are a coarse sampling of a JONSWAP spectrum
- * about its peak, the directions its cos^2 spread; the phases are fixed
- * numbers with no common factor so the sea does not repeat inside a
- * minute. docs/FLOATS-STAGE1.md.
+ * direction off the wind (cos, sin, to 17 digits), share of the sea's
+ * energy (summing to one), and phase. The periods sample 0.82 to 2.05 of
+ * the peak frequency, and each share is a JONSWAP spectrum (gamma 3.3,
+ * sigma 0.07 and 0.09) integrated over the band between its neighbours'
+ * midpoints, 0.72 to 2.5 of the peak, so the shortest waves carry the
+ * little energy a real sea's tail does. The directions, +4, -19, +27, -41,
+ * +52 and -67 deg, alternate about the wind and widen away from the peak,
+ * as a sea's directional spread does. The phases are 2 pi times the
+ * fractional part of 0.137 + 0.618034 n, decorrelated, so no two
+ * components line up into a regular crosshatch and the sea does not
+ * repeat inside a minute. docs/FLOATS-STAGE1.md.
  */
-static const double SEA_T[WATER_SEA] = { 1.00, 0.85, 0.72, 0.60, 0.45, 0.33 };
+static const double SEA_T[WATER_SEA] = { 1.2195, 1.0, 0.8475, 0.7143, 0.5952, 0.4878 };
 static const double SEA_COS[WATER_SEA] = {
-  1.0, 0.93969262078590838, 0.90630778703664994,
-  0.76604444311897801, 0.57357643635104609, 0.34202014332566871,
+  0.9975640502598242, 0.9455185755993168, 0.8910065241883679,
+  0.754709580222772, 0.6156614753256583, 0.3907311284892737,
 };
 static const double SEA_SIN[WATER_SEA] = {
-  0.0, 0.34202014332566871, -0.42261826174069944,
-  0.64278760968653933, -0.81915204428899178, 0.93969262078590838,
+  0.0697564737441253, -0.3255681544571567, 0.45399049973954675,
+  -0.6560590289905073, 0.788010753606722, -0.9205048534524404,
 };
-static const double SEA_E[WATER_SEA] = { 0.34, 0.24, 0.17, 0.11, 0.08, 0.06 };
-static const double SEA_PHASE[WATER_SEA] = { 0.0, 2.1, 4.3, 1.3, 5.5, 3.7 };
+static const double SEA_E[WATER_SEA] = { 0.1214, 0.4589, 0.1961, 0.1106, 0.0681, 0.0449 };
+static const double SEA_PHASE[WATER_SEA] = { 4.744, 2.3441, 6.2273, 3.8273, 1.4274, 5.3106 };
 
 static WaterBody g_water[WATER_BODIES_MAX];
 static int g_water_count = 0;
