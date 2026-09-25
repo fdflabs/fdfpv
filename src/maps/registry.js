@@ -29,6 +29,11 @@
  * also holds the camera each one is taken from. A map with no poster falls
  * back to the rectangle, so the field is optional rather than load bearing.
  *
+ * `build` marks a world a course can be built inside, with B from a flight
+ * (src/builder/). The two valleys first: one terrain, one height function and
+ * nothing to fly under, which is where placement was proven. The town and
+ * Yellowstone come later.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -82,6 +87,7 @@ export const MAPS = [
     mode: 'freestyle',
     note: str('registry.a_glacial_valley_six_kilometres'),
     buildMs: MAP_BUILD_MS.alps,
+    build: true,
     load: () => import('./alps.js'),
   },
   /* The same valley, drawn to read as a photograph rather than a
@@ -95,6 +101,7 @@ export const MAPS = [
     mode: 'freestyle',
     note: str('registry.swiss2_note'),
     buildMs: MAP_BUILD_MS.swiss2,
+    build: true,
     load: () => import('./swiss2.js'),
   },
   /* In development, and the name says so, so a pilot who picks it knows
