@@ -7,7 +7,12 @@
  *   h.call(name, ...args)  any module entry point that writes (recorded)
  *   h.s                    the state block after the last step
  *   h.ms                   milliseconds since the scenario's clock started
- *   h.place(solid)         put a solid in the world, plant frame
+ *   h.place(solid)         put a solid in the world, plant frame; the
+ *                          shell's sweep meets it, and the plant is told of
+ *                          it for the parts that break off
+ *   h.tree(spec)           a tree: a trunk the sweep meets, a crown the
+ *                          plant holds and the craft flies into
+ *   h.damage               the damage reader (tests/crash/readback.js)
  *   h.arm()                from here the first contact is the impact
  *   h.hit                  null until the impact, then { ms, ... }
  *   h.mem                  the scenario's own scratch
@@ -19,10 +24,14 @@
  * cross-host check replays (tests/crash/program.js), so JS maths is
  * allowed here and nowhere in the module.
  *
- * The solids are the shell's kinds (src/game/collide.js KINDS), so each
- * contact takes the shell's material for it, and the contact itself is
- * the shell's call: sim_contact_at at the craft's patch, then a blade
- * strike scaled by the impulse. Only the detection is the suite's own, a
+ * Every scenario is flown with crash damage on. The solids are the
+ * shell's kinds (src/game/collide.js KINDS), so each contact takes the
+ * shell's material for it, and the contact itself is the shell's call:
+ * sim_contact_at_mat (or sim_contact_at where the module's material is not
+ * the shell's numbers) at the craft's patch, then a blade strike scaled by
+ * the impulse. The ground is named to the plant as the shell names it
+ * (src/game/crashworld.js groundSurface): grass outdoors, today's contact
+ * in a whoop's room. Only the detection is the suite's own, a
  * disc of the airframe's sweep radius and vertical extents against a
  * plane, a capsule or a sphere, because the plant has no scene geometry
  * and the shell's colliders live in a map.
@@ -49,6 +58,7 @@
 
 import { GROUND_MU, GROUND_E } from '../../src/game/collide.js';
 import { MICRO_SCALE, BRAMOR_CATAPULT } from '../../configs/airframes.js';
+import { SURFACE } from '../../configs/parts.js';
 
 const DEG = Math.PI / 180;
 const clamp = (x, lo = -1, hi = 1) => (x < lo ? lo : (x > hi ? hi : x));
@@ -65,7 +75,7 @@ export const CRAFT = {
   /* The shell's whoop is the five inch's plant in a room built MICRO_SCALE
    * times life size (configs/airframes.js). Its scenarios are flown at a
    * real whoop's speeds times that factor, and read back divided by it. */
-  whoop: { shell: 'whoop65', sim: 0, quad: true, volts: 4.2, scale: MICRO_SCALE },
+  whoop: { shell: 'whoop65', sim: 0, quad: true, volts: 4.2, scale: MICRO_SCALE, partTable: 1 },
   sky: { shell: 'sky1800', sim: 3, Vs: 9.2, Vc: 14.9, Vt: 23.5, cruise: 0.65 },
   cub: { shell: 'cub1400', sim: 4, Vs: 8.1, Vc: 13.5, Vt: 18.4, cruise: 0.75, wheels: { z: 0.1463, pitchDeg: 11.0 } },
   radian: { shell: 'radian2000', sim: 6, Vs: 6.5, Vc: 14.2, Vt: 18.0, cruise: 0.65 },
@@ -166,6 +176,14 @@ function planeLaunch(h, { z, pitch = 0, bank = 0, v, x = 0 }) {
 
 function grass(h) {
   h.call('sim_set_ground', 1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E);
+  h.call('sim_set_ground_material', SURFACE.grass);
+}
+
+/* A whoop's room: the shell keeps today's contact on a micro track's
+ * floor (src/game/crashworld.js groundSurface), so the suite does too. */
+function floor(h) {
+  h.call('sim_set_ground', 1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E);
+  h.call('sim_set_ground_material', SURFACE.default);
 }
 
 function water(h) {
@@ -176,6 +194,24 @@ function water(h) {
     throw new Error(`sim_water_add: ${body}`);
   }
   return body;
+}
+
+/*
+ * WIND IN THE AIR, the hook for the two scenarios that need it. The plant
+ * has none on main at the time of writing (sim_air_lift is vertical and
+ * sim_water_wind only raises waves); round 1's core work adds it, zero by
+ * default. When the module exports WIND_ENTRY a scenario that `needs` it
+ * is flown with it and judged; until then it is flown still air and
+ * reported blocked. The name and the arguments below are this file's guess
+ * at that entry point (world frame m/s, the plant's axes): when it lands,
+ * this constant and this one call are the whole of the change.
+ */
+export const WIND_ENTRY = 'sim_set_wind';
+
+function wind(h, vx, vy, vz) {
+  if (h.has(WIND_ENTRY)) {
+    h.call(WIND_ENTRY, vx, vy, vz);
+  }
 }
 
 /* The pose on its own gear, from the gates' measured rest. */
@@ -286,6 +322,9 @@ export const SCENARIOS = [
     setup(h) {
       /* The slope rises toward +x through the origin: z = x tan 30. */
       h.call('sim_set_ground', 1, -0.5, 0, 0.8660254037844386, 0, 0, 0, GROUND_MU, GROUND_E);
+      /* 30 deg is under the steepness the shell calls rock (normal up
+       * 0.87 over 0.75): a grass slope. */
+      h.call('sim_set_ground_material', SURFACE.grass);
       h.call('sim_set_angle_mode', 1);
       const q = quatYPR(0, 0, 0);
       /* 2 m over the map's ground, 30 m short of where the slope meets
@@ -369,10 +408,9 @@ export const SCENARIOS = [
     family: 'prop loss',
     map: 'city',
     seconds: 16,
-    /* Nothing can detach a prop today. The stand in is the bench override
-     * holding that motor at zero duty, which is a motor that stopped, the
-     * nearest the module has; the scenario says so in its report. */
-    standIn: 'sim_motor_override(0, 0): motor 0 held at zero duty, the nearest the module has to a lost prop',
+    /* The prop on motor 0 (Betaflight's rear right) leaves through
+     * sim_part_break, exactly as a load past its joint's limit would
+     * break it, and is a free body from there. */
     setup(h) {
       grass(h);
       quadSetup(h, 10.0);
@@ -382,10 +420,9 @@ export const SCENARIOS = [
       if (!m.lostAt && h.ms > 500 && atSpeed(h, 15)) {
         m.lostAt = h.ms;
         h.event('prop lost');
-        if (h.damage && h.damage.detachProp) {
-          h.damage.detachProp(0);
-        } else {
-          h.call('sim_motor_override', 0, 0);
+        const part = h.damage.find('prop', 0);
+        if (part < 0 || h.call('sim_part_break', part) !== 0) {
+          throw new Error('sim_part_break: no prop on motor 0 to lose');
         }
         h.arm();
       }
@@ -413,7 +450,7 @@ SCENARIOS.push(
     map: 'custom',
     seconds: 8,
     setup(h) {
-      grass(h);
+      floor(h);
       quadSetup(h, 1.0 * K);
     },
     pilot(h) {
@@ -437,7 +474,7 @@ SCENARIOS.push(
     map: 'custom',
     seconds: 6,
     setup(h) {
-      grass(h);
+      floor(h);
       h.call('sim_set_angle_mode', 1);
       /* The height that gives 2 m/s, in the room's units. */
       const z = (2 * K) * (2 * K) / (2 * 9.80665) + 0.05;
@@ -461,7 +498,7 @@ SCENARIOS.push(
     map: 'custom',
     seconds: 10,
     setup(h) {
-      grass(h);
+      floor(h);
       quadSetup(h, 0.6 * K);
     },
     pilot(h) {
@@ -615,8 +652,7 @@ function planeScenarios(key) {
       planeLaunch(h, { z: 5, v: c.Vc });
       /* A broadleaf about 9 m tall: a crown of radius 3 m centred 6 m up
        * on a 40 cm trunk, its near edge 5 m ahead. */
-      h.place({ kind: 'canopy', shape: 'sphere', c: [8 + h.dims.hullR, 0, 6], r: 3 });
-      h.place({ kind: 'tree', shape: 'capsule', a: [8 + h.dims.hullR, 0, 0], b: [8 + h.dims.hullR, 0, 4], r: 0.2 });
+      h.tree({ x: 8 + h.dims.hullR, y: 0, trunkR: 0.2, trunkTop: 4, crownZ: 6, crownR: 3 });
       h.arm();
     },
     pilot(h) {
@@ -629,12 +665,15 @@ function planeScenarios(key) {
       title: 'Parachute from cruise 60 m up, down onto the grass, drag and rest',
       family: 'chute landing',
       seconds: 45,
-      /* The plant has no wind in the air (sim_air_lift is vertical, the
-       * water's wind only raises waves), so the drag in wind this scenario
-       * is named for cannot happen yet. */
+      /* The drag in wind this scenario is named for needs wind in the air
+       * (WIND_ENTRY above). 10 m/s along the flight, the middle of
+       * R-CHUTE's derivation, where the canopy pulls about 210 N against
+       * 22 N of friction: dragged. */
+      needs: WIND_ENTRY,
       blocked: 'no horizontal wind in the air model, so a canopy cannot drag the aircraft after touchdown',
       setup(h) {
         grass(h);
+        wind(h, 10, 0, 0);
         h.call('sim_wing_set_stab', 1);
         h.call('sim_wing_chute', 0);
         planeLaunch(h, { z: 60, v: 16 });
@@ -721,10 +760,13 @@ function floatScenarios(key) {
       title: 'Taxiing crosswind in a 15 m/s gust',
       family: 'capsize',
       seconds: 12,
+      needs: WIND_ENTRY,
       blocked: 'no horizontal wind in the air model: the gust that lifts the upwind wing cannot be flown, only the waves the water wind raises',
       setup(h) {
         const body = water(h);
         h.call('sim_water_wind', body, 15, 0, 1, 2000);
+        /* The gust across the aircraft, from its left (world +y). */
+        wind(h, 0, -15, 0);
         h.call('sim_wing_set_stab', 0);
         onWater(h, c);
         h.arm();

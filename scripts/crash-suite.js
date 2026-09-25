@@ -5,21 +5,29 @@
  *   node scripts/crash-suite.js [--out DIR] [--only ID[,ID...]] [--no-chrome] [--sheets]
  *
  * For each scenario in tests/crash/scenarios.js: a fresh module, the
- * airframe, the setup, and the pilot flying it into the contact, 4 ms at a
- * time, with the obstacle pass the shell runs on the same clock. What
- * happened is read from the module: the state block today, and the damage
- * readback (tests/crash/readback.js) once the crash core provides one.
+ * airframe, crash damage ON (sim_set_damage(1), and the whoop's own part
+ * table, sim_set_part_table(1), as the shell flies it), the setup, and the
+ * pilot flying it into the contact, 4 ms at a time, with the obstacle pass
+ * the shell runs on the same clock. The world is named to the plant as the
+ * shell names it (src/main.js, THE CRASH SHELL): the ground's material,
+ * each obstacle's material on contact, every solid for the parts that
+ * break off, and trees as crowns the craft flies into. What happened is
+ * read from the module: the state block, and the damage readback
+ * (tests/crash/readback.js), every step.
  * Each outcome is judged against tests/crash/bands.json, whose every
  * number has its source in docs/CRASH-REFERENCES.md; a band is never
  * moved to meet the plant.
  *
  * Determinism: every module call the run made is recorded
  * (tests/crash/program.js) and replayed on a fresh module in Node and in
- * headless Chrome (tests/crash/replay.html); the three state trace hashes
- * must agree.
+ * headless Chrome (tests/crash/replay.html); the three trace hashes (the
+ * state block and every part's state) must agree, and so must the damage
+ * readback each replay ends with.
  *
  * Writes DIR/report.json, the machine readable report the loop reads, and
- * prints a table per scenario. --sheets also takes the frames for the
+ * prints a table per scenario, then the failure histogram (how often each
+ * metric fails) and the worst scenarios, which is what the loop picks its
+ * next round from. --sheets also takes the frames for the
  * contact sheets (tests/crash/sheet.html, SIM_GPU=1 for real pictures)
  * and builds them with tools/crash/sheet.py. DIR defaults to
  * ~/.cache/fdfpv-crash, outside the repository (pictures are not
@@ -53,10 +61,12 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
-import { Recorder, replayProgram } from '../tests/crash/program.js';
+import { Recorder, replayProgram, endState } from '../tests/crash/program.js';
 import { SCENARIOS, CRAFT, attitude } from '../tests/crash/scenarios.js';
 import { damageReader } from '../tests/crash/readback.js';
-import { setCraftAirframe, contactMaterial, contactPatch, BOUNCE_SEPARATION } from '../src/game/collide.js';
+import { setCraftAirframe, contactMaterial, contactPatch, BOUNCE_SEPARATION, KINDS } from '../src/game/collide.js';
+import { obstacleSurfaces, solidSurface } from '../src/game/crashworld.js';
+import { DAMAGE_FLAGS } from '../configs/parts.js';
 import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -152,9 +162,14 @@ function gapTo(dims, s, solid) {
 const toThree = (v) => [-v[1], v[2], -v[0]];
 const fromThree = (v) => [-v[2], -v[0], v[1]];
 
-function obstaclePass(rec, sim, dims, solids, log, ms) {
+function obstaclePass(rec, sim, dims, solids, kindSurface, log, ms) {
   let hit = null;
   for (const solid of solids) {
+    /* A crown the plant holds (sim_tree_add) is flown into, not off: the
+     * shell lets its sweep pass through it, and so does this. */
+    if (solid.pass) {
+      continue;
+    }
     const s = sim.readState().state;
     const g = gapTo(dims, s, solid);
     if (!g || g.gap >= 0) {
@@ -168,8 +183,16 @@ function obstaclePass(rec, sim, dims, solids, log, ms) {
       const nt = toThree(n);
       const rt = contactPatch(nt[0], nt[1], nt[2], -s[9], s[10], -s[8], s[7], { x: 0, y: 0, z: 0 });
       const arm = fromThree([rt.x, rt.y, rt.z]);
-      const mat = contactMaterial(solid.kind);
-      must(rec.call('sim_contact_at', n[0], n[1], n[2], mat.e, mat.mu, p[0], p[1], p[2], 0, 0, 0, arm[0], arm[1], arm[2]), 'sim_contact_at');
+      /* The shell's choice: the module's material where its numbers are
+       * the shell's own for that kind, so only the damage judgement learns
+       * what was hit; the shell's own numbers otherwise. */
+      const surf = kindSurface[KINDS.indexOf(solid.kind)] ?? -1;
+      if (surf >= 0) {
+        must(rec.call('sim_contact_at_mat', n[0], n[1], n[2], surf, p[0], p[1], p[2], 0, 0, 0, arm[0], arm[1], arm[2]), 'sim_contact_at_mat');
+      } else {
+        const mat = contactMaterial(solid.kind);
+        must(rec.call('sim_contact_at', n[0], n[1], n[2], mat.e, mat.mu, p[0], p[1], p[2], 0, 0, 0, arm[0], arm[1], arm[2]), 'sim_contact_at');
+      }
       const a = sim.readState().state;
       const dv = Math.hypot(a[4] - s[4], a[5] - s[5], a[6] - s[6]);
       if (dv > 0) {
@@ -184,6 +207,54 @@ function obstaclePass(rec, sim, dims, solids, log, ms) {
     }
   }
   return hit;
+}
+
+/* ---- the world named to the plant ---- */
+
+/*
+ * A solid for the parts that break off, which the shell's sweep does not
+ * track (src/main.js declareSolid): a post as an upright cylinder over its
+ * whole height, a bar or a wall as the box that holds it. Trees and crowns
+ * are not solids here, as in the shell: a tree the plant holds gives the
+ * free bodies its own trunk, and a leaning 'tree' capsule (a branch) is
+ * left out of the shell's set too. Returns the module's answer.
+ */
+const WALL_HALF = 50;
+const WALL_THICK = 0.25;
+
+/* The rotation taking the x axis onto the unit d, the shortest arc. */
+function arcFromX(d) {
+  const q = 1 + d[0] < 1e-9 ? [0, 0, 0, 1] : [1 + d[0], 0, -d[2], d[1]];
+  const qn = Math.hypot(q[0], q[1], q[2], q[3]);
+  return [q[0] / qn, q[1] / qn, q[2] / qn, q[3] / qn];
+}
+
+function declareSolid(rec, solid) {
+  if (solid.kind === 'tree' || solid.kind === 'canopy') {
+    return 0;
+  }
+  const mat = solidSurface(solid.kind);
+  if (solid.shape === 'plane') {
+    const n = solid.n;
+    /* The box's x axis onto -n, the shortest arc; its face on the plane. */
+    const d = [-n[0], -n[1], -n[2]];
+    const q = arcFromX(d);
+    const c = [solid.p[0] + d[0] * WALL_THICK, solid.p[1] + d[1] * WALL_THICK, solid.p[2] + d[2] * WALL_THICK];
+    return rec.call('sim_obstacle_box', c[0], c[1], c[2], WALL_THICK, WALL_HALF, WALL_HALF, q[0], q[1], q[2], q[3], mat);
+  }
+  if (solid.shape === 'capsule') {
+    const { a, b, r } = solid;
+    if (Math.abs(a[0] - b[0]) < 1e-3 && Math.abs(a[1] - b[1]) < 1e-3) {
+      return rec.call('sim_obstacle_cylinder', a[0], a[1], Math.min(a[2], b[2]) - r, Math.max(a[2], b[2]) + r, r, mat);
+    }
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const dz = b[2] - a[2];
+    const len = Math.hypot(dx, dy, dz);
+    const q = arcFromX([dx / len, dy / len, dz / len]);
+    return rec.call('sim_obstacle_box', (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, len / 2 + r, r, r, q[0], q[1], q[2], q[3], mat);
+  }
+  throw new Error(`no plant solid for a ${solid.shape}`);
 }
 
 /* ---- reads that write nothing ---- */
@@ -233,6 +304,10 @@ async function fly(sc) {
     liftoffMs: null, liftoffV: null, maxBankAfterLiftoff: 0, minVAirborne: Infinity,
   };
   let rec = null;
+  const reader = damageReader(sim);
+  if (!reader) {
+    throw new Error('dist/sim.wasm has no crash physics ABI (sim_set_damage): rebuild it');
+  }
   const onMs = (ms) => {
     const s = sim.readState().state;
     const prev = M.prev;
@@ -240,6 +315,7 @@ async function fly(sc) {
     if (ms % 20 === 0) {
       M.samples.push([ms, s[1], s[2], s[3], s[7], s[8], s[9], s[10], s[4], s[5], s[6]]);
     }
+    reader.sample(ms, M.armMs !== null);
     if (M.armMs === null) {
       return;
     }
@@ -259,6 +335,11 @@ async function fly(sc) {
     }
     if (wet) {
       kinds.push('water');
+    }
+    /* Inside a crown the plant holds: the tree's contact is the drag of
+     * its twigs, which no counter above sees. */
+    if (sim.e.sim_damage_flags() & DAMAGE_FLAGS.inTree) {
+      kinds.push('crown');
     }
     const dt = 0.001;
     let gNow = 0;
@@ -336,8 +417,20 @@ async function fly(sc) {
   must(rec.call('sim_set_airframe', c.sim), 'sim_set_airframe');
   must(rec.call('sim_reset'), 'sim_reset');
   must(rec.call('sim_set_cell_voltage', c.volts ?? 4.1), 'sim_set_cell_voltage');
+  /* The part table first: setting it clears the damage state. The shell's
+   * whoop is the five inch's plant in a scaled room, made of the real
+   * whoop's parts scaled to it (src/main.js syncPartTable). */
+  must(rec.call('sim_set_part_table', c.partTable ?? 0), 'sim_set_part_table');
+  must(rec.call('sim_set_damage', 1), 'sim_set_damage');
   const massKg = sim.e.sim_bf_debug ? sim.e.sim_bf_debug(51) : null;
-  const reader = damageReader(sim);
+  const matInfo = sim.e.malloc(4 * 8);
+  const kindSurface = obstacleSurfaces((mat) => {
+    if (sim.e.sim_material_info(mat, matInfo) !== SIM_OK) {
+      return null;
+    }
+    const d = new Float64Array(sim.e.memory.buffer, matInfo, 4);
+    return [d[0], d[1]];
+  });
   const solids = [];
   const h = {
     s: null,
@@ -347,8 +440,24 @@ async function fly(sc) {
     hit: null,
     rest: false,
     damage: reader,
+    has: (name) => typeof sim.e[name] === 'function',
     call: (name, ...args) => rec.call(name, ...args),
-    place: (solid) => solids.push(solid),
+    place: (solid) => {
+      solids.push(solid);
+      if (declareSolid(rec, solid) < 0) {
+        throw new Error('sim_obstacle_*: the plant holds no more solids');
+      }
+    },
+    /* A tree: its trunk the shell's solid, as a broadleaf's is
+     * (src/game/crashworld.js collectTrees), its crown the plant's, a
+     * cylinder holding the crown sphere, which the sweep passes through. */
+    tree: ({ x, y, trunkR, trunkTop, crownZ, crownR }) => {
+      h.place({ kind: 'canopy', shape: 'sphere', c: [x, y, crownZ], r: crownR, pass: true });
+      h.place({ kind: 'tree', shape: 'capsule', a: [x, y, 0], b: [x, y, trunkTop], r: trunkR });
+      if (rec.call('sim_tree_add', x, y, 0, trunkR, Math.max(0, crownZ - crownR), crownZ + crownR, crownR) < 0) {
+        throw new Error('sim_tree_add: the plant holds no more trees');
+      }
+    },
     arm: () => {
       if (M.armMs === null) {
         M.armMs = h.ms;
@@ -373,7 +482,7 @@ async function fly(sc) {
     must(rec.call('sim_input', (t0 + ms) / 1000, roll, pitch, yaw, thr), 'sim_input');
     rec.step(RC_MS);
     if (solids.length) {
-      const hit = obstaclePass(rec, sim, dims, solids, M.obstacleLog, rec.clock.ms);
+      const hit = obstaclePass(rec, sim, dims, solids, kindSurface, M.obstacleLog, rec.clock.ms);
       if (hit && M.armMs !== null && !M.impact) {
         M.impact = { ms: rec.clock.ms, kinds: [hit.kind], s: M.prev };
       }
@@ -388,14 +497,15 @@ async function fly(sc) {
   }
   const hash = await rec.hash();
   const end = sim.readState().state;
-  const damage = reader ? reader.read() : null;
-  return { sc, c, dims, massKg, scale, M, end, endMs: rec.clock.ms, hash, ops: rec.ops, solids, t0, damage, extra: sc.outcome ? sc.outcome(h) : {} };
+  const damage = reader.read();
+  return { sc, c, dims, massKg, scale, M, has: h.has, end, endMs: rec.clock.ms, hash, ops: rec.ops, solids, t0, damage, extra: sc.outcome ? sc.outcome(h) : {} };
 }
 
 /* ---- what happened, as numbers ---- */
 
 function outcomeOf(run) {
   const { M, end, massKg, scale, c } = run;
+  const d = run.damage;
   const o = {
     impacted: Boolean(M.impact),
     impactKinds: M.impact ? M.impact.kinds : [],
@@ -403,6 +513,19 @@ function outcomeOf(run) {
     obstacleContacts: M.obstacleLog.length,
     events: M.events,
     massKg,
+    /* What the damage readback says (tests/crash/readback.js). */
+    broken: d.broken,
+    damaged: d.damaged,
+    damageFlags: d.flags,
+    damageFlagsSeen: d.flagsSeen,
+    damageEvents: d.events,
+    damageEventsDropped: d.eventsDropped,
+    partsEnergyJ: d.energyJ,
+    eventsEnergyJ: d.eventsEnergyJ,
+    peakPartLoad: d.peakLoad,
+    peakPartLoadPart: d.peakLoadPart,
+    motorDamage: d.motors,
+    parts: d.parts.map((p) => ({ kind: p.kind, status: p.status, damage: p.damage, energyJ: p.energyJ, peakLoad: p.peakLoad })),
   };
   if (!M.impact) {
     return o;
@@ -452,18 +575,25 @@ function outcomeOf(run) {
     o.liftoffOverStall = M.liftoffV ? M.liftoffV / c.Vs : null;
     o.maxBankAfterLiftoffDeg = M.maxBankAfterLiftoff * 180 / Math.PI;
   }
+  /* The first joint that failed, from the first contact; and the pieces
+   * that left, how many and how far the farthest lies from the impact. */
+  o.firstBreakS = d.firstBreakMs !== null ? (d.firstBreakMs - M.impact.ms) / 1000 : null;
+  const away = d.parts.filter((p) => p.detached);
+  o.debrisCount = away.length;
+  o.debrisMaxDistM = away.length
+    ? Math.max(...away.map((p) => Math.hypot(p.pos[0] - s0[1], p.pos[1] - s0[2]))) / scale
+    : null;
   const lost = M.events.find((e) => e.what === 'prop lost');
   if (lost) {
     o.lossToGroundS = (M.impact.ms - lost.ms) / 1000;
   }
   Object.assign(o, run.extra);
-  o.broken = run.damage ? run.damage.broken : null;
   return o;
 }
 
 /* ---- the bands ---- */
 
-function judge(id, o, readback) {
+function judge(id, o) {
   const set = bands.scenarios[id];
   if (!set) {
     return [{ metric: 'bands', status: 'fail', note: 'no bands written for this scenario' }];
@@ -471,20 +601,17 @@ function judge(id, o, readback) {
   const out = [];
   for (const b of set.checks) {
     const r = { metric: b.metric, band: b, status: 'fail', value: null, note: '' };
-    if (b.metric === 'mustBreak' || b.metric === 'mustNotBreak') {
-      if (!readback) {
-        r.value = null;
-        r.status = b.metric === 'mustBreak' ? 'fail' : 'pass';
-        r.note = b.metric === 'mustBreak'
-          ? 'damage readback not available: nothing can break today'
-          : 'damage readback not available: passes only because nothing can break today';
-        r.vacuous = b.metric === 'mustNotBreak';
-      } else {
-        const broken = new Set(o.broken ?? []);
-        r.value = [...broken];
-        r.status = b.metric === 'mustBreak'
-          ? (b.parts.every((p) => broken.has(p)) ? 'pass' : 'fail')
-          : (b.parts.some((p) => broken.has(p)) ? 'fail' : 'pass');
+    /* What broke, from the readback: mustBreak every part named broken,
+     * mustDamage every part named damaged at least (a chipped prop counts),
+     * mustNotBreak none of them broken. */
+    if (b.parts) {
+      r.value = b.metric === 'mustDamage' ? o.damaged : o.broken;
+      const got = new Set(r.value);
+      r.status = b.metric === 'mustNotBreak'
+        ? (b.parts.some((p) => got.has(p)) ? 'fail' : 'pass')
+        : (b.parts.every((p) => got.has(p)) ? 'pass' : 'fail');
+      if (b.imposed) {
+        r.note = b.imposed;
       }
       out.push(r);
       continue;
@@ -579,6 +706,31 @@ function bandText(b) {
   return `${b.min} to ${b.max}`;
 }
 
+/*
+ * How far outside its band a failing check is, for ranking only: the log
+ * of the ratio past the nearer edge where both are positive (a peak load
+ * five times its ceiling is 1.6, whatever the units), the distance over
+ * the band's width otherwise, and 1 for a part, a class or a value that
+ * was never measured. Each capped at 3 so one wild number cannot hide the
+ * rest of a scenario.
+ */
+function missOf(c) {
+  const v = c.value;
+  const b = c.band;
+  if (!b || typeof v !== 'number' || b.min === undefined && b.max === undefined) {
+    return 1;
+  }
+  const edge = b.max !== undefined && v > b.max ? b.max : b.min;
+  let m;
+  if (v > 0 && edge > 0) {
+    m = Math.abs(Math.log(v / edge));
+  } else {
+    const width = b.min !== undefined && b.max !== undefined ? b.max - b.min : 1;
+    m = Math.abs(v - edge) / Math.max(width, 1e-9);
+  }
+  return Math.min(3, m);
+}
+
 /* ---- main ---- */
 
 await mkdir(OUT, { recursive: true });
@@ -588,8 +740,7 @@ let harnessFailures = 0;
 for (const sc of list) {
   try {
     const run = await fly(sc);
-    const replay = await replayProgram(await loadSim(wasm), configText, run.ops);
-    run.nodeReplayHash = replay;
+    run.nodeReplay = await replayProgram(await loadSim(wasm), configText, run.ops);
     runs.push(run);
   } catch (e) {
     harnessFailures += 1;
@@ -615,22 +766,30 @@ const report = {
   generated: new Date().toISOString(),
   git: gitHead,
   module: moduleHash,
-  readback: runs.length ? runs[0].damage !== null : false,
+  readback: runs.length > 0,
   chrome: CHROME ? (chromeError ? `failed: ${chromeError}` : 'ran') : 'skipped',
   scenarios: [],
 };
 
 for (const run of runs) {
   const o = outcomeOf(run);
-  const checks = judge(run.sc.id, o, run.damage !== null);
+  const checks = judge(run.sc.id, o);
+  const cr = chrome ? chrome.get(run.sc.id) : null;
+  /* What broke must agree too: the live run's readback at its end, and
+   * each replay's. The hash already covers every part's state; this says
+   * in words which host saw a different wreck when it does not. */
+  const damageEnd = JSON.stringify(endState(run.damage));
   const det = {
     node: run.hash,
-    nodeReplay: run.nodeReplayHash,
-    chrome: chrome ? chrome.get(run.sc.id) : null,
+    nodeReplay: run.nodeReplay.hash,
+    chrome: cr ? cr.hash : null,
+    damageNodeReplay: JSON.stringify(run.nodeReplay.damage) === damageEnd ? 'same' : 'differs',
+    damageChrome: cr ? (JSON.stringify(cr.damage) === damageEnd ? 'same' : 'differs') : null,
   };
   /* Chrome asked for and not run is not a pass: the cross-host half is
    * the half that can fail. */
-  det.status = det.node === det.nodeReplay && (!CHROME || (chrome && det.chrome === det.node)) ? 'pass' : 'fail';
+  det.status = det.node === det.nodeReplay && det.damageNodeReplay === 'same'
+    && (!CHROME || (cr && det.chrome === det.node && det.damageChrome === 'same')) ? 'pass' : 'fail';
   if (det.status === 'fail') {
     harnessFailures += 1;
   }
@@ -650,12 +809,14 @@ for (const run of runs) {
     family: run.sc.family,
     title: run.sc.title,
     map: run.sc.map,
-    blocked: run.sc.blocked ?? null,
+    /* A scenario that needs an entry point the module now has is no longer
+     * blocked by its absence (tests/crash/scenarios.js WIND_ENTRY). */
+    blocked: run.sc.needs && run.has(run.sc.needs) ? null : (run.sc.blocked ?? null),
     standIn: run.sc.standIn ?? null,
     refStill: bands.scenarios[run.sc.id]?.refStill ?? null,
     status: failed.length ? 'fail' : 'pass',
     failing: failed.map((c) => c.metric),
-    checks: checks.map((c) => ({ metric: c.metric, status: c.status, value: c.value, band: c.band ? bandText(c.band) : null, source: c.band?.source ?? null, note: c.note || undefined, vacuous: c.vacuous || undefined })),
+    checks: checks.map((c) => ({ metric: c.metric, status: c.status, value: c.value, band: c.band ? bandText(c.band) : null, source: c.band?.source ?? null, note: c.note || undefined, miss: c.status === 'fail' ? missOf(c) : undefined })),
     outcome: o,
     determinism: det,
     frames,
@@ -673,6 +834,33 @@ report.summary = {
   harnessFailures,
 };
 
+/* The loop's reading of the run: per metric, how many scenarios band it
+ * and how many fail it (blocked scenarios counted apart, since they cannot
+ * pass until what blocks them lands); and the scenarios by how far outside
+ * their bands they are, the sum of their misses. */
+const histogram = {};
+for (const s of report.scenarios) {
+  for (const c of s.checks) {
+    const hm = histogram[c.metric] ?? (histogram[c.metric] = { banded: 0, fail: 0, failBlocked: 0 });
+    hm.banded += 1;
+    if (c.status === 'fail') {
+      hm[s.blocked ? 'failBlocked' : 'fail'] += 1;
+    }
+  }
+}
+report.histogram = Object.entries(histogram)
+  .map(([metric, v]) => ({ metric, ...v }))
+  .sort((a, b) => (b.fail + b.failBlocked) - (a.fail + a.failBlocked) || a.metric.localeCompare(b.metric));
+report.worst = report.scenarios
+  .filter((s) => s.status === 'fail')
+  .map((s) => ({
+    id: s.id,
+    blocked: Boolean(s.blocked),
+    score: s.checks.reduce((a, c) => a + (c.miss ?? 0), 0),
+    failing: s.checks.filter((c) => c.status === 'fail').map((c) => ({ metric: c.metric, value: c.value, band: c.band, miss: c.miss })),
+  }))
+  .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+
 /* The report the loop reads carries every sample, which the sheets need;
  * the summary file is the short one a person reads. */
 await writeFile(join(OUT, 'report.json'), JSON.stringify(report));
@@ -685,7 +873,17 @@ for (const s of report.scenarios) {
   for (const c of s.checks) {
     console.log(`    ${c.status === 'pass' ? 'pass' : 'FAIL'}  ${c.metric.padEnd(22)} band ${String(c.band ?? '-').padEnd(24)} got ${fmt(c.value)}${c.note ? `  (${c.note})` : ''}`);
   }
-  console.log(`    ${s.determinism.status === 'pass' ? 'pass' : 'FAIL'}  determinism           node ${s.determinism.node.slice(0, 12)} replay ${s.determinism.nodeReplay.slice(0, 12)} chrome ${s.determinism.chrome ? s.determinism.chrome.slice(0, 12) : report.chrome}`);
+  console.log(`    ${s.determinism.status === 'pass' ? 'pass' : 'FAIL'}  determinism           node ${s.determinism.node.slice(0, 12)} replay ${s.determinism.nodeReplay.slice(0, 12)} chrome ${s.determinism.chrome ? s.determinism.chrome.slice(0, 12) : report.chrome}; wreck replay ${s.determinism.damageNodeReplay} chrome ${s.determinism.damageChrome ?? report.chrome}`);
+  const o = s.outcome;
+  console.log(`          readback              broken ${fmt(o.broken)}; damaged ${fmt(o.damaged)}; flags ${fmt(o.damageFlagsSeen)}; absorbed ${fmt(o.partsEnergyJ)} J (events ${fmt(o.eventsEnergyJ)} J); peak part load ${fmt(o.peakPartLoad)} x limit (${o.peakPartLoadPart ?? '-'})`);
+}
+console.log('\nFailure histogram (scenarios failing each metric; blocked apart):');
+for (const hm of report.histogram) {
+  console.log(`  ${hm.metric.padEnd(22)} ${String(hm.fail).padStart(3)} fail${hm.failBlocked ? ` + ${hm.failBlocked} blocked` : ''} of ${hm.banded} banded`);
+}
+console.log('\nWorst scenarios (sum of misses: log ratio past a band edge, or 1 for a part, a class or a value never measured):');
+for (const w of report.worst.slice(0, 10)) {
+  console.log(`  ${w.id}${w.blocked ? ' (blocked)' : ''}  ${w.score.toFixed(2)}: ${w.failing.map((f) => `${f.metric} ${fmt(f.value)} (${f.band})`).join('; ')}`);
 }
 console.log(`\n${report.summary.scenarios} scenarios: ${report.summary.pass} inside every band, ${report.summary.fail} outside at least one; ${report.summary.deterministic} deterministic; damage readback ${report.readback ? 'available' : 'not available'}; chrome ${report.chrome}`);
 console.log(`report: ${join(OUT, 'report.json')}`);

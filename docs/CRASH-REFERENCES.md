@@ -26,14 +26,22 @@ drop test's 2,833 N peak.
 
 ## 1. How the suite measures, and what that means for the bands
 
+- **Every scenario is flown with crash damage on** (`sim_set_damage(1)`;
+  the whoop on the whoop's own part table, `sim_set_part_table(1)`, as
+  the shell flies it). The rigid hull's expectations do not carry over:
+  a band is judged against what the damaging plant does, and every band
+  is still from a reference, never from that plant.
 - **Peak load (peakG)** is the largest change of the CG's velocity over one
-  1 ms step, less gravity, in g. The plant resolves a contact as an impulse
-  inside one step (src/native/sim.c, and the shell's `sim_contact_at`), so
-  this is an upper bound: real contacts last milliseconds (R-A3-DROP: about
-  11 ms for a plastic quad, 0.4 to 2.8 ms for a motor or a battery on its
-  own). A peak load inside its band therefore needs a contact that lasts,
-  which is the damage model's crush, not a change to how the suite reads
-  it. peakForceN is the same times the mass.
+  1 ms step, less gravity, in g. The plant resolves a contact that
+  damages nothing as an impulse inside one step (src/native/sim.c, and the
+  shell's `sim_contact_at`), so for those this is an upper bound: real
+  contacts last milliseconds (R-A3-DROP: about 11 ms for a plastic quad,
+  0.4 to 2.8 ms for a motor or a battery on its own). With damage on, a
+  contact that crushes foam lasts as long as the crush does
+  (docs/CRASH-STAGE1.md, "Crush is the contact's duration"), and that is
+  the physical duration the bands mean; a contact under every limit is
+  still one step, by the bit identity rule. peakForceN is the same times
+  the mass.
 - **retainedFirst** is the energy kept through the first contact: kinetic
   energy 100 ms after it, plus the height gained, over the kinetic energy
   it arrived with. One minus the references' "energy dissipated".
@@ -47,21 +55,45 @@ drop test's 2,833 N peak.
   or on its side. **minUpZ** is the lowest the body's up axis got after the
   first contact, 1 upright to minus 1 inverted: a cartwheel or a flip has
   to pass through its back.
-- **What broke (mustBreak, mustNotBreak)** is read from the crash core's
-  damage readback (tests/crash/readback.js) once dist/sim.wasm has one.
-  Until then nothing can break: every must break band fails with "damage
-  readback not available", and every must not break band passes, marked
-  vacuous in the report so nobody counts it.
+- **What broke (mustBreak, mustNotBreak, mustDamage)** is read from the
+  crash core's damage readback (tests/crash/readback.js, through the
+  shell's own reader, src/game/damage.js) after every step. A part is
+  broken when it has left the aircraft or its damage is 1, damaged when
+  its damage is above 0 (a chipped prop, a crushed nose, a bent arm), the
+  definitions docs/CRASH-STAGE1.md gives. Bands name parts by the module's
+  kinds (configs/parts.js PART_KINDS) and one group, `tail`, which is the
+  stabiliser, the fin, the boom, the elevator and the rudder. mustBreak
+  asks every part named to be broken, mustDamage every part named to be at
+  least damaged, mustNotBreak none of them broken.
+- **Reported from the readback, not banded:** the damage flags seen, the
+  events by type, the energy the parts absorbed (their own tally and the
+  events' sum), each part's peak load over its limit (the larger of its
+  state's per step peak and its events' ratios, since a part that breaks
+  leaves in the step that loaded it), the first break after the first
+  contact (firstBreakS), and how many pieces left and how far the
+  farthest lies (debrisCount, debrisMaxDistM).
 - **The whoop** in the shell is the five inch's plant flown in a room built
   MICRO_SCALE (3.43) times life size (configs/airframes.js). Its scenarios
   are flown at a real whoop's speeds times 3.43 and read back divided by
   it: speeds, distances and peak g are real whoop units. Energies are not
   comparable, because the mass is the five inch's 0.71 kg, not 23 g.
 - **The contact** with an obstacle is the shell's call (src/main.js: the
-  material from src/game/collide.js `contactMaterial`, the patch from
-  `contactPatch`, a blade strike of 0.28 times the impulse over 12 m/s).
+  patch from `contactPatch`, a blade strike of 0.28 times the impulse over
+  12 m/s, and `sim_contact_at_mat` with the module's material where its
+  numbers are the shell's own for that kind, src/game/crashworld.js
+  `obstacleSurfaces`, else `sim_contact_at` with `contactMaterial`).
   Detection is the suite's own, the airframe's sweep disc against a plane,
   a capsule or a sphere, because the plant has no scene geometry.
+- **The world is named to the plant as the shell names it:** the ground's
+  material (grass outdoors, including the 30 degree slope; today's
+  contact on a whoop's floor), every solid as `sim_obstacle_box` or
+  `sim_obstacle_cylinder` for the parts that break off, and a tree as
+  `sim_tree_add`: its trunk a solid the sweep meets, its crown a cylinder
+  the plant holds and the craft flies into, which counts as a contact
+  (`crown`) while the craft is in it.
+- **Determinism** hashes the state block and every part's state, and the
+  damage readback each replay ends with (Node and Chrome) must equal the
+  live run's.
 
 ## 2. The references
 
@@ -385,7 +417,7 @@ Radian are hand launched and the Bramor catapulted.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustBreak | prop | R-PROPLOSS (the loss is the event) | HIGH |
+| mustBreak | prop | R-PROPLOSS (the loss is the event; the scenario breaks it with sim_part_break, so this checks the break took) | HIGH |
 | lossToGroundS | 1 to 5 | R-PROPLOSS (from 10 m: free fall is 1.4 s, a partly thrusting spin longer) | LOW |
 | flyingAtEnd | no | R-PROPLOSS (unrecoverable without a spinning controller) | MED |
 
@@ -969,10 +1001,15 @@ Recorded here because the loop will build on the plan.
   "capsize in a crosswind gust" and the Bramor's "chute landing in wind,
   drag and rest": the air model has no horizontal wind (sim_air_lift is
   vertical, and the water's wind only raises waves). Both are flown in the
-  suite and marked blocked.
-- **Nothing can detach a prop today,** so "lose one prop in flight" is
-  flown with the bench override holding one motor at zero duty, and says
-  so in the report.
+  suite and marked blocked. They name the entry point they need
+  (tests/crash/scenarios.js `WIND_ENTRY`, `sim_set_wind(vx, vy, vz)` world
+  m/s, a guess at the core's name): once the module exports it they are
+  flown in that wind (15 m/s across the float plane, 10 m/s along the
+  Bramor's descent) and judged, with no other change.
+- **Nothing could detach a prop at the baseline,** so "lose one prop in
+  flight" was flown with the bench override holding one motor at zero
+  duty. With the crash core it is the real thing: the prop on motor 0
+  leaves through `sim_part_break` and is a free body.
 - **Obstacles are not in the plant.** "Contact is one rigid body against
   the ground plane, obstacles and water" holds for the ground and the
   water; for obstacles the plant only answers a contact the shell detects

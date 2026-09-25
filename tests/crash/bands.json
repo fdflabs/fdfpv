@@ -336,7 +336,8 @@
       "prop"
      ],
      "source": "R-PROPLOSS (the loss is the event)",
-     "confidence": "HIGH"
+     "confidence": "HIGH",
+     "imposed": "the scenario breaks it (sim_part_break); this checks the break took"
     },
     {
      "metric": "lossToGroundS",
