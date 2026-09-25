@@ -287,6 +287,7 @@ function photoStyle() {
         footprints: [],
         props: null,
         veg: null,
+        mirrorSkip: [],
         water: null,
         lit,
         sunDir,
@@ -444,7 +445,17 @@ function photoStyle() {
           if (stage.lakeside) {
             stage.lakeside.update(dtMs);
           }
+          /* The grass round the camera out of the lake's mirror: water
+           * index.js lists the meadow as not worth reflecting, but it is
+           * planted after the water is built, so the map hides it here.
+           * Measured at meadow-eye on High (scripts/swiss2-perf.js), the
+           * two layers were 1.1 ms of the mirror's 2.4 for blades a
+           * kilometre from the water. */
+          const skip = stage.mirrorSkip;
+          const shown = skip.map((o) => o.visible);
+          skip.forEach((o) => { o.visible = false; });
           stage.water.update(dtMs, camera);
+          skip.forEach((o, k) => { o.visible = shown[k]; });
         },
       };
       style.stage = stage;
@@ -514,6 +525,7 @@ function photoStyle() {
         craft: stage.craft,
       });
       scene.add(stage.veg.group);
+      stage.mirrorSkip = ['swiss2-grass', 'swiss2-meadow'].map((n) => stage.veg.group.getObjectByName(n)).filter(Boolean);
       nature.pines = stage.veg.stats.trees;
       floorUnderTrees(stage.masks.zones, stage.veg.forest);
       /* The villagers in the square, drawn the vehicles' way. */
