@@ -56,9 +56,10 @@
 
 import * as THREE from 'three';
 import { makeRng, noise2 } from '../../alps/noise.js';
-import { LAKE_Y } from '../../alps/terrain.js';
-import { lakeShore, jettyClear } from '../vegetation/zones.js';
-import { ribbon } from '../../alps/ribbon.js';
+import { LAKE_Y, valleyAxis } from '../../alps/terrain.js';
+import {
+  lakeShore, jettyClear, ROAD_END, ROAD_DX,
+} from '../vegetation/zones.js';
 import {
   UP, Mesher, propMaterial, shade, box, frame,
 } from './mesh.js';
@@ -516,32 +517,40 @@ function bench(m, x, y, z, yaw) {
   }
 }
 
-/* A promenade lamp: a cast iron post in the municipal dark green on a
- * stepped foot, a collar under the lantern, the lantern's four panes of
- * glass under a pointed cap with its finial. */
-function lamp(m, x, y, z, yaw) {
-  const [ex, ey, ez] = frame(yaw);
-  const at = (b) => new THREE.Vector3(x, y, z).addScaledVector(ey, b);
-  box(m, at(0.12), ex, ey, ez, 0.2, 0.12, 0.2, IRON);
-  box(m, at(0.38), ex, ey, ez, 0.14, 0.14, 0.14, IRON);
-  box(m, at(0.62), ex, ey, ez, 0.09, 0.1, 0.09, IRON);
-  box(m, at(2.05), ex, ey, ez, 0.05, 1.35, 0.05, IRON);
-  box(m, at(3.43), ex, ey, ez, 0.11, 0.04, 0.11, IRON);
-  box(m, at(3.5), ex, ey, ez, 0.07, 0.04, 0.07, IRON);
-  const glass = [0.62, 0.6, 0.52];
-  box(m, at(3.8), ex, ey, ez, 0.17, 0.26, 0.17, glass, [1, 1, 1, 0.9, 1, 1]);
-  for (const a of [-1, 1]) {
-    for (const d of [-1, 1]) {
-      box(m, at(3.8).addScaledVector(ex, a * 0.17).addScaledVector(ez, d * 0.17), ex, ey, ez, 0.018, 0.27, 0.018, IRON);
+/* A turned post, `sides` round, from radius r0 at y0 to r1 at y1 on
+ * the vertical through c. */
+function post(m, c, y0, y1, r0, r1, colour, sides = 8) {
+  const at = (y, r, k) => new THREE.Vector3(c.x + Math.cos((k / sides) * Math.PI * 2) * r, y, c.z + Math.sin((k / sides) * Math.PI * 2) * r);
+  for (let k = 0; k < sides; k += 1) {
+    m.quad(at(y0, r0, k + 1), at(y0, r0, k), at(y1, r1, k), at(y1, r1, k + 1), shade(colour, 0.85 + 0.3 * ((k % 4) / 3)));
+  }
+  if (r1 > 0) {
+    const top = new THREE.Vector3(c.x, y1, c.z);
+    for (let k = 0; k < sides; k += 1) {
+      m.tri(top, at(y1, r1, k + 1), at(y1, r1, k), shade(colour, 1.2));
     }
   }
-  box(m, at(4.07), ex, ey, ez, 0.22, 0.025, 0.22, IRON);
-  const apex = at(4.38);
-  const rim = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, d]) => at(4.09).addScaledVector(ex, a * 0.22).addScaledVector(ez, d * 0.22));
+}
+
+/* A promenade lamp, the cast iron kind the lakeside communes put up: a
+ * fluted foot swelling out of the gravel, a slim tapering column with a
+ * collar, a lantern of four panes under a hipped cap, and its finial. */
+function lamp(m, x, y, z) {
+  const c = new THREE.Vector3(x, y, z);
+  post(m, c, y - 0.05, y + 0.18, 0.2, 0.18, IRON);
+  post(m, c, y + 0.18, y + 0.62, 0.17, 0.09, IRON);
+  post(m, c, y + 0.62, y + 0.72, 0.1, 0.1, IRON);
+  post(m, c, y + 0.72, y + 3.35, 0.065, 0.045, IRON);
+  post(m, c, y + 3.35, y + 3.45, 0.09, 0.09, IRON);
+  post(m, c, y + 3.45, y + 3.55, 0.11, 0.15, IRON, 4);
+  post(m, c, y + 3.55, y + 3.98, 0.15, 0.19, [0.55, 0.53, 0.46], 4);
   for (let k = 0; k < 4; k += 1) {
-    m.tri(rim[k], rim[(k + 1) % 4], apex, shade(IRON, k % 2 ? 1 : 1.3));
+    const a = (k / 4) * Math.PI * 2;
+    post(m, new THREE.Vector3(x + Math.cos(a) * 0.17, 0, z + Math.sin(a) * 0.17), y + 3.55, y + 3.99, 0.014, 0.014, IRON, 4);
   }
-  box(m, at(4.45), ex, ey, ez, 0.02, 0.08, 0.02, IRON);
+  post(m, c, y + 3.98, y + 4.04, 0.25, 0.25, IRON, 4);
+  post(m, c, y + 4.04, y + 4.3, 0.25, 0, IRON, 4);
+  post(m, c, y + 4.3, y + 4.42, 0.02, 0.012, IRON, 4);
 }
 
 /* A bin by a bench, on its post. */
@@ -597,15 +606,120 @@ function onCourse(s) {
  * the north shore's views and the view from above all see it. */
 const BOAT_SPEED = 2.4;
 const BOAT_START = 300;
+/*
+ * The promenade's path along `line` (points a few metres apart), laid as
+ * the lake's paths are: compacted gravel of a warm grey brown, darker and
+ * smoother along the two lines people walk, looser between them and at
+ * the sides, speckled with pebbles, its edges wandering where the grass
+ * has crept in, and tufts growing through. A grid of small cells each
+ * shaded on its own with a centimetre of relief, so it has a grain at a
+ * few metres and is a worn line from the far shore. Where it meets the
+ * jetty's track (at x `trackX`) it widens into it in a curve, as a path
+ * does where people turn. Round 8's first try was the map's gravel
+ * ribbon, 2.6 m wide with ruled edges: a pale slab across lake-edge.
+ */
+function promenadePath(m, heightAt, line, trackX) {
+  const pts = [];
+  for (let k = 1; k < line.length; k += 1) {
+    const a = line[k - 1];
+    const b = line[k];
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.45));
+    for (let q = 0; q < n; q += 1) {
+      pts.push({ x: a.x + ((b.x - a.x) * q) / n, z: a.z + ((b.z - a.z) * q) / n });
+    }
+  }
+  pts.push(line[line.length - 1]);
+  const ACROSS = 6;
+  const rows = pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 3)];
+    const b = pts[Math.min(pts.length - 1, i + 3)];
+    const l = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    const nx = -(b.z - a.z) / l;
+    const nz = (b.x - a.x) / l;
+    const d = Math.abs(p.x - trackX);
+    const flare = 2.2 * (1 - Math.min(1, Math.max(0, (d - 1.6) / 4.5))) ** 2;
+    const half = 0.85 + 0.25 * noise2(p.x / 9 + 1.7, p.z / 9) + flare;
+    const row = [];
+    for (let j = 0; j <= ACROSS; j += 1) {
+      const u = (j / ACROSS) * 2 - 1;
+      const rag = j === 0 || j === ACROSS ? 0.3 * (noise2(p.x / 1.3 + u * 5, p.z / 1.3) - 0.5) : 0;
+      const x = p.x + nx * (u * half + rag);
+      const z = p.z + nz * (u * half + rag);
+      const lift = 0.035 + 0.012 * (noise2(x * 3.1, z * 3.1) - 0.5) - (Math.abs(u) > 0.9 ? 0.02 : 0);
+      row.push({ v: new THREE.Vector3(x, heightAt(x, z) + lift, z), u });
+    }
+    return row;
+  });
+  const GRAVEL = [0.2, 0.165, 0.12];
+  const colourAt = (p, u) => {
+    /* The two worn lines, about a third of the way in from each side. */
+    const worn = Math.max(0, 1 - Math.abs(Math.abs(u) - 0.38) / 0.22);
+    const grain = 0.78 + 0.44 * noise2(p.x * 2.3, p.z * 2.3) + 0.2 * (noise2(p.x * 7.1 + 3, p.z * 7.1) - 0.5);
+    let c = shade(GRAVEL, grain * (1 - 0.16 * worn) * (1 + 0.1 * (1 - worn)));
+    if (noise2(p.x * 5.3 + 11, p.z * 5.3) > 0.78 && worn < 0.5) {
+      c = shade([0.34, 0.31, 0.27], 0.9 + 0.3 * noise2(p.x * 9, p.z * 9));
+    }
+    /* Earth and grass creeping in at the edges and in the hump between
+     * the lines. */
+    const edge = Math.max(0, (Math.abs(u) - 0.72) / 0.28) * (0.5 + 0.5 * noise2(p.x / 2.1, p.z / 2.1));
+    const hump = (1 - Math.min(1, Math.abs(u) / 0.12)) * 0.35 * noise2(p.x / 3.3 + 7.7, p.z / 3.3);
+    const g = Math.min(1, edge + hump);
+    return [c[0] + (0.07 - c[0]) * g, c[1] + (0.085 - c[1]) * g, c[2] + (0.035 - c[2]) * g];
+  };
+  for (let i = 1; i < rows.length; i += 1) {
+    if (Math.abs(pts[i].x - trackX) < 1.5) {
+      continue;
+    }
+    for (let j = 0; j < ACROSS; j += 1) {
+      const a = rows[i - 1][j];
+      const b = rows[i - 1][j + 1];
+      const c = rows[i][j + 1];
+      const d = rows[i][j];
+      m.quad(a.v, d.v, c.v, b.v, colourAt(a.v.clone().add(c.v).multiplyScalar(0.5), (a.u + b.u) / 2));
+    }
+  }
+  /* Tufts through the gravel: at its edges, and here and there in the
+   * middle where fewer feet go. Their own rng, so nothing else moves. */
+  const trng = makeRng(20261103);
+  for (let i = 2; i < rows.length; i += 2) {
+    if (Math.abs(pts[i].x - trackX) < 2 || trng() > 0.45) {
+      continue;
+    }
+    const edge = trng() < 0.75;
+    const u = edge ? (trng() < 0.5 ? -1 : 1) * (0.8 + 0.2 * trng()) : (trng() - 0.5) * 0.15;
+    const j = Math.max(0, Math.min(ACROSS, Math.round(((u + 1) / 2) * ACROSS)));
+    const base = rows[i][j].v;
+    tuft(m, trng, base.x + (trng() - 0.5) * 0.3, base.y - 0.02, base.z + (trng() - 0.5) * 0.3, edge ? 0.28 : 0.14);
+  }
+}
+
+/* A tuft of grass, a few blades h high leaning out, both faces. */
+function tuft(m, rng, x, y, z, h) {
+  const n = 4 + Math.floor(rng() * 4);
+  for (let k = 0; k < n; k += 1) {
+    const a = rng() * Math.PI * 2;
+    const lean = 0.25 + 0.35 * rng();
+    const hh = h * (0.6 + 0.6 * rng());
+    const w = 0.012 + 0.01 * rng();
+    const bx = x + Math.cos(a) * 0.04;
+    const bz = z + Math.sin(a) * 0.04;
+    const p0 = new THREE.Vector3(bx - Math.sin(a) * w, y, bz + Math.cos(a) * w);
+    const p1 = new THREE.Vector3(bx + Math.sin(a) * w, y, bz - Math.cos(a) * w);
+    const tip = new THREE.Vector3(bx + Math.cos(a) * hh * lean, y + hh, bz + Math.sin(a) * hh * lean);
+    const colour = rng() < 0.2 ? [0.12, 0.11, 0.05] : shade([0.05, 0.085, 0.025], 0.8 + 0.5 * rng());
+    m.tri(p0, p1, tip, colour);
+    m.tri(p1, p0, tip, colour);
+  }
+}
+
 /* The water's own wind (water/index.js), which the boats lie to. */
 const WIND = new THREE.Vector2(0.8, -0.6).normalize();
 
 /*
- * Build it all. ctx: heightAt, footprints (the map's walls, which the
- * hamlet's houses join), and path (the material the map's gravel paths
- * are drawn with, for the promenade).
+ * Build it all. ctx: heightAt, and footprints (the map's walls, which
+ * the hamlet's houses and the promenade join).
  */
-export function buildLakeside({ heightAt, footprints, path }) {
+export function buildLakeside({ heightAt, footprints }) {
   const rng = makeRng(20261101);
   const m = new Mesher();
   const group = new THREE.Group();
@@ -752,7 +866,7 @@ export function buildLakeside({ heightAt, footprints, path }) {
    * looks out over them: the jetty's lamp to the left of the track down
    * to it, a bench to the right. */
   const jetty = shoreAt(197, false);
-  const UP_BEACH = 17;
+  const UP_BEACH = 10;
   const line = rim
     .filter((q) => q.z < lakeZ && q.x > 60 && q.x < 470)
     .sort((a, b) => a.x - b.x)
@@ -772,15 +886,12 @@ export function buildLakeside({ heightAt, footprints, path }) {
     }
   }
   walk.push(line[line.length - 1]);
-  const promenade = ribbon(walk, 2.6, 0.06, heightAt, path).mesh;
-  promenade.name = 'swiss2-promenade';
-  promenade.receiveShadow = true;
-  group.add(promenade);
+  promenadePath(m, heightAt, walk, valleyAxis(ROAD_END) + ROAD_DX);
   /* The path's footprint, in short boxes along it, so the meadow's grass
-   * keeps off it. */
-  for (let k = 0; k < walk.length; k += 3) {
-    const p = walk[k];
-    walls.push({ minX: p.x - 1.6, maxX: p.x + 1.6, minZ: p.z - 1.6, maxZ: p.z + 1.6 });
+   * keeps off its middle and leans in over its edges. The path runs
+   * east and west, so the boxes are long in x. */
+  for (const p of walk) {
+    walls.push({ minX: p.x - 1.6, maxX: p.x + 1.6, minZ: p.z - 0.55, maxZ: p.z + 0.55 });
   }
   /* Where the path is at x, and which way the water is from it, two
    * metres toward the water from its middle. */
@@ -809,7 +920,7 @@ export function buildLakeside({ heightAt, footprints, path }) {
   });
   for (const lx of LAMPS) {
     const p = besidePath(lx);
-    lamp(m, p.x, p.y, p.z, p.yaw);
+    lamp(m, p.x, p.y, p.z);
   }
   const benches = BENCHES.length;
   const lamps = LAMPS.length;
@@ -877,7 +988,6 @@ export function buildLakeside({ heightAt, footprints, path }) {
       group.removeFromParent();
       mesh.geometry.dispose();
       sail.geometry.dispose();
-      promenade.geometry.dispose();
       mat.dispose();
     },
   };

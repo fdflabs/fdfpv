@@ -434,7 +434,7 @@ function photoStyle() {
       scene.add(stage.props.group);
       /* The lake's village, boats and promenade, their footprints the
        * map's before the forests keep off them (swiss2/props/lakeside.js). */
-      stage.lakeside = buildLakeside({ heightAt, footprints: stage.footprints, path: style.look.material('path', {}) });
+      stage.lakeside = buildLakeside({ heightAt, footprints: stage.footprints });
       scene.add(stage.lakeside.group);
       /* The lake draws the wake of the sailing boat on it. */
       stage.water.boat.value = stage.lakeside.boat;
