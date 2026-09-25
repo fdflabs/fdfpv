@@ -409,3 +409,40 @@ Round 9: the lowest views (village-20m, lake-shore at 5.5, waterfall at
 6), the east-wall's scree smudge, and a performance pass: the box
 shows 33 ms frames in some views under load; the budget must hold on
 Medium.
+
+### Round 9 (PRs #42, #43, main at the merge of #43)
+
+Performance and fall (#42): scripts/swiss2-perf.js times the GPU per
+view, preset and pass (docs/SWISS2-PERF.md); on its floor measure every
+view meets High 12, Medium 8 and Low 5 ms (worst 9.5, 6.3, 4.1 ms), on
+the shared card it does not; cloud shadows computed once per frame, the
+mirror no longer draws the grass; the fall's veil softened and leaning.
+Near views (#43): trees, sheds, yards, cars and roof ages in the
+village; a lakeside road with a tree row, barrier and PostAuto stop;
+scree cones under the east wall; the strip no longer pays for the
+ground splat under it (2.9 to 1.0 ms).
+
+| View | R8 | R9 | The tell now |
+| --- | --- | --- | --- |
+| strip | 7 | 7 | |
+| vista-high | 7.5 | 7.5 | |
+| cruise | 7.5 | 7.5 | |
+| village-20m | 5.5 | 6.5 | trees among the roofs; flat ground, smaller trees than the reference |
+| square-eye | 6 | 6 | |
+| meadow-eye | 6.5 | 6.5 | |
+| east-wall | 6.5 | 6.5 | scree cones read a little pale and even |
+| lake-shore | 5.5 | 6.5 | a real lakeside road at last |
+| lake-high | 6.5 | 6.5 | |
+| waterfall | 6 | 6 | 70 m: its lip is on the old side valley shape |
+| into-sun | 6.5 | 6.5 | |
+| farm-low | 6.5 | 6.5 | |
+| lake-edge | 6.5 | 6.5 | |
+| craft-chase | 6 | 6 | |
+
+Mean of the thirteen: 6.58 to 6.73. Gate held.
+
+Round 10, the last: the waterfall's 70 m lip (raise it into the new
+walls so it falls 300 m, the Staubbach's scale, through swiss2's
+terrain and fall.js together), the square and meadow at eye level, and
+a final pass on the lowest views; then the loop ends and hands over to
+the crash physics plan and the moving water.
