@@ -826,6 +826,16 @@ void crash_hint_sampler(int k);
 /* The part a body frame point belongs to, for a contact there: the
  * attached part with the hull point nearest it. */
 int crash_part_at(const double b[3]);
+/* Where a host's obstacle contact puts the craft. SIM_PLACE_HOST: at the
+ * host's pose, as always. Once a part has left and the plant knows the
+ * solids near the craft, the host's hull is not the airframe's:
+ * SIM_PLACE_NONE, no part still on it is at a solid, so no contact and no
+ * pose; SIM_PLACE_OWN, at pos, out of the solid by its parts' own depth,
+ * met at arm (world axes, from the CG) on its own part. */
+#define SIM_PLACE_HOST 0
+#define SIM_PLACE_NONE 1
+#define SIM_PLACE_OWN 2
+int crash_contact_place(const SimState *s, const double n[3], double pos[3], double arm[3]);
 
 /* Bridge: Betaflight control loop and config shim. */
 
