@@ -448,6 +448,9 @@ async function buildAirfield(shell, progress, q) {
     curve: null,
     spawn: SPAWN,
     notes: [],
+    /* The runway is asphalt, the rest is the grass it is cut into, for the
+     * crash physics (src/game/crashworld.js). */
+    surfaceAt: (x, z) => (Math.abs(x) <= RUNWAY_W / 2 && Math.abs(z) <= RUNWAY_L / 2 ? 'asphalt' : 'grass'),
     attract: {
       path: attractPath,
       speed: 20,
