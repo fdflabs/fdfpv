@@ -13,8 +13,8 @@
  * mesh, drawn with the vehicles' own material (its colour and finish on
  * each vertex): one draw, and the shader program the traffic already
  * compiled, so the figures cost no program and no draw of their own
- * beyond the mesh and its two shadow passes. A dozen figures are fifteen
- * thousand vertices; past NEAR metres the mesh is hidden and not posed.
+ * beyond the mesh and its two shadow passes. A dozen figures are twenty
+ * thousand triangles; past NEAR metres the mesh is hidden and not posed.
  *
  * NOT SOLID. People carry no collider, and they stand and walk only
  * where nothing else can meet them: off the PostAuto's swept path (the
@@ -40,7 +40,8 @@
 import * as THREE from 'three';
 import { makeKit, fin } from '../vehicles/kit.js';
 
-const NEAR = 400;
+/* Past this a figure is a pixel or two, and not worth its shadows. */
+const NEAR = 150;
 /* A body's joints at 1.75 m, metres over the soles. */
 const THIGH = 0.44;
 const SHIN = 0.43;
