@@ -72,6 +72,8 @@ const PLANES = {
   slowstick: { sim: 5, Vs: 4.4, alphaStall: 1.05 / 4.58, rudder: true },
   radian: { sim: 6, Vs: 6.5, alphaStall: 1.05 / 5.709, rudder: true },
   timber: { sim: 7, Vs: 7.2, alphaStall: (1.15 + 0.305) / 5.25, rudder: true },
+  /* The Timber with its slats off: T3's stall speed. */
+  timbernoslats: { sim: 7, Vs: 8.75, alphaStall: 1.15 / 5.25, rudder: true, slats: 0 },
   bramor: { sim: 8, Vs: 13.0, alphaStall: 0.722 / 4.77, rudder: false },
   timberf: { sim: 9, Vs: 7.1, alphaStall: (1.15 + 0.305) / 5.25, rudder: true },
   cubf: { sim: 10, Vs: 8.7, alphaStall: 1.15 / 5.21, rudder: true },
@@ -95,6 +97,7 @@ const ramp = (ms) => Math.min(1, ms / 2000);
 function flight(sim, p, seconds, hands, stab = 0) {
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_set_stab(stab), 'sim_wing_set_stab');
+  must(sim.e.sim_wing_set_slats(p.slats ?? 1), 'sim_wing_set_slats');
   must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.e.sim_wing_launch(1.15 * p.Vs), 'sim_wing_launch');
   const out = [];
@@ -149,11 +152,14 @@ function stallA(sim, p, stab = 0) {
     if (tr[i].pitch < tr[iLow].pitch) iLow = i;
   }
   const maxBank = tr.reduce((m, o) => (Math.abs(o.fullBank) > Math.abs(m.fullBank) ? o : m), tr[0]);
+  /* The wing drop at the break: the largest bank from the stall to the
+   * nose's lowest point. */
+  const dropBank = tr.slice(iStall, iLow + 1).reduce((m, o) => (Math.abs(o.fullBank) > Math.abs(m) ? o.fullBank : m), 0);
   const maxYaw = tr.reduce((m, o) => Math.max(m, Math.abs(o.yawRate)), 0);
   const last = tr.filter((o) => o.t >= 7);
   const nosePath = mean(last.map((o) => ({ d: o.pitch - o.path })), 'd');
   return `stall at ${tr[iStall].t.toFixed(2)} s; nose ${f1(tr[iTop].pitch)} to ${f1(tr[iLow].pitch)} deg `
-    + `(drop ${f1(tr[iTop].pitch - tr[iLow].pitch)}) in ${(tr[iLow].t - tr[iTop].t).toFixed(2)} s; `
+    + `(drop ${f1(tr[iTop].pitch - tr[iLow].pitch)}) in ${(tr[iLow].t - tr[iTop].t).toFixed(2)} s, wing drop ${f1(dropBank)}; `
     + `max bank ${f1(maxBank.fullBank)} at ${maxBank.t.toFixed(2)} s; max yaw rate ${f1(maxYaw)} deg/s; `
     + `last 3 s: nose ${f1(nosePath)} over path ${f1(mean(last, 'path'))}, alpha ${f1(mean(last, 'alpha'))} `
     + `(${f1(Math.min(...last.map((o) => o.alpha)))} to ${f1(Math.max(...last.map((o) => o.alpha)))}), `
