@@ -34,8 +34,9 @@ import {
   frame, box, boxUp, cached, prism, SOCLE, near, detail, own,
   casement, doorway, balcony, woodpile, plinth, logCorners, frieze, timberTop, ring, plate, stair,
   REVEAL, masonry, deepWindow, deepDoor, wallBench, dripEdge,
-  climber, paintedBand, paintedQuoins, notes,
+  climber, paintedBand, paintedQuoins, notes, dressRoof,
 } from './parts.js';
+import { roofShell, gableProfile } from '../../alps/kit.js';
 
 /*
  * How a house's masonry storey is finished and what grows on it. No two
@@ -316,6 +317,89 @@ export function barn(f, spec) {
     hwOut = Math.max(hwOut, hw + out);
   }
   const ext = { hw: hwOut, hd: hd + Math.max(ovA, ovB), top: top.top };
+  notes(f).houses.push({ at: f.at(0, 0, 0), m: f.m.clone(), w, d, door: 0, ext, garden: false });
+  return ext;
+}
+
+/*
+ * A Stadel: the hay barn that stands alone in an Oberland meadow, away
+ * from any farm, where the hay is made. A footing of dry laid rubble
+ * taking up the slope, the byre below in dark larch logs with their
+ * ends standing out at the corners, the hay loft over it in upright
+ * boards gone silver, each its own board with the dark of the loft in
+ * the gaps between, the odd one replaced and still brown, a big hay
+ * door in the gable, a low door to the byre, and a steep roof of old
+ * shingle far over the gable on its purlins. The gable is +z. Every
+ * key is far, or near on the boards, whose near detail every cell of
+ * the floor already draws.
+ */
+export function stadel(f, spec) {
+  const { w = 7, d = 9, found = 0.3, roofKey = 'shingleDark', pitch = 0.6 } = spec;
+  const hw = w / 2;
+  const hd = d / 2;
+  const footH = 0.75;
+  const logH = 2.3;
+  const loftH = 2.1;
+  plinth(f, w, d, found, false);
+  f.put('stone', boxUp(w + 0.1, footH, d + 0.1), 0, SOCLE, 0);
+  const y1 = SOCLE + footH;
+  f.put('larchDark', boxUp(w, logH, d), 0, y1, 0);
+  logCorners(f, 'larchDark', hw, hd, y1, y1 + logH);
+  const y2 = y1 + logH;
+  f.put('larchDark', box(w + 0.16, 0.2, d + 0.16), 0, y2 + 0.1, 0);
+  const plateY = y2 + loftH;
+  const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.75, ovA: 1.1, ovB: 1.3, pitch });
+  Object.assign(roof, { hw, hd, kind: 'gable', zA0: 1.1, zB0: 1.3 });
+  /* The loft's dark inside, which is all the gaps show. */
+  const gable = gableProfile(roof, 'gable', hw);
+  f.put('shade', prism([[hw - 0.02, y2 + 0.2], ...gable.map(([x, y]) => [x * 0.99, y + plateY]), [-hw + 0.02, y2 + 0.2]], -hd + 0.02, hd - 0.02));
+  const flat = frame(f, 0, plateY, 0, 0);
+  flat.put(roofKey, roof.geo);
+  dressRoof(flat, roof, { roofKey, key: 'weathered', rafters: true, purlins: true });
+  /* The boards: a board and a gap every quarter metre round the loft,
+   * up to the plate on the long walls and to the verge on the gables. */
+  const pitchB = 0.25;
+  const board = (wall, u, y0, y1b, k) => {
+    const key = own(f, 60 + k) < 0.12 ? 'larch:v' : 'weathered:v';
+    wall.put(key, boxUp(pitchB - 0.035, y1b - y0, 0.035), u, y0, 0.03);
+  };
+  let k = 0;
+  for (const s of [1, -1]) {
+    const wall = frame(f, s * hw, 0, 0, s * Math.PI / 2);
+    for (let u = -hd + pitchB / 2; u < hd; u += pitchB) {
+      board(wall, u, y2 + 0.2, plateY, k);
+      k += 1;
+    }
+  }
+  const tanP = Math.tan(pitch);
+  for (const s of [1, -1]) {
+    const wall = frame(f, 0, 0, s * hd, s > 0 ? 0 : Math.PI);
+    for (let u = -hw + pitchB / 2; u < hw; u += pitchB) {
+      board(wall, u, y2 + 0.2, plateY + (hw - Math.abs(u) - pitchB / 2) * tanP - 0.04, k);
+      k += 1;
+    }
+  }
+  /* The hay door up in the gable, in a frame with the hoist beam over
+   * it, and the byre's low door beside the corner. */
+  const front = frame(f, 0, 0, hd + 0.08, 0);
+  plankDoor(front, 0, y2 + 0.35, 1.9, 1.75, 'larchDark');
+  front.put('larchDark', box(2.3, 0.16, 0.12), 0, y2 + 2.2, 0.02);
+  for (const s of [-1, 1]) {
+    front.put('larchDark', boxUp(0.14, 1.9, 0.1), s * 1.05, y2 + 0.3, 0.02);
+  }
+  front.put('larchDark', box(0.16, 0.16, 1.2), 0, plateY + 0.9, 0.5);
+  const byre = frame(f, 0, 0, hd, 0);
+  plankDoor(byre, -hw + 1.3, y1, 1.1, 1.85, 'larch');
+  byre.put('larchDark', box(1.4, 0.14, 0.1), -hw + 1.3, y1 + 1.95, 0.06);
+  /* A hatch on the long side for the dung, and a bench of a board. */
+  const side = frame(f, hw, 0, 0, Math.PI / 2);
+  side.put('shade', plate(0.7, 0.55), hd * 0.4, y1 + 1.35, 0.01);
+  side.put('larchDark', box(0.9, 0.08, 0.1), hd * 0.4, y1 + 1.66, 0.05);
+  side.put('weathered', box(2.2, 0.06, 0.34), -hd * 0.3, y1 + 0.45, 0.2);
+  for (const s of [-1, 1]) {
+    side.put('larchDark', boxUp(0.08, 0.45, 0.3), -hd * 0.3 + s * 0.95, y1, 0.2);
+  }
+  const ext = { hw: hw + 0.75, hd: hd + 1.3, top: plateY + roof.yR + 0.1 };
   notes(f).houses.push({ at: f.at(0, 0, 0), m: f.m.clone(), w, d, door: 0, ext, garden: false });
   return ext;
 }
