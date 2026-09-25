@@ -480,6 +480,13 @@ typedef struct FixedWingParams {
   double stab_roll_kd;
   double stab_pitch_kp;
   double stab_pitch_kd;
+  /* ArduPilot's STAB_PITCH_DOWN and TRIM_THROTTLE: under the cruise
+   * throttle the pitch target lowers in proportion to the throttle closed,
+   * by the whole of stab_pitch_down with the stick at zero, which puts it
+   * on the airframe's own power off glide (scripts/stab-glide-derive.js).
+   * At or over stab_trim_throttle nothing changes. */
+  double stab_pitch_down;    /* rad */
+  double stab_trim_throttle; /* stick, 0..1 */
   /* Acro: sticks ask for a rate, a target attitude advances by it. */
   double acro_roll_rate;
   double acro_pitch_rate;
