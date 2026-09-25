@@ -247,13 +247,17 @@ export function pathMask() {
     g.stroke();
   }
   const rgba = g.getImageData(0, 0, PATH_PX, PATH_PX).data;
-  const cones = screeCones();
+  const { out: cones, toes } = screeCones();
   const rg = new Uint8Array(PATH_PX * PATH_PX * 2);
   for (let k = 0; k < PATH_PX * PATH_PX; k += 1) {
     rg[k * 2] = rgba[k * 4];
     rg[k * 2 + 1] = cones[k];
   }
-  return dataTexture(rg, PATH_PX, THREE.RGFormat);
+  const tex = dataTexture(rg, PATH_PX, THREE.RGFormat);
+  /* Where the blocks that ran furthest came to rest, for the boulders
+   * (vegetation/rocks.js). */
+  tex.userData.screeToes = toes;
+  return tex;
 }
 
 /*
@@ -266,10 +270,12 @@ export function pathMask() {
  * between the cones and up their edges. How far up the apron a point is
  * is how far the wall has lifted the ground there (wallRise). The value:
  * under 0.45 the apron without scree, from 0.5 a cone, to 1 down its
- * middle.
+ * middle. Also returns the toes: where along each cone's lowest reach a
+ * block that ran out further than the rest lies, { x, z, size }.
  */
 function screeCones() {
   const out = new Uint8Array(PATH_PX * PATH_PX);
+  const toes = [];
   const px = FIELD / PATH_PX;
   /* The apron, and how far the wall has lifted the ground there (which
    * is how far up the apron a point is: nothing at its toe, some tens of
@@ -334,9 +340,14 @@ function screeCones() {
       cone *= (1 - wood) * smoothstep(0.02, 0.2, a + 0.25 * (noise2(x / 9 + 1.1, z / 9 + 5.3) - 0.5));
       const v = cone > 0.5 ? 0.5 + 0.49 * centre : 0.45 * a;
       out[j * PATH_PX + i] = Math.round(255 * Math.max(0.02, v));
+      /* The biggest blocks roll furthest: past the scree's toe, into the
+       * grass, one in a few texels there. */
+      if (cone > 0.2 && a < 0.35 && hash(i * 7.31 + j * 0.173, 9) < 0.06) {
+        toes.push({ x, z, size: 0.9 + 2.2 * hash(i + j * 1.7, 11) ** 2 });
+      }
     }
   }
-  return out;
+  return { out, toes };
 }
 
 /*
@@ -823,6 +834,18 @@ const GROUND_PARS = /* glsl */ `
     float d = s2Hash(i + vec2(1.0, 1.0));
     float k = a - b - c + d;
     return vec3(a + (b - a) * u.x + (c - a) * u.y + k * u.x * u.y, du * (vec2(b - a, c - a) + k * u.yx));
+  }
+  /* A scree cone from the path mask's second channel: its edge ragged,
+   * and grass come in over its sides in tongues. Worked out only where
+   * there is scree to break. */
+  float s2Cone(float apronCone, vec2 xz, float fine, float meso) {
+    if (apronCone < 0.4) {
+      return 0.0;
+    }
+    float ragged = s2Noise(xz / 6.5 + 1.7) * 0.65 + s2Noise(xz / 2.1 + 8.3) * 0.35;
+    float cone = smoothstep(0.47, 0.53, apronCone + 0.1 * (fine - 0.5) + 0.2 * (ragged - 0.5));
+    float tongue = smoothstep(0.48, 0.66, s2Noise(xz / vec2(4.5, 12.0) + 4.2)) * (1.0 - smoothstep(0.58, 0.82, apronCone));
+    return cone * (1.0 - tongue);
   }
   /* Value noise in three dimensions with its gradient (after Quilez). */
   float s2Hash3(vec3 p) {
@@ -1311,7 +1334,7 @@ const GROUND_PARS = /* glsl */ `
      * stone is coloured after the layers (below).
      */
     float screeApron = smoothstep(0.01, 0.06, apronCone);
-    float cone = smoothstep(0.47, 0.53, apronCone + 0.08 * (fine - 0.5));
+    float cone = s2Cone(apronCone, p.xz, fine, meso);
     cov[3] = max(cov[3] * (1.0 - screeApron), cone);
     float rockHigh = inside > 0.5 ? z2.a : smoothstep(650.0, 950.0, p.y + 200.0 * macro);
     /* Above the trees the mountain is not all broken rock: turf holds on
@@ -1533,7 +1556,7 @@ const GROUND_PARS = /* glsl */ `
       vec2 wuvL = (p.xz - uS2WallAt) / ${WALL_SPAN.toFixed(1)};
       vec4 wallM = any(greaterThan(abs(wuvL - 0.5), vec2(0.5))) ? vec4(1.0, 0.0, 0.0, 0.5) : texture2D(uS2Walls, wuvL);
       float screeApron = smoothstep(0.01, 0.06, apronCone);
-      float cone = smoothstep(0.47, 0.53, apronCone + 0.08 * (fine - 0.5));
+      float cone = s2Cone(apronCone, p.xz, fine, meso);
       /* The noise breaks a yard's edge; the mask says where a yard is at all. */
       float yardGravel = smoothstep(0.1, 0.6, wallM.g + 0.35 * (fine - 0.5) + 0.2 * (meso - 0.5)) * smoothstep(0.02, 0.2, wallM.g) * inside;
       float yardEarth = smoothstep(0.1, 0.6, wallM.b + 0.4 * (fine - 0.5)) * smoothstep(0.02, 0.2, wallM.b) * inside;
@@ -1544,7 +1567,13 @@ const GROUND_PARS = /* glsl */ `
         float lichen = smoothstep(0.35, 0.65, s2Noise(vec2(p.z / 6.0 + 1.3, p.x / 25.0)));
         float fresh = smoothstep(0.72, 0.92, apronCone + 0.15 * (lichen - 0.5));
         float blocks = smoothstep(0.72, 0.84, s2Noise(p.xz / mix(2.2, 0.8, fresh) + 9.7));
-        local = mix(vec3(1.0), mix(vec3(0.74, 0.78, 0.7), vec3(1.06, 1.04, 1.0), max(fresh, 0.3 * lichen)) * (1.0 - 0.5 * blocks), cone);
+        /* No two cones came off the same bed: each its own grey, from
+         * the pale of a fresh fall to the dark of one long weathered,
+         * and down each the stripes of the falls that fed it. */
+        float bed = s2Noise(vec2(p.z / 55.0 + 2.9, p.x / 90.0));
+        float fall = s2Noise(vec2(p.z / 2.3 + 5.1, p.x / 30.0));
+        vec3 stone = mix(vec3(0.4, 0.41, 0.39), vec3(0.78, 0.76, 0.72), bed) * (0.8 + 0.4 * fall);
+        local = mix(vec3(1.0), mix(stone * vec3(0.9, 0.95, 0.86), stone * vec3(1.08, 1.06, 1.02), max(fresh, 0.3 * lichen)) * (1.0 - 0.5 * blocks), cone);
       }
       local *= mix(vec3(1.0), vec3(1.22, 1.1, 0.68), grass * screeApron * (1.0 - cone) * 0.8);
       float kept = clamp(lawnV, -1.0, 1.0) * garden * grass * (0.65 + 0.7 * fine);

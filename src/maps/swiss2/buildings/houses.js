@@ -654,17 +654,24 @@ export function church(f, spec) {
   f.put('render', boxUp(tw, towerH, tw), 0, SOCLE, tz);
   f.put('slate', box(tw + 0.5, 0.3, tw + 0.5), 0, SOCLE + towerH + 0.15, tz);
   f.put('trim', box(tw + 0.26, 0.22, tw + 0.26), 0, SOCLE + towerH - 0.11, tz);
-  /* Quoins up the tower's corners, long and short in turn. */
-  for (let k = 0; k * 0.7 < towerH - 1.2; k += 1) {
-    const y = SOCLE + 0.9 + k * 0.7;
-    const long = k % 2 === 0;
-    for (const sx of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        f.put(detail('surround'), box(long ? 0.7 : 0.4, 0.3, 0.04), sx * (tw / 2 - (long ? 0.35 : 0.2)), y, tz + sz * (tw / 2 + 0.02));
-        f.put(detail('surround'), box(0.04, 0.3, long ? 0.4 : 0.7), sx * (tw / 2 + 0.02), y, tz + sz * (tw / 2 - (long ? 0.2 : 0.35)));
+  /* Quoins up the tower's corners and the nave's, long and short in
+   * turn: dressed sandstone left bare in the render, each block its
+   * own shade. */
+  const quoins = (cx, cz, hx, hz, h) => {
+    for (let k = 0; k * 0.7 < h - 1.2; k += 1) {
+      const y = SOCLE + 0.9 + k * 0.7;
+      const long = k % 2 === 0;
+      const key = (k * 7 + Math.round(cx * 3 + cz)) % 3 === 0 ? 'quoinDark' : 'quoin';
+      for (const sx of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          f.put(detail(key), box(long ? 0.7 : 0.4, 0.3, 0.04), cx + sx * (hx - (long ? 0.35 : 0.2)), y, cz + sz * (hz + 0.02));
+          f.put(detail(key), box(0.04, 0.3, long ? 0.4 : 0.7), cx + sx * (hx + 0.02), y, cz + sz * (hz - (long ? 0.2 : 0.35)));
+        }
       }
     }
-  }
+  };
+  quoins(0, tz, tw / 2, tw / 2, towerH);
+  quoins(0, 0, hw, hd, wallH);
   /* Eight sided, a flat to each face of the tower, its flats just
    * inside the cap so nothing overhangs unsupported. */
   const spire = cached('s2spire', () => new THREE.ConeGeometry(tw * 0.58, 13, 8).translate(0, 6.5, 0));

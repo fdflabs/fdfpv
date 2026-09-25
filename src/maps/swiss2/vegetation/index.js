@@ -192,6 +192,13 @@ export async function buildVegetation(ctx) {
     shore: lakeShore(ctx.heightAt).shore,
     keepClear: jettyClear(ctx.heightAt),
   });
+  /* The blocks that ran out past the scree cones' toes (ground.js), after
+   * every other stone so none of those moves. */
+  for (const t of layout.screeToes || []) {
+    if (!layout.keepOff(t.x, t.z)) {
+      stones.push({ x: t.x, z: t.z, size: t.size });
+    }
+  }
   const rocks = await buildRocks({
     heightAt: ctx.heightAt,
     layout,
