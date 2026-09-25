@@ -2,7 +2,7 @@
  * bombshell-gates.js: the Buzzard Bombshell plant against the bands in
  * tests/bombshell-thresholds.json.
  *
- * Twenty checks, S1 to S20, from docs/BOMBSHELL-STAGE1.md, on the pattern
+ * Twenty one checks, S1 to S21, from docs/BOMBSHELL-STAGE1.md, on the pattern
  * of slowstick-gates.js, since the two are both three channel aircraft
  * that bank on the rudder. S1 to S5 are its performance: an old timer's
  * slow cruise, its stall, a glide, a low top speed and a Texaco engine's
@@ -19,8 +19,10 @@
  * recording in Node and in headless Chrome and holds the two hashes
  * equal. S19 flies it through the airfield's strongest thermal, and S20
  * is the glow engine: at idle it keeps turning and the aircraft stands on
- * the strip. Bands are never widened here: a plant outside one is a
- * finding for the derivation. Run with npm run bombshell:gates.
+ * the strip. S21 closes the throttle at cruise and lets every stick go
+ * for 15 s: the glide the airframe trims itself onto. Bands are never
+ * widened here: a plant outside one is a finding for the derivation. Run
+ * with npm run bombshell:gates.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -310,6 +312,29 @@ check: {
       worst = Math.max(worst, Math.abs(attitude(o.s).pitch * DEG));
     }
     gate('S12', 'a throttle chop glides', worst <= th.s12_chop.maxPitchDeg, `worst pitch ${worst.toFixed(1)} deg`, `within ${th.s12_chop.maxPitchDeg} deg`);
+  }
+
+  /* S21: the same chop with every stick let go for longer: the glide the
+   * airframe trims itself onto, after its phugoid has had a cycle. */
+  {
+    const t21 = th.s21_hands_off_glide;
+    levelThen(sim, t21.duty);
+    let sink = 0, v = 0, n = 0, alphaMax = -Infinity;
+    for (let ms = 0; ms < t21.seconds * 1000; ms += RC_STEP_MS) {
+      const o = step(sim, [0, 0, 0, 0]);
+      alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
+      if (ms >= t21.fromS * 1000) {
+        sink += -o.s[6];
+        v += speed(o.s);
+        n += 1;
+      }
+    }
+    sink /= n;
+    v /= n;
+    const ok = within(sink, t21) && v >= t21.vMin && v <= t21.vMax && alphaMax < th.s2_stall.alphaStall;
+    gate('S21', 'throttle closed, sticks let go: a floating glide', ok,
+      `sink ${sink.toFixed(2)} m/s at ${v.toFixed(2)} m/s, alpha at most ${(alphaMax * DEG).toFixed(1)} deg`,
+      `sink ${band(t21)}, ${t21.vMin} to ${t21.vMax} m/s, alpha under ${(th.s2_stall.alphaStall * DEG).toFixed(1)}`);
   }
 
   /* S13: a hand throw with every stick centred. */

@@ -12,7 +12,9 @@
  * 3. Each damage mode, forced and from a load, and what it does to the
  *    flight: a chipped prop's thrust and gyro line, a lost prop, a bent
  *    arm's tilt, a lost wing panel's roll, a lost surface, a knocked camera,
- *    a lost antenna, an ejected pack, a crushed nose.
+ *    a lost antenna, an ejected pack, a crushed nose; and what the sticks
+ *    still move: everything left on the aircraft while the pack is in,
+ *    nothing once it has gone.
  * 4. The free bodies: a part that leaves falls, lands and comes to rest; at
  *    most twelve move at once; the same run twice is byte identical.
  * 5. Surfaces, water and trees.

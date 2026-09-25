@@ -788,7 +788,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     double pitch_att, bank;
     wing_attitude(s->quat, &pitch_att, &bank);
     const double bank_t = fw->stab_bank_max * deadband1(roll, fw->stab_deadband);
-    const double pitch_t = fw->stab_trim_pitch + fw->stab_pitch_max * deadband1(pitch, fw->stab_deadband);
+    double pitch_t = fw->stab_trim_pitch + fw->stab_pitch_max * deadband1(pitch, fw->stab_deadband);
+    /* With the power gone, a pitch held at the cruise's attitude bleeds
+     * the speed into a stall; lower it toward the glide the airframe
+     * trims at by itself, as ArduPilot's adjust_nav_pitch_throttle does. */
+    if (throttle < fw->stab_trim_throttle) {
+      pitch_t -= fw->stab_pitch_down * (fw->stab_trim_throttle - throttle) / fw->stab_trim_throttle;
+    }
     roll = clamp1(-fw->stab_roll_kp * (bank - bank_t) - fw->stab_roll_kd * s->omega[0]);
     pitch = clamp1(fw->stab_pitch_kp * (pitch_t - pitch_att) - fw->stab_pitch_kd * (-s->omega[1]));
     yaw = clamp1(add_term(yaw, yaw_coordinated(fw, s, V)));
@@ -1251,6 +1257,8 @@ const FixedWingParams FW_WING1000 = {
   .stab_roll_kd = 0.12,   /* stick per rad/s of roll rate */
   .stab_pitch_kp = 5.0,   /* stick per rad of pitch error, through the 12 degree throw */
   .stab_pitch_kd = 0.5,   /* stick per rad/s of pitch rate */
+  .stab_pitch_down = 5.51 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.553, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 200.0 * WING_PI / 180.0,  /* rad/s at full stick */
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* rad/s at full stick, nose up */
   .acro_expo = 0.30,
@@ -1331,6 +1339,8 @@ const FixedWingParams FW_SKY1800 = {
   .stab_roll_kd = 0.2,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 7.25 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.652, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -1416,6 +1426,8 @@ const FixedWingParams FW_CUB1400 = {
   .stab_roll_kd = 0.12,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 8.54 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.687, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -1505,6 +1517,8 @@ const FixedWingParams FW_RADIAN2000 = {
   .stab_roll_kd = 0.2,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 0.56 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.402, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 80.0 * WING_PI / 180.0,  /* a glider rolls at 77 deg/s at 12 m/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -1591,6 +1605,10 @@ const FixedWingParams FW_BRAMOR2300 = {
   .stab_roll_kd = 0.2,
   .stab_pitch_kp = 6.0,
   .stab_pitch_kd = 0.6,
+  /* Its power off glide is nose higher than its trim pitch, so the
+   * closed throttle already asks for less: no pitch down (stab:glide). */
+  .stab_pitch_down = 0.0,
+  .stab_trim_throttle = 0.663,
   .acro_roll_rate = 90.0 * WING_PI / 180.0,
   .acro_pitch_rate = 40.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -1687,6 +1705,8 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .stab_roll_kd = 0.8,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 6.52 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.739, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 60.0 * WING_PI / 180.0,
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -1776,6 +1796,8 @@ const FixedWingParams FW_TIMBER1500 = {
   .stab_roll_kd = 0.12,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 9.56 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.562, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -1881,6 +1903,8 @@ const FixedWingParams FW_TIMBER1500F = {
   .stab_roll_kd = 0.12,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 11.75 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.666, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -1981,6 +2005,8 @@ const FixedWingParams FW_CUB1400F = {
   .stab_roll_kd = 0.12,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 10.85 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.858, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -2071,6 +2097,8 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stab_roll_kd = 0.6,
   .stab_pitch_kp = 3.0,
   .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 6.08 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.732, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 45.0 * WING_PI / 180.0,
   .acro_pitch_rate = 30.0 * WING_PI / 180.0,
   .acro_expo = 0.30,

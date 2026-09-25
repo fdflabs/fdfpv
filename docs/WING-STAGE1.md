@@ -131,6 +131,50 @@ roll, 5.0 and 0.5 in pitch through the 12 deg throw), then goes through
 the same throws and expo as a hand. Centred sticks fly level. The gates
 above are flown with it off; scripts/wing-stab-selftest.js checks it on.
 
+Low throttle pitch down, on every fixed wing's Stabilised: under the
+cruise throttle the pitch target lowers in proportion to the throttle
+closed, by `stab_pitch_down` at a closed stick, which is ArduPilot's
+`adjust_nav_pitch_throttle` (ArduPlane/Attitude.cpp): under TRIM_THROTTLE,
+`nav_pitch_cd -= STAB_PITCH_DOWN * (TRIM_THROTTLE - throttle) /
+TRIM_THROTTLE`, whose parameter "Helps to keep airspeed higher in glides
+or landing approaches and prevents accidental stalls" (Parameters.cpp; 0
+to 15 deg, 2 by default). Without it a closed throttle held the 2 deg
+trim pitch, bled the speed and stalled the slower aircraft: the
+Bombshell reached 15.5 deg of alpha, the Slow Stick 20.2 and the float
+Cub 26.0. Here each aircraft's two numbers are its own, from
+`npm run stab:glide`, which reads its table and solves, with the
+elevator neutral, the flaps up and the plant's own lift curve, the power
+off glide and the stick that flies it level. `stab_trim_throttle` is that
+stick, ArduPilot's TRIM_THROTTLE; `stab_pitch_down` is the trim pitch
+less the glide's pitch, so a closed throttle asks for the attitude the
+airframe glides at by itself. At or over the cruise throttle nothing
+changes; between it and closed the target moves linearly, as
+ArduPilot's does. `npm run stab:chop` closes each aircraft's throttle
+from cruise in Stabilised, sticks centred, for 15 s: it must never reach
+its stall's alpha, and its mean sink over the last 10 s must be within
+the Bombshell's S3 proportion, 0.89 to 1.12, of its derived glide's.
+
+| Aircraft | Glide pitch, deg | Pitch down, deg | Cruise stick | Derived sink, m/s | Stabilised chop before: sink, max alpha | After |
+| --- | --- | --- | --- | --- | --- | --- |
+| Wing 1000 | −3.51 | 5.51 | 0.553 | 1.621 | 1.009, 6.3 | 1.620, 3.8 |
+| Skyhunter | −5.25 | 7.25 | 0.652 | 1.450 | 0.842, 7.7 | 1.468, 4.7 |
+| Cub | −6.54 | 8.54 | 0.687 | 1.517 | 1.012, 10.1 | 1.523, 6.2 |
+| Radian | −0.56 | 0.56 | 0.402 | 0.407 | 0.401, 7.8 | 0.407, 7.5 |
+| Bramor | +2.82 | 0 | 0.663 | 1.160 | 1.045, 6.7 | 1.045, 6.7 |
+| Slow Stick | −4.52 | 6.52 | 0.739 | 0.667 | 1.376, 20.2 | 0.667, 9.1 |
+| Timber | −7.56 | 9.56 | 0.562 | 1.673 | 0.973, 9.7 | 1.683, 5.4 |
+| Timber floats | −9.75 | 11.75 | 0.666 | 2.302 | 1.185, 10.4 | 2.304, 5.1 |
+| Cub floats | −8.85 | 10.85 | 0.858 | 2.144 | 4.511, 26.0 | 2.142, 5.7 |
+| Bombshell | −4.08 | 6.08 | 0.732 | 0.918 | 1.223, 15.5 | 0.917, 8.1 |
+
+The Bramor's glide is nose higher than its 2 deg trim, so a closed
+throttle already asks for less than its glide and it gets no pitch down:
+ArduPilot's parameter only pitches down. The four that did not stall
+before, the Wing, the Skyhunter, the Cub and the Timber, held 2 deg with
+the elevator up and so glided slower than their own trim, at 6 to 10 deg
+of alpha and less sink; closed, they now fly the glide they trim at
+hands off in Manual, faster, further from the stall and sinking more.
+
 Acro: the stabiliser's second mode, the Acro tune. Sticks ask for a body
 rate, up to 200 deg/s of roll and 100 deg/s of nose up pitch with 0.3
 expo past the same 4 percent deadband, and a target attitude advances by

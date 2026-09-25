@@ -48,3 +48,5 @@ jobs:
       - run: npm run test:edge
       - run: npm run check:clip
       - run: npm run builder:selftest
+      - run: npm run stab:glide
+      - run: npm run stab:chop
