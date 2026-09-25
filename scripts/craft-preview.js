@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -229,6 +229,31 @@ const TIMBER_VIEWS = [
   ['tip-close', NEUTRAL, [-110, 8, 0.7, -0.72, 0.05, -0.05]],
 ];
 
+/*
+ * The Timber and the Cub on floats: the float set from every side, afloat
+ * at the rest the plant settles to (the preview's ground is the water),
+ * the floats close up, and the water rudders turned with the air rudder.
+ */
+const floatViews = (spinnerZ, tailZ) => [
+  ['front', NEUTRAL, [0, 4, 3.6, 0, 0, 0]],
+  ['three-quarter', NEUTRAL, [-140, 24, 3.2, 0, -0.05, 0.1]],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 3.2, 0, -0.05, 0.0]],
+  ['side', NEUTRAL, [90, 0, 3.0, 0, -0.05, 0.15]],
+  ['side-rest', NEUTRAL, [90, 3, 3.0, 0, 0.1, 0.15], false, true],
+  ['three-quarter-rest', NEUTRAL, [-45, 12, 2.8, 0, 0.1, 0.05], false, true],
+  ['front-rest', NEUTRAL, [-12, 6, 2.6, 0, 0.15, 0.0], false, true],
+  ['low-rest', NEUTRAL, [-60, 3, 1.8, 0, 0.12, 0.0], false, true],
+  ['top', NEUTRAL, [0, 90, 3.6, 0, 0, 0.15]],
+  ['below', NEUTRAL, [0, -90, 3.6, 0, 0, 0.1]],
+  ['floats-close', NEUTRAL, [-70, 8, 1.3, 0, -0.18, 0.0]],
+  ['floats-front', NEUTRAL, [0, 2, 1.4, 0, -0.15, spinnerZ]],
+  ['struts-close', NEUTRAL, [-35, 5, 0.8, 0, -0.12, 0.0]],
+  ['rudders-deflected', DEFLECT, [-160, 10, 0.9, 0, -0.18, 0.38]],
+  ['rudders-below', DEFLECT, [180, -35, 0.8, 0, -0.2, 0.40]],
+  ['deflected-three-quarter', DEFLECT, [-150, 25, 3.2, 0, 0, 0.15]],
+  ['tail-close', DEFLECT, [-145, 20, 1.0, 0, 0.08, tailZ]],
+];
+
 const page = await openPage({
   root, width: 1280, height: 800, url: `/tests/browser/craft-preview.html?craft=${craft}${lite ? '&lite=1' : ''}`,
 });
@@ -236,7 +261,10 @@ try {
   await page.until('window.__previewReady === true', 60000);
   await mkdir(outDir, { recursive: true });
   const scale = 1;
-  const views = { cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS, timber: TIMBER_VIEWS }[craft] ?? VIEWS;
+  const views = {
+    cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS, timber: TIMBER_VIEWS,
+    timberf: floatViews(-0.33, 0.62), cubf: floatViews(-0.26, 0.55),
+  }[craft] ?? VIEWS;
   for (const [name, surf, cam, blur, rest, omega, setup] of views) {
     const [az, el, dist, tx, ty, tz] = cam;
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0); window.__preview.flaps(0)');
@@ -305,6 +333,16 @@ try {
       ['rudder', [0, 0, 0, FULL], left],
       ['tailwheel', [0, 0, 0, FULL], left],
     ],
+    timberf: [
+      ['rudder', [0, 0, 0, FULL], left],
+      ['water-rudder-left', [0, 0, 0, FULL], left],
+      ['water-rudder-right', [0, 0, 0, FULL], left],
+    ],
+    cubf: [
+      ['rudder', [0, 0, 0, FULL], left],
+      ['water-rudder-left', [0, 0, 0, FULL], left],
+      ['water-rudder-right', [0, 0, 0, FULL], left],
+    ],
   };
   if (CASES[craft]) {
     const box = (n) => page.evaluate(`window.__preview.box('${n}')`);
@@ -322,7 +360,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (craft === 'sky' || craft === 'cub' || craft === 'glider' || craft === 'bramor' || craft === 'stick' || craft === 'timber') {
+  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf'].includes(craft)) {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
