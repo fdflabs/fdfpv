@@ -6175,6 +6175,8 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
     cover: (x, z, fromY) => clubRoofSet.cover(colliders, x, z, fromY),
     roofs: clubRoofSet.records,
     roofTop: (i, x, z) => clubRoofSet.top(i, x, z),
+    /* What a roof the craft is on covers, for the crash physics' solids. */
+    coveredAt: (x, z, fromY) => clubRoofSet.covered(x, z, fromY),
     surfaceAt: (x, z, y) => (y == null ? null : clubRoofSet.materialAt(x, z, y)),
     /* No animation on the field depends on the physics clock: the flags and
      * the glow pulse are wall clock decoration and updateWind already drives

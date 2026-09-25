@@ -3569,6 +3569,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let crashTreesFrom = null;
   const treePick = [];
   const solidPick = [];
+  /* The colliders a roof covers, marked for nearestSolids to leave out;
+   * made once for the map's collider count. */
+  let crashSkip = null;
+  /* What coveredAt answered when the solids were declared: the same array
+   * for the same roof and extent, which is how a change is seen. */
+  let crashCovered = null;
   const passSet = [];
   let crashWorldPhase = 0;
   let crashWorldX = NaN;
@@ -3601,6 +3607,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   const CRASH_WORLD_MOVE = 12;
   const TREE_REACH = 80;
   const SOLID_REACH = 40;
+  /* And the roof cover looked at every this many steps: 10 ms is 0.14 m
+   * at 14 m/s, inside the 0.25 m a wall column is wide. */
+  const CRASH_COVER_STEP = 10;
   /* How long a dead feed is shown before the chase camera takes over: long
    * enough to see it die, which is how a pilot knows what happened. */
   const FEED_BEAT_MS = 1500;
@@ -3741,6 +3750,22 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX)) {
       crashWorldPhase = 0;
       refreshCrashWorld(st);
+      return;
+    }
+    /* The solids again when the roof the craft is covered by changes,
+     * which happens within a metre of an eave, between two refreshes. */
+    if (crashWorldPhase % CRASH_COVER_STEP === 0) {
+      refreshCrashCover(st);
+    }
+  }
+
+  function refreshCrashCover(st) {
+    if (!view.coveredAt) {
+      return;
+    }
+    poseFromState(st, crashProbe);
+    if (view.coveredAt(crashProbe.x, crashProbe.z, crashProbe.y - SURFACE_BIAS) !== crashCovered) {
+      declareCrashSolids();
     }
   }
 
@@ -3789,9 +3814,37 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         passSet.push(t.post);
       }
     }
+    declareCrashSolids();
+  }
+
+  /* The solids near crashProbe for the free bodies. A roof the craft is
+   * on stands over the walls under it, and the city's staircase stands up
+   * into it: the parts meet the roof, which is the ground, not them. The
+   * same solids the sweep lets through (src/maps/alps/roofs.js cover),
+   * chosen from where the plant is, so the set stays a function of the
+   * flight. */
+  function declareCrashSolids() {
+    const col = view.colliders;
     sim.e.sim_obstacle_clear();
     crashSolidsDeclared = 0;
-    nearestSolids(col, crashProbe.x, crashProbe.y, crashProbe.z, SOLID_REACH, OBSTACLES_MAX, solidPick);
+    const covered = view.coveredAt
+      ? view.coveredAt(crashProbe.x, crashProbe.z, crashProbe.y - SURFACE_BIAS)
+      : null;
+    crashCovered = covered;
+    if (covered && covered.length) {
+      if (!crashSkip || crashSkip.length !== col.count) {
+        crashSkip = new Uint8Array(col.count);
+      }
+      for (const i of covered) {
+        crashSkip[i] = 1;
+      }
+    }
+    nearestSolids(col, crashProbe.x, crashProbe.y, crashProbe.z, SOLID_REACH, OBSTACLES_MAX, solidPick, covered && covered.length ? crashSkip : null);
+    if (covered && covered.length) {
+      for (const i of covered) {
+        crashSkip[i] = 0;
+      }
+    }
     boxQuat.copy(qSpawnInv);
     for (const { i } of solidPick) {
       if (declareSolid(col, i) < 0) {
@@ -10239,6 +10292,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], qCollide);
     qCollide.premultiply(qSpawn);
     vHalfFrame = craftVerticalHalf(Math.sqrt(1 - craftUpY() * craftUpY()));
+    /* A throw is a teleport, and the plant keeps the solids it was told
+     * of across sim_reset: its first step would meet the ones declared
+     * where the craft was (a quad thrown onto the race field's verandah
+     * after one on the pavilion was inside the verandah's roof box, which
+     * the pavilion's cover had not taken out). The world is declared
+     * where the throw puts it, before that step. */
+    if (runDamage) {
+      crashWorldX = NaN;
+      crashWorldPhase = 0;
+      refreshCrashWorld(stateCurr);
+    }
     /* `hold` keeps the integrator still until __releasePose, so a capture
      * can photograph the moment before. */
     poseLock = Boolean(o.hold);

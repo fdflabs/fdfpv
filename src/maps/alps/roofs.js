@@ -550,6 +550,7 @@ export function standWalls(colliders, box, roofs, lift, { parts = [], note = tru
  * solids in `solids` (possibly none) and its datum in `lift`. Build once;
  * the queries allocate nothing.
  */
+const NONE = [];
 export function makeRoofs(records) {
   const grid = new Map();
   const key = (cx, cz) => (cx + 4096) * 8192 + (cz + 4096);
@@ -619,7 +620,9 @@ export function makeRoofs(records) {
      * only hit() reads; crashworld's trees own other indices of the same
      * array.
      */
-    cover(colliders, x, z, fromY) {
+    /* Which roof covers a craft at (x, z) from fromY, into set.last, and
+     * whether all its solids or only those under its eaves: true for all. */
+    choose(x, z, fromY) {
       set.height(x, z, fromY, -Infinity);
       const all = set.last >= 0;
       /* Just off a roof's edge, with no roof over it and not far under
@@ -634,6 +637,18 @@ export function makeRoofs(records) {
           set.height(x + REACH[k][0], z + REACH[k][1], fromY + REACH_DROP, -Infinity);
         }
       }
+      return all;
+    },
+    /* The collider indices a craft at (x, z) from fromY is covered from,
+     * as cover() would let them through: for the crash physics' own
+     * solids (src/main.js), which a roof under the craft stands over. */
+    covered(x, z, fromY) {
+      const all = set.choose(x, z, fromY);
+      const i = set.last;
+      return i < 0 ? NONE : all ? records[i].solids : records[i].eaves;
+    },
+    cover(colliders, x, z, fromY) {
+      const all = set.choose(x, z, fromY);
       const want = set.last;
       if (want === set.covering && all === set.coveringAll) {
         return;

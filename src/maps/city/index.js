@@ -2633,6 +2633,8 @@ export async function buildMap(shell, onProgress, options) {
     cover: (x, z, fromY) => roofs.cover(colliders, x, z, fromY),
     roofs: roofs.records,
     roofTop: (i, x, z) => roofs.top(i, x, z),
+    /* What a roof the craft is on covers, for the crash physics' solids. */
+    coveredAt: (x, z, fromY) => roofs.covered(x, z, fromY),
     surfaceAt: (x, z, y) => (y == null ? null : roofs.materialAt(x, z, y)),
     setNextGate() {},
     /* No gates, so nothing is ever the next one. Present so the shell has
