@@ -216,10 +216,11 @@ Stick's in proportion about the derived figure unless it says otherwise.
 | S18 Node and Chrome agree on a Bombshell trace that takes off | SHA-256 | identical |
 | S19 a pass through the strongest thermal at cruise | 14.8 m | 11.1 to 18.5 |
 | S20 the throttle closed on the strip | 3,740 rpm; 0.45 N against 0.65 N of resistance | 3,550 to 3,930 rpm, ground speed under 1 mm/s |
+| S21 the throttle closed at cruise, every stick let go, 15 s | the glide the neutral elevator trims: 7.97 m/s, sinking 0.919, alpha 7.55 deg | sink 0.82 to 1.03 (S3's proportion), 6.86 to 9.29 m/s (S1's), alpha never at the stall's 11.5 |
 
 ## What the plant measured
 
-`npm run bombshell:gates`, on the plant as committed, 21 of 21:
+`npm run bombshell:gates`, on the plant as committed, 22 of 22:
 
 | Check | Measured | Band |
 | --- | --- | --- |
@@ -242,6 +243,7 @@ Stick's in proportion about the derived figure unless it says otherwise.
 | S16 landing | touched at 7.59 m/s, rolled 21.8 m, at rest at 8.41 deg | |
 | S19 thermal | 15.1 m (16.2 against 1.1 in still air) | 11.1 to 18.5 |
 | S20 idle | 3,740 rpm, 0.452 N, ground speed 0.09 mm/s | |
+| S21 hands off glide | sink 0.90 m/s at 7.94 m/s, alpha at most 8.5 deg | sink 0.82 to 1.03 |
 
 What flying it before the bands were final changed, and what it found:
 
