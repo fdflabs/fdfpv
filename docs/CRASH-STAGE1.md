@@ -625,6 +625,15 @@ rigid hull that crash physics replaces; with the mode off, which is what
 they run, they pass. Recorded flights with crashes in them: none of the
 existing recordings has a damaging contact, so nothing was re-recorded.
 
+Round 2 (the ground's spring), against main da32758: off is identical
+on all 24. On, 19 are identical; floats:gates F1t creeps 0.040 m/s for
+0.039 (its F5c is round 1's, below); whoop:gates W15's parked Skyhunter
+rests 1.99 mm from its origin for 2.00; wing:contact and
+contact:selftest fail with the mode on as they do on main (6 and 2
+checks against 7 and 2 there: the crushed nose in the ground, the hull
+slide), both checks of the rigid hull that crash physics replaces, and pass with it off, which is how
+they run.
+
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched.
 
