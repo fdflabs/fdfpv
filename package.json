@@ -78,6 +78,7 @@
     "slowstick:derive": "node scripts/slowstick-derive.js",
     "stall:derive": "node scripts/stall-derive.js",
     "stall:probe": "node scripts/stall-probe.js",
+    "stall:crossing": "node scripts/stall-crossing.js",
     "timber:gates": "node scripts/timber-gates.js",
     "timber:stab": "node scripts/timber-stab-selftest.js",
     "timber:record": "node scripts/wing-record.js timber",
