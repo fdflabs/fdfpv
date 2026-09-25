@@ -103,6 +103,9 @@ const steps = [
   '--w=1280',
   '--h=720',
   '--graphics=high',
+  /* Boot the track world, the light one, before choosing. A page that
+   * names no world opens on the Alps, see src/boot.js. */
+  '--url=/index.html?map=custom',
   'until:!!window.__boot && window.__boot().frames > 2',
   'eval:JSON.stringify({ tag: "swap", started: (window.__setMap("city"), true) })',
   'until:window.__map().id === "city" && window.__map().ready',

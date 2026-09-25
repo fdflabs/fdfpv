@@ -89,6 +89,9 @@ try {
      * detect a slow machine and drop the preset, and the card would come out
      * at a different quality depending on who regenerated it. */
     '--graphics=high',
+    /* The field this camera is set for. A page that names no world opens
+     * on the Alps, see src/boot.js. */
+    '--url=/index.html?map=custom',
     'until:!!window.__boot && window.__boot().frames > 2',
     `eval:(() => { ${hide} })()`,
     'wait:400',

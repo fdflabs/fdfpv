@@ -258,6 +258,23 @@ export function openingCentre(el, k = 0) {
   return v3(base.x + up.x, base.y + up.y, base.z + up.z);
 }
 
+/*
+ * A gate's colliders in the scene: `caps` are the capsules src/render/
+ * scene.js obstacle() hands back in the gate's own frame, carried by the
+ * element's whole pose, which is what the field does with a heading alone.
+ * A capsule's radius does not turn.
+ */
+export function worldCaps(el, caps) {
+  const { base, quat } = poseOf(el);
+  return caps.map((c) => {
+    const a = qRot(quat, c.ax, c.ay, c.az);
+    const b = qRot(quat, c.bx, c.by, c.bz);
+    return {
+      kind: c.kind, ax: base.x + a.x, ay: base.y + a.y, az: base.z + a.z, bx: base.x + b.x, by: base.y + b.y, bz: base.z + b.z, r: c.r,
+    };
+  });
+}
+
 /* The gate's three scoring axes in the scene, from its orientation. */
 export function axesOf(quat) {
   return {
@@ -401,6 +418,39 @@ export function spawnFor(gates) {
     z: g.centre.z - fz * SPAWN_BACK,
     yaw: headingOf(fx, fz),
   };
+}
+
+/*
+ * Where a test flight starts, on the ground or in the air.
+ *
+ * THE RULE. A start gate whose opening is hung more than one opening's
+ * height over the ground under it cannot be flown from the ground behind
+ * it without climbing first, so the run starts in the air: SPAWN_BACK
+ * before the opening along its own line of travel, which is the opening's
+ * height for a level gate, lined up to fly straight through it. The spawn
+ * says so with `air: { y }` and the shell (src/main.js airStart) puts the
+ * craft there. Any other start gate, a gate on the ground among them, is
+ * spawnFor's ground start as before. So is a hung one whose start point is
+ * not at least half an opening clear of the ground under it, a gate hung
+ * off a slope that rises behind it: the ground there is the start line.
+ *
+ * `heightAt(x, z)` is the map's.
+ */
+export function startFor(gates, heightAt) {
+  const ground = spawnFor(gates);
+  if (!ground) {
+    return null;
+  }
+  const g = gates[0];
+  const t = g.axes.travel;
+  const c = g.centre;
+  const p = v3(c.x - t.x * SPAWN_BACK, c.y - t.y * SPAWN_BACK, c.z - t.z * SPAWN_BACK);
+  const hung = c.y - heightAt(c.x, c.z) > g.aperture.clearH;
+  const clear = p.y - heightAt(p.x, p.z) >= g.aperture.clearH / 2;
+  if (!hung || !clear) {
+    return ground;
+  }
+  return { x: p.x, z: p.z, yaw: ground.yaw, air: { y: p.y } };
 }
 
 /*

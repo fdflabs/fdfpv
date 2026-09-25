@@ -111,6 +111,9 @@ async function main() {
    * --course=FILE seeds a track document as the builder's autosave and
    * selects the custom map. The launch block only exists on an authored
    * course, so without this there is no way to capture the pad shot at all.
+   * Selecting it takes the seat AND the address: a page that names no world
+   * opens on the Alps (src/boot.js), so the seat alone would leave the
+   * course unbuilt until Fly. A --url that names its own map= wins.
    */
   const seed = [];
   if (opts.graphics) {
@@ -146,6 +149,10 @@ async function main() {
       s.map = 'custom';
       localStorage.setItem(k, JSON.stringify(s));
     } catch (e) { /* Storage refused; the run boots on the default map. */ }`);
+    const url = String(opts.url);
+    if (!/[?&]map=/.test(url)) {
+      opts.url = `${url}${url.includes('?') ? '&' : '?'}map=custom`;
+    }
   }
   /*
    * --airframe picks the aircraft and, by answering the question, stops the

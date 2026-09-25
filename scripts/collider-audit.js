@@ -52,6 +52,9 @@ const steps = [
   '--w=800',
   '--h=450',
   '--graphics=high',
+  /* Boot the track world, the light one, before choosing. A page that
+   * names no world opens on the Alps, see src/boot.js. */
+  '--url=/index.html?map=custom',
   'until:!!window.__boot && window.__boot().frames > 2',
   /* Before the city is chosen, so buildMap sees it. */
   'eval:JSON.stringify({ tag: "arm", on: (globalThis.__CITY_SCAN = true) })',

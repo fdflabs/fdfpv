@@ -60,36 +60,29 @@ function threeVersion() {
   }
 }
 
+/*
+ * THE TITLE'S OWN WORLD, the photographic Alps, which main.js shows with
+ * the Skyhunter flying them. The owner asked for the title to open on this
+ * whatever the pilot last flew, so the stored map is no longer the boot
+ * world. The pilot's own map stays theirs: main.js builds it when they
+ * press fly and never writes this one into the settings.
+ */
+const TITLE_MAP = 'swiss2';
+
 async function start() {
-  /* The initial map is a setting, so its build cost has to be known before
-   * the stage weights are computed. Reading it here rather than in main.js
-   * keeps the whole plan in one place; ui.js owns the schema and the default,
-   * and a stored value that is not a known map falls back to the track. */
-  let mapId = 'custom';
-  try {
-    /* SETTINGS_KEY in src/ui/ui.js owns this string; ui.js is the only
-     * writer. It is spelled out rather than imported ON PURPOSE: ui.js
-     * pulls in the map registry and the track table, and dragging that
-     * graph into boot is the very thing src/maps/build-cost.js exists to
-     * prevent. Change it there and change it here. */
-    mapId = JSON.parse(localStorage.getItem('webfpv.settings.v3') || '{}').map || 'custom';
-  } catch (e) {
-    mapId = 'custom';
-  }
   /*
-   * A map named in the URL wins over the stored setting, and this is the one
+   * A map named in the URL replaces the Alps, and this is the one
    * thing the track builder asks of the game: its Fly this track button links
    * to ?map=custom, so a course goes from the drawing board to the air in one
-   * press instead of a press and then a hunt through a menu. main.js already
-   * takes a mapId and writes it into the settings, so the Map row agrees with
-   * the world the moment the title screen appears.
+   * press instead of a press and then a hunt through a menu. main.js takes
+   * the mapId and writes it into the settings, so the title is the world the
+   * link named and the Map row agrees with it. Harnesses, share links and
+   * posters name their world the same way.
    */
+  let mapId = null;
   try {
     const params = new URLSearchParams(window.location.search);
-    const wanted = params.get('map');
-    if (wanted) {
-      mapId = wanted;
-    }
+    mapId = params.get('map') || null;
     /* A published course arrives as ?share=id. That is a custom map, even
      * when the link omits map=, so the loading screen weights the right
      * world and the title lands on the course the board sent. */
@@ -97,24 +90,23 @@ async function start() {
       mapId = 'custom';
     }
   } catch (e) {
-    /* No URL to read. Keep the stored setting. */
+    /* No URL to read. The title is the Alps. */
   }
   /*
-   * An id no map has is a stale bookmark, a typo or a settings blob from a
-   * build that had another world, and it used to reach main.js verbatim: the
-   * loaders normalise it to the field while the setting kept the bad string,
-   * so the Map row named a world that was not there and syncWorld saw a
-   * mismatch it could never clear. This is the fallback the comment above
-   * already promised. MAP_BUILD_MS is keyed by map id and is imported here
-   * anyway, so the check does not drag the registry, and its loader thunks,
-   * into the boot graph.
+   * An id no map has is a stale bookmark or a typo, and it used to reach
+   * main.js verbatim: the loaders normalise it to the field while the
+   * setting kept the bad string, so the Map row named a world that was not
+   * there and syncWorld saw a mismatch it could never clear. MAP_BUILD_MS is
+   * keyed by map id and is imported here anyway, so the check does not drag
+   * the registry, and its loader thunks, into the boot graph.
    */
-  /* The race field is gone. A stored or bookmarked field id is the track
-   * world, which is the same terrain with a designed layout in it. */
-  if (mapId === 'field' || !Object.hasOwn(MAP_BUILD_MS, mapId)) {
+  /* The race field is gone. A bookmarked field id is the track world,
+   * which is the same terrain with a designed layout in it. */
+  if (mapId && (mapId === 'field' || !Object.hasOwn(MAP_BUILD_MS, mapId))) {
     mapId = 'custom';
   }
-  const worldMs = MAP_BUILD_MS[mapId] ?? MAP_BUILD_MS.custom;
+  const titleMap = mapId ? null : TITLE_MAP;
+  const worldMs = MAP_BUILD_MS[mapId ?? titleMap];
 
   loading.run(planStages(['three', 'board', 'sim', 'module', 'world', 'frame'], worldMs));
 
@@ -152,7 +144,7 @@ async function start() {
   const strings = await import('./strings/index.js');
   await strings.useLocale(strings.preferredLocale());
   const main = await import('./main.js');
-  await main.boot({ loading, bootStart: BOOT_START, mapId });
+  await main.boot({ loading, bootStart: BOOT_START, mapId, titleMap });
 }
 
 start().catch((e) => {

@@ -25,6 +25,18 @@
  *   front of the camera; the test flight parks behind the start gate facing
  *   it; reordering and choosing the start keep the lap a loop.
  *
+ *   The built gates are solid: a gate's colliders, carried by its whole
+ *   pose, are met by the collider query in its frame and not in its
+ *   opening, follow it when it moves and leave with it, and everything the
+ *   world froze at build() answers exactly as it did before, while they
+ *   are there and after.
+ *
+ *   A test flight from a start gate hung more than an opening over the
+ *   ground starts in the air before it, at its height on its line of
+ *   travel; from any other start gate it starts on the ground as before.
+ *   A fixed wing starts at 1.3 times its stall, the Bramor catapult's own
+ *   margin, and a quad at rest.
+ *
  * The browser half, the builder itself in the real page, is
  * scripts/build-check.js.
  *
@@ -55,8 +67,12 @@ import { PRESETS } from '../src/trackbuilder/presets.js';
 import { Race } from '../src/game/race.js';
 import {
   addGate, axesOf, makeStart, moveInLap, newCourse, openingCentre, orderOf, poseOf, qAxis, qMul,
-  qRot, raceGatesOf, readoutFor, removeGate, snapPose, spawnFor, turnGate, SPAWN_BACK,
+  qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
+import { Colliders } from '../src/game/collide.js';
+import {
+  AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
+} from '../configs/airframes.js';
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../src/render/frame.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -245,6 +261,115 @@ console.log('the lap');
   check('and rolled a quarter turn it lies on its side', Math.abs(axesOf(poseOf(g2).quat).up.y) < 1e-6);
   removeGate(d, g1.id);
   check('deleting a gate takes its step with it', d.elements.length === 2 && d.sequence.length === 2 && orderOf(d, g1.id) === -1);
+}
+
+/* ------------------------------------------------------------------ */
+console.log('the built gates are solid');
+{
+  /* A world with some of everything, frozen once, and the answers its
+   * queries give before anything is built in it. */
+  const col = new Colliders();
+  col.addPost('tree', 30, -10, 0, 12, 0.4);
+  col.addBox('wall', -40, 0, -60, -30, 8, -50);
+  col.add('gate', 5, 1, -20, 7, 1, -20, 0.02);
+  col.addSphere('canopy', 30, 14, -10, 3);
+  col.build();
+  const probes = [
+    [20, 5, -10, 40, 5, -10], [-50, 4, -55, -20, 4, -55], [6, 1, -25, 6, 1, -15], [30, 20, -10, 30, 8, -10], [60, 3, 0, 60, 3, -100],
+  ];
+  const answer = (p) => {
+    const k = col.hit(...p);
+    return [k, col.hitIndex, col.hitT, col.hitNx, col.hitNy, col.hitNz, col.hitPen, col.hitOverlap].join();
+  };
+  const before = probes.map(answer);
+  const gapBefore = col.gapAt(0, 3, -50, 5);
+  const baseCount = col.count;
+  const cellsBefore = new Map(col.grid);
+
+  /* A gate's own frame, as scene.js obstacle() builds one: two uprights and
+   * two bars round a 1.75 m opening, 0.02 m tubes. */
+  const W = 1.7526;
+  const R = 0.02;
+  const s = W / 2 + R;
+  const local = [
+    { kind: 'gate', ax: -s, ay: 0, az: 0, bx: -s, by: W + 2 * R, bz: 0, r: R },
+    { kind: 'gate', ax: s, ay: 0, az: 0, bx: s, by: W + 2 * R, bz: 0, r: R },
+    { kind: 'gate', ax: -s, ay: R, az: 0, bx: s, by: R, bz: 0, r: R },
+    { kind: 'gate', ax: -s, ay: W + R, az: 0, bx: s, by: W + R, bz: 0, r: R },
+  ];
+  const d = newCourse('swiss2', 'Solid');
+  const hungQ = qMul(qAxis(0, 1, 0, 40 * DEG), qAxis(0, 0, 1, 25 * DEG));
+  const el = addGate(d, 'gate', { x: 0, y: 3, z: -50 }, hungQ);
+  const caps = worldCaps(el, local);
+  const { base: gb, quat: gq } = poseOf(el);
+  const upr = qRot(gq, s, 0.9, 0);
+  const foot = qRot(gq, s, 0, 0);
+  check('worldCaps carries a member by the whole pose',
+    nearV({ x: caps[1].ax, y: caps[1].ay, z: caps[1].az }, { x: gb.x + foot.x, y: gb.y + foot.y, z: gb.z + foot.z }, 1e-12) && caps[1].r === R);
+  col.setBuilt(caps);
+  const g = raceGatesOf(d)[0];
+  const t = g.axes.travel;
+  const through = (c, back = 2, ahead = 2) => [c.x - t.x * back, c.y - t.y * back, c.z - t.z * back, c.x + t.x * ahead, c.y + t.y * ahead, c.z + t.z * ahead];
+  const onUpright = { x: gb.x + upr.x, y: gb.y + upr.y, z: gb.z + upr.z };
+  const kGate = col.hit(...through(onUpright));
+  check('a flight into a built gate\'s upright hits a gate', col.kindName(kGate) === 'gate' && col.hitIndex >= baseCount, `${col.kindName(kGate)} ${col.hitIndex}`);
+  check('its opening is open', col.hit(...through(g.centre)) === -1);
+  check('the gap query sees it', col.gapAt(onUpright.x, onUpright.y, onUpright.z, 1) < 0.05);
+  check('everything frozen answers exactly as before', probes.map(answer).join('|') === before.join('|'));
+
+  /* Moved: the old place empty, the new one solid. */
+  const moved = { x: 20, y: 6, z: -80 };
+  setPose(el, moved, hungQ);
+  col.setBuilt(worldCaps(el, local));
+  check('moved, the old upright is air', col.hit(...through(onUpright)) === -1);
+  const upr2 = qRot(gq, s, 0.9, 0);
+  const onUpright2 = { x: moved.x + upr2.x, y: moved.y + upr2.y, z: moved.z + upr2.z };
+  check('and the new one is solid', col.kindName(col.hit(...through(onUpright2))) === 'gate');
+
+  /* Deleted: what build() froze and nothing else. */
+  removeGate(d, el.id);
+  col.setBuilt([]);
+  check('deleted, nothing is left', col.hit(...through(onUpright2)) === -1 && col.count === baseCount);
+  check('every cell is the frozen one again', col.grid.size === cellsBefore.size && [...col.grid].every(([k, v]) => cellsBefore.get(k) === v));
+  check('and every query answers as before', probes.map(answer).join('|') === before.join('|') && col.gapAt(0, 3, -50, 5) === gapBefore);
+}
+
+/* ------------------------------------------------------------------ */
+console.log('where a test flight starts');
+{
+  const flat = () => 100;
+  const d = newCourse('alps', 'Start');
+  addGate(d, 'gate', { x: 0, y: 100, z: 0 }, qAxis(0, 1, 0, 30 * DEG));
+  let gates = raceGatesOf(d);
+  const onGround = startFor(gates, flat);
+  check('a start gate on the ground starts on the ground behind it, as before', !onGround.air && JSON.stringify(onGround) === JSON.stringify(spawnFor(gates)));
+  const h = newCourse('alps', 'Hung');
+  addGate(h, 'gate', { x: 0, y: 130, z: 0 }, qAxis(0, 1, 0, 30 * DEG));
+  gates = raceGatesOf(h);
+  const g = gates[0];
+  const air = startFor(gates, flat);
+  check('a hung start gate starts in the air', Boolean(air.air));
+  check('at its height', near(air.air.y, g.centre.y, 1e-9), `${air.air.y} vs ${g.centre.y}`);
+  const back = { x: g.centre.x - air.x, y: g.centre.y - air.air.y, z: g.centre.z - air.z };
+  check('SPAWN_BACK before it, on its line of travel', near(Math.hypot(back.x, back.y, back.z), SPAWN_BACK, 1e-9)
+    && near((back.x * g.axes.travel.x + back.y * g.axes.travel.y + back.z * g.axes.travel.z) / SPAWN_BACK, 1, 1e-9));
+  check('facing through it', near(air.yaw, g.heading, 1e-9));
+  const hill = (x, z) => (Math.hypot(x - air.x, z - air.z) < 1 ? g.centre.y - 0.5 : 100);
+  check('with the ground behind it risen to the start point, the ground start again', !startFor(gates, hill).air);
+  const low = newCourse('alps', 'Low');
+  addGate(low, 'gate', { x: 0, y: 100.8, z: 0 }, qAxis(0, 1, 0, 0));
+  check('a gate on a low stand is still a ground start', !startFor(raceGatesOf(low), flat).air);
+}
+
+console.log('an air start\'s speed');
+{
+  const wings = AIRFRAMES.filter((af) => af.fixedWing);
+  check('every fixed wing names its stall', wings.every((af) => af.stall > 0), wings.filter((af) => !(af.stall > 0)).map((af) => af.id).join());
+  check('a quad starts at rest', airStartSpeed(airframeById('5inch')) === 0 && airStartSpeed(airframeById('whoop65')) === 0);
+  const bramor = airframeById('bramor2300');
+  check('the margin is the Bramor catapult\'s: its air start is its release speed',
+    Math.abs(airStartSpeed(bramor) - BRAMOR_CATAPULT.speed) / BRAMOR_CATAPULT.speed < 0.01, `${airStartSpeed(bramor)} vs ${BRAMOR_CATAPULT.speed}`);
+  console.log(`  ${wings.map((af) => `${af.id} ${airStartSpeed(af).toFixed(2)} m/s`).join(', ')}`);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

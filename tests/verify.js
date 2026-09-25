@@ -287,6 +287,15 @@ async function main() {
           'window.__setCam(null);' +
           'return { tag: "budget", p1: b.p1_calls, p2: b.p2_triangles, p5: b.p5_target_MB, p10: b.p10_attribute_MB, meshes: b.meshes, cel: window.__celCount() };' +
         '})())',
+        /*
+         * INTO A RUN FOR THE CRAFT, and back out after it. The title draws
+         * the Skyhunter whatever is seated (TITLE_CRAFT in src/main.js), so
+         * the seated five inch this measures is only in the scene once a
+         * run is. The budgets either side are both taken on the title, so
+         * they still compare like with like.
+         */
+        'eval:JSON.stringify({ tag: "fly", started: (window.__ui.onAction("fly", window.__ui.settings), true) })',
+        'until:window.__craftState().mode === "flight" && window.__craft().shown === window.__craft().run',
         'eval:JSON.stringify({' +
           'tag: "field",' +
           'map: window.__map().id,' +
@@ -385,6 +394,8 @@ async function main() {
          * world hugs the drawn one instead of describing it. See
          * src/maps/city/scan.js and scripts/collider-audit.js.
          */
+        'eval:JSON.stringify({ tag: "title", back: (window.__ui.act("title"), window.__ui.screen) })',
+        'until:window.__craftState().mode === "title"',
         'eval:JSON.stringify({ tag: "arm", on: (globalThis.__CITY_SCAN = true) })',
         'eval:JSON.stringify({ tag: "swap", started: (window.__setMap("city"), true) })',
         'until:window.__map().id === "city" && window.__map().ready',

@@ -61,6 +61,54 @@ the argument; it takes it anyway so `main.js` has one call shape.
 city adds a thin slab collider under every raised platform. See
 `city/index.js`.
 
+### Roofs on alps and swiss2
+
+The village's roofs are ground (`alps/roofs.js`). Every roof shell a village
+frame puts is recorded as its upper faces, and `height(x, z, fromY)` offers
+the highest roof within the same 0.55 m step of `fromY` as a deck, so the
+plant's own ground contact lands, slides and bounces a craft on a pitched
+roof as on a hillside, and a craft under the eaves still sees the street.
+The walls under a roof stay walls: the walls up to the plate and a thin
+wall under each gable, in axis aligned boxes under the shell's underside,
+with the building's old keep out box noted as its footprint so nothing
+placed round it moved. The attic between them is left empty; the roof
+shell over it is ground the plant keeps a craft out of from above. While a roof is the craft's
+ground, `cover(x, z, fromY)` lets the obstacle sweep through that roof's
+walls, because the sweep's ellipsoid grows to a wing's half span as it
+banks onto the slope and would reach them through the shell.
+
+`surfaceAt(x, z, y)` takes the ground height too, so the crash physics
+reads the covering where the ground is a roof. The module has no tile,
+slate or shingle of its own, so each covering is the nearest surface it
+has, and with the damage mode on its friction and restitution are that
+surface's (docs/CRASH-STAGE1.md, section 5); with it off every ground,
+roofs included, is the shell's grass, as it always was.
+
+| Covering (bake key) | Surface | mu | e | Why |
+| --- | --- | --- | --- | --- |
+| larch shingle (`shingle*`) | wood | 0.50 | 0.12 | wood on wood, oak dry, sliding 0.32 across the grain to 0.48 along it, static 0.54 to 0.62 [1] |
+| slate, eternit (`slate*`) | rock | 0.42 | 0.15 | wood on stone 0.2 to 0.4, nylon on steel 0.4 [1]; slate is a rock and fibre cement board its class |
+| standing seam (`hangarRoof`) | metal | 0.35 | 0.20 | polystyrene on steel 0.3 to 0.35, nylon on steel 0.4 [1] |
+
+There is no clay tile on either map. A wheel rolls on a roof at the hard
+face value of R-ROLLING in docs/CRASH-REFERENCES.md (concrete and asphalt
+0.02 to 0.05 against short grass 0.05 [2]), which `plant_wheel_roll` gives
+wood, rock and metal alike.
+
+A covering of its own (a `SIM_SURF_TILE`, `SIM_SURF_SLATE`,
+`SIM_SURF_SHINGLE` with their own mu, e, stiffness and blade hardness in
+`src/native/crash.c`'s table and in `plant_wheel_roll`, and the names in
+`configs/parts.js`) is a core change, additive to the ABI, and is not made
+here.
+
+[1] Engineering ToolBox, Friction and Friction Coefficients,
+https://www.engineeringtoolbox.com/friction-coefficients-d_778.html : "Oak,
+Oak (parallel grain), Clean and Dry, 0.62, 0.48"; "Oak (cross grain) 0.54,
+0.32"; "Wood, Stone, Clean and Dry, 0.2 - 0.4"; "Nylon, Steel, 0.4";
+"Polystyrene, Steel, 0.3 - 0.35".
+[2] Marchman, Aerodynamics and Aircraft Performance, 3rd ed., Table 7.1, as
+quoted under R-ROLLING.
+
 ### `updateAnim(stepIndex)` takes an integer step count, not a delta
 
 Anything a map animates that a craft can HIT must be a pure function of the

@@ -550,6 +550,18 @@ or the failure stays loud.
 - Suite: bramor-belly-fast's band for its real entry speed; the crash:core
   2 mm premise; the quad's grass rebound against R-A4-REBOUND.
 
+Round 4, core (#60, merged by the lead, 2026-09-25): foam booms ring
+(sourced bead foam modulus), wire gear folds (ASTM A228), the 2 mm drop
+check's premise replaced by the sourced grass grip's stopping distance
+(crash:core 148 of 148). Suite 9 of 60 in every band, failing checks
+130 to 134. Lead decision: the regressions are the Cub and Timber stalls
+now landing flat on folding legs and rolling on, where on main they
+passed only because rigid legs snapped and dropped the nose onto the
+prop; the fault is the stall entry, which the aero PR (#59, sent back
+for sourced severity and an unchanged ground roll) owns. The Skyhunter
+pusher item dissolved with the ringing booms; the gate clip's duration
+needs a host change and stays open.
+
 ### Round 4, aero (branch crash-aero-round4)
 
 The model and its record are docs/STALL-STAGE1.md. Against main c0cb07f:

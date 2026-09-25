@@ -640,6 +640,10 @@ function sagFrame(rf, roof, sag) {
   const p = new THREE.Vector3();
   const sc = new THREE.Vector3();
   const put = (key, geometry, lx = 0, ly = 0, lz = 0, lry = 0, lrx = 0, lrz = 0, sx = 1, sy = 1, sz = 1) => {
+    if (geometry.userData.roof) {
+      /* The shell as a surface, dipped the same way (roofs.js). */
+      rf.noteRoof(geometry.userData.roof, key, { zA, zB, drop: sag });
+    }
     e.set(lrx, lry, lrz);
     m.compose(p.set(lx, ly, lz), q.setFromEuler(e), sc.set(sx, sy, sz));
     const src = geometry.index ? geometry.toNonIndexed() : geometry.clone();
