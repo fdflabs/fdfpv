@@ -23,7 +23,9 @@
  * of docs/SLOWSTICK-STAGE1.md, which has no ailerons and banks on its
  * rudder through its dihedral; and FW_TIMBER1500, the E-flite Turbo
  * Timber Evolution of docs/TIMBER-STAGE1.md, a STOL taildragger that adds
- * flaps and slats. A term an airframe does not have
+ * flaps and slats; and FW_TIMBER1500F and FW_CUB1400F, the Timber and the
+ * Cub on floats, docs/FLOATS-STAGE1.md, whose water is sim.c's. A term an
+ * airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
@@ -1380,4 +1382,174 @@ const FixedWingParams FW_TIMBER1500 = {
   /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
   .slat_dclmax = 0.305,
   .slat_cd0 = 0.004,
+};
+
+/* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
+ * what the floats change in the air. Their wetted area, struts and
+ * spreader bars less the wheels and legs they replace add 0.019 of drag;
+ * their sides add side force, under the CG, so a little of the dihedral
+ * effect goes; their volume ahead of and behind the CG takes some of the
+ * weathercock stability, Nelson eq. 2.72 on 6.8 litres; and they lower
+ * the CG under the thrust line, so power pitches the nose down. The
+ * floats' drag under the CG is a constant moment coefficient, which the
+ * rigging's trim takes out as it did the wheels'; cm_0 is unchanged. */
+const FixedWingParams FW_TIMBER1500F = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.555,
+  .area = 0.361,
+  .chord = 0.2322,        /* S/b */
+  .cl_alpha = 5.25,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_max = 1.15,         /* clean, without the slats */
+  /* The zero lift line 5 degrees under the body axis, the Cub's: a thick
+   * semi symmetric section at 1.5 degrees of incidence. */
+  .alpha_zl = -5.0 * WING_PI / 180.0,
+  .sin_zl = -0.08715574274765817,
+  .cos_zl = 0.9961946980917455,
+  .cd0 = 0.0609,          /* the wheels off, the floats, their struts and spreaders on */
+  .k_induced = 0.0609,    /* 1/(pi 0.78 6.70) */
+  .cl_de = -0.498,
+  .cy_beta = -0.460,      /* and the floats' sides */
+  .cy_dr = 0.155,
+  .cl_beta = -0.0346,     /* the floats' side force acts under the CG */
+  .cl_p = -0.806,
+  .cl_da = 0.391,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.009,
+  .cm_0 = 0.0853,         /* trims at 13 m/s with the elevator neutral */
+  .cm_alpha = -1.004,     /* static margin 0.19 at E-flite's 60 mm CG */
+  .cm_q = -8.53,
+  .cm_de = 1.175,
+  .cn_beta = 0.0712,      /* less the floats' volume, Munk's moment */
+  .cn_r = -0.095,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.133,
+  .cn_dr = -0.0624,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* E-flite's high rates, 33, 20 and 30 mm, over the surfaces' chords. */
+  .throw_a = 30.0 * WING_PI / 180.0,
+  .throw_e = 20.0 * WING_PI / 180.0,
+  .throw_r = 27.0 * WING_PI / 180.0,
+  .surface_max = 30.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 25.0,  /* N, BL10 800 kV on 4S with the 11 x 7.5 three blade */
+  .pitch_speed = 31.95,
+  .rpm_no_load = 11840.0,
+  .torque_arm = 0.0122,   /* 322 W of disc power at 10,060 rpm is 0.31 N m at 25 N */
+  .thrust_z = 0.0327,     /* the floats lower the CG under the thrust line */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 44.0,   /* A, the review's bench figure on 4S */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 1.2,
+  .stab_roll_kd = 0.12,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .acro_roll_rate = 180.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 100.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.30,
+  .acro_roll_ff = 0.25,   /* under the Cub's: it rolls faster per stick, and overshot a stop at 0.35 */
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 4.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 2.0,     /* 1.4 times the Cub's yaw authority per stick */
+  /* The flaps: E-flite's 20 and 35 mm at the trailing edge of a 64.8 mm
+   * flap, 18.0 and 32.7 degrees, across in 2 s (the manual's flap speed).
+   * Lift, CLmax, drag and moment from Raymer and thin aerofoil theory; the
+   * mix is the manual's 30 percent of the elevator's travel down at full
+   * flap, 16 at half, as a line through both. */
+  .flap_half = 0.31376497222433070,
+  .flap_full = 0.57058379792549596,
+  .flap_rate = 0.285292,
+  .cl_df = 1.2391,
+  .cl_df2 = -0.6681,
+  .clmax_df = 0.7689,
+  .cd_df2 = 0.0666,
+  .cm_dcl_f = 0.0940,
+  .de_df = -0.183531,
+  /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
+  .slat_dclmax = 0.305,
+  .slat_cd0 = 0.004,
+};
+
+/* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
+ * floats change in the air, by the Timber's reasoning above, on 4.6
+ * litres of float, 0.28 m^2 of wing and 1.4 m of span. */
+const FixedWingParams FW_CUB1400F = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.40,
+  .area = 0.28,
+  .chord = 0.20,
+  .cl_alpha = 5.21,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_max = 1.15,
+  /* The zero lift line 5 degrees under the body axis: a flat bottomed
+   * section of the USA 35B class set at about 1.5 degrees of incidence.
+   * sin and cos of minus 5 degrees, to 17 digits. */
+  .alpha_zl = -5.0 * WING_PI / 180.0,
+  .sin_zl = -0.08715574274765817,
+  .cos_zl = 0.9961946980917455,
+  .cd0 = 0.0706,          /* the wheels off, the floats and their struts on */
+  .k_induced = 0.0606,    /* 1/(pi 0.75 7) */
+  .cl_de = -0.345,
+  .cy_beta = -0.380,      /* and the floats' sides */
+  .cy_dr = 0.106,
+  .cl_beta = -0.0772,     /* the floats' side force acts under the CG */
+  .cl_p = -0.81,
+  .cl_da = 0.40,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.008,
+  .cm_0 = 0.062,          /* trims at 12 m/s with the elevator neutral */
+  .cm_alpha = -0.62,      /* static margin 0.12 at the manual's 60 mm CG */
+  .cm_q = -7.7,
+  .cm_de = 0.89,
+  .cn_beta = 0.0329,      /* less the floats' volume, Munk's moment */
+  .cn_r = -0.076,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.136,
+  .cn_dr = -0.043,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The manual's high rates, 16, 16 and 18 mm, over the surfaces' chords. */
+  .throw_a = 18.0 * WING_PI / 180.0,
+  .throw_e = 15.0 * WING_PI / 180.0,
+  .throw_r = 15.0 * WING_PI / 180.0,
+  .surface_max = 18.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 13.5,  /* N, 3536 850 kV on 3S with an 11 x 7 */
+  .pitch_speed = 23.8,
+  .rpm_no_load = 9435.0,
+  .torque_arm = 0.0113,   /* 128 W of disc power at 8,020 rpm is 0.15 N m at 13.5 N */
+  .thrust_z = 0.0281,     /* 2 mm over the old CG, which the floats lower 26.1 mm */
+  .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
+  .current_full = 27.0,
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 1.2,
+  .stab_roll_kd = 0.12,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .acro_roll_rate = 120.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 80.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.25,
+  .acro_roll_ff = 0.35,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 4.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 3.0,     /* a third of the Skyhunter's yaw authority per stick */
 };

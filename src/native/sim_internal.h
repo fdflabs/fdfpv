@@ -73,6 +73,47 @@ typedef struct {
                    * edge goes, and 0 is a wheel that does not steer */
 } WheelParams;
 
+/*
+ * FLOATS, for an airframe that sits on water: two float hulls, one each
+ * side, the same shape. sim.c samples each along its keel in
+ * SIM_FLOAT_STATIONS strips, bow to stern, and each strip in the water
+ * gets its buoyancy, the planing force of the water it pushes down, the
+ * drag of the water across and along it; each float gets its wave making
+ * drag and a water rudder at its stern, steered with the air rudder. On
+ * land the keel's bow, step and stern are skids. docs/FLOATS-STAGE1.md
+ * derives every number and says why this is the model.
+ *
+ * The keel, in the body frame: flat at z_keel from the step forward to
+ * the knee, rising bow_rise to the bow; aft of the step it is step_h
+ * higher and rises aft_slope per metre to the stern. The deck is depth
+ * over the forebody keel. Each section is a V of deadrise tan_dr to the
+ * chines, then sides straight up.
+ */
+#define SIM_FLOAT_STATIONS 20
+typedef struct {
+  int count;          /* 0, an airframe without floats, or 2 */
+  double y;           /* each float's centreline, |body y|, m */
+  double x_bow, x_knee, x_step, x_stern; /* body x, m */
+  double z_keel;      /* the forebody keel, body z, m */
+  double bow_rise;    /* the keel at the bow over z_keel, m */
+  double step_h;      /* the step's height, m */
+  double aft_slope;   /* the afterbody keel's rise per metre aft */
+  double depth;       /* forebody keel to deck, m */
+  double beam;        /* m */
+  double tan_dr;      /* tan of the deadrise angle */
+  /* The water rudder: its blade's centre, body x and z (both floats, at
+   * +-y), its span, its area, its lift slope per rad and CL limit, and
+   * its angle per radian of air rudder, the same sign. */
+  double rudder_x, rudder_z, rudder_span, rudder_area, rudder_a, rudder_clmax, rudder_steer;
+  double cf;          /* skin friction coefficient on the wetted girth */
+  double c_cross;     /* crossflow drag coefficient, normal to the bottom */
+  double c_side;      /* crossflow drag coefficient, sideways */
+  double k_rad;       /* heave radiation damping, per rho B sqrt(g B) */
+  double wave_k;      /* wave making drag at speed, per newton of buoyancy */
+  double wave_fr0;    /* length Froude number where it is half grown */
+  double k_ground, c_ground, mu_ground; /* a keel skid on land */
+} FloatParams;
+
 typedef struct {
   int kind;          /* PLANT_KIND_QUAD or PLANT_KIND_WING */
   double mass_kg;
@@ -175,6 +216,9 @@ typedef struct {
    * which leaves sim.c's contact path exactly what it was for them. */
   int wheel_count;
   WheelParams wheel[SIM_WHEELS_MAX];
+  /* Floats. Zero count for every airframe that does not have them, which
+   * leaves sim.c's step exactly what it was for them. */
+  FloatParams floats;
 } PlantParams;
 
 /*
@@ -191,7 +235,9 @@ typedef struct {
 #define SIM_AIRFRAME_RADIAN2000 6
 #define SIM_AIRFRAME_TIMBER1500 7
 #define SIM_AIRFRAME_BRAMOR2300 8
-#define SIM_AIRFRAME_COUNT 9
+#define SIM_AIRFRAME_TIMBER1500F 9
+#define SIM_AIRFRAME_CUB1400F 10
+#define SIM_AIRFRAME_COUNT 11
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -510,6 +556,8 @@ extern const FixedWingParams FW_RADIAN2000;
 extern const FixedWingParams FW_BRAMOR2300;
 extern const FixedWingParams FW_SLOWSTICK1180;
 extern const FixedWingParams FW_TIMBER1500;
+extern const FixedWingParams FW_TIMBER1500F;
+extern const FixedWingParams FW_CUB1400F;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);

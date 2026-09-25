@@ -258,9 +258,10 @@ check('an aircraft without a chute refuses the pull', sim.e.sim_wing_chute(1) !=
 must(sim.e.sim_set_airframe(0), 'five inch');
 check('and so does a quad', sim.e.sim_wing_chute(1) !== SIM_OK);
 check('anything but 0 or 1 is refused', sim.e.sim_wing_chute(2) !== SIM_OK);
-/* 5 and 7 were reserved and are the Slow Stick and the Timber now; past
- * the end of the table is refused whatever lands. */
-check('one past the table and beyond are refused and leave the airframe alone', [9, 99].every((id) => sim.e.sim_set_airframe(id) !== SIM_OK) && sim.e.sim_airframe() === 0);
+/* 5 and 7 were reserved and are the Slow Stick and the Timber now, and 9
+ * and 10 the Timber and the Cub on floats; past the end of the table is
+ * refused whatever lands. */
+check('one past the table and beyond are refused and leave the airframe alone', [11, 99].every((id) => sim.e.sim_set_airframe(id) !== SIM_OK) && sim.e.sim_airframe() === 0);
 must(sim.e.sim_set_airframe(BRAMOR_AIRFRAME), 'bramor');
 check('and 8 is the Bramor', sim.e.sim_airframe() === 8);
 

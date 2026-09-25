@@ -259,9 +259,10 @@ check('a null pointer is refused', sim.e.sim_plane_surfaces(0) !== SIM_OK);
 
 /* Slots 5 and 7 were the reserved and empty ones when this was written,
  * and are the Slow Stick and the Timber now, so no slot is left empty to
- * refuse; past the end of the table is refused whatever lands. */
+ * refuse; past the end of the table is refused whatever lands. The table
+ * ends at 10 since the Timber and the Cub on floats took 9 and 10. */
 console.log('past the table');
-check('airframe 9, one past the table, is refused and the Radian stays selected', sim.e.sim_set_airframe(9) !== SIM_OK && sim.e.sim_airframe() === GLIDER_AIRFRAME, `airframe ${sim.e.sim_airframe()}`);
+check('airframe 11, one past the table, is refused and the Radian stays selected', sim.e.sim_set_airframe(11) !== SIM_OK && sim.e.sim_airframe() === GLIDER_AIRFRAME, `airframe ${sim.e.sim_airframe()}`);
 check('and so is 99', sim.e.sim_set_airframe(99) !== SIM_OK && sim.e.sim_airframe() === GLIDER_AIRFRAME, `airframe ${sim.e.sim_airframe()}`);
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);

@@ -1006,6 +1006,318 @@ static void ground_apply(void) {
   }
 }
 
+/*
+ * FLOATS, for an airframe that declares them (the Timber and the Cub on
+ * floats; every other airframe has none and returns at the first line).
+ * docs/FLOATS-STAGE1.md derives the model and every number.
+ *
+ * Each float is cut into SIM_FLOAT_STATIONS strips from bow to stern, and
+ * each strip's keel point is held against the water surface under it,
+ * which is the wave field of water.c at this step's time. A strip whose
+ * keel is under the surface gets, at that point:
+ *
+ *   BUOYANCY, rho g times its immersed section times its length, straight
+ *   up. The section is the float's V bottom to the chines and its sides
+ *   above, filled to the immersion along the body's up axis and no higher
+ *   than the deck.
+ *   THE PLANING FORCE, along the body's up axis: the momentum the strip
+ *   gives the water it pushes down. A strip of water the hull passes over
+ *   carries the added mass of the section wetted there, (pi/2) rho c^2 per
+ *   metre with c the half width Wagner's splash up wets, c = (pi/2) d /
+ *   tan(deadrise) to the chines; going aft the hull pushes it down at the
+ *   bottom's normal speed, so the force is the forward speed times that
+ *   speed times the growth of the added mass over the strip (Zarnick's
+ *   strip theory, steady form). Where the wetted width stops growing, at
+ *   the step above all, the water has left the hull and there is no force
+ *   until a strip further aft goes deeper than the deepest before it:
+ *   that is what makes a step a step. With the bow down the normal speed
+ *   changes sign and the force pulls the bow in, which is a nose dig.
+ *   CROSSFLOW DRAG against the bottom's normal speed, 0.5 rho C (2c) w|w|,
+ *   and a linear radiation damping for the waves a heaving float makes,
+ *   k_rad rho B sqrt(g B) w; CROSSFLOW DRAG sideways on the immersed
+ *   depth, which is what keeps a float from sliding sideways; and SKIN
+ *   FRICTION along the keel on the wetted girth.
+ *
+ * Each float then gets its WAVE MAKING DRAG, the buoyancy it carries
+ * times a coefficient that grows with the length Froude number of its
+ * wetted length to wave_k, which is the hump: at low speed the hull
+ * floats and makes no waves, near hull speed it makes the most it can,
+ * and as the planing force lifts it out its buoyancy, and the drag with
+ * it, fall away. And its WATER RUDDER at the stern, a small low aspect
+ * ratio foil turned with the air rudder, working in proportion to how
+ * much of its span is in the water.
+ *
+ * Every force is an impulse at its point through the body's effective
+ * mass, contact_push, the wheels' path. On land the keel's knee, step
+ * and stern are skids against the ground plane, sliding at mu_ground
+ * every way: a float has no wheel.
+ *
+ * Deterministic: sqrt, the fixed atan2 and the wave field's fixed sin
+ * and cos, a fixed order of strips and floats.
+ */
+static double g_float_diag[10];
+
+static double float_keel(const FloatParams *fp, double x) {
+  if (x > fp->x_knee) {
+    return fp->z_keel + fp->bow_rise * (x - fp->x_knee) / (fp->x_bow - fp->x_knee);
+  }
+  if (x >= fp->x_step) {
+    return fp->z_keel;
+  }
+  return fp->z_keel + fp->step_h + (fp->x_step - x) * fp->aft_slope;
+}
+
+/* One force F, world frame, at the body offset r, for one step. */
+static void float_force(const double r[3], const double F[3]) {
+  const double fm = sim_sqrt(F[0] * F[0] + F[1] * F[1] + F[2] * F[2]);
+  if (!(fm > 0.0)) {
+    return;
+  }
+  const double d[3] = { F[0] / fm, F[1] / fm, F[2] / fm };
+  contact_push(r, d, fm * SIM_DT);
+}
+
+/* A body frame vector to world. */
+static void float_to_world(double x, double y, double z, double out[3]) {
+  const double b[3] = { x, y, z };
+  contact_rotate(b, out);
+}
+
+/* The water's surface and velocity under a world point, in body `wb`. */
+static void float_water(int wb, double t, const double p[3], double ws[6]) {
+  water_sample(wb, p[0], p[1], t, ws);
+}
+
+/* The skids on land. Returns the load they carry, N. */
+static double float_ground(const FloatParams *fp) {
+  if (!g_ground_on || g_stand_on) {
+    return 0.0;
+  }
+  const double *n = g_ground_n;
+  double total = 0.0;
+  const double xs[3] = { fp->x_knee, fp->x_step, fp->x_stern };
+  for (int f = 0; f < 2; f += 1) {
+    const double yf = f == 0 ? fp->y : -fp->y;
+    for (int k = 0; k < 3; k += 1) {
+      double r[3];
+      float_to_world(xs[k], yf, float_keel(fp, xs[k]), r);
+      const double side = n[0] * (S.pos[0] + r[0]) + n[1] * (S.pos[1] + r[1]) + n[2] * (S.pos[2] + r[2]);
+      const double pen = g_ground_d - side;
+      if (!(pen > 0.0)) {
+        continue;
+      }
+      double vp[3];
+      contact_point_vel(r, vp);
+      const double vn = vp[0] * n[0] + vp[1] * n[1] + vp[2] * n[2];
+      const double fn = fp->k_ground * pen - fp->c_ground * vn;
+      if (!(fn > 0.0)) {
+        continue;
+      }
+      const double jn = fn * SIM_DT;
+      contact_push(r, n, jn);
+      total += fn;
+      /* The keel's heading on the ground and across it, the same grip
+       * both ways. */
+      double hw[3];
+      float_to_world(1.0, 0.0, 0.0, hw);
+      const double hn = hw[0] * n[0] + hw[1] * n[1] + hw[2] * n[2];
+      double h[3] = { hw[0] - hn * n[0], hw[1] - hn * n[1], hw[2] - hn * n[2] };
+      const double hl = sim_sqrt(h[0] * h[0] + h[1] * h[1] + h[2] * h[2]);
+      if (!(hl > 0.1)) {
+        continue;
+      }
+      h[0] /= hl;
+      h[1] /= hl;
+      h[2] /= hl;
+      const double l[3] = {
+        n[1] * h[2] - n[2] * h[1],
+        n[2] * h[0] - n[0] * h[2],
+        n[0] * h[1] - n[1] * h[0],
+      };
+      wheel_friction(r, l, fp->mu_ground * jn);
+      wheel_friction(r, h, fp->mu_ground * jn);
+    }
+  }
+  return total;
+}
+
+static void float_apply(void) {
+  const FloatParams *fp = &PLANT.floats;
+  if (fp->count == 0) {
+    return;
+  }
+  for (int i = 0; i < 10; i += 1) {
+    g_float_diag[i] = 0.0;
+  }
+  const double ground = float_ground(fp);
+  g_float_diag[6] = ground;
+  int wet = 0;
+  const int wb = water_body_at(S.pos[0], S.pos[1]);
+  if (wb >= 0) {
+    const double rho = 1000.0;
+    const double g = PLANT.gravity;
+    const double PI = 3.14159265358979323846;
+    const double t = (double)(S.step_index + 1) * SIM_DT;
+    const double L = fp->x_bow - fp->x_stern;
+    const double dx = L / (double)SIM_FLOAT_STATIONS;
+    const double half = 0.5 * fp->beam;
+    const double hc = half * fp->tan_dr;
+    const double sin_dr = fp->tan_dr / sim_sqrt(1.0 + fp->tan_dr * fp->tan_dr);
+    const double rad = fp->k_rad * rho * fp->beam * sim_sqrt(g * fp->beam);
+    /* The body's up axis in the world: how far a vertical immersion is
+     * along it, floored so a float on its side still has a section. */
+    double zb[3];
+    float_to_world(0.0, 0.0, 1.0, zb);
+    const double cz = zb[2] > 0.2 ? zb[2] : 0.2;
+    double surf[4];
+    plant_plane_surfaces(surf);
+    for (int f = 0; f < 2; f += 1) {
+      const double yf = f == 0 ? fp->y : -fp->y;
+      double ma_run = 0.0;
+      double d_prev = 0.0;
+      double buoy = 0.0;
+      double xb = 0.0;
+      double usum = 0.0;
+      int nwet = 0;
+      for (int i = 0; i < SIM_FLOAT_STATIONS; i += 1) {
+        const double x = fp->x_bow - ((double)i + 0.5) * dx;
+        const double zk = float_keel(fp, x);
+        double r[3];
+        float_to_world(x, yf, zk, r);
+        const double p[3] = { S.pos[0] + r[0], S.pos[1] + r[1], S.pos[2] + r[2] };
+        double ws[6];
+        float_water(wb, t, p, ws);
+        const double h = ws[0] - p[2];
+        if (!(h > 0.0)) {
+          d_prev = 0.0;
+          continue;
+        }
+        wet = 1;
+        const double cap = fp->z_keel + fp->depth - zk;
+        double d = h * cz;
+        if (d > cap) {
+          d = cap;
+        }
+        const double area = d <= hc ? d * d / fp->tan_dr : hc * hc / fp->tan_dr + fp->beam * (d - hc);
+        const double girth = d <= hc ? 2.0 * d / sin_dr : 2.0 * hc / sin_dr + 2.0 * (d - hc);
+        double c = 0.5 * PI * d / fp->tan_dr;
+        const int chines_dry = c < half;
+        if (!chines_dry) {
+          c = half;
+        }
+        const double ma = 0.5 * PI * rho * c * c;
+        /* The strip's velocity through the water, in the body frame, and
+         * how fast its immersion grows where it is: the surface's own rise
+         * and its slope under the strip's travel, less the strip's sink. */
+        double vp[3];
+        contact_point_vel(r, vp);
+        const double vr[3] = { vp[0] - ws[3], vp[1] - ws[4], vp[2] - ws[5] };
+        double vb[3];
+        contact_rotate_inv(vr, vb);
+        const double u = vb[0], v = vb[1];
+        const double up = u > 0.0 ? u : 0.0;
+        const double hdot = ws[5] + ws[1] * vp[0] + ws[2] * vp[1] - vp[2];
+        /* The rate a slice of water under this strip is pushed down: the
+         * growth of the immersion from the strip ahead to this one at the
+         * forward speed, which is the trim and the keel's own rocker, and
+         * the strip's own sinking. Water is pushed, never pulled. */
+        const double vn = up * (d - d_prev) / dx + hdot * cz;
+        d_prev = d;
+        double fz = 0.0;
+        if (vn > 0.0) {
+          double dm = 0.0;
+          if (ma > ma_run) {
+            dm = up * (ma - ma_run);
+          }
+          if (chines_dry && hdot > 0.0) {
+            /* Wagner's slam: the wetted width growing as the strip drops. */
+            dm += 0.5 * PI * PI * rho * c / fp->tan_dr * hdot * cz * dx;
+          }
+          fz = vn * dm + 0.5 * rho * fp->c_cross * 2.0 * c * vn * vn * dx;
+        }
+        if (ma > ma_run) {
+          ma_run = ma;
+        }
+        const double fy = -0.5 * rho * fp->c_side * d * v * sim_fabs(v) * dx;
+        const double fx = -0.5 * rho * fp->cf * girth * u * sim_fabs(u) * dx;
+        const double fb = rho * g * area * dx;
+        const double fr = rad * hdot * dx;
+        double Fw[3];
+        float_to_world(fx, fy, fz, Fw);
+        Fw[2] += fb + fr;
+        float_force(r, Fw);
+        buoy += fb;
+        xb += fb * x;
+        usum += u;
+        nwet += 1;
+        g_float_diag[0] += fb;
+        g_float_diag[1] += fz + fr;
+        g_float_diag[2] -= fx;
+        g_float_diag[3] += area * dx;
+      }
+      g_float_diag[4 + f] = (double)nwet * dx;
+      /* The wave making drag, at the float's centre of buoyancy, against
+       * its run through the water. */
+      if (nwet > 0 && buoy > 0.0) {
+        const double um = usum / (double)nwet;
+        const double fr2 = um * um / (g * (double)nwet * dx);
+        const double fr4 = fr2 * fr2;
+        const double f0 = fp->wave_fr0 * fp->wave_fr0;
+        const double rw = fp->wave_k * fr4 / (fr4 + f0 * f0) * buoy;
+        const double xc = xb / buoy;
+        double r[3];
+        float_to_world(xc, yf, fp->z_keel, r);
+        double Fw[3];
+        float_to_world(um > 0.0 ? -rw : rw, 0.0, 0.0, Fw);
+        float_force(r, Fw);
+        g_float_diag[2] += rw;
+        g_float_diag[8] += rw;
+      }
+      /* The water rudder, as much of it as is in the water. */
+      {
+        double r[3];
+        float_to_world(fp->rudder_x, yf, fp->rudder_z, r);
+        const double p[3] = { S.pos[0] + r[0], S.pos[1] + r[1], S.pos[2] + r[2] };
+        double ws[6];
+        float_water(wb, t, p, ws);
+        double frac = (ws[0] - (p[2] - 0.5 * fp->rudder_span)) / fp->rudder_span;
+        if (frac > 1.0) {
+          frac = 1.0;
+        }
+        if (frac > 0.0) {
+          double vp[3];
+          contact_point_vel(r, vp);
+          const double vr[3] = { vp[0] - ws[3], vp[1] - ws[4], vp[2] - ws[5] };
+          double vb[3];
+          contact_rotate_inv(vr, vb);
+          const double q2 = vb[0] * vb[0] + vb[1] * vb[1];
+          if (q2 > 1e-6) {
+            const double vm = sim_sqrt(q2);
+            const double beta = sim_atan2(vb[1], sim_fabs(vb[0]));
+            double cl = fp->rudder_a * (fp->rudder_steer * surf[3] + beta);
+            if (cl > fp->rudder_clmax) cl = fp->rudder_clmax;
+            if (cl < -fp->rudder_clmax) cl = -fp->rudder_clmax;
+            const double ar = fp->rudder_span * fp->rudder_span / fp->rudder_area;
+            const double cd = 0.02 + cl * cl / (PI * ar);
+            const double qa = 0.5 * rho * q2 * fp->rudder_area * frac;
+            const double fy = -qa * cl;
+            const double fx = -qa * cd * vb[0] / vm;
+            const double fyd = -qa * cd * vb[1] / vm;
+            double Fw[3];
+            float_to_world(fx, fy + fyd, 0.0, Fw);
+            float_force(r, Fw);
+            g_float_diag[7] += fy;
+          }
+        }
+      }
+    }
+  }
+  if (wet || ground > 0.0) {
+    plant_wing_set_on_wheels(1);
+  }
+  g_float_diag[9] = (double)wb;
+}
+
 SIM_EXPORT int sim_contact(double nx, double ny, double nz,
                            double restitution, double mu,
                            double px, double py, double pz,
@@ -1525,6 +1837,7 @@ SIM_EXPORT int sim_step(int n) {
       plant_step(&S, duty);
     }
     ground_apply();
+    float_apply();
     stand_apply();
     S.step_index += 1;
   }
@@ -1672,6 +1985,28 @@ SIM_EXPORT int sim_wheel_loads(double *out) {
   }
   for (int i = 0; i < SIM_WHEELS_MAX; i += 1) {
     out[i] = i < PLANT.wheel_count ? g_wheel_load[i] : 0.0;
+  }
+  return SIM_OK;
+}
+
+/*
+ * What the floats did on the last step, for the gates and a renderer:
+ * out[0] their buoyancy, N; out[1] the water's force along the body's up
+ * axis past the buoyancy, the planing force and the damping, N; out[2]
+ * the water's drag along the keels, N, positive holding the aircraft
+ * back; out[3] the displaced volume, m^3; out[4], out[5] the wetted
+ * length of the left and the right float, m; out[6] the load on the
+ * keels on land, N; out[7] the water rudders' side force, N, body y;
+ * out[8] the wave making drag, N; out[9] the index of the water body
+ * under the aircraft, or -1. All zero, and out[9] zero, on an airframe
+ * without floats. Additive, version unchanged.
+ */
+SIM_EXPORT int sim_float_state(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 0; i < 10; i += 1) {
+    out[i] = PLANT.floats.count ? g_float_diag[i] : 0.0;
   }
   return SIM_OK;
 }
