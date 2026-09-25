@@ -55,6 +55,7 @@ typedef struct {
   double crush_s; /* crush plateau stress, Pa, 0 for none */
   double crush_a; /* crush area, m^2 */
   double crush_d; /* crush depth before it is spent, m */
+  int blades;     /* a prop's blade count, 0 for two */
   double spar_r;  /* a wing panel's carbon spar or joiner, its outer radius,
                    * m: the panel bends on it (crash.c, SPAR_E_OVER_S); 0 for
                    * a part too stiff to ring within a contact */
@@ -158,16 +159,16 @@ static const PartDef PARTS_5IN[] = {
     .mass = 0.033, .joint = { Q5, Q5, 0.0 }, .m_max = M5_MOTOR_M, .f_max = 3000.0, .k = 2.0e6,
     BOX(Q5 - 0.014, Q5 + 0.014, Q5 - 0.014, Q5 + 0.014, 0.0, 0.026) },
   /* 9..12 props, 5 inch tri blades, discs at z 0.034. */
-  { .kind = SIM_PART_PROP, .parent = 5, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = -1, .shape = SH_DISCZ,
+  { .kind = SIM_PART_PROP, .parent = 5, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0045, .joint = { -Q5, -Q5, 0.030 }, .m_max = M5_PROP_M, .f_max = 400.0, .k = M5_PROP_K,
     .npts = 8, .pts = { { -Q5, -Q5, 0.034 }, { 0.0635, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 6, .mat = SIM_MAT_NYLON_GF, .motor = 1, .wheel = -1, .shape = SH_DISCZ,
+  { .kind = SIM_PART_PROP, .parent = 6, .mat = SIM_MAT_NYLON_GF, .motor = 1, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0045, .joint = { Q5, -Q5, 0.030 }, .m_max = M5_PROP_M, .f_max = 400.0, .k = M5_PROP_K,
     .npts = 8, .pts = { { Q5, -Q5, 0.034 }, { 0.0635, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 7, .mat = SIM_MAT_NYLON_GF, .motor = 2, .wheel = -1, .shape = SH_DISCZ,
+  { .kind = SIM_PART_PROP, .parent = 7, .mat = SIM_MAT_NYLON_GF, .motor = 2, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0045, .joint = { -Q5, Q5, 0.030 }, .m_max = M5_PROP_M, .f_max = 400.0, .k = M5_PROP_K,
     .npts = 8, .pts = { { -Q5, Q5, 0.034 }, { 0.0635, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 8, .mat = SIM_MAT_NYLON_GF, .motor = 3, .wheel = -1, .shape = SH_DISCZ,
+  { .kind = SIM_PART_PROP, .parent = 8, .mat = SIM_MAT_NYLON_GF, .motor = 3, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0045, .joint = { Q5, Q5, 0.030 }, .m_max = M5_PROP_M, .f_max = 400.0, .k = M5_PROP_K,
     .npts = 8, .pts = { { Q5, Q5, 0.034 }, { 0.0635, 0.0, 0.0 } } },
   /* 13 the 6S 1300 under the frame, its bottom at the plant's measured
@@ -207,16 +208,16 @@ static const PartDef PARTS_WHOOP65[] = {
     .mass = 0.0019, .joint = { QW, QW, 0.0 }, .m_max = WH_MOTOR_M, .f_max = 30.0, .k = 5.0e5,
     BOX(QW - 0.004, QW + 0.004, QW - 0.004, QW + 0.004, 0.0, 0.006) },
   /* 5..8 31 mm PC tri blades on 1 mm shafts, inside the ducts. */
-  { .kind = SIM_PART_PROP, .parent = 1, .mat = SIM_MAT_PC, .motor = 0, .wheel = -1, .shape = SH_DISCZ,
+  { .kind = SIM_PART_PROP, .parent = 1, .mat = SIM_MAT_PC, .motor = 0, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0005, .joint = { -QW, -QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { -QW, -QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 2, .mat = SIM_MAT_PC, .motor = 1, .wheel = -1, .shape = SH_DISCZ,
+  { .kind = SIM_PART_PROP, .parent = 2, .mat = SIM_MAT_PC, .motor = 1, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0005, .joint = { QW, -QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { QW, -QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 3, .mat = SIM_MAT_PC, .motor = 2, .wheel = -1, .shape = SH_DISCZ,
+  { .kind = SIM_PART_PROP, .parent = 3, .mat = SIM_MAT_PC, .motor = 2, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0005, .joint = { -QW, QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { -QW, QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 4, .mat = SIM_MAT_PC, .motor = 3, .wheel = -1, .shape = SH_DISCZ,
+  { .kind = SIM_PART_PROP, .parent = 4, .mat = SIM_MAT_PC, .motor = 3, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0005, .joint = { QW, QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { QW, QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
   /* 9 the 1S 300 mAh in its holder, which lets go at a few newtons. */

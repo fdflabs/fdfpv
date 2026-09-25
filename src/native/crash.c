@@ -1258,6 +1258,7 @@ typedef struct {
 
 static Hit H[HITS_MAX];
 static double g_bb[HITS_MAX][3]; /* each hit's point, body live, judge's */
+static double g_blow[SIM_PARTS_MAX]; /* a struck blade's own root moment, N m */
 static int g_nh = 0;
 static double g_pre_vel[3];
 static double g_pre_w[3];
@@ -2169,6 +2170,9 @@ static void seat_load(const Table *t, int j, const double Fj[3], const double Mj
 static void judge(SimState *s) {
   const Table *t = tab();
   const int n = t->n;
+  for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
+    g_blow[i] = 0.0;
+  }
   double Fb[HITS_MAX][3];
   double (*bb)[3] = g_bb;
   double sc[HITS_MAX];
@@ -2290,6 +2294,22 @@ static void judge(SimState *s) {
       /* Past the limit the chip grows at the old rate, faded in from
        * nothing at the limit so the damage is continuous in the load. */
       const double over = sigma > strength ? 1.0 - strength / sigma : 0.0;
+      /* Past the limit the surface stops the tip rather than giving way,
+       * and the blade is stopped by its own spring: the tip's blow is
+       * v sqrt(k m), its effective mass a third of a blade's (a rod turned
+       * about the hub, struck at its end) and k the blade's tip stiffness
+       * and the surface's in series, at the tip's own speed (the model's,
+       * for the whoop the shell flies, whose limits are scaled with it).
+       * It bends the blade at its root, the lever its radius. */
+      if (over > 0.0) {
+        const int nb = d->blades > 0 ? d->blades : 2;
+        const double m_tip = d->mass / (3.0 * (double)nb);
+        const double k_tip = series_k(d->k, SURF[x->surf].k);
+        const double blow = tip * life * sim_sqrt(k_tip * m_tip) * 0.5 * span;
+        if (blow > g_blow[i]) {
+          g_blow[i] = blow;
+        }
+      }
       const double vt = tip / 100.0;
       const double dc = vt * vt * SURF[x->surf].hard * SIM_DT / CHIP_SPIN_T * over;
       if (dc > 0.0) {
@@ -2392,7 +2412,7 @@ static void judge(SimState *s) {
       }
       const PartDef *dj = &t->p[j];
       double Fj[3], Mj[3];
-      const int path = joint_load(t, j, Fb, sc, gone, acc, alp, Fj, Mj);
+      int path = joint_load(t, j, Fb, sc, gone, acc, alp, Fj, Mj);
       if (t->w1[j] > 0.0) {
         /* The panel's first mode, a spring of its own frequency driven by
          * the joint's quasi static load: it takes the batch's momentum as a
@@ -2418,6 +2438,11 @@ static void judge(SimState *s) {
       const double st = PS[j].strength;
       double fm, mm;
       seat_load(t, j, Fj, Mj, &fm, &mm);
+      if (g_blow[j] > mm) {
+        /* A blade's own blow at its root, about its disc's axis. */
+        mm = g_blow[j];
+        path = 1;
+      }
       double rho = mm / (dj->m_max * st);
       if (fm / (dj->f_max * st) > rho) {
         rho = fm / (dj->f_max * st);
