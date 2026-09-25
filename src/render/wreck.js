@@ -786,7 +786,10 @@ export function createWreck() {
           low = [vb.x, vb.y, vb.z];
         }
       }
-      out.push({ part: i, kind: table[i].kindName, tris, overhang: worst, mesh: where, hullLow: low });
+      out.push({
+        part: i, kind: table[i].kindName, parent: table[i].parent, tris, overhang: worst, mesh: where, hullLow: low,
+        free: free[i] === 1,
+      });
     }
     return out;
   }
