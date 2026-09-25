@@ -618,3 +618,90 @@ rest distance, main to this: Skyhunter 65 to 123 g, 3.0 to 13.7 m; Cub 37
 to 22 g, 4.8 to 25.0 m; Radian 140 to 136 g; Slow Stick 30 to 17 g;
 Timber 29 to 14 g, 10.5 to 25.9 m; Bramor 89 to 121 g; catapult 57 to 58
 g; all rest upright, as on main.
+
+## The fourth return: the sink held full back
+
+The owner flew 37804b3: the Cub "drops like a rock with wings level".
+`npm run stall:sink` (scripts/stall-sink.js) holds full back, power off,
+from 1.15 V_s, 14 s, and averages the last 6 s.
+
+**The cause.** Past the stall the wing held the lift at the stall angle,
+which is the plant's blend midpoint: on the Cub 0.74, 0.64 of its CLmax
+and about 0.1 under the peak the plant's own curve reaches just before
+the stall. The UIUC sections hold their peak flat past the stall. The
+wing now holds the peak of the plant's own curve, so the lift past the
+stall never exceeds what the wing reached before it. Holding the table's
+CLmax instead (tried: the Cub at 1.9 m/s) makes the lift rise past the
+stall above its pre-stall peak, a mush slower than the stall speed; not
+done. Drag was checked and is not the cause: at the Cub's 16 deg the
+plate's 2 sin² alpha is within 0.06 of a 3D wing's Viterna CDmax at its
+aspect ratio. The tail's authority was not the cause either: the Cub's
+full up trims at 16 to 17 deg, not 40 (40 is the probe's spin with full
+rudder, a different thing).
+
+The washout was refitted by the same rule for the new trims: Cub 3 deg,
+Skyhunter 5 (at the bound), Timber 2 (the break drop only; its 10 s bank
+is 50 and not met by 5 deg), Slow Stick 2, Bombshell 3, Radian none.
+
+Held full back, power off, mean of the last 6 s, sink in m/s (airspeed,
+alpha):
+
+| Airframe | main d94aec4 (Stabilised) | 37804b3 (Stabilised) | now, Manual | now, Stabilised | now, Acro |
+| --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 3.47 (7.1, 27.8) | 4.37 | 4.20 (8.5, 22.6) | 4.19 | 4.19 |
+| Skyhunter | 4.67 (10.6, 24.0) | 2.63 | 3.00 (11.8, 14.5) | 2.35 (10.8, 15.5) | 2.37 |
+| Cub | 4.48 (9.0, 27.3) | 2.66 | 2.70 (9.8, 16.3) | 2.36 (9.3, 16.9) | 2.39 |
+| Cub on floats | 4.96 | 3.12 | 2.97 | 2.76 | 2.79 |
+| Slow Stick | 2.09 (5.7, 17.9) | 1.79 | 1.72 (5.3, 18.4) | 1.72 | 1.72 |
+| Radian | 3.20 (7.2, 25.2) | 2.78 | 9.49, a spiral dive | 2.27 (8.6, 16.3) | 4.20 |
+| Timber | 4.50 (8.8, 28.3) | 2.73 | 3.90 (10.5, 18.7) | 2.32 (8.4, 20.7) | 2.40 |
+| Timber on floats | 4.90 | 3.07 | 4.34 | 2.61 | 2.66 |
+| Bramor | 4.97 (13.2, 20.0) | 5.80 | 8.21, a flat spin | 5.72 (14.4, 18.9) | 5.72 |
+| Bombshell | 3.00 (8.7, 15.7) | 2.16 | 1.89 (7.7, 15.3) | 1.87 (7.6, 14.9) | 1.97 |
+
+A Cub of this wing loading, 46 N/m², mushing at its CLmax of 1.15 with a
+stalled drag coefficient about 0.2 (UIUC's Clark-Y drag jumps to 0.1 to
+0.2 past its stall, and the induced drag adds 0.08) comes down at about
+1.5 to 2 m/s: 2.4 is at the top of that, and the mush bobs, 0.8 to 4.5
+m/s over the first 10 s after the break. The flying wings sink faster
+than on main: the 1000 mm wing's peak hold trims it at 22.6 deg of alpha
+where main's flat plate trimmed at 27.8, and the Bramor's reflexed wing
+holds full up at 18.9 deg. The Bombshell's held back sink, 1.9 m/s, is
+under the 2.25 to 3.75 its S9a band was derived for on the plate.
+
+The table of each aircraft past the stall, `npm run stall:probe`:
+
+| Airframe | Nose drop | Wing drop | 10 s bank | Spin (B) | Spin recovery | Stall recovery | Acro drop / 10 s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 25 | 18 | 18 | a spiral, no rudder | 0.02 s | 0.17 s | 1 / 1 |
+| Skyhunter | 5 | 5 | 26 | no, 59 deg/s | 0.10 s | 0.16 s | 2 / 6 |
+| Cub | 7 | 3 | 20 | yes, 62 deg/s | 0.10 s | 0.17 s | 2 / 7 |
+| Cub on floats | 7 | 3 | 16 | yes, 64 deg/s | 0.10 s | 0.17 s | 2 / 7 |
+| Slow Stick | 10 | 1 | 9 | no | 0.06 s | 0.17 s | 1 / 4 |
+| Radian | 51 | 72 | 72 | yes, 409 deg/s | 0.38 s | none in 7 s | 48 / 52 |
+| Timber | 16 | 7 | 51 | yes, 70 deg/s | 0.09 s | 0.14 s | 2 / 10 |
+| Timber, slats off | 22 | 8 | 50 | yes, 572 deg/s | 0.75 s | 0.11 s | 3 / 6 |
+| Timber on floats | 10 | 11 | 49 | yes, 68 deg/s | 0.09 s | 0.14 s | 1 / 8 |
+| Bombshell | 11 | 0 | 5 | yes, 142 deg/s | 0.04 s | 0.13 s | 1 / 3 |
+| Bramor | 70 | 179 | a flat spin | a flat spin | the chute | the chute | 2 / 2 |
+
+The chute still recovers the Bramor from the flat spin at 5.0 to 5.6 m/s
+from every release, 17 to 197 m (bramor-spin-chute.js).
+
+Gates on this build, against main d94aec4: crash:core 152 of 152; T10
+6.68 m/s, cub:stab heading 1.6 deg and the Slow Stick's S15 pass;
+stall:crossing: the wing and the Slow Stick identical, every other
+recording first differing past its stall angle and above Re 3e4.
+Failing: the stored hashes (their recordings now sky 6b509cb9135b1740,
+cub d71e921bcbbf0b5e, glider 9eb65aac246a3ee0, bramor e6574d76eb555a92,
+bramor chute 0751523e69b3683d, timber e2997c1ee95aa05f, timber on floats
+b99b736a464c870a, Bombshell d44c698cc7a6f6d1); Slow Stick S9b (bank 28.7,
+yaw 44.5); Bombshell S9a (its sink, 1.91 against 2.25 to 3.75; bank 5.1
+and yaw 6.5 inside); bombshell:stab's take off heading (6.6 deg, 0.80 m
+against 5 and 0.5; 4.9 and 0.50 on main).
+
+Crash suite against main d94aec4: 9 of 60 inside every band, failing
+checks 134 to 133, 60 deterministic. Stall ins, peak g and rest
+distance: Skyhunter 65 to 186 g, 3.0 to 21.7 m; Cub 37 to 10 g, 4.8 to
+18.4 m; Radian 140 to 135 g; Slow Stick 30 to 17 g; Timber 29 to 8 g,
+10.5 to 23.3 m; Bramor 89 to 129 g; catapult 57 to 58 g; all upright.
