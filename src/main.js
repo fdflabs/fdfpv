@@ -3577,6 +3577,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* What coveredAt answered when the solids were declared: the same array
    * for the same roof and extent, which is how a change is seen. */
   let crashCovered = null;
+  const slabPick = [];
+  const slabBasis = new THREE.Matrix4();
+  const slabQuat = new THREE.Quaternion();
+  const slabU = new THREE.Vector3();
+  const slabN = new THREE.Vector3();
+  const slabV = new THREE.Vector3();
   const passSet = [];
   /* The posts and bars declared to the plant, which the sweep passes
    * (plantHoldsSolid): cleared at every declaration, which the cover watch
@@ -3869,8 +3875,28 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         crashSkip[i] = 0;
       }
     }
+    if (view.roofSlabs) {
+      view.roofSlabs(crashProbe.x, crashProbe.z, crashProbe.y - SURFACE_BIAS, SOLID_REACH, slabPick);
+      slabPick.sort((a, b) => a.d2 - b.d2);
+    } else {
+      slabPick.length = 0;
+    }
     boxQuat.copy(qSpawnInv);
-    for (const { i } of solidPick) {
+    /* The solids and the roofs, nearest first, as many as the plant holds. */
+    let si = 0;
+    let ri = 0;
+    while (si < solidPick.length || ri < slabPick.length) {
+      const roof = ri < slabPick.length && (si >= solidPick.length || slabPick[ri].d2 < solidPick[si].d2);
+      if (roof) {
+        if (declareSlab(slabPick[ri]) < 0) {
+          break;
+        }
+        ri += 1;
+        crashSolidsDeclared += 1;
+        continue;
+      }
+      const i = solidPick[si].i;
+      si += 1;
       if (declareSolid(col, i) < 0) {
         break;
       }
@@ -3880,6 +3906,33 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         solidPassSet.push(i);
       }
     }
+  }
+
+  /*
+   * A ROOF IS A SOLID FOR THE BROKEN PARTS. The craft stands on a roof
+   * through the plant's ground plane (src/maps/alps/roofs.js), but a free
+   * part has no ground but that one plane under the craft, and the roof was
+   * declared to the plant as nothing: a Cub's aileron that fell on a roof
+   * beside the craft went through the tiles and came to rest on the walls'
+   * tops at the plate, five metres up inside the house. Each face is a slab
+   * under the tiles (roofSlabs), in the roof's own material; the roof the
+   * craft stands on is left to the ground plane.
+   */
+  function declareSlab({ slab, material }) {
+    worldPosToSim(slab.c[0], slab.c[1], slab.c[2], crashSimA);
+    slabU.set(slab.u[0], slab.u[1], slab.u[2]);
+    slabN.set(slab.n[0], slab.n[1], slab.n[2]);
+    slabV.set(slab.v[0], slab.v[1], slab.v[2]);
+    slabBasis.makeBasis(slabU, slabN, slabV);
+    slabQuat.setFromRotationMatrix(slabBasis).premultiply(qSpawnInv);
+    /* As declareSolid's boxes: the plant box's x is the slab's v (Three z),
+     * its y the slab's u (Three x), its z the slab's normal (Three y). */
+    return sim.e.sim_obstacle_box(
+      crashSimA.x, crashSimA.y, crashSimA.z,
+      slab.hv, slab.hu, slab.hn,
+      slabQuat.w, -slabQuat.z, -slabQuat.x, slabQuat.y,
+      SURFACE[material] ?? SURFACE.concrete,
+    );
   }
 
   /*
