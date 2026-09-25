@@ -41,7 +41,7 @@ import {
 } from '../alps/terrain.js';
 import { LAYERS, SUN_U } from './assets.js';
 import { CLIFF_LOW, CLIFF_HIGH, LOW_HALF, LOW_GATE } from './rock/carve.js';
-import { apronAt } from './terrain.js';
+import { apronAt, wallRise } from './terrain.js';
 import { noise2, smoothstep } from '../alps/noise.js';
 
 /* Per layer, in LAYERS order: metres a texture tile covers, a tint on
@@ -163,11 +163,10 @@ export function groundMasks(field) {
       const k = (j * ZONES + i) * 4;
       z1[k] = b(zone.forest);
       z1[k + 1] = b(zone.bloom);
-      /* Scree at the foot of the walls' faces (swiss2/terrain.js), which
-       * a 23 m texel reading the slope misses (the apron is three wide):
-       * in fans under the gullies, grassed over between them. */
-      const fans = smoothstep(0.4, 0.7, noise2(x / 55 + 1.3, z / 55 + 7.7));
-      z1[k + 2] = b(Math.max(zone.scree, 0.9 * fans * apronAt(x, z)));
+      /* The scree at the foot of the walls' faces is not here: at 23 m
+       * a texel it was a grey cloud along the foot, and it is drawn as
+       * cones, finer, in the path mask (pathMask). */
+      z1[k + 2] = b(zone.scree);
       z1[k + 3] = b(zone.shore);
       z2[k] = b(zone.hay);
       z2[k + 1] = b(zone.flat);
@@ -248,11 +247,96 @@ export function pathMask() {
     g.stroke();
   }
   const rgba = g.getImageData(0, 0, PATH_PX, PATH_PX).data;
-  const r = new Uint8Array(PATH_PX * PATH_PX);
-  for (let k = 0; k < r.length; k += 1) {
-    r[k] = rgba[k * 4];
+  const cones = screeCones();
+  const rg = new Uint8Array(PATH_PX * PATH_PX * 2);
+  for (let k = 0; k < PATH_PX * PATH_PX; k += 1) {
+    rg[k * 2] = rgba[k * 4];
+    rg[k * 2 + 1] = cones[k];
   }
-  return dataTexture(r, PATH_PX, THREE.RedFormat);
+  return dataTexture(rg, PATH_PX, THREE.RGFormat);
+}
+
+/*
+ * The scree cones at the faces' feet, on the path mask's grid, as the
+ * ground's second path channel. On the apron (swiss2/terrain.js apronAt,
+ * one on it and nought off it) a gully sheds a cone every seventy
+ * metres or so along the wall, most of them, a few metres wide at the
+ * gully and fifty at the toe, and none where the apron's wood stands
+ * (vegetation/forest.js plants it on the same noise), so the trees stand
+ * between the cones and up their edges. How far up the apron a point is
+ * is how far the wall has lifted the ground there (wallRise). The value:
+ * under 0.45 the apron without scree, from 0.5 a cone, to 1 down its
+ * middle.
+ */
+function screeCones() {
+  const out = new Uint8Array(PATH_PX * PATH_PX);
+  const px = FIELD / PATH_PX;
+  /* The apron, and how far the wall has lifted the ground there (which
+   * is how far up the apron a point is: nothing at its toe, some tens of
+   * metres at the face), read on a grid four texels a cell and read
+   * between. */
+  const COARSE = 4;
+  const cn = PATH_PX / COARSE + 1;
+  const coarse = new Float32Array(cn * cn);
+  const lift = new Float32Array(cn * cn);
+  for (let j = 0; j < cn; j += 1) {
+    for (let i = 0; i < cn; i += 1) {
+      const x = -HALF + i * COARSE * px;
+      const z = -HALF + j * COARSE * px;
+      coarse[j * cn + i] = apronAt(x, z);
+      lift[j * cn + i] = coarse[j * cn + i] > 0 ? wallRise(x, z) : 0;
+    }
+  }
+  const hash = (c, salt) => {
+    const v = Math.sin(c * 127.1 + salt * 311.7) * 43758.5453;
+    return v - Math.floor(v);
+  };
+  const SPACING = 70;
+  for (let j = 0; j < PATH_PX; j += 1) {
+    const z = -HALF + (j + 0.5) * px;
+    const cj = Math.min(cn - 2, Math.floor((j + 0.5) / COARSE));
+    const fj = (j + 0.5) / COARSE - cj;
+    for (let i = 0; i < PATH_PX; i += 1) {
+      const ci = Math.min(cn - 2, Math.floor((i + 0.5) / COARSE));
+      const fi = (i + 0.5) / COARSE - ci;
+      const k0 = cj * cn + ci;
+      const a = (coarse[k0] * (1 - fi) + coarse[k0 + 1] * fi) * (1 - fj) + (coarse[k0 + cn] * (1 - fi) + coarse[k0 + cn + 1] * fi) * fj;
+      if (a < 0.01) {
+        continue;
+      }
+      const x = -HALF + (i + 0.5) * px;
+      const up = (lift[k0] * (1 - fi) + lift[k0 + 1] * fi) * (1 - fj) + (lift[k0 + cn] * (1 - fi) + lift[k0 + cn + 1] * fi) * fj;
+      const cell = Math.floor(z / SPACING);
+      /* The sides wander, a stone's throw either way. */
+      const wobble = 5 * (noise2(x / 11 + 3.3, z / 11 + 7.1) - 0.5) + 2 * (noise2(x / 3.5, z / 3.5) - 0.5);
+      let cone = 0;
+      let centre = 0;
+      for (let q = -1; q <= 1; q += 1) {
+        const c = cell + q + (x > 0 ? 0 : 1000);
+        if (hash(c, 1) > 0.85) {
+          continue;
+        }
+        /* Its gully, where it starts up the apron, and how wide it
+         * fans: a cone's sides run straight from its gully to its toe. */
+        const cz = (cell + q + 0.5 + (hash(c, 2) - 0.5) * 0.5) * SPACING;
+        const top = 22 + 14 * hash(c, 4);
+        const t = Math.max(0, 1 - up / top);
+        const hw = (2 + (18 + 16 * hash(c, 3)) * t) * (up < top + 4 ? 1 : 0);
+        const lat = Math.abs(z - cz + wobble);
+        const inside = 1 - smoothstep(0.75 * hw, hw + 0.01, lat);
+        if (inside > cone) {
+          cone = inside;
+          centre = Math.max(0, 1 - lat / (hw + 0.01));
+        }
+      }
+      const wood = smoothstep(0.46, 0.62, noise2(x / 70 + 4.9, z / 70 + 0.6));
+      /* The toe in lobes, where the stones ran out. */
+      cone *= (1 - wood) * smoothstep(0.02, 0.2, a + 0.25 * (noise2(x / 9 + 1.1, z / 9 + 5.3) - 0.5));
+      const v = cone > 0.5 ? 0.5 + 0.49 * centre : 0.45 * a;
+      out[j * PATH_PX + i] = Math.round(255 * Math.max(0.02, v));
+    }
+  }
+  return out;
 }
 
 /*
@@ -1038,7 +1122,9 @@ const GROUND_PARS = /* glsl */ `
     float inside = step(0.0, fuv.x) * step(fuv.x, 1.0) * step(0.0, fuv.y) * step(fuv.y, 1.0);
     vec4 z1 = texture2D(uS2Zone1, fuv) * inside;
     vec4 z2 = texture2D(uS2Zone2, fuv) * inside;
-    float path = texture2D(uS2Path, fuv).r * inside;
+    vec2 pathS = texture2D(uS2Path, fuv).rg * inside;
+    float path = pathS.r;
+    float apronCone = pathS.g;
     float dist = length(p - cameraPosition);
     vec3 n0 = n;
     vec3 toEye = normalize(cameraPosition - p);
@@ -1157,6 +1243,18 @@ const GROUND_PARS = /* glsl */ `
       cov[4] = max(cov[4], vS2Cav.y);
     #endif
     cov[3] = max(cov[3], screeFan);
+    /*
+     * The scree at a face's foot as cones, not a smear. The zone mask
+     * (23 m a texel) laid it as one grey cloud; real scree comes down
+     * each gully as its own cone, narrow at the gully and fanning out
+     * below, with the apron's grass and trees between the cones. The
+     * cones are drawn into the path mask's second channel (pathMask),
+     * three metres a texel, their edges broken here by the noise; their
+     * stone is coloured after the layers (below).
+     */
+    float screeApron = smoothstep(0.01, 0.06, apronCone);
+    float cone = smoothstep(0.47, 0.53, apronCone + 0.08 * (fine - 0.5));
+    cov[3] = max(cov[3] * (1.0 - screeApron), cone);
     float rockHigh = inside > 0.5 ? z2.a : smoothstep(650.0, 950.0, p.y + 200.0 * macro);
     /* Above the trees the mountain is not all broken rock: turf holds on
      * everything but the steep and the highest ground, in sweeps the
@@ -1348,6 +1446,35 @@ const GROUND_PARS = /* glsl */ `
     albedo *= mix(vec3(1.0), alpTint, alpine);
     float scrub = smoothstep(0.6, 0.78, ravine + 0.2 * (meso - 0.5)) * smoothstep(220.0, 380.0, p.y) * (1.0 - smoothstep(900.0, 1100.0, p.y)) * steep0 * grass * inside;
     albedo *= mix(vec3(1.0), vec3(0.42, 0.56, 0.36), 0.85 * scrub);
+    /*
+     * What the aprons do to the ground's colour. Their mask is read
+     * again here, after the layers' loop (the texel read before it, from
+     * the cache), rather than its values carried across it: every value
+     * carried across the loop costs every pixel of the valley, 0.3 to
+     * 0.7 ms a frame at High in every view (scripts/swiss2-perf.js),
+     * where reading it again costs next to none.
+     *
+     * The scree cones: pale fresh stone down a cone's middle, grey
+     * lichen at its sides, and blocks from a hand to a couple of metres
+     * across, the big ones out toward the toe. Between the cones the
+     * apron is avalanche grass: long, pale and yellowed, flattened each
+     * spring by the snow that comes down the same gullies.
+     */
+    {
+      vec2 fuvL = (p.xz + uS2Field.x) / uS2Field.y;
+      float apronCone = texture2D(uS2Path, fuvL).g * inside;
+      float screeApron = smoothstep(0.01, 0.06, apronCone);
+      float cone = smoothstep(0.47, 0.53, apronCone + 0.08 * (fine - 0.5));
+      vec3 local = vec3(1.0);
+      if (cone > 0.0) {
+        float lichen = smoothstep(0.35, 0.65, s2Noise(vec2(p.z / 6.0 + 1.3, p.x / 25.0)));
+        float fresh = smoothstep(0.72, 0.92, apronCone + 0.15 * (lichen - 0.5));
+        float blocks = smoothstep(0.72, 0.84, s2Noise(p.xz / mix(2.2, 0.8, fresh) + 9.7));
+        local = mix(vec3(1.0), mix(vec3(0.74, 0.78, 0.7), vec3(1.06, 1.04, 1.0), max(fresh, 0.3 * lichen)) * (1.0 - 0.5 * blocks), cone);
+      }
+      local *= mix(vec3(1.0), vec3(1.22, 1.1, 0.68), grass * screeApron * (1.0 - cone) * 0.8);
+      albedo *= local;
+    }
     albedo *= mix(vec3(1.0), field.tint, farm);
     /* The airfield's wear on the ground itself, under the grass and
      * whatever share the pasture layer takes of the farmed tint: carried
