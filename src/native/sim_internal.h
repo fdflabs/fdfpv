@@ -704,6 +704,9 @@ extern int SIM_DAMAGE;
  * impulse (jn along n, jt the friction vector) for the step's judgement. */
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
                        double vin, double kn, double *e_used, double *jn_cap);
+/* How far the next contact's point is past the surface, m, the ground
+ * plane's; called before crash_contact_pre. */
+void crash_contact_depth(double pen);
 void crash_contact_post(const SimState *s, const double r[3], const double n[3],
                         double vin, double kn, double jn, const double jt[3]);
 /* A force contact, one whose force is known rather than an impulse: a
@@ -721,8 +724,9 @@ int crash_obstacle_surface(void);
  * craft's motion before the impulses. End of it: judges the batch's loads,
  * breaks and damages, and rebuilds CRASH. */
 void crash_batch_begin(const SimState *s, int from_step);
-/* A foam part is crushing this batch, and the last contact's impulse was
- * capped at its plateau: the solver's position corrections stand aside. */
+/* A foam part is crushing this batch, or a part is being driven into the
+ * ground's spring, and the last contact's impulse was capped by it: the
+ * solver's position corrections and resting stops stand aside. */
 int crash_crushing(void);
 int crash_last_capped(void);
 void crash_batch_end(SimState *s);

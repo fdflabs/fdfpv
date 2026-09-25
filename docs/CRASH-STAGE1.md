@@ -312,13 +312,45 @@ it gives). Against the ground the decision uses the craft's whole mass,
 against an obstacle the point's effective mass. A tractor's motor crushes
 with the nose behind it.
 
-**Impacts under every limit stay one step impulses.** That is the bit
-identity rule: a contact that damages nothing cannot be given a duration
-without moving every gate. The suite's peak load bands for undamaging
-impacts (a 5 inch dropped flat, a prop strike on a bank, an inverted
-landing) therefore still read the one step value. Giving every contact
-compliance is the lead's decision; it moves every flight that touches
-anything.
+**The ground is a spring** (round 2, by the lead's decision that with
+the mode on every contact may have its physical duration, docs/CRASH-PLAN.md).
+Until round 2 an impact under every limit was a one step impulse, so the
+craft took its whole change of speed inside a millisecond (a Skyhunter
+stalled in from 8 m read 380 g, a Timber 716) while the judge estimated
+the joints' loads as `F = sqrt(k J v)`, the peak of a linear contact of
+stiffness k. The two now agree: a part driven into the ground plane is
+stopped by that spring, the part's k and the surface's in series, at the
+depth x its deepest point has reached, `F = k x`:
+
+- While a part is going in, its normal impulse in a step is at most
+  `k x dt`, shared among the points it meets the ground at by each point's
+  own depth (so a pack landed flat is pushed at its middle, whatever order
+  the solver visits its corners in), and never more than stops it (no bias
+  push, no bounce). The solver's position corrections stand aside, as
+  for a crush, and the resting stops (`ground_settle`) turn to Coulomb
+  friction, as they do for a canopy in wind.
+- When it has stopped going in (under 0.05 m/s, as a crush), the contact
+  is the rigid one again and the position correction brings the part out
+  of its depth without throwing it (no bias impulse in that step).
+- A contact the spring already holds at its point's depth, a craft standing
+  on its belly or its pack, is rigid from the start.
+- The judge takes a sprung part's force as what the solver gave it,
+  `jn / dt`.
+- Not sprung: parts softer than the ground (props, whips, wing tips, wire
+  gear, cameras on grass), because a soft part bends until the stiffer
+  airframe behind it meets the ground, and how far is not in the tables
+  yet; the whoop the shell flies, whose room is scaled 3.43 times but whose
+  surfaces are not; obstacles, which are the host's one impulse per call;
+  and wheels and floats, which were springs already.
+
+Measured, crash:core: a five inch dropped flat from 1.5 m onto grass peaks
+at 130 g where the rigid contact gave 526, and comes to rest within 1 mm
+of the rigid contact's rest; settling at 1 m/s, 46 g against 188. The
+crash suite on main da32758, per scenario, is in docs/CRASH-PLAN.md,
+round 2. The rule under every limit is now: with the mode off every
+flight is byte identical (scripts/crash-identity.js); with it on, nothing
+is written and the craft comes to the same rest, but a ground contact of a
+stiff part has its duration.
 
 ### Flight effects
 
@@ -622,8 +654,8 @@ predates this work, reported and not touched.
 - **The 1000 mm wing has no drawn model** any more; its table is from the
   plant and WING-STAGE1.
 - **Peak loads from contact duration**: crush gives foam impacts a
-  duration; an impact under every limit cannot get one without breaking
-  the bit identity rule (section 3).
+  duration; since round 2 the ground's spring gives every stiff part's
+  ground contact one too, with the mode on (section 3).
 - **"Detached parts collide with the obstacles the shell declares"**: the
   shell had no way to declare any to the plant; `sim_obstacle_*` and
   `sim_tree_add` are new.

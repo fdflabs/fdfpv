@@ -453,6 +453,19 @@ static int g_crushing = 0;
 static unsigned int g_crush_mask = 0;
 static long long g_last_contact_step = -1000000;
 
+/* The ground's spring, crash_contact_pre: the parts in a sprung contact in
+ * the last step and in this batch, and the deepest each is in this batch. */
+static double g_pen = 0.0;
+static int g_from_step = 0;
+static int g_soft_now = 0;
+static unsigned int g_spring_mask = 0;
+static unsigned int g_batch_spring = 0;
+static double g_batch_pen[SIM_PARTS_MAX];
+/* The points each part met the ground at, this step and the last. */
+static double g_spring_pts[SIM_PARTS_MAX][SIM_PART_PTS_MAX][3];
+static int g_spring_npts[SIM_PARTS_MAX];
+static int g_spring_npts_last[SIM_PARTS_MAX];
+
 /* ---------------------------------------------------------------------
  * SMALL VECTOR HELPERS
  * ------------------------------------------------------------------- */
@@ -1045,6 +1058,13 @@ void crash_reset(void) {
   g_crushing = 0;
   g_capped_now = 0;
   g_last_contact_step = -1000000;
+  g_spring_mask = 0;
+  g_batch_spring = 0;
+  g_soft_now = 0;
+  for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
+    g_spring_npts[i] = 0;
+    g_spring_npts_last[i] = 0;
+  }
   effects_clear();
 }
 
@@ -1164,6 +1184,7 @@ typedef struct {
   double vin;       /* the largest closing speed */
   double n[3];
   int crush;        /* its impulses were capped: the part was crushing */
+  int soft;         /* its impulses were the ground's spring's */
   double fc;        /* the plateau force it crushed at, N */
   int ground;       /* the ground plane's contact */
 } Hit;
@@ -1240,6 +1261,7 @@ static Hit *hit_get(int part, int force) {
   h->jn = 0.0;
   h->vin = 0.0;
   h->crush = 0;
+  h->soft = 0;
   h->fc = 0.0;
   h->ground = g_surf_ground;
   for (int a = 0; a < 3; a += 1) {
@@ -1278,9 +1300,91 @@ int crash_last_capped(void) {
   return g_capped_now;
 }
 
+void crash_contact_depth(double pen) {
+  g_pen = pen > 0.0 ? pen : 0.0;
+}
+
+/*
+ * THE GROUND IS A SPRING. A part that meets the ground plane does not stop
+ * in the step it touches: it goes on into the surface until the part and
+ * the ground, two springs in series (the k the joints are judged by), push
+ * back as hard as it is coming in, F = k x at the depth x it has reached.
+ * So while a part is driven into the ground its normal impulse in a batch
+ * is at most k x dt, x the deepest of its points, shared by all of them;
+ * the solver's position corrections stand aside, as for a crush, so it can
+ * go in; and the impulse is never more than stops it there (no bias push).
+ * That is the contact the judge has always assumed, F = sqrt(k J v), now
+ * also the one the craft moves by: the peak at the CG is v sqrt(k m_eff)
+ * over m, where the rigid contact put the whole change of speed into one
+ * millisecond.
+ *
+ * Once the part has stopped going in (under SPRING_GOING, as a crush) the
+ * contact is the rigid one again, with its own restitution and position
+ * corrections: the spring shapes the blow, not the rest. A contact the
+ * spring already holds at the depth its point is at, a craft standing on
+ * its belly, is rigid from the start.
+ */
+#define SPRING_GOING 0.05
+
+static void spring_pre(int i, double k, double vin, double kn, double *e_used, double *jn_cap) {
+  const unsigned int bit = 1u << i;
+  if (g_pen > g_batch_pen[i]) {
+    g_batch_pen[i] = g_pen;
+  }
+  if (!(g_batch_spring & bit)) {
+    const int going = (g_spring_mask & bit) && vin > SPRING_GOING;
+    if (!going && (g_spring_mask & bit)) {
+      /* Stopped in the ground: the rigid contact takes over, but it does
+       * not throw the part back out of the depth it went to. */
+      *e_used = 0.0;
+      if (*jn_cap < 0.0 || *jn_cap > vin / kn) {
+        *jn_cap = vin / kn;
+      }
+      return;
+    }
+    const int held = !((1.0 + *e_used) * vin / kn > k * g_batch_pen[i] * g_batch_dt);
+    if (!going && held) {
+      return;
+    }
+  }
+  g_batch_spring |= bit;
+  /* The part's force is shared by the points it meets the ground at, each
+   * its share by its own depth, so a pack landed flat is pushed at its middle
+   * whatever order the solver visits its corners in. */
+  int known = 0;
+  for (int q = 0; q < g_spring_npts[i] && !known; q += 1) {
+    const double *b = g_spring_pts[i][q];
+    known = b[0] == g_att_b[0] && b[1] == g_att_b[1] && b[2] == g_att_b[2];
+  }
+  if (!known && g_spring_npts[i] < SIM_PART_PTS_MAX) {
+    for (int a = 0; a < 3; a += 1) {
+      g_spring_pts[i][g_spring_npts[i]][a] = g_att_b[a];
+    }
+    g_spring_npts[i] += 1;
+  }
+  const int share = g_spring_npts_last[i] > 1 ? g_spring_npts_last[i] : 1;
+  double cap = k * g_batch_pen[i] * g_batch_dt - g_crush_used[i];
+  const double own = k * g_pen * g_batch_dt / (double)share;
+  if (cap > own) {
+    cap = own;
+  }
+  if (cap < 0.0) {
+    cap = 0.0;
+  }
+  if (cap > vin / kn) {
+    cap = vin / kn;
+  }
+  *e_used = 0.0;
+  *jn_cap = cap;
+  g_capped_now = 1;
+  g_crushing = 1;
+  g_soft_now = 1;
+}
+
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
                        double vin, double kn, double *e_used, double *jn_cap) {
   g_capped_now = 0;
+  g_soft_now = 0;
   if (!SIM_DAMAGE) {
     return;
   }
@@ -1289,38 +1393,49 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
   const int i = g_att_part;
   const PartDef *d = &t->p[i];
   const PartState *p = &PS[i];
-  if (!(d->crush_s > 0.0) || !(p->crush < d->crush_d) || !(kn > 0.0) || !g_batch_open) {
+  if (!(kn > 0.0) || !g_batch_open) {
     return;
   }
   const double k = series_k(d->k, SURF[g_surf].k);
-  /* Against the ground the whole craft is driven into the part, which is
-   * the momentum the batch's merged impulse shows; against an obstacle it
-   * is the point's own effective mass. */
-  const double m_dec = g_surf_ground ? PLANT.mass_kg : 1.0 / kn;
-  const double f = vin * sim_sqrt(k * m_dec);
-  double nb[3];
-  qrot_inv(s->quat, n, nb);
-  const double fc = d->crush_s * crush_area(t, i, nb, g_surf_ground);
-  /* Crushing already, the front keeps advancing while the part is driven
-   * in at all; a new impact starts it only past the plateau; and once a
-   * part crushes in a batch every contact it takes in that batch shares
-   * the plateau's budget, or a point met after the first would be stopped
-   * rigidly in its place. */
-  const unsigned int bit = 1u << i;
-  const int going = ((g_crush_mask & bit) && vin > 0.05) || (g_batch_crush & bit);
-  if (!(f > fc) && !going) {
-    return;
+  if (d->crush_s > 0.0 && p->crush < d->crush_d) {
+    /* Against the ground the whole craft is driven into the part, which is
+     * the momentum the batch's merged impulse shows; against an obstacle it
+     * is the point's own effective mass. */
+    const double m_dec = g_surf_ground ? PLANT.mass_kg : 1.0 / kn;
+    const double f = vin * sim_sqrt(k * m_dec);
+    double nb[3];
+    qrot_inv(s->quat, n, nb);
+    const double fc = d->crush_s * crush_area(t, i, nb, g_surf_ground);
+    /* Crushing already, the front keeps advancing while the part is driven
+     * in at all; a new impact starts it only past the plateau; and once a
+     * part crushes in a batch every contact it takes in that batch shares
+     * the plateau's budget, or a point met after the first would be stopped
+     * rigidly in its place. */
+    const unsigned int bit = 1u << i;
+    const int going = ((g_crush_mask & bit) && vin > 0.05) || (g_batch_crush & bit);
+    if (f > fc || going) {
+      g_batch_crush |= bit;
+      *e_used = 0.0;
+      g_capped_fc = fc;
+      double cap = fc * g_batch_dt - g_crush_used[i];
+      if (cap < 0.0) {
+        cap = 0.0;
+      }
+      *jn_cap = cap;
+      g_capped_now = 1;
+      g_crushing = 1;
+      return;
+    }
   }
-  g_batch_crush |= bit;
-  *e_used = 0.0;
-  g_capped_fc = fc;
-  double cap = fc * g_batch_dt - g_crush_used[i];
-  if (cap < 0.0) {
-    cap = 0.0;
+  /* A part softer than the ground (a blade, a whip, a wing's tip, a wire
+   * leg) bends, and the stiffer airframe behind it is what stops the craft;
+   * how far it bends before that is not in the tables, so its contact stays
+   * the rigid one. The whoop the shell flies lives in a room scaled 3.43
+   * times, whose floor the surfaces table does not scale; it keeps the
+   * rigid contact too. */
+  if (g_surf_ground && d->k >= SURF[g_surf].k && tab() != &T_WHOOP_SCALED) {
+    spring_pre(i, k, vin, kn, e_used, jn_cap);
   }
-  *jn_cap = cap;
-  g_capped_now = 1;
-  g_crushing = 1;
 }
 
 void crash_contact_post(const SimState *s, const double r[3], const double n[3],
@@ -1335,8 +1450,12 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
   }
   if (g_capped_now) {
     g_crush_used[g_att_part] += jn;
-    h->crush = 1;
-    h->fc = g_capped_fc;
+    if (g_soft_now) {
+      h->soft = 1;
+    } else {
+      h->crush = 1;
+      h->fc = g_capped_fc;
+    }
   }
   h->jn += jn;
   for (int a = 0; a < 3; a += 1) {
@@ -1405,6 +1524,14 @@ void crash_batch_begin(const SimState *s, int from_step) {
   g_batch_open = 1;
   g_crushing = 0;
   g_batch_crush = 0;
+  g_batch_spring = 0;
+  g_from_step = from_step;
+  if (from_step) {
+    for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
+      g_spring_npts_last[i] = g_spring_npts[i];
+      g_spring_npts[i] = 0;
+    }
+  }
   /* A step is a millisecond. A host's contact call stands for the time
    * since its last one, which is a frame's steps, and at most 20 ms. */
   if (from_step) {
@@ -1418,6 +1545,7 @@ void crash_batch_begin(const SimState *s, int from_step) {
   }
   for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
     g_crush_used[i] = 0.0;
+    g_batch_pen[i] = 0.0;
   }
   for (int a = 0; a < 3; a += 1) {
     g_pre_vel[a] = s->vel[a];
@@ -1680,7 +1808,10 @@ static void judge(SimState *s) {
       const double k = series_k(d->k, SURF[x->surf].k);
       double fp = sim_sqrt(k * x->jn * x->vin);
       const double en = 0.5 * x->jn * x->vin;
-      if (x->crush && attached(i)) {
+      if (x->soft) {
+        /* The spring's force is the force: what the solver gave it. */
+        fp = x->jn / g_batch_dt;
+      } else if (x->crush && attached(i)) {
         /* Crushing: the force is the plateau's, and the front advanced as
          * far as the part moved into the surface in the batch. */
         const double fc = x->fc;
@@ -2065,6 +2196,11 @@ void crash_batch_end(SimState *s) {
     return;
   }
   g_batch_open = 0;
+  /* The ground's spring lives in the steps: a host's obstacle contact
+   * between two of them neither starts nor ends it. */
+  if (g_from_step) {
+    g_spring_mask = g_batch_spring;
+  }
   if (g_nh == 0) {
     const Table *t = tab();
     for (int i = 0; i < t->n; i += 1) {
