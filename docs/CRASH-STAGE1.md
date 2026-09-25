@@ -518,6 +518,148 @@ thresholds the other stops use): it took a Timber sliding inverted at 4.4
 m/s and a five inch tumbling at 10 m/s to rest in one millisecond, 454 and
 1,096 g. Both keep the whoop the shell flies as it was.
 
+**The feel round: the loads of flight, and how a break is judged**
+(2026-09-25, after the owner's feel round, PR #75, found the crashes too
+fragile). Two questions, in order: does any table limit fail in normal
+flight, and is the judge putting the right load against the right limit.
+
+*The loads of normal flight* (`crash:core`, "every joint carries the loads
+of normal flight"; `flightLoads` in `scripts/lib/crash-scenarios.js`). For
+every part of every table, the loads it carries flying, times the ultimate
+factor of 1.5 over the limit load that 14 CFR 23.303 asks of an
+aeroplane, must be under its limits. A plane's limit load factor is the
+least of 14 CFR 23.337(a)'s normal category 3.8 and (V_top / V_s)^2, the
+stall line of its own V-n diagram at the fastest it flies level (each STAGE
+doc's gated top and stall speeds; the Radian's top speed is not written,
+and flown in the plant at full throttle it reads 21.1 m/s still climbing,
+so 22 is taken). The wing parts carry n W by Schrenk's approximation over
+the semi-span less n g on what they carry; a stabiliser or fin its STAGE
+doc's area at a lift coefficient of 1.0 at V_top; a hinged surface the same
+at V_D = 1.25 V_top (14 CFR 23.335(b)(1)), or the Bramor's published 30
+m/s, its moment about its own hinge line left to the servo; a canopy that
+pressure as suction; props their thrust. A quad's load factor is its thrust
+to weight, 8.43 and 4.7, with 3 g of vibration on top in any direction
+(chosen). On main e731697 it fails one airframe: the Radian's tail boom
+(7.5 N m in flight, 11.3 at 1.5, against a chosen 10) and fin (1.5 N m,
+2.26 at 1.5, against a chosen 2). Both are now bounded below by flight, as
+the Bramor's winglets were: 12 and 2.4 N m. Every other part passes; the
+closest are the Bramor's winglets (1.00, the doc's own lower bound) and
+the Skyhunter's and Timber's hatches (0.84 and 0.94).
+
+The Bombshell was the brief's first suspect: its right wing panel broke at
+"1 N" at 2.81 times its limit, which reads as a limit of 0.36 N. It is not.
+The figure the sheet prints is the joint's force; the ratio was its moment,
+4.77 N m on the wing's 1.9 N m saddle (and 4.2 N m on the right panel's 2.11
+N m spar), with almost no net force: a pure couple. At its own V-n limit,
+2.43 g, the panels carry 1.24 N m and the bands 10.7 N, 0.88 and 0.80 of
+their limits with the factor of 1.5 on. At the 3.8 g normal category
+standard the panels would fail (4.4 g is where they break), but the
+Bombshell cannot pull 3.8 g flying level. The break came from the judge,
+below.
+
+*How a break is judged.* Instrumenting every break in the feel round's
+crashes, flown in Node on a flat grass plane (the load the judge put on each
+joint, split into force and moment vectors, and the craft's acceleration
+behind it), found five errors, each a load put against the wrong limit or
+not there at all:
+
+- **A panel bent in its own plane.** Nearly every wing that broke in a
+  cartwheel or a stall broke about body z: a tip dug into the grass, or a
+  belly stopped while the panels went on, bends a panel fore and aft, and
+  the judge held the whole moment vector to the spar's flapwise limit. Fore
+  and aft a panel's depth is its chord: `m_max_z`, the foam slab's
+  sigma t c^2 / 6 at the root (EPO 0.465 MPa, the low end of NOVA's ARCEL
+  730 sheet; EPP 0.38, JSP ARPRO), with the spar's share left out (the slab
+  cracks at 2.4 percent strain with the spar at a tenth of its own), so a
+  lower bound: Skyhunter 139 N m, Cub 121, Timber 151, Radian 56, the wing
+  1000's 171; the Bramor's composite box c / (3 t) times its flapwise 300,
+  765; the Bombshell's sticks each about their own vertical axis, its
+  trailing edge's plank on edge, 8.1 N m against 2.1. A moment is held to
+  the ellipsoid through both, 1 / |(ux, uy) / m_max, uz / m_max_z|
+  (`joint_m_lim`). A solid met at a point (a pole) crushes through the slab
+  to the spar, so the struck chain's hold (`chain_hold`) keeps the spar's
+  limit every way.
+- **A pack in its bay.** The foam planes' packs sit in bays and their
+  hatches in recesses (`IN_BAY`, open upward). The judge held a pack's
+  whole load to its hook and loop: a Skyhunter's was torn off at 6.4 times
+  144 N in a stall it met the grass flat in, pushed forward against the
+  bay's front wall. Now only a pull out through the opening is the strap's
+  or the magnets'; a push against the floor or a wall is the parent's foam
+  crush plateau over the part's face that way, past which it crushes
+  through, as one load ratio |(F_a / limit_a)|; the walls take the moments.
+  A parent that does not crush (the Bramor's composite, the Bombshell's
+  balsa) gives no wall, and those packs keep their straps.
+- **A motor in the nose.** A tractor's motor crushes the nose behind it
+  (`NOSE_CRUSH`), and that plateau was put through the motor's four screws:
+  the Cub's broke at a 10 N m firewall on 1,360 N of crushing nose. The
+  plateau bears on the foam round the motor, so it is left out of the
+  motor's own joint.
+- **The prop tip's skid.** The plant's prop tip skid is a spring and a
+  linear damper, k 3000 N/m and c 40 N s/m, which meets the ground with c v
+  and no depth: 200 N in the first millisecond of a 15 m/s dive, 45 g on a
+  Bombshell, which broke both panels under their own weight in that step.
+  With the mode on a skid that is a part is that part's spring and the
+  surface's in series (the blade gives before the nose meets the ground,
+  as the part's own hull contact does) with Lankarani and Nikravesh's
+  hysteresis damping (J. Mech. Design 112, 1990), F = k x (1 + 3 (1 - e^2)
+  / 4 v / v_in), which rises from nothing with the depth. The wire legs'
+  wheels were already capped at their fold.
+- **A joint that lets go held until it did.** A part torn off by the craft's
+  deceleration alone was judged gone, and the same contacts then stopped a
+  lighter craft harder in the same batch, so its neighbours saw more than
+  before it went: a cascade inside one step. It pulled on the rest up to its
+  limit, its load over rho, and that pull is now on the rest when it is
+  judged again (`g_pull_*`). It changes none of the feel round's crashes
+  after the four above, and is kept because it is the load the rest saw.
+
+Checked and right: units (every F in N, M in N m, body frame, the ring a
+force with its impulse's units), the lever arms (the joint point to each
+part's centre and each contact's point, live after the CG moves), and a
+free body's or a crushed part's own load (a free body is not judged; a
+crushing part's force is its plateau and reaches its joint only as a
+contact on its subtree).
+
+Measured, the real shell (`SIM_GPU=1 npm run crash:feel`), what breaks,
+main e731697 against this round:
+
+| Crash | main | this round |
+| --- | --- | --- |
+| cub-pole | motor, battery, canopy, both wing panels | motor |
+| sky-cartwheel, 17 m/s | battery, left wing, both fins, an aileron | both fins, both ailerons, both wings, elevator, stabiliser |
+| timber-cartwheel, 13 m/s | boom, an aileron, battery, left wing, canopy, the other aileron, right wing | boom, both ailerons, right wing, a gear leg, motor |
+| sky-stall | both rudders, elevator, a fin | the same |
+| cub-stall | nothing | nothing |
+| bombshell-ground, 15 m/s at 30 deg | prop, left wing, the wing off its bands, battery, motor, stabiliser | both panels, battery, stabiliser, rudder |
+| bombshell-roof | left wing, the wing off its bands, motor, boom, battery | nothing (it glides on 76 m) |
+| quad-gate-15 | arm, battery (1.32x) | arm, battery (1.11x) |
+
+No pack leaves a foam plane in any of them now. The cartwheel at 17 m/s
+still takes the Skyhunter's wings: the struck panel's root reads 114 N m
+about an axis between flapwise and fore and aft, past the ellipsoid
+through its 60 and 139, and its fins break on the carbon booms' ring. The
+Bombshell's panels break at 1.3 times their 2.1 N m in the shell's dive (in Node, on a flat plane with the engine idle, nothing breaks), the stick sum
+being a lower bound (its ribs' frame is left out). Open: the five inch's
+pack on its strap is judged as rigidly held under the arm's 0.6 ms blow,
+where a strap is a spring slower than that (no source for its stiffness);
+the plane stalls still peak at 180 to 280 g, the crush plateau taken over
+its whole section from the first millimetre.
+
+The crash suite (`node scripts/crash-suite.js`, Node, replay and Chrome):
+9 of 60 inside every band on main and here, all 60 deterministic; failing
+checks 115 to 120. Into band: cub-cartwheel and timber-cartwheel
+timeToRestS, radian-pole timeToRestS, and peakG of radian-nose-in (535 to
+276 g), slowstick-stall (17 to 8.1) and bramor-nose-in (406 to 358). Out,
+with the cause: sky-cartwheel and timber-cartwheel mustBreak wing, and the
+Timber's minUpZ and restAttitude, and timberf-float-catch's minUpZ and
+restAttitude (a panel dragged fore and aft by the grass or the water now
+holds its chord's depth, so it stays on and the airframe does not go
+over); radian-nose-in mustBreak fuselage (its canopy, the suite's
+fuselage, now bears in its recess); cub-nose-over restAttitude (its prop
+tip now meets the grass through the blade's own spring, most likely why it stops
+nose down short of going over); radian-nose-in and bramor-nose-in
+retainedFirst, -0.00 against a band from 0 (a sign in the last digit);
+cubf-porpoise, 10 pitch reversals on the water against 4 to 8.
+
 ### Under the break, per material (`crash.c`)
 
 | Part | Onset, load over limit | What happens | Flight effect |
@@ -774,6 +916,10 @@ rigid contact left it (0.26 mm).
 | a struck chain's hold (wing clip) | F_lim = min(F_max, M_max / a) over the joints to the root, the craft given F_lim^2 / (2 k v) | a linear ramp to the weakest joint's limit through the part's, the surface's and the chain's cantilever springs in series, 3 E I / a^3 each | derived; E I as the ring's (TAP Plastics, Negussey and Anasthas) |
 | a known solid's contact (round 5) | k x dt a step while driven in, k the part's, the surface's and the struck chain's 3 E I / a^3 in series; the weakest joint lets go when k x reaches its hold | the ground's spring, and the wing clip's chain, followed step by step | derived |
 | a host contact on a known solid (round 5) | the host's point, or the CG out to the airframe's reach, carried 2 cm plus the closing speed times the call's time along -n into a solid the plant knows | the host's call stands for the steps since its last, at most 20 | chosen |
+| Radian boom, fin (feel round) | 12, 2.4 N m | bounded below by flight: 7.5 and 1.5 N m at 3.8 g and 22 m/s, times 1.5 | crash:core's loads of normal flight; GLIDER-STAGE1 areas |
+| a panel in its own plane (feel round) | m_max_z: Skyhunter 139, Cub 121, Timber 151, Radian 56, wing 1000 171, Bramor 765, Bombshell 8.1 N m | the root's foam slab, sigma t c^2 / 6; a composite box c / (3 t) times its flapwise; balsa sticks about their own vertical axes | NOVA ARCEL 730 (0.465 MPa), JSP ARPRO (0.38 MPa), Wood Handbook balsa |
+| a pack or hatch in a bay (feel round) | its strap or magnets outward, the parent's crush plateau over its face every other way | a bay's walls bear it | EPO and EPP crush, above |
+| a part's skid (feel round) | the part's spring and the surface's in series, F = k x (1 + 3 (1 - e^2) / 4 v / v_in) | hysteresis damping that starts from nothing | Lankarani and Nikravesh, J. Mech. Design 112, 1990 |
 
 "Chosen" is an engineering estimate with its reasoning in the table's
 comment, not a measurement. The suite's bands are what will say whether
@@ -793,7 +939,7 @@ a reason and no measurement behind it:
 | every one | camera and whip mounts (0.8 N m, 60 N; 1.0 N m, 40 N), hook and loop's 8 N/cm^2 (a brand figure, no datasheet), every part's contact stiffness k, and most force limits f_max |
 | 5 inch | motor on its arm (48 N m, two M3 pull outs), pack strap (250 N, 6 N m) |
 | whoop | motor (0.25 N m), prop press fit (set so R-WHOOP's walls leave it on), pack holder (5 N), canopy (0.30 N m), nano camera (0.02 N m) |
-| foam planes | firewall (10 N m), hinge lines (1 N m, 40 N), hstab and fin roots (2 to 4 N m), canopies (0.5 to 1 N m), packs (3 to 8 N m); the Timber's and the Radian's boom sections (the Cub's is drawn) |
+| foam planes | firewall (10 N m), hinge lines (1 N m, 40 N), hstab and fin roots (2 to 4 N m), canopies (0.5 to 1 N m), packs (3 to 8 N m); the Timber's boom section (the Cub's is drawn; the Radian's boom and fin are bounded below by flight since the feel round, 12 and 2.4 N m) |
 | Slow Stick | wing on its saddle (6 N m, 60 N), tail sheet roots (0.5 to 1 N m), motor mount (4 N m), its prop at 0.6 of the 11 inch's |
 | Bramor | panels (300 N m: neither skin nor guide rod is published), elevons (3 N m), winglet magnets (1.5 N m, 15 N; bounded below by their load at the never exceed speed), motor (25 N m), pack hatch (40 N m, 400 N), chute bay lid (2 N m), gimbal (6 N m, 300 N) |
 | Bombshell | the aft fuselage's halving for glue joints, the tissue hinges (0.4 N m), the prop's 150 MPa root, which is a glass filled nylon's figure for a prop the table calls unfilled (not checked against a datasheet this round) |
@@ -812,7 +958,20 @@ stops); the declared obstacles and tree trunks; the crowns; the water
 (buoyancy on its volume, the smaller of its box and its mass over its
 material's density, so foam floats and a pack sinks). Spin is capped at
 300 rad/s. It is at rest after 300 ms touching something at under 0.10 m/s
-and 0.5 rad/s, and is no longer stepped (a settle event). At most 12 move
+and 0.5 rad/s, and is no longer stepped (a settle event). On the ground
+plane it must also be able to stand (the feel round): its centre, seen
+along the normal, inside the hull of its points within 5 mm of the ground
+(`fb_stable`). Before, both of a Skyhunter's panels came to rest on their
+ends after a cartwheel, their centres 0.40 and 0.42 m up: the lying brake took
+the spin off every axis where it meant the axis along the normal, the slide
+brake held the centre while it swung about the edge it stood on, and a slow
+body's friction took the rest. Now the spin brake is about the normal only,
+and a body that cannot stand gets neither the slide brake nor the slow
+body's friction, so it falls over; in the feel round's crashes every panel
+now rests within 25 mm of the grass. A body lying on a box's top (a normal
+within 45 degrees of up) is braked the same way as on the ground: with no
+brake there, the gate clip's broken arm, which changed course with the
+spin brake, rocked and crept on the gate's base for good. At most 12 move
 at once; a 13th retires the one that has lain still longest, or failing
 that the oldest, frozen where it is (`crash:core`: a Bramor taken apart in
 the air, 12 at most, all at rest in 8 s, none under the ground).
@@ -1082,6 +1241,17 @@ number of checks as main's mode on (14 and 8) with different depths, and
 contact:selftest's "after turtle, throttle is flight again" now passes
 with the mode on.
 
+The feel round (the loads of flight, how a break is judged, a body that
+rests only where it can stand), against main e731697, with FDFPV_BOARD set:
+off is identical on all 26 scripts. On, 19 are identical to base; the moves
+are the known mode on ones (bramor:gates B12, floats:gates F1t, whoop:gates
+W15; wing:contact and contact:selftest fail 11 and 8 checks with the mode
+on, 14 and 8 in round 5, both pass with it off) and two new, both the prop
+tip's skid now meeting the ground through the blade's own spring:
+cub:gates C21's prop tip load reads 3.2 N for 9.2 (the gate still passes),
+and bombshell:gates S17's hash of another aircraft's recorded flight moves
+with the mode on (it passes with it off, which is how the gates run).
+
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched. So do slowstick:gates and
 bombshell:stab on main d043d2a, with the mode off and on alike.
@@ -1280,10 +1450,10 @@ bombshell:stab on main d043d2a, with the mode off and on alike.
 | # | part | parent | material | mass kg | centre m | joint m | M limit N m | F limit N | k N/m | crush kPa |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | fuselage | root | epo | 0.3990 | 0.029, -0.000, -0.053 |  |  |  | 3.0e+5 | 200 over 40.0 cm2, 80 mm |
-| 1 | boom | fuselage | epo | 0.0300 | -0.540, 0.000, 0.030 | -0.300, 0.000, 0.035 | 10.00 | 250 | 1.5e+4 |  |
+| 1 | boom | fuselage | epo | 0.0300 | -0.540, 0.000, 0.030 | -0.300, 0.000, 0.035 | 12.00 | 250 | 1.5e+4 |  |
 | 2 | hstab | boom | epo | 0.0150 | -0.696, 0.000, 0.075 | -0.700, 0.000, 0.075 | 2.00 | 80 | 3.0e+3 |  |
 | 3 | elevator | hstab | epo | 0.0050 | -0.754, 0.000, 0.075 | -0.740, 0.000, 0.075 | 1.00 | 40 | 2.0e+3 |  |
-| 4 | fin | boom | epo | 0.0120 | -0.665, 0.000, 0.157 | -0.620, 0.000, 0.045 | 2.00 | 80 | 3.0e+3 |  |
+| 4 | fin | boom | epo | 0.0120 | -0.665, 0.000, 0.157 | -0.620, 0.000, 0.045 | 2.40 | 80 | 3.0e+3 |  |
 | 5 | rudder | fin | epo | 0.0040 | -0.808, 0.000, 0.147 | -0.790, 0.000, 0.150 | 1.00 | 40 | 2.0e+3 |  |
 | 6 | wing left | fuselage | epo | 0.1350 | -0.042, 0.421, 0.061 | -0.030, 0.042, 0.030 | 45.00 | 400 | 2.5e+3 | 200 over 9.0 cm2, 100 mm |
 | 7 | wing right | fuselage | epo | 0.1350 | -0.042, -0.421, 0.061 | -0.030, -0.042, 0.030 | 45.00 | 400 | 2.5e+3 | 200 over 9.0 cm2, 100 mm |
