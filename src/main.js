@@ -138,7 +138,7 @@ import { insideWater, waterFor } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, solidSurface } from './game/crashworld.js';
-import { DAMAGE_FLAGS, EVENT, MATERIALS, OBSTACLES_MAX, SURFACE, TREES_MAX } from '../configs/parts.js';
+import { DAMAGE_FLAGS, EVENT, MATERIALS, OBSTACLES_MAX, SURFACE, TREES_MAX, partLabel } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
 import { createFpvFail } from './render/fpvfail.js';
@@ -2686,6 +2686,36 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     mu: 0,
   };
   let obsHasPrev = false;
+  /*
+   * Harness only: the obstacle contacts since the last throw, where each
+   * met the craft (the arm, plant body frame, from the CG) and on which
+   * part when the hull is a fixed wing's parts (-1 for the discs), so a
+   * capture can say what a pole struck. Kept only once a capture has
+   * thrown the craft (window.__crashThrow), and bounded, so a pilot's
+   * flight allocates nothing for it; window.__contacts().log.
+   */
+  const contactLog = [];
+  const CONTACT_LOG_MAX = 64;
+  let contactLogOn = false;
+  function logContact(st, arm) {
+    if (!contactLogOn || contactLog.length >= CONTACT_LOG_MAX) {
+      return;
+    }
+    const w = st[7];
+    const x = st[8];
+    const y = st[9];
+    const z = st[10];
+    contactLog.push({
+      t: st[0],
+      kind: lastHitKind,
+      part: view.colliders.hitArm ? view.colliders.hitPart : -1,
+      arm: [
+        (1 - 2 * (y * y + z * z)) * arm.x + 2 * (x * y + w * z) * arm.y + 2 * (x * z - w * y) * arm.z,
+        2 * (x * y - w * z) * arm.x + (1 - 2 * (x * x + z * z)) * arm.y + 2 * (y * z + w * x) * arm.z,
+        2 * (x * z + w * y) * arm.x + 2 * (y * z - w * x) * arm.y + (1 - 2 * (x * x + y * y)) * arm.z,
+      ],
+    });
+  }
   /* The last impulse announced, so a harder hit inside the cooldown is
    * still heard: a graze followed by the wall behind it is two events. */
   let lastImpulse = 0;
@@ -4084,6 +4114,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       feed: fpvFail.level(performance.now()),
       chase: wreckWantsChase(performance.now()),
       parts: partTable.map((p) => p.kindName),
+      /* The same parts named with their side, "wing right". */
+      partLabels: partTable.map((p) => partLabel(p.kind, p.cg[0], p.cg[1])),
     };
   }
 
@@ -6779,6 +6811,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (code !== SIM_OK) {
       return 0;
     }
+    logContact(before, rSim);
     stateCurr = readState();
     const dvx = stateCurr[4] - vx0;
     const dvy = stateCurr[5] - vy0;
@@ -9643,6 +9676,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     roof: obsRoof,
     bounces: bounceCount,
     lastImpulse,
+    log: contactLog.slice(),
     grazeMax: GRAZE_SPEED_MAX,
     bounceMax: BOUNCE_SPEED_MAX,
   });
@@ -10187,8 +10221,16 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     obsHasPrev = false;
     obsPhase = 0;
+    contactLog.length = 0;
+    contactLogOn = true;
     stateCurr = readState();
     statePrev = stateCurr;
+    /* The attitude every collider query reads, which the frame loop
+     * refreshes only while it steps: a held throw would otherwise be
+     * probed (window.__hit) at the attitude before it. */
+    simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], qCollide);
+    qCollide.premultiply(qSpawn);
+    vHalfFrame = craftVerticalHalf(Math.sqrt(1 - craftUpY() * craftUpY()));
     /* `hold` keeps the integrator still until __releasePose, so a capture
      * can photograph the moment before. */
     poseLock = Boolean(o.hold);
@@ -10773,6 +10815,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       nx: view.colliders.hitNx,
       ny: view.colliders.hitNy,
       nz: view.colliders.hitNz,
+      /* The fixed wing's part it met, -1 for the discs. */
+      part: view.colliders.hitArm ? view.colliders.hitPart : -1,
     };
   };
   /* Shadow pass on or off, so the ledger can attribute draw calls between the
