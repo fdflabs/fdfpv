@@ -179,6 +179,9 @@ try {
        * come out at whatever quality the machine that made it happened to
        * pick. The authored look, every time. */
       '--graphics=high',
+      /* Boot the track world, the light one, before choosing. A page that
+       * names no world opens on the Alps, see src/boot.js. */
+      '--url=/index.html?map=custom',
       'until:!!window.__boot && window.__boot().frames > 2',
       `eval:(() => { window.__setMap(${JSON.stringify(map.id)}); return 'swap'; })()`,
       /* Both halves. `ready` alone is true of the previous world for a

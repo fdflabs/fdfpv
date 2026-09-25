@@ -112,6 +112,10 @@ async function main() {
     root,
     width: 1280,
     height: 720,
+    /* The field, named in the address because a page that names no world
+     * opens on the Alps (src/boot.js), and this measures what boot fetches
+     * with the field selected. */
+    url: '/index.html?map=custom',
     /* The field, and a pinned preset so a cost is comparable between runs. */
     seed: [`try {
       const k = ${JSON.stringify(SETTINGS_KEY)};

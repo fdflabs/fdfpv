@@ -9945,7 +9945,14 @@ export class Ui {
     }
     /* Held so refreshBest can redraw the line without a record in hand. */
     this.lastBestMs = ms;
-    const freestyle = this.osdMode === 'freestyle';
+    /*
+     * UNDEFINED IS A SEAT THE SHELL HAS NOT BUILT. The title shows its own
+     * world until the first fly (src/main.js), so the line speaks for the
+     * seat, which is what Fly will fly, and names no record, because the
+     * seat's record is not known until its course is built.
+     */
+    const unbuilt = ms === undefined;
+    const freestyle = unbuilt ? !seatIsRace(this.settings) : this.osdMode === 'freestyle';
     /*
      * The score follows the MODE as well as the screen. show() decides
      * visibility too, and on its own that is an ordering dependency: the
@@ -9993,6 +10000,10 @@ export class Ui {
       this.osdBest.textContent = '';
       return;
     }
+    if (unbuilt) {
+      this.osdBest.textContent = '';
+      return;
+    }
     if (ms != null) {
       this.titleBest.append(str('ui.track_record'), el('span', 'brand-best-time', formatTime(ms)));
     } else {
@@ -10016,7 +10027,7 @@ export class Ui {
     if (!this.titleBest) {
       return;
     }
-    this.setBest(this.lastBestMs ?? null);
+    this.setBest(this.lastBestMs);
   }
 
   resultsCourseName() {

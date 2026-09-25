@@ -6,11 +6,14 @@
  * and never reaches the integrator; a dropped frame changes nothing about
  * the trajectory.
  *
- * The page opens on a title: the loaded map fills the canvas, the session
- * airframe flies the map's attract line, and the menu sits on top as a
- * HUD. That shot is the same world the player is about to fly, not a
- * second scene. Settings still has its own cheap studio context, created
- * when that screen opens and torn down when flight starts.
+ * The page opens on a title: the loaded map fills the canvas, the Skyhunter
+ * flies the map's attract line, and the menu sits on top as a HUD. The map
+ * is the photographic Alps until the first flight (see boot.js), unless the
+ * address named a world, and from then on the world last flown. Fly builds
+ * the pilot's own world first when the title was showing another, and
+ * seats the pilot's own aircraft, so the shot is never a second scene.
+ * Settings still has its own cheap studio context, created when that
+ * screen opens and torn down when flight starts.
  *
  * Ground handling is shell side: the physics module has no ground plane
  * (the verification harness measures free air behaviour), so the shell
@@ -116,6 +119,10 @@ const WING_MOUNTS = {
   timber1500f: [TIMBER_MOUNT_FORWARD, TIMBER_FLOAT_MOUNT_UP],
   cub1400f: [CUB_MOUNT_FORWARD, CUB_FLOAT_MOUNT_UP],
 };
+
+/* The aircraft the title flies, whatever is seated: the owner's choice, and
+ * a wing, so the title never shows a seaplane parked on grass. */
+const TITLE_CRAFT = 'sky1800';
 import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
@@ -477,7 +484,7 @@ async function loadMap(shell, id, loading, options) {
   return map;
 }
 
-export async function boot({ loading, bootStart, mapId }) {
+export async function boot({ loading, bootStart, mapId, titleMap }) {
   const BOOT_START = bootStart ?? performance.now();
   /*
    * FIRST, BEFORE ANYTHING READS THE QUERY.
@@ -667,6 +674,28 @@ export async function boot({ loading, bootStart, mapId }) {
   if (mapId && ui.settings.map !== mapId) {
     ui.settings.map = mapId;
     ui.renderMenu();
+  }
+  /*
+   * THE TITLE'S WORLD, boot.js's Alps, or null when the address named a
+   * world. While it is set the title shows it and the pilot's seat waits
+   * for Fly; the first fly clears it for the session. Returning to the
+   * title after a flight keeps the flown world rather than rebuilding the
+   * Alps: measured on this machine, the Alps take 9.1 s to rebuild in
+   * session (world 6.9 s, first frame 2.2 s) against 1.7 s for the track
+   * world, and a quit to the menu is instant today.
+   */
+  let titleWorld = titleMap;
+  function worldId() {
+    return mapById(titleWorld ?? ui.settings.map).id;
+  }
+  /* The record line. While the title shows its own world the seat's course
+   * is not built, so the Ui is told that rather than the Alps' mode. */
+  function paintBest() {
+    if (titleWorld) {
+      ui.setBest(undefined);
+      return;
+    }
+    ui.setBest(race.bestMs, view.mode);
   }
   /*
    * THE FLIGHT CONTROLLER'S BYTES ARE ASKED FOR BEFORE THE BOARD IS, AND
@@ -1041,17 +1070,24 @@ export async function boot({ loading, bootStart, mapId }) {
    * throw is honest.
    */
   try {
-    view = await loadMap(shell, ui.settings.map, loading, {
+    view = await loadMap(shell, worldId(), loading, {
       quality: ui.settings.graphics,
       renderScale: renderScaleOf(ui.settings),
     });
   } catch (e) {
-    if (ui.settings.map === 'custom') {
+    if (worldId() === 'custom') {
       throw e;
     }
     console.error(e);
-    const failed = mapById(ui.settings.map).name;
-    ui.settings.map = 'custom';
+    const failed = mapById(worldId()).name;
+    /* A title world that will not build is dropped, and the pilot's seat
+     * is left alone: it was not the seat that failed. syncWorld then builds
+     * the seat, with its own fallback, once the settings are applied. */
+    if (titleWorld) {
+      titleWorld = null;
+    } else {
+      ui.settings.map = 'custom';
+    }
     ui.renderMenu();
     view = await loadMap(shell, 'custom', loading, {
       quality: ui.settings.graphics,
@@ -2692,6 +2728,9 @@ export async function boot({ loading, bootStart, mapId }) {
    * which is a few hundred triangles once.
    */
   let runAirframe = '5inch';
+  /* The model the scene draws: TITLE_CRAFT on the title, the seated
+   * aircraft everywhere else. buildShell draws the five inch. */
+  let drawnCraft = '5inch';
   /* Where the seated aircraft bolts its camera, in its own frame. The quad's
    * numbers are lens.js's; the wing's are in the nose of its pod. */
   let camMountFwd = CAMERA_MOUNT_FORWARD;
@@ -2747,7 +2786,7 @@ export async function boot({ loading, bootStart, mapId }) {
    * setting to 1. */
   let runLaps = ui.settings.laps;
   race.setRecordKey(recordKey());
-  ui.setBest(race.bestMs, view.mode);
+  paintBest();
 
   /*
    * The world's own note, as a timed banner, and NOT OVER A MENU.
@@ -4371,7 +4410,7 @@ export async function boot({ loading, bootStart, mapId }) {
     if (!keepPlace) {
       race = new Race(view.gates, view.trackClass ?? 'full');
       race.setRecordKey(recordKey());
-      ui.setBest(race.bestMs, view.mode);
+      paintBest();
       adoptSpawn();
       ui.setShare(view.share || null);
       reset();
@@ -4385,7 +4424,7 @@ export async function boot({ loading, bootStart, mapId }) {
        * new gate meshes just need the current next-gate highlight. */
       view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
       ui.setShare(view.share || null);
-      ui.setBest(race.bestMs, view.mode);
+      paintBest();
       mode = stayMode === 'flight' ? 'paused' : stayMode;
       if (stayScreen) {
         ui.show(stayScreen);
@@ -4412,7 +4451,7 @@ export async function boot({ loading, bootStart, mapId }) {
   }
 
   function worldMatchesSettings() {
-    const wantId = mapById(ui.settings.map).id;
+    const wantId = worldId();
     const wantQ = normalizeGraphics(ui.settings.graphics);
     return view
       && wantId === view.id
@@ -4427,7 +4466,7 @@ export async function boot({ loading, bootStart, mapId }) {
      * below would see a mismatch that can never clear: dispose, rebuild,
      * re-enter, forever. ?map= is taken verbatim in boot.js, so an unknown
      * id is reachable from a stale bookmark. */
-    const wantId = mapById(ui.settings.map).id;
+    const wantId = worldId();
     const wantQ = normalizeGraphics(ui.settings.graphics);
     if (swapInFlight) {
       return;
@@ -4487,7 +4526,11 @@ export async function boot({ loading, bootStart, mapId }) {
        * behind it used to leave mapReady false forever.
        */
       console.error(e);
-      ui.settings.map = previous;
+      /* The title's world is not the pilot's seat, so it is never written
+       * there. */
+      if (!titleWorld) {
+        ui.settings.map = previous;
+      }
       ui.settings.graphics = previousGraphics;
       try {
         applyPixelRatio(shell, previousGraphics, renderScaleOf(ui.settings));
@@ -4759,9 +4802,7 @@ export async function boot({ loading, bootStart, mapId }) {
      * the shell puts the ground plane, the spawn and the landed test. See
      * SPAWN_ALT at the top of this file. */
     seatRestHeight(airframeById(runAirframe), floatsOnWater());
-    if (typeof shell.swapCraft === 'function') {
-      shell.swapCraft(runAirframe);
-    }
+    dressCraft();
     swapGhostRig();
     const isWing = Boolean(airframeById(runAirframe).fixedWing);
     audio.setVoice(isWing ? 'wing' : 'quad');
@@ -4780,6 +4821,24 @@ export async function boot({ loading, bootStart, mapId }) {
      * does not park 45 mm off the deck" was written here, correctly, while
      * both numbers stayed the five inch's.
      */
+  }
+
+  /*
+   * Draw the Skyhunter on the title and the seated aircraft everywhere
+   * else. Only the model: the plant, the hull, the tune and the settings
+   * stay the pilot's, so leaving the title swaps the drawing and nothing
+   * else. Run once per frame, before anything poses the model, because the
+   * mode changes in a dozen places and a missed one would fly a run in the
+   * title's aircraft. It swaps only when the mode crosses the title, which
+   * is between runs, the rule every craft swap keeps.
+   */
+  function dressCraft() {
+    const want = mode === 'title' ? TITLE_CRAFT : runAirframe;
+    if (want === drawnCraft || typeof shell.swapCraft !== 'function') {
+      return;
+    }
+    shell.swapCraft(want);
+    drawnCraft = want;
   }
 
   function applySettings(s) {
@@ -4958,7 +5017,7 @@ export async function boot({ loading, bootStart, mapId }) {
       }
     }
     race.setRecordKey(recordKey());
-    ui.setBest(race.bestMs, view.mode);
+    paintBest();
     if (!worldMatchesSettings()) {
       syncWorld();
     }
@@ -5015,7 +5074,7 @@ export async function boot({ loading, bootStart, mapId }) {
         ratesText = nextRates;
         configText = nextText;
         race.setRecordKey(recordKey());
-        ui.setBest(race.bestMs, view.mode);
+        paintBest();
         reseatAfterConfigSwap(before);
       } else if (sim.init(configText) === SIM_OK) {
         /* Back to the config that worked, and put the craft back on it. The
@@ -5048,7 +5107,7 @@ export async function boot({ loading, bootStart, mapId }) {
         adoptSimClock();
         sim.setCellVoltage(runVoltage);
         race.setRecordKey(recordKey());
-        ui.setBest(race.bestMs, view.mode);
+        paintBest();
         reset();
       } else if (sim.init(configText) === SIM_OK) {
         adoptSimClock();
@@ -5139,7 +5198,7 @@ export async function boot({ loading, bootStart, mapId }) {
     adoptSimClock();
     sim.setCellVoltage(runVoltage);
     race.setRecordKey(recordKey());
-    ui.setBest(race.bestMs, view.mode);
+    paintBest();
     publishPids();
     notice = { text: str('main.flying', { name: entry.name }), untilMs: performance.now() + 2400 };
     reset();
@@ -5580,7 +5639,7 @@ export async function boot({ loading, bootStart, mapId }) {
     adoptSimClock();
     sim.setCellVoltage(runVoltage);
     race.setRecordKey(recordKey());
-    ui.setBest(race.bestMs, view.mode);
+    paintBest();
     reset();
     publishPids();
     const live = moduleDump(sim);
@@ -5759,6 +5818,25 @@ export async function boot({ loading, bootStart, mapId }) {
   ui.onAction = (action, s) => {
     if (s) {
       applySettings(s);
+    }
+    if (action === 'fly' && titleWorld) {
+      /*
+       * THE TITLE'S WORLD ENDS AT THE FIRST FLY. The pilot flies their own
+       * world: when the seat is another map it is built behind the loading
+       * screen first, then this action runs again with the world in place.
+       * A swap that did not land leaves the pilot on the title with
+       * syncWorld's own notice, rather than flying the wrong world.
+       */
+      titleWorld = null;
+      paintBest();
+      if (!worldMatchesSettings()) {
+        syncWorld().then(() => {
+          if (worldMatchesSettings()) {
+            ui.onAction('fly');
+          }
+        });
+        return;
+      }
     }
     if (action === 'fly' || action === 'restart') {
       /* A tune fetch in flight would sim_init under a run whose lastTs had
@@ -6055,7 +6133,7 @@ export async function boot({ loading, bootStart, mapId }) {
     setCourse(gates, recordSuffix) {
       race = new Race(gates, view.trackClass ?? 'full', { recordSuffix });
       race.setRecordKey(recordKey());
-      ui.setBest(race.bestMs, view.mode);
+      paintBest();
       view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     },
   };
@@ -7207,6 +7285,7 @@ export async function boot({ loading, bootStart, mapId }) {
       prevWall = nowWall;
       return;
     }
+    dressCraft();
     const blockStart = performance.now();
     const dt = Math.min(nowWall - prevWall, 100);
     prevWall = nowWall;
@@ -8009,7 +8088,7 @@ export async function boot({ loading, bootStart, mapId }) {
           turtleOnSupport = false;
           setTurtleParkMotors(false);
           poseLock = false;
-          ui.setBest(race.bestMs, view.mode);
+          paintBest();
           ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), {
             /* Read from the race rather than recomputed on the screen: a run
              * of three has to be three CLEAN laps in a row, and only the
@@ -9221,6 +9300,7 @@ export async function boot({ loading, bootStart, mapId }) {
     sweepM: CRAFT_R,
     massKg: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(51) : 0,
     drawn: shell.quad.name,
+    shown: drawnCraft,
   });
   /*
    * WHERE THE CRAFT IS AGAINST THE FLOOR UNDER IT, which is the one thing
@@ -10543,7 +10623,11 @@ export async function boot({ loading, bootStart, mapId }) {
     shell.renderer.shadowMap.needsUpdate = true;
     return shell.renderer.shadowMap.enabled;
   };
+  /* A harness that names a world wants that world at the title, the way
+   * ?map= does, so it ends the title's own. */
   window.__setMap = (id) => {
+    titleWorld = null;
+    paintBest();
     ui.settings.map = id;
     return swapMap(id);
   };
