@@ -966,8 +966,8 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | mustNotBreak | wing, fuselage | R-C172 test 1, R-A14-FOAM (foam belly landings are routine) | MED |
 | peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau) | MED |
 | restAttitude | upright | R-C172 test 1 | MED |
-| restDistM | 8 to 30 | R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6) | LOW |
-| timeToRestS | 2 to 5 | R-SLIDE | LOW |
+| restDistM | 32 to 115 | R-SLIDE at V_s 13 m/s: 1.5 V_s (19.5 m/s) at mu 0.6 to 2 V_s (26 m/s) at mu 0.3, v squared over 2 mu g | LOW |
+| timeToRestS | 3.3 to 8.9 | R-SLIDE at V_s 13 m/s: 1.5 V_s (19.5 m/s) at mu 0.6 to 2 V_s (26 m/s) at mu 0.3, v over mu g | LOW |
 
 **bramor-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
 
