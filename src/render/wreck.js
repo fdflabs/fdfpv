@@ -75,6 +75,18 @@ const ATTR_GET = ['getX', 'getY', 'getZ', 'getW'];
 const SPLIT_EDGE = 0.03;
 const SPLIT_DEPTH = 14;
 
+/* A piece's drawing reaches past its part's hull box (a wing's rounded
+ * tip and its airfoil's belly, a prop's blades past its disc), and the
+ * plant rests the box, so a piece lying on the ground was drawn 3 to 10 cm
+ * into it. A free piece is lifted until its drawing clears the surface
+ * under it, by at most how far that drawing stands outside its own box:
+ * anything deeper is the plant's pose and stays visible. The lowest point
+ * is found among the piece's extreme vertices along SUPPORT_DIRS
+ * directions, and the surface is the plane through three heights read
+ * SURFACE_PROBE metres round the piece. */
+const SUPPORT_DIRS = 64;
+const SURFACE_PROBE = 0.3;
+
 /* Body frame (plant, z up) to the craft's local Three.js frame, the one
  * conversion src/render/frame.js does for positions, applied to a body
  * vector: x forward is -z, y left is -x, z up is y. */
@@ -82,6 +94,21 @@ function bodyToLocal(v, out) {
   out.set(-v[1], v[2], -v[0]);
   return out;
 }
+
+/* SUPPORT_DIRS directions spread evenly over the sphere (a Fibonacci
+ * lattice), for the extreme vertices a piece can rest on. */
+const DIRS = (() => {
+  const out = new Float32Array(SUPPORT_DIRS * 3);
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < SUPPORT_DIRS; i += 1) {
+    const y = 1 - (2 * (i + 0.5)) / SUPPORT_DIRS;
+    const r = Math.sqrt(1 - y * y);
+    out[i * 3] = Math.cos(golden * i) * r;
+    out[i * 3 + 1] = y;
+    out[i * 3 + 2] = Math.sin(golden * i) * r;
+  }
+  return out;
+})();
 
 export function createWreck() {
   const group = new THREE.Group();
@@ -96,6 +123,13 @@ export function createWreck() {
   let cut = null;
   /* The parts drawn as pieces now, and each piece's group. */
   const pieces = new Map();
+  /* Per piece, what it rests on: its extreme vertices in its own frame
+   * (x, y, z each) and how far its drawing stands outside its hull box. */
+  const rests = new Map();
+  const probe = new THREE.Vector3();
+  /* By free body, then by part for a piece on none (32 on). */
+  const bodySunk = new Float64Array(64);
+  const bodyReach = new Float64Array(64);
   const split = new Uint8Array(32);
   const free = new Uint8Array(32);
   let skip = new Set();
@@ -124,6 +158,7 @@ export function createWreck() {
       });
     }
     pieces.clear();
+    rests.clear();
     split.fill(0);
     free.fill(0);
     if (cut) {
@@ -573,7 +608,86 @@ export function createWreck() {
     }
     group.add(piece);
     pieces.set(part, piece);
+    rests.set(part, restOf(piece, part, origin));
     return piece;
+  }
+
+  /* The piece's extreme vertices, one per direction and none twice, and
+   * its farthest vertex outside the part's own hull box (not the grown one
+   * the cut uses), both in the piece's frame. */
+  function restOf(piece, part, origin) {
+    const lo = bodyToLocal(table[part].boxMax, new THREE.Vector3()).sub(origin);
+    const hi = bodyToLocal(table[part].boxMin, new THREE.Vector3()).sub(origin);
+    const box = new THREE.Box3().setFromPoints([lo, hi]);
+    const best = new Float64Array(SUPPORT_DIRS).fill(-Infinity);
+    const at = new Array(SUPPORT_DIRS).fill(null);
+    let reach = 0;
+    for (const mesh of piece.children) {
+      const p = mesh.geometry.attributes.position;
+      for (let v = 0; v < p.count; v += 1) {
+        va.fromBufferAttribute(p, v);
+        reach = Math.max(reach, box.distanceToPoint(va));
+        for (let d = 0; d < SUPPORT_DIRS; d += 1) {
+          const k = va.x * DIRS[d * 3] + va.y * DIRS[d * 3 + 1] + va.z * DIRS[d * 3 + 2];
+          if (k > best[d]) {
+            best[d] = k;
+            at[d] = va.clone();
+          }
+        }
+      }
+    }
+    const pts = [];
+    const seen = new Set();
+    for (const q of at) {
+      const key = q && `${q.x},${q.y},${q.z}`;
+      if (q && !seen.has(key)) {
+        seen.add(key);
+        pts.push(q.x, q.y, q.z);
+      }
+    }
+    return { pts: new Float32Array(pts), reach, lift: 0, body: part };
+  }
+
+  /* How far a free piece's drawing is into the surface under it, metres,
+   * 0 when it is clear; `surfaceAt(x, z, fromY)` is the drawn ground, or
+   * null where the piece may go in (water). */
+  function sunkBy(piece, rest, surfaceAt) {
+    const pts = rest.pts;
+    if (pts.length === 0 || !surfaceAt) {
+      return 0;
+    }
+    piece.updateMatrixWorld(true);
+    let low = Infinity;
+    let lx = 0;
+    let lz = 0;
+    for (let k = 0; k < pts.length; k += 3) {
+      probe.set(pts[k], pts[k + 1], pts[k + 2]).applyMatrix4(piece.matrixWorld);
+      if (probe.y < low) {
+        low = probe.y;
+        lx = probe.x;
+        lz = probe.z;
+      }
+    }
+    /* The plane through three heights round the lowest point, so a piece
+     * on a slope or a roof is measured against the slope. */
+    const from = low + 0.3;
+    const h0 = surfaceAt(lx, lz, from);
+    const hx = surfaceAt(lx + SURFACE_PROBE, lz, from);
+    const hz = surfaceAt(lx, lz + SURFACE_PROBE, from);
+    if (h0 == null || hx == null || hz == null) {
+      return 0;
+    }
+    const sx = (hx - h0) / SURFACE_PROBE;
+    const sz = (hz - h0) / SURFACE_PROBE;
+    let deepest = 0;
+    for (let k = 0; k < pts.length; k += 3) {
+      probe.set(pts[k], pts[k + 1], pts[k + 2]).applyMatrix4(piece.matrixWorld);
+      const gap = probe.y - (h0 + sx * (probe.x - lx) + sz * (probe.z - lz));
+      if (gap < deepest) {
+        deepest = gap;
+      }
+    }
+    return -deepest;
   }
 
   function isUnder(o, set) {
@@ -649,7 +763,7 @@ export function createWreck() {
    * drawn from, and `toWorld(px, py, pz, qw, qx, qy, qz, outPos, outQuat)`
    * the shell's plant to world conversion. Returns how many pieces are out.
    */
-  function update(parts, count, craftState, toWorld) {
+  function update(parts, count, craftState, toWorld, surfaceAt = null) {
     if (!craft || !parts || count <= 1 || count > boxes.length) {
       return pieces.size;
     }
@@ -710,15 +824,34 @@ export function createWreck() {
         qi.set(parts[qo + 1], parts[qo + 2], parts[qo + 3], parts[qo]).premultiply(qc);
         simQuatToThree(qi.w, qi.x, qi.y, qi.z, quat);
         piece.quaternion.copy(craft.quaternion).multiply(quat);
+        rests.get(i).lift = 0;
       } else {
         toWorld(
           parts[o + STATE.pos], parts[o + STATE.pos + 1], parts[o + STATE.pos + 2],
           parts[qo], parts[qo + 1], parts[qo + 2], parts[qo + 3],
           piece.position, piece.quaternion,
         );
+        /* Pieces on one free body move as one, so they are lifted as one:
+         * by the deepest of them, up to the farthest any of them reaches
+         * past its box. */
+        const rest = rests.get(i);
+        const b = parts[o + STATE.body];
+        const k = b >= 0 && b < 32 ? b : 32 + i;
+        bodySunk[k] = Math.max(bodySunk[k], sunkBy(piece, rest, surfaceAt));
+        bodyReach[k] = Math.max(bodyReach[k], rest.reach);
+        rest.body = k;
       }
       free[i] = parts[o + STATE.status] !== 0 ? 1 : 0;
     }
+    for (const [i, piece] of pieces) {
+      const rest = rests.get(i);
+      if (free[i]) {
+        rest.lift = Math.min(bodySunk[rest.body], bodyReach[rest.body]);
+        piece.position.y += rest.lift;
+      }
+    }
+    bodySunk.fill(0);
+    bodyReach.fill(0);
     return pieces.size;
   }
 
@@ -772,23 +905,25 @@ export function createWreck() {
           }
         }
       }
-      /* The lowest corner of the part's own hull box where the piece is
-       * drawn, world: what the plant rests on, for a check that a piece
-       * drawn in the ground is the plant's pose and not the drawing's. */
+      /* The lowest corner of the part's own hull box where the plant has
+       * the part (the drawing's lift taken back off), world: what the
+       * plant rests on, for a check that a piece drawn in the ground is the
+       * plant's pose and not the drawing's. */
       piece.updateMatrixWorld(true);
+      const lift = rests.get(i).lift;
       let low = null;
       const lo = table[i].boxMin;
       const hi = table[i].boxMax;
       for (let k = 0; k < 8; k += 1) {
         bodyToLocal([k & 1 ? hi[0] : lo[0], k & 2 ? hi[1] : lo[1], k & 4 ? hi[2] : lo[2]], vb)
           .sub(origin).applyMatrix4(piece.matrixWorld);
-        if (!low || vb.y < low[1]) {
-          low = [vb.x, vb.y, vb.z];
+        if (!low || vb.y - lift < low[1]) {
+          low = [vb.x, vb.y - lift, vb.z];
         }
       }
       out.push({
         part: i, kind: table[i].kindName, parent: table[i].parent, tris, overhang: worst, mesh: where, hullLow: low,
-        free: free[i] === 1,
+        free: free[i] === 1, lift,
       });
     }
     return out;

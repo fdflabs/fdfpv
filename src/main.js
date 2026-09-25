@@ -3634,6 +3634,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * grit per this many ms is what the ear and the eye resolve. */
   const CHIP_CUE_GAP_MS = 45;
 
+  /* The drawn ground a broken piece rests on, or null on water, which a
+   * piece may lie in (src/render/wreck.js). */
+  function pieceGround(x, z, fromY) {
+    const h = view.height(x, z, fromY);
+    const w = view.water && view.water.length ? waterAt(x, z) : null;
+    return w && h <= w.surfaceY + 1e-6 ? null : h;
+  }
+
   function plantToWorld(px, py, pz, qw, qx, qy, qz, outPos, outQuat) {
     simPosToThree(px, py, pz + SPAWN_ALT, outPos);
     outPos.applyQuaternion(qSpawn);
@@ -4102,7 +4110,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     lastParts = crashFlags ? damage.parts() : null;
     crashEntries(crashFlags & ~before, nowWall);
     if (lastParts) {
-      wreckRig.update(lastParts, damage.count(), stateCurr, plantToWorld);
+      wreckRig.update(lastParts, damage.count(), stateCurr, plantToWorld, pieceGround);
     }
     fpvFail.set(
       (crashFlags & DAMAGE_FLAGS.antennaLost) !== 0,
