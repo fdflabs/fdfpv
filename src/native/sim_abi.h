@@ -334,14 +334,14 @@ int sim_set_flight_style(int arcade);
  * the GWS Slow Stick, a three channel slow flyer on wheels with no
  * ailerons, whose roll stick drives its rudder too, 6 the E-flite Radian
  * Pro, a 2 m powered glider with the Cub's surfaces, a folding prop, and
- * the thermals of sim_air_lift to climb in, and 8 the C-Astral Bramor
+ * the thermals of sim_air_lift to climb in, 8 the C-Astral Bramor
  * C4EYE, a 2.3 m blended wing body flying wing that is catapult launched
- * and recovered under a parachute. 7 is reserved for an airframe still
- * being built.
- * Returns SIM_ERR_BAD_ARG for anything else, a reserved id included.
- * 2 to 6 and 8 are fixed wings: no Betaflight, the sticks go to the
- * plant, and the sim_wing_* and sim_plane_surfaces entry points below
- * apply.
+ * and recovered under a parachute, and 7 the E-flite Turbo Timber
+ * Evolution, a 1.5 m STOL taildragger with flaps and slats that stands on
+ * its own wheels.
+ * Returns SIM_ERR_BAD_ARG for anything else.
+ * 2 to 8 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
  * changed meaning, and a replay that never calls this is bit identical to
@@ -364,6 +364,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_CUB1400_ID 4
 #define SIM_AIRFRAME_SLOWSTICK1180_ID 5
 #define SIM_AIRFRAME_RADIAN2000_ID 6
+#define SIM_AIRFRAME_TIMBER1500_ID 7
 #define SIM_AIRFRAME_BRAMOR2300_ID 8
 int sim_set_airframe(int id);
 
@@ -469,8 +470,8 @@ int sim_wing_debug(double *out);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an
- * airframe declares, newtons, in its table's order; for the Cub and the
- * Slow Stick, left main, right main, tailwheel, and the prop's lowest
+ * airframe declares, newtons, in its table's order; for the Cub, the
+ * Slow Stick and the Timber, left main, right main, tailwheel, and the prop's lowest
  * tip, which reads
  * nonzero only in a prop strike. Zero for a point off the ground and for
  * every airframe without gear. The gates read liftoff and touchdown from
@@ -503,6 +504,32 @@ double sim_air_lift(double x, double y, double z);
  */
 int sim_wing_chute(int deploy);
 double sim_wing_chute_open(void);
+
+/*
+ * sim_wing_set_flaps(notch): the flaps of an aircraft that has them, the
+ * Timber: 0 up, 1 half, 2 full, the radio's three position switch. The
+ * flaps travel to the notch's angle at the aircraft's own rate, adding
+ * lift, drag and a pitching moment, raising the CLmax, and, through the
+ * radio's mix, a little down elevator. A mode, kept across sim_reset,
+ * which puts the flaps where the notch has them; sim_set_airframe raises
+ * them. SIM_ERR_BAD_ARG for a notch past 0 on an aircraft without flaps
+ * and for anything outside 0 to 2; SIM_ERR_BAD_STATE before sim_init.
+ * sim_wing_flaps(): the flaps' angle now, radians, trailing edge down.
+ * sim_wing_flaps_settle(): the flaps where the notch has them at once, as
+ * sim_reset puts them, for a host that holds a parked aircraft by not
+ * stepping it, during which the servos would have finished moving;
+ * SIM_ERR_BAD_STATE before sim_init.
+ * sim_wing_set_slats(fitted): the fixed leading edge slats, 1 on, the
+ * default, 0 off; they raise the CLmax and cost a little drag. A mode; no
+ * effect on an aircraft without them. SIM_ERR_BAD_ARG for anything but 0
+ * or 1.
+ * Additive, version unchanged: an aircraft without flaps or slats adds
+ * exact zeros, so every trace from before they existed is bit identical.
+ */
+int sim_wing_set_flaps(int notch);
+double sim_wing_flaps(void);
+int sim_wing_flaps_settle(void);
+int sim_wing_set_slats(int fitted);
 
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);

@@ -819,9 +819,6 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .fw = &FW_RADIAN2000,
 },
 /*
- * Slot 7 is reserved for the Timber Evolution being built alongside, and
- * is zero until it lands; sim_set_airframe refuses a slot with no mass.
- *
  * The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, on the same terms as
  * the other fixed wings: what sim.c reads for every airframe, and its
  * FixedWingParams. 4.5 kg, the published take off mass, on a 6S pack (an
@@ -908,6 +905,64 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
      * the grass with the aircraft level on its mains, touching at 7 deg
      * nose down about them. */
     { .pos = { 0.31, 0.0, -0.1422 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
+/*
+ * The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md: 1.70 kg
+ * on a 4S 3200 mAh pack, the three blade prop 0.29 m ahead of the CG on
+ * the thrust line. The hull is the contact code's centred box and, as on
+ * the Cub, only what a crash lands on, since the aircraft stands on its
+ * wheels: 0.6 m long and 1.2 m across, the belly 50 mm under the CG and
+ * the wing's top 0.12 m over it. Its aft bottom corners clear the grass by
+ * 0.10 m with the tail down, so the aircraft rocking onto one main wheel
+ * touches one at 13 deg of bank, where the drawn wingtip clears to 19: a
+ * box as wide as the span, its bottom the belly's, would touch at 7 and
+ * perch there, since a box cannot follow the wing up over the cabin. The
+ * camera is the drawn one, on top of the cowl.
+ */
+[SIM_AIRFRAME_TIMBER1500] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 1.70,
+  .inertia = { 0.090, 0.095, 0.170 },
+  .gravity = 9.81,
+  .cells = 4.0,
+  .r_cell = 0.008,
+  .rho = 1.225,
+  .prop_r = 0.1397,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.29, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.30,
+  .hull_hy = 0.60,
+  .hull_hz_down = 0.05,
+  .hull_hz_up = 0.12,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.68,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.205,
+  .camera_y = 0.0,
+  .camera_z = 0.049,
+  .fw = &FW_TIMBER1500,
+  /*
+   * The gear, as src/render/timbercraft.js draws it (TIMBER_DIMS): the
+   * main axles 57 mm ahead of the CG and 173 mm under it on a 0.30 m
+   * track with 108 mm foam tyres, the tailwheel's axle 0.650 m behind and
+   * 65 mm under with a 30 mm wheel. The drawing is the aircraft at rest,
+   * so each axle is lowered by its strut's static deflection, 4.85 mm on
+   * the mains and 6.1 on the tail, and under its own weight the plant
+   * settles onto the drawn pose: 11.8 deg nose up, the CG 0.212 m over the
+   * grass, 12.8 percent of the weight on the tail. Stiffness for that
+   * deflection, damping at 0.6 of critical, the Cub's rule; the grass's
+   * rolling resistance the Cub's; the tailwheel steers with the rudder,
+   * one to one.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.057, 0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
+    { .pos = { 0.057, -0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0 },
+    { .pos = { -0.650, 0.0, -0.0711 }, .r = 0.015, .k = 350.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0 },
+    /* The prop's lowest tip, a skid, 0.1397 m under the shaft: 87 mm over
+     * the grass with the aircraft level on its mains. */
+    { .pos = { 0.29, 0.0, -0.1397 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
 };

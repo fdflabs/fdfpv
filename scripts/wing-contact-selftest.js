@@ -51,6 +51,7 @@ const PLANES = [
   { name: 'cub', id: 4, hx: 0.30, hy: 0.70, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.18, 0, 0.8], wheels: { restPitchDeg: 11.0, restZ: 0.1463 } },
   { name: 'radian', id: 6, hx: 0.45, hy: 0.55, down: 0.052, up: 0.08, land: 8, nose: 10, toss: 10, tossSticks: [0, -0.274, 0, 0.7] },
   { name: 'slowstick', id: 5, hx: 0.30, hy: 0.588, down: 0.03, up: 0.06, land: 5, nose: 6, toss: 6, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 6.91, restZ: 0.1349 } },
+  { name: 'timber', id: 7, hx: 0.30, hy: 0.60, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 11.81, restZ: 0.2117 } },
 ];
 
 let failed = 0;
@@ -156,7 +157,11 @@ for (const plane of PLANES) {
   }
   {
     const sim = await wing(plane);
-    must(sim.e.sim_set_pose(0, 0, plane.down + 0.005, 1, 0, 0, 0), 'pose');
+    /* An aircraft on wheels sits on them, at the pose its gear holds it
+     * in; seated on its hull instead, its struts would start the case
+     * compressed by the gear's whole height and throw it into the air. */
+    const q0 = plane.wheels ? pitchQuat(-plane.wheels.restPitchDeg) : [1, 0, 0, 0];
+    must(sim.e.sim_set_pose(0, 0, plane.wheels ? plane.wheels.restZ : plane.down + 0.005, q0[0], q0[1], q0[2], q0[3]), 'pose');
     must(sim.e.sim_rest(), 'rest');
     run(sim, 500);
     /* Into the hand first, as the shell does: a hull on the grass is held
