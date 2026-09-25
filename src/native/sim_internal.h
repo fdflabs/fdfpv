@@ -556,6 +556,11 @@ typedef struct FixedWingParams {
   double stall_dw;
   double stall_asym;
   double strip_c[4];
+  /* The wing's twist, tip nose down from the root, linear along the span,
+   * rad: only where a strip stalls, which it moves later by its share.
+   * FITTED to each kit's published stall behaviour, docs/STALL-STAGE1.md;
+   * no kit publishes it. Zero is an untwisted wing. */
+  double washout;
   double lowre_arm_ac;
   double lowre_arm_cp;
   /*

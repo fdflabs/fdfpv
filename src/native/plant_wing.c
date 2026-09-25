@@ -1033,7 +1033,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * chords the table's strip_c over the mean chord; each carries r of the
    * wing's lift coefficient, Schrenk's (c + c_elliptic) / 2c (NACA TM 948),
    * so the most loaded strip stalls where the wing's CLmax says and the
-   * others later. The left half stalls stall_asym sooner. The moments are
+   * others later; a washed out strip, twisted nose down by washout times
+   * its share of the semispan, later again, by that twist. The left half
+   * stalls stall_asym sooner. The moments are
    * scaled by kr so that the strips' linear part is exactly the table's
    * roll damping, which they take back as they stall. The yaw a lift makes
    * through a roll rate is the table's cn_p_per_cl, on the stalled CL
@@ -1058,7 +1060,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       const double y = (0.125 + 0.25 * i) * half;
       const double da = p * y / Vrate;
       const double dr = (-w / V) * s->omega[2] * y / Vrate;
-      const double st = alpha_stall * rmax / rr[i];
+      const double st = add_term(alpha_stall * rmax / rr[i], fw->washout * (0.125 + 0.25 * i));
       double fl[2], fr[2];
       strip_stall(fw, alpha, sin_a, cos_a, -da, dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall, fl);
       strip_stall(fw, alpha, sin_a, cos_a, da, -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall, fr);
@@ -1329,6 +1331,7 @@ const FixedWingParams FW_SKY1800 = {
   .stall_k = 0.72,
   .stall_top = 5.3 * WING_PI / 180.0,
   .strip_c = { 1.132, 1.044, 0.956, 0.868 },
+  .washout = 4.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has
@@ -1413,6 +1416,7 @@ const FixedWingParams FW_CUB1400 = {
   .stall_k = 0.72,
   .stall_top = 4.6 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 1.5 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
@@ -1503,6 +1507,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .stall_k = 0.84,
   .stall_top = 1.4 * WING_PI / 180.0,
   .strip_c = { 1.101, 1.096, 1.074, 0.775 },
+  .washout = 0.0,          /* no fit within a few degrees, docs/STALL-STAGE1.md */
 };
 
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
@@ -1686,6 +1691,7 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .stall_k = 0.72,
   .stall_top = 4.4 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 1.5 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
@@ -1787,6 +1793,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .slat_k = 0.84,
   .stall_top = 3.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
 /* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
@@ -1891,6 +1898,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .slat_k = 0.84,
   .stall_top = 3.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 3.0 * WING_PI / 180.0, /* the Timber's wing, FITTED, docs/STALL-STAGE1.md */
 };
 
 /* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
@@ -1973,4 +1981,5 @@ const FixedWingParams FW_CUB1400F = {
   .stall_k = 0.72,
   .stall_top = 4.6 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 1.5 * WING_PI / 180.0, /* the Cub's wing, FITTED, docs/STALL-STAGE1.md */
 };
