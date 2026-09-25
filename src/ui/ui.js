@@ -2812,8 +2812,8 @@ const WAYS = [
     home: 'airfield',
     label: str('ui.fixed_wing'),
     art: 'assets/gate/freestyle.jpg',
-    blurb: str('ui.four_fixed_wings'),
-    facts: [str('ui.four_planes'), str('ui.the_airfield')],
+    blurb: str('ui.six_fixed_wings'),
+    facts: [str('ui.six_planes'), str('ui.the_airfield')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
