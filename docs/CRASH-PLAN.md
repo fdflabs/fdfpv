@@ -635,3 +635,18 @@ headless real shell checks the lead runs on each. The suite's bands
 stay as the measure and keep improving in the background, but they no
 longer block the loop's end. Round 5 finishes as planned; then one
 feel round on the owner's list above, then the owner's sign off.
+
+Round 5 closed (lead, 2026-09-25): hull #68, suite bands #69, parts #70,
+aero #71 and #72 (Radian washout 6 deg FITTED, past the 5 deg bound by
+lead decision), ground impact #73, and the suite counting the plant's
+own obstacle contacts (875c186). Suite on main: 10 of 60 in every band,
+115 of 294 checks failing (147 of 303 at the round's start), all 60
+deterministic. Open, recorded: Timber drift held full back in Manual,
+Slow Stick S9b, the Bombshell's take off heading, q5-wall at about 2300
+g (a frame crush value), quads stopping dead on grass (a depth
+dependent grass grip), the Bramor's flat spin, and a gyroscopic
+instability in plant.c when a whoop loses its pack (the tumble runs
+away and hung crash.c's free body loop; #73 kept the whoop on host
+contacts to avoid it).
+
+Next: the feel round, then the owner's sign off.
