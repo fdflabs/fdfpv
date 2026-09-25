@@ -948,6 +948,85 @@ const GROUND_PARS = /* glsl */ `
 
   struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; float backlit; float sheen; };
 
+  /*
+   * The structure of a sheer limestone face (swiss2/terrain.js's walls)
+   * at the scale it is seen from the valley, hundreds of metres off:
+   * beds tens of metres thick, each its own grey or cream, dipping a few
+   * degrees, with a shadowed overhang under every bed's lip and a ledge
+   * on its top that holds turf and scrub where the noise lets it; thin
+   * beds between; sparse vertical cracks and a few chimneys; rust and
+   * dark wet streaks down from the rim where water runs; lichen. Read
+   * on one face coordinate along the wall, and the height, so
+   * nothing is drawn out down the fall line the way a plan read is on a
+   * face. Every line is faded as it falls under two pixels (px,
+   * metres), so nothing shimmers far off.
+   */
+  struct S2Face { vec3 tint; float green; float ao; float up; };
+  float s2FaceLine(float d, float w, float px) {
+    return (1.0 - smoothstep(0.0, w + px, d)) * smoothstep(0.5 * px, 2.0 * px, w);
+  }
+  S2Face s2FaceAt(float a, float y, float px) {
+    S2Face f;
+    float yb = y + 0.035 * a + 7.0 * s2Noise(vec2(a / 170.0, 0.3)) + 2.0 * s2Noise(vec2(a / 45.0, 5.1));
+    /* The beds, twenty four metres on the average. */
+    float t1 = yb / 24.0;
+    float i1 = floor(t1);
+    float h1 = fract(t1) * 24.0;
+    float bedTone = s2Hash(vec2(i1, 7.7));
+    vec3 tint = mix(vec3(0.84, 0.85, 0.87), vec3(1.3, 1.14, 0.88), smoothstep(0.2, 0.8, bedTone));
+    tint *= 0.78 + 0.34 * s2Hash(vec2(i1, 3.1));
+    /* A bed is cut by upright joints into slabs thirty to ninety metres
+     * long, each weathered its own shade: the blocks a face is from
+     * across a valley, not ruled stripes. */
+    float blockW = 30.0 + 60.0 * s2Hash(vec2(i1, 1.3));
+    float block = floor(a / blockW + s2Hash(vec2(i1, 9.1)));
+    tint *= 0.8 + 0.4 * s2Hash(vec2(block, i1 + 0.5));
+    /* And over the whole face, washes a hundred metres wide and the
+     * face's height, paler where it has fallen away fresh, darker where
+     * it has stood longest. */
+    float wash = s2Noise(vec2(a / 120.0 + 4.4, y / 600.0));
+    tint *= mix(vec3(0.7, 0.72, 0.74), vec3(1.2, 1.12, 0.96), wash);
+    /* Under the lip of the bed above: the overhang's shadow, as deep as
+     * the lip stands out, which wanders along the bed. */
+    float lipOn = smoothstep(0.45, 0.65, s2Noise(vec2(a / 80.0 + i1 * 1.9, i1 * 0.7))) * smoothstep(0.3, 0.5, s2Noise(vec2(a / 23.0 + i1 * 4.1, i1 + 7.0)));
+    float lipW = (0.6 + 1.8 * s2Noise(vec2(a / 25.0 + i1, 2.2))) * lipOn;
+    float lip = s2FaceLine(24.0 - h1, lipW, px);
+    /* On the bed's top, a ledge where the noise says, turf and scrub on
+     * some of them. */
+    float ledgeOn = smoothstep(0.5, 0.7, s2Noise(vec2(a / 70.0 + i1 * 2.3, i1 * 1.3 + 4.0)));
+    float ledge = s2FaceLine(h1, 1.2 + 2.5 * ledgeOn, px) * ledgeOn;
+    float scrub = smoothstep(0.1, 0.4, ledge) * smoothstep(0.5, 0.75, s2Noise(vec2(a / 5.0 + i1, h1 / 3.0 + i1 + 0.5)));
+    /* The thin beds between, six metres or so. */
+    float h2 = fract(yb / 6.3) * 6.3;
+    float thin = s2FaceLine(min(h2, 6.3 - h2), 0.25, px);
+    /* Cracks: a few, narrow, running a bed or two down the face. */
+    float cq = s2Noise(vec2(a / 6.0 + 3.3, yb / 55.0));
+    float crackOn = smoothstep(0.55, 0.7, s2Noise(vec2(a / 35.0 + 9.2, yb / 140.0)));
+    float crack = s2FaceLine(abs(cq - 0.5) * 6.0, 0.18, px) * crackOn;
+    /* Chimneys: wide dark clefts, a few to a face. */
+    float chimney = smoothstep(0.83, 0.9, s2Noise(vec2(a / 20.0 + 1.1 + 0.4 * s2Noise(vec2(y / 40.0, a / 50.0)), y / 300.0 + 2.2)));
+    /* Streaks down from the rim: rust where iron water runs, black where
+     * it runs wet, both long and narrow. */
+    float rust = smoothstep(0.62, 0.82, s2Noise(vec2(a / 22.0 + 8.8, y / 260.0))) * smoothstep(0.35, 0.6, s2Noise(vec2(a / 110.0, y / 500.0 + 1.3)));
+    float wet = smoothstep(0.68, 0.86, s2Noise(vec2(a / 26.0 + 2.7, y / 420.0 + 0.6)));
+    /* Lichen, grey green in patches and black in blotches. */
+    float lichen = smoothstep(0.55, 0.8, s2Noise(vec2(a / 14.0 + 5.5, y / 11.0)));
+    float black = smoothstep(0.72, 0.85, s2Noise(vec2(a / 3.0 + 1.9, y / 5.0 + 3.3)));
+
+    tint *= 1.0 - 0.1 * thin;
+    tint *= 1.0 + 0.12 * ledge * (1.0 - scrub);
+    tint = mix(tint, tint * vec3(1.12, 0.82, 0.58), 0.6 * rust);
+    tint *= 1.0 - 0.55 * wet;
+    tint = mix(tint, tint * vec3(0.9, 0.96, 0.8), 0.5 * lichen);
+    tint *= 1.0 - 0.25 * black;
+    f.tint = tint;
+    f.green = 0.9 * scrub;
+    f.ao = (1.0 - 0.75 * lip) * (1.0 - 0.6 * crack) * (1.0 - 0.3 * chimney);
+    /* Turned down under a lip, up on a ledge. */
+    f.up = 0.9 * ledge - 0.9 * lip;
+    return f;
+  }
+
   S2Ground s2Ground(vec3 p, vec3 n) {
     vec2 fuv = (p.xz + uS2Field.x) / uS2Field.y;
     float inside = step(0.0, fuv.x) * step(fuv.x, 1.0) * step(0.0, fuv.y) * step(fuv.y, 1.0);
@@ -972,7 +1051,7 @@ const GROUND_PARS = /* glsl */ `
      * longer across than tall. */
     float sheer = smoothstep(1.4, 2.6, sqrt(max(0.0, 1.0 - n.y * n.y)) / max(n.y, 0.05));
     vec3 beds = vec3(1.0, mix(1.0, 1.8, sheer), 1.0);
-    vec3 rg = s2Relief(p * beds, mix(1.5, 24.0, max(steep0, 0.6 * bare)) * (1.0 - 0.75 * sheer) * (1.0 - z2.g), dist) * beds;
+    vec3 rg = s2Relief(p * beds, mix(1.5, 24.0, max(steep0, 0.6 * bare)) * (1.0 - 0.95 * sheer) * (1.0 - z2.g), dist) * beds;
     /* Gullies and the ribs between them, running down the face: a
      * mountain face is fluted, and the thirty metre grid is not. Grooves
      * about twenty metres across and deep to match, cut into the normal,
@@ -992,7 +1071,9 @@ const GROUND_PARS = /* glsl */ `
     float gullyKeep = 1.0 - smoothstep(0.12, 0.25, dist * 0.00093 / 23.0);
     float couloir = smoothstep(0.52, 0.8, gully) * steep0;
     float rib = smoothstep(0.45, 0.2, gully) * steep0;
-    rg += vec3(gz.y * gw.y, 0.0, gx.y * gw.x) * (9.0 / 23.0) * steep0 * max(bare, 0.4) * gullyKeep;
+    /* Not on the walls' sheer faces, which have their own structure
+     * (s2FaceAt): there the grooves were long dark stripes down the face. */
+    rg += vec3(gz.y * gw.y, 0.0, gx.y * gw.x) * (9.0 / 23.0) * steep0 * max(bare, 0.4) * gullyKeep * (1.0 - sheer);
     /* The relief's slope along the face only: what points out of it
      * would tilt nothing. */
     rg -= n * dot(n, rg);
@@ -1126,6 +1207,21 @@ const GROUND_PARS = /* glsl */ `
      * field's and the layer loop's do, a derivative is undefined. */
     vec3 dpx = dFdx(p);
     vec3 dpy = dFdy(p);
+    /* The sheer faces' structure, on the upright plane the face turns to
+     * most, blended with the other where it turns between them. */
+    S2Face fc = S2Face(vec3(1.0), 0.0, 1.0, 0.0);
+    if (face > 0.01) {
+      float fpx = max(length(dpx), length(dpy));
+      S2Face fa = s2FaceAt(p.z, p.y, fpx);
+      S2Face fb = s2FaceAt(p.x + 517.0, p.y, fpx);
+      float wa = smoothstep(0.3, 0.7, gw.x);
+      fc.tint = mix(fb.tint, fa.tint, wa);
+      fc.green = mix(fb.green, fa.green, wa) * face;
+      fc.ao = mix(1.0, mix(fb.ao, fa.ao, wa), face);
+      fc.up = mix(fb.up, fa.up, wa) * face;
+      vec3 upT = normalize(vec3(0.0, 1.0, 0.0) - n0 * n0.y + vec3(0.0, 1e-4, 0.0));
+      n = normalize(n + upT * fc.up);
+    }
     S2Field field = S2Field(vec3(1.0), vec3(0.0), 0.0, 0.0, vec2(0.0));
     if (farm > 0.0) {
       field = s2Field(p.xz, dist, look, dpx.xz, dpy.xz);
@@ -1188,16 +1284,23 @@ const GROUND_PARS = /* glsl */ `
       /* Rock's second read is larger and counts for more: a kilometre
        * of wall is not a thousand copies of one tile. */
       float s2 = s * (k == 4 ? 0.23 : 0.29);
-      col = mix(col, textureGrad(uS2Col, vec3(TURN * uA * s2 + vec2(0.37, 0.71), lk), TURN * dAx * s2, TURN * dAy * s2).rgb, k == 4 ? 0.45 : 0.28);
-      vec3 wn = s2Whiteout(s2Tangent(nh, uS2Bump[k] * fade), n, pl.a) * pl.w.x;
+      /* On a sheer face the large read is nearly all of it: at thirty
+       * metres a tile the photograph's repeats were a grid of blotches
+       * down the whole wall, and the face's own structure (s2FaceAt) is
+       * the detail there. */
+      col = mix(col, textureGrad(uS2Col, vec3(TURN * uA * s2 + vec2(0.37, 0.71), lk), TURN * dAx * s2, TURN * dAy * s2).rgb, k == 4 ? mix(0.45, 0.9, face) : 0.28);
+      /* On a sheer face the rock photograph's bumps, thirty metres a
+       * tile, were a quilt of round shadows hung over the whole wall. */
+      float bump = uS2Bump[k] * fade * (k == 4 ? 1.0 - 0.8 * face : 1.0);
+      vec3 wn = s2Whiteout(s2Tangent(nh, bump), n, pl.a) * pl.w.x;
       if (pl.w.y > 0.0) {
-        wn += s2Whiteout(s2Tangent(nhB, uS2Bump[k] * fade), n, pl.b) * pl.w.y;
+        wn += s2Whiteout(s2Tangent(nhB, bump), n, pl.b) * pl.w.y;
       }
       if (k == 4) {
         /* Strata: a darker band in every three, thirty metres tall,
          * warped by the noise so they never read as contour lines. */
         float band = fract((p.y + 22.0 * meso + 9.0 * fine) / 31.0);
-        col *= 1.0 - 0.16 * smoothstep(0.0, 0.05, band) * (1.0 - smoothstep(0.24, 0.32, band));
+        col *= 1.0 - 0.16 * (1.0 - face) * smoothstep(0.0, 0.05, band) * (1.0 - smoothstep(0.24, 0.32, band));
         col *= (0.8 + 0.4 * macro) * mix(vec3(1.0), vec3(0.8, 0.76, 0.7), smoothstep(0.4, 0.8, meso));
         /* Water streaks down the face: long dark stains, narrow across
          * and tall, where the runoff has darkened the limestone. */
@@ -1209,9 +1312,8 @@ const GROUND_PARS = /* glsl */ `
          * shade, longer across than down, not one texture ruled with
          * streaks. */
         col *= mix(1.0, 0.72 + 0.5 * smoothstep(0.3, 0.7, s2Noise(vec2(along / 130.0 + 2.3, p.y / 38.0 + 0.2 * meso))), face);
-        /* The black stains where water runs over the rim, a few and long. */
-        float stain = s2Noise(vec2(along / 16.0 + 7.1, p.y / 260.0 + 0.3 * macro));
-        col *= 1.0 - 0.4 * face * smoothstep(0.7, 0.86, stain);
+        col *= mix(vec3(1.0), fc.tint, face);
+        col = mix(col, vec3(0.07, 0.08, 0.03), fc.green);
         /* The gullies shaded and damp, the ribs weathered pale. */
         col *= 1.0 - 0.22 * couloir + 0.12 * rib;
         /* The cliff bands are limestone, paler and warmer than the
@@ -1336,7 +1438,7 @@ const GROUND_PARS = /* glsl */ `
     g.albedo = albedo;
     g.normal = outN;
     g.rough = rough;
-    g.ao = mix(1.0, 0.5 + 0.5 * clamp(hsum * 1.3, 0.0, 1.0), 0.65);
+    g.ao = mix(1.0, 0.5 + 0.5 * clamp(hsum * 1.3, 0.0, 1.0), 0.65) * fc.ao;
     float craft = s2UnderCraft(p);
     g.ao *= 1.0 - 0.7 * craft;
     #ifdef S2_CARVED
