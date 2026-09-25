@@ -601,10 +601,21 @@ function lilyPad(m, rng, x, y, z, r) {
 /*
  * Build the props. ctx: heightAt, rng, colliders, and footprints, the
  * village's walls, which the huts keep clear of.
+ *
+ * The huts and the bales are scattered from one stream of draws over the
+ * whole valley, each kept or passed over by the ground, so a change to
+ * the walls' shape (swiss2/terrain.js) moved every hut and bale on the
+ * floor too. `decideAt`, when given, is the ground they are decided on
+ * instead (the alps' own); each is then drawn as the alps would draw it,
+ * and left out, its draws made, where the ground under it is not that.
  */
 export function buildProps(ctx) {
   const { heightAt, rng, colliders } = ctx;
-  const layout = valleyLayout(heightAt, ctx.footprints || []);
+  const decideAt = ctx.decideAt || heightAt;
+  /* Whether the ground within r metres of (x, z) is not what it was
+   * decided on. */
+  const moved = (x, z, r = 0) => [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]].some(([a, b]) => Math.abs(heightAt(x + a, z + b) - decideAt(x + a, z + b)) > 0.01);
+  const layout = valleyLayout(decideAt, ctx.footprints || []);
   const { keepOff, coverOff, streamDist } = layout;
   const group = new THREE.Group();
   group.name = 'swiss2-props';
@@ -612,11 +623,11 @@ export function buildProps(ctx) {
   const village = ctx.footprints || [];
   const clearOfVillage = (x, z, d) => village.every((f) => Math.hypot(Math.max(f.minX - x, 0, x - f.maxX), Math.max(f.minZ - z, 0, z - f.maxZ)) >= d);
   const slopeAt = (x, z) => {
-    const sx = (heightAt(x + 6, z) - heightAt(x - 6, z)) / 12;
-    const sz = (heightAt(x, z + 6) - heightAt(x, z - 6)) / 12;
+    const sx = (decideAt(x + 6, z) - decideAt(x - 6, z)) / 12;
+    const sz = (decideAt(x, z + 6) - decideAt(x, z - 6)) / 12;
     return { sx, sz, s: Math.hypot(sx, sz) };
   };
-  const inLake = (x, z) => z > LAKE_N - 60 && heightAt(x, z) < LAKE_Y + 2.5;
+  const inLake = (x, z) => z > LAKE_N - 60 && decideAt(x, z) < LAKE_Y + 2.5;
 
   /* THE HUTS. */
   const m = new Mesher();
@@ -627,7 +638,7 @@ export function buildProps(ctx) {
       const x = gx + rng() * STEP;
       const z = gz + rng() * STEP;
       const pick = rng();
-      const y = heightAt(x, z);
+      const y = decideAt(x, z);
       const floor = y < 35;
       if (pick > (floor ? 0.1 : 0.05) || y > TREE_LINE - 60 || inLake(x, z)) {
         continue;
@@ -658,9 +669,10 @@ export function buildProps(ctx) {
       const r = rng();
       const roof = r < 0.25 ? [0.12, 0.052, 0.03] : r < 0.4 ? [0.045, 0.047, 0.05] : [0.1 * k, 0.093 * k, 0.085 * k];
       const spec = { x, z, yaw, w: 5 + 2.5 * rng(), d: 4 + 1.6 * rng(), h: 2.4 + 0.9 * rng(), pitch: 0.42 + 0.2 * rng(), wall, roof };
-      const built = hut(m, heightAt, rng, spec);
+      const gone = moved(x, z, 8);
+      const built = hut(gone ? new Mesher() : m, heightAt, rng, spec);
       huts.push({ x, z });
-      if (near(x, z)) {
+      if (near(x, z) && !gone) {
         const c = Math.abs(Math.cos(yaw));
         const s = Math.abs(Math.sin(yaw));
         const hx = (spec.w / 2 + 0.55) * c + (spec.d / 2 + 0.55) * s;
@@ -685,7 +697,7 @@ export function buildProps(ctx) {
       }
       baled.add(key);
       const pick = noise2(f.own[0] * 0.37 + 0.5, f.own[1] * 0.29 + 0.5);
-      if (pick < 0.5 || heightAt(x, z) > 35) {
+      if (pick < 0.5 || decideAt(x, z) > 35) {
         continue;
       }
       const dir = rng() * Math.PI * 2;
@@ -700,9 +712,13 @@ export function buildProps(ctx) {
           break;
         }
         const white = rng() < 0.82;
-        const c = bale(m, heightAt, {
+        const spec = {
           x: px, z: pz, yaw: rng() * Math.PI * 2, standing: rng() < 0.35, colour: white ? [0.7, 0.72, 0.7] : [0.22, 0.34, 0.2],
-        });
+        };
+        if (moved(px, pz, 1.5)) {
+          continue;
+        }
+        const c = bale(m, heightAt, spec);
         bales += 1;
         if (near(px, pz)) {
           colliders.addSphere('rock', c.x, c.y, c.z, 0.7);
@@ -721,7 +737,7 @@ export function buildProps(ctx) {
     return f.kind === 'pasture' && f.plateau < 0.2 && noise2(f.own[0] * 0.53 + 0.3, f.own[1] * 0.41 + 0.7) > 0.6;
   };
   const spans = [];
-  for (const line of meadowCuts(heightAt)) {
+  for (const line of meadowCuts(decideAt)) {
     /* Resampled to SPAN along the ground's plan. */
     const pts = [line[0]];
     let carry = 0;
@@ -746,7 +762,7 @@ export function buildProps(ctx) {
       if (!fenced(mx + nx * 2, mz + nz * 2) && !fenced(mx - nx * 2, mz - nz * 2)) {
         continue;
       }
-      if ([a, b].some((p) => keepOff(p.x, p.z) || coverOff(p.x, p.z) || streamDist(p.x, p.z) < 5 || layout.solidAt(p.x, p.z) || inLake(p.x, p.z) || heightAt(p.x, p.z) > 40)) {
+      if ([a, b].some((p) => keepOff(p.x, p.z) || coverOff(p.x, p.z) || streamDist(p.x, p.z) < 5 || layout.solidAt(p.x, p.z) || inLake(p.x, p.z) || decideAt(p.x, p.z) > 40 || moved(p.x, p.z))) {
         continue;
       }
       const ay = heightAt(a.x, a.z);
@@ -767,7 +783,7 @@ export function buildProps(ctx) {
   for (let z = -2650; z < ROAD_END - 20; z += 50) {
     for (const s of [-1, 1]) {
       const x = roadX(z) + s * 4.3;
-      if ((s < 0 && Math.abs(z - STREET_Z) < 14) || heightAt(x, z) > 40 || layout.solidAt(x, z)) {
+      if ((s < 0 && Math.abs(z - STREET_Z) < 14) || decideAt(x, z) > 40 || layout.solidAt(x, z) || moved(x, z)) {
         continue;
       }
       const y = delineator(m, heightAt, { x, z, yaw: roadYaw(z) });

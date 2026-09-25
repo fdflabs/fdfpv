@@ -133,7 +133,27 @@ export async function buildVegetation(ctx) {
       m.envMap = ctx.envMap;
     }
   }
-  const forest = plantForest({ heightAt: ctx.heightAt, layout, rng, spacing: Q.spacing, colliders: ctx.colliders });
+  /* `decideAt`, the ground the floor's trees are decided on, and `seed`,
+   * the one `rng` was made from: the floor's trees drawn as the stands on
+   * that ground leave the stream (forest.js plantForest), so a map that
+   * reshapes its walls (swiss2/terrain.js) keeps its floor's trees where
+   * they stood. */
+  let floor = null;
+  if (ctx.decideAt) {
+    const heightAt = ctx.decideAt;
+    const alps = valleyLayout(heightAt, ctx.footprints || []);
+    alps.gardens = layout.gardens;
+    const draws = plantForest({
+      heightAt, layout: alps, rng: makeRng(ctx.seed), spacing: Q.spacing, colliders: null, standsOnly: true,
+    });
+    floor = { heightAt, layout: alps, rng: makeRng(ctx.seed) };
+    for (let k = 0; k < draws; k += 1) {
+      floor.rng();
+    }
+  }
+  const forest = plantForest({
+    heightAt: ctx.heightAt, layout, rng, spacing: Q.spacing, colliders: ctx.colliders, floor,
+  });
   mark('planting');
   const lod = forestLod({
     forest,
