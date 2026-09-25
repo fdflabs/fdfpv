@@ -2090,7 +2090,11 @@ export async function boot({ loading, bootStart, mapId }) {
       launcherLeft = null;
       return;
     }
-    const parked = landed && !flownThisRun && Boolean(airframeById(runAirframe).catapult);
+    /* The title flies the aircraft round the world as a showpiece, and a
+     * catapult carried along under a flying aircraft is nonsense: the
+     * launcher belongs to the pad, so it stands only once a run is seated. */
+    const parked = mode !== 'title' && landed && !flownThisRun
+      && Boolean(airframeById(runAirframe).catapult);
     if (parked) {
       launcherLeft = null;
       launcher.position.copy(shell.launcherRest.position);
