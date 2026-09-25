@@ -286,8 +286,18 @@ export async function runBrowserHarness(pageUrl, { timeoutMs = 120000 } = {}) {
     return { result: evalResult.result.value, errors, warnings };
   } finally {
     if (proc) {
+      const exited = proc.exitCode !== null || proc.signalCode !== null
+        ? Promise.resolve()
+        : new Promise((done) => proc.once('exit', done));
       proc.kill('SIGKILL');
+      await exited;
     }
-    await rm(userDataDir, { recursive: true, force: true }).catch(() => {});
+    /* Chrome's helpers outlive the main process by a moment and are still
+     * writing the profile, so a single delete fails with ENOTEMPTY and left
+     * an empty profile in /tmp after every run; rm retries exactly that. A
+     * delete that still fails is reported, not swallowed: /tmp is a quota
+     * tmpfs and leaked profiles once filled it. */
+    await rm(userDataDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
+      .catch((e) => console.warn(`browser harness: profile ${userDataDir} not removed: ${e.message}`));
   }
 }
