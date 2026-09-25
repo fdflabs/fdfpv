@@ -26,6 +26,7 @@
 import { chalet, barn, farmhouse, gasthof, shop, church } from './houses.js';
 import { hangar } from './hangar.js';
 import { makeBakeAll } from './bake.js';
+import { station, bakeStations } from './station.js';
 import { furnish } from '../village/index.js';
 
 /* A log is wider than the boards the photograph shows: the log walls'
@@ -34,14 +35,17 @@ const LOG_UV = 0.72;
 
 /* What alps/village.js takes from a style's look.buildings. furnish()
  * leaves the village's layout on the hook for the people who walk it
- * (village/people.js), who are placed after the village is built. */
+ * (village/people.js), who are placed after the village is built, and
+ * then bakes in the gondola's two stations; `station` tells alps/lift.js
+ * not to draw its own. */
 export function swissBuildings(look) {
   const uv = { larchDark: LOG_UV, larch: LOG_UV, honey: LOG_UV, weathered: LOG_UV };
   const hook = {
-    chalet, barn, farmhouse, gasthof, shop, church, hangar, bakeAll: makeBakeAll(look, uv),
+    chalet, barn, farmhouse, gasthof, shop, church, hangar, station, bakeAll: makeBakeAll(look, uv),
     layout: null,
     furnish(ctx) {
       hook.layout = furnish(ctx);
+      bakeStations(ctx);
     },
   };
   return hook;
