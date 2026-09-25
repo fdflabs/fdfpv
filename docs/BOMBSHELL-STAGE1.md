@@ -293,6 +293,44 @@ slipstream the plant does not model, a taxiing Bombshell goes where it is
 pointed; the prop's torque turns it about 5 deg left in the take off roll,
 the way a glow taildragger swings, and it is off before that matters.
 
+## The crash parts
+
+`src/native/crash_parts.h` `PARTS_BOMBSHELL1118`, 17 parts, and a new
+material, `SIM_MAT_BALSA` (11, `balsa` in `configs/parts.js`): balsa under
+doped tissue. Nothing on this aircraft is foam, so nothing has a crush
+plateau: a joint past its onset cracks and loses up to half its strength,
+and past its limit it breaks, which is crash.c's rule for anything that is
+not foam, wire, aluminium or a prop. A broken part sheds long pale balsa
+splinters (`src/render/debris.js`). Free, balsa floats: 160 kg/m³.
+
+| Joint | Limit | Derivation |
+| --- | --- | --- |
+| aft fuselage | 18 N m, 200 N | its weakest section, at the stabiliser, 22 x 33 mm of 1/16 in sheet on 1/8 in longerons: Z 1.8e-6 m³ at balsa's 20 MPa, 36 N m, and half for the glue joints and the cross grain |
+| wing on its rubber bands | 1.9 N m, 20 N | four #32 bands at about 5 N each, 20 N over half the chord. ESTIMATED: no band tension is published. It pops off before its spar breaks as often as not, which is what rubber bands are for |
+| each wing panel on the centre section | 2.1 N m, 80 N | the 3/16 in spar, 1/4 in leading edge and 1 x 1/8 in trailing edge at 20 MPa: 0.37, 0.87 and 0.87 N m |
+| stabiliser | 2.4 N m, 50 N | its 3/16 x 5/16 and 3/16 x 3/8 in edges, 1.0 and 1.4 N m |
+| fin | 1.4 N m, 40 N | its 3/16 x 3/8 in post |
+| elevator, rudder | 0.4 N m, 20 N | tissue and thread hinges, which tear |
+| engine | 4 N m, 200 N | two #2 screws pulling out of the 1/8 in ply firewall at about 200 N each on 20 mm. ESTIMATED |
+| prop | yields 2.7 N m, sheds a blade at 5.4 | Cox's unfilled nylon 7 x 3.5, a 12 x 3 mm root at 150 MPa |
+| gear, skid | 1.42 N m | 1/16 in music wire, the table's WIRE_M |
+
+Balsa's modulus of rupture, about 20 MPa along the grain at the kit's 150
+to 175 kg/m³: Gibson and Ashby, Cellular Solids, ch. 10, and the Forest
+Products Laboratory's Wood Handbook. What the table does not model is the
+tissue itself: a panel that breaks takes its tissue with it, but tissue
+torn over an intact frame, which on the real aircraft loses lift without
+anything breaking, is not a thing the part system has.
+
+Flown with damage on (a throwaway probe, not a gate): an arrival at 7
+m/s and 10 deg nose down writes nothing; 8 m/s at 25 deg folds both gear
+legs, chips the prop, breaks a wing panel off and knocks the wing off its
+bands; 9 m/s at 45 deg breaks the engine off the firewall, a panel and the
+wing's bands, folds the gear, cracks and then loses the radio pack, cracks
+the stabiliser and snaps the aft fuselage off. The crash suite's scenarios and bands
+(`tests/crash/scenarios.js`, `tests/crash/bands.json`) do not have this
+aircraft yet; its references are the next round's.
+
 ## The stabiliser
 
 The Slow Stick's loops with this aircraft's gains: the roll loop's stick

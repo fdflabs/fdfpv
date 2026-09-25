@@ -741,7 +741,8 @@ int sim_set_velocity(double vx, double vy, double vz, double p, double q, double
 #define SIM_MAT_ELECTRONICS 8 /* a camera or a board, a potted brick */
 #define SIM_MAT_WIRE 9        /* steel wire, gear legs, antenna whips */
 #define SIM_MAT_PLY 10        /* plywood, formers */
-#define SIM_MATERIALS 11
+#define SIM_MAT_BALSA 11      /* balsa sheet and stick under doped tissue */
+#define SIM_MATERIALS 12
 
 /*
  * sim_set_part_table(which): SIM_PARTS_OWN (0, the default) is the
