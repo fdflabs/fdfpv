@@ -446,3 +446,51 @@ walls so it falls 300 m, the Staubbach's scale, through swiss2's
 terrain and fall.js together), the square and meadow at eye level, and
 a final pass on the lowest views; then the loop ends and hands over to
 the crash physics plan and the moving water.
+
+### Round 10, the last (PRs #44, #45, main at the merge of #45)
+
+Fall (#44): a bay cut into the east wall ends in a sheer headwall and
+the stream leaves its rim 320 m up: a ~300 m Staubbach, spray long
+before the foot, a wet streak on the face, mist rising 150 m; the cel
+alps and its ground bit identical; a 15th view, `fall-foot`, since the
+fixed waterfall view now shows only the upper fall. Eye level (#45):
+the square's setts, joints, damp and puddles, granite kerbs, the café's
+tables laid, geraniums with real variety, the church's quoins; rosettes,
+clover and worn scrapes round the parked plane; flower drifts in the
+far meadow; scree cones with their own tones and blocks at their feet.
+
+| View | R9 | R10 | The tell now |
+| --- | --- | --- | --- |
+| strip | 7 | 7 | |
+| vista-high | 7.5 | 7.5 | |
+| cruise | 7.5 | 7.5 | |
+| village-20m | 6.5 | 6.5 | flat ground, smaller trees than the reference |
+| square-eye | 6 | 6.5 | the square holds up at eye level; people stand stiffly |
+| meadow-eye | 6.5 | 6.5 | |
+| east-wall | 6.5 | 6.5 | |
+| lake-shore | 6.5 | 6.5 | |
+| lake-high | 6.5 | 6.5 | |
+| waterfall | 6 | 7.5 | the Staubbach; the face is in shadow |
+| into-sun | 6.5 | 6.5 | |
+| farm-low | 6.5 | 6.5 | |
+| lake-edge | 6.5 | 6.5 | |
+| craft-chase | 6 | 6 | the turf is still a uniform mat at the lens |
+| fall-foot | | 7 | new: the whole drop; the rock cone at the foot looks built |
+
+Mean of the thirteen: 6.73 to 6.88.
+
+## The loop's result
+
+Ten rounds, 30 merged pull requests, no view ever scored lower than the
+round before. The mean of the thirteen original views went from 3.67
+to 6.88: from "an old game" to between "a current game's best
+screenshot" and past it on the aerial views (vista-high and cruise 7.5,
+waterfall 7.5). The two walls the loop proposed were both taken inside
+it on the owner's standing instruction: swiss2's own buildings (round 3)
+and its own Lauterbrunnen walls (round 8, the waterfall in round 10).
+
+What still says "game", for any future round, in order of cost:
+people and their posture, the turf at the lens, flat village ground and
+tree scale, the headwall in shadow, and the budget on the shared GPU
+(docs/SWISS2-PERF.md: every view meets High 12 ms on its floor measure,
+the ground splat is the biggest cost).
