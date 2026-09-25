@@ -81,6 +81,7 @@
     "timber:stab": "node scripts/timber-stab-selftest.js",
     "timber:record": "node scripts/wing-record.js timber",
     "timber:derive": "node scripts/timber-derive.js",
+    "stab:glide": "node scripts/stab-glide-derive.js --check",
     "bombshell:gates": "node scripts/bombshell-gates.js",
     "bombshell:stab": "node scripts/bombshell-stab-selftest.js",
     "bombshell:record": "node scripts/wing-record.js bombshell",
