@@ -93,7 +93,7 @@ the file.
 
 | field | type | meaning |
 | --- | --- | --- |
-| `schemaVersion` | integer | The version of THIS document. `2` today. A consumer seeing a HIGHER number reads on a best effort basis, drops what it does not recognise and says so, which is what `normalize()` does and what the Versioning section below states. |
+| `schemaVersion` | integer | The version of THIS document: `3` for a field track, `4` for a track built inside a world (see **Versioning**). A consumer seeing a HIGHER number reads on a best effort basis, drops what it does not recognise and says so, which is what `normalize()` does and what the Versioning section below states. |
 | `id` | string | Stable identity of the track, `trk-` followed by eight hex digits. Used as the key in local storage. Two identical tracks are still two tracks, so this is not derived from the contents. |
 | `name` | string | What the author calls it. Not unique, not an identifier. |
 | `createdUtc` | string | ISO 8601 UTC, seconds resolution, when the track was first made. |
@@ -542,6 +542,37 @@ course from a new builder keeps every time on it.
 The public board accepts both versions. **Deploy the board before the
 simulator**, or a course published from a new builder is refused by an old
 board for a version it does not know.
+
+### 3 to 4: a track inside a world
+
+Version 4 is a track built inside one of the simulator's own worlds with the
+in-sim builder (`src/builder/`, B in a flight on the swiss2 or alps valley),
+rather than on a field. It is written **only** for such a track: a field
+track is still written as version 3, byte for byte what it was, because the
+board accepts 1, 2 and 3 and nothing else.
+
+Two fields are added, and one is re-meant:
+
+| field | where | meaning |
+| --- | --- | --- |
+| `map` | top level | The world the track stands in, as `src/maps/registry.js` names it (`"swiss2"`, `"alps"`). Written only on a version 4 document. |
+| `orientation` | every element | A unit quaternion `{ "w", "x", "y", "z" }` in the document frame: the rotation from the element's **rest pose** to where it stands. At rest a gate stands upright on its base and is flown towards `+y`. Any rotation is legal, so a gate may lie on its side or tilt into a dive. |
+| `position` | every element | **Absolute** in the world, not measured from a field's corner: `x` and `y` across the world with its centre at the origin, `z` the height above the world's zero, not above the ground. The base of the element, as before. |
+
+The document frame is the one this schema already uses, right handed with
+`+z` up; `src/render/frame.js` converts it to the scene. `yaw` and `pitch` are
+still written, derived from the orientation, so a version 3 reader handed a
+version 4 document at least faces its gates the right way; it reads the
+positions as field positions and draws the track in the wrong place, which is
+the documented best effort. Every sequence entry of a version 4 track names
+opening 0 of its element with `entry` 1: the rest pose already says which way
+through.
+
+A document is read as version 4 only when it says so twice, by its
+`schemaVersion` and by naming a usable `map`; a 4 without one is read as a
+field track. The track is saved in the same local library as every other and
+listed only by the builder of its own world; the field builder's Load list
+does not show it. Nothing publishes one to the board yet.
 
 ---
 

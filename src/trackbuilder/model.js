@@ -76,6 +76,31 @@ import { str } from '../strings/index.js';
 export const SCHEMA_VERSION = 3;
 
 /*
+ * 4, AND ONLY FOR A MAP TRACK: a course built inside one of the simulator's
+ * own worlds rather than on the field (src/builder/). It carries `map`, the
+ * world it stands in, and every element's `position` is ABSOLUTE in that
+ * world with a full `orientation`, where a field track's position is
+ * measured from the field's corner and its gates only yaw and pitch. That
+ * re-means a field every reader already reads, which is what the rule above
+ * says to bump for.
+ *
+ * A FIELD TRACK IS STILL WRITTEN AS 3, byte for byte what it was. The board
+ * (validate.js) accepts 1, 2 and 3 and nothing else, so writing 4 on every
+ * track would refuse every field track put on the board from this build.
+ * A map track never goes to the board yet, and the board refusing one is the
+ * right answer until it can draw one.
+ */
+export const MAP_SCHEMA_VERSION = 4;
+
+/* A map id, as src/maps/registry.js spells them. Checked on read because a
+ * document is untrusted input and this string picks a world to load. */
+const MAP_ID = /^[a-z0-9]{1,24}$/;
+
+export function isMapTrack(doc) {
+  return Boolean(doc && typeof doc.map === 'string' && MAP_ID.test(doc.map));
+}
+
+/*
  * ONE MARK, as a data URL, and the cap on it. The list they live in, and the
  * budget they share, are below.
  *
@@ -189,6 +214,23 @@ function int(x, fallback, lo, hi) {
 
 function asText(x, fallback = '') {
   return typeof x === 'string' ? x : fallback;
+}
+
+/*
+ * A unit quaternion { w, x, y, z }, read off anything. A missing or zero one
+ * is the rest pose, so a hand edited file with no orientation stands its
+ * gates up rather than failing to load.
+ */
+function quat(q) {
+  const w = Number(q?.w);
+  const x = Number(q?.x);
+  const y = Number(q?.y);
+  const z = Number(q?.z);
+  const n = Math.hypot(w, x, y, z);
+  if (!Number.isFinite(n) || n < 1e-9) {
+    return { w: 1, x: 0, y: 0, z: 0 };
+  }
+  return { w: num(w / n), x: num(x / n), y: num(y / n), z: num(z / n) };
 }
 
 function bool(x, fallback = false) {
@@ -324,6 +366,21 @@ export function createTrack(name, cls = TRACK_CLASS_DEFAULT) {
     elements: [],
     sequence: [],
   };
+}
+
+/*
+ * A new track standing in one of the simulator's own worlds. The field stays
+ * in the document because the schema requires one and a best effort reader
+ * needs something to draw on; nothing reads it for a map track.
+ */
+export function createMapTrack(name, mapId) {
+  if (!MAP_ID.test(String(mapId))) {
+    throw new Error(`not a map id: ${mapId}`);
+  }
+  const doc = createTrack(name);
+  doc.schemaVersion = MAP_SCHEMA_VERSION;
+  doc.map = mapId;
+  return doc;
 }
 
 /*
@@ -564,9 +621,14 @@ export function normalize(raw) {
   const base = createTrack(asText(src.name, str('ui.untitled_track')));
 
   const version = int(src.schemaVersion, 0, 0);
-  if (version > SCHEMA_VERSION) {
-    repairs.push(str('model.document_says_schemaversion_this_build_understands', { version, SCHEMA_VERSION }));
+  if (version > MAP_SCHEMA_VERSION) {
+    repairs.push(str('model.document_says_schemaversion_this_build_understands', { version, SCHEMA_VERSION: MAP_SCHEMA_VERSION }));
   }
+  /* A map track is read as one only when it says so twice, by its version and
+   * by naming a world, because the version is what tells a reader that the
+   * positions are absolute. A 4 with no usable map is read as a field track,
+   * which is the best effort reading of every other unknown. */
+  const map = version >= MAP_SCHEMA_VERSION && isMapTrack(src) ? src.map : null;
   /* The one migration there is, from 1 to 2, is the branding read below:
    * a version 1 document's single `branding.logo` becomes the first entry
    * of `branding.logos`. It is written inline rather than in a migrate()
@@ -602,6 +664,10 @@ export function normalize(raw) {
     elements: [],
     sequence: [],
   };
+  if (map) {
+    doc.schemaVersion = MAP_SCHEMA_VERSION;
+    doc.map = map;
+  }
 
   /*
    * The logos. A version 2 document carries `branding.logos`; a version 1
@@ -736,6 +802,12 @@ export function normalize(raw) {
     if (def.kind === KIND.APERTURE && rawEl.unbuilt === true) {
       el.unbuilt = true;
     }
+    /* On a map track the orientation IS the element's pose; yaw and pitch
+     * are kept only so the document keeps one shape. See src/builder/course.js
+     * for what the rest pose is. */
+    if (map) {
+      el.orientation = quat(rawEl.orientation);
+    }
     doc.elements.push(el);
   }
 
@@ -845,8 +917,9 @@ export function normalize(raw) {
  * insertion order for string keys, which is what makes this work.
  */
 export function toPlain(doc) {
-  return {
-    schemaVersion: SCHEMA_VERSION,
+  const onMap = isMapTrack(doc);
+  const plain = {
+    schemaVersion: onMap ? MAP_SCHEMA_VERSION : SCHEMA_VERSION,
     id: doc.id,
     name: doc.name,
     createdUtc: doc.createdUtc,
@@ -859,6 +932,8 @@ export function toPlain(doc) {
      * RaceGOW course on a sixty metre paddock. A field that is not written
      * is a field that does not exist. */
     trackClass: trackClassOf(doc),
+    /* Only on a map track, so a field track's bytes are what they were. */
+    ...(onMap ? { map: doc.map } : {}),
     field: {
       width: num(doc.field.width),
       depth: num(doc.field.depth),
@@ -922,6 +997,9 @@ export function toPlain(doc) {
       if (el.unbuilt === true && def.kind === KIND.APERTURE) {
         out.unbuilt = true;
       }
+      if (onMap) {
+        out.orientation = quat(el.orientation);
+      }
       return out;
     }),
     sequence: doc.sequence.map((s) => ({
@@ -934,6 +1012,7 @@ export function toPlain(doc) {
       overridden: Boolean(s.overridden),
     })),
   };
+  return plain;
 }
 
 export function serialize(doc) {

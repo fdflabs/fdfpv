@@ -170,7 +170,7 @@ export class Race {
    * as flown runs 0, 7, 6, ... 1, 0. The gates are stored in that flying
    * order, and each heading is flipped so local +z is the direction of
    * travel. */
-  constructor(gates, trackClass = 'full') {
+  constructor(gates, trackClass = 'full', opts = {}) {
     /*
      * The track class, and it reaches here for one reason: the scoring
      * volume. Everything else about a race is class free, because a lap is a
@@ -206,6 +206,13 @@ export class Race {
      */
     this.passDepth = pass.depth * pass.scale;
     this.passMargin = pass.margin * pass.scale;
+    /*
+     * Appended to every record key the shell hands in. That key names the
+     * machine flying, not the course (main.js recordKey), and a course built
+     * inside a map is flown under the key the map's own flights already
+     * use: its laps must not land on that record.
+     */
+    this.recordSuffix = opts.recordSuffix ?? '';
     /*
      * A map with no gates is a freestyle map, and it is not an error.
      *
@@ -273,9 +280,17 @@ export class Race {
        */
       const h = g.heading;
       const p = g.pitch ?? 0;
-      const ax = gateAcross(h);
-      const ay = gateUp(h, p);
-      const az = travelAxis(h, p);
+      /*
+       * Or the whole frame, given. A gate built inside a map can stand at
+       * any orientation at all, rolled on its side as well as yawed and
+       * tilted, and a heading and a pitch cannot say that. The three axes
+       * are orthonormal, in world space, with the same meaning as the ones
+       * computed here: across, up the opening's own plane, and the
+       * direction of travel. src/builder/course.js makes them.
+       */
+      const ax = g.axes ? g.axes.across : gateAcross(h);
+      const ay = g.axes ? g.axes.up : gateUp(h, p);
+      const az = g.axes ? g.axes.travel : travelAxis(h, p);
       return {
         idx,
         x: g.position.x,
@@ -327,7 +342,7 @@ export class Race {
     if (this.freestyle) {
       return;
     }
-    this.key = key;
+    this.key = key + this.recordSuffix;
     this.bestMs = this.loadBest();
   }
 

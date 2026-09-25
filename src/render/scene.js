@@ -4121,6 +4121,143 @@ function clouds(rng) {
   return g;
 }
 
+/* How far the 'follow' tier dims a ring. The race no longer lights a follow
+ * gate (see setNextGate); the in-sim builder dims every gate it is not
+ * pointing at with it. */
+const FOLLOW_RING = 0.42;
+
+/*
+ * A gate's markings for one tier: 'target', 'follow' or 'dark'. Module
+ * scope rather than inside the field's builder so the in-sim builder
+ * (src/builder/) dresses the gates it places exactly the way the field does.
+ */
+export function dressGate(gt, tier) {
+  /* Material.visible, not a colour near black: the ring is opaque
+   * geometry just inside the opening, so a dark ring is a dark bar across
+   * the hole rather than an absent one. */
+  gt.ringMat.visible = tier !== 'dark';
+  gt.haloMat.visible = tier === 'target';
+  gt.glowMat.visible = tier === 'target';
+  /*
+   * WHICH OPENING OF A STACK, and it is the mesh that says so rather than
+   * the material, because every opening on one structure shares the
+   * material that carries the colour. A ladder used to light all three
+   * holes at once and leave the pilot to read a badge for the one they
+   * were actually being sent through. Now only the named hole lights.
+   */
+  if (gt.ringMeshes) {
+    for (let k = 0; k < gt.ringMeshes.length; k += 1) {
+      const lit = tier !== 'dark' && gt.litApertures.indexOf(k) >= 0;
+      gt.ringMeshes[k].visible = lit;
+      if (gt.haloMeshes && gt.haloMeshes[k]) {
+        gt.haloMeshes[k].visible = lit && tier === 'target';
+      }
+    }
+  }
+  if (tier === 'follow') {
+    gt.ringMat.color.set(gt.ringColor).multiplyScalar(FOLLOW_RING);
+  } else {
+    gt.ringMat.color.set(gt.ringColor);
+  }
+  gt.haloMat.color.set(gt.ringColor);
+  gt.glowMat.uniforms.uFront.value.set(gt.ringColor);
+  gt.glowMat.uniforms.uBack.value.set(gt.ringColor);
+  gt.haloMat.opacity = 0.34;
+  gt.glowMat.uniforms.uGain.value = 0.08 * (gt.glowGain ?? 1);
+  if (gt.cueGroup) {
+    gt.cueGroup.visible = Boolean(gt.virtual) && tier !== 'dark';
+  }
+  if (gt.fillMat) {
+    gt.fillMat.uniforms.uWrong.value = 0;
+    gt.fillMat.uniforms.uOpacity.value = tier === 'target' ? 0.22 : 0.10;
+  }
+}
+
+/* The one gate the race wants next, lit. The side it is seen from is
+ * colourTargetSide's, every frame. */
+export function lightTarget(target) {
+  dressGate(target, 'target');
+  target.ringMat.color.set(NEXT_COLOUR);
+  target.haloMat.color.set(NEXT_COLOUR);
+  target.glowMat.uniforms.uFront.value.set(NEXT_COLOUR);
+  target.glowMat.uniforms.uBack.value.set(WRONG_COLOUR);
+  /* 0.55, down from 0.95. The report: the target glow was bright enough
+   * to obscure the gate's own dressing, a flag gate read as a glowing
+   * box with the pennant washed out. The edge band stays legible at
+   * 0.55; what goes is the interior bloom that painted over the frame. */
+  target.glowMat.uniforms.uGain.value = 0.55 * (target.glowGain ?? 1);
+  /* A stacked figure shares one glow across its openings. Put that
+   * glow, and the pane, on the hole this station names. */
+  if (target.trackGlow && target.aperture) {
+    if (target.glowMesh) {
+      target.glowMesh.position.y = target.aperture.centreY;
+    }
+    if (target.cueGroup) {
+      target.cueGroup.position.y = target.aperture.centreY;
+    }
+  }
+  if (target.cueGroup) {
+    target.cueGroup.visible = true;
+  }
+}
+
+/* Green from the side the target is flown from, red from the other. */
+export function colourTargetSide(target, correct) {
+  const col = correct ? NEXT_COLOUR : WRONG_COLOUR;
+  target.ringMat.color.set(col);
+  target.haloMat.color.set(col);
+  /* Both faces, because the side is now the camera's and not the
+   * fragment's. A pane seen edge on used to flicker between the two. */
+  target.glowMat.uniforms.uFront.value.set(col);
+  target.glowMat.uniforms.uBack.value.set(col);
+  if (target.fillMat) {
+    target.fillMat.uniforms.uFront.value.set(col);
+    target.fillMat.uniforms.uBack.value.set(col);
+    target.fillMat.uniforms.uWrong.value = correct ? 0 : 1;
+  }
+}
+
+/*
+ * ONE RACE GATE, BUILT THE WAY THE FIELD BUILDS ITS OWN, for a caller that
+ * stands it in a world itself: the in-sim builder (src/builder/), which places
+ * gates in the swiss2 and alps valleys at any orientation. It is obstacle()
+ * with the one plain banner kit every such gate shares, and it hands back the
+ * same object obstacle() does: the group in its own frame (x across the
+ * opening, y up from the base, z through it), the measured apertures, and
+ * the lit parts dressGate and lightTarget drive. Nothing is baked and no
+ * collider is added: the caller owns the group and its lifetime.
+ */
+let standaloneKit = null;
+export function standaloneGate(spec, index, isStart, opts = {}) {
+  standaloneKit ??= bannerKit(null, 'standalone');
+  return obstacle(spec, index, isStart, { ...opts, kit: standaloneKit.forGate(0) });
+}
+
+/* Free what standaloneGate built. The shared obstacle materials and the kit's
+ * printed ones outlive any one gate, so only the gate's own go. */
+export function disposeStandaloneGate(made) {
+  const keep = new Set(Object.values(sharedObstacleMats()));
+  if (standaloneKit) {
+    for (const d of standaloneKit.dress) {
+      keep.add(d.header);
+      keep.add(d.sleeve);
+      keep.add(d.sleeveFlipped);
+      d.sails.forEach((m) => keep.add(m));
+    }
+    standaloneKit.sails.forEach((m) => keep.add(m));
+  }
+  made.group.traverse((o) => {
+    if (o.geometry) {
+      o.geometry.dispose();
+    }
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (m && !keep.has(m)) {
+        m.dispose();
+      }
+    }
+  });
+}
+
 /*
  * The race field's world. The renderer, the camera and the airframe are the
  * session's, not this map's, and arrive in `shell`; everything built here
@@ -4143,6 +4280,7 @@ function clouds(rng) {
  * the point of flying your own track is to fly it in this world rather than
  * in a grey box.
  */
+
 /*
  * ASYNC, AND THE AWAITS INSIDE IT ARE THE LOADING SCREEN'S ONLY CHANCE TO
  * DRAW THIS STAGE.
@@ -4930,7 +5068,6 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
    * than as a square beside them, and the print stays visible because the
    * light is additive and modest.
    */
-  const FOLLOW_RING = 0.42;
   let nextGateIdx = -1;
   /* Where the target is, and which way round the pilot is to it. One
    * object, filled in place, read by the frame loop and by the shell's
@@ -4950,47 +5087,6 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
      * illustration now. */
     virtual: false,
   };
-  function dressGate(gt, tier) {
-    /* Material.visible, not a colour near black: the ring is opaque
-     * geometry just inside the opening, so a dark ring is a dark bar across
-     * the hole rather than an absent one. */
-    gt.ringMat.visible = tier !== 'dark';
-    gt.haloMat.visible = tier === 'target';
-    gt.glowMat.visible = tier === 'target';
-    /*
-     * WHICH OPENING OF A STACK, and it is the mesh that says so rather than
-     * the material, because every opening on one structure shares the
-     * material that carries the colour. A ladder used to light all three
-     * holes at once and leave the pilot to read a badge for the one they
-     * were actually being sent through. Now only the named hole lights.
-     */
-    if (gt.ringMeshes) {
-      for (let k = 0; k < gt.ringMeshes.length; k += 1) {
-        const lit = tier !== 'dark' && gt.litApertures.indexOf(k) >= 0;
-        gt.ringMeshes[k].visible = lit;
-        if (gt.haloMeshes && gt.haloMeshes[k]) {
-          gt.haloMeshes[k].visible = lit && tier === 'target';
-        }
-      }
-    }
-    if (tier === 'follow') {
-      gt.ringMat.color.set(gt.ringColor).multiplyScalar(FOLLOW_RING);
-    } else {
-      gt.ringMat.color.set(gt.ringColor);
-    }
-    gt.haloMat.color.set(gt.ringColor);
-    gt.glowMat.uniforms.uFront.value.set(gt.ringColor);
-    gt.glowMat.uniforms.uBack.value.set(gt.ringColor);
-    gt.haloMat.opacity = 0.34;
-    gt.glowMat.uniforms.uGain.value = 0.08 * (gt.glowGain ?? 1);
-    if (gt.cueGroup) {
-      gt.cueGroup.visible = Boolean(gt.virtual) && tier !== 'dark';
-    }
-    if (gt.fillMat) {
-      gt.fillMat.uniforms.uWrong.value = 0;
-      gt.fillMat.uniforms.uOpacity.value = tier === 'target' ? 0.22 : 0.10;
-    }
-  }
   function setNextGate(i, follow) {
     for (const gt of gates) {
       dressGate(gt, 'dark');
@@ -5008,26 +5104,7 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
       aim.virtual = false;
       return;
     }
-    dressGate(target, 'target');
-    target.ringMat.color.set(NEXT_COLOUR);
-    target.haloMat.color.set(NEXT_COLOUR);
-    target.glowMat.uniforms.uFront.value.set(NEXT_COLOUR);
-    target.glowMat.uniforms.uBack.value.set(WRONG_COLOUR);
-    /* 0.55, down from 0.95. The report: the target glow was bright enough
-     * to obscure the gate's own dressing, a flag gate read as a glowing
-     * box with the pennant washed out. The edge band stays legible at
-     * 0.55; what goes is the interior bloom that painted over the frame. */
-    target.glowMat.uniforms.uGain.value = 0.55 * (target.glowGain ?? 1);
-    /* A stacked figure shares one glow across its openings. Put that
-     * glow, and the pane, on the hole this station names. */
-    if (target.trackGlow && target.aperture) {
-      if (target.glowMesh) {
-        target.glowMesh.position.y = target.aperture.centreY;
-      }
-      if (target.cueGroup) {
-        target.cueGroup.position.y = target.aperture.centreY;
-      }
-    }
+    lightTarget(target);
     /*
      * WHERE THE PILOT HAS TO COME FROM, AS A HALF SPACE.
      *
@@ -5065,9 +5142,6 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
     }
     aim.sceneIndex = i;
     aim.active = true;
-    if (target.cueGroup) {
-      target.cueGroup.visible = true;
-    }
     /* Colour it once here so the first frame after a gate is scored is
      * already right, rather than carrying the previous target's side for
      * however long it takes the frame loop to come round. */
@@ -5118,18 +5192,7 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
     const dz = camera.position.z - aim.centre.z;
     aim.distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
     aim.correct = approachSide(camera.position.x, camera.position.y, camera.position.z);
-    const col = aim.correct ? NEXT_COLOUR : WRONG_COLOUR;
-    target.ringMat.color.set(col);
-    target.haloMat.color.set(col);
-    /* Both faces, because the side is now the camera's and not the
-     * fragment's. A pane seen edge on used to flicker between the two. */
-    target.glowMat.uniforms.uFront.value.set(col);
-    target.glowMat.uniforms.uBack.value.set(col);
-    if (target.fillMat) {
-      target.fillMat.uniforms.uFront.value.set(col);
-      target.fillMat.uniforms.uBack.value.set(col);
-      target.fillMat.uniforms.uWrong.value = aim.correct ? 0 : 1;
-    }
+    colourTargetSide(target, aim.correct);
   }
 
   /*

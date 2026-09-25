@@ -1288,6 +1288,10 @@ export async function boot({ loading, bootStart, mapId }) {
   /* The race: gate order, lap clock, best lap. On a freestyle map it is a
    * real object with no gates in it and it scores nothing. */
   let race = new Race(view.gates, view.trackClass ?? 'full');
+  /* The in-sim builder, once a world it can build in is seated. Declared up
+   * here because the ghost below asks whether a run is its test flight. See
+   * buildHost. */
+  let build = null;
   /*
    * THE FREESTYLE SCORE, and it only ever runs on a freestyle map.
    *
@@ -1613,7 +1617,9 @@ export async function boot({ loading, bootStart, mapId }) {
    * fill in as laps are flown, so a choice can be ahead of its data: Best
    * with no lap yet simply flies no ghost until there is one. */
   function resolveGhost() {
-    if (race.freestyle || ghostChoice === 'off') {
+    /* No ghost on a built track's test flight yet: the track changes under
+     * it between runs, and ghosts on a map are a later round. */
+    if (race.freestyle || ghostChoice === 'off' || (build && build.testing)) {
       return null;
     }
     if (ghostChoice.startsWith('board:')) {
@@ -1818,7 +1824,7 @@ export async function boot({ loading, bootStart, mapId }) {
    * seen without the race having to announce one.
    */
   function ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passedAny) {
-    if (race.freestyle) {
+    if (race.freestyle || (build && build.testing)) {
       return;
     }
     const lapDone = race.laps.length > lapsBefore;
@@ -4400,6 +4406,9 @@ export async function boot({ loading, bootStart, mapId }) {
     await yieldToPaint();
     const previous = view.id;
     const previousGraphics = view.graphics;
+    if (build) {
+      build.exit(false);
+    }
     try {
       view.dispose();
     } catch (e) {
@@ -5964,8 +5973,55 @@ export async function boot({ loading, bootStart, mapId }) {
     applyMix(ui.settings);
   }
 
+  /*
+   * THE IN-SIM BUILDER (src/builder/buildmode.js). B in a flight on a world
+   * the registry marks `build` parks the aircraft and flies a free camera
+   * that places gates against the world itself; B again flies the track on
+   * the race's own scoring. The module is fetched the first time such a
+   * world is seated, so no other map pays for it, and all it does to the run
+   * goes through this host: the menu's own pause, resume and restart, and a
+   * new Race over the gates it hands in.
+   */
+  let buildLoading = null;
+  const buildHost = {
+    shell,
+    input,
+    ui,
+    view: () => view,
+    mode: () => mode,
+    canBuild: () => mapReady && mode === 'flight' && ui.screen === 'flight' && Boolean(mapById(view.id).build),
+    onFlightScreen: () => ui.screen === 'flight',
+    heightAt: (x, z) => view.height(x, z, Infinity),
+    hold: () => ui.onAction('pause'),
+    resume: () => ui.onAction('resume'),
+    fly: () => ui.onAction('restart'),
+    setCourse(gates, recordSuffix) {
+      race = new Race(gates, view.trackClass ?? 'full', { recordSuffix });
+      race.setRecordKey(recordKey());
+      ui.setBest(race.bestMs, view.mode);
+      view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+    },
+  };
+  function loadBuild() {
+    if (build || buildLoading || !mapById(view.id).build) {
+      return;
+    }
+    buildLoading = import('./builder/buildmode.js')
+      .then((m) => {
+        build = m.createBuildMode(buildHost);
+      })
+      .catch((e) => {
+        /* Loud, once, and not retried every frame after: a builder that
+         * failed to load is a missing B key, not a broken flight. */
+        console.error('build mode failed to load', e);
+      });
+  }
+
   input.onKey = (code, repeat) => {
     wakeAudio();
+    if (build && build.onKey(code, repeat)) {
+      return;
+    }
     if (ui.handleKey(code, repeat)) {
       return;
     }
@@ -8355,6 +8411,14 @@ export async function boot({ loading, bootStart, mapId }) {
       shell.camera.clearViewOffset();
     }
 
+    /* The builder's own camera, when it is building, over whichever the
+     * chain above chose; and the builder fetched once a world it can build
+     * in is up. */
+    if (build) {
+      build.frame(dt);
+    } else if (mapReady) {
+      loadBuild();
+    }
     /* Harness camera. The cost ledger has to be published for three views,
      * and two of them are not views the shell puts the camera in: the
      * ledger's mid course view is a point on the racing line, and flying
@@ -8389,7 +8453,7 @@ export async function boot({ loading, bootStart, mapId }) {
           : (mode === 'results' ? simTimeMs + Math.max(0, finishCamMs) : simTimeMs),
       );
 
-      const focus = camOverride
+      const focus = camOverride || (build && build.cameraLive)
         ? shell.camera.position
         : (mode === 'title' ? shell.quad.position : pCurr);
       view.updateShadowFocus(focus);

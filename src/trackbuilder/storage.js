@@ -34,7 +34,7 @@
  */
 
 import { countElementsByType, formatElementCounts, trackClassOf } from './elements.js';
-import { normalize, serialize, toPlain, touch } from './model.js';
+import { isMapTrack, normalize, serialize, toPlain, touch } from './model.js';
 
 const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
 
@@ -61,6 +61,13 @@ const AUTOSAVE_KEYS = {
 
 function autosaveKey(cls) {
   return AUTOSAVE_KEYS[cls ?? activeTrackClass()] ?? AUTOSAVE_KEYS.full;
+}
+
+/* A track built inside a world has a seat per world, beside the class seats
+ * rather than in one of them: the builder page and the shell's own custom
+ * map read the class seats and neither can draw a course in a valley. */
+function mapAutosaveKey(mapId) {
+  return `webfpv.trackbuilder.autosave.map.${mapId}.v1`;
 }
 
 /* readJson and writeJson come from src/share/session.js, which had the same
@@ -95,7 +102,11 @@ export function listTracks(cls = activeTrackClass()) {
       credit: doc.credit,
     };
   };
+  /* A map track is not one the builder can open: it stands in a world, and
+   * its positions mean nothing on a plan of a field. listMapTracks is its
+   * list. */
   const mine = Object.values(lib)
+    .filter((raw) => !isMapTrack(raw))
     .map((raw) => summarise(raw, false))
     .sort((a, b) => String(b.modifiedUtc).localeCompare(String(a.modifiedUtc)));
   /*
@@ -112,6 +123,14 @@ export function listTracks(cls = activeTrackClass()) {
    */
   const stock = presetsForClass(cls).map((d) => summarise(d, true));
   return [...mine, ...stock];
+}
+
+/* The tracks built inside one world, newest change first. */
+export function listMapTracks(mapId) {
+  return Object.values(readLibrary())
+    .filter((raw) => isMapTrack(raw) && raw.map === mapId)
+    .map((raw) => normalize(raw).doc)
+    .sort((a, b) => String(b.modifiedUtc).localeCompare(String(a.modifiedUtc)));
 }
 
 export function saveTrack(doc) {
@@ -161,7 +180,13 @@ export function trackExists(id) {
 /* Into the seat the DOCUMENT belongs in, read off the document, so an
  * autosave cannot land in the other class's chair. */
 export function writeAutosave(doc) {
-  return writeJson(autosaveKey(trackClassOf(doc)), toPlain(doc));
+  const key = isMapTrack(doc) ? mapAutosaveKey(doc.map) : autosaveKey(trackClassOf(doc));
+  return writeJson(key, toPlain(doc));
+}
+
+export function readMapAutosave(mapId) {
+  const raw = readJson(mapAutosaveKey(mapId), null);
+  return raw && isMapTrack(raw) && raw.map === mapId ? normalize(raw) : null;
 }
 
 export function readAutosave(cls) {
