@@ -75,6 +75,7 @@ import {
   natureSites, buildShore, buildReeds, buildDrifts,
 } from './alps/nature.js';
 import { ribbon } from './alps/ribbon.js';
+import { standWalls } from './alps/roofs.js';
 import { PAINT } from './alps/vehicles.js';
 import {
   loadTerrainArrays, loadSurface, loadSky, SURFACES, SKY_K, SKY_SPAN_DEG,
@@ -365,9 +366,15 @@ function photoStyle() {
        * returns; the colliders are this build's own object, so noting
        * them on the way in changes nothing else. */
       const addBox = colliders.addBox.bind(colliders);
-      colliders.addBox = (kind, x0, y0, z0, x1, y1, z1) => {
-        if (kind === 'wall') {
-          stage.footprints.push({ minX: Math.min(x0, x1), minZ: Math.min(z0, z1), maxX: Math.max(x0, x1), maxZ: Math.max(z0, z1) });
+      /* A roofed building notes its whole footprint once and then puts
+       * up the walls under its roofs with `noted` set (alps/roofs.js
+       * standWalls), so the footprints are the ones they always were. */
+      colliders.noteFootprint = (x0, z0, x1, z1) => {
+        stage.footprints.push({ minX: Math.min(x0, x1), minZ: Math.min(z0, z1), maxX: Math.max(x0, x1), maxZ: Math.max(z0, z1) });
+      };
+      colliders.addBox = (kind, x0, y0, z0, x1, y1, z1, noted = false) => {
+        if (kind === 'wall' && !noted) {
+          colliders.noteFootprint(x0, z0, x1, z1);
         }
         return addBox(kind, x0, y0, z0, x1, y1, z1);
       };
@@ -489,8 +496,8 @@ function photoStyle() {
       const { yards: yard } = style.look.buildings.layout;
       /* The farm-low view's farm is walled after the gardens are taken
        * (swiss2/village/farm.js). */
-      for (const b of style.look.buildings.farmWalls) {
-        colliders.addBox('wall', ...b);
+      for (const { box, roofs, lift } of style.look.buildings.farmWalls) {
+        standWalls(colliders, box, roofs, lift);
       }
       /* What is scattered over the floor (the huts, the bales, the trees)
        * is decided on the alps' own ground, so the walls (swiss2/terrain.js)

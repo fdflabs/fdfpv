@@ -72,7 +72,9 @@ function farOnly(bake) {
   return { ...bake, pushM: (key, geometry, matrix) => bake.pushM(far(key), geometry, matrix) };
 }
 
-/* Bake the farm; returns its colliders' boxes, [x0, y0, z0, x1, y1, z1]. */
+/* Bake the farm; returns its buildings' keep out boxes, [x0, y0, z0, x1,
+ * y1, z1], each with the roofs it put and the village datum they are
+ * over (alps/roofs.js standWalls). */
 export function farmstead(ctx) {
   const { bake, onGround, villageY } = ctx;
   const walls = [];
@@ -85,11 +87,16 @@ export function farmstead(ctx) {
     const pts = [...corners(x, z, ry, hw, hd), { x, z }].map((p) => onGround(p.x, p.z));
     const y = Math.max(...pts);
     const found = y - Math.min(...pts) + 0.4;
+    const from = bake.roofs.length;
     const ext = build(frame(into, x, y, z, ry), found);
     const box = corners(x, z, ry, ext.hw, ext.hd);
     const xs = box.map((p) => p.x);
     const zs = box.map((p) => p.z);
-    walls.push([Math.min(...xs), villageY + y - found, Math.min(...zs), Math.max(...xs), villageY + y + ext.top, Math.max(...zs)]);
+    walls.push({
+      box: [Math.min(...xs), villageY + y - found, Math.min(...zs), Math.max(...xs), villageY + y + ext.top, Math.max(...zs)],
+      roofs: bake.roofs.slice(from),
+      lift: villageY,
+    });
   };
   place((f, found) => stadel(f, { found }), FARM.stadel, farOnly(bake));
   const rng = makeRng(20261011);

@@ -3630,7 +3630,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function declareGroundMaterial(wx, wz, hy) {
     const w = view.water && view.water.length ? waterAt(wx, wz) : null;
     const wet = w != null && hy >= w.surfaceY - 0.05;
-    sim.e.sim_set_ground_material(groundSurface(view, wx, wz, groundNWorld.y, wet));
+    sim.e.sim_set_ground_material(groundSurface(view, wx, wz, groundNWorld.y, wet, hy));
   }
 
   /* The obstacle contact's material, or -1 for the shell's own numbers. */
@@ -6743,6 +6743,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     /* Seed the next pass from where this one actually arrived, whatever
      * the contacts below do to it. */
     obsPrev.copy(obsTo);
+    /* A roof that is the craft's ground is its contact, not the walls
+     * under it, which the swept hull would otherwise reach through the
+     * shell (src/maps/alps/roofs.js). Same fromY as the ground plane. */
+    if (view.cover) {
+      view.cover(obsTo.x, obsTo.z, obsTo.y - SURFACE_BIAS);
+    }
 
     upAxis.set(0, 1, 0).applyQuaternion(qObs);
     const vh = craftVerticalHalf(Math.sqrt(Math.max(0, 1 - upAxis.y * upAxis.y)));
@@ -10524,6 +10530,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* The city's own world object, for measurements that need its platform and
    * collider lists. Null on a map that has no town. Harness only. */
   window.__cityWorld = () => view.world ?? null;
+  /* The alps and swiss2 roofs (src/maps/alps/roofs.js): each one's frame,
+   * wall rectangle, covering and the collider indices of the walls under
+   * it, so a capture can fly at a real roof. Empty elsewhere. Harness only. */
+  window.__roofs = () => (view.roofs ?? []).map((r) => ({
+    key: r.key, material: r.material, c: r.c, s: r.s, x: r.tx, z: r.tz, hw: r.hw, hd: r.hd, dy: r.dy,
+    minX: r.minX, maxX: r.maxX, minZ: r.minZ, maxZ: r.maxZ, solids: r.solids.slice(),
+  }));
   /* Set the active map's distance cull radius, for the sweep that chooses it.
    * Null restores the map's own value. Harness only. */
   window.__cullRadius = (r) => (view.setCullRadius ? view.setCullRadius(r) : null);

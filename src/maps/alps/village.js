@@ -34,6 +34,7 @@ import {
   roadSign, telegraphPole, cone, fence,
 } from './kit.js';
 import { ribbon } from './ribbon.js';
+import { standWalls } from './roofs.js';
 import { STRIP_L, STRIP_W, STRIP_Y } from './terrain.js';
 
 export { villageMaterials };
@@ -86,8 +87,9 @@ export async function buildVillage(ctx) {
   /*
    * Placing: a building is authored on flat ground, so the placer reads
    * the ground under its four corners, stands it on the highest and cuts
-   * the foundation down to the lowest. The collider is the axis aligned
-   * box round the rotated footprint, from the foundation to the ridge.
+   * the foundation down to the lowest. Its colliders are the walls under
+   * its roofs, from the foundation up (roofs.js); one without a roof is
+   * the axis aligned box round the rotated footprint.
    */
   const corners = (x, z, ry, hw, hd) => {
     const c = Math.cos(ry);
@@ -99,19 +101,23 @@ export async function buildVillage(ctx) {
     const top = Math.max(...pts);
     return { y: top - villageY, found: top - Math.min(...pts) + 0.4 };
   };
-  const wallBox = (x, z, ry, hw, hd, y, found, top) => {
+  /* `from` is where the building's roofs start in the bake's record: a
+   * roofed building stands on walls cut under its roofs (roofs.js). */
+  const wallBox = (x, z, ry, hw, hd, y, found, top, from) => {
     const pts = corners(x, z, ry, hw, hd);
     const xs = pts.map((p) => p.x);
     const zs = pts.map((p) => p.z);
-    colliders.addBox('wall', Math.min(...xs), villageY + y - found, Math.min(...zs), Math.max(...xs), villageY + y + top, Math.max(...zs));
+    const box = [Math.min(...xs), villageY + y - found, Math.min(...zs), Math.max(...xs), villageY + y + top, Math.max(...zs)];
+    standWalls(colliders, box, bake.roofs.slice(from), villageY);
   };
   /* Stand a builder at (x, z) facing ry. hw and hd are the footprint the
    * site is read under; the builder's own extents make the collider. */
   const place = (build, x, z, ry, hw, hd) => {
     const { y, found } = site(x, z, ry, hw, hd);
     const f = frame(bake, x, y, z, ry);
+    const from = bake.roofs.length;
     const ext = build(f, found);
-    wallBox(x, z, ry, ext.hw, ext.hd, y, found, ext.top);
+    wallBox(x, z, ry, ext.hw, ext.hd, y, found, ext.top, from);
     return { f, ext, y, found };
   };
   const placeChalet = (spec, x, z, ry) => {
@@ -232,8 +238,9 @@ export async function buildVillage(ctx) {
     const x = SQUARE.x - 42;
     const { y, found } = site(x, STREET_Z, Math.PI / 2, 12, 11);
     const f = frame(bake, x, y, STREET_Z, Math.PI / 2);
+    const from = bake.roofs.length;
     const k = kit.church(f, { found });
-    wallBox(x, STREET_Z, Math.PI / 2, k.hw + 0.6, k.hd + 0.5, y, found, k.top);
+    wallBox(x, STREET_Z, Math.PI / 2, k.hw + 0.6, k.hd + 0.5, y, found, k.top, from);
     const t = f.at(0, 0, k.tower.z);
     colliders.addBox('wall', t.x - k.tower.half, villageY + y, t.z - k.tower.half, t.x + k.tower.half, villageY + y + k.tower.top, t.z + k.tower.half);
   }
@@ -410,5 +417,5 @@ export async function buildVillage(ctx) {
   scene.add(villageGroup);
   await ctx.paint(0.7);
 
-  return { road, villageY, group: villageGroup, houses, onGround };
+  return { road, villageY, group: villageGroup, houses, onGround, roofs: bake.roofs };
 }
