@@ -154,6 +154,17 @@ static double g_chute_t = 0.0;
  */
 static int g_flap_notch = 0;
 static double g_flap = 0.0;
+
+/* THE STALL TAKES TIME. Each wing strip's shortfall past the stall, lift
+ * and drag, left half and right, as the flow has so far let it develop:
+ * a separation grows and heals over a few semichords of travel, so it
+ * follows the steady one with the time constant Leishman and Beddoes give
+ * trailing edge separation, T_f = 3 semichords (A Semi-Empirical Model for
+ * Dynamic Stall, J. American Helicopter Society 34(3), 1989). A pull
+ * through the stall faster than that does not meet the whole of it at
+ * once. Zero from a reset. */
+#define STALL_TF_SEMICHORDS 3.0
+static double g_sep[4][2][2];
 static int g_slats = 1;
 
 /* What the last step saw and did, for the gates and for anyone chasing a
@@ -407,6 +418,12 @@ void plant_wing_reset(void) {
   g_chute = 0;
   g_chute_t = 0.0;
   g_flap = flap_target();
+  for (int i = 0; i < 4; i += 1) {
+    for (int j = 0; j < 2; j += 1) {
+      g_sep[i][j][0] = 0.0;
+      g_sep[i][j][1] = 0.0;
+    }
+  }
 }
 
 int plant_wing_set_flaps(int notch) {
@@ -1040,13 +1057,26 @@ void plant_wing_step(SimState *s, const double rc[4]) {
                   clmax_sec, fl);
       strip_stall(fw, alpha, sin_a, cos_a, da, -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall,
                   clmax_sec, fr);
+      const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
+      const double lag = WING_DT / (tau + WING_DT);
+      for (int j = 0; j < 2; j += 1) {
+        g_sep[i][0][j] += (fl[j] - g_sep[i][0][j]) * lag;
+        g_sep[i][1][j] += (fr[j] - g_sep[i][1][j]) * lag;
+      }
       const double arm = fw->strip_c[i] * chord_mean * 0.25 * half * y;
-      ml += arm * (fl[0] - fr[0]);
-      mn += arm * (fl[1] - fr[1]);
+      ml += arm * (g_sep[i][0][0] - g_sep[i][1][0]);
+      mn += arm * (g_sep[i][0][1] - g_sep[i][1][1]);
     }
     const double k = qbar * kr * fre;
     M[0] = add_term(M[0], k * (u / Vxz) * ml);
     M[2] = add_term(M[2], k * (u / V) * mn);
+  } else {
+    for (int i = 0; i < 4; i += 1) {
+      for (int j = 0; j < 2; j += 1) {
+        g_sep[i][j][0] = 0.0;
+        g_sep[i][j][1] = 0.0;
+      }
+    }
   }
 
   /* The canopy: drag against the air the risers' attachment point moves
