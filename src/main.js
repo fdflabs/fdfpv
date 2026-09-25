@@ -2529,6 +2529,28 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let lastTiltDeg = 0;
   let lastHitKind = 'none';
   let lastGroundHits = 0;
+  /* Every 1 ms step that ended with the hull on the ground plane or a
+   * wheel loaded on it, since the page loaded: a touch too short for a
+   * frame's own count to see, and gear rolling, which the hull count does
+   * not see at all. Harness only, through window.__ground. */
+  let groundContactSteps = 0;
+  let wheelPtr = 0;
+  let wheelLoads = null;
+  function wheelsLoaded() {
+    if (typeof sim.e.sim_wheel_loads !== 'function') {
+      return false;
+    }
+    /* A view kept across steps, remade only when the module's memory
+     * grows, so the step loop allocates nothing. */
+    if (!wheelPtr) {
+      wheelPtr = sim.e.malloc(4 * 8);
+    }
+    if (!wheelLoads || wheelLoads.buffer !== sim.e.memory.buffer) {
+      wheelLoads = new Float64Array(sim.e.memory.buffer, wheelPtr, 4);
+    }
+    sim.e.sim_wheel_loads(wheelPtr);
+    return wheelLoads[0] > 0 || wheelLoads[1] > 0 || wheelLoads[2] > 0 || wheelLoads[3] > 0;
+  }
   let lastClearance = 1;
   let lastUpz = 1;
   let lastFpvY = 0;
@@ -3630,7 +3652,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function declareGroundMaterial(wx, wz, hy) {
     const w = view.water && view.water.length ? waterAt(wx, wz) : null;
     const wet = w != null && hy >= w.surfaceY - 0.05;
-    sim.e.sim_set_ground_material(groundSurface(view, wx, wz, groundNWorld.y, wet));
+    sim.e.sim_set_ground_material(groundSurface(view, wx, wz, groundNWorld.y, wet, hy));
   }
 
   /* The obstacle contact's material, or -1 for the shell's own numbers. */
@@ -6743,6 +6765,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     /* Seed the next pass from where this one actually arrived, whatever
      * the contacts below do to it. */
     obsPrev.copy(obsTo);
+    /* A roof that is the craft's ground is its contact, not the walls
+     * under it, which the swept hull would otherwise reach through the
+     * shell (src/maps/alps/roofs.js). Same fromY as the ground plane. */
+    if (view.cover) {
+      view.cover(obsTo.x, obsTo.z, obsTo.y - SURFACE_BIAS);
+    }
 
     upAxis.set(0, 1, 0).applyQuaternion(qObs);
     const vh = craftVerticalHalf(Math.sqrt(Math.max(0, 1 - upAxis.y * upAxis.y)));
@@ -7633,6 +7661,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
             }
             if (i === steps - 2) {
               statePrev = stNow;
+            }
+            if (sim.e.sim_ground_contacts() > 0 || wheelsLoaded()) {
+              groundContactSteps += 1;
             }
             if (sim.e.sim_ground_contacts() > 0) {
               sawGroundHit = true;
@@ -9317,6 +9348,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     landed,
     rest: REST_HEIGHT,
     hits: lastGroundHits,
+    contactSteps: groundContactSteps,
   });
   /* An optional seventh argument pins the vertical fov as well: without it
    * the parked camera keeps whatever lens the shell last set, which is the
@@ -10524,6 +10556,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* The city's own world object, for measurements that need its platform and
    * collider lists. Null on a map that has no town. Harness only. */
   window.__cityWorld = () => view.world ?? null;
+  /* The alps and swiss2 roofs (src/maps/alps/roofs.js): each one's frame,
+   * wall rectangle, covering and the collider indices of the walls under
+   * it, so a capture can fly at a real roof. Empty elsewhere. Harness only. */
+  window.__roofs = () => (view.roofs ?? []).map((r) => ({
+    key: r.key, material: r.material, c: r.c, s: r.s, x: r.tx, z: r.tz, hw: r.hw, hd: r.hd, dy: r.dy,
+    minX: r.minX, maxX: r.maxX, minZ: r.minZ, maxZ: r.maxZ, solids: r.solids.slice(),
+  }));
   /* Set the active map's distance cull radius, for the sweep that chooses it.
    * Null restores the map's own value. Harness only. */
   window.__cullRadius = (r) => (view.setCullRadius ? view.setCullRadius(r) : null);

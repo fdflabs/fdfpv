@@ -38,6 +38,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial } from '../../render/celmat.js';
+import { roofRecord } from './roofs.js';
 
 /* The village's palette: one material per surface colour, shared by every
  * building, so a baked village is one mesh per entry. The boarding runs
@@ -109,7 +110,10 @@ export function makeBake() {
     const entry = (instances[name] ??= { key, geometry, matrices: [] });
     entry.matrices.push(matrix.clone());
   };
-  return { parts, instances, push, pushM, instance };
+  /* Every roof shell put into this bake, as roofs.js records: the
+   * village's surfaces, and what its walls are cut under. */
+  const roofs = [];
+  return { parts, instances, push, pushM, instance, roofs };
 }
 
 export function bakeAll(bake, mats, { castShadow = true } = {}) {
@@ -178,13 +182,22 @@ export function frame(parent, x, y, z, ry = 0) {
     return tmp.multiplyMatrices(m, local);
   };
   const put = (key, geometry, lx = 0, ly = 0, lz = 0, lry = 0, lrx = 0, lrz = 0, sx = 1, sy = 1, sz = 1) => {
-    bake.pushM(key, geometry, compose(lx, ly, lz, lry, lrx, lrz, sx, sy, sz));
+    const mx = compose(lx, ly, lz, lry, lrx, lrz, sx, sy, sz);
+    if (geometry.userData.roof) {
+      bake.roofs.push(roofRecord(geometry.userData.roof, mx.elements, key));
+    }
+    bake.pushM(key, geometry, mx);
+  };
+  /* A roof drawn by some other means than put (swiss2's sagging roofs
+   * reshape the shell first), recorded at this frame's origin. */
+  const noteRoof = (roof, key, sag) => {
+    bake.roofs.push(roofRecord(roof, m.elements, key, sag));
   };
   const inst = (name, key, geometry, lx = 0, ly = 0, lz = 0, lry = 0, sc = 1) => {
     bake.instance(name, key, geometry, compose(lx, ly, lz, lry, 0, 0, sc, sc, sc));
   };
   const at = (lx, ly, lz) => new THREE.Vector3(lx, ly, lz).applyMatrix4(m);
-  return { bake, m, put, inst, at };
+  return { bake, m, put, inst, at, noteRoof };
 }
 
 /*
@@ -356,7 +369,11 @@ function roofShell({ kind, hw, hd, ov, ovA = ov, ovB = ov, pitch, t = 0.2, f = 0
   for (const [a, b] of edges) {
     faces.push([b, a, drop(a), drop(b)]);
   }
-  return { geo: polySolid(faces), edges, yT, yR, yH, xh, ex, zA, zB, rzA, rzB, dy, tanP };
+  const geo = polySolid(faces);
+  /* The upper faces and the walls they stand on, so a frame that puts
+   * this shell can record it as a surface (frame, roofs.js). */
+  geo.userData.roof = { top, dy, hw, hd };
+  return { geo, edges, yT, yR, yH, xh, ex, zA, zB, rzA, rzB, dy, tanP };
 }
 
 /*

@@ -12,9 +12,11 @@
  * height field, its water) plus one optional method a map may export when
  * its ground is more than one thing:
  *
- *   view.surfaceAt(x, z)   the material name under a map point, one of
- *                          configs/parts.js SURFACES, or null for "ask
- *                          the default"
+ *   view.surfaceAt(x, z, y)  the material name under a map point whose
+ *                          ground is at height y (a roof over the
+ *                          terrain is another material than the grass
+ *                          under it), one of configs/parts.js SURFACES,
+ *                          or null for "ask the default"
  *
  * Everything here is a pure function of the map and a position, so the
  * shell can call it on the sim clock and the answer is the same on every
@@ -62,14 +64,15 @@ const ROCK_NORMAL_Y = 0.75;
 /*
  * The ground's material under (x, z). `normalY` is the up component of
  * the ground's unit normal there, which the shell already samples for the
- * ground plane; `wet` is whether the point is on a declared water body.
+ * ground plane; `wet` is whether the point is on a declared water body;
+ * `y` is the height of the ground the plane was put at.
  */
-export function groundSurface(view, x, z, normalY, wet) {
+export function groundSurface(view, x, z, normalY, wet, y) {
   if (wet) {
     return SURFACE.water;
   }
   if (view && typeof view.surfaceAt === 'function') {
-    const name = view.surfaceAt(x, z);
+    const name = view.surfaceAt(x, z, y);
     if (name && SURFACE[name] != null) {
       return SURFACE[name];
     }

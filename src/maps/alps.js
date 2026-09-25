@@ -67,6 +67,7 @@ import {
 } from './alps/terrain.js';
 import { buildNature } from './alps/nature.js';
 import { buildVillage, villageMaterials } from './alps/village.js';
+import { makeRoofs } from './alps/roofs.js';
 import { buildLife } from './alps/life.js';
 import { CEL_LOOK } from './alps/look.js';
 
@@ -201,6 +202,7 @@ export async function buildValley(shell, progress, q, style) {
   const village = await buildVillage({ ...base, rng: makeRng(20260925) });
   const life = buildLife({
     ...base, rng: makeRng(20260926), road: village.road, onGround: village.onGround, villageY: village.villageY,
+    roofs: village.roofs,
   });
   /* A style's finish sees the whole built world, the village's walls
    * among the colliders included, and may still add colliders of its
@@ -209,6 +211,9 @@ export async function buildValley(shell, progress, q, style) {
     await style.finish(scene, stage, { field, far, colliders, heightAt, nature });
   }
   colliders.build();
+  /* Every roof the village baked, the farm's and the gondola's included,
+   * as ground a craft can land on (alps/roofs.js). */
+  const roofs = makeRoofs(village.roofs, village.villageY);
   progress(0.9);
   await yieldToPaint();
 
@@ -245,6 +250,39 @@ export async function buildValley(shell, progress, q, style) {
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
   const zone = {};
+  /* The terrain, the strip and the lake, with no roof. */
+  const ground = (x, z) => {
+    /* Inside the field the far range sits under the valley's ground, so
+     * the higher of the two is the ground. Outside it only the far range
+     * is drawn: the heightfield there is its own edge clamped outward, an
+     * invisible floor that is not what the pilot sees. */
+    const inField = Math.abs(x) <= HALF && Math.abs(z) <= HALF;
+    const h = inField ? Math.max(field.height(x, z), far.height(x, z)) : far.height(x, z);
+    if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
+      return Math.max(h, STRIP_Y);
+    }
+    return h < LAKE_Y ? LAKE_Y : h;
+  };
+  /* The ground's material off the painted zones. */
+  const terrainSurface = (x, z) => {
+    if (!(Math.abs(x) <= HALF && Math.abs(z) <= HALF)) {
+      return 'rock';
+    }
+    if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
+      return 'grass';
+    }
+    groundZone(field, x, z, 2, zone);
+    if (zone.snow > 0.5) {
+      return 'snow';
+    }
+    if (zone.rock > 0.5 || zone.scree > 0.5) {
+      return 'rock';
+    }
+    if (zone.lake && zone.shore > 0.5) {
+      return 'dirt';
+    }
+    return 'grass';
+  };
   return {
     id: style.id,
     name: style.name(),
@@ -264,42 +302,19 @@ export async function buildValley(shell, progress, q, style) {
     },
     /* The terrain itself, plus the strip's two centimetres and the lake's
      * surface: a wing that lands on the water rests on it rather than in
-     * the basin. fromY is taken for the shell's call shape and ignored:
-     * nothing here is a deck a craft could be under. */
-    height: (x, z) => {
-      /* Inside the field the far range sits under the valley's ground, so
-       * the higher of the two is the ground. Outside it only the far range
-       * is drawn: the heightfield there is its own edge clamped outward, an
-       * invisible floor that is not what the pilot sees. */
-      const inField = Math.abs(x) <= HALF && Math.abs(z) <= HALF;
-      const h = inField ? Math.max(field.height(x, z), far.height(x, z)) : far.height(x, z);
-      if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
-        return Math.max(h, STRIP_Y);
-      }
-      return h < LAKE_Y ? LAKE_Y : h;
-    },
+     * the basin. And the roofs: the highest within a step of fromY, the
+     * city's rule, so a craft over a roof lands on it and one under the
+     * eaves does not (alps/roofs.js). */
+    height: (x, z, fromY) => roofs.height(x, z, fromY, ground(x, z)),
+    /* The shell's obstacle pass, every pass: while a roof is the craft's
+     * ground, the walls under it let the sweep through (roofs.js). */
+    cover: (x, z, fromY) => roofs.cover(colliders, x, z, fromY),
+    roofs: roofs.records,
     /* What the ground is, for the crash physics (src/game/crashworld.js):
-     * read off the same zones the ground is painted by, so the snow a wing
-     * digs into is the snow on screen. The far range is rock. */
-    surfaceAt: (x, z) => {
-      if (!(Math.abs(x) <= HALF && Math.abs(z) <= HALF)) {
-        return 'rock';
-      }
-      if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
-        return 'grass';
-      }
-      groundZone(field, x, z, 2, zone);
-      if (zone.snow > 0.5) {
-        return 'snow';
-      }
-      if (zone.rock > 0.5 || zone.scree > 0.5) {
-        return 'rock';
-      }
-      if (zone.lake && zone.shore > 0.5) {
-        return 'dirt';
-      }
-      return 'grass';
-    },
+     * a roof's covering where y is a roof's top, else read off the same
+     * zones the ground is painted by, so the snow a wing digs into is the
+     * snow on screen. The far range is rock. */
+    surfaceAt: (x, z, y) => (y == null ? null : roofs.materialAt(x, z, y)) ?? terrainSurface(x, z),
     setNextGate() {},
     targetAim: () => AIM,
     approachSide: () => null,

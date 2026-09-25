@@ -28,6 +28,7 @@
 import * as THREE from 'three';
 import { makeParts, bakeParts, instanced, box, boxUp } from './parts.js';
 import { makePath } from './path.js';
+import { standWalls } from './roofs.js';
 
 const STEEL = 0x9aa0a6;
 const STEEL_DARK = 0x5d6369;
@@ -295,7 +296,12 @@ export function buildLift(ctx) {
       station(P, s.x, s.y, s.z, s.yaw, STATION_H, s.found);
     }
   }
-  colliders.addBox('wall', base.x - 8.5, baseY - baseSite.found, base.z - 8.5, base.x + 8.5, baseY + STATION_H + 1.8, base.z + 8.5);
+  /* The base station's keep out box, or, where the style baked the
+   * station with a roof, the walls under that roof (roofs.js): the roof
+   * itself is ground a craft can land on. */
+  const baseBox = [base.x - 8.5, baseY - baseSite.found, base.z - 8.5, base.x + 8.5, baseY + STATION_H + 1.8, base.z + 8.5];
+  const baseRoofs = (ctx.roofs ?? []).filter((r) => r.tx > baseBox[0] && r.tx < baseBox[3] && r.tz > baseBox[2] && r.tz < baseBox[5]);
+  standWalls(colliders, baseBox, baseRoofs, ctx.villageY);
   for (const t of towers) {
     const x = base.x + dir.x * t.d;
     const z = base.z + dir.y * t.d;
