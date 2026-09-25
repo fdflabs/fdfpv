@@ -516,3 +516,36 @@ model of folding; the pusher's prop touching down behind the boom is
 still a one step contact in the Skyhunter's stall; the Bramor's
 composite panels have no spar section in the tables; the gate clip's one
 impulse per host call.
+
+Round 3 closed (lead, 2026-09-25): suite #55 and core #56 merged. Suite
+on main a6d41c9 after a fresh wasm build: 8 of 60 inside every band
+(from 6), failing checks 142 to 129, all 60 deterministic; verify 16 of
+16; damage off identical on 24 scripts.
+
+Lead decision on the merge rule: #56 made 14 per scenario metrics worse
+against 13 fewer failing checks overall. Most of them are rigid body
+artifacts going away (cartwheel wing breaks that were never physical)
+or the new sourced grass grip letting wrecks slide on. They are kept,
+and each is a round 4 target rather than a reason to hold the round:
+cub-cartwheel 54 to 473 g on a rigid wire gear leg, timber-nose-in no
+longer crushing through the root, the Skyhunter's pusher prop touching
+down in one step, bramor-belly-fast's 8 to 30 m band derived for 10 m/s
+from a 26 m/s entry. crash:core stays at 146 of 147: the round 2 check
+that a five inch dropped flat rests within 2 mm of the rigid contact
+reads 2.72 mm, because the grip it assumed changed by design. Its
+threshold is not moved; round 4 replaces its premise with a reference
+or the failure stays loud.
+
+### Round 4 targets
+
+- Core: a sourced EPO modulus so foam booms and fuselage sections ring
+  like the spars (the Cub and Radian tail booms, and a workable nose
+  part); wire gear that folds; the pusher prop's one step contact; the
+  gate clip's single impulse per host call.
+- Aero, a new owner of plant_wing.c's stall: every plane settles into a
+  steady stalled descent with the nose 18 to 33 degrees above its path
+  and the wings level to 0.01 degree; only the Slow Stick has a post
+  stall nose down moment, and roll damping is constant through the
+  stall, so no wing drops and no spin starts.
+- Suite: bramor-belly-fast's band for its real entry speed; the crash:core
+  2 mm premise; the quad's grass rebound against R-A4-REBOUND.
