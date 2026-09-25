@@ -205,7 +205,7 @@ function coverAt(x, z, heightAt, layout) {
   let seeds = 0;
   if (kind === 'uncut') {
     h *= 1 + 0.55 * (1 - mown);
-    seeds = 0.55;
+    seeds = 0.35;
   } else if (kind === 'pasture') {
     const w0 = x + 14 * s2Noise(x / 37, z / 37);
     const w1 = z + 14 * s2Noise(x / 41 + 5, z / 41 + 5);
@@ -242,7 +242,7 @@ function coverAt(x, z, heightAt, layout) {
   const wild = Math.max(verge, margin) * (1 - forest);
   if (wild > 0.5) {
     cover.h = Math.max(h, 0.55 + 0.25 * noise2(x / 9 + 1.7, z / 9 + 4.1));
-    cover.seeds = 0.12;
+    cover.seeds = 0.05;
     cover.weeds = 0.28 * smoothstep(0.4, 0.75, noise2(x / 13 + 5.5, z / 13 + 2.2) + 0.25);
     cover.bloom = Math.max(cover.bloom, 0.35);
     cover.unmown = true;
@@ -288,6 +288,11 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
       if (c.pasture) {
         const t = rng();
         tone = t < 0.4 ? 0 : t < 0.75 ? 1 : t < 0.92 ? 2 : 3;
+      } else if (c.unmown && tone === 1 && rng() < 0.7) {
+        /* A margin's flowers are the tall coloured ones more than the
+         * daisies: white in every clump read from the road as a verge
+         * gone to seed. */
+        tone = rng() < 0.5 ? 2 : 3;
       }
       const hay = rng() < c.seeds;
       const weed = !flower && rng() < c.weeds;
@@ -295,11 +300,16 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
       let h = (flower ? Math.max(0.3, c.h * 1.05) : c.h) * (0.7 + rng() * 0.6);
       let w = (flower ? 0.45 : 0.85 + rng() * 0.45) * wide;
       if (weed) {
-        region = WEED0 + Math.floor(rng() * 4);
+        /* Dock and nettle, green, more often than the white umbels and
+         * the knapweed. */
+        const w4 = rng();
+        region = WEED0 + (w4 < 0.14 ? 0 : w4 < 0.44 ? 1 : w4 < 0.76 ? 2 : 3);
         h = 0.85 + 0.65 * rng();
         w = (0.5 + 0.25 * rng()) * wide;
       }
-      const tint = (0.82 + rng() * 0.3) * (1 - 0.3 * c.forest);
+      /* Seed heads a little darker than the blades' tint makes them: the
+       * atlas's straw read nearly white in the sun. */
+      const tint = (0.82 + rng() * 0.3) * (1 - 0.3 * c.forest) * (hay && region < WEED0 ? 0.85 : 1);
       out.push(x, heightAt(x, z) - 0.03, z, rng() * Math.PI * 2, h, w, region + (c.unmown ? UNMOWN : 0), tint);
     }
   }
