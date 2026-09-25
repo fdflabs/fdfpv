@@ -397,3 +397,20 @@ What round 2 found and left for round 3, in the impact agent's files:
   calibrated the whoop on.
 - The ground agent's lower grip on the part hulls with damage on (0.76
   where 1.40 is expected) is not confirmed or explained yet.
+
+Round 2 closed (lead, 2026-09-25): ground #52 and impact #54 merged.
+Suite on main 8f47f5b after a fresh wasm build: 6 of 60 inside every
+band (from 4), all 60 deterministic; verify 16 of 16; damage off
+identical on 24 scripts. Stall peaks fell by half or more (Timber 716 to
+250 g, Bramor 475 to 129 g) but stay outside their bands.
+
+Lead decision on the one regression: q5-gate-15 now loses its pack, not
+at the gate but in a 16.6 m/s ground impact 4.9 s later that the rigid
+contact survived at 1717 g. The spring contact is the more physical of
+the two, so it is kept; what is wrong is the scenario, whose reference
+tumbles to the grass a few metres on, not flying on for 5 s into a 60
+km/h impact. Round 3's suite work reproduces the reference's
+trajectory, and the regression stays on the record until then. Also
+accepted: two round 1 core cases that asserted damage on and off give
+identical grass landings now assert no damage, a softer blow and the
+same rest within 1 mm, under the round 2 rule.
