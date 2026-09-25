@@ -215,11 +215,24 @@ const CLEAR = (R, t, dist) => `(() => {
   const sp = Math.hypot(t.vx, t.vy, t.vz);
   const d = [t.vx / sp, t.vy / sp, t.vz / sp];
   const own = new Set(R.solids);
+  /* A roof that touches this one and is another kind is a part of the
+   * same building (a lean-to's barn, a dormer's house, a spire's nave),
+   * met anywhere. One of the same kind is a neighbour (a city block's
+   * next house), part of this building only over this roof's plan: out
+   * on the approach its gable is a wall the line runs into, which a fixed
+   * wing's parts hull (crash round 5) meets where its centre would pass. */
+  const part = new Set();
+  const neighbour = new Set();
   for (const o of window.__roofs()) {
     if (o.maxX > R.minX - 1 && o.minX < R.maxX + 1 && o.maxZ > R.minZ - 1 && o.minZ < R.maxZ + 1) {
-      o.solids.forEach((i) => own.add(i));
+      o.solids.forEach((i) => ((o.kind || 'house') === (R.kind || 'house') ? neighbour : part).add(i));
     }
   }
+  const inPlan = (p) => {
+    const dx = p[0] - R.x;
+    const dz = p[2] - R.z;
+    return Math.abs(R.c * dx - R.s * dz) < R.hw + 0.5 && Math.abs(R.s * dx + R.c * dz) < R.hd + 0.5;
+  };
   /* The crash physics' trees are not the sweep's (crashworld takes them
    * over), so a tree within a wing of the line is looked for apart. */
   const trees = [...window.__crashSolids(t.x, t.z, ${dist} + 10, 'tree'), ...window.__crashSolids(t.x, t.z, ${dist} + 10, 'canopy')];
@@ -237,7 +250,7 @@ const CLEAR = (R, t, dist) => `(() => {
     }
     window.__cover(p[0], p[1], p[2]);
     const h = window.__hit(p[0], p[1], p[2], q[0], q[1], q[2]);
-    if (h.kind && !own.has(h.index)) {
+    if (h.kind && !own.has(h.index) && !part.has(h.index) && !(neighbour.has(h.index) && inPlan(p))) {
       return false;
     }
     p = q;
@@ -465,7 +478,7 @@ function judge(scn, flown) {
 function judgeIn(scn, { plan, log, events0, R }) {
   if (process.argv.includes('--verbose')) {
     for (const r of log) {
-      console.log(`  ${scn} lx ${r.lx.toFixed(2)} lz ${r.lz.toFixed(2)} y ${r.y.toFixed(2)} roof ${r.roof.toFixed(2)} ground ${r.ground.toFixed(2)} v ${r.speed.toFixed(1)} contacts ${r.contacts} ${r.hit} ${r.flags}`);
+      console.log(`  ${scn} lx ${r.lx.toFixed(2)} lz ${r.lz.toFixed(2)} y ${r.y.toFixed(2)} roof ${r.roof.toFixed(2)} ground ${r.ground.toFixed(2)} v ${r.speed.toFixed(1)} contacts ${r.contacts} ${r.hit} ${r.hitIndex} ${r.flags}`);
     }
   }
   const last = log[log.length - 1];
