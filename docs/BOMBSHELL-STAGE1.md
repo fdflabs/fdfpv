@@ -373,6 +373,73 @@ the ground at 9.2 m/s, full roll stick banks it right on the rudder, and
 C puts the chase camera on it. Pressing the card again keeps it seated,
 which is what being one of the card's planes means.
 
+## The throttle chop, in each mode
+
+The owner flew it and reported that it is "not very floaty at all" and
+"kind of comes crashing down when you let go of the throttle", in Acro
+and in Stabilised. Measured in the plant the shell runs, from level
+cruise at 75 percent (8.23 m/s, pitch 1.8 deg), throttle stick fully
+down and every other stick centred, for 15 s, still air:
+
+| Mode | Height lost in 15 s | 5 to 15 s: speed, sink, pitch, alpha | What it does |
+| --- | --- | --- | --- |
+| Acro, the default | 35.6 m | 12.5 m/s, 2.63 m/s, −14.6 deg, 2.6 deg | holds the cruise attitude; the speed bleeds to 7.05 m/s at 2 s with 11.8 deg of up elevator and alpha 15.0, it stalls, the nose breaks to −20.8 deg sinking 4.15 m/s, and it then holds a 14 deg dive, reaching 13.0 m/s at 15 s |
+| Stabilised | 20.9 m | 8.2 m/s, 1.20 m/s, −3.7 deg, 9.8 deg | holds its 2 deg trim pitch; it stalls every 6 s: alpha to 15.1, the nose to −16.6 deg, sink peaks of 3.7 and 3.95 m/s, speed 7.0 to 9.7 |
+| Manual | 13.5 m | 7.9 m/s, 0.90 m/s, −3.9 deg, 7.6 deg | noses down onto its trim glide in one phugoid; alpha never over 8.5 deg; S21 |
+
+So the airframe glides: Manual lands on the derived hands off glide,
+7.97 m/s sinking 0.919 (`bombshell:derive`, the elevator neutral balance
+the full up mush is derived with). What brings it down is the
+stabiliser holding a power on attitude with the power gone. Acro's
+target is dragged down with the nose by the stall's pitch break
+(`acro_err_max` keeps it within 5 deg of the aircraft) and is then held,
+which is the dive. Stabilised asks for 2 deg of pitch where the glide
+is at −4.1, and nothing short of a stall reconciles the two. The same
+flight on the Slow Stick does the same, Acro 24.9 m lost and
+Stabilised 20.3 m against Manual's 9.9, so it is the fixed wings'
+stabiliser and not this airframe. Neither is changed here: what a
+stabiliser should do with the throttle closed is a decision about feel
+for the owner. Emulated in Manual with the plant's own gains, the two
+candidates both give Manual's glide back. The second would lower the
+target by 6.1 deg at idle, from the 2 deg trim to the derived glide's
+−4.1; ArduPilot's default for the same parameter is 2 deg, inside a
+range of 0 to 15, and this airframe's own glide is what sets it here.
+
+| Candidate | Height lost in 15 s | 5 to 15 s: speed, sink |
+| --- | --- | --- |
+| Acro's pitch as a rate damper only, no attitude hold (its `acro_pitch_kd`, no P or I) | 13.4 m | 8.0 m/s, 0.87 m/s |
+| Stabilised's trim pitch lowered to the glide's −4.1 deg with the throttle closed, as ArduPilot's FBWA does with `STAB_PITCH_DOWN` | 13.4 m | 8.0 m/s, 0.92 m/s, never under 7.97 |
+
+The two other suspects were checked and are not the cause:
+
+- The idling prop. A fixed prop's thrust is clamped at zero in the
+  plant (`plant_wing.c`, the motor), so the idle, whose 5.5 m/s pitch
+  speed is under the glide, makes no force at all in the glide: 0.00 N
+  through all three flights. A real 7 x 3.5 at 3,740 rpm and 8 m/s runs
+  at an advance ratio of 0.72 against a geometric pitch ratio of 0.5,
+  where it makes negative thrust and brakes. The plant leaves that brake
+  out, so it can only glide better than the real engine lets it, not
+  worse. Modelling it touches every fixed prop aircraft and is not done
+  here.
+- The drag and lift estimates. Manual's 0.90 m/s is the derivation's
+  0.919 on the numbers above. The Reynolds number in the glide is
+  7.97 x 0.1905 / 1.5e-5, 1.0e5. A drag build up per wing area, all
+  ESTIMATED: the wing's
+  profile drag, a 10 percent flat bottomed section at that Reynolds
+  number and a CL of 0.66 under sagging tissue, about 0.020; the
+  stabiliser and fin, 0.127 m² wetted at a laminar C_f of 1.328/√Re at
+  8e4, 0.0047, and a form factor of 1.1, 0.003; the box fuselage, about
+  0.2 m² wetted at a turbulent C_f of 0.074/Re^0.2 at 4e5, 0.0057, and a
+  form factor of 1.4, 0.008; the wire legs and wheels, 0.0008 m² of
+  frontal area at a cylinder's C_D of 1.2 and a wheel's 0.5 (Hoerner,
+  Fluid-Dynamic Drag, ch. 3), 0.004; the Cox's head and cylinder in the
+  air, 0.003; interference, 0.004: about 0.042 against the table's
+  0.045, which moves the hands off sink from 0.919 to 0.89 m/s. To sink
+  0.6 m/s at the trim it would need a CD0 of 0.018, a clean sailplane's
+  and not a tissue old timer's with an open engine and wire gear. No
+  published still air sink for a 1/2A Texaco was consulted for this
+  round, so this is first principles only.
+
 ## What the owner should feel flying it
 
 Slow, stable and floaty, with its engine always running. Full throttle and
@@ -382,7 +449,10 @@ Cruise is barely above its stall; it will not go faster than 10 m/s.
 Rudder banks it briskly, 45 deg in a second, and it wags its tail in a
 lightly damped Dutch roll as it does; let go and the polyhedral levels it
 in a few seconds. Haul the stick back and it mushes, it does not snap.
-Close the throttle and it glides at 8.6 to 1, and in a thermal it goes up.
+Close the throttle in Manual and let the sticks go and it noses down onto
+its glide by itself and floats at 8 m/s, 8.6 to 1, sinking 0.9 m/s; in a
+thermal it goes up. In Acro and Stabilised, today, it does not: see "The
+throttle chop, in each mode" below.
 
 ## Parallel work
 
@@ -420,6 +490,11 @@ reads zero, zero, elevator, rudder.
   (coxengines.ca): 16,000 to 6,500 rpm, and shutoff.
 - Brodak, Spirit of Yesteryear Bombshell; Stevens Aero, BuzzBomb 400:
   flight character.
+- ArduPilot, `ArduPlane/Parameters.cpp`, `STAB_PITCH_DOWN`, "Low
+  throttle pitch down trim": "Degrees of down pitch added when throttle
+  is below TRIM_THROTTLE in FBWA and AUTOTUNE modes ... Helps to keep
+  airspeed higher in glides or landing approaches and prevents
+  accidental stalls", 0 to 15 deg, 2 by default.
 - Nelson, Flight Stability and Automatic Control, ch. 2, 3 and 5; USAF
   DATCOM, the downwash gradient; Hoerner, Fluid Dynamic Lift, ch. 3;
   Gibson and Ashby, Cellular Solids; USDA Forest Products Laboratory,
