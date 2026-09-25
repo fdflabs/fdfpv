@@ -60,6 +60,9 @@ const BUILDERS = {
   bramor2300: buildBramorCraft,
   slowstick1180: buildSlowStickCraft,
   timber1500: buildTimberCraft,
+  /* On floats, the same builders with the float set in place of the gear. */
+  timber1500f: (opts) => buildTimberCraft({ ...opts, floats: true }),
+  cub1400f: (opts) => buildCubCraft({ ...opts, floats: true }),
 };
 
 export function craftBuilderFor(airframeId) {

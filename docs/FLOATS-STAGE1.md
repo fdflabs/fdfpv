@@ -500,6 +500,53 @@ Flagged here, not built. The crash physics plan owns breakup.
   on the wheels of a wheeled aircraft still stands on the lake's surface
   as on ground (the shell's map height), as it always has.
 
+## In the shell
+
+The two aircraft are airframes of their own behind the Fixed wing card,
+"Turbo Timber, floats" (`timber1500f`) and "Piper Cub, floats"
+(`cub1400f`), which fly their wheeled aircraft's tunes (`tunesOf` in
+configs/airframes.js: the stabiliser's gains are the same) and are drawn
+by the wheeled aircraft's builders with `floats` set (src/render/
+floatset.js). Where they start depends on the map:
+
+- **On a map with water**, the Alps and swiss2, which share the Alps'
+  lake, they start afloat in the middle of the lake facing up it, into the
+  breeze, and are let go onto the water at once rather than parked: water
+  moves, so an aircraft afloat is never still. src/game/water.js names the
+  lake to the physics, the one place a map's water is: its shore found by
+  marching rays out over the valley's ground where it crosses LAKE_Y, as
+  the map's own nature.js finds it (swiss2's ground is the alps' with its
+  own walls added, read from swiss2/terrain.js) (the lake's middle is at x 196, z 2305,
+  from z 1860 to 2750), its bed the terrain under it, and a breeze of
+  2 m/s down the valley over its 0.9 km. The shell declares it to the
+  plant at every reset, in the spawn's frame, through the new entry points.
+  No map file changes: the map's height() still answers the surface over
+  the lake, so a quad or a wheeled plane still rests on the water as it
+  always has, and only an aircraft on floats is given the bed under it.
+- **Anywhere else**, the airfield included, which the card seats, they
+  stand on their keels on the strip. They slide there: half throttle does
+  not move them, full throttle drags them off, and a pilot who wants water
+  picks the Alps.
+
+**What a pilot sees**: the lake is drawn flat, because its moving surface
+belongs to the rendering work that follows. The aircraft rocks on it all
+the same, a few degrees at a little over half a second, on the 3 cm chop
+the breeze raises, so for now it rocks on water that looks still. It
+heaves and pitches with waves nobody can see, which is honest physics and
+a strange picture; the rendering follow-up closes the gap by drawing the
+surface sim_water_components describes.
+
+`npm run floats:shell` proves it headless: the Timber on floats seated on
+the Alps' lake, afloat and rocking before the throttle (pitch −1.2 to
+6.8 deg on the chop), onto the step at 3.1 m/s on half flaps, clear of the
+water at 6.0 (a skip off the chop, which it flew on from; the pilot there
+reads dry floats, not height), a circuit, a flared landing back on the
+lake at 7.0 m/s and slowed to a walk, floating. `floats:shell cub1400f`
+does the same with the Cub: the step at 2.9, off at 7.7, down at 9.8; and
+`floats:shell timber1500f swiss2` the Timber on swiss2's lake, whose far
+shores are where its own walls meet the water: the step at 3.2, off at
+6.0, down at 6.9.
+
 ## Conventions
 
 The plant's, unchanged: world right handed, z up; body x forward, y left,
