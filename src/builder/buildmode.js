@@ -34,9 +34,12 @@
  *
  * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the racing
  * line and geometry warnings (phase 2), the board and ghosts (phase 3), the
- * town and Yellowstone (phase 4). The gates are not solid on a map yet: the
- * valley's colliders are built once, when it loads, and have no way to take
- * a gate away again.
+ * town and Yellowstone (phase 4).
+ *
+ * THE GATES ARE SOLID, the way a field gate is: every edit hands the whole
+ * built set to the valley's colliders (Colliders.setBuilt), which put it in
+ * beside the frozen few thousand, so a test flight into a frame is the
+ * shell's own contact and, with crash damage on, the plant's.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -66,7 +69,7 @@ import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
   BUILD_TYPES, SNAP_MODES, addGate, gateFlags, gateSpec, headingOf, makeStart, moveInLap, newCourse,
   openingCentre, openingsOf, orderOf, poseOf, qAxis, raceGatesOf, readoutFor, removeGate, setPose, snapPose,
-  spawnFor, turnGate,
+  spawnFor, turnGate, worldCaps,
 } from './course.js';
 
 /* The camera's two speeds, metres a second: a slow one to put a gate on a
@@ -201,6 +204,25 @@ export function createBuildMode(host) {
       meshes.set(el.id, m);
     });
     dressAll();
+    solidify();
+  }
+
+  /* The gates as the craft meets them: every frame member, panel and mast
+   * of every gate where the document has it now, replacing the last set.
+   * The free camera never asks the colliders, so building flies through
+   * them all. */
+  function solidify() {
+    if (!view || !view.colliders) {
+      return;
+    }
+    const caps = [];
+    for (const [id, m] of meshes) {
+      const el = elementById(doc, id);
+      if (el) {
+        caps.push(...worldCaps(el, m.made.colliders));
+      }
+    }
+    view.colliders.setBuilt(caps);
   }
 
   /* While building: every gate's ring on, the selected one lit. */
@@ -441,6 +463,7 @@ export function createBuildMode(host) {
   function edited() {
     touch(doc);
     autosave.schedule(doc);
+    solidify();
   }
 
   /* Enter, a click, or the pad's A: put down, drop, or pick up a selection. */
@@ -766,6 +789,7 @@ export function createBuildMode(host) {
       disposeStandaloneGate(m.made);
     }
     meshes.clear();
+    solidify();
     if (ghost) {
       disposeStandaloneGate(ghost.made);
       ghost = null;

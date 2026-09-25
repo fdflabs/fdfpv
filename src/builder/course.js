@@ -258,6 +258,23 @@ export function openingCentre(el, k = 0) {
   return v3(base.x + up.x, base.y + up.y, base.z + up.z);
 }
 
+/*
+ * A gate's colliders in the scene: `caps` are the capsules src/render/
+ * scene.js obstacle() hands back in the gate's own frame, carried by the
+ * element's whole pose, which is what the field does with a heading alone.
+ * A capsule's radius does not turn.
+ */
+export function worldCaps(el, caps) {
+  const { base, quat } = poseOf(el);
+  return caps.map((c) => {
+    const a = qRot(quat, c.ax, c.ay, c.az);
+    const b = qRot(quat, c.bx, c.by, c.bz);
+    return {
+      kind: c.kind, ax: base.x + a.x, ay: base.y + a.y, az: base.z + a.z, bx: base.x + b.x, by: base.y + b.y, bz: base.z + b.z, r: c.r,
+    };
+  });
+}
+
 /* The gate's three scoring axes in the scene, from its orientation. */
 export function axesOf(quat) {
   return {

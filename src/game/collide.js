@@ -308,6 +308,16 @@ const CELL = 8;
 const GRID_HALF = 512;
 const GRID_SPAN = GRID_HALF * 2;
 
+/* The cell a coordinate is in, and its packed key, as build() registers a
+ * collider. */
+function gridCell(v) {
+  return Math.floor(v / CELL);
+}
+
+function gridKey(cx, cz) {
+  return (cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF);
+}
+
 /*
  * Fold a cell index into the range the packing above can address.
  *
@@ -1004,6 +1014,10 @@ export class Colliders {
      * sets and clears them; with none set, hit() is what it always was. */
     this.pass = new Uint8Array(n);
     this.count = n;
+    /* What build() froze, for setBuilt to go back to. */
+    this.baseCount = n;
+    this.baseMaxR = this.maxR;
+    this.gridBase = new Map();
     this.built = true;
     /* The construction arrays are dead now and they are the larger copy. */
     this.ax = null;
@@ -1014,6 +1028,103 @@ export class Colliders {
     this.bz = null;
     this.r = null;
     this.box = null;
+    return this;
+  }
+
+  /*
+   * THE BUILT GATES, the one set of static capsules that can change after
+   * build(): the in-sim builder (src/builder/buildmode.js) places, moves and
+   * deletes gates in a valley whose other few thousand colliders took most
+   * of a minute to make. `caps` is the whole set, [{ kind, ax, ay, az, bx,
+   * by, bz, r }] in the world, and replaces the last one; [] leaves exactly
+   * what build() froze.
+   *
+   * They are ordinary colliders after the frozen ones, indices baseCount and
+   * up, registered in the same grid cells a build() would have put them in.
+   * Only the cells they touch are copied, and the originals are kept to put
+   * back, so the query paths (hit, gapAt, axisAt, crossedStatic, the crash
+   * world's solids) meet a built gate exactly as they meet a field gate and
+   * none of them changed. Called on an edit, never per frame.
+   */
+  setBuilt(caps) {
+    if (!this.built) {
+      throw new Error('collide: setBuilt before build');
+    }
+    for (const [k, was] of this.gridBase) {
+      if (was) {
+        this.grid.set(k, was);
+      } else {
+        this.grid.delete(k);
+      }
+    }
+    this.gridBase.clear();
+    const base = this.baseCount;
+    const n = base + caps.length;
+    const grow = (arr, Type) => {
+      const out = new Type(n);
+      out.set(arr.subarray(0, base));
+      return out;
+    };
+    this.fax = grow(this.fax, Float32Array);
+    this.fay = grow(this.fay, Float32Array);
+    this.faz = grow(this.faz, Float32Array);
+    this.fbx = grow(this.fbx, Float32Array);
+    this.fby = grow(this.fby, Float32Array);
+    this.fbz = grow(this.fbz, Float32Array);
+    this.fr = grow(this.fr, Float32Array);
+    this.fkind = grow(this.fkind, Int32Array);
+    this.fbox = grow(this.fbox, Uint8Array);
+    /* The crash world's pass flags are on frozen trees and stay set. */
+    this.pass = grow(this.pass, Uint8Array);
+    this.stamp = new Int32Array(n);
+    let maxR = this.baseMaxR;
+    const add = new Map();
+    caps.forEach((c, j) => {
+      const k = KINDS.indexOf(c.kind);
+      if (k < 0) {
+        throw new Error(`collide: unknown kind ${c.kind}`);
+      }
+      const i = base + j;
+      this.fax[i] = c.ax;
+      this.fay[i] = c.ay;
+      this.faz[i] = c.az;
+      this.fbx[i] = c.bx;
+      this.fby[i] = c.by;
+      this.fbz[i] = c.bz;
+      this.fr[i] = c.r;
+      this.fkind[i] = k;
+      if (c.r > maxR) {
+        maxR = c.r;
+      }
+      /* The cells build() registers a capsule in, from the stored (Float32)
+       * figures it registers from. */
+      const rr = this.fr[i];
+      const x0 = gridCell(Math.min(this.fax[i], this.fbx[i]) - rr);
+      const x1 = gridCell(Math.max(this.fax[i], this.fbx[i]) + rr);
+      const z0 = gridCell(Math.min(this.faz[i], this.fbz[i]) - rr);
+      const z1 = gridCell(Math.max(this.faz[i], this.fbz[i]) + rr);
+      for (let cx = x0; cx <= x1; cx += 1) {
+        for (let cz = z0; cz <= z1; cz += 1) {
+          const key = gridKey(cx, cz);
+          if (!add.has(key)) {
+            add.set(key, []);
+          }
+          add.get(key).push(i);
+        }
+      }
+    });
+    for (const [key, list] of add) {
+      const was = this.grid.get(key);
+      this.gridBase.set(key, was);
+      const cell = new Int32Array((was ? was.length : 0) + list.length);
+      if (was) {
+        cell.set(was);
+      }
+      cell.set(list, was ? was.length : 0);
+      this.grid.set(key, cell);
+    }
+    this.maxR = maxR;
+    this.count = n;
     return this;
   }
 

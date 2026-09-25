@@ -24,8 +24,15 @@
  *      The craft is put through the start gate and then through the hung
  *      gate, and the race counts both: the lap starts and the hung gate is
  *      its first split.
- *   7. B goes back to building, to the camera where it was left; Esc leaves.
- *   8. An old field track (the reference course, schemaVersion 1) on the
+ *   7. B goes back to building, to the camera where it was left.
+ *   8. The gates are solid. A gate hung out over the drop is in the
+ *      colliders the moment it is placed: in a test flight the craft thrown
+ *      through its opening goes clean through, and thrown into its upright
+ *      it meets the frame and the crash physics takes the hit. Moved, the
+ *      old place is air and the new one solid; deleted, nothing is left. A
+ *      double stack's two openings are open and the bar between them solid.
+ *      Then Esc leaves.
+ *   9. An old field track (the reference course, schemaVersion 1) on the
  *      custom map still loads with every station and still counts a pass.
  *
  * Pictures land in OUT_DIR (tmp/build-check by default). They are evidence
@@ -62,6 +69,8 @@ import { openPage, keyInfo } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { courseFromDocument } from '../src/game/trackdoc.js';
+import { openingsOf } from '../src/builder/course.js';
+import { ELEMENTS } from '../src/trackbuilder/elements.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const opts = { map: 'swiss2', perf: false };
@@ -389,6 +398,9 @@ async function proof() {
     const camBack = await page.evaluate(B('.camera'));
     say(Math.hypot(...camBack.pos.map((v, i) => v - camBuild.pos[i])) < 1e-6 && Math.abs(camBack.yaw - camBuild.yaw) < 1e-9, 'B goes back to building, to the camera where it was left');
     say((await page.evaluate('window.__map().mode')) === 'freestyle' && (await page.evaluate('window.__race().freestyle')), 'and the map is freestyle again underneath');
+
+    /* Out over the drop, where nothing but a built gate is in the air. */
+    await solidGates(page, { edge, drop, yawOut, at });
     await page.tap('Escape');
     await page.until(`${B('.state')} === 'off'`, 10000);
     await page.until("window.__craftState().mode === 'flight'", 10000);
@@ -398,6 +410,149 @@ async function proof() {
   } finally {
     await page.close();
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Solid gates                                                         */
+/* ------------------------------------------------------------------ */
+
+const OPENING = openingsOf({ type: 'gate', dims: ELEMENTS.gate.dims })[0];
+const STACK = openingsOf({ type: 'doubleStack', dims: ELEMENTS.doubleStack.dims });
+const vAdd = (p, v, s) => p.map((x, i) => x + v[i] * s);
+const vCross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const vDot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/* The craft's own shape swept along a chord through `c` on the gate's line
+ * of travel, the query the frame loop makes. The kind it meets, or null. */
+async function chord(page, g, c, back = 2, ahead = 2) {
+  const a = vAdd(c, g.travel, -back);
+  const b = vAdd(c, g.travel, ahead);
+  return (await page.evaluate(`window.__hit(${a.join(',')}, ${b.join(',')})`)).kind;
+}
+
+/* What a gate's frame is made of, as the field builds it: the pipe is a
+ * 'gate' and the printed sleeve outboard of each upright an 'obstacle'
+ * (src/render/scene.js obstacle()), so a craft meeting an upright meets
+ * whichever of the two its hull reaches first. */
+const FRAME = ['gate', 'obstacle'];
+
+/* A point on a gate's upright, half way up the opening: the axis of the
+ * pipe is half a tube outboard of the clear span, and the craft sweeps
+ * far more than the tube's radius either side of it. */
+function onUpright(g) {
+  const across = vCross(g.up, g.travel);
+  return vAdd(g.centre, across, OPENING.clearW / 2 + 0.02);
+}
+
+/* Place a gate hung level in the air, the builder's air distance in front
+ * of an eye looking along `yaw`, and hand back its race frame. */
+async function hangGate(page, eye, yaw) {
+  const n = await page.evaluate(B('.gates.length'));
+  await page.tap('Digit3');
+  await aimAlong(page, eye, yaw, 0);
+  await page.tap('Enter');
+  await page.until(`${B('.gates.length')} === ${n + 1}`, 10000);
+  const st = await page.evaluate(B(''));
+  return st.gates[st.gates.length - 1];
+}
+
+/* Tab round the lap to one gate. */
+async function select(page, id) {
+  for (let i = 0; i < 12 && (await page.evaluate(B('.selected'))) !== id; i += 1) {
+    await page.tap('Tab');
+  }
+  return (await page.evaluate(B('.selected'))) === id;
+}
+
+/* The world yaw, degrees, of a craft pointed along a gate's travel. */
+const yawAlong = (t) => (Math.atan2(-t[0], -t[2]) * 180) / Math.PI;
+
+async function solidGates(page, { edge, drop, yawOut, at }) {
+  console.log('  solid gates');
+  const H = async (x, z) => page.evaluate(`window.__heightAt(${x}, ${z})`);
+  const side = [drop.dz, 0, -drop.dx];
+  const eye = at(edge + 25, drop.h + 10);
+  const where = vAdd(eye, [drop.dx, 0, drop.dz], (await page.evaluate(B('.airDistance'))));
+  const probeG = { centre: where, travel: [drop.dx, 0, drop.dz], up: [0, 1, 0] };
+  const count0 = (await page.evaluate('window.__colliders()')).count;
+  say(await chord(page, probeG, onUpright(probeG)) === null && await chord(page, probeG, where) === null, 'before: nothing solid in the air out over the drop');
+
+  /* Place one. */
+  const g = await hangGate(page, eye, yawOut);
+  const under = await H(g.centre[0], g.centre[2]);
+  say(g.centre[1] - under > 20, `a gate hung ${f1(g.centre[1] - under)} m over the ground out past the edge`);
+  say((await page.evaluate('window.__colliders()')).count > count0, `its members are colliders: ${count0} before, ${(await page.evaluate('window.__colliders()')).count} after`);
+  const kUp = await chord(page, g, onUpright(g));
+  const kHole = await chord(page, g, g.centre);
+  say(FRAME.includes(kUp) && kHole === null, `the craft's sweep meets its upright (${kUp}) and not its opening (${kHole})`);
+
+  /* Fly into it and through it, in a test flight, on the shell's own
+   * contact and the crash physics. */
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+  const crash0 = await page.evaluate('window.__crash()');
+  say(crash0.runDamage === true, `crash damage is on for the run (runDamage ${crash0.runDamage})`);
+  const throwAt = async (c, back, speed) => {
+    const p = vAdd(c, g.travel, -back);
+    const v = g.travel.map((x) => x * speed);
+    await page.evaluate(`window.__crashThrow({ x: ${p[0]}, y: ${p[1]}, z: ${p[2]}, yaw: ${yawAlong(g.travel)}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
+  };
+  const plane = vDot(g.centre, g.travel);
+  const past = async (d) => page.until(`(() => { const c = window.__craftState(); return c.worldX * ${g.travel[0]} + c.worldY * ${g.travel[1]} + c.worldZ * ${g.travel[2]} > ${plane + d}; })()`, 15000).then(() => true, () => false);
+  await throwAt(g.centre, 2.5, 12);
+  const through = await past(2);
+  await page.sleep(300);
+  const clean = await page.evaluate('({ c: window.__craftState(), k: window.__crash() })');
+  say(through && clean.c.lastHitKind === 'none' && clean.k.events === crash0.events, `through the opening at 12 m/s: out the far side, touched ${clean.c.lastHitKind}, damage events ${clean.k.events - crash0.events}`);
+  await throwAt(onUpright(g), 2.5, 12);
+  await page.until("window.__craftState().lastHitKind !== 'none'", 15000).catch(() => {});
+  await page.sleep(400);
+  await shot(page, '7-into-the-built-gate');
+  const hit = await page.evaluate('({ c: window.__craftState(), k: window.__crash() })');
+  say(FRAME.includes(hit.c.lastHitKind), `into its upright at 12 m/s: the contact is with a ${hit.c.lastHitKind} at ${f1(hit.c.lastClosingSpeed)} m/s closing`);
+  say(hit.k.events > clean.k.events, `and the crash physics took it: ${hit.k.events - clean.k.events} damage events, flags ${JSON.stringify(hit.k.flagNames)}`);
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'building'`, 10000);
+
+  /* Move it: pick it up and put it down twelve metres to the side. */
+  say(await select(page, g.id), 'Tab selects it');
+  await page.tap('KeyG');
+  await aimAlong(page, vAdd(eye, side, 12), yawOut, 0);
+  await page.tap('Enter');
+  await page.until(`${B('.held')} === null`, 10000);
+  const m = (await page.evaluate(B('.gates'))).find((x) => x.id === g.id);
+  const moved = Math.hypot(...m.centre.map((v, i) => v - g.centre[i]));
+  const kOld = await chord(page, g, onUpright(g));
+  const kNew = await chord(page, m, onUpright(m));
+  say(moved > 11 && kOld === null && FRAME.includes(kNew), `moved ${f1(moved)} m: the old upright is air (${kOld}), the new one solid (${kNew})`);
+
+  /* Delete it: nothing of it is left. */
+  await page.tap('Delete');
+  await page.until(`!${B('.gates')}.some((x) => x.id === ${JSON.stringify(g.id)})`, 10000);
+  const kGone = await chord(page, m, onUpright(m));
+  const kHoleGone = await chord(page, m, m.centre);
+  const count1 = (await page.evaluate('window.__colliders()')).count;
+  say(kGone === null && kHoleGone === null && count1 === count0, `deleted: nothing solid where it stood (${kGone}, ${kHoleGone}), ${count1} colliders as before it was placed`);
+
+  /* A double stack: both openings open, the bar between them solid. */
+  await page.tap('KeyT');
+  await page.tap('KeyT');
+  say((await page.evaluate(B('.type'))) === 'doubleStack', 'T twice: a double stack');
+  const s = await hangGate(page, eye, yawOut);
+  const lift = STACK[1].centreY - STACK[0].centreY;
+  const upper = vAdd(s.centre, s.up, lift);
+  const bar = vAdd(s.centre, s.up, lift / 2);
+  const k0 = await chord(page, s, s.centre);
+  const k1 = await chord(page, s, upper);
+  const kb = await chord(page, s, bar);
+  say(k0 === null && k1 === null && kb === 'gate', `the stack's lower opening (${k0}) and upper one (${k1}) are open and the bar between them solid (${kb})`);
+  await select(page, s.id);
+  await page.tap('Delete');
+  await page.until(`${B('.gates.length')} === 3`, 10000);
+  for (let i = 0; i < 3; i += 1) {
+    await page.tap('KeyT');
+  }
+  say((await page.evaluate(B('.type'))) === 'gate' && (await page.evaluate('window.__colliders()')).count === count0, 'deleted, and back to placing gates');
 }
 
 async function fieldTrack() {
