@@ -88,6 +88,7 @@ import { swissBuildings } from './swiss2/buildings/index.js';
 import { swissVehicles } from './swiss2/vehicles/index.js';
 import { buildProps } from './swiss2/props/index.js';
 import { photoCraftLook } from './swiss2/craftlook.js';
+import { buildPeople } from './swiss2/village/people.js';
 
 const CAMERA_FAR = 14000;
 
@@ -365,6 +366,9 @@ function photoStyle() {
             stage.veg.update(dtMs, camera);
             stage.props.update(camera);
           }
+          if (stage.people) {
+            stage.people.update(t - first, camera);
+          }
           stage.water.update(dtMs, camera);
         },
       };
@@ -403,6 +407,9 @@ function photoStyle() {
       scene.add(stage.veg.group);
       nature.pines = stage.veg.stats.trees;
       floorUnderTrees(stage.masks.zones, stage.veg.forest);
+      /* The villagers in the square, drawn the vehicles' way. */
+      stage.people = buildPeople({ layout: style.look.buildings.layout, heightAt, material: style.look.vehicles.material });
+      scene.add(stage.people.mesh);
       stage.masks.walls.value = own(wallMask(stage.footprints));
       const baked = bakeTerrainShadow(stage.renderer, field, far, stage.sunDir);
       stage.shadowTarget = baked.shadow;

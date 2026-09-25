@@ -91,6 +91,9 @@ export function swissVehicles() {
   });
 
   return {
+    /* The body material, for whatever else is drawn the vehicles' way
+     * (the villagers, village/people.js) and should share their program. */
+    material: mats.body,
     buildCar: (kind, colour) => make(celCar(kind, paintOf(colour)), car(kind, paintOf(colour))),
     buildPostbus: () => make(celBus(), postbus()),
     buildTractor: () => make(celTractor(), tractor()),

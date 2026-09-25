@@ -34,7 +34,54 @@ import {
   frame, box, boxUp, cached, prism, SOCLE, near, detail, own,
   casement, doorway, balcony, woodpile, plinth, logCorners, frieze, timberTop, ring, plate, stair,
   REVEAL, masonry, deepWindow, deepDoor, wallBench, dripEdge,
+  climber, paintedBand, paintedQuoins, notes,
 } from './parts.js';
+
+/*
+ * How a house's masonry storey is finished and what grows on it. No two
+ * houses in an Oberland village were limed alike: most are rendered and
+ * washed white, cream, pale ochre, grey or a faded rose, with the window
+ * surrounds painted in a colour of their own; some had the timber brought
+ * down to the ground; a few painted a frieze under the logs or quoins up
+ * the corners. Almost every one has geraniums, red mostly, and some have
+ * ivy up a gable or a rose by the door. Chosen by the house's own number
+ * (own), never the village rng, so the layout stays the cel one's.
+ */
+const WASH = [
+  ['render', 'surroundGrey'], ['renderCream', 'surroundWhite'], ['renderOchre', 'surroundWhite'],
+  ['renderGrey', 'surroundWhite'], ['renderRose', 'surroundGrey'], ['renderCream', 'surroundOchre'],
+  ['render', 'surroundOchre'],
+];
+const FRIEZES = [['frescoRed', 'surroundWhite'], ['frescoGreen', 'surroundWhite'], ['frescoGrey', 'frescoRed'], ['frescoOchre', 'frescoRed']];
+
+function facadeOf(f, base, board) {
+  const bloom = own(f, 22) < 0.1 ? null : own(f, 23) < 0.28 ? 'geraniumPink' : 'geranium';
+  const growth = {
+    ivy: own(f, 24) < 0.3,
+    rose: own(f, 25) < 0.3 ? (own(f, 26) < 0.5 ? 'rose' : 'roseWhite') : null,
+  };
+  if (base === 'stone') {
+    return { wall: 'stone', surround: 'surround', bloom, band: null, quoins: null, ...growth };
+  }
+  if (own(f, 21) < 0.2) {
+    return { wall: board, surround: board, bloom, band: null, quoins: null, ...growth };
+  }
+  const [wall, surround] = WASH[Math.floor(own(f, 27) * WASH.length)];
+  const deco = own(f, 28);
+  return {
+    wall,
+    surround,
+    bloom,
+    band: deco < 0.45 ? FRIEZES[Math.floor(own(f, 29) * FRIEZES.length)] : null,
+    quoins: deco > 0.7 ? surround : null,
+    ...growth,
+  };
+}
+
+/* What the roof carries: panels on a few, a dormer on some. */
+function roofOf(f) {
+  return { solar: own(f, 31) < 0.22, dormer: own(f, 32) < 0.3 };
+}
 
 /* Joist ends under a jettied storey, along one wall frame. */
 function joists(wall, len, y) {
@@ -69,6 +116,8 @@ export function chalet(f, rng, spec) {
   const baseH = 2.5;
   const floorH = 2.55;
   const jet = 0.3;
+  const face = facadeOf(f, base, board);
+  const { bloom } = face;
   const wu = w + 2 * jet;
   const hw = w / 2;
   const hwu = wu / 2;
@@ -79,6 +128,7 @@ export function chalet(f, rng, spec) {
   const top = timberTop(f, {
     w: wu, d, y0: y1, floors, floorH, kind: roof, key: board, roofKey,
     ov, ovA, ovB, pitch, snowGuard: true, chimneyAt: [-w / 4, d / 5], sag: own(f) < 0.5 ? 0.05 + 0.16 * own(f) : 0,
+    ...roofOf(f),
   });
   /* The sill log the storey stands on, proud of the logs above it. */
   f.put(board, box(wu + 0.08, 0.26, d + 0.08), 0, y1 + 0.13, 0);
@@ -119,7 +169,7 @@ export function chalet(f, rng, spec) {
         } else if (outside && wall === west && k === 0 && c === 0) {
           doorway(wall, x, 0.9, 1.95, { key: 'larchDark', frameKey: board, step: null, y0: fy + 0.12 });
         } else {
-          casement(wall, x, fy + 1.45, 0.95, 1.05, { shutter, key: board, seed: c + k });
+          casement(wall, x, fy + 1.45, 0.95, 1.05, { shutter, key: board, seed: c + k, bloom });
         }
       }
     }
@@ -128,7 +178,7 @@ export function chalet(f, rng, spec) {
     for (let k = 0; k < floors; k += 1) {
       const fy = y1 + k * floorH;
       frieze(wall, wu + 0.2, fy + 0.8);
-      gableRow(wall, wu, fy + 1.45, { shutter, key: board });
+      gableRow(wall, wu, fy + 1.45, { shutter, key: board, bloom });
     }
     /* Under a full gable the front has its own small Laube, as wide as
      * the roof leaves a man's height over the geraniums, with a door
@@ -149,23 +199,43 @@ export function chalet(f, rng, spec) {
    * in the wall. */
   const southBase = frame(f, 0, 0, hd, 0);
   const northBase = frame(f, 0, 0, -hd, Math.PI);
+  const win = { shutter, surround: face.surround, bloom };
   const eastOpen = [deepDoor(eastBase, -slot(0), 1.05, 2.05, { frameKey: board, roofKey, board })];
   for (let c = 1; c < cols; c += 1) {
-    eastOpen.push(deepWindow(eastBase, -slot(c), SOCLE + 1.35, 0.9, 1.0, { shutter, seed: c }));
+    eastOpen.push(deepWindow(eastBase, -slot(c), SOCLE + 1.35, 0.9, 1.0, { ...win, seed: c }));
   }
   wallBench(eastBase, -slot(1), 1.5);
-  const westOpen = [deepWindow(westBase, slot(0), SOCLE + 1.35, 0.9, 1.0, { shutter })];
+  const westOpen = [deepWindow(westBase, slot(0), SOCLE + 1.35, 0.9, 1.0, win)];
   woodpile(westBase, slot(cols - 1) - 0.2, Math.min(3.2, d / cols - 0.4));
-  const southOpen = [deepWindow(southBase, hw / 2, SOCLE + 1.35, 0.9, 1.0, { shutter })];
-  const northOpen = blankA ? [] : [deepWindow(northBase, hw / 2, SOCLE + 1.35, 0.9, 1.0, { shutter })];
-  masonry(f, w, d, SOCLE, baseH, base, [
+  const southOpen = [deepWindow(southBase, hw / 2, SOCLE + 1.35, 0.9, 1.0, win)];
+  const northOpen = blankA ? [] : [deepWindow(northBase, hw / 2, SOCLE + 1.35, 0.9, 1.0, win)];
+  if (face.band) {
+    for (const [wall, len] of [[eastBase, d], [westBase, d], [southBase, w], [northBase, w]]) {
+      paintedBand(wall, len - 0.1, SOCLE + baseH - 0.26, face.band);
+    }
+  }
+  if (face.quoins) {
+    paintedQuoins(f, hw, hd, SOCLE + 0.42, baseH - 0.42, face.quoins);
+  }
+  /* Ivy up the gable end away from the door, a rose on its trellis
+   * beside the door. */
+  if (face.ivy) {
+    climber(southBase, -hw / 3, 0, Math.min(3.6, w * 0.45), baseH + (floors > 1 ? 2.2 : 1.2));
+  }
+  if (face.rose) {
+    climber(eastBase, -slot(0) + 1.05, 0.1, 0.7, 2.3, { rose: face.rose });
+  }
+  masonry(f, w, d, SOCLE, baseH, face.wall, [
     { wall: eastBase, len: d, openings: eastOpen, bandLen: d + 0.16 },
     { wall: westBase, len: d, openings: westOpen, bandLen: d + 0.16 },
     { wall: southBase, len: w - 2 * REVEAL, openings: southOpen, bandLen: w },
     { wall: northBase, len: w - 2 * REVEAL, openings: northOpen, bandLen: w },
   ], base === 'render' ? 0.7 : 0.42);
   const hb = balconies === 'none' ? 0 : 1.4;
-  return { hw: Math.max(top.roof.ex, hwu + hb), hd: hd + Math.max(ovA, ovB), top: top.top };
+  const ext = { hw: Math.max(top.roof.ex, hwu + hb), hd: hd + Math.max(ovA, ovB), top: top.top };
+  /* The front (+x) wall's door and bench, along the house's z. */
+  notes(f).houses.push({ at: f.at(0, 0, 0), m: f.m.clone(), w, d, door: slot(0), bench: slot(1), ext, garden: true });
+  return ext;
 }
 
 /* A plank door, its boards up and down, braced in a Z. */
@@ -245,7 +315,9 @@ export function barn(f, spec) {
     woodpile(frame(f, hw, 0, 0, Math.PI / 2), 0, d * 0.5, 4);
     hwOut = Math.max(hwOut, hw + out);
   }
-  return { hw: hwOut, hd: hd + Math.max(ovA, ovB), top: top.top };
+  const ext = { hw: hwOut, hd: hd + Math.max(ovA, ovB), top: top.top };
+  notes(f).houses.push({ at: f.at(0, 0, 0), m: f.m.clone(), w, d, door: 0, ext, garden: false });
+  return ext;
 }
 
 /*
@@ -300,27 +372,33 @@ export function gasthof(f, rng, spec) {
     balcony(frame(east, 0, fy, 0, 0), d - 0.6, { out: 1.4, board });
     for (let c = 0; c < cols; c += 1) {
       casement(east, -slot(c), fy + 1.05, 0.9, 1.9, { sill: false, key: board });
-      casement(west, slot(c), fy + 1.5, 0.95, 1.1, { shutter, key: board, seed: c + k });
+      casement(west, slot(c), fy + 1.5, 0.95, 1.1, { shutter, key: board, seed: c + k, bloom: 'geranium' });
     }
   }
   /* The ground floor, masonry: a door in the middle under its roof,
-   * big windows either side, every opening deep in the wall. */
+   * big windows either side, every opening deep in the wall. The inn
+   * is washed cream with grey surrounds and its frieze painted red. */
+  const win = { shutter, surround: 'surroundGrey', bloom: 'geranium' };
   const eastOpen = [deepDoor(east, -slot(2), 1.3, 2.3, { frameKey: 'stone', roofKey: 'slate', board })];
   for (const c of [0, 1, 3, 4]) {
-    eastOpen.push(deepWindow(east, -slot(c), SOCLE + 1.6, 1.5, 1.4, { shutter, seed: c }));
+    eastOpen.push(deepWindow(east, -slot(c), SOCLE + 1.6, 1.5, 1.4, { ...win, seed: c }));
   }
   wallBench(east, -slot(1) - 1.2, 1.4);
-  const westOpen = [0, 2, 4].map((c) => deepWindow(west, slot(c), SOCLE + 1.6, 1.2, 1.2, { shutter, seed: c }));
+  const westOpen = [0, 2, 4].map((c) => deepWindow(west, slot(c), SOCLE + 1.6, 1.2, 1.2, { ...win, seed: c }));
   const ends = [];
   for (const wall of [frame(f, 0, 0, hd, 0), frame(f, 0, 0, -hd, Math.PI)]) {
     for (let k = 0; k < 2; k += 1) {
       const fy = y1 + k * floorH;
       frieze(wall, w + 0.2, fy + 0.85);
-      gableRow(wall, w, fy + 1.5, { shutter, key: board });
+      gableRow(wall, w, fy + 1.5, { shutter, key: board, bloom: 'geranium' });
     }
-    ends.push({ wall, len: w - 2 * REVEAL, openings: [deepWindow(wall, 0, SOCLE + 1.6, 1.2, 1.2, { shutter })], bandLen: w });
+    ends.push({ wall, len: w - 2 * REVEAL, openings: [deepWindow(wall, 0, SOCLE + 1.6, 1.2, 1.2, win)], bandLen: w });
   }
-  masonry(f, w, d, SOCLE, baseH, 'render', [
+  for (const [wall, len] of [[east, d], [west, d], ...ends.map((e) => [e.wall, w])]) {
+    paintedBand(wall, len - 0.1, SOCLE + baseH - 0.3, ['frescoRed', 'surroundWhite']);
+  }
+  paintedQuoins(f, hw, hd, SOCLE + 0.7, baseH - 0.7, 'surroundGrey');
+  masonry(f, w, d, SOCLE, baseH, 'renderCream', [
     { wall: east, len: d, openings: eastOpen, bandLen: d + 0.16 },
     { wall: west, len: d, openings: westOpen, bandLen: d + 0.16 },
     ...ends,
@@ -332,7 +410,9 @@ export function gasthof(f, rng, spec) {
   east.put('ink', box(0.03, 0.4, 0.03), sx, y1 - 0.7, 1.25);
   east.put('trim', box(0.9, 0.55, 0.05), sx, y1 - 1.15, 1.25);
   east.put('signRed', box(0.8, 0.45, 0.06), sx, y1 - 1.15, 1.25);
-  return { hw: Math.max(top.roof.ex, hw + 1.5), hd: hd + 1.2, top: top.top };
+  const ext = { hw: Math.max(top.roof.ex, hw + 1.5), hd: hd + 1.2, top: top.top };
+  notes(f).houses.push({ at: f.at(0, 0, 0), m: f.m.clone(), w, d, door: 0, ext, garden: false });
+  return ext;
 }
 
 /* A shop awning: a sloping canvas on two arms, in stripes. */
@@ -371,6 +451,8 @@ export function shop(f, rng, spec) {
   });
   f.put(board, box(w + 0.48, 0.26, d + 0.08), 0, y1 + 0.13, 0);
   logCorners(f, board, hw + 0.2, hd, y1, top.plate);
+  /* The bakery is washed a pale ochre, its surrounds white. */
+  const win = { shutter, surround: 'surroundWhite', bloom: 'geraniumPink' };
   const east = frame(f, hw, 0, 0, Math.PI / 2);
   const eastUp = frame(f, hw + 0.2, 0, 0, Math.PI / 2);
   const eastOpen = [
@@ -386,27 +468,29 @@ export function shop(f, rng, spec) {
   east.put('cross', pretzel, hd - 0.6, y1 - 0.1, 0.85);
   frieze(eastUp, d + 0.2, y1 + 0.8);
   for (const x of [-3, 0, 3]) {
-    casement(eastUp, x, y1 + 1.45, 0.95, 1.05, { shutter, key: board, seed: x });
+    casement(eastUp, x, y1 + 1.45, 0.95, 1.05, { shutter, key: board, seed: x, bloom: 'geraniumPink' });
   }
   const westUp = frame(f, -hw - 0.2, 0, 0, -Math.PI / 2);
   frieze(westUp, d + 0.2, y1 + 0.8);
   for (const x of [-3, 0, 3]) {
-    casement(westUp, x, y1 + 1.45, 0.95, 1.05, { shutter, key: board, seed: x });
+    casement(westUp, x, y1 + 1.45, 0.95, 1.05, { shutter, key: board, seed: x, bloom: 'geraniumPink' });
   }
   const westBase = frame(f, -hw, 0, 0, -Math.PI / 2);
   const walls = [
     { wall: east, len: d, openings: eastOpen, bandLen: d + 0.16 },
-    { wall: westBase, len: d, openings: [deepWindow(westBase, 0, SOCLE + 1.5, 1.0, 1.1, { shutter })], bandLen: d + 0.16 },
+    { wall: westBase, len: d, openings: [deepWindow(westBase, 0, SOCLE + 1.5, 1.0, 1.1, win)], bandLen: d + 0.16 },
   ];
   for (const wall of [frame(f, 0, 0, hd, 0), frame(f, 0, 0, -hd, Math.PI)]) {
     frieze(wall, w + 0.6, y1 + 0.8);
     casement(wall, -2, y1 + 1.45, 0.95, 1.05, { shutter, key: board });
     casement(wall, 2, y1 + 1.45, 0.95, 1.05, { shutter, key: board, seed: 1 });
     casement(frame(wall, 0, 0, 0.04, 0), 0, top.plate + 0.75, 0.7, 0.7, { shutter, key: board, bars: false });
-    walls.push({ wall, len: w - 2 * REVEAL, openings: [deepWindow(wall, 0, SOCLE + 1.5, 1.0, 1.1, { shutter })], bandLen: w });
+    walls.push({ wall, len: w - 2 * REVEAL, openings: [deepWindow(wall, 0, SOCLE + 1.5, 1.0, 1.1, win)], bandLen: w });
   }
-  masonry(f, w, d, SOCLE, baseH, 'render', walls, 0.7);
-  return { hw: top.roof.ex, hd: hd + 1.2, top: top.top };
+  masonry(f, w, d, SOCLE, baseH, 'renderOchre', walls, 0.7);
+  const ext = { hw: top.roof.ex, hd: hd + 1.2, top: top.top };
+  notes(f).houses.push({ at: f.at(0, 0, 0), m: f.m.clone(), w, d, door: 0, ext, garden: false });
+  return ext;
 }
 
 /*
@@ -556,6 +640,11 @@ export function church(f, spec) {
       f.put(detail('leaf'), box(0.8, 0.12, 0.5), x, 0.06, z + 0.4);
     }
   }
+  const mid = (gzA + gzB) / 2;
+  notes(f).houses.push({
+    at: f.at(0, 0, mid), m: f.m.clone().multiply(new THREE.Matrix4().makeTranslation(0, 0, mid)), w, d, door: 0,
+    ext: { hw: gx + 0.3, hd: (gzB - gzA) / 2 + 0.3 }, garden: false,
+  });
   return {
     hw, hd, top: SOCLE + top.roof.yR + wallH + 0.5,
     tower: { z: tz, half: tw / 2, top: SOCLE + towerH + 15.2 },

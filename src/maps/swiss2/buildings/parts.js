@@ -51,6 +51,16 @@ export function own(f, salt = 0) {
   return v - Math.floor(v);
 }
 
+/* What the builders leave for the furnishing after them (village/):
+ * where each house stands and how big it is. It rides on the bake,
+ * which is the one thing a build's builders all share and which lives
+ * exactly as long as the build. */
+export function notes(f) {
+  const bake = f.bake ?? f;
+  bake.s2 ??= { houses: [] };
+  return bake.s2;
+}
+
 /* A flat face toward +z. */
 export function plate(w, h) {
   return cached(`s2plate${w},${h}`, () => new THREE.PlaneGeometry(w, h));
@@ -131,7 +141,7 @@ function balusterRow(len, h, { width = 0.17, gap = 0.08 } = {}) {
 }
 
 /* A leafy mound or a flower head: an octahedron, squashed by the put. */
-function blob() {
+export function blob() {
   return cached('s2blob', () => new THREE.OctahedronGeometry(1, 0));
 }
 
@@ -143,7 +153,7 @@ function blob() {
  * flat against it. `key` is the house's timber (the sill and head on a
  * log wall) or null on masonry, where the surround is a stone band.
  */
-export function casement(wall, x, y, w, h, { shutter = null, bars = true, sill = true, key = null, seed = 0 } = {}) {
+export function casement(wall, x, y, w, h, { shutter = null, bars = true, sill = true, key = null, seed = 0, bloom = null } = {}) {
   const win = frame(wall, x, y, 0, 0);
   win.put('glass:o', plate(w - 0.12, h - 0.12), 0, 0, 0.02);
   win.put(detail('trim'), ring(w, h, 0.09, 0.11), 0, 0, 0);
@@ -160,6 +170,9 @@ export function casement(wall, x, y, w, h, { shutter = null, bars = true, sill =
   }
   if (key) {
     win.put(near(key), box(w + 0.3, 0.1, 0.14), 0, h / 2 + 0.07, 0.07);
+  }
+  if (shutter && bloom && own(win, 5) < 0.8) {
+    flowerBox(win, w, -h / 2 + 0.02, 0.2, bloom);
   }
   if (shutter) {
     const sw = w / 2;
@@ -324,7 +337,7 @@ export function masonry(f, w, d, y0, h, key, walls, band) {
  * limed band round the opening on the face, a stone sill standing out
  * under it, the shutters folded back against the face. Returns the
  * opening. */
-export function deepWindow(wall, x, y, w, h, { shutter = null, seed = 0 } = {}) {
+export function deepWindow(wall, x, y, w, h, { shutter = null, seed = 0, surround = 'surround', bloom = null } = {}) {
   const win = frame(wall, x, y, -REVEAL, 0);
   win.put('glass:o', plate(w - 0.1, h - 0.1), 0, 0, 0.03);
   win.put(detail('trim'), ring(w, h, 0.08, 0.08), 0, 0, 0);
@@ -332,8 +345,11 @@ export function deepWindow(wall, x, y, w, h, { shutter = null, seed = 0 } = {}) 
   win.put(detail('trim'), plate(w - 0.14, 0.035), 0, h * 0.17, 0.06);
   win.put(detail('trim'), plate(w - 0.14, 0.035), 0, -h * 0.17, 0.06);
   const face = frame(wall, x, y, 0, 0);
-  face.put(near('surround'), ring(w + 0.26, h + 0.26, 0.13, 0.015, false), 0, 0, 0);
+  face.put(near(surround), ring(w + 0.34, h + 0.34, 0.17, 0.015, false), 0, 0, 0);
   face.put(near('stone'), box(w + 0.3, 0.07, REVEAL + 0.07), 0, -h / 2 - 0.035, -REVEAL / 2 + 0.035);
+  if (shutter && bloom && own(face, 5) < 0.65) {
+    flowerBox(face, w, -h / 2 - 0.02, 0.07, bloom);
+  }
   if (shutter) {
     for (const s of [-1, 1]) {
       const ajar = 0.05 + 0.09 * (((seed * 7 + s * 3) % 5 + 5) % 5) / 4;
@@ -629,7 +645,7 @@ function cutAt(t, c) {
  */
 export function timberTop(f, {
   w, d, y0, floors, floorH, kind, key, roofKey, ov, ovA = ov, ovB = ov, pitch, snowGuard, chimneyAt, f: hipF = 0.5,
-  purlins = true, rafters = true, gableBoards = true, edgeKey = key, sag = 0,
+  purlins = true, rafters = true, gableBoards = true, edgeKey = key, sag = 0, solar = false, dormer = false,
 }) {
   if (kind === 'hip') {
     ovA = ov;
@@ -654,8 +670,180 @@ export function timberTop(f, {
   const rf = sag > 0 ? sagFrame(flat, roof, sag) : flat;
   rf.put(roofKey, roof.geo);
   dressRoof(rf, roof, { roofKey, key, edgeKey, snowGuard, purlins, rafters });
+  if (solar && kind !== 'hip' && sag === 0) {
+    solarArray(flat, roof);
+  }
+  if (dormer && kind !== 'hip') {
+    dormerOn(flat, roof, key, roofKey, chimneyAt ? -Math.sign(chimneyAt[1] || 1) : 1);
+  }
   if (chimneyAt) {
     chimney(f, chimneyAt[0], chimneyAt[1], plate - 0.5, plate + roof.yR + 0.8, roofKey);
   }
   return { roof, plate, top: plate + roof.yR + 0.9 };
+}
+
+/*
+ * A window box, the Oberland's signature: a board trough on two iron
+ * brackets under the sill, the leaves in a loose mound, the geraniums
+ * over them and trailing down its front. `y` is the trough's top and
+ * `z` its back, in the window's frame. From the air a window box is a
+ * red dash under every window, which is what a Bernese street is.
+ */
+export function flowerBox(win, w, y, z, bloom) {
+  const len = w + 0.12;
+  win.put(near('boardLine'), box(len, 0.17, 0.2), 0, y - 0.085, z + 0.1);
+  for (const s of [-1, 1]) {
+    win.put(detail('ink'), box(0.03, 0.03, 0.2), s * (len / 2 - 0.12), y - 0.19, z + 0.1);
+  }
+  const n = Math.max(3, Math.round(len / 0.26));
+  const seed = own(win, 9) * 7;
+  for (let k = 0; k < n; k += 1) {
+    const x = -len / 2 + (k + 0.5) * (len / n);
+    const r = ((k * 37 + seed * 11) % 11) / 11;
+    const q = ((k * 53 + seed * 5) % 13) / 13;
+    win.put(detail('leaf'), blob(), x, y + 0.05, z + 0.1 + 0.04 * q, r * 3, q, 0, 0.19, 0.12, 0.14);
+    win.put(detail(bloom), blob(), x - 0.05 + 0.08 * q, y + 0.15 + 0.06 * r, z + 0.08 + 0.08 * r, r * 5, 0.7, q, 0.085, 0.075, 0.085);
+    win.put(detail(bloom), blob(), x + 0.07 - 0.06 * r, y + 0.11 + 0.05 * q, z + 0.2, q * 4, r, 0.5, 0.075, 0.065, 0.075);
+    if (k % 2 === 0) {
+      win.put(detail('leaf'), blob(), x + 0.04, y - 0.12, z + 0.22, r, 0.4, 0, 0.12, 0.17, 0.05);
+      win.put(detail(bloom), blob(), x + 0.02, y - 0.2 - 0.06 * q, z + 0.24, q, r, 0, 0.06, 0.06, 0.05);
+    }
+  }
+}
+
+/*
+ * A climber on a wall: ivy in a mat that thins and gives out raggedly
+ * at its top, or a rose on its trellis with the flowers dotted through
+ * it. Leaves flat to the face, `z` off it; `h` is how high the tallest
+ * run reaches. Near only and shadowless: from twenty metres a climber is
+ * a dark green shape on a pale wall, and that shape is all it has to be.
+ */
+export function climber(wall, x, y0, w, h, { rose = null } = {}) {
+  const cols = Math.max(2, Math.round(w / 0.3));
+  const seed = own(wall, 17) * 13;
+  const hash = (a, b) => {
+    const v = Math.sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453;
+    return v - Math.floor(v);
+  };
+  if (rose) {
+    for (let k = 0; k <= cols; k += 2) {
+      wall.put(detail('larchDark'), box(0.03, h, 0.03), x - w / 2 + (k / cols) * w, y0 + h / 2, 0.03);
+    }
+  }
+  for (let c = 0; c < cols; c += 1) {
+    const edge = Math.min(c + 0.5, cols - c - 0.5) / (cols / 2);
+    const colH = h * (0.35 + 0.65 * Math.sqrt(edge)) * (0.75 + 0.25 * hash(c, 1));
+    const rows = Math.max(1, Math.round(colH / 0.26));
+    for (let r = 0; r < rows; r += 1) {
+      const u = hash(c, r + 3);
+      const v = hash(r, c + 7);
+      const lx = x - w / 2 + (c + 0.5) * (w / cols) + (u - 0.5) * 0.16;
+      const ly = y0 + 0.12 + r * (colH / rows) + (v - 0.5) * 0.12;
+      const leafKey = (u + v) % 1 < 0.5 ? 'ivy' : 'ivyLight';
+      wall.put(detail(leafKey), blob(), lx, ly, 0.07 + 0.05 * v, u * 6, 0, v * 3, 0.21, 0.18, 0.07);
+      if (rose && u > 0.55) {
+        wall.put(detail(rose), blob(), lx + 0.05, ly + 0.04, 0.14, v * 4, u, 0, 0.055, 0.05, 0.05);
+      }
+    }
+  }
+}
+
+/*
+ * A painted band across a rendered face: the frieze a village painter
+ * put under the eaves of the masonry storey, a ground in one colour and
+ * a row of lozenges in another between two ruled lines. Plates on the
+ * face, near only: from the street it is the thing that says this house
+ * was decorated, from the air it is a coloured line.
+ */
+export function paintedBand(wall, len, y, [ground, figure]) {
+  wall.put(detail(ground), plate(len, 0.3), 0, y, 0.012);
+  for (const dy of [-0.17, 0.17]) {
+    wall.put(detail(figure), plate(len, 0.035), 0, y + dy, 0.014);
+  }
+  const n = Math.max(2, Math.round(len / 0.55));
+  for (let k = 0; k < n; k += 1) {
+    wall.put(detail(figure), plate(0.15, 0.15), -len / 2 + (k + 0.5) * (len / n), y, 0.016, 0, 0, Math.PI / 4);
+  }
+}
+
+/* Painted quoins up a rendered storey's corners, long and short in
+ * turn, on both faces that meet there. */
+export function paintedQuoins(f, hw, hd, y0, h, key) {
+  for (let k = 0; k * 0.5 < h - 0.3; k += 1) {
+    const y = y0 + 0.25 + k * 0.5;
+    const long = k % 2 === 0;
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        f.put(detail(key), box(long ? 0.6 : 0.36, 0.4, 0.02), sx * (hw - (long ? 0.3 : 0.18)), y, sz * (hd + 0.012));
+        f.put(detail(key), box(0.02, 0.4, long ? 0.36 : 0.6), sx * (hw + 0.012), y, sz * (hd - (long ? 0.18 : 0.3)));
+      }
+    }
+  }
+}
+
+/*
+ * Solar panels on the +x slope, the way the valley has put them on its
+ * old roofs since the subsidies: a dark array in a thin aluminium frame
+ * standing a hand's breadth off the covering, below the snow guard's
+ * line and clear of the verges. From the air they are the one hard,
+ * glassy rectangle on a roof, and that is the tell they are there to be.
+ */
+function solarArray(rf, roof) {
+  const { ex, yT, tanP, zA, zB } = roof;
+  const slope = Math.atan(tanP);
+  const L = Math.min(3.4, ex - 2.4);
+  const W = Math.min(6.2, zB - zA - 3.2);
+  if (L < 1.6 || W < 2) {
+    return;
+  }
+  const u = 1.3 + L / 2;
+  const along = L / Math.cos(slope);
+  const x = ex - u;
+  const y = yT + u * tanP + 0.09;
+  const z = (zA + zB) / 2 - 0.4;
+  rf.put('solar', box(along, 0.04, W), x, y, z, 0, 0, -slope);
+  const rows = Math.max(1, Math.round(along / 1.7));
+  const cols = Math.max(1, Math.round(W / 1.05));
+  const n = Math.cos(slope);
+  const t = Math.sin(slope);
+  for (let r = 0; r <= rows; r += 1) {
+    const s = -along / 2 + (r / rows) * along;
+    rf.put(detail('flashing'), box(0.04, 0.012, W), x + s * n, y + 0.024 - s * t, z, 0, 0, -slope);
+  }
+  for (let c = 0; c <= cols; c += 1) {
+    rf.put(detail('flashing'), box(along, 0.012, 0.03), x, y + 0.024, z - W / 2 + (c / cols) * W, 0, 0, -slope);
+  }
+}
+
+/*
+ * A dormer on the -x slope: timber cheeks and front standing out of the
+ * roof, a window in the front with its own little gable roof over it,
+ * the kind a loft was made a room with. `side` is which half of the
+ * house it goes to along the ridge, away from the chimney.
+ */
+function dormerOn(rf, roof, key, roofKey, side) {
+  const { ex, yT, tanP, zA, zB } = roof;
+  const front = 2.0;
+  const h = 1.35;
+  const back = front + h / tanP;
+  if (back > ex - 0.4) {
+    return;
+  }
+  const wd = 1.9;
+  const z = side * (zB - zA) * 0.22;
+  const xF = -(ex - front);
+  const xB = -(ex - back);
+  const yb = yT + front * tanP;
+  const yt = yb + h;
+  rf.put(key, boxUp(xB - xF, h + 0.4, wd), (xF + xB) / 2, yb - 0.4, z);
+  const face = frame(rf, xF, 0, z, -Math.PI / 2);
+  casement(face, 0, yb + 0.72, 0.9, 0.85, { key, bars: true });
+  const pitch = 0.62;
+  const half = wd / 2 + 0.35;
+  const rise = half * Math.tan(pitch);
+  face.put(`${key}:v`, prism([[-wd / 2, yt], [wd / 2, yt], [0, yt + (wd / 2) * Math.tan(pitch)]], -0.04, 0));
+  const len = xB - xF + 0.45;
+  for (const s of [-1, 1]) {
+    rf.put(roofKey, box(len, 0.07, half / Math.cos(pitch)), xF - 0.45 + len / 2, yt + rise / 2 + 0.05, z + s * half / 2, 0, s * pitch, 0);
+  }
 }
