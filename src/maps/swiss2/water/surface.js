@@ -18,10 +18,12 @@
  *   image based light, or off a planar mirror image of the valley when
  *   the lake is given one, bent by the ripples.
  *
- *   Depth: the water is as opaque as there is water under it, from
- *   nothing at the shore to its body colour in a few metres, and the bed
- *   shows through the shallows. Written premultiplied, reflection over
- *   body, so the reflection does not fade with the water's depth.
+ *   Depth: the water is as opaque as there is water along the ray
+ *   through it, from nothing at the shore to its body colour in a few
+ *   metres, and the bed shows through the shallows, tinted by the water
+ *   it is seen through (bedMaterial, drawn under the sheet). Written
+ *   premultiplied, reflection over body, so the reflection does not fade
+ *   with the water's depth.
  *
  *   Foam: a line of it where the water thins onto the shore, white
  *   water over the rapids and at the foot of the fall, from the wave
@@ -49,16 +51,57 @@
 
 import * as THREE from 'three';
 
+/* How far light seen at a point on the surface travels through the
+ * water, per metre of depth, over what it travels looking straight down:
+ * down to the bed along the refracted ray and back up. Seen at a slant
+ * the same depth is more water, so a shallow reads clear at your feet
+ * and opaque twenty metres out. */
+const WATER_PATH = /* glsl */ `
+  float waterPath(vec3 at) {
+    float cosI = abs(normalize(at - cameraPosition).y);
+    float cosR = sqrt(1.0 - (1.0 - cosI * cosI) / 1.7689);
+    return 0.5 + 0.5 / max(cosR, 0.25);
+  }`;
+
+/*
+ * The pass under a sheet of water that takes out of the light from its
+ * bed what the water does: red first, so a pale gravel bed a metre down
+ * is turquoise and two metres down is teal, and what the surface
+ * reflects instead (Fresnel, at water's index), so a shallow seen at a
+ * grazing angle is a mirror and not a window. It multiplies what is
+ * already drawn under the water, before the sheet goes over it: the sheet
+ * alone could only fade the bed toward the body colour, a grey veil,
+ * never tint it. `absorb` is per metre of path, linear RGB; `options` are
+ * the sheet's own, so the pass is the sheet's material and compiles to
+ * the sheet's program (a program of its own added twelve GL warnings,
+ * glGetProgramiv, to a run of the fixed views).
+ */
+export function bedMaterial(options, absorb) {
+  const mat = waterMaterial(options);
+  mat.userData.water.uAbsorb.value.copy(absorb);
+  mat.userData.water.uBedPass.value = 1;
+  mat.depthWrite = false;
+  mat.blending = THREE.CustomBlending;
+  mat.blendEquation = THREE.AddEquation;
+  mat.blendSrc = THREE.ZeroFactor;
+  mat.blendDst = THREE.SrcColorFactor;
+  mat.blendSrcAlpha = THREE.ZeroFactor;
+  mat.blendDstAlpha = THREE.OneFactor;
+  return mat;
+}
+
 /*
  * A water material. `flow` true for running water. `colour` is the
- * body's scattering colour (linear), `clarity` how fast it goes opaque
- * with depth (per metre), `ripple` the strength of the normals,
+ * body's scattering colour (linear) a few metres down, `shallow` what it
+ * is over the bed's first metres and `deep` what it deepens to past
+ * eighteen, `clarity` how fast it goes opaque with depth (per metre
+ * looking straight down), `ripple` the strength of the normals,
  * `planar` a { texture, matrix } mirror image or null, `foamAt` a point
  * (x, z, radius, strength) that churns white, `time` and `wind` shared
  * uniforms. Returns the material; its uniforms are on userData.water.
  */
 export function waterMaterial({
-  waves, time, wind, flow = false, colour, clarity = 0.4, ripple = 1, roughness = 0.04,
+  waves, time, wind, flow = false, colour, shallow = colour, deep = colour, clarity = 0.4, ripple = 1, roughness = 0.04,
   planar = null, foamAt = null, envMap = null, shoreFoam = 1, width = 4,
 }) {
   const mat = new THREE.MeshStandardMaterial({
@@ -81,6 +124,10 @@ export function waterMaterial({
     uFoamAt: { value: foamAt ? new THREE.Vector4(...foamAt) : new THREE.Vector4(0, 0, -1, 0) },
     uShoreFoam: { value: shoreFoam },
     uWidth: { value: width },
+    uShallow: { value: shallow.clone().sub(colour) },
+    uDeep: { value: deep.clone().sub(colour) },
+    uAbsorb: { value: new THREE.Vector3() },
+    uBedPass: { value: 0 },
   };
   mat.userData.water = uniforms;
   const defines = `${flow ? '#define WATER_FLOW\n' : ''}${planar ? '#define WATER_PLANAR\n' : ''}`;
@@ -116,17 +163,28 @@ export function waterMaterial({
         uniform vec4 uFoamAt;
         uniform float uShoreFoam;
         uniform float uWidth;
+        uniform vec3 uShallow;
+        uniform vec3 uDeep;
+        uniform vec3 uAbsorb;
+        uniform float uBedPass;
         varying vec4 vWater;
         varying vec3 vWaterWorld;
         varying vec4 vReflCoord;
         #ifdef WATER_FLOW
           varying vec2 vFlow;
         #endif
+        ${WATER_PATH}
         vec2 waveSlope(vec2 uv) {
           vec3 n = texture2D(uWaves, uv).xyz * 2.0 - 1.0;
           return n.xy / max(n.z, 0.2);
         }`)
       .replace('#include <map_fragment>', `
+        if (uBedPass > 0.5) {
+          float bedCos = abs(normalize(vWaterWorld - cameraPosition).y);
+          vec3 bedT = exp(-uAbsorb * max(vWater.x, 0.0) * 2.0 * waterPath(vWaterWorld));
+          gl_FragColor = vec4(bedT * (0.98 - 0.98 * pow(1.0 - bedCos, 5.0)), 1.0);
+          return;
+        }
         /* The water's slope in the ground plane, and its foam. */
         vec2 wSlope;
         float wFoam = 0.0;
@@ -183,6 +241,11 @@ export function waterMaterial({
           }
         }
         #endif
+        /* Glacial water is a cloud of rock flour lit from inside: bright
+         * turquoise where a metre or two of it lies over pale gravel that
+         * sends the light back up through it, teal over the shelf, and a
+         * darker blue green where it is deep. */
+        diffuseColor.rgb += uShallow * (1.0 - smoothstep(0.5, 4.0, vWater.x)) + uDeep * smoothstep(4.0, 18.0, vWater.x);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.86, 0.88), wFoam);`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = mix(roughnessFactor, 0.65, wFoam);
@@ -220,11 +283,18 @@ export function waterMaterial({
         /* As much water as there is under the surface, and never less
          * than the light it reflects. Written so that premultiplying
          * gives body times cover plus reflection. */
-        float cover = clamp(1.0 - exp(-max(vWater.x, 0.0) * uClarity), 0.0, 1.0);
+        float cover = clamp(1.0 - exp(-max(vWater.x, 0.0) * uClarity * waterPath(vWaterWorld)), 0.0, 1.0);
         #ifdef WATER_FLOW
           cover *= 1.0 - 0.5 * smoothstep(0.8, 1.0, abs(vWater.z));
         #endif
         cover = max(cover, wFoam * 0.95);
+        /* The light the body scatters back leaves through the surface,
+         * which reflects its Fresnel share of it back down: toward the
+         * horizon the water is more mirror than body. Never all mirror:
+         * the wavelets too small to draw tilt toward the eye, and a
+         * glacial lake stays turquoise to its far shore. */
+        float wCos = clamp(dot(normal, geometryViewDir), 0.15, 1.0);
+        totalDiffuse *= 1.0 - (0.02 + 0.98 * pow(1.0 - wCos, 5.0)) * (1.0 - wFoam);
         vec3 wSpec = totalSpecular;
         float glint = min(1.0, dot(wSpec, vec3(0.3, 0.59, 0.11)) * 1.5);
         float wAlpha = clamp(max(cover, glint), 0.0, 1.0);

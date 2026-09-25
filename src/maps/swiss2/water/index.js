@@ -34,7 +34,7 @@ import * as THREE from 'three';
 import { LAKE_Y } from '../../alps/terrain.js';
 import { valleyLayout, lakeShore } from '../vegetation/zones.js';
 import { waveTexture } from './waves.js';
-import { waterMaterial } from './surface.js';
+import { waterMaterial, bedMaterial } from './surface.js';
 import { lakeGeometry, planarMirror } from './lake.js';
 import { streamGeometry } from './stream.js';
 import { buildFall } from './fall.js';
@@ -50,10 +50,16 @@ export const WATER_TIERS = {
 };
 
 /* The water's colours, linear: a glacier fed lake is milky turquoise,
- * the stream the same water over a dark stony bed between banks that
- * shade it, which from the air is a dark line with white where it runs
- * fast, not a pale one. */
-const LAKE_BODY = new THREE.Color(0.006, 0.028, 0.03);
+ * its rock flour scattering light back out of it (the lake's body, set
+ * so lake-high's water measures the hue of Brienz's in the village
+ * photograph, 173 degrees), and it swallows red first (LAKE_ABSORB, per
+ * metre); the stream the same water over a dark stony bed between banks
+ * that shade it, which from the air is a dark line with white where it
+ * runs fast, not a pale one. */
+const LAKE_SHALLOW = new THREE.Color(0.07, 0.3, 0.22);
+const LAKE_BODY = new THREE.Color(0.028, 0.16, 0.13);
+const LAKE_DEEP = new THREE.Color(0.012, 0.09, 0.095);
+const LAKE_ABSORB = new THREE.Vector3(0.45, 0.07, 0.09);
 const STREAM_BODY = new THREE.Color(0.014, 0.032, 0.034);
 
 export async function buildWater(ctx) {
@@ -73,13 +79,20 @@ export async function buildWater(ctx) {
   /* The lake. */
   const { cx, cz, shore } = lakeShore(heightAt);
   const mirror = Q.mirror > 0 ? planarMirror(LAKE_Y, Q.mirror) : null;
-  const lakeMat = waterMaterial({
-    waves, time, wind, colour: LAKE_BODY, clarity: 0.22, ripple: 0.3, roughness: 0.03, planar: mirror, envMap, shoreFoam: 0.08,
-  });
+  const lakeWater = {
+    waves, time, wind, colour: LAKE_BODY, shallow: LAKE_SHALLOW, deep: LAKE_DEEP, clarity: 0.6, ripple: 0.3, roughness: 0.03, planar: mirror, envMap, shoreFoam: 0.08,
+  };
+  const lakeMat = waterMaterial(lakeWater);
   const lake = new THREE.Mesh(lakeGeometry(heightAt, shore), lakeMat);
   lake.name = 'swiss2-lake';
   lake.receiveShadow = true;
-  group.add(lake);
+  /* The bed's light, tinted by the water it comes up through, drawn
+   * just before the water's own sheet. */
+  const bedMat = bedMaterial(lakeWater, LAKE_ABSORB);
+  const lakeBed = new THREE.Mesh(lake.geometry, bedMat);
+  lakeBed.name = 'swiss2-lake-bed';
+  lakeBed.renderOrder = -1;
+  group.add(lakeBed, lake);
 
   /* The stream. */
   const streamMat = waterMaterial({
@@ -145,6 +158,7 @@ export async function buildWater(ctx) {
     fallHeight: Math.round(fall.height),
     buildMs: 0,
   };
+  group.userData.stats = stats;
   let clock = 0;
   const frustum = new THREE.Frustum();
   const viewProj = new THREE.Matrix4();
@@ -169,7 +183,14 @@ export async function buildWater(ctx) {
     stats.mirrorDrawn = frustum.intersectsSphere(lakeSphere)
       && camera.position.distanceTo(lakeSphere.center) - lakeSphere.radius < MIRROR_REACH;
     if (stats.mirrorDrawn) {
+      /* What the mirror costs, apart from the frame's own count: the
+       * shell reads that after this has run. */
+      const info = ctx.renderer.info.render;
+      const calls = info.calls;
+      const triangles = info.triangles;
       mirror.render(ctx.renderer, ctx.scene, camera, hide);
+      stats.mirrorCalls = info.calls - calls;
+      stats.mirrorTriangles = info.triangles - triangles;
     }
   };
   stats.buildMs = Math.round(performance.now() - t0);
@@ -191,7 +212,7 @@ export async function buildWater(ctx) {
       for (const m of [lake, poolMesh, ...runs]) {
         m.geometry.dispose();
       }
-      for (const m of [lakeMat, streamMat, poolMat]) {
+      for (const m of [lakeMat, bedMat, streamMat, poolMat]) {
         m.dispose();
       }
     },
