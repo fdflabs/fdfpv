@@ -622,3 +622,16 @@ stall-in and belly bands whose premise the physics has disproved, and
 source the LOW bands), aero (plant_wing.c: Radian, Timber drift, Slow
 Stick S9b, the Bombshell's take off heading), parts (crash_parts.h:
 Bramor composite sections, balsa and EPO data).
+
+### The finish line, changed by the owner (2026-09-25)
+
+Asked how long "perfectly" would take (estimated 4 to 6 more rounds,
+one to two days, plus the contact sheet rounds), the owner set the
+finish line for now to FEELS RIGHT: the crashes a pilot meets (a
+wingtip clip, a cartwheel, a stall into the ground, a nose over, a
+float nose dig and flip, a quad clipping a gate, a quad into a wall)
+look and feel right when flown, judged by the owner's flights and by
+headless real shell checks the lead runs on each. The suite's bands
+stay as the measure and keep improving in the background, but they no
+longer block the loop's end. Round 5 finishes as planned; then one
+feel round on the owner's list above, then the owner's sign off.
