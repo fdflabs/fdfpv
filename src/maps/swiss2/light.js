@@ -106,23 +106,58 @@ const CLOUD_WIND = new THREE.Vector2(-7, 4);
 const CLOUD_START = new THREE.Vector2(1055, 3940);
 
 /* The terrain shadow is baked at this many texels a side over the field,
- * 5.9 m a texel. */
+ * 5.9 m a texel, and the ground it walks over is read at the same
+ * spacing from the field's own height(x, z), not from its 30 m grid: a
+ * wall shaped finer than the grid casts the shadow it is drawn with, and
+ * whatever ground swiss2 hands the bake, the bake follows. */
 const SHADOW_PX = 1024;
 
 /*
- * Bake the terrain's shadow. `field` is the valley's heightfield, `far`
- * the range beyond with its own height; both go up as half float textures
- * and a fragment per texel walks toward the sun. Returns `shadow`, a render
- * target whose texture holds, per texel, the height the sun clears (r) and
- * the distance to the ridge that decides it (g), and `height`, the field's
- * own heights as a texture, which the village's walls read to know how
- * far above the ground they stand. The caller owns and frees both.
+ * The sky's share of a point's light, at the landscape's scale. The
+ * occlusion pass (post.js) sees two metres round a pixel; it cannot see
+ * that the floor of a valley a kilometre and a half deep, or a gully in
+ * a wall, is under far less sky than an open shoulder, which is most of
+ * why a shaded wall in the photographs is deep blue and not a dimmer copy
+ * of the lit one. Baked with the shadow: per texel, the horizon's rise in
+ * SKY_DIRS directions out to SKY_REACH metres, and the share of a cosine
+ * weighted sky above it, the mean of cos^2 of the horizon's elevation.
+ * SKY_OCC is how much of that is taken, because the image based light
+ * already dims a steep face by its own normal and would otherwise count
+ * the wall above it twice. SKY_LIFT is the height above the ground over
+ * which it fades out: a roof or a crown sees over the near rise, and a
+ * craft in the air sees nearly all the sky.
+ */
+const SKY_DIRS = 16;
+const SKY_REACH = 2400;
+const SKY_OCC = 0.75;
+const SKY_LIFT = 120;
+
+/*
+ * Bake the terrain's shadow. `field` is the valley's heightfield, read
+ * only through its height(x, z), and `far` the range beyond with its own;
+ * both go up as half float textures and a fragment per texel walks toward
+ * the sun, and round itself for the sky. Returns `shadow`, a render
+ * target whose texture holds, per texel, the height the sun clears (r),
+ * the distance to the ridge that decides it (g), the sky's share (b) and
+ * the ground's height (a); and `height`, the field's heights on its grid
+ * (a texel on each of the CELLS + 1 vertices a side), which the village's
+ * walls and the low cloud read to know how far above the ground they
+ * stand. The caller owns and frees both.
  */
 export function bakeTerrainShadow(renderer, field, far, sun) {
   const n = CELLS + 1;
   const fieldHalf = new Uint16Array(n * n);
-  for (let k = 0; k < n * n; k += 1) {
-    fieldHalf[k] = THREE.DataUtils.toHalfFloat(field.data[k]);
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      fieldHalf[j * n + i] = THREE.DataUtils.toHalfFloat(field.height(-HALF + (i * FIELD) / CELLS, -HALF + (j * FIELD) / CELLS));
+    }
+  }
+  const GN = SHADOW_PX + 1;
+  const groundHalf = new Uint16Array(GN * GN);
+  for (let j = 0; j < GN; j += 1) {
+    for (let i = 0; i < GN; i += 1) {
+      groundHalf[j * GN + i] = THREE.DataUtils.toHalfFloat(field.height(-HALF + (i * FIELD) / SHADOW_PX, -HALF + (j * FIELD) / SHADOW_PX));
+    }
   }
   const FAR_SIZE = 24000;
   const FN = 161;
@@ -144,6 +179,7 @@ export function bakeTerrainShadow(renderer, field, far, sun) {
     return t;
   };
   const fieldTex = tex(fieldHalf, n);
+  const groundTex = tex(groundHalf, GN);
   const farTex = tex(farHalf, FN);
   const target = new THREE.WebGLRenderTarget(SHADOW_PX, SHADOW_PX, {
     type: THREE.HalfFloatType,
@@ -155,11 +191,11 @@ export function bakeTerrainShadow(renderer, field, far, sun) {
   const flat = Math.hypot(sun.x, sun.z);
   const mat = new THREE.ShaderMaterial({
     uniforms: {
-      uField: { value: fieldTex },
+      uField: { value: groundTex },
       uFar: { value: farTex },
       uHalf: { value: HALF },
-      uCell: { value: FIELD / CELLS },
-      uN: { value: n },
+      uCell: { value: FIELD / SHADOW_PX },
+      uN: { value: GN },
       uFarSize: { value: FAR_SIZE },
       uFarN: { value: FN },
       uDir: { value: new THREE.Vector2(sun.x / flat, sun.z / flat) },
@@ -209,7 +245,25 @@ export function bakeTerrainShadow(renderer, field, far, sun) {
             break;
           }
         }
-        gl_FragColor = vec4(best, at, 0.0, 1.0);
+        /* The sky: the steepest rise in each direction, as a tangent. The
+         * eye stands a metre up, so the facets under it are no horizon. */
+        float h0 = heightAt(p) + 1.0;
+        float sky = 0.0;
+        for (int k = 0; k < ${SKY_DIRS}; k++) {
+          float a = (float(k) + 0.5) * ${((2 * Math.PI) / SKY_DIRS).toFixed(6)};
+          vec2 d = vec2(cos(a), sin(a));
+          float rise = 0.0;
+          float s = 6.0;
+          for (int i = 0; i < 48; i++) {
+            rise = max(rise, (heightAt(p + d * s) - h0) / s);
+            s += 4.0 + s * 0.09;
+            if (s > ${SKY_REACH.toFixed(1)}) {
+              break;
+            }
+          }
+          sky += 1.0 / (1.0 + rise * rise);
+        }
+        gl_FragColor = vec4(best, at, sky / ${SKY_DIRS.toFixed(1)}, h0 - 1.0);
       }
     `,
   });
@@ -287,6 +341,21 @@ const SUN_GLSL = /* glsl */ `
 const LIT_PARS = /* glsl */ `
   varying vec3 vS2World;
   ${SUN_GLSL}
+  /* The sky's share at p (SKY_OCC above): the landscape's horizon, faded
+   * out with the height over the ground. The lit materials' only: the
+   * meter (post.js) shares SUN_GLSL, and this in its reduce shader cost
+   * the page dozens of GL_INVALID_VALUE glGetProgramiv warnings from
+   * Chrome though the shader compiled clean (checked with three's shader
+   * errors on) and never called it. */
+  float s2Sky(vec3 p) {
+    vec2 uv = (p.xz + uS2Field.x) / uS2Field.y;
+    if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) {
+      return 1.0;
+    }
+    vec2 s = texture2D(uS2Shadow, uv).ba;
+    float v = mix(1.0, s.x, ${SKY_OCC.toFixed(3)});
+    return mix(v, 1.0, smoothstep(0.0, ${SKY_LIFT.toFixed(1)}, p.y - s.y));
+  }
 `;
 
 const LIT_VERTEX = /* glsl */ `
@@ -365,7 +434,7 @@ export function makeLit(clouds) {
       .replace('#include <lights_fragment_begin>', `${LIT_PRELUDE}\n${litLoop}`)
       .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>
         #if defined( RE_IndirectDiffuse )
-          iblIrradiance *= ${SKY_DIFFUSE.toFixed(3)};
+          iblIrradiance *= ${SKY_DIFFUSE.toFixed(3)} * s2Sky(vS2World);
         #endif`);
   };
   /* Materials that take no light (unlit, or three's line and point
