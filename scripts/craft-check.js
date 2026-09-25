@@ -228,6 +228,9 @@ async function measure(airframeId) {
     root,
     width: 960,
     height: 540,
+    /* The light world, as a fresh page booted before the title opened on
+     * the Alps (src/boot.js); the model is measured in the scene either way. */
+    url: '/index.html?map=custom',
     seed: [`try {
       const k = ${JSON.stringify(SETTINGS_KEY)};
       const s = JSON.parse(localStorage.getItem(k) || '{}');
@@ -241,6 +244,11 @@ async function measure(airframeId) {
     /* The aircraft is swapped when the settings are applied, which happens
      * on the first frame; give the model a moment to be built. */
     await page.until("window.__craft().run === " + JSON.stringify(airframeId), 20000);
+    /* Into a run, because the title draws the Skyhunter whatever is seated
+     * (TITLE_CRAFT in src/main.js) and this measures the seated model. */
+    await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+    await page.until("window.__craftState().mode === 'flight' && window.__craft().shown === "
+      + JSON.stringify(airframeId), 20000);
     await page.sleep(500);
     const got = await page.evaluate(MEASURE);
     return got;
