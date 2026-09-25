@@ -29,6 +29,7 @@
 
 import { DAMAGE_FLAGS, PART_STATE_DOUBLES, SURFACE } from '../../configs/parts.js';
 import { readDamageEvents, readMotorDamage, readPartTable, readPartsState } from './crash.js';
+import { airframeHull, bodyAxes, hullContact, hullFromPartsState, sweepPartCapsule, PLANT_BODY } from '../../src/game/airframehull.js';
 
 const SIM_OK = 0;
 
@@ -848,6 +849,96 @@ export const CRASH_SCENARIOS = [
         { name: 'the rest keeps at least 0.75 of its speed through the clip', ok: keep >= 0.75, detail: `${keep.toFixed(3)} of ${v0.toFixed(1)} m/s` },
         { name: 'past the break the host\'s hull, still spanning the panel, shoves nothing', ok: shoved === 0, detail: `${shoved.toFixed(4)} m` },
       ];
+    },
+  },
+  {
+    /*
+     * The same clip with the host the shell now is for a fixed wing: its
+     * hull the parts' own boxes (src/game/airframehull.js), met every
+     * 4 ms, naming the part it met (sim_contact_part) at the point on it.
+     * On the disc the Slow Stick's contact went to its motor and the
+     * Bramor's to its nose, and the Bramor stopped dead (docs/CRASH-STAGE1.md
+     * section 3). Now a pole 60 percent of the half span out meets the wing
+     * panel there, the panel takes it, and the nose keeps its parts.
+     */
+    name: 'a pole met by the parts\' hull is the wing panel\'s',
+    async run(mk) {
+      const out = [];
+      for (const [id, name, speed] of [[5, 'Slow Stick', 5.6], [8, 'Bramor', 16]]) {
+        const r = await mk({ id });
+        const hull = airframeHull(r.parts, PLANT_BODY, 1);
+        const half = Math.max(...r.parts.map((p) => Math.max(-p.boxMin[1], p.boxMax[1])));
+        const pole = [3, -0.6 * half, 0.125];
+        r.sim.e.sim_wing_set_stab(0);
+        r.sim.e.sim_obstacle_cylinder(pole[0], pole[1], 0, 30, pole[2], SURFACE.wood);
+        r.pose([0, 0, 20], [1, 0, 0, 0]);
+        r.launch(speed);
+        const v0 = speedOf(r.state());
+        const ax = new Float64Array(9);
+        const got = hullContact();
+        let first = null;
+        let firstPart = -1;
+        let firstY = 0;
+        let keepAt = null;
+        for (let ms = 0; ms < 1200; ms += 4) {
+          r.run(4, [0, 0, 0, 0.75]);
+          if (first !== null && keepAt === null && Math.round(r.state()[0] * 1000) >= first + 150) {
+            keepAt = speedOf(r.state()) / v0;
+          }
+          const s = r.state();
+          const st = r.sim.readState().state;
+          const ps = new Float64Array(r.n * PART_STATE_DOUBLES);
+          r.partsState().forEach((p, i) => {
+            ps[i * PART_STATE_DOUBLES] = p.status;
+            ps[i * PART_STATE_DOUBLES + 2] = p.pos[0];
+            ps[i * PART_STATE_DOUBLES + 3] = p.pos[1];
+            ps[i * PART_STATE_DOUBLES + 4] = p.pos[2];
+          });
+          hullFromPartsState(hull, ps, PART_STATE_DOUBLES, 0, 2, st);
+          bodyAxes(s[8], s[9], s[10], s[7], ax);
+          let best = null;
+          for (let k = 0; k < hull.n; k += 1) {
+            if (!hull.live[k]) {
+              continue;
+            }
+            const t = sweepPartCapsule(hull, k, ax, s[1], s[2], s[3], 0, 0, 0, pole[0], pole[1], 0, pole[0], pole[1], 30, pole[2], got);
+            if (t >= 0 && (!best || got.depth > best.depth)) {
+              best = { ...got };
+            }
+          }
+          if (!best || s[4] * best.nx + s[5] * best.ny + s[6] * best.nz > -0.05) {
+            continue;
+          }
+          if (first === null) {
+            first = Math.round(s[0] * 1000);
+            firstPart = best.part;
+            const dx = best.px - s[1];
+            const dy = best.py - s[2];
+            const dz = best.pz - s[3];
+            /* The contact point's body y, level and heading along x. */
+            firstY = 2 * (s[8] * s[9] - s[7] * s[10]) * dx + (1 - 2 * (s[8] * s[8] + s[10] * s[10])) * dy + 2 * (s[9] * s[10] + s[7] * s[8]) * dz;
+          }
+          const sep = best.depth + 0.008;
+          r.sim.e.sim_contact_part(best.part);
+          r.sim.e.sim_contact_at_mat(best.nx, best.ny, best.nz, SURFACE.wood,
+            s[1] + best.nx * sep, s[2] + best.ny * sep, s[3] + best.nz * sep,
+            0, 0, 0, best.px - s[1], best.py - s[2], best.pz - s[3]);
+          r.prev = r.state();
+        }
+        const panel = r.parts[firstPart];
+        const breaks = r.events.filter((e) => e.typeName === 'break' && first !== null && e.step >= first - 4 && e.step <= first + 150);
+        /* What the disc's contact broke: the nose and what rides in it. A
+         * far winglet or surface may still go on the craft's kick, which is
+         * the judgement's and is shown in the detail. */
+        const NOSE = ['fuselage', 'motor', 'prop', 'battery', 'camera', 'canopy'];
+        const nose = breaks.filter((e) => NOSE.includes(r.parts[e.part].kindName));
+        out.push(
+          { name: `${name}: the pole meets the wing panel where it stands`, ok: panel && panel.kindName === 'wing' && Math.abs(firstY - pole[1]) < 0.01, detail: first === null ? 'no contact' : `${panel.label} at ${first} ms, point y ${firstY.toFixed(3)} against the pole at ${pole[1].toFixed(3)}` },
+          { name: `${name}: the struck panel leaves, the nose keeps its parts`, ok: breaks.some((e) => e.part === firstPart) && nose.length === 0, detail: `first contact ${first} ms; ${breaks.map((e) => `${r.parts[e.part].label} ${e.step} ms ${e.ratio.toFixed(2)} x`).join(', ') || 'nothing'}` },
+          { name: `${name}: the rest keeps at least 0.75 of its speed through the clip`, ok: keepAt !== null && keepAt >= 0.75, detail: `${keepAt === null ? '-' : keepAt.toFixed(3)} of ${v0.toFixed(1)} m/s` },
+        );
+      }
+      return out;
     },
   },
   {

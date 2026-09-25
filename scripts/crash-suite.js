@@ -66,6 +66,7 @@ import { SCENARIOS, CRAFT, attitude } from '../tests/crash/scenarios.js';
 import { damageReader } from '../tests/crash/readback.js';
 import { setCraftAirframe, contactMaterial, contactPatch, BOUNCE_SEPARATION, KINDS } from '../src/game/collide.js';
 import { obstacleSurfaces, solidSurface } from '../src/game/crashworld.js';
+import { airframeHull, bodyAxes, hullContact, hullFromPartsState, partIntoPlane, sweepPartCapsule, PLANT_BODY } from '../src/game/airframehull.js';
 import { createDamageLink, PART_STATE_DOUBLES, STATE } from '../src/game/damage.js';
 import { DAMAGE_FLAGS, partLabel } from '../configs/parts.js';
 import { airframeById } from '../configs/airframes.js';
@@ -133,6 +134,47 @@ function closestOnSegment(a, b, c) {
   let t = l2 > 0 ? ((c[0] - a[0]) * ab[0] + (c[1] - a[1]) * ab[1] + (c[2] - a[2]) * ab[2]) / l2 : 0;
   t = Math.max(0, Math.min(1, t));
   return [a[0] + t * ab[0], a[1] + t * ab[1], a[2] + t * ab[2]];
+}
+
+/*
+ * A fixed wing's hull is its parts, as the shell's is (src/game/collide.js
+ * setCraftParts): the gap is the deepest live part's, the normal out of
+ * the solid toward that part, and `arm` the contact point on it from the
+ * CG, plant frame. Discrete, like the disc's below: the pass runs every
+ * 4 ms, a few centimetres of a plane's travel.
+ */
+const partGot = hullContact();
+const partBest = hullContact();
+const partAxes = new Float64Array(9);
+function partsGapTo(hull, s, solid) {
+  const ax = bodyAxes(s[8], s[9], s[10], s[7], partAxes);
+  partBest.t = -1;
+  partBest.depth = 0;
+  for (let k = 0; k < hull.n; k += 1) {
+    if (!hull.live[k]) {
+      continue;
+    }
+    let t;
+    if (solid.shape === 'plane') {
+      t = partIntoPlane(hull, k, ax, s[1], s[2], s[3], solid.p[0], solid.p[1], solid.p[2], solid.n[0], solid.n[1], solid.n[2], partGot) > 0 ? 0 : -1;
+    } else {
+      const a = solid.shape === 'sphere' ? solid.c : solid.a;
+      const b = solid.shape === 'sphere' ? solid.c : solid.b;
+      t = sweepPartCapsule(hull, k, ax, s[1], s[2], s[3], 0, 0, 0, a[0], a[1], a[2], b[0], b[1], b[2], solid.r, partGot);
+    }
+    if (t >= 0 && (partBest.t < 0 || partGot.depth > partBest.depth)) {
+      Object.assign(partBest, partGot);
+    }
+  }
+  if (partBest.t < 0) {
+    return null;
+  }
+  return {
+    n: [partBest.nx, partBest.ny, partBest.nz],
+    gap: -partBest.depth,
+    arm: [partBest.px - s[1], partBest.py - s[2], partBest.pz - s[3]],
+    part: partBest.part,
+  };
 }
 
 /* The gap between the hull and a solid (negative is overlap) and the unit
@@ -227,7 +269,7 @@ function partName(p) {
 const toThree = (v) => [-v[1], v[2], -v[0]];
 const fromThree = (v) => [-v[2], -v[0], v[1]];
 
-function obstaclePass(rec, sim, dims, solids, kindSurface, log, ms) {
+function obstaclePass(rec, sim, dims, hull, solids, kindSurface, log, ms) {
   let hit = null;
   for (const solid of solids) {
     /* A crown the plant holds (sim_tree_add) is flown into, not off: the
@@ -236,7 +278,7 @@ function obstaclePass(rec, sim, dims, solids, kindSurface, log, ms) {
       continue;
     }
     const s = sim.readState().state;
-    const g = gapTo(dims, s, solid);
+    const g = hull ? partsGapTo(hull, s, solid) : gapTo(dims, s, solid);
     if (!g || g.gap >= 0) {
       continue;
     }
@@ -246,12 +288,16 @@ function obstaclePass(rec, sim, dims, solids, kindSurface, log, ms) {
     const p = [s[1] + n[0] * sep, s[2] + n[1] * sep, s[3] + n[2] * sep];
     if (vn < -0.05) {
       const nt = toThree(n);
-      const rt = contactPatch(nt[0], nt[1], nt[2], -s[9], s[10], -s[8], s[7], { x: 0, y: 0, z: 0 });
-      const arm = fromThree([rt.x, rt.y, rt.z]);
+      const rt = g.arm ? null : contactPatch(nt[0], nt[1], nt[2], -s[9], s[10], -s[8], s[7], { x: 0, y: 0, z: 0 });
+      const arm = g.arm ?? fromThree([rt.x, rt.y, rt.z]);
       /* The shell's choice: the module's material where its numbers are
        * the shell's own for that kind, so only the damage judgement learns
        * what was hit; the shell's own numbers otherwise. */
       const surf = kindSurface[KINDS.indexOf(solid.kind)] ?? -1;
+      /* The part the contact is on, as the shell tells the plant. */
+      if (g.part !== undefined) {
+        must(rec.call('sim_contact_part', g.part), 'sim_contact_part');
+      }
       if (surf >= 0) {
         must(rec.call('sim_contact_at_mat', n[0], n[1], n[2], surf, p[0], p[1], p[2], 0, 0, 0, arm[0], arm[1], arm[2]), 'sim_contact_at_mat');
       } else {
@@ -506,6 +552,8 @@ async function fly(sc) {
     return [d[0], d[1]];
   });
   const solids = [];
+  /* A fixed wing meets the solids with its parts, as the shell's does. */
+  const hull = airframeById(c.shell).fixedWing ? airframeHull(reader.table(), PLANT_BODY, 1) : null;
   M.left = reader.table().map(() => null);
   const h = {
     s: null,
@@ -557,7 +605,13 @@ async function fly(sc) {
     must(rec.call('sim_input', (t0 + ms) / 1000, roll, pitch, yaw, thr), 'sim_input');
     rec.step(RC_MS);
     if (solids.length) {
-      const hit = obstaclePass(rec, sim, dims, solids, kindSurface, M.obstacleLog, rec.clock.ms);
+      if (hull) {
+        const parts = link.parts();
+        if (parts) {
+          hullFromPartsState(hull, parts, PART_STATE_DOUBLES, STATE.status, STATE.pos, sim.readState().state);
+        }
+      }
+      const hit = obstaclePass(rec, sim, dims, hull, solids, kindSurface, M.obstacleLog, rec.clock.ms);
       if (hit && M.armMs !== null && !M.impact) {
         M.impact = { ms: rec.clock.ms, kinds: [hit.kind], s: M.prev };
       }

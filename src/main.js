@@ -69,7 +69,8 @@ import { FreestyleScore, formatScore } from './game/score.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
-import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch } from './game/collide.js';
+import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
+import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
 import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor } from './ui/ui.js';
 import {
   adoptMostFlownTrack, adoptShareFromLocation, boardPageUrl, fetchGhost, fetchTrackDocument,
@@ -3632,6 +3633,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     fpvFail.clear();
     crashWorldX = NaN;
     crashWorldPhase = 0;
+    partsLeft = false;
+    if (craftHull) {
+      hullIntact(craftHull);
+    }
   }
 
   function clearCrashPass() {
@@ -3667,9 +3672,38 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     return runDamage && kindIndex >= 0 && kindIndex < kindSurface.length ? kindSurface[kindIndex] : -1;
   }
 
+  /*
+   * A FIXED WING'S HULL IS ITS PARTS (src/game/collide.js setCraftParts):
+   * the crash core's own table, seated with the airframe whatever the
+   * damage mode, so a pole meets the wing where the wing is. A quad keeps
+   * its prop discs, and so does a build without the parts ABI.
+   */
+  let craftHull = null;
+  function seatCraftParts() {
+    craftHull = null;
+    if (damage.available && airframeById(runAirframe).fixedWing) {
+      craftHull = airframeHull(damage.table(), THREE_BODY, simLenToWorld(1));
+    }
+    setCraftParts(craftHull);
+  }
+
+  /* A part that has left is out of the hull: after a step that broke a
+   * joint, what is still on the craft, from the plant's own readback. */
+  let partsLeft = false;
+  function syncCraftParts(st) {
+    partsLeft = false;
+    const parts = craftHull ? damage.parts() : null;
+    if (parts) {
+      hullFromPartsState(craftHull, parts, PART_STATE_DOUBLES, STATE.status, STATE.pos, st);
+    }
+  }
+
   /* After every sim_step(1) with the mode on: the events, and the world. */
   function crashAfterStep(st) {
     damage.drain(onDamageEvent);
+    if (partsLeft) {
+      syncCraftParts(st);
+    }
     crashWorldPhase += 1;
     if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX)) {
       crashWorldPhase = 0;
@@ -3792,6 +3826,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function onDamageEvent(ev, o) {
     crashEvents += 1;
     const type = ev[o + EVENT.type];
+    if (type === 1) {
+      partsLeft = true;
+    }
     if (type === 7) {
       return;
     }
@@ -4874,6 +4911,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    */
   function syncCraftScale() {
     setCraftAirframe(airframeById(runAirframe).dims);
+    seatCraftParts();
     runCells = airframeById(runAirframe).cells;
     /* Where this aircraft's centre sits when it is parked, which is where
      * the shell puts the ground plane, the spawn and the landed test. See
@@ -6681,7 +6719,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const inv = 1 / nlen;
     obsPlace.set(cx + nx * sep, cy + ny * sep, cz + nz * sep);
     worldPosToSim(obsPlace.x, obsPlace.y, obsPlace.z, pSim);
-    contactPatch(nx, ny, nz, qObs.x, qObs.y, qObs.z, qObs.w, rPatch);
+    /* A fixed wing's hull says where on it the contact is; a quad's is the
+     * patch of its discs. */
+    if (view.colliders.hitArm) {
+      rPatch.x = view.colliders.hitArmX;
+      rPatch.y = view.colliders.hitArmY;
+      rPatch.z = view.colliders.hitArmZ;
+    } else {
+      contactPatch(nx, ny, nz, qObs.x, qObs.y, qObs.z, qObs.w, rPatch);
+    }
     worldDirToSim(rPatch.x, rPatch.y, rPatch.z, rSim);
     const before = stateCurr;
     const vx0 = before[4];
@@ -6709,6 +6755,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     /* With crash damage on, the obstacle's material rides along where the
      * module's numbers for it are these ones; see THE CRASH SHELL. */
     const surf = obstacleSurfaceFor(obsKindIndex);
+    /* And which part the fixed wing's hull met, so the damage is that
+     * part's and not whichever part stands furthest toward the solid. */
+    if (runDamage && view.colliders.hitArm) {
+      sim.e.sim_contact_part(view.colliders.hitPart);
+    }
     const code = surf >= 0
       ? sim.e.sim_contact_at_mat(
         nSim.x * inv, nSim.y * inv, nSim.z * inv,
