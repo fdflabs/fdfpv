@@ -305,10 +305,15 @@ export function waterMaterial({
           /* Most of the lake carries a breeze's ripple; a gust roughens a
            * patch further, and long narrow slicks lie glassy down the
            * wind between them. Their edges are sharp: the wind either
-           * lifts the ripples or it does not. */
-          float gust = smoothstep(0.56, 0.62, gusts * 0.65 + streaks * 0.35);
+           * lifts the ripples or it does not. Sharp from the shore and
+           * the air; from on the water, where a few metres of edge fill
+           * the frame, an aircraft afloat sat in a patch with a drawn
+           * border round it, so near the camera the edges soften to the
+           * cat's paws they are close to. */
+          float wNear = 1.0 - smoothstep(30.0, 300.0, distance(cameraPosition, vWaterWorld));
+          float gust = smoothstep(0.56 - 0.13 * wNear, 0.62 + 0.13 * wNear, gusts * 0.65 + streaks * 0.35);
           float lanes = texture2D(uWaves, vec2(wq.x / 2100.0, wq.y / 110.0) + vec2(0.37, 0.61)).a;
-          float slick = smoothstep(0.62, 0.66, lanes) * (1.0 - gust);
+          float slick = smoothstep(0.62 - 0.1 * wNear, 0.66 + 0.1 * wNear, lanes) * (1.0 - gust);
           float windy = max(0.4 * (1.0 - slick), gust);
           /* A boat's wake: the two arms of the Kelvin wedge, nineteen and
            * a half degrees either side of her track whatever her speed,
