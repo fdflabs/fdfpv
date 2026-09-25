@@ -502,3 +502,119 @@ and rest distance: Skyhunter 65 to 127 g and 3.0 to 13.3 m, Cub 37 to 21
 g and 4.8 to 16.9 m, Radian 140 to 110 g, Slow Stick 30 to 24 g, Timber
 29 to 15 g and 10.5 to 25.4 m, Bramor 89 to 144 g, catapult 57 to 58 g;
 all rest upright, as on main.
+
+## The third return: the strip fix, fitted washout, the chute, the Bombshell
+
+The lead's decision: a model that is gentle only because of a bug does not
+ship. The strip fix is on #59 (each strip's shortfall against its own wing
+lift, no elevator in it), and the gap to the reviews it opens is closed by
+one identified parameter per airframe, `washout`.
+
+### Washout: FITTED, not sourced
+
+No kit publishes its wing twist. `washout` is the tip twisted nose down
+from the root, linear along the span; it moves each strip's stall later by
+its share of the semispan and changes nothing short of the stall. Each
+value below is the smallest, in half degree steps, that brings the
+airframe's behaviour inside what its review describes, bounded at a few
+degrees. The criterion read from each review is written next to it; the
+reviews give no numbers, so the reading is this document's.
+
+| Airframe | washout, FITTED | The review | Criterion read from it | Result |
+| --- | --- | --- | --- | --- |
+| Cub (and floats) | 1.5 deg | "Stalls are uneventful" (Greg Gimlick, Model Aviation, May 2018, HobbyZone Carbon Cub S+); "nice stall characteristics but it's easy to get into a wingtip stall" (Flite Test, HK Cub) | wing drop at the break under 10 deg, and held full back 10 s, under 30 deg of bank | drop 2.3, 10 s 24.4 (1.0 deg gives 30.4) |
+| Skyhunter | 4.0 deg | none of a wings level stall: one owner's "previous grey Skyhunter never did this at any speed" (RCGroups), of a cross controlled stall on another | as the Cub's | drop 3.5, 10 s 24.5 (3.5 deg gives 30.5) |
+| Timber (and floats) | 3.0 deg | slats on: "they just sort of mush along and never drop a wing" (Model Aviation, Feb 2020) | as the Cub's | drop 3.1, 10 s 29.9 |
+| Timber, slats off | the same wing, 3.0 | "it just drops the nose a little and starts flying again if you hold full up and no throttle" (RCGroups post) | as the Cub's | drop 8.6, **10 s 42.1: not met by 5 deg** (26.5 at 5) |
+| Slow Stick | 1.5 deg | "She'll stall if pushed but only if bags of elevator is fed in while the model is virtually stationary" (David Ashby, RCM&E, 2008) | S9a, full up from cruise: no wing drop (its gate's 15 deg and 20 deg/s) | S9a bank 10.2, yaw 17.1 |
+| Bombshell | 2.0 deg | "gentle flying characteristics" (Brodak's Spirit of Yesteryear kit, docs/BOMBSHELL-STAGE1.md) | its own S9a and S9b, full up from cruise off and on: bank 15, yaw 20 deg/s | S9a bank 6.4, S9b 13.1 and 15.3 deg/s |
+| Radian | **none, left 0** | "stalls are extremely gentle. More of a flat mush than an abrupt drop of the nose" (RCGroups, an aft CG) | wing drop under 10 deg | **not met within the bound**: 75 at 0, 47 at 5 deg. Stopped there, as instructed |
+| Bramor | 0, by decision | nothing published | | a flat spin; the chute recovers it (below) |
+
+The fit and the probe are the same flight (`npm run stall:probe`, A), so
+this is a fit, not a prediction: it says the model can meet each review
+with a twist a moulded foam or built up wing could plausibly have, and
+what that twist is. The Timber without its slats and the Radian it cannot
+meet within a few degrees, and those stay open.
+
+### The chute recovers the Bramor from its flat spin
+
+`node scripts/bramor-spin-chute.js`: from the flat spin (alpha 75 deg,
+turning 485 deg/s) the chute is pulled, which cuts the motor and centres
+the surfaces. The manual's minimum deployment height was not found, so
+every release from the lowest the canopy can open in up to 197 m is
+checked:
+
+| Pulled at | Sink over the last 10 m (rated 4 to 6) | Turning there, at most | At the grass |
+| --- | --- | --- | --- |
+| 17 m | 5.11 m/s | 355 deg/s | still swinging, right way up |
+| 37 m | 5.61 m/s | 167 deg/s | swinging onto its back |
+| 77 m | 5.00 m/s | 50 deg/s | on its back |
+| 197 m | 5.00 m/s | 14 deg/s | on its back |
+
+It is at the canopy's rated sink from every height; the spin itself takes
+until about 70 m of descent to wind down under the canopy.
+
+### What each aircraft does now
+
+`npm run stall:probe`, as before. B's yaw rate over its last 3 s.
+
+| Airframe | Nose drop | Wing drop | 10 s bank | Spin (B) | Spin recovery (C) | Stall recovery (D) | Acro drop / 10 s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 23 | 10 | 10 | a spiral, no rudder | 0.02 s | 0.19 s | 1 / 1 |
+| Skyhunter | 8 | 4 | 25 | no, 56 deg/s | 0.09 s | 0.14 s | 2 / 5 |
+| Cub | 10 | 2 | 24 | yes, 61 deg/s | 0.09 s | 0.14 s | 2 / 8 |
+| Cub on floats | 11 | 2 | 21 | yes, 65 deg/s | 0.09 s | 0.15 s | 2 / 7 |
+| Slow Stick | 13 | 0 | 10 | no, a spiral | 0.06 s | 0.16 s | 1 / 5 |
+| Radian | 58 | **75** | 75 | yes, 415 deg/s | 0.42 s | **none in 7 s** | 24 / 49 |
+| Timber | 13 | 3 | 30 | no, 57 deg/s | 0.09 s | 0.12 s | 1 / 3 |
+| Timber, slats off | 23 | 9 | **42** | yes, 574 deg/s | 0.76 s | 0.10 s | 2 / 4 |
+| Timber on floats | 6 | 3 | 27 | no, 53 deg/s | 0.09 s | 0.13 s | 1 / 3 |
+| Bombshell | 13 | 0 | 6 | yes, 144 deg/s | 0.04 s | 0.12 s | 1 / 3 |
+| Bramor | 64 | **178** | a flat spin | a flat spin | **none**: the chute | **none**: the chute | 2 / 2 |
+
+The Skyhunter and the Timber no longer spin on full rudder; with their
+fitted twist the rudder yaws them into a spiral, and the Cub and the
+Bombshell spin gently.
+
+### Gates
+
+On this branch against main d94aec4 (the Bombshell merged): identical to
+main's module on wing:gates, wing:contact, wing:stab, wing:math,
+timber:stab, slowstick:stab, whoop:gates, contact:selftest, waves; crash:
+core 152 of 152; stall:crossing: the wing and Slow Stick recordings
+identical, every other first differing past its stall angle and above Re
+3e4. T10 (6.71 m/s) and cub:stab's take off heading (1.4 deg) pass.
+
+Failing, for the lead and the owner, none loosened:
+
+- The stored hashes: C22, G20, B13, S17, T14, F9, and the Bombshell's S17.
+  Before and after, the recordings' own hashes: sky cd36bb2fa1e28654 to
+  f16c250db541ab96; cub 6b17876c611e2f16 to bbfd2845f82fb011; glider
+  21aa64a437a83a43 to 19df6b74849661c9; bramor b89d463766f03c1a to
+  2e0b3a9386b37daf; bramor chute deb8e145e13643a0 to a0bcd4b91765333e;
+  timber fff2e89112b65a67 to 0ad33a5cbdb1d760; timber on floats
+  f6add9915fed1541 to 652f7ee7a0b7a712; the Bombshell's own
+  0a5cc5470ecadc7e to 7f31d316db42f030; the wing, the Slow Stick and the
+  five inch unchanged. What each does where it crosses the stall:
+  `npm run stall:crossing`.
+- Slow Stick S9b, full up held under power: bank 27.2, yaw 41.9 deg/s
+  against 15 and 20. Not a drop at the pull but a torque turn that
+  tightens as the inner wing sinks into its stall; washout up to 4 deg
+  brings it to 15.8 and 25.7, still out. No source describes a Slow Stick
+  held full up under power, so it stays failing.
+- Bombshell S9a: bank 6.4 and yaw 7.8 inside, but the mush sinks 2.12 m/s
+  against 2.25 to 3.75, a band derived on the flat plate past the stall
+  that the section data replace (it read 3.15 on main). The section holds
+  more lift in the mush; the band's derivation is the thing to revisit.
+- bombshell:stab, the take off roll's heading: 6.2 deg and 0.73 m off
+  against 5 deg and 0.5 m. On main it read 4.9 deg and 0.50 m, at the
+  edge; the three point roll sits past the stall, where the section's lift
+  now holds, and washout does not move it (5.7 to 6.3 from 0 to 4 deg).
+
+Crash suite against main d94aec4: 9 of 60 inside every band before and
+after, failing checks 134 to 136, 60 deterministic. Stall ins, peak g and
+rest distance, main to this: Skyhunter 65 to 123 g, 3.0 to 13.7 m; Cub 37
+to 22 g, 4.8 to 25.0 m; Radian 140 to 136 g; Slow Stick 30 to 17 g;
+Timber 29 to 14 g, 10.5 to 25.9 m; Bramor 89 to 121 g; catapult 57 to 58
+g; all rest upright, as on main.
