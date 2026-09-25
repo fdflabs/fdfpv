@@ -561,3 +561,64 @@ prop; the fault is the stall entry, which the aero PR (#59, sent back
 for sourced severity and an unchanged ground roll) owns. The Skyhunter
 pusher item dissolved with the ringing booms; the gate clip's duration
 needs a host change and stays open.
+
+### Round 4, aero (branch crash-aero-round4, #59)
+
+The model and its record are docs/STALL-STAGE1.md; four returns from the
+lead and one from the owner's flight shaped it. As it stands:
+
+- Past the stall angle the lift is the section's measured curve (UIUC
+  low speed data at each kit's Reynolds number): the peak the plant's own
+  curve reaches, held for stall_top, then a fall to stall_k of it, then
+  Viterna and Corrigan to the plate. Short of the stall angle it is the
+  plant's own curve, which every band was derived on.
+- The wing is four spanwise strips a side, loaded by Schrenk's
+  approximation, each strip's lift its own wing lift; its stall follows the
+  steady one with Leishman and Beddoes' separation time constant.
+- The pitch break moves the stalled wing's force aft as its lift falls,
+  with the tail's downwash term.
+- A washout per airframe, FITTED (not sourced) to its reviewed stall
+  behaviour: Cub 3, Skyhunter 5, Timber 2, Slow Stick 2, Bombshell 3 deg.
+- Nothing is taken short of the stall angle or below a chord Reynolds
+  number of 3e4 (Lissaman 1983).
+
+The owner flew the Cub (b69e0df) and signed the stall off ("works"); the
+stored hashes of the recordings that cross the stall (C22, G20, B13, S17,
+T14, F9, the Bombshell's S17) were re-recorded on that sign-off, one
+commit each. The Bombshell's S9a mush band was re-derived on the new model
+(1.98 m/s derived, 1.91 flown). B1 now starts at the Bramor's published
+cruise instead of under its stall. stab:glide and stab:chop hold
+unchanged (the glides are short of the stall).
+
+Open, each failing or unmet on purpose, the reason in docs/STALL-STAGE1.md:
+
+- Slow Stick S9b, full up held under power: bank 28.7 and yaw 44.5 against
+  15 and 20. A torque turn that tightens as the inner wing sinks into its
+  stall; no source describes a Slow Stick held full up under power.
+- The Bombshell's take off heading (bombshell:stab): 6.6 deg and 0.80 m
+  against 5 and 0.5; 4.9 and 0.50 on main. Its three point roll sits past
+  the stall, where the section's lift now holds; washout does not move it.
+- The Timber held full back in Manual wanders into 50 deg of bank in 10 s;
+  no washout up to 5 deg brings it under 30.
+- The Radian drops 72 deg against a review of "extremely gentle"; no fit
+  within a few degrees, and its section, twist and tips are unpublished.
+- The Bramor, untwisted by decision, tip stalls into a flat spin its
+  elevons do not recover; the chute does, at its rated sink, from 17 to
+  197 m (scripts/bramor-spin-chute.js).
+- The Cub and Timber stall ins mush onto their gear and roll on, where the
+  bands expect a nose low hit: the kits' reviews and the full scale
+  references behind the bands disagree.
+
+### Round 5 (started 2026-09-25)
+
+Main 4a9a30b: 8 of 60 in every band, 147 failing checks (the wing clip
+fix #67 took the struck panel only, and showed the pole bands' premise
+is against the part limits). The owner judged the loop too slow, so this
+round is five agents at once, each with owned files, merged as each goes
+green: hull (collide.js, a plane shaped collision hull), ground impact
+(crash.c: a duration for every stiff contact, host obstacles resolved
+over the contact, grass), suite (tests/crash: re-derive the pole,
+stall-in and belly bands whose premise the physics has disproved, and
+source the LOW bands), aero (plant_wing.c: Radian, Timber drift, Slow
+Stick S9b, the Bombshell's take off heading), parts (crash_parts.h:
+Bramor composite sections, balsa and EPO data).

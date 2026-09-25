@@ -69,7 +69,7 @@ import { FreestyleScore, formatScore } from './game/score.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
-import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch } from './game/collide.js';
+import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch } from './game/collide.js';
 import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor } from './ui/ui.js';
 import {
   adoptMostFlownTrack, adoptShareFromLocation, boardPageUrl, fetchGhost, fetchTrackDocument,
@@ -103,6 +103,7 @@ import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from 
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
 import { BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP } from './render/bramorcraft.js';
 import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickcraft.js';
+import { BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP } from './render/bombshellcraft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
@@ -114,6 +115,7 @@ const WING_MOUNTS = {
   radian2000: [GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP],
   bramor2300: [BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP],
   slowstick1180: [SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP],
+  bombshell1118: [BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
   /* On floats the CG is lower, so the camera stands higher over it. */
   timber1500f: [TIMBER_MOUNT_FORWARD, TIMBER_FLOAT_MOUNT_UP],
@@ -133,7 +135,7 @@ import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/sim
 import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
 import { KINDS } from './game/collide.js';
-import { createDamageLink, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
+import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, solidSurface } from './game/crashworld.js';
 import { DAMAGE_FLAGS, EVENT, MATERIALS, OBSTACLES_MAX, SURFACE, TREES_MAX } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
@@ -3478,17 +3480,21 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * near the craft, the solids near the craft for the parts that leave),
    * reads back what broke, draws it (src/render/wreck.js, debris.js,
    * fpvfail.js), plays it (audio.wreck) and applies the rules: a crash that
-   * leaves the aircraft unflyable is a wreck, which ends the lap, disarms
-   * the motors and rests where the physics puts it, until R takes the pilot
-   * back to the pad or X respawns them where they are.
+   * leaves the aircraft unflyable is a wreck, which ends the lap and rests
+   * where the physics puts it, until R takes the pilot back to the pad or X
+   * respawns them where they are. A wreck never takes the sticks: while its
+   * pack is in, every surface and motor still on it answers them, because
+   * that is what the receiver, the controller and the servos do (the
+   * owner's rule, 2026-09-25). Only the plant cuts control, through the
+   * parts that have gone.
    *
    * WHAT REACHES THE PLANT, all of it through the ABI and all of it only
    * with the mode on: sim_set_damage between runs, the ground material with
    * the ground plane, sim_contact_at_mat in place of sim_contact_at where
    * the module's material has the shell's own numbers (so the contact
    * resolves exactly as before and only the judgement learns what was hit),
-   * the trees and solids near the craft on the sim clock, the motors parked
-   * on a wreck, and the perch held off while a broken part is still moving.
+   * the trees and solids near the craft on the sim clock, and the perch
+   * held off while a broken part is still moving or a wreck has power.
    * With the mode off none of it runs, and every flight is the flight it
    * was. With it on, a flight whose contacts stay under every limit is
    * still the same flight on grass, the plant's default ground to the bit;
@@ -3521,7 +3527,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let crashFlags = 0;
   let wrecked = false;
   let wreckAtWall = 0;
-  let wreckDisarmed = false;
+  /* Since when the wreck has lain still, wall ms, or -1 while it moves. */
+  let wreckStillSince = -1;
   let wreckCraft = null;
   let partTable = [];
   let cameraPart = -1;
@@ -3620,7 +3627,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* From resetCraft, after sim_reset has cleared the damage state. */
   function crashReset() {
     wrecked = false;
-    wreckDisarmed = false;
+    wreckStillSince = -1;
     crashFlags = 0;
     lastParts = null;
     wreckRig.reset();
@@ -3866,8 +3873,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       (crashFlags & DAMAGE_FLAGS.batteryEjected) !== 0,
       nowWall,
     );
-    if (!wrecked && mode === 'flight' && isWreck(crashFlags)) {
+    if (!wrecked && mode === 'flight' && isWreck(crashFlags, airframeById(runAirframe).fixedWing)) {
       enterWreck(nowWall);
+    }
+    if (!wrecked || !stateCurr) {
+      wreckStillSince = -1;
+    } else if (plantSpeed(stateCurr) > PERCH_SPEED || plantRateMag(stateCurr) > PERCH_RATE) {
+      wreckStillSince = -1;
+    } else if (wreckStillSince < 0) {
+      wreckStillSince = nowWall;
     }
   }
 
@@ -3910,15 +3924,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /*
    * THE RULES OF A WRECK. The lap it happened in is over (race.voidLap,
    * the same bookkeeping a weight change mid lap gets); in freestyle it is
-   * a bail. The motors are parked, which is the pilot disarming: a quad
-   * with three props left and airmode on would otherwise thrash on the
-   * grass until the pack ran out. Nothing is moved: the wreck lies where the
-   * physics left it.
+   * a bail. Nothing is moved and nothing is disarmed: the wreck lies where
+   * the physics left it, and a quad with three props and airmode on
+   * thrashes on the grass the way a real one does until its pilot lets go
+   * of the sticks or resets: control ends when the pack leaves, not when
+   * the shell decides the flight is over.
    */
   function enterWreck(nowWall) {
     wrecked = true;
     wreckAtWall = nowWall;
-    wreckDisarmed = true;
     setCrashflip(false);
     turtleRecover = false;
     if (view.mode === 'freestyle') {
@@ -3927,6 +3941,33 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     race.voidLap(str('main.wrecked_lap_over'), nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+  }
+
+  /* The pack is in: the receiver, the controller and the servos work. */
+  function wreckPowered() {
+    return isPowered(crashFlags);
+  }
+
+  function liveWreck(flags) {
+    return isWreck(flags, airframeById(runAirframe).fixedWing) && isPowered(flags);
+  }
+
+  /*
+   * WHEN A WRECK IS DOWN, for the reset prompt: its pack has gone, or it
+   * has lain inside the perch's own speed and rate for WRECK_REST_MS, or
+   * WRECK_PROMPT_MS have passed since it became one. Until then it may
+   * still be gliding, tumbling or flown, and a banner across the middle of
+   * the picture is in the way. The last is for a quad on three props with
+   * airmode on, which thrashes on the grass and never lies still, as a real
+   * one does until its pilot disarms, and still needs to be told how to
+   * get back. Only the prompt reads this; the sticks never do.
+   */
+  const WRECK_REST_MS = 1500;
+  const WRECK_PROMPT_MS = 5000;
+  function wreckDown(nowWall) {
+    return wrecked && (!wreckPowered()
+      || (wreckStillSince >= 0 && nowWall - wreckStillSince >= WRECK_REST_MS)
+      || nowWall - wreckAtWall >= WRECK_PROMPT_MS);
   }
 
   /* Whether the pilot should be looking from the chase camera: the FPV
@@ -3984,7 +4025,21 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       flags: crashFlags,
       flagNames: names,
       wrecked,
-      disarmed: wreckDisarmed,
+      powered: wreckPowered(),
+      down: wreckDown(performance.now()),
+      /* The plant's clock, seconds, for a check that must wait on steps
+       * rather than on the wall: under load a frame carries at most 100 ms
+       * of sim time, however long it took. */
+      simT: stateCurr ? stateCurr[0] : 0,
+      /* Whether the shell is holding the quad's motors at zero, and what
+       * Betaflight made of the sticks, deg/s roll, pitch, yaw: whether the
+       * sticks reach the controller, which a tumbling wreck's motor speeds
+       * cannot show, because its mixer is saturated. */
+      motorsHeld: turtleParkMotors,
+      setpoint: airframeById(runAirframe).fixedWing || typeof sim.e.sim_bf_debug !== 'function' ? null
+        : [sim.e.sim_bf_debug(5), sim.e.sim_bf_debug(8), sim.e.sim_bf_debug(0)],
+      rpm: stateCurr ? [stateCurr[14], stateCurr[15], stateCurr[16], stateCurr[17]] : null,
+      surfaces: airframeById(runAirframe).fixedWing && wingSurfPtr ? Array.from(new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4)) : null,
       freeBodies: damage.freeBodies(),
       events: crashEvents,
       pieces: wreckRig.summary(),
@@ -6364,6 +6419,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * does not jump the camera. */
     const chaseAnchor = new THREE.Vector3();
     let chaseLift = 0;
+    let chaseWaterY = 0;
     let chaseValid = false;
     const losPos = new THREE.Vector3();
     const losBack = new THREE.Vector3();
@@ -7403,7 +7459,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      */
     const turtleParkedNow = isTurtleParked();
     if (mode === 'flight' && !poseLock) {
-      setTurtleParkMotors(turtleParkedNow || turtleRecover || wreckDisarmed);
+      setTurtleParkMotors(turtleParkedNow || turtleRecover);
     }
     if (!(mode === 'flight' && !landed && !turtleParkedNow && !crashed) && rcPending.length > 1) {
       rcPending.splice(0, rcPending.length - 1);
@@ -7759,8 +7815,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         && !turtleWait
         && !turtleFlip.active
         /* Not while a broken part is still flying: resting the plant
-         * would freeze it in the air. */
+         * would freeze it in the air. Not a wreck with its pack in
+         * either: a perch holds the craft by not stepping it, and a
+         * wreck may not be released by the throttle, so the sticks would
+         * stop moving what is left of it. Read from the plant now, not
+         * from crashFrame's copy, which is a frame behind the steps just
+         * taken. */
         && !(runDamage && damage.freeBodies() > 0)
+        && !(runDamage && liveWreck(damage.flags()))
       ) {
         sim.rest();
         landed = true;
@@ -8513,17 +8575,25 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         const k = 1 - Math.exp(-dt / 120);
         const water = craftOnWater();
         const afloat = Boolean(water && water.state[3] > 0);
-        chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / 700));
+        /* Eased in over 0.7 s as the floats settle, out over 0.25 s as
+         * they leave: a plane climbing away at take off should have the
+         * camera with it, not a metre below it catching up. */
+        chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / (afloat ? 700 : 250)));
         if (!chaseValid) {
-          chaseAnchor.copy(pCurr);
+          chaseWaterY = pCurr.y;
         }
-        chaseAnchor.x = pCurr.x;
-        chaseAnchor.z = pCurr.z;
-        /* Air: a 40 ms lag, the plane itself. Afloat: 1.5 s, several swell
-         * periods, so the camera sees the waves pass under a steady plane
-         * rather than the world heaving round it. */
-        const tauY = 40 + chaseLift * 1460;
-        chaseAnchor.y += (pCurr.y - chaseAnchor.y) * (1 - Math.exp(-dt / tauY));
+        /* The swell's mean under the plane, 1.5 s of it, several swell
+         * periods, and held still once the floats leave the water. */
+        if (afloat) {
+          chaseWaterY += (pCurr.y - chaseWaterY) * (1 - Math.exp(-dt / 1500));
+        }
+        /* A blend, not a lag: afloat the camera rides the mean, in the air
+         * the plane itself, and between them a mix of the two. A filter
+         * whose time constant shrank as the plane climbed away let the
+         * camera sag behind the climb and then catch up, the small jolt
+         * the owner felt at take off. */
+        chaseAnchor.copy(pCurr);
+        chaseAnchor.y += chaseLift * (chaseWaterY - pCurr.y);
         chaseStep.copy(chaseAnchor).sub(chaseLast);
         chaseStep.y *= 1 - chaseLift;
         if (!chaseValid) {
@@ -9024,7 +9094,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       ui.setBanner('');
     } else if (crashed && ui.screen === 'flight') {
       ui.setBanner('Crashed', true);
-    } else if (wrecked && ui.screen === 'flight') {
+    } else if (wreckDown(nowWall) && ui.screen === 'flight') {
       ui.setBanner(str('main.wrecked_r_resets'), true);
     } else if (
       (turtleWait || turtleRecover || turtleFlip.active)

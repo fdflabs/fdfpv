@@ -173,7 +173,10 @@ the Timber (19), the Bramor (13: winglets as fins, the chute bay lid as a
 canopy), and the Timber and the Cub on floats (18 each), built in
 `crash.c` from their wheeled tables with the gear off, every part raised
 by the plant's CG drop (26.6 and 26.4 mm), and two floats on braced struts
-from the plant's float geometry.
+from the plant's float geometry; and the Buzzard Bombshell (17: balsa
+under tissue, the first table in `SIM_MAT_BALSA`, a one piece wing on
+rubber bands with its two panels on the centre section; the limits are
+derived in docs/BOMBSHELL-STAGE1.md).
 
 **The shell's whoop** is not airframe 1: it is the five inch's plant in a
 room MICRO_SCALE (3.43) times life size. By the lead's decision it gets
@@ -307,8 +310,77 @@ Weakest link first: joints on a contact's path to the root fail before
 joints that only carry inertia; a joint that fails caps the loads through
 it at what it carried (the contact divided by the load ratio), the rest is
 judged again without it, and the side of the craft that was not in the
-contact keeps the velocity the failed joint could not take from it. A wing
-panel that meets a pole at speed leaves and the fuselage goes on.
+contact keeps the velocity the failed joint could not take from it.
+
+**A struck part takes the blow** (the owner's wing clip, 2026-09-25). The
+paragraph above claimed a wing panel that meets a pole at speed leaves and
+the fuselage goes on. It did not: the owner clipped a Cub's wing and "it
+all kind of explodes; it's not like just the wing falls off". Measured on
+main 5a72379 (cub-pole, a 25 cm pole at 60 percent of the half span at
+13.5 m/s): the host's contact on the right panel crushed its leading edge
+at the plateau, 230 N, for the whole 20 ms a first host call stands for,
+4.6 N s on the rigid craft at the tip, dv 3.6 m/s and a yaw kick; the tail
+boom, rung by that kick, broke 1 ms later at 2.13 times its limit (26 N m
+of 16), the struck panel only 4 ms later, the left panel at 1.61, and the
+next host pass stopped what was left by another 6.5 m/s. Twelve parts off,
+10 m/s of 13.5 gone at the pole.
+
+The judgement above was right; what the craft had been given before it
+ran was not. An obstacle's contact on a part reaches the rest of the craft
+only through the joints between that part and the root, and no harder than
+the weakest of them holds. For each joint on the chain the force at the
+contact point it holds is F_lim = min(F_max, M_max / a), a the contact's
+lever about it across the normal; the least of them is the chain's. The
+blow on the chain is the contact's peak through the part's spring, the
+surface's and the chain's bending in series, v sqrt(k m_eff) with m_eff
+the point's own effective mass, or the part's crush plateau if that is
+lower. Past F_lim the joint fails in that contact (`sever_pre` in
+`crash.c`): the force at the point rose through the series spring to
+F_lim and no further, so the craft is given F_lim^2 / (2 k v), the impulse
+of a linear ramp to F_lim at closing speed v, capped at F_lim times the
+call's time, with no bounce; the judge breaks that joint first, loads
+every other joint with F_lim at the point, hands nothing back (the craft
+never took more), and the part and what it carries leave with the craft's
+motion to meet the obstacle as a free body. The chain's bending is each
+ringing joint's cantilever at the point, 3 E I / a^3, with the E I its
+ring is built on (above): a foam panel on its spar gives far more across
+its span than its skin does under the pole, and that give is what makes
+the ramp last long enough to carry anything. Only an obstacle: the
+ground's contact is its spring, which already shares the load along the
+airframe.
+
+The Cub's right panel now lets go at 79 N, its 40 N m root at the lever to
+the tip it is met at, 2.92 times over, the craft takes 0.6 N s (dv 0.46
+m/s), and nothing else breaks at the pole. A bound on it from the table
+alone: the root can pass at most about 110 N at the pole's lever for the
+40 ms the fuselage takes to pass the pole, 4.3 N s of the craft's 17.8, so
+at least 0.75 of the speed is kept (`crash:core`, "a Cub clips a pole with
+its right wing at cruise": 0.964; on main 0.386, with the boom, the left
+panel and the prop off).
+
+**A contact on a part that has gone.** The host meets the world with its
+own hull, and a plane's is a disc of its half span in its own plane
+(`src/game/collide.js`, `contactPatch`): it meets a pole 0.42 m out 0.56 m
+ahead of a Cub's CG, about half a metre before the wing does, and once the panel has left, the next passes still meet the
+pole the panel met, a few centimetres on, with nothing of the aircraft
+there. On main those contacts were put onto the nearest part left and
+stopped the craft on a pole it was flying past (with the sever alone the
+motor, the pack, the canopy and the fin went that way, 5.3 m/s taken). So
+once a part has left, and the plant has been told of a solid within the
+airframe's reach (`sim_obstacle_*`, `sim_tree_add`), a host contact counts
+only if a part still on the craft is at a solid, within the distance the
+craft closes in the time the call stands for plus 2 cm, the hulls sampled
+along the segments between their points (a pole at mid span is between a
+panel's root and tip). None: no contact at all, and the host's pose is not
+written either, since it is the host's hull moved off the solid (the Cub
+was shoved 0.41 m sideways over 16 passes). Some: the plant places the
+craft itself, out of the solid by its parts' deepest point plus the host's
+8 mm separation, and meets it at its own leading point, not the host's
+hull point (the Bramor in a crown, its elevons gone, was thrown 0.70 m off
+the trunk by the host's pose, and its hull point stood 1.13 m ahead of its
+CG). A contact with no solid named near is the host's, as always. The
+hook is in `sim.c` (`sim_contact`, `sim_contact_at`), before the pose is
+written, and only with the mode on.
 
 ### Under the break, per material (`crash.c`)
 
@@ -546,6 +618,8 @@ rigid contact left it (0.26 mm).
 | a foam boom's bending stiffness, for its ring (round 4) | E I = 33 M c: Cub 35 mm, Radian 20, Timber 45 mm half depth | bead foam E = 0.82 rho - 4.9 MPa, 19.7 MPa at 30 g/L, over EPO's 0.6 MPa | Negussey and Anasthas 2001, simple bending of EPS beams |
 | a music wire leg's fold (round 4) | 1.7 x the yield moment over the leg's lever | a round section's plastic hinge | ASTM A228 (E 207 GPa, 1,600 MPa) |
 | a blade's tip blow (round 3) | v_tip sqrt(k m_blade / 3) at its radius | the blade's spring against its own inertia | derived |
+| a struck chain's hold (wing clip) | F_lim = min(F_max, M_max / a) over the joints to the root, the craft given F_lim^2 / (2 k v) | a linear ramp to the weakest joint's limit through the part's, the surface's and the chain's cantilever springs in series, 3 E I / a^3 each | derived; E I as the ring's (TAP Plastics, Negussey and Anasthas) |
+| a gone part's contact band (wing clip) | 2 cm plus the closing speed times the call's time | the host's call stands for the steps since its last, at most 20 | chosen |
 
 "Chosen" is an engineering estimate with its reasoning in the table's
 comment, not a measurement. The suite's bands are what will say whether
@@ -813,6 +887,12 @@ Stick nosing in whose leg folds lets a box corner 0.118 m into the
 ground, and a Timber after its tip strike rests on its box with its
 folded legs' wheels unloaded. Both are checks of the rigid hull, as a
 crush already fails them there, and both pass with the mode off.
+
+The wing clip (a struck part's chain, and a contact on a part that has
+gone), against main 5a72379: off is identical on all 24. On, every
+script's output is byte for byte the output main's own mode on build
+gives, the same six moving against base as in round 4: none of the gates
+flies a host contact past a joint's limit or after a part has left.
 
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched.
@@ -1114,3 +1194,25 @@ predates this work, reported and not touched.
 | 15 | antenna | fuselage | wire | 0.0040 | -0.160, 0.000, 0.131 | -0.160, 0.000, 0.096 | 1.00 | 40 | 1.0e+3 |  |
 | 16 | float left | fuselage | epo | 0.1060 | -0.090, 0.150, -0.179 | 0.025, 0.075, -0.030 | 219.91 | 3142 | 1.0e+4 | 200 over 32.0 cm2, 50 mm |
 | 17 | float right | fuselage | epo | 0.1060 | -0.090, -0.150, -0.179 | 0.025, -0.075, -0.030 | 219.91 | 3142 | 1.0e+4 | 200 over 32.0 cm2, 50 mm |
+
+### Buzzard Bombshell
+
+| # | part | parent | material | mass kg | centre m | joint m | M limit N m | F limit N | k N/m | crush kPa |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | fuselage | root | balsa | 0.2409 | 0.074, 0.000, -0.033 |  |  |  | 1.5e+5 |  |
+| 1 | boom | fuselage | balsa | 0.0350 | -0.391, 0.000, -0.005 | -0.130, 0.000, 0.000 | 18.00 | 200 | 2.0e+4 |  |
+| 2 | hstab | boom | balsa | 0.0120 | -0.555, 0.000, 0.002 | -0.580, 0.000, 0.001 | 2.44 | 50 | 2.0e+3 |  |
+| 3 | elevator | hstab | balsa | 0.0040 | -0.634, 0.000, 0.002 | -0.615, 0.000, 0.002 | 0.40 | 20 | 1.5e+3 |  |
+| 4 | fin | boom | balsa | 0.0060 | -0.520, 0.000, 0.062 | -0.520, 0.000, 0.005 | 1.44 | 40 | 1.5e+3 |  |
+| 5 | rudder | fin | balsa | 0.0040 | -0.607, 0.000, 0.060 | -0.563, 0.000, 0.060 | 0.40 | 20 | 1.5e+3 |  |
+| 6 | wing | fuselage | balsa | 0.0200 | -0.033, 0.000, 0.073 | -0.030, 0.000, 0.064 | 1.90 | 20 | 2.0e+3 |  |
+| 7 | wing left | wing | balsa | 0.0450 | -0.032, 0.255, 0.101 | -0.030, 0.040, 0.070 | 2.11 | 80 | 2.0e+3 |  |
+| 8 | wing right | wing | balsa | 0.0450 | -0.032, -0.255, 0.101 | -0.030, -0.040, 0.070 | 2.11 | 80 | 2.0e+3 |  |
+| 9 | motor | fuselage | alu | 0.0450 | 0.134, 0.000, 0.016 | 0.107, 0.000, -0.005 | 4.00 | 200 | 1.0e+6 |  |
+| 10 | prop | motor | nylon-gf | 0.0060 | 0.170, 0.000, -0.005 | 0.162, 0.000, -0.005 | 5.40 | 100 | 7.0e+2 |  |
+| 11 | battery | fuselage | lipo | 0.0700 | 0.100, 0.000, -0.043 | 0.100, 0.000, -0.040 | 2.00 | 58 | 3.0e+5 |  |
+| 12 | gear left | fuselage | wire | 0.0060 | 0.055, 0.049, -0.105 | 0.030, 0.018, -0.065 | 1.42 | 80 | 4.7e+2 |  |
+| 13 | gear right | fuselage | wire | 0.0060 | 0.055, -0.049, -0.105 | 0.030, -0.018, -0.065 | 1.42 | 80 | 4.7e+2 |  |
+| 14 | gear | boom | wire | 0.0020 | -0.577, 0.000, -0.035 | -0.567, 0.000, -0.024 | 1.42 | 30 | 1.5e+2 |  |
+| 15 | camera | fuselage | electronics | 0.0100 | 0.113, 0.000, 0.031 | 0.110, 0.000, 0.020 | 0.80 | 60 | 3.0e+4 |  |
+| 16 | antenna | fuselage | wire | 0.0030 | -0.192, 0.000, 0.072 | -0.193, 0.000, 0.040 | 1.00 | 40 | 1.0e+3 |  |

@@ -409,6 +409,7 @@ static void tables_build(void) {
     { SIM_AIRFRAME_RADIAN2000, PARTS_RADIAN2000, COUNT(PARTS_RADIAN2000) },
     { SIM_AIRFRAME_TIMBER1500, PARTS_TIMBER1500, COUNT(PARTS_TIMBER1500) },
     { SIM_AIRFRAME_BRAMOR2300, PARTS_BRAMOR2300, COUNT(PARTS_BRAMOR2300) },
+    { SIM_AIRFRAME_BOMBSHELL1118, PARTS_BOMBSHELL1118, COUNT(PARTS_BOMBSHELL1118) },
   };
   for (int s = 0; s < COUNT(src); s += 1) {
     Table *t = &T[src[s].id];
@@ -520,6 +521,7 @@ static double g_capped_fc = 0.0;
 static int g_crushing = 0;
 static unsigned int g_crush_mask = 0;
 static long long g_last_contact_step = -1000000;
+static long long g_last_place_step = -1000000; /* the host's last call, crash_contact_place */
 
 /* The ground's spring, crash_contact_pre: the parts in a sprung contact in
  * the last step and in this batch, and the deepest each is in this batch. */
@@ -683,6 +685,8 @@ static double mat_density(int mat) {
     return 7800.0;
   case SIM_MAT_ELECTRONICS:
     return 1500.0;
+  case SIM_MAT_BALSA:
+    return 160.0; /* medium balsa, Gibson and Ashby, Cellular Solids */
   default:
     return 1400.0;
   }
@@ -1133,6 +1137,7 @@ void crash_reset(void) {
   g_crushing = 0;
   g_capped_now = 0;
   g_last_contact_step = -1000000;
+  g_last_place_step = -1000000;
   g_spring_mask = 0;
   g_batch_spring = 0;
   g_fold_mask = 0;
@@ -1266,6 +1271,10 @@ typedef struct {
   int soft;         /* its impulses were the ground's spring's */
   double fc;        /* the plateau force it crushed at, N */
   int ground;       /* the ground plane's contact */
+  int sever;        /* the joint the blow broke on its way in, + 1, or 0 */
+  double fs;        /* the force that joint held until it let go, N */
+  double srho;      /* the blow's force over it */
+  double sm;        /* and the joint's moment at it, N m */
 } Hit;
 
 static Hit H[HITS_MAX];
@@ -1345,6 +1354,10 @@ static Hit *hit_get(int part, int force) {
   h->soft = 0;
   h->fc = 0.0;
   h->ground = g_surf_ground;
+  h->sever = 0;
+  h->fs = 0.0;
+  h->srho = 0.0;
+  h->sm = 0.0;
   for (int a = 0; a < 3; a += 1) {
     h->J[a] = 0.0;
     h->bsum[a] = 0.0;
@@ -1621,10 +1634,156 @@ static void fold_pre(const Table *t, int i, double vin, double kn, double *e_use
   g_soft_now = 1;
 }
 
+/*
+ * A STRUCK PART TAKES THE BLOW. The rest of the craft is reached only
+ * through the joints between the struck part and the root, and it can be
+ * pushed no harder than the weakest of them holds. A wingtip that meets a
+ * pole at cruise loads the panel's root with the contact force times its
+ * lever; once that is past the root's limit the panel lets go, and what the
+ * fuselage took was the root's load for as long as it rose to the limit,
+ * not the pole's stopping of the whole rigid craft at the tip.
+ *
+ * The weakest joint on the chain is the one with the least force at the
+ * contact point: F_lim = min(F_max, M_max / a) for each, a the contact's
+ * lever about it across the normal. The blow on the chain is the contact's
+ * peak through the part's spring, the surface's and the chain's bending in
+ * series, v sqrt(k m_eff) (m_eff the point's own effective mass), or the
+ * part's crush plateau if it crushes first. Past F_lim the joint fails in
+ * this contact: the force at the point rose through that series spring to
+ * F_lim and no further, so the craft is given F_lim^2 / (2 k v), the
+ * impulse of a linear ramp to F_lim at closing speed v, and no bounce; the
+ * judge breaks the joint, and the part and what it carries leave with the
+ * craft's motion to meet the obstacle as a free body.
+ *
+ * The chain's bending is each ringing joint's cantilever at the point,
+ * 3 E I / a^3, E I the one its ring is built on (table_finish): a foam
+ * panel on its spar is far softer across its span than its skin is under
+ * the pole, and that is what makes the ramp long enough to carry anything.
+ * Only an obstacle: the ground's contact is its spring, which already
+ * shares the load along the airframe (crash_contact_pre).
+ */
+static int g_sever_now = 0;
+static int g_sever_j = -1;
+static double g_sever_fs = 0.0, g_sever_rho = 0.0, g_sever_m = 0.0;
+
+static int sever_pre(const Table *t, int i, double vin, double kn, double k, double *e_used, double *jn_cap) {
+  if (!(vin > SPRING_GOING) || !(kn > 0.0)) {
+    return 0;
+  }
+  const double *b = g_att_b;
+  const double *nb = g_att_nb;
+  int weak = -1;
+  double f_lim = 1.0e30, m_at = 0.0, compliance = 0.0;
+  for (int j = i; j > 0; j = t->p[j].parent) {
+    const PartDef *d = &t->p[j];
+    double pj[3];
+    live_pt(d->joint, pj);
+    const double e[3] = { b[0] - pj[0], b[1] - pj[1], b[2] - pj[2] };
+    double c[3];
+    cross(e, nb, c);
+    const double a = norm(c);
+    const double st = PS[j].strength;
+    double f = d->f_max * st;
+    if (a > 1.0e-6 && d->m_max * st / a < f) {
+      f = d->m_max * st / a;
+    }
+    if (f < f_lim) {
+      f_lim = f;
+      weak = j;
+      m_at = f * a;
+    }
+    if (t->w1[j] > 0.0 && a > 1.0e-6) {
+      const double ei = d->sect_eos * d->m_max * d->sect_c;
+      compliance += a * a * a / (3.0 * ei);
+    }
+  }
+  if (weak < 0) {
+    return 0;
+  }
+  const double k_path = 1.0 / (1.0 / k + compliance);
+  double f_drive = vin * sim_sqrt(k_path / kn);
+  const PartDef *d = &t->p[i];
+  if (d->crush_s > 0.0 && PS[i].crush < d->crush_d) {
+    const double fc = d->crush_s * crush_area(t, i, nb, 0);
+    if (fc < f_drive) {
+      f_drive = fc;
+    }
+  }
+  if (!(f_drive > f_lim)) {
+    return 0;
+  }
+  double cap = f_lim * f_lim / (2.0 * k_path * vin);
+  if (cap > f_lim * g_batch_dt) {
+    cap = f_lim * g_batch_dt;
+  }
+  *jn_cap = cap;
+  *e_used = 0.0;
+  g_sever_now = 1;
+  g_sever_j = weak;
+  g_sever_fs = f_lim;
+  g_sever_rho = f_drive / f_lim;
+  g_sever_m = m_at;
+  return 1;
+}
+
+static int parts_touch_solid(const SimState *s, const double n[3], double margin, double *depth, double arm[3]);
+static int solid_near(const SimState *s);
+
+/*
+ * A CONTACT ON A PART THAT HAS GONE. The host meets the world with its own
+ * hull, which is the whole airframe's: once a wing panel has left, the
+ * host's hull still spans it, and the next pass meets the pole the panel
+ * met, a few centimetres on, with nothing of the aircraft there. Put onto
+ * whichever part is nearest, that contact stops the rest of the craft on a
+ * pole it is flying past (a Cub's clipped wing then took its motor, pack,
+ * canopy and fin with it). So once a part has left, a host contact is
+ * dropped when the plant was told of a solid within the airframe's reach
+ * and no part still on the craft is at one, within the distance the craft
+ * closes in the time the call stands for. With no solid named near (a host
+ * that names none, or one it has not named yet) the contact is kept, as it
+ * always was.
+ *
+ * The host's pose goes with its hull. It places the craft with its hull
+ * off the solid, and past a break that hull reaches where no part is: the
+ * Bramor, its elevons gone in a crown, was thrown 0.70 m clear of the trunk
+ * in one call, the hull's overlap, when its nose at last reached the bark.
+ * The host's arm goes with it too: it is a point on the host's hull, over a
+ * metre ahead of the Bramor's CG. So in the same case the plant places the
+ * craft itself, moved along the contact's normal out of the deepest point
+ * its parts have in the solid, and meets the solid at its own point; a
+ * dropped contact moves nothing.
+ */
+#define GHOST_BAND 0.02
+#define OWN_SEPARATION 0.008 /* the host's bounce separation, collide.js */
+
+int crash_contact_place(const SimState *s, const double n[3], double pos[3], double arm[3]) {
+  if (!SIM_DAMAGE || !g_live_on || !solid_near(s)) {
+    return SIM_PLACE_HOST;
+  }
+  /* The call stands for the steps since the host's last one, as a
+   * contact's batch does (crash_batch_begin), at most 20. */
+  long long gap = s->step_index - g_last_place_step;
+  if (gap < 1) gap = 1;
+  if (gap > 20) gap = 20;
+  g_last_place_step = s->step_index;
+  const double vn = -dot(s->vel, n);
+  const double margin = GHOST_BAND + (vn > 0.0 ? vn : 0.0) * SIM_DT * (double)gap;
+  double depth = 0.0;
+  if (!parts_touch_solid(s, n, margin, &depth, arm)) {
+    return SIM_PLACE_NONE;
+  }
+  const double out = depth > 0.0 ? depth + OWN_SEPARATION : 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    pos[a] = s->pos[a] + n[a] * out;
+  }
+  return SIM_PLACE_OWN;
+}
+
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
                        double vin, double kn, double *e_used, double *jn_cap) {
   g_capped_now = 0;
   g_soft_now = 0;
+  g_sever_now = 0;
   if (!SIM_DAMAGE) {
     return;
   }
@@ -1647,6 +1806,9 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
     return;
   }
   const double k = series_k(d->k, SURF[g_surf].k);
+  if (!g_surf_ground && i > 0 && attached(i) && sever_pre(t, i, vin, kn, k, e_used, jn_cap)) {
+    return;
+  }
   if (d->crush_s > 0.0 && p->crush < d->crush_d) {
     /* Against the ground the whole craft is driven into the part, which is
      * the momentum the batch's merged impulse shows; against an obstacle it
@@ -1825,6 +1987,12 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
   }
   if (g_surf_ground && g_from_step) {
     g_ground_jn += jn;
+  }
+  if (g_sever_now && g_sever_rho > h->srho) {
+    h->sever = g_sever_j + 1;
+    h->fs = g_sever_fs;
+    h->srho = g_sever_rho;
+    h->sm = g_sever_m;
   }
   if (g_capped_now) {
     g_crush_used[g_att_part] += jn;
@@ -2337,7 +2505,10 @@ static void judge(SimState *s) {
       const double k = series_k(d->k, SURF[x->surf].k);
       double fp = sim_sqrt(k * x->jn * x->vin);
       const double en = 0.5 * x->jn * x->vin;
-      if (x->soft) {
+      if (x->sever) {
+        /* Its joint let go at its limit: that is what reached the rest. */
+        fp = x->fs;
+      } else if (x->soft) {
         /* The spring's force is the force: what the solver gave it. */
         fp = x->jn / g_batch_dt;
       } else if (x->crush && attached(i)) {
@@ -2508,6 +2679,23 @@ static void judge(SimState *s) {
   const double adv = g_from_step ? SIM_DT : 0.0;
   double ring[SIM_PARTS_MAX][12];
   unsigned int gone = 0;
+  /* A joint the blow broke on its way in (sever_pre) goes first: the
+   * craft was only given what it held, so the rest is judged without it
+   * and nothing is handed back. */
+  for (int h = 0; h < g_nh && nbrk < BREAKS_MAX; h += 1) {
+    const int j = H[h].sever - 1;
+    if (j <= 0 || !attached(j) || (gone & (1u << j))) {
+      continue;
+    }
+    brk[nbrk].part = j;
+    brk[nbrk].rho = H[h].srho;
+    brk[nbrk].F = H[h].fs;
+    brk[nbrk].M = H[h].sm;
+    brk[nbrk].contact_side = 1;
+    brk[nbrk].forced = 1;
+    nbrk += 1;
+    gone |= t->sub[j];
+  }
   double rho0[SIM_PARTS_MAX];
   double M0[SIM_PARTS_MAX][3];
   for (int j = 0; j < n; j += 1) {
@@ -2959,6 +3147,136 @@ static int cylinder_pen(double x, double y, double z0, double z1, double r,
   nrm[2] = 0.0;
   *pen = side;
   return 1;
+}
+
+/* Whether a solid the plant knows is within the airframe's reach of the CG,
+ * as it was built, and a little over: then the plant knows what the host
+ * is meeting. */
+#define SOLID_NEAR_BAND 0.25
+static int solid_near(const SimState *s) {
+  const Table *t = tab();
+  double reach = 0.0;
+  for (int i = 0; i < t->n; i += 1) {
+    for (int k = 0; k < t->p[i].npts; k += 1) {
+      double b[3];
+      live_pt(t->p[i].pts[k], b);
+      const double r = norm(b);
+      if (r > reach) reach = r;
+    }
+  }
+  const double R = reach + SOLID_NEAR_BAND;
+  const double *c = s->pos;
+  for (int o = 0; o < g_nob; o += 1) {
+    const Obstacle *ob = &OB[o];
+    double g2 = 0.0;
+    if (ob->type == 0) {
+      const double d[3] = { c[0] - ob->c[0], c[1] - ob->c[1], c[2] - ob->c[2] };
+      double l[3];
+      qrot_inv(ob->q, d, l);
+      for (int a = 0; a < 3; a += 1) {
+        const double e = sim_fabs(l[a]) - ob->h[a];
+        if (e > 0.0) g2 += e * e;
+      }
+    } else {
+      const double dx = c[0] - ob->c[0], dy = c[1] - ob->c[1];
+      const double e = sim_sqrt(dx * dx + dy * dy) - ob->r;
+      const double ez = c[2] < ob->z0 ? ob->z0 - c[2] : (c[2] > ob->z1 ? c[2] - ob->z1 : 0.0);
+      g2 = (e > 0.0 ? e * e : 0.0) + ez * ez;
+    }
+    if (g2 < R * R) {
+      return 1;
+    }
+  }
+  for (int k = 0; k < g_ntr; k += 1) {
+    const Tree *tr = &TR[k];
+    const double dx = c[0] - tr->x, dy = c[1] - tr->y;
+    const double e = sim_sqrt(dx * dx + dy * dy) - tr->tr;
+    const double ez = c[2] < tr->z0 ? tr->z0 - c[2] : (c[2] > tr->cz1 ? c[2] - tr->cz1 : 0.0);
+    if (tr->tr > 0.0 && (e > 0.0 ? e * e : 0.0) + ez * ez < R * R) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* How deep a point is in the solids the plant knows, 0 outside them all. */
+static double solid_depth(const double w[3]) {
+  double deepest = 0.0;
+  double nrm[3], pen;
+  for (int o = 0; o < g_nob; o += 1) {
+    const int hit = OB[o].type == 0
+        ? obstacle_pen(&OB[o], w, nrm, &pen)
+        : cylinder_pen(OB[o].c[0], OB[o].c[1], OB[o].z0, OB[o].z1, OB[o].r, w, nrm, &pen);
+    if (hit && pen > deepest) {
+      deepest = pen;
+    }
+  }
+  for (int c = 0; c < g_ntr; c += 1) {
+    const Tree *tr = &TR[c];
+    if (tr->tr > 0.0 && cylinder_pen(tr->x, tr->y, tr->z0, tr->cz1, tr->tr, w, nrm, &pen) && pen > deepest) {
+      deepest = pen;
+    }
+  }
+  return deepest;
+}
+
+/* Whether a part still on the craft is at a solid the plant knows, moved
+ * margin along -n, into the contact; how deep the deepest of its points is
+ * in one; and the arm (world axes, from the CG) of the touching point that
+ * stands furthest into the contact. A hull is a few points (a panel's root
+ * and tip chords), so the segments between them are sampled too: a pole at
+ * mid span is between a panel's points, not at one. */
+#define TOUCH_SEG 8
+static int parts_touch_solid(const SimState *s, const double n[3], double margin, double *depth, double arm[3]) {
+  *depth = 0.0;
+  double lead = -1.0e9;
+  if (g_nob == 0 && g_ntr == 0) {
+    return 0;
+  }
+  const Table *t = tab();
+  int touch = 0;
+  for (int i = 0; i < t->n; i += 1) {
+    if (!attached(i)) {
+      continue;
+    }
+    const PartDef *d = &t->p[i];
+    for (int k = 0; k < d->npts; k += 1) {
+      for (int l = k; l < d->npts; l += 1) {
+        const int steps = l == k ? 1 : TOUCH_SEG;
+        for (int u = 0; u < steps; u += 1) {
+          const double f = l == k ? 0.0 : (double)(u + 1) / (double)(TOUCH_SEG + 1);
+          double b[3], pb[3], pk[3], pl[3], w[3];
+          live_pt(d->pts[k], pk);
+          live_pt(d->pts[l], pl);
+          for (int a = 0; a < 3; a += 1) {
+            b[a] = pk[a] + f * (pl[a] - pk[a]);
+          }
+          qrot(s->quat, b, pb);
+          for (int a = 0; a < 3; a += 1) {
+            w[a] = s->pos[a] + pb[a];
+          }
+          const double in = solid_depth(w);
+          if (in > *depth) {
+            *depth = in;
+          }
+          for (int a = 0; a < 3; a += 1) {
+            w[a] -= n[a] * margin;
+          }
+          if (in > 0.0 || solid_depth(w) > 0.0) {
+            touch = 1;
+            const double h = -dot(pb, n);
+            if (h > lead) {
+              lead = h;
+              arm[0] = pb[0];
+              arm[1] = pb[1];
+              arm[2] = pb[2];
+            }
+          }
+        }
+      }
+    }
+  }
+  return touch;
 }
 
 /* ---------------------------------------------------------------------

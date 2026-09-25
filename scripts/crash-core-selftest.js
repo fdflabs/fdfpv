@@ -12,7 +12,9 @@
  * 3. Each damage mode, forced and from a load, and what it does to the
  *    flight: a chipped prop's thrust and gyro line, a lost prop, a bent
  *    arm's tilt, a lost wing panel's roll, a lost surface, a knocked camera,
- *    a lost antenna, an ejected pack, a crushed nose.
+ *    a lost antenna, an ejected pack, a crushed nose; and what the sticks
+ *    still move: everything left on the aircraft while the pack is in,
+ *    nothing once it has gone.
  * 4. The free bodies: a part that leaves falls, lands and comes to rest; at
  *    most twelve move at once; the same run twice is byte identical.
  * 5. Surfaces, water and trees.
@@ -57,8 +59,9 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 const AIRFRAMES = [
   ['5in', 0], ['whoop65', 1], ['wing1000', 2], ['sky1800', 3], ['cub1400', 4], ['slowstick1180', 5],
   ['radian2000', 6], ['timber1500', 7], ['bramor2300', 8], ['timber1500f', 9], ['cub1400f', 10],
+  ['bombshell1118', 11],
 ];
-const MASS = { 0: 0.71, 1: 0.0234, 2: 0.65, 3: 2.10, 4: 1.32, 5: 0.42, 6: 0.98, 7: 1.70, 8: 4.5, 9: 1.934, 10: 1.532 };
+const MASS = { 0: 0.71, 1: 0.0234, 2: 0.65, 3: 2.10, 4: 1.32, 5: 0.42, 6: 0.98, 7: 1.70, 8: 4.5, 9: 1.934, 10: 1.532, 11: 0.5599 };
 
 let failed = 0;
 let passed = 0;

@@ -132,9 +132,10 @@ export function fly(sim, opts) {
   return { v: mean('v'), vz: mean('vz'), bank: mean('bank'), pitch: mean('pitch'), p: mean('p'), samples, endMs: t0Ms + total };
 }
 
-/* Level flight speed at a throttle, wings held level, climb rate held at zero. */
-export function levelSpeed(sim, duty) {
-  const r = fly(sim, { duty, vzTarget: 0 });
+/* Level flight speed at a throttle, wings held level, climb rate held at zero,
+ * from a throw at speed0 (12 m/s unless the airframe needs another). */
+export function levelSpeed(sim, duty, speed0 = 12) {
+  const r = fly(sim, { duty, vzTarget: 0, speed0 });
   return { v: r.v, vz: r.vz, pitch: r.pitch };
 }
 
@@ -803,6 +804,79 @@ export function recordSlowStickFlight(sim) {
       sticks = [hold(Math.PI / 6), levelPitch(), 0, 0.85];
     } else {
       sticks = [hold(0), 0, ms >= 19000 && ms < 21000 ? 1 : 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
+ * BMJR's 1/2A Texaco Buzzard Bombshell, airframe 11: the Slow Stick's
+ * three channels, no ailerons, so the roll stick drives its rudder and it
+ * banks through its polyhedral. Thrown at a little over its stall, or
+ * standing on its wheels and tail skid at the drawn pose: the CG 0.1318 m
+ * up and 8.50 deg nose up (src/render/bombshellcraft.js).
+ */
+export const BOMBSHELL_AIRFRAME = 11;
+export const BOMBSHELL_REST = { z: 0.1318, pitchDeg: 8.50 };
+export function bombshellPrelude(sim) {
+  must(sim.e.sim_set_airframe(BOMBSHELL_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(8.5), 'sim_wing_launch');
+}
+export function bombshellGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(BOMBSHELL_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = BOMBSHELL_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, BOMBSHELL_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/*
+ * The Bombshell's recording for the cross-host check: from standing on the
+ * strip, a second at idle, eleven of full throttle with every stick
+ * centred while the stabiliser lifts the tail and it flies itself off and
+ * climbs, then level at 75 percent with the wings held on the roll stick,
+ * which is the rudder, a second of full right roll stick, a held 30 deg
+ * bank, and the throttle back to idle with a second and a half of full
+ * right yaw stick: twenty two seconds, the take off in the hashed trace,
+ * and still flying at the end, so nothing in it touches the ground but the
+ * wheels and the skid it starts on.
+ */
+export function recordBombshellFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  bombshellGroundPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -1.2 * (bank - b) - 0.12 * p));
+    const levelPitch = () => {
+      trim += 0.00002 * (0 - vz);
+      trim = Math.max(-0.2, Math.min(0.2, trim));
+      const pitchT = Math.max(-0.2, Math.min(0.15, 0.05 * (0 - vz) + trim));
+      return Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+    };
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 12000) {
+      sticks = [0, 0, 0, 1];
+    } else if (ms < 14000) {
+      sticks = [hold(0), levelPitch(), 0, 0.75];
+    } else if (ms < 15000) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 19000) {
+      sticks = [hold(Math.PI / 6), levelPitch(), 0, 0.9];
+    } else {
+      sticks = [hold(0), 0, ms >= 20000 && ms < 21500 ? 1 : 0, 0];
     }
     const [roll, pitchStick, yaw, duty] = sticks;
     samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });

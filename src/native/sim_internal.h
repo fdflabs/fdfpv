@@ -238,7 +238,8 @@ typedef struct {
 #define SIM_AIRFRAME_BRAMOR2300 8
 #define SIM_AIRFRAME_TIMBER1500F 9
 #define SIM_AIRFRAME_CUB1400F 10
-#define SIM_AIRFRAME_COUNT 11
+#define SIM_AIRFRAME_BOMBSHELL1118 11
+#define SIM_AIRFRAME_COUNT 12
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -479,6 +480,13 @@ typedef struct FixedWingParams {
   double stab_roll_kd;
   double stab_pitch_kp;
   double stab_pitch_kd;
+  /* ArduPilot's STAB_PITCH_DOWN and TRIM_THROTTLE: under the cruise
+   * throttle the pitch target lowers in proportion to the throttle closed,
+   * by the whole of stab_pitch_down with the stick at zero, which puts it
+   * on the airframe's own power off glide (scripts/stab-glide-derive.js).
+   * At or over stab_trim_throttle nothing changes. */
+  double stab_pitch_down;    /* rad */
+  double stab_trim_throttle; /* stick, 0..1 */
   /* Acro: sticks ask for a rate, a target attitude advances by it. */
   double acro_roll_rate;
   double acro_pitch_rate;
@@ -514,13 +522,55 @@ typedef struct FixedWingParams {
   double chute_cda;       /* canopy drag area fully open, C_D times area, m^2 */
   double chute_open_s;    /* seconds from the pull to a full canopy */
   double chute_attach[3]; /* where the risers meet the airframe, body frame, m */
-  /* Past the stall: the CG's distance behind the wing's aerodynamic centre,
-   * and the flat plate's centre of pressure's behind the CG, both per
-   * chord. They take back the linear moment's lift the stalled wing does
-   * not make and put the plate's where it acts. Zero leaves the moment
-   * linear through the stall. */
+  /*
+   * PAST THE STALL, docs/STALL-STAGE1.md. Nothing here is taken short of
+   * the stall angle, CLmax over CLalpha, and every term is scaled by the
+   * wing chord's Reynolds number, full above 5e4 and nothing below 3e4,
+   * where no section data exist and a low Reynolds number section's
+   * separated flow does not reattach (Lissaman 1983). Where it is not
+   * taken the plant keeps the model it had, the stall blend to the flat
+   * plate and the lowre_arm_* moment, which only the Slow Stick has.
+   *
+   * stall_top: how far past the stall angle the section holds its lift,
+   * rad; stall_k: the share of that lift it keeps once it falls. Both
+   * from the section's measured lift curve at the kit's Reynolds number
+   * (Selig et al., Summary of Low-Speed Airfoil Data).
+   * Past the fall the lift decays to the flat plate's at 90 deg as
+   * Viterna and Corrigan's post stall extrapolation does. slat_k: stall_k
+   * with the slats fitted; zero where there are none.
+   *
+   * stall_arm_ac and stall_arm_cp: the CG's distance behind the wing's
+   * aerodynamic centre, and the stalled wing's centre of pressure's behind
+   * the CG, both per chord. They take back the linear moment's lift the
+   * stalled wing does not make and put its normal force where it acts.
+   * stall_dw is the tail's share: the downwash at the tail follows the
+   * lift the wing makes (Nelson eq. 2.22, 2 CL_w / (pi AR)), so as the
+   * stalled wing sheds lift the downwash goes with it and the tail lifts,
+   * nose down, by eta V_H a_t (d epsilon/d alpha) / a_w per unit of lift
+   * lost. Zero on a flying wing, which has no tail.
+   *
+   * stall_asym: how much sooner the left half of the wing stalls than the
+   * right, rad of angle of attack: the build's asymmetry, which trim
+   * takes out of the lift below the stall and nothing takes out of the
+   * stall itself. strip_c: the chords of the four strips each half wing
+   * is taken in past the stall, at an eighth, three, five and seven
+   * eighths of the semispan, over the mean chord S/b, from the planform.
+   */
+  double stall_k;
+  double slat_k;
+  double stall_top;
   double stall_arm_ac;
   double stall_arm_cp;
+  double stall_dw;
+  double stall_asym;
+  double strip_c[4];
+  /* The wing's twist, tip nose down from the root, linear along the span,
+   * rad: only where a strip stalls, which it moves later by its share.
+   * FITTED to each kit's published stall behaviour, docs/STALL-STAGE1.md;
+   * no kit publishes it. Zero is an untwisted wing. */
+  double washout;
+  double lowre_arm_ac;
+  double lowre_arm_cp;
   /*
    * FLAPS AND SLATS, docs/TIMBER-STAGE1.md. Zero flap_full is an aircraft
    * without flaps, which sim_wing_set_flaps refuses past notch 0, so its
@@ -548,6 +598,12 @@ typedef struct FixedWingParams {
    * lift curve, and the drag they cost. Zero on an aircraft without. */
   double slat_dclmax;
   double slat_cd0;
+  /* A glow engine's throttle, docs/BOMBSHELL-STAGE1.md: a carburettor
+   * whose stop leaves the engine running at this fraction of its full
+   * rpm, so the stick runs the rpm from it to full, linearly, and the
+   * engine never stops. Zero is an electric motor's duty, the stick
+   * itself, and leaves every other aircraft's arithmetic as it was. */
+  double throttle_idle;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -559,6 +615,7 @@ extern const FixedWingParams FW_SLOWSTICK1180;
 extern const FixedWingParams FW_TIMBER1500;
 extern const FixedWingParams FW_TIMBER1500F;
 extern const FixedWingParams FW_CUB1400F;
+extern const FixedWingParams FW_BOMBSHELL1118;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
@@ -769,6 +826,16 @@ void crash_hint_sampler(int k);
 /* The part a body frame point belongs to, for a contact there: the
  * attached part with the hull point nearest it. */
 int crash_part_at(const double b[3]);
+/* Where a host's obstacle contact puts the craft. SIM_PLACE_HOST: at the
+ * host's pose, as always. Once a part has left and the plant knows the
+ * solids near the craft, the host's hull is not the airframe's:
+ * SIM_PLACE_NONE, no part still on it is at a solid, so no contact and no
+ * pose; SIM_PLACE_OWN, at pos, out of the solid by its parts' own depth,
+ * met at arm (world axes, from the CG) on its own part. */
+#define SIM_PLACE_HOST 0
+#define SIM_PLACE_NONE 1
+#define SIM_PLACE_OWN 2
+int crash_contact_place(const SimState *s, const double n[3], double pos[3], double arm[3]);
 
 /* Bridge: Betaflight control loop and config shim. */
 

@@ -91,7 +91,7 @@ export const TUNES = [
     id: 'sky-acro',
     airframe: 'sky1800',
     name: 'Acro',
-    note: 'A gyro holds the plane where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you.',
+    note: 'A gyro holds the plane where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
     wingStab: 2,
   },
   {
@@ -114,7 +114,7 @@ export const TUNES = [
     id: 'cub-acro',
     airframe: 'cub1400',
     name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you.',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
     wingStab: 2,
   },
   {
@@ -136,7 +136,7 @@ export const TUNES = [
     id: 'radian-acro',
     airframe: 'radian2000',
     name: 'Acro',
-    note: 'A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder is coordinated for you. Close the throttle and it glides.',
+    note: 'A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone. Close the throttle and it glides.',
     wingStab: 2,
   },
   {
@@ -209,7 +209,7 @@ export const TUNES = [
     id: 'timber-acro',
     airframe: 'timber1500',
     name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder is coordinated for you. F sets the flaps.',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps.',
     wingStab: 2,
   },
   {
@@ -217,6 +217,31 @@ export const TUNES = [
     airframe: 'timber1500',
     name: 'Manual',
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel. F sets the flaps, with a little down elevator mixed in as the radio would.',
+  },
+  {
+    /* The Bombshell's three, the Slow Stick's: no ailerons, so in every
+     * mode the roll stick works the rudder and the stabiliser's roll loop
+     * does too, with no turn coordinator; on its wheels every mode flies
+     * as Manual. Manual is where an old timer's character is: let go and
+     * the polyhedral levels it. */
+    id: 'bombshell-stab',
+    airframe: 'bombshell1118',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 45 degrees, flown on the rudder, pitch stick for a pitch up to 12, and centred sticks fly level.',
+    wingStab: 1,
+  },
+  {
+    id: 'bombshell-acro',
+    airframe: 'bombshell1118',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 45 degrees a second, flown on the rudder, and a pitch rate up to 30, and centred sticks hold the attitude. It will not roll inverted: a rudder cannot do that.',
+    wingStab: 2,
+  },
+  {
+    id: 'bombshell-manual',
+    airframe: 'bombshell1118',
+    name: 'Manual',
+    note: 'No flight controller. The roll and yaw sticks both work the rudder and the pitch stick the elevator; the tail skid does not steer. Let go and the polyhedral levels the wings. Throttle closed, the engine idles.',
   },
 ];
 
