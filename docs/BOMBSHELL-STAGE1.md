@@ -347,6 +347,30 @@ aircraft's own figure, and on the ground that the skid does not steer.
 The default tune is Acro, as it is for every fixed wing. Manual is where
 this aircraft's character is.
 
+## In the shell
+
+`bombshell1118`, simId 11, is the ninth plane behind the Free Flight card
+(the fixed wings' card, called Fixed wing until main renamed it), in the
+wing class, with Acro (the default), Stabilised and Manual rows, its
+FPV camera on the cowl behind the cylinder, and `gear` from the plant's
+settled pose, 0.1318 m and 8.50 deg, so throttle on the strip rolls it
+off; L still throws it. Its sound is the fixed wings' voice
+(`src/render/audio.js` `wing`): the blade pass of its two blade prop at
+the reported rpm, which puts full power near 310 Hz and idle near 125. A
+two stroke glow engine's own note, its firing at once per revolution, is
+not synthesised; the voice is the nearest there is.
+
+`npm run bombshell:shell` is the whole flow in headless Chrome: the Free
+Flight card pressed, the Bombshell picked on the Aircraft row, and flown
+on the airfield and on swiss2. On both: the setting, the run, module 11
+and the drawn model all read the Bombshell, on bombshell-acro with the
+stabiliser in mode 2, parked with its CG 0.1318 m over the ground, which
+is the plant's rest; full throttle with the sticks centred takes it off
+(at 8.9 m/s on the airfield, 8.8 on swiss2) and climbs it 3 m clear of
+the ground at 9.2 m/s, full roll stick banks it right on the rudder, and
+C puts the chase camera on it. Pressing the card again keeps it seated,
+which is what being one of the card's planes means.
+
 ## What the owner should feel flying it
 
 Slow, stable and floaty, with its engine always running. Full throttle and

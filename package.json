@@ -84,6 +84,7 @@
     "bombshell:stab": "node scripts/bombshell-stab-selftest.js",
     "bombshell:record": "node scripts/wing-record.js bombshell",
     "bombshell:derive": "node scripts/bombshell-derive.js",
+    "bombshell:shell": "node scripts/bombshell-shell.js",
     "floats:gates": "node scripts/floats-gates.js",
     "floats:record": "node scripts/wing-record.js timberf",
     "floats:derive": "node scripts/floats-derive.js",
