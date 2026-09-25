@@ -6194,6 +6194,15 @@ export async function boot({ loading, bootStart, mapId }) {
     const chaseLast = new THREE.Vector3();
     const chaseAim = new THREE.Vector3();
     const chaseStep = new THREE.Vector3();
+    /* The point the chase camera follows and looks at: the plane itself,
+     * except that on water its height is slowed to the swell's mean. A
+     * floatplane rides every wave up and down, and a camera tied to it
+     * pitched and bobbed with each one; a real chase camera boat or
+     * drone holds its own line. chaseLift is how far the damping has
+     * eased in, 0 in the air and 1 afloat, so a take off or a landing
+     * does not jump the camera. */
+    const chaseAnchor = new THREE.Vector3();
+    let chaseLift = 0;
     let chaseValid = false;
     const losPos = new THREE.Vector3();
     const losBack = new THREE.Vector3();
@@ -8329,13 +8338,35 @@ export async function boot({ loading, bootStart, mapId }) {
       let fov = ui.settings.cameraFov;
       if (ui.settings.wingView === 'chase' || wreckWantsChase(nowWall)) {
         const k = 1 - Math.exp(-dt / 120);
-        chaseStep.copy(pCurr).sub(chaseLast);
+        const water = craftOnWater();
+        const afloat = Boolean(water && water.state[3] > 0);
+        chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / 700));
+        if (!chaseValid) {
+          chaseAnchor.copy(pCurr);
+        }
+        chaseAnchor.x = pCurr.x;
+        chaseAnchor.z = pCurr.z;
+        /* Air: a 40 ms lag, the plane itself. Afloat: 1.5 s, several swell
+         * periods, so the camera sees the waves pass under a steady plane
+         * rather than the world heaving round it. */
+        const tauY = 40 + chaseLift * 1460;
+        chaseAnchor.y += (pCurr.y - chaseAnchor.y) * (1 - Math.exp(-dt / tauY));
+        chaseStep.copy(chaseAnchor).sub(chaseLast);
+        chaseStep.y *= 1 - chaseLift;
         if (!chaseValid) {
           chaseDir.copy(camFwd);
+        } else if (chaseLift > 0.5 && chaseStep.length() < 0.3e-3 * dt) {
+          /* Afloat and slower than 0.3 m/s the plane's track is the swell
+           * drifting it about, not where it is going: stand behind its
+           * nose instead. */
+          introLook.copy(camFwd).setY(0);
+          if (introLook.lengthSq() > 1e-6) {
+            chaseDir.lerp(introLook.normalize(), 1 - Math.exp(-dt / 600)).normalize();
+          }
         } else if (chaseStep.lengthSq() > 1e-6) {
           chaseDir.lerp(chaseStep.normalize(), Math.min(1, 1 - Math.exp(-dt / 120))).normalize();
         }
-        chaseLast.copy(pCurr);
+        chaseLast.copy(chaseAnchor);
         /* A wreck has no way it is travelling: a tumble or a fall would put
          * the camera straight overhead. Stand it off level instead, so the
          * wreck is seen from the side the pilot came from. */
@@ -8347,7 +8378,7 @@ export async function boot({ loading, bootStart, mapId }) {
           chaseDir.normalize();
         }
         const back = Math.max(2.5, span * 2.4);
-        chaseAim.copy(pCurr)
+        chaseAim.copy(chaseAnchor)
           .addScaledVector(chaseDir, -back)
           .addScaledVector(introUp, back * 0.28);
         const floor = view.height(chaseAim.x, chaseAim.z, chaseAim.y) + 0.5;
@@ -8361,7 +8392,7 @@ export async function boot({ loading, bootStart, mapId }) {
           chaseValid = true;
         }
         shell.camera.position.copy(chasePos);
-        shell.camera.lookAt(introLook.copy(pCurr).addScaledVector(chaseDir, span));
+        shell.camera.lookAt(introLook.copy(chaseAnchor).addScaledVector(chaseDir, span));
         fov = 70;
       } else {
         /* 20 m to the right of the throw line and 15 m down it. */
