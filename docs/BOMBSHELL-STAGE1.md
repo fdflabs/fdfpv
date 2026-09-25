@@ -310,18 +310,24 @@ splinters (`src/render/debris.js`). Free, balsa floats: 160 kg/m³.
 | Joint | Limit | Derivation |
 | --- | --- | --- |
 | aft fuselage | 18 N m, 200 N | its weakest section, at the stabiliser, 22 x 33 mm of 1/16 in sheet on 1/8 in longerons: Z 1.8e-6 m³ at balsa's 20 MPa, 36 N m, and half for the glue joints and the cross grain |
-| wing on its rubber bands | 1.9 N m, 20 N | four #32 bands at about 5 N each, 20 N over half the chord. ESTIMATED: no band tension is published. It pops off before its spar breaks as often as not, which is what rubber bands are for |
+| wing on its rubber bands | 1.9 N m, 20 N | four #32 bands at about 5 N each, 20 N over half the chord. No band tension is published: a #32 band (3 x 1/8 x 1/32 in, 2.5 mm²) looped from dowel to dowel over the drawn 0.19 m chord is stretched about 3 times, where natural rubber carries about 0.9 MPa of nominal stress (Ogden's 1972 fit to Treloar's uniaxial data), 2.2 N a strand and two strands a band, 4.4 N, 18 N for the four. It pops off before its spar breaks as often as not, which is what rubber bands are for |
 | each wing panel on the centre section | 2.1 N m, 80 N | the 3/16 in spar, 1/4 in leading edge and 1 x 1/8 in trailing edge at 20 MPa: 0.37, 0.87 and 0.87 N m |
 | stabiliser | 2.4 N m, 50 N | its 3/16 x 5/16 and 3/16 x 3/8 in edges, 1.0 and 1.4 N m |
 | fin | 1.4 N m, 40 N | its 3/16 x 3/8 in post |
 | elevator, rudder | 0.4 N m, 20 N | tissue and thread hinges, which tear |
-| engine | 4 N m, 200 N | two #2 screws pulling out of the 1/8 in ply firewall at about 200 N each on 20 mm. ESTIMATED |
+| engine | 4 N m, 200 N | two #2 screws pulling out of the 1/8 in ply firewall at about 200 N each on 20 mm. Bounded, not measured: the Wood Handbook's withdrawal equation for wood screws (FPL-GTR-190, eq. 8-10a, p = 108.2 G² D L) gives 290 N for a 2.18 mm #2 in 3.2 mm of birch at G 0.62 (Table 5-3a, yellow birch at 12 percent), and says screws shorter than its Table 8-8 hold less |
 | prop | yields 2.7 N m, sheds a blade at 5.4 | Cox's unfilled nylon 7 x 3.5, a 12 x 3 mm root at 150 MPa |
 | gear, skid | 1.42 N m | 1/16 in music wire, the table's WIRE_M |
 
 Balsa's modulus of rupture, about 20 MPa along the grain at the kit's 150
-to 175 kg/m³: Gibson and Ashby, Cellular Solids, ch. 10, and the Forest
-Products Laboratory's Wood Handbook. What the table does not model is the
+to 175 kg/m³. The Forest Products Laboratory's Wood Handbook (FPL-GTR-190,
+2010, Table 5-5a) gives balsa at 12 percent moisture 21.6 MPa and a modulus
+of 3.4 GPa at specific gravity 0.16 (ovendry weight, green volume), about
+184 kg/m³ at 12 percent; along the grain both go as the density (Gibson
+and Ashby, Cellular Solids, ch. 10), so 17.6 to 20.5 MPa at the kit's
+grade, and the table's 20 is its upper end. Still chosen: the aft
+fuselage's halving for its glue joints and cross grain sheet, and the
+elevator's and rudder's tissue hinges. What the table does not model is the
 tissue itself: a panel that breaks takes its tissue with it, but tissue
 torn over an intact frame, which on the real aircraft loses lift without
 anything breaking, is not a thing the part system has.

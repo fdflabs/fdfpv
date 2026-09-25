@@ -298,6 +298,23 @@ MPa the boom limits take for EPO, E / sigma is 33: the Cub's boom (c 35
 mm) rings at about 37 Hz, the Timber's (45 mm) at 31, the Radian's (20
 mm, a thin boom) at 10.
 
+**EPO's own numbers** (round 5). Still no modulus: NOVA's "ARCEL versus
+EPS" sheet draws ARCEL as more flexible than EPS at every density, with no
+numbers on the axis, which confirms that the bead foam modulus bounds it
+from above. NOVA's "ARCEL 730 Property Comparison" (AC0111-1158, the 70/30
+grade) plots two strengths against density: the crush at 25 percent, 26 to
+31 psi over 30 to 35 g/L, 179 to 214 kPa, which sources EPO_CRUSH's 200
+kPa; and the tensile strength, 67.5 to 84 psi, 0.465 to 0.58 MPa, so the
+booms' 0.6 MPa is its top, about 36 g/L. Taken alone it would cut the
+booms' limits by up to a quarter (the Cub's 16 N m to 12.4); tried, it
+broke the Cub's tail at the pole in crash:core's wing clip, which the
+owner's flight had judged wrong, and the Timber's in its nose over and on
+its float. It was not shipped: the ring's stiffness is still the upper
+bound, and a stiffer boom rings harder on the same kick, so a sourced
+strength paired with a modulus bounded from above breaks booms that a
+real EPO boom, more flexible, would ring through. The two move together
+once EPO's modulus is found.
+
 **A part riding on a ringing part is shaken by it** (round 4). A tail on
 its boom, a fin on a boom, was judged by the craft's rigid deceleration
 even once the boom rang: the Radian's fin broke at 2.6 times its limit the
@@ -306,9 +323,30 @@ what it carries is at its tip in the ring's mass, so a part whose nearest
 ringing ancestor is ringing takes that ancestor's acceleration, the ring's
 force over the mass it rings with, in place of the craft's (and no angular
 term: the ring carries it). A part with no section (every quad part, the
-fuselages, the Bramor's composite panels, whose spar section is not in
-the tables) and not riding on one is judged as before, with the same
+fuselages) and not riding on one is judged as before, with the same
 arithmetic in the same order.
+
+**A composite panel rings on its shell** (round 5). The Bramor's outer
+panels had no section, so they were judged as rigid bodies and broke on
+the craft's deceleration: on main ae57a29 a panel came off in the tree
+crown (bramor-tree, at 1.31 times its limit) and both under the chute's 5
+m/s landing (1.21 and 1.24). With the ring neither does. Its
+construction is published: "the fully composite structure ... uses only
+carbon- and Kevlar-reinforced plastic ... to form skins separated and
+stiffened by a non-metallic honeycomb", "no structural metal", and each
+wing "slides ... over the end of a carbon fibre guide rod" and clicks into
+place (UST 011, pp. 22 and 25, on the Bramor ppX, the same airframe). So a
+panel is a sandwich box whose bending is carried by its carbon skins, and
+it rings the same way as a spar, E I = (E / sigma) M c, with c the panel's
+half depth at its root, 17 mm (the drawn 34 mm, BRAMOR-STAGE1's planform
+at y 0.30), and E / sigma woven carbon laminate's, 70 GPa over 600 MPa,
+117 (DragonPlate, R-ARM; Easy Composites' sheet, 45 to 55 GPa at 571 to
+880 MPa, is the softer end, so like the spar's this is an upper bound on
+the frequency). At the table's 300 N m, E I is 595 N m^2 and a panel
+carrying its elevon and winglet rings at 17.5 Hz, inside the 5 to 20 Hz of
+small UAV wings' first bending. The 300 N m itself is still chosen: the
+skins' thickness and the guide rod's diameter are not published, and
+neither is a design load factor for the Bramor.
 
 Weakest link first: joints on a contact's path to the root fail before
 joints that only carry inertia; a joint that fails caps the loads through
@@ -630,24 +668,28 @@ rigid contact left it (0.26 mm).
 | whoop motor | 0.25 N m, 30 N | two M1.4 in PP | chosen |
 | whoop prop press fit | 0.10 N m, 6 N | 1 mm shaft, set so R-WHOOP's walls leave it on | R-WHOOP, chosen |
 | whoop canopy | 0.30 N m, 20 N | two M1.4 in PP 10 mm apart | chosen |
-| EPO, EPP crush | 200, 180 kPa | plateau at 25 percent strain, 30 to 35 g/L | JSP ARPRO EPP data; R-A14-FOAM's own nose check uses 0.2 MPa |
+| EPO, EPP crush | 200, 180 kPa | plateau at 25 percent strain, 30 to 35 g/L | EPO: NOVA ARCEL 730, 179 to 214 kPa at 25 percent over 30 to 35 g/L (round 5); EPP: JSP ARPRO data; R-A14-FOAM's own nose check uses 0.2 MPa |
+| EPO's strength in the foam booms | 0.6 MPa | the outer fibre of the Cub's, Timber's and Radian's booms | the top of NOVA ARCEL 730's tensile strength, 0.465 to 0.58 MPa over 30 to 35 g/L; kept at the top while the modulus is an upper bound (round 5) |
 | 11 inch plane prop | yields 8 N m, sheds a blade at 16 | 20 x 4 mm root at 150 MPa | R-PROPS (glass nylon snaps at 3 to 5 percent) |
 | plane firewall | 10 N m, 400 N | ply or moulded, four screws | chosen |
 | Cub panel | 40 N m | 8/6 mm carbon joiner and struts | UD carbon tube, 1,000 MPa in bending |
 | Timber panel | 58 N m | 10/8 mm joiner, Z 5.80e-8 m^3 | as above |
 | Skyhunter panel | 60 N m | two spars | as above |
 | Radian panel | 45 N m | carbon joiner | as above |
-| Bramor panel | 300 N m | composite spar | chosen for a 4.5 kg composite wing |
-| Bramor winglet | 1.5 N m, 15 N | magnets | BRAMOR-STAGE1 |
+| Bramor panel | 300 N m | carbon skins on a honeycomb core, plugged onto a carbon guide rod (UST 011) | chosen: neither the skins nor the rod is published |
+| Bramor winglet | 1.5 N m, 15 N | Kevlar, 20 g, on magnets (UST 011) | chosen; a lower bound: at the 30 m/s never exceed speed (551 Pa) a 0.020 m^2 winglet at the stall of a surface of its aspect ratio, CL about 1.1, carries 12 N at about 0.1 m, 1.2 N m, so the magnets hold at least that in flight |
 | hinge line | 1 N m, 40 N | foam or tape hinge pulling out | chosen |
 | hook and loop | 96 N | 8 N/cm^2 over 12 cm^2 | VELCRO brand shear, about 8 N/cm^2 |
-| hatch magnets | 20 N | two 6 x 3 mm N52 | magnet pull, about 10 N each |
+| hatch magnets | 20 N | two 6 x 3 mm N52 | supermagnete S-06-03-N: a 6 x 3 mm N45 disc pulls about 990 g (9.7 N) off steel, and slides off at about 200 g (1.9 N) |
 | music wire gear, break | 3.2 mm 11.4 N m, 4 mm 22, 2 mm 2.8, 1.5 mm 1.2 | 1,600 MPa yield, plastic hinge 1.7, ultimate 1.3 x yield | ASTM A228 |
 | float struts | 220 N m, 3,140 N | a 1 mm bracing wire in tension (1,570 N) on the 0.14 m strut spacing | ASTM A228; a bare 3 mm strut buckles at Euler's 348 N |
 | Slow Stick stick | 23 N m | 10 mm square 6061, 0.8 mm wall, 276 MPa | ASM 6061-T6 |
 | Skyhunter booms | 180 N m | two 12/10 mm carbon tubes | UD carbon tube |
+| Bombshell balsa sticks (stabiliser, fin, panels, aft fuselage) | 20 MPa b h^2 / 6 each | balsa's modulus of rupture along the grain at the kit's 150 to 175 kg/m^3, 17.6 to 20.5 MPa | Wood Handbook FPL-GTR-190 Table 5-5a (21.6 MPa at specific gravity 0.16), scaled by density (Gibson and Ashby); docs/BOMBSHELL-STAGE1.md |
+| Bombshell wing on its bands, engine on its firewall | 20 N and 1.9 N m; 200 N a screw, 4 N m | four #32 bands at 4.4 N; two #2 screws in 1/8 in birch ply | Treloar's rubber (Ogden's fit); Wood Handbook eq. 8-10a, 290 N an upper bound |
 | a spar's bending stiffness, for its ring (round 3) | E I = 127 M r: wing1000 3 mm, Skyhunter 4 (two spars) and booms 6, Cub 4, Radian 4.5, Timber 5 mm outer radius | M = sigma I / r at the tables' 1,000 MPa, E 127 GPa | TAP Plastics pultruded carbon tube, minimum properties (flexural 127 GPa, 1,370 MPa) |
 | a ring's damping | 3 percent of critical | a lightly damped structure | chosen |
+| a composite panel's bending stiffness, for its ring (round 5) | E I = 117 M c: Bramor 17 mm half depth, 595 N m^2, 17.5 Hz | woven carbon laminate, 70 GPa over 600 MPa | DragonPlate (R-ARM); construction from UST 011, pp. 22 and 25 |
 | a foam boom's bending stiffness, for its ring (round 4) | E I = 33 M c: Cub 35 mm, Radian 20, Timber 45 mm half depth | bead foam E = 0.82 rho - 4.9 MPa, 19.7 MPa at 30 g/L, over EPO's 0.6 MPa | Negussey and Anasthas 2001, simple bending of EPS beams |
 | a music wire leg's fold (round 4) | 1.7 x the yield moment over the leg's lever | a round section's plastic hinge | ASTM A228 (E 207 GPa, 1,600 MPa) |
 | a blade's tip blow (round 3) | v_tip sqrt(k m_blade / 3) at its radius | the blade's spring against its own inertia | derived |
@@ -657,6 +699,25 @@ rigid contact left it (0.26 mm).
 "Chosen" is an engineering estimate with its reasoning in the table's
 comment, not a measurement. The suite's bands are what will say whether
 each is right, and the loop is where they move.
+
+**What is still chosen** (round 5, every table). Sourced or derived from a
+section and a published strength: the five inch's arm and props, the
+carbon joiners and spars (wing 1000, Skyhunter, Cub, Timber; the Radian's
+45 N m is on a 9 mm joiner whose wall is not written), the Skyhunter's booms,
+the Slow Stick's stick, every music wire leg and float strut, the balsa
+sticks, EPO and EPP crush, the rings' sections, the hatch magnets and the
+bands and screws the Bombshell's rows bound. Chosen, each an estimate with
+a reason and no measurement behind it:
+
+| Airframe | Joints whose limit is chosen |
+| --- | --- |
+| every one | camera and whip mounts (0.8 N m, 60 N; 1.0 N m, 40 N), hook and loop's 8 N/cm^2 (a brand figure, no datasheet), every part's contact stiffness k, and most force limits f_max |
+| 5 inch | motor on its arm (48 N m, two M3 pull outs), pack strap (250 N, 6 N m) |
+| whoop | motor (0.25 N m), prop press fit (set so R-WHOOP's walls leave it on), pack holder (5 N), canopy (0.30 N m), nano camera (0.02 N m) |
+| foam planes | firewall (10 N m), hinge lines (1 N m, 40 N), hstab and fin roots (2 to 4 N m), canopies (0.5 to 1 N m), packs (3 to 8 N m); the Timber's and the Radian's boom sections (the Cub's is drawn) |
+| Slow Stick | wing on its saddle (6 N m, 60 N), tail sheet roots (0.5 to 1 N m), motor mount (4 N m), its prop at 0.6 of the 11 inch's |
+| Bramor | panels (300 N m: neither skin nor guide rod is published), elevons (3 N m), winglet magnets (1.5 N m, 15 N; bounded below by their load at the never exceed speed), motor (25 N m), pack hatch (40 N m, 400 N), chute bay lid (2 N m), gimbal (6 N m, 300 N) |
+| Bombshell | the aft fuselage's halving for glue joints, the tissue hinges (0.4 N m), the prop's 150 MPa root, which is a glass filled nylon's figure for a prop the table calls unfilled (not checked against a datasheet this round) |
 
 ## 4. Free bodies
 

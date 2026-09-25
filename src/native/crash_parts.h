@@ -96,7 +96,11 @@ typedef struct {
  * gives (R-WHOOP) leaves it on, which is what whoops do. */
 #define WH_PROP_F 6.0
 #define WH_PROP_M 0.10
-/* EPO and EPP at 30 to 35 g/L: the compressive plateau at 25 percent. */
+/* EPO and EPP at 30 to 35 g/L: the compressive plateau at 25 percent. EPO
+ * is a polystyrene and polyethylene bead copolymer, NOVA's ARCEL class:
+ * ARCEL 730 (70/30) crushes at 26 to 31 psi at 25 percent over 30 to 35
+ * g/L, 179 to 214 kPa (NOVA, "ARCEL 730 Property Comparison",
+ * AC0111-1158). */
 #define EPO_CRUSH 200.0e3
 #define EPP_CRUSH 180.0e3
 /* An 11 inch nylon prop blade root, 20 x 4 mm at 150 MPa, yields at 8 N m;
@@ -106,7 +110,10 @@ typedef struct {
 #define PL_PROP_K 1110.0
 /* Hook and loop in shear, 8 N/cm^2, over a 12 cm^2 strip. */
 #define VELCRO_12 96.0
-/* Two 6 x 3 mm N52 hatch magnets. */
+/* Two 6 x 3 mm hatch magnets in pull: a 6 x 3 mm N45 disc holds about
+ * 990 g on steel, 9.7 N (supermagnete S-06-03-N), N52 a little more. Slid
+ * sideways the same disc lets go at about 200 g, 1.9 N, which a hatch
+ * seated in its recess does not see. */
 #define MAGNET_2 20.0
 /* Music wire, 1600 MPa in bending at yield; the break is the plastic
  * hinge, 1.7 times the yield moment, at the ultimate 1.3 times the yield. */
@@ -117,10 +124,22 @@ typedef struct {
  * MPa the limits take (TAP Plastics, minimum properties). A foam boom's own
  * section, c its half depth: bead foam's flexural modulus at 30 g/L, E =
  * 0.82 rho - 4.9 MPa = 19.7 MPa (Negussey and Anasthas 2001, simple bending
- * of EPS), over EPO's 0.6 MPa the boom limits take. */
+ * of EPS), an upper bound for EPO, which NOVA's "ARCEL versus EPS" sheet
+ * draws as more flexible than EPS at every density; over EPO's 0.6 MPa the
+ * boom limits take. ARCEL 730's tensile strength is 0.465 to 0.58 MPa over
+ * 30 to 35 g/L (the same NOVA sheet), so 0.6 is its top, about 36 g/L; it
+ * is kept there while the modulus is a bound from above, since a stiffer
+ * boom rings harder on the same kick and the two bounds lean the same way
+ * only together (docs/CRASH-STAGE1.md, round 5). */
 #define CARBON_SPAR(r) .sect_c = (r), .sect_eos = 127.0
 #define FOAM_EOS (19.7 / 0.6)
 #define FOAM_SECTION(c) .sect_c = (c), .sect_eos = FOAM_EOS
+/* A composite shell's own section, carbon skins on a honeycomb core, c its
+ * half depth: woven carbon laminate's 70 GPa over its 600 MPa (DragonPlate,
+ * R-ARM; Easy Composites' sheet, 45 to 55 GPa at 571 to 880 MPa, is the
+ * softer end, so this bounds the frequency from above as the spar's does). */
+#define SHELL_EOS (70.0 / 0.6)
+#define SHELL_SECTION(c) .sect_c = (c), .sect_eos = SHELL_EOS
 
 /* A tractor's motor sits in the foam nose on its firewall: struck head on,
  * it is the nose behind it that crushes, over the nose's section. */
@@ -510,19 +529,22 @@ static const PartDef PARTS_RADIAN2000[] = {
 
 /* ------------------------------------------------------------------------
  * BRAMOR C4EYE 2300, SIM_AIRFRAME_BRAMOR2300, bramorcraft.js. 4.5 kg of
- * carbon, Kevlar and Vectran; the outer panels plug in on a spar, the
- * winglets are held on by magnets. A composite shell cracks rather than
- * crushes, so nothing here crushes.
+ * carbon and Kevlar skins on a non-metallic honeycomb, no structural metal;
+ * the outer panels slide onto a carbon guide rod and click in, the 20 g
+ * Kevlar winglets are held on by magnets (UST 011, pp. 22 and 25). A
+ * composite shell cracks rather than crushes, so nothing here crushes. A
+ * panel rings on its shell, 17 mm its root's half depth; its 300 N m is
+ * chosen, since neither the skins nor the rod is published.
  * --------------------------------------------------------------------- */
 static const PartDef PARTS_BRAMOR2300[] = {
   { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
     .k = 2.0e6, BOX(-0.332, 0.4097, -0.30, 0.30, -0.065, 0.087) },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
-    .mass = 0.50, .joint = { -0.08, 0.30, 0.008 }, .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
+    .mass = 0.50, .joint = { -0.08, 0.30, 0.008 }, SHELL_SECTION(0.017), .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
     .npts = 8, .pts = { { 0.050, 0.30, -0.009 }, { -0.210, 0.30, -0.009 }, { -0.347, 1.15, 0.006 }, { -0.467, 1.15, 0.006 },
                         { 0.050, 0.30, 0.025 }, { -0.210, 0.30, 0.025 }, { -0.347, 1.15, 0.018 }, { -0.467, 1.15, 0.018 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
-    .mass = 0.50, .joint = { -0.08, -0.30, 0.008 }, .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
+    .mass = 0.50, .joint = { -0.08, -0.30, 0.008 }, SHELL_SECTION(0.017), .m_max = 300.0, .f_max = 2500.0, .k = 1.0e4,
     .npts = 8, .pts = { { 0.050, -0.30, -0.009 }, { -0.210, -0.30, -0.009 }, { -0.347, -1.15, 0.006 }, { -0.467, -1.15, 0.006 },
                         { 0.050, -0.30, 0.025 }, { -0.210, -0.30, 0.025 }, { -0.347, -1.15, 0.018 }, { -0.467, -1.15, 0.018 } } },
   { .kind = SIM_PART_ELEVON, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
@@ -700,10 +722,13 @@ static const PartDef PARTS_TIMBER1500[] = {
  * its spar. A Cox .049 on two screws through the firewall, wire gear, a
  * wire skid.
  * --------------------------------------------------------------------- */
-/* Balsa, 150 to 175 kg/m^3 (the kit's medium grade): modulus of rupture
- * about 20 MPa along the grain (Gibson and Ashby, Cellular Solids, ch. 10;
- * the Forest Products Laboratory's Wood Handbook, balsa). A square stick
- * of side a breaks at 20 MPa a^3 / 6. */
+/* Balsa, 150 to 175 kg/m^3 (the kit's medium grade). The Wood Handbook
+ * (FPL-GTR-190, 2010, Table 5-5a) gives balsa at 12 percent moisture a
+ * modulus of rupture of 21.6 MPa (modulus 3.4 GPa) at specific gravity
+ * 0.16, about 184 kg/m^3; along the grain it goes as the density (Gibson
+ * and Ashby, Cellular Solids, ch. 10), so 17.6 to 20.5 MPa at the kit's
+ * grade, and 20 MPa is its upper end. A stick b wide and h deep breaks at
+ * 20 MPa b h^2 / 6. */
 #define BALSA_MOR 20.0e6
 #define BALSA_M(b, h) (BALSA_MOR * (b) * (h) * (h) / 6.0)
 static const PartDef PARTS_BOMBSHELL1118[] = {
@@ -741,7 +766,11 @@ static const PartDef PARTS_BOMBSHELL1118[] = {
   /* 6 the wing's centre section, sheeted and glassed, on the cabin under
    * four #32 rubber bands: each about 5 N stretched on its dowels, so 20
    * N hold it down and 20 N over half the chord's 95 mm, 1.9 N m, tip it
-   * off its saddle. ESTIMATED: no one publishes a band's tension. */
+   * off its saddle. No band's tension is published; a #32 band, 3 x 1/8 x
+   * 1/32 in, looped from dowel to dowel over the drawn 0.19 m chord is
+   * stretched about three times, where natural rubber carries about 0.9
+   * MPa (Ogden's 1972 fit to Treloar's data), 2.2 N a strand, two strands
+   * a band: 4.4 N, 18 N for the four. */
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
     .mass = 0.020, .joint = { -0.03, 0.0, 0.064 }, .m_max = 1.9, .f_max = 20.0, .k = 2000.0,
     BOX(-0.128, 0.063, -0.04, 0.04, 0.062, 0.084) },
@@ -760,7 +789,10 @@ static const PartDef PARTS_BOMBSHELL1118[] = {
                         { 0.063, -0.04, 0.085 }, { -0.128, -0.04, 0.075 }, { 0.030, -0.559, 0.175 }, { -0.090, -0.559, 0.170 } } },
   /* 9 the Cox Texaco .049, 45 g with its tank, on two #2 screws through
    * the 1/8 in ply firewall: the screws pull out of the ply at about 200
-   * N each on the 20 mm between them, 4 N m. ESTIMATED. */
+   * N each on the 20 mm between them, 4 N m. The Wood Handbook's withdrawal
+   * equation (8-10a, p = 108.2 G^2 D L) for a 2.18 mm screw in 3.2 mm of
+   * birch, G 0.62, gives 290 N, and says a screw shorter than its table's
+   * holds less, so 200 N is under that bound, not measured. */
   { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
     .mass = 0.045, .joint = { 0.107, 0.0, -0.005 }, .m_max = 4.0, .f_max = 200.0, .k = 1.0e6,
     BOX(0.107, 0.160, -0.010, 0.010, -0.015, 0.047) },
