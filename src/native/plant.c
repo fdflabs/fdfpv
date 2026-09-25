@@ -1511,6 +1511,10 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     if (d > 1.0) {
       d = 1.0;
     }
+    /* A motor whose ESC, arm or pack has gone draws nothing (crash.c). */
+    if (CRASH.active && CRASH.motor_dead[m]) {
+      d = 0.0;
+    }
     duty[m] = d;
     sumA += d * d;
     sumB += d * PLANT.ke * s->motor_omega[m];
@@ -1522,6 +1526,9 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     v_load = 1.0;
   }
   s->vbat_load = v_load;
+  if (CRASH.active && CRASH.no_power) {
+    s->vbat_load = 0.0;
+  }
 
   /* 2. Motor electrical and rotor dynamics.
    *
@@ -1555,6 +1562,30 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
    * The wash and vibration CHANNELS still advance every step below, so
    * flipping the style between runs cannot move any other run's trace. */
   const double (*AXIS)[3] = SIM_ARCADE ? PLANT_AXIS_FLAT : PLANT_AXIS[g_airframe];
+  /* A bent arm turns its motor's thrust axis (crash.c). Rodrigues, with
+   * the small angle sine and cosine: a bend is a few degrees. */
+  double bent[SIM_MOTOR_COUNT][3];
+  if (CRASH.active && CRASH.bent) {
+    for (int m = 0; m < SIM_MOTOR_COUNT; m += 1) {
+      const double *b = CRASH.bend[m];
+      const double *v = AXIS[m];
+      const double ang = sim_sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
+      if (!(ang > 1e-12)) {
+        bent[m][0] = v[0];
+        bent[m][1] = v[1];
+        bent[m][2] = v[2];
+        continue;
+      }
+      const double k[3] = { b[0] / ang, b[1] / ang, b[2] / ang };
+      const double c = sim_cos_small(ang), sn = sim_sin_small(ang);
+      const double kv[3] = { k[1] * v[2] - k[2] * v[1], k[2] * v[0] - k[0] * v[2], k[0] * v[1] - k[1] * v[0] };
+      const double kd = k[0] * v[0] + k[1] * v[1] + k[2] * v[2];
+      for (int a = 0; a < 3; a += 1) {
+        bent[m][a] = v[a] * c + kv[a] * sn + k[a] * kd * (1.0 - c);
+      }
+    }
+    AXIS = (const double (*)[3])bent;
+  }
   double thrust[SIM_MOTOR_COUNT];
   double stator_torque[3] = { 0.0, 0.0, 0.0 }; /* reaction on the frame */
   double h_prop[3] = { 0.0, 0.0, 0.0 };        /* net prop angular momentum */
@@ -1933,11 +1964,16 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
         q_mag = PLANT_TORQUE_QMAX * qb_mag;
       }
     }
-    const double drag_mag = q_sign * q_mag;
-    const double i = (d * v_load - PLANT.ke * w) / PLANT.r_motor;
+    /* A chipped or lost prop (crash.c) scales its own torque, thrust and
+     * inertia; a dead motor has no current at all. Intact, each of these
+     * is the expression it always was. */
+    const double drag_mag = q_sign * (CRASH.active ? q_mag * CRASH.kq[m] : q_mag);
+    const double i = (CRASH.active && CRASH.motor_dead[m])
+        ? 0.0 : (d * v_load - PLANT.ke * w) / PLANT.r_motor;
+    const double j_rot = CRASH.active ? PLANT.j_rotor * CRASH.jr[m] : PLANT.j_rotor;
     /* Rotor sees the drag torque resisting its own spin direction. */
     const double torque = PLANT.ke * i - PLANT_SPIN[m] * drag_mag;
-    double w_next = w + (torque / PLANT.j_rotor) * SIM_DT;
+    double w_next = w + (torque / j_rot) * SIM_DT;
     if (w_next < 0.0) {
       w_next = 0.0;
     }
@@ -1946,6 +1982,9 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     if (t < 0.0) {
       t = 0.0;
     }
+    if (CRASH.active) {
+      t *= CRASH.kt[m];
+    }
     thrust[m] = t;
     /* Frame feels minus the stator drive torque, about the MOTOR's axis
      * rather than about body z, because the axes are not parallel. */
@@ -1953,7 +1992,7 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     stator_torque[0] += st * AXIS[m][0];
     stator_torque[1] += st * AXIS[m][1];
     stator_torque[2] += st * AXIS[m][2];
-    const double hm = PLANT_SPIN[m] * PLANT.j_rotor * w_next;
+    const double hm = PLANT_SPIN[m] * j_rot * w_next;
     h_prop[0] += hm * AXIS[m][0];
     h_prop[1] += hm * AXIS[m][1];
     h_prop[2] += hm * AXIS[m][2];

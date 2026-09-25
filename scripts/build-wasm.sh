@@ -73,10 +73,13 @@ if [ -n "$PATCHES" ]; then
   trap 'apply_vendor_patches -R || true' EXIT
 fi
 
-CFLAGS_COMMON="-std=gnu17 -O2 -fno-fast-math -ffp-contract=off"
+# SIM_EXTRA_CFLAGS is for a proof build and nothing else: scripts/crash-identity.js
+# builds a module with crash physics on by default to show every gate is
+# unmoved by it. A shipped module is built without it.
+CFLAGS_COMMON="-std=gnu17 -O2 -fno-fast-math -ffp-contract=off ${SIM_EXTRA_CFLAGS:-}"
 
 # Simulator sources, plain includes.
-SIM_SRC="src/native/sim.c src/native/plant.c src/native/plant_wing.c src/native/water.c src/native/bridge.c src/native/libm/sim_math.c"
+SIM_SRC="src/native/sim.c src/native/plant.c src/native/plant_wing.c src/native/water.c src/native/crash.c src/native/bridge.c src/native/libm/sim_math.c"
 
 # Betaflight sources compiled with the SITL target configuration, plus the
 # glue that feeds the simulated gyro in and reads motor outputs back.

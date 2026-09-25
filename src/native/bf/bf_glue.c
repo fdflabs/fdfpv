@@ -285,7 +285,9 @@ static void sim_gyro_add_vibration(const SimState *s) {
     }
     g_vib_phase[m] = p;
     const double r = w / PLANT.vib_ref_w;
-    const double a_line = GYRO_VIB_LINE_DPS * r * r * GYRO_VIB_IMBALANCE[m];
+    /* A chipped prop (crash.c) is a worse imbalance at the same line. */
+    const double a_line = GYRO_VIB_LINE_DPS * r * r
+        * (CRASH.active ? GYRO_VIB_IMBALANCE[m] * CRASH.imbalance[m] : GYRO_VIB_IMBALANCE[m]);
     if (a_line < 1e-4 || SIM_ARCADE) {
       continue;
     }

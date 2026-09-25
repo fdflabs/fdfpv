@@ -79,6 +79,12 @@ static double g_ground_e = 0.0;
 static int g_ground_hits = 0;
 static int g_ground_projected = 0;
 static int g_ground_near = 0;
+/* The friction and restitution the ground contact uses this step: the
+ * plane's own, or its material's once the host has named one
+ * (sim_set_ground_material). With the default material they are the same
+ * two doubles, so nothing a host that never names one does can move. */
+static double g_gmu = 1.40;
+static double g_ge = 0.0;
 
 /* The hull half extents are the airframe's now. The five inch's are the
  * numbers that used to be here; the whoop's are a third of them, which is
@@ -210,6 +216,7 @@ static void contact_build_corners(void) {
 SIM_EXPORT int sim_abi_version(void) { return SIM_ABI_VERSION; }
 
 static void reset_dynamics(void) {
+  crash_reset();
   plant_reset(&S);
   plant_wing_reset();
   bridge_reset();
@@ -401,6 +408,13 @@ static int contact_impulse(const double n[3], const double r[3], const double vs
     e_used *= CONTACT_E_FLOOR + (1.0 - CONTACT_E_FLOOR) * (soft > 0.0 ? soft : 0.0);
   }
 
+  /* Crash physics reads the contact here, and may only lower e_used, and
+   * only for a foam part crushing past its plateau: under every limit this
+   * call returns having written nothing. */
+  if (SIM_DAMAGE) {
+    crash_contact_pre(&S, r, n, vin, kn, &e_used);
+  }
+
   double bias = 0.0;
   if (pen > CONTACT_SLOP) {
     bias = CONTACT_BAUMGARTE * (pen - CONTACT_SLOP) / SIM_DT;
@@ -468,6 +482,9 @@ static int contact_impulse(const double n[3], const double r[3], const double vs
   w_world[1] += dw[1];
   w_world[2] += dw[2];
   contact_rotate_inv(w_world, S.omega);
+  if (SIM_DAMAGE) {
+    crash_contact_post(&S, r, n, vin, kn, jn, jt);
+  }
   return 1;
 }
 
@@ -477,6 +494,23 @@ static void contact_support_neg_n(const double n[3], double r[3]) {
   double nb[3];
   const double inn[3] = { -n[0], -n[1], -n[2] };
   contact_rotate_inv(inn, nb);
+  if (CRASH.hull_parts) {
+    /* A part has left: the support is the parts' that are still on. */
+    const double *pts;
+    const int *part;
+    const int np = crash_samplers(&pts, &part);
+    int best = 0;
+    double bh = -1.0e9;
+    for (int k = 0; k < np; k += 1) {
+      const double h = nb[0] * pts[3 * k] + nb[1] * pts[3 * k + 1] + nb[2] * pts[3 * k + 2];
+      if (h > bh) {
+        bh = h;
+        best = k;
+      }
+    }
+    contact_rotate(&pts[3 * best], r);
+    return;
+  }
   double b[3];
   b[0] = nb[0] >= 0.0 ? CONTACT_HX : -CONTACT_HX;
   b[1] = nb[1] >= 0.0 ? CONTACT_HY : -CONTACT_HY;
@@ -508,7 +542,7 @@ static int ground_hit_at(const double r[3], const double vs[3]) {
     return 0;
   }
   const double use_p = pen > 0.0 ? pen : 0.0;
-  contact_impulse(g_ground_n, r, vs, g_ground_e, g_ground_mu, use_p);
+  contact_impulse(g_ground_n, r, vs, g_ge, g_gmu, use_p);
   if (pen > CONTACT_SLOP) {
     const double push = (pen - CONTACT_SLOP) * CONTACT_POS_PUSH;
     S.pos[0] += g_ground_n[0] * push;
@@ -545,8 +579,17 @@ static void ground_project_sample(const double body[3], double *worst) {
 static void ground_project_hull(void) {
   double worst = CONTACT_PEN_NONE;
   const double cam[3] = { CAMERA_BODY_X, CAMERA_BODY_Y, CAMERA_BODY_Z };
-  for (int c = 0; c < CONTACT_CORNERS; c += 1) {
-    ground_project_sample(CONTACT_CORNER[c], &worst);
+  if (CRASH.hull_parts) {
+    const double *pts;
+    const int *part;
+    const int np = crash_samplers(&pts, &part);
+    for (int k = 0; k < np; k += 1) {
+      ground_project_sample(&pts[3 * k], &worst);
+    }
+  } else {
+    for (int c = 0; c < CONTACT_CORNERS; c += 1) {
+      ground_project_sample(CONTACT_CORNER[c], &worst);
+    }
   }
   ground_project_sample(cam, &worst);
   g_ground_projected = 0;
@@ -688,7 +731,7 @@ static void ground_settle(double upz, double vn_plant) {
     }
   } else {
     const double load = PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0);
-    double dv = g_ground_mu * load * SIM_DT;
+    double dv = g_gmu * load * SIM_DT;
     const double vtm = sim_sqrt(vt2);
     if (dv > vtm) {
       dv = vtm;
@@ -721,7 +764,7 @@ static void ground_settle(double upz, double vn_plant) {
           + uy * uy * PLANT.inertia[1]
           + uz * uz * PLANT.inertia[2];
       const double load = PLANT.gravity * SIM_GRAVITY * PLANT.mass_kg * (nz > 0.0 ? nz : 0.0);
-      const double tau = g_ground_mu * load * CONTACT_PATCH_R;
+      const double tau = g_gmu * load * CONTACT_PATCH_R;
       double dw = (i_eff > 1e-12) ? (tau / i_eff) * SIM_DT : wm;
       if (dw > wm) {
         dw = wm;
@@ -844,6 +887,9 @@ static int ground_wheels(void) {
   for (int i = 0; i < PLANT.wheel_count; i += 1) {
     const WheelParams *wp = &PLANT.wheel[i];
     g_wheel_load[i] = 0.0;
+    if (CRASH.active && CRASH.wheel_lost[i]) {
+      continue;
+    }
     double r[3];
     contact_rotate(wp->pos, r);
     r[0] -= wp->r * down[0];
@@ -865,6 +911,10 @@ static int ground_wheels(void) {
     contact_push(r, n, jn);
     g_wheel_load[i] = fn;
     loaded += 1;
+    if (SIM_DAMAGE) {
+      const double F[3] = { fn * n[0], fn * n[1], fn * n[2] };
+      crash_force_note(&S, r, F, crash_wheel_part(i));
+    }
 
     /* The rudder's trailing edge left, positive, turns the wheel's front to
      * the right, which is the body heading rotated by minus the angle. */
@@ -896,6 +946,10 @@ static void ground_apply(void) {
   g_ground_hits = 0;
   g_ground_projected = 0;
   g_ground_near = 0;
+  g_gmu = g_ground_mu;
+  g_ge = g_ground_e;
+  crash_surface_mu_e(crash_ground_material(), &g_gmu, &g_ge);
+  crash_set_contact_surface(crash_ground_material());
   plant_wing_set_on_wheels(0);
   for (int i = 0; i < SIM_WHEELS_MAX; i += 1) {
     g_wheel_load[i] = 0.0;
@@ -935,6 +989,11 @@ static void ground_apply(void) {
       double r[3];
       const double bump[3] = { 0.0, 0.0, CONTACT_HZ_UP };
       contact_rotate(bump, r);
+      if (CRASH.hull_parts) {
+        /* The box's top is gone with the part that made it: whatever of
+         * the airframe is left is what it lies on. */
+        contact_support_neg_n(g_ground_n, r);
+      }
       if (ground_hit_at(r, vs)) {
         hits = 1;
         for (int iter = 1; iter < CONTACT_ITERS; iter += 1) {
@@ -978,15 +1037,24 @@ static void ground_apply(void) {
     return;
   }
 
-  int hit_mask = 0;
+  const double *samp = &CONTACT_CORNER[0][0];
+  int nsamp = CONTACT_CORNERS;
+  if (CRASH.hull_parts) {
+    const int *part;
+    nsamp = crash_samplers(&samp, &part);
+  }
+  static unsigned char hit_any[SIM_PARTS_MAX * SIM_PART_PTS_MAX];
+  for (int c = 0; c < nsamp; c += 1) {
+    hit_any[c] = 0;
+  }
   for (int iter = 0; iter < CONTACT_ITERS; iter += 1) {
     int nuse = 0;
-    for (int c = 0; c < CONTACT_CORNERS; c += 1) {
+    for (int c = 0; c < nsamp; c += 1) {
       double r[3];
-      contact_rotate(CONTACT_CORNER[c], r);
+      contact_rotate(&samp[3 * c], r);
       if (ground_hit_at(r, vs)) {
         nuse += 1;
-        hit_mask |= (1 << c);
+        hit_any[c] = 1;
       }
     }
     if (nuse == 0) {
@@ -994,11 +1062,10 @@ static void ground_apply(void) {
     }
   }
   int hits = 0;
-  int m = hit_mask;
-  while (m) {
-    hits += m & 1;
-    m >>= 1;
+  for (int c = 0; c < nsamp; c += 1) {
+    hits += hit_any[c];
   }
+
   g_ground_hits = hits;
   ground_project_hull();
   if (!wheels_loaded) {
@@ -1068,10 +1135,15 @@ static double float_keel(const FloatParams *fp, double x) {
 }
 
 /* One force F, world frame, at the body offset r, for one step. */
+static int g_float_part = -1;
+
 static void float_force(const double r[3], const double F[3]) {
   const double fm = sim_sqrt(F[0] * F[0] + F[1] * F[1] + F[2] * F[2]);
   if (!(fm > 0.0)) {
     return;
+  }
+  if (SIM_DAMAGE) {
+    crash_force_note(&S, r, F, g_float_part);
   }
   const double d[3] = { F[0] / fm, F[1] / fm, F[2] / fm };
   contact_push(r, d, fm * SIM_DT);
@@ -1098,6 +1170,9 @@ static double float_ground(const FloatParams *fp) {
   const double xs[4] = { fp->x_bow, fp->x_knee, fp->x_step, fp->x_stern };
   for (int f = 0; f < 2; f += 1) {
     const double yf = f == 0 ? fp->y : -fp->y;
+    if (CRASH.active && CRASH.float_lost[f]) {
+      continue;
+    }
     for (int k = 0; k < 4; k += 1) {
       double r[3];
       float_to_world(xs[k], yf, float_keel(fp, xs[k]), r);
@@ -1116,6 +1191,10 @@ static double float_ground(const FloatParams *fp) {
       const double jn = fn * SIM_DT;
       contact_push(r, n, jn);
       total += fn;
+      if (SIM_DAMAGE) {
+        const double F[3] = { fn * n[0], fn * n[1], fn * n[2] };
+        crash_force_note(&S, r, F, crash_float_part(f));
+      }
       /* The keel's heading on the ground and across it, the same grip
        * both ways. */
       double hw[3];
@@ -1173,6 +1252,10 @@ static void float_apply(void) {
     plant_plane_surfaces(surf);
     for (int f = 0; f < 2; f += 1) {
       const double yf = f == 0 ? fp->y : -fp->y;
+      if (CRASH.active && CRASH.float_lost[f]) {
+        continue;
+      }
+      g_float_part = crash_float_part(f);
       double ma_run = 0.0;
       double d_prev = 0.0;
       double buoy = 0.0;
@@ -1349,7 +1432,10 @@ SIM_EXPORT int sim_contact(double nx, double ny, double nz,
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
    * side of the face. The impulse still sees the inbound velocity. */
+  crash_set_contact_surface(SIM_SURF_DEFAULT);
+  crash_batch_begin(&S);
   contact_impulse(n, r, vs, restitution, mu, 0.0);
+  crash_batch_end(&S);
   return SIM_OK;
 }
 
@@ -1377,6 +1463,9 @@ SIM_EXPORT int sim_contact(double nx, double ny, double nz,
  * no existing entry point moved or changed meaning, and a replay that
  * never calls this is bit-identical to one from before it existed.
  */
+/* The material sim_contact_at_mat hands its body, for one call. */
+static int g_contact_mat = SIM_SURF_DEFAULT;
+
 SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
                               double restitution, double mu,
                               double px, double py, double pz,
@@ -1405,6 +1494,8 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   S.pos[0] = px;
   S.pos[1] = py;
   S.pos[2] = pz;
+  crash_set_contact_surface(g_contact_mat);
+  g_contact_mat = SIM_SURF_DEFAULT;
   double r[3] = { rx, ry, rz };
   const double r2 = r[0] * r[0] + r[1] * r[1] + r[2] * r[2];
   if (r2 > CONTACT_ARM_MAX * CONTACT_ARM_MAX) {
@@ -1416,7 +1507,9 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
    * side of the face. The impulse still sees the inbound velocity. */
+  crash_batch_begin(&S);
   contact_impulse(n, r, vs, restitution, mu, 0.0);
+  crash_batch_end(&S);
   return SIM_OK;
 }
 
@@ -1531,6 +1624,70 @@ SIM_EXPORT int sim_set_pose(double px, double py, double pz,
   S.quat[2] = qy * ninv;
   S.quat[3] = qz * ninv;
   return SIM_OK;
+}
+
+/*
+ * Scenario set up and crash readback, sim_abi.h. The part tables, the
+ * judgement and the free bodies are src/native/crash.c; these are the
+ * exports that need the craft's state, which is this file's.
+ */
+SIM_EXPORT int sim_set_velocity(double vx, double vy, double vz, double p, double q, double r) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (!sim_finite(vx) || !sim_finite(vy) || !sim_finite(vz)
+      || !sim_finite(p) || !sim_finite(q) || !sim_finite(r)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  if (vx * vx + vy * vy + vz * vz > 150.0 * 150.0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  S.vel[0] = vx;
+  S.vel[1] = vy;
+  S.vel[2] = vz;
+  S.omega[0] = p;
+  S.omega[1] = q;
+  S.omega[2] = r;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_parts_state(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  return crash_parts_state(&S, out);
+}
+
+SIM_EXPORT int sim_part_break(int part) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  return crash_part_break(&S, part);
+}
+
+SIM_EXPORT int sim_part_set_damage(int part, double damage) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  return crash_part_set_damage(&S, part, damage);
+}
+
+SIM_EXPORT int sim_contact_at_mat(double nx, double ny, double nz, int mat,
+                                  double px, double py, double pz,
+                                  double vsx, double vsy, double vsz,
+                                  double rx, double ry, double rz) {
+  if (mat < 0 || mat >= SIM_SURFACES) {
+    return SIM_ERR_BAD_ARG;
+  }
+  double mu = 0.40, e = 0.15;
+  crash_surface_mu_e(mat, &mu, &e);
+  g_contact_mat = mat;
+  const int rc = sim_contact_at(nx, ny, nz, e, mu, px, py, pz, vsx, vsy, vsz, rx, ry, rz);
+  g_contact_mat = SIM_SURF_DEFAULT;
+  return rc;
 }
 
 SIM_EXPORT int sim_deflect(double nx, double ny, double nz,
@@ -1736,6 +1893,7 @@ SIM_EXPORT int sim_set_airframe(int id) {
   if (id == plant_airframe()) {
     return SIM_OK;
   }
+  crash_reset();
   plant_set_airframe(id);
   /* A canopy belongs to the aircraft that pulled it, and so do flaps. */
   plant_wing_chute(0);
@@ -1836,8 +1994,11 @@ SIM_EXPORT int sim_step(int n) {
     } else {
       plant_step(&S, duty);
     }
+    crash_batch_begin(&S);
     ground_apply();
     float_apply();
+    crash_step(&S, g_ground_on && !g_stand_on, g_ground_n, g_ground_d);
+    crash_batch_end(&S);
     stand_apply();
     S.step_index += 1;
   }

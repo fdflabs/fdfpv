@@ -591,6 +591,303 @@ int sim_float_state(double *out);
 double sim_math_sin(double x);
 double sim_math_cos(double x);
 
+/*
+ * CRASH PHYSICS, src/native/crash.c and docs/CRASH-STAGE1.md, which is the
+ * contract in prose: every table, limit and source is there. Additive,
+ * version unchanged.
+ *
+ * THE DAMAGE MODE. sim_set_damage(1) turns crash physics on: every contact
+ * the plant resolves (the ground plane, sim_contact, sim_contact_at, the
+ * wheels, the obstacles and trees below) is attributed to the part it
+ * struck and judged against that part's limits, and past them parts crush,
+ * chip, bend and break off. 0 is off, the default, and the path every
+ * harness replay and every existing gate takes: the airframe is the rigid,
+ * unbreakable body it always was. A MODE like the airframe: it survives
+ * sim_reset and sim_init. The DAMAGE STATE (what has broken) is dynamic and
+ * sim_reset clears it, as does sim_set_airframe.
+ *
+ * THE BIT IDENTITY RULE. With the mode on, a flight whose every contact
+ * stays under every limit is bit identical to the same flight with it off,
+ * because the judgement only reads the solver's numbers and nothing is
+ * written until a limit is crossed. docs/CRASH-STAGE1.md records the proof.
+ *
+ * SCENARIO SET UP for a test or the crash suite: sim_init, sim_set_airframe,
+ * sim_reset, sim_set_damage(1), sim_set_ground, sim_set_pose, then
+ * sim_set_velocity (below) or sim_wing_launch, and sim_input for the sticks.
+ */
+int sim_set_damage(int on);
+int sim_damage(void);
+
+/*
+ * sim_set_velocity(vx, vy, vz, p, q, r): write the plant's linear velocity,
+ * m/s world frame, and body rates, rad/s, keeping pose, motors and pack.
+ * For a scenario to arrive at a surface at a known speed on any airframe
+ * (sim_wing_launch is the fixed wings' hand throw and refuses a quad). The
+ * harness never calls it. SIM_ERR_BAD_ARG for a non finite value or a
+ * speed over 150 m/s.
+ */
+int sim_set_velocity(double vx, double vy, double vz, double p, double q, double r);
+
+/*
+ * THE PARTS. Every airframe is a fixed table of rigid parts, index 0 the
+ * root (the quad's frame, a plane's fuselage), each other part joined to
+ * its parent by a joint with a strength. The table is the airframe's and
+ * does not change; what changes is each part's state.
+ *
+ * sim_parts_count(): how many parts the airframe in force has, at most
+ * SIM_PARTS_MAX.
+ *
+ * sim_part_info(part, out[SIM_PART_INFO_DOUBLES]), static:
+ *   [0]  kind, SIM_PART_* below
+ *   [1]  parent part, -1 for the root
+ *   [2]  material, SIM_MAT_* below
+ *   [3]  the motor it carries or is (0..3 in Betaflight order on a quad,
+ *        0 on a plane), -1 for none
+ *   [4]  mass, kg. The masses sum to the airframe's mass.
+ *   [5..7]   its centre of mass, body frame, m. The mass weighted sum is
+ *            the airframe's CG, the body origin, to rounding.
+ *   [8..10]  its joint to the parent, body frame, m
+ *   [11] the joint's bending moment limit, N m (0 for the root)
+ *   [12] the joint's force limit, N, pull out or shear (0 for the root)
+ *   [13] contact stiffness at its surface, N/m
+ *   [14] crush plateau stress, Pa; 0 for a part that does not crush
+ *   [15] crush area, m^2, the section a crush front advances through
+ *   [16] crush depth it can take before it is spent, m
+ *   [17] its hull point count, 1..SIM_PART_PTS_MAX
+ *   [18..20] its hull's bounding box minimum, body frame, m
+ *   [21..23] and maximum
+ * sim_part_hull(part, out[1 + 3 x SIM_PART_PTS_MAX]): out[0] the point
+ * count, then the points, body frame, m. The points are contact samplers
+ * (a convex hull's corners), not a render mesh.
+ */
+#define SIM_PARTS_MAX 24
+#define SIM_PART_PTS_MAX 8
+#define SIM_PART_INFO_DOUBLES 24
+
+#define SIM_PART_FRAME 0      /* a quad's plates and stack, the root */
+#define SIM_PART_ARM 1
+#define SIM_PART_MOTOR 2
+#define SIM_PART_PROP 3
+#define SIM_PART_BATTERY 4
+#define SIM_PART_CAMERA 5     /* the FPV camera */
+#define SIM_PART_ANTENNA 6    /* the video transmitter's antenna */
+#define SIM_PART_CANOPY 7     /* a whoop's canopy, a plane's hatch */
+#define SIM_PART_FUSELAGE 8   /* a plane's root */
+#define SIM_PART_WING 9       /* one wing panel */
+#define SIM_PART_HSTAB 10
+#define SIM_PART_FIN 11
+#define SIM_PART_AILERON 12
+#define SIM_PART_ELEVATOR 13
+#define SIM_PART_RUDDER 14
+#define SIM_PART_ELEVON 15
+#define SIM_PART_GEAR 16      /* a landing gear leg with its wheel */
+#define SIM_PART_FLOAT 17
+#define SIM_PART_BOOM 18      /* a tail boom */
+#define SIM_PART_DUCT 19      /* a whoop's duct ring */
+#define SIM_PART_KINDS 20
+
+#define SIM_MAT_CF_PLATE 0    /* carbon fibre plate, quasi isotropic */
+#define SIM_MAT_CF_TUBE 1     /* carbon fibre tube, unidirectional */
+#define SIM_MAT_EPO 2         /* expanded polyolefin foam */
+#define SIM_MAT_EPP 3         /* expanded polypropylene foam */
+#define SIM_MAT_NYLON_GF 4    /* glass filled nylon, props and mounts */
+#define SIM_MAT_ALU 5         /* aluminium, booms, gear, motor bells */
+#define SIM_MAT_LIPO 6        /* a lithium polymer pack in its wrap */
+#define SIM_MAT_PC 7          /* polycarbonate or ABS, canopies, whoop frames */
+#define SIM_MAT_ELECTRONICS 8 /* a camera or a board, a potted brick */
+#define SIM_MAT_WIRE 9        /* steel wire, gear legs, antenna whips */
+#define SIM_MAT_PLY 10        /* plywood, formers */
+#define SIM_MATERIALS 11
+
+int sim_parts_count(void);
+int sim_part_info(int part, double *out);
+int sim_part_hull(int part, double *out);
+
+/*
+ * sim_parts_state(out[sim_parts_count() x SIM_PART_STATE_DOUBLES]): every
+ * part now, in table order:
+ *   [0]  status: 0 attached, 1 detached and moving (a free body), 2
+ *        detached and at rest, 3 detached and retired past the active
+ *        body budget (frozen where it lay)
+ *   [1]  damage, 0 intact to 1 destroyed or broken off
+ *   [2..4]   its centre of mass, world, m
+ *   [5..8]   its orientation, quaternion w x y z, body to world. Attached,
+ *            the craft's, times its own knock or bend if it has one
+ *   [9..11]  its centre of mass velocity, world, m/s
+ *   [12..14] its angular velocity, world, rad/s
+ *   [15] the free body it rides on, 0..SIM_FREE_BODIES_MAX-1, or -1
+ *   [16] its peak load this step over its limit, 0 when untouched
+ *   [17..19] its permanent deformation, body frame: a crushed part's dent,
+ *            m, pointing into it; an arm, a boom or a gear leg's bend and
+ *            a camera or antenna's knock, a rotation vector, rad
+ *   [20] energy it has absorbed, J
+ *   [21] kind, as sim_part_info [0]
+ *   [22] parent, as sim_part_info [1]
+ *   [23] reserved, 0
+ */
+#define SIM_PART_STATE_DOUBLES 24
+#define SIM_PART_ATTACHED 0
+#define SIM_PART_FREE 1
+#define SIM_PART_RESTING 2
+#define SIM_PART_RETIRED 3
+int sim_parts_state(double *out);
+
+/*
+ * sim_damage_events(out[max x SIM_DAMAGE_EVENT_DOUBLES], max): the damage
+ * events since the last call, oldest first, and returns how many it wrote.
+ * The queue holds SIM_DAMAGE_EVENTS_MAX; past that the oldest are dropped
+ * and sim_damage_events_dropped() counts them. Each event:
+ *   [0]  the step it happened in (t = step / 1000 s)
+ *   [1]  part
+ *   [2]  type, SIM_EVENT_* below
+ *   [3]  the load over the limit that decided it (a break is >= 1)
+ *   [4]  peak contact force, N
+ *   [5]  bending moment at the part's joint, N m
+ *   [6]  energy the event absorbed, J
+ *   [7..9]   the contact point, world, m
+ *   [10..12] the contact normal, world, out of the surface
+ *   [13] closing speed at the point, m/s
+ *   [14] the surface's material, SIM_SURF_* below
+ *   [15] the part's damage after the event, 0..1
+ */
+#define SIM_DAMAGE_EVENT_DOUBLES 16
+#define SIM_DAMAGE_EVENTS_MAX 64
+#define SIM_EVENT_BREAK 1  /* the joint failed: the part and its children left */
+#define SIM_EVENT_CRUSH 2  /* foam crushed, a permanent dent */
+#define SIM_EVENT_CHIP 3   /* a prop chipped: thrust down, imbalance up */
+#define SIM_EVENT_BEND 4   /* an arm, boom or gear leg bent past yield */
+#define SIM_EVENT_KNOCK 5  /* a camera or antenna knocked askew */
+#define SIM_EVENT_CRACK 6  /* damage under the break: a part weakened */
+#define SIM_EVENT_SETTLE 7 /* a free body came to rest */
+int sim_damage_events(double *out, int max);
+int sim_damage_events_dropped(void);
+
+/*
+ * sim_damage_flags(): what a renderer and the shell need to know without
+ * walking the parts, a bit mask. Zero on an intact aircraft.
+ */
+#define SIM_DMG_CAMERA_KNOCKED (1 << 0)  /* the FPV picture is tilted */
+#define SIM_DMG_CAMERA_LOST (1 << 1)     /* no FPV picture at all */
+#define SIM_DMG_ANTENNA_LOST (1 << 2)    /* the video feed breaks up */
+#define SIM_DMG_BATTERY_EJECTED (1 << 3) /* power gone */
+#define SIM_DMG_PROP_LOST (1 << 4)
+#define SIM_DMG_PROP_CHIPPED (1 << 5)
+#define SIM_DMG_ARM_BENT (1 << 6)
+#define SIM_DMG_ARM_LOST (1 << 7)
+#define SIM_DMG_WING_LOST (1 << 8)
+#define SIM_DMG_SURFACE_LOST (1 << 9)    /* an aileron, elevator, rudder or elevon */
+#define SIM_DMG_CANOPY_LOST (1 << 10)
+#define SIM_DMG_GEAR_LOST (1 << 11)
+#define SIM_DMG_FLOAT_LOST (1 << 12)
+#define SIM_DMG_TAIL_LOST (1 << 13)      /* a stabiliser, a fin or a boom */
+#define SIM_DMG_CRUSHED (1 << 14)
+#define SIM_DMG_IN_TREE (1 << 15)        /* held by a tree's crown this step */
+#define SIM_DMG_IN_WATER (1 << 16)       /* a part other than a float is wet */
+#define SIM_DMG_MOTOR_LOST (1 << 17)
+int sim_damage_flags(void);
+
+/*
+ * sim_motor_damage(out[4 x 4]): per motor, in Betaflight order on a quad
+ * and motor 0 on a plane: [0] the thrust it keeps, 0..1; [1] the extra
+ * once per revolution imbalance its chipped prop puts into the gyro, as a
+ * multiple of a sound prop's; [2] and [3] its thrust axis tilt from a bent
+ * arm, rad, about body x and body y.
+ */
+int sim_motor_damage(double *out);
+
+/*
+ * For a scenario that starts from a damaged aircraft ("lose one prop in
+ * flight"): sim_part_break(part) fails the part's joint now, exactly as a
+ * load past its limit would, and the part and its children leave as a free
+ * body with the craft's motion at that point. sim_part_set_damage(part, d)
+ * sets a prop's chip, a foam part's crush fraction, an arm's bend fraction
+ * or a camera's knock fraction, 0..1 (1 on a prop is a lost blade set,
+ * which breaks it). Both need the damage mode on; SIM_ERR_BAD_STATE
+ * without it, SIM_ERR_BAD_ARG for a part out of range or the root.
+ */
+int sim_part_break(int part);
+int sim_part_set_damage(int part, double damage);
+
+/*
+ * FREE BODIES. A part that breaks off, with the parts joined under it,
+ * becomes a free rigid body in the plant: gravity, the air's drag on it,
+ * the ground plane, the obstacles and water below, and it comes to rest.
+ * At most SIM_FREE_BODIES_MAX move at once; a new one past that retires
+ * the one that has lain still longest, or, if none has, the oldest, which
+ * freezes where it is. Deterministic. sim_free_bodies_active() is how many
+ * are moving.
+ */
+#define SIM_FREE_BODIES_MAX 12
+int sim_free_bodies_active(void);
+
+/*
+ * SURFACES. A material per contact. SIM_SURF_DEFAULT is today's contact:
+ * the restitution and friction the caller passes, a rigid surface. The
+ * others carry their own friction, restitution and give (a stiffness, and
+ * the damping of a surface that yields: soft ground absorbs more than
+ * concrete and loads a part less); docs/CRASH-STAGE1.md has each with its
+ * source. sim_material_info(mat, out[4]): mu, restitution, stiffness N/m
+ * (in series with a part's own, it sets the peak force of an impact), and
+ * hardness 0..1, how hard a spinning prop finds it (concrete 1, grass
+ * 0.05). SIM_SURF_DEFAULT reads the ground plane's own mu and restitution.
+ * sim_set_ground_material(mat): the ground plane's, kept until changed or
+ * sim_set_ground(0); SIM_SURF_DEFAULT after a reset.
+ * sim_contact_at_mat: sim_contact_at with the material's mu and
+ * restitution in place of the caller's.
+ */
+#define SIM_SURF_DEFAULT 0
+#define SIM_SURF_GRASS 1
+#define SIM_SURF_DIRT 2
+#define SIM_SURF_ASPHALT 3
+#define SIM_SURF_CONCRETE 4
+#define SIM_SURF_ROCK 5
+#define SIM_SURF_SNOW 6
+#define SIM_SURF_WOOD 7       /* a trunk, a post, a fence */
+#define SIM_SURF_METAL 8
+#define SIM_SURF_PVC 9        /* a race gate */
+#define SIM_SURF_FOLIAGE 10   /* a tree's crown: see the trees */
+#define SIM_SURF_WATER 11
+#define SIM_SURF_SAND 12
+#define SIM_SURFACES 13
+int sim_material_info(int mat, double *out);
+int sim_set_ground_material(int mat);
+int sim_contact_at_mat(double nx, double ny, double nz, int mat,
+                       double px, double py, double pz,
+                       double vsx, double vsy, double vsz,
+                       double rx, double ry, double rz);
+
+/*
+ * OBSTACLES for the free bodies, which the shell does not track: boxes and
+ * vertical cylinders, plant frame, each with a material. The craft itself
+ * keeps meeting the world through the shell's sim_contact_at, as before.
+ * sim_obstacle_box(cx, cy, cz, hx, hy, hz, qw, qx, qy, qz, mat): centre,
+ * half extents, orientation. sim_obstacle_cylinder(x, y, z0, z1, r, mat):
+ * a post, a pole or a trunk. Each returns its index or SIM_ERR_BAD_STATE
+ * past SIM_OBSTACLES_MAX. Kept across sim_reset, like the water.
+ */
+#define SIM_OBSTACLES_MAX 64
+int sim_obstacle_clear(void);
+int sim_obstacle_box(double cx, double cy, double cz, double hx, double hy, double hz,
+                     double qw, double qx, double qy, double qz, int mat);
+int sim_obstacle_cylinder(double x, double y, double z0, double z1, double r, int mat);
+
+/*
+ * TREES. sim_tree_add(x, y, z0, trunk_r, crown_z0, crown_z1, crown_r): a
+ * trunk from z0 up, a cylinder of trunk_r (an obstacle of wood for every
+ * free body; the craft's own trunk contact stays the shell's collider, as
+ * it is today), and a crown, an upright cylinder of crown_r
+ * from crown_z0 to crown_z1, that the craft and the free bodies fly INTO:
+ * the twigs drag every part inside in proportion to its area, and a craft
+ * slowed to a crawl in it is held by the branches if its weight over its
+ * plan area is under what they carry, which a plane's is and a quad's is
+ * not. Returns the tree's index or SIM_ERR_BAD_STATE past SIM_TREES_MAX.
+ * Kept across sim_reset. Only read with the damage mode on.
+ */
+#define SIM_TREES_MAX 32
+int sim_tree_clear(void);
+int sim_tree_add(double x, double y, double z0, double trunk_r,
+                 double crown_z0, double crown_z1, double crown_r);
+
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);
 
