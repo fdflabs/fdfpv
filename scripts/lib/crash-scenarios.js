@@ -95,6 +95,10 @@ export class Rig {
     this.parts = readPartTable(sim);
     this.n = this.parts.length;
     this.partsPtr = sim.e.malloc(this.n * PART_STATE_DOUBLES * 8);
+    /* Steps in which some part's damage rose before any event had said
+     * so: a flight with no event must be a flight nothing was written in. */
+    this.silent = 0;
+    this.damageSum = 0;
     this.prev = this.state();
   }
 
@@ -133,10 +137,19 @@ export class Rig {
       sim.e.sim_parts_state(this.partsPtr);
       this.plant.add(s);
       this.digest.add(s);
-      this.digest.add(new Float64Array(sim.e.memory.buffer, this.partsPtr, this.n * PART_STATE_DOUBLES));
+      const ps = new Float64Array(sim.e.memory.buffer, this.partsPtr, this.n * PART_STATE_DOUBLES);
+      this.digest.add(ps);
+      let dsum = 0;
+      for (let k = 0; k < this.n; k += 1) {
+        dsum += ps[k * PART_STATE_DOUBLES + 1];
+      }
       for (const ev of readDamageEvents(sim)) {
         this.events.push(ev);
       }
+      if (dsum > this.damageSum && this.events.length === 0) {
+        this.silent += 1;
+      }
+      this.damageSum = dsum;
       if (each) {
         each(s, i);
       }
@@ -181,6 +194,23 @@ export class Rig {
  * crash is. */
 const HOVER = 0.33;
 
+/* A Slow Stick in cruise met from below by a face closing at 5 cm/s, as
+ * scripts/crash-shell-identity.js's gate member does. mat -1 is the plain
+ * sim_contact_at with a gate's mu and e. */
+function grazeFromBelow(r, mat) {
+  r.pose([0, 0, 40], [1, 0, 0, 0]);
+  r.velocity([14, 0, 0]);
+  r.run(2600, [0, 0, 0, 0.5]);
+  const s = r.state();
+  const at = [s[1], s[2], s[3] - 0.05, s[4], s[5], s[6] + 0.05, 0, 0, -0.05];
+  if (mat < 0) {
+    r.sim.e.sim_contact_at(0, 0, 1, 0.22, 0.3, ...at);
+  } else {
+    r.sim.e.sim_contact_at_mat(0, 0, 1, mat, ...at);
+  }
+  r.run(1000, [0, 0, 0, 0.5]);
+}
+
 export const CRASH_SCENARIOS = [
   {
     name: 'under every limit, crash physics changes nothing',
@@ -198,13 +228,18 @@ export const CRASH_SCENARIOS = [
         ['a Cub lands on its wheels at 9 m/s', { id: 4 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.launch(9); r.run(6000); }],
         ['a Timber lands on its wheels at 9 m/s', { id: 7 }, (r) => { r.pose([0, 0, 0.35], [1, 0, 0, 0]); r.launch(9); r.run(6000); }],
         ['a Radian belly lands at 8 m/s', { id: 6 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.launch(8); r.run(4000); }],
+        /* A graze from below at 5 cm/s in cruise, which lands on the
+         * turning prop's lowest tip: under the blade's impact limit on any
+         * face, so nothing at all, whatever the face is made of. */
+        ['a Slow Stick grazed from below at 5 cm/s, prop turning', { id: 5 }, (r) => grazeFromBelow(r, -1)],
+        ['the same graze on a pvc gate', { id: 5 }, (r) => grazeFromBelow(r, SURFACE.pvc)],
       ];
       for (const [name, opts, fly] of cases) {
         const on = await mk({ ...opts, damage: 1 });
         const off = await mk({ ...opts, damage: 0 });
         fly(on);
         fly(off);
-        checks.push({ name: `${name}: trace identical with it on and off`, ok: on.plant.hex() === off.plant.hex() && on.events.length === 0, detail: `${on.plant.hex()} ${on.summary()}` });
+        checks.push({ name: `${name}: trace identical with it on and off`, ok: on.plant.hex() === off.plant.hex() && on.events.length === 0 && on.damageSum === 0, detail: `${on.plant.hex()} ${on.summary()}, damage ${on.damageSum.toExponential(1)}` });
       }
       return checks;
     },
@@ -244,9 +279,18 @@ export const CRASH_SCENARIOS = [
       const chips = r.count('chip') + r.count('break');
       const m = r.motors();
       const worst = Math.min(...m.map((x) => x.thrust));
+      /* The same on grass: a blade tip meeting grass is far under its
+       * impact limit at any speed, so the props come back unmarked. */
+      const g = await mk({ id: 0, ground: 'grass' });
+      g.pose([0, 0, 0.13], roll(65));
+      g.velocity([0, 0, -0.5]);
+      g.run(400, [0, 0, 0, 0.25]);
+      const grassChips = g.events.filter((e) => e.typeName === 'chip' && g.parts[e.part].kindName === 'prop').length;
       return [
         { name: 'the blades that touch are chipped or lost', ok: chips > 0 && (r.flags() & (DAMAGE_FLAGS.propChipped | DAMAGE_FLAGS.propLost)) !== 0, detail: r.summary() },
         { name: 'a chipped prop keeps less thrust and shakes more', ok: worst < 1 && m.some((x) => x.imbalance > 1 || x.thrust === 0), detail: m.map((x) => `${x.thrust.toFixed(2)}/${x.imbalance.toFixed(1)}`).join(' ') },
+        { name: 'on grass the same blades are not chipped', ok: grassChips === 0 && (g.flags() & DAMAGE_FLAGS.propChipped) === 0, detail: g.summary() },
+        { name: 'no damage is written before an event says so', ok: r.silent === 0 && g.silent === 0, detail: `${r.silent} and ${g.silent} silent steps` },
       ];
     },
   },

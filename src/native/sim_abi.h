@@ -769,7 +769,11 @@ int sim_parts_state(double *out);
 #define SIM_DAMAGE_EVENTS_MAX 64
 #define SIM_EVENT_BREAK 1  /* the joint failed: the part and its children left */
 #define SIM_EVENT_CRUSH 2  /* foam crushed, a permanent dent */
-#define SIM_EVENT_CHIP 3   /* a prop chipped: thrust down, imbalance up */
+#define SIM_EVENT_CHIP 3   /* a prop chipped: thrust down, imbalance up. A
+                            * spinning blade chips only past its tip's impact
+                            * limit, and each strike starts with an event; its
+                            * [3] is the impact stress over the blade's
+                            * strength */
 #define SIM_EVENT_BEND 4   /* an arm, boom or gear leg bent past yield */
 #define SIM_EVENT_KNOCK 5  /* a camera or antenna knocked askew */
 #define SIM_EVENT_CRACK 6  /* damage under the break: a part weakened */

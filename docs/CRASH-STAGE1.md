@@ -253,13 +253,41 @@ panel that meets a pole at speed leaves and the fuselage goes on.
 | Part | Onset, load over limit | What happens | Flight effect |
 | --- | --- | --- | --- |
 | prop | 0.33 | chip grows to 0.5 at the limit | thrust x (1 - 0.6 chip), torque x (1 - 0.5 chip), rotor inertia x (1 - 0.3 chip), gyro line x (1 + 25 chip) |
-| prop spinning in a contact | any contact | chip += (tip speed / 100 m/s)^2 x hardness x dt / 0.2 s | as above; lost at chip 1 |
+| prop spinning in a contact | the tip's impact stress over the blade's strength, 1 | chip += (tip speed / 100 m/s)^2 x hardness x dt / 0.2 s x (1 - strength / stress) | as above; lost at chip 1 |
 | arm | 0.60 | the mount twists in its clamp, up to 0.10 rad | that motor's thrust axis turns |
 | music wire (gear, struts) | 0.45, yield at 1 / 2.21 of the break | bends, up to 0.20 rad | recorded for the shell |
 | aluminium boom or gear | 0.70 | bends, up to 0.15 rad | recorded |
 | camera, antenna | 0.50 | knocked, up to 0.60 rad | the camera part's orientation: the FPV picture tilts |
 | anything else | 0.70 | cracks: its joint loses up to half its strength | the next hit breaks it sooner |
 | foam | the plateau force | crushes, below | the dent is stored |
+
+**A spinning blade chips only past its impact limit.** A blade tip that
+meets a surface at speed v is loaded, for the first instant, by the
+elastic impact of two half spaces, sigma = v Z_b Z_s / (Z_b + Z_s), Z = rho
+c each one's acoustic impedance (Goldsmith, Impact, 1960, ch. 4; Johnson,
+Impact Strength of Materials, 1972). The blade is glass filled nylon, PA6
+GF30 conditioned: 1360 kg/m^3, E 7.5 GPa, so Z_b = 3.19e6 Pa s/m, and a
+tensile strength of 120 MPa (the typical datasheet range for PA6 GF30, dry
+to conditioned, is about 9.5 to 6 GPa and 185 to 120 MPa; the weaker end,
+since a prop in service has taken up moisture). The surface's impedance is
+its blade hardness times concrete's, 2400 kg/m^3 at 3750 m/s, 9.0e6. That
+puts the limit at a 51 m/s tip on concrete, rock and metal, 52 on
+asphalt, 60 on wood, 64 on a generic obstacle, 71 on pvc and sand, 82 on
+dirt, and past 700 m/s, beyond any tip speed a hobby prop reaches, on
+grass, snow, foliage and water: props that brush grass at
+full power come back unmarked, props that touch concrete at hover come
+back nicked. DERIVED from the material data; the hardness column is still
+chosen (section 5). Under the limit a spinning contact writes nothing at
+all, so hardness changes the damage only through a contact past the limit.
+Past it the chip grows at the rate in the table, faded in from nothing at
+the limit, and a strike is one chip event when it starts (a blade that
+touches again within 20 ms is the same strike) and one more for every
+0.05 of chip after: a flight with no event is a flight nothing was written
+in. Before this a spinning contact on any face chipped: the crash shell's
+identity check found a Slow Stick grazed at 5 cm/s from below in cruise,
+its prop tip taking the contact, written 1.5e-4 of chip with no event and
+flying a different trace (round 1, `crash:core` now flies that graze on
+both a plain obstacle and a pvc gate and holds it identical).
 
 A part's damage is the largest of its crack, chip, crush over its depth
 and bend over its maximum, and 1 when it has left. Damage follows a

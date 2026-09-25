@@ -407,6 +407,7 @@ typedef struct {
   double crush;      /* m */
   double chip;       /* a prop's, 0..1 */
   double chip_evt;   /* the chip at its last event */
+  long long chip_step; /* the step of its last spinning chip, or -2 */
   double bend[3];    /* rotation vector, body frame, rad */
   double dent[3];    /* m, body frame */
   double energy;     /* J */
@@ -1015,6 +1016,7 @@ void crash_reset(void) {
     p->crush = 0.0;
     p->chip = 0.0;
     p->chip_evt = 0.0;
+    p->chip_step = -2;
     p->energy = 0.0;
     p->damage = 0.0;
     for (int a = 0; a < 3; a += 1) {
@@ -1437,6 +1439,26 @@ void crash_batch_begin(const SimState *s, int from_step) {
 #define CRACK_LOSS 0.50       /* strength a crack at the break would take */
 #define CHIP_SPIN_T 0.20      /* s of a (100 m/s)^2 tip on concrete to lose
                                * a blade set */
+/*
+ * A spinning blade chips only where its tip's impact stress passes the
+ * blade's strength. A blade tip meeting a surface at v is loaded, for the
+ * first instant, by the elastic impact of two half spaces, sigma = v Z_b
+ * Z_s / (Z_b + Z_s), Z = rho c the acoustic impedance of each (Goldsmith,
+ * Impact, 1960, ch. 4; Johnson, Impact Strength of Materials, 1972). The
+ * blade is glass filled nylon, PA6 GF30 conditioned: rho 1360 kg/m^3, E
+ * 7.5 GPa, tensile strength 120 MPa (the typical datasheet range, dry to
+ * conditioned, is 9.5 to 6 GPa and 185 to 120 MPa; the weaker end, since
+ * a prop in service has taken up moisture). The surface's impedance is
+ * its blade hardness times concrete's, 2400 kg/m^3 at 3750 m/s. On
+ * concrete that puts the limit at a 51 m/s tip, on grass, snow, foliage
+ * and water past any tip speed a hobby prop reaches, which is what pilots
+ * see: props that touch grass at full power come back unmarked, props that
+ * touch concrete at hover come back nicked. Under the limit a spinning
+ * contact writes nothing at all. docs/CRASH-STAGE1.md, Damage.
+ */
+#define BLADE_Z 3.194e6       /* sqrt(E rho), Pa s/m */
+#define CONCRETE_Z 9.0e6
+#define BLADE_STRENGTH 120.0e6
 #define BEARING_SHARE 0.02    /* a seating push, against the joint's limit */
 #define SEAT_GRIP 1.00        /* friction of a seated face on a rubber pad */
 
@@ -1727,9 +1749,22 @@ static void judge(SimState *s) {
       const double w = s->motor_omega[d->motor];
       double span = t->hi[i][1] - t->lo[i][1];
       if (t->hi[i][0] - t->lo[i][0] > span) span = t->hi[i][0] - t->lo[i][0];
-      const double vt = w * 0.5 * span / 100.0;
-      const double dc = vt * vt * SURF[x->surf].hard * SIM_DT / CHIP_SPIN_T;
+      const double tip = sim_fabs(w) * 0.5 * span;
+      const double zs = SURF[x->surf].hard * CONCRETE_Z;
+      const double sigma = tip * BLADE_Z * zs / (BLADE_Z + zs);
+      /* Past the limit the chip grows at the old rate, faded in from
+       * nothing at the limit so the damage is continuous in the load. */
+      const double over = sigma > BLADE_STRENGTH ? 1.0 - BLADE_STRENGTH / sigma : 0.0;
+      const double vt = tip / 100.0;
+      const double dc = vt * vt * SURF[x->surf].hard * SIM_DT / CHIP_SPIN_T * over;
       if (dc > 0.0) {
+        /* A spinning contact is one event when it starts and one more for
+         * every 0.05 of chip after, so a flight with no event is a flight
+         * no chip was written in. A blade bouncing on the surface touches
+         * every few steps; within 20 ms of its last touch it is the same
+         * strike, the window a host's contact call stands for. */
+        const int starts = p->chip_step < s->step_index - 20;
+        p->chip_step = s->step_index;
         p->chip += dc;
         changed = 1;
         if (p->chip >= 1.0) {
@@ -1743,12 +1778,12 @@ static void judge(SimState *s) {
             brk[nbrk].forced = 1;
             nbrk += 1;
           }
-        } else if (p->chip - p->chip_evt >= 0.05) {
+        } else if (starts || p->chip - p->chip_evt >= 0.05) {
           p->chip_evt = p->chip;
           p->damage = part_damage(i);
           double pw[3];
           world_of(s, bb[h], pw);
-          event_push(s, i, SIM_EVENT_CHIP, vt, norm(Fw), 0.0, 0.0, pw, x->n, x->vin, x->surf);
+          event_push(s, i, SIM_EVENT_CHIP, sigma / BLADE_STRENGTH, norm(Fw), 0.0, 0.0, pw, x->n, x->vin, x->surf);
         }
       }
     }
