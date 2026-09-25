@@ -810,7 +810,7 @@ export default {
   "main.vertical_chord_only_not_the_width": "vertical chord only, not the width of a yawed gate",
   "main.weight_changed_lap_voided": "Weight changed\nLap voided",
   "main.wrecked_lap_over": "Wrecked. Lap over",
-  "main.wrecked_r_resets": "WRECKED\nR back to the pad, X to fly on from here",
+  "main.wrecked_r_resets": "Wrecked. R back to the pad, X to fly on from here",
   "main.you_beat_the_ghost_at_by": "You beat the ghost, {who} at {formatTime}, by {v3}.",
   "main.your_best_this_session": "Your best this session",
   "main.your_edits": "your edits",

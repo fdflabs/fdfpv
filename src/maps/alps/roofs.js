@@ -474,6 +474,59 @@ export function gableSolids(rec, cut = cutOf(rec)) {
 }
 
 /*
+ * One roof as the crash physics' solids: each face a slab whose top is
+ * the face, SLAB_T thick, as an oriented box in world space, { c, u, n,
+ * v, hu, hn, hv }: centre, the unit axes (u across the slope's run, n out
+ * of the face, v = u x n) and the half extents along them. The plant's
+ * broken parts have no ground but the one plane under the craft, so a part
+ * that fell on a roof went through it onto the walls' tops at the plate,
+ * inside the house (src/main.js declares these). An old roof's dip is not
+ * carried: the slab is the straight plane, at most the dip over the tiles.
+ */
+const SLAB_T = 0.3;
+export function roofSlabs(rec) {
+  const out = [];
+  const turn = (x, y, z) => [rec.c * x + rec.s * z, y, -rec.s * x + rec.c * z];
+  const unit = (v) => {
+    const l = Math.hypot(v[0], v[1], v[2]);
+    return [v[0] / l, v[1] / l, v[2] / l];
+  };
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  for (const f of rec.faces) {
+    const n = unit([-f.a, 1, -f.b]);
+    const u = unit([1, f.a, 0]);
+    const v = [u[1] * n[2] - u[2] * n[1], u[2] * n[0] - u[0] * n[2], u[0] * n[1] - u[1] * n[0]];
+    const pts = f.pts.map(([x, z]) => [x, f.a * x + f.b * z + f.d, z]);
+    let u0 = Infinity;
+    let u1 = -Infinity;
+    let v0 = Infinity;
+    let v1 = -Infinity;
+    for (const p of pts) {
+      u0 = Math.min(u0, dot(p, u));
+      u1 = Math.max(u1, dot(p, u));
+      v0 = Math.min(v0, dot(p, v));
+      v1 = Math.max(v1, dot(p, v));
+    }
+    /* The face's own point on it at the middle of its extents. */
+    const um = (u0 + u1) / 2;
+    const vm = (v0 + v1) / 2;
+    const nm = dot(pts[0], n);
+    const c = [0, 1, 2].map((k) => u[k] * um + v[k] * vm + n[k] * (nm - SLAB_T / 2));
+    const w = turn(...c);
+    out.push({
+      c: [w[0] + rec.tx, w[1] + rec.ty + rec.lift, w[2] + rec.tz],
+      u: turn(...u),
+      n: turn(...n),
+      v: turn(...v),
+      hu: (u1 - u0) / 2,
+      hn: SLAB_T / 2,
+      hv: (v1 - v0) / 2,
+    });
+  }
+  return out;
+}
+
+/*
  * A solid part a builder noted in its own frame, { e, box, cover }: e the
  * frame's matrix elements (bake space, a turn about y and a move), box
  * [x0, y0, z0, x1, y1, z1] local to it, `lift` the datum its y is over.
@@ -603,6 +656,31 @@ export function makeRoofs(records) {
     /* Roof i's own top at (x, z), NaN off it: for the checks. */
     top(i, x, z) {
       return roofTop(records[i], x, z);
+    },
+    /*
+     * Every roof's slabs (roofSlabs) whose plan comes within `reach` of
+     * (x, z), each with its roof's material, but not the roof that covers
+     * a craft there from fromY (choose): it is the plant's ground plane, or
+     * about to be, and the craft would meet the slab's eave first.
+     */
+    slabs(x, z, fromY, reach, out) {
+      out.length = 0;
+      set.choose(x, z, fromY);
+      const ground = set.last;
+      records.forEach((r, i) => {
+        if (i === ground || x < r.minX - reach || x > r.maxX + reach || z < r.minZ - reach || z > r.maxZ + reach) {
+          return;
+        }
+        if (!r.slabs) {
+          r.slabs = roofSlabs(r);
+        }
+        const dx = Math.max(r.minX - x, 0, x - r.maxX);
+        const dz = Math.max(r.minZ - z, 0, z - r.maxZ);
+        for (const slab of r.slabs) {
+          out.push({ slab, material: r.material, d2: dx * dx + dz * dz });
+        }
+      });
+      return out;
     },
     /* The material of the roof under (x, z) whose top is y, or null. */
     materialAt(x, z, y) {

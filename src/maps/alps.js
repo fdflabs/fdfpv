@@ -316,6 +316,9 @@ export async function buildValley(shell, progress, q, style) {
     roofTop: (i, x, z) => roofs.top(i, x, z),
     /* What a roof the craft is on covers, for the crash physics' solids. */
     coveredAt: (x, z, fromY) => roofs.covered(x, z, fromY),
+    /* The roofs as solids for the crash physics' broken parts, all but
+     * the one a craft at (x, z) from fromY stands on (roofs.js). */
+    roofSlabs: (x, z, fromY, reach, out) => roofs.slabs(x, z, fromY, reach, out),
     /* What the ground is, for the crash physics (src/game/crashworld.js):
      * a roof's covering where y is a roof's top, else read off the same
      * zones the ground is painted by, so the snow a wing digs into is the

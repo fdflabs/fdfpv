@@ -3577,7 +3577,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* What coveredAt answered when the solids were declared: the same array
    * for the same roof and extent, which is how a change is seen. */
   let crashCovered = null;
+  const slabPick = [];
+  const slabBasis = new THREE.Matrix4();
+  const slabQuat = new THREE.Quaternion();
+  const slabU = new THREE.Vector3();
+  const slabN = new THREE.Vector3();
+  const slabV = new THREE.Vector3();
   const passSet = [];
+  /* The posts and bars declared to the plant, which the sweep passes
+   * (plantHoldsSolid): cleared at every declaration, which the cover watch
+   * makes between two refreshes of the trees. */
+  const solidPassSet = [];
   let crashWorldPhase = 0;
   let crashWorldX = NaN;
   let crashWorldZ = NaN;
@@ -3623,6 +3633,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* A chipping prop reports every step it grinds; one tick and one spray of
    * grit per this many ms is what the ear and the eye resolve. */
   const CHIP_CUE_GAP_MS = 45;
+
+  /* The drawn ground a broken piece rests on, or null on water, which a
+   * piece may lie in (src/render/wreck.js). */
+  function pieceGround(x, z, fromY) {
+    const h = view.height(x, z, fromY);
+    const w = view.water && view.water.length ? waterAt(x, z) : null;
+    return w && h <= w.surfaceY + 1e-6 ? null : h;
+  }
 
   function plantToWorld(px, py, pz, qw, qx, qy, qz, outPos, outQuat) {
     simPosToThree(px, py, pz + SPAWN_ALT, outPos);
@@ -3697,6 +3715,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
     }
     passSet.length = 0;
+    clearSolidPass();
+  }
+
+  function clearSolidPass() {
+    const pass = view.colliders && view.colliders.pass;
+    for (const i of solidPassSet) {
+      if (pass) {
+        pass[i] = 0;
+      }
+    }
+    solidPassSet.length = 0;
   }
 
   function clearCrashWorld() {
@@ -3748,8 +3777,59 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
   }
 
+  /*
+   * THE STEP TRACE, harness only (window.__stepTrace): from a throw, per sim
+   * step, a hash of the plant's state going into the step (after anything
+   * the shell did to it), of the ground plane the shell handed it for the
+   * step, and of the state coming out. Two stagings of one crash compared
+   * step by step say where they part: a step whose inputs hash the same and
+   * whose output does not is the plant's; one whose input already differs
+   * is the shell's.
+   */
+  const TRACE_STEPS = 12000;
+  const stepTrace = {
+    on: false, n: 0, ground: 0,
+    pre: new Int32Array(TRACE_STEPS), plane: new Int32Array(TRACE_STEPS), post: new Int32Array(TRACE_STEPS),
+  };
+  const traceWords = new Int32Array(new Float64Array(1).buffer);
+  const traceBits = new Float64Array(traceWords.buffer);
+  function traceHash(h, v) {
+    traceBits[0] = v;
+    h = Math.imul(h ^ traceWords[0], 0x01000193);
+    return Math.imul(h ^ traceWords[1], 0x01000193);
+  }
+  function traceState(st) {
+    let h = 0x811c9dc5 | 0;
+    for (let k = 0; k < 18; k += 1) {
+      h = traceHash(h, st[k]);
+    }
+    return h;
+  }
+  /* And every stick frame handed to the plant, [t s, roll, pitch, yaw,
+   * throttle]: the one input the step hashes do not carry. */
+  const TRACE_INPUTS = 4000;
+  const inputTrace = [];
+  function traceInput(ts, roll, pitch, yaw, throttle) {
+    if (stepTrace.on && inputTrace.length < TRACE_INPUTS) {
+      inputTrace.push([ts, roll, pitch, yaw, throttle]);
+    }
+  }
+  function tracePre(st) {
+    if (stepTrace.on && stepTrace.n < TRACE_STEPS) {
+      stepTrace.pre[stepTrace.n] = traceState(st);
+      stepTrace.plane[stepTrace.n] = stepTrace.ground;
+    }
+  }
+  function tracePost(st) {
+    if (stepTrace.on && stepTrace.n < TRACE_STEPS) {
+      stepTrace.post[stepTrace.n] = traceState(st);
+      stepTrace.n += 1;
+    }
+  }
+
   /* After every sim_step(1) with the mode on: the events, and the world. */
   function crashAfterStep(st) {
+    tracePost(st);
     damage.drain(onDamageEvent);
     if (partsLeft) {
       syncCraftParts(st);
@@ -3833,6 +3913,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * flight. */
   function declareCrashSolids() {
     const col = view.colliders;
+    clearSolidPass();
     sim.e.sim_obstacle_clear();
     crashSolidsDeclared = 0;
     const covered = view.coveredAt
@@ -3853,13 +3934,87 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         crashSkip[i] = 0;
       }
     }
+    if (view.roofSlabs) {
+      view.roofSlabs(crashProbe.x, crashProbe.z, crashProbe.y - SURFACE_BIAS, SOLID_REACH, slabPick);
+      slabPick.sort((a, b) => a.d2 - b.d2);
+    } else {
+      slabPick.length = 0;
+    }
     boxQuat.copy(qSpawnInv);
-    for (const { i } of solidPick) {
+    /* The solids and the roofs, nearest first, as many as the plant holds. */
+    let si = 0;
+    let ri = 0;
+    while (si < solidPick.length || ri < slabPick.length) {
+      const roof = ri < slabPick.length && (si >= solidPick.length || slabPick[ri].d2 < solidPick[si].d2);
+      if (roof) {
+        if (declareSlab(slabPick[ri]) < 0) {
+          break;
+        }
+        ri += 1;
+        crashSolidsDeclared += 1;
+        continue;
+      }
+      const i = solidPick[si].i;
+      si += 1;
       if (declareSolid(col, i) < 0) {
         break;
       }
       crashSolidsDeclared += 1;
+      if (plantHoldsSolid(col, i)) {
+        col.pass[i] = 1;
+        solidPassSet.push(i);
+      }
     }
+  }
+
+  /*
+   * A ROOF IS A SOLID FOR THE BROKEN PARTS. The craft stands on a roof
+   * through the plant's ground plane (src/maps/alps/roofs.js), but a free
+   * part has no ground but that one plane under the craft, and the roof was
+   * declared to the plant as nothing: a Cub's aileron that fell on a roof
+   * beside the craft went through the tiles and came to rest on the walls'
+   * tops at the plate, five metres up inside the house. Each face is a slab
+   * under the tiles (roofSlabs), in the roof's own material; the roof the
+   * craft stands on is left to the ground plane.
+   */
+  function declareSlab({ slab, material }) {
+    worldPosToSim(slab.c[0], slab.c[1], slab.c[2], crashSimA);
+    slabU.set(slab.u[0], slab.u[1], slab.u[2]);
+    slabN.set(slab.n[0], slab.n[1], slab.n[2]);
+    slabV.set(slab.v[0], slab.v[1], slab.v[2]);
+    slabBasis.makeBasis(slabU, slabN, slabV);
+    slabQuat.setFromRotationMatrix(slabBasis).premultiply(qSpawnInv);
+    /* As declareSolid's boxes: the plant box's x is the slab's v (Three z),
+     * its y the slab's u (Three x), its z the slab's normal (Three y). */
+    return sim.e.sim_obstacle_box(
+      crashSimA.x, crashSimA.y, crashSimA.z,
+      slab.hv, slab.hu, slab.hn,
+      slabQuat.w, -slabQuat.z, -slabQuat.x, slabQuat.y,
+      SURFACE[material] ?? SURFACE.concrete,
+    );
+  }
+
+  /*
+   * A POST OR A BAR THE PLANT HOLDS IS THE PLANT'S ALONE. Its parts meet
+   * it through their own springs, so they go into it a little, and the
+   * host's sweep read that as a craft buried in a pole: it dropped the
+   * contact (crash_contact_known) but then put the craft back out along
+   * the pole's radius and carried its travel round the face, a few
+   * centimetres sideways every 4 ms. A Cub's wing at 0.3 to 0.6 m out slid
+   * round a power pole that way with no damage at all. The sweep lets these
+   * through, as it does a tree's crown. A box is still met by both: its top
+   * is ground the shell perches on (a deck, a car roof, a roof's walls) and
+   * a ball is declared as a cylinder, so neither is the same solid in the
+   * plant.
+   */
+  function plantHoldsSolid(col, i) {
+    if (col.fbox[i]) {
+      return false;
+    }
+    const dx = col.fbx[i] - col.fax[i];
+    const dy = col.fby[i] - col.fay[i];
+    const dz = col.fbz[i] - col.faz[i];
+    return dx * dx + dy * dy + dz * dz >= 1e-6;
   }
 
   /* One collider as a solid for the free bodies. Returns the module's
@@ -3923,7 +4078,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (crashLog.length < CRASH_LOG_MAX) {
       const p = partTable[ev[o + EVENT.part]];
       crashLog.push({
-        t: stateCurr ? stateCurr[0] : 0,
+        /* The step it happened in, from the module: the shell's own
+         * stateCurr is only refreshed per frame and per contact pass, so
+         * two stagings of one crash logged one break 3 ms apart. */
+        t: ev[o + EVENT.step] / SIM_HZ,
         part: p ? partLabel(p.kind, p.cg[0], p.cg[1], !airframeById(runAirframe).fixedWing) : String(ev[o + EVENT.part]),
         type: EVENT_TYPES[type] ?? String(type),
         ratio: ev[o + EVENT.ratio],
@@ -4006,7 +4164,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     lastParts = crashFlags ? damage.parts() : null;
     crashEntries(crashFlags & ~before, nowWall);
     if (lastParts) {
-      wreckRig.update(lastParts, damage.count(), stateCurr, plantToWorld);
+      wreckRig.update(lastParts, damage.count(), stateCurr, plantToWorld, pieceGround);
     }
     fpvFail.set(
       (crashFlags & DAMAGE_FLAGS.antennaLost) !== 0,
@@ -6716,6 +6874,30 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function sampleGroundNormalFromState(st) {
     poseFromState(st, pProbe);
     sampleGroundNormal(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS, groundNWorld);
+    groundNormalAtX = pProbe.x;
+    groundNormalAtZ = pProbe.z;
+  }
+
+  /*
+   * WHEN THE SLOPE IS SAMPLED IS THE SIM CLOCK'S, not the frame's. It was
+   * the first step of every frame and every eighth step after it, so the
+   * plane the plant stood on changed at steps that depended on how the
+   * frames fell: two stagings of one crash on the swiss2 grass handed the
+   * plant different ground from the 34th step on (scripts/crash-feel.js
+   * --repeat). Every eighth step of the plant's own count now, and at once
+   * when the craft has been put somewhere else (a throw, a reset) or is
+   * over on its side, where the old rule sampled every step too.
+   */
+  let groundNormalAtX = NaN;
+  let groundNormalAtZ = NaN;
+  function groundNormalDue(st) {
+    if (Math.round(st[0] * SIM_HZ) % 8 === 0 || plantUpZ(st) < 0.5) {
+      return true;
+    }
+    poseFromState(st, pProbe);
+    const dx = pProbe.x - groundNormalAtX;
+    const dz = pProbe.z - groundNormalAtZ;
+    return !(dx * dx + dz * dz < 1);
   }
 
   function raiseGroundFromState(st) {
@@ -6754,6 +6936,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const code = sim.e.sim_set_ground(
       1, nSim.x, nSim.y, nSim.z, pSim.x, pSim.y, pSim.z, GROUND_MU, GROUND_E,
     );
+    if (stepTrace.on) {
+      let h = traceHash(0x811c9dc5 | 0, nSim.x);
+      h = traceHash(traceHash(h, nSim.y), nSim.z);
+      stepTrace.ground = traceHash(traceHash(traceHash(h, pSim.x), pSim.y), pSim.z);
+    }
     if (runDamage) {
       declareGroundMaterial(pProbe.x, pProbe.z, hy);
     }
@@ -7762,6 +7949,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           const ts = rcNextMs / 1000;
           lastTs = ts;
           const ax = applyTurtleRc(held.roll, held.pitch);
+          traceInput(ts, ax[0], ax[1], held.yaw, held.throttle);
           const inCode = sim.input(ts, ax[0], ax[1], held.yaw, held.throttle);
           if (inCode !== SIM_OK) {
             adoptSimClock();
@@ -7786,6 +7974,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           }
           lastTs = ts;
           const ax = applyTurtleRc(pkt.rc.roll, pkt.rc.pitch);
+          traceInput(ts, ax[0], ax[1], pkt.rc.yaw, pkt.rc.throttle);
           const inCode = sim.input(ts, ax[0], ax[1], pkt.rc.yaw, pkt.rc.throttle);
           if (inCode !== SIM_OK) {
             adoptSimClock();
@@ -7811,7 +8000,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           }
         } else {
           let stNow = stateCurr;
-          sampleGroundNormalFromState(stNow);
           /*
            * Inbound closing has to be sampled BEFORE sim_step. Ground
            * contact runs inside the 1 ms step, so by the time the frame
@@ -7823,7 +8011,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           peakGroundSpeed = 0;
           sawGroundHit = false;
           for (let i = 0; i < steps; i += 1) {
-            if (i === 0 || (i & 7) === 0 || plantUpZ(stNow) < 0.5) {
+            if (groundNormalDue(stNow)) {
               sampleGroundNormalFromState(stNow);
             }
             const vzBefore = stNow[6];
@@ -7831,6 +8019,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
               stNow[4] * stNow[4] + stNow[5] * stNow[5] + stNow[6] * stNow[6],
             );
             raiseGroundFromState(stNow);
+            tracePre(stNow);
             sim.step(1);
             stNow = readState();
             if (runDamage) {
@@ -9260,7 +9449,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     } else if (crashed && ui.screen === 'flight') {
       ui.setBanner('Crashed', true);
     } else if (wreckDown(nowWall) && ui.screen === 'flight') {
-      ui.setBanner(str('main.wrecked_r_resets'), true);
+      ui.setBanner(str('main.wrecked_r_resets'), 'edge');
     } else if (
       (turtleWait || turtleRecover || turtleFlip.active)
       && ui.screen === 'flight'
@@ -9330,7 +9519,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     } else if (guidedText) {
       ui.setBanner(guidedText);
     } else if (lapFlash) {
-      ui.setBanner(lapFlash);
+      /* A wreck's "lap over" is about the craft the camera is on. */
+      ui.setBanner(lapFlash, wrecked ? 'edge' : false);
     } else {
       ui.setBanner('');
     }
@@ -10289,6 +10479,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   window.__crash = () => crashSummary();
   window.__crashThrow = (o) => {
     crashCamShowsCraft = o.showCraft !== false;
+    /* `fresh` puts the plant back to its first step first, as R does, so
+     * the throw starts from the same plant whatever the craft did on the
+     * pad before it: an aircraft on floats rocks on the lake from the
+     * moment R puts it there, and was thrown after however many steps of
+     * that the wall clock allowed. */
+    if (o.fresh) {
+      resetCraft(null);
+    }
     const placed = window.__placeCraft(o.x, o.y, o.z);
     if (!placed || placed.ok === false) {
       return placed;
@@ -10313,6 +10511,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     contactLog.length = 0;
     crashLog.length = 0;
     contactLogOn = true;
+    stepTrace.on = true;
+    stepTrace.n = 0;
+    inputTrace.length = 0;
     stateCurr = readState();
     statePrev = stateCurr;
     /* The attitude every collider query reads, which the frame loop
@@ -10368,6 +10569,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * m/s, surface }. A break cues the snap, a crush the crunch, a chip the
    * chip, water the splash. */
   window.__crashLog = () => crashLog.slice();
+  /* The step trace since the last throw (THE STEP TRACE): per step, the
+   * hashes of the state in, the ground plane, the state out. */
+  window.__stepTrace = () => ({
+    n: stepTrace.n,
+    pre: Array.from(stepTrace.pre.subarray(0, stepTrace.n)),
+    plane: Array.from(stepTrace.plane.subarray(0, stepTrace.n)),
+    post: Array.from(stepTrace.post.subarray(0, stepTrace.n)),
+    inputs: inputTrace.slice(),
+  });
   /*
    * Which tune the module is actually running, read back from the module
    * rather than from the menu, plus the config coverage counters from

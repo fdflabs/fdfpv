@@ -864,6 +864,17 @@
         transition: opacity 0.18s ease; text-shadow: 0 3px 10px rgba(0,0,0,0.9);
         max-width: min(92vw, 22em);
       }
+      /* One line under the OSD's top block, for a message about a craft the
+         camera is looking at. The panel sat over the middle third, and the
+         chase camera aims at the wreck, so a pilot watching a crash settle
+         watched a box instead. 150 px clears the top block with a race's
+         gate, best and ghost lines under the timer. */
+      .banner.edge {
+        top: calc(var(--bar-top) + 150px); transform: translate(-50%, 0);
+        font-size: clamp(14px, 1.9vw, 18px); letter-spacing: 0.03em; line-height: 1.3;
+        padding: 3px 12px; border-radius: 4px; background: rgba(16, 22, 17, 0.62);
+        max-width: min(92vw, 40em); width: max-content;
+      }
 
       /* Screens. */
       .screen {
