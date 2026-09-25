@@ -536,8 +536,6 @@ function doorway(wall, x, w, h, { key = 'boardLine', step = 'stone', y0 = SOCLE 
  * wall frame's +z is out of the wall; the balcony hangs at y = 0.
  */
 function balcony(wall, len, { out = 1.3, board = 'larch' } = {}) {
-  /* Solid as a wall, deck to rail, under the eaves (roofs.js). */
-  wall.solid(-len / 2, -0.12, 0, len / 2, 1.05, out);
   wall.put('boardLine', box(len, 0.12, out), 0, 0.06, out / 2);
   /* The balustrade is boarded in the house's own timber with a dark
    * rail over it; a dark panel the whole width reads as a hole. */

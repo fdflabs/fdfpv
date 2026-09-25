@@ -140,7 +140,7 @@ function house(m, heightAt, rng, spec) {
   box(m, at(0, (low - y0) / 2, 0), ex, ey, ez, w / 2 + 0.12, (y0 - low) / 2 + 0.02, d / 2 + 0.12, STONE);
   /* What collides (alps/roofs.js): the roof as ground over the walls, in
    * the house's own frame (a along ex is the frame's x, c along ez its
-   * z), the balconies as walls and the chimney standing on the roof. */
+   * z), and the chimney standing on the roof. */
   const solid = { parts: [], e: frameElements(x, y0, z, -yaw) };
   const part = (x0, y0p, z0, x1, y1, z1, cover = true) => solid.parts.push({ e: solid.e, box: [x0, y0p, z0, x1, y1, z1], cover });
   for (let s = 0; s < floors; s += 1) {
@@ -210,7 +210,6 @@ function house(m, heightAt, rng, spec) {
       break;
     }
     const out = 1.15;
-    part(-w / 2 - 0.3, fl - 0.08, -d / 2 - out, w / 2 + 0.3, fl + 1.1, -d / 2);
     box(m, at(0, fl, -d / 2 - out / 2), ex, ey, ez, w / 2 + 0.3, 0.08, out / 2, shade(HONEY, 0.8));
     box(m, at(0, fl + 0.55, -d / 2 - out + 0.04), ex, ey, ez, w / 2 + 0.3, 0.47, 0.04, shade(HONEY, 1.1), [1, 1, 1, 0.6, 1, 0.8]);
     for (const sx of [-1, 1]) {

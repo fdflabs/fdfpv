@@ -261,8 +261,6 @@ export function doorway(wall, x, w, h, { key = 'larchDark', frameKey = 'larch', 
  * the rail and a red line along it are all there is (near-only keys).
  */
 export function balcony(wall, len, { out = 1.3, board = 'larch', flowers = true } = {}) {
-  /* Solid as a wall, deck to rail, under the eaves (alps/roofs.js). */
-  wall.solid(-len / 2, -0.3, 0, len / 2, 1.08, out);
   wall.put(board, box(len, 0.14, out), 0, 0.07, out / 2);
   wall.put('shade', box(len - 0.1, 0.84, 0.03), 0, 0.14 + 0.42, out - 0.12);
   wall.put(detail('baluster'), balusterRow(len - 0.1, 0.82), 0, 0.14, out - 0.08);

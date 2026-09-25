@@ -77,11 +77,12 @@ The walls under a roof stay walls: the walls up to the plate and a thin
 wall under each gable, in axis aligned boxes held into the shell and never
 over its upper face, with the building's old keep out box noted as its
 footprint so nothing placed round it moved, and none noted for a building
-that never had one. A building's other solid
-parts, noted by its builder in its own frame, are walls too: balconies,
-the bus shelter's three walls, a lean-to's posts, a woodshed's walls and
-wood, a spire's inside (its faces are too steep to be ground a fast craft
-meets level), and chimneys. The attic is left empty; the roof shell over
+that never had one. A building's other solid parts, noted by its builder
+in its own frame, are walls too: the bus shelter's three walls, a
+lean-to's posts, a woodshed's walls and wood, a spire's inside (its faces
+are too steep to be ground a fast craft meets level), and chimneys. The
+balconies are not: a box against a wall's face made an inside corner a
+wreck was pushed out of into the wall. The attic is left empty; the roof shell over
 it is ground the plant keeps a craft out of from above. On the city the
 walls are the collider fit's, untouched, and the gables its roof lift
 stopped short of are closed the same way.

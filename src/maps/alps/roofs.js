@@ -33,10 +33,13 @@
  * slope, so a roof that is the craft's ground lends its solids the
  * collider's pass flag (cover()) and the plant's contact with the roof
  * plane is the only contact there is. A building's other solid parts (a
- * balcony under the eaves, a bus shelter's three walls, a church tower) are
+ * bus shelter's three walls, a lean-to's posts, a spire's inside) are
  * noted by its builder as boxes in its own frame and stood the same way
  * (partSolids); a chimney through the roof is one too, and stays solid
- * while the roof is ground, because it stands on the roof.
+ * while the roof is ground, because it stands on the roof. A balcony is
+ * not: a box against the wall's face made an inside corner a wreck was
+ * pushed out of into the wall (a Cub into a swiss2 house's eave wall came
+ * out inside the house), so the balconies stay drawn and not solid.
  *
  * Everything evaluated per step is + - * / and comparisons on numbers fixed
  * when the map was built, so the ground the plant is given is the same on
