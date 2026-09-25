@@ -1395,7 +1395,22 @@ void crash_contact_depth(double pen) {
  */
 #define SPRING_GOING 0.05
 
-static void spring_pre(int i, double k, double vin, double kn, double *e_used, double *jn_cap) {
+/* The spring a part meets the ground through, at depth x: its own and the
+ * surface's in series, k1, over its travel tr, and past that the stiffer
+ * airframe behind it as well, k2. A stiff part's travel is unbounded. */
+static double g_sp_k1, g_sp_k2, g_sp_tr;
+static int g_sp_stiff = -1;       /* the stiffer part past the travel, or -1 */
+static double g_sp_bstiff[3];     /* its point, body live */
+static double g_sp_frac = 1.0;    /* the soft part's share of the force */
+
+static double spring_force(double x) {
+  if (!(x > g_sp_tr)) {
+    return g_sp_k1 * x;
+  }
+  return g_sp_k1 * g_sp_tr + g_sp_k2 * (x - g_sp_tr);
+}
+
+static void spring_pre(int i, double vin, double kn, double *e_used, double *jn_cap) {
   const unsigned int bit = 1u << i;
   if (g_pen > g_batch_pen[i]) {
     g_batch_pen[i] = g_pen;
@@ -1411,7 +1426,7 @@ static void spring_pre(int i, double k, double vin, double kn, double *e_used, d
       }
       return;
     }
-    const int held = !((1.0 + *e_used) * vin / kn > k * g_batch_pen[i] * g_batch_dt);
+    const int held = !((1.0 + *e_used) * vin / kn > spring_force(g_batch_pen[i]) * g_batch_dt);
     if (!going && held) {
       return;
     }
@@ -1431,9 +1446,36 @@ static void spring_pre(int i, double k, double vin, double kn, double *e_used, d
     }
     g_spring_npts[i] += 1;
   }
-  const int share = g_spring_npts_last[i] > 1 ? g_spring_npts_last[i] : 1;
-  double cap = k * g_batch_pen[i] * g_batch_dt - g_crush_used[i];
-  const double own = k * g_pen * g_batch_dt / (double)share;
+  /* How many points it meets the ground at: those the last step met, and
+   * in the first step of a contact its hull points within the attribution
+   * band of its lowest, so the first corner the solver visits does not
+   * take the whole blow on a pack landed flat. */
+  int share = g_spring_npts_last[i];
+  {
+    const Table *t = tab();
+    double hmax = -1.0e9;
+    int band = 0;
+    for (int q = 0; q < t->p[i].npts; q += 1) {
+      double p[3];
+      live_pt(t->p[i].pts[q], p);
+      const double h = -dot(g_att_nb, p);
+      if (h > hmax) hmax = h;
+    }
+    for (int q = 0; q < t->p[i].npts; q += 1) {
+      double p[3];
+      live_pt(t->p[i].pts[q], p);
+      band += -dot(g_att_nb, p) >= hmax - ATTR_BAND;
+    }
+    if (band > share) share = band;
+  }
+  if (share < 1) share = 1;
+  {
+    const double x = g_batch_pen[i];
+    const double ft = spring_force(x);
+    g_sp_frac = x > g_sp_tr && ft > 0.0 ? g_sp_k1 * x / ft : 1.0;
+  }
+  double cap = spring_force(g_batch_pen[i]) * g_batch_dt - g_crush_used[i];
+  const double own = spring_force(g_pen) * g_batch_dt / (double)share;
   if (cap > own) {
     cap = own;
   }
@@ -1458,6 +1500,16 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
     return;
   }
   attribute(s, r, n);
+  if (g_surf_ground) {
+    /* The depth the spring is at is the part's own point's: the solver's
+     * box corner can stand some way past a round prop disc or a tapered
+     * nose, and a spring taken at the corner's depth pushes as if the part
+     * were that far in. */
+    double rb[3];
+    qrot_inv(s->quat, r, rb);
+    const double past = dot(g_att_nb, g_att_b) - dot(g_att_nb, rb);
+    g_pen = past > 0.0 && past < g_pen ? g_pen - past : (past > 0.0 ? 0.0 : g_pen);
+  }
   const Table *t = tab();
   const int i = g_att_part;
   const PartDef *d = &t->p[i];
@@ -1496,15 +1548,66 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
       return;
     }
   }
-  /* A part softer than the ground (a blade, a whip, a wing's tip, a wire
-   * leg) bends, and the stiffer airframe behind it is what stops the craft;
-   * how far it bends before that is not in the tables, so its contact stays
-   * the rigid one. The whoop the shell flies lives in a room scaled 3.43
-   * times, whose floor the surfaces table does not scale; it keeps the
-   * rigid contact too. */
-  if (g_surf_ground && d->k >= SURF[g_surf].k && tab() != &T_WHOOP_SCALED) {
-    spring_pre(i, k, vin, kn, e_used, jn_cap);
+  /* A part meets the ground through its own spring and the surface's in
+   * series. It gives until the stiffer airframe behind it meets the
+   * ground too: its travel is how far it stands out past the stiffer parts
+   * along the contact, from the parts' own hulls, and past it the one of
+   * them that stands out furthest adds its spring. The stiffest part has no
+   * travel to run out of. A slender wire (a whip, a gear leg) keeps the
+   * rigid contact: loaded along its length it buckles and folds over,
+   * which is not a spring, and what it then carries is not in the tables
+   * (round 3 sprung it too, and the taildraggers' wire gear broke the wing
+   * off on a nose over and the five inch's whip broke on its back, both
+   * against their references). The whoop the shell flies
+   * lives in a room scaled 3.43 times, whose floor the surfaces table does
+   * not scale; it keeps the rigid contact. */
+  if (!g_surf_ground || tab() == &T_WHOOP_SCALED) {
+    return;
   }
+  if (d->mat == SIM_MAT_WIRE) {
+    return;
+  }
+  g_sp_k1 = k;
+  g_sp_k2 = k;
+  g_sp_tr = 1.0e9;
+  g_sp_stiff = -1;
+  g_sp_frac = 1.0;
+  const double mn[3] = { -n[0], -n[1], -n[2] };
+  double db[3];
+  qrot_inv(s->quat, mn, db);
+  double h_part = -1.0e9, h_stiff = -1.0e9;
+  int stiff = -1;
+  for (int j = 0; j < t->n; j += 1) {
+    if (!attached(j) || !(t->p[j].k > d->k)) {
+      continue;
+    }
+    for (int q = 0; q < t->p[j].npts; q += 1) {
+      double p[3];
+      live_pt(t->p[j].pts[q], p);
+      const double h = dot(db, p);
+      if (h > h_stiff) {
+        h_stiff = h;
+        stiff = j;
+        g_sp_bstiff[0] = p[0];
+        g_sp_bstiff[1] = p[1];
+        g_sp_bstiff[2] = p[2];
+      }
+    }
+  }
+  if (stiff >= 0) {
+    for (int q = 0; q < d->npts; q += 1) {
+      double p[3];
+      live_pt(d->pts[q], p);
+      const double h = dot(db, p);
+      if (h > h_part) {
+        h_part = h;
+      }
+    }
+    g_sp_tr = h_part > h_stiff ? h_part - h_stiff : 0.0;
+    g_sp_k2 = k + series_k(t->p[stiff].k, SURF[g_surf].k);
+    g_sp_stiff = stiff;
+  }
+  spring_pre(i, vin, kn, e_used, jn_cap);
 }
 
 /*
@@ -1559,6 +1662,24 @@ double crash_settle_mu(const SimState *s, const double n[3], double mu) {
   return face_mu(g_ground_mat, flatness(tab(), g_att_part, g_att_nb), mu);
 }
 
+static void hit_add(Hit *h, double jn, const double jt[3], const double n[3], const double b[3],
+                    const double rb[3], double vin) {
+  h->jn += jn;
+  for (int a = 0; a < 3; a += 1) {
+    h->J[a] += jn * n[a] + jt[a];
+    h->bsum[a] += jn * b[a];
+    h->rsum[a] += jn * (rb[a] + g_shift[a]);
+  }
+  if (vin > h->vin) {
+    h->vin = vin;
+  }
+  if (h->n[0] == 0.0 && h->n[1] == 0.0 && h->n[2] == 0.0) {
+    h->n[0] = n[0];
+    h->n[1] = n[1];
+    h->n[2] = n[2];
+  }
+}
+
 void crash_contact_post(const SimState *s, const double r[3], const double n[3],
                         double vin, double kn, double jn, const double jt[3]) {
   (void)kn;
@@ -1581,24 +1702,25 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
       h->fc = g_capped_fc;
     }
   }
-  h->jn += jn;
-  for (int a = 0; a < 3; a += 1) {
-    h->J[a] += jn * n[a] + jt[a];
-    h->bsum[a] += jn * g_att_b[a];
-  }
   double rb[3];
   qrot_inv(s->quat, r, rb);
-  for (int a = 0; a < 3; a += 1) {
-    h->rsum[a] += jn * (rb[a] + g_shift[a]);
+  /* Past a soft part's travel the stiffer part behind it bears the rest of
+   * the spring's force at its own point: the soft part carries only its
+   * own spring's share through its joint. */
+  double f = 1.0;
+  if (g_soft_now && g_sp_stiff >= 0 && g_sp_frac < 1.0) {
+    f = g_sp_frac;
+    Hit *hs = hit_get(g_sp_stiff, 0);
+    if (hs) {
+      const double js[3] = { (1.0 - f) * jt[0], (1.0 - f) * jt[1], (1.0 - f) * jt[2] };
+      hs->soft = 1;
+      hit_add(hs, (1.0 - f) * jn, js, n, g_sp_bstiff, rb, vin);
+    } else {
+      f = 1.0;
+    }
   }
-  if (vin > h->vin) {
-    h->vin = vin;
-  }
-  if (h->n[0] == 0.0 && h->n[1] == 0.0 && h->n[2] == 0.0) {
-    h->n[0] = n[0];
-    h->n[1] = n[1];
-    h->n[2] = n[2];
-  }
+  const double jp[3] = { f * jt[0], f * jt[1], f * jt[2] };
+  hit_add(h, f * jn, jp, n, g_att_b, rb, vin);
 }
 
 void crash_force_note(const SimState *s, const double r[3], const double F[3], int part) {
