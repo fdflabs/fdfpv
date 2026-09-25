@@ -285,3 +285,43 @@ large plain walls, the bus as the square-eye foreground, streets
 without people or clutter), the lake edge and near strip floor, and the
 aircraft in swiss2 now that the new airframes have landed (a
 photoreal pass on the plane you fly).
+
+### Round 6 (PRs #31, #32, #33, main at the merge of #33)
+
+Craft (#31): every aircraft restyled to physically based materials in
+swiss2 through one shell hook, the cel maps pixel identical, and a 14th
+view, `craft-chase`. Village (#32): house by house facades, geraniums,
+ivy, gardens, the café, the flag, kerbs and drains, twelve people, the
+PostAuto yellow. Near ground (#33): a mown runway with wheel tracks and
+long grass past the cones, contact darkening under a parked craft, the
+scalloped grass cells gone, continuous mower bars, a lake edge with
+stones under the shallows, caustics, a wet line, driftwood, lilies.
+
+| View | R5 | R6 | The tell now |
+| --- | --- | --- | --- |
+| strip | 5.5 | 6 | a runway at last |
+| vista-high | 7 | 7 | |
+| cruise | 7 | 7 | |
+| village-20m | 5 | 5.5 | gardens and colour |
+| square-eye | 4.5 | 5.5 | people, café, flag |
+| meadow-eye | 6 | 6 | |
+| east-wall | 6.5 | 6.5 | walls are smooth slopes, not cliffs |
+| lake-shore | 5.5 | 5.5 | |
+| lake-high | 6 | 6 | the water is grey blue, not glacial |
+| waterfall | 5.5 | 5.5 | the wall is a dark smooth slope |
+| into-sun | 6 | 6 | |
+| farm-low | 5.5 | 5.5 | the reference is a barn; none in frame |
+| lake-edge | 5 | 5 | grey water, a flat shore |
+| craft-chase | | 5.5 | new: a real foam plane; the grass sits flat |
+
+Mean of the thirteen: 5.77 to 5.92 (with craft-chase, 5.89). Gate
+held: no view lower; at most 241 calls and 1.85 M triangles; alps
+fingerprint unchanged.
+
+The second wall, decided without a check in as the owner asked: the
+valley walls are smooth 30 m slopes where the references have sheer
+limestone cliffs, and nothing more can be painted on them. Round 7 adds
+visual rock geometry to swiss2's cliff bands and headwall (within a
+few metres of the ground a craft meets, which stays unchanged), plus
+the water's glacial colour and clarity, and the made things still
+plain in frame (a barn and hay barns for farm-low, the gondola station).
