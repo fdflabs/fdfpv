@@ -101,10 +101,12 @@ const FOLIAGE_RECTS = {
   beech: [0, 1024, 1024, 1024],
   maple: [1024, 1024, 1024, 1024],
 };
-/* The grass atlas is 1024 wide and 1536 high: the meadow's clumps and
- * flowers in the top 1024, and under them the tall weeds of a verge or a
- * field's unmown margin, each a card twice as high as it is wide. */
-const GRASS_PX = [1024, 1536];
+/* The grass atlas is 1024 wide and 1792 high: the meadow's clumps and
+ * flowers in the top 1024, under them the tall weeds of a verge or a
+ * field's unmown margin, each a card twice as high as it is wide, and at
+ * the foot what lies flat in turf, seen from above: a plantain's and a
+ * dandelion's rosettes, a patch of white clover, a bare scrape. */
+const GRASS_PX = [1024, 1792];
 const GRASS_RECTS = {
   clump0: [0, 0, 512, 256],
   clump1: [512, 0, 512, 256],
@@ -120,6 +122,10 @@ const GRASS_RECTS = {
   weed1: [256, 1024, 256, 512],
   weed2: [512, 1024, 256, 512],
   weed3: [768, 1024, 256, 512],
+  flat0: [0, 1536, 256, 256],
+  flat1: [256, 1536, 256, 256],
+  flat2: [512, 1536, 256, 256],
+  flat3: [768, 1536, 256, 256],
 };
 
 /* A rectangle in pixels as a uv rectangle with v up: u0, v0 at the
@@ -803,6 +809,167 @@ function tallFlowers(ctx, rect, seed) {
 }
 
 /*
+ * What lies flat in a mown turf, seen from above, each round the middle
+ * of its rect. A leaf is a pointed oval from the centre out along
+ * `angle`, `len` long and `wide` across, with its midrib, and on a
+ * plantain the ribs running its length.
+ */
+function flatLeaf(ctx, cx, cy, angle, len, wide, fill, { ribs = 0, teeth = 0 } = {}) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  const n = teeth > 0 ? teeth * 2 : 1;
+  for (let k = 1; k <= n; k += 1) {
+    const t = k / n;
+    const w = wide * Math.sin(Math.PI * Math.min(1, t * 1.1)) * (teeth > 0 && k % 2 ? 0.45 : 1);
+    ctx.lineTo(len * t - (teeth > 0 && k % 2 ? len * 0.03 : 0), -w / 2);
+  }
+  ctx.lineTo(len, 0);
+  for (let k = n; k >= 1; k -= 1) {
+    const t = k / n;
+    const w = wide * Math.sin(Math.PI * Math.min(1, t * 1.1)) * (teeth > 0 && k % 2 ? 0.45 : 1);
+    ctx.lineTo(len * t - (teeth > 0 && k % 2 ? len * 0.03 : 0), w / 2);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(160, 180, 120, 0.18)';
+  ctx.lineWidth = 1.2;
+  for (let r = -ribs; r <= ribs; r += 1) {
+    ctx.beginPath();
+    ctx.moveTo(len * 0.05, 0);
+    ctx.quadraticCurveTo(len * 0.5, (r * wide) / (2 * ribs + 2), len * 0.95, 0);
+    ctx.stroke();
+  }
+  if (!ribs) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(len * 0.9, 0);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function rosettes(ctx, rect, kind, seed) {
+  const rng = makeRng(seed);
+  const [x, y, w, h] = rect;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  if (kind === 'plantain') {
+    /* Broadleaf plantain: a flat rosette of broad ribbed ovals, the old
+     * leaves outside and darker, a seed spike or two lying over it. */
+    for (let k = 0; k < 9; k += 1) {
+      const a = (k / 9) * Math.PI * 2 + rng() * 0.5;
+      const old = k % 3 === 0;
+      flatLeaf(ctx, cx, cy, a, w * (0.26 + 0.14 * rng()) * (old ? 1.1 : 0.85), w * (0.13 + 0.05 * rng()),
+        `hsl(${76 + rng() * 14}, ${26 + rng() * 12}%, ${old ? 17 + rng() * 4 : 22 + rng() * 7}%)`, { ribs: 2 });
+    }
+    ctx.strokeStyle = '#6b6a3a';
+    ctx.lineWidth = 3;
+    for (let k = 0; k < 2; k += 1) {
+      const a = rng() * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * w * 0.45, cy + Math.sin(a) * h * 0.45);
+      ctx.stroke();
+    }
+  } else if (kind === 'dandelion') {
+    /* A dandelion cut with the turf: long toothed leaves lying out
+     * flat, and the one yellow head the mower missed. */
+    for (let k = 0; k < 9; k += 1) {
+      const a = (k / 9) * Math.PI * 2 + rng() * 0.5;
+      flatLeaf(ctx, cx, cy, a, w * (0.28 + 0.14 * rng()), w * (0.12 + 0.04 * rng()),
+        `hsl(${80 + rng() * 12}, ${28 + rng() * 12}%, ${20 + rng() * 8}%)`, { teeth: 3 });
+    }
+    if (rng() < 0.9) {
+      for (let p = 0; p < 40; p += 1) {
+        const a = rng() * Math.PI * 2;
+        const r = Math.sqrt(rng()) * w * 0.06;
+        ctx.fillStyle = `hsl(${46 + rng() * 8}, 95%, ${48 + rng() * 12}%)`;
+        ctx.beginPath();
+        ctx.ellipse(cx + w * 0.08 + Math.cos(a) * r, cy - h * 0.05 + Math.sin(a) * r, 3, 1.6, a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else if (kind === 'clover') {
+    /* White clover creeping through the turf: trefoils with their pale
+     * chevrons in a loose patch, and a few round white heads. */
+    for (let k = 0; k < 34; k += 1) {
+      const r = Math.sqrt(rng()) * w * 0.4;
+      const a = rng() * Math.PI * 2;
+      const lx = cx + Math.cos(a) * r;
+      const ly = cy + Math.sin(a) * r;
+      const s = 10 + 7 * rng();
+      const turn = rng() * Math.PI * 2;
+      const shade = 15 + 8 * rng();
+      for (let q = 0; q < 3; q += 1) {
+        const b = turn + (q / 3) * Math.PI * 2;
+        ctx.fillStyle = `hsl(${92 + rng() * 15}, 28%, ${shade}%)`;
+        ctx.beginPath();
+        ctx.ellipse(lx + Math.cos(b) * s * 0.55, ly + Math.sin(b) * s * 0.55, s * 0.55, s * 0.45, b, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `hsla(90, 25%, ${shade + 22}%, 0.6)`;
+        ctx.beginPath();
+        ctx.ellipse(lx + Math.cos(b) * s * 0.5, ly + Math.sin(b) * s * 0.5, s * 0.25, s * 0.1, b + Math.PI / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    for (let k = 0; k < 2; k += 1) {
+      const hx = cx + (rng() - 0.5) * w * 0.5;
+      const hy = cy + (rng() - 0.5) * h * 0.5;
+      for (let p = 0; p < 24; p += 1) {
+        const a = rng() * Math.PI * 2;
+        const r = Math.sqrt(rng()) * 6;
+        ctx.fillStyle = `hsl(${40 + rng() * 40}, 18%, ${62 + rng() * 26}%)`;
+        ctx.beginPath();
+        ctx.ellipse(hx + Math.cos(a) * r, hy + Math.sin(a) * r, 2.2, 3.4, a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else {
+    /* A worn scrape: dark earth trodden through the turf, its edge
+     * ragged where the grass still holds, grass coming through it, grit,
+     * and a few cut stems lying on it. */
+    for (let k = 0; k < 160; k += 1) {
+      const a = rng() * Math.PI * 2;
+      const r = Math.sqrt(rng()) * w * 0.34;
+      ctx.fillStyle = `hsl(${30 + rng() * 14}, ${14 + rng() * 12}%, ${20 + rng() * 10}%)`;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, 4 + rng() * 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (let k = 0; k < 500; k += 1) {
+      const a = rng() * Math.PI * 2;
+      const r = Math.sqrt(rng()) * w * 0.36;
+      const green = rng() < 0.6;
+      ctx.fillStyle = green ? `hsl(${78 + rng() * 20}, 30%, ${14 + rng() * 10}%)` : `hsl(${28 + rng() * 20}, ${10 + rng() * 15}%, ${20 + rng() * 22}%)`;
+      ctx.fillRect(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, green ? 1.5 : 1.5 + rng() * 2, green ? 4 + rng() * 5 : 1.5 + rng() * 2);
+    }
+    ctx.lineWidth = 1;
+    for (let k = 0; k < 14; k += 1) {
+      const a = rng() * Math.PI * 2;
+      const r = Math.sqrt(rng()) * w * 0.3;
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r * 0.8;
+      const b = rng() * Math.PI;
+      const l = 4 + rng() * 8;
+      ctx.strokeStyle = `hsl(${45 + rng() * 10}, ${20 + rng() * 15}%, ${38 + rng() * 14}%)`;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + Math.cos(b) * l, py + Math.sin(b) * l);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/*
  * Load the photographs and compose both atlases, and the conifer bark.
  * Returns { foliage, grass, bark: { map, normalMap } } as textures,
  * ready for materials; dispose() frees them all.
@@ -863,6 +1030,7 @@ export async function loadAtlases() {
     clump(ctx, blades, G.weed3, 407, 0.15);
     seedHeads(ctx, G.weed3, 419);
     tallFlowers(ctx, G.weed3, 421);
+    ['plantain', 'dandelion', 'clover', 'bare'].forEach((kind, k) => rosettes(ctx, G[`flat${k}`], kind, 501 + k));
   });
   const foliage = mippedTexture(foliageCanvas);
   const grass = mippedTexture(grassCanvas, 1.4);

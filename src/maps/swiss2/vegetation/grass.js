@@ -60,11 +60,14 @@ import {
   meadowField, airfield, s2Noise, beachTop, ROAD_DX, ROAD_END,
 } from './zones.js';
 
-const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3', 'weed0', 'weed1', 'weed2', 'weed3'];
+const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3', 'weed0', 'weed1', 'weed2', 'weed3',
+  'flat0', 'flat1', 'flat2', 'flat3'];
 const WEED0 = REGION_KEYS.indexOf('weed0');
+/* The regions laid flat on the turf rather than stood up in it. */
+const FLAT0 = REGION_KEYS.indexOf('flat0');
 /* Added to a clump's region where it stands in a margin the mower
  * leaves, so the shader does not cut it with the field round it. */
-const UNMOWN = 16;
+const UNMOWN = 32;
 /* Floats per clump: x, y, z, yaw, height, width, region, tint. */
 const STRIDE = 8;
 
@@ -145,6 +148,8 @@ function coverAt(x, z, heightAt, layout) {
       seeds: 0,
       pasture: true,
       forest: 0,
+      flat: 0.3 + 0.1 * air.track + 0.1 * air.worn,
+      bare: 0.04 + 0.3 * Math.max(air.track, air.worn),
     };
   }
   if (layout.coverOff(x, z)) {
@@ -159,7 +164,9 @@ function coverAt(x, z, heightAt, layout) {
     if (y < LAKE_Y + 0.35 || below > 0.9) {
       return null;
     }
-    return { p: 0.55 * (1 - below / 0.9), h: 0.2, bloom: 0.05, tone: 1, seeds: 0, pasture: false, forest: 0 };
+    return {
+      p: 0.55 * (1 - below / 0.9), h: 0.2, bloom: 0.05, tone: 1, seeds: 0, pasture: false, forest: 0, flat: 0, bare: 0,
+    };
   }
   const bank = layout.streamDist(x, z);
   if (bank < 3.2) {
@@ -228,7 +235,17 @@ function coverAt(x, z, heightAt, layout) {
   const tone = hue < 0.4 ? 0 : hue < 0.52 ? 1 : hue < 0.64 ? 2 : 3;
   const flowering = kind === 'uncut' ? 1 : kind === 'pasture' ? 0.55 : kind === 'regrown' ? 0.5 : kind === 'cut' ? 0.15 : 0.2;
   const cover = {
-    p, h, bloom: (0.2 + 0.8 * drift) * flowering, tone, seeds, pasture: kind === 'pasture', forest, weeds: 0, unmown: false,
+    p,
+    h,
+    bloom: (0.2 + 0.8 * drift) * flowering,
+    tone,
+    seeds,
+    pasture: kind === 'pasture',
+    forest,
+    weeds: 0,
+    unmown: false,
+    flat: kind === 'pasture' ? 0.05 : 0.025 * mown,
+    bare: kind === 'pasture' ? 0.12 : 0.04,
   };
   /* What the mower leaves: the road's verge past the strip mown at the
    * tarmac's edge, and a metre either side of the line between two
@@ -280,7 +297,9 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
       if (!c || rng() > c.p) {
         continue;
       }
-      const flower = rng() < c.bloom * 0.4;
+      /* The middle distance's clumps each stand for a patch: in a drift
+       * more of them are the drift's flowers. */
+      const flower = rng() < c.bloom * (wide > 1 ? 0.65 : 0.4);
       /* In a drift most flowers are the drift's; a pasture's are
        * mostly dandelion and white clover (buttercup and daisy on the
        * atlas), with red clover and the odd harebell. */
@@ -311,6 +330,18 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
        * atlas's straw read nearly white in the sun. */
       const tint = (0.82 + rng() * 0.3) * (1 - 0.3 * c.forest) * (hay && region < WEED0 ? 0.85 : 1);
       out.push(x, heightAt(x, z) - 0.03, z, rng() * Math.PI * 2, h, w, region + (c.unmown ? UNMOWN : 0), tint);
+      /* What lies flat under the blades, close to: the rosettes of a
+       * plantain and a dandelion, clover creeping through, and where
+       * the turf is cut and trodden short a bare scrape. Only where it
+       * is short enough for them to be seen, and only in the near layer. */
+      if (wide === 1 && c.h < 0.32 && rng() < c.flat) {
+        const f = rng();
+        const kind = f < c.bare ? 3 : f < c.bare + 0.3 ? 2 : f < c.bare + 0.62 ? 0 : 1;
+        const size = kind === 3 ? 0.35 + 0.4 * rng() : kind === 2 ? 0.45 + 0.5 * rng() : 0.28 + 0.2 * rng();
+        const fx = x + (rng() - 0.5) * spacing;
+        const fz = z + (rng() - 0.5) * spacing;
+        out.push(fx, heightAt(fx, fz) + 0.035, fz, rng() * Math.PI * 2, 1, size, FLAT0 + kind, 0.85 + 0.25 * rng());
+      }
     }
   }
   return Float32Array.from(out);
@@ -382,15 +413,21 @@ export function buildGrass({
         ${MEADOW_GLSL}
         ${CRAFT_GLSL}
         varying vec3 vGrassTint;
-        varying float vGrassUp;`)
+        varying float vGrassUp;
+        varying float vGrassCut;
+        varying vec4 vGrassBloom;`)
       .replace('#include <uv_vertex>', `#include <uv_vertex>
         float gUnmown = step(${UNMOWN - 0.5}, aClump2.z);
-        vec4 reg = uRegions[int(aClump2.z - ${UNMOWN}.0 * gUnmown + 0.5)];
-        vMapUv = reg.xy + uv * reg.zw;`)
+        float gRegion = aClump2.z - ${UNMOWN}.0 * gUnmown;
+        vec4 reg = uRegions[int(gRegion + 0.5)];
+        vMapUv = reg.xy + uv * reg.zw;
+        /* A flat plant is the first card laid on the turf; the other two
+         * fold to nothing. */
+        float gFlat = step(${FLAT0 - 0.5}, gRegion);`)
       .replace('#include <beginnormal_vertex>', `
         float gc = cos(aClump.w);
         float gs = sin(aClump.w);
-        vec3 objectNormal = vec3(gc * normal.x + gs * normal.z, normal.y, -gs * normal.x + gc * normal.z);`)
+        vec3 objectNormal = mix(vec3(gc * normal.x + gs * normal.z, normal.y, -gs * normal.x + gc * normal.z), vec3(0.0, 1.0, 0.0), gFlat);`)
       .replace('#include <begin_vertex>', `
         float gDist = distance(cameraPosition.xz, aClump.xz);
         /* Each clump has its own edge between two thirds of the radius
@@ -408,6 +445,13 @@ export function buildGrass({
         /* A clump cut to the ankle is narrower too: cards a metre wide and
          * a hand high read from above as a floor of scalloped tiles. */
         vec3 p = position * vec3(aClump2.y * mix(0.45, 1.0, cut), aClump2.x * grow, aClump2.y * mix(0.45, 1.0, cut));
+        if (gFlat > 0.5) {
+          /* Seen only close to: past twenty metres a leaf on the turf is
+           * the paint's business. */
+          float gShown = (1.0 - smoothstep(14.0, 20.0, gDist)) * step(float(gl_VertexID), 3.5);
+          p = vec3(uv.x - 0.5, 0.0, uv.y - 0.5) * aClump2.y * gShown;
+          grow = gShown;
+        }
         vec3 transformed = aClump.xyz + vec3(gc * p.x + gs * p.z, p.y, -gs * p.x + gc * p.z);
         /* Wind: waves of gusts rolling across the meadow downwind, the
          * blade tips bending most. */
@@ -415,12 +459,22 @@ export function buildGrass({
         float wave = 0.5 + 0.5 * sin(along * 0.23 - uTime * 2.1) * sin(along * 0.061 - uTime * 0.7 + aClump.x * 0.02);
         float bend = uv.y * uv.y * aClump2.x * uWind * (0.25 + 0.75 * wave) * 0.55;
         bend += uv.y * aClump2.x * 0.06 * sin(uTime * 3.3 + aClump.x * 1.3 + aClump.z * 1.7);
+        bend *= 1.0 - gFlat;
         transformed.xz += uWindDir * bend;
         transformed.y -= abs(bend) * 0.35 * uv.y;
         vGrassTint = uTint * aClump2.w * mix(vec3(1.0), field.tint, farmed) * (1.0 - 0.5 * gCraft);
         /* Turf cut short is lit to its roots: dark at the foot, each short
          * clump read from above as a dark tuft. */
-        vGrassUp = mix(uv.y, 0.35 + 0.65 * uv.y, (1.0 - cut) / 0.68);
+        vGrassUp = mix(mix(uv.y, 0.35 + 0.65 * uv.y, (1.0 - cut) / 0.68), 0.85, gFlat);
+        /* A flower clump seen from afar is its flowers' colour more than
+         * its leaves': in a hay meadow at a hundred metres the drifts
+         * of buttercup, ox eye and clover read as colour laid over the
+         * green, which the atlas's few heads, averaged to a pixel, lose. */
+        float gTone = gRegion - 6.0;
+        vec3 gBloom = gTone < 0.5 ? vec3(0.62, 0.46, 0.03) : gTone < 1.5 ? vec3(0.62, 0.62, 0.55) : gTone < 2.5 ? vec3(0.42, 0.13, 0.24) : vec3(0.2, 0.2, 0.46);
+        vGrassBloom = vec4(gBloom, step(-0.5, gTone) * step(gTone, 3.5) * smoothstep(15.0, 80.0, gDist) * 0.7 * smoothstep(0.25, 0.85, uv.y));
+        /* Turf cut this week shows the cut: the blades' tips straw. */
+        vGrassCut = (1.0 - cut) / 0.68 * (1.0 - gFlat) * smoothstep(0.55, 1.0, uv.y);
         if (grow <= 0.0) transformed = aClump.xyz;`)
       .replace('#include <project_vertex>', `
         vec4 mvPosition = viewMatrix * vec4(transformed, 1.0);
@@ -430,9 +484,11 @@ export function buildGrass({
           vec4 worldPosition = vec4(transformed, 1.0);
         #endif`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vGrassTint;\nvarying float vGrassUp;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vGrassTint;\nvarying float vGrassUp;\nvarying float vGrassCut;\nvarying vec4 vGrassBloom;')
       .replace('#include <color_fragment>', `#include <color_fragment>
-        diffuseColor.rgb *= vGrassTint * mix(0.38, 1.0, smoothstep(0.0, 0.75, vGrassUp));`)
+        diffuseColor.rgb *= vGrassTint * mix(0.38, 1.0, smoothstep(0.0, 0.75, vGrassUp));
+        diffuseColor.rgb *= mix(vec3(1.0), vec3(1.35, 1.2, 0.72), 0.45 * vGrassCut);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vGrassBloom.rgb, vGrassBloom.a);`)
       .replace('#include <normal_fragment_begin>', `
         float faceDirection = gl_FrontFacing ? 1.0 : -1.0;
         vec3 normal = normalize(vNormal);
