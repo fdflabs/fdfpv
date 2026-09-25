@@ -247,6 +247,33 @@ frame, landed on) goes into bearing, not the strap: 2 percent of it counts
 (`BEARING_SHARE`), it grips the pad at friction 1.0 (`SEAT_GRIP`), and it
 relieves the moment inside the seat's footprint.
 
+**A wing panel rings** (round 3). A joint judged as above is judged as a
+rigid body: a foam panel's root would see its share of the craft's
+deceleration the millisecond the belly touches, which broke both of a
+Skyhunter's panels 2 ms into a stall landing at 52 g. A panel on a carbon
+spar (and the Skyhunter's carbon booms) is a cantilever whose first
+bending period is long against that blow, and its root sees the mode's
+force. Such a part now carries a spring of its own first mode, driven by
+the joint's quasi static load: it takes each batch's momentum as a kick
+(the impulses themselves, not the peak forces, so a one step host
+contact loads it by the momentum it carried) and rings on through the
+steps, damped at 3 percent of critical (chosen), until it dies away under
+1 mN. The mode is the cantilever's, w = sqrt(3 E I / (L^3 (0.2427 m +
+M))), m its own mass, M the parts it carries taken at its tip (Rayleigh's
+tip mass form, exact at M = 0 as 3.516 sqrt(E I / (m L^3))), L its reach.
+E I follows from the limit the tables already derive from the spar, M =
+sigma I / r, so E I = (E / sigma) M r, with pultruded carbon tube's
+flexural modulus of 127 GPa (TAP Plastics, "Pultruded Carbon Rods and
+Tubes", minimum properties; flexural strength 1,370 MPa where the tables
+take 1,000) and each spar's outer radius (`spar_r` in the tables): the
+foam planes' panels ring at 8 to 13 Hz, inside the 5 to 20 Hz that small
+UAV wings' ground vibration tests report for their first bending, and the
+Skyhunter's booms at about 15. The spar alone is stiffer than a panel
+with its outboard foam, so these are the fastest the parts ring. A part
+with no spar radius (every quad part, the foam booms and fuselages, the
+Bramor's composite panels, whose spar section is not in the tables) is
+judged as before, with the same arithmetic in the same order.
+
 Weakest link first: joints on a contact's path to the root fail before
 joints that only carry inertia; a joint that fails caps the loads through
 it at what it carried (the contact divided by the load ratio), the rest is
@@ -260,6 +287,7 @@ panel that meets a pole at speed leaves and the fuselage goes on.
 | --- | --- | --- | --- |
 | prop | 0.33 | chip grows to 0.5 at the limit | thrust x (1 - 0.6 chip), torque x (1 - 0.5 chip), rotor inertia x (1 - 0.3 chip), gyro line x (1 + 25 chip) |
 | prop spinning in a contact | the tip's impact stress over the blade's strength, 1 | chip += (tip speed / 100 m/s)^2 x hardness x dt / 0.2 s x (1 - strength / stress) | as above; lost at chip 1 |
+| prop spinning past that limit | its tip's blow at its root over the blade's limits (round 3) | the blow, v_tip sqrt(k m), bends the blade at its root: chip past the yield, lost past the shear | as above |
 | arm | 0.60 | the mount twists in its clamp, up to 0.10 rad | that motor's thrust axis turns |
 | music wire (gear, struts) | 0.45, yield at 1 / 2.21 of the break | bends, up to 0.20 rad | recorded for the shell |
 | aluminium boom or gear | 0.70 | bends, up to 0.15 rad | recorded |
@@ -294,7 +322,16 @@ meets it with the real blade and surface (round 2; before, the scaled
 whoop used the five inch's glass nylon at an unscaled limit). Under the
 limit a spinning contact writes nothing at
 all, so hardness changes the damage only through a contact past the limit.
-Past it the chip grows at the rate in the table, faded in from nothing at
+Past it the surface stops the tip rather than giving way, and since round
+3 the blade is stopped by its own spring: the tip's blow is v_tip sqrt(k
+m), k the blade's tip stiffness and the surface's in series, m a third of
+one blade's mass (a rod turned about the hub, struck at its end; the
+tables carry each prop's blade count, three on both quads, two on the
+planes), at the tip's own speed, and it bends the blade at its root over
+its radius. The root is judged by it like any joint (under the yield
+nothing new, past it a chip, past the shear the blade leaves), where
+before a strike could only chip and a blade left only after 0.2 s of
+sustained chipping. Past it the chip grows at the rate in the table, faded in from nothing at
 the limit, and a strike is one chip event when it starts (a blade that
 touches again within 20 ms is the same strike) and one more for every
 0.05 of chip after: a flight with no event is a flight nothing was written
@@ -350,12 +387,32 @@ depth x its deepest point has reached, `F = k x`:
   on its belly or its pack, is rigid from the start.
 - The judge takes a sprung part's force as what the solver gave it,
   `jn / dt`.
-- Not sprung: parts softer than the ground (props, whips, wing tips, wire
-  gear, cameras on grass), because a soft part bends until the stiffer
-  airframe behind it meets the ground, and how far is not in the tables
-  yet; the whoop the shell flies, whose room is scaled 3.43 times but whose
-  surfaces are not; obstacles, which are the host's one impulse per call;
-  and wheels and floats, which were springs already.
+- **Every part, over its travel** (round 3). Round 2 sprang only parts
+  stiffer than the ground and left the rest (a blade, a wing tip, a camera
+  on grass, and every part on concrete, which is stiffer than all of them)
+  the rigid one step contact, because how far a soft part gives before the
+  stiffer airframe behind it meets the ground was not in the tables. It
+  is: a part's travel is how far it stands out past the stiffer parts
+  along the contact, from the parts' own hulls. Every part now meets the
+  ground through its own spring and the surface's in series until its
+  travel runs out; past it the stiffer part that stands out furthest adds
+  its own spring (with the surface's) at its own point, and carries that
+  share of the force through its own joint, so the soft part's joint sees
+  only its own spring's. The stiffest part has no travel to run out of,
+  which is round 2's rule for it.
+- The depth the spring is at is the part's own point's, not the solver's
+  box corner's, which stands centimetres past a round prop disc on a
+  tilted quad. In the first step of a contact a part's force is shared by
+  its hull points within the attribution band of its lowest (after that,
+  by the points it met in the last step), so the first corner the solver
+  visits does not take a flat pack's whole landing.
+- Not sprung: a slender wire (a whip, a wire gear leg), which loaded along
+  its length buckles and folds, not a spring (sprung, and capped at its
+  yield, it broke the taildraggers' wing on a nose over and the five
+  inch's whip and pack on its back, against their references); the whoop
+  the shell flies, whose room is scaled 3.43 times but whose surfaces are
+  not; obstacles, which are the host's one impulse per call; and wheels
+  and floats, which were springs already.
 
 Measured, crash:core: a five inch dropped flat from 1.5 m onto grass peaks
 at 130 g where the rigid contact gave 526, and comes to rest within 1 mm
@@ -364,7 +421,11 @@ crash suite on main da32758, per scenario, is in docs/CRASH-PLAN.md,
 round 2. The rule under every limit is now: with the mode off every
 flight is byte identical (scripts/crash-identity.js); with it on, nothing
 is written and the craft comes to the same rest, but a ground contact of a
-stiff part has its duration.
+stiff part has its duration. Since round 3 the flat drop rests 2.72 mm
+from the rigid contact's rest (the check holds it to 2 mm and fails,
+reported rather than widened): the landing's small lateral kick now
+slides on at the lawn's grip counted once, where the rigid contact's
+doubled grip stopped it dead (section 5).
 
 ### Flight effects
 
@@ -418,6 +479,9 @@ stiff part has its duration.
 | float struts | 220 N m, 3,140 N | a 1 mm bracing wire in tension (1,570 N) on the 0.14 m strut spacing | ASTM A228; a bare 3 mm strut buckles at Euler's 348 N |
 | Slow Stick stick | 23 N m | 10 mm square 6061, 0.8 mm wall, 276 MPa | ASM 6061-T6 |
 | Skyhunter booms | 180 N m | two 12/10 mm carbon tubes | UD carbon tube |
+| a spar's bending stiffness, for its ring (round 3) | E I = 127 M r: wing1000 3 mm, Skyhunter 4 (two spars) and booms 6, Cub 4, Radian 4.5, Timber 5 mm outer radius | M = sigma I / r at the tables' 1,000 MPa, E 127 GPa | TAP Plastics pultruded carbon tube, minimum properties (flexural 127 GPa, 1,370 MPa) |
+| a ring's damping | 3 percent of critical | a lightly damped structure | chosen |
+| a blade's tip blow (round 3) | v_tip sqrt(k m_blade / 3) at its radius | the blade's spring against its own inertia | derived |
 
 "Chosen" is an engineering estimate with its reasoning in the table's
 comment, not a measurement. The suite's bands are what will say whether
@@ -444,21 +508,45 @@ the air, 12 at most, all at rest in 8 s, none under the ground).
 
 ## 5. Surfaces, trees and water
 
-| Material | mu | e | stiffness N/m | blade hardness |
-| --- | --- | --- | --- | --- |
-| default, the ground | 1.40 | 0 | 5e4 | 0.01 |
-| default, an obstacle | 0.40 | 0.15 | 2e6 | 0.5 |
-| grass | 1.40 | 0 | 5e4 | 0.01 |
-| dirt | 1.00 | 0.05 | 2e5 | 0.3 |
-| asphalt | 0.60 | 0.12 | 3e7 | 0.9 |
-| concrete, rock | 0.42 | 0.15 | 5e7 | 1.0 |
-| snow | 0.20 | 0 | 1e4 | 0.02 |
-| wood | 0.50 | 0.12 | 5e6 | 0.6 |
-| metal | 0.35 | 0.20 | 1e8 | 1.0 |
-| pvc | 0.30 | 0.22 | 2e5 | 0.4 |
-| foliage | 1.00 | 0 | 2e3 | 0.02 |
-| water | 0.05 | 0 | 1e4 | 0.01 |
-| sand | 0.60 | 0 | 1e5 | 0.4 |
+| Material | mu | mu of a face | e | stiffness N/m | blade hardness |
+| --- | --- | --- | --- | --- | --- |
+| default, the ground | 1.40 | 0.45 | 0 | 5e4 | 0.01 |
+| default, an obstacle | 0.40 | 0.40 | 0.15 | 2e6 | 0.5 |
+| grass | 1.40 | 0.45 | 0 | 5e4 | 0.01 |
+| dirt | 1.00 | 1.00 | 0.05 | 2e5 | 0.3 |
+| asphalt | 0.60 | 0.60 | 0.12 | 3e7 | 0.9 |
+| concrete, rock | 0.42 | 0.42 | 0.15 | 5e7 | 1.0 |
+| snow | 0.20 | 0.20 | 0 | 1e4 | 0.02 |
+| wood | 0.50 | 0.50 | 0.12 | 5e6 | 0.6 |
+| metal | 0.35 | 0.35 | 0.20 | 1e8 | 1.0 |
+| pvc | 0.30 | 0.30 | 0.22 | 2e5 | 0.4 |
+| foliage | 1.00 | 1.00 | 0 | 2e3 | 0.02 |
+| water | 0.05 | 0.05 | 0 | 1e4 | 0.01 |
+| sand | 0.60 | 0.60 | 0 | 1e5 | 0.4 |
+
+**A face slides; an edge ploughs** (round 3). The shell's grass grips at
+1.40, which is what a quad's arms and blades get ploughing into turf. A
+smooth body sliding on natural grass was measured at 0.45: Linthorne and
+Cooper, "Effect of the coefficient of friction of a running surface on
+sprint time in a sled-towing exercise", Sports Biomechanics 12(2), 2013,
+a steel runnered sled towed over a rugby pitch, the gradient of tow force
+against weight up to 55 kg (they put the effective value on uneven turf
+nearer 0.6). With the damage mode on, a part that meets the ground within
+25 degrees of flat on one of its faces (the test the belly slam's crush
+area already makes) slides at the surface's face grip, an edge, a corner
+or a tip keeps the surface's mu, faded between over those 25 degrees; the
+resting slide takes the grip of the part the craft lies on. Only grass and
+the default ground have a measured face grip; every other surface's is
+its own mu. Measured (`crash:core`): a Skyhunter slid on its belly at 4
+m/s slows at 0.434 g with the mode on, 1.386 with it off.
+
+The resting slide also counted the ground twice once the spring's corner
+impulses carried the weight: their own Coulomb friction, and the settle's
+mu g on top (0.88 g on a 0.45 face). With the mode on the settle now
+carries only the share of the weight the step's ground impulses did not.
+This is what round 2's "0.76 where 1.40 is expected" was measuring into:
+the grip on the part hulls at main reads 1.39 (Skyhunter) and 1.16 (five
+inch) with the mode on, and the normal force is not capped by the crush.
 
 mu and e are `src/game/collide.js`'s where the shell already had them
 (grass, gates, bark, walls, rock); the rest and every stiffness and
@@ -633,6 +721,21 @@ contact:selftest fail with the mode on as they do on main (6 and 2
 checks against 7 and 2 there: the crushed nose in the ground, the hull
 slide), both checks of the rigid hull that crash physics replaces, and pass with it off, which is how
 they run.
+
+Round 3 (a face's grip, the ringing panels, every part's spring and the
+blade's blow), against main 613cd0c, with FDFPV_BOARD set for wing:e2e:
+off is identical on all 24. On, 18 are identical; cub:gates C21's prop
+tip load reads 8.2 N for 8.7 (the gate holds); bramor:gates B12 fails
+with the mode on (it passes with it off, which is how the gates run): the
+Bramor, come down on its back under the canopy, now meets the grass through
+its winglets' springs, their magnets let go under its 4.5 kg (1.5 N m
+each, BRAMOR-STAGE1), and it rests on its fuselage at 0.111 m where the
+rigid box held it on the winglet tips at 0.255; floats:gates F1t and
+whoop:gates W15 as in round 2; wing:contact and contact:selftest fail 7
+and 8 checks with the mode on (6 and 2 in round 2): the springs now let
+every part, and so the box's corners, into the ground by their depth,
+and a face slides further, both what the rigid hull checks exist to
+forbid, and both pass with the mode off.
 
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched.
