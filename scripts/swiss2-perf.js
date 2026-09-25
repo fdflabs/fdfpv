@@ -23,8 +23,10 @@
  * moves between repeats can be seen to (the GPU is shared with whatever
  * else the desktop draws: every repeat records the GPUs' load from
  * nvidia-smi and the host's load average beside it). --objects also
- * times every mesh's own draws at High, in the scene and in the mirror,
- * and lists those over a tenth of a millisecond.
+ * times every mesh's own draws, in the scene and in the mirror, lists
+ * those over a tenth of a millisecond, and sums the least of every
+ * segment into the "fine floor", the frame's cost with the least of the
+ * desktop's drawing in it (see __s2objects).
  *
  * The views are swiss2-views.js's own list, read from that file, so the
  * two can never measure different places. The page is the real shell at
@@ -250,7 +252,16 @@ const INSTALL = /* js */ `(() => {
       }
       const rows = Object.entries(least).filter(([k]) => k.includes(':')).map(([k, ms]) => ({ part: k.slice(0, k.indexOf(':')), name: k.slice(k.indexOf(':') + 1), ms }));
       rows.sort((x, y) => y.ms - x.ms);
-      return { rows };
+      /* With every mesh its own segment the segments are short, and a
+       * short one is often drawn without the desktop landing in it, so
+       * the sum of their least times is the truest floor this can take. */
+      const floor = Object.values(least).reduce((a, b) => a + b, 0);
+      const parts = {};
+      for (const [k, ms] of Object.entries(least)) {
+        const part = k.includes(':') ? k.slice(0, k.indexOf(':')) : k;
+        parts[part] = (parts[part] || 0) + ms;
+      }
+      return { rows, floor, parts };
     } finally {
       for (const [m, before, after] of tagged) { m.onBeforeRender = before; m.onAfterRender = after; }
     }
@@ -304,7 +315,7 @@ async function runPreset(preset) {
         reps.push({ ...m, load: gpuLoad(page.proc.pid) });
       }
       let objects = null;
-      if (opts.objects && preset === 'high') {
+      if (opts.objects) {
         objects = await page.evaluate(`window.__s2objects(${Math.max(10, opts.frames >> 1)})`);
       }
       await page.evaluate('window.__drawOff(false)');
@@ -327,6 +338,7 @@ async function runPreset(preset) {
       const p = best.parts;
       console.log(`${preset.padEnd(6)} ${v.id.padEnd(12)} gpu ${best.gpu.toFixed(2).padStart(6)} (+${row.spread.toFixed(2)}) floor ${best.floor.toFixed(2).padStart(6)} cpu ${best.cpu.toFixed(2).padStart(5)} | ${PARTS.map((k) => `${k} ${(p[k] || 0).toFixed(2)}/${(best.partsMin[k] || 0).toFixed(2)}`).join(' ')}${best.disjoint ? ' DISJOINT' : ''} | gpu load ${best.load.gpus.map((g) => `${g.index}:${g.util}%`).join(' ')} host ${best.load.load[0]}`);
       if (objects) {
+        console.log(`         fine floor ${objects.floor.toFixed(2)} | ${PARTS.map((k) => `${k} ${(objects.parts[k] || 0).toFixed(2)}`).join(' ')}`);
         for (const o of objects.rows.filter((r) => r.ms >= 0.1)) {
           console.log(`         ${o.part.padEnd(7)} ${o.ms.toFixed(2).padStart(6)} ${o.name}`);
         }
