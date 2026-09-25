@@ -329,9 +329,7 @@ export function barn(f, spec) {
  * boards gone silver, each its own board with the dark of the loft in
  * the gaps between, the odd one replaced and still brown, a big hay
  * door in the gable, a low door to the byre, and a steep roof of old
- * shingle far over the gable on its purlins. The gable is +z. Every
- * key is far, or near on the boards, whose near detail every cell of
- * the floor already draws.
+ * shingle far over the gable on its purlins. The gable is +z.
  */
 export function stadel(f, spec) {
   const { w = 7, d = 9, found = 0.3, roofKey = 'shingleDark', pitch = 0.6 } = spec;
