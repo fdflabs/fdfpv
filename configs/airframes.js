@@ -84,6 +84,20 @@ export const WHOOP_TRUE_DIMS = {
  */
 export const BRAMOR_CATAPULT = { speed: 17, pitchDeg: 20, railLength: 3.1, height: 1.17 };
 
+/*
+ * AN AIR START'S SPEED, for a run that begins in flight rather than on the
+ * ground: the in-sim builder's test flight through a start gate hung in the
+ * air (src/builder/course.js startFor). A fixed wing is let go level at
+ * this many times its `stall`, the margin the Bramor's catapult releases at
+ * (17 m/s on its published 13, above), and flies away from it the way it
+ * flies off the rail. A quad needs no speed: it starts in a hover.
+ */
+export const AIR_START_STALL_MARGIN = 1.3;
+
+export function airStartSpeed(af) {
+  return af.fixedWing ? AIR_START_STALL_MARGIN * af.stall : 0;
+}
+
 export const AIRFRAMES = [
   {
     id: '5inch',
@@ -413,6 +427,8 @@ export const AIRFRAMES = [
     id: 'sky1800',
     simId: 3,
     fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/skyhunter-thresholds.json s2_stall. */
+    stall: 9.2,
     name: 'Skyhunter',
     short: 'Skyhunter',
     blurb: 'An 1800 mm twin boom FPV plane on 4S, with ailerons, elevator and rudder. Throw it, fly it long, land it on its skid.',
@@ -459,6 +475,8 @@ export const AIRFRAMES = [
     id: 'cub1400',
     simId: 4,
     fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/cub-thresholds.json c2_stall. */
+    stall: 8.1,
     gear: { restHeight: 0.1463, restPitch: 11.0 * Math.PI / 180 },
     name: 'Piper Cub',
     short: 'Cub',
@@ -504,6 +522,8 @@ export const AIRFRAMES = [
     id: 'radian2000',
     simId: 6,
     fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/glider-thresholds.json g3_stall. */
+    stall: 6.49,
     name: 'Radian',
     short: 'Radian',
     blurb: 'A 2 m E-flite Radian motor glider on 3S, with ailerons, elevator and rudder. Climb on the motor, fold the prop, and find the thermals over the field to stay up.',
@@ -556,6 +576,8 @@ export const AIRFRAMES = [
     id: 'bramor2300',
     simId: 8,
     fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): the published figure, tests/bramor-thresholds.json b2_stall. */
+    stall: 13,
     catapult: BRAMOR_CATAPULT,
     chute: true,
     name: 'Bramor C4EYE',
@@ -607,6 +629,8 @@ export const AIRFRAMES = [
     id: 'slowstick1180',
     simId: 5,
     fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/slowstick-thresholds.json s2_stall. */
+    stall: 4.43,
     gear: { restHeight: 0.1349, restPitch: 6.91 * Math.PI / 180 },
     name: 'Slow Stick',
     short: 'Stick',
@@ -656,6 +680,8 @@ export const AIRFRAMES = [
     id: 'timber1500',
     simId: 7,
     fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): flaps up, slats on, tests/timber-thresholds.json t2_stall_slats. */
+    stall: 7.20,
     gear: { restHeight: 0.2115, restPitch: 11.81 * Math.PI / 180 },
     flaps: true,
     name: 'Turbo Timber',
@@ -707,6 +733,8 @@ export const AIRFRAMES = [
     simId: 9,
     tunesOf: 'timber1500',
     fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): the landplane's 7.20 at 1.934 kg over 1.70, docs/FLOATS-STAGE1.md. */
+    stall: 7.68,
     gear: { restHeight: 0.2464, restPitch: 0.48 * Math.PI / 180 },
     floats: { restHeight: 0.2074, restPitch: 2.52 * Math.PI / 180 },
     flaps: true,
@@ -752,6 +780,8 @@ export const AIRFRAMES = [
     simId: 10,
     tunesOf: 'cub1400',
     fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): docs/FLOATS-STAGE1.md, the Cub having no flaps. */
+    stall: 8.73,
     gear: { restHeight: 0.2171, restPitch: 0.43 * Math.PI / 180 },
     floats: { restHeight: 0.1765, restPitch: 0.64 * Math.PI / 180 },
     name: 'Piper Cub, floats',

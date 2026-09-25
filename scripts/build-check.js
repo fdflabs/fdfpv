@@ -24,9 +24,23 @@
  *      The craft is put through the start gate and then through the hung
  *      gate, and the race counts both: the lap starts and the hung gate is
  *      its first split.
- *   7. B goes back to building, to the camera where it was left; Esc leaves.
- *   8. An old field track (the reference course, schemaVersion 1) on the
+ *   7. B goes back to building, to the camera where it was left.
+ *   8. The gates are solid. A gate hung out over the drop is in the
+ *      colliders the moment it is placed: in a test flight the craft thrown
+ *      through its opening goes clean through, and thrown into its upright
+ *      it meets the frame and the crash physics takes the hit. Moved, the
+ *      old place is air and the new one solid; deleted, nothing is left. A
+ *      double stack's two openings are open and the bar between them solid.
+ *   9. The air start. A level gate hung out over the drop made the start:
+ *      B starts the craft in the air 7.5 m before it on its line of travel
+ *      at its height, held through a countdown, and a pilot in the page
+ *      flies it through and the lap starts. Then Esc leaves.
+ *  10. The same air start on a fixed wing, the Slow Stick, at its air start
+ *      speed (configs/airframes.js airStartSpeed).
+ *  11. An old field track (the reference course, schemaVersion 1) on the
  *      custom map still loads with every station and still counts a pass.
+ *
+ * The music dock is off while building and back for the flight.
  *
  * Pictures land in OUT_DIR (tmp/build-check by default). They are evidence
  * for one look, not for the repository: delete them after.
@@ -60,8 +74,10 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage, keyInfo } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
-import { airframeById } from '../configs/airframes.js';
+import { airStartSpeed, airframeById } from '../configs/airframes.js';
 import { courseFromDocument } from '../src/game/trackdoc.js';
+import { openingsOf } from '../src/builder/course.js';
+import { ELEMENTS } from '../src/trackbuilder/elements.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const opts = { map: 'swiss2', perf: false };
@@ -87,17 +103,30 @@ function say(ok, what) {
 const f1 = (x) => Number(x).toFixed(1);
 const f3 = (v) => v.map((x) => Number(x).toFixed(2)).join(', ');
 
-function seedFor(graphics) {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+/*
+ * The page's settings, and no gamepads. The browser hands the page every
+ * joystick the host has, and a radio left plugged into this machine is a
+ * pad whose sticks drive the free camera: the crosshair then never rests
+ * and every placement times out. The keyboard is the pilot here. Angle
+ * mode, so the pilot in the page that flies an air start asks for an
+ * attitude; `airframe` and `tune` seat another aircraft.
+ */
+function seedFor(graphics, airframe = '5inch', tune = null) {
+  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+  if (tune) {
+    seated.tune = tune;
+  }
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
     Object.assign(s, ${JSON.stringify(seated)});
     s.airframeAsked = true;
     s.fpsCap = 0;
+    s.flightMode = 'angle';
     ${graphics ? `s.graphics = ${JSON.stringify(graphics)}; s.graphicsAuto = false;` : ''}
     localStorage.setItem(k, JSON.stringify(s));
-  } catch (e) { /* storage refused; the checks below will say so */ }`];
+  } catch (e) { /* storage refused; the checks below will say so */ }
+  navigator.getGamepads = () => [];`];
 }
 
 async function shot(page, name) {
@@ -120,6 +149,9 @@ async function ctrlTap(page, code) {
 }
 
 const B = (expr) => `window.__build.state()${expr}`;
+
+/* Whether the music dock (the record's name and its skips) can be seen. */
+const dockShown = (page) => page.evaluate("(() => { const d = document.querySelector('.music-dock'); return d && !d.hidden ? getComputedStyle(d).visibility : 'none'; })()");
 
 async function flyAndBuild(page) {
   await page.until('!!window.__shellReady', 240000);
@@ -164,6 +196,7 @@ async function settleCrosshair(page) {
 }
 
 async function proof() {
+  let out = null;
   console.log(`build mode on ${opts.map}`);
   const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed: seedFor(null) });
   try {
@@ -174,6 +207,7 @@ async function proof() {
     await page.sleep(800);
     const c1 = await page.evaluate('window.__craftState()');
     say(Math.hypot(c1.worldX - c0.worldX, c1.worldY - c0.worldY, c1.worldZ - c0.worldZ) < 1e-6, 'the aircraft stays exactly where it was parked');
+    say((await dockShown(page)) === 'hidden', 'the music dock is off while building, so no record name sits over the build panel');
     await page.evaluate("window.__build.rename('Cliff drop'); true");
 
     /* The steepest thirty metres of the valley floor's walls, read off the
@@ -344,6 +378,7 @@ async function proof() {
     const race = await page.evaluate('({ n: window.__race().gates.length, key: window.__race().key, next: window.__race().next, freestyle: window.__race().freestyle })');
     say(mapNow.mode === 'race' && mapNow.gates === 3 && race.n === 3 && !race.freestyle, `B flies it: the map reads as a race with ${mapNow.gates} gates, the race has ${race.n}`);
     say(race.key.endsWith(`.build.${st.doc.id}`), `its record is its own: ${race.key}`);
+    say((await dockShown(page)) === 'visible', 'the music dock is back for the flight');
     const start = gatesAfter[0];
     const sp = mapNow.spawn;
     say(Math.abs(Math.hypot(sp.x - start[0], sp.z - start[2]) - 7.5) < 0.05, `the run starts ${f1(Math.hypot(sp.x - start[0], sp.z - start[2]))} m behind the start gate`);
@@ -382,10 +417,258 @@ async function proof() {
     const camBack = await page.evaluate(B('.camera'));
     say(Math.hypot(...camBack.pos.map((v, i) => v - camBuild.pos[i])) < 1e-6 && Math.abs(camBack.yaw - camBuild.yaw) < 1e-9, 'B goes back to building, to the camera where it was left');
     say((await page.evaluate('window.__map().mode')) === 'freestyle' && (await page.evaluate('window.__race().freestyle')), 'and the map is freestyle again underneath');
+
+    /* Out over the drop, where nothing but a built gate is in the air. */
+    out = { edge, drop, yawOut, at };
+    await solidGates(page, out);
+    await airStartFlight(page, out, 'quad');
+    await page.tap('KeyB');
+    await page.until(`${B('.state')} === 'building'`, 10000);
     await page.tap('Escape');
     await page.until(`${B('.state')} === 'off'`, 10000);
     await page.until("window.__craftState().mode === 'flight'", 10000);
     say(true, 'Esc leaves building for a free flight');
+    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  } finally {
+    await page.close();
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Solid gates and the air start                                       */
+/* ------------------------------------------------------------------ */
+
+const OPENING = openingsOf({ type: 'gate', dims: ELEMENTS.gate.dims })[0];
+const STACK = openingsOf({ type: 'doubleStack', dims: ELEMENTS.doubleStack.dims });
+const vAdd = (p, v, s) => p.map((x, i) => x + v[i] * s);
+const vCross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const vDot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/* The craft's own shape swept along a chord through `c` on the gate's line
+ * of travel, the query the frame loop makes. The kind it meets, or null. */
+async function chord(page, g, c, back = 2, ahead = 2) {
+  const a = vAdd(c, g.travel, -back);
+  const b = vAdd(c, g.travel, ahead);
+  return (await page.evaluate(`window.__hit(${a.join(',')}, ${b.join(',')})`)).kind;
+}
+
+/* What a gate's frame is made of, as the field builds it: the pipe is a
+ * 'gate' and the printed sleeve outboard of each upright an 'obstacle'
+ * (src/render/scene.js obstacle()), so a craft meeting an upright meets
+ * whichever of the two its hull reaches first. */
+const FRAME = ['gate', 'obstacle'];
+
+/* A point on a gate's upright, half way up the opening: the axis of the
+ * pipe is half a tube outboard of the clear span, and the craft sweeps
+ * far more than the tube's radius either side of it. */
+function onUpright(g) {
+  const across = vCross(g.up, g.travel);
+  return vAdd(g.centre, across, OPENING.clearW / 2 + 0.02);
+}
+
+/* Place a gate hung level in the air, the builder's air distance in front
+ * of an eye looking along `yaw`, and hand back its race frame. */
+async function hangGate(page, eye, yaw) {
+  const n = await page.evaluate(B('.gates.length'));
+  await page.tap('Digit3');
+  await aimAlong(page, eye, yaw, 0);
+  await page.tap('Enter');
+  await page.until(`${B('.gates.length')} === ${n + 1}`, 10000);
+  const st = await page.evaluate(B(''));
+  return st.gates[st.gates.length - 1];
+}
+
+/* Tab round the lap to one gate. */
+async function select(page, id) {
+  for (let i = 0; i < 12 && (await page.evaluate(B('.selected'))) !== id; i += 1) {
+    await page.tap('Tab');
+  }
+  return (await page.evaluate(B('.selected'))) === id;
+}
+
+/* The world yaw, degrees, of a craft pointed along a gate's travel. */
+const yawAlong = (t) => (Math.atan2(-t[0], -t[2]) * 180) / Math.PI;
+
+async function solidGates(page, { edge, drop, yawOut, at }) {
+  console.log('  solid gates');
+  const H = async (x, z) => page.evaluate(`window.__heightAt(${x}, ${z})`);
+  const side = [drop.dz, 0, -drop.dx];
+  const eye = at(edge + 25, drop.h + 10);
+  const where = vAdd(eye, [drop.dx, 0, drop.dz], (await page.evaluate(B('.airDistance'))));
+  const probeG = { centre: where, travel: [drop.dx, 0, drop.dz], up: [0, 1, 0] };
+  const count0 = (await page.evaluate('window.__colliders()')).count;
+  say(await chord(page, probeG, onUpright(probeG)) === null && await chord(page, probeG, where) === null, 'before: nothing solid in the air out over the drop');
+
+  /* Place one. */
+  const g = await hangGate(page, eye, yawOut);
+  const under = await H(g.centre[0], g.centre[2]);
+  say(g.centre[1] - under > 20, `a gate hung ${f1(g.centre[1] - under)} m over the ground out past the edge`);
+  say((await page.evaluate('window.__colliders()')).count > count0, `its members are colliders: ${count0} before, ${(await page.evaluate('window.__colliders()')).count} after`);
+  const kUp = await chord(page, g, onUpright(g));
+  const kHole = await chord(page, g, g.centre);
+  say(FRAME.includes(kUp) && kHole === null, `the craft's sweep meets its upright (${kUp}) and not its opening (${kHole})`);
+
+  /* Fly into it and through it, in a test flight, on the shell's own
+   * contact and the crash physics. */
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+  const crash0 = await page.evaluate('window.__crash()');
+  say(crash0.runDamage === true, `crash damage is on for the run (runDamage ${crash0.runDamage})`);
+  const throwAt = async (c, back, speed) => {
+    const p = vAdd(c, g.travel, -back);
+    const v = g.travel.map((x) => x * speed);
+    await page.evaluate(`window.__crashThrow({ x: ${p[0]}, y: ${p[1]}, z: ${p[2]}, yaw: ${yawAlong(g.travel)}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
+  };
+  const plane = vDot(g.centre, g.travel);
+  const past = async (d) => page.until(`(() => { const c = window.__craftState(); return c.worldX * ${g.travel[0]} + c.worldY * ${g.travel[1]} + c.worldZ * ${g.travel[2]} > ${plane + d}; })()`, 15000).then(() => true, () => false);
+  await throwAt(g.centre, 2.5, 12);
+  const through = await past(2);
+  await page.sleep(300);
+  const clean = await page.evaluate('({ c: window.__craftState(), k: window.__crash() })');
+  say(through && clean.c.lastHitKind === 'none' && clean.k.events === crash0.events, `through the opening at 12 m/s: out the far side, touched ${clean.c.lastHitKind}, damage events ${clean.k.events - crash0.events}`);
+  await throwAt(onUpright(g), 2.5, 12);
+  await page.until("window.__craftState().lastHitKind !== 'none'", 15000).catch(() => {});
+  await page.sleep(400);
+  await shot(page, '7-into-the-built-gate');
+  const hit = await page.evaluate('({ c: window.__craftState(), k: window.__crash() })');
+  say(FRAME.includes(hit.c.lastHitKind), `into its upright at 12 m/s: the contact is with a ${hit.c.lastHitKind} at ${f1(hit.c.lastClosingSpeed)} m/s closing`);
+  say(hit.k.events > clean.k.events, `and the crash physics took it: ${hit.k.events - clean.k.events} damage events, flags ${JSON.stringify(hit.k.flagNames)}`);
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'building'`, 10000);
+
+  /* Move it: pick it up and put it down twelve metres to the side. */
+  say(await select(page, g.id), 'Tab selects it');
+  await page.tap('KeyG');
+  await aimAlong(page, vAdd(eye, side, 12), yawOut, 0);
+  await page.tap('Enter');
+  await page.until(`${B('.held')} === null`, 10000);
+  const m = (await page.evaluate(B('.gates'))).find((x) => x.id === g.id);
+  const moved = Math.hypot(...m.centre.map((v, i) => v - g.centre[i]));
+  const kOld = await chord(page, g, onUpright(g));
+  const kNew = await chord(page, m, onUpright(m));
+  say(moved > 11 && kOld === null && FRAME.includes(kNew), `moved ${f1(moved)} m: the old upright is air (${kOld}), the new one solid (${kNew})`);
+
+  /* Delete it: nothing of it is left. */
+  await page.tap('Delete');
+  await page.until(`!${B('.gates')}.some((x) => x.id === ${JSON.stringify(g.id)})`, 10000);
+  const kGone = await chord(page, m, onUpright(m));
+  const kHoleGone = await chord(page, m, m.centre);
+  const count1 = (await page.evaluate('window.__colliders()')).count;
+  say(kGone === null && kHoleGone === null && count1 === count0, `deleted: nothing solid where it stood (${kGone}, ${kHoleGone}), ${count1} colliders as before it was placed`);
+
+  /* A double stack: both openings open, the bar between them solid. */
+  await page.tap('KeyT');
+  await page.tap('KeyT');
+  say((await page.evaluate(B('.type'))) === 'doubleStack', 'T twice: a double stack');
+  const s = await hangGate(page, eye, yawOut);
+  const lift = STACK[1].centreY - STACK[0].centreY;
+  const upper = vAdd(s.centre, s.up, lift);
+  const bar = vAdd(s.centre, s.up, lift / 2);
+  const k0 = await chord(page, s, s.centre);
+  const k1 = await chord(page, s, upper);
+  const kb = await chord(page, s, bar);
+  say(k0 === null && k1 === null && kb === 'gate', `the stack's lower opening (${k0}) and upper one (${k1}) are open and the bar between them solid (${kb})`);
+  await select(page, s.id);
+  await page.tap('Delete');
+  await page.until(`${B('.gates.length')} === 3`, 10000);
+  for (let i = 0; i < 3; i += 1) {
+    await page.tap('KeyT');
+  }
+  say((await page.evaluate(B('.type'))) === 'gate' && (await page.evaluate('window.__colliders()')).count === count0, 'deleted, and back to placing gates');
+}
+
+/*
+ * A test flight from a start gate hung level in the air: the craft starts
+ * in the air in front of it at its height, counts down, and is flown
+ * through it by a pilot in the page holding the height on the sticks, and
+ * the race starts the lap. `craft` names what flies, for the lines.
+ */
+async function airStartFlight(page, { edge, drop, yawOut, at }, craft) {
+  console.log(`  air start, ${craft}`);
+  const eye = at(edge + 25, drop.h + 10);
+  const g = await hangGate(page, eye, yawOut);
+  /* And one after it, so the start gate is not also the whole lap. */
+  await hangGate(page, vAdd(eye, [drop.dx, 0, drop.dz], 30), yawOut);
+  await select(page, g.id);
+  await page.tap('Home');
+  await page.tap('Escape');
+  const first = (await page.evaluate(B('.gates')))[0];
+  say(first.id === g.id, 'Home makes the hung gate the start');
+  const af = await page.evaluate('window.__ui.settings.airframe');
+  const want = airStartSpeed(airframeById(af));
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+  await page.sleep(300);
+  const c0 = await page.evaluate('window.__craftState()');
+  const rel = [c0.worldX - g.centre[0], c0.worldY - g.centre[1], c0.worldZ - g.centre[2]];
+  const behind = -vDot(rel, g.travel);
+  const off = Math.hypot(...vAdd(rel, g.travel, behind));
+  const under = await page.evaluate(`window.__heightAt(${c0.worldX}, ${c0.worldZ})`);
+  say(Math.abs(behind - 7.5) < 0.05 && off < 0.05, `${af} starts ${behind.toFixed(2)} m before the start gate on its line of travel, ${off.toFixed(3)} m off it, at its height`);
+  say(c0.worldY - under > 20 && !c0.landed, `in the air: ${f1(c0.worldY - under)} m over the ground under it`);
+  const along = c0.vel ? vDot([c0.vel.x, c0.vel.y, c0.vel.z], g.travel) : NaN;
+  say(Math.abs(c0.speed - want) < 0.05 && Math.abs(along - want) < 0.05, `at ${c0.speed.toFixed(2)} m/s along its travel, the air start speed for ${af} is ${want.toFixed(2)}`);
+  say(/^[123]$/.test(c0.banner), `the countdown is up: "${c0.banner}"`);
+  await page.sleep(1200);
+  const c1 = await page.evaluate('window.__craftState()');
+  say(Math.hypot(c1.worldX - c0.worldX, c1.worldY - c0.worldY, c1.worldZ - c0.worldZ) < 1e-6, 'held still through the countdown');
+  await shot(page, `8-air-start-${craft}`);
+
+  /* The pilot: height on the throttle (a quad) or the elevator (a wing),
+   * the line on the roll stick, pushed along on the pitch stick for a quad
+   * and on its cruise throttle for a wing, in angle mode and stabilised
+   * mode so a stick is an attitude. A positive pitch stick raises the nose. */
+  await page.evaluate(`(() => {
+    const T = ${JSON.stringify(g.travel)};
+    const C = ${JSON.stringify(g.centre)};
+    const A = [T[2], 0, -T[0]];
+    const wing = ${JSON.stringify(want > 0)};
+    const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+    window.__pilot = true;
+    window.__trail = [];
+    const step = () => {
+      if (!window.__pilot) { window.__stick(); return; }
+      const c = window.__craftState();
+      const dy = C[1] - c.worldY;
+      const vy = c.vel ? c.vel.y : 0;
+      const side = (c.worldX - C[0]) * A[0] + (c.worldZ - C[2]) * A[2];
+      const vs = c.vel ? c.vel.x * A[0] + c.vel.z * A[2] : 0;
+      const roll = cl(0.25 * side + 0.1 * vs, -0.4, 0.4);
+      const u = (c.worldX - C[0]) * T[0] + (c.worldY - C[1]) * T[1] + (c.worldZ - C[2]) * T[2];
+      window.__trail.push([+u.toFixed(2), +side.toFixed(2), +(-dy).toFixed(2), +c.speed.toFixed(1), c.banner, c.lastHitKind]);
+      if (wing) {
+        window.__stick(roll, cl(0.25 * dy - 0.08 * vy, -0.6, 0.6), 0, 0.75);
+      } else {
+        window.__stick(roll, -0.2, 0, cl(0.37 + 0.1 * dy - 0.08 * vy, 0.1, 0.9));
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    return true;
+  })()`);
+  await page.until('window.__race().next === 1', 60000).catch(() => {});
+  await page.evaluate('window.__pilot = false');
+  const r = await page.evaluate('({ next: window.__race().next, lap: window.__race().lapStartMs, c: window.__craftState() })');
+  if (r.next !== 1) {
+    const tr = await page.evaluate('window.__trail');
+    console.log(`  mode ${await page.evaluate('window.__mode')}, screen ${await page.evaluate('window.__screen')}, fault ${JSON.stringify(await page.evaluate('window.__frameFault || null'))}`);
+    console.log(`  the flight, along the travel, across, up, speed: ${JSON.stringify(tr.filter((_, i) => i % Math.max(1, Math.floor(tr.length / 40)) === 0))}`);
+  }
+  say(r.next === 1 && r.lap != null && r.c.lastHitKind === 'none', `flown through the start gate: the lap clock starts, next is gate ${r.next + 1}, touched ${r.c.lastHitKind}`);
+  await page.sleep(300);
+}
+
+/* The same air start on a fixed wing, the Slow Stick: at 1.18 m the one
+ * whose span goes through a 1.75 m opening with room to fly it. Its
+ * stabilised mode, so a centred stick flies level. */
+async function wingStart({ edge, drop, yawOut, at }) {
+  console.log(`air start on a fixed wing, ${opts.map}`);
+  const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed: seedFor(null, 'slowstick1180', 'slowstick-stab') });
+  try {
+    await flyAndBuild(page);
+    await airStartFlight(page, { edge, drop, yawOut, at }, 'fixed wing');
     const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
@@ -551,7 +834,8 @@ try {
   if (opts.perf) {
     await perf();
   } else {
-    await proof();
+    const out = await proof();
+    await wingStart(out);
     await fieldTrack();
   }
 } catch (e) {
