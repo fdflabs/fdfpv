@@ -701,8 +701,19 @@ static void ground_settle(double upz, double vn_plant) {
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.
    * A live flip whose lowest corner just entered that halo must keep
-   * vel and omega until it actually hits. */
-  if (upz < CONTACT_INVERT_UPZ && !coulomb) {
+   * vel and omega until it actually hits.
+   *
+   * With the damage mode on, only once it has all but stopped: a wreck
+   * that arrives on its back at speed slides and turns on under its own
+   * contacts' friction, where the stop took a Timber sliding inverted at
+   * 4.4 m/s, and a five inch at 10, to rest in one millisecond (454 and
+   * 1,096 g in the crash suite). */
+  const int sliding = SIM_DAMAGE && crash_life_size()
+      && (S.vel[0] * S.vel[0] + S.vel[1] * S.vel[1] + S.vel[2] * S.vel[2]
+            > CONTACT_SLIDE_STOP * CONTACT_SLIDE_STOP
+          || S.omega[0] * S.omega[0] + S.omega[1] * S.omega[1] + S.omega[2] * S.omega[2]
+            > CONTACT_OMEGA_STOP * CONTACT_OMEGA_STOP);
+  if (upz < CONTACT_INVERT_UPZ && !coulomb && !sliding) {
     const int touching = g_ground_hits || g_ground_projected;
     const int seated_halo = g_ground_near
         && upz < CONTACT_INVERT_HALO_UPZ
@@ -1019,7 +1030,14 @@ static void ground_apply(void) {
   const double qy = S.quat[2];
   const double upz = 1.0 - 2.0 * (qx * qx + qy * qy);
 
-  if (upz < 0.5) {
+  /* With the damage mode on, a craft on its side meets the ground with
+   * every sampler, as upright: each part is its own spring, so there is no
+   * lock to avoid, and the single support let the rest sink unresolved
+   * while a gear leg folded (the projection stands aside for a fold) until
+   * a Cub rolled on its side had its fuselage 15 cm in the grass and was
+   * thrown out by the position bias, 715 g, losing its pack, canopy, fin,
+   * stabiliser and boom at once. Inverted keeps its bump, for turtle. */
+  if (upz < 0.5 && !(SIM_DAMAGE && upz >= 0.0)) {
     int hits = 0;
     if (upz < 0.0) {
       /* Inverted rest is the camera / vtx bump, through the CG, so the
@@ -1119,6 +1137,40 @@ static void ground_apply(void) {
   if (!wheels_loaded) {
     ground_settle(upz, vn_plant);
   }
+}
+
+/*
+ * The solids the plant has been told of (sim_obstacle_*, a tree's trunk),
+ * met by the parts themselves every step with the damage mode on: crash.c,
+ * THE PLANT MEETS THE SOLIDS IT KNOWS. The same solver as the ground's, a
+ * contact per part at its deepest point, iterated as the ground's corners
+ * are, and the same position correction unless the part's spring holds it.
+ */
+static int g_obstacle_hits = 0;
+
+static void obstacle_apply(void) {
+  const int nt = SIM_DAMAGE ? crash_touches(&S) : 0;
+  g_obstacle_hits = nt;
+  if (nt == 0) {
+    return;
+  }
+  const double vs[3] = { 0.0, 0.0, 0.0 };
+  for (int iter = 0; iter < CONTACT_ITERS; iter += 1) {
+    for (int k = 0; k < nt; k += 1) {
+      double r[3], n[3], pen, e, mu;
+      crash_touch(&S, k, r, n, &pen, &e, &mu);
+      contact_impulse(n, r, vs, e, mu, pen > 0.0 ? pen : 0.0);
+      if (pen > CONTACT_SLOP && !crash_last_capped()) {
+        const double push = (pen - CONTACT_SLOP) * CONTACT_POS_PUSH;
+        S.pos[0] += n[0] * push;
+        S.pos[1] += n[1] * push;
+        S.pos[2] += n[2] * push;
+      }
+    }
+  }
+  double r[3], n[3], pen, e, mu;
+  crash_touch(&S, -1, r, n, &pen, &e, &mu);
+  crash_set_ground_contact();
 }
 
 /*
@@ -1642,21 +1694,17 @@ SIM_EXPORT int sim_contact(double nx, double ny, double nz,
   if (!contact_unit3(nx, ny, nz, n)) {
     return SIM_ERR_BAD_ARG;
   }
-  double own[3], own_arm[3];
-  const int place = SIM_DAMAGE ? crash_contact_place(&S, n, own, own_arm) : SIM_PLACE_HOST;
-  if (place == SIM_PLACE_NONE) {
-    return SIM_OK;
-  }
-  if (place == SIM_PLACE_OWN) {
-    px = own[0];
-    py = own[1];
-    pz = own[2];
+  double r[3];
+  contact_support_neg_n(n, r);
+  if (SIM_DAMAGE) {
+    const double hw[3] = { px + r[0], py + r[1], pz + r[2] };
+    if (crash_contact_known(&S, n, hw)) {
+      return SIM_OK;
+    }
   }
   S.pos[0] = px;
   S.pos[1] = py;
   S.pos[2] = pz;
-  double r[3];
-  contact_support_neg_n(n, r);
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
    * side of the face. The impulse still sees the inbound velocity. */
@@ -1723,19 +1771,12 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   if (!contact_unit3(nx, ny, nz, n)) {
     return SIM_ERR_BAD_ARG;
   }
-  double own[3], own_arm[3];
-  const int place = SIM_DAMAGE ? crash_contact_place(&S, n, own, own_arm) : SIM_PLACE_HOST;
-  if (place == SIM_PLACE_NONE) {
-    g_contact_mat = SIM_SURF_DEFAULT;
-    return SIM_OK;
-  }
-  if (place == SIM_PLACE_OWN) {
-    px = own[0];
-    py = own[1];
-    pz = own[2];
-    rx = own_arm[0];
-    ry = own_arm[1];
-    rz = own_arm[2];
+  if (SIM_DAMAGE) {
+    const double hw[3] = { px + rx, py + ry, pz + rz };
+    if (crash_contact_known(&S, n, hw)) {
+      g_contact_mat = SIM_SURF_DEFAULT;
+      return SIM_OK;
+    }
   }
   S.pos[0] = px;
   S.pos[1] = py;
@@ -1752,9 +1793,8 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   }
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
-   * side of the face. The impulse still sees the inbound velocity. The
-   * host's part goes with the host's point, not with the plant's own. */
-  crash_host_part(place == SIM_PLACE_OWN ? -1 : host_part);
+   * side of the face. The impulse still sees the inbound velocity. */
+  crash_host_part(host_part);
   crash_batch_begin(&S, 0);
   contact_impulse(n, r, vs, restitution, mu, 0.0);
   crash_batch_end(&S);
@@ -1849,6 +1889,10 @@ SIM_EXPORT int sim_set_ground(int on,
 
 SIM_EXPORT int sim_ground_contacts(void) {
   return g_ground_hits;
+}
+
+SIM_EXPORT int sim_obstacle_contacts(void) {
+  return g_obstacle_hits;
 }
 
 SIM_EXPORT int sim_set_crashflip(int on) {
@@ -2264,6 +2308,7 @@ SIM_EXPORT int sim_step(int n) {
     }
     crash_batch_begin(&S, 1);
     ground_apply();
+    obstacle_apply();
     float_apply();
     if (float_mass) {
       float_mass_apply();

@@ -828,16 +828,19 @@ void crash_host_part(int i);
 /* The part a body frame point belongs to, for a contact there: the
  * attached part with the hull point nearest it. */
 int crash_part_at(const double b[3]);
-/* Where a host's obstacle contact puts the craft. SIM_PLACE_HOST: at the
- * host's pose, as always. Once a part has left and the plant knows the
- * solids near the craft, the host's hull is not the airframe's:
- * SIM_PLACE_NONE, no part still on it is at a solid, so no contact and no
- * pose; SIM_PLACE_OWN, at pos, out of the solid by its parts' own depth,
- * met at arm (world axes, from the CG) on its own part. */
-#define SIM_PLACE_HOST 0
-#define SIM_PLACE_NONE 1
-#define SIM_PLACE_OWN 2
-int crash_contact_place(const SimState *s, const double n[3], double pos[3], double arm[3]);
+/* 0 for the whoop the shell flies, whose room is scaled and whose contacts
+ * stay the rigid ones; 1 for every craft at life size. */
+int crash_life_size(void);
+/* Whether a host's obstacle contact at hw (world), along n, is on a solid
+ * the plant knows and meets itself (crash_touches): then the host's call
+ * is dropped, its pose with it. Damage mode only. */
+int crash_contact_known(const SimState *s, const double n[3], const double hw[3]);
+/* Every step, damage mode only: the parts that are in a solid the plant
+ * knows, one contact each, and the count. crash_touch(k) hands the solver
+ * contact k, its arm r (world, from the CG), normal n, depth, e and mu, and
+ * makes it the next contact's; k -1 ends the pass. */
+int crash_touches(const SimState *s);
+int crash_touch(const SimState *s, int k, double r[3], double n[3], double *pen, double *e, double *mu);
 
 /* Bridge: Betaflight control loop and config shim. */
 
