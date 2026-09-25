@@ -675,11 +675,21 @@ static void ground_settle(double upz, double vn_plant) {
     vn = 0.0;
   }
 
+  /* The stops below hold a slow hull still outright. That is static
+   * friction only while nothing but gravity pulls along the ground, and
+   * for a quad on its back, whose props dig in. A wind is a sustained pull
+   * on a wing at rest, a canopy's above all: past the grass's static limit
+   * it must slide however slowly it starts, and a stop would zero it every
+   * step. So in wind a wing's ground contact is Coulomb all the way down,
+   * the friction below and the corners' own. Without wind nothing changes,
+   * bit identical. */
+  const int coulomb = SIM_WIND_ON && PLANT.kind == PLANT_KIND_WING;
+
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.
    * A live flip whose lowest corner just entered that halo must keep
    * vel and omega until it actually hits. */
-  if (upz < CONTACT_INVERT_UPZ) {
+  if (upz < CONTACT_INVERT_UPZ && !coulomb) {
     const int touching = g_ground_hits || g_ground_projected;
     const int seated_halo = g_ground_near
         && upz < CONTACT_INVERT_HALO_UPZ
@@ -729,8 +739,14 @@ static void ground_settle(double upz, double vn_plant) {
   if (PLANT.kind == PLANT_KIND_WING && !(upz >= CONTACT_WING_REST_UPZ)) {
     return;
   }
+  /* The corners that took an impulse this step carried their own friction
+   * against the load they took; this one again would count the ground
+   * twice, which in wind held a canopy's pull at twice the grass's grip. */
+  if (coulomb && g_ground_hits) {
+    return;
+  }
   const double vt2 = vtx * vtx + vty * vty + vtz * vtz;
-  if (vt2 < CONTACT_SLIDE_STOP * CONTACT_SLIDE_STOP) {
+  if (vt2 < CONTACT_SLIDE_STOP * CONTACT_SLIDE_STOP && !coulomb) {
     S.vel[0] = nx * vn;
     S.vel[1] = ny * vn;
     S.vel[2] = nz * vn;
@@ -798,7 +814,9 @@ static void ground_settle(double upz, double vn_plant) {
  * onto them from a landing instead of bouncing off a rigid corner.
  * Friction is split along the wheel's own heading and across it, because a
  * wheel is the one contact whose friction is not isotropic: along its
- * heading it rolls, and costs only its rolling resistance, mu_roll N;
+ * heading it rolls, and costs only its rolling resistance, mu_roll N on
+ * short grass and the ground's material's share of it elsewhere, more
+ * with the brake on (plant_wheel_roll);
  * across it the tyre grips up to mu_side N. Each is an impulse that would
  * stop the point's velocity along that direction, through the same
  * effective mass the hull's contact uses, clipped at its cone. The
@@ -947,7 +965,7 @@ static int ground_wheels(void) {
       n[0] * h[1] - n[1] * h[0],
     };
     wheel_friction(r, l, wp->mu_side * jn);
-    wheel_friction(r, h, wp->mu_roll * jn);
+    wheel_friction(r, h, plant_wheel_roll(wp, crash_ground_material(), plant_wing_brake()) * jn);
   }
   return loaded;
 }
@@ -2399,6 +2417,14 @@ SIM_EXPORT int sim_set_wind(double vx, double vy, double gust) {
   SIM_WIND[1] = vy;
   SIM_GUST = gust;
   SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_set_brake(double b) {
+  if (!finite_d(b) || !(b >= 0.0) || !(b <= 1.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_set_brake(b);
   return SIM_OK;
 }
 

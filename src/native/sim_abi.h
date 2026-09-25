@@ -507,13 +507,30 @@ double sim_air_lift(double x, double y, double z);
  * out of range. A world property, not state: kept across sim_reset and
  * sim_init, like the water; sim_set_wind(0, 0, 0) is still air, the
  * default, and then no step reads any of it, so every flight without wind
- * is bit identical to one from before it existed.
+ * is bit identical to one from before it existed. In wind a plane on the
+ * ground holds by Coulomb friction alone, with no stop for a slow slide,
+ * so a pull past the ground's grip, its canopy's above all, drags it.
  * sim_wind(out[2]): the wind acting now, at the current step, m/s world x
  * and y, gusts included. SIM_ERR_BAD_ARG for a null pointer.
  * Additive, version unchanged.
  */
 int sim_set_wind(double vx, double vy, double gust);
 int sim_wind(double *out);
+
+/*
+ * BRAKE. sim_set_brake(b): the wheel brake, 0 off to 1 full, on the main
+ * wheels of an airframe that stands on gear (the Cub, the Slow Stick, the
+ * Timber); nothing else has a wheel for it to act on. Braked, a main
+ * wheel's resistance along its heading rises from its rolling resistance
+ * on the ground's material to the tyre's side grip, a locked wheel
+ * skidding. An input like the sticks: 0 after sim_reset. SIM_ERR_BAD_ARG
+ * for a value that is not finite or is outside 0 to 1. The ground's
+ * material (sim_set_ground_material) also sets the wheels' rolling
+ * resistance, from the full size table in src/native/plant.c at
+ * plant_wheel_roll; the default material and grass leave it as it was.
+ * Additive, version unchanged.
+ */
+int sim_set_brake(double b);
 
 /*
  * sim_wing_chute(deploy): the recovery parachute of an aircraft that has
