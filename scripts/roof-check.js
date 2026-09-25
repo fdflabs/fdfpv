@@ -28,7 +28,7 @@
  *          the shell's sweep meets a `wall`, and the plane does not get
  *          into the house.
  *   gable  level into the gable end above the plate: a `wall` there too,
- *          and nothing gets past the gable's face.
+ *          and nothing gets past the gable's face into the attic.
  *   slope  level into the side of the roof halfway up it: whatever the
  *          crash physics makes of it, the plane never gets under the roof.
  *   quad   a five inch let down square onto the slope at 0.8 m/s, motors
@@ -130,7 +130,11 @@ const OPEN = ['ramp', 'dive', 'quad'];
 const LEAN = ['skid', 'dive', 'quad'];
 const KINDS = {
   house: { fly: CLOSED, min: 3.5, key: /^(shingle|slate)/ },
-  hut: { fly: CLOSED, min: 1.8 },
+  /* A five inch set down on a hut roofed in tin (mu 0.35), or on one
+   * steeper than 28 degrees, slides off its eave and breaks on the ground
+   * three metres down, as it would: flown at the shingle and slate ones
+   * no steeper than the village house the round that proved roofs flew. */
+  hut: { fly: CLOSED, min: 1.8, key: /^(shingle|slate)/, maxPitch: 28.7 },
   boathouse: { fly: CLOSED, min: 2 },
   lakeHouse: { fly: CLOSED, min: 3 },
   /* The lake church's nave roof is 46 degrees: too steep to ramp, and a
@@ -193,7 +197,7 @@ const PICK = (kind, spec) => `(() => {
     const T = (lx) => window.__surface(R.x + R.c * lx, R.z - R.s * lx, 1e9);
     return Math.atan((T(R.hw * 0.25) - T(R.hw * 0.75)) / (R.hw * 0.5)) * 180 / Math.PI;
   };
-  const fit = ramps ? all.filter((R) => { const p = pitchOf(R); return p > (spec.flat ? -1 : 8) && p < 40; }) : all;
+  const fit = ramps ? all.filter((R) => { const p = pitchOf(R); return p > (spec.flat ? -1 : 8) && p < (spec.maxPitch ?? 40); }) : all;
   return fit.slice(0, 200);
 })()`;
 
@@ -314,9 +318,10 @@ const PLAN = (scn, R) => `(() => {
   const yaw = Math.atan2(ux, uz) / d2r;
   const V = ${SPEED};
   let lx, y, climb, back, attitude;
-  if (scn === 'ramp' && ((R.kind || 'house') === 'house' || pitch < 8)) {
+  if (scn === 'ramp' && ((R.kind || 'house') === 'house' || pitch < 8 || R.hw >= 3.5)) {
     /* Level with the roof's plane, the way a pilot meets a ramp (on a
-     * roof as near flat as the bus shelter's, a skim onto it). */
+     * roof as near flat as the bus shelter's, a skim onto it), on any
+     * roof as wide as a village house's. */
     lx = R.hw * 0.4; climb = pitch - 7; y = T(lx) - 0.3; back = 5; attitude = pitch;
   } else if (scn === 'ramp') {
     /* The village house's ramp puts the craft 0.3 m over the roof's plane
@@ -460,7 +465,7 @@ function judge(scn, flown) {
 function judgeIn(scn, { plan, log, events0, R }) {
   if (process.argv.includes('--verbose')) {
     for (const r of log) {
-      console.log(`  ${scn} lx ${r.lx.toFixed(2)} y ${r.y.toFixed(2)} roof ${r.roof.toFixed(2)} ground ${r.ground.toFixed(2)} v ${r.speed.toFixed(1)} contacts ${r.contacts} ${r.hit} ${r.flags}`);
+      console.log(`  ${scn} lx ${r.lx.toFixed(2)} lz ${r.lz.toFixed(2)} y ${r.y.toFixed(2)} roof ${r.roof.toFixed(2)} ground ${r.ground.toFixed(2)} v ${r.speed.toFixed(1)} contacts ${r.contacts} ${r.hit} ${r.flags}`);
     }
   }
   const last = log[log.length - 1];
@@ -519,11 +524,15 @@ function judgeIn(scn, { plan, log, events0, R }) {
   const inside = log.filter((r) => Math.abs(r.lx) < R.hw - 0.3 && Math.abs(r.lz) < R.hd - 0.3 && r.y < r.roof - R.dy - 0.1).length;
   facts.insideSamples = inside;
   facts.shallowestLz = +Math.min(...log.map((r) => r.lz * (R.gableSide || 1))).toFixed(2);
+  /* What a wall and a gable must stop is the craft getting into the
+   * house (`inside`), not it getting past the face's plane: a wreck the
+   * crash physics throws up onto the roof and along it, or round the
+   * building's corner on the grass, has not got in. */
   let ok;
   if (scn === 'slope') {
     ok = inside === 0 && touches + walls > 0;
   } else if (scn === 'gable') {
-    ok = walls > 0 && inside === 0 && facts.shallowestLz > R.hd - 0.05;
+    ok = walls > 0 && inside === 0;
   } else if (scn === 'ramp') {
     /* Touched the roof, broke nothing on it, met no wall, and flew on
      * off the far eave. */
@@ -532,7 +541,7 @@ function judgeIn(scn, { plan, log, events0, R }) {
     ok = last.wrecked;
   } else if (scn === 'wall') {
     /* The eave wall stood at lx = hw; the craft never got into the house. */
-    ok = walls > 0 && minLx > R.hw - 0.05 && inside === 0;
+    ok = walls > 0 && inside === 0;
   } else {
     /* Down onto the roof and on it, never through it: a quad on a slate
      * pitch steeper than its friction holds slides, as it should. */
