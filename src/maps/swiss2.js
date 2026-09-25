@@ -568,6 +568,17 @@ function photoStyle() {
       stage.heights.texture.value = own(baked.height);
       stage.lit.setShadow(stage.shadowTarget.texture);
       style.clouds.setTerrain(baked.height, stage.shadowTarget.texture);
+      /* The strip before the ground under it. It lies two centimetres
+       * over the ground, and drawn after it the ground's whole splat was
+       * run under the strip for nothing, 1.3 ms a frame in craft-chase
+       * at High (scripts/swiss2-perf.js); drawn first, the depth test
+       * turns the ground away there before its splat is run. The picture
+       * is the same: the nearer surface wins in either order. */
+      scene.traverse((o) => {
+        if (o.material && o.material.userData && o.material.userData.s2Strip) {
+          o.renderOrder = -1;
+        }
+      });
       finishScene(scene, stage.lit);
     },
     compose(shell, map, q) {

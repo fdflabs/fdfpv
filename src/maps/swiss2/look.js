@@ -578,7 +578,11 @@ export function makePhotoLook({ surfaces, ground, heights }) {
    * builder asking for a surface nobody has said the finish of, and fails
    * loudly rather than drawing three's default white. */
   const byName = {
-    strip: () => ground({ strip: 1 }),
+    strip: () => {
+      const m = ground({ strip: 1 });
+      m.userData.s2Strip = true;
+      return m;
+    },
     timber: () => textured('boards', lin(0.8, 0.7, 0.6)),
     'boat-hull': (opts) => textured('boards', lin(0.9, 0.7, 0.55), { side: opts.side ?? THREE.FrontSide }),
     'gravel-path': () => textured('gravel', lin(0.75, 0.72, 0.7)),
