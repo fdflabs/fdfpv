@@ -364,3 +364,48 @@ near them, the floor, the strip, the village, the lake and the fall's
 lip where they are, and the ground a craft meets following what is
 drawn (swiss2's ground heights change on the walls by design; the cel
 alps must not change at all).
+
+### Round 8 (PRs #37, #38, #40, main at d0e9810)
+
+Light (#37): a contrast curve metered per frame and thicker haze,
+bringing local contrast (0.055 to 0.072, photos 0.077), the dark end
+(0.19 to 0.13, photos 0.13) and ridge layering to the photographs by
+measurement. Foreground (#38): a hamlet, boathouses, a promenade and
+boats on the lake, gusts, slicks and the stream's plume on the water,
+a thin mist drift at the fall, a market stall and villagers; the
+promenade was sent back once (a flat slab) and fixed. Walls (#40), the
+second wall decision: swiss2 has its own trough, sheer limestone faces
+225 to 375 m tall on a 10 m grid where needed, a scree apron, a wooded
+bench and an upper band, the floor, village, lake and fall exactly
+where they were (floor and alps height hashes identical, the ground
+equal to the drawn triangles to 0.04 mm); the west wall by the village
+kept for the gondola, path and paragliders. Sent back once: east-wall
+became a blank grey sheet and lake-high's water went black in the
+wall's shadow; the faces got limestone bedding, joints and streaks, and
+shaded water keeps the sky's light.
+
+| View | R7 | R8 | The tell now |
+| --- | --- | --- | --- |
+| strip | 6 | 7 | Lauterbrunnen's walls behind the strip |
+| vista-high | 7 | 7.5 | the trough reads |
+| cruise | 7 | 7.5 | the same |
+| village-20m | 5.5 | 5.5 | |
+| square-eye | 5.5 | 6 | the square is busy |
+| meadow-eye | 6 | 6.5 | a face behind the treeline |
+| east-wall | 6.5 | 6.5 | its subject changed: a close face, with a grey scree smudge; level, not lower |
+| lake-shore | 5.5 | 5.5 | |
+| lake-high | 6.5 | 6.5 | soft shadow; the water is busier than a real lake |
+| waterfall | 6 | 6 | |
+| into-sun | 6 | 6.5 | a backlit face |
+| farm-low | 6 | 6.5 | a sunlit face behind the barn |
+| lake-edge | 5.5 | 6.5 | the promenade, the village across the water |
+| craft-chase | 5.5 | 6 | the walls behind the plane |
+
+Mean of the thirteen: 6.08 to 6.58. The biggest round yet. Gate held
+with east-wall level (judged honestly as a different picture of equal
+quality, not a better one).
+
+Round 9: the lowest views (village-20m, lake-shore at 5.5, waterfall at
+6), the east-wall's scree smudge, and a performance pass: the box
+shows 33 ms frames in some views under load; the budget must hold on
+Medium.
