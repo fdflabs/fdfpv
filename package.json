@@ -73,6 +73,7 @@
     "slowstick:stab": "node scripts/slowstick-stab-selftest.js",
     "slowstick:record": "node scripts/wing-record.js slowstick",
     "slowstick:derive": "node scripts/slowstick-derive.js",
+    "timber:derive": "node scripts/timber-derive.js",
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",
