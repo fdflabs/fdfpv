@@ -9260,7 +9260,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     } else if (crashed && ui.screen === 'flight') {
       ui.setBanner('Crashed', true);
     } else if (wreckDown(nowWall) && ui.screen === 'flight') {
-      ui.setBanner(str('main.wrecked_r_resets'), true);
+      ui.setBanner(str('main.wrecked_r_resets'), 'edge');
     } else if (
       (turtleWait || turtleRecover || turtleFlip.active)
       && ui.screen === 'flight'
@@ -9330,7 +9330,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     } else if (guidedText) {
       ui.setBanner(guidedText);
     } else if (lapFlash) {
-      ui.setBanner(lapFlash);
+      /* A wreck's "lap over" is about the craft the camera is on. */
+      ui.setBanner(lapFlash, wrecked ? 'edge' : false);
     } else {
       ui.setBanner('');
     }

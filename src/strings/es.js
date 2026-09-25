@@ -799,7 +799,7 @@ export default {
   "main.vertical_chord_only_not_the_width": "solo la cuerda vertical, no el ancho de una puerta con yaw",
   "main.weight_changed_lap_voided": "Peso cambiado\nVuelta anulada",
   "main.wrecked_lap_over": "Destrozado. Vuelta terminada",
-  "main.wrecked_r_resets": "DESTROZADO\nR vuelve a la salida, X sigue volando desde aquí",
+  "main.wrecked_r_resets": "Destrozado. R vuelve a la salida, X sigue volando desde aquí",
   "main.you_beat_the_ghost_at_by": "Le ganaste al fantasma, {who} con {formatTime}, por {v3}.",
   "main.your_best_this_session": "Tu mejor tiempo de esta sesión",
   "main.your_edits": "tus ediciones",

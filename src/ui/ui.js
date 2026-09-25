@@ -10260,6 +10260,9 @@ export class Ui {
     this.maybeOfferFeel();
   }
 
+  /* `panelled` true boxes the text in the middle of the frame; 'edge' is
+   * one compact line under the OSD's top block, for a message about a
+   * craft the camera is looking at (a wreck), which the box would cover. */
   setBanner(text, panelled = false) {
     /* Called from the frame loop as well as from events, so it is guarded
      * like the OSD. */
@@ -10270,7 +10273,7 @@ export class Ui {
       this.banner.__wfOpacity = opacity;
       this.banner.style.opacity = opacity;
     }
-    Ui.klass(this.banner, panelled ? 'banner panel' : 'banner');
+    Ui.klass(this.banner, panelled === 'edge' ? 'banner edge' : panelled ? 'banner panel' : 'banner');
     /* The announcer is the one place a screen reader hears a banner at all;
      * see mountAnnouncer. Only real text, and only when it changes. */
     if (want) {
