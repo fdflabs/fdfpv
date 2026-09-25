@@ -151,6 +151,18 @@ CG, at 0.40 of the mean chord (Hoerner, Fluid Dynamic Lift, ch. 3: a
 plate's moves from the quarter chord toward 0.4 by 20 to 40 deg). With
 them full up trims at 17.9 deg, just past the stall: the mush.
 
+Crash round 4 (docs/STALL-STAGE1.md) made this every fixed wing's, past
+the stall angle and above a chord Reynolds number of 5e4: the stalled
+wing's normal force at the centre of pressure while its lift falls, the
+tail's lift as the stalled wing's downwash goes (stall_dw = 0.1313 from
+DATCOM's dε/dα), the section's measured lift past its peak (the Clark-Y
+class at 1e5), and the wing in spanwise strips that stall root first, the
+left half a little sooner. Short of the stall angle, and below 3e4, these
+two arms on the plate's lift are still the moment, as lowre_arm_ac and
+lowre_arm_cp. Full up from a slow throw still mushes with the wings level;
+S9's full up from cruise overshoots deeper and drops a wing 21 to 27 deg,
+past its 15, and fails (docs/STALL-STAGE1.md).
+
 **The air it flies in.** The Radian brought thermals to the airfield, three
 columns of rising air, and a table flag for an airframe that flies in them.
 The Slow Stick sets it: the air is the air, and a 420 g aircraft that

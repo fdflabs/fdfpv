@@ -214,9 +214,12 @@ by 30 m landing zone. The model:
   over 1.2 s, ESTIMATED.
 - **The attitude.** The brief said it lands on its back under the chute,
   and that is what this models: the risers meet the belly, 60 mm under the
-  CG, so it hangs inverted, and 64 mm ahead of it, where the canopy's pull
-  balances the plant's pitching moment at −90 deg (the linear Cm, 0.713)
-  so it hangs level. Both scale with the descent speed squared, so the
+  CG, so it hangs inverted, and 48 mm ahead of it, where the canopy's pull
+  balances the plant's pitching moment at −90 deg so it hangs level. That
+  was 64 mm against the linear Cm there, 0.713, until crash round 4 gave
+  the plant its post stall moment (docs/STALL-STAGE1.md): fully stalled
+  at −90 deg it is 0.530, and scripts/bramor-derive.js places the risers
+  by the same rule. Both scale with the descent speed squared, so the
   balance holds at any speed. **No source was found that says the Bramor
   lands inverted**, and C-Astral's render routes the red harness over the
   top of the pod, which would hang it right way up. It is one number, the

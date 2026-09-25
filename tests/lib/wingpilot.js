@@ -132,9 +132,10 @@ export function fly(sim, opts) {
   return { v: mean('v'), vz: mean('vz'), bank: mean('bank'), pitch: mean('pitch'), p: mean('p'), samples, endMs: t0Ms + total };
 }
 
-/* Level flight speed at a throttle, wings held level, climb rate held at zero. */
-export function levelSpeed(sim, duty) {
-  const r = fly(sim, { duty, vzTarget: 0 });
+/* Level flight speed at a throttle, wings held level, climb rate held at zero,
+ * from a throw at speed0 (12 m/s unless the airframe needs another). */
+export function levelSpeed(sim, duty, speed0 = 12) {
+  const r = fly(sim, { duty, vzTarget: 0, speed0 });
   return { v: r.v, vz: r.vz, pitch: r.pitch };
 }
 

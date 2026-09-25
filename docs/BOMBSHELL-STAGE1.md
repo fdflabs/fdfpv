@@ -165,7 +165,7 @@ is the airframe doing it and not a stabiliser.
 | Glides like a free flight model | S3 | L/D 8.6 at 8 m/s |
 | Levels itself with the sticks centred | S6: from a 30 deg bank at cruise, every stick let go | 7.8 deg after 6 s; the spiral halves a bank in 3.5 s |
 | Turns on rudder | S7: full right roll stick, which is full right rudder | 47 deg after 1 s, right wing down |
-| A gentle stall, not a wing drop | S9a and S9b: full up held 8 s from cruise, power off and on | a mush at 15.6 deg of alpha, 8.7 m/s, sinking 3.0 m/s, no wing drop or spin |
+| A gentle stall, not a wing drop | S9a and S9b: full up held 8 s from cruise, power off and on | a mush at 15.3 deg of alpha, 7.7 m/s, sinking 1.98 m/s, no wing drop or spin (re-derived for crash round 4's post stall model; 15.6, 8.7 and 3.0 on the flat plate before it) |
 | Takes off by itself | S15: full throttle from standing, every stick centred | its three point attitude is past the stall; the stabiliser lifts the tail as the speed comes up and it flies off at the speed it trims at: 17.2 m to 8.0 m/s tail up |
 | Lands on its wheels and skid | S16 | touches under 8 m/s and rests at S14's attitude |
 | Climbs in thermals | S19: a straight pass through the strongest | 14.8 m gained |
@@ -178,14 +178,16 @@ flight model that stalls on its own has to recover on its own: a big
 stabiliser on a long arm, the CG well forward, dihedral. This one's static
 margin is 0.29 of the chord. Its stall in the plant: with the elevator
 held full up, the nose rises, the wing stalls at 11.5 deg of alpha, and
-the pitching moment taken back through the stall trims it at 15.6 deg,
-where it settles into a steep mush, nose a few degrees under the horizon,
-wings level, sinking 3 m/s, turning only under the prop's torque with
+the pitching moment taken back through the stall trims it at 15.3 deg,
+where it settles into a mush, nose a few degrees under the horizon, wings
+level, sinking 2 m/s at 7.7 m/s, turning only under the prop's torque with
 power on. Let the stick go and it recovers in a phugoid. It does not drop
-a wing and it does not spin. The pitch break, the wing drop and the spin
-that crash round 4's aero work (pull request 59, open as this lands) adds
-to every fixed wing will want this aircraft's own per airframe numbers
-when it merges; see "Parallel work" below.
+a wing. Crash round 4's aero work (pull request 59) gave it its post stall
+numbers and a washout FITTED to its "gentle flying characteristics"
+(docs/STALL-STAGE1.md); the wing now holds its peak lift past the stall,
+where the flat plate before it let the mush sink at 3 m/s. With full rudder
+held at the stall it spins gently, about 140 deg/s, and stops on releasing
+it.
 
 ## Derived performance, the bands the plant must land in
 
