@@ -1019,7 +1019,14 @@ static void ground_apply(void) {
   const double qy = S.quat[2];
   const double upz = 1.0 - 2.0 * (qx * qx + qy * qy);
 
-  if (upz < 0.5) {
+  /* With the damage mode on, a craft on its side meets the ground with
+   * every sampler, as upright: each part is its own spring, so there is no
+   * lock to avoid, and the single support let the rest sink unresolved
+   * while a gear leg folded (the projection stands aside for a fold) until
+   * a Cub rolled on its side had its fuselage 15 cm in the grass and was
+   * thrown out by the position bias, 715 g, losing its pack, canopy, fin,
+   * stabiliser and boom at once. Inverted keeps its bump, for turtle. */
+  if (upz < 0.5 && !(SIM_DAMAGE && upz >= 0.0)) {
     int hits = 0;
     if (upz < 0.0) {
       /* Inverted rest is the camera / vtx bump, through the CG, so the
