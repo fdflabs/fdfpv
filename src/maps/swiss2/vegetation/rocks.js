@@ -108,7 +108,13 @@ function placeRocks({ heightAt, layout, rng, count, colliders, extra }) {
     const s = size * (0.8 + rng() * 0.4);
     const sy = 0.75 + rng() * 0.5;
     const y = heightAt(x, z) - s * (sink === null ? 0.08 + 0.35 * Math.min(1, sl.s) : sink * sy);
-    rocks.push({ x, y, z, q, s, sy, shape: Math.floor(rng() * SHAPES.length) });
+    const shape = Math.floor(rng() * SHAPES.length);
+    /* Not on carved rock (swiss2/rock/), turned away after its draws so
+     * the stones after it lie where they lay. */
+    if (layout.carved && layout.carved(x, z)) {
+      return;
+    }
+    rocks.push({ x, y, z, q, s, sy, shape });
     if (colliders && Math.hypot(x, z) < COLLIDE_R && s > 0.45) {
       colliders.addSphere('rock', x, y + 0.25 * s * sy, z, 0.42 * s);
     }

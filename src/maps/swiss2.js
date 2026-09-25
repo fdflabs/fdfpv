@@ -22,6 +22,7 @@
  *   swiss2/look.js       the material every builder asks for, by name
  *   swiss2/post.js       occlusion, aerial perspective, the camera, AgX, FXAA
  *   swiss2/clouds.js     the low cloud in the valley, marched in the post chain
+ *   swiss2/rock/         the carved rock on the walls' cliffs and faces
  *   swiss2/vegetation/   the forests, the boulders and the meadow
  *   swiss2/water/        the lake, the stream, the fall and its headwall
  *
@@ -89,6 +90,8 @@ import { swissVehicles } from './swiss2/vehicles/index.js';
 import { buildProps } from './swiss2/props/index.js';
 import { photoCraftLook } from './swiss2/craftlook.js';
 import { buildPeople } from './swiss2/village/people.js';
+import { buildCliffs, occupiedCells, trimGround } from './swiss2/rock/index.js';
+import { valleyLayout } from './swiss2/vegetation/zones.js';
 
 const CAMERA_FAR = 14000;
 
@@ -276,6 +279,9 @@ function photoStyle() {
           if (stage.water) {
             stage.water.dispose();
           }
+          if (stage.cliffs) {
+            stage.cliffs.dispose();
+          }
           envTarget.dispose();
           style.clouds.dispose();
           for (const t of owned) {
@@ -300,6 +306,7 @@ function photoStyle() {
       const mesh = new THREE.Mesh(terrainGeometry(field), stage.ground({}));
       mesh.receiveShadow = true;
       mesh.name = 'ground';
+      stage.groundMesh = mesh;
       return mesh;
     },
     /* What nature.js still draws here, the water, and the note of every
@@ -377,6 +384,17 @@ function photoStyle() {
           if (stage.people) {
             stage.people.update(t - first, camera);
           }
+          if (stage.cliffs) {
+            /* Into the scene on the first frame, after the build's
+             * renderer.compile: a BatchedMesh there when it runs cost
+             * the page twelve GL_INVALID_VALUE warnings from Chrome
+             * (glGetProgramiv, measured with a bare BatchedMesh too), and
+             * one first drawn in a frame costs none. */
+            if (!stage.cliffs.mesh.parent) {
+              scene.add(stage.cliffs.mesh);
+            }
+            stage.cliffs.update(camera);
+          }
           craftFootprint(style.shell && style.shell.quad, stage.craft);
           stage.water.update(dtMs, camera);
         },
@@ -405,7 +423,18 @@ function photoStyle() {
         footprints: gardens,
       });
       scene.add(stage.props.group);
+      /* The carved rock on the walls, in place of the ground's own
+       * triangles there, before the forests so nothing is planted on
+       * ground the rock has moved, and never under anything already
+       * standing on the ground (the paths, the stream, the fall, the
+       * lift). */
+      const layout = valleyLayout(heightAt, stage.footprints);
+      const taken = occupiedCells(scene, heightAt, new Set([stage.groundMesh, far.mesh, scene.getObjectByName('sky')]));
+      stage.cliffs = buildCliffs({ field, keep: (x, z) => layout.keepOff(x, z) || taken(x, z), material: stage.ground({ carved: 1 }) });
+      trimGround(stage.groundMesh.geometry, stage.cliffs.mask);
       stage.veg = await buildVegetation({
+        layout,
+        carved: stage.cliffs.carved,
         scene,
         renderer: stage.renderer,
         quality: stage.quality,
