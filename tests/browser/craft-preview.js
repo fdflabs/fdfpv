@@ -30,6 +30,7 @@ import { buildGliderCraft, GLIDER_DIMS } from '../../src/render/glidercraft.js';
 import { buildBramorCraft, BRAMOR_DIMS } from '../../src/render/bramorcraft.js';
 import { buildSlowStickCraft, SLOWSTICK_DIMS } from '../../src/render/slowstickcraft.js';
 import { buildTimberCraft, TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS } from '../../src/render/timbercraft.js';
+import { buildBombshellCraft, BOMBSHELL_DIMS } from '../../src/render/bombshellcraft.js';
 
 /* On floats, the float variants: the same aircraft, its reach down and up
  * and its rest the floats', its nose the floats' bows where they reach
@@ -39,11 +40,13 @@ const BUILDERS = {
   sky: buildSkyCraft, cub: buildCubCraft, glider: buildGliderCraft, bramor: buildBramorCraft, stick: buildSlowStickCraft, timber: buildTimberCraft,
   timberf: (o) => buildTimberCraft({ ...o, floats: true }),
   cubf: (o) => buildCubCraft({ ...o, floats: true }),
+  bombshell: buildBombshellCraft,
 };
 const DIMS = {
   sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS,
   timberf: onFloats(TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS),
   cubf: onFloats(CUB_DIMS, CUB_FLOATS, CUB_FLOAT_DIMS),
+  bombshell: BOMBSHELL_DIMS,
 };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';

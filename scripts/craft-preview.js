@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -193,6 +193,29 @@ const STICK_VIEWS = [
 ];
 
 /*
+ * The Bombshell's own set: its prop at z = -0.17, its tail at +0.65, the
+ * rest flag for its skid, and first the view BMJR's product photograph is
+ * taken from, ahead of the left wing and a little above it, which is what
+ * the model is held against.
+ */
+const BOMBSHELL_VIEWS = [
+  ['photo', NEUTRAL, [-40, 10, 1.5, 0, 0.0, 0.16]],
+  ['front', NEUTRAL, [0, 4, 3.0, 0, 0, 0]],
+  ['three-quarter', NEUTRAL, [-140, 24, 2.8, 0, 0, 0.15]],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 2.8, 0, 0, 0.05]],
+  ['side', NEUTRAL, [90, 0, 2.8, 0, 0, 0.2]],
+  ['side-rest', NEUTRAL, [90, 3, 2.8, 0, 0, 0.2], false, true],
+  ['three-quarter-rest', NEUTRAL, [-45, 14, 2.4, 0, 0, 0.1], false, true],
+  ['top', NEUTRAL, [0, 90, 3.0, 0, 0, 0.2]],
+  ['below', NEUTRAL, [0, -90, 3.0, 0, 0, 0.2]],
+  ['deflected-rear', DEFLECT, [180, 12, 2.6, 0, 0, 0.2]],
+  ['nose-close', NEUTRAL, [-40, 12, 0.6, 0, 0.0, -0.15]],
+  ['prop-blur', NEUTRAL, [-20, 10, 0.8, 0, 0, -0.12], true],
+  ['tail-close', DEFLECT, [-145, 20, 0.8, 0, 0.05, 0.55]],
+  ['gear-front', NEUTRAL, [0, -5, 0.8, 0, -0.07, -0.05]],
+];
+
+/*
  * The Timber's own set: its spinner at z = -0.33, its rudder at +0.72,
  * resting on its tailwheel as the Cub does, and the flaps, which are what
  * it is for: half and full, from the side and from behind, where the slot
@@ -263,6 +286,7 @@ try {
   const scale = 1;
   const views = {
     cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS, timber: TIMBER_VIEWS,
+    bombshell: BOMBSHELL_VIEWS,
     timberf: floatViews(-0.33, 0.62), cubf: floatViews(-0.26, 0.55),
   }[craft] ?? VIEWS;
   for (const [name, surf, cam, blur, rest, omega, setup] of views) {
@@ -333,6 +357,10 @@ try {
       ['rudder', [0, 0, 0, FULL], left],
       ['tailwheel', [0, 0, 0, FULL], left],
     ],
+    bombshell: [
+      ['elevator', [0, 0, FULL, 0], up],
+      ['rudder', [0, 0, 0, FULL], left],
+    ],
     timberf: [
       ['rudder', [0, 0, 0, FULL], left],
       ['water-rudder-left', [0, 0, 0, FULL], left],
@@ -360,7 +388,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf'].includes(craft)) {
+  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell'].includes(craft)) {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
@@ -387,14 +415,16 @@ try {
    * spin: a blade pointing up must go right, +x, under a positive step of
    * the shell's spin, which is clockwise seen from the cockpit.
    */
-  if (craft === 'cub' || craft === 'stick' || craft === 'timber') {
+  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell') {
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     const d = await page.evaluate('window.__preview.dims');
-    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres' }[craft];
+    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres', bombshell: 'bombshell-black' }[craft];
+    /* The Bombshell has a wire skid where the others have a tailwheel. */
+    const tailMesh = craft === 'bombshell' ? 'tail-skid' : 'tyre-tail';
     const wheels = [
       ['main left', blackMesh, -1, d.contact.mainLeft],
       ['main right', blackMesh, 1, d.contact.mainRight],
-      ['tail', 'tyre-tail', 0, d.contact.tail],
+      ['tail', tailMesh, 0, d.contact.tail],
     ];
     for (const [what, mesh, side, claimed] of wheels) {
       const drawn = await page.evaluate(`window.__preview.lowest('${mesh}', ${side})`);
