@@ -322,6 +322,15 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     shingle: { group: 'shingle', tint: [0.62, 0.58, 0.55], weather: 'roof', grey: 1 },
     shingleDark: { group: 'shingle', tint: [0.5, 0.47, 0.44], weather: 'roof', grey: 1 },
     slate: { group: 'slate', tint: [1.15, 1.15, 1.2], weather: 'roof', grey: 0.45 },
+    /* No two roofs in a village were laid in the same year: a few of
+     * new larch shingle not yet gone grey, some gone green with moss
+     * under the trees, some re-covered in dark eternit, the sheds' in
+     * tin, and here and there a sheet of it rusted. */
+    shingleNew: { group: 'shingle', tint: [0.95, 0.72, 0.52], weather: 'roof', grey: 0.12 },
+    shingleMossy: { group: 'shingle', tint: [0.52, 0.5, 0.45], weather: 'roof', grey: 1.7 },
+    slateNew: { group: 'slate', tint: [0.6, 0.62, 0.66], weather: 'roof', grey: 0.08 },
+    tin: { group: 'plain', tint: [0.14, 0.14, 0.135], rough: 0.75, metal: 0.2 },
+    tinRust: { group: 'plain', tint: [0.2, 0.085, 0.04], rough: 0.8, metal: 0.1 },
     hangar: { group: 'ribbed', tint: [0.36, 0.42, 0.39], weather: 'wall' },
     hangarRoof: { group: 'ribbed', tint: [0.34, 0.36, 0.36] },
     hangarDoor: { group: 'ribbed', tint: [0.46, 0.5, 0.5], weather: 'wall' },
