@@ -473,9 +473,13 @@ static const PartDef PARTS_RADIAN2000[] = {
   { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .k = 3.0e5, .crush_s = EPO_CRUSH, .crush_a = 0.0040, .crush_d = 0.08,
     BOX(-0.30, 0.2945, -0.042, 0.042, -0.052, 0.070) },
-  /* 1 the tail boom, the fuselage aft of the wing, thin foam round a tube. */
+  /* 1 the tail boom, the fuselage aft of the wing, thin foam round a tube.
+   * Bounded below by flight, as the Bramor's winglets are: the tail at a
+   * lift coefficient of 1.0 at 22 m/s and 3.8 g on what it carries put 7.5
+   * N m through it, 11.3 at the ultimate factor of 1.5, so it holds at
+   * least 12 (crash:core, THE LOADS OF NORMAL FLIGHT; it was a chosen 10). */
   { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.030, .joint = { -0.30, 0.0, 0.035 }, FOAM_SECTION(0.020), .m_max = 10.0, .f_max = 250.0, .k = 1.5e4,
+    .mass = 0.030, .joint = { -0.30, 0.0, 0.035 }, FOAM_SECTION(0.020), .m_max = 12.0, .f_max = 250.0, .k = 1.5e4,
     BOX(-0.7795, -0.30, -0.020, 0.020, 0.010, 0.050) },
   { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.015, .joint = { -0.70, 0.0, 0.075 }, .m_max = 2.0, .f_max = 80.0, .k = 3000.0,
@@ -483,8 +487,10 @@ static const PartDef PARTS_RADIAN2000[] = {
   { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.005, .joint = { -0.7395, 0.0, 0.075 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
     BOX(-0.7685, -0.7395, -0.2385, 0.2385, 0.071, 0.079) },
+  /* The fin, bounded below the same way: its 0.038 m^2 (GLIDER-STAGE1) at
+   * 1.0 and 22 m/s is 1.5 N m at its root, 2.26 at 1.5; it was a chosen 2. */
   { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-    .mass = 0.012, .joint = { -0.62, 0.0, 0.045 }, .m_max = 2.0, .f_max = 80.0, .k = 3000.0,
+    .mass = 0.012, .joint = { -0.62, 0.0, 0.045 }, .m_max = 2.4, .f_max = 80.0, .k = 3000.0,
     BOX(-0.78, -0.55, -0.004, 0.004, 0.045, 0.268) },
   { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.004, .joint = { -0.79, 0.0, 0.15 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,

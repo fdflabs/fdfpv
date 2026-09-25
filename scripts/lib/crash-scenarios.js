@@ -260,7 +260,203 @@ async function cubStickRates(mk, kind) {
   return { moved, surf, rigs };
 }
 
+/*
+ * THE LOADS OF NORMAL FLIGHT (the feel round's sanity invariant). Every
+ * joint a table names must carry what flying puts through it, with the
+ * ultimate factor of 1.5 over the limit load that 14 CFR 23.303 asks of an
+ * aeroplane's structure; a part that would break in normal flight is a table
+ * error, whatever a crash does to it. The loads, per part, from the table as
+ * the module reads it back (masses, centres, joints, hull boxes):
+ *
+ * - The load factor. A plane's limit manoeuvring load factor is the least of
+ *   14 CFR 23.337(a)'s normal category 3.8 and the most its wing can pull at
+ *   the fastest it flies level, (V_top / V_s)^2, the stall line of its V-n
+ *   diagram; V_top and V_s are each airframe's STAGE doc's own gated or
+ *   derived figures. The Radian's top speed is not written: flown in the
+ *   plant at full throttle, stabilised, the pitch stick holding the climb
+ *   off, it reads 21.1 m/s still climbing 0.9 m/s, where the Skyhunter by
+ *   the same method reads 23.1 against its gated 23.5, so 22 is taken. A
+ *   quad's is its thrust to weight
+ *   in a full throttle punch, 8.43 on the five inch and 4.7 on the whoop
+ *   (plant.c), with 3 g of vibration on top in any direction (CHOSEN: the
+ *   order of a race quad's unfiltered accelerometer; not measured here).
+ * - A wing part: the lift on its own span and on every wing part it carries,
+ *   n W shared by Schrenk's approximation over the semi-span (the mean of an
+ *   elliptic and a rectangular loading), less the load factor on the masses
+ *   it carries, as a force and a moment at its joint.
+ * - A stabiliser or a fin: its surface and its hinged one's at a lift
+ *   coefficient of 1.0 (full deflection, a thin section near its stall) at
+ *   V_top, at each surface's centre; a boom carries what rides on it.
+ * - A hinged surface: the same over its own area at the design dive speed,
+ *   V_D = 1.25 V_top (14 CFR 23.335(b)(1)), or the published never exceed
+ *   speed where there is one (the Bramor's 30 m/s). Its moment about its
+ *   own hinge line is the servo's, through the pushrod, and is not the
+ *   hinge's, so that component is left out. A canopy: that dynamic
+ *   pressure as suction over its plan area.
+ * - Props: the thrust (a plane's static thrust from plant_wing.c, a quad
+ *   motor's share of W times its thrust to weight) on top of the load factor.
+ * - Everything: the load factor on the masses it carries.
+ * The areas are the hull boxes', which bound a tapered or swept surface from
+ * above. Landing loads on gear and water loads on floats are not flight and
+ * are not checked here: the legs fold (crash.c) and the struts are sourced.
+ */
+const G0 = 9.80665;
+export const FLIGHT_ULTIMATE = 1.5;
+const QUAD_VIB = 3.0;
+const RHO = 1.225;
+const CL_SURF = 1.0;
+/* Airframe id: [V_top, V_s, the published never exceed speed or 0, a
+ * plane's static thrust in N, the tail's S_h and S_v in m^2 from the STAGE
+ * doc or 0 for the hull boxes']. A documented area is shared over its
+ * surfaces in proportion to their boxes. */
+const FLIGHT = {
+  2: [23.8, 7.25, 0, 11.5, 0, 0],              /* WING-STAGE1 W4, W2 */
+  3: [23.5, 9.2, 0, 27.0, 0.0593, 0.040],      /* SKYHUNTER-STAGE1 S4, S2 */
+  4: [18.4, 8.1, 0, 13.5, 0.047, 0.020],       /* CUB-STAGE1 C4, C2 */
+  5: [8.37, 4.43, 0, 2.69, 0.056, 0.030],      /* SLOWSTICK-STAGE1 S4, S2 */
+  6: [22.0, 6.49, 0, 9.28, 0.0476, 0.038],     /* measured, below; GLIDER-STAGE1 G3 */
+  7: [24.2, 7.20, 0, 25.0, 0.071, 0.0314],     /* TIMBER-STAGE1 T1's top, T2 */
+  8: [25.0, 13.0, 30.0, 35.0, 0, 0.040],       /* BRAMOR-STAGE1 B4, B2; UST 011 p. 27; winglets 0.020 each */
+  9: [22.4, 7.20, 0, 25.0, 0.071, 0.0314],     /* FLOATS-STAGE1's top, the wheeled Timber's */
+  10: [16.9, 8.1, 0, 13.5, 0.047, 0.020],      /* FLOATS-STAGE1's top, the wheeled Cub's */
+  11: [10.11, 6.49, 0, 2.824, 0.0481, 0.0155], /* BOMBSHELL-STAGE1 S4, S2 */
+};
+const FLIGHT_NAMES = ['5in', 'whoop65', 'wing1000', 'sky1800', 'cub1400', 'slowstick1180', 'radian2000',
+  'timber1500', 'bramor2300', 'timber1500f', 'cub1400f', 'bombshell1118'];
+/* The whoop the shell flies is the five inch's plant: its thrust to weight. */
+const QUAD_TW = { 0: 8.43, 1: 4.70 };
+
+const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const add3 = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const len3 = (a) => Math.hypot(a[0], a[1], a[2]);
+
+/* What each joint of a table carries in flight, [{ part, F, M, n }], N and
+ * N m; scaledWhoop for the whoop table the shell flies on the five inch. */
+export function flightLoads(parts, id, scaledWhoop = false) {
+  const W = parts.reduce((s, p) => s + p.mass, 0) * G0;
+  const quad = parts[0].kindName === 'frame';
+  const under = (k, i) => {
+    for (let j = k; j >= 0; j = parts[j].parent) {
+      if (j === i) return true;
+    }
+    return false;
+  };
+  const ext = (p, a) => p.boxMax[a] - p.boxMin[a];
+  const mid = (p) => [0, 1, 2].map((a) => (p.boxMin[a] + p.boxMax[a]) / 2);
+  const forces = [];
+  let n;
+  if (quad) {
+    n = QUAD_TW[scaledWhoop ? 0 : id];
+    for (const p of parts) {
+      if (p.kindName === 'prop') forces.push({ at: p.cg, f: [0, 0, W * n / 4], part: p.index });
+    }
+  } else {
+    const [vtop, vs, vne, thrust, sh, sv] = FLIGHT[id];
+    const HORIZ = ['hstab', 'elevator'];
+    const VERT = ['fin', 'rudder'];
+    const boxH = (p) => ext(p, 0) * ext(p, 1);
+    const boxV = (p) => ext(p, 0) * ext(p, 2);
+    const sumH = parts.filter((p) => HORIZ.includes(p.kindName)).reduce((a, p) => a + boxH(p), 0);
+    const sumV = parts.filter((p) => VERT.includes(p.kindName)).reduce((a, p) => a + boxV(p), 0);
+    const areaOf = (p) => {
+      if (HORIZ.includes(p.kindName)) return boxH(p) * (sh ? sh / sumH : 1);
+      if (VERT.includes(p.kindName)) return boxV(p) * (sv ? sv / sumV : 1);
+      return boxH(p);
+    };
+    n = Math.min(3.8, (vtop / vs) ** 2);
+    const vd = vne || 1.25 * vtop;
+    const wings = parts.filter((p) => p.kindName === 'wing');
+    const semi = Math.max(...wings.flatMap((p) => p.points.map((q) => Math.abs(q[1]))));
+    const schrenk = (y) => 0.5 * (1 + (4 / Math.PI) * Math.sqrt(Math.max(0, 1 - (y / semi) ** 2)));
+    const N = 400;
+    let total = 0;
+    for (let k = 0; k < N; k += 1) total += schrenk(((k + 0.5) / N) * semi);
+    total *= (2 * semi) / N;
+    for (const p of parts) {
+      if (p.kindName === 'wing') {
+        const ys = p.points.map((q) => q[1]);
+        const y0 = Math.min(...ys);
+        const y1 = Math.max(...ys);
+        for (let k = 0; k < N; k += 1) {
+          const y = y0 + ((k + 0.5) / N) * (y1 - y0);
+          forces.push({ at: [p.joint[0], y, p.joint[2]], f: [0, 0, (n * W * schrenk(Math.abs(y)) * (y1 - y0)) / N / total], part: p.index });
+        }
+      }
+      const hinged = ['aileron', 'elevator', 'rudder', 'elevon', 'canopy'].includes(p.kindName);
+      const q = 0.5 * RHO * (hinged ? vd : vtop) ** 2;
+      if (['hstab', 'elevator', 'aileron', 'elevon', 'canopy'].includes(p.kindName)) {
+        forces.push({ at: mid(p), f: [0, 0, q * CL_SURF * areaOf(p)], part: p.index });
+      }
+      if (['fin', 'rudder'].includes(p.kindName)) {
+        forces.push({ at: mid(p), f: [0, q * CL_SURF * areaOf(p), 0], part: p.index });
+      }
+      if (p.kindName === 'prop') forces.push({ at: p.cg, f: [thrust, 0, 0], part: p.index });
+    }
+  }
+  const out = [];
+  for (let i = 1; i < parts.length; i += 1) {
+    const j = parts[i].joint;
+    let F = [0, 0, 0];
+    let M = [0, 0, 0];
+    for (const f of forces) {
+      if (!under(f.part, i)) continue;
+      F = add3(F, f.f);
+      M = add3(M, crs(sub3(f.at, j), f.f));
+    }
+    /* The load factor on the carried masses, against the lift or thrust:
+     * the joint gives the subtree n W_sub the other way. */
+    let msub = 0;
+    let reach = 0;
+    for (let k = i; k < parts.length; k += 1) {
+      if (!under(k, i)) continue;
+      const fk = [0, 0, -n * G0 * parts[k].mass];
+      F = add3(F, fk);
+      M = add3(M, crs(sub3(parts[k].cg, j), fk));
+      msub += parts[k].mass;
+      reach = Math.max(reach, len3(sub3(parts[k].cg, j)));
+    }
+    const hinge = { aileron: 1, elevator: 1, elevon: 1, rudder: 2 }[parts[i].kindName];
+    if (hinge !== undefined) M[hinge] = 0;
+    let fm = len3(F);
+    let mm = len3(M);
+    if (quad) {
+      fm += QUAD_VIB * G0 * msub;
+      mm += QUAD_VIB * G0 * msub * reach;
+    }
+    out.push({ part: i, F: fm, M: mm, n });
+  }
+  return out;
+}
+
 export const CRASH_SCENARIOS = [
+  {
+    name: 'every joint carries the loads of normal flight',
+    async run(mk) {
+      const checks = [];
+      const tables = [[0, 0], [1, 0], [0, 1], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0]];
+      for (const [id, table] of tables) {
+        const r = await mk({ id, ground: null });
+        if (table) r.sim.e.sim_set_part_table(table);
+        const parts = readPartTable(r.sim);
+        const loads = flightLoads(parts, id, table === 1);
+        const over = [];
+        let worst = { ratio: 0, label: '' };
+        for (const l of loads) {
+          const p = parts[l.part];
+          const ratio = FLIGHT_ULTIMATE * Math.max(l.F / p.forceLimit, l.M / p.momentLimit);
+          if (ratio > worst.ratio) worst = { ratio, label: p.label };
+          if (ratio > 1) over.push(`${p.label} ${l.F.toFixed(1)} N of ${p.forceLimit}, ${l.M.toFixed(2)} N m of ${p.momentLimit.toFixed(2)}`);
+        }
+        checks.push({
+          name: `${FLIGHT_NAMES[id]}${table ? ' as the shell\'s whoop' : ''} at ${loads[0].n.toFixed(2)} g, times ${FLIGHT_ULTIMATE}`,
+          ok: over.length === 0,
+          detail: over.length ? over.join('; ') : `worst ${worst.label} at ${worst.ratio.toFixed(2)} of its limit`,
+        });
+      }
+      return checks;
+    },
+  },
   {
     name: 'under every limit, crash physics changes nothing',
     async run(mk) {
