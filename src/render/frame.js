@@ -131,3 +131,47 @@ export function threeDirToSim(x, y, z, out) {
   out.z = y;
   return out;
 }
+
+/*
+ * A MAP TRACK'S DOCUMENT FRAME, the second frame this file converts, and the
+ * same kind of thing as the first: right handed, z up, SI.
+ *
+ * A track built inside a world (src/builder/, and schemaVersion 4 in
+ * src/trackbuilder/schema.md) stores absolute positions in that world. It
+ * uses the axes a field document already uses, with the field's corner moved
+ * to the world's centre and heights measured from the world's zero rather
+ * than from the ground:
+ *
+ *   x_three =  x_doc   (across the world)
+ *   y_three =  z_doc   (up)
+ *   z_three = -y_doc   (the document's +y is into the screen)
+ *
+ * A proper rotation, so an orientation transforms by the same permutation of
+ * its vector part and keeps its w.
+ */
+export function docPosToThree(x, y, z, out) {
+  out.set(x, z, -y);
+  return out;
+}
+
+export function threePosToDoc(x, y, z, out) {
+  out.x = x;
+  out.y = -z;
+  out.z = y;
+  return out;
+}
+
+/* Document orientation { w, x, y, z } to a Three.js Quaternion. */
+export function docQuatToThree(w, x, y, z, out) {
+  out.set(x, z, -y, w);
+  return out;
+}
+
+/* Three.js quaternion components back into the document's { w, x, y, z }. */
+export function threeQuatToDoc(x, y, z, w, out) {
+  out.w = w;
+  out.x = x;
+  out.y = -z;
+  out.z = y;
+  return out;
+}
