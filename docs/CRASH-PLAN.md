@@ -305,3 +305,15 @@ Team, with owned files:
 
 Round 2's targets are picked from the suite's failure histogram once the
 readback is wired.
+
+Round 1, suite (#50, merged): every scenario runs with damage on and
+reads back what broke; the tail strike is replaced by a nose over
+(R-NOSEOVER). Tally unchanged at 4 of 60, but every failure is now
+measured. Most frequent failing metrics: peakG 37, timeToRestS 32,
+restAttitude 20, mustBreak 18, restDistM 15. What the readback shows:
+a power off stall from 8 m shatters every plane at 370 to 720 g and
+stops it dead in 0.03 to 0.06 s; the fuselage is the root part, so
+`mustBreak fuselage` cannot pass; quad props chip but never break (the
+gate clip peaks at 1717 g); no taildragger noses over, because the
+wheels roll at 0.08 on every surface with no brake; floats come apart
+porpoising; the energy tally counts only crush.
