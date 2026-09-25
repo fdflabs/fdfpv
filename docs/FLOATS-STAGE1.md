@@ -271,7 +271,13 @@ has no slipstream to work in, so there is no steering there.
   heave, 0.44 to 0.53 s pitch) are about half what they would be. Everything the
   plant is asked to do, a swell of seconds, a take off, a landing, is far
   slower than either, so it rides as the real one does; a fast chop at a
-  second would ride a little stiffly. Adding it needs an implicit step.
+  second would ride a little stiffly. Since the crash loop's first round
+  it is there with the damage mode on, implicit, the strips' own (pi/2)
+  rho c^2 in heave, roll and pitch: 3.47 kg on the Timber at rest and 2.53
+  on the Cub, heave periods 496 and 487 ms (docs/CRASH-STAGE1.md, section
+  5). With the mode off it is left out, so the gates below keep their
+  traces; turning it on for every flight is the lead's call, and would
+  re-record them.
 - **The slipstream.** As on the wheels, the prop's wash over the tail is
   not modelled, and on the water it matters: it is what lets a real pilot
   hold the nose up at walking pace. The derivation below holds the
@@ -285,7 +291,11 @@ has no slipstream to work in, so there is no steering there.
   section 5), declared apart from the sea's `sim_water_wind`; a host that
   wants them to agree sets both.
 - **Suction under a nose down forebody.** Water is only pushed; see the
-  failure modes.
+  failure modes. With the damage mode on, since the crash loop's first
+  round, a forebody running nose low is pulled down (Zarnick's u m_a dV_n
+  where V_n falls below zero, ahead of the step) and a dug in bow tip
+  meets the water at its rocker's slope instead of as a vertical stem, and
+  the nose dig goes over (docs/CRASH-STAGE1.md, section 5).
 - **Anything but the floats in the water.** The fuselage, the wing and the
   prop pass through the water untouched; see the failure modes.
 

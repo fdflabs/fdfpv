@@ -622,6 +622,76 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
+    name: 'floats: added mass slows the bob, and a nose low touchdown digs in and goes over',
+    async run(mk) {
+      const REST = { 9: { z: 0.2074, pitch: 2.52, mass: 1.934, beam: 0.085, heave: 0.288 }, 10: { z: 0.1765, pitch: 0.64, mass: 1.532, beam: 0.080, heave: 0.294 } };
+      const VS = { 9: 7.1, 10: 8.7 };
+      const pitchOf = (s) => Math.asin(Math.max(-1, Math.min(1, 2 * (s[8] * s[10] - s[7] * s[9]))));
+      const onWater = async (id, damage) => {
+        const r = await mk({ id, damage, ground: null });
+        r.sim.e.sim_water_add(0, 0, 0);
+        r.sim.e.sim_wing_set_stab(0);
+        return r;
+      };
+      /* Let down 3 cm above its rest: the period between the first two
+       * lows of its heave, against the derivation's without added mass
+       * scaled by sqrt((m + m_a) / m), m_a the strips' (pi/2) rho c^2 over
+       * the wetted length it rests on. */
+      const bob = async (id, damage) => {
+        const c = REST[id];
+        const r = await onWater(id, damage);
+        r.pose([0, 0, c.z + 0.03], pitch(-c.pitch));
+        const zs = [];
+        r.run(2000, [0, 0, 0, 0], (s) => zs.push(s[3]));
+        const lows = [];
+        for (let i = 1; i < zs.length - 1; i += 1) {
+          if (zs[i] < zs[i - 1] && zs[i] <= zs[i + 1]) lows.push(i);
+        }
+        const fs = r.sim.e.malloc(80);
+        r.sim.e.sim_float_state(fs);
+        const f = new Float64Array(r.sim.e.memory.buffer, fs, 10);
+        const ma = Math.PI / 2 * 1000 * (c.beam / 2) ** 2 * (f[4] + f[5]);
+        r.sim.e.free(fs);
+        const want = c.heave * Math.sqrt((c.mass + ma) / c.mass);
+        return { period: lows.length > 1 ? (lows[1] - lows[0]) / 1000 : NaN, want, ma };
+      };
+      /* The suite's nose dig: 12 deg nose low at 1.6 times the stall, held
+       * there until the floats touch, hands off after. And a normal one:
+       * 3 deg nose up at 1.1 times the stall. */
+      const touchdown = async (id, pitchDeg, vmul) => {
+        const r = await onWater(id, 1);
+        r.pose([0, 0, REST[id].z + 0.5], pitch(-pitchDeg));
+        r.launch(vmul * VS[id]);
+        let wet = false;
+        let minUp = 1;
+        const fs = r.sim.e.malloc(80);
+        r.run(8000, (s) => {
+          if (wet) return [0, 0, 0, 0];
+          const a = pitchOf(s);
+          return [Math.max(-1, Math.min(1, -1.2 * bankOf(s) * Math.PI / 180 - 0.12 * s[11])), Math.max(-1, Math.min(1, 2.5 * (pitchDeg * Math.PI / 180 - a) + 0.25 * s[12])), 0, 0];
+        }, (s) => {
+          r.sim.e.sim_float_state(fs);
+          wet = wet || new Float64Array(r.sim.e.memory.buffer, fs, 10)[0] > 0;
+          minUp = Math.min(minUp, upOf(s));
+        });
+        r.sim.e.free(fs);
+        return { minUp, endUp: upOf(r.state()) };
+      };
+      const checks = [];
+      for (const id of [9, 10]) {
+        const name = id === 9 ? 'Timber' : 'Cub';
+        const off = await bob(id, 0);
+        const on = await bob(id, 1);
+        checks.push({ name: `${name}: with the added mass the heave period is the derivation's, carried by m_a`, ok: Math.abs(on.period / on.want - 1) < 0.1, detail: `${(on.period * 1000).toFixed(0)} ms against ${(on.want * 1000).toFixed(0)} (m_a ${on.ma.toFixed(2)} kg); ${(off.period * 1000).toFixed(0)} ms with the mode off` });
+        const dig = await touchdown(id, -12, 1.6);
+        const soft = await touchdown(id, 3, 1.1);
+        checks.push({ name: `${name}: 12 deg nose low at 1.6 Vs digs in and goes over`, ok: dig.minUp < -0.7 && dig.endUp < 0, detail: `up axis down to ${dig.minUp.toFixed(2)}, ${dig.endUp.toFixed(2)} at the end` });
+        checks.push({ name: `${name}: 3 deg nose up at 1.1 Vs stays upright`, ok: soft.minUp > 0.9, detail: `up axis at least ${soft.minUp.toFixed(2)}` });
+      }
+      return checks;
+    },
+  },
+  {
     name: 'a Timber on floats catches a wing tip in the water',
     async run(mk) {
       /* Rolled onto its right float at speed, as in a hard turn on the

@@ -450,13 +450,51 @@ without, and tears the panel off: the float catch and cartwheel
 FLOATS-STAGE1 flagged). A float driven under its own deck gets a plate's
 drag on the deck (`FLOAT_BURY_CD`).
 
-**The nose dig flip still does not happen.** Touched down 12 to 25
-degrees nose low at 14 m/s the floats throw the nose up (to 45 and 66
-degrees), never down: the plant's strip theory has only upward forces at
-the bow and the bow never buries. What is missing is the suction on a
-curved bow running nose low; it belongs to the floats' model and is the
-first thing to add for the nose dig bands. The capsize needs horizontal
-wind, which the lead gave to the loop's first round.
+**The nose dig** (round 1). Touched down 12 to 25 degrees nose low at
+14 m/s the floats used to throw the nose up (to 45 and 66 degrees), never
+down. Three things in the floats' strip theory, all with the damage mode
+on only, so the floats' gates keep their traces with it off
+(`src/native/sim.c`, `float_apply`; docs/FLOATS-STAGE1.md derives them):
+
+- *A dug in bow tip.* The first wet strip took its slice of water as
+  pushed from nothing to its full immersion inside one strip, a vertical
+  stem, which is right while the keel crosses the surface behind the tip
+  and throws the bow up however it meets the water once the tip itself is
+  under. With the tip under, the slice ahead of it is the rocker's line
+  carried one strip on, so the bottom meets the water at its own slope and
+  the rest goes over the deck, where the deck's drag (`FLOAT_BURY_CD`)
+  takes it. This is what turns the dig over; without it neither aircraft
+  goes over.
+- *Suction on a forebody running nose low*: the other half of Zarnick's
+  d/dt (m_a V_n), u m_a dV_n where the bottom rises away from the slice
+  under it (V_n < 0) ahead of the step, capped at the atmosphere's
+  pressure; a flat forebody at a trim of -tau takes the planing lift of
+  +tau with its sign turned. Nose up (V_n > 0 all along) nothing changes.
+- *Added mass*, implicit, below.
+
+Measured (`crash:core`, the suite's own nose dig): 12 degrees nose low at
+1.6 times the stall, hands off at the touch, both the Timber and the Cub
+dig in and go over onto their backs (up axis to -1.00); 3 degrees nose up
+at 1.1 times the stall both stay upright (up axis at least 0.96). In the
+suite (Node): both nose digs now meet their flip and rest attitude bands
+and fail only peak g and time or distance to rest; both capsizes, flown
+with wind now, go over and fail only peak g.
+
+**Added mass** (round 1). The water a float heaves against moves with
+it: each wet strip carries the (pi/2) rho c^2 per metre the planing force
+already uses, along the bottom's normal, a 3 x 3 added mass in heave,
+roll and pitch, applied implicitly, (M + M_a) d = M d_rigid on the step's
+whole change of (w, p, q), because at rest it is 1.8 times the Timber's
+mass (3.47 kg against 1.93, on 1.22 m of wetted keel; the earlier
+estimate was 2.70) and 1.65 times the Cub's (2.53 against 1.53), which an
+explicit force would not survive. Let down 3 cm onto still water, the
+heave period is 496 ms on the Timber and 487 on the Cub, the derivation's
+288 and 294 ms carried by sqrt((m + m_a) / m) to 482 and 479, within 3
+percent. The radiation damping was read against the bob without it
+(FLOATS-STAGE1) and is left as it was: with the added mass the bob rings
+a little longer, about 0.45 of each swing left at the next.
+
+The capsize needed horizontal wind, which is in the round too (below).
 
 **Wind** (round 1). `sim_set_wind(vx, vy, gust)`: a horizontal wind, the
 air's velocity in m/s in the plant's world frame, z up, so (vx, vy) is the
