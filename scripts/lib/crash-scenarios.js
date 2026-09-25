@@ -214,6 +214,51 @@ function grazeFromBelow(r, mat) {
   r.run(1000, [0, 0, 0, 0.5]);
 }
 
+function planeSurfaces(r) {
+  const p = r.sim.e.malloc(4 * 8);
+  r.sim.e.sim_plane_surfaces(p);
+  const out = Array.from(new Float64Array(r.sim.e.memory.buffer, p, 4));
+  r.sim.e.free(p);
+  return out;
+}
+
+const AXES = ['roll', 'pitch', 'yaw'];
+
+/*
+ * A Cub in cruise, unstabilised so the sticks are the surfaces, with the
+ * named part broken (the left panel for 'wing') 300 ms before each stick
+ * is held at half one way and then the other for 300 ms. moved[a] is the
+ * mean body rate the axis a stick moved, plus minus; surf[a] the surfaces
+ * at the end of each of the two holds.
+ */
+async function cubStickRates(mk, kind) {
+  const moved = [];
+  const surf = [];
+  const rigs = [];
+  for (let a = 0; a < 3; a += 1) {
+    const mean = [];
+    surf.push([]);
+    for (const sign of [1, -1]) {
+      const r = await mk({ id: 4, ground: null });
+      rigs.push(r);
+      r.sim.e.sim_wing_set_stab(0);
+      r.pose([0, 0, 100], [1, 0, 0, 0]);
+      r.launch(15);
+      r.run(1500, [0, 0, 0, 0.6]);
+      if (kind) r.sim.e.sim_part_break(r.index(kind, (p) => kind !== 'wing' || p.cg[1] > 0));
+      r.run(300, [0, 0, 0, 0.6]);
+      const stick = [0, 0, 0, 0.6];
+      stick[a] = 0.5 * sign;
+      const acc = [0, 0, 0];
+      r.run(300, stick, (s) => { acc[0] += s[11] / 300; acc[1] += s[12] / 300; acc[2] += s[13] / 300; });
+      mean.push(acc);
+      surf[a].push(planeSurfaces(r));
+    }
+    moved.push(mean[0].map((v, k) => v - mean[1][k]));
+  }
+  return { moved, surf, rigs };
+}
+
 export const CRASH_SCENARIOS = [
   {
     name: 'under every limit, crash physics changes nothing',
@@ -540,6 +585,121 @@ export const CRASH_SCENARIOS = [
       return [
         { name: 'the flags say the pack is out', ok: (r.flags() & DAMAGE_FLAGS.batteryEjected) !== 0, detail: r.summary() },
         { name: 'power gone: no volts, no current, no thrust', ok: s[18] === 0 && s[19] === 0 && r.motors()[0].thrust === 0, detail: `${s[18]} V ${s[19]} A` },
+      ];
+    },
+  },
+  /*
+   * CONTROL IS PHYSICAL (the owner's rule, 2026-09-25): every surface and
+   * motor still on the aircraft answers the sticks for as long as the pack
+   * is in, and nothing does once it has gone.
+   */
+  {
+    name: 'a Cub whose prop breaks glides on and answers every stick',
+    async run(mk) {
+      const intact = await cubStickRates(mk, null);
+      const off = await cubStickRates(mk, 'prop');
+      const thrust = off.rigs[0].motors()[0].thrust;
+      const out = [{ name: 'the prop gives no thrust', ok: thrust === 0, detail: `${thrust}` }];
+      for (let a = 0; a < 3; a += 1) {
+        const want = intact.moved[a][a];
+        const got = off.moved[a][a];
+        out.push({
+          name: `the ${AXES[a]} stick moves its rate as it did with the prop on, within 20%`,
+          ok: Math.sign(got) === Math.sign(want) && Math.abs(got - want) < 0.2 * Math.abs(want),
+          detail: `${want.toFixed(3)} rad/s whole, ${got.toFixed(3)} gliding`,
+        });
+      }
+      return out;
+    },
+  },
+  {
+    name: 'a Cub with its left wing panel gone still flies what is left',
+    async run(mk) {
+      const intact = await cubStickRates(mk, null);
+      const off = await cubStickRates(mk, 'wing');
+      const out = [{
+        name: 'the lost panel\'s aileron never moves, the right one follows the roll stick',
+        ok: off.surf[0].every((v) => v[0] === 0) && off.surf[0][0][1] > 0.05 && off.surf[0][1][1] < -0.05,
+        detail: off.surf[0].map((v) => v.map((x) => x.toFixed(3)).join(' ')).join(' / '),
+      }, {
+        name: 'the elevator and the rudder follow their sticks',
+        ok: off.surf[1][0][2] > 0.05 && off.surf[1][1][2] < -0.05 && off.surf[2][0][3] < -0.05 && off.surf[2][1][3] > 0.05,
+        detail: `elevator ${off.surf[1][0][2].toFixed(3)} / ${off.surf[1][1][2].toFixed(3)}, rudder ${off.surf[2][0][3].toFixed(3)} / ${off.surf[2][1][3].toFixed(3)}`,
+      }];
+      for (let a = 0; a < 3; a += 1) {
+        const want = intact.moved[a][a];
+        const got = off.moved[a][a];
+        out.push({
+          name: `spinning in, the ${AXES[a]} stick still moves its rate the same way, at least a quarter as much`,
+          ok: Math.sign(got) === Math.sign(want) && Math.abs(got) > 0.25 * Math.abs(want),
+          detail: `${want.toFixed(3)} rad/s whole, ${got.toFixed(3)} with one panel`,
+        });
+      }
+      /* The stabiliser is flying it too: sticks centred, it answers the
+       * roll the lost panel starts with the aileron it has left. */
+      const r = await mk({ id: 4, ground: null });
+      r.sim.e.sim_wing_set_stab(1);
+      r.pose([0, 0, 100], [1, 0, 0, 0]);
+      r.launch(15);
+      r.run(1500, [0, 0, 0, 0.6]);
+      r.sim.e.sim_part_break(r.index('wing', (p) => p.cg[1] > 0));
+      r.run(300, [0, 0, 0, 0.6]);
+      const s = planeSurfaces(r);
+      out.push({ name: 'stabilised, sticks centred: the loop still drives the right aileron against the roll', ok: Math.abs(s[1]) > 0.05 && s[0] === 0, detail: s.map((x) => x.toFixed(3)).join(' ') });
+      return out;
+    },
+  },
+  {
+    name: 'with the pack out the sticks move nothing',
+    async run(mk) {
+      const cub = async (stick) => {
+        const r = await mk({ id: 4, ground: null });
+        r.pose([0, 0, 100], [1, 0, 0, 0]);
+        r.launch(15);
+        r.run(1000, [0, 0, 0, 0.6]);
+        r.sim.e.sim_part_break(r.index('battery'));
+        r.run(1000, stick);
+        return r;
+      };
+      const quad = async (stick) => {
+        const r = await mk({ id: 0, ground: null });
+        r.pose([0, 0, 100], [1, 0, 0, 0]);
+        r.run(1000, [0, 0, 0, HOVER]);
+        r.sim.e.sim_part_break(r.index('battery'));
+        const rpm0 = r.state().slice(14, 18);
+        r.run(1000, stick);
+        return { r, rpm0 };
+      };
+      const c = [await cub([0, 0, 0, 0.6]), await cub([1, -1, 1, 1]), await cub([-1, 1, -1, 0])];
+      const q = [await quad([0, 0, 0, HOVER]), await quad([1, -1, 1, 1]), await quad([-1, 1, -1, 0])];
+      const same = (rs) => rs.every((r) => r.plant.hex() === rs[0].plant.hex());
+      const rpm1 = q[1].r.state().slice(14, 18);
+      return [
+        { name: 'a Cub: the same trace whatever the sticks do', ok: same(c), detail: c.map((r) => r.plant.hex()).join(' ') },
+        { name: 'a Cub: every surface trails, the motor is stopped', ok: planeSurfaces(c[1]).every((v) => v === 0) && c[1].state()[14] === 0 && c[1].motors()[0].thrust === 0 },
+        { name: 'a five inch: the same trace whatever the sticks do', ok: same(q.map((x) => x.r)), detail: q.map((x) => x.r.plant.hex()).join(' ') },
+        { name: 'a five inch: at full throttle every motor coasts down', ok: rpm1.every((v, m) => v < 0.5 * q[1].rpm0[m]) && q[1].r.motors().every((m) => m.thrust === 0), detail: `${Array.from(q[1].rpm0, (v) => v.toFixed(0)).join(' ')} to ${Array.from(rpm1, (v) => v.toFixed(0)).join(' ')} rpm` },
+      ];
+    },
+  },
+  {
+    name: 'a five inch with a prop gone is still flown by Betaflight on the other three',
+    async run(mk) {
+      const fly = async (roll) => {
+        const r = await mk({ id: 0, ground: null });
+        r.pose([0, 0, 100], [1, 0, 0, 0]);
+        r.run(1000, [0, 0, 0, HOVER]);
+        r.sim.e.sim_part_break(r.index('prop', (p) => p.motor === 0));
+        const rpm = [0, 0, 0, 0];
+        r.run(150, [roll, 0, 0, HOVER], (s) => { for (let m = 0; m < 4; m += 1) rpm[m] += s[14 + m] / 150; });
+        return { r, rpm };
+      };
+      const a = await fly(0.6);
+      const b = await fly(-0.6);
+      const moved = a.rpm.map((v, m) => v - b.rpm[m]);
+      return [
+        { name: 'motor 0 reads no thrust', ok: a.r.motors()[0].thrust === 0 },
+        { name: 'the three motors with props change with the roll stick: two by more than 5%, none by less than 1%', ok: [1, 2, 3].filter((m) => Math.abs(moved[m]) > 0.05 * a.rpm[m]).length >= 2 && [1, 2, 3].every((m) => Math.abs(moved[m]) > 0.01 * a.rpm[m]), detail: `mean rpm ${a.rpm.map((v) => v.toFixed(0)).join(' ')} rolling right, ${b.rpm.map((v) => v.toFixed(0)).join(' ')} left` },
       ];
     },
   },

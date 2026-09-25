@@ -39,18 +39,30 @@ import {
  * Betaflight can hold; any aircraft whose pack has gone has no power; a
  * plane without a wing panel or its tail spins in. A chipped prop, a bent
  * arm, a knocked camera or a lost aileron are damage the pilot flies home
- * on, so they are not here.
+ * on, so they are not here, and neither is a plane's prop or motor: a
+ * plane without thrust is a glider, and a dead stick landing is flying.
+ *
+ * A wreck is a race rule and a prompt, never a switch on the controls.
+ * What the sticks can still move is the plant's business alone
+ * (src/native/crash.c effects_rebuild): every part still on and powered
+ * answers them until the pack has gone.
  */
 export const WRECK_FLAGS = DAMAGE_FLAGS.propLost | DAMAGE_FLAGS.armLost
   | DAMAGE_FLAGS.motorLost | DAMAGE_FLAGS.batteryEjected
   | DAMAGE_FLAGS.wingLost | DAMAGE_FLAGS.tailLost;
+const WING_WRECK_FLAGS = WRECK_FLAGS & ~(DAMAGE_FLAGS.propLost | DAMAGE_FLAGS.motorLost);
 
 /* What leaves the FPV picture with nothing to show. The camera gone, or
  * the pack that powers it and the transmitter. */
 export const FEED_DEAD_FLAGS = DAMAGE_FLAGS.cameraLost | DAMAGE_FLAGS.batteryEjected;
 
-export function isWreck(flags) {
-  return (flags & WRECK_FLAGS) !== 0;
+export function isWreck(flags, fixedWing) {
+  return (flags & (fixedWing ? WING_WRECK_FLAGS : WRECK_FLAGS)) !== 0;
+}
+
+/* Whether the receiver, the controller and the servos still have a pack. */
+export function isPowered(flags) {
+  return (flags & DAMAGE_FLAGS.batteryEjected) === 0;
 }
 
 /*

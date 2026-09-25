@@ -42,6 +42,7 @@
     "contact:selftest": "node scripts/contact-selftest.js",
     "crash:core": "node scripts/crash-core-selftest.js",
     "crash:identity": "node scripts/crash-identity.js",
+    "wreck:check": "node scripts/wreck-control-check.js",
     "score:selftest": "node scripts/score-selftest.js",
     "replay:selftest": "node scripts/replay-log.js --selftest",
     "replay": "node scripts/replay-log.js",
