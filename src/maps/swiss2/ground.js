@@ -40,6 +40,7 @@ import {
   FIELD, HALF, LAKE_Y, LAKE_N, SIDE_Z, TREE_LINE, STRIP_W, STRIP_L, groundZone, groundPaths,
 } from '../alps/terrain.js';
 import { LAYERS, SUN_U } from './assets.js';
+import { CLIFF_LOW, CLIFF_HIGH, LOW_HALF, LOW_GATE } from './rock/carve.js';
 
 /* Per layer, in LAYERS order: metres a texture tile covers, a tint on
  * the photograph's own albedo (linear), the roughness, and how hard the
@@ -61,10 +62,6 @@ const TINT = [
 /* The sun's bearing on the ground, for the faces snow lingers on (the
  * photograph's sun, as light.js takes it). */
 const SUN_XZ = [Math.cos((SUN_U - 0.5) * 2 * Math.PI), Math.sin((SUN_U - 0.5) * 2 * Math.PI)];
-/* The heights of the walls' two cliff bands, in metres (the walls rise
- * to about 1400, the trees stop about 700). */
-const CLIFF_LOW = 420;
-const CLIFF_HIGH = 1010;
 /* How much of the sun's light a meadow looked at straight into the sun
  * loses to the blades' own shade. */
 const BACKLIT = 0.5;
@@ -660,6 +657,9 @@ const GROUND_PARS = /* glsl */ `
   ${CRAFT_GLSL}
   uniform float uS2Only;
   varying vec3 vS2WNormal;
+  #ifdef S2_CARVED
+    varying vec2 vS2Cav;
+  #endif
 
   ${MEADOW_GLSL}
   /* Value noise with its gradient, for relief the thirty metre grid
@@ -999,6 +999,10 @@ const GROUND_PARS = /* glsl */ `
      * each, a fan of scree down the gullies it sheds into.
      */
     float wallTo = smoothstep(0.3, 0.6, tanS) * inside * step(uS2Only, -0.5);
+    #ifdef S2_CARVED
+      /* The carved rock's ledges are the cliff's too. */
+      wallTo = max(wallTo, vS2Cav.y * inside * step(uS2Only, -0.5));
+    #endif
     /* The ravines: the gullies' pattern again at five times the size, a
      * few on each face, which is the scale the scrub, the scree and the
      * turf's edges follow. The gullies themselves are too fine for that
@@ -1006,12 +1010,12 @@ const GROUND_PARS = /* glsl */ `
     float ravine = s2Noise(vec2(p.z / 130.0 + 0.5 * wander, p.y / 330.0 + 0.4 * macro)) * gw.x + s2Noise(vec2(p.x / 130.0 + 3.1 + 0.5 * wander, p.y / 330.0 + 0.4 * macro)) * gw.y;
     float b1 = ${CLIFF_LOW.toFixed(1)} + 150.0 * (s2Noise(p.xz / 1400.0 + 3.3) - 0.5);
     float b2 = ${CLIFF_HIGH.toFixed(1)} + 130.0 * (s2Noise(p.xz / 1700.0 + 8.1) - 0.5);
-    float bw1 = 35.0 + 35.0 * meso;
+    float bw1 = ${LOW_HALF[0].toFixed(1)} + ${LOW_HALF[1].toFixed(1)} * meso;
     float bw2 = 45.0 + 45.0 * s2Noise(p.xz / 300.0 + 2.9);
     float warp = 25.0 * (meso - 0.5) + 8.0 * (fine - 0.5);
     float d1 = abs(p.y + warp - b1);
     float d2 = abs(p.y + warp - b2);
-    float cliff = max((1.0 - smoothstep(bw1 * 0.55, bw1, d1)) * smoothstep(0.38, 0.55, s2Noise(p.xz / 330.0 + 1.7)),
+    float cliff = max((1.0 - smoothstep(bw1 * 0.55, bw1, d1)) * smoothstep(${LOW_GATE[0].toFixed(2)}, ${LOW_GATE[1].toFixed(2)}, s2Noise(p.xz / 330.0 + 1.7)),
                       (1.0 - smoothstep(bw2 * 0.55, bw2, d2)) * smoothstep(0.3, 0.5, s2Noise(p.xz / 410.0 + 6.2)));
     cliff *= wallTo;
     float under1 = (b1 - bw1) - (p.y + warp);
@@ -1019,7 +1023,11 @@ const GROUND_PARS = /* glsl */ `
     float shed = max(smoothstep(0.0, 25.0, under1) * (1.0 - smoothstep(60.0, 190.0, under1)),
                      smoothstep(0.0, 25.0, under2) * (1.0 - smoothstep(80.0, 260.0, under2)));
     float screeFan = shed * smoothstep(0.5, 0.7, ravine + 0.2 * (meso - 0.5)) * wallTo;
-    n = normalize(vec3(n.x * (1.0 + 1.6 * cliff), n.y, n.z * (1.0 + 1.6 * cliff)));
+    /* On the carved rock (rock/) the band's faces are real, and turning
+     * the light toward them again would stand them past vertical. */
+    #ifndef S2_CARVED
+      n = normalize(vec3(n.x * (1.0 + 1.6 * cliff), n.y, n.z * (1.0 + 1.6 * cliff)));
+    #endif
 
     /* Coverage per layer, from nought to one, before the heights break
      * its edges. Outside the field there are no masks, and the range is
@@ -1039,6 +1047,10 @@ const GROUND_PARS = /* glsl */ `
     float rockFace = smoothstep(1.05 + 0.3 * fine, 1.45 + 0.25 * fine, tanS);
     float ribRock = smoothstep(0.35, 0.2, ravine) * smoothstep(0.75, 1.1, tanS + 0.3 * (meso - 0.5));
     cov[4] = max(max(rockFace, 0.85 * ribRock), cliff);
+    #ifdef S2_CARVED
+      /* The carved rock is bare but for the ledges it says hold turf. */
+      cov[4] = max(cov[4], vS2Cav.y);
+    #endif
     cov[3] = max(cov[3], screeFan);
     float rockHigh = inside > 0.5 ? z2.a : smoothstep(650.0, 950.0, p.y + 200.0 * macro);
     /* Above the trees the mountain is not all broken rock: turf holds on
@@ -1279,6 +1291,12 @@ const GROUND_PARS = /* glsl */ `
 
     vec3 outN = normalize(normalize(wnormal + n * 1e-4) + field.tilt * farm + vec3(stoneTilt.x, 0.0, stoneTilt.y));
 
+    #ifdef S2_CARVED
+      /* Under a lip, in a crack, in the inside corner of a ledge: the
+       * sky's light is shut out, and past the shadow maps' reach this is
+       * all the shade a lip casts. */
+      albedo *= mix(0.55, 1.0, vS2Cav.x);
+    #endif
     S2Ground g;
     g.albedo = albedo;
     g.normal = outN;
@@ -1286,6 +1304,9 @@ const GROUND_PARS = /* glsl */ `
     g.ao = mix(1.0, 0.5 + 0.5 * clamp(hsum * 1.3, 0.0, 1.0), 0.65);
     float craft = s2UnderCraft(p);
     g.ao *= 1.0 - 0.7 * craft;
+    #ifdef S2_CARVED
+      g.ao *= vS2Cav.x;
+    #endif
     /* Grass is not a matt plane. Looked at with the sun behind the eye
      * every blade shows its lit side; looked at toward the sun, the sides
      * a camera sees are the ones in the blades' own shade, and a sunlit
@@ -1315,13 +1336,14 @@ const GROUND_PARS = /* glsl */ `
  * `strip` is the strip's plane, which lies over the ground and is not
  * raised with the far crests (the airfield's grass is s2Air's, by where
  * it is). `craft` is craftUniforms' pair, `clock` the seconds the lake's
- * bed shimmers by. `lit` is light.js's injector: the ground is lit the
- * same way everything else in swiss2 is,
- * and its declarations land ahead of the splat's, so vS2World is declared
- * by the time the splat reads it.
+ * bed shimmers by. `carved` is the skin rock/ draws on the carved walls,
+ * whose vertices carry their cavity and bareness (s2Cav). `lit` is
+ * light.js's injector: the ground is lit the same way everything else in
+ * swiss2 is, and its declarations land ahead of the splat's, so vS2World
+ * is declared by the time the splat reads it.
  */
 export function groundMaterial({
-  arrays, zones, path, walls, lit, craft = craftUniforms(), clock = { value: 0 }, only = -1, strip = 0,
+  arrays, zones, path, walls, lit, craft = craftUniforms(), clock = { value: 0 }, only = -1, strip = 0, carved = 0,
 }) {
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
   const uniforms = {
@@ -1355,8 +1377,15 @@ export function groundMaterial({
     need(shader.vertexShader, '#include <beginnormal_vertex>');
     need(shader.vertexShader, '#include <begin_vertex>');
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vS2WNormal;\n${RIDGE_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vS2WNormal;\n${RIDGE_GLSL}
+        #ifdef S2_CARVED
+          attribute vec2 s2Cav;
+          varying vec2 vS2Cav;
+        #endif`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
+        #ifdef S2_CARVED
+          vS2Cav = s2Cav;
+        #endif
         #ifndef USE_INSTANCING
           transformed.y += s2Ridge((modelMatrix * vec4(transformed, 1.0)).xyz) * uS2Ridge;
         #endif`)
@@ -1376,7 +1405,10 @@ export function groundMaterial({
       .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(s2g.normal, 0.0)).xyz);')
       .replace('#include <aomap_fragment>', '#include <aomap_fragment>\nreflectedLight.indirectDiffuse *= s2g.ao;\nreflectedLight.indirectSpecular *= s2g.ao;\nreflectedLight.directDiffuse *= s2g.backlit;\nreflectedLight.directSpecular *= s2g.sheen;\nreflectedLight.indirectSpecular *= s2g.sheen;');
   };
-  mat.customProgramCacheKey = () => 's2-ground';
+  if (carved) {
+    mat.defines = { S2_CARVED: '' };
+  }
+  mat.customProgramCacheKey = () => (carved ? 's2-ground-carved' : 's2-ground');
   lit(mat);
   mat.userData.s2Ground = uniforms;
   return mat;

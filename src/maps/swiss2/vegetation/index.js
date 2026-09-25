@@ -74,6 +74,16 @@ export async function buildVegetation(ctx) {
   };
   const rng = ctx.rng || makeRng(20260924);
   const layout = ctx.layout || valleyLayout(ctx.heightAt, ctx.footprints || []);
+  /* Where the walls are carved rock (swiss2/rock/), the drawn ground is
+   * not the heightfield: no tree, boulder or grass stands there. The
+   * trees and boulders are turned away once their random draws are
+   * made (forest.js add, rocks.js drop), so every other one stands where
+   * it stood; the grass is seeded per tile. */
+  layout.carved = ctx.carved || (() => false);
+  if (ctx.carved) {
+    const { coverOff } = layout;
+    layout.coverOff = (x, z) => coverOff(x, z) || ctx.carved(x, z);
+  }
   /* The gardens are the village's houses, not every wall the map has
    * noted: a hay hut in a field has no garden. */
   layout.gardens = ctx.gardens || layout.footprints;

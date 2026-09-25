@@ -182,11 +182,11 @@ export function plantForest({ heightAt, layout, rng, spacing, colliders }) {
    * and alone of the far trees throws a shadow. */
   const add = (x, y, z, s, v0, open0) => {
     /* The yaw is drawn first and always, so a tree the fall's foot turns
-     * away or changes costs the rest of the valley nothing: every tree
-     * after it stands where it stood. */
+     * away or changes, or the carved rock turns away, costs the rest of
+     * the valley nothing: every tree after it stands where it stood. */
     const yaw = rng();
     const v = fallFoot(x, z, v0);
-    if (v < 0) {
+    if (v < 0 || (layout.carved && layout.carved(x, z))) {
       return;
     }
     const open = v === v0 && open0 !== undefined ? open0 : OPEN[v];
