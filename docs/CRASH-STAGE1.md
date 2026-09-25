@@ -680,7 +680,7 @@ rigid contact left it (0.26 mm).
 | Bramor winglet | 1.5 N m, 15 N | Kevlar, 20 g, on magnets (UST 011) | chosen; a lower bound: at the 30 m/s never exceed speed (551 Pa) a 0.020 m^2 winglet at the stall of a surface of its aspect ratio, CL about 1.1, carries 12 N at about 0.1 m, 1.2 N m, so the magnets hold at least that in flight |
 | hinge line | 1 N m, 40 N | foam or tape hinge pulling out | chosen |
 | hook and loop | 96 N | 8 N/cm^2 over 12 cm^2 | VELCRO brand shear, about 8 N/cm^2 |
-| hatch magnets | 20 N | two 6 x 3 mm N52 | magnet pull, about 10 N each |
+| hatch magnets | 20 N | two 6 x 3 mm N52 | supermagnete S-06-03-N: a 6 x 3 mm N45 disc pulls about 990 g (9.7 N) off steel, and slides off at about 200 g (1.9 N) |
 | music wire gear, break | 3.2 mm 11.4 N m, 4 mm 22, 2 mm 2.8, 1.5 mm 1.2 | 1,600 MPa yield, plastic hinge 1.7, ultimate 1.3 x yield | ASTM A228 |
 | float struts | 220 N m, 3,140 N | a 1 mm bracing wire in tension (1,570 N) on the 0.14 m strut spacing | ASTM A228; a bare 3 mm strut buckles at Euler's 348 N |
 | Slow Stick stick | 23 N m | 10 mm square 6061, 0.8 mm wall, 276 MPa | ASM 6061-T6 |
@@ -699,6 +699,25 @@ rigid contact left it (0.26 mm).
 "Chosen" is an engineering estimate with its reasoning in the table's
 comment, not a measurement. The suite's bands are what will say whether
 each is right, and the loop is where they move.
+
+**What is still chosen** (round 5, every table). Sourced or derived from a
+section and a published strength: the five inch's arm and props, the
+carbon joiners and spars (wing 1000, Skyhunter, Cub, Timber; the Radian's
+45 N m is on a 9 mm joiner whose wall is not written), the Skyhunter's booms,
+the Slow Stick's stick, every music wire leg and float strut, the balsa
+sticks, EPO and EPP crush, the rings' sections, the hatch magnets and the
+bands and screws the Bombshell's rows bound. Chosen, each an estimate with
+a reason and no measurement behind it:
+
+| Airframe | Joints whose limit is chosen |
+| --- | --- |
+| every one | camera and whip mounts (0.8 N m, 60 N; 1.0 N m, 40 N), hook and loop's 8 N/cm^2 (a brand figure, no datasheet), every part's contact stiffness k, and most force limits f_max |
+| 5 inch | motor on its arm (48 N m, two M3 pull outs), pack strap (250 N, 6 N m) |
+| whoop | motor (0.25 N m), prop press fit (set so R-WHOOP's walls leave it on), pack holder (5 N), canopy (0.30 N m), nano camera (0.02 N m) |
+| foam planes | firewall (10 N m), hinge lines (1 N m, 40 N), hstab and fin roots (2 to 4 N m), canopies (0.5 to 1 N m), packs (3 to 8 N m); the Timber's and the Radian's boom sections (the Cub's is drawn) |
+| Slow Stick | wing on its saddle (6 N m, 60 N), tail sheet roots (0.5 to 1 N m), motor mount (4 N m), its prop at 0.6 of the 11 inch's |
+| Bramor | panels (300 N m: neither skin nor guide rod is published), elevons (3 N m), winglet magnets (1.5 N m, 15 N; bounded below by their load at the never exceed speed), motor (25 N m), pack hatch (40 N m, 400 N), chute bay lid (2 N m), gimbal (6 N m, 300 N) |
+| Bombshell | the aft fuselage's halving for glue joints, the tissue hinges (0.4 N m), the prop's 150 MPa root, which is a glass filled nylon's figure for a prop the table calls unfilled (not checked against a datasheet this round) |
 
 ## 4. Free bodies
 

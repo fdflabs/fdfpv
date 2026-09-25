@@ -110,7 +110,10 @@ typedef struct {
 #define PL_PROP_K 1110.0
 /* Hook and loop in shear, 8 N/cm^2, over a 12 cm^2 strip. */
 #define VELCRO_12 96.0
-/* Two 6 x 3 mm N52 hatch magnets. */
+/* Two 6 x 3 mm hatch magnets in pull: a 6 x 3 mm N45 disc holds about
+ * 990 g on steel, 9.7 N (supermagnete S-06-03-N), N52 a little more. Slid
+ * sideways the same disc lets go at about 200 g, 1.9 N, which a hatch
+ * seated in its recess does not see. */
 #define MAGNET_2 20.0
 /* Music wire, 1600 MPa in bending at yield; the break is the plastic
  * hinge, 1.7 times the yield moment, at the ultimate 1.3 times the yield. */
