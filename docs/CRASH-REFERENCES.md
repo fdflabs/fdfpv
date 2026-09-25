@@ -955,16 +955,16 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted) | LOW |
 | restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
-**timber-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**timber-pole.** Reference still: A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 7.2 to 19.8 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.45 to 3.1 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.73 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **timber-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
