@@ -409,7 +409,7 @@ function photoStyle() {
        * update(dtMs, camera) ride on it, and so do the clouds, from the
        * first frame drawn, so however long the build took the valley
        * starts under the same sky. */
-      return {
+      const out = {
         pines: 0,
         broadleaf: 0,
         reeds,
@@ -445,6 +445,9 @@ function photoStyle() {
           stage.water.update(dtMs, camera);
         },
       };
+      style.stage = stage;
+      style.updateWind = out.updateWind;
+      return out;
     },
     /* After everything is placed: the forests, the mountains' shadow
      * (baked now that the range beyond exists), then metre uvs and the
@@ -534,6 +537,16 @@ function photoStyle() {
        * valley is seated; the cel craft comes back before the world goes. */
       shell.setCraftLook(photoCraftLook(style.lit));
       style.shell = shell;
+      /* The frame's parts for scripts/swiss2-perf.js, which times each on
+       * the GPU with the frame uncapped. A diagnostic like the city's
+       * __CITY_SCAN: nothing is kept unless the harness asked before the
+       * map was built. */
+      const perf = globalThis.__SWISS2_PERF;
+      if (perf && typeof perf === 'object') {
+        Object.assign(perf, {
+          renderer: shell.renderer, scene: map.scene, camera: shell.camera, post, stage: style.stage, sun: style.stage.sun, updateWind: style.updateWind, quality: q.id,
+        });
+      }
       map.dispose = () => {
         shell.setCraftLook(null);
         post.dispose();
