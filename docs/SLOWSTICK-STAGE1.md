@@ -151,6 +151,16 @@ CG, at 0.40 of the mean chord (Hoerner, Fluid Dynamic Lift, ch. 3: a
 plate's moves from the quarter chord toward 0.4 by 20 to 40 deg). With
 them full up trims at 17.9 deg, just past the stall: the mush.
 
+Crash round 4 (docs/STALL-STAGE1.md) made this every fixed wing's and
+changed it in two ways: the plate's force at its centre of pressure is
+its normal force, 2 sin α, rather than its lift, 2 sin α cos α (5 percent
+more at 18 deg, and the whole of it at 90), and the tail's share joins
+it, the lift the tail gains as the stalled wing's downwash goes,
+stall_dw = 0.1313 from DATCOM's dε/dα. Each wing panel now stalls on its
+own as well, and the left one a little first. With all of it full up no
+longer mushes: it drops the left wing, and S9 fails (docs/STALL-STAGE1.md
+says why and what would fix it).
+
 **The air it flies in.** The Radian brought thermals to the airfield, three
 columns of rising air, and a table flag for an airframe that flies in them.
 The Slow Stick sets it: the air is the air, and a 420 g aircraft that

@@ -517,10 +517,20 @@ typedef struct FixedWingParams {
   /* Past the stall: the CG's distance behind the wing's aerodynamic centre,
    * and the flat plate's centre of pressure's behind the CG, both per
    * chord. They take back the linear moment's lift the stalled wing does
-   * not make and put the plate's where it acts. Zero leaves the moment
-   * linear through the stall. */
+   * not make and put the plate's normal force where it acts. stall_dw is the tail's
+   * share: the downwash at the tail follows the lift the wing makes
+   * (Nelson eq. 2.22, 2 CL_w / (pi AR)), so as the stalled wing sheds
+   * lift the downwash goes with it and the tail lifts, nose down, by
+   * eta V_H a_t (d epsilon/d alpha) / a_w per unit of lift lost. Zero on
+   * a flying wing, which has no tail. docs/STALL-STAGE1.md. */
   double stall_arm_ac;
   double stall_arm_cp;
+  double stall_dw;
+  /* How much sooner the left wing panel stalls than the right, rad of
+   * angle of attack: the rigging's asymmetry, which trim takes out of the
+   * lift below the stall and nothing takes out of the stall itself.
+   * docs/STALL-STAGE1.md. */
+  double stall_asym;
   /*
    * FLAPS AND SLATS, docs/TIMBER-STAGE1.md. Zero flap_full is an aircraft
    * without flaps, which sim_wing_set_flaps refuses past notch 0, so its

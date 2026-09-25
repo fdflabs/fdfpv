@@ -583,6 +583,48 @@ void plant_wing_launch(SimState *s, double speed) {
   s->vel[2] = v[2];
 }
 
+/*
+ * ONE WING PANEL PAST THE STALL, docs/STALL-STAGE1.md. The plant's lift and
+ * drag are the whole wing's at the centreline's angle of attack, and its
+ * roll damping is the table's linear cl_p. Past the stall the two halves
+ * of the wing no longer agree: each is taken at its lift's centroid, where
+ * its angle of attack is the centreline's plus da, the roll rate's
+ * p y_c / V that the table's cl_p is built on, plus dr, what the yaw rate
+ * adds: the retreating panel meets the air slower along the chord for the
+ * same flow across it, so at a higher angle, sin(alpha) r y_c / V, which
+ * linear theory drops as second order and a spin lives on. It has its own
+ * stall blend, from its own stall angle. What it returns is how far the
+ * panel falls short of the linear wing, per unit of the centre's q S / 2:
+ *
+ *   out[0]  the lift deficit, sigma (CL_plate - CL_lin), the plate at
+ *           da + dr and CL_lin at da. Across the two panels its linear
+ *           part is exactly the table's roll damping, which it takes back
+ *           as the panel stalls, so what is left is the plate's.
+ *   out[1]  the drag excess, sigma (CD_plate - CD_lin). The plate's angle
+ *           is held within 0.5 rad of the centre's, where the small angle
+ *           sine is good; past that the panel is stalled through anyway.
+ *
+ * Below the panel's stall sigma is exactly zero and so is every output, of
+ * one sign or the other, which add_term then leaves out.
+ */
+static void panel_stall(const FixedWingParams *fw, double alpha, double sin_a, double cos_a, double da,
+                        double dr, double cl_lin, double dcl_f, double stall, double out[2]) {
+  out[0] = 0.0;
+  out[1] = 0.0;
+  const double sigma = smoothstep(stall - fw->stall_blend, stall + fw->stall_blend,
+                                  sim_fabs(add_term(alpha + (da + dr), dcl_f / fw->cl_alpha)));
+  if (!(sigma > 0.0)) {
+    return;
+  }
+  const double dc = clip(da + dr, 0.5);
+  const double sd = sim_sin_small(dc), cd = sim_cos_small(dc);
+  const double sp = sin_a * cd + cos_a * sd;
+  const double cp = cos_a * cd - sin_a * sd;
+  const double plate = 2.0 * sp * cp;
+  out[0] = sigma * (plate - (cl_lin + fw->cl_alpha * da));
+  out[1] = sigma * (2.0 * sp * sp - fw->k_induced * cl_lin * cl_lin);
+}
+
 void plant_wing_step(SimState *s, const double rc[4]) {
   const FixedWingParams *fw = PLANT.fw;
   /*
@@ -841,10 +883,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * linear moment above assumes neither, so it keeps pitching the nose up
    * with the lift the wing no longer makes. Taken back through the stall
    * blend: the linear lift at the CG's arm behind the wing's aerodynamic
-   * centre, and the plate's at its centre of pressure's arm behind the CG.
-   * Zero arms on an airframe that leaves them out, and add_term keeps its
-   * arithmetic as it was. */
-  const double cm_stall = -sigma * (fw->stall_arm_ac * cl_lin + fw->stall_arm_cp * cl_flat);
+   * centre, and the plate's normal force, 2 sin(alpha), at its centre of
+   * pressure's arm behind the CG; and the tail's lift that the downwash, going with the wing's lift,
+   * no longer holds down. Below the stall sigma is zero, and add_term
+   * keeps the arithmetic there what it was. */
+  const double cm_stall = -sigma * add_term(fw->stall_arm_ac * cl_lin + fw->stall_arm_cp * 2.0 * sin_a,
+                                            fw->stall_dw * (cl_lin - cl_flat));
   /* The flaps' own moment rides on the lift they add: the section's nose
    * down moment and the downwash they add at the tail, nose up net. */
   const double m_aero = qbar * fw->area * fw->chord *
@@ -866,6 +910,28 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * is a prop whose motor the chute has cut. */
   if (s->motor_omega[0] > 0.0) {
     M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
+  }
+
+  /* The two wing panels past the stall, panel_stall above: a panel that
+   * stalls first drops, by the lift it loses at its arm; a descending
+   * panel is pushed deeper into its stall by its own roll rate, which is
+   * roll damping turning into autorotation; and the stalled panel's drag
+   * yaws the nose toward it. The yaw its lift makes through a roll rate is
+   * the table's cn_p_per_cl, on the stalled CL already. y_c is where strip
+   * theory puts a panel's share of the table's roll damping,
+   * -cl_p = 2 cl_alpha (y_c/b)^2, so it is not a number of its own.
+   * Sideslip is left out of the panels' angles on purpose, docs/STALL-
+   * STAGE1.md. Moments only: the wing's force is the centreline's above. */
+  if (V > 1e-6 && Vxz > 0.5) {
+    const double yc = fw->span * sim_sqrt(-fw->cl_p / (2.0 * fw->cl_alpha));
+    const double da = p * yc / Vrate;
+    const double dr = (-w / V) * s->omega[2] * yc / Vrate;
+    double fl[2], fr[2];
+    panel_stall(fw, alpha, sin_a, cos_a, -da, dr, cl_lin, dcl_f, alpha_stall - 0.5 * fw->stall_asym, fl);
+    panel_stall(fw, alpha, sin_a, cos_a, da, -dr, cl_lin, dcl_f, alpha_stall + 0.5 * fw->stall_asym, fr);
+    const double k = 0.5 * qbar * fw->area * yc;
+    M[0] = add_term(M[0], k * (u / Vxz) * (fl[0] - fr[0]));
+    M[2] = add_term(M[2], k * (u / V) * (fl[1] - fr[1]));
   }
 
   /* The canopy: drag against the air the risers' attachment point moves
@@ -1029,6 +1095,10 @@ const FixedWingParams FW_WING1000 = {
   .acro_pitch_ki = 8.0,   /* stick per rad s of pitch error */
   .acro_i_max = 0.30,     /* stick */
   .yaw_coord_k = 0.0,     /* no rudder */
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = -0.0688,
+  .stall_arm_cp = 0.2188,
+  .stall_asym = 0.00455,
 };
 
 /* The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md, where each number has its
@@ -1098,6 +1168,11 @@ const FixedWingParams FW_SKY1800 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .yaw_coord_k = 1.0,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = 0.0833,
+  .stall_arm_cp = 0.0667,
+  .stall_dw = 0.1448,
+  .stall_asym = 0.005,
 };
 
 /* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has
@@ -1174,6 +1249,11 @@ const FixedWingParams FW_CUB1400 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .yaw_coord_k = 3.0,     /* a third of the Skyhunter's yaw authority per stick */
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = 0.05,
+  .stall_arm_cp = 0.1,
+  .stall_dw = 0.1352,
+  .stall_asym = 0.005,
 };
 
 /* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
@@ -1256,6 +1336,11 @@ const FixedWingParams FW_RADIAN2000 = {
   .yaw_coord_k = 1.5,     /* nine tenths of the Skyhunter's rudder, and more adverse yaw */
   .fold_duty = 0.05,
   .air_lift = 1,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = 0.0157,
+  .stall_arm_cp = 0.1343,
+  .stall_dw = 0.1117,
+  .stall_asym = 0.00536,
 };
 
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
@@ -1339,6 +1424,10 @@ const FixedWingParams FW_BRAMOR2300 = {
   .chute_cda = 1.687,
   .chute_open_s = 1.2,
   .chute_attach = { 0.0642, 0.0, -0.060 },
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = -0.0881,
+  .stall_arm_cp = 0.2381,
+  .stall_asym = 0.00389,
 };
 
 /* The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md, where each number has its
@@ -1424,6 +1513,8 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .air_lift = 1,
   .stall_arm_ac = 0.0617, /* the CG 17 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.097,  /* the plate's centre of pressure at 0.40 of the chord, 27 mm behind it */
+  .stall_dw = 0.1313,     /* the tail's lift as the downwash goes, docs/STALL-STAGE1.md */
+  .stall_asym = 0.00360,  /* the left panel stalls first, docs/STALL-STAGE1.md */
 };
 
 /* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
@@ -1517,6 +1608,10 @@ const FixedWingParams FW_TIMBER1500 = {
   /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
   .slat_dclmax = 0.305,
   .slat_cd0 = 0.004,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_cp = 0.15,
+  .stall_dw = 0.1717,
+  .stall_asym = 0.00431,
 };
 
 /* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
@@ -1613,6 +1708,10 @@ const FixedWingParams FW_TIMBER1500F = {
   /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
   .slat_dclmax = 0.305,
   .slat_cd0 = 0.004,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_cp = 0.15,
+  .stall_dw = 0.1717,
+  .stall_asym = 0.00431,
 };
 
 /* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
@@ -1687,4 +1786,9 @@ const FixedWingParams FW_CUB1400F = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .yaw_coord_k = 3.0,     /* a third of the Skyhunter's yaw authority per stick */
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = 0.05,
+  .stall_arm_cp = 0.1,
+  .stall_dw = 0.1352,
+  .stall_asym = 0.005,
 };
