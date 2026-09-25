@@ -326,14 +326,20 @@ const SUN_GLSL = /* glsl */ `
   }
   /* The sun past every ridge: 1 in the sun, 0 in a mountain's shadow,
    * with a penumbra as wide as the sun's disc makes it at the ridge's
-   * distance (0.0093 rad across, so half of it either side). */
+   * distance (0.0093 rad across, so half of it either side), and wider
+   * again the further the ridge: the haze a kilometre of valley air holds
+   * scatters the sun round the rim, and a rim that is a broken crest of
+   * trees and rock, not the heightfield's clean line, frays its edge. A
+   * shadow thrown across the lake from the west wall a kilometre off was
+   * a slab with a ruled edge. (Widened in round 8 by the walls agent, the
+   * lead having handed it this file for it.) */
   float s2TerrainSun(vec3 p) {
     vec2 uv = (p.xz + uS2Field.x) / uS2Field.y;
     if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) {
       return 1.0;
     }
     vec2 s = texture2D(uS2Shadow, uv).rg;
-    float w = 2.5 + s.y * 0.0047;
+    float w = 2.5 + s.y * 0.0047 + s.y * s.y * 0.000025;
     return smoothstep(s.x - w, s.x + w, p.y);
   }
 `;
