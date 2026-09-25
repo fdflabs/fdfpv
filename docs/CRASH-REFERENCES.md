@@ -77,6 +77,11 @@ drop test's 2,833 N peak.
   are flown at a real whoop's speeds times 3.43 and read back divided by
   it: speeds, distances and peak g are real whoop units. Energies are not
   comparable, because the mass is the five inch's 0.71 kg, not 23 g.
+- **The pilot after the hit.** Every pilot centres the sticks and closes
+  the throttle at the first contact. A five inch pilot also disarms 250 ms
+  later (R-DISARM), with the shell's own disarm, the motors parked by
+  `sim_motor_override(-1, 0)`, in every five inch scenario but the turtle
+  one; the whoop's pilot flies on, as its references do.
 - **The contact** with an obstacle is the shell's call (src/main.js: the
   patch from `contactPatch`, a blade strike of 0.28 times the impulse over
   12 m/s, and `sim_contact_at_mat` with the module's material where its
@@ -304,6 +309,23 @@ loose sand its top 6, so the Cub's mains roll at 0.032 on asphalt and
 0.48 in sand, over the 0.46 of the mains' load that tips it onto its
 prop (docs/CUB-STAGE1.md). A skid, a point with no tyre such as a prop
 tip, keeps its own friction on every ground.
+
+**R-DISARM. What a quad pilot does after a hit.** Oscar Liang, Betaflight
+airmode, https://oscarliang.com/betaflight-airmode/ : "a collision while
+Airmode is active could cause the motors to throttle up aggressively,
+increasing both damage and danger"; airmode holds attitude with the whole
+motor range at zero throttle, so the pilot's answer to a crash is the arm
+switch, not the throttle stick. Betaflight itself offers the same as an
+option, `crash_recovery = DISARM` (vendor/betaflight src/main/flight/pid.c
+detectAndSetCrashRecovery), off by default. How soon: Wikipedia, Mental
+chronometry, https://en.wikipedia.org/wiki/Mental_chronometry : the mean
+simple reaction to a visual stimulus is "approximately 190 milliseconds"
+for college age adults. The suite's quad pilot disarms 250 ms after the
+first contact (ASSUMPTION: the reaction plus the flick of a switch). Run at
+150 and 400 ms the gate clip at 15 m/s comes to rest 5.0 and 3.1 m on and
+the branch clip 7.5 and 14.0 m on, so the outcome class (it tumbles to the
+grass a few metres on) holds across the range while what breaks in the
+landing does not.
 
 **R-LAUNCH. A bungee launch into a stall.** ArduPilot forum,
 https://discuss.ardupilot.org/t/fixed-wing-uav-crashed-10-seconds-after-bungee-launch-need-log-analysis/143698 :
