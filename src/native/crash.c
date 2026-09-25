@@ -1852,10 +1852,10 @@ static int solid_near(const SimState *s);
 static double craft_reach(void);
 
 /* Whether the craft is at life size in its world. Not the whoop the shell
- * flies: its room is scaled 3.43 times and the surfaces are not, so it has
- * no spring to meet the solids with (the ground keeps it rigid for the same
- * reason), the host's obstacle contact stays its contact, and its ground
- * stops are the rigid contact's. */
+ * flies: its room is scaled 3.43 times and the floor's surface is not, so
+ * its ground stops are the rigid contact's. It meets the solids the plant
+ * knows with its own parts like every other craft, their springs scaled
+ * with it (whoop_scaled_build). */
 int crash_life_size(void) {
   return tab() != &T_WHOOP_SCALED;
 }
@@ -1884,7 +1884,7 @@ static int host_on_solid(const double w[3], const double n[3], double margin);
 #define HOST_BAND 0.02
 
 int crash_contact_known(const SimState *s, const double n[3], const double hw[3]) {
-  if (!SIM_DAMAGE || !crash_life_size() || !solid_near(s)) {
+  if (!SIM_DAMAGE || !solid_near(s)) {
     return 0;
   }
   long long gap = s->step_index - g_last_place_step;
@@ -3492,7 +3492,7 @@ static void own_clear(void) {
 
 int crash_touches(const SimState *s) {
   g_ntch = 0;
-  if (!SIM_DAMAGE || solid_count() == 0 || !crash_life_size() || !solid_near(s)) {
+  if (!SIM_DAMAGE || solid_count() == 0 || !solid_near(s)) {
     for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
       g_own_solid[i] = 0;
     }
@@ -3950,7 +3950,11 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
   for (int a = 0; a < 3; a += 1) {
     f->w[a] *= 1.0 - 0.5 * SIM_DT;
   }
-  /* Rates then attitude then position, as the plant does. */
+  /* Rates then attitude then position, as the plant does. The guard is
+   * what bounds the halving loop below: a body spawned with a runaway
+   * craft's spin (FB_W_MAX caps it only at the end of its first step) hung
+   * the page there once. */
+  plant_rate_guard(f->w);
   const double wx = f->w[0] * SIM_DT, wy = f->w[1] * SIM_DT, wz = f->w[2] * SIM_DT;
   const double ang = sim_sqrt(wx * wx + wy * wy + wz * wz);
   if (ang > 1e-12) {

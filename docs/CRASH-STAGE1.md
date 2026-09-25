@@ -115,6 +115,11 @@ mode on.
   imbalance multiple, and the thrust axis tilt about body x and y.
 - `sim_free_bodies_active()`: how many free bodies are moving, at most
   `SIM_FREE_BODIES_MAX` (12).
+- `sim_rate_guard_trips()`: how many times since the reset the craft or a
+  free body reached its attitude update turning faster than
+  `SIM_RATE_MAX` (10,000 rad/s) or at a rate that is not a number, and was
+  stopped rather than left to hang the update's subdivision loop. Zero in
+  every sound run; `crash:core` holds it there.
 
 ### Surfaces and the world
 
@@ -474,9 +479,12 @@ inside a solid the plant knows: a quad's host hands the plant its prop
 disc's centre, not the rim that met the gate. `sim_obstacle_contacts()`
 says how many parts met one in the last step, for a host that dated a hit
 by its own call. A contact on anything the plant was not told of is the
-host's, as always. The whoop the shell flies keeps the host's contact, as
-it keeps the rigid ground, since its room is scaled and its surfaces are
-not.
+host's, as always. The whoop the shell flies meets the solids the same
+way, with its parts' springs scaled with it, and keeps only the rigid
+ground, since its room is scaled and the floor's surface is not. (Round 5
+kept it on the host's contact because losing its pack at a gate set off
+the explicit gyroscopic step's runaway, fixed since: THE RATES OF A
+DAMAGED AIRFRAME in plant.c.)
 
 Measured (crash suite, Node, against main d043d2a): the gate clip at 15
 m/s 1,102 to 244 g, a prop now breaks at the gate and the quad tumbles 20 m
@@ -711,6 +719,18 @@ rigid contact left it (0.26 mm).
   plane's servos trail); what is left gets its own mass, CG and inertia,
   the state moves to the new CG, and a plane's aero forces take their arm
   about it.
+- **The rates of a damaged airframe**: once any flight effect is in force
+  (`CRASH.active`), both plants step I omega_dot = tau - omega x (I omega
+  + h) with the free rigid body split by axis (each part an exact
+  rotation of the angular momentum, the torque a half kick either side)
+  instead of the explicit step. The explicit step adds |dt omega x L|^2
+  to |L|^2 every step, which a powered quad's controller and rotors take
+  out and a wreck with its pack gone does not: a five inch or the shell's
+  whoop that lost its pack in a 150 rad/s tumble ran away to 6,000 rad/s
+  in 1.3 s, and to 100,000 in the round 5 gate clip. A rotation cannot
+  change |L|, so an unpowered tumble now keeps its rate for any inertia
+  (`crash:core`: 163 rad/s from 163 over 1.5 s). An intact flight never
+  takes it, so it is bit identical.
 
 ### Limits and their sources
 

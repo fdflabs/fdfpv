@@ -1181,6 +1181,55 @@ export const CRASH_SCENARIOS = [
       ];
     },
   },
+  {
+    /* Crash round 5's finding: the shell's whoop lost its pack at a gate
+     * and its tumble grew from 150 to 100,000 rad/s in 1.5 s, until the
+     * page hung. With the pack gone nothing powered damps a tumble, and
+     * the plant's explicit gyroscopic step pumped it. Here in still air,
+     * high above any ground, so only the rigid body is being judged. With
+     * no torque |L| holds, so |omega| can reach at most the start rate
+     * times the live airframe's largest over smallest inertia: 2.0 for
+     * the five inch's table with its pack gone (Iz 0.0068 about Ix 0.0033
+     * kg m^2), 2.5 allowing for the air. The run stops at 5,000 rad/s so
+     * a runaway fails here instead of hanging the test. */
+    name: 'a pack lost mid tumble: the wreck\'s spin cannot run away',
+    async run(mk) {
+      const w0 = [150, 20, 60];
+      const start = Math.hypot(...w0);
+      const out = [];
+      for (const [label, table] of [['a five inch', 0], ['the shell\'s whoop', 1]]) {
+        const r = await mk({ id: 0, ground: null });
+        r.sim.e.sim_set_part_table(table);
+        r.parts = readPartTable(r.sim);
+        r.pose([0, 0, 500], [1, 0, 0, 0]);
+        r.velocity([0, 0, 0], w0);
+        r.sim.e.sim_part_break(r.index('battery'));
+        let peak = 0;
+        let ms = 0;
+        for (; ms < 1500 && peak < 5000; ms += 1) {
+          const s = r.run(1);
+          peak = Math.max(peak, Math.hypot(s[11], s[12], s[13]));
+        }
+        const trips = typeof r.sim.e.sim_rate_guard_trips === 'function' ? r.sim.e.sim_rate_guard_trips() : -1;
+        out.push({ name: `${label}: the pack is out`, ok: (r.flags() & DAMAGE_FLAGS.batteryEjected) !== 0, detail: r.summary() });
+        out.push({ name: `${label}: its tumble stays under 2.5 times the start rate for 1.5 s`, ok: ms === 1500 && peak < 2.5 * start,
+          detail: `peak ${peak.toFixed(0)} rad/s from ${start.toFixed(0)}${ms < 1500 ? `, stopped at ${ms} ms` : ''}` });
+        out.push({ name: `${label}: the rate guard never trips`, ok: trips === 0, detail: `${trips}` });
+      }
+      /* A body set turning at 1e6 rad/s, far past any rigid body here: the
+       * craft and the part that leaves it in that step both meet the guard
+       * (SIM_RATE_MAX), are stopped and counted, and the step returns. */
+      const b = await mk({ id: 0, ground: null });
+      b.pose([0, 0, 500], [1, 0, 0, 0]);
+      b.velocity([0, 0, 0], [1e6, 0, 0]);
+      b.sim.e.sim_part_break(b.index('antenna'));
+      const s = b.run(2);
+      const trips = typeof b.sim.e.sim_rate_guard_trips === 'function' ? b.sim.e.sim_rate_guard_trips() : -1;
+      out.push({ name: 'a body turning at 1e6 rad/s is stopped and counted by the rate guard, craft and part',
+        ok: trips === 2 && Math.hypot(s[11], s[12], s[13]) < 1, detail: `${trips} trips, ${Math.hypot(s[11], s[12], s[13]).toFixed(3)} rad/s after` });
+      return out;
+    },
+  },
 ];
 
 export async function runScenario(loadSim, wasmBytes, configText, sc) {
