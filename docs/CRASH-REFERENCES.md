@@ -424,6 +424,58 @@ nose near level and sinking onto its gear, not the way R-DIG's Hatz did.
 LOW to MED: the reviews give the behaviour, not a number, and test 1
 gives the numbers of a full size arrival in that attitude.
 
+**R-POLE. A wing into a pole, from the aircraft's own part table (round
+5).** The pole bands were "the aircraft whips round it and drops at its
+foot", keeping at most 0.3 of its energy, sourced to R-AFH, whose words
+are the other way: an uneven contact risks "the loss of one wing, which
+invariably leads to a more rapid and less predictable descent to the
+ground", a descent, not a stop. The owner's report of the Cub on the real
+shell asks for the same ("it's not like just the wing falls off", PR
+#67). No measured model pole strike was found (the round's web search
+budget was spent before this item; section 5). DERIVED from the part
+table (docs/CRASH-STAGE1.md, read from dist/sim.wasm with
+`sim_part_info`), for a pole of 25 cm met at 60 percent of the half span
+at cruise (V_c, 2.5 m up):
+
+- The struck panel's root holds at most F_lim = min(F_max, M_max / a) at
+  the pole, a the pole's lever about the panel's joint across the flight
+  path. It carries that for no longer than the pole takes to cross the
+  panel's chord and its own diameter, (c + 0.25) / V_c, whether the
+  joint fails first or the leading edge crushes through (either ends the
+  panel's hold). The rest of the craft loses at most J = F_lim (c + 0.25)
+  / V_c of its momentum m V_c, and the kept speed is at least V_c - J / m.
+- **retainedFirst** at least that speed, less 100 ms at a drag ceiling of
+  0.3 g (ASSUMPTION, a tumbling airframe), squared over V_c squared; at
+  most 1, since the throttle closes at the hit.
+- **restDistM** from the pole: at least the kept speed over the shortest
+  fall, the lowest tip (2.5 m less the half span) at 1.5 g (the other
+  panel's cruise lift, half the weight, turned down as it rolls over), less
+  0.3 g of drag; at most V_c over the longest fall, the hull's belly (2.5 m
+  less vHalfDown) at 0.5 g (that lift still up, the stick centred and
+  the trim held, ASSUMPTION), plus R-A4-REBOUND's fixed wing travel after a
+  30 deg arrival, 2.5 m at 20 m/s scaled by the arrival speed squared
+  (the arrival sqrt(V_c^2 + 2 x 1.5 g x h), and 30 deg is about its path).
+- **timeToRestS** at least the shortest fall; at most the longest fall
+  plus the rebound's travel at the average of R-A4-REBOUND's slowest
+  rebound, 0.12 of the arrival speed.
+- **peakG** is unchanged at 20 to 100: at the pole the table allows at
+  most F_lim / m (3.7 to 17 g), so the band judges the ground impact that
+  follows, which R-AFH and R-FOAM still describe.
+
+| Airframe | F_lim N (joint) | J of m V_c, N s | kept | retainedFirst | restDistM | timeToRestS |
+| --- | --- | --- | --- | --- | --- | --- |
+| Skyhunter | 127 (60 N m at 0.472 m) | 4.22 of 31.3 | 0.865 | 0.71 to 1 | 5.6 to 16.6 | 0.45 to 2.8 |
+| Cub | 108 (40 N m at 0.372 m) | 3.65 of 17.8 | 0.795 | 0.59 to 1 | 4.9 to 14.8 | 0.45 to 2.7 |
+| Radian | 80 (45 N m at 0.564 m) | 2.53 of 13.9 | 0.818 | 0.63 to 1 | 4.9 to 15.9 | 0.45 to 2.8 |
+| Slow Stick | 15.7 (6 N m at 0.383 m, the one piece wing) | 1.55 of 2.35 | 0.342 | 0.08 to 1 | 0.5 to 6.2 | 0.5 to 2.1 |
+| Timber | 137 (58 N m at 0.422 m) | 3.86 of 30.6 | 0.874 | 0.73 to 1 | 7.2 to 19.8 | 0.45 to 3.1 |
+| Bramor | 769 (300 N m at 0.390 m) | 36.9 of 72.0 | 0.488 | 0.22 to 1 | 3.0 to 18.0 | 0.4 to 2.9 |
+
+LOW: the joint limits are the table's (themselves MED to LOW), and the
+lift during the fall is an assumption. What would raise it: a measured
+foam wing root failure, or model crash footage of a pole or trunk strike
+measured frame by frame.
+
 ## 3. Footage to measure
 
 The plan asks for crash footage measured frame by frame. That cannot be
@@ -699,16 +751,16 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 | restAttitude | nose down or inverted | R-NOSEOVER (AFH: tipping up onto its nose; the tendency grows until it flips; NTSB: nosed over and came to rest inverted), R-DIG (nose gear and prop dug into sand: nosed over, at rest inverted) | LOW |
 | restDistM | 0 to 2 | R-NOSEOVER, DERIVED (it pivots over the main wheels, so the CG moves about its own length at most) | LOW |
 
-**cub-pole.** Reference still: A wing hits a wooden pole at cruise: the leading edge crushes and the panel folds or snaps at the pole, the aircraft whips round it and drops at its foot.
+**cub-pole.** Reference still: A wing hits a wooden pole at cruise: the struck panel crushes at its leading edge and snaps off at the root, the rest of the aircraft carries on past the pole with most of its speed, rolls toward the lost wing and comes down on the grass some metres on.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
 | mustBreak | wing | R-AFH (asymmetric contact, the loss of one wing), R-FOAM | LOW |
 | mustNotBreak | fuselage | R-AFH | LOW |
 | peakG | 20 to 100 | R-AFH, R-FOAM | LOW |
-| restDistM | 0 to 5 | R-AFH | LOW |
-| timeToRestS | 0.5 to 2 | R-AFH | LOW |
-| retainedFirst | 0.0 to 0.3 | R-AFH | LOW |
+| restDistM | 4.9 to 14.8 | R-POLE (the kept speed over the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| timeToRestS | 0.45 to 2.7 | R-POLE (the fall from 2.5 m, then R-A4-REBOUND fixed wing travel) | LOW |
+| retainedFirst | 0.59 to 1 | R-POLE (the struck root passes at most F_lim for the pole to cross the chord), R-AFH (the loss of one wing: a descent) | LOW |
 
 **cub-tree.** Reference still: Into a tree crown at cruise: branches decelerate it over a metre or two, skin torn, prop broken, and it hangs in the branches.
 
