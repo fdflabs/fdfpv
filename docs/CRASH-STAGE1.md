@@ -93,7 +93,8 @@ mode on.
   antenna), the energy it has absorbed, kind and parent.
 - `sim_damage_events(out[max x 16], max)`: the events since the last call,
   oldest first, returns the count. Each: step, part, type (1 break, 2
-  crush, 3 chip, 4 bend, 5 knock, 6 crack, 7 settle), the load over the
+  crush, 3 chip, 4 bend, 5 knock, 6 crack, 7 settle, 8 water, 9 tree;
+  8 and 9 are entries, below), the load over the
   limit that decided it, peak force (N), joint moment (N m), energy
   absorbed (J), contact point and normal (world), closing speed, surface
   material, the part's damage after. The queue holds 64;
@@ -253,13 +254,41 @@ panel that meets a pole at speed leaves and the fuselage goes on.
 | Part | Onset, load over limit | What happens | Flight effect |
 | --- | --- | --- | --- |
 | prop | 0.33 | chip grows to 0.5 at the limit | thrust x (1 - 0.6 chip), torque x (1 - 0.5 chip), rotor inertia x (1 - 0.3 chip), gyro line x (1 + 25 chip) |
-| prop spinning in a contact | any contact | chip += (tip speed / 100 m/s)^2 x hardness x dt / 0.2 s | as above; lost at chip 1 |
+| prop spinning in a contact | the tip's impact stress over the blade's strength, 1 | chip += (tip speed / 100 m/s)^2 x hardness x dt / 0.2 s x (1 - strength / stress) | as above; lost at chip 1 |
 | arm | 0.60 | the mount twists in its clamp, up to 0.10 rad | that motor's thrust axis turns |
 | music wire (gear, struts) | 0.45, yield at 1 / 2.21 of the break | bends, up to 0.20 rad | recorded for the shell |
 | aluminium boom or gear | 0.70 | bends, up to 0.15 rad | recorded |
 | camera, antenna | 0.50 | knocked, up to 0.60 rad | the camera part's orientation: the FPV picture tilts |
 | anything else | 0.70 | cracks: its joint loses up to half its strength | the next hit breaks it sooner |
 | foam | the plateau force | crushes, below | the dent is stored |
+
+**A spinning blade chips only past its impact limit.** A blade tip that
+meets a surface at speed v is loaded, for the first instant, by the
+elastic impact of two half spaces, sigma = v Z_b Z_s / (Z_b + Z_s), Z = rho
+c each one's acoustic impedance (Goldsmith, Impact, 1960, ch. 4; Johnson,
+Impact Strength of Materials, 1972). The blade is glass filled nylon, PA6
+GF30 conditioned: 1360 kg/m^3, E 7.5 GPa, so Z_b = 3.19e6 Pa s/m, and a
+tensile strength of 120 MPa (the typical datasheet range for PA6 GF30, dry
+to conditioned, is about 9.5 to 6 GPa and 185 to 120 MPa; the weaker end,
+since a prop in service has taken up moisture). The surface's impedance is
+its blade hardness times concrete's, 2400 kg/m^3 at 3750 m/s, 9.0e6. That
+puts the limit at a 51 m/s tip on concrete, rock and metal, 52 on
+asphalt, 60 on wood, 64 on a generic obstacle, 71 on pvc and sand, 82 on
+dirt, and past 700 m/s, beyond any tip speed a hobby prop reaches, on
+grass, snow, foliage and water: props that brush grass at
+full power come back unmarked, props that touch concrete at hover come
+back nicked. DERIVED from the material data; the hardness column is still
+chosen (section 5). Under the limit a spinning contact writes nothing at
+all, so hardness changes the damage only through a contact past the limit.
+Past it the chip grows at the rate in the table, faded in from nothing at
+the limit, and a strike is one chip event when it starts (a blade that
+touches again within 20 ms is the same strike) and one more for every
+0.05 of chip after: a flight with no event is a flight nothing was written
+in. Before this a spinning contact on any face chipped: the crash shell's
+identity check found a Slow Stick grazed at 5 cm/s from below in cruise,
+its prop tip taking the contact, written 1.5e-4 of chip with no event and
+flying a different trace (round 1, `crash:core` now flies that graze on
+both a plain obstacle and a pvc gate and holds it identical).
 
 A part's damage is the largest of its crack, chip, crush over its depth
 and bend over its maximum, and 1 when it has left. Damage follows a
@@ -391,6 +420,19 @@ hardness are chosen, soft ground softer, and are numbers for the loop to
 band. The default ground is the shell's grass; the default obstacle is a
 hard generic face, since an unnamed obstacle could be anything.
 
+**Entries.** The craft going into the water (a part other than a float
+wet) or into a crown (a hull point inside one) is an event of its own,
+type 8 or 9, whether or not anything breaks: the part, the point, the
+surface's normal (for a crown, out from the trunk's axis), the speed the
+point comes in at, and the surface, water or foliage. So the suite and the
+shell learn that a craft hit water or went into a tree however many steps
+they take between reads; the flags `SIM_DMG_IN_WATER` and `SIM_DMG_IN_TREE`
+are only the last step's. An entry rearms after 250 ms out, so a tip
+dipping into every crest of a swell is one entry. Measured (`crash:core`):
+a five inch let down onto a lake reads one water entry on its pack at 2.4
+m/s and no damage; a Slow Stick flown into a crown at 7 m/s reads one
+entry on its prop and breaks nothing.
+
 **Trees.** In a crown every part's hull points are dragged as twigs in a
 porous medium, 0.5 rho_c A v^2 with rho_c 15 kg/m^3 on each part's area
 projected on its motion, and a craft slowed under 2 m/s is held by the
@@ -408,13 +450,75 @@ without, and tears the panel off: the float catch and cartwheel
 FLOATS-STAGE1 flagged). A float driven under its own deck gets a plate's
 drag on the deck (`FLOAT_BURY_CD`).
 
-**The nose dig flip still does not happen.** Touched down 12 to 25
-degrees nose low at 14 m/s the floats throw the nose up (to 45 and 66
-degrees), never down: the plant's strip theory has only upward forces at
-the bow and the bow never buries. What is missing is the suction on a
-curved bow running nose low; it belongs to the floats' model and is the
-first thing to add for the nose dig bands. The capsize needs horizontal
-wind, which the lead gave to the loop's first round.
+**The nose dig** (round 1). Touched down 12 to 25 degrees nose low at
+14 m/s the floats used to throw the nose up (to 45 and 66 degrees), never
+down. Three things in the floats' strip theory, all with the damage mode
+on only, so the floats' gates keep their traces with it off
+(`src/native/sim.c`, `float_apply`; docs/FLOATS-STAGE1.md derives them):
+
+- *A dug in bow tip.* The first wet strip took its slice of water as
+  pushed from nothing to its full immersion inside one strip, a vertical
+  stem, which is right while the keel crosses the surface behind the tip
+  and throws the bow up however it meets the water once the tip itself is
+  under. With the tip under, the slice ahead of it is the rocker's line
+  carried one strip on, so the bottom meets the water at its own slope and
+  the rest goes over the deck, where the deck's drag (`FLOAT_BURY_CD`)
+  takes it. This is what turns the dig over; without it neither aircraft
+  goes over.
+- *Suction on a forebody running nose low*: the other half of Zarnick's
+  d/dt (m_a V_n), u m_a dV_n where the bottom rises away from the slice
+  under it (V_n < 0) ahead of the step, capped at the atmosphere's
+  pressure; a flat forebody at a trim of -tau takes the planing lift of
+  +tau with its sign turned. Nose up (V_n > 0 all along) nothing changes.
+- *Added mass*, implicit, below.
+
+Measured (`crash:core`, the suite's own nose dig): 12 degrees nose low at
+1.6 times the stall, hands off at the touch, both the Timber and the Cub
+dig in and go over onto their backs (up axis to -1.00); 3 degrees nose up
+at 1.1 times the stall both stay upright (up axis at least 0.96). In the
+suite (Node): both nose digs now meet their flip and rest attitude bands
+and fail only peak g and time or distance to rest; both capsizes, flown
+with wind now, go over and fail only peak g.
+
+**Added mass** (round 1). The water a float heaves against moves with
+it: each wet strip carries the (pi/2) rho c^2 per metre the planing force
+already uses, along the bottom's normal, a 3 x 3 added mass in heave,
+roll and pitch, applied implicitly, (M + M_a) d = M d_rigid on the step's
+whole change of (w, p, q), because at rest it is 1.8 times the Timber's
+mass (3.47 kg against 1.93, on 1.22 m of wetted keel; the earlier
+estimate was 2.70) and 1.65 times the Cub's (2.53 against 1.53), which an
+explicit force would not survive. Let down 3 cm onto still water, the
+heave period is 496 ms on the Timber and 487 on the Cub, the derivation's
+288 and 294 ms carried by sqrt((m + m_a) / m) to 482 and 479, within 3
+percent. The radiation damping was read against the bob without it
+(FLOATS-STAGE1) and is left as it was: with the added mass the bob rings
+a little longer, about 0.45 of each swing left at the next.
+
+The capsize needed horizontal wind, which is in the round too (below).
+
+**Wind** (round 1). `sim_set_wind(vx, vy, gust)`: a horizontal wind, the
+air's velocity in m/s in the plant's world frame, z up, so (vx, vy) is the
+way it blows; and gusts on top, their RMS per horizontal axis. Every
+aerodynamic term reads the craft's velocity less the wind: the quad's
+rotors and body drag, a plane's whole aerodynamics and thrust, the
+Bramor's canopy, and with the damage mode on the free bodies' drag. The
+gusts are a fixed sum of seven cosines per axis on the sim clock, periods
+30 to 1.5 s, each carrying its band's share of a Dryden spectrum with a
+4 s time scale (40 m in a 10 m/s wind), the two axes the same RMS as
+MIL-F-8785C's low altitude turbulence has it and uncorrelated. It is the
+same everywhere and a function of time alone: no random numbers, no host
+maths, so a gust is exactly repeatable. Still air, (0, 0, 0), is the
+default and a world property kept across resets like the water; with it
+no step reads any of the wind, so every flight without it is bit
+identical. The sea's wind, `sim_water_wind`, is a separate declaration: a
+host that wants the air and the waves to agree sets both. Measured
+(`crash:core`): `sim_set_wind(0, 0, 0)` flies the plain trace to the bit;
+a Cub launched at 14 m/s through the air into a 5 m/s headwind flies the
+same airspeed as in still air, 12.033 m/s after 4 s, to the ninth digit,
+and 5 m/s less over the ground; a five inch falling at idle is carried
+1.85 m/s down a 5 m/s crosswind in 4 s; the Bramor under its canopy drifts
+at the wind's 6.00 m/s; gusts asked for at 2 m/s about 4 m/s read 2.05 and
+2.08 RMS about 4.06 over 120 s, and the same twice.
 
 ## 6. Bit identity
 

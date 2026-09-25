@@ -95,6 +95,10 @@ export class Rig {
     this.parts = readPartTable(sim);
     this.n = this.parts.length;
     this.partsPtr = sim.e.malloc(this.n * PART_STATE_DOUBLES * 8);
+    /* Steps in which some part's damage rose before any event had said
+     * so: a flight with no event must be a flight nothing was written in. */
+    this.silent = 0;
+    this.damageSum = 0;
     this.prev = this.state();
   }
 
@@ -133,10 +137,19 @@ export class Rig {
       sim.e.sim_parts_state(this.partsPtr);
       this.plant.add(s);
       this.digest.add(s);
-      this.digest.add(new Float64Array(sim.e.memory.buffer, this.partsPtr, this.n * PART_STATE_DOUBLES));
+      const ps = new Float64Array(sim.e.memory.buffer, this.partsPtr, this.n * PART_STATE_DOUBLES);
+      this.digest.add(ps);
+      let dsum = 0;
+      for (let k = 0; k < this.n; k += 1) {
+        dsum += ps[k * PART_STATE_DOUBLES + 1];
+      }
       for (const ev of readDamageEvents(sim)) {
         this.events.push(ev);
       }
+      if (dsum > this.damageSum && this.events.length === 0) {
+        this.silent += 1;
+      }
+      this.damageSum = dsum;
       if (each) {
         each(s, i);
       }
@@ -181,6 +194,23 @@ export class Rig {
  * crash is. */
 const HOVER = 0.33;
 
+/* A Slow Stick in cruise met from below by a face closing at 5 cm/s, as
+ * scripts/crash-shell-identity.js's gate member does. mat -1 is the plain
+ * sim_contact_at with a gate's mu and e. */
+function grazeFromBelow(r, mat) {
+  r.pose([0, 0, 40], [1, 0, 0, 0]);
+  r.velocity([14, 0, 0]);
+  r.run(2600, [0, 0, 0, 0.5]);
+  const s = r.state();
+  const at = [s[1], s[2], s[3] - 0.05, s[4], s[5], s[6] + 0.05, 0, 0, -0.05];
+  if (mat < 0) {
+    r.sim.e.sim_contact_at(0, 0, 1, 0.22, 0.3, ...at);
+  } else {
+    r.sim.e.sim_contact_at_mat(0, 0, 1, mat, ...at);
+  }
+  r.run(1000, [0, 0, 0, 0.5]);
+}
+
 export const CRASH_SCENARIOS = [
   {
     name: 'under every limit, crash physics changes nothing',
@@ -198,13 +228,18 @@ export const CRASH_SCENARIOS = [
         ['a Cub lands on its wheels at 9 m/s', { id: 4 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.launch(9); r.run(6000); }],
         ['a Timber lands on its wheels at 9 m/s', { id: 7 }, (r) => { r.pose([0, 0, 0.35], [1, 0, 0, 0]); r.launch(9); r.run(6000); }],
         ['a Radian belly lands at 8 m/s', { id: 6 }, (r) => { r.pose([0, 0, 0.3], [1, 0, 0, 0]); r.launch(8); r.run(4000); }],
+        /* A graze from below at 5 cm/s in cruise, which lands on the
+         * turning prop's lowest tip: under the blade's impact limit on any
+         * face, so nothing at all, whatever the face is made of. */
+        ['a Slow Stick grazed from below at 5 cm/s, prop turning', { id: 5 }, (r) => grazeFromBelow(r, -1)],
+        ['the same graze on a pvc gate', { id: 5 }, (r) => grazeFromBelow(r, SURFACE.pvc)],
       ];
       for (const [name, opts, fly] of cases) {
         const on = await mk({ ...opts, damage: 1 });
         const off = await mk({ ...opts, damage: 0 });
         fly(on);
         fly(off);
-        checks.push({ name: `${name}: trace identical with it on and off`, ok: on.plant.hex() === off.plant.hex() && on.events.length === 0, detail: `${on.plant.hex()} ${on.summary()}` });
+        checks.push({ name: `${name}: trace identical with it on and off`, ok: on.plant.hex() === off.plant.hex() && on.events.length === 0 && on.damageSum === 0, detail: `${on.plant.hex()} ${on.summary()}, damage ${on.damageSum.toExponential(1)}` });
       }
       return checks;
     },
@@ -244,9 +279,18 @@ export const CRASH_SCENARIOS = [
       const chips = r.count('chip') + r.count('break');
       const m = r.motors();
       const worst = Math.min(...m.map((x) => x.thrust));
+      /* The same on grass: a blade tip meeting grass is far under its
+       * impact limit at any speed, so the props come back unmarked. */
+      const g = await mk({ id: 0, ground: 'grass' });
+      g.pose([0, 0, 0.13], roll(65));
+      g.velocity([0, 0, -0.5]);
+      g.run(400, [0, 0, 0, 0.25]);
+      const grassChips = g.events.filter((e) => e.typeName === 'chip' && g.parts[e.part].kindName === 'prop').length;
       return [
         { name: 'the blades that touch are chipped or lost', ok: chips > 0 && (r.flags() & (DAMAGE_FLAGS.propChipped | DAMAGE_FLAGS.propLost)) !== 0, detail: r.summary() },
         { name: 'a chipped prop keeps less thrust and shakes more', ok: worst < 1 && m.some((x) => x.imbalance > 1 || x.thrust === 0), detail: m.map((x) => `${x.thrust.toFixed(2)}/${x.imbalance.toFixed(1)}`).join(' ') },
+        { name: 'on grass the same blades are not chipped', ok: grassChips === 0 && (g.flags() & DAMAGE_FLAGS.propChipped) === 0, detail: g.summary() },
+        { name: 'no damage is written before an event says so', ok: r.silent === 0 && g.silent === 0, detail: `${r.silent} and ${g.silent} silent steps` },
       ];
     },
   },
@@ -470,6 +514,181 @@ export const CRASH_SCENARIOS = [
         { name: 'the Cub is held in the crown', ok: cs[3] > 2.5 && speedOf(cs) < 0.5, detail: `z ${cs[3].toFixed(2)} m, ${speedOf(cs).toFixed(2)} m/s` },
         { name: 'the five inch punches through', ok: qOut > 3, detail: `${qOut.toFixed(1)} m/s out the far side` },
       ];
+    },
+  },
+  {
+    name: 'into water and into a crown, an event even when nothing breaks',
+    async run(mk) {
+      const damaging = (r) => r.events.filter((e) => !['water', 'tree', 'settle'].includes(e.typeName));
+      /* A five inch let down onto a lake at 1 m/s, motors idle. */
+      const w = await mk({ id: 0, ground: null });
+      w.sim.e.sim_water_add(0, 0, 0);
+      w.pose([0, 0, 0.3], [1, 0, 0, 0]);
+      w.velocity([0, 0, -1]);
+      w.run(1500);
+      /* A Slow Stick, the lightest plane, flown slowly into a crown. */
+      const t = await mk({ id: 5 });
+      t.sim.e.sim_tree_add(8, 0, 0, 0.15, 3, 9, 3);
+      t.pose([0, 0, 6], [1, 0, 0, 0]);
+      t.launch(7);
+      t.run(3000, [0, 0, 0, 0.3]);
+      const wet = w.events.filter((e) => e.typeName === 'water');
+      const leaves = t.events.filter((e) => e.typeName === 'tree');
+      return [
+        { name: 'the five inch reads one water entry, at the surface', ok: wet.length === 1 && Math.abs(wet[0].point[2]) < 0.02 && wet[0].closing > 0.5 && wet[0].surface === SURFACE.water, detail: wet.map((e) => `${w.parts[e.part].label} z ${e.point[2].toFixed(3)} at ${e.closing.toFixed(2)} m/s`).join(', ') || 'none' },
+        { name: 'and nothing in it is damage', ok: damaging(w).length === 0 && w.damageSum === 0, detail: w.summary() },
+        { name: 'the Slow Stick reads one crown entry', ok: leaves.length === 1 && leaves[0].surface === SURFACE.foliage, detail: leaves.map((e) => `${t.parts[e.part].label} at (${e.point.map((v) => v.toFixed(2)).join(', ')}) ${e.closing.toFixed(1)} m/s`).join(', ') || 'none' },
+        { name: 'and it breaks nothing', ok: damaging(t).length === 0, detail: t.summary() },
+      ];
+    },
+  },
+  {
+    name: 'wind: still air by default, and every craft flies through it',
+    async run(mk) {
+      const hover = (r) => { r.pose([0, 0, 50], [1, 0, 0, 0]); r.run(2000, [0, 0, 0, HOVER]); };
+      const plain = await mk({ id: 0, damage: 0, ground: null });
+      hover(plain);
+      const zero = await mk({ id: 0, damage: 0, ground: null });
+      const rc0 = zero.sim.e.sim_set_wind(0, 0, 0);
+      hover(zero);
+      const refused = [[31, 0, 0], [0, NaN, 0], [0, 0, 11], [0, 0, -1]]
+        .every(([x, y, g]) => zero.sim.e.sim_set_wind(x, y, g) !== SIM_OK);
+      /* A five inch falling with its motors at idle in a 5 m/s crosswind
+       * is carried along it by its body's drag. */
+      const fall = async (wind) => {
+        const r = await mk({ id: 0, damage: 0, ground: null });
+        r.sim.e.sim_set_wind(0, wind, 0);
+        r.pose([0, 0, 300], [1, 0, 0, 0]);
+        return r.run(4000);
+      };
+      const qs = await fall(5);
+      const q0 = await fall(0);
+      /* A Cub at cruise into a 5 m/s headwind: the same airspeed, 5 m/s
+       * less over the ground. */
+      const cub = async (wind) => {
+        const r = await mk({ id: 4, damage: 0, ground: null });
+        r.sim.e.sim_set_wind(-wind, 0, 0);
+        r.pose([0, 0, 100], [1, 0, 0, 0]);
+        r.launch(14 - wind);
+        let air = 0;
+        let ground = 0;
+        r.run(6000, [0, 0, 0, 0.6], (s, i) => {
+          if (i >= 4000) {
+            air += Math.hypot(s[4] + wind, s[5], s[6]) / 2000;
+            ground += s[4] / 2000;
+          }
+        });
+        return { air, ground };
+      };
+      const still = await cub(0);
+      const head = await cub(5);
+      /* The Bramor under its canopy in a 6 m/s wind drifts with it. */
+      const b = await mk({ id: 8, damage: 0, ground: null });
+      b.sim.e.sim_set_wind(6, 0, 0);
+      b.pose([0, 0, 300], [1, 0, 0, 0]);
+      b.launch(18);
+      b.run(500, [0, 0, 0, 0]);
+      b.sim.e.sim_wing_chute(1);
+      let drift = 0;
+      b.run(15000, [0, 0, 0, 0], (s, i) => { if (i >= 12000) drift += s[4] / 3000; });
+      /* Gusts: their RMS per axis is what was asked, about the mean, and
+       * the same twice. */
+      const gust = async () => {
+        const r = await mk({ id: 0, damage: 0, ground: null });
+        r.sim.e.sim_set_wind(4, 0, 2);
+        const buf = r.sim.e.malloc(16);
+        let sx = 0, sy = 0, sxx = 0, syy = 0, n = 0;
+        for (let k = 0; k < 1200; k += 1) {
+          r.sim.step(100);
+          r.sim.e.sim_wind(buf);
+          const w = new Float64Array(r.sim.e.memory.buffer, buf, 2);
+          sx += w[0]; sy += w[1]; sxx += w[0] * w[0]; syy += w[1] * w[1]; n += 1;
+        }
+        r.sim.e.free(buf);
+        const mx = sx / n, my = sy / n;
+        return { mx, my, rx: Math.sqrt(sxx / n - mx * mx), ry: Math.sqrt(syy / n - my * my) };
+      };
+      const g1 = await gust();
+      const g2 = await gust();
+      return [
+        { name: 'sim_set_wind(0, 0, 0) is the flight without it, to the bit', ok: rc0 === SIM_OK && zero.plant.hex() === plain.plant.hex(), detail: plain.plant.hex() },
+        { name: 'out of range is refused', ok: refused },
+        { name: 'a five inch falling at idle is carried down a 5 m/s crosswind', ok: qs[5] > 1 && qs[5] < 5 && Math.abs(q0[5]) < 0.1, detail: `${qs[5].toFixed(2)} m/s along it after 4 s, ${q0[5].toFixed(2)} in still air` },
+        { name: 'a Cub launched into a 5 m/s headwind at 14 m/s through the air flies as in still air, 5 m/s less over the ground', ok: Math.abs(still.air - head.air) < 1e-9 && Math.abs(still.ground - head.ground - 5) < 1e-9, detail: `airspeed ${still.air.toFixed(3)} still, ${head.air.toFixed(3)} into it; over the ground ${still.ground.toFixed(3)} and ${head.ground.toFixed(3)}` },
+        { name: 'the Bramor under its canopy drifts at the wind\'s 6 m/s', ok: Math.abs(drift - 6) < 0.5, detail: `${drift.toFixed(2)} m/s` },
+        { name: 'gusts of 2 m/s RMS about a 4 m/s mean', ok: Math.abs(g1.mx - 4) < 0.5 && Math.abs(g1.my) < 0.5 && g1.rx > 1.6 && g1.rx < 2.4 && g1.ry > 1.6 && g1.ry < 2.4, detail: `mean ${g1.mx.toFixed(2)}, ${g1.my.toFixed(2)}; RMS ${g1.rx.toFixed(2)}, ${g1.ry.toFixed(2)} over 120 s` },
+        { name: 'and the same gusts twice', ok: g1.mx === g2.mx && g1.rx === g2.rx && g1.ry === g2.ry },
+      ];
+    },
+  },
+  {
+    name: 'floats: added mass slows the bob, and a nose low touchdown digs in and goes over',
+    async run(mk) {
+      const REST = { 9: { z: 0.2074, pitch: 2.52, mass: 1.934, beam: 0.085, heave: 0.288 }, 10: { z: 0.1765, pitch: 0.64, mass: 1.532, beam: 0.080, heave: 0.294 } };
+      const VS = { 9: 7.1, 10: 8.7 };
+      const pitchOf = (s) => Math.asin(Math.max(-1, Math.min(1, 2 * (s[8] * s[10] - s[7] * s[9]))));
+      const onWater = async (id, damage) => {
+        const r = await mk({ id, damage, ground: null });
+        r.sim.e.sim_water_add(0, 0, 0);
+        r.sim.e.sim_wing_set_stab(0);
+        return r;
+      };
+      /* Let down 3 cm above its rest: the period between the first two
+       * lows of its heave, against the derivation's without added mass
+       * scaled by sqrt((m + m_a) / m), m_a the strips' (pi/2) rho c^2 over
+       * the wetted length it rests on. */
+      const bob = async (id, damage) => {
+        const c = REST[id];
+        const r = await onWater(id, damage);
+        r.pose([0, 0, c.z + 0.03], pitch(-c.pitch));
+        const zs = [];
+        r.run(2000, [0, 0, 0, 0], (s) => zs.push(s[3]));
+        const lows = [];
+        for (let i = 1; i < zs.length - 1; i += 1) {
+          if (zs[i] < zs[i - 1] && zs[i] <= zs[i + 1]) lows.push(i);
+        }
+        const fs = r.sim.e.malloc(80);
+        r.sim.e.sim_float_state(fs);
+        const f = new Float64Array(r.sim.e.memory.buffer, fs, 10);
+        const ma = Math.PI / 2 * 1000 * (c.beam / 2) ** 2 * (f[4] + f[5]);
+        r.sim.e.free(fs);
+        const want = c.heave * Math.sqrt((c.mass + ma) / c.mass);
+        return { period: lows.length > 1 ? (lows[1] - lows[0]) / 1000 : NaN, want, ma };
+      };
+      /* The suite's nose dig: 12 deg nose low at 1.6 times the stall, held
+       * there until the floats touch, hands off after. And a normal one:
+       * 3 deg nose up at 1.1 times the stall. */
+      const touchdown = async (id, pitchDeg, vmul) => {
+        const r = await onWater(id, 1);
+        r.pose([0, 0, REST[id].z + 0.5], pitch(-pitchDeg));
+        r.launch(vmul * VS[id]);
+        let wet = false;
+        let minUp = 1;
+        const fs = r.sim.e.malloc(80);
+        r.run(8000, (s) => {
+          if (wet) return [0, 0, 0, 0];
+          const a = pitchOf(s);
+          return [Math.max(-1, Math.min(1, -1.2 * bankOf(s) * Math.PI / 180 - 0.12 * s[11])), Math.max(-1, Math.min(1, 2.5 * (pitchDeg * Math.PI / 180 - a) + 0.25 * s[12])), 0, 0];
+        }, (s) => {
+          r.sim.e.sim_float_state(fs);
+          wet = wet || new Float64Array(r.sim.e.memory.buffer, fs, 10)[0] > 0;
+          minUp = Math.min(minUp, upOf(s));
+        });
+        r.sim.e.free(fs);
+        return { minUp, endUp: upOf(r.state()) };
+      };
+      const checks = [];
+      for (const id of [9, 10]) {
+        const name = id === 9 ? 'Timber' : 'Cub';
+        const off = await bob(id, 0);
+        const on = await bob(id, 1);
+        checks.push({ name: `${name}: with the added mass the heave period is the derivation's, carried by m_a`, ok: Math.abs(on.period / on.want - 1) < 0.1, detail: `${(on.period * 1000).toFixed(0)} ms against ${(on.want * 1000).toFixed(0)} (m_a ${on.ma.toFixed(2)} kg); ${(off.period * 1000).toFixed(0)} ms with the mode off` });
+        const dig = await touchdown(id, -12, 1.6);
+        const soft = await touchdown(id, 3, 1.1);
+        checks.push({ name: `${name}: 12 deg nose low at 1.6 Vs digs in and goes over`, ok: dig.minUp < -0.7 && dig.endUp < 0, detail: `up axis down to ${dig.minUp.toFixed(2)}, ${dig.endUp.toFixed(2)} at the end` });
+        checks.push({ name: `${name}: 3 deg nose up at 1.1 Vs stays upright`, ok: soft.minUp > 0.9, detail: `up axis at least ${soft.minUp.toFixed(2)}` });
+      }
+      return checks;
     },
   },
   {

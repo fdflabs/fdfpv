@@ -1143,6 +1143,36 @@ static double g_float_diag[10];
 /* A buried deck's drag coefficient: a flat plate broadside, Hoerner's 1.17,
  * less for the rounded deck edge. */
 #define FLOAT_BURY_CD 1.0
+/* The most a forebody's suction can pull, Pa: the atmosphere's pressure,
+ * past which the water under it would boil or the air come in round the
+ * chines. At a float plane's speeds the suction is far under it. */
+#define FLOAT_SUCTION_MAX 101325.0
+
+/*
+ * THE FLOATS' ADDED MASS, crash physics (damage mode on) only, so the
+ * floats' gates keep their traces with it off. The water a float heaves
+ * against moves with it: each wet strip carries the added mass of its
+ * section, the (pi/2) rho c^2 per metre the planing force already uses
+ * (von Karman 1929, Wagner 1932, Zarnick 1978), along the body's up axis,
+ * which is the bottom's normal. On the aircraft that is a 3 x 3 added
+ * mass in its heave along body z, its roll and its pitch,
+ * M_a = sum m_i j_i j_i^T with j_i = (1, y_i, -x_i) the strip's up speed
+ * per unit of (w, p, q). It is 1.8 times the aircraft's own mass at rest
+ * (the Timber: 3.47 kg against 1.93), so an explicit force, the added
+ * mass times last step's acceleration, would be unstable. It is implicit
+ * instead: the whole step's change of (w, p, q), whatever made it, is
+ * what the rigid body would do under the step's forces, M d_rigid = F dt,
+ * and the aircraft with the water it carries does (M + M_a) d = F dt, so
+ * d = (M + M_a)^-1 M d_rigid, which is exact for the step's forces and
+ * unconditionally stable. g_float_am is the step's M_a, filled by
+ * float_apply, zero when no strip is wet. The 3D end effects that shorten
+ * a slender body's added mass at its bow and stern are left out: at a
+ * float's 8.5 beams they take roughly a tenth off (Lewis's J factor for a
+ * body that slender), inside what the section's shape is known to.
+ */
+static double g_float_am[3][3];
+static double g_float_v0[3];
+static double g_float_w0[3];
 
 static double float_keel(const FloatParams *fp, double x) {
   if (x > fp->x_knee) {
@@ -1248,6 +1278,9 @@ static void float_apply(void) {
   for (int i = 0; i < 10; i += 1) {
     g_float_diag[i] = 0.0;
   }
+  for (int i = 0; i < 3; i += 1) {
+    g_float_am[i][0] = g_float_am[i][1] = g_float_am[i][2] = 0.0;
+  }
   const double ground = float_ground(fp);
   g_float_diag[6] = ground;
   int wet = 0;
@@ -1278,6 +1311,7 @@ static void float_apply(void) {
       g_float_part = crash_float_part(f);
       double ma_run = 0.0;
       double d_prev = 0.0;
+      double vn_prev = 0.0;
       double buoy = 0.0;
       double xb = 0.0;
       double usum = 0.0;
@@ -1293,6 +1327,7 @@ static void float_apply(void) {
         const double h = ws[0] - p[2];
         if (!(h > 0.0)) {
           d_prev = 0.0;
+          vn_prev = 0.0;
           continue;
         }
         wet = 1;
@@ -1300,6 +1335,27 @@ static void float_apply(void) {
         double d = h * cz;
         if (d > cap) {
           d = cap;
+        }
+        if (SIM_DAMAGE && i == 0) {
+          /* Crash physics: the bow's own tip under the surface. The slice
+           * entering here was taken as pushed from nothing to d in one
+           * strip, a vertical stem that throws the bow up however it
+           * meets the water, which is right while the keel crosses the
+           * surface behind the tip and wrong once the tip itself has dug
+           * in: then the water runs over the deck, and the bottom meets
+           * the slice at its own slope. That slope is the rocker's, so the
+           * slice's immersion just ahead of the tip is the rocker's line
+           * carried one strip on. */
+          const double xa = x + dx;
+          double ra[3];
+          float_to_world(xa, yf, float_keel(fp, xa), ra);
+          const double pa[3] = { S.pos[0] + ra[0], S.pos[1] + ra[1], S.pos[2] + ra[2] };
+          double wa[6];
+          float_water(wb, t, pa, wa);
+          const double da = (wa[0] - pa[2]) * cz;
+          if (da > 0.0) {
+            d_prev = da;
+          }
         }
         const double area = d <= hc ? d * d / fp->tan_dr : hc * hc / fp->tan_dr + fp->beam * (d - hc);
         const double girth = d <= hc ? 2.0 * d / sin_dr : 2.0 * hc / sin_dr + 2.0 * (d - hc);
@@ -1340,6 +1396,41 @@ static void float_apply(void) {
         }
         if (ma > ma_run) {
           ma_run = ma;
+        }
+        /* Crash physics: the forebody's suction running nose low. Going
+         * aft along a keel trimmed nose down the bottom rises away from the
+         * slice of water under it, V_n < 0, and ahead of the step the flow
+         * stays on the bottom and follows it up: the slice's downward
+         * momentum, carried in m_a, is turned upward, and that pulls the
+         * float down, u m_a dV_n per strip, the second half of Zarnick's
+         * d/dt (m_a V_n) that "water is pushed, never pulled" left out.
+         * Only the part of the change below zero counts, so a float trimmed
+         * nose up (V_n > 0 all along) is untouched, and a flat forebody at
+         * a trim of -tau takes the planing lift of +tau with its sign
+         * turned, concentrated where V_n crosses zero, which on a float
+         * running nose low is ahead of the CG. Aft of the step the flow has
+         * left the hull, which is what a step is for, and nothing pulls.
+         * Capped at the atmosphere's pressure on the strip's wetted width.
+         * docs/FLOATS-STAGE1.md, the nose dig. */
+        if (SIM_DAMAGE && x >= fp->x_step) {
+          const double vneg = vn < 0.0 ? vn : 0.0;
+          const double vneg_prev = vn_prev < 0.0 ? vn_prev : 0.0;
+          double fs = ma * up * (vneg - vneg_prev);
+          const double fs_max = FLOAT_SUCTION_MAX * 2.0 * c * dx;
+          if (fs < -fs_max) fs = -fs_max;
+          if (fs > fs_max) fs = fs_max;
+          fz += fs;
+        }
+        vn_prev = vn;
+        if (SIM_DAMAGE) {
+          /* The strip's added mass, along the body's up axis at (x, yf). */
+          const double mi = ma * dx;
+          const double j[3] = { 1.0, yf, -x };
+          for (int a = 0; a < 3; a += 1) {
+            for (int b = 0; b < 3; b += 1) {
+              g_float_am[a][b] += mi * j[a] * j[b];
+            }
+          }
         }
         const double fy = -0.5 * rho * fp->c_side * d * v * sim_fabs(v) * dx;
         const double fx = -0.5 * rho * fp->cf * girth * u * sim_fabs(u) * dx;
@@ -1439,6 +1530,62 @@ static void float_apply(void) {
     plant_wing_set_on_wheels(1);
   }
   g_float_diag[9] = (double)wb;
+}
+
+/* The step's (w, p, q) before anything moved them, for the added mass. */
+static void float_mass_begin(void) {
+  for (int a = 0; a < 3; a += 1) {
+    g_float_v0[a] = S.vel[a];
+    g_float_w0[a] = S.omega[a];
+  }
+}
+
+/* d = (M + M_a)^-1 M d_rigid on (w, p, q), after the step's every force:
+ * Gaussian elimination on the 3 x 3, which M_a's being a sum of outer
+ * products and M's being positive keeps symmetric positive definite, so it
+ * needs no pivoting. A no-op when nothing is wet. */
+static void float_mass_apply(void) {
+  if (!(g_float_am[0][0] > 0.0)) {
+    return;
+  }
+  double zb[3];
+  const double ez[3] = { 0.0, 0.0, 1.0 };
+  contact_rotate(ez, zb);
+  const double dv[3] = { S.vel[0] - g_float_v0[0], S.vel[1] - g_float_v0[1], S.vel[2] - g_float_v0[2] };
+  const double d0[3] = {
+    zb[0] * dv[0] + zb[1] * dv[1] + zb[2] * dv[2],
+    S.omega[0] - g_float_w0[0],
+    S.omega[1] - g_float_w0[1],
+  };
+  const double m[3] = { PLANT.mass_kg, PLANT.inertia[0], PLANT.inertia[1] };
+  double A[3][4];
+  for (int a = 0; a < 3; a += 1) {
+    for (int b = 0; b < 3; b += 1) {
+      A[a][b] = g_float_am[a][b] + (a == b ? m[a] : 0.0);
+    }
+    A[a][3] = m[a] * d0[a];
+  }
+  for (int k = 0; k < 3; k += 1) {
+    for (int a = k + 1; a < 3; a += 1) {
+      const double f = A[a][k] / A[k][k];
+      for (int b = k; b < 4; b += 1) {
+        A[a][b] -= f * A[k][b];
+      }
+    }
+  }
+  double d[3];
+  for (int k = 2; k >= 0; k -= 1) {
+    double r = A[k][3];
+    for (int b = k + 1; b < 3; b += 1) {
+      r -= A[k][b] * d[b];
+    }
+    d[k] = r / A[k][k];
+  }
+  for (int a = 0; a < 3; a += 1) {
+    S.vel[a] += zb[a] * (d[0] - d0[0]);
+  }
+  S.omega[0] += d[1] - d0[1];
+  S.omega[1] += d[2] - d0[2];
 }
 
 SIM_EXPORT int sim_contact(double nx, double ny, double nz,
@@ -2028,6 +2175,10 @@ SIM_EXPORT int sim_step(int n) {
     } else {
       S.ground_h = -1.0;
     }
+    const int float_mass = SIM_DAMAGE && PLANT.floats.count > 0;
+    if (float_mass) {
+      float_mass_begin();
+    }
     /* The wing has no controller: the sticks go to its plant as they are. */
     if (PLANT.kind == PLANT_KIND_WING) {
       plant_wing_step(&S, g_current_rc);
@@ -2037,6 +2188,9 @@ SIM_EXPORT int sim_step(int n) {
     crash_batch_begin(&S, 1);
     ground_apply();
     float_apply();
+    if (float_mass) {
+      float_mass_apply();
+    }
     crash_step(&S, g_ground_on && !g_stand_on, g_ground_n, g_ground_d);
     crash_batch_end(&S);
     stand_apply();
@@ -2227,6 +2381,36 @@ SIM_EXPORT int sim_plane_surfaces(double *out) {
 SIM_EXPORT double sim_air_lift(double x, double y, double z) {
   const double pos[3] = { x, y, z };
   return plant_air_lift(pos);
+}
+
+/* The horizontal wind, plant_wing.c at plant_wind. A world the host
+ * declares, kept across sim_reset and sim_init like the water; refused
+ * rather than clamped outside what a model flies in. */
+static int finite_d(double x) {
+  return x == x && x - x == 0.0;
+}
+
+SIM_EXPORT int sim_set_wind(double vx, double vy, double gust) {
+  if (!finite_d(vx) || !finite_d(vy) || !finite_d(gust)
+      || !(vx * vx + vy * vy <= 30.0 * 30.0) || !(gust >= 0.0) || !(gust <= 10.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  SIM_WIND[0] = vx;
+  SIM_WIND[1] = vy;
+  SIM_GUST = gust;
+  SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wind(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  double w[3];
+  plant_wind(S.step_index, w);
+  out[0] = w[0];
+  out[1] = w[1];
+  return SIM_OK;
 }
 
 /*

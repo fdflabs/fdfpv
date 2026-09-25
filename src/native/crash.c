@@ -407,6 +407,7 @@ typedef struct {
   double crush;      /* m */
   double chip;       /* a prop's, 0..1 */
   double chip_evt;   /* the chip at its last event */
+  long long chip_step; /* the step of its last spinning chip, or -2 */
   double bend[3];    /* rotation vector, body frame, rad */
   double dent[3];    /* m, body frame */
   double energy;     /* J */
@@ -434,6 +435,8 @@ static int g_ev_head = 0;
 static int g_ev_count = 0;
 static int g_ev_dropped = 0;
 static int g_flags_extra = 0; /* IN_TREE, IN_WATER: this step's */
+static long long g_wet_step = -1000000;   /* the last step the craft was wet */
+static long long g_crown_step = -1000000; /* and the last it was in a crown */
 
 /* The surface the solver is meeting now. */
 static int g_surf = SIM_SURF_DEFAULT;
@@ -1015,6 +1018,7 @@ void crash_reset(void) {
     p->crush = 0.0;
     p->chip = 0.0;
     p->chip_evt = 0.0;
+    p->chip_step = -2;
     p->energy = 0.0;
     p->damage = 0.0;
     for (int a = 0; a < 3; a += 1) {
@@ -1033,6 +1037,8 @@ void crash_reset(void) {
   g_ev_count = 0;
   g_ev_dropped = 0;
   g_flags_extra = 0;
+  g_wet_step = -1000000;
+  g_crown_step = -1000000;
   g_surf = SIM_SURF_DEFAULT;
   g_ground_mat = SIM_SURF_DEFAULT;
   g_crush_mask = 0;
@@ -1437,6 +1443,26 @@ void crash_batch_begin(const SimState *s, int from_step) {
 #define CRACK_LOSS 0.50       /* strength a crack at the break would take */
 #define CHIP_SPIN_T 0.20      /* s of a (100 m/s)^2 tip on concrete to lose
                                * a blade set */
+/*
+ * A spinning blade chips only where its tip's impact stress passes the
+ * blade's strength. A blade tip meeting a surface at v is loaded, for the
+ * first instant, by the elastic impact of two half spaces, sigma = v Z_b
+ * Z_s / (Z_b + Z_s), Z = rho c the acoustic impedance of each (Goldsmith,
+ * Impact, 1960, ch. 4; Johnson, Impact Strength of Materials, 1972). The
+ * blade is glass filled nylon, PA6 GF30 conditioned: rho 1360 kg/m^3, E
+ * 7.5 GPa, tensile strength 120 MPa (the typical datasheet range, dry to
+ * conditioned, is 9.5 to 6 GPa and 185 to 120 MPa; the weaker end, since
+ * a prop in service has taken up moisture). The surface's impedance is
+ * its blade hardness times concrete's, 2400 kg/m^3 at 3750 m/s. On
+ * concrete that puts the limit at a 51 m/s tip, on grass, snow, foliage
+ * and water past any tip speed a hobby prop reaches, which is what pilots
+ * see: props that touch grass at full power come back unmarked, props that
+ * touch concrete at hover come back nicked. Under the limit a spinning
+ * contact writes nothing at all. docs/CRASH-STAGE1.md, Damage.
+ */
+#define BLADE_Z 3.194e6       /* sqrt(E rho), Pa s/m */
+#define CONCRETE_Z 9.0e6
+#define BLADE_STRENGTH 120.0e6
 #define BEARING_SHARE 0.02    /* a seating push, against the joint's limit */
 #define SEAT_GRIP 1.00        /* friction of a seated face on a rubber pad */
 
@@ -1727,9 +1753,22 @@ static void judge(SimState *s) {
       const double w = s->motor_omega[d->motor];
       double span = t->hi[i][1] - t->lo[i][1];
       if (t->hi[i][0] - t->lo[i][0] > span) span = t->hi[i][0] - t->lo[i][0];
-      const double vt = w * 0.5 * span / 100.0;
-      const double dc = vt * vt * SURF[x->surf].hard * SIM_DT / CHIP_SPIN_T;
+      const double tip = sim_fabs(w) * 0.5 * span;
+      const double zs = SURF[x->surf].hard * CONCRETE_Z;
+      const double sigma = tip * BLADE_Z * zs / (BLADE_Z + zs);
+      /* Past the limit the chip grows at the old rate, faded in from
+       * nothing at the limit so the damage is continuous in the load. */
+      const double over = sigma > BLADE_STRENGTH ? 1.0 - BLADE_STRENGTH / sigma : 0.0;
+      const double vt = tip / 100.0;
+      const double dc = vt * vt * SURF[x->surf].hard * SIM_DT / CHIP_SPIN_T * over;
       if (dc > 0.0) {
+        /* A spinning contact is one event when it starts and one more for
+         * every 0.05 of chip after, so a flight with no event is a flight
+         * no chip was written in. A blade bouncing on the surface touches
+         * every few steps; within 20 ms of its last touch it is the same
+         * strike, the window a host's contact call stands for. */
+        const int starts = p->chip_step < s->step_index - 20;
+        p->chip_step = s->step_index;
         p->chip += dc;
         changed = 1;
         if (p->chip >= 1.0) {
@@ -1743,12 +1782,12 @@ static void judge(SimState *s) {
             brk[nbrk].forced = 1;
             nbrk += 1;
           }
-        } else if (p->chip - p->chip_evt >= 0.05) {
+        } else if (starts || p->chip - p->chip_evt >= 0.05) {
           p->chip_evt = p->chip;
           p->damage = part_damage(i);
           double pw[3];
           world_of(s, bb[h], pw);
-          event_push(s, i, SIM_EVENT_CHIP, vt, norm(Fw), 0.0, 0.0, pw, x->n, x->vin, x->surf);
+          event_push(s, i, SIM_EVENT_CHIP, sigma / BLADE_STRENGTH, norm(Fw), 0.0, 0.0, pw, x->n, x->vin, x->surf);
         }
       }
     }
@@ -2269,6 +2308,18 @@ static void craft_force(SimState *s, int part, const double r[3], const double F
   crash_force_note(s, r, F, part);
 }
 
+/*
+ * ENTRY EVENTS. The craft going into the water or into a crown is an event
+ * of its own, whether or not anything breaks, so a host that steps many
+ * milliseconds between reads, or keeps no flags, still learns that it
+ * happened and where: the shell throws spray or leaves from it. An entry
+ * is the first step a part other than a float is wet (the floats' water is
+ * sim_float_state's), or the first a hull point is inside a crown, after
+ * ENTRY_REARM steps of neither, so a tip dipping in and out of every
+ * crest of a swell is one entry and not one an oscillation.
+ */
+#define ENTRY_REARM 250
+
 static void craft_water(SimState *s) {
   if (water_count() == 0) {
     return;
@@ -2287,6 +2338,7 @@ static void craft_water(SimState *s) {
   const double tnow = (double)(s->step_index + 1) * SIM_DT;
   double ww[3];
   qrot(s->quat, s->omega, ww);
+  int wet_now = 0;
   for (int i = 0; i < t->n; i += 1) {
     if (!attached(i) || t->p[i].kind == SIM_PART_FLOAT) {
       continue;
@@ -2318,6 +2370,18 @@ static void craft_water(SimState *s) {
       cross(ww, r, wr);
       const double v[3] = { s->vel[0] + wr[0] - ws[3], s->vel[1] + wr[1] - ws[4], s->vel[2] + wr[2] - ws[5] };
       const double vm = norm(v);
+      if (!wet_now) {
+        wet_now = 1;
+        if (s->step_index - g_wet_step > ENTRY_REARM) {
+          /* The surface's normal from its slope, and the speed the point
+           * closes on it. */
+          double nw[3] = { -ws[1], -ws[2], 1.0 };
+          const double nl = norm(nw);
+          for (int a = 0; a < 3; a += 1) nw[a] /= nl;
+          const double vc = -dot(v, nw);
+          event_push(s, i, SIM_EVENT_WATER, 0.0, 0.0, 0.0, 0.0, p, nw, vc > 0.0 ? vc : 0.0, SIM_SURF_WATER);
+        }
+      }
       double F[3] = { 0.0, 0.0, 0.0 };
       if (vm > 1e-6) {
         double vb[3];
@@ -2330,6 +2394,9 @@ static void craft_water(SimState *s) {
       craft_force(s, i, r, F, vm);
     }
   }
+  if (wet_now) {
+    g_wet_step = s->step_index;
+  }
 }
 
 static void craft_crowns(SimState *s) {
@@ -2341,6 +2408,7 @@ static void craft_crowns(SimState *s) {
   qrot(s->quat, s->omega, ww);
   double hold_area = 0.0;
   int inside = 0;
+  int entered = 0;
   for (int c = 0; c < g_ntr; c += 1) {
     const Tree *tr = &TR[c];
     const double dx = s->pos[0] - tr->x, dy = s->pos[1] - tr->y;
@@ -2370,6 +2438,14 @@ static void craft_crowns(SimState *s) {
         cross(ww, r, wr);
         const double v[3] = { s->vel[0] + wr[0], s->vel[1] + wr[1], s->vel[2] + wr[2] };
         const double vm = norm(v);
+        if (!inside && !entered && s->step_index - g_crown_step > ENTRY_REARM) {
+          /* Into the crown: its normal, out from the trunk's axis, and the
+           * speed the point came in at, the twigs being everywhere. */
+          entered = 1;
+          const double eh = sim_sqrt(ex * ex + ey * ey);
+          const double nw[3] = { eh > 1e-9 ? ex / eh : 0.0, eh > 1e-9 ? ey / eh : 0.0, eh > 1e-9 ? 0.0 : 1.0 };
+          event_push(s, i, SIM_EVENT_TREE, 0.0, 0.0, 0.0, 0.0, p, nw, vm, SIM_SURF_FOLIAGE);
+        }
         if (!(vm > 1e-6)) {
           continue;
         }
@@ -2389,6 +2465,7 @@ static void craft_crowns(SimState *s) {
   if (!inside) {
     return;
   }
+  g_crown_step = s->step_index;
   g_flags_extra |= SIM_DMG_IN_TREE;
   const double vm = norm(s->vel);
   if (!(vm < CROWN_HOLD_V)) {
@@ -2485,11 +2562,18 @@ static void fb_impulse(FreeBody *f, const double r[3], const double n[3], double
 static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double gn[3], double gd) {
   const double g = PLANT_TABLE[plant_airframe()].gravity * SIM_GRAVITY;
   const double rho = 1.225;
-  /* Gravity, and the air's drag on its biggest face. */
-  const double vm = norm(f->vel);
+  /* Gravity, and the air's drag on its biggest face, through the air. */
+  double va[3] = { f->vel[0], f->vel[1], f->vel[2] };
+  if (SIM_WIND_ON) {
+    double wa[3];
+    plant_wind(s->step_index, wa);
+    va[0] -= wa[0];
+    va[1] -= wa[1];
+  }
+  const double vm = norm(va);
   const double kd = -0.5 * rho * f->cda * vm / f->m;
   for (int a = 0; a < 3; a += 1) {
-    f->vel[a] += kd * f->vel[a] * SIM_DT;
+    f->vel[a] += kd * va[a] * SIM_DT;
   }
   f->vel[2] -= g * SIM_DT;
   /* A tumbling part loses its spin to the air too, slowly. */

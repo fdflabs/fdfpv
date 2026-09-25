@@ -494,6 +494,28 @@ int sim_wheel_loads(double *out);
 double sim_air_lift(double x, double y, double z);
 
 /*
+ * WIND. sim_set_wind(vx, vy, gust): a horizontal wind, the air's velocity,
+ * m/s, plant world frame (z up, so vx vy is the direction it blows TOWARD),
+ * mean speed at most 30 m/s, and gusts on top, their RMS per horizontal
+ * axis, m/s, 0 to 10. Every airframe flies through it: a quad's rotor and
+ * body terms and a plane's aerodynamics, the Bramor's canopy among them,
+ * read the craft's velocity less the wind, and with the damage mode on so
+ * do the parts that have broken off. The gusts are a fixed sum of seven
+ * cosines per axis on the sim clock, the same everywhere
+ * (src/native/plant_wing.c at plant_wind): exactly repeatable, no random
+ * numbers, no host maths. SIM_ERR_BAD_ARG for a non finite value or one
+ * out of range. A world property, not state: kept across sim_reset and
+ * sim_init, like the water; sim_set_wind(0, 0, 0) is still air, the
+ * default, and then no step reads any of it, so every flight without wind
+ * is bit identical to one from before it existed.
+ * sim_wind(out[2]): the wind acting now, at the current step, m/s world x
+ * and y, gusts included. SIM_ERR_BAD_ARG for a null pointer.
+ * Additive, version unchanged.
+ */
+int sim_set_wind(double vx, double vy, double gust);
+int sim_wind(double *out);
+
+/*
  * sim_wing_chute(deploy): the recovery parachute of an aircraft that has
  * one, the Bramor. 1 pulls it: the motor stops, the surfaces centre and a
  * canopy opens over about a second, hanging from the risers' attachment
@@ -769,11 +791,28 @@ int sim_parts_state(double *out);
 #define SIM_DAMAGE_EVENTS_MAX 64
 #define SIM_EVENT_BREAK 1  /* the joint failed: the part and its children left */
 #define SIM_EVENT_CRUSH 2  /* foam crushed, a permanent dent */
-#define SIM_EVENT_CHIP 3   /* a prop chipped: thrust down, imbalance up */
+#define SIM_EVENT_CHIP 3   /* a prop chipped: thrust down, imbalance up. A
+                            * spinning blade chips only past its tip's impact
+                            * limit, and each strike starts with an event; its
+                            * [3] is the impact stress over the blade's
+                            * strength */
 #define SIM_EVENT_BEND 4   /* an arm, boom or gear leg bent past yield */
 #define SIM_EVENT_KNOCK 5  /* a camera or antenna knocked askew */
 #define SIM_EVENT_CRACK 6  /* damage under the break: a part weakened */
 #define SIM_EVENT_SETTLE 7 /* a free body came to rest */
+/*
+ * Entries, events whether or not anything breaks (damage mode on only, as
+ * the water and the crowns are read only then). SIM_EVENT_WATER: the first
+ * step a part other than a float is wet, the part and its hull point, the
+ * surface's normal, the speed the point closes on it, surface
+ * SIM_SURF_WATER. SIM_EVENT_TREE: the first step a hull point is inside a
+ * tree's crown, the part and the point, the normal out from the trunk's
+ * axis (up if the point is on it), the point's speed, surface
+ * SIM_SURF_FOLIAGE. Either rearms only after 250 ms out, so a tip dipping
+ * in every crest of a swell is one entry. [3] to [6] are 0.
+ */
+#define SIM_EVENT_WATER 8
+#define SIM_EVENT_TREE 9
 int sim_damage_events(double *out, int max);
 int sim_damage_events_dropped(void);
 
