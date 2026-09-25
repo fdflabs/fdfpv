@@ -434,6 +434,8 @@ function photoStyle() {
        * map's before the forests keep off them (swiss2/props/lakeside.js). */
       stage.lakeside = buildLakeside({ heightAt, footprints: stage.footprints, path: style.look.material('path', {}) });
       scene.add(stage.lakeside.group);
+      /* The lake draws the wake of the sailing boat on it. */
+      stage.water.boat.value = stage.lakeside.boat;
       /* The carved rock on the walls, in place of the ground's own
        * triangles there, before the forests so nothing is planted on
        * ground the rock has moved, and never under anything already

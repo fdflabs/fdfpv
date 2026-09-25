@@ -42,6 +42,8 @@ import { buildFall } from './fall.js';
 const BASE = new URL('../../../../assets/swiss2/water/', import.meta.url);
 
 const MIRROR_REACH = 2000;
+/* How far the stream's milky plume reaches into the lake, in metres. */
+const INFLOW_REACH = 230;
 
 export const WATER_TIERS = {
   high: { mirror: 0.5, spray: true, mist: 1 },
@@ -80,8 +82,16 @@ export async function buildWater(ctx) {
   /* The lake. */
   const { cx, cz, shore } = lakeShore(heightAt);
   const mirror = Q.mirror > 0 ? planarMirror(LAKE_Y, Q.mirror) : null;
+  /* A boat under way on the lake (x, z, and her velocity), for her wake:
+   * the map points this at its sailing boat (props/lakeside.js). */
+  const boat = { value: new THREE.Vector4() };
+  /* The stream's mouth and its plume's reach into the lake, toward the
+   * lake's middle. */
+  const mouth = layout.lower[layout.lower.length - 1];
+  const toMiddle = Math.hypot(cx - mouth.x, cz - mouth.z);
+  const inflow = new THREE.Vector4(mouth.x, mouth.z, ((cx - mouth.x) / toMiddle) * INFLOW_REACH, ((cz - mouth.z) / toMiddle) * INFLOW_REACH);
   const lakeWater = {
-    waves, time, wind, colour: LAKE_BODY, shallow: LAKE_SHALLOW, deep: LAKE_DEEP, clarity: 0.6, ripple: 0.3, roughness: 0.03, planar: mirror, envMap, shoreFoam: 0.08,
+    waves, time, wind, colour: LAKE_BODY, shallow: LAKE_SHALLOW, deep: LAKE_DEEP, clarity: 0.6, ripple: 0.3, roughness: 0.03, planar: mirror, envMap, shoreFoam: 0.08, boat, inflow,
   };
   const lakeMat = waterMaterial(lakeWater);
   const lake = new THREE.Mesh(lakeGeometry(heightAt, shore), lakeMat);
@@ -198,6 +208,7 @@ export async function buildWater(ctx) {
   return {
     group,
     update,
+    boat,
     stats,
     layout,
     lake: { cx, cz, shore },
