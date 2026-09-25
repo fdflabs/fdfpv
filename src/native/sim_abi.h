@@ -237,6 +237,15 @@ int sim_set_ground(int on,
 int sim_ground_contacts(void);
 
 /*
+ * How many parts met a solid the plant knows (sim_obstacle_*, a tree's
+ * trunk) on the last step. With the damage mode on the plant meets those
+ * solids itself, every step, and drops a host's contact on one, so a host
+ * that knew a hit only by its own contact call learns it here. Zero with
+ * the mode off. Additive.
+ */
+int sim_obstacle_contacts(void);
+
+/*
  * Enable or disable Betaflight crashflip (turtle mode). Off (0) is the
  * default and the path every harness replay takes. On (non-zero) makes
  * mixTable take applyFlipOverAfterCrashModeToMotors, which is already

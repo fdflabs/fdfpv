@@ -1129,6 +1129,40 @@ static void ground_apply(void) {
 }
 
 /*
+ * The solids the plant has been told of (sim_obstacle_*, a tree's trunk),
+ * met by the parts themselves every step with the damage mode on: crash.c,
+ * THE PLANT MEETS THE SOLIDS IT KNOWS. The same solver as the ground's, a
+ * contact per part at its deepest point, iterated as the ground's corners
+ * are, and the same position correction unless the part's spring holds it.
+ */
+static int g_obstacle_hits = 0;
+
+static void obstacle_apply(void) {
+  const int nt = SIM_DAMAGE ? crash_touches(&S) : 0;
+  g_obstacle_hits = nt;
+  if (nt == 0) {
+    return;
+  }
+  const double vs[3] = { 0.0, 0.0, 0.0 };
+  for (int iter = 0; iter < CONTACT_ITERS; iter += 1) {
+    for (int k = 0; k < nt; k += 1) {
+      double r[3], n[3], pen, e, mu;
+      crash_touch(&S, k, r, n, &pen, &e, &mu);
+      contact_impulse(n, r, vs, e, mu, pen > 0.0 ? pen : 0.0);
+      if (pen > CONTACT_SLOP && !crash_last_capped()) {
+        const double push = (pen - CONTACT_SLOP) * CONTACT_POS_PUSH;
+        S.pos[0] += n[0] * push;
+        S.pos[1] += n[1] * push;
+        S.pos[2] += n[2] * push;
+      }
+    }
+  }
+  double r[3], n[3], pen, e, mu;
+  crash_touch(&S, -1, r, n, &pen, &e, &mu);
+  crash_set_ground_contact();
+}
+
+/*
  * FLOATS, for an airframe that declares them (the Timber and the Cub on
  * floats; every other airframe has none and returns at the first line).
  * docs/FLOATS-STAGE1.md derives the model and every number.
@@ -1649,21 +1683,17 @@ SIM_EXPORT int sim_contact(double nx, double ny, double nz,
   if (!contact_unit3(nx, ny, nz, n)) {
     return SIM_ERR_BAD_ARG;
   }
-  double own[3], own_arm[3];
-  const int place = SIM_DAMAGE ? crash_contact_place(&S, n, own, own_arm) : SIM_PLACE_HOST;
-  if (place == SIM_PLACE_NONE) {
-    return SIM_OK;
-  }
-  if (place == SIM_PLACE_OWN) {
-    px = own[0];
-    py = own[1];
-    pz = own[2];
+  double r[3];
+  contact_support_neg_n(n, r);
+  if (SIM_DAMAGE) {
+    const double hw[3] = { px + r[0], py + r[1], pz + r[2] };
+    if (crash_contact_known(&S, n, hw)) {
+      return SIM_OK;
+    }
   }
   S.pos[0] = px;
   S.pos[1] = py;
   S.pos[2] = pz;
-  double r[3];
-  contact_support_neg_n(n, r);
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
    * side of the face. The impulse still sees the inbound velocity. */
@@ -1730,19 +1760,12 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   if (!contact_unit3(nx, ny, nz, n)) {
     return SIM_ERR_BAD_ARG;
   }
-  double own[3], own_arm[3];
-  const int place = SIM_DAMAGE ? crash_contact_place(&S, n, own, own_arm) : SIM_PLACE_HOST;
-  if (place == SIM_PLACE_NONE) {
-    g_contact_mat = SIM_SURF_DEFAULT;
-    return SIM_OK;
-  }
-  if (place == SIM_PLACE_OWN) {
-    px = own[0];
-    py = own[1];
-    pz = own[2];
-    rx = own_arm[0];
-    ry = own_arm[1];
-    rz = own_arm[2];
+  if (SIM_DAMAGE) {
+    const double hw[3] = { px + rx, py + ry, pz + rz };
+    if (crash_contact_known(&S, n, hw)) {
+      g_contact_mat = SIM_SURF_DEFAULT;
+      return SIM_OK;
+    }
   }
   S.pos[0] = px;
   S.pos[1] = py;
@@ -1759,9 +1782,8 @@ SIM_EXPORT int sim_contact_at(double nx, double ny, double nz,
   }
   const double vs[3] = { vsx, vsy, vsz };
   /* Penetration is already resolved by the host placing p on the free
-   * side of the face. The impulse still sees the inbound velocity. The
-   * host's part goes with the host's point, not with the plant's own. */
-  crash_host_part(place == SIM_PLACE_OWN ? -1 : host_part);
+   * side of the face. The impulse still sees the inbound velocity. */
+  crash_host_part(host_part);
   crash_batch_begin(&S, 0);
   contact_impulse(n, r, vs, restitution, mu, 0.0);
   crash_batch_end(&S);
@@ -1856,6 +1878,10 @@ SIM_EXPORT int sim_set_ground(int on,
 
 SIM_EXPORT int sim_ground_contacts(void) {
   return g_ground_hits;
+}
+
+SIM_EXPORT int sim_obstacle_contacts(void) {
+  return g_obstacle_hits;
 }
 
 SIM_EXPORT int sim_set_crashflip(int on) {
@@ -2271,6 +2297,7 @@ SIM_EXPORT int sim_step(int n) {
     }
     crash_batch_begin(&S, 1);
     ground_apply();
+    obstacle_apply();
     float_apply();
     if (float_mass) {
       float_mass_apply();
