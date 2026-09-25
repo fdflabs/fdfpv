@@ -1209,15 +1209,15 @@
     {
      "metric": "restDistM",
      "min": 8,
-     "max": 30,
-     "source": "R-SLIDE (v squared over 2 mu g, mu 0.3 to 0.6)",
+     "max": 29,
+     "source": "R-SLIDE at V_s 6.5 m/s: 1.5 V_s (9.75 m/s) at mu 0.6 to 2 V_s (13 m/s) at mu 0.3, v squared over 2 mu g",
      "confidence": "LOW"
     },
     {
      "metric": "timeToRestS",
-     "min": 2,
-     "max": 5,
-     "source": "R-SLIDE",
+     "min": 1.6,
+     "max": 4.5,
+     "source": "R-SLIDE at V_s 6.5 m/s: 1.5 V_s (9.75 m/s) at mu 0.6 to 2 V_s (13 m/s) at mu 0.3, v over mu g",
      "confidence": "LOW"
     }
    ]
