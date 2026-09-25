@@ -410,6 +410,13 @@ range of 0 to 15, and this airframe's own glide is what sets it here.
 | Acro's pitch as a rate damper only, no attitude hold (its `acro_pitch_kd`, no P or I) | 13.4 m | 8.0 m/s, 0.87 m/s |
 | Stabilised's trim pitch lowered to the glide's −4.1 deg with the throttle closed, as ArduPilot's FBWA does with `STAB_PITCH_DOWN` | 13.4 m | 8.0 m/s, 0.92 m/s, never under 7.97 |
 
+The owner chose the second, for Stabilised only; Acro is as it was. It
+is built for every fixed wing with each one's own glide
+(docs/WING-STAGE1.md, "Low throttle pitch down"): this aircraft's pitch
+target lowers by 6.08 deg as the stick closes from its 0.732 cruise, and
+`npm run stab:chop` measures the chop in Stabilised at 0.917 m/s of sink
+at 7.97 m/s, alpha at most 8.1 deg, against the derived 0.918 at 7.97.
+
 The two other suspects were checked and are not the cause:
 
 - The idling prop. A fixed prop's thrust is clamped at zero in the
@@ -451,8 +458,9 @@ lightly damped Dutch roll as it does; let go and the polyhedral levels it
 in a few seconds. Haul the stick back and it mushes, it does not snap.
 Close the throttle in Manual and let the sticks go and it noses down onto
 its glide by itself and floats at 8 m/s, 8.6 to 1, sinking 0.9 m/s; in a
-thermal it goes up. In Acro and Stabilised, today, it does not: see "The
-throttle chop, in each mode" below.
+thermal it goes up. Stabilised does the same, lowering the nose onto
+that glide as the throttle closes. Acro holds the attitude it is left at
+and does not: see "The throttle chop, in each mode" below.
 
 ## Parallel work
 
