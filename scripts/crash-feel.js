@@ -3,10 +3,12 @@
  * their numbers and a contact sheet each.
  *
  *   SIM_GPU=1 npm run crash:feel -- [--out DIR] [--only ID[,ID...]] [--no-audit]
- *                                   [--pole-sweep]
+ *                                   [--repeat N] [--pole-sweep]
  *
- * FEEL_DEBUG=1 prints each step. --only skips the drawing check.
- * --pole-sweep runs only the pole sweep (poleSweep).
+ * FEEL_DEBUG=1 prints each step. --only skips the drawing check. --repeat
+ * stages each scenario N times and says whether the reruns crashed the
+ * same way, and if not where they part and on which side of the plant's
+ * ABI (compareRuns). --pole-sweep runs only the pole sweep (poleSweep).
  *
  * docs/CRASH-PLAN.md, "The finish line, changed by the owner": the crash
  * loop ends when the crashes a pilot meets look and feel right. This loads
@@ -114,6 +116,10 @@ const SCENARIOS = [
       const s = window.__craftState();
       const semi = ${airframeById('cub1400').dims.bodyWidth / 2};
       for (const p of window.__crashSolids(s.worldX, s.worldZ, 800, 'pole')) {
+        /* A power pole, not a fence post. */
+        if (p.r < 0.1) {
+          continue;
+        }
         const g = window.__heightAt(p.a[0], p.a[2]);
         const y = g + 2.2;
         if (Math.max(p.a[1], p.b[1]) < y + 1) {
@@ -365,6 +371,8 @@ function argValue(name, fallback) {
 const outArg = argValue('out', join(homedir(), '.cache', 'fdfpv-crash-feel'));
 const outDir = isAbsolute(outArg) ? outArg : join(root, outArg);
 const only = argValue('only', '');
+/* --repeat N stages every scenario N times on its page and compares them. */
+const REPEAT = Math.max(1, Number(argValue('repeat', '1')) || 1);
 const audit = !process.argv.includes('--no-audit') && !only;
 const W = 1280;
 const H = 720;
@@ -412,6 +420,12 @@ async function open(airframe, map, trackFile) {
     await page.close();
     throw new Error(`the page seated ${seated.join(' ')}, not ${map} ${airframe}`);
   }
+  /* The page boots on the title, whose attract flight moves the craft and
+   * where R does nothing, so the first scenario on a page used to be
+   * planned from wherever the attract flight had got to. Into flight, and
+   * R to the map's spawn, as every later scenario is. */
+  await page.evaluate('(() => { const s = window.__craftState(); window.__placeCraft(s.worldX, s.worldY, s.worldZ); })()');
+  await page.until("window.__mode === 'flight'", 30000);
   return page;
 }
 
@@ -548,22 +562,34 @@ const attitude = (up) => {
   return `on its side or nose (up.y ${fmt(up.y)})`;
 };
 
-async function stage(page, sc) {
+async function stage(page, sc, quiet = false) {
+  /* A fresh aircraft for every scenario on the same page: R, the pilot's
+   * own reset, which clears the damage and the wreck. Before the plan,
+   * which finds its spot from where the craft is: planned from where the
+   * last wreck lay, a rerun was thrown 21 m from the first. */
+  note('reset');
+  await page.tap('KeyR');
+  await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
+  await page.sleep(300);
+  const pad = await page.evaluate(FAST).then(JSON.parse);
   const plan = await page.evaluate(`JSON.stringify((() => { ${sc.plan} })())`).then(JSON.parse);
   if (!plan) {
     throw new Error('no spot on the map fits the scenario');
   }
   const span = airframeById(sc.airframe).dims.bodyWidth;
-  /* A fresh aircraft for every scenario on the same page: R, the pilot's
-   * own reset, which clears the damage and the wreck. */
-  note('reset');
-  await page.tap('KeyR');
-  await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
-  await page.sleep(300);
-  const thrown = await page.evaluate(`JSON.stringify(window.__crashThrow(${JSON.stringify({ ...plan.throw, hold: true, showCraft: true })}))`).then(JSON.parse);
+  /* On the sim clock: the throw puts the plant back to its first step
+   * (fresh) and the hold keeps it there until the release, whatever the
+   * wall clock does in between. The sticks go in with the throw, so every
+   * stick frame the plant is handed after the release is the staged one:
+   * set at the release, the first few frames were the old sticks or the
+   * new by how the frames fell. */
+  const thrown = await page.evaluate(`JSON.stringify(window.__crashThrow(${JSON.stringify({ ...plan.throw, hold: true, showCraft: true, fresh: true })}))`).then(JSON.parse);
   if (!thrown.ok) {
     throw new Error(`throw refused: ${JSON.stringify(thrown)}`);
   }
+  /* Centred and closed when the scenario names none, not whatever the
+   * keyboard's sticks were left at. */
+  await page.evaluate(`window.__stick(${(plan.stick ?? [0, 0, 0, 0]).join(',')})`);
   if (sc.chase === 'script') {
     await chaseCam(page, plan.dir, span);
   } else {
@@ -574,8 +600,8 @@ async function stage(page, sc) {
   const t0 = await simT(page);
   note(`thrown, sim ${fmt(t0)} s`);
   const release = await page.evaluate(FAST).then(JSON.parse);
-  if (plan.stick) {
-    await page.evaluate(`window.__stick(${plan.stick.join(',')})`);
+  if (t0 !== 0 || release.simT !== t0) {
+    throw new Error(`the throw is not at the plant's first step, or it stepped before the release: sim ${t0}, ${release.simT} s`);
   }
   await page.evaluate('window.__releasePose()');
   /* Impact: the first damage event. */
@@ -715,11 +741,13 @@ async function stage(page, sc) {
     frames.push({ label: `close: ${worst.name}, lowest vertex ${fmt(worst.gap * 100, 0)} cm from the surface`, data: await frame(page) });
     await page.evaluate('window.__setCam(null)');
   }
+  const trace = REPEAT > 1 ? await page.evaluate('JSON.stringify(window.__stepTrace())').then(JSON.parse) : null;
   const result = {
     id: sc.id,
     item: sc.item,
     what: sc.what,
     aimed: plan.what,
+    pad: [pad.x, pad.y, pad.z],
     throw: plan.throw,
     impact: impact ? { t: impact.t - t0, part: impact.part, type: impact.type, closing: impact.closing, surface: impact.surface } : null,
     breaks: breaks.map((e) => ({ t: +(e.t - t0).toFixed(3), part: e.part, ratio: +e.ratio.toFixed(2), force: +e.force.toFixed(1), moment: +e.moment.toFixed(2), surface: e.surface })),
@@ -728,6 +756,7 @@ async function stage(page, sc) {
     forceMax: forceMax ? { part: forceMax.part, force: forceMax.force, t: forceMax.t - t0 } : null,
     rest: {
       atRest, perched: r.landed, frozen, t: last.simT - t0, sinceImpact: last.simT - tImpact, attitude: attitude(last.up), up: last.up, slide,
+      at: [last.x, last.y, last.z],
       creep, jitter, maxSpeedAfterRest: maxSpeedLate, bodyGap: last.bodyGap,
       pieces: last.pieces.length, sunk, floating, flags: last.flags, wrecked: last.wrecked, banner: last.banner,
     },
@@ -742,8 +771,59 @@ async function stage(page, sc) {
     `pieces: ${last.pieces.length}; sunk: ${sunk.join(', ') || 'none'}; floating: ${floating.join(', ') || 'none'}`,
     `flags: ${last.flags.join(', ') || 'none'}; banner ${JSON.stringify(last.banner)}`,
   ];
-  await writeFile(join(outDir, `${sc.id}.json`), `${JSON.stringify(result, null, 1)}\n`);
-  return { lines, frames, title: `${sc.item}. ${sc.id} (${sc.airframe} on ${sc.map})` };
+  if (!quiet) {
+    await writeFile(join(outDir, `${sc.id}.json`), `${JSON.stringify(result, null, 1)}\n`);
+  }
+  return { lines, frames, title: `${sc.item}. ${sc.id} (${sc.airframe} on ${sc.map})`, result, trace, t0 };
+}
+
+/*
+ * Two stagings of one crash, side by side: whether they broke the same
+ * parts at the same sim times and came to rest in the same place, and if
+ * not, the first step at which they part and which side of the ABI it is
+ * on (window.__stepTrace). A step whose state in, ground plane and stick
+ * frames hash the same in both and whose state out does not is the
+ * plant's; anything else the shell handed it differently. The solids and
+ * materials declared are not in the hashes: they follow from the state.
+ */
+function compareRuns(a, b) {
+  const breaks = (r) => r.result.breaks.map((e) => `${e.part}@${e.t.toFixed(3)}`).join(' ');
+  const same = breaks(a) === breaks(b);
+  const pa = a.result.rest.at;
+  const pb = b.result.rest.at;
+  const apart = Math.hypot(pa[0] - pb[0], pa[1] - pb[1], pa[2] - pb[2]);
+  const ta = a.trace;
+  const tb = b.trace;
+  const n = Math.min(ta.n, tb.n);
+  let k = 0;
+  while (k < n && ta.pre[k] === tb.pre[k] && ta.plane[k] === tb.plane[k] && ta.post[k] === tb.post[k]) {
+    k += 1;
+  }
+  let where;
+  if (k === n) {
+    where = `identical over the ${n} steps both traced`;
+    if (ta.n !== tb.n) {
+      where += `, then one stepped ${Math.abs(ta.n - tb.n)} more (the shell stops stepping a wreck at rest on a frame, not a step)`;
+    }
+  } else {
+    const t = k + 1;
+    const inputs = (tr) => tr.inputs.filter((f) => f[0] <= a.t0 + t / 1000 + 1e-9).map((f) => f.join(',')).join(' ');
+    let side;
+    if (inputs(ta) !== inputs(tb)) {
+      side = 'shell: the stick frames handed to the plant differ';
+    } else if (ta.pre[k] !== tb.pre[k]) {
+      side = k === 0 ? 'shell: the thrown state differs' : 'shell: the state was changed between steps (a host contact or a set pose)';
+    } else if (ta.plane[k] !== tb.plane[k]) {
+      side = 'shell: the ground plane handed to the plant differs';
+    } else {
+      side = 'plant: the same state, ground and sticks in, a different state out';
+    }
+    where = `they part at step ${t} (t+${(t / 1000).toFixed(3)} s): ${side}`;
+  }
+  return {
+    same: same && apart < 1e-6 && k === n && ta.n === tb.n,
+    line: `rerun from the pad at ${b.result.pad.map((v) => fmt(v, 1)).join(',')} (${a.result.pad.map((v) => fmt(v, 1)).join(',')}), aimed at ${b.result.aimed}, thrown at sim ${fmt(b.t0, 3)} s (${fmt(a.t0, 3)} s): breaks ${same ? 'the same' : `differ (${breaks(b) || 'none'})`}, rest ${fmt(apart * 1000, 2)} mm apart; ${where}`,
+  };
 }
 
 /* Item 0's check: every airframe, every part broken, no piece carrying a
@@ -859,6 +939,7 @@ for (const sc of list) {
   groups.set(key, [...(groups.get(key) ?? []), sc]);
 }
 const sheets = [];
+const reruns = [];
 for (const scs of groups.values()) {
   let page = null;
   try {
@@ -876,6 +957,21 @@ for (const scs of groups.values()) {
     console.log(`\n${sc.item}. ${sc.id}: ${sc.what}`);
     try {
       const done = await stage(page, sc);
+      /* Each rerun against the first, and against the rerun before it:
+       * the first is the only one staged on a page nothing has crashed on. */
+      let prev = null;
+      for (let k = 1; k < REPEAT; k += 1) {
+        const again = await stage(page, sc, true);
+        const cmp = compareRuns(done, again);
+        done.lines.push(`${k + 1} against 1, ${cmp.line}`);
+        reruns.push(`${sc.id} ${k + 1}: ${cmp.same ? 'same' : 'DIFFERENT'}`);
+        if (prev) {
+          const last = compareRuns(prev, again);
+          done.lines.push(`${k + 1} against ${k}, ${last.line}`);
+          reruns.push(`${sc.id} ${k + 1} against ${k}: ${last.same ? 'same' : 'DIFFERENT'}`);
+        }
+        prev = again;
+      }
       for (const l of done.lines) {
         console.log(`  ${l}`);
       }
@@ -891,6 +987,9 @@ for (const scs of groups.values()) {
     sheets.push(path);
   }
   await finish(page);
+}
+if (reruns.length) {
+  console.log(`\nreruns: ${reruns.join(', ')}`);
 }
 console.log(`\n${sheets.length} sheet(s) in ${outDir}; ${failed} failure(s); ${consoleErrors} console error(s)`);
 process.exit(failed || consoleErrors ? 1 : 0);

@@ -3777,8 +3777,59 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
   }
 
+  /*
+   * THE STEP TRACE, harness only (window.__stepTrace): from a throw, per sim
+   * step, a hash of the plant's state going into the step (after anything
+   * the shell did to it), of the ground plane the shell handed it for the
+   * step, and of the state coming out. Two stagings of one crash compared
+   * step by step say where they part: a step whose inputs hash the same and
+   * whose output does not is the plant's; one whose input already differs
+   * is the shell's.
+   */
+  const TRACE_STEPS = 12000;
+  const stepTrace = {
+    on: false, n: 0, ground: 0,
+    pre: new Int32Array(TRACE_STEPS), plane: new Int32Array(TRACE_STEPS), post: new Int32Array(TRACE_STEPS),
+  };
+  const traceWords = new Int32Array(new Float64Array(1).buffer);
+  const traceBits = new Float64Array(traceWords.buffer);
+  function traceHash(h, v) {
+    traceBits[0] = v;
+    h = Math.imul(h ^ traceWords[0], 0x01000193);
+    return Math.imul(h ^ traceWords[1], 0x01000193);
+  }
+  function traceState(st) {
+    let h = 0x811c9dc5 | 0;
+    for (let k = 0; k < 18; k += 1) {
+      h = traceHash(h, st[k]);
+    }
+    return h;
+  }
+  /* And every stick frame handed to the plant, [t s, roll, pitch, yaw,
+   * throttle]: the one input the step hashes do not carry. */
+  const TRACE_INPUTS = 4000;
+  const inputTrace = [];
+  function traceInput(ts, roll, pitch, yaw, throttle) {
+    if (stepTrace.on && inputTrace.length < TRACE_INPUTS) {
+      inputTrace.push([ts, roll, pitch, yaw, throttle]);
+    }
+  }
+  function tracePre(st) {
+    if (stepTrace.on && stepTrace.n < TRACE_STEPS) {
+      stepTrace.pre[stepTrace.n] = traceState(st);
+      stepTrace.plane[stepTrace.n] = stepTrace.ground;
+    }
+  }
+  function tracePost(st) {
+    if (stepTrace.on && stepTrace.n < TRACE_STEPS) {
+      stepTrace.post[stepTrace.n] = traceState(st);
+      stepTrace.n += 1;
+    }
+  }
+
   /* After every sim_step(1) with the mode on: the events, and the world. */
   function crashAfterStep(st) {
+    tracePost(st);
     damage.drain(onDamageEvent);
     if (partsLeft) {
       syncCraftParts(st);
@@ -4027,7 +4078,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (crashLog.length < CRASH_LOG_MAX) {
       const p = partTable[ev[o + EVENT.part]];
       crashLog.push({
-        t: stateCurr ? stateCurr[0] : 0,
+        /* The step it happened in, from the module: the shell's own
+         * stateCurr is only refreshed per frame and per contact pass, so
+         * two stagings of one crash logged one break 3 ms apart. */
+        t: ev[o + EVENT.step] / SIM_HZ,
         part: p ? partLabel(p.kind, p.cg[0], p.cg[1], !airframeById(runAirframe).fixedWing) : String(ev[o + EVENT.part]),
         type: EVENT_TYPES[type] ?? String(type),
         ratio: ev[o + EVENT.ratio],
@@ -6820,6 +6874,30 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function sampleGroundNormalFromState(st) {
     poseFromState(st, pProbe);
     sampleGroundNormal(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS, groundNWorld);
+    groundNormalAtX = pProbe.x;
+    groundNormalAtZ = pProbe.z;
+  }
+
+  /*
+   * WHEN THE SLOPE IS SAMPLED IS THE SIM CLOCK'S, not the frame's. It was
+   * the first step of every frame and every eighth step after it, so the
+   * plane the plant stood on changed at steps that depended on how the
+   * frames fell: two stagings of one crash on the swiss2 grass handed the
+   * plant different ground from the 34th step on (scripts/crash-feel.js
+   * --repeat). Every eighth step of the plant's own count now, and at once
+   * when the craft has been put somewhere else (a throw, a reset) or is
+   * over on its side, where the old rule sampled every step too.
+   */
+  let groundNormalAtX = NaN;
+  let groundNormalAtZ = NaN;
+  function groundNormalDue(st) {
+    if (Math.round(st[0] * SIM_HZ) % 8 === 0 || plantUpZ(st) < 0.5) {
+      return true;
+    }
+    poseFromState(st, pProbe);
+    const dx = pProbe.x - groundNormalAtX;
+    const dz = pProbe.z - groundNormalAtZ;
+    return !(dx * dx + dz * dz < 1);
   }
 
   function raiseGroundFromState(st) {
@@ -6858,6 +6936,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const code = sim.e.sim_set_ground(
       1, nSim.x, nSim.y, nSim.z, pSim.x, pSim.y, pSim.z, GROUND_MU, GROUND_E,
     );
+    if (stepTrace.on) {
+      let h = traceHash(0x811c9dc5 | 0, nSim.x);
+      h = traceHash(traceHash(h, nSim.y), nSim.z);
+      stepTrace.ground = traceHash(traceHash(traceHash(h, pSim.x), pSim.y), pSim.z);
+    }
     if (runDamage) {
       declareGroundMaterial(pProbe.x, pProbe.z, hy);
     }
@@ -7866,6 +7949,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           const ts = rcNextMs / 1000;
           lastTs = ts;
           const ax = applyTurtleRc(held.roll, held.pitch);
+          traceInput(ts, ax[0], ax[1], held.yaw, held.throttle);
           const inCode = sim.input(ts, ax[0], ax[1], held.yaw, held.throttle);
           if (inCode !== SIM_OK) {
             adoptSimClock();
@@ -7890,6 +7974,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           }
           lastTs = ts;
           const ax = applyTurtleRc(pkt.rc.roll, pkt.rc.pitch);
+          traceInput(ts, ax[0], ax[1], pkt.rc.yaw, pkt.rc.throttle);
           const inCode = sim.input(ts, ax[0], ax[1], pkt.rc.yaw, pkt.rc.throttle);
           if (inCode !== SIM_OK) {
             adoptSimClock();
@@ -7915,7 +8000,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           }
         } else {
           let stNow = stateCurr;
-          sampleGroundNormalFromState(stNow);
           /*
            * Inbound closing has to be sampled BEFORE sim_step. Ground
            * contact runs inside the 1 ms step, so by the time the frame
@@ -7927,7 +8011,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           peakGroundSpeed = 0;
           sawGroundHit = false;
           for (let i = 0; i < steps; i += 1) {
-            if (i === 0 || (i & 7) === 0 || plantUpZ(stNow) < 0.5) {
+            if (groundNormalDue(stNow)) {
               sampleGroundNormalFromState(stNow);
             }
             const vzBefore = stNow[6];
@@ -7935,6 +8019,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
               stNow[4] * stNow[4] + stNow[5] * stNow[5] + stNow[6] * stNow[6],
             );
             raiseGroundFromState(stNow);
+            tracePre(stNow);
             sim.step(1);
             stNow = readState();
             if (runDamage) {
@@ -10394,6 +10479,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   window.__crash = () => crashSummary();
   window.__crashThrow = (o) => {
     crashCamShowsCraft = o.showCraft !== false;
+    /* `fresh` puts the plant back to its first step first, as R does, so
+     * the throw starts from the same plant whatever the craft did on the
+     * pad before it: an aircraft on floats rocks on the lake from the
+     * moment R puts it there, and was thrown after however many steps of
+     * that the wall clock allowed. */
+    if (o.fresh) {
+      resetCraft(null);
+    }
     const placed = window.__placeCraft(o.x, o.y, o.z);
     if (!placed || placed.ok === false) {
       return placed;
@@ -10418,6 +10511,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     contactLog.length = 0;
     crashLog.length = 0;
     contactLogOn = true;
+    stepTrace.on = true;
+    stepTrace.n = 0;
+    inputTrace.length = 0;
     stateCurr = readState();
     statePrev = stateCurr;
     /* The attitude every collider query reads, which the frame loop
@@ -10473,6 +10569,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * m/s, surface }. A break cues the snap, a crush the crunch, a chip the
    * chip, water the splash. */
   window.__crashLog = () => crashLog.slice();
+  /* The step trace since the last throw (THE STEP TRACE): per step, the
+   * hashes of the state in, the ground plane, the state out. */
+  window.__stepTrace = () => ({
+    n: stepTrace.n,
+    pre: Array.from(stepTrace.pre.subarray(0, stepTrace.n)),
+    plane: Array.from(stepTrace.plane.subarray(0, stepTrace.n)),
+    post: Array.from(stepTrace.post.subarray(0, stepTrace.n)),
+    inputs: inputTrace.slice(),
+  });
   /*
    * Which tune the module is actually running, read back from the module
    * rather than from the menu, plus the config coverage counters from
