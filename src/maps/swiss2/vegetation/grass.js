@@ -51,13 +51,13 @@
 import * as THREE from 'three';
 import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
 import {
-  LAKE_Y, STRIP_L, STRIP_W, TREE_LINE, SNOW_LINE, forestDensity, treeLine, valleyAxis,
+  LAKE_Y, STRIP_L, TREE_LINE, SNOW_LINE, forestDensity, treeLine, valleyAxis,
 } from '../../alps/terrain.js';
 import { ALPHA_CUT, GRASS_REGIONS } from './atlas.js';
 import { LEAF_SPEC_GLSL } from './plantmat.js';
-import { MEADOW_GLSL } from '../ground.js';
+import { MEADOW_GLSL, CRAFT_GLSL, craftUniforms } from '../ground.js';
 import {
-  meadowField, s2Noise, beachTop, ROAD_DX, ROAD_END,
+  meadowField, airfield, s2Noise, beachTop, ROAD_DX, ROAD_END,
 } from './zones.js';
 
 const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3', 'weed0', 'weed1', 'weed2', 'weed3'];
@@ -125,11 +125,27 @@ function fenceDist(x, z, lines) {
  * grows.
  */
 function coverAt(x, z, heightAt, layout) {
-  /* The strip is grass too, a mown one: clover and a daisy or two in
-   * turf cut to the ankle, which at eye height is what tells a grass
-   * strip from a painted one. */
-  if (Math.abs(x) < STRIP_W / 2 + 1.5 && Math.abs(z) < STRIP_L / 2 + 4) {
-    return { p: 0.9, h: 0.22, bloom: 0.12, tone: 1, seeds: 0, pasture: true, forest: 0 };
+  /* The strip is grass too, a mown one: clover and daisies in turf cut
+   * to the ankle, which at eye height is what tells a grass strip from a
+   * painted one, thinner down the wheel tracks and where the aircraft
+   * turn (zones.js airfield, as the paint lays them). */
+  const air = Math.abs(x) < 50 && Math.abs(z) < STRIP_L / 2 + 40 ? airfield(x, z) : null;
+  if (air && air.paved) {
+    return null;
+  }
+  if (air && air.runway > 0.5) {
+    /* Thicker and thinner in patches a few metres across, so the cut
+     * turf is not an even pile of clumps. */
+    const thick = noise2(x / 3.3 + 7.7, z / 3.3 + 1.9);
+    return {
+      p: 0.9 * (0.55 + 0.45 * thick) * (1 - 0.65 * air.track) * (1 - 0.35 * air.worn),
+      h: 0.27 * (0.8 + 0.4 * noise2(x / 5.1 + 3.1, z / 5.1 + 6.2)),
+      bloom: 0.22,
+      tone: 1,
+      seeds: 0,
+      pasture: true,
+      forest: 0,
+    };
   }
   if (layout.coverOff(x, z)) {
     return null;
@@ -189,7 +205,7 @@ function coverAt(x, z, heightAt, layout) {
   let seeds = 0;
   if (kind === 'uncut') {
     h *= 1 + 0.55 * (1 - mown);
-    seeds = 0.55;
+    seeds = 0.35;
   } else if (kind === 'pasture') {
     const w0 = x + 14 * s2Noise(x / 37, z / 37);
     const w1 = z + 14 * s2Noise(x / 41 + 5, z / 41 + 5);
@@ -226,13 +242,25 @@ function coverAt(x, z, heightAt, layout) {
   const wild = Math.max(verge, margin) * (1 - forest);
   if (wild > 0.5) {
     cover.h = Math.max(h, 0.55 + 0.25 * noise2(x / 9 + 1.7, z / 9 + 4.1));
-    cover.seeds = 0.12;
+    cover.seeds = 0.05;
     cover.weeds = 0.28 * smoothstep(0.4, 0.75, noise2(x / 13 + 5.5, z / 13 + 2.2) + 0.25);
     cover.bloom = Math.max(cover.bloom, 0.35);
     cover.unmown = true;
   } else if (z > -2720 && z < ROAD_END + 4 && roadOff < VERGE[0] + 0.8) {
     cover.h = 0.22;
     cover.seeds = 0;
+  }
+  /* Beside the runway the grass is left long, knee high and flowering,
+   * and where the aircraft stand and taxi it is trodden short. */
+  if (air && air.rough > 0.3) {
+    cover.h = Math.max(cover.h, 0.3 + 0.25 * air.rough * noise2(x / 6 + 2.3, z / 6 + 8.1));
+    cover.bloom = Math.max(cover.bloom, 0.45 * air.rough);
+    cover.seeds = Math.max(cover.seeds, 0.05 * air.rough);
+    cover.pasture = false;
+  }
+  if (air && air.worn > 0.3) {
+    cover.p *= 1 - 0.4 * air.worn;
+    cover.h = Math.min(cover.h, 0.16);
   }
   return cover;
 }
@@ -260,6 +288,11 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
       if (c.pasture) {
         const t = rng();
         tone = t < 0.4 ? 0 : t < 0.75 ? 1 : t < 0.92 ? 2 : 3;
+      } else if (c.unmown && tone === 1 && rng() < 0.7) {
+        /* A margin's flowers are the tall coloured ones more than the
+         * daisies: white in every clump read from the road as a verge
+         * gone to seed. */
+        tone = rng() < 0.5 ? 2 : 3;
       }
       const hay = rng() < c.seeds;
       const weed = !flower && rng() < c.weeds;
@@ -267,11 +300,16 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
       let h = (flower ? Math.max(0.3, c.h * 1.05) : c.h) * (0.7 + rng() * 0.6);
       let w = (flower ? 0.45 : 0.85 + rng() * 0.45) * wide;
       if (weed) {
-        region = WEED0 + Math.floor(rng() * 4);
+        /* Dock and nettle, green, more often than the white umbels and
+         * the knapweed. */
+        const w4 = rng();
+        region = WEED0 + (w4 < 0.14 ? 0 : w4 < 0.44 ? 1 : w4 < 0.76 ? 2 : 3);
         h = 0.85 + 0.65 * rng();
         w = (0.5 + 0.25 * rng()) * wide;
       }
-      const tint = (0.82 + rng() * 0.3) * (1 - 0.3 * c.forest);
+      /* Seed heads a little darker than the blades' tint makes them: the
+       * atlas's straw read nearly white in the sun. */
+      const tint = (0.82 + rng() * 0.3) * (1 - 0.3 * c.forest) * (hay && region < WEED0 ? 0.85 : 1);
       out.push(x, heightAt(x, z) - 0.03, z, rng() * Math.PI * 2, h, w, region + (c.unmown ? UNMOWN : 0), tint);
     }
   }
@@ -293,6 +331,7 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
 export function buildGrass({
   heightAt, layout, atlas, wind, radius, spacing, cap, group, tint = [0.82, 0.95, 0.72],
   tile = 16, inner = [-2, -1], wide = 1, cull = false, perFrame = Infinity, ceiling = radius, name = 'swiss2-grass',
+  craft = craftUniforms(),
 }) {
   const base = clumpGeometry();
   const geo = new THREE.InstancedBufferGeometry();
@@ -325,6 +364,7 @@ export function buildGrass({
     uRadius: { value: radius },
     uInner: { value: new THREE.Vector2(...inner) },
     uTint: { value: new THREE.Color(...tint) },
+    ...craft,
   };
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -340,6 +380,7 @@ export function buildGrass({
         uniform vec2 uInner;
         uniform vec3 uTint;
         ${MEADOW_GLSL}
+        ${CRAFT_GLSL}
         varying vec3 vGrassTint;
         varying float vGrassUp;`)
       .replace('#include <uv_vertex>', `#include <uv_vertex>
@@ -360,8 +401,13 @@ export function buildGrass({
          * and on the valley floor cut short where the field is mown. */
         S2Meadow field = s2Meadow(aClump.xz, gDist);
         float farmed = 1.0 - smoothstep(50.0, 140.0, aClump.y);
-        grow *= mix(1.0, 0.32, field.mown * farmed * (1.0 - gUnmown));
-        vec3 p = position * vec3(aClump2.y, aClump2.x * grow, aClump2.y);
+        float cut = mix(1.0, 0.32, field.mown * farmed * (1.0 - gUnmown));
+        /* Pressed down under a craft at rest, and in its shade. */
+        float gCraft = s2UnderCraft(aClump.xyz);
+        grow *= cut * (1.0 - 0.6 * gCraft);
+        /* A clump cut to the ankle is narrower too: cards a metre wide and
+         * a hand high read from above as a floor of scalloped tiles. */
+        vec3 p = position * vec3(aClump2.y * mix(0.45, 1.0, cut), aClump2.x * grow, aClump2.y * mix(0.45, 1.0, cut));
         vec3 transformed = aClump.xyz + vec3(gc * p.x + gs * p.z, p.y, -gs * p.x + gc * p.z);
         /* Wind: waves of gusts rolling across the meadow downwind, the
          * blade tips bending most. */
@@ -371,8 +417,10 @@ export function buildGrass({
         bend += uv.y * aClump2.x * 0.06 * sin(uTime * 3.3 + aClump.x * 1.3 + aClump.z * 1.7);
         transformed.xz += uWindDir * bend;
         transformed.y -= abs(bend) * 0.35 * uv.y;
-        vGrassTint = uTint * aClump2.w * mix(vec3(1.0), field.tint, farmed);
-        vGrassUp = uv.y;
+        vGrassTint = uTint * aClump2.w * mix(vec3(1.0), field.tint, farmed) * (1.0 - 0.5 * gCraft);
+        /* Turf cut short is lit to its roots: dark at the foot, each short
+         * clump read from above as a dark tuft. */
+        vGrassUp = mix(uv.y, 0.35 + 0.65 * uv.y, (1.0 - cut) / 0.68);
         if (grow <= 0.0) transformed = aClump.xyz;`)
       .replace('#include <project_vertex>', `
         vec4 mvPosition = viewMatrix * vec4(transformed, 1.0);

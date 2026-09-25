@@ -74,7 +74,7 @@ import {
   loadTerrainArrays, loadSurface, loadSky, SURFACES, SKY_K, SKY_SPAN_DEG,
 } from './swiss2/assets.js';
 import {
-  groundMasks, pathMask, groundMaterial, floorUnderTrees, wallUniform, wallMask,
+  groundMasks, pathMask, groundMaterial, floorUnderTrees, wallUniform, wallMask, craftUniforms, craftFootprint,
 } from './swiss2/ground.js';
 import {
   sunDirection, makeSun, makeLit, bakeTerrainShadow, SUN_COLOR, SUN_IRRADIANCE,
@@ -230,8 +230,13 @@ function photoStyle() {
       style.lit = lit;
       const masks = { walls: wallUniform() };
       own(masks.walls.value);
+      /* Where the flown craft rests, for the grass and ground under it. */
+      const craft = craftUniforms();
+      /* Seconds since the valley was first drawn, for the light on the
+       * lake's bed. */
+      const groundClock = { value: 0 };
       const ground = (opts) => groundMaterial({
-        arrays, zones: masks.zones, path: masks.path, walls: masks.walls, lit, ...opts,
+        arrays, zones: masks.zones, path: masks.path, walls: masks.walls, lit, craft, clock: groundClock, ...opts,
       });
       const heights = { texture: { value: null }, grid: { value: new THREE.Vector3(HALF, CELL, CELLS + 1) } };
       style.look = makePhotoLook({ surfaces, ground, heights });
@@ -250,6 +255,8 @@ function photoStyle() {
         sunDir,
         sun,
         masks,
+        craft,
+        groundClock,
         heights,
         ground,
         envTarget,
@@ -362,6 +369,7 @@ function photoStyle() {
           first ??= t;
           stage.lit.setClock(t - first);
           style.clouds.setClock(t - first);
+          stage.groundClock.value = t - first;
           if (stage.veg) {
             stage.veg.update(dtMs, camera);
             stage.props.update(camera);
@@ -369,6 +377,7 @@ function photoStyle() {
           if (stage.people) {
             stage.people.update(t - first, camera);
           }
+          craftFootprint(style.shell && style.shell.quad, stage.craft);
           stage.water.update(dtMs, camera);
         },
       };
@@ -403,6 +412,7 @@ function photoStyle() {
         gardens,
         margins: stage.props.margins,
         sunDir: stage.sunDir,
+        craft: stage.craft,
       });
       scene.add(stage.veg.group);
       nature.pines = stage.veg.stats.trees;
@@ -429,6 +439,7 @@ function photoStyle() {
       /* The flown aircraft in the valley's materials, for as long as the
        * valley is seated; the cel craft comes back before the world goes. */
       shell.setCraftLook(photoCraftLook(style.lit));
+      style.shell = shell;
       map.dispose = () => {
         shell.setCraftLook(null);
         post.dispose();

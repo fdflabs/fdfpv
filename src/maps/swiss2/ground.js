@@ -37,7 +37,7 @@
 
 import * as THREE from 'three';
 import {
-  FIELD, HALF, LAKE_Y, LAKE_N, SIDE_Z, TREE_LINE, groundZone, groundPaths,
+  FIELD, HALF, LAKE_Y, LAKE_N, SIDE_Z, TREE_LINE, STRIP_W, STRIP_L, groundZone, groundPaths,
 } from '../alps/terrain.js';
 import { LAYERS, SUN_U } from './assets.js';
 
@@ -73,6 +73,15 @@ const GRAZE_MASK = 0.8;
 const ROUGH = [0.96, 0.95, 0.92, 0.86, 0.82, 0.62, 0.86, 0.92, 0.9];
 const BUMP = [0.7, 0.75, 0.85, 1.0, 1.0, 0.5, 1.0, 0.85, 0.9];
 
+/* Half the mown runway's width: the strip and a metre past its cones,
+ * which stand in the cut grass as a strip's markers do. */
+export const RUNWAY_HALF = STRIP_W / 2 + 3;
+/* The hangar's apron (buildings/hangar.js: the hangar at x 44, z -70,
+ * its door to the west, the apron 22 m out from it and 32 m along), its
+ * middle and half sizes: concrete, which grows no grass, with the grass
+ * worn at its edges where the aircraft come off it. */
+export const APRON = { x: 44 - 15.3 - 11, z: -70, hx: 11, hz: 16 };
+
 /* The zone masks are this many texels a side over the field: 23 m a
  * texel, the cel paint's own block, because nothing groundZone reads is
  * finer than the 30 m heightfield. The fragment sharpens what it can see
@@ -93,6 +102,47 @@ function dataTexture(data, size, format) {
   t.needsUpdate = true;
   return t;
 }
+
+/*
+ * A craft resting on the ground shades it. Its own shadow falls away
+ * from the sun, and with the sun behind the eye that is under the wing,
+ * out of sight, so a parked aircraft stood on the grass as if pasted on:
+ * what a photograph shows there is the sky's light shut out under the
+ * wing and the grass pressed down under the fuselage. The ground and the
+ * meadow read the craft's footprint from CRAFT_GLSL's two uniforms,
+ * which craftFootprint fills each frame from the craft's bounds: the
+ * middle and lowest point, and the half sizes across the ground. Nothing
+ * is shaded once the craft is further off the ground than it is long.
+ */
+export function craftUniforms() {
+  return { uS2Craft: { value: new THREE.Vector4(0, -1e5, 0, 0) }, uS2CraftR: { value: new THREE.Vector2(1, 1) } };
+}
+const craftBox = new THREE.Box3();
+export function craftFootprint(object, uniforms) {
+  const at = uniforms.uS2Craft.value;
+  if (!object || !object.visible || !object.parent) {
+    at.y = -1e5;
+    return;
+  }
+  craftBox.setFromObject(object);
+  if (craftBox.isEmpty()) {
+    at.y = -1e5;
+    return;
+  }
+  at.set((craftBox.min.x + craftBox.max.x) / 2, craftBox.min.y, (craftBox.min.z + craftBox.max.z) / 2, 0);
+  uniforms.uS2CraftR.value.set(Math.max(0.05, (craftBox.max.x - craftBox.min.x) / 2), Math.max(0.05, (craftBox.max.z - craftBox.min.z) / 2));
+}
+/* How far under the craft a point of ground p is: one at its middle,
+ * nought past its outline or once it is off the ground. */
+export const CRAFT_GLSL = /* glsl */ `
+  uniform vec4 uS2Craft;
+  uniform vec2 uS2CraftR;
+  float s2UnderCraft(vec3 p) {
+    vec2 d = (p.xz - uS2Craft.xz) / uS2CraftR;
+    float reach = max(uS2CraftR.x, uS2CraftR.y);
+    return (1.0 - smoothstep(0.35, 1.05, length(d))) * (1.0 - smoothstep(0.1, reach, uS2Craft.y - p.y));
+  }
+`;
 
 /*
  * The two zone masks, row j at z = -HALF + (j + 0.5) * cell so the
@@ -302,6 +352,59 @@ export const MEADOW_GLSL = /* glsl */ `
   }
 
   /*
+   * The airfield, on the flat terrain.js holds for it. A grass strip is
+   * not a lawn: the runway is mown shorter and paler than the grass
+   * either side, which is left long and flowering out past the cones; the
+   * mains and the tail wheel wear their tracks down it, deepest where
+   * they touch down and roll out and wandering as each landing does; at
+   * each end the grass is worn yellow in a circle where the aircraft
+   * turn, and round the hangar's apron, where they taxi on and off it,
+   * it is trampled in patches. vegetation/zones.js's airfield repeats this
+   * in JavaScript for the grass: a change here has to be made there.
+   * Returns the runway, the long grass, the tracks and the worn ground,
+   * each nought to one.
+   */
+  struct S2Air { float runway; float rough; float track; float worn; };
+  /* A line w wide about x == 0, a pixel wide at its average once it is
+   * narrower than one. */
+  float s2Line(float x, float w, float px) {
+    float wide = max(w, px);
+    return (1.0 - smoothstep(0.5 * (wide - px), 0.5 * (wide + px), abs(x))) * (w / wide);
+  }
+  /* A wheel's track w wide about x == 0: worn most down its middle and
+   * shading off to either side. */
+  float s2Rut(float x, float w, float px) {
+    float wide = max(w, px);
+    return (1.0 - smoothstep(0.1 * wide, 0.5 * wide + 0.5 * px, abs(x))) * (w / wide);
+  }
+  S2Air s2Air(vec2 xz, float px) {
+    S2Air a;
+    float ax = abs(xz.x);
+    float az = abs(xz.y);
+    float wob = 0.5 * (s2Noise(xz / 9.0 + 3.1) - 0.5) + 0.2 * (s2Noise(xz / 1.7 + 8.3) - 0.5);
+    float ends = 1.0 - smoothstep(${(STRIP_L / 2 + 5).toFixed(1)}, ${(STRIP_L / 2 + 8).toFixed(1)}, az + 2.0 * (s2Noise(xz / 6.0 + 1.9) - 0.5));
+    a.runway = (1.0 - smoothstep(${RUNWAY_HALF.toFixed(1)}, ${RUNWAY_HALF.toFixed(1)} + max(0.25, px), ax + wob)) * ends;
+    float side = 1.0 - smoothstep(16.0, 30.0, ax + 10.0 * (s2Noise(xz / 27.0 + 5.3) - 0.5));
+    float along = 1.0 - smoothstep(${(STRIP_L / 2 + 8).toFixed(1)}, ${(STRIP_L / 2 + 30).toFixed(1)}, az);
+    a.rough = (1.0 - a.runway) * side * along;
+    float lane = xz.x - 0.5 * sin(xz.y / 41.0) - 0.25 * sin(xz.y / 13.0 + 1.3);
+    float tw = 0.45 + 0.3 * s2Noise(xz / 3.0 + 7.0);
+    float mains = max(s2Rut(lane - 1.0, tw, px), s2Rut(lane + 1.0, tw, px));
+    float tail = 0.5 * s2Rut(lane, 0.3, px);
+    float use = 0.4 + 0.6 * smoothstep(15.0, 60.0, az);
+    /* Worn in patches along its length, not a painted line. */
+    float patchy = smoothstep(0.2, 0.65, s2Noise(vec2(xz.x * 0.3, xz.y * 0.25) + 11.0));
+    a.track = max(mains, tail) * use * a.runway * patchy * (0.65 + 0.35 * s2Noise(xz / 4.0 + 2.2));
+    vec2 turnAt = vec2(xz.x, az - ${(STRIP_L / 2 - 6).toFixed(1)});
+    float turn = 1.0 - smoothstep(5.0, 10.0, length(turnAt) + 3.0 * (s2Noise(xz / 3.5 + 4.4) - 0.5));
+    vec2 apronD = max(abs(xz - vec2(${APRON.x.toFixed(2)}, ${APRON.z.toFixed(1)})) - vec2(${APRON.hx.toFixed(1)}, ${APRON.hz.toFixed(1)}), 0.0);
+    float apron = (1.0 - smoothstep(0.5, 4.0, length(apronD) + 2.5 * (s2Noise(xz / 3.0 + 6.6) - 0.5)))
+      * (0.35 + 0.65 * smoothstep(0.3, 0.6, s2Noise(xz / 5.5 + 1.4)));
+    a.worn = max(turn * (0.55 + 0.45 * s2Noise(xz / 2.5)), apron);
+    return a;
+  }
+
+  /*
    * The parcels. A Swiss floor is divided by inheritance, not surveyed:
    * long strips running across the valley from the stream, each a
    * different width, their sides bending with the ground, cut along
@@ -372,9 +475,12 @@ export const MEADOW_GLSL = /* glsl */ `
 
   /* What s2Meadow makes of a field: the colour, how mown (0 to 1), how
    * much of a boundary the point is on, whether that boundary is a
-   * hedge, and the mown rows: the coordinate across them in metres and
-   * the way they run on the ground. */
-  struct S2Meadow { vec3 tint; float mown; float edge; float hedgeOn; float across; vec2 along; };
+   * hedge, and the mown rows: the coordinate across them in metres, the
+   * way they run on the ground, and how plainly the mower's passes show.
+   * The passes are the field's, one value over all of it: read off the
+   * grazed patches, as mown is, a pasture's passes came and went every
+   * few metres and read as rows of dashes. */
+  struct S2Meadow { vec3 tint; float mown; float edge; float hedgeOn; float across; vec2 along; float passes; float air; vec2 airKinds; };
 
   S2Meadow s2MeadowAt(S2Parcel pc, vec2 xz, float dist) {
     /* A pixel's width on the ground, near enough, for fading lines. */
@@ -391,6 +497,7 @@ export const MEADOW_GLSL = /* glsl */ `
     float lum = 0.78 + 0.42 * s2Hash(fid + 8.8);
     vec3 tint;
     float mown = 0.0;
+    float passes = 0.0;
     float rowsDir = step(0.5, s2Hash(fid + 2.2));
     /* Rows along the strip, or across it on some. */
     float rowCoord = rowsDir > 0.5 ? fq.x : fq.y;
@@ -403,12 +510,14 @@ export const MEADOW_GLSL = /* glsl */ `
       /* Grown back after a cut: an even fresh green. */
       tint = vec3(1.06, 1.1, 0.86);
       mown = 0.55;
+      passes = 0.55;
     } else if (kind < 0.7) {
       /* Cut this week: the stubble yellow, and the hay lying to dry in
        * windrows. */
       float row = 1.0 - smoothstep(0.08, 0.2, abs(fract(rowCoord / 5.5) - 0.5));
       tint = mix(vec3(1.1, 1.06, 0.8), vec3(1.3, 1.16, 0.7), row * rowFade);
       mown = 1.0;
+      passes = 1.0;
     } else if (kind < 0.93) {
       /* Pasture: grazed short in patches, the rejected tufts darker,
        * and the cattle's paths worn pale. */
@@ -418,10 +527,13 @@ export const MEADOW_GLSL = /* glsl */ `
       float trod = 1.0 - smoothstep(0.35, 0.9, abs(fract(dot(w, vec2(0.6, 0.8)) / 23.0) - 0.5) * 23.0);
       tint = mix(tint, vec3(1.08, 1.0, 0.8), 0.25 * trod * (1.0 - smoothstep(0.3, 0.8, px)));
       mown = 0.7 * smoothstep(0.35, 0.65, graze);
+      /* Topped after the cattle, as a whole field. */
+      passes = 0.6;
     } else {
       /* A dry strip, burnt by a hot week on thin soil. */
       tint = vec3(1.16, 1.07, 0.8);
       mown = 0.8;
+      passes = 0.8;
     }
     tint *= lum;
 
@@ -430,6 +542,7 @@ export const MEADOW_GLSL = /* glsl */ `
     float damp = 1.0 - smoothstep(18.0, 75.0, sd);
     tint = mix(tint, vec3(0.72, 0.86, 0.74), 0.75 * damp);
     mown *= 1.0 - damp;
+    passes *= 1.0 - damp;
 
     /* Hedges on some parcel ends and strip sides, broken by gaps, and a
      * darker seam on every other boundary. A line narrower than a pixel
@@ -441,10 +554,33 @@ export const MEADOW_GLSL = /* glsl */ `
     float wide = max(hedgeW, px * 1.5);
     float hedge = hedgeOn * (1.0 - smoothstep(wide * 0.6, wide, edge)) * (hedgeW / wide);
     float seam = (1.0 - smoothstep(0.3, max(1.6, px * 1.5), edge)) * min(1.0, 1.6 / max(1.6, px * 1.5));
+    S2Air air = s2Air(xz, px);
+    float onAir = max(air.runway, air.rough);
+    seam *= 1.0 - onAir;
     tint *= 1.0 - 0.12 * seam * (1.0 - 0.7 * plateau);
     tint = mix(tint, vec3(0.5, 0.6, 0.42), 0.85 * clamp(hedge, 0.0, 1.0));
 
     tint = mix(tint, vec3(1.0, 1.03, 0.88), 0.35 * plateau);
+
+    /* The village's greens are no farmer's field: nobody mows them in
+     * passes, and from above a plateau striped like one read as a lawn.
+     * Grass grown rank in patches, trodden paler where people cross. */
+    float green = plateau * (1.0 - onAir);
+    float rank = smoothstep(0.45, 0.7, s2Fbm(xz / 14.0 + 3.9));
+    float trodden = smoothstep(0.55, 0.75, s2Noise(xz / 9.0 + 12.1)) * (1.0 - rank);
+    tint *= mix(vec3(1.0), mix(vec3(1.0), vec3(0.8, 0.9, 0.8), rank) * mix(vec3(1.0), vec3(1.12, 1.07, 0.84), trodden), green);
+    mown = mix(mown, mown * (1.0 - rank), green);
+    passes *= 1.0 - 0.85 * green;
+
+    /* The airfield's own grass, whatever parcel it lies across. */
+    tint = mix(tint, vec3(1.02, 1.07, 0.82) * (0.95 + 0.1 * s2Noise(xz / 17.0 + 2.8)), air.runway);
+    tint = mix(tint, vec3(0.74, 0.86, 0.7) * (0.9 + 0.2 * s2Fbm(xz / 8.0 + 9.4)), 0.85 * air.rough);
+    tint = mix(tint, vec3(1.3, 1.12, 0.68), 0.8 * air.track);
+    tint = mix(tint, vec3(1.32, 1.18, 0.72), 0.75 * air.worn);
+    mown = mix(mown, 0.85, air.runway) * (1.0 - air.rough);
+    mown = max(mown, max(air.track, air.worn));
+    passes = mix(passes, 1.0, air.runway) * (1.0 - air.rough) * (1.0 - air.worn);
+    rowCoord = mix(rowCoord, xz.x + 1.35, step(0.5, air.runway));
 
     /* The drift of hue across the valley. */
     float drift = s2Fbm(xz / 900.0 + 31.0);
@@ -456,7 +592,10 @@ export const MEADOW_GLSL = /* glsl */ `
     m.edge = clamp(hedge + seam, 0.0, 1.0);
     m.hedgeOn = hedgeOn;
     m.across = rowCoord;
-    m.along = rowsDir > 0.5 ? normalize(vec2(-pc.slant, 1.0)) : vec2(1.0, 0.0);
+    m.along = air.runway > 0.5 ? vec2(0.0, 1.0) : rowsDir > 0.5 ? normalize(vec2(-pc.slant, 1.0)) : vec2(1.0, 0.0);
+    m.passes = passes;
+    m.air = onAir;
+    m.airKinds = vec2(air.runway, air.rough);
     return m;
   }
   S2Meadow s2Meadow(vec2 xz, float dist) {
@@ -517,7 +656,8 @@ const GROUND_PARS = /* glsl */ `
   uniform float uS2Rough[9];
   uniform float uS2Bump[9];
   uniform float uS2LakeY;
-  uniform float uS2Strip;
+  uniform float uS2Clock;
+  ${CRAFT_GLSL}
   uniform float uS2Only;
   varying vec3 vS2WNormal;
 
@@ -656,6 +796,75 @@ const GROUND_PARS = /* glsl */ `
   }
 
   /*
+   * Stones, a cell each of a jittered grid one unit across (Voronoi):
+   * which stone (its cell), how far the point is from the gap to the next
+   * one, and where the stone's middle is from the point, for the swell of
+   * its face.
+   */
+  struct S2Stone { vec2 id; float edge; vec2 mid; };
+  S2Stone s2Stone(vec2 q) {
+    vec2 i = floor(q);
+    vec2 f = fract(q);
+    float d1 = 8.0;
+    float d2 = 8.0;
+    S2Stone s;
+    s.id = i;
+    s.mid = vec2(0.0);
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 r = g + 0.1 + 0.8 * vec2(s2Hash(i + g), s2Hash(i + g + 17.3)) - f;
+        float d = dot(r, r);
+        if (d < d1) {
+          d2 = d1;
+          d1 = d;
+          s.id = i + g;
+          s.mid = r;
+        } else if (d < d2) {
+          d2 = d;
+        }
+      }
+    }
+    s.edge = sqrt(d2) - sqrt(d1);
+    return s;
+  }
+  /*
+   * The lake's shore up close. What made it a plain line from the water's
+   * edge was the gravel photograph at three metres a tile: one grey. A
+   * real alpine shore is stones of every colour the valley's rocks are,
+   * pale limestone, dark schist, rusty and greenish, pebbles with cobbles
+   * among them in drifts, sand in the gaps. Returns the albedo's
+   * multiplier in rgb and in a how much of it is stone, with the tilt
+   * of the stones' faces in tilt; px is the pixel's reach on the ground.
+   */
+  vec4 s2Shingle(vec2 xz, float px, out vec2 tilt) {
+    tilt = vec2(0.0);
+    /* Cobbles in drifts over the pebbles, darker than them; finer than a
+     * pixel, a layer is its average. */
+    float drift = smoothstep(0.45, 0.7, s2Noise(xz / 3.1 + 2.6));
+    vec3 tone = mix(vec3(0.74, 0.72, 0.68), vec3(0.58, 0.56, 0.53), drift) * (0.8 + 0.4 * s2Noise(xz / 1.1 + 4.2));
+    float keep = 0.0;
+    for (int k = 0; k < 2; k++) {
+      float cell = k == 0 ? 0.075 : 0.2;
+      float on = 1.0 - smoothstep(0.35, 0.9, px / cell);
+      if (on <= 0.0 || (k == 1 && drift <= 0.0)) {
+        continue;
+      }
+      S2Stone s = s2Stone(xz / cell + float(k) * 31.7);
+      float h = s2Hash(s.id + 3.1);
+      vec3 c = h < 0.35 ? vec3(1.05, 1.0, 0.92) : h < 0.6 ? vec3(0.4, 0.41, 0.44) : h < 0.8 ? vec3(0.85, 0.66, 0.5) : vec3(0.6, 0.67, 0.63);
+      c *= 0.7 + 0.45 * s2Hash(s.id + 8.8);
+      float gap = 1.0 - smoothstep(0.03, 0.16, s.edge);
+      float stone = k == 1 ? drift * step(0.3, s2Hash(s.id + 5.5)) * (1.0 - gap) : 1.0;
+      stone *= on;
+      tone = mix(tone, mix(c, vec3(0.42, 0.39, 0.35), gap), stone);
+      tilt = mix(tilt, -s.mid * cell * (1.0 - gap) * 5.0, stone);
+      keep = max(keep, stone);
+    }
+    return vec4(tone, keep);
+  }
+
+  /*
    * A field as it looks from the air. What made the floor read as lawn
    * past the near grass was that every field was one flat colour with a
    * ruled edge. A real one is textured at every scale down to the
@@ -673,7 +882,7 @@ const GROUND_PARS = /* glsl */ `
    * a pattern is filtered by the pixel's reach across it, which looking
    * along the ground is many times its reach the other way.
    */
-  struct S2Field { vec3 tint; vec3 tilt; float track; float shade; };
+  struct S2Field { vec3 tint; vec3 tilt; float track; float shade; vec2 air; };
   float s2Reach(vec2 fx, vec2 fy, vec2 across) {
     return max(abs(dot(fx, across)) + abs(dot(fy, across)), 0.02);
   }
@@ -692,29 +901,32 @@ const GROUND_PARS = /* glsl */ `
       vec2 over = xz + pc.toEdge * (2.0 * max(pc.edge, 0.0) + 0.6);
       f.tint = mix(f.tint, s2Meadow(over, dist).tint, soft);
     }
-    float mownK = smoothstep(0.4, 0.9, m.mown);
+    float mownK = smoothstep(0.4, 0.9, m.passes);
     float headW = 5.5 + 3.0 * s2Hash(pc.own + 5.1);
-    bool head = edge < headW;
+    /* The runway is mown down its length, not round a parcel. */
+    bool head = edge < headW && m.air < 0.5;
     float across = head ? edge : m.across;
     vec2 along = head ? vec2(-pc.toEdge.y, pc.toEdge.x) : m.along;
     float pxAcross = s2Reach(fx, fy, vec2(-along.y, along.x));
     /* The passes, 2.7 m wide, each laid the other way. */
     float lie = s2Stripes(across / 5.4, pxAcross / 5.4);
     float g = 1.0 + (0.11 * mownK + 0.03) * lie * dot(look, along);
+    /* The runway lies across several parcels and is one field. */
+    vec2 own = m.air > 0.5 ? vec2(3.0, 7.0) : pc.own;
     f.tilt = vec3(along.x, 0.0, along.y) * lie * 0.18 * mownK;
     g *= 1.0 - 0.1 * mownK * s2Band(edge - headW, 1.4, pxEdge);
     /* Streaks along the passes and clumps, each gone before it would
      * shimmer. */
-    float streak = s2Noise(vec2(across / 3.0, dot(xz, along) / 26.0) + pc.own * 1.7);
+    float streak = s2Noise(vec2(across / 3.0, dot(xz, along) / 26.0) + own * 1.7);
     g *= 1.0 + 0.2 * (streak - 0.5) * (1.0 - smoothstep(0.8, 1.6, pxAcross));
     g *= 1.0 + 0.16 * (s2Noise(xz / 4.5 + 7.1) - 0.5) * (1.0 - smoothstep(0.9, 1.8, px));
-    g *= 1.0 + 0.2 * (s2Noise(xz / 14.0 + pc.own * 2.3) - 0.5) * (1.0 - smoothstep(2.5, 5.0, px));
-    g *= 1.0 + 0.3 * (s2Fbm(xz / 38.0 + pc.own * 1.1) - 0.5);
-    float wet = s2Noise(xz / 85.0 + pc.own * 3.7);
+    g *= 1.0 + 0.2 * (s2Noise(xz / 14.0 + own * 2.3) - 0.5) * (1.0 - smoothstep(2.5, 5.0, px));
+    g *= 1.0 + 0.3 * (s2Fbm(xz / 38.0 + own * 1.1) - 0.5);
+    float wet = s2Noise(xz / 85.0 + own * 3.7);
     f.tint *= g * mix(vec3(0.93, 0.99, 0.97), vec3(1.07, 1.01, 0.9), wet);
     /* A track inside some fields' edges: two ruts a tractor's gauge
      * apart. */
-    float trackOn = step(0.8, s2Hash(pc.own + pc.other + 29.0)) * (1.0 - m.hedgeOn);
+    float trackOn = step(0.8, s2Hash(pc.own + pc.other + 29.0)) * (1.0 - m.hedgeOn) * (1.0 - m.air);
     f.track = trackOn * max(s2Band(pc.edge - 1.2, 0.5, pxEdge), s2Band(pc.edge - 3.0, 0.5, pxEdge));
     /* The hedge's shadow, on the side away from the sun, as long as a
      * hedge two to six metres tall throws it: a hedge is a row of
@@ -724,6 +936,7 @@ const GROUND_PARS = /* glsl */ `
     float tall = 2.0 + 4.0 * s2Noise(xz / 7.0 + 4.1);
     float reach = tall * length(sunXZ) / max(uS2SunDir.y, 0.15) * max(sunward, 0.0);
     f.shade = m.hedgeOn * (1.0 - smoothstep(reach * 0.5 + 2.0, reach + 2.0 + pxEdge, pc.edge)) * smoothstep(0.0, 0.3, sunward);
+    f.air = m.airKinds;
     return f;
   }
 
@@ -874,7 +1087,7 @@ const GROUND_PARS = /* glsl */ `
      * field's and the layer loop's do, a derivative is undefined. */
     vec3 dpx = dFdx(p);
     vec3 dpy = dFdy(p);
-    S2Field field = S2Field(vec3(1.0), vec3(0.0), 0.0, 0.0);
+    S2Field field = S2Field(vec3(1.0), vec3(0.0), 0.0, 0.0, vec2(0.0));
     if (farm > 0.0) {
       field = s2Field(p.xz, dist, look, dpx.xz, dpy.xz);
     }
@@ -894,6 +1107,7 @@ const GROUND_PARS = /* glsl */ `
     float rough = 0.0;
     float hsum = 0.0;
     float remaining = 1.0;
+    float shoreW = 0.0;
     float fade = 1.0 - 0.65 * smoothstep(60.0, 700.0, dist);
 
     /* Top layer first: what lies on top is laid first and takes its share,
@@ -925,6 +1139,9 @@ const GROUND_PARS = /* glsl */ `
         continue;
       }
       remaining -= w;
+      if (k == 6) {
+        shoreW = w;
+      }
       vec3 col = textureGrad(uS2Col, vec3(uA * s, lk), dAx * s, dAy * s).rgb;
       if (pl.w.y > 0.0) {
         col = mix(col, textureGrad(uS2Col, vec3(uB * s, lk), dBx * s, dBy * s).rgb, pl.w.y);
@@ -977,16 +1194,28 @@ const GROUND_PARS = /* glsl */ `
     float scrub = smoothstep(0.6, 0.78, ravine + 0.2 * (meso - 0.5)) * smoothstep(220.0, 380.0, p.y) * (1.0 - smoothstep(900.0, 1100.0, p.y)) * steep0 * grass * inside;
     albedo *= mix(vec3(1.0), vec3(0.42, 0.56, 0.36), 0.85 * scrub);
     albedo *= mix(vec3(1.0), field.tint, farm);
+    /* The airfield's wear on the ground itself, under the grass and
+     * whatever share the pasture layer takes of the farmed tint: carried
+     * by that tint alone, at the share it gets on the plateau, a wheel
+     * track read as nothing. Straw and bare earth down the tracks, grass
+     * trodden yellow where the aircraft turn and round the apron. */
+    if (abs(p.x) < 60.0 && abs(p.z) < ${(STRIP_L / 2 + 50).toFixed(1)}) {
+      S2Air air = s2Air(p.xz, abs(dpx.x) + abs(dpy.x));
+      albedo = mix(albedo, albedo * vec3(1.4, 1.22, 0.66), grass * air.track);
+      albedo = mix(albedo, vec3(0.13, 0.1, 0.065) * (0.85 + 0.3 * fine), grass * 0.7 * smoothstep(0.6, 0.95, air.track) * smoothstep(0.45, 0.75, fine));
+      albedo = mix(albedo, vec3(0.2, 0.175, 0.075) * (0.85 + 0.3 * fine), grass * 0.55 * air.worn);
+      albedo *= mix(vec3(1.0), vec3(1.08, 1.1, 1.0), grass * air.runway);
+      albedo *= mix(vec3(1.0), vec3(0.84, 0.9, 0.86), grass * air.rough);
+    }
     albedo *= 1.0 - 0.35 * field.shade * farm;
     /* The track's ruts are bare earth. Not the worn earth layer: its
      * edge is broken by the photograph's heights, and a rut narrower
      * than a pixel broke into dashes. */
     albedo = mix(albedo, vec3(0.25, 0.21, 0.155) * (0.85 + 0.3 * fine), 0.75 * field.track * farm);
-    /* The strip's lawn, striped the way its mower leaves it. */
-    vec2 fq = mat2(0.97, -0.24, 0.24, 0.97) * p.xz;
-    float rows = step(0.5, fract(fq.y / 3.6)) * 2.0 - 1.0;
-    float lie = rows * dot(look, vec2(0.97, -0.24));
-    albedo *= 1.0 + 0.07 * lie * uS2Strip * grass * (1.0 - smoothstep(120.0, 450.0, dist));
+    /* Close to, the runway is clover and daisies in the cut turf, in
+     * patches a metre or two across, darker and bluer than the grass. */
+    float clover = smoothstep(0.58, 0.72, s2Fbm(p.xz / 1.6 + 5.2)) * field.air.x * farm * (1.0 - smoothstep(30.0, 90.0, dist));
+    albedo *= mix(vec3(1.0), vec3(0.78, 0.9, 0.84), clover);
     /* Close to, a meadow is never one green: clover and trodden patches
      * a few metres across, some darker and bluer, some yellower. */
     /* And the gaps between the blades are dark: the photograph's own
@@ -1008,23 +1237,55 @@ const GROUND_PARS = /* glsl */ `
     /* And the drip line itself wet and dark, not a raked path. */
     albedo *= mix(1.0, 0.6, drip);
 
-    /* The wet line along the shore and the bed going dark under water. */
-    float wet = 1.0 - smoothstep(uS2LakeY + 0.2, uS2LakeY + 1.1, p.y);
-    albedo *= 1.0 - 0.35 * wet;
-    rough = mix(rough, 0.35, wet * 0.8);
+    /* The shore's stones, on the beach and on through the shallows,
+     * where the ripples bend the bed to and fro. */
+    float under = max(uS2LakeY - p.y, 0.0);
+    vec2 stoneTilt = vec2(0.0);
+    if (shoreW > 0.01 && dist < 120.0) {
+      vec2 bend = 0.025 * smoothstep(0.0, 0.3, under) * (vec2(s2Noise(p.xz * 2.1 + uS2Clock * 0.9), s2Noise(p.xz * 2.3 + 7.3 - uS2Clock * 0.8)) - 0.5);
+      float pxS = sqrt(length(dpx) * length(dpy));
+      vec4 sh = s2Shingle(p.xz + bend, pxS, stoneTilt);
+      albedo *= mix(vec3(1.0), sh.rgb, shoreW);
+      stoneTilt *= shoreW;
+      /* The light the ripples focus on the bed: a moving web, brightest
+       * a metre down and gone by a few. */
+      vec2 cq = p.xz * 1.6;
+      float c1 = s2Noise(cq + uS2Clock * vec2(0.23, 0.11));
+      float c2 = s2Noise(cq * 1.37 + vec2(5.2, 1.3) - uS2Clock * vec2(0.13, -0.21));
+      float web = pow(1.0 - abs(c1 - c2), 10.0) * (1.0 - smoothstep(0.1, 0.35, pxS));
+      albedo *= 1.0 + 1.4 * web * smoothstep(0.03, 0.25, under) * (1.0 - smoothstep(1.2, 3.5, under));
+    }
+    /* Above the water the stones the waves wash are dark and glossy to a
+     * line that wanders with them, with a wrack of twigs and weed along
+     * it; over that the beach is dry, damp only in a band. */
+    float washTop = uS2LakeY + 0.16 + 0.12 * s2Noise(p.xz / 2.3 + 1.7) + 0.04 * s2Noise(p.xz / 0.4 + 3.3);
+    float pxY = abs(dpx.y) + abs(dpy.y) + 1e-3;
+    float washed = (1.0 - smoothstep(washTop - 0.5 * pxY, washTop + 0.5 * pxY + 0.01, p.y)) * step(uS2LakeY, p.y);
+    float wrack = (1.0 - smoothstep(0.012, 0.012 + pxY, abs(p.y - washTop - 0.025))) * smoothstep(0.35, 0.6, s2Noise(p.xz / 1.3 + 9.1));
+    float damp = 1.0 - smoothstep(uS2LakeY + 0.2, uS2LakeY + 1.1, p.y);
+    albedo *= 1.0 - 0.15 * damp;
+    /* The waterline whatever the ground is there (the shore path runs
+     * down to it too). */
+    float edgeW = max(shoreW, step(${(LAKE_N - 60).toFixed(1)}, p.z) * inside * (1.0 - smoothstep(uS2LakeY + 0.3, uS2LakeY + 0.8, p.y)));
+    albedo *= mix(1.0, 0.45, washed * edgeW);
+    albedo *= mix(1.0, 0.8, step(p.y, uS2LakeY) * edgeW);
+    albedo = mix(albedo, vec3(0.05, 0.04, 0.03), 0.7 * wrack * edgeW);
+    rough = mix(rough, 0.35, damp * 0.6);
+    rough = mix(rough, 0.3, washed * edgeW);
     /* Seen through the water, the bed loses its red first: light gravel
      * a metre down is the turquoise of a glacier lake, and it goes to
      * blue green and dark with depth. Down and back up, per metre. */
-    float under = max(uS2LakeY - p.y, 0.0);
     albedo *= exp(-under * vec3(0.9, 0.2, 0.14));
 
-    vec3 outN = normalize(normalize(wnormal + n * 1e-4) + field.tilt * farm);
+    vec3 outN = normalize(normalize(wnormal + n * 1e-4) + field.tilt * farm + vec3(stoneTilt.x, 0.0, stoneTilt.y));
 
     S2Ground g;
     g.albedo = albedo;
     g.normal = outN;
     g.rough = rough;
     g.ao = mix(1.0, 0.5 + 0.5 * clamp(hsum * 1.3, 0.0, 1.0), 0.65);
+    float craft = s2UnderCraft(p);
+    g.ao *= 1.0 - 0.7 * craft;
     /* Grass is not a matt plane. Looked at with the sun behind the eye
      * every blade shows its lit side; looked at toward the sun, the sides
      * a camera sees are the ones in the blades' own shade, and a sunlit
@@ -1035,6 +1296,7 @@ const GROUND_PARS = /* glsl */ `
      * into it. */
     float into = -dot(toEye, uS2SunDir);
     g.backlit = 1.0 - ${BACKLIT.toFixed(2)} * grass * smoothstep(0.0, 0.75, into);
+    g.backlit *= 1.0 - 0.35 * craft * craft;
     /* And toward the sun a sward shows none of the glare a plane has
      * there. Three draws a rough plane's grazing reflection strongest
      * exactly where the sky is brightest, round the sun, and the meadow
@@ -1050,12 +1312,17 @@ const GROUND_PARS = /* glsl */ `
 /*
  * The ground material. `only` draws a single layer, by its index in
  * LAYERS, wherever the material is (a boulder is rock, a drift is snow);
- * `strip` stripes the mown grass everywhere. `lit` is light.js's
- * injector: the ground is lit the same way everything else in swiss2 is,
+ * `strip` is the strip's plane, which lies over the ground and is not
+ * raised with the far crests (the airfield's grass is s2Air's, by where
+ * it is). `craft` is craftUniforms' pair, `clock` the seconds the lake's
+ * bed shimmers by. `lit` is light.js's injector: the ground is lit the
+ * same way everything else in swiss2 is,
  * and its declarations land ahead of the splat's, so vS2World is declared
  * by the time the splat reads it.
  */
-export function groundMaterial({ arrays, zones, path, walls, lit, only = -1, strip = 0 }) {
+export function groundMaterial({
+  arrays, zones, path, walls, lit, craft = craftUniforms(), clock = { value: 0 }, only = -1, strip = 0,
+}) {
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
   const uniforms = {
     uS2Zone1: { value: zones.zone1 },
@@ -1070,9 +1337,10 @@ export function groundMaterial({ arrays, zones, path, walls, lit, only = -1, str
     uS2Rough: { value: ROUGH },
     uS2Bump: { value: BUMP },
     uS2LakeY: { value: LAKE_Y },
-    uS2Strip: { value: strip },
+    uS2Clock: clock,
     uS2Only: { value: only },
     uS2Ridge: { value: only < 0 && !strip ? 1 : 0 },
+    ...craft,
   };
   if (LAYERS.length !== TILE.length) {
     throw new Error('swiss2 ground: one tile size per layer');

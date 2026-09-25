@@ -31,6 +31,11 @@
  *   THE ROADSIDE: a delineator post either side of the valley road
  *   every fifty metres.
  *
+ *   THE LAKE'S EDGE: silvered driftwood along the line the waves reach,
+ *   and a bed of water lilies in the lee of the reed bank.
+ *
+ *   MOLEHILLS on the plateau round the strip.
+ *
  *   Two places set by hand, as a farm's things are, where the lake-shore
  *   and farm-low views stand: at the road's end by the lake a fence
  *   along the verge with a gate, a stack of logs under a lean of tin, a
@@ -71,13 +76,14 @@
  */
 
 import * as THREE from 'three';
-import { noise2, smoothstep } from '../../alps/noise.js';
+import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
 import {
   HALF, LAKE_Y, LAKE_N, TREE_LINE, forestDensity, valleyAxis,
 } from '../../alps/terrain.js';
 import {
-  valleyLayout, meadowField, meadowCuts, lakeShore, jettyClear, ROAD_DX, ROAD_END, STREET_Z,
+  valleyLayout, meadowField, meadowCuts, lakeShore, jettyClear, airfield, ROAD_DX, ROAD_END, STREET_Z,
 } from '../vegetation/zones.js';
+import { RUNWAY_HALF } from '../ground.js';
 import { gravelBarGeometry } from '../water/stream.js';
 
 const COLLIDE_R = 700;
@@ -557,6 +563,86 @@ function boatShed(m, heightAt, rng, { x, z, yaw, len, w, h }) {
 }
 
 /*
+ * A molehill: a low dome of fresh dark earth r across at its foot,
+ * crumbled paler and drier on top, bedded a little into the grass.
+ */
+const SOIL = [0.05, 0.036, 0.025];
+const SOIL_DRY = [0.1, 0.075, 0.05];
+function molehill(m, heightAt, rng, x, z, r) {
+  const y = heightAt(x, z) - 0.03;
+  const h = r * (0.45 + 0.2 * rng());
+  const sides = 9;
+  const turn = rng() * Math.PI;
+  const ring = (k, t) => {
+    const a = turn + (k / sides) * Math.PI * 2;
+    const rr = r * t * (0.85 + 0.3 * noise2(x * 3 + k * 0.7, z * 3));
+    return new THREE.Vector3(x + Math.cos(a) * rr, y + h * (1 - t * t), z + Math.sin(a) * rr);
+  };
+  const top = new THREE.Vector3(x, y + h, z);
+  for (let k = 0; k < sides; k += 1) {
+    m.tri(top, ring(k + 1, 0.55), ring(k, 0.55), shade(SOIL_DRY, 0.8 + 0.4 * rng()));
+    m.quad(ring(k, 0.55), ring(k + 1, 0.55), ring(k + 1, 1), ring(k, 1), shade(SOIL, 0.8 + 0.4 * rng()));
+  }
+}
+
+/* Driftwood: a branch the lake has stripped and silvered, from a to b,
+ * r thick, with a stub of a side branch. */
+const DRIFT = [0.2, 0.19, 0.17];
+function driftwood(m, rng, a, b, r) {
+  const axis = b.clone().sub(a).normalize();
+  const u = new THREE.Vector3().crossVectors(axis, UP).normalize();
+  const v = new THREE.Vector3().crossVectors(u, axis);
+  const sides = 5;
+  const tone = shade(DRIFT, 0.75 + 0.5 * rng());
+  const ring = (c, k, rr) => {
+    const t = (k / sides) * Math.PI * 2;
+    return c.clone().addScaledVector(u, Math.cos(t) * rr).addScaledVector(v, Math.sin(t) * rr);
+  };
+  for (let k = 0; k < sides; k += 1) {
+    m.quad(ring(a, k, r), ring(a, k + 1, r), ring(b, k + 1, r * 0.55), ring(b, k, r * 0.55), shade(tone, k === 0 ? 0.7 : 1));
+    m.tri(a, ring(a, k + 1, r), ring(a, k, r), shade(tone, 1.3));
+    m.tri(b, ring(b, k, r * 0.55), ring(b, k + 1, r * 0.55), shade(tone, 1.2));
+  }
+  const at = a.clone().lerp(b, 0.3 + 0.4 * rng());
+  const off = axis.clone().multiplyScalar(0.5).addScaledVector(u, rng() < 0.5 ? 1 : -1).normalize();
+  const tip = at.clone().addScaledVector(off, (0.25 + 0.4 * rng()) * b.distanceTo(a) * 0.5);
+  tip.y = at.y + 0.02;
+  for (let k = 0; k < 3; k += 1) {
+    const t = (k / 3) * Math.PI * 2;
+    const q = (w, c) => c.clone().addScaledVector(u, Math.cos(t + w) * r * 0.45).addScaledVector(v, Math.sin(t + w) * r * 0.45);
+    m.tri(q(0, at), q((Math.PI * 2) / 3, at), tip, tone);
+  }
+}
+
+/* A water lily's pad, r across, floating at y, split to its middle as a
+ * pad is, and now and then a white flower on it. */
+const PAD = [0.03, 0.06, 0.02];
+const PAD_OLD = [0.07, 0.065, 0.02];
+function lilyPad(m, rng, x, y, z, r) {
+  const sides = 9;
+  const turn = rng() * Math.PI * 2;
+  const tone = rng() < 0.2 ? shade(PAD_OLD, 0.8 + 0.4 * rng()) : shade(PAD, 0.75 + 0.55 * rng());
+  const c = new THREE.Vector3(x, y, z);
+  for (let k = 0; k < sides; k += 1) {
+    const a0 = turn + 0.25 + (k / sides) * (Math.PI * 2 - 0.5);
+    const a1 = turn + 0.25 + ((k + 1) / sides) * (Math.PI * 2 - 0.5);
+    m.tri(c, new THREE.Vector3(x + Math.cos(a1) * r, y, z + Math.sin(a1) * r), new THREE.Vector3(x + Math.cos(a0) * r, y, z + Math.sin(a0) * r), tone);
+  }
+  if (rng() < 0.07) {
+    const top = new THREE.Vector3(x, y + 0.06, z);
+    for (let k = 0; k < 6; k += 1) {
+      const a = turn + (k / 6) * Math.PI * 2;
+      const p0 = new THREE.Vector3(x + Math.cos(a - 0.3) * 0.03, y + 0.01, z + Math.sin(a - 0.3) * 0.03);
+      const p1 = new THREE.Vector3(x + Math.cos(a) * 0.08, y + 0.07, z + Math.sin(a) * 0.08);
+      const p2 = new THREE.Vector3(x + Math.cos(a + 0.3) * 0.03, y + 0.01, z + Math.sin(a + 0.3) * 0.03);
+      m.tri(p0, p2, p1, [0.62, 0.6, 0.55]);
+      m.tri(p0, p1, p2, [0.62, 0.6, 0.55]);
+    }
+    m.tri(top, new THREE.Vector3(x + 0.02, y + 0.03, z), new THREE.Vector3(x - 0.01, y + 0.03, z + 0.02), [0.6, 0.45, 0.02]);
+  }
+}
+
+/*
  * Build the props. ctx: heightAt, rng, colliders, and footprints, the
  * village's walls, which the huts keep clear of.
  */
@@ -913,6 +999,91 @@ export function buildProps(ctx) {
     }
   }
 
+  /*
+   * THE LAKE'S EDGE: driftwood along the line the waves reach, and in the
+   * lee of the reed bank west of the jetty a bed of water lilies. Their
+   * own generator, so everything above stands where it stood. Nothing
+   * here has a collider: a branch or a lily pad is nothing a craft can
+   * strike to any effect.
+   */
+  const lrng = makeRng(20261003);
+  let driftwoods = 0;
+  const wash = LAKE_Y + 0.24;
+  const inland = (x, z, a) => {
+    let px = x;
+    let pz = z;
+    for (let k = 0; k < 60 && heightAt(px, pz) < wash; k += 1) {
+      px -= Math.cos(a) * 0.25;
+      pz -= Math.sin(a) * 0.25;
+    }
+    return { x: px, z: pz };
+  };
+  for (const s of rim) {
+    const north = Math.sin(s.a) < -0.3;
+    if (lrng() > (north ? 0.5 : 0.2)) {
+      continue;
+    }
+    const at = inland(s.x + (lrng() - 0.5) * 6, s.z + (lrng() - 0.5) * 6, s.a);
+    if (clear(at.x, at.z) || Math.hypot(at.x - shed.x, at.z - shed.z) < 9) {
+      continue;
+    }
+    const len = 0.6 + 1.9 * lrng() * lrng();
+    const yaw = s.a + Math.PI / 2 + (lrng() - 0.5) * 1.2;
+    const r = 0.035 + 0.07 * lrng();
+    const ax = at.x - Math.cos(yaw) * len / 2;
+    const az = at.z - Math.sin(yaw) * len / 2;
+    const bx = at.x + Math.cos(yaw) * len / 2;
+    const bz = at.z + Math.sin(yaw) * len / 2;
+    driftwood(m, lrng, new THREE.Vector3(ax, heightAt(ax, az) + r * 0.6, az), new THREE.Vector3(bx, heightAt(bx, bz) + r * 0.5, bz), r);
+    driftwoods += 1;
+  }
+  let lilies = 0;
+  const bed = { x: 178, z: 2029, rx: 10, rz: 5 };
+  for (let k = 0; k < 700 && lilies < 280; k += 1) {
+    const a = lrng() * Math.PI * 2;
+    const q = Math.sqrt(lrng());
+    const x = bed.x + Math.cos(a) * q * bed.rx + 3 * (noise2(k * 0.37, 1.3) - 0.5);
+    const z = bed.z + Math.sin(a) * q * bed.rz;
+    const depth = LAKE_Y - heightAt(x, z);
+    if (depth < 0.45 || depth > 2 || clear(x, z) || noise2(x / 4 + 3.3, z / 4 + 1.1) < 0.35) {
+      continue;
+    }
+    lilyPad(m, lrng, x, LAKE_Y + 0.012, z, 0.11 + 0.12 * lrng());
+    lilies += 1;
+  }
+  /*
+   * THE AIRFIELD'S MOLES: runs of molehills over the plateau round the
+   * strip and in the long grass beside it, and a few fresh ones thrown up
+   * at the runway's edges since it was last rolled, as on every grass
+   * strip; never in the wheel tracks. None has a collider: a heap of
+   * earth a hand high.
+   */
+  const mrng = makeRng(20261004);
+  let molehills = 0;
+  const runs = [{ x: -7.2, z: 22 }, { x: 7.6, z: -4 }, { x: -6.8, z: -30 }, { x: 34, z: 20 }, { x: -36, z: -10 }];
+  for (let k = 0; k < 14; k += 1) {
+    const side = mrng() < 0.5 ? -1 : 1;
+    runs.push({ x: side * (RUNWAY_HALF + 3 + 40 * mrng()), z: (mrng() - 0.5) * 220 });
+  }
+  for (const run of runs) {
+    let { x, z } = run;
+    let heading = mrng() * Math.PI * 2;
+    const n = 3 + Math.floor(mrng() * 5);
+    for (let q = 0; q < n; q += 1) {
+      const air = airfield(x, z);
+      /* coverOff holds the strip clear of the meadow's clumps, not of moles. */
+      const runway = Math.abs(x) < RUNWAY_HALF + 1 && Math.abs(z) < 90;
+      if (Math.abs(x) > 3.5 && air.track < 0.05 && air.worn < 0.3 && !air.paved && (runway || !coverOff(x, z))) {
+        molehill(m, heightAt, mrng, x, z, 0.2 + 0.14 * mrng());
+        molehills += 1;
+      }
+      heading += (mrng() - 0.5) * 1.2;
+      const step = 1.1 + 1.6 * mrng();
+      x += Math.cos(heading) * step;
+      z += Math.sin(heading) * step;
+    }
+  }
+
   /* The huts, the bales, the bars and the reeds: one draw. */
   const staticMat = propMaterial();
   const staticMesh = new THREE.Mesh(m.geometry(), staticMat);
@@ -964,7 +1135,9 @@ export function buildProps(ctx) {
     group,
     update,
     margins,
-    stats: { huts: huts.length, bales, spans: spans.length, reeds, delineators },
+    stats: {
+      huts: huts.length, bales, spans: spans.length, reeds, delineators, driftwoods, lilies, molehills,
+    },
     dispose() {
       group.removeFromParent();
       for (const o of [staticMesh, fence]) {
