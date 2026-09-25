@@ -1278,3 +1278,67 @@ mis-staged test. What was restaged, and what was found to be the plant's.
   sourced better here was: the stall and nose over rest attitudes (R-DIG,
   above), the Slow Stick's ground accident (R-SLOWSTICK's landings) and
   the quad pilot after a hit (R-DISARM).
+
+## 8. Round 5: bands whose premise the physics disproved
+
+Against main ae57a29 (the plane hull, #68): 8 of 60 inside every band,
+147 failing checks of 303. After: 10 of 60 (cub-stall and timber-stall
+join), 122 failing of 294, all 60 deterministic in Node, replay and
+Chrome. Of the 25, 9 are checks removed with the reference they came
+from (all nine were failing) and 16 are checks that now pass; none that
+passed now fails. Every change is its own commit with its derivation.
+
+- **Stall ins, Cub, Timber, Slow Stick: R-C172 test 1 and R-MUSH
+  govern.** The nose low bands cited R-C172 test 2, which the NASA
+  report itself calls controlled flight into terrain; its one stall is
+  test 1, nose 1.5 deg up onto the gear, and Froude scaled its sink is
+  the mush's (R-C172). The kits' reviews and the owner's sign off say
+  these three mush (R-MUSH). Bands now: wing and tail whole, 3 to 10 g,
+  at rest upright. The rest distance and time went with test 2; test 1
+  gives none (a net stopped its roll), as for the wheeled fast landings.
+- **Stall ins still on test 2: Skyhunter, Radian, Bramor.** Their rest
+  attitude and time bands cite test 2 for a stall, which it was not.
+  Left unchanged, and LOW, because no source says how these three arrive
+  held full back: the Skyhunter has no stall report, the Radian's one
+  ("a flat mush", RCGroups, an aft CG) is weak and the plant does not
+  match it (the aero agent's), and the Bramor's manual gives none.
+  Whether they too follow test 1 is the lead's call.
+- **Belly slides: R-SLIDE at each aircraft's own V_s** (R-SLIDE).
+- **Poles: R-POLE**, from the part table, replacing a whip round that
+  R-AFH never said.
+
+### Staging, checked against each reference on ae57a29
+
+- The pole scenarios now meet the struck panel at the pole's own span
+  station (the suite's firstObstacle: sky, cub, radian, timber and bramor
+  on the right panel, the Slow Stick on its one piece wing, gap 0), and
+  only that panel and its aileron or elevon leave at the pole: they
+  reproduce R-POLE's event.
+- The five inch's gate, branch and wall clips meet a prop first, as
+  their references do; the whoop's wall and gate meet the frame (duct).
+- The belly slides touch down at 1.54 (Radian) to 1.96 (Skyhunter) times
+  the stall, inside R-SLIDE's 1.5 to 2; the Bramor's entry, 2 V_s, is
+  above its 25 m/s top speed, so it can only be reached in a dive; it
+  touches down at 1.67 V_s. Kept.
+- The cartwheels touch the grass within 1 to 89 ms of launch (the tip is
+  placed 10 cm up by the half span, and the hull's box reaches lower):
+  the event is still a banked tip catch at 1.3 V_s, so kept.
+- The Radian's and the Bramor's stall ins arrive in a wing drop (7.0 m/s
+  down) and a flat spin (6.4 m/s): the aero, not the staging.
+
+### Every LOW band, and what would raise it
+
+185 of the 294 checks are LOW. By source: R-AFH 84 (every cartwheel, the
+poles' break and peak checks, every tree), R-POLE 18, R-SEAPLANE 14,
+R-WHOOP 12, R-C172 10 (the three stall ins above and the float nose digs'
+Froude scaled times), R-A4-REBOUND 9 and R-A4-OFFSET 8 (the five inch's
+obstacles), R-SLIDE 7, R-ARM 6, R-NOSEOVER 6, R-LAUNCH 5, R-A14-FOAM 2,
+R-TURTLE, R-PROPLOSS, R-SLOWSTICK and R-CHUTE 1 each. What was raised
+this round: the three mushing stall ins, from LOW to MED, on test 1's
+own numbers. What was not, and why: the web search budget of this
+round's session ran out before any new report could be found, so the
+NTSB wing strike, AAIB and AMA reports, published drop tests and further
+ASSURE work this round meant to look for were not searched. They remain
+section 5's list, with the footage of section 3 measured frame by frame
+first for the five inch and the whoop, and a measured foam wing root
+failure for R-POLE.
