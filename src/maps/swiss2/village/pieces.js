@@ -29,6 +29,7 @@
 
 import * as THREE from 'three';
 import { cyl, roofShell, gableProfile } from '../../alps/kit.js';
+import { shedTop } from '../../alps/roofs.js';
 import {
   box, boxUp, cached, near, detail, blob, plate, own, frame, prism, bloomShade, leafShade,
 } from '../buildings/parts.js';
@@ -503,11 +504,26 @@ export function outbuilding(f, { kind, w, d, h, wall, roofKey }) {
       f.put('larchDark', boxUp(0.12, h, 0.12), sx * (hw - 0.06), 0, hd - 0.06);
     }
     const slope = Math.atan2(back - h, d);
-    f.put(roofKey, box(w + 0.5, 0.08, Math.hypot(d, back - h) + 0.7), 0, (back + h) / 2 + 0.05, 0.1, 0, slope);
+    const len = Math.hypot(d, back - h) + 0.7;
+    f.put(roofKey, box(w + 0.5, 0.08, len), 0, (back + h) / 2 + 0.05, 0.1, 0, slope);
+    /* The tin is ground over its walls and its wood (alps/roofs.js), in
+     * a frame at the slab's middle turned so +x runs down to the front. */
+    const run = (len / 2) * Math.cos(slope);
+    const mid = (back - h) / 2 + 0.05 + 0.04 / Math.cos(slope);
+    frame(f, 0, h, 0.1, -Math.PI / 2).roofFaces({
+      top: shedTop(-run, mid + run * Math.tan(slope), run, mid - run * Math.tan(slope), -(w + 0.5) / 2, (w + 0.5) / 2),
+      dy: 0.08, hw: hd, hd: hw, open: true, kind: 'woodshed',
+    }, roofKey);
+    f.solid(-hw, 0, -hd, hw, back, -hd + 0.08);
+    for (const sx of [-1, 1]) {
+      f.solid(sx * (hw - 0.04) - 0.04, 0, -hd, sx * (hw - 0.04) + 0.04, back, hd - 0.1);
+      f.solid(sx * (hw - 0.06) - 0.06, 0, hd - 0.12, sx * (hw - 0.06) + 0.06, h, hd);
+    }
     /* The wood, split and stacked, end on to the front. */
     const rows = Math.max(3, Math.floor((h - 0.15) / 0.24));
     const log = cached('s2logend', () => new THREE.CircleGeometry(0.12, 5));
     f.put('larchDark', boxUp(w - 0.2, rows * 0.24, d - 0.5), 0, 0.05, -0.15);
+    f.solid(-(w - 0.2) / 2, 0.05, -0.15 - (d - 0.5) / 2, (w - 0.2) / 2, 0.05 + rows * 0.24, -0.15 + (d - 0.5) / 2);
     const n = Math.max(2, Math.floor((w - 0.3) / 0.25));
     for (let r = 0; r < rows; r += 1) {
       for (let k = 0; k < n - (r % 2); k += 1) {

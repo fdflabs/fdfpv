@@ -425,7 +425,7 @@ export function furnish(ctx) {
 
   /* THE YARDS, last, so nothing above moves (village/yards.js). */
   const yard = yards({
-    houses: built.houses, at, houseY, free, take, onRoads, inSquare,
+    houses: built.houses, at, houseY, free, take, onRoads, inSquare, bake, villageY,
   });
 
   return {

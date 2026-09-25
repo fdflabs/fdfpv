@@ -34,6 +34,7 @@ import * as THREE from 'three';
 import {
   frame, box, boxUp, cached, polySolid, prism, roofShell, gableProfile, SOCLE,
 } from '../../alps/kit.js';
+import { gableTop } from '../../alps/roofs.js';
 
 export { frame, box, boxUp, cached, prism, SOCLE };
 
@@ -260,6 +261,8 @@ export function doorway(wall, x, w, h, { key = 'larchDark', frameKey = 'larch', 
  * the rail and a red line along it are all there is (near-only keys).
  */
 export function balcony(wall, len, { out = 1.3, board = 'larch', flowers = true } = {}) {
+  /* Solid as a wall, deck to rail, under the eaves (alps/roofs.js). */
+  wall.solid(-len / 2, -0.3, 0, len / 2, 1.08, out);
   wall.put(board, box(len, 0.14, out), 0, 0.07, out / 2);
   wall.put('shade', box(len - 0.1, 0.84, 0.03), 0, 0.14 + 0.42, out - 0.12);
   wall.put(detail('baluster'), balusterRow(len - 0.1, 0.82), 0, 0.14, out - 0.08);
@@ -487,6 +490,8 @@ export function plinth(f, w, d, found, band = true) {
 /* A chimney through the roof: a stone stack, a projecting cap, and the
  * little gabled hood on four posts that keeps the snow out. */
 export function chimney(f, x, z, y0, y1, roofKey) {
+  /* It stands on the roof, so it stays solid while the roof is ground. */
+  f.solid(x - 0.44, y0, z - 0.44, x + 0.44, y1 + 0.8, z + 0.44, false);
   f.put('stone', boxUp(0.72, y1 - y0, 0.72), x, y0, z);
   f.put('stone', box(0.88, 0.1, 0.88), x, y1 + 0.05, z);
   for (const [px, pz] of [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]]) {
@@ -904,4 +909,12 @@ function dormerOn(rf, roof, key, roofKey, side) {
   for (const s of [-1, 1]) {
     rf.put(roofKey, box(len, 0.07, half / Math.cos(pitch)), xF - 0.45 + len / 2, yt + rise / 2 + 0.05, z + s * half / 2, 0, s * pitch, 0);
   }
+  /* Its roof is ground and its cheeks and front are walls, from the
+   * body's foot in the main roof up to its own plate: in a frame at the
+   * body's middle, turned so the dormer's ridge is the frame's z. */
+  const lift = 0.05 + 0.035 / Math.cos(pitch);
+  frame(rf, (xF + xB) / 2, yt, z, Math.PI / 2).roofFaces({
+    top: gableTop(half, lift, rise + lift, -(xB - xF) / 2 - 0.45, (xB - xF) / 2),
+    dy: 0.12, hw: wd / 2, hd: (xB - xF) / 2, base: -(h + 0.4), kind: 'dormer',
+  }, roofKey);
 }

@@ -92,6 +92,7 @@ import {
 } from './mesh.js';
 import { boatShed } from './lakeside.js';
 import { roadside } from './roadside.js';
+import { recordAt, gableTop, standWalls } from '../../alps/roofs.js';
 
 const COLLIDE_R = 700;
 /* Fence spans are drawn this far from the camera. */
@@ -120,7 +121,9 @@ const DOOR = [0.012, 0.01, 0.009];
  * bale and reed after this one stands where it stood; what is new is
  * chosen by the hut's own place.
  */
-function hut(m, heightAt, rng, { x, z, yaw, w, d, h, pitch, wall, roof }) {
+function hut(m, heightAt, rng, {
+  x, z, yaw, w, d, h, pitch, wall, roof, covering = 'shingle',
+}) {
   const ex = new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw));
   const ez = new THREE.Vector3(-Math.sin(yaw), 0, Math.cos(yaw));
   const at = (lx, y, lz) => new THREE.Vector3(x, y, z).addScaledVector(ex, lx).addScaledVector(ez, lz);
@@ -279,7 +282,14 @@ function hut(m, heightAt, rng, { x, z, yaw, w, d, h, pitch, wall, roof }) {
       m.quad(capB, capA, ca, cb, shade(roof, 0.7));
     }
   }
-  return { top: ridge + 0.1, low: low - 0.4 };
+  /* The roof as ground (alps/roofs.js), in a frame turned a quarter from
+   * the hut's so its ridge is the frame's z: x across it is the hut's own
+   * across, z the hut's along reversed. The walls under it are the logs'
+   * rectangle, the plate at the eaves. */
+  const record = recordAt({
+    top: gableTop(hd + o, -drop, hd * tanP + 0.08, -hw - o, hw + o), dy: 0.16, hw: hd, hd: hw, kind: 'hut',
+  }, covering, x, eave, z, -yaw - Math.PI / 2);
+  return { top: ridge + 0.1, low: low - 0.4, record };
 }
 
 /* A round bale, r across and len long, lying with its axis along yaw or
@@ -613,7 +623,7 @@ function lilyPad(m, rng, x, y, z, r) {
  * and left out, its draws made, where the ground under it is not that.
  */
 export function buildProps(ctx) {
-  const { heightAt, rng, colliders } = ctx;
+  const { heightAt, rng, colliders, roofs = [] } = ctx;
   const decideAt = ctx.decideAt || heightAt;
   /* Whether the ground within r metres of (x, z) is not what it was
    * decided on. */
@@ -671,16 +681,24 @@ export function buildProps(ctx) {
       const wall = rng() < 0.2 ? [0.12 * k, 0.11 * k, 0.1 * k] : [0.05 * k, 0.034 * k, 0.022 * k];
       const r = rng();
       const roof = r < 0.25 ? [0.12, 0.052, 0.03] : r < 0.4 ? [0.045, 0.047, 0.05] : [0.1 * k, 0.093 * k, 0.085 * k];
-      const spec = { x, z, yaw, w: 5 + 2.5 * rng(), d: 4 + 1.6 * rng(), h: 2.4 + 0.9 * rng(), pitch: 0.42 + 0.2 * rng(), wall, roof };
+      const covering = r < 0.25 ? 'tinRust' : r < 0.4 ? 'slate' : 'shingle';
+      const spec = {
+        x, z, yaw, w: 5 + 2.5 * rng(), d: 4 + 1.6 * rng(), h: 2.4 + 0.9 * rng(), pitch: 0.42 + 0.2 * rng(), wall, roof, covering,
+      };
       const gone = moved(x, z, 8);
       const built = hut(gone ? new Mesher() : m, heightAt, rng, spec);
       huts.push({ x, z });
-      if (near(x, z) && !gone) {
+      /* Every hut that is drawn is walls under a roof that is ground;
+       * within COLLIDE_R its old keep out box is still a footprint the
+       * meadow and the forest keep off, as it always was, and past it
+       * none is noted, as none ever was. */
+      if (colliders && !gone) {
         const c = Math.abs(Math.cos(yaw));
         const s = Math.abs(Math.sin(yaw));
         const hx = (spec.w / 2 + 0.55) * c + (spec.d / 2 + 0.55) * s;
         const hz = (spec.w / 2 + 0.55) * s + (spec.d / 2 + 0.55) * c;
-        colliders.addBox('wall', x - hx, built.low, z - hz, x + hx, built.top, z + hz);
+        standWalls(colliders, [x - hx, built.low, z - hz, x + hx, built.top, z + hz], [built.record], 0, { note: near(x, z) });
+        roofs.push(built.record);
       }
     }
   }
@@ -862,10 +880,14 @@ export function buildProps(ctx) {
   {
     const x = roadX(1928) + 26;
     const z = 1928;
-    hut(m, heightAt, rng, {
-      x, z, yaw: 0.08, w: 6, d: 4.6, h: 2.7, pitch: 0.5, wall: [0.05, 0.034, 0.022], roof: [0.12, 0.052, 0.03],
+    const built = hut(m, heightAt, rng, {
+      x, z, yaw: 0.08, w: 6, d: 4.6, h: 2.7, pitch: 0.5, wall: [0.05, 0.034, 0.022], roof: [0.12, 0.052, 0.03], covering: 'tinRust',
     });
     huts.push({ x, z });
+    if (colliders) {
+      standWalls(colliders, [x - 4, built.low, z - 4, x + 4, built.top, z + 4], [built.record], 0, { note: false });
+      roofs.push(built.record);
+    }
   }
   signpost(m, heightAt, { x: roadX(1936) - 5.4, z: 1936, arms: [Math.PI + 0.1, 0.05, -Math.PI / 2] });
   const { shore: rim, cx: lakeX, cz: lakeZ } = lakeShore(heightAt, 288);
@@ -876,7 +898,11 @@ export function buildProps(ctx) {
     const l = Math.hypot(ox, oz);
     const x = shedAt.x + (ox / l) * 1.5;
     const z = shedAt.z + (oz / l) * 1.5;
-    boatShed(m, heightAt, rng, { x, z, yaw: Math.atan2(oz, ox), len: 9, w: 5.2, h: 2.7 });
+    const built = boatShed(m, heightAt, rng, { x, z, yaw: Math.atan2(oz, ox), len: 9, w: 5.2, h: 2.7 });
+    if (colliders) {
+      standWalls(colliders, [x - 6, built.low, z - 6, x + 6, built.top, z + 6], [built.record], 0, { note: false });
+      roofs.push(built.record);
+    }
     return { x, z };
   })();
 

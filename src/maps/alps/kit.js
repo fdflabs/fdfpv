@@ -38,7 +38,9 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial } from '../../render/celmat.js';
-import { roofRecord } from './roofs.js';
+import {
+  roofRecord, shedTop, flatTop, pyramidTop, spireCore,
+} from './roofs.js';
 
 /* The village's palette: one material per surface colour, shared by every
  * building, so a baked village is one mesh per entry. The boarding runs
@@ -111,9 +113,11 @@ export function makeBake() {
     entry.matrices.push(matrix.clone());
   };
   /* Every roof shell put into this bake, as roofs.js records: the
-   * village's surfaces, and what its walls are cut under. */
+   * village's surfaces, and what its walls are cut under. And the solid
+   * parts its builders noted (frame's solid()), for roofs.js standWalls. */
   const roofs = [];
-  return { parts, instances, push, pushM, instance, roofs };
+  const solids = [];
+  return { parts, instances, push, pushM, instance, roofs, solids };
 }
 
 export function bakeAll(bake, mats, { castShadow = true } = {}) {
@@ -196,8 +200,19 @@ export function frame(parent, x, y, z, ry = 0) {
   const inst = (name, key, geometry, lx = 0, ly = 0, lz = 0, lry = 0, sc = 1) => {
     bake.instance(name, key, geometry, compose(lx, ly, lz, lry, 0, 0, sc, sc, sc));
   };
+  /* A solid part of the building in this frame's coordinates, for its
+   * colliders (roofs.js partSolids): `cover` false for one that stands on
+   * the roof, a chimney, and stays solid while the roof is ground. */
+  const solid = (x0, y0, z0, x1, y1, z1, cover = true) => {
+    bake.solids.push({ e: m.elements.slice(), box: [x0, y0, z0, x1, y1, z1], cover });
+  };
+  /* A roof drawn by other means than a roofShell, as its upper faces in
+   * this frame (roofs.js gableTop and the rest). */
+  const roofFaces = (shape, key) => {
+    bake.roofs.push(roofRecord(shape, m.elements, key));
+  };
   const at = (lx, ly, lz) => new THREE.Vector3(lx, ly, lz).applyMatrix4(m);
-  return { bake, m, put, inst, at, noteRoof };
+  return { bake, m, put, inst, at, noteRoof, solid, roofFaces };
 }
 
 /*
@@ -521,6 +536,8 @@ function doorway(wall, x, w, h, { key = 'boardLine', step = 'stone', y0 = SOCLE 
  * wall frame's +z is out of the wall; the balcony hangs at y = 0.
  */
 function balcony(wall, len, { out = 1.3, board = 'larch' } = {}) {
+  /* Solid as a wall, deck to rail, under the eaves (roofs.js). */
+  wall.solid(-len / 2, -0.12, 0, len / 2, 1.05, out);
   wall.put('boardLine', box(len, 0.12, out), 0, 0.06, out / 2);
   /* The balustrade is boarded in the house's own timber with a dark
    * rail over it; a dark panel the whole width reads as a hole. */
@@ -574,6 +591,8 @@ function boarding(wall, len, y0, h, rows = 3) {
 
 /* A chimney through the roof: a stone stack with a cap and a dark flue. */
 function chimney(f, x, z, y0, y1) {
+  /* It stands on the roof, so it stays solid while the roof is ground. */
+  f.solid(x - 0.45, y0, z - 0.45, x + 0.45, y1 + 0.22, z + 0.45, false);
   f.put('stone', boxUp(0.7, y1 - y0, 0.7), x, y0, z);
   f.put('stone', box(0.9, 0.1, 0.9), x, y1 + 0.05, z);
   f.put('ink', box(0.3, 0.12, 0.3), x, y1 + 0.16, z);
@@ -734,8 +753,13 @@ export function barn(f, spec) {
     const y0 = SOCLE + footH + wallH - 1.2;
     const shed = prism([[hw, y0 + 0.9], [hw + out, y0], [hw + out, y0 + 0.16], [hw, y0 + 1.06]], -hd + 0.5, hd - 0.5);
     f.put(roofKey, shed);
+    /* Ground, on posts: its frame at its middle, falling toward +x. */
+    frame(f, hw + out / 2, y0, 0).roofFaces({
+      top: shedTop(-out / 2, 1.06, out / 2, 0.16, -hd + 0.5, hd - 0.5), dy: 0.16, hw: out / 2, hd: hd - 0.5, open: true, kind: 'leanTo',
+    }, roofKey);
     for (const z of [-hd + 0.8, 0, hd - 0.8]) {
       f.put('boardLine', boxUp(0.18, y0 + 0.1, 0.18), hw + out - 0.2, SOCLE, z);
+      f.solid(hw + out - 0.29, SOCLE, z - 0.09, hw + out - 0.11, y0, z + 0.09);
     }
     woodpile(frame(f, hw, 0, 0, Math.PI / 2), 0, d * 0.5, 4);
     hwOut = Math.max(hwOut, hw + out);
@@ -916,6 +940,17 @@ export function church(f, spec) {
    * inside the cap so nothing overhangs unsupported. */
   const spire = cached('spire', () => new THREE.ConeGeometry(tw * 0.58, 13, 8).translate(0, 6.5, 0));
   f.put('slate', spire, 0, SOCLE + towerH + 0.3, tz, Math.PI / 8);
+  /* The tower's cap and spire are ground over the tower's walls: the
+   * cone's corners are ConeGeometry's, a quarter turn apart from +z,
+   * turned an eighth. */
+  const cap = frame(f, 0, SOCLE + towerH + 0.3, tz);
+  cap.roofFaces({
+    top: [...flatTop(-(tw + 0.5) / 2, -(tw + 0.5) / 2, (tw + 0.5) / 2, (tw + 0.5) / 2, 0), ...pyramidTop(8, tw * 0.58, 0, 13, -Math.PI / 8)],
+    dy: 0.3, hw: tw / 2, hd: tw / 2, kind: 'spire',
+  }, 'slate');
+  for (const b of spireCore(tw * 0.58, 0, 13)) {
+    cap.solid(...b);
+  }
   const ball = cached('ball', () => new THREE.SphereGeometry(0.32, 8, 6));
   f.put('cross', ball, 0, SOCLE + towerH + 13.3, tz);
   f.put('cross', boxUp(0.12, 2.0, 0.12), 0, SOCLE + towerH + 13.5, tz);
@@ -1182,6 +1217,14 @@ export function busShelter(f) {
     f.put('larchDark', boxUp(0.08, 2.3, d - 0.08), s * (w / 2 - 0.04), 0.1, 0.04);
   }
   f.put('shingleDark', prism([[-w / 2 - 0.3, 2.4], [w / 2 + 0.3, 2.4], [w / 2 + 0.3, 2.55], [-w / 2 - 0.3, 2.75]], -d / 2 - 0.3, d / 2 + 0.5));
+  /* The roof is ground; under it, the three walls and the open front. */
+  frame(f, 0, 2.4, 0.1).roofFaces({
+    top: shedTop(-w / 2 - 0.3, 0.35, w / 2 + 0.3, 0.15, -d / 2 - 0.4, d / 2 + 0.4), dy: 0.15, hw: w / 2, hd: d / 2, open: true, kind: 'shelter',
+  }, 'shingleDark');
+  f.solid(-w / 2, 0.1, -d / 2 - 0.04, w / 2, 2.4, -d / 2 + 0.04);
+  for (const s of [-1, 1]) {
+    f.solid(s * (w / 2 - 0.04) - 0.04, 0.1, -d / 2 + 0.08, s * (w / 2 - 0.04) + 0.04, 2.4, d / 2);
+  }
   const seat = frame(f, 0, 0.1, -d / 2 + 0.4, 0);
   bench(seat);
   f.put('metal', cyl(0.03, 0.03, 2.6, 6), w / 2 + 0.6, 0, d / 2 + 0.2);

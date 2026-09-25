@@ -63,6 +63,9 @@ import {
 import {
   UP, Mesher, propMaterial, shade, box, frame,
 } from './mesh.js';
+import {
+  recordAt, frameElements, gableTop, flatTop, pyramidTop, spireCore, standWalls,
+} from '../../alps/roofs.js';
 
 /* Albedos, linear. Whitewash is not paper white: the photographs' walls
  * in sun sit a little under the clouds. */
@@ -135,6 +138,11 @@ function house(m, heightAt, rng, spec) {
   const roof = spec.roof ?? ROOFS[Math.floor(rng() * ROOFS.length)];
   const shutter = spec.shutter !== undefined ? spec.shutter : SHUTTERS[Math.floor(rng() * SHUTTERS.length)];
   box(m, at(0, (low - y0) / 2, 0), ex, ey, ez, w / 2 + 0.12, (y0 - low) / 2 + 0.02, d / 2 + 0.12, STONE);
+  /* What collides (alps/roofs.js): the roof as ground over the walls, in
+   * the house's own frame (a along ex is the frame's x, c along ez its
+   * z), the balconies as walls and the chimney standing on the roof. */
+  const solid = { parts: [], e: frameElements(x, y0, z, -yaw) };
+  const part = (x0, y0p, z0, x1, y1, z1, cover = true) => solid.parts.push({ e: solid.e, box: [x0, y0p, z0, x1, y1, z1], cover });
   for (let s = 0; s < floors; s += 1) {
     const wood = s >= masonry;
     const tone = wood ? shade(TIMBER, 0.85 + 0.3 * rng()) : plaster;
@@ -170,7 +178,9 @@ function house(m, heightAt, rng, spec) {
   }
   /* A chimney through the back slope. */
   const cx = w * 0.22 * (rng() < 0.5 ? -1 : 1);
-  box(m, at(cx, top + rise * (1 - Math.abs(cx) / (w / 2)) + 0.5, d * 0.2), ex, ey, ez, 0.35, 0.9, 0.35, shade(plaster, 0.8));
+  const chimneyY = top + rise * (1 - Math.abs(cx) / (w / 2)) + 0.5;
+  box(m, at(cx, chimneyY, d * 0.2), ex, ey, ez, 0.35, 0.9, 0.35, shade(plaster, 0.8));
+  part(cx - 0.35, chimneyY - 0.9, d * 0.2 - 0.35, cx + 0.35, chimneyY + 0.9, d * 0.2 + 0.35, false);
   /* The windows. Front and back: the gable end, facing -ez and +ez. */
   const front = face(at(-w / 2, 0, -d / 2), ex, ez.clone().negate());
   const back = face(at(w / 2, 0, d / 2), ex.clone().negate(), ez);
@@ -197,6 +207,7 @@ function house(m, heightAt, rng, spec) {
       break;
     }
     const out = 1.15;
+    part(-w / 2 - 0.3, fl - 0.08, -d / 2 - out, w / 2 + 0.3, fl + 1.1, -d / 2);
     box(m, at(0, fl, -d / 2 - out / 2), ex, ey, ez, w / 2 + 0.3, 0.08, out / 2, shade(HONEY, 0.8));
     box(m, at(0, fl + 0.55, -d / 2 - out + 0.04), ex, ey, ez, w / 2 + 0.3, 0.47, 0.04, shade(HONEY, 1.1), [1, 1, 1, 0.6, 1, 0.8]);
     for (const sx of [-1, 1]) {
@@ -205,7 +216,23 @@ function house(m, heightAt, rng, spec) {
     box(m, at(0, fl + 1.12, -d / 2 - out + 0.02), ex, ey, ez, w / 2 + 0.2, 0.12, 0.13, GERANIUM, [1, 1, 1.15, 0.5, 1.05, 0.8]);
     box(m, at(0, fl + 0.98, -d / 2 - out + 0.02), ex, ey, ez, w / 2 + 0.2, 0.05, 0.14, LEAF);
   }
-  return footprintOf(corners);
+  const record = recordAt({
+    top: gableTop(w / 2 + eave, 0.22 - drop, rise + 0.22, -d / 2 - over, d / 2 + over), dy: 0.22, hw: w / 2 + 0.06, hd: d / 2 + 0.06, kind: 'lakeHouse',
+  }, covering(roof), x, y0 + top, z, -yaw);
+  return { ...footprintOf(corners), solid: { roofs: [record], parts: solid.parts, low } };
+}
+
+/* A roof's covering, for the crash physics (alps/roofs.js roofMaterial),
+ * from the albedo it is drawn in: the red ones are clay tile, the grey
+ * ones slate or eternit, the brown ones shingle. */
+function covering([r, g, b]) {
+  if (r > 1.6 * g && r > 1.8 * b) {
+    return 'tile';
+  }
+  if (Math.abs(r - b) < 0.02 && Math.abs(r - g) < 0.02) {
+    return 'slate';
+  }
+  return 'shingle';
 }
 
 const footprintOf = (corners) => ({
@@ -277,7 +304,18 @@ function church(m, heightAt, { x, z, yaw }) {
     panel(m, f, tw - 0.4, th - 6.2, 0.8, 1.6, 0.04, [0.03, 0.03, 0.035]);
   }
   panel(m, tower[0], tw - 0.75, 0.02, 1.5, 2.6, 0.05, shade(HONEY, 0.7));
-  return footprintOf(corners);
+  /* The nave's roof and the tower's top and spire as ground over their
+   * walls (alps/roofs.js), each in a frame of the church's own turn. */
+  const nave = recordAt({
+    top: gableTop(w / 2 + 0.5, -0.3, rise + 0.2, -d / 2 - 0.4, d / 2 + 0.4), dy: 0.2, hw: w / 2, hd: d / 2, kind: 'church',
+  }, 'slate', x, y0 + h, z, -yaw);
+  const tz = -d / 2 - tw + 0.3;
+  const spireAt = frameElements(x + ez.x * tz, y0 + th, z + ez.z * tz, -yaw);
+  const spire = recordAt({
+    top: [...flatTop(-tw, -tw, tw, tw, 0), ...pyramidTop(8, tw * 1.18, 0.1, 11, Math.PI / 8)], dy: 0.2, hw: tw, hd: tw, kind: 'spire',
+  }, 'slate', x + ez.x * tz, y0 + th, z + ez.z * tz, -yaw);
+  const parts = spireCore(tw * 1.18, 0.1, 11).map((b) => ({ e: spireAt, box: b, cover: true }));
+  return { ...footprintOf(corners), solid: { roofs: [nave, spire], parts, low } };
 }
 
 /*
@@ -345,7 +383,14 @@ export function boatShed(m, heightAt, rng, { x, z, yaw, len, w, h }) {
       }
     }
   }
-  return { top: y0 + ridge + 0.2, low: y0 - 1 };
+  /* The roof as ground over the shed's walls (alps/roofs.js), in a
+   * frame turned a quarter from the shed's so its ridge is the frame's
+   * z. The lake end is closed with the rest, as the gondola's stations
+   * are: a shed is walls under a roof. */
+  const record = recordAt({
+    top: gableTop(w / 2 + o, -drop, (w / 2) * Math.tan(pitch) + 0.06, -len / 2 - o, len / 2 + o), dy: 0.12, hw: w / 2, hd: len / 2, kind: 'boathouse',
+  }, 'shingle', x, y0 + h, z, -yaw - Math.PI / 2);
+  return { top: y0 + ridge + 0.2, low: y0 - 1, record };
 }
 
 /*
@@ -721,11 +766,23 @@ function tuft(m, rng, x, y, z, h) {
 const WIND = new THREE.Vector2(0.8, -0.6).normalize();
 
 /*
- * Build it all. ctx: heightAt, and footprints (the map's walls, which
- * the hamlet's houses and the promenade join).
+ * Build it all. ctx: heightAt, footprints (the map's walls, which the
+ * hamlet's houses and the promenade join), and, when the map collides,
+ * its colliders and its list of roofs: every building here is walls
+ * under a roof that is ground (alps/roofs.js), its footprint the one it
+ * always had and noted as it always was, by the push below.
  */
-export function buildLakeside({ heightAt, footprints }) {
+export function buildLakeside({
+  heightAt, footprints, colliders = null, roofs = [],
+}) {
   const rng = makeRng(20261101);
+  const stand = ({ solid, ...foot }) => {
+    if (colliders) {
+      standWalls(colliders, [foot.minX, solid.low, foot.minZ, foot.maxX, solid.low + 1, foot.maxZ], solid.roofs, 0, { parts: solid.parts, note: false });
+      roofs.push(...solid.roofs);
+    }
+    return foot;
+  };
   const m = new Mesher();
   const group = new THREE.Group();
   group.name = 'swiss2-lakeside';
@@ -780,7 +837,7 @@ export function buildLakeside({ heightAt, footprints }) {
         continue;
       }
       sites.push({ x, z, r });
-      walls.push(house(m, heightAt, rng, {
+      walls.push(stand(house(m, heightAt, rng, {
         x,
         z,
         yaw: faceLake(p) + (turned ? Math.PI / 2 : 0) + (rng() - 0.5) * 0.3,
@@ -789,7 +846,7 @@ export function buildLakeside({ heightAt, footprints }) {
         floors: 2 + (big > 0.6 ? 1 : 0),
         masonry: 1 + (rng() < 0.35 ? 1 : 0),
         balconies: 1 + (big > 0.6 ? 1 : 0),
-      }));
+      })));
       houses += 1;
     }
   });
@@ -799,9 +856,9 @@ export function buildLakeside({ heightAt, footprints }) {
     const p = shoreAt(76, true);
     const x = p.x + p.ox * 18;
     const z = p.z + p.oz * 18;
-    walls.push(house(m, heightAt, rng, {
+    walls.push(stand(house(m, heightAt, rng, {
       x, z, yaw: faceLake(p), w: 17, d: 13, floors: 4, masonry: 4, balconies: 3, pitch: 0.36, plaster: [0.6, 0.58, 0.52], roof: [0.14, 0.06, 0.04], shutter: SHUTTERS[0],
-    }));
+    })));
     /* The landing stage for the lake boats, out from in front of it. */
     const [ex, ey, ez] = frame(faceLake(p) - Math.PI / 2);
     const deckY = LAKE_Y + 1.1;
@@ -817,11 +874,22 @@ export function buildLakeside({ heightAt, footprints }) {
     const hut = new THREE.Vector3(p.x, deckY + 1.3, p.z).addScaledVector(ex, 19);
     box(m, hut, ex, ey, ez, 2, 1.2, 1.7, [0.5, 0.48, 0.44]);
     box(m, hut.clone().setY(deckY + 2.65), ex, ey, ez, 2.5, 0.12, 2.1, [0.1, 0.1, 0.1]);
+    /* The ticket hut on the stage: its flat roof ground over its walls. */
+    stand({
+      minX: hut.x - 2, minZ: hut.z - 2, maxX: hut.x + 2, maxZ: hut.z + 2,
+      solid: {
+        roofs: [recordAt({
+          top: flatTop(-2.5, -2.1, 2.5, 2.1, 0.27), dy: 0.24, hw: 2, hd: 1.7, kind: 'kiosk',
+        }, 'slate', hut.x, deckY + 2.5, hut.z, -(faceLake(p) - Math.PI / 2))],
+        parts: [],
+        low: deckY + 0.1,
+      },
+    });
   }
   /* The church, up the slope behind the hotel. */
   {
     const p = shoreAt(58, true);
-    walls.push(church(m, heightAt, { x: p.x + p.ox * 70, z: p.z + p.oz * 70, yaw: faceLake(p) }));
+    walls.push(stand(church(m, heightAt, { x: p.x + p.ox * 70, z: p.z + p.oz * 70, yaw: faceLake(p) })));
   }
 
   /* BOATHOUSES at the water: a row along the hamlet's front and one at
@@ -831,7 +899,10 @@ export function buildLakeside({ heightAt, footprints }) {
     const p = shoreAt(sx, true);
     const x = p.x - p.ox * 2;
     const z = p.z - p.oz * 2;
-    boatShed(m, heightAt, rng, { x, z, yaw: Math.atan2(-p.oz, -p.ox), len: 8 + 3 * rng(), w: 5 + rng(), h: 2.6 + 0.4 * rng() });
+    const built = boatShed(m, heightAt, rng, { x, z, yaw: Math.atan2(-p.oz, -p.ox), len: 8 + 3 * rng(), w: 5 + rng(), h: 2.6 + 0.4 * rng() });
+    stand({
+      minX: x - 6, minZ: z - 6, maxX: x + 6, maxZ: z + 6, solid: { roofs: [built.record], parts: [], low: built.low },
+    });
     sheds += 1;
   }
 
