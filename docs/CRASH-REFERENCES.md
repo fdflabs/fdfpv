@@ -237,6 +237,19 @@ and a fall.
 2015).** https://ntrs.nasa.gov/api/citations/20160006503/downloads/20160006503.pdf
 Test 1, a stalled flare onto concrete: tail strike at 0.125 s, 4.1 to 5.9 g
 sustained, a rebound keeping most of the forward speed, little damage.
+Reread in round 5 (the report's Table 4 and "Test 1 Results"): "Test 1 was
+designed to simulate a flare to stall onto a rigid surface such as
+concrete", while "Tests 2 and 3 were designed to simulate controlled
+flight into terrain conditions". Test 1 arrived at 60.2 ft/s (18.3 m/s)
+forward and 23 ft/s (7.0 m/s) down, pitched 1.48 deg nose up, nose gear
+first and the mains 6 ms later; "The airframe main gear compressed almost
+to the point of belly impact", "the aircraft rebounded with most its
+horizontal velocity maintained", "With the exception of the tail, there
+was no noticeable damage on the fuselage". DERIVED Froude scaling to a 1.4
+m model (span ratio 0.127, speeds times its square root, 0.357): 6.5 m/s
+forward, 2.5 m/s down, the sink a Cub's own wing gives mushing at its
+CLmax (docs/STALL-STAGE1.md: 1.5 to 2.5 m/s). Test 1 is the report's only
+stall; test 2 below is a flight into terrain, not a stall.
 Test 2, nose down into soft soil at 20.9 m/s forward and 8.6 m/s down: the
 left wing and nose gear broke away at about 0.10 s, "After 0.240-seconds the
 airplane started to flip over", "landed upside-down approximately
@@ -386,6 +399,22 @@ propeller dug into the sand, the airplane nosed over and came to rest
 inverted". Full size, one report each: the mechanism (a blade that digs
 into soft ground holds the nose while the aircraft goes over it), not a
 number. No figure for how hard a blade grips as it digs was found.
+
+**R-MUSH. What an RC trainer does held full back from low (round 5).**
+The kits' own published stall, collected in docs/STALL-STAGE1.md (the
+Round 4 aero record): a HobbyZone Carbon Cub, "stalls are uneventful"
+(Greg Gimlick, Model Aviation, May 2018); a HobbyKing Cub, "nice stall
+characteristics but it's easy to get into a wingtip stall" (Flite Test);
+the Turbo Timber with its slats, "they just sort of mush along and never
+drop a wing" (Greg Gimlick, Model Aviation, February 2020); the Slow
+Stick, "She'll stall if pushed but only if bags of elevator is fed in
+while the model is virtually stationary" (RCM&E, 2008). None of them
+says the nose or a wing goes down hard, and the owner flew the Cub's
+stall on this model and signed it off ("works", docs/CRASH-PLAN.md,
+Round 4 aero). An aircraft that mushes arrives the way R-C172 test 1 did,
+nose near level and sinking onto its gear, not the way R-DIG's Hatz did.
+LOW to MED: the reviews give the behaviour, not a number, and test 1
+gives the numbers of a full size arrival in that attitude.
 
 ## 3. Footage to measure
 
@@ -615,16 +644,13 @@ any ground to tip it (section 6), so it flies its landing dive instead.
 
 ### J-3 Cub
 
-**cub-stall.** Reference still: Stalled low with the stick back: a wing or the nose drops and it hits nose low; the foam nose crushes, the prop and spinner break, and it stops on its nose or flops onto its back within a couple of metres.
+**cub-stall.** Reference still: Stalled low with the stick held back: the nose drops a little and it mushes down with the wings nearly level, lands hard on its gear, bounces and rolls on upright, nothing broken.
 
 | Metric | Band | Source | Confidence |
 | --- | --- | --- | --- |
-| mustBreak | prop | R-A14-FOAM (puller prop, spinner and motor at the nose) | MED |
-| mustNotBreak | wing, tail | R-A14-FOAM, R-SLOWSTICK | MED |
-| peakG | 50 to 150 | R-A14-FOAM (foam pusher 0.30 to 0.34 g/ft lbf on the head, puller about 3 times), R-FOAM crush check | MED |
-| restAttitude | nose down or inverted | R-C172 (nose down into soft ground, pivots and ends inverted), R-DIG (a stalled taildragger went in nose low, its prop dug in and it nosed over) | LOW |
-| restDistM | 0 to 3 | R-C172, R-A14-FOAM | MED |
-| timeToRestS | 0.5 to 2 | R-C172 (Froude scaled) | LOW |
+| mustNotBreak | wing, tail | R-C172 test 1 (a flare to stall onto its gear: no noticeable damage but at the tail strike), R-MUSH | MED |
+| peakG | 3 to 10 | R-C172 test 1 (4.1 to 5.9 g plateau as the gear takes it; Froude scaling leaves g unchanged) | MED |
+| restAttitude | upright | R-C172 test 1 (rebounded off its gear with most of its horizontal velocity), R-MUSH | MED |
 
 **cub-nose-in.** Reference still: A full power dive into the ground: the nose section snaps off at the battery bay, the wings fold or come off at the root, motor and battery tumble on; wreckage within a few metres of the hole.
 
