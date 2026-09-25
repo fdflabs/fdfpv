@@ -1,8 +1,8 @@
 /*
- * gatecards.js: the three pictures on the front door, drawn by the game.
+ * gatecards.js: the pictures on the front door, drawn by the game.
  *
- * The first screen asks one question, what to fly, and it asks it with three
- * pictures rather than three words, because the difference between them is a
+ * The first screen asks one question, what to fly, and it asks it with
+ * pictures rather than words, because the difference between them is a
  * difference between PLACES and a sentence is a poor way to describe a
  * place. See PROGRESS.md for the argument.
  *
@@ -29,10 +29,12 @@
  * real published course is the honest thing to photograph and it is already
  * in the repository.
  *
- * Freestyle is the town from twelve metres up: roofs, wires, sakura and the
- * street running into the haze, with no gate anywhere in it. The camera is
- * high enough to show that it goes on past the frame, which is the whole
- * claim the card is making.
+ * Free Flight is the photoreal valley's lake from sixty metres over its
+ * north shore, looking down the water to the village and the east wall:
+ * the owner asked for swiss2 on that card, the lake preferably
+ * (2026-09-25). It needs the real GPU, SIM_GPU=1, because the CPU
+ * rasteriser does not draw the photoreal look; the race card does not.
+ * The Freestyle card and its town picture were retired the same day.
  *
  * The animation clock is parked with __animTo so the train and the level
  * crossing are in the same place on every regeneration. The camera is parked
@@ -109,15 +111,17 @@ const SHOTS = [
     anim: null,
   },
   {
-    name: 'freestyle',
-    args: ['--url=/index.html?map=city'],
-    /* Over the roofs on the east side of the crossing, looking west down the
-     * street. High enough for the town to read as a town. */
-    cam: [18, 12, 40, -6, 3, 6],
-    /* The step the collider reference in src/maps/city uses for its booms
-     * down measurement, so the crossing in the middle distance is closed and
-     * the train is where it is every time this is regenerated. */
-    anim: 14125,
+    name: 'flight',
+    args: ['--url=/index.html?map=swiss2'],
+    /* Over the lake's north shore in the photoreal valley, looking south
+     * down the water past the boats to the village and the east wall.
+     * The card is where every plane is picked, and the lake is where the
+     * floatplanes start. */
+    cam: [330, 60, 1800, 120, 20, 2350, 44],
+    anim: null,
+    ready: 'window.__map && window.__map().id === "swiss2" && window.__map().ready',
+    /* The lake with its waves, as a pilot on it sees it. */
+    waves: true,
   },
 ];
 
@@ -126,7 +130,9 @@ try {
   for (const shot of SHOTS) {
     const steps = [
       'until:!!window.__boot && window.__boot().frames > 2',
+      ...(shot.ready ? [`until:${shot.ready}`] : []),
       `eval:(() => { ${hide} })()`,
+      ...(shot.waves ? ['expect:window.__wavesOn()', 'wait:2500'] : []),
       ...(shot.anim == null ? [] : [`eval:(window.__animTo(${shot.anim}), 'anim')`]),
       `eval:(window.__setCam(${shot.cam.join(',')}),`
         + ' window.__gateFrame = window.__boot().frames, \'camera\')',

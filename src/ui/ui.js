@@ -2808,7 +2808,7 @@ const WAYS = [
      * the town anyway. */
     home: 'airfield',
     label: str('ui.free_flight_card'),
-    art: 'assets/gate/freestyle.jpg',
+    art: 'assets/gate/flight.jpg',
     blurb: str('ui.eight_fixed_wings'),
     facts: [str('ui.eight_planes'), str('ui.the_airfield')],
   },
