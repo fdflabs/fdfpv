@@ -1639,8 +1639,9 @@ static double past(double rho, double onset) {
 }
 
 /* A new peak on a part under its break: what its material does. Returns
- * the event type, 0 for none. M is the joint moment, body frame. */
-static int below_break(int i, double rho, const double M[3]) {
+ * the event type, 0 for none, and in *energy what it absorbed. M is the
+ * joint moment, body frame. */
+static int below_break(int i, double rho, const double M[3], double *energy) {
   const Table *t = tab();
   const PartDef *d = &t->p[i];
   PartState *p = &PS[i];
@@ -1649,6 +1650,7 @@ static int below_break(int i, double rho, const double M[3]) {
     return 0;
   }
   p->peak_max = rho;
+  *energy = 0.0;
   const double mm = norm(M);
   double axis[3] = { 0.0, 1.0, 0.0 };
   if (mm > 0.0) {
@@ -1695,6 +1697,9 @@ static int below_break(int i, double rho, const double M[3]) {
     for (int a = 0; a < 3; a += 1) {
       p->bend[a] -= da * axis[a];
     }
+    /* Plastic work: the moment it yields under through the turn it took. */
+    *energy = mm * da;
+    p->energy += *energy;
     return SIM_EVENT_BEND;
   }
   const double dl = CRACK_LOSS * (past(rho, CRACK_ONSET) - past(prev, CRACK_ONSET));
@@ -1759,6 +1764,40 @@ static void detach(SimState *s, const Break *bk) {
       PS[i].damage = 1.0;
     }
   }
+}
+
+/*
+ * WHAT A BREAK ABSORBS: the strain energy the part held at its limit, the
+ * load it failed under through its own stiffness, F^2 / 2k for a force and
+ * (M / L)^2 / 2k for a moment, with L the reach from the joint to the
+ * part's farthest hull point, the lever its tip stiffness is taken at. The
+ * five inch arm gives 1.97 J, R-ARM's derivation 2.5. A break forced by a
+ * spent blade or by the host fails in bending.
+ */
+static double break_energy(const Break *bk) {
+  const Table *t = tab();
+  const PartDef *d = &t->p[bk->part];
+  const double st = PS[bk->part].strength;
+  if (!(d->k > 0.0)) {
+    return 0.0;
+  }
+  double reach = 0.0;
+  for (int k = 0; k < d->npts; k += 1) {
+    const double e[3] = { d->pts[k][0] - d->joint[0], d->pts[k][1] - d->joint[1], d->pts[k][2] - d->joint[2] };
+    const double r = norm(e);
+    if (r > reach) reach = r;
+  }
+  const double fm = d->f_max * st;
+  const double mm = d->m_max * st;
+  const int bending = bk->forced || !(bk->F / fm > bk->M / mm);
+  if (bending) {
+    if (!(reach > 0.0)) {
+      return 0.0;
+    }
+    const double f = mm / reach;
+    return f * f / (2.0 * d->k);
+  }
+  return fm * fm / (2.0 * d->k);
 }
 
 static void world_of(const SimState *s, const double b[3], double out[3]) {
@@ -2126,7 +2165,8 @@ static void judge(SimState *s) {
     if (gone & (1u << j)) {
       continue;
     }
-    const int ev = below_break(j, rho0[j] < 1.0 ? rho0[j] : 0.999999, M0[j]);
+    double eb = 0.0;
+    const int ev = below_break(j, rho0[j] < 1.0 ? rho0[j] : 0.999999, M0[j], &eb);
     if (!ev) {
       continue;
     }
@@ -2135,7 +2175,7 @@ static void judge(SimState *s) {
     double pj[3], pw[3];
     live_pt(t->p[j].joint, pj);
     world_of(s, pj, pw);
-    event_push(s, j, ev, rho0[j], 0.0, norm(M0[j]), 0.0, pw, 0, 0.0, g_surf);
+    event_push(s, j, ev, rho0[j], 0.0, norm(M0[j]), eb, pw, 0, 0.0, g_surf);
     if (t->p[j].kind == SIM_PART_PROP && PS[j].chip >= 1.0 && nbrk < BREAKS_MAX) {
       PS[j].chip = 1.0;
       brk[nbrk].part = j;
@@ -2186,8 +2226,10 @@ static void judge(SimState *s) {
           ncorr += 1;
         }
       }
+      const double eb = break_energy(bk);
+      PS[bk->part].energy += eb;
       detach(s, bk);
-      event_push(s, bk->part, SIM_EVENT_BREAK, bk->rho, bk->F, bk->M, 0.0, pw, nw, vin, surf);
+      event_push(s, bk->part, SIM_EVENT_BREAK, bk->rho, bk->F, bk->M, eb, pw, nw, vin, surf);
       changed = 1;
     }
     live_rebuild(s);
@@ -3183,11 +3225,13 @@ int crash_part_break(SimState *s, int part) {
     g_pre_vel[a] = s->vel[a];
     g_pre_w[a] = s->omega[a];
   }
+  const double eb = break_energy(&bk);
+  PS[part].energy += eb;
   detach(s, &bk);
   double pj[3], pw[3];
   live_pt(t->p[part].joint, pj);
   world_of(s, pj, pw);
-  event_push(s, part, SIM_EVENT_BREAK, 1.0, 0.0, 0.0, 0.0, pw, 0, 0.0, g_surf);
+  event_push(s, part, SIM_EVENT_BREAK, 1.0, 0.0, 0.0, eb, pw, 0, 0.0, g_surf);
   live_rebuild(s);
   for (int i = 0; i < t->n; i += 1) {
     PS[i].damage = part_damage(i);

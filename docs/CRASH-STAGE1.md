@@ -90,7 +90,12 @@ mode on.
   (or -1), this step's peak load over its limit, its permanent
   deformation (a dent in metres for a crushable part, a rotation vector
   in radians for a bent arm, boom or gear leg and for a knocked camera or
-  antenna), the energy it has absorbed, kind and parent.
+  antenna), the energy it has absorbed (J: its crush at the plateau, the
+  plastic work of a bend, M times the turn it took, and when it breaks the
+  strain energy it held at its limit, F^2 / 2k for a force or (M / L)^2 /
+  2k for a moment, L the reach from its joint to its farthest hull point;
+  the five inch arm's is 1.97 J, R-ARM derives 2.5; a crack's fracture
+  energy is not counted), kind and parent.
 - `sim_damage_events(out[max x 16], max)`: the events since the last call,
   oldest first, returns the count. Each: step, part, type (1 break, 2
   crush, 3 chip, 4 bend, 5 knock, 6 crack, 7 settle, 8 water, 9 tree;
