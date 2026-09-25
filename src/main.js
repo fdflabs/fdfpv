@@ -2528,6 +2528,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let lastDescent = 0;
   let lastTiltDeg = 0;
   let lastHitKind = 'none';
+  /* Which collider that was, so a check can tell a building's own wall
+   * from its neighbour's (scripts/roof-check.js). Harness only. */
+  let lastHitIndex = -1;
   let lastGroundHits = 0;
   /* Every 1 ms step that ended with the hull on the ground plane or a
    * wheel loaded on it, since the page loaded: a touch too short for a
@@ -4084,6 +4087,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     lastClosing = 0;
     lastUpDot = 0;
     lastHitKind = 'none';
+    lastHitIndex = -1;
     groundCueAtWall = -1e9;
     takeoffUntil = 0;
     input.keys.clear();
@@ -6822,6 +6826,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         passPressing = true;
       }
       lastHitKind = col.kindName(k);
+      lastHitIndex = col.hitIndex;
       lastClosing = speedNow * col.hitNormalDot;
       obsTouched = true;
       if (lastClosing > obsClosing) {
@@ -9549,7 +9554,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       if (Math.hypot(cx - x, cz - z) > r) {
         continue;
       }
-      out.push([c.fax[i], c.fay[i], c.faz[i], c.fbx[i], c.fby[i], c.fbz[i]]);
+      /* The seventh number is the collider's index, which a roof's
+       * `solids` (window.__roofs) name. */
+      out.push([c.fax[i], c.fay[i], c.faz[i], c.fbx[i], c.fby[i], c.fbz[i], i]);
     }
     return out;
   };
@@ -9845,6 +9852,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     descentRate: lastDescent,
     tiltDeg: lastTiltDeg,
     lastHitKind,
+    lastHitIndex,
     lastClosingSpeed: lastClosing,
     lastUpDot,
     grazeSpeedMax: GRAZE_SPEED_MAX,
@@ -10556,13 +10564,27 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* The city's own world object, for measurements that need its platform and
    * collider lists. Null on a map that has no town. Harness only. */
   window.__cityWorld = () => view.world ?? null;
-  /* The alps and swiss2 roofs (src/maps/alps/roofs.js): each one's frame,
-   * wall rectangle, covering and the collider indices of the walls under
-   * it, so a capture can fly at a real roof. Empty elsewhere. Harness only. */
+  /* The roofs (src/maps/alps/roofs.js): each one's frame, plate, wall
+   * rectangle, covering, what building it is and the collider indices of
+   * the walls under it, so a capture can fly at a real roof. Empty where
+   * a map has none. Harness only. */
   window.__roofs = () => (view.roofs ?? []).map((r) => ({
-    key: r.key, material: r.material, c: r.c, s: r.s, x: r.tx, z: r.tz, hw: r.hw, hd: r.hd, dy: r.dy,
-    minX: r.minX, maxX: r.maxX, minZ: r.minZ, maxZ: r.maxZ, solids: r.solids.slice(),
+    key: r.key, kind: r.kind, open: r.open, material: r.material, c: r.c, s: r.s, x: r.tx, z: r.tz, plate: r.lift + r.ty,
+    hw: r.hw, hd: r.hd, dy: r.dy, minX: r.minX, maxX: r.maxX, minZ: r.minZ, maxZ: r.maxZ, solids: r.solids.slice(),
+    eaves: r.eaves.slice(),
   }));
+  /* Roof i's own top at a map point, NaN off it: which roof a point is
+   * under, where roofs overlap. Harness only. */
+  window.__roofTop = (i, x, z) => (view.roofTop ? view.roofTop(i, x, z) : NaN);
+  /* The roofs' cover for a craft at a map point, as the obstacle pass
+   * sets it for its next sweep (fromY biased as that pass biases it), so
+   * a probe's __hit meets what the craft's would. The next frame sets it
+   * again from the craft. Harness only. */
+  window.__cover = (x, y, z) => {
+    if (view.cover) {
+      view.cover(x, z, y - SURFACE_BIAS);
+    }
+  };
   /* Set the active map's distance cull radius, for the sweep that chooses it.
    * Null restores the map's own value. Harness only. */
   window.__cullRadius = (r) => (view.setCullRadius ? view.setCullRadius(r) : null);
