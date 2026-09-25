@@ -82,6 +82,10 @@ const VIEWS = [
   { id: 'into-sun', cam: [0, 40, 0, 450, 200, 640], ref: 'valley-vista' },
   { id: 'farm-low', cam: [-40, 8, 420, -120, 4, 470], ref: 'barn' },
   { id: 'lake-edge', cam: [193, 2.2, 1985, 173, 1, 2400], ref: 'lake' },
+  /* Round 6: the aircraft you fly, close. With the camera parked the shell
+   * rests the craft at the spawn on the strip (x 0, z 40), nose to -z, so
+   * this looks over its right shoulder from three metres behind. */
+  { id: 'craft-chase', cam: [1.0, 1.1, 42.6, 0, 0.2, 39.7], ref: 'craft' },
 ];
 
 /* Median of a frame's duration over sixty frames, in the page. */
