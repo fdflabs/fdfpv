@@ -4024,6 +4024,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       wrecked,
       powered: wreckPowered(),
       down: wreckDown(performance.now()),
+      /* The plant's clock, seconds, for a check that must wait on steps
+       * rather than on the wall: under load a frame carries at most 100 ms
+       * of sim time, however long it took. */
+      simT: stateCurr ? stateCurr[0] : 0,
+      /* Whether the shell is holding the quad's motors at zero, and what
+       * Betaflight made of the sticks, deg/s roll, pitch, yaw: whether the
+       * sticks reach the controller, which a tumbling wreck's motor speeds
+       * cannot show, because its mixer is saturated. */
+      motorsHeld: turtleParkMotors,
+      setpoint: airframeById(runAirframe).fixedWing || typeof sim.e.sim_bf_debug !== 'function' ? null
+        : [sim.e.sim_bf_debug(5), sim.e.sim_bf_debug(8), sim.e.sim_bf_debug(0)],
       rpm: stateCurr ? [stateCurr[14], stateCurr[15], stateCurr[16], stateCurr[17]] : null,
       surfaces: airframeById(runAirframe).fixedWing && wingSurfPtr ? Array.from(new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4)) : null,
       freeBodies: damage.freeBodies(),

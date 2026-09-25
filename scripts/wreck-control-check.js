@@ -74,14 +74,38 @@ const read = (page) => page.evaluate(`JSON.stringify((() => {
   const c = window.__crash();
   const s = window.__craftState();
   return { wrecked: c.wrecked, powered: c.powered, down: c.down, flags: c.flagNames,
-    rpm: c.rpm, surfaces: c.surfaces, landed: s.landed, parked: s.turtleParked,
+    rpm: c.rpm, surfaces: c.surfaces, held: c.motorsHeld, setpoint: c.setpoint, landed: s.landed, parked: s.turtleParked,
     crashed: s.crashed, speed: s.speed, banner: s.banner, rates: s.rates };
 })())`).then(JSON.parse);
 
-/* Hold a stick for ms and read what the craft did with it. */
+/*
+ * EVERY WAIT IS ON THE PLANT'S CLOCK. A wall clock sleep is not a number of
+ * steps: on a loaded host the page draws a frame every 100 to 200 ms, each
+ * frame steps at most 100 ms of sim time, and two reads 80 ms apart can
+ * land between the same two frames and see the same state. That is how
+ * this check failed on a busy machine with every surface "moved 0.000".
+ *
+ * afterSteps(page, ms): return once the plant has stepped ms of sim time
+ * past the next frame. A stick written with window.__stick is polled at
+ * the start of a frame and stamped at the end of that frame's block
+ * (src/main.js, wallToSim), so it reaches the plant from the frame after
+ * the write: waiting for one frame and then ms more is waiting for ms of
+ * the new stick. A plant that stops stepping (a perch, a freeze) never
+ * gets there, and that fails loudly at the bound.
+ */
+const STEP_WAIT_MS = 60000;
+const simT = (page) => page.evaluate('window.__crash().simT');
+async function afterSteps(page, ms) {
+  const t0 = await simT(page);
+  await page.until(`window.__crash().simT > ${t0}`, STEP_WAIT_MS);
+  const t1 = await simT(page);
+  await page.until(`window.__crash().simT >= ${t1 + ms / 1000}`, STEP_WAIT_MS);
+}
+
+/* Hold a stick for ms of sim time and read what the craft did with it. */
 async function hold(page, stick, ms) {
   await page.evaluate(`window.__stick(${stick.join(',')})`);
-  await page.sleep(ms);
+  await afterSteps(page, ms);
   return read(page);
 }
 
@@ -92,8 +116,8 @@ async function open(airframe) {
   return page;
 }
 
-/* Wait until the shell calls the wreck down, then a moment more: the
- * read and the frame that draws the banner are on different clocks. */
+/* Wait until the shell calls the wreck down, then for one more frame: the
+ * prompt is drawn by the frame, which may not have run since. */
 async function settle(page, limitMs) {
   const t0 = Date.now();
   let r = await read(page);
@@ -101,7 +125,7 @@ async function settle(page, limitMs) {
     await page.sleep(200);
     r = await read(page);
   }
-  await page.sleep(250);
+  await afterSteps(page, 0);
   return read(page);
 }
 
@@ -151,6 +175,27 @@ async function surfacesFollow(page, where, throttle) {
   return yaw.reads[yaw.reads.length - 1];
 }
 
+/* Each stick full one way then the other: Betaflight's setpoint for that
+ * axis follows it, and the shell holds no motor. */
+async function quadSticksReach(page, where, throttle) {
+  const flips = [];
+  for (let axis = 0; axis < 3; axis += 1) {
+    const up = [0, 0, 0, throttle];
+    const down = [0, 0, 0, throttle];
+    up[axis] = 0.8;
+    down[axis] = -0.8;
+    const a = await hold(page, up, 120);
+    const b = await hold(page, down, 120);
+    flips.push({ a, b, axis });
+  }
+  const held = flips.some((f) => f.a.held || f.b.held || f.a.parked || f.b.parked);
+  const last = flips[2].b;
+  check(`${where}: the shell holds no motor, and they turn`, !held && Math.max(...last.rpm) > 3000, fmtRpm(last.rpm));
+  const follow = flips.map((f) => f.a.setpoint[f.axis] - f.b.setpoint[f.axis]);
+  check(`${where}: Betaflight's roll, pitch and yaw setpoints follow the sticks`, follow.every((d) => Math.abs(d) > 100),
+    `moved ${follow.map((d) => d.toFixed(0)).join(', ')} deg/s`);
+}
+
 async function plane() {
   console.log('\na Cub loses its left wing panel at 150 m, is set down on the grass, then loses its pack');
   const page = await open('cub1400');
@@ -161,7 +206,7 @@ async function plane() {
     await hold(page, [0, 0, 0, 0.6], 800);
     const wing = await page.evaluate('window.__crash().parts.indexOf("wing")');
     await page.evaluate(`window.__crashBreak(${wing})`);
-    await page.sleep(150);
+    await afterSteps(page, 0);
     const hit = await read(page);
     check('the lost panel makes it a wreck, with its pack in', hit.wrecked && hit.powered, hit.flags.join(','));
     check('no reset prompt while it falls', !hit.down && !/\bR\b/.test(hit.banner), JSON.stringify(hit.banner));
@@ -179,7 +224,7 @@ async function plane() {
     await page.evaluate('window.__stick(0, 0, 0, 0)');
     const pack = await page.evaluate('window.__crash().parts.indexOf("battery")');
     await page.evaluate(`window.__crashBreak(${pack})`);
-    await page.sleep(200);
+    await afterSteps(page, 0);
     const r3 = await hold(page, [1, 1, 1, 0.8], 300);
     const l3 = await hold(page, [-1, -1, -1, 0.8], 300);
     check('pack out: every surface reads nothing and the motor has stopped, whatever the sticks',
@@ -205,27 +250,27 @@ async function quad() {
     /* configs/parts.js order: the front left prop is the last of the four. */
     const prop = parts.lastIndexOf('prop');
     await page.evaluate(`window.__crashBreak(${prop})`);
-    await page.sleep(150);
+    await afterSteps(page, 0);
     const hit = await read(page);
     check('the lost prop makes it a wreck, with its pack in', hit.wrecked && hit.powered, hit.flags.join(','));
-    const a = await hold(page, [0.8, 0, 0, 0.5], 120);
-    const b = await hold(page, [-0.8, 0, 0, 0.5], 120);
-    const moved = a.rpm.map((v, m) => Math.abs(v - b.rpm[m]));
-    check('tumbling: Betaflight still drives the motors, not parked', !a.parked && !b.parked && Math.max(...a.rpm) > 3000,
-      `roll right ${fmtRpm(a.rpm)}, roll left ${fmtRpm(b.rpm)}`);
-    check('tumbling: the three motors with props change with the roll stick', moved.filter((v) => v > 300).length >= 2,
-      `rpm moved ${fmtRpm(moved)}`);
+    /*
+     * What the shell owes a wreck is the sticks reaching Betaflight and the
+     * motors left to it, so that is what is read: the controller's setpoint
+     * and the shell's motor hold. What Betaflight then does with three props
+     * is the plant's, proved deterministically in crash:core ("a five inch
+     * with a prop gone is still flown by Betaflight on the other three");
+     * here the trajectory hangs on when each frame fell, and a saturated
+     * mixer can leave a motor's speed where it was whichever way the stick
+     * goes.
+     */
+    await quadSticksReach(page, 'tumbling', 0.5);
     await page.evaluate('window.__stick(0, 0, 0, 0)');
     check('set down on the grass', await setDown(page));
     const rest = await settle(page, 20000);
     check('on the grass with its pack in, thrashing on three props or still, the reset prompt shows in time',
       rest.down && rest.powered && rest.banner.length > 0, `${JSON.stringify(rest.banner)}, flags ${rest.flags.join(',')}`);
     check('on the grass it is not perched or parked', rest.landed === false && !rest.parked && !rest.crashed);
-    const idle = await hold(page, [0, 0, 0, 0], 300);
-    const t = await hold(page, [0, 0, 0, 0.6], 150);
-    const rose = t.rpm.map((v, m) => v - idle.rpm[m]);
-    check('at rest: the throttle still spins up the motors with props', rose.filter((v) => v > 1000).length >= 2,
-      `${fmtRpm(idle.rpm)} at idle, ${fmtRpm(t.rpm)} at 0.6`);
+    await quadSticksReach(page, 'on the grass', 0.6);
     await page.evaluate('window.__stick(0, 0, 0, 0)');
     const pack = await page.evaluate('window.__crash().parts.indexOf("battery")');
     await page.evaluate(`window.__crashBreak(${pack})`);
