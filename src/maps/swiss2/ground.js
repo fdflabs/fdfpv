@@ -562,6 +562,16 @@ export const MEADOW_GLSL = /* glsl */ `
 
     tint = mix(tint, vec3(1.0, 1.03, 0.88), 0.35 * plateau);
 
+    /* The village's greens are no farmer's field: nobody mows them in
+     * passes, and from above a plateau striped like one read as a lawn.
+     * Grass grown rank in patches, trodden paler where people cross. */
+    float green = plateau * (1.0 - onAir);
+    float rank = smoothstep(0.45, 0.7, s2Fbm(xz / 14.0 + 3.9));
+    float trodden = smoothstep(0.55, 0.75, s2Noise(xz / 9.0 + 12.1)) * (1.0 - rank);
+    tint *= mix(vec3(1.0), mix(vec3(1.0), vec3(0.8, 0.9, 0.8), rank) * mix(vec3(1.0), vec3(1.12, 1.07, 0.84), trodden), green);
+    mown = mix(mown, mown * (1.0 - rank), green);
+    passes *= 1.0 - 0.85 * green;
+
     /* The airfield's own grass, whatever parcel it lies across. */
     tint = mix(tint, vec3(1.02, 1.07, 0.82) * (0.95 + 0.1 * s2Noise(xz / 17.0 + 2.8)), air.runway);
     tint = mix(tint, vec3(0.74, 0.86, 0.7) * (0.9 + 0.2 * s2Fbm(xz / 8.0 + 9.4)), 0.85 * air.rough);
