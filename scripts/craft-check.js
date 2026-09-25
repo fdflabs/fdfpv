@@ -92,6 +92,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             to 2 mm as the drawn half span. The reach is the elevator's
  *             outer trailing corner, 0.639 m. src/render/slowstickcraft.js
  *             draws it.
+ *   timber1500  a 1555 mm E-flite Turbo Timber Evolution: the span is
+ *             E-flite's, and the reach is the drooped tip's trailing
+ *             corner, 0.778 m out and 0.180 m aft of the CG.
+ *             src/render/timbercraft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -107,6 +111,7 @@ const REAL = {
   radian2000: { spanMm: 2000.0, sweepMm: 2018.7, tolMm: 6 },
   bramor2300: { spanMm: 2300.0, sweepMm: 2551.0, tolMm: 6 },
   slowstick1180: { spanMm: 1264.0, sweepMm: 1278.1, tolMm: 6 },
+  timber1500: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

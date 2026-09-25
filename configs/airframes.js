@@ -641,6 +641,56 @@ export const AIRFRAMES = [
       bodyHeight: 0.355,
     },
   },
+  {
+    /*
+     * The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md: a
+     * STOL bush plane on 4S, simId 7 on the fixed wing plant, with
+     * ailerons, an elevator, a rudder, slotted flaps and fixed slats. It
+     * stands on big foam tyres and a tailwheel like the Cub, so throttle
+     * rolls it off the strip (L still throws it); `gear` is the plant's
+     * settled pose, which the drawn wheels in src/render/timbercraft.js
+     * match: the CG 0.2115 m over the ground and 11.8 degrees nose up.
+     * `flaps` says it has them: F steps them up, half and full, and the
+     * OSD says where they are.
+     */
+    id: 'timber1500',
+    simId: 7,
+    fixedWing: true,
+    gear: { restHeight: 0.2115, restPitch: 11.81 * Math.PI / 180 },
+    flaps: true,
+    name: 'Turbo Timber',
+    short: 'Timber',
+    blurb: 'A 1555 mm E-flite Turbo Timber Evolution on 4S, a bush plane with slats and big flaps. Full flaps and it is off the strip in two metres and crawls nose high; flaps up and it is quick and aerobatic. F sets the flaps.',
+    facts: ['4S', '1555 mm', 'STOL, flaps'],
+    trackClass: 'wing',
+    cells: 4,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'timber-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/timbercraft.js TIMBER_DIMS: the
+     * furthest reach in plan, the drooped tip's trailing corner, the tyres'
+     * lowest drawn point and the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1397,
+      hullR: 0.7981,
+      vHalfDown: 0.227,
+      vHalfUp: 0.195,
+      bodyLength: 1.04,
+      bodyWidth: 1.555,
+      bodyHeight: 0.422,
+    },
+  },
 ];
 
 

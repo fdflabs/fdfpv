@@ -23,8 +23,9 @@
  * See PROGRESS.md.
  *
  * Keys in flight: Escape pauses, R returns to the start line, L is launch
- * control when that setting is on, F3 toggles the performance readout, F8
- * reports a bug. Everything else is a menu choice.
+ * control when that setting is on, F steps the flaps of an aircraft that
+ * has them, F3 toggles the performance readout, F8 reports a bug.
+ * Everything else is a menu choice.
  * Sticks: radio in joystick mode (Gamepad API) or WASD plus arrows.
  * Drop a Betaflight diff file onto the page to fly your own config.
  *
@@ -99,6 +100,7 @@ import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
 import { BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP } from './render/bramorcraft.js';
 import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickcraft.js';
+import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP } from './render/timbercraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
  * in the craft frame, from the module that draws it. A quad's comes from
@@ -109,6 +111,7 @@ const WING_MOUNTS = {
   radian2000: [GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP],
   bramor2300: [BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP],
   slowstick1180: [SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP],
+  timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
 };
 import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
@@ -2504,6 +2507,22 @@ export async function boot({ loading, bootStart, mapId }) {
   /* What the module was last told about the wing's stabiliser. */
   let wingStabApplied = -1;
   /*
+   * THE FLAPS' SWITCH, on an aircraft that has them (airframes.js `flaps`):
+   * 0 up, 1 half, 2 full, stepped by F in that order and round again, as a
+   * radio's three position flap switch is flipped. The plant keeps the
+   * notch across resets and moves the flaps there at the servo's own rate;
+   * this is the shell's copy for the OSD and the key, and it goes back to
+   * up whenever the airframe changes, as the plant's does.
+   */
+  let flapNotch = 0;
+  function setFlapNotch(n) {
+    if (typeof sim.e.sim_wing_set_flaps !== 'function' || sim.e.sim_wing_set_flaps(n) !== SIM_OK) {
+      return false;
+    }
+    flapNotch = n;
+    return true;
+  }
+  /*
    * The Bramor's catapult, once the aircraft has left it: the launcher's
    * world matrix, held so it stays at the spawn while the aircraft it is
    * parented to flies away (it is part of the craft's model, so it is
@@ -4053,6 +4072,8 @@ export async function boot({ loading, bootStart, mapId }) {
          * craft is session lived and the world is not.
          */
         syncCraftScale();
+        /* The plant raised the old airframe's flaps with it. */
+        flapNotch = 0;
         /*
          * AND THE TRACK, because the seats are one per class and the new one
          * may be empty. A pilot who chooses the whoop having never built a
@@ -5253,6 +5274,18 @@ export async function boot({ loading, bootStart, mapId }) {
     }
     if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).chute) {
       pullChute();
+      return;
+    }
+    if (code === 'KeyF' && ui.screen === 'flight' && airframeById(runAirframe).flaps) {
+      if (setFlapNotch((flapNotch + 1) % 3)) {
+        /* Parked, the plant is held by not stepping it, and the servos
+         * would have moved the flaps in the time it sat there. */
+        if (landed && typeof sim.e.sim_wing_flaps_settle === 'function') {
+          sim.e.sim_wing_flaps_settle();
+        }
+        const said = [str('ui.flaps_up'), str('ui.flaps_half'), str('ui.flaps_full')];
+        notice = { text: said[flapNotch], untilMs: performance.now() + 1600 };
+      }
       return;
     }
     if (code === 'KeyC' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
@@ -7202,6 +7235,10 @@ export async function boot({ loading, bootStart, mapId }) {
         shell.setSurfaces(out[0], out[1], out[2], out[3]);
       }
     }
+    /* And the flaps, where the plant has moved them, trailing edge down. */
+    if (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function') {
+      shell.setFlaps(sim.e.sim_wing_flaps());
+    }
     poseBramorExtras();
 
     /* The lens sits where herocraft.js bolts it, forward AND up, not at the
@@ -7805,6 +7842,8 @@ export async function boot({ loading, bootStart, mapId }) {
         flightMode: airframeById(runAirframe).fixedWing
           ? (['manual', 'stab', 'acro'][tuneById(configId).wingStab || 0])
           : (turtleWait || turtleFlip.active) ? 'turtle' : (angleModeOn ? 'angle' : 'acro'),
+        /* The flaps' notch, on an aircraft that has them; null hides it. */
+        flaps: airframeById(runAirframe).flaps ? flapNotch : null,
         /* No damage model, so nothing to count down. How much this run has
          * bounced is still worth telling a pilot, and the OSD says nothing
          * at all until there is something to say. */
@@ -7971,7 +8010,9 @@ export async function boot({ loading, bootStart, mapId }) {
        */
       /* A wing has no throttle to take off on: L throws it. */
       const isWing = Boolean(airframeById(runAirframe).fixedWing);
-      const start = airframeById(runAirframe).gear
+      const start = airframeById(runAirframe).flaps
+        ? str('main.throttle_up_flaps_f')
+        : airframeById(runAirframe).gear
         ? str('main.throttle_up_to_take_off_from')
         : airframeById(runAirframe).catapult
         ? str('main.launch_it_off_the_catapult')
