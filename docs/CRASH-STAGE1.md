@@ -130,8 +130,13 @@ mode on.
   the parts' hull). Consumed by that call; changes nothing with the mode
   off.
 - `sim_obstacle_box`, `sim_obstacle_cylinder`, `sim_obstacle_clear`: what
-  the free bodies meet, which the shell does not track. The craft itself
-  still meets the world through the shell's `sim_contact_at`.
+  the free bodies meet, which the shell does not track. Since round 5 the
+  craft meets them too, with its own parts every step, and a host's
+  `sim_contact_at` on one is dropped (section 3, the plant meets the solids
+  it knows); on anything else the craft meets the world through the
+  shell's `sim_contact_at` as before.
+- `sim_obstacle_contacts()`: how many parts met a known solid on the last
+  step, 0 with the mode off, for a host that dated a hit by its own call.
 - `sim_tree_add(x, y, z0, trunk_r, crown_z0, crown_z1, crown_r)`,
   `sim_tree_clear`: a crown the craft and the free bodies fly into, which
   drags and can hold; the trunk is an obstacle for the free bodies.
@@ -400,30 +405,13 @@ at least 0.75 of the speed is kept (`crash:core`, "a Cub clips a pole with
 its right wing at cruise": 0.964; on main 0.386, with the boom, the left
 panel and the prop off).
 
-**A contact on a part that has gone.** The host meets the world with its
-own hull, and a plane's was a disc of its half span in its own plane
-(`src/game/collide.js`, `contactPatch`; since the parts' hull below, a
-quad's only): it meets a pole 0.42 m out 0.56 m
-ahead of a Cub's CG, about half a metre before the wing does, and once the panel has left, the next passes still meet the
-pole the panel met, a few centimetres on, with nothing of the aircraft
-there. On main those contacts were put onto the nearest part left and
-stopped the craft on a pole it was flying past (with the sever alone the
-motor, the pack, the canopy and the fin went that way, 5.3 m/s taken). So
-once a part has left, and the plant has been told of a solid within the
-airframe's reach (`sim_obstacle_*`, `sim_tree_add`), a host contact counts
-only if a part still on the craft is at a solid, within the distance the
-craft closes in the time the call stands for plus 2 cm, the hulls sampled
-along the segments between their points (a pole at mid span is between a
-panel's root and tip). None: no contact at all, and the host's pose is not
-written either, since it is the host's hull moved off the solid (the Cub
-was shoved 0.41 m sideways over 16 passes). Some: the plant places the
-craft itself, out of the solid by its parts' deepest point plus the host's
-8 mm separation, and meets it at its own leading point, not the host's
-hull point (the Bramor in a crown, its elevons gone, was thrown 0.70 m off
-the trunk by the host's pose, and its hull point stood 1.13 m ahead of its
-CG). A contact with no solid named near is the host's, as always. The
-hook is in `sim.c` (`sim_contact`, `sim_contact_at`), before the pose is
-written, and only with the mode on.
+**A contact on a part that has gone** (the wing clip's rule, replaced in
+round 5). The host's hull spanned a panel that had left and met the pole
+the panel met, with nothing of the aircraft there; the wing clip dropped
+such a contact, or placed the craft by its own parts, when the plant knew
+the solid. The plant now meets every solid it knows with the parts still
+on and drops the host's contact on one (below), so the rule and its
+placement are gone.
 
 **The parts' hull** (the wing clip's open item). The disc did worse than
 meet a pole early: the point it handed the plant stood in the air ahead of
@@ -446,12 +434,81 @@ pole stands, and only the panel and what it carries leave at the pole
 (the crash suite's `firstObstacle`; `crash:core`, "a pole met by the parts'
 hull is the wing panel's"; the real shell, `scripts/wing-hull-check.js`).
 
-Chosen over the plant resolving its own parts against `sim_obstacle_*`
-every step, as the free bodies do: the plant knows only the 64 solids
-nearest the craft, refreshed every 12 m, and none with the mode off, so a
-plane would have met a city with two hulls at once; the shell's sweep
-already holds every collider on the sim clock, and its clip watch,
-sounds and scoring read it.
+This was chosen over the plant resolving its own parts against
+`sim_obstacle_*` every step, because the plant knows only the 64 solids
+nearest the craft, refreshed every 12 m, and a plane would have met a city
+with two hulls at once. Round 5 does both without the double (below): the
+shell's sweep still finds every contact, and its clip watch, sounds and
+scoring still read it, but a host's impulse reaches the craft only on a
+solid the plant was not told of.
+
+**The plant meets the solids it knows** (round 5). A host's obstacle
+contact was one impulse per call, and a call stands for up to 20 steps:
+the craft took its whole change of speed at a gate, a wall or a pole in
+one millisecond (a five inch clipping a gate at 15 m/s 1,102 g, the pole
+runs' Timber 1,318 g), where the ground has been a spring since round 2.
+With the mode on, every solid the plant has been told of
+(`sim_obstacle_*` and a tree's trunk) is now met by the parts themselves
+in every step (`crash.c` `crash_touches`, `sim.c` `obstacle_apply`), one
+contact a part at its deepest sample: its hull points and eight points on
+every segment between them, since a hull is a few points and a pole at mid
+span stands between a panel's root and tip. The normal is taken when the
+contact starts, a box's face or a pole's radius through the first point
+in, and held while it lasts; the depth is along it, over the solid's width
+across it, so a prop disc that swallows a gate's upright is as deep as it
+has gone over the pole and not the pole's radius. Each contact is a
+spring, the part's, the surface's and the struck chain's bending (3 E I /
+a^3 of every ringing joint to the root, as the wing clip took it) in
+series: while the part is driven in its impulse in a step is at most k x
+dt and never more than stops it; once it has stopped it is the rigid
+contact, with no push back out but the position correction. A foam part
+crushes when the force the spring has reached reaches its plateau, not on
+the rigid estimate v sqrt(k m), so a panel on its spar bends before its
+leading edge crushes. Where k x would pass what the chain's weakest joint
+holds at the point, that joint lets go at its limit in that step: the
+wing clip's sever, reached over the steps it takes. A host's contact is
+dropped with its pose (`crash_contact_known`) when its point, carried along
+-n by 2 cm plus the distance the craft closes in the time the call stands
+for, or the line from the CG along -n out to the airframe's reach, is
+inside a solid the plant knows: a quad's host hands the plant its prop
+disc's centre, not the rim that met the gate. `sim_obstacle_contacts()`
+says how many parts met one in the last step, for a host that dated a hit
+by its own call. A contact on anything the plant was not told of is the
+host's, as always. The whoop the shell flies keeps the host's contact, as
+it keeps the rigid ground, since its room is scaled and its surfaces are
+not.
+
+Measured (crash suite, Node, against main d043d2a): the gate clip at 15
+m/s 1,102 to 244 g, a prop now breaks at the gate and the quad tumbles 20 m
+on; the pole runs no longer peak at the pole, and their peaks are the
+ground hits that follow (Cub 893 to 123 g, Timber 1,318 to 292);
+`crash:core`'s Cub clip still loses only its right panel and keeps 0.916
+of its speed (0.964 with the one call sever). Two
+checks moved the wrong way, both in how they are measured: slowstick-pole
+dates its impact from a host call, and the pole contact is now the
+plant's, so its retained energy and rest distance are taken from a later
+ground hit (with `sim_obstacle_contacts` counted as a contact they pass);
+bramor-pole's 199 g is the step a panel breaks off at a ground hit and the
+CG moves to the parts left. The five inch into masonry stays about 2,300 g:
+its props and arms break and the frame, 5e6 N/m against concrete's 5e7, is
+a spring of half a millisecond, inside one step; a frame that crushes needs
+a crush in the tables.
+
+**A wreck on its side, and on its back** (round 5, `sim.c`, mode on only).
+A craft between upright and inverted met the ground at one support vertex,
+a rule from the rigid contact so that four coplanar contacts could not
+lock a roll. With every part its own spring there is nothing to lock, and
+the single support let the rest of the airframe sink unresolved while a
+folding leg held the projection aside: the Cub rolled on its side after
+the clip had its fuselage 15 cm into the grass when the support switched
+to it, and the position bias threw it out at 715 g, taking the pack,
+canopy, fin, stabiliser and boom at once. On its side the craft now meets
+the ground with every sampler; inverted keeps its bump, for turtle. And
+the resting stop for a craft on its back, which zeroes its motion when the
+hull touches, now waits until it has all but stopped (the slide and spin
+thresholds the other stops use): it took a Timber sliding inverted at 4.4
+m/s and a five inch tumbling at 10 m/s to rest in one millisecond, 454 and
+1,096 g. Both keep the whoop the shell flies as it was.
 
 ### Under the break, per material (`crash.c`)
 
@@ -581,9 +638,10 @@ depth x its deepest point has reached, `F = k x`:
 - Not sprung: a whip, which loaded along its length buckles and folds
   (sprung, and capped at its yield, it broke the five inch's whip and pack
   on its back, against the references); the whoop the shell flies, whose
-  room is scaled 3.43 times but whose surfaces are not; obstacles, which
-  are the host's one impulse per call; and wheels and floats, which were
-  springs already.
+  room is scaled 3.43 times but whose surfaces are not; a solid the plant
+  was not told of, which is the host's one impulse per call (the solids it
+  knows are springs since round 5, section 3); and wheels and floats,
+  which were springs already.
 - **A music wire gear leg folds** (round 4). Round 3 left it the rigid one
   step contact, and landing on one was 473 g in the Cub's cartwheel; its
   wheel's spring and damper, elastic to the end, broke the Cub's and the
@@ -694,7 +752,8 @@ rigid contact left it (0.26 mm).
 | a music wire leg's fold (round 4) | 1.7 x the yield moment over the leg's lever | a round section's plastic hinge | ASTM A228 (E 207 GPa, 1,600 MPa) |
 | a blade's tip blow (round 3) | v_tip sqrt(k m_blade / 3) at its radius | the blade's spring against its own inertia | derived |
 | a struck chain's hold (wing clip) | F_lim = min(F_max, M_max / a) over the joints to the root, the craft given F_lim^2 / (2 k v) | a linear ramp to the weakest joint's limit through the part's, the surface's and the chain's cantilever springs in series, 3 E I / a^3 each | derived; E I as the ring's (TAP Plastics, Negussey and Anasthas) |
-| a gone part's contact band (wing clip) | 2 cm plus the closing speed times the call's time | the host's call stands for the steps since its last, at most 20 | chosen |
+| a known solid's contact (round 5) | k x dt a step while driven in, k the part's, the surface's and the struck chain's 3 E I / a^3 in series; the weakest joint lets go when k x reaches its hold | the ground's spring, and the wing clip's chain, followed step by step | derived |
+| a host contact on a known solid (round 5) | the host's point, or the CG out to the airframe's reach, carried 2 cm plus the closing speed times the call's time along -n into a solid the plant knows | the host's call stands for the steps since its last, at most 20 | chosen |
 
 "Chosen" is an engineering estimate with its reasoning in the table's
 comment, not a measurement. The suite's bands are what will say whether
@@ -992,8 +1051,20 @@ The parts' hull (`sim_contact_part`), against main 4a9a30b: off is
 identical on all 24. On, every script's output is byte for byte main's own
 mode on build's (26 files): no gate names a part.
 
+Round 5, ground impact (the plant meets the solids it knows, a wreck on
+its side and on its back), against main d043d2a, with FDFPV_BOARD set:
+off is identical on all scripts. On, set against main 0eaa193 built with
+the mode on, cub:gates, bombshell:gates, floats:gates and whoop:gates are
+byte for byte its output; three move, each a rigid hull check or its
+known mode on failure: bramor:gates B12 still fails (11.1 deg from flat and 0.185 m up, 4.3 and
+0.211 on main's mode on), wing:contact and contact:selftest fail the same
+number of checks as main's mode on (14 and 8) with different depths, and
+contact:selftest's "after turtle, throttle is flight again" now passes
+with the mode on.
+
 `score:selftest` exits 1 on base as well as here: a failure on main that
-predates this work, reported and not touched.
+predates this work, reported and not touched. So do slowstick:gates and
+bombshell:stab on main d043d2a, with the mode off and on alike.
 
 ## 7. What the shell must build (Phase A item 4)
 
