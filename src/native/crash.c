@@ -479,6 +479,7 @@ typedef struct {
   double damage;
   double ring[6];    /* a ringing panel's joint force and moment, body */
   double ring_d[6];  /* and their rates */
+  double fold;       /* a wire leg's plastic set, m of travel at its foot */
 } PartState;
 
 static PartState PS[SIM_PARTS_MAX];
@@ -527,6 +528,8 @@ static int g_from_step = 0;
 static int g_soft_now = 0;
 static unsigned int g_spring_mask = 0;
 static unsigned int g_batch_spring = 0;
+static unsigned int g_fold_mask = 0;   /* wire legs folding in the last step */
+static unsigned int g_batch_fold = 0;  /* and in this batch */
 static double g_batch_pen[SIM_PARTS_MAX];
 /* The points each part met the ground at, this step and the last. */
 static double g_spring_pts[SIM_PARTS_MAX][SIM_PART_PTS_MAX][3];
@@ -1109,6 +1112,7 @@ void crash_reset(void) {
       p->ring[a] = 0.0;
       p->ring_d[a] = 0.0;
     }
+    p->fold = 0.0;
     FB[i].state = 0;
   }
   g_shift[0] = g_shift[1] = g_shift[2] = 0.0;
@@ -1131,6 +1135,8 @@ void crash_reset(void) {
   g_last_contact_step = -1000000;
   g_spring_mask = 0;
   g_batch_spring = 0;
+  g_fold_mask = 0;
+  g_batch_fold = 0;
   g_soft_now = 0;
   for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
     g_spring_npts[i] = 0;
@@ -1499,6 +1505,122 @@ static void spring_pre(int i, double vin, double kn, double *e_used, double *jn_
   g_soft_now = 1;
 }
 
+/*
+ * WIRE GEAR FOLDS. A music wire leg is a spring (its wheel's, sim.c, or its
+ * own and the ground's in series when the leg itself is met) until the
+ * moment at its root reaches the plastic hinge's, 1.7 times the yield moment
+ * for a round section; then it bends at that moment without carrying more,
+ * the plastic set taking the rest of the travel, until the leg lies folded
+ * as far as it reaches below its root and the fuselage meets the ground.
+ * So a hard landing splays the gear, and the work the leg does bending is
+ * what it absorbs, where a rigid leg stopped the craft in a millisecond and
+ * an elastic one broke at 2.21 times its yield. ASTM A228 music wire: E 207
+ * GPa, bending yield 1,600 MPa (the tables' WIRE_M, the break, is 2.21
+ * times the yield moment). The legs' wheel stiffness in plant.c is within a
+ * third of 3 E I / L^3 for their drawn wire and length (the Timber's 4 mm
+ * leg, 0.16 m: 1,900 N/m, the plant's 1,500). docs/CRASH-STAGE1.md, Damage.
+ */
+#define WIRE_HINGE (1.7 / 2.21)
+
+static int wire_leg(const PartDef *d) {
+  return d->kind == SIM_PART_GEAR && d->mat == SIM_MAT_WIRE;
+}
+
+/* The force along the normal nb (out of the ground, body frame) that bends
+ * leg i's root at its plastic hinge. The lever is the leg's own, from its
+ * root to its foot (its hull point farthest from the root), whichever of
+ * its hull points the ground meets: a box round a bent wire is not the
+ * wire, and a corner under the root would read as a leg loaded end on. */
+static double fold_force(const Table *t, int i, const double nb[3], double mu) {
+  const PartDef *d = &t->p[i];
+  double e[3] = { 0.0, 0.0, 0.0 }, far = -1.0;
+  for (int k = 0; k < d->npts; k += 1) {
+    const double q[3] = { d->pts[k][0] - d->joint[0], d->pts[k][1] - d->joint[1], d->pts[k][2] - d->joint[2] };
+    const double l = dot(q, q);
+    if (l > far) {
+      far = l;
+      e[0] = q[0];
+      e[1] = q[1];
+      e[2] = q[2];
+    }
+  }
+  /* The ground's friction at the foot bends the leg too: at most mu times
+   * the normal force, on at most the leg's whole reach. */
+  double c[3];
+  cross(e, nb, c);
+  const double arm = norm(c) + mu * sim_sqrt(far);
+  const double st = PS[i].strength;
+  const double fm = WIRE_HINGE * d->f_max * st;
+  if (!(arm > 1.0e-3)) {
+    return fm;
+  }
+  const double f = WIRE_HINGE * d->m_max * st / arm;
+  return f < fm ? f : fm;
+}
+
+/* How far a leg can fold: as far as it reaches below its root. */
+static double fold_travel(const Table *t, int i) {
+  return t->hi[i][2] - t->lo[i][2];
+}
+
+double crash_wheel_force(const SimState *s, int w, const double r[3], const double n[3], double pen, double vn) {
+  const WheelParams *wp = &PLANT.wheel[w];
+  const Table *t = tab();
+  const int i = t->wheel_part[w];
+  if (i < 0 || !attached(i) || !wire_leg(&t->p[i])) {
+    return wp->k * pen - wp->c * vn;
+  }
+  PartState *p = &PS[i];
+  double nb[3];
+  qrot_inv(s->quat, n, nb);
+  const double fp = fold_force(t, i, nb, 0.0);
+  /* The plastic set grows only by what the elastic leg would carry past
+   * the hinge's force, until the leg lies folded against the airframe:
+   * from there its wheel is where the belly is. */
+  if (wp->k * (pen - p->fold) > fp) {
+    p->fold = pen - fp / wp->k;
+  }
+  if (p->fold > fold_travel(t, i)) {
+    p->fold = fold_travel(t, i);
+  }
+  const double f = wp->k * (pen - p->fold) - wp->c * vn;
+  return f < fp ? f : fp;
+}
+
+/* A leg met by the ground on its own hull: the same hinge, a plateau the
+ * solver's impulse is capped at while the leg folds, as a crush is. Its hull
+ * is the leg unfolded, so a leg folded flat goes on giving at the hinge's
+ * force until the airframe beside it meets the ground, which is where a
+ * folded leg lies. */
+static void fold_pre(const Table *t, int i, double vin, double kn, double *e_used, double *jn_cap) {
+  const unsigned int bit = 1u << i;
+  PartState *p = &PS[i];
+  const double fp = fold_force(t, i, g_att_nb, SURF[g_surf].mu);
+  const double k = series_k(t->p[i].k, SURF[g_surf].k);
+  const double f = vin * sim_sqrt(k * PLANT.mass_kg);
+  const int going = ((g_fold_mask & bit) && vin > SPRING_GOING) || (g_batch_fold & bit);
+  if (!(f > fp) && !going) {
+    return;
+  }
+  if (!(g_batch_fold & bit)) {
+    p->fold += vin * g_batch_dt;
+  }
+  g_batch_fold |= bit;
+  double cap = fp * g_batch_dt - g_crush_used[i];
+  if (cap < 0.0) {
+    cap = 0.0;
+  }
+  if (cap > vin / kn) {
+    cap = vin / kn;
+  }
+  *e_used = 0.0;
+  *jn_cap = cap;
+  g_sp_stiff = -1;
+  g_capped_now = 1;
+  g_crushing = 1;
+  g_soft_now = 1;
+}
+
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
                        double vin, double kn, double *e_used, double *jn_cap) {
   g_capped_now = 0;
@@ -1569,6 +1691,10 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
    * lives in a room scaled 3.43 times, whose floor the surfaces table does
    * not scale; it keeps the rigid contact. */
   if (!g_surf_ground || tab() == &T_WHOOP_SCALED) {
+    return;
+  }
+  if (wire_leg(d)) {
+    fold_pre(t, i, vin, kn, e_used, jn_cap);
     return;
   }
   if (d->mat == SIM_MAT_WIRE) {
@@ -1778,6 +1904,7 @@ void crash_batch_begin(const SimState *s, int from_step) {
   g_crushing = 0;
   g_batch_crush = 0;
   g_batch_spring = 0;
+  g_batch_fold = 0;
   g_from_step = from_step;
   if (from_step) {
     g_ground_jn = 0.0;
@@ -2645,6 +2772,7 @@ void crash_batch_end(SimState *s) {
    * between two of them neither starts nor ends it. */
   if (g_from_step) {
     g_spring_mask = g_batch_spring;
+    g_fold_mask = g_batch_fold;
   }
   if (g_nh == 0 && !(g_from_step && ring_live())) {
     const Table *t = tab();

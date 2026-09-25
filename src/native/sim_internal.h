@@ -748,6 +748,10 @@ void crash_step(SimState *s, int ground_on, const double gn[3], double gd);
 void crash_reset(void);
 /* The part carrying a PlantParams wheel, or a float (0 left, 1 right). */
 int crash_wheel_part(int w);
+/* A wheel's strut force, damage mode only: the plant's spring and damper,
+ * k pen - c vn, until a music wire leg's root reaches its plastic hinge,
+ * where it bends and folds instead (crash.c, WIRE GEAR FOLDS). */
+double crash_wheel_force(const SimState *s, int w, const double r[3], const double n[3], double pen, double vn);
 int crash_float_part(int f);
 /* A non default surface's own mu and e, written over the caller's. */
 void crash_surface_mu_e(int mat, double *mu, double *e);

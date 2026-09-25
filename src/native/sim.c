@@ -944,7 +944,7 @@ static int ground_wheels(void) {
     double vp[3];
     contact_point_vel(r, vp);
     const double vn = vp[0] * n[0] + vp[1] * n[1] + vp[2] * n[2];
-    const double fn = wp->k * pen - wp->c * vn;
+    const double fn = SIM_DAMAGE ? crash_wheel_force(&S, i, r, n, pen, vn) : wp->k * pen - wp->c * vn;
     if (!(fn > 0.0)) {
       continue;
     }
