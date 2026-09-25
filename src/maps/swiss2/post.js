@@ -73,12 +73,18 @@ import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
  * them, and the photographs have each ridge paler than the one in front
  * (tools/swiss2-loop/contrast.py's layer, +0.06 over the photographs).
  *
- * slope and pivot are the print's: its lightness steepened about pivot
- * by slope. Measured against the photographs (contrast.py), the frames
- * were flat, the ground's 5th to 95th percentile of lightness 0.19 to
- * 0.65 against the photographs' 0.13 to 0.77 and the local contrast
- * 0.055 against 0.077, with the middle value the same (0.38); slope
- * 1.45 is what closes it, with a saturation that does not move.
+ * The print steepens its lightness about pivot. Measured against the
+ * photographs (contrast.py), the frames were flat: the ground's 5th to
+ * 95th percentile of lightness 0.19 to 0.65 against the photographs'
+ * 0.13 to 0.77, the local contrast 0.055 against 0.077, the middle value
+ * the same (0.38). One slope for every frame (1.45 closed the means)
+ * crushed the views that already had range, the eye level ones under
+ * dark crowns and the bus in shade, and left the flattest (lake-high)
+ * flat, as a printer would not. So the slope is the frame's own: spread
+ * over the meter's measured spread of log2 luminance (the taps' centre
+ * weighted deviation, 0.5 stops for lake-high to 1.6 into the sun),
+ * between 1 and slopeMax. slope is the fixed one for a preset with no
+ * meter, what spread gives the typical view's 0.75 stops.
  */
 export const AIR = {
   beta: new THREE.Vector3(5.6e-5, 7.5e-5, 10.6e-5),
@@ -88,6 +94,8 @@ export const AIR = {
   exposure: 1.45,
   contrast: 0.6,
   slope: 1.45,
+  spread: 1.2,
+  slopeMax: 1.8,
   pivot: 0.38,
 };
 
@@ -205,7 +213,8 @@ const GLARE = 1.5e-4;
  * target, drawn in one draw so the taps are read in parallel, and then
  * one texel that averages them and moves toward the average at the
  * exposure's pace. Its green is how much of the sun the lens sees, moved
- * at the same pace, so a glare fades as a ridge covers the sun.
+ * at the same pace, so a glare fades as a ridge covers the sun; its blue
+ * is the deviation of the taps' log2 luminance, for the print's slope.
  */
 const METER_W = 16;
 const METER_H = 8;
@@ -241,7 +250,7 @@ const MeterTapShader = (sunGlsl) => ({
       float L = clamp(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-3, 30.0);
       vec2 q = (vUv - 0.5) * vec2(1.0, 1.4);
       float w = 1.0 - 0.6 * smoothstep(0.1, 0.55, length(q));
-      gl_FragColor = vec4(log2(L) * w, w, 0.0, 1.0);
+      gl_FragColor = vec4(log2(L) * w, w, log2(L) * log2(L) * w, 1.0);
     }
   `,
   reduce: /* glsl */ `
@@ -255,10 +264,10 @@ const MeterTapShader = (sunGlsl) => ({
     uniform vec3 uSunUv;
     ${sunGlsl}
     void main() {
-      vec2 s = vec2(0.0);
+      vec3 s = vec3(0.0);
       for (int j = 0; j < ${METER_H}; j++) {
         for (int i = 0; i < ${METER_W}; i++) {
-          s += texelFetch(tTaps, ivec2(i, j), 0).rg;
+          s += texelFetch(tTaps, ivec2(i, j), 0).rgb;
         }
       }
       /* The sun past the ridges and the clouds from where the camera
@@ -268,9 +277,11 @@ const MeterTapShader = (sunGlsl) => ({
       if (uSunUv.z > 0.5) {
         vis *= step(1.0, texture2D(tDepth, uSunUv.xy).x) * texture2D(tCloud, uSunUv.xy).a;
       }
-      vec2 now = vec2(s.x / max(s.y, 1e-4), vis);
-      vec2 prev = texture2D(tPrev, vec2(0.5)).rg;
-      gl_FragColor = vec4(mix(prev, now, uBlend), 0.0, 1.0);
+      float mean = s.x / max(s.y, 1e-4);
+      float spread = sqrt(max(s.z / max(s.y, 1e-4) - mean * mean, 0.0));
+      vec3 now = vec3(mean, vis, spread);
+      vec3 prev = texture2D(tPrev, vec2(0.5)).rgb;
+      gl_FragColor = vec4(mix(prev, now, uBlend), 1.0);
     }
   `,
 });
@@ -328,7 +339,8 @@ class MeterPass extends Pass {
     this.sunNdc = new THREE.Vector3();
   }
 
-  /* The metered value this frame: r the log2 luminance, g the sun seen. */
+  /* The metered value this frame: r the log2 luminance, g the sun seen,
+   * b the log2 luminance's spread. */
   get texture() {
     return this.ping[this.current].texture;
   }
@@ -524,7 +536,7 @@ const PhotoShader = {
       }
       float ev = uExposure;
       #ifdef LENS_METER
-        vec2 meter = texture2D(tMeter, vec2(0.5)).rg;
+        vec3 meter = texture2D(tMeter, vec2(0.5)).rgb;
         ev *= clamp(pow(${KEY.toFixed(4)} / exp2(meter.r), ${ADAPT.toFixed(3)}), ${RANGE[0].toFixed(3)}, ${RANGE[1].toFixed(3)});
       #endif
       #ifdef LENS_GLARE
@@ -540,11 +552,16 @@ const PhotoShader = {
        * display values, which keeps black and white where they are. */
       vec3 dv = pow(c, vec3(0.4545));
       dv = mix(dv, dv * dv * (3.0 - 2.0 * dv), uContrast);
-      /* The print's slope (AIR.slope): the lightness steepened about the
-       * frame's middle value, with a soft toe and shoulder, and the
-       * colour scaled with it so its saturation is what it was. */
+      /* The print's slope (AIR above): the lightness steepened about the
+       * frames' middle value, more for a flat frame than for one with
+       * range, with a soft toe and shoulder, and the colour scaled with
+       * it so its saturation is what it was. */
       float l0 = max(dot(dv, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
-      float l1 = ${AIR.pivot.toFixed(3)} + (l0 - ${AIR.pivot.toFixed(3)}) * uSlope;
+      float slope = uSlope;
+      #ifdef LENS_METER
+        slope = clamp(${AIR.spread.toFixed(3)} / max(meter.b, 0.1), 1.0, ${AIR.slopeMax.toFixed(3)});
+      #endif
+      float l1 = ${AIR.pivot.toFixed(3)} + (l0 - ${AIR.pivot.toFixed(3)}) * slope;
       l1 = l1 < 0.14 ? 0.14 * exp((l1 - 0.14) / 0.14) : l1;
       l1 = l1 > 0.85 ? 1.0 - 0.15 * exp((0.85 - l1) / 0.15) : l1;
       dv = clamp(dv * (l1 / l0), 0.0, 1.0);
