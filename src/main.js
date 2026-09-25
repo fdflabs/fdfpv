@@ -3578,6 +3578,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * for the same roof and extent, which is how a change is seen. */
   let crashCovered = null;
   const passSet = [];
+  /* The posts and bars declared to the plant, which the sweep passes
+   * (plantHoldsSolid): cleared at every declaration, which the cover watch
+   * makes between two refreshes of the trees. */
+  const solidPassSet = [];
   let crashWorldPhase = 0;
   let crashWorldX = NaN;
   let crashWorldZ = NaN;
@@ -3697,6 +3701,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
     }
     passSet.length = 0;
+    clearSolidPass();
+  }
+
+  function clearSolidPass() {
+    const pass = view.colliders && view.colliders.pass;
+    for (const i of solidPassSet) {
+      if (pass) {
+        pass[i] = 0;
+      }
+    }
+    solidPassSet.length = 0;
   }
 
   function clearCrashWorld() {
@@ -3833,6 +3848,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * flight. */
   function declareCrashSolids() {
     const col = view.colliders;
+    clearSolidPass();
     sim.e.sim_obstacle_clear();
     crashSolidsDeclared = 0;
     const covered = view.coveredAt
@@ -3859,7 +3875,34 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         break;
       }
       crashSolidsDeclared += 1;
+      if (plantHoldsSolid(col, i)) {
+        col.pass[i] = 1;
+        solidPassSet.push(i);
+      }
     }
+  }
+
+  /*
+   * A POST OR A BAR THE PLANT HOLDS IS THE PLANT'S ALONE. Its parts meet
+   * it through their own springs, so they go into it a little, and the
+   * host's sweep read that as a craft buried in a pole: it dropped the
+   * contact (crash_contact_known) but then put the craft back out along
+   * the pole's radius and carried its travel round the face, a few
+   * centimetres sideways every 4 ms. A Cub's wing at 0.3 to 0.6 m out slid
+   * round a power pole that way with no damage at all. The sweep lets these
+   * through, as it does a tree's crown. A box is still met by both: its top
+   * is ground the shell perches on (a deck, a car roof, a roof's walls) and
+   * a ball is declared as a cylinder, so neither is the same solid in the
+   * plant.
+   */
+  function plantHoldsSolid(col, i) {
+    if (col.fbox[i]) {
+      return false;
+    }
+    const dx = col.fbx[i] - col.fax[i];
+    const dy = col.fby[i] - col.fay[i];
+    const dz = col.fbz[i] - col.faz[i];
+    return dx * dx + dy * dy + dz * dz >= 1e-6;
   }
 
   /* One collider as a solid for the free bodies. Returns the module's

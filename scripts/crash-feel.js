@@ -3,8 +3,10 @@
  * their numbers and a contact sheet each.
  *
  *   SIM_GPU=1 npm run crash:feel -- [--out DIR] [--only ID[,ID...]] [--no-audit]
+ *                                   [--pole-sweep]
  *
  * FEEL_DEBUG=1 prints each step. --only skips the drawing check.
+ * --pole-sweep runs only the pole sweep (poleSweep).
  *
  * docs/CRASH-PLAN.md, "The finish line, changed by the owner": the crash
  * loop ends when the crashes a pilot meets look and feel right. This loads
@@ -772,6 +774,59 @@ async function drawingCheck() {
   return bad;
 }
 
+/*
+ * The pole sweep (--pole-sweep): a Cub level at 14 m/s past a swiss2
+ * power pole with its centre at each offset across the span, left of the
+ * track positive. Where the pole stands inside the wing panel (0.3 to
+ * 0.7 m out on either side, the panel's box running 0.048 to 0.70 m) the
+ * first damage event must be on that side's panel or aileron, against the
+ * pole, within 0.1 s of the centre passing it. The other offsets are
+ * reported: the nose, and the tip past the aileron.
+ */
+const POLE_OFFSETS = [-0.6, -0.4, 0, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8];
+async function poleSweep() {
+  const page = await open('cub1400', 'swiss2');
+  let bad = 0;
+  try {
+    for (const side of POLE_OFFSETS) {
+      await page.tap('KeyR');
+      await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
+      await page.sleep(300);
+      const plan = await page.evaluate(`JSON.stringify((() => {
+        const s = window.__craftState();
+        const p = window.__crashSolids(s.worldX, s.worldZ, 800, 'pole').find((c) => c.r > 0.1);
+        const y = window.__heightAt(p.a[0], p.a[2]) + 2.2;
+        /* Along +x, 6 m out. Left of the track is -z, so the craft goes
+         * by on the pole's +z side for a pole on its left. */
+        const t = { x: p.a[0] - 6, y, z: p.a[2] + ${side}, yaw: -90, pitch: 0, vx: 14, vy: 0, vz: 0, hold: true };
+        return { p, t, ok: window.__crashThrow(t).ok, t0: window.__crash().simT };
+      })())`).then(JSON.parse);
+      if (!plan.ok) {
+        throw new Error('the pole sweep\'s throw was refused');
+      }
+      await page.evaluate('window.__releasePose()');
+      /* The centre reaches the pole 6 / 14 s after the release. */
+      const tPass = plan.t0 + 6 / 14;
+      await page.until(`window.__crash().simT >= ${tPass + 0.3}`, 60000);
+      const log = await page.evaluate('JSON.stringify(window.__crashLog())').then(JSON.parse);
+      const first = log.find((e) => e.surface !== 'grass') ?? null;
+      const near = side > 0 ? 'left' : 'right';
+      const onPanel = first !== null && (first.part === `wing ${near}` || first.part === `aileron ${near}`)
+        && Math.abs(first.t - tPass) < 0.1;
+      const must = Math.abs(side) >= 0.3 && Math.abs(side) <= 0.7;
+      const ok = !must || onPanel;
+      bad += ok ? 0 : 1;
+      const breaks = log.filter((e) => e.type === 'break').map((e) => `${e.part} t+${fmt(e.t - tPass, 3)}`).join(', ') || 'none';
+      console.log(`  ${must ? (ok ? 'pass' : 'FAIL') : 'info'}  ${fmt(side)} m ${side > 0 ? 'left' : side < 0 ? 'right' : 'centre'}: first ${first ? `${first.part} ${first.type} on ${first.surface} t+${fmt(first.t - tPass, 3)} s` : 'no event off the grass'}; breaks ${breaks}`);
+    }
+    await finish(page);
+  } catch (e) {
+    await page.close();
+    throw e;
+  }
+  return bad;
+}
+
 let consoleErrors = 0;
 async function finish(page) {
   const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED/.test(e));
@@ -785,6 +840,12 @@ async function finish(page) {
 
 await mkdir(outDir, { recursive: true });
 let failed = 0;
+if (process.argv.includes('--pole-sweep')) {
+  console.log('\nthe pole sweep: a Cub at 14 m/s past a 0.15 m power pole, its centre at each offset');
+  failed += await poleSweep();
+  console.log(`\n${failed} failure(s); ${consoleErrors} console error(s)`);
+  process.exit(failed || consoleErrors ? 1 : 0);
+}
 if (audit) {
   console.log(`\n0. the wreck's drawing: every airframe, every part broken, nothing drawn past ${DRAW_BOUND} m outside its part`);
   failed += await drawingCheck();
