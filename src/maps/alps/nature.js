@@ -458,7 +458,7 @@ function lakeWaves(ctx, sites, layers) {
       injectWaves(l.mesh.material, waves, { hole: true, res: 1000 });
       const mat = ctx.look.material(`${l.name}-near`, l.opts);
       mat.depthWrite = l.mesh.material.depthWrite;
-      injectWaves(mat, waves, { patch: true, clip: { ...star, outer: l.outer, inner: l.inner } });
+      injectWaves(mat, waves, { patch: true, res: 1000, clip: { ...star, outer: l.outer, inner: l.inner } });
       const m = new THREE.Mesh(geo, mat);
       m.name = `${l.name}-near`;
       m.renderOrder = k;

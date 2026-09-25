@@ -158,7 +158,9 @@ export function waterMaterial({
         #endif
         #ifdef WAVE_PATCH
           /* The patch has no depth of its own: the lake's grid's, from
-           * lakeGeometry, bilinear as the grid's cells are nearly. */
+           * lakeGeometry, interpolated over the same two triangles a cell
+           * as the lake's sheet, so the water's colour is the same either
+           * side of the patch's edge. */
           uniform sampler2D uDepth;
           uniform vec4 uDepthGrid;
           float lakeDepth(vec2 p) {
@@ -170,7 +172,11 @@ export function waterMaterial({
             float b = texelFetch(uDepth, i + ivec2(1, 0), 0).r;
             float c = texelFetch(uDepth, i + ivec2(0, 1), 0).r;
             float d = texelFetch(uDepth, i + ivec2(1, 1), 0).r;
-            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            /* lakeGeometry's cells are (a, c, b) and (b, c, d). */
+            if (f.x + f.y < 1.0) {
+              return a + f.x * (b - a) + f.y * (c - a);
+            }
+            return d + (1.0 - f.x) * (c - d) + (1.0 - f.y) * (b - d);
           }
         #else
           attribute vec4 aWater;

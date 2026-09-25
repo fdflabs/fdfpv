@@ -75,11 +75,33 @@ const GROWTH = 1.09;
 const SCALE_REACH = 8;
 const SCALE_MAX = 16;
 
+/* The patch's grid lines, from its middle out, at scale 1. */
+function patchLines() {
+  const out = [0];
+  let x = 0;
+  for (let i = 0; i < CORE_CELLS; i += 1) {
+    x += CORE_CELL;
+    out.push(x);
+  }
+  let d = CORE_CELL;
+  for (let i = 0; i < GROW_CELLS; i += 1) {
+    d *= GROWTH;
+    x += d;
+    out.push(x);
+  }
+  const back = out.slice(1).map((v) => -v).reverse();
+  return back.concat(out);
+}
+
+export const PATCH_EDGE = patchLines().at(-1);
+const PATCH_EDGE_GLSL = PATCH_EDGE.toFixed(6);
+
 export const WAVE_GLSL = /* glsl */ `
   uniform vec4 uWaveK[${WAVE_MAX}];
   uniform vec3 uWaveO;
   uniform int uWaveN;
   uniform vec4 uPatch;
+  uniform float uWaveT;
   /* The surface over the still water's height at p (map x, z) and its
    * slope, (h, dh/dx, dh/dz), with every component too short for vertices
    * res metres apart faded out, between 1.6 and 2.4 radians a cell: to
@@ -101,12 +123,42 @@ export const WAVE_GLSL = /* glsl */ `
     return f;
   }`;
 
+/*
+ * Value noise that does not repeat, and its gradient: an integer hash of
+ * the lattice cell (exact for cells under 2^24, so it holds together
+ * kilometres from the origin) and a quintic blend. For what the plant's
+ * waves leave out and a picture needs: the ripples too fine for any of
+ * its seven components, and foam that breaks up.
+ */
+export const WAVE_NOISE = /* glsl */ `
+  float waveHash(vec2 c) {
+    uvec2 q = uvec2(ivec2(c) + ivec2(1 << 20)) * uvec2(1597334673u, 3812015801u);
+    uint n = (q.x ^ q.y) * 1597334673u;
+    return float(n) * (1.0 / 4294967295.0);
+  }
+  vec3 waveNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = p - i;
+    vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+    vec2 du = 30.0 * f * f * (f * (f - 2.0) + 1.0);
+    float a = waveHash(i);
+    float b = waveHash(i + vec2(1.0, 0.0));
+    float c = waveHash(i + vec2(0.0, 1.0));
+    float d = waveHash(i + vec2(1.0, 1.0));
+    float k = a - b - c + d;
+    return vec3(a + (b - a) * u.x + (c - a) * u.y + k * u.x * u.y,
+      du * vec2((b - a) + k * u.y, (c - a) + k * u.x));
+  }`;
+
 /* After three's begin_vertex: `transformed` displaced, and where it is
  * in the map for the fragment. The patch's own cell size is aRes, the
- * patch's scale uPatch.z; any other sheet's is uWaveRes. */
+ * patch's scale uPatch.z, and over its outer quarter it goes over to
+ * the sheet's, uWaveRes, so at its edge it is displaced exactly as the
+ * sheet round it is and no seam shows; any other sheet's is uWaveRes. */
 export const WAVE_VERTEX = /* glsl */ `
   #ifdef WAVE_PATCH
-    float waveRes = aRes * uPatch.z;
+    float waveEdge = smoothstep(0.75, 1.0, max(abs(position.x), abs(position.z)) / ${PATCH_EDGE_GLSL});
+    float waveRes = mix(aRes * uPatch.z, uWaveRes, waveEdge);
   #else
     float waveRes = uWaveRes;
   #endif
@@ -127,13 +179,34 @@ export const WAVE_VERTEX_DECL = /* glsl */ `
 
 export const WAVE_FRAGMENT_DECL = /* glsl */ `
   ${WAVE_GLSL}
+  ${WAVE_NOISE}
   varying vec2 vWaveP;
   varying float vWaveY;
+  /* The wavelets under the plant's shortest wave: two octaves of the
+   * noise's slope, 0.35 and 0.14 m across, drifting down the wind (the
+   * longest component's way) on the sim clock, a slope of a few
+   * hundredths, each faded out as a pixel grows to half its cell. They
+   * do not repeat, so the plant's few components do not read as a grid.
+   * Light only: the surface the floats ride is the plant's alone. */
+  vec2 waveDetail(vec2 p, float res) {
+    if (uWaveN == 0) {
+      return vec2(0.0);
+    }
+    vec2 dir = normalize(uWaveK[0].xy + vec2(1e-6, 0.0));
+    vec2 q = p - uWaveO.xz;
+    vec2 s = vec2(0.0);
+    vec3 n1 = waveNoise(q / 0.35 - dir * uWaveT * 0.6);
+    s += n1.yz * (0.009 / 0.35) * (1.0 - smoothstep(0.2, 0.5, res / 0.35));
+    vec2 r = mat2(0.8, -0.6, 0.6, 0.8) * q;
+    vec3 n2 = waveNoise(r / 0.14 + vec2(17.3, 5.1) - mat2(0.8, -0.6, 0.6, 0.8) * dir * uWaveT * 1.4);
+    s += mat2(0.8, 0.6, -0.6, 0.8) * n2.yz * (0.003 / 0.14) * (1.0 - smoothstep(0.2, 0.5, res / 0.14));
+    return s;
+  }
   /* The slope at this pixel, every component the pixel can show: a
    * wave under four pixels long is faded out of the light, not aliased. */
   vec2 waveSlopeHere() {
     float res = max(length(dFdx(vWaveP)), length(dFdy(vWaveP)));
-    return waveField(vWaveP, 2.0 * res).yz;
+    return waveField(vWaveP, 2.0 * res).yz + waveDetail(vWaveP, res);
   }
   /* Whether this fragment of a coarse sheet lies under the patch, which
    * draws the water there instead. Only near the still water's height,
@@ -156,6 +229,7 @@ export function makeWaves() {
     uWaveO: { value: new THREE.Vector3() },
     uWaveN: { value: 0 },
     uPatch: { value: new THREE.Vector4(0, 0, 1, -1) },
+    uWaveT: { value: 0 },
   };
   const w = {
     uniforms,
@@ -172,6 +246,9 @@ export function makeWaves() {
     },
     tick(t) {
       w.t = t;
+      /* The fine ripples' drift, which needs no more than a float: it
+       * wraps every ten minutes, and it is not the plant's. */
+      uniforms.uWaveT.value = t % 600;
       const b = w.body;
       if (!b) {
         return;
@@ -201,25 +278,7 @@ export function makeWaves() {
   return w;
 }
 
-/* The patch's grid lines, from its middle out, at scale 1. */
-function patchLines() {
-  const out = [0];
-  let x = 0;
-  for (let i = 0; i < CORE_CELLS; i += 1) {
-    x += CORE_CELL;
-    out.push(x);
-  }
-  let d = CORE_CELL;
-  for (let i = 0; i < GROW_CELLS; i += 1) {
-    d *= GROWTH;
-    x += d;
-    out.push(x);
-  }
-  const back = out.slice(1).map((v) => -v).reverse();
-  return back.concat(out);
-}
 
-export const PATCH_EDGE = patchLines().at(-1);
 
 /* The patch at scale 1, about its middle at y 0: position, and aRes,
  * the larger of the cells either side of each vertex either way. */

@@ -565,9 +565,11 @@ float while it planes (src/render/spray.js, render only, from
 sim_float_state). What the plant does not model, the spray, the bow wave
 and the wake (below), is drawn from what it does.
 
-The six components the wind sea is spread over are still few, so close to
-they can read as a pattern on the water, and a picture has to add what
-they leave out.
+Six plane waves are still a sea with few parts, so the light on the water
+also takes wavelets finer than the plant's shortest wave, 0.35 and 0.14 m
+noise that does not repeat, drifting downwind, at a slope of a few
+hundredths and faded out as a pixel outgrows it: light only, never the
+surface the floats ride.
 
 `npm run floats:shell` proves it headless: the Timber on floats seated on
 the Alps' lake, afloat and rocking before the throttle (pitch −1.2 to
