@@ -264,6 +264,46 @@ ground here are the grass's rolling resistance, the Cub's 0.08, and the
 stalled, flapped wing's drag with the tail held down. Both are gated as
 they are rather than tuned to a marketing figure.
 
+## What the plant measured
+
+`npm run timber:gates`, on the plant as committed:
+
+| Check | Measured | Band |
+| --- | --- | --- |
+| T1 cruise at 75 percent | 17.64 m/s | 15.5 to 20.8 |
+| T2 stall, slats on | 7.75 m/s | 6.8 to 8.9 |
+| T3 stall, slats off | 8.75 m/s, 1.00 over T2 | 7.6 to 10.0 |
+| T4 stall, flaps full | 6.71 m/s, 1.04 under T2 | 5.9 to 8.1 |
+| T5 slowest level, flaps full | 6.86 m/s, then the stall alpha; bank under 5.3 deg | 5.7 to 7.2 |
+| T6 roll, pb/2V | 0.247, 472 deg/s at 26.0 m/s | 0.18 to 0.34 |
+| T7 flaps' moment and lift | ΔCm +0.0460, ΔCL 0.489 at 32.7 deg; the mix 6.00 deg down | 0.025 to 0.067, 0.42 to 0.56 |
+| T8 the mix | the nose up 9.2 deg with it, 55.1 without, ratio 0.17 | under 0.5 |
+| T9 at rest | 11.81 deg, CG 0.2115 m, 12.9 percent on the tail, loads 7.26, 7.27, 2.15 N | 10.8 to 12.8, 0.205 to 0.218, 9 to 17 |
+| T10 take off, flaps full | 2.05 m to liftoff at 6.78 m/s, 0.57 s | 1.6 to 3.2 m, 6.4 to 8.3 m/s |
+| T11 take off, flaps up | 2.43 m at 7.37 m/s; full flaps 0.84 of it | 2.05 to 4.1 m, 7.2 to 9.3 m/s, under 0.9 |
+| T12 landing roll, flaps full | touched at 7.25 m/s, rolled 20.5 m to rest at 11.81 deg | 13 to 25 m |
+| T13 taxi | 1.38 m at 1.86 m/s, turning right | 1.12 to 1.96 m |
+| T14 others unmoved | every hash as recorded | identical |
+| T15 Node and Chrome | identical | identical |
+
+What measuring it changed:
+
+- The first take off pilot held 7 deg of pitch from the start with a
+  gentle stick. Without a slipstream over the tail the elevator cannot
+  lift the tail below about 6 m/s, so the aircraft left the ground still
+  near its three point attitude and the flaps up roll came out shorter than
+  the derivation's 7 deg figure. The pilot became a firm forward stick to
+  9 deg and the derivation became the two phase roll above.
+- The hull was first a box as wide as the wing, 1.5 m by 0.9, its bottom
+  the belly's. Rocking back onto one main wheel from a wingtip strike its
+  aft outboard corner touched the grass at 7 deg of bank and the hull's
+  settle held it perched there (wing:contact). It is 1.2 m by 0.6 now,
+  touching at 13 deg where the drawn tip clears to 19.
+- Acro's roll feed forward came down from the Cub's 0.35 to 0.25 and its
+  damping went from 0.25 to 0.30: the Timber rolls faster per stick than
+  the Cub and at the Cub's figures a partial roll overshot its stop
+  (timber:stab).
+
 ## The landing gear
 
 The Cub's model, unchanged, with this aircraft's numbers: each wheel a

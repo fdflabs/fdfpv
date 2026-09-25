@@ -5,9 +5,10 @@
  * window.__simHarnessResolve, the way harness.js does for the quad.
  * ?plane=sky replays the Skyhunter's recording on its airframe instead,
  * ?plane=cub the Cub's, from standing on its wheels, ?plane=glider the
- * Radian's, thrown at 80 m short of a thermal, and ?plane=slowstick the
- * Slow Stick's, from standing on its wheels; with no query it is the
- * wing's, exactly as it always was.
+ * Radian's, thrown at 80 m short of a thermal, ?plane=slowstick the
+ * Slow Stick's, from standing on its wheels, and ?plane=timber the
+ * Timber's, from standing on its wheels with half flaps; with no query it
+ * is the wing's, exactly as it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -30,7 +31,7 @@ import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
   bramorChutePrelude, bramorPrelude, cubGroundPrelude, gliderRecPrelude, skyPrelude, slowstickGroundPrelude,
-  wingPrelude,
+  timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
 
 const PLANES = {
@@ -41,6 +42,7 @@ const PLANES = {
   bramor: { rec: '/tests/inputs/bramor-baseline.rec', prelude: bramorPrelude },
   'bramor-chute': { rec: '/tests/inputs/bramor-chute.rec', prelude: bramorChutePrelude },
   slowstick: { rec: '/tests/inputs/slowstick-baseline.rec', prelude: (sim) => slowstickGroundPrelude(sim) },
+  timber: { rec: '/tests/inputs/timber-baseline.rec', prelude: timberRecPrelude },
 };
 
 async function fetchBytes(url) {

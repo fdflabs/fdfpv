@@ -37,7 +37,7 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
 import {
   bramorPrelude, recordChuteFlight, recordCubFlight, recordGliderFlight, recordScriptedFlight,
-  recordSlowStickFlight, skyPrelude, wingPrelude,
+  recordSlowStickFlight, recordTimberFlight, skyPrelude, wingPrelude,
 } from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
@@ -46,7 +46,8 @@ import {
  * glider-gates.js G21; `bramor` the Bramor off its catapult and
  * `bramor-chute` its descent under the canopy, for bramor-gates.js;
  * `slowstick` the Slow Stick's take off and flight for slowstick-gates.js
- * S18. */
+ * S18; `timber` the Timber's take off on half flaps and flight for
+ * timber-gates.js T15. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
   sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
@@ -55,6 +56,7 @@ const PLANES = {
   bramor: { file: 'tests/inputs/bramor-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: bramorPrelude, rudder: false }) },
   'bramor-chute': { file: 'tests/inputs/bramor-chute.rec', record: recordChuteFlight },
   slowstick: { file: 'tests/inputs/slowstick-baseline.rec', record: recordSlowStickFlight },
+  timber: { file: 'tests/inputs/timber-baseline.rec', record: recordTimberFlight },
 };
 const plane = PLANES[process.argv[2] || 'wing'];
 if (!plane) {
