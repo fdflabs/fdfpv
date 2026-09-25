@@ -608,3 +608,17 @@ Open, each failing or unmet on purpose, the reason in docs/STALL-STAGE1.md:
 - The Cub and Timber stall ins mush onto their gear and roll on, where the
   bands expect a nose low hit: the kits' reviews and the full scale
   references behind the bands disagree.
+
+### Round 5 (started 2026-09-25)
+
+Main 4a9a30b: 8 of 60 in every band, 147 failing checks (the wing clip
+fix #67 took the struck panel only, and showed the pole bands' premise
+is against the part limits). The owner judged the loop too slow, so this
+round is five agents at once, each with owned files, merged as each goes
+green: hull (collide.js, a plane shaped collision hull), ground impact
+(crash.c: a duration for every stiff contact, host obstacles resolved
+over the contact, grass), suite (tests/crash: re-derive the pole,
+stall-in and belly bands whose premise the physics has disproved, and
+source the LOW bands), aero (plant_wing.c: Radian, Timber drift, Slow
+Stick S9b, the Bombshell's take off heading), parts (crash_parts.h:
+Bramor composite sections, balsa and EPO data).
