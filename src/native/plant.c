@@ -1065,6 +1065,61 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     .k_ground = 3000.0, .c_ground = 40.0, .mu_ground = 0.35,
   },
 },
+/*
+ * BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md: 560 g, a
+ * Cox Texaco .049 glow engine on its 7 x 3.5 0.166 m ahead of the CG, 5.3
+ * mm under it. There is no flight pack: the engine burns fuel, and the
+ * pack the table carries is BMJR's 3S 850 on the radio, which the engine
+ * draws nothing from. The hull is the contact code's centred box and only
+ * what a crash lands on: the belly 65 mm under the CG and the wing's top
+ * at the root 84 mm over it, the half span wide; the fin and the
+ * polyhedral's raised tips stand outside it. The camera is the drawn
+ * one, on the cowl's top behind the engine's cylinder.
+ */
+[SIM_AIRFRAME_BOMBSHELL1118] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 0.5599,
+  .inertia = { 0.014, 0.019, 0.031 },
+  .gravity = 9.81,
+  .cells = 3.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.0889,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.1662, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.30,
+  .hull_hy = 0.5588,
+  .hull_hz_down = 0.065,
+  .hull_hz_up = 0.084,
+  .contact_patch_r = 0.06,
+  .contact_arm_max = 0.69,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.1117,
+  .camera_y = 0.0,
+  .camera_z = 0.0310,
+  .fw = &FW_BOMBSHELL1118,
+  /*
+   * The gear, as src/render/bombshellcraft.js draws it: 1/16 in wire legs
+   * to 1 3/4 in light wheels, the axles 73 mm ahead of the CG and 0.1217 m
+   * under it on a 0.173 m track, and the wire tail skid's tip 0.589 m
+   * behind and 45 mm under. Each is lowered here by its leg's 5 mm of
+   * static deflection, so under its own weight the plant settles onto the
+   * drawn pose: 8.5 deg nose up, the CG 0.132 m over the grass, 14 percent
+   * of the weight on the skid. Stiffness for that deflection, damping at
+   * 0.6 of critical, the Cub's rule. The skid is a wire dragged over the
+   * grass, not a wheel: it slides at 0.35 along and 0.5 across, and it
+   * does not steer. Only the rudder in the air steers this aircraft.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.0731, 0.0865, -0.1267 }, .r = 0.0222, .k = 473.0, .c = 13.8, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.0, .brake = 1.0 },
+    { .pos = { 0.0731, -0.0865, -0.1267 }, .r = 0.0222, .k = 473.0, .c = 13.8, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.0, .brake = 1.0 },
+    { .pos = { -0.5895, 0.0, -0.0502 }, .r = 0.0, .k = 153.0, .c = 3.43, .mu_roll = 0.35, .mu_side = 0.50, .steer = 0.0 },
+    /* The prop's lowest tip, a skid, 0.0889 m under the shaft: 50 mm over
+     * the grass with the aircraft level on its mains. */
+    { .pos = { 0.1662, 0.0, -0.0942 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*

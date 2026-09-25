@@ -815,6 +815,64 @@ export const AIRFRAMES = [
       bodyHeight: 0.405,
     },
   },
+  {
+    /*
+     * BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md: Joe
+     * Konefes' 1940 free flight cabin model at 44 in, 560 g of balsa and
+     * tissue, simId 11 on the fixed wing plant. The Slow Stick's three
+     * channels: no ailerons, the roll stick drives the rudder as well as
+     * the yaw stick does, and it banks through a polyhedral wing, which
+     * also levels it when the sticks are let go; it rises in the
+     * airfield's thermals, which is what it was designed for. A Cox Texaco
+     * .049 glow engine on the Cox throttle conversion: the stick runs it
+     * from idle to full and closing it idles the engine, it never stops.
+     * The pack is BMJR's 3S 850 on the radio, which the engine draws
+     * nothing from. It stands on wire gear and a tail skid, so throttle
+     * rolls it off the strip, the big stabiliser lifting the tail by
+     * itself (L still throws it); `gear` is the plant's settled pose, which
+     * the drawn wheels and skid in src/render/bombshellcraft.js match: the
+     * CG 0.1318 m over the ground and 8.5 degrees nose up.
+     */
+    id: 'bombshell1118',
+    simId: 11,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/bombshell-thresholds.json s2_stall. */
+    stall: 6.49,
+    gear: { restHeight: 0.1318, restPitch: 8.50 * Math.PI / 180 },
+    name: 'Buzzard Bombshell',
+    short: 'Bombshell',
+    blurb: 'A 44 in BMJR Buzzard Bombshell, the 1940 free flight classic in balsa and red tissue, on a Cox .049 glow engine: rudder, elevator and throttle, no ailerons. The roll stick works the rudder, it levels itself when you let go, and it climbs in thermals.',
+    facts: ['Glow .049', '1118 mm', 'Three channels'],
+    trackClass: 'wing',
+    cells: 3,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'bombshell-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/bombshellcraft.js BOMBSHELL_DIMS: the
+     * furthest reach in plan, the elevator's outer trailing corner, the
+     * wheels' lowest drawn point and the polyhedral tips' tops, which
+     * stand over the fin. */
+    dims: {
+      arm: 0,
+      propR: 0.0889,
+      hullR: 0.6733,
+      vHalfDown: 0.1440,
+      vHalfUp: 0.1793,
+      bodyLength: 0.818,
+      bodyWidth: 1.1176,
+      bodyHeight: 0.3233,
+    },
+  },
 ];
 
 

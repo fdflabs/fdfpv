@@ -48,7 +48,7 @@ export const PART_KINDS = [
 /* SIM_MAT_*, by id. */
 export const MATERIALS = [
   'cf-plate', 'cf-tube', 'epo', 'epp', 'nylon-gf', 'alu', 'lipo', 'pc',
-  'electronics', 'wire', 'ply',
+  'electronics', 'wire', 'ply', 'balsa',
 ];
 
 /* SIM_SURF_*, by id: what a shell passes to sim_set_ground_material and

@@ -340,8 +340,12 @@ int sim_set_flight_style(int arcade);
  * Evolution, a 1.5 m STOL taildragger with flaps and slats that stands on
  * its own wheels, and 9 and 10 the Timber and the Cub on floats
  * (docs/FLOATS-STAGE1.md), which float on the water bodies below and slide
- * on their keels on land. Returns SIM_ERR_BAD_ARG for anything else.
- * 2 to 10 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * on their keels on land, and 11 BMJR's 1/2A Texaco Buzzard Bombshell
+ * (docs/BOMBSHELL-STAGE1.md), a 44 in balsa and tissue old timer with a
+ * glow engine that idles and never stops, rudder and elevator and no
+ * ailerons like the Slow Stick, on wheels and a tail skid. Returns
+ * SIM_ERR_BAD_ARG for anything else.
+ * 2 to 11 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -369,6 +373,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_BRAMOR2300_ID 8
 #define SIM_AIRFRAME_TIMBER1500F_ID 9
 #define SIM_AIRFRAME_CUB1400F_ID 10
+#define SIM_AIRFRAME_BOMBSHELL1118_ID 11
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -439,7 +444,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2 to 10. Additive, version unchanged; each
+ * The fixed wings, airframes 2 to 11. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *
@@ -736,7 +741,8 @@ int sim_set_velocity(double vx, double vy, double vz, double p, double q, double
 #define SIM_MAT_ELECTRONICS 8 /* a camera or a board, a potted brick */
 #define SIM_MAT_WIRE 9        /* steel wire, gear legs, antenna whips */
 #define SIM_MAT_PLY 10        /* plywood, formers */
-#define SIM_MATERIALS 11
+#define SIM_MAT_BALSA 11      /* balsa sheet and stick under doped tissue */
+#define SIM_MATERIALS 12
 
 /*
  * sim_set_part_table(which): SIM_PARTS_OWN (0, the default) is the

@@ -173,7 +173,10 @@ the Timber (19), the Bramor (13: winglets as fins, the chute bay lid as a
 canopy), and the Timber and the Cub on floats (18 each), built in
 `crash.c` from their wheeled tables with the gear off, every part raised
 by the plant's CG drop (26.6 and 26.4 mm), and two floats on braced struts
-from the plant's float geometry.
+from the plant's float geometry; and the Buzzard Bombshell (17: balsa
+under tissue, the first table in `SIM_MAT_BALSA`, a one piece wing on
+rubber bands with its two panels on the centre section; the limits are
+derived in docs/BOMBSHELL-STAGE1.md).
 
 **The shell's whoop** is not airframe 1: it is the five inch's plant in a
 room MICRO_SCALE (3.43) times life size. By the lead's decision it gets
@@ -1114,3 +1117,25 @@ predates this work, reported and not touched.
 | 15 | antenna | fuselage | wire | 0.0040 | -0.160, 0.000, 0.131 | -0.160, 0.000, 0.096 | 1.00 | 40 | 1.0e+3 |  |
 | 16 | float left | fuselage | epo | 0.1060 | -0.090, 0.150, -0.179 | 0.025, 0.075, -0.030 | 219.91 | 3142 | 1.0e+4 | 200 over 32.0 cm2, 50 mm |
 | 17 | float right | fuselage | epo | 0.1060 | -0.090, -0.150, -0.179 | 0.025, -0.075, -0.030 | 219.91 | 3142 | 1.0e+4 | 200 over 32.0 cm2, 50 mm |
+
+### Buzzard Bombshell
+
+| # | part | parent | material | mass kg | centre m | joint m | M limit N m | F limit N | k N/m | crush kPa |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | fuselage | root | balsa | 0.2409 | 0.074, 0.000, -0.033 |  |  |  | 1.5e+5 |  |
+| 1 | boom | fuselage | balsa | 0.0350 | -0.391, 0.000, -0.005 | -0.130, 0.000, 0.000 | 18.00 | 200 | 2.0e+4 |  |
+| 2 | hstab | boom | balsa | 0.0120 | -0.555, 0.000, 0.002 | -0.580, 0.000, 0.001 | 2.44 | 50 | 2.0e+3 |  |
+| 3 | elevator | hstab | balsa | 0.0040 | -0.634, 0.000, 0.002 | -0.615, 0.000, 0.002 | 0.40 | 20 | 1.5e+3 |  |
+| 4 | fin | boom | balsa | 0.0060 | -0.520, 0.000, 0.062 | -0.520, 0.000, 0.005 | 1.44 | 40 | 1.5e+3 |  |
+| 5 | rudder | fin | balsa | 0.0040 | -0.607, 0.000, 0.060 | -0.563, 0.000, 0.060 | 0.40 | 20 | 1.5e+3 |  |
+| 6 | wing | fuselage | balsa | 0.0200 | -0.033, 0.000, 0.073 | -0.030, 0.000, 0.064 | 1.90 | 20 | 2.0e+3 |  |
+| 7 | wing left | wing | balsa | 0.0450 | -0.032, 0.255, 0.101 | -0.030, 0.040, 0.070 | 2.11 | 80 | 2.0e+3 |  |
+| 8 | wing right | wing | balsa | 0.0450 | -0.032, -0.255, 0.101 | -0.030, -0.040, 0.070 | 2.11 | 80 | 2.0e+3 |  |
+| 9 | motor | fuselage | alu | 0.0450 | 0.134, 0.000, 0.016 | 0.107, 0.000, -0.005 | 4.00 | 200 | 1.0e+6 |  |
+| 10 | prop | motor | nylon-gf | 0.0060 | 0.170, 0.000, -0.005 | 0.162, 0.000, -0.005 | 5.40 | 100 | 7.0e+2 |  |
+| 11 | battery | fuselage | lipo | 0.0700 | 0.100, 0.000, -0.043 | 0.100, 0.000, -0.040 | 2.00 | 58 | 3.0e+5 |  |
+| 12 | gear left | fuselage | wire | 0.0060 | 0.055, 0.049, -0.105 | 0.030, 0.018, -0.065 | 1.42 | 80 | 4.7e+2 |  |
+| 13 | gear right | fuselage | wire | 0.0060 | 0.055, -0.049, -0.105 | 0.030, -0.018, -0.065 | 1.42 | 80 | 4.7e+2 |  |
+| 14 | gear | boom | wire | 0.0020 | -0.577, 0.000, -0.035 | -0.567, 0.000, -0.024 | 1.42 | 30 | 1.5e+2 |  |
+| 15 | camera | fuselage | electronics | 0.0100 | 0.113, 0.000, 0.031 | 0.110, 0.000, 0.020 | 0.80 | 60 | 3.0e+4 |  |
+| 16 | antenna | fuselage | wire | 0.0030 | -0.192, 0.000, 0.072 | -0.193, 0.000, 0.040 | 1.00 | 40 | 1.0e+3 |  |

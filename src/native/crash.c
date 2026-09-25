@@ -409,6 +409,7 @@ static void tables_build(void) {
     { SIM_AIRFRAME_RADIAN2000, PARTS_RADIAN2000, COUNT(PARTS_RADIAN2000) },
     { SIM_AIRFRAME_TIMBER1500, PARTS_TIMBER1500, COUNT(PARTS_TIMBER1500) },
     { SIM_AIRFRAME_BRAMOR2300, PARTS_BRAMOR2300, COUNT(PARTS_BRAMOR2300) },
+    { SIM_AIRFRAME_BOMBSHELL1118, PARTS_BOMBSHELL1118, COUNT(PARTS_BOMBSHELL1118) },
   };
   for (int s = 0; s < COUNT(src); s += 1) {
     Table *t = &T[src[s].id];
@@ -683,6 +684,8 @@ static double mat_density(int mat) {
     return 7800.0;
   case SIM_MAT_ELECTRONICS:
     return 1500.0;
+  case SIM_MAT_BALSA:
+    return 160.0; /* medium balsa, Gibson and Ashby, Cellular Solids */
   default:
     return 1400.0;
   }
