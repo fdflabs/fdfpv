@@ -709,10 +709,13 @@ static const PartDef PARTS_TIMBER1500[] = {
  * its spar. A Cox .049 on two screws through the firewall, wire gear, a
  * wire skid.
  * --------------------------------------------------------------------- */
-/* Balsa, 150 to 175 kg/m^3 (the kit's medium grade): modulus of rupture
- * about 20 MPa along the grain (Gibson and Ashby, Cellular Solids, ch. 10;
- * the Forest Products Laboratory's Wood Handbook, balsa). A square stick
- * of side a breaks at 20 MPa a^3 / 6. */
+/* Balsa, 150 to 175 kg/m^3 (the kit's medium grade). The Wood Handbook
+ * (FPL-GTR-190, 2010, Table 5-5a) gives balsa at 12 percent moisture a
+ * modulus of rupture of 21.6 MPa (modulus 3.4 GPa) at specific gravity
+ * 0.16, about 184 kg/m^3; along the grain it goes as the density (Gibson
+ * and Ashby, Cellular Solids, ch. 10), so 17.6 to 20.5 MPa at the kit's
+ * grade, and 20 MPa is its upper end. A stick b wide and h deep breaks at
+ * 20 MPa b h^2 / 6. */
 #define BALSA_MOR 20.0e6
 #define BALSA_M(b, h) (BALSA_MOR * (b) * (h) * (h) / 6.0)
 static const PartDef PARTS_BOMBSHELL1118[] = {
@@ -750,7 +753,11 @@ static const PartDef PARTS_BOMBSHELL1118[] = {
   /* 6 the wing's centre section, sheeted and glassed, on the cabin under
    * four #32 rubber bands: each about 5 N stretched on its dowels, so 20
    * N hold it down and 20 N over half the chord's 95 mm, 1.9 N m, tip it
-   * off its saddle. ESTIMATED: no one publishes a band's tension. */
+   * off its saddle. No band's tension is published; a #32 band, 3 x 1/8 x
+   * 1/32 in, looped from dowel to dowel over the drawn 0.19 m chord is
+   * stretched about three times, where natural rubber carries about 0.9
+   * MPa (Ogden's 1972 fit to Treloar's data), 2.2 N a strand, two strands
+   * a band: 4.4 N, 18 N for the four. */
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
     .mass = 0.020, .joint = { -0.03, 0.0, 0.064 }, .m_max = 1.9, .f_max = 20.0, .k = 2000.0,
     BOX(-0.128, 0.063, -0.04, 0.04, 0.062, 0.084) },
@@ -769,7 +776,10 @@ static const PartDef PARTS_BOMBSHELL1118[] = {
                         { 0.063, -0.04, 0.085 }, { -0.128, -0.04, 0.075 }, { 0.030, -0.559, 0.175 }, { -0.090, -0.559, 0.170 } } },
   /* 9 the Cox Texaco .049, 45 g with its tank, on two #2 screws through
    * the 1/8 in ply firewall: the screws pull out of the ply at about 200
-   * N each on the 20 mm between them, 4 N m. ESTIMATED. */
+   * N each on the 20 mm between them, 4 N m. The Wood Handbook's withdrawal
+   * equation (8-10a, p = 108.2 G^2 D L) for a 2.18 mm screw in 3.2 mm of
+   * birch, G 0.62, gives 290 N, and says a screw shorter than its table's
+   * holds less, so 200 N is under that bound, not measured. */
   { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
     .mass = 0.045, .joint = { 0.107, 0.0, -0.005 }, .m_max = 4.0, .f_max = 200.0, .k = 1.0e6,
     BOX(0.107, 0.160, -0.010, 0.010, -0.015, 0.047) },
