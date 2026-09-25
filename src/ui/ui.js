@@ -671,6 +671,17 @@ const DEFAULTS = {
    * line holds attitude at idle until you punch throttle. */
   launchControl: false,
   /*
+   * The plant's crash physics (docs/CRASH-PLAN.md): a hit past a part's
+   * limit breaks it. ON for play, because a flight that never hits that
+   * hard is bit identical either way, so the setting only decides what a
+   * real crash costs. The module's own default stays off, which is what
+   * every harness replay and gate flies; this is the shell turning it on.
+   * A run property like the flight model: it takes effect when a run
+   * starts. It does not split the board: a lap that broke something is a
+   * lap that did not finish.
+   */
+  crashDamage: true,
+  /*
    * Who the ghost drone chases: 'off', 'best' (your best lap this session)
    * or 'previous' (the lap before this one). Best is the default because a
    * pacer you have to discover in a menu is a pacer nobody meets: the first
@@ -5896,6 +5907,12 @@ export class Ui {
           (id) => (id === 'arcade' ? str('ui.arcade') : str('ui.expert')),
           (id) => { s.flightStyle = id; },
         ),
+        toggle(
+          str('ui.crash_damage'),
+          str('ui.crash_damage_note'),
+          s.crashDamage !== false,
+          (v) => { s.crashDamage = Boolean(v); },
+        ),
         { label: str('ui.back'), action: 'back' },
       ];
     }
@@ -6305,6 +6322,12 @@ export class Ui {
           s.flightStyle === 'arcade' ? 'arcade' : 'expert',
           (id) => (id === 'arcade' ? str('ui.arcade') : str('ui.expert')),
           (id) => { s.flightStyle = id; },
+        ),
+        toggle(
+          str('ui.crash_damage'),
+          str('ui.crash_damage_note'),
+          s.crashDamage !== false,
+          (v) => { s.crashDamage = Boolean(v); },
         ),
         choice(
           str('ui.radio_link'),

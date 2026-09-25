@@ -125,6 +125,13 @@ import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
+import { KINDS } from './game/collide.js';
+import { createDamageLink, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
+import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, solidSurface } from './game/crashworld.js';
+import { DAMAGE_FLAGS, EVENT, MATERIALS, OBSTACLES_MAX, SURFACE, TREES_MAX } from '../configs/parts.js';
+import { createWreck } from './render/wreck.js';
+import { createDebris } from './render/debris.js';
+import { createFpvFail } from './render/fpvfail.js';
 
 /*
  * The module's bytes, resolved against this file rather than the site root.
@@ -2430,6 +2437,8 @@ export async function boot({ loading, bootStart, mapId }) {
   let obsRoof = false;
   let obsImpulse = 0;
   let obsImpulseKind = '';
+  /* The collider kind of the contact being resolved, for its material. */
+  let obsKindIndex = -1;
   /*
    * THE HULL MET A SOLID, and how fast it was closing when it did.
    *
@@ -3290,6 +3299,516 @@ export async function boot({ loading, bootStart, mapId }) {
   }
 
   /*
+   * THE CRASH SHELL (docs/CRASH-PLAN.md, Phase A item 4).
+   *
+   * With the run's Crash damage setting on, the plant's crash physics
+   * decides what breaks (src/native/crash.c), and this section is the whole
+   * of the shell's answer to it: it names the world to the plant (the
+   * ground's material under the craft, each obstacle's material, the trees
+   * near the craft, the solids near the craft for the parts that leave),
+   * reads back what broke, draws it (src/render/wreck.js, debris.js,
+   * fpvfail.js), plays it (audio.wreck) and applies the rules: a crash that
+   * leaves the aircraft unflyable is a wreck, which ends the lap, disarms
+   * the motors and rests where the physics puts it, until R takes the pilot
+   * back to the pad or X respawns them where they are.
+   *
+   * WHAT REACHES THE PLANT, all of it through the ABI and all of it only
+   * with the mode on: sim_set_damage between runs, the ground material with
+   * the ground plane, sim_contact_at_mat in place of sim_contact_at where
+   * the module's material has the shell's own numbers (so the contact
+   * resolves exactly as before and only the judgement learns what was hit),
+   * the trees and solids near the craft on the sim clock, the motors parked
+   * on a wreck, and the perch held off while a broken part is still moving.
+   * With the mode off none of it runs, and every flight is the flight it
+   * was. With it on, a flight whose contacts stay under every limit is
+   * still the same flight on grass, the plant's default ground to the bit;
+   * on other ground the friction is the ground's, by design.
+   */
+  const damage = createDamageLink(sim);
+  const wreckRig = createWreck();
+  const debris = createDebris();
+  shell.keepAcrossMaps(wreckRig.group);
+  shell.keepAcrossMaps(debris.group);
+  const fpvFail = createFpvFail(shell.canvas);
+  /* Collider kind to the module's surface, where the numbers agree. */
+  const kindSurface = (() => {
+    if (!damage.available || typeof sim.e.sim_material_info !== 'function') {
+      return new Int32Array(KINDS.length).fill(-1);
+    }
+    const p = sim.e.malloc(4 * 8);
+    const table = obstacleSurfaces((mat) => {
+      if (sim.e.sim_material_info(mat, p) !== SIM_OK) {
+        return null;
+      }
+      const d = new Float64Array(sim.e.memory.buffer, p, 4);
+      return [d[0], d[1]];
+    });
+    sim.e.free(p);
+    return table;
+  })();
+  /* The mode the run flies, fixed when it starts, like the flight style. */
+  let runDamage = false;
+  let crashFlags = 0;
+  let wrecked = false;
+  let wreckAtWall = 0;
+  let wreckDisarmed = false;
+  let wreckCraft = null;
+  let partTable = [];
+  let cameraPart = -1;
+  let lastParts = null;
+  /* The trees and solids declared to the plant, and where from. */
+  let crashTrees = [];
+  let crashTreesFrom = null;
+  const treePick = [];
+  const solidPick = [];
+  const passSet = [];
+  let crashWorldPhase = 0;
+  let crashWorldX = NaN;
+  let crashWorldZ = NaN;
+  let chipCueAtWall = -1e9;
+  let splashCueAtWall = -1e9;
+  let treeCueAtWall = -1e9;
+  let crashEvents = 0;
+  let crashTreesDeclared = 0;
+  let crashSolidsDeclared = 0;
+  let fpvLensLive = false;
+  /* Harness only: a crash capture's fixed camera stands outside the craft,
+   * so the craft is drawn in it. See window.__crashThrow. */
+  let crashCamShowsCraft = false;
+  const crashAt = new THREE.Vector3();
+  const crashNormal = new THREE.Vector3();
+  const crashProbe = new THREE.Vector3();
+  const qKnock = new THREE.Quaternion();
+  const knockAxis = new THREE.Vector3();
+  const crashSimA = { x: 0, y: 0, z: 0 };
+  const crashSimB = { x: 0, y: 0, z: 0 };
+  /* A box's orientation in the plant frame: the spawn's yaw undone,
+   * which is how an axis aligned world box stands in the plant. */
+  const boxQuat = new THREE.Quaternion();
+  /* Refresh the trees and solids every this many steps, when the craft has
+   * moved this far since the last time, and take them from this far. The
+   * plant holds 32 trees and 64 solids; 80 m of trees is more than a plane
+   * covers between two refreshes, 40 m of solids more than a part flies. */
+  const CRASH_WORLD_STEP = 250;
+  const CRASH_WORLD_MOVE = 12;
+  const TREE_REACH = 80;
+  const SOLID_REACH = 40;
+  /* How long a dead feed is shown before the chase camera takes over: long
+   * enough to see it die, which is how a pilot knows what happened. */
+  const FEED_BEAT_MS = 1500;
+  /* A chipping prop reports every step it grinds; one tick and one spray of
+   * grit per this many ms is what the ear and the eye resolve. */
+  const CHIP_CUE_GAP_MS = 45;
+
+  function plantToWorld(px, py, pz, qw, qx, qy, qz, outPos, outQuat) {
+    simPosToThree(px, py, pz + SPAWN_ALT, outPos);
+    outPos.applyQuaternion(qSpawn);
+    outPos.x += startX;
+    outPos.y += startY;
+    outPos.z += startZ;
+    if (outQuat) {
+      simQuatToThree(qw, qx, qy, qz, outQuat);
+      outQuat.premultiply(qSpawn);
+    }
+    return outPos;
+  }
+
+  /* Between runs, from applySettings: the mode this run flies. */
+  function applyCrashMode(s) {
+    const want = damage.available && s.crashDamage !== false;
+    if (want === runDamage) {
+      return;
+    }
+    runDamage = want;
+    damage.setMode(want);
+    if (!want) {
+      clearCrashWorld();
+    }
+    crashReset();
+  }
+
+  /* From resetCraft, after sim_reset has cleared the damage state. */
+  function crashReset() {
+    wrecked = false;
+    wreckDisarmed = false;
+    crashFlags = 0;
+    lastParts = null;
+    wreckRig.reset();
+    debris.clear();
+    fpvFail.clear();
+    crashWorldX = NaN;
+    crashWorldPhase = 0;
+  }
+
+  function clearCrashPass() {
+    const pass = crashTreesFrom && crashTreesFrom.pass;
+    for (const i of passSet) {
+      if (pass) {
+        pass[i] = 0;
+      }
+    }
+    passSet.length = 0;
+  }
+
+  function clearCrashWorld() {
+    clearCrashPass();
+    if (damage.available) {
+      sim.e.sim_tree_clear();
+      sim.e.sim_obstacle_clear();
+    }
+    crashTreesDeclared = 0;
+    crashSolidsDeclared = 0;
+    crashWorldX = NaN;
+  }
+
+  /* The ground plane's material, with the plane itself. */
+  function declareGroundMaterial(wx, wz, hy) {
+    const w = view.water && view.water.length ? waterAt(wx, wz) : null;
+    const wet = w != null && hy >= w.surfaceY - 0.05;
+    sim.e.sim_set_ground_material(groundSurface(view, wx, wz, groundNWorld.y, wet));
+  }
+
+  /* The obstacle contact's material, or -1 for the shell's own numbers. */
+  function obstacleSurfaceFor(kindIndex) {
+    return runDamage && kindIndex >= 0 && kindIndex < kindSurface.length ? kindSurface[kindIndex] : -1;
+  }
+
+  /* After every sim_step(1) with the mode on: the events, and the world. */
+  function crashAfterStep(st) {
+    damage.drain(onDamageEvent);
+    crashWorldPhase += 1;
+    if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX)) {
+      crashWorldPhase = 0;
+      refreshCrashWorld(st);
+    }
+  }
+
+  /*
+   * The trees and solids near the craft, declared on the sim clock so the
+   * set is a function of the flight, not of the frame rate.
+   */
+  function refreshCrashWorld(st) {
+    poseFromState(st, crashProbe);
+    if (crashWorldX === crashWorldX) {
+      const dx = crashProbe.x - crashWorldX;
+      const dz = crashProbe.z - crashWorldZ;
+      if (dx * dx + dz * dz < CRASH_WORLD_MOVE * CRASH_WORLD_MOVE) {
+        return;
+      }
+    }
+    crashWorldX = crashProbe.x;
+    crashWorldZ = crashProbe.z;
+    const col = view.colliders;
+    if (crashTreesFrom !== col) {
+      clearCrashPass();
+      crashTrees = collectTrees(col);
+      crashTreesFrom = col;
+    }
+    clearCrashPass();
+    sim.e.sim_tree_clear();
+    crashTreesDeclared = 0;
+    nearestTrees(crashTrees, crashProbe.x, crashProbe.z, TREE_REACH, TREES_MAX, treePick);
+    for (const { i } of treePick) {
+      const t = crashTrees[i];
+      worldPosToSim(t.x, t.y0, t.z, crashSimA);
+      const z0 = crashSimA.z;
+      const c0 = worldPosToSim(t.x, t.crownY0, t.z, crashSimB).z;
+      const c1 = worldPosToSim(t.x, t.crownY1, t.z, crashSimB).z;
+      if (sim.e.sim_tree_add(crashSimA.x, crashSimA.y, z0, t.trunkR, c0, c1, t.crownR) < 0) {
+        break;
+      }
+      crashTreesDeclared += 1;
+      /* The crown is the plant's now: the sweep flies into it. */
+      for (const j of t.crown) {
+        col.pass[j] = 1;
+        passSet.push(j);
+      }
+      if (t.post >= 0) {
+        col.pass[t.post] = 1;
+        passSet.push(t.post);
+      }
+    }
+    sim.e.sim_obstacle_clear();
+    crashSolidsDeclared = 0;
+    nearestSolids(col, crashProbe.x, crashProbe.y, crashProbe.z, SOLID_REACH, OBSTACLES_MAX, solidPick);
+    boxQuat.copy(qSpawnInv);
+    for (const { i } of solidPick) {
+      if (declareSolid(col, i) < 0) {
+        break;
+      }
+      crashSolidsDeclared += 1;
+    }
+  }
+
+  /* One collider as a solid for the free bodies. Returns the module's
+   * answer, negative when it is full. */
+  function declareSolid(col, i) {
+    const mat = solidSurface(col.kindName(col.fkind[i]));
+    const ax = col.fax[i];
+    const ay = col.fay[i];
+    const az = col.faz[i];
+    const bx = col.fbx[i];
+    const by = col.fby[i];
+    const bz = col.fbz[i];
+    if (col.fbox[i]) {
+      worldPosToSim((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2, crashSimA);
+      /* The box's own frame is the world's turned by the spawn: its x half
+       * extent is along world z, y along world x, z along world y. */
+      return sim.e.sim_obstacle_box(
+        crashSimA.x, crashSimA.y, crashSimA.z,
+        Math.abs(bz - az) / 2, Math.abs(bx - ax) / 2, Math.abs(by - ay) / 2,
+        boxQuat.w, -boxQuat.z, -boxQuat.x, boxQuat.y, mat,
+      );
+    }
+    const r = col.fr[i];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const dz = bz - az;
+    const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (len < 1e-3 || (Math.abs(dx) < 1e-3 && Math.abs(dz) < 1e-3)) {
+      /* A post, or a ball: an upright cylinder over its whole height. */
+      worldPosToSim(ax, Math.min(ay, by) - r, az, crashSimA);
+      const top = worldPosToSim(ax, Math.max(ay, by) + r, az, crashSimB).z;
+      return sim.e.sim_obstacle_cylinder(crashSimA.x, crashSimA.y, crashSimA.z, top, r, mat);
+    }
+    /* A bar at an angle: the box that holds it, along it. */
+    worldPosToSim((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2, crashSimA);
+    worldDirToSim(dx / len, dy / len, dz / len, crashSimB);
+    /* The rotation taking the box's x axis onto the bar. */
+    let qw = 1 + crashSimB.x;
+    let qy = -crashSimB.z;
+    let qz = crashSimB.y;
+    if (qw < 1e-6) {
+      qw = 0;
+      qy = 0;
+      qz = 1;
+    }
+    const qn = Math.sqrt(qw * qw + qy * qy + qz * qz);
+    return sim.e.sim_obstacle_box(
+      crashSimA.x, crashSimA.y, crashSimA.z,
+      len / 2 + r, r, r,
+      qw / qn, 0, qy / qn, qz / qn, mat,
+    );
+  }
+
+  /*
+   * One damage event, straight out of the module's heap: where, how hard,
+   * on what. Render and sound only; the step loop has already moved on.
+   */
+  function onDamageEvent(ev, o) {
+    crashEvents += 1;
+    const type = ev[o + EVENT.type];
+    if (type === 7) {
+      return;
+    }
+    const part = ev[o + EVENT.part];
+    const speed = ev[o + EVENT.closing];
+    const surface = ev[o + EVENT.surface];
+    const nowWall = performance.now();
+    plantToWorld(ev[o + EVENT.point], ev[o + EVENT.point + 1], ev[o + EVENT.point + 2], 1, 0, 0, 0, crashAt, null);
+    simPosToThree(ev[o + EVENT.normal], ev[o + EVENT.normal + 1], ev[o + EVENT.normal + 2], crashNormal);
+    crashNormal.applyQuaternion(qSpawn);
+    if (crashNormal.lengthSq() < 1e-6) {
+      crashNormal.set(0, 1, 0);
+    }
+    const info = partTable[part];
+    const shed = info ? MATERIALS[info.material] : null;
+    const level = Math.min(1, Math.max(speed, 3) / 20);
+    const wet = surface === SURFACE.water;
+    if (type === 3 && nowWall - chipCueAtWall < CHIP_CUE_GAP_MS) {
+      return;
+    }
+    const floorY = view.height(crashAt.x, crashAt.z, crashAt.y + 0.5);
+    const kind = type === 1 ? 'break' : type === 2 ? 'crush' : 'hit';
+    /* A part leaving in the air (forced, or a bending moment with no
+     * contact) throws only its own pieces, not the ground's. */
+    const touching = speed > 0.05;
+    if (touching || kind !== 'hit') {
+      debris.emit(crashAt, crashNormal, touching ? speed : 4, touching ? surface : -1, shed, floorY, kind);
+    }
+    if (typeof audio.wreck !== 'function') {
+      return;
+    }
+    if (type === 1) {
+      audio.wreck('snap', level);
+    } else if (type === 2) {
+      audio.wreck('crunch', level);
+    } else if (type === 3) {
+      chipCueAtWall = nowWall;
+      audio.wreck('chip', level);
+    }
+    if (wet && nowWall - splashCueAtWall > 250) {
+      splashCueAtWall = nowWall;
+      audio.wreck('splash', level);
+    }
+  }
+
+  /*
+   * Once a frame, right after the craft is posed: read the damage, draw
+   * the pieces, judge the wreck. Render and rules; the plant has moved on.
+   */
+  function crashFrame(nowWall, dt) {
+    const parent = shell.quad.parent;
+    if (parent && wreckRig.group.parent !== parent) {
+      parent.add(wreckRig.group);
+      parent.add(debris.group);
+    }
+    debris.update(dt / 1000);
+    if (!runDamage) {
+      return;
+    }
+    if (wreckCraft !== shell.quad) {
+      partTable = damage.table();
+      cameraPart = partTable.findIndex((p) => p.kindName === 'camera');
+      wreckRig.attach(shell.quad, partTable, shell.discs);
+      wreckCraft = shell.quad;
+    }
+    const before = crashFlags;
+    crashFlags = damage.flags();
+    lastParts = crashFlags ? damage.parts() : null;
+    crashEntries(crashFlags & ~before, nowWall);
+    if (lastParts) {
+      wreckRig.update(lastParts, damage.count(), stateCurr, plantToWorld);
+    }
+    fpvFail.set(
+      (crashFlags & DAMAGE_FLAGS.antennaLost) !== 0,
+      (crashFlags & DAMAGE_FLAGS.cameraLost) !== 0,
+      (crashFlags & DAMAGE_FLAGS.batteryEjected) !== 0,
+      nowWall,
+    );
+    if (!wrecked && mode === 'flight' && isWreck(crashFlags)) {
+      enterWreck(nowWall);
+    }
+  }
+
+  /*
+   * WHAT A CONTACT WITHOUT DAMAGE STILL THROWS UP. A crown the craft flies
+   * into and water it lands on report no damage event unless something
+   * breaks, and both are loud to the eye: leaves and twigs out of the tree,
+   * spray off the water. Taken from the flags the plant raises the step
+   * the craft is held by a crown or wet, and for an aircraft on floats from
+   * its own descent onto the surface. Render only.
+   */
+  function crashEntries(entered, nowWall) {
+    const speed = speedNow;
+    if ((entered & DAMAGE_FLAGS.inTree) && nowWall - treeCueAtWall > 300) {
+      treeCueAtWall = nowWall;
+      crashNormal.set(0, 1, 0);
+      debris.emit(pCurr, crashNormal, Math.max(4, speed), SURFACE.foliage, null,
+        view.height(pCurr.x, pCurr.z, pCurr.y), 'hit');
+    }
+    const w = view.water && view.water.length ? waterAt(pCurr.x, pCurr.z) : null;
+    if (!w || nowWall - splashCueAtWall < 140 || !stateCurr) {
+      return;
+    }
+    const above = pCurr.y - w.surfaceY;
+    const sink = -stateCurr[6];
+    const wet = (entered & DAMAGE_FLAGS.inWater) !== 0
+      || (above < 0.35 && above > -0.5 && (sink > 1.2 || speed > 7));
+    if (!wet) {
+      return;
+    }
+    splashCueAtWall = nowWall;
+    crashAt.set(pCurr.x, w.surfaceY, pCurr.z);
+    crashNormal.set(0, 1, 0);
+    debris.emit(crashAt, crashNormal, Math.max(sink * 3, speed * 0.6), SURFACE.water, null, w.surfaceY, 'hit');
+    if (sink > 1.5 && typeof audio.wreck === 'function') {
+      audio.wreck('splash', Math.min(1, sink / 4));
+    }
+  }
+
+  /*
+   * THE RULES OF A WRECK. The lap it happened in is over (race.voidLap,
+   * the same bookkeeping a weight change mid lap gets); in freestyle it is
+   * a bail. The motors are parked, which is the pilot disarming: a quad
+   * with three props left and airmode on would otherwise thrash on the
+   * grass until the pack ran out. Nothing is moved: the wreck lies where the
+   * physics left it.
+   */
+  function enterWreck(nowWall) {
+    wrecked = true;
+    wreckAtWall = nowWall;
+    wreckDisarmed = true;
+    setCrashflip(false);
+    turtleRecover = false;
+    if (view.mode === 'freestyle') {
+      trickDetector.reset();
+      score.crash();
+    }
+    race.voidLap(str('main.wrecked_lap_over'), nowWall);
+    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+  }
+
+  /* Whether the pilot should be looking from the chase camera: the FPV
+   * feed has been dead long enough to see it die, or it is breaking up on
+   * a wreck that will not fly again. */
+  function wreckWantsChase(nowWall) {
+    if (!runDamage || (mode !== 'flight' && mode !== 'paused')) {
+      return false;
+    }
+    const dead = fpvFail.deadSince();
+    if (dead >= 0 && nowWall - dead >= FEED_BEAT_MS) {
+      return true;
+    }
+    return wrecked && (crashFlags & DAMAGE_FLAGS.antennaLost) !== 0
+      && nowWall - wreckAtWall >= FEED_BEAT_MS;
+  }
+
+  /* The camera's knock as a rotation in the craft's frame, or false. */
+  function cameraKnock(out) {
+    if (!lastParts || cameraPart < 0) {
+      return false;
+    }
+    const o = cameraPart * PART_STATE_DOUBLES;
+    if (lastParts[o + STATE.status] !== 0) {
+      return false;
+    }
+    const rx = lastParts[o + STATE.deform];
+    const ry = lastParts[o + STATE.deform + 1];
+    const rz = lastParts[o + STATE.deform + 2];
+    const a = Math.sqrt(rx * rx + ry * ry + rz * rz);
+    if (!(a > 1e-4)) {
+      return false;
+    }
+    /* Body frame to the craft's local Three.js frame, as frame.js does. */
+    knockAxis.set(-ry / a, rz / a, -rx / a);
+    out.setFromAxisAngle(knockAxis, a);
+    return true;
+  }
+
+  /* After the camera chain: what the pilot's picture is. */
+  function crashFrameLate(nowWall) {
+    if (camOverride && crashCamShowsCraft) {
+      shell.quad.visible = true;
+    }
+    wreckRig.setCraftVisible(shell.quad.visible);
+    fpvFail.update(nowWall, runDamage && fpvLensLive && !camOverride);
+  }
+
+  function crashSummary() {
+    const names = Object.keys(DAMAGE_FLAGS).filter((k) => (crashFlags & DAMAGE_FLAGS[k]) !== 0);
+    return {
+      available: damage.available,
+      mode: damage.mode(),
+      runDamage,
+      flags: crashFlags,
+      flagNames: names,
+      wrecked,
+      disarmed: wreckDisarmed,
+      freeBodies: damage.freeBodies(),
+      events: crashEvents,
+      pieces: wreckRig.summary(),
+      debris: debris.active(),
+      trees: crashTreesDeclared,
+      treesOnMap: crashTrees.length,
+      solids: crashSolidsDeclared,
+      feed: fpvFail.level(performance.now()),
+      chase: wreckWantsChase(performance.now()),
+      parts: partTable.map((p) => p.kindName),
+    };
+  }
+
+  /*
    * Put the craft back at the start line. Hits no longer teleport the
    * craft: R is the pilot asking for a restart, not a recovery from a
    * lockout. `at` reseats the spawn when the map itself moved.
@@ -3309,6 +3828,7 @@ export async function boot({ loading, bootStart, mapId }) {
     sim.reset();
     sim.setCellVoltage(runVoltage);
     declareWater();
+    crashReset();
     /*
      * THE LAP CLOCK IS NOT TOUCHED, and the two clocks being separate
      * variables is what makes that possible. simStepIdx mirrors the module's
@@ -4133,6 +4653,9 @@ export async function boot({ loading, bootStart, mapId }) {
       if (typeof sim.e.sim_set_flight_style === 'function') {
         sim.e.sim_set_flight_style(runStyle === 'arcade' ? 1 : 0);
       }
+      /* Crash damage rides the same rule: a run is flown on one set of
+       * physics from its start. See THE CRASH SHELL. */
+      applyCrashMode(s);
       /*
        * THE AIRFRAME, on the same between-runs rule and for a stronger
        * version of the same reason. Pack charge and flight style change what
@@ -5346,7 +5869,10 @@ export async function boot({ loading, bootStart, mapId }) {
      * between laps.
      */
     if (code === 'KeyX' && ui.screen === 'flight' && mode === 'flight') {
-      if (landed || launchStaging || poseLock || crashed) {
+      /* A wreck may be respawned in place whether or not it came to rest
+       * upright: its lap is already over, so this is the pilot choosing to
+       * fly on from here rather than from the pad. */
+      if ((landed && !wrecked) || launchStaging || poseLock || crashed) {
         return;
       }
       setManualFlip(false);
@@ -5356,7 +5882,9 @@ export async function boot({ loading, bootStart, mapId }) {
       return;
     }
     if (code === 'KeyL' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
-      throwWing();
+      if (!wrecked) {
+        throwWing();
+      }
       return;
     }
     if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).chute) {
@@ -5677,9 +6205,13 @@ export async function boot({ loading, bootStart, mapId }) {
       nSim.y *= inv;
       nSim.z *= inv;
     }
-    return sim.e.sim_set_ground(
+    const code = sim.e.sim_set_ground(
       1, nSim.x, nSim.y, nSim.z, pSim.x, pSim.y, pSim.z, GROUND_MU, GROUND_E,
     );
+    if (runDamage) {
+      declareGroundMaterial(pProbe.x, pProbe.z, hy);
+    }
+    return code;
   }
 
   /*
@@ -5779,13 +6311,24 @@ export async function boot({ loading, bootStart, mapId }) {
     } else if (vn < -0.05) {
       passStats.inbound += 1;
     }
-    const code = sim.e.sim_contact_at(
-      nSim.x * inv, nSim.y * inv, nSim.z * inv,
-      e, mu,
-      pSim.x, pSim.y, pSim.z,
-      vsx, vsy, vsz,
-      rSim.x, rSim.y, rSim.z,
-    );
+    /* With crash damage on, the obstacle's material rides along where the
+     * module's numbers for it are these ones; see THE CRASH SHELL. */
+    const surf = obstacleSurfaceFor(obsKindIndex);
+    const code = surf >= 0
+      ? sim.e.sim_contact_at_mat(
+        nSim.x * inv, nSim.y * inv, nSim.z * inv,
+        surf,
+        pSim.x, pSim.y, pSim.z,
+        vsx, vsy, vsz,
+        rSim.x, rSim.y, rSim.z,
+      )
+      : sim.e.sim_contact_at(
+        nSim.x * inv, nSim.y * inv, nSim.z * inv,
+        e, mu,
+        pSim.x, pSim.y, pSim.z,
+        vsx, vsy, vsz,
+        rSim.x, rSim.y, rSim.z,
+      );
     passStats.code = code;
     if (code !== SIM_OK) {
       return 0;
@@ -5865,6 +6408,7 @@ export async function boot({ loading, bootStart, mapId }) {
    */
   function obstacleContactPass(st, dtSurface) {
     obsResolved = false;
+    obsKindIndex = -1;
     if (!view.colliders || mode !== 'flight' || crashed || poseLock || launchStaging) {
       obsHasPrev = false;
       releasePress();
@@ -5960,6 +6504,7 @@ export async function boot({ loading, bootStart, mapId }) {
       }
 
       const mat = contactMaterial(lastHitKind);
+      obsKindIndex = k;
       let vsx = 0;
       let vsy = 0;
       let vsz = 0;
@@ -6443,7 +6988,7 @@ export async function boot({ loading, bootStart, mapId }) {
       /* Airborne, and not on the grass upside down: a minute spent in
        * crashflip waiting to be righted is not a minute of flying, and the
        * two turtle flags are already here to say so. */
-      flying: flownThisRun && !landed && !crashed && !turtleWait && !turtleRecover,
+      flying: flownThisRun && !landed && !crashed && !wrecked && !turtleWait && !turtleRecover,
       laps: race.laps.length,
     });
 
@@ -6472,6 +7017,7 @@ export async function boot({ loading, bootStart, mapId }) {
     if (
       mode === 'flight'
       && !crashed
+      && !wrecked
       && stateCurr
       && !turtleFlip.active
       && (turtleWait
@@ -6487,6 +7033,7 @@ export async function boot({ loading, bootStart, mapId }) {
       mode === 'flight'
       && !poseLock
       && !crashed
+      && !wrecked
       && stateCurr
       && !turtleWait
       && !turtleFlip.active
@@ -6504,7 +7051,7 @@ export async function boot({ loading, bootStart, mapId }) {
      */
     const turtleParkedNow = isTurtleParked();
     if (mode === 'flight' && !poseLock) {
-      setTurtleParkMotors(turtleParkedNow || turtleRecover);
+      setTurtleParkMotors(turtleParkedNow || turtleRecover || wreckDisarmed);
     }
     if (!(mode === 'flight' && !landed && !turtleParkedNow && !crashed) && rcPending.length > 1) {
       rcPending.splice(0, rcPending.length - 1);
@@ -6517,7 +7064,7 @@ export async function boot({ loading, bootStart, mapId }) {
       ui.pollPad(padNav());
     }
 
-    if (mode === 'flight' && landed && !crashed) {
+    if (mode === 'flight' && landed && !crashed && !wrecked) {
       const thr = samples.length ? samples[samples.length - 1].throttle : input.channels.throttle;
       /* Afloat, an aircraft on floats is never parked: water moves, so it
        * is let go onto the water at once and rocks there. */
@@ -6717,6 +7264,9 @@ export async function boot({ loading, bootStart, mapId }) {
             raiseGroundFromState(stNow);
             sim.step(1);
             stNow = readState();
+            if (runDamage) {
+              crashAfterStep(stNow);
+            }
             if (scoring) {
               /* Body rates, the two quaternion components the attitude test
                * needs, and speed. Nothing is allocated and nothing is
@@ -6853,6 +7403,9 @@ export async function boot({ loading, bootStart, mapId }) {
         && canPerch(tiltDeg, speed, rate)
         && !turtleWait
         && !turtleFlip.active
+        /* Not while a broken part is still flying: resting the plant
+         * would freeze it in the air. */
+        && !(runDamage && damage.freeBodies() > 0)
       ) {
         sim.rest();
         landed = true;
@@ -7012,6 +7565,7 @@ export async function boot({ loading, bootStart, mapId }) {
     }
     shell.quad.position.copy(pCurr);
     shell.quad.quaternion.copy(qPrev);
+    crashFrame(nowWall, dt);
 
     /*
      * The solid world was resolved inside the step loop above, on the sim
@@ -7130,7 +7684,8 @@ export async function boot({ loading, bootStart, mapId }) {
         landed,
         turtle: turtleWait || turtleFlip.active,
         launchStaging,
-        hold: crashed,
+        /* A wreck is not a glitch to recover from: it lies where it lies. */
+        hold: crashed || wrecked,
         poseLock,
         /*
          * `&& landed` used to be here, which switched the spawn grace off
@@ -7164,6 +7719,7 @@ export async function boot({ loading, bootStart, mapId }) {
       && !poseLock
       && !launchStaging
       && !crashed
+      && !wrecked
       && stateCurr
       && !turtleWait
       && !turtleFlip.active
@@ -7363,7 +7919,13 @@ export async function boot({ loading, bootStart, mapId }) {
       fpvPos.y += parkedLift;
     }
     lastFpvY = fpvPos.y;
-    fpvQuat.copy(qPrev).multiply(qTilt);
+    /* A camera knocked askew in a crash turns on its mount, under the
+     * uptilt: the horizon the pilot sees tilts by the knock. */
+    fpvQuat.copy(qPrev);
+    if (runDamage && cameraKnock(qKnock)) {
+      fpvQuat.multiply(qKnock);
+    }
+    fpvQuat.multiply(qTilt);
     /*
      * Vibration, so the buzz the flight controller is fighting is something
      * the pilot can see. Driven by the motors' own speed out of the state
@@ -7419,6 +7981,7 @@ export async function boot({ loading, bootStart, mapId }) {
       introMs = -1;
     }
 
+    fpvLensLive = false;
     if (mode === 'title') {
       if (worldLive && !camOverride) {
         shell.quad.visible = true;
@@ -7567,7 +8130,7 @@ export async function boot({ loading, bootStart, mapId }) {
         shell.camera.fov = ui.settings.cameraFov;
         shell.camera.updateProjectionMatrix();
       }
-    } else if (airframeById(runAirframe).fixedWing && ui.settings.wingView !== 'fpv') {
+    } else if ((airframeById(runAirframe).fixedWing && ui.settings.wingView !== 'fpv') || wreckWantsChase(nowWall)) {
       /*
        * A FIXED WING'S OTHER TWO VIEWS, both with the plane in the picture
        * and the horizon level. Render only: nothing here reaches the plant.
@@ -7590,7 +8153,7 @@ export async function boot({ loading, bootStart, mapId }) {
       shell.camera.up.set(0, 1, 0);
       const span = airframeById(runAirframe).dims.bodyWidth;
       let fov = ui.settings.cameraFov;
-      if (ui.settings.wingView === 'chase') {
+      if (ui.settings.wingView === 'chase' || wreckWantsChase(nowWall)) {
         const k = 1 - Math.exp(-dt / 120);
         chaseStep.copy(pCurr).sub(chaseLast);
         if (!chaseValid) {
@@ -7599,6 +8162,16 @@ export async function boot({ loading, bootStart, mapId }) {
           chaseDir.lerp(chaseStep.normalize(), Math.min(1, 1 - Math.exp(-dt / 120))).normalize();
         }
         chaseLast.copy(pCurr);
+        /* A wreck has no way it is travelling: a tumble or a fall would put
+         * the camera straight overhead. Stand it off level instead, so the
+         * wreck is seen from the side the pilot came from. */
+        if (wreckWantsChase(nowWall)) {
+          chaseDir.y = 0;
+          if (chaseDir.lengthSq() < 1e-6) {
+            chaseDir.set(0, 0, -1).applyQuaternion(qSpawn);
+          }
+          chaseDir.normalize();
+        }
         const back = Math.max(2.5, span * 2.4);
         chaseAim.copy(pCurr)
           .addScaledVector(chaseDir, -back)
@@ -7639,6 +8212,7 @@ export async function boot({ loading, bootStart, mapId }) {
       /* The camera sits inside the airframe, so the quad must be hidden or
        * you fly looking at the inside of its own outline hull. */
       chaseValid = false;
+      fpvLensLive = true;
       shell.quad.visible = false;
       shell.camera.position.copy(fpvPos);
       shell.camera.quaternion.copy(fpvQuat);
@@ -7678,6 +8252,7 @@ export async function boot({ loading, bootStart, mapId }) {
         shell.camera.updateProjectionMatrix();
       }
     }
+    crashFrameLate(nowWall);
 
     /* Attract clock and scenery only while this context is actually
      * composing a world. Settings skips it. Title and Maps still need
@@ -8059,6 +8634,8 @@ export async function boot({ loading, bootStart, mapId }) {
       ui.setBanner('');
     } else if (crashed && ui.screen === 'flight') {
       ui.setBanner('Crashed', true);
+    } else if (wrecked && ui.screen === 'flight') {
+      ui.setBanner(str('main.wrecked_r_resets'), true);
     } else if (
       (turtleWait || turtleRecover || turtleFlip.active)
       && ui.screen === 'flight'
@@ -9064,6 +9641,70 @@ export async function boot({ loading, bootStart, mapId }) {
     poseLock = false;
     return true;
   };
+  /*
+   * Crash harness. __crash() is the crash shell's state: the mode, the
+   * damage flags by name, whether the craft is a wreck, the pieces drawn
+   * and where, the trees and solids declared, the feed. __crashThrow puts
+   * the craft at a world point with an attitude (degrees: yaw about up,
+   * then pitch, then roll) and a world velocity (m/s), in flight, so a
+   * capture can fly a crash without a pilot. __crashBreak and
+   * __crashSetDamage are sim_part_break and sim_part_set_damage, for a
+   * scenario that starts damaged. All of it goes through the module's ABI.
+   */
+  window.__crash = () => crashSummary();
+  window.__crashThrow = (o) => {
+    crashCamShowsCraft = o.showCraft !== false;
+    const placed = window.__placeCraft(o.x, o.y, o.z);
+    if (!placed || placed.ok === false) {
+      return placed;
+    }
+    const d2r = Math.PI / 180;
+    const qWorld = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler((o.pitch ?? 0) * d2r, (o.yaw ?? 0) * d2r, (o.roll ?? 0) * d2r, 'YXZ'),
+    );
+    const qPlant = qWorld.premultiply(qSpawnInv);
+    worldPosToSim(o.x, o.y, o.z, pSim);
+    let code = sim.e.sim_set_pose(pSim.x, pSim.y, pSim.z, qPlant.w, -qPlant.z, -qPlant.x, qPlant.y);
+    if (code !== SIM_OK) {
+      return { ok: false, code: simErrorName(code) };
+    }
+    worldDirToSim(o.vx ?? 0, o.vy ?? 0, o.vz ?? 0, nSim);
+    code = sim.e.sim_set_velocity(nSim.x, nSim.y, nSim.z, o.p ?? 0, o.q ?? 0, o.r ?? 0);
+    if (code !== SIM_OK) {
+      return { ok: false, code: simErrorName(code) };
+    }
+    obsHasPrev = false;
+    obsPhase = 0;
+    stateCurr = readState();
+    statePrev = stateCurr;
+    /* `hold` keeps the integrator still until __releasePose, so a capture
+     * can photograph the moment before. */
+    poseLock = Boolean(o.hold);
+    return { ok: true, state: Array.from(stateCurr.slice(0, 11)) };
+  };
+  /* The solids of one collider kind near a world point, nearest first, for
+   * a capture to aim a crash at: { box, a: [x, y, z], b, r }. */
+  window.__crashSolids = (x, z, r, kind) => {
+    const c = view.colliders;
+    const out = [];
+    const k = KINDS.indexOf(kind);
+    for (let i = 0; c.fkind && i < c.fkind.length; i += 1) {
+      if (c.fkind[i] !== k) {
+        continue;
+      }
+      const d = Math.hypot((c.fax[i] + c.fbx[i]) / 2 - x, (c.faz[i] + c.fbz[i]) / 2 - z);
+      if (d <= r) {
+        out.push({
+          d, box: Boolean(c.fbox[i]), a: [c.fax[i], c.fay[i], c.faz[i]], b: [c.fbx[i], c.fby[i], c.fbz[i]], r: c.fr[i],
+        });
+      }
+    }
+    return out.sort((u, v) => u.d - v.d);
+  };
+  /* The map's water bodies, where a capture throws an aircraft on floats. */
+  window.__crashWater = () => (view.water || []).map((w) => ({ spawn: w.spawn, surfaceY: w.surfaceY }));
+  window.__crashBreak = (part) => simErrorName(sim.e.sim_part_break(part));
+  window.__crashSetDamage = (part, d) => simErrorName(sim.e.sim_part_set_damage(part, d));
   /*
    * Which tune the module is actually running, read back from the module
    * rather than from the menu, plus the config coverage counters from
