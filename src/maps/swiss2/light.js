@@ -287,9 +287,7 @@ export function bakeTerrainShadow(renderer, field, far, sun) {
  * post chain (post.js) for the camera, where it is how much of the sun
  * the lens sees.
  */
-const SUN_GLSL = /* glsl */ `
-  uniform highp sampler2D uS2Shadow;
-  uniform vec2 uS2Field;
+const CLOUD_GLSL = /* glsl */ `
   uniform vec2 uS2CloudAt;
   uniform vec3 uS2SunDir;
   ${LOW_COVER_GLSL}
@@ -309,21 +307,32 @@ const SUN_GLSL = /* glsl */ `
    * clouds a fractal noise drifting with the wind, projected down the
    * sun's direction so a wall and the floor under it agree. 1 in a gap,
    * 1 - CLOUD_DEPTH under a cloud, with the soft edge a cloud's shadow has
-   * at that height. */
-  float s2Cloud(vec3 p) {
-    vec2 at = p.xz + uS2SunDir.xz * ((${CLOUD_BASE.toFixed(1)} - p.y) / max(uS2SunDir.y, 0.1));
+   * at that height. s2Deck takes the point where the sun's ray through p
+   * meets the deck, s2Low where it meets the low bank's middle (clouds.js),
+   * which stands between p and the sun only below it. */
+  float s2Deck(vec2 at) {
     vec2 q = (at + uS2CloudAt) / ${CLOUD_SIZE.toFixed(1)};
     float n = s2cNoise(q) * 0.55 + s2cNoise(q * 2.03 + 5.2) * 0.28 + s2cNoise(q * 4.11 + 1.7) * 0.17;
-    float deck = 1.0 - ${CLOUD_DEPTH.toFixed(3)} * smoothstep(${(1 - CLOUD_COVER - 0.07).toFixed(3)}, ${(1 - CLOUD_COVER + 0.07).toFixed(3)}, n);
-    /* And the low bank in the valley (clouds.js), where it stands between
-     * p and the sun: its cover taken through the bank's middle. */
-    float low = 1.0;
-    if (p.y < ${LOW_SHADOW_Y.toFixed(1)}) {
-      vec2 lat = p.xz + uS2SunDir.xz * ((${LOW_SHADOW_Y.toFixed(1)} - p.y) / max(uS2SunDir.y, 0.1));
-      low = 1.0 - ${LOW_SHADOW_DEPTH.toFixed(3)} * smoothstep(0.1, 0.6, s2LowCover(lat).x);
-    }
-    return deck * low;
+    return 1.0 - ${CLOUD_DEPTH.toFixed(3)} * smoothstep(${(1 - CLOUD_COVER - 0.07).toFixed(3)}, ${(1 - CLOUD_COVER + 0.07).toFixed(3)}, n);
   }
+  float s2Low(vec2 lat) {
+    return 1.0 - ${LOW_SHADOW_DEPTH.toFixed(3)} * smoothstep(0.1, 0.6, s2LowCover(lat).x);
+  }
+  vec2 s2DeckRay(vec3 p) {
+    return p.xz + uS2SunDir.xz * ((${CLOUD_BASE.toFixed(1)} - p.y) / max(uS2SunDir.y, 0.1));
+  }
+  vec2 s2LowRay(vec3 p) {
+    return p.xz + uS2SunDir.xz * ((${LOW_SHADOW_Y.toFixed(1)} - p.y) / max(uS2SunDir.y, 0.1));
+  }
+  float s2Cloud(vec3 p) {
+    return s2Deck(s2DeckRay(p)) * (p.y < ${LOW_SHADOW_Y.toFixed(1)} ? s2Low(s2LowRay(p)) : 1.0);
+  }
+`;
+
+const SUN_GLSL = /* glsl */ `
+  uniform highp sampler2D uS2Shadow;
+  uniform vec2 uS2Field;
+  ${CLOUD_GLSL}
   /* The sun past every ridge: 1 in the sun, 0 in a mountain's shadow,
    * with a penumbra as wide as the sun's disc makes it at the ridge's
    * distance (0.0093 rad across, so half of it either side), and wider
@@ -347,6 +356,25 @@ const SUN_GLSL = /* glsl */ `
 const LIT_PARS = /* glsl */ `
   varying vec3 vS2World;
   ${SUN_GLSL}
+  /* The same, read from the map the frame baked (makeLit's update): the
+   * noise is the same for every fragment on a ray toward the sun, and
+   * worked out per fragment it was 0.4 ms of a High frame, on the ground
+   * and the grass alone (scripts/swiss2-perf.js). Off the baked domain, or
+   * before the first bake, it is worked out in full. The lit materials'
+   * only, for s2Sky's reason below. */
+  uniform sampler2D uS2CloudMap;
+  uniform vec4 uS2DeckBox;
+  uniform vec4 uS2LowBox;
+  float s2CloudMapped(vec3 p) {
+    vec2 ua = (s2DeckRay(p) - uS2DeckBox.xy) * uS2DeckBox.zw;
+    vec2 ul = (s2LowRay(p) - uS2LowBox.xy) * uS2LowBox.zw;
+    bool low = p.y < ${LOW_SHADOW_Y.toFixed(1)};
+    if (uS2DeckBox.z == 0.0 || ua.x < 0.0 || ua.y < 0.0 || ua.x > 1.0 || ua.y > 1.0
+      || (low && (ul.x < 0.0 || ul.y < 0.0 || ul.x > 1.0 || ul.y > 1.0))) {
+      return s2Cloud(p);
+    }
+    return texture2D(uS2CloudMap, ua).r * (low ? texture2D(uS2CloudMap, ul).g : 1.0);
+  }
   /* The sky's share at p (SKY_OCC above): the landscape's horizon, faded
    * out with the height over the ground. The lit materials' only: the
    * meter (post.js) shares SUN_GLSL, and this in its reduce shader cost
@@ -375,7 +403,7 @@ const LIT_VERTEX = /* glsl */ `
 `;
 
 const LIT_PRELUDE = /* glsl */ `
-  float s2Sun = s2TerrainSun(vS2World) * s2Cloud(vS2World);
+  float s2Sun = s2TerrainSun(vS2World) * s2CloudMapped(vS2World);
   #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
     vec3 s2c = vDirectionalShadowCoord[ 0 ].xyz / vDirectionalShadowCoord[ 0 ].w;
     vec2 s2e = min(s2c.xy, 1.0 - s2c.xy);
@@ -394,6 +422,86 @@ const LIT_LIGHT = /* glsl */ `getDirectionalLightInfo( directionalLight, directL
     #endif`;
 
 /*
+ * The clouds' shadow baked over the ground, CLOUD_PX a side, once a frame.
+ * Its red is the deck's shadow over the plane where the sun's rays
+ * through the field meet the deck, its green the low bank's over the
+ * plane where they meet the bank's middle: every point of the field from
+ * under the ground to CLOUD_TOP metres up reads its own ray's texel.
+ * The boxes are where the rays land, as (origin, one over the size), and
+ * a point whose ray lands off them is worked out in full (s2CloudMapped).
+ */
+const CLOUD_PX = 1024;
+const CLOUD_TOP = 3200;
+const CLOUD_FLOOR = -50;
+function cloudBake(shared) {
+  const dir = shared.uS2SunDir.value;
+  const lean = new THREE.Vector2(dir.x, dir.z).divideScalar(Math.max(dir.y, 0.1));
+  const box = (yLow, yHigh, plane) => {
+    const a = lean.clone().multiplyScalar(plane - yHigh);
+    const b = lean.clone().multiplyScalar(plane - yLow);
+    const x0 = -HALF + Math.min(a.x, b.x);
+    const y0 = -HALF + Math.min(a.y, b.y);
+    const x1 = HALF + Math.max(a.x, b.x);
+    const y1 = HALF + Math.max(a.y, b.y);
+    return new THREE.Vector4(x0, y0, 1 / (x1 - x0), 1 / (y1 - y0));
+  };
+  const deckBox = box(CLOUD_FLOOR, CLOUD_TOP, CLOUD_BASE);
+  const lowBox = box(CLOUD_FLOOR, LOW_SHADOW_Y, LOW_SHADOW_Y);
+  const target = new THREE.WebGLRenderTarget(CLOUD_PX, CLOUD_PX, {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    depthBuffer: false,
+  });
+  target.texture.generateMipmaps = false;
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      uS2CloudAt: shared.uS2CloudAt,
+      uS2SunDir: shared.uS2SunDir,
+      uS2LowAt: shared.uS2LowAt,
+      uDeck: { value: deckBox },
+      uLow: { value: lowBox },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position.xy, 0.0, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      ${CLOUD_GLSL}
+      uniform vec4 uDeck;
+      uniform vec4 uLow;
+      varying vec2 vUv;
+      void main() {
+        gl_FragColor = vec4(s2Deck(uDeck.xy + vUv / uDeck.zw), s2Low(uLow.xy + vUv / uLow.zw), 0.0, 1.0);
+      }
+    `,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat);
+  quad.frustumCulled = false;
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  return {
+    render(renderer) {
+      const prev = renderer.getRenderTarget();
+      renderer.setRenderTarget(target);
+      renderer.render(quad, cam);
+      renderer.setRenderTarget(prev);
+      shared.uS2CloudMap.value = target.texture;
+      shared.uS2DeckBox.value.copy(deckBox);
+      shared.uS2LowBox.value.copy(lowBox);
+    },
+    dispose() {
+      target.dispose();
+      quad.geometry.dispose();
+      mat.dispose();
+    },
+  };
+}
+
+/*
  * Make the injector. Its uniforms are shared by every material it
  * touches, so the terrain shadow is one texture however many materials
  * read it; the low cloud's drift is the clouds' own uniform, so a bank's
@@ -408,6 +516,9 @@ export function makeLit(clouds) {
     uS2Field: { value: new THREE.Vector2(HALF, FIELD) },
     uS2CloudAt: { value: new THREE.Vector2() },
     uS2SunDir: { value: sunDirection() },
+    uS2CloudMap: { value: null },
+    uS2DeckBox: { value: new THREE.Vector4() },
+    uS2LowBox: { value: new THREE.Vector4() },
   };
   const loop = THREE.ShaderChunk.lights_fragment_begin;
   const find = 'getDirectionalLightInfo( directionalLight, directLight );';
@@ -424,6 +535,9 @@ export function makeLit(clouds) {
     shader.uniforms.uS2CloudAt = shared.uS2CloudAt;
     shader.uniforms.uS2SunDir = shared.uS2SunDir;
     shader.uniforms.uS2LowAt = shared.uS2LowAt;
+    shader.uniforms.uS2CloudMap = shared.uS2CloudMap;
+    shader.uniforms.uS2DeckBox = shared.uS2DeckBox;
+    shader.uniforms.uS2LowBox = shared.uS2LowBox;
     shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
     if (shader.vertexShader.includes('#include <project_vertex>')) {
       shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>\n${LIT_VERTEX}`);
@@ -468,6 +582,11 @@ export function makeLit(clouds) {
   lit.setClock = (seconds) => {
     shared.uS2CloudAt.value.copy(CLOUD_START).addScaledVector(CLOUD_WIND, -seconds);
   };
+  const bake = cloudBake(shared);
+  /* The clouds' shadow for this frame's clock, into the map every lit
+   * material reads: once a frame, before the frame is drawn. */
+  lit.update = (renderer) => bake.render(renderer);
+  lit.dispose = () => bake.dispose();
   return lit;
   function lit(mat) {
     if (!mat || mat.userData.s2Lit || !LIT_TYPES.has(mat.type)) {

@@ -287,6 +287,7 @@ function photoStyle() {
         footprints: [],
         props: null,
         veg: null,
+        mirrorSkip: [],
         water: null,
         lit,
         sunDir,
@@ -320,6 +321,7 @@ function photoStyle() {
             stage.cliffs.dispose();
           }
           envTarget.dispose();
+          lit.dispose();
           style.clouds.dispose();
           for (const t of owned) {
             t.dispose();
@@ -409,7 +411,7 @@ function photoStyle() {
        * update(dtMs, camera) ride on it, and so do the clouds, from the
        * first frame drawn, so however long the build took the valley
        * starts under the same sky. */
-      return {
+      const out = {
         pines: 0,
         broadleaf: 0,
         reeds,
@@ -418,6 +420,7 @@ function photoStyle() {
           last = t;
           first ??= t;
           stage.lit.setClock(t - first);
+          stage.lit.update(stage.renderer);
           style.clouds.setClock(t - first);
           stage.groundClock.value = t - first;
           if (stage.veg) {
@@ -442,9 +445,22 @@ function photoStyle() {
           if (stage.lakeside) {
             stage.lakeside.update(dtMs);
           }
+          /* The grass round the camera out of the lake's mirror: water
+           * index.js lists the meadow as not worth reflecting, but it is
+           * planted after the water is built, so the map hides it here.
+           * Measured at meadow-eye on High (scripts/swiss2-perf.js), the
+           * two layers were 1.1 ms of the mirror's 2.4 for blades a
+           * kilometre from the water. */
+          const skip = stage.mirrorSkip;
+          const shown = skip.map((o) => o.visible);
+          skip.forEach((o) => { o.visible = false; });
           stage.water.update(dtMs, camera);
+          skip.forEach((o, k) => { o.visible = shown[k]; });
         },
       };
+      style.stage = stage;
+      style.updateWind = out.updateWind;
+      return out;
     },
     /* After everything is placed: the forests, the mountains' shadow
      * (baked now that the range beyond exists), then metre uvs and the
@@ -509,6 +525,7 @@ function photoStyle() {
         craft: stage.craft,
       });
       scene.add(stage.veg.group);
+      stage.mirrorSkip = ['swiss2-grass', 'swiss2-meadow'].map((n) => stage.veg.group.getObjectByName(n)).filter(Boolean);
       nature.pines = stage.veg.stats.trees;
       floorUnderTrees(stage.masks.zones, stage.veg.forest);
       /* The villagers in the square, drawn the vehicles' way. */
@@ -534,6 +551,16 @@ function photoStyle() {
        * valley is seated; the cel craft comes back before the world goes. */
       shell.setCraftLook(photoCraftLook(style.lit));
       style.shell = shell;
+      /* The frame's parts for scripts/swiss2-perf.js, which times each on
+       * the GPU with the frame uncapped. A diagnostic like the city's
+       * __CITY_SCAN: nothing is kept unless the harness asked before the
+       * map was built. */
+      const perf = globalThis.__SWISS2_PERF;
+      if (perf && typeof perf === 'object') {
+        Object.assign(perf, {
+          renderer: shell.renderer, scene: map.scene, camera: shell.camera, post, stage: style.stage, sun: style.stage.sun, updateWind: style.updateWind, quality: q.id,
+        });
+      }
       map.dispose = () => {
         shell.setCraftLook(null);
         post.dispose();

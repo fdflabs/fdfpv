@@ -29,7 +29,8 @@
  * rock showing between them lower down, and gone to drizzle well above
  * the pool. A third sheet, far wider, is the plume the veil tears into:
  * most of the fall's light, as in the photographs, bright and billowing
- * and fuller the further down.
+ * and fuller the further down, and blown further downwind than the
+ * water, so the fall leans off its own line as the Staubbach does.
  *
  * THE CASCADE is a skin of white water over the apron's middle, braided
  * into channels that wander down it, sheeting white off the risers and
@@ -38,8 +39,12 @@
  * THE MIST is a few hundred soft sprites boiling off where the veil
  * lands and rising most of the way back up the face beside the fall,
  * drifting along the wall, each on its own cycle in the shader, larger
- * and fainter as it rises, and a low drift of spray over the cascade and
- * the pool.
+ * and fainter as it rises, a close burst where the veil lands, and a low
+ * drift of spray over the cascade and the pool.
+ *
+ * THE WET STREAK: down the fall's line the rock is dark and glossy, and
+ * threaded with thin white runs of water, the bright streak under the
+ * veil in the photographs.
  *
  * No rainbow: the fixed view looks east at the fall with the sun in the
  * east, 74 degrees from the line of sight, and a bow stands 42 degrees
@@ -89,7 +94,7 @@ export function apronShape(layout) {
     /* Uneven steps: t is warped before it is cut into steps, and the cut
      * is shifted along the apron by as much as two steps. */
     const warp = t + 0.05 * Math.sin(t * 23 + s * 3) + 0.04 * (noise2(t * 6 + 1.3, s * 2 + 7.7) - 0.5);
-    const u = Math.max(0, warp * APRON.steps + 2.2 * (noise2(s * 1.7 + 4.1, 1.7) - 0.5) + 1.2 * (noise2(s * 6.3, 5.1) - 0.5) + 1.6 * (noise2(s * 15 + 3.3, 9.7) - 0.5));
+    const u = Math.max(0, warp * APRON.steps + 2.2 * (noise2(s * 1.7 + 4.1, 1.7) - 0.5) + 0.9 * (noise2(s * 6.3, 5.1) - 0.5) + 0.45 * (noise2(s * 15 + 3.3, 9.7) - 0.5));
     const k = Math.floor(u);
     const f = u - k;
     const rise = Math.min(1, Math.max(0, (k + smoothstep(0, 0.55, f)) / APRON.steps));
@@ -210,8 +215,9 @@ const sheetOut = (ahead, fallen) => 2.5 + ahead + 8 * Math.pow(Math.max(0, falle
 
 /* The fall's sheet: rows down from the lip to `bottom`, columns across,
  * uv (across, down). `ahead` moves the whole sheet out from the face; it
- * is `topW` metres wide at the lip and `footW` where it lands. */
-function sheetGeometry(layout, bottom, ahead, topW, footW) {
+ * is `topW` metres wide at the lip and `footW` where it lands, widening
+ * as the fall's height to the power `flare`. */
+function sheetGeometry(layout, bottom, ahead, topW, footW, flare) {
   const { fallX, fallZ, lipY } = layout;
   const ROWS = 28;
   const COLS = 12;
@@ -222,8 +228,10 @@ function sheetGeometry(layout, bottom, ahead, topW, footW) {
   for (let r = 0; r <= ROWS; r += 1) {
     const t = r / ROWS;
     const y = top + (bottom - top) * t;
-    /* Narrow off the lip, fanning out fast once the water has torn. */
-    const w = topW + (footW - topW) * Math.pow(t, 0.9) + ahead * 0.6;
+    /* Narrow off the lip and holding together for the first part of
+     * the drop, then spreading as it tears (flare over 1 holds it longer):
+     * spread evenly from the lip it was a white cone. */
+    const w = topW + (footW - topW) * Math.pow(t, flare) + ahead * 0.6;
     for (let c = 0; c <= COLS; c += 1) {
       const s = c / COLS;
       /* A little bow across: the sheet is fuller in the middle. */
@@ -360,7 +368,9 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
            * push into the face is held small so the veil stays off it. */
           float t2 = uv.y * uv.y;
           float gust = 0.6 * sin(uTime * 0.37 + uSeed) + 0.4 * sin(uTime * 0.13 + 1.7 + uSeed * 0.5);
-          float lean = t2 * (7.0 + 4.0 * gust);
+          /* The plume is spray, slower and lighter than the water, and the
+           * wind carries it further. */
+          float lean = t2 * (7.0 + 4.0 * gust) * (uMode > 0.5 ? 1.9 : 1.0);
           transformed.z += uWind.y * lean + 1.5 * t2 * sin(uTime * 0.6 + uv.x * 3.0 + uSeed);
           transformed.x += clamp(uWind.x, -1.0, 1.0) * 3.0 * t2;
         }`);
@@ -404,7 +414,6 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
          * has all gone to spray. */
         float torn = smoothstep(0.08, 0.35, vFall.y);
         float drizzle = smoothstep(0.3, 0.75, vFall.y);
-        float gone = smoothstep(0.9, 1.08, vFall.y);
         float a;
         /* One program for all three, so neither the spray nor the
          * cascade costs a compile of its own. */
@@ -419,22 +428,25 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
           float across = vFall.x * 26.0;
           float braid = fallNoise(vec2(across / 4.5 + uSeed, fallen / 9.0)) * 0.65 + fallNoise(vec2(across / 1.7, fallen / 4.0 + 3.1)) * 0.35;
           float centre = 1.0 - abs(vFall.x - 0.5) * 2.0;
-          float chan = smoothstep(0.52, 0.64, braid + 0.07 * centre - 0.05 * vFall.y);
+          float chan = smoothstep(0.56, 0.68, braid + 0.07 * centre - 0.05 * vFall.y) * (0.35 + 0.65 * centre);
           float streak = texture2D(uWaves, vec2(c.x / 1.3, c.y / mix(3.5, 11.0, riser))).a;
           float churn = texture2D(uWaves, vec2(c.x / 0.7, c.y / 1.6)).a;
           float edge = smoothstep(0.0, 0.25, vFall.x) * smoothstep(1.0, 0.75, vFall.x);
-          float foam = mix(0.3 + 0.7 * smoothstep(0.4, 0.75, churn), smoothstep(0.42, 0.7, streak * 0.7 + churn * 0.3), riser);
-          a = chan * edge * (0.12 + 0.8 * foam) * smoothstep(0.0, 0.04, vFall.y);
+          /* Threads of white off the risers with the dark wet rock between
+           * them, not a sheet: sheeted white on every riser, the apron read
+           * as a stack of white bands. */
+          float foam = mix(0.25 + 0.6 * smoothstep(0.45, 0.8, churn), smoothstep(0.52, 0.78, streak * 0.7 + churn * 0.3), riser);
+          a = chan * edge * (0.06 + 0.6 * foam) * smoothstep(0.0, 0.04, vFall.y);
         } else if (uMode > 0.5) {
           /* The plume: what the veil tears into is most of the fall's
            * light, a broad bright body of spray fuller the further down,
            * its edges billowing. */
           float cloud = texture2D(uWaves, vec2(q.x / 9.0, q.y / 60.0) + 0.37).a;
           float billow = texture2D(uWaves, vec2(q.x / 14.0 + 0.61, q.y / 25.0)).a;
-          float body = smoothstep(0.15, 0.7, cloud * 0.55 + fine * 0.2 + billow * 0.25);
+          float body = smoothstep(0.1, 0.65, cloud * 0.55 + fine * 0.2 + billow * 0.25);
           float side = abs(vFall.x - 0.5) * 2.0 + 0.35 * (billow - 0.5);
           float edge = 1.0 - smoothstep(0.25, 0.95, side);
-          a = body * edge * mix(0.1, 0.62, smoothstep(0.12, 0.75, vFall.y)) * smoothstep(0.08, 0.3, vFall.y) * (1.0 - smoothstep(0.62 + 0.2 * billow, 0.98, vFall.y));
+          a = body * edge * mix(0.1, 0.7, smoothstep(0.12, 0.75, vFall.y)) * smoothstep(0.08, 0.3, vFall.y) * (1.0 - smoothstep(0.62 + 0.2 * billow, 0.98, vFall.y));
         } else {
           /* Glassy ropes at the lip; below, streaks with gaps between them
            * that widen as the water spreads, so the rock shows through. */
@@ -442,7 +454,13 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
           float body = smoothstep(0.42 + 0.12 * torn, 0.62 + 0.1 * torn, strand);
           float ragged = 0.12 + 0.3 * torn + 0.15 * (fine - 0.5);
           float edge = smoothstep(0.0, ragged, vFall.x) * smoothstep(1.0, 1.0 - ragged, vFall.x);
-          a = body * edge * mix(0.95, 0.6, torn) * mix(1.0, 0.55, drizzle) * (1.0 - gone) * (0.5 + 0.5 * spray);
+          /* A white core and thinner, streakier sides: the veil lit
+           * evenly across was a solid white fan. */
+          float core = mix(0.5, 1.0, 1.0 - smoothstep(0.12, 0.45, abs(vFall.x - 0.5) + 0.1 * (fine - 0.5)));
+          /* It ends in the spray, column by column, not on the sheet's
+           * last row: that ended every veil on a ruled line. */
+          float end = 1.0 - smoothstep(0.72, 0.97, vFall.y + 0.14 * (ropes - 0.5));
+          a = body * edge * core * mix(0.95, 0.6, torn) * mix(1.0, 0.5, drizzle) * end * (0.5 + 0.5 * spray);
         }
         a *= smoothstep(0.0, 0.02, vFall.y);
         diffuseColor.a = a;
@@ -633,9 +651,16 @@ function wetRock(rock, envMap, layout, pool, impact) {
         float reach = 1.0 - smoothstep(30.0, 70.0, distance(vWetW, uImpact) + 14.0 * (wetNoise(vWetW.zy / 9.0) - 0.5));
         float moss = smoothstep(0.3, 0.75, normalize(vWetN).y) * reach * (1.0 - smoothstep(0.55, 0.9, wet)) * smoothstep(0.3, 0.6, wetNoise(vWetW.xz / 2.3 + vWetW.y / 5.0));
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.1, 0.16, 0.035), moss);
-        diffuseColor.rgb *= 1.0 - 0.7 * wet;`)
+        diffuseColor.rgb *= 1.0 - 0.7 * wet;
+        /* Down the fall's own line the rock is not only wet: water runs on
+         * it in thin white threads, which with the dark wet rock between
+         * them is the bright streak down the face under every photograph
+         * of the Staubbach. Glassy where it runs. */
+        float film = (1.0 - smoothstep(wetHalf * 0.3, wetHalf * 0.8, wetAcross + 4.0 * (wetStreak - 0.5))) * step(vWetW.y, uFall.y - 0.5);
+        float thread = smoothstep(0.5, 0.8, wetNoise(vec2(vWetW.z / 0.8, vWetW.y / 16.0)) * 0.7 + wetNoise(vec2(vWetW.z / 0.3, vWetW.y / 5.0)) * 0.3);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.6, 0.64, 0.66), film * thread * 0.75);`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = mix(mix(roughnessFactor, 0.42, wet), 0.85, moss);`);
+        roughnessFactor = mix(mix(mix(roughnessFactor, 0.42, wet), 0.85, moss), 0.18, film);`);
   };
   mat.customProgramCacheKey = () => 'swiss2-wet-rock';
   return mat;
@@ -658,15 +683,16 @@ export async function buildFall({ heightAt, layout, waves, time, wind, envMap, g
   /* Two veils a metre apart, and the spray the wind strips off them,
    * wider and further out, all ending on the apron. */
   const parts = [];
-  for (const [ahead, seed, mode, topW, footW] of [[0, 0.0, FALL_MODE.veil, 4, 26], [1.1, 3.7, FALL_MODE.veil, 5, 32], [3, 7.1, FALL_MODE.haze, 7, 72]]) {
-    const s = sheetGeometry(layout, land.y - 1.5, ahead, topW, footW);
+  for (const [ahead, seed, mode, topW, footW, flare] of [[0, 0.0, FALL_MODE.veil, 3.5, 15, 1.7], [1.1, 3.7, FALL_MODE.veil, 4.5, 20, 1.5], [3, 7.1, FALL_MODE.haze, 6, 50, 1.4]]) {
+    const s = sheetGeometry(layout, land.y - 1.5, ahead, topW, footW, flare);
     const m = new THREE.Mesh(s.geometry, fallMaterial(waves, time, wind, s.height, seed, envMap, mode));
     m.name = 'swiss2-fall';
     m.renderOrder = 1;
-    /* The vertex shader leans the sheet downwind by up to eleven metres
-     * and sways it by one and a half: bounds that reach that far. */
+    /* The vertex shader leans the sheet downwind by up to eleven metres,
+     * the plume by twenty one, and sways it by one and a half: bounds that
+     * reach that far. */
     s.geometry.computeBoundingSphere();
-    s.geometry.boundingSphere.radius += 13;
+    s.geometry.boundingSphere.radius += mode === FALL_MODE.haze ? 24 : 13;
     group.add(m);
     parts.push(m);
   }
@@ -699,10 +725,17 @@ export async function buildFall({ heightAt, layout, waves, time, wind, envMap, g
   const spray = mist({
     waves, time, wind, centre: sprayAt, count: 120, spread: 22, rise: 20, life: 6, s0: 4, s1: 20, opacity: 0.016, light: light.clone().multiplyScalar(0.72), seed: 73, sun,
   });
+  /* and where the veil lands on the apron, the burst it makes: a close,
+   * bright puff standing out from the rock, which hides the line where
+   * the sheets meet the ledges as the spray hides it at the real one. */
+  const burst = mist({
+    waves, time, wind, centre: impact.clone().setX(impact.x - 6), count: 70, spread: 7, rise: 16, life: 5, s0: 6, s1: 18, opacity: 0.06, light: light.clone().multiplyScalar(0.85), seed: 79, sun,
+  });
   cloud.name = 'swiss2-mist';
   spray.name = 'swiss2-spray';
-  group.add(cloud, spray);
-  parts.push(cloud, spray);
+  burst.name = 'swiss2-burst';
+  group.add(cloud, spray, burst);
+  parts.push(cloud, spray, burst);
   return {
     foot,
     height: layout.lipY + 0.4 - land.y,
