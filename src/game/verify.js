@@ -45,6 +45,8 @@
 import { courseFromDocument } from './trackdoc.js';
 import { Race } from './race.js';
 import { decodeGhost } from '../share/ghostdata.js';
+import { isMapTrack, normalize } from '../trackbuilder/model.js';
+import { raceGatesOf } from '../builder/course.js';
 
 /*
  * A crossing time recovered from a 30 Hz ghost is interpolated inside a
@@ -85,6 +87,27 @@ export function gatesFromCourse(course) {
   });
 }
 
+/*
+ * The race's gates and class for any published document, which is the one
+ * question the checker and its synthetic laps both ask.
+ *
+ * A MAP TRACK (schemaVersion 4, src/builder/) stands in a world with every
+ * gate at an absolute pose, and its race gates are the ones the in-sim
+ * builder hands the shell (src/builder/course.js raceGatesOf), in the same
+ * scene frame a ghost is recorded in. It is raced as the 'full' class
+ * because that is what the shell races it as: swiss2 and alps carry no
+ * trackClass of their own, and main.js falls back to 'full'. A field track
+ * is what it always was.
+ */
+export function raceFromDocument(document) {
+  if (document && document.schemaVersion >= 4 && isMapTrack(document)) {
+    const { doc } = normalize(document);
+    return { gates: raceGatesOf(doc), trackClass: 'full' };
+  }
+  const course = courseFromDocument(document);
+  return { gates: gatesFromCourse(course), trackClass: course.trackClass };
+}
+
 function refuse(reason, extra) {
   return { ok: false, reason, ...extra };
 }
@@ -98,11 +121,11 @@ function refuse(reason, extra) {
 export function checkLap(document, ghostBytes, lapMs) {
   let course;
   try {
-    course = courseFromDocument(document);
+    course = raceFromDocument(document);
   } catch (e) {
     return refuse(`course: ${e.message}`);
   }
-  const gates = gatesFromCourse(course);
+  const { gates } = course;
   if (gates.length === 0) {
     return refuse('the track has no gates, so it has no laps');
   }
