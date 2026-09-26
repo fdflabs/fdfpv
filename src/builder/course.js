@@ -39,24 +39,45 @@
  */
 
 import {
-  ELEMENTS, GATE_FLAG_POLE_R, apertureLevels, flagLeanSign, flagSideOf, flagSideSigns, gateFlagHeight,
+  ELEMENTS, GATE_FLAG_POLE_R, KIND, apertureLevels, flagLeanSign, flagSideOf, flagSideSigns, gateFlagHeight,
+  virtualApertureDims,
 } from '../trackbuilder/elements.js';
+import { passOffsetSign } from '../trackbuilder/faces.js';
 import { createElement, createMapTrack, elementById, newSequenceId } from '../trackbuilder/model.js';
 import { gateScaleFor } from '../game/track.js';
+import { IN } from '../units.js';
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../render/frame.js';
 
 /*
- * What can be placed. The field's aperture types that stand as one frame on
- * the ground: a dive gate and a launch gate are this list's gate turned, now
- * that a gate can be turned any way at all. Flags and cones are not here:
- * a marker scores through a square the racing line puts beside it, and the
- * racing line is not built on a map yet.
+ * What can be placed, in the order T steps through them. The field's
+ * aperture types that stand as one frame on the ground: a dive gate and a
+ * launch gate are this list's gate turned, now that a gate can be turned
+ * any way at all. Then the plane sized ones (src/trackbuilder/elements.js,
+ * the span rule): the two wide gates, the air race's pylon pair, and one
+ * pylon turned round on a set side, a marker scoring through the square
+ * beside it. Flags and cones are not here: they are the field's markers,
+ * sized for a five inch.
  */
-export const BUILD_TYPES = ['gate', 'flaggedGate', 'doubleStack', 'ladder', 'tower'];
+export const BUILD_TYPES = ['gate', 'flaggedGate', 'doubleStack', 'ladder', 'tower', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon'];
 
-/* Every built course is a five inch's course: the field's 15 percent on
- * MultiGP's figures, the same size the gate is on the field. */
+/* A five inch's gate is built at the field's 15 percent on MultiGP's
+ * figures, the same size it is on the field. A plane sized element is
+ * built at the wing class's one to one: its figures are already metres
+ * against the aircraft's spans. */
 const GATE_SCALE = gateScaleFor('full');
+const WING_SCALE = gateScaleFor('wing');
+
+function scaleOf(el) {
+  return ELEMENTS[el.type].wing ? WING_SCALE : GATE_SCALE;
+}
+
+/* A wide gate's pipe, 1 1/2 inch schedule 40 (elements.js, wideGate3). */
+const BANNER_TUBE_OD = 1.900 * IN;
+
+/* The single pylon is the one marker placed here. */
+function isMarker(el) {
+  return ELEMENTS[el.type].kind === KIND.MARKER;
+}
 
 /* How far behind the start gate a test flight is parked, the field's own
  * figure (src/game/trackdoc.js SPAWN_BACK). */
@@ -180,19 +201,44 @@ export function headingOf(fx, fz) {
 /* ------------------------------------------------------------------ */
 
 /*
- * The obstacle spec src/render/scene.js standaloneGate builds from, at BUILT
- * dimensions: the author's figures through the field's gate scale, the same
- * conversion src/game/trackdoc.js makes for a field course.
+ * The spec src/render/pylons.js builtGate builds from, at BUILT dimensions:
+ * the author's figures through the element's scale, the same conversion
+ * src/game/trackdoc.js makes for a field course. A framed gate's is the
+ * obstacle spec scene.js standaloneGate reads, a wide gate's naming its own
+ * pipe and the collider kind that pipe is; a pylon's is its cone, and the
+ * single pylon's the side it is turned round on, from its step in the lap
+ * (`step`, a sequence entry; none for the ghost, which shows the default).
  */
-export function gateSpec(el) {
+export function gateSpec(el, step = null) {
   const d = el.dims;
+  if (isMarker(el)) {
+    const sq = scoringOf(el, step);
+    return {
+      kindName: el.type,
+      height: d.height,
+      baseRadius: d.baseRadius,
+      tipRadius: d.tipRadius,
+      clearance: step?.clearance ?? d.clearance,
+      passSign: passOffsetSign(step?.passSide ?? 'left'),
+      scoring: {
+        shape: 'square', index: 0, sillH: sq.centreY - sq.clearH / 2, centreY: sq.centreY, clearW: sq.clearW, clearH: sq.clearH,
+      },
+    };
+  }
+  if (el.type === 'pylonPair') {
+    return {
+      kindName: el.type, clearW: d.clearW, height: d.clearH, baseRadius: d.baseRadius, tipRadius: d.tipRadius,
+    };
+  }
+  const s = scaleOf(el);
   return {
     kindName: el.type,
-    clearW: d.clearW * GATE_SCALE,
-    clearH: d.clearH * GATE_SCALE,
-    sillH: d.sillH * GATE_SCALE,
+    clearW: d.clearW * s,
+    clearH: d.clearH * s,
+    sillH: d.sillH * s,
     stack: Math.max(1, Math.round(d.levels)),
-    levelPitch: d.levelPitch * GATE_SCALE,
+    levelPitch: d.levelPitch * s,
+    ...(ELEMENTS[el.type].wing ? { tubeOD: BANNER_TUBE_OD, frameKind: 'banner' } : {}),
   };
 }
 
@@ -214,11 +260,42 @@ export function gateFlags(el) {
 /* Every opening, built, as { centreY, clearW, clearH } above the base in the
  * element's own frame. */
 export function openingsOf(el) {
+  if (isMarker(el)) {
+    /* A pylon's is the cone itself, what the builder hangs, turns and
+     * pivots it by; what it scores is scoringOf's. */
+    return [{ centreY: el.dims.height / 2, clearW: el.dims.baseRadius * 2, clearH: el.dims.height }];
+  }
+  const s = scaleOf(el);
   return apertureLevels(el.dims).map((ap) => ({
-    centreY: ap.centerH * GATE_SCALE,
-    clearW: ap.clearW * GATE_SCALE,
-    clearH: ap.clearH * GATE_SCALE,
+    centreY: ap.centerH * s,
+    clearW: ap.clearW * s,
+    clearH: ap.clearH * s,
   }));
+}
+
+/*
+ * The rectangle a step scores through, in the element's own frame: its
+ * centre `across` metres along the race's across axis, R(-x), and centreY
+ * up, and its size. An opening's is the opening. A pylon's is the wing
+ * class's square on its pass side (elements.js virtualApertureDims): its
+ * inner edge on the pylon's axis, `across` positive for a pass on the
+ * pilot's left, which is the schema's `left(travel)` (schema.md, What
+ * passSide means).
+ */
+export function scoringOf(el, step = null) {
+  if (!isMarker(el)) {
+    const ops = openingsOf(el);
+    const op = ops[Math.min(Math.max(0, step?.apertureIndex ?? 0), ops.length - 1)];
+    return { across: 0, centreY: op.centreY, clearW: op.clearW, clearH: op.clearH };
+  }
+  const v = virtualApertureDims(el, step, 'wing');
+  const clearance = Math.max(0, step?.clearance ?? el.dims.clearance);
+  return {
+    across: passOffsetSign(step?.passSide ?? 'left') * (clearance + v.outward),
+    centreY: v.centerH,
+    clearW: v.clearW,
+    clearH: v.clearH,
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -303,17 +380,37 @@ export function addGate(doc, type, base, quat) {
   setPose(el, base, quat);
   doc.elements.push(el);
   /* entry 1: the rest pose already says which way through, so the face is
-   * decided the moment the gate is placed. */
+   * decided the moment the gate is placed. A pylon's step says which side
+   * instead, the left until the author flips it (flipPass). */
+  const marker = isMarker(el);
   doc.sequence.push({
     id: newSequenceId(doc),
     elementId: el.id,
-    apertureIndex: 0,
-    entry: 1,
-    passSide: null,
-    clearance: null,
+    apertureIndex: marker ? null : 0,
+    entry: marker ? null : 1,
+    passSide: marker ? 'left' : null,
+    clearance: marker ? el.dims.clearance : null,
     overridden: false,
   });
   return el;
+}
+
+/* The step an element is flown as: the builder gives each one exactly one. */
+export function stepOf(doc, id) {
+  return doc.sequence.find((q) => q.elementId === id) ?? null;
+}
+
+/* Turn a pylon round on its other side. The new side, or null for an
+ * element that has none. */
+export function flipPass(doc, id) {
+  const s = stepOf(doc, id);
+  const el = elementById(doc, id);
+  if (!s || !el || !isMarker(el)) {
+    return null;
+  }
+  s.passSide = s.passSide === 'right' ? 'left' : 'right';
+  s.overridden = true;
+  return s.passSide;
 }
 
 export function removeGate(doc, id) {
@@ -356,10 +453,12 @@ export function makeStart(doc, id) {
  * reads, with the whole frame given as `axes` because a heading and a pitch
  * cannot say a gate on its side.
  *
- * `position` is the opening's centre less centreY straight up, because
- * race.js measures the centre as position plus centreY along the world's up.
- * That is exact for the field's upright gates and for these the arithmetic
- * lands on the same centre whichever way the gate is turned.
+ * `position` is the scoring rectangle's centre less centreY straight up,
+ * because race.js measures the centre as position plus centreY along the
+ * world's up. That is exact for the field's upright gates and for these the
+ * arithmetic lands on the same centre whichever way the gate is turned. A
+ * pylon's rectangle is `virtual`, as the field's flags are: the race times
+ * the lap from the first real opening.
  */
 export function raceGatesOf(doc) {
   const out = [];
@@ -368,15 +467,18 @@ export function raceGatesOf(doc) {
     if (!el || !BUILD_TYPES.includes(el.type)) {
       return;
     }
-    const ops = openingsOf(el);
-    const k = Math.min(Math.max(0, s.apertureIndex ?? 0), ops.length - 1);
-    const op = ops[k];
-    const c = openingCentre(el, k);
-    const { quat } = poseOf(el);
+    const sc = scoringOf(el, s);
+    const { base, quat } = poseOf(el);
     const axes = axesOf(quat);
-    const aperture = { centreY: op.centreY, clearW: op.clearW, clearH: op.clearH };
+    const c = v3(
+      base.x + axes.up.x * sc.centreY + axes.across.x * sc.across,
+      base.y + axes.up.y * sc.centreY + axes.across.y * sc.across,
+      base.z + axes.up.z * sc.centreY + axes.across.z * sc.across,
+    );
+    const k = Math.min(Math.max(0, s.apertureIndex ?? 0), openingsOf(el).length - 1);
+    const aperture = { centreY: sc.centreY, clearW: sc.clearW, clearH: sc.clearH };
     out.push({
-      position: v3(c.x, c.y - op.centreY, c.z),
+      position: v3(c.x, c.y - sc.centreY, c.z),
       centre: c,
       heading: headingOf(axes.travel.x, axes.travel.z),
       pitch: Math.asin(Math.max(-1, Math.min(1, axes.travel.y))),
@@ -387,7 +489,7 @@ export function raceGatesOf(doc) {
       kindName: el.type,
       elementId: el.id,
       flyOrder: i,
-      virtual: false,
+      virtual: isMarker(el),
     });
   });
   return out;

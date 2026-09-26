@@ -101,6 +101,8 @@ export function groundSurface(view, x, z, normalY, wet, y) {
 const KIND_SURFACE = {
   gate: 'pvc',
   pole: 'pvc',
+  banner: 'pvc',
+  pylon: 'foliage',
   tree: 'wood',
   wall: 'concrete',
   cliff: 'rock',
@@ -179,14 +181,20 @@ const PVC_UTS = 52e6;
 const INCH = 0.0254;
 const LB_PER_FT = 0.45359237 / 0.3048;
 
-/* The give of a solid of kind `kindName` and radius r (m, as drawn in a
- * world whose gates are drawn `scale` times life size), or null for a
- * solid that is rigid. { ei N m^2, mLine kg/m, mFree N m }. */
-export function postGive(kindName, r, scale) {
-  if (kindName !== 'gate' || !(r > 0) || !(scale > 0)) {
+/* The give of a solid of kind `kindName`, radius r and length len (m, as
+ * drawn in a world whose gates are drawn `scale` times life size), or null
+ * for a solid that is rigid. { ei N m^2, mLine kg/m, mFree N m }. A wide
+ * gate's frame (`banner`) is built one to one whatever the world's gates
+ * are, so its pipe is read at 1. */
+export function postGive(kindName, r, scale, len = 0) {
+  if (kindName === 'pylon') {
+    return pylonGive(r, len);
+  }
+  const s = kindName === 'banner' ? 1 : scale;
+  if ((kindName !== 'gate' && kindName !== 'banner') || !(r > 0) || !(s > 0)) {
     return null;
   }
-  const want = (2 * r) / scale / INCH;
+  const want = (2 * r) / s / INCH;
   let pipe = SCH40[0];
   for (const p of SCH40) {
     if (Math.abs(p.od - want) < Math.abs(pipe.od - want)) {
@@ -197,6 +205,67 @@ export function postGive(kindName, r, scale) {
   const d = (pipe.od - 2 * pipe.wall) * INCH;
   const I = (Math.PI / 64) * (D * D * D * D - d * d * d * d);
   return { ei: PVC_E * I, mLine: pipe.lbft * LB_PER_FT, mFree: (PVC_UTS * I) / (D / 2) };
+}
+
+/*
+ * AN INFLATED PYLON GIVES, AND POPS. The air race's pylons are ripstop
+ * nylon made to "rip instantaneously when hit by a plane" (Wikipedia, "Red
+ * Bull Air Race World Championship"), kept up by a blower, and the builder's
+ * is that cone (src/trackbuilder/elements.js, pylon), collided as four
+ * capsules up it, each declared a post of its own: a clip high on the cone
+ * folds the top of it.
+ *
+ * A tube held up by its air is not a beam of its own material. What holds
+ * it straight is the pressure p behind the fabric, and the two figures that
+ * follow from that are the inflated beam's:
+ *
+ *   it collapses where the whole of the fabric on the compression side has
+ *   gone slack, at a moment of pi p r^3, twice the moment it first wrinkles
+ *   at (Comer and Levy, "Deflections of an inflated circular cylindrical
+ *   cantilever beam", AIAA Journal 1(7), 1963). That is where it snaps.
+ *
+ *   under a sideways load F at its top it leans by F L / (p pi r^2), the
+ *   pressure's resultant standing in for a shear stiffness (Fichter, "A
+ *   theory for inflated thin wall cylindrical beams", NASA TN D-3466, 1966,
+ *   with the fabric's own shear and stretch left out, which leaves it the
+ *   softer). The plant's post is a bending beam, whose top gives by
+ *   F L^3 / (3 E I), so the E I that leans the same at the top is
+ *   p pi r^2 L^2 / 3. Lower down the beam is stiffer than the tube, which
+ *   leans by the height, not its cube.
+ *
+ * THE PRESSURE, from the pylon having to stand: in a 10 m/s wind, more than
+ * any of the park flyers here is flown in, the drag on the cone, q Cd 2 r(y)
+ * over its height with a circular cylinder's 1.2 (the subcritical figure,
+ * the larger of the two), is 1650 N m at its base, which the collapse
+ * moment at its 0.8 m radius holds at 1.0 kPa. VERIFY: what a pylon blower
+ * holds, which nothing sourced here says.
+ *
+ * ITS MASS per metre is the fabric's and the air's inside it, which is most
+ * of it: 1.225 kg/m^3 over the section. The fabric at 70 g/m^2, a middle
+ * weight ripstop. VERIFY: the pylons' cloth weight.
+ *
+ * ITS SURFACE is the plant's soft one, foliage's (src/native/crash.c SURF:
+ * 2.0e3 N/m, dead, soft to a blade), because a taut membrane under a small
+ * indenter is a spring of about 2 pi T / ln(R / a) with T = p r its hoop
+ * tension: for a 5 cm patch, 0.9e3 N/m near the tip to 1.7e3 at the base,
+ * the same order, the plant's a little stiffer. Its grip, 1.0,
+ * is a leaf's and not nylon's, which is the one figure borrowed; a fabric
+ * surface of its own is a module rebuild.
+ */
+const PYLON_P = 1.0e3;
+const PYLON_CLOTH = 0.07;
+const AIR_RHO = 1.225;
+
+function pylonGive(r, len) {
+  if (!(r > 0) || !(len > 0)) {
+    return null;
+  }
+  const area = Math.PI * r * r;
+  return {
+    ei: (PYLON_P * area * len * len) / 3,
+    mLine: PYLON_CLOTH * 2 * Math.PI * r + AIR_RHO * area,
+    mFree: Math.PI * PYLON_P * r * r * r,
+  };
 }
 
 /* A collider whose material is not its kind's: a telegraph pole is a

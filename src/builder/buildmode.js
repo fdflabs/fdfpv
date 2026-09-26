@@ -72,13 +72,14 @@ import { ELEMENTS } from '../trackbuilder/elements.js';
 import { elementById, touch } from '../trackbuilder/model.js';
 import { listMapTracks, makeAutosaver, readMapAutosave, saveTrack } from '../trackbuilder/storage.js';
 import {
-  colourTargetSide, disposeStandaloneGate, dressGate, lightTarget, standaloneGate,
+  colourTargetSide, disposeStandaloneGate, dressGate, lightTarget,
 } from '../render/scene.js';
+import { builtGate } from '../render/pylons.js';
 import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
-  BUILD_TYPES, SNAP_MODES, addGate, gateFlags, gateSpec, headingOf, makeStart, moveInLap, newCourse,
+  BUILD_TYPES, SNAP_MODES, addGate, flipPass, gateFlags, gateSpec, headingOf, makeStart, moveInLap, newCourse,
   openingCentre, openingsOf, orderOf, poseOf, qAxis, raceGatesOf, readoutFor, removeGate, setPose, snapPose,
-  startFor, turnGate, worldCaps,
+  startFor, stepOf, turnGate, worldCaps,
 } from './course.js';
 import { craftLimits, lineWarnings, racingLine } from './line.js';
 
@@ -213,8 +214,8 @@ export function createBuildMode(host) {
   /* Meshes                                                            */
   /* ---------------------------------------------------------------- */
 
-  function makeGate(el, index, isStart) {
-    const made = standaloneGate(gateSpec(el), index, isStart, gateFlags(el));
+  function makeGate(el, index, isStart, step) {
+    const made = builtGate(gateSpec(el, step), index, isStart, gateFlags(el));
     const group = made.group;
     group.userData.elementId = el.id;
     return { made, group };
@@ -241,7 +242,7 @@ export function createBuildMode(host) {
       if (!el || meshes.has(el.id)) {
         return;
       }
-      const m = makeGate(el, i, i === 0);
+      const m = makeGate(el, i, i === 0, s);
       place(m.group, el);
       root.add(m.group);
       meshes.set(el.id, m);
@@ -506,7 +507,7 @@ export function createBuildMode(host) {
       ghost.group.removeFromParent();
       disposeStandaloneGate(ghost.made);
     }
-    const made = standaloneGate(gateSpec(el), 0, false, gateFlags(el));
+    const made = builtGate(gateSpec(el), 0, false, gateFlags(el));
     made.group.traverse((o) => {
       if (o.isMesh) {
         o.material = ghostMat;
@@ -823,6 +824,22 @@ export function createBuildMode(host) {
     edited();
   }
 
+  /* F: turn the selected pylon round on its other side. */
+  function flipSide() {
+    if (!selected || held) {
+      say(str('build.select_first'));
+      return;
+    }
+    const side = flipPass(doc, selected);
+    if (!side) {
+      say(str('build.not_a_pylon'));
+      return;
+    }
+    edited();
+    rebuildAll();
+    say(str(`build.pass_${side}`));
+  }
+
   function save() {
     say(saveTrack(doc) ? str('build.saved', { name: doc.name }) : str('build.save_failed'));
   }
@@ -1123,6 +1140,7 @@ export function createBuildMode(host) {
       Minus: () => setDistance(airDistance - 5),
       NumpadSubtract: () => setDistance(airDistance - 5),
       KeyT: () => cycleType(1),
+      KeyF: flipSide,
       KeyZ: upright,
       KeyN: fresh,
       KeyH: () => { showHelp = !showHelp; },
@@ -1275,7 +1293,11 @@ export function createBuildMode(host) {
       }
     }
     if (p.pressed(PAD.x)) {
-      deleteSelected();
+      if (rt) {
+        flipSide();
+      } else {
+        deleteSelected();
+      }
     }
     if (p.pressed(PAD.y)) {
       if (rt) {
@@ -1446,6 +1468,10 @@ export function createBuildMode(host) {
             n: i + 1, count: gates.length, height: fmtM(r.height), next: r.next.order + 1, distance: fmtM(r.next.distance), drop: fmtM(r.next.drop),
           })
           : str('build.selected_readout', { n: i + 1, count: gates.length, height: fmtM(r.height) }));
+      }
+      const step = stepOf(doc, selected);
+      if (step && step.passSide) {
+        lines.push(str(`build.pass_${step.passSide}`));
       }
       if (held) {
         lines.push(str('build.holding'));

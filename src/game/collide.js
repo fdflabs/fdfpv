@@ -314,9 +314,13 @@ export function craftVerticalOffset() {
 /* `train` is the only MOVING solid in either world and it is a hard kind on
  * purpose: the city's three car set crosses the town at 23.5 m/s, and there
  * is no speed at which meeting it is a graze. */
+/* `banner` and `pylon` are the in-sim builder's plane sized gates
+ * (src/builder/course.js): a wide gate's PVC frame, which is a gate's pipe
+ * a size up built one to one, and an inflatable air race pylon. Appended,
+ * so every index before them is what it was. */
 /* Exported so src/game/obstacles.js can name a kind rather than keeping a
  * second copy of this list. `fkind` is an index into it. */
-export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train'];
+export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner', 'pylon'];
 
 /*
  * The broadphase cell, in metres. The world is about 1700 m across and the
@@ -2762,8 +2766,14 @@ export function contactMaterial(kindName) {
   if (kindName === 'train') {
     return { e: 0.06, mu: 0.40 };
   }
-  if (kindName === 'gate' || kindName === 'pole') {
+  if (kindName === 'gate' || kindName === 'pole' || kindName === 'banner') {
     return { e: 0.22, mu: 0.30 };
+  }
+  /* An inflated fabric wall: dead, and the plant's soft surface's numbers
+   * (src/game/crashworld.js, the pylon), so the shell's contact and the
+   * crash physics' agree on it. */
+  if (kindName === 'pylon') {
+    return { e: 0.0, mu: 1.00 };
   }
   if (kindName === 'tree' || kindName === 'canopy') {
     return { e: 0.12, mu: 0.50 };

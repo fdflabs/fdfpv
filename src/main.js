@@ -4162,7 +4162,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       /* A gate's upright gives (crashworld.js postGive); not in a micro
        * room, whose scale no real pipe's give survives. */
       const give = idx >= 0 && view.trackClass !== 'micro'
-        ? postGive(col.kindName(col.fkind[i]), r, gateScaleFor(view.trackClass ?? 'full'))
+        ? postGive(col.kindName(col.fkind[i]), r, gateScaleFor(view.trackClass ?? 'full'), top - crashSimA.z)
         : null;
       if (give && sim.e.sim_obstacle_compliance(idx, give.ei, give.mLine, give.mFree) !== SIM_OK) {
         throw new Error('sim_obstacle_compliance refused a gate post');
@@ -10139,7 +10139,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (!c || !c.fbox) {
       return out;
     }
-    const KIND = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train'];
+    const KIND = KINDS;
     const limit = opts.near ?? 12;
     for (let i = 0; i < c.fbox.length; i += 1) {
       out.total += 1;
@@ -10683,6 +10683,23 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
     }
     return out.sort((u, v) => u.d - v.d);
+  };
+  /* Every declared solid that gives (sim_obstacle_compliance), with its
+   * state: { i, deflection m, at m over its base, freed, gone, moment N m },
+   * for a check that a post or a pylon moved when it was met. */
+  window.__crashPosts = () => {
+    const out = [];
+    const n = crashSolidsDeclared;
+    const p = sim.e.malloc(6 * 8);
+    for (let i = 0; i < n; i += 1) {
+      if (sim.e.sim_obstacle_state(i, p) !== SIM_OK) {
+        continue;
+      }
+      const d = new Float64Array(sim.e.memory.buffer, p, 6);
+      out.push({ i, deflection: Math.hypot(d[0], d[1]), at: d[2], freed: d[3] === 1, gone: d[4] === 1, moment: d[5] });
+    }
+    sim.e.free(p);
+    return out;
   };
   /* The map's water bodies, where a capture throws an aircraft on floats. */
   window.__crashWater = () => (view.water || []).map((w) => ({ spawn: w.spawn, surfaceY: w.surfaceY }));
