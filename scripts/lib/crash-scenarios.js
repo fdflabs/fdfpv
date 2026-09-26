@@ -107,6 +107,15 @@ export class Rig {
     return this.sim.readState().state;
   }
 
+  /* Another part table (sim_set_part_table), and the readback sized to it. */
+  partTable(which) {
+    this.sim.e.sim_set_part_table(which);
+    this.parts = readPartTable(this.sim);
+    this.n = this.parts.length;
+    this.sim.e.free(this.partsPtr);
+    this.partsPtr = this.sim.e.malloc(this.n * PART_STATE_DOUBLES * 8);
+  }
+
   pose(p, q) {
     this.sim.e.sim_set_pose(p[0], p[1], p[2], q[0], q[1], q[2], q[3]);
     this.prev = this.state();
@@ -1423,6 +1432,90 @@ export const CRASH_SCENARIOS = [
       const trips = typeof b.sim.e.sim_rate_guard_trips === 'function' ? b.sim.e.sim_rate_guard_trips() : -1;
       out.push({ name: 'a body turning at 1e6 rad/s is stopped and counted by the rate guard, craft and part',
         ok: trips === 2 && Math.hypot(s[11], s[12], s[13]) < 1, detail: `${trips} trips, ${Math.hypot(s[11], s[12], s[13]).toFixed(3)} rad/s after` });
+      return out;
+    },
+  },
+  {
+    /* The feel round's Skyhunter cartwheel (scripts/crash-feel.js,
+     * sky-cartwheel): banked 75 degrees, 8 nose down, sinking at 3 m/s at
+     * 17 m/s, the low tip into the grass. The tip's blow reaches the rest of
+     * the craft through the struck panel's ring (crash.c, A CONTACT ON A
+     * RINGING PART), so the tail, 0.75 m behind on its booms, rides through
+     * the strike; on main both fins broke 13 ms after the tip met the grass,
+     * on the craft's rigid yaw. The struck panel itself goes at its root, as
+     * a real one does. */
+    name: 'a Skyhunter\'s wingtip catches the grass: the struck wing goes, the tail rides the strike',
+    async run(mk) {
+      const r = await mk({ id: 3 });
+      /* Pitched 8 degrees nose down, then rolled 75 about the body's x. */
+      const q = pitch(8);
+      const b = roll(75);
+      r.pose([0, 0, 1.9], [q[0] * b[0], q[0] * b[1], q[2] * b[0], -q[2] * b[1]]);
+      r.velocity([17, 0, -3]);
+      r.run(600);
+      const tail = ['boom', 'hstab', 'elevator', 'fin', 'rudder'];
+      const strike = r.events.find((e) => r.parts[e.part].kindName === 'wing');
+      const t0 = strike ? strike.t : NaN;
+      const tailBreaks = r.events.filter((e) => e.typeName === 'break' && tail.includes(r.parts[e.part].kindName) && e.t < t0 + 0.1);
+      const struck = strike ? r.events.find((e) => e.typeName === 'break' && e.part === strike.part) : null;
+      return [
+        { name: 'the struck panel breaks at its root', ok: !!struck, detail: struck ? `${r.parts[struck.part].label} ${((struck.t - t0) * 1000).toFixed(0)} ms after the tip met the grass, ${struck.ratio.toFixed(2)} of its limit` : r.summary() },
+        { name: 'nothing on the tail breaks in the 100 ms after the strike', ok: strike !== undefined && tailBreaks.length === 0,
+          detail: tailBreaks.length ? tailBreaks.map((e) => `${r.parts[e.part].label} at ${((e.t - t0) * 1000).toFixed(0)} ms`).join(', ') : r.summary() },
+      ];
+    },
+  },
+  {
+    /* sim_reset returns the module to its fresh state. The feel round's five
+     * inch, reset after a violent flight, flew the same throw 1e-13 m off a
+     * fresh module's from the first step: Betaflight's loop state (the D
+     * term's last gyro, the last setpoint, the TPA factor, the mixer's range,
+     * the dynamic lowpass's clock) outlived the reset. Every airframe, and
+     * the shell's whoop, with crash physics on: 2 s of full sticks and the
+     * throttle banged between stops, thrown into the grass at 14 m/s, which breaks parts and launches free
+     * bodies, then a reset and a throw, against the same throw in a module
+     * that never flew. Byte identical, every step, the parts included.
+     * sim_init leaves the pack at 4.2 V, and a reset seats the loaded pack
+     * voltage from the pack's, so the flown module is reset from the same
+     * 4.2 V before its 4.1 is set again. */
+    name: 'a reset after a violent flight is a fresh module',
+    async run(mk) {
+      const out = [];
+      const tables = [[0, 0], [1, 0], [0, 1], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0]];
+      const violent = (i) => [((i >> 7) & 1) ? 1 : -1, ((i >> 8) & 1) ? 1 : -1, ((i >> 6) & 1) ? 1 : -1, (i >> 9) & 1];
+      const toss = (r) => {
+        r.pose([0, 0, 3], [1, 0, 0, 0]);
+        r.velocity([8, 0, -2]);
+        r.run(1500, [0.1, -0.2, 0.1, 0.4]);
+      };
+      for (const [id, table] of tables) {
+        const seat = async () => {
+          const r = await mk({ id, volts: 4.1 });
+          if (table) r.partTable(table);
+          return r;
+        };
+        const fresh = await seat();
+        toss(fresh);
+        const flown = await seat();
+        flown.pose([0, 0, 1.5], [1, 0, 0, 0]);
+        flown.velocity([12, 0, -8], [5, 3, 1]);
+        flown.run(2000, violent);
+        const wrecked = flown.events.filter((e) => e.typeName === 'break').length;
+        const { sim } = flown;
+        const must = (c, w) => { if (c !== SIM_OK) throw new Error(`${w}: ${c}`); };
+        must(sim.setCellVoltage(4.2), 'volts');
+        must(sim.reset(), 'reset');
+        must(sim.setCellVoltage(4.1), 'volts');
+        must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'ground');
+        must(sim.e.sim_set_ground_material(SURFACE.grass), 'material');
+        const again = new Rig(sim);
+        toss(again);
+        out.push({
+          name: `${FLIGHT_NAMES[id]}${table ? ' as the shell\'s whoop' : ''}: the throw after a reset is the fresh one`,
+          ok: again.digest.hex() === fresh.digest.hex() && again.summary() === fresh.summary(),
+          detail: `fresh ${fresh.digest.hex()}, after ${wrecked} breaks and a reset ${again.digest.hex()}`,
+        });
+      }
       return out;
     },
   },

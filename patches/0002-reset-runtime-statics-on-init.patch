@@ -1,5 +1,5 @@
 diff --git a/src/main/fc/rc.c b/src/main/fc/rc.c
-index 0cf640b..3b28273 100644
+index 0cf640b48..3b28273a3 100644
 --- a/src/main/fc/rc.c
 +++ b/src/main/fc/rc.c
 @@ -21,6 +21,7 @@
@@ -71,27 +71,95 @@ index 0cf640b..3b28273 100644
      rcCommandDivider = 500.0f - rcControlsConfig()->deadband;
      rcCommandYawDivider = 500.0f - rcControlsConfig()->yaw_deadband;
  
+diff --git a/src/main/flight/mixer.c b/src/main/flight/mixer.c
+index 6faed644d..33569f8c0 100644
+--- a/src/main/flight/mixer.c
++++ b/src/main/flight/mixer.c
+@@ -68,6 +68,19 @@
+ #define DYN_LPF_THROTTLE_UPDATE_DELAY_US 5000 // minimum of 5ms between updates
+ 
+ static FAST_DATA_ZERO_INIT float motorMixRange;
++#ifdef USE_DYN_LPF
++static timeUs_t lastDynLpfUpdateUs = 0;
++static int dynLpfPreviousQuantizedThrottle = -1;  // to allow an initial zero throttle to set the filter cutoff
++#endif
++
++void mixerResetTransientState(void)
++{
++    motorMixRange = 0.0f;
++#ifdef USE_DYN_LPF
++    lastDynLpfUpdateUs = 0;
++    dynLpfPreviousQuantizedThrottle = -1;
++#endif
++}
+ 
+ float FAST_DATA_ZERO_INIT motor[MAX_SUPPORTED_MOTORS];
+ float motor_disarmed[MAX_SUPPORTED_MOTORS];
+@@ -452,9 +465,6 @@ static void applyMotorStop(void)
+ #ifdef USE_DYN_LPF
+ static void updateDynLpfCutoffs(timeUs_t currentTimeUs, float throttle)
+ {
+-    static timeUs_t lastDynLpfUpdateUs = 0;
+-    static int dynLpfPreviousQuantizedThrottle = -1;  // to allow an initial zero throttle to set the filter cutoff
+-
+     if (cmpTimeUs(currentTimeUs, lastDynLpfUpdateUs) >= DYN_LPF_THROTTLE_UPDATE_DELAY_US) {
+         const int quantizedThrottle = lrintf(throttle * DYN_LPF_THROTTLE_STEPS); // quantize the throttle reduce the number of filter updates
+         if (quantizedThrottle != dynLpfPreviousQuantizedThrottle) {
+diff --git a/src/main/flight/mixer.h b/src/main/flight/mixer.h
+index 74dd334c6..56be7a1c0 100644
+--- a/src/main/flight/mixer.h
++++ b/src/main/flight/mixer.h
+@@ -123,6 +123,7 @@ struct rxConfig_s;
+ 
+ uint8_t getMotorCount(void);
+ float getMotorMixRange(void);
++void mixerResetTransientState(void);
+ bool areMotorsRunning(void);
+ bool areMotorsSaturated(void);
+ 
 diff --git a/src/main/flight/pid.c b/src/main/flight/pid.c
-index e7f818c..509eba4 100644
+index e7f818cb8..4b657f770 100644
 --- a/src/main/flight/pid.c
 +++ b/src/main/flight/pid.c
-@@ -79,6 +79,15 @@ FAST_DATA_ZERO_INIT uint32_t targetPidLooptime;
+@@ -79,6 +79,37 @@ FAST_DATA_ZERO_INIT uint32_t targetPidLooptime;
  FAST_DATA_ZERO_INIT pidAxisData_t pidData[XYZ_AXIS_COUNT];
  FAST_DATA_ZERO_INIT pidRuntime_t pidRuntime;
  
 +static float previousThrottle = 0.0f;
 +static bool isTpaLowFaded = false;
++static float previousGyroRateDterm[XYZ_AXIS_COUNT];
++static float previousRawGyroRateDterm[XYZ_AXIS_COUNT];
 +
 +void pidResetTransientState(void)
 +{
 +    previousThrottle = 0.0f;
 +    isTpaLowFaded = false;
++    memset(previousGyroRateDterm, 0, sizeof(previousGyroRateDterm));
++    memset(previousRawGyroRateDterm, 0, sizeof(previousRawGyroRateDterm));
++    // pidInit sets only the configured fields; these the loop writes.
++    memset(pidRuntime.previousPidSetpoint, 0, sizeof(pidRuntime.previousPidSetpoint));
++    pidRuntime.antiGravityThrottleD = 0.0f;
++    pidRuntime.itermAccelerator = 0.0f;
++    pidRuntime.inCrashRecoveryMode = false;
++    pidRuntime.crashDetectedAtUs = 0;
++    pidRuntime.tpaFactor = 0.0f;
++#ifdef USE_ABSOLUTE_CONTROL
++    memset(pidRuntime.oldSetpointCorrection, 0, sizeof(pidRuntime.oldSetpointCorrection));
++#endif
++#ifdef USE_ACRO_TRAINER
++    memset(pidRuntime.acroTrainerAxisState, 0, sizeof(pidRuntime.acroTrainerAxisState));
++#endif
++#ifdef USE_ACC
++    pidRuntime.angleYawSetpoint = 0.0f;
++    memset(pidRuntime.angleTarget, 0, sizeof(pidRuntime.angleTarget));
++    memset(pidRuntime.axisInAngleMode, 0, sizeof(pidRuntime.axisInAngleMode));
++#endif
 +}
 +
  #if defined(USE_ABSOLUTE_CONTROL)
  STATIC_UNIT_TESTED FAST_DATA_ZERO_INIT float axisError[XYZ_AXIS_COUNT];
  #endif
-@@ -279,7 +288,6 @@ void pidResetIterm(void)
+@@ -279,7 +310,6 @@ void pidResetIterm(void)
  
  void pidUpdateTpaFactor(float throttle)
  {
@@ -99,7 +167,7 @@ index e7f818c..509eba4 100644
      // don't permit throttle > 1 & throttle < 0 ? is this needed ? can throttle be > 1 or < 0 at this point
      throttle = constrainf(throttle, 0.0f, 1.0f);
      bool isThrottlePastTpaLowBreakpoint = (throttle < pidRuntime.tpaLowBreakpoint && pidRuntime.tpaLowBreakpoint > 0.01f) ? false : true;
-@@ -297,7 +305,6 @@ void pidUpdateTpaFactor(float throttle)
+@@ -297,7 +327,6 @@ void pidUpdateTpaFactor(float throttle)
  
  void pidUpdateAntiGravityThrottleFilter(float throttle)
  {
@@ -107,8 +175,17 @@ index e7f818c..509eba4 100644
      const float throttleInv = 1.0f - throttle;
      float throttleDerivative = fabsf(throttle - previousThrottle) * pidRuntime.pidFrequency;
      DEBUG_SET(DEBUG_ANTI_GRAVITY, 0, lrintf(throttleDerivative * 100));
+@@ -788,8 +817,6 @@ static FAST_CODE_NOINLINE float applyLaunchControl(int axis, const rollAndPitchT
+ // Based on 2DOF reference design (matlab)
+ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
+ {
+-    static float previousGyroRateDterm[XYZ_AXIS_COUNT];
+-    static float previousRawGyroRateDterm[XYZ_AXIS_COUNT];
+ 
+ #ifdef USE_TPA_MODE
+     const float tpaFactorKp = (pidProfile->tpa_mode == TPA_MODE_PD) ? pidRuntime.tpaFactor : 1.0f;
 diff --git a/src/main/flight/pid.h b/src/main/flight/pid.h
-index f509350..cc735d9 100644
+index f50935029..cc735d948 100644
 --- a/src/main/flight/pid.h
 +++ b/src/main/flight/pid.h
 @@ -439,6 +439,7 @@ extern pt1Filter_t throttleLpf;

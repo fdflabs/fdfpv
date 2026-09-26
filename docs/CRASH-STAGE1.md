@@ -660,6 +660,99 @@ nose down short of going over); radian-nose-in and bramor-nose-in
 retainedFirst, -0.00 against a band from 0 (a sign in the last digit);
 cubf-porpoise, 10 pitch reversals on the water against 4 to 8.
 
+**A contact on a ringing part reaches the rest through its ring** (the
+feel round's items, 2026-09-26). The Skyhunter's cartwheel still took the
+whole aircraft (feel sheet on main 8fe1135: both fins at t+0.30, 1.12 times
+on 23 N, an aileron, the left wing, the other aileron, the right wing, the
+elevator, the stabiliser; 8 breaks, 10 pieces). Flown in Node (banked 75
+deg, 8 nose down, 17 m/s sinking at 3, onto grass), the right tip met the
+grass at 0.282 s and crushed at its plateau, 406 N, and both fins broke 13
+ms later: the judge put the tip's force on the craft as a rigid body, and
+the yaw and roll it gave the tail 0.75 m behind (a rigid body kick into the
+booms' ring, then the fins on it at 1,000 m/s^2) arrived before the struck
+panel had rung at all. A panel on its spar is a spring of 8 to 13 Hz
+between the tip and the fuselage: an impulse I short against a mode's
+period loads its support as w I sin(w t), nothing at first and its peak a
+quarter period on (Chopra, Dynamics of Structures, sections 4.1 and 4.8 to
+4.9). So a contact on a ringing part, or on anything it carries, is now
+left out of the craft's rigid response, and every ringing part passes the
+rest its ring's root load instead, as the batch found it (`craft_accel`).
+Along its span a spar or a boom is a column, not a spring: that component
+of a contact passes to the rest at once at the part's joint, and the ring
+no longer carries it (a wing stood on its tip by a craft on its side rang
+its 500 N axial push at the wing's frequency and pumped the booms' ring to
+107 N at their root). Every ringing part hangs on the root, so no other
+joint lies between such a contact and the root.
+
+The elevator the sheet printed at "2.25x at 0 N" was not judged on its
+hinge line. Its joint's moment at the break, main in Node, was (-0.83,
+-0.15, 1.77) N m, almost all about body z: its tip corner had met the grass
+0.23 m out from the pod's centre line as the wreck slid (a contact of 8 N
+there), bending the hinge line in its own plane against the generic 1 N m
+of a hinged surface (`PL_SURF_M`), with 0.15 N m about the hinge line
+itself. The "0 N" is the bearing rule (`seat_load`), whose grip took the
+9.4 N at the joint to nothing for the force ratio. Nothing was changed for
+it: with the tail riding the strike it no longer breaks in this crash.
+
+Measured, Node, what breaks, main against this and the crack's change
+before it (the same throws as the feel round's):
+
+| Crash | main | now |
+| --- | --- | --- |
+| sky-cartwheel | fins 13 ms after the strike (1.20), right aileron, right wing, left aileron, left wing, elevator (1.85): 7 breaks | right wing 28 ms after the strike (1.02, 139 N m); both fins 0.20 s after the strike, when the left tip digs in; hatch and pack on the inverted landing at 0.93 s: 5 |
+| timber-cartwheel | boom, both ailerons, left wing, gear leg, motor | boom and right wing at the strike, left wing when the other tip digs in |
+
+The fins that still go are on the booms' ring, pumped by the second tip
+digging in on top of the ring the first left (3 percent of critical,
+chosen); the boom's root reaches 0.74 of its 180 N m.
+
+`crash:core` holds the first 100 ms: "a Skyhunter's wingtip catches the
+grass" (on main the fins break at 13 ms, with only the crack's change at 15
+ms). The crash suite, Node, against the crack's change: 10 of 60 in every
+band on both, failing checks 119 to 116. Into band: cub-cartwheel minUpZ,
+restAttitude and restDistM (it goes over, inverted, 5.6 m on), bramor-stall
+restDistM. Out: radian-stall mustNotBreak, its boom and tail now off: the
+Radian's panels ring at 7.3 Hz and its thin foam boom at 11.2, and their
+ring passed to the fuselage drives the boom near its own mode, where the
+rigid response did not. Worse without a band moving: bramor-catapult-stall
+now loses a panel (1.01 of its 300 N m) and bramor-tree its pack. The
+rings do not load each other back (a ring passes its root load on and
+takes no energy from what it drives), which bounds none of this from
+above; a coupled model of the airframe's modes is the fix if the owner
+finds these wrong in the air.
+
+**Why the Cub does not nose over where the Timber does** (the feel round's
+items, 2026-09-26). Thrown level on its wheels at 6 m/s on grass, full
+power and full down elevator in Manual, the Timber goes over at 1.28 s and
+the Cub rolls on tail up at 11.6 m/s, 5 to 7 deg nose down, and swings 90
+deg left in 2.8 s. Flown in Node with damage on and off the Cub's run is
+the same to the digit, so nothing in the crash physics holds it up. It is
+the gear's geometry, and the plant is right to keep it upright:
+
+- The Cub's main wheels meet the grass 0.068 m ahead of the CG and 0.162 m
+  under it, so it tips over them at 22.8 deg nose down; its prop's tip meets
+  the grass first, at 9.3 deg (CUB-STAGE1, the landing gear). The Timber's
+  meet it 0.057 m ahead and 0.232 m under, so it tips at 13.8 deg, and its
+  prop tip, 87 mm up, would not touch until 21.5 deg: it is over its mains
+  before anything can stop it (TIMBER-STAGE1). R-NOSEOVER's "nothing to stop
+  them nosing over except the propeller" is the difference.
+- Held full down at 11 m/s the Cub's stabiliser, at the tail's negative
+  angle as it rises, balances its elevator (Cmdelta_e 0.89 on 15 deg against
+  the Timber's 1.175) at 5 to 7 deg, short of the prop, and the load on the
+  mains ahead of the CG holds it there. cub:gates C21 pushes from the three
+  point attitude at 8 m/s, and the pitch rate carries it to 9.5 deg and a
+  prop strike; a level start comes up with no rate to spend.
+- Nothing slows it: going over the mains takes a retarding force of 0.42 of
+  their load (0.068 / 0.162), and mown grass rolls at 0.08, with no brakes
+  on an FMS Cub. The AFH's nose overs come from soft spots, tall grass,
+  snow or brakes, which is the suite's cub-nose-over on sand (it strikes
+  the prop and rocks back; whether a blade digging into sand holds harder
+  than the tip's 0.8 skid is CUB-STAGE1's open question).
+- The swing: with the tail up the tailwheel carries nothing (0 N from 0.1
+  s) and the left main lifts as it turns (0 N from 0.9 s), so no tyre holds
+  the torque and P factor with no right rudder in, which is why a real one
+  swings too (CUB-STAGE1, the model).
+
 ### Under the break, per material (`crash.c`)
 
 | Part | Onset, load over limit | What happens | Flight effect |
@@ -724,6 +817,40 @@ A part's damage is the largest of its crack, chip, crush over its depth
 and bend over its maximum, and 1 when it has left. Damage follows a
 part's peak: a load under an earlier one adds nothing, so a sustained
 load cannot pile up events.
+
+**A crack weakens the joint for the next load** (the feel round's items,
+2026-09-26). The sentence above did not hold for a crack. Its loss came
+off the strength the load in hand was judged against, so that load's ratio
+rose with no rise in the load, which was a new peak and a deeper crack:
+any load held past about 0.72 of a limit cracked its way to a break in a
+few steps. Every feel round sheet showed it as crack, crack, crack, break
+(the Skyhunter's fins at 0.73, 0.86 and 1.20 of theirs; the Radian's boom
+in its stall at 1.09 on a load that had peaked at 0.72 of its 12 N m and
+was falling). A table's limit is its joint's intact ultimate strength, and
+the table above says what a crack is for: the next hit breaks it sooner.
+So peaks are kept over the intact strength, and the crack a load makes is
+held while that load is on and taken off the strength once the load has
+fallen back under the 0.70 onset, or the contact has ended (`crack_settle`
+in `crash.c`). The readback's damage shows the crack at once. A load now
+breaks a joint at its limit; a crack from an earlier hit still lowers it.
+
+Measured, the crash suite in Node against main: 9 to 10 of 60 in every
+band, failing checks 120 to 119. Into band: timber-cartwheel minUpZ,
+restAttitude and restDistM (its wings hold long enough for the tip to throw
+it over, inverted, 5.1 m on), radian-stall mustNotBreak (its wing stays;
+its pack now leaves, which that band does not name), radian-nose-in
+retainedFirst, bramor-pole peakG (105 to 91 g), cubf-porpoise (10 pitch
+reversals to 8). Out: radian-pole timeToRestS (2.68 to 3.24 s, band to 2.8),
+and two float capsizes that went over only after a crack cascade broke the
+tail: cubf-nose-dig (on main the boom broke at 0.206 s at 1.43 of a cracked
+strength, 0.94 of its intact 16 N m, and the Cub went over; now its boom
+holds at 0.87 and the Cub pitches no further than an up axis of 0.93) and
+timberf-capsize (main shed its boom, a wing and the motor before rolling
+over; now it keeps them and stays upright, up axis 0.46). The same Cub nose
+dig is `crash:core`'s "floats: ... a nose low touchdown digs in and goes
+over", which now fails: the bow's dig does not pitch a float plane over by
+itself, which is the water's to answer, and the check is left failing, not
+moved.
 
 ### Crush is the contact's duration
 
@@ -1251,6 +1378,32 @@ tip's skid now meeting the ground through the blade's own spring:
 cub:gates C21's prop tip load reads 3.2 N for 9.2 (the gate still passes),
 and bombshell:gates S17's hash of another aircraft's recorded flight moves
 with the mode on (it passes with it off, which is how the gates run).
+
+**A reset is a fresh module** (the feel round's items, 2026-09-26). A five
+inch reset after a violent flight flew the same throw 1e-13 m and 1e-9 m/s
+off a fresh module's from the first step, then diverged; the Cub came out
+identical. Found by copying a fresh module's static memory into the reset
+one symbol by symbol (the linker's map names them) until the traces
+matched: four pieces of Betaflight's loop state outlived `sim_reset`, all
+needed together. The D term's last gyro rate (a function static in
+`pidController`, so the first step's derivative kick was the last flight's),
+pidRuntime's loop fields (the last setpoint, the TPA factor, anti
+gravity's throttle derivative; pidInit writes only the configured ones),
+the mixer's `motorMixRange` and the dynamic lowpass's update clock. Patch
+0002 hoists the statics and clears them with the loop fields in
+`pidResetTransientState` and a new `mixerResetTransientState`, and
+`bridge_reset` clears pidData. A whole clear of pidRuntime was tried and
+moved every trace: pidInit builds iterm relax's filters only when the
+itermRelax a previous pidInit left there is set. The planes do not fly
+Betaflight, which is why the Cub was clean. `crash:core`, "a reset after a
+violent flight is a fresh module", holds every airframe and the shell's
+whoop to it with the mode on (on main the five inch and both whoops fail
+it); off is identical to base on all 26 identity scripts, so no gate or
+recording flew through the stale state. A caller's order still matters in
+one place: `sim_set_cell_voltage` after `sim_reset` leaves the first step's
+loaded pack voltage at the pack's before (the plant rewrites it every
+step), so a fresh module, whose pack is 4.2 V at the reset inside
+`sim_init`, is matched only by a reset from 4.2 V.
 
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched. So do slowstick:gates and

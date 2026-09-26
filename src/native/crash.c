@@ -124,6 +124,10 @@ typedef struct {
   double ring_m[SIM_PARTS_MAX];      /* and the mass it rings with at its tip */
   int ring_up[SIM_PARTS_MAX];        /* the nearest ringing part a part rides
                                       * on, -1 */
+  double ring_u[SIM_PARTS_MAX][3];   /* a ringing part's span, its joint to its
+                                      * centre, unit: along it the section is a
+                                      * column, not a spring (A CONTACT ON A
+                                      * RINGING PART) */
 } Table;
 
 static Table T[SIM_AIRFRAME_COUNT];
@@ -280,6 +284,10 @@ static void table_finish(Table *t, int airframe) {
     if (w * SIM_DT < 0.5) {
       t->w1[i] = w;
       t->ring_m[i] = m_eff;
+      const double e[3] = { t->cg[i][0] - t->p[i].joint[0], t->cg[i][1] - t->p[i].joint[1],
+                            t->cg[i][2] - t->p[i].joint[2] };
+      const double el = sim_sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
+      for (int a = 0; a < 3; a += 1) t->ring_u[i][a] = e[a] / el;
     }
   }
   for (int i = 0; i < t->n; i += 1) {
@@ -470,6 +478,8 @@ typedef struct {
   double peak_max;   /* the largest it has ever been, which is what damage
                       * follows: a load under an earlier one adds nothing */
   double strength;   /* what a crack has left of the joint, fraction */
+  double crack_pend; /* the crack the load now on it has made, as a factor
+                      * on strength once that load has gone */
   double crush;      /* m */
   double chip;       /* a prop's, 0..1 */
   double chip_evt;   /* the chip at its last event */
@@ -1106,6 +1116,7 @@ void crash_reset(void) {
     p->peak = 0.0;
     p->peak_max = 0.0;
     p->strength = 1.0;
+    p->crack_pend = 1.0;
     p->crush = 0.0;
     p->chip = 0.0;
     p->chip_evt = 0.0;
@@ -2340,7 +2351,7 @@ static double part_damage(int i) {
   if (!attached(i)) {
     return 1.0;
   }
-  double dmg = 1.0 - p->strength;
+  double dmg = 1.0 - p->strength * p->crack_pend;
   if (d->kind == SIM_PART_PROP && p->chip > dmg) {
     dmg = p->chip;
   }
@@ -2373,11 +2384,26 @@ static double past(double rho, double onset) {
 
 /* A new peak on a part under its break: what its material does. Returns
  * the event type, 0 for none, and in *energy what it absorbed. M is the
- * joint moment, body frame. */
+ * joint moment, body frame. rho is the load over what the joint holds now;
+ * the peaks are kept over what it held intact, so that a crack, which
+ * lowers what it holds, cannot raise its own load's peak (below).
+ *
+ * A CRACK WEAKENS THE JOINT FOR THE NEXT LOAD. Its loss was taken off the
+ * strength the load in hand was judged against, so that load's ratio rose
+ * with no rise in the load, which made a new peak and a deeper crack: any
+ * load held past about 0.72 of a limit cracked its way to a break within a
+ * few steps (crack, crack, crack, break in every feel round sheet, the
+ * Skyhunter's fins at 0.73, 0.86 and 1.20 of theirs on 23 N and 1.5 to 1.8
+ * N m). The table's limits are each joint's intact ultimate strength, and
+ * a load under it does not break it; what it does is crack it, and the
+ * next hit breaks it sooner. So the crack is held (crack_pend) while the
+ * load that made it is on, and taken off the strength once that load has
+ * fallen back under the onset (crack_settle). */
 static int below_break(int i, double rho, const double M[3], double *energy) {
   const Table *t = tab();
   const PartDef *d = &t->p[i];
   PartState *p = &PS[i];
+  rho *= p->strength;
   const double prev = p->peak_max;
   if (!(rho > prev)) {
     return 0;
@@ -2439,8 +2465,18 @@ static int below_break(int i, double rho, const double M[3], double *energy) {
   if (!(dl > 0.0)) {
     return 0;
   }
-  p->strength *= 1.0 - dl;
+  p->crack_pend *= 1.0 - dl;
   return SIM_EVENT_CRACK;
+}
+
+/* A held crack goes onto the strength once its part's load, over what the
+ * part held intact, is back under the onset. rho_v < 0: no load at all. */
+static void crack_settle(int i, double rho_v) {
+  PartState *p = &PS[i];
+  if (p->crack_pend < 1.0 && rho_v < CRACK_ONSET) {
+    p->strength *= p->crack_pend;
+    p->crack_pend = 1.0;
+  }
 }
 
 /* One impulse on the craft at body point b, world impulse J. */
@@ -2557,6 +2593,32 @@ SIM_EXPORT int sim_crash_debug(double *out, int max) {
  * sc, over the mass m still on, and the pull of the joints that let go on
  * inertia alone in this batch (below), their forces times ps.
  *
+ * A CONTACT ON A RINGING PART REACHES THE REST THROUGH ITS RING. A wingtip
+ * that digs into the grass is on a panel that rings on its spar at 8 to 13
+ * Hz, and the fuselage is loaded by what the panel's root passes on, not
+ * by the tip's force: an impulse I short against a mode's period drives it
+ * as h(t) = sin(w t) / (m w), so the support's reaction is w I sin(w t),
+ * nothing at first and its peak a quarter period on, 20 to 30 ms for a foam
+ * wing (Chopra, Dynamics of Structures, 4th ed., sections 4.1 and 4.8 to
+ * 4.9: impulse response and pulse excitation of a single degree of
+ * freedom). Judged as a rigid body the whole craft took the tip's blow in
+ * the millisecond it landed, a yaw and roll acceleration of thousands of
+ * rad/s^2 that the Skyhunter's tail, 0.75 m behind, felt at once: both
+ * fins broke 13 ms into a cartwheel, before the struck wing had rung at
+ * all. So a contact on a ringing part or on anything it carries (gate[h],
+ * that part) is left out, and every ringing part passes the rest its root
+ * load instead, ring0, the ring as the batch found it (a step's lag against
+ * a period of 50 ms or more, and no dependence on the order the joints are
+ * judged in), times ps. The ring is the section bending: along its span
+ * (ring_u) a spar or a boom is a column, far stiffer, so that component of
+ * a gated contact reaches the rest at once, at the part's joint, and the
+ * ring does not carry it (a wing stood on its tip by a craft on its side
+ * rang its axial push at the wing's 10 Hz and pumped the booms' 15 Hz
+ * ring to 107 N at their root). own names a ringing part judged on its
+ * own ring's kick: its contacts count rigidly and its ring is not passed
+ * on. Every ringing part hangs on the root (crash_parts.h), so no joint
+ * but its own lies between a gated contact and the root.
+ *
  * A JOINT THAT LETS GO HELD UNTIL IT DID. A part torn off by the craft's
  * deceleration, not by a contact on it, was pulled on by its joint up to
  * the joint's limit, its load over rho, and that pull is on the rest of the
@@ -2569,9 +2631,27 @@ SIM_EXPORT int sim_crash_debug(double *out, int max) {
 static double g_pull_f[PULLS_MAX][3], g_pull_at[PULLS_MAX][3];
 static int g_npull = 0;
 
-static void craft_accel(const double F[][3], const double *sc, double m, double ps, double acc[3], double alp[3]) {
+static void craft_accel(const Table *t, const double F[][3], const double *sc, const int *gate, int own,
+                        const double ring0[][6], unsigned int gone, double m, double ps, double acc[3], double alp[3]) {
   double Ft[3] = { 0.0, 0.0, 0.0 }, tau[3] = { 0.0, 0.0, 0.0 };
   for (int h = 0; h < g_nh; h += 1) {
+    const int g = gate[h];
+    if (g >= 0 && g != own) {
+      if (!attached(g) || (gone & (1u << g))) {
+        continue;
+      }
+      const double *u = t->ring_u[g];
+      const double fa = sc[h] * (F[h][0] * u[0] + F[h][1] * u[1] + F[h][2] * u[2]);
+      const double f[3] = { fa * u[0], fa * u[1], fa * u[2] };
+      double pj[3], c[3];
+      live_pt(t->p[g].joint, pj);
+      cross(pj, f, c);
+      for (int a = 0; a < 3; a += 1) {
+        Ft[a] += f[a];
+        tau[a] += c[a];
+      }
+      continue;
+    }
     const double f[3] = { sc[h] * F[h][0], sc[h] * F[h][1], sc[h] * F[h][2] };
     double c[3];
     cross(g_bb[h], f, c);
@@ -2587,6 +2667,20 @@ static void craft_accel(const double F[][3], const double *sc, double m, double 
     for (int a = 0; a < 3; a += 1) {
       Ft[a] += f[a];
       tau[a] += c[a];
+    }
+  }
+  for (int j = 1; j < t->n; j += 1) {
+    if (!(t->w1[j] > 0.0) || j == own || !attached(j) || (gone & (1u << j))) {
+      continue;
+    }
+    double pj[3];
+    live_pt(t->p[j].joint, pj);
+    const double f[3] = { -ps * ring0[j][0], -ps * ring0[j][1], -ps * ring0[j][2] };
+    double c[3];
+    cross(pj, f, c);
+    for (int a = 0; a < 3; a += 1) {
+      Ft[a] += f[a];
+      tau[a] += c[a] - ps * ring0[j][3 + a];
     }
   }
   for (int a = 0; a < 3; a += 1) {
@@ -2969,6 +3063,15 @@ static void judge(SimState *s) {
       ring[j][6 + a] = PS[j].ring_d[a];
     }
   }
+  int gate[HITS_MAX];
+  double ring0[SIM_PARTS_MAX][6];
+  for (int h = 0; h < g_nh; h += 1) {
+    const int i = H[h].part;
+    gate[h] = t->w1[i] > 0.0 ? i : t->ring_up[i];
+  }
+  for (int j = 0; j < n; j += 1) {
+    for (int a = 0; a < 6; a += 1) ring0[j][a] = PS[j].ring[a];
+  }
   for (int iter = 0; iter < BREAKS_MAX; iter += 1) {
     double m = 0.0;
     for (int i = 0; i < n; i += 1) {
@@ -2979,9 +3082,8 @@ static void judge(SimState *s) {
     if (!(m > 0.0)) {
       break;
     }
-    double acc[3], alp[3], accJ[3], alpJ[3];
-    craft_accel(Fb, sc, m, 1.0, acc, alp);
-    craft_accel(Jb, sc, m, g_batch_dt, accJ, alpJ);
+    double acc[3], alp[3];
+    craft_accel(t, Fb, sc, gate, -1, ring0, gone, m, 1.0, acc, alp);
     /* Two kinds of joint: those a contact's force goes through on its way
      * to the root, and those that only carry their parts' share of the
      * craft's deceleration. The first kind fails first: until the joints
@@ -3017,8 +3119,15 @@ static void judge(SimState *s) {
          * kick and rings on through the steps. The root sees the mode's
          * force, not the rigid body's, so a blow short against the period
          * loads it by the impulse it carried, not by its peak. */
-        double FJ[3], MJ[3];
-        joint_load(t, j, Jb, sc, gone, accJ, alpJ, FJ, MJ);
+        double FJ[3], MJ[3], accK[3], alpK[3], FQ[3], MQ[3];
+        craft_accel(t, Jb, sc, gate, j, ring0, gone, m, g_batch_dt, accK, alpK);
+        joint_load(t, j, Jb, sc, gone, accK, alpK, FJ, MJ);
+        craft_accel(t, Fb, sc, gate, j, ring0, gone, m, 1.0, accK, alpK);
+        joint_load(t, j, Fb, sc, gone, accK, alpK, FQ, MQ);
+        /* Along its span the joint carries the load as it comes. */
+        const double *u = t->ring_u[j];
+        const double ka = dot(FJ, u), qa = dot(FQ, u);
+        for (int a = 0; a < 3; a += 1) FJ[a] -= ka * u[a];
         const double w = t->w1[j];
         const double *y = PS[j].ring;
         const double *yd = PS[j].ring_d;
@@ -3029,7 +3138,7 @@ static void judge(SimState *s) {
           c[a] = y[a] + c[6 + a] * adv;
         }
         for (int a = 0; a < 3; a += 1) {
-          Fj[a] = c[a];
+          Fj[a] = c[a] + qa * u[a];
           Mj[a] = c[3 + a];
         }
       }
@@ -3147,6 +3256,7 @@ static void judge(SimState *s) {
     if (gone & (1u << j)) {
       continue;
     }
+    crack_settle(j, rho0[j] * PS[j].strength);
     double eb = 0.0;
     const int ev = below_break(j, rho0[j] < 1.0 ? rho0[j] : 0.999999, M0[j], &eb);
     if (!ev) {
@@ -3270,6 +3380,7 @@ void crash_batch_end(SimState *s) {
     const Table *t = tab();
     for (int i = 0; i < t->n; i += 1) {
       PS[i].peak = 0.0;
+      crack_settle(i, 0.0);
     }
     g_crush_mask = 0;
     return;
@@ -4759,6 +4870,7 @@ int crash_part_set_damage(SimState *s, int part, double dmg) {
     for (int a = 0; a < 3; a += 1) p->bend[a] = dmg * bmax * ax[a];
   } else {
     p->strength = 1.0 - dmg;
+    p->crack_pend = 1.0;
   }
   p->damage = part_damage(part);
   effects_rebuild();
