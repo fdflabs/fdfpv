@@ -29,10 +29,9 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { courseFromDocument } from '../../src/game/trackdoc.js';
 import { Race } from '../../src/game/race.js';
 import { encodeGhost, GHOST_RATE_HZ } from '../../src/share/ghostdata.js';
-import { gatesFromCourse } from '../../src/game/verify.js';
+import { raceFromDocument } from '../../src/game/verify.js';
 
 function pointAt(pts, times, t) {
   let seg = 1;
@@ -99,8 +98,8 @@ function denseTruth(gates, trackClass, pts, times) {
  */
 export function syntheticLap(document, opts = {}) {
   const speed = opts.speed ?? 20;
-  const course = courseFromDocument(document);
-  const gates = gatesFromCourse(course);
+  const course = raceFromDocument(document);
+  const { gates } = course;
   const race = new Race(gates, course.trackClass);
   const pts = waypoints(race, opts);
   const times = [0];

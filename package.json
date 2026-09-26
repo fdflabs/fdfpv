@@ -113,6 +113,7 @@
     "trick:proven": "node scripts/trick-sweep.js --all --write",
     "check:craft": "node scripts/craft-check.js",
     "builder:selftest": "node scripts/build-selftest.js",
-    "builder:check": "node scripts/build-check.js"
+    "builder:check": "node scripts/build-check.js",
+    "builder:share": "node scripts/map-share-check.js"
   }
 }

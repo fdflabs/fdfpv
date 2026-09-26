@@ -41,7 +41,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { MAPS } from '../maps/registry.js';
+import { MAPS, mapById } from '../maps/registry.js';
+import { isMapTrack } from '../trackbuilder/model.js';
 import { CAL_STEPS } from '../input/input.js';
 import {
   STICK_MODES, DEFAULT_STICK_MODE, normaliseStickMode, stickChannels, stickCaption,
@@ -2050,6 +2051,12 @@ function isCardScreen(screen) {
 function currentPlan() {
   const seat = activeCourseSummary();
   if (!seat || !seat.doc || isEmptyCanvas(seat.doc)) {
+    return null;
+  }
+  /* A track built inside a world stands in the valley the pilot is looking
+   * at, and its positions are the world's, not a field's: there is no
+   * blueprint plate to draw it on. */
+  if (isMapTrack(seat.doc)) {
     return null;
   }
   try {
@@ -5716,7 +5723,9 @@ export class Ui {
       for (const t of this.boardCourses || []) {
         cards.push({
           label: t.name,
-          note: t.designer
+          note: t.map
+            ? str('ui.hung_in_choosing_it_flies_it_there', { world: mapById(t.map).name, author: t.author || str('ui.a_pilot') })
+            : t.designer
             ? str('ui.designed_by_choosing_it_loads_the', { designer: t.designer, v2: t.series ? str('ui.for', { series: t.series }) : '', v3: t.author ? str('ui.published_by', { author: t.author }) : '' })
             : (t.author
               ? str('ui.published_by_choosing_it_loads_the', { author: t.author })
@@ -8696,7 +8705,15 @@ export class Ui {
          * default is 'full' rather than "show it anyway".
          */
         const want = airframeById(this.settings.airframe).trackClass;
-        const rest = list.filter((t) => t.id !== seatId && t.trackClass === want);
+        /*
+         * A TRACK BUILT INSIDE A WORLD, only on a world this build can seat a
+         * course in: a track on a world it does not know would be a card that
+         * loads nothing. It is filed by its class like every other, and the
+         * in-sim builder writes every map track as the five inch's, so that
+         * is the aircraft it is offered to: its seat is the five inch's seat.
+         */
+        const flyable = (t) => t.trackClass === want && (!t.map || (mapById(t.map).id === t.map && Boolean(mapById(t.map).build)));
+        const rest = list.filter((t) => t.id !== seatId && flyable(t));
         /*
          * EVERY TRACK, not five.
          *

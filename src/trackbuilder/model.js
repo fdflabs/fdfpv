@@ -84,11 +84,11 @@ export const SCHEMA_VERSION = 3;
  * re-means a field every reader already reads, which is what the rule above
  * says to bump for.
  *
- * A FIELD TRACK IS STILL WRITTEN AS 3, byte for byte what it was. The board
- * (validate.js) accepts 1, 2 and 3 and nothing else, so writing 4 on every
- * track would refuse every field track put on the board from this build.
- * A map track never goes to the board yet, and the board refusing one is the
- * right answer until it can draw one.
+ * A FIELD TRACK IS STILL WRITTEN AS 3, byte for byte what it was. A board
+ * from before map tracks (validate.js) accepts 1, 2 and 3 and nothing else,
+ * so writing 4 on every track would have refused every field track put on
+ * such a board from this build. A map track goes to the board from the
+ * in-sim builder's P, and the board reads 4 as a map track only.
  */
 export const MAP_SCHEMA_VERSION = 4;
 
