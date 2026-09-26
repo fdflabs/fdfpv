@@ -88,11 +88,15 @@ import { createLiveLink } from './share/live.js';
 const identity = createIdentity();
 import {
   clearPendingTime,
+  readBind,
+  readEditKey,
   readPendingTime,
+  readShareImport,
   writePendingTime,
   writePostedBest,
   writeShareImport,
 } from './share/session.js';
+import { isMapTrack } from './trackbuilder/model.js';
 import { createShowcase } from './render/showcase.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
@@ -690,8 +694,38 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * world, and a quit to the menu is instant today.
    */
   let titleWorld = titleMap;
+  /*
+   * A PUBLISHED TRACK BUILT INSIDE A WORLD, when that is what the pilot's
+   * seat holds, or null.
+   *
+   * "Track" (map:custom) means "fly the seated track", and the Track room,
+   * a board link and a publish all seat one the same way. A field track is
+   * flown on the custom map as it always was. A map track (schemaVersion 4,
+   * src/builder/) is flown in the world it names, with its gates seated on
+   * that world's view by the in-sim builder (seatMapCourse below), so the
+   * seat decides the world. Only a world this build can build in counts: a
+   * track on any other is left to the custom map's best effort reading.
+   */
+  function seatedMapTrack() {
+    if (titleWorld || ui.settings.map !== 'custom') {
+      return null;
+    }
+    let share = null;
+    try {
+      share = readShareImport();
+    } catch (e) {
+      return null;
+    }
+    const doc = share && share.document;
+    if (!doc || !(doc.schemaVersion >= 4) || !isMapTrack(doc)) {
+      return null;
+    }
+    const entry = mapById(doc.map);
+    return entry.id === doc.map && entry.build ? share : null;
+  }
   function worldId() {
-    return mapById(titleWorld ?? ui.settings.map).id;
+    const seated = seatedMapTrack();
+    return seated ? seated.document.map : mapById(titleWorld ?? ui.settings.map).id;
   }
   /* The record line. While the title shows its own world the seat's course
    * is not built, so the Ui is told that rather than the Alps' mode. */
@@ -1644,7 +1678,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* Ghosts are course-shaped, not tune-shaped: any config's lap can pace
    * any other. The book is keyed accordingly. */
   function ghostCourseKey() {
-    return view.id === 'custom' ? `custom:${loadedCourseKey(view)}` : view.id;
+    /* A seated course on any world, the custom map's field or a map track in
+     * a valley, is keyed by the course; a world flown free is keyed by the
+     * world. */
+    const course = loadedCourseKey(view);
+    return course ? `custom:${course}` : view.id;
   }
 
   function ghostLabelFor(lap) {
@@ -1658,8 +1696,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * fill in as laps are flown, so a choice can be ahead of its data: Best
    * with no lap yet simply flies no ghost until there is one. */
   function resolveGhost() {
-    /* No ghost on a built track's test flight yet: the track changes under
-     * it between runs, and ghosts on a map are a later round. */
+    /* No ghost on a built track's TEST flight: the track changes under it
+     * between runs, so its lap is of a track that may no longer exist. A
+     * published map track (build.racing) is a course like any other, and
+     * chases and records exactly as the field does. */
     if (race.freestyle || ghostChoice === 'off' || (build && build.testing)) {
       return null;
     }
@@ -1865,6 +1905,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * seen without the race having to announce one.
    */
   function ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passedAny) {
+    /* The test flight's exception, for resolveGhost's reason. */
     if (race.freestyle || (build && build.testing)) {
       return;
     }
@@ -4914,7 +4955,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function adoptLoadedView(keepPlace, stayMode, stayScreen) {
     attractCam = makeAttractCamera(view);
     if (!keepPlace) {
-      race = new Race(view.gates, view.trackClass ?? 'full');
+      /* A map track's records are its own (seatMapCourse), not the world's. */
+      race = new Race(view.gates, view.trackClass ?? 'full', { recordSuffix: view.recordSuffix ?? '' });
       race.setRecordKey(recordKey());
       paintBest();
       adoptSpawn();
@@ -4944,16 +4986,62 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   }
 
   /* Custom is one map id and many courses. A second pick from the board
-   * used to no-op because wantId and view.id were both "custom". */
+   * used to no-op because wantId and view.id were both "custom". A world
+   * with a map track seated on it is the same: one world, and a course
+   * that is either there or not. */
   function wantedCourseKey(mapId) {
-    return mapId === 'custom' ? seatedCourseKey() : '';
+    if (mapId === 'custom') {
+      return seatedCourseKey();
+    }
+    const seated = seatedMapTrack();
+    return seated && seated.document.map === mapId ? seatedCourseKey() : '';
   }
 
   function loadedCourseKey(map) {
-    if (!map || map.id !== 'custom') {
-      return '';
+    return (map && map.courseKey) || '';
+  }
+
+  /* The builder module, fetched if it is not yet, for a map track to be
+   * seated before the world is shown. Null on a world it cannot build in. */
+  async function ensureBuild() {
+    loadBuild();
+    if (buildLoading) {
+      await buildLoading;
     }
-    return map.courseKey || '';
+    return build;
+  }
+
+  /*
+   * Seat the pilot's map track on the world just built, or take one off it,
+   * so that the view's course is the one wantedCourseKey asks for. The
+   * builder builds the gates, makes them solid and swaps them in as the
+   * view's course (buildmode.js race); the view is stamped here with what
+   * the custom map stamps on its own: the course key, the listing the menus
+   * read, and the record suffix that keeps this track's best laps its own.
+   */
+  async function seatMapCourse() {
+    if (view.id === 'custom') {
+      return;
+    }
+    if (build && build.racing) {
+      build.exit(false);
+    }
+    delete view.courseKey;
+    view.share = null;
+    view.recordSuffix = '';
+    const seated = seatedMapTrack();
+    if (!seated || seated.document.map !== view.id) {
+      return;
+    }
+    const b = await ensureBuild();
+    const course = b ? b.race(seated.document) : null;
+    if (!course) {
+      notice = { text: str('main.that_track_has_no_gate_to_race'), untilMs: performance.now() + 3600 };
+      return;
+    }
+    view.courseKey = seatedCourseKey();
+    view.share = { id: seated.id, name: seated.name || seated.document.name, author: seated.author, board: seated.board };
+    view.recordSuffix = `.map.${seated.document.id}`;
   }
 
   function worldMatchesSettings() {
@@ -4978,6 +5066,27 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       return;
     }
     if (mapReady && worldMatchesSettings()) {
+      return;
+    }
+    /*
+     * THE SAME WORLD, ANOTHER COURSE. A map track seated or taken off a
+     * world already built is a set of gates, not a world: swiss2 takes most
+     * of a minute to build and a course a few milliseconds, so the world
+     * stays and only the course and the run change. Anything else is a swap.
+     */
+    if (mapReady && wantId === view.id && wantQ === view.graphics && wantId !== 'custom') {
+      swapInFlight = true;
+      mapReady = false;
+      try {
+        await seatMapCourse();
+        adoptLoadedView(false, 'title', null);
+      } finally {
+        mapReady = true;
+        swapInFlight = false;
+      }
+      if (!worldMatchesSettings()) {
+        await syncWorld();
+      }
       return;
     }
     const keepPlace = mapReady && wantId === view.id && wantedCourseKey(wantId) === loadedCourseKey(view);
@@ -5022,6 +5131,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         quality: wantQ,
         renderScale: renderScaleOf(ui.settings),
       });
+      await seatMapCourse();
       loading.start('frame');
       adoptLoadedView(keepPlace, stayMode, stayScreen);
     } catch (e) {
@@ -5991,6 +6101,64 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
   }
 
+  /*
+   * P in the in-sim builder: put the track being built on the public board.
+   *
+   * THE SAME PUBLISH as the Track room's own, below: the same dialog asking
+   * for the track's name and the pilot's board name, the same
+   * publishCurrentCourse, the same edit key and bind, so a map track
+   * published here is owned by this browser exactly as a field track is and
+   * republishing it updates the listing. The board reads it as the
+   * schemaVersion 4 document the builder writes, naming its world.
+   *
+   * Returns { doc, text }: the track as published, which is a new id when
+   * the board already held this one from another browser, and the line the
+   * builder shows, because the flight's own notice is hidden while building.
+   */
+  async function publishBuiltTrack(doc) {
+    const owned = Boolean(readEditKey(doc.id));
+    const values = await ui.askForm({
+      title: owned ? str('ui.update_this_track') : str('ui.publish_this_track'),
+      detail: str('main.a_track_built_in_a_world_is', { world: mapById(doc.map).name }),
+      confirmLabel: owned ? str('main.update_the_board') : str('app.publish'),
+      fields: [
+        {
+          key: 'course',
+          label: str('main.track_name'),
+          value: doc.name,
+          maxLength: 80,
+          placeholder: str('main.track_name'),
+        },
+        {
+          key: 'author',
+          label: str('ui.your_name'),
+          value: readPilotName() || '',
+          maxLength: 24,
+          placeholder: str('ui.name'),
+          autocomplete: 'nickname',
+          rules: nameRules(),
+          save: writePilotName,
+        },
+      ],
+    });
+    if (!values) {
+      return null;
+    }
+    try {
+      const result = await publishCurrentCourse({
+        doc,
+        author: values.author,
+        origin: (readBind(doc.id) || {}).board,
+        courseName: values.course,
+      });
+      const cleared = result.posted.timesCleared ? str('main.old_times_were_cleared_because_the') : '';
+      const forked = result.forked ? str('main.published_as_a_new_track') : '';
+      return { doc: result.doc, text: str('main.published', { name: result.posted.name, forked, cleared }) };
+    } catch (e) {
+      return { doc: null, text: str('main.could_not_publish_that_track', { v1: e.message ?? e }) };
+    }
+  }
+
   async function submitCoursePublish() {
     const listing = inspectCourse();
     if (!listing || !listing.doc) {
@@ -6351,6 +6519,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       whenConfigReady(() => {
         reset();
         mode = 'flight';
+        /* Fly from the title: reset() ran with the title still up, where it
+         * parks the craft rather than air start it, so a published map
+         * track whose start gate hangs in the air started on the ground
+         * under it. A restart from the pause menu has already had its air
+         * start, and its countdown is running. */
+        if (view.spawn && view.spawn.air && !(airHoldMs > 0)) {
+          airStart(view.spawn.air.y);
+        }
         ui.show('flight');
         /*
          * THE PAD SHOT IS AN INTRODUCTION, AND A RESTART IS NOT A FIRST
@@ -6643,6 +6819,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       paintBest();
       view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     },
+    publish: (doc) => publishBuiltTrack(doc),
   };
   function loadBuild() {
     if (build || buildLoading || !mapById(view.id).build) {
@@ -11355,6 +11532,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   };
   window.__budget = (name) => measureBudget(shell, view, { view: name });
   requestAnimationFrame(frame);
+  /* A map track seated before this page loaded (a board link, or the Track
+   * room last visit) is flown in a world boot has just built bare: the
+   * course goes on it now, before anyone presses Fly. */
+  if (!titleWorld && wantedCourseKey(view.id) !== loadedCourseKey(view)) {
+    syncWorld();
+  }
 }
 
 /*

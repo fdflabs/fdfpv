@@ -30,7 +30,7 @@
  */
 
 import { trackClassOf } from '../trackbuilder/elements.js';
-import { duplicateTrack, toPlain } from '../trackbuilder/model.js';
+import { duplicateTrack, isMapTrack, toPlain } from '../trackbuilder/model.js';
 import { readAutosave, writeAutosave } from '../trackbuilder/storage.js';
 import { boardOrigin, fetchTrackDocument, fetchTrackList, publishTrack } from './board.js';
 import { readPilotName } from './pilot.js';
@@ -52,7 +52,8 @@ import {
  * board decides when a layout has changed enough to clear a course's times;
  * this is the client's prediction of that answer, used to warn before
  * publishing. They must agree on WHICH KEYS count as the layout, currently
- * field, elements and sequence, AND on which element types are dressing
+ * field, elements and sequence, and the map on a map track, AND on which
+ * element types are dressing
  * rather than layout. Different hashes, same key list and same skip list:
  * change one and change the other, or the warning and the clearing
  * disagree.
@@ -86,7 +87,14 @@ export function layoutFingerprint(doc) {
   } catch (e) {
     plain = doc;
   }
+  /* A MAP TRACK'S WORLD IS LAYOUT. Its positions are absolute in that world
+   * (schemaVersion 4), so the same gates on swiss2 and on alps are two
+   * different races and a republish onto another world clears the times.
+   * Only a version 4 document naming a map carries the key, so every field
+   * track fingerprints exactly as it did. MIRRORS the board's layoutHash. */
+  const onMap = plain.schemaVersion >= 4 && isMapTrack(plain);
   return JSON.stringify({
+    ...(onMap ? { map: plain.map } : {}),
     field: plain.field ?? {},
     elements: (plain.elements ?? []).filter((e) => !LAYOUT_SKIP.has(e?.type)),
     sequence: plain.sequence ?? [],

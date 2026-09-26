@@ -39,6 +39,8 @@ import { trackClassOf } from '../src/trackbuilder/elements.js';
 import { createElement, createSequenceEntry, createTrack } from '../src/trackbuilder/model.js';
 import { applyAutoFaces } from '../src/trackbuilder/faces.js';
 import { syntheticLap } from '../tests/lib/synthlap.js';
+import { mapTrackDocument } from '../tests/lib/maptrack.js';
+import { layoutFingerprint } from '../src/share/listing.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const doc = JSON.parse(await readFile(join(root, 'tests/fixtures/course-reference.json'), 'utf8'));
@@ -134,6 +136,36 @@ check('and the top speed is cruise', wingOk.ok && Math.abs(wingOk.topSpeed - 20)
 const wingSkipped = syntheticLap(wing, { speed: 20, skip: 2 });
 const wingBad = checkLap(wing, encodeGhost(wingSkipped), wingSkipped.durationMs);
 check('a wing lap that skips a gate is refused', wingBad.ok === false && /never closed/.test(wingBad.reason), wingBad.reason);
+
+/*
+ * A track built inside a world: three gates hung in a ring on swiss2, at
+ * absolute poses, published as schemaVersion 4. The board checks a lap on
+ * it through this same file, so the checker has to read its gates the way
+ * the shell races them, from the builder's own race gates.
+ */
+console.log('\nmap track');
+const ring = mapTrackDocument();
+check('a map track is written as schemaVersion 4 naming its world', ring.schemaVersion === 4 && ring.map === 'swiss2', `${ring.schemaVersion} ${ring.map}`);
+const ringLap = syntheticLap(ring);
+check('the synthetic lap closes on the ring', ringLap.lapMs != null && ringLap.gates === 3, `${ringLap.lapMs} ${ringLap.gates}`);
+const ringOk = checkLap(ring, encodeGhost(ringLap), ringLap.lapMs);
+check('an honest lap of a map track is accepted', ringOk.ok === true, ringOk.reason);
+check('and it passed all three gates', ringOk.gates === 3, `${ringOk.gates}`);
+const ringSkipped = syntheticLap(ring, { skip: 1 });
+const ringBad = checkLap(ring, encodeGhost(ringSkipped), ringSkipped.durationMs);
+check('a map lap that skips a gate is refused', ringBad.ok === false && /never closed/.test(ringBad.reason), ringBad.reason);
+/* The same gates read as a field track stand somewhere else entirely, so a
+ * lap of the ring cannot be claimed on a document that has lost its map. */
+const unmapped = { ...ring, schemaVersion: 3 };
+delete unmapped.map;
+const fieldRead = checkLap(unmapped, encodeGhost(ringLap), ringLap.lapMs);
+check('the ring\'s lap does not hold on the same gates read as a field', fieldRead.ok === false, fieldRead.reason);
+const moved = mapTrackDocument({ centre: [120, 660, -80], id: ring.id });
+const movedRead = checkLap(moved, encodeGhost(ringLap), ringLap.lapMs);
+check('nor on the ring raised twenty metres', movedRead.ok === false, movedRead.reason);
+const alps = mapTrackDocument({ map: 'alps', id: ring.id });
+check('the same ring on another world is a different layout', layoutFingerprint(alps) !== layoutFingerprint(ring));
+check('and the same ring on the same world is the same layout', layoutFingerprint(mapTrackDocument({ id: ring.id })) === layoutFingerprint(ring));
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);

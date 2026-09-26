@@ -572,7 +572,16 @@ A document is read as version 4 only when it says so twice, by its
 `schemaVersion` and by naming a usable `map`; a 4 without one is read as a
 field track. The track is saved in the same local library as every other and
 listed only by the builder of its own world; the field builder's Load list
-does not show it. Nothing publishes one to the board yet.
+does not show it.
+
+P in the in-sim builder publishes one to the board, which accepts version 4
+from the board commit that reads it (its `src/validate.js`): the world must
+be `swiss2` or `alps`, every element a type the in-sim builder places, every
+`position` inside the 6000 m world and between 100 m under its floor and
+3000 m over it, every `orientation` a unit quaternion, and at most 256
+steps. The board counts `map` in the layout hash, so the same course on
+another world is another race. **Deploy that board before a simulator that
+publishes version 4**, for the same reason as the 1 to 2 note above.
 
 ---
 

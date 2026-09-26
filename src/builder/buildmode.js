@@ -7,16 +7,23 @@
  * empty field, so a gate off the side of a cliff for a drop could not be put
  * anywhere near a cliff. This puts the builder where the cliffs are.
  *
- * THREE STATES, AND B MOVES BETWEEN THEM.
+ * THREE STATES, AND B MOVES BETWEEN THEM, and a fourth it does not.
  *
  *   off       the pilot is flying the map. B (a pad's Back) starts building.
  *   building  the aircraft is parked where it was and a free camera flies
  *             the valley with no collision. A crosshair reads the surface
  *             it points at off the GPU (pick.js) and a ghost gate shows
- *             where the next one would go. B flies the track.
+ *             where the next one would go. B flies the track. P publishes
+ *             it to the board.
  *   testing   the track's gates are the map's course for a run from the
  *             start gate, on the race's own scoring, lap clock and results.
  *             B goes back to building, to the camera where it was left.
+ *   racing    a PUBLISHED map track, seated by the shell (main.js, the
+ *             Track room or a board link) rather than built here: its gates
+ *             stand in the valley and are the map's course exactly as on a
+ *             test flight, but the run is the pilot's, the keys are the
+ *             flight's, and its laps go to the board with their ghosts. It
+ *             lasts until the shell takes the world or the course away.
  *
  * Escape while building steps back one thing at a time: drop what is held,
  * then the selection, then leave building for the flight that was paused.
@@ -40,8 +47,15 @@
  * The aircraft is the one being flown until C picks another. The ribbon is
  * drawn faint on a test flight.
  *
- * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the board and
- * ghosts (phase 3), the town and Yellowstone (phase 4).
+ * THE BOARD AND GHOSTS (phase 3). P publishes the track through the shell's
+ * own publish (host.publish, main.js), as a schemaVersion 4 document the
+ * board reads; a published one is flown in the racing state below, where a
+ * lap records its ghost and a board ghost can be chased. A TEST FLIGHT
+ * STILL HAS NO GHOST: the track changes under it between runs, so a lap
+ * recorded on one is a lap of a track that may no longer exist.
+ *
+ * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the town and
+ * Yellowstone (phase 4).
  *
  * THE GATES ARE SOLID, the way a field gate is: every edit hands the whole
  * built set to the valley's colliders (Colliders.setBuilt), which put it in
@@ -69,7 +83,7 @@ import { str } from '../strings/index.js';
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import { KINDS } from '../game/collide.js';
 import { ELEMENTS } from '../trackbuilder/elements.js';
-import { elementById, touch } from '../trackbuilder/model.js';
+import { elementById, normalize, touch } from '../trackbuilder/model.js';
 import { listMapTracks, makeAutosaver, readMapAutosave, saveTrack } from '../trackbuilder/storage.js';
 import {
   colourTargetSide, disposeStandaloneGate, dressGate, lightTarget,
@@ -412,8 +426,10 @@ export function createBuildMode(host) {
    * for building, and V leaves them: it hides the line, not the problems. */
   function showLine() {
     ribbonMat.opacity = state === 'testing' ? RIBBON_FAINT : RIBBON_OPACITY;
+    /* Not on a published track: the line is the author's tool, and a pilot
+     * racing somebody's track flies their own line. */
     if (ribbon) {
-      ribbon.visible = lineOn;
+      ribbon.visible = lineOn && state !== 'racing';
     }
     if (markers) {
       markers.visible = state === 'building';
@@ -844,6 +860,42 @@ export function createBuildMode(host) {
     say(saveTrack(doc) ? str('build.saved', { name: doc.name }) : str('build.save_failed'));
   }
 
+  /*
+   * Put the track on the public board, through the shell's own publish:
+   * the same dialog, name and board name, as a track published from the
+   * Track room (host.publish, main.js). The mouse is let go first, because
+   * the dialog is typed into. What comes back is the track as published,
+   * which is a new id when the board already held this one from another
+   * browser, so the builder carries on editing THAT, not the copy it sent.
+   */
+  let publishing = false;
+  async function publish() {
+    if (!raceGatesOf(doc).length) {
+      say(str('build.place_first'));
+      return;
+    }
+    if (publishing || !host.publish) {
+      return;
+    }
+    if (document.pointerLockElement === shell.canvas) {
+      document.exitPointerLock();
+    }
+    publishing = true;
+    try {
+      const out = await host.publish(doc);
+      if (out && out.text) {
+        say(out.text, 4200);
+      }
+      if (out && out.doc && state === 'building') {
+        const next = normalize(out.doc).doc;
+        saveTrack(next);
+        adopt(next);
+      }
+    } finally {
+      publishing = false;
+    }
+  }
+
   /* The next saved track for this map, round the list. */
   function openNext() {
     const list = listMapTracks(view.id);
@@ -973,6 +1025,44 @@ export function createBuildMode(host) {
     colourTargetSide(courseGates[aim.sceneIndex], aim.correct);
   }
 
+  /* The race gates with the meshes the race lights, as the view's course. */
+  function courseFrom(gates) {
+    return gates.map((g) => ({ ...g, ...dressable(meshes.get(g.elementId), 0), aperture: g.aperture, cue: '' }));
+  }
+
+  /*
+   * A published map track, seated for a race: `plain` is the document as
+   * the board serves it. Its gates are built and made solid in the valley
+   * and become the view's course, and the shell makes the race over them
+   * (main.js seatMapCourse). Returns the course, or null when the document
+   * has no gate to race or is not for this world.
+   */
+  function race(plain) {
+    exit(false);
+    view = host.view();
+    const next = normalize(plain).doc;
+    if (next.map !== view.id) {
+      view = null;
+      return null;
+    }
+    const gates = raceGatesOf(next);
+    if (!gates.length) {
+      view = null;
+      return null;
+    }
+    craftId = airframeById(ui.settings.airframe).id;
+    doc = next;
+    root = new THREE.Group();
+    root.name = 'build-track';
+    view.scene.add(root);
+    rebuildAll();
+    courseGates = courseFrom(gates);
+    seatCourse(courseGates);
+    state = 'racing';
+    showLine();
+    return courseGates;
+  }
+
   function startTest() {
     const gates = raceGatesOf(doc);
     if (!gates.length) {
@@ -981,7 +1071,7 @@ export function createBuildMode(host) {
     }
     held = null;
     parked = { pos: cam.pos.clone(), yaw: cam.yaw, pitch: cam.pitch };
-    courseGates = gates.map((g) => ({ ...g, ...dressable(meshes.get(g.elementId), 0), aperture: g.aperture, cue: '' }));
+    courseGates = courseFrom(gates);
     for (const m of meshes.values()) {
       m.group.visible = true;
     }
@@ -1094,6 +1184,10 @@ export function createBuildMode(host) {
       }
       return false;
     }
+    /* A published track is the pilot's run: every key is the flight's. */
+    if (state === 'racing') {
+      return false;
+    }
     /* Building owns the keyboard: nothing reaches the flight keys (R would
      * restart a run nobody is flying). F8 still files a bug. */
     if (code === 'F8') {
@@ -1119,6 +1213,10 @@ export function createBuildMode(host) {
     }
     if (ctrl() && code === 'KeyO') {
       openNext();
+      return true;
+    }
+    if (code === 'KeyP') {
+      publish();
       return true;
     }
     const act = {
@@ -1191,13 +1289,23 @@ export function createBuildMode(host) {
 
   /* Browser defaults the builder's keys would otherwise trigger: Tab moves
    * focus, Ctrl+S and Ctrl+O open the browser's own dialogs, Page Up and
-   * Down scroll. Only while building. */
+   * Down scroll, P types itself into the dialog it opens. Only while
+   * building. */
   function onKeyDownCapture(e) {
     if (state !== 'building') {
       return;
     }
+    /* The publish dialog's fields own their keys: Tab moves between them. */
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) {
+      return;
+    }
+    /* And P: it opens the publish dialog and focuses its name field on
+     * this very keydown, so the key's own character would be typed over
+     * the track's name. */
     const mine = e.code === 'Tab' || e.code === 'PageUp' || e.code === 'PageDown' || e.code === 'Home'
-      || ((e.ctrlKey || e.metaKey) && (e.code === 'KeyS' || e.code === 'KeyO'));
+      || ((e.ctrlKey || e.metaKey) && (e.code === 'KeyS' || e.code === 'KeyO'))
+      || (e.code === 'KeyP' && !e.ctrlKey && !e.metaKey && !e.altKey);
     if (mine) {
       e.preventDefault();
     }
@@ -1357,6 +1465,17 @@ export function createBuildMode(host) {
       if (p.pressed(PAD.back) && host.canBuild()) {
         enter();
       }
+      return;
+    }
+    /* A published track sits under the title too, between its runs: only a
+     * new world takes it away, and the shell unseats it itself when the
+     * pilot picks another course in the same one. */
+    if (state === 'racing') {
+      if (host.view() !== view) {
+        exit(false);
+        return;
+      }
+      sideNow();
       return;
     }
     if (host.view() !== view || host.mode() === 'title') {
@@ -1519,6 +1638,9 @@ export function createBuildMode(host) {
       })) : [],
       camera: { pos: cam.pos.toArray(), yaw: cam.yaw, pitch: cam.pitch, forward: forward(new THREE.Vector3()).toArray() },
       hud: hudText,
+      /* The last line said to the author, however long ago: on a software
+       * rasteriser the frame after a publish can outlast its display. */
+      message: message.text,
       line: {
         on: lineOn,
         craft: craftId,
@@ -1609,6 +1731,10 @@ export function createBuildMode(host) {
     onKey,
     frame,
     exit,
+    race,
+    get racing() {
+      return state === 'racing';
+    },
     get active() {
       return state !== 'off';
     },
