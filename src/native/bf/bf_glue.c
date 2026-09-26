@@ -878,6 +878,15 @@ void bridge_reset(void) {
    * so PID integrators, filters and rc state start identically. */
   memset(&gyro, 0, sizeof(gyro));
   memset(rcData, 0, sizeof(rcData));
+  /* What the control loop writes and pidInit does not: pidData, and (patch
+   * 0002) pidRuntime's loop fields and the D term's, the mixer's and the
+   * dynamic lowpass's statics. They kept the last flight's values, so a
+   * five inch reset after a flight left a fresh module's trace in its first
+   * step (1e-13 m, then diverging). pidRuntime is not cleared whole: pidInit
+   * sets up iterm relax's filters from the itermRelax a previous pidInit
+   * left there, so a whole clear moves every trace. */
+  memset(pidData, 0, sizeof(pidData));
+  mixerResetTransientState();
   for (int a = 0; a < XYZ_AXIS_COUNT; a += 1) {
     g_gyro_dps[a] = 0.0f;
     g_vib_fast[a] = 0.0;

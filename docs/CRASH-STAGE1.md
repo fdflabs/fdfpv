@@ -1252,6 +1252,32 @@ cub:gates C21's prop tip load reads 3.2 N for 9.2 (the gate still passes),
 and bombshell:gates S17's hash of another aircraft's recorded flight moves
 with the mode on (it passes with it off, which is how the gates run).
 
+**A reset is a fresh module** (the feel round's items, 2026-09-26). A five
+inch reset after a violent flight flew the same throw 1e-13 m and 1e-9 m/s
+off a fresh module's from the first step, then diverged; the Cub came out
+identical. Found by copying a fresh module's static memory into the reset
+one symbol by symbol (the linker's map names them) until the traces
+matched: four pieces of Betaflight's loop state outlived `sim_reset`, all
+needed together. The D term's last gyro rate (a function static in
+`pidController`, so the first step's derivative kick was the last flight's),
+pidRuntime's loop fields (the last setpoint, the TPA factor, anti
+gravity's throttle derivative; pidInit writes only the configured ones),
+the mixer's `motorMixRange` and the dynamic lowpass's update clock. Patch
+0002 hoists the statics and clears them with the loop fields in
+`pidResetTransientState` and a new `mixerResetTransientState`, and
+`bridge_reset` clears pidData. A whole clear of pidRuntime was tried and
+moved every trace: pidInit builds iterm relax's filters only when the
+itermRelax a previous pidInit left there is set. The planes do not fly
+Betaflight, which is why the Cub was clean. `crash:core`, "a reset after a
+violent flight is a fresh module", holds every airframe and the shell's
+whoop to it with the mode on (on main the five inch and both whoops fail
+it); off is identical to base on all 26 identity scripts, so no gate or
+recording flew through the stale state. A caller's order still matters in
+one place: `sim_set_cell_voltage` after `sim_reset` leaves the first step's
+loaded pack voltage at the pack's before (the plant rewrites it every
+step), so a fresh module, whose pack is 4.2 V at the reset inside
+`sim_init`, is matched only by a reset from 4.2 V.
+
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched. So do slowstick:gates and
 bombshell:stab on main d043d2a, with the mode off and on alike.
