@@ -57,6 +57,7 @@
  * Collision already owns a clip of the tube.
  */
 import { fastestLap, fastestThreeConsecutive, MICRO_SCALE } from './track.js';
+import { str } from '../strings/index.js';
 
 /*
  * How far the scoring volume sticks out either side of the opening, metres.
@@ -597,10 +598,10 @@ export class Race {
         this.lap += 1;
         this.laps.push(this.lastLapMs);
         this.log.push({ n: this.lapNumber(), ms: this.lastLapMs });
-        let msgText = `Lap ${this.log.length}   ${fmt(this.lastLapMs)}`;
+        let msgText = str('race.lap_flash', { n: this.log.length, time: fmt(this.lastLapMs) });
         if (this.bestMs == null || this.lastLapMs < this.bestMs) {
           this.bestMs = this.lastLapMs;
-          msgText += '\nNew track record';
+          msgText += `\n${str('ui.new_track_record')}`;
           /* Off the flight frame. This runs from the render loop, and a
            * synchronous localStorage write lands on exactly the frame the
            * pilot is watching their personal best appear. */

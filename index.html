@@ -858,7 +858,12 @@
            0.762 m and the FPV camera is tilted up, so the target lands low in
            the frame, and a pilot found the launch banner drawn directly over
            the one thing they need to find. */
-        position: absolute; left: 50%; top: 22%; transform: translate(-50%, -50%);
+        /* And under the OSD's top block, not centred on 22 percent: at 22
+           percent a two line banner (a lap's time and record, the launch
+           prompt) landed on the block's last lap, record and ghost lines and
+           the two read as one smear (2026-09-26). 150 px clears the block,
+           as .edge found, and keeps the banner high in the frame. */
+        position: absolute; left: 50%; top: calc(var(--bar-top) + 150px); transform: translate(-50%, 0);
         text-align: center; white-space: pre-wrap; font-size: var(--banner-size); font-weight: 600;
         letter-spacing: 0.04em; color: var(--amber); opacity: 0;
         transition: opacity 0.18s ease; text-shadow: 0 3px 10px rgba(0,0,0,0.9);

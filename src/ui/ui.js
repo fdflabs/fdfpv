@@ -3183,6 +3183,7 @@ export class Ui {
     this.osdGhost = el('div', 'osd-ghost is-off', '');
     const top = el('div', 'osd-top');
     top.append(this.osdClockLabel, this.osdTimer, this.osdGate, this.osdLast, this.osdBest, this.osdGhost);
+    this.osdTopBlock = top;
     this.osdPack = el('div', 'osd-value', '');
     this.osdPackBar = el('div', 'bar-fill');
     const packBar = el('div', 'bar');
@@ -10320,6 +10321,24 @@ export class Ui {
   /* `panelled` true boxes the text in the middle of the frame; 'edge' is
    * one compact line under the OSD's top block, for a message about a
    * craft the camera is looking at (a wreck), which the box would cover. */
+  /* The banner's line and the OSD's top block share the top of the screen,
+   * and the block is as tall as it wraps: three lines on a desktop, six on a
+   * phone held upright, where a fixed offset landed the banner on the last
+   * lap and record lines. So a banner on the flight screen stands under the
+   * block's measured bottom. One layout read, only while a banner shows, and
+   * a write only when the bottom moved. */
+  seatBannerUnderOsd(on) {
+    const block = this.osdTopBlock;
+    const holder = this.banner.offsetParent;
+    const bottom = on && block && holder && block.offsetHeight > 0
+      ? Math.round(block.getBoundingClientRect().bottom - holder.getBoundingClientRect().top + 10)
+      : null;
+    if (this.banner.__wfTop !== bottom) {
+      this.banner.__wfTop = bottom;
+      this.banner.style.top = bottom == null ? '' : `${bottom}px`;
+    }
+  }
+
   setBanner(text, panelled = false) {
     /* Called from the frame loop as well as from events, so it is guarded
      * like the OSD. */
@@ -10331,6 +10350,7 @@ export class Ui {
       this.banner.style.opacity = opacity;
     }
     Ui.klass(this.banner, panelled === 'edge' ? 'banner edge' : panelled ? 'banner panel' : 'banner');
+    this.seatBannerUnderOsd(want && panelled !== true);
     /* The announcer is the one place a screen reader hears a banner at all;
      * see mountAnnouncer. Only real text, and only when it changes. */
     if (want) {
