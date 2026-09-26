@@ -321,6 +321,10 @@ export async function fetchTrackList(origin = boardOrigin()) {
      * it from the stored document, so an older board that does not send it
      * leaves every listing reading as the field, correctly. */
     trackClass: trackClassOf(t),
+    /* The world a track built inside one stands in, or '' for a field
+     * track. The board derives it from the stored document; an older board
+     * that does not send it cannot hold a map track at all. */
+    map: typeof t.map === 'string' ? t.map : '',
     board,
   })).filter((t) => t.id);
 }
@@ -416,8 +420,13 @@ export async function adoptMostFlownTrack(cls) {
       times: Number(t.times) || 0,
       publishedUtc: t.publishedUtc ? String(t.publishedUtc) : '',
       trackClass: trackClassOf(t),
+      /* A track built inside a world is left for the pilot to choose. The
+       * cold open is the field because the field is the smallest world
+       * there is; a map track would put a first visitor behind the minute
+       * swiss2 takes to build before they had asked for anything. */
+      onMap: typeof t.map === 'string' && t.map !== '',
       board: trimOrigin(origin),
-    })).filter((t) => t.id && t.trackClass === want);
+    })).filter((t) => t.id && t.trackClass === want && !t.onMap);
     const top = pickMostFlownTrack(list);
     if (!top) {
       return null;
