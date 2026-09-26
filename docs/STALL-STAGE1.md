@@ -987,3 +987,290 @@ and 0.1 m of rest distance, inside the same failures.
 
 glider:stab's rudder roll check, whose Manual reference stalled, is
 rewritten in its own commit.
+
+## Round 6: the rotary derivatives in the stability axes
+
+Round 6's aero brief put four items to the plant, each recorded above as
+failing:
+
+1. The Timber held full back in Manual drifts to 50 deg of bank in 10 s.
+   Model Aviation says of the real one: "mushed along and never dropped a
+   wing".
+2. The Slow Stick's S9b: 28.7 deg of bank and 44.5 deg/s of yaw, against
+   limits of 15 and 20.
+3. The Bombshell's take off heading: 6.6 deg and 0.80 m off the line.
+4. The Radian's abrupt full back pull drops a wing 41 deg.
+
+Items 1, 2 and 4 had one cause, and it was not an aerodynamic number. It
+was the axes the plant applied its numbers in.
+
+### The bug
+
+Every aircraft's lateral derivatives come from its derivation by Nelson's
+strip theory (Flight Stability and Automatic Control, ch. 3 and 5):
+
+- Clp, the roll damping, and Clr = CL/4.
+- Cnp = −CL/8 and Cnr.
+- Clβ and Cnβ.
+- The control derivatives.
+
+Strip theory rolls the wing about its flight path and yaws it about the
+lift's direction, so these are stability axis derivatives. The plant
+multiplied them by the body rates and applied the moments about the body
+axes.
+
+In cruise the body axis is within a few degrees of the flight path, and
+the difference is small. In a mush at 15 to 20 deg of body angle of
+attack it is not small. A body yaw rate r is then a roll about the flight
+path of r sin α. The linear wing's roll damping never saw that roll. The
+strips past the stall did see it, through their dr term, but only as the
+destabilising half: a stalled strip deeper in its stall on the retreating
+side.
+
+So a mushing wing banked into its own turn with nothing to stop it:
+
+- The Timber's yaw rate reached 67 deg/s.
+- The Slow Stick's reached 45 deg/s.
+- The Radian's abrupt pull rolled on into a 391 deg/s spin.
+
+### The fix
+
+Etkin and Reid, Dynamics of Flight: Stability and Control, give the
+transformation between the stability and body axes, a rotation about y
+through the body's angle of attack α_b. The plant now does this:
+
+- Rotates the body rates into the stability axes:
+  p_s = p cos α_b + r sin α_b, and r_s = r cos α_b − p sin α_b.
+- Applies the table's derivatives to p_s and r_s.
+- Rotates the rolling and yawing moments back:
+  L_b = L_s cos α_b − N_s sin α_b, and N_b = N_s cos α_b + L_s sin α_b.
+- Takes the dr part of the damping back as each strip stalls, as it already
+  took back the roll rate's. The strip reference is now cl_α (da + dr).
+
+α_b is the body's, the angle of the body x axis to the wind in the x z
+plane (sin_b, cos_b in the step). Below 0.5 m/s the plant already sets
+those to 0 and 1, so at rest on the ground the rotation does nothing.
+
+There is one approximation. The strips take their roll rate share as
+p y / V where the stability axis one is p cos α_b y / V. That is 6
+percent at 20 deg, in the strips alone.
+
+No number in any table changed.
+
+### What each aircraft does now
+
+`npm run stall:probe` on main 7e579b8, then (in bold) this change. The
+columns are the ones described above: A is full back held 10 s, B is full
+back and rudder, C and D are the spin and stall recoveries, E is Acro,
+and F is the abrupt pull. "10 s bank" is the largest over the hold.
+
+| Airframe | A: nose drop, wing drop, 10 s bank, yaw rate | B: spin, deg/s | C | D | E (Acro) | F: abrupt |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 24.5, 18.2, 18.2, 30.6 / **22.7, 12.0, 12.0, 14.5** | no spin, 289 / **no spin, 290** | 0.02 s / **0.02 s** | 0.17 s / **0.17 s** | 24.9, 1.4, 1.4, 3.7 / **24.9, 1.3, 1.3, 2.4** | 34.0, 3.2, 5.7, 7.4 / **33.9, 1.5, 2.5, 2.8** |
+| Skyhunter | 5.4, 5.0, 26.2, 24.6 / **5.4, 3.2, 10.3, 9.2** | no spin, 59 / **no spin, 49** | 0.10 s / **0.12 s** | 0.16 s / **0.17 s** | 10.4, 2.2, 5.7, 5.4 / **10.4, 1.5, 3.2, 2.9** | 19.0, 7.1, 34.0, 31.7 / **18.9, 4.4, 12.6, 11.1** |
+| Cub | 6.6, 2.8, 20.4, 21.3 / **6.6, 1.5, 5.4, 5.3** | spin, 62 / **no spin, 49** | 0.10 s / **0.12 s** | 0.17 s / **0.17 s** | 12.1, 2.6, 9.1, 10.4 / **12.0, 1.2, 2.9, 3.1** | 20.7, 5.0, 26.5, 28.0 / **20.6, 2.3, 6.1, 5.9** |
+| Slow Stick | 10.1, 1.0, 9.0, 15.8 / **10.1, 0.5, 1.5, 2.3** | no spin, 119 / **spin, 97** | 0.06 s / **0.06 s** | 0.17 s / **0.17 s** | 18.3, 1.0, 4.4, 7.5 / **18.3, 0.8, 1.2, 3.7** | 29.3, 2.3, 10.2, 17.9 / **29.3, 1.5, 1.5, 4.0** |
+| Radian | 14.6, 3.5, 23.8, 27.9 / **14.5, 1.8, 5.8, 6.4** | spin, 391 / **spin, 80** | 0.34 s / **0.08 s** | 0.16 s / **0.16 s** | 22.0, 13.7, 14.2, 30.4 / **19.0, 2.3, 2.9, 3.8** | 43.0, 41.4, 41.4, 72.4 / **30.2, 7.0, 7.0, 13.8** |
+| Timber | 16.2, 6.8, 50.5, 66.9 / **16.1, 3.1, 18.1, 20.5** | spin, 70 / **no spin, 49** | 0.09 s / **0.11 s** | 0.14 s / **0.14 s** | 12.1, 1.9, 12.0, 15.8 / **12.0, 1.1, 3.6, 4.4** | 22.1, 3.8, 52.1, 69.7 / **22.1, 2.1, 22.5, 25.9** |
+| Timber, slats off | 22.0, 7.6, 49.8, 67.7 / **21.9, 4.4, 24.5, 34.4** | spin, 572 / **no spin, 51** | 0.75 s / **0.09 s** | 0.11 s / **0.11 s** | 27.3, 4.1, 6.9, 10.6 / **27.2, 2.5, 4.4, 6.5** | 42.0, 43.8, 52.5, 69.7 / **33.8, 13.6, 28.8, 39.5** |
+| Bramor | 69.5, 179.3, 179.3, 566.5 / **16.8, 29.7, 84.4, 255.0** | spin, 420 / **spin, 397** | none / **0.18 s** | none / **0.45 s** | 21.2, 1.6, 1.6, 3.9 / **21.2, 1.0, 1.0, 1.7** | 109.5, 82.7, 82.7, 621.3 / **35.4, 2.4, 11.2, 17.6** |
+| Timber on floats | 10.4, 10.9, 49.2, 62.4 / **10.1, 4.7, 19.2, 20.3** | spin, 68 / **no spin, 45** | 0.09 s / **0.12 s** | 0.14 s / **0.14 s** | 10.0, 1.1, 9.7, 12.5 / **10.0, 0.7, 3.4, 3.9** | 24.4, 3.6, 51.8, 65.4 / **24.4, 2.1, 22.8, 24.4** |
+| Cub on floats | 7.4, 2.8, 16.2, 15.1 / **7.3, 1.5, 4.5, 3.8** | spin, 64 / **no spin, 52** | 0.10 s / **0.12 s** | 0.17 s / **0.17 s** | 13.2, 2.9, 9.6, 10.7 / **13.1, 1.2, 2.8, 2.8** | 22.8, 5.4, 20.6, 19.3 / **22.7, 2.7, 4.9, 5.0** |
+| Bombshell | 11.0, 0.1, 5.0, 6.3 / **11.0, 0.1, 1.6, 1.9** | spin, 142 / **spin, 139** | 0.04 s / **0.04 s** | 0.13 s / **0.13 s** | 10.5, 0.9, 2.5, 3.1 / **10.5, 0.5, 1.0, 1.8** | 20.7, 2.3, 5.2, 6.6 / **20.7, 0.8, 1.6, 1.9** |
+
+Against the four items:
+
+1. **The Timber: met.** Its 10 s bank goes from 50.5 to 18.1 deg, and its
+   yaw rate from 67 to 20.5 deg/s, a slow mushing turn. The wing drop is
+   3.1 deg. With the slats off it reaches 24.5 deg. On floats it reaches
+   19.2 deg. The criterion is the Cub's: under 10 deg of wing drop and
+   under 30 deg of 10 s bank.
+2. **The Slow Stick's S9b: met.** It reads bank 5.7, yaw 9.3 deg/s and
+   pitch −5 to 16, against limits of 15, 20 and −35 (slowstick:gates).
+   S9a reads bank 2.2 and yaw 5.2 deg/s.
+3. **The Bombshell's take off heading: not met.** See below.
+4. **The Radian's abrupt pull: met.** F's wing drop goes from 41.4 to
+   7.0 deg. A's 10 s bank goes from 23.8 to 5.8 deg.
+
+Some things change past the stall that the brief did not ask about:
+
+- **The Cub's and the Timber's spins.** Full back and full rudder (B)
+  turns the Cub at 48.5 deg/s at 15.7 deg of alpha. On main it was 62.3
+  deg/s. The Timber turns at 49.0 deg/s against 70.2. Both now sit under
+  the probe's 60 deg/s mark for a spin, so they read as steep rudder
+  spirals rather than spins.
+- **The Skyhunter's pro spin entry.** It was already under the mark
+  (58.6 deg/s) and is now 48.8 deg/s.
+- **The spins that remain.** The Radian still spins, at 80 deg/s against
+  391, and recovers in 0.08 s. The Timber on floats spins at 80 deg/s.
+  Slats off, the Timber's 572 deg/s spin becomes a 51 deg/s spiral.
+- **The Slow Stick.** Its full rudder entry is now a 97 deg/s spin; on
+  main it was a 119 deg/s spiral.
+- **The Bramor.** Held full back it no longer settles into the flat spin
+  its elevons could not recover (C and D read "none" on main). It drops a
+  wing (29.7 deg) and departs into a tumbling fall, alpha −11 to 166 deg
+  over the last 3 s. Centred, it recovers from the stall in 0.45 s and
+  from the spin in 0.18 s. The chute recording still comes down under
+  the canopy.
+- **The washouts, FITTED under the old axes, are still needed.** With
+  every fitted washout taken out, the Timber reaches 35 deg of 10 s bank
+  and the Skyhunter 57. The Radian's F reaches 67 deg at zero washout and
+  41 deg at 3 deg. They stay as they are.
+
+### What moved short of the stall
+
+The change is not zero in cruise, because the body's angle of attack is
+not zero there, so every recorded flight moves:
+
+- the wing, from its first millisecond (alpha 0.06 deg);
+- the Skyhunter, the Radian and the Bramor, from their first millisecond;
+- the Bramor's chute recording;
+- the Cub, the Timber, the Slow Stick and the Bombshell from about 1.05
+  to 1.13 s, as they start to roll;
+- the Timber on floats from 38 ms.
+
+The lead decided this is a bug fix and not a tuning. Each recorded hash
+is re-recorded in its own commit, which says what moved in that
+recording (npm run stall:crossing).
+
+Every functional gate and stab check still passes except the Bombshell's
+two below, and so do stab:glide --check, stab:chop and crash:core. The
+checks move by small amounts. Some examples, main then now:
+
+| Check | main | now |
+| --- | --- | --- |
+| Slow Stick S6, bank 6 s after letting go of 30 deg | 8.8 | 7.7 |
+| Slow Stick S7, bank 1 s into full roll stick | 31.9 | 31.2 |
+| Bombshell S6, bank 6 s after letting go of 30 deg | 7.8 | 6.3 |
+| Bombshell S9a, S9b bank | 5.1, 12.6 | 1.6, 4.2 |
+| Cub C5, full aileron roll rate | 231 deg/s | 227 deg/s |
+| Cub C13, full rudder: bank after 2 s | 29.9 | 29.5 |
+| cub:stab, take off heading | 1.6 deg, 0.06 m | 1.8 deg, 0.07 m |
+| Radian G14, circling in a thermal | 1.49 m/s | 1.43 m/s |
+
+No cruise speed, stall speed, glide ratio or climb gate moves in its
+printed digits; roll rates, turns and hands off banks move by the amounts
+above, every one inside its band. The full list is in the pull request.
+
+### The crash suite
+
+`node scripts/crash-suite.js` has 60 scenarios, all 60 deterministic. On
+main 10 are inside every band; now 7 are. Three leave:
+
+- **cub-stall:** peak g 9.7 goes to 11.6, against a band of 3 to 10. It
+  mushes in wings level instead of dropping a wing.
+- **sky-nose-in:** retainedFirst 0.01 goes to 0.06, against a band of 0
+  to 0.05.
+- **bramor-pole:** peak g 91 goes to 128, against a band of 20 to 100.
+
+The stall ins arrive wings level more often:
+
+- radian-stall: 10.8 g, upright;
+- sky-stall: 71 g, upright;
+- bramor-stall: 598 g, breaking its elevons, fin and tail.
+
+The bands are the crash plan's, and none of them is moved.
+
+### The Bombshell's take off, still open
+
+bombshell:stab's roll with the sticks centred reads 7.4 deg of heading
+and 0.92 m off the line, against 5 and 0.5. On main it read 6.6 and
+0.80. Its "wings level the whole roll" reads 5.2 deg against 5, which
+passed on main at 4.0. Both are left failing.
+
+The trace:
+
+- The skid is unloaded by 3.2 s.
+- The swing starts at 3.4 s, as the tail rises and the torque loads the
+  left wheel.
+- From 3.7 s the aero yaw moment is already restoring (the fin sees the
+  sideslip). The yaw it fights comes from the main wheels as one of them
+  unloads.
+
+So neither the skid's friction nor its steering can act: the skid is off
+the grass before the swing. One thing at a time, the heading at lift off
+under the axis fix:
+
+| Change | Heading, off the line, bank |
+| --- | --- |
+| As built | 7.4, 0.92, 5.2 |
+| No P factor | −8.2, 1.05, 4.9: it swings right |
+| No torque | 10.3, 1.38, 6.9 |
+| No build asymmetry | 7.6, 0.95, 5.3 |
+| No post stall model while on the wheels | 5.3, 0.57, 3.9 |
+
+The swing is a balance of the prop's two terms against each other. Even
+switching the section's held lift off on the wheels, which has no
+physical ground, does not bring it inside. The axis fix moves it 0.8 deg
+because the wing now damps the roll that the yaw rate makes through
+r sin α. That rolls the aircraft off the loaded wheel a little later.
+
+### Measured this round and not built
+
+- **The slipstream over the tail, by momentum theory.** The wash far
+  behind the disc carries the disc's pressure jump T/A, in a stream
+  contracted to R sqrt((V + v_i)/(V + 2 v_i)). The shares of the
+  stabiliser and fin inside it come from the drawn models. Controls meet
+  the wash's dynamic pressure; angle and rate terms meet the free stream's
+  times the wash's speed ratio.
+  - On the Slow Stick alone, before the axis fix, it made S9b worse
+    (32.6 deg of bank, 48.5 deg/s). It raised S7's bank to 36.9. It
+    failed slowstick:stab's "yaw stick wins over the level hold" at −7.4
+    deg against −7.5.
+  - The first version took the tail's zero lift at its drawn rigging.
+    Its extra download under power then turned S10's phugoid into a 2.9 s
+    climb and stall cycle, so the tail's zero lift was taken at the cruise
+    trim that cm_0 is set for.
+  - On the Bombshell it gave 7.3 deg of take off heading. At half
+    throttle and full rudder on the skid it ground looped 360 deg in 4 s,
+    where the taxi check's premise is that the rudder has no air at a
+    walk.
+  - Its fin weathercock grows under power, and in a slipping turn that
+    feeds the spiral.
+  - Not built. The lead holds it until its premises are understood.
+- **The high wing's dihedral effect (DATCOM 5.2.2.1).** The term is
+  ΔClβ = −1.2 √AR (z_w/b)(2 d/b). On the drawn Timber (z_w 0.078 m over
+  the fuselage's centreline, d 0.128 m) it is −0.0257. That takes Clβ from
+  −0.047 to −0.073 and the 10 s bank from 50.5 to 47.8.
+  - The drawn tips droop 40 mm over their last 77.5 mm. By strip theory
+    that is anhedral, several degrees' worth at the tips, so the drawn
+    wing's total is not above the estimated 1.5 deg.
+  - Even a Clβ of −0.20 (8 deg) gave 32.7.
+  - Not the lever, and not built.
+- **A stalled strip's drag in roll.** Its body normal component,
+  k (−w/V) Σ arm Δc_d, takes the Timber from 50.5 to 48.9. Not built.
+- **The Timber's slats on their drawn span, 0.10 to 0.69 m.** Round 5
+  measured 42.8. Not built: the axis fix meets the item without it, and
+  it would move the Timber's recorded stalls again.
+
+### What the owner should feel
+
+- **In cruise, on every plane:** nothing that a stick will show. The
+  speeds, the trims and the glides are the same. Turns and rolls differ by
+  a percent or two, and a turn let go comes back level a little sooner.
+- **In a turn:** a banked turn at low speed stays where it is put, instead
+  of tightening by itself. This is clearest on the Timber and the Slow
+  Stick near their stall.
+- **Cub:** the owner signed off its stall feel, and that sign off is what
+  this change risks.
+  - Held full back it still breaks gently, 6.6 deg nose drop, and mushes
+    at 17 deg of alpha. It now holds its wings within 5 deg for the 10 s,
+    against about 20 before.
+  - Full back with full rudder it turns at about 49 deg/s, a steep rudder
+    spiral, against 62 before. If it no longer feels like it spins, that
+    is this change.
+- **Timber, slats on:** held full back it mushes along wings nearly level.
+  Over 10 s it wanders into a slow 18 deg turn, where it used to spiral
+  down to 50 deg. With the slats off it does the same and a little more,
+  24 deg.
+- **Slow Stick:** full up under power is a mush with a lazy left turn,
+  under 6 deg of bank, where it used to wind up to 30 deg at 45 deg/s.
+- **Radian:** a hard pull no longer drops a wing, 7 deg against 41. The
+  gentle entry mushes wings level.
+- **Skyhunter and the 1000 mm wing:** a held stall wanders about half as
+  much, 10 and 12 deg against 26 and 18.
+- **Bramor:** held full back it still departs, but centring the stick now
+  recovers it. The flat spin it could not leave is gone.
+- **Bombshell:** unchanged to the hand, except for its take off. With the
+  sticks centred it swings 7.4 deg left as the tail comes up, against 6.6
+  before, and needs a touch of right rudder, as a real one does.

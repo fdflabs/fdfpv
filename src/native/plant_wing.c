@@ -708,7 +708,10 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
   const double hold = r * fw->cl_alpha * stall;
   const double lift = stalled_lift(fw, k, hold, stall, dcl_f / fw->cl_alpha, aa, sp, cp, &fall, &past);
   const double blended = (1.0 - sigma) * lin + sigma * lift;
-  const double ref = r * fw->cl_alpha * add_term(alpha, dcl_f / fw->cl_alpha) + fw->cl_alpha * da;
+  /* The linear wing's roll damping acts on the roll about the flight path,
+   * the roll rate's da and the yaw rate's dr together (plant_wing_step's
+   * stability axis rates), so a stalled strip takes both back. */
+  const double ref = r * fw->cl_alpha * add_term(alpha, dcl_f / fw->cl_alpha) + fw->cl_alpha * (da + dr);
   out[0] = past * (blended - ref);
   out[1] = past * sigma * (2.0 * sp * sp - fw->k_induced * cl_lin * cl_lin);
 }
@@ -1007,13 +1010,31 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double r_aero = -s->omega[2]; /* nose right positive */
   const double b2v = fw->span / (2.0 * Vrate);
   const double c2v = fw->chord / (2.0 * Vrate);
-  double cl_sum = fw->cl_beta * beta + fw->cl_p * p * b2v + fw->cl_da * delta_a;
-  cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * r_aero * b2v);
+  /* The table's lateral derivatives are stability axis ones: each
+   * aircraft's derivation takes them from Nelson's strip theory, which
+   * rolls the wing about its flight path, not about the fuselage. So the
+   * rates go into them turned into the stability axes, the body's pitched
+   * down by the body's angle of attack, and the moments they make come back
+   * turned the other way (Etkin and Reid, Dynamics of Flight, the stability
+   * to body axis transformation of the rotary derivatives). At a cruise's
+   * few degrees that is close to the body rates; in a mush at 15 to 20 deg
+   * a body yaw rate is a roll about the flight path of r sin(alpha), and
+   * the linear wing damps it, which the body rates alone never did while
+   * the strips below took the same angle into their stall. The body's
+   * angle is sin_b and cos_b above, 0 and 1 below 0.5 m/s. */
+  const double ps = p * cos_b + r_aero * sin_b;
+  const double rs = r_aero * cos_b - p * sin_b;
+  double cl_sum = fw->cl_beta * beta + fw->cl_p * ps * b2v + fw->cl_da * delta_a;
+  cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * rs * b2v);
   cl_sum = add_term(cl_sum, fw->cl_dr * delta_r);
-  double cn_sum = fw->cn_beta * beta + fw->cn_r * r_aero * b2v;
-  cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * p * b2v);
+  double cn_sum = fw->cn_beta * beta + fw->cn_r * rs * b2v;
+  cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * ps * b2v);
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * delta_a);
   cn_sum = add_term(cn_sum, fw->cn_dr * delta_r);
+  const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
+  const double cn_b = cn_sum * cos_b + cl_sum * sin_b;
+  cl_sum = cl_b;
+  cn_sum = cn_b;
   const double l_aero = qbar * fw->area * fw->span * cl_sum;
   /* Past the stall the wing's lift no longer grows with alpha, and once it
    * falls what is left of it acts well aft of the quarter chord. The
