@@ -2682,6 +2682,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     sepFail: 0,
     resolved: 0,
     dvZero: 0,
+    /* Host contacts on a solid the plant did not hold, declared to it
+     * first (plantMustHold). */
+    plantHeld: 0,
+    /* And any of those the plant still did not hold after: must stay 0. */
+    unheld: 0,
     resting: 0,
     inbound: 0,
     outbound: 0,
@@ -3577,6 +3582,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* What coveredAt answered when the solids were declared: the same array
    * for the same roof and extent, which is how a change is seen. */
   let crashCovered = null;
+  /* The colliders declared to the plant as solids, marked, and their list.
+   * A host contact near a solid the plant holds is dropped by the module
+   * (crash_contact_known) whichever solid the host met, so every solid the
+   * host meets must be one of these: see plantMustHold. */
+  let crashKnown = null;
+  const crashKnownList = [];
   const slabPick = [];
   const slabBasis = new THREE.Matrix4();
   const slabQuat = new THREE.Quaternion();
@@ -3870,6 +3881,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         return;
       }
     }
+    declareCrashWorld(-1);
+  }
+
+  /* The trees and solids nearest crashProbe, with collider `must` among
+   * them when it is not -1. */
+  function declareCrashWorld(must) {
     crashWorldX = crashProbe.x;
     crashWorldZ = crashProbe.z;
     const col = view.colliders;
@@ -3902,7 +3919,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         passSet.push(t.post);
       }
     }
-    declareCrashSolids();
+    /* A tree the host met is the plant's now as a tree, passed like the
+     * rest (its crown and trunk), not a solid besides. */
+    declareCrashSolids(must >= 0 && col.pass[must] ? -1 : must);
   }
 
   /* The solids near crashProbe for the free bodies. A roof the craft is
@@ -3911,9 +3930,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * same solids the sweep lets through (src/maps/alps/roofs.js cover),
    * chosen from where the plant is, so the set stays a function of the
    * flight. */
-  function declareCrashSolids() {
+  function declareCrashSolids(must = -1) {
     const col = view.colliders;
     clearSolidPass();
+    for (const i of crashKnownList) {
+      crashKnown[i] = 0;
+    }
+    crashKnownList.length = 0;
     sim.e.sim_obstacle_clear();
     crashSolidsDeclared = 0;
     const covered = view.coveredAt
@@ -3932,6 +3955,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (covered && covered.length) {
       for (const i of covered) {
         crashSkip[i] = 0;
+      }
+    }
+    if (must >= 0 && !solidPick.some((o) => o.i === must)) {
+      solidPick.unshift({ d2: 0, i: must });
+      if (solidPick.length > OBSTACLES_MAX) {
+        solidPick.length = OBSTACLES_MAX;
       }
     }
     if (view.roofSlabs) {
@@ -3960,6 +3989,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         break;
       }
       crashSolidsDeclared += 1;
+      if (!crashKnown || crashKnown.length !== col.count) {
+        crashKnown = new Uint8Array(col.count);
+      }
+      crashKnown[i] = 1;
+      crashKnownList.push(i);
       if (plantHoldsSolid(col, i)) {
         col.pass[i] = 1;
         solidPassSet.push(i);
@@ -4015,6 +4049,38 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const dy = col.fby[i] - col.fay[i];
     const dz = col.fbz[i] - col.faz[i];
     return dx * dx + dy * dy + dz * dz >= 1e-6;
+  }
+
+  /*
+   * EVERY SOLID THE HOST MEETS IS ONE THE PLANT HOLDS. The module drops a
+   * host's contact when any solid it was told of lies along the contact's
+   * normal within the craft's reach (crash_contact_known), since the parts
+   * meet that solid with their own springs. It cannot tell which solid the
+   * host met. So a host contact on a solid outside the plant's 64 was
+   * dropped whenever one inside them stood near: the gondola station's
+   * 148 wall columns let a Skyhunter through its wall at 13 m/s, and in
+   * Node a wall the plant was not told of, with a plate it was told of
+   * 0.4 m behind the face, was passed nine contacts out of nine. Before a
+   * contact on a static solid the plant does not hold, the world is
+   * declared again from the contact point with that solid in it, so the
+   * contact the module drops is one its parts meet. On the sim clock, like
+   * every declaration.
+   */
+  function plantMustHold(col, x, y, z) {
+    const i = col.hitIndex;
+    if (i < 0 || (crashKnown && crashKnown[i])) {
+      return;
+    }
+    passStats.plantHeld += 1;
+    crashProbe.set(x, y, z);
+    crashWorldPhase = 0;
+    declareCrashWorld(i);
+    /* Held now as a solid, or as a tree whose trunk and crown the sweep
+     * passes. Anything else breaks the rule above: counted, and loud in
+     * window.__contacts(). */
+    if (!(crashKnown && crashKnown[i]) && !col.pass[i]) {
+      passStats.unheld += 1;
+    }
   }
 
   /* One collider as a solid for the free bodies. Returns the module's
@@ -7055,6 +7121,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     /* With crash damage on, the obstacle's material rides along where the
      * module's numbers for it are these ones; see THE CRASH SHELL. */
     const surf = obstacleSurfaceFor(obsKindIndex);
+    if (runDamage) {
+      plantMustHold(view.colliders, cx, cy, cz);
+    }
     /* And which part the fixed wing's hull met, so the damage is that
      * part's and not whichever part stands furthest toward the solid. */
     if (runDamage && view.colliders.hitArm) {

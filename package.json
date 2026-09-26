@@ -41,6 +41,7 @@
     "ghost:selftest": "node scripts/ghost-selftest.js",
     "contact:selftest": "node scripts/contact-selftest.js",
     "crash:core": "node scripts/crash-core-selftest.js",
+    "crash:handoff": "node scripts/solid-handoff-check.js",
     "crash:identity": "node scripts/crash-identity.js",
     "wreck:check": "node scripts/wreck-control-check.js",
     "crash:feel": "node scripts/crash-feel.js",

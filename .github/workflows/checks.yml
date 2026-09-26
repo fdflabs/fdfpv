@@ -43,6 +43,7 @@ jobs:
       - run: npm run input:selftest
       - run: npm run ghost:selftest
       - run: npm run contact:selftest
+      - run: npm run crash:handoff
       - run: npm run link:selftest
       - run: npm run music:selftest
       - run: npm run test:edge
