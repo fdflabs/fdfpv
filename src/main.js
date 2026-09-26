@@ -6519,6 +6519,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       whenConfigReady(() => {
         reset();
         mode = 'flight';
+        /* Fly from the title: reset() ran with the title still up, where it
+         * parks the craft rather than air start it, so a published map
+         * track whose start gate hangs in the air started on the ground
+         * under it. A restart from the pause menu has already had its air
+         * start, and its countdown is running. */
+        if (view.spawn && view.spawn.air && !(airHoldMs > 0)) {
+          airStart(view.spawn.air.y);
+        }
         ui.show('flight');
         /*
          * THE PAD SHOT IS AN INTRODUCTION, AND A RESTART IS NOT A FIRST
