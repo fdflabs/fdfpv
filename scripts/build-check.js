@@ -5,7 +5,7 @@
  *     SIM_GPU=1 node scripts/build-check.js [OUT_DIR] --perf
  *
  * --only runs one part on its own page: proof (1 to 9), line (12 to 15),
- * wing (10) or field (11).
+ * wing (10), field (11), plane (16) or bramor (17).
  *
  * The proof, in the order a pilot would do it, on swiss2 unless --map says
  * otherwise:
@@ -59,6 +59,15 @@
  *  15. What the line costs a frame on the main thread, with it and without
  *      it (V), and what working it out again costs an edit. On the software
  *      renderer the GPU's share is not measured: --perf does that.
+ *  16. The plane sized gates, in the Slow Stick's page: a 3 m wide gate, a
+ *      pylon pair and a single pylon placed with T and Enter on a clear,
+ *      level line; the Slow Stick thrown through each and the race counting
+ *      it, the pylon's other side not counting until F turns it round;
+ *      wingtips into the pylon with crash damage on; saved, reloaded, all
+ *      back with the pylon's side.
+ *  17. The Bramor, the heaviest wing here, into a lone pylon at its
+ *      catapult's speed: 3 m up the cone gives and stands, 7 m up its top
+ *      folds and is gone.
  *
  * The music dock is off while building and back for the flight.
  *
@@ -96,7 +105,7 @@ import { openPage, keyInfo } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airStartSpeed, airframeById } from '../configs/airframes.js';
 import { courseFromDocument } from '../src/game/trackdoc.js';
-import { openingsOf } from '../src/builder/course.js';
+import { BUILD_TYPES, openingsOf } from '../src/builder/course.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -640,7 +649,7 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
   await select(page, s.id);
   await page.tap('Delete');
   await page.until(`${B('.gates.length')} === 3`, 10000);
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < BUILD_TYPES.length - 2; i += 1) {
     await page.tap('KeyT');
   }
   say((await page.evaluate(B('.type'))) === 'gate' && (await page.evaluate('window.__colliders()')).count === count0, 'deleted, and back to placing gates');
@@ -762,6 +771,362 @@ async function wingStart({ edge, drop, yawOut, at }) {
   try {
     await flyAndBuild(page);
     await airStartFlight(page, { edge, drop, yawOut, at }, 'fixed wing');
+    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  } finally {
+    await page.close();
+  }
+}
+
+/* Until `cond` holds in the page or the plant has flown `seconds` more: a
+ * software rasteriser draws a valley at a frame or two a second, and each
+ * frame carries at most 100 ms of sim time, so wall time says nothing. */
+async function simWait(page, seconds, cond) {
+  const t0 = await page.evaluate('window.__crash().simT');
+  await page.until(`(${cond}) || window.__crash().simT > ${t0 + seconds}`, 300000).catch(() => {});
+  return page.evaluate(`Boolean(${cond})`);
+}
+
+/*
+ * WINGTIPS INTO A PYLON, in a test flight with crash damage on: the seated
+ * aircraft thrown at `speed` along the pylon's line of travel with its
+ * centreline 0.3 m of wing inside the fabric's radius, 3 m up and then 7 m
+ * up, where the tube is a fifth of the base's radius and holds 30 N m.
+ * Drawing is off while it flies (window.__drawOff), so the page samples
+ * the plant's posts every few milliseconds of sim rather than every
+ * hundred, and keeps the most each one bent: a post that gives swings back,
+ * and it is declared again at rest once it has. Returns what each throw
+ * met, the damage events it made and the log.
+ */
+async function pylonClips(page, { cone, coneAxis, lateral, side }, speed, label) {
+  const af = await page.evaluate('window.__ui.settings.airframe');
+  const span = 2 * airframeById(af).dims.hullR;
+  const clipAt = async (h) => {
+    const r = 0.8 + (0.125 - 0.8) * (h / 8);
+    const c = vAdd(vAdd(coneAxis, [0, 1, 0], h), side, (lateral > 0 ? 1 : -1) * (r + span / 2 - 0.3));
+    const before = await page.evaluate('window.__crash().events');
+    await page.evaluate(`(() => {
+      window.__postMax = {};
+      window.__postWatch = true;
+      const step = () => {
+        if (!window.__postWatch) { return; }
+        for (const p of window.__crashPosts()) {
+          const m = window.__postMax[p.i] || { deflection: 0, moment: 0, at: 0, freed: false, gone: false };
+          window.__postMax[p.i] = {
+            deflection: Math.max(m.deflection, p.deflection), moment: Math.max(m.moment, p.moment),
+            at: Math.max(m.at, p.at), freed: m.freed || p.freed, gone: m.gone || p.gone,
+          };
+        }
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+      return true;
+    })()`);
+    /* The start gate next, so the throw is no pass and no lap ends. */
+    await page.evaluate('window.__race().next = 0, window.__drawOff(true)');
+    const from = vAdd(c, cone.travel, -6);
+    const v = cone.travel.map((x) => x * speed);
+    await page.evaluate(`window.__crashThrow({ fresh: true, x: ${from[0]}, y: ${from[1]}, z: ${from[2]}, yaw: ${yawAlong(cone.travel)}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
+    await simWait(page, 1.5, 'false');
+    await page.evaluate('window.__drawOff(false), window.__postWatch = false');
+    await frames(page, 2);
+    await shot(page, `12-${opts.map}-${label}-wingtip-${h}m`);
+    const after = await page.evaluate('({ k: window.__crash(), posts: Object.values(window.__postMax), log: window.__crashLog(), c: window.__craftState() })');
+    const met = after.posts.filter((p) => p.at > 0);
+    if (!met.length) {
+      const rel = [after.c.worldX - c[0], after.c.worldY - c[1], after.c.worldZ - c[2]];
+      console.log(`    met nothing: mode ${after.c.mode}, ${f1(vDot(rel, cone.travel))} m past the pylon, ${f1(rel[1])} m up, ${f1(vDot(rel, side))} m across, ${after.posts.length} posts watched`);
+    }
+    const fmt = (p) => ({ bent: +p.deflection.toFixed(3), at: +p.at.toFixed(2), freed: p.freed, gone: p.gone, M: +p.moment.toFixed(0) });
+    console.log(`    ${af} at ${speed} m/s, ${h} m up: the post ${JSON.stringify(met.map(fmt))}, events ${JSON.stringify(after.log.slice(0, 6).map((e) => [+e.t.toFixed(3), e.part, e.type, +e.force.toFixed(0), +e.closing.toFixed(1), e.surface]))}`);
+    return { met, events: after.k.events - before, log: after.log, fmt };
+  };
+  return { low: await clipAt(3), high: await clipAt(7), af };
+}
+
+/* T round the types to one of them. */
+async function chooseType(page, type) {
+  for (let i = 0; i < BUILD_TYPES.length && (await page.evaluate(B('.type'))) !== type; i += 1) {
+    await page.tap('KeyT');
+  }
+  return (await page.evaluate(B('.type'))) === type;
+}
+
+/*
+ * A line for them: the flattest 150 m of dry ground on the map, level
+ * within 2 m from 30 m before its start to its end, with nothing solid in
+ * the air over it from one to eight metres up and ten metres either side,
+ * which is the pylon's square on its left and the clip on its right.
+ */
+async function clearLine(page) {
+  return page.evaluate(`(() => {
+    const H = window.__heightAt;
+    const cands = [];
+    for (let x = -2400; x <= 2400; x += 24) {
+      for (let z = -2400; z <= 2400; z += 24) {
+        for (let k = 0; k < 8; k += 1) {
+          const a = k * Math.PI / 4;
+          const dx = Math.sin(a);
+          const dz = Math.cos(a);
+          let lo = Infinity;
+          let hi = -Infinity;
+          for (let s = -30; s <= 120; s += 10) {
+            for (const o of [-10, 0, 10]) {
+              const h = H(x + dx * s + dz * o, z + dz * s - dx * o);
+              lo = Math.min(lo, h);
+              hi = Math.max(hi, h);
+            }
+          }
+          if (Number.isFinite(lo) && hi - lo < 2) {
+            cands.push({ x, z, dx, dz, h: H(x, z), flat: hi - lo });
+          }
+        }
+      }
+    }
+    cands.sort((p, q) => p.flat - q.flat);
+    const seen = {};
+    let nWet = 0;
+    const wet = (x, z) => { const w = typeof window.__water === 'function' ? window.__water(x, z) : null; return Boolean(w && w.plant != null); };
+    for (const c of cands.slice(0, 20000)) {
+      if ([-30, 0, 45, 90, 120].some((s) => wet(c.x + c.dx * s, c.z + c.dz * s))) {
+        nWet += 1;
+        continue;
+      }
+      let clear = true;
+      for (const o of [-10, -5, 0, 5, 10]) {
+        for (const y of [1, 4, 8]) {
+          const sx = c.x + c.dz * o;
+          const sz = c.z - c.dx * o;
+          const a = [sx - c.dx * 30, H(sx - c.dx * 30, sz - c.dz * 30) + y, sz - c.dz * 30];
+          const b = [sx + c.dx * 120, H(sx + c.dx * 120, sz + c.dz * 120) + y, sz + c.dz * 120];
+          const k = window.__hit(a[0], a[1], a[2], b[0], b[1], b[2]).kind;
+          if (k) { clear = false; seen[k] = (seen[k] || 0) + 1; }
+        }
+      }
+      if (clear) { return c; }
+    }
+    return { none: true, cands: cands.length, wet: nWet, seen };
+  })()`);
+}
+
+/*
+ * THE PLANE SIZED GATES, in the Slow Stick's page, on the clear line found
+ * above: a 3 m wide gate, 45 m on a pylon pair, 45 m on a single pylon.
+ * Each is placed with real keys, T to its type and Enter, and seen. Then
+ * they are flown: the Slow Stick thrown along the line at 9 m/s through
+ * the wide gate, between the pylons and round the pylon on its set side,
+ * each pass counted by the race; the pylon's other side does not count
+ * until F turns it round; its wingtips into the cone with crash damage on.
+ * Saved, the page reloaded, and the same three types come back with the
+ * pylon's side.
+ */
+async function planeGates(page) {
+  console.log(`  plane sized gates, ${opts.map}`);
+  const found = await clearLine(page);
+  const flat = found && !found.none ? found : null;
+  if (!flat) {
+    console.log(`    no line: ${JSON.stringify(found)}`);
+  }
+  say(Boolean(flat), `a clear, level line for them: ${flat ? `(${f1(flat.x)}, ${f1(flat.h)}, ${f1(flat.z)}), level within ${flat.flat.toFixed(2)} m` : 'none'}`);
+  if (!flat) {
+    return;
+  }
+  const dir = [flat.dx, 0, flat.dz];
+  const side = [flat.dz, 0, -flat.dx];
+  const H = async (x, z) => page.evaluate(`window.__heightAt(${x}, ${z})`);
+  const n0 = await page.evaluate(B('.gates.length'));
+  const placed = [];
+  const plan = [['wideGate3', 0], ['pylonPair', 45], ['pylon', 90]];
+  await page.tap('Digit1');
+  for (const [type, s] of plan) {
+    say(await chooseType(page, type), `T reaches the ${type}: ${await page.evaluate(B('.type'))}`);
+    const spot = vAdd([flat.x, 0, flat.z], dir, s);
+    spot[1] = await H(spot[0], spot[2]);
+    const eye = vAdd(vAdd(spot, dir, -24), [0, 1, 0], 7);
+    await aimAt(page, eye, spot);
+    await shot(page, `9-${opts.map}-${type}-ghost`);
+    await page.tap('Enter');
+    await page.until(`${B('.gates.length')} === ${n0 + placed.length + 1}`, 10000);
+    const st = await page.evaluate(B(''));
+    placed.push({ type, id: st.doc.elements[st.doc.elements.length - 1].id });
+  }
+  const types = (await page.evaluate(B('.doc.elements'))).slice(-3).map((e) => e.type).join();
+  say(types === 'wideGate3,pylonPair,pylon', `placed a wide gate, a pylon pair and a pylon: ${types}`);
+  /* The wide gate starts the lap, and the pylons follow it. */
+  await select(page, placed[0].id);
+  await page.tap('Home');
+  await page.tap('Escape');
+  let G = await page.evaluate(B('.gates'));
+  const byId = (id) => G.find((g) => g.id === id);
+  const wide = byId(placed[0].id);
+  const pair = byId(placed[1].id);
+  const cone = byId(placed[2].id);
+  const coneBase = (await page.evaluate(B('.doc.elements'))).find((e) => e.id === placed[2].id).position;
+  const coneAxis = [coneBase.x, coneBase.z, -coneBase.y];
+  const lateral = vDot(vAdd(cone.centre, coneAxis, -1), side);
+  say(Math.abs(Math.abs(lateral) - 7.5) < 1e-3, `the pylon scores a square whose centre is ${f1(Math.abs(lateral))} m to the pilot's left of it`);
+
+  /* Seen from the side, the three together. */
+  const mid = vAdd([flat.x, flat.h, flat.z], dir, 45);
+  await aimAt(page, vAdd(vAdd(mid, side, 55), [0, 1, 0], 14), vAdd(mid, [0, 1, 0], 3));
+  await frames(page, 3);
+  await shot(page, `10-${opts.map}-plane-gates`);
+
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+  await frames(page, 3);
+  const crash0 = await page.evaluate('window.__crash()');
+  say(crash0.runDamage === true, `crash damage is on for the run (runDamage ${crash0.runDamage})`);
+  await page.evaluate("(document.querySelector('.osd-air-hint-btn') || { click() {} }).click(), true");
+  const race0 = await page.evaluate('({ n: window.__race().gates.length, next: window.__race().next })');
+  say(race0.n === G.length, `the race has all ${race0.n} gates`);
+  const SPEED = 9;
+  const throwAlong = async (from, t, speed = SPEED) => {
+    const v = t.map((x) => x * speed);
+    return page.evaluate(`window.__crashThrow({ fresh: true, x: ${from[0]}, y: ${from[1]}, z: ${from[2]}, yaw: ${yawAlong(t)}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
+  };
+  /* Through gate g at `c`, from 6 m back, until the race moves on or 4 s.
+   * Fresh each time, so one throw's damage is not the next one's. */
+  const flyThrough = async (g, c, want) => {
+    const from = vAdd(c, g.travel, -6);
+    const v = g.travel.map((x) => x * SPEED);
+    await page.evaluate(`window.__crashThrow({ fresh: true, x: ${from[0]}, y: ${from[1]}, z: ${from[2]}, yaw: ${yawAlong(g.travel)}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
+    const ok = await simWait(page, 2, `window.__race().next === ${want}`);
+    if (!ok) {
+      const s = await page.evaluate('({ c: window.__craftState(), r: { next: window.__race().next, lap: window.__race().lapStartMs }, k: window.__crash().flagNames })');
+      const rel = [s.c.worldX - c[0], s.c.worldY - c[1], s.c.worldZ - c[2]];
+      console.log(`    after the throw: mode ${s.c.mode}, crashed ${s.c.crashed}, touched ${s.c.lastHitKind}, ${f1(vDot(rel, g.travel))} m past the plane, ${f1(vDot(rel, g.up))} m up, race next ${s.r.next}, damage ${JSON.stringify(s.k)}`);
+    }
+    return ok;
+  };
+  const order = G.map((g) => g.id);
+  const iPair = order.indexOf(pair.id);
+  const iCone = order.indexOf(cone.id);
+  await page.evaluate('window.__race().next = 0, true');
+  const okWide = await flyThrough(wide, wide.centre, 1);
+  const lap = await page.evaluate('window.__race().lapStartMs');
+  say(okWide && lap != null, `the Slow Stick thrown through the 3 m gate at ${SPEED} m/s: counted, the lap starts`);
+  await page.evaluate(`window.__race().next = ${iPair}, true`);
+  const pairLow = vAdd(pair.centre, pair.up, -1);
+  const events0 = (await page.evaluate('window.__crash()')).events;
+  const okPair = await flyThrough(pair, pairLow, (iPair + 1) % G.length);
+  const events1 = (await page.evaluate('window.__crash()')).events;
+  say(okPair && events1 === events0, `between the pylons, 3 m up: counted, no damage (${events1 - events0} events)`);
+  await page.evaluate(`window.__race().next = ${iCone}, true`);
+  const round = vAdd(vAdd(coneAxis, [0, 1, 0], 3), side, lateral > 0 ? 4 : -4);
+  const roundWrong = vAdd(vAdd(coneAxis, [0, 1, 0], 3), side, lateral > 0 ? -4 : 4);
+  await shot(page, `11-${opts.map}-round-the-pylon`);
+  const okCone = await flyThrough(cone, round, (iCone + 1) % G.length);
+  say(okCone, 'round the pylon 4 m off it on its set side: counted');
+  await page.evaluate(`window.__race().next = ${iCone}, true`);
+  const wrongCounted = await flyThrough(cone, roundWrong, (iCone + 1) % G.length);
+  say(!wrongCounted, 'the same 4 m off on its other side: not counted');
+
+  /* The Slow Stick's wingtips into it. */
+  const light = await pylonClips(page, { cone, coneAxis, lateral, side }, SPEED, 'slowstick');
+  say(light.low.met.length > 0 && light.low.events > 0 && light.low.log.some((e) => e.surface === 'foliage'),
+    `a Slow Stick wingtip into it 3 m up meets it, and with crash damage on the crash physics takes it: ${light.low.events} damage events`);
+  say(light.high.met.length > 0 && light.high.events > 0, `and 7 m up: ${light.high.events} damage events`);
+
+  /* F turns it round, in build mode, and the other side counts now. */
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'building'`, 10000);
+  await select(page, cone.id);
+  await page.tap('KeyF');
+  const sideNow = (await page.evaluate(B('.doc.sequence'))).find((q) => q.elementId === cone.id).passSide;
+  say(sideNow === 'right', `F turns the pylon round: passed on its ${sideNow} now`);
+  const hudSays = await panelSays(page, /keep the pylon on your left/);
+  say(hudSays, 'and the readout says so');
+  await page.tap('Escape');
+  G = await page.evaluate(B('.gates'));
+  const cone2 = G.find((g) => g.id === cone.id);
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+  await frames(page, 3);
+  await page.evaluate(`window.__race().next = ${iCone}, true`);
+  const okFlipped = await flyThrough(cone2, roundWrong, (iCone + 1) % G.length);
+  say(okFlipped, 'and flown on that side it counts');
+  await page.tap('KeyB');
+  await page.until(`${B('.state')} === 'building'`, 10000);
+
+  /* Saved, and a real reload. */
+  await ctrlTap(page, 'KeyS');
+  await frames(page, 3);
+  const docId = await page.evaluate(B('.doc.id'));
+  const raw = await page.evaluate(`JSON.parse(localStorage.getItem('webfpv.trackbuilder.library.v1'))[${JSON.stringify(docId)}]`);
+  const rawSide = raw.sequence.find((q) => q.elementId === cone.id);
+  say(raw.schemaVersion === 4 && rawSide && rawSide.passSide === 'right', `stored as schemaVersion ${raw.schemaVersion} with the pylon's side, ${rawSide ? rawSide.passSide : '?'}`);
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await page.sleep(1000);
+  await flyAndBuild(page);
+  const again = await page.evaluate(B(''));
+  const back = again.doc.elements.map((e) => e.type).join();
+  const backSide = again.doc.sequence.find((q) => q.elementId === cone.id);
+  const sameCentres = again.gates.length === G.length && again.gates.every((g, i) => Math.hypot(...g.centre.map((v, k) => v - G[i].centre[k])) < 1e-3);
+  say(/wideGate3,pylonPair,pylon$/.test(back) && backSide && backSide.passSide === 'right' && sameCentres, `after a reload the same gates are back, the pylon still on its right: ${back}`);
+}
+
+/* 16: the plane sized gates, on a page of their own. */
+async function planeStage() {
+  console.log(`plane sized gates on ${opts.map}`);
+  const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed: seedFor(null, 'slowstick1180', 'slowstick-stab') });
+  try {
+    await flyAndBuild(page);
+    await planeGates(page);
+    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  } finally {
+    await page.close();
+  }
+}
+
+/*
+ * THE HEAVIEST WING INTO A PYLON. The Slow Stick is 420 g and its wing
+ * lets go before the cone has moved; the Bramor, the heaviest aircraft
+ * here, meets it at its catapult's release speed. A single pylon on the
+ * same clear line, placed with T and Enter, and the same two throws.
+ */
+async function bramorClips() {
+  console.log(`a pylon clipped by the Bramor, ${opts.map}`);
+  const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed: seedFor(null, 'bramor2300') });
+  try {
+    await flyAndBuild(page);
+    const found = await clearLine(page);
+    if (!found || found.none) {
+      say(false, `a clear, level line: ${JSON.stringify(found)}`);
+      return;
+    }
+    const dir = [found.dx, 0, found.dz];
+    const side = [found.dz, 0, -found.dx];
+    /* A wide gate at the far end starts the lap, so a throw past the
+     * pylon is not a lap flown and the run never reaches its results. */
+    await page.tap('Digit1');
+    const place = async (type, spot) => {
+      const n = await page.evaluate(B('.gates.length'));
+      say(await chooseType(page, type), `T reaches the ${type}`);
+      await aimAt(page, vAdd(vAdd(spot, dir, -24), [0, 1, 0], 7), spot);
+      await page.tap('Enter');
+      await page.until(`${B('.gates.length')} === ${n + 1}`, 10000);
+    };
+    const far = vAdd([found.x, 0, found.z], dir, 110);
+    far[1] = await page.evaluate(`window.__heightAt(${far[0]}, ${far[2]})`);
+    await place('wideGate5', far);
+    await place('pylon', [found.x, found.h, found.z]);
+    const st = await page.evaluate(B(''));
+    const el = st.doc.elements[1];
+    const coneAxis = [el.position.x, el.position.z, -el.position.y];
+    const cone = st.gates[1];
+    const lateral = vDot(vAdd(cone.centre, coneAxis, -1), side);
+    await page.tap('KeyB');
+    await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+    await page.evaluate("(document.querySelector('.osd-air-hint-btn') || { click() {} }).click(), true");
+    const speed = airStartSpeed(airframeById('bramor2300'));
+    const heavy = await pylonClips(page, { cone, coneAxis, lateral, side }, speed, 'bramor');
+    const gaveLow = heavy.low.met.filter((p) => p.deflection >= 0.01 || p.freed);
+    say(gaveLow.length > 0 && heavy.low.events > 0,
+      `the Bramor's wingtip 3 m up at ${speed.toFixed(1)} m/s: the cone gives, ${JSON.stringify(heavy.low.met.map(heavy.low.fmt))}, ${heavy.low.events} damage events`);
+    say(heavy.high.met.some((p) => p.freed),
+      `and 7 m up it folds the top of the cone: ${JSON.stringify(heavy.high.met.map(heavy.high.fmt))}`);
     const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
@@ -1269,6 +1634,8 @@ if (opts.perf) {
   await stage('line', lineAndWarnings);
   await stage('wing', () => wingStart(out));
   await stage('field', fieldTrack);
+  await stage('plane', planeStage);
+  await stage('bramor', bramorClips);
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall hold');
 process.exit(failed ? 1 : 0);
