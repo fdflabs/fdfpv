@@ -93,6 +93,26 @@ const Clb = -aw * gamma * (1 + 2 * taper) / (6 * (1 + taper)) - av * (Sv / S) * 
 const Clp = -aw * (1 + 3 * taper) / (12 * (1 + taper));
 const Cndr = -VV * av * tauR, CYdr = av * (Sv / S) * tauR, Cldr = CYdr * zv / b;
 const ClrPerCL = 0.25, CnpPerCL = -0.125;
+/* The slipstream over the tail (plant_wing.c, FixedWingParams.slip_r):
+ * the stabiliser's half span and the fin's height over the thrust line off
+ * the drawn model, and the tail's shares of the derivatives above, by the
+ * same formulas: its lift slope, its pitch stiffness, and the fin's
+ * weathercock, yaw damping, side force and roll per sideslip. The angle
+ * of attack (from the zero lift line) at which the tail carries no lift,
+ * elevator neutral, is taken as the cruise trim's, CLtrim / CLa below:
+ * Cm0 is set to trim the aircraft there, so it already holds whatever
+ * the tail's rigging does in cruise, and the wash must not add it twice.
+ * The drawn rigging, the tail at zero on the fuselage in the wing's
+ * downwash, is printed beside it: it puts the tail's zero lift further
+ * up, and with it taken the wash's extra download grows with the thrust
+ * as the speed falls, which turned the Slow Stick's phugoid into a 2.9 s
+ * climb and stall cycle at cruise (S10). */
+const slipYh = (hStab.spanTE + hStab.spanLE) / 4, slipHv = 0.20;
+const slipCla = at * (Sh / S) * eta * (1 - deda);
+const slipCma = -eta * VH * at * (1 - deda);
+const slipA0Drawn = -deda * a0w / (1 - deda) - alphaZL;
+const slipCnb = av * VV, slipCnr = -2 * av * VV * lv / b;
+const slipCyb = -av * Sv / S, slipClb = -av * (Sv / S) * (zv / b);
 
 /* The motor. GWS's table for the EPS-300C D (6.6:1) with the EP1180 at
  * 7.2 V: 274 g of static thrust at 6.1 A. The loaded rpm is ESTIMATED from
@@ -413,6 +433,8 @@ const rows = [
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['Clβ, Clp', `${f(Clb, 4)} ${f(Clp)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
+  ['slipstream: R, y_h, h_v m', `${f(propR, 4)} ${f(slipYh, 4)} ${f(slipHv, 4)}`],
+  ['   tail CLα, Cmα, a0 rad (drawn); fin Cnβ, Cnr, CYβ, Clβ', `${f(slipCla, 4)} ${f(slipCma, 4)} ${f(CLtrim / CLa, 4)} (${f(slipA0Drawn, 4)});  ${f(slipCnb, 4)} ${f(slipCnr, 4)} ${f(slipCyb, 4)} ${f(slipClb, 4)}`],
   ['k, rpm no load, V_p', `${f(k, 4)} ${f(rpmNL, 0)} ${f(Vp, 2)}`],
   ['disc W, torque N m, arm m; shaft W, torque', `${f(discP, 1)} ${f(discP / omegaLoaded, 4)} ${f(discP / omegaLoaded / Ts, 4)}; ${f(shaftP, 1)} ${f(shaftP / omegaLoaded, 4)}`],
   ['level at 100, 75, 65 percent (none: below the power for level)', `${f(level(1), 2)} ${f(Vcruise, 2)} ${f(level(0.65), 2)}`],

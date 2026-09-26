@@ -624,6 +624,36 @@ typedef struct FixedWingParams {
    * engine never stops. Zero is an electric motor's duty, the stick
    * itself, and leaves every other aircraft's arithmetic as it was. */
   double throttle_idle;
+  /*
+   * THE SLIPSTREAM over the tail, docs/SLOWSTICK-STAGE1.md. slip_r is the
+   * prop's radius; zero is an aircraft whose tail is not taken to sit in
+   * its wash, and then nothing below is read. By momentum theory the wash
+   * far behind the disc carries the disc's pressure jump, T / A, on top of
+   * the free stream's dynamic pressure, in a stream contracted to
+   * R sqrt((V + v_i)/(V + 2 v_i)). The stabiliser's and the fin's shares
+   * of that stream are the contracted radius over slip_yh, the
+   * stabiliser's half span, and over slip_hv, the fin's height over the
+   * thrust line. In the wash the tail's controls meet the wash's dynamic
+   * pressure; its angle and rate terms, a crossflow over a faster stream,
+   * meet the free stream's times the wash's speed over the free stream's.
+   * The tail's shares of the table's derivatives: its lift slope and pitch
+   * stiffness, the wing's angle of attack (zero lift line) at which it
+   * carries no lift with the elevator neutral, taken at the cruise trim
+   * the table's cm_0 was set for (scripts/slowstick-derive.js says why),
+   * and the fin's weathercock, yaw damping, side force and roll per
+   * sideslip. cm_q, cm_de, cl_de, cn_dr, cy_dr and cl_dr are the tail's
+   * alone.
+   */
+  double slip_r;
+  double slip_yh;
+  double slip_hv;
+  double slip_cl_a;
+  double slip_cm_a;
+  double slip_a0;
+  double slip_cn_b;
+  double slip_cn_r;
+  double slip_cy_b;
+  double slip_cl_b;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;

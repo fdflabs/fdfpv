@@ -739,6 +739,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     fw_dmg.cn_dr = fw->cn_dr * r;
     fw_dmg.cl_dr = fw->cl_dr * r;
     fw_dmg.cy_dr = fw->cy_dr * r;
+    fw_dmg.slip_cl_a = fw->slip_cl_a * h;
+    fw_dmg.slip_cm_a = fw->slip_cm_a * h;
+    fw_dmg.slip_cn_b = fw->slip_cn_b * f;
+    fw_dmg.slip_cn_r = fw->slip_cn_r * f;
+    fw_dmg.slip_cy_b = fw->slip_cy_b * f;
+    fw_dmg.slip_cl_b = fw->slip_cl_b * f;
     fw = &fw_dmg;
   }
   double roll = rc[0];
@@ -990,6 +996,31 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     thrust = dead ? 0.0 : thrust * CRASH.kt[0];
   }
   F[0] += thrust;
+  /* The slipstream over the tail, where the table has one: the wash's
+   * extra dynamic pressure on the stabiliser's and the fin's immersed
+   * shares, qq for the controls, qv for the angle and rate terms
+   * (FixedWingParams.slip_r). All four stay zero without it, and nothing
+   * below adds anything then. */
+  double qq_h = 0.0, qv_h = 0.0, qq_v = 0.0, qv_v = 0.0;
+  if (fw->slip_r > 0.0 && thrust > 0.0) {
+    const double disc = WING_PI * fw->slip_r * fw->slip_r;
+    const double dp = thrust / disc;
+    const double vi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * dp / PLANT.rho) - u_pos);
+    const double rw = fw->slip_r * sim_sqrt((u_pos + vi) / (u_pos + 2.0 * vi));
+    const double fh = rw < fw->slip_yh ? rw / fw->slip_yh : 1.0;
+    const double fv = rw < fw->slip_hv ? rw / fw->slip_hv : 1.0;
+    const double qv = sim_sqrt(qbar * (qbar + dp)) - qbar;
+    qq_h = fh * dp;
+    qv_h = fh * qv;
+    qq_v = fv * dp;
+    qv_v = fv * qv;
+    const double dl = fw->area * (qv_h * fw->slip_cl_a * (alpha - fw->slip_a0) + qq_h * fw->cl_de * delta_e);
+    if (Vxz > 1e-6) {
+      F[0] += dl * (-w / Vxz);
+      F[2] += dl * (u / Vxz);
+    }
+    F[1] -= fw->area * (qv_v * fw->slip_cy_b * beta + qq_v * fw->cy_dr * delta_r);
+  }
   const double rpm = (folded || g_chute || dead) ? 0.0 : 0.85 * duty * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
@@ -1055,6 +1086,21 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * is a prop whose motor the chute has cut. */
   if (s->motor_omega[0] > 0.0) {
     M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
+  }
+
+  /* The tail's moments in the slipstream, their terms as the table's: the
+   * stabiliser's stiffness about its zero lift, damping and elevator, and
+   * its lift as the stalled wing's downwash goes; the fin's weathercock,
+   * damping, rudder and roll. */
+  if (fw->slip_r > 0.0 && (qq_h > 0.0 || qq_v > 0.0)) {
+    const double dwt = fre * past * sigma * fw->stall_dw * (cl_lin - cl_st);
+    const double dm = qv_h * (fw->slip_cm_a * (alpha - fw->slip_a0) + fw->cm_q * q_aero * c2v - dwt) +
+                      qq_h * fw->cm_de * delta_e;
+    const double dn = qv_v * (fw->slip_cn_b * beta + fw->slip_cn_r * r_aero * b2v) + qq_v * fw->cn_dr * delta_r;
+    const double dr = qv_v * fw->slip_cl_b * beta + qq_v * fw->cl_dr * delta_r;
+    M[0] += fw->area * fw->span * dr;
+    M[1] -= fw->area * fw->chord * dm;
+    M[2] -= fw->area * fw->span * dn;
   }
 
   /* The wing's strips past the stall, strip_stall above. A strip that
@@ -1745,6 +1791,19 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .stall_top = 4.4 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The slipstream over the tail, npm run slowstick:derive: the 11 inch
+   * prop, the stabiliser's mean half span and the fin's top over the
+   * stick, and the tail's shares of the derivatives. */
+  .slip_r = 0.1397,
+  .slip_yh = 0.20,
+  .slip_hv = 0.20,
+  .slip_cl_a = 0.3109,
+  .slip_cm_a = -0.5737,
+  .slip_a0 = 0.1488,
+  .slip_cn_b = 0.1233,
+  .slip_cn_r = -0.1111,
+  .slip_cy_b = -0.2736,
+  .slip_cl_b = -0.0181,
 };
 
 /* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
