@@ -721,6 +721,38 @@ takes no energy from what it drives), which bounds none of this from
 above; a coupled model of the airframe's modes is the fix if the owner
 finds these wrong in the air.
 
+**Why the Cub does not nose over where the Timber does** (the feel round's
+items, 2026-09-26). Thrown level on its wheels at 6 m/s on grass, full
+power and full down elevator in Manual, the Timber goes over at 1.28 s and
+the Cub rolls on tail up at 11.6 m/s, 5 to 7 deg nose down, and swings 90
+deg left in 2.8 s. Flown in Node with damage on and off the Cub's run is
+the same to the digit, so nothing in the crash physics holds it up. It is
+the gear's geometry, and the plant is right to keep it upright:
+
+- The Cub's main wheels meet the grass 0.068 m ahead of the CG and 0.162 m
+  under it, so it tips over them at 22.8 deg nose down; its prop's tip meets
+  the grass first, at 9.3 deg (CUB-STAGE1, the landing gear). The Timber's
+  meet it 0.057 m ahead and 0.232 m under, so it tips at 13.8 deg, and its
+  prop tip, 87 mm up, would not touch until 21.5 deg: it is over its mains
+  before anything can stop it (TIMBER-STAGE1). R-NOSEOVER's "nothing to stop
+  them nosing over except the propeller" is the difference.
+- Held full down at 11 m/s the Cub's stabiliser, at the tail's negative
+  angle as it rises, balances its elevator (Cmdelta_e 0.89 on 15 deg against
+  the Timber's 1.175) at 5 to 7 deg, short of the prop, and the load on the
+  mains ahead of the CG holds it there. cub:gates C21 pushes from the three
+  point attitude at 8 m/s, and the pitch rate carries it to 9.5 deg and a
+  prop strike; a level start comes up with no rate to spend.
+- Nothing slows it: going over the mains takes a retarding force of 0.42 of
+  their load (0.068 / 0.162), and mown grass rolls at 0.08, with no brakes
+  on an FMS Cub. The AFH's nose overs come from soft spots, tall grass,
+  snow or brakes, which is the suite's cub-nose-over on sand (it strikes
+  the prop and rocks back; whether a blade digging into sand holds harder
+  than the tip's 0.8 skid is CUB-STAGE1's open question).
+- The swing: with the tail up the tailwheel carries nothing (0 N from 0.1
+  s) and the left main lifts as it turns (0 N from 0.9 s), so no tyre holds
+  the torque and P factor with no right rudder in, which is why a real one
+  swings too (CUB-STAGE1, the model).
+
 ### Under the break, per material (`crash.c`)
 
 | Part | Onset, load over limit | What happens | Flight effect |
