@@ -280,7 +280,8 @@ force. Such a part now carries a spring of its own first mode, driven by
 the joint's quasi static load: it takes each batch's momentum as a kick
 (the impulses themselves, not the peak forces, so a one step host
 contact loads it by the momentum it carried) and rings on through the
-steps, damped at 3 percent of critical (chosen), until it dies away under
+steps, damped by its joints (below, "A ring's damping and what rides on
+it"; it was 3 percent of critical, chosen), until it dies away under
 1 mN. The mode is the cantilever's, w = sqrt(3 E I / (L^3 (0.2427 m +
 M))), m its own mass, M the parts it carries taken at its tip (Rayleigh's
 tip mass form, exact at M = 0 as 3.516 sqrt(E I / (m L^3))), L its reach.
@@ -710,7 +711,7 @@ before it (the same throws as the feel round's):
 
 The fins that still go are on the booms' ring, pumped by the second tip
 digging in on top of the ring the first left (3 percent of critical,
-chosen); the boom's root reaches 0.74 of its 180 N m.
+chosen then); the boom's root reaches 0.74 of its 180 N m.
 
 `crash:core` holds the first 100 ms: "a Skyhunter's wingtip catches the
 grass" (on main the fins break at 13 ms, with only the crack's change at 15
@@ -726,6 +727,79 @@ rings do not load each other back (a ring passes its root load on and
 takes no energy from what it drives), which bounds none of this from
 above; a coupled model of the airframe's modes is the fix if the owner
 finds these wrong in the air.
+
+**A ring's damping and what rides on it** (branch crash-ring-crush). Two
+changes to the ring, neither of which moves a limit:
+
+- Its damping is sourced, not chosen. In a built up structure the ring's
+  energy goes into its joints: along the fibre carbon laminate dissipates
+  of the order of one percent of its strain energy a cycle (Adams and
+  Bacon, "Effect of fibre orientation and laminate geometry on the dynamic
+  properties of CFRP", J. Composite Materials 7, 1973), about a tenth of a
+  percent of critical. Newmark and Hall's damping by construction (Chopra,
+  Dynamics of Structures, 4th ed., Table 11.2.1) gives a bolted or riveted
+  structure 5 to 7 percent of critical up to half its yield and 10 to 15
+  at or just under it, and one without such joints (welded) 2 to 3 and 5
+  to 7. A spar plugged into the fuselage, a tube clamped in it with screws
+  and the Bramor's plug in shells are the first kind (`sect_joint` 1, set
+  by `CARBON_SPAR` and `SHELL_SECTION`), a foam boom moulded with its
+  fuselage the second (`FOAM_SECTION`). The low end of each range, which
+  rings longest, from half the joint's limit to its limit on the load the
+  last batch judged it at. The table is for buildings; no ground vibration
+  test of a foam model could be consulted for this branch, so what carries
+  over is the class of construction, not the size. It is the first thing
+  to replace when one is found.
+- What rides on a ring is shaken by the ring's load over the mass that load
+  was built for. The ring is driven by the subtree's quasi static load,
+  m_sub times the craft's motion less the contacts on it, and the tail on
+  the Skyhunter's booms was shaken by that over the mode's tip mass
+  (m_eff, 0.11 kg against the ring's 0.16), 1.4 times the craft's
+  acceleration even in a steady deceleration. Now the tip's acceleration
+  is the ring plus the contacts on the subtree, over m_sub: the craft's own
+  when nothing rings, and a ring that overshoots shakes the tip by as much
+  more. The mode's frequency stays the intact one. Taken live on what
+  still rides on it (a fin that breaks off takes its mass out of the mode)
+  it was tried and left out: the Radian's panels rang faster once an
+  aileron was off, nearer the boom's 11.2 Hz, and the boom, at its limit
+  either way, went in the stall where main 2a1b33b keeps it.
+
+The rings' reaction on the craft was already there (every ring passes its
+root load to the rigid craft, and every other ring is driven by that
+craft), so the "no energy back" of the feel round was not a missing
+coupling but the 1.4 over drive and the chosen damping. What the ring
+still does not do: the rigid craft keeps the rings' mass as well as their
+root loads, which under estimates its deceleration by m_sub over m in a
+steady load. Taking it out is right in principle and was tried: the
+craft's inertia less the subtrees' is under zero on the Bramor (0.63
+against 0.589 kg m^2 in roll, the plant's inertia and the part tables'
+point masses disagreeing) and 0.0001 on the wing 1000, where the lagged
+coupling is unstable. So it stays, recorded.
+
+Measured with the ring change alone, main 2a1b33b against it. Node, the
+feel round's throws: the Skyhunter cartwheel from the struck wing, both
+fins 0.59 s after the strike (1.21, 1.11) and the pack, to the struck
+wing and the other aileron, the tail kept; the Timber adds a gear leg,
+the Cub loses its fin, antenna and boom where it lost both ailerons, the
+pack, the fin and the antenna, the Radian the same. The real shell (crash:feel, CPU
+renderer): the Skyhunter cartwheel from the struck wing, both fins at
+t+0.90 (1.19, 1.17) and the pack, inverted, to the struck wing, an
+aileron and both fins at t+1.67 (1.12, 1.30), upright, so its fins still
+go late in the tumble; the Timber the same breaks and a gear leg; the
+stalls unchanged. The fins go on a sustained load, not a ring: the second
+tip, once its 12 cm of crush is spent, stands on the ground's spring at
+about 700 N, which yaws the craft at about 2,000 rad/s^2 and puts 1,500
+m/s^2 on the tail quasi statically; the crush change below takes that
+load off. The Radian's stall keeps its tail on main 2a1b33b and here;
+where it lost it (main 39315bb, before the turf's grip), it went in the
+step the nose first met the grass, 1,514 N on the pod, with the pack, the
+motor and the prop, and the panels' 7.3 Hz ring driving the 11.2 Hz boom
+broke nothing in the 50 ms before (they crushed at 300 N for 3 ms, the
+tail stayed on until the nose). Suite: failing checks 110 to 111. Out:
+cub-cartwheel mustBreak wing (the struck panel holds, the tail goes),
+minUpZ and restAttitude (it ends upright, not on its side). Into band:
+timber-cartwheel peakG (82 to 64 g) and timeToRestS (0.83 to 1.90 s).
+crash:core 225 of 226 on both, the one failure main's ("a five inch loses
+a prop in flight", 9.2 rad/s).
 
 **Why the Cub does not nose over where the Timber does** (the feel round's
 items, 2026-09-26). Thrown level on its wheels at 6 m/s on grass, full
@@ -874,6 +948,140 @@ its faces, when it is half that face (a belly slam takes far more before
 it gives). Against the ground the decision uses the craft's whole mass,
 against an obstacle the point's effective mass. A tractor's motor crushes
 with the nose behind it.
+
+**The patch grows as the foam goes in** (branch crash-ring-crush). A
+foam part crushed at its plateau over its whole section, or half a face,
+from the first millimetre. Now a foam part's crushed patch is the section
+of the ellipsoid its hull box holds at the depth the front has reached,
+pi e0 e1 e2 / h (2 u - u^2), u = d / h, h its reach along the normal,
+up to the area it had before (`crush_area`, `crush_patch`). The depth is
+the front (its dent along the normal) and the give before the foam
+yields: the foam's own strain at its plateau (crush_s over bead foam's
+19.7 MPa, `FOAM_E`: 1.0 percent for EPO) over about the patch's width
+(Boussinesq's field under a loaded area), and the surface's own give at
+the force reached. The part's own spring is left out of that give: on a
+panel it is the panel bending away. Grass gives centimetres, so on grass
+the patch reaches its full section within the give and a belly does not
+crush (the Skyhunter dropped flat at 5 m/s: nothing written, as before);
+concrete gives nothing, so there a belly crushes from its first
+millimetre over a growing patch. A quad's frame keeps the table's section
+(`crush_foam`: EPO and EPP only).
+
+With it, three things the crush did not do:
+
+- A solid the plant knows has a shape: a box's face is a plane, a pole of
+  radius R a chord 2 sqrt(2 R d - d^2) across its axis times the part's
+  section along the axis (`CR_POLE`). The owner's pole nick, a Cub at 14
+  m/s, a 0.15 m wooden pole overlapping the right tip by d (Node,
+  `sim_obstacle_cylinder`, main 39315bb against this): 0 cm nothing on
+  both; 0.5, 1, 2, 5 cm nothing on main, a crush event and a dent of 2.3,
+  3.9, 9.2 and 11.5 mm here, the speed kept the same (0.884, 0.863,
+  0.818, 0.722); 10 cm the aileron off on both, a 4.6 mm dent here.
+  Against a solid the crush goes on only while the chain's spring is past
+  the plateau (past it the panel bends away; a crush held at its plateau
+  put more through the panel than its root holds, and the Cub's pole clip
+  in crash:core kept 0.62 of its speed against the 0.75 its root allows),
+  and the front goes no deeper than the part overlaps the solid.
+- A crushed part's hull is flat where it crushed (`samplers_rebuild`), so
+  the projection (sim.c) no longer lifts the craft out of a depth the foam
+  gave up and takes its speed with it; and a crush is driven while the
+  craft still comes on, not only while the point the solver visited
+  does. Together these took a Skyhunter dropped flat onto concrete at 5
+  m/s from 433 g (the settle's stop in one step) to 226 g (main: 156, its
+  elastic spring, the foam never crushing).
+- Pressed in and held, the part's own spring at its depth is the force on
+  the foam: the Skyhunter's second tip in the cartwheel stood on about 700
+  N through the ground's spring after its 12 cm crush, which yawed the
+  craft and put its fins past their limit 0.21 s after the strike (main
+  39315bb); it now crushes at its plateau, and the fins stay on until the
+  grass strikes the tail itself (below).
+
+The stall peaks the feel round named (180 to 280 g) are not the crush's.
+On main 3ffa11f the Skyhunter's stall into the grass wrote no crush; its
+139 g was one millisecond in which sim.c's hull projection, running as a
+part's ground spring stopped, lifted the hull out and zeroed its speed into
+the ground (z 0.171 to 0.259 m, vz -1.36 to 0.00). With the damage mode on
+the projection no longer takes that speed (the lead's return of #86: the
+contacts' own impulses, through each part's spring or crush, stop what
+goes in; damage off it is unchanged, to the byte): the Skyhunter's 139 g
+fell to 54 on that main. On main 00b7d54 (#84 changed the stall's axes)
+the stall peaks are, main against this: Skyhunter 71 and 71 g (its pod
+meeting the grass on the ground's spring, 1.4 kN of which 0.7 is the
+turf's grip, no projection in it), Bramor 598 and 87 g (the projection,
+its composite pod never crushing), Radian 12.9 and 12.9, Timber 9.2, Slow
+Stick 8.8, Cub 11.7 and 11.7 (its gear, both legs meeting the grass at
+1.7 m/s: the gear's). bramor-pole 130 on main and 137.5 here (138 with the
+ring change alone: its panel's joint damping; the rest is the pole's
+obstacle contact, lifting the craft 2 cm in a step).
+
+Measured, main 2a1b33b against both changes. The pole nick, above. A
+Skyhunter dropped flat at 5 m/s: on grass nothing written on both, on
+concrete 156 g on main (its elastic spring, the foam never crushing) and
+226 g here, the belly crushed 3 cm, the pack and the camera off. Node, the
+feel round's throws: the Skyhunter cartwheel loses the struck wing, the
+other aileron, and a rudder, the elevator and a fin 0.64 s after the
+strike, struck by the grass themselves at 5.5 m/s (3.2 to 3.9 times their
+limits); the Timber
+the boom, the struck wing and a gear leg. The real shell (crash:feel, CPU
+renderer): the Skyhunter cartwheel from 4 breaks (the struck wing, both
+fins at t+0.90, the pack), 7 pieces, inverted, to the struck wing and one
+aileron, 3 pieces, upright; the Timber unchanged (boom and both wings,
+upright); the stalls unchanged. Suite against
+main: failing checks 110 to 113, 10 of 60 in every band on both. Into
+band: radian-nose-in peakG (500 to 277 g), timber-cartwheel restDistM
+(2.7 to 14.4 m). Out: sky-cartwheel minUpZ and restAttitude (it ends
+upright: its tips crush at their plateau instead of standing on the
+ground's spring, so nothing lifts it over), cub-cartwheel mustBreak wing,
+timber-cartwheel mustBreak wing (its tip ploughs 14 m crushing, 12 g, and
+nothing breaks), timber-nose-in retainedFirst (-0.00 against a band from
+0, the sign in the last digit).
+
+**A panel bends before its tip crushes** (the lead's return of #86). With
+the growing patch neither cartwheel went over: the lead asked why the tip
+no longer pivots. It was not the plough and not the flattened hull (both
+tried off: the Skyhunter and the Timber stayed up). It was when the tip
+starts to crush. The crush was decided on the blow's peak, v sqrt(k m),
+against the plateau on a patch that is a point at first contact, so the tip
+crushed from the first millimetre and went on crushing at 300 to 600 N in
+its first 10 ms, a force the panel's own bending spring (a few kN/m) could
+not have reached yet: the tip was stopped at the grass's face mostly along
+its normal, which rolls the craft back rather than yawing it. Now a foam
+part's foam on the ground feels what its spring has been pressed to by the
+end of the step, k (x + v dt), no more than the peak; and a part that rings
+(a panel, a boom), whose spring is its own bending, crushes only in the
+steps that spring is past the plateau on its patch. The panel bends first,
+the tip is held in the grass while it loads, and the drag at the tip
+pivots the craft, as on main before the growing patch. A part that does
+not ring (a pod) is stiff against its crush and, once started, crushes on
+while the craft drives it in (so a flat belly drop onto concrete stays at
+227 g, where a stop and start crush put it at 444).
+
+What it does, main 00b7d54 against this commit (Node, the feel round's
+throws; the suite): the Skyhunter cartwheel goes over again, inverted, in
+the feel throw and in the suite (sky-cartwheel minUpZ and restAttitude back
+into band, 0.07 and upright with the growing patch alone); the Timber and
+Cub cartwheels in the suite do not go over (timber-cartwheel upright, as on
+main; cub-cartwheel minUpZ -0.93 on main to 0.51). Suite failing checks:
+main 115, the growing patch 118, this 114. The pole nick sweep is
+unchanged (the solid contact already worked this way).
+
+What decides whether a cartwheel goes over is sensitive past the first
+strike, and one thing in it is an artifact on main and here alike: when the
+struck tip's ground spring stops (it had gone 10 to 30 cm into the plane on
+its panel's bending), the rigid contact takes over and sim.c's position
+corrections take the craft back out of that depth in one or two steps, 14
+cm up for the Timber on main and 9 here, 32 cm for the Skyhunter in one
+variant, with no change of speed. The Timber on main goes over after that
+lift; here, lifted less, its other tip lands sooner and rolls it back. A
+part coming back out on its spring instead (the solver pushing it out no
+harder than its spring at its depth, nothing else lifting it) was tried.
+For every part it removes the lift, but the ground spring's share per
+point then does not hold a belly's weight at rest: the belly sits 2.8 cm
+into the grass and its plough stops a slide at 1.5 g where the sled's is
+0.45 (crash:core fails five checks). For the parts that ring only,
+crash:core passes but the suite fails 118 checks and neither the Timber
+nor the Cub goes over. So it is not in, and it is the next thing to fix
+in the ground's spring.
 
 **The ground is a spring** (round 2, by the lead's decision that with
 the mode on every contact may have its physical duration, docs/CRASH-PLAN.md).
@@ -1025,6 +1233,8 @@ rigid contact left it (0.26 mm).
 | whoop prop press fit | 0.10 N m, 6 N | 1 mm shaft, set so R-WHOOP's walls leave it on | R-WHOOP, chosen |
 | whoop canopy | 0.30 N m, 20 N | two M1.4 in PP 10 mm apart | chosen |
 | EPO, EPP crush | 200, 180 kPa | plateau at 25 percent strain, 30 to 35 g/L | EPO: NOVA ARCEL 730, 179 to 214 kPa at 25 percent over 30 to 35 g/L (round 5); EPP: JSP ARPRO data; R-A14-FOAM's own nose check uses 0.2 MPa |
+| a foam part's crushed patch (crash-ring-crush) | the section of the ellipsoid its hull box holds at the front's depth, up to the table's area; a pole's chord 2 sqrt(2 R d - d^2) times the part's section along its axis | a curved face meets a plane or a pole at a point | derived; the shape is the hull box's, not a drawn curvature |
+| the give before foam yields | crush_s / 19.7 MPa (1.0 percent for EPO) times the patch's width, plus the surface's give at the force | the foam's elastic strain at its plateau, strained about as deep as the patch is wide | Negussey and Anasthas 2001 (modulus), NOVA ARCEL 730 (plateau); the depth of the strained zone is Boussinesq's order, chosen |
 | EPO's strength in the foam booms | 0.6 MPa | the outer fibre of the Cub's, Timber's and Radian's booms | the top of NOVA ARCEL 730's tensile strength, 0.465 to 0.58 MPa over 30 to 35 g/L; kept at the top while the modulus is an upper bound (round 5) |
 | 11 inch plane prop | yields 8 N m, sheds a blade at 16 | 20 x 4 mm root at 150 MPa | R-PROPS (glass nylon snaps at 3 to 5 percent) |
 | plane firewall | 10 N m, 400 N | ply or moulded, four screws | chosen |
@@ -1044,7 +1254,7 @@ rigid contact left it (0.26 mm).
 | Bombshell balsa sticks (stabiliser, fin, panels, aft fuselage) | 20 MPa b h^2 / 6 each | balsa's modulus of rupture along the grain at the kit's 150 to 175 kg/m^3, 17.6 to 20.5 MPa | Wood Handbook FPL-GTR-190 Table 5-5a (21.6 MPa at specific gravity 0.16), scaled by density (Gibson and Ashby); docs/BOMBSHELL-STAGE1.md |
 | Bombshell wing on its bands, engine on its firewall | 20 N and 1.9 N m; 200 N a screw, 4 N m | four #32 bands at 4.4 N; two #2 screws in 1/8 in birch ply | Treloar's rubber (Ogden's fit); Wood Handbook eq. 8-10a, 290 N an upper bound |
 | a spar's bending stiffness, for its ring (round 3) | E I = 127 M r: wing1000 3 mm, Skyhunter 4 (two spars) and booms 6, Cub 4, Radian 4.5, Timber 5 mm outer radius | M = sigma I / r at the tables' 1,000 MPa, E 127 GPa | TAP Plastics pultruded carbon tube, minimum properties (flexural 127 GPa, 1,370 MPa) |
-| a ring's damping | 3 percent of critical | a lightly damped structure | chosen |
+| a ring's damping | 5 to 10 percent of critical (a spar, a tube, a plug in shell), 2 to 5 (a foam boom), from half the limit to the limit | the joints dissipate, the fibre does not | Chopra, Dynamics of Structures, 4th ed., Table 11.2.1 (Newmark and Hall); Adams and Bacon 1973 for the fibre |
 | a composite panel's bending stiffness, for its ring (round 5) | E I = 117 M c: Bramor 17 mm half depth, 595 N m^2, 17.5 Hz | woven carbon laminate, 70 GPa over 600 MPa | DragonPlate (R-ARM); construction from UST 011, pp. 22 and 25 |
 | a foam boom's bending stiffness, for its ring (round 4) | E I = 33 M c: Cub 35 mm, Radian 20, Timber 45 mm half depth | bead foam E = 0.82 rho - 4.9 MPa, 19.7 MPa at 30 g/L, over EPO's 0.6 MPa | Negussey and Anasthas 2001, simple bending of EPS beams |
 | a music wire leg's fold (round 4) | 1.7 x the yield moment over the leg's lever | a round section's plastic hinge | ASTM A228 (E 207 GPa, 1,600 MPa) |

@@ -209,12 +209,30 @@ static void table_add(Table *t, const PartDef *d, int airframe) {
  * A spar alone is stiffer than the panel with its outboard foam, so a panel's
  * frequency is an upper bound: 8 to 13 Hz for the foam planes' panels, inside
  * the 5 to 20 Hz small UAV wings' ground vibration tests put their first
- * bending. A foam boom rings at 10 to 40 Hz. RING_ZETA, its damping, is
- * chosen: a few percent of critical, a lightly damped structure.
- * docs/CRASH-STAGE1.md, Damage.
+ * bending. A foam boom rings at 10 to 40 Hz. docs/CRASH-STAGE1.md, Damage.
+ *
+ * A RING'S DAMPING is where its energy goes, and in a built up structure
+ * that is its joints more than its material: along the fibre carbon
+ * laminate dissipates of the order of one percent of its strain energy a
+ * cycle (Adams and Bacon, J. Composite Materials 7, 1973), about a tenth of
+ * a percent of critical. What a member is seated in rubs: Newmark and
+ * Hall's damping by construction (Chopra, Dynamics of Structures, 4th ed.,
+ * Table 11.2.1) gives a bolted or riveted structure 5 to 7 percent of
+ * critical up to half its yield and 10 to 15 at or just under it, and one
+ * without such joints (welded) 2 to 3 and 5 to 7. A spar plugged into a
+ * foam fuselage and a tube clamped in it with screws are the first kind, a
+ * foam boom moulded with its fuselage the second (sect_joint). The low end
+ * of each, which rings the longest, from half the joint's limit to its
+ * limit, on the load the last batch judged it at: the rubbing grows with
+ * the slip. The table is for buildings; no ground vibration
+ * test of a foam model was at hand, so the class of construction is what
+ * carries over, not the size.
  */
 #define RING_OWN 0.2427   /* 33 / 140, a cantilever's own mass at its tip */
-#define RING_ZETA 0.03
+#define RING_ZETA_JOINT_LO 0.05
+#define RING_ZETA_JOINT_HI 0.10
+#define RING_ZETA_ONE_LO 0.02
+#define RING_ZETA_ONE_HI 0.05
 #define RING_STILL 1.0e-3 /* N and N m: a ring below this is over */
 
 /* Masses, centres, boxes, subtrees and the root's residual. */
@@ -545,6 +563,10 @@ static unsigned int g_batch_crush = 0; /* parts crushing in this batch */
 /* Crush in progress, crash_contact_pre. */
 static double g_batch_dt = SIM_DT;
 static double g_crush_used[SIM_PARTS_MAX];
+static double g_crush_give[SIM_PARTS_MAX]; /* m, a crushing part's elastic give
+                                            * as it yielded (crush_force) */
+static double g_crush_give_new = 0.0;
+static double g_crush_room = 0.0;
 static int g_capped_now = 0;
 static double g_capped_fc = 0.0;
 static int g_crushing = 0;
@@ -864,6 +886,8 @@ static int fb_spawn(const SimState *s, unsigned int mask, const double vel_w[3],
  * what is left, its inertia about that CG, and every body frame position
  * the plants read moved to it.
  * ------------------------------------------------------------------- */
+static void samplers_rebuild(void);
+static int crush_foam(const Table *t, int i);
 static void live_rebuild(SimState *s) {
   const Table *t = tab();
   const PlantParams *P0 = &PLANT_TABLE[plant_airframe()];
@@ -942,14 +966,43 @@ static void live_rebuild(SimState *s) {
   g_live.floats.rudder_z = P0->floats.rudder_z - sh[2];
   g_live_on = 1;
   PLANT_P = &g_live;
-  /* The samplers: every attached part's hull. */
+  samplers_rebuild();
+}
+
+/* The samplers: every attached part's hull, as crushed. A part crushed d
+ * deep along its dent is flat there: no point of it stands further out
+ * that way than its farthest point less d, so the ground meets the foam
+ * where the crush left it and the projection (sim.c) does not lift the
+ * craft out of a depth the foam gave up, in one step and with its speed
+ * into the ground taken away (433 g on a Skyhunter's belly crushed 7 mm
+ * into concrete, where the crush itself stopped it at 94). */
+static void samplers_rebuild(void) {
+  const Table *t = tab();
   g_nsamp = 0;
   for (int i = 0; i < t->n; i += 1) {
     if (!attached(i)) {
       continue;
     }
+    const double *dent = PS[i].dent;
+    const double dl = norm(dent);
+    double u[3] = { 0.0, 0.0, 0.0 }, reach = -1.0e9;
+    if (dl > 0.0 && crush_foam(t, i)) {
+      /* The dent points from the ground into the part. */
+      for (int a = 0; a < 3; a += 1) u[a] = -dent[a] / dl;
+      for (int k = 0; k < t->p[i].npts; k += 1) {
+        const double h = dot(t->p[i].pts[k], u);
+        if (h > reach) reach = h;
+      }
+    }
     for (int k = 0; k < t->p[i].npts; k += 1) {
-      live_pt(t->p[i].pts[k], g_samp[g_nsamp]);
+      double p[3] = { t->p[i].pts[k][0], t->p[i].pts[k][1], t->p[i].pts[k][2] };
+      if (dl > 0.0 && crush_foam(t, i)) {
+        const double over = dot(p, u) - (reach - dl);
+        if (over > 0.0) {
+          for (int a = 0; a < 3; a += 1) p[a] -= over * u[a];
+        }
+      }
+      live_pt(p, g_samp[g_nsamp]);
       g_samp_part[g_nsamp] = i;
       g_nsamp += 1;
     }
@@ -1203,6 +1256,7 @@ void crash_reset(void) {
   for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
     g_spring_npts[i] = 0;
     g_spring_npts_last[i] = 0;
+    g_crush_give[i] = 0.0;
   }
   effects_clear();
 }
@@ -1375,6 +1429,7 @@ typedef struct {
   int crush;        /* its impulses were capped: the part was crushing */
   int soft;         /* its impulses were the ground's spring's */
   double fc;        /* the plateau force it crushed at, N */
+  double room;      /* how much further the front can go, m (crush_room) */
   int ground;       /* the ground plane's contact */
   int sever;        /* the joint the blow broke on its way in, + 1, or 0 */
   double fs;        /* the force that joint held until it let go, N */
@@ -1409,11 +1464,107 @@ void crash_set_ground_contact(void) {
  * degrees to flat, and being larger takes far more before it gives.
  * Against an obstacle the plant does not know the shape it meets, and the
  * table's is used.
+ *
+ * THE PATCH GROWS AS THE FOAM GOES IN. A nose, a belly or a wing tip is a
+ * curved surface, and pressed into the ground plane it meets it first at a
+ * point: the crushed patch is the shape's section at the depth the front
+ * has reached, and the plateau stress acts on that. Each part's shape is
+ * the ellipsoid its drawn hull box holds (semi axes e, a box's half sides;
+ * a motor that crushes the nose behind it takes its parent's), whose section
+ * across a unit n at a depth d from the point it first meets the plane is
+ * pi e0 e1 e2 / h (2 u - u^2), u = d / h, h = |diag(e) n| its reach along
+ * n. That is a sphere's cap, pi (2 R d - d^2), for equal axes. The section
+ * grows to the area above and stops there, so a part pressed in to its
+ * middle crushes as it did before; what changes is the first centimetres,
+ * where a whole face met the ground at the plateau from the first
+ * millimetre and a stall into the grass stopped as a flat board would.
+ * The depth is the front's along n: what the part has crushed that way
+ * (its dent), and what gives before the foam yields: the foam's own
+ * elastic strain at the plateau (crush_s over bead foam's modulus, 1.0
+ * percent for EPO) over the depth the patch strains, about its width,
+ * and the surface's give at
+ * the force reached, which on grass is centimetres (the turf wraps the
+ * body, and a belly on grass does not crush) and on concrete nothing. The
+ * part's own spring is left out: on a panel it is the panel bending away,
+ * not the foam at the point. Once the foam has yielded that give is held
+ * (g_crush_give) and the front goes on past it.
+ *
+ * A solid the plant knows (THE PLANT MEETS THE SOLIDS IT KNOWS) has a
+ * known shape too. A box's face is a plane, as the ground is. A pole of
+ * radius R pressed d into the part is a chord 2 sqrt(2 R d - d^2) wide
+ * across its axis, and along its axis it meets as much of the part's
+ * section as reaches that way (a panel's thickness at its leading edge):
+ * a wing tip that nicks a pole meets it on a sliver, and dents, where the
+ * table's whole leading edge section (230 N on a Cub's panel) stood off
+ * the 150 N its spar's bending reached at 5 cm and nothing happened. Up to
+ * the table's section, which is a pole's width of the part.
  */
 #define CRUSH_PATCH 0.5
 #define CRUSH_FLAT 0.90  /* cos 25 degrees */
 #define CRUSH_FACE 0.5 /* cos 60 degrees */
-static double crush_area(const Table *t, int i, const double nb[3], int ground) {
+static int nose_crush(const PartDef *d);
+
+/* A part whose crush is bead foam's, its own or the nose's behind it: the
+ * shape the patch grows over is foam. A quad's frame (a carbon plate
+ * stack whose standoffs rack) keeps the table's section. */
+static int crush_foam(const Table *t, int i) {
+  const PartDef *d = &t->p[i];
+  const int j = nose_crush(d) && d->parent >= 0 ? d->parent : i;
+  return d->crush_s > 0.0 && (t->p[j].mat == SIM_MAT_EPO || t->p[j].mat == SIM_MAT_EPP);
+}
+
+static double crush_patch(const Table *t, int i, const double nb[3], double depth) {
+  const int j = nose_crush(&t->p[i]) && t->p[i].parent >= 0 ? t->p[i].parent : i;
+  double e[3], h2 = 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    e[a] = 0.5 * (t->hi[j][a] - t->lo[j][a]);
+    h2 += e[a] * e[a] * nb[a] * nb[a];
+  }
+  const double h = sim_sqrt(h2);
+  if (!(h > 0.0) || !(depth > 0.0)) {
+    return 0.0;
+  }
+  const double u = depth < h ? depth / h : 1.0;
+  return 3.14159265358979323846 * e[0] * e[1] * e[2] / h * (2.0 * u - u * u);
+}
+
+/* The depth the crush front has reached along nb, the contact's normal in
+ * the body frame. */
+static double crush_front(int i, const double nb[3]) {
+  const double x = dot(PS[i].dent, nb);
+  return x > 0.0 ? x : 0.0;
+}
+
+/* The reach of a part's section along a unit w across n, at depth d, from
+ * the same ellipsoid: its central section's radius that way, scaled as the
+ * section is. */
+static double crush_reach(const Table *t, int i, const double nb[3], const double w[3], double depth) {
+  const int j = nose_crush(&t->p[i]) && t->p[i].parent >= 0 ? t->p[i].parent : i;
+  double h2 = 0.0, q = 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    const double e = 0.5 * (t->hi[j][a] - t->lo[j][a]);
+    h2 += e * e * nb[a] * nb[a];
+    if (e > 0.0) q += w[a] * w[a] / (e * e);
+  }
+  const double h = sim_sqrt(h2);
+  if (!(h > 0.0) || !(q > 0.0) || !(depth > 0.0)) {
+    return 0.0;
+  }
+  const double u = depth < h ? depth / h : 1.0;
+  return 2.0 * sim_sqrt(2.0 * u - u * u) / sim_sqrt(q);
+}
+
+/* The shape a crushing part meets. */
+typedef struct {
+  int kind;      /* CR_EDGE the table's section, CR_FLAT a plane, CR_POLE */
+  double r;      /* a pole's radius */
+  double ax[3];  /* its axis, body frame, unit */
+} CrushShape;
+#define CR_EDGE 0
+#define CR_FLAT 1
+#define CR_POLE 2
+
+static double crush_area(const Table *t, int i, const double nb[3], const CrushShape *sh, double depth) {
   const double a = t->p[i].crush_a;
   /* A part that crushes only where its soft structure is (crush_n, within
    * 60 degrees of it: a quad's nose and top, where the standoffs rack and
@@ -1425,8 +1576,30 @@ static double crush_area(const Table *t, int i, const double nb[3], int ground) 
   if ((cn[0] != 0.0 || cn[1] != 0.0 || cn[2] != 0.0) && -dot(nb, cn) < CRUSH_FACE) {
     return 1.0e30;
   }
-  if (!ground) {
+  if (sh->kind == CR_EDGE) {
     return a;
+  }
+  if (sh->kind == CR_POLE) {
+    if (!crush_foam(t, i)) {
+      return a;
+    }
+    double chord = 2.0 * sh->r;
+    if (depth < sh->r) {
+      chord = 2.0 * sim_sqrt(2.0 * sh->r * depth - depth * depth);
+    }
+    /* Along the axis, less its part along n. */
+    const double an = dot(sh->ax, nb);
+    double w[3] = { sh->ax[0] - an * nb[0], sh->ax[1] - an * nb[1], sh->ax[2] - an * nb[2] };
+    const double wl = norm(w);
+    double along = 0.0;
+    if (wl > 0.0) {
+      for (int k = 0; k < 3; k += 1) w[k] /= wl;
+      along = crush_reach(t, i, nb, w, depth);
+    }
+    double pole = chord * along;
+    const double grown = crush_patch(t, i, nb, depth);
+    if (grown < pole) pole = grown;
+    return pole < a ? pole : a;
   }
   const double sx = t->hi[i][0] - t->lo[i][0];
   const double sy = t->hi[i][1] - t->lo[i][1];
@@ -1439,7 +1612,65 @@ static double crush_area(const Table *t, int i, const double nb[3], int ground) 
     if (w > 1.0) w = 1.0;
     flat += w * CRUSH_PATCH * face[k];
   }
-  return flat > a ? flat : a;
+  const double full = flat > a ? flat : a;
+  if (!crush_foam(t, i)) {
+    return full;
+  }
+  const double grown = crush_patch(t, i, nb, depth);
+  return grown < full ? grown : full;
+}
+
+/* What the contact being solved meets: the ground's plane, a solid the
+ * plant knows (a pole's radius and axis, or a box's face), or a host's
+ * obstacle, whose shape the plant does not know. */
+static int solid_cyl(int o, double z, double *x, double *y, double *z0, double *z1, double *r);
+static CrushShape g_cr_shape;
+static void crush_shape(const SimState *s, CrushShape *sh) {
+  sh->kind = g_surf_ground ? CR_FLAT : CR_EDGE;
+  sh->r = 0.0;
+  sh->ax[0] = sh->ax[1] = sh->ax[2] = 0.0;
+  if (g_own < 0) {
+    return;
+  }
+  double x, y, z0, z1, r;
+  sh->kind = CR_FLAT;
+  /* Only its radius is read, which is the same at every height. */
+  if (solid_cyl(g_tch[g_own].solid, 0.0, &x, &y, &z0, &z1, &r)) {
+    const double up[3] = { 0.0, 0.0, 1.0 };
+    sh->kind = CR_POLE;
+    sh->r = r;
+    qrot_inv(s->quat, up, sh->ax);
+  }
+}
+
+/* The plateau force on the patch at the front, f the force the contact
+ * would reach held elastically and k_surf the surface's spring. Starting,
+ * the patch is taken where the give at the force reached puts it, two
+ * passes from f, each at the force the last one found: that only comes
+ * down, a force past the plateau being one the foam gave way under. Going,
+ * the give it yielded at is held (g_crush_give) and the front goes on. */
+static double crush_force(const Table *t, int i, const double nb[3], const CrushShape *sh, double f, double k_surf, int going) {
+  const PartDef *d = &t->p[i];
+  if (sh->kind == CR_EDGE || !crush_foam(t, i)) {
+    g_crush_give_new = 0.0;
+    return d->crush_s * crush_area(t, i, nb, sh, 0.0);
+  }
+  const double front = crush_front(i, nb);
+  if (going) {
+    return d->crush_s * crush_area(t, i, nb, sh, front + g_crush_give[i]);
+  }
+  /* The foam under a patch is strained to about the patch's own width
+   * (Boussinesq's field under a loaded area), so its give is the yield
+   * strain times that width, sqrt of the patch, at the last pass's. */
+  const double eps = d->crush_s / FOAM_E;
+  double fc = f, give = f / k_surf;
+  for (int it = 0; it < 2; it += 1) {
+    const double a = crush_area(t, i, nb, sh, front + give);
+    fc = d->crush_s * a;
+    give = eps * sim_sqrt(a) + fc / k_surf;
+  }
+  g_crush_give_new = give;
+  return fc;
 }
 
 int crash_obstacle_surface(void) {
@@ -1469,6 +1700,7 @@ static Hit *hit_get(int part, int force) {
   h->crush = 0;
   h->soft = 0;
   h->fc = 0.0;
+  h->room = 0.0;
   h->ground = g_surf_ground;
   h->sever = 0;
   h->fs = 0.0;
@@ -1895,7 +2127,8 @@ static int sever_pre(const Table *t, int i, double vin, double kn, double k, dou
   double f_drive = vin * sim_sqrt(k_path / kn);
   const PartDef *d = &t->p[i];
   if (d->crush_s > 0.0 && PS[i].crush < d->crush_d) {
-    const double fc = d->crush_s * crush_area(t, i, nb, 0);
+    const CrushShape edge = { CR_EDGE, 0.0, { 0.0, 0.0, 0.0 } };
+    const double fc = d->crush_s * crush_area(t, i, nb, &edge, 0.0);
     if (fc < f_drive) {
       f_drive = fc;
     }
@@ -1945,7 +2178,9 @@ static int own_pre(const Table *t, int i, double vin, double kn, double k, doubl
   double f = g_own_k * g_pen;
   const PartDef *d = &t->p[i];
   if (d->crush_s > 0.0 && PS[i].crush < d->crush_d) {
-    const double fc = d->crush_s * crush_area(t, i, g_att_nb, 0);
+    /* A crush under way holds the patch it has reached (crush_force). */
+    const int going = ((g_crush_mask | g_batch_crush) >> i) & 1u;
+    const double fc = crush_force(t, i, g_att_nb, &g_cr_shape, f, SURF[g_surf].k, going);
     if (fc < f) {
       f = fc;
     }
@@ -2053,6 +2288,7 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
   }
   const double k = series_k(d->k, SURF[g_surf].k);
   const int own = g_own >= 0;
+  crush_shape(s, &g_cr_shape);
   if (own && own_pre(t, i, vin, kn, k, e_used, jn_cap)) {
     return;
   }
@@ -2067,18 +2303,66 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
      * the force it has reached, through the chain's bending, reaches the
      * plateau: a panel on its spar bends before its leading edge crushes. */
     const double m_dec = g_surf_ground ? PLANT.mass_kg : 1.0 / kn;
-    const double f = own ? g_own_k * g_pen : vin * sim_sqrt(k * m_dec);
+    double f = own ? g_own_k * g_pen : vin * sim_sqrt(k * m_dec);
+    /* A PANEL BENDS BEFORE ITS TIP CRUSHES. On the ground a foam part's
+     * foam is in series with its own spring and the surface's: the foam at
+     * the point feels what that spring has been pressed to by the end of
+     * this step, k (x + v dt), and no more than the blow's peak; pressed in
+     * and held, k x whatever the speed. For a part that rings (a panel on
+     * its spar, a boom) that spring is its own bending, a few kN/m, and it
+     * crushes only in the steps it is past the plateau on its patch, below.
+     * Taken at the blow's peak from the first millimetre, where the patch is
+     * a point, a wing tip crushed at once and went on crushing at 300 to 600
+     * N in its first 10 ms, before its panel had bent: stopped at the
+     * grass's face, mostly along its normal. Bending first, the tip is held
+     * by the grass while the panel loads, and the drag on it pivots the
+     * craft. A part that does not ring is stiff against its crush: once
+     * started, its crush goes on while the craft drives it in. */
+    const int bends = g_surf_ground && crush_foam(t, i) && t->w1[i] > 0.0;
+    if (g_surf_ground && crush_foam(t, i)) {
+      const double reach = k * (g_pen + vin * g_batch_dt);
+      if (reach < f) f = reach;
+      if (k * g_pen > f) f = k * g_pen;
+    }
     double nb[3];
     qrot_inv(s->quat, n, nb);
-    const double fc = d->crush_s * crush_area(t, i, nb, g_surf_ground);
     /* Crushing already, the front keeps advancing while the part is driven
      * in at all; a new impact starts it only past the plateau; and once a
      * part crushes in a batch every contact it takes in that batch shares
      * the plateau's budget, or a point met after the first would be stopped
      * rigidly in its place. */
     const unsigned int bit = 1u << i;
-    const int going = ((g_crush_mask & bit) && vin > 0.05) || (g_batch_crush & bit);
-    if (f > fc || going) {
+    /* Driven in is the craft coming on, not only the point the solver
+     * visited: a belly crushing at one end while the craft pitches has a
+     * point that stands still for a step, and the crush ending there let
+     * the ground's settle (sim.c) take the craft's whole speed into the
+     * ground in that millisecond, 433 g on a Skyhunter dropped flat on
+     * concrete at 5 m/s. */
+    const double v_cg = -dot(s->vel, n);
+    const double drive = crush_foam(t, i) && v_cg > vin ? v_cg : vin;
+    const int going = ((g_crush_mask & bit) && drive > 0.05) || (g_batch_crush & bit);
+    const double fc = crush_force(t, i, nb, &g_cr_shape, f, SURF[g_surf].k, going);
+    /* Against a solid the plant meets itself, and for a bending part on
+     * the ground, the force is the part's spring's, followed step by step,
+     * and the foam crushes only while that spring is past the plateau (a
+     * batch that has started it shares it with the part's other points):
+     * short of it the panel bends instead, and a crush that went on at its
+     * plateau put more through the panel than its spring could, and than
+     * its root holds. */
+    const int sprung = own || bends;
+    if (f > fc || (sprung ? (g_batch_crush & bit) != 0 : going)) {
+      if (!going) {
+        g_crush_give[i] = g_crush_give_new;
+      }
+      /* Into a solid the front goes no further than the part overlaps it,
+       * less the give: a pole that slides along a leading edge dents it as
+       * deep as it overlaps, not as far as the craft goes on. Into the
+       * ground plane every step the part goes on is a step into it. */
+      g_crush_room = 1.0e30;
+      if (own && crush_foam(t, i)) {
+        const double room = g_pen - crush_front(i, nb) - g_crush_give[i];
+        g_crush_room = room > 0.0 ? room : 0.0;
+      }
       g_batch_crush |= bit;
       *e_used = 0.0;
       g_capped_fc = fc;
@@ -2350,6 +2634,9 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
     } else {
       h->crush = 1;
       h->fc = g_capped_fc;
+      if (g_crush_room > h->room) {
+        h->room = g_crush_room;
+      }
     }
   }
   double rb[3];
@@ -2798,6 +3085,46 @@ SIM_EXPORT int sim_crash_debug(double *out, int max) {
 static double g_pull_f[PULLS_MAX][3], g_pull_at[PULLS_MAX][3];
 static int g_npull = 0;
 
+/* A RING'S DAMPING at rho, the ratio to its limit the joint was last
+ * judged at. */
+static double ring_zeta(const PartDef *d, double rho) {
+  const double lo = d->sect_joint ? RING_ZETA_JOINT_LO : RING_ZETA_ONE_LO;
+  const double hi = d->sect_joint ? RING_ZETA_JOINT_HI : RING_ZETA_ONE_HI;
+  double f = (rho - 0.5) / 0.5;
+  if (f < 0.0) f = 0.0;
+  if (f > 1.0) f = 1.0;
+  return lo + f * (hi - lo);
+}
+
+/*
+ * WHAT A RING DRIVES RIDES ON IT. The ring is the root load of the part
+ * and all it carries, driven by the subtree's quasi static load: m_sub
+ * times the craft's motion, less the contacts on it. What rides at its
+ * tip (a tail on its booms) moves with it, so the tip's acceleration is
+ * that load's own: the ring plus the contacts on the subtree, over m_sub.
+ * In a steady deceleration it is the craft's, and a ring that overshoots
+ * shakes the tip by as much more. Over the mode's own tip mass (table
+ * finish's m_eff, 0.11 kg on the Skyhunter's booms against the 0.16 kg the
+ * ring was driven by) the tail was shaken 1.4 times as hard as the craft
+ * even when nothing rang, and a contact on the member pushed its tip the
+ * wrong way. The mode's frequency stays the intact one: taken live on what
+ * still rides on it, the Radian's panels rang faster once an aileron was
+ * off, nearer its boom's 11.2 Hz, and the boom, at its limit either way,
+ * went in the stall where it held (docs/CRASH-STAGE1.md).
+ */
+static double ring_sub(const Table *t, int j, unsigned int gone) {
+  double ms = 0.0;
+  for (int i = 0; i < t->n; i += 1) {
+    if ((t->sub[j] & (1u << i)) && attached(i) && !(gone & (1u << i))) {
+      ms += t->p[i].mass;
+    }
+  }
+  return ms;
+}
+
+/* No contact counted: a joint's inertial load alone. */
+static const double g_no_hits[HITS_MAX] = { 0.0 };
+
 static void craft_accel(const Table *t, const double F[][3], const double *sc, const int *gate, int own,
                         const double ring0[][6], unsigned int gone, double m, double ps, double acc[3], double alp[3]) {
   double Ft[3] = { 0.0, 0.0, 0.0 }, tau[3] = { 0.0, 0.0, 0.0 };
@@ -3069,7 +3396,7 @@ static void judge(SimState *s) {
   double Fb[HITS_MAX][3];
   double (*bb)[3] = g_bb;
   double sc[HITS_MAX];
-  int changed = 0;
+  int changed = 0, dented = 0;
   Break brk[BREAKS_MAX];
   int nbrk = 0;
   /* Forces: an impulse through the spring of the part and the surface in
@@ -3110,12 +3437,14 @@ static void judge(SimState *s) {
         double dl = x->vin * g_batch_dt;
         const double avail = d->crush_d - p->crush;
         if (dl > avail) dl = avail;
+        if (x->room < dl) dl = x->room;
         const int first = !(g_crush_mask & (1u << i));
         p->crush += dl;
         p->energy += fc * dl;
         for (int a = 0; a < 3; a += 1) {
           p->dent[a] += dl * nb[a];
         }
+        dented = 1;
         g_crush_mask |= 1u << i;
         fp = x->jn / g_batch_dt;
         p->damage = part_damage(i);
@@ -3126,7 +3455,8 @@ static void judge(SimState *s) {
           event_push(s, i, SIM_EVENT_CRUSH, sim_sqrt(k * x->jn * x->vin) / fc, fc, 0.0, p->energy, pw, x->n, x->vin, x->surf);
         }
       } else if (d->crush_s > 0.0 && p->crush < d->crush_d && attached(i)) {
-        const double fc = d->crush_s * crush_area(t, i, nb, x->ground);
+        const CrushShape met = { x->ground ? CR_FLAT : CR_EDGE, 0.0, { 0.0, 0.0, 0.0 } };
+        const double fc = crush_force(t, i, nb, &met, fp, SURF[x->surf].k, 0);
         if (fp > fc) {
           const double el = fc * fc / (2.0 * k);
           double dl = (en - el) / fc;
@@ -3151,6 +3481,7 @@ static void judge(SimState *s) {
           for (int a = 0; a < 3; a += 1) {
             p->dent[a] += dl * nb[a];
           }
+          dented = 1;
           p->damage = part_damage(i);
           double pw[3];
           world_of(s, bb[h], pw);
@@ -3303,12 +3634,14 @@ static void judge(SimState *s) {
   }
   int gate[HITS_MAX];
   double ring0[SIM_PARTS_MAX][6];
+  double tip_fc[SIM_PARTS_MAX][3];
   for (int h = 0; h < g_nh; h += 1) {
     const int i = H[h].part;
     gate[h] = t->w1[i] > 0.0 ? i : t->ring_up[i];
   }
   for (int j = 0; j < n; j += 1) {
     for (int a = 0; a < 6; a += 1) ring0[j][a] = PS[j].ring[a];
+    for (int a = 0; a < 3; a += 1) tip_fc[j][a] = 0.0;
   }
   for (int iter = 0; iter < BREAKS_MAX; iter += 1) {
     double m = 0.0;
@@ -3343,8 +3676,9 @@ static void judge(SimState *s) {
       const double still[3] = { 0.0, 0.0, 0.0 };
       const int up = t->ring_up[j];
       if (up >= 0 && attached(up) && !(gone & (1u << up))) {
+        const double ms_up = ring_sub(t, up, gone);
         for (int a = 0; a < 3; a += 1) {
-          a_up[a] = ring[up][a] / t->ring_m[up];
+          a_up[a] = (ring[up][a] - tip_fc[up][a]) / ms_up;
         }
         aj = a_up;
         lj = still;
@@ -3357,22 +3691,27 @@ static void judge(SimState *s) {
          * kick and rings on through the steps. The root sees the mode's
          * force, not the rigid body's, so a blow short against the period
          * loads it by the impulse it carried, not by its peak. */
-        double FJ[3], MJ[3], accK[3], alpK[3], FQ[3], MQ[3];
+        double FJ[3], MJ[3], accK[3], alpK[3], FQ[3], MQ[3], FI[3], MI[3];
         craft_accel(t, Jb, sc, gate, j, ring0, gone, m, g_batch_dt, accK, alpK);
         joint_load(t, j, Jb, sc, gone, accK, alpK, FJ, MJ);
         craft_accel(t, Fb, sc, gate, j, ring0, gone, m, 1.0, accK, alpK);
         joint_load(t, j, Fb, sc, gone, accK, alpK, FQ, MQ);
+        joint_load(t, j, Fb, g_no_hits, gone, accK, alpK, FI, MI);
         /* Along its span the joint carries the load as it comes. */
         const double *u = t->ring_u[j];
-        const double ka = dot(FJ, u), qa = dot(FQ, u);
+        const double ka = dot(FJ, u), qa = dot(FQ, u), ca = qa - dot(FI, u);
         for (int a = 0; a < 3; a += 1) FJ[a] -= ka * u[a];
+        /* The contacts' share of the quasi static load, across the span:
+         * what the tip is pushed by besides the ring. */
+        for (int a = 0; a < 3; a += 1) tip_fc[j][a] = FQ[a] - FI[a] - ca * u[a];
         const double w = t->w1[j];
+        const double z = ring_zeta(&t->p[j], PS[j].peak);
         const double *y = PS[j].ring;
         const double *yd = PS[j].ring_d;
         double *c = ring[j];
         for (int a = 0; a < 6; a += 1) {
           const double kick = a < 3 ? FJ[a] : MJ[a - 3];
-          c[6 + a] = yd[a] + w * w * kick - (w * w * y[a] + 2.0 * RING_ZETA * w * yd[a]) * adv;
+          c[6 + a] = yd[a] + w * w * kick - (w * w * y[a] + 2.0 * z * w * yd[a]) * adv;
           c[a] = y[a] + c[6 + a] * adv;
         }
         for (int a = 0; a < 3; a += 1) {
@@ -3595,6 +3934,9 @@ static void judge(SimState *s) {
       PS[i].damage = part_damage(i);
     }
     effects_rebuild();
+  }
+  if (dented) {
+    samplers_rebuild();
   }
 }
 
