@@ -73,18 +73,24 @@ export async function sha256Base64(text) {
 }
 
 /* The bytes a signature covers. lapMs is rounded here so both sides agree
- * on the integer; ghost is the base64 text as posted. */
-export async function timeMessage({ trackId, lapMs, ghost }) {
+ * on the integer; ghost is the base64 text as posted. `craft` is the fixed
+ * wing a plane's lap on a map track names (src/game/verify.js planesFor)
+ * and goes on a fifth line, so a signed plane lap cannot be moved onto the
+ * quads' board or onto another plane; a lap without one signs the four
+ * lines it always did, and every signature made before planes could race a
+ * map track still verifies. */
+export async function timeMessage({ trackId, lapMs, ghost, craft }) {
   const ghostHash = await sha256Base64(ghost || '');
-  return new TextEncoder().encode(`${TIME_MESSAGE_PREFIX}\n${trackId}\n${Math.round(lapMs)}\n${ghostHash}`);
+  const tail = craft ? `\n${craft}` : '';
+  return new TextEncoder().encode(`${TIME_MESSAGE_PREFIX}\n${trackId}\n${Math.round(lapMs)}\n${ghostHash}${tail}`);
 }
 
 /* key and sig are base64: the raw 65 byte P-256 public key and the 64 byte
  * IEEE P1363 signature WebCrypto produces. False for anything malformed. */
-export async function verifyTimeSignature({ key, sig, trackId, lapMs, ghost }) {
+export async function verifyTimeSignature({ key, sig, trackId, lapMs, ghost, craft }) {
   try {
     const pub = await subtle().importKey('raw', fromBase64(key), CURVE, false, ['verify']);
-    const message = await timeMessage({ trackId, lapMs, ghost });
+    const message = await timeMessage({ trackId, lapMs, ghost, craft });
     return await subtle().verify(SIGN, pub, fromBase64(sig), message);
   } catch (e) {
     return false;
@@ -152,9 +158,9 @@ export function createIdentity(storage = browserStorage() || memoryStorage()) {
       return (await load()).publicRaw;
     },
     /* { key, sig } for a time post, both base64. */
-    async signTime({ trackId, lapMs, ghost }) {
+    async signTime({ trackId, lapMs, ghost, craft }) {
       const id = await load();
-      const message = await timeMessage({ trackId, lapMs, ghost });
+      const message = await timeMessage({ trackId, lapMs, ghost, craft });
       const sig = new Uint8Array(await subtle().sign(SIGN, id.priv, message));
       return { key: id.publicRaw, sig: toBase64(sig) };
     },

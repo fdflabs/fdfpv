@@ -47,6 +47,8 @@ import { Race } from './race.js';
 import { decodeGhost } from '../share/ghostdata.js';
 import { isMapTrack, normalize } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
+import { craftLimits, misfitGate } from '../builder/line.js';
+import { AIRFRAMES } from '../../configs/airframes.js';
 
 /*
  * A crossing time recovered from a 30 Hz ghost is interpolated inside a
@@ -108,6 +110,38 @@ export function raceFromDocument(document) {
   return { gates: gatesFromCourse(course), trackClass: course.trackClass };
 }
 
+/*
+ * THE FIXED WINGS THAT MAY RACE A TRACK, by id, in configs/airframes.js
+ * order: on a map track every plane whose span clears every gate by the
+ * builder's own rule (src/builder/line.js misfitGate), and on a field track
+ * none, because a field track is its own class's and that class is the
+ * whole of who races it.
+ *
+ * A PLANE'S LAP ON A MAP TRACK GOES TO A BOARD OF ITS OWN. The quads race a
+ * map track as the five inch, and a time posted bare, with no aircraft, is
+ * still that and nothing else, exactly as before planes could race one. A
+ * plane's time names its aircraft (`craft`, an id from this list), and the
+ * board and the simulator keep the two apart: a quad and a plane on the
+ * same gates are not the same race, as a whoop and a five inch are not.
+ * Every plane is on the one plane board, as every plane on the airfield
+ * already shares its track's.
+ */
+export function planesFor(document) {
+  if (!(document && document.schemaVersion >= 4 && isMapTrack(document))) {
+    return [];
+  }
+  let gates;
+  try {
+    ({ gates } = raceFromDocument(document));
+  } catch (e) {
+    return [];
+  }
+  if (!gates.length) {
+    return [];
+  }
+  return AIRFRAMES.filter((af) => af.fixedWing && misfitGate(gates, craftLimits(af)) < 0).map((af) => af.id);
+}
+
 function refuse(reason, extra) {
   return { ok: false, reason, ...extra };
 }
@@ -116,9 +150,16 @@ function refuse(reason, extra) {
  * Returns { ok: true, lapMs, gates, topSpeed } for a lap the course agrees
  * with, or { ok: false, reason } naming the first thing that did not hold.
  * lapMs is the claimed time in milliseconds; ghostBytes is the wire format
- * from src/share/ghostdata.js.
+ * from src/share/ghostdata.js. `craft` is the fixed wing a plane's lap on a
+ * map track was flown on (planesFor), and absent for every other lap.
+ *
+ * The plane's lap is scored by the same gates on the same geometry as a
+ * quad's: the shell races every aircraft on a map track with the one
+ * scoring box, so there is no plane physics to ask here, only whether that
+ * aircraft fits through every gate at all. A lap claimed on a plane that
+ * does not is refused, because the simulator would not have seated it.
  */
-export function checkLap(document, ghostBytes, lapMs) {
+export function checkLap(document, ghostBytes, lapMs, craft = null) {
   let course;
   try {
     course = raceFromDocument(document);
@@ -128,6 +169,19 @@ export function checkLap(document, ghostBytes, lapMs) {
   const { gates } = course;
   if (gates.length === 0) {
     return refuse('the track has no gates, so it has no laps');
+  }
+  if (craft != null) {
+    const af = AIRFRAMES.find((a) => a.id === craft);
+    if (!af || !af.fixedWing) {
+      return refuse(`${JSON.stringify(String(craft))} is not a fixed wing this board keeps times for`);
+    }
+    if (!(document.schemaVersion >= 4 && isMapTrack(document))) {
+      return refuse('a plane races a track built inside a world, and this one is a field track of its own class');
+    }
+    const k = misfitGate(gates, craftLimits(af));
+    if (k >= 0) {
+      return refuse(`the ${af.short} does not fit gate ${k + 1}, ${gates[k].aperture.clearW.toFixed(2)} m wide`);
+    }
   }
 
   let ghost;

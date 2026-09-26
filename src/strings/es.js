@@ -764,6 +764,7 @@ export default {
   "main.posted": "Publicado {name}, {formatScore}.{v3}",
   "main.published": "Publicada \"{name}\".{forked}{cleared}",
   "main.that_track_has_no_gate_to_race": "Esa pista no tiene ninguna puerta que correr en este mundo",
+  "main.the_craft_does_not_fit_through_every_gate": "El {craft} no pasa por todas las puertas de esa pista, así que este mundo se vuela sin ella",
   "main.a_track_built_in_a_world_is": "El tablero público guarda una copia de esta pista y del mundo en el que está, {world}. Los pilotos la encuentran en la lista de pistas y la vuelan allí.",
   "main.published_and_its_card_on_the": "Publicada \"{name}\", y su tarjeta en el tablero es una vuelta de ella.",
   "main.published_as_a_new_track": " Publicada como pista nueva.",

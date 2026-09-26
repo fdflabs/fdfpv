@@ -774,6 +774,7 @@ export default {
   "main.posted": "Posted {name}, {formatScore}.{v3}",
   "main.published": "Published \"{name}\".{forked}{cleared}",
   "main.that_track_has_no_gate_to_race": "That track has no gate to race in this world",
+  "main.the_craft_does_not_fit_through_every_gate": "The {craft} does not fit through every gate of that track, so this world is flown without it",
   "main.a_track_built_in_a_world_is": "The public board keeps a copy of this track and the world it stands in, {world}. Pilots find it in the list of tracks and fly it there.",
   "main.published_and_its_card_on_the": "Published \"{name}\", and its card on the board is a lap of it.",
   "main.published_as_a_new_track": " Published as a new track.",

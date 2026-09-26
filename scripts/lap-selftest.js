@@ -32,7 +32,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { encodeGhost } from '../src/share/ghostdata.js';
-import { checkLap, gatesFromCourse, LAP_TOLERANCE_MS } from '../src/game/verify.js';
+import { checkLap, gatesFromCourse, LAP_TOLERANCE_MS, planesFor } from '../src/game/verify.js';
+import { AIRFRAMES } from '../configs/airframes.js';
 import { courseFromDocument } from '../src/game/trackdoc.js';
 import { Race } from '../src/game/race.js';
 import { trackClassOf } from '../src/trackbuilder/elements.js';
@@ -166,6 +167,50 @@ check('nor on the ring raised twenty metres', movedRead.ok === false, movedRead.
 const alps = mapTrackDocument({ map: 'alps', id: ring.id });
 check('the same ring on another world is a different layout', layoutFingerprint(alps) !== layoutFingerprint(ring));
 check('and the same ring on the same world is the same layout', layoutFingerprint(mapTrackDocument({ id: ring.id })) === layoutFingerprint(ring));
+
+/*
+ * Planes on a map track. A plane races a track built inside a world when it
+ * fits every gate by the builder's own rule, its lap names it, and the
+ * board files it on the plane board. The check scores the same gates the
+ * same way for every aircraft; what it adds for a plane is only whether the
+ * named plane fits through them at all.
+ */
+console.log('\nplanes on a map track');
+const planeIds = AIRFRAMES.filter((af) => af.fixedWing).map((af) => af.id);
+/* A five inch gate is 1.75 m across as built, which is 1.2 spans of a
+ * 1.46 m plane: the Cub and the smaller ones fit it, the Skyhunter and the
+ * bigger ones do not, and the rule says so rather than a list. */
+const ringPlanes = planesFor(ring);
+check('the ring of five inch gates takes the small planes only: the Cub in, the Skyhunter and the Bramor out',
+  ringPlanes.includes('cub1400') && !ringPlanes.includes('sky1800') && !ringPlanes.includes('bramor2300'), ringPlanes.join());
+check('no plane races a field track through planesFor: the airfield is its own class', planesFor(wing).length === 0);
+const wide = mapTrackDocument({ radius: 70, types: ['wideGate5', 'pylonPair', 'wideGate3'], name: 'Wide ring' });
+check(`every fixed wing fits the wide gates and the pylon pair: ${planeIds.length} of them`,
+  JSON.stringify(planesFor(wide)) === JSON.stringify(planeIds), planesFor(wide).join());
+const wideLap = syntheticLap(wide, { speed: 20 });
+const wideBytes = encodeGhost(wideLap);
+check('a synthetic lap closes on the wide ring', wideLap.lapMs != null && wideLap.gates === 3, `${wideLap.lapMs} ${wideLap.gates}`);
+const quadOnWide = checkLap(wide, wideBytes, wideLap.lapMs);
+check('posted bare, it is a quad\'s lap as always, and accepted', quadOnWide.ok === true, quadOnWide.reason);
+const skyOnWide = checkLap(wide, wideBytes, wideLap.lapMs, 'sky1800');
+check('named for the Skyhunter, it is accepted', skyOnWide.ok === true, skyOnWide.reason);
+const floatsOnWide = checkLap(wide, wideBytes, wideLap.lapMs, 'timber1500f');
+check('and for the Timber on floats', floatsOnWide.ok === true, floatsOnWide.reason);
+const skyOnRing = checkLap(ring, encodeGhost(ringLap), ringLap.lapMs, 'sky1800');
+check('a Skyhunter lap on five inch gates is refused: it does not fit', skyOnRing.ok === false && /does not fit gate 1/.test(skyOnRing.reason), skyOnRing.reason);
+const skyOnField = checkLap(wing, encodeGhost(wingLap), wingLap.lapMs, 'sky1800');
+check('a lap naming a plane on a field track is refused', skyOnField.ok === false && /field track/.test(skyOnField.reason), skyOnField.reason);
+const quadNamed = checkLap(wide, wideBytes, wideLap.lapMs, '5inch');
+check('a lap naming a quad is refused: a quad\'s lap names nothing', quadNamed.ok === false && /not a fixed wing/.test(quadNamed.reason), quadNamed.reason);
+const unknown = checkLap(wide, wideBytes, wideLap.lapMs, 'sopwith');
+check('and one naming no aircraft there is', unknown.ok === false && /not a fixed wing/.test(unknown.reason), unknown.reason);
+const wideSkipped = syntheticLap(wide, { speed: 20, skip: 1 });
+const planeSkip = checkLap(wide, encodeGhost(wideSkipped), wideSkipped.durationMs, 'sky1800');
+check('a plane\'s lap that skips the pylon pair is refused', planeSkip.ok === false && /never closed/.test(planeSkip.reason), planeSkip.reason);
+/* The narrowest plane gate there is: 1.2 spans of the Skyhunter, and the
+ * widest planes are out while the smaller ones are in. */
+const tight = mapTrackDocument({ radius: 70, types: ['wideGate3', 'wideGate3', 'wideGate3'] });
+check('the 3 m gates take every plane, 1.2 spans of the widest is 2.76 m', planesFor(tight).length === planeIds.length, planesFor(tight).join());
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);

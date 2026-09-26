@@ -325,6 +325,17 @@ export async function fetchTrackList(origin = boardOrigin()) {
      * track. The board derives it from the stored document; an older board
      * that does not send it cannot hold a map track at all. */
     map: typeof t.map === 'string' ? t.map : '',
+    /*
+     * THE FIXED WINGS THAT FIT EVERY GATE of a map track, by airframe id,
+     * and the plane board's record and count beside the quads'. The board
+     * derives the list from the stored document with this repository's own
+     * rule (src/game/verify.js planesFor); an older board that does not send
+     * it offers no map track to a plane, which is the safe way to be wrong.
+     */
+    planes: Array.isArray(t.planes) ? t.planes.map((x) => String(x)) : [],
+    planeRecordMs: t.wing && t.wing.best && Number.isFinite(Number(t.wing.best.lapMs)) ? Number(t.wing.best.lapMs) : null,
+    planeRecordBy: t.wing && t.wing.best ? String(t.wing.best.name || '') : '',
+    planeTimes: t.wing ? Number(t.wing.times) || 0 : 0,
     board,
   })).filter((t) => t.id);
 }
@@ -618,7 +629,7 @@ export async function fetchFreestyleRuns(map, origin = boardOrigin()) {
 }
 
 export async function postTime({
-  trackId, name, lapMs, threeMs, ghost, key, sig, origin,
+  trackId, name, lapMs, threeMs, ghost, key, sig, craft, origin,
 }) {
   const board = trimOrigin(origin || boardOrigin());
   /*
@@ -643,6 +654,12 @@ export async function postTime({
     body.key = key;
     body.sig = sig;
   }
+  /* The fixed wing a plane's lap on a map track was flown on, which files
+   * it on the plane board (src/game/verify.js planesFor). Absent on every
+   * other lap, which is the shape a board that predates it expects. */
+  if (craft) {
+    body.craft = craft;
+  }
   const res = await fetch(`${board}/api/tracks/${encodeURIComponent(trackId)}/times`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -652,8 +669,9 @@ export async function postTime({
 }
 
 /*
- * The posted times on one course, for the ghost picker: id, name, lapMs and
- * whether the board holds a recording, best first, the board's own order.
+ * The posted times on one course, for the ghost picker: id, name, lapMs,
+ * whether the board holds a recording and the plane that flew it, best
+ * first, the board's own order.
  * Same standing as fetchTrackList: a board that is down means an empty
  * picker, never a broken menu, so callers treat rejection as "no times".
  */
@@ -666,6 +684,8 @@ export async function fetchTrackTimes(trackId, origin = boardOrigin()) {
     name: String(t.name || ''),
     lapMs: Number.isFinite(Number(t.lapMs)) ? Number(t.lapMs) : null,
     hasGhost: Boolean(t.hasGhost),
+    /* The fixed wing a plane's lap was flown on, '' for every other lap. */
+    craft: typeof t.craft === 'string' ? t.craft : '',
   })).filter((t) => t.lapMs != null);
 }
 

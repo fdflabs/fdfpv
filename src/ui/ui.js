@@ -127,6 +127,7 @@ import { courseChip, hasFlyableTrack, inspectCourse, isEmptyCanvas } from '../sh
 import { isoLapMs, drawIso, drawPlan, fieldSize, planCanvas, planFromDocument } from '../share/plan.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
+  lapSlot,
   readPendingTime,
   readPostedBest,
   writeBuilderIntent,
@@ -2079,6 +2080,16 @@ function liveListing(mapId) {
 }
 
 /*
+ * The plane a lap by `airframe` on this track is filed under on the board,
+ * or '' for every lap that is not a plane's on a track built inside a world
+ * (src/game/verify.js planesFor): those go where they always went.
+ */
+export function lapCraftOf(doc, airframe) {
+  const af = airframeById(airframe);
+  return af.fixedWing && doc && doc.schemaVersion >= 4 && isMapTrack(doc) ? af.id : '';
+}
+
+/*
  * The four things a player can do to the course they are holding.
  *
  * EVERY ONE OF THESE ALWAYS RETURNS A ROW. They used to return null when
@@ -2090,12 +2101,13 @@ function liveListing(mapId) {
  *
  * `disabled` is honoured by select(), and renderMenu paints it as row-grey.
  */
-function uploadAction(listing, { fastestMs, timePosted }) {
+function uploadAction(listing, { fastestMs, timePosted, airframe }) {
   const pending = readPendingTime();
   const shareId = listing && listing.shareId;
+  const craft = lapCraftOf(listing && listing.doc, airframe);
   const ms = Number.isFinite(fastestMs)
     ? fastestMs
-    : (shareId && pending && pending.trackId === shareId ? pending.lapMs : null);
+    : (shareId && pending && pending.trackId === shareId && (pending.craft || '') === craft ? pending.lapMs : null);
   if (timePosted && shareId) {
     const rank = timePosted.rank != null ? str('ui.rank', { rank: timePosted.rank }) : '';
     return {
@@ -2129,7 +2141,7 @@ function uploadAction(listing, { fastestMs, timePosted }) {
       note: str('ui.fly_a_clean_lap_on_this'),
     };
   }
-  const best = readPostedBest(shareId);
+  const best = readPostedBest(lapSlot(shareId, craft));
   const isNew = best != null && ms < best;
   return {
     label: isNew ? str('ui.upload_new_best', { formatTime: formatTime(ms) }) : str('ui.upload', { formatTime: formatTime(ms) }),
@@ -5751,7 +5763,7 @@ export class Ui {
             : str('ui.opens_the_track_builder_on_an'),
         },
         publishAction(listing, this.coursePublished),
-        uploadAction(listing, { timePosted: this.timePosted }),
+        uploadAction(listing, { timePosted: this.timePosted, airframe: this.settings.airframe }),
         remixAction(listing),
         editOwnAction(listing),
         /*
@@ -6501,6 +6513,7 @@ export class Ui {
         uploadAction(listing, {
           fastestMs: this.resultsFastest,
           timePosted: this.timePosted,
+          airframe: this.settings.airframe,
         }),
         publishAction(listing, this.coursePublished),
         remixAction(listing),
@@ -8704,16 +8717,29 @@ export class Ui {
          * there were classes is a field track, which is what it is, so the
          * default is 'full' rather than "show it anyway".
          */
-        const want = airframeById(this.settings.airframe).trackClass;
+        const af = airframeById(this.settings.airframe);
+        const want = af.trackClass;
         /*
          * A TRACK BUILT INSIDE A WORLD, only on a world this build can seat a
          * course in: a track on a world it does not know would be a card that
-         * loads nothing. It is filed by its class like every other, and the
-         * in-sim builder writes every map track as the five inch's, so that
-         * is the aircraft it is offered to: its seat is the five inch's seat.
+         * loads nothing. The in-sim builder writes every map track as the
+         * five inch's, and it is offered to the five inch as it always was.
+         * It is offered to a fixed wing too, when the seated plane fits
+         * every one of its gates (the board's `planes`, src/game/verify.js
+         * planesFor), and then its card carries the plane board's record,
+         * since that is the board this pilot's lap would go to.
          */
-        const flyable = (t) => t.trackClass === want && (!t.map || (mapById(t.map).id === t.map && Boolean(mapById(t.map).build)));
-        const rest = list.filter((t) => t.id !== seatId && flyable(t));
+        const onWorld = (t) => mapById(t.map).id === t.map && Boolean(mapById(t.map).build);
+        const flyable = (t) => {
+          if (!t.map) {
+            return t.trackClass === want;
+          }
+          return onWorld(t) && (af.fixedWing ? t.planes.includes(af.id) : t.trackClass === want);
+        };
+        const asPlane = (t) => (af.fixedWing && t.map
+          ? { ...t, recordMs: t.planeRecordMs, recordBy: t.planeRecordBy, times: t.planeTimes }
+          : t);
+        const rest = list.filter((t) => t.id !== seatId && flyable(t)).map(asPlane);
         /*
          * EVERY TRACK, not five.
          *
@@ -8735,7 +8761,7 @@ export class Ui {
           /* Say WHICH list came back empty. "Nothing here" in front of a
            * pilot who can see the board has tracks on it reads as broken;
            * "none for this aircraft" is a fact they can act on. */
-          const other = list.some((t) => t.trackClass !== want);
+          const other = list.some((t) => !flyable(t));
           const name = airframeById(this.settings.airframe).name.toLowerCase();
           this.boardNote.textContent = other
             ? str('ui.no_tracks_on_the_board_yet', { name })
@@ -8793,8 +8819,12 @@ export class Ui {
           return;
         }
         this.standingsLoading = null;
-        /* Fastest first. The board returns them in posting order. */
-        this.standingsTimes = times.slice().sort((a, b) => a.lapMs - b.lapMs);
+        /* Fastest first. The board returns them in posting order. On a
+         * track built inside a world the quads and the planes are two
+         * boards, and the seated aircraft's is the one shown. */
+        const plane = Boolean(airframeById(this.settings.airframe).fixedWing);
+        const mine = track.map ? times.filter((t) => Boolean(t.craft) === plane) : times.slice();
+        this.standingsTimes = mine.sort((a, b) => a.lapMs - b.lapMs);
         if (this.screen === 'standings') {
           this.paintStandings();
           this.renderMenu();
@@ -10257,6 +10287,7 @@ export class Ui {
              * visit and by then the race is gone. Null on the field, which
              * is scored on one lap and always will be. */
             threeMs: opts.trackClass === 'micro' ? opts.threeMs : null,
+            craft: lapCraftOf(listing.doc, this.settings.airframe),
           });
         }
       } catch (e) {
@@ -12158,6 +12189,7 @@ export class Ui {
         series: (seat && seat.series) || listing.series || '',
         gates: (seat && seat.gates) || 0,
         board: listing.board || '',
+        map: listing.doc && isMapTrack(listing.doc) ? listing.doc.map : '',
       });
       return;
     }
