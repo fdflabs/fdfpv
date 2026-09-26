@@ -32,15 +32,16 @@
  * and the reason it is a swap on the view rather than a second map: the
  * valley took most of a minute to build and a test flight should take none.
  *
- * THE RACING LINE (line.js). A ribbon through the gates in flying order,
- * coloured by the speed each corner allows the aircraft it is drawn for,
- * red where it asks more than that aircraft can do, worked out again on
- * every edit and never per frame. The aircraft is the one being flown until
- * C picks another. The ribbon is drawn faint on a test flight.
+ * THE RACING LINE AND WHAT IS WRONG WITH THE TRACK (line.js). A ribbon
+ * through the gates in flying order, coloured by the speed each corner
+ * allows the aircraft it is drawn for, red where it asks more than that
+ * aircraft can do, and the geometry warnings listed in the panel and marked
+ * in the valley. Both are worked out again on every edit, never per frame.
+ * The aircraft is the one being flown until C picks another. The ribbon is
+ * drawn faint on a test flight.
  *
- * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the geometry
- * warnings (the rest of phase 2), the board and ghosts (phase 3), the town
- * and Yellowstone (phase 4).
+ * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the board and
+ * ghosts (phase 3), the town and Yellowstone (phase 4).
  *
  * THE GATES ARE SOLID, the way a field gate is: every edit hands the whole
  * built set to the valley's colliders (Colliders.setBuilt), which put it in
@@ -66,6 +67,7 @@
 import * as THREE from 'three';
 import { str } from '../strings/index.js';
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
+import { KINDS } from '../game/collide.js';
 import { ELEMENTS } from '../trackbuilder/elements.js';
 import { elementById, touch } from '../trackbuilder/model.js';
 import { listMapTracks, makeAutosaver, readMapAutosave, saveTrack } from '../trackbuilder/storage.js';
@@ -78,7 +80,7 @@ import {
   openingCentre, openingsOf, orderOf, poseOf, qAxis, raceGatesOf, readoutFor, removeGate, setPose, snapPose,
   startFor, turnGate, worldCaps,
 } from './course.js';
-import { craftLimits, racingLine } from './line.js';
+import { craftLimits, lineWarnings, racingLine } from './line.js';
 
 /* The camera's two speeds, metres a second: a slow one to put a gate on a
  * ledge, and one to cross the six kilometre valley in about a minute. */
@@ -122,6 +124,19 @@ const RIBBON_FAINT = 0.25;
 const SLOW = new THREE.Color(1.0, 0.55, 0.1);
 const FAST = new THREE.Color(0.3, 0.9, 1.0);
 const OVER = new THREE.Color(1.0, 0.08, 0.12);
+/* A warning's marker, metres across. Drawn through the ground, since a
+ * gate inside rock is inside it. */
+const MARKER_R = 1.2;
+/* How many warnings the panel lists before it says how many more. */
+const WARN_LINES = 6;
+/*
+ * What the geometry warnings count as the map's rock and buildings: every
+ * collider build() froze except the forest, which a line threads rather
+ * than clips and which would bury every other warning in a valley of
+ * trees, and gate frames. The built gates are left out separately
+ * (Colliders.gapAt frozenOnly).
+ */
+const NOT_ROCK = ['tree', 'canopy', 'gate'].reduce((m, k) => m | (1 << KINDS.indexOf(k)), 0);
 
 /* Standard gamepad buttons (the W3C mapping). */
 const PAD = {
@@ -176,13 +191,15 @@ export function createBuildMode(host) {
     active: false, sceneIndex: -1, centre: new THREE.Vector3(), travel: { x: 0, y: 0, z: -1 }, clearH: 0, correct: true, distance: 0, virtual: false,
   };
   let courseGates = [];
-  /* The racing line: on or off, the aircraft it is drawn for, the line as
-   * last worked out, and what draws it. */
+  /* The racing line: on or off, the aircraft it is drawn for, the line and
+   * the warnings as last worked out, and what draws them. */
   let lineOn = true;
   let craftId = null;
   let line = { samples: [], gateAt: [] };
+  let warnings = [];
   let lineGroup = null;
   let ribbon = null;
+  let markers = null;
 
   const fwd = new THREE.Vector3();
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -294,18 +311,32 @@ export function createBuildMode(host) {
   const ribbonMat = new THREE.MeshBasicMaterial({
     vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: RIBBON_OPACITY, depthWrite: false,
   });
+  const markerMat = new THREE.MeshBasicMaterial({
+    color: OVER, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false,
+  });
+  const markerGeo = new THREE.OctahedronGeometry(MARKER_R);
 
   function craft() {
     return craftLimits(airframeById(craftId));
   }
 
-  /* Work the line out again, and redraw it. On an edit, never per frame. */
+  /* The map as the warnings ask it: the ground, and the map's own rock and
+   * buildings without the built gates or the forest. */
+  const world = {
+    heightAt: (x, z) => host.heightAt(x, z),
+    solidAt: (x, y, z) => view.colliders.gapAt(x, y, z, 1e-3, true, NOT_ROCK) < 1e-3,
+  };
+
+  /* Work the line and the warnings out again, and redraw both. On an edit,
+   * never per frame. */
   function refreshLine() {
-    if (!root || !view) {
+    if (!root || !view || !view.colliders) {
       return;
     }
+    const gates = raceGatesOf(doc);
     const c = craft();
-    line = racingLine(raceGatesOf(doc), c, host.heightAt);
+    line = racingLine(gates, c, host.heightAt);
+    warnings = lineWarnings(gates, line, c, world);
     drawLine(c);
   }
 
@@ -319,6 +350,10 @@ export function createBuildMode(host) {
       ribbon.geometry.dispose();
       ribbon.removeFromParent();
       ribbon = null;
+    }
+    if (markers) {
+      markers.removeFromParent();
+      markers = null;
     }
     const s = line.samples;
     if (s.length >= 2) {
@@ -360,15 +395,27 @@ export function createBuildMode(host) {
       ribbon.renderOrder = 5;
       lineGroup.add(ribbon);
     }
+    markers = new THREE.Group();
+    for (const w of warnings) {
+      const m = new THREE.Mesh(markerGeo, markerMat);
+      m.position.set(w.pos.x, w.pos.y, w.pos.z);
+      m.renderOrder = 20;
+      markers.add(m);
+    }
+    lineGroup.add(markers);
     showLine();
   }
 
   /* The line as the state wants it: bright while building, faint on a
-   * test flight, and not at all when V hid it. */
+   * test flight, and not at all when V hid it. The warnings' markers are
+   * for building, and V leaves them: it hides the line, not the problems. */
   function showLine() {
     ribbonMat.opacity = state === 'testing' ? RIBBON_FAINT : RIBBON_OPACITY;
     if (ribbon) {
       ribbon.visible = lineOn;
+    }
+    if (markers) {
+      markers.visible = state === 'building';
     }
   }
 
@@ -377,12 +424,22 @@ export function createBuildMode(host) {
     showLine();
   }
 
-  /* The next aircraft the line is worked out for. */
+  /* The next aircraft the line and the warnings are worked out for. */
   function cycleCraft(step) {
     const ids = AIRFRAMES.map((a) => a.id);
     craftId = ids[(ids.indexOf(craftId) + step + ids.length) % ids.length];
     refreshLine();
     say(str('build.line_craft', { craft: airframeById(craftId).short }), 1600);
+  }
+
+  /* To the centimetre: a 1.75 m gate against a 1.8 m span is the whole
+   * point of one of these, and to the decimetre both read 1.8. */
+  function warningText(w) {
+    const vars = {
+      n: w.gate + 1, m: (w.next ?? 0) + 1, craft: airframeById(craftId).short,
+      value: w.value != null ? w.value.toFixed(2) : '', limit: w.limit != null ? w.limit.toFixed(2) : '',
+    };
+    return str(`build.warn_${w.code}`, vars);
   }
 
   function lineLines() {
@@ -398,6 +455,18 @@ export function createBuildMode(host) {
       }
       out.push(str('build.line', { craft: c, slow: Math.round(slow), top: Math.round(craft().topSpeed) }));
     }
+    if (!warnings.length) {
+      out.push(str('build.warnings_none'));
+      return out;
+    }
+    out.push(str('build.warnings', { n: warnings.length }));
+    for (const w of warnings.slice(0, WARN_LINES)) {
+      out.push(`  ${warningText(w)}`);
+    }
+    if (warnings.length > WARN_LINES) {
+      const more = str('build.warn_more', { n: warnings.length - WARN_LINES });
+      out.push(`  ${more}`);
+    }
     return out;
   }
 
@@ -406,8 +475,10 @@ export function createBuildMode(host) {
       ribbon.geometry.dispose();
     }
     ribbon = null;
+    markers = null;
     lineGroup = null;
     line = { samples: [], gateAt: [] };
+    warnings = [];
   }
 
   const ghostMat = new THREE.MeshBasicMaterial({
@@ -1436,9 +1507,14 @@ export function createBuildMode(host) {
           vertices: ribbon.geometry.attributes.position.count,
           opacity: ribbonMat.opacity,
         } : null,
+        markers: markers ? markers.children.length : 0,
       },
+      warnings: warnings.map((w) => ({
+        code: w.code, gate: w.gate, next: w.next ?? null, pos: [w.pos.x, w.pos.y, w.pos.z], value: w.value ?? null, limit: w.limit ?? null,
+      })),
     }),
-    /* What working the line out again costs, the mean of n, milliseconds. */
+    /* What working the line and the warnings out again costs, the mean of
+     * n, milliseconds. */
     lineMs(n = 5) {
       const t0 = performance.now();
       for (let i = 0; i < n; i += 1) {
@@ -1458,6 +1534,30 @@ export function createBuildMode(host) {
     /* The line's points, every `step`th, [x, y, z, speed, ok]. */
     linePoints(step = 1) {
       return line.samples.filter((_, i) => i % step === 0).map((p) => [p.x, p.y, p.z, p.v, p.ok]);
+    },
+    /* A solid of the map's own of one kind (none of the forest, none of the
+     * built gates), as its centre and size, so a harness can put a gate in
+     * it: the nearest to (x, z). */
+    findSolid(kind, x, z) {
+      const c = view.colliders;
+      const k = KINDS.indexOf(kind);
+      let best = null;
+      for (let i = 0; i < c.baseCount; i += 1) {
+        if (c.fkind[i] !== k) {
+          continue;
+        }
+        const cx = (c.fax[i] + c.fbx[i]) / 2;
+        const cy = (c.fay[i] + c.fby[i]) / 2;
+        const cz = (c.faz[i] + c.fbz[i]) / 2;
+        const size = c.fbox[i]
+          ? [c.fbx[i] - c.fax[i], c.fby[i] - c.fay[i], c.fbz[i] - c.faz[i]]
+          : [2 * c.fr[i], 2 * c.fr[i], 2 * c.fr[i]];
+        const d = Math.hypot(cx - x, cz - z);
+        if (Math.min(...size) > 4 && (!best || d < best.d)) {
+          best = { centre: [cx, cy, cz], size, box: Boolean(c.fbox[i]), d };
+        }
+      }
+      return best;
     },
     /* Put the free camera somewhere, looking along yaw and pitch. */
     look(x, y, z, yaw, pitch) {

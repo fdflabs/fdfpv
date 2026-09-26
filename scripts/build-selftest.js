@@ -49,6 +49,12 @@
  * where it is not; a one gate track's line leaves the gate and comes back
  * into it. Every aircraft names the figures the model reads.
  *
+ * Each geometry warning fires on a course built to trigger it and is gone
+ * when the course is fixed: a gate inside a building, a line through a
+ * wall, two gates too close, an opening too small for a wing's span, a
+ * gate facing the wrong way round the lap, and a line too tight for a
+ * wing.
+ *
  * The browser half, the builder itself in the real page, is
  * scripts/build-check.js.
  *
@@ -81,8 +87,8 @@ import {
   addGate, axesOf, makeStart, moveInLap, newCourse, openingCentre, orderOf, poseOf, qAxis, qMul,
   qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
-import { Colliders } from '../src/game/collide.js';
-import { craftLimits, racingLine, speedAt } from '../src/builder/line.js';
+import { Colliders, KINDS } from '../src/game/collide.js';
+import { craftLimits, lineWarnings, racingLine, speedAt } from '../src/builder/line.js';
 import {
   AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
 } from '../configs/airframes.js';
@@ -395,6 +401,12 @@ console.log('the built gates are solid');
   check('a flight into a built gate\'s upright hits a gate', col.kindName(kGate) === 'gate' && col.hitIndex >= baseCount, `${col.kindName(kGate)} ${col.hitIndex}`);
   check('its opening is open', col.hit(...through(g.centre)) === -1);
   check('the gap query sees it', col.gapAt(onUpright.x, onUpright.y, onUpright.z, 1) < 0.05);
+  check('and asked about the frozen world alone, as the geometry warnings ask, it does not',
+    col.gapAt(onUpright.x, onUpright.y, onUpright.z, 1, true) === Infinity);
+  const treeBit = 1 << KINDS.indexOf('tree');
+  check('a kind left out is not there, and every other kind still is',
+    col.gapAt(30, 5, -10, 1) === 0 && col.gapAt(30, 5, -10, 1, false, treeBit) === Infinity
+      && col.gapAt(-35, 4, -55, 1, true, treeBit) === 0);
   check('everything frozen answers exactly as before', probes.map(answer).join('|') === before.join('|'));
 
   /* Moved: the old place empty, the new one solid. */
@@ -527,6 +539,64 @@ console.log('the racing line');
   const endGap = Math.hypot(L[L.length - 1].x - L[0].x, L[L.length - 1].y - L[0].y, L[L.length - 1].z - L[0].z);
   check('and back into it: its last point is a step behind the opening', endGap < 1.5 && L[L.length - 1].z > L[0].z, endGap.toFixed(3));
   check('on the side with more air under it', L.every((p) => p.x <= 1e-9), `${Math.max(...L.map((p) => p.x)).toFixed(2)}`);
+}
+
+/* ------------------------------------------------------------------ */
+console.log('geometry warnings');
+{
+  const quad = craftLimits(airframeById('5inch'));
+  const sky = craftLimits(airframeById('sky1800'));
+  /* Flat ground at 0 and one building, 10 by 20 by 10 m, at the origin. */
+  const house = { x0: -5, x1: 5, y0: 0, y1: 20, z0: -5, z1: 5 };
+  const world = {
+    heightAt: () => 0,
+    solidAt: (x, y, z) => x > house.x0 && x < house.x1 && y > house.y0 && y < house.y1 && z > house.z0 && z < house.z1,
+  };
+  const course = (list) => {
+    const d = newCourse('swiss2', 'Warn');
+    for (const [x, y, z, yaw] of list) {
+      addGate(d, 'gate', { x, y: y - 0.8763, z }, qAxis(0, 1, 0, yaw));
+    }
+    return raceGatesOf(d);
+  };
+  const codes = (gates, c) => lineWarnings(gates, racingLine(gates, c, world.heightAt), c, world);
+  const has = (list, code, gate) => list.some((w) => w.code === code && (gate == null || w.gate === gate));
+  /* A lap round a triangle, each gate flown along the lap. None of the
+   * rules fire on it for the five inch. */
+  const clean = [[40, 10, 0, 0], [0, 10, -70, Math.PI / 2], [-40, 10, 0, Math.PI]];
+  const ok = codes(course(clean), quad);
+  check('a clean lap has no warnings', ok.length === 0, JSON.stringify(ok.map((w) => w.code)));
+
+  const inHouse = codes(course([[0, 10, 0, 0], ...clean.slice(1)]), quad);
+  check('blocked: a gate inside the building', has(inHouse, 'blocked', 0), JSON.stringify(inHouse.map((w) => w.code)));
+  const buried = codes(course([[40, -1, 0, 0], ...clean.slice(1)]), quad);
+  check('blocked: a gate half under the ground', has(buried, 'blocked', 0));
+
+  const wall = codes(course([[0, 10, 30, 0], [0, 10, -30, 0], [-40, 25, 0, Math.PI]]), quad);
+  check('clips: the line from gate 1 to gate 2 goes through the building', has(wall, 'clips', 0) && !has(wall, 'blocked'), JSON.stringify(wall.map((w) => w.code)));
+  const over = codes(course([[0, 30, 30, 0], [0, 30, -30, 0], [-40, 25, 0, Math.PI]]), quad);
+  check('and over its roof it does not', !has(over, 'clips'), JSON.stringify(over.map((w) => w.code)));
+
+  const close = codes(course([[40, 10, 0, 0], [40, 10, -2, 0], [-40, 25, -30, Math.PI]]), quad);
+  check('close: two gates 2 m apart, under the five inch\'s 2.5 m', has(close, 'close', 0), JSON.stringify(close.map((w) => w.code)));
+  check('and at 60 m they are not', !has(ok, 'close'));
+
+  const wide = codes(course(clean), sky);
+  check('small: a 1.75 m gate for a 1.8 m Skyhunter, all three', [0, 1, 2].every((i) => has(wide, 'small', i)));
+  check('and not for the five inch', !has(ok, 'small'));
+
+  const turned = codes(course([clean[0], [0, 10, -70, -Math.PI / 2], clean[2]]), quad);
+  check('backwards: the middle gate turned round', has(turned, 'backwards', 1), JSON.stringify(turned.map((w) => w.code)));
+  check('and turned back it is not', !has(ok, 'backwards'));
+
+  const zig = course([[0, 10, 0, 0], [8, 10, -12, 0], [0, 10, -24, 0], [-8, 10, -12, Math.PI]]);
+  const zz = codes(zig, sky);
+  check('tight: a Skyhunter round gates 12 m apart', has(zz, 'tight'), JSON.stringify(zz.map((w) => w.code)));
+  const round = (R) => course([0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
+    const th = (k / 8) * 2 * Math.PI;
+    return [R * Math.cos(th), 10, R * Math.sin(th), Math.PI - th];
+  }));
+  check('and round eight gates on a 30 m circle, not', !has(codes(round(30), sky), 'tight'));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

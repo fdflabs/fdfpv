@@ -1,6 +1,6 @@
 /*
- * line.js: the racing line through a built course, and the speed it implies
- * for one aircraft.
+ * line.js: the racing line through a built course, the speed it implies for
+ * one aircraft, and what is wrong with the course's geometry.
  *
  * No Three.js and no DOM, so scripts/build-selftest.js checks all of it in
  * Node; buildmode.js draws what this returns and hands it the world.
@@ -109,6 +109,7 @@ export function speedAt(craft, r) {
 
 const add = (a, b, s = 1) => ({ x: a.x + b.x * s, y: a.y + b.y * s, z: a.z + b.z * s });
 const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
+const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
 const len = (a) => Math.hypot(a.x, a.y, a.z);
 const cross = (a, b) => ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
 
@@ -216,4 +217,149 @@ export function racingLine(gates, craft, heightAt) {
     hermite(g, gates[(i + 1) % gates.length], i, craft, samples);
   });
   return { samples, gateAt };
+}
+
+/* ------------------------------------------------------------------ */
+/* Geometry warnings                                                   */
+/* ------------------------------------------------------------------ */
+
+/* The line is walked at this step for the ground and the solids: half a
+ * metre is thinner than any wall or rock the valleys are built from. */
+const CLIP_STEP = 0.5;
+/* An opening must be this much wider than the aircraft's span: a tenth of
+ * the span spare either side, room to fly it rather than thread it. */
+const SPAN_ROOM = 1.2;
+/* Where on an opening the blocked check looks: its centre and eight points
+ * at this fraction of the way to its edges. */
+const OPENING_PROBE = 0.8;
+/* A chord that runs against a gate's travel by more than this cosine is
+ * running against it, not across it. */
+const AGAINST_COS = -0.1;
+
+/*
+ * Everything wrong with the course's geometry for `craft`, as a list of
+ * { code, gate, next, pos, value, limit }: gate is the lap index the
+ * warning belongs to (the gate a segment leaves from), next the one it
+ * goes to where there is one, pos where to mark it in the scene, value
+ * and limit the numbers the rule compared, in metres.
+ *
+ * `world` is the map: heightAt(x, z) the ground, solidAt(x, y, z) whether
+ * a point is inside one of the map's own solids. The built gates are not
+ * the map's, and neither are its trees: see buildmode.js.
+ *
+ * THE RULES.
+ *   blocked    the gate's opening is inside rock or a building: its centre
+ *              or one of eight points OPENING_PROBE of the way to its edges
+ *              is under the ground or inside a solid.
+ *   clips      the line between two gates goes into the ground or into a
+ *              solid, walked at CLIP_STEP; marked where it first does.
+ *   tight      the line between two gates turns tighter than the craft's
+ *              rMin; marked at the tightest point.
+ *   close      two gates in a row are nearer than the craft's rMin: there
+ *              is no room for any turn between them.
+ *   small      the opening is narrower than SPAN_ROOM times the craft's
+ *              span.
+ *   backwards  the line arrives at the gate from in front of it and leaves
+ *              it behind: the chords from the gate before and to the gate
+ *              after both run against its travel, so flying the lap straight
+ *              through it is flying it backwards. Needs three gates: on two,
+ *              the chord in is the chord out reversed.
+ */
+export function lineWarnings(gates, line, craft, world) {
+  const out = [];
+  const n = gates.length;
+  gates.forEach((g, i) => {
+    const { across, up } = g.axes;
+    const hw = (g.aperture.clearW / 2) * OPENING_PROBE;
+    const hh = (g.aperture.clearH / 2) * OPENING_PROBE;
+    for (const u of [0, -1, 1]) {
+      for (const w of [0, -1, 1]) {
+        const p = add(add(g.centre, across, u * hw), up, w * hh);
+        if (p.y < world.heightAt(p.x, p.z) || world.solidAt(p.x, p.y, p.z)) {
+          out.push({ code: 'blocked', gate: i, pos: g.centre });
+          return;
+        }
+      }
+    }
+  });
+  gates.forEach((g, i) => {
+    if (g.aperture.clearW < craft.span * SPAN_ROOM) {
+      out.push({
+        code: 'small', gate: i, pos: g.centre, value: g.aperture.clearW, limit: craft.span * SPAN_ROOM,
+      });
+    }
+  });
+  if (n >= 2) {
+    for (let i = 0; i < (n === 2 ? 1 : n); i += 1) {
+      const a = gates[i].centre;
+      const b = gates[(i + 1) % n].centre;
+      const d = len(sub(b, a));
+      if (d < craft.rMin) {
+        out.push({
+          code: 'close', gate: i, next: (i + 1) % n, pos: add(a, sub(b, a), 0.5), value: d, limit: craft.rMin,
+        });
+      }
+    }
+  }
+  if (n >= 3) {
+    gates.forEach((g, i) => {
+      const prev = gates[(i + n - 1) % n].centre;
+      const next = gates[(i + 1) % n].centre;
+      const into = sub(g.centre, prev);
+      const onto = sub(next, g.centre);
+      const t = g.axes.travel;
+      if (dot(into, t) < AGAINST_COS * len(into) && dot(onto, t) < AGAINST_COS * len(onto)) {
+        out.push({ code: 'backwards', gate: i, pos: g.centre });
+      }
+    });
+  }
+  segmentWarnings(gates, line, craft, world, out);
+  return out;
+}
+
+/* The two rules read along the line: clips and tight, once per segment. */
+function segmentWarnings(gates, line, craft, world, out) {
+  const s = line.samples;
+  if (!s.length) {
+    return;
+  }
+  const segs = new Map();
+  const segOf = (k) => {
+    if (!segs.has(k)) {
+      segs.set(k, { clip: null, tight: null });
+    }
+    return segs.get(k);
+  };
+  for (let i = 0; i < s.length; i += 1) {
+    const a = s[i];
+    const b = s[(i + 1) % s.length];
+    const w = segOf(a.seg);
+    if (!a.ok && (!w.tight || a.r < w.tight.r)) {
+      w.tight = a;
+    }
+    if (w.clip) {
+      continue;
+    }
+    const d = sub(b, a);
+    const steps = Math.max(1, Math.ceil(len(d) / CLIP_STEP));
+    for (let k = 0; k < steps; k += 1) {
+      const p = add(a, d, k / steps);
+      if (p.y < world.heightAt(p.x, p.z) || world.solidAt(p.x, p.y, p.z)) {
+        w.clip = p;
+        break;
+      }
+    }
+  }
+  const n = gates.length;
+  for (const [seg, w] of [...segs].sort((x, y) => x[0] - y[0])) {
+    const next = (seg + 1) % n;
+    if (w.clip) {
+      out.push({ code: 'clips', gate: seg, next, pos: { x: w.clip.x, y: w.clip.y, z: w.clip.z } });
+    }
+    if (w.tight) {
+      out.push({
+        code: 'tight', gate: seg, next, pos: { x: w.tight.x, y: w.tight.y, z: w.tight.z }, value: w.tight.r, limit: craft.rMin,
+      });
+    }
+  }
 }
