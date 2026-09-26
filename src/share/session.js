@@ -220,15 +220,31 @@ export function courseSeatKey(share, doc) {
   return `custom:empty:${activeTrackClass()}`;
 }
 
+/*
+ * The seat a document belongs in, not the one currently seated: a pilot on a
+ * five inch who opens a room from the board is holding a room, and it has to
+ * be there when they change aircraft.
+ *
+ * A TRACK BUILT INSIDE A WORLD (schemaVersion 4 naming a map) is the one
+ * document two classes race: the five inch, as it always has, and every
+ * fixed wing that fits its gates. It is filed as the five inch's, unless the
+ * pilot is flying a plane when it arrives, which is what choosing it from
+ * the Track room with a plane seated, or a board link naming a plane, both
+ * mean: then it is the plane's. The same shape test as isMapTrack in
+ * src/trackbuilder/model.js, written out because this file imports nothing.
+ */
+function seatClassOf(doc) {
+  if (doc.schemaVersion >= 4 && typeof doc.map === 'string' && doc.map) {
+    return activeTrackClass() === 'wing' ? 'wing' : 'full';
+  }
+  return Object.hasOwn(IMPORT_KEYS, doc.trackClass) ? doc.trackClass : 'full';
+}
+
 export function writeShareImport(payload) {
   if (!payload || !payload.document || !payload.id) {
     return false;
   }
-  /* The seat the DOCUMENT belongs in, not the one currently seated: a pilot
-   * on a five inch who opens a room from the board is holding a room, and it
-   * has to be there when they change aircraft. */
-  const cls = payload.document.trackClass;
-  return writeJson(importKey(Object.hasOwn(IMPORT_KEYS, cls) ? cls : 'full'), {
+  return writeJson(importKey(seatClassOf(payload.document)), {
     id: String(payload.id),
     name: String(payload.name || payload.document.name || str('ui.untitled_track')),
     author: String(payload.author || ''),
@@ -322,6 +338,17 @@ export function writeBind(trackId, bind) {
   });
 }
 
+/*
+ * WHERE A LAP'S BEST IS KEPT on this browser: the track id, and for a plane's
+ * lap on a map track the plane board beside it (src/game/verify.js
+ * planesFor), since the two boards rank separately and a quad's posted best
+ * must not make a plane's slower lap look like no improvement. `craft` is
+ * the plane's airframe id, or empty for every other lap.
+ */
+export function lapSlot(trackId, craft) {
+  return craft ? `${trackId}#wing` : trackId;
+}
+
 export function readPendingTime() {
   const raw = readJson(PENDING_KEY, null);
   if (!raw || typeof raw !== 'object' || !raw.trackId || !Number.isFinite(raw.lapMs)) {
@@ -349,6 +376,9 @@ export function writePendingTime(payload) {
     trackId: String(payload.trackId),
     lapMs: Math.round(payload.lapMs),
     threeMs: Number.isFinite(three) && three > 0 ? Math.round(three) : null,
+    /* The plane that flew it, on a map track, so a later upload goes to the
+     * board it was flown for; empty for every other lap. */
+    craft: payload.craft ? String(payload.craft) : '',
   });
 }
 

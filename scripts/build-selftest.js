@@ -85,7 +85,7 @@ import { PRESETS } from '../src/trackbuilder/presets.js';
 import { Race } from '../src/game/race.js';
 import {
   addGate, axesOf, flipPass, gateSpec, makeStart, moveInLap, newCourse, openingCentre, openingsOf, orderOf, poseOf, qAxis, qMul,
-  qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, stepOf, turnGate, worldCaps, SPAWN_BACK,
+  qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, floatStart, stepOf, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
 import { Colliders, KINDS, contactMaterial } from '../src/game/collide.js';
 import { craftLimits, lineWarnings, racingLine, speedAt } from '../src/builder/line.js';
@@ -436,7 +436,18 @@ console.log('where a test flight starts');
   addGate(d, 'gate', { x: 0, y: 100, z: 0 }, qAxis(0, 1, 0, 30 * DEG));
   let gates = raceGatesOf(d);
   const onGround = startFor(gates, flat);
-  check('a start gate on the ground starts on the ground behind it, as before', !onGround.air && JSON.stringify(onGround) === JSON.stringify(spawnFor(gates)));
+  const { lift, ...groundOnly } = onGround;
+  check('a start gate on the ground starts on the ground behind it, as before', !onGround.air && JSON.stringify(groundOnly) === JSON.stringify(spawnFor(gates)));
+  const g0 = gates[0];
+  check('and carries the air start the same gate would give, lined up on its opening',
+    Boolean(lift) && near(lift.y, g0.centre.y, 1e-9)
+    && near(Math.hypot(g0.centre.x - lift.x, g0.centre.z - lift.z), SPAWN_BACK, 1e-9), JSON.stringify(lift));
+  /* An aircraft on floats: on the water where the ground start is on the
+   * lake, in the air where it is on land, and an air start untouched. */
+  check('on floats, a ground start on the water stays on the water', floatStart(onGround, () => true) === onGround);
+  const lifted = floatStart(onGround, () => false);
+  check('on floats, a ground start on land becomes the air start in its lift',
+    Boolean(lifted.air) && lifted.air.y === lift.y && lifted.x === lift.x && lifted.z === lift.z && lifted.yaw === onGround.yaw, JSON.stringify(lifted));
   const h = newCourse('alps', 'Hung');
   addGate(h, 'gate', { x: 0, y: 130, z: 0 }, qAxis(0, 1, 0, 30 * DEG));
   gates = raceGatesOf(h);
@@ -450,6 +461,11 @@ console.log('where a test flight starts');
   check('facing through it', near(air.yaw, g.heading, 1e-9));
   const hill = (x, z) => (Math.hypot(x - air.x, z - air.z) < 1 ? g.centre.y - 0.5 : 100);
   check('with the ground behind it risen to the start point, the ground start again', !startFor(gates, hill).air);
+  check('on floats an air start is an air start', floatStart(air, () => true) === air && floatStart(air, () => false) === air);
+  const risen = startFor(gates, hill);
+  check('and its lift is half an opening over the risen ground, never in it',
+    near(risen.lift.y, Math.max(g.centre.y, hill(risen.lift.x, risen.lift.z) + g.aperture.clearH / 2), 1e-9) && risen.lift.y - hill(risen.lift.x, risen.lift.z) >= g.aperture.clearH / 2 - 1e-9,
+    `${risen.lift.y} over ${hill(risen.lift.x, risen.lift.z)}`);
   const low = newCourse('alps', 'Low');
   addGate(low, 'gate', { x: 0, y: 100.8, z: 0 }, qAxis(0, 1, 0, 0));
   check('a gate on a low stand is still a ground start', !startFor(raceGatesOf(low), flat).air);

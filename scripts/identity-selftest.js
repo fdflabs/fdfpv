@@ -49,6 +49,13 @@ check('another lap does not', await verifyTimeSignature({ ...signed, ...post, la
 check('another ghost does not', await verifyTimeSignature({ ...signed, ...post, ghost: 'RlBWR0hTVDI=' }) === false);
 check('a bent signature does not', await verifyTimeSignature({ ...signed, ...post, sig: `${signed.sig.slice(0, -4)}AAA=` }) === false);
 check('junk for a key does not', await verifyTimeSignature({ ...signed, ...post, key: 'not a key' }) === false);
+/* A plane's lap on a map track names its plane, and the name is signed. */
+const planePost = { ...post, craft: 'sky1800' };
+const planeSigned = await a.signTime(planePost);
+check('a plane\'s lap verifies with its plane', await verifyTimeSignature({ ...planeSigned, ...planePost }) === true);
+check('not with the plane taken off, onto the quads\' board', await verifyTimeSignature({ ...planeSigned, ...post }) === false);
+check('nor moved onto another plane', await verifyTimeSignature({ ...planeSigned, ...planePost, craft: 'bramor2300' }) === false);
+check('and a quad\'s lap cannot be given a plane', await verifyTimeSignature({ ...signed, ...planePost }) === false);
 
 const b = createIdentity(memoryStorage());
 const keyB = await b.publicKey();

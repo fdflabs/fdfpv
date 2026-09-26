@@ -536,6 +536,11 @@ export function spawnFor(gates) {
  * not at least half an opening clear of the ground under it, a gate hung
  * off a slope that rises behind it: the ground there is the start line.
  *
+ * A ground start also carries `lift`: the air start the same gate would
+ * give if the aircraft could not start on the ground there (floatStart).
+ * Every start this returns has `lift` or `air`, which is how the shell
+ * tells a course's start from a map's own spawn.
+ *
  * `heightAt(x, z)` is the map's.
  */
 export function startFor(gates, heightAt) {
@@ -550,9 +555,30 @@ export function startFor(gates, heightAt) {
   const hung = c.y - heightAt(c.x, c.z) > g.aperture.clearH;
   const clear = p.y - heightAt(p.x, p.z) >= g.aperture.clearH / 2;
   if (!hung || !clear) {
-    return ground;
+    /* Lined up on the opening as the air start is, and never less than
+     * half an opening over the ground under it, the rule's own clearance. */
+    const y = Math.max(p.y, heightAt(p.x, p.z) + g.aperture.clearH / 2);
+    return { ...ground, lift: { x: p.x, z: p.z, y } };
   }
   return { x: p.x, z: p.z, yaw: ground.yaw, air: { y: p.y } };
+}
+
+/*
+ * Where an aircraft on floats starts a course, from startFor's `start`.
+ *
+ * On floats a ground start is a start on the water: the aircraft sits on
+ * its floats behind the start gate and takes off off the lake, which is the
+ * only ground a floatplane takes off from. So a ground start whose spot is
+ * on the water (`onWater(x, z)`, the map's) stays as it is, and one on land,
+ * where a floatplane would sit on its keels in the grass, becomes the air
+ * start the same gate carries in `lift`, lined up on its opening by the air
+ * start rule. An air start is an air start for every aircraft.
+ */
+export function floatStart(start, onWater) {
+  if (!start || start.air || !start.lift || onWater(start.x, start.z)) {
+    return start;
+  }
+  return { x: start.lift.x, z: start.lift.z, yaw: start.yaw, air: { y: start.lift.y } };
 }
 
 /*

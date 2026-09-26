@@ -34,7 +34,9 @@ import { toPlain } from '../../src/trackbuilder/model.js';
  * `opts.map` is the world ('swiss2'), `opts.centre` the ring's centre in the
  * scene ([x, y, z], y up), `opts.radius` its radius in metres, `opts.gates`
  * how many, `opts.name` the title, and `opts.id` pins the document's id so
- * two calls can build the same course under one id.
+ * two calls can build the same course under one id. `opts.type` is every
+ * gate's type ('gate'), or `opts.types` one per gate, so a plane sized
+ * course (the wide gates and the pylon pair) is built the same way.
  */
 export function mapTrackDocument(opts = {}) {
   const map = opts.map ?? 'swiss2';
@@ -51,7 +53,7 @@ export function mapTrackDocument(opts = {}) {
      * tangent: (-sin a, 0, cos a) at the point (cos a, 0, sin a). */
     const base = { x: cx + radius * Math.cos(a), y: cy, z: cz + radius * Math.sin(a) };
     const quat = qAxis(0, 1, 0, headingOf(-Math.sin(a), Math.cos(a)));
-    addGate(doc, opts.type ?? 'gate', base, quat);
+    addGate(doc, opts.types?.[i] ?? opts.type ?? 'gate', base, quat);
   }
   return toPlain(doc);
 }

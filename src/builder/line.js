@@ -237,6 +237,17 @@ const OPENING_PROBE = 0.8;
 const AGAINST_COS = -0.1;
 
 /*
+ * The first gate in flying order whose opening is too narrow for `craft`
+ * (craftLimits) by the `small` rule below, or -1 when it fits every one.
+ * This is the one rule for which aircraft may race a built course: the
+ * warning the builder shows its author, the Track room's list, the seat
+ * and the board's lap check all ask it.
+ */
+export function misfitGate(gates, craft) {
+  return gates.findIndex((g) => g.aperture.clearW < craft.span * SPAN_ROOM);
+}
+
+/*
  * Everything wrong with the course's geometry for `craft`, as a list of
  * { code, gate, next, pos, value, limit }: gate is the lap index the
  * warning belongs to (the gate a segment leaves from), next the one it
@@ -283,7 +294,7 @@ export function lineWarnings(gates, line, craft, world) {
     }
   });
   gates.forEach((g, i) => {
-    if (g.aperture.clearW < craft.span * SPAN_ROOM) {
+    if (misfitGate([g], craft) === 0) {
       out.push({
         code: 'small', gate: i, pos: g.centre, value: g.aperture.clearW, limit: craft.span * SPAN_ROOM,
       });
