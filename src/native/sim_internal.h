@@ -863,6 +863,11 @@ int crash_contact_known(const SimState *s, const double n[3], const double hw[3]
  * makes it the next contact's; k -1 ends the pass. */
 int crash_touches(const SimState *s);
 int crash_touch(const SimState *s, int k, double r[3], double n[3], double *pen, double *e, double *mu);
+/* Touch k's surface velocity, world: a post that gives moves, every other
+ * solid is still. And every step after the contacts, the posts that give
+ * swing on their springs (crash.c, A POST THAT GIVES). */
+void crash_touch_vs(int k, double vs[3]);
+void crash_solids_step(void);
 
 /* Bridge: Betaflight control loop and config shim. */
 
