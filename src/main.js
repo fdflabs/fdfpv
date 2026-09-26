@@ -64,6 +64,7 @@ import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
 import { Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
+import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
@@ -1345,9 +1346,33 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     };
   }
 
+  /*
+   * Where this run starts. The view's spawn, except for an aircraft on
+   * floats on a map with water: flown free it starts on the water's own
+   * spawn, and on a course built in the world (a start from src/builder/
+   * course.js startFor, which carries `lift` or `air`) at the course's own
+   * start, on the water when that is on the lake and in the air when it is
+   * on land (floatStart).
+   */
+  function runSpawn() {
+    const sp = view.spawn;
+    if (!sp || !floatsOnWater()) {
+      return sp;
+    }
+    if (sp.lift) {
+      return floatStart(sp, (x, z) => Boolean(waterAt(x, z)));
+    }
+    return sp.air ? sp : view.water[0].spawn;
+  }
+  /* Whether this run starts afloat, which is where it rests. */
+  function startsAfloat() {
+    const sp = runSpawn();
+    return floatsOnWater() && !(sp && sp.air);
+  }
+
   function adoptSpawn() {
-    seatRestHeight(airframeById(runAirframe), floatsOnWater());
-    const sp = floatsOnWater() && !view.spawn.air ? view.water[0].spawn : view.spawn;
+    seatRestHeight(airframeById(runAirframe), startsAfloat());
+    const sp = runSpawn();
     startX = sp.x;
     startZ = sp.z;
     startYaw = sp.yaw;
@@ -4904,8 +4929,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     runLaps = ui.settings.laps;
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     /* Not on the way to the title: that reset parks the craft for a menu. */
-    if (view.spawn && view.spawn.air && mode !== 'title') {
-      airStart(view.spawn.air.y);
+    const sp = runSpawn();
+    if (sp && sp.air && mode !== 'title') {
+      airStart(sp.air.y);
     }
   }
 
@@ -5464,7 +5490,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     /* Where this aircraft's centre sits when it is parked, which is where
      * the shell puts the ground plane, the spawn and the landed test. See
      * SPAWN_ALT at the top of this file. */
-    seatRestHeight(airframeById(runAirframe), floatsOnWater());
+    seatRestHeight(airframeById(runAirframe), startsAfloat());
     dressCraft();
     swapGhostRig();
     const isWing = Boolean(airframeById(runAirframe).fixedWing);
@@ -6574,8 +6600,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
          * track whose start gate hangs in the air started on the ground
          * under it. A restart from the pause menu has already had its air
          * start, and its countdown is running. */
-        if (view.spawn && view.spawn.air && !(airHoldMs > 0)) {
-          airStart(view.spawn.air.y);
+        const sp = runSpawn();
+        if (sp && sp.air && !(airHoldMs > 0)) {
+          airStart(sp.air.y);
         }
         ui.show('flight');
         /*
@@ -9848,7 +9875,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
        */
       /* A wing has no throttle to take off on: L throws it. */
       const isWing = Boolean(airframeById(runAirframe).fixedWing);
-      const start = floatsOnWater()
+      const start = startsAfloat()
         ? str('main.throttle_up_on_the_water')
         : airframeById(runAirframe).flaps
         ? str('main.throttle_up_flaps_f')
