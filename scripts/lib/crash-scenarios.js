@@ -693,18 +693,35 @@ export const CRASH_SCENARIOS = [
       const prop = r.index('prop', (p) => p.motor === 0);
       const before = r.state();
       r.sim.e.sim_part_break(prop);
-      let maxYaw = 0;
+      let airYaw = 0;
       let tGround = null;
       r.run(9000, [0, 0, 0, HOVER], (s) => {
-        maxYaw = Math.max(maxYaw, Math.abs(s[13]));
         if (tGround === null && s[3] < 0.2) tGround = s[0] - before[0];
+        if (tGround === null) airYaw = Math.max(airYaw, Math.abs(s[13]));
+      });
+      /* The spin is judged in the air and over a fall long enough for it
+       * to build. The 2 s from 10 m is not: Betaflight answers the yaw by
+       * pulling down the two surviving props that make it, so they carry
+       * a quarter of the weight and leave about 0.02 N m of yaw torque,
+       * and the rate climbs near 1.5 rad/s per second. A strike's spike
+       * is not a spin. Mueller and D'Andrea's 10 rad/s in 0.6 s holds the
+       * props at hover thrust, which only a spinning controller does. */
+      const high = await mk({ id: 0, ground: null });
+      high.pose([0, 0, 300], [1, 0, 0, 0]);
+      high.run(1000, [0, 0, 0, HOVER]);
+      high.sim.e.sim_part_break(high.index('prop', (p) => p.motor === 0));
+      let fallYaw = 0;
+      let t10 = null;
+      high.run(10000, [0, 0, 0, HOVER], (s, i) => {
+        fallYaw = Math.max(fallYaw, Math.abs(s[13]));
+        if (t10 === null && fallYaw > 10) t10 = (i + 1) / 1000;
       });
       const m = r.motors();
       const ps = r.partsState();
       return [
         { name: 'motor 0 reads no thrust', ok: m[0].thrust === 0, detail: m.map((x) => x.thrust.toFixed(2)).join(' ') },
         { name: 'the flags say a prop is gone', ok: (r.flags() & DAMAGE_FLAGS.propLost) !== 0 },
-        { name: 'it yaws into a spin Betaflight cannot stop', ok: maxYaw > 10, detail: `${maxYaw.toFixed(1)} rad/s` },
+        { name: 'falling from 300 m it yaws into a spin Betaflight cannot stop', ok: fallYaw > 10, detail: `${fallYaw.toFixed(1)} rad/s in 10 s, past 10 at ${t10 === null ? 'never' : `${t10.toFixed(2)} s`}; from 10 m ${airYaw.toFixed(1)} rad/s before it lands` },
         { name: 'it comes down within 5 s', ok: tGround !== null && tGround < 5, detail: `${tGround === null ? 'never' : tGround.toFixed(2)} s` },
         { name: 'the prop flutters down and comes to rest on the grass', ok: ps[prop].status === 2 && Math.abs(ps[prop].pos[2]) < 0.05, detail: `status ${ps[prop].statusName}, z ${ps[prop].pos[2].toFixed(3)}` },
       ];
