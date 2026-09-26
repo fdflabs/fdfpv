@@ -495,6 +495,19 @@ function onUpright(g) {
   return vAdd(g.centre, across, OPENING.clearW / 2 + 0.02);
 }
 
+/* How far a point is from a collider as window.__contacts().obstacle
+ * names it: outside a box, or off a capsule's surface. */
+function solidGap(s, p) {
+  if (s.box) {
+    const o = p.map((v, i) => Math.max(s.a[i] - v, 0, v - s.b[i]));
+    return Math.hypot(...o);
+  }
+  const d = s.b.map((v, i) => v - s.a[i]);
+  const dd = vDot(d, d);
+  const t = dd > 1e-12 ? Math.max(0, Math.min(1, vDot(p.map((v, i) => v - s.a[i]), d) / dd)) : 0;
+  return Math.max(0, Math.hypot(...p.map((v, i) => v - s.a[i] - d[i] * t)) - s.r);
+}
+
 /* Place a gate hung level in the air, the builder's air distance in front
  * of an eye looking along `yaw`, and hand back its race frame. */
 async function hangGate(page, eye, yaw) {
@@ -553,14 +566,30 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
   await throwAt(g.centre, 2.5, 12);
   const through = await past(2);
   await page.sleep(300);
-  const clean = await page.evaluate('({ c: window.__craftState(), k: window.__crash() })');
-  say(through && clean.c.lastHitKind === 'none' && clean.k.events === crash0.events, `through the opening at 12 m/s: out the far side, touched ${clean.c.lastHitKind}, damage events ${clean.k.events - crash0.events}`);
+  /*
+   * WHAT RECORDS A HIT. Since #79 the plant meets the solids it holds with
+   * its own parts, every step, and the shell's sweep drops its contact on
+   * them, so the shell's lastHitKind stays 'none' through a hit the plant
+   * took. The plant's count of parts on a held solid (sim_obstacle_contacts,
+   * logged per step by window.__contacts().obstacle with the held solid
+   * nearest the craft) is the measurement now, and both are read: a clean
+   * pass touches neither, a hit on the upright is a plant contact on a
+   * built frame member that is that upright.
+   */
+  const clean = await page.evaluate('({ c: window.__craftState(), k: window.__crash(), o: window.__contacts().obstacle })');
+  say(through && clean.c.lastHitKind === 'none' && clean.o.length === 0 && clean.k.events === crash0.events,
+    `through the opening at 12 m/s: out the far side, touched ${clean.c.lastHitKind}, ${clean.o.length} steps on a held solid, damage events ${clean.k.events - crash0.events}`);
   await throwAt(onUpright(g), 2.5, 12);
-  await page.until("window.__craftState().lastHitKind !== 'none'", 15000).catch(() => {});
+  await page.until("window.__contacts().obstacle.length > 0 || window.__craftState().lastHitKind !== 'none'", 15000).catch(() => {});
   await page.sleep(400);
   await shot(page, '7-into-the-built-gate');
-  const hit = await page.evaluate('({ c: window.__craftState(), k: window.__crash() })');
-  say(FRAME.includes(hit.c.lastHitKind), `into its upright at 12 m/s: the contact is with a ${hit.c.lastHitKind} at ${f1(hit.c.lastClosingSpeed)} m/s closing`);
+  const hit = await page.evaluate('({ c: window.__craftState(), k: window.__crash(), o: window.__contacts().obstacle })');
+  const first = hit.o[0];
+  const offUpright = first && first.solid ? solidGap(first.solid, onUpright(g)) : Infinity;
+  say(Boolean(first) && first.built && FRAME.includes(first.kind) && offUpright < 0.1,
+    first
+      ? `into its upright at 12 m/s: the plant's parts meet a held solid on ${hit.o.length} steps, first a built ${first.kind} ${f1(offUpright * 100)} cm from the upright (${first.parts} parts)`
+      : `into its upright at 12 m/s: no plant contact on a held solid, the shell's sweep says ${hit.c.lastHitKind}`);
   say(hit.k.events > clean.k.events, `and the crash physics took it: ${hit.k.events - clean.k.events} damage events, flags ${JSON.stringify(hit.k.flagNames)}`);
   await page.tap('KeyB');
   await page.until(`${B('.state')} === 'building'`, 10000);

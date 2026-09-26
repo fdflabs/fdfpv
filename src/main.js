@@ -2726,6 +2726,52 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       ],
     });
   }
+  /*
+   * Harness only, kept with the contact log above: the steps on which the
+   * plant's parts met a solid it holds (sim_obstacle_contacts), and which
+   * held solid was nearest the craft then. Since the plant resolves the
+   * solids it holds (#79) the shell's own sweep drops those contacts, so
+   * lastHitKind stays empty through a hit the plant took; this is where a
+   * capture reads what the craft met instead. window.__contacts().obstacle.
+   */
+  const obstacleLog = [];
+  function logObstacleStep(st) {
+    if (!contactLogOn || obstacleLog.length >= CONTACT_LOG_MAX || sim.e.sim_obstacle_contacts() <= 0) {
+      return;
+    }
+    poseFromState(st, pProbe);
+    const col = view.colliders;
+    let best = -1;
+    let bestGap = Infinity;
+    for (const i of crashKnownList) {
+      let gap;
+      if (col.fbox[i]) {
+        const ox = Math.max(col.fax[i] - pProbe.x, 0, pProbe.x - col.fbx[i]);
+        const oy = Math.max(col.fay[i] - pProbe.y, 0, pProbe.y - col.fby[i]);
+        const oz = Math.max(col.faz[i] - pProbe.z, 0, pProbe.z - col.fbz[i]);
+        gap = Math.sqrt(ox * ox + oy * oy + oz * oz);
+      } else {
+        col.axisToPoint(i, pProbe.x, pProbe.y, pProbe.z);
+        gap = Math.sqrt(col.nx * col.nx + col.ny * col.ny + col.nz * col.nz) - col.fr[i];
+      }
+      if (gap < bestGap) {
+        bestGap = gap;
+        best = i;
+      }
+    }
+    obstacleLog.push({
+      t: st[0],
+      parts: sim.e.sim_obstacle_contacts(),
+      index: best,
+      kind: best >= 0 ? col.kindName(col.fkind[best]) : 'none',
+      built: best >= col.baseCount,
+      solid: best >= 0 ? {
+        a: [col.fax[best], col.fay[best], col.faz[best]], b: [col.fbx[best], col.fby[best], col.fbz[best]], r: col.fr[best], box: Boolean(col.fbox[best]),
+      } : null,
+      gap: bestGap,
+      at: [pProbe.x, pProbe.y, pProbe.z],
+    });
+  }
   /* The last impulse announced, so a harder hit inside the cooldown is
    * still heard: a graze followed by the wall behind it is two events. */
   let lastImpulse = 0;
@@ -8103,6 +8149,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
             if (runDamage) {
               crashAfterStep(stNow);
             }
+            logObstacleStep(stNow);
             if (scoring) {
               /* Body rates, the two quaternion components the attitude test
                * needs, and speed. Nothing is allocated and nothing is
@@ -10031,6 +10078,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     bounces: bounceCount,
     lastImpulse,
     log: contactLog.slice(),
+    obstacle: obstacleLog.slice(),
     grazeMax: GRAZE_SPEED_MAX,
     bounceMax: BOUNCE_SPEED_MAX,
   });
@@ -10587,6 +10635,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     obsHasPrev = false;
     obsPhase = 0;
     contactLog.length = 0;
+    obstacleLog.length = 0;
     crashLog.length = 0;
     contactLogOn = true;
     stepTrace.on = true;
