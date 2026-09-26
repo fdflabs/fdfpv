@@ -209,12 +209,30 @@ static void table_add(Table *t, const PartDef *d, int airframe) {
  * A spar alone is stiffer than the panel with its outboard foam, so a panel's
  * frequency is an upper bound: 8 to 13 Hz for the foam planes' panels, inside
  * the 5 to 20 Hz small UAV wings' ground vibration tests put their first
- * bending. A foam boom rings at 10 to 40 Hz. RING_ZETA, its damping, is
- * chosen: a few percent of critical, a lightly damped structure.
- * docs/CRASH-STAGE1.md, Damage.
+ * bending. A foam boom rings at 10 to 40 Hz. docs/CRASH-STAGE1.md, Damage.
+ *
+ * A RING'S DAMPING is where its energy goes, and in a built up structure
+ * that is its joints more than its material: along the fibre carbon
+ * laminate dissipates of the order of one percent of its strain energy a
+ * cycle (Adams and Bacon, J. Composite Materials 7, 1973), about a tenth of
+ * a percent of critical. What a member is seated in rubs: Newmark and
+ * Hall's damping by construction (Chopra, Dynamics of Structures, 4th ed.,
+ * Table 11.2.1) gives a bolted or riveted structure 5 to 7 percent of
+ * critical up to half its yield and 10 to 15 at or just under it, and one
+ * without such joints (welded) 2 to 3 and 5 to 7. A spar plugged into a
+ * foam fuselage and a tube clamped in it with screws are the first kind, a
+ * foam boom moulded with its fuselage the second (sect_joint). The low end
+ * of each, which rings the longest, from half the joint's limit to its
+ * limit, on the load the last batch judged it at: the rubbing grows with
+ * the slip. The table is for buildings; no ground vibration
+ * test of a foam model was at hand, so the class of construction is what
+ * carries over, not the size.
  */
 #define RING_OWN 0.2427   /* 33 / 140, a cantilever's own mass at its tip */
-#define RING_ZETA 0.03
+#define RING_ZETA_JOINT_LO 0.05
+#define RING_ZETA_JOINT_HI 0.10
+#define RING_ZETA_ONE_LO 0.02
+#define RING_ZETA_ONE_HI 0.05
 #define RING_STILL 1.0e-3 /* N and N m: a ring below this is over */
 
 /* Masses, centres, boxes, subtrees and the root's residual. */
@@ -2798,6 +2816,46 @@ SIM_EXPORT int sim_crash_debug(double *out, int max) {
 static double g_pull_f[PULLS_MAX][3], g_pull_at[PULLS_MAX][3];
 static int g_npull = 0;
 
+/* A RING'S DAMPING at rho, the ratio to its limit the joint was last
+ * judged at. */
+static double ring_zeta(const PartDef *d, double rho) {
+  const double lo = d->sect_joint ? RING_ZETA_JOINT_LO : RING_ZETA_ONE_LO;
+  const double hi = d->sect_joint ? RING_ZETA_JOINT_HI : RING_ZETA_ONE_HI;
+  double f = (rho - 0.5) / 0.5;
+  if (f < 0.0) f = 0.0;
+  if (f > 1.0) f = 1.0;
+  return lo + f * (hi - lo);
+}
+
+/*
+ * WHAT A RING DRIVES RIDES ON IT. The ring is the root load of the part
+ * and all it carries, driven by the subtree's quasi static load: m_sub
+ * times the craft's motion, less the contacts on it. What rides at its
+ * tip (a tail on its booms) moves with it, so the tip's acceleration is
+ * that load's own: the ring plus the contacts on the subtree, over m_sub.
+ * In a steady deceleration it is the craft's, and a ring that overshoots
+ * shakes the tip by as much more. Over the mode's own tip mass (table
+ * finish's m_eff, 0.11 kg on the Skyhunter's booms against the 0.16 kg the
+ * ring was driven by) the tail was shaken 1.4 times as hard as the craft
+ * even when nothing rang, and a contact on the member pushed its tip the
+ * wrong way. The mode's frequency stays the intact one: taken live on what
+ * still rides on it, the Radian's panels rang faster once an aileron was
+ * off, nearer its boom's 11.2 Hz, and the boom, at its limit either way,
+ * went in the stall where it held (docs/CRASH-STAGE1.md).
+ */
+static double ring_sub(const Table *t, int j, unsigned int gone) {
+  double ms = 0.0;
+  for (int i = 0; i < t->n; i += 1) {
+    if ((t->sub[j] & (1u << i)) && attached(i) && !(gone & (1u << i))) {
+      ms += t->p[i].mass;
+    }
+  }
+  return ms;
+}
+
+/* No contact counted: a joint's inertial load alone. */
+static const double g_no_hits[HITS_MAX] = { 0.0 };
+
 static void craft_accel(const Table *t, const double F[][3], const double *sc, const int *gate, int own,
                         const double ring0[][6], unsigned int gone, double m, double ps, double acc[3], double alp[3]) {
   double Ft[3] = { 0.0, 0.0, 0.0 }, tau[3] = { 0.0, 0.0, 0.0 };
@@ -3303,12 +3361,14 @@ static void judge(SimState *s) {
   }
   int gate[HITS_MAX];
   double ring0[SIM_PARTS_MAX][6];
+  double tip_fc[SIM_PARTS_MAX][3];
   for (int h = 0; h < g_nh; h += 1) {
     const int i = H[h].part;
     gate[h] = t->w1[i] > 0.0 ? i : t->ring_up[i];
   }
   for (int j = 0; j < n; j += 1) {
     for (int a = 0; a < 6; a += 1) ring0[j][a] = PS[j].ring[a];
+    for (int a = 0; a < 3; a += 1) tip_fc[j][a] = 0.0;
   }
   for (int iter = 0; iter < BREAKS_MAX; iter += 1) {
     double m = 0.0;
@@ -3343,8 +3403,9 @@ static void judge(SimState *s) {
       const double still[3] = { 0.0, 0.0, 0.0 };
       const int up = t->ring_up[j];
       if (up >= 0 && attached(up) && !(gone & (1u << up))) {
+        const double ms_up = ring_sub(t, up, gone);
         for (int a = 0; a < 3; a += 1) {
-          a_up[a] = ring[up][a] / t->ring_m[up];
+          a_up[a] = (ring[up][a] - tip_fc[up][a]) / ms_up;
         }
         aj = a_up;
         lj = still;
@@ -3357,22 +3418,27 @@ static void judge(SimState *s) {
          * kick and rings on through the steps. The root sees the mode's
          * force, not the rigid body's, so a blow short against the period
          * loads it by the impulse it carried, not by its peak. */
-        double FJ[3], MJ[3], accK[3], alpK[3], FQ[3], MQ[3];
+        double FJ[3], MJ[3], accK[3], alpK[3], FQ[3], MQ[3], FI[3], MI[3];
         craft_accel(t, Jb, sc, gate, j, ring0, gone, m, g_batch_dt, accK, alpK);
         joint_load(t, j, Jb, sc, gone, accK, alpK, FJ, MJ);
         craft_accel(t, Fb, sc, gate, j, ring0, gone, m, 1.0, accK, alpK);
         joint_load(t, j, Fb, sc, gone, accK, alpK, FQ, MQ);
+        joint_load(t, j, Fb, g_no_hits, gone, accK, alpK, FI, MI);
         /* Along its span the joint carries the load as it comes. */
         const double *u = t->ring_u[j];
-        const double ka = dot(FJ, u), qa = dot(FQ, u);
+        const double ka = dot(FJ, u), qa = dot(FQ, u), ca = qa - dot(FI, u);
         for (int a = 0; a < 3; a += 1) FJ[a] -= ka * u[a];
+        /* The contacts' share of the quasi static load, across the span:
+         * what the tip is pushed by besides the ring. */
+        for (int a = 0; a < 3; a += 1) tip_fc[j][a] = FQ[a] - FI[a] - ca * u[a];
         const double w = t->w1[j];
+        const double z = ring_zeta(&t->p[j], PS[j].peak);
         const double *y = PS[j].ring;
         const double *yd = PS[j].ring_d;
         double *c = ring[j];
         for (int a = 0; a < 6; a += 1) {
           const double kick = a < 3 ? FJ[a] : MJ[a - 3];
-          c[6 + a] = yd[a] + w * w * kick - (w * w * y[a] + 2.0 * RING_ZETA * w * yd[a]) * adv;
+          c[6 + a] = yd[a] + w * w * kick - (w * w * y[a] + 2.0 * z * w * yd[a]) * adv;
           c[a] = y[a] + c[6 + a] * adv;
         }
         for (int a = 0; a < 3; a += 1) {

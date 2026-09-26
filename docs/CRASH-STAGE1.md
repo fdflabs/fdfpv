@@ -280,7 +280,8 @@ force. Such a part now carries a spring of its own first mode, driven by
 the joint's quasi static load: it takes each batch's momentum as a kick
 (the impulses themselves, not the peak forces, so a one step host
 contact loads it by the momentum it carried) and rings on through the
-steps, damped at 3 percent of critical (chosen), until it dies away under
+steps, damped by its joints (below, "A ring's damping and what rides on
+it"; it was 3 percent of critical, chosen), until it dies away under
 1 mN. The mode is the cantilever's, w = sqrt(3 E I / (L^3 (0.2427 m +
 M))), m its own mass, M the parts it carries taken at its tip (Rayleigh's
 tip mass form, exact at M = 0 as 3.516 sqrt(E I / (m L^3))), L its reach.
@@ -710,7 +711,7 @@ before it (the same throws as the feel round's):
 
 The fins that still go are on the booms' ring, pumped by the second tip
 digging in on top of the ring the first left (3 percent of critical,
-chosen); the boom's root reaches 0.74 of its 180 N m.
+chosen then); the boom's root reaches 0.74 of its 180 N m.
 
 `crash:core` holds the first 100 ms: "a Skyhunter's wingtip catches the
 grass" (on main the fins break at 13 ms, with only the crack's change at 15
@@ -726,6 +727,79 @@ rings do not load each other back (a ring passes its root load on and
 takes no energy from what it drives), which bounds none of this from
 above; a coupled model of the airframe's modes is the fix if the owner
 finds these wrong in the air.
+
+**A ring's damping and what rides on it** (branch crash-ring-crush). Two
+changes to the ring, neither of which moves a limit:
+
+- Its damping is sourced, not chosen. In a built up structure the ring's
+  energy goes into its joints: along the fibre carbon laminate dissipates
+  of the order of one percent of its strain energy a cycle (Adams and
+  Bacon, "Effect of fibre orientation and laminate geometry on the dynamic
+  properties of CFRP", J. Composite Materials 7, 1973), about a tenth of a
+  percent of critical. Newmark and Hall's damping by construction (Chopra,
+  Dynamics of Structures, 4th ed., Table 11.2.1) gives a bolted or riveted
+  structure 5 to 7 percent of critical up to half its yield and 10 to 15
+  at or just under it, and one without such joints (welded) 2 to 3 and 5
+  to 7. A spar plugged into the fuselage, a tube clamped in it with screws
+  and the Bramor's plug in shells are the first kind (`sect_joint` 1, set
+  by `CARBON_SPAR` and `SHELL_SECTION`), a foam boom moulded with its
+  fuselage the second (`FOAM_SECTION`). The low end of each range, which
+  rings longest, from half the joint's limit to its limit on the load the
+  last batch judged it at. The table is for buildings; no ground vibration
+  test of a foam model could be consulted for this branch, so what carries
+  over is the class of construction, not the size. It is the first thing
+  to replace when one is found.
+- What rides on a ring is shaken by the ring's load over the mass that load
+  was built for. The ring is driven by the subtree's quasi static load,
+  m_sub times the craft's motion less the contacts on it, and the tail on
+  the Skyhunter's booms was shaken by that over the mode's tip mass
+  (m_eff, 0.11 kg against the ring's 0.16), 1.4 times the craft's
+  acceleration even in a steady deceleration. Now the tip's acceleration
+  is the ring plus the contacts on the subtree, over m_sub: the craft's own
+  when nothing rings, and a ring that overshoots shakes the tip by as much
+  more. The mode's frequency stays the intact one. Taken live on what
+  still rides on it (a fin that breaks off takes its mass out of the mode)
+  it was tried and left out: the Radian's panels rang faster once an
+  aileron was off, nearer the boom's 11.2 Hz, and the boom, at its limit
+  either way, went in the stall where main 2a1b33b keeps it.
+
+The rings' reaction on the craft was already there (every ring passes its
+root load to the rigid craft, and every other ring is driven by that
+craft), so the "no energy back" of the feel round was not a missing
+coupling but the 1.4 over drive and the chosen damping. What the ring
+still does not do: the rigid craft keeps the rings' mass as well as their
+root loads, which under estimates its deceleration by m_sub over m in a
+steady load. Taking it out is right in principle and was tried: the
+craft's inertia less the subtrees' is under zero on the Bramor (0.63
+against 0.589 kg m^2 in roll, the plant's inertia and the part tables'
+point masses disagreeing) and 0.0001 on the wing 1000, where the lagged
+coupling is unstable. So it stays, recorded.
+
+Measured with the ring change alone, main 2a1b33b against it. Node, the
+feel round's throws: the Skyhunter cartwheel from the struck wing, both
+fins 0.59 s after the strike (1.21, 1.11) and the pack, to the struck
+wing and the other aileron, the tail kept; the Timber adds a gear leg,
+the Cub loses its fin, antenna and boom where it lost both ailerons, the
+pack, the fin and the antenna, the Radian the same. The real shell (crash:feel, CPU
+renderer): the Skyhunter cartwheel from the struck wing, both fins at
+t+0.90 (1.19, 1.17) and the pack, inverted, to the struck wing, an
+aileron and both fins at t+1.67 (1.12, 1.30), upright, so its fins still
+go late in the tumble; the Timber the same breaks and a gear leg; the
+stalls unchanged. The fins go on a sustained load, not a ring: the second
+tip, once its 12 cm of crush is spent, stands on the ground's spring at
+about 700 N, which yaws the craft at about 2,000 rad/s^2 and puts 1,500
+m/s^2 on the tail quasi statically; the crush change below takes that
+load off. The Radian's stall keeps its tail on main 2a1b33b and here;
+where it lost it (main 39315bb, before the turf's grip), it went in the
+step the nose first met the grass, 1,514 N on the pod, with the pack, the
+motor and the prop, and the panels' 7.3 Hz ring driving the 11.2 Hz boom
+broke nothing in the 50 ms before (they crushed at 300 N for 3 ms, the
+tail stayed on until the nose). Suite: failing checks 110 to 111. Out:
+cub-cartwheel mustBreak wing (the struck panel holds, the tail goes),
+minUpZ and restAttitude (it ends upright, not on its side). Into band:
+timber-cartwheel peakG (82 to 64 g) and timeToRestS (0.83 to 1.90 s).
+crash:core 225 of 226 on both, the one failure main's ("a five inch loses
+a prop in flight", 9.2 rad/s).
 
 **Why the Cub does not nose over where the Timber does** (the feel round's
 items, 2026-09-26). Thrown level on its wheels at 6 m/s on grass, full
@@ -1044,7 +1118,7 @@ rigid contact left it (0.26 mm).
 | Bombshell balsa sticks (stabiliser, fin, panels, aft fuselage) | 20 MPa b h^2 / 6 each | balsa's modulus of rupture along the grain at the kit's 150 to 175 kg/m^3, 17.6 to 20.5 MPa | Wood Handbook FPL-GTR-190 Table 5-5a (21.6 MPa at specific gravity 0.16), scaled by density (Gibson and Ashby); docs/BOMBSHELL-STAGE1.md |
 | Bombshell wing on its bands, engine on its firewall | 20 N and 1.9 N m; 200 N a screw, 4 N m | four #32 bands at 4.4 N; two #2 screws in 1/8 in birch ply | Treloar's rubber (Ogden's fit); Wood Handbook eq. 8-10a, 290 N an upper bound |
 | a spar's bending stiffness, for its ring (round 3) | E I = 127 M r: wing1000 3 mm, Skyhunter 4 (two spars) and booms 6, Cub 4, Radian 4.5, Timber 5 mm outer radius | M = sigma I / r at the tables' 1,000 MPa, E 127 GPa | TAP Plastics pultruded carbon tube, minimum properties (flexural 127 GPa, 1,370 MPa) |
-| a ring's damping | 3 percent of critical | a lightly damped structure | chosen |
+| a ring's damping | 5 to 10 percent of critical (a spar, a tube, a plug in shell), 2 to 5 (a foam boom), from half the limit to the limit | the joints dissipate, the fibre does not | Chopra, Dynamics of Structures, 4th ed., Table 11.2.1 (Newmark and Hall); Adams and Bacon 1973 for the fibre |
 | a composite panel's bending stiffness, for its ring (round 5) | E I = 117 M c: Bramor 17 mm half depth, 595 N m^2, 17.5 Hz | woven carbon laminate, 70 GPa over 600 MPa | DragonPlate (R-ARM); construction from UST 011, pp. 22 and 25 |
 | a foam boom's bending stiffness, for its ring (round 4) | E I = 33 M c: Cub 35 mm, Radian 20, Timber 45 mm half depth | bead foam E = 0.82 rho - 4.9 MPa, 19.7 MPa at 30 g/L, over EPO's 0.6 MPa | Negussey and Anasthas 2001, simple bending of EPS beams |
 | a music wire leg's fold (round 4) | 1.7 x the yield moment over the leg's lever | a round section's plastic hinge | ASTM A228 (E 207 GPa, 1,600 MPa) |

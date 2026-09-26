@@ -75,6 +75,10 @@ typedef struct {
                    * stiff to ring within a contact */
   double sect_eos; /* that section's flexural modulus over the bending
                     * strength m_max was taken at, so E I = eos m_max c */
+  int sect_joint;  /* 1 when that section is a separate member seated in the
+                    * airframe (a spar plugged in, a tube clamped), 0 when it
+                    * is moulded in one piece with it: how its ring is damped
+                    * (crash.c, A RING'S DAMPING) */
   int npts;
   double pts[SIM_PART_PTS_MAX][3];
 } PartDef;
@@ -164,16 +168,20 @@ typedef struct {
  * 30 to 35 g/L (the same NOVA sheet), so 0.6 is its top, about 36 g/L; it
  * is kept there while the modulus is a bound from above, since a stiffer
  * boom rings harder on the same kick and the two bounds lean the same way
- * only together (docs/CRASH-STAGE1.md, round 5). */
-#define CARBON_SPAR(r) .sect_c = (r), .sect_eos = 127.0
+ * only together (docs/CRASH-STAGE1.md, round 5). Every carbon spar and
+ * tube in these tables is a separate member, plugged into the fuselage or
+ * clamped in it with screws, and every foam boom is the fuselage moulded
+ * on past the wing, so the section says which a ring is (sect_joint). */
+#define CARBON_SPAR(r) .sect_c = (r), .sect_eos = 127.0, .sect_joint = 1
 #define FOAM_EOS (19.7 / 0.6)
-#define FOAM_SECTION(c) .sect_c = (c), .sect_eos = FOAM_EOS
+#define FOAM_SECTION(c) .sect_c = (c), .sect_eos = FOAM_EOS, .sect_joint = 0
 /* A composite shell's own section, carbon skins on a honeycomb core, c its
  * half depth: woven carbon laminate's 70 GPa over its 600 MPa (DragonPlate,
  * R-ARM; Easy Composites' sheet, 45 to 55 GPa at 571 to 880 MPa, is the
  * softer end, so this bounds the frequency from above as the spar's does). */
 #define SHELL_EOS (70.0 / 0.6)
-#define SHELL_SECTION(c) .sect_c = (c), .sect_eos = SHELL_EOS
+/* The Bramor's shells are plug in wings, seated members like the spars. */
+#define SHELL_SECTION(c) .sect_c = (c), .sect_eos = SHELL_EOS, .sect_joint = 1
 /* The same box bent in its own plane: its top and bottom skins, which are
  * its flanges flapwise (Z about s c t for a skin s thick over the chord c
  * at the depth t), are its webs fore and aft (Z about 2 s c^2 / 6), so it
