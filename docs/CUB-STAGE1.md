@@ -396,6 +396,70 @@ perched on the tip for ever. While any wheel carries load the settle now
 stands aside: the wheels are what the aircraft rests on. No other airframe
 has wheels, so for them it runs exactly as before.
 
+### The tyres' side grip
+
+Up to the change described here, a tyre's side grip was a skid's at every
+speed. Each step took the impulse that stops the contact point across the
+wheel's heading, up to mu_side N, so a rolling tyre behaved like a wheel
+on a rail.
+
+That is what swung the Bombshell on its take off. At 3.4 s the tail comes
+up, and the engine's torque rolls the aircraft about 3.5 deg/s. That moves
+the main wheels' contacts sideways at about 0.01 m/s while they roll at
+6 m/s: a slip angle of 0.1 deg. The rail took the full 0.6 N of grip for
+it. The mains sit 73 mm ahead of the CG, so that grip yawed the nose left
+by up to 0.05 N m, with the aircraft sliding sideways at under 0.03 m/s.
+The swing reached 6.6 deg at lift off, against a limit of 5 (bombshell:stab).
+
+**What a tyre does instead.** A tyre rolling along its heading lays its
+tread down straight and is dragged sideways only as it slips at an angle
+to its path. Its side force grows with that slip angle and reaches
+mu_side N only when the whole contact patch slides.
+
+The brush model with a parabolic pressure is Pacejka, Tyre and Vehicle
+Dynamics, ch. 3. It gives
+
+  F / (mu N) = 1 - (1 - s)^3, with s = tan a / tan a_sl
+
+where tan a_sl = 3 mu F_z / C_Fa is the slip angle at which the patch
+slides. `wheel_side` in src/native/sim.c caps the stop-the-point impulse
+at that force.
+
+**At walking pace.** The limit handles itself. As the rolling speed falls
+to nothing, the slip angle goes to 90 deg, the patch slides whole, and the
+grip is the skid's again. The force is never more than the impulse that
+stops the point, so it cannot throw the point back the other way.
+
+**Relaxation is left out.** Pacejka's relaxation length is about the
+tyre's radius. The force follows the slip within:
+
+- 45 ms at 0.5 m/s, for a 22 mm tyre;
+- 4 ms at 6 m/s.
+
+Both are inside the tenths of a second that a swing on the roll takes.
+
+**The slip angle a_sl.** It is 10 deg on every tyre, ESTIMATED. A
+pneumatic tyre's normalised cornering stiffness, C_Fa / F_z about 17 per
+rad at mu near 1, puts it there. No cornering data was found for a model's
+foam or rubber wheel.
+
+The brush model makes the angle independent of the load. Written out,
+tan a_sl = 3 mu k_t / (4 c_p R), where k_t is the tyre's vertical
+stiffness, c_p its tread's lateral stiffness per unit length, and R its
+radius. Skids (the Bombshell's tail skid and every prop tip) keep the old
+grip.
+
+**What it moves.** The take off and ground checks at 4, 10 and 16 deg:
+
+| Check | skid grip (main) | a_sl 4 deg | a_sl 10 deg (built) | a_sl 16 deg |
+| --- | --- | --- | --- | --- |
+| bombshell:stab take off, heading and off the line | 6.6 deg, 0.80 m | 2.2, 0.19 | 0.9, 0.08 | 0.6, 0.06 |
+| its bank to lift off | 4.0 | 1.2 | 0.6 | 0.5 |
+| cub:gates C18, roll heading | 3.3 deg | 2.6 | 2.0 | 1.6 |
+| cub:gates C19, taxi turn | 2.49 m | 2.49 | 2.50 | 2.51 |
+| timber:stab take off heading | 0.0 | -0.1 | -0.2 | -0.3 |
+| slowstick:gates S15 heading | 0.0 | 0.3 | 0.5 | 0.6 |
+
 ## Conventions
 
 The Skyhunter's, unchanged: world right handed, Z up; body X forward, Y
