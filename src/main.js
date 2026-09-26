@@ -137,7 +137,7 @@ import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
-import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, solidSurface } from './game/crashworld.js';
+import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, solidSurfaceAt } from './game/crashworld.js';
 import {
   DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, SURFACE, SURFACES, TREES_MAX, partLabel,
 } from '../configs/parts.js';
@@ -4020,7 +4020,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* One collider as a solid for the free bodies. Returns the module's
    * answer, negative when it is full. */
   function declareSolid(col, i) {
-    const mat = solidSurface(col.kindName(col.fkind[i]));
+    const mat = solidSurfaceAt(col, i);
     const ax = col.fax[i];
     const ay = col.fay[i];
     const az = col.faz[i];
