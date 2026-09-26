@@ -2304,13 +2304,25 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
      * plateau: a panel on its spar bends before its leading edge crushes. */
     const double m_dec = g_surf_ground ? PLANT.mass_kg : 1.0 / kn;
     double f = own ? g_own_k * g_pen : vin * sim_sqrt(k * m_dec);
-    /* Pressed in and held, by the craft riding on it, the part's own
-     * spring at its depth is the force on the foam, whatever the speed:
-     * past the plateau on its patch the foam gives there too, or the
-     * ground's spring stood a wing tip on 700 N through foam that yields
-     * at 300. */
-    if (g_surf_ground && crush_foam(t, i) && k * g_pen > f) {
-      f = k * g_pen;
+    /* A PANEL BENDS BEFORE ITS TIP CRUSHES. On the ground a foam part's
+     * foam is in series with its own spring and the surface's: the foam at
+     * the point feels what that spring has been pressed to by the end of
+     * this step, k (x + v dt), and no more than the blow's peak; pressed in
+     * and held, k x whatever the speed. For a part that rings (a panel on
+     * its spar, a boom) that spring is its own bending, a few kN/m, and it
+     * crushes only in the steps it is past the plateau on its patch, below.
+     * Taken at the blow's peak from the first millimetre, where the patch is
+     * a point, a wing tip crushed at once and went on crushing at 300 to 600
+     * N in its first 10 ms, before its panel had bent: stopped at the
+     * grass's face, mostly along its normal. Bending first, the tip is held
+     * by the grass while the panel loads, and the drag on it pivots the
+     * craft. A part that does not ring is stiff against its crush: once
+     * started, its crush goes on while the craft drives it in. */
+    const int bends = g_surf_ground && crush_foam(t, i) && t->w1[i] > 0.0;
+    if (g_surf_ground && crush_foam(t, i)) {
+      const double reach = k * (g_pen + vin * g_batch_dt);
+      if (reach < f) f = reach;
+      if (k * g_pen > f) f = k * g_pen;
     }
     double nb[3];
     qrot_inv(s->quat, n, nb);
@@ -2330,12 +2342,15 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
     const double drive = crush_foam(t, i) && v_cg > vin ? v_cg : vin;
     const int going = ((g_crush_mask & bit) && drive > 0.05) || (g_batch_crush & bit);
     const double fc = crush_force(t, i, nb, &g_cr_shape, f, SURF[g_surf].k, going);
-    /* Against a solid the plant meets itself the force is the chain's
-     * spring's, followed step by step, and it crushes only while that
-     * spring is past the plateau: past it the panel bends away instead,
-     * and a crush that went on at its plateau put more through the panel
-     * than its root holds without breaking it. */
-    if (f > fc || (going && !own)) {
+    /* Against a solid the plant meets itself, and for a bending part on
+     * the ground, the force is the part's spring's, followed step by step,
+     * and the foam crushes only while that spring is past the plateau (a
+     * batch that has started it shares it with the part's other points):
+     * short of it the panel bends instead, and a crush that went on at its
+     * plateau put more through the panel than its spring could, and than
+     * its root holds. */
+    const int sprung = own || bends;
+    if (f > fc || (sprung ? (g_batch_crush & bit) != 0 : going)) {
       if (!going) {
         g_crush_give[i] = g_crush_give_new;
       }

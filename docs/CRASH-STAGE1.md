@@ -1029,6 +1029,53 @@ timber-cartwheel mustBreak wing (its tip ploughs 14 m crushing, 12 g, and
 nothing breaks), timber-nose-in retainedFirst (-0.00 against a band from
 0, the sign in the last digit).
 
+**A panel bends before its tip crushes** (the lead's return of #86). With
+the growing patch neither cartwheel went over: the lead asked why the tip
+no longer pivots. It was not the plough and not the flattened hull (both
+tried off: the Skyhunter and the Timber stayed up). It was when the tip
+starts to crush. The crush was decided on the blow's peak, v sqrt(k m),
+against the plateau on a patch that is a point at first contact, so the tip
+crushed from the first millimetre and went on crushing at 300 to 600 N in
+its first 10 ms, a force the panel's own bending spring (a few kN/m) could
+not have reached yet: the tip was stopped at the grass's face mostly along
+its normal, which rolls the craft back rather than yawing it. Now a foam
+part's foam on the ground feels what its spring has been pressed to by the
+end of the step, k (x + v dt), no more than the peak; and a part that rings
+(a panel, a boom), whose spring is its own bending, crushes only in the
+steps that spring is past the plateau on its patch. The panel bends first,
+the tip is held in the grass while it loads, and the drag at the tip
+pivots the craft, as on main before the growing patch. A part that does
+not ring (a pod) is stiff against its crush and, once started, crushes on
+while the craft drives it in (so a flat belly drop onto concrete stays at
+227 g, where a stop and start crush put it at 444).
+
+What it does, main 00b7d54 against this commit (Node, the feel round's
+throws; the suite): the Skyhunter cartwheel goes over again, inverted, in
+the feel throw and in the suite (sky-cartwheel minUpZ and restAttitude back
+into band, 0.07 and upright with the growing patch alone); the Timber and
+Cub cartwheels in the suite do not go over (timber-cartwheel upright, as on
+main; cub-cartwheel minUpZ -0.93 on main to 0.51). Suite failing checks:
+main 115, the growing patch 118, this 114. The pole nick sweep is
+unchanged (the solid contact already worked this way).
+
+What decides whether a cartwheel goes over is sensitive past the first
+strike, and one thing in it is an artifact on main and here alike: when the
+struck tip's ground spring stops (it had gone 10 to 30 cm into the plane on
+its panel's bending), the rigid contact takes over and sim.c's position
+corrections take the craft back out of that depth in one or two steps, 14
+cm up for the Timber on main and 9 here, 32 cm for the Skyhunter in one
+variant, with no change of speed. The Timber on main goes over after that
+lift; here, lifted less, its other tip lands sooner and rolls it back. A
+part coming back out on its spring instead (the solver pushing it out no
+harder than its spring at its depth, nothing else lifting it) was tried.
+For every part it removes the lift, but the ground spring's share per
+point then does not hold a belly's weight at rest: the belly sits 2.8 cm
+into the grass and its plough stops a slide at 1.5 g where the sled's is
+0.45 (crash:core fails five checks). For the parts that ring only,
+crash:core passes but the suite fails 118 checks and neither the Timber
+nor the Cub goes over. So it is not in, and it is the next thing to fix
+in the ground's spring.
+
 **The ground is a spring** (round 2, by the lead's decision that with
 the mode on every contact may have its physical duration, docs/CRASH-PLAN.md).
 Until round 2 an impact under every limit was a one step impulse, so the
