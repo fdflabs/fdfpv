@@ -199,8 +199,16 @@ point:
 - **Buoyancy**, rho g A dx, straight up, A the immersed section: a V of
   the deadrise to the chines and straight sides above, filled to the
   immersion along the body's up axis, no higher than the deck.
-- **The planing force**, along the body's up axis: the momentum the strip
-  gives the water it pushes down. A slice of water the hull passes over
+- **The planing force**, along the bottom's own normal: the momentum the
+  strip gives the water it pushes down. It is a pressure, so it acts square
+  to the surface: on the flat forebody that is the body's up axis, and the
+  drag the lift carries at a trim tau, lift times tan(tau) (Savitsky 1964),
+  comes from the trim itself; on the bow's rise the normal leans aft by the
+  rise's own slope, and on the afterbody forward by its 8 deg. Until the
+  crash loop's feel round the force on the rise was put along the body's up
+  axis, so a bow that met the water hard was only lifted, ahead of the CG,
+  and never pushed back, low under it: the Cub's 19.6 deg rise planing at
+  14 m/s took about 160 N a float with no drag at all. A slice of water the hull passes over
   carries the added mass of the section wetted there, m_a = (pi/2) rho c²
   per metre, c the half width the water wets once it has splashed up
   round the V, c = (pi/2) d / tan(deadrise) (Wagner), the half beam once
@@ -418,17 +426,26 @@ The liftoff speed and the step are the tighter checks.
 | Check | Timber | Cub | Band |
 | --- | --- | --- | --- |
 | F1 at rest | 2.57 deg, CG 0.2076 m, step 42.8 mm | 0.67 deg, 0.1767 m, 42.4 mm | as derived, 0.5 deg, 3 mm, 10 percent |
-| F2 swell from ahead | heave 0.302 m at 2.509 s, pitch ±7.10 deg (1.06) at 2.510 s, roll ±0.23 | 0.303 m at 2.506 s, ±8.05 deg (1.08), roll ±0.07 | 10 percent, 0.8 to 1.3, 2 percent, under 2 deg |
-| F3 swell from the side | roll ±6.55 deg (0.99) at 2.505 s | ±6.95 deg (0.99) at 2.512 s | 0.7 to 1.4, 2 percent |
-| F4 take off | on the step at 3.29 m/s; 5.33 m to liftoff at 9.49 m/s (1.16), 1.04 s | on the step at 2.97 m/s; 14.09 m at 10.39 m/s (0.99), 2.25 s | step under 4.92 and 6.33 m/s; 0.9 to 1.2; 2.7 to 7.6 and 9.0 to 25.6 m |
-| F5 landing | touched at 8.33 m/s, 15.3 m to 1 m/s (0.84), at rest at 2.61 deg | touched at 9.78 m/s, 21.4 m (0.72), at rest at 0.72 deg | 0.6 to 1.5 |
-| F6 water rudders | 2.74 m at 0.95 m/s (1.25), turning right | 6.46 m at 0.75 m/s (1.29) | 0.7 to 1.5 |
-| F7 nose low at 14 m/s (flag) | 3.7 g, pitch to −21.0 deg, did not go over | 2.4 g, −11.5 deg, did not go over | not gated |
+| F2 swell from ahead | heave 0.303 m at 2.478 s, pitch ±7.11 deg (1.06) at 2.478 s, roll ±1.45 | 0.303 m at 2.469 s, ±8.07 deg (1.08), roll ±0.17 | 10 percent, 0.8 to 1.3, 2 percent, under 2 deg |
+| F3 swell from the side | roll ±6.54 deg (0.99) at 2.505 s | ±6.97 deg (0.99) at 2.511 s | 0.7 to 1.4, 2 percent |
+| F4 take off | on the step at 3.39 m/s; 4.84 m to liftoff at 9.03 m/s (1.10), 1.01 s | on the step at 3.18 m/s; 15.17 m at 10.57 m/s (1.00), 2.43 s | step under 4.92 and 6.33 m/s; 0.9 to 1.2; 2.7 to 7.6 and 9.0 to 25.6 m |
+| F5 landing | touched at 8.33 m/s, 16.0 m to 1 m/s (0.88), at rest at 2.58 deg | touched at 9.85 m/s, 22.8 m (0.77), at rest at 0.68 deg | 0.6 to 1.5 |
+| F6 water rudders | 2.90 m at 0.85 m/s (1.32), turning right | 6.97 m at 0.67 m/s (1.39) | 0.7 to 1.5 |
+| F7 nose low at 14 m/s (flag) | 6.4 g, pitch to −14.5 deg, did not go over | 8.5 g, −11.7 deg, did not go over | not gated |
 | F8 grass | still at 44 percent, 4.4 m in 3 s at 60 | still at 54, 1.4 m at 70, tipped 19 deg onto its bows | still under, sliding over |
 | F9 others unmoved | all nine hashes as recorded | | identical |
 | F10 Node and Chrome | identical | | identical |
 
 What measuring it changed:
+
+- The planing force on the bow's rise was first put along the body's up
+  axis, so a hard bow entry was all lift and no drag. Along the bottom's
+  normal (above) every gate still holds and these moved: the Timber leaves
+  the water at 9.03 m/s after 4.84 m (9.49 and 5.33 before) and its head
+  swell roll grew from ±0.23 to ±1.45 deg (under 2), the water rudders'
+  turns widened from 1.25 and 1.29 to 1.32 and 1.39 of the derived radius
+  (1.5 at most), and F7 now decelerates at 6.4 and 8.5 g where it was 3.7
+  and 2.4. Nothing was re-derived and no band moved.
 
 - The planing force was first the strip's own normal speed through the
   water, −w, times the growth of its added mass. That counts the steady

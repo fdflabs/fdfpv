@@ -1187,8 +1187,9 @@ static void obstacle_apply(void) {
  *   up. The section is the float's V bottom to the chines and its sides
  *   above, filled to the immersion along the body's up axis and no higher
  *   than the deck.
- *   THE PLANING FORCE, along the body's up axis: the momentum the strip
- *   gives the water it pushes down. A strip of water the hull passes over
+ *   THE PLANING FORCE, along the bottom's own normal (the body's up axis
+ *   on the flat forebody, leaning aft on the bow's rise and forward on the
+ *   afterbody): the momentum the strip gives the water it pushes down. A strip of water the hull passes over
  *   carries the added mass of the section wetted there, (pi/2) rho c^2 per
  *   metre with c the half width Wagner's splash up wets, c = (pi/2) d /
  *   tan(deadrise) to the chines; going aft the hull pushes it down at the
@@ -1265,6 +1266,18 @@ static double float_keel(const FloatParams *fp, double x) {
     return fp->z_keel;
   }
   return fp->z_keel + fp->step_h + (fp->x_step - x) * fp->aft_slope;
+}
+
+/* The keel's slope dz/dx along the body: the bow's rise, the flat
+ * forebody's zero, the afterbody's fall going aft. */
+static double float_keel_slope(const FloatParams *fp, double x) {
+  if (x > fp->x_knee) {
+    return fp->bow_rise / (fp->x_bow - fp->x_knee);
+  }
+  if (x >= fp->x_step) {
+    return 0.0;
+  }
+  return -fp->aft_slope;
 }
 
 /* One force F, world frame, at the body offset r, for one step. */
@@ -1519,8 +1532,19 @@ static void float_apply(void) {
         const double fx = -0.5 * rho * fp->cf * girth * u * sim_fabs(u) * dx;
         const double fb = rho * g * area * dx;
         const double fr = rad * hdot * dx;
+        /* The planing force is a pressure on the bottom, so it acts along
+         * the bottom's own normal, which on the bow's rise leans aft and on
+         * the afterbody leans forward. On a flat bottom at a trim tau the
+         * body's up axis is that normal and the drag lift x tan(tau) comes
+         * from the trim itself (Savitsky 1964, the pressure drag of a
+         * planing surface); on the rise the slope adds its own angle, so a
+         * bow meeting the water hard is pushed back as well as up, low
+         * under the CG, and not only lifted ahead of it. */
+        const double slope = float_keel_slope(fp, x);
+        const double nlen = sim_sqrt(1.0 + slope * slope);
+        const double fxp = fx - fz * slope / nlen;
         double Fw[3];
-        float_to_world(fx, fy, fz, Fw);
+        float_to_world(fxp, fy, fz / nlen, Fw);
         Fw[2] += fb + fr;
         /* Crash physics: a bow driven under its own deck. The strip theory
          * above caps a float's immersion at its deck, which is right for a
@@ -1549,7 +1573,7 @@ static void float_apply(void) {
         nwet += 1;
         g_float_diag[0] += fb;
         g_float_diag[1] += fz + fr;
-        g_float_diag[2] -= fx;
+        g_float_diag[2] -= fxp;
         g_float_diag[3] += area * dx;
       }
       g_float_diag[4 + f] = (double)nwet * dx;
