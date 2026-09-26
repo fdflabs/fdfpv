@@ -667,3 +667,18 @@ in 2.01 s (band 0 to 2), the spring contact's softer blow as the five
 inch's gate clip had in #73.
 
 Next: the feel round, then the owner's sign off.
+
+### 2026-09-26: the push to the finish
+
+Merged since round 5: the feel round (#75), joint sanity (#77), shell
+feel fixes (#78), roofs everywhere (#76) and the solid handoff that
+stops a craft passing any wall the host knows (#79), cartwheel, nose
+over and reset fixes (#80), float bow planing and the restaged nose
+digs (#81), the quad keeping its pack at a gate (#82), grass grip with
+a turf plough (#83), a lost prop's windage (#85), compliant PVC gate
+posts (#87), tyre side force by slip angle (#88). crash:core 234 of
+234. The owner approved on 2026-09-26 the pending decisions, including
+#84 (stability to body axes for the lateral derivatives, every recorded
+flight re-recorded) going in without a flight first. Open: #86
+(cartwheels must still go over; the ground projection's speed kill),
+then the final feel re-run and the owner's sign off.
