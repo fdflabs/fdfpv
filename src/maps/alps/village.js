@@ -35,6 +35,7 @@ import {
 } from './kit.js';
 import { ribbon } from './ribbon.js';
 import { standWalls } from './roofs.js';
+import { setSolidSurface } from '../../game/crashworld.js';
 import { STRIP_L, STRIP_W, STRIP_Y } from './terrain.js';
 
 export { villageMaterials };
@@ -176,6 +177,8 @@ export async function buildVillage(ctx) {
   const pole = (x, z) => {
     telegraphPole(frame(bake, x, onGround(x, z), z, 0));
     colliders.addPost('pole', x, z, heightAt(x, z), heightAt(x, z) + 7.7, 0.15);
+    /* A larch pole, not a gate's PVC upright: what a broken part meets. */
+    setSolidSurface(colliders, colliders.ax.length - 1, 'wood');
   };
   for (let z = -2650; z <= 1900; z += 45) {
     pole(valleyAxis(z) + 55 + 4.6, z);

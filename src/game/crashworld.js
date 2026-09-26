@@ -145,6 +145,30 @@ export function solidSurface(kindName) {
   return SURFACE[SOLID_SURFACE[kindName] ?? 'concrete'];
 }
 
+/* A collider whose material is not its kind's: a telegraph pole is a
+ * 'pole' as a race gate's upright is, and the one is larch and the other
+ * PVC. Collider index to surface name, per collider set. */
+const OWN_SURFACE = new WeakMap();
+
+/* Collider i of `colliders` is `name` (a SURFACE key) to the broken parts. */
+export function setSolidSurface(colliders, i, name) {
+  if (!(name in SURFACE)) {
+    throw new Error(`crashworld: unknown surface ${name}`);
+  }
+  let own = OWN_SURFACE.get(colliders);
+  if (!own) {
+    own = new Map();
+    OWN_SURFACE.set(colliders, own);
+  }
+  own.set(i, name);
+}
+
+/* Collider i's surface for the broken parts: its own, else its kind's. */
+export function solidSurfaceAt(colliders, i) {
+  const own = OWN_SURFACE.get(colliders)?.get(i);
+  return own != null ? SURFACE[own] : solidSurface(colliders.kindName(colliders.fkind[i]));
+}
+
 /*
  * THE TREES, from the colliders every map already builds: a trunk is a
  * vertical 'tree' post, and a broadleaf's crown is one or more 'canopy'
