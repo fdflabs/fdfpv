@@ -82,9 +82,24 @@ export const CRAFT = {
   slowstick: { shell: 'slowstick1180', sim: 5, Vs: 4.4, Vc: 5.6, Vt: 8.4, cruise: 0.75, wheels: { z: 0.1349, pitchDeg: 6.91 } },
   timber: { shell: 'timber1500', sim: 7, Vs: 7.2, Vc: 18.0, Vt: 22.0, cruise: 0.75, wheels: { z: 0.2117, pitchDeg: 11.81 } },
   bramor: { shell: 'bramor2300', sim: 8, Vs: 13.0, Vc: 16.0, Vt: 25.0, cruise: 0.667 },
-  timberf: { shell: 'timber1500f', sim: 9, Vs: 7.1, Vc: 17.0, Vt: 21.0, cruise: 0.75, floats: { z: 0.2074, pitchDeg: 2.52 } },
-  cubf: { shell: 'cub1400f', sim: 10, Vs: 8.7, Vc: 13.0, Vt: 17.0, cruise: 0.75, floats: { z: 0.1765, pitchDeg: 0.64 } },
+  /* floats: the rest pose, and the bow's rise over its run from the knee
+   * to the tip (src/native/plant.c, docs/FLOATS-STAGE1.md). */
+  timberf: { shell: 'timber1500f', sim: 9, Vs: 7.1, Vc: 17.0, Vt: 21.0, cruise: 0.75, floats: { z: 0.2074, pitchDeg: 2.52, bowRise: 0.060, bowRun: 0.19 } },
+  cubf: { shell: 'cub1400f', sim: 10, Vs: 8.7, Vc: 13.0, Vt: 17.0, cruise: 0.75, floats: { z: 0.1765, pitchDeg: 0.64, bowRise: 0.064, bowRun: 0.18 } },
 };
+
+/* The dive a nose dig is staged at, deg nose low, flown along the nose.
+ * Shallower than the bow's own rise the rise still meets the water at a
+ * positive angle and planes, which throws the nose up (the plant's strip
+ * theory and Savitsky's 1964 planing lift both put about 165 N a float on
+ * the Cub's rise at 12 deg and 1.6 times the stall), so the bows are
+ * driven under only past it: the rise angle rounded up to a
+ * whole degree, and 2 more so the case does not sit on that edge. Timber
+ * 17.5 deg, so 20; Cub 19.6, so 22. docs/FLOATS-STAGE1.md, the nose dig. */
+export function floatDigDeg(key) {
+  const f = CRAFT[key].floats;
+  return Math.ceil(Math.atan2(f.bowRise, f.bowRun) / DEG) + 2;
+}
 
 /* A quaternion from yaw, pitch (nose up positive) and bank (right wing
  * down positive), body to world, z up, the plant's convention. */
@@ -791,17 +806,17 @@ function floatScenarios(key) {
   return [
     {
       id: `${key}-nose-dig`,
-      title: 'Touched down on the water nose down at 1.6 times the stall',
+      title: `Dived onto the water ${floatDigDeg(key)} deg nose down, past the bows' rise, at 1.6 times the stall`,
       family: 'nose dig',
       seconds: 12,
       setup(h) {
         water(h);
         h.call('sim_wing_set_stab', 0);
-        planeLaunch(h, { z: c.floats.z + 0.5, pitch: -12, v: 1.6 * c.Vs });
+        planeLaunch(h, { z: c.floats.z + 0.5, pitch: -floatDigDeg(key), v: 1.6 * c.Vs });
         h.arm();
       },
       pilot(h) {
-        return h.hit ? HANDS_OFF : planeHold(h, { pitch: -12, thr: 0 });
+        return h.hit ? HANDS_OFF : planeHold(h, { pitch: -floatDigDeg(key), thr: 0 });
       },
     },
     {

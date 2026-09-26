@@ -1214,6 +1214,15 @@ suite (Node): both nose digs now meet their flip and rest attitude bands
 and fail only peak g and time or distance to rest; both capsizes, flown
 with wind now, go over and fail only peak g.
 
+Corrected in the feel round: those 12 degree flips were the tail booms'
+crack cascade (#80), not the water. A 12 degree dive is shallower than the
+bows' own rise (17.5 degrees on the Timber, 19.6 on the Cub), so the rise
+planes and throws the nose up, and both skip and stay upright. The nose
+dig is staged past the rise now, 20 and 22 degrees (docs/FLOATS-STAGE1.md,
+the nose dig, derives it), where both go over with the planing pressure
+along the rise's own normal; crash:core holds the 12 degree skip as its
+own check.
+
 **Added mass** (round 1). The water a float heaves against moves with
 it: each wet strip carries the (pi/2) rho c^2 per metre the planing force
 already uses, along the bottom's normal, a 3 x 3 added mass in heave,
