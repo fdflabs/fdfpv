@@ -1256,7 +1256,6 @@ export const CRASH_SCENARIOS = [
     async run(mk) {
       const REST = { 9: { z: 0.2074, pitch: 2.52, mass: 1.934, beam: 0.085, heave: 0.288 }, 10: { z: 0.1765, pitch: 0.64, mass: 1.532, beam: 0.080, heave: 0.294 } };
       const VS = { 9: 7.1, 10: 8.7 };
-      const pitchOf = (s) => Math.asin(Math.max(-1, Math.min(1, 2 * (s[8] * s[10] - s[7] * s[9]))));
       const onWater = async (id, damage) => {
         const r = await mk({ id, damage, ground: null });
         r.sim.e.sim_water_add(0, 0, 0);
@@ -1295,10 +1294,18 @@ export const CRASH_SCENARIOS = [
         let wet = false;
         let minUp = 1;
         const fs = r.sim.e.malloc(80);
+        /* Held on the sines of the pitch and the bank, read straight off the
+         * quaternion: the sticks are the plant's input stream, and the
+         * host's asin and atan2 are not specified to the bit, so Node and
+         * Chrome could hand the plant different sticks (they did, dived
+         * past the bows' rise). The target is the start pose's own sine. */
+        const q0 = pitch(-pitchDeg);
+        const sinTarget = 2 * (q0[1] * q0[3] - q0[0] * q0[2]);
         r.run(8000, (s) => {
           if (wet) return [0, 0, 0, 0];
-          const a = pitchOf(s);
-          return [Math.max(-1, Math.min(1, -1.2 * bankOf(s) * Math.PI / 180 - 0.12 * s[11])), Math.max(-1, Math.min(1, 2.5 * (pitchDeg * Math.PI / 180 - a) + 0.25 * s[12])), 0, 0];
+          const sinPitch = 2 * (s[8] * s[10] - s[7] * s[9]);
+          const sinBank = 2 * (s[7] * s[8] + s[9] * s[10]);
+          return [Math.max(-1, Math.min(1, -1.2 * sinBank - 0.12 * s[11])), Math.max(-1, Math.min(1, 2.5 * (sinTarget - sinPitch) + 0.25 * s[12])), 0, 0];
         }, (s) => {
           r.sim.e.sim_float_state(fs);
           wet = wet || new Float64Array(r.sim.e.memory.buffer, fs, 10)[0] > 0;
