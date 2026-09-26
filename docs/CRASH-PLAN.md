@@ -682,3 +682,18 @@ posts (#87), tyre side force by slip angle (#88). crash:core 234 of
 flight re-recorded) going in without a flight first. Open: #86
 (cartwheels must still go over; the ground projection's speed kill),
 then the final feel re-run and the owner's sign off.
+
+### Feels right reached (lead, 2026-09-26)
+
+Merged after the push: #84 (stability to body axes, approved by the
+owner), #86 (ringing damping, growing foam patch, no projection speed
+kill), #89 (a bending panel returns its energy through its own spring;
+the craft is never lifted out of the ground). crash:core 234 of 234.
+The lead's feel run on ca3e831 and the #89 sheets: the Cub pole and
+corner clips, the Skyhunter and Timber cartwheels, the mush stalls, the
+Timber nose over, the float nose dig, the quad gate clips at 15 and 30
+m/s and the wall, and the Bombshell into grass and onto a roof all read
+right. The suite's bands (7 of 60 in every band, 119 failing checks)
+keep improving in the background and no longer block the loop. What
+remains is the owner's sign off, flown after the reboot the broken
+NVIDIA driver needs.
