@@ -949,6 +949,86 @@ it gives). Against the ground the decision uses the craft's whole mass,
 against an obstacle the point's effective mass. A tractor's motor crushes
 with the nose behind it.
 
+**The patch grows as the foam goes in** (branch crash-ring-crush). A
+foam part crushed at its plateau over its whole section, or half a face,
+from the first millimetre. Now a foam part's crushed patch is the section
+of the ellipsoid its hull box holds at the depth the front has reached,
+pi e0 e1 e2 / h (2 u - u^2), u = d / h, h its reach along the normal,
+up to the area it had before (`crush_area`, `crush_patch`). The depth is
+the front (its dent along the normal) and the give before the foam
+yields: the foam's own strain at its plateau (crush_s over bead foam's
+19.7 MPa, `FOAM_E`: 1.0 percent for EPO) over about the patch's width
+(Boussinesq's field under a loaded area), and the surface's own give at
+the force reached. The part's own spring is left out of that give: on a
+panel it is the panel bending away. Grass gives centimetres, so on grass
+the patch reaches its full section within the give and a belly does not
+crush (the Skyhunter dropped flat at 5 m/s: nothing written, as before);
+concrete gives nothing, so there a belly crushes from its first
+millimetre over a growing patch. A quad's frame keeps the table's section
+(`crush_foam`: EPO and EPP only).
+
+With it, three things the crush did not do:
+
+- A solid the plant knows has a shape: a box's face is a plane, a pole of
+  radius R a chord 2 sqrt(2 R d - d^2) across its axis times the part's
+  section along the axis (`CR_POLE`). The owner's pole nick, a Cub at 14
+  m/s, a 0.15 m wooden pole overlapping the right tip by d (Node,
+  `sim_obstacle_cylinder`, main 39315bb against this): 0 cm nothing on
+  both; 0.5, 1, 2, 5 cm nothing on main, a crush event and a dent of 2.3,
+  3.9, 9.2 and 11.5 mm here, the speed kept the same (0.884, 0.863,
+  0.818, 0.722); 10 cm the aileron off on both, a 4.6 mm dent here.
+  Against a solid the crush goes on only while the chain's spring is past
+  the plateau (past it the panel bends away; a crush held at its plateau
+  put more through the panel than its root holds, and the Cub's pole clip
+  in crash:core kept 0.62 of its speed against the 0.75 its root allows),
+  and the front goes no deeper than the part overlaps the solid.
+- A crushed part's hull is flat where it crushed (`samplers_rebuild`), so
+  the projection (sim.c) no longer lifts the craft out of a depth the foam
+  gave up and takes its speed with it; and a crush is driven while the
+  craft still comes on, not only while the point the solver visited
+  does. Together these took a Skyhunter dropped flat onto concrete at 5
+  m/s from 433 g (the settle's stop in one step) to 226 g (main: 156, its
+  elastic spring, the foam never crushing).
+- Pressed in and held, the part's own spring at its depth is the force on
+  the foam: the Skyhunter's second tip in the cartwheel stood on about 700
+  N through the ground's spring after its 12 cm crush, which yawed the
+  craft and put its fins past their limit 0.21 s after the strike (main
+  39315bb); it now crushes at its plateau, and the fins stay on until the
+  grass strikes the tail itself (below).
+
+The stall peaks the feel round named (180 to 280 g) are not the crush's.
+On main 2a1b33b the Skyhunter's stall into the grass writes no crush; its
+139 g is one millisecond in which the hull, sunk on the ground's spring
+with the projection standing aside, is lifted out by the projection with
+its speed into the ground zeroed (z 0.171 to 0.259 m, vz -1.36 to 0.00);
+the Bramor's 154 g is the ground's spring on its composite pod, 3.3 kN,
+which does not crush at all; the Radian's 110 to 122 g is a real crush,
+about 1 kN on its pod as the nose meets the grass. The first two are the
+ground's spring and sim.c's projection, not this branch's, and are left
+for their owner.
+
+Measured, main 2a1b33b against both changes. The pole nick, above. A
+Skyhunter dropped flat at 5 m/s: on grass nothing written on both, on
+concrete 156 g on main (its elastic spring, the foam never crushing) and
+226 g here, the belly crushed 3 cm, the pack and the camera off. Node, the
+feel round's throws: the Skyhunter cartwheel loses the struck wing, the
+other aileron, and a rudder, the elevator and a fin 0.64 s after the
+strike, struck by the grass themselves at 5.5 m/s (3.2 to 3.9 times their
+limits); the Timber
+the boom, the struck wing and a gear leg. The real shell (crash:feel, CPU
+renderer): the Skyhunter cartwheel from 4 breaks (the struck wing, both
+fins at t+0.90, the pack), 7 pieces, inverted, to the struck wing and one
+aileron, 3 pieces, upright; the Timber unchanged (boom and both wings,
+upright); the stalls unchanged. Suite against
+main: failing checks 110 to 113, 10 of 60 in every band on both. Into
+band: radian-nose-in peakG (500 to 277 g), timber-cartwheel restDistM
+(2.7 to 14.4 m). Out: sky-cartwheel minUpZ and restAttitude (it ends
+upright: its tips crush at their plateau instead of standing on the
+ground's spring, so nothing lifts it over), cub-cartwheel mustBreak wing,
+timber-cartwheel mustBreak wing (its tip ploughs 14 m crushing, 12 g, and
+nothing breaks), timber-nose-in retainedFirst (-0.00 against a band from
+0, the sign in the last digit).
+
 **The ground is a spring** (round 2, by the lead's decision that with
 the mode on every contact may have its physical duration, docs/CRASH-PLAN.md).
 Until round 2 an impact under every limit was a one step impulse, so the
@@ -1099,6 +1179,8 @@ rigid contact left it (0.26 mm).
 | whoop prop press fit | 0.10 N m, 6 N | 1 mm shaft, set so R-WHOOP's walls leave it on | R-WHOOP, chosen |
 | whoop canopy | 0.30 N m, 20 N | two M1.4 in PP 10 mm apart | chosen |
 | EPO, EPP crush | 200, 180 kPa | plateau at 25 percent strain, 30 to 35 g/L | EPO: NOVA ARCEL 730, 179 to 214 kPa at 25 percent over 30 to 35 g/L (round 5); EPP: JSP ARPRO data; R-A14-FOAM's own nose check uses 0.2 MPa |
+| a foam part's crushed patch (crash-ring-crush) | the section of the ellipsoid its hull box holds at the front's depth, up to the table's area; a pole's chord 2 sqrt(2 R d - d^2) times the part's section along its axis | a curved face meets a plane or a pole at a point | derived; the shape is the hull box's, not a drawn curvature |
+| the give before foam yields | crush_s / 19.7 MPa (1.0 percent for EPO) times the patch's width, plus the surface's give at the force | the foam's elastic strain at its plateau, strained about as deep as the patch is wide | Negussey and Anasthas 2001 (modulus), NOVA ARCEL 730 (plateau); the depth of the strained zone is Boussinesq's order, chosen |
 | EPO's strength in the foam booms | 0.6 MPa | the outer fibre of the Cub's, Timber's and Radian's booms | the top of NOVA ARCEL 730's tensile strength, 0.465 to 0.58 MPa over 30 to 35 g/L; kept at the top while the modulus is an upper bound (round 5) |
 | 11 inch plane prop | yields 8 N m, sheds a blade at 16 | 20 x 4 mm root at 150 MPa | R-PROPS (glass nylon snaps at 3 to 5 percent) |
 | plane firewall | 10 N m, 400 N | ply or moulded, four screws | chosen |

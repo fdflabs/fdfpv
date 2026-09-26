@@ -174,6 +174,11 @@ typedef struct {
  * on past the wing, so the section says which a ring is (sect_joint). */
 #define CARBON_SPAR(r) .sect_c = (r), .sect_eos = 127.0, .sect_joint = 1
 #define FOAM_EOS (19.7 / 0.6)
+/* That modulus in Pa: a foam part's crush plateau over it is the strain it
+ * stands elastically before the plateau (EPO 200 kPa over 19.7 MPa, 1.0
+ * percent), how far a curved face gives before it starts to crush
+ * (crash.c, THE PATCH GROWS AS THE FOAM GOES IN). */
+#define FOAM_E 19.7e6
 #define FOAM_SECTION(c) .sect_c = (c), .sect_eos = FOAM_EOS, .sect_joint = 0
 /* A composite shell's own section, carbon skins on a honeycomb core, c its
  * half depth: woven carbon laminate's 70 GPa over its 600 MPa (DragonPlate,
