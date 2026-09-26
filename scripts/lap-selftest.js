@@ -40,6 +40,7 @@ import { createElement, createSequenceEntry, createTrack } from '../src/trackbui
 import { applyAutoFaces } from '../src/trackbuilder/faces.js';
 import { syntheticLap } from '../tests/lib/synthlap.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
+import { layoutFingerprint } from '../src/share/listing.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const doc = JSON.parse(await readFile(join(root, 'tests/fixtures/course-reference.json'), 'utf8'));
@@ -162,6 +163,9 @@ check('the ring\'s lap does not hold on the same gates read as a field', fieldRe
 const moved = mapTrackDocument({ centre: [120, 660, -80], id: ring.id });
 const movedRead = checkLap(moved, encodeGhost(ringLap), ringLap.lapMs);
 check('nor on the ring raised twenty metres', movedRead.ok === false, movedRead.reason);
+const alps = mapTrackDocument({ map: 'alps', id: ring.id });
+check('the same ring on another world is a different layout', layoutFingerprint(alps) !== layoutFingerprint(ring));
+check('and the same ring on the same world is the same layout', layoutFingerprint(mapTrackDocument({ id: ring.id })) === layoutFingerprint(ring));
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);
