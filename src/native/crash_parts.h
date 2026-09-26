@@ -83,6 +83,11 @@ typedef struct {
 /* Five inch arm, 16 x 7.6 mm quasi isotropic CF plate: Z = b h^2 / 6 =
  * 1.540e-7 m^3 at 600 MPa times 0.8 for the clamp's screw holes. */
 #define M5_ARM_M 73.9
+/* The same arm bent in its own plane, a blow from the side (a gate post
+ * met by the motor end): its depth that way is its 16 mm width, Z = h b^2
+ * / 6 = 3.243e-7 m^3, 2.1 times as strong, as R-ARM's own derivation has
+ * it (1,100 N sideways against 470 N from above). */
+#define M5_ARM_MZ 155.6
 /* Its tip stiffness, 3 E I / L^3: E 50 GPa, I 5.853e-10 m^4, L 0.0635 m. */
 #define M5_ARM_K 3.43e5
 /* 5 inch tri blade root, 12 x 2.5 mm, PA66 GF30 conditioned 200 MPa: the
@@ -196,16 +201,20 @@ static const PartDef PARTS_5IN[] = {
     .k = 5.0e6, BOX(-0.047, 0.070, -0.019, 0.019, -0.005, 0.040) },
   /* 1..4 arms, joint at the plate's edge, radius 0.030. */
   { .kind = SIM_PART_ARM, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = 0, .wheel = -1, .shape = SH_ARM,
-    .mass = 0.012, .joint = { -0.0212132, -0.0212132, 0.002 }, .m_max = M5_ARM_M, .f_max = 4000.0, .k = M5_ARM_K,
+    .mass = 0.012, .joint = { -0.0212132, -0.0212132, 0.002 }, .m_max = M5_ARM_M, .m_max_z = M5_ARM_MZ,
+    .f_max = 4000.0, .k = M5_ARM_K,
     .npts = 8, .pts = { { 0.020, 0.0935, 0.008 }, { -0.0018, 0.0058, 0.0 } } },
   { .kind = SIM_PART_ARM, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = 1, .wheel = -1, .shape = SH_ARM,
-    .mass = 0.012, .joint = { 0.0212132, -0.0212132, 0.002 }, .m_max = M5_ARM_M, .f_max = 4000.0, .k = M5_ARM_K,
+    .mass = 0.012, .joint = { 0.0212132, -0.0212132, 0.002 }, .m_max = M5_ARM_M, .m_max_z = M5_ARM_MZ,
+    .f_max = 4000.0, .k = M5_ARM_K,
     .npts = 8, .pts = { { 0.020, 0.0935, 0.008 }, { -0.0018, 0.0058, 0.0 } } },
   { .kind = SIM_PART_ARM, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = 2, .wheel = -1, .shape = SH_ARM,
-    .mass = 0.012, .joint = { -0.0212132, 0.0212132, 0.002 }, .m_max = M5_ARM_M, .f_max = 4000.0, .k = M5_ARM_K,
+    .mass = 0.012, .joint = { -0.0212132, 0.0212132, 0.002 }, .m_max = M5_ARM_M, .m_max_z = M5_ARM_MZ,
+    .f_max = 4000.0, .k = M5_ARM_K,
     .npts = 8, .pts = { { 0.020, 0.0935, 0.008 }, { -0.0018, 0.0058, 0.0 } } },
   { .kind = SIM_PART_ARM, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = 3, .wheel = -1, .shape = SH_ARM,
-    .mass = 0.012, .joint = { 0.0212132, 0.0212132, 0.002 }, .m_max = M5_ARM_M, .f_max = 4000.0, .k = M5_ARM_K,
+    .mass = 0.012, .joint = { 0.0212132, 0.0212132, 0.002 }, .m_max = M5_ARM_M, .m_max_z = M5_ARM_MZ,
+    .f_max = 4000.0, .k = M5_ARM_K,
     .npts = 8, .pts = { { 0.020, 0.0935, 0.008 }, { -0.0018, 0.0058, 0.0 } } },
   /* 5..8 motors, 2207 with leads, on their arm. */
   { .kind = SIM_PART_MOTOR, .parent = 1, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,

@@ -1802,8 +1802,15 @@ static int chain_hold(const Table *t, int i, double *f_lim_out, double *m_at_out
      * what holds (a panel's own plane is its slab's only under a load
      * spread along it, joint_m_lim). */
     double f = d->f_max * st;
-    if (a > 1.0e-6 && d->m_max * st / a < f) {
-      f = d->m_max * st / a;
+    /* A quad's arm is solid carbon through its width, with no slab to crush
+     * first, so a blow in its own plane meets its in plane strength. */
+    double m_lim = d->m_max;
+    if (d->kind == SIM_PART_ARM && a > 1.0e-6) {
+      const double u[3] = { c[0] / a, c[1] / a, c[2] / a };
+      m_lim = joint_m_lim(d, u);
+    }
+    if (a > 1.0e-6 && m_lim * st / a < f) {
+      f = m_lim * st / a;
     }
     if (f < f_lim) {
       f_lim = f;
