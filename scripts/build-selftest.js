@@ -20,6 +20,11 @@
  *   tilted into a dive, through the hole it has and not through the box
  *   around it, and not from behind.
  *
+ *   A track of one gate is a lap of leaving it and coming back through
+ *   it: flying on out of the gate after the first pass does not finish
+ *   the lap it started, the way it did when every frame inside the scoring
+ *   box counted as the next pass.
+ *
  *   The placement modes put a gate where they say: upright on the ground,
  *   standing out of a cliff face along its normal, or centred in the air in
  *   front of the camera; the test flight parks behind the start gate facing
@@ -198,6 +203,73 @@ console.log('the race scores a gate at any orientation');
   check('and one just inside it is', r.passed === 1);
   race.setRecordKey('webfpv.best.x');
   check('a built course keeps its record under its own key', race.key === 'webfpv.best.x.build.test', race.key);
+}
+
+/* ------------------------------------------------------------------ */
+console.log('a track of one gate');
+{
+  /* Flown slowly enough that several frames' travel lies inside the
+   * scoring box, which is what the shell does at 60 frames a second: the
+   * lap used to finish on the frame after it started. */
+  const one = newCourse('swiss2', 'One gate');
+  addGate(one, 'gate', { x: 0, y: 100, z: 0 }, qAxis(0, 1, 0, 0));
+  const [g] = raceGatesOf(one);
+  const race = new Race([g], 'full');
+  const t = g.axes.travel;
+  const c = g.centre;
+  const along = (s) => ({ x: c.x + t.x * s, y: c.y + t.y * s, z: c.z + t.z * s });
+  let ms = 0;
+  const fly = (from, to, step) => {
+    let p = along(from);
+    for (let s = from + step; s <= to + 1e-9; s += step) {
+      const q = along(s);
+      ms += 16;
+      race.update(p, q, ms, ms);
+      p = q;
+    }
+  };
+  fly(-3, 3, 0.1);
+  check('the first pass starts the lap and flying on out of the gate does not finish it',
+    race.lapStartMs != null && race.lap === 0 && race.log.length === 0, `lap ${race.lap}, log ${race.log.length}`);
+  /* Back round the outside to the entry side: away, then in from behind. */
+  const far = { x: c.x + t.x * 3 + 30, y: c.y, z: c.z + t.z * 3 };
+  ms += 2000;
+  race.update(along(3), far, ms, ms);
+  ms += 2000;
+  race.update(far, along(-3), ms, ms);
+  check('coming back round to the entry side is not a pass either', race.lap === 0);
+  fly(-3, 3, 0.1);
+  check('through it again: one lap, timed from the first crossing to the second',
+    race.lap === 1 && race.laps.length === 1 && race.laps[0] > 4000,
+    `lap ${race.lap}, ${race.laps[0]} ms`);
+  const lap1 = race.lap;
+  fly(3, 6, 0.1);
+  check('and leaving it again does not count a second', race.lap === lap1);
+  /* A craft that stops in the opening and pokes forward, frame by frame. */
+  const hover = new Race([g], 'full');
+  let hm = 0;
+  let p = along(-2);
+  for (let s = -1.9; s <= 0.4; s += 0.05) {
+    const q = along(s);
+    hm += 16;
+    hover.update(p, q, hm, hm);
+    p = q;
+  }
+  check('a craft creeping through the opening starts one lap and finishes none', hover.lapStartMs != null && hover.lap === 0);
+  /* Two gates: nothing changed. */
+  const two = newCourse('swiss2', 'Two');
+  addGate(two, 'gate', { x: 0, y: 100, z: 0 }, qAxis(0, 1, 0, 0));
+  addGate(two, 'gate', { x: 0, y: 100, z: -40 }, qAxis(0, 1, 0, 0));
+  const pair = new Race(raceGatesOf(two), 'full');
+  const g2 = raceGatesOf(two);
+  const thru = (gg, m) => pair.update(
+    { x: gg.centre.x, y: gg.centre.y, z: gg.centre.z + 1 }, { x: gg.centre.x, y: gg.centre.y, z: gg.centre.z - 1 }, m, m,
+  );
+  thru(g2[0], 10);
+  thru(g2[1], 20);
+  thru(g2[0], 30);
+  /* Each crossing is timed at the midplane, half way through its frame. */
+  check('a two gate lap is scored as before', pair.lap === 1 && pair.laps[0] === 15, `${pair.lap} ${pair.laps[0]}`);
 }
 
 /* ------------------------------------------------------------------ */

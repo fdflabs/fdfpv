@@ -369,6 +369,9 @@ export class Race {
      * the player just did. */
     this.log = [];
     this.laps = [];         /* completed clean lap times, in order */
+    /* The gate just passed, until the craft has been seen outside its
+     * scoring box. See leftGate. */
+    this.leaving = -1;
     /* The record as this run began. The live best updates on a faster
      * lap, and the results screen needs the old figure to say whether
      * this run beat it and by how much. */
@@ -417,6 +420,7 @@ export class Race {
     this.lapStartMs = null;
     this.splits = [];
     this.next = 0;
+    this.leaving = -1;
     this.flash = { text: reason, untilMs: wallMs + 1800 };
   }
 
@@ -499,10 +503,50 @@ export class Race {
     return t0;
   }
 
+  /* Is a world point outside every scoring box of gate g? */
+  outsideBoxes(g, p) {
+    return g.apertures.every((ap) => {
+      const l = this.local(g, ap.centreY, p.x, p.y, p.z);
+      return Math.abs(l.x) > ap.clearW * 0.5 - this.passMargin
+        || Math.abs(l.y) > ap.clearH * 0.5 - this.passMargin
+        || Math.abs(l.z) > this.passDepth;
+    });
+  }
+
+  /*
+   * A LAP OF ONE GATE IS LEAVING IT AND COMING BACK THROUGH IT.
+   *
+   * After a pass the order wraps to the next gate, and on a course of one
+   * gate the next gate is the one the craft is still inside. The scoring
+   * box is a metre deep, several frames of travel, and every one of those
+   * frames' segments starts inside it moving forward: each was scored as
+   * the next pass, so the lap that had just started finished on the frame
+   * after, and a three lap run was over before the craft had left the gate.
+   *
+   * So a gate just passed is not the next pass until the craft has been
+   * seen outside its box, and the segment that carries it out does not
+   * count either: it starts inside, moving forward, and is the same
+   * crossing. After that the craft has to fly back round to the entry side
+   * and through, which is a lap. On a course of two or more gates the next
+   * gate is never the one just passed, so nothing changes there.
+   */
+  leftGate(curr) {
+    if (this.leaving !== this.next) {
+      return true;
+    }
+    if (this.outsideBoxes(this.gates[this.leaving], curr)) {
+      this.leaving = -1;
+    }
+    return false;
+  }
+
   /* Segment prev to curr against the next gate. A pass is the travel
    * intersecting the opening's box in the direction of travel. Returns
    * the sim time of first contact, or null. */
   tryPass(prev, curr, prevSimMs, simMs, wallMs) {
+    if (!this.leftGate(curr)) {
+      return null;
+    }
     const g = this.gates[this.next];
     /*
      * Every opening is tested in ITS OWN frame. On an upright stack all of
@@ -540,6 +584,7 @@ export class Race {
     const crossMs = prevSimMs + (simMs - prevSimMs) * t;
     const passed = this.next;
     this.next = (this.next + 1) % this.gates.length;
+    this.leaving = this.outsideBoxes(g, curr) ? -1 : passed;
     /* A crossing inside a running lap is a split, timed the same way the
      * lap is: interpolated on the sim clock. The finish is the last one. */
     if (this.lapStartMs != null) {
