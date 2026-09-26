@@ -57,6 +57,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { checkLap } from '../src/game/verify.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const opts = { map: 'swiss2' };
@@ -72,7 +73,9 @@ for (const a of process.argv.slice(2)) {
 const outDir = resolve(positional[0] || join(root, 'tmp', 'map-share-check'));
 await mkdir(outDir, { recursive: true });
 const BOARD = String(process.env.BOARD_ORIGIN || 'http://127.0.0.1:3180').replace(/\/+$/, '');
-const PILOT = 'Map Check';
+/* A fresh name each run: the board files a name under the first pilot key
+ * that posts it, and every run of this is a new browser with a new key. */
+const PILOT = `Map ${Date.now().toString(36)}`;
 
 let failed = 0;
 function say(ok, what) {
@@ -359,7 +362,9 @@ async function main() {
     console.log('fly a lap of it');
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState().mode === 'flight'", 60000);
-    await page.sleep(1600);
+    /* Fly plays the pad shot first; the craft is at its start once it is
+     * over, held through the countdown. */
+    await page.until(`(() => { const c = window.__craftState(); const g = ${JSON.stringify(gates[0].centre)}; return Math.hypot(c.worldX - g[0], c.worldY - g[1], c.worldZ - g[2]) < 10; })()`, 60000).catch(() => {});
     const c0 = await page.evaluate('window.__craftState()');
     const over = c0.worldY - (await page.evaluate(`window.__heightAt(${c0.worldX}, ${c0.worldZ})`));
     const before = Math.hypot(c0.worldX - gates[0].centre[0], c0.worldY - gates[0].centre[1], c0.worldZ - gates[0].centre[2]);
@@ -377,7 +382,15 @@ async function main() {
 
     /* 5. Upload. */
     console.log('upload the time with its ghost');
-    await page.evaluate("window.__ui.onAction('posttime'); true");
+    await page.evaluate(`(() => {
+      window.__banners = [];
+      window.__bannerWatch = setInterval(() => {
+        const b = window.__craftState().banner;
+        if (b && !window.__banners.includes(b)) { window.__banners.push(b); }
+      }, 50);
+      window.__ui.onAction('posttime');
+      return true;
+    })()`);
     let times = null;
     for (let k = 0; k < 60; k += 1) {
       times = await boardJson(`/api/tracks/${id}`);
@@ -389,8 +402,12 @@ async function main() {
     const posted = times && times.times ? times.times[0] : null;
     say(Boolean(posted) && posted.name === PILOT && posted.lapMs === Math.round(lap.best) && posted.hasGhost === true,
       `the board checked it and keeps it: ${posted ? JSON.stringify({ name: posted.name, lapMs: posted.lapMs, hasGhost: posted.hasGhost }) : 'nothing'}`);
+    await page.evaluate('clearInterval(window.__bannerWatch), true');
     if (!posted) {
-      console.log(`  banner: ${JSON.stringify((await page.evaluate('window.__craftState()')).banner)}`);
+      console.log(`  what the pilot was told: ${JSON.stringify(await page.evaluate('window.__banners'))}`);
+      const b64 = await page.evaluate("window.__ghostExport('best')");
+      const local = b64 ? checkLap(doc, new Uint8Array(Buffer.from(b64, 'base64')), Math.round(lap.best)) : null;
+      console.log(`  the lap check run here on the same ghost: ${JSON.stringify(local)}`);
       return;
     }
     const ghostBody = await boardJson(`/api/tracks/${id}/times/${posted.id}/ghost`);
