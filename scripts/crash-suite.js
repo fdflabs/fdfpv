@@ -65,7 +65,7 @@ import { Recorder, replayProgram, endState } from '../tests/crash/program.js';
 import { SCENARIOS, CRAFT, attitude } from '../tests/crash/scenarios.js';
 import { damageReader } from '../tests/crash/readback.js';
 import { setCraftAirframe, contactMaterial, contactPatch, BOUNCE_SEPARATION, KINDS } from '../src/game/collide.js';
-import { obstacleSurfaces, solidSurface } from '../src/game/crashworld.js';
+import { obstacleSurfaces, postGive, solidSurface } from '../src/game/crashworld.js';
 import { airframeHull, bodyAxes, hullContact, hullFromPartsState, partIntoPlane, sweepPartCapsule, PLANT_BODY } from '../src/game/airframehull.js';
 import { createDamageLink, PART_STATE_DOUBLES, STATE } from '../src/game/damage.js';
 import { DAMAGE_FLAGS, partLabel } from '../configs/parts.js';
@@ -340,7 +340,7 @@ function arcFromX(d) {
   return [q[0] / qn, q[1] / qn, q[2] / qn, q[3] / qn];
 }
 
-function declareSolid(rec, solid) {
+function declareSolid(rec, solid, micro) {
   if (solid.kind === 'tree' || solid.kind === 'canopy') {
     return 0;
   }
@@ -356,7 +356,14 @@ function declareSolid(rec, solid) {
   if (solid.shape === 'capsule') {
     const { a, b, r } = solid;
     if (Math.abs(a[0] - b[0]) < 1e-3 && Math.abs(a[1] - b[1]) < 1e-3) {
-      return rec.call('sim_obstacle_cylinder', a[0], a[1], Math.min(a[2], b[2]) - r, Math.max(a[2], b[2]) + r, r, mat);
+      const idx = rec.call('sim_obstacle_cylinder', a[0], a[1], Math.min(a[2], b[2]) - r, Math.max(a[2], b[2]) + r, r, mat);
+      /* A gate's upright gives, as the shell declares it: life size here,
+       * and not in a whoop's room. */
+      const give = idx >= 0 && !micro ? postGive(solid.kind, r, 1) : null;
+      if (give && rec.call('sim_obstacle_compliance', idx, give.ei, give.mLine, give.mFree) !== SIM_OK) {
+        throw new Error('sim_obstacle_compliance refused a gate post');
+      }
+      return idx;
     }
     const dx = b[0] - a[0];
     const dy = b[1] - a[1];
@@ -572,7 +579,7 @@ async function fly(sc) {
     call: (name, ...args) => rec.call(name, ...args),
     place: (solid) => {
       solids.push(solid);
-      if (declareSolid(rec, solid) < 0) {
+      if (declareSolid(rec, solid, c.scale != null) < 0) {
         throw new Error('sim_obstacle_*: the plant holds no more solids');
       }
     },

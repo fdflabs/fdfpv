@@ -47,6 +47,21 @@
 #include "libm/sim_math.h"
 
 /*
+ * Every tyre's slide, WheelParams.slide: tan of the slip angle at which its
+ * whole contact patch slides, 10 deg. ESTIMATED from the brush model
+ * (Pacejka, Tyre and Vehicle Dynamics, ch. 3), where
+ * tan a_sl = 3 mu F_z / C_Fa: a pneumatic tyre's normalised cornering
+ * stiffness, C_Fa / F_z about 17 per rad at mu near 1, puts it at about
+ * 10 deg. No cornering data was found for a model aircraft's foam or rubber
+ * wheel. The brush model also says the angle does not depend on the load:
+ * the patch's length goes with the root of the load and its stiffness
+ * with the square of the length. docs/CUB-STAGE1.md, "The tyres' side
+ * grip", has the take off and taxi checks at 4 and 16 deg as well; each
+ * passes at both.
+ */
+#define TYRE_SLIDE 0.17633
+
+/*
  * Propulsion constants rebuilt from the real airframe after a pilot
  * review proved the old pair violated momentum theory (figure of merit
  * 2.01; the physical maximum is 1.0). The derivation chain:
@@ -772,9 +787,9 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .wheel_count = 4,
   .wheel = {
-    { .pos = { 0.075, 0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0 },
-    { .pos = { 0.075, -0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0 },
-    { .pos = { -0.596, 0.0, -0.0273 }, .r = 0.012, .k = 300.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0 },
+    { .pos = { 0.075, 0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.075, -0.119, -0.1327 }, .r = 0.035, .k = 1200.0, .c = 34.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.596, 0.0, -0.0273 }, .r = 0.012, .k = 300.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0, .slide = TYRE_SLIDE },
     /* The prop's lowest tip, a skid: 0.1397 m under a hub 0.23 m ahead of
      * the CG and 2 mm over it. It clears the grass by 25 mm with the
      * aircraft level on its mains and touches at 9 deg nose down, which on
@@ -899,9 +914,9 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .wheel_count = 4,
   .wheel = {
-    { .pos = { 0.18, 0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0, .brake = 1.0 },
-    { .pos = { 0.18, -0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0, .brake = 1.0 },
-    { .pos = { -0.568, 0.0, -0.0595 }, .r = 0.0125, .k = 210.0, .c = 4.5, .mu_roll = 0.08, .mu_side = 0.50, .steer = 1.0 },
+    { .pos = { 0.18, 0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.18, -0.085, -0.1325 }, .r = 0.030, .k = 300.0, .c = 9.6, .mu_roll = 0.08, .mu_side = 0.50, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.568, 0.0, -0.0595 }, .r = 0.0125, .k = 210.0, .c = 4.5, .mu_roll = 0.08, .mu_side = 0.50, .steer = 1.0, .slide = TYRE_SLIDE },
     /* The prop's lowest tip, a skid, 0.1397 m under the shaft: 15 mm over
      * the grass with the aircraft level on its mains, touching at 7 deg
      * nose down about them. */
@@ -958,9 +973,9 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .wheel_count = 4,
   .wheel = {
-    { .pos = { 0.057, 0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0 },
-    { .pos = { 0.057, -0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0 },
-    { .pos = { -0.650, 0.0, -0.0711 }, .r = 0.015, .k = 350.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0 },
+    { .pos = { 0.057, 0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.057, -0.150, -0.17785 }, .r = 0.054, .k = 1500.0, .c = 43.0, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.650, 0.0, -0.0711 }, .r = 0.015, .k = 350.0, .c = 10.0, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0, .slide = TYRE_SLIDE },
     /* The prop's lowest tip, a skid, 0.1397 m under the shaft: 87 mm over
      * the grass with the aircraft level on its mains. */
     { .pos = { 0.29, 0.0, -0.1397 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
@@ -1113,8 +1128,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .wheel_count = 4,
   .wheel = {
-    { .pos = { 0.0731, 0.0865, -0.1267 }, .r = 0.0222, .k = 473.0, .c = 13.8, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.0, .brake = 1.0 },
-    { .pos = { 0.0731, -0.0865, -0.1267 }, .r = 0.0222, .k = 473.0, .c = 13.8, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.0, .brake = 1.0 },
+    { .pos = { 0.0731, 0.0865, -0.1267 }, .r = 0.0222, .k = 473.0, .c = 13.8, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.0731, -0.0865, -0.1267 }, .r = 0.0222, .k = 473.0, .c = 13.8, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
     { .pos = { -0.5895, 0.0, -0.0502 }, .r = 0.0, .k = 153.0, .c = 3.43, .mu_roll = 0.35, .mu_side = 0.50, .steer = 0.0 },
     /* The prop's lowest tip, a skid, 0.0889 m under the shaft: 50 mm over
      * the grass with the aircraft level on its mains. */

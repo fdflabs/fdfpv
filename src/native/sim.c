@@ -458,7 +458,8 @@ static int contact_impulse(const double n[3], const double r[3], const double vs
     if (kt > 1e-12) {
       double jtm = -vtm / kt;
       const double mu_use = (vtm < CONTACT_STATIC_VT) ? mu * 1.15 : mu;
-      const double jmax = mu_use * jn;
+      const double t[3] = { tx, ty, tz };
+      const double jmax = SIM_DAMAGE ? crash_contact_grip(&S, mu_use, jn, t) : mu_use * jn;
       if (jtm < -jmax) {
         jtm = -jmax;
       }
@@ -841,7 +842,8 @@ static void ground_settle(double upz, double vn_plant) {
  * heading it rolls, and costs only its rolling resistance, mu_roll N on
  * short grass and the ground's material's share of it elsewhere, more
  * with the brake on (plant_wheel_roll);
- * across it the tyre grips up to mu_side N. Each is an impulse that would
+ * across it the tyre grips up to mu_side N, a rolling tyre only as far as
+ * its slip angle lets it (wheel_side). Each is an impulse that would
  * stop the point's velocity along that direction, through the same
  * effective mass the hull's contact uses, clipped at its cone. The
  * tailwheel's heading turns with the rudder, so it steers.
@@ -910,6 +912,50 @@ static void wheel_friction(const double r[3], const double d[3], double jmax) {
     j = -jmax;
   }
   contact_push(r, d, j);
+}
+
+/*
+ * A rolling tyre's side grip. A skid, or a tyre held still, grips like any
+ * contact: the impulse that stops its point across the heading, up to
+ * mu_side N. A tyre rolling along its heading does not: its tread enters
+ * the contact patch straight and is dragged sideways only as the wheel
+ * slips at an angle to its path, so the side force grows with the slip
+ * angle, tan a = |v_across| / |v_along|, and reaches mu_side N only when
+ * the whole patch slides. The brush model with a parabolic pressure
+ * (Pacejka, Tyre and Vehicle Dynamics, ch. 3) gives the force under that
+ * as F / (mu N) = 1 - (1 - s)^3, s = tan a / tan a_sl, where tan a_sl is
+ * the tyre's `slide`. As the rolling speed falls to nothing the slip angle
+ * goes to 90 deg, the patch slides whole, and this is the skid's grip
+ * again; and the force is never more than the impulse that stops the
+ * point, so it cannot throw the point back. Pacejka's relaxation length,
+ * about the tyre's radius, is left out: at a rolling 0.5 m/s a 22 mm
+ * tyre's force follows its slip within 45 ms and at 6 m/s within 4 ms,
+ * inside the tenths of a second the roll's swings take.
+ */
+static void wheel_side(const WheelParams *wp, const double r[3], const double l[3], const double h[3],
+                       double jmax) {
+  double vp[3];
+  contact_point_vel(r, vp);
+  const double vl = vp[0] * l[0] + vp[1] * l[1] + vp[2] * l[2];
+  const double vh = vp[0] * h[0] + vp[1] * h[1] + vp[2] * h[2];
+  const double kd = contact_k_along(r, l);
+  if (!(kd > 1e-12)) {
+    return;
+  }
+  double cap = jmax;
+  const double avl = vl < 0.0 ? -vl : vl;
+  const double avh = vh < 0.0 ? -vh : vh;
+  if (wp->slide > 0.0 && avl < wp->slide * avh) {
+    const double u = 1.0 - avl / (wp->slide * avh);
+    cap = jmax * (1.0 - u * u * u);
+  }
+  double j = -vl / kd;
+  if (j > cap) {
+    j = cap;
+  } else if (j < -cap) {
+    j = -cap;
+  }
+  contact_push(r, l, j);
 }
 
 /* Returns the number of wheels carrying load this step. */
@@ -988,7 +1034,7 @@ static int ground_wheels(void) {
       n[2] * h[0] - n[0] * h[2],
       n[0] * h[1] - n[1] * h[0],
     };
-    wheel_friction(r, l, wp->mu_side * jn);
+    wheel_side(wp, r, l, h, wp->mu_side * jn);
     wheel_friction(r, h, plant_wheel_roll(wp, crash_ground_material(), plant_wing_brake()) * jn);
   }
   return loaded;
@@ -1148,17 +1194,17 @@ static void ground_apply(void) {
  */
 static int g_obstacle_hits = 0;
 
-static void obstacle_apply(void) {
+static void obstacle_contacts(void) {
   const int nt = SIM_DAMAGE ? crash_touches(&S) : 0;
   g_obstacle_hits = nt;
   if (nt == 0) {
     return;
   }
-  const double vs[3] = { 0.0, 0.0, 0.0 };
   for (int iter = 0; iter < CONTACT_ITERS; iter += 1) {
     for (int k = 0; k < nt; k += 1) {
-      double r[3], n[3], pen, e, mu;
+      double r[3], n[3], pen, e, mu, vs[3];
       crash_touch(&S, k, r, n, &pen, &e, &mu);
+      crash_touch_vs(k, vs);
       contact_impulse(n, r, vs, e, mu, pen > 0.0 ? pen : 0.0);
       if (pen > CONTACT_SLOP && !crash_last_capped()) {
         const double push = (pen - CONTACT_SLOP) * CONTACT_POS_PUSH;
@@ -1171,6 +1217,14 @@ static void obstacle_apply(void) {
   double r[3], n[3], pen, e, mu;
   crash_touch(&S, -1, r, n, &pen, &e, &mu);
   crash_set_ground_contact();
+}
+
+/* The contacts, then the posts that give moving on from them. */
+static void obstacle_apply(void) {
+  obstacle_contacts();
+  if (SIM_DAMAGE) {
+    crash_solids_step();
+  }
 }
 
 /*

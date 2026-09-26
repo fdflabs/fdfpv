@@ -72,6 +72,11 @@ typedef struct {
                    * tailwheel turns its front the way the rudder's trailing
                    * edge goes, and 0 is a wheel that does not steer */
   double brake;   /* 1 on a wheel the brake channel acts on, 0 elsewhere */
+  double slide;   /* a rolling tyre's side grip as a slip: tan of the slip
+                   * angle at which its contact patch slides whole, the
+                   * brush model's (sim.c, wheel_side). Zero holds the
+                   * contact across the heading as a skid does, up to
+                   * mu_side N, at any speed. */
 } WheelParams;
 
 /*
@@ -782,12 +787,14 @@ extern int SIM_DAMAGE;
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
                        double vin, double kn, double *e_used, double *jn_cap);
 /* The friction the contact just attributed may use, from the solver's mu:
- * a part that meets the ground flat on a face slides as a sled does, less
- * than an edge or a tip that ploughs in. And the same for the resting
- * slide, by the part the craft lies on against the ground's normal n.
- * Damage mode only. */
+ * on the ground, what anything slides at on it, a sled's. And the same for
+ * the resting slide against the ground's normal n. Damage mode only. */
 double crash_contact_mu(double mu);
 double crash_settle_mu(const SimState *s, const double n[3], double mu);
+/* The most friction impulse that contact may take sliding along t (world,
+ * unit), from the solver's mu jn: on turf an edge that is in the ground
+ * also ploughs. Damage mode only. */
+double crash_contact_grip(const SimState *s, double mu, double jn, const double t[3]);
 /* Of the normal impulse the weight asks of the ground in this step, w, the
  * fraction the step's ground contacts have not already given. */
 double crash_settle_share(double w);
@@ -861,6 +868,11 @@ int crash_contact_known(const SimState *s, const double n[3], const double hw[3]
  * makes it the next contact's; k -1 ends the pass. */
 int crash_touches(const SimState *s);
 int crash_touch(const SimState *s, int k, double r[3], double n[3], double *pen, double *e, double *mu);
+/* Touch k's surface velocity, world: a post that gives moves, every other
+ * solid is still. And every step after the contacts, the posts that give
+ * swing on their springs (crash.c, A POST THAT GIVES). */
+void crash_touch_vs(int k, double vs[3]);
+void crash_solids_step(void);
 
 /* Bridge: Betaflight control loop and config shim. */
 
