@@ -42,6 +42,13 @@
  *   A fixed wing starts at 1.3 times its stall, the Bramor catapult's own
  *   margin, and a quad at rest.
  *
+ * The racing line (src/builder/line.js) goes through every gate's opening
+ * centre in flying order and round the lap; the speed it implies round a
+ * circle is the model's own sqrt(aLat r), capped at top speed; a fixed
+ * wing is marked where the line is tighter than its stall allows and not
+ * where it is not; a one gate track's line leaves the gate and comes back
+ * into it. Every aircraft names the figures the model reads.
+ *
  * The browser half, the builder itself in the real page, is
  * scripts/build-check.js.
  *
@@ -75,6 +82,7 @@ import {
   qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
 import { Colliders } from '../src/game/collide.js';
+import { craftLimits, racingLine, speedAt } from '../src/builder/line.js';
 import {
   AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
 } from '../configs/airframes.js';
@@ -442,6 +450,83 @@ console.log('an air start\'s speed');
   check('the margin is the Bramor catapult\'s: its air start is its release speed',
     Math.abs(airStartSpeed(bramor) - BRAMOR_CATAPULT.speed) / BRAMOR_CATAPULT.speed < 0.01, `${airStartSpeed(bramor)} vs ${BRAMOR_CATAPULT.speed}`);
   console.log(`  ${wings.map((af) => `${af.id} ${airStartSpeed(af).toFixed(2)} m/s`).join(', ')}`);
+}
+
+/* ------------------------------------------------------------------ */
+console.log('the racing line');
+{
+  const quad = craftLimits(airframeById('5inch'));
+  const sky = craftLimits(airframeById('sky1800'));
+  check('every aircraft names a top speed, and every quad its thrust to weight',
+    AIRFRAMES.every((af) => af.topSpeed > 0 && (af.fixedWing || af.thrustToWeight > 1)),
+    AIRFRAMES.filter((af) => !(af.topSpeed > 0) || (!af.fixedWing && !(af.thrustToWeight > 1))).map((af) => af.id).join());
+  check('the five inch: span 0.347 m, sideways 8.4 g of thrust less its 1.62 g of weight',
+    near(quad.span, 0.347, 1e-3) && near(quad.aLat, Math.sqrt(8.4 ** 2 - 1.62 ** 2) * 9.80665, 1e-9), `${quad.span} ${quad.aLat}`);
+  check('a Skyhunter at 60 degrees of bank stalls at sqrt 2 times 9.2 m/s: no tighter than 9.97 m',
+    near(sky.rMin, (2 * 9.2 * 9.2) / (9.80665 * Math.tan(60 * DEG)), 1e-9) && near(sky.rMin, 9.97, 0.01), `${sky.rMin}`);
+  for (const af of AIRFRAMES) {
+    const c = craftLimits(af);
+    console.log(`  ${af.id.padEnd(14)} span ${c.span.toFixed(2)} m, top ${c.topSpeed} m/s, sideways ${c.aLat.toFixed(1)} m/s2, tightest ${c.rMin.toFixed(2)} m`);
+  }
+
+  /* A lap of eight gates round a circle, each flown along it. */
+  const ring = (R, n = 8, y = 200) => {
+    const d = newCourse('swiss2', 'Ring');
+    for (let k = 0; k < n; k += 1) {
+      const th = (k / n) * 2 * Math.PI;
+      addGate(d, 'gate', { x: R * Math.cos(th), y: y - 0.8763, z: R * Math.sin(th) }, qAxis(0, 1, 0, Math.PI - th));
+    }
+    return raceGatesOf(d);
+  };
+  const flat = () => 0;
+  const gates = ring(10);
+  const ln = racingLine(gates, quad, flat);
+  const through = gates.every((g, i) => nearV(ln.samples[ln.gateAt[i]], g.centre, 1e-9));
+  const ordered = ln.gateAt.every((k, i) => i === 0 || k > ln.gateAt[i - 1]);
+  check('the line goes through every gate\'s opening centre, in flying order', through && ordered, ln.gateAt.join());
+  const last = ln.samples[ln.samples.length - 1];
+  check('and closes the lap: its last point is a step short of the start gate',
+    Math.hypot(last.x - gates[0].centre.x, last.y - gates[0].centre.y, last.z - gates[0].centre.z) < 1.5);
+  const leaves = gates.every((g, i) => {
+    const t = ln.samples[ln.gateAt[i]].tangent;
+    return t.x * g.axes.travel.x + t.y * g.axes.travel.y + t.z * g.axes.travel.z > 0.999;
+  });
+  check('through each gate along its travel', leaves);
+  /* The field builder's tangent scale is a shade long for eight 45 degree
+   * turns (src/trackbuilder/elements.js derives 1.04 for them), so the
+   * curve swings a little either side of the circle. */
+  const radii = ln.samples.map((p) => p.r);
+  const rLo = Math.min(...radii);
+  const rHi = Math.max(...radii);
+  const rMean = radii.reduce((a, b) => a + b, 0) / radii.length;
+  check('eight gates round a 10 m circle give a line of about 10 m radius',
+    rLo > 8 && rHi < 13 && near(rMean, 10, 1), `${rLo.toFixed(2)} to ${rHi.toFixed(2)}, mean ${rMean.toFixed(2)}`);
+  check('and the speed it implies is sqrt(aLat r)', ln.samples.every((p) => near(p.v, Math.min(quad.topSpeed, Math.sqrt(quad.aLat * p.r)), 1e-9)),
+    `${ln.samples[0].v.toFixed(2)} m/s at ${ln.samples[0].r.toFixed(2)} m`);
+  const vMean = ln.samples.reduce((a, p) => a + p.v, 0) / ln.samples.length;
+  check('about 28 m/s for the five inch, sqrt(80.8 x 10)', near(vMean, Math.sqrt(quad.aLat * 10), 2), vMean.toFixed(2));
+  check('capped at top speed on a wide circle', racingLine(ring(200), quad, flat).samples.every((p) => p.v === quad.topSpeed));
+  check('the five inch can fly a 10 m circle', ln.samples.every((p) => p.ok));
+  const tight = racingLine(ring(6), sky, flat);
+  check('a Skyhunter cannot fly a 6 m circle: all of it is marked', tight.samples.every((p) => !p.ok));
+  check('it can fly a 30 m one', racingLine(ring(30), sky, flat).samples.every((p) => p.ok));
+  check('speedAt caps and grows', speedAt(quad, 1e9) === 40 && near(speedAt(sky, 10), Math.sqrt(sky.aLat * 10), 1e-12));
+
+  /* One gate: out of it and back into it. */
+  const solo = newCourse('swiss2', 'Solo');
+  addGate(solo, 'gate', { x: 0, y: 100, z: 0 }, qAxis(0, 1, 0, 0));
+  const g1 = raceGatesOf(solo);
+  /* Ground rising to the gate's right (its -across is +x here). */
+  const slope = (x) => 90 + Math.max(0, x) * 0.5;
+  const loop = racingLine(g1, quad, slope);
+  const L = loop.samples;
+  const R = (quad.topSpeed ** 2) / quad.aLat;
+  check('one gate: a loop that starts at its opening centre, along its travel',
+    nearV(L[0], g1[0].centre, 1e-9) && L[0].tangent.z < -0.999 && loop.gateAt.join() === '0');
+  check('at the radius flown at top speed', L.every((p) => near(p.r, R, 1e-9)) && L.every((p) => p.v === quad.topSpeed), `${R.toFixed(2)} m`);
+  const endGap = Math.hypot(L[L.length - 1].x - L[0].x, L[L.length - 1].y - L[0].y, L[L.length - 1].z - L[0].z);
+  check('and back into it: its last point is a step behind the opening', endGap < 1.5 && L[L.length - 1].z > L[0].z, endGap.toFixed(3));
+  check('on the side with more air under it', L.every((p) => p.x <= 1e-9), `${Math.max(...L.map((p) => p.x)).toFixed(2)}`);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

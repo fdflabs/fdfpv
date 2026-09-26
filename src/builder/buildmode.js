@@ -32,9 +32,15 @@
  * and the reason it is a swap on the view rather than a second map: the
  * valley took most of a minute to build and a test flight should take none.
  *
- * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the racing
- * line and geometry warnings (phase 2), the board and ghosts (phase 3), the
- * town and Yellowstone (phase 4).
+ * THE RACING LINE (line.js). A ribbon through the gates in flying order,
+ * coloured by the speed each corner allows the aircraft it is drawn for,
+ * red where it asks more than that aircraft can do, worked out again on
+ * every edit and never per frame. The aircraft is the one being flown until
+ * C picks another. The ribbon is drawn faint on a test flight.
+ *
+ * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the geometry
+ * warnings (the rest of phase 2), the board and ghosts (phase 3), the town
+ * and Yellowstone (phase 4).
  *
  * THE GATES ARE SOLID, the way a field gate is: every edit hands the whole
  * built set to the valley's colliders (Colliders.setBuilt), which put it in
@@ -59,6 +65,7 @@
 
 import * as THREE from 'three';
 import { str } from '../strings/index.js';
+import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import { ELEMENTS } from '../trackbuilder/elements.js';
 import { elementById, touch } from '../trackbuilder/model.js';
 import { listMapTracks, makeAutosaver, readMapAutosave, saveTrack } from '../trackbuilder/storage.js';
@@ -71,6 +78,7 @@ import {
   openingCentre, openingsOf, orderOf, poseOf, qAxis, raceGatesOf, readoutFor, removeGate, setPose, snapPose,
   startFor, turnGate, worldCaps,
 } from './course.js';
+import { craftLimits, racingLine } from './line.js';
 
 /* The camera's two speeds, metres a second: a slow one to put a gate on a
  * ledge, and one to cross the six kilometre valley in about a minute. */
@@ -103,6 +111,17 @@ const REST_MS = 150;
  * release, not a request to step back. Chrome hands the page the key that
  * ended the lock on some builds and not on others. */
 const UNLOCK_GRACE_MS = 250;
+
+/* The ribbon's width, metres, and how opaque it is while building and on a
+ * test flight. */
+const RIBBON_W = 0.7;
+const RIBBON_OPACITY = 0.85;
+const RIBBON_FAINT = 0.25;
+/* Its colours: the slowest corner, top speed, and more than the aircraft
+ * can do. */
+const SLOW = new THREE.Color(1.0, 0.55, 0.1);
+const FAST = new THREE.Color(0.3, 0.9, 1.0);
+const OVER = new THREE.Color(1.0, 0.08, 0.12);
 
 /* Standard gamepad buttons (the W3C mapping). */
 const PAD = {
@@ -157,6 +176,13 @@ export function createBuildMode(host) {
     active: false, sceneIndex: -1, centre: new THREE.Vector3(), travel: { x: 0, y: 0, z: -1 }, clearH: 0, correct: true, distance: 0, virtual: false,
   };
   let courseGates = [];
+  /* The racing line: on or off, the aircraft it is drawn for, the line as
+   * last worked out, and what draws it. */
+  let lineOn = true;
+  let craftId = null;
+  let line = { samples: [], gateAt: [] };
+  let lineGroup = null;
+  let ribbon = null;
 
   const fwd = new THREE.Vector3();
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -205,6 +231,7 @@ export function createBuildMode(host) {
     });
     dressAll();
     solidify();
+    refreshLine();
   }
 
   /* The gates as the craft meets them: every frame member, panel and mast
@@ -258,6 +285,129 @@ export function createBuildMode(host) {
       trackGlow: made.apertures.length > 1,
       virtual: false,
     };
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* The racing line                                                   */
+  /* ---------------------------------------------------------------- */
+
+  const ribbonMat = new THREE.MeshBasicMaterial({
+    vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: RIBBON_OPACITY, depthWrite: false,
+  });
+
+  function craft() {
+    return craftLimits(airframeById(craftId));
+  }
+
+  /* Work the line out again, and redraw it. On an edit, never per frame. */
+  function refreshLine() {
+    if (!root || !view) {
+      return;
+    }
+    const c = craft();
+    line = racingLine(raceGatesOf(doc), c, host.heightAt);
+    drawLine(c);
+  }
+
+  function drawLine(c) {
+    if (!lineGroup) {
+      lineGroup = new THREE.Group();
+      lineGroup.name = 'build-line';
+      root.add(lineGroup);
+    }
+    if (ribbon) {
+      ribbon.geometry.dispose();
+      ribbon.removeFromParent();
+      ribbon = null;
+    }
+    const s = line.samples;
+    if (s.length >= 2) {
+      const n = s.length + 1;
+      const pos = new Float32Array(n * 6);
+      const col = new Float32Array(n * 6);
+      const index = [];
+      const side = new THREE.Vector3();
+      const tan = new THREE.Vector3();
+      const up = new THREE.Vector3(0, 1, 0);
+      const colour = new THREE.Color();
+      for (let i = 0; i < n; i += 1) {
+        const p = s[i % s.length];
+        tan.set(p.tangent.x, p.tangent.y, p.tangent.z);
+        side.crossVectors(tan, up);
+        if (side.lengthSq() < 1e-6) {
+          side.set(1, 0, 0);
+        }
+        side.normalize().multiplyScalar(RIBBON_W / 2);
+        pos.set([p.x - side.x, p.y - side.y, p.z - side.z, p.x + side.x, p.y + side.y, p.z + side.z], i * 6);
+        if (p.ok) {
+          colour.lerpColors(SLOW, FAST, Math.min(1, p.v / c.topSpeed));
+        } else {
+          colour.copy(OVER);
+        }
+        col.set([colour.r, colour.g, colour.b, colour.r, colour.g, colour.b], i * 6);
+        if (i > 0) {
+          const a = (i - 1) * 2;
+          index.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geo.setIndex(index);
+      geo.computeBoundingSphere();
+      ribbon = new THREE.Mesh(geo, ribbonMat);
+      ribbon.name = 'build-ribbon';
+      ribbon.renderOrder = 5;
+      lineGroup.add(ribbon);
+    }
+    showLine();
+  }
+
+  /* The line as the state wants it: bright while building, faint on a
+   * test flight, and not at all when V hid it. */
+  function showLine() {
+    ribbonMat.opacity = state === 'testing' ? RIBBON_FAINT : RIBBON_OPACITY;
+    if (ribbon) {
+      ribbon.visible = lineOn;
+    }
+  }
+
+  function toggleLine() {
+    lineOn = !lineOn;
+    showLine();
+  }
+
+  /* The next aircraft the line is worked out for. */
+  function cycleCraft(step) {
+    const ids = AIRFRAMES.map((a) => a.id);
+    craftId = ids[(ids.indexOf(craftId) + step + ids.length) % ids.length];
+    refreshLine();
+    say(str('build.line_craft', { craft: airframeById(craftId).short }), 1600);
+  }
+
+  function lineLines() {
+    const c = airframeById(craftId).short;
+    const out = [];
+    const s = line.samples;
+    if (!lineOn) {
+      out.push(str('build.line_off', { craft: c }));
+    } else if (s.length) {
+      let slow = Infinity;
+      for (const p of s) {
+        slow = Math.min(slow, p.v);
+      }
+      out.push(str('build.line', { craft: c, slow: Math.round(slow), top: Math.round(craft().topSpeed) }));
+    }
+    return out;
+  }
+
+  function disposeLine() {
+    if (ribbon) {
+      ribbon.geometry.dispose();
+    }
+    ribbon = null;
+    lineGroup = null;
+    line = { samples: [], gateAt: [] };
   }
 
   const ghostMat = new THREE.MeshBasicMaterial({
@@ -464,6 +614,7 @@ export function createBuildMode(host) {
     touch(doc);
     autosave.schedule(doc);
     solidify();
+    refreshLine();
   }
 
   /* Enter, a click, or the pad's A: put down, drop, or pick up a selection. */
@@ -656,6 +807,7 @@ export function createBuildMode(host) {
 
   function enter() {
     view = host.view();
+    craftId = airframeById(ui.settings.airframe).id;
     const saved = readMapAutosave(view.id);
     doc = saved ? saved.doc : newCourse(view.id, str('build.untitled'));
     root = new THREE.Group();
@@ -666,6 +818,7 @@ export function createBuildMode(host) {
     tested = false;
     host.hold();
     state = 'building';
+    showLine();
     showHud(true);
     hideShellHud(true);
     say(str('build.entered', { n: raceGatesOf(doc).length }), 3600);
@@ -751,6 +904,7 @@ export function createBuildMode(host) {
     host.setCourse(courseGates, `.build.${doc.id}`);
     state = 'testing';
     tested = true;
+    showLine();
     showHud(false);
     hideShellHud(false);
     host.fly();
@@ -766,6 +920,7 @@ export function createBuildMode(host) {
       cam.pitch = parked.pitch;
     }
     state = 'building';
+    showLine();
     lastRay.origin.set(Infinity, 0, 0);
     hitRay.exact = false;
     dressAll();
@@ -797,6 +952,7 @@ export function createBuildMode(host) {
       disposeStandaloneGate(ghost.made);
       ghost = null;
     }
+    disposeLine();
     if (root) {
       root.removeFromParent();
       root = null;
@@ -899,6 +1055,8 @@ export function createBuildMode(host) {
       KeyZ: upright,
       KeyN: fresh,
       KeyH: () => { showHelp = !showHelp; },
+      KeyV: toggleLine,
+      KeyC: () => cycleCraft(shiftHeld() ? -1 : 1),
       Escape: stepBack,
     };
     if (act[code]) {
@@ -1222,6 +1380,7 @@ export function createBuildMode(host) {
         lines.push(str('build.holding'));
       }
     }
+    lines.push(...lineLines());
     if (message.text && performance.now() < message.until) {
       lines.push(message.text);
     }
@@ -1263,7 +1422,43 @@ export function createBuildMode(host) {
       })) : [],
       camera: { pos: cam.pos.toArray(), yaw: cam.yaw, pitch: cam.pitch, forward: forward(new THREE.Vector3()).toArray() },
       hud: hudText,
+      line: {
+        on: lineOn,
+        craft: craftId,
+        limits: craftId ? craft() : null,
+        samples: line.samples.length,
+        gateAt: line.gateAt.slice(),
+        slowest: line.samples.reduce((m, p) => Math.min(m, p.v), Infinity),
+        over: line.samples.filter((p) => !p.ok).length,
+        ribbon: ribbon ? {
+          inScene: Boolean(view && ribbon.parent && ribbon.parent.parent === root && root.parent === view.scene),
+          visible: ribbon.visible,
+          vertices: ribbon.geometry.attributes.position.count,
+          opacity: ribbonMat.opacity,
+        } : null,
+      },
     }),
+    /* What working the line out again costs, the mean of n, milliseconds. */
+    lineMs(n = 5) {
+      const t0 = performance.now();
+      for (let i = 0; i < n; i += 1) {
+        refreshLine();
+      }
+      return { ms: (performance.now() - t0) / n, gates: raceGatesOf(doc).length, samples: line.samples.length };
+    },
+    /* What the line adds to every frame on the main thread: the panel's
+     * lines about it, the mean of n, milliseconds. */
+    lineFrameMs(n = 1000) {
+      const t0 = performance.now();
+      for (let i = 0; i < n; i += 1) {
+        lineLines();
+      }
+      return (performance.now() - t0) / n;
+    },
+    /* The line's points, every `step`th, [x, y, z, speed, ok]. */
+    linePoints(step = 1) {
+      return line.samples.filter((_, i) => i % step === 0).map((p) => [p.x, p.y, p.z, p.v, p.ok]);
+    },
     /* Put the free camera somewhere, looking along yaw and pitch. */
     look(x, y, z, yaw, pitch) {
       cam.pos.set(x, y, z);
