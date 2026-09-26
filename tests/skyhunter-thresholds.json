@@ -14,6 +14,6 @@
   "s12_yaw_rate": { "min": 45, "max": 100, "unit": "deg/s", "source": "full rudder, ailerons centred: the Dutch roll step's peak rate, derived 68" },
   "s13_rudder_roll": { "min": 15, "max": 80, "unit": "deg", "source": "full rudder, ailerons centred: bank after 2 s, the rudder's way, from dihedral; steady roll rate derived 22 deg/s" },
   "s14_prop_torque": { "min": 0.25, "max": 0.45, "unit": "N m", "source": "static full throttle, rolling left: ideal disc power 0.29, measured electrical power 0.43" },
-  "s15_unmoved": { "quad": "de0401cd4266c395", "wing": "acdf88a78f9e60fc", "source": "the five inch's canonical replay hash and the wing's recorded flight hash in Node, both from before the Skyhunter existed; the Skyhunter must move neither" },
+  "s15_unmoved": { "quad": "de0401cd4266c395", "wing": "8f15bb3fdd28dc16", "source": "the five inch's canonical replay hash and the wing's recorded flight hash in Node, both from before the Skyhunter existed; the Skyhunter must move neither Every recorded flight re-recorded again for aero round 6's fix, the table's rotary derivatives applied in the stability axes, one commit per recording from that build: each moves short of the stall as well (docs/STALL-STAGE1.md, Round 6)." },
   "s16_cross_host": { "source": "the Skyhunter's scripted flight state trace hash, Node against headless Chrome" }
 }
