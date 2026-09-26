@@ -31,6 +31,7 @@ import { DAMAGE_FLAGS, PART_STATE_DOUBLES, SURFACE } from '../../configs/parts.j
 import { floatDigDeg } from '../../tests/crash/scenarios.js';
 import { readDamageEvents, readMotorDamage, readPartTable, readPartsState } from './crash.js';
 import { airframeHull, bodyAxes, hullContact, hullFromPartsState, sweepPartCapsule, PLANT_BODY } from '../../src/game/airframehull.js';
+import { postGive } from '../../src/game/crashworld.js';
 
 const SIM_OK = 0;
 
@@ -1578,6 +1579,97 @@ export const CRASH_SCENARIOS = [
         });
       }
       return out;
+    },
+  },
+  {
+    /*
+     * A GATE POST THAT GIVES (crash.c, A POST THAT GIVES). A five inch's
+     * front right arm into a MultiGP gate's upright, 1 inch schedule 40
+     * PVC standing 1.8 m, at 15 m/s and 1.2 m up: held rigid the arm
+     * breaks in its own plane (the feel round's inside clip, #82, 1.08 to
+     * 1.33 times its limit); as the pipe it is, the arm holds. The pipe is
+     * the lumped beam its E I and mass per metre make, so its first mode
+     * must be Euler and Bernoulli's, 1.875^2 sqrt(E I / m' L^4), and ring
+     * on without the integrator adding or taking energy; a post cleared and
+     * declared again every 20 ms, as the shell does, must fly the same to
+     * the bit; and a box or a bad number is refused.
+     */
+    name: 'a gate post that gives',
+    async run(mk) {
+      const R = 0.0167;
+      const L = 1.8;
+      const give = postGive('gate', R, 1);
+      const clip = async (v, gives, redeclare = false) => {
+        const r = await mk({ id: 0 });
+        const post = () => {
+          const i = r.sim.e.sim_obstacle_cylinder(0, -0.08, 0, L, R, SURFACE.pvc);
+          if (gives && r.sim.e.sim_obstacle_compliance(i, give.ei, give.mLine, give.mFree) !== SIM_OK) {
+            throw new Error('sim_obstacle_compliance refused a post');
+          }
+          return i;
+        };
+        const i = post();
+        r.pose([-0.5, 0, 1.2], [1, 0, 0, 0]);
+        r.velocity([v, 0, 0]);
+        const buf = r.sim.e.malloc(6 * 8);
+        const trace = [];
+        r.run(3000, [0, 0, 0, HOVER], (s, k) => {
+          if (redeclare && k % 20 === 19) {
+            r.sim.e.sim_obstacle_clear();
+            post();
+          }
+          r.sim.e.sim_obstacle_state(i, buf);
+          trace.push(Array.from(new Float64Array(r.sim.e.memory.buffer, buf, 6)));
+        });
+        r.sim.e.free(buf);
+        return { r, trace, arm: r.index('arm', (p) => p.label === 'arm front right') };
+      };
+      const armBroke = (c) => c.r.events.some((e) => e.typeName === 'break' && e.part === c.arm);
+      const rigid = await clip(15, false);
+      const giving = await clip(15, true);
+      const again = await clip(15, true, true);
+      /* The ring, from a 5 m/s touch that leaves the post standing: the
+       * deflection along its largest swing, its zero crossings. */
+      const soft = await clip(5, true);
+      let big = soft.trace[0];
+      for (const o of soft.trace) {
+        if (Math.hypot(o[0], o[1]) > Math.hypot(big[0], big[1])) big = o;
+      }
+      const nb = Math.hypot(big[0], big[1]);
+      const x = soft.trace.map((o) => (o[0] * big[0] + o[1] * big[1]) / nb);
+      const cross = [];
+      for (let k = 1; k < x.length; k += 1) {
+        if ((x[k - 1] > 0) !== (x[k] > 0)) cross.push(k);
+      }
+      const half = cross.length > 5 ? (cross[cross.length - 1] - cross[1]) / (cross.length - 2) / 1000 : 0;
+      const w1 = 1.8751 * 1.8751 * Math.sqrt(give.ei / (give.mLine * L * L * L * L));
+      const swing = (from, to) => Math.max(...x.slice(from, to).map(Math.abs));
+      const first = cross.length > 5 ? swing(cross[1], cross[2]) : 0;
+      const last = cross.length > 5 ? swing(cross[cross.length - 2], cross[cross.length - 1]) : 0;
+      const same = giving.r.digest.hex() === again.r.digest.hex();
+      const { sim } = soft.r;
+      const box = sim.e.sim_obstacle_box(5, 5, 1, 0.1, 0.1, 1, 1, 0, 0, 0, SURFACE.pvc);
+      const refused = sim.e.sim_obstacle_compliance(box, give.ei, give.mLine, 0) !== SIM_OK
+        && sim.e.sim_obstacle_compliance(99, give.ei, give.mLine, 0) !== SIM_OK
+        && sim.e.sim_obstacle_compliance(0, 0, give.mLine, 0) !== SIM_OK
+        && sim.e.sim_obstacle_compliance(0, give.ei, NaN, 0) !== SIM_OK
+        && sim.e.sim_obstacle_compliance(0, give.ei, give.mLine, -1) !== SIM_OK;
+      sim.reset();
+      const buf = sim.e.malloc(6 * 8);
+      sim.e.sim_obstacle_state(0, buf);
+      const rest = Array.from(new Float64Array(sim.e.memory.buffer, buf, 6)).every((v) => v === 0);
+      sim.e.free(buf);
+      return [
+        { name: 'held rigid, the struck arm breaks', ok: armBroke(rigid), detail: rigid.r.summary() },
+        { name: 'as 1 inch schedule 40 PVC, the arm holds and the post moves', ok: !armBroke(giving) && Math.max(...giving.trace.map((o) => Math.hypot(o[0], o[1]))) > 0.05,
+          detail: `${giving.r.summary()}; post ${Math.max(...giving.trace.map((o) => Math.hypot(o[0], o[1]))).toFixed(3)} m at ${giving.trace[giving.trace.length - 1][2].toFixed(2)} m up` },
+        { name: 'the post rings at Euler and Bernoulli\'s first mode, within 3 percent', ok: half > 0 && Math.abs(half * w1 / Math.PI - 1) < 0.03,
+          detail: `half period ${(half * 1000).toFixed(1)} ms against ${(Math.PI / w1 * 1000).toFixed(1)} ms` },
+        { name: 'and rings on, within 5 percent of its first swing', ok: first > 0 && Math.abs(last / first - 1) < 0.05, detail: `${first.toFixed(4)} m, then ${last.toFixed(4)} m` },
+        { name: 'cleared and declared again every 20 ms, the same flight to the bit', ok: same, detail: `${giving.r.digest.hex()} / ${again.r.digest.hex()}` },
+        { name: 'a box, an index past the table and a bad number are refused', ok: refused },
+        { name: 'after sim_reset the post stands at rest', ok: rest },
+      ];
     },
   },
 ];

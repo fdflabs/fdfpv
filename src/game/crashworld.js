@@ -145,6 +145,60 @@ export function solidSurface(kindName) {
   return SURFACE[SOLID_SURFACE[kindName] ?? 'concrete'];
 }
 
+/*
+ * A GATE'S UPRIGHT GIVES (sim_obstacle_compliance). It is a schedule 40
+ * PVC pipe standing in its base, and the plant takes it as a cantilever:
+ * its bending stiffness E I, its mass per metre, and the moment at its base
+ * past which it snaps.
+ *
+ * The pipes, schedule 40 (Engineering ToolBox, "PVC and CPVC Pipes,
+ * Schedule 40": outside diameter and minimum wall, in, and weight, lb/ft).
+ * The material, PVC-U (Vinidex, "PVC Properties": flexural modulus 2.7 to
+ * 3.0 GPa at 1 percent strain over 100 s, the middle taken; ultimate
+ * tensile strength 52 MPa). A post snaps where its outer fibre reaches that
+ * strength, M = 52 MPa I / (D / 2); nothing sourced gives the moment a
+ * post slipped into a base or pushed into turf lets go at, so its base is
+ * taken to hold at least as much.
+ *
+ * Which pipe: the one whose outside diameter is nearest the drawn one over
+ * the world's gate scale (src/game/track.js GATE_SCALE draws a full size
+ * course 1.15 times life size for the camera, and src/units.js takes a
+ * MultiGP gate's frame for 1 inch schedule 40). Its length is the one it
+ * stands at in the world. A micro room is not declared: the whoop is the
+ * five inch's plant in a room 3.43 times its size, so no real pipe's give
+ * is what it meets there.
+ */
+const SCH40 = [
+  { od: 1.050, wall: 0.113, lbft: 0.21 },
+  { od: 1.315, wall: 0.133, lbft: 0.32 },
+  { od: 1.660, wall: 0.140, lbft: 0.43 },
+  { od: 1.900, wall: 0.145, lbft: 0.51 },
+];
+const PVC_E = 2.85e9;
+const PVC_UTS = 52e6;
+const INCH = 0.0254;
+const LB_PER_FT = 0.45359237 / 0.3048;
+
+/* The give of a solid of kind `kindName` and radius r (m, as drawn in a
+ * world whose gates are drawn `scale` times life size), or null for a
+ * solid that is rigid. { ei N m^2, mLine kg/m, mFree N m }. */
+export function postGive(kindName, r, scale) {
+  if (kindName !== 'gate' || !(r > 0) || !(scale > 0)) {
+    return null;
+  }
+  const want = (2 * r) / scale / INCH;
+  let pipe = SCH40[0];
+  for (const p of SCH40) {
+    if (Math.abs(p.od - want) < Math.abs(pipe.od - want)) {
+      pipe = p;
+    }
+  }
+  const D = pipe.od * INCH;
+  const d = (pipe.od - 2 * pipe.wall) * INCH;
+  const I = (Math.PI / 64) * (D * D * D * D - d * d * d * d);
+  return { ei: PVC_E * I, mLine: pipe.lbft * LB_PER_FT, mFree: (PVC_UTS * I) / (D / 2) };
+}
+
 /* A collider whose material is not its kind's: a telegraph pole is a
  * 'pole' as a race gate's upright is, and the one is larch and the other
  * PVC. Collider index to surface name, per collider set. */

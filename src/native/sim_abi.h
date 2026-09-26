@@ -980,6 +980,27 @@ int sim_obstacle_box(double cx, double cy, double cz, double hx, double hy, doub
 int sim_obstacle_cylinder(double x, double y, double z0, double z1, double r, int mat);
 
 /*
+ * A POST THAT GIVES. sim_obstacle_compliance(i, ei, m_line, m_free): the
+ * cylinder i is a post clamped in its base at z0 and free at z1, a beam of
+ * bending stiffness ei (N m^2, its material's modulus times its section's
+ * second moment) and m_line kg per metre that the parts meeting it bend:
+ * the pipe near the point takes a short blow, and the whole post swings
+ * back on its cantilever spring (3 ei / a^3 at height a). m_free is the
+ * moment at its base (N m) past which it snaps or leaves its base and is
+ * gone; 0 for a post that never does. Damage mode only;
+ * every obstacle not declared so is rigid, as before. SIM_ERR_BAD_ARG for a
+ * box, an index out of range or a value out of range. A post cleared by
+ * sim_obstacle_clear and declared again at the same place with the same
+ * numbers keeps its motion; sim_reset puts every post back at rest.
+ * sim_obstacle_state(i, out[6]): its deflection at the height a part last
+ * met it, plant x and y, m; that height above its base (0 until met);
+ * freed 0 or 1; gone 0 or 1; the bending moment at its base, N m.
+ * docs/CRASH-STAGE1.md, Surfaces, trees and water.
+ */
+int sim_obstacle_compliance(int i, double ei, double m_line, double m_free);
+int sim_obstacle_state(int i, double *out);
+
+/*
  * TREES. sim_tree_add(x, y, z0, trunk_r, crown_z0, crown_z1, crown_r): a
  * trunk from z0 up, a cylinder of trunk_r (an obstacle of wood for every
  * free body; the craft's own trunk contact stays the shell's collider, as

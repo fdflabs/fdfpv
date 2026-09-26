@@ -142,6 +142,12 @@ mode on.
   shell's `sim_contact_at` as before.
 - `sim_obstacle_contacts()`: how many parts met a known solid on the last
   step, 0 with the mode off, for a host that dated a hit by its own call.
+- `sim_obstacle_compliance(i, ei, m_line, m_free)`: cylinder i is a post
+  that gives, a beam clamped at its base (section 5, posts that give);
+  `sim_obstacle_state(i, out[6])` reads how far it has gone at the height
+  a part last met it, that height, whether it has snapped or left its base,
+  whether it is out of the world, and the moment at its base. Every
+  obstacle not declared so is rigid, as before.
 - `sim_tree_add(x, y, z0, trunk_r, crown_z0, crown_z1, crown_r)`,
   `sim_tree_clear`: a crown the craft and the free bodies fly into, which
   drags and can hold; the trunk is an obstacle for the free bodies.
@@ -1226,6 +1232,119 @@ branches up to 60 N per square metre of its plan area inside
 (`CROWN_HOLD`): a Cub (44 N/m^2) is caught 5 m up, a 5 inch (about 116)
 punches through at 8.9 m/s out of 15. Held, the branches take its
 attitude too. Both constants are chosen and flagged.
+
+**Posts that give** (the post compliance round, after #82). A race
+gate's upright is a PVC pipe standing in its base, and the obstacles were
+immovable and rigid: a five inch clipping one from inside the opening broke
+its struck arm at 1.08 to 1.09 times its in plane limit (about 2 kN, the
+feel round's `quad-gate-15` and `-30`), where the reference (R-A4-OFFSET,
+q5-gate-15) keeps the frame whole. With `sim_obstacle_compliance` a
+cylinder is a post: a lumped Euler Bernoulli beam of 8 nodes up its
+height, clamped at its base and free at its top, each node carrying its
+length of pipe, the bending force the central difference of M = E I u'',
+integrated in substeps inside symplectic Euler's bound (2 per step on a
+1.8 m gate upright). A part meets the post where the post has got to at its
+height and at its speed there, and the impulse it takes goes into the two
+nodes either side of the point. So a blow of a few milliseconds meets the
+pipe near the point (at a millisecond's frequency the bending wave reaches
+about a quarter of a metre), and the post then swings back on its first
+mode. A single mass on the cantilever's spring was tried first: its mass
+at the contact, the first mode's (Rayleigh's static shape, 0.64 kg at 1.24
+m on a 1.8 m 1 inch upright), is three times the arm's, and the arm still
+broke at 1.11 times its limit.
+
+At 1 kHz a part at 15 m/s is 15 mm into the pipe before the solver sees
+it, and judged on that depth against a pipe held still for the step the
+arm met 2 kN in its first millisecond whatever the pipe did after. The
+pipe's point, of mass m, gives F dt^2 / (2 m) under a force F held for the
+step, so its inertia over the step is a compliance in series with the
+part's spring (0 for every rigid solid).
+
+A post snaps or leaves its base when the moment at its base passes
+`m_free`, and then flies on with its speed, out of the world once no part
+is on it. Free bodies meet a post where it stands and do not move it.
+Nothing in the plant draws the bend: the shell draws the gate where it
+stands.
+
+The shell and the suite declare every upright `gate` capsule
+(`src/game/crashworld.js` `postGive`): schedule 40 PVC, the pipe whose
+outside diameter is nearest the drawn one over the world's gate scale
+(`GATE_SCALE` 1.15 on a full size course; `src/units.js` takes a MultiGP
+gate for 1 inch schedule 40), standing the length it is drawn. A micro
+room is not declared: the whoop is the five inch's plant in a room 3.43
+times its size, and no real pipe's give is what it meets there.
+
+| | 1 inch sch 40 | 1-1/4 inch sch 40 |
+| --- | --- | --- |
+| outside diameter, minimum wall | 33.40 mm, 3.38 mm | 42.16 mm, 3.56 mm |
+| mass per metre | 0.476 kg | 0.640 kg |
+| E I | 103.6 N m^2 | 231.0 N m^2 |
+| moment it snaps at | 113 N m | 200 N m |
+| first mode on a 1.8 m upright | 2.55 Hz | 3.28 Hz |
+
+Sources: Engineering ToolBox, "PVC and CPVC Pipes, Schedule 40" (outside
+diameter, minimum wall, weight per foot); Vinidex, "PVC Properties"
+(PVC-U flexural modulus 2.7 to 3.0 GPa at 1 percent strain over 100 s, the
+middle, 2.85 GPa, taken; ultimate tensile strength 52 MPa). The snapping
+moment is where the outer fibre reaches 52 MPa, 52 MPa I / (D / 2).
+Chosen and flagged: the base is taken to hold at least that (nothing found
+gives the moment a slip fit base or turf lets a post go at); PVC's
+mechanical loss factor is not in either source, so the post rings with no
+damping but its own reflections; the drawn upright on a full size course
+is 1.15 times a real one's height with a real pipe's section, so it is a
+little softer at the top than a real gate.
+
+Measured (`crash:core`, a gate post that gives): a five inch's front right
+arm into a 1.8 m 1 inch upright at 15 m/s, 1.2 m up and 8 cm in from the
+centre line: held rigid the arm breaks (1.33 times, 2.9 kN); as the pipe
+the arm holds, the post goes 0.10 m and snaps at its base, and the motor on
+that arm lets go at 1.02 times its limit. Touched at 5 m/s the post rings
+with a half period of 199 ms against Euler and Bernoulli's 196 ms, and its
+swing holds within 3 percent over 3 s; cleared and declared again every 20
+ms, as the shell does, the flight is the same to the bit.
+
+The same post, rigid against giving, from 6 to 12 cm off the centre line
+(scratch runs of the plant alone, the struck part and its load):
+
+| | rigid | 1 inch sch 40 |
+| --- | --- | --- |
+| 15 m/s, 6 cm | arm 1.17x, 1,967 N | camera 1.14x; prop (left, later) |
+| 15 m/s, 8 cm | arm 1.33x, 2,878 N | motor 1.02x, 1,836 N |
+| 15 m/s, 10 cm | prop 1.02x | nothing |
+| 15 m/s, 12 cm | prop 1.13x | prop 1.05x |
+| 30 m/s, 6 cm | arms fr 1.20x and rr 1.25x, camera | camera 3.6x |
+| 30 m/s, 10 cm | prop 1.23x | prop 1.20x |
+
+In the shell (`npm run crash:feel`, the inside clips, CPU renderer), main
+52b464c against this. At 15 m/s main breaks the struck arm at 1.08 times
+(2,005 N) with the rear prop, and the pack 1.5 s later on the grass; with
+the post giving nothing breaks at all, the props chip (seven chips), and
+the quad goes on 15 m and comes to rest upright, the frame whole. At 30 m/s
+the struck arm still breaks (1.50 times its limit at 2,187 N; main 1.09
+times at 2,138 N, the direction differing), which the reference allows
+("an arm possibly snapped at the motor"). An estimate, not a measurement:
+a point mass of the arm's order (0.2 kg) against the pipe's local mass
+(about 0.14 kg at a millisecond's frequency) through a spring of 1.5e5 N/m
+peaks near 3.3 kN at 30 m/s and 1.7 kN at 15, either side of the arm's 1.9
+kN in its own plane. Neither clip snaps a prop, which the reference asks
+for: a blade judged by its tip's own blow is under what a PVC gate asks of
+glass nylon (round 3), and a pipe that gives asks less.
+
+In the suite (`node scripts/crash-suite.js`, Node and Chrome, against main
+52b464c) 58 of 60 traces are the same to the bit; the two that move are
+the five inch's gate clips, whose upright is 1 inch schedule 40 standing 3
+m (the suite's staging, met 2 m up by the prop disc). q5-gate-15 keeps its
+pack (mustNotBreak into its band), peaking at 251 g against 259 and at rest
+in 2.37 s against 2.57; q5-gate-30 moves inside its bands (at rest in 3.43
+s against 3.45), with the same breaks. No check leaves its band.
+
+A plane's wing on a gate post changes little: a foam panel breaks at tens
+of newtons, far under what the pipe's local mass holds back. A Cub at 13.5
+m/s with the post 0.9 of its half span out loses its aileron against the
+rigid post (2.9 times) and nothing against the giving one; at 0.6 of the
+half span neither breaks anything; a Slow Stick's wing and a Skyhunter's
+panel break the same either way (1.03 and 1.08 times against 1.06 and
+1.10).
 
 **Water.** With the damage mode on, every attached part that is not a
 float is buoyed and dragged (Cd 1 on its projected area) at its hull points

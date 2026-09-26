@@ -1149,17 +1149,17 @@ static void ground_apply(void) {
  */
 static int g_obstacle_hits = 0;
 
-static void obstacle_apply(void) {
+static void obstacle_contacts(void) {
   const int nt = SIM_DAMAGE ? crash_touches(&S) : 0;
   g_obstacle_hits = nt;
   if (nt == 0) {
     return;
   }
-  const double vs[3] = { 0.0, 0.0, 0.0 };
   for (int iter = 0; iter < CONTACT_ITERS; iter += 1) {
     for (int k = 0; k < nt; k += 1) {
-      double r[3], n[3], pen, e, mu;
+      double r[3], n[3], pen, e, mu, vs[3];
       crash_touch(&S, k, r, n, &pen, &e, &mu);
+      crash_touch_vs(k, vs);
       contact_impulse(n, r, vs, e, mu, pen > 0.0 ? pen : 0.0);
       if (pen > CONTACT_SLOP && !crash_last_capped()) {
         const double push = (pen - CONTACT_SLOP) * CONTACT_POS_PUSH;
@@ -1172,6 +1172,14 @@ static void obstacle_apply(void) {
   double r[3], n[3], pen, e, mu;
   crash_touch(&S, -1, r, n, &pen, &e, &mu);
   crash_set_ground_contact();
+}
+
+/* The contacts, then the posts that give moving on from them. */
+static void obstacle_apply(void) {
+  obstacle_contacts();
+  if (SIM_DAMAGE) {
+    crash_solids_step();
+  }
 }
 
 /*

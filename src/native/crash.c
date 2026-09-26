@@ -1136,12 +1136,16 @@ static void effects_clear(void) {
 
 static void own_clear(void);
 static void skid_clear(void);
+static void solids_reset(void);
+static void solid_take(const double n[3], double jn, const double jt[3]);
+static double solid_give_compliance(void);
 
 void crash_reset(void) {
   if (!g_ready) {
     tables_build();
   }
   own_clear();
+  solids_reset();
   for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
     PartState *p = &PS[i];
     p->status = SIM_PART_ATTACHED;
@@ -1220,6 +1224,7 @@ typedef struct {
   double b[3];    /* the point, live body frame */
   double n[3];    /* the held normal, out of the solid */
   double pen0;    /* its depth when found */
+  double z;       /* the point's height, world, when found */
   double pos0[3]; /* the CG then */
 } Touch;
 
@@ -1928,7 +1933,8 @@ static int sever_pre(const Table *t, int i, double vin, double kn, double k, dou
 static int own_pre(const Table *t, int i, double vin, double kn, double k, double *e_used, double *jn_cap) {
   double f_lim = 1.0e30, m_at = 0.0, compliance = 0.0;
   const int weak = i > 0 && attached(i) ? chain_hold(t, i, &f_lim, &m_at, &compliance) : -1;
-  g_own_k = 1.0 / (1.0 / k + compliance);
+  const double give = solid_give_compliance();
+  g_own_k = give > 0.0 ? 1.0 / (1.0 / k + compliance + give) : 1.0 / (1.0 / k + compliance);
   if (!(vin > SPRING_GOING)) {
     *e_used = 0.0;
     if (*jn_cap < 0.0 || *jn_cap > vin / kn) {
@@ -2307,7 +2313,11 @@ static void hit_add(Hit *h, double jn, const double jt[3], const double n[3], co
 void crash_contact_post(const SimState *s, const double r[3], const double n[3],
                         double vin, double kn, double jn, const double jt[3]) {
   (void)kn;
-  if (!SIM_DAMAGE || !g_batch_open) {
+  if (!SIM_DAMAGE) {
+    return;
+  }
+  solid_take(n, jn, jt);
+  if (!g_batch_open) {
     return;
   }
   if (g_surf_ground) {
@@ -3649,11 +3659,28 @@ void crash_batch_end(SimState *s) {
 /* ---------------------------------------------------------------------
  * OBSTACLES AND TREES, the world the free bodies meet.
  * ------------------------------------------------------------------- */
+/* A post that gives (sim_obstacle_compliance, A POST THAT GIVES below): its
+ * declared section and the pipe's state, GIVE_NODES points up it from its
+ * base, each one's deflection u and speed w along the ground, world x and
+ * y, node 0 the clamped base. */
+#define GIVE_NODES 8
+typedef struct {
+  double ei, ml, m_free;
+  double dz;   /* the spacing of the nodes, m */
+  int sub;     /* substeps per plant step */
+  int moving, freed, gone, touched;
+  double a;    /* the height the last part met it at, above its base */
+  double u[GIVE_NODES + 1][2];
+  double w[GIVE_NODES + 1][2];
+} Give;
+
 typedef struct {
   int type; /* 0 box, 1 vertical cylinder */
   int mat;
   double c[3], h[3], q[4];
   double r, z0, z1;
+  int gives; /* 1 when g holds a declared compliance */
+  Give g;
 } Obstacle;
 
 typedef struct {
@@ -3669,9 +3696,209 @@ static int finite(double x) {
   return x == x && x - x == 0.0;
 }
 
+/*
+ * A POST THAT GIVES. A race gate's upright is a PVC pipe standing in a base
+ * or pushed into turf, and it bends. What a five inch's arm meets in a blow
+ * of a few milliseconds is not the post's first mode, whose mass at two
+ * thirds of its height is several times the arm's, but the pipe the
+ * bending wave reaches in that time, about a quarter of a metre either
+ * side; and what brings the post back and what snaps it is the first mode.
+ * One lumped Euler Bernoulli beam gives both from the pipe alone, its E I
+ * and its mass per metre: GIVE_NODES nodes up the post, clamped at its base
+ * and free at its top, each carrying its length of pipe, the bending force
+ * the central difference of the moment, M = E I u'' (a free top carries
+ * half a length and no moment). Explicit, in substeps short enough for the
+ * stiffest mode the nodes can hold, 4 / dz^2 sqrt(E I / m').
+ *
+ * A part meets the post where the post has got to at its height, at its
+ * speed there (crash_touch_vs), and the impulse the part takes is the
+ * post's too, the other way, shared by the two nodes either side of the
+ * point. m_free is the moment at the base it stands before it snaps or
+ * leaves its base; past it the bending is gone, the pipe flies on with its
+ * speed, and once no part is on it it is out of the world. Free bodies meet
+ * it where it stands and do not move it: a 10 g blade is nothing to it.
+ * Damage mode only, like every solid the plant meets itself.
+ */
+#define GIVE_H_MAX 0.6 /* omega h, well inside symplectic Euler's bound of 2 */
+
+static void give_rest(Give *g) {
+  g->moving = 0;
+  g->freed = 0;
+  g->gone = 0;
+  g->touched = 0;
+  g->a = 0.0;
+  for (int j = 0; j <= GIVE_NODES; j += 1) {
+    g->u[j][0] = g->u[j][1] = 0.0;
+    g->w[j][0] = g->w[j][1] = 0.0;
+  }
+}
+
+/* The node below height z (above the base) and how far on to the next. */
+static int give_at(const Give *g, double z, double *f) {
+  double s = z / g->dz;
+  if (s < 0.0) s = 0.0;
+  if (s > (double)GIVE_NODES) s = (double)GIVE_NODES;
+  int j = (int)s;
+  if (j == GIVE_NODES) j = GIVE_NODES - 1;
+  *f = s - (double)j;
+  return j;
+}
+
+/* The post's deflection (or speed, from w) at height z above its base. */
+static void give_sample(const Give *g, const double v[][2], double z, double out[2]) {
+  double f;
+  const int j = give_at(g, z, &f);
+  out[0] = v[j][0] + f * (v[j + 1][0] - v[j][0]);
+  out[1] = v[j][1] + f * (v[j + 1][1] - v[j][1]);
+}
+
+/* The bending moment at every node, one axis; the base's with its clamp's
+ * mirror, the top's zero. */
+static void give_moments(const Give *g, int ax, double M[GIVE_NODES + 1]) {
+  const double c = g->ei / (g->dz * g->dz);
+  M[0] = c * 2.0 * g->u[1][ax];
+  for (int j = 1; j < GIVE_NODES; j += 1) {
+    M[j] = c * (g->u[j + 1][ax] - 2.0 * g->u[j][ax] + g->u[j - 1][ax]);
+  }
+  M[GIVE_NODES] = 0.0;
+}
+
+static double give_base_moment(const Give *g) {
+  double Mx[GIVE_NODES + 1], My[GIVE_NODES + 1];
+  give_moments(g, 0, Mx);
+  give_moments(g, 1, My);
+  return sim_sqrt(Mx[0] * Mx[0] + My[0] * My[0]);
+}
+
+static void give_substep(Give *g, double h) {
+  const double mn = g->ml * g->dz;
+  for (int ax = 0; ax < 2 && !g->freed; ax += 1) {
+    double M[GIVE_NODES + 1];
+    give_moments(g, ax, M);
+    for (int j = 1; j < GIVE_NODES; j += 1) {
+      const double F = -(M[j + 1] - 2.0 * M[j] + M[j - 1]) / g->dz;
+      g->w[j][ax] += F / mn * h;
+    }
+    g->w[GIVE_NODES][ax] += -M[GIVE_NODES - 1] / g->dz / (0.5 * mn) * h;
+  }
+  for (int j = g->freed ? 0 : 1; j <= GIVE_NODES; j += 1) {
+    g->u[j][0] += g->w[j][0] * h;
+    g->u[j][1] += g->w[j][1] * h;
+  }
+}
+
+/*
+ * The shell declares the world again as the craft moves, clearing and
+ * adding the solids nearest it, and a post in the middle of a blow must
+ * not snap back to rest because of that. So a cleared post that gives is
+ * carried, and one declared again with the same place, size and section
+ * takes up where it was.
+ */
+typedef struct {
+  double c[3], r, z0, z1;
+  Give g;
+} Carried;
+static Carried CARRY[SIM_OBSTACLES_MAX];
+static int g_ncarry = 0;
+
 SIM_EXPORT int sim_obstacle_clear(void) {
+  g_ncarry = 0;
+  for (int o = 0; o < g_nob; o += 1) {
+    if (!OB[o].gives || !OB[o].g.moving) {
+      continue;
+    }
+    Carried *k = &CARRY[g_ncarry];
+    g_ncarry += 1;
+    k->c[0] = OB[o].c[0];
+    k->c[1] = OB[o].c[1];
+    k->c[2] = OB[o].c[2];
+    k->r = OB[o].r;
+    k->z0 = OB[o].z0;
+    k->z1 = OB[o].z1;
+    k->g = OB[o].g;
+  }
   g_nob = 0;
   return SIM_OK;
+}
+
+SIM_EXPORT int sim_obstacle_compliance(int i, double ei, double m_line, double m_free) {
+  if (i < 0 || i >= g_nob || OB[i].type != 1 || !finite(ei) || !finite(m_line) || !finite(m_free)
+      || !(ei > 0.0) || !(m_line > 0.0) || !(m_free >= 0.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  Obstacle *o = &OB[i];
+  Give *g = &o->g;
+  o->gives = 1;
+  give_rest(g);
+  g->ei = ei;
+  g->ml = m_line;
+  g->m_free = m_free;
+  g->dz = (o->z1 - o->z0) / (double)GIVE_NODES;
+  const double wmax = 4.0 / (g->dz * g->dz) * sim_sqrt(ei / m_line);
+  g->sub = (int)(wmax * SIM_DT / GIVE_H_MAX) + 1;
+  for (int k = 0; k < g_ncarry; k += 1) {
+    const Carried *c = &CARRY[k];
+    if (c->c[0] == o->c[0] && c->c[1] == o->c[1] && c->c[2] == o->c[2] && c->r == o->r
+        && c->z0 == o->z0 && c->z1 == o->z1 && c->g.ei == ei && c->g.ml == m_line
+        && c->g.m_free == m_free) {
+      *g = c->g;
+      break;
+    }
+  }
+  return SIM_OK;
+}
+
+/* out[6]: the post's deflection at the height the last part met it, plant
+ * x and y, m; that height above its base (0 until met); 1 once it has
+ * snapped or left its base; 1 once it is out of the world; the bending
+ * moment at its base, N m. */
+SIM_EXPORT int sim_obstacle_state(int i, double *out) {
+  if (i < 0 || i >= g_nob || !out) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const Give *g = &OB[i].g;
+  double d[2] = { 0.0, 0.0 };
+  if (OB[i].gives) {
+    give_sample(g, (const double (*)[2])g->u, g->a, d);
+  }
+  out[0] = d[0];
+  out[1] = d[1];
+  out[2] = OB[i].gives ? g->a : 0.0;
+  out[3] = OB[i].gives ? (double)g->freed : 0.0;
+  out[4] = OB[i].gives ? (double)g->gone : 0.0;
+  out[5] = OB[i].gives && !g->freed ? give_base_moment(g) : 0.0;
+  return SIM_OK;
+}
+
+static void solids_reset(void) {
+  g_ncarry = 0;
+  for (int o = 0; o < g_nob; o += 1) {
+    if (OB[o].gives) {
+      give_rest(&OB[o].g);
+    }
+  }
+}
+
+/* Every step after the contacts, damage mode only: each post that has been
+ * met bends on, or flies on once free. */
+void crash_solids_step(void) {
+  for (int o = 0; o < g_nob; o += 1) {
+    Give *g = &OB[o].g;
+    if (!OB[o].gives || !g->moving || g->gone) {
+      continue;
+    }
+    const double h = SIM_DT / (double)g->sub;
+    for (int k = 0; k < g->sub; k += 1) {
+      give_substep(g, h);
+    }
+    if (g->freed && !g->touched) {
+      g->gone = 1;
+    }
+    if (!g->freed && g->m_free > 0.0 && give_base_moment(g) > g->m_free) {
+      g->freed = 1;
+    }
+    g->touched = 0;
+  }
 }
 
 SIM_EXPORT int sim_obstacle_box(double cx, double cy, double cz, double hx, double hy, double hz,
@@ -3692,6 +3919,7 @@ SIM_EXPORT int sim_obstacle_box(double cx, double cy, double cz, double hx, doub
   const double inv = 1.0 / sim_sqrt(n2);
   o->type = 0;
   o->mat = mat;
+  o->gives = 0;
   o->c[0] = cx;
   o->c[1] = cy;
   o->c[2] = cz;
@@ -3717,6 +3945,7 @@ SIM_EXPORT int sim_obstacle_cylinder(double x, double y, double z0, double z1, d
   Obstacle *o = &OB[g_nob];
   o->type = 1;
   o->mat = mat;
+  o->gives = 0;
   o->c[0] = x;
   o->c[1] = y;
   o->c[2] = 0.5 * (z0 + z1);
@@ -3831,6 +4060,8 @@ static double craft_reach(void) {
   return reach;
 }
 
+static int solid_cyl(int o, double z, double *x, double *y, double *z0, double *z1, double *r);
+
 static int solid_near(const SimState *s) {
   const double R = craft_reach() + SOLID_NEAR_BAND;
   const double *c = s->pos;
@@ -3846,7 +4077,12 @@ static int solid_near(const SimState *s) {
         if (e > 0.0) g2 += e * e;
       }
     } else {
-      const double dx = c[0] - ob->c[0], dy = c[1] - ob->c[1];
+      if (ob->gives && ob->g.gone) {
+        continue;
+      }
+      double ox, oy, oz0, oz1, orr;
+      solid_cyl(o, c[2], &ox, &oy, &oz0, &oz1, &orr);
+      const double dx = c[0] - ox, dy = c[1] - oy;
       const double e = sim_sqrt(dx * dx + dy * dy) - ob->r;
       const double ez = c[2] < ob->z0 ? ob->z0 - c[2] : (c[2] > ob->z1 ? c[2] - ob->z1 : 0.0);
       g2 = (e > 0.0 ? e * e : 0.0) + ez * ez;
@@ -3901,14 +4137,21 @@ static int solid_mat(int o) {
   return o < g_nob ? OB[o].mat : SIM_SURF_WOOD;
 }
 
-/* A vertical cylinder's numbers for solid o, 0 for a box. */
-static int solid_cyl(int o, double *x, double *y, double *z0, double *z1, double *r) {
+/* A vertical cylinder's numbers for solid o, 0 for a box; a post that
+ * gives where it has got to at height z. */
+static int solid_cyl(int o, double z, double *x, double *y, double *z0, double *z1, double *r) {
   if (o < g_nob) {
     if (OB[o].type != 1) {
       return 0;
     }
     *x = OB[o].c[0];
     *y = OB[o].c[1];
+    if (OB[o].gives) {
+      double d[2];
+      give_sample(&OB[o].g, (const double (*)[2])OB[o].g.u, z - OB[o].z0, d);
+      *x += d[0];
+      *y += d[1];
+    }
     *z0 = OB[o].z0;
     *z1 = OB[o].z1;
     *r = OB[o].r;
@@ -3923,10 +4166,18 @@ static int solid_cyl(int o, double *x, double *y, double *z0, double *z1, double
   return 1;
 }
 
+/* A post that gives and has left its base is out of the world. */
+static int solid_gone(int o) {
+  return o < g_nob && OB[o].gives && OB[o].g.gone;
+}
+
 /* A point inside solid o: the way out and how deep. */
 static int solid_in(int o, const double w[3], double nrm[3], double *pen) {
   double x, y, z0, z1, r;
-  if (!solid_cyl(o, &x, &y, &z0, &z1, &r)) {
+  if (solid_gone(o)) {
+    return 0;
+  }
+  if (!solid_cyl(o, w[2], &x, &y, &z0, &z1, &r)) {
     return obstacle_pen(&OB[o], w, nrm, pen);
   }
   return r > 0.0 && cylinder_pen(x, y, z0, z1, r, w, nrm, pen);
@@ -3936,7 +4187,10 @@ static int solid_in(int o, const double w[3], double nrm[3], double *pen) {
  * solid's own width across n; -1 outside that width. */
 static double solid_along(int o, const double n[3], const double w[3]) {
   double x, y, z0, z1, r;
-  if (!solid_cyl(o, &x, &y, &z0, &z1, &r)) {
+  if (solid_gone(o)) {
+    return -1.0;
+  }
+  if (!solid_cyl(o, w[2], &x, &y, &z0, &z1, &r)) {
     const Obstacle *ob = &OB[o];
     const double d[3] = { w[0] - ob->c[0], w[1] - ob->c[1], w[2] - ob->c[2] };
     double l[3], nl[3];
@@ -3975,7 +4229,10 @@ static double solid_along(int o, const double n[3], const double w[3]) {
 static int solid_reach(int o, const double c[3], double rad) {
   double x, y, z0, z1, r;
   double g2 = 0.0;
-  if (!solid_cyl(o, &x, &y, &z0, &z1, &r)) {
+  if (solid_gone(o)) {
+    return 0;
+  }
+  if (!solid_cyl(o, c[2], &x, &y, &z0, &z1, &r)) {
     const Obstacle *ob = &OB[o];
     const double d[3] = { c[0] - ob->c[0], c[1] - ob->c[1], c[2] - ob->c[2] };
     double l[3];
@@ -4103,6 +4360,7 @@ int crash_touches(const SimState *s) {
     }
     g_own_solid[i] = solid + 1;
     Touch *h = &g_tch[g_ntch];
+    h->z = w[best][2];
     g_ntch += 1;
     h->part = i;
     h->solid = solid;
@@ -4135,6 +4393,83 @@ int crash_touch(const SimState *s, int k, double r[3], double n[3], double *pen,
   *e = SURF[g_surf].e;
   *mu = SURF[g_surf].mu;
   return 1;
+}
+
+/* The surface's velocity at touch k: a post that gives moves; every other
+ * solid stands still. */
+void crash_touch_vs(int k, double vs[3]) {
+  vs[0] = vs[1] = vs[2] = 0.0;
+  if (k < 0 || k >= g_ntch) {
+    return;
+  }
+  const int o = g_tch[k].solid;
+  if (o < g_nob && OB[o].gives) {
+    give_sample(&OB[o].g, (const double (*)[2])OB[o].g.w, g_tch[k].z - OB[o].z0, vs);
+  }
+}
+
+/* The pipe at the touch being solved, as a point: the two nodes either side
+ * share its impulse, so its mobility is theirs weighted by their shares. */
+static double give_point_mass(const Give *g, double a) {
+  double f;
+  const int j = give_at(g, a, &f);
+  const double mn = g->ml * g->dz;
+  const double inv_lo = j == 0 ? 0.0 : 1.0 / mn;
+  const double inv_hi = j + 1 == GIVE_NODES ? 2.0 / mn : 1.0 / mn;
+  return 1.0 / ((1.0 - f) * (1.0 - f) * inv_lo + f * f * inv_hi);
+}
+
+/*
+ * A post that gives moves within the step the part meets it in, and at 1
+ * kHz a part at 15 m/s is 15 mm into it before the solver sees it: judged
+ * on that depth against a pipe held still for the step, a five inch's arm
+ * met 2 kN in its first millisecond on the feel round's gate, whatever the
+ * pipe did after. Under a force F for the step the pipe's point, of mass m,
+ * gives F dt^2 / (2 m) by the step's end, so its inertia over the step is a
+ * spring in series with the part's, dt^2 / (2 m) of compliance. 0 for
+ * every solid that does not give.
+ */
+static double solid_give_compliance(void) {
+  if (g_own < 0) {
+    return 0.0;
+  }
+  const int o = g_tch[g_own].solid;
+  if (o >= g_nob || !OB[o].gives || OB[o].g.gone || OB[o].g.freed) {
+    return 0.0;
+  }
+  const double m = give_point_mass(&OB[o].g, g_tch[g_own].z - OB[o].z0);
+  return g_batch_dt * g_batch_dt / (2.0 * m);
+}
+
+/* The impulse the craft just took at the touch being solved, jn along n and
+ * jt across it, is the post's too, the other way, along the ground. */
+static void solid_take(const double n[3], double jn, const double jt[3]) {
+  if (g_own < 0) {
+    return;
+  }
+  const int o = g_tch[g_own].solid;
+  if (o >= g_nob || !OB[o].gives || OB[o].g.gone) {
+    return;
+  }
+  Give *g = &OB[o].g;
+  const double a = g_tch[g_own].z - OB[o].z0;
+  double f;
+  const int j = give_at(g, a, &f);
+  const double mn = g->ml * g->dz;
+  /* The nodes' own lengths of pipe: the base's clamp takes its share, a
+   * free top carries half a length. */
+  const double m_lo = j == 0 ? 0.0 : mn;
+  const double m_hi = j + 1 == GIVE_NODES ? 0.5 * mn : mn;
+  const double J[2] = { -(jn * n[0] + jt[0]), -(jn * n[1] + jt[1]) };
+  for (int ax = 0; ax < 2; ax += 1) {
+    if (m_lo > 0.0) {
+      g->w[j][ax] += (1.0 - f) * J[ax] / m_lo;
+    }
+    g->w[j + 1][ax] += f * J[ax] / m_hi;
+  }
+  g->a = a;
+  g->moving = 1;
+  g->touched = 1;
 }
 
 /* Whether a host's contact at w (world), met along n, is on a solid the
@@ -4677,13 +5012,7 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
     const double p[3] = { f->pos[0] + r[0], f->pos[1] + r[1], f->pos[2] + r[2] };
     for (int o = 0; o < g_nob; o += 1) {
       double nrm[3], pen;
-      int hit;
-      if (OB[o].type == 0) {
-        hit = obstacle_pen(&OB[o], p, nrm, &pen);
-      } else {
-        hit = cylinder_pen(OB[o].c[0], OB[o].c[1], OB[o].z0, OB[o].z1, OB[o].r, p, nrm, &pen);
-      }
-      if (!hit) {
+      if (!solid_in(o, p, nrm, &pen)) {
         continue;
       }
       f->touching = 1;

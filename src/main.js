@@ -130,14 +130,14 @@ import { disposeSceneGraph } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
-import { GATE_SCALE } from './game/track.js';
+import { GATE_SCALE, gateScaleFor } from './game/track.js';
 import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
-import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, solidSurfaceAt } from './game/crashworld.js';
+import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
 import {
   DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, SURFACE, SURFACES, TREES_MAX, partLabel,
 } from '../configs/parts.js';
@@ -4112,7 +4112,16 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       /* A post, or a ball: an upright cylinder over its whole height. */
       worldPosToSim(ax, Math.min(ay, by) - r, az, crashSimA);
       const top = worldPosToSim(ax, Math.max(ay, by) + r, az, crashSimB).z;
-      return sim.e.sim_obstacle_cylinder(crashSimA.x, crashSimA.y, crashSimA.z, top, r, mat);
+      const idx = sim.e.sim_obstacle_cylinder(crashSimA.x, crashSimA.y, crashSimA.z, top, r, mat);
+      /* A gate's upright gives (crashworld.js postGive); not in a micro
+       * room, whose scale no real pipe's give survives. */
+      const give = idx >= 0 && view.trackClass !== 'micro'
+        ? postGive(col.kindName(col.fkind[i]), r, gateScaleFor(view.trackClass ?? 'full'))
+        : null;
+      if (give && sim.e.sim_obstacle_compliance(idx, give.ei, give.mLine, give.mFree) !== SIM_OK) {
+        throw new Error('sim_obstacle_compliance refused a gate post');
+      }
+      return idx;
     }
     /* A bar at an angle: the box that holds it, along it. */
     worldPosToSim((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2, crashSimA);
