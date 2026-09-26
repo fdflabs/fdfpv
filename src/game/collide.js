@@ -1500,8 +1500,13 @@ export class Colliders {
    * length of the perpendicular from its axis less its radius; a box's is
    * the length of the componentwise outside vector, which is zero inside
    * it. The broadphase walk is the same grid `hit()` uses.
+   *
+   * `frozenOnly` leaves out what setBuilt added, and `skipKinds` is a bit
+   * per KINDS index of kinds to leave out: the in-sim builder asks whether
+   * a gate or its line is inside the map's own rock and buildings, and the
+   * built gates and the forest are not that (src/builder/buildmode.js).
    */
-  gapAt(px, py, pz, maxR) {
+  gapAt(px, py, pz, maxR, frozenOnly = false, skipKinds = 0) {
     if (!this.built) {
       return Infinity;
     }
@@ -1525,6 +1530,9 @@ export class Colliders {
             continue;
           }
           this.stamp[i] = id;
+          if ((frozenOnly && i >= this.baseCount) || (skipKinds & (1 << this.fkind[i]))) {
+            continue;
+          }
           let gap;
           if (this.fbox[i]) {
             /* Outside vector, componentwise. Zero on every axis means the

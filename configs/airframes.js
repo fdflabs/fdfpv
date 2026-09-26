@@ -112,6 +112,11 @@ export const AIRFRAMES = [
      * THE PLACE and one day there may be two airframes that fly the same
      * size of track. */
     trackClass: 'full',
+    /* Level speed at full throttle, m/s, and thrust over weight at 1 g: the
+     * two figures in `blurb` and `facts`, read by the in-sim builder's
+     * racing line (src/builder/line.js). */
+    topSpeed: 40,
+    thrustToWeight: 8.4,
     cells: 6,
     /* Pack open circuit volts a cell, in the order the launch card offers
      * them: charged, mid, empty. A 6S LiPo, so 4.20 down to 3.50. */
@@ -267,6 +272,9 @@ export const AIRFRAMES = [
     blurb: 'A 65 mm ducted whoop indoors, flying the five inch\'s flight model. The hall and its gates are built to match it, so what you see is a whoop through 28 inch gates and what you feel is the 5 inch.',
     facts: ['Indoors', '65 mm', '5 inch feel'],
     trackClass: 'micro',
+    /* The five inch's, since this flies the five inch's plant. */
+    topSpeed: 40,
+    thrustToWeight: 8.4,
     /*
      * SIX, BECAUSE THE PLANT IS THE FIVE INCH'S AND ITS THRUST IS KEYED TO
      * PACK VOLTS. A 1S pack on a 6S plant is a quad that will not leave the
@@ -429,6 +437,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/skyhunter-thresholds.json s2_stall. */
     stall: 9.2,
+    /* Level speed at full throttle, m/s: tests/skyhunter-thresholds.json s4_top, derived. */
+    topSpeed: 23.5,
     name: 'Skyhunter',
     short: 'Skyhunter',
     blurb: 'An 1800 mm twin boom FPV plane on 4S, with ailerons, elevator and rudder. Throw it, fly it long, land it on its skid.',
@@ -477,6 +487,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/cub-thresholds.json c2_stall. */
     stall: 8.1,
+    /* Level speed at full throttle, m/s: tests/cub-thresholds.json c4_top, derived. */
+    topSpeed: 18.4,
     gear: { restHeight: 0.1463, restPitch: 11.0 * Math.PI / 180 },
     name: 'Piper Cub',
     short: 'Cub',
@@ -524,6 +536,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/glider-thresholds.json g3_stall. */
     stall: 6.49,
+    /* Level speed at full throttle, m/s: npm run glider:derive, G5 at 100 percent. */
+    topSpeed: 21.89,
     name: 'Radian',
     short: 'Radian',
     blurb: 'A 2 m E-flite Radian motor glider on 3S, with ailerons, elevator and rudder. Climb on the motor, fold the prop, and find the thermals over the field to stay up.',
@@ -578,6 +592,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): the published figure, tests/bramor-thresholds.json b2_stall. */
     stall: 13,
+    /* Level speed at full throttle, m/s: tests/bramor-thresholds.json b4_top, derived. */
+    topSpeed: 25.0,
     catapult: BRAMOR_CATAPULT,
     chute: true,
     name: 'Bramor C4EYE',
@@ -631,6 +647,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/slowstick-thresholds.json s2_stall. */
     stall: 4.43,
+    /* Level speed at full throttle, m/s: tests/slowstick-thresholds.json s4_top, derived. */
+    topSpeed: 8.37,
     gear: { restHeight: 0.1349, restPitch: 6.91 * Math.PI / 180 },
     name: 'Slow Stick',
     short: 'Stick',
@@ -682,6 +700,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): flaps up, slats on, tests/timber-thresholds.json t2_stall_slats. */
     stall: 7.20,
+    /* Level speed at full throttle, m/s: docs/TIMBER-STAGE1.md T1, measured in the plant. */
+    topSpeed: 24.2,
     gear: { restHeight: 0.2115, restPitch: 11.81 * Math.PI / 180 },
     flaps: true,
     name: 'Turbo Timber',
@@ -735,6 +755,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): the landplane's 7.20 at 1.934 kg over 1.70, docs/FLOATS-STAGE1.md. */
     stall: 7.68,
+    /* Level speed at full throttle, m/s: docs/FLOATS-STAGE1.md, measured in the plant. */
+    topSpeed: 22.4,
     gear: { restHeight: 0.2464, restPitch: 0.48 * Math.PI / 180 },
     floats: { restHeight: 0.2074, restPitch: 2.52 * Math.PI / 180 },
     flaps: true,
@@ -782,6 +804,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): docs/FLOATS-STAGE1.md, the Cub having no flaps. */
     stall: 8.73,
+    /* Level speed at full throttle, m/s: docs/FLOATS-STAGE1.md, measured in the plant. */
+    topSpeed: 16.9,
     gear: { restHeight: 0.2171, restPitch: 0.43 * Math.PI / 180 },
     floats: { restHeight: 0.1765, restPitch: 0.64 * Math.PI / 180 },
     name: 'Piper Cub, floats',
@@ -838,6 +862,8 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/bombshell-thresholds.json s2_stall. */
     stall: 6.49,
+    /* Level speed at full throttle, m/s: tests/bombshell-thresholds.json s4_top, derived. */
+    topSpeed: 10.11,
     gear: { restHeight: 0.1318, restPitch: 8.50 * Math.PI / 180 },
     name: 'Buzzard Bombshell',
     short: 'Bombshell',
