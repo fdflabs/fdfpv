@@ -401,6 +401,7 @@ static void whoop_scaled_build(void) {
     d.crush_s *= WHOOP_M / WHOOP_L;
     d.crush_a *= WHOOP_L * WHOOP_L;
     d.crush_d *= WHOOP_L;
+    d.slip_d *= WHOOP_L;
     table_add(t, &d, SIM_AIRFRAME_5IN);
   }
   table_finish(t, SIM_AIRFRAME_5IN);
@@ -491,9 +492,16 @@ typedef struct {
   double ring[6];    /* a ringing panel's joint force and moment, body */
   double ring_d[6];  /* and their rates */
   double fold;       /* a wire leg's plastic set, m of travel at its foot */
+  double slip;       /* how far it has slid in its strap, m, booked to
+                      * the stop of the slide still going */
+  double slip_v[3];  /* that slide's speed on the craft, world, m/s */
+  long long slip_step; /* the step it was last driven */
 } PartState;
 
 static PartState PS[SIM_PARTS_MAX];
+/* A part that slid out of its strap this batch: the share of the batch's
+ * change of speed it leaves with (slip_take), for detach; -1 for none. */
+static double g_slip_keep[SIM_PARTS_MAX];
 
 /* Where the CG has moved, table frame, and the live airframe's mass and
  * inertia. g_live is the plant's own entry, copied the first time a part
@@ -1132,6 +1140,10 @@ void crash_reset(void) {
       p->ring_d[a] = 0.0;
     }
     p->fold = 0.0;
+    p->slip = 0.0;
+    p->slip_v[0] = p->slip_v[1] = p->slip_v[2] = 0.0;
+    p->slip_step = 0;
+    g_slip_keep[i] = -1.0;
     FB[i].state = 0;
   }
   g_shift[0] = g_shift[1] = g_shift[2] = 0.0;
@@ -2365,6 +2377,9 @@ static double part_damage(int i) {
   if (d->crush_d > 0.0 && p->crush / d->crush_d > dmg) {
     dmg = p->crush / d->crush_d;
   }
+  if (d->slip_d > 0.0 && p->slip / d->slip_d > dmg) {
+    dmg = p->slip / d->slip_d;
+  }
   const double b = norm(p->bend);
   double bmax = ARM_BEND_MAX;
   if (d->kind == SIM_PART_CAMERA || d->kind == SIM_PART_ANTENNA) {
@@ -2468,6 +2483,11 @@ static int below_break(int i, double rho, const double M[3], double *energy) {
     p->energy += *energy;
     return SIM_EVENT_BEND;
   }
+  /* A strap under its limit holds on its pad; what a hard pull costs it is
+   * the slide it took (slip_take), not a crack. */
+  if (d->slip_d > 0.0) {
+    return 0;
+  }
   const double dl = CRACK_LOSS * (past(rho, CRACK_ONSET) - past(prev, CRACK_ONSET));
   if (!(dl > 0.0)) {
     return 0;
@@ -2524,7 +2544,11 @@ static void detach(SimState *s, const Break *bk) {
     return;
   }
   double v[3], w[3];
-  const double keep = bk->rho > 1.0 ? 1.0 - 1.0 / bk->rho : 0.0;
+  double keep = bk->rho > 1.0 ? 1.0 - 1.0 / bk->rho : 0.0;
+  if (!(g_slip_keep[bk->part] < 0.0)) {
+    keep = g_slip_keep[bk->part];
+    g_slip_keep[bk->part] = -1.0;
+  }
   for (int a = 0; a < 3; a += 1) {
     if (bk->contact_side || bk->forced) {
       v[a] = s->vel[a];
@@ -2830,6 +2854,76 @@ static double bay_load(const Table *t, int j, const double Fj[3], double wall, d
   return sim_sqrt(r2);
 }
 
+/*
+ * A PACK SLIDES IN ITS STRAP. A pack is held by a webbing strap over a grip
+ * pad, not by a rigid joint: pulled past the strap's limit it slides and
+ * the strap stretches, at about that force, and it is free only once it
+ * has gone the strap's travel (crash_parts.h, slip_d). So a pack the rest
+ * of the craft was stopped under is not torn off by the peak of a short
+ * blow; it keeps the part of the batch's change of speed its strap could
+ * not give it, 1 - 1 / rho as a break would leave it, and that motion
+ * relative to the craft is spent against the strap's force over the travel
+ * it has left. A pack struck itself is still judged on its strap's limit:
+ * held rigidly to a craft the contact stops whole, the rest cannot go on
+ * over it, and a slide booked there would be counted again every batch the
+ * rigid craft carries the pack back into the ground. A slide lasts
+ * several milliseconds, longer than a batch, so its speed is carried from
+ * batch to batch and slowed by the strap in between. Held, it slides as far
+ * as that takes; not held, it leaves with what the whole travel could not
+ * take. Returns 1 when it held, else 0 with the share of the batch's change
+ * of speed it leaves with in g_slip_keep, which detach takes. The quads'
+ * packs are its only users.
+ */
+static int slip_take(SimState *s, const Table *t, int j, double rho, double *spent) {
+  const PartDef *d = &t->p[j];
+  PartState *p = &PS[j];
+  double r[3], dw[3], c[3], cw[3];
+  live_pt(t->cg[j], r);
+  for (int a = 0; a < 3; a += 1) dw[a] = g_pre_w[a] - s->omega[a];
+  cross(dw, r, c);
+  qrot(s->quat, c, cw);
+  double dv[3];
+  for (int a = 0; a < 3; a += 1) dv[a] = g_pre_vel[a] - s->vel[a] + cw[a];
+  const double dvl = norm(dv);
+  double m = 0.0;
+  for (int i = 0; i < t->n; i += 1) {
+    if ((t->sub[j] & (1u << i)) && attached(i)) m += t->p[i].mass;
+  }
+  const double f = d->f_max * p->strength;
+  const double dec = f / m;
+  /* A slide from an earlier batch of the same blow is still going, slowed
+   * by the strap since; its travel to a stop was booked when it began, and
+   * is booked again below with this batch's added. */
+  double v[3];
+  const double booked = p->slip;
+  const double v0 = norm(p->slip_v);
+  const double el = (double)(s->step_index - p->slip_step) * SIM_DT;
+  const double v1 = v0 > dec * el ? v0 - dec * el : 0.0;
+  p->slip -= v1 * v1 / (2.0 * dec);
+  const double keep = 1.0 - 1.0 / rho;
+  for (int a = 0; a < 3; a += 1) {
+    v[a] = (v0 > 0.0 ? p->slip_v[a] * v1 / v0 : 0.0) + keep * dv[a];
+  }
+  const double vl = norm(v);
+  const double need = vl * vl / (2.0 * dec);
+  const double avail = d->slip_d - p->slip;
+  if (!(need > avail)) {
+    p->slip += need;
+    *spent = p->slip > booked ? f * (p->slip - booked) : 0.0;
+    for (int a = 0; a < 3; a += 1) p->slip_v[a] = v[a];
+    p->slip_step = s->step_index;
+    return 1;
+  }
+  /* Past its travel: it leaves with what the rest of the travel left it. */
+  p->slip = d->slip_d;
+  *spent = p->slip > booked ? f * (p->slip - booked) : 0.0;
+  const double left = sim_sqrt(vl * vl - 2.0 * dec * (avail > 0.0 ? avail : 0.0));
+  double k = dvl > 0.0 ? left / dvl : 0.0;
+  if (k > 1.0) k = 1.0;
+  g_slip_keep[j] = k;
+  return 0;
+}
+
 static void judge(SimState *s) {
   const Table *t = tab();
   const int n = t->n;
@@ -3041,6 +3135,7 @@ static void judge(SimState *s) {
   const double adv = g_from_step ? SIM_DT : 0.0;
   double ring[SIM_PARTS_MAX][12];
   unsigned int gone = 0;
+  unsigned int slid = 0; /* straps that held this batch by sliding */
   /* A joint the blow broke on its way in (sever_pre) goes first: the
    * craft was only given what it held, so the rest is judged without it
    * and nothing is handed back. */
@@ -3100,7 +3195,7 @@ static void judge(SimState *s) {
     double best_rho = 0.0, best_F = 0.0, best_M = 0.0;
     double bp_rho = 0.0, bp_F = 0.0, bp_M = 0.0;
     for (int j = 1; j < n; j += 1) {
-      if (!attached(j) || (gone & (1u << j))) {
+      if (!attached(j) || (gone & (1u << j)) || (slid & (1u << j))) {
         continue;
       }
       const PartDef *dj = &t->p[j];
@@ -3223,6 +3318,27 @@ static void judge(SimState *s) {
     for (int h = 0; h < g_nh; h += 1) {
       if (t->sub[best] & (1u << H[h].part)) {
         side = 1;
+      }
+    }
+    if (!side && t->p[best].slip_d > 0.0) {
+      double spent = 0.0;
+      const int held = slip_take(s, t, best, best_rho, &spent);
+      PS[best].energy += spent;
+      PS[best].damage = part_damage(best);
+      changed = 1;
+      if (held) {
+        /* It slid at its limit and stays on: the craft stopped it. */
+        slid |= 1u << best;
+        rho0[best] = 1.0;
+        double pj[3], pw[3];
+        live_pt(t->p[best].joint, pj);
+        world_of(s, pj, pw);
+        event_push(s, best, SIM_EVENT_CRACK, best_rho, best_F, best_M, spent, pw, 0, 0.0, g_surf);
+        continue;
+      }
+    }
+    for (int h = 0; h < g_nh; h += 1) {
+      if (t->sub[best] & (1u << H[h].part)) {
         sc[h] /= best_rho;
       }
     }

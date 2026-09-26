@@ -1010,6 +1010,7 @@ rigid contact left it (0.26 mm).
 | 5 inch prop | yields 2.5 N m, shears off at 7.5 | 12 x 2.5 mm root at 200 MPa; ductile | R-PROPS (PC bends before it breaks, over 50 percent at break) |
 | 2207 on its arm | 48 N m | two M3 pulling out at 1.5 kN on 16 mm | chosen |
 | 5 inch pack strap | 250 N, 6 N m | the strap's buckle slipping | chosen |
+| its travel (feel round) | 36 mm of slide before the pack is free | the strap crosses the pack's middle: half its drawn 72 mm; the webbing's stretch at 250 N left out (nylon harness webbing stretches 20 to 30 percent only at 11 kN, Wikipedia "Webbing") | drawn model |
 | FPV camera in TPU | 0.8 N m, 60 N | side screws in a TPU mount | chosen |
 | FPV whip in TPU | 1.0 N m, 40 N | a whip flexes a long way before it tears | chosen |
 | whoop motor | 0.25 N m, 30 N | two M1.4 in PP | chosen |
@@ -1064,8 +1065,8 @@ a reason and no measurement behind it:
 | Airframe | Joints whose limit is chosen |
 | --- | --- |
 | every one | camera and whip mounts (0.8 N m, 60 N; 1.0 N m, 40 N), hook and loop's 8 N/cm^2 (a brand figure, no datasheet), every part's contact stiffness k, and most force limits f_max |
-| 5 inch | motor on its arm (48 N m, two M3 pull outs), pack strap (250 N, 6 N m) |
-| whoop | motor (0.25 N m), prop press fit (set so R-WHOOP's walls leave it on), pack holder (5 N), canopy (0.30 N m), nano camera (0.02 N m) |
+| 5 inch | motor on its arm (48 N m, two M3 pull outs), pack strap (250 N, 6 N m, free after 36 mm of slide) |
+| whoop | motor (0.25 N m), prop press fit (set so R-WHOOP's walls leave it on), pack holder (5 N, free after 33 mm of slide, its drawn length), canopy (0.30 N m), nano camera (0.02 N m) |
 | foam planes | firewall (10 N m), hinge lines (1 N m, 40 N), hstab and fin roots (2 to 4 N m), canopies (0.5 to 1 N m), packs (3 to 8 N m); the Timber's boom section (the Cub's is drawn; the Radian's boom and fin are bounded below by flight since the feel round, 12 and 2.4 N m) |
 | Slow Stick | wing on its saddle (6 N m, 60 N), tail sheet roots (0.5 to 1 N m), motor mount (4 N m), its prop at 0.6 of the 11 inch's |
 | Bramor | panels (300 N m: neither skin nor guide rod is published), elevons (3 N m), winglet magnets (1.5 N m, 15 N; bounded below by their load at the never exceed speed), motor (25 N m), pack hatch (40 N m, 400 N), chute bay lid (2 N m), gimbal (6 N m, 300 N) |
