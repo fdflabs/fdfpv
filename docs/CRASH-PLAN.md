@@ -697,3 +697,21 @@ right. The suite's bands (7 of 60 in every band, 119 failing checks)
 keep improving in the background and no longer block the loop. What
 remains is the owner's sign off, flown after the reboot the broken
 NVIDIA driver needs.
+
+### Signed off (2026-09-26)
+
+The owner delegated the sign off to the lead ("all should be tested by
+you"): their remote was unavailable, and this machine's GPU was down
+(an NVIDIA userspace/kernel mismatch), so the lead ran crash:feel on
+the CPU renderer on main 8db883d and judged the numbers and sheets. 15
+sheets, 0 harness failures, 0 console errors. Cub pole and corner: the
+struck wing leaves at the obstacle, the rest breaks on the ground.
+Skyhunter cartwheel: struck wing, fins, pack, inverted. Timber
+cartwheel: boom and both wings, on its side. Mush stalls land whole.
+Timber nose over: over, inverted. Cub: its prop reaches the grass
+first, correctly no nose over. Float nose dig at 22 deg: over,
+inverted. Quad post clip at 15 m/s: whole, tumbles away; at 30 m/s:
+an arm. Quad into a wall: props, arms, camera, pack, drops at the
+wall. Bombshell into grass and onto a roof: balsa breaks up, pieces
+rest where they fall. The crash loop is closed at feels right; the
+suite's bands stay as background work.
