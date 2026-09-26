@@ -303,7 +303,11 @@ has no slipstream to work in, so there is no steering there.
   round, a forebody running nose low is pulled down (Zarnick's u m_a dV_n
   where V_n falls below zero, ahead of the step) and a dug in bow tip
   meets the water at its rocker's slope instead of as a vertical stem, and
-  the nose dig goes over (docs/CRASH-STAGE1.md, section 5).
+  a dive past the bows' rise goes over (docs/CRASH-STAGE1.md, section 5;
+  the nose dig, below). The same suction where V_n falls while still
+  positive, at the knee behind the rise (Zarnick's full term), was tried
+  in the feel round and left out: with it neither aircraft gets over the
+  hump, with the damage mode on or off (below).
 - **Anything but the floats in the water.** The fuselage, the wing and the
   prop pass through the water untouched; see the failure modes.
 
@@ -495,19 +499,50 @@ Flagged here, not built. The crash physics plan owns breakup.
   curved bow sucks it down, the bow buries, the drag low and far ahead of
   the CG pitches it over, and the aircraft goes onto its back, often
   breaking the struts. F7 arrives 12 deg nose down at 14 m/s and lets go
-  of the sticks: the plant decelerates at up to 3.7 g (Timber) and 2.4 g
-  (Cub) and pitches on down, to −21.0 and −11.5 deg, then the bows' buoyancy
-  and their rocker's planing force lift the nose and it skips on. **It
-  does not go over**, and that is the model's limit, not the aircraft's:
-  (1) water is only ever pushed, so a nose down forebody has no suction
-  pulling it in; (2) once a float is under, its buoyancy saturates and
-  nothing presses its deck down; (3) the fuselage, the wing and the prop
-  do not touch the water at all. The crash plan needs a suction term on a
-  forebody at negative trim, the deck's wash, water contact for the
-  fuselage, the wing's leading edge and tips and the prop (the prop
-  striking water is as final as striking grass), and a criterion for the
-  struts: the deceleration and the pitch rate F7 reports are the numbers
-  to start from.
+  of the sticks: the plant decelerates at up to 6.4 g (Timber) and 8.5 g
+  (Cub) and pitches on down, to −14.5 and −11.7 deg, then the bows' planing
+  lifts the nose and it skips on. **It does not go over, and that is the
+  physics, not the model's limit.** Each float's bow rises from the knee to
+  the tip, 60 mm over 0.19 m on the Timber and 64 mm over 0.18 m on the
+  Cub: a rise of atan(60/190) = 17.5 deg and atan(64/180) = 19.6 deg. Dived
+  in along the nose at any angle shallower than that, the rise still meets
+  the water at a positive angle, about 19 deg to the flow on a dive along
+  the keel whatever its angle, and planes. On the Cub at 12 deg and 1.6
+  times the stall the plant's strip theory puts 163 N a float on it and
+  Savitsky's lift (C_L0 = tau^1.1 (0.012 lambda^0.5 + 0.0055
+  lambda^2.5 / Cv^2), less 0.0065 beta C_L0^0.6, at tau 19.6 deg, lambda
+  about 1, Cv 15.8, taken past the 15 deg his fit reaches) 168 N, ten times
+  the weight, 0.2 m ahead of the CG: the nose is thrown up and the
+  aircraft skips. The bows are driven under, the handbook's "landing on
+  the float bows, driving them underwater and flipping the seaplane"
+  (FAA-H-8083-23, ch. 6), only once the bow tip leads the knee into the
+  water, past the rise. So the crash suite's nose dig and crash:core's
+  are staged at the rise rounded up to a whole degree and 2 more, clear
+  of that edge: **20 deg on the Timber and 22 on the Cub**
+  (`floatDigDeg`, tests/crash/scenarios.js), at 1.6 times the stall along
+  the nose, hands off at the touch. There both dig in and go over onto
+  their backs (crash:core, up axis to −1.00), where on the plant before
+  the feel round the Cub at 22 deg rolled on over and came back upright
+  (0.61 at the end): its bow was all lift, and the pressure along the
+  rise's normal (the water, above) gave it the drag that holds it on its
+  back. At 12 deg both skip and stay upright (up axis at least 0.93 and
+  0.95), and crash:core holds that too. Measured in 2 deg steps from 14
+  deg, at 1.2 and 1.6 times the stall, the Timber goes over from 18 deg
+  (at 16 only at the slower speed) and the Cub from 20: each within a
+  degree of its rise.
+
+  Tried and left out: the rest of Zarnick's d/dt (m_a V_n), suction where
+  V_n falls while still positive, which is where the rise meets the flat
+  forebody at the knee. It takes about 130 N a float off the Cub's bow at
+  12 deg, but on the take off it holds both aircraft plowing nose down
+  under full up elevator (the Cub at 3.2 m/s and −1.6 deg for eight
+  seconds) and F4 fails for both, with the damage mode on or off. The
+  handbook's plowing attitude is nose high, so at those speeds the term
+  is wrong as it stands; a better one needs the knee's own shape, which no
+  photograph gives. What the rest of the list still lacks: water contact
+  for the fuselage, the wing's leading edge and tips and the prop (the
+  prop striking water is as final as striking grass), and a criterion for
+  the struts.
 - **A float catching, and the cartwheel.** In a bank on the water, in a
   crosswind turn or a beam sea, or touching down with a wing low, one
   float takes the load and its drag, far out from the centreline, yaws

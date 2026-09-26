@@ -28,6 +28,7 @@
  */
 
 import { DAMAGE_FLAGS, PART_STATE_DOUBLES, SURFACE } from '../../configs/parts.js';
+import { floatDigDeg } from '../../tests/crash/scenarios.js';
 import { readDamageEvents, readMotorDamage, readPartTable, readPartsState } from './crash.js';
 import { airframeHull, bodyAxes, hullContact, hullFromPartsState, sweepPartCapsule, PLANT_BODY } from '../../src/game/airframehull.js';
 
@@ -1252,7 +1253,7 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
-    name: 'floats: added mass slows the bob, and a nose low touchdown digs in and goes over',
+    name: 'floats: added mass slows the bob, a dive past the bows\' rise digs in and goes over, and a 12 deg one skips',
     async run(mk) {
       const REST = { 9: { z: 0.2074, pitch: 2.52, mass: 1.934, beam: 0.085, heave: 0.288 }, 10: { z: 0.1765, pitch: 0.64, mass: 1.532, beam: 0.080, heave: 0.294 } };
       const VS = { 9: 7.1, 10: 8.7 };
@@ -1284,9 +1285,12 @@ export const CRASH_SCENARIOS = [
         const want = c.heave * Math.sqrt((c.mass + ma) / c.mass);
         return { period: lows.length > 1 ? (lows[1] - lows[0]) / 1000 : NaN, want, ma };
       };
-      /* The suite's nose dig: 12 deg nose low at 1.6 times the stall, held
-       * there until the floats touch, hands off after. And a normal one:
-       * 3 deg nose up at 1.1 times the stall. */
+      /* The suite's nose dig: nose low past the bows' own rise
+       * (floatDigDeg, tests/crash/scenarios.js) at 1.6 times the stall, held
+       * there until the floats touch, hands off after. The same at 12 deg,
+       * under the rise, where the rise planes and throws the nose up: it
+       * skips and stays upright. And a normal one: 3 deg nose up at 1.1
+       * times the stall. */
       const touchdown = async (id, pitchDeg, vmul) => {
         const r = await onWater(id, 1);
         r.pose([0, 0, REST[id].z + 0.5], pitch(-pitchDeg));
@@ -1320,9 +1324,13 @@ export const CRASH_SCENARIOS = [
         const off = await bob(id, 0);
         const on = await bob(id, 1);
         checks.push({ name: `${name}: with the added mass the heave period is the derivation's, carried by m_a`, ok: Math.abs(on.period / on.want - 1) < 0.1, detail: `${(on.period * 1000).toFixed(0)} ms against ${(on.want * 1000).toFixed(0)} (m_a ${on.ma.toFixed(2)} kg); ${(off.period * 1000).toFixed(0)} ms with the mode off` });
-        const dig = await touchdown(id, -12, 1.6);
+        const digDeg = floatDigDeg(id === 9 ? 'timberf' : 'cubf');
+        const dig = await touchdown(id, -digDeg, 1.6);
+        const skip = await touchdown(id, -12, 1.6);
         const soft = await touchdown(id, 3, 1.1);
-        checks.push({ name: `${name}: 12 deg nose low at 1.6 Vs digs in and goes over`, ok: dig.minUp < -0.7 && dig.endUp < 0, detail: `up axis down to ${dig.minUp.toFixed(2)}, ${dig.endUp.toFixed(2)} at the end` });
+        checks.push({ name: `${name}: ${digDeg} deg nose low at 1.6 Vs, past the bows' rise, digs in and goes over`, ok: dig.minUp < -0.7 && dig.endUp < 0, detail: `up axis down to ${dig.minUp.toFixed(2)}, ${dig.endUp.toFixed(2)} at the end` });
+        /* The mirror of the flip's bound: never past 0.7 the other way. */
+        checks.push({ name: `${name}: 12 deg nose low at 1.6 Vs, under the bows' rise, skips and stays upright`, ok: skip.minUp > 0.7 && skip.endUp > 0.9, detail: `up axis at least ${skip.minUp.toFixed(2)}, ${skip.endUp.toFixed(2)} at the end` });
         checks.push({ name: `${name}: 3 deg nose up at 1.1 Vs stays upright`, ok: soft.minUp > 0.9, detail: `up axis at least ${soft.minUp.toFixed(2)}` });
       }
       return checks;
