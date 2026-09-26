@@ -1110,9 +1110,9 @@ the air, 12 at most, all at rest in 8 s, none under the ground).
 
 | Material | mu | mu of a face | e | stiffness N/m | blade hardness |
 | --- | --- | --- | --- | --- | --- |
-| default, the ground | 1.40 | 0.45 | 0 | 5e4 | 0.01 |
+| default, the ground | 1.40 (0.45 and the plough with damage on) | 0.45 | 0 | 5e4 | 0.01 |
 | default, an obstacle | 0.40 | 0.40 | 0.15 | 2e6 | 0.5 |
-| grass | 1.40 | 0.45 | 0 | 5e4 | 0.01 |
+| grass | 1.40 (0.45 and the plough with damage on) | 0.45 | 0 | 5e4 | 0.01 |
 | dirt | 1.00 | 1.00 | 0.05 | 2e5 | 0.3 |
 | asphalt | 0.60 | 0.60 | 0.12 | 3e7 | 0.9 |
 | concrete, rock | 0.42 | 0.42 | 0.15 | 5e7 | 1.0 |
@@ -1139,6 +1139,58 @@ resting slide takes the grip of the part the craft lies on. Only grass and
 the default ground have a measured face grip; every other surface's is
 its own mu. Measured (`crash:core`): a Skyhunter slid on its belly at 4
 m/s slows at 0.434 g with the mode on, 1.386 with it off.
+
+**The grip is a slide and a plough** (feel round). The edge's 1.40 had
+no source, and it stopped quads dead on grass: q5-slope kept 0.02 of its
+energy through the first contact where R-A4-REBOUND puts 0.25 to 0.5,
+and came apart at 421 g. A flat 0.60 on every edge kept 0.24, and lost
+the planes' wing tip catches and nose ins. Grip rising with depth alone
+cannot tell the two apart, because they are as deep as each other:
+measured on main, a five inch's motor bells were 7 to 11 mm into the
+turf on the slope and a cartwheeling Cub's wing tip 5 to 10 mm. What
+separates them is the load: the motors at 170 to 365 N a contact, the
+tip at 12 to 27 N. A plough's resistance is the turf's over the front of
+the groove, not a multiple of the load, so it separates them.
+
+With the damage mode on, everything on grass (and the default ground)
+slides at the sled's 0.45, the resting slide too. A part that is in the
+turf also gets the plough: 0.7 MPa over the groove's front, its width
+times its depth. The width is the part's across the slide, and no more
+than twice the depth (a box edge or corner driven in opens a V). The depth
+is the deeper of where the part's point is, less the solver's 2 mm slop,
+and the crater its normal load in the batch presses into the turf's
+spring (a crushing nose's plateau force over 5e4 N/m). A part flat on a
+face does not plough, faded over the same 25 degrees. A prop does not
+plough: its box is the disc it sweeps, where the blade's front is a few
+millimetres thick, and its tip stiffness is the blade's own bending,
+which lifts the tip out of the turf. The plough can only stop a slide,
+and a part gets it once a batch (`crash_contact_grip`, called from the
+solver's friction clamp with the damage mode on only).
+
+The 0.7 MPa is DERIVED from two studs 13 mm long, each 170 mm^2 in side
+profile, under 350 N on a sand based natural turf pitch's samples. Fully
+in (gravimetric moisture 21.7 and 23.0 percent) they held 370 and 430 N at
+10 mm of travel. Less the stud plate's sled grip, 0.45 of 350 N, that is
+212 to 272 N on 340 mm^2, 0.62 to 0.80 MPa (Clarke and Carre, "The
+influence of gravimetric moisture content on studded shoe-surface
+interactions in soccer", Sports Engineering 19, 2016, Table 1 and Fig. 10;
+the dry samples the studs could not fully enter held 165 to 200 N). It is
+consistent with a studded boot's translational traction on natural grass,
+1.9 to 2.5 of a 300 N load (Thomson et al., PLOS ONE 14(4) e0216364, 2019,
+S2T2 rig, SG studs 11 mm long), taking six such studs (ASSUMPTION, the
+paper gives no count or area). At the ends of the source's range the
+suite fails 116 checks at 0.62 MPa and 111 at 0.80, against 111 at 0.7
+and 111 on main (all on 7e579b8); q5-slope keeps 0.495 at all three.
+
+Measured, the crash suite in Node against main 39315bb: q5-slope's
+retained energy 0.038 to 0.495, its peak 448 to 143 g, its rest 0.39 to
+3.8 m down the slope, nothing broken (the arms, motors, pack and camera
+came off before). The Skyhunter's cartwheel now goes over (minUpZ 0.62 to -1.00,
+inverted). The Cub's and the Timber's now take the struck wing off. The
+nose ins stop in their craters: the Cub, Radian, Slow Stick and Timber
+keep -0.001 to 0.006 of their energy. Failing checks 110 to 110 (13
+fixed, 13 moved out of their bands). The out-of-band moves are all in the
+PR with their reasons.
 
 The resting slide also counted the ground twice once the spring's corner
 impulses carried the weight: their own Coulomb friction, and the settle's
