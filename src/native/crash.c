@@ -1018,9 +1018,23 @@ static void effects_rebuild(void) {
       continue;
     }
     if (pp >= 0 && !attached(pp)) {
-      /* The bell spins free: no thrust, a hub's drag, the rotor a third. */
+      /* The bell spins free: no thrust, the rotor a third, and a drag
+       * torque that is the bell's windage and nothing else. kq here is
+       * the torque that reaches the frame, because the plant reacts the
+       * whole rotor load through the stator. A bare bell's bearing and
+       * iron losses are the larger part of its no load current, but they
+       * act between rotor and stator, both on the craft, so they cancel
+       * and never yaw it; only the air the bell stirs does. The old 0.03
+       * charged those losses to the airframe: 0.013 N m at the bell's
+       * 36,000 rpm, as much counter torque as a working prop at 7,000,
+       * cancelling half the yaw the lost prop leaves behind. Windage of a
+       * 28 mm bell at 3,900 rad/s, from the laminar rotating disc moment
+       * coefficient 3.87 / sqrt(Re) (Re near 5e4) for its face and a
+       * generous 0.01 skin friction on its side, is 0.3e-3 to 1e-3 N m:
+       * the upper end is kq 0.002. The bell still runs to its back EMF
+       * limit, so its speed barely moves (36.4k to 37.0k rpm). */
       CRASH.kt[m] = 0.0;
-      CRASH.kq[m] = 0.03;
+      CRASH.kq[m] = 0.002;
       CRASH.jr[m] = 0.4;
       any = 1;
     } else if (pp >= 0 && PS[pp].chip > 0.0) {
