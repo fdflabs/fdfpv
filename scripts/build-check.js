@@ -827,10 +827,17 @@ async function pylonClips(page, { cone, coneAxis, lateral, side }, speed, label)
     const from = vAdd(c, cone.travel, -6);
     const v = cone.travel.map((x) => x * speed);
     await page.evaluate(`window.__crashThrow({ fresh: true, x: ${from[0]}, y: ${from[1]}, z: ${from[2]}, yaw: ${yawAlong(cone.travel)}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
-    await simWait(page, 1.5, 'false');
+    /* The picture 0.4 s after the first damage, before whatever the wing
+     * hit next takes the camera. */
+    await simWait(page, 1.5, `window.__crash().events > ${before}`);
+    await simWait(page, 0.4, 'false');
+    await page.evaluate('window.__drawOff(false)');
+    await frames(page, 2);
+    await shot(page, `17-${opts.map}-${label}-wingtip-${h}m`);
+    await page.evaluate('window.__drawOff(true)');
+    await simWait(page, 1.0, 'false');
     await page.evaluate('window.__drawOff(false), window.__postWatch = false');
     await frames(page, 2);
-    await shot(page, `12-${opts.map}-${label}-wingtip-${h}m`);
     const after = await page.evaluate('({ k: window.__crash(), posts: Object.values(window.__postMax), log: window.__crashLog(), c: window.__craftState() })');
     const met = after.posts.filter((p) => p.at > 0);
     if (!met.length) {
@@ -944,7 +951,7 @@ async function planeGates(page) {
     spot[1] = await H(spot[0], spot[2]);
     const eye = vAdd(vAdd(spot, dir, -24), [0, 1, 0], 7);
     await aimAt(page, eye, spot);
-    await shot(page, `9-${opts.map}-${type}-ghost`);
+    await shot(page, `16-${opts.map}-${type}-ghost`);
     await page.tap('Enter');
     await page.until(`${B('.gates.length')} === ${n0 + placed.length + 1}`, 10000);
     const st = await page.evaluate(B(''));
@@ -966,11 +973,11 @@ async function planeGates(page) {
   const lateral = vDot(vAdd(cone.centre, coneAxis, -1), side);
   say(Math.abs(Math.abs(lateral) - 7.5) < 1e-3, `the pylon scores a square whose centre is ${f1(Math.abs(lateral))} m to the pilot's left of it`);
 
-  /* Seen from the side, the three together. */
+  /* Seen from behind the start and to one side, the three together. */
   const mid = vAdd([flat.x, flat.h, flat.z], dir, 45);
-  await aimAt(page, vAdd(vAdd(mid, side, 55), [0, 1, 0], 14), vAdd(mid, [0, 1, 0], 3));
+  await aimAt(page, vAdd(vAdd(vAdd(mid, dir, -95), side, -30), [0, 1, 0], 22), vAdd(mid, [0, 1, 0], 3));
   await frames(page, 3);
-  await shot(page, `10-${opts.map}-plane-gates`);
+  await shot(page, `16-${opts.map}-plane-gates`);
 
   await page.tap('KeyB');
   await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
@@ -1015,7 +1022,7 @@ async function planeGates(page) {
   await page.evaluate(`window.__race().next = ${iCone}, true`);
   const round = vAdd(vAdd(coneAxis, [0, 1, 0], 3), side, lateral > 0 ? 4 : -4);
   const roundWrong = vAdd(vAdd(coneAxis, [0, 1, 0], 3), side, lateral > 0 ? -4 : 4);
-  await shot(page, `11-${opts.map}-round-the-pylon`);
+  await shot(page, `16-${opts.map}-round-the-pylon`);
   const okCone = await flyThrough(cone, round, (iCone + 1) % G.length);
   say(okCone, 'round the pylon 4 m off it on its set side: counted');
   await page.evaluate(`window.__race().next = ${iCone}, true`);
