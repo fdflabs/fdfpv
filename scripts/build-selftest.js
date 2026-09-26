@@ -617,7 +617,7 @@ console.log('plane sized gates');
   const widest = Math.max(...wings.map(span));
   const rMid = (pair.baseRadius + pair.tipRadius) / 2;
   check('between the pylons at half their height, two spans of the widest wing',
-    pair.clearW - 2 * rMid >= 2 * widest, `${(pair.clearW - 2 * rMid).toFixed(2)} vs ${(2 * widest).toFixed(2)}`);
+    pair.clearW + 2 * pair.baseRadius - 2 * rMid >= 2 * widest, `${(pair.clearW + 2 * pair.baseRadius - 2 * rMid).toFixed(2)} vs ${(2 * widest).toFixed(2)}`);
 
   const d = newCourse('swiss2', 'Air race');
   const up = qAxis(0, 1, 0, 0);
@@ -628,10 +628,28 @@ console.log('plane sized gates');
   const spec = gateSpec(wg);
   check('a wide gate is a PVC frame of 1 1/2 inch pipe, the banner kind', spec.frameKind === 'banner' && near(spec.tubeOD, 1.9 * 0.0254, 1e-12));
   const gates = raceGatesOf(d);
-  check('the pair scores the plane between the pylons, ground to tips',
-    near(gates[1].aperture.clearW, 6) && near(gates[1].aperture.clearH, 8) && near(gates[1].centre.y, 104) && !gates[1].virtual);
+  check('the pair scores the air between the cones\' bases, ground to tips',
+    near(gates[1].aperture.clearW, 4.4) && near(gates[1].aperture.clearH, 8) && near(gates[1].centre.y, 104) && !gates[1].virtual);
   check('the pylon scores the wing class\'s 15 m square beside it, virtual',
     near(gates[2].aperture.clearW, 15) && gates[2].virtual);
+  /* The span warning (src/builder/line.js) reads each one's clear air. */
+  const flat = { heightAt: () => 100, solidAt: () => false };
+  const smallFor = (gs, af) => {
+    const c = craftLimits(airframeById(af));
+    return lineWarnings(gs, racingLine(gs, c, flat.heightAt), c, flat).filter((w) => w.code === 'small').map((w) => w.gate);
+  };
+  check('the Bramor fits the 5 m gate, the pylon pair and round the pylon: no small warning', smallFor(gates, 'bramor2300').length === 0, JSON.stringify(smallFor(gates, 'bramor2300')));
+  const d3 = newCourse('swiss2', 'Small');
+  addGate(d3, 'wideGate3', { x: 0, y: 100, z: 0 }, up);
+  addGate(d3, 'wideGate3', { x: 0, y: 100, z: -80 }, up);
+  /* The warning asks for 1.2 spans; the size rule here is two, so even
+   * the Bramor is only told off at a five inch's gate. */
+  check('the warning reads the 3 m gate as 3 m: no fixed wing is warned there',
+    wings.every((af) => smallFor(raceGatesOf(d3), af.id).length === 0));
+  const d4 = newCourse('swiss2', 'Five inch');
+  addGate(d4, 'gate', { x: 0, y: 100, z: 0 }, up);
+  addGate(d4, 'gate', { x: 0, y: 100, z: -80 }, up);
+  check('and a five inch gate is small for the Bramor', smallFor(raceGatesOf(d4), 'bramor2300').length === 2);
   /* Flown along -z, the pilot's left is -x: a pass on the left has the
    * square's centre 7.5 m to -x and its inner edge on the pylon's axis. */
   check('its square is on the pilot\'s left with its inner edge on the axis',

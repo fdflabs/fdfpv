@@ -826,15 +826,17 @@ export const ELEMENTS = {
     wing: true,
     note: str('elements.two_inflatable_pylons_flown_between_the'),
     pitch: 0,
-    /* The opening is the plane between the two pylons' axes, from the
-     * ground to their tips: flying over the top is the air race's "flying
-     * too high" and does not count. clearW is the spacing of the axes. By
-     * the span rule the air between the cones at half their height is two
-     * Bramor spans, 4.6 m, and the cone is 0.46 m in radius there, so the
-     * axes are 5.5 m apart; rounded up to 6, which leaves 4.4 m at the
-     * base and 5.75 m at the tips. */
+    /* The opening is the air between the two cones where it is narrowest,
+     * at their bases, from the ground to their tips: flying over the top is
+     * the air race's "flying too high" and does not count. It is the width
+     * a gate's clearW is, clear air, so the builder's span warning reads
+     * it as it reads a frame's. By the span rule the air between the cones
+     * at half their height is two Bramor spans, 4.6 m, and the cone is
+     * 0.46 m in radius there, so the axes are 5.5 m apart; rounded up to 6,
+     * which leaves 4.4 m at the bases and 5.75 m at the tips. The axes
+     * stand clearW plus a base's diameter apart. */
     dims: {
-      levels: 1, sillH: 0, clearW: 6.0, clearH: 8.0, levelPitch: levelPitchFor(8.0),
+      levels: 1, sillH: 0, clearW: 4.4, clearH: 8.0, levelPitch: levelPitchFor(8.0),
       baseRadius: 0.8, tipRadius: 0.125,
     },
   },

@@ -124,17 +124,17 @@ function cone(g, spec, x, n, caps) {
 }
 
 /*
- * THE PAIR: two cones spec.clearW apart on their axes, and the opening
- * between them from the ground to their tips, lit the way a gate's is
- * (scene.js apertureMarkers). The lit outline's uprights run up the
- * pylons' own axes, inside the fabric, so what shows is the line along the
- * ground and the one between the tips: the window the race scores.
+ * THE PAIR: two cones with spec.clearW of air between their bases, and
+ * that opening from the ground to their tips, lit the way a gate's is
+ * (scene.js apertureMarkers): the window the race scores. Its uprights
+ * stand on the bases' edges and rise clear of the fabric as the cones
+ * narrow away from them.
  */
 function pylonPair(spec, index, isStart) {
   const g = new THREE.Group();
   const caps = [];
   for (const sx of [-1, 1]) {
-    cone(g, spec, sx * spec.clearW * 0.5, index + 1, caps);
+    cone(g, spec, sx * (spec.clearW * 0.5 + spec.baseRadius), index + 1, caps);
   }
   const clearH = spec.height;
   const marks = apertureMarkers(g, [0], spec.clearW, clearH, 1, isStart, 0);
