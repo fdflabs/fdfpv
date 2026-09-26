@@ -842,7 +842,8 @@ static void ground_settle(double upz, double vn_plant) {
  * heading it rolls, and costs only its rolling resistance, mu_roll N on
  * short grass and the ground's material's share of it elsewhere, more
  * with the brake on (plant_wheel_roll);
- * across it the tyre grips up to mu_side N. Each is an impulse that would
+ * across it the tyre grips up to mu_side N, a rolling tyre only as far as
+ * its slip angle lets it (wheel_side). Each is an impulse that would
  * stop the point's velocity along that direction, through the same
  * effective mass the hull's contact uses, clipped at its cone. The
  * tailwheel's heading turns with the rudder, so it steers.
@@ -911,6 +912,50 @@ static void wheel_friction(const double r[3], const double d[3], double jmax) {
     j = -jmax;
   }
   contact_push(r, d, j);
+}
+
+/*
+ * A rolling tyre's side grip. A skid, or a tyre held still, grips like any
+ * contact: the impulse that stops its point across the heading, up to
+ * mu_side N. A tyre rolling along its heading does not: its tread enters
+ * the contact patch straight and is dragged sideways only as the wheel
+ * slips at an angle to its path, so the side force grows with the slip
+ * angle, tan a = |v_across| / |v_along|, and reaches mu_side N only when
+ * the whole patch slides. The brush model with a parabolic pressure
+ * (Pacejka, Tyre and Vehicle Dynamics, ch. 3) gives the force under that
+ * as F / (mu N) = 1 - (1 - s)^3, s = tan a / tan a_sl, where tan a_sl is
+ * the tyre's `slide`. As the rolling speed falls to nothing the slip angle
+ * goes to 90 deg, the patch slides whole, and this is the skid's grip
+ * again; and the force is never more than the impulse that stops the
+ * point, so it cannot throw the point back. Pacejka's relaxation length,
+ * about the tyre's radius, is left out: at a rolling 0.5 m/s a 22 mm
+ * tyre's force follows its slip within 45 ms and at 6 m/s within 4 ms,
+ * inside the tenths of a second the roll's swings take.
+ */
+static void wheel_side(const WheelParams *wp, const double r[3], const double l[3], const double h[3],
+                       double jmax) {
+  double vp[3];
+  contact_point_vel(r, vp);
+  const double vl = vp[0] * l[0] + vp[1] * l[1] + vp[2] * l[2];
+  const double vh = vp[0] * h[0] + vp[1] * h[1] + vp[2] * h[2];
+  const double kd = contact_k_along(r, l);
+  if (!(kd > 1e-12)) {
+    return;
+  }
+  double cap = jmax;
+  const double avl = vl < 0.0 ? -vl : vl;
+  const double avh = vh < 0.0 ? -vh : vh;
+  if (wp->slide > 0.0 && avl < wp->slide * avh) {
+    const double u = 1.0 - avl / (wp->slide * avh);
+    cap = jmax * (1.0 - u * u * u);
+  }
+  double j = -vl / kd;
+  if (j > cap) {
+    j = cap;
+  } else if (j < -cap) {
+    j = -cap;
+  }
+  contact_push(r, l, j);
 }
 
 /* Returns the number of wheels carrying load this step. */
@@ -989,7 +1034,7 @@ static int ground_wheels(void) {
       n[2] * h[0] - n[0] * h[2],
       n[0] * h[1] - n[1] * h[0],
     };
-    wheel_friction(r, l, wp->mu_side * jn);
+    wheel_side(wp, r, l, h, wp->mu_side * jn);
     wheel_friction(r, h, plant_wheel_roll(wp, crash_ground_material(), plant_wing_brake()) * jn);
   }
   return loaded;
