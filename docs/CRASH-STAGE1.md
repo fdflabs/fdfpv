@@ -725,6 +725,40 @@ and bend over its maximum, and 1 when it has left. Damage follows a
 part's peak: a load under an earlier one adds nothing, so a sustained
 load cannot pile up events.
 
+**A crack weakens the joint for the next load** (the feel round's items,
+2026-09-26). The sentence above did not hold for a crack. Its loss came
+off the strength the load in hand was judged against, so that load's ratio
+rose with no rise in the load, which was a new peak and a deeper crack:
+any load held past about 0.72 of a limit cracked its way to a break in a
+few steps. Every feel round sheet showed it as crack, crack, crack, break
+(the Skyhunter's fins at 0.73, 0.86 and 1.20 of theirs; the Radian's boom
+in its stall at 1.09 on a load that had peaked at 0.72 of its 12 N m and
+was falling). A table's limit is its joint's intact ultimate strength, and
+the table above says what a crack is for: the next hit breaks it sooner.
+So peaks are kept over the intact strength, and the crack a load makes is
+held while that load is on and taken off the strength once the load has
+fallen back under the 0.70 onset, or the contact has ended (`crack_settle`
+in `crash.c`). The readback's damage shows the crack at once. A load now
+breaks a joint at its limit; a crack from an earlier hit still lowers it.
+
+Measured, the crash suite in Node against main: 9 to 10 of 60 in every
+band, failing checks 120 to 119. Into band: timber-cartwheel minUpZ,
+restAttitude and restDistM (its wings hold long enough for the tip to throw
+it over, inverted, 5.1 m on), radian-stall mustNotBreak (its wing stays;
+its pack now leaves, which that band does not name), radian-nose-in
+retainedFirst, bramor-pole peakG (105 to 91 g), cubf-porpoise (10 pitch
+reversals to 8). Out: radian-pole timeToRestS (2.68 to 3.24 s, band to 2.8),
+and two float capsizes that went over only after a crack cascade broke the
+tail: cubf-nose-dig (on main the boom broke at 0.206 s at 1.43 of a cracked
+strength, 0.94 of its intact 16 N m, and the Cub went over; now its boom
+holds at 0.87 and the Cub pitches no further than an up axis of 0.93) and
+timberf-capsize (main shed its boom, a wing and the motor before rolling
+over; now it keeps them and stays upright, up axis 0.46). The same Cub nose
+dig is `crash:core`'s "floats: ... a nose low touchdown digs in and goes
+over", which now fails: the bow's dig does not pitch a float plane over by
+itself, which is the water's to answer, and the check is left failing, not
+moved.
+
 ### Crush is the contact's duration
 
 A foam part struck past its plateau stress over its crush area crushes at

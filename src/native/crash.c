@@ -470,6 +470,8 @@ typedef struct {
   double peak_max;   /* the largest it has ever been, which is what damage
                       * follows: a load under an earlier one adds nothing */
   double strength;   /* what a crack has left of the joint, fraction */
+  double crack_pend; /* the crack the load now on it has made, as a factor
+                      * on strength once that load has gone */
   double crush;      /* m */
   double chip;       /* a prop's, 0..1 */
   double chip_evt;   /* the chip at its last event */
@@ -1106,6 +1108,7 @@ void crash_reset(void) {
     p->peak = 0.0;
     p->peak_max = 0.0;
     p->strength = 1.0;
+    p->crack_pend = 1.0;
     p->crush = 0.0;
     p->chip = 0.0;
     p->chip_evt = 0.0;
@@ -2340,7 +2343,7 @@ static double part_damage(int i) {
   if (!attached(i)) {
     return 1.0;
   }
-  double dmg = 1.0 - p->strength;
+  double dmg = 1.0 - p->strength * p->crack_pend;
   if (d->kind == SIM_PART_PROP && p->chip > dmg) {
     dmg = p->chip;
   }
@@ -2373,11 +2376,26 @@ static double past(double rho, double onset) {
 
 /* A new peak on a part under its break: what its material does. Returns
  * the event type, 0 for none, and in *energy what it absorbed. M is the
- * joint moment, body frame. */
+ * joint moment, body frame. rho is the load over what the joint holds now;
+ * the peaks are kept over what it held intact, so that a crack, which
+ * lowers what it holds, cannot raise its own load's peak (below).
+ *
+ * A CRACK WEAKENS THE JOINT FOR THE NEXT LOAD. Its loss was taken off the
+ * strength the load in hand was judged against, so that load's ratio rose
+ * with no rise in the load, which made a new peak and a deeper crack: any
+ * load held past about 0.72 of a limit cracked its way to a break within a
+ * few steps (crack, crack, crack, break in every feel round sheet, the
+ * Skyhunter's fins at 0.73, 0.86 and 1.20 of theirs on 23 N and 1.5 to 1.8
+ * N m). The table's limits are each joint's intact ultimate strength, and
+ * a load under it does not break it; what it does is crack it, and the
+ * next hit breaks it sooner. So the crack is held (crack_pend) while the
+ * load that made it is on, and taken off the strength once that load has
+ * fallen back under the onset (crack_settle). */
 static int below_break(int i, double rho, const double M[3], double *energy) {
   const Table *t = tab();
   const PartDef *d = &t->p[i];
   PartState *p = &PS[i];
+  rho *= p->strength;
   const double prev = p->peak_max;
   if (!(rho > prev)) {
     return 0;
@@ -2439,8 +2457,18 @@ static int below_break(int i, double rho, const double M[3], double *energy) {
   if (!(dl > 0.0)) {
     return 0;
   }
-  p->strength *= 1.0 - dl;
+  p->crack_pend *= 1.0 - dl;
   return SIM_EVENT_CRACK;
+}
+
+/* A held crack goes onto the strength once its part's load, over what the
+ * part held intact, is back under the onset. rho_v < 0: no load at all. */
+static void crack_settle(int i, double rho_v) {
+  PartState *p = &PS[i];
+  if (p->crack_pend < 1.0 && rho_v < CRACK_ONSET) {
+    p->strength *= p->crack_pend;
+    p->crack_pend = 1.0;
+  }
 }
 
 /* One impulse on the craft at body point b, world impulse J. */
@@ -3147,6 +3175,7 @@ static void judge(SimState *s) {
     if (gone & (1u << j)) {
       continue;
     }
+    crack_settle(j, rho0[j] * PS[j].strength);
     double eb = 0.0;
     const int ev = below_break(j, rho0[j] < 1.0 ? rho0[j] : 0.999999, M0[j], &eb);
     if (!ev) {
@@ -3270,6 +3299,7 @@ void crash_batch_end(SimState *s) {
     const Table *t = tab();
     for (int i = 0; i < t->n; i += 1) {
       PS[i].peak = 0.0;
+      crack_settle(i, 0.0);
     }
     g_crush_mask = 0;
     return;
@@ -4759,6 +4789,7 @@ int crash_part_set_damage(SimState *s, int part, double dmg) {
     for (int a = 0; a < 3; a += 1) p->bend[a] = dmg * bmax * ax[a];
   } else {
     p->strength = 1.0 - dmg;
+    p->crack_pend = 1.0;
   }
   p->damage = part_damage(part);
   effects_rebuild();
