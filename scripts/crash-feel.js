@@ -64,6 +64,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
+import { floatDigDeg } from '../tests/crash/scenarios.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -253,7 +254,10 @@ const SCENARIOS = [
   {
     id: 'float-nose-dig',
     item: 5,
-    what: 'a Cub on floats landing nose low at 15 m/s on the lake: the bows dig in',
+    /* Dived in along the nose past the bows' own rise, where they are
+     * driven under (floatDigDeg, tests/crash/scenarios.js): shallower, the
+     * rise planes and the Cub skips. */
+    what: `a Cub on floats diving onto the lake ${floatDigDeg('cubf')} deg nose low at 15 m/s: the bows dig in`,
     airframe: 'cub1400f',
     map: 'swiss2',
     chase: 'shell',
@@ -261,7 +265,8 @@ const SCENARIOS = [
       const w = window.__crashWater()[0];
       const x = w.spawn.x, z = w.spawn.z, y = w.surfaceY + 1.4;
       const fx = -Math.sin(w.spawn.yaw), fz = -Math.cos(w.spawn.yaw);
-      return { throw: { x, y, z, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: -14, vx: fx * 15, vy: -2.5, vz: fz * 15 }, dir: [fx, fz], what: 'the lake, surface y ' + w.surfaceY.toFixed(2) };`,
+      const a = ${floatDigDeg('cubf')} * Math.PI / 180;
+      return { throw: { x, y, z, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: -${floatDigDeg('cubf')}, vx: fx * 15 * Math.cos(a), vy: -15 * Math.sin(a), vz: fz * 15 * Math.cos(a) }, dir: [fx, fz], what: 'the lake, surface y ' + w.surfaceY.toFixed(2) };`,
   },
   ...[15, 30].map((v) => ({
     id: `quad-gate-${v}`,
