@@ -84,11 +84,13 @@ import {
 import { PRESETS } from '../src/trackbuilder/presets.js';
 import { Race } from '../src/game/race.js';
 import {
-  addGate, axesOf, makeStart, moveInLap, newCourse, openingCentre, orderOf, poseOf, qAxis, qMul,
-  qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, turnGate, worldCaps, SPAWN_BACK,
+  addGate, axesOf, flipPass, gateSpec, makeStart, moveInLap, newCourse, openingCentre, openingsOf, orderOf, poseOf, qAxis, qMul,
+  qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, stepOf, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
-import { Colliders, KINDS } from '../src/game/collide.js';
+import { Colliders, KINDS, contactMaterial } from '../src/game/collide.js';
 import { craftLimits, lineWarnings, racingLine, speedAt } from '../src/builder/line.js';
+import { postGive } from '../src/game/crashworld.js';
+import { ELEMENTS } from '../src/trackbuilder/elements.js';
 import {
   AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
 } from '../configs/airframes.js';
@@ -597,6 +599,98 @@ console.log('geometry warnings');
     return [R * Math.cos(th), 10, R * Math.sin(th), Math.PI - th];
   }));
   check('and round eight gates on a 30 m circle, not', !has(codes(round(30), sky), 'tight'));
+}
+
+console.log('plane sized gates');
+{
+  const wings = AIRFRAMES.filter((af) => af.fixedWing);
+  const span = (af) => 2 * af.dims.hullR;
+  const w3 = openingsOf({ type: 'wideGate3', dims: ELEMENTS.wideGate3.dims })[0];
+  const w5 = openingsOf({ type: 'wideGate5', dims: ELEMENTS.wideGate5.dims })[0];
+  check('the wide gates are built one to one: 3 m and 5 m', near(w3.clearW, 3, 1e-9) && near(w5.clearW, 5, 1e-9), `${w3.clearW} ${w5.clearW}`);
+  const small = wings.filter((af) => 2 * span(af) <= w3.clearW);
+  const big = wings.filter((af) => 2 * span(af) > w3.clearW);
+  check('every fixed wing has a wide gate two of its spans wide',
+    big.every((af) => 2 * span(af) <= w5.clearW), big.filter((af) => 2 * span(af) > w5.clearW).map((af) => af.id).join());
+  console.log(`  3 m: ${small.map((af) => `${af.id} ${span(af).toFixed(2)}`).join(', ')}; 5 m: ${big.map((af) => `${af.id} ${span(af).toFixed(2)}`).join(', ')}`);
+  const pair = ELEMENTS.pylonPair.dims;
+  const widest = Math.max(...wings.map(span));
+  const rMid = (pair.baseRadius + pair.tipRadius) / 2;
+  check('between the pylons at half their height, two spans of the widest wing',
+    pair.clearW - 2 * rMid >= 2 * widest, `${(pair.clearW - 2 * rMid).toFixed(2)} vs ${(2 * widest).toFixed(2)}`);
+
+  const d = newCourse('swiss2', 'Air race');
+  const up = qAxis(0, 1, 0, 0);
+  const wg = addGate(d, 'wideGate5', { x: 0, y: 100, z: 0 }, up);
+  const pp = addGate(d, 'pylonPair', { x: 0, y: 100, z: -60 }, up);
+  const py = addGate(d, 'pylon', { x: 0, y: 100, z: -120 }, up);
+  check('a pylon\'s step carries a side, the left, and no face', d.sequence[2].passSide === 'left' && d.sequence[2].entry === null && d.sequence[2].clearance === 5);
+  const spec = gateSpec(wg);
+  check('a wide gate is a PVC frame of 1 1/2 inch pipe, the banner kind', spec.frameKind === 'banner' && near(spec.tubeOD, 1.9 * 0.0254, 1e-12));
+  const gates = raceGatesOf(d);
+  check('the pair scores the plane between the pylons, ground to tips',
+    near(gates[1].aperture.clearW, 6) && near(gates[1].aperture.clearH, 8) && near(gates[1].centre.y, 104) && !gates[1].virtual);
+  check('the pylon scores the wing class\'s 15 m square beside it, virtual',
+    near(gates[2].aperture.clearW, 15) && gates[2].virtual);
+  /* Flown along -z, the pilot's left is -x: a pass on the left has the
+   * square's centre 7.5 m to -x and its inner edge on the pylon's axis. */
+  check('its square is on the pilot\'s left with its inner edge on the axis',
+    near(gates[2].centre.x, -7.5) && near(gates[2].centre.x + gates[2].aperture.clearW / 2, 0));
+
+  const pass = (race, i, x, y, z0 = 10) => {
+    const g = gates[i];
+    race.next = i;
+    race.prevSimMs = null;
+    const a = { x, y, z: g.centre.z + z0 };
+    const b = { x, y, z: g.centre.z - z0 };
+    race.update(a, a, 0, 0);
+    return race.update(a, b, 200, 0).passed === i;
+  };
+  const race = new Race(gates.map((x) => ({ ...x })), 'full');
+  check('through the wide gate: counted', pass(race, 0, 1.5, 101.5));
+  check('between the pylons: counted', pass(race, 1, 2, 103));
+  check('over their tips: not', !pass(race, 1, 0, 108.5));
+  check('round the pylon on its left: counted', pass(race, 2, -4, 103));
+  check('on its right: not', !pass(race, 2, 4, 103));
+  check('F turns it round: the right now', flipPass(d, py.id) === 'right' && flipPass(d, wg.id) === null);
+  const race2 = new Race(raceGatesOf(d).map((x) => ({ ...x })), 'full');
+  gates.splice(0, gates.length, ...raceGatesOf(d));
+  check('and on its right it counts', pass(race2, 2, 4, 103));
+  check('and on its left it does not', !pass(race2, 2, -4, 103));
+  check('its ghost and its mesh show the side: the spec\'s sign', gateSpec(py, stepOf(d, py.id)).passSign === -1 && gateSpec(py).passSign === 1);
+
+  const text = serialize(d);
+  const back = deserialize(text).doc;
+  check('saved and read back byte for byte, the side with it', serialize(back) === text && back.sequence[2].passSide === 'right'
+    && back.elements.map((e) => e.type).join() === 'wideGate5,pylonPair,pylon');
+  const field = JSON.parse(text);
+  delete field.map;
+  field.schemaVersion = 3;
+  const fieldBack = normalize(field);
+  check('a field track naming one drops it, and says so',
+    fieldBack.doc.elements.length === 0 && fieldBack.repairs.filter((r) => /stands only in a world/.test(r)).length === 3, fieldBack.repairs.join(' | '));
+
+  const col = new Colliders();
+  col.addPost('tree', 300, -10, 0, 12, 0.4);
+  col.build();
+  const caps = [];
+  for (let k = 0; k < 4; k += 1) {
+    caps.push({ kind: 'pylon', ax: 3, ay: k * 2, az: -60, bx: 3, by: (k + 1) * 2, bz: -60, r: 0.5 });
+  }
+  caps.push({ kind: 'banner', ax: 2.52, ay: 0, az: 0, bx: 2.52, by: 5, bz: 0, r: 0.024 });
+  col.setBuilt(caps);
+  check('a pylon and a banner frame are colliders of their own kinds',
+    col.kindName(col.hit(3, 3, -50, 3, 3, -70)) === 'pylon' && col.kindName(col.hit(2.52, 2, 2, 2.52, 2, -2)) === 'banner');
+  check('the banner gives as a PVC gate\'s pipe, the pylon is soft and dead',
+    contactMaterial('banner').e === contactMaterial('gate').e && contactMaterial('pylon').e === 0);
+  const pvc = postGive('banner', 1.9 * 0.0254 / 2, 1.15);
+  const gatePipe = postGive('gate', 1.9 * 0.0254 / 2, 1);
+  check('a banner upright gives as 1 1/2 inch pipe whatever the world\'s gate scale', pvc && gatePipe && pvc.ei === gatePipe.ei);
+  const base = postGive('pylon', 0.7156, 1, 3.43);
+  const tip = postGive('pylon', 0.2094, 1, 2.42);
+  check('the pylon collapses at pi p r^3: about 1.2 kN m at the base, 29 N m at the tip',
+    near(base.mFree, Math.PI * 1000 * 0.7156 ** 3) && tip.mFree < 30, `${base.mFree.toFixed(0)} ${tip.mFree.toFixed(1)}`);
+  check('and it gives nothing without a length', postGive('pylon', 0.5, 1) === null);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

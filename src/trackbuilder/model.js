@@ -742,6 +742,12 @@ export function normalize(raw) {
       repairs.push(str('model.dropped_an_element_of_unknown_type', { type }));
       continue;
     }
+    /* A plane sized element stands only in a world (elements.js, the span
+     * rule): nothing on the field builds one. */
+    if (def.wing && !map) {
+      repairs.push(str('model.dropped_a_plane_sized_element_from', { label: def.label }));
+      continue;
+    }
     if (def.kind === KIND.START) {
       if (startSeen) {
         repairs.push(str('model.dropped_a_second_set_of_start'));

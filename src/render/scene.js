@@ -1659,8 +1659,8 @@ const DIGITS = {
  * thing on the course at a time. The calmed gain levels from the magenta
  * round are kept; only the hue went back.
  */
-const GATE_COLOUR = 0xffd45c;
-const START_COLOUR = 0x7dffb4;
+export const GATE_COLOUR = 0xffd45c;
+export const START_COLOUR = 0x7dffb4;
 const NEXT_COLOUR = 0x39ff8b;
 const WRONG_COLOUR = 0xff5a5a;
 
@@ -1677,7 +1677,7 @@ const WRONG_COLOUR = 0xff5a5a;
  * the obstacle's own local frame and returns them, along with which
  * opening ended up carrying the glow.
  */
-function apertureMarkers(group, sills, clearW, clearH, stack, isStart, primaryWanted, micro = false) {
+export function apertureMarkers(group, sills, clearW, clearH, stack, isStart, primaryWanted, micro = false) {
   /*
    * The aperture markers. Square now, because the opening is square, and
    * built as one merged geometry per obstacle so a stacked obstacle still
@@ -2477,7 +2477,7 @@ function gateBanner(index, outerW, headerMat, substrate) {
  * the first station's plate; this is how the pilot sees that the hole they
  * are flying at is gate 5 and the one above it is gate 6.
  */
-function openingBadge(n, scale = 1) {
+export function openingBadge(n, scale = 1) {
   /*
    * The badge is sized in METRES, so on a RaceGOW stack a 0.30 m disc hung
    * beside a 0.711 m opening covered half the hole next to it. `scale` is
@@ -3231,7 +3231,10 @@ function obstacle(spec, index, isStart, opts = {}) {
    * its own rules, rather than the 1 inch a MultiGP gate is welded from.
    */
   const micro = Boolean(opts.micro);
-  const tubeR = (micro ? RACEGOW_PIPE_OD : BUILT_FRAME_TUBE_OD) * 0.5;
+  /* A plane sized gate (src/builder/course.js gateSpec) names its own pipe
+   * and the collider kind that pipe gives as (src/game/crashworld.js). */
+  const tubeR = (spec.tubeOD ?? (micro ? RACEGOW_PIPE_OD : BUILT_FRAME_TUBE_OD)) * 0.5;
+  const frameKind = spec.frameKind ?? 'gate';
   const clearW = spec.clearW;
   const clearH = spec.clearH;
   const stack = spec.stack ?? 1;
@@ -3286,7 +3289,7 @@ function obstacle(spec, index, isStart, opts = {}) {
     post.castShadow = true;
     outlineHull(post, 1.06);
     g.add(post);
-    caps.push({ kind: 'gate', ax: sx * upX, ay: 0, az: 0, bx: sx * upX, by: upTop, bz: 0, r: tubeR });
+    caps.push({ kind: frameKind, ax: sx * upX, ay: 0, az: 0, bx: sx * upX, by: upTop, bz: 0, r: tubeR });
 
     /*
      * A foot, so it looks like it is standing on the grass rather than
@@ -3337,7 +3340,7 @@ function obstacle(spec, index, isStart, opts = {}) {
     bar.castShadow = true;
     outlineHull(bar, 1.06);
     g.add(bar);
-    caps.push({ kind: 'gate', ax: -memberLen * 0.5, ay: my, az: 0, bx: memberLen * 0.5, by: my, bz: 0, r: tubeR });
+    caps.push({ kind: frameKind, ax: -memberLen * 0.5, ay: my, az: 0, bx: memberLen * 0.5, by: my, bz: 0, r: tubeR });
   }
 
   /* The moulded corner at every junction of upright and cross member. */

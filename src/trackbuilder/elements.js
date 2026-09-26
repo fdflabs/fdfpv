@@ -745,6 +745,117 @@ export const ELEMENTS = {
     microDims: { width: GATE_SPACING_NOMINAL, depth: PIPE_OD, height: PIPE_OD },
     microDefaultZ: 0.950,
   },
+  /*
+   * PLANE SIZED ELEMENTS, placed only by the in-sim builder (src/builder/),
+   * built one to one (src/game/track.js gateScaleFor('wing')), and never on
+   * a field track: `wing` says so and normalize drops one from a document
+   * that names no map. Every figure below is a real length in the world.
+   *
+   * THE SPAN RULE. An opening a fixed wing is sent through is at least TWO
+   * of its spans wide, half a span of air either side of each wingtip on the
+   * centreline. It is the upper end of what the Red Bull Air Race gave its
+   * pilots: air gates "spaced 10 to 15 metres apart" (Wikipedia, "Red Bull
+   * Air Race World Championship") for an Edge 540 of 7.42 m span
+   * (Wikipedia, "Zivko Edge 540"), 1.35 to 2.0 spans, and the lower end of
+   * that is a hole for a pilot who flies it for a living. The spans are
+   * configs/airframes.js hullR, doubled: Bombshell 1.35, Slow Stick 1.28,
+   * Cub 1.40, Turbo Timber 1.60, Skyhunter 1.80, Radian 2.02, Bramor 2.30.
+   */
+  /* THE SMALL WIDE GATE: 3 m, over two spans of the Cub (1.40 m), so the
+   * Cub, the Bombshell and the Slow Stick fly it with at least 0.8 m either
+   * side. The Turbo Timber (1.60 m) fits with 0.7 m and belongs to the 5 m
+   * one by the rule. Square, like the wing class's own gate (WING_GATE): a
+   * wing holds its height worse than its line.
+   *
+   * THE FRAME is 1 1/2 inch schedule 40 PVC (1.900 in outside), the largest
+   * pipe src/game/crashworld.js carries sourced figures for, a size up from
+   * the five inch gate's 1 inch because the top member spans three and five
+   * metres rather than 1.5: simply supported over 5 m under its own 0.76
+   * kg/m it sags 5 w L^4 / (384 E I) = 0.17 m, which is why nothing longer
+   * is built out of it. The banner is the field gate's header. */
+  wideGate3: {
+    id: 'wideGate3',
+    label: str('elements.wide_gate_3'),
+    key: null,
+    group: 'track',
+    kind: KIND.APERTURE,
+    wing: true,
+    note: str('elements.a_3_m_banner_gate_for'),
+    pitch: 0,
+    dims: { levels: 1, sillH: 0, clearW: 3.0, clearH: 3.0, levelPitch: levelPitchFor(3.0) },
+  },
+  /* THE LARGE WIDE GATE: 5 m, over two spans of the Bramor (2.30 m), the
+   * widest aircraft here, so the Timber, the Skyhunter and the Radian fly it
+   * too; the same five metres the wing class's own gate is (WING_GATE). */
+  wideGate5: {
+    id: 'wideGate5',
+    label: str('elements.wide_gate_5'),
+    key: null,
+    group: 'track',
+    kind: KIND.APERTURE,
+    wing: true,
+    note: str('elements.a_5_m_banner_gate_for'),
+    pitch: 0,
+    dims: { levels: 1, sillH: 0, clearW: 5.0, clearH: 5.0, levelPitch: levelPitchFor(5.0) },
+  },
+  /*
+   * THE AIR RACE PYLON. The Red Bull Air Race's air gate is a pair of
+   * inflatable cones "approximately 25 metres high", "5 metres across the
+   * base and .75 metres at their tip", of ripstop nylon made to "rip
+   * instantaneously when hit by a plane" (Wikipedia, "Red Bull Air Race
+   * World Championship"). This one is that cone at the ratio of the widest
+   * aircraft here to the aircraft it was built for, the Bramor's 2.30 m
+   * span over the Edge 540's 7.42 m, 0.31: 7.75 m tall, 1.55 m across the
+   * base and 0.23 m at the tip, rounded to 8, 1.6 and 0.25.
+   *
+   * It is not the RC pylon racer's pylon. FAI F3D's are "a minimum height of
+   * 4 m" and not over 5 m, of "a rigid material at least 70mm in diameter"
+   * (FAI Sporting Code, Section 4, Volume F3 Pylon Racing, 2024, 5.2.16 d
+   * and e), which is a post, and a post is what the gates already are. The
+   * owner asked for the inflatable, so both pylon elements are the air
+   * race's cone; F3D is where the single pylon's job comes from.
+   *
+   * dims: height, and the cone's radius at its base and its tip.
+   */
+  pylonPair: {
+    id: 'pylonPair',
+    label: str('elements.pylon_pair'),
+    key: null,
+    group: 'track',
+    kind: KIND.APERTURE,
+    wing: true,
+    note: str('elements.two_inflatable_pylons_flown_between_the'),
+    pitch: 0,
+    /* The opening is the plane between the two pylons' axes, from the
+     * ground to their tips: flying over the top is the air race's "flying
+     * too high" and does not count. clearW is the spacing of the axes. By
+     * the span rule the air between the cones at half their height is two
+     * Bramor spans, 4.6 m, and the cone is 0.46 m in radius there, so the
+     * axes are 5.5 m apart; rounded up to 6, which leaves 4.4 m at the
+     * base and 5.75 m at the tips. */
+    dims: {
+      levels: 1, sillH: 0, clearW: 6.0, clearH: 8.0, levelPitch: levelPitchFor(8.0),
+      baseRadius: 0.8, tipRadius: 0.125,
+    },
+  },
+  /*
+   * ONE PYLON TO TURN ROUND, on a set side: the F3D course's job ("cutting
+   * a pylon" is an infringement, 5.2.16 q) done by the air race's cone. A
+   * MARKER, so its step carries the pass side and the clearance the way a
+   * flag's does, and it scores through the wing class's square beside it
+   * (virtualApertureDims): the wing flag's 5 m clearance, a 15 m square
+   * whose inner edge is on the pylon's axis.
+   */
+  pylon: {
+    id: 'pylon',
+    label: str('elements.pylon'),
+    key: null,
+    group: 'track',
+    kind: KIND.MARKER,
+    wing: true,
+    note: str('elements.one_inflatable_pylon_turned_round_on'),
+    dims: { height: 8.0, baseRadius: 0.8, tipRadius: 0.125, clearance: 5.0 },
+  },
   startPads: {
     id: 'startPads',
     label: str('elements.start_pads'),
