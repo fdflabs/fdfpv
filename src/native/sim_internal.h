@@ -782,12 +782,14 @@ extern int SIM_DAMAGE;
 void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
                        double vin, double kn, double *e_used, double *jn_cap);
 /* The friction the contact just attributed may use, from the solver's mu:
- * a part that meets the ground flat on a face slides as a sled does, less
- * than an edge or a tip that ploughs in. And the same for the resting
- * slide, by the part the craft lies on against the ground's normal n.
- * Damage mode only. */
+ * on the ground, what anything slides at on it, a sled's. And the same for
+ * the resting slide against the ground's normal n. Damage mode only. */
 double crash_contact_mu(double mu);
 double crash_settle_mu(const SimState *s, const double n[3], double mu);
+/* The most friction impulse that contact may take sliding along t (world,
+ * unit), from the solver's mu jn: on turf an edge that is in the ground
+ * also ploughs. Damage mode only. */
+double crash_contact_grip(const SimState *s, double mu, double jn, const double t[3]);
 /* Of the normal impulse the weight asks of the ground in this step, w, the
  * fraction the step's ground contacts have not already given. */
 double crash_settle_share(double w);

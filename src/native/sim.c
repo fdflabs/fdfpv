@@ -458,7 +458,8 @@ static int contact_impulse(const double n[3], const double r[3], const double vs
     if (kt > 1e-12) {
       double jtm = -vtm / kt;
       const double mu_use = (vtm < CONTACT_STATIC_VT) ? mu * 1.15 : mu;
-      const double jmax = mu_use * jn;
+      const double t[3] = { tx, ty, tz };
+      const double jmax = SIM_DAMAGE ? crash_contact_grip(&S, mu_use, jn, t) : mu_use * jn;
       if (jtm < -jmax) {
         jtm = -jmax;
       }

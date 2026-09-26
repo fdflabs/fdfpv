@@ -71,6 +71,8 @@ int SIM_DAMAGE = SIM_DAMAGE_DEFAULT;
 typedef struct {
   double mu, e, k, hard;
   double mu_face; /* a smooth face sliding on it, where it differs */
+  double plough;  /* what an edge in it pushes against, per area of the
+                   * groove's front, Pa; 0 where nothing was measured */
 } Surface;
 
 /* The default is two things: the ground plane's default is the shell's
@@ -78,18 +80,27 @@ typedef struct {
  * sim_contact_at with no material named, is a hard generic face, the one
  * past the table's end.
  *
- * mu_face is what a smooth face slides at. The shell's grass grips at 1.40,
- * a quad's arms and blades ploughing into turf; a smooth body sliding on a
+ * mu_face is what anything slides at on it. A smooth body sliding on a
  * natural grass pitch was measured at 0.45 (Linthorne and Cooper, Sports
  * Biomechanics 12(2), 2013: a steel runnered sled towed over a rugby pitch,
  * the gradient of tow force on weight up to 55 kg; they put the effective
- * value on uneven turf nearer 0.6). A foam belly, a pack's wrap and a
- * canopy are smooth faces. Where nothing was measured it is the surface's
- * own mu. docs/CRASH-STAGE1.md, Surfaces. */
+ * value on uneven turf nearer 0.6). Where nothing was measured it is the
+ * surface's own mu. With the damage mode on, the shell's 1.40, which had no
+ * source, is no longer a grass grip: what an edge dug into turf gets beyond
+ * the sled's is the plough (THE GROUND'S GRIP IS A SLIDE AND A PLOUGH).
+ *
+ * TURF_PLOUGH is from two studs 13 mm long (a side profile of 170 mm^2
+ * each) under 350 N, dragged through a sand based natural turf pitch's
+ * samples: fully in (gravimetric moisture 21.7 and 23.0 percent) they held
+ * 370 and 430 N at 10 mm of travel (Clarke and Carre, Sports Engineering
+ * 19, 2016, Fig. 10; the dry samples the studs could not fully enter held
+ * 165 to 200). Less the stud plate's sled grip, 0.45 of 350 N, that is 212
+ * to 272 N on 340 mm^2 of stud front, 0.62 to 0.80 MPa. DERIVED. */
+#define TURF_PLOUGH 0.7e6
 #define SURF_OBSTACLE SIM_SURFACES
 static const Surface SURF[SIM_SURFACES + 1] = {
-  [SIM_SURF_DEFAULT] = { 1.40, 0.0, 5.0e4, 0.01, 0.45 },
-  [SIM_SURF_GRASS] = { 1.40, 0.0, 5.0e4, 0.01, 0.45 },
+  [SIM_SURF_DEFAULT] = { 1.40, 0.0, 5.0e4, 0.01, 0.45, TURF_PLOUGH },
+  [SIM_SURF_GRASS] = { 1.40, 0.0, 5.0e4, 0.01, 0.45, TURF_PLOUGH },
   [SIM_SURF_DIRT] = { 1.00, 0.05, 2.0e5, 0.30, 1.00 },
   [SIM_SURF_ASPHALT] = { 0.60, 0.12, 3.0e7, 0.90, 0.60 },
   [SIM_SURF_CONCRETE] = { 0.42, 0.15, 5.0e7, 1.00, 0.42 },
@@ -2132,12 +2143,33 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
 }
 
 /*
- * THE FACE A PART SLIDES ON. A part that meets the ground flat on one of
- * its faces, within 25 degrees as a belly slam's crush is taken, slides on
- * it as a sled does; one driven in on an edge, a corner or a tip (a nose
- * dug in, a wing tip, a blade) ploughs, the shell's grip. Faded between the
- * two over those 25 degrees, as crush_area fades its patch in.
+ * THE GROUND'S GRIP IS A SLIDE AND A PLOUGH. Whatever meets turf slides on
+ * it at the surface's face grip, a sled's (mu_face). A part that is in the
+ * turf also has to push the turf ahead of it out of the way, and that is
+ * not a multiple of the load: it is the turf's resistance over the front of
+ * the groove, plough times the groove's width times its depth. So a hard
+ * blow on a small part (a quad's motor bell, 7 to 11 mm in at a few hundred
+ * newtons) slides nearly at the sled's grip and goes on, while a light edge
+ * that has dug in (a cartwheeling wing tip, 5 to 10 mm in at 10 to 30 N)
+ * is held at many times its load, as a stud is, and a nose crushing into
+ * the ground is held by the crater its load presses. The plough only stops
+ * a slide, never reverses it (the solver's clamp), and a part gets it once
+ * a batch however many of its points the solver visits.
+ *
+ * The depth is the deeper of where the part's point is, less the solver's
+ * 2 mm slop (sim.c CONTACT_SLOP, where every resting contact sits), and the
+ * crater its normal load in this batch presses into the turf's spring. The
+ * groove is as wide as the part across the slide, and no wider than twice
+ * its depth: a box edge or corner driven in opens a V. A part flat on a
+ * face (within 25 degrees, as a belly slam's crush is taken) slides and does
+ * not plough, faded between over those 25 degrees as crush_area fades its
+ * patch in. A prop does not plough: its box is the disc it sweeps, where
+ * the blade's front is its few millimetres of thickness, and its stiffness
+ * is the blade's own bending (3 E I / L^3), which lifts its tip out of the
+ * turf rather than cutting a groove. docs/CRASH-STAGE1.md, Surfaces.
  */
+#define PLOUGH_SLOP 0.002 /* sim.c CONTACT_SLOP */
+
 static double flatness(const Table *t, int i, const double nb[3]) {
   const double sx = t->hi[i][0] - t->lo[i][0];
   const double sy = t->hi[i][1] - t->lo[i][1];
@@ -2156,16 +2188,71 @@ static double flatness(const Table *t, int i, const double nb[3]) {
   return flat;
 }
 
-static double face_mu(int surf, double flat, double mu) {
+static double slide_mu(int surf, double mu) {
   const double mf = SURF[surf].mu_face;
-  return mf < mu ? mu + flat * (mf - mu) : mu;
+  return mf < mu ? mf : mu;
 }
 
 double crash_contact_mu(double mu) {
   if (!SIM_DAMAGE || !g_surf_ground) {
     return mu;
   }
-  return face_mu(g_surf, flatness(tab(), g_att_part, g_att_nb), mu);
+  return slide_mu(g_surf, mu);
+}
+
+static double g_plough_used[SIM_PARTS_MAX]; /* plough impulse given this batch */
+static double g_plough_jn[SIM_PARTS_MAX];   /* normal impulse on the ground this batch */
+static double g_grip_jmax = 0.0;            /* the last grip's Coulomb share */
+static int g_grip_plough = 0;               /* and whether it ploughed */
+
+/* The plough's force on part i against the ground, its contact's normal nb
+ * and slide tb in the body frame, jn this contact's normal impulse. */
+static double plough_force(const Table *t, int i, const double nb[3], const double tb[3], double jn) {
+  const PartDef *d = &t->p[i];
+  if (d->kind == SIM_PART_PROP) {
+    return 0.0;
+  }
+  double depth = g_pen - PLOUGH_SLOP;
+  const double crater = (g_plough_jn[i] + jn) / g_batch_dt / SURF[g_surf].k;
+  if (crater > depth) {
+    depth = crater;
+  }
+  if (!(depth > 0.0)) {
+    return 0.0;
+  }
+  const double c[3] = {
+    nb[1] * tb[2] - nb[2] * tb[1],
+    nb[2] * tb[0] - nb[0] * tb[2],
+    nb[0] * tb[1] - nb[1] * tb[0],
+  };
+  double width = 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    width += sim_fabs(c[a]) * (t->hi[i][a] - t->lo[i][a]);
+  }
+  if (width > 2.0 * depth) {
+    width = 2.0 * depth;
+  }
+  return SURF[g_surf].plough * width * depth * (1.0 - flatness(t, i, nb));
+}
+
+/* The most the contact attributed may take along its slide t (world, unit):
+ * the Coulomb mu jn, and on the ground the plough's impulse left to its part
+ * in this batch. */
+double crash_contact_grip(const SimState *s, double mu, double jn, const double t[3]) {
+  g_grip_jmax = mu * jn;
+  g_grip_plough = 0;
+  if (!SIM_DAMAGE || !g_surf_ground || !(SURF[g_surf].plough > 0.0)) {
+    return g_grip_jmax;
+  }
+  double tb[3];
+  qrot_inv(s->quat, t, tb);
+  const int i = g_att_part;
+  const double left = plough_force(tab(), i, g_att_nb, tb, jn) * g_batch_dt - g_plough_used[i];
+  if (!(left > 0.0)) {
+    return g_grip_jmax;
+  }
+  g_grip_plough = 1;
+  return g_grip_jmax + left;
 }
 
 static double g_ground_jn = 0.0; /* this step's normal impulse on the ground */
@@ -2177,10 +2264,12 @@ double crash_settle_share(double w) {
   return 1.0 - g_ground_jn / w;
 }
 
+/* A craft lying still has no groove in front of it: the resting slide is
+ * the sled's, whatever part it lies on. */
 double crash_settle_mu(const SimState *s, const double n[3], double mu) {
   const double at[3] = { 0.0, 0.0, 0.0 };
   attribute(s, at, n);
-  return face_mu(g_ground_mat, flatness(tab(), g_att_part, g_att_nb), mu);
+  return slide_mu(g_ground_mat, mu);
 }
 
 static void hit_add(Hit *h, double jn, const double jt[3], const double n[3], const double b[3],
@@ -2206,6 +2295,16 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
   (void)kn;
   if (!SIM_DAMAGE || !g_batch_open) {
     return;
+  }
+  if (g_surf_ground) {
+    g_plough_jn[g_att_part] += jn;
+  }
+  if (g_grip_plough) {
+    const double jtm = sim_sqrt(dot(jt, jt));
+    if (jtm > g_grip_jmax) {
+      g_plough_used[g_att_part] += jtm - g_grip_jmax;
+    }
+    g_grip_plough = 0;
   }
   Hit *h = hit_get(g_att_part, 0);
   if (!h) {
@@ -2321,6 +2420,8 @@ void crash_batch_begin(const SimState *s, int from_step) {
   for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
     g_crush_used[i] = 0.0;
     g_batch_pen[i] = 0.0;
+    g_plough_used[i] = 0.0;
+    g_plough_jn[i] = 0.0;
   }
   for (int a = 0; a < 3; a += 1) {
     g_pre_vel[a] = s->vel[a];
