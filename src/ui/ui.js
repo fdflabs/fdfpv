@@ -43,6 +43,7 @@
 
 import { MAPS, mapById } from '../maps/registry.js';
 import { isMapTrack } from '../trackbuilder/model.js';
+import { planesFor } from '../game/verify.js';
 import { CAL_STEPS } from '../input/input.js';
 import {
   STICK_MODES, DEFAULT_STICK_MODE, normaliseStickMode, stickChannels, stickCaption,
@@ -9839,6 +9840,14 @@ export class Ui {
     }
     const have = airframeById(this.settings.airframe);
     if (have.trackClass === cls) {
+      return null;
+    }
+    /* A TRACK BUILT INSIDE A WORLD is filed as the five inch's and raced
+     * by every fixed wing that fits its gates too (src/game/verify.js
+     * planesFor): a plane that fits stays seated, which is what a board
+     * link naming it asks for. One that does not fit gives way to the five
+     * inch below, as any other aircraft would. */
+    if (have.fixedWing && isMapTrack(doc) && planesFor(doc).includes(have.id)) {
       return null;
     }
     const want = airframeById(AIRFRAME_BY_CLASS[cls]);

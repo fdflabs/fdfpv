@@ -90,6 +90,7 @@ import { createLiveLink } from './share/live.js';
 const identity = createIdentity();
 import {
   clearPendingTime,
+  clearShareImport,
   readBind,
   readEditKey,
   readPendingTime,
@@ -795,7 +796,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
        * the read the same seat. applySettings runs once below and swaps the
        * plant to match, the same path an aircraft change from the menu takes.
        */
-      ui.seatCraftForDoc(fromUrl.document);
+      /* A map track the link filed in a plane's seat, for a plane that
+       * does not fit it, moves to the five inch's with the aircraft. */
+      if (ui.seatCraftForDoc(fromUrl.document) && isMapTrack(fromUrl.document)) {
+        const stale = readShareImport('wing');
+        if (stale && stale.id === fromUrl.id) {
+          clearShareImport('wing');
+        }
+        writeShareImport(fromUrl);
+      }
       ui.settings.map = 'custom';
       ui.renderMenu();
     } else if (ui.settings.map !== 'city' && !hasFlyableTrack()) {
