@@ -1006,6 +1006,7 @@ rigid contact left it (0.26 mm).
 | Joint | Limit | Derivation | Source |
 | --- | --- | --- | --- |
 | 5 inch arm, 16 x 7.6 mm quasi isotropic CF | 73.9 N m (1,160 N at the motor) | Z = b h^2 / 6 = 1.54e-7 m^3 at 600 MPa, x 0.8 for the clamp's holes | R-ARM (571 to 880 MPa, DragonPlate 600); R-ARM's derived 470 N is for a 5 mm arm, the drawn one is 7.6 |
+| the same arm in its own plane (feel round) | 155.6 N m | Z = h b^2 / 6 = 3.243e-7 m^3, its 16 mm width the depth; held in the sever path too (chain_hold), since a carbon arm has no slab to crush first | R-ARM (1,100 N sideways against 470 N from above) |
 | its tip stiffness | 3.43e5 N/m | 3 E I / L^3, 50 GPa, L 0.0635 m | R-ARM (45 to 55 GPa) |
 | 5 inch prop | yields 2.5 N m, shears off at 7.5 | 12 x 2.5 mm root at 200 MPa; ductile | R-PROPS (PC bends before it breaks, over 50 percent at break) |
 | 2207 on its arm | 48 N m | two M3 pulling out at 1.5 kN on 16 mm | chosen |
