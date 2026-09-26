@@ -1006,10 +1006,13 @@ rigid contact left it (0.26 mm).
 | Joint | Limit | Derivation | Source |
 | --- | --- | --- | --- |
 | 5 inch arm, 16 x 7.6 mm quasi isotropic CF | 73.9 N m (1,160 N at the motor) | Z = b h^2 / 6 = 1.54e-7 m^3 at 600 MPa, x 0.8 for the clamp's holes | R-ARM (571 to 880 MPa, DragonPlate 600); R-ARM's derived 470 N is for a 5 mm arm, the drawn one is 7.6 |
+| the same arm in its own plane (feel round) | 155.6 N m | Z = h b^2 / 6 = 3.243e-7 m^3, its 16 mm width the depth; held in the sever path too (chain_hold), since a carbon arm has no slab to crush first | R-ARM (1,100 N sideways against 470 N from above) |
 | its tip stiffness | 3.43e5 N/m | 3 E I / L^3, 50 GPa, L 0.0635 m | R-ARM (45 to 55 GPa) |
 | 5 inch prop | yields 2.5 N m, shears off at 7.5 | 12 x 2.5 mm root at 200 MPa; ductile | R-PROPS (PC bends before it breaks, over 50 percent at break) |
 | 2207 on its arm | 48 N m | two M3 pulling out at 1.5 kN on 16 mm | chosen |
+| 5 inch nose and top crush (feel round) | 2.4 kN over 40 mm, met within 60 degrees of up and forward | four 5 mm aluminium standoffs on a 3 mm bore racking between the plates, 4 Mp / h each, Mp = 276 MPa (D^3 - d^3) / 6 = 4.5 N m over 30 mm; from below the bottom plate and pack bear it | 6061 yield as ALU_BEND_ONSET; the travel R-ARM's 15 to 40 mm |
 | 5 inch pack strap | 250 N, 6 N m | the strap's buckle slipping | chosen |
+| its travel (feel round) | 36 mm of slide before the pack is free | the strap crosses the pack's middle: half its drawn 72 mm; the webbing's stretch at 250 N left out (nylon harness webbing stretches 20 to 30 percent only at 11 kN, Wikipedia "Webbing") | drawn model |
 | FPV camera in TPU | 0.8 N m, 60 N | side screws in a TPU mount | chosen |
 | FPV whip in TPU | 1.0 N m, 40 N | a whip flexes a long way before it tears | chosen |
 | whoop motor | 0.25 N m, 30 N | two M1.4 in PP | chosen |
@@ -1064,8 +1067,8 @@ a reason and no measurement behind it:
 | Airframe | Joints whose limit is chosen |
 | --- | --- |
 | every one | camera and whip mounts (0.8 N m, 60 N; 1.0 N m, 40 N), hook and loop's 8 N/cm^2 (a brand figure, no datasheet), every part's contact stiffness k, and most force limits f_max |
-| 5 inch | motor on its arm (48 N m, two M3 pull outs), pack strap (250 N, 6 N m) |
-| whoop | motor (0.25 N m), prop press fit (set so R-WHOOP's walls leave it on), pack holder (5 N), canopy (0.30 N m), nano camera (0.02 N m) |
+| 5 inch | motor on its arm (48 N m, two M3 pull outs), pack strap (250 N, 6 N m, free after 36 mm of slide) |
+| whoop | motor (0.25 N m), prop press fit (set so R-WHOOP's walls leave it on), pack holder (5 N, free after 33 mm of slide, its drawn length), canopy (0.30 N m), nano camera (0.02 N m) |
 | foam planes | firewall (10 N m), hinge lines (1 N m, 40 N), hstab and fin roots (2 to 4 N m), canopies (0.5 to 1 N m), packs (3 to 8 N m); the Timber's boom section (the Cub's is drawn; the Radian's boom and fin are bounded below by flight since the feel round, 12 and 2.4 N m) |
 | Slow Stick | wing on its saddle (6 N m, 60 N), tail sheet roots (0.5 to 1 N m), motor mount (4 N m), its prop at 0.6 of the 11 inch's |
 | Bramor | panels (300 N m: neither skin nor guide rod is published), elevons (3 N m), winglet magnets (1.5 N m, 15 N; bounded below by their load at the never exceed speed), motor (25 N m), pack hatch (40 N m, 400 N), chute bay lid (2 N m), gimbal (6 N m, 300 N) |

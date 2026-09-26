@@ -111,6 +111,7 @@ import {
   CLUBHOUSE_PAD, CLUBHOUSE_TOP, PLAQUE_PX, CAR_PARK,
 } from '../art/clubhouse.js';
 import { Colliders } from '../game/collide.js';
+import { setSolidSurface } from '../game/crashworld.js';
 /* The pavilion's roofs as ground, by the same rules as every other roof. */
 import {
   roofRecord, frameElements, makeRoofs, gableSolids,
@@ -2356,6 +2357,14 @@ function printedPanel(w, h, depth, mat, substrate) {
  */
 const PANEL_CAP_R = 0.08;
 
+/* What a panel is to the parts that meet it: a MultiGP gate's sleeves and
+ * header are "durable vinyl mesh panels" zip tied through their eyelets
+ * (MultiGP, "Standard MultiGP Gate 5'x5'", shop.multigp.com), and vinyl is
+ * PVC. Their kind stays 'obstacle', so the shell's own contact is
+ * unchanged; without this the plant met them as concrete, the default for
+ * an obstacle it is not told the material of (crashworld.js). */
+const PANEL_SURFACE = 'pvc';
+
 function panelCaps(kind, cx, cy, halfLong, halfShort, axis) {
   const out = [];
   const rows = Math.max(1, Math.ceil((halfShort * 2) / (PANEL_CAP_R * 2)));
@@ -2367,6 +2376,7 @@ function panelCaps(kind, cx, cy, halfLong, halfShort, axis) {
         ax: cx + off, ay: cy - halfLong, az: 0,
         bx: cx + off, by: cy + halfLong, bz: 0,
         r: PANEL_CAP_R,
+        surface: PANEL_SURFACE,
       });
     } else {
       out.push({
@@ -2374,6 +2384,7 @@ function panelCaps(kind, cx, cy, halfLong, halfShort, axis) {
         ax: cx - halfLong, ay: cy + off, az: 0,
         bx: cx + halfLong, by: cy + off, bz: 0,
         r: PANEL_CAP_R,
+        surface: PANEL_SURFACE,
       });
     }
   }
@@ -4912,6 +4923,9 @@ export async function buildFieldScene(shell, onProgress, course = null, quality 
         p.x + c.bx * cs + c.bz * sn, y + c.by, p.z - c.bx * sn + c.bz * cs,
         c.r,
       );
+      if (c.surface) {
+        setSolidSurface(colliders, colliders.ax.length - 1, c.surface);
+      }
     }
     /*
      * ONE STRUCTURE, ONE GATE PER STATION.

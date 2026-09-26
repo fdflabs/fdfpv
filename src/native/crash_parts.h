@@ -61,6 +61,13 @@ typedef struct {
   double crush_s; /* crush plateau stress, Pa, 0 for none */
   double crush_a; /* crush area, m^2 */
   double crush_d; /* crush depth before it is spent, m */
+  double crush_n[3]; /* the side it crushes on, outward, body unit: met
+                      * within 60 degrees of it; zero for a part that
+                      * crushes every way (crash.c, crush_area) */
+  double slip_d;  /* a strap's travel: how far the part slides and stretches
+                   * in it at its force limit before it is free, m; 0 for a
+                   * joint that lets go at its limit (crash.c, A PACK SLIDES
+                   * IN ITS STRAP) */
   int blades;     /* a prop's blade count, 0 for two */
   double sect_c;  /* the section it bends on, a panel's carbon spar or a foam
                    * boom's own walls: its outer fibre's distance from the
@@ -83,6 +90,11 @@ typedef struct {
 /* Five inch arm, 16 x 7.6 mm quasi isotropic CF plate: Z = b h^2 / 6 =
  * 1.540e-7 m^3 at 600 MPa times 0.8 for the clamp's screw holes. */
 #define M5_ARM_M 73.9
+/* The same arm bent in its own plane, a blow from the side (a gate post
+ * met by the motor end): its depth that way is its 16 mm width, Z = h b^2
+ * / 6 = 3.243e-7 m^3, 2.1 times as strong, as R-ARM's own derivation has
+ * it (1,100 N sideways against 470 N from above). */
+#define M5_ARM_MZ 155.6
 /* Its tip stiffness, 3 E I / L^3: E 50 GPa, I 5.853e-10 m^4, L 0.0635 m. */
 #define M5_ARM_K 3.43e5
 /* 5 inch tri blade root, 12 x 2.5 mm, PA66 GF30 conditioned 200 MPa: the
@@ -114,6 +126,22 @@ typedef struct {
  * blade at twice it. */
 #define PL_PROP_M (2.0 * 8.0)
 #define PL_PROP_K 1110.0
+/* A five inch met on its nose or its top, as it meets a wall at speed,
+ * pitched well forward: the plates do not crush, the four aluminium
+ * standoffs between them rack. Each is a 5 mm tube on its 3 mm bore,
+ * plastic moment 276 MPa (6061, as ALU_BEND_ONSET) x (D^3 - d^3) / 6 = 4.5
+ * N m, and racks at 4 Mp / h over its 30 mm, 600 N: four hold 2.4 kN. The
+ * camera cage and stack on them are softer and left out. The travel is
+ * R-ARM's upper crush distance, 40 mm. From below the bottom plate and the
+ * pack bear it, and from the side the arms (crush_n). */
+#define M5_NOSE_F 2400.0
+#define M5_NOSE_D 0.040
+/* A five inch pack's strap travel: the strap crosses the pack's middle, so
+ * the pack is free once it has slid half its drawn 72 mm length out from
+ * under it. The webbing's own stretch is left out: nylon harness webbing
+ * stretches 20 to 30 percent, polyester 5 to 15, but at 11 kN (Wikipedia,
+ * "Webbing"), and at a strap's 250 N it adds little to the slide. */
+#define M5_STRAP_D 0.036
 /* Hook and loop in shear, 8 N/cm^2, over a 12 cm^2 strip. */
 #define VELCRO_12 96.0
 /* Two 6 x 3 mm hatch magnets in pull: a 6 x 3 mm N45 disc holds about
@@ -191,21 +219,27 @@ typedef struct {
  * --------------------------------------------------------------------- */
 #define Q5 0.0777817459305202
 static const PartDef PARTS_5IN[] = {
-  /* 0 frame: plates, stack, pod. */
+  /* 0 frame: plates, stack, pod. Its nose and top crush (M5_NOSE_F) over
+   * its drawn 38 by 45 mm section. */
   { .kind = SIM_PART_FRAME, .parent = -1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
-    .k = 5.0e6, BOX(-0.047, 0.070, -0.019, 0.019, -0.005, 0.040) },
+    .k = 5.0e6, .crush_s = M5_NOSE_F / 1.71e-3, .crush_a = 1.71e-3, .crush_d = M5_NOSE_D,
+    .crush_n = { 0.7071068, 0.0, 0.7071068 }, BOX(-0.047, 0.070, -0.019, 0.019, -0.005, 0.040) },
   /* 1..4 arms, joint at the plate's edge, radius 0.030. */
   { .kind = SIM_PART_ARM, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = 0, .wheel = -1, .shape = SH_ARM,
-    .mass = 0.012, .joint = { -0.0212132, -0.0212132, 0.002 }, .m_max = M5_ARM_M, .f_max = 4000.0, .k = M5_ARM_K,
+    .mass = 0.012, .joint = { -0.0212132, -0.0212132, 0.002 }, .m_max = M5_ARM_M, .m_max_z = M5_ARM_MZ,
+    .f_max = 4000.0, .k = M5_ARM_K,
     .npts = 8, .pts = { { 0.020, 0.0935, 0.008 }, { -0.0018, 0.0058, 0.0 } } },
   { .kind = SIM_PART_ARM, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = 1, .wheel = -1, .shape = SH_ARM,
-    .mass = 0.012, .joint = { 0.0212132, -0.0212132, 0.002 }, .m_max = M5_ARM_M, .f_max = 4000.0, .k = M5_ARM_K,
+    .mass = 0.012, .joint = { 0.0212132, -0.0212132, 0.002 }, .m_max = M5_ARM_M, .m_max_z = M5_ARM_MZ,
+    .f_max = 4000.0, .k = M5_ARM_K,
     .npts = 8, .pts = { { 0.020, 0.0935, 0.008 }, { -0.0018, 0.0058, 0.0 } } },
   { .kind = SIM_PART_ARM, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = 2, .wheel = -1, .shape = SH_ARM,
-    .mass = 0.012, .joint = { -0.0212132, 0.0212132, 0.002 }, .m_max = M5_ARM_M, .f_max = 4000.0, .k = M5_ARM_K,
+    .mass = 0.012, .joint = { -0.0212132, 0.0212132, 0.002 }, .m_max = M5_ARM_M, .m_max_z = M5_ARM_MZ,
+    .f_max = 4000.0, .k = M5_ARM_K,
     .npts = 8, .pts = { { 0.020, 0.0935, 0.008 }, { -0.0018, 0.0058, 0.0 } } },
   { .kind = SIM_PART_ARM, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = 3, .wheel = -1, .shape = SH_ARM,
-    .mass = 0.012, .joint = { 0.0212132, 0.0212132, 0.002 }, .m_max = M5_ARM_M, .f_max = 4000.0, .k = M5_ARM_K,
+    .mass = 0.012, .joint = { 0.0212132, 0.0212132, 0.002 }, .m_max = M5_ARM_M, .m_max_z = M5_ARM_MZ,
+    .f_max = 4000.0, .k = M5_ARM_K,
     .npts = 8, .pts = { { 0.020, 0.0935, 0.008 }, { -0.0018, 0.0058, 0.0 } } },
   /* 5..8 motors, 2207 with leads, on their arm. */
   { .kind = SIM_PART_MOTOR, .parent = 1, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
@@ -234,9 +268,11 @@ static const PartDef PARTS_5IN[] = {
     .mass = 0.0045, .joint = { Q5, Q5, 0.030 }, .m_max = M5_PROP_M, .f_max = 400.0, .k = M5_PROP_K,
     .npts = 8, .pts = { { Q5, Q5, 0.034 }, { 0.0635, 0.0, 0.0 } } },
   /* 13 the 6S 1300 under the frame, its bottom at the plant's measured
-   * 45 mm (configs/airframes.js), on a strap that slips at 250 N. */
+   * 45 mm (configs/airframes.js), on a strap that slips at 250 N and lets
+   * it go only after M5_STRAP_D of slide. */
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
     .mass = 0.200, .joint = { -0.012, 0.0, -0.006 }, .m_max = 6.0, .f_max = 250.0, .k = 3.0e5,
+    .slip_d = M5_STRAP_D,
     BOX(-0.048, 0.024, -0.018, 0.018, -0.045, -0.006) },
   /* 14 the FPV camera in its TPU mount, glass at the plant's 0.104. */
   { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
@@ -282,9 +318,11 @@ static const PartDef PARTS_WHOOP65[] = {
   { .kind = SIM_PART_PROP, .parent = 4, .mat = SIM_MAT_PC, .motor = 3, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
     .mass = 0.0005, .joint = { QW, QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
     .npts = 8, .pts = { { QW, QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
-  /* 9 the 1S 300 mAh in its holder, which lets go at a few newtons. */
+  /* 9 the 1S 300 mAh in its holder, which slides at a few newtons and is
+   * free once it has slid its own drawn 33 mm length out of the holder. */
   { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
     .mass = 0.0068, .joint = { 0.0, 0.0, -0.0036 }, .m_max = 0.10, .f_max = 5.0, .k = 5.0e5,
+    .slip_d = 0.033,
     BOX(-0.0195, 0.0135, -0.0079, 0.0079, -0.010, -0.0036) },
   /* 10 canopy, two M1.4 screws in PP 10 mm apart, 20 N each. */
   { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,

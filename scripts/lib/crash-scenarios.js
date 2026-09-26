@@ -608,23 +608,52 @@ export const CRASH_SCENARIOS = [
   {
     name: 'a five inch tip first onto concrete at 8 m/s',
     async run(mk) {
+      /* The surface's own blow: the craft's peak deceleration over its
+       * first contact with the ground, the FIRST_BLOW_MS from the first step
+       * past FIRST_BLOW_G. What breaks after that (a pack sliding out of its
+       * strap, a part struck on the bounce) is the airframe's, not the
+       * surface's. */
+      const FIRST_BLOW_G = 3;
+      const FIRST_BLOW_MS = 20;
+      const firstBlow = (rig) => {
+        let prev = rig.state();
+        let from = -1;
+        let peak = 0;
+        return {
+          each(s, i) {
+            const a = Math.hypot(s[4] - prev[4], s[5] - prev[5], s[6] - prev[6] + 9.80665e-3) / 0.001 / 9.80665;
+            prev = s;
+            if (from < 0 && a > FIRST_BLOW_G) {
+              from = i;
+            }
+            if (from >= 0 && i - from < FIRST_BLOW_MS && a > peak) {
+              peak = a;
+            }
+          },
+          get peak() {
+            return peak;
+          },
+        };
+      };
       const r = await mk({ id: 0, ground: 'concrete' });
       r.pose([0, 0, 0.3], roll(45));
       r.velocity([0, 0, -8]);
-      r.run(3000);
+      const rb = firstBlow(r);
+      r.run(3000, [0, 0, 0, 0], rb.each);
       const g = await mk({ id: 0, ground: 'grass' });
       g.pose([0, 0, 0.3], roll(45));
       g.velocity([0, 0, -8]);
-      g.run(3000);
+      const gb = firstBlow(g);
+      g.run(3000, [0, 0, 0, 0], gb.each);
       const armOrProp = r.broke('arm') || r.broke('prop');
-      const peakC = Math.max(0, ...r.events.filter((e) => e.typeName === 'break').map((e) => e.force));
-      const peakGr = Math.max(0, ...g.events.filter((e) => e.typeName === 'break').map((e) => e.force));
+      const peakC = rb.peak;
+      const peakGr = gb.peak;
       const settled = r.partsState().every((p) => p.status !== 1);
       return [
         { name: 'breaks an arm or a prop', ok: armOrProp, detail: r.summary() },
         { name: 'the frame stays whole', ok: r.partsState()[0].status === 0 },
         { name: 'every broken part comes to rest', ok: settled, detail: `${r.sim.e.sim_free_bodies_active()} moving` },
-        { name: 'grass takes less than concrete', ok: g.events.filter((e) => e.typeName === 'break').length <= r.events.filter((e) => e.typeName === 'break').length && peakGr <= peakC, detail: `concrete ${r.summary()} peak ${peakC.toFixed(0)} N; grass ${g.summary()} peak ${peakGr.toFixed(0)} N` },
+        { name: 'grass takes less than concrete', ok: g.events.filter((e) => e.typeName === 'break').length <= r.events.filter((e) => e.typeName === 'break').length && peakGr <= peakC, detail: `concrete ${r.summary()}, first blow ${peakC.toFixed(0)} g; grass ${g.summary()}, first blow ${peakGr.toFixed(0)} g` },
       ];
     },
   },
