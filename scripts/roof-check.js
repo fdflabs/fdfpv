@@ -113,7 +113,12 @@ const WANT_KINDS = arg('kinds', null);
 /* Fly these at every kind named, whatever the kind flies by default. */
 const FLY = arg('fly', null);
 const SPEED = 14;
-const FLY_MS = 4000;
+/* Slow the page's CPU this many times (CDP Emulation.setCPUThrottlingRate),
+ * so its frames are long and uneven, as on a loaded machine: the shell
+ * steps the plant per frame, and a wall must hold however long the frame.
+ * The flight is given the same share of the sim's time. */
+const THROTTLE = Number(arg('throttle', 1));
+const FLY_MS = 4000 * THROTTLE;
 /* Metres a recorded roof may sit off its drawing. A shell's top is its
  * courses and battens; a hundred and fifty millimetres is two of them. */
 const AUDIT_TOL = 0.15;
@@ -435,6 +440,8 @@ const SAMPLE = (R) => `(() => {
     flags: c.flagNames.join('|'), landed: s.landed, contacts: window.__ground().contactSteps,
     ground: window.__surface(s.worldX, s.worldZ, s.worldY - 0.4),
     roof: window.__surface(s.worldX, s.worldZ, 1e9),
+    unheld: window.__contacts().unheld ?? 0,
+    pass: (() => { const p = window.__contacts(); return ['pass res', p.resolved, 'rest', p.resting, 'held', p.plantHeld, 'unheld', p.unheld, 'buried', p.buried, 'sepFail', p.sepFail, 'dvZero', p.dvZero, 'code', p.code, 'interior', p.interior].join(' '); })(),
   };
 })()`;
 
@@ -442,6 +449,11 @@ async function fly(page, scn, R, shots) {
   const plan = await page.evaluate(`JSON.stringify(${PLAN(scn, R)})`).then(JSON.parse);
   await page.evaluate(`window.__crashThrow(${JSON.stringify({ ...plan.throw, hold: true })})`);
   await page.evaluate(`window.__stick(0, 0, 0, ${scn === 'quad' ? 0 : 0.45})`);
+  /* Frames while the pose is held, so the stick the flight starts on is
+   * this one from its first step: the shell maps each frame's stick onto
+   * the sim clock by wall time, and a stick set just before the release
+   * reached the plant up to a frame late, a different flight each run. */
+  await page.sleep(300 * THROTTLE);
   if (shots) {
     const side = [R.x + R.s * 16 + R.c * 4, plan.y + 3, R.z + R.c * 16 - R.s * 4];
     await page.evaluate(`window.__setCam(${side.join(',')}, ${plan.x}, ${plan.y - 1}, ${plan.z}, 60)`);
@@ -478,7 +490,7 @@ function judge(scn, flown) {
 function judgeIn(scn, { plan, log, events0, R }) {
   if (process.argv.includes('--verbose')) {
     for (const r of log) {
-      console.log(`  ${scn} lx ${r.lx.toFixed(2)} lz ${r.lz.toFixed(2)} y ${r.y.toFixed(2)} roof ${r.roof.toFixed(2)} ground ${r.ground.toFixed(2)} v ${r.speed.toFixed(1)} contacts ${r.contacts} ${r.hit} ${r.hitIndex} ${r.flags}`);
+      console.log(`  ${scn} lx ${r.lx.toFixed(2)} lz ${r.lz.toFixed(2)} y ${r.y.toFixed(2)} roof ${r.roof.toFixed(2)} ground ${r.ground.toFixed(2)} v ${r.speed.toFixed(1)} contacts ${r.contacts} ${r.hit} ${r.hitIndex} ${r.flags} ${r.pass}`);
     }
   }
   const last = log[log.length - 1];
@@ -536,6 +548,9 @@ function judgeIn(scn, { plan, log, events0, R }) {
   /* Inside the house, under its roof: through a wall or the shell. */
   const inside = log.filter((r) => Math.abs(r.lx) < R.hw - 0.3 && Math.abs(r.lz) < R.hd - 0.3 && r.y < r.roof - R.dy - 0.1).length;
   facts.insideSamples = inside;
+  /* Host contacts on a solid the plant did not hold (src/main.js
+   * plantMustHold): a wall the module could drop and nobody resolve. */
+  facts.unheld = last.unheld - log[0].unheld;
   facts.shallowestLz = +Math.min(...log.map((r) => r.lz * (R.gableSide || 1))).toFixed(2);
   /* What a wall and a gable must stop is the craft getting into the
    * house (`inside`), not it getting past the face's plane: a wreck the
@@ -560,7 +575,7 @@ function judgeIn(scn, { plan, log, events0, R }) {
      * pitch steeper than its friction holds slides, as it should. */
     ok = minClear < 0.15 && over.every((r) => r.y > r.roof - 0.15) && !last.wrecked;
   }
-  return { ok, facts };
+  return { ok: ok && facts.unheld === 0, facts };
 }
 
 async function open(airframe) {
@@ -578,6 +593,9 @@ async function open(airframe) {
      * loop steps the plant per frame: with the draw off the flight runs
      * at the sim's own rate. Nothing about the trajectory depends on it. */
     await page.evaluate('window.__drawOff(true)');
+  }
+  if (THROTTLE !== 1) {
+    await page.cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE }, page.sessionId);
   }
   return page;
 }
