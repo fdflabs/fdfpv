@@ -660,6 +660,67 @@ nose down short of going over); radian-nose-in and bramor-nose-in
 retainedFirst, -0.00 against a band from 0 (a sign in the last digit);
 cubf-porpoise, 10 pitch reversals on the water against 4 to 8.
 
+**A contact on a ringing part reaches the rest through its ring** (the
+feel round's items, 2026-09-26). The Skyhunter's cartwheel still took the
+whole aircraft (feel sheet on main 8fe1135: both fins at t+0.30, 1.12 times
+on 23 N, an aileron, the left wing, the other aileron, the right wing, the
+elevator, the stabiliser; 8 breaks, 10 pieces). Flown in Node (banked 75
+deg, 8 nose down, 17 m/s sinking at 3, onto grass), the right tip met the
+grass at 0.282 s and crushed at its plateau, 406 N, and both fins broke 13
+ms later: the judge put the tip's force on the craft as a rigid body, and
+the yaw and roll it gave the tail 0.75 m behind (a rigid body kick into the
+booms' ring, then the fins on it at 1,000 m/s^2) arrived before the struck
+panel had rung at all. A panel on its spar is a spring of 8 to 13 Hz
+between the tip and the fuselage: an impulse I short against a mode's
+period loads its support as w I sin(w t), nothing at first and its peak a
+quarter period on (Chopra, Dynamics of Structures, sections 4.1 and 4.8 to
+4.9). So a contact on a ringing part, or on anything it carries, is now
+left out of the craft's rigid response, and every ringing part passes the
+rest its ring's root load instead, as the batch found it (`craft_accel`).
+Along its span a spar or a boom is a column, not a spring: that component
+of a contact passes to the rest at once at the part's joint, and the ring
+no longer carries it (a wing stood on its tip by a craft on its side rang
+its 500 N axial push at the wing's frequency and pumped the booms' ring to
+107 N at their root). Every ringing part hangs on the root, so no other
+joint lies between such a contact and the root.
+
+The elevator the sheet printed at "2.25x at 0 N" was not judged on its
+hinge line. Its joint's moment at the break, main in Node, was (-0.83,
+-0.15, 1.77) N m, almost all about body z: its tip corner had met the grass
+0.23 m out from the pod's centre line as the wreck slid (a contact of 8 N
+there), bending the hinge line in its own plane against the generic 1 N m
+of a hinged surface (`PL_SURF_M`), with 0.15 N m about the hinge line
+itself. The "0 N" is the bearing rule (`seat_load`), whose grip took the
+9.4 N at the joint to nothing for the force ratio. Nothing was changed for
+it: with the tail riding the strike it no longer breaks in this crash.
+
+Measured, Node, what breaks, main against this and the crack's change
+before it (the same throws as the feel round's):
+
+| Crash | main | now |
+| --- | --- | --- |
+| sky-cartwheel | fins 13 ms after the strike (1.20), right aileron, right wing, left aileron, left wing, elevator (1.85): 7 breaks | right wing 28 ms after the strike (1.02, 139 N m); both fins 0.20 s after the strike, when the left tip digs in; hatch and pack on the inverted landing at 0.93 s: 5 |
+| timber-cartwheel | boom, both ailerons, left wing, gear leg, motor | boom and right wing at the strike, left wing when the other tip digs in |
+
+The fins that still go are on the booms' ring, pumped by the second tip
+digging in on top of the ring the first left (3 percent of critical,
+chosen); the boom's root reaches 0.74 of its 180 N m.
+
+`crash:core` holds the first 100 ms: "a Skyhunter's wingtip catches the
+grass" (on main the fins break at 13 ms, with only the crack's change at 15
+ms). The crash suite, Node, against the crack's change: 10 of 60 in every
+band on both, failing checks 119 to 116. Into band: cub-cartwheel minUpZ,
+restAttitude and restDistM (it goes over, inverted, 5.6 m on), bramor-stall
+restDistM. Out: radian-stall mustNotBreak, its boom and tail now off: the
+Radian's panels ring at 7.3 Hz and its thin foam boom at 11.2, and their
+ring passed to the fuselage drives the boom near its own mode, where the
+rigid response did not. Worse without a band moving: bramor-catapult-stall
+now loses a panel (1.01 of its 300 N m) and bramor-tree its pack. The
+rings do not load each other back (a ring passes its root load on and
+takes no energy from what it drives), which bounds none of this from
+above; a coupled model of the airframe's modes is the fix if the owner
+finds these wrong in the air.
+
 ### Under the break, per material (`crash.c`)
 
 | Part | Onset, load over limit | What happens | Flight effect |

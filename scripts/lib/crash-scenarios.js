@@ -1436,6 +1436,36 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
+    /* The feel round's Skyhunter cartwheel (scripts/crash-feel.js,
+     * sky-cartwheel): banked 75 degrees, 8 nose down, sinking at 3 m/s at
+     * 17 m/s, the low tip into the grass. The tip's blow reaches the rest of
+     * the craft through the struck panel's ring (crash.c, A CONTACT ON A
+     * RINGING PART), so the tail, 0.75 m behind on its booms, rides through
+     * the strike; on main both fins broke 13 ms after the tip met the grass,
+     * on the craft's rigid yaw. The struck panel itself goes at its root, as
+     * a real one does. */
+    name: 'a Skyhunter\'s wingtip catches the grass: the struck wing goes, the tail rides the strike',
+    async run(mk) {
+      const r = await mk({ id: 3 });
+      /* Pitched 8 degrees nose down, then rolled 75 about the body's x. */
+      const q = pitch(8);
+      const b = roll(75);
+      r.pose([0, 0, 1.9], [q[0] * b[0], q[0] * b[1], q[2] * b[0], -q[2] * b[1]]);
+      r.velocity([17, 0, -3]);
+      r.run(600);
+      const tail = ['boom', 'hstab', 'elevator', 'fin', 'rudder'];
+      const strike = r.events.find((e) => r.parts[e.part].kindName === 'wing');
+      const t0 = strike ? strike.t : NaN;
+      const tailBreaks = r.events.filter((e) => e.typeName === 'break' && tail.includes(r.parts[e.part].kindName) && e.t < t0 + 0.1);
+      const struck = strike ? r.events.find((e) => e.typeName === 'break' && e.part === strike.part) : null;
+      return [
+        { name: 'the struck panel breaks at its root', ok: !!struck, detail: struck ? `${r.parts[struck.part].label} ${((struck.t - t0) * 1000).toFixed(0)} ms after the tip met the grass, ${struck.ratio.toFixed(2)} of its limit` : r.summary() },
+        { name: 'nothing on the tail breaks in the 100 ms after the strike', ok: strike !== undefined && tailBreaks.length === 0,
+          detail: tailBreaks.length ? tailBreaks.map((e) => `${r.parts[e.part].label} at ${((e.t - t0) * 1000).toFixed(0)} ms`).join(', ') : r.summary() },
+      ];
+    },
+  },
+  {
     /* sim_reset returns the module to its fresh state. The feel round's five
      * inch, reset after a violent flight, flew the same throw 1e-13 m off a
      * fresh module's from the first step: Betaflight's loop state (the D
