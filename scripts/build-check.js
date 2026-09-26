@@ -170,6 +170,16 @@ async function ctrlTap(page, code) {
 
 const B = (expr) => `window.__build.state()${expr}`;
 
+/*
+ * Wait for n frames of the page's own. What __craftState reports (the drawn
+ * craft, the banner) is written by the shell's frame, so a reading taken a
+ * fixed time after a keypress is a reading of whatever frame last ran: at
+ * swiss2's second a frame on the software renderer that is the frame before
+ * the key. Waiting on frames rather than on milliseconds reads the shell's
+ * answer to it however slow the machine.
+ */
+const frames = (page, n) => page.evaluate(`new Promise((done) => { let k = ${n}; const f = () => { k -= 1; if (k <= 0) { done(true); } else { requestAnimationFrame(f); } }; requestAnimationFrame(f); })`);
+
 /* Whether the music dock (the record's name and its skips) can be seen. */
 const dockShown = (page) => page.evaluate("(() => { const d = document.querySelector('.music-dock'); return d && !d.hidden ? getComputedStyle(d).visibility : 'none'; })()");
 
@@ -260,6 +270,7 @@ async function proof() {
     await flyAndBuild(page);
     const mode = await page.evaluate('window.__craftState().mode');
     say(mode === 'paused', `B parks the run: the shell's mode is ${mode}`);
+    await frames(page, 3);
     const c0 = await page.evaluate('window.__craftState()');
     await page.sleep(800);
     const c1 = await page.evaluate('window.__craftState()');
@@ -656,7 +667,7 @@ async function airStartFlight(page, { edge, drop, yawOut, at }, craft) {
   const want = airStartSpeed(airframeById(af));
   await page.tap('KeyB');
   await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
-  await page.sleep(300);
+  await frames(page, 3);
   const c0 = await page.evaluate('window.__craftState()');
   const rel = [c0.worldX - g.centre[0], c0.worldY - g.centre[1], c0.worldZ - g.centre[2]];
   const behind = -vDot(rel, g.travel);
@@ -704,7 +715,13 @@ async function airStartFlight(page, { edge, drop, yawOut, at }, craft) {
     requestAnimationFrame(step);
     return true;
   })()`);
-  await page.until('window.__race().next === 1', 60000).catch(() => {});
+  /* On the plant's clock, not the wall's: a frame carries at most 100 ms
+   * of flight, so at swiss2's second a frame on the software renderer a
+   * minute of wall is six seconds of flight, short of the 7.5 m the quad
+   * climbs out of its hover to fly. Twenty seconds of flight, however long
+   * that takes. */
+  const simT0 = (await page.evaluate('window.__crash()')).simT;
+  await page.until(`window.__race().next === 1 || window.__crash().simT - ${simT0} > 20`, 900000).catch(() => {});
   await page.evaluate('window.__pilot = false');
   const r = await page.evaluate('({ next: window.__race().next, lap: window.__race().lapStartMs, c: window.__craftState() })');
   if (r.next !== 1) {
@@ -1027,10 +1044,9 @@ async function oneGate(page, { edge, drop, at }) {
    * sees the craft where a frame of the shell's finds it, and on the
    * software renderer under load a frame can take longer than any sleep
    * this would otherwise guess at. */
-  const frames = (n) => page.evaluate(`new Promise((done) => { let k = ${n}; const f = () => { k -= 1; if (k <= 0) { done(true); } else { requestAnimationFrame(f); } }; requestAnimationFrame(f); })`);
   const put = async (to, from) => {
     await page.evaluate(`window.__placeCraft(${to.join(',')}${from ? `, ${from.join(',')}` : ''})`);
-    await frames(3);
+    await frames(page, 3);
   };
   const t = g.travel;
   await put(vAdd(g.centre, t, 0.1), vAdd(g.centre, t, -1.2));
