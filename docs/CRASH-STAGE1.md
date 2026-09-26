@@ -997,15 +997,22 @@ With it, three things the crush did not do:
   grass strikes the tail itself (below).
 
 The stall peaks the feel round named (180 to 280 g) are not the crush's.
-On main 2a1b33b the Skyhunter's stall into the grass writes no crush; its
-139 g is one millisecond in which the hull, sunk on the ground's spring
-with the projection standing aside, is lifted out by the projection with
-its speed into the ground zeroed (z 0.171 to 0.259 m, vz -1.36 to 0.00);
-the Bramor's 154 g is the ground's spring on its composite pod, 3.3 kN,
-which does not crush at all; the Radian's 110 to 122 g is a real crush,
-about 1 kN on its pod as the nose meets the grass. The first two are the
-ground's spring and sim.c's projection, not this branch's, and are left
-for their owner.
+On main 3ffa11f the Skyhunter's stall into the grass wrote no crush; its
+139 g was one millisecond in which sim.c's hull projection, running as a
+part's ground spring stopped, lifted the hull out and zeroed its speed into
+the ground (z 0.171 to 0.259 m, vz -1.36 to 0.00). With the damage mode on
+the projection no longer takes that speed (the lead's return of #86: the
+contacts' own impulses, through each part's spring or crush, stop what
+goes in; damage off it is unchanged, to the byte): the Skyhunter's 139 g
+fell to 54 on that main. On main 00b7d54 (#84 changed the stall's axes)
+the stall peaks are, main against this: Skyhunter 71 and 71 g (its pod
+meeting the grass on the ground's spring, 1.4 kN of which 0.7 is the
+turf's grip, no projection in it), Bramor 598 and 87 g (the projection,
+its composite pod never crushing), Radian 12.9 and 12.9, Timber 9.2, Slow
+Stick 8.8, Cub 11.7 and 11.7 (its gear, both legs meeting the grass at
+1.7 m/s: the gear's). bramor-pole 130 on main and 137.5 here (138 with the
+ring change alone: its panel's joint damping; the rest is the pole's
+obstacle contact, lifting the craft 2 cm in a step).
 
 Measured, main 2a1b33b against both changes. The pole nick, above. A
 Skyhunter dropped flat at 5 m/s: on grass nothing written on both, on

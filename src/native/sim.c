@@ -619,8 +619,18 @@ static void ground_project_hull(void) {
    * drives a corner a few millimetres through as it rotates about the
    * support; zeroing vn there cancelled the linear part of a couple.
    * Turtle is the host-latched mixer path; the ABI self-test still
-   * proves crashflip against this plane. */
-  if (worst > 0.02) {
+   * proves crashflip against this plane.
+   *
+   * With the damage mode on, not at all: every part meets the ground
+   * through its own spring or its crush, whose impulses already stop what
+   * is going in, and the projection runs when a part's spring stops (the
+   * rigid contact's position corrections come back) with the craft still
+   * sinking into the part's depth. Its speed into the ground was then taken
+   * in one step: a Bramor stalled into the grass read 598 g at the CG with
+   * its pod never crushing (87 g without it), and a Skyhunter 139 g (54
+   * without it) before the stall's axes changed. The position is still
+   * corrected. */
+  if (worst > 0.02 && !SIM_DAMAGE) {
     const double vn = S.vel[0] * g_ground_n[0]
         + S.vel[1] * g_ground_n[1]
         + S.vel[2] * g_ground_n[2];
