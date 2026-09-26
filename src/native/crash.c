@@ -1784,6 +1784,8 @@ static double spring_force(double x) {
   return g_sp_k1 * g_sp_tr + g_sp_k2 * (x - g_sp_tr);
 }
 
+static double g_vout = 0.0; /* the contact point's speed out of the surface, m/s */
+static double ring_zeta(const PartDef *d, double rho);
 static void spring_pre(int i, double vin, double kn, double *e_used, double *jn_cap) {
   const unsigned int bit = 1u << i;
   if (g_pen > g_batch_pen[i]) {
@@ -1791,6 +1793,35 @@ static void spring_pre(int i, double vin, double kn, double *e_used, double *jn_
   }
   if (!(g_batch_spring & bit)) {
     const int going = (g_spring_mask & bit) && vin > SPRING_GOING;
+    if (!going && tab()->w1[i] > 0.0) {
+      /* A BENT PANEL COMES BACK ON ITS OWN SPRING. A part that rings (a
+       * panel on its spar, a boom) went into the ground plane by its own
+       * bending: its spring, 3 E I / L^3 in series with the turf's, is a
+       * few kN/m, so a struck tip stands 10 to 40 cm past the plane with the
+       * panel bent that far. Stopped (or met slowly, held from the start),
+       * it took the rigid contact, whose position corrections and the
+       * hull's projection took the whole craft back out of that depth in a
+       * step or two with no change of speed: 15 cm up for a cartwheeling
+       * Timber, 40 cm for a Skyhunter, and whether it then went over turned
+       * on that lift. Now it stays on its spring: the solver may push the
+       * point out no harder than the spring does at the point's depth, less
+       * its joint's damping on the speed it comes out at (c = 2 zeta sqrt(k
+       * m), zeta the ring's, A RING'S DAMPING, m the point's effective
+       * mass), and nothing else lifts the craft. The panel's stored energy
+       * comes back through it as it straightens. A part that does not ring
+       * (a pod, a belly) is stiff, its depth is the turf's give, and it
+       * keeps the rigid contact below, so a belly rests where it did. */
+      const double kk = spring_force(g_pen) / (g_pen > 1e-9 ? g_pen : 1e-9);
+      const double c = 2.0 * ring_zeta(&tab()->p[i], PS[i].peak) * sim_sqrt(kk / kn);
+      double push = spring_force(g_pen) - c * g_vout;
+      if (push < 0.0) push = 0.0;
+      *e_used = 0.0;
+      *jn_cap = push * g_batch_dt;
+      g_capped_now = 1;
+      g_crushing = 1;
+      g_soft_now = 1;
+      return;
+    }
     if (!going && (g_spring_mask & bit)) {
       /* Stopped in the ground: the rigid contact takes over, but it does
        * not throw the part back out of the depth it went to. */
@@ -2288,6 +2319,14 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
   }
   const double k = series_k(d->k, SURF[g_surf].k);
   const int own = g_own >= 0;
+  {
+    double rb[3], wr[3], ww[3];
+    qrot_inv(s->quat, r, rb);
+    cross(s->omega, rb, wr);
+    qrot(s->quat, wr, ww);
+    const double vn = dot(s->vel, n) + dot(ww, n);
+    g_vout = vn > 0.0 ? vn : 0.0;
+  }
   crush_shape(s, &g_cr_shape);
   if (own && own_pre(t, i, vin, kn, k, e_used, jn_cap)) {
     return;

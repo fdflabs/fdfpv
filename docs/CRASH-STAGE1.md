@@ -1083,6 +1083,61 @@ crash:core passes but the suite fails 118 checks and neither the Timber
 nor the Cub goes over. So it is not in, and it is the next thing to fix
 in the ground's spring.
 
+**A bent panel comes back on its own spring** (the last feel item). The
+lift the paragraph above records came from the ground spring's handoff:
+a part meets the ground through its spring while it is going in, and the
+rigid contact once it has stopped, or when it is met slowly and the spring
+holds it from the start. For a part that rings (a panel on its spar, a
+boom) that spring is its own bending, a few kN/m, so a struck tip stands
+10 to 40 cm past the plane; handed to the rigid contact, sim.c's position
+corrections and the hull's projection took the whole craft out of that
+depth in a step or two with no change of speed. Measured as the position
+change a step not carried by the velocity (main ca3e831, Node, the feel
+throws): 32.5 cm in one step for the Skyhunter, 10.9 for the Timber, 17.0
+for the Cub. The step that lifts the Skyhunter 40 cm was the held branch,
+not the stopped one: the tip had been crushing, so the spring's mask was
+clear, and at 41 cm in the spring held it from the start.
+
+Now a part that rings keeps its spring whenever it is not going in: the
+solver may push the point out no harder than the spring does at the
+point's depth, less its joints' damping on the speed it comes out at (c =
+2 zeta sqrt(k m), zeta the ring's, m the point's effective mass), and its
+capped contact keeps the position corrections and the projection off. The
+bent panel's energy comes back through its own spring as it straightens.
+A part that does not ring keeps the rigid contact, so a belly rests where
+it did: the Skyhunter dropped flat onto grass and at rest reads the same
+to the millimetre, and crash:core's belly slide still slows at the sled's
+0.45 (every part on its spring had sunk a belly 2.8 cm and slid it at 1.5
+g; panels and booms alone without the damping failed 122 suite checks).
+
+Measured, main ca3e831 against this (Node, the feel throws; the jump is
+the largest position change a step not carried by the velocity, where 5
+to 7 cm is a broken panel's mass leaving the CG):
+
+| Crash | main | this |
+| --- | --- | --- |
+| sky-cartwheel | 32.5 cm jump; up -0.98 | 6.7 cm; up -0.94, inverted |
+| timber-cartwheel | 10.9 cm; up 0.92, upright | 7.1 cm; up -0.48, on its side |
+| cub-cartwheel | 17.0 cm; up 0.96, upright | 6.1 cm; up -0.91, inverted |
+| radian-cartwheel | 7.6 cm; up 0.98, upright | 7.6 cm; up -1.00, inverted |
+
+In the real shell (crash:feel, CPU renderer) the Skyhunter cartwheel loses
+its struck wing (t+0.30), both fins (t+0.62) and its pack (t+0.70) and
+rests inverted; the Timber its boom and struck wing (t+0.30), the other
+wing (t+0.46) and its antenna, and rests on its side (up -0.48, where main
+rests upright). The suite's cartwheels, a 40 degree bank on a low pass,
+go over on neither: their tips now ride their bending panels and skim
+(sky-cartwheel 24.6 m on against a band to 20, timber-cartwheel keeping its
+wing), where the rigid handoff stopped the tip dead each step. Suite
+failing checks 116 to 119: into band cub-cartwheel peakG (86 to 24 g) and
+restDistM, timber-cartwheel restDistM and timeToRestS; out
+sky-cartwheel restDistM and timeToRestS, radian-cartwheel timeToRestS
+(0.95 s against 1 to 3), timber-cartwheel mustBreak wing,
+bramor-cartwheel peakG (13 g) and restDistM, and timber-nose-over
+mustNotBreak: landing inverted, its boom now holds on its spring and a
+wing breaks at 1.00 and 1.11 of its limit instead. The stall peaks are
+unchanged (Skyhunter 71, Bramor 87, Radian 12.9, Cub 11.7 g).
+
 **The ground is a spring** (round 2, by the lead's decision that with
 the mode on every contact may have its physical duration, docs/CRASH-PLAN.md).
 Until round 2 an impact under every limit was a one step impulse, so the
