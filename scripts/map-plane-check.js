@@ -2,7 +2,7 @@
  * map-plane-check.js: fixed wings on a track built inside a world, from the
  * builder to the board and back, through the real page.
  *
- *     BOARD_ORIGIN=http://127.0.0.1:3180 node scripts/map-plane-check.js [OUT_DIR] [--skip-floats]
+ *     BOARD_ORIGIN=http://127.0.0.1:3180 node scripts/map-plane-check.js [OUT_DIR] [--skip-sky] [--skip-floats]
  *
  * The plane half of scripts/map-share-check.js, and it needs the same
  * throwaway board: one from a checkout of fdfpv-leaderboard that keeps a
@@ -195,9 +195,9 @@ async function publish(page, name, pilot = PILOT) {
  * Steering is L1 guidance (Park, Deyst and How, "A New Nonlinear Guidance
  * Logic for Trajectory Tracking", 2004): a point L1 metres ahead along the
  * path, and a sideways acceleration 2 V^2 sin(eta) / L1 toward it, flown as
- * the bank that makes it. The path is `legs`, straight lines through each
- * gate on its own axis joined by arcs, given as a dense list of points in
- * flying order from the start, closed back through the start gate. Height
+ * the bank that makes it. The path is `path`, a dense list of points in
+ * flying order from the start round the lap and back through the start
+ * gate (ringPath, stadiumPath), each gate on it along its own axis. Height
  * is the path's own at the nearest point.
  *
  * `takeoff` is the floatplane's first phase: full throttle and the stick
