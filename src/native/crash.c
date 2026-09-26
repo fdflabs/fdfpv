@@ -1382,8 +1382,19 @@ void crash_set_ground_contact(void) {
  */
 #define CRUSH_PATCH 0.5
 #define CRUSH_FLAT 0.90  /* cos 25 degrees */
+#define CRUSH_FACE 0.5 /* cos 60 degrees */
 static double crush_area(const Table *t, int i, const double nb[3], int ground) {
   const double a = t->p[i].crush_a;
+  /* A part that crushes only where its soft structure is (crush_n, within
+   * 60 degrees of it: a quad's nose and top, where the standoffs rack and
+   * the camera cage and stack fold) is met on its plates any other way,
+   * and stands the blow as the section it is: its plateau is out of reach.
+   * nb points into the part, so that side is met when nb runs against
+   * crush_n. */
+  const double *cn = t->p[i].crush_n;
+  if ((cn[0] != 0.0 || cn[1] != 0.0 || cn[2] != 0.0) && -dot(nb, cn) < CRUSH_FACE) {
+    return 1.0e30;
+  }
   if (!ground) {
     return a;
   }

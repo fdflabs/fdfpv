@@ -1009,6 +1009,7 @@ rigid contact left it (0.26 mm).
 | its tip stiffness | 3.43e5 N/m | 3 E I / L^3, 50 GPa, L 0.0635 m | R-ARM (45 to 55 GPa) |
 | 5 inch prop | yields 2.5 N m, shears off at 7.5 | 12 x 2.5 mm root at 200 MPa; ductile | R-PROPS (PC bends before it breaks, over 50 percent at break) |
 | 2207 on its arm | 48 N m | two M3 pulling out at 1.5 kN on 16 mm | chosen |
+| 5 inch nose and top crush (feel round) | 2.4 kN over 40 mm, met within 60 degrees of up and forward | four 5 mm aluminium standoffs on a 3 mm bore racking between the plates, 4 Mp / h each, Mp = 276 MPa (D^3 - d^3) / 6 = 4.5 N m over 30 mm; from below the bottom plate and pack bear it | 6061 yield as ALU_BEND_ONSET; the travel R-ARM's 15 to 40 mm |
 | 5 inch pack strap | 250 N, 6 N m | the strap's buckle slipping | chosen |
 | its travel (feel round) | 36 mm of slide before the pack is free | the strap crosses the pack's middle: half its drawn 72 mm; the webbing's stretch at 250 N left out (nylon harness webbing stretches 20 to 30 percent only at 11 kN, Wikipedia "Webbing") | drawn model |
 | FPV camera in TPU | 0.8 N m, 60 N | side screws in a TPU mount | chosen |
