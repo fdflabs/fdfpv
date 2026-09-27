@@ -1,0 +1,281 @@
+/*
+ * liveries.js: what each plane can be painted, and in what.
+ *
+ * A LIVERY is a colour per named REGION of a plane's scheme: the wing, the
+ * fuselage, the tail, the trim. The regions are the drawn model's own
+ * (each builder in src/render/*craft.js hands its materials to
+ * src/render/livery.js by these ids), and each region's `stock` is the
+ * colour the builder draws it in today, which is what a pilot who never
+ * opens the hangar sees. The hangar's check (scripts/hangar-check.js)
+ * builds every plane and holds the two to each other.
+ *
+ * The colours offered are real covering, by the makers' own names: Top
+ * Flite MonoKote, Oracover and Solarfilm, opaque, and the transparent
+ * films for a model built to be see through (the Kadet). The hex beside a
+ * name is an approximation of the film for the screen, never the maker's
+ * specification. The PRESET SCHEMES are the real kits' box art, the makers'
+ * own colourways, or the full size liveries a scale model wears, each with
+ * where it was seen; a scheme names only the regions it changes.
+ *
+ * A float plane is its land plane on floats and wears the land plane's
+ * paint: `liveryKey` names the one entry both are stored under, and the
+ * `floats` region is offered only on the floats.
+ *
+ * Plain data and plain functions, no three.js: the menu and the checks
+ * import this in Node.
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { airframeById } from './airframes.js';
+
+/*
+ * THE COVERING ON OFFER, by the makers' own names and numbers. The hex is
+ * the film as a screen can show it, measured off the maker's or a
+ * dealer's product photograph (Horizon Hobby's MonoKote pages, Sussex
+ * Model Centre's Oracover pages, Solarfilm's own chart) or, for the
+ * transparent MonoKote, off Top Flite's colour chart: an approximation,
+ * not the maker's specification. `film` is a see through film, offered on
+ * a model built to be see through; that model's own kits use opaque white
+ * and black trim, so those are offered there too.
+ */
+const c = (brand, name, hex, film = false) => ({ brand, name, hex, film });
+export const PALETTE = [
+  c('MonoKote', 'Jet White', '#f2f2f2'),
+  c('Oracover', 'White 10', '#dfdcd8'),
+  c('MonoKote', 'Flat Dove Gray', '#d1dae2'),
+  c('MonoKote', 'Aluminum', '#b9bdc0'),
+  c('Oracover', 'Silver 91', '#afaaa3'),
+  c('MonoKote', 'Yellow', '#f0db2c'),
+  c('MonoKote', 'Cub Yellow', '#f8cf1f'),
+  c('Oracover', 'Cub Yellow 30', '#eaaa06'),
+  c('MonoKote', 'Orange', '#e68e19'),
+  c('Oracover', 'Orange 60', '#e73f0e'),
+  c('MonoKote', 'True Red', '#b11b24'),
+  c('Oracover', 'Ferrari Red 23', '#ba100f'),
+  c('MonoKote', 'Maroon', '#5c1533'),
+  c('MonoKote', 'Sky Blue', '#3dc5fc'),
+  c('Oracover', 'Sky Blue 53', '#2979bc'),
+  c('Solarfilm', 'Tropic Blue', '#6988c3'),
+  c('MonoKote', 'Royal Blue', '#0e65ba'),
+  c('Oracover', 'Blue 50', '#153c86'),
+  c('MonoKote', 'Insignia Blue', '#032257'),
+  c('Solarfilm', 'Dark Blue', '#242739'),
+  c('Oracover', 'Fluorescent Green 41', '#26e45e'),
+  c('Oracover', 'Olive Drab 18', '#5a5434'),
+  c('MonoKote', 'Flat Olive Drab', '#5e614c'),
+  c('Oracover', 'Black 71', '#1a1a1a'),
+  c('MonoKote', 'Black', '#0e1213'),
+  c('MonoKote', 'Transparent Red', '#e46f63', true),
+  c('Oracover', 'Transparent Red 29', '#b21527', true),
+  c('MonoKote', 'Transparent Orange', '#f8c300', true),
+  c('MonoKote', 'Transparent Yellow', '#ffeb54', true),
+  c('MonoKote', 'Transparent Green', '#34a17b', true),
+  c('MonoKote', 'Transparent Blue', '#0097d4', true),
+  c('Oracover', 'Transparent Blue 59', '#335a9a', true),
+  c('MonoKote', 'Jet White', '#f2f2f2', true),
+  c('MonoKote', 'Black', '#0e1213', true),
+];
+
+/*
+ * THE PLANES, by liveryKey. `regions` in the order the hangar lists them,
+ * each with the colour its builder draws it in; `film` a region of see
+ * through film (it offers the transparent colours), `floats` one only the
+ * float plane has. `schemes` stock first, each with where it was seen
+ * (`source`, a label and an address) and only the regions it changes. No
+ * scheme is listed without a source: the Skyhunter and the Slow Stick have
+ * none found yet, so they offer their stock look and the palette.
+ */
+const r = (id, stock, more = {}) => ({ id, stock, ...more });
+const src = (label, url) => ({ label, url });
+const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/Piper_J-3_Cub');
+const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
+const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
+export const LIVERIES = {
+  sky1800: {
+    regions: [r('wing', '#d4e2ee'), r('tail', '#d4e2ee'), r('pod', '#d4e2ee')],
+    schemes: [{ id: 'stock', source: null, colours: {} }],
+  },
+  cub1400: {
+    regions: [r('wing', '#f0be2a'), r('fuselage', '#f0be2a'), r('tail', '#f0be2a'), r('trim', '#16181a'), r('floats', '#f2f1ec', { floats: true })],
+    schemes: [
+      { id: 'stock', source: src('FMS J-3 Cub 1400 mm V4', 'https://www.fmshobby.com/products/fms-1400mm-55-1-j-3-cub-v4-pnp'), colours: {} },
+      { id: 'l4', source: WIKI_CUB, colours: all('#5a5434', ['wing', 'fuselage', 'tail', 'trim', 'floats']) },
+      { id: 'flitfire', source: WIKI_CUB, colours: { ...all('#b9bdc0', ['wing', 'fuselage', 'tail', 'floats']), trim: '#032257' } },
+    ],
+  },
+  radian2000: {
+    regions: [r('wing', '#f1f1ec'), r('fuselage', '#f1f1ec'), r('tail', '#f1f1ec'), r('tips', '#cf2a26'), r('canopy', '#1b2127')],
+    schemes: [
+      { id: 'stock', source: null, colours: {} },
+      { id: 'radian', source: src('E-flite Radian decal sheet, EFL4703', 'https://www.horizonhobby.com/product/e-flite-decal-sheet-radian-bnf-basic/EFL4703.html'), colours: { ...all('#f2f2f2', ['wing', 'fuselage', 'tail']), tips: '#e68e19', canopy: '#0e1213' } },
+      { id: 'night', source: src('E-flite Night Radian FT 2.0 m, EFL3650', 'https://www.horizonhobby.com/product/e-flite-night-radian-ft-2.0m-bnf-basic-with-as3x-and-safe-select/EFL3650.html'), colours: { ...all('#f2f2f2', ['wing', 'fuselage', 'tail']), tips: '#b11b24' } },
+    ],
+  },
+  bramor2300: {
+    regions: [r('airframe', '#a9b5c1')],
+    schemes: [
+      { id: 'stock', source: src('C-Astral, Bramor C4EYE', 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye'), colours: {} },
+      { id: 'ppx', source: src('C-Astral, Bramor ppX', 'https://www.c-astral.com/en/unmanned-systems/bramor-ppx'), colours: { airframe: '#dfdcd8' } },
+      { id: 'hivis', source: src('C-Astral, Bramor ppX high visibility option', 'https://www.c-astral.com/en/unmanned-systems/bramor-ppx'), colours: { airframe: '#e73f0e' } },
+    ],
+  },
+  slowstick1180: {
+    regions: [r('wing', '#e5402a'), r('tail', '#e5402a'), r('tape', '#f4f1ea')],
+    schemes: [{ id: 'stock', source: null, colours: {} }],
+  },
+  timber1500: {
+    regions: [r('wing', '#f1f0ea'), r('fuselage', '#f1f0ea'), r('tail', '#f1f0ea'), r('trim', '#d5271f'), r('stripe', '#17191b'), r('floats', '#f1f0ea', { floats: true })],
+    schemes: [
+      { id: 'stock', source: src('E-flite Turbo Timber Evolution, EFL105250', 'https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html'), colours: {} },
+      { id: 'timber', source: src('E-flite Timber 1.5 m, EFL5250', 'https://www.horizonhobby.com/product/e-flite-timber-1.5m-bnf-basic-as3x-with-floats/EFL5250.html'), colours: { ...all('#f2f2f2', ['wing', 'fuselage', 'tail', 'floats']), trim: '#b11b24', stripe: '#0e1213' } },
+      { id: 'timber_x', source: src('E-flite Timber X 1.2 m, EFL3850', 'https://www.horizonhobby.com/product/e-flite-timber-x-1.2m-bnf-basic-with-as3x-and-safe-select/EFL3850.html'), colours: { ...all('#f2f2f2', ['wing', 'fuselage', 'tail', 'floats']), trim: '#85c936', stripe: '#1e1e1d' } },
+      { id: 'super', source: src('E-flite Super Timber 1.7 m, EFL02550', 'https://www.horizonhobby.com/product/e-flite-super-timber-1.7m-bnf-basic-with-as3x-and-safe-select/EFL02550.html'), colours: { ...all('#eaaa06', ['wing', 'tail', 'trim']), fuselage: '#f2f2f2', floats: '#f2f2f2', stripe: '#1a1a1a' } },
+      { id: 'twin', source: src('E-flite Twin Timber 1.6 m, EFL23850', 'https://www.horizonhobby.com/product/e-flite-twin-timber-1.6m-bnf-basic-with-as3x-and-safe-select/EFL23850.html'), colours: { ...all('#0e65ba', ['wing', 'trim']), ...all('#f2f2f2', ['fuselage', 'tail', 'floats']), stripe: '#0f1c3c' } },
+    ],
+  },
+  bombshell1118: {
+    regions: [r('wing', '#c8161a'), r('fuselage', '#17171a'), r('tail', '#17171a'), r('swoop', '#c8161a')],
+    schemes: [
+      { id: 'stock', source: src('BMJR Models, Buzzard Bombshell', 'https://bmjrmodels.com/product/buzzard-bombshell/'), colours: {} },
+      { id: 'baby', source: src('Outerzone oz2180, Baby Bombshell, Flying Models 1992', 'https://outerzone.co.uk/plan_details.asp?ID=2180'), colours: { wing: '#f0db2c', fuselage: '#0e65ba', tail: '#032257', swoop: '#b11b24' } },
+      { id: 'kittur', source: src('Outerzone oz5360, a builder\'s Bombshell', 'https://outerzone.co.uk/plan_details.asp?ID=5360'), colours: { wing: '#f2f2f2', fuselage: '#d1dae2', tail: '#f2f2f2', swoop: '#032257' } },
+      { id: 'class_a', source: src('Outerzone oz6289, a Class A Baby Bombshell', 'https://outerzone.co.uk/plan_details.asp?ID=6289'), colours: { wing: '#ca8462', fuselage: '#c98d64', tail: '#f2f2f2', swoop: '#4e4653' } },
+    ],
+  },
+  kadet1981: {
+    regions: [r('wing', '#ffdb1a', { film: true }), r('wing_trim', '#d61214', { film: true }), r('fuselage', '#d61214', { film: true }), r('fuse_trim', '#ffdb1a', { film: true })],
+    schemes: [
+      { id: 'stock', source: null, colours: {} },
+      { id: 'sig_kit', source: src('SIG Kadet Senior kit RC-58', 'https://sigmfg.com/products/kadet-senior-kit'), colours: { wing: '#b21527', wing_trim: '#0e1213', fuselage: '#b21527', fuse_trim: '#0e1213' } },
+      { id: 'sport_red', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#b21527', fuselage: '#b21527', fuse_trim: '#f2f2f2' } },
+      { id: 'sport_blue', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#335a9a', fuselage: '#335a9a', fuse_trim: '#f2f2f2' } },
+    ],
+  },
+};
+
+const FAMILY = { timber1500f: 'timber1500', cub1400f: 'cub1400' };
+
+/* The entry an aircraft's paint is stored under: a float plane's is its
+ * land plane's. */
+export function liveryKey(airframeId) {
+  return FAMILY[airframeId] ?? airframeId;
+}
+
+/* Whether this aircraft can be painted at all: planes, not quads. */
+export function paintable(airframeId) {
+  return Boolean(LIVERIES[liveryKey(airframeId)]);
+}
+
+/* The regions this aircraft shows: its family's, the floats only on floats. */
+export function regionsFor(airframeId) {
+  const l = LIVERIES[liveryKey(airframeId)];
+  if (!l) {
+    return [];
+  }
+  const floats = Boolean(airframeById(airframeId).floats);
+  return l.regions.filter((r) => floats || !r.floats);
+}
+
+export function schemesFor(airframeId) {
+  const l = LIVERIES[liveryKey(airframeId)];
+  return l ? l.schemes : [];
+}
+
+const HEX = /^#[0-9a-f]{6}$/;
+
+export function isHex(v) {
+  return typeof v === 'string' && HEX.test(v);
+}
+
+/*
+ * A stored entry made safe: { scheme, regions } with a scheme this plane
+ * has and only region colours it has, as lower case #rrggbb. Anything else
+ * is dropped rather than refused, because a stale or hand edited settings
+ * blob must never stop the page booting; null when nothing is left.
+ */
+export function normaliseEntry(family, entry) {
+  const l = LIVERIES[family];
+  if (!l || !entry || typeof entry !== 'object') {
+    return null;
+  }
+  const out = {};
+  if (typeof entry.scheme === 'string' && l.schemes.some((s) => s.id === entry.scheme) && entry.scheme !== 'stock') {
+    out.scheme = entry.scheme;
+  }
+  if (entry.regions && typeof entry.regions === 'object') {
+    const regions = {};
+    for (const r of l.regions) {
+      const v = typeof entry.regions[r.id] === 'string' ? entry.regions[r.id].toLowerCase() : null;
+      if (isHex(v)) {
+        regions[r.id] = v;
+      }
+    }
+    if (Object.keys(regions).length) {
+      out.regions = regions;
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/* settings.livery as loadSettings keeps it: known planes, safe entries. */
+export function normaliseLiveries(stored) {
+  const out = {};
+  if (!stored || typeof stored !== 'object') {
+    return out;
+  }
+  for (const [family, entry] of Object.entries(stored)) {
+    const clean = normaliseEntry(family, entry);
+    if (clean) {
+      out[family] = clean;
+    }
+  }
+  return out;
+}
+
+/*
+ * Every region's colour for this aircraft under an entry: stock, then the
+ * scheme's, then the pilot's own per region. As #rrggbb.
+ */
+export function coloursFor(airframeId, entry) {
+  const l = LIVERIES[liveryKey(airframeId)];
+  if (!l) {
+    return {};
+  }
+  const scheme = l.schemes.find((s) => s.id === (entry && entry.scheme)) ?? l.schemes[0];
+  const own = (entry && entry.regions) || {};
+  const out = {};
+  for (const r of regionsFor(airframeId)) {
+    out[r.id] = own[r.id] ?? scheme.colours[r.id] ?? r.stock;
+  }
+  return out;
+}
+
+/* The same colours as numbers, the form the renderer takes. */
+export function colourNumbers(colours) {
+  return Object.fromEntries(Object.entries(colours).map(([k, v]) => [k, parseInt(v.slice(1), 16)]));
+}
+
+/* The swatches a region offers: the see through films for a film region,
+ * the opaque covering for the rest. */
+export function paletteFor(region) {
+  return PALETTE.filter((c) => Boolean(c.film) === Boolean(region.film));
+}
+
+/* The covering a colour is, if it is one on the palette. */
+export function paletteColour(hex) {
+  return PALETTE.find((c) => c.hex === hex) ?? null;
+}

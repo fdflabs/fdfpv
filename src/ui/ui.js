@@ -68,6 +68,8 @@ import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
+import { Hangar } from './hangar.js';
+import { liveryKey, normaliseLiveries, paintable } from '../../configs/liveries.js';
 import {
   RATE_DEFAULTS,
   RATE_FIELDS,
@@ -535,6 +537,14 @@ const DEFAULTS = {
    */
   tuneFor: {},
   /*
+   * Each plane's paint, by configs/liveries.js liveryKey (a float plane
+   * wears its land plane's): { scheme, regions }, a preset scheme and the
+   * pilot's own colour per region over it. Empty is every plane in its
+   * kit's colours. Written by the hangar (src/ui/hangar.js) and made safe
+   * by normaliseLiveries on load.
+   */
+  livery: {},
+  /*
    * The whole rate profile, owned by the pilot rather than by the tune: a
    * rates type and three firmware fields per axis, plus Betaflight's
    * throttle limit, which lives in the same rate profile in the firmware and
@@ -974,6 +984,7 @@ export function loadSettings() {
    * band, so a hand edited blob has to be brought back before it reaches
    * sim_set_gravity. */
   s.weight = clampWeight(s.weight);
+  s.livery = normaliseLiveries(s.livery);
   /*
    * The rate profile, from whichever shape this blob was written in.
    *
@@ -3109,7 +3120,7 @@ export class Ui {
      * must not also walk the browser's focus. Everywhere else it still
      * does: the menus' rows and cards are tab stops. */
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Tab' && (this.screen === 'flight' || this.carousel.isOpen)) {
+      if (e.code === 'Tab' && (this.screen === 'flight' || this.carousel.isOpen || this.hangar.isOpen)) {
         e.preventDefault();
       }
     }, true);
@@ -4008,6 +4019,7 @@ export class Ui {
     }
     r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.musicDock, this.nameDialog);
     this.carousel = new Carousel(r);
+    this.hangar = new Hangar(r);
     this.syncChips();
   }
 
@@ -6274,6 +6286,13 @@ export class Ui {
           action: 'hotswap',
           note: str('carousel.row_note'),
         },
+        /* The hangar for the plane being flown: its power and its paint,
+         * saved into the air where it is. */
+        ...(paintable(s.airframe) ? [{
+          label: str('hangar.customise'),
+          action: 'customise',
+          note: str('hangar.row_note'),
+        }] : []),
         ...this.ghostItems(),
         ...this.liveItems(),
         { label: str('ui.does_it_feel_wrong'), section: true },
@@ -9093,9 +9112,13 @@ export class Ui {
      */
     this.padRearm = true;
     this.swapPadPrev = null;
-    /* A picker belongs to the screen it was opened over. */
+    /* A picker belongs to the screen it was opened over, and so does the
+     * hangar, whose unsaved paint goes with it. */
     if (this.carousel && this.carousel.isOpen && screen !== this.screen) {
       this.carousel.close();
+    }
+    if (this.hangar && this.hangar.isOpen && screen !== this.screen) {
+      this.hangar.cancel();
     }
     const pinned = locationHashScreen();
     if (pinned && screen === 'title') {
@@ -11775,6 +11798,10 @@ export class Ui {
       this.openSwap('paused');
       return;
     }
+    if (action === 'customise') {
+      this.openHangar(this.settings.airframe, () => this.renderMenu());
+      return;
+    }
     /* Leaderboard and Choose new map are the same page. The board opens
      * courses in the simulator, so this tab has to stay put. Navigating
      * away here left the pilot with no sim and a second one from Fly.
@@ -12430,6 +12457,7 @@ export class Ui {
       filter: wayFilter(way),
       title: way.label,
       hint: this.pickHint(),
+      onCustomise: (id, reopen) => this.openHangar(id, reopen),
       onChoose: (id) => {
         const chosen = way.airframes.includes(id) ? way : (WAYS.find((w) => w.airframes.includes(id)) ?? way);
         this.act(chosen.action, id);
@@ -12446,6 +12474,7 @@ export class Ui {
       current: s.airframe,
       filter: kindOf(s.airframe),
       hint: this.pickHint(),
+      onCustomise: (id, reopen) => this.openHangar(id, reopen),
       onChoose: (id) => {
         if (id === s.airframe) {
           this.renderMenu();
@@ -12488,6 +12517,7 @@ export class Ui {
       title: str('carousel.change_aircraft'),
       warn: this.swapWarning ? this.swapWarning() : '',
       hint: this.pickHint(),
+      onCustomise: (id, reopen) => this.openHangar(id, reopen),
       onChoose: (id) => {
         this.swapTo(id).then(() => this.act('resume'));
       },
@@ -12497,6 +12527,72 @@ export class Ui {
         } else {
           this.renderMenu();
         }
+      },
+    });
+  }
+
+  /*
+   * THE HANGAR (src/ui/hangar.js) for one plane, from the picker's
+   * Customise or the pause menu. The shell answers three things through
+   * hooks: the power options (hangarPower, null for the stock setup only),
+   * what saving will cost here (hangarWarning), and what to repaint or
+   * refit once it is saved (onHangarSave); the preview is onHangarPreview,
+   * null colours meaning back to what is saved. `after` runs once it is
+   * shut either way: the picker opens again on the same plane, the pause
+   * menu redraws.
+   */
+  openHangar(id, after = null) {
+    if (!paintable(id) || this.hangar.isOpen) {
+      return;
+    }
+    const s = this.settings;
+    const family = liveryKey(id);
+    const preview = (colours) => {
+      if (this.onHangarPreview) {
+        this.onHangarPreview(id, colours);
+      }
+    };
+    const done = () => {
+      if (after) {
+        after();
+      }
+    };
+    const power = this.hangarPower ? this.hangarPower(id) : null;
+    this.hangar.open({
+      airframe: id,
+      livery: s.livery[family],
+      power,
+      warn: this.hangarWarning ? this.hangarWarning(id) : '',
+      hint: this.pickHint(),
+      sound: (kind) => {
+        if (this.onUiSound) {
+          this.onUiSound(kind);
+        }
+      },
+      onPreview: preview,
+      onSave: (res) => {
+        const livery = { ...s.livery };
+        if (res.livery) {
+          livery[family] = res.livery;
+        } else {
+          delete livery[family];
+        }
+        s.livery = livery;
+        if (power && s.power && typeof s.power === 'object') {
+          s.power = { ...s.power, [id]: res.power };
+        }
+        this.persistSettings();
+        preview(null);
+        Promise.resolve()
+          .then(() => (this.onHangarSave ? this.onHangarSave(id, res) : null))
+          .catch((e) => {
+            console.error('hangar save failed', e);
+          })
+          .then(done);
+      },
+      onCancel: () => {
+        preview(null);
+        done();
       },
     });
   }
@@ -12552,6 +12648,9 @@ export class Ui {
     }
     const nav = code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight'
       || code === 'KeyW' || code === 'KeyS' || code === 'KeyA' || code === 'KeyD';
+    if (this.hangar.isOpen) {
+      return repeat && !nav ? true : this.hangar.handleKey(code);
+    }
     if (this.carousel.isOpen) {
       return repeat && !nav ? true : this.carousel.handleKey(code);
     }
@@ -12756,6 +12855,12 @@ export class Ui {
    * use pitch and roll for the cursor: those screens pose the airframe.
    */
   pollPad(nav) {
+    if (this.hangar.isOpen) {
+      this.lastInput = nav.up || nav.down || nav.left || nav.right || nav.select || nav.back ? 'pad' : this.lastInput;
+      this.hangar.pollPad(nav);
+      this.padRearm = true;
+      return;
+    }
     if (this.carousel.isOpen) {
       this.lastInput = nav.up || nav.down || nav.left || nav.right || nav.select || nav.back ? 'pad' : this.lastInput;
       this.carousel.pollPad(nav);

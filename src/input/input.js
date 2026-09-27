@@ -1673,6 +1673,16 @@ export class InputManager {
     return { open: at(3), prev: at(4), next: at(5) };
   }
 
+  /* A standard pad's X, which the aircraft picker takes as Customise.
+   * Standard only, for the reason padSwapButtons gives. */
+  padAltButton() {
+    const gp = this.firstGamepad();
+    if (!gp || gp.mapping !== 'standard' || !gp.buttons) {
+      return false;
+    }
+    return Boolean(gp.buttons[2] && gp.buttons[2].pressed);
+  }
+
   padMenuButtons() {
     const gp = this.firstGamepad();
     if (gp && gp.axes && (!gp.buttons || !gp.buttons.length)) {

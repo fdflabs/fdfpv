@@ -105,8 +105,10 @@ import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
-import { airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
+import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
+import { setLiverySource } from './render/livery.js';
+import { coloursFor, colourNumbers, liveryKey, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
@@ -546,6 +548,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    */
   input.startPolling(2);
   const ui = new Ui(uiRoot);
+  /* Every model of a plane is built in the pilot's paint for it
+   * (src/render/livery.js, configs/liveries.js), read from the settings as
+   * they are when it is built. The boot craft, built above, is a quad. */
+  setLiverySource((id) => (paintable(id) ? colourNumbers(coloursFor(id, ui.settings.livery[liveryKey(id)])) : null));
   /* The flight controller's OSD over the FPV camera. See src/ui/fpvhud.js. */
   const fpvOsd = new FpvOsd(uiRoot);
   /*
@@ -5095,16 +5101,18 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * to do (the same one, no run up, a swap already under way), and rejects
    * on a fault, which is loud by design: a half swapped aircraft is not a
    * state to fly on quietly. */
-  async function hotSwap(id) {
+  /* `refit` swaps the aircraft for itself: the hangar's new motor or pack
+   * put in the air where it is, by every rule a swap keeps. */
+  async function hotSwap(id, { refit = false } = {}) {
     const to = airframeById(id);
-    if (swapBusy || to.id !== id || to.id === runAirframe || !swapLive()) {
+    if (swapBusy || to.id !== id || (to.id === runAirframe) !== refit || !swapLive()) {
       return false;
     }
     swapBusy = true;
     try {
       const next = seatAirframe({ ...ui.settings }, to.id);
       const text = await swapTuneText(next.tune);
-      if (!swapLive() || to.id === runAirframe) {
+      if (!swapLive() || (to.id === runAirframe) !== refit) {
         return false;
       }
       seatSwap(to, next, text);
@@ -6660,6 +6668,42 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   ui.onHotSwap = hotSwap;
   ui.swapWarning = () => (race.currentLapMs(simTimeMs) != null ? str('carousel.swap_voids_lap') : '');
   /*
+   * THE HANGAR'S HOOKS (src/ui/hangar.js through Ui.openHangar).
+   *
+   * A preview paints the picker's model of that plane, the one the hangar
+   * shows, and nothing else; null puts it back in the saved paint.
+   *
+   * A save repaints every model of the plane's family (a float plane and
+   * its land plane wear one paint): the picker's, and the shell's own when
+   * it is drawing one, which is the flown craft or the title's aircraft,
+   * in place. A new motor or pack for the plane in the air is a refit, a
+   * swap of the aircraft for itself where it is (hotSwap), so it flies on
+   * the new power now; anywhere else it is the next seat's.
+   */
+  ui.onHangarPreview = (id, colours) => {
+    pickStage.repaint(id, colours);
+  };
+  ui.onHangarSave = async (id, res) => {
+    const family = liveryKey(id);
+    for (const af of AIRFRAMES) {
+      if (liveryKey(af.id) === family) {
+        pickStage.repaint(af.id);
+      }
+    }
+    if (res.powerChanged && liveryKey(runAirframe) === family && swapLive()) {
+      await hotSwap(runAirframe, { refit: true });
+    }
+    if (liveryKey(drawnCraft) === family) {
+      shell.repaintCraft(drawnCraft);
+    }
+  };
+  /* The power options the hangar offers: none yet beyond the stock setup,
+   * which the hangar draws from configs/airframes.js on its own. */
+  const hangarPower = () => null;
+  ui.hangarPower = hangarPower;
+  ui.hangarWarning = (id) => (liveryKey(id) === liveryKey(runAirframe) && race.currentLapMs(simTimeMs) != null
+    && hangarPower(id) ? str('hangar.power_voids_lap') : '');
+  /*
    * The first flight's prompts.
    *
    * THREE LINES, FIRED BY WHAT THE PILOT DOES, not by a clock. The banner
@@ -7123,10 +7167,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         left: c.roll < -NAV_DEFLECT,
         select: btn.select,
         back: btn.back,
+        alt: input.padAltButton(),
       };
     }
     const raw = input.navRaw();
-    return { up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back };
+    return { up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back, alt: input.padAltButton() };
   }
 
   /* Any real key or pointer press is the user gesture browsers require
@@ -9286,7 +9331,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * (src/render/carousel3d.js), so while it is up the world is live
      * whatever screen is under it, and the Quad screen's studio, which is a
      * second context, is put away rather than drawn unseen behind it. */
-    const pickerOn = ui.carousel.isOpen;
+    const pickerOn = ui.carousel.isOpen || ui.hangar.isOpen;
     const studioOn = ui.screen === 'quad' && !pickerOn;
     const worldLive = !freezeWorld && (
       Boolean(finishLoadingOnFrame)
@@ -9817,7 +9862,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         capLastDraw = nowWall;
       }
     }
-    if (worldLive && drawThis) {
+    /* The hangar covers the whole canvas with its own set, opaque, so the
+     * world under it is not drawn at all while it is up. */
+    if (worldLive && drawThis && !ui.hangar.isOpen) {
       view.post.render();
     }
     if (ui.screen === 'courses') {
@@ -9832,7 +9879,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * budget is measured as it always was. The picker's cost is its own:
      * see window.__carouselStats. */
     {
-      const pick = ui.carousel.frame(dt);
+      const pick = ui.hangar.isOpen ? ui.hangar.frame(dt) : ui.carousel.frame(dt);
       if (drawThis) {
         pickStage.draw(worldLive ? pick : null);
       }
@@ -10489,6 +10536,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * submit, draw calls, its target's size. Harness only. */
   window.__carouselStats = () => pickStage.stats();
   window.__lastSwap = () => lastSwap;
+  /* The paint on the craft the shell draws: which aircraft, the colour each
+   * region's materials are in now, and every colour on its drawn meshes,
+   * for scripts/hangar-check.js. */
+  window.__craftPaint = () => shell.craftPaint(drawnCraft);
+  window.__pickPaint = (id) => pickStage.paint(id);
   window.__craft = () => ({
     setting: ui.settings.airframe,
     run: runAirframe,

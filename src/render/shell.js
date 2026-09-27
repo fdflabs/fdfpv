@@ -38,6 +38,7 @@
 
 import * as THREE from 'three';
 import { buildCraft } from './craft.js';
+import { dressLivery } from './livery.js';
 import { CAMERA_FOV_DEFAULT } from './lens.js';
 
 /*
@@ -359,6 +360,8 @@ export function buildShell(canvas, opts) {
     launcherRest: craft.launcherRest ?? null,
     resize,
     swapCraft,
+    repaintCraft,
+    craftPaint,
     setCraftLook,
     keepAcrossMaps,
     evictSessionRoots,
@@ -408,6 +411,40 @@ export function buildShell(canvas, opts) {
     api.launcher = next.launcher ?? null;
     api.launcherRest = next.launcherRest ?? null;
     return next;
+  }
+
+  /*
+   * Paint the craft in the air again, in the livery its airframe wears now
+   * (src/render/livery.js): no rebuild, the same meshes in the same place,
+   * so a wreck's pieces, which share its materials, change with it. A
+   * map's look made its twins from the old colours, so it is undone and
+   * made again round the paint.
+   */
+  /* What the craft is painted in, read back for a check: each region's
+   * colour on its own materials, and every colour on a mesh drawn now,
+   * which under a map's look is the look's twins. As #rrggbb. */
+  function craftPaint(airframeId) {
+    const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
+    const drawn = new Set();
+    craft.group.traverse((o) => {
+      if (o.isMesh && o.visible && o.material && !Array.isArray(o.material) && o.material.color) {
+        drawn.add(hex(o.material.color.getHex()));
+      }
+    });
+    const regions = craft.livery ? craft.livery.read() : null;
+    return {
+      id: airframeId,
+      regions: regions && Object.fromEntries(Object.entries(regions).map(([k, v]) => [k, hex(v)])),
+      drawn: [...drawn].sort(),
+    };
+  }
+
+  function repaintCraft(airframeId) {
+    if (undoCraftLook) {
+      undoCraftLook();
+    }
+    dressLivery(craft, airframeId);
+    undoCraftLook = craftLook ? craftLook(craft) : null;
   }
 
   return api;
