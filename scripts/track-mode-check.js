@@ -20,7 +20,9 @@
  *      The results screen goes back to My tracks.
  *   5. Edit opens the builder on the same track, in the same world, and
  *      Escape comes back. Duplicate makes a copy under its own id and a
- *      name that says so. Delete asks first, and yes takes the copy out.
+ *      name that says so. With two cards listed, the cursor on Delete
+ *      shows the whole row, clear of the bars drawn over the screen. Delete
+ *      asks first, and yes takes the copy out.
  *
  * plane, the Skyhunter on the Alps, in a browser of its own:
  *
@@ -166,6 +168,25 @@ async function chooseCard(page, id) {
   }
   await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);
   await page.until(`window.__ui.cardSubject && window.__ui.cardSubject.endsWith(${JSON.stringify(`:${id}`)})`, 5000);
+}
+
+/*
+ * Put the cursor on the row whose action is `action`, the way the arrows
+ * do, and measure it: its box against the window's top and bottom bars,
+ * which are drawn over the screen. `clear` is the whole row visible.
+ */
+async function rowInView(page, action) {
+  const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})`);
+  await page.evaluate(`(() => { window.__ui.setCursor(${at}); return true; })()`);
+  await page.sleep(400);
+  return page.evaluate(`(() => {
+    const box = (n) => n.getBoundingClientRect();
+    const row = document.querySelector('.screen-courses .menu .on');
+    const top = box(document.querySelector('.frame-top')).bottom;
+    const bottom = box(document.querySelector('.frame-bot')).top;
+    const r = box(row);
+    return { text: row.textContent.trim(), row: [Math.round(r.top), Math.round(r.bottom)], bars: [Math.round(top), Math.round(bottom)], clear: r.top >= top && r.bottom <= bottom };
+  })()`);
 }
 
 const mine = (page) => page.evaluate('(window.__ui.localCourses || []).map((t) => ({ id: t.id, name: t.name, map: t.map, gates: t.gates }))');
@@ -465,6 +486,9 @@ async function quad() {
     say(two.length === 2 && copy && copy.name === `${name} copy` && copy.gates === 3 && copy.map === 'swiss2',
       `Duplicate makes a copy under its own id: ${copy ? `${copy.id}, ${JSON.stringify(copy.name)}` : 'none'}`);
     await chooseCard(page, copy.id);
+    const row = await rowInView(page, 'card-delete');
+    say(row.clear, `with two cards listed, the cursor on Delete shows the whole row, clear of both bars: ${JSON.stringify(row)}`);
+    await shot(page, '3-delete-row');
     await choose(page, 'card-delete');
     await page.until("(() => { const d = document.querySelector('.name-dialog-box'); return d && d.offsetParent !== null; })()", 10000).catch(() => {});
     const asked = await page.evaluate("(() => { const d = document.querySelector('.name-dialog-box'); return d && d.offsetParent !== null ? d.textContent : null; })()");

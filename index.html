@@ -2947,6 +2947,9 @@
           padding: 0 8px 8px;
           border-left: none;
         }
+        /* My tracks has its card strip and its notes right above the list,
+           so a line hung above the list lands on them. It goes under. */
+        .screen-courses .menu-help { position: static; padding: 8px 8px 0; }
         .title-foot .hint { text-align: left; max-width: none; }
         .craft-showcase {
           width: min(420px, 88vw);
@@ -3155,10 +3158,14 @@
          rows do not fit a 900 px window, and a nested scroller inside a
          screen that is already too tall is two scrollbars arguing. The
          cursor's scrollIntoView drives this one. */
+      /* The bottom bar is drawn over this scroller, so its padding and the
+         cursor's scroll both clear it: at 3vh alone the last row of a
+         card's list scrolled to the window's edge and sat under the bar. */
       .screen-courses {
         justify-content: flex-start;
         padding-top: 4vh;
-        padding-bottom: 3vh;
+        padding-bottom: calc(var(--bar-bot) + 3vh);
+        scroll-padding-bottom: calc(var(--bar-bot) + 8px);
         overflow-y: auto;
         overscroll-behavior: contain;
         pointer-events: auto;
