@@ -127,7 +127,10 @@ export function createGizmo() {
       if (h.kind === 'move') {
         h.group.localToWorld(a0.set(0, 0, 0));
         h.group.localToWorld(a1.set(0, ARROW, 0));
-        d = Math.sqrt(ray.distanceSqToSegment(a0, a1));
+        /* three's closed form comes out a hair below zero for a ray
+         * through the segment far from the origin, and the root of that is
+         * NaN, which is never near: the arrow the mouse is exactly on. */
+        d = Math.sqrt(Math.max(0, ray.distanceSqToSegment(a0, a1)));
       } else {
         for (let k = 0; k < RING_POINTS; k += 1) {
           const t = (k / RING_POINTS) * Math.PI * 2;
