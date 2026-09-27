@@ -87,6 +87,13 @@ export const PIECE_CATS = ['gates', 'stacks', 'wide', 'air'];
 /* The hotbar a new builder starts with: the common pieces, one a slot. */
 export const DEFAULT_HOTBAR = ['start', 'gate', 'flaggedGate', 'doubleStack', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon', 'ladder'];
 
+/* The hotbar a builder starts with when a fixed wing is seated. Every
+ * plane fits the wide gates and the pylons; the five inch pieces fit only
+ * the Cub, the Slow Stick and the Bombshell (a gate's opening must be 1.2
+ * spans, verify.js planesFor), so they come last. No start piece: the
+ * first gate placed is the start, and here that is a 5 m wide gate. */
+export const DEFAULT_WING_HOTBAR = ['wideGate5', 'wideGate3', 'pylonPair', 'pylon', 'pylonRight', 'gate', 'flaggedGate', 'doubleStack', 'ladder'];
+
 export const HOTBAR_SLOTS = 9;
 
 export function pieceById(id) {

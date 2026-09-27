@@ -123,7 +123,7 @@ import {
 import { builtGate } from '../render/pylons.js';
 import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
-  DEFAULT_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, createHistory,
+  DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, createHistory,
   gateFlags, gateSpec, gizmoAxes, makeStart, newCourse, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf,
   raceGatesOf, readoutFor, removeGate, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
 } from './course.js';
@@ -207,10 +207,13 @@ const BADGE_LIFT = 0.7;
  * (Colliders.gapAt frozenOnly).
  */
 const NOT_ROCK = ['tree', 'canopy', 'gate'].reduce((m, k) => m | (1 << KINDS.indexOf(k)), 0);
-/* This browser's own hotbar and whether the controls card was hidden:
- * conveniences, so a private window that refuses storage just starts from
- * the defaults. */
-const HOTBAR_KEY = 'webfpv.builder.hotbar.v1';
+/* This browser's own hotbars, one for the quads and one for the fixed
+ * wings, and whether the controls card was hidden: conveniences, so a
+ * private window that refuses storage just starts from the defaults. */
+const HOTBARS = {
+  quad: { key: 'webfpv.builder.hotbar.v1', pieces: DEFAULT_HOTBAR },
+  wing: { key: 'webfpv.builder.hotbar.wing.v1', pieces: DEFAULT_WING_HOTBAR },
+};
 const HELP_KEY = 'webfpv.builder.help.v1';
 /* The controls card's rows, each a string of keys and meaning. */
 const HELP_ROWS = ['look', 'fly', 'speed', 'hotbar', 'place', 'turn', 'air', 'grid', 'carry', 'free', 'undo', 'order', 'line', 'test', 'file', 'pad'];
@@ -242,10 +245,16 @@ function writeStore(key, value) {
   }
 }
 
-/* The hotbar as stored, or the default where a slot is not a piece. */
-function loadHotbar() {
-  const got = readStore(HOTBAR_KEY, null);
-  return DEFAULT_HOTBAR.map((id, i) => (Array.isArray(got) && pieceById(got[i]) ? got[i] : id));
+/* The hotbar for the seated aircraft's kind: a plane's opens on pieces
+ * it fits. */
+function hotbarKind(airframeId) {
+  return airframeById(airframeId).fixedWing ? 'wing' : 'quad';
+}
+
+/* A kind's hotbar as stored, or its default where a slot is not a piece. */
+function loadHotbar(kind) {
+  const got = readStore(HOTBARS[kind].key, null);
+  return HOTBARS[kind].pieces.map((id, i) => (Array.isArray(got) && pieceById(got[i]) ? got[i] : id));
 }
 
 export function createBuildMode(host) {
@@ -266,7 +275,8 @@ export function createBuildMode(host) {
   let root = null;
   let badges = null;
   let ghost = null;
-  let hotbar = loadHotbar();
+  let barKind = hotbarKind(ui.settings.airframe);
+  let hotbar = loadHotbar(barKind);
   let slot = 0;
   /* The piece being carried: { id, piece, keep, turn }. id is the gate it
    * was picked up from, or null for a copy that is not in the track yet;
@@ -1145,7 +1155,7 @@ export function createBuildMode(host) {
       return;
     }
     hotbar[slot] = piece.id;
-    writeStore(HOTBAR_KEY, hotbar);
+    writeStore(HOTBARS[barKind].key, hotbar);
     setSlot(slot);
   }
 
@@ -1511,6 +1521,11 @@ export function createBuildMode(host) {
   function enter(next) {
     view = host.view();
     craftId = airframeById(ui.settings.airframe).id;
+    if (hotbarKind(craftId) !== barKind) {
+      barKind = hotbarKind(craftId);
+      hotbar = loadHotbar(barKind);
+      slot = 0;
+    }
     const saved = next === undefined ? readMapAutosave(view.id) : null;
     doc = next || (saved ? saved.doc : newCourse(view.id, str('build.untitled')));
     history.clear();
@@ -2188,7 +2203,7 @@ export function createBuildMode(host) {
         onAssign: (id, i) => {
           const at = i >= 0 ? i : slot;
           hotbar[at] = id;
-          writeStore(HOTBAR_KEY, hotbar);
+          writeStore(HOTBARS[barKind].key, hotbar);
           setSlot(at);
         },
       });

@@ -503,11 +503,12 @@ const DEFAULTS = {
    * pack, drag and ducts, selected in the compiled module by
    * sim_set_airframe. configs/airframes.js is the list.
    *
-   * '5inch' stays the default and the first row, so a returning pilot's
-   * records, tune, rates and camera all still mean exactly what they did.
-   * An unknown id falls back to it rather than throwing, same rule as map
-   * and tune, because a stale localStorage entry must not stop the page
-   * booting.
+   * '5inch' is the blank profile's, the aircraft every other default here
+   * (the tune, the rates, the camera) is written for, and an unknown id
+   * falls back to it rather than throwing, same rule as map and tune,
+   * because a stale localStorage entry must not stop the page booting. A
+   * profile whose aircraft was never chosen is seated on FIRST_AIRFRAME
+   * when it loads.
    */
   airframe: '5inch',
   /*
@@ -1138,6 +1139,12 @@ export function loadSettings() {
   } else {
     s.graphics = normalizeGraphics(s.graphics);
   }
+  /* Seated through seatAirframe, so the tune, the pack, the rates and the
+   * camera come with it. Once seated it is the stored aircraft, so this
+   * runs once per profile. */
+  if (!s.airframeAsked && s.airframe !== FIRST_AIRFRAME) {
+    seatAirframe(s, FIRST_AIRFRAME);
+  }
   return s;
 }
 
@@ -1216,6 +1223,17 @@ function reseatIfForeign(s) {
  * rates and the camera belonging to the other aircraft, and every capture
  * past that point would be a photograph of a state the shell never puts a
  * pilot in. One function, so the seed cannot drift from the answer. */
+/*
+ * THE AIRCRAFT A PILOT WHO HAS NOT CHOSEN ONE FLIES, in every mode: a
+ * fresh visitor, or a profile that never answered the front page. The
+ * Timber, chosen 2026-09-27: it takes off in two metres with full flap and
+ * races every track built of wide gates. A pilot
+ * who has chosen keeps their choice; airframeAsked is what says they did.
+ * The title's attract flight is the Skyhunter's regardless (dressCraft in
+ * main.js).
+ */
+export const FIRST_AIRFRAME = 'timber1500';
+
 export function seatAirframe(s, id) {
   const from = airframeById(s.airframe);
   const to = airframeById(id);

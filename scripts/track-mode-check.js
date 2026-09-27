@@ -2,7 +2,7 @@
  * track-mode-check.js: Track mode, which is My tracks and the in-sim
  * builder, walked through the real page the way a pilot walks it.
  *
- *     node scripts/track-mode-check.js [OUT_DIR] [--only=quad|plane|old]
+ *     node scripts/track-mode-check.js [OUT_DIR] [--only=quad|plane|old|fresh]
  *
  * quad, the five inch on the Swiss valley:
  *
@@ -38,6 +38,12 @@
  *      creative builder: boots with no error, the seat is Track mode on the
  *      Swiss valley, My tracks lists only the built track, and Play seats
  *      it in its world as a race. ?map=custom boots too.
+ *
+ * fresh, a browser with no aircraft chosen:
+ *
+ *   9. The Timber is seated, on its own tune and camera; the Free Flight
+ *      and Track mode cards' pickers both open on it; and a new track built
+ *      with it opens on a plane's hotbar, a 5 m gate first.
  *
  * No console error and no uncaught exception anywhere, in any of them; a
  * resource the page could not fetch is not one, because the board is not
@@ -566,7 +572,53 @@ async function old() {
   }
 }
 
-const parts = { quad, plane, old };
+/*
+ * A fresh visitor, who has chosen no aircraft: the Timber is seated with
+ * its own tune and camera, both cards' pickers open on it, and a new track
+ * built with it opens on a hotbar of pieces a plane fits.
+ */
+async function fresh() {
+  console.log('a fresh visitor: the Timber');
+  const timber = airframeById('timber1500');
+  const page = await openPage({
+    root,
+    width: 1280,
+    height: 720,
+    url: '/index.html',
+    seed: [`try {
+      localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify({ fpsCap: 0, graphics: 'low' }));
+    } catch (e) { /* storage refused; the checks below will say so */ }
+    navigator.getGamepads = () => [];`],
+  });
+  try {
+    await shellUp(page);
+    const s = await page.evaluate('(({ airframe, airframeAsked, tune, cameraFov }) => ({ airframe, airframeAsked, tune, cameraFov }))(window.__ui.settings)');
+    say(s.airframe === timber.id && !s.airframeAsked && s.tune === timber.defaultTune && s.cameraFov === timber.cameraFov,
+      `nothing chosen seats the ${timber.short}, on its own tune and camera: ${JSON.stringify(s)}`);
+    await page.until('window.__ui.onGate()', 60000);
+    await choose(page, 'way-freestyle-wing1000');
+    await page.until('window.__ui.carousel.isOpen', 10000);
+    const flight = await page.evaluate('window.__ui.carousel.current()');
+    say(flight === timber.id, `the Free Flight card's picker opens on the ${timber.short}: ${flight}`);
+    await page.tap('Escape');
+    await page.until('!window.__ui.carousel.isOpen', 10000);
+    const picker = await trackModeCard(page);
+    say(picker.current === timber.id, `the Track mode card's picker opens on the ${timber.short}: ${picker.current}`);
+    const chosen = await page.evaluate('({ airframe: window.__ui.settings.airframe, asked: window.__ui.settings.airframeAsked })');
+    say(chosen.airframe === timber.id && chosen.asked, `choosing it keeps the ${timber.short} and records the choice`);
+    await newTrack(page, 'swiss2');
+    const bar = await page.evaluate(B('.hotbar'));
+    say(bar[0] === 'wideGate5' && !bar.includes('start'), `a new track with the ${timber.short} opens on a plane's hotbar, a 5 m gate first: ${bar.join(' ')}`);
+    const f = faults(page);
+    say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
+  } finally {
+    await page.close();
+  }
+}
+
+const parts = {
+  quad, plane, old, fresh,
+};
 for (const [name, run] of Object.entries(parts)) {
   if (opts.only && opts.only !== name) {
     continue;
