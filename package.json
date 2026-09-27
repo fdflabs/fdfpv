@@ -115,6 +115,7 @@
     "builder:selftest": "node scripts/build-selftest.js",
     "builder:check": "node scripts/build-check.js",
     "builder:share": "node scripts/map-share-check.js",
-    "builder:plane": "node scripts/map-plane-check.js"
+    "builder:plane": "node scripts/map-plane-check.js",
+    "pick:selftest": "node scripts/craft-pick-selftest.js"
   }
 }

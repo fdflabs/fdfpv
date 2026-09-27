@@ -102,6 +102,7 @@ import {
 } from './share/session.js';
 import { isMapTrack } from './trackbuilder/model.js';
 import { createShowcase } from './render/showcase.js';
+import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
@@ -672,6 +673,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     ui.renderMenu();
   }
   let showcase = null;
+  /* The aircraft picker's models, in the shell's own renderer. */
+  const pickStage = createCarouselStage(shell.renderer);
   /*
    * boot.js read the stored map before any module loaded, so it could weight
    * the loading screen. ui.js is the owner of the setting; if the two ever
@@ -8977,7 +8980,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      */
     const attractOn = !freezeWorld && mode === 'title'
       && (ui.screen === 'title' || ui.screen === 'launch');
-    const studioOn = ui.screen === 'quad';
+    /* The aircraft picker draws its models into this canvas over the world
+     * (src/render/carousel3d.js), so while it is up the world is live
+     * whatever screen is under it, and the Quad screen's studio, which is a
+     * second context, is put away rather than drawn unseen behind it. */
+    const pickerOn = ui.carousel.isOpen;
+    const studioOn = ui.screen === 'quad' && !pickerOn;
     const worldLive = !freezeWorld && (
       Boolean(finishLoadingOnFrame)
       || mode === 'flight'
@@ -8985,6 +8993,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       || mode === 'results'
       || ui.screen === 'courses'
       || attractOn
+      || pickerOn
       || Boolean(camOverride)
     );
     const wantVis = worldLive ? 'visible' : 'hidden';
@@ -9516,6 +9525,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (drawThis) {
       renderStats.calls = shell.renderer.info.render.calls;
       renderStats.triangles = shell.renderer.info.render.triangles;
+    }
+    /* After the world and after its numbers are read, so the world's own
+     * budget is measured as it always was. The picker's cost is its own:
+     * see window.__carouselStats. */
+    {
+      const pick = ui.carousel.frame(dt);
+      if (drawThis) {
+        pickStage.draw(worldLive ? pick : null);
+      }
     }
 
     /*
@@ -10142,6 +10160,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * the setting says whoop, the model draws a whoop, and the plant is still
    * integrating a 710 gram quad.
    */
+  /* The aircraft picker's own cost, measured in its draw: CPU time to
+   * submit, draw calls, its target's size. Harness only. */
+  window.__carouselStats = () => pickStage.stats();
   window.__craft = () => ({
     setting: ui.settings.airframe,
     run: runAirframe,

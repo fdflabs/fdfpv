@@ -107,6 +107,16 @@ export const AIRFRAMES = [
     /* What a pilot calls it out loud, for a card and for the board. */
     blurb: 'A 710 gram 6S freestyle and race quad. Eight and a half to one, forty metres a second, and a field big enough to use it.',
     facts: ['6S', '220 mm', '8.4 : 1'],
+    /*
+     * THE PICKER'S TWO NUMBERS (src/ui/carousel.js). `sizeMm` is the span of
+     * a fixed wing and the motor to motor diagonal of a quad, the figure its
+     * maker quotes. `grams` is the all up weight, which is plant.c's mass for
+     * this plant; the whoop, flown on the five inch's plant, carries the real
+     * 65 mm machine's, plant.c's airframe 1. scripts/craft-pick-selftest.js
+     * holds both to the module.
+     */
+    sizeMm: 220,
+    grams: 710,
     /* Track class. The builder, the world and the board all branch on this
      * rather than on the airframe id, because what changes is the SIZE OF
      * THE PLACE and one day there may be two airframes that fly the same
@@ -271,6 +281,8 @@ export const AIRFRAMES = [
     short: 'Whoop',
     blurb: 'A 65 mm ducted whoop indoors, flying the five inch\'s flight model. The hall and its gates are built to match it, so what you see is a whoop through 28 inch gates and what you feel is the 5 inch.',
     facts: ['Indoors', '65 mm', '5 inch feel'],
+    sizeMm: 65,
+    grams: 23.4,
     trackClass: 'micro',
     /* The five inch's, since this flies the five inch's plant. */
     topSpeed: 40,
@@ -443,6 +455,8 @@ export const AIRFRAMES = [
     short: 'Skyhunter',
     blurb: 'An 1800 mm twin boom FPV plane on 4S, with ailerons, elevator and rudder. Throw it, fly it long, land it on its skid.',
     facts: ['4S', '1800 mm', 'Twin boom'],
+    sizeMm: 1800,
+    grams: 2100,
     trackClass: 'wing',
     cells: 4,
     packVoltages: [4.2, 3.8, 3.5],
@@ -494,6 +508,8 @@ export const AIRFRAMES = [
     short: 'Cub',
     blurb: 'A 1400 mm Piper J-3 Cub on 3S, a taildragger with ailerons, elevator and rudder. Take off from the strip on its wheels and land it back on them.',
     facts: ['3S', '1400 mm', 'Taildragger'],
+    sizeMm: 1400,
+    grams: 1320,
     trackClass: 'wing',
     cells: 3,
     packVoltages: [4.2, 3.8, 3.5],
@@ -542,6 +558,8 @@ export const AIRFRAMES = [
     short: 'Radian',
     blurb: 'A 2 m E-flite Radian motor glider on 3S, with ailerons, elevator and rudder. Climb on the motor, fold the prop, and find the thermals over the field to stay up.',
     facts: ['3S', '2000 mm', 'Glider'],
+    sizeMm: 2000,
+    grams: 980,
     trackClass: 'wing',
     cells: 3,
     packVoltages: [4.2, 3.8, 3.5],
@@ -600,6 +618,8 @@ export const AIRFRAMES = [
     short: 'Bramor',
     blurb: 'A 2.3 m C-Astral Bramor C4EYE on 6S, a survey flying wing with a camera ball in its nose. Catapult it off the rail, fly it long, bring it down under its parachute.',
     facts: ['6S', '2300 mm', 'Catapult'],
+    sizeMm: 2300,
+    grams: 4500,
     trackClass: 'wing',
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
@@ -654,6 +674,8 @@ export const AIRFRAMES = [
     short: 'Stick',
     blurb: 'A 1176 mm GWS Slow Stick on 2S: rudder, elevator and throttle, no ailerons. The roll stick works the rudder, it floats at a jog, and it levels itself when you let go.',
     facts: ['2S', '1176 mm', 'Three channels'],
+    sizeMm: 1176,
+    grams: 420,
     trackClass: 'wing',
     cells: 2,
     packVoltages: [4.2, 3.8, 3.5],
@@ -708,6 +730,8 @@ export const AIRFRAMES = [
     short: 'Timber',
     blurb: 'A 1555 mm E-flite Turbo Timber Evolution on 4S, a bush plane with slats and big flaps. Full flaps and it is off the strip in two metres and crawls nose high; flaps up and it is quick and aerobatic. F sets the flaps.',
     facts: ['4S', '1555 mm', 'STOL, flaps'],
+    sizeMm: 1555,
+    grams: 1700,
     trackClass: 'wing',
     cells: 4,
     packVoltages: [4.2, 3.8, 3.5],
@@ -764,6 +788,8 @@ export const AIRFRAMES = [
     short: 'Timber floats',
     blurb: 'The Turbo Timber on its floats, on 4S. Half flaps, stick back until the floats get on the step, then let it run and rotate; land it back on the lake with full flaps and the stick held back. The water rudders steer it on the water.',
     facts: ['4S', '1555 mm', 'Floats'],
+    sizeMm: 1555,
+    grams: 1934,
     trackClass: 'wing',
     cells: 4,
     packVoltages: [4.2, 3.8, 3.5],
@@ -812,6 +838,8 @@ export const AIRFRAMES = [
     short: 'Cub floats',
     blurb: 'The 1400 mm Piper J-3 Cub on floats, on 3S. Full throttle and the stick back to get it on the step, rotate at flying speed, and land it back on the lake nose up. The water rudders steer it on the water.',
     facts: ['3S', '1400 mm', 'Floats'],
+    sizeMm: 1400,
+    grams: 1532,
     trackClass: 'wing',
     cells: 3,
     packVoltages: [4.2, 3.8, 3.5],
@@ -869,6 +897,8 @@ export const AIRFRAMES = [
     short: 'Bombshell',
     blurb: 'A 44 in BMJR Buzzard Bombshell, the 1940 free flight classic in balsa and red tissue, on a Cox .049 glow engine: rudder, elevator and throttle, no ailerons. The roll stick works the rudder, it levels itself when you let go, and it climbs in thermals.',
     facts: ['Glow .049', '1118 mm', 'Three channels'],
+    sizeMm: 1118,
+    grams: 559.9,
     trackClass: 'wing',
     cells: 3,
     packVoltages: [4.2, 3.8, 3.5],

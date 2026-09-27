@@ -4214,6 +4214,111 @@
       .pause-chip { top: 52px; }
       .pause-chip[hidden] { display: none; }
       .touch-fly-on .pause-chip { display: none; }
+      /*
+       * THE AIRCRAFT PICKER (src/ui/carousel.js). The models are drawn in
+       * the canvas UNDER all of this (src/render/carousel3d.js), so the
+       * stage is a hole: no background on it or on anything over it, and
+       * every other part of the UI hidden while it is up so nothing sits
+       * in front of the models. The dimming of the world is the canvas's
+       * too, for the same reason.
+       */
+      #ui.carousel-open > :not(.carousel) { visibility: hidden; }
+      .carousel {
+        position: absolute; inset: 0; z-index: 9;
+        display: flex; justify-content: center;
+        pointer-events: auto; user-select: none;
+        font-family: var(--ui-font); color: var(--cream);
+      }
+      .carousel[hidden] { display: none; }
+      .carousel-panel {
+        display: grid; grid-template-rows: auto minmax(150px, 1fr) auto auto;
+        width: min(1080px, 100%); box-sizing: border-box; gap: 10px;
+        padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+      }
+      .carousel-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; flex-wrap: wrap;
+      }
+      .carousel-title {
+        font-size: clamp(20px, 2.8vw, 28px); font-weight: 700; letter-spacing: 0.01em;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+      }
+      .carousel-tabs {
+        display: flex; gap: 2px; padding: 3px; border-radius: 999px;
+        background: rgba(12, 18, 14, 0.62); border: 1px solid rgba(243, 234, 212, 0.14);
+      }
+      .carousel-tab {
+        appearance: none; border: 0; background: transparent; color: var(--slate);
+        font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em;
+        padding: 8px 16px; border-radius: 999px; cursor: pointer;
+      }
+      .carousel-tab:hover { color: var(--cream); }
+      .carousel-tab.on { background: var(--cream); color: var(--deep); }
+      .carousel-stage { position: relative; min-height: 0; cursor: grab; }
+      .carousel-stage:active { cursor: grabbing; }
+      .carousel-arrow {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        width: 46px; height: 46px; border-radius: 50%;
+        border: 1px solid rgba(243, 234, 212, 0.3); background: rgba(12, 18, 14, 0.55);
+        color: var(--cream); font: 400 30px/1 var(--ui-font); cursor: pointer;
+        display: flex; align-items: center; justify-content: center; padding: 0 0 4px;
+      }
+      .carousel-arrow:hover:not(:disabled) { border-color: var(--mint); color: var(--mint); }
+      .carousel-arrow:disabled { opacity: 0.2; cursor: default; }
+      .carousel-prev { left: 0; }
+      .carousel-next { right: 0; }
+      .carousel-info { text-align: center; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
+      .carousel-name { font-size: clamp(24px, 3.6vw, 36px); font-weight: 700; letter-spacing: 0.01em; }
+      .carousel-facts { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+      .carousel-fact {
+        font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em; color: var(--amber);
+        padding: 6px 12px; border-radius: 999px;
+        background: rgba(12, 18, 14, 0.55); border: 1px solid rgba(255, 212, 92, 0.3);
+        text-shadow: none;
+      }
+      .carousel-note { margin: 10px auto 0; max-width: 40em; font-size: 15px; line-height: 1.4; }
+      .carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+      .carousel-dot {
+        appearance: none; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%;
+        background: rgba(243, 234, 212, 0.28); cursor: pointer;
+      }
+      .carousel-dot.on { background: var(--mint); transform: scale(1.35); }
+      .carousel-foot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+      .carousel-warn { margin: 0; font-size: 13px; color: var(--amber); }
+      .carousel-warn[hidden] { display: none; }
+      .carousel-buttons { display: flex; gap: 10px; }
+      .carousel-choose, .carousel-back {
+        appearance: none; font: 700 15px/1 var(--ui-font); letter-spacing: 0.03em;
+        padding: 12px 30px; border-radius: 999px; cursor: pointer;
+      }
+      .carousel-choose { background: var(--mint); color: var(--deep); border: 1px solid var(--mint); }
+      .carousel-choose:hover { background: #a6ffcc; }
+      .carousel-back { background: rgba(12, 18, 14, 0.55); color: var(--cream); border: 1px solid rgba(243, 234, 212, 0.4); }
+      .carousel-back:hover { border-color: var(--cream); }
+      .carousel-hint { margin: 0; font-size: 12px; color: var(--slate); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8); }
+      /* In flight: a band across the lower part of the paused picture, so the
+         pilot still sees where they are and which way they face. */
+      .carousel.compact { align-items: flex-end; }
+      .carousel.compact .carousel-panel {
+        grid-template-rows: auto minmax(120px, 36vh) auto auto; gap: 6px;
+        padding-top: 12px;
+      }
+      .carousel.compact .carousel-title { font-size: clamp(18px, 2.2vw, 22px); }
+      .carousel.compact .carousel-note { margin-top: 6px; font-size: 14px; }
+      /* A short screen, a phone on its side: the words give way to the models. */
+      @media (max-height: 520px) {
+        .carousel-panel { gap: 4px; padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+        .carousel-title { font-size: 18px; }
+        .carousel-name { font-size: 22px; }
+        .carousel-note { font-size: 13px; margin-top: 4px; }
+        .carousel-dots, .carousel-hint { display: none; }
+        .carousel-choose, .carousel-back { padding: 9px 22px; }
+        .carousel.compact .carousel-panel { grid-template-rows: auto minmax(90px, 1fr) auto auto; }
+      }
+      @media (max-width: 560px) {
+        .carousel-arrow { width: 38px; height: 38px; font-size: 24px; }
+        .carousel-tab { padding: 7px 11px; }
+      }
 
       .music-dock.on-flight {
         right: auto; left: 16px; top: 16px;

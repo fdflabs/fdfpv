@@ -66,6 +66,7 @@ const CAL_LABELS = {
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
+import { Carousel, kindOf } from './carousel.js';
 /* One function, for the one question this file asks the builder: which class
  * is the track a pilot is about to fly. */
 import { trackClassOf } from '../trackbuilder/elements.js';
@@ -2471,16 +2472,32 @@ function machineValue(s) {
   return af.fixedWing ? `${af.short}, ${tuneById(s.tune).name}` : tuneById(s.tune).name;
 }
 
-function craftItem(s, midRun) {
+/*
+ * During a run the row SWAPS the aircraft in place (src/main.js hotSwap)
+ * rather than seating it for the next one, so it no longer carries the
+ * start line warning: `swap` is the shell's, and absent between runs.
+ * Enter and a click open the picker (src/ui/carousel.js) through `open`,
+ * which the screen adds because it needs the Ui.
+ */
+function craftItem(s, swap) {
   const af = airframeById(s.airframe);
-  return choice(
-    str('ui.aircraft'),
-    str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v3: midRun ? MID_RUN_WARNING : '' }),
-    AIRFRAME_IDS,
-    s.airframe,
-    (id) => airframeById(id).name,
-    (id) => { seatAirframe(s, id); },
-  );
+  return {
+    ...choice(
+      str('ui.aircraft'),
+      str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v3: swap ? ` ${str('carousel.in_place')}` : '' }),
+      AIRFRAME_IDS,
+      s.airframe,
+      (id) => airframeById(id).name,
+      (id) => {
+        if (swap) {
+          swap(id);
+        } else {
+          seatAirframe(s, id);
+        }
+      },
+    ),
+    pickOnly: true,
+  };
 }
 
 /*
@@ -4085,6 +4102,7 @@ export class Ui {
       r.append(s);
     }
     r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.musicDock, this.nameDialog);
+    this.carousel = new Carousel(r);
     this.syncChips();
   }
 
@@ -5959,7 +5977,10 @@ export class Ui {
          * decoration, and decoration is what gives way.
          */
         { label: str('ui.the_machine'), section: true },
-        craftItem(s, midRun),
+        {
+          ...craftItem(s, midRun && this.onHotSwap ? (id) => this.swapTo(id) : null),
+          open: () => this.openCraftRow(midRun),
+        },
         tuneItem(s, midRun),
         {
           label: str('ui.firmware_bench'),
@@ -8118,6 +8139,12 @@ export class Ui {
     this.closeDrop();
     this.cursor = i;
     this.syncCursor();
+    /* A row whose list is better chosen from than read, the Aircraft row,
+     * opens its own picker in the list's place. */
+    if (it.open) {
+      it.open();
+      return;
+    }
     const list = el('div', 'drop-list');
     list.setAttribute('role', 'listbox');
     for (const opt of it.options) {
@@ -9386,6 +9413,10 @@ export class Ui {
      * trigger is already paying everywhere else: let go and flick again.
      */
     this.padRearm = true;
+    /* A picker belongs to the screen it was opened over. */
+    if (this.carousel && this.carousel.isOpen && screen !== this.screen) {
+      this.carousel.close();
+    }
     const pinned = locationHashScreen();
     if (pinned && screen === 'title') {
       screen = pinned;
@@ -11907,6 +11938,12 @@ export class Ui {
     if (this.onUiSound) {
       this.onUiSound('select');
     }
+    /* A card on the gate is half the answer: the other half, which
+     * aircraft, is chosen in front of the aircraft. */
+    if (it.card && this.onGate()) {
+      this.pickForWay(it.action);
+      return;
+    }
     this.act(it.action);
   }
 
@@ -12112,7 +12149,7 @@ export class Ui {
     this.act(this.returnTo === 'paused' ? 'paused' : 'title');
   }
 
-  act(action) {
+  act(action, picked = null) {
     /* The track builder is a separate page, so this is a navigation rather
      * than a screen. It has to be here and not in main.js's action handler
      * because leaving the page tears the simulator down, which is the whole
@@ -12348,8 +12385,13 @@ export class Ui {
        * called it unconditionally too, so this is older than the three
        * cards; it is fixed here because this is the line that does it.
        */
-      if (!way.airframes.includes(this.settings.airframe)) {
-        seatAirframe(this.settings, way.airframes[0]);
+      /* `picked` is the aircraft chosen in the carousel the card opens
+       * (pickForWay); a card answered without one, from a script or a
+       * link, keeps the rule it always had. */
+      const want = picked && way.airframes.includes(picked) ? picked
+        : way.airframes.includes(this.settings.airframe) ? this.settings.airframe : way.airframes[0];
+      if (want !== this.settings.airframe) {
+        seatAirframe(this.settings, want);
       }
       this.settings.airframeAsked = true;
       this.craftGate = false;
@@ -12782,6 +12824,65 @@ export class Ui {
     }
   }
 
+  /*
+   * THE AIRCRAFT PICKER (src/ui/carousel.js), from the three places an
+   * aircraft is chosen. Each says what the choice does; the picker only
+   * says which.
+   */
+  pickHint() {
+    if (this.lastInput === 'pad') {
+      return 'pad';
+    }
+    const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    return coarse ? 'touch' : 'key';
+  }
+
+  /* A card on the gate: the aircraft for that way in, then the way in. An
+   * aircraft from the other kind, chosen under All, takes the other card. */
+  pickForWay(action) {
+    const way = WAYS.find((w) => w.action === action);
+    if (!way) {
+      return;
+    }
+    const s = this.settings;
+    this.carousel.open({
+      current: way.airframes.includes(s.airframe) ? s.airframe : way.airframes[0],
+      filter: kindOf(way.airframes[0]),
+      title: way.label,
+      hint: this.pickHint(),
+      onChoose: (id) => {
+        const chosen = WAYS.find((w) => w.airframes.includes(id)) ?? way;
+        this.act(chosen.action, id);
+      },
+      onCancel: () => this.renderMenu(),
+    });
+  }
+
+  /* The Aircraft row. Between runs it seats the aircraft for the next one,
+   * as the row always has; in a run it swaps it in place. */
+  openCraftRow(midRun) {
+    const s = this.settings;
+    this.carousel.open({
+      current: s.airframe,
+      filter: kindOf(s.airframe),
+      hint: this.pickHint(),
+      onChoose: (id) => {
+        if (id === s.airframe) {
+          this.renderMenu();
+          return;
+        }
+        if (midRun && this.onHotSwap) {
+          this.swapTo(id).then(() => this.renderMenu());
+          return;
+        }
+        seatAirframe(s, id);
+        s.airframeAsked = true;
+        this.writeSettings();
+      },
+      onCancel: () => this.renderMenu(),
+    });
+  }
+
   /* Returns true when the key was a menu key and the shell should not
    * treat it as a flight control. repeat is the browser's key-repeat
    * flag: a held or quickly tapped arrow must step the cursor, but Enter
@@ -12795,6 +12896,9 @@ export class Ui {
     }
     const nav = code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight'
       || code === 'KeyW' || code === 'KeyS' || code === 'KeyA' || code === 'KeyD';
+    if (this.carousel.isOpen) {
+      return repeat && !nav ? true : this.carousel.handleKey(code);
+    }
     if (repeat && !nav) {
       return this.screen !== 'flight';
     }
@@ -12986,6 +13090,14 @@ export class Ui {
    * use pitch and roll for the cursor: those screens pose the airframe.
    */
   pollPad(nav) {
+    if (this.carousel.isOpen) {
+      this.lastInput = nav.up || nav.down || nav.left || nav.right || nav.select || nav.back ? 'pad' : this.lastInput;
+      this.carousel.pollPad(nav);
+      /* Seeded for the screen under it, so the press that closes the
+       * picker is not also a press on the menu it closes onto. */
+      this.padRearm = true;
+      return;
+    }
     if (this.screen === 'flight') {
       this.padPrev = { up: false, down: false, left: false, right: false, select: false, back: false };
       return;
