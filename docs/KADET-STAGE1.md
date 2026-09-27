@@ -179,22 +179,28 @@ and the first run, with the Bombshell's entries, is why:
 | S16 landing | | under 1.23 Vs, 8.81 m/s | touched at 7.69, rolled 41 m, at rest level |
 | S17 other aircraft unmoved | main's hashes | identical | identical |
 | S18 Node and Chrome | | identical | f153f3efb5a0c4ad both |
-| S20 idle on the strip | 2,300 rpm, stands | 2,185 to 2,415 rpm, under 1 mm/s | 2,300 rpm, **1.96 mm/s: FAILS** |
+| S20 idle on the strip | 2,300 rpm, stands | 2,185 to 2,415 rpm, under 1 mm/s | 2,300 rpm, 0.60 mm/s, stands |
 | S21 throttle closed, let go | 14.08 m/s sinking 2.32 | 2.07 to 2.60, 12.11 to 16.40 m/s | 2.41 at 14.24 |
 
-`npm run kadet:gates`: 20 of 21.
+`npm run kadet:gates`: 21 of 21.
 
-**S20 fails, and the band is left where it is.** At idle the Kadet should
-stand: 1.63 N of thrust against 2.14 N of rolling resistance. It creeps at
-2.6 mm/s, steadily, and its ground speed after the friction's impulse
-reads 1.96 mm/s where the Bombshell's reads 0.09. It is sim.c's single
-pass of wheel friction: each wheel's contact point is stopped in turn with
-an impulse that goes into the body's pitch as well as its travel, and on
-three rolling wheels under a CG 0.31 m up that pass leaves the body
-moving. A throwaway build with the nose wheel's rolling resistance raised
-to 0.30 cut the reading to 0.58 mm/s, so it is the solver's pass, not the
-thrust. A finding for the lead; the plant's contact code is shared by
-every aircraft and is not changed here.
+**S20 stands, on the band it failed.** At idle the Kadet should stand:
+1.63 N of thrust against 2.14 N of rolling resistance. It first crept at
+2.6 mm/s, its ground speed reading 1.96 mm/s. sim.c took each wheel's
+friction straight after its own strut's push, and a strut's push ahead
+of or behind the CG pitches the body and moves every contact point along
+the ground, so each wheel's friction stopped a motion the next strut
+undid and the pass ended with the body moving; and the thrust each step
+adds to the velocity is integrated into the position before the ground
+has its say, so even friction solved exactly let it creep 0.5 mm/s. Now
+every strut pushes first and the wheels' friction is solved together,
+holding each contact point against the next step's push as well as this
+one's (sim.c, wheels_friction). It moves 2.4 mm in the first second, as
+it settles 0.43 deg nose down onto its struts and the CG pivots forward
+over the tyres, and 0.0006 mm/s after that. The ground speed the gate
+reads, 0.60 mm/s, is the step's push backwards, held in the state at the
+end of the step for the next step's push to cancel, the same bookkeeping
+that has an aircraft on its struts rising at g dt there.
 
 ### Its stall, and what a pilot should expect
 

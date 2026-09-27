@@ -466,12 +466,14 @@ check: {
   /* S20: the glow engine at idle. On the strip with the throttle closed
    * the engine keeps turning at the conversion's idle, and its thrust is
    * under what the grass and the skid hold the aircraft with, so the
-   * wheels' friction holds it: its ground speed after the friction's
-   * impulse is nil. What it does move is sim.c's step order, not the
-   * grass: the thrust's 0.8 mm/s of speed each step is integrated into the
-   * position before the wheels' impulse takes it back, so a push under the
-   * breakaway creeps at that, and the gate reads the speed, which is what
-   * the friction decides, and prints the creep. */
+   * wheels' friction holds it. The ground speed read is the state at the
+   * end of a step, which for an aircraft held still is the step's push
+   * backwards, 0.8 mm/s, that the next step's push cancels before it
+   * moves anything (sim.c, wheels_friction); the creep printed is the
+   * distance itself. Until the wheels' friction held the point against
+   * the next step's push the speed read 0.09 mm/s and the aircraft crept
+   * 0.8 mm/s, the push integrated into the position before the friction
+   * took it back. */
   {
     const t20 = th.s20_idle;
     must(sim.reset(), 'sim_reset');

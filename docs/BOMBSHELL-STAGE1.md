@@ -244,7 +244,7 @@ Stick's in proportion about the derived figure unless it says otherwise.
 | S15 take off | 18.85 m to liftoff at 7.78 m/s, 3.93 s, heading 4.9 deg left | |
 | S16 landing | touched at 7.59 m/s, rolled 21.8 m, at rest at 8.41 deg | |
 | S19 thermal | 15.1 m (16.2 against 1.1 in still air) | 11.1 to 18.5 |
-| S20 idle | 3,740 rpm, 0.452 N, ground speed 0.09 mm/s | |
+| S20 idle | 3,740 rpm, 0.452 N, ground speed 0.80 mm/s, crept 0.2 mm in 5 s | |
 | S21 hands off glide | sink 0.90 m/s at 7.94 m/s, alpha at most 8.5 deg | sink 0.82 to 1.03 |
 
 What flying it before the bands were final changed, and what it found:
@@ -261,7 +261,11 @@ What flying it before the bands were final changed, and what it found:
   impulse takes it back, so any push under the breakaway creeps at that,
   on every aircraft. The gate now reads the ground speed the friction
   leaves, 0.09 mm/s, and prints the creep. A finding for the lead, not
-  changed here.
+  changed here. Fixed since: sim.c's wheels_friction holds each contact
+  point against the next step's push as well as this one's, so the
+  aircraft stands (0.2 mm in 5 s, all of it settling), and the speed it
+  reads is that push backwards, 0.80 mm/s, left in the state at the end
+  of the step for the next step to cancel.
 - The stabiliser. The Slow Stick's gains stalled this aircraft: from its
   cruise, 8.2 m/s against the plant's 7.3 m/s stall on its rounded lift
   curve, a pitch of 17 deg asked for is a stall and not a climb. Its

@@ -853,17 +853,32 @@ static void ground_settle(double upz, double vn_plant) {
  * short grass and the ground's material's share of it elsewhere, more
  * with the brake on (plant_wheel_roll);
  * across it the tyre grips up to mu_side N, a rolling tyre only as far as
- * its slip angle lets it (wheel_side). Each is an impulse that would
+ * its slip angle lets it (wheel_side_cap). Each is an impulse that would
  * stop the point's velocity along that direction, through the same
  * effective mass the hull's contact uses, clipped at its cone. The
  * tailwheel's heading turns with the rudder, so it steers.
  *
  * The heading is the wheel's forward axis laid onto the ground plane; a
  * wheel whose axis stands nearly on end, an aircraft on its side, has no
- * rolling direction and gets the normal force alone. Order is the table's,
- * one pass per step, deterministic.
+ * rolling direction and gets the normal force alone.
+ *
+ * Every wheel's strut pushes first, and then the friction of all of them
+ * is solved together (wheels_friction). Friction taken one wheel at a
+ * time, each straight after its own strut, cannot hold an aircraft still:
+ * a strut's push behind or ahead of the CG pitches the body, which moves
+ * every contact point along the ground, so each wheel's friction stopped
+ * a motion the next wheel's strut undid, and the pass ended with the
+ * body moving. A Cub with its engine off crept backwards 2.0 mm/s, and a
+ * Kadet at idle, its 1.63 N of thrust under its wheels' 2.14 N of
+ * rolling resistance, crept forwards 2.6 mm/s. Order is the table's,
+ * deterministic.
  */
 static double g_wheel_load[SIM_WHEELS_MAX];
+/* What the plant's own forces did to the velocity this step, world, and
+ * to the body rates, body frame: the wheels' friction holds a point
+ * against the next step's push as well as this one's (wheels_friction). */
+static double g_plant_dv[3];
+static double g_plant_dw[3];
 
 static void contact_point_vel(const double r[3], double out[3]) {
   double w[3];
@@ -940,32 +955,153 @@ static void wheel_friction(const double r[3], const double d[3], double jmax) {
  * point, so it cannot throw the point back. Pacejka's relaxation length,
  * about the tyre's radius, is left out: at a rolling 0.5 m/s a 22 mm
  * tyre's force follows its slip within 45 ms and at 6 m/s within 4 ms,
- * inside the tenths of a second the roll's swings take.
+ * inside the tenths of a second the roll's swings take. Returns the side
+ * row's limit, an impulse, out of the whole grip jmax.
  */
-static void wheel_side(const WheelParams *wp, const double r[3], const double l[3], const double h[3],
-                       double jmax) {
+static double wheel_side_cap(const WheelParams *wp, const double r[3], const double l[3], const double h[3],
+                             double jmax) {
   double vp[3];
   contact_point_vel(r, vp);
   const double vl = vp[0] * l[0] + vp[1] * l[1] + vp[2] * l[2];
   const double vh = vp[0] * h[0] + vp[1] * h[1] + vp[2] * h[2];
-  const double kd = contact_k_along(r, l);
-  if (!(kd > 1e-12)) {
-    return;
-  }
-  double cap = jmax;
   const double avl = vl < 0.0 ? -vl : vl;
   const double avh = vh < 0.0 ? -vh : vh;
   if (wp->slide > 0.0 && avl < wp->slide * avh) {
     const double u = 1.0 - avl / (wp->slide * avh);
-    cap = jmax * (1.0 - u * u * u);
+    return jmax * (1.0 - u * u * u);
   }
-  double j = -vl / kd;
-  if (j > cap) {
-    j = cap;
-  } else if (j < -cap) {
-    j = -cap;
+  return jmax;
+}
+
+/*
+ * One direction of one tyre's friction, a row of the wheels' solve: where
+ * it acts and along what, the limit it has now and the grip it has when
+ * the tyre is not rolling, both impulses.
+ */
+typedef struct {
+  double r[3];
+  double d[3];
+  double cap;
+  double grip;
+} WheelRow;
+
+/* The sweeps of the wheels' solve: at most WHEEL_SWEEPS, and done once no
+ * row changes its point's speed by more than WHEEL_SETTLED m/s, which
+ * would carry an aircraft 0.4 mm in an hour. A rolling aircraft settles
+ * in two or three sweeps. One standing or turning slowly takes four to
+ * eleven on average, and up to one solve in five runs out of sweeps: its
+ * rows along the ground are nearly the same constraint under a CG high
+ * above them, a mode Gauss Seidel closes on slowly, and whose remainder
+ * moves nothing (every wheeled aircraft stands to under 0.001 mm/s over
+ * 30 s at idle). */
+#define WHEEL_SWEEPS 32
+#define WHEEL_SETTLED 1e-7
+
+/* Projected Gauss Seidel on the rows' own system, K j = b with each j
+ * held inside its row's limit: K[a][b] is the speed row a's point takes
+ * along its direction from a unit impulse on row b. */
+static void wheels_sweep(int n, const double K[][2 * SIM_WHEELS_MAX], const double *b, const WheelRow *rows,
+                         double *j) {
+  for (int it = 0; it < WHEEL_SWEEPS; it += 1) {
+    double worst = 0.0;
+    for (int a = 0; a < n; a += 1) {
+      if (!(K[a][a] > 1e-12)) {
+        continue;
+      }
+      double res = b[a];
+      for (int c = 0; c < n; c += 1) {
+        res -= K[a][c] * j[c];
+      }
+      double ja = j[a] + res / K[a][a];
+      if (ja > rows[a].cap) {
+        ja = rows[a].cap;
+      } else if (ja < -rows[a].cap) {
+        ja = -rows[a].cap;
+      }
+      const double dv = (ja - j[a]) * K[a][a];
+      j[a] = ja;
+      if ((dv < 0.0 ? -dv : dv) > worst) {
+        worst = dv < 0.0 ? -dv : dv;
+      }
+    }
+    if (!(worst > WHEEL_SETTLED)) {
+      return;
+    }
   }
-  contact_push(r, l, j);
+}
+
+/*
+ * The wheels' friction, every row together: the impulses that stop every
+ * contact point along its row's direction at once, each held inside its
+ * limit. A row whose limit binds slides at it, the rolling resistance of
+ * a rolling wheel, and one inside its limit holds. Solved on the rows' own
+ * small system and then pushed into the body, one impulse a row.
+ *
+ * Holding is in the next step's terms. The plant moves the body with the
+ * velocity its forces leave, before the ground has its say, so a point
+ * stopped dead here is moved on by the next step's thrust anyway: a Kadet
+ * at idle crept 0.5 mm/s that way with its friction solved exactly. The
+ * point is left instead with the speed along d that this step's push gave
+ * it, backwards, which the next step's push cancels before it moves
+ * anything: the same bookkeeping that leaves a body resting on its struts
+ * rising at g dt at the end of each step. It holds exactly while the push
+ * holds still, an engine at idle or the slope of the ground; and for a
+ * row at its limit it changes nothing.
+ *
+ * A tyre whose rolling resistance holds it is not rolling, so it has no
+ * slip angle, and across its heading it grips as a skid does: once the
+ * solve has found which wheels its rolling resistance holds, their side
+ * rows get the whole mu_side N and it is solved again. A rolling tyre
+ * keeps the brush model's grip for its slip.
+ */
+static void wheels_friction(WheelRow *rows, int n) {
+  double dw[3];
+  contact_rotate(g_plant_dw, dw);
+  double rd[2 * SIM_WHEELS_MAX][3], ird[2 * SIM_WHEELS_MAX][3], b[2 * SIM_WHEELS_MAX], j[2 * SIM_WHEELS_MAX];
+  double K[2 * SIM_WHEELS_MAX][2 * SIM_WHEELS_MAX];
+  for (int a = 0; a < n; a += 1) {
+    const double *r = rows[a].r;
+    const double *d = rows[a].d;
+    rd[a][0] = r[1] * d[2] - r[2] * d[1];
+    rd[a][1] = r[2] * d[0] - r[0] * d[2];
+    rd[a][2] = r[0] * d[1] - r[1] * d[0];
+    contact_iinv(rd[a], ird[a]);
+    double vp[3];
+    contact_point_vel(r, vp);
+    const double u[3] = {
+      vp[0] + g_plant_dv[0] + (dw[1] * r[2] - dw[2] * r[1]),
+      vp[1] + g_plant_dv[1] + (dw[2] * r[0] - dw[0] * r[2]),
+      vp[2] + g_plant_dv[2] + (dw[0] * r[1] - dw[1] * r[0]),
+    };
+    b[a] = -(u[0] * d[0] + u[1] * d[1] + u[2] * d[2]);
+    j[a] = 0.0;
+  }
+  const double invm = 1.0 / PLANT.mass_kg;
+  for (int a = 0; a < n; a += 1) {
+    for (int c = 0; c < n; c += 1) {
+      const double *da = rows[a].d;
+      const double *dc = rows[c].d;
+      K[a][c] = (da[0] * dc[0] + da[1] * dc[1] + da[2] * dc[2]) * invm
+          + rd[a][0] * ird[c][0] + rd[a][1] * ird[c][1] + rd[a][2] * ird[c][2];
+    }
+  }
+  wheels_sweep(n, K, b, rows, j);
+  int regrip = 0;
+  for (int a = 0; a + 1 < n; a += 2) {
+    const double aj = j[a + 1] < 0.0 ? -j[a + 1] : j[a + 1];
+    if (aj < rows[a + 1].cap && rows[a].cap < rows[a].grip) {
+      rows[a].cap = rows[a].grip;
+      regrip = 1;
+    }
+  }
+  if (regrip) {
+    wheels_sweep(n, K, b, rows, j);
+  }
+  for (int a = 0; a < n; a += 1) {
+    if (j[a] != 0.0) {
+      contact_push(rows[a].r, rows[a].d, j[a]);
+    }
+  }
 }
 
 /* Returns the number of wheels carrying load this step. */
@@ -992,6 +1128,11 @@ static int ground_wheels(void) {
     down[2] = n[2];
   }
   int loaded = 0;
+  /* Two friction rows a loaded wheel, across its heading then along it,
+   * for the solve once every strut has pushed. */
+  WheelRow rows[2 * SIM_WHEELS_MAX];
+  int wi[SIM_WHEELS_MAX];
+  int nw = 0;
   for (int i = 0; i < PLANT.wheel_count; i += 1) {
     const WheelParams *wp = &PLANT.wheel[i];
     g_wheel_load[i] = 0.0;
@@ -1039,14 +1180,23 @@ static int ground_wheels(void) {
     h[0] /= hl;
     h[1] /= hl;
     h[2] /= hl;
-    const double l[3] = {
-      n[1] * h[2] - n[2] * h[1],
-      n[2] * h[0] - n[0] * h[2],
-      n[0] * h[1] - n[1] * h[0],
+    const double grip = wp->mu_side * jn;
+    const double roll = plant_wheel_roll(wp, crash_ground_material(), plant_wing_brake()) * jn;
+    rows[2 * nw] = (WheelRow){
+      { r[0], r[1], r[2] },
+      { n[1] * h[2] - n[2] * h[1], n[2] * h[0] - n[0] * h[2], n[0] * h[1] - n[1] * h[0] },
+      grip, grip,
     };
-    wheel_side(wp, r, l, h, wp->mu_side * jn);
-    wheel_friction(r, h, plant_wheel_roll(wp, crash_ground_material(), plant_wing_brake()) * jn);
+    rows[2 * nw + 1] = (WheelRow){ { r[0], r[1], r[2] }, { h[0], h[1], h[2] }, roll, roll };
+    wi[nw] = i;
+    nw += 1;
   }
+  /* The side rows' slip, now that every strut has pushed. */
+  for (int k = 0; k < nw; k += 1) {
+    WheelRow *side = &rows[2 * k];
+    side->cap = wheel_side_cap(&PLANT.wheel[wi[k]], side->r, side->d, rows[2 * k + 1].d, side->grip);
+  }
+  wheels_friction(rows, 2 * nw);
   return loaded;
 }
 
@@ -2393,10 +2543,16 @@ SIM_EXPORT int sim_step(int n) {
       float_mass_begin();
     }
     /* The wing has no controller: the sticks go to its plant as they are. */
+    const double v0[3] = { S.vel[0], S.vel[1], S.vel[2] };
+    const double w0[3] = { S.omega[0], S.omega[1], S.omega[2] };
     if (PLANT.kind == PLANT_KIND_WING) {
       plant_wing_step(&S, g_current_rc);
     } else {
       plant_step(&S, duty);
+    }
+    for (int q = 0; q < 3; q += 1) {
+      g_plant_dv[q] = S.vel[q] - v0[q];
+      g_plant_dw[q] = S.omega[q] - w0[q];
     }
     crash_batch_begin(&S, 1);
     ground_apply();
