@@ -242,6 +242,194 @@ static double add_term(double sum, double term) {
   return sum - (0.0 - term);
 }
 
+/*
+ * THE PACK AND THE TANK, docs/POWER-STAGE1.md.
+ *
+ * LIPO_OCV: a LiPo cell's open circuit voltage at rest against its state of
+ * charge, at 0, 5, ..., 100 percent. The source is cited in the doc; the
+ * curve is linear between its points, which needs no libm.
+ */
+#define LIPO_OCV_N 21
+static const double LIPO_OCV[LIPO_OCV_N] = {
+  3.27, 3.61, 3.69, 3.71, 3.73, 3.75, 3.77, 3.79, 3.80, 3.82, 3.84,
+  3.85, 3.87, 3.91, 3.95, 3.98, 4.02, 4.08, 4.11, 4.15, 4.20,
+};
+
+double plant_lipo_ocv(double soc) {
+  if (!(soc > 0.0)) {
+    return LIPO_OCV[0];
+  }
+  if (soc >= 1.0) {
+    return LIPO_OCV[LIPO_OCV_N - 1];
+  }
+  const double x = soc * (double)(LIPO_OCV_N - 1);
+  const int i = (int)x;
+  return LIPO_OCV[i] + (x - (double)i) * (LIPO_OCV[i + 1] - LIPO_OCV[i]);
+}
+
+/* The curve read backwards: the state of charge a rested cell at v volts
+ * holds. Outside the curve it is empty or full. */
+static double lipo_soc(double v) {
+  if (!(v > LIPO_OCV[0])) {
+    return 0.0;
+  }
+  if (v >= LIPO_OCV[LIPO_OCV_N - 1]) {
+    return 1.0;
+  }
+  int i = 0;
+  while (LIPO_OCV[i + 1] < v) {
+    i += 1;
+  }
+  const double f = (v - LIPO_OCV[i]) / (LIPO_OCV[i + 1] - LIPO_OCV[i]);
+  return ((double)i + f) / (double)(LIPO_OCV_N - 1);
+}
+
+/* An electric motor on a pack that drains. A glow engine, a quad and a
+ * table with no capacity never drain. */
+static int pack_drains(const FixedWingParams *fw) {
+  return PLANT.pack_c > 0.0 && !(fw->throttle_idle > 0.0);
+}
+
+void plant_power_reset(SimState *s) {
+  s->charge_c = 0.0;
+  s->soc0 = lipo_soc(s->cell_voltage_oc);
+  s->v_cell0 = plant_lipo_ocv(s->soc0);
+  s->v_cell = s->v_cell0;
+  s->fuel_m3 = (PLANT.kind == PLANT_KIND_WING && PLANT.fw != 0) ? PLANT.fw->tank_m3 : 0.0;
+  s->power_out = 0;
+  s->lvc_cap = 1.0e9;
+}
+
+/*
+ * The duty the motor or engine turns at, from the duty the stick and the
+ * throttle stop ask for.
+ *
+ * ELECTRIC. A motor's speed is its kV times the voltage it is given, so at
+ * a duty its speed goes with the pack's LOADED voltage. The table's thrust,
+ * pitch speed and current are the pack's as it was seated; now they are
+ * the pack's at a speed scaled by the loaded voltage now over the loaded
+ * voltage seated, at last step's current, and a duty scaled by that ratio
+ * carries it through the thrust (speed squared) and the pitch speed
+ * (speed). At the seat the ratio is exactly 1 and every product below is
+ * the table's. *r_v is the ratio, for power_current. Once the ESC's low
+ * voltage cutoff has acted (power_drain) the duty is held under its cap.
+ *
+ * GLOW. Over the last lean_frac of the tank the mixture leans and the rpm
+ * rises by up to lean_gain, then power_drain stops the engine.
+ */
+static double power_duty(const SimState *s, const FixedWingParams *fw, double duty, double *r_v) {
+  *r_v = 1.0;
+  if (s->power_out) {
+    return duty;
+  }
+  if (fw->throttle_idle > 0.0) {
+    if (fw->tank_m3 > 0.0 && fw->lean_frac > 0.0) {
+      const double left = s->fuel_m3 / fw->tank_m3;
+      if (left < fw->lean_frac) {
+        return duty * (1.0 + fw->lean_gain * (1.0 - left / fw->lean_frac));
+      }
+    }
+    return duty;
+  }
+  if (!pack_drains(fw)) {
+    return duty;
+  }
+  const double sag = s->pack_current * PLANT.r_cell;
+  *r_v = (s->v_cell - sag) / (s->v_cell0 - sag);
+  const double de = duty * *r_v;
+  return de < s->lvc_cap ? de : s->lvc_cap;
+}
+
+/*
+ * The pack's current, from the power the prop takes. Momentum theory: a
+ * disc of area A making thrust T at an inflow V takes T (V + v_i), with
+ * v_i = sqrt(V^2 / 4 + T / (2 rho A)) - V / 2 (Glauert; McCormick,
+ * Aerodynamics, Aeronautics and Flight Mechanics, 2nd ed., 6.2). The
+ * table's full throttle current is the static full throttle thrust's
+ * power, so the current is that current times the power now over the
+ * power then: at a standstill a duty's current goes as its cube, the
+ * motor's current (the square) through the ESC's switching (the duty), and
+ * at flight speed the prop unloads. The same power off a sagged pack is
+ * more current, so it is over r_v. An electric motor only; nothing when
+ * the prop makes no thrust.
+ */
+static double power_current(const FixedWingParams *fw, double thrust, double v, double r_v) {
+  if (!(fw->current_full > 0.0) || !(thrust > 0.0)) {
+    return 0.0;
+  }
+  const double k = 1.0 / (2.0 * PLANT.rho * WING_PI * PLANT.prop_r * PLANT.prop_r);
+  const double vi = sim_sqrt(0.25 * v * v + thrust * k) - 0.5 * v;
+  const double vi0 = sim_sqrt(fw->thrust_static * k);
+  return fw->current_full * (thrust * (v + vi)) / (fw->thrust_static * vi0) / r_v;
+}
+
+/*
+ * One step's draw. The pack: the step's current out of its charge, the
+ * curve's voltage at what is left, and the loaded voltage under the
+ * current; flat when the charge is gone. The ESC's soft low voltage
+ * cutoff: when the loaded cell voltage falls under its threshold it caps
+ * the duty at the one whose current leaves it there, taking the current as
+ * the duty squared at the airspeed it has, and the cap holds until the
+ * pack is changed, as a hobby ESC's does until it is re-armed. The tank:
+ * the fuel the engine burns at its rpm this step, linear from the idle's
+ * flow to the full's; dry, the engine quits. A flat pack and a dry tank
+ * leave power_out set until a reset, a new pack or a new power system.
+ */
+static void power_drain(SimState *s, const FixedWingParams *fw, double duty, double de) {
+  if (fw->throttle_idle > 0.0) {
+    s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
+    if (fw->tank_m3 > 0.0 && !s->power_out) {
+      const double open = (duty - fw->throttle_idle) / (1.0 - fw->throttle_idle);
+      s->fuel_m3 -= (fw->flow_idle + (fw->flow_full - fw->flow_idle) * open) * SIM_DT;
+      if (!(s->fuel_m3 > 0.0)) {
+        s->fuel_m3 = 0.0;
+        s->power_out = 1;
+      }
+    }
+    return;
+  }
+  if (!pack_drains(fw)) {
+    s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
+    return;
+  }
+  s->charge_c += s->pack_current * SIM_DT;
+  const double soc = s->soc0 - s->charge_c / PLANT.pack_c;
+  if (!(soc > 0.0)) {
+    s->power_out = 1;
+  }
+  s->v_cell = plant_lipo_ocv(soc);
+  s->vbat_load = PLANT.cells * (s->v_cell - s->pack_current * PLANT.r_cell);
+  if (PLANT.lvc > 0.0 && s->pack_current > 0.0 && s->vbat_load < PLANT.cells * PLANT.lvc) {
+    const double i_max = (s->v_cell - PLANT.lvc) / PLANT.r_cell;
+    const double cap = i_max > 0.0 ? de * sim_sqrt(i_max / s->pack_current) : 0.0;
+    if (cap < s->lvc_cap) {
+      s->lvc_cap = cap;
+    }
+  }
+}
+
+void plant_power_state(const SimState *s, double *out) {
+  const int wing = PLANT.kind == PLANT_KIND_WING && PLANT.fw != 0;
+  const FixedWingParams *fw = PLANT.fw;
+  const int drains = wing && pack_drains(fw);
+  const double tank = wing ? fw->tank_m3 : 0.0;
+  double soc = drains ? s->soc0 - s->charge_c / PLANT.pack_c : 1.0;
+  if (!(soc > 0.0)) {
+    soc = 0.0;
+  }
+  out[0] = soc;
+  out[1] = s->charge_c;
+  out[2] = drains ? s->v_cell : s->cell_voltage_oc;
+  out[3] = tank > 0.0 ? s->fuel_m3 : 0.0;
+  out[4] = tank > 0.0 ? s->fuel_m3 / tank : 1.0;
+  out[5] = s->power_out ? 0.0 : 1.0;
+  out[6] = (wing && tank > 0.0 && fw->lean_frac > 0.0 && !s->power_out
+            && s->fuel_m3 / tank < fw->lean_frac) ? 1.0 : 0.0;
+  out[7] = drains ? PLANT.pack_c : 0.0;
+  out[8] = tank;
+  out[9] = plant_power_custom() ? 1.0 : 0.0;
+}
+
 /* Cubic smoothstep from 0 at a to 1 at b. */
 static double smoothstep(double a, double b, double x) {
   if (x <= a) {
@@ -978,8 +1166,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   }
   if (duty < fw->duty_min) duty = fw->duty_min;
   if (duty > 1.0) duty = 1.0;
+  /* The pack or the tank, power_duty below: the duty the motor actually
+   * turns at, which is the stick's while the pack is as it was seated. */
+  double r_v;
+  const double duty_e = power_duty(s, fw, duty, &r_v);
+  const int flat = s->power_out;
   const double u_pos = u > 0.0 ? u : 0.0;
-  double thrust = fw->thrust_static * duty * duty * (1.0 - u_pos / (fw->pitch_speed * duty));
+  double thrust = fw->thrust_static * duty_e * duty_e * (1.0 - u_pos / (fw->pitch_speed * duty_e));
+  const double thrust_motor = thrust;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
    * stopping at zero. A fixed prop stops at zero. */
@@ -990,18 +1184,22 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     thrust = 0.0;
   }
   if (g_chute) thrust = 0.0; /* the motor is cut with the pull */
-  const int dead = CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power);
+  const int dead = flat || (CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power));
   if (CRASH.active) {
     thrust = dead ? 0.0 : thrust * CRASH.kt[0];
+  } else if (flat) {
+    thrust = 0.0;
   }
   F[0] += thrust;
-  const double rpm = (folded || g_chute || dead) ? 0.0 : 0.85 * duty * fw->rpm_no_load;
+  const double rpm = (folded || g_chute || dead) ? 0.0 : 0.85 * duty_e * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = (folded || g_chute || dead) ? 0.0 : fw->current_full * duty * duty;
-  s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
+  s->pack_current = (folded || g_chute || dead) ? 0.0
+                    : pack_drains(fw) ? power_current(fw, thrust_motor, u_pos, r_v)
+                    : fw->current_full * duty_e * duty_e;
+  power_drain(s, fw, duty, duty_e);
   if (CRASH.active && CRASH.no_power) {
     s->vbat_load = 0.0;
   }
@@ -1062,7 +1260,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double m_aero = qbar * fw->area * fw->chord *
                         add_term(add_term(fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v + fw->cm_de * delta_e,
                                           cm_stall),
-                                 fw->cm_dcl_f * dcl_f);
+                                 add_term(fw->cm_dcl_f * dcl_f, -(fw->cg_shift / fw->chord) * CL));
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
   double M[3];
   M[0] = l_aero - fw->torque_arm * thrust; /* the prop turns one way; the airframe answers the other */

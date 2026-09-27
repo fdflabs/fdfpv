@@ -592,6 +592,84 @@ int sim_wing_flaps_settle(void);
 int sim_wing_set_slats(int fitted);
 
 /*
+ * THE POWER SYSTEM, docs/POWER-STAGE1.md, fixed wings only (airframes 2 to
+ * 12). The quads' plant never drains its pack and none of this applies
+ * to them.
+ *
+ * WHAT EVERY FIXED WING DOES NOW, with or without a call below: its pack
+ * drains. The charge drawn is the motor's current integrated over the
+ * steps, and the current is the power the prop takes by momentum theory
+ * over the table's static full throttle power, so it falls as the prop
+ * unloads at flight speed; the open circuit voltage follows a published
+ * LiPo curve down the state of charge; the loaded voltage is that less
+ * the current through the pack's internal resistance; and the motor's
+ * speed, with its thrust and pitch speed, falls with the loaded voltage
+ * over the loaded voltage the pack had when it was seated, so a fresh
+ * pack flies as the table always did and a tired one fades. When the
+ * loaded voltage falls under the ESC's low voltage cutoff it caps the
+ * throttle, and at empty the motor stops. A glow engine burns its tank
+ * instead, linear in the rpm from idle to full, leans and speeds up over
+ * the last of it and then quits: a dead stick, until sim_reset. The
+ * starting charge is the one sim_set_cell_voltage's open circuit voltage
+ * names on the curve (4.2 V is full), and sim_set_cell_voltage and
+ * sim_reset both put a full tank and that pack back.
+ *
+ * sim_set_power(in): seat a power option over the airframe in force, the
+ * SIM_POWER_DOUBLES below, SI units. configs/power.js builds it from the
+ * option, the pack and the tank the pilot chose. A MODE like the airframe:
+ * kept across sim_reset and sim_init, and cleared by sim_set_airframe to a
+ * different airframe, which puts the table's stock system back. It also
+ * refills the pack and the tank. SIM_ERR_BAD_ARG on a quad, for a null
+ * pointer, for any value outside its range (sim_set_power's checks in
+ * src/native/plant.c) and for a glow engine without an idle or an
+ * electric motor with a tank; SIM_ERR_BAD_STATE before sim_init.
+ * sim_power_clear(): the table's stock system back, pack and tank full.
+ * sim_power_state(out): SIM_POWER_STATE_DOUBLES, below. SIM_ERR_BAD_ARG
+ * for a null pointer.
+ *
+ * Additive, version unchanged. The drain itself is a behaviour change to
+ * every fixed wing, the owner's decision of 2026-09-27; every quad trace
+ * is bit identical.
+ */
+#define SIM_POWER_KIND 0        /* 0 electric, 1 glow */
+#define SIM_POWER_MASS 1        /* all up mass, kg */
+#define SIM_POWER_CG_SHIFT 2    /* CG shift from the table's, m, forward + */
+#define SIM_POWER_CELLS 3       /* series cells */
+#define SIM_POWER_R_CELL 4      /* internal resistance per cell, ohms */
+#define SIM_POWER_PACK_C 5      /* pack capacity, coulombs (mAh x 3.6) */
+#define SIM_POWER_THRUST 6      /* static thrust at full throttle, N */
+#define SIM_POWER_PITCH_SPEED 7 /* pitch speed at full throttle, m/s */
+#define SIM_POWER_RPM 8         /* no load rpm (electric) or full rpm / 0.85 (glow) */
+#define SIM_POWER_CURRENT 9     /* static current at full throttle, A */
+#define SIM_POWER_IDLE 10       /* glow idle as a fraction of full rpm; 0 electric */
+#define SIM_POWER_TANK 11       /* tank volume, m^3; 0 electric */
+#define SIM_POWER_FLOW_FULL 12  /* fuel flow at full rpm, m^3/s */
+#define SIM_POWER_FLOW_IDLE 13  /* fuel flow at idle, m^3/s */
+#define SIM_POWER_LEAN_FRAC 14  /* share of the tank the lean run starts at */
+#define SIM_POWER_LEAN_GAIN 15  /* rpm rise over the lean run, a fraction */
+#define SIM_POWER_LVC 16        /* ESC low voltage cutoff, volts per cell loaded; 0 none */
+#define SIM_POWER_PROP_R 17     /* prop radius, m */
+#define SIM_POWER_DOUBLES 18
+/*
+ * sim_power_state block:
+ *   [0] state of charge now, 0..1 (1 for a glow engine's receiver pack)
+ *   [1] charge drawn since reset, coulombs
+ *   [2] open circuit voltage per cell now, volts
+ *   [3] fuel left, m^3 (0 on an electric motor)
+ *   [4] fuel left as a share of the tank, 0..1 (1 on an electric motor)
+ *   [5] 1 while the motor or engine can run, 0 once the pack is flat or
+ *       the tank dry
+ *   [6] 1 during a glow engine's lean run
+ *   [7] pack capacity, coulombs (0: a pack that never drains)
+ *   [8] tank volume, m^3
+ *   [9] 1 while a power option is seated, 0 on the table's stock system
+ */
+#define SIM_POWER_STATE_DOUBLES 10
+int sim_set_power(const double *in);
+int sim_power_clear(void);
+int sim_power_state(double *out);
+
+/*
  * WATER, src/native/water.c and docs/FLOATS-STAGE1.md. A host declares the
  * bodies of water in its world, in the plant's frame like the ground
  * plane, and the waves on each; an aircraft on floats floats on them and

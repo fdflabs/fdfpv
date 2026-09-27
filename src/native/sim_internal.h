@@ -135,7 +135,14 @@ typedef struct {
   double j_rotor;    /* rotor plus prop inertia, kg m^2 */
   double cells;      /* series cells */
   double r_cell;     /* internal resistance per cell, ohms */
-  double cda_plan;   /* drag area top, m^2, along body z */
+  /* The pack's capacity, coulombs (mAh times 3.6), and the ESC's low
+   * voltage cutoff, volts per cell under load. Zero capacity is a pack
+   * that never drains, which is every quad: the quad plant reads neither,
+   * so its arithmetic is what it was. Only a fixed wing's electric motor
+   * drains a pack, docs/POWER-STAGE1.md. */
+  double pack_c;
+  double lvc;
+  double cda_plan;  /* drag area top, m^2, along body z */
   double cda_front;  /* drag area front, m^2, along body x */
   double cda_side;   /* drag area side, m^2, along body y */
   double k_body_lift; /* cross flow side lift area, m^2. Side force linear in
@@ -280,6 +287,18 @@ typedef struct {
   double cell_voltage_oc; /* open circuit per cell, volts */
   double pack_current;    /* total draw last step, amps */
   double vbat_load;       /* pack voltage under load, volts */
+  /* What is left in the pack and the tank, docs/POWER-STAGE1.md. A fixed
+   * wing's alone: the quad plant never reads or writes them. soc0 is the
+   * state of charge cell_voltage_oc names on the LiPo curve, v_cell0 that
+   * curve's voltage there and v_cell its voltage now, per cell, open
+   * circuit. power_out is 1 once the pack is flat or the tank dry. */
+  double charge_c;        /* drawn since reset, coulombs */
+  double soc0;
+  double v_cell0;
+  double v_cell;
+  double fuel_m3;         /* left in the tank */
+  double lvc_cap;         /* the ESC's low voltage cutoff's duty cap; huge until it acts */
+  int power_out;
   /* time */
   long long step_index; /* completed 1 ms steps since reset */
 } SimState;
@@ -630,6 +649,24 @@ typedef struct FixedWingParams {
    * engine never stops. Zero is an electric motor's duty, the stick
    * itself, and leaves every other aircraft's arithmetic as it was. */
   double throttle_idle;
+  /*
+   * THE TANK, docs/POWER-STAGE1.md, for a glow engine (throttle_idle > 0).
+   * Its volume, m^3; the fuel it burns per second at full rpm and at the
+   * idle, m^3/s, linear in the rpm between them; and the lean run as the
+   * tank empties: under lean_frac of the tank left the mixture leans and
+   * the rpm rises by up to lean_gain (a fraction) as the last of it goes,
+   * then the engine quits. Zero tank is a tank that never empties, which
+   * leaves an engine's arithmetic as it was.
+   */
+  double tank_m3;
+  double flow_full;
+  double flow_idle;
+  double lean_frac;
+  double lean_gain;
+  /* The CG's shift from the one the table's pitching moments are taken
+   * about, m, forward positive: a heavier engine or pack that the pilot
+   * did not balance out. Zero on every table. */
+  double cg_shift;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -646,6 +683,19 @@ extern const FixedWingParams FW_KADET1981;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
+/* THE POWER SYSTEM, docs/POWER-STAGE1.md. plant_power_reset fills the
+ * pack from s->cell_voltage_oc and the tank to the brim; sim.c calls it on
+ * every reset and whenever the pack voltage or the power system changes.
+ * plant_set_power seats an option's parameters, the sim_set_power layout
+ * in sim_abi.h, over the airframe in force's table, and returns SIM_OK or
+ * SIM_ERR_BAD_ARG; plant_power_clear puts the table back, as an airframe
+ * change does. plant_power_state fills the sim_power_state block. */
+void plant_power_reset(SimState *s);
+int plant_set_power(const double *in);
+void plant_power_clear(void);
+int plant_power_custom(void);
+void plant_power_state(const SimState *s, double *out);
+double plant_lipo_ocv(double soc);
 void plant_wing_launch(SimState *s, double speed);
 void plant_wing_surfaces(double out[2]);
 void plant_plane_surfaces(double out[4]);

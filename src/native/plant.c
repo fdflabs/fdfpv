@@ -1338,6 +1338,84 @@ void plant_set_airframe(int id) {
   PLANT_P = &PLANT_TABLE[id];
 }
 
+/*
+ * THE POWER OPTION IN FORCE, docs/POWER-STAGE1.md: a copy of the airframe's
+ * table entry and its wing table with an option's motor or engine, pack or
+ * tank, mass and CG laid over them. PLANT_P points here while an option is
+ * seated and at the const table otherwise, so an airframe no host gave an
+ * option reads exactly the table it always read. Owned by this file; the
+ * plant step only reads it, through PLANT.
+ */
+static PlantParams g_plant_live;
+static FixedWingParams g_fw_live;
+
+/* A finite number in [lo, hi]. NaN fails both comparisons. */
+static int in_range(double x, double lo, double hi) {
+  return x >= lo && x <= hi;
+}
+
+int plant_set_power(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const int glow = in[SIM_POWER_KIND] == 1.0;
+  if (!(in[SIM_POWER_KIND] == 0.0 || glow)
+      || !in_range(in[SIM_POWER_MASS], 0.05, 50.0)
+      || !in_range(in[SIM_POWER_CG_SHIFT], -0.2, 0.2)
+      || !in_range(in[SIM_POWER_CELLS], 1.0, 14.0)
+      || !in_range(in[SIM_POWER_R_CELL], 0.0, 1.0)
+      || !in_range(in[SIM_POWER_PACK_C], 0.0, 1.0e6)
+      || !in_range(in[SIM_POWER_THRUST], 0.1, 500.0)
+      || !in_range(in[SIM_POWER_PITCH_SPEED], 1.0, 150.0)
+      || !in_range(in[SIM_POWER_RPM], 100.0, 100000.0)
+      || !in_range(in[SIM_POWER_CURRENT], 0.0, 500.0)
+      || !in_range(in[SIM_POWER_IDLE], 0.0, 0.9)
+      || !in_range(in[SIM_POWER_TANK], 0.0, 0.01)
+      || !in_range(in[SIM_POWER_FLOW_FULL], 0.0, 1.0e-4)
+      || !in_range(in[SIM_POWER_FLOW_IDLE], 0.0, 1.0e-4)
+      || !in_range(in[SIM_POWER_LEAN_FRAC], 0.0, 0.5)
+      || !in_range(in[SIM_POWER_LEAN_GAIN], 0.0, 0.5)
+      || !in_range(in[SIM_POWER_LVC], 0.0, 4.0)
+      || !in_range(in[SIM_POWER_PROP_R], 0.01, 1.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  /* A glow engine idles and burns fuel; an electric motor does neither. */
+  if (glow != (in[SIM_POWER_IDLE] > 0.0) || (!glow && in[SIM_POWER_TANK] > 0.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  g_fw_live = *base->fw;
+  g_fw_live.thrust_static = in[SIM_POWER_THRUST];
+  g_fw_live.pitch_speed = in[SIM_POWER_PITCH_SPEED];
+  g_fw_live.rpm_no_load = in[SIM_POWER_RPM];
+  g_fw_live.current_full = in[SIM_POWER_CURRENT];
+  g_fw_live.throttle_idle = in[SIM_POWER_IDLE];
+  g_fw_live.tank_m3 = in[SIM_POWER_TANK];
+  g_fw_live.flow_full = in[SIM_POWER_FLOW_FULL];
+  g_fw_live.flow_idle = in[SIM_POWER_FLOW_IDLE];
+  g_fw_live.lean_frac = in[SIM_POWER_LEAN_FRAC];
+  g_fw_live.lean_gain = in[SIM_POWER_LEAN_GAIN];
+  g_fw_live.cg_shift = in[SIM_POWER_CG_SHIFT];
+  g_plant_live = *base;
+  g_plant_live.fw = &g_fw_live;
+  g_plant_live.mass_kg = in[SIM_POWER_MASS];
+  g_plant_live.cells = in[SIM_POWER_CELLS];
+  g_plant_live.r_cell = in[SIM_POWER_R_CELL];
+  g_plant_live.pack_c = in[SIM_POWER_PACK_C];
+  g_plant_live.lvc = in[SIM_POWER_LVC];
+  g_plant_live.prop_r = in[SIM_POWER_PROP_R];
+  PLANT_P = &g_plant_live;
+  return SIM_OK;
+}
+
+void plant_power_clear(void) {
+  PLANT_P = &PLANT_TABLE[g_airframe];
+}
+
+int plant_power_custom(void) {
+  return PLANT_P == &g_plant_live;
+}
+
 int plant_airframe(void) { return g_airframe; }
 
 /* In range and filled in: a slot reserved for an airframe that has not

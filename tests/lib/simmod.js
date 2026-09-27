@@ -214,4 +214,40 @@ export class Sim {
     const view = new Uint8Array(this.e.memory.buffer, this.statePtr, n * 8);
     return { code, bytes: new Uint8Array(view) };
   }
+
+  /* Seat a power option: `params` is the SIM_POWER_DOUBLES block that
+   * configs/power.js powerParams builds. See sim_abi.h. */
+  setPower(params) {
+    const ptr = this.e.malloc(params.length * 8);
+    if (!ptr) {
+      throw new Error('sim.wasm malloc failed for the power block');
+    }
+    new Float64Array(this.e.memory.buffer, ptr, params.length).set(params);
+    const code = this.e.sim_set_power(ptr);
+    this.e.free(ptr);
+    return code;
+  }
+
+  clearPower() {
+    return this.e.sim_power_clear();
+  }
+
+  /* The sim_power_state block, named. */
+  powerState() {
+    if (!this.powerPtr) {
+      this.powerPtr = this.e.malloc(POWER_STATE_DOUBLES * 8);
+    }
+    const code = this.e.sim_power_state(this.powerPtr);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_power_state returned ${code}`);
+    }
+    const f = new Float64Array(this.e.memory.buffer, this.powerPtr, POWER_STATE_DOUBLES);
+    return {
+      soc: f[0], chargeC: f[1], cellOcv: f[2], fuelM3: f[3], fuelFrac: f[4],
+      running: f[5] === 1, lean: f[6] === 1, capacityC: f[7], tankM3: f[8], custom: f[9] === 1,
+    };
+  }
 }
+
+/* SIM_POWER_STATE_DOUBLES in src/native/sim_abi.h. */
+export const POWER_STATE_DOUBLES = 10;
