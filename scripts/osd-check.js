@@ -13,7 +13,10 @@
  * type is no taller than the music player's song title (the owner's
  * yardstick), that both grids fit, and that every readout is on the
  * screen, off every other and off the game's chips and stick gimbals, in
- * its corner or on its edge. It prints what the OSD costs a frame.
+ * its corner or on its edge. The game's banners (the takeoff prompt, the
+ * air start countdown, a wreck) are drawn by the OSD in its own type with
+ * the HTML banner hidden, and the Game style keeps the HTML banner. It
+ * prints what the OSD costs a frame.
  *
  *   node scripts/osd-check.js [--shots=dir] [--only=quad|plane|race]
  *
@@ -112,6 +115,18 @@ const settle = (page) => frames(page, 3);
 const osd = (page) => page.evaluate('window.__fpvOsd()');
 const craft = (page) => page.evaluate('window.__craftState()');
 const rowsHave = (o, text) => o.rows.some((r) => r.includes(text));
+/* The game's HTML banner and what the OSD makes of it: in the FPV OSD
+ * style the element is hidden and the OSD draws its text; in the Game
+ * style the element is the banner, in the game's own type. */
+const banner = (page) => page.evaluate(`JSON.stringify((() => {
+  const b = window.__ui.banner;
+  const cs = getComputedStyle(b);
+  const o = window.__fpvOsd();
+  return { html: b.textContent, display: cs.display, fontPx: parseFloat(cs.fontSize), font: cs.fontFamily,
+    osd: o.values.banner || '', rows: o.rows, box: o.layout.readouts.find((r) => r.id === 'banner') || null,
+    cell: o.layout.text };
+})())`).then(JSON.parse);
+const osdCarries = (b) => b.display === 'none' && b.osd === b.html && Boolean(b.box);
 
 /* The attitude the OSD should be reading, from the craft's own axes. */
 function attitudeOfCraft(c) {
@@ -296,6 +311,10 @@ async function quad() {
     let o = await osd(page);
     await shot(page, 'quad-1-pad');
     say(o.values.disarmed && rowsHave(o, 'DISARMED'), 'on the pad: DISARMED, the motors are stopped');
+    const prompt = await banner(page);
+    const promptLine = prompt.html.split('\n')[0].toUpperCase();
+    say(osdCarries(prompt) && /^Throttle up/.test(prompt.html) && rowsHave(prompt, promptLine),
+      `the takeoff prompt is the OSD's, not the HTML banner's: "${promptLine}" on the grid, the element ${prompt.display}`);
     say(near(o.values.packV, rest, 0.02) && o.values.amps === 0 && o.values.mah === 0,
       `on the pad: ${f2(o.values.packV)} V at rest (${f2(rest)} open circuit), ${f2(o.values.amps)} A, ${f1(o.values.mah)} mAh`);
     say(o.values.mode === 'AIR' && rowsHave(o, 'AIR'), `flight mode ${o.values.mode}: the tune has Betaflight's airmode on`);
@@ -393,6 +412,14 @@ async function quad() {
     await settle(page);
     const low0 = await osd(page);
     say(low0.values.warning === 'BATT < FULL', `a 3.5 V pack before takeoff: "${low0.values.warning}"`);
+    /* The Game style keeps the HTML banner as it was, in the game's type. */
+    await swap('game');
+    const game = await banner(page);
+    await swap('osd');
+    const again = await banner(page);
+    say(game.display !== 'none' && game.fontPx >= 17 && !/mono/i.test(game.font) && /^Throttle up/.test(game.html),
+      `HUD style Game keeps the HTML banner: "${game.html.split('\n')[0]}" at ${f1(game.fontPx)} px ${game.font.split(',')[0]}`);
+    say(osdCarries(again) && again.html === game.html, 'HUD style FPV OSD hides it and draws the text again');
     await page.evaluate('window.__stick(0, 0, 0, 0.8)');
     /* Waited on the battery state, which is on the sim clock. */
     await page.until("['warning', 'critical'].includes(window.__fpvOsd().values.battery)", 180000).catch(() => null);
@@ -422,21 +449,24 @@ async function quad() {
       const o = window.__fpvOsd();
       const cs = getComputedStyle(window.__ui.banner);
       return { on: o.on, disarmed: o.values.disarmed, rows: o.rows, banner: window.__craftState().banner,
-        crashed: window.__craftState().crashed, font: cs.fontFamily, upper: cs.textTransform };
+        osd: o.values.banner || '', display: cs.display, crashed: window.__craftState().crashed };
     })())`;
+    /* The OSD draws last frame's banner, so the frame wanted is the one on
+     * which both the element and the OSD carry it. */
     let seen = null;
     for (let i = 0; i < 120 && !seen; i += 1) {
       const now = JSON.parse(await page.evaluate(look));
-      if (now.on && now.banner) {
+      if (now.on && now.banner && now.osd === now.banner) {
         seen = now;
         await shot(page, 'quad-6-crash');
       } else {
         await frames(page, 1);
       }
     }
-    say(Boolean(hit) && Boolean(seen) && /mono/i.test(seen.font) && seen.upper === 'uppercase',
+    const wreckLine = seen ? seen.banner.toUpperCase().slice(0, 26) : '';
+    say(Boolean(hit) && Boolean(seen) && seen.display === 'none' && rowsHave(seen, wreckLine),
       seen
-        ? `after the crash the game's banner reads as OSD text: "${seen.banner}" in ${seen.font.split(',')[0]}, ${seen.upper}; DISARMED ${seen.disarmed}`
+        ? `after the crash the OSD draws the game's banner: "${seen.banner}" on the grid, the element ${seen.display}; DISARMED ${seen.disarmed}`
         : 'after the crash: no frame with the OSD up and a banner');
     await page.sleep(2500);
     const later = JSON.parse(await page.evaluate(look));
@@ -594,6 +624,12 @@ async function race() {
     const o = await osd(page);
     say(/^LAP /.test(o.values.clock) && o.values.gate === `GATE 1/${n}` && rowsHave(o, o.values.gate) && rowsHave(o, 'LAP'),
       `the race: "${o.values.clock}", "${o.values.gate}"${o.values.cue ? `, cue "${o.values.cue}"` : ''}`);
+    /* The ring's start gate hangs in the air, so the run starts with the
+     * countdown: the one banner the OSD draws two rows tall. */
+    const count = await banner(page);
+    const big = count.box && near(count.box.h, 2 * count.cell.ch, 0.5) && near(count.box.w, 2 * count.cell.cw, 0.5);
+    say(osdCarries(count) && /^[123]$/.test(count.html) && big,
+      `the air start's countdown is the OSD's, two rows tall: "${count.html}"${count.box ? `, ${f1(count.box.w)}x${f1(count.box.h)} px on ${f1(count.cell.cw)}x${f1(count.cell.ch)} cells` : ''}, the element ${count.display}`);
     /* Lit for 2.8 s of wall clock, as a crossing lights it. */
     await page.evaluate('window.__ghostGapShow(-340, false)');
     let g = await osd(page);
