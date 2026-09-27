@@ -142,6 +142,7 @@ import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } 
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
 import { GATE_SCALE, gateScaleFor } from './game/track.js';
 import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
+import { FpvOsd } from './ui/fpvhud.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
@@ -545,6 +546,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    */
   input.startPolling(2);
   const ui = new Ui(uiRoot);
+  /* The flight controller's OSD over the FPV camera. See src/ui/fpvhud.js. */
+  const fpvOsd = new FpvOsd(uiRoot);
   /*
    * The thumb sticks, on a device that has thumbs to offer. Mounted after
    * the Ui so the overlay sits ABOVE every screen in the stacking order,
@@ -9994,7 +9997,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
       const p = shell.quad.position;
       const nextGt = view.gates && view.gates[race.nextSceneIndex()];
-      ui.setOsd({
+      const osdView = {
         mode: view.mode,
         lapMs: race.freestyle ? airtimeMs : race.currentLapMs(simNow),
         /* The freestyle clock is the RUN's, counting down, and it is the
@@ -10042,6 +10045,24 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
          * Null the rest of the time, which is how the OSD knows to clear. */
         ghostGapMs: ghostGap && nowWall < ghostGap.untilWall ? ghostGap.deltaMs : null,
         ghostFinal: Boolean(ghostGap && ghostGap.final),
+      };
+      ui.setOsd(osdView);
+      fpvOsd.feed(osdView, {
+        st,
+        sim,
+        cells: runCells,
+        restVolts: runVoltage * runCells,
+        fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+        quat: shell.quad.quaternion,
+        pos: shell.quad.position,
+        camera: shell.camera,
+        home: { x: startX, y: startY, z: startZ },
+        config: configText,
+        link: rcLink,
+        bestMs: ui.lastBestMs,
+        armed: motorsTurning,
+        flown: flownThisRun,
+        crashFlip: crashflipOn || turtleWait || turtleFlip.active,
       });
       const ch = input.channels;
       const vis = turtleAxes(ch.roll, ch.pitch);
@@ -10064,6 +10085,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       ui.setAirSlider(false);
       ui.setTargetLock(LOCK_OFF);
     }
+    /* The OSD belongs to the FPV lens: up in flight and dimmed in pause
+     * while that lens is the camera, and never over chase, line of sight,
+     * the intro orbit or a menu. */
+    fpvOsd.tick(ui.settings.hudStyle === 'osd' && fpvLensLive && !camOverride
+      && (ui.screen === 'flight' || ui.screen === 'paused'), ui.screen === 'paused', nowWall);
     /*
      * The thumb sticks live in FLIGHT and nowhere else. Over any menu
      * their catchment would sit on top of the rows (the overlay is the
