@@ -189,7 +189,8 @@ async function main() {
     await page.tap('Escape');
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
-    await page.sleep(500);
+    /* The model is swapped from the title's on a drawn frame after that. */
+    await page.until('window.__craftPaint().id === window.__craft().run', 60000).catch(() => {});
     const flown = await page.evaluate('window.__craftPaint()');
     const drawnHas = Object.values(want).every((hx) => flown.drawn.includes(hx));
     say(flown.id === 'timber1500' && same(sorted(flown.regions), sorted(want)) && drawnHas,
@@ -233,7 +234,8 @@ async function main() {
       `after a reload both are kept: ${JSON.stringify(kept)}`);
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
-    await page.sleep(500);
+    /* The model is swapped from the title's on a drawn frame after that. */
+    await page.until('window.__craftPaint().id === window.__craft().run', 60000).catch(() => {});
     const again = await page.evaluate('window.__craftPaint()');
     const wantAgain = coloursFor(again.id, kept[liveryKey(again.id)]);
     say(same(sorted(again.regions), sorted(wantAgain)), `and the ${again.id} flies in its paint: ${JSON.stringify(again.regions)}`);
