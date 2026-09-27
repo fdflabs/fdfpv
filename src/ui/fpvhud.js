@@ -14,17 +14,26 @@
  * HOW IT IS DRAWN, and it is the MAX7456's own design, because that design
  * is what makes it cheap:
  *
- *   1. A character buffer, 30 columns by 16 rows, the PAL grid. Every tick
- *      the elements write codes into it, exactly as the firmware does.
- *   2. A font ROM. Each character is drawn once, white with a black
- *      outline, into an atlas canvas at the cell size the screen gives, and
- *      redrawn only when the screen changes size.
- *   3. The screen is the buffer blitted through the atlas: one drawImage per
- *      lit cell, onto one 2D canvas over the WebGL view.
+ *   1. Character buffers. Every tick the elements write codes into them,
+ *      exactly as the firmware does. There are two, each on its own canvas:
+ *      the readouts, on a grid of small cells over the whole screen, so the
+ *      text is small and each group sits on its own edge or corner the way
+ *      an HD goggle OSD lays it out; and the instruments, on the 30 by 16
+ *      PAL grid over nine tenths of the screen, so the crosshair, the
+ *      horizon, the sidebars, the ladder and the heading tape keep the size
+ *      and the angles they have in analog goggles.
+ *   2. A font ROM per buffer. Each character is drawn once, white with a
+ *      black outline, into an atlas canvas at the cell size the screen
+ *      gives, and redrawn only when the screen changes size.
+ *   3. The screen is each buffer blitted through its atlas: one drawImage
+ *      per changed cell.
  *
- * It ticks at OSD_HZ, not per frame, and a tick whose buffer came out
- * identical to the last one does not touch the canvas at all. Nothing here
- * reads layout: the size comes from the resize event.
+ * It ticks at OSD_HZ, not per frame, and a tick whose buffers came out
+ * identical to the last does not touch the canvases at all. The sizes come
+ * from the resize event. The one layout it reads is where the game's own
+ * chips and stick gimbals are (Report bug, Pause, Aircraft, the music
+ * dock, the keyboard's gimbals), once a second, so that no readout is laid
+ * on one of them.
  *
  * WHAT IS NOT MODELLED, said here once so the readouts do not pretend:
  *
@@ -63,6 +72,7 @@
 import { str } from '../strings/index.js';
 import { formatTime, formatRunClock } from './ui.js';
 
+/* The instruments' grid, the PAL one. */
 export const OSD_COLS = 30;
 export const OSD_ROWS = 16;
 /* The cell whose centre is the centre of the screen. Betaflight's crosshair
@@ -76,19 +86,49 @@ const MID_ROW = 7;
 const OSD_HZ = 25;
 /* osd_elements.c: OSD_BLINK_FREQUENCY_HZ, a full on and off cycle. */
 const BLINK_HZ = 2;
-/* The grid's share of the screen. A goggle shows the OSD inside the
- * overscan, so the outer cells never touch the frame's edge. */
+/* The instrument grid's share of the screen. A goggle shows the OSD inside
+ * the overscan, so the outer cells never touch the frame's edge. */
 const GRID_W = 0.9;
 const GRID_H = 0.9;
-/* How far a cell may be stretched from square, width over height and
- * height over width. */
+/* How far an instrument cell may be stretched from square, width over
+ * height and height over width. */
 const CELL_WIDEST = 1.4;
 const CELL_TALLEST = 1.8;
-/* The side columns, symmetric about MID_COL. The right one stops a column
- * short of the grid so the top right readouts clear the game's own Pause
- * and Aircraft chips, which live in that corner in flight. */
-const LEFT_COL = 1;
-const RIGHT_COL = 27;
+
+/*
+ * THE TYPE. The owner's yardstick is the music player's song title, top
+ * left in flight: no OSD character may stand taller than it. So the size
+ * is read off that element (11 px, 10 on a narrow phone), and of the sizes
+ * from there down to TYPE_FLOOR of it, in steps of TYPE_STEP, the one whose
+ * digits come out tallest without standing taller than the title's is
+ * taken. It is measured in pixels, not font metrics, because hinting snaps
+ * a bold monospace digit to whole pixels (8 of them for anything from
+ * 10.25 to 11.25 px here) where the title's sans is not snapped at all
+ * (7.47 at 11 px), and the snapping is not even monotonic in the size.
+ * TEXT_PX is the size when there is no title to read.
+ */
+const TEXT_PX = 11;
+const TYPE_STEP = 0.25;
+const TYPE_FLOOR = 0.6;
+const TYPE_REF = '.music-title';
+/* A readout cell, in ems: the monospace advance, 0.6, and most of the one
+ * pixel border each side, so neighbours' borders just meet the way a
+ * MAX7456's do; a line, with air between the rows of outlined type. */
+const CELL_W_EM = 0.72;
+const CELL_H_EM = 1.35;
+/* Where a character's middle sits in its cell, as a share of the height.
+ * The heading tape's letters sit on the tape's line, 0.7 down. */
+const TEXT_Y = 0.54;
+const TAPE_Y = 0.7;
+/* How far the readouts stay off the screen's edge, CSS px: the gutter the
+ * game's own chips keep. */
+const EDGE_PX = 16;
+/* How often the game's chips and gimbals are looked for (readKeepOut),
+ * since they come and go with the screen. */
+const KEEP_OUT_MS = 1000;
+/* Device pixels per CSS pixel. A 3x phone gets its own, so the small type
+ * is drawn at the pixels it is shown at. */
+const MAX_DPR = 3;
 
 /* sensors/battery.c defaults, volts per cell. */
 const CELL_WARN = 3.5;
@@ -110,42 +150,27 @@ const AH_MAX_ROLL = 40;
 const AH_SYMBOLS = 9;
 const AH_SIDEBAR_W = 7;
 const AH_SIDEBAR_H = 3;
-/* A plane's ladder: a rung every ten degrees, INAV's default interval,
- * kept off the rows the race uses above it and the home readout and the
- * heading below. */
+/* A plane's ladder: a rung every ten degrees, INAV's default interval. Its
+ * top is under the heading tape and the home arrow, wherever the race
+ * readout has pushed them; its bottom keeps it above the stick gimbals. */
 const LADDER_STEP = 10;
-const LADDER_TOP = 5;
-const LADDER_BOTTOM = 10;
-/* The race readout's rows, top centre, and the widest line it may take:
- * the timers sit either side of the first two rows. */
-const RACE_ROW = 0;
+const LADDER_BOTTOM = 12;
+/* The widest line the race readout may take, top centre. */
 const RACE_WIDE = 28;
-const RACE_NARROW = 14;
-/* A plane's heading: the tape and the number, bottom centre, where INAV
- * pilots commonly put them once the top is taken. */
-const HEADING_ROW = 13;
-const HOME_ROW = 11;
+/* The home arrow's half size in its instrument cell, as drawSymbol draws
+ * it, so the row it takes can be chosen clear of the heading. */
+const ARROW_HALF = 0.42;
 
 /*
  * THE FONT. Printable ASCII is itself; every symbol is a private use code
  * point, named here the way osd_symbols.h names them. Codes are what the
- * buffer holds and what the atlas is keyed by.
+ * buffers hold and what the atlases are keyed by.
  */
 const P = 0xE000;
 const SYM = {
   BATT: P, /* P + 0..6, full to empty, battery.c's seven fill levels */
   BATT_CRIT: P + 7,
-  THR: P + 8,
-  LQ: P + 9,
-  ON_M: P + 10,
-  FLY_M: P + 11,
-  MAH: P + 12,
-  KMH: P + 13,
-  MS: P + 14,
-  ALT_M: P + 15,
   HOME: P + 16,
-  AIR: P + 17,
-  GS: P + 18,
   VARIO_UP: P + 19,
   VARIO_DN: P + 20,
   AH_CL: P + 21,
@@ -162,8 +187,42 @@ const SYM = {
   AH_BAR: P + 32, /* P + 32..40, nine sub-row positions */
   ARROW: P + 48, /* P + 48..63, sixteen directions, 0 is straight ahead */
 };
+/*
+ * The firmware fonts spell a label (THR, LQ) or a unit (mAh, km/h) in one
+ * small character. In a cell sized for 11 px type that is letters three
+ * pixels wide, which nobody reads, so here a label spans the cells its
+ * letters need: the same small letters, drawn once across the span, each
+ * cell of it a code of its own from P + 64 on. LABEL_PART maps a code to
+ * the label, its span and which cell of it the code is.
+ */
+const LABELS = [
+  ['LQ', 'LQ', 2],
+  ['THR', 'THR', 2],
+  ['ON_M', 'ON', 2],
+  ['FLY_M', 'FLY', 2],
+  ['MAH', 'mAh', 2],
+  ['KMH', 'KM/H', 3],
+  ['MS', 'M/S', 2],
+  ['AIR', 'AS', 2],
+  ['GS', 'GS', 2],
+];
+const LABEL_PART = new Map();
+LABELS.reduce((code, [name, text, cells]) => {
+  SYM[name] = code;
+  for (let k = 0; k < cells; k += 1) {
+    LABEL_PART.set(code + k, [text, cells, k]);
+  }
+  return code + cells;
+}, P + 64);
 
 const ch = (code) => String.fromCharCode(code);
+const label = (code) => {
+  let out = '';
+  for (let k = 0; k < LABEL_PART.get(code)[1]; k += 1) {
+    out += ch(code + k);
+  }
+  return out;
+};
 
 /*
  * The page's rules for the OSD, injected once rather than shipped as a
@@ -254,81 +313,130 @@ export function attitudeOf(q, out) {
 }
 
 /*
- * THE GLYPHS, drawn once per size into the atlas. Everything is in the
- * cell's own box, w by h device pixels, with u the height of one MAX7456
- * pixel (a cell is 18 of them tall). White ink, one pixel of black round it.
+ * How tall "100" stands in a font, in pixels of white ink, on a whole
+ * pixel baseline, with the font `setFont` puts on the context: each row
+ * counts for as much of a pixel as its whitest pixel is white. `pitch` 0
+ * sets it as a line of text is set; otherwise
+ * each digit starts on a whole pixel that far from the last, as the atlas
+ * puts one to a cell, since the phase of a stem in its pixel moves this
+ * measure by a few tenths. scripts/osd-check.js measures the same way.
  */
-function inkLine(g, u, build) {
+let inkCanvas = null;
+function inkHeight(setFont, size, pitch) {
+  if (!inkCanvas) {
+    inkCanvas = document.createElement('canvas');
+  }
+  inkCanvas.width = Math.ceil(size * 4);
+  inkCanvas.height = Math.ceil(size * 3);
+  const g = inkCanvas.getContext('2d', { willReadFrequently: true });
+  setFont(g, size);
+  g.fillStyle = '#fff';
+  g.textBaseline = 'alphabetic';
+  const x = Math.round(size / 2);
+  const y = Math.round(size * 2);
+  if (pitch) {
+    ['1', '0', '0'].forEach((d, i) => g.fillText(d, x + i * pitch, y));
+  } else {
+    g.fillText('100', x, y);
+  }
+  const img = g.getImageData(0, 0, inkCanvas.width, inkCanvas.height);
+  let sum = 0;
+  for (let y = 0; y < img.height; y += 1) {
+    let m = 0;
+    for (let x = 0; x < img.width; x += 1) {
+      const i = (y * img.width + x) * 4;
+      m = Math.max(m, (Math.min(img.data[i], img.data[i + 1], img.data[i + 2]) * img.data[i + 3]) / 65025);
+    }
+    sum += m;
+  }
+  return sum;
+}
+
+/*
+ * THE GLYPHS, drawn once per size into an atlas `a`: a cell a.w by a.h
+ * device pixels, with a.u the height of one MAX7456 pixel (a cell is 18 of
+ * them tall) for the shapes. The ink is not scaled with the cell: a white
+ * stroke a.core wide with a.edge of black round it, one CSS pixel at the
+ * least, so an instrument line is as fine as the type beside it.
+ */
+function inkLine(g, a, build) {
   g.beginPath();
   build();
   g.lineCap = 'round';
   g.lineJoin = 'round';
   g.strokeStyle = '#000';
-  g.lineWidth = 4 * u;
+  g.lineWidth = a.core + 2 * a.edge;
   g.stroke();
   g.strokeStyle = '#fff';
-  g.lineWidth = 2 * u;
+  g.lineWidth = a.core;
   g.stroke();
 }
 
-function inkFill(g, u, build) {
+function inkFill(g, a, build) {
   g.beginPath();
   build();
   g.lineJoin = 'round';
   g.strokeStyle = '#000';
-  g.lineWidth = 2 * u;
+  g.lineWidth = 2 * a.edge;
   g.stroke();
   g.fillStyle = '#fff';
   g.fill();
 }
 
-/* `fitW` stretches the text to that width, which is how one character
- * fills its cell the way a MAX7456 glyph does; `maxW` only ever squeezes. */
-function inkText(g, u, text, x, y, size, maxW, fitW = 0) {
+/* The OSD's type, the same family the banners take in OSD_CSS. */
+function osdFont(g, size) {
   g.font = `bold ${size}px ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, "Liberation Mono", monospace`;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
+}
+
+/* Centred on x and on y, the capitals' middle, with the left edge and the
+ * baseline on whole pixels, so the hinted glyph lands crisp and as tall as
+ * inkHeight says. `maxW` only ever squeezes. The outline is stroked
+ * centred on the glyph's edge and the fill laid over it, so a.edge of it
+ * shows outside. */
+function inkText(g, a, text, x, y, size, maxW) {
+  osdFont(g, size);
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
   const wide = g.measureText(text).width;
-  let sx = wide > maxW ? maxW / wide : 1;
-  if (fitW > 0 && wide > 0) {
-    sx = Math.max(0.6, Math.min(1.8, fitW / wide));
-  }
+  const sx = wide > maxW ? maxW / wide : 1;
+  const cap = g.measureText('H').actualBoundingBoxAscent;
   g.save();
-  g.translate(x, y);
+  g.translate(Math.round(x - (wide * sx) / 2), Math.round(y + cap / 2));
   g.scale(sx, 1);
   g.lineJoin = 'round';
   g.strokeStyle = '#000';
-  g.lineWidth = Math.max(2, 2.2 * u);
+  g.lineWidth = 2 * a.edge;
   g.strokeText(text, 0, 0);
   g.fillStyle = '#fff';
   g.fillText(text, 0, 0);
   g.restore();
 }
 
-/* Two rows of small letters in one cell, the way the firmware fonts spell a
- * unit (mAh, km/h, m/s) or a label (THR, LQ) in a single character. */
-function tinyGlyph(g, w, h, u, top, bottom) {
-  if (bottom) {
-    inkText(g, u * 0.7, top, w / 2, h * 0.3, h * 0.42, w * 0.96);
-    inkText(g, u * 0.7, bottom, w / 2, h * 0.72, h * 0.42, w * 0.96);
-  } else {
-    inkText(g, u * 0.7, top, w / 2, h * 0.52, h * 0.5, w * 0.96);
-  }
+/* One cell of a label: the whole label is drawn centred on its span, in
+ * this cell's coordinates, and the slot's clip keeps this cell's slice. */
+function drawLabel(g, code, a) {
+  const [text, cells, k] = LABEL_PART.get(code);
+  inkText(g, a, text, (cells / 2 - k) * a.w, a.h * TEXT_Y, a.textPx * 0.78, cells * a.w - 2 * a.edge);
 }
 
-function drawSymbol(g, code, w, h, u) {
+function drawSymbol(g, code, a) {
+  const { w, h, u } = a;
   const cx = w / 2;
   const cy = h / 2;
+  if (LABEL_PART.has(code)) {
+    drawLabel(g, code, a);
+    return;
+  }
   if (code >= SYM.AH_BAR && code < SYM.AH_BAR + AH_SYMBOLS) {
     const y = h * ((code - SYM.AH_BAR) + 0.5) / AH_SYMBOLS;
-    inkLine(g, u, () => { g.moveTo(u, y); g.lineTo(w - u, y); });
+    inkLine(g, a, () => { g.moveTo(u, y); g.lineTo(w - u, y); });
     return;
   }
   if (code >= SYM.ARROW && code < SYM.ARROW + 16) {
-    const a = ((code - SYM.ARROW) * Math.PI) / 8;
-    const s = Math.min(w, h) * 0.42;
-    const pt = (px, py) => [cx + px * Math.cos(a) - py * Math.sin(a), cy + px * Math.sin(a) + py * Math.cos(a)];
-    inkFill(g, u, () => {
+    const ang = ((code - SYM.ARROW) * Math.PI) / 8;
+    const s = Math.min(w, h) * ARROW_HALF;
+    const pt = (px, py) => [cx + px * Math.cos(ang) - py * Math.sin(ang), cy + px * Math.sin(ang) + py * Math.cos(ang)];
+    inkFill(g, a, () => {
       const pts = [pt(0, -s), pt(s * 0.62, s * 0.2), pt(s * 0.2, s * 0.2), pt(s * 0.2, s), pt(-s * 0.2, s), pt(-s * 0.2, s * 0.2), pt(-s * 0.62, s * 0.2)];
       g.moveTo(pts[0][0], pts[0][1]);
       for (let i = 1; i < pts.length; i += 1) {
@@ -340,41 +448,35 @@ function drawSymbol(g, code, w, h, u) {
   }
   if (code >= SYM.BATT && code <= SYM.BATT_CRIT) {
     /* Upright cell, nub on top, filled from the bottom. */
-    const bw = Math.min(w * 0.5, 7 * u);
-    const bh = 13 * u;
+    const bw = Math.min(w * 0.7, 8 * u);
+    const bh = Math.min(h * 0.66, 13 * u);
     const x0 = cx - bw / 2;
     const y0 = cy - bh / 2 + u;
-    inkLine(g, u, () => {
+    const nub = Math.max(a.core, 1.5 * u);
+    inkLine(g, a, () => {
       g.rect(x0, y0, bw, bh);
-      g.moveTo(cx - bw * 0.25, y0 - 1.5 * u);
-      g.lineTo(cx + bw * 0.25, y0 - 1.5 * u);
+      g.moveTo(cx - bw * 0.25, y0 - nub);
+      g.lineTo(cx + bw * 0.25, y0 - nub);
     });
     if (code === SYM.BATT_CRIT) {
-      inkLine(g, u, () => { g.moveTo(cx - bw * 0.3, cy + u); g.lineTo(cx + bw * 0.3, cy + u); });
+      inkLine(g, a, () => { g.moveTo(cx - bw * 0.3, cy + u); g.lineTo(cx + bw * 0.3, cy + u); });
       return;
     }
+    /* Filled up to the white outline's inside, so a full pack is a solid
+     * cell and an emptying one opens from the top. */
     const level = 6 - (code - SYM.BATT);
+    const inset = a.core / 2;
     if (level > 0) {
-      const fh = ((bh - 3 * u) * level) / 6;
+      const fh = ((bh - 2 * inset) * level) / 6;
       g.fillStyle = '#fff';
-      g.fillRect(x0 + 1.5 * u, y0 + bh - 1.5 * u - fh, bw - 3 * u, fh);
+      g.fillRect(x0 + inset, y0 + bh - inset - fh, bw - 2 * inset, fh);
     }
     return;
   }
   switch (code) {
-    case SYM.THR: tinyGlyph(g, w, h, u, 'THR'); return;
-    case SYM.LQ: tinyGlyph(g, w, h, u, 'LQ'); return;
-    case SYM.ON_M: tinyGlyph(g, w, h, u, 'ON'); return;
-    case SYM.FLY_M: tinyGlyph(g, w, h, u, 'FLY'); return;
-    case SYM.MAH: tinyGlyph(g, w, h, u, 'mAh'); return;
-    case SYM.KMH: tinyGlyph(g, w, h, u, 'KM', 'H'); return;
-    case SYM.MS: tinyGlyph(g, w, h, u, 'M', 'S'); return;
-    case SYM.ALT_M: tinyGlyph(g, w, h, u, 'M'); return;
-    case SYM.AIR: tinyGlyph(g, w, h, u, 'AS'); return;
-    case SYM.GS: tinyGlyph(g, w, h, u, 'GS'); return;
     case SYM.HOME:
-      inkFill(g, u, () => {
-        const s = Math.min(w, h) * 0.34;
+      inkFill(g, a, () => {
+        const s = Math.min(w * 0.5, h * 0.3);
         g.moveTo(cx, cy - s * 1.1);
         g.lineTo(cx + s, cy - s * 0.1);
         g.lineTo(cx + s * 0.7, cy - s * 0.1);
@@ -388,24 +490,24 @@ function drawSymbol(g, code, w, h, u) {
     case SYM.VARIO_UP:
     case SYM.VARIO_DN: {
       const d = code === SYM.VARIO_UP ? -1 : 1;
-      const s = Math.min(w, h) * 0.34;
-      inkFill(g, u, () => {
+      const s = Math.min(w * 0.5, h * 0.3);
+      inkFill(g, a, () => {
         g.moveTo(cx, cy + d * s);
         g.lineTo(cx + s * 0.8, cy);
         g.lineTo(cx - s * 0.8, cy);
         g.closePath();
       });
-      inkLine(g, u, () => { g.moveTo(cx, cy); g.lineTo(cx, cy - d * s); });
+      inkLine(g, a, () => { g.moveTo(cx, cy); g.lineTo(cx, cy - d * s); });
       return;
     }
     case SYM.AH_CL:
-      inkLine(g, u, () => { g.moveTo(w * 0.35, cy); g.lineTo(w - u, cy); });
+      inkLine(g, a, () => { g.moveTo(w * 0.35, cy); g.lineTo(w - u, cy); });
       return;
     case SYM.AH_CR:
-      inkLine(g, u, () => { g.moveTo(u, cy); g.lineTo(w * 0.65, cy); });
+      inkLine(g, a, () => { g.moveTo(u, cy); g.lineTo(w * 0.65, cy); });
       return;
     case SYM.AH_C:
-      inkLine(g, u, () => {
+      inkLine(g, a, () => {
         g.moveTo(u, cy);
         g.lineTo(cx - 2.5 * u, cy);
         g.moveTo(cx + 2.5 * u, cy);
@@ -415,14 +517,14 @@ function drawSymbol(g, code, w, h, u) {
       });
       return;
     case SYM.AH_DEC:
-      inkLine(g, u, () => { g.moveTo(cx - 2 * u, cy); g.lineTo(cx + 2 * u, cy); });
+      inkLine(g, a, () => { g.moveTo(cx - 2 * u, cy); g.lineTo(cx + 2 * u, cy); });
       return;
     case SYM.AH_LEFT:
     case SYM.AH_RIGHT: {
       /* The level markers point in, at the crosshair. */
       const d = code === SYM.AH_LEFT ? 1 : -1;
       const s = Math.min(w, h) * 0.3;
-      inkFill(g, u, () => {
+      inkFill(g, a, () => {
         g.moveTo(cx + d * s, cy);
         g.lineTo(cx - d * s * 0.7, cy - s * 0.8);
         g.lineTo(cx - d * s * 0.7, cy + s * 0.8);
@@ -431,19 +533,19 @@ function drawSymbol(g, code, w, h, u) {
       return;
     }
     case SYM.PLANE_L:
-      inkLine(g, u, () => { g.moveTo(u, cy); g.lineTo(w, cy); g.lineTo(w, cy + 3 * u); });
+      inkLine(g, a, () => { g.moveTo(u, cy); g.lineTo(w, cy); g.lineTo(w, cy + 3 * u); });
       return;
     case SYM.PLANE_R:
-      inkLine(g, u, () => { g.moveTo(w - u, cy); g.lineTo(0, cy); g.lineTo(0, cy + 3 * u); });
+      inkLine(g, a, () => { g.moveTo(w - u, cy); g.lineTo(0, cy); g.lineTo(0, cy + 3 * u); });
       return;
     case SYM.PLANE_C:
-      inkLine(g, u, () => { g.arc(cx, cy, 2.5 * u, 0, Math.PI * 2); g.moveTo(cx, cy - 2.5 * u); g.lineTo(cx, cy - 5.5 * u); });
+      inkLine(g, a, () => { g.arc(cx, cy, 2.5 * u, 0, Math.PI * 2); g.moveTo(cx, cy - 2.5 * u); g.lineTo(cx, cy - 5.5 * u); });
       return;
     case SYM.HEAD_LINE:
-      inkLine(g, u, () => { g.moveTo(0, h * 0.7); g.lineTo(w, h * 0.7); });
+      inkLine(g, a, () => { g.moveTo(0, h * TAPE_Y); g.lineTo(w, h * TAPE_Y); });
       return;
     case SYM.HEAD_DIV:
-      inkLine(g, u, () => { g.moveTo(0, h * 0.7); g.lineTo(w, h * 0.7); g.moveTo(cx, h * 0.7); g.lineTo(cx, h * 0.4); });
+      inkLine(g, a, () => { g.moveTo(0, h * TAPE_Y); g.lineTo(w, h * TAPE_Y); g.moveTo(cx, h * TAPE_Y); g.lineTo(cx, h * 0.4); });
       return;
     default:
       break;
@@ -451,15 +553,21 @@ function drawSymbol(g, code, w, h, u) {
 }
 
 /*
- * The font ROM. A glyph is drawn the first time the buffer asks for it, into
+ * A font ROM. A glyph is drawn the first time a buffer asks for it, into
  * the next free slot, and kept until the cell size changes. MAX7456 fonts
  * have capitals only, so text is upper cased before it reaches here.
+ * `s` is device pixels per CSS pixel, `textPx` the type's size in device
+ * pixels and `textY` where a character's middle sits in the cell.
  */
 class Atlas {
-  constructor(w, h) {
+  constructor(w, h, s, textPx, textY) {
     this.w = w;
     this.h = h;
     this.u = h / 18;
+    this.edge = s;
+    this.core = Math.max(s, Math.min(2 * this.u, 2 * s));
+    this.textPx = textPx;
+    this.textY = textY;
     this.per = 16;
     this.canvas = document.createElement('canvas');
     this.canvas.width = w * this.per;
@@ -485,9 +593,9 @@ class Atlas {
     g.rect(0, 0, this.w, this.h);
     g.clip();
     if (code >= P) {
-      drawSymbol(g, code, this.w, this.h, this.u);
+      drawSymbol(g, code, this);
     } else {
-      inkText(g, this.u, String.fromCharCode(code), this.w / 2, this.h * 0.54, this.h * 0.9, this.w, this.w * 0.74);
+      inkText(g, this, String.fromCharCode(code), this.w / 2, this.h * this.textY, this.textPx, this.w);
     }
     g.restore();
     return i;
@@ -495,10 +603,124 @@ class Atlas {
 }
 
 /*
+ * One character buffer, the grid it is laid on, its font and the canvas it
+ * is painted to. `ox`, `oy` are where cell 0,0 starts, device pixels.
+ */
+class Layer {
+  constructor(root, name) {
+    this.canvas = document.createElement('canvas');
+    this.canvas.className = `fpv-osd fpv-osd-${name}`;
+    this.canvas.setAttribute('aria-hidden', 'true');
+    this.g = this.canvas.getContext('2d');
+    /* First child, so every banner, dialog and menu paints over it. */
+    root.prepend(this.canvas);
+    this.cols = 0;
+    this.rows = 0;
+    this.cw = 1;
+    this.ch = 1;
+    this.ox = 0;
+    this.oy = 0;
+    this.buf = new Uint16Array(0);
+    this.shown = new Uint16Array(0);
+    this.atlas = null;
+  }
+
+  /* A new grid. Sizing the canvas clears it, so every cell is repainted. */
+  grid(w, h, cols, rows, cw, chh, ox, oy, atlas) {
+    this.canvas.width = w;
+    this.canvas.height = h;
+    Object.assign(this, { cols, rows, cw, ch: chh, ox, oy, atlas });
+    if (this.buf.length !== cols * rows) {
+      this.buf = new Uint16Array(cols * rows);
+      this.shown = new Uint16Array(cols * rows);
+    }
+    this.shown.fill(0xFFFF);
+  }
+
+  put(col, row, text) {
+    if (row < 0 || row >= this.rows) {
+      return;
+    }
+    for (let i = 0; i < text.length; i += 1) {
+      const c = col + i;
+      if (c >= 0 && c < this.cols) {
+        const code = text.charCodeAt(i);
+        this.buf[row * this.cols + c] = code === 32 ? 0 : code;
+      }
+    }
+  }
+
+  /* Whether text of that length would land on nothing but empty cells. */
+  free(col, row, len) {
+    if (row < 0 || row >= this.rows || col < 0 || col + len > this.cols) {
+      return false;
+    }
+    for (let c = col; c < col + len; c += 1) {
+      if (this.buf[row * this.cols + c]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /* One horizon bar glyph at a cell and a ninth of a row. */
+  bar(col, ninths) {
+    if (ninths < 0) {
+      return;
+    }
+    const row = Math.floor(ninths / AH_SYMBOLS);
+    if (row < 0 || row >= this.rows) {
+      return;
+    }
+    this.buf[row * this.cols + col] = SYM.AH_BAR + (ninths % AH_SYMBOLS);
+  }
+
+  /* Only the cells that changed: a digit ticking over or the horizon
+   * stepping is a handful of cells, not a screen. */
+  paint() {
+    const { buf, shown, g, atlas: a } = this;
+    let cells = 0;
+    for (let i = 0; i < buf.length; i += 1) {
+      const code = buf[i];
+      if (code === shown[i]) {
+        continue;
+      }
+      shown[i] = code;
+      const col = i % this.cols;
+      const row = (i - col) / this.cols;
+      const x = this.ox + col * this.cw;
+      const y = this.oy + row * this.ch;
+      g.clearRect(x, y, this.cw, this.ch);
+      if (code) {
+        const slot = a.slot(code);
+        g.drawImage(a.canvas, (slot % a.per) * a.w, Math.floor(slot / a.per) * a.h, a.w, a.h, x, y, a.w, a.h);
+      }
+      cells += 1;
+    }
+    return cells;
+  }
+
+  /* The grid as lines of text, symbols as '#', for the check and for a
+   * human reading a log. */
+  rowsText() {
+    const out = [];
+    for (let r = 0; r < this.rows; r += 1) {
+      let line = '';
+      for (let c = 0; c < this.cols; c += 1) {
+        const code = this.shown[r * this.cols + c];
+        line += !code || code === 0xFFFF ? ' ' : (code >= P ? '#' : String.fromCharCode(code));
+      }
+      out.push(line);
+    }
+    return out;
+  }
+}
+
+/*
  * THE OSD. One per shell. feed() is called on every flight frame with the
  * values the game already computes for its own readout; it only integrates
  * what has to be integrated on the sim clock. tick() decides visibility and,
- * at OSD_HZ, rebuilds the buffer and paints it.
+ * at OSD_HZ, rebuilds the buffers and paints them.
  */
 export class FpvOsd {
   constructor(root) {
@@ -506,15 +728,17 @@ export class FpvOsd {
     const style = document.createElement('style');
     style.textContent = OSD_CSS;
     document.head.append(style);
-    this.canvas = document.createElement('canvas');
-    this.canvas.className = 'fpv-osd';
-    this.canvas.setAttribute('aria-hidden', 'true');
-    this.g = this.canvas.getContext('2d');
-    /* First child, so every banner, dialog and menu paints over it. */
-    root.prepend(this.canvas);
-    this.buf = new Uint16Array(OSD_COLS * OSD_ROWS);
-    this.shown = new Uint16Array(OSD_COLS * OSD_ROWS);
-    this.atlas = null;
+    /* The readouts over the instruments: each prepends, so the last made
+     * is the one underneath. */
+    this.t = new Layer(root, 'text');
+    this.i = new Layer(root, 'inst');
+    this.layers = [this.i, this.t];
+    this.s = 1;
+    this.textPx = TEXT_PX;
+    this.typeKey = null;
+    this.keepOut = [];
+    this.keepOutAt = 0;
+    this.placed = [];
     this.sizeDirty = true;
     this.on = false;
     this.dim = false;
@@ -530,16 +754,36 @@ export class FpvOsd {
     this.resetRun();
     window.addEventListener('resize', () => { this.sizeDirty = true; });
     /* What the headless check reads: the values each element is showing,
-     * the grid as text, and what it costs. */
+     * the grids as text, where everything is and what it costs. */
     window.__fpvOsd = () => ({
       on: this.on,
-      rows: this.rowsText(),
+      rows: this.t.rowsText(),
+      instRows: this.i.rowsText(),
       values: { ...this.values },
       stats: { ...this.stats },
-      layout: {
-        w: this.canvas.width, h: this.canvas.height, cw: this.cw, ch: this.ch, ox: this.ox, oy: this.oy,
-      },
+      layout: this.layoutOut(),
     });
+  }
+
+  /* The layout in CSS pixels, but for the canvas, which is in device ones. */
+  layoutOut() {
+    const s = this.s;
+    const T = this.t;
+    const grid = (L) => ({ cols: L.cols, rows: L.rows, cw: L.cw / s, ch: L.ch / s, ox: L.ox / s, oy: L.oy / s });
+    const rect = (r) => ({ x: r.x / s, y: r.y / s, w: r.w / s, h: r.h / s });
+    return {
+      w: T.canvas.width,
+      h: T.canvas.height,
+      scale: s,
+      textPx: this.textPx,
+      text: grid(T),
+      inst: grid(this.i),
+      readouts: this.placed.map((b) => ({
+        id: b.id,
+        ...rect({ x: T.ox + b.col * T.cw, y: T.oy + b.row * T.ch, w: b.cols * T.cw, h: b.rows * T.ch }),
+      })),
+      keepOut: this.keepOut.map(rect),
+    };
   }
 
   resetRun() {
@@ -660,14 +904,19 @@ export class FpvOsd {
     const on = Boolean(want && this.view);
     if (on !== this.on) {
       this.on = on;
-      this.canvas.style.display = on ? 'block' : 'none';
+      for (const L of this.layers) {
+        L.canvas.style.display = on ? 'block' : 'none';
+        L.shown.fill(0xFFFF);
+      }
       this.root.classList.toggle('fpv-osd-on', on);
       this.nextTickMs = 0;
-      this.shown.fill(0xFFFF);
+      this.keepOutAt = 0;
     }
     if (paused !== this.dim) {
       this.dim = paused;
-      this.canvas.style.opacity = paused ? '0.4' : '1';
+      for (const L of this.layers) {
+        L.canvas.style.opacity = paused ? '0.4' : '1';
+      }
     }
     if (!on || nowMs < this.nextTickMs) {
       return;
@@ -677,9 +926,17 @@ export class FpvOsd {
     if (this.sizeDirty) {
       this.resize();
     }
+    if (nowMs >= this.keepOutAt) {
+      this.readKeepOut();
+      this.keepOutAt = nowMs + KEEP_OUT_MS;
+    }
     this.build(nowMs);
     this.values.at = nowMs;
-    this.paint();
+    const cells = this.t.paint() + this.i.paint();
+    if (cells) {
+      this.stats.paints += 1;
+      this.stats.cells += cells;
+    }
     const ms = performance.now() - t0;
     this.stats.ticks += 1;
     this.stats.tickMs += ms;
@@ -688,71 +945,227 @@ export class FpvOsd {
 
   resize() {
     this.sizeDirty = false;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = Math.max(1, Math.round(window.innerWidth * dpr));
-    const h = Math.max(1, Math.round(window.innerHeight * dpr));
-    this.canvas.width = w;
-    this.canvas.height = h;
-    /* A MAX7456 cell is 12 by 18. A 16:9 goggle stretches it to about
-     * square, which is what a landscape screen gets; past that the cell is
-     * held to a sane shape and the grid shrinks toward the crosshair
-     * instead, or a phone held upright would draw every glyph as a sliver. */
+    this.keepOutAt = 0;
+    const s = Math.min(MAX_DPR, window.devicePixelRatio || 1);
+    this.s = s;
+    const w = Math.max(1, Math.round(window.innerWidth * s));
+    const h = Math.max(1, Math.round(window.innerHeight * s));
+    this.textPx = this.typeSize();
+    const px = this.textPx * s;
+    /* The instruments. A MAX7456 cell is 12 by 18. A 16:9 goggle
+     * stretches it to about square, which is what a landscape screen gets;
+     * past that the cell is held to a sane shape and the grid shrinks
+     * toward the crosshair instead, or a phone held upright would draw
+     * every glyph as a sliver. Cell MID_COL, MID_ROW is centred. */
     const cw = Math.floor((w * GRID_W) / OSD_COLS);
     const chh = Math.floor((h * GRID_H) / OSD_ROWS);
-    this.cw = Math.min(cw, Math.floor(chh * CELL_WIDEST));
-    this.ch = Math.min(chh, Math.floor(cw * CELL_TALLEST));
-    /* Cell MID_COL, MID_ROW centred on the screen. */
-    this.ox = Math.round(w / 2 - (MID_COL + 0.5) * this.cw);
-    this.oy = Math.round(h / 2 - (MID_ROW + 0.5) * this.ch);
-    this.atlas = new Atlas(this.cw, this.ch);
-    this.shown.fill(0xFFFF);
+    const icw = Math.min(cw, Math.floor(chh * CELL_WIDEST));
+    const ich = Math.min(chh, Math.floor(cw * CELL_TALLEST));
+    this.i.grid(w, h, OSD_COLS, OSD_ROWS, icw, ich,
+      Math.round(w / 2 - (MID_COL + 0.5) * icw), Math.round(h / 2 - (MID_ROW + 0.5) * ich),
+      new Atlas(icw, ich, s, px, TAPE_Y));
+    /* The readouts: as many cells of the type's size as fit inside the
+     * edge, the grid centred so its sides are the same distance in. */
+    const tcw = Math.max(1, Math.round(px * CELL_W_EM));
+    const tch = Math.max(1, Math.round(px * CELL_H_EM));
+    const edge = EDGE_PX * s;
+    const cols = Math.max(1, Math.floor((w - 2 * edge) / tcw));
+    const rows = Math.max(1, Math.floor((h - 2 * edge) / tch));
+    this.t.grid(w, h, cols, rows, tcw, tch, Math.round((w - cols * tcw) / 2), Math.round((h - rows * tch) / 2),
+      new Atlas(tcw, tch, s, px, TEXT_Y));
   }
 
-  put(col, row, text) {
-    if (row < 0 || row >= OSD_ROWS) {
-      return;
+  /* The type's size in CSS pixels. See TEXT_PX and inkHeight. It is kept
+   * while the title's font and the pixel ratio stay what they were. */
+  typeSize() {
+    const ref = document.querySelector(TYPE_REF);
+    const cs = ref ? getComputedStyle(ref) : null;
+    const px = cs ? parseFloat(cs.fontSize) : NaN;
+    if (!(px > 0)) {
+      return TEXT_PX;
     }
-    for (let i = 0; i < text.length; i += 1) {
-      const c = col + i;
-      if (c >= 0 && c < OSD_COLS) {
-        const code = text.charCodeAt(i);
-        this.buf[row * OSD_COLS + c] = code === 32 ? 0 : code;
+    const s = this.s;
+    const key = `${cs.fontWeight} ${px} ${cs.fontFamily} ${s}`;
+    if (key === this.typeKey) {
+      return this.textPx;
+    }
+    this.typeKey = key;
+    const theirs = inkHeight((g, size) => { g.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`; }, px * s, 0);
+    let best = px * TYPE_FLOOR;
+    let bestInk = -1;
+    for (let size = px; size >= px * TYPE_FLOOR; size -= TYPE_STEP) {
+      const ink = inkHeight(osdFont, size * s, Math.round(size * s * CELL_W_EM));
+      if (ink <= theirs && ink > bestInk) {
+        best = size;
+        bestInk = ink;
+      }
+    }
+    return best;
+  }
+
+  /*
+   * Where the game's own things over a flight are, which no readout may
+   * sit on, in device pixels on the OSD's canvas: its chips and the
+   * keyboard's stick gimbals, which reach the bottom corners of an upright
+   * phone. The thumb sticks' plates are not here: they are most of a
+   * phone's lower half, and a readout over their glass is how a thumb pilot
+   * reads it anyway.
+   */
+  readKeepOut() {
+    const s = this.s;
+    const o = this.root.getBoundingClientRect();
+    this.keepOut.length = 0;
+    for (const el of document.querySelectorAll('.bug-chip, .music-dock, .osd-gimbal')) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        this.keepOut.push({ x: (r.left - o.left) * s, y: (r.top - o.top) * s, w: r.width * s, h: r.height * s });
       }
     }
   }
 
-  putRight(endCol, row, text) {
-    this.put(endCol - text.length + 1, row, text);
+  /* The first thing a box of readout cells would sit on: a readout placed
+   * before it this tick, or one of the game's chips and gimbals. */
+  blocker(col, row, cols, rows) {
+    const T = this.t;
+    const hits = (b) => b.col < col + cols && col < b.col + b.cols && b.row < row + rows && row < b.row + b.rows;
+    for (const b of this.placed) {
+      if (hits(b)) {
+        return b;
+      }
+    }
+    for (const r of this.keepOut) {
+      const c0 = Math.floor((r.x - T.ox) / T.cw);
+      const r0 = Math.floor((r.y - T.oy) / T.ch);
+      const b = {
+        col: c0, row: r0, cols: Math.ceil((r.x + r.w - T.ox) / T.cw) - c0, rows: Math.ceil((r.y + r.h - T.oy) / T.ch) - r0,
+      };
+      if (hits(b)) {
+        return b;
+      }
+    }
+    return null;
   }
 
-  putMid(row, text) {
-    this.put(MID_COL - Math.floor((text.length - 1) / 2), row, text);
+  /*
+   * A readout: lines of text anchored to the screen. `ax` is 'l', 'r' or
+   * 'c' (the lines flush left, flush right or each centred), or a column;
+   * `ay` is 't', 'b' or 'm', or a row. It is then moved, away from the edge
+   * it hangs from, until it is clear of the game's chips and of every
+   * readout placed before it this tick, so the order of the calls is the
+   * order of precedence.
+   */
+  readout(id, ax, ay, lines) {
+    const T = this.t;
+    const n = lines.length;
+    let wide = 0;
+    for (const line of lines) {
+      wide = Math.max(wide, line.length);
+    }
+    if (!wide) {
+      return null;
+    }
+    let col = ax;
+    if (ax === 'l') {
+      col = 0;
+    } else if (ax === 'r') {
+      col = T.cols - wide;
+    } else if (ax === 'c') {
+      col = Math.round((T.canvas.width / 2 - T.ox) / T.cw - wide / 2);
+    }
+    let row = ay;
+    if (ay === 't') {
+      row = 0;
+    } else if (ay === 'b') {
+      row = T.rows - n;
+    } else if (ay === 'm') {
+      row = Math.round((T.canvas.height / 2 - T.oy) / T.ch - n / 2);
+    }
+    for (let tries = 0; tries < 16; tries += 1) {
+      const hit = this.blocker(col, row, wide, n);
+      if (!hit) {
+        break;
+      }
+      row = ay === 'b' ? hit.row - n : hit.row + hit.rows;
+    }
+    for (let k = 0; k < n; k += 1) {
+      const line = lines[k];
+      let c = col;
+      if (ax === 'r') {
+        c = col + wide - line.length;
+      } else if (ax === 'c') {
+        c = col + Math.floor((wide - line.length) / 2);
+      }
+      T.put(c, row + k, line);
+    }
+    const b = { id, col, row, cols: wide, rows: n };
+    this.placed.push(b);
+    return b;
   }
 
-  /* One horizon bar glyph at a cell and a ninth of a row. */
-  bar(col, ninths) {
-    if (ninths < 0) {
-      return;
-    }
-    const row = Math.floor(ninths / AH_SYMBOLS);
-    if (row < 0 || row >= OSD_ROWS) {
-      return;
-    }
-    this.buf[row * OSD_COLS + col] = SYM.AH_BAR + (ninths % AH_SYMBOLS);
+  /* The readout row a device pixel height falls in. */
+  textRow(y) {
+    return Math.floor((y - this.t.oy) / this.t.ch);
   }
 
   build(nowMs) {
     const v = this.view;
     const x = this.x;
-    this.buf.fill(0);
+    for (const L of this.layers) {
+      L.buf.fill(0);
+    }
+    this.placed.length = 0;
     attitudeOf(x.quat, this.att);
     const blinkOn = Math.floor((nowMs / 1000) * BLINK_HZ) % 2 === 0;
+    this.buildCorners(v, x);
+    const race = this.buildRace(v);
     if (x.fixedWing) {
-      this.buildPlane(v, x);
+      this.buildPlane(v, x, race);
     } else {
-      this.buildQuad(v, x);
+      this.buildQuad();
     }
-    this.buildCommon(v, x, blinkOn);
+    this.buildWarnings(v, x, blinkOn);
+  }
+
+  /*
+   * The four corners. Link and the armed timer top left, throttle and the
+   * on timer top right, the flight mode over the pack bottom left
+   * (osdElementAverageCellVoltage over osdElementMainBatteryVoltage, both
+   * off the filtered voltage), current and consumption bottom right.
+   */
+  buildCorners(v, x) {
+    const thr = Math.round(Math.max(0, Math.min(1, v.throttle)) * 100);
+    this.readout('lq-fly', 'l', 't', [`${label(SYM.LQ)}${pad(String(this.lq), 3)}`, `${label(SYM.FLY_M)}${mmss(this.flyS)}`]);
+    this.readout('thr-on', 'r', 't', [`${label(SYM.THR)}${pad(String(thr), 3)}`, `${label(SYM.ON_M)}${mmss(this.onS)}`]);
+    /* osdElementFlymode's precedence over the modes the shell has, and
+     * for a plane INAV's names. */
+    const mode = x.fixedWing
+      ? ({ manual: 'MANU', stab: 'ANGL', acro: 'ACRO' }[v.flightMode] || 'MANU')
+      : (v.flightMode === 'angle' ? 'ANGL' : (this.airmode ? 'AIR' : 'ACRO'));
+    const cellV = this.vFilt / x.cells;
+    const packV = this.vFilt;
+    const sym = batterySymbol(cellV, this.batt);
+    const pack = [mode, `${sym}${cellV.toFixed(2)}V`, `${sym}${packV.toFixed(packV >= 10 ? 1 : 2)}V`];
+    if (x.fixedWing && v.flaps != null) {
+      pack.unshift([str('osd.flaps_up'), str('osd.flaps_half'), str('osd.flaps_full')][v.flaps]);
+    }
+    this.readout('mode-batt', 'l', 'b', pack);
+    const amps = x.armed ? x.st[19] : 0;
+    this.readout('amps-mah', 'r', 'b', [`${pad(amps.toFixed(2), 6)}A`, `${pad(String(Math.round(this.mah)), 4)}${label(SYM.MAH)}`]);
+    Object.assign(this.values, {
+      mode,
+      lq: this.lq,
+      throttle: thr,
+      flyS: this.flyS,
+      onS: this.onS,
+      cellV,
+      packV,
+      amps,
+      mah: this.mah,
+      simT: this.lastSimT,
+      battery: this.batt,
+      roll: this.att.roll,
+      pitch: this.att.pitch,
+    });
   }
 
   /* osdElementArtificialHorizon, the integer arithmetic and all. */
@@ -766,37 +1179,38 @@ export class FpvOsd {
     for (let dx = -4; dx <= 4; dx += 1) {
       const y = Math.trunc((-roll * dx) / 64) + pitch + 41;
       if (y >= 0 && y <= 81) {
-        this.bar(MID_COL + dx, top + y);
+        this.i.bar(MID_COL + dx, top + y);
       }
     }
     return { roll, pitch };
   }
 
-  buildQuad(v, x) {
+  buildQuad() {
+    const I = this.i;
     const ah = this.quadHorizon();
     /* osdBackgroundHorizonSidebars. */
     for (let dy = -AH_SIDEBAR_H; dy <= AH_SIDEBAR_H; dy += 1) {
-      this.put(MID_COL - AH_SIDEBAR_W, MID_ROW + dy, ch(SYM.AH_DEC));
-      this.put(MID_COL + AH_SIDEBAR_W, MID_ROW + dy, ch(SYM.AH_DEC));
+      I.put(MID_COL - AH_SIDEBAR_W, MID_ROW + dy, ch(SYM.AH_DEC));
+      I.put(MID_COL + AH_SIDEBAR_W, MID_ROW + dy, ch(SYM.AH_DEC));
     }
-    this.put(MID_COL - AH_SIDEBAR_W + 1, MID_ROW, ch(SYM.AH_LEFT));
-    this.put(MID_COL + AH_SIDEBAR_W - 1, MID_ROW, ch(SYM.AH_RIGHT));
-    this.put(MID_COL - 1, MID_ROW, ch(SYM.AH_CL) + ch(SYM.AH_C) + ch(SYM.AH_CR));
-    /* osdElementFlymode's precedence, over the modes the shell has. */
-    const mode = v.flightMode === 'angle' ? 'ANGL' : (this.airmode ? 'AIR' : 'ACRO');
-    this.put(LEFT_COL, 13, mode);
+    I.put(MID_COL - AH_SIDEBAR_W + 1, MID_ROW, ch(SYM.AH_LEFT));
+    I.put(MID_COL + AH_SIDEBAR_W - 1, MID_ROW, ch(SYM.AH_RIGHT));
+    I.put(MID_COL - 1, MID_ROW, ch(SYM.AH_CL) + ch(SYM.AH_C) + ch(SYM.AH_CR));
     this.values.ahRoll = ah.roll;
     this.values.ahPitch = ah.pitch;
-    this.values.mode = mode;
   }
 
   /*
    * INAV's horizon and ladder, drawn where the real horizon is in the
    * picture: the camera's own orientation and field of view, which is what
    * INAV's osd_camera_uptilt and osd_camera_fov settings are for. The
-   * rungs are the same line pushed to their elevation.
+   * rungs are the same line pushed to their elevation, on the instrument
+   * grid from instrument row `top` down; their numbers are readout type,
+   * beside each rung's outer end where the cells are free.
    */
-  planeLadder(x) {
+  planeLadder(x, top) {
+    const I = this.i;
+    const T = this.t;
     const q = x.camera.quaternion;
     const { x: qx, y: qy, z: qz, w: qw } = q;
     /* World up seen from the camera: the y components of its right, up and
@@ -811,8 +1225,8 @@ export class FpvOsd {
     const nx = ux / nLen;
     const ny = uy / nLen;
     const elev = Math.asin(Math.max(-1, Math.min(1, -uz)));
-    const w = this.canvas.width;
-    const h = this.canvas.height;
+    const w = I.canvas.width;
+    const h = I.canvas.height;
     const f = (h / 2) / Math.tan((x.camera.fov * Math.PI) / 360);
     /* The line runs along (ny, -nx) in image space, y up. In screen space,
      * y down, the slope of a line of constant elevation is dy/dx: */
@@ -822,7 +1236,11 @@ export class FpvOsd {
     const slope = nx / ny;
     const cxScreen = w / 2;
     const cyScreen = h / 2;
-    const rung = (deg, half, gap, label) => {
+    const onLadder = (y) => {
+      const row = Math.floor((y - I.oy) / I.ch);
+      return row >= top && row <= LADDER_BOTTOM;
+    };
+    const rung = (deg, half, gap, text) => {
       const a = elev - (deg * Math.PI) / 180;
       if (Math.abs(a) > 1.4) {
         return;
@@ -838,26 +1256,26 @@ export class FpvOsd {
           continue;
         }
         const col = MID_COL + dx;
-        const colX = this.ox + (col + 0.5) * this.cw;
-        const yy = lineY(colX);
-        const row = Math.floor((yy - this.oy) / this.ch);
-        if (row < LADDER_TOP || row > LADDER_BOTTOM) {
+        const yy = lineY(I.ox + (col + 0.5) * I.cw);
+        if (onLadder(yy)) {
+          I.bar(col, Math.floor(((yy - I.oy) / I.ch) * AH_SYMBOLS));
+        }
+      }
+      if (!text) {
+        return;
+      }
+      for (const side of [-1, 1]) {
+        const endX = I.ox + (MID_COL + side * half + (side > 0 ? 1 : 0)) * I.cw;
+        const yy = lineY(endX);
+        if (!onLadder(yy)) {
           continue;
         }
-        this.bar(col, Math.floor(((yy - this.oy) / this.ch) * AH_SYMBOLS));
-      }
-      if (label) {
-        for (const side of [-1, 1]) {
-          const col = MID_COL + side * (half + 1);
-          const colX = this.ox + (col + 0.5) * this.cw;
-          const row = Math.floor((lineY(colX) - this.oy) / this.ch);
-          if (row >= LADDER_TOP && row <= LADDER_BOTTOM) {
-            if (side < 0) {
-              this.putRight(col, row, label);
-            } else {
-              this.put(col, row, label);
-            }
-          }
+        const row = this.textRow(yy);
+        const col = side < 0
+          ? Math.floor((endX - T.cw / 2 - T.ox) / T.cw) - text.length + 1
+          : Math.ceil((endX + T.cw / 2 - T.ox) / T.cw);
+        if (T.free(col, row, text.length)) {
+          T.put(col, row, text);
         }
       }
     };
@@ -869,9 +1287,17 @@ export class FpvOsd {
     return { elevDeg: (elev * 180) / Math.PI, slope };
   }
 
-  buildPlane(v, x) {
-    const ladder = this.planeLadder(x);
-    this.put(MID_COL - 1, MID_ROW, ch(SYM.PLANE_L) + ch(SYM.PLANE_C) + ch(SYM.PLANE_R));
+  /*
+   * A plane: the heading tape top centre, under the race readout, with the
+   * heading under it and the home arrow under that; the speeds on the left
+   * edge and the altitude and vario on the right, level with the centre;
+   * the ladder below the arrow.
+   */
+  buildPlane(v, x, race) {
+    const I = this.i;
+    const T = this.t;
+    const raceBottom = race ? T.oy + (race.row + race.rows) * T.ch : 0;
+    const tapeRow = Math.max(0, Math.ceil((raceBottom - I.oy) / I.ch));
     /* The heading tape: one character per 15 degrees, the cardinals as
      * letters, a tick every 45. */
     const head = this.att.heading;
@@ -884,11 +1310,29 @@ export class FpvOsd {
       } else if (deg % 45 === 0) {
         glyph = ch(SYM.HEAD_DIV);
       }
-      this.put(MID_COL + dx, HEADING_ROW, glyph);
+      I.put(MID_COL + dx, tapeRow, glyph);
     }
     const hdg = Math.round(head) % 360;
-    this.putMid(HEADING_ROW + 1, `${pad(String(hdg), 3).replace(/ /g, '0')}°`);
-    /* Speeds, left of centre. */
+    const tapeY = I.oy + (tapeRow + TAPE_Y) * I.ch;
+    const heading = this.readout('heading', 'c', Math.ceil((tapeY - T.oy) / T.ch), [`${pad(String(hdg), 3).replace(/ /g, '0')}°`]);
+    /* Home: the arrow turned by the bearing home less the heading, on the
+     * first instrument row clear of the heading, and the horizontal
+     * distance to the launch point beside it. */
+    const dxh = x.home.x - x.pos.x;
+    const dzh = x.home.z - x.pos.z;
+    const dist = Math.hypot(dxh, dzh);
+    let bearing = (Math.atan2(dxh, -dzh) * 180) / Math.PI - head;
+    bearing = ((bearing % 360) + 360) % 360;
+    const dir = Math.round(bearing / 22.5) % 16;
+    const arrowHalf = Math.min(I.cw, I.ch) * ARROW_HALF;
+    const headingBottom = T.oy + (heading.row + heading.rows) * T.ch;
+    const homeRow = Math.max(tapeRow + 1, Math.ceil((headingBottom + arrowHalf - I.oy) / I.ch - 0.5));
+    I.put(MID_COL, homeRow, ch(SYM.ARROW + dir));
+    const arrowRight = I.ox + (MID_COL + 0.5) * I.cw + arrowHalf;
+    this.readout('home', Math.ceil((arrowRight + T.cw / 2 - T.ox) / T.cw), this.textRow(I.oy + (homeRow + 0.5) * I.ch),
+      [`${ch(SYM.HOME)}${Math.round(dist)}M`]);
+    /* Speeds on the left edge, altitude over home and the vario on the
+     * right, level with the crosshair. */
     const st = x.st;
     const vx = st[4];
     const vy = st[5];
@@ -896,33 +1340,20 @@ export class FpvOsd {
     const gsKph = Math.hypot(vx, vy) * 3.6;
     const w = this.windNow(x.sim);
     const asKph = Math.hypot(vx - w[0], vy - w[1], vz) * 3.6;
-    this.put(LEFT_COL, MID_ROW - 1, `${ch(SYM.GS)}${pad(String(Math.round(gsKph)), 3)}${ch(SYM.KMH)}`);
-    this.put(LEFT_COL, MID_ROW + 1, `${ch(SYM.AIR)}${pad(String(Math.round(asKph)), 3)}${ch(SYM.KMH)}`);
-    /* Altitude over home and the vario, right of centre. */
+    this.readout('speeds', 'l', 'm', [
+      `${label(SYM.GS)}${pad(String(Math.round(gsKph)), 3)}${label(SYM.KMH)}`,
+      `${label(SYM.AIR)}${pad(String(Math.round(asKph)), 3)}${label(SYM.KMH)}`,
+    ]);
     const alt = x.pos.y - x.home.y;
-    const altText = pad(String(Math.round(alt)), 4);
-    this.putRight(RIGHT_COL, MID_ROW - 1, `${altText}${ch(SYM.ALT_M)}`);
     const vario = Math.abs(vz) < 0.05 ? 0 : vz;
     const arrow = vario > 0 ? ch(SYM.VARIO_UP) : (vario < 0 ? ch(SYM.VARIO_DN) : ' ');
-    const vText = `${arrow}${pad(Math.abs(vario).toFixed(1), 4)}${ch(SYM.MS)}`;
-    this.putRight(RIGHT_COL, MID_ROW + 1, vText);
-    /* Home: the arrow turned by the bearing home less the heading, and the
-     * horizontal distance to the launch point. */
-    const dxh = x.home.x - x.pos.x;
-    const dzh = x.home.z - x.pos.z;
-    const dist = Math.hypot(dxh, dzh);
-    let bearing = (Math.atan2(dxh, -dzh) * 180) / Math.PI - head;
-    bearing = ((bearing % 360) + 360) % 360;
-    const dir = Math.round(bearing / 22.5) % 16;
-    this.putMid(HOME_ROW, `${ch(SYM.HOME)}${ch(SYM.ARROW + dir)}${pad(String(Math.round(dist)), 4)}M`);
-    /* The flight mode, as INAV names it. */
-    const mode = { manual: 'MANU', stab: 'ANGL', acro: 'ACRO' }[v.flightMode] || 'MANU';
-    this.put(LEFT_COL, 13, mode);
-    if (v.flaps != null) {
-      this.put(LEFT_COL, 12, [str('osd.flaps_up'), str('osd.flaps_half'), str('osd.flaps_full')][v.flaps]);
-    }
+    this.readout('alt-vario', 'r', 'm', [
+      `${pad(String(Math.round(alt)), 4)}M`,
+      `${arrow}${pad(Math.abs(vario).toFixed(1), 4)}${label(SYM.MS)}`,
+    ]);
+    I.put(MID_COL - 1, MID_ROW, ch(SYM.PLANE_L) + ch(SYM.PLANE_C) + ch(SYM.PLANE_R));
+    const ladder = this.planeLadder(x, homeRow + 1);
     Object.assign(this.values, {
-      mode,
       heading: hdg,
       gsKph,
       asKph,
@@ -952,51 +1383,15 @@ export class FpvOsd {
     return this.wind;
   }
 
-  buildCommon(v, x, blinkOn) {
-    /* Link and throttle along the top, the firmware's timers under them. */
-    this.put(LEFT_COL, 0, `${ch(SYM.LQ)}${pad(String(this.lq), 3)}`);
-    const thr = Math.round(Math.max(0, Math.min(1, v.throttle)) * 100);
-    this.putRight(RIGHT_COL, 0, `${ch(SYM.THR)}${pad(String(thr), 3)}`);
-    this.put(LEFT_COL, 1, `${ch(SYM.FLY_M)}${mmss(this.flyS)}`);
-    this.putRight(RIGHT_COL, 1, `${ch(SYM.ON_M)}${mmss(this.onS)}`);
-    /* The pack, bottom left: osdElementAverageCellVoltage over
-     * osdElementMainBatteryVoltage, both off the filtered voltage. */
-    const cellV = this.vFilt / x.cells;
-    const sym = batterySymbol(cellV, this.batt);
-    this.put(LEFT_COL, 14, `${sym}${cellV.toFixed(2)}V`);
-    const packV = this.vFilt;
-    this.put(LEFT_COL, 15, `${sym}${packV.toFixed(packV >= 10 ? 1 : 2)}V`);
-    /* Current and consumption, bottom right. */
-    const amps = x.armed ? x.st[19] : 0;
-    this.putRight(RIGHT_COL, 14, `${pad(amps.toFixed(2), 6)}A`);
-    this.putRight(RIGHT_COL, 15, `${pad(String(Math.round(this.mah)), 4)}${ch(SYM.MAH)}`);
-    this.buildRace(v);
-    this.buildWarnings(v, x, blinkOn);
-    Object.assign(this.values, {
-      lq: this.lq,
-      throttle: thr,
-      flyS: this.flyS,
-      onS: this.onS,
-      cellV,
-      packV,
-      amps,
-      mah: this.mah,
-      simT: this.lastSimT,
-      battery: this.batt,
-      roll: this.att.roll,
-      pitch: this.att.pitch,
-    });
-  }
-
   /*
-   * The game's own clocks, in the firmware's type, centred at the top: the
-   * lap or the run, the gate, the gate's cue, last and best, and the
-   * ghost's gap while it is lit. The first two rows have the timers either
-   * side, so they are held narrow; the rest may run the width.
+   * The game's own clocks, in the firmware's type, top centre: the lap or
+   * the run, the gate, the gate's cue, last and best, and the ghost's gap
+   * while it is lit. A race keeps all five rows, lit or not, so what hangs
+   * under the readout does not jump when a line comes and goes.
    */
   buildRace(v) {
     const up = (s) => s.toUpperCase();
-    const fit = (s, n) => (s.length > n ? s.slice(0, n) : s);
+    const fit = (s) => (s.length > RACE_WIDE ? s.slice(0, RACE_WIDE) : s);
     let clock;
     if (v.mode === 'freestyle') {
       if (v.runScored === false) {
@@ -1007,15 +1402,14 @@ export class FpvOsd {
         const ready = v.runState !== 'flying' && v.runState !== 'over';
         clock = str('osd.run', { t: ready ? '2:00' : formatRunClock(Number.isFinite(v.runRemainMs) ? v.runRemainMs : 0) });
       }
-      clock = fit(up(clock), RACE_NARROW);
-      this.putMid(RACE_ROW, clock);
+      clock = fit(up(clock));
       this.values.clock = clock;
-      return;
+      return this.readout('race', 'c', 't', [clock]);
     }
     const running = v.lapMs != null && Number.isFinite(v.lapMs);
-    clock = fit(up(str('osd.lap', { t: running ? formatTime(v.lapMs) : '0.00' })), RACE_NARROW);
-    const gate = fit(up(str('osd.gate', { gate: v.gate, gateCount: v.gateCount })), RACE_NARROW);
-    const cue = fit(up(v.gateCue || ''), RACE_WIDE);
+    clock = fit(up(str('osd.lap', { t: running ? formatTime(v.lapMs) : '0.00' })));
+    const gate = fit(up(str('osd.gate', { gate: v.gate, gateCount: v.gateCount })));
+    const cue = fit(up(v.gateCue || ''));
     const parts = [];
     if (v.lastLapMs != null) {
       parts.push(str('osd.last', { t: formatTime(v.lastLapMs) }));
@@ -1023,18 +1417,19 @@ export class FpvOsd {
     if (this.x.bestMs != null) {
       parts.push(str('osd.best', { t: formatTime(this.x.bestMs) }));
     }
-    const laps = fit(up(parts.join('  ')), RACE_WIDE);
+    const laps = fit(up(parts.join('  ')));
     let ghost = '';
     if (v.ghostGapMs != null) {
       const gap = `${v.ghostGapMs <= 0 ? '-' : '+'}${(Math.abs(v.ghostGapMs) / 1000).toFixed(2)}`;
-      ghost = fit(up(str(v.ghostFinal ? 'osd.ghost_lap' : 'osd.ghost', { gap })), RACE_WIDE);
+      ghost = fit(up(str(v.ghostFinal ? 'osd.ghost_lap' : 'osd.ghost', { gap })));
     }
-    [clock, gate, cue, laps, ghost].forEach((line, i) => this.putMid(RACE_ROW + i, line));
     Object.assign(this.values, { clock, gate, cue, laps, ghost });
+    return this.readout('race', 'c', 't', [clock, gate, cue, laps, ghost]);
   }
 
   /* renderOsdWarning's order, over the conditions the shell can be in, and
-   * osdElementDisarmed above them. */
+   * osdElementDisarmed above it: centred, two and three instrument rows
+   * under the crosshair, inside the horizon's sidebars. */
   buildWarnings(v, x, blinkOn) {
     let warning = '';
     let blink = false;
@@ -1055,60 +1450,16 @@ export class FpvOsd {
     } else if (!x.armed && !x.flown && this.vFilt / x.cells < CELL_FULL) {
       warning = str('osd.batt_not_full');
     }
-    if (warning && (!blink || blinkOn)) {
-      this.putMid(MID_ROW + 3, warning);
-    }
+    const I = this.i;
+    const under = (rows) => this.textRow(I.oy + (MID_ROW + rows + 0.5) * I.ch);
     const disarmed = !x.armed && !x.crashFlip;
     if (disarmed) {
-      this.putMid(MID_ROW + 2, str('osd.disarmed'));
+      this.readout('disarmed', 'c', under(2), [str('osd.disarmed')]);
+    }
+    if (warning && (!blink || blinkOn)) {
+      this.readout('warning', 'c', under(3), [warning]);
     }
     this.values.warning = warning;
     this.values.disarmed = disarmed;
-  }
-
-  /* Only the cells that changed: a digit ticking over or the horizon
-   * stepping is a handful of cells, not a screen. */
-  paint() {
-    const buf = this.buf;
-    const shown = this.shown;
-    const g = this.g;
-    const a = this.atlas;
-    let cells = 0;
-    for (let i = 0; i < buf.length; i += 1) {
-      const code = buf[i];
-      if (code === shown[i]) {
-        continue;
-      }
-      shown[i] = code;
-      const col = i % OSD_COLS;
-      const row = (i - col) / OSD_COLS;
-      const x = this.ox + col * this.cw;
-      const y = this.oy + row * this.ch;
-      g.clearRect(x, y, this.cw, this.ch);
-      if (code) {
-        const slot = a.slot(code);
-        g.drawImage(a.canvas, (slot % a.per) * a.w, Math.floor(slot / a.per) * a.h, a.w, a.h, x, y, a.w, a.h);
-      }
-      cells += 1;
-    }
-    if (cells) {
-      this.stats.paints += 1;
-      this.stats.cells += cells;
-    }
-  }
-
-  /* The grid as 16 lines of text, symbols as '#', for the check and for a
-   * human reading a log. */
-  rowsText() {
-    const out = [];
-    for (let r = 0; r < OSD_ROWS; r += 1) {
-      let line = '';
-      for (let c = 0; c < OSD_COLS; c += 1) {
-        const code = this.shown[r * OSD_COLS + c];
-        line += !code || code === 0xFFFF ? ' ' : (code >= P ? '#' : String.fromCharCode(code));
-      }
-      out.push(line);
-    }
-    return out;
   }
 }
