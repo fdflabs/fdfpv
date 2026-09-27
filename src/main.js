@@ -105,6 +105,7 @@ import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
+import { powerCells, powerChoice, powerOption, powerParams } from '../configs/power.js';
 import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { setLiverySource } from './render/livery.js';
@@ -3678,6 +3679,39 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   }
 
   /*
+   * THE POWER SYSTEM, configs/power.js and docs/POWER-STAGE1.md: the motor
+   * or engine, the pack or the tank the pilot chose for the seated plane,
+   * seated in the plant with the airframe, on the same between-runs rule
+   * and at a hot swap. The stock system on its stock pack is the plant's
+   * own table, so it clears rather than sets. The pack's cells and the
+   * option's voice follow it. A quad has none of this.
+   */
+  function applyPower(s) {
+    const af = airframeById(runAirframe);
+    if (!af.fixedWing || typeof sim.e.sim_set_power !== 'function') {
+      return;
+    }
+    const { option, pack } = powerChoice(af.id, s.power);
+    const block = powerParams(af.id, option, pack);
+    const code = block ? sim.setPower(block) : sim.clearPower();
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_power refused ${option}/${pack} on ${af.id}: ${simErrorName(code)}`);
+    }
+    const opt = powerOption(af.id, option);
+    runCells = powerCells(af.id, option, pack);
+    audio.setVoice(opt.voice);
+  }
+
+  /* The plant's pack and tank, for the OSD. Null on a quad and on a build
+   * that predates the export. */
+  function readPower() {
+    if (!airframeById(runAirframe).fixedWing || typeof sim.e.sim_power_state !== 'function') {
+      return null;
+    }
+    return sim.powerState();
+  }
+
+  /*
    * THE CRASH SHELL (docs/CRASH-PLAN.md, Phase A item 4).
    *
    * With the run's Crash damage setting on, the plant's crash physics
@@ -5207,6 +5241,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     flapNotch = 0;
     wingStabApplied = -1;
     applyCrashMode(s);
+    applyPower(s);
     publishPids();
     launcherLeft = null;
     chaseValid = false;
@@ -6010,6 +6045,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
        * physics from its start. After the airframe, whose part table it
        * picks. See THE CRASH SHELL. */
       applyCrashMode(s);
+      /* The power system too, after the airframe it belongs to: a fresh
+       * pack and a full tank every run. */
+      applyPower(s);
     }
     /*
      * THE AIR, OUTSIDE THE BETWEEN-RUNS BLOCK ON PURPOSE.
@@ -10099,6 +10137,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         sim,
         cells: runCells,
         restVolts: runVoltage * runCells,
+        power: readPower(),
         fixedWing: Boolean(airframeById(runAirframe).fixedWing),
         quat: shell.quad.quaternion,
         pos: shell.quad.position,
