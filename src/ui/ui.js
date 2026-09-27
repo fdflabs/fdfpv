@@ -2764,15 +2764,15 @@ const WAYS = [
     id: 'freestyle-wing1000',
     airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981'],
     mode: 'freestyle',
-    /* The wing's own world. A card with a home skips the picker: the
-     * airfield was built for these aircraft and the town was not. The
-     * Freestyle menu's own row still opens the picker for anyone who wants
-     * the town anyway. */
-    home: 'airfield',
+    /* The card's own world. A card with a home skips the picker. The
+     * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
+     * strip for the wheels, a lake for the floats and room for the rest. The
+     * Map row still seats the airfield or any other world. */
+    home: 'swiss2',
     label: str('ui.free_flight_card'),
     art: 'assets/gate/flight.jpg',
     blurb: str('ui.ten_fixed_wings'),
-    facts: [str('ui.ten_planes'), str('ui.the_airfield')],
+    facts: [str('ui.ten_planes'), str('ui.the_swiss_valley')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 

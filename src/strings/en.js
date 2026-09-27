@@ -1519,7 +1519,7 @@ export default {
   "ui.gates": "Gates",
   "ui.the_clock": "The clock",
   "ui.ten_fixed_wings": "Ten fixed wings, picked under Plane: a 2.3 m Bramor C4EYE off its catapult and home under its parachute, an 1800 mm Skyhunter, a 1400 mm Piper Cub and a Turbo Timber that takes off in two metres with full flap, a 2 m Radian that climbs in thermals, a Slow Stick that floats at a jog, a Buzzard Bombshell, the 1940 free flight classic on a glow engine, a Kadet Senior, the balsa trainer on a four stroke in see through film, and the Timber and the Cub on floats, which start on the lake in the Alps. Fly free, or race a track built in the Alps.",
-  "ui.the_airfield": "The airfield",
+  "ui.the_swiss_valley": "The Swiss valley",
   "ui.plane": "Plane",
   "ui.stabilised": "Stabilised",
   "main.thrown_keep_it_flying": "Thrown. Keep it flying.",

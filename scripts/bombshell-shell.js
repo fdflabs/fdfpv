@@ -1,8 +1,8 @@
 /*
  * bombshell-shell.js: the Buzzard Bombshell in the real shell, headless,
  * from the gate: the Free Flight card (the fixed wings') pressed, the Bombshell picked on the
- * machine screen, and flown from where the shell seats it, on the airfield
- * and then on swiss2. Seated with Acro and its own module, parked on its
+ * machine screen, and flown from where the shell seats it, on swiss2 (the
+ * Free Flight card's home) and then on the airfield. Seated with Acro and its own module, parked on its
  * wheels and skid at the plant's rest, it takes off on full throttle with
  * the sticks centred, climbs, answers full roll stick on its rudder, and
  * the C key puts the chase camera on it.
@@ -40,7 +40,7 @@ import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const AF = process.argv[2] ?? 'bombshell1118';
-const MAPS = (process.argv[3] ?? 'airfield,swiss2').split(',');
+const MAPS = (process.argv[3] ?? 'swiss2,airfield').split(',');
 const af = airframeById(AF);
 
 /*
@@ -111,9 +111,9 @@ const page = await openPage({ root, width: 480, height: 300, url: '/index.html' 
 try {
   await page.until('!!window.__shellReady', 240000);
   /* The gate's Free Flight card, pressed; it seats the card's first plane
-   * and its home, the airfield. */
+   * and its home, swiss2. */
   await page.evaluate("window.__ui.craftGate = true; window.__ui.show('title'); window.__ui.act('way-freestyle-wing1000'); true");
-  await page.until("window.__ui.settings.map === 'airfield' && window.__map && window.__map().ready", 240000);
+  await page.until("window.__ui.settings.map === 'swiss2' && window.__map && window.__map().ready", 400000);
   /* The Bombshell, picked on the machine screen's Aircraft row. */
   const picked = await page.evaluate(`(() => {
     const ui = window.__ui;
@@ -133,7 +133,7 @@ try {
 
   for (const map of MAPS) {
     console.log(`${map}:`);
-    if (map !== 'airfield') {
+    if (map !== 'swiss2') {
       await page.evaluate(`window.__ui.seatMap('${map}'); true`);
       await page.until(`window.__ui.settings.map === '${map}' && window.__map && window.__map().ready`, 400000);
     }

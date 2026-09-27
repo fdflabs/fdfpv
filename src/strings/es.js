@@ -1523,7 +1523,7 @@ export default {
   "ui.gates": "Puertas",
   "ui.the_clock": "El reloj",
   "ui.ten_fixed_wings": "Diez alas fijas, a elegir en Avión: un Bramor C4EYE de 2,3 m que sale de su catapulta y vuelve bajo su paracaídas, un Skyhunter de 1800 mm, un Piper Cub de 1400 mm y un Turbo Timber que despega en dos metros con flaps completos, un Radian de 2 m que sube en térmicas, un Slow Stick que flota al trote, un Buzzard Bombshell, el clásico de vuelo libre de 1940 con motor glow, un Kadet Senior, el entrenador de balsa con motor de cuatro tiempos y entelado translúcido, y el Timber y el Cub con flotadores, que salen del lago de los Alpes. Vuela libre, o corre una pista construida en los Alpes.",
-  "ui.the_airfield": "El aeródromo",
+  "ui.the_swiss_valley": "El valle suizo",
   "ui.plane": "Avión",
   "ui.stabilised": "Estabilizado",
   "main.thrown_keep_it_flying": "Lanzada. Mantenla en vuelo.",
