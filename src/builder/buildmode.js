@@ -140,6 +140,8 @@ const SPRINT = 4;
 const EASE_S = 0.12;
 /* Two presses of W this close together, ms, are a sprint. */
 const DOUBLE_TAP_MS = 300;
+/* How long Shift is down before it sinks the camera, ms. See shiftChord. */
+const SHIFT_SINK_MS = 150;
 /* Mouse radians a pixel, and a pad's right stick at full throw, radians a
  * second. */
 const MOUSE_RATE = 0.0024;
@@ -273,9 +275,12 @@ export function createBuildMode(host) {
   let speedIndex = SPEED_START;
   let sprint = false;
   /* Shift sinks the camera, and turns a piece the other way with R, T or
-   * Y: once it has turned one, it is that key's Shift until it is let go,
-   * so a reverse turn does not also drop the camera. */
+   * Y. It sinks only once it has been down SHIFT_SINK_MS, time for the
+   * turn key to follow it, and once it has turned a piece it is that
+   * key's Shift until it is let go: a reverse turn does not drop the
+   * camera. */
   let shiftChord = false;
+  let shiftAt = 0;
   let lastW = -Infinity;
   const turn = { yaw: 0, pitch: 0, roll: 0 };
   /* The free camera: where it is, where it looks, how fast it moves. */
@@ -931,7 +936,8 @@ export function createBuildMode(host) {
     if (!shiftHeld()) {
       shiftChord = false;
     }
-    let rise = (input.keys.has('Space') ? 1 : 0) - (shiftHeld() && !shiftChord ? 1 : 0);
+    const sink = shiftHeld() && !shiftChord && performance.now() - shiftAt > SHIFT_SINK_MS;
+    let rise = (input.keys.has('Space') ? 1 : 0) - (sink ? 1 : 0);
     let yawIn = 0;
     let lookIn = 0;
     if (!input.keys.has('KeyW')) {
@@ -1751,6 +1757,9 @@ export function createBuildMode(host) {
         closeInventory();
       }
       return true;
+    }
+    if ((code === 'ShiftLeft' || code === 'ShiftRight') && !repeat) {
+      shiftAt = performance.now();
     }
     /* R turns it left, T tips its top away from the pilot (a dive gate,
      * the tilt a track asks for most), Y rolls it; Shift the other way. */

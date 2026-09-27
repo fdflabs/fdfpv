@@ -9,10 +9,12 @@
  * the meshes, their colours, staying the same size on screen, and which
  * handle a ray from the mouse is on.
  *
- * Each handle is drawn thin and picked fat: an invisible mesh around it a
- * few times its width takes the ray, so a handle a pixel or two wide on
- * screen is still easy to catch. All of it is drawn over the world
- * (depthTest off), since a gate half in a cliff still needs its handles.
+ * Each handle is drawn thin and picked by how near the mouse's ray passes
+ * to it, within PICK: the nearest wins, so a handle a pixel or two wide
+ * is still easy to catch, and where a ring seen edge on crosses an arrow
+ * on the page the one the mouse is truly on is taken, not whichever of
+ * them is in front. All of it is drawn over the world (depthTest off),
+ * since a gate half in a cliff still needs its handles.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -39,6 +41,10 @@ const SCREEN = 0.16;
  * distance each). */
 const ARROW = 1;
 const RING = 0.72;
+/* How near the ray must pass to a handle, gizmo units, and how many points
+ * of a ring it is measured against. */
+const PICK = 0.09;
+const RING_POINTS = 48;
 
 /* Move handles by the gizmoAxes move key, turn handles by its turn key;
  * the usual red, green and blue for across, up and along. */
@@ -54,24 +60,21 @@ const HANDLES = [
 const Y = new THREE.Vector3(0, 1, 0);
 const Z = new THREE.Vector3(0, 0, 1);
 
-function arrowMeshes(mat, pickMat) {
+function arrowMeshes(mat) {
   const g = new THREE.Group();
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, ARROW * 0.78, 8), mat);
   shaft.position.y = ARROW * 0.39;
   const head = new THREE.Mesh(new THREE.ConeGeometry(0.07, ARROW * 0.22, 14), mat);
   head.position.y = ARROW * 0.89;
-  const pick = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, ARROW, 6), pickMat);
-  pick.position.y = ARROW * 0.5;
-  g.add(shaft, head, pick);
-  return { group: g, pick, drawn: [shaft, head] };
+  g.add(shaft, head);
+  return { group: g, drawn: [shaft, head] };
 }
 
-function ringMeshes(mat, pickMat) {
+function ringMeshes(mat) {
   const g = new THREE.Group();
   const ring = new THREE.Mesh(new THREE.TorusGeometry(RING, 0.014, 6, 64), mat);
-  const pick = new THREE.Mesh(new THREE.TorusGeometry(RING, 0.08, 6, 32), pickMat);
-  g.add(ring, pick);
-  return { group: g, pick, drawn: [ring] };
+  g.add(ring);
+  return { group: g, drawn: [ring] };
 }
 
 export function createGizmo() {
@@ -79,20 +82,17 @@ export function createGizmo() {
   group.name = 'build-gizmo';
   group.visible = false;
   group.renderOrder = 30;
-  const pickMat = new THREE.MeshBasicMaterial({ visible: false });
   const handles = HANDLES.map((h) => {
     const mat = new THREE.MeshBasicMaterial({
       color: h.colour, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false,
     });
-    const made = h.kind === 'move' ? arrowMeshes(mat, pickMat) : ringMeshes(mat, pickMat);
+    const made = h.kind === 'move' ? arrowMeshes(mat) : ringMeshes(mat);
     for (const m of made.drawn) {
       m.renderOrder = 30;
     }
-    made.pick.userData.handle = h.name;
     group.add(made.group);
     return { ...h, ...made, mat };
   });
-  const pickables = handles.map((h) => h.pick);
   const q = new THREE.Quaternion();
   const v = new THREE.Vector3();
   let hovered = null;
@@ -111,17 +111,35 @@ export function createGizmo() {
     group.updateMatrixWorld(true);
   }
 
-  /* The handle a ray meets, by name, or null. */
+  const a0 = new THREE.Vector3();
+  const a1 = new THREE.Vector3();
+
+  /* The handle the ray passes nearest, within PICK of it, by name, or null. */
   function handleOn(raycaster) {
     if (!group.visible) {
       return null;
     }
-    const hits = raycaster.intersectObjects(pickables, false);
-    /* An arrow before a ring: seen edge on, a ring is a line straight
-     * through the arrows that lie in its plane, and an arrow is the
-     * smaller thing to have aimed at. */
-    const arrow = hits.find((h) => h.object.userData.handle.startsWith('move-'));
-    return (arrow ?? hits[0])?.object.userData.handle ?? null;
+    const ray = raycaster.ray;
+    let best = null;
+    let near = PICK * group.scale.x;
+    for (const h of handles) {
+      let d = Infinity;
+      if (h.kind === 'move') {
+        h.group.localToWorld(a0.set(0, 0, 0));
+        h.group.localToWorld(a1.set(0, ARROW, 0));
+        d = Math.sqrt(ray.distanceSqToSegment(a0, a1));
+      } else {
+        for (let k = 0; k < RING_POINTS; k += 1) {
+          const t = (k / RING_POINTS) * Math.PI * 2;
+          d = Math.min(d, ray.distanceToPoint(h.group.localToWorld(a0.set(RING * Math.cos(t), RING * Math.sin(t), 0))));
+        }
+      }
+      if (d < near) {
+        near = d;
+        best = h.name;
+      }
+    }
+    return best;
   }
 
   function hover(name) {
@@ -145,7 +163,6 @@ export function createGizmo() {
       }
     });
     handles.forEach((h) => h.mat.dispose());
-    pickMat.dispose();
   }
 
   return {
