@@ -243,6 +243,30 @@ export const TUNES = [
     name: 'Manual',
     note: 'No flight controller. The roll and yaw sticks both work the rudder and the pitch stick the elevator; the tail skid does not steer. Let go and the polyhedral levels the wings. Throttle closed, the engine idles.',
   },
+  {
+    /* The Kadet's three, the Bombshell's: no ailerons, so in every mode
+     * the roll stick works the rudder and the stabiliser's roll loop does
+     * too, with no turn coordinator; on its wheels every mode flies as
+     * Manual, and the rudder steers the nose wheel. */
+    id: 'kadet-stab',
+    airframe: 'kadet1981',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 45 degrees, flown on the rudder, pitch stick for a pitch up to 20, and centred sticks fly level. Throttle closed, it lowers the nose onto its glide.',
+    wingStab: 1,
+  },
+  {
+    id: 'kadet-acro',
+    airframe: 'kadet1981',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 25 degrees a second, flown on the rudder, and a pitch rate up to 60, and centred sticks hold the attitude. It will not roll inverted: a rudder cannot do that.',
+    wingStab: 2,
+  },
+  {
+    id: 'kadet-manual',
+    airframe: 'kadet1981',
+    name: 'Manual',
+    note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles.',
+  },
 ];
 
 /*

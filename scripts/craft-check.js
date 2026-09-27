@@ -108,6 +108,14 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             craft-preview.js's half span row. The reach is the
  *             elevator's rounded outer trailing corner, 0.673 m.
  *             src/render/bombshellcraft.js draws it.
+ *   kadet1981  SIG's 78 in (1981 mm) Kadet Senior, whose tail also
+ *             reaches further from the CG than its tips: the rudder's
+ *             trailing edge is 1.108 m aft, SIG's 62 in length less the
+ *             CG's 17.4 in and the spinner, and the tips 0.991 m out, so
+ *             the width this file measures is 2216 mm and SIG's 1981 mm is
+ *             held by craft-preview.js's half span row. The reach is the
+ *             elevator's rounded outer trailing corner, 1.168 m.
+ *             src/render/kadetcraft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -127,6 +135,7 @@ const REAL = {
   timber1500f: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
   cub1400f: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
+  kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

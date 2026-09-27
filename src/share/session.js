@@ -79,6 +79,7 @@ const CLASS_OF_AIRFRAME = {
   timber1500f: 'wing',
   cub1400f: 'wing',
   bombshell1118: 'wing',
+  kadet1981: 'wing',
 };
 export const AIRFRAME_BY_CLASS = { full: '5inch', micro: 'whoop65', wing: 'bramor2300' };
 

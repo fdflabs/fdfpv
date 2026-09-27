@@ -12,7 +12,10 @@
  * are timed on the page's clock, which headless is slow, so each waits on
  * what the aircraft did and not on a stopwatch.
  *
- *   node scripts/bombshell-shell.js
+ *   node scripts/bombshell-shell.js [airframe id] [maps]
+ *
+ * Any fixed wing on wheels flies it: npm run kadet:shell is the Kadet
+ * Senior's, which also holds its sound to the four stroke's voice.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -144,9 +147,14 @@ try {
     say(craft.setting === AF && craft.run === AF && craft.module === af.simId && drawn === `${AF.replace(/[0-9]+$/, '')}-fuselage`,
       `the setting, the run, the module and the drawn model: ${craft.setting}, ${craft.run}, module ${craft.module}, ${drawn}`);
     say(st.tune === af.defaultTune && st.wingStab === 2, `on ${st.tune} with the stabiliser in mode ${st.wingStab}`);
+    /* Its sound: the voice the airframe names, or the fixed wings' blade
+     * pass, read off the mix's own voice (src/render/audio.js VOICES). */
+    const voice = await page.evaluate("(() => { const v = window.__audio.voice; return { perRev: v.perRev, wave: v.wave, rpmFull: v.rpmFull }; })()");
+    const want = { glow4: 'fourStroke' }[af.voice] ?? 'blade';
+    say(voice.wave === want, `its sound: the ${voice.wave} voice, ${voice.perRev} wave periods a revolution, full at ${voice.rpmFull} rpm`);
     if (g) {
       say(g.landed && Math.abs(g.above - af.gear.restHeight) < 0.02,
-        `parked on its wheels and skid: CG ${g.above.toFixed(4)} m over the ground against the plant's ${af.gear.restHeight}`);
+        `parked on its gear: CG ${g.above.toFixed(4)} m over the ground against the plant's ${af.gear.restHeight}`);
     }
     await page.evaluate(PILOT);
     const t0 = Date.now();

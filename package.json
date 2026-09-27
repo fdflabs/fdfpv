@@ -97,6 +97,7 @@
     "kadet:stab": "node scripts/kadet-stab-selftest.js",
     "kadet:record": "node scripts/wing-record.js kadet",
     "kadet:derive": "node scripts/kadet-derive.js",
+    "kadet:shell": "node scripts/bombshell-shell.js kadet1981",
     "floats:gates": "node scripts/floats-gates.js",
     "floats:record": "node scripts/wing-record.js timberf",
     "floats:derive": "node scripts/floats-derive.js",
