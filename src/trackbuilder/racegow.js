@@ -144,11 +144,6 @@ export const ELEVATED_SILL_MIN = 56 * IN;  /* 1422 mm */
 export const ENVELOPE_W_AT_MIN = 4 * FT;   /* 1219 mm */
 export const ENVELOPE_D_AT_MIN = 6 * FT;   /* 1829 mm */
 
-/* The envelope for a track whose gates are `opening` wide. */
-export function envelopeFor(opening) {
-  const k = opening / GATE_OPENING_MIN;
-  return { width: ENVELOPE_W_AT_MIN * k, depth: ENVELOPE_D_AT_MIN * k };
-}
 
 /*
  * THE ROOM, which RaceGOW does not specify and which a simulator has to.
@@ -186,7 +181,6 @@ export function envelopeFor(opening) {
  */
 export const ROOM_WIDTH = 10.0;
 export const ROOM_DEPTH = 12.0;
-export const ROOM_HEIGHT = 4.0;
 
 /*
  * The grid. One inch, because every dimension RaceGOW publishes is a whole

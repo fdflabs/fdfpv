@@ -42,7 +42,8 @@
  */
 
 import { MAPS, mapById } from '../maps/registry.js';
-import { isMapTrack } from '../trackbuilder/model.js';
+import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
+import { raceGatesOf } from '../builder/course.js';
 import { planesFor } from '../game/verify.js';
 import { CAL_STEPS } from '../input/input.js';
 import {
@@ -67,9 +68,6 @@ import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
-/* One function, for the one question this file asks the builder: which class
- * is the track a pilot is about to fly. */
-import { trackClassOf } from '../trackbuilder/elements.js';
 import {
   RATE_DEFAULTS,
   RATE_FIELDS,
@@ -116,7 +114,7 @@ import {
   setPidsExpert,
 } from '../../configs/pids.js';
 import {
-  boardPageUrl, fetchTrackList, fetchTrackTimes, pickFeaturedTracks, wikiPageUrl,
+  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks, wikiPageUrl,
 } from '../share/board.js';
 import { PATTERNS } from '../game/trickdetect.js';
 import { PROVEN } from '../game/proven.js';
@@ -125,22 +123,21 @@ import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, WIKI_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { nameRules, readPilotName, writePilotName } from '../share/pilot.js';
-import { courseChip, hasFlyableTrack, inspectCourse, isEmptyCanvas } from '../share/listing.js';
-import { isoLapMs, drawIso, drawPlan, fieldSize, planCanvas, planFromDocument } from '../share/plan.js';
+import { hasFlyableTrack, inspectCourse } from '../share/listing.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
   lapSlot,
   readPendingTime,
   readPostedBest,
-  writeBuilderIntent,
   writePendingTime,
-  /* Only clearShareImport. The shell used to WRITE a share seat too, for a
-   * track that ships with the simulator; the Track room no longer seats one
-   * of those, so what is left is clearing a stale seat out of the way of
-   * the pilot's own track. See seatLocal. A board track's seat is written
-   * by main.js, which owns the fetch. */
+  /* My tracks seats the pilot's own tracks (seatLocal) and clears a deleted
+   * one out of the seat. A board track's seat is written by main.js, which
+   * owns the fetch. */
   clearShareImport,
-  AIRFRAME_BY_CLASS,
+  readBind,
+  readEditKey,
+  readShareImport,
+  writeShareImport,
 } from '../share/session.js';
 import {
   clipKeyForMap,
@@ -182,15 +179,10 @@ import {
 } from './fc.js';
 import { FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY } from '../fc/dump.js';
 import { str, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } from '../strings/index.js';
-/*
- * The pilot's own tracks live in this browser, and the Track room lists
- * them now, so the shell reads the same library the builder's Load dialog
- * reads rather than only the one document in the autosave seat.
- * writeAutosave is still also used to re-home a document whose seat is
- * about to stop being the active one. See seatCraftForCourse and seatLocal.
- */
+/* The pilot's own tracks live in this browser's library, and My tracks
+ * lists, copies, renames and deletes them there. */
 import {
-  listTracks, loadTrack, readAutosave, saveTrack, trackExists, writeAutosave,
+  deleteTrack, listMapTracks, loadMapTrack, saveTrack,
 } from '../trackbuilder/storage.js';
 
 /* Whether a Flight controller save exists, which is what puts Your edits
@@ -214,7 +206,7 @@ const SCREEN_ACTIONS = new Set([
  * instead of the four the return chain currently chooses between. */
 /*
  * Screens a room can be opened FROM and returned to. The launch card and
- * both track rooms carry doors into Quad and Pilot; the title is not here
+ * My tracks carry doors into Quad and Pilot; the title is not here
  * because it is where Back goes when there is nowhere else to go.
  */
 /*
@@ -225,29 +217,11 @@ const SCREEN_ACTIONS = new Set([
  */
 const REEL_QUIET_MS = 900;
 
-/*
- * THE COURSE CARDS FLY THEIR OWN LAP.
- *
- * ONE PACE, NOT ONE DURATION, and that is the whole of what changed here.
- * It was twelve seconds a lap for every card, the exporter's old figure, so
- * a 41 m course went round three times as fast as a 13 m one and a row of
- * cards had no common speed to read. isoLapMs in src/share/plan.js gives
- * each track its own length of lap at one steady speed, which is the
- * animation exporter's rule and RaceGOW's own: see LAP_SPEED in
- * src/trackbuilder/stage.js.
- *
- * Repainted twenty times a second rather than every frame. Each card is a
- * few dozen strokes on a 150 px canvas, but there are several of them and
- * they are painted over a world that is also being rendered, and nothing
- * about a travelling ribbon needs 60 Hz.
- */
-const COURSE_PLAN_MS = 50;
-
 const ROOM_PARENTS = new Set(['courses', 'freestyle', 'launch', 'quad', 'pilot']);
 
 const SCREEN_TITLES = {
   title: 'FDFPV',
-  courses: 'Race',
+  courses: str('ui.my_tracks'),
   freestyle: 'Freestyle',
   pilot: 'Settings',
   quad: 'Quad',
@@ -263,7 +237,7 @@ const SCREEN_TITLES = {
   credits: 'Credits',
 };
 const CRUMBS = {
-  courses: [str('ui.race')],
+  courses: [str('ui.track_mode'), str('ui.my_tracks')],
   freestyle: [str('ui.freestyle')],
   pilot: [str('ui.settings')],
   quad: [str('ui.quad')],
@@ -498,13 +472,13 @@ function byLine(t) {
 }
 
 const DEFAULTS = {
-  /* Which world. 'custom' is a track from the board or the builder, and
-   * 'city' is the freestyle town. It is a string so loadSettings' typeof
-   * gate accepts it, and an unknown value falls back to the track in
+  /* Which world. 'track' is Track mode's seat, a track built in the Alps
+   * or the Swiss valley flown in the world it names, and 'city' is the
+   * freestyle town. It is a string so loadSettings' typeof gate accepts it,
+   * and an unknown value falls back to the Track seat in
    * src/maps/registry.js rather than throwing, because a stale localStorage
-   * entry must not be able to stop the page booting. A stored 'field' from
-   * before the race field was removed is the track world. */
-  map: 'custom',
+   * entry must not be able to stop the page booting. */
+  map: 'track',
   /*
    * The freestyle world the pilot last chose, or '' if they never have.
    *
@@ -1093,10 +1067,12 @@ export function loadSettings() {
    * lands on the tune it was chosen against. One shot: see seedAirframePids.
    */
   seedAirframePids(s, s.airframe);
-  /* The race field is gone. A stored 'field', or an id no map has, flies
-   * the track world. City is left alone. */
-  if (s.map === 'field' || !MAPS.some((m) => m.id === s.map)) {
-    s.map = 'custom';
+  /* The race field and its track world are gone. A stored 'field' or
+   * 'custom', a whoop's RaceGOW room among them, or an id no map has, is the
+   * Track seat: My tracks, and the Swiss valley behind it until a track is
+   * chosen. City is left alone. */
+  if (!MAPS.some((m) => m.id === s.map)) {
+    s.map = 'track';
   }
   /* The remembered freestyle world, by the same rule: a stale id, or a
    * track id sitting in the freestyle slot, means nothing was chosen. */
@@ -1707,9 +1683,6 @@ function seatIsRace(s) {
   if (m.mode === 'freestyle') {
     return false;
   }
-  if (m.id !== 'custom') {
-    return true;
-  }
   const seat = activeCourseSummary();
   return Boolean(seat && seat.gates > 0);
 }
@@ -2063,30 +2036,23 @@ function isCardScreen(screen) {
   return screen === 'courses' || screen === 'freestyle';
 }
 
-/* The plan of whatever is on the working canvas, or null. Derived rather
- * than stored: the canvas changes in the builder, on another page. */
-function currentPlan() {
-  const seat = activeCourseSummary();
-  if (!seat || !seat.doc || isEmptyCanvas(seat.doc)) {
-    return null;
-  }
-  /* A track built inside a world stands in the valley the pilot is looking
-   * at, and its positions are the world's, not a field's: there is no
-   * blueprint plate to draw it on. */
-  if (isMapTrack(seat.doc)) {
-    return null;
-  }
+/* The id of the track the seat holds, or null. */
+function seatedTrackId() {
+  const share = readShareImport();
+  return share ? share.id : null;
+}
+
+/* The gates a track races through, which is what its card counts. */
+function raceGateCount(doc) {
   try {
-    return planFromDocument(seat.doc);
+    return raceGatesOf(doc).length;
   } catch (e) {
-    return null;
+    return 0;
   }
 }
 
-function liveListing(mapId) {
-  if (mapId && mapId !== 'custom') {
-    return null;
-  }
+/* What the seated track is to the board, or null when nothing is seated. */
+function liveListing() {
   try {
     const course = inspectCourse();
     return course && course.kind !== 'none' ? course : null;
@@ -2106,14 +2072,15 @@ export function lapCraftOf(doc, airframe) {
 }
 
 /*
- * The four things a player can do to the course they are holding.
+ * Upload a time: what a player can do with a lap on the track they are
+ * holding.
  *
- * EVERY ONE OF THESE ALWAYS RETURNS A ROW. They used to return null when
- * they did not apply, and the caller pushed only the survivors, so the
- * title menu swung between nine and thirteen rows: the row under the
- * cursor moved depending on what the player had done last, and an action
- * that was simply unavailable was indistinguishable from one that does not
- * exist. A greyed row with a reason teaches; a missing row cannot.
+ * IT ALWAYS RETURNS A ROW. Rows like it used to return null when they did
+ * not apply, and the caller pushed only the survivors, so a menu swung
+ * between nine and thirteen rows: the row under the cursor moved depending
+ * on what the player had done last, and an action that was simply
+ * unavailable was indistinguishable from one that does not exist. A greyed
+ * row with a reason teaches; a missing row cannot.
  *
  * `disabled` is honoured by select(), and renderMenu paints it as row-grey.
  */
@@ -2168,95 +2135,6 @@ function uploadAction(listing, { fastestMs, timePosted, airframe }) {
   };
 }
 
-function publishAction(listing, published) {
-  if (published) {
-    return {
-      label: str('ui.published'),
-      action: 'leaderboard',
-      note: str('ui.this_track_is_on_the_public'),
-    };
-  }
-  if (listing && listing.canPublishNew) {
-    const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
-    const by = listing.sourceAuthor ? str('ui.by_3', { sourceAuthor: listing.sourceAuthor }) : '';
-    return {
-      label: str('ui.publish_this_track'),
-      action: 'publishcourse',
-      note: listing.remix
-        ? str('ui.your_copy_goes_on_the_board', { of, by })
-        : str('ui.put_this_track_on_the_public'),
-    };
-  }
-  if (listing && listing.canUpdateListing && listing.layoutDrift) {
-    return {
-      label: str('ui.update_this_track'),
-      action: 'publishcourse',
-      note: str('ui.the_layout_changed_updating_the_board'),
-    };
-  }
-  if (listing && listing.kind === 'owned') {
-    return {
-      label: str('ui.publish_this_track'),
-      action: 'publishcourse',
-      disabled: true,
-      note: str('ui.already_on_the_board_and_nothing'),
-    };
-  }
-  if (listing && listing.kind === 'community') {
-    return {
-      label: str('ui.publish_this_track'),
-      action: 'publishcourse',
-      disabled: true,
-      note: str('ui.somebody_else_published_this_one_edit'),
-    };
-  }
-  return {
-    label: str('ui.publish_this_track'),
-    action: 'publishcourse',
-    disabled: true,
-    note: listing && listing.kind === 'local'
-      ? str('ui.a_track_needs_a_flying_order')
-      : str('ui.nothing_to_publish_build_a_track'),
-  };
-}
-
-function remixAction(listing) {
-  if (listing && listing.canRemix) {
-    const by = byLine(listing) ? ` ${byLine(listing)}` : '';
-    return {
-      label: str('ui.edit_a_copy'),
-      action: 'remix',
-      note: str('ui.open_in_the_track_builder_as', { name: listing.name, by }),
-    };
-  }
-  return {
-    label: str('ui.edit_a_copy'),
-    action: 'remix',
-    disabled: true,
-    note: listing && listing.kind === 'owned'
-      ? str('ui.this_one_is_already_yours_edit')
-      : str('ui.only_a_published_track_by_somebody'),
-  };
-}
-
-function editOwnAction(listing) {
-  if (listing && listing.kind === 'owned') {
-    return {
-      label: str('ui.edit_this_track'),
-      action: 'editown',
-      note: str('ui.open_this_track_in_the_track'),
-    };
-  }
-  return {
-    label: str('ui.edit_this_track'),
-    action: 'editown',
-    disabled: true,
-    note: listing && listing.kind === 'community'
-      ? str('ui.somebody_else_published_this_one_edit_2')
-      : str('ui.nothing_of_yours_on_the_board'),
-  };
-}
-
 /*
  * The still a world card wears until its clip exists.
  *
@@ -2292,7 +2170,7 @@ function markPoster(card, map) {
 }
 
 /*
- * A course card's identity, stable across the rebuilds items() does on every
+ * A track card's identity, stable across the rebuilds items() does on every
  * render. The card objects themselves are made fresh each time, so the chosen
  * card is remembered by this key rather than by reference.
  */
@@ -2300,55 +2178,41 @@ function courseCardKey(card) {
   if (!card || !card.course) {
     return null;
   }
-  if (card.course.kind === 'board' || card.course.kind === 'local') {
-    return `${card.course.kind}:${card.course.track.id}`;
-  }
-  return 'current';
+  return `${card.course.kind}:${card.course.track.id}`;
 }
 
 /*
- * WHAT ONE COURSE CARD CAN DO, once the player has chosen it.
+ * WHAT ONE TRACK CARD CAN DO, once the player has chosen it.
  *
- * The screen used to be a strip of cards over a list of actions, and it read
- * as though the list acted on the card the cursor was on. It did not. The
- * list has always acted on the course in the SEAT, the one loaded and flown,
- * and the only thing choosing a card did was load it and fly it. So the one
- * question a player actually has about a course on the board, "let me look at
- * this one in the builder", had no answer that did not involve flying it
- * first, crashing out, and coming back. Reported exactly that way: I select
- * it and it opens, I cannot select it then edit it from this menu.
- *
- * Choosing a card now names it and lists what can be done with it. Fly it is
- * first, so the common path is Enter Enter and still one keystroke longer
- * than it was, which is the price of the card meaning something. The rows
- * underneath the strip are untouched and still belong to the seat, because
- * publishing and uploading a time are things you do to the course you are
- * flying, not to a card you are pointing at.
+ * Choosing a card names it and lists what can be done with it, rather than
+ * flying it on the spot. Play is first, so the common path is Enter then
+ * Enter. One of the pilot's own can be played, edited in the builder,
+ * renamed, duplicated and deleted; one from the board can be played, copied
+ * into My tracks to build on, and its times read.
  */
 function courseCardRows(subject) {
   const board = subject.course.kind === 'board';
   const name = subject.label;
+  const world = mapById(subject.course.track.map).name;
   const rows = [
     /* The list says whose it is. The chosen card is marked as well, but a
      * colour is not a label, and this list sits far enough below the strip
      * that the two want joining in words. Not a cursor stop. */
     { label: name, section: true },
     {
-      label: str('ui.fly_it'),
+      label: str('ui.play'),
       action: 'card-fly',
       note: board
         ? str('ui.load_from_the_board_and_fly', { name })
-        : str('ui.fly', { name }),
-    },
-    {
-      label: str('ui.open_in_the_track_builder'),
-      action: 'card-builder',
-      note: board
-        ? str('ui.open_in_the_builder_without_flying', { name })
-        : str('ui.open_in_the_builder_nothing_is', { name }),
+        : str('ui.race_it_in', { name, world }),
     },
   ];
   if (board) {
+    rows.push({
+      label: str('ui.duplicate'),
+      action: 'card-duplicate',
+      note: str('ui.copy_it_into_my_tracks_board', { name }),
+    });
     rows.push({
       label: str('ui.standings'),
       action: 'card-standings',
@@ -2359,6 +2223,29 @@ function courseCardRows(subject) {
       action: 'card-board',
       note: str('ui.the_public_page_for_a_link', { name }),
     });
+  } else {
+    rows.push(
+      {
+        label: str('ui.edit'),
+        action: 'card-edit',
+        note: str('ui.open_it_in_the_builder_in', { name, world }),
+      },
+      {
+        label: str('ui.rename'),
+        action: 'card-rename',
+        note: str('ui.give_it_a_name_you_will', { name }),
+      },
+      {
+        label: str('ui.duplicate'),
+        action: 'card-duplicate',
+        note: str('ui.a_copy_to_change_without_touching', { name }),
+      },
+      {
+        label: str('ui.delete_label'),
+        action: 'card-delete',
+        note: str('ui.take_it_out_of_this_browser', { name }),
+      },
+    );
   }
   rows.push({ label: str('ui.back_to_the_list'), action: 'card-back' });
   return rows;
@@ -2645,11 +2532,10 @@ function freestyleOffered(airframeId) {
  * RACE OR FREESTYLE, WHEN THE LINK ALREADY SAID.
  *
  * The gate is a question, and a question that has been answered must not be
- * asked again: the builder's Fly this track button links to ?map=custom, the
- * board's links carry ?share=id, and a chase link carries ?ghost=id. Every
- * one of those is somebody arriving with the thing they want to fly already
- * named, so the gate would be a screen in front of a decision they made on
- * another page.
+ * asked again: the board's links carry ?share=id, and a chase link carries
+ * ?ghost=id. Each is somebody arriving with the thing they want to fly
+ * already named, so the gate would be a screen in front of a decision they
+ * made on another page.
  *
  * Only the link answers it. A stored setting deliberately does not, which is
  * the whole point of the gate: see the constructor.
@@ -2830,17 +2716,18 @@ function craftSvg(a) {
  */
 const WAYS = [
   {
-    /* EVERY RACING QUAD, ONE CARD, as every fixed wing is one card: the
-     * five inch on a sixty metre field and the whoop in a living room are
-     * the same thing to do, gates against the clock, and the Aircraft row
-     * on the Quad screen picks between them. The five inch is what the
-     * card seats when neither is; a pilot on the whoop keeps it. */
+    /* EVERY AIRCRAFT, ONE CARD: a track built in a world is raced by every
+     * quad and by every fixed wing that fits its gates (src/game/verify.js
+     * planesFor, #93), so the picker this card opens offers them all and
+     * My tracks says which tracks a plane fits. The five inch is what the
+     * card seats when nothing is; a pilot on any other aircraft keeps it.
+     * The id is the card's and outlived the five inch having it alone. */
     id: 'race-5inch',
-    airframes: ['5inch', 'whoop65'],
+    airframes: AIRFRAME_IDS,
     mode: 'race',
     label: str('ui.track_mode'),
     art: 'assets/gate/race.jpg',
-    blurb: str('ui.gates_against_the_clock_the_five'),
+    blurb: str('ui.gates_against_the_clock_on_a'),
     facts: [str('ui.gates'), str('ui.the_clock'), str('ui.the_board')],
   },
   {
@@ -2867,12 +2754,23 @@ const WAYS = [
 
 /* The way that is seated right now, which is what the gate's cursor opens
  * on and what a menu that has been backed out of returns to. The mode is
- * only set once the gate has been answered, so before that the racing card
- * of the seated aircraft is the standing answer. */
+ * only set once the gate has been answered, so before that the standing
+ * answer is the card that is the seated aircraft's own kind: Track mode for
+ * a quad, Free Flight for a plane, which may also race. */
 function seatedWay(settings, mode) {
-  return WAYS.find((w) => w.airframes.includes(settings.airframe) && w.mode === (mode || 'race'))
-    || WAYS.find((w) => w.airframes.includes(settings.airframe))
+  const a = settings.airframe;
+  const fits = WAYS.filter((w) => w.airframes.includes(a));
+  return fits.find((w) => w.mode === mode)
+    || fits.find((w) => w.airframes.every((id) => kindOf(id) === kindOf(a)))
+    || fits[0]
     || WAYS[0];
+}
+
+/* The carousel tab a card's picker opens on: its aircraft's kind, or every
+ * aircraft when the card takes both. */
+function wayFilter(way) {
+  const kinds = new Set(way.airframes.map(kindOf));
+  return kinds.size === 1 ? [...kinds][0] : 'all';
 }
 
 /*
@@ -3008,8 +2906,8 @@ export class Ui {
     this.guided = false;
     this.boardCourses = [];
     /* The pilot's own tracks, read off this browser's library on entry to
-     * the Track room. The board's half above it and this one are the two
-     * things that room lists. See loadLocalCourses. */
+     * My tracks. This and the board's above are the two things that screen
+     * lists. See loadLocalCourses. */
     this.localCourses = [];
     /* The standings screen's subject and its times. null means "not asked
      * yet", which paintStandings draws as Reading the board; an empty array
@@ -3164,8 +3062,6 @@ export class Ui {
     this.freestyleRun = null;
     this.runPosted = null;
     this.resultsFastest = null;
-    this.resultsDocId = null;
-    this.coursePublished = null;
     this.padPrev = { up: false, down: false, left: false, right: false, select: false, back: false };
     /* Seed the edges on the next poll rather than acting on them. Set by
      * every screen change; see show(). */
@@ -3521,70 +3417,35 @@ export class Ui {
     this.screens.credits = credits;
 
     /*
-     * The map screen. Cards rather than a row of text, and each card plays a
-     * short flight through the world it offers.
-     *
-     * WHY A SCREEN AND NOT A ROW. Choosing the map is the biggest choice a
-     * player makes and it takes seconds to honour, and until now it was a
-     * name on a menu row that you stepped through with the arrow keys: a
-     * player who had never flown either one was choosing between the strings
-     * "Track" and "Freestyle city". What a world is like is not
-     * something a sentence gets across, so the cards show it.
-     *
-     * The thumbnail is a recorded loop of the title shot, not a live world.
-     * The first visit that needs a card records 480p into IndexedDB; every
-     * visit after that is a <video> element. Boot still does not fetch the
-     * city (check 16). Opening this screen does not keep a second WebGL
-     * copy of any world running, which is what a Steam Deck with other tabs
-     * open actually survives.
-     *
-     * Custom map always opens a second card screen: fly the current
-     * course, pick a published one from the board, or create / edit.
-     * Create / edit is a third screen: edit the current map, or start a
-     * new one, then the track builder page itself.
+     * MY TRACKS, which is Track mode's own screen: a strip of track cards,
+     * the pilot's first and the board's after, over the rows that act on
+     * the list as a whole. Each card wears the photograph of the world the
+     * track stands in (the world's poster, src/maps/registry.js), because
+     * where a track is flown is the first thing that tells two apart.
      */
     const courses = el('div', 'screen screen-page screen-maps screen-courses');
-    courses.append(el('h2', null, str('ui.tracks')));
-    /*
-     * WHICH AIRCRAFT THIS LIST IS FOR, said out loud.
-     *
-     * The list is filtered to the seated machine, because a RaceGOW room and
-     * a MultiGP field are not alternatives to each other: one of them puts a
-     * five inch in a living room. But a filtered list with nothing saying it
-     * is filtered reads as tracks having disappeared, and the fix somebody
-     * reaches for then is republishing them.
-     *
-     * The line names the aircraft and says where the switch is, which is the
-     * Quad room, one row from here on the title.
-     */
+    courses.append(el('h2', null, str('ui.my_tracks')));
+    /* Which aircraft this list is for, said out loud: a plane sees only the
+     * tracks it fits, and a list filtered without saying so reads as tracks
+     * that have disappeared. Written by items(). */
     this.coursesLede = el('p', 'screen-lede', '');
     courses.append(this.coursesLede);
     /*
-     * NO WORLD STRIP HERE, and the label is the reason.
-     *
-     * The audit's opening example was this screen: titled Tracks, opening
-     * with a heading that said WORLDS, over four things that were not
-     * tracks. The worlds moved to the Freestyle room and the strip stayed,
-     * empty, with its label still drawn. So the complaint outlived the fix
-     * by one element: a screen headed Tracks still said WORLDS above its
-     * tracks, over nothing at all.
-     *
-     * mapCardHost is still built because the Freestyle room draws its cards
-     * into it through the same renderMapCards; it just is not appended to
-     * this screen.
+     * mapCardHost is built because the Freestyle room draws its world cards
+     * into it through renderMapCards; it is not appended to this screen.
      */
     this.mapCardHost = el('div', 'map-cards');
     this.courseStrip = el('div', 'card-strip');
-    /* Most flown first, and all of them, which is what the strip holds now
-     * that it is not capped at five. */
-    /* Two groups, so the caption names both rather than describing one
-       ordering that only ever applied to the board's half. Yours first
-       because the track you were last working on is the one you came here
-       to fly; the board's underneath, most flown first. */
+    /* Two groups, so the caption names both. Yours first, because the track
+     * you were last working on is the one you came here to fly; the board's
+     * underneath, most flown first. */
     this.courseStrip.append(el('div', 'strip-label', str('ui.yours_first_then_the_board_most')));
     this.courseCardHost = el('div', 'map-cards course-cards');
+    /* What the list holds when it holds nothing of the pilot's, and what
+     * the board said, each one line under the strip. */
+    this.localNote = el('div', 'board-note', '');
     this.boardNote = el('div', 'board-note', '');
-    this.courseStrip.append(this.courseCardHost, this.boardNote);
+    this.courseStrip.append(this.courseCardHost, this.localNote, this.boardNote);
     const coursesBlock = wrapMenu();
     this.coursesMenu = coursesBlock.menu;
     this.coursesMenu.classList.add('menu-scroll');
@@ -3999,13 +3860,6 @@ export class Ui {
       this.resultsBody,
       this.resultsNote,
     );
-    /* The course that lap was flown on, drawn the way the board and the
-     * builder draw it. A result read on a screen that never shows the shape
-     * of the course is a number without its subject. */
-    this.resultsPlanWrap = el('div', 'results-plan');
-    this.resultsPlan = planCanvas(null, str('ui.track_plan'));
-    this.resultsPlanWrap.append(this.resultsPlan);
-    resultsTop.append(this.resultsPlanWrap);
     const resultsBlock = wrapMenu();
     this.resultsMenu = resultsBlock.menu;
     this.resultsHelp = resultsBlock.help;
@@ -4195,13 +4049,6 @@ export class Ui {
   markTimePosted(posted) {
     this.timePosted = posted || { ok: true };
     if (this.screen === 'title' || this.screen === 'results') {
-      this.renderMenu();
-    }
-  }
-
-  markCoursePublished(posted) {
-    this.coursePublished = posted || { ok: true };
-    if (this.screen === 'title' || this.screen === 'results' || this.screen === 'courses') {
       this.renderMenu();
     }
   }
@@ -4713,7 +4560,7 @@ export class Ui {
 
   bugSnapshot() {
     const s = this.settings || {};
-    const seat = s.map === 'custom' ? activeCourseSummary() : null;
+    const seat = s.map === 'track' ? activeCourseSummary() : null;
     const gpu = this.gpuInfo || {};
     let href = '';
     try {
@@ -5490,7 +5337,7 @@ export class Ui {
         ];
       }
       const m = MAPS.find((x) => x.id === s.map) ?? MAPS[0];
-      const seat = m.id === 'custom' ? activeCourseSummary() : null;
+      const seat = m.id === 'track' ? activeCourseSummary() : null;
       /*
        * The course actions that used to appear and vanish here live on the
        * Courses screen and on Results, where the course itself is what the
@@ -5697,87 +5544,29 @@ export class Ui {
       return [{ label: str('ui.back'), action: 'back' }];
     }
     /*
-     * Courses. ONE SCREEN WHERE THERE WERE THREE.
+     * MY TRACKS, which is what Track mode is: the tracks the pilot built in
+     * the Alps and the Swiss valley, then the board's when there is a board,
+     * and a new one. Each card is a thing to choose (courseCardRows says
+     * what can be done with it); the rows under the strip are for the list
+     * as a whole.
      *
-     * Reaching the track builder used to be Title, Track builder, Create /
-     * edit map, then the builder, or Title, Map, Custom map, Create / edit
-     * map, then the builder. Two routes to the same page with three screens
-     * in between, and every one of those screens asked the player to choose
-     * before it showed them anything to choose between. Choose new map did
-     * not even list courses: it opened the board in a new tab, whose own Fly
-     * button then opened a second simulator.
-     *
-     * So: worlds and five courses from the board in one grid, the builder
-     * one row away from all of it. Start a new course is the builder's own
-     * New button, which is where it belongs.
+     * A plane is offered only the tracks it fits, by the builder's own rule
+     * (src/game/verify.js planesFor); the lede says so, and says where the
+     * aircraft is changed, because a list that is filtered without saying
+     * so reads as tracks that have disappeared.
      */
     if (this.screen === 'courses') {
+      const af = airframeById(this.settings.airframe);
       if (this.coursesLede) {
-        const af = airframeById(this.settings.airframe);
-        this.coursesLede.textContent = str('ui.tracks_for_the', { v1: af.name.toLowerCase() })
-          + str('ui.change_the_aircraft_under_quad_to');
+        this.coursesLede.textContent = af.fixedWing
+          ? str('ui.the_tracks_the_fits', { craft: af.name })
+          : str('ui.every_track_here_is_yours_to');
       }
-      const listing = liveListing('custom');
-      const loaded = hasLoadedTrack();
-      const seat = loaded ? activeCourseSummary() : null;
-      /*
-       * Everything in this room is a track, so there is nothing to segment
-       * and no heading that contradicts the screen title. The freestyle
-       * worlds moved to their own room; what is left is the seated course
-       * and whatever the board is offering.
-       */
       const cards = [];
-      if (loaded && seat) {
-        const chip = courseChip(listing);
-        cards.push({
-          label: seat.name,
-          note: str('ui.gate', { note: chip.note, gates: seat.gates, v3: seat.gates === 1 ? '' : 's' }),
-          course: { kind: 'current', seat },
-          action: 'map:custom',
-        });
-      }
-      /*
-       * THE PILOT'S OWN TRACKS, out of this browser's library.
-       *
-       * TWO SOURCES ON THIS SCREEN AND NO THIRD: what is on the board, and
-       * what is in this browser. That is the rule now, and it replaced a
-       * third source that broke it.
-       *
-       * The tracks that ship with the simulator used to be listed here, on
-       * the argument that the RaceGOW5 set was otherwise reachable only
-       * from the builder's Load dialog, which a pilot who just wants to fly
-       * never opens. What that argument missed is that a shipped track is a
-       * COPY of something that is also on the board, under a different id,
-       * and the copy answers to nobody. Taking RaceGOW5 Track 5 off the
-       * board did not take it off this screen, and Track 1, which is still
-       * on the board, was listed twice: once as itself and once as its
-       * shipped twin. A pilot cannot be expected to know which of two
-       * identical cards is the one with times on it.
-       *
-       * So the shipped set reaches pilots the way every other track does,
-       * by being on the board (scripts/boardpresets.js publishes it), and
-       * this screen lists the board and the library. Take a track off the
-       * board and it leaves this screen. That is the whole point.
-       *
-       * The library is still listed in the builder's Load dialog with the
-       * shipped set beside it, which is where a shipped track belongs: it
-       * is something to open and make yours, not something to race against
-       * a board that has never heard of it.
-       *
-       * Built once on entry to the screen rather than here, because items()
-       * runs on every cursor move and this reads and normalises a document
-       * per track. See loadLocalCourses.
-       */
-      const seatedId = seat && seat.doc ? seat.doc.id : null;
       for (const t of this.localCourses || []) {
-        /* The card on the canvas is already the top card. Showing it twice
-         * is the same confusion the shipped twins caused. */
-        if (t.id === seatedId) {
-          continue;
-        }
         cards.push({
           label: t.name,
-          note: str('ui.yours_saved_in_this_browser_gate', { gates: t.gates, v2: t.gates === 1 ? '' : 's' }),
+          note: str('ui.yours_in_gate', { world: mapById(t.map).name, gates: t.gates, v3: t.gates === 1 ? '' : 's' }),
           course: { kind: 'local', track: t },
           action: `local:${t.id}`,
         });
@@ -5785,13 +5574,7 @@ export class Ui {
       for (const t of this.boardCourses || []) {
         cards.push({
           label: t.name,
-          note: t.map
-            ? str('ui.hung_in_choosing_it_flies_it_there', { world: mapById(t.map).name, author: t.author || str('ui.a_pilot') })
-            : t.designer
-            ? str('ui.designed_by_choosing_it_loads_the', { designer: t.designer, v2: t.series ? str('ui.for', { series: t.series }) : '', v3: t.author ? str('ui.published_by', { author: t.author }) : '' })
-            : (t.author
-              ? str('ui.published_by_choosing_it_loads_the', { author: t.author })
-              : str('ui.a_published_track_choosing_it_loads')),
+          note: str('ui.hung_in_choosing_it_flies_it_there', { world: mapById(t.map).name, author: t.author || str('ui.a_pilot') }),
           course: { kind: 'board', track: t },
           action: `board:${t.id}`,
         });
@@ -5804,32 +5587,25 @@ export class Ui {
       if (chosen) {
         return [...cards, ...courseCardRows(chosen)];
       }
-      const rows = [
+      /* New track asks which world first, in the list's place. */
+      if (this.newTrackOpen) {
+        return [
+          ...cards,
+          { label: str('ui.new_track_in_which_world'), section: true },
+          ...MAPS.filter((m) => m.build).map((m) => ({
+            label: m.name,
+            action: `newtrack:${m.id}`,
+            note: str('ui.an_empty_track_in_the_builder', { world: m.name }),
+          })),
+          { label: str('ui.back_to_the_list'), action: 'newtrack-back' },
+        ];
+      }
+      return [
+        ...cards,
         {
-          label: loaded ? str('ui.open_in_the_track_builder') : str('ui.build_a_track'),
-          action: 'trackbuilder',
-          note: loaded
-            ? str('ui.opens_the_track_builder_on_the')
-            : str('ui.opens_the_track_builder_on_an'),
-        },
-        publishAction(listing, this.coursePublished),
-        uploadAction(listing, { timePosted: this.timePosted, airframe: this.settings.airframe }),
-        remixAction(listing),
-        editOwnAction(listing),
-        /*
-         * "Open the board" meant nothing to somebody who had never seen the
-         * board, and it left the game: the page it opened has its own
-         * link back, which reloads the simulator at the title and throws
-         * away whatever was seated. Standings is what a player wanted from
-         * it, and it is a screen in here now.
-         */
-        {
-          label: str('ui.standings'),
-          action: 'standings',
-          note: seat
-            ? str('ui.every_time_posted_on_fastest_first_2', { name: seat.name })
-            : str('ui.every_time_posted_on_the_track'),
-          disabled: !listing || !listing.shareId,
+          label: str('ui.new_track'),
+          action: 'newtrack',
+          note: str('ui.build_one_choose_the_world_then'),
         },
         {
           label: str('ui.tracks_and_statistics_on_the_web'),
@@ -5838,7 +5614,6 @@ export class Ui {
         },
         { label: str('ui.back'), action: 'back' },
       ];
-      return [...cards, ...rows];
     }
     /*
      * FREESTYLE. One town and no ceremony.
@@ -6495,19 +6270,21 @@ export class Ui {
         { label: str('ui.how_to_fly'), action: 'howto' },
         { label: str('ui.fpv_wiki'), action: 'wiki', note: str('ui.the_plant_the_compiled_controller_and') },
         { label: str('ui.credits'), action: 'credits', note: str('ui.who_made_this_who_flew_it') },
+        /* Track mode's own way out: the list the track was played from. */
+        ...(s.map === 'track' ? [{ label: str('ui.my_tracks'), action: 'mytracks', note: str('ui.back_to_the_list_of_tracks') }] : []),
         { label: str('ui.quit_to_title'), action: 'title' },
       ];
     }
     if (this.screen === 'results') {
-      /* Seven rows on a race, always the same seven, greyed when an action
-       * does not apply. A freestyle run has no course to publish, so it
-       * keeps only the two that mean anything. */
-      const listing = this.settings.map === 'custom' ? liveListing('custom') : null;
+      /* The same rows on every race, greyed when an action does not apply,
+       * and the way back to My tracks, which is where a pilot racing goes
+       * next. */
+      const listing = this.settings.map === 'track' ? liveListing() : null;
       /*
-       * A world has no course to publish and no listing to post to, so the
-       * five course actions would all be greyed at once, which is five rows
-       * of noise rather than one useful disabled row. Freestyle is the same
-       * for the same reason: no lap, nothing to upload.
+       * A world flown free has no track and no listing to post to, so the
+       * track rows would all be greyed at once, which is rows of noise
+       * rather than one useful disabled row. Freestyle is the same for the
+       * same reason: no lap, nothing to upload.
        */
       if (this.osdMode === 'freestyle') {
         /*
@@ -6576,18 +6353,16 @@ export class Ui {
           timePosted: this.timePosted,
           airframe: this.settings.airframe,
         }),
-        publishAction(listing, this.coursePublished),
-        remixAction(listing),
-        editOwnAction(listing),
         {
           label: str('ui.open_tracks_and_statistics'),
           action: 'leaderboard',
-          disabled: !(listing && (listing.published || listing.shareId || this.coursePublished)),
+          disabled: !(listing && listing.published),
           note: listing && listing.name
             ? str('ui.the_public_page_for', { name: listing.name })
             : str('ui.the_public_page_a_track_has'),
         },
         feelItem(),
+        { label: str('ui.my_tracks'), action: 'mytracks', note: str('ui.back_to_the_list_of_tracks') },
         { label: str('ui.back_to_title'), action: 'title' },
       ];
     }
@@ -8476,14 +8251,12 @@ export class Ui {
   }
 
   /*
-   * The course cards: what is on the canvas, and what is on the board.
+   * The track cards: the pilot's own, then the board's.
    *
-   * A COURSE IS DRAWN, NOT DESCRIBED. These used to be paragraphs of type on
-   * a blank card, so a player chose a course without ever seeing its shape,
-   * while the board and the builder were both drawing exactly the picture
-   * that would have told them. The plan is the same drawing all three use;
-   * see src/share/plan.js. The board ships one with its list, and the local
-   * canvas gets one derived from its document.
+   * A TRACK IS SHOWN BY ITS WORLD. A track built in a world stands in that
+   * world, and a plan of it floating on nothing says less than the valley it
+   * is in, so each card wears the world's poster (markPoster) under the
+   * track's name, with its world and gate count beside it.
    */
   renderCourseCards() {
     const host = this.courseCardHost;
@@ -8491,54 +8264,30 @@ export class Ui {
       return;
     }
     const items = this.items();
-    const offset = items.filter((it) => it.map).length;
     const cards = items.filter((it) => it.course);
-    const key = cards.map((it) => `${it.course.kind}:${it.label}`).join('|');
+    const key = cards.map((it) => `${courseCardKey(it)}:${it.label}`).join('|');
     if (!this.courseCards || this.courseCardKey !== key) {
       host.textContent = '';
       this.courseCardKey = key;
-      this.courseCards = cards.map((it, k) => {
-        const i = k + offset;
+      this.courseCards = cards.map((it, i) => {
+        const t = it.course.track;
         const card = el('div', 'map-card course-card');
+        markPoster(card, mapById(t.map));
         const shot = el('div', 'map-reel');
-        /* A card that carries its own track, as against the seated one,
-           whose plan comes from the seat. Both of this screen's sources
-           carry theirs: the board's listing and the library's document. */
-        const listed = it.course.kind === 'board' || it.course.kind === 'local';
-        const plan = listed
-          ? it.course.track.plan
-          : currentPlan();
-        const canvas = planCanvas(plan, str('ui.plan_of', { label: it.label }));
-        shot.append(canvas);
         const body = el('div', 'map-card-body');
         const name = el('div', 'map-card-name', it.label);
         const meta = el('div', 'map-card-meta', '');
-        if (listed) {
-          const t = it.course.track;
-          /* The designer where the board knows one, because the author is
-           * whoever published it and on a track brought over from a series
-           * those are two different people. */
-          const bits = [byLine(t), `${t.gates} gate${t.gates === 1 ? '' : 's'}`];
-          if (t.recordMs != null) {
-            bits.push(`record ${formatTime(t.recordMs)}`);
-          }
-          meta.textContent = bits.filter(Boolean).join('  ');
-        } else {
-          const size = fieldSize(plan);
-          meta.textContent = [`${it.course.seat.gates} gate${it.course.seat.gates === 1 ? '' : 's'}`, size]
-            .filter(Boolean)
-            .join('  ');
+        /* The designer where the board knows one, because the author is
+         * whoever published it and those can be two different people. */
+        const bits = [
+          mapById(t.map).name,
+          it.course.kind === 'board' ? byLine(t) : '',
+          str('ui.gate_count', { gates: t.gates, v2: t.gates === 1 ? '' : 's' }),
+        ];
+        if (t.recordMs != null) {
+          bits.push(str('ui.record', { formatTime: formatTime(t.recordMs) }));
         }
-        /*
-         * NO BADGE OVER THE PICTURE. Shipped, on the board and not on the
-         * board were three words laid over the one thing the card is for,
-         * and a pilot choosing a course is choosing a course rather than a
-         * provenance. Where the track came from is still said, in the note
-         * beside the list once a card is chosen, which is where a question
-         * about it gets asked. courseChip still decides that wording, so
-         * the builder, the board and this room cannot describe one course
-         * two ways.
-         */
+        meta.textContent = bits.filter(Boolean).join(' · ');
         const tag = el('div', 'map-card-tag', '');
         body.append(name, tag);
         card.append(shot, body, meta);
@@ -8548,209 +8297,97 @@ export class Ui {
           this.select();
         });
         host.append(card);
-        return { card, canvas, tag, kind: it.course.kind, key: courseCardKey(it) };
+        return { card, tag, key: courseCardKey(it), id: t.id };
       });
-      this.paintCoursePlans();
     }
-    this.courseCards.forEach((c, k) => {
-      const i = k + offset;
+    const seated = seatedTrackId();
+    this.courseCards.forEach((c, i) => {
       c.card.classList.toggle('on', i === this.cursor);
       /* The list below belongs to one card. Say which, or the screen is back
        * to looking like a strip of cards over an unrelated menu. */
       c.card.classList.toggle('chosen', Boolean(this.cardSubject) && c.key === this.cardSubject);
-      c.tag.textContent = c.kind === 'current' && this.settings.map === 'custom' ? str('ui.flying_now') : '';
+      c.tag.textContent = c.id === seated && this.settings.map === 'track' ? str('ui.flying_now') : '';
     });
   }
 
-  /* A canvas reports no size until it is laid out, so the first paint waits
-   * for the frame after the cards are in the document. */
-  paintCoursePlans() {
-    if (!this.courseCards || !this.courseCards.length) {
-      return;
-    }
-    /*
-     * THE CARD IS THE THREE QUARTER VIEW, not the plan, and it flies. A
-     * pilot picking a course is asking what it looks like, and from above a
-     * two high stack and a single gate are the same line. See drawIso in
-     * src/share/plan.js: same data, same angles, same colours and the same
-     * travelling ribbon as the animation exporter, so a card and an
-     * exported GIF of one track are the same object.
-     */
-    this.stopCoursePlans();
-    /* Each card is asked for the phase of ITS OWN lap: a long course and a
-     * short one share a speed, not a duration, so their ribbons are at
-     * different points of their own laps at the same moment. */
-    const paint = (ms) => {
-      for (const c of this.courseCards || []) {
-        const plan = c.canvas.planData;
-        drawIso(c.canvas, plan, ms == null ? {} : { phase: (ms / isoLapMs(plan)) % 1 });
-      }
-    };
-    /* A pilot who has asked for less motion gets the structure and no lap,
-     * which is the still of the same drawing rather than a different one. */
-    const reduced = typeof window !== 'undefined' && window.matchMedia
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      : false;
-    if (reduced) {
-      requestAnimationFrame(() => paint(null));
-      return;
-    }
-    const began = performance.now();
-    let last = -COURSE_PLAN_MS;
-    const tick = (now) => {
-      if (!this.courseCards || !this.courseCards.length || this.screen !== 'courses') {
-        this.coursePlanFrame = null;
-        return;
-      }
-      this.coursePlanFrame = requestAnimationFrame(tick);
-      /* Nothing is repainted for a tab nobody is looking at. */
-      if (document.hidden || now - last < COURSE_PLAN_MS) {
-        return;
-      }
-      last = now;
-      paint(now - began);
-    };
-    this.coursePlanFrame = requestAnimationFrame(tick);
-  }
-
-  /* The card animation belongs to one visit to the room. */
-  stopCoursePlans() {
-    if (this.coursePlanFrame != null) {
-      cancelAnimationFrame(this.coursePlanFrame);
-      this.coursePlanFrame = null;
-    }
-  }
-
   /*
-   * THE PILOT'S OWN TRACKS, read once per visit to the Track room.
+   * THE PILOT'S OWN TRACKS, read once per visit to My tracks, and again
+   * after a card's row changes the library.
    *
    * Once, rather than inside items(), because items() runs on every cursor
-   * move and this reads and normalises one document per saved track to get
-   * a plan drawing out of it. The library only changes in the builder,
-   * which is another page, so a read on entry is as fresh as it can be.
+   * move and this reads and normalises every saved document. The library
+   * only changes in the builder and on this screen, and the builder hands
+   * the pilot back here, so a read on entry is as fresh as it can be.
    *
-   * FILTERED BY CLASS, which listTracks itself does not do to the pilot's
-   * half: the builder's Load dialog shows a pilot everything they have
-   * saved, and this room is one aircraft's room. A whoop pilot has no use
-   * for a sixty metre field here, and pressing Fly on one would change
-   * their aircraft under them, which is the same reason the board half is
-   * filtered.
-   *
-   * The shipped presets that listTracks appends are dropped. They are not
-   * the pilot's, they are not on the board, and this screen is those two
-   * things. See the note beside the cards in buildItems.
+   * Every track built in a world is listed, on any aircraft: a plane sees
+   * only the ones it fits, by the rule it would race them under.
    */
   loadLocalCourses() {
-    const want = airframeById(this.settings.airframe).trackClass;
-    const out = [];
+    const af = airframeById(this.settings.airframe);
+    let docs = [];
     try {
-      for (const t of listTracks(want)) {
-        if (t.preset) {
-          continue;
-        }
-        const found = loadTrack(t.id);
-        const doc = found && found.doc ? found.doc : null;
-        if (!doc || trackClassOf(doc) !== want) {
-          continue;
-        }
-        out.push({
-          id: doc.id,
-          name: doc.name || str('ui.untitled_track'),
-          author: '',
-          /* A track in this browser's library keeps the credit block it was
-           * saved with, so a RaceGOW room opened from here names its
-           * designer exactly as the board does. */
-          designer: doc.credit ? String(doc.credit.designer || '') : '',
-          series: doc.credit ? String(doc.credit.series || '') : '',
-          /*
-           * THE STEPS THAT ARE HOLES, not every step. A waypoint is a step
-           * in the flying order that pins the racing line and scores
-           * nothing, so counting the whole sequence advertises gates a
-           * pilot will never fly through. summaryOf in src/share/listing.js
-           * counts the seated track the same way.
-           */
-          gates: Array.isArray(doc.sequence)
-            ? doc.sequence.filter((step) => {
-              const el = (doc.elements || []).find((e) => e.id === step.elementId);
-              return Boolean(el) && el.type !== 'waypoint';
-            }).length
-            : 0,
-          plan: planFromDocument(doc),
-          board: '',
-          modifiedUtc: doc.modifiedUtc || '',
-        });
-      }
+      docs = listMapTracks().filter((doc) => mapById(doc.map).id === doc.map && mapById(doc.map).build);
     } catch (e) {
       /* A library this browser will not hand over, which is private mode or
        * a quota. The board half of the screen is untouched by it, the same
        * way a board that is down leaves this half alone. */
     }
-    /* Newest change first, which is the order the builder's Load dialog
-     * uses and the order a pilot thinks in: the one they were just working
-     * on is the one they want to fly. */
-    out.sort((a, b) => String(b.modifiedUtc).localeCompare(String(a.modifiedUtc)));
-    this.localCourses = out;
+    this.localCourses = docs
+      .filter((doc) => !af.fixedWing || planesFor(doc).includes(af.id))
+      .map((doc) => ({
+        id: doc.id,
+        name: doc.name || str('ui.untitled_track'),
+        map: doc.map,
+        gates: raceGateCount(doc),
+        author: '',
+        doc,
+      }));
+    if (this.localNote) {
+      this.localNote.textContent = this.localCourses.length ? '' : str('ui.no_tracks_of_your_own_yet');
+    }
   }
 
   /*
-   * Seat one of the pilot's own tracks and fly it.
-   *
-   * THE AUTOSAVE, NOT THE SHARE SEAT, and that is the whole difference
-   * between this and how a board track is seated. The share seat is for a
-   * track that is not yours: it exists so that opening somebody else's
-   * course does not write over the one you were building. Your own track
-   * IS the thing the autosave holds, so putting it anywhere else would
-   * give the builder two answers about what you are working on.
-   *
-   * NOTHING IS LOST BY IT. The document about to be displaced is saved
-   * into the library first if it is not already there, so a pilot who had
-   * an unsaved track in the builder and pressed one of these cards finds
-   * it in the library rather than finding it gone. The builder's own Load
-   * dialog opens straight over the working copy; this room is further from
-   * the builder than that dialog is, so it takes the extra care.
+   * Seat one of the pilot's own tracks, for Play. It goes in the share
+   * seat, marked local, which is where the shell reads every track it flies
+   * from, published or not: see writeShareImport in src/share/session.js.
+   * One this browser has published is seated as its listing, so a lap on it
+   * can still go back to the board.
    */
   seatLocal(id) {
-    const found = loadTrack(id);
-    const doc = found && found.doc ? found.doc : null;
+    const doc = loadMapTrack(id);
     if (!doc) {
-      this.boardNote.textContent = str('ui.that_track_is_no_longer_saved');
+      this.localNote.textContent = str('ui.that_track_is_no_longer_saved');
       this.loadLocalCourses();
       return false;
     }
-    const cls = trackClassOf(doc);
-    try {
-      const working = readAutosave(cls);
-      const held = working && working.doc ? working.doc : null;
-      if (held && held.id !== doc.id && !trackExists(held.id)) {
-        saveTrack(held);
-      }
-    } catch (e) {
-      /* Nothing to displace, or a browser that will not say. Carry on: the
-       * load below is what the pilot asked for. */
-    }
-    /* inspectCourse reads the share seat BEFORE the autosave, so a share
-     * left over from the last board track would shadow the track that was
-     * just chosen and the pilot would fly the wrong one. */
-    clearShareImport(cls);
-    if (!writeAutosave(doc)) {
-      this.boardNote.textContent = str('ui.this_browser_would_not_store_that');
+    const plain = toPlain(doc);
+    const bind = readEditKey(doc.id) ? readBind(doc.id) : null;
+    const seat = bind
+      ? { id: doc.id, name: doc.name, author: bind.author, board: bind.board, document: plain }
+      : { id: doc.id, name: doc.name, document: plain, local: true };
+    if (!writeShareImport(seat)) {
+      this.localNote.textContent = str('ui.this_browser_would_not_store_that');
       return false;
     }
-    this.setShare(null);
+    this.setShare(bind ? seat : null);
     return true;
   }
 
   /*
-   * The board's courses, fetched once per visit to the Courses screen.
-   * Five most flown, or the two that have times plus three random when
-   * the board is still too young for a top five.
+   * The board's tracks, fetched once per visit to My tracks, when there is
+   * a board to ask (boardConfigured, src/share/board.js).
    *
    * A NICETY, NOT A DEPENDENCY. A board that is down, blocked or simply not
-   * running leaves the worlds and the local course exactly as they are, with
-   * one line saying so. The old flow could not fail this softly because it
-   * navigated away to the board to do the same job.
+   * running leaves the pilot's own tracks exactly as they are, with one line
+   * saying so.
    */
   loadBoardCourses() {
+    if (!boardConfigured()) {
+      this.boardCourses = [];
+      this.boardNote.textContent = '';
+      return;
+    }
     if (this.boardLoading) {
       return;
     }
@@ -8759,68 +8396,25 @@ export class Ui {
     fetchTrackList(this.share && this.share.board ? this.share.board : undefined)
       .then((list) => {
         this.boardLoading = false;
-        /* The course on the canvas is already a card. Showing it twice, once
-         * as itself and once as its listing, is how a player ends up unsure
-         * which of the two they are about to fly. */
-        const seatId = (() => {
-          try {
-            const l = inspectCourse();
-            return l && l.shareId ? l.shareId : null;
-          } catch (e) {
-            return null;
-          }
-        })();
         /*
-         * ONLY THE TRACKS THIS AIRCRAFT FLIES.
-         *
-         * A RaceGOW room is 28 inch gates in a five by six metre room and a
-         * MultiGP track is 5 ft gates over sixty metres, and the seated
-         * aircraft decides which of those a pilot is here for. Offering both
-         * is offering a five inch pilot a list where half the entries put
-         * them in a living room the moment they press Fly.
-         *
-         * The board says the class on every listing, and fetchTrackList has
-         * already read it the way the builder does: one published before
-         * there were classes is a field track, which is what it is, so the
-         * default is 'full' rather than "show it anyway".
+         * ONLY THE TRACKS THIS AIRCRAFT MAY RACE, on a world this build can
+         * seat a track in: a track on a world it does not know would be a
+         * card that loads nothing, and a track drawn for the old race field
+         * is one this simulator no longer flies. Every quad races every
+         * track; a fixed wing races the ones whose every gate it fits (the
+         * board's `planes`, src/game/verify.js planesFor), and its card
+         * carries the plane board's record, since that is the board this
+         * pilot's lap would go to.
          */
         const af = airframeById(this.settings.airframe);
-        const want = af.trackClass;
-        /*
-         * A TRACK BUILT INSIDE A WORLD, only on a world this build can seat a
-         * course in: a track on a world it does not know would be a card that
-         * loads nothing. The in-sim builder writes every map track as the
-         * five inch's, and it is offered to the five inch as it always was.
-         * It is offered to a fixed wing too, when the seated plane fits
-         * every one of its gates (the board's `planes`, src/game/verify.js
-         * planesFor), and then its card carries the plane board's record,
-         * since that is the board this pilot's lap would go to.
-         */
-        const onWorld = (t) => mapById(t.map).id === t.map && Boolean(mapById(t.map).build);
-        const flyable = (t) => {
-          if (!t.map) {
-            return t.trackClass === want;
-          }
-          return onWorld(t) && (af.fixedWing ? t.planes.includes(af.id) : t.trackClass === want);
-        };
-        const asPlane = (t) => (af.fixedWing && t.map
+        const onWorld = (t) => Boolean(t.map) && mapById(t.map).id === t.map && Boolean(mapById(t.map).build);
+        const flyable = (t) => onWorld(t) && (!af.fixedWing || t.planes.includes(af.id));
+        const asPlane = (t) => (af.fixedWing
           ? { ...t, recordMs: t.planeRecordMs, recordBy: t.planeRecordBy, times: t.planeTimes }
           : t);
-        const rest = list.filter((t) => t.id !== seatId && flyable(t)).map(asPlane);
-        /*
-         * EVERY TRACK, not five.
-         *
-         * It used to take the five most flown and tell the pilot to leave
-         * for the board if they wanted the rest, which is the whole
-         * complaint: the room says Race and then declines to list the
-         * races. The screen scrolls, the cards are cheap (a plan drawing
-         * on a canvas, no WebGL), and a board with more tracks than fit is
-         * a board doing well.
-         *
-         * Ordered the way pickFeaturedTracks ordered its five, most flown
-         * first, so the tracks somebody has actually raced are at the top
-         * and the long tail is underneath rather than shuffled through it.
-         */
+        const rest = list.filter(flyable).map(asPlane);
+        /* Every track, most flown first, so the tracks somebody has
+         * actually raced are at the top and the long tail is underneath. */
         this.boardCourses = pickFeaturedTracks(rest, rest.length);
         if (this.boardCourses.length) {
           this.boardNote.textContent = '';
@@ -8828,11 +8422,7 @@ export class Ui {
           /* Say WHICH list came back empty. "Nothing here" in front of a
            * pilot who can see the board has tracks on it reads as broken;
            * "none for this aircraft" is a fact they can act on. */
-          const other = list.some((t) => !flyable(t));
-          const name = airframeById(this.settings.airframe).name.toLowerCase();
-          this.boardNote.textContent = other
-            ? str('ui.no_tracks_on_the_board_yet', { name })
-            : '';
+          this.boardNote.textContent = str('ui.no_tracks_on_the_board_yet', { name: af.name.toLowerCase() });
         } else {
           this.boardNote.textContent = str('ui.no_published_tracks_on_the_board');
         }
@@ -9466,12 +9056,12 @@ export class Ui {
     if (this.screen === 'courses' && screen !== 'courses') {
       /* Nothing draws a thumbnail for a screen nobody is looking at. */
       this.stopReels();
-      this.stopCoursePlans();
       this.mapCards = null;
       this.courseCards = null;
       this.courseCardKey = null;
       this.cardSubject = null;
       this.lastCardKey = null;
+      this.newTrackOpen = false;
     }
     /* ratesFrom belongs to one visit to the Rates screen. Leaving that screen
      * for anywhere else drops it, so a later show('rates') that did not come
@@ -9558,8 +9148,8 @@ export class Ui {
     this.cursor = this.restoreCursor();
     if (screen === 'courses') {
       /* Both halves on every entry. The library is read here rather than
-       * cached for the session because the builder is another page: a
-       * pilot who saves a track and comes back should see it. */
+       * cached for the session because the builder hands the pilot back
+       * here: a track saved there has to be on the list they come back to. */
       this.loadLocalCourses();
       this.loadBoardCourses();
     }
@@ -9655,75 +9245,148 @@ export class Ui {
   }
 
   /*
-   * OPEN A COURSE IN THE BUILDER WITHOUT FLYING IT, which is the whole point
-   * of this list and the thing the screen could not do before.
-   *
-   * A board course has to be fetched first, because the builder reads the
-   * share seat and a course nobody has loaded is not in it. That fetch is the
-   * same one Fly it does; it just stops before the flying. Whose course it is
-   * decides how the builder opens it, and that is read off the seat AFTER the
-   * fetch rather than guessed from the card, so the answer comes from the
-   * same place every other row on this screen reads it from.
+   * PLAY: fly the track the seat now holds. The seat goes to Track mode and
+   * the shell builds the track's world if it is not the one standing, seats
+   * the track's gates on it and opens the launch card, where Fly goes
+   * (main.js 'play'). The pilot is on the title under the loading screen
+   * meanwhile, which is where a world swap always lands.
    */
-  openInBuilder(card) {
-    const go = () => {
-      const listing = liveListing('custom');
-      if (listing && listing.kind === 'owned') {
-        writeBuilderIntent({ kind: 'edit' });
-      } else if (listing && listing.canRemix) {
-        writeBuilderIntent({ kind: 'remix' });
-      }
-      window.location.href = 'src/trackbuilder/index.html';
-    };
-    if (card.course.kind === 'local') {
-      /* Seat it first, so liveListing reads the track the pilot pointed at
-       * rather than whatever the autosave held, and go() writes the intent
-       * that matches it. */
-      if (this.seatLocal(card.course.track.id)) {
-        go();
-      }
-      return;
+  play() {
+    this.settings.map = 'track';
+    this.mode = 'race';
+    saveSettings(this.settings);
+    this.returnTo = 'title';
+    if (this.onAction) {
+      this.onAction('play');
     }
-    if (card.course.kind !== 'board') {
-      go();
-      return;
-    }
-    const track = card.course.track;
-    if (this.openingBoardCourse) {
-      return;
-    }
-    this.openingBoardCourse = true;
-    this.boardNote.textContent = str('ui.loading_2', { name: track.name });
-    if (!this.onBoardCourse) {
-      this.openingBoardCourse = false;
-      this.boardNote.textContent = str('ui.could_not_be_loaded_from_the', { name: track.name });
-      return;
-    }
-    this.onBoardCourse(track).then((ok) => {
-      this.openingBoardCourse = false;
-      if (!ok) {
-        this.boardNote.textContent = str('ui.could_not_be_loaded_from_the', { name: track.name });
-        return;
-      }
-      go();
-    }).catch((err) => {
-      this.openingBoardCourse = false;
-      this.boardNote.textContent = str('ui.could_not_be_loaded', { name: track.name, v2: err.message ?? err });
-    });
   }
 
   /*
-   * seatStock was here. It seated a track that ships with the simulator in
-   * the share seat, and nothing lists one on this screen any more, so it
-   * went with the cards rather than sitting here unreachable.
-   *
-   * A SEAT IT WROTE CAN STILL BE IN A BROWSER, so nothing that READS one
-   * was removed with it: inspectCourse in src/share/listing.js still has
-   * its stock branch, and a pilot who seated RaceGOW5 Track 5 last week
-   * still finds it as the top card, still flies it, and still opens it in
-   * the builder as a copy. Only the way to seat a new one is gone, and
-   * that is the builder's Load dialog, which never stopped offering them.
+   * Open the builder from My tracks: on one of the pilot's own tracks
+   * (`id`, Edit) or on an empty one in a world (`map`, New track). The
+   * shell builds the world if it has to and hands the pilot the builder's
+   * camera there; Escape out of the builder comes back to this screen.
    */
+  openBuilder({ map, id = null }) {
+    if (!this.onBuild) {
+      return;
+    }
+    Promise.resolve(this.onBuild({ map, id })).catch((e) => {
+      /* A track deleted in another tab since this list was read is the one
+       * way in here that is not a bug; the list is read again either way. */
+      console.error(e);
+      this.localNote.textContent = str('ui.that_track_is_no_longer_saved');
+      this.loadLocalCourses();
+      this.renderMenu();
+    });
+  }
+
+  /* What a chosen card's rows do: see courseCardRows. */
+  actOnCard(action, card) {
+    const t = card.course.track;
+    const board = card.course.kind === 'board';
+    if (action === 'card-fly') {
+      this.cardSubject = null;
+      if (board) {
+        this.openBoardCourse(t.id, () => this.play());
+      } else if (this.seatLocal(t.id)) {
+        this.play();
+      }
+      return;
+    }
+    if (action === 'card-board') {
+      openNamedWindow(boardPageUrl(t.board, boardCraft(this.settings.airframe)), BOARD_WINDOW);
+      return;
+    }
+    if (action === 'card-standings') {
+      if (board) {
+        this.showStandings(t);
+      }
+      return;
+    }
+    if (action === 'card-edit') {
+      this.openBuilder({ map: t.map, id: t.id });
+      return;
+    }
+    if (action === 'card-duplicate') {
+      this.duplicateCard(t, board);
+      return;
+    }
+    if (action === 'card-rename') {
+      this.askForm({
+        title: str('ui.rename_this_track'),
+        confirmLabel: str('ui.rename'),
+        fields: [{ key: 'name', label: str('main.track_name'), value: t.name, maxLength: 80, placeholder: str('main.track_name') }],
+      }).then((values) => {
+        const doc = values && values.name ? loadMapTrack(t.id) : null;
+        if (!doc) {
+          return;
+        }
+        doc.name = values.name;
+        this.storeCardChange(saveTrack(doc), `local:${doc.id}`);
+      });
+      return;
+    }
+    if (action === 'card-delete') {
+      this.askConfirm({
+        title: str('ui.delete', { name: t.name }),
+        detail: str('ui.this_browser_holds_the_only_copy'),
+        yes: str('ui.delete_label'),
+        no: str('ui.keep_it'),
+      }).then((ok) => {
+        if (!ok) {
+          return;
+        }
+        const seat = readShareImport();
+        if (seat && seat.id === t.id) {
+          clearShareImport();
+          this.setShare(null);
+        }
+        this.storeCardChange(deleteTrack(t.id), null);
+      });
+    }
+  }
+
+  /*
+   * A copy under a new id and a name that says it is one: of one of the
+   * pilot's own from the library, of a board track fetched from the board.
+   * The copy is the pilot's, so it can be edited, renamed and published.
+   */
+  duplicateCard(t, board) {
+    const copyOf = (doc) => {
+      const copy = duplicateTrack(normalize(doc).doc, str('ui.copy_of', { name: t.name }));
+      this.storeCardChange(saveTrack(copy), `local:${copy.id}`);
+    };
+    if (!board) {
+      const doc = loadMapTrack(t.id);
+      if (doc) {
+        copyOf(doc);
+      }
+      return;
+    }
+    this.boardNote.textContent = str('ui.loading_2', { name: t.name });
+    fetchTrackDocument(t.id, t.board)
+      .then((payload) => {
+        this.boardNote.textContent = '';
+        copyOf(payload.document || payload);
+      })
+      .catch((err) => {
+        this.boardNote.textContent = str('ui.could_not_be_loaded', { name: t.name, v2: err.message ?? err });
+      });
+  }
+
+  /* After a card's row wrote the library: say so if the browser refused,
+   * read the list again, and put the cursor on the card `key` names (the
+   * copy, the renamed track), or on the list's first card when it is gone. */
+  storeCardChange(ok, key) {
+    this.localNote.textContent = ok ? '' : str('ui.this_browser_would_not_store_that');
+    this.loadLocalCourses();
+    this.cardSubject = null;
+    this.lastCardKey = key;
+    this.renderMenu();
+    this.renderCourseCards();
+    this.setCursor(this.cardCursor());
+  }
 
   openBoardCourse(id, then = null) {
     const track = (this.boardCourses || []).find((t) => t.id === id)
@@ -9745,7 +9408,6 @@ export class Ui {
         return;
       }
       this.boardNote.textContent = '';
-      this.act('map:custom');
       if (then) {
         then();
       }
@@ -9853,78 +9515,33 @@ export class Ui {
    * things behave differently there and nowhere else on this screen: the
    * three choices are cards, the left and right arrows move between them,
    * and a radio's sticks walk them instead of posing the airframe. */
-  /*
-   * Seat the aircraft the loaded track was built for, if it is not already
-   * seated. Returns the airframe it moved to, or null if nothing moved.
-   *
-   * Only for the custom map: the built in field and the town have no
-   * document and no class, and they are the five inch's.
-   */
+  /* Seat an aircraft that may race the seated track, for Fly: see
+   * seatCraftForDoc. */
   seatCraftForCourse() {
-    if (this.settings.map !== 'custom') {
+    if (this.settings.map !== 'track') {
       return null;
     }
-    let seat = null;
-    try {
-      seat = activeCourseSummary();
-    } catch (e) {
-      /* No readable course is not a reason to move a pilot's aircraft. */
-      return null;
-    }
-    if (!seat || !seat.doc) {
-      return null;
-    }
-    /*
-     * RE-HOME IT FIRST. The seats are one per class and this document is
-     * about to stop being in the active one: the moment the aircraft moves,
-     * every read goes to the other class's seat, and a document left behind
-     * in this one is a track the pilot pressed Fly on and never saw again.
-     * writeAutosave files by the DOCUMENT's class, so this is the one line
-     * that carries it across. A share seat is already keyed by the document
-     * and needs nothing.
-     */
-    if (!seat.shareId) {
-      try {
-        writeAutosave(seat.doc);
-      } catch (e) {
-        /* Storage refused; the seat it is in still reads. */
-      }
-    }
-    return this.seatCraftForDoc(seat.doc);
+    const seat = activeCourseSummary();
+    return seat && seat.doc ? this.seatCraftForDoc(seat.doc) : null;
   }
 
   /*
-   * Seat the aircraft a DOCUMENT is built for, if it is not already seated.
-   * Returns the airframe it moved to, or null if nothing moved.
+   * Seat an aircraft that may race a track, if the one seated may not, and
+   * return it, or null when nothing moved. Every quad may, and every fixed
+   * wing that fits every gate (src/game/verify.js planesFor); a plane that
+   * does not fit gives way to the five inch.
    *
-   * The boot path calls this with a document that arrived by link, before
-   * anything reads a seat, because the seats are one per class: a five inch
-   * profile that follows a Fly link to a room writes the room into the whoop
-   * seat and then reads the five inch's, and the track it was sent to is
-   * nowhere. Seating the aircraft the document is for is what makes the two
-   * reads the same read.
+   * The boot path calls this with a track that arrived by link, before
+   * anything reads a seat, because the link filed it in the seat of the
+   * aircraft flying when it arrived, and the pilot has to land in the seat
+   * that holds it.
    */
   seatCraftForDoc(doc) {
-    const cls = doc ? trackClassOf(doc) : null;
-    if (!cls) {
-      return null;
-    }
     const have = airframeById(this.settings.airframe);
-    if (have.trackClass === cls) {
+    if (!doc || !have.fixedWing || planesFor(doc).includes(have.id)) {
       return null;
     }
-    /* A TRACK BUILT INSIDE A WORLD is filed as the five inch's and raced
-     * by every fixed wing that fits its gates too (src/game/verify.js
-     * planesFor): a plane that fits stays seated, which is what a board
-     * link naming it asks for. One that does not fit gives way to the five
-     * inch below, as any other aircraft would. */
-    if (have.fixedWing && isMapTrack(doc) && planesFor(doc).includes(have.id)) {
-      return null;
-    }
-    const want = airframeById(AIRFRAME_BY_CLASS[cls]);
-    if (!want || want.id === have.id) {
-      return null;
-    }
+    const want = airframeById('5inch');
     seatAirframe(this.settings, want.id);
     this.settings.airframeAsked = true;
     this.writeSettings();
@@ -9935,9 +9552,11 @@ export class Ui {
    * Keep the mode legal for the seated aircraft.
    *
    * A whoop has nowhere to freestyle, so on one the mode is not a question:
-   * see freestyleOffered. That covers a leftover 'freestyle' from the five
-   * inch and a mode that was never set, and it is what makes a ?craft=whoop65
-   * link one press from the air rather than a card away from it.
+   * see freestyleOffered. It races, and with no track seated its world is
+   * the Track seat's home, the Swiss valley. That covers a leftover
+   * 'freestyle' from the five inch and a mode that was never set, and it is
+   * what makes a ?craft=whoop65 link one press from the air rather than a
+   * card away from it.
    *
    * The gate is the one place this must not run, and craftGate is the half
    * of it that says so. There the mode is deliberately blank and the pilot
@@ -9966,8 +9585,8 @@ export class Ui {
       this.mode = 'race';
       moved = true;
     }
-    if (this.settings.map !== 'custom') {
-      this.settings.map = 'custom';
+    if (this.settings.map !== 'track') {
+      this.settings.map = 'track';
       moved = true;
     }
     return moved;
@@ -10076,7 +9695,7 @@ export class Ui {
      */
     this.syncScoreVisible();
     const m = MAPS.find((x) => x.id === this.settings.map) ?? MAPS[0];
-    const seat = this.settings.map === 'custom' ? activeCourseSummary() : null;
+    const seat = this.settings.map === 'track' ? activeCourseSummary() : null;
     const worldName = (seat && seat.name) || m.name;
     if (this.brandSub) {
       /*
@@ -10147,7 +9766,7 @@ export class Ui {
     if (this.share && this.share.name) {
       return this.share.name;
     }
-    if (this.settings.map === 'custom') {
+    if (this.settings.map === 'track') {
       try {
         const listing = inspectCourse();
         if (listing && listing.name) {
@@ -10171,15 +9790,7 @@ export class Ui {
    * may have moved during the run, and the hero line needs the old
    * figure to say whether this lap beat it.
    */
-  /*
-   * opts carries what the shell knows and this screen cannot work out:
-   * `threeMs`, the fastest three CONSECUTIVE clean laps, which
-   * src/game/race.js computes from its own log because a void in the middle
-   * breaks a run and the clean list has already forgotten where it was; and
-   * `trackClass`, because which of the two metrics is the headline is a
-   * property of the track, not of the run.
-   */
-  showResults(log, best, recordAtStart, ghostNote = null, opts = {}) {
+  showResults(log, best, recordAtStart, ghostNote = null) {
     this.resultsBody.textContent = '';
     this.resultsNote.textContent = '';
     const clean = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
@@ -10206,40 +9817,11 @@ export class Ui {
       this.resultsHead.textContent = isRecord
         ? str('ui.new_track_record')
         : (matched ? str('ui.matched_the_record') : str('ui.run_complete'));
-      /*
-       * RACEGOW IS SCORED ON THREE CONSECUTIVE LAPS, so on a micro track
-       * that total is the headline and the best single lap moves to the
-       * line under it. Everywhere else the best lap keeps the top line,
-       * which is what MultiGP's time trial is scored on.
-       *
-       * The record machinery stays on the single lap in both cases. A track
-       * record here, on the board, and in the pending time written below is
-       * one lap, and the three lap total has nothing to be compared against
-       * yet, so promoting it to the hero without keeping the lap's record
-       * line would trade a headline for the most useful sentence on the
-       * screen. It does not: the record line moves down with the lap.
-       */
-      const three = Number.isFinite(opts.threeMs) ? opts.threeMs : null;
-      const threeUp = opts.trackClass === 'micro' && three != null;
-      this.resultsHeroCap.textContent = threeUp
-        ? str('ui.best_three_laps')
-        : (clean.length === 1 ? str('ui.lap_time') : str('ui.best_lap'));
-      this.resultsHeroTime.textContent = formatTime(threeUp ? three : fastest);
-      if (threeUp) {
-        /* Three consecutive is what the run is scored on, so the lap that
-         * carries the record is named here rather than left to the rows. */
-        const lapWord = clean.length === 1 ? 'Lap' : str('ui.best_lap');
-        if (isRecord) {
-          this.resultsHeroMeta.textContent = str('ui.a_track_record', { lapWord, formatTime: formatTime(fastest) });
-          this.resultsHeroMeta.className = 'results-hero-meta gain';
-        } else if (matched) {
-          this.resultsHeroMeta.textContent = str('ui.equals_the_record', { lapWord, formatTime: formatTime(fastest) });
-          this.resultsHeroMeta.className = 'results-hero-meta gain';
-        } else {
-          this.resultsHeroMeta.textContent = str('ui.off', { lapWord, formatTime: formatTime(fastest), formatDelta: formatDelta(fastest - best), formatTime2: formatTime(best) });
-          this.resultsHeroMeta.className = 'results-hero-meta off';
-        }
-      } else if (isRecord && hadRecord) {
+      /* The best single lap is the headline, which is what MultiGP's time
+       * trial is scored on. */
+      this.resultsHeroCap.textContent = clean.length === 1 ? str('ui.lap_time') : str('ui.best_lap');
+      this.resultsHeroTime.textContent = formatTime(fastest);
+      if (isRecord && hadRecord) {
         this.resultsHeroMeta.textContent = str('ui.previous', { formatDelta: formatDelta(fastest - recordAtStart), formatTime: formatTime(recordAtStart) });
         this.resultsHeroMeta.className = 'results-hero-meta gain';
       } else if (isRecord) {
@@ -10278,46 +9860,15 @@ export class Ui {
       }
       this.resultsBody.append(row);
     });
-    /*
-     * The two footing rows, and they are ONE row whenever they are one
-     * number. A clean run of exactly three laps has a total that IS the
-     * fastest three consecutive, and printing it twice under two labels
-     * reads as two measurements that happen to agree rather than as one
-     * measurement. So the total row takes the three lap name in that case,
-     * and the separate row only appears when a longer or a voided run
-     * really does make them different figures.
-     */
+    /* The footing row: the laps added up. */
     const total = clean.length > 1 ? clean.reduce((a, b) => a + b, 0) : null;
-    const three = Number.isFinite(opts.threeMs) ? opts.threeMs : null;
-    const totalRow = (label, ms) => {
+    if (total != null) {
       const row = el('div', 'result-row total');
       const main = el('div', 'result-main');
-      main.append(el('span', 'result-label', label));
-      main.append(el('span', 'result-time', formatTime(ms)));
+      main.append(el('span', 'result-label', clean.length === log.length ? str('ui.total') : str('ui.clean_laps_total')));
+      main.append(el('span', 'result-time', formatTime(total)));
       row.append(main);
       this.resultsBody.append(row);
-    };
-    if (total != null) {
-      /* Renamed only on the track that is SCORED on it. A clean three lap
-       * run on the field has the same arithmetic, but MultiGP's time trial
-       * is scored on one lap, so calling its total by RaceGOW's name would
-       * put a rule on the screen that does not apply to the run. */
-      totalRow(
-        opts.trackClass === 'micro' && three != null && three === total
-          ? str('ui.best_three_consecutive')
-          : (clean.length === log.length ? str('ui.total') : str('ui.clean_laps_total')),
-        total,
-      );
-    }
-    /* Named on every track that managed three in a row, because it is the
-     * RaceGOW metric and a five inch pilot flying a longer run has every
-     * reason to want it too. On a micro track it is also the hero above, and
-     * having it in the rows is what makes them add up to the headline. */
-    /* A room's row. main.js hands the figure over for every class, because
-     * the race computes it for every class, but the sixty metre field is
-     * scored on one lap and its sheet must not grow a RaceGOW row. */
-    if (opts.trackClass === 'micro' && three != null && three !== total) {
-      totalRow(str('ui.best_three_consecutive'), three);
     }
     /* How the run went against the ghost that was being chased, one line,
      * written by the shell because only it knows who the ghost was. */
@@ -10328,7 +9879,7 @@ export class Ui {
      * inspectCourse unconditionally, so a lap on the race field came back
      * with a line about whatever course happened to be on the builder's
      * canvas, named and everything. */
-    if (this.settings.map !== 'custom') {
+    if (this.settings.map !== 'track') {
       this.resultsNote.textContent = '';
     } else if (this.share && this.share.id) {
       const by = this.share.author ? str('ui.by_4', { author: this.share.author }) : '';
@@ -10349,24 +9900,14 @@ export class Ui {
       }
     }
     this.timePosted = null;
-    this.coursePublished = null;
     this.resultsFastest = fastest;
-    /* Which course this lap was flown on. The time and the document have to
-     * travel together: publishing a DIFFERENT course while these results are
-     * still on screen used to hand the new course this lap. */
-    this.resultsDocId = null;
     if (fastest != null) {
       try {
         const listing = inspectCourse();
-        this.resultsDocId = listing && listing.doc ? listing.doc.id : null;
         if (listing && listing.canPostTime && listing.shareId) {
           writePendingTime({
             trackId: listing.shareId,
             lapMs: fastest,
-            /* Carried with the lap, because the upload can happen on a later
-             * visit and by then the race is gone. Null on the field, which
-             * is scored on one lap and always will be. */
-            threeMs: opts.trackClass === 'micro' ? opts.threeMs : null,
             craft: lapCraftOf(listing.doc, this.settings.airframe),
           });
         }
@@ -10374,15 +9915,7 @@ export class Ui {
         /* Keep the results screen even if storage is unavailable. */
       }
     }
-    /* A world has no plan to draw, so the panel goes away rather than
-     * showing an empty blueprint plate. */
-    const plan = this.settings.map === 'custom' ? currentPlan() : null;
-    this.resultsPlan.planData = plan;
-    this.resultsPlanWrap.hidden = !plan;
     this.show('results');
-    if (plan) {
-      requestAnimationFrame(() => drawPlan(this.resultsPlan, plan, { scaleBar: true }));
-    }
     /* The one automatic offer of the flight feel question, because this is
      * the only place a first race finishes. */
     this.maybeOfferFeel();
@@ -10829,10 +10362,6 @@ export class Ui {
       : str('ui.run_ended');
     this.resultsHeroCap.textContent = str('ui.score');
     this.resultsHeroTime.textContent = formatScore(summary.total);
-    /* A town has no plan drawing, and an empty blueprint plate beside a
-     * freestyle score is a picture of nothing. */
-    this.resultsPlan.planData = null;
-    this.resultsPlanWrap.hidden = true;
     if (!summary.tricks) {
       this.resultsHeroMeta.textContent = '';
       this.resultsHeroMeta.className = 'results-hero-meta';
@@ -12037,7 +11566,7 @@ export class Ui {
       return Boolean(seatedFreestyleMap(this.settings));
     }
     if (this.mode === 'race') {
-      return this.settings.map === 'custom' && hasLoadedTrack();
+      return this.settings.map === 'track' && hasLoadedTrack();
     }
     return true;
   }
@@ -12194,26 +11723,6 @@ export class Ui {
       this.openSwap('paused');
       return;
     }
-    /* The track builder is a separate page, so this is a navigation rather
-     * than a screen. It has to be here and not in main.js's action handler
-     * because leaving the page tears the simulator down, which is the whole
-     * point: the builder shares no module, no canvas and no state with the
-     * flight model, only the track document its schema.md describes. */
-    if (action === 'trackbuilder') {
-      window.location.href = 'src/trackbuilder/index.html';
-      return;
-    }
-
-    if (action === 'remix') {
-      writeBuilderIntent({ kind: 'remix' });
-      window.location.href = 'src/trackbuilder/index.html';
-      return;
-    }
-    if (action === 'editown') {
-      writeBuilderIntent({ kind: 'edit' });
-      window.location.href = 'src/trackbuilder/index.html';
-      return;
-    }
     /* Leaderboard and Choose new map are the same page. The board opens
      * courses in the simulator, so this tab has to stay put. Navigating
      * away here left the pilot with no sim and a second one from Fly.
@@ -12286,7 +11795,7 @@ export class Ui {
      * before the network answers.
      */
     if (action === 'standings') {
-      const listing = liveListing('custom');
+      const listing = liveListing();
       const seat = activeCourseSummary();
       if (!listing || !listing.shareId) {
         return;
@@ -12304,21 +11813,15 @@ export class Ui {
       return;
     }
     if (action === 'standings-fly') {
-      /* Seat it, then go on to the launch card, which is what the row
-       * promises. openBoardCourse on its own lands on the title, which is
-       * right when the track was picked from the list and wrong here. */
+      /* Seat it and play it, which is what the row promises. */
       const t = this.standingsFor;
       if (t && t.id) {
-        this.openBoardCourse(t.id, () => {
-          if (seatIsRace(this.settings)) {
-            this.act('fly');
-          }
-        });
+        this.openBoardCourse(t.id, () => this.play());
       }
       return;
     }
     /*
-     * Race the record: arm the ghost, seat the track, go to the launch card.
+     * Race the record: arm the ghost, seat the track, play it.
      *
      * Arming happens FIRST and through main.js, which parks the id the same
      * way a ?ghost= chase link does. The lap itself is fetched when the
@@ -12335,11 +11838,7 @@ export class Ui {
       if (this.onStandingsGhost) {
         this.onStandingsGhost(t, top);
       }
-      this.openBoardCourse(t.id, () => {
-        if (seatIsRace(this.settings)) {
-          this.act('fly');
-        }
-      });
+      this.openBoardCourse(t.id, () => this.play());
       return;
     }
     /* The standings screen offers the same row and has no card behind it:
@@ -12350,37 +11849,26 @@ export class Ui {
       }
       return;
     }
-    if (action === 'card-fly' || action === 'card-builder' || action === 'card-board') {
+    if (action.startsWith('card-')) {
       const card = this.subjectCard();
       if (!card) {
         this.cardSubject = null;
         this.renderMenu();
         return;
       }
-      if (action === 'card-fly') {
-        this.cardSubject = null;
-        this.act(card.action);
-        return;
-      }
-      if (action === 'card-board') {
-        openNamedWindow(boardPageUrl(card.course.track.board, boardCraft(this.settings.airframe)), BOARD_WINDOW);
-        return;
-      }
-      this.openInBuilder(card);
+      this.actOnCard(action, card);
       return;
     }
-    /* A published course, chosen from the grid rather than from another tab. */
-    if (action.startsWith('board:')) {
-      this.openBoardCourse(action.slice('board:'.length));
+    /* My tracks' New track: which world first, then the builder in it. */
+    if (action === 'newtrack' || action === 'newtrack-back') {
+      this.newTrackOpen = action === 'newtrack';
+      this.renderMenu();
+      this.setCursor(this.firstStop(this.items(), this.rowOffset));
       return;
     }
-    /* One of the pilot's own. No fetch, so no loading state: seat it and
-     * fly. Where 'stock:' used to be, and for the same reason it was: a
-     * document already in this browser needs no round trip. */
-    if (action.startsWith('local:')) {
-      if (this.seatLocal(action.slice('local:'.length))) {
-        this.act('map:custom');
-      }
+    if (action.startsWith('newtrack:')) {
+      this.newTrackOpen = false;
+      this.openBuilder({ map: action.slice('newtrack:'.length) });
       return;
     }
     if (action === 'wiki') {
@@ -12450,15 +11938,13 @@ export class Ui {
       this.returnTo = 'title';
       this.roomFrom = null;
       if (way.mode === 'race') {
-        if (!hasLoadedTrack()) {
-          this.show('courses');
-          return;
-        }
-        if (this.settings.map !== 'custom') {
-          this.seatMap('custom');
-          return;
-        }
-      } else if (!seatedFreestyleMap(this.settings)) {
+        /* TRACK MODE OPENS ON MY TRACKS, every time: the pilot's own
+         * tracks and the board's, and a new one. Nothing is seated until
+         * Play, so a pilot browsing the list never waits on a world. */
+        this.show('courses');
+        return;
+      }
+      if (!seatedFreestyleMap(this.settings)) {
         /*
          * NO PICKER WHEN THERE IS NOTHING TO PICK.
          *
@@ -12553,22 +12039,11 @@ export class Ui {
      * one thing and the sim doing another.
      */
     /*
-     * THE TRACK DECIDES THE AIRCRAFT, and it decides it here, on the way to
-     * the pre-flight card rather than after the world is built.
-     *
-     * A track's class is not a preference, it is what the track IS: a
-     * RaceGOW course is 1.42 by 2.13 m of 28 inch gates in a five metre
-     * room, and a MultiGP one is a dozen 5 ft gates over sixty metres. Left
-     * to the seated aircraft, a pilot who answered "five inch" once and
-     * then opened a living room got a 347 mm quad doing 40 m/s in a room it
-     * crosses in a quarter of a second, with the gates and the walls both
-     * built for something a fifth of its size. Nothing crashed, which is
-     * why it survived: it just was not the track.
-     *
-     * So the swap is silent and reversible. The pre-flight card carries a
-     * Quad row, so a pilot who genuinely wants a five inch in a living room
-     * is one click from it, and the card's own note says which machine the
-     * run will be filed under.
+     * THE TRACK DECIDES WHETHER THE AIRCRAFT MAY RACE IT, and it decides
+     * here, on the way to the pre-flight card rather than after the world is
+     * built: a plane too wide for a track's gates gives way to the five inch
+     * (seatCraftForDoc). The swap is silent and reversible, and the
+     * pre-flight card's own note says which machine the run is filed under.
      */
     if (action === 'fly') {
       this.seatCraftForCourse();
@@ -12824,15 +12299,10 @@ export class Ui {
      * Choosing a map. It goes through onSettings rather than onAction
      * because a map change IS a settings change, and the shell's
      * applySettings is the one place that knows a changed map means a swap.
-     * Custom map with nothing loaded is not a map yet: Current map stays
-     * on the submenu instead of building an empty field.
+     * Track mode is seated by Play on My tracks, never from here.
      */
     if (action.startsWith('map:')) {
-      const id = action.slice(4);
-      if (id === 'custom' && !hasLoadedTrack()) {
-        return;
-      }
-      this.seatMap(id);
+      this.seatMap(action.slice(4));
       return;
     }
     /* back() is the one implementation. This branch used to be a copy of
@@ -12853,6 +12323,18 @@ export class Ui {
       this.show('title');
       this.setCursor(this.titleStop());
       this.renderMenu();
+      return;
+    }
+    /* Back to My tracks from a run or from the results: the run ends the
+     * way quitting to the title ends it, and the list is where a pilot
+     * racing goes next. */
+    if (action === 'mytracks') {
+      this.act('title');
+      this.returnTo = 'title';
+      this.show('courses');
+      /* On the list's first card, which is the track just flown or built:
+       * the list is newest change first. */
+      this.setCursor(this.firstStop(this.items()));
       return;
     }
     if (action === 'title' || action === 'paused') {
@@ -12882,7 +12364,8 @@ export class Ui {
   }
 
   /* A card on the gate: the aircraft for that way in, then the way in. An
-   * aircraft from the other kind, chosen under All, takes the other card. */
+   * aircraft the card does not take, chosen under All, takes the card that
+   * does. */
   pickForWay(action) {
     const way = WAYS.find((w) => w.action === action);
     if (!way) {
@@ -12891,11 +12374,11 @@ export class Ui {
     const s = this.settings;
     this.carousel.open({
       current: way.airframes.includes(s.airframe) ? s.airframe : way.airframes[0],
-      filter: kindOf(way.airframes[0]),
+      filter: wayFilter(way),
       title: way.label,
       hint: this.pickHint(),
       onChoose: (id) => {
-        const chosen = WAYS.find((w) => w.airframes.includes(id)) ?? way;
+        const chosen = way.airframes.includes(id) ? way : (WAYS.find((w) => w.airframes.includes(id)) ?? way);
         this.act(chosen.action, id);
       },
       onCancel: () => this.renderMenu(),

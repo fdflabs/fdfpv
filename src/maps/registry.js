@@ -17,9 +17,8 @@
  * 974f4ce if they are ever wanted back; what is not in the history is the
  * time a player spends deciding between four things when they wanted one.
  *
- * The track world is loaded the same way, for symmetry and because the loading
- * screen then has one shape to report. It is loaded at boot because the title
- * screen has a world behind it.
+ * The worlds a track is flown in are loaded the same way, for symmetry and
+ * because the loading screen then has one shape to report.
  *
  * `poster` is the still the world card shows while its clip is being made.
  * A first visit to Freestyle used to be four dark rectangles with the word
@@ -29,10 +28,10 @@
  * also holds the camera each one is taken from. A map with no poster falls
  * back to the rectangle, so the field is optional rather than load bearing.
  *
- * `build` marks a world a course can be built inside, with B from a flight
- * (src/builder/). The two valleys first: one terrain, one height function and
- * nothing to fly under, which is where placement was proven. The town and
- * Yellowstone come later.
+ * `build` marks a world a track can be built inside (src/builder/), and so
+ * the worlds Track mode flies and My tracks offers a new track in. The two
+ * valleys: one terrain, one height function and nothing to fly under, which
+ * is where placement was proven. The town and Yellowstone come later.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -54,13 +53,20 @@ import { MAP_BUILD_MS } from './build-cost.js';
 import { str } from '../strings/index.js';
 
 export const MAPS = [
+  /*
+   * TRACK MODE, WHICH IS A SEAT AND NOT A WORLD. What it flies is the track
+   * seated from My tracks or a board link, in the world that track was
+   * built in (src/main.js worldId), and a seat with no track in it stands
+   * at `home`, the title's own valley. It has no loader on purpose: nothing
+   * may build it, and src/main.js loadMap says so if anything tries.
+   */
   {
-    id: 'custom',
+    id: 'track',
     name: str('ui.track'),
     mode: 'race',
-    note: str('registry.a_track_from_the_board_or'),
-    buildMs: MAP_BUILD_MS.custom,
-    load: () => import('./custom.js'),
+    note: str('registry.a_track_built_in_the_alps'),
+    home: 'swiss2',
+    buildMs: MAP_BUILD_MS.swiss2,
   },
   {
     id: 'city',

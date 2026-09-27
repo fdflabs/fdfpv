@@ -21,12 +21,13 @@
  *
  * And on the maps where they apply: on the Alps a float plane swapped on the
  * lake (afloat, and a wheeled plane and a quad over the water), on swiss2 a
- * map track whose lap a mid lap swap voids, whose gates an aircraft that
- * does not fit loses and one that fits gets back, and on the empty field
- * the picker itself: the front page card, and in flight Tab, the wheel,
- * the arrows and a drag, choosing with Enter, and what it costs a frame.
+ * built track whose lap a mid lap swap voids, which every quad keeps, whose
+ * gates a plane that does not fit loses and one that fits gets back, and on
+ * the airfield the picker itself: the front page card, and in flight Tab,
+ * the wheel, the arrows and a drag, choosing with Enter, and what it costs a
+ * frame. The picker's part ran on the race field until the field went.
  *
- *   node scripts/hotswap-check.js [custom|city|airfield|alps|swiss2|yellowstone ...]
+ *   node scripts/hotswap-check.js [city|airfield|alps|swiss2|yellowstone ...]
  *
  * Every map by default. Slow on a software rasteriser: a map build and two
  * dozen swaps each.
@@ -57,7 +58,7 @@ import { AIRFRAMES, airframeById, airStartSpeed } from '../configs/airframes.js'
 import { tunesFor } from '../configs/registry.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const ALL_MAPS = ['custom', 'city', 'airfield', 'alps', 'swiss2', 'yellowstone'];
+const ALL_MAPS = ['city', 'airfield', 'alps', 'swiss2', 'yellowstone'];
 const maps = process.argv.slice(2).length ? process.argv.slice(2) : ALL_MAPS;
 /* How far the new aircraft may stand from the old one's spot, metres, and
  * turn from its heading, radians: numerical, the swap copies both. */
@@ -264,12 +265,15 @@ async function mouse(page, type, x, y, extra = {}) {
 }
 
 async function pickerOnTheGate(page) {
-  console.log('the front page: Track mode opens the picker on the quads');
+  console.log('the front page: Track mode opens the picker on every aircraft');
   const gate = await page.evaluate('window.__ui.onGate()');
+  await page.evaluate("window.__ui.setCursor(window.__ui.items().findIndex((it) => it.action === 'way-race-5inch')); true");
   await press(page, 'Enter');
   await page.until('window.__ui.carousel.isOpen', 10000).catch(() => {});
   const open = await page.evaluate('({ open: window.__ui.carousel.isOpen, ids: window.__ui.carousel.ids, current: window.__ui.carousel.current() })');
-  say(gate && open.open && open.ids.join() === '5inch,whoop65', `Enter on the Track mode card opens the picker on ${open.ids.join(', ')}, centred on ${open.current}`);
+  /* Every aircraft races a track it fits (#93), so the card's picker is
+   * every aircraft; it was the quads' until the field went. */
+  say(gate && open.open && open.ids.join() === AIRFRAMES.map((a) => a.id).join(), `Enter on the Track mode card opens the picker on ${open.ids.join(', ')}, centred on ${open.current}`);
   await press(page, 'ArrowRight');
   const right = await page.evaluate('window.__ui.carousel.current()');
   await press(page, 'Enter');
@@ -442,14 +446,17 @@ async function mapTrack(page) {
     const a = (i / 3) * Math.PI * 2;
     top = Math.max(top, await page.evaluate(`window.__heightAt(${cx + radius * Math.cos(a)}, ${cz + radius * Math.sin(a)})`));
   }
+  /* Two plane gates and a five inch gate: the Cub fits all three, the
+   * Skyhunter not the five inch one (1.2 of its 1.8 m span is 2.16 m, the
+   * gate 1.75 m), and every quad races every track. */
   const doc = mapTrackDocument({
-    map: 'swiss2', centre: [cx, Math.max(top, at.g) + 14, cz], radius, types: ['wideGate5', 'wideGate5', 'wideGate5'],
+    map: 'swiss2', centre: [cx, Math.max(top, at.g) + 14, cz], radius, types: ['wideGate5', 'wideGate5', 'gate'],
     name: 'Hot swap ring', id: 'hotswap-ring',
   });
   await page.evaluate(`(() => {
     localStorage.setItem(${JSON.stringify(SHARE_KEY)}, JSON.stringify({ id: 'hotswap-ring', name: 'Hot swap ring', author: '', document: ${JSON.stringify(doc)} }));
     window.__ui.onAction('title', window.__ui.settings);
-    window.__ui.settings.map = 'custom';
+    window.__ui.settings.map = 'track';
     window.__ui.persistSettings();
     window.__ui.onSettings(window.__ui.settings);
     return true;
@@ -463,20 +470,24 @@ async function mapTrack(page) {
   const started = await flyThroughStart(page);
   say(started, 'through the start gate: the lap clock is running');
   const was = await page.evaluate('window.__craftState()');
-  const r = await page.evaluate("window.__swapNow('sky1800').then(() => ({ s: window.__lastSwap(), log: window.__race().log.slice(), gates: window.__race().gates.length, lap: window.__race().lapStartMs }))");
+  const r = await page.evaluate("window.__swapNow('cub1400').then(() => ({ s: window.__lastSwap(), log: window.__race().log.slice(), gates: window.__race().gates.length, lap: window.__race().lapStartMs }))");
   const last = r.log[r.log.length - 1];
   say(r.s.voided && last && last.ms === null && /lap void/i.test(last.reason) && r.lap == null && r.gates === 3,
-    `a swap to the Skyhunter mid lap voids it ("${last ? last.reason : 'nothing logged'}") and it keeps the track, whose gates it fits`);
-  judgeSwap('track', r.s, 'sky1800', was);
+    `a swap to the Cub mid lap voids it ("${last ? last.reason : 'nothing logged'}") and it keeps the track, whose gates it fits`);
+  judgeSwap('track', r.s, 'cub1400', was);
   const w2 = await page.evaluate('window.__craftState()');
-  const off = await page.evaluate("window.__swapNow('whoop65').then(() => ({ s: window.__lastSwap(), gates: window.__race().gates.length }))");
+  const off = await page.evaluate("window.__swapNow('sky1800').then(() => ({ s: window.__lastSwap(), gates: window.__race().gates.length }))");
   /* The notice is painted on the next drawn frame. */
   await page.evaluate('window.__drawOff(false); true');
   await page.until("/does not fit/.test(window.__craftState().banner)", 20000).catch(() => {});
   off.banner = await page.evaluate('window.__craftState().banner');
   await page.evaluate('window.__drawOff(true); true');
-  say(off.gates === 0 && /does not fit/.test(off.banner), `the whoop is not this track's class: the world without its gates, and told so ("${off.banner}")`);
-  judgeSwap('track', off.s, 'whoop65', w2);
+  say(off.gates === 0 && /does not fit/.test(off.banner), `the Skyhunter does not fit the five inch gate: the world without the track, and told so ("${off.banner}")`);
+  judgeSwap('track', off.s, 'sky1800', w2);
+  const w4 = await page.evaluate('window.__craftState()');
+  const whoop = await page.evaluate("window.__swapNow('whoop65').then(() => ({ s: window.__lastSwap(), gates: window.__race().gates.length }))");
+  say(whoop.gates === 3, `the whoop is a quad, and every quad races every track: ${whoop.gates} gates`);
+  judgeSwap('track', whoop.s, 'whoop65', w4);
   const w3 = await page.evaluate('window.__craftState()');
   const back = await page.evaluate("window.__swapNow('5inch').then(() => ({ s: window.__lastSwap(), gates: window.__race().gates.length }))");
   say(back.gates === 3, `back on the five inch the track is back: ${back.gates} gates`);
@@ -490,7 +501,7 @@ async function runMap(map) {
   const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: seed(craft, map) });
   try {
     await page.until('!!window.__shellReady', 300000);
-    if (map === 'custom') {
+    if (map === 'airfield') {
       await pickerOnTheGate(page);
     }
     await flyNow(page);
@@ -521,7 +532,7 @@ async function runMap(map) {
     const missing = AIRFRAMES.map((a) => a.id).filter((id) => flying[id] !== 'air' || !(parked[id] === 'ground' || parked[id] === 'air-forced'));
     say(missing.length === 0, `every aircraft swapped in parked and in the air${missing.length ? `: not ${missing.join(', ')} ${JSON.stringify({ parked, flying })}` : ''}`);
     await page.evaluate('window.__stick(); window.__drawOff(false); true');
-    if (map === 'custom') {
+    if (map === 'airfield') {
       await pickerInFlight(page);
     }
     if (map === 'swiss2') {

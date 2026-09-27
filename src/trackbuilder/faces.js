@@ -303,133 +303,9 @@ export function applyAutoFaces(doc) {
   return doc;
 }
 
-/*
- * The direction of travel at one sequence entry, for drawing the 2D arrow
- * and for the inspector's readout. Returns null when the course is too short
- * to have a direction.
- */
-export function travelDirection(doc, seqId) {
-  const chain = anchorChain(doc);
-  const dirs = chainDirections(chain);
-  for (let i = 0; i < chain.length; i += 1) {
-    if (chain[i].seq && chain[i].seq.id === seqId) {
-      const seq = chain[i].seq;
-      const el = elementById(doc, seq.elementId);
-      if (el && kindOf(el) === KIND.APERTURE && seq.entry !== 0) {
-        /* An aperture's own normal is the truth, not the chain: that is what
-         * the arrow through it has to agree with. */
-        const n = elementNormal(el);
-        return { x: n.x * seq.entry, y: n.y * seq.entry, z: n.z * seq.entry };
-      }
-      if (el && kindOf(el) === KIND.MARKER) {
-        /* The same rule path.js applies: a waypoint turned by hand is
-         * headed the way its arrow points. */
-        if (el.type === 'waypoint' && el.yawOverridden) {
-          const d = yawVector(el.yaw);
-          return { x: d.x, y: d.y, z: 0 };
-        }
-        const nearby = nearbyApertureTravel(doc, el);
-        if (nearby) {
-          return nearby;
-        }
-      }
-      return dirs[i];
-    }
-  }
-  return null;
-}
 
-/* One key press flips the face. Marks the entry overridden, which is what
- * stops the auto rule putting it straight back. */
-export function flipFace(doc, seqId) {
-  const seq = doc.sequence.find((s) => s.id === seqId);
-  if (!seq) {
-    return false;
-  }
-  const el = elementById(doc, seq.elementId);
-  if (!el) {
-    return false;
-  }
-  if (kindOf(el) === KIND.APERTURE) {
-    seq.entry = seq.entry === 1 ? -1 : 1;
-    seq.overridden = true;
-    return true;
-  }
-  if (kindOf(el) === KIND.MARKER) {
-    seq.passSide = seq.passSide === 'left' ? 'right' : 'left';
-    seq.overridden = true;
-    /* A hand turned marker reads its side off its own yaw, so flipping the
-     * side has to turn the marker. Without this, Flip side on a rotated
-     * flag toggled a field nothing was reading and the square sat still. */
-    if (el.yawOverridden) {
-      el.yaw = wrapAngle(el.yaw + Math.PI);
-    }
-    return true;
-  }
-  return false;
-}
-
-/* Hand the item back to the auto rule. */
-export function clearOverride(doc, seqId) {
-  const seq = doc.sequence.find((s) => s.id === seqId);
-  if (!seq) {
-    return false;
-  }
-  seq.overridden = false;
-  const el = elementById(doc, seq.elementId);
-  if (el) {
-    el.yawOverridden = false;
-  }
-  applyAutoFaces(doc);
-  return true;
-}
-
-/*
- * Rotating by hand is an override in its own right, because the whole point
- * of turning a gate is that it stops turning itself back.
- *
- * IT PINS THE SIGN AS WELL AS THE HEADING, and that is the whole of the fix
- * for a bug reported against WCMRC Round 5 gate 2.
- *
- * The direction a quad flies through a hole is `entry` times the aperture
- * normal, so as a gate is turned the direction follows it. It follows it
- * right up to the moment the normal passes square to the chord that
- * applyAutoFaces reads the sign from; there the derived sign flips, and the
- * direction of travel jumps a HALF TURN BACK. Turning a gate a little never
- * reaches that point. Turning it round to send the pilot the other way
- * always does. That is why it was reported as happening only sometimes, and
- * why it happened every single time the author tried to do the one thing
- * rotation is for.
- *
- * Measured on that course: gate 2 is flown three times, and a 360 degree
- * sweep in one degree steps reversed a pass without being asked to twenty
- * times. With the sign pinned it is zero, and the direction of travel tracks
- * the gate to within a thousandth of a degree the whole way round.
- *
- * IT PINS EVERY PASS, because a structure flown more than once has one frame
- * and turning the frame turns all of them together. Steering one pass of a
- * shared gate on its own is what Flip face is for, and that pins its own
- * entry already. Re-derive hands both back to the automatic rule.
- *
- * An entry that has never been decided is left alone, so a gate placed and
- * turned in one gesture still gets its first sign from the course rather
- * than arriving pinned to nothing.
- */
-export function setYaw(doc, elementId, yaw) {
-  const el = elementById(doc, elementId);
-  if (!el) {
-    return false;
-  }
-  el.yaw = wrapAngle(yaw);
-  el.yawOverridden = true;
-  for (const seq of doc.sequence) {
-    if (seq.elementId === elementId && seq.entry !== 0 && seq.entry !== null) {
-      seq.overridden = true;
-    }
-  }
-  return true;
-}
-
+/* Exported for the 2D view, which draws a chevron on the side of a marker
+ * the quad passes, and for path.js, which offsets the knot there. */
 export function setPitch(doc, elementId, pitch) {
   const el = elementById(doc, elementId);
   if (!el) {
@@ -442,26 +318,6 @@ export function setPitch(doc, elementId, pitch) {
   return true;
 }
 
-/* The default yaw for a brand new element, so it lands facing the way the
- * course is already going rather than facing east. */
-export function defaultYawFor(doc, position) {
-  const chain = anchorChain(doc);
-  if (!chain.length) {
-    return 0;
-  }
-  const last = chain[chain.length - (chain.length > 1 && !chain[chain.length - 1].seq ? 2 : 1)];
-  if (!last) {
-    return 0;
-  }
-  const d = sub(position, last.pos);
-  if (Math.abs(d.x) + Math.abs(d.y) < 1e-6) {
-    return 0;
-  }
-  return wrapAngle(Math.atan2(d.y, d.x));
-}
-
-/* Exported for the 2D view, which draws a chevron on the side of a marker
- * the quad passes, and for path.js, which offsets the knot there. */
 export function passOffsetSign(passSide) {
   return passSide === 'right' ? -1 : 1;
 }

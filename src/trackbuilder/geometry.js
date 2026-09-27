@@ -96,8 +96,6 @@ export function clamp(x, lo, hi) {
   return x < lo ? lo : (x > hi ? hi : x);
 }
 
-export const DEG = 180 / Math.PI;
-export const RAD = Math.PI / 180;
 
 /*
  * Wrap to (-pi, pi], with a microradian of slack at both ends.
@@ -158,30 +156,7 @@ export function apertureFrame(yaw, pitch) {
  * the lower outer corners of the frame, so the posts stay at the sides for
  * every pitch, including a flat dive.
  */
-/*
- * The post is 1.6 times the frame tube, so standing it on the STILE
- * centreline puts 0.3 of a tube of post inside the clear opening on each
- * side. It stands one post radius outboard of the opening instead, which
- * lands its inner face on the opening's own edge. src/render/scene.js
- * tiltedGate takes the same offset, and it has to: a preview that draws
- * the legs somewhere else is a preview of a different gate.
- */
-export const GATE_POST_R_SCALE = 0.8;
 
-export function gateSupportFeet(yaw, pitch, clearW, clearH, centerH, tube) {
-  const f = apertureFrame(yaw, pitch);
-  const wx = clearW / 2 + tube * GATE_POST_R_SCALE;
-  const hy = -(clearH + tube) / 2;
-  const feet = [];
-  for (const s of [-1, 1]) {
-    feet.push({
-      x: f.widthAxis.x * s * wx + f.heightAxis.x * hy,
-      y: f.widthAxis.y * s * wx + f.heightAxis.y * hy,
-      z: centerH + f.widthAxis.z * s * wx + f.heightAxis.z * hy,
-    });
-  }
-  return feet;
-}
 
 /* Ground direction of an element's yaw: the way it "faces" on the plan. */
 export function yawVector(yaw) {
@@ -196,47 +171,3 @@ export function leftOf(dir) {
   return { x: -n.y, y: n.x, z: 0 };
 }
 
-/*
- * The four corners of an aperture, in world space, for drawing.
- */
-export function apertureCorners(center, yaw, pitch, clearW, clearH) {
-  const f = apertureFrame(yaw, pitch);
-  const hw = clearW / 2;
-  const hh = clearH / 2;
-  const out = [];
-  for (const [sw, sh] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-    out.push(add(center, add(scale(f.widthAxis, sw * hw), scale(f.heightAxis, sh * hh))));
-  }
-  return out;
-}
-
-/*
- * Point inside an axis aligned box that has then been yawed about its centre.
- * Used for the barrier test and for 2D hit testing, and it is the only box
- * test in the tool.
- */
-export function insideYawedBox(p, center, yaw, halfW, halfD, minZ, maxZ, pad = 0) {
-  if (p.z < minZ - pad || p.z > maxZ + pad) {
-    return false;
-  }
-  const dx = p.x - center.x;
-  const dy = p.y - center.y;
-  const c = Math.cos(-yaw);
-  const s = Math.sin(-yaw);
-  const lx = dx * c - dy * s;
-  const ly = dx * s + dy * c;
-  return Math.abs(lx) <= halfW + pad && Math.abs(ly) <= halfD + pad;
-}
-
-/*
- * Shortest distance from a point to a line segment, and where along it. Used
- * by the 2D picker for thin things like a flag pole and by the profile chart
- * to answer "which sample is the cursor over".
- */
-export function pointSegment(p, a, b) {
-  const ab = sub(b, a);
-  const denom = dot(ab, ab);
-  const t = denom > 1e-12 ? clamp(dot(sub(p, a), ab) / denom, 0, 1) : 0;
-  const q = add(a, scale(ab, t));
-  return { t, point: q, dist: dist(p, q) };
-}

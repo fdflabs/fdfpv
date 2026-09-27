@@ -36,11 +36,10 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { KIND, TRACK_CLASS_DEFAULT, TUNING, tuningFor } from './elements.js';
+import { KIND, TRACK_CLASS_DEFAULT, tuningFor } from './elements.js';
 import {
-  aperturesOf, apertureCenter, createSequenceEntry, elementById, elementNormal, kindOf,
+  aperturesOf, apertureCenter, elementById, elementNormal, kindOf,
 } from './model.js';
-import { applyAutoFaces } from './faces.js';
 import { add, leftOf, lerp, normalize, scale, sub } from './geometry.js';
 import { str } from '../strings/index.js';
 
@@ -67,42 +66,6 @@ export const FIGURES = {
   },
 };
 
-export function defaultFigure(el) {
-  return aperturesOf(el).length >= 2 ? 'spiralUp' : 'single';
-}
-
-export function figureBlurb(el, figureId) {
-  const n = aperturesOf(el).length;
-  if (figureId === 'spiralUp') {
-    return n === 2
-      ? str('figures.two_gates_fly_the_bottom_wrap')
-      : str('figures.three_gates_bottom_wrap_middle_from');
-  }
-  if (figureId === 'spiralDown') {
-    return str('figures.three_gates_top_wrap_middle_from');
-  }
-  if (figureId === 'splitS') {
-    return n === 2
-      ? str('figures.two_gates_through_the_top_flip')
-      : str('figures.two_gates_through_the_top_flip_2');
-  }
-  return n > 1
-    ? str('figures.one_gate_only_the_hole_you')
-    : '';
-}
-
-export function figuresFor(el) {
-  const n = aperturesOf(el).length;
-  if (n < 2) {
-    return [FIGURES.single];
-  }
-  const out = [FIGURES.spiralUp, FIGURES.splitS];
-  if (n >= 3) {
-    out.push(FIGURES.spiralDown);
-  }
-  out.push(FIGURES.single);
-  return out;
-}
 
 export function levelName(el, index) {
   const n = aperturesOf(el).length;
@@ -266,37 +229,6 @@ export function matchingFigureOf(el, seqs) {
   return null;
 }
 
-export function matchingFigure(doc, el) {
-  return matchingFigureOf(el, consecutiveEntries(doc, el.id));
-}
-
-/* The consecutive entries around this one that share its structure. A
- * ladder flown early as a spiral and again late as a single opening is two
- * figures; this returns the run the given entry belongs to. */
-export function runContaining(doc, seq) {
-  const at = doc.sequence.findIndex((s) => s.id === seq.id);
-  if (at < 0) {
-    return [];
-  }
-  const id = seq.elementId;
-  let i = at;
-  while (i > 0 && doc.sequence[i - 1].elementId === id) {
-    i -= 1;
-  }
-  const out = [];
-  for (; i < doc.sequence.length && doc.sequence[i].elementId === id; i += 1) {
-    out.push(doc.sequence[i]);
-  }
-  return out;
-}
-
-/* The run of sequence entries on this element that sit next to each other,
- * starting at the first one. A ladder flown early and again late is two
- * figures, and only the first run is the one the inspector is editing. */
-export function consecutiveEntries(doc, elementId) {
-  const first = doc.sequence.find((s) => s.elementId === elementId);
-  return first ? runContaining(doc, first) : [];
-}
 
 export function figureCueOf(el, seq, seqs) {
   const fig = matchingFigureOf(el, seqs);
@@ -308,63 +240,6 @@ export function figureCueOf(el, seq, seqs) {
   return `${FIGURES[fig].label}, ${level}`;
 }
 
-export function figureCue(doc, el, seq) {
-  return figureCueOf(el, seq, runContaining(doc, seq));
-}
-
-/*
- * Rewrite this element's run in the flying order to match a figure.
- * Returns true when it did.
- */
-export function applyFigure(doc, elementId, figureId) {
-  const el = elementById(doc, elementId);
-  if (!el || kindOf(el) !== KIND.APERTURE) {
-    return false;
-  }
-  if (!figuresFor(el).some((f) => f.id === figureId)) {
-    return false;
-  }
-  const existing = [];
-  doc.sequence.forEach((s, i) => {
-    if (s.elementId === elementId) {
-      existing.push({ s, i });
-    }
-  });
-  /* A stack flown twice, early and late, should only rewrite the FIRST run.
-   * Replacing every entry would collapse the second pass. */
-  const run = [];
-  if (existing.length) {
-    const start = existing[0].i;
-    for (const row of existing) {
-      if (row.i === start + run.length) {
-        run.push(row);
-      } else {
-        break;
-      }
-    }
-  }
-  const insertAt = run.length ? run[0].i : doc.sequence.length;
-  const keepLevel = run[0]?.s.apertureIndex ?? 0;
-  const approach = run[0]?.s.entry === -1 ? -1 : 1;
-  for (let k = run.length - 1; k >= 0; k -= 1) {
-    doc.sequence.splice(run[k].i, 1);
-  }
-  const plan = figureId === 'single'
-    ? [{ apertureIndex: Math.min(keepLevel, aperturesOf(el).length - 1), entry: approach }]
-    : figurePlan(el, figureId, approach);
-  /* Insert one at a time so newSequenceId sees the previous id. Building
-   * the batch off to the side reused sq-N for every pass. */
-  let at = insertAt;
-  for (const step of plan) {
-    const entry = createSequenceEntry(doc, elementId, step.apertureIndex);
-    entry.entry = step.entry;
-    entry.overridden = figureId !== 'single';
-    doc.sequence.splice(at, 0, entry);
-    at += 1;
-  }
-  applyAutoFaces(doc);
-  return true;
-}
 
 /*
  * Where the racing line goes BETWEEN two stacked passes, so it wraps around

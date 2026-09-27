@@ -1,11 +1,10 @@
 /*
- * summary.js: the name of the course this browser will fly, without
+ * summary.js: the name of the track this browser will fly, without
  * building it.
  *
- * The title menu and the map cards need a name. They must not import the
- * custom map, because that pulls the renderer. This file reads the two
- * seats the custom map reads, share import then builder autosave, and
- * hands back a summary.
+ * The title menu and the launch card need a name. They must not import the
+ * builder, because that pulls the renderer. This file reads the share seat
+ * the shell flies and hands back a summary.
  *
  * This file is part of WebFPVSimulator.
  *

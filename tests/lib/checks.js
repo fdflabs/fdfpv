@@ -586,9 +586,9 @@ export function buildChecks() {
        * 0.26 to 0.68 m and a 1.524 m regulation gate vanished from frame. A
        * draw call count cannot see a scale error; only an object whose real
        * size is known can. So this asserts that things whose size a tape
-       * measure would settle measure what they claim, in BOTH maps, and it
-       * prints every number it measured so a reviewer reads the value rather
-       * than the verdict.
+       * measure would settle measure what they claim, the craft and the town,
+       * and it prints every number it measured so a reviewer reads the value
+       * rather than the verdict.
        *
        * The trap it is written around: the city is authored for a walker with
        * a 1.7 m eye, so a doorway is correctly four times the craft's width
@@ -657,48 +657,23 @@ export function buildChecks() {
         }
 
         /*
-         * The race field. The gate band is MultiGP's published 1.524 m square
-         * times the DECLARED gate scale, not the published figure: the course
-         * is deliberately built 15 percent over the rulebook and track.js
-         * says so in one named constant. Banding the published number would
-         * fail a change that is working as intended, and banding nothing
-         * would let the opening drift to any size at all, so the check reads
-         * the page's own declared scale and asserts the threshold file agrees
-         * with it first.
-         */
-        if (typeof r.field.gateScale !== 'number') {
-          fails.push('the page did not publish a gate scale');
-        } else if (Math.abs(r.field.gateScale - th.gate_scale.value) > 1e-9) {
-          fails.push(`the page declares a gate scale of ${r.field.gateScale}, the threshold file ${th.gate_scale.value}`);
-        }
-        rows.push(`gate scale ${(r.field.gateScale ?? 0).toFixed(4)}`);
-        band('gate opening W', r.field.gateOpeningW, th.gate_opening_m.min, th.gate_opening_m.max, ' m');
-        band('gate opening H', r.field.gateOpeningH, th.gate_opening_m.min, th.gate_opening_m.max, ' m');
-        /*
-         * THE MAXIMUM BLADE ONLY. The minimum used to be banded against the
-         * same 0.02 to 0.12, and it could not pass: src/render/scene.js
-         * authors two grass regimes, 0.03 + roll * 0.06 in the rough and
-         * 0.006 + roll * 0.012 on the mown pitch, and the reference reports
-         * the minimum over both. So the measured minimum is 0.006 by
-         * construction, and the floor asserted that the mown pitch did not
-         * exist. It failed from the day the pitch was authored.
+         * The gate scale. A built track's five inch gates are MultiGP's
+         * published figures times the DECLARED gate scale: they are
+         * deliberately built 15 percent over the rulebook and track.js says
+         * so in one named constant. The page's declared scale is asserted
+         * against the threshold file, so the two cannot drift apart.
          *
-         * The band exists to catch the 0.26 to 0.68 m blade this project
-         * shipped once. That error is a blade too TALL, so the maximum is the
-         * bound that catches it, and the maximum is still banded.
+         * The race field's own bands went with the field: its gate opening
+         * measured on the field's gates, its grass blades and its clubhouse
+         * verandah. A built gate's opening is the builder's gateSpec, which
+         * scripts/build-selftest.js holds.
          */
-        band('grass blade max', r.field.grassMax, th.grass_blade_m.max_min, th.grass_blade_m.max_max, ' m');
-        /*
-         * The clubhouse verandah, which is the race field's one object built
-         * to a person rather than to a rulebook. Everything else on this map
-         * is sized by MultiGP or by the airframe, so nothing here could have
-         * caught a human scale error: a verandah a pilot cannot stand under,
-         * or one three storeys tall, would have passed every check in the
-         * file. It is measured as the gap between the roof collider a craft
-         * would hit and the deck it would land on, so it is the clearance
-         * that is asserted rather than a dimension in a table.
-         */
-        band('clubhouse verandah', r.field.clubhouseVerandah, th.clubhouse_verandah_m.min, th.clubhouse_verandah_m.max, ' m');
+        if (typeof r.gateScale !== 'number') {
+          fails.push('the page did not publish a gate scale');
+        } else if (Math.abs(r.gateScale - th.gate_scale.value) > 1e-9) {
+          fails.push(`the page declares a gate scale of ${r.gateScale}, the threshold file ${th.gate_scale.value}`);
+        }
+        rows.push(`gate scale ${(r.gateScale ?? 0).toFixed(4)}`);
 
         /* The city, all three measured off the built world by three different
          * routes: the height query, the geometry and the collider list. */
@@ -835,7 +810,7 @@ export function buildChecks() {
     {
       num: 16,
       id: 'map-isolation',
-      thresholdText: 'no city module requested with the field selected, field cost unchanged',
+      thresholdText: 'no city module requested with the airfield selected, airfield cost unchanged',
       /*
        * THE LAZY LOAD, MEASURED RATHER THAN ASSERTED.
        *
@@ -843,26 +818,25 @@ export function buildChecks() {
        * stays true right up until somebody adds a convenience import at the
        * top of a shared file and the whole 59 file graph comes back at boot
        * with nothing to show for it. So this reads the browser's own resource
-       * timing: every URL the page requested while the race field was
+       * timing: every URL the page requested while the airfield was
        * selected, and every URL after the city was chosen. Zero city modules
        * in the first list is the isolation; a full graph in the second is the
        * proof that the first list is not empty because the loader is broken.
        *
-       * The second half is the cost. The field's frame must be untouched by
-       * the city existing at all, so its draw calls, triangles, render target
-       * bytes and attribute bytes are asserted against the values measured at
-       * c3c6e44, the commit before this work started. They are not "close to"
-       * those values: they are identical, and the bands below are tight
-       * enough to say so.
+       * The second half is the cost. The airfield's frame must be untouched
+       * by the city existing at all, so its draw calls, triangles, render
+       * target bytes and attribute bytes after a round trip through the city
+       * are asserted against the same run's figures from before it. The
+       * baseline world was the race field until the field was deleted.
        */
       async run(ctx) {
         const r = await ctx.scaleRun();
         const th = ctx.th.checks['map-isolation'];
         const fails = [];
-        const before = r.cityUrlsWhileFieldSelected.length;
+        const before = r.cityUrlsWhileAirfieldSelected.length;
         const after = r.cityUrlsAfterChoosingCity.length;
         if (before !== 0) {
-          fails.push(`${before} city module(s) fetched with the field selected, first ${r.cityUrlsWhileFieldSelected[0]}`);
+          fails.push(`${before} city module(s) fetched with the airfield selected, first ${r.cityUrlsWhileAirfieldSelected[0]}`);
         }
         if (after < th.city_modules_min.value) {
           fails.push(`only ${after} city modules fetched after choosing the city`);
@@ -891,37 +865,38 @@ export function buildChecks() {
          * That is worse than no assertion. It reported a fault that was not
          * there, every run, and it drowned the two sentences this check is
          * actually named for. Those two are kept and they are enough: no city
-         * module may be fetched with the field selected, and the field must
+         * module may be fetched with the baseline world selected, and it must
          * cost the same on the far side of a city round trip. Both compare
          * measurements from THIS run to each other, so neither needs a
          * constant recorded on somebody's machine, and neither can rot.
          *
-         * What is lost is the ability to notice the field's own cost drifting
-         * between commits. That was never working, so nothing is lost today,
+         * What is lost is the ability to notice the baseline world's own cost
+         * drifting between commits. That was never working, so nothing is lost today,
          * but it is worth having: it wants a course fixture committed beside
          * the test and a figure re-measured against it, which is its own
          * change and not this one.
          */
-        const b = r.fieldBudget;
-        const b2 = r.fieldBudgetAfterRoundTrip;
+        const b = r.airfieldBudget;
+        const b2 = r.airfieldBudgetAfterRoundTrip;
         if (!b) {
-          fails.push('the field budget was not measured');
+          fails.push('the airfield budget was not measured');
         }
-        /* And again after field to city to field. This is the measurement that
-         * can see a leak: anything the city fails to free is invisible until
-         * the field is measured on the far side of a round trip. */
+        /* And again after airfield to city to airfield. This is the
+         * measurement that can see a leak: anything the city fails to free is
+         * invisible until the airfield is measured on the far side of a round
+         * trip. */
         if (!b2) {
-          fails.push('the field budget after a round trip was not measured');
+          fails.push('the airfield budget after a round trip was not measured');
         } else {
           /*
            * Against BOOT, not against the constant. This is the assertion
            * the check was named for and it was the one thing missing: both
            * halves were compared only to a figure recorded at a commit, so
-           * the sentence "the field costs the same after visiting the city"
-           * was never actually written down. Anything the city fails to
-           * free shows up here, on any machine, without anybody having to
+           * the sentence "the baseline world costs the same after visiting the
+           * city" was never actually written down. Anything the city fails
+           * to free shows up here, on any machine, without anybody having to
            * re-measure a constant first, and a legitimate change to the
-           * field's own dressing cannot switch the leak detector off.
+           * airfield's own dressing cannot switch the leak detector off.
            */
           if (b) {
             const held = (label, got, want, tol) => {
@@ -940,7 +915,7 @@ export function buildChecks() {
            * uniform kept alive forever: every budget above counts targets
            * and triangles, and a dead uniform object costs neither. Not an
            * equality: a material only registers when it first compiles, so
-           * the rebuilt field legitimately reports fewer until every view
+           * the rebuilt airfield legitimately reports fewer until every view
            * has rendered once. With the old push-only array this read boot
            * plus rebuild, 93 against 54. */
           if (b && b2.cel > b.cel) {
@@ -949,8 +924,8 @@ export function buildChecks() {
         }
         return {
           measured:
-            `city modules: ${before} with the field selected, ${after} after choosing it; ` +
-            (b ? `field P1 ${b.p1}, P2 ${b.p2}, P5 ${b.p5} MB, P10 ${b.p10} MB, ${b.meshes} meshes` : 'no budget') +
+            `city modules: ${before} with the airfield selected, ${after} after choosing it; ` +
+            (b ? `airfield P1 ${b.p1}, P2 ${b.p2}, P5 ${b.p5} MB, P10 ${b.p10} MB, ${b.meshes} meshes` : 'no budget') +
             (b2 ? `; after a city round trip P1 ${b2.p1}, P2 ${b2.p2}, P5 ${b2.p5} MB, P10 ${b2.p10} MB` : ''),
           pass: fails.length === 0,
           reason: fails.join('; '),

@@ -104,16 +104,16 @@ async function main() {
    * the window: a cost measured at two different presets reports a
    * regression that is only a setting. Boot lowers a DETECTED preset to Low
    * when the session renderer turns out to be a CPU rasteriser, and headless
-   * Chrome is always one, so without this the field's budget is measured at
+   * Chrome is always one, so without this a world's budget is measured at
    * Low here and at High on a machine with a GPU. graphicsAuto false is the
    * half that matters: it is what marks the value as chosen.
    *
-   * --course=FILE seeds a track document as the builder's autosave and
-   * selects the custom map. The launch block only exists on an authored
-   * course, so without this there is no way to capture the pad shot at all.
-   * Selecting it takes the seat AND the address: a page that names no world
-   * opens on the Alps (src/boot.js), so the seat alone would leave the
-   * course unbuilt until Fly. A --url that names its own map= wins.
+   * --course=FILE seeds a track built in a world (schemaVersion 4) as one
+   * of the pilot's own, played: in the share seat, marked local, the way My
+   * tracks' Play seats it, and selects Track mode. Selecting it takes the
+   * seat AND the address: a page that names no world opens on the title's
+   * own valley (src/boot.js), so the seat alone would leave the track
+   * unbuilt until Fly. A --url that names its own map= wins.
    */
   /*
    * A capture is not a visit. Counting it posts a beacon to the board
@@ -140,26 +140,26 @@ async function main() {
         : join(root, String(opts.course)),
       'utf8',
     );
-    /* Into the seat the document's own class belongs in. There is one canvas
-     * per class now, so a room seeded into the five inch chair is a room
-     * nothing ever reads. See autosaveKey in src/trackbuilder/storage.js. */
-    const autosaveKeys = {
-      full: 'webfpv.trackbuilder.autosave.v1',
-      micro: 'webfpv.trackbuilder.autosave.micro.v1',
-      wing: 'webfpv.trackbuilder.autosave.wing.v1',
-    };
-    const autosaveKey = autosaveKeys[JSON.parse(docText).trackClass] ?? autosaveKeys.full;
+    const doc = JSON.parse(docText);
+    if (!(doc.schemaVersion >= 4 && doc.map)) {
+      throw new Error(`--course ${opts.course} is not a track built in a world`);
+    }
+    /* The quads' seat, or the planes' when --airframe seats a plane: see
+     * importKey in src/share/session.js. */
+    const seat = opts.airframe && airframeById(String(opts.airframe)).fixedWing
+      ? 'webfpv.share.import.wing.v1'
+      : 'webfpv.share.import.v1';
+    const share = { id: doc.id, name: doc.name, author: '', board: '', document: doc, local: true };
     seed.push(`try {
-      localStorage.setItem(${JSON.stringify(autosaveKey)},
-        JSON.stringify(${docText}));
+      localStorage.setItem(${JSON.stringify(seat)}, ${JSON.stringify(JSON.stringify(share))});
       const k = ${JSON.stringify(SETTINGS_KEY)};
       const s = JSON.parse(localStorage.getItem(k) || '{}');
-      s.map = 'custom';
+      s.map = 'track';
       localStorage.setItem(k, JSON.stringify(s));
     } catch (e) { /* Storage refused; the run boots on the default map. */ }`);
     const url = String(opts.url);
     if (!/[?&]map=/.test(url)) {
-      opts.url = `${url}${url.includes('?') ? '&' : '?'}map=custom`;
+      opts.url = `${url}${url.includes('?') ? '&' : '?'}map=track`;
     }
   }
   /*
@@ -291,7 +291,7 @@ async function main() {
           /*
            * A FREESTYLE MAP HAS NO GATES, AND THAT IS AN ANSWER.
            *
-           * The fault below is right for the race field: a capture that
+           * The fault below is right for a raced track: a capture that
            * claims anything about the target has to record which gate the
            * race wanted, because every G3 measurement taken without it
            * measured whichever ring happened to be bright rather than the
@@ -299,10 +299,10 @@ async function main() {
            * fails every capture even when the frame is perfect.
            *
            * The opt out is deliberately NOT a command line flag. A flag can
-           * be passed on the race field, by habit or by a copied command
+           * be passed on a raced track, by habit or by a copied command
            * line, and then the gate that matters is gone. This reads the
            * PAGE's own answer: the shell reports `gateless: true` only for a
-           * map whose gate list is empty, so the race field can never produce
+           * map whose gate list is empty, so a raced track can never produce
            * it, and the check stays exactly as strong there as it was.
            */
           console.log(`  target: none, ${s.nextGate.mapId} is a ${s.nextGate.mapMode} map with no gates`);

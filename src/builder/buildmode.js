@@ -12,7 +12,8 @@
  *
  * THREE STATES, AND B MOVES BETWEEN THEM, and a fourth it does not.
  *
- *   off       the pilot is flying the map. B (a pad's Back) starts building.
+ *   off       the pilot is flying the map. B (a pad's Back) starts building,
+ *             and so do My tracks' Edit and New track (open).
  *   building  the aircraft is parked where it was and the pilot flies a
  *             free camera the way a creative mode flies: the mouse looks,
  *             W A S D move, Space rises and Shift sinks, with no collision.
@@ -22,12 +23,13 @@
  *   testing   the track's gates are the map's course for a run from the
  *             start gate, on the race's own scoring, lap clock and results.
  *             B goes back to building, to the camera where it was left.
- *   racing    a PUBLISHED map track, seated by the shell (main.js, the
- *             Track room or a board link) rather than built here: its gates
+ *   racing    a track seated by the shell (main.js: Play on My tracks, or
+ *             a board link) rather than being built here: its gates
  *             stand in the valley and are the map's course exactly as on a
  *             test flight, but the run is the pilot's, the keys are the
- *             flight's, and its laps go to the board with their ghosts. It
- *             lasts until the shell takes the world or the course away.
+ *             flight's, and a published track's laps go to the board with
+ *             their ghosts. It lasts until the shell takes the world or the
+ *             course away.
  *
  * THE HAND AND THE HOTBAR. Nine slots of pieces (course.js PIECES), 1 to 9
  * or the wheel to pick one, E for every piece. Left click puts the piece
@@ -54,7 +56,9 @@
  *
  * Escape steps back one thing at a time: close the inventory, finish the
  * order, put back what is carried, free the mouse, drop the selection,
- * then leave building for the flight that was paused.
+ * then leave building, for the flight that was paused or, when My tracks
+ * opened the builder (Edit, New track), for My tracks. What was built is
+ * saved into the library on the way out either way, so it is on My tracks.
  *
  * WHAT IT TOUCHES IN THE SHELL, and only through `host` (main.js): the
  * run's mode (a paused run is a frozen plant, which is exactly the parked
@@ -165,6 +169,10 @@ const REST_MS = 150;
  * ended the lock on some builds and not on others. */
 const UNLOCK_GRACE_MS = 250;
 
+/* Where My tracks puts the free camera on a track: this high over the
+ * ground at the start, metres, looking this far down, radians. */
+const OPEN_EYE = 3;
+const OPEN_PITCH = -0.15;
 /* The ribbon's width, metres, and how opaque it is while building and on a
  * test flight. */
 const RIBBON_W = 0.7;
@@ -289,6 +297,8 @@ export function createBuildMode(host) {
   };
   let parked = null;
   let tested = false;
+  /* Opened from My tracks (open), so leaving goes back there. */
+  let fromMenu = false;
   let hit = null;
   let hitAt = -Infinity;
   /* The ray the crosshair's reading was taken along, hit or miss, and
@@ -1409,9 +1419,9 @@ export function createBuildMode(host) {
   }
 
   /*
-   * Put the track on the public board, through the shell's own publish:
-   * the same dialog, name and board name, as a track published from the
-   * Track room (host.publish, main.js). The mouse is let go first, because
+   * Put the track on the public board, through the shell's own publish
+   * (host.publish, main.js), a dialog asking the track's name and the
+   * pilot's board name. The mouse is let go first, because
    * the dialog is typed into. What comes back is the track as published,
    * which is a new id when the board already held this one from another
    * browser, so the builder carries on editing THAT, not the copy it sent.
@@ -1496,11 +1506,13 @@ export function createBuildMode(host) {
     }
   }
 
-  function enter() {
+  /* Build `next`, or the track left open in this world when B is pressed
+   * in a flight, or a new one when there is none. */
+  function enter(next) {
     view = host.view();
     craftId = airframeById(ui.settings.airframe).id;
-    const saved = readMapAutosave(view.id);
-    doc = saved ? saved.doc : newCourse(view.id, str('build.untitled'));
+    const saved = next === undefined ? readMapAutosave(view.id) : null;
+    doc = next || (saved ? saved.doc : newCourse(view.id, str('build.untitled')));
     history.clear();
     root = new THREE.Group();
     root.name = 'build-track';
@@ -1671,15 +1683,43 @@ export function createBuildMode(host) {
   }
 
   /*
+   * My tracks' Edit (`next`, a saved track in this world) and New track
+   * (`next` null): build it with the free camera where its test flight
+   * starts, or at the world's spawn for a track with no gate yet. Escape out
+   * of it goes back to My tracks rather than into a flight (stepBack).
+   */
+  function open(next) {
+    exit(false);
+    enter(next ? normalize(next).doc : null);
+    fromMenu = true;
+    const gates = raceGatesOf(doc);
+    const start = gates.length ? startFor(gates, host.heightAt) : null;
+    const spot = start || view.spawn;
+    const y = start && start.air ? start.air.y : host.heightAt(spot.x, spot.z) + OPEN_EYE;
+    cam.pos.set(spot.x, Math.max(y, host.heightAt(spot.x, spot.z) + OPEN_EYE), spot.z);
+    cam.yaw = spot.yaw;
+    cam.pitch = OPEN_PITCH;
+    cam.vel.set(0, 0, 0);
+  }
+
+  /*
    * Leave building altogether. `resume` is false when the shell is taking
    * the world away (a map swap, the title): the run is not ours to restart
    * then, only our patches to take back.
+   *
+   * A track with anything in it goes into the library on the way out, so
+   * what was built is on My tracks whichever way the builder was left. A
+   * published track seated for a race (racing) is the seat's, not a build.
    */
   function exit(resume = false) {
     if (state === 'off') {
       return;
     }
     const wasTesting = state === 'testing';
+    if (state !== 'racing' && doc.elements.length) {
+      saveTrack(doc);
+    }
+    fromMenu = false;
     autosave.flush();
     unseatCourse();
     if (view) {
@@ -1850,7 +1890,13 @@ export function createBuildMode(host) {
       dressAll();
       return;
     }
-    exit(true);
+    /* Opened from My tracks, back to My tracks; from a flight, back into
+     * it. */
+    const back = fromMenu;
+    exit(!back);
+    if (back) {
+      host.leave();
+    }
   }
 
   /* Browser defaults the builder's keys would otherwise trigger: Ctrl+S,
@@ -2435,6 +2481,7 @@ export function createBuildMode(host) {
     frame,
     exit,
     race,
+    open,
     get racing() {
       return state === 'racing';
     },

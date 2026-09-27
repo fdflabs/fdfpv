@@ -5,19 +5,19 @@
  * WHY, ON A LAPTOP. The freestyle city is 59 vendored source files, about
  * nineteen thousand meshes and a few hundred Canvas2D textures. A pilot who
  * only ever flies a track must not pay for any of it, and a pilot who tries
- * the city and goes back to the field must not keep paying for it either.
+ * the city and goes back must not keep paying for it either.
  * Both halves are easy to break by accident and neither is visible until a
  * tab runs out of memory on somebody else's machine.
  *
  * WHAT verify's CHECK 16 ALREADY DOES, so this does not repeat it: it proves
- * the city is not fetched while the field is selected, that a full graph
+ * the city is not fetched while the airfield is selected, that a full graph
  * arrives once the city is chosen, that MAP_MODULE_COUNT matches what the
- * browser fetched, and that the field's draw cost is unchanged. That check is
- * good and it is the reference for this one.
+ * browser fetched, and that the airfield's draw cost is unchanged. That check
+ * is good and it is the reference for this one.
  *
  * WHAT THIS ADDS:
  *
- *   1. The other three maps. Check 16 covers city against field. Industrial
+ *   1. The other maps. Check 16 covers city against the airfield. Industrial
  *      the city is the only freestyle world now, and it copies nothing into
  *      their own directory precisely so choosing one does not drag in the
  *      city's, and nothing was measuring that.
@@ -56,9 +56,13 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-/* The lazily loaded worlds. `custom` is the field and is the baseline: it
- * is loaded at boot because the title screen has a world behind it. */
-const HEAVY = ['city', 'airfield', 'alps', 'yellowstone', 'swiss2'];
+/* The world loaded at boot, which every other is measured against: the
+ * smallest there is. It was the race field until the field was deleted, and
+ * like the field it is not itself measured as a lazily loaded world, since
+ * the title always has a world behind it. */
+const BASE = 'airfield';
+/* The lazily loaded worlds. */
+const HEAVY = ['city', 'alps', 'yellowstone', 'swiss2'];
 
 /*
  * Worlds built from another world's code on purpose, and whose graph that
@@ -112,15 +116,16 @@ async function main() {
     root,
     width: 1280,
     height: 720,
-    /* The field, named in the address because a page that names no world
-     * opens on the Alps (src/boot.js), and this measures what boot fetches
-     * with the field selected. */
-    url: '/index.html?map=custom',
-    /* The field, and a pinned preset so a cost is comparable between runs. */
+    /* The baseline, named in the address because a page that names no
+     * world opens on the title's own valley (src/boot.js), and this measures
+     * what boot fetches with the baseline selected. */
+    url: `/index.html?map=${BASE}`,
+    /* The baseline, and a pinned preset so a cost is comparable between
+     * runs. */
     seed: [`try {
       const k = ${JSON.stringify(SETTINGS_KEY)};
       const s = JSON.parse(localStorage.getItem(k) || '{}');
-      s.map = 'custom';
+      s.map = ${JSON.stringify(BASE)};
       s.graphics = 'low';
       s.graphicsAuto = false;
       localStorage.setItem(k, JSON.stringify(s));
@@ -145,7 +150,7 @@ async function main() {
     const bootUrls = JSON.parse(await page.evaluate(urlsSince(0)));
     const base = JSON.parse(await page.evaluate(MEMORY));
     console.log(
-      `baseline, field selected: ${base.geometries} geometries, ` +
+      `baseline, ${BASE} selected: ${base.geometries} geometries, ` +
       `${base.textures} textures, ${bootUrls.length} requests`,
     );
 
@@ -154,7 +159,7 @@ async function main() {
       const hits = underMap(bootUrls, id);
       if (hits.length) {
         failures.push(
-          `${hits.length} ${id} module(s) fetched with the field selected, first ${hits[0]}`,
+          `${hits.length} ${id} module(s) fetched with the ${BASE} selected, first ${hits[0]}`,
         );
       }
     }
@@ -195,7 +200,7 @@ async function main() {
         }
       }
 
-      await page.evaluate('window.__setMap("custom")');
+      await page.evaluate(`window.__setMap(${JSON.stringify(BASE)})`);
       await page.until('window.__shellReady === true', 180000);
       await page.sleep(2500);
       const back = JSON.parse(await page.evaluate(MEMORY));
@@ -204,7 +209,7 @@ async function main() {
        * Release. The count has to come back to about the baseline, not to
        * exactly it: the shell keeps a session lived airframe and a shared cel
        * ramp on purpose, and a few objects legitimately differ between the
-       * first field build and the second. A generous allowance still catches
+       * first baseline build and the second. A generous allowance still catches
        * the failure that matters, which is a whole world staying resident.
        */
       const allowance = Math.max(40, Math.round(base.geometries * 0.15));
@@ -213,13 +218,13 @@ async function main() {
       if (geomLeak > allowance) {
         failures.push(
           `${id}: ${geomLeak} geometries still live after leaving it ` +
-          `(${base.geometries} at boot, ${loaded.geometries} loaded, ${back.geometries} back on the field)`,
+          `(${base.geometries} at boot, ${loaded.geometries} loaded, ${back.geometries} back on the ${BASE})`,
         );
       }
       if (texLeak > allowance) {
         failures.push(
           `${id}: ${texLeak} textures still live after leaving it ` +
-          `(${base.textures} at boot, ${loaded.textures} loaded, ${back.textures} back on the field)`,
+          `(${base.textures} at boot, ${loaded.textures} loaded, ${back.textures} back on the ${BASE})`,
         );
       }
 

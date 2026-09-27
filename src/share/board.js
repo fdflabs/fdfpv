@@ -6,6 +6,7 @@
  *   Board page     {board}/
  *   Board API      {board}/api/tracks
  *   Fly a track    {sim}/?map=custom&share={id}&board={board}
+ *                  map=custom is Track mode's seat, read as map=track.
  *   Orbit thumb    {sim}/src/share/orbit.html?map=custom&share={id}&board={board}
  *   Publish        POST {board}/api/tracks   { author, document, editKey? }
  *   Update listing POST {board}/api/tracks   same, with the edit key from
@@ -48,7 +49,8 @@
  */
 
 import { trackClassOf } from '../trackbuilder/elements.js';
-import { readShareImport, writeShareImport } from './session.js';
+import { isMapTrack } from '../trackbuilder/model.js';
+import { writeShareImport } from './session.js';
 import { str, currentLocale } from '../strings/index.js';
 
 /*
@@ -80,6 +82,15 @@ const ORIGIN_KEY = 'webfpv.board.origin';
 
 /* An empty hostname is a file:// open, which is a developer, not a deploy. */
 const LOOPBACK_HOSTS = new Set(['', 'localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0']);
+
+/*
+ * Whether there is a board to ask. Not while this page is deployed and the
+ * production host above is still the placeholder no board answers at: My
+ * tracks lists the pilot's own tracks then, and asks nobody.
+ */
+export function boardConfigured() {
+  return boardOrigin() !== PRODUCTION_BOARD_ORIGIN;
+}
 
 export function defaultBoardOrigin() {
   try {
@@ -151,18 +162,6 @@ export function wikiPageUrl(articleId) {
   return `${base}#wiki/${id}`;
 }
 
-export function setBoardOrigin(origin) {
-  const value = trimOrigin(origin);
-  if (!value) {
-    return null;
-  }
-  try {
-    localStorage.setItem(ORIGIN_KEY, value);
-  } catch (e) {
-    /* Private mode: still used for this session via the return. */
-  }
-  return value;
-}
 
 function usableBoardOrigin(origin) {
   const trimmed = trimOrigin(origin);
@@ -378,145 +377,11 @@ export function pickFeaturedTracks(tracks, limit = FEATURED_LIMIT) {
   return [...flown, ...rest.slice(0, Math.max(0, limit - flown.length))];
 }
 
-export function pickMostFlownTrack(tracks) {
-  const list = (tracks || []).filter((t) => t && t.id);
-  if (!list.length) {
-    return null;
-  }
-  return list.slice().sort(byMostFlown)[0];
-}
-
-/*
- * The track a cold sim should open on: the board's most flown listing,
- * written into the share seat so the custom map builds it. A share that
- * is already seated, including a Fly this track link, is left alone.
- * A board that is down or empty returns null and the world still boots.
- */
-export async function adoptMostFlownTrack(cls) {
-  /*
-   * FOR THIS AIRCRAFT, and that is the whole change here.
-   *
-   * The seats are one per class, so a whoop pilot with nothing seated has to
-   * be handed the most flown ROOM: handing them the most flown track on the
-   * board hands them a sixty metre field, which is the aircraft's own share
-   * seat filled with something it cannot fly. And a whoop pilot with an
-   * empty seat is the common case, because the board's five inch half is
-   * years older than its whoop half.
-   *
-   * readShareImport with no argument reads the ACTIVE class's seat, which is
-   * the one being filled, so the "already seated, leave it alone" rule below
-   * is per class too.
-   */
-  const want = trackClassOf({ trackClass: cls });
-  if (readShareImport()) {
-    return null;
-  }
-  try {
-    const origin = boardOrigin();
-    /* Shorter than the shared deadline on purpose: this one runs on a cold
-     * boot with nothing seated, and a visitor who did not ask for any
-     * particular course should not wait the full eight seconds to find out
-     * the board is asleep. A Fly link, which DID name a course, gets the
-     * full deadline through fetchTrackDocument. */
-    const res = await boardGet(`${trimOrigin(origin)}/api/tracks`, 4000);
-    const body = await readJson(res);
-    const tracks = body && Array.isArray(body.tracks) ? body.tracks : [];
-    const list = tracks.map((t) => ({
-      id: String(t.id || ''),
-      name: String(t.name || str('ui.untitled_track')),
-      author: String(t.author || ''),
-      designer: String(t.designer || ''),
-      series: String(t.series || ''),
-      gates: Number(t.gates) || 0,
-      times: Number(t.times) || 0,
-      publishedUtc: t.publishedUtc ? String(t.publishedUtc) : '',
-      trackClass: trackClassOf(t),
-      /* A track built inside a world is left for the pilot to choose. The
-       * cold open is the field because the field is the smallest world
-       * there is; a map track would put a first visitor behind the minute
-       * swiss2 takes to build before they had asked for anything. */
-      onMap: typeof t.map === 'string' && t.map !== '',
-      board: trimOrigin(origin),
-    })).filter((t) => t.id && t.trackClass === want && !t.onMap);
-    const top = pickMostFlownTrack(list);
-    if (!top) {
-      return null;
-    }
-    const payload = await fetchTrackDocument(top.id, top.board);
-    const document = payload.document || payload;
-    const share = {
-      id: payload.id || top.id,
-      name: payload.name || top.name || document.name,
-      author: payload.author || top.author || '',
-      board: top.board,
-      document,
-    };
-    if (!writeShareImport(share)) {
-      return null;
-    }
-    return share;
-  } catch (e) {
-    return null;
-  }
-}
-
 export async function fetchTrackDocument(id, origin = boardOrigin()) {
   const res = await boardGet(`${trimOrigin(origin)}/api/tracks/${encodeURIComponent(id)}/document`);
   return readJson(res);
 }
 
-/*
- * THE TAG VOCABULARY, MIRRORED.
- *
- * The board's src/validate.js holds the copy of record: it decides which
- * ids are legal and it refuses an unknown one rather than dropping it, so a
- * builder that offered a tag the board did not know would tell an author
- * their track was tagged when it was not. This copy exists so the builder
- * can OFFER the list without a round trip, in exactly the way
- * src/share/pilot.js mirrors the board's NAME_RE. Two repos, so change both.
- *
- * `label` is what a person reads; `id` is what travels and never changes.
- * The board page renders the labels the board itself serves, so a relabel
- * there does not need this file at all; adding or retiring an id does.
- */
-export const TRACK_TAGS = [
-  { id: 'race', label: str('board.race_track'), note: str('board.built_to_be_raced_against_a') },
-  { id: 'skills', label: str('board.skills_practice'), note: str('board.built_to_practise_one_thing_until') },
-  { id: 'experiment', label: str('board.experiment'), note: str('board.built_to_find_out_whether_something') },
-  { id: 'freestyle', label: str('ui.freestyle'), note: str('board.gates_as_furniture_rather_than_as') },
-  { id: 'beginner', label: str('board.beginner'), note: str('board.wide_gates_gentle_lines_nothing_that') },
-  { id: 'technical', label: str('board.technical'), note: str('board.tight_quick_and_unforgiving') },
-  /* "Small field", not "Micro", and the id stays `micro` because published
-   * tracks carry it. It means a FIVE INCH track with a small footprint and
-   * has meant that since before there was a micro track class; beside a 65
-   * mm whoop, a tag labelled "Micro" is two different things one word apart.
-   * The board's src/validate.js carries the same rename. */
-  { id: 'micro', label: str('board.small_field'), note: str('board.a_five_inch_track_that_fits') },
-  { id: 'big', label: str('board.big_field'), note: str('board.wants_the_whole_field_and_a') },
-  { id: 'showcase', label: str('board.showcase'), note: str('board.built_to_be_looked_at') },
-];
-
-/* MIRRORS TAGS_MAX in the board's src/validate.js. Past five a tag stops
- * narrowing anything, because a track wearing every tag answers every
- * filter, which is the same as wearing none. */
-export const TRACK_TAGS_MAX = 5;
-
-export function tagLabel(id) {
-  const found = TRACK_TAGS.find((t) => t.id === id);
-  return found ? found.label : String(id);
-}
-
-/* Keep only ids this build knows, in the vocabulary's own order, capped.
- * A track that came back from a newer board wearing a tag this build has
- * never heard of keeps it on the board and simply does not draw it here,
- * which is the safe way round: dropping it on a republish would silently
- * untag somebody's track. */
-export function usableTags(list) {
-  const want = Array.isArray(list) ? list.map((t) => String(t)) : [];
-  return TRACK_TAGS.filter((t) => want.includes(t.id))
-    .map((t) => t.id)
-    .slice(0, TRACK_TAGS_MAX);
-}
 
 export async function publishTrack({
   author, document, editKey, origin, tags,
@@ -547,34 +412,6 @@ export async function publishTrack({
   return readJson(res);
 }
 
-/*
- * THE CARD ANIMATION FOR A ROOM.
- *
- * The board's card grid draws a plan for a track on a field and plays this
- * for a track in a room, because a five metre room's plan is an almost
- * empty rectangle and the thing it cannot show, height, is the thing a room
- * track is built out of. The board renders nothing, so the animation is
- * made here, by animate.js, in the browser that publishes the track.
- *
- * The edit key is the same one a republish uses: the browser that put the
- * track up is the browser that may change its picture. The board refuses
- * this for a field track, and that refusal is the rule rather than a guard,
- * so nothing on this side needs to ask twice.
- *
- * It is deliberately NOT fatal. The track is already published when this
- * runs, and a board that refuses the animation, or a browser whose WebGL
- * context is gone, must leave the author with a published track and a plan
- * on its card rather than an error about a picture.
- */
-export async function postTrackGif({ id, gif, editKey, origin }) {
-  const board = trimOrigin(origin || boardOrigin());
-  const res = await fetch(`${board}/api/tracks/${encodeURIComponent(id)}/gif`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ gif, editKey: editKey || undefined }),
-  });
-  return readJson(res);
-}
 
 /*
  * Put a finished freestyle run on the board.
@@ -629,22 +466,12 @@ export async function fetchFreestyleRuns(map, origin = boardOrigin()) {
 }
 
 export async function postTime({
-  trackId, name, lapMs, threeMs, ghost, key, sig, craft, origin,
+  trackId, name, lapMs, ghost, key, sig, craft, origin,
 }) {
   const board = trimOrigin(origin || boardOrigin());
-  /*
-   * ghost and threeMs only when there is one of each: an absent key is what
-   * an older board expects, and an explicit null would be a third shape for
-   * no gain. threeMs is the fastest three CONSECUTIVE clean laps, which is
-   * what RaceGOW scores and what a room's sheet prints beside the lap; a
-   * board that has not learned the key ignores it and stores the lap, which
-   * is the whole reason it is a separate optional field rather than a
-   * different route.
-   */
+  /* The ghost only when there is one: an absent key is what an older board
+   * expects, and an explicit null would be a third shape for no gain. */
   const body = { name, lapMs };
-  if (Number.isFinite(threeMs) && threeMs > 0) {
-    body.threeMs = Math.round(threeMs);
-  }
   if (ghost) {
     body.ghost = ghost;
   }
@@ -700,11 +527,10 @@ export async function fetchGhost(trackId, timeId, origin = boardOrigin()) {
 }
 
 /*
- * A share= id in the URL becomes the course this page will fly, or the
- * course the builder will copy. The fetch is the only network either page
- * does for a published track; after that the document sits in local storage
- * like any other import. The return value is that same payload, document
- * included: the builder loads the canvas from it, not from the storage key.
+ * A share= id in the URL becomes the track this page will fly. The fetch is
+ * the only network this page does for a published track; after that the
+ * document sits in the share seat like any other. The return value is that
+ * same payload, document included.
  */
 export async function adoptShareFromLocation() {
   let id = '';
@@ -719,6 +545,11 @@ export async function adoptShareFromLocation() {
   const origin = boardOrigin();
   const payload = await fetchTrackDocument(id, origin);
   const document = payload.document || payload;
+  /* A track drawn for the race field or a RaceGOW room, which this
+   * simulator no longer flies: said, rather than seated as nothing. */
+  if (!isMapTrack(document)) {
+    throw new Error(str('board.that_track_was_drawn_for_the'));
+  }
   const share = {
     id: payload.id || id,
     name: payload.name || document.name,
@@ -727,11 +558,11 @@ export async function adoptShareFromLocation() {
     document,
   };
   /*
-   * The seat is how the custom map finds the course, so a refused write is
+   * The seat is how the shell finds the track, so a refused write is
    * not a detail to swallow: private mode and a full quota both return
-   * false here, and the boot went on to build the custom map from whatever
-   * the autosave held. The pilot followed a Fly link and flew someone
-   * else's track under this one's name. main.js already catches this and
+   * false here, and the boot used to go on and fly whatever the seat held
+   * before. The pilot followed a Fly link and flew someone else's track
+   * under this one's name. main.js already catches this and
    * puts the message on the banner.
    */
   if (!writeShareImport(share)) {

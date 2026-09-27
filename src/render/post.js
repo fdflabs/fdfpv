@@ -790,3 +790,25 @@ function bloomTargets(bloom) {
   }
   return out;
 }
+
+/*
+ * Give a built world its composer, and a dispose that frees both. Every map
+ * but the town wraps its scene with this, and the dispose in particular is
+ * not a detail to keep several copies of.
+ */
+export function attachComposer(shell, map, q) {
+  const post = buildComposer(shell.renderer, map.scene, shell.camera, q);
+  const d = shell.resize();
+  post.setSize(d.w, d.h);
+  const sceneDispose = map.dispose;
+  map.post = post;
+  map.dispose = () => {
+    /* The composer knows what it owns: targets, the bloom ladder, and the
+     * pass materials whose compiled programs the renderer caches. Freeing
+     * only the targets here is how a handful of shader programs used to
+     * leak on every swap. */
+    post.dispose();
+    sceneDispose();
+  };
+  return map;
+}

@@ -8,9 +8,12 @@
  * no second WebGL context, no second copy of the town, no physics and no
  * WASM.
  *
- * A ?share= id fetches that course from the board and injects the document
- * into the custom map without writing the player's share seat, so several
- * board cards can show several courses without colliding.
+ * A ?share= id fetches that track from the board and records the world it
+ * stands in, without writing the player's share seat, so several board cards
+ * can show several tracks without colliding. The clip is the world's own,
+ * shared with the world's card in the Freestyle room; the track's gates are
+ * not in it. A track drawn for the race field, which this simulator no
+ * longer builds, has no world to record and says so.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -29,6 +32,7 @@
  */
 
 import { mapById } from '../maps/registry.js';
+import { isMapTrack } from '../trackbuilder/model.js';
 import { CAMERA_FOV_DEFAULT } from '../render/lens.js';
 import { fetchTrackDocument } from './board.js';
 import { str } from '../strings/index.js';
@@ -36,7 +40,6 @@ import {
   CLIP_W,
   CLIP_H,
   clipKeyForMap,
-  clipKeyForSeatedShare,
   clipDurationMs,
   getClip,
   putClip,
@@ -77,13 +80,26 @@ function bytesToBase64(bytes) {
   return btoa(binary);
 }
 
-function clipKey() {
+/*
+ * The world this page records: the one a ?share= track stands in, or the
+ * one ?map= names. The Track seat (map=custom, which is what the board's
+ * links still carry, or map=track) and an id no map has are no world of
+ * their own, and record the seat's home, the title's valley.
+ */
+async function worldToRecord() {
   const shareId = params.get('share') || '';
+  let mapId = params.get('map');
   if (shareId) {
-    return clipKeyForSeatedShare(shareId);
+    const payload = await fetchTrackDocument(shareId);
+    const doc = payload.document || payload;
+    if (!isMapTrack(doc)) {
+      throw new Error(str('orbit.no_world_for_this_track'));
+    }
+    window.document.title = payload.name || doc.name || str('orbit.fdfpv_orbit');
+    mapId = doc.map;
   }
-  const mapId = params.get('map') === 'field' ? 'custom' : (params.get('map') || 'custom');
-  return clipKeyForMap(mapId);
+  const entry = mapById(mapId);
+  return entry.load ? entry.id : entry.home;
 }
 
 function post(type, extra) {
@@ -162,21 +178,13 @@ function loseRenderer(shell) {
   }
 }
 
-async function renderAndCapture(mapId, shareId, key) {
+async function renderAndCapture(mapId, key) {
   const THREE = await import('three');
   const { buildShell } = await import('../render/shell.js');
   const { makeAttractCamera } = await import('../render/attract.js');
 
   const spec = mapById(mapId);
   setStatus(str('orbit.loading', { name: spec.name }));
-
-  let options;
-  if (shareId) {
-    const payload = await fetchTrackDocument(shareId);
-    const trackDoc = payload.document || payload;
-    options = { document: trackDoc };
-    window.document.title = payload.name || trackDoc.name || str('orbit.fdfpv_orbit');
-  }
 
   const shell = buildShell(canvas, { pixelRatio: 1, powerPreference: 'low-power' });
   /* The same lens the race is flown on, so a course does not look like a
@@ -199,7 +207,7 @@ async function renderAndCapture(mapId, shareId, key) {
   const mod = await spec.load();
   const view = await mod.buildMap(shell, (f) => {
     setStatus(str('orbit.building_percent', { name: spec.name, v2: Math.round(f * 100) }));
-  }, { ...(options || {}), quality: 'low' });
+  }, { quality: 'low' });
   pinThumb(shell, view, THREE);
   if (view.post) {
     view.post.setSize(CLIP_W, CLIP_H);
@@ -329,15 +337,8 @@ async function renderAndCapture(mapId, shareId, key) {
 }
 
 async function boot() {
-  let mapId = params.get('map') || 'custom';
-  const shareId = params.get('share') || '';
-  if (shareId) {
-    mapId = 'custom';
-  }
-  if (mapId === 'field') {
-    mapId = 'custom';
-  }
-  const key = clipKey();
+  const mapId = await worldToRecord();
+  const key = clipKeyForMap(mapId);
 
   const forceCapture = params.get('capture') === '1';
   if (!forceCapture) {
@@ -366,7 +367,7 @@ async function boot() {
         return;
       }
     }
-    await renderAndCapture(mapId, shareId, key);
+    await renderAndCapture(mapId, key);
   });
 }
 

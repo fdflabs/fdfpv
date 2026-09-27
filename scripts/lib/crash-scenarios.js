@@ -1412,7 +1412,7 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
-    name: 'the shell\'s whoop, the five inch in a room 3.43 times life size',
+    name: 'the shell\'s whoop, the five inch drawn 3.43 times life size',
     async run(mk) {
       const L = 0.1735 / 0.0506;
       const whoop = async (ground) => {
@@ -1422,7 +1422,7 @@ export const CRASH_SCENARIOS = [
         return r;
       };
       /* A brisk walk into a wall, head height onto the floor, and full
-       * speed into a gate's side, a real whoop's speeds times the room's
+       * speed into a gate's side, a real whoop's speeds times its drawn
        * scale as the suite flies them. */
       const w = await whoop('concrete');
       w.pose([0, 0, 1.0], [1, 0, 0, 0]);

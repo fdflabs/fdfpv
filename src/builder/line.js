@@ -93,7 +93,10 @@ export function craftLimits(af) {
     span,
     topSpeed: af.topSpeed,
     aLat: Math.sqrt(Math.max(0, thrust * thrust - weight * weight)),
-    rMin: tuningFor(af.trackClass).minCurveRadius,
+    /* Every quad flies the five inch's plant, the whoop included
+     * (configs/airframes.js), so every quad's tightest turn is the five
+     * inch's. The whoop's own class figure was a RaceGOW room's. */
+    rMin: tuningFor('full').minCurveRadius,
     fixedWing: false,
   };
 }
@@ -240,7 +243,7 @@ const AGAINST_COS = -0.1;
  * The first gate in flying order whose opening is too narrow for `craft`
  * (craftLimits) by the `small` rule below, or -1 when it fits every one.
  * This is the one rule for which aircraft may race a built course: the
- * warning the builder shows its author, the Track room's list, the seat
+ * warning the builder shows its author, My tracks' list, the seat
  * and the board's lap check all ask it.
  */
 export function misfitGate(gates, craft) {

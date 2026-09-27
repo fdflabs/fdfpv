@@ -41,7 +41,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,6 +49,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { standGate } from './lib/standgate.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -64,9 +65,11 @@ const SCENARIOS = [
   {
     id: 'quad-gate',
     what: 'a five inch clipping a gate post at 22 m/s: props off',
+    /* One gate of a built track on the Swiss valley's grass (standGate);
+     * the race field's gates until the field went. */
     airframe: '5inch',
-    map: 'custom',
-    course: 'tests/fixtures/course-reference.json',
+    map: 'swiss2',
+    standGate: true,
     throw: `
       const s = window.__craftState();
       const posts = window.__crashSolids(s.worldX, s.worldZ, 400, 'gate')
@@ -202,10 +205,10 @@ const SCENARIOS = [
     id: 'fpv-camera-knocked',
     what: 'the FPV picture when the camera is knocked askew, then the antenna torn off, then the pack ejected',
     airframe: '5inch',
-    map: 'custom',
-    course: 'tests/fixtures/course-reference.json',
+    map: 'swiss2',
+    standGate: true,
     throw: `
-      /* Sat on the grass at the start, looking down the track, so the
+      /* Sat on the grass at the start, looking at the gate, so the
        * failures are the only thing that changes in the picture. */
       const s = window.__craftState();
       window.__placeCraft(s.worldX, s.worldY + 1, s.worldZ);
@@ -253,18 +256,6 @@ function seeds(sc) {
   return out;
 }
 
-async function courseSeed(sc) {
-  if (!sc.course) {
-    return [];
-  }
-  const doc = await readFile(join(root, sc.course), 'utf8');
-  const cls = JSON.parse(doc).trackClass;
-  const key = cls === 'micro' ? 'webfpv.trackbuilder.autosave.micro.v1'
-    : cls === 'wing' ? 'webfpv.trackbuilder.autosave.wing.v1'
-      : 'webfpv.trackbuilder.autosave.v1';
-  return [`try { localStorage.setItem(${JSON.stringify(key)}, JSON.stringify(${doc})); } catch (e) { /* refused */ }`];
-}
-
 async function shoot(page, name, meta) {
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
   await writeFile(join(outDir, `${name}.png`), Buffer.from(data, 'base64'));
@@ -276,10 +267,13 @@ async function shoot(page, name, meta) {
 async function run(sc) {
   /* The map is named in the address as well as seated: a page that names
    * no world opens on the Alps (src/boot.js), not on the seat. */
-  const page = await openPage({ root, width: W, height: H, url: `/index.html?map=${sc.map}`, seed: [...seeds(sc), ...await courseSeed(sc)] });
+  const page = await openPage({ root, width: W, height: H, url: `/index.html?map=${sc.map}`, seed: seeds(sc) });
   const log = [];
   try {
     await page.until('window.__shellReady && window.__map && window.__map().ready', 120000);
+    if (sc.standGate) {
+      await standGate(page, sc.map);
+    }
     await page.sleep(1500);
     const mapNow = await page.evaluate('window.__map().id');
     if (mapNow !== sc.map) {

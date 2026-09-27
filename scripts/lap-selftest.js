@@ -2,13 +2,17 @@
  * lap-selftest.js: the headless lap check against laps it must accept and
  * laps it must refuse.
  *
- * A synthetic lap is threaded through the reference course: from the timing
- * gate, two metres out of every gate in flying order, back through the
- * timing gate, sampled at the ghost rate at a steady speed and encoded with
- * the real encoder. Then the same lap is broken one way at a time, and each
- * break must be refused for the reason the check names. Then a wing course
- * of five metre gates on the 400 by 300 m airfield is built with the
- * builder's own model and flown at cruise, and the same skip is refused.
+ * A synthetic lap is threaded through a track built in a world, three gates
+ * hung in a ring (tests/lib/maptrack.js): from the timing gate, two metres
+ * out of every gate in flying order, back through the timing gate, sampled
+ * at the ghost rate at a steady speed and encoded with the real encoder.
+ * Then the same lap is broken one way at a time, and each break must be
+ * refused for the reason the check names. It was threaded through the 2022
+ * AU Nationals field track until the race field went; the checks are the
+ * same checks. Then a wing course of five metre gates on the 400 by 300 m
+ * airfield is built with the document model and flown at cruise, and the
+ * same skip is refused: the board still takes the field tracks published
+ * before the field went, and checks their laps through this same file.
  * Run with npm run lap:selftest.
  *
  * This file is part of WebFPVSimulator.
@@ -27,10 +31,6 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { encodeGhost } from '../src/share/ghostdata.js';
 import { checkLap, gatesFromCourse, LAP_TOLERANCE_MS, planesFor } from '../src/game/verify.js';
 import { AIRFRAMES } from '../configs/airframes.js';
@@ -43,8 +43,7 @@ import { syntheticLap } from '../tests/lib/synthlap.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { layoutFingerprint } from '../src/share/listing.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const doc = JSON.parse(await readFile(join(root, 'tests/fixtures/course-reference.json'), 'utf8'));
+const doc = mapTrackDocument({ name: 'Lap check ring' });
 
 let failed = 0;
 let passed = 0;
@@ -61,7 +60,7 @@ function check(name, ok, detail = '') {
 console.log('lap check');
 const honest = syntheticLap(doc);
 const gates = { length: honest.gates };
-check('the reference course has gates', honest.gates > 0, `${honest.gates}`);
+check('the ring has gates', honest.gates > 0, `${honest.gates}`);
 const honestBytes = encodeGhost(honest);
 const ok = checkLap(doc, honestBytes, honest.lapMs);
 check('an honest lap is accepted', ok.ok === true, ok.reason);

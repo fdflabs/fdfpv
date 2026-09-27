@@ -69,17 +69,15 @@ const loadingSrc = await readFile(join(root, 'src/ui/loading.js'), 'utf8');
  */
 {
   const simFetch = mainSrc.indexOf('const simBytes = fetchBytes(WASM_URL');
+  /* Boot's one board call. It also adopted the board's most flown track
+   * until Track mode became the pilot's own tracks. */
   const shareAdopt = mainSrc.indexOf('await adoptShareFromLocation()');
-  /* The open paren, not the empty pair: the call takes the seated class as
-   * an argument now, and an assertion about ORDER should not break on an
-   * argument list. */
-  const flownAdopt = mainSrc.indexOf('await adoptMostFlownTrack(');
   check(
     'the flight controller is requested before the board',
-    simFetch > 0 && shareAdopt > simFetch && flownAdopt > simFetch,
+    simFetch > 0 && shareAdopt > simFetch,
     simFetch < 0
       ? 'no concurrent simBytes fetch found in boot'
-      : `wasm at ${simFetch}, share adopt at ${shareAdopt}, most flown at ${flownAdopt}`,
+      : `wasm at ${simFetch}, share adopt at ${shareAdopt}`,
   );
 }
 
