@@ -280,17 +280,8 @@ export function lineWarnings(gates, line, craft, world) {
   const out = [];
   const n = gates.length;
   gates.forEach((g, i) => {
-    const { across, up } = g.axes;
-    const hw = (g.aperture.clearW / 2) * OPENING_PROBE;
-    const hh = (g.aperture.clearH / 2) * OPENING_PROBE;
-    for (const u of [0, -1, 1]) {
-      for (const w of [0, -1, 1]) {
-        const p = add(add(g.centre, across, u * hw), up, w * hh);
-        if (p.y < world.heightAt(p.x, p.z) || world.solidAt(p.x, p.y, p.z)) {
-          out.push({ code: 'blocked', gate: i, pos: g.centre });
-          return;
-        }
-      }
+    if (openingBlocked(g, world)) {
+      out.push({ code: 'blocked', gate: i, pos: g.centre });
     }
   });
   gates.forEach((g, i) => {
@@ -326,6 +317,24 @@ export function lineWarnings(gates, line, craft, world) {
   }
   segmentWarnings(gates, line, craft, world, out);
   return out;
+}
+
+/* The blocked rule for one race gate, on its own: the builder's ghost asks
+ * it of a piece before it is placed, so a ghost turns red by the same rule
+ * the warning is listed by once it lands. */
+export function openingBlocked(g, world) {
+  const { across, up } = g.axes;
+  const hw = (g.aperture.clearW / 2) * OPENING_PROBE;
+  const hh = (g.aperture.clearH / 2) * OPENING_PROBE;
+  for (const u of [0, -1, 1]) {
+    for (const w of [0, -1, 1]) {
+      const p = add(add(g.centre, across, u * hw), up, w * hh);
+      if (p.y < world.heightAt(p.x, p.z) || world.solidAt(p.x, p.y, p.z)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /* The two rules read along the line: clips and tight, once per segment. */

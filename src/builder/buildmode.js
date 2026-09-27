@@ -3,18 +3,22 @@
  *
  * The owner's ask: "How can I get into a creative mode, builder mode, with
  * the current map, so we can build our tracks and place gates within the
- * actual architecture of the map." The track builder page draws a plan of an
- * empty field, so a gate off the side of a cliff for a drop could not be put
- * anywhere near a cliff. This puts the builder where the cliffs are.
+ * actual architecture of the map." And then, of the first builder: "I need
+ * a 3D builder where I can go in like creative mode, like Rust or
+ * Minecraft, and place the gates and stuff in the 3D map." The keys were
+ * too many (six to turn a gate, Tab to select, brackets to order), there
+ * was no hotbar, and moving or turning a placed gate was hard. So this is
+ * built the way a creative mode is.
  *
  * THREE STATES, AND B MOVES BETWEEN THEM, and a fourth it does not.
  *
  *   off       the pilot is flying the map. B (a pad's Back) starts building.
- *   building  the aircraft is parked where it was and a free camera flies
- *             the valley with no collision. A crosshair reads the surface
- *             it points at off the GPU (pick.js) and a ghost gate shows
- *             where the next one would go. B flies the track. P publishes
- *             it to the board.
+ *   building  the aircraft is parked where it was and the pilot flies a
+ *             free camera the way a creative mode flies: the mouse looks,
+ *             W A S D move, Space rises and Shift sinks, with no collision.
+ *             A crosshair reads the surface it points at off the GPU
+ *             (pick.js) and the piece in hand shows there as a ghost. B
+ *             flies the track. P publishes it to the board.
  *   testing   the track's gates are the map's course for a run from the
  *             start gate, on the race's own scoring, lap clock and results.
  *             B goes back to building, to the camera where it was left.
@@ -25,8 +29,32 @@
  *             flight's, and its laps go to the board with their ghosts. It
  *             lasts until the shell takes the world or the course away.
  *
- * Escape while building steps back one thing at a time: drop what is held,
- * then the selection, then leave building for the flight that was paused.
+ * THE HAND AND THE HOTBAR. Nine slots of pieces (course.js PIECES), 1 to 9
+ * or the wheel to pick one, E for every piece. Left click puts the piece
+ * in hand where the ghost is, right click takes away the gate under the
+ * crosshair, middle click puts that gate's piece in hand. R, T and Y turn,
+ * tilt and roll the ghost 15 degrees (Shift the other way). The ghost
+ * stands on ground and roofs, out of cliff faces, and in the air with Alt
+ * held; G rounds it to a grid. It is red where the gate would be inside
+ * rock or a building, the blocked warning's own rule, or inside another
+ * gate.
+ *
+ * MOVING A GATE. F picks up the gate under the crosshair: it follows the
+ * crosshair with the same snap and keeps its orientation, R T Y turn it,
+ * a click puts it down and F again puts it back. Esc frees the mouse, and
+ * the last gate touched (or one clicked) carries a gizmo (gizmo.js): drag
+ * an arrow to move it, a ring to turn it. A click on the world takes the
+ * mouse back. Ctrl+Z and Ctrl+Y undo and redo any edit, Ctrl+D copies the
+ * gate under the crosshair into the hand.
+ *
+ * THE FLYING ORDER is the order gates were placed in, the start first,
+ * shown as a number over every gate. O sets it by clicking the gates in
+ * turn, the start first; the ones not clicked follow in their old order.
+ * The start gate piece makes the gate it places the start.
+ *
+ * Escape steps back one thing at a time: close the inventory, finish the
+ * order, put back what is carried, free the mouse, drop the selection,
+ * then leave building for the flight that was paused.
  *
  * WHAT IT TOUCHES IN THE SHELL, and only through `host` (main.js): the
  * run's mode (a paused run is a frozen plant, which is exactly the parked
@@ -47,15 +75,15 @@
  * The aircraft is the one being flown until C picks another. The ribbon is
  * drawn faint on a test flight.
  *
- * THE BOARD AND GHOSTS (phase 3). P publishes the track through the shell's
- * own publish (host.publish, main.js), as a schemaVersion 4 document the
- * board reads; a published one is flown in the racing state below, where a
- * lap records its ghost and a board ghost can be chased. A TEST FLIGHT
- * STILL HAS NO GHOST: the track changes under it between runs, so a lap
- * recorded on one is a lap of a track that may no longer exist.
+ * THE BOARD AND GHOSTS. P publishes the track through the shell's own
+ * publish (host.publish, main.js), as a schemaVersion 4 document the board
+ * reads; a published one is flown in the racing state above, where a lap
+ * records its ghost and a board ghost can be chased. A TEST FLIGHT STILL
+ * HAS NO GHOST: the track changes under it between runs, so a lap recorded
+ * on one is a lap of a track that may no longer exist.
  *
  * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the town and
- * Yellowstone (phase 4).
+ * Yellowstone.
  *
  * THE GATES ARE SOLID, the way a field gate is: every edit hands the whole
  * built set to the valley's colliders (Colliders.setBuilt), which put it in
@@ -91,31 +119,37 @@ import {
 import { builtGate } from '../render/pylons.js';
 import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
-  BUILD_TYPES, SNAP_MODES, addGate, flipPass, gateFlags, gateSpec, headingOf, makeStart, moveInLap, newCourse,
-  openingCentre, openingsOf, orderOf, poseOf, qAxis, raceGatesOf, readoutFor, removeGate, setPose, snapPose,
-  startFor, stepOf, turnGate, worldCaps,
+  DEFAULT_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, createHistory,
+  gateFlags, gateSpec, gizmoAxes, makeStart, newCourse, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf,
+  raceGatesOf, readoutFor, removeGate, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
 } from './course.js';
-import { craftLimits, lineWarnings, racingLine } from './line.js';
+import { craftLimits, lineWarnings, openingBlocked, racingLine } from './line.js';
+import { createHud } from './hud.js';
+import { pieceIcons } from './icons.js';
+import { createGizmo } from './gizmo.js';
 
-/* The camera's two speeds, metres a second: a slow one to put a gate on a
- * ledge, and one to cross the six kilometre valley in about a minute. */
-const SPEED_SLOW = 6;
-const SPEED_FAST = 90;
-/* Turn rates for keys and sticks, radians a second, and mouse radians a
- * pixel. */
-const TURN_RATE = 1.6;
-const LOOK_RATE = 1.1;
+/* The fly speeds, metres a second, - and = step through them, and the
+ * sprint (W tapped twice and held, or a pad's left stick pressed) is this
+ * many times the speed. The slowest puts a gate on a ledge; the fastest,
+ * sprinting, crosses the six kilometre valley in under half a minute. */
+const SPEEDS = [4, 8, 15, 30, 60];
+const SPEED_START = 2;
+const SPRINT = 4;
+/* How quickly the camera reaches the speed asked of it, seconds: the time
+ * constant of the ease in and the ease out. */
+const EASE_S = 0.12;
+/* Two presses of W this close together, ms, are a sprint. */
+const DOUBLE_TAP_MS = 300;
+/* Mouse radians a pixel, and a pad's right stick at full throw, radians a
+ * second. */
 const MOUSE_RATE = 0.0024;
-/* One press of a turn key, and one with Shift held for the fine one. */
-const TURN_STEP = 15 * Math.PI / 180;
-const TURN_FINE = 1 * Math.PI / 180;
-/* A press of Page Up or Down on a placed gate, metres, and fine. */
-const NUDGE = 0.5;
-const NUDGE_FINE = 0.1;
-/* How far in front of the camera an air gate hangs, and its limits. */
+const PAD_LOOK = 2.4;
+/* How far in front of the camera an air piece hangs, its limits, and one
+ * notch of Ctrl and the wheel, metres. */
 const AIR_DEFAULT = 20;
 const AIR_MIN = 3;
 const AIR_MAX = 150;
+const AIR_NOTCH = 2;
 /* A stick deflection under this is a stick at rest. */
 const DEAD = 0.12;
 /* How far a ray has to move, metres at its origin or radians of direction,
@@ -144,6 +178,17 @@ const OVER = new THREE.Color(1.0, 0.08, 0.12);
 const MARKER_R = 1.2;
 /* How many warnings the panel lists before it says how many more. */
 const WARN_LINES = 6;
+/* The ghost's two colours: fine, and red for a gate in rock or in a gate. */
+const GHOST_OK = new THREE.Color(0x8fe9ff);
+const GHOST_BAD = new THREE.Color(0xff3b3b);
+/* Two pieces further apart than this, metres between their bases, are not
+ * tested for overlap: no piece is half that tall. */
+const OVERLAP_NEAR = 30;
+/* A gate's number badge: its height as a share of the view's height at
+ * any distance (a sprite that does not shrink), and how far above the top
+ * of the gate it floats, metres. */
+const BADGE_SCALE = 0.05;
+const BADGE_LIFT = 0.7;
 /*
  * What the geometry warnings count as the map's rock and buildings: every
  * collider build() froze except the forest, which a line threads rather
@@ -152,12 +197,46 @@ const WARN_LINES = 6;
  * (Colliders.gapAt frozenOnly).
  */
 const NOT_ROCK = ['tree', 'canopy', 'gate'].reduce((m, k) => m | (1 << KINDS.indexOf(k)), 0);
+/* This browser's own hotbar and whether the controls card was hidden:
+ * conveniences, so a private window that refuses storage just starts from
+ * the defaults. */
+const HOTBAR_KEY = 'webfpv.builder.hotbar.v1';
+const HELP_KEY = 'webfpv.builder.help.v1';
+/* The controls card's rows, each a string of keys and meaning. */
+const HELP_ROWS = ['look', 'fly', 'speed', 'hotbar', 'place', 'turn', 'air', 'grid', 'carry', 'free', 'undo', 'order', 'line', 'test', 'file', 'pad'];
 
-/* Standard gamepad buttons (the W3C mapping). */
+/* Standard gamepad buttons and axes (the W3C mapping). */
 const PAD = {
   a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8, start: 9, ls: 10, rs: 11,
   up: 12, down: 13, left: 14, right: 15,
 };
+
+function readStore(key, fallback) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key));
+    return v ?? fallback;
+  } catch {
+    /* Storage refused or the entry unreadable: the default is the answer. */
+    return fallback;
+  }
+}
+
+function writeStore(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    /* Refused (a private window, a full quota): the hotbar or the card
+     * lasts this page instead of the next, and nothing else depends on it. */
+    return false;
+  }
+}
+
+/* The hotbar as stored, or the default where a slot is not a piece. */
+function loadHotbar() {
+  const got = readStore(HOTBAR_KEY, null);
+  return DEFAULT_HOTBAR.map((id, i) => (Array.isArray(got) && pieceById(got[i]) ? got[i] : id));
+}
 
 export function createBuildMode(host) {
   const { shell, input, ui } = host;
@@ -165,22 +244,40 @@ export function createBuildMode(host) {
   const camera = shell.camera;
   const picker = createPicker(renderer);
   const autosave = makeAutosaver(500);
+  const history = createHistory();
+  const gizmo = createGizmo();
 
   let state = 'off';
   let view = null;
   let doc = null;
-  /* The gates as built, by element id: { made, group }. */
+  /* The gates as built, by element id: { made, group, caps, top }. caps
+   * are its solids in the scene, top its highest point. */
   const meshes = new Map();
   let root = null;
+  let badges = null;
   let ghost = null;
+  let hotbar = loadHotbar();
+  let slot = 0;
+  /* The piece being carried: { id, piece, keep, turn }. id is the gate it
+   * was picked up from, or null for a copy that is not in the track yet;
+   * keep is the orientation it carries. */
+  let carry = null;
+  /* The gate the gizmo is on while the mouse is free. */
   let selected = null;
-  let held = null;
-  let typeIndex = 0;
-  let snapIndex = 0;
+  /* The gate under the crosshair, or under the free mouse. */
+  let hovered = null;
+  /* The flying order being clicked: { picked: [ids] }, or null. */
+  let order = null;
+  let grid = false;
   let airDistance = AIR_DEFAULT;
+  let speedIndex = SPEED_START;
+  let sprint = false;
+  let lastW = -Infinity;
   const turn = { yaw: 0, pitch: 0, roll: 0 };
-  /* The free camera: where it is and where it looks. */
-  const cam = { pos: new THREE.Vector3(), yaw: 0, pitch: 0 };
+  /* The free camera: where it is, where it looks, how fast it moves. */
+  const cam = {
+    pos: new THREE.Vector3(), yaw: 0, pitch: 0, vel: new THREE.Vector3(),
+  };
   let parked = null;
   let tested = false;
   let hit = null;
@@ -192,13 +289,17 @@ export function createBuildMode(host) {
   let movedAt = 0;
   const lastRay = { origin: new THREE.Vector3(Infinity, 0, 0), dir: new THREE.Vector3() };
   const mouse = { dx: 0, dy: 0, dragging: false };
+  /* Where the free mouse is, client px, and the gizmo drag under way. */
+  let cursor = null;
+  let drag = null;
   let unlockedAt = -Infinity;
   let padPrev = [];
   let message = { text: '', until: 0 };
-  let showHelp = true;
+  let showHelp = readStore(HELP_KEY, true) !== false;
   let hud = null;
+  let icons = new Map();
   let hudText = '';
-  let helpText = '';
+  let dressKey = '';
   let hidden = [];
   /* The view's own course, put back after a test flight. */
   let patched = null;
@@ -219,9 +320,44 @@ export function createBuildMode(host) {
   const fwd = new THREE.Vector3();
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
   const raycaster = new THREE.Raycaster();
+  /* A gate's parts are not all on layer 0 (its glow and a pylon's cone
+   * are on layer 1, and src/render/post.js moves layer 1 occluders to a
+   * layer of their own), and a ray on layer 0 alone passes through them:
+   * the hover ray must meet every part of a gate. */
+  raycaster.layers.enableAll();
+  const ndc = new THREE.Vector2();
 
   function say(text, ms = 2600) {
     message = { text, until: performance.now() + ms };
+  }
+
+  const locked = () => document.pointerLockElement === shell.canvas;
+  /* Whether the crosshair is what aims: the mouse is taken, or it is free
+   * but has not moved since (a pad, or the moment after Esc). Once it
+   * moves, the cursor aims and the gizmo is up. */
+  const aiming = () => locked() || !cursor;
+
+  /* Take the mouse. Only a click or a key may, so this is called from one;
+   * a browser that refuses (Chrome does for a moment after the pilot freed
+   * it with Esc) leaves it free, and the next click on the world takes it. */
+  function lock() {
+    if (locked() || !shell.canvas.requestPointerLock) {
+      return;
+    }
+    const p = shell.canvas.requestPointerLock();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => say(str('build.click_to_look')));
+    }
+  }
+
+  function unlock() {
+    if (locked()) {
+      document.exitPointerLock();
+    }
+  }
+
+  function snapshot() {
+    return JSON.stringify(doc);
   }
 
   /* ---------------------------------------------------------------- */
@@ -232,14 +368,18 @@ export function createBuildMode(host) {
     const made = builtGate(gateSpec(el, step), index, isStart, gateFlags(el));
     const group = made.group;
     group.userData.elementId = el.id;
-    return { made, group };
+    return { made, group, caps: [], top: new THREE.Vector3() };
   }
 
-  function place(group, el) {
+  const box = new THREE.Box3();
+
+  function place(m, el) {
     const { base, quat } = poseOf(el);
-    group.position.set(base.x, base.y, base.z);
-    group.quaternion.set(quat.x, quat.y, quat.z, quat.w);
-    group.updateMatrixWorld(true);
+    m.group.position.set(base.x, base.y, base.z);
+    m.group.quaternion.set(quat.x, quat.y, quat.z, quat.w);
+    m.group.updateMatrixWorld(true);
+    box.setFromObject(m.group);
+    m.top.set((box.min.x + box.max.x) / 2, box.max.y + BADGE_LIFT, (box.min.z + box.max.z) / 2);
   }
 
   /* Every gate from the document: numbers follow the lap, so any change to
@@ -257,12 +397,17 @@ export function createBuildMode(host) {
         return;
       }
       const m = makeGate(el, i, i === 0, s);
-      place(m.group, el);
+      place(m, el);
       root.add(m.group);
       meshes.set(el.id, m);
     });
+    if (selected && !meshes.has(selected)) {
+      selected = null;
+    }
+    dressKey = '';
     dressAll();
     solidify();
+    refreshBadges();
     refreshLine();
   }
 
@@ -278,23 +423,32 @@ export function createBuildMode(host) {
     for (const [id, m] of meshes) {
       const el = elementById(doc, id);
       if (el) {
-        caps.push(...worldCaps(el, m.made.colliders));
+        m.caps = worldCaps(el, m.made.colliders);
+        caps.push(...m.caps);
       }
     }
     view.colliders.setBuilt(caps);
   }
 
-  /* While building: every gate's ring on, the selected one lit. */
+  /* While building: every gate's ring on, the one under the crosshair lit,
+   * and the selected one while the mouse is free. Only redrawn when one of
+   * those changes. */
   function dressAll() {
+    const lit = order ? null : (hovered ?? (!aiming() ? selected : null));
+    const key = `${lit}|${carry ? carry.id : ''}|${meshes.size}`;
+    if (key === dressKey) {
+      return;
+    }
+    dressKey = key;
     for (const [id, m] of meshes) {
       const gt = dressable(m, 0);
-      if (id === selected && !held) {
+      if (id === lit) {
         lightTarget(gt);
         colourTargetSide(gt, true);
       } else {
         dressGate(gt, 'follow');
       }
-      m.group.visible = id !== held;
+      m.group.visible = !(carry && carry.id === id);
     }
   }
 
@@ -317,6 +471,107 @@ export function createBuildMode(host) {
       trackGlow: made.apertures.length > 1,
       virtual: false,
     };
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Number badges                                                     */
+  /* ---------------------------------------------------------------- */
+
+  /* One material per look, drawn once: a disc with the gate's number, the
+   * start green, a gate already clicked in the flying order amber, one not
+   * yet clicked grey. */
+  const badgeMats = new Map();
+  const BADGE_LOOK = {
+    gate: { fill: 'rgba(16, 22, 18, 0.9)', ring: '#ffd45c', ink: '#f3ead4' },
+    start: { fill: '#1f9d55', ring: '#f3ead4', ink: '#ffffff' },
+    picked: { fill: '#ffd45c', ring: '#141c16', ink: '#141c16' },
+    waiting: { fill: 'rgba(60, 64, 60, 0.75)', ring: 'rgba(243, 234, 212, 0.5)', ink: 'rgba(243, 234, 212, 0.7)' },
+  };
+
+  function badgeMat(text, look) {
+    const key = `${look}:${text}`;
+    let mat = badgeMats.get(key);
+    if (mat) {
+      return mat;
+    }
+    const c = document.createElement('canvas');
+    c.width = 64;
+    c.height = 64;
+    const g = c.getContext('2d');
+    const s = BADGE_LOOK[look];
+    g.beginPath();
+    g.arc(32, 32, 27, 0, Math.PI * 2);
+    g.fillStyle = s.fill;
+    g.fill();
+    g.lineWidth = 4;
+    g.strokeStyle = s.ring;
+    g.stroke();
+    g.fillStyle = s.ink;
+    g.font = `700 ${text.length > 2 ? 22 : 28}px system-ui, sans-serif`;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(text, 32, 34);
+    if (look === 'start') {
+      /* A pennant on the disc's shoulder: the start reads as the start
+       * before its number is read. */
+      g.fillStyle = '#ffffff';
+      g.fillRect(47, 4, 2.5, 18);
+      g.beginPath();
+      g.moveTo(49.5, 4);
+      g.lineTo(60, 8.5);
+      g.lineTo(49.5, 13);
+      g.closePath();
+      g.fill();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    mat = new THREE.SpriteMaterial({
+      map: tex, depthTest: false, depthWrite: false, transparent: true, sizeAttenuation: false,
+    });
+    badgeMats.set(key, mat);
+    return mat;
+  }
+
+  /* The badge for each gate: its number in the lap, or while the flying
+   * order is being clicked, its new number or a grey one. */
+  function badgeFor(id, i) {
+    if (order) {
+      const k = order.picked.indexOf(id);
+      return k >= 0 ? { text: String(k + 1), look: k === 0 ? 'start' : 'picked' } : { text: String(i + 1), look: 'waiting' };
+    }
+    return { text: String(i + 1), look: i === 0 ? 'start' : 'gate' };
+  }
+
+  function refreshBadges() {
+    if (!badges) {
+      badges = new THREE.Group();
+      badges.name = 'build-badges';
+      root.add(badges);
+    }
+    badges.clear();
+    doc.sequence.forEach((s, i) => {
+      const m = meshes.get(s.elementId);
+      if (!m) {
+        return;
+      }
+      const b = badgeFor(s.elementId, i);
+      const sprite = new THREE.Sprite(badgeMat(b.text, b.look));
+      sprite.scale.set(BADGE_SCALE, BADGE_SCALE, 1);
+      sprite.position.copy(m.top);
+      sprite.renderOrder = 25;
+      sprite.userData = { elementId: s.elementId, ...b };
+      badges.add(sprite);
+    });
+    badges.visible = state === 'building';
+  }
+
+  function disposeBadges() {
+    for (const mat of badgeMats.values()) {
+      mat.map.dispose();
+      mat.dispose();
+    }
+    badgeMats.clear();
+    badges = null;
   }
 
   /* ---------------------------------------------------------------- */
@@ -434,6 +689,9 @@ export function createBuildMode(host) {
     if (markers) {
       markers.visible = state === 'building';
     }
+    if (badges) {
+      badges.visible = state === 'building';
+    }
   }
 
   function toggleLine() {
@@ -498,24 +756,50 @@ export function createBuildMode(host) {
     warnings = [];
   }
 
-  const ghostMat = new THREE.MeshBasicMaterial({
-    color: 0x8fe9ff, transparent: true, opacity: 0.42, depthWrite: false,
-  });
+  /* ---------------------------------------------------------------- */
+  /* Pieces and the ghost                                              */
+  /* ---------------------------------------------------------------- */
 
-  function ghostType() {
-    if (held) {
-      return elementById(doc, held).type;
+  function pieceName(piece) {
+    if (piece.start) {
+      return str('build.piece_start');
     }
-    return BUILD_TYPES[typeIndex];
+    if (piece.passSide) {
+      return str(`build.piece_pylon_${piece.passSide}`);
+    }
+    return ELEMENTS[piece.type].label;
   }
 
-  /* The ghost is a real gate of the type about to be placed, in one pale
-   * see-through material, so what it shows is the size and shape that will
-   * land. */
+  /* A piece built as the builder places it, before any document has it:
+   * the ghost's and the icons' mesh. */
+  function buildPiece(piece) {
+    const el = { type: piece.type, dims: ELEMENTS[piece.type].dims, flagSide: ELEMENTS[piece.type].flagSide };
+    const step = piece.passSide ? { passSide: piece.passSide } : null;
+    const made = builtGate(gateSpec(el, step), 0, Boolean(piece.start), gateFlags(el));
+    return { made, el };
+  }
+
+  /* The parts of a gate that are its light rather than its structure: the
+   * pane across the opening and the glow round it, which in the ghost's
+   * one material would fill the hole the ghost is there to show. */
+  function lightParts(made) {
+    return [made.glowMesh, made.cueGroup, ...(made.haloMeshes || [])].filter(Boolean);
+  }
+
+  function handPiece() {
+    return carry ? carry.piece : pieceById(hotbar[slot]);
+  }
+
+  const ghostMat = new THREE.MeshBasicMaterial({
+    color: GHOST_OK, transparent: true, opacity: 0.42, depthWrite: false,
+  });
+
+  /* The ghost is a real gate of the piece about to be placed, in one pale
+   * see-through material, so what it shows is the size and shape that
+   * will land. */
   function ensureGhost() {
-    const type = ghostType();
-    const el = held ? elementById(doc, held) : { type, dims: ELEMENTS[type].dims, flagSide: ELEMENTS[type].flagSide };
-    const key = held ? `held:${held}` : type;
+    const piece = handPiece();
+    const key = carry ? `carry:${carry.id}:${piece.id}` : piece.id;
     if (ghost && ghost.key === key) {
       return;
     }
@@ -523,7 +807,7 @@ export function createBuildMode(host) {
       ghost.group.removeFromParent();
       disposeStandaloneGate(ghost.made);
     }
-    const made = builtGate(gateSpec(el), 0, false, gateFlags(el));
+    const { made, el } = buildPiece(piece);
     made.group.traverse((o) => {
       if (o.isMesh) {
         o.material = ghostMat;
@@ -531,16 +815,75 @@ export function createBuildMode(host) {
         o.renderOrder = 10;
       }
     });
-    /* The target's light is a pane across the opening and a glow round it;
-     * in the ghost's one material they would fill the hole the ghost is
-     * there to show. */
-    for (const part of [made.glowMesh, made.cueGroup, ...(made.haloMeshes || [])]) {
-      if (part) {
-        part.visible = false;
+    for (const part of lightParts(made)) {
+      part.visible = false;
+    }
+    ghost = {
+      key, made, group: made.group, centreY: openingsOf(el)[0].centreY, pose: null, poseKey: '', trouble: null,
+    };
+    root.add(ghost.group);
+  }
+
+  /* Why the ghost is red, or null: its opening inside the map's rock or
+   * buildings (the blocked warning's rule, line.js), or its frame inside
+   * another gate's. */
+  function troubleAt(pose) {
+    const piece = handPiece();
+    if (openingBlocked(pieceGate(piece, pose.base, pose.quat), world)) {
+      return { code: 'blocked' };
+    }
+    const caps = capsAt(pose.base, pose.quat, ghost.made.colliders);
+    for (const [id, m] of meshes) {
+      if (carry && carry.id === id) {
+        continue;
+      }
+      const p = m.group.position;
+      if (Math.hypot(p.x - pose.base.x, p.y - pose.base.y, p.z - pose.base.z) < OVERLAP_NEAR && capsOverlap(caps, m.caps)) {
+        return { code: 'overlap', n: orderOf(doc, id) + 1 };
       }
     }
-    ghost = { key, made, group: made.group, centreY: openingsOf(el)[0].centreY, pose: null };
-    root.add(ghost.group);
+    return null;
+  }
+
+  const altHeld = () => input.keys.has('AltLeft') || input.keys.has('AltRight');
+  const shiftHeld = () => input.keys.has('ShiftLeft') || input.keys.has('ShiftRight');
+  const ctrlHeld = () => input.keys.has('ControlLeft') || input.keys.has('ControlRight');
+
+  function camFrame() {
+    forward(fwd);
+    return { position: { x: cam.pos.x, y: cam.pos.y, z: cam.pos.z }, forward: { x: fwd.x, y: fwd.y, z: fwd.z } };
+  }
+
+  function ghostPose(h, air) {
+    return snapPose(h, camFrame(), carry ? carry.turn : turn, airDistance, ghost.centreY, {
+      air, grid, keep: carry ? carry.keep : null,
+    });
+  }
+
+  function ghostShown() {
+    return state === 'building' && aiming() && !order && !(hud && hud.inventoryOpen);
+  }
+
+  /* Where the ghost is right now, and whether it is red, for the frame. */
+  function updateGhost() {
+    if (!ghostShown()) {
+      if (ghost) {
+        ghost.group.visible = false;
+      }
+      return;
+    }
+    ensureGhost();
+    const pose = ghostPose(hit, altHeld());
+    ghost.pose = pose;
+    ghost.group.visible = true;
+    ghost.group.position.set(pose.base.x, pose.base.y, pose.base.z);
+    ghost.group.quaternion.set(pose.quat.x, pose.quat.y, pose.quat.z, pose.quat.w);
+    const key = `${pose.base.x},${pose.base.y},${pose.base.z},${pose.quat.x},${pose.quat.y},${pose.quat.z},${meshes.size}`;
+    if (key !== ghost.poseKey) {
+      ghost.poseKey = key;
+      ghost.trouble = troubleAt(pose);
+      ghostMat.color.copy(ghost.trouble ? GHOST_BAD : GHOST_OK);
+    }
   }
 
   /* ---------------------------------------------------------------- */
@@ -552,6 +895,7 @@ export function createBuildMode(host) {
     euler.setFromQuaternion(camera.quaternion, 'YXZ');
     cam.yaw = euler.y;
     cam.pitch = Math.max(-1.5, Math.min(1.5, euler.x));
+    cam.vel.set(0, 0, 0);
   }
 
   function forward(out) {
@@ -567,43 +911,60 @@ export function createBuildMode(host) {
     return Math.abs(v) < DEAD ? 0 : v;
   }
 
-  function driveCamera(dtS, pad, padDown) {
-    const shift = input.keys.has('ShiftLeft') || input.keys.has('ShiftRight');
-    const fast = shift || padDown(PAD.lt);
-    const speed = fast ? SPEED_FAST : SPEED_SLOW;
+  const want = new THREE.Vector3();
+
+  /*
+   * Creative flight: the keys (or a pad's left stick) ask for a velocity
+   * along the level heading, across it and straight up, and the camera
+   * eases to it and back to rest over EASE_S. A standard pad's right stick
+   * looks and its triggers rise and sink; a radio, whose switches are not
+   * buttons anyone can rely on, flies it on its sticks like a drone, the
+   * throttle's middle a hover.
+   */
+  function driveCamera(dtS, gp, padDown) {
     let ahead = keyAxis('KeyW', 'KeyS');
     let side = keyAxis('KeyD', 'KeyA');
-    let rise = keyAxis('KeyE', 'KeyQ');
-    let yawIn = keyAxis('ArrowLeft', 'ArrowRight');
-    let lookIn = keyAxis('ArrowUp', 'ArrowDown');
-    /* A pad or a radio: the right stick flies it like a drone, pitch ahead
-     * and roll sideways, and the left turns it and climbs, with the
-     * throttle's middle as a hover so a radio's unsprung throttle has a
-     * place to rest. */
-    if (pad) {
+    let rise = (input.keys.has('Space') ? 1 : 0) - (shiftHeld() ? 1 : 0);
+    let yawIn = 0;
+    let lookIn = 0;
+    if (!input.keys.has('KeyW')) {
+      sprint = false;
+    }
+    let fast = sprint;
+    if (gp && gp.mapping === 'standard' && gp.axes.length >= 4) {
+      ahead -= stick(gp.axes[1]);
+      side += stick(gp.axes[0]);
+      yawIn -= stick(gp.axes[2]);
+      lookIn -= stick(gp.axes[3]);
+      const trig = (i) => (gp.buttons[i] ? gp.buttons[i].value : 0);
+      rise += stick(trig(PAD.rt)) - stick(trig(PAD.lt));
+      fast = fast || padDown(PAD.ls);
+    } else if (gp) {
       const ch = input.channels;
       ahead += stick(ch.pitch);
       side += stick(ch.roll);
       yawIn -= stick(ch.yaw);
       rise += stick((ch.throttle - 0.5) * 2);
-      if (!padDown(PAD.rt)) {
-        lookIn += (padDown(PAD.up) ? 1 : 0) - (padDown(PAD.down) ? 1 : 0);
-      }
     }
-    cam.yaw += yawIn * TURN_RATE * dtS;
-    cam.pitch += lookIn * LOOK_RATE * dtS;
-    if (document.pointerLockElement === shell.canvas || mouse.dragging) {
+    cam.yaw += yawIn * PAD_LOOK * dtS;
+    cam.pitch += lookIn * PAD_LOOK * dtS;
+    if (locked() || mouse.dragging) {
       cam.yaw -= mouse.dx * MOUSE_RATE;
       cam.pitch -= mouse.dy * MOUSE_RATE;
     }
     mouse.dx = 0;
     mouse.dy = 0;
     cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch));
+    const speed = SPEEDS[speedIndex] * (fast ? SPRINT : 1);
     const sy = Math.sin(cam.yaw);
     const cy = Math.cos(cam.yaw);
-    cam.pos.x += (-sy * ahead + cy * side) * speed * dtS;
-    cam.pos.z += (-cy * ahead - sy * side) * speed * dtS;
-    cam.pos.y += rise * speed * dtS;
+    want.set(-sy * ahead + cy * side, rise, -cy * ahead - sy * side);
+    if (want.lengthSq() > 1) {
+      want.normalize();
+    }
+    want.multiplyScalar(speed);
+    cam.vel.lerp(want, 1 - Math.exp(-dtS / EASE_S));
+    cam.pos.addScaledVector(cam.vel, dtS);
     camera.position.copy(cam.pos);
     euler.set(cam.pitch, cam.yaw, 0, 'YXZ');
     camera.quaternion.setFromEuler(euler);
@@ -611,7 +972,7 @@ export function createBuildMode(host) {
   }
 
   /* ---------------------------------------------------------------- */
-  /* Placement                                                         */
+  /* What the crosshair or the mouse is on                             */
   /* ---------------------------------------------------------------- */
 
   function excluded() {
@@ -654,39 +1015,25 @@ export function createBuildMode(host) {
     }
   }
 
-  function camFrame() {
-    forward(fwd);
-    return { position: { x: cam.pos.x, y: cam.pos.y, z: cam.pos.z }, forward: { x: fwd.x, y: fwd.y, z: fwd.z } };
-  }
-
-  function ghostPose(h) {
-    return snapPose(SNAP_MODES[snapIndex], h, camFrame(), turn, airDistance, ghost.centreY);
-  }
-
-  /* Where the ghost is right now, for the frame. */
-  function updateGhost() {
-    const show = state === 'building' && (held || !selected);
-    if (!show) {
-      if (ghost) {
-        ghost.group.visible = false;
-      }
-      return;
+  /* The ray the mouse means: the crosshair's while the mouse is taken,
+   * through the cursor while it is free. */
+  function pointerRay() {
+    if (aiming()) {
+      raycaster.set(cam.pos, forward(fwd));
+    } else {
+      const r = shell.canvas.getBoundingClientRect();
+      ndc.set(((cursor.x - r.left) / r.width) * 2 - 1, -((cursor.y - r.top) / r.height) * 2 + 1);
+      raycaster.setFromCamera(ndc, camera);
     }
-    ensureGhost();
-    const pose = ghostPose(hit);
-    ghost.pose = pose;
-    ghost.group.visible = true;
-    ghost.group.position.set(pose.base.x, pose.base.y, pose.base.z);
-    ghost.group.quaternion.set(pose.quat.x, pose.quat.y, pose.quat.z, pose.quat.w);
+    raycaster.far = PICK_RANGE;
+    return raycaster;
   }
 
-  /* The gate under the crosshair, if one is nearer than the world there. */
-  function gateUnderCrosshair(worldDistance) {
-    raycaster.set(cam.pos, forward(fwd));
-    raycaster.far = Math.min(PICK_RANGE, worldDistance ?? PICK_RANGE);
+  /* The gate a ray meets, if one is nearer than `far` (the world there). */
+  function gateOn(ray, far = PICK_RANGE) {
+    ray.far = Math.min(PICK_RANGE, far);
     const visible = [...meshes.values()].map((m) => m.group).filter((g) => g.visible);
-    const hits = raycaster.intersectObjects(visible, true);
-    for (const h of hits) {
+    for (const h of ray.intersectObjects(visible, true)) {
       let o = h.object;
       while (o && !o.userData.elementId) {
         o = o.parent;
@@ -698,162 +1045,350 @@ export function createBuildMode(host) {
     return null;
   }
 
-  function edited() {
+  function trackHover() {
+    const was = hovered;
+    if (state !== 'building' || (hud && hud.inventoryOpen) || drag) {
+      hovered = null;
+    } else if (aiming()) {
+      hovered = gateOn(pointerRay(), hit ? hit.distance : PICK_RANGE);
+    } else {
+      const ray = pointerRay();
+      const handle = selected ? gizmo.handleOn(ray) : null;
+      gizmo.hover(handle);
+      hovered = handle ? null : gateOn(ray);
+    }
+    if (hovered !== was) {
+      dressAll();
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Edits                                                             */
+  /* ---------------------------------------------------------------- */
+
+  /* Every edit ends here: the document as it was goes on the undo stack,
+   * and the gates, their solids, their numbers, the line and the warnings
+   * are all built again from the document as it is. */
+  function commit(before) {
+    history.record(before);
     touch(doc);
     autosave.schedule(doc);
-    solidify();
-    refreshLine();
+    rebuildAll();
   }
 
-  /* Enter, a click, or the pad's A: put down, drop, or pick up a selection. */
-  function commit() {
+  /* The exact surface for the moment it matters: the crosshair's reading
+   * may be a frame old. */
+  function exactPose(air) {
     ensureGhost();
-    /* Exact, for the moment it matters: the crosshair's reading may be a
-     * frame old. */
     const now = picker.pick(view.scene, cam.pos, forward(fwd), excluded());
-    if (held) {
-      const el = elementById(doc, held);
-      const pose = ghostPose(now);
-      setPose(el, pose.base, pose.quat);
-      place(meshes.get(held).group, el);
-      held = null;
-      edited();
-      dressAll();
-      say(str('build.moved', { n: orderOf(doc, el.id) + 1 }));
-      return;
+    return ghostPose(now, air);
+  }
+
+  function placePiece(air) {
+    const piece = handPiece();
+    const before = snapshot();
+    const pose = exactPose(air);
+    const el = addGate(doc, piece.type, pose.base, pose.quat, piece.passSide);
+    if (piece.start) {
+      makeStart(doc, el.id);
     }
-    const onGate = gateUnderCrosshair(now ? now.distance : null);
-    if (onGate) {
-      selected = selected === onGate ? null : onGate;
-      dressAll();
-      return;
-    }
-    if (selected) {
+    selected = el.id;
+    commit(before);
+    say(str('build.placed', { piece: pieceName(piece), n: orderOf(doc, el.id) + 1 }));
+  }
+
+  function remove(id) {
+    const before = snapshot();
+    const n = orderOf(doc, id) + 1;
+    removeGate(doc, id);
+    if (selected === id) {
       selected = null;
-      dressAll();
-      return;
     }
-    const pose = ghostPose(now);
-    const el = addGate(doc, BUILD_TYPES[typeIndex], pose.base, pose.quat);
-    edited();
-    rebuildAll();
-    say(str('build.placed', { n: orderOf(doc, el.id) + 1, mode: str(`build.snap_${pose.mode}`) }));
-  }
-
-  function grab() {
-    if (!selected) {
-      say(str('build.select_first'));
-      return;
-    }
-    held = selected;
-    dressAll();
-  }
-
-  function deleteSelected() {
-    if (!selected) {
-      say(str('build.select_first'));
-      return;
-    }
-    const n = orderOf(doc, selected) + 1;
-    removeGate(doc, selected);
-    selected = null;
-    held = null;
-    edited();
-    rebuildAll();
+    commit(before);
     say(str('build.deleted', { n }));
   }
 
-  function selectStep(step) {
-    const ids = doc.sequence.map((s) => s.elementId);
-    if (!ids.length) {
+  /* Middle click: the gate's piece into the hand, from the hotbar if it
+   * is there, into the slot in hand if not, the way a creative mode picks
+   * a block. */
+  function pickPiece(id) {
+    const piece = pieceOf(doc, id);
+    if (!piece) {
       return;
     }
-    const at = selected ? ids.indexOf(selected) : (step > 0 ? -1 : 0);
-    selected = ids[(at + step + ids.length) % ids.length];
-    held = null;
+    const at = hotbar.indexOf(piece.id);
+    if (at >= 0) {
+      setSlot(at);
+      return;
+    }
+    hotbar[slot] = piece.id;
+    writeStore(HOTBAR_KEY, hotbar);
+    setSlot(slot);
+  }
+
+  /* F: pick up the gate aimed at, or put back the one carried. */
+  function toggleCarry() {
+    if (carry) {
+      putBack();
+      return;
+    }
+    const id = aiming() ? hovered : (hovered ?? selected);
+    if (!id) {
+      say(str('build.aim_first'));
+      return;
+    }
+    startCarry(id, pieceOf(doc, id), id);
+    say(str('build.carrying', { n: orderOf(doc, id) + 1 }));
+  }
+
+  function startCarry(id, piece, from) {
+    const { quat } = poseOf(elementById(doc, from));
+    carry = {
+      id, piece, keep: quat, turn: { yaw: 0, pitch: 0, roll: 0 },
+    };
+    lock();
     dressAll();
   }
 
-  function reorder(step) {
-    if (!selected) {
-      say(str('build.select_first'));
-      return;
-    }
-    if (moveInLap(doc, selected, step)) {
-      edited();
-      rebuildAll();
-      say(str('build.now_gate', { n: orderOf(doc, selected) + 1 }));
-    }
+  function putBack() {
+    carry = null;
+    dressAll();
   }
 
-  function startHere() {
-    if (!selected) {
-      say(str('build.select_first'));
-      return;
+  function dropCarry(air) {
+    const before = snapshot();
+    const pose = exactPose(air);
+    const c = carry;
+    carry = null;
+    let id = c.id;
+    if (id) {
+      setPose(elementById(doc, id), pose.base, pose.quat);
+    } else {
+      id = addGate(doc, c.piece.type, pose.base, pose.quat, c.piece.passSide).id;
     }
-    makeStart(doc, selected);
-    edited();
-    rebuildAll();
-    say(str('build.start_set'));
+    selected = id;
+    commit(before);
+    say(str(c.id ? 'build.moved' : 'build.placed_copy', { n: orderOf(doc, id) + 1 }));
   }
 
-  /* Turn the selected gate in place, or the ghost's turn for the next one. */
-  function rotate(axis, dir, fine) {
-    const step = dir * (fine ? TURN_FINE : TURN_STEP);
-    if (selected && !held) {
+  /* Ctrl+D: a copy of the gate aimed at (or selected) into the hand, as a
+   * carried piece that joins the track where it is put down. */
+  function duplicate() {
+    const id = aiming() ? hovered : (hovered ?? selected);
+    if (!id) {
+      say(str('build.aim_first'));
+      return;
+    }
+    const piece = pieceOf(doc, id);
+    /* A copy of the start is a gate: a track has one start. */
+    startCarry(null, piece.start ? pieceById('gate') : piece, id);
+    say(str('build.copying', { n: orderOf(doc, id) + 1 }));
+  }
+
+  /* R, T and Y: the carried piece, the selected gate while the mouse is
+   * free, or the ghost's own turn for the next piece. */
+  function rotate(axis, dir) {
+    const step = dir * TURN_STEP;
+    if (carry) {
+      carry.turn[axis] += step;
+      return;
+    }
+    if (selected && !aiming()) {
+      const before = snapshot();
       const el = elementById(doc, selected);
       const next = turnGate(el, axis, step);
       setPose(el, next.base, next.quat);
-      place(meshes.get(selected).group, el);
-      edited();
+      commit(before);
       return;
     }
     turn[axis] += step;
   }
 
-  function upright() {
-    if (selected && !held) {
-      const el = elementById(doc, selected);
-      const c = openingCentre(el, 0);
-      const t = poseOf(el).quat;
-      const travel = new THREE.Vector3(0, 0, -1).applyQuaternion(new THREE.Quaternion(t.x, t.y, t.z, t.w));
-      const q = qAxis(0, 1, 0, headingOf(travel.x, travel.z));
-      const cy = openingsOf(el)[0].centreY;
-      setPose(el, { x: c.x, y: c.y - cy, z: c.z }, q);
-      place(meshes.get(selected).group, el);
-      edited();
+  function undo(back) {
+    const to = back ? history.undo(snapshot()) : history.redo(snapshot());
+    if (!to) {
+      say(str(back ? 'build.nothing_to_undo' : 'build.nothing_to_redo'), 1400);
       return;
     }
-    turn.yaw = 0;
-    turn.pitch = 0;
-    turn.roll = 0;
+    doc = JSON.parse(to);
+    carry = null;
+    order = null;
+    touch(doc);
+    autosave.schedule(doc);
+    rebuildAll();
+    say(str(back ? 'build.undone' : 'build.redone'), 1400);
   }
 
-  function nudge(dir, fine) {
-    if (!selected || held) {
-      say(str('build.select_first'));
+  /* O: start clicking the flying order, or finish it. */
+  function toggleOrder() {
+    if (order) {
+      finishOrder();
+      return;
+    }
+    if (!doc.sequence.length) {
+      say(str('build.place_first'));
+      return;
+    }
+    carry = null;
+    order = { picked: [] };
+    refreshBadges();
+    dressAll();
+  }
+
+  function orderClick(id) {
+    if (!id || order.picked.includes(id)) {
+      return;
+    }
+    order.picked.push(id);
+    refreshBadges();
+    if (order.picked.length === doc.sequence.length) {
+      finishOrder();
+    }
+  }
+
+  function finishOrder() {
+    const picked = order.picked;
+    order = null;
+    const before = snapshot();
+    if (setOrder(doc, picked)) {
+      commit(before);
+      say(str('build.order_set', { n: picked.length }));
+      return;
+    }
+    refreshBadges();
+    dressAll();
+  }
+
+  /* The left button, or a pad's A, with the mouse taken. */
+  function primary(air) {
+    if (order) {
+      orderClick(hovered);
+      return;
+    }
+    if (carry) {
+      dropCarry(air);
+      return;
+    }
+    placePiece(air);
+  }
+
+  function setSlot(i) {
+    slot = ((i % HOTBAR_SLOTS) + HOTBAR_SLOTS) % HOTBAR_SLOTS;
+    if (hud) {
+      paintHotbar();
+      hud.flashName(pieceName(pieceById(hotbar[slot])));
+    }
+  }
+
+  function setSpeed(i) {
+    speedIndex = Math.max(0, Math.min(SPEEDS.length - 1, i));
+    say(str('build.speed_now', { speed: SPEEDS[speedIndex] }), 1200);
+  }
+
+  function setDistance(m) {
+    airDistance = Math.max(AIR_MIN, Math.min(AIR_MAX, m));
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* The gizmo                                                         */
+  /* ---------------------------------------------------------------- */
+
+  const gv = {
+    o: new THREE.Vector3(), d: new THREE.Vector3(), a: new THREE.Vector3(), p: new THREE.Vector3(), w: new THREE.Vector3(), v: new THREE.Vector3(),
+  };
+
+  /* Where the mouse ray is along the drag's axis (a move) or round it (a
+   * turn): metres from the pivot along the axis, or a point in the plane
+   * the ring lies in. Null where the ray runs along the axis or in the
+   * ring's plane, which has no answer worth following. */
+  function dragReading(d) {
+    const ray = pointerRay().ray;
+    gv.o.copy(ray.origin);
+    gv.d.copy(ray.direction);
+    gv.a.set(d.axis.x, d.axis.y, d.axis.z);
+    gv.p.set(d.pivot.x, d.pivot.y, d.pivot.z);
+    gv.w.subVectors(gv.p, gv.o);
+    const b = gv.a.dot(gv.d);
+    if (d.kind === 'move') {
+      const den = 1 - b * b;
+      if (den < 1e-4) {
+        return null;
+      }
+      return (b * gv.d.dot(gv.w) - gv.a.dot(gv.w)) / den;
+    }
+    if (Math.abs(b) < 1e-3) {
+      return null;
+    }
+    const t = gv.a.dot(gv.w) / b;
+    if (t < 0) {
+      return null;
+    }
+    return gv.o.clone().addScaledVector(gv.d, t).sub(gv.p);
+  }
+
+  function startDrag(name) {
+    const el = elementById(doc, selected);
+    const h = gizmo.kindOf(name);
+    const axes = gizmoAxes(el);
+    const d = {
+      name, kind: h.kind, axisName: h.axis, axis: h.kind === 'move' ? axes.move[h.axis] : axes.turn[h.axis],
+      pivot: axes.pivot, pose0: poseOf(el), before: snapshot(), moved: false,
+    };
+    const start = dragReading(d);
+    if (start === null) {
+      return;
+    }
+    d.start = start;
+    drag = d;
+  }
+
+  function dragMove() {
+    const now = dragReading(drag);
+    if (now === null) {
       return;
     }
     const el = elementById(doc, selected);
-    el.position.z += dir * (fine ? NUDGE_FINE : NUDGE);
-    place(meshes.get(selected).group, el);
-    edited();
+    setPose(el, drag.pose0.base, drag.pose0.quat);
+    if (drag.kind === 'move') {
+      let s = now - drag.start;
+      if (grid) {
+        s = Math.round(s / GRID_STEP) * GRID_STEP;
+      }
+      const a = drag.axis;
+      const b = drag.pose0.base;
+      setPose(el, { x: b.x + a.x * s, y: b.y + a.y * s, z: b.z + a.z * s }, drag.pose0.quat);
+      drag.moved = drag.moved || s !== 0;
+    } else {
+      gv.a.set(drag.axis.x, drag.axis.y, drag.axis.z);
+      gv.v.crossVectors(drag.start, now);
+      let angle = Math.atan2(gv.a.dot(gv.v), drag.start.dot(now));
+      if (grid) {
+        angle = Math.round(angle / TURN_STEP) * TURN_STEP;
+      }
+      /* The ring's axis is the gate's own up, across or travel, and
+       * turnGate turns about its local +y, +x, +z: across and travel point
+       * along -x and -z (course.js axesOf). */
+      const next = turnGate(el, drag.axisName, drag.axisName === 'yaw' ? angle : -angle);
+      setPose(el, next.base, next.quat);
+      drag.moved = drag.moved || angle !== 0;
+    }
+    place(meshes.get(selected), el);
   }
 
-  /* F: turn the selected pylon round on its other side. */
-  function flipSide() {
-    if (!selected || held) {
-      say(str('build.select_first'));
-      return;
+  function endDrag() {
+    const d = drag;
+    drag = null;
+    if (d.moved) {
+      commit(d.before);
     }
-    const side = flipPass(doc, selected);
-    if (!side) {
-      say(str('build.not_a_pylon'));
-      return;
+  }
+
+  function updateGizmo() {
+    const el = selected && !aiming() && !order && !carry && state === 'building' ? elementById(doc, selected) : null;
+    gizmo.group.visible = Boolean(el);
+    if (el) {
+      gizmo.place(gizmoAxes(el), camera.position);
     }
-    edited();
-    rebuildAll();
-    say(str(`build.pass_${side}`));
   }
 
   function save() {
@@ -877,9 +1412,7 @@ export function createBuildMode(host) {
     if (publishing || !host.publish) {
       return;
     }
-    if (document.pointerLockElement === shell.canvas) {
-      document.exitPointerLock();
-    }
+    unlock();
     publishing = true;
     try {
       const out = await host.publish(doc);
@@ -916,10 +1449,13 @@ export function createBuildMode(host) {
     say(str('build.new_track'));
   }
 
+  /* Another track: its own undo, nothing of the last one's in hand. */
   function adopt(next) {
     doc = next;
     selected = null;
-    held = null;
+    carry = null;
+    order = null;
+    history.clear();
     autosave.schedule(doc);
     rebuildAll();
   }
@@ -950,17 +1486,20 @@ export function createBuildMode(host) {
     craftId = airframeById(ui.settings.airframe).id;
     const saved = readMapAutosave(view.id);
     doc = saved ? saved.doc : newCourse(view.id, str('build.untitled'));
+    history.clear();
     root = new THREE.Group();
     root.name = 'build-track';
     view.scene.add(root);
+    root.add(gizmo.group);
+    state = 'building';
     rebuildAll();
     cameraFromShell();
     tested = false;
     host.hold();
-    state = 'building';
     showLine();
     showHud(true);
     hideShellHud(true);
+    lock();
     say(str('build.entered', { n: raceGatesOf(doc).length }), 3600);
   }
 
@@ -1055,21 +1594,25 @@ export function createBuildMode(host) {
     root = new THREE.Group();
     root.name = 'build-track';
     view.scene.add(root);
+    state = 'racing';
     rebuildAll();
     courseGates = courseFrom(gates);
     seatCourse(courseGates);
-    state = 'racing';
     showLine();
     return courseGates;
   }
 
   function startTest() {
+    if (order) {
+      finishOrder();
+    }
     const gates = raceGatesOf(doc);
     if (!gates.length) {
       say(str('build.place_first'));
       return;
     }
-    held = null;
+    carry = null;
+    drag = null;
     parked = { pos: cam.pos.clone(), yaw: cam.yaw, pitch: cam.pitch };
     courseGates = courseFrom(gates);
     for (const m of meshes.values()) {
@@ -1078,10 +1621,13 @@ export function createBuildMode(host) {
     if (ghost) {
       ghost.group.visible = false;
     }
+    gizmo.group.visible = false;
     seatCourse(courseGates);
     host.setCourse(courseGates, `.build.${doc.id}`);
     state = 'testing';
     tested = true;
+    /* The flight's menus are clicked, so the mouse is the pilot's again. */
+    unlock();
     showLine();
     showHud(false);
     hideShellHud(false);
@@ -1097,13 +1643,16 @@ export function createBuildMode(host) {
       cam.yaw = parked.yaw;
       cam.pitch = parked.pitch;
     }
+    cam.vel.set(0, 0, 0);
     state = 'building';
     showLine();
     lastRay.origin.set(Infinity, 0, 0);
     hitRay.exact = false;
+    dressKey = '';
     dressAll();
     showHud(true);
     hideShellHud(true);
+    lock();
   }
 
   /*
@@ -1131,18 +1680,21 @@ export function createBuildMode(host) {
       ghost = null;
     }
     disposeLine();
+    disposeBadges();
+    gizmo.group.removeFromParent();
     if (root) {
       root.removeFromParent();
       root = null;
     }
     selected = null;
-    held = null;
+    hovered = null;
+    carry = null;
+    order = null;
+    drag = null;
     state = 'off';
     showHud(false);
     hideShellHud(false);
-    if (document.pointerLockElement === shell.canvas) {
-      document.exitPointerLock();
-    }
+    unlock();
     if (resume) {
       /* A test flight moved the aircraft to the track, so free flight
        * starts over from the map's own spawn; otherwise it carries on from
@@ -1160,13 +1712,7 @@ export function createBuildMode(host) {
   /* Input                                                             */
   /* ---------------------------------------------------------------- */
 
-  function ctrl() {
-    return input.keys.has('ControlLeft') || input.keys.has('ControlRight');
-  }
-
-  function shiftHeld() {
-    return input.keys.has('ShiftLeft') || input.keys.has('ShiftRight');
-  }
+  const SLOT_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'];
 
   /* The keys, from main.js's key hook. True when the key was building's. */
   function onKey(code, repeat) {
@@ -1193,57 +1739,68 @@ export function createBuildMode(host) {
     if (code === 'F8') {
       return false;
     }
-    const rotateKeys = {
-      KeyJ: ['yaw', 1], KeyL: ['yaw', -1], KeyI: ['pitch', -1], KeyK: ['pitch', 1], KeyU: ['roll', 1], KeyO: ['roll', -1],
-    };
-    if (rotateKeys[code]) {
-      rotate(rotateKeys[code][0], rotateKeys[code][1], shiftHeld());
+    if (hud && hud.inventoryOpen) {
+      if (!repeat && (code === 'KeyE' || code === 'Escape')) {
+        closeInventory();
+      }
       return true;
     }
-    if (code === 'PageUp' || code === 'PageDown') {
-      nudge(code === 'PageUp' ? 1 : -1, shiftHeld());
+    /* R turns it left, T tips its top away from the pilot (a dive gate,
+     * the tilt a track asks for most), Y rolls it; Shift the other way. */
+    const turnKeys = { KeyR: ['yaw', 1], KeyT: ['pitch', -1], KeyY: ['roll', 1] };
+    if (turnKeys[code] && !ctrlHeld()) {
+      const [axis, dir] = turnKeys[code];
+      rotate(axis, shiftHeld() ? -dir : dir);
       return true;
     }
     if (repeat) {
       return true;
     }
-    if (ctrl() && code === 'KeyS') {
-      save();
+    if (ctrlHeld()) {
+      const withCtrl = {
+        KeyZ: () => undo(!shiftHeld()),
+        KeyY: () => undo(false),
+        KeyD: duplicate,
+        KeyS: save,
+        KeyO: openNext,
+      };
+      if (withCtrl[code]) {
+        withCtrl[code]();
+      }
       return true;
     }
-    if (ctrl() && code === 'KeyO') {
-      openNext();
+    if (code === 'KeyW') {
+      const now = performance.now();
+      sprint = now - lastW < DOUBLE_TAP_MS;
+      lastW = now;
       return true;
     }
-    if (code === 'KeyP') {
-      publish();
+    const at = SLOT_KEYS.indexOf(code);
+    if (at >= 0) {
+      setSlot(at);
       return true;
     }
     const act = {
       KeyB: startTest,
-      Enter: commit,
-      NumpadEnter: commit,
-      KeyG: grab,
-      Delete: deleteSelected,
-      Backspace: deleteSelected,
-      Tab: () => selectStep(shiftHeld() ? -1 : 1),
-      BracketLeft: () => reorder(-1),
-      BracketRight: () => reorder(1),
-      Home: startHere,
-      Digit1: () => setSnap(0),
-      Digit2: () => setSnap(1),
-      Digit3: () => setSnap(2),
-      Equal: () => setDistance(airDistance + 5),
-      NumpadAdd: () => setDistance(airDistance + 5),
-      Minus: () => setDistance(airDistance - 5),
-      NumpadSubtract: () => setDistance(airDistance - 5),
-      KeyT: () => cycleType(1),
-      KeyF: flipSide,
-      KeyZ: upright,
+      KeyE: openInventory,
+      KeyF: toggleCarry,
+      KeyG: () => {
+        grid = !grid;
+      },
+      KeyO: toggleOrder,
       KeyN: fresh,
-      KeyH: () => { showHelp = !showHelp; },
+      KeyH: () => {
+        showHelp = !showHelp;
+        writeStore(HELP_KEY, showHelp);
+        paintHelp();
+      },
       KeyV: toggleLine,
       KeyC: () => cycleCraft(shiftHeld() ? -1 : 1),
+      KeyP: publish,
+      Minus: () => setSpeed(speedIndex - 1),
+      NumpadSubtract: () => setSpeed(speedIndex - 1),
+      Equal: () => setSpeed(speedIndex + 1),
+      NumpadAdd: () => setSpeed(speedIndex + 1),
       Escape: stepBack,
     };
     if (act[code]) {
@@ -1257,9 +1814,16 @@ export function createBuildMode(host) {
     if (performance.now() - unlockedAt < UNLOCK_GRACE_MS) {
       return;
     }
-    if (held) {
-      held = null;
-      dressAll();
+    if (order) {
+      finishOrder();
+      return;
+    }
+    if (carry) {
+      putBack();
+      return;
+    }
+    if (locked()) {
+      unlock();
       return;
     }
     if (selected) {
@@ -1270,86 +1834,122 @@ export function createBuildMode(host) {
     exit(true);
   }
 
-  function setSnap(i) {
-    snapIndex = i;
-    say(str('build.snap_now', { mode: str(`build.snap_${SNAP_MODES[i]}`) }), 1600);
-  }
-
-  function setDistance(m) {
-    airDistance = Math.max(AIR_MIN, Math.min(AIR_MAX, m));
-  }
-
-  function cycleType(step) {
-    if (held) {
-      return;
-    }
-    typeIndex = (typeIndex + step + BUILD_TYPES.length) % BUILD_TYPES.length;
-    say(ELEMENTS[BUILD_TYPES[typeIndex]].label, 1400);
-  }
-
-  /* Browser defaults the builder's keys would otherwise trigger: Tab moves
-   * focus, Ctrl+S and Ctrl+O open the browser's own dialogs, Page Up and
-   * Down scroll, P types itself into the dialog it opens. Only while
-   * building. */
+  /* Browser defaults the builder's keys would otherwise trigger: Ctrl+S,
+   * Ctrl+O and Ctrl+D open the browser's own dialogs, Ctrl+Z and Ctrl+Y
+   * its undo, a lone Alt its menu on some systems, and P types itself into
+   * the dialog it opens. Only while building. */
   function onKeyDownCapture(e) {
     if (state !== 'building') {
       return;
     }
-    /* The publish dialog's fields own their keys: Tab moves between them. */
+    /* The publish dialog's fields own their keys. */
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) {
       return;
     }
-    /* And P: it opens the publish dialog and focuses its name field on
-     * this very keydown, so the key's own character would be typed over
-     * the track's name. */
-    const mine = e.code === 'Tab' || e.code === 'PageUp' || e.code === 'PageDown' || e.code === 'Home'
-      || ((e.ctrlKey || e.metaKey) && (e.code === 'KeyS' || e.code === 'KeyO'))
+    /* P opens the publish dialog and focuses its name field on this very
+     * keydown, so the key's own character would be typed over the track's
+     * name. */
+    const mine = e.code === 'AltLeft' || e.code === 'AltRight'
+      || ((e.ctrlKey || e.metaKey) && ['KeyS', 'KeyO', 'KeyD', 'KeyZ', 'KeyY'].includes(e.code))
       || (e.code === 'KeyP' && !e.ctrlKey && !e.metaKey && !e.altKey);
     if (mine) {
       e.preventDefault();
     }
   }
   window.addEventListener('keydown', onKeyDownCapture, true);
+  window.addEventListener('keyup', (e) => {
+    if (state === 'building' && (e.code === 'AltLeft' || e.code === 'AltRight')) {
+      e.preventDefault();
+    }
+  }, true);
+
+  function setCursor(e) {
+    cursor = { x: e.clientX, y: e.clientY };
+  }
 
   shell.canvas.addEventListener('mousedown', (e) => {
-    if (state !== 'building') {
+    if (state !== 'building' || (hud && hud.inventoryOpen)) {
       return;
     }
-    const locked = document.pointerLockElement === shell.canvas;
+    if (e.button === 1) {
+      /* No autoscroll, no paste. */
+      e.preventDefault();
+    }
+    const air = e.altKey || altHeld();
+    if (locked()) {
+      trackHover();
+      if (e.button === 0) {
+        primary(air);
+      } else if (e.button === 2 && hovered) {
+        remove(hovered);
+      } else if (e.button === 1 && hovered) {
+        pickPiece(hovered);
+      }
+      return;
+    }
+    setCursor(e);
+    trackHover();
+    const ray = pointerRay();
     if (e.button === 0) {
-      if (locked) {
-        commit();
-      } else if (shell.canvas.requestPointerLock) {
-        /* The first click takes the mouse; placing is the next one. */
-        shell.canvas.requestPointerLock();
+      const handle = selected ? gizmo.handleOn(ray) : null;
+      if (handle) {
+        startDrag(handle);
+      } else if (hovered && order) {
+        orderClick(hovered);
+      } else if (hovered) {
+        selected = hovered;
+        dressKey = '';
+        dressAll();
+      } else {
+        /* The world: back to flying, the way a click takes the mouse back
+         * into a game. */
+        lock();
       }
     } else if (e.button === 2) {
-      if (locked) {
-        grab();
+      if (hovered) {
+        remove(hovered);
       } else {
         mouse.dragging = true;
       }
+    } else if (e.button === 1 && hovered) {
+      pickPiece(hovered);
     }
   });
   window.addEventListener('mouseup', (e) => {
     if (e.button === 2) {
       mouse.dragging = false;
     }
+    if (e.button === 0 && drag) {
+      endDrag();
+    }
   });
   window.addEventListener('mousemove', (e) => {
     if (state !== 'building') {
       return;
     }
-    mouse.dx += e.movementX || 0;
-    mouse.dy += e.movementY || 0;
+    if (locked() || mouse.dragging) {
+      mouse.dx += e.movementX || 0;
+      mouse.dy += e.movementY || 0;
+      return;
+    }
+    setCursor(e);
+    if (drag) {
+      dragMove();
+    }
   });
   shell.canvas.addEventListener('wheel', (e) => {
     if (state !== 'building') {
       return;
     }
+    /* Ctrl with the wheel would zoom the page. */
     e.preventDefault();
-    setDistance(airDistance - Math.sign(e.deltaY) * 2);
+    const notch = Math.sign(e.deltaY);
+    if (e.ctrlKey || ctrlHeld()) {
+      setDistance(airDistance - notch * AIR_NOTCH);
+    } else if (notch) {
+      setSlot(slot + notch);
+    }
   }, { passive: false });
   shell.canvas.addEventListener('contextmenu', (e) => {
     if (state === 'building') {
@@ -1357,9 +1957,19 @@ export function createBuildMode(host) {
     }
   });
   document.addEventListener('pointerlockchange', () => {
-    if (document.pointerLockElement !== shell.canvas) {
+    if (locked()) {
+      cursor = null;
+      gizmo.hover(null);
+    } else {
       unlockedAt = performance.now();
+      /* Freeing the mouse puts back what was carried: a carried gate
+       * follows the crosshair, and a free mouse has none. */
+      if (carry) {
+        putBack();
+      }
     }
+    dressKey = '';
+    dressAll();
   });
 
   /*
@@ -1386,68 +1996,52 @@ export function createBuildMode(host) {
     };
   }
 
+  /* A pad: A places (R3 held hangs it in the air), X removes, Y picks up
+   * and puts down, B steps back, the bumpers walk the hotbar, the d-pad
+   * turns and tilts, Start saves and Back flies it. */
   function padActions(p) {
-    const rt = p.down(PAD.rt);
     if (p.pressed(PAD.back)) {
       startTest();
       return;
     }
+    if (hud && hud.inventoryOpen) {
+      if (p.pressed(PAD.b)) {
+        closeInventory();
+      }
+      return;
+    }
     if (p.pressed(PAD.a)) {
-      commit();
+      primary(p.down(PAD.rs));
     }
-    if (p.pressed(PAD.b)) {
-      if (held || selected) {
-        stepBack();
-      }
-    }
-    if (p.pressed(PAD.x)) {
-      if (rt) {
-        flipSide();
-      } else {
-        deleteSelected();
-      }
+    if (p.pressed(PAD.x) && hovered) {
+      remove(hovered);
     }
     if (p.pressed(PAD.y)) {
-      if (rt) {
-        startHere();
-      } else {
-        grab();
-      }
+      toggleCarry();
+    }
+    if (p.pressed(PAD.b) && (carry || order)) {
+      stepBack();
     }
     if (p.pressed(PAD.lb)) {
-      if (rt) {
-        reorder(-1);
-      } else {
-        selectStep(-1);
-      }
+      setSlot(slot - 1);
     }
     if (p.pressed(PAD.rb)) {
-      if (rt) {
-        reorder(1);
-      } else {
-        selectStep(1);
-      }
+      setSlot(slot + 1);
+    }
+    if (p.pressed(PAD.left)) {
+      rotate('yaw', 1);
+    }
+    if (p.pressed(PAD.right)) {
+      rotate('yaw', -1);
+    }
+    if (p.pressed(PAD.up)) {
+      rotate('pitch', -1);
+    }
+    if (p.pressed(PAD.down)) {
+      rotate('pitch', 1);
     }
     if (p.pressed(PAD.start)) {
       save();
-    }
-    if (p.pressed(PAD.ls)) {
-      setSnap((snapIndex + 1) % SNAP_MODES.length);
-    }
-    if (p.pressed(PAD.rs)) {
-      cycleType(1);
-    }
-    if (p.pressed(PAD.left)) {
-      rotate(rt ? 'roll' : 'yaw', 1, false);
-    }
-    if (p.pressed(PAD.right)) {
-      rotate(rt ? 'roll' : 'yaw', -1, false);
-    }
-    if (rt && p.pressed(PAD.up)) {
-      rotate('pitch', -1, false);
-    }
-    if (rt && p.pressed(PAD.down)) {
-      rotate('pitch', 1, false);
     }
   }
 
@@ -1500,10 +2094,12 @@ export function createBuildMode(host) {
       return;
     }
     const dtS = Math.min(0.1, dtMs / 1000);
-    driveCamera(dtS, p.gp ? p.gp : null, p.down);
+    driveCamera(dtS, p.gp, p.down);
     shell.quad.visible = true;
     trackCrosshair(performance.now());
+    trackHover();
     updateGhost();
+    updateGizmo();
     updateHud();
   }
 
@@ -1511,64 +2107,101 @@ export function createBuildMode(host) {
   /* The display                                                       */
   /* ---------------------------------------------------------------- */
 
+  function paintHotbar() {
+    hud.setHotbar(hotbar.map((id) => ({ icon: icons.get(id), name: pieceName(pieceById(id)) })), slot);
+  }
+
+  function paintHelp() {
+    const rows = showHelp ? HELP_ROWS.map((k) => str(`build.help_${k}`).split('\t')) : null;
+    hud.setHelp(str('build.help_title'), rows, str('build.help_foot'), str('build.help_hidden'));
+  }
+
   function showHud(on) {
     if (on && !hud) {
-      hud = document.createElement('div');
-      hud.className = 'build-hud';
-      Object.assign(hud.style, {
-        position: 'fixed', inset: '0', pointerEvents: 'none', zIndex: '5', fontFamily: 'var(--ui-font)', color: '#f3ead4',
+      hud = createHud({
+        onSlot: (i) => setSlot(i),
+        onAssign: (id, i) => {
+          const at = i >= 0 ? i : slot;
+          hotbar[at] = id;
+          writeStore(HOTBAR_KEY, hotbar);
+          setSlot(at);
+        },
       });
-      const cross = document.createElement('div');
-      Object.assign(cross.style, {
-        position: 'absolute', left: '50%', top: '50%', width: '18px', height: '18px', marginLeft: '-9px', marginTop: '-9px',
-        border: '2px solid rgba(143, 233, 255, 0.95)', borderRadius: '50%', boxShadow: '0 0 4px rgba(0,0,0,0.8)',
-      });
-      const panel = document.createElement('div');
-      Object.assign(panel.style, {
-        position: 'absolute', left: '16px', top: '64px', maxWidth: '520px', padding: '10px 14px', whiteSpace: 'pre-line',
-        background: 'rgba(12, 18, 14, 0.78)', borderRadius: '6px', fontSize: '14px', lineHeight: '1.45',
-      });
-      const help = document.createElement('div');
-      Object.assign(help.style, {
-        position: 'absolute', right: '16px', bottom: '16px', maxWidth: '460px', padding: '10px 14px', whiteSpace: 'pre-line',
-        background: 'rgba(12, 18, 14, 0.7)', borderRadius: '6px', fontSize: '12px', lineHeight: '1.5', opacity: '0.92',
-      });
-      hud.append(cross, panel, help);
-      hud.panel = panel;
-      hud.help = help;
-      (document.getElementById('ui') || document.body).append(hud);
+      icons = pieceIcons(renderer, PIECES, (piece) => {
+        const { made } = buildPiece(piece);
+        return { group: made.group, hide: lightParts(made), made };
+      }, (m) => disposeStandaloneGate(m.made));
+      paintHotbar();
+      paintHelp();
       hudText = '';
-      helpText = '';
     }
     if (hud) {
-      hud.style.display = on ? '' : 'none';
+      hud.show(on);
     }
+  }
+
+  function openInventory() {
+    unlock();
+    carry = null;
+    const shelves = PIECE_CATS.map((cat) => ({
+      title: str(`build.cat_${cat}`),
+      pieces: PIECES.filter((p) => p.cat === cat).map((p) => ({ id: p.id, name: pieceName(p), icon: icons.get(p.id) })),
+    }));
+    hud.openInventory(str('build.inventory_title'), str('build.inventory_hint', { n: slot + 1 }), shelves);
+  }
+
+  function closeInventory() {
+    hud.closeInventory();
+    lock();
   }
 
   function fmtM(m) {
     return m.toFixed(1);
   }
 
+  /* The line along the bottom: what the mouse is doing now, or the piece,
+   * the snap, the grid and the speed. Red when the ghost is. */
+  function statusLine() {
+    const gates = raceGatesOf(doc);
+    if (order) {
+      return { text: str('build.status_order', { n: order.picked.length + 1, count: gates.length }) };
+    }
+    if (!aiming()) {
+      return { text: str(selected ? 'build.status_free' : 'build.status_free_none') };
+    }
+    const trouble = ghost && ghost.group.visible ? ghost.trouble : null;
+    if (trouble) {
+      return { text: str(`build.ghost_${trouble.code}`, { n: trouble.n }), warn: true };
+    }
+    if (carry) {
+      return { text: str(carry.id ? 'build.status_carry' : 'build.status_copy', { n: orderOf(doc, carry.id) + 1 }) };
+    }
+    const mode = ghost && ghost.pose ? ghost.pose.mode : 'air';
+    return {
+      text: str('build.status', {
+        piece: pieceName(handPiece()),
+        snap: str(`build.snap_${mode}`, { distance: Math.round(airDistance) }),
+        grid: str(grid ? 'build.grid_on' : 'build.grid_off'),
+        speed: SPEEDS[speedIndex],
+      }),
+    };
+  }
+
   function updateHud() {
     if (!hud) {
       return;
     }
+    hud.tick();
+    hud.setCrosshair(aiming());
     const gates = raceGatesOf(doc);
-    const lines = [
-      str('build.title', { name: doc.name, n: gates.length }),
-      str('build.placing', {
-        type: ELEMENTS[ghostType()].label,
-        mode: str(`build.snap_${SNAP_MODES[snapIndex]}`),
-        distance: Math.round(airDistance),
-      }),
-    ];
+    const lines = [str('build.title', { name: doc.name, n: gates.length })];
     if (ghost && ghost.pose && ghost.group.visible) {
-      if (ghost.pose.mode !== SNAP_MODES[snapIndex]) {
+      if (!hit && !altHeld()) {
         lines.push(str('build.no_surface'));
       }
       const c = new THREE.Vector3(0, ghost.centreY, 0).applyQuaternion(ghost.group.quaternion).add(ghost.group.position);
       const above = c.y - host.heightAt(c.x, c.z);
-      const last = held ? null : gates[gates.length - 1];
+      const last = carry ? null : gates[gates.length - 1];
       if (last) {
         const d = Math.hypot(c.x - last.centre.x, c.y - last.centre.y, c.z - last.centre.z);
         lines.push(str('build.ghost_readout_from', {
@@ -1578,8 +2211,9 @@ export function createBuildMode(host) {
         lines.push(str('build.ghost_readout', { height: fmtM(above) }));
       }
     }
-    if (selected) {
-      const i = orderOf(doc, selected);
+    const about = selected && !aiming() ? selected : null;
+    if (about) {
+      const i = orderOf(doc, about);
       const r = readoutFor(gates, i, host.heightAt);
       if (r) {
         lines.push(r.next
@@ -1588,28 +2222,19 @@ export function createBuildMode(host) {
           })
           : str('build.selected_readout', { n: i + 1, count: gates.length, height: fmtM(r.height) }));
       }
-      const step = stepOf(doc, selected);
+      const step = stepOf(doc, about);
       if (step && step.passSide) {
         lines.push(str(`build.pass_${step.passSide}`));
-      }
-      if (held) {
-        lines.push(str('build.holding'));
       }
     }
     lines.push(...lineLines());
     if (message.text && performance.now() < message.until) {
       lines.push(message.text);
     }
-    const text = lines.join('\n');
-    if (text !== hudText) {
-      hudText = text;
-      hud.panel.textContent = text;
-    }
-    const help = showHelp ? str('build.help') : str('build.help_hidden');
-    if (help !== helpText) {
-      helpText = help;
-      hud.help.textContent = help;
-    }
+    const s = statusLine();
+    hud.setPanel(lines.join('\n'));
+    hud.setStatus(s.text, Boolean(s.warn));
+    hudText = `${lines.join('\n')}\n${s.text}`;
   }
 
   /* ---------------------------------------------------------------- */
@@ -1624,15 +2249,38 @@ export function createBuildMode(host) {
       map: view ? view.id : null,
       doc: doc ? JSON.parse(JSON.stringify(doc)) : null,
       selected,
-      held,
-      snap: SNAP_MODES[snapIndex],
+      hovered,
+      carry: carry ? { id: carry.id, piece: carry.piece.id } : null,
+      order: order ? order.picked.slice() : null,
+      locked: locked(),
+      grid,
       airDistance,
-      type: BUILD_TYPES[typeIndex],
+      speed: SPEEDS[speedIndex],
+      sprint,
+      velocity: cam.vel.toArray(),
+      hotbar: hotbar.slice(),
+      slot,
+      piece: hotbar[slot],
+      type: pieceById(hotbar[slot]).type,
+      inventory: Boolean(hud && hud.inventoryOpen),
+      help: showHelp,
+      history: history.depth,
       hit: hit ? { point: hit.point.toArray(), normal: hit.normal.toArray(), distance: hit.distance } : null,
       /* Where the reading above was taken from, so a harness can wait for
        * the one taken along the camera's current ray. */
-      hitRay: { origin: hitRay.origin.toArray(), dir: hitRay.dir.toArray(), exact: hitRay.exact, ageMs: performance.now() - hitAt },
-      ghost: ghost && ghost.pose ? { base: [ghost.pose.base.x, ghost.pose.base.y, ghost.pose.base.z], mode: ghost.pose.mode, visible: ghost.group.visible } : null,
+      hitRay: { origin: hitRay.origin.toArray(), dir: hitRay.dir.toArray(), exact: hitRay.exact, ageMs: performance.now() - hitAt, asked, restMs: performance.now() - movedAt },
+      ghost: ghost && ghost.pose ? {
+        base: [ghost.pose.base.x, ghost.pose.base.y, ghost.pose.base.z],
+        quat: [ghost.pose.quat.x, ghost.pose.quat.y, ghost.pose.quat.z, ghost.pose.quat.w],
+        mode: ghost.pose.mode,
+        visible: ghost.group.visible,
+        trouble: ghost.trouble,
+        colour: `#${ghostMat.color.getHexString()}`,
+      } : null,
+      gizmo: gizmo.group.visible,
+      handle: gizmo.hovered,
+      dragging: drag ? drag.name : null,
+      badges: badges ? badges.children.map((b) => ({ id: b.userData.elementId, text: b.userData.text, look: b.userData.look })) : [],
       gates: doc ? raceGatesOf(doc).map((g) => ({
         id: g.elementId, centre: [g.centre.x, g.centre.y, g.centre.z], travel: [g.axes.travel.x, g.axes.travel.y, g.axes.travel.z], up: [g.axes.up.x, g.axes.up.y, g.axes.up.z],
       })) : [],
@@ -1661,6 +2309,24 @@ export function createBuildMode(host) {
         code: w.code, gate: w.gate, next: w.next ?? null, pos: [w.pos.x, w.pos.y, w.pos.z], value: w.value ?? null, limit: w.limit ?? null,
       })),
     }),
+    /* Where a point of the scene is on the page, client px, and whether it
+     * is in front of the camera. */
+    screenOf(x, y, z) {
+      const v = new THREE.Vector3(x, y, z).project(camera);
+      const r = shell.canvas.getBoundingClientRect();
+      return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height, front: v.z < 1 };
+    },
+    /* The page point of a gizmo handle, and of a gate's number badge. */
+    handleAt(name, deg) {
+      const p = gizmo.pointOn(name, deg);
+      return window.__build.screenOf(p.x, p.y, p.z);
+    },
+    badgeAt(id) {
+      const m = meshes.get(id);
+      return m ? window.__build.screenOf(m.top.x, m.top.y, m.top.z) : null;
+    },
+    /* The hotbar's slots and the inventory's tiles on the page. */
+    rects: () => (hud ? hud.rects() : null),
     /* What working the line and the warnings out again costs, the mean of
      * n, milliseconds. */
     lineMs(n = 5) {
@@ -1676,6 +2342,22 @@ export function createBuildMode(host) {
       const t0 = performance.now();
       for (let i = 0; i < n; i += 1) {
         lineLines();
+      }
+      return (performance.now() - t0) / n;
+    },
+    /* What the builder's own work adds to a frame on the main thread, the
+     * mean of n, milliseconds: the hover ray, the ghost with its red test
+     * forced to run, the gizmo and the panels. */
+    buildFrameMs(n = 200) {
+      const t0 = performance.now();
+      for (let i = 0; i < n; i += 1) {
+        if (ghost) {
+          ghost.poseKey = '';
+        }
+        trackHover();
+        updateGhost();
+        updateGizmo();
+        updateHud();
       }
       return (performance.now() - t0) / n;
     },
@@ -1707,11 +2389,12 @@ export function createBuildMode(host) {
       }
       return best;
     },
-    /* Put the free camera somewhere, looking along yaw and pitch. */
+    /* Put the free camera somewhere, looking along yaw and pitch, at rest. */
     look(x, y, z, yaw, pitch) {
       cam.pos.set(x, y, z);
       cam.yaw = yaw;
       cam.pitch = pitch;
+      cam.vel.set(0, 0, 0);
       return true;
     },
     /* The exact pick for the crosshair as it is now. */
@@ -1722,7 +2405,8 @@ export function createBuildMode(host) {
     library: () => (view ? listMapTracks(view.id).map((d) => ({ id: d.id, name: d.name, gates: d.sequence.length })) : []),
     rename(name) {
       doc.name = String(name);
-      edited();
+      touch(doc);
+      autosave.schedule(doc);
       return doc.name;
     },
   };

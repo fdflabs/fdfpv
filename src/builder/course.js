@@ -49,16 +49,64 @@ import { IN } from '../units.js';
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../render/frame.js';
 
 /*
- * What can be placed, in the order T steps through them. The field's
- * aperture types that stand as one frame on the ground: a dive gate and a
- * launch gate are this list's gate turned, now that a gate can be turned
- * any way at all. Then the plane sized ones (src/trackbuilder/elements.js,
- * the span rule): the two wide gates, the air race's pylon pair, and one
- * pylon turned round on a set side, a marker scoring through the square
- * beside it. Flags and cones are not here: they are the field's markers,
- * sized for a five inch.
+ * What can be placed. The field's aperture types that stand as one frame
+ * on the ground: a dive gate and a launch gate are this list's gate turned,
+ * now that a gate can be turned any way at all. Then the plane sized ones
+ * (src/trackbuilder/elements.js, the span rule): the two wide gates, the
+ * air race's pylon pair, and one pylon turned round on a set side, a marker
+ * scoring through the square beside it. Flags and cones are not here: they
+ * are the field's markers, sized for a five inch.
  */
 export const BUILD_TYPES = ['gate', 'flaggedGate', 'doubleStack', 'ladder', 'tower', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon'];
+
+/*
+ * THE PIECES the hotbar and the inventory hold: a type, and what placing
+ * it says about its step in the lap. The start gate is a gate that becomes
+ * the start when it lands (makeStart), and a pylon comes as two pieces, one
+ * for each side it is passed on, so turning a pylon round is picking the
+ * other piece rather than a key of its own. `cat` is the inventory's
+ * shelf. Every BUILD_TYPES type is here.
+ */
+export const PIECES = [
+  { id: 'start', type: 'gate', start: true, cat: 'gates' },
+  { id: 'gate', type: 'gate', cat: 'gates' },
+  { id: 'flaggedGate', type: 'flaggedGate', cat: 'gates' },
+  { id: 'doubleStack', type: 'doubleStack', cat: 'stacks' },
+  { id: 'ladder', type: 'ladder', cat: 'stacks' },
+  { id: 'tower', type: 'tower', cat: 'stacks' },
+  { id: 'wideGate3', type: 'wideGate3', cat: 'wide' },
+  { id: 'wideGate5', type: 'wideGate5', cat: 'wide' },
+  { id: 'pylonPair', type: 'pylonPair', cat: 'air' },
+  { id: 'pylon', type: 'pylon', passSide: 'left', cat: 'air' },
+  { id: 'pylonRight', type: 'pylon', passSide: 'right', cat: 'air' },
+];
+
+/* The inventory's shelves, in order. */
+export const PIECE_CATS = ['gates', 'stacks', 'wide', 'air'];
+
+/* The hotbar a new builder starts with: the common pieces, one a slot. */
+export const DEFAULT_HOTBAR = ['start', 'gate', 'flaggedGate', 'doubleStack', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon', 'ladder'];
+
+export const HOTBAR_SLOTS = 9;
+
+export function pieceById(id) {
+  return PIECES.find((p) => p.id === id) ?? null;
+}
+
+/* The piece a placed element is, for a middle click: the start gate for
+ * the lap's first gate, a pylon by its side. */
+export function pieceOf(doc, id) {
+  const el = elementById(doc, id);
+  const step = stepOf(doc, id);
+  if (!el || !step) {
+    return null;
+  }
+  if (el.type === 'gate' && orderOf(doc, id) === 0) {
+    return pieceById('start');
+  }
+  return PIECES.find((p) => p.type === el.type && !p.start && (p.passSide ?? null) === (step.passSide ?? null))
+    ?? PIECES.find((p) => p.type === el.type && !p.start);
+}
 
 /* A five inch's gate is built at the field's 15 percent on MultiGP's
  * figures, the same size it is on the field. A plane sized element is
@@ -343,6 +391,11 @@ export function openingCentre(el, k = 0) {
  */
 export function worldCaps(el, caps) {
   const { base, quat } = poseOf(el);
+  return capsAt(base, quat, caps);
+}
+
+/* The same, for a scene pose rather than an element: the ghost's. */
+export function capsAt(base, quat, caps) {
   return caps.map((c) => {
     const a = qRot(quat, c.ax, c.ay, c.az);
     const b = qRot(quat, c.bx, c.by, c.bz);
@@ -369,8 +422,9 @@ export function newCourse(mapId, name) {
   return createMapTrack(name, mapId);
 }
 
-/* A gate placed at a scene pose, appended to the lap. Returns the element. */
-export function addGate(doc, type, base, quat) {
+/* A gate placed at a scene pose, appended to the lap. Returns the element.
+ * `passSide` is a pylon's, 'left' unless it says otherwise. */
+export function addGate(doc, type, base, quat, passSide = 'left') {
   if (!BUILD_TYPES.includes(type)) {
     throw new Error(`not a type the builder places: ${type}`);
   }
@@ -381,16 +435,18 @@ export function addGate(doc, type, base, quat) {
   doc.elements.push(el);
   /* entry 1: the rest pose already says which way through, so the face is
    * decided the moment the gate is placed. A pylon's step says which side
-   * instead, the left until the author flips it (flipPass). */
+   * instead, the piece's (PIECES). A right hand one is marked overridden,
+   * as the field marks a side the author chose over the default. */
   const marker = isMarker(el);
+  const side = passSide === 'right' ? 'right' : 'left';
   doc.sequence.push({
     id: newSequenceId(doc),
     elementId: el.id,
     apertureIndex: marker ? null : 0,
     entry: marker ? null : 1,
-    passSide: marker ? 'left' : null,
+    passSide: marker ? side : null,
     clearance: marker ? el.dims.clearance : null,
-    overridden: false,
+    overridden: marker && side === 'right',
   });
   return el;
 }
@@ -398,19 +454,6 @@ export function addGate(doc, type, base, quat) {
 /* The step an element is flown as: the builder gives each one exactly one. */
 export function stepOf(doc, id) {
   return doc.sequence.find((q) => q.elementId === id) ?? null;
-}
-
-/* Turn a pylon round on its other side. The new side, or null for an
- * element that has none. */
-export function flipPass(doc, id) {
-  const s = stepOf(doc, id);
-  const el = elementById(doc, id);
-  if (!s || !el || !isMarker(el)) {
-    return null;
-  }
-  s.passSide = s.passSide === 'right' ? 'left' : 'right';
-  s.overridden = true;
-  return s.passSide;
 }
 
 export function removeGate(doc, id) {
@@ -424,16 +467,24 @@ export function orderOf(doc, id) {
   return doc.sequence.findIndex((s) => s.elementId === id);
 }
 
-/* Move an element one step earlier (-1) or later (+1) in the lap. */
-export function moveInLap(doc, id, step) {
-  const i = orderOf(doc, id);
-  const j = i + step;
-  if (i < 0 || j < 0 || j >= doc.sequence.length) {
-    return false;
+/*
+ * The lap in a new order: the elements `ids` names first, in that order,
+ * then every other one in the order it had. So an author who clicks the
+ * gates round the lap from the start sets the whole order, and one who
+ * stops after three has set the first three. Ids that are not in the lap
+ * are ignored. True when the order changed.
+ */
+export function setOrder(doc, ids) {
+  const was = doc.sequence.map((s) => s.elementId).join();
+  const picked = [];
+  for (const id of ids) {
+    const s = doc.sequence.find((q) => q.elementId === id);
+    if (s && !picked.includes(s)) {
+      picked.push(s);
+    }
   }
-  const [s] = doc.sequence.splice(i, 1);
-  doc.sequence.splice(j, 0, s);
-  return true;
+  doc.sequence = [...picked, ...doc.sequence.filter((s) => !picked.includes(s))];
+  return doc.sequence.map((s) => s.elementId).join() !== was;
 }
 
 /* Make an element the start gate by rotating the lap round to it, so the
@@ -464,35 +515,54 @@ export function raceGatesOf(doc) {
   const out = [];
   doc.sequence.forEach((s, i) => {
     const el = elementById(doc, s.elementId);
-    if (!el || !BUILD_TYPES.includes(el.type)) {
-      return;
+    if (el && BUILD_TYPES.includes(el.type)) {
+      out.push(raceGateOf(el, s, i));
     }
-    const sc = scoringOf(el, s);
-    const { base, quat } = poseOf(el);
-    const axes = axesOf(quat);
-    const c = v3(
-      base.x + axes.up.x * sc.centreY + axes.across.x * sc.across,
-      base.y + axes.up.y * sc.centreY + axes.across.y * sc.across,
-      base.z + axes.up.z * sc.centreY + axes.across.z * sc.across,
-    );
-    const k = Math.min(Math.max(0, s.apertureIndex ?? 0), openingsOf(el).length - 1);
-    const aperture = { centreY: sc.centreY, clearW: sc.clearW, clearH: sc.clearH };
-    out.push({
-      position: v3(c.x, c.y - sc.centreY, c.z),
-      centre: c,
-      heading: headingOf(axes.travel.x, axes.travel.z),
-      pitch: Math.asin(Math.max(-1, Math.min(1, axes.travel.y))),
-      axes,
-      aperture,
-      apertures: [aperture],
-      apertureIndex: k,
-      kindName: el.type,
-      elementId: el.id,
-      flyOrder: i,
-      virtual: isMarker(el),
-    });
   });
   return out;
+}
+
+/* One element's race gate, flown as `step`, at place `flyOrder` in the lap. */
+export function raceGateOf(el, step, flyOrder) {
+  const sc = scoringOf(el, step);
+  const { base, quat } = poseOf(el);
+  const axes = axesOf(quat);
+  const c = v3(
+    base.x + axes.up.x * sc.centreY + axes.across.x * sc.across,
+    base.y + axes.up.y * sc.centreY + axes.across.y * sc.across,
+    base.z + axes.up.z * sc.centreY + axes.across.z * sc.across,
+  );
+  const k = Math.min(Math.max(0, step.apertureIndex ?? 0), openingsOf(el).length - 1);
+  const aperture = { centreY: sc.centreY, clearW: sc.clearW, clearH: sc.clearH };
+  return {
+    position: v3(c.x, c.y - sc.centreY, c.z),
+    centre: c,
+    heading: headingOf(axes.travel.x, axes.travel.z),
+    pitch: Math.asin(Math.max(-1, Math.min(1, axes.travel.y))),
+    axes,
+    aperture,
+    apertures: [aperture],
+    apertureIndex: k,
+    kindName: el.type,
+    elementId: el.id,
+    flyOrder,
+    virtual: isMarker(el),
+  };
+}
+
+/*
+ * The race gate a piece WOULD be at a scene pose, for the ghost: what the
+ * blocked rule (src/builder/line.js openingBlocked) asks of a gate before
+ * it is placed. Nothing is added to any document.
+ */
+export function pieceGate(piece, base, quat) {
+  const el = { id: null, type: piece.type, dims: ELEMENTS[piece.type].dims };
+  setPose(el, base, quat);
+  const marker = isMarker(el);
+  const step = {
+    apertureIndex: marker ? null : 0, passSide: marker ? (piece.passSide ?? 'left') : null, clearance: marker ? el.dims.clearance : null,
+  };
+  return raceGateOf(el, step, -1);
 }
 
 /*
@@ -607,8 +677,17 @@ export function readoutFor(gates, index, heightAt) {
 /* Placement                                                           */
 /* ------------------------------------------------------------------ */
 
-/* The three ways a gate meets the world. */
-export const SNAP_MODES = ['ground', 'surface', 'air'];
+/* The grid snap (G): positions to half a metre, headings to the same 15
+ * degrees one press of R turns by. */
+export const GRID_STEP = 0.5;
+export const TURN_STEP = 15 * Math.PI / 180;
+
+/* A surface whose normal is more than 50 degrees off straight up is a face
+ * a gate stands out of; anything flatter is ground it stands upright on, a
+ * steep meadow among it, because a gate on a slope is still built plumb. */
+const FACE_COS = Math.cos(50 * Math.PI / 180);
+
+const snapTo = (v, step) => Math.round(v / step) * step;
 
 /* The author's own turn on top of the snap: yaw about the gate's up, then
  * tilt about its across axis, then roll about its direction of travel. */
@@ -616,48 +695,82 @@ function userTurn(turn) {
   return qMul(qMul(qAxis(0, 1, 0, turn.yaw), qAxis(1, 0, 0, turn.pitch)), qAxis(0, 0, 1, turn.roll));
 }
 
+/* The orientation a face gives a gate: its up along the normal, flown along
+ * the face the way the camera looks, the camera's forward with its part
+ * along the normal taken out. Looking square at a wall leaves nothing, so
+ * the direction down the wall stands in. */
+function faceBasis(normal, f) {
+  const up = unit(normal) ?? v3(0, 1, 0);
+  const along = f.x * up.x + f.y * up.y + f.z * up.z;
+  let t = unit(v3(f.x - up.x * along, f.y - up.y * along, f.z - up.z * along));
+  if (!t) {
+    const down = -up.y;
+    t = unit(v3(-up.x * down, -1 - up.y * down, -up.z * down)) ?? unit(cross(up, v3(1, 0, 0)));
+  }
+  const z = v3(-t.x, -t.y, -t.z);
+  return qBasis(cross(up, z), up, z);
+}
+
 /*
- * The pose a gate takes for a snap mode.
+ * The pose the next piece takes where the crosshair is.
  *
- *   ground   stands upright on the hit point, flown the way the camera looks
- *   surface  its up along the surface normal, so it stands out of a cliff
- *            face or a roof, flown along the surface the way the camera looks
- *   air      its opening centred `distance` in front of the camera, where
- *            nothing has to be under it: the gate out over a drop
+ *   ground   the crosshair is on ground or a roof: it stands upright on the
+ *            hit point, flown the way the camera looks
+ *   surface  the crosshair is on a face steeper than FACE_COS: its up along
+ *            the face's normal, so it stands out of the cliff, flown along
+ *            the face the way the camera looks
+ *   air      Alt is held (opts.air), or the crosshair meets nothing in
+ *            range: its opening centred `distance` in front of the camera,
+ *            where nothing has to be under it, the gate out over a drop
  *
- * hit is { point, normal } in the scene, or null when the crosshair meets
- * nothing, which leaves ground and surface nothing to stand on: they fall
- * back to air, and the result says so. cam is { position, forward }, turn is
- * { yaw, pitch, roll } and centreY is the first opening's height above the
- * base. Returns { base, quat, mode }.
+ * hit is { point, normal } in the scene or null, cam { position, forward },
+ * turn { yaw, pitch, roll } the author's own turn on top, and centreY the
+ * first opening's height above the base. opts.keep is the orientation of a
+ * piece being carried, which it keeps wherever it goes, the turn on top.
+ * opts.grid rounds the position to GRID_STEP, and a heading taken from the
+ * camera to TURN_STEP; on ground and faces the rounded point is put back
+ * on the plane the crosshair read, so the piece stays on what it stands on.
+ * Returns { base, quat, mode }.
  */
-export function snapPose(mode, hit, cam, turn, distance, centreY) {
+export function snapPose(hit, cam, turn, distance, centreY, opts = {}) {
   const f = cam.forward;
-  const h = headingOf(f.x, f.z);
-  const want = hit ? mode : 'air';
-  if (want === 'surface') {
-    const up = unit(hit.normal) ?? v3(0, 1, 0);
-    /* Along the surface, the way the camera looks: the camera's forward with
-     * its component along the normal taken out. Looking square at a wall
-     * leaves nothing, so the direction down the wall stands in. */
-    const along = f.x * up.x + f.y * up.y + f.z * up.z;
-    let t = unit(v3(f.x - up.x * along, f.y - up.y * along, f.z - up.z * along));
-    if (!t) {
-      const down = -up.y;
-      t = unit(v3(-up.x * down, -1 - up.y * down, -up.z * down)) ?? unit(cross(up, v3(1, 0, 0)));
+  const n = hit ? unit(hit.normal) : null;
+  let mode = 'air';
+  if (hit && !opts.air) {
+    mode = n && n.y < FACE_COS ? 'surface' : 'ground';
+  }
+  let heading = headingOf(f.x, f.z);
+  if (opts.grid) {
+    heading = snapTo(heading, TURN_STEP);
+  }
+  let rest = qAxis(0, 1, 0, heading);
+  if (opts.keep) {
+    rest = opts.keep;
+  } else if (mode === 'surface') {
+    rest = faceBasis(n, f);
+  }
+  const quat = qNorm(qMul(rest, userTurn(turn)));
+  if (mode !== 'air') {
+    const p = hit.point;
+    if (!opts.grid) {
+      return { base: v3(p.x, p.y, p.z), quat, mode };
     }
-    const z = v3(-t.x, -t.y, -t.z);
-    const x = cross(up, z);
-    const base = qBasis(x, up, z);
-    return { base: v3(hit.point.x, hit.point.y, hit.point.z), quat: qMul(base, userTurn(turn)), mode: want };
+    const r = v3(snapTo(p.x, GRID_STEP), snapTo(p.y, GRID_STEP), snapTo(p.z, GRID_STEP));
+    const up = n ?? v3(0, 1, 0);
+    if (mode === 'ground') {
+      /* Straight down onto the plane, so the piece keeps its rounded x and z. */
+      const y = p.y - (up.x * (r.x - p.x) + up.z * (r.z - p.z)) / up.y;
+      return { base: v3(r.x, y, r.z), quat, mode };
+    }
+    const off = (r.x - p.x) * up.x + (r.y - p.y) * up.y + (r.z - p.z) * up.z;
+    return { base: v3(r.x - up.x * off, r.y - up.y * off, r.z - up.z * off), quat, mode };
   }
-  const quat = qMul(qAxis(0, 1, 0, h), userTurn(turn));
-  if (want === 'ground') {
-    return { base: v3(hit.point.x, hit.point.y, hit.point.z), quat, mode: want };
+  let c = v3(cam.position.x + f.x * distance, cam.position.y + f.y * distance, cam.position.z + f.z * distance);
+  if (opts.grid) {
+    c = v3(snapTo(c.x, GRID_STEP), snapTo(c.y, GRID_STEP), snapTo(c.z, GRID_STEP));
   }
-  const c = v3(cam.position.x + f.x * distance, cam.position.y + f.y * distance, cam.position.z + f.z * distance);
   const up = qRot(quat, 0, centreY, 0);
-  return { base: v3(c.x - up.x, c.y - up.y, c.z - up.z), quat, mode: want };
+  return { base: v3(c.x - up.x, c.y - up.y, c.z - up.z), quat, mode };
 }
 
 /*
@@ -672,4 +785,133 @@ export function turnGate(el, axis, angle) {
   const next = qNorm(qMul(quat, local));
   const up = qRot(next, 0, openingsOf(el)[0].centreY, 0);
   return { base: v3(c.x - up.x, c.y - up.y, c.z - up.z), quat: next };
+}
+
+/*
+ * The axes the gizmo moves and turns a gate along, in the scene, all unit.
+ * It turns about the gate's own axes, the ones turnGate names, pivoting on
+ * its opening. It moves along the level ground and straight up whatever
+ * the gate's tilt: along its line of travel laid flat, across that, and up,
+ * so a dive gate dragged "ahead" stays at its height. A gate flown straight
+ * up or down has no level travel, and its up laid flat stands in.
+ */
+export function gizmoAxes(el) {
+  const { quat } = poseOf(el);
+  const a = axesOf(quat);
+  let t = unit(v3(a.travel.x, 0, a.travel.z));
+  if (!t || Math.hypot(a.travel.x, a.travel.z) < 0.05) {
+    t = unit(v3(a.up.x, 0, a.up.z)) ?? v3(0, 0, -1);
+  }
+  return {
+    pivot: openingCentre(el, 0),
+    move: { across: v3(-t.z, 0, t.x), up: v3(0, 1, 0), travel: t },
+    turn: { yaw: a.up, pitch: a.across, roll: a.travel },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Overlap                                                             */
+/* ------------------------------------------------------------------ */
+
+/* The closest two points of segments p1 q1 and p2 q2 are this far apart
+ * (Ericson, Real-Time Collision Detection, 5.1.9). */
+function segmentGap(p1, q1, p2, q2) {
+  const d1 = v3(q1.x - p1.x, q1.y - p1.y, q1.z - p1.z);
+  const d2 = v3(q2.x - p2.x, q2.y - p2.y, q2.z - p2.z);
+  const r = v3(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
+  const a = d1.x * d1.x + d1.y * d1.y + d1.z * d1.z;
+  const e = d2.x * d2.x + d2.y * d2.y + d2.z * d2.z;
+  const f = d2.x * r.x + d2.y * r.y + d2.z * r.z;
+  const clamp = (v) => Math.max(0, Math.min(1, v));
+  let s = 0;
+  let t = 0;
+  if (a <= 1e-12 && e <= 1e-12) {
+    s = 0;
+    t = 0;
+  } else if (a <= 1e-12) {
+    t = clamp(f / e);
+  } else {
+    const c = d1.x * r.x + d1.y * r.y + d1.z * r.z;
+    if (e <= 1e-12) {
+      s = clamp(-c / a);
+    } else {
+      const b = d1.x * d2.x + d1.y * d2.y + d1.z * d2.z;
+      const den = a * e - b * b;
+      s = den > 1e-12 ? clamp((b * f - c * e) / den) : 0;
+      t = (b * s + f) / e;
+      if (t < 0) {
+        t = 0;
+        s = clamp(-c / a);
+      } else if (t > 1) {
+        t = 1;
+        s = clamp((b - c) / a);
+      }
+    }
+  }
+  return Math.hypot(r.x + d1.x * s - d2.x * t, r.y + d1.y * s - d2.y * t, r.z + d1.z * s - d2.z * t);
+}
+
+/*
+ * Whether two pieces' solids interpenetrate: `a` and `b` are worldCaps
+ * lists, capsules { ax..bz, r } in the scene. Two frames that merely touch
+ * are not overlapping; a capsule inside another is.
+ */
+export function capsOverlap(a, b) {
+  for (const p of a) {
+    for (const q of b) {
+      if (segmentGap({ x: p.ax, y: p.ay, z: p.az }, { x: p.bx, y: p.by, z: p.bz },
+        { x: q.ax, y: q.ay, z: q.az }, { x: q.bx, y: q.by, z: q.bz }) < p.r + q.r - 1e-3) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* ------------------------------------------------------------------ */
+/* Undo                                                                */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Undo and redo as whole documents. A built track is tens of gates, a few
+ * kilobytes of JSON, so a copy per edit is cheaper to be sure of than an
+ * inverse for every kind of edit. `record(before)` is called with the
+ * document as it was before an edit and forgets anything redoable; undo
+ * and redo take the document as it is now and hand back the one to go to,
+ * or null when there is none. Snapshots are strings, so nothing held here
+ * can be changed by the edits that follow.
+ */
+export function createHistory(limit = 200) {
+  const back = [];
+  const ahead = [];
+  return {
+    record(before) {
+      back.push(before);
+      if (back.length > limit) {
+        back.shift();
+      }
+      ahead.length = 0;
+    },
+    undo(now) {
+      if (!back.length) {
+        return null;
+      }
+      ahead.push(now);
+      return back.pop();
+    },
+    redo(now) {
+      if (!ahead.length) {
+        return null;
+      }
+      back.push(now);
+      return ahead.pop();
+    },
+    clear() {
+      back.length = 0;
+      ahead.length = 0;
+    },
+    get depth() {
+      return { undo: back.length, redo: ahead.length };
+    },
+  };
 }
