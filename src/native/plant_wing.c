@@ -27,7 +27,9 @@
  * Cub on floats, docs/FLOATS-STAGE1.md, whose water is sim.c's; and
  * FW_BOMBSHELL1118, BMJR's 1/2A Texaco Buzzard Bombshell of
  * docs/BOMBSHELL-STAGE1.md, the Slow Stick's three channels on a balsa
- * old timer, which adds a glow engine's throttle. A term an
+ * old timer, which adds a glow engine's throttle; and FW_KADET1981, SIG's
+ * Kadet Senior of docs/KADET-STAGE1.md, the same three channels and glow
+ * throttle on a 78 in trainer with a four stroke. A term an
  * airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
@@ -35,8 +37,8 @@
  * airframe has to land in are scripts/wing-gates.js,
  * scripts/skyhunter-gates.js, scripts/cub-gates.js,
  * scripts/glider-gates.js, scripts/bramor-gates.js,
- * scripts/slowstick-gates.js, scripts/timber-gates.js and
- * scripts/bombshell-gates.js.
+ * scripts/slowstick-gates.js, scripts/timber-gates.js,
+ * scripts/bombshell-gates.js and scripts/kadet-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -2158,6 +2160,101 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stall_asym = 0.00525,
   .stall_k = 0.72,
   .stall_top = 3.7 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+};
+
+/* SIG's Kadet Senior, kit RC58, docs/KADET-STAGE1.md, where each number
+ * has its formula and source and the estimated ones say so. The
+ * Bombshell's three channels on a 78 in trainer: no ailerons ("will not be
+ * suitable for aileron control and in fact, does not need it", SIG's
+ * manual), so it banks on its rudder, the roll stick's as well as the yaw
+ * stick's, through its dihedral and a high wing on a deep fuselage, which
+ * also bring the wings back level with the sticks centred; a big
+ * stabiliser on a long arm. An O.S. FS-52 Surpass four stroke on a 12 x
+ * 6, clockwise seen from behind, on SIG's 6 degrees of downthrust: the
+ * stick runs it from its 2,300 rpm idle to full and it never stops. */
+const FixedWingParams FW_KADET1981 = {
+  .mix = FW_MIX_RUDDER,
+  .span = 1.9812,         /* SIG, 78 in */
+  .area = 0.741934,       /* SIG, 1150 sq in */
+  .chord = 0.374487,      /* S/b */
+  .cl_alpha = 5.029,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
+  .cl_max = 1.15,
+  /* The zero lift line 4.62 degrees under the thrust line: a flat bottomed
+   * section at SIG's 1.5 degrees of incidence, less the tail's share. sin
+   * and cos of minus 4.62 degrees, to 17 digits. */
+  .alpha_zl = -4.62 * WING_PI / 180.0,
+  .sin_zl = -0.080546860902663123,
+  .cos_zl = 0.99675082302385232,
+  .cd0 = 0.042,           /* film over a built up frame, an open engine, wire gear */
+  .k_induced = 0.08022,   /* 1/(pi 0.75 5.29) */
+  .cl_de = -0.440,
+  .cy_beta = -0.265,
+  .cy_dr = 0.1699,
+  .cl_beta = -0.1259,     /* 4.4 degrees of dihedral, the high wing and the fin */
+  .cl_p = -0.755,
+  .cl_da = 0.0,           /* no ailerons */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0065,
+  .cm_0 = 0.0783,         /* level at 3/4 throttle with the elevator neutral, SIG's trim */
+  .cm_alpha = -1.3471,    /* static margin 0.268 at SIG's 3 7/8 in */
+  .cm_q = -10.534,
+  .cm_de = 1.129,
+  .cn_beta = 0.1134,      /* the fin's, less the box fuselage's */
+  .cn_r = -0.1374,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = 0.0,
+  .cn_dr = -0.0830,
+  /* A 13 percent flat bottomed section at a Reynolds number of 2e5, the
+   * Clark-Y class, blended over the Slow Stick's 4 degrees. */
+  .stall_blend = 4.0 * WING_PI / 180.0,
+  /* SIG's throws: 3/4 in on the 3 in elevator, 7/8 in on the 3.5 in rudder. */
+  .throw_a = 0.0,
+  .throw_e = 14.4775 * WING_PI / 180.0,
+  .throw_r = 14.4775 * WING_PI / 180.0,
+  .surface_max = 0.0,
+  .expo = 0.30,
+  .thrust_static = 27.83, /* N, a 12 x 6 at the measured 9,500 rpm */
+  .pitch_speed = 24.13,
+  .rpm_no_load = 11176.0,
+  .torque_arm = 0.0125,   /* 347 W of disc power at 9,500 rpm is 0.349 N m at 27.8 N */
+  .thrust_z = 0.0335,     /* 6 degrees of downthrust through the hub: a level line 1.32 in over the CG */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 0.0,    /* the engine burns fuel, not the pack */
+  .duty_min = 0.02,
+  .stab_bank_max = 45.0 * WING_PI / 180.0,
+  .stab_pitch_max = 20.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.4,
+  .stab_roll_kd = 0.6,
+  .stab_pitch_kp = 3.0,
+  .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 12.78 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.752, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 25.0 * WING_PI / 180.0, /* what full rudder rolls it at, 20 to 25 deg/s */
+  .acro_pitch_rate = 60.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 5.0,
+  .acro_roll_kd = 0.6,
+  .acro_roll_ff = 1.5,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 2.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
+  .throttle_idle = 0.2421, /* O.S.'s 2,300 rpm, the lowest practical, of the 9,500 */
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = 0.0128, /* the CG 4.8 mm behind the wing's aerodynamic centre */
+  .stall_arm_cp = 0.1372, /* the plate's centre of pressure at 0.40 of the chord */
+  .stall_dw = 0.1721,
+  .stall_asym = 0.00267,
+  .stall_k = 0.72,
+  .stall_top = 6.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };

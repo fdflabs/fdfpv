@@ -181,6 +181,18 @@ planes.FW_BOMBSHELL1118 = {
 };
 planes.FW_CUB1400F = planes.FW_CUB1400;
 
+/* The Kadet Senior, docs/KADET-STAGE1.md and scripts/kadet-derive.js: its
+ * own arms, the CG 3 7/8 in behind the leading edge of a constant 14.74 in
+ * chord, and the tail's share from the derivation's a_w (the dihedral's
+ * cos^2 in it), a_t, V_H and DATCOM's downwash. */
+planes.FW_KADET1981 = {
+  arm_ac: 0.0128,
+  arm_cp: 0.1372,
+  dw: 0.9 * 0.549 * 4.154 * 0.380 / 4.533,
+  asym: TE_TOLERANCE / 0.374487,
+  note: 'a_w 4.533, a_t 4.154, V_H 0.549, deps/dalpha 0.380 (DATCOM), its own arms',
+};
+
 /* The four strips' chords over the mean chord, from a planform chord(eta),
  * eta 0 at the root and 1 at the tip. */
 function strips(chord) {
@@ -226,6 +238,9 @@ const STRIPS = {
   /* Constant chord; the balsa tips' rounding over the outer 1.8 of 22 in
    * is left out. */
   FW_BOMBSHELL1118: strips(rect),
+  /* Constant chord; the sheeted tips' rounding over the outer 3 of 39 in
+   * is left out. */
+  FW_KADET1981: strips(rect),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -254,6 +269,9 @@ const SECTION = {
   /* A 10 percent flat bottomed section at 8e4: the Clark-Y's at 6e4 held
    * +3.0 deg then 0.9 of 1.25, at 1e5 +4.4 deg then 0.93 of 1.30. */
   FW_BOMBSHELL1118: { sec: 'Clark-Y at 8e4', top: 3.7, k: 0.72 },
+  /* A 13 percent flat bottomed section at 2e5 (9 m/s on 0.374 m): the
+   * Clark-Y's at 2e5, held +6.7 deg. */
+  FW_KADET1981: { sec: 'Clark-Y at 2e5', top: 6.7, k: 0.72 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

@@ -887,6 +887,87 @@ export function recordBombshellFlight(sim) {
 }
 
 /*
+ * SIG's Kadet Senior, airframe 12, docs/KADET-STAGE1.md: the Bombshell's
+ * three channels, no ailerons, so the roll stick drives its rudder and it
+ * banks through its dihedral, on a tricycle gear whose nose wheel steers
+ * with the rudder. Thrown at a little over its stall, or standing level on
+ * its three wheels at the drawn pose, the CG 0.3072 m up
+ * (src/render/kadetcraft.js).
+ */
+export const KADET_AIRFRAME = 12;
+export const KADET_REST = { z: 0.3072, pitchDeg: 0 };
+export function kadetPrelude(sim) {
+  must(sim.e.sim_set_airframe(KADET_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(12), 'sim_wing_launch');
+}
+export function kadetGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(KADET_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = KADET_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, KADET_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+/* A tricycle's take off: full throttle with the sticks centred, and the
+ * elevator eased up toward 0.8 as the speed passes 1.1 Vs, as
+ * the SIG manual has the pilot do ("a lot of elevator application is
+ * required for liftoff" from grass). */
+export function kadetTakeoffSticks(s, { vRotate = 7.9 } = {}) {
+  const v = Math.hypot(s[4], s[5], s[6]);
+  return [0, v < vRotate ? 0 : Math.min(0.8, (v - vRotate) * 0.8), 0, 1];
+}
+
+/*
+ * The Kadet's recording for the cross-host check: from standing on the
+ * strip, a second at idle, nine of full throttle with the sticks centred
+ * and the elevator eased up at the rotation speed, then level at 75
+ * percent with the wings held on the roll stick, which is the rudder, a
+ * second of full right roll stick, a held 30 deg bank, and the throttle
+ * back to idle with a second and a half of full right yaw stick: twenty
+ * two seconds, the take off in the hashed trace, and still flying at the
+ * end.
+ */
+export function recordKadetFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  kadetGroundPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -1.2 * (bank - b) - 0.12 * p));
+    const levelPitch = () => {
+      trim += 0.00002 * (0 - vz);
+      trim = Math.max(-0.2, Math.min(0.2, trim));
+      const pitchT = Math.max(-0.2, Math.min(0.15, 0.05 * (0 - vz) + trim));
+      return Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+    };
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 10000) {
+      sticks = ms < 5000 ? kadetTakeoffSticks(s) : [hold(0), Math.max(-1, Math.min(1, 2.5 * (0.15 - pitch) - 0.25 * qAero)), 0, 1];
+    } else if (ms < 13000) {
+      sticks = [hold(0), levelPitch(), 0, 0.75];
+    } else if (ms < 14000) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 19000) {
+      sticks = [hold(Math.PI / 6), levelPitch(), 0, 0.85];
+    } else {
+      sticks = [hold(0), 0, ms >= 20000 && ms < 21500 ? 1 : 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
  * The Timber, docs/TIMBER-STAGE1.md: airframe 7, a STOL taildragger with
  * flaps and slats. On the strip, standing on its three wheels facing down
  * it, at the pose the plant settles to, the drawn model's
