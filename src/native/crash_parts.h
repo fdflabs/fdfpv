@@ -946,7 +946,7 @@ static const PartDef PARTS_KADET1981[] = {
                         { -1.014, 0.013, -0.130 }, { -1.014, -0.013, -0.130 }, { -1.014, 0.013, -0.038 }, { -1.014, -0.013, -0.038 } } },
   /* 2 the stabiliser, a frame of 3/8 in square balsa with 1/4 x 3/8 in
    * diagonal braces, epoxied on the fuselage's saddle: at its root the
-   * leading and trailing edge sticks, 1.43 N m each at 20 MPa. */
+   * leading and trailing edge sticks, 2.86 N m each at 20 MPa, 5.7 together. */
   { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
     .mass = 0.07, .joint = { -0.95, 0.0, -0.033 }, .m_max = 2.0 * BALSA_M(0.0095, 0.0095),
     .f_max = 60.0, .k = 2500.0, BOX(-1.032, -0.905, -0.394, 0.394, -0.038, -0.028) },
