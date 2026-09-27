@@ -1656,6 +1656,23 @@ export class InputManager {
     return true;
   }
 
+  /*
+   * The aircraft swap's buttons in flight, as levels: Y opens the picker,
+   * the shoulders step through the aircraft. A STANDARD GAMEPAD ONLY. A
+   * radio in joystick mode reports its switches as buttons at whatever
+   * index its firmware chose, latched, and one of them is the arm switch:
+   * binding a swap to a button number would fire it on a radio the moment
+   * the pilot armed. A radio reaches the swap from the pause menu.
+   */
+  padSwapButtons() {
+    const gp = this.firstGamepad();
+    if (!gp || gp.mapping !== 'standard' || !gp.buttons) {
+      return null;
+    }
+    const at = (i) => Boolean(gp.buttons[i] && gp.buttons[i].pressed);
+    return { open: at(3), prev: at(4), next: at(5) };
+  }
+
   padMenuButtons() {
     const gp = this.firstGamepad();
     if (gp && gp.axes && (!gp.buttons || !gp.buttons.length)) {

@@ -121,7 +121,7 @@ function makePlate(caption) {
   };
 }
 
-export function mountTouchSticks({ onPause } = {}) {
+export function mountTouchSticks({ onPause, onSwap } = {}) {
   const root = el('div', 'touch-fly');
   root.hidden = true;
 
@@ -141,9 +141,19 @@ export function mountTouchSticks({ onPause } = {}) {
     }
   });
 
+  /* The swap in place (src/main.js hotSwap), under Pause: a thumb has no
+   * Tab key. */
+  const swap = el('button', 'bug-chip touch-swap', str('ui.aircraft'));
+  swap.type = 'button';
+  swap.addEventListener('click', () => {
+    if (onSwap) {
+      onSwap();
+    }
+  });
+
   const rotate = el('div', 'touch-rotate', str('touchsticks.turn_your_phone_sideways_to_fly'));
 
-  root.append(left.zone, right.zone, pause, rotate);
+  root.append(left.zone, right.zone, pause, swap, rotate);
 
   /* The channel state. `springing` marks channels whose thumb has lifted
    * and which sample() is still walking back to centre. */

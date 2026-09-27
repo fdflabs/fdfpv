@@ -66,6 +66,7 @@ const CAL_LABELS = {
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
+import { Carousel, cycleCraft, kindOf } from './carousel.js';
 /* One function, for the one question this file asks the builder: which class
  * is the track a pilot is about to fly. */
 import { trackClassOf } from '../trackbuilder/elements.js';
@@ -546,6 +547,14 @@ const DEFAULTS = {
    * and the Quad screen carries the row for every later change.
    */
   airframeAsked: false,
+  /*
+   * The tune each aircraft was last flown on, by airframe id, so that
+   * changing aircraft and changing back, which a swap in flight makes a
+   * matter of seconds, lands on the tune the pilot had rather than the
+   * stock one. Read and written by seatAirframe only; an entry that is no
+   * longer on that aircraft's Tune row is ignored there.
+   */
+  tuneFor: {},
   /*
    * The whole rate profile, owned by the pilot rather than by the tune: a
    * rates type and three firmware fields per axis, plus Betaflight's
@@ -1234,8 +1243,14 @@ function reseatIfForeign(s) {
 export function seatAirframe(s, id) {
   const from = airframeById(s.airframe);
   const to = airframeById(id);
+  /* The tune goes with the aircraft it was flown on and comes back with it.
+   * A fresh object every time: the stored one may be DEFAULTS' own. */
+  const tuneFor = { ...(s.tuneFor && typeof s.tuneFor === 'object' ? s.tuneFor : {}), [from.id]: s.tune };
+  s.tuneFor = tuneFor;
   s.airframe = to.id;
-  if (!tuneChoices(to.id).includes(s.tune)) {
+  if (tuneChoices(to.id).includes(tuneFor[to.id])) {
+    s.tune = tuneFor[to.id];
+  } else if (!tuneChoices(to.id).includes(s.tune)) {
     s.tune = to.defaultTune;
   }
   if (!to.packVoltages.includes(s.packVoltage)) {
@@ -2471,16 +2486,32 @@ function machineValue(s) {
   return af.fixedWing ? `${af.short}, ${tuneById(s.tune).name}` : tuneById(s.tune).name;
 }
 
-function craftItem(s, midRun) {
+/*
+ * During a run the row SWAPS the aircraft in place (src/main.js hotSwap)
+ * rather than seating it for the next one, so it no longer carries the
+ * start line warning: `swap` is the shell's, and absent between runs.
+ * Enter and a click open the picker (src/ui/carousel.js) through `open`,
+ * which the screen adds because it needs the Ui.
+ */
+function craftItem(s, swap) {
   const af = airframeById(s.airframe);
-  return choice(
-    str('ui.aircraft'),
-    str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v3: midRun ? MID_RUN_WARNING : '' }),
-    AIRFRAME_IDS,
-    s.airframe,
-    (id) => airframeById(id).name,
-    (id) => { seatAirframe(s, id); },
-  );
+  return {
+    ...choice(
+      str('ui.aircraft'),
+      str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v3: swap ? ` ${str('carousel.in_place')}` : '' }),
+      AIRFRAME_IDS,
+      s.airframe,
+      (id) => airframeById(id).name,
+      (id) => {
+        if (swap) {
+          swap(id);
+        } else {
+          seatAirframe(s, id);
+        }
+      },
+    ),
+    pickOnly: true,
+  };
 }
 
 /*
@@ -3154,6 +3185,14 @@ export class Ui {
     this.ptrX = null;
     this.ptrY = null;
     this.build();
+    /* Tab is the swap key in flight and a key of the picker's, so there it
+     * must not also walk the browser's focus. Everywhere else it still
+     * does: the menus' rows and cards are tab stops. */
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Tab' && (this.screen === 'flight' || this.carousel.isOpen)) {
+        e.preventDefault();
+      }
+    }, true);
     this.root.addEventListener('mousedown', (e) => {
       if (this.dropEl && !this.dropEl.contains(e.target) && !e.target.closest('.drop-btn')) {
         this.closeDrop();
@@ -4026,6 +4065,11 @@ export class Ui {
       this.act('pause');
       this.show('paused');
     });
+    /* The swap in place, for a pointer, under Pause and in the same family.
+     * The thumb sticks carry their own, like Pause. */
+    this.swapChip = btn('bug-chip swap-chip', str('ui.aircraft'));
+    this.swapChip.title = str('carousel.tab_also_opens_it');
+    this.swapChip.addEventListener('click', () => this.openSwap('flight'));
 
     this.musicDock = el('div', 'music-dock');
     this.musicDock.setAttribute('role', 'group');
@@ -4084,7 +4128,8 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.musicDock, this.nameDialog);
+    this.carousel = new Carousel(r);
     this.syncChips();
   }
 
@@ -4570,6 +4615,9 @@ export class Ui {
     if (this.pauseChip) {
       this.pauseChip.hidden = dialog || this.screen !== 'flight';
       this.pauseChip.classList.toggle('on-flight', this.screen === 'flight');
+    }
+    if (this.swapChip) {
+      this.swapChip.hidden = dialog || this.screen !== 'flight' || !this.onHotSwap;
     }
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class
@@ -5959,7 +6007,10 @@ export class Ui {
          * decoration, and decoration is what gives way.
          */
         { label: str('ui.the_machine'), section: true },
-        craftItem(s, midRun),
+        {
+          ...craftItem(s, midRun && this.onHotSwap ? (id) => this.swapTo(id) : null),
+          open: () => this.openCraftRow(midRun),
+        },
         tuneItem(s, midRun),
         {
           label: str('ui.firmware_bench'),
@@ -6389,6 +6440,14 @@ export class Ui {
       return [
         { label: str('ui.resume'), action: 'resume', primary: true },
         { label: str('ui.restart_run'), action: 'restart' },
+        /* The swap in place, one row down from Resume, because the pause
+         * menu is the door a radio and a thumb have to it. */
+        {
+          label: str('carousel.change_aircraft'),
+          value: airframeById(s.airframe).short,
+          action: 'hotswap',
+          note: str('carousel.row_note'),
+        },
         ...this.ghostItems(),
         ...this.liveItems(),
         { label: str('ui.does_it_feel_wrong'), section: true },
@@ -8118,6 +8177,12 @@ export class Ui {
     this.closeDrop();
     this.cursor = i;
     this.syncCursor();
+    /* A row whose list is better chosen from than read, the Aircraft row,
+     * opens its own picker in the list's place. */
+    if (it.open) {
+      it.open();
+      return;
+    }
     const list = el('div', 'drop-list');
     list.setAttribute('role', 'listbox');
     for (const opt of it.options) {
@@ -9386,6 +9451,11 @@ export class Ui {
      * trigger is already paying everywhere else: let go and flick again.
      */
     this.padRearm = true;
+    this.swapPadPrev = null;
+    /* A picker belongs to the screen it was opened over. */
+    if (this.carousel && this.carousel.isOpen && screen !== this.screen) {
+      this.carousel.close();
+    }
     const pinned = locationHashScreen();
     if (pinned && screen === 'title') {
       screen = pinned;
@@ -11907,6 +11977,12 @@ export class Ui {
     if (this.onUiSound) {
       this.onUiSound('select');
     }
+    /* A card on the gate is half the answer: the other half, which
+     * aircraft, is chosen in front of the aircraft. */
+    if (it.card && this.onGate()) {
+      this.pickForWay(it.action);
+      return;
+    }
     this.act(it.action);
   }
 
@@ -12112,7 +12188,12 @@ export class Ui {
     this.act(this.returnTo === 'paused' ? 'paused' : 'title');
   }
 
-  act(action) {
+  act(action, picked = null) {
+    /* The swap in place, from the pause menu's row. */
+    if (action === 'hotswap') {
+      this.openSwap('paused');
+      return;
+    }
     /* The track builder is a separate page, so this is a navigation rather
      * than a screen. It has to be here and not in main.js's action handler
      * because leaving the page tears the simulator down, which is the whole
@@ -12348,8 +12429,13 @@ export class Ui {
        * called it unconditionally too, so this is older than the three
        * cards; it is fixed here because this is the line that does it.
        */
-      if (!way.airframes.includes(this.settings.airframe)) {
-        seatAirframe(this.settings, way.airframes[0]);
+      /* `picked` is the aircraft chosen in the carousel the card opens
+       * (pickForWay); a card answered without one, from a script or a
+       * link, keeps the rule it always had. */
+      const want = picked && way.airframes.includes(picked) ? picked
+        : way.airframes.includes(this.settings.airframe) ? this.settings.airframe : way.airframes[0];
+      if (want !== this.settings.airframe) {
+        seatAirframe(this.settings, want);
       }
       this.settings.airframeAsked = true;
       this.craftGate = false;
@@ -12782,6 +12868,141 @@ export class Ui {
     }
   }
 
+  /*
+   * THE AIRCRAFT PICKER (src/ui/carousel.js), from the three places an
+   * aircraft is chosen. Each says what the choice does; the picker only
+   * says which.
+   */
+  pickHint() {
+    if (this.lastInput === 'pad') {
+      return 'pad';
+    }
+    const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    return coarse ? 'touch' : 'key';
+  }
+
+  /* A card on the gate: the aircraft for that way in, then the way in. An
+   * aircraft from the other kind, chosen under All, takes the other card. */
+  pickForWay(action) {
+    const way = WAYS.find((w) => w.action === action);
+    if (!way) {
+      return;
+    }
+    const s = this.settings;
+    this.carousel.open({
+      current: way.airframes.includes(s.airframe) ? s.airframe : way.airframes[0],
+      filter: kindOf(way.airframes[0]),
+      title: way.label,
+      hint: this.pickHint(),
+      onChoose: (id) => {
+        const chosen = WAYS.find((w) => w.airframes.includes(id)) ?? way;
+        this.act(chosen.action, id);
+      },
+      onCancel: () => this.renderMenu(),
+    });
+  }
+
+  /* The Aircraft row. Between runs it seats the aircraft for the next one,
+   * as the row always has; in a run it swaps it in place. */
+  openCraftRow(midRun) {
+    const s = this.settings;
+    this.carousel.open({
+      current: s.airframe,
+      filter: kindOf(s.airframe),
+      hint: this.pickHint(),
+      onChoose: (id) => {
+        if (id === s.airframe) {
+          this.renderMenu();
+          return;
+        }
+        if (midRun && this.onHotSwap) {
+          this.swapTo(id).then(() => this.renderMenu());
+          return;
+        }
+        seatAirframe(s, id);
+        s.airframeAsked = true;
+        this.writeSettings();
+      },
+      onCancel: () => this.renderMenu(),
+    });
+  }
+
+  /*
+   * The swap in place, from flight (Tab, the pad's Y, the Aircraft chip, the
+   * thumb button) or from the pause menu's row. From flight the run pauses
+   * behind it the way Escape pauses it, and going back resumes; from the
+   * menu going back is the menu. Choosing flies on from wherever it came.
+   */
+  openSwap(from) {
+    if (!this.onHotSwap || this.carousel.isOpen) {
+      return;
+    }
+    if (from === 'flight') {
+      if (this.screen !== 'flight') {
+        return;
+      }
+      this.act('pause');
+      this.show('paused');
+    }
+    const current = this.settings.airframe;
+    this.carousel.open({
+      current,
+      filter: kindOf(current),
+      compact: true,
+      title: str('carousel.change_aircraft'),
+      warn: this.swapWarning ? this.swapWarning() : '',
+      hint: this.pickHint(),
+      onChoose: (id) => {
+        this.swapTo(id).then(() => this.act('resume'));
+      },
+      onCancel: () => {
+        if (from === 'flight') {
+          this.act('resume');
+        } else {
+          this.renderMenu();
+        }
+      },
+    });
+  }
+
+  /* The shell's swap, whose failure is a defect and is said out loud. */
+  swapTo(id) {
+    return Promise.resolve()
+      .then(() => this.onHotSwap(id))
+      .catch((e) => {
+        console.error('aircraft swap failed', e);
+      });
+  }
+
+  /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
+  cycleSwap(dir) {
+    if (this.onHotSwap && this.screen === 'flight') {
+      this.swapTo(cycleCraft(this.settings.airframe, dir));
+    }
+  }
+
+  /*
+   * A gamepad's swap buttons in flight, as levels: { open, prev, next }.
+   * Edge triggered, and the first poll after any screen change only learns
+   * what is held, the same promise pollPad makes.
+   */
+  pollFlightPad(b) {
+    const now = { open: Boolean(b && b.open), prev: Boolean(b && b.prev), next: Boolean(b && b.next) };
+    const prev = this.swapPadPrev;
+    this.swapPadPrev = now;
+    if (!prev || this.screen !== 'flight') {
+      return;
+    }
+    if (now.open && !prev.open) {
+      this.lastInput = 'pad';
+      this.openSwap('flight');
+    } else if (now.prev && !prev.prev) {
+      this.cycleSwap(-1);
+    } else if (now.next && !prev.next) {
+      this.cycleSwap(1);
+    }
+  }
+
   /* Returns true when the key was a menu key and the shell should not
    * treat it as a flight control. repeat is the browser's key-repeat
    * flag: a held or quickly tapped arrow must step the cursor, but Enter
@@ -12795,6 +13016,9 @@ export class Ui {
     }
     const nav = code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight'
       || code === 'KeyW' || code === 'KeyS' || code === 'KeyA' || code === 'KeyD';
+    if (this.carousel.isOpen) {
+      return repeat && !nav ? true : this.carousel.handleKey(code);
+    }
     if (repeat && !nav) {
       return this.screen !== 'flight';
     }
@@ -12806,6 +13030,16 @@ export class Ui {
       if (code === 'Escape') {
         this.act('pause');
         this.show('paused');
+        return true;
+      }
+      /* The swap in place: Tab opens the picker, [ and ] step through the
+       * aircraft without it. None of the three flies anything. */
+      if (code === 'Tab') {
+        this.openSwap('flight');
+        return true;
+      }
+      if (code === 'BracketLeft' || code === 'BracketRight') {
+        this.cycleSwap(code === 'BracketLeft' ? -1 : 1);
         return true;
       }
       return false;
@@ -12986,6 +13220,14 @@ export class Ui {
    * use pitch and roll for the cursor: those screens pose the airframe.
    */
   pollPad(nav) {
+    if (this.carousel.isOpen) {
+      this.lastInput = nav.up || nav.down || nav.left || nav.right || nav.select || nav.back ? 'pad' : this.lastInput;
+      this.carousel.pollPad(nav);
+      /* Seeded for the screen under it, so the press that closes the
+       * picker is not also a press on the menu it closes onto. */
+      this.padRearm = true;
+      return;
+    }
     if (this.screen === 'flight') {
       this.padPrev = { up: false, down: false, left: false, right: false, select: false, back: false };
       return;
