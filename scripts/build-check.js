@@ -783,7 +783,8 @@ async function freeEdits(page, id, drop) {
   await moveMouse(page, h0.x, h0.y);
   await frames(page, 2);
   const onArrow = await page.evaluate(B('.handle'));
-  say(onArrow === 'move-up', `the mouse over the up arrow picks it out: ${onArrow}`);
+  const why = onArrow === 'move-up' ? '' : `; at (${f1(h0.x)}, ${f1(h0.y)}) on a ${await page.evaluate('innerWidth')} by ${await page.evaluate('innerHeight')} page, gizmo ${await page.evaluate(B('.gizmo'))}, locked ${await page.evaluate(B('.locked'))}, camera ${JSON.stringify(await page.evaluate(B('.camera.pos')))}`;
+  say(onArrow === 'move-up', `the mouse over the up arrow picks it out: ${onArrow}${why}`);
   /* Only on the arrow: a press on the world would take the mouse back. */
   if (onArrow === 'move-up') {
     await dragMouse(page, h0, { x: h0.x, y: h0.y - 60 });
