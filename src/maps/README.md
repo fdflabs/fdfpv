@@ -8,7 +8,7 @@ targets alive at a time, which is what keeps P5's 120 MB budget meaningful.
 
 `registry.js` is the only place a map is named, and its loaders are dynamic
 `import()`. That is not style: a static import of the city would fetch 59
-vendored files at boot for a player who only ever flies the race field.
+vendored files at boot for a player who only ever flies the Alps.
 `tests/lib/checks.js` check 16 measures it.
 
 There used to be three more freestyle worlds, each with its own copy of the
@@ -24,13 +24,12 @@ They are in the history at 974f4ce.
 `shell` is `{ renderer, camera, canvas, pixelRatio, quad, discs, resize }`.
 `onProgress(fraction)` is optional and drives the loading screen's world stage.
 `options` is optional. `options.quality` is `'low' | 'medium' | 'high'` and
-selects the graphics preset in `src/render/quality.js`. Custom tracks also
-accept `options.document`. The instance stamps `graphics` with the resolved
-id.
+selects the graphics preset in `src/render/quality.js`. The instance stamps
+`graphics` with the resolved id.
 
 A MapInstance is:
 
-    id            'field' | 'city' | 'custom'
+    id            'city' | 'airfield' | 'alps' | 'swiss2' | 'yellowstone'
     name          what the menu shows
     mode          'race' | 'freestyle'
     graphics      'low' | 'medium' | 'high'
@@ -54,8 +53,8 @@ A MapInstance is:
 
 `fromY` is the height the query is made FROM. A platform is only offered if it
 is within a step of it, so a quad above the overbridge lands on the deck and a
-quad under it sees the road. The race field has one ground surface and ignores
-the argument; it takes it anyway so `main.js` has one call shape.
+quad under it sees the road. A map with one ground surface ignores the
+argument; it takes it anyway so `main.js` has one call shape.
 
 `heightAt` cannot express that a deck is also SOLID from underneath, so the
 city adds a thin slab collider under every raised platform. See

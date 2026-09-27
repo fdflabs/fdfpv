@@ -81,23 +81,20 @@ as your own, with its own adjustment. Rates are yours and stay put across
 all of them: the Rates screen draws the stick to rate curve with your sticks
 on it.
 
+Track mode races tracks built in a world. It opens on **My tracks**: the
+tracks you have built, and the board's when there is one, each with Play,
+Edit, Duplicate and Delete, and **New track**, which asks for the world
+(the Alps or the Swiss valley) and opens the builder there. B in flight
+opens the same builder on the track you are flying; B again test flies it,
+and Escape brings you back to My tracks. Every quad races every track, and
+a plane races the ones whose every gate it fits.
+
 Tracks you build stay in this browser. Clearing it, or another device,
-starts you from nothing. Publish a course from the track builder to put
-it on the public board, marks and all. The board is a separate site,
+starts you from nothing. P in the builder publishes a track to the public
+board. The board is a separate site,
 [fdfpv-leaderboard](https://github.com/fdflabs/fdfpv-leaderboard).
 Locally it serves at `http://127.0.0.1:3180/`. Fly this course from the
-board opens this simulator in another tab with `?share=` and the course
-document, including the sponsor print on the gates, the flags and the
-grass.
-
-A course carries up to five sponsors' marks. They are dealt out round the
-gates in flying order, so fifteen gates and five marks is three gates each,
-spread down the lap rather than bunched at the start, and each mark also
-takes its share of the upright banners and the teardrop flags. Any of them
-can be painted on the grass as well: the track builder has a **Ground logo**
-in its palette, which is a footprint on the field wearing whichever mark you
-pick. Paint is not layout, so adding a sponsor to a course people have
-already flown does not clear its times.
+board opens this simulator in another tab with `?share=` and the track.
 
 ## Posting a time, and flying with others
 

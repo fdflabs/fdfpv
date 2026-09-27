@@ -235,7 +235,7 @@ never leaves it:
 | Address | What answers | Where it actually comes from |
 | --- | --- | --- |
 | `https://fdfpv.example/` | the landing page | GitHub Pages, `fdflabs/fdfpv-landing` |
-| `https://fdfpv.example/sim/` | the simulator and the track builder | the Render static site |
+| `https://fdfpv.example/sim/` | the simulator | the Render static site |
 | `https://fdfpv.example/board/` | the board and the bug inbox | the Render web service |
 
 The thing doing the work is a Cloudflare Worker, `edge/router.js` in this
@@ -515,9 +515,9 @@ Then in a browser, in this order:
    be framed, because nothing in this estate sets `X-Frame-Options`.
 3. **Fly this course** from a card. It should land in the simulator with the
    course loaded and offer to post a time at the end of a lap.
-4. Publish a course from the builder at
-   `https://fdfpv.example/sim/src/trackbuilder/index.html` and confirm the
-   Publish dialog offers `https://fdfpv.example/board`.
+4. Build a track in Track mode (My tracks, New track), press P in the
+   builder, and confirm the Publish dialog offers
+   `https://fdfpv.example/board`.
 5. F8 in the simulator, file a test ticket, and find it at
    `https://fdfpv.example/board/bugs`.
 
@@ -664,10 +664,10 @@ URL with no picture.
 `og.png` is that card, and it is a frame of the real shell rather than a
 drawing of one: `scripts/og.js` drives `scripts/shots.js`, which drives the
 actual page in headless Chromium, so the card cannot disagree with the product.
-It is the title screen on the race field with the menu, the chips and the body
-copy hidden, leaving the wordmark over the world, a camera parked low and to
-the right of the course, and the lit start gate centre with the parked quad in
-the near left.
+It is the title screen over a track built on the Alps' strip with the menu,
+the chips and the body copy hidden, leaving the wordmark and the cards over
+the world, a camera parked low behind the start gate and a little to its
+right, and the lit start gate centre with the course running away behind it.
 
 Regenerate, do not edit, the same rule as the icons:
 
@@ -702,15 +702,14 @@ Sharing Debugger and X's Card Validator, one URL at a time.
 
 ## The site icons
 
-Four pages carry the family mark, one shape with one accent each, so a
-pilot with the simulator, the builder and the board open at once can tell
-three tabs apart without reading them:
+Three pages carry the family mark, one shape with one accent each, so a
+pilot with the simulator and the board open at once can tell the two tabs
+apart without reading them:
 
 | Page | Accent | Where the files live |
 | --- | --- | --- |
 | Landing page | cream | the landing repo's root |
 | Simulator | sakura | this repo's root |
-| Track builder | amber | `src/trackbuilder/` |
 | Board | mint | the board repo's `public/` |
 
 Each set is `icon.svg`, `favicon.ico` at 16, 32 and 48, and
@@ -720,7 +719,7 @@ changed there and regenerated rather than edited in a paint program. There
 is no build step on any of the three services, so the output is committed.
 
 ```bash
-# The two in this repo.
+# The simulator's, in this repo.
 npm run gen:icons
 
 # The other two, from a checkout of each beside this one.
