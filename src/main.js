@@ -73,7 +73,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, lapCraftOf } from './ui/ui.js';
+import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
 import {
   adoptMostFlownTrack, adoptShareFromLocation, boardPageUrl, fetchGhost, fetchTrackDocument,
   fetchTrackTimes, postFreestyleRun, postTime,
@@ -102,6 +102,7 @@ import {
 } from './share/session.js';
 import { isMapTrack } from './trackbuilder/model.js';
 import { createShowcase } from './render/showcase.js';
+import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
@@ -558,6 +559,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           touch.setVisible(false);
         }
       },
+      /* The aircraft picker over the paused flight, hidden now for the
+       * same reason. */
+      onSwap: () => {
+        if (ui.screen === 'flight') {
+          ui.openSwap('flight');
+          touch.setVisible(false);
+        }
+      },
     });
     uiRoot.append(touch.root);
     input.attachTouch(touch);
@@ -672,6 +681,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     ui.renderMenu();
   }
   let showcase = null;
+  /* The aircraft picker's models, in the shell's own renderer. */
+  const pickStage = createCarouselStage(shell.renderer);
   /*
    * boot.js read the stored map before any module loaded, so it could weight
    * the loading screen. ui.js is the owner of the setting; if the two ever
@@ -4579,7 +4590,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * craft: R is the pilot asking for a restart, not a recovery from a
    * lockout. `at` reseats the spawn when the map itself moved.
    */
-  function resetCraft(at) {
+  /* `keepSticks` is for a swap in flight (seatSwap): the pilot is flying
+   * the new aircraft on the sticks they were holding, so a keyboard's or a
+   * thumb's held throttle is not dropped to zero under it. */
+  function resetCraft(at, keepSticks = false) {
     if (at) {
       startX = at.x;
       startZ = at.z;
@@ -4666,9 +4680,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     lastHitIndex = -1;
     groundCueAtWall = -1e9;
     takeoffUntil = 0;
-    input.keys.clear();
     input.drain();
-    input.resetKeyboardSticks();
+    if (!keepSticks) {
+      input.keys.clear();
+      input.resetKeyboardSticks();
+    }
     raceHasPrev = false;
     releasePress();
     bounceCount = 0;
@@ -4992,6 +5008,348 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   }
 
   /*
+   * THE HOT SWAP: another aircraft, now, where this one is.
+   *
+   * Everything else about the airframe waits for the next run (applySettings'
+   * between runs block), and for a reason that still holds for a lap: a lap
+   * flown on two aircraft is not a lap on either. The owner asked to change
+   * aircraft whenever they want, so this pays that cost where it belongs
+   * instead of refusing: a lap it lands in is voided (race.voidLap, the rule
+   * a weight change already follows), and nothing else about the run stops.
+   *
+   * THE RULES, in the order a pilot meets them:
+   *   - Same place, same heading. The new aircraft is level on the old one's
+   *     heading at its position, the spawn frame moved there the way a crash
+   *     recovery moves it (finishClipCrash), so the physics state is a fresh
+   *     one, set up the same way every time.
+   *   - In the air if the old one was. A fixed wing is let go along its nose
+   *     at the old speed or at its air start speed, 1.3 times its stall
+   *     (configs/airframes.js airStartSpeed, the builder's own rule), which
+   *     ever is faster. A quad keeps the old velocity, level, and flies.
+   *   - On the ground if the old one was, parked on its own gear, skids or
+   *     floats at that spot. Floats on land, or anything else on water,
+   *     cannot be parked there, so it starts SWAP_AIR_ABOVE over the spot
+   *     instead, by the air rule above.
+   *   - A fresh, intact aircraft: whatever the old one had broken, turned
+   *     over or dropped stays with it.
+   *   - The new aircraft's own tune, the one it was last flown on or its
+   *     default (seatAirframe), its pack, its camera and its sound.
+   *   - The world is never rebuilt under a run (worldHold), and the track on
+   *     it is raced only by an aircraft of its class (swapCourseFits): one
+   *     that does not fit flies the world without it and is told, the rule
+   *     #93 made for a plane seated on a map track.
+   */
+  const SWAP_AIR_ABOVE = 3;
+  const swapAt = new THREE.Vector3();
+  const swapVel = new THREE.Vector3();
+  const swapVelAfter = new THREE.Vector3();
+  const swapVelSim = { x: 0, y: 0, z: 0 };
+  /* Tune files, fetched once each: the second swap to an aircraft is
+   * synchronous from here on. */
+  const swapTunes = new Map();
+  let swapBusy = false;
+  let lastSwap = null;
+  /*
+   * THE WORLD A RUN THAT HAS CHANGED AIRCRAFT KEEPS. The seats are one per
+   * track class (src/share/session.js), so the moment the aircraft moves
+   * class, every read of "the seated track" answers for the new one and the
+   * world no longer matches the settings: the next applySettings, a volume
+   * nudge on the pause menu, would rebuild the world and drop the pilot on
+   * the title. So the world is held while the run lasts, as long as the map
+   * and the graphics setting are the ones it was built for, and let go on
+   * the title (releaseWorldHold), where the world follows the seat again as
+   * it does for a choice made there. `track` is the map track seated on it
+   * when the hold began, and `courseOff` whether that track is off the
+   * world because the aircraft flying does not fit it.
+   */
+  let worldHold = null;
+
+  async function swapTuneText(id) {
+    if (id === 'custom') {
+      const text = readFcDump();
+      if (text == null) {
+        throw new Error('the saved flight controller edits are gone');
+      }
+      return text;
+    }
+    if (!swapTunes.has(id)) {
+      swapTunes.set(id, new TextDecoder().decode(await fetchBytes(tunePath(id))));
+    }
+    return swapTunes.get(id);
+  }
+
+  function swapLive() {
+    return mapReady && !swapInFlight && Boolean(stateCurr) && (mode === 'flight' || mode === 'paused');
+  }
+
+  /* Resolves true when the aircraft changed, false when there was nothing
+   * to do (the same one, no run up, a swap already under way), and rejects
+   * on a fault, which is loud by design: a half swapped aircraft is not a
+   * state to fly on quietly. */
+  async function hotSwap(id) {
+    const to = airframeById(id);
+    if (swapBusy || to.id !== id || to.id === runAirframe || !swapLive()) {
+      return false;
+    }
+    swapBusy = true;
+    try {
+      const next = seatAirframe({ ...ui.settings }, to.id);
+      const text = await swapTuneText(next.tune);
+      if (!swapLive() || to.id === runAirframe) {
+        return false;
+      }
+      seatSwap(to, next, text);
+      await seatSwapCourse(to);
+      return true;
+    } finally {
+      swapBusy = false;
+    }
+  }
+
+  /*
+   * WHETHER THE AIRCRAFT IS DOWN, which is more than `landed`. The shell
+   * parks only a craft that has stopped: a plane rolling on its wheels and
+   * a float plane riding the water are handed to the plant and are not
+   * `landed`, and a swap there is a swap on the ground, not in the air.
+   * Read before the swap touches the plant: these are the last step's.
+   */
+  function onSurface() {
+    if (landed || sim.e.sim_ground_contacts() > 0 || wheelsLoaded()) {
+      return true;
+    }
+    if (!airframeById(runAirframe).floats || typeof sim.e.sim_float_state !== 'function') {
+      return false;
+    }
+    if (!floatStatePtr) {
+      floatStatePtr = sim.e.malloc(10 * 8);
+    }
+    sim.e.sim_float_state(floatStatePtr);
+    const f = new Float64Array(sim.e.memory.buffer, floatStatePtr, 10);
+    return f[4] + f[5] > 0 || f[6] > 0;
+  }
+
+  function seatSwap(to, next, text) {
+    /* Where the old one is, read before anything moves it. */
+    const st = readState();
+    poseFromState(st, swapAt);
+    simPosToThree(st[4], st[5], st[6], swapVel).applyQuaternion(qSpawn);
+    const yaw = craftHeadingYaw();
+    const from = runAirframe;
+    const quadBefore = shell.quad;
+    const wasFlying = !onSurface();
+    const midLap = race.currentLapMs(simTimeMs) != null;
+    const onWater = Boolean(waterAt(swapAt.x, swapAt.z));
+    const inAir = wasFlying || Boolean(to.floats) !== onWater;
+    const s = ui.settings;
+    if (!worldHold) {
+      const track = view.id !== 'custom' ? seatedMapTrack() : null;
+      worldHold = {
+        map: s.map,
+        graphics: normalizeGraphics(s.graphics),
+        track,
+        courseOff: Boolean(track) && !(build && build.racing),
+      };
+    }
+
+    /* The seat, then the plant: the mode first, then the config, which
+     * sim_init re-reads for that plant and which zeroes the dynamic state
+     * the reseat below writes afresh. */
+    Object.assign(s, next);
+    s.airframeAsked = true;
+    /* The mode that goes with the aircraft (syncMode) waits for the title,
+     * with the world. */
+    ui.modeSyncedFor = to.id;
+    ui.persistSettings();
+    runAirframe = to.id;
+    if (sim.e.sim_set_airframe(to.simId) !== SIM_OK) {
+      throw new Error(`sim_set_airframe refused ${to.id}`);
+    }
+    bumpConfigGen();
+    const nextPids = pidsDiffFor(s.pids, s.tune);
+    const nextText = composeConfig(text, s.rates, RATES_KEEP, nextPids);
+    const code = sim.init(nextText);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_init refused ${s.tune} on ${to.id}: ${configFault(code)}`);
+    }
+    configId = tuneById(s.tune).id;
+    menuTune = s.tune;
+    tuneText = text;
+    pidsText = nextPids;
+    ratesText = ratesDiff(s.rates);
+    configText = nextText;
+    configName = configId === 'custom' ? str('main.your_edits') : `${configId}.diff`;
+    runVoltage = s.packVoltage;
+    runGravityScale = gravityScaleFor(runWeight, to.id);
+    if (sim.e.sim_set_gravity(runGravityScale) !== SIM_OK) {
+      throw new Error(`sim_set_gravity refused ${runGravityScale} on ${to.id}`);
+    }
+
+    /* The shell's copies of the machine, the same calls a choice between
+     * runs makes: its size, hull, parts, model, ghost, voice and camera. */
+    syncCraftScale();
+    flapNotch = 0;
+    wingStabApplied = -1;
+    applyCrashMode(s);
+    publishPids();
+    launcherLeft = null;
+    chaseValid = false;
+    introMs = -1;
+    if (view.mode === 'freestyle') {
+      trickDetector.reset();
+    }
+    seatRestHeight(to, !inAir && onWater);
+
+    if (midLap) {
+      race.voidLap(str('carousel.lap_void'), performance.now());
+    }
+
+    /* The craft, parked at the spot on its heading, which is also a fresh
+     * physics state and a fresh crash state. */
+    resetCraft({ x: swapAt.x, z: swapAt.z, y: swapAt.y, yaw }, inAir);
+    if (inAir) {
+      const floor = startY + SPAWN_ALT;
+      const y = wasFlying ? Math.max(swapAt.y, floor + 0.3) : floor + SWAP_AIR_ABOVE;
+      if (sim.e.sim_set_pose(0, 0, y - floor, 1, 0, 0, 0) !== SIM_OK) {
+        throw new Error(`sim_set_pose refused the swap at ${y.toFixed(2)} m`);
+      }
+      if (to.fixedWing) {
+        const speed = Math.min(60, Math.max(swapVel.length(), airStartSpeed(to)));
+        if (sim.e.sim_wing_launch(speed) !== SIM_OK) {
+          throw new Error(`${to.id} refused its launch at ${speed.toFixed(1)} m/s`);
+        }
+      } else if (wasFlying) {
+        worldDirToSim(swapVel.x, swapVel.y, swapVel.z, swapVelSim);
+        const k = Math.min(1, 150 / Math.max(1e-9, swapVel.length()));
+        if (sim.e.sim_set_velocity(swapVelSim.x * k, swapVelSim.y * k, swapVelSim.z * k, 0, 0, 0) !== SIM_OK) {
+          throw new Error('sim_set_velocity refused the swap');
+        }
+      }
+      landed = false;
+      takingOff = false;
+      flownThisRun = true;
+      obsHasPrev = false;
+      raceHasPrev = false;
+      simClockPrevMs = simTimeMs;
+      adoptSimClock();
+      stateCurr = readState();
+      statePrev = stateCurr;
+    }
+    notice = { text: str('main.flying', { name: to.name }), untilMs: performance.now() + 2400 };
+    /* What the swap did, as numbers, for scripts/hotswap-check.js. */
+    poseFromState(stateCurr, pProbe);
+    simPosToThree(stateCurr[4], stateCurr[5], stateCurr[6], swapVelAfter).applyQuaternion(qSpawn);
+    lastSwap = {
+      from,
+      to: to.id,
+      module: sim.e.sim_airframe(),
+      shown: drawnCraft,
+      modelSwapped: shell.quad !== quadBefore,
+      rule: !inAir ? 'ground' : wasFlying ? 'air' : 'air-forced',
+      onWater,
+      voided: midLap,
+      tune: configId,
+      before: { x: swapAt.x, y: swapAt.y, z: swapAt.z, yaw, vx: swapVel.x, vy: swapVel.y, vz: swapVel.z },
+      after: {
+        x: pProbe.x,
+        y: pProbe.y,
+        z: pProbe.z,
+        yaw: startYaw,
+        ground: startY,
+        rest: SPAWN_ALT,
+        landed,
+        vx: swapVelAfter.x,
+        vy: swapVelAfter.y,
+        vz: swapVelAfter.z,
+        crashed,
+        wrecked,
+        crashflip: crashflipOn,
+        damage: typeof sim.e.sim_damage_flags === 'function' ? sim.e.sim_damage_flags() : 0,
+      },
+    };
+    /* The lens and the tilt the new aircraft carries, and the record key;
+     * everything else it would do is already done, so it does nothing more
+     * (the tune, rates and PIDs texts match, the world is held). */
+    applySettings(s);
+  }
+
+  /*
+   * WHO MAY RACE THE TRACK A SWAP LANDS ON: its own class. A track on the
+   * custom map was built for one class and its gates for that size. A map
+   * track (src/builder/) is the five inch's and every plane's that fits its
+   * gates (src/game/verify.js planesFor), as #93 made it. The builder's own
+   * test flight is the builder's to judge, and a world with nothing seated
+   * has nothing to fit.
+   */
+  function swapCourseFits(af) {
+    if (build && build.testing) {
+      return true;
+    }
+    if (view.id === 'custom') {
+      return af.trackClass === (view.trackClass ?? 'full');
+    }
+    const track = worldHold && worldHold.track;
+    if (!track) {
+      return true;
+    }
+    return af.fixedWing ? planesFor(track.document).includes(af.id) : af.trackClass === 'full';
+  }
+
+  /* Take the track off the world, or put it back, when the aircraft now
+   * flying changed whether it fits. A track that stays is left alone, so
+   * the run's laps stay with it; its seat follows the aircraft so a lap
+   * goes to that aircraft's board. */
+  async function seatSwapCourse(to) {
+    if (build && build.testing) {
+      return;
+    }
+    const fits = swapCourseFits(to);
+    const track = worldHold.track;
+    const custom = view.id === 'custom';
+    if (!custom && !track) {
+      return;
+    }
+    if (fits && track) {
+      writeShareImport(track);
+    }
+    if (fits === !worldHold.courseOff) {
+      return;
+    }
+    worldHold.courseOff = !fits;
+    if (!custom) {
+      /* The builder puts the track's gates on the view, or takes them off
+       * it; the race is made from the view, as adoptLoadedView makes it. */
+      await seatMapCourse();
+    }
+    race = custom && !fits
+      ? new Race([], view.trackClass ?? 'full')
+      : new Race(view.gates, view.trackClass ?? 'full', { recordSuffix: view.recordSuffix ?? '' });
+    if (!fits) {
+      notice = {
+        text: str('main.the_craft_does_not_fit_through_every_gate', { craft: to.short }),
+        untilMs: performance.now() + 4000,
+      };
+    }
+    race.setRecordKey(recordKey());
+    paintBest();
+    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+    ui.setShare(view.share || null);
+    ghostCourseChanged();
+  }
+
+  /* The run is over: the world follows the seat again, and the mode the
+   * seated aircraft may fly. */
+  function releaseWorldHold() {
+    worldHold = null;
+    if (ui.syncMode()) {
+      ui.persistSettings();
+    }
+    ui.modeSyncedFor = ui.settings.airframe;
+    if (!worldMatchesSettings()) {
+      syncWorld();
+    }
+  }
+
+  /*
    * Swap the world.
    *
    * `mapReady` is what keeps the frame loop out of a half built world: the
@@ -5012,6 +5370,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     attractCam = makeAttractCamera(view);
     if (!keepPlace) {
       /* A map track's records are its own (seatMapCourse), not the world's. */
+      /* A world adopted fresh is the seat's, whatever a swap held before. */
+      worldHold = null;
       race = new Race(view.gates, view.trackClass ?? 'full', { recordSuffix: view.recordSuffix ?? '' });
       race.setRecordKey(recordKey());
       paintBest();
@@ -5126,6 +5486,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   }
 
   function worldMatchesSettings() {
+    /* A run that has changed aircraft keeps its world: see worldHold. */
+    if (worldHold && view && ui.settings.map === worldHold.map
+      && normalizeGraphics(ui.settings.graphics) === worldHold.graphics) {
+      return true;
+    }
     const wantId = worldId();
     const wantQ = normalizeGraphics(ui.settings.graphics);
     return view
@@ -6426,6 +6791,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     sim.motorOverride(motor, duty);
   };
   ui.onSettings = applySettings;
+  /* The aircraft swap in place, and what it will cost the lap. */
+  ui.onHotSwap = hotSwap;
+  ui.swapWarning = () => (race.currentLapMs(simTimeMs) != null ? str('carousel.swap_voids_lap') : '');
   /*
    * The first flight's prompts.
    *
@@ -6647,6 +7015,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     } else if (action === 'title') {
       mode = 'title';
       reset();
+      /* Now, not on the next frame: a choice made on the title before a
+       * frame has run must meet the world as the seat has it. */
+      if (worldHold) {
+        releaseWorldHold();
+      }
     } else if (action === 'calibrate') {
       if (input.firstGamepad()) {
         input.startCalibration();
@@ -8142,6 +8515,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
 
     input.poll(nowWall);
+    /* A gamepad's swap buttons, in flight only: see padSwapButtons. */
+    if (ui.screen === 'flight') {
+      ui.pollFlightPad(input.padSwapButtons());
+    }
+    /* The title ends the run a swap held the world for. */
+    if (worldHold && mode === 'title') {
+      releaseWorldHold();
+    }
     pollManualFlip();
     const launchNow = syncLaunchControl(nowWall);
     tickAirStart(dt, nowWall);
@@ -8977,7 +9358,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      */
     const attractOn = !freezeWorld && mode === 'title'
       && (ui.screen === 'title' || ui.screen === 'launch');
-    const studioOn = ui.screen === 'quad';
+    /* The aircraft picker draws its models into this canvas over the world
+     * (src/render/carousel3d.js), so while it is up the world is live
+     * whatever screen is under it, and the Quad screen's studio, which is a
+     * second context, is put away rather than drawn unseen behind it. */
+    const pickerOn = ui.carousel.isOpen;
+    const studioOn = ui.screen === 'quad' && !pickerOn;
     const worldLive = !freezeWorld && (
       Boolean(finishLoadingOnFrame)
       || mode === 'flight'
@@ -8985,6 +9371,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       || mode === 'results'
       || ui.screen === 'courses'
       || attractOn
+      || pickerOn
       || Boolean(camOverride)
     );
     const wantVis = worldLive ? 'visible' : 'hidden';
@@ -9516,6 +9903,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (drawThis) {
       renderStats.calls = shell.renderer.info.render.calls;
       renderStats.triangles = shell.renderer.info.render.triangles;
+    }
+    /* After the world and after its numbers are read, so the world's own
+     * budget is measured as it always was. The picker's cost is its own:
+     * see window.__carouselStats. */
+    {
+      const pick = ui.carousel.frame(dt);
+      if (drawThis) {
+        pickStage.draw(worldLive ? pick : null);
+      }
     }
 
     /*
@@ -10142,6 +10538,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * the setting says whoop, the model draws a whoop, and the plant is still
    * integrating a 710 gram quad.
    */
+  /* The aircraft picker's own cost, measured in its draw: CPU time to
+   * submit, draw calls, its target's size. Harness only. */
+  window.__carouselStats = () => pickStage.stats();
+  window.__lastSwap = () => lastSwap;
   window.__craft = () => ({
     setting: ui.settings.airframe,
     run: runAirframe,
