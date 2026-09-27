@@ -96,7 +96,7 @@ export function filmMaterial(opts) {
     shader.fragmentShader = before
       .replace('#include <common>', '#include <common>\n uniform float uFilmGlow;')
       .replace('#include <opaque_fragment>', `${FILM_CHUNK}\n#include <opaque_fragment>`);
-    if (!shader.fragmentShader.includes('outgoingLight += filmIn')) {
+    if (!shader.fragmentShader.includes('filmBehind')) {
       throw new Error('filmmat: the toon shader changed and the film chunk did not land');
     }
   };

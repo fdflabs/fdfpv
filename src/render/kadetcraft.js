@@ -680,13 +680,17 @@ function stabGeometry(lite, n) {
     key: x,
   })), STAB_T, new THREE.Vector3(0, 1, 0), uvOf, n);
 }
+/* The elevator's trailing edge at x inches out, its outer inch rounded
+ * off, and the stations its halves are lofted at. */
+const elevTE = (ax) => STAB_TE_S - (ax > STAB_HALF - 1 ? (ax - STAB_HALF + 1) ** 2 * 0.8 : 0);
+const ELEV_STATIONS = [ELEV_GAP, 4, 8, 12, 14.5, STAB_HALF - 0.02];
 function elevatorHalf(sign, lite, n) {
-  const half = lite ? [ELEV_GAP, 8, STAB_HALF - 0.02] : [ELEV_GAP, 4, 8, 12, 14.5, STAB_HALF - 0.02];
+  const half = lite ? [ELEV_GAP, 8, STAB_HALF - 0.02] : ELEV_STATIONS;
   const xs = sign > 0 ? half : half.slice().reverse().map((x) => -x);
   const uvOf = (x, t) => [(x + STAB_HALF) / (2 * STAB_HALF), (ELEV_HINGE_S - STAB_LE_S + t * (STAB_TE_S - ELEV_HINGE_S)) / STAB_CHORD];
   return plateGeometry(xs.map((x) => ({
     a: new THREE.Vector3(R(x), stabY(), st(ELEV_HINGE_S)),
-    b: new THREE.Vector3(R(x), stabY(), st(STAB_TE_S - (Math.abs(x) > STAB_HALF - 1 ? (Math.abs(x) - STAB_HALF + 1) ** 2 * 0.8 : 0))),
+    b: new THREE.Vector3(R(x), stabY(), st(elevTE(Math.abs(x)))),
     key: x,
   })), STAB_T * 0.7, new THREE.Vector3(0, 1, 0), uvOf, n);
 }
@@ -781,7 +785,9 @@ const REST_CG_HEIGHT = (() => {
 const WING_TOP = Math.max(...[36, 37.8, HALF - 0.1].flatMap((x) => chordTs(14).map((t) => wingAt(x)(t, 1).y)));
 const UP = Math.max(ht(FIN_TOP), WING_TOP);
 const DOWN = -Math.min(MAIN_AXLE[1] - MAIN_R, NOSE_AXLE[1] - NOSE_R);
-const REACH = Math.max(R(HALF), st(RUDDER_TE_S), Math.hypot(R(STAB_HALF), st(STAB_TE_S)));
+/* The elevator's outer trailing corner at its loft's stations, since its
+ * tip is rounded and the corner of its plan is not drawn. */
+const REACH = Math.max(R(HALF), st(RUDDER_TE_S), ...ELEV_STATIONS.map((x) => Math.hypot(R(x), st(elevTE(x)))));
 export const KADET_DIMS = {
   span: 2 * R(HALF),
   chord: R(CHORD_IN),
