@@ -22,7 +22,8 @@
  *      Escape comes back. Duplicate makes a copy under its own id and a
  *      name that says so. With two cards listed, the cursor on Delete
  *      shows the whole row, clear of the bars drawn over the screen. Delete
- *      asks first, and yes takes the copy out.
+ *      asks first, with focus on keeping it, so Enter there keeps; a move
+ *      onto Delete and Enter takes the copy out.
  *
  * plane, the Skyhunter on the Alps, in a browser of its own:
  *
@@ -80,6 +81,7 @@ import {
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { str } from '../src/strings/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const opts = {};
@@ -494,7 +496,23 @@ async function quad() {
     const asked = await page.evaluate("(() => { const d = document.querySelector('.name-dialog-box'); return d && d.offsetParent !== null ? d.textContent : null; })()");
     say(Boolean(asked) && asked.includes(copy.name), `Delete asks first: ${JSON.stringify(asked && asked.slice(0, 80))}`);
     await shot(page, '3-delete-asks');
-    await page.evaluate("document.querySelector('.name-dialog-box .name-dialog-btn.on').click(), true");
+    const focusNow = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden ? document.activeElement.textContent : null; })()";
+    const focused = await page.evaluate(focusNow);
+    /* Past the dialog's deaf 300 ms, so the key is heard. */
+    await page.sleep(400);
+    await page.tap('Enter');
+    await page.sleep(300);
+    const kept = { open: await page.evaluate(focusNow), n: (await mine(page)).length };
+    say(focused === str('ui.keep_it') && kept.open === null && kept.n === 2,
+      `it opens with focus on ${JSON.stringify(focused)}, and Enter there keeps the track: ${JSON.stringify(kept)}`);
+    await chooseCard(page, copy.id);
+    await choose(page, 'card-delete');
+    await page.until(`${focusNow} !== null`, 10000).catch(() => {});
+    await page.sleep(400);
+    await page.tap('ArrowRight');
+    const onDelete = await page.evaluate(focusNow);
+    await page.tap('Enter');
+    say(onDelete === str('ui.delete_label'), `deleting is a move onto ${JSON.stringify(onDelete)} and then Enter`);
     await page.until('(window.__ui.localCourses || []).length === 1', 10000).catch(() => {});
     const left = await mine(page);
     const stored = await page.evaluate(`Object.keys(JSON.parse(localStorage.getItem(${JSON.stringify(LIBRARY_KEY)}) || '{}'))`);

@@ -4061,6 +4061,11 @@
          colour: quiet until the pointer is on it, and never the default. */
       .name-dialog-btn.danger { color: #ff8f8f; border-color: rgba(255, 143, 143, 0.35); }
       .name-dialog-btn.danger:hover { color: var(--deep); background: #ff8f8f; border-color: #ff8f8f; }
+      /* The button Enter presses. On a delete confirm focus starts on the
+         keep button, and moving onto the delete lights it as a hover does,
+         so the one press that deletes is never the unmarked one. */
+      .name-dialog-btn:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+      .name-dialog-btn.danger:focus { color: var(--deep); background: #ff8f8f; border-color: #ff8f8f; }
       /*
        * The flight feel question's answers are CHIPS, not a select, because
        * the whole form is meant to be answered in two clicks and a select

@@ -4234,8 +4234,16 @@ export class Ui {
    * bookkeeping is how one of them ends up leaking a listener. No field, so
    * the confirming button takes focus instead. Resolves true or false, and
    * a backdrop click or Escape is false.
+   *
+   * `danger` is for a yes that cannot be undone, a delete. Then the keep
+   * button has focus and wears the primary colour, Enter presses whichever
+   * button has focus, Y is not a shortcut, and the arrows move between the
+   * two: a stray Enter keeps, and deleting is a move onto Delete and then a
+   * press.
    */
-  askConfirm({ title, detail, yes, no }) {
+  askConfirm({
+    title, detail, yes, no, danger = false,
+  }) {
     return new Promise((resolve) => {
       this.nameWait = resolve;
       const box = el('div', 'name-dialog-box');
@@ -4244,8 +4252,8 @@ export class Ui {
         box.append(el('p', 'lede', detail));
       }
       const row = el('div', 'name-dialog-row');
-      const yesBtn = btn('name-dialog-btn on', yes || 'Yes');
-      const noBtn = btn('name-dialog-btn', no || 'No');
+      const yesBtn = btn(danger ? 'name-dialog-btn danger' : 'name-dialog-btn on', yes || 'Yes');
+      const noBtn = btn(danger ? 'name-dialog-btn on' : 'name-dialog-btn', no || 'No');
       row.append(noBtn, yesBtn);
       box.append(row);
       this.nameDialog.textContent = '';
@@ -4281,21 +4289,32 @@ export class Ui {
         this.closeNameDialog(v);
       };
       const onKey = (e) => {
-        if (e.key === 'Enter' || e.key === 'y' || e.key === 'Y') {
+        const answer = {
+          Enter: danger ? document.activeElement === yesBtn : true,
+          y: danger ? undefined : true,
+          Y: danger ? undefined : true,
+          Escape: false,
+          n: false,
+          N: false,
+        }[e.key];
+        if (danger && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
           e.preventDefault();
           e.stopPropagation();
-          finish(true);
-        } else if (e.key === 'Escape' || e.key === 'n' || e.key === 'N') {
-          e.preventDefault();
-          e.stopPropagation();
-          finish(false);
+          (document.activeElement === yesBtn ? noBtn : yesBtn).focus();
+          return;
         }
+        if (answer === undefined) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        finish(answer);
       };
       this.nameKeyHandler = onKey;
       this.nameDialog.addEventListener('keydown', onKey, true);
       yesBtn.addEventListener('click', () => finish(true));
       noBtn.addEventListener('click', () => finish(false));
-      yesBtn.focus();
+      (danger ? noBtn : yesBtn).focus();
     });
   }
 
@@ -9351,6 +9370,7 @@ export class Ui {
         detail: str('ui.this_browser_holds_the_only_copy'),
         yes: str('ui.delete_label'),
         no: str('ui.keep_it'),
+        danger: true,
       }).then((ok) => {
         if (!ok) {
           return;
@@ -12301,6 +12321,7 @@ export class Ui {
         detail: str('ui.this_browser_is_the_only_copy'),
         yes: 'Delete',
         no: str('ui.keep_it'),
+        danger: true,
       }).then((ok) => {
         if (!ok) {
           return;
