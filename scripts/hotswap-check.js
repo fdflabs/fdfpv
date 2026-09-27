@@ -56,6 +56,7 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { cycleCraft } from '../src/ui/carousel.js';
 import { AIRFRAMES, airframeById, airStartSpeed } from '../configs/airframes.js';
 import { tunesFor } from '../configs/registry.js';
+import { powerCells, powerChoice, powerParams } from '../configs/power.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const ALL_MAPS = ['city', 'airfield', 'alps', 'swiss2', 'yellowstone'];
@@ -112,6 +113,14 @@ async function press(page, code) {
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code, key, windowsVirtualKeyCode: vk }, page.sessionId);
 }
 
+/* The power systems the swaps must seat (configs/power.js). */
+const POWER_CHOICE = {
+  timber1500: { option: '3s', pack: '3s2200' },
+  sky1800: { option: 'stock', pack: '4s6000' },
+  kadet1981: { option: 'electric', pack: '5s5000' },
+  bombshell1118: { option: 'stock', pack: '5.1cc' },
+};
+
 /* Console errors and uncaught exceptions. A resource the page could not
  * fetch is listed apart: the board and the live server are not running
  * here, and the shell is written to fly without them. */
@@ -122,6 +131,9 @@ function faults(page) {
 async function flyNow(page) {
   await page.until('!!window.__shellReady', 300000);
   await page.until('window.__map && window.__map().ready', 400000);
+  /* A power choice per kind before the first run: another option, another
+   * pack on the stock system, another tank, and the rest stock. */
+  await page.evaluate(`(window.__ui.settings.power = ${JSON.stringify(POWER_CHOICE)}, window.__ui.persistSettings(), true)`);
   await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await page.until("window.__craftState && window.__craftState().mode === 'flight' && window.__map().ready", 400000);
   await page.sleep(500);
@@ -173,11 +185,25 @@ function judgeSwap(tag, sw, id, was) {
   }
   const tuneOk = tunesFor(id).some((t) => t.id === sw.tune) || sw.tune === 'custom';
   const fresh = !a.crashed && !a.wrecked && !a.crashflip && a.damage === 0;
+  /* The power system the pilot chose for this plane (POWER_CHOICE), seated
+   * with it: an option over the table or the table itself, the pack's
+   * cells, and a full pack or tank of the chosen size. */
+  let powerOk = true;
+  let powerSays = '';
+  if (af.fixedWing) {
+    const { option, pack } = powerChoice(id, POWER_CHOICE);
+    const block = powerParams(id, option, pack);
+    const p = sw.power;
+    const cells = powerCells(id, option, pack);
+    powerOk = Boolean(p) && p.custom === (block != null) && sw.cells === cells && p.chargeC === 0 && p.fuelFrac === 1
+      && (block == null || (p.capacityC === block[5] && p.tankM3 === block[11]));
+    powerSays = `, power ${option}/${pack} ${p && p.custom ? 'seated' : 'the table'}, ${sw.cells}S, capacity ${p ? f2(p.capacityC / 3.6) : '?'} mAh, tank ${p ? f2(p.tankM3 * 1e6) : '?'} cc`;
+  }
   const ok = sw.to === id && sw.module === af.simId && sw.shown === id && sw.modelSwapped
-    && sw.rule === wantRule && moved < POS_TOL && turned < YAW_TOL && height && speedOk && tuneOk && fresh;
+    && sw.rule === wantRule && moved < POS_TOL && turned < YAW_TOL && height && speedOk && tuneOk && fresh && powerOk;
   say(ok, `${tag} ${sw.from} -> ${id}: module ${sw.module}, drawn ${sw.shown}${sw.modelSwapped ? ' (new model)' : ' (OLD MODEL)'}, `
     + `${sw.rule}${sw.onWater ? ' over water' : ''} (wanted ${wantRule}), moved ${f2(moved)} m, turned ${turned.toExponential(1)} rad, `
-    + `y ${f2(a.y)} over floor ${f2(floor)}, ${speedSays}, tune ${sw.tune}${fresh ? ', intact' : `, NOT FRESH ${JSON.stringify({ c: a.crashed, w: a.wrecked, d: a.damage })}`}`);
+    + `y ${f2(a.y)} over floor ${f2(floor)}, ${speedSays}, tune ${sw.tune}${fresh ? ', intact' : `, NOT FRESH ${JSON.stringify({ c: a.crashed, w: a.wrecked, d: a.damage })}`}${powerSays}`);
   return ok;
 }
 

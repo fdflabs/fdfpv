@@ -5300,6 +5300,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       onWater,
       voided: midLap,
       tune: configId,
+      /* The power system the swap seated, and the pack's cells. */
+      power: readPower(),
+      cells: runCells,
       before: { x: swapAt.x, y: swapAt.y, z: swapAt.z, yaw, vx: swapVel.x, vy: swapVel.y, vz: swapVel.z },
       after: {
         x: pProbe.x,
