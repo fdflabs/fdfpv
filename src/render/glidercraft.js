@@ -76,6 +76,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
+import { paintRegions } from './livery.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -721,12 +722,18 @@ export function buildGliderCraft(opts = {}) {
   };
   const seg = lite ? 8 : 12;
 
-  const white = cel({ color: 0xf1f1ec, rim: 0.26, spec: 0.30, specWidth: 0.014 });
-  const flapMat = cel({ color: 0xdedfd8, rim: 0.26, spec: 0.26, specWidth: 0.014 });
-  const fuseMat = cel({ color: 0xf1f1ec, rim: 0.26, spec: 0.34, specWidth: 0.016 });
-  const red = cel({ color: 0xcf2a26, rim: 0.28, spec: 0.30, specWidth: 0.014 });
+  /* The scheme's colours by region (src/render/livery.js): the white of
+   * the wing and of the tail each its own material, the surfaces a shade
+   * of their region. The black edging and spinner are not paint. */
+  const coat = paintRegions();
+  const whiteOf = (id) => coat.base(id, cel({ color: 0xf1f1ec, rim: 0.26, spec: 0.30, specWidth: 0.014 }));
+  const flapOf = (id) => coat.shade(id, cel({ color: 0xdedfd8, rim: 0.26, spec: 0.26, specWidth: 0.014 }));
+  const white = whiteOf('wing');
+  const tailWhite = whiteOf('tail');
+  const fuseMat = coat.base('fuselage', cel({ color: 0xf1f1ec, rim: 0.26, spec: 0.34, specWidth: 0.016 }));
+  const red = coat.base('tips', cel({ color: 0xcf2a26, rim: 0.28, spec: 0.30, specWidth: 0.014 }));
   const black = cel({ color: 0x16181a, rim: 0.30, spec: 0.45, specWidth: 0.016, specColor: 0xd8e0e8 });
-  const canopy = cel({ color: 0x1b2127, rim: 0.40, spec: 0.60, specWidth: 0.020, specColor: 0xf3ead4 });
+  const canopy = coat.base('canopy', cel({ color: 0x1b2127, rim: 0.40, spec: 0.60, specWidth: 0.020, specColor: 0xf3ead4 }));
   const stator = cel({ color: 0x2a322c, rim: 0.24, spec: 0.20 });
   const camBody = cel({ color: 0x141c16, rim: 0.26, spec: 0.35 });
   const lens = cel({ color: 0x101610, rim: 0.40, spec: 0.95, specWidth: 0.03, specColor: 0xf3ead4, side: THREE.DoubleSide });
@@ -760,20 +767,23 @@ export function buildGliderCraft(opts = {}) {
   }
 
   /*
-   * Every fixed white part in one draw: the wing, the stabiliser inboard of
-   * its red tips, the fin under its red cap, and the wing's root fairing.
+   * The fixed white parts in two draws, one region each: the wing with its
+   * root fairing, and the stabiliser inboard of its red tips with the fin
+   * under its red cap.
    */
   const n = lite ? 5 : 7;
   {
-    const parts = [
-      wingGeometry(lite),
-      stabGeometry([-STAB_TIP_IN, -0.10, 0, 0.10, STAB_TIP_IN], n),
-      finGeometry([0.050, 0.070, RUD_BOTTOM, RUD_BOTTOM + 0.001, 0.15, RUD_TOP - 0.001, RUD_TOP], n),
-    ];
-    const airframe = new THREE.Mesh(merged(parts), white);
+    const airframe = new THREE.Mesh(merged([wingGeometry(lite)]), white);
     airframe.name = 'glider-airframe';
     airframe.castShadow = shade;
     group.add(airframe);
+    const tail = new THREE.Mesh(merged([
+      stabGeometry([-STAB_TIP_IN, -0.10, 0, 0.10, STAB_TIP_IN], n),
+      finGeometry([0.050, 0.070, RUD_BOTTOM, RUD_BOTTOM + 0.001, 0.15, RUD_TOP - 0.001, RUD_TOP], n),
+    ]), tailWhite);
+    tail.name = 'glider-tail';
+    tail.castShadow = shade;
+    group.add(tail);
   }
 
   /* Red, one draw: the wing's tips top and bottom, the stabiliser's tips
@@ -808,14 +818,16 @@ export function buildGliderCraft(opts = {}) {
 
   /* The four moving surfaces. The elevator is both halves on one pivot,
    * joined behind the fin as the real one is. */
+  const flapMat = flapOf('wing');
+  const tailFlap = flapOf('tail');
   const leftAil = aileron(-1, flapMat, shade, lite, red, black);
   const rightAil = aileron(1, flapMat, shade, lite, red, black);
   const eh = (x) => new THREE.Vector3(x, STAB_Y, st(STAB_LE_S + STAB_C - ELEV_C));
-  const elevator = hinged(merged([elevatorHalf(-1, n), elevatorHalf(1, n)]), eh(-STAB_TIP_IN), eh(STAB_TIP_IN), flapMat, shade);
+  const elevator = hinged(merged([elevatorHalf(-1, n), elevatorHalf(1, n)]), eh(-STAB_TIP_IN), eh(STAB_TIP_IN), tailFlap, shade);
   const rudder = hinged(rudderGeometry(n),
     new THREE.Vector3(0, RUD_BOTTOM, st(rudderHinge(RUD_BOTTOM))),
     new THREE.Vector3(0, RUD_TOP, st(rudderHinge(RUD_TOP))),
-    flapMat, shade);
+    tailFlap, shade);
   const surfaces = {
     'aileron-left': leftAil,
     'aileron-right': rightAil,
@@ -1004,5 +1016,6 @@ export function buildGliderCraft(opts = {}) {
     propSpin: GLIDER_PROP_SPIN,
     setSurfaces,
     setProp,
+    livery: coat.livery,
   };
 }

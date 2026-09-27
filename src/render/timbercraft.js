@@ -88,6 +88,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { buildFloatSet } from './floatset.js';
+import { paintRegions } from './livery.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -840,11 +841,20 @@ export function buildTimberCraft(opts = {}) {
   const seg = lite ? 8 : 14;
   const rodSeg = lite ? 4 : 8;
 
-  const white = cel({ color: 0xf1f0ea, rim: 0.28, spec: 0.30, specWidth: 0.014 });
-  const whiteDim = cel({ color: 0xdedcd4, rim: 0.28, spec: 0.26, specWidth: 0.014 });
-  const red = cel({ color: 0xd5271f, rim: 0.28, spec: 0.34, specWidth: 0.016 });
-  const redDim = cel({ color: 0xbc1f19, rim: 0.28, spec: 0.30, specWidth: 0.016 });
-  const black = cel({ color: 0x17191b, rim: 0.30, spec: 0.45, specWidth: 0.016, specColor: 0xd8e0e8 });
+  /* The scheme's colours by region (src/render/livery.js): the white of
+   * the wing, the fuselage and the tail each its own material, so each
+   * can be painted apart, the surfaces a shade of their region. */
+  const coat = paintRegions();
+  const whiteOf = (id) => coat.base(id, cel({ color: 0xf1f0ea, rim: 0.28, spec: 0.30, specWidth: 0.014 }));
+  const whiteDimOf = (id) => coat.shade(id, cel({ color: 0xdedcd4, rim: 0.28, spec: 0.26, specWidth: 0.014 }));
+  const fuseWhite = whiteOf('fuselage');
+  const wingWhite = whiteOf('wing');
+  const tailWhite = whiteOf('tail');
+  const red = coat.base('trim', cel({ color: 0xd5271f, rim: 0.28, spec: 0.34, specWidth: 0.016 }));
+  const redDim = coat.shade('trim', cel({ color: 0xbc1f19, rim: 0.28, spec: 0.30, specWidth: 0.016 }));
+  const black = coat.base('stripe', cel({ color: 0x17191b, rim: 0.30, spec: 0.45, specWidth: 0.016, specColor: 0xd8e0e8 }));
+  /* The tailwheel's tyre, black like the stripe but not paint. */
+  const tyreBlack = cel({ color: 0x17191b, rim: 0.30, spec: 0.45, specWidth: 0.016, specColor: 0xd8e0e8 });
   const foam = cel({ color: 0x232426, rim: 0.22, spec: 0.08, specWidth: 0.010 });
   const metal = cel({ color: 0xc2c5c8, rim: 0.30, spec: 0.75, specWidth: 0.022 });
   const glass = cel({ color: 0x8c9aa3, rim: 0.40, spec: 0.55, specWidth: 0.020, specColor: 0xf3ead4 });
@@ -866,7 +876,7 @@ export function buildTimberCraft(opts = {}) {
   /* The measurement box, hidden, on herocraft.js's contract with check 15. */
   if (opts.measure) {
     const d = TIMBER_DIMS;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(d.span, d.vHalfUp + d.vHalfDown, d.length), white);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(d.span, d.vHalfUp + d.vHalfDown, d.length), fuseWhite);
     body.position.set(0, (d.vHalfUp - d.vHalfDown) / 2, (d.tailZ + d.noseZ) / 2);
     body.visible = false;
     body.castShadow = false;
@@ -879,7 +889,7 @@ export function buildTimberCraft(opts = {}) {
     geo.computeBoundingBox();
     const c = geo.boundingBox.getCenter(new THREE.Vector3());
     geo.translate(-c.x, -c.y, -c.z);
-    const fuse = new THREE.Mesh(geo, white);
+    const fuse = new THREE.Mesh(geo, fuseWhite);
     fuse.position.copy(c);
     fuse.name = 'timber-fuselage';
     fuse.castShadow = shade;
@@ -887,11 +897,11 @@ export function buildTimberCraft(opts = {}) {
     group.add(fuse);
   }
 
-  /* Every fixed white part in one draw: the wing, the stabiliser, the fin
-   * and the slats. */
+  /* The fixed white parts in two draws, the wing with its brackets and the
+   * tail, stabiliser and fin, one region each. */
   {
     const n = lite ? 5 : 7;
-    const parts = [wingGeometry(lite), stabGeometry(n), finGeometry(n)];
+    const parts = [wingGeometry(lite)];
     for (const sign of [-1, 1]) {
       /* The flap and aileron hinge brackets under the wing. */
       for (const x of [0.12, 0.26, 0.44, 0.62]) {
@@ -906,10 +916,14 @@ export function buildTimberCraft(opts = {}) {
         parts.push(rod(wingAt(sign * x)(0.01, -1), at(0.85, -1), 0.0018, 4));
       }
     }
-    const airframe = new THREE.Mesh(merged(parts), white);
+    const airframe = new THREE.Mesh(merged(parts), wingWhite);
     airframe.name = 'timber-airframe';
     airframe.castShadow = shade;
     group.add(airframe);
+    const tail = new THREE.Mesh(merged([stabGeometry(n), finGeometry(n)]), tailWhite);
+    tail.name = 'timber-tail';
+    tail.castShadow = shade;
+    group.add(tail);
   }
 
   /*
@@ -1053,15 +1067,16 @@ export function buildTimberCraft(opts = {}) {
   const n = lite ? 4 : 5;
   const leftAil = aileron(-1, red, shade, lite);
   const rightAil = aileron(1, red, shade, lite);
-  const leftFlap = flap(-1, whiteDim, shade, lite);
-  const rightFlap = flap(1, whiteDim, shade, lite);
+  const flapDim = whiteDimOf('wing');
+  const leftFlap = flap(-1, flapDim, shade, lite);
+  const rightFlap = flap(1, flapDim, shade, lite);
   const eh = (x) => new THREE.Vector3(x, STAB_Y, st(ELEV_HINGE_S));
   const elevator = hinged(merged([elevatorHalf(-1, n), elevatorHalf(1, n)]),
     eh(-STAB_HALF), eh(STAB_HALF), redDim, shade);
   const rudder = hinged(rudderGeometry(n),
     new THREE.Vector3(0, RUDDER_BOTTOM, st(RUDDER_S)),
     new THREE.Vector3(0, TAIL_TOP, st(RUDDER_S)),
-    whiteDim, shade);
+    whiteDimOf('tail'), shade);
 
   /* The tailwheel on its own vertical pivot, trailing 20 mm behind it, and
    * turning with the rudder. */
@@ -1080,7 +1095,7 @@ export function buildTimberCraft(opts = {}) {
     const tyreGeo = new THREE.TorusGeometry(TAIL_WHEEL_R - 0.0045, 0.0045, 6, 12);
     tyreGeo.rotateY(Math.PI / 2);
     tyreGeo.translate(0, -0.030, trail);
-    const tyre = new THREE.Mesh(tyreGeo, black);
+    const tyre = new THREE.Mesh(tyreGeo, tyreBlack);
     tyre.name = 'tyre-tail';
     tyre.castShadow = shade;
     pivot.add(tyre);
@@ -1286,7 +1301,7 @@ export function buildTimberCraft(opts = {}) {
         return new THREE.Vector3(sign * 0.036, belly(x), -x);
       },
       rudder: f.rudder,
-      mats: { hull: white, stripe: red, trim: black, metal },
+      mats: { hull: coat.base('floats', cel({ color: 0xf1f0ea, rim: 0.28, spec: 0.30, specWidth: 0.014 })), stripe: red, trim: black, metal },
       stripe: true,
       lite,
       shade,
@@ -1312,5 +1327,6 @@ export function buildTimberCraft(opts = {}) {
     propSpin: TIMBER_PROP_SPIN,
     setSurfaces: setAll,
     setFlaps,
+    livery: coat.livery,
   };
 }

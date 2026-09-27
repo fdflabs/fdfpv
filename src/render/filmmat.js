@@ -131,6 +131,11 @@ export function filmMap(width, height, paint) {
       data[k + 3] = Math.round(Math.min(1, Math.max(0, a)) * 255);
     }
   }
+  return filmMapOf(data, width, height);
+}
+
+/* A film map from texels already drawn, RGBA bytes a row at a time. */
+export function filmMapOf(data, width, height) {
   const tex = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.magFilter = THREE.LinearFilter;

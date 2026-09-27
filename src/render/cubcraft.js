@@ -102,6 +102,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { buildFloatSet } from './floatset.js';
+import { paintRegions } from './livery.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -844,9 +845,16 @@ export function buildCubCraft(opts = {}) {
   const seg = lite ? 8 : 12;
   const rodSeg = lite ? 4 : 6;
 
-  const yellow = cel({ color: 0xf0be2a, rim: 0.28, spec: 0.30, specWidth: 0.014 });
-  const flapMat = cel({ color: 0xd9a41f, rim: 0.28, spec: 0.26, specWidth: 0.014 });
-  const fuseMat = cel({ color: 0xf0be2a, rim: 0.28, spec: 0.34, specWidth: 0.016 });
+  /* The scheme's colours by region (src/render/livery.js): the yellow of
+   * the wing and of the tail each its own material, the surfaces a shade
+   * of their region, the stripe apart from the black of the tyres. */
+  const coat = paintRegions();
+  const yellowOf = (id) => coat.base(id, cel({ color: 0xf0be2a, rim: 0.28, spec: 0.30, specWidth: 0.014 }));
+  const flapOf = (id) => coat.shade(id, cel({ color: 0xd9a41f, rim: 0.28, spec: 0.26, specWidth: 0.014 }));
+  const yellow = yellowOf('wing');
+  const tailYellow = yellowOf('tail');
+  const fuseMat = coat.base('fuselage', cel({ color: 0xf0be2a, rim: 0.28, spec: 0.34, specWidth: 0.016 }));
+  const stripeMat = coat.base('trim', cel({ color: 0x16181a, rim: 0.30, spec: 0.45, specWidth: 0.016, specColor: 0xd8e0e8 }));
   const black = cel({ color: 0x16181a, rim: 0.30, spec: 0.45, specWidth: 0.016, specColor: 0xd8e0e8 });
   const metal = cel({ color: 0xb4b0a6, rim: 0.30, spec: 0.70, specWidth: 0.022 });
   const glass = cel({ color: 0x2f4658, rim: 0.40, spec: 0.55, specWidth: 0.020, specColor: 0xf3ead4 });
@@ -890,12 +898,13 @@ export function buildCubCraft(opts = {}) {
   }
 
   /*
-   * Every fixed yellow part in one draw: the wing, the stabiliser, the fin,
-   * the lift struts and their jury struts, and the gear legs.
+   * The fixed yellow parts in two draws: the wing, the lift struts and
+   * their jury struts and the gear legs in one, the stabiliser and the fin
+   * in the other, one region each.
    */
   {
     const n = lite ? 5 : 7;
-    const parts = [wingGeometry(lite), stabGeometry(n), finGeometry(n)];
+    const parts = [wingGeometry(lite)];
     for (const sign of [-1, 1]) {
       const foot = [
         new THREE.Vector3(sign * 0.045, -0.050, st(0.215)),
@@ -921,14 +930,23 @@ export function buildCubCraft(opts = {}) {
     airframe.name = 'cub-airframe';
     airframe.castShadow = shade;
     group.add(airframe);
+    const tail = new THREE.Mesh(merged([stabGeometry(n), finGeometry(n)]), tailYellow);
+    tail.name = 'cub-tail';
+    tail.castShadow = shade;
+    group.add(tail);
   }
 
   /*
-   * Gloss black, one draw: the stripe on both sides, the shock sleeves on
-   * the rear gear legs, and the main tyres.
+   * Gloss black, two draws: the stripe on both sides, which is paint, and
+   * the shock sleeves on the rear gear legs and the main tyres, which are
+   * not.
    */
   {
-    const parts = [...stripeGeometry(1, lite), ...stripeGeometry(-1, lite)];
+    const stripe = new THREE.Mesh(merged([...stripeGeometry(1, lite), ...stripeGeometry(-1, lite)]), stripeMat);
+    stripe.name = 'cub-stripe';
+    stripe.castShadow = shade;
+    group.add(stripe);
+    const parts = [];
     for (const sign of onFloats ? [] : [-1, 1]) {
       const axle = new THREE.Vector3(sign * (MAIN_X - MAIN_W / 2 - 0.002), MAIN_Y, st(MAIN_S));
       const root = new THREE.Vector3(sign * 0.040, -0.052, st(0.238));
@@ -942,10 +960,12 @@ export function buildCubCraft(opts = {}) {
       tyre.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
       parts.push(tyre);
     }
-    const blackMesh = new THREE.Mesh(merged(parts), black);
-    blackMesh.name = 'cub-black';
-    blackMesh.castShadow = shade;
-    group.add(blackMesh);
+    if (parts.length) {
+      const blackMesh = new THREE.Mesh(merged(parts), black);
+      blackMesh.name = 'cub-black';
+      blackMesh.castShadow = shade;
+      group.add(blackMesh);
+    }
   }
 
   /*
@@ -990,15 +1010,17 @@ export function buildCubCraft(opts = {}) {
   /* The four moving surfaces. The elevator is both halves on one pivot,
    * joined through the fuselage as the real one is by its torque tube. */
   const n = lite ? 4 : 5;
+  const flapMat = flapOf('wing');
+  const tailFlap = flapOf('tail');
   const leftAil = aileron(-1, flapMat, shade, lite);
   const rightAil = aileron(1, flapMat, shade, lite);
   const eh = (x) => new THREE.Vector3(x, STAB_Y, st(ELEV_HINGE_S));
   const elevator = hinged(merged([elevatorHalf(-1, n), elevatorHalf(1, n)]),
-    eh(-STAB_HALF), eh(STAB_HALF), flapMat, shade);
+    eh(-STAB_HALF), eh(STAB_HALF), tailFlap, shade);
   const rudder = hinged(rudderGeometry(n),
     new THREE.Vector3(0, RUDDER_BOTTOM, st(RUDDER_S)),
     new THREE.Vector3(0, TAIL_TOP, st(RUDDER_S)),
-    flapMat, shade);
+    tailFlap, shade);
 
   /*
    * The tailwheel on its own vertical pivot at the spring's end: the fork
@@ -1218,7 +1240,7 @@ export function buildCubCraft(opts = {}) {
       struts: CUB_FLOATS.struts,
       roots: (sign, which) => new THREE.Vector3(sign * 0.040, mounts[which][0] + CUB_FLOAT_DZ, mounts[which][1]),
       rudder: CUB_FLOATS.rudder,
-      mats: { hull: cel({ color: 0xf2f1ec, rim: 0.28, spec: 0.22, specWidth: 0.014 }), stripe: black, trim: black, metal },
+      mats: { hull: coat.base('floats', cel({ color: 0xf2f1ec, rim: 0.28, spec: 0.22, specWidth: 0.014 })), stripe: black, trim: black, metal },
       stripe: false,
       lite,
       shade,
@@ -1242,5 +1264,6 @@ export function buildCubCraft(opts = {}) {
     stator,
     propSpin: CUB_PROP_SPIN,
     setSurfaces: setAll,
+    livery: coat.livery,
   };
 }

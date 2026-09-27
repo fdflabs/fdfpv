@@ -84,7 +84,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
-import { filmMaterial, filmMap } from './filmmat.js';
+import { filmMaterial, filmMap, filmMapOf } from './filmmat.js';
 import { WORLD_SCALE } from './frame.js';
 
 const R = (inches) => inches * 0.0254;
@@ -356,6 +356,27 @@ function wingGeometry(lite) {
 const YELLOW = [1.0, 0.86, 0.10];
 const RED = [0.84, 0.07, 0.08];
 const BALSA = [0.95, 0.88, 0.72];
+
+/*
+ * THE FOUR FILMS BY REGION (src/render/livery.js), sRGB 0 to 1: the wing's
+ * and stabiliser's own film and its trim (the tips, the stripe), the
+ * fuselage's and fin's own film and its trim (the nose, the flash). Stock
+ * is the box art's, SIG's yellow and red crossed over, and a region on its
+ * stock colour paints with these very numbers, so the stock maps are the
+ * maps this model has always had, texel for texel.
+ */
+const STOCK_FILMS = { wing: YELLOW, wing_trim: RED, fuselage: RED, fuse_trim: YELLOW };
+const toHex = (c) => (Math.round(c[0] * 255) << 16) | (Math.round(c[1] * 255) << 8) | Math.round(c[2] * 255);
+export const KADET_FILM_STOCK = Object.fromEntries(Object.entries(STOCK_FILMS).map(([k, c]) => [k, toHex(c)]));
+function filmsFor(colours = {}) {
+  return Object.fromEntries(Object.entries(STOCK_FILMS).map(([k, c]) => {
+    const hex = colours[k];
+    if (hex === undefined || hex === null || hex === KADET_FILM_STOCK[k]) {
+      return [k, c];
+    }
+    return [k, [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255].map((v) => v / 255)];
+  }));
+}
 function band(d, w, soft) {
   const x = Math.abs(d) - w / 2;
   return x <= -soft ? 1 : x >= soft ? 0 : 0.5 - x / (2 * soft);
@@ -373,7 +394,7 @@ function filmLit(film, wood) {
   const over = film.map((c, i) => c * (0.55 + 0.45 * BALSA[i]) * 1.08);
   return [0, 1, 2].map((i) => bay[i] + (over[i] - bay[i]) * wood);
 }
-function wingPaint(u, v) {
+const wingPaint = (films) => (u, v) => {
   const x = u * 2 * HALF - HALF;
   const ax = Math.abs(x);
   const top = v < 0.5;
@@ -401,13 +422,13 @@ function wingPaint(u, v) {
   }
   /* Transparent red on the tips outboard of the second rib in, and on
    * the top a red stripe diagonally across each panel. */
-  let film = seam(YELLOW, RED, ax - (TIP_IN - 2 * RIB_PITCH - 0.5));
+  let film = seam(films.wing, films.wing_trim, ax - (TIP_IN - 2 * RIB_PITCH - 0.5));
   if (top) {
     const d = (ax - 16) - (c - 3) * 0.55;
-    film = seam(film, RED, 1.2 - Math.abs(d));
+    film = seam(film, films.wing_trim, 1.2 - Math.abs(d));
   }
   return [...filmLit(film, wood), wood];
-}
+};
 
 /*
  * The stabiliser and elevator as one flat plate at the tail, its map in
@@ -417,7 +438,7 @@ function wingPaint(u, v) {
  * 3/8 leading edge, a 3/4 in trailing edge, E-1 ribs and diagonals.
  */
 const STAB_CHORD = STAB_TE_S - STAB_LE_S;
-function stabPaint(u, v) {
+const stabPaint = (films) => (u, v) => {
   const x = (u - 0.5) * 2 * STAB_HALF;
   const ax = Math.abs(x);
   const c = v * STAB_CHORD;
@@ -444,9 +465,9 @@ function stabPaint(u, v) {
     const d = ((ax / 3.2) % 1) * ec - ce;
     wood = Math.max(wood, band(d * 0.8, 0.12, soft));
   }
-  const film = ax > STAB_HALF - 3.0 ? RED : YELLOW;
+  const film = ax > STAB_HALF - 3.0 ? films.wing_trim : films.wing;
   return [...filmLit(film, wood), wood];
-}
+};
 
 /*
  * The fin and rudder in their own side view inches: u along the stations
@@ -461,12 +482,12 @@ function finLE(h) {
   const f = (h - FIN_ROOT_H) / (FIN_TOP - FIN_ROOT_H);
   return FIN_ROOT_S + (FIN_TOP_LE_S - FIN_ROOT_S) * Math.min(1, Math.max(0, f));
 }
-function tailPaint(u, v) {
+const tailPaint = (films) => (u, v) => {
   const s = FIN_ROOT_S + u * TAIL_SPAN_S;
   const h = RUDDER_BOTTOM + v * TAIL_SPAN_H;
   const soft = 0.03;
   let wood = 0;
-  let film = RED;
+  let film = films.fuselage;
   if (s < RUDDER_S) {
     const le = finLE(h);
     const d = s - le;
@@ -485,7 +506,7 @@ function tailPaint(u, v) {
     }
     /* The yellow flash up the leading edge. */
     if (d < 1.4) {
-      film = YELLOW;
+      film = films.fuse_trim;
     }
   } else {
     const d = s - RUDDER_S;
@@ -497,7 +518,7 @@ function tailPaint(u, v) {
     wood = Math.max(wood, band((cell * rc - d) * 0.8, 0.15, soft));
   }
   return [...filmLit(film, wood), wood];
-}
+};
 
 /*
  * The fuselage's map: u along the stations 0 to FUSE_END_S, v the angle
@@ -545,7 +566,7 @@ function faceOf(s, v) {
   if (v < 0.875) return { side: true, coord: -k + ((v - 0.625) / 0.25) * 2 * k };
   return { side: false, top: true, coord: -k + ((v - 0.875) / 0.125) * k };
 }
-function fusePaint(u, v) {
+const fusePaint = (films) => (u, v) => {
   const s = u * FUSE_END_S;
   const face = faceOf(s, v);
   const k = cornerOf(s);
@@ -555,14 +576,14 @@ function fusePaint(u, v) {
    * offset over the half width across the top or the bottom. */
   const eta = face.coord;
   let wood = 0;
-  let film = seam(YELLOW, RED, s - 10);
+  let film = seam(films.fuse_trim, films.fuselage, s - 10);
   if (s < FIREWALL_S + 0.2) {
     wood = 1;
   } else if (!side && !face.top) {
     /* The bottom: sheeted, and light only faintly through it; yellow as
      * far back as the sides' yellow reaches it. */
     wood = 0.9;
-    film = seam(YELLOW, RED, s - 46);
+    film = seam(films.fuse_trim, films.fuselage, s - 46);
   } else if (side) {
     const { h } = fuseAt(s);
     const hIn = h / 0.0254;
@@ -588,7 +609,7 @@ function fusePaint(u, v) {
     const { yc } = fuseAt(s);
     const hOver = (yc + eta * h) / 0.0254 + CG_H;
     const line = 2.2 - (2.2 + 5.7) * Math.min(1, Math.max(0, (s - 10) / 36));
-    film = seam(YELLOW, RED, hOver - line);
+    film = seam(films.fuse_trim, films.fuselage, hOver - line);
   } else {
     const { w } = fuseAt(s);
     const wIn = w / 0.0254;
@@ -604,20 +625,94 @@ function fusePaint(u, v) {
   return [...filmLit(film, wood), wood];
 }
 
-/* The maps, drawn once for every model built: they are the same wood. */
-const MAPS = {};
-function mapFor(name, lite) {
+/*
+ * The maps, drawn once per set of films and shared by every model built in
+ * them: they are the same wood. Each map is painted from the two films it
+ * shows, so it is keyed by those.
+ *
+ * THE STOCK MAPS ARE THE PAINTERS' OWN, kept for the session, so the stock
+ * aircraft is the one it has always been, texel for texel. ANY OTHER FILMS
+ * are laid on a FIELD instead: per texel, how much wood is under the film
+ * and how far toward the map's second film it is, read once per map off
+ * the painter run with a white first film and a black second. filmLit is
+ * linear in the film, so the field recolours to any pair in a few
+ * milliseconds where the painter takes a hundred and fifty, which is what
+ * lets the hangar show a film under the cursor as it moves. A painted set
+ * is kept among the last few, and one dropped is disposed (three uploads
+ * it again if a model still wears it).
+ */
+const MAP_FILMS = { wing: ['wing', 'wing_trim'], stab: ['wing', 'wing_trim'], tail: ['fuselage', 'fuse_trim'], fuse: ['fuselage', 'fuse_trim'] };
+const MAP_SIZE = { wing: [2048, 512], stab: [512, 256], tail: [256, 256], fuse: [2048, 512] };
+const PAINTERS = { wing: wingPaint, stab: stabPaint, tail: tailPaint, fuse: fusePaint };
+const PROBE = { wing: [1, 1, 1], wing_trim: [0, 0, 0], fuselage: [1, 1, 1], fuse_trim: [0, 0, 0] };
+/* filmLit's factor on the film per channel for this much wood. */
+const litOf = (wood, i) => 0.72 + wood * ((0.55 + 0.45 * BALSA[i]) * 1.08 - 0.72);
+const MAPS = new Map();
+const FIELDS = new Map();
+const PAINTED_KEPT = 3;
+function fieldFor(name, lite) {
   const key = `${name}${lite ? '-lite' : ''}`;
-  if (!MAPS[key]) {
-    const d = lite ? 2 : 1;
-    MAPS[key] = {
-      wing: () => filmMap(2048 / d, 512 / d, wingPaint),
-      stab: () => filmMap(512 / d, 256 / d, stabPaint),
-      tail: () => filmMap(256 / d, 256 / d, tailPaint),
-      fuse: () => filmMap(2048 / d, 512 / d, fusePaint),
-    }[name]();
+  let f = FIELDS.get(key);
+  if (f) {
+    return f;
   }
-  return MAPS[key];
+  const d = lite ? 2 : 1;
+  const [w, h] = MAP_SIZE[name].map((n) => n / d);
+  const paint = PAINTERS[name](PROBE);
+  const wood = new Float32Array(w * h);
+  const sel = new Float32Array(w * h);
+  for (let j = 0; j < h; j += 1) {
+    for (let i = 0; i < w; i += 1) {
+      const [r, , , a] = paint((i + 0.5) / w, (j + 0.5) / h);
+      const k = j * w + i;
+      wood[k] = a;
+      sel[k] = 1 - r / litOf(a, 0);
+    }
+  }
+  f = { w, h, wood, sel };
+  FIELDS.set(key, f);
+  return f;
+}
+function mapFor(name, lite, films) {
+  const [first, second] = MAP_FILMS[name];
+  const stock = films[first] === STOCK_FILMS[first] && films[second] === STOCK_FILMS[second];
+  const key = `${name}${lite ? '-lite' : ''}|${stock ? 'stock' : [films[first], films[second]].map(toHex).join(',')}`;
+  let tex = MAPS.get(key);
+  if (tex) {
+    if (!stock) {
+      MAPS.delete(key);
+      MAPS.set(key, tex);
+    }
+    return tex;
+  }
+  if (stock) {
+    const d = lite ? 2 : 1;
+    const [w, h] = MAP_SIZE[name].map((n) => n / d);
+    tex = filmMap(w, h, PAINTERS[name](films));
+  } else {
+    const f = fieldFor(name, lite);
+    const a = films[first];
+    const b = films[second];
+    const data = new Uint8Array(f.w * f.h * 4);
+    const byte = (x) => Math.round(Math.min(1, Math.max(0, x)) * 255);
+    for (let k = 0; k < f.w * f.h; k += 1) {
+      const wood = f.wood[k];
+      const t = f.sel[k];
+      for (let i = 0; i < 3; i += 1) {
+        data[k * 4 + i] = byte((a[i] + (b[i] - a[i]) * t) * litOf(wood, i));
+      }
+      data[k * 4 + 3] = byte(wood);
+    }
+    tex = filmMapOf(data, f.w, f.h);
+  }
+  MAPS.set(key, tex);
+  const painted = [...MAPS.keys()].filter((k) => !k.endsWith('|stock'));
+  while (painted.length > PAINTED_KEPT * 4) {
+    const old = painted.shift();
+    MAPS.get(old).dispose();
+    MAPS.delete(old);
+  }
+  return tex;
 }
 
 function fuseGeometry(lite) {
@@ -859,7 +954,7 @@ export function buildKadetCraft(opts = {}) {
   const cel = (o) => celMaterial({ fog, cloudShadow: 0, ...o });
   const film = (name, o = {}) => filmMaterial({
     fog, cloudShadow: 0, color: 0xffffff, rim: 0.26, spec: 0.34, specWidth: 0.012,
-    map: mapFor(name, lite), key: `kadet-film-${name}${lite ? '-lite' : ''}`, glow: 2.0, ...o,
+    map: mapFor(name, lite, STOCK_FILMS), key: `kadet-film-${name}${lite ? '-lite' : ''}`, glow: 2.0, ...o,
   });
   const group = new THREE.Group();
   group.name = opts.name ?? 'kadet-craft';
@@ -1274,6 +1369,24 @@ export function buildKadetCraft(opts = {}) {
     leds.push({ mesh: led, mat: ledMat, front: at.front, base });
   }
 
+  /*
+   * The paint: four films, each region's colour a film the maps are drawn
+   * in, on the livery contract src/render/livery.js states. The film
+   * material is the same material with another map, so nothing recompiles.
+   */
+  let films = STOCK_FILMS;
+  const filmMats = { wing: wingFilm, stab: stabFilm, tail: tailFilm, fuse: fuseFilm };
+  const livery = {
+    stock: () => ({ ...KADET_FILM_STOCK }),
+    set(colours = {}) {
+      films = filmsFor(colours);
+      for (const [name, mat] of Object.entries(filmMats)) {
+        mat.map = mapFor(name, lite, films);
+      }
+    },
+    read: () => Object.fromEntries(Object.entries(films).map(([k, c]) => [k, toHex(c)])),
+  };
+
   /* Radians: left aileron, right aileron, elevator, rudder; the first two
    * are the ailerons the Kadet has not got. Each hinge axis points +x or
    * +y, so each turns by the negated angle (cubcraft.js). The nose wheel
@@ -1296,5 +1409,6 @@ export function buildKadetCraft(opts = {}) {
     stator,
     propSpin: KADET_PROP_SPIN,
     setSurfaces,
+    livery,
   };
 }
