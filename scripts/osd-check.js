@@ -246,10 +246,11 @@ async function quad() {
     say(low0.values.warning === 'BATT < FULL', `a 3.5 V pack before takeoff: "${low0.values.warning}"`);
     await page.evaluate('window.__stick(0, 0, 0, 0.8)');
     await page.sleep(2500);
-    /* It blinks at Betaflight's 2 Hz, so it is looked for over a second. */
+    /* It blinks at Betaflight's 2 Hz, so it is looked for over a few seconds:
+     * on a loaded machine the ticks can fall in step with the blink. */
     let low = await osd(page);
     let lit = false;
-    for (let i = 0; i < 20 && !lit; i += 1) {
+    for (let i = 0; i < 60 && !lit; i += 1) {
       low = await osd(page);
       lit = rowsHave(low, low.values.warning || '@');
       if (!lit) {
@@ -274,7 +275,7 @@ async function quad() {
         crashed: window.__craftState().crashed, font: cs.fontFamily, upper: cs.textTransform };
     })())`;
     let seen = null;
-    for (let i = 0; i < 40 && !seen; i += 1) {
+    for (let i = 0; i < 120 && !seen; i += 1) {
       const now = JSON.parse(await page.evaluate(look));
       if (now.on && now.banner) {
         seen = now;
@@ -338,12 +339,14 @@ async function plane() {
     await page.sleep(500);
     o = await osd(page);
     say(o.values.flaps === 1 && rowsHave(o, 'FLAPS HALF'), 'F: FLAPS HALF');
+    /* Waits are on what the plane has done, not on the wall clock: a
+     * software rasteriser runs the sim slower than real time. */
     await page.evaluate(PLANE_PILOT);
-    await page.sleep(9000);
+    await page.until('window.__fpvOsd().values.alt > 3', 180000);
     await page.tap('KeyF');
     await page.tap('KeyF');
     await page.evaluate('(window.__osdPilot.pitchDeg = 6, true)');
-    await page.sleep(5000);
+    await page.until('window.__fpvOsd().values.alt > 8', 180000);
     const [c1, a] = await Promise.all([craft(page), osd(page)]);
     await shot(page, 'plane-2-climb');
     const home = a.values.home;
@@ -362,7 +365,7 @@ async function plane() {
       `the ladder reads the attitude: pitch ${f1(a.values.pitch)} against ${f1(att.pitch)}, roll ${f1(a.values.roll)} against ${f1(att.roll)}; the lens looks ${f1(a.values.horizonElevDeg)} deg up`);
     say(a.values.flaps === 0 && rowsHave(a, 'FLAPS UP'), 'F twice more: FLAPS UP again');
     const d1 = a.values.homeDist;
-    await page.sleep(5000);
+    await page.until(`window.__fpvOsd().values.homeDist > ${d1 + 25}`, 180000);
     const b = await osd(page);
     const c2 = await craft(page);
     const dTrue = Math.hypot(c2.worldX - home.x, c2.worldZ - home.z);
