@@ -37,6 +37,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
+import { frames } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 
@@ -96,6 +97,14 @@ async function shot(page, name) {
   await writeFile(join(shotsDir, `${name}.png`), Buffer.from(r.data, 'base64'));
 }
 
+/*
+ * Every read that follows a write (a setting, a key, a stick, a resize)
+ * waits on the page's own frames, never on the wall clock: the shell
+ * applies all of them in its frame, and under load a frame can take longer
+ * than any fixed sleep. Three, because the first may already be running
+ * and the shell's own callback may come after ours in the second.
+ */
+const settle = (page) => frames(page, 3);
 const osd = (page) => page.evaluate('window.__fpvOsd()');
 const craft = (page) => page.evaluate('window.__craftState()');
 const rowsHave = (o, text) => o.rows.some((r) => r.includes(text));
@@ -123,7 +132,7 @@ async function flyAndWait(page, map) {
   await page.until("window.__craftState && window.__craftState().mode === 'flight'", 120000);
   /* The intro orbit is not the FPV lens; the OSD comes up when it ends. */
   await page.until('window.__fpvOsd().on', 120000);
-  await page.sleep(400);
+  await settle(page);
 }
 
 /* Screens the pilot flies on: a phone held upright and on its side, a 4:3
@@ -131,7 +140,7 @@ async function flyAndWait(page, map) {
 async function sizes(page, tag) {
   for (const [w, h, mobile] of [[390, 844, true], [844, 390, true], [1024, 768, false]]) {
     await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile }, page.sessionId);
-    await page.sleep(1500);
+    await settle(page);
     const o = await osd(page);
     const L = o.layout;
     /* On the canvas, and the crosshair cell centred on the screen. */
@@ -141,7 +150,7 @@ async function sizes(page, tag) {
     await shot(page, `${tag}-${w}x${h}`);
   }
   await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false }, page.sessionId);
-  await page.sleep(800);
+  await settle(page);
 }
 
 function cost(o, tag) {
@@ -169,9 +178,10 @@ async function quad() {
     say(rowsHave(o, 'AIRTIME'), 'the freestyle slot reads AIRTIME with scoring off');
 
     await page.evaluate('window.__stick(0, 0, 0, 0.8)');
-    await page.sleep(2500);
+    await page.until('window.__fpvOsd().values.flyS > 1.5', 180000);
     await page.evaluate('window.__stick(0, 0, 0, 0.45)');
     await page.sleep(1500);
+    await settle(page);
     const a = await osd(page);
     await shot(page, 'quad-2-climb');
     say(!a.values.disarmed && !rowsHave(a, 'DISARMED'), 'in the air: DISARMED gone');
@@ -180,6 +190,7 @@ async function quad() {
     say(a.values.mah > 1, `mAh counts the plant's current: ${f1(a.values.mah)}`);
     say(a.values.throttle === 45 && rowsHave(a, ' 45'), `throttle ${a.values.throttle} percent at a 0.45 stick`);
     await page.sleep(1500);
+    await settle(page);
     const b = await osd(page);
     const dWall = (b.values.at - a.values.at) / 1000;
     /* FLY is armed time on the sim clock, ON the wall clock: on a software
@@ -194,20 +205,31 @@ async function quad() {
     /* The HUD style row: off, the game's readout is back; on again. */
     const pilotRow = await page.evaluate(`(() => { window.__ui.show('pilot'); const t = document.getElementById('ui').innerText; window.__ui.show('flight'); return t; })()`);
     say(/HUD style/.test(pilotRow) && /FPV OSD/.test(pilotRow), 'Pilot settings has the HUD style row, reading FPV OSD');
-    await page.evaluate("(window.__ui.settings.hudStyle = 'game', window.__ui.persistSettings(), true)");
-    await page.sleep(600);
-    const game = await osd(page);
-    const gameTop = await page.evaluate("getComputedStyle(document.querySelector('.osd-top')).display");
-    say(!game.on && gameTop !== 'none', `HUD style Game: OSD off, the game's clock back (display ${gameTop})`);
+    /*
+     * The switch, watched frame by frame from the moment the setting is
+     * written: every frame must show exactly one of the two readouts, never
+     * both and never neither, and the new one must be up within two frames
+     * (one if the shell's frame callback runs after the watcher's).
+     */
+    const swap = (style) => page.evaluate(`new Promise((done) => {
+      window.__ui.settings.hudStyle = ${JSON.stringify(style)};
+      window.__ui.persistSettings();
+      const seen = [];
+      const f = () => {
+        const osdUp = getComputedStyle(document.querySelector('canvas.fpv-osd')).display !== 'none';
+        const gameUp = getComputedStyle(document.querySelector('.osd-top')).display !== 'none';
+        seen.push([osdUp, gameUp]);
+        if (seen.length < 5) { requestAnimationFrame(f); } else { done(JSON.stringify(seen)); }
+      };
+      requestAnimationFrame(f);
+    })`).then(JSON.parse);
+    const toGame = await swap('game');
     await shot(page, 'quad-4-game');
-    await page.evaluate("(window.__ui.settings.hudStyle = 'osd', window.__ui.persistSettings(), true)");
-    const both = `JSON.stringify([window.__fpvOsd().on, getComputedStyle(document.querySelector('.osd-top')).display, window.__ui.screen, window.__craftState().mode])`;
-    let back = JSON.parse(await page.evaluate(both));
-    for (let i = 0; i < 30 && !(back[0] && back[1] === 'none'); i += 1) {
-      await page.sleep(100);
-      back = JSON.parse(await page.evaluate(both));
-    }
-    say(back[0] && back[1] === 'none', `HUD style FPV OSD: OSD on, the game clock hidden (${back.join(', ')})`);
+    const toOsd = await swap('osd');
+    const exclusive = (seen) => seen.every(([a, b]) => a !== b);
+    const within = (seen, osdUp) => seen.findIndex(([a]) => a === osdUp) <= 1 && seen.slice(2).every(([a]) => a === osdUp);
+    say(exclusive(toGame) && within(toGame, false), `HUD style Game: the OSD goes and the game readout comes back in the same frame, within two frames (${toGame.map(([a]) => (a ? 'osd' : 'game')).join(' ')})`);
+    say(exclusive(toOsd) && within(toOsd, true), `HUD style FPV OSD: back the same way (${toOsd.map(([a]) => (a ? 'osd' : 'game')).join(' ')})`);
 
     /* A bank, held by a loop on the craft's own attitude, since a stick
      * timed on the wall clock is a different bank on every machine. */
@@ -224,7 +246,9 @@ async function quad() {
       };
       requestAnimationFrame(tick);
     })()`);
-    await page.sleep(2500);
+    /* Two sim seconds of the loop, then a frame for the OSD to catch up. */
+    await page.until(`window.__fpvOsd().values.simT > ${(await osd(page)).values.simT + 2}`, 180000);
+    await settle(page);
     const [c, bank] = await Promise.all([craft(page), osd(page)]);
     const want = attitudeOfCraft(c);
     const ahRoll = Math.max(-400, Math.min(400, Math.round(bank.values.roll * 10)));
@@ -241,20 +265,21 @@ async function quad() {
     await page.evaluate('(window.__ui.settings.packVoltage = 3.5, window.__ui.persistSettings(), true)');
     await page.tap('KeyR');
     await page.until('window.__fpvOsd().on && window.__fpvOsd().values.mah === 0', 60000);
-    await page.sleep(600);
+    await settle(page);
     const low0 = await osd(page);
     say(low0.values.warning === 'BATT < FULL', `a 3.5 V pack before takeoff: "${low0.values.warning}"`);
     await page.evaluate('window.__stick(0, 0, 0, 0.8)');
-    await page.sleep(2500);
-    /* It blinks at Betaflight's 2 Hz, so it is looked for over a few seconds:
-     * on a loaded machine the ticks can fall in step with the blink. */
+    /* Waited on the battery state, which is on the sim clock. */
+    await page.until("['warning', 'critical'].includes(window.__fpvOsd().values.battery)", 180000).catch(() => null);
+    /* It blinks at Betaflight's 2 Hz, so it is looked for frame by frame
+     * over a few blink periods. */
     let low = await osd(page);
     let lit = false;
     for (let i = 0; i < 60 && !lit; i += 1) {
       low = await osd(page);
       lit = rowsHave(low, low.values.warning || '@');
       if (!lit) {
-        await page.sleep(80);
+        await frames(page, 1);
       }
     }
     await shot(page, 'quad-5-lowbatt');
@@ -281,7 +306,7 @@ async function quad() {
         seen = now;
         await shot(page, 'quad-6-crash');
       } else {
-        await page.sleep(50);
+        await frames(page, 1);
       }
     }
     say(Boolean(hit) && Boolean(seen) && /mono/i.test(seen.font) && seen.upper === 'uppercase',
@@ -336,7 +361,7 @@ async function plane() {
     say(o.values.disarmed && o.values.flaps === 0 && rowsHave(o, 'FLAPS UP'), 'on the strip: DISARMED, FLAPS UP');
     say(o.values.mode === 'ANGL' || o.values.mode === 'MANU' || o.values.mode === 'ACRO', `flight mode ${o.values.mode}, INAV's name for the tune's stabiliser`);
     await page.tap('KeyF');
-    await page.sleep(500);
+    await settle(page);
     o = await osd(page);
     say(o.values.flaps === 1 && rowsHave(o, 'FLAPS HALF'), 'F: FLAPS HALF');
     /* Waits are on what the plane has done, not on the wall clock: a
@@ -375,17 +400,17 @@ async function plane() {
     await shot(page, 'plane-3-cruise');
 
     await page.tap('KeyC');
-    await page.sleep(700);
+    await settle(page);
     const chase = await osd(page);
     const top = await page.evaluate("getComputedStyle(document.querySelector('.osd-top')).display");
     await shot(page, 'plane-4-chase');
     say(!chase.on && top !== 'none', 'chase view: no OSD, the game readout');
     await page.tap('KeyC');
-    await page.sleep(700);
+    await settle(page);
     const los = await osd(page);
     say(!los.on, 'line of sight: no OSD');
     await page.tap('KeyC');
-    await page.sleep(700);
+    await settle(page);
     const again = await osd(page);
     say(again.on, 'back to FPV: the OSD returns');
     await sizes(page, 'plane');
@@ -408,11 +433,11 @@ async function race() {
     await flyAndWait(page, 'custom');
     const o = await osd(page);
     say(/^LAP /.test(o.values.clock) && /^GATE 1\/\d+$/.test(o.values.gate) && rowsHave(o, o.values.gate), `the race: "${o.values.clock}", "${o.values.gate}", cue "${o.values.cue}"`);
-    /* Lit for 2.8 s, as a crossing lights it; looked for over two. */
+    /* Lit for 2.8 s of wall clock, as a crossing lights it. */
     await page.evaluate('window.__ghostGapShow(-340, false)');
     let g = await osd(page);
     for (let i = 0; i < 20 && !rowsHave(g, 'GHOST -0.34'); i += 1) {
-      await page.sleep(100);
+      await frames(page, 1);
       g = await osd(page);
     }
     say(rowsHave(g, 'GHOST -0.34'), 'the ghost gap, lit: GHOST -0.34');
