@@ -1479,10 +1479,12 @@ export function createBuildMode(host) {
 
   /* The flight's own overlays, off while building. The music dock goes too:
    * in flight it sits in the top left corner, right over the build panel,
-   * and a record's name there read as the name of the track being built. */
+   * and a record's name there read as the name of the track being built.
+   * And the aircraft chip: a swap is for a flight, and the test flight
+   * (B) has it. */
   function hideShellHud(on) {
     if (on) {
-      hidden = [ui.osd, ui.banner, ui.lock, ui.musicDock].filter(Boolean).map((el) => [el, el.style.visibility]);
+      hidden = [ui.osd, ui.banner, ui.lock, ui.musicDock, ui.swapChip].filter(Boolean).map((el) => [el, el.style.visibility]);
       for (const [el] of hidden) {
         el.style.visibility = 'hidden';
       }

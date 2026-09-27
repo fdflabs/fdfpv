@@ -8519,8 +8519,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
 
     input.poll(nowWall);
-    /* A gamepad's swap buttons, in flight only: see padSwapButtons. */
-    if (ui.screen === 'flight') {
+    /* A gamepad's swap buttons, in flight only: see padSwapButtons. Not
+     * while the builder is building, on the same flight screen with the run
+     * paused under it: there Y carries a gate and the shoulders walk its
+     * hotbar. Its test flight is a flight, and swaps like one. */
+    if (ui.screen === 'flight' && !(build && build.cameraLive)) {
       ui.pollFlightPad(input.padSwapButtons());
     }
     /* The title ends the run a swap held the world for. */
