@@ -4214,6 +4214,13 @@
       .pause-chip { top: 52px; }
       .pause-chip[hidden] { display: none; }
       .touch-fly-on .pause-chip { display: none; }
+      /* The swap in place, under Pause, the same chip. The thumb sticks
+         mount their own at the same spot. */
+      .swap-chip { top: 88px; }
+      .swap-chip[hidden] { display: none; }
+      .touch-fly-on .swap-chip { display: none; }
+      .touch-fly .touch-swap { top: 88px; }
+
       /*
        * THE AIRCRAFT PICKER (src/ui/carousel.js). The models are drawn in
        * the canvas UNDER all of this (src/render/carousel3d.js), so the

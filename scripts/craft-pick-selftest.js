@@ -8,6 +8,9 @@
  * 2. The lists the tabs show, and the direct cycle, [ and ], which visits
  *    every aircraft and comes back round.
  * 3. The layout a drag reads is the layout drawn: slotOf undoes slotX.
+ * 4. Changing aircraft and changing back lands on the tune each was last
+ *    flown on (seatAirframe's tuneFor), and a stale entry falls back to
+ *    the aircraft's default.
  *
  * Run with npm run pick:selftest.
  *
@@ -34,9 +37,11 @@ import { fileURLToPath } from 'node:url';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { readPartTable } from './lib/crash.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
+import { tunesFor } from '../configs/registry.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 import { cycleCraft, kindOf, pickList, slotOf, slotX } from '../src/ui/carousel.js';
+import { seatAirframe } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -96,6 +101,22 @@ console.log('3. the layout');
   const worst = Math.max(...ds.map((d) => Math.abs(slotOf(slotX(d)) - d)));
   check('slotOf undoes slotX', worst < 1e-12, `worst ${worst.toExponential(1)}`);
   check('the neighbours stand either side, in order', ds.every((d, i) => i === 0 || slotX(d) > slotX(ds[i - 1])));
+}
+
+console.log('4. the tune goes with the aircraft');
+{
+  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'cub1400');
+  const cubTunes = tunesFor('cub1400').map((t) => t.id);
+  const other = cubTunes.find((t) => t !== airframeById('cub1400').defaultTune);
+  check('the Cub gets its default tune the first time', s.tune === airframeById('cub1400').defaultTune, s.tune);
+  s.tune = other;
+  seatAirframe(s, '5inch');
+  check('the five inch gets its own back', s.tune === airframeById('5inch').defaultTune, s.tune);
+  seatAirframe(s, 'cub1400');
+  check('and the Cub the one it was last flown on', s.tune === other, `${s.tune}, of ${cubTunes.join(', ')}`);
+  s.tuneFor = { ...s.tuneFor, sky1800: 'no-such-tune' };
+  seatAirframe(s, 'sky1800');
+  check('a remembered tune the aircraft no longer offers falls back to its default', s.tune === airframeById('sky1800').defaultTune, s.tune);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
