@@ -178,7 +178,7 @@ and the first run, with the Bombshell's entries, is why:
 | S15 take off | 4.42 to 9.63 m, 1.1 to 1.5 Vs | the same | 8.75 m at 10.33 m/s |
 | S16 landing | | under 1.23 Vs, 8.81 m/s | touched at 7.69, rolled 41 m, at rest level |
 | S17 other aircraft unmoved | main's hashes | identical | identical |
-| S18 Node and Chrome | | identical | f153f3efb5a0c4ad both |
+| S18 Node and Chrome | | identical | c4b3dfe7a70afdaa both |
 | S20 idle on the strip | 2,300 rpm, stands | 2,185 to 2,415 rpm, under 1 mm/s | 2,300 rpm, 0.60 mm/s, stands |
 | S21 throttle closed, let go | 14.08 m/s sinking 2.32 | 2.07 to 2.60, 12.11 to 16.40 m/s | 2.41 at 14.24 |
 
