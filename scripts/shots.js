@@ -115,7 +115,15 @@ async function main() {
    * opens on the Alps (src/boot.js), so the seat alone would leave the
    * course unbuilt until Fly. A --url that names its own map= wins.
    */
-  const seed = [];
+  /*
+   * A capture is not a visit. Counting it posts a beacon to the board
+   * (src/share/stats.js), which on a machine with no board running is a
+   * refused connection in the console, and this run's exit code is the
+   * console's.
+   */
+  const seed = [`try {
+    localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
+  } catch (e) { /* Storage refused; the visit is counted. */ }`];
   if (opts.graphics) {
     seed.push(`try {
       const k = ${JSON.stringify(SETTINGS_KEY)};
