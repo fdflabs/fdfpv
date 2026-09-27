@@ -9998,6 +9998,9 @@ export class Ui {
     /* Called from the frame loop as well as from events, so it is guarded
      * like the OSD. */
     const want = text || '';
+    /* For the FPV OSD, which draws the banner itself in its own type
+     * (src/ui/fpvhud.js) while the element is hidden. */
+    this.bannerText = want;
     Ui.text(this.banner, want);
     const opacity = want ? '1' : '0';
     if (this.banner.__wfOpacity !== opacity) {

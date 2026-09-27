@@ -157,6 +157,9 @@ const LADDER_STEP = 10;
 const LADDER_BOTTOM = 12;
 /* The widest line the race readout may take, top centre. */
 const RACE_WIDE = 28;
+/* The widest line of a banner, the PAL grid's own width, and the widest
+ * the readout grid is happy to give it on a phone. */
+const BANNER_WIDE = 30;
 /* The home arrow's half size in its instrument cell, as drawSymbol draws
  * it, so the row it takes can be chosen clear of the heading. */
 const ARROW_HALF = 0.42;
@@ -192,37 +195,52 @@ const SYM = {
  * small character. In a cell sized for 11 px type that is letters three
  * pixels wide, which nobody reads, so here a label spans the cells its
  * letters need: the same small letters, drawn once across the span, each
- * cell of it a code of its own from P + 64 on. LABEL_PART maps a code to
- * the label, its span and which cell of it the code is.
+ * cell of it a code of its own from P + 64 on. The launch countdown's digit
+ * is the same thing the other way: one character at twice the type size,
+ * two cells wide and two rows tall, the one exception to the rule that no
+ * HUD text stands taller than the song title, because a single 11 px "3"
+ * is unreadable in a goggle. LABEL_PART maps a code to the text, its span
+ * in cells and rows, which cell of the span the code is, and the size as a
+ * share of the type's.
  */
 const LABELS = [
-  ['LQ', 'LQ', 2],
-  ['THR', 'THR', 2],
-  ['ON_M', 'ON', 2],
-  ['FLY_M', 'FLY', 2],
-  ['MAH', 'mAh', 2],
-  ['KMH', 'KM/H', 3],
-  ['MS', 'M/S', 2],
-  ['AIR', 'AS', 2],
-  ['GS', 'GS', 2],
+  ['LQ', 'LQ', 2, 1, 0.78],
+  ['THR', 'THR', 2, 1, 0.78],
+  ['ON_M', 'ON', 2, 1, 0.78],
+  ['FLY_M', 'FLY', 2, 1, 0.78],
+  ['MAH', 'mAh', 2, 1, 0.78],
+  ['KMH', 'KM/H', 3, 1, 0.78],
+  ['MS', 'M/S', 2, 1, 0.78],
+  ['AIR', 'AS', 2, 1, 0.78],
+  ['GS', 'GS', 2, 1, 0.78],
+  ...'0123456789'.split('').map((d) => [`BIG_${d}`, d, 2, 2, 2]),
 ];
 const LABEL_PART = new Map();
-LABELS.reduce((code, [name, text, cells]) => {
+LABELS.reduce((code, [name, text, cols, rows, size]) => {
   SYM[name] = code;
-  for (let k = 0; k < cells; k += 1) {
-    LABEL_PART.set(code + k, [text, cells, k]);
+  for (let j = 0; j < rows; j += 1) {
+    for (let k = 0; k < cols; k += 1) {
+      LABEL_PART.set(code + j * cols + k, [text, cols, rows, k, j, size]);
+    }
   }
-  return code + cells;
+  return code + cols * rows;
 }, P + 64);
 
 const ch = (code) => String.fromCharCode(code);
-const label = (code) => {
-  let out = '';
-  for (let k = 0; k < LABEL_PART.get(code)[1]; k += 1) {
-    out += ch(code + k);
+/* A label's rows, each the codes of its cells. */
+const labelRows = (code) => {
+  const [, cols, rows] = LABEL_PART.get(code);
+  const out = [];
+  for (let j = 0; j < rows; j += 1) {
+    let line = '';
+    for (let k = 0; k < cols; k += 1) {
+      line += ch(code + j * cols + k);
+    }
+    out.push(line);
   }
   return out;
 };
+const label = (code) => labelRows(code)[0];
 
 /*
  * The page's rules for the OSD, injected once rather than shipped as a
@@ -230,25 +248,17 @@ const label = (code) => {
  * (scripts/serve.js, tests/lib/server.js) knows the type, so a link would
  * be refused in the harness and pass on the deploy, the worst split.
  *
- * With the OSD up, the game's clock, corners and launch overlay step aside,
- * because the OSD carries all of them. The stick gimbals, the weight slider
- * and the score stay: they are the game's aids, not the flight controller's.
- * Banners (Crashed, Wrecked, the lap flash, the takeoff prompt) are the game
- * talking and they stay too, but in the goggles they read as OSD text:
- * white capitals with a hard black edge and no panel under them, below the
- * warnings, where the race readout and the horizon are not.
+ * With the OSD up, the game's clock, corners, launch overlay and banner
+ * step aside, because the OSD carries all of them: the banner's text (the
+ * takeoff prompt, the countdown, Crashed, Wrecked, the lap flash, a notice)
+ * is drawn by buildBanner in the OSD's own type, where a Betaflight OSD
+ * puts its warnings. The banner element keeps its text for the screen
+ * reader's announcer. The stick gimbals, the weight slider and the score
+ * stay: they are the game's aids, not the flight controller's.
  */
 const OSD_CSS = `
 canvas.fpv-osd { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
-#ui.fpv-osd-on .osd-top, #ui.fpv-osd-on .osd-corner, #ui.fpv-osd-on .osd-launch { display: none; }
-#ui.fpv-osd-on .banner { top: 66%; }
-#ui.fpv-osd-on .banner, #ui.fpv-osd-on .banner.panel, #ui.fpv-osd-on .banner.edge {
-  font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.02em;
-  background: none; box-shadow: none; border-radius: 0;
-  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000,
-    0 -2px 0 #000, 0 2px 0 #000, -2px 0 0 #000, 2px 0 0 #000;
-}
+#ui.fpv-osd-on .osd-top, #ui.fpv-osd-on .osd-corner, #ui.fpv-osd-on .osd-launch, #ui.fpv-osd-on .banner { display: none; }
 `;
 
 /* Betaflight's battery glyph: the average cell over min..max mapped to
@@ -383,7 +393,7 @@ function inkFill(g, a, build) {
   g.fill();
 }
 
-/* The OSD's type, the same family the banners take in OSD_CSS. */
+/* The OSD's type. */
 function osdFont(g, size) {
   g.font = `bold ${size}px ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, "Liberation Mono", monospace`;
 }
@@ -415,8 +425,8 @@ function inkText(g, a, text, x, y, size, maxW) {
 /* One cell of a label: the whole label is drawn centred on its span, in
  * this cell's coordinates, and the slot's clip keeps this cell's slice. */
 function drawLabel(g, code, a) {
-  const [text, cells, k] = LABEL_PART.get(code);
-  inkText(g, a, text, (cells / 2 - k) * a.w, a.h * TEXT_Y, a.textPx * 0.78, cells * a.w - 2 * a.edge);
+  const [text, cols, rows, k, j, size] = LABEL_PART.get(code);
+  inkText(g, a, text, (cols / 2 - k) * a.w, (rows * TEXT_Y - j) * a.h, a.textPx * size, cols * a.w - 2 * a.edge);
 }
 
 function drawSymbol(g, code, a) {
@@ -803,7 +813,8 @@ export class FpvOsd {
   /*
    * One flight frame. `v` is the object the game hands its own setOsd, `x`
    * the rest: the plant state block, the pack, the render's attitude and
-   * position, the camera, home, the link and the arming picture.
+   * position, the camera, home, the link, the arming picture and the
+   * game's banner text.
    */
   feed(v, x) {
     const t0 = performance.now();
@@ -1024,13 +1035,19 @@ export class FpvOsd {
   }
 
   /* The first thing a box of readout cells would sit on: a readout placed
-   * before it this tick, or one of the game's chips and gimbals. */
+   * before it this tick, a cell already written (a ladder number), or one
+   * of the game's chips and gimbals. */
   blocker(col, row, cols, rows) {
     const T = this.t;
     const hits = (b) => b.col < col + cols && col < b.col + b.cols && b.row < row + rows && row < b.row + b.rows;
     for (const b of this.placed) {
       if (hits(b)) {
         return b;
+      }
+    }
+    for (let r = row; r < row + rows; r += 1) {
+      if (r >= 0 && r < T.rows && !T.free(Math.max(0, col), r, Math.min(cols, T.cols - Math.max(0, col)))) {
+        return { col, row: r, cols, rows: 1 };
       }
     }
     for (const r of this.keepOut) {
@@ -1124,6 +1141,7 @@ export class FpvOsd {
       this.buildQuad();
     }
     this.buildWarnings(v, x, blinkOn);
+    this.buildBanner(x);
   }
 
   /*
@@ -1461,5 +1479,41 @@ export class FpvOsd {
     }
     this.values.warning = warning;
     this.values.disarmed = disarmed;
+  }
+
+  /*
+   * The game's banner, in the OSD's type under the warnings: capitals, as
+   * a MAX7456 font has, the lines wrapped at BANNER_WIDE and centred. A
+   * lone digit is the launch countdown, drawn two rows tall (see LABELS).
+   */
+  buildBanner(x) {
+    const text = x.banner || '';
+    this.values.banner = text;
+    if (!text) {
+      return;
+    }
+    let lines;
+    if (/^[0-9]$/.test(text)) {
+      lines = labelRows(SYM[`BIG_${text}`]);
+    } else {
+      const wide = Math.min(BANNER_WIDE, this.t.cols);
+      lines = [];
+      for (const para of text.toUpperCase().split('\n')) {
+        let line = '';
+        for (const word of para.split(' ')) {
+          if (!word) {
+            continue;
+          }
+          if (line && line.length + 1 + word.length > wide) {
+            lines.push(line);
+            line = '';
+          }
+          line = line ? `${line} ${word}` : word.slice(0, wide);
+        }
+        lines.push(line);
+      }
+    }
+    const I = this.i;
+    this.readout('banner', 'c', this.textRow(I.oy + (MID_ROW + 4.5) * I.ch), lines);
   }
 }

@@ -10063,6 +10063,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         armed: motorsTurning,
         flown: flownThisRun,
         crashFlip: crashflipOn || turtleWait || turtleFlip.active,
+        /* Last frame's, since the banner is chosen further down. */
+        banner: ui.bannerText,
       });
       const ch = input.channels;
       const vis = turtleAxes(ch.roll, ch.pitch);
