@@ -8,8 +8,12 @@
  * the attitude, a plane's altitude, speeds and home distance match
  * window.__craftState, the race clock and gates are there, the HUD style
  * setting switches the OSD off and survives a reload, and chase view has
- * none. It also resizes the page to a phone held both ways and to 4:3 and
- * checks the grid still fits, and prints what the OSD costs a frame.
+ * none. It also resizes the page to 1280x720, 1920x1080, 1280x720 at twice
+ * the pixels, a phone held both ways and 4:3, and on each checks that the
+ * type is no taller than the music player's song title (the owner's
+ * yardstick), that both grids fit, and that every readout is on the
+ * screen, off every other and off the game's chips and stick gimbals, in
+ * its corner or on its edge. It prints what the OSD costs a frame.
  *
  *   node scripts/osd-check.js [--shots=dir] [--only=quad|plane|race]
  *
@@ -135,19 +139,137 @@ async function flyAndWait(page, map) {
   await settle(page);
 }
 
-/* Screens the pilot flies on: a phone held upright and on its side, a 4:3
- * monitor. The grid has to stay on the canvas and the canvas on the page. */
+/*
+ * THE TYPE AND THE LAYOUT. The owner's yardstick is the music player's song
+ * title: no OSD character may be taller than it on the same screen. Both
+ * are measured the same way, as the height of the white ink of the digits
+ * "100": the OSD's straight off its canvas (the LQ readout), the title's by
+ * drawing the same digits in the title's computed font on a whole pixel
+ * baseline, as text is laid out. A row counts for as much of a pixel as its
+ * whitest pixel is white. INK_TOL is that measure's own noise, a tenth of a
+ * pixel, and no more.
+ */
+const INK_TOL = 0.1;
+/* The OSD's type in CSS px on a desktop screen: about 11, the title's size,
+ * and never over it. */
+const TYPE_BAND = [9, 11];
+const measure = (page) => page.evaluate(`(() => {
+  const L = window.__fpvOsd().layout;
+  const s = L.scale;
+  const ink = (img) => {
+    let sum = 0;
+    for (let y = 0; y < img.height; y += 1) {
+      let m = 0;
+      for (let x = 0; x < img.width; x += 1) {
+        const i = (y * img.width + x) * 4;
+        m = Math.max(m, (Math.min(img.data[i], img.data[i + 1], img.data[i + 2]) * img.data[i + 3]) / 65025);
+      }
+      sum += m;
+    }
+    return sum;
+  };
+  const r = L.readouts.find((b) => b.id === 'lq-fly');
+  const g = document.querySelector('canvas.fpv-osd-text').getContext('2d');
+  const osd = r ? ink(g.getImageData(Math.round((r.x + 2 * L.text.cw) * s), Math.round(r.y * s),
+    Math.round(3 * L.text.cw * s), Math.round(L.text.ch * s))) / s : NaN;
+  const title = document.querySelector('.music-title');
+  const cs = getComputedStyle(title);
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(80 * s);
+  c.height = Math.ceil(40 * s);
+  const t = c.getContext('2d');
+  /* At the device size, as the page sets it, not scaled up from the CSS
+   * one: hinting works on the pixels it is given. */
+  t.font = cs.fontWeight + ' ' + parseFloat(cs.fontSize) * s + 'px ' + cs.fontFamily;
+  t.fillStyle = '#fff';
+  t.textBaseline = 'alphabetic';
+  t.fillText('100', 4, Math.round(30 * s));
+  const chips = [...document.querySelectorAll('.bug-chip, .music-dock, .osd-gimbal')]
+    .map((e) => e.getBoundingClientRect()).filter((b) => b.width > 0 && b.height > 0)
+    .map((b) => ({ x: b.left, y: b.top, w: b.width, h: b.height }));
+  return JSON.stringify({ osd, title: ink(t.getImageData(0, 0, c.width, c.height)) / s, titlePx: cs.fontSize,
+    titleShown: title.getBoundingClientRect().width > 0, chips });
+})()`).then(JSON.parse);
+
+const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/*
+ * What is wrong with a layout, as a list: a readout off the screen, on
+ * another, or on one of the game's chips or stick gimbals; a corner group
+ * away from its corner. Ladder numbers are not readouts: they ride the
+ * rungs.
+ */
+function layoutFaults(L, chips, w, h) {
+  const out = [];
+  const R = L.readouts;
+  const by = Object.fromEntries(R.map((r) => [r.id, r]));
+  for (const r of R) {
+    if (r.x < 0 || r.y < 0 || r.x + r.w > w || r.y + r.h > h) {
+      out.push(`${r.id} off the screen`);
+    }
+    for (const c of chips) {
+      if (overlaps(r, c)) {
+        out.push(`${r.id} on a chip at ${Math.round(c.x)},${Math.round(c.y)}`);
+      }
+    }
+  }
+  for (let i = 0; i < R.length; i += 1) {
+    for (let j = i + 1; j < R.length; j += 1) {
+      if (overlaps(R[i], R[j])) {
+        out.push(`${R[i].id} on ${R[j].id}`);
+      }
+    }
+  }
+  /* Anchored: within two cells of its sides, or, where a chip or a gimbal
+   * holds that corner, within two rows under or over it. */
+  const near = 16 + 2 * L.text.cw;
+  const nearY = 16 + 2 * L.text.ch;
+  const beside = (r, c) => r.x < c.x + c.w && c.x < r.x + r.w;
+  const underChip = (r) => chips.some((c) => beside(r, c) && r.y >= c.y + c.h && r.y <= c.y + c.h + 2 * L.text.ch);
+  const overChip = (r) => chips.some((c) => beside(r, c) && r.y + r.h <= c.y && r.y + r.h >= c.y - 2 * L.text.ch);
+  const want = [
+    ['lq-fly', (r) => r.x <= near && (r.y <= nearY || underChip(r))],
+    ['thr-on', (r) => r.x + r.w >= w - near && (r.y <= nearY || underChip(r))],
+    ['mode-batt', (r) => r.x <= near && (r.y + r.h >= h - nearY || overChip(r))],
+    ['amps-mah', (r) => r.x + r.w >= w - near && (r.y + r.h >= h - nearY || overChip(r))],
+    ['race', (r) => Math.abs(r.x + r.w / 2 - w / 2) <= L.text.cw && (r.y <= nearY || underChip(r))],
+  ];
+  for (const [id, ok] of want) {
+    if (!by[id] || !ok(by[id])) {
+      out.push(`${id} not in its place${by[id] ? ` (${Math.round(by[id].x)},${Math.round(by[id].y)} ${Math.round(by[id].w)}x${Math.round(by[id].h)})` : ''}`);
+    }
+  }
+  return out;
+}
+
+/* Screens the pilot flies on: the two desktop sizes, one of them at twice
+ * the pixels, a phone held upright and on its side, a 4:3 monitor. On each
+ * the type is no taller than the song title, the grids stay on the canvas
+ * and the readouts in their places. */
 async function sizes(page, tag) {
-  for (const [w, h, mobile] of [[390, 844, true], [844, 390, true], [1024, 768, false]]) {
-    await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile }, page.sessionId);
+  for (const [w, h, dpr, mobile] of [[1280, 720, 1, false], [1920, 1080, 1, false], [1280, 720, 2, false],
+    [390, 844, 1, true], [844, 390, 1, true], [1024, 768, 1, false]]) {
+    await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dpr, mobile }, page.sessionId);
     await settle(page);
     const o = await osd(page);
+    const m = await measure(page);
     const L = o.layout;
-    /* On the canvas, and the crosshair cell centred on the screen. */
-    const fits = L.w === w && L.h === h && L.ox >= 0 && L.oy >= 0 && L.ox + 30 * L.cw <= L.w && L.oy + 16 * L.ch <= L.h
-      && Math.abs(L.ox + 14.5 * L.cw - w / 2) <= 1 && Math.abs(L.oy + 7.5 * L.ch - h / 2) <= 1;
-    say(o.on && fits, `${tag} at ${w}x${h}: canvas ${L.w}x${L.h}, cells ${L.cw}x${L.ch}, grid from ${L.ox},${L.oy}`);
-    await shot(page, `${tag}-${w}x${h}`);
+    const I = L.inst;
+    const T = L.text;
+    const at = `${tag} at ${w}x${h}${dpr > 1 ? ` x${dpr}` : ''}`;
+    /* On the canvas, the crosshair cell centred on the screen, the
+     * readouts inside the 16 px edge. */
+    const fits = L.w === Math.round(w * dpr) && L.h === Math.round(h * dpr) && L.scale === dpr
+      && I.ox >= 0 && I.oy >= 0 && I.ox + 30 * I.cw <= w && I.oy + 16 * I.ch <= h
+      && Math.abs(I.ox + 14.5 * I.cw - w / 2) <= 1 && Math.abs(I.oy + 7.5 * I.ch - h / 2) <= 1
+      && T.ox >= 16 && T.oy >= 16 && T.ox + T.cols * T.cw <= w - 16 && T.oy + T.rows * T.ch <= h - 16;
+    say(o.on && fits, `${at}: canvas ${L.w}x${L.h}; instruments ${f1(I.cw)}x${f1(I.ch)} from ${f1(I.ox)},${f1(I.oy)}; readouts ${T.cols}x${T.rows} cells of ${f1(T.cw)}x${f1(T.ch)}`);
+    const desk = !mobile;
+    say(m.osd <= m.title + INK_TOL && m.osd >= 0.85 * m.title && (!desk || (L.textPx >= TYPE_BAND[0] && L.textPx <= TYPE_BAND[1])),
+      `${at}: type ${f2(L.textPx)} px, digits ${f2(m.osd)} px of white ink against the song title's ${f2(m.title)} px (${m.titlePx}${m.titleShown ? '' : ', dock hidden'})${desk ? `, in ${TYPE_BAND[0]} to ${TYPE_BAND[1]} px` : ''}`);
+    const faults = layoutFaults(L, m.chips, w, h);
+    say(faults.length === 0, `${at}: ${L.readouts.length} readouts on the screen, apart, clear of ${m.chips.length} chips and gimbals, in their places${faults.length ? `: ${faults.join('; ')}` : ''}`);
+    await shot(page, `${tag}-${w}x${h}${dpr > 1 ? `x${dpr}` : ''}`);
   }
   await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false }, page.sessionId);
   await settle(page);
@@ -162,7 +284,10 @@ function cost(o, tag) {
 
 async function quad() {
   console.log('\nquad: five inch on the Alps');
-  const settings = seatFor('5inch', 'alps');
+  /* Sound on, so the music dock and its song title are on screen, top
+   * left: the title is the type's yardstick and the dock a chip the
+   * readouts must clear. The plane flies with it off. */
+  const settings = { ...seatFor('5inch', 'alps'), sound: true };
   const page = await open(settings, 'alps');
   try {
     await flyAndWait(page, 'alps');
