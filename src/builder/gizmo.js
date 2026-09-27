@@ -117,7 +117,11 @@ export function createGizmo() {
       return null;
     }
     const hits = raycaster.intersectObjects(pickables, false);
-    return hits.length ? hits[0].object.userData.handle : null;
+    /* An arrow before a ring: seen edge on, a ring is a line straight
+     * through the arrows that lie in its plane, and an arrow is the
+     * smaller thing to have aimed at. */
+    const arrow = hits.find((h) => h.object.userData.handle.startsWith('move-'));
+    return (arrow ?? hits[0])?.object.userData.handle ?? null;
   }
 
   function hover(name) {

@@ -272,6 +272,10 @@ export function createBuildMode(host) {
   let airDistance = AIR_DEFAULT;
   let speedIndex = SPEED_START;
   let sprint = false;
+  /* Shift sinks the camera, and turns a piece the other way with R, T or
+   * Y: once it has turned one, it is that key's Shift until it is let go,
+   * so a reverse turn does not also drop the camera. */
+  let shiftChord = false;
   let lastW = -Infinity;
   const turn = { yaw: 0, pitch: 0, roll: 0 };
   /* The free camera: where it is, where it looks, how fast it moves. */
@@ -924,7 +928,10 @@ export function createBuildMode(host) {
   function driveCamera(dtS, gp, padDown) {
     let ahead = keyAxis('KeyW', 'KeyS');
     let side = keyAxis('KeyD', 'KeyA');
-    let rise = (input.keys.has('Space') ? 1 : 0) - (shiftHeld() ? 1 : 0);
+    if (!shiftHeld()) {
+      shiftChord = false;
+    }
+    let rise = (input.keys.has('Space') ? 1 : 0) - (shiftHeld() && !shiftChord ? 1 : 0);
     let yawIn = 0;
     let lookIn = 0;
     if (!input.keys.has('KeyW')) {
@@ -1750,6 +1757,7 @@ export function createBuildMode(host) {
     const turnKeys = { KeyR: ['yaw', 1], KeyT: ['pitch', -1], KeyY: ['roll', 1] };
     if (turnKeys[code] && !ctrlHeld()) {
       const [axis, dir] = turnKeys[code];
+      shiftChord = shiftChord || shiftHeld();
       rotate(axis, shiftHeld() ? -dir : dir);
       return true;
     }
