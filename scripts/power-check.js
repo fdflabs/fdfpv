@@ -87,11 +87,17 @@ function osdFor(cells) {
   const o = Object.create(FpvOsd.prototype);
   o.stats = { feeds: 0, feedMs: 0 };
   o.configSeen = null;
+  o.buf = new Uint16Array(30 * 16);
   o.resetRun();
   return {
     feed(st, power) {
       o.feed({}, { st, cells, restVolts: 4.2 * cells, power, armed: true, config: '', link: null });
       return { batt: o.batt, vFilt: o.vFilt, mah: o.mah };
+    },
+    /* The warning the OSD puts under the crosshair this frame. */
+    warning(cellsNow) {
+      o.buildWarnings({ launchState: 0 }, { armed: true, flown: true, crashFlip: false, cells: cellsNow }, true);
+      return o.values.warning;
     },
   };
 }
@@ -238,6 +244,10 @@ function flightTime(id, option, pack, speed, cells, { full = false, until = 'cut
       if (pw.lean && r.leanS == null) {
         r.leanS = ms / 1000;
         r.rpmAtLean = st[14];
+        r.leanWarning = osd.warning(cells);
+      }
+      if (!pw.running && r.outWarning == null) {
+        r.outWarning = osd.warning(cells);
       }
       if (pw.lean) {
         r.maxRpmLean = Math.max(r.maxRpmLean, st[14]);
@@ -347,6 +357,9 @@ for (const id of ids) {
     check('P6 the engine leans, speeds up, then quits on a dry tank',
       ft.leanS != null && ft.cutS != null && ft.leanS < ft.cutS && ft.maxRpmLean > ft.rpmAtLean,
       `lean at ${minutes(ft.leanS)}, dry at ${minutes(ft.cutS)}, ${Math.round(ft.rpmAtLean)} rpm as it leans, ${Math.round(ft.maxRpmLean)} at the peak`);
+    check('P6 the OSD warns LOW FUEL in the lean run and ENGINE OUT when it quits',
+      ft.leanWarning === 'LOW FUEL' && ft.outWarning === 'ENGINE OUT',
+      `"${ft.leanWarning}", then "${ft.outWarning}"`);
     /* And it glides: 20 s more with the throttle where it was. */
     let minZ = Infinity;
     let vMin = Infinity;

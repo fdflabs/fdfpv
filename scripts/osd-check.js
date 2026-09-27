@@ -552,6 +552,11 @@ async function plane() {
     say(b.values.homeDist > d1 + 20 && near(b.values.homeDist, dTrue, Math.max(3, c2.speed * 0.5)),
       `home distance grows: ${f1(d1)} to ${f1(b.values.homeDist)} m (__craftState ${f1(dTrue)} m), arrow ${b.values.homeDir} of 16, 8 is straight behind`);
     say(b.values.homeDir >= 6 && b.values.homeDir <= 10, 'flying away, the home arrow points behind');
+    /* The plane's pack is the plant's: the OSD's mAh is the charge the
+     * plant has drawn, not a count of its own (docs/POWER-STAGE1.md). */
+    const [pm, pc] = await Promise.all([osd(page), page.evaluate('window.__craft()')]);
+    say(pc.power && pc.power.capacityC > 0 && near(pm.values.mah, pc.power.chargeC / 3.6, 2) && pm.values.fuel === null,
+      `mAh is the plant's: ${f1(pm.values.mah)} on the OSD, ${pc.power ? f1(pc.power.chargeC / 3.6) : '?'} drawn of a ${pc.power ? f1(pc.power.capacityC / 3.6) : '?'} mAh pack, no fuel readout`);
     await shot(page, 'plane-3-cruise');
 
     await page.tap('KeyC');
@@ -570,6 +575,29 @@ async function plane() {
     say(again.on, 'back to FPV: the OSD returns');
     await sizes(page, 'plane');
     cost(await osd(page), 'plane');
+  } finally {
+    await page.close();
+  }
+}
+
+/*
+ * A glow plane: the Kadet Senior on its stock engine and tank. The fuel
+ * readout is the plant's tank, full on the strip and falling in the climb.
+ */
+async function glow() {
+  console.log('\nglow: Kadet Senior on the Alps');
+  const settings = { ...seatFor('kadet1981', 'alps'), wingView: 'fpv' };
+  const page = await open(settings, 'alps');
+  try {
+    await flyAndWait(page, 'alps');
+    const o = await osd(page);
+    say(o.values.fuel === 100 && rowsHave(o, 'FUEL100%'), `on the strip: the tank full, ${JSON.stringify(o.values.fuel)} percent`);
+    await page.evaluate(PLANE_PILOT);
+    await page.until('window.__fpvOsd().values.fuel < 100', 240000).catch(() => {});
+    const [g, c] = await Promise.all([osd(page), page.evaluate('window.__craft()')]);
+    await shot(page, 'glow-1-climb');
+    say(g.values.fuel < 100 && c.power && Math.abs(g.values.fuel - c.power.fuelFrac * 100) <= 1,
+      `in flight it burns: ${g.values.fuel} percent on the OSD, ${c.power ? f1(c.power.fuelFrac * 100) : '?'} in the plant's ${c.power ? f1(c.power.tankM3 * 1e6) : '?'} cc tank`);
   } finally {
     await page.close();
   }
@@ -653,6 +681,7 @@ try {
   }
   if (!only || only === 'plane') {
     await plane();
+    await glow();
   }
   if (!only || only === 'race') {
     await race();

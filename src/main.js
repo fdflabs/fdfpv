@@ -10593,6 +10593,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     massKg: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(51) : 0,
     drawn: shell.quad.name,
     shown: drawnCraft,
+    power: readPower(),
+    cells: runCells,
   });
   /*
    * WHERE THE CRAFT IS AGAINST THE FLOOR UNDER IT, which is the one thing
