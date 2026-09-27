@@ -349,6 +349,10 @@ export const LAP_COUNTS = [1, 3, 5];
  * poll and the physics never see either: the cap skips only the draw. */
 export const RENDER_SCALES = [100, 85, 70, 55];
 export const FPS_CAPS = [0, 90, 60, 30];
+/* What the FPV camera view draws over the picture: 'osd' is the flight
+ * controller's on screen display (src/ui/fpvhud.js), 'game' the game's own
+ * readout. Chase and line of sight always draw the game's. */
+export const HUD_STYLES = ['osd', 'game'];
 /* Expert is the full model and the default; arcade switches the
  * imperfection terms off in the module via sim_set_flight_style. */
 export const FLIGHT_STYLES = ['expert', 'arcade'];
@@ -688,6 +692,7 @@ const DEFAULTS = {
    * camera behind the plane, or line of sight from a pilot at the strip.
    * A quad flies FPV only. */
   wingView: 'fpv',
+  hudStyle: 'osd',
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
@@ -939,6 +944,7 @@ export function loadSettings() {
     ['cameraFov', CAMERA_FOVS],
     ['renderScale', RENDER_SCALES],
     ['fpsCap', FPS_CAPS],
+    ['hudStyle', HUD_STYLES],
     ['flightStyle', FLIGHT_STYLES],
     ['laps', LAP_COUNTS],
     ['packVoltage', PACK_VOLTAGES],
@@ -6036,6 +6042,14 @@ export class Ui {
           s.fpsCap,
           (n) => (n === 0 ? str('ui.uncapped') : `${n} fps`),
           (n) => { s.fpsCap = n; },
+        ),
+        choice(
+          str('ui.hud_style'),
+          str('ui.hud_style_note'),
+          HUD_STYLES,
+          s.hudStyle,
+          (id) => (id === 'osd' ? str('ui.hud_osd') : str('ui.hud_game')),
+          (id) => { s.hudStyle = id; },
         ),
         { label: str('ui.sound'), section: true },
         toggle(str('ui.sound'), str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
