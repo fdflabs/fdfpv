@@ -859,7 +859,7 @@ export function buildKadetCraft(opts = {}) {
   const cel = (o) => celMaterial({ fog, cloudShadow: 0, ...o });
   const film = (name, o = {}) => filmMaterial({
     fog, cloudShadow: 0, color: 0xffffff, rim: 0.26, spec: 0.34, specWidth: 0.012,
-    map: mapFor(name, lite), key: `kadet-film-${name}${lite ? '-lite' : ''}`, glow: 0.55, ...o,
+    map: mapFor(name, lite), key: `kadet-film-${name}${lite ? '-lite' : ''}`, glow: 2.0, ...o,
   });
   const group = new THREE.Group();
   group.name = opts.name ?? 'kadet-craft';

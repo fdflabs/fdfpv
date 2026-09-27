@@ -85,19 +85,26 @@ export function filmMaterial(opts) {
   if (!opts.map || !opts.key) {
     throw new Error('filmmat: a film needs its map and a key naming it');
   }
-  const mat = celMaterial(opts);
-  const glow = { value: opts.glow ?? 1 };
+  return withFilm(celMaterial(opts), { value: opts.glow ?? 1 });
+}
+
+/*
+ * The film's light through the frame on any lit material of three's that
+ * samples the film map as `map`: the cel one above, and the physically
+ * based twin swiss2 dresses a craft in (src/maps/swiss2/craftlook.js),
+ * which hands this the cel material's own glow so the two stay one.
+ */
+export function withFilm(mat, glow) {
   const base = mat.onBeforeCompile;
   const baseKey = mat.customProgramCacheKey.bind(mat);
   mat.onBeforeCompile = (shader, renderer) => {
     base.call(mat, shader, renderer);
     shader.uniforms.uFilmGlow = glow;
-    const before = shader.fragmentShader;
-    shader.fragmentShader = before
+    shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\n uniform float uFilmGlow;')
       .replace('#include <opaque_fragment>', `${FILM_CHUNK}\n#include <opaque_fragment>`);
     if (!shader.fragmentShader.includes('filmBehind')) {
-      throw new Error('filmmat: the toon shader changed and the film chunk did not land');
+      throw new Error('filmmat: the lit shader changed and the film chunk did not land');
     }
   };
   mat.customProgramCacheKey = () => `${baseKey()}|film`;
