@@ -36,9 +36,9 @@
  *   node scripts/audio-probe.js [--trace=NAME] [--seconds=20] [--rate=48000]
  *        [--level=0.6] [--blades=3] [--f0=HZ] [--scream=2000,8000]
  *        [--carrier=80,600] [--beat=6] [--seam=SEC] [--tones=LO,HI]
- *        [--json=PATH] [--voice=quad|wing]
+ *        [--json=PATH] [--voice=quad|wing|glow4]
  *
- * Traces: hover, full, flight, steady:RPM, idle, wing.
+ * Traces: hover, full, flight, steady:RPM, idle, wing, glow.
  *
  * --voice picks the machine's voice, see VOICES in src/render/audio.js, and
  * with it the blade count the fundamental is derived from unless --blades
@@ -116,6 +116,20 @@ function traceFn(name) {
       }
       const k = Math.min(1, (t - 13) / 4);
       return { rpm: rpmAt(1.0), speed: 9 + 15 * k, single: true };
+    };
+  }
+  if (name === 'glow') {
+    /* The Kadet Senior's FS-52 as the plant reports it, one engine in slot
+     * 0: idling on the strip at 2,300 rpm, run up to full, 9,500, and
+     * back to idle (docs/KADET-STAGE1.md). */
+    return (t) => {
+      if (t < 5) {
+        return { rpm: 2300, speed: 0, single: true };
+      }
+      if (t < 12) {
+        return { rpm: 2300 + 7200 * Math.min(1, (t - 5) / 1.5), speed: Math.min(20, 3 * (t - 5)), single: true };
+      }
+      return { rpm: 2300, speed: Math.max(10, 20 - 2 * (t - 12)), single: true };
     };
   }
   if (name === 'full') {
@@ -1048,7 +1062,8 @@ async function main() {
   /* The blade count the fundamental is derived from: the voice's unless
    * the caller names one. Zero means "the voice's". */
   if (!(Number(opts.blades) > 0)) {
-    opts.blades = String(opts.voice) === 'wing' ? 2 : 3;
+    /* A four stroke's pulses are its firings, one each two revolutions. */
+    opts.blades = { wing: 2, glow4: 0.5 }[String(opts.voice)] ?? 3;
   }
   const mix = {};
   if (Number(opts.motors) >= 0) {

@@ -110,10 +110,27 @@ import { Music } from './music.js';
  *         the instrument on a wing, since a glide has no motor at all, so
  *         its lowpass opens with airspeed: a hiss that brightens as the
  *         wing speeds up, under 2 kHz still so the cues keep their band.
+ *   glow4 A four stroke glow engine, the Kadet Senior's O.S. FS-52 Surpass
+ *         (docs/KADET-STAGE1.md). What the ear hears of a single cylinder
+ *         four stroke is not its prop but its exhaust: one blowdown pulse
+ *         per power stroke, and a four stroke fires once every OTHER
+ *         revolution, so its note is rpm / 120, a thump rather than a
+ *         tone, an octave under a two stroke glow engine at the same rpm,
+ *         which fires every revolution. The prop's two blades are in the
+ *         wave as the firing rate's fourth harmonic. `perRev` is an
+ *         eighth: one period of the wave is four firing cycles, eight
+ *         revolutions, each a little different, so the lope a pilot hears
+ *         at idle is in the wave (fourStrokeWave). The loudness law tops
+ *         out at the plant's full throttle rpm on the ground.
+ *
+ * `perRev` is how many periods of the voice's wave one revolution makes,
+ * which for a prop's own tone is its blade count; `lpTrack` is where the
+ * motor lowpass sits as a multiple of that frequency.
  */
 export const VOICES = {
-  quad: { blades: 3, rpmFull: 9000, speedFull: 32, pan: [0.45, 0.32, -0.45, -0.32], windCorner: 900, windOpen: 0 },
-  wing: { blades: 2, rpmFull: 17600, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
+  quad: { perRev: 3, wave: 'blade', lpTrack: 3.4, rpmFull: 9000, speedFull: 32, pan: [0.45, 0.32, -0.45, -0.32], windCorner: 900, windOpen: 0 },
+  wing: { perRev: 2, wave: 'blade', lpTrack: 3.4, rpmFull: 17600, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
+  glow4: { perRev: 1 / 8, wave: 'fourStroke', lpTrack: 48, rpmFull: 9500, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
 };
 
 /*
@@ -125,7 +142,6 @@ export const VOICES = {
  * still, and dropping the cap is the honest way to do it because it takes
  * edge off the timbre without touching the pitch the pilot flies on.
  */
-const MOTOR_LP_TRACK = 3.4;
 const MOTOR_LP_CAP = 1000;
 const MOTOR_LP_FLOOR = 220;
 /*
@@ -148,6 +164,66 @@ const MOTOR_MUTE_RPM = 600;
  */
 const MOTOR_WAVE_REAL = [0, 0.0, 0.35, -0.10, 0.06, -0.02];
 const MOTOR_WAVE_IMAG = [0, 1.0, -0.36, 0.26, -0.08, 0.03];
+
+/*
+ * A single cylinder four stroke's exhaust, four firing cycles long, as a
+ * spectrum for createPeriodicWave.
+ *
+ * Each cycle, 720 degrees of crank, is the exhaust valve's blowdown: a
+ * pressure pulse as it opens that rings down in the header and muffler (a
+ * damped sine ringing at five times the firing rate and gone within a
+ * quarter of the cycle), a weaker suck back half a cycle later as the
+ * valves overlap, and the prop's two blades, four passes a cycle, under
+ * it. Combustion does not repeat: the cycle to cycle variation of a spark
+ * or glow engine's peak pressure is several percent and is largest at
+ * idle (Heywood, Internal Combustion Engine Fundamentals, 1988, 9.4), so
+ * the four cycles differ by that much in strength and a little in timing,
+ * and the pattern they repeat in is the lope. Shaped from that physics,
+ * not fitted to a recording: there is none in this repository.
+ */
+const FOUR_STROKE_CYCLES = [
+  { amp: 1.00, lag: 0.000 },
+  { amp: 0.84, lag: 0.014 },
+  { amp: 1.09, lag: -0.009 },
+  { amp: 0.91, lag: 0.006 },
+];
+const FOUR_STROKE_HARMONICS = 48;
+function blowdown(x) {
+  return x >= 0 ? Math.exp(-x / 0.08) * Math.sin((2 * Math.PI * x) / 0.2) : 0;
+}
+function fourStrokeWave() {
+  const n = 4096;
+  const cycles = FOUR_STROKE_CYCLES.length;
+  const wave = new Float64Array(n);
+  for (let i = 0; i < n; i += 1) {
+    const u = (i / n) * cycles;
+    const k = Math.floor(u);
+    const phi = u - k;
+    const { amp, lag } = FOUR_STROKE_CYCLES[k];
+    const pulse = amp * (blowdown(phi - lag) + blowdown(phi - lag + 1));
+    const suck = -0.25 * amp * (blowdown(phi - lag - 0.5) + blowdown(phi - lag + 0.5));
+    const blades = 0.14 * Math.sin(2 * Math.PI * 4 * phi);
+    wave[i] = pulse + suck + blades;
+  }
+  const real = new Float32Array(FOUR_STROKE_HARMONICS + 1);
+  const imag = new Float32Array(FOUR_STROKE_HARMONICS + 1);
+  for (let h = 1; h <= FOUR_STROKE_HARMONICS; h += 1) {
+    let a = 0;
+    let b = 0;
+    for (let i = 0; i < n; i += 1) {
+      const w = (2 * Math.PI * h * i) / n;
+      a += wave[i] * Math.cos(w);
+      b += wave[i] * Math.sin(w);
+    }
+    real[h] = (2 * a) / n;
+    imag[h] = (2 * b) / n;
+  }
+  return { real, imag };
+}
+const WAVES = {
+  blade: () => ({ real: new Float32Array(MOTOR_WAVE_REAL), imag: new Float32Array(MOTOR_WAVE_IMAG) }),
+  fourStroke: fourStrokeWave,
+};
 /*
  * How far the blade pass tone wanders, in cents, driven by slow noise. Real
  * blades do not pass at mathematically constant intervals, and this is the
@@ -233,6 +309,8 @@ export class MotorAudio {
     this.mix = { motors: 0.5, wind: 0.5, music: 0.5, focus: 1, ambience: 0 };
     this.focusOn = false;
     this.voice = VOICES.quad;
+    /* The periodic waves the voices use, built for a context on first use. */
+    this.waves = null;
     this.music = new Music();
     /* Every AudioNode this instance owns, for P12. A node created and
      * dropped without being counted is exactly the leak P12 forbids, so
@@ -306,13 +384,31 @@ export class MotorAudio {
     if (!voice) {
       throw new Error(`audio: no voice named ${name}`);
     }
+    const waveChanged = voice.wave !== this.voice.wave;
     this.voice = voice;
+    const wave = waveChanged && this.ctx ? this.waveFor(voice) : null;
     for (let m = 0; m < this.motors.length; m += 1) {
-      const pan = this.motors[m].pan;
+      const { pan, osc } = this.motors[m];
       if (pan) {
         pan.pan.value = voice.pan[m];
       }
+      if (wave) {
+        osc.setPeriodicWave(wave);
+      }
     }
+  }
+
+  /* The voice's wave on this context, built once per context and kind: a
+   * PeriodicWave is not an AudioNode, so it costs P12 nothing. */
+  waveFor(voice) {
+    if (!this.waves || this.waves.ctx !== this.ctx) {
+      this.waves = { ctx: this.ctx };
+    }
+    if (!this.waves[voice.wave]) {
+      const { real, imag } = WAVES[voice.wave]();
+      this.waves[voice.wave] = this.ctx.createPeriodicWave(real, imag);
+    }
+    return this.waves[voice.wave];
   }
 
   /* Which music track, or 'rotation' for a random start then the crate
@@ -482,10 +578,7 @@ export class MotorAudio {
     detuneSrc.connect(detuneGain);
     detuneSrc.start();
 
-    const motorWave = ctx.createPeriodicWave(
-      new Float32Array(MOTOR_WAVE_REAL),
-      new Float32Array(MOTOR_WAVE_IMAG),
-    );
+    const motorWave = this.waveFor(this.voice);
     for (let m = 0; m < 4; m += 1) {
       const osc = keep(ctx.createOscillator());
       osc.setPeriodicWave(motorWave);
@@ -947,13 +1040,14 @@ export class MotorAudio {
         continue;
       }
       /* THE fundamental. No register correction, no scale factor: this is
-       * the blade pass frequency, and A2 asserts it against the RPM the
-       * module reports to within one percent. */
-      const hz = (r / 60) * voice.blades;
+       * the blade pass frequency, or a four stroke's firing pattern, and A2
+       * asserts it against the RPM the module reports to within one
+       * percent. */
+      const hz = (r / 60) * voice.perRev;
       /* setTargetAtTime, not linearRamp: the ear hears a step in
        * frequency as a click, and the motors change fast. */
       node.osc.frequency.setTargetAtTime(hz, t, 0.012);
-      const corner = Math.min(MOTOR_LP_CAP, Math.max(MOTOR_LP_FLOOR, hz * MOTOR_LP_TRACK));
+      const corner = Math.min(MOTOR_LP_CAP, Math.max(MOTOR_LP_FLOOR, hz * voice.lpTrack));
       node.lp1.frequency.setTargetAtTime(corner, t, 0.03);
       /*
        * Loudness, LINEAR in throttle rather than squared.
