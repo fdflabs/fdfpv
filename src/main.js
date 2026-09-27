@@ -5370,6 +5370,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     attractCam = makeAttractCamera(view);
     if (!keepPlace) {
       /* A map track's records are its own (seatMapCourse), not the world's. */
+      /* A world adopted fresh is the seat's, whatever a swap held before. */
+      worldHold = null;
       race = new Race(view.gates, view.trackClass ?? 'full', { recordSuffix: view.recordSuffix ?? '' });
       race.setRecordKey(recordKey());
       paintBest();
@@ -7013,6 +7015,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     } else if (action === 'title') {
       mode = 'title';
       reset();
+      /* Now, not on the next frame: a choice made on the title before a
+       * frame has run must meet the world as the seat has it. */
+      if (worldHold) {
+        releaseWorldHold();
+      }
     } else if (action === 'calibrate') {
       if (input.firstGamepad()) {
         input.startCalibration();
