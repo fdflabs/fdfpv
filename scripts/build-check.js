@@ -1,85 +1,86 @@
 /*
- * build-check.js: the in-sim builder, driven through the real page.
+ * build-check.js: the in-sim builder, driven through the real page with its
+ * own controls.
  *
- *     node scripts/build-check.js [OUT_DIR] [--map=swiss2] [--only=line]
+ *     node scripts/build-check.js [OUT_DIR] [--map=swiss2] [--only=pieces]
  *     SIM_GPU=1 node scripts/build-check.js [OUT_DIR] --perf
  *
- * --only runs one part on its own page: proof (1 to 9), line (12 to 15),
- * wing (10), field (11), plane (16) or bramor (17).
+ * --only runs one part on its own page: proof, pieces, line, wing, field,
+ * plane or bramor.
  *
- * The proof, in the order a pilot would do it, on swiss2 unless --map says
- * otherwise:
+ * The builder is a creative mode (src/builder/buildmode.js) and every edit
+ * here is made the way a pilot makes it, with mouse and key events over
+ * the DevTools protocol (tests/lib/buildkeys.js): the mouse taken, a left
+ * click, Alt held, the wheel, 1 to 9, E, R, F, O, Ctrl+Z. Only the camera
+ * is put in place directly (window.__build.look), since flying it there at
+ * a frame a second proves nothing the movement check does not.
  *
- *   1. Fly the map, press B: the run is parked and the free camera is live.
- *   2. Find a real drop with __heightAt: the steepest thirty metres in the
- *      valley.
- *   3. Place one gate in each snap mode, with real keys: on the ground back
- *      from the edge (1), hung in the air out over the drop and tilted into
- *      a dive (3), and standing out of the face below (2). Each is checked
- *      against the world: the ground gate's base on the height field, the
- *      hung gate's opening high over the ground under it, the face gate's
- *      up along the surface normal the GPU read.
- *   4. Reorder, choose a start, roll a gate on its side and back.
- *   5. Save with Ctrl+S, reload the page, press B: the same track is back,
- *      from this browser's storage, as a schemaVersion 4 document naming the
- *      map.
- *   6. B flies it: a race over the built gates, from behind the start gate.
- *      The craft is put through the start gate and then through the hung
- *      gate, and the race counts both: the lap starts and the hung gate is
- *      its first split.
- *   7. B goes back to building, to the camera where it was left.
- *   8. The gates are solid. A gate hung out over the drop is in the
- *      colliders the moment it is placed: in a test flight the craft thrown
- *      through its opening goes clean through, and thrown into its upright
- *      it meets the frame and the crash physics takes the hit. Moved, the
- *      old place is air and the new one solid; deleted, nothing is left. A
- *      double stack's two openings are open and the bar between them solid.
- *   9. The air start. A level gate hung out over the drop made the start:
- *      B starts the craft in the air 7.5 m before it on its line of travel
- *      at its height, held through a countdown, and a pilot in the page
- *      flies it through and the lap starts. Then Esc leaves.
- *  10. The same air start on a fixed wing, the Slow Stick, at its air start
- *      speed (configs/airframes.js airStartSpeed).
- *  11. An old field track (the reference course, schemaVersion 1) on the
- *      custom map still loads with every station and still counts a pass.
- *  12. The racing line: on a new track of three gates hung out over the drop
- *      a ribbon is in the scene and goes through every gate's opening
- *      centre in flying order, and the lap has no warnings.
- *  13. Every geometry warning, made and then fixed with the builder's own
- *      keys, and each one listed while it is there and gone once it is
- *      fixed: a gate turned round (backwards), the Skyhunter picked with C
- *      for a 1.75 m gate (small), a gate two metres after another (close),
- *      a jink the Skyhunter cannot turn (tight, and the line marked), a
- *      gate hung inside the cliff (blocked), one inside a building if the
- *      map has one (blocked), and a line from low over the drop up to the
- *      top that runs into the face (clips).
- *  14. A track of one gate: the first pass starts the lap, a second
- *      forward step inside the gate does not finish it, and leaving and
- *      coming back through it does.
- *  15. What the line costs a frame on the main thread, with it and without
- *      it (V), and what working it out again costs an edit. On the software
- *      renderer the GPU's share is not measured: --perf does that.
- *  16. The plane sized gates, in the Slow Stick's page: a 3 m wide gate, a
- *      pylon pair and a single pylon placed with T and Enter on a clear,
- *      level line; the Slow Stick thrown through each and the race counting
- *      it, the pylon's other side not counting until F turns it round;
- *      wingtips into the pylon with crash damage on; saved, reloaded, all
- *      back with the pylon's side.
- *  17. The Bramor, the heaviest wing here, into a lone pylon at its
- *      catapult's speed: 3 m up the cone gives and stands, 7 m up its top
- *      folds and is gone.
+ * proof, on swiss2 unless --map says otherwise:
  *
- * The music dock is off while building and back for the flight.
+ *   1. Fly the map, press B: the run is parked, the free camera is live and
+ *      B has taken the mouse. Nine hotbar slots hold the default pieces,
+ *      each with an icon drawn from its mesh; the controls card is up and
+ *      H hides it.
+ *   2. Creative flight: W moves along the heading and eases in and out,
+ *      Space rises, Shift sinks, W twice and held sprints, - and = change
+ *      the speed, the mouse looks.
+ *   3. On a real drop found with __heightAt: a gate placed with a left
+ *      click on the flattest ground above it stands on the height field,
+ *      upright; one hung out over the drop with Alt held and tilted twice
+ *      with T is high over the ground and dives; one clicked on the face
+ *      below stands out of it along the normal the GPU read.
+ *   4. R turns the ghost 15 degrees; G puts it on the half metre grid and
+ *      its heading on 15 degrees.
+ *   5. O and three clicks set the flying order, the badges follow it and
+ *      the start's is the start's; O and three more put it back.
+ *   6. The mouse freed: a click on the hung gate selects it and brings up
+ *      the gizmo; Y six times rolls it onto its side where it hangs and
+ *      Shift+Y back; the up arrow dragged raises it, the yaw ring dragged
+ *      turns it about its opening, and Ctrl+Z undoes each.
+ *   7. Ctrl+S, a real reload, B: the same track, schemaVersion 4.
+ *   8. B flies it: a race over the built gates from behind the start gate,
+ *      each counted, round the lap and back through the start: a lap.
+ *      B goes back to building, to the camera where it was left.
+ *   9. The gates are solid (a gate hung out over the drop: through its
+ *      opening clean, into its upright a plant contact and damage; picked
+ *      up with F and moved, the old place air and the new one solid;
+ *      removed with a right click, nothing left; a double stack's openings
+ *      open and its bar solid), and the air start (a level gate hung out
+ *      over the drop made the start in the flying order, flown through by
+ *      a pilot in the page).
+ *
+ * pieces, on its own page:
+ *
+ *  10. Every piece placed with a left click on a clear level line, the
+ *      ones not on the hotbar through the inventory (a click on a tile, and
+ *      a tile dragged onto a slot); the start gate piece makes its gate the
+ *      start and the right hand pylon is passed on its right. The wheel
+ *      walks the hotbar. A right click removes one, a middle click takes a
+ *      placed piece in hand. F picks one up and a click puts it down six
+ *      metres over; Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z undo and redo it and a
+ *      placement. Ctrl+D copies one into the hand and a click places the
+ *      copy, turned as the original. The ghost goes red on another gate.
+ *  11. A track saved by the builder before this one (tests/fixtures/
+ *      map-track-v4.json) opens with Ctrl+O with every gate where it was
+ *      and its pylon's side, and flies.
+ *
+ * line (12 to 15), plane (16), bramor (17), wing (the air start on a
+ * fixed wing) and field (an old field track on the custom map) are the
+ * racing line and its warnings, the plane sized gates, the heaviest wing
+ * into a pylon, and the field's own track, as before, on the new
+ * controls. 15 also measures what building costs a frame on the main
+ * thread beside flying.
  *
  * Pictures land in OUT_DIR (tmp/build-check by default). They are evidence
  * for one look, not for the repository: delete them after.
  *
  * --perf needs the real GPU. It measures the same view of swiss2 at High,
- * flying and then building with six gates in view and the crosshair asking
- * the GPU every frame, with the racing line and then without it: the GPU's
- * time per frame (a timer query spanning one whole frame of the shell's),
- * the main thread's time in the shell's frame and the interval between
- * frames, each the median over the run, in two rounds of each.
+ * flying and then building with six gates in view, the ghost and the
+ * hotbar up and the crosshair asking the GPU every frame, with the racing
+ * line and then without it: the GPU's time per frame (a timer query
+ * spanning one whole frame of the shell's), the main thread's time in the
+ * shell's frame and the interval between frames, each the median over the
+ * run, in two rounds of each.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -101,12 +102,17 @@ import { spawnSync } from 'node:child_process';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openPage, keyInfo } from '../tests/lib/page.js';
+import { openPage } from '../tests/lib/page.js';
+import {
+  B, airTo, click, dragMouse, frames, freeMouse, hangAt, hold, holdKey, key, leave, lookAlong, lookAt, moveMouse, placeHere,
+  settleCrosshair, takeMouse, wheel,
+} from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airStartSpeed, airframeById } from '../configs/airframes.js';
 import { courseFromDocument } from '../src/game/trackdoc.js';
-import { BUILD_TYPES, openingsOf } from '../src/builder/course.js';
+import { DEFAULT_HOTBAR, PIECES, openingsOf, raceGatesOf } from '../src/builder/course.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
+import { normalize } from '../src/trackbuilder/model.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const opts = { map: 'swiss2', perf: false };
@@ -131,14 +137,16 @@ function say(ok, what) {
 }
 const f1 = (x) => Number(x).toFixed(1);
 const f3 = (v) => v.map((x) => Number(x).toFixed(2)).join(', ');
+const DEG = Math.PI / 180;
+const LIBRARY = 'webfpv.trackbuilder.library.v1';
 
 /*
  * The page's settings, and no gamepads. The browser hands the page every
  * joystick the host has, and a radio left plugged into this machine is a
  * pad whose sticks drive the free camera: the crosshair then never rests
- * and every placement times out. The keyboard is the pilot here. Angle
- * mode, so the pilot in the page that flies an air start asks for an
- * attitude; `airframe` and `tune` seat another aircraft.
+ * and every placement times out. The keyboard and mouse are the pilot
+ * here. Angle mode, so the pilot in the page that flies an air start asks
+ * for an attitude; `airframe` and `tune` seat another aircraft.
  */
 function seedFor(graphics, airframe = '5inch', tune = null) {
   const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
@@ -165,32 +173,10 @@ async function shot(page, name) {
   console.log(`  shot ${path}`);
 }
 
-/* A key with Control held, the way a keyboard sends it: the modifier's own
- * key first, so the shell's held set sees it as well as the event flags. */
-async function ctrlTap(page, code) {
-  const c = { key: 'Control', code: 'ControlLeft', windowsVirtualKeyCode: 17 };
-  await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...c, modifiers: 2 }, page.sessionId);
-  const k = keyInfo(code);
-  await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...k, text: undefined, modifiers: 2 }, page.sessionId);
-  await page.sleep(40);
-  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...k, modifiers: 2 }, page.sessionId);
-  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...c }, page.sessionId);
-}
-
-const B = (expr) => `window.__build.state()${expr}`;
-
-/*
- * Wait for n frames of the page's own. What __craftState reports (the drawn
- * craft, the banner) is written by the shell's frame, so a reading taken a
- * fixed time after a keypress is a reading of whatever frame last ran: at
- * swiss2's second a frame on the software renderer that is the frame before
- * the key. Waiting on frames rather than on milliseconds reads the shell's
- * answer to it however slow the machine.
- */
-const frames = (page, n) => page.evaluate(`new Promise((done) => { let k = ${n}; const f = () => { k -= 1; if (k <= 0) { done(true); } else { requestAnimationFrame(f); } }; requestAnimationFrame(f); })`);
-
 /* Whether the music dock (the record's name and its skips) can be seen. */
 const dockShown = (page) => page.evaluate("(() => { const d = document.querySelector('.music-dock'); return d && !d.hidden ? getComputedStyle(d).visibility : 'none'; })()");
+
+const pageErrors = (page) => page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
 
 async function flyAndBuild(page) {
   await page.until('!!window.__shellReady', 240000);
@@ -199,39 +185,9 @@ async function flyAndBuild(page) {
   await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await page.until("window.__craftState().mode === 'flight'", 120000);
   await page.sleep(600);
-  await page.tap('KeyB');
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'building'`, 20000);
-}
-
-/* Aim the free camera from `from` at `at`, both [x, y, z] in the scene. */
-async function aimAt(page, from, at) {
-  const dx = at[0] - from[0];
-  const dy = at[1] - from[1];
-  const dz = at[2] - from[2];
-  const yaw = Math.atan2(-dx, -dz);
-  const pitch = Math.atan2(dy, Math.hypot(dx, dz));
-  await page.evaluate(`window.__build.look(${from.join(',')}, ${yaw}, ${pitch})`);
-  await settleCrosshair(page);
-}
-
-async function aimAlong(page, from, yaw, pitch) {
-  await page.evaluate(`window.__build.look(${from.join(',')}, ${yaw}, ${pitch})`);
-  await settleCrosshair(page);
-}
-
-/* The crosshair asks the GPU once the camera has rested; wait for that
- * exact reading, taken along the ray the camera is on now, hit or miss. */
-async function settleCrosshair(page) {
-  await page.until(`(() => {
-    const s = window.__build.state();
-    if (!s.hitRay.exact) { return false; }
-    const o = s.hitRay.origin;
-    const c = s.camera.pos;
-    const d = s.hitRay.dir;
-    const f = s.camera.forward;
-    return Math.hypot(o[0] - c[0], o[1] - c[1], o[2] - c[2]) < 1e-6 && Math.hypot(d[0] - f[0], d[1] - f[1], d[2] - f[2]) < 1e-6;
-  })()`, 20000);
-  await page.sleep(150);
+  await takeMouse(page);
 }
 
 /*
@@ -271,6 +227,72 @@ async function findDrop(page) {
   return { edge, drop, yawOut: Math.atan2(-drop.dx, -drop.dz), at };
 }
 
+const vAdd = (p, v, s) => p.map((x, i) => x + v[i] * s);
+const vCross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const vDot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const vDist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+/* The heading, radians, a quaternion [x, y, z, w] flies a gate along. */
+const headingOfQuat = (q) => {
+  const [x, y, z, w] = q;
+  const tx = -(2 * (x * z + w * y));
+  const tz = -(1 - 2 * (x * x + y * y));
+  return Math.atan2(-tx, -tz);
+};
+const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/*
+ * The crosshair on a placed gate, from `back` metres behind it on its line
+ * of travel: first its opening, then its top bar, then an upright, until
+ * the builder says the crosshair is on it. True when it is.
+ */
+async function aimAtGate(page, id, back = 10) {
+  const g = (await page.evaluate(B('.gates'))).find((x) => x.id === id);
+  if (!g) {
+    return false;
+  }
+  const across = vCross(g.up, g.travel);
+  /* A pylon scores a square beside it, so its cone is found from its
+   * base: two and four metres up it. */
+  const el = (await page.evaluate(B('.doc.elements'))).find((e) => e.id === id);
+  const base = [el.position.x, el.position.z, -el.position.y];
+  const cone = el.type === 'pylon' ? [vAdd(base, g.up, 2), vAdd(base, g.up, 4)] : [];
+  const target = cone.length ? cone[0] : g.centre;
+  /* From behind and above, so the ground between is not in the way; then
+   * from in front and from the side, for a gate a tree or a slope hides
+   * from behind. */
+  const froms = [vAdd(target, g.travel, -back), vAdd(target, g.travel, back), vAdd(target, across, back)].map((f) => vAdd(f, [0, 1, 0], back * 0.4));
+  for (const from of froms) {
+    for (const p of [...cone, g.centre, vAdd(g.centre, g.up, 0.8), vAdd(g.centre, across, 0.85), vAdd(g.centre, g.up, -0.8)]) {
+      await lookAt(page, from, p);
+      await frames(page, 2);
+      if ((await page.evaluate(B('.hovered'))) === id) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* With the mouse free, a click on a placed gate where it is on the page,
+ * made only once the builder says the cursor is on it: a click on the
+ * world would take the mouse back. True when it is selected. */
+async function clickGate(page, id) {
+  const g = (await page.evaluate(B('.gates'))).find((x) => x.id === id);
+  const across = vCross(g.up, g.travel);
+  for (const p of [g.centre, vAdd(g.centre, g.up, 0.8), vAdd(g.centre, across, 0.85), vAdd(g.centre, g.up, -0.8)]) {
+    const s = await page.evaluate(`window.__build.screenOf(${p.join(',')})`);
+    await moveMouse(page, s.x, s.y);
+    await frames(page, 2);
+    if ((await page.evaluate(B('.hovered'))) !== id) {
+      continue;
+    }
+    await click(page, 'left', { x: s.x, y: s.y });
+    await frames(page, 2);
+    return (await page.evaluate(B('.selected'))) === id;
+  }
+  return false;
+}
+
 async function proof() {
   let out = null;
   console.log(`build mode on ${opts.map}`);
@@ -279,12 +301,15 @@ async function proof() {
     await flyAndBuild(page);
     const mode = await page.evaluate('window.__craftState().mode');
     say(mode === 'paused', `B parks the run: the shell's mode is ${mode}`);
+    say(await page.evaluate(B('.locked')), 'and takes the mouse: the pointer is locked to the world');
     await frames(page, 3);
     const c0 = await page.evaluate('window.__craftState()');
     await page.sleep(800);
     const c1 = await page.evaluate('window.__craftState()');
     say(Math.hypot(c1.worldX - c0.worldX, c1.worldY - c0.worldY, c1.worldZ - c0.worldZ) < 1e-6, 'the aircraft stays exactly where it was parked');
     say((await dockShown(page)) === 'hidden', 'the music dock is off while building, so no record name sits over the build panel');
+    await hotbarAndHelp(page);
+    await flight(page);
     await page.evaluate("window.__build.rename('Cliff drop'); true");
 
     const { edge, drop, yawOut, at } = await findDrop(page);
@@ -310,122 +335,95 @@ async function proof() {
       return best;
     })()`);
     const g1 = [flat.x, flat.h, flat.z];
-    await page.tap('Digit1');
-    await aimAt(page, [g1[0] - drop.dx * 14, g1[1] + 9, g1[2] - drop.dz * 14], g1);
+    await hold(page, 'gate');
+    await lookAt(page, [g1[0] - drop.dx * 14, g1[1] + 9, g1[2] - drop.dz * 14], g1);
+    const gh1 = await page.evaluate(B('.ghost'));
+    say(gh1 && gh1.visible && gh1.mode === 'ground' && !gh1.trouble, `ground: the ghost stands on the ground at the crosshair, ${gh1 ? gh1.colour : '?'}`);
     await shot(page, '1-ground-ghost');
-    await page.tap('Enter');
-    await page.until(`${B('.gates.length')} === 1`, 10000);
+    await placeHere(page);
     let st = await page.evaluate(B(''));
     const e1 = st.doc.elements[0];
     const base1 = [e1.position.x, e1.position.z, -e1.position.y];
     const ground1 = await H(base1[0], base1[2]);
-    say(Math.abs(base1[1] - ground1) < 0.6, `ground: gate 1 stands on the ground, base ${f1(base1[1])} m, the height field there ${f1(ground1)} m`);
+    say(Math.abs(base1[1] - ground1) < 0.6, `ground: a left click stands gate 1 on the ground, base ${f1(base1[1])} m, the height field there ${f1(ground1)} m`);
     say(Math.abs(st.gates[0].up[1] - 1) < 1e-6, `ground: gate 1 is upright, up (${f3(st.gates[0].up)})`);
 
-    /* 3: hung in the air out over the drop, tilted two notches into a dive. */
-    await page.tap('Digit3');
-    await page.tap('Minus');
+    /* 2: hung in the air out over the drop, Alt held, tilted two notches
+     * into a dive with T. */
+    await airTo(page, 16);
+    say((await page.evaluate(B('.airDistance'))) === 16, `Ctrl and the wheel set the air distance: ${await page.evaluate(B('.airDistance'))} m`);
     const eye = at(edge - 1, drop.h + 6);
-    await aimAlong(page, eye, yawOut, -0.05);
-    await page.tap('KeyI');
-    await page.tap('KeyI');
-    await page.sleep(200);
+    await lookAlong(page, eye, yawOut, -0.05);
+    await key(page, 'KeyT');
+    await key(page, 'KeyT');
+    await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18, modifiers: 1 }, page.sessionId);
+    await frames(page, 3);
+    const gh2 = await page.evaluate(B('.ghost'));
+    say(gh2 && gh2.mode === 'air', `Alt held: the ghost hangs in the air (${gh2 ? gh2.mode : '?'})`);
     await shot(page, '2-air-ghost-over-the-drop');
-    await page.tap('Enter');
-    await page.until(`${B('.gates.length')} === 2`, 10000);
-    st = await page.evaluate(B(''));
-    const hung = st.gates[1];
+    await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18 }, page.sessionId);
+    const hung = await placeHere(page, { air: true });
     const under = await H(hung.centre[0], hung.centre[2]);
-    say(hung.centre[1] - under > 15, `air: the hung gate's opening is ${f1(hung.centre[1] - under)} m over the ground under it, out past the edge`);
-    say(hung.travel[1] < -0.4, `air: tilted into a dive, travel (${f3(hung.travel)})`);
+    say(hung.centre[1] - under > 15, `air: Alt and a click hang it ${f1(hung.centre[1] - under)} m over the ground under it, out past the edge`);
+    say(hung.travel[1] < -0.4, `air: T twice tilts it into a dive, travel (${f3(hung.travel)})`);
+    await key(page, 'KeyT', { shift: true });
+    await key(page, 'KeyT', { shift: true });
 
-    /* 2: out over the drop, looking back at the face below the edge. Z
-     * first: the dive tilt was the hung gate's, not this one's. */
-    await page.tap('Digit2');
-    await page.tap('KeyZ');
+    /* 3: out over the drop, looking back at the face below the edge: a
+     * face is a face without a key. */
     const low = await H(drop.x + drop.dx * 30, drop.z + drop.dz * 30);
     const faceEye = at(edge + 40, (drop.h + low) / 2 + 4);
-    await aimAt(page, faceEye, at(edge + 6, (drop.h + low) / 2));
+    await lookAt(page, faceEye, at(edge + 6, (drop.h + low) / 2));
     const face = await page.evaluate('window.__build.pickNow()');
     say(face && Math.abs(face.normal[1]) < 0.85, `surface: the crosshair meets the face ${face ? f1(face.distance) : '?'} m away, normal (${face ? f3(face.normal) : '?'})`);
+    const gh3 = await page.evaluate(B('.ghost'));
+    say(gh3 && gh3.mode === 'surface', `the ghost reads it as a face: ${gh3 ? gh3.mode : '?'}`);
     await shot(page, '3-surface-ghost-on-the-face');
-    await page.tap('Enter');
-    await page.until(`${B('.gates.length')} === 3`, 10000);
-    st = await page.evaluate(B(''));
-    const up3 = st.gates[2].up;
+    const g3 = await placeHere(page);
+    const up3 = g3.up;
     const dot = face ? up3[0] * face.normal[0] + up3[1] * face.normal[1] + up3[2] * face.normal[2] : 0;
     say(dot > 0.995, `surface: gate 3 stands out of the face along its normal, up . normal ${dot.toFixed(4)}`);
 
-    /* Order, start, and a roll on its side and back. */
-    const ids = st.doc.sequence.map((s) => s.elementId);
-    await page.tap('Tab');
-    await page.tap('Tab');
-    await page.tap('Tab');
-    say((await page.evaluate(B('.selected'))) === ids[2], 'Tab walks the selection to gate 3');
-    await page.tap('BracketLeft');
-    let order = await page.evaluate(B('.doc.sequence.map((s) => s.elementId).join()'));
-    say(order === [ids[0], ids[2], ids[1]].join(), '[ moves it one step earlier in the lap');
-    await page.tap('BracketRight');
-    await page.tap('Home');
-    order = await page.evaluate(B('.doc.sequence.map((s) => s.elementId).join()'));
-    say(order === [ids[2], ids[0], ids[1]].join(), '] puts it back, Home makes it the start and keeps the loop');
-    await page.tap('Tab');
-    await page.tap('Home');
-    order = await page.evaluate(B('.doc.sequence.map((s) => s.elementId).join()'));
-    say(order === ids.join(), 'and the ground gate is the start again');
-    await page.tap('Tab');
-    const before = await page.evaluate(B('.gates[1]'));
-    const hc = before.centre;
-    await aimAt(page, [hc[0] - drop.dx * 16 + drop.dz * 10, hc[1] + 5, hc[2] - drop.dz * 16 - drop.dx * 10], hc);
-    for (let i = 0; i < 6; i += 1) {
-      await page.tap('KeyU');
-    }
-    const rolled = await page.evaluate(B('.gates[1]'));
-    const moved = Math.hypot(rolled.centre[0] - before.centre[0], rolled.centre[1] - before.centre[1], rolled.centre[2] - before.centre[2]);
-    const upDot = before.up[0] * rolled.up[0] + before.up[1] * rolled.up[1] + before.up[2] * rolled.up[2];
-    say(Math.abs(upDot) < 0.01 && moved < 1e-3, `U six times rolls the hung gate a quarter turn onto its side in place (up . up ${upDot.toFixed(3)}, centre moved ${moved.toFixed(4)} m)`);
-    await shot(page, '4-hung-gate-on-its-side');
-    for (let i = 0; i < 6; i += 1) {
-      await page.tap('KeyO');
-    }
-    const back = await page.evaluate(B('.gates[1]'));
-    say(back.up.every((v, i) => Math.abs(v - before.up[i]) < 1e-4), 'O six times rolls it back');
-    await page.tap('Escape');
-    say((await page.evaluate(B('.selected'))) === null, 'Esc drops the selection first');
+    await turnAndGrid(page, g1, drop);
+    st = await page.evaluate(B(''));
+    await flyingOrder(page, st);
+    await freeEdits(page, hung.id, drop);
 
     /* The overview, from out over the drop and to one side, on the edge
      * and the hung gate. */
-    await aimAt(page, [hc[0] + drop.dx * 45 + drop.dz * 35, hc[1] + 12, hc[2] + drop.dz * 45 - drop.dx * 35], [hc[0] - drop.dx * 8, hc[1] - 4, hc[2] - drop.dz * 8]);
-    await page.sleep(400);
-    await shot(page, '5-overview');
+    const hc = (await page.evaluate(B('.gates'))).find((g) => g.id === hung.id).centre;
+    await lookAt(page, [hc[0] + drop.dx * 45 + drop.dz * 35, hc[1] + 12, hc[2] + drop.dz * 45 - drop.dx * 35], [hc[0] - drop.dx * 8, hc[1] - 4, hc[2] - drop.dz * 8]);
+    await shot(page, '5-overview-with-badges');
     const hudNow = await page.evaluate(B('.hud'));
     say(/Height over the ground/.test(hudNow), `the readout is on screen: ${JSON.stringify(hudNow.split('\n').slice(0, 3))}`);
 
     /* Save, and a real reload. */
-    await ctrlTap(page, 'KeyS');
+    st = await page.evaluate(B(''));
+    await key(page, 'KeyS', { ctrl: true });
     await page.sleep(300);
     const lib = await page.evaluate('window.__build.library()');
     const saved = lib.find((t) => t.id === st.doc.id);
     say(Boolean(saved) && saved.gates === 3, `Ctrl+S saved it to this browser's library: ${JSON.stringify(lib)}`);
-    const raw = await page.evaluate(`JSON.parse(localStorage.getItem('webfpv.trackbuilder.library.v1'))[${JSON.stringify(st.doc.id)}]`);
+    const raw = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(LIBRARY)}))[${JSON.stringify(st.doc.id)}]`);
     say(raw.schemaVersion === 4 && raw.map === opts.map && raw.elements.every((e) => e.orientation), `stored as schemaVersion ${raw.schemaVersion}, map ${raw.map}, every gate with its orientation`);
     const gatesBefore = (await page.evaluate(B('.gates'))).map((g) => g.centre);
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await page.sleep(1000);
     await flyAndBuild(page);
     const gatesAfter = (await page.evaluate(B('.gates'))).map((g) => g.centre);
-    const same = gatesAfter.length === 3 && gatesAfter.every((c, i) => Math.hypot(c[0] - gatesBefore[i][0], c[1] - gatesBefore[i][1], c[2] - gatesBefore[i][2]) < 1e-3);
+    const same = gatesAfter.length === 3 && gatesAfter.every((c, i) => vDist(c, gatesBefore[i]) < 1e-3);
     say(same, `after a reload, B brings the same three gates back (${gatesAfter.length})`);
     const camBuild = await page.evaluate(B('.camera'));
 
-    /* Fly it. */
-    await page.tap('KeyB');
+    /* Fly it: every gate counted, and back through the start for a lap. */
+    await key(page, 'KeyB');
     await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
     const mapNow = await page.evaluate('window.__map()');
     const race = await page.evaluate('({ n: window.__race().gates.length, key: window.__race().key, next: window.__race().next, freestyle: window.__race().freestyle })');
     say(mapNow.mode === 'race' && mapNow.gates === 3 && race.n === 3 && !race.freestyle, `B flies it: the map reads as a race with ${mapNow.gates} gates, the race has ${race.n}`);
     say(race.key.endsWith(`.build.${st.doc.id}`), `its record is its own: ${race.key}`);
     say((await dockShown(page)) === 'visible', 'the music dock is back for the flight');
+    say(!(await page.evaluate(B('.locked'))), 'and the mouse is the pilot\'s again');
     const start = gatesAfter[0];
     const sp = mapNow.spawn;
     say(Math.abs(Math.hypot(sp.x - start[0], sp.z - start[2]) - 7.5) < 0.05, `the run starts ${f1(Math.hypot(sp.x - start[0], sp.z - start[2]))} m behind the start gate`);
@@ -434,6 +432,7 @@ async function proof() {
       const a = g.centre.map((v, i) => v - g.travel[i] * back);
       const b = g.centre.map((v, i) => v + g.travel[i] * ahead);
       await page.evaluate(`window.__placeCraft(${b.join(',')}, ${a.join(',')})`);
+      await frames(page, 3);
     };
     await chord(G[0], 1.2, 1.2);
     await page.until('window.__race().next === 1', 10000).catch(() => {});
@@ -447,40 +446,304 @@ async function proof() {
       console.log(`  the craft after the hung gate's chord: mode ${c.mode}, crashed ${c.crashed}, landed ${c.landed}, at ${f1(c.worldX)}, ${f1(c.worldY)}, ${f1(c.worldZ)}`);
     }
     say(r2.next === 2 && r2.splits.length === 1 && r2.splits[0] > 0, `through the hung gate out over the drop: counted, split ${r2.splits[0] ? (r2.splits[0] / 1000).toFixed(2) : '?'} s, next is gate ${r2.next + 1}`);
-
-    /* A picture of what a pilot sees on the way to the hung gate, taken
-     * after the pass is counted: a craft parked in the air falls while a
-     * slow machine takes the picture, and one that lands hard is a wreck,
-     * which voids the lap. */
     const hz = Math.hypot(G[1].travel[0], G[1].travel[2]);
     const front = [G[1].centre[0] - (G[1].travel[0] / hz) * 14, G[1].centre[1] + 1, G[1].centre[2] - (G[1].travel[2] / hz) * 14];
     await page.evaluate("(document.querySelector('.osd-air-hint-btn') || { click() {} }).click(), true");
     await page.evaluate(`window.__placeCraft(${front.join(',')})`);
     await page.sleep(120);
     await shot(page, '6-test-flight-at-the-hung-gate');
-    /* Back to building, where the camera was left, then out. */
-    await page.tap('KeyB');
+    await chord(G[2], 1.5, 1.5);
+    await page.until('window.__race().next === 0', 10000).catch(() => {});
+    await chord(G[0], 1.2, 1.2);
+    await page.until('window.__race().lap === 1', 10000).catch(() => {});
+    const r3 = await page.evaluate('({ lap: window.__race().lap, ms: window.__race().laps[0] })');
+    say(r3.lap === 1 && r3.ms > 0, `through the face gate and back through the start: lap 1 counted, ${r3.ms ? (r3.ms / 1000).toFixed(2) : '?'} s`);
+    /* Back to building, where the camera was left. The lap may have ended
+     * the run in its results: the flight screen is where B means building. */
+    if ((await page.evaluate('window.__mode')) === 'results') {
+      await page.evaluate("window.__ui.onAction('restart'); true");
+      await page.until("window.__craftState().mode === 'flight'", 20000);
+    }
+    await key(page, 'KeyB');
     await page.until(`${B('.state')} === 'building'`, 10000);
     const camBack = await page.evaluate(B('.camera'));
     say(Math.hypot(...camBack.pos.map((v, i) => v - camBuild.pos[i])) < 1e-6 && Math.abs(camBack.yaw - camBuild.yaw) < 1e-9, 'B goes back to building, to the camera where it was left');
     say((await page.evaluate('window.__map().mode')) === 'freestyle' && (await page.evaluate('window.__race().freestyle')), 'and the map is freestyle again underneath');
+    await takeMouse(page);
 
-    /* Out over the drop, where nothing but a built gate is in the air. */
     out = { edge, drop, yawOut, at };
     await solidGates(page, out);
     await airStartFlight(page, out, 'quad');
-    await page.tap('KeyB');
+    await key(page, 'KeyB');
     await page.until(`${B('.state')} === 'building'`, 10000);
-    await page.tap('Escape');
+    await leave(page);
     await page.until(`${B('.state')} === 'off'`, 10000);
     await page.until("window.__craftState().mode === 'flight'", 10000);
-    say(true, 'Esc leaves building for a free flight');
-    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    say(true, 'Esc frees the mouse, then leaves building for a free flight');
+    const errs = pageErrors(page);
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
     await page.close();
   }
   return out;
+}
+
+/* The hotbar, its icons, and the controls card. */
+async function hotbarAndHelp(page) {
+  const st = await page.evaluate(B(''));
+  say(st.hotbar.join() === DEFAULT_HOTBAR.join() && st.slot === 0, `nine slots of the common pieces: ${st.hotbar.join(', ')}`);
+  /* Each icon is a picture of its piece: drawn, not empty, and no two the
+   * same. The start gate's differs from the gate's by its green ring. */
+  const icons = await page.evaluate(`(async () => {
+    const imgs = [...document.querySelectorAll('.bh-slot img')];
+    const out = [];
+    for (const img of imgs) {
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let solid = 0;
+      for (let i = 3; i < d.length; i += 4) { if (d[i] > 128) { solid += 1; } }
+      out.push({ w: c.width, solid: solid / (c.width * c.height), src: img.src.length });
+    }
+    return { out, distinct: new Set(imgs.map((i) => i.src)).size };
+  })()`);
+  say(icons.out.length === 9 && icons.out.every((i) => i.w === 96 && i.solid > 0.02) && icons.distinct === 9,
+    `each slot shows its piece drawn from its mesh, 96 px: ${icons.out.map((i) => `${(i.solid * 100).toFixed(0)}%`).join(' ')} of each drawn, ${icons.distinct} different`);
+  const r = await page.evaluate('window.__build.rects()');
+  say(Boolean(r.help), 'the controls card is up on the first visit');
+  await key(page, 'KeyH');
+  await frames(page, 2);
+  const hidden = await page.evaluate('window.__build.rects().help');
+  await key(page, 'KeyH');
+  await frames(page, 2);
+  say(hidden === null && Boolean(await page.evaluate('window.__build.rects().help')), 'H hides it and H brings it back');
+  await key(page, 'Digit3');
+  await frames(page, 1);
+  const s3 = await page.evaluate(B('.piece'));
+  await wheel(page, 1);
+  const s4 = await page.evaluate(B('.piece'));
+  await wheel(page, -1);
+  await wheel(page, -1);
+  const s2 = await page.evaluate(B('.piece'));
+  say(s3 === DEFAULT_HOTBAR[2] && s4 === DEFAULT_HOTBAR[3] && s2 === DEFAULT_HOTBAR[1], `3 picks slot 3 (${s3}), the wheel walks the hotbar (${s4}, then ${s2})`);
+  await shot(page, '0-hotbar-and-controls');
+}
+
+/* Creative flight, on the keys and the mouse. */
+async function flight(page) {
+  const here = await page.evaluate(B('.camera'));
+  const p0 = [here.pos[0], here.pos[1] + 30, here.pos[2]];
+  await lookAlong(page, p0, here.yaw, 0);
+  const speed = await page.evaluate(B('.speed'));
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'w', code: 'KeyW', windowsVirtualKeyCode: 87 }, page.sessionId);
+  await frames(page, 1);
+  const v1 = Math.hypot(...(await page.evaluate(B('.velocity'))));
+  await frames(page, 12);
+  const v2 = Math.hypot(...(await page.evaluate(B('.velocity'))));
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'w', code: 'KeyW', windowsVirtualKeyCode: 87 }, page.sessionId);
+  await frames(page, 1);
+  const v3 = Math.hypot(...(await page.evaluate(B('.velocity'))));
+  await frames(page, 20);
+  const v4 = Math.hypot(...(await page.evaluate(B('.velocity'))));
+  const c1 = await page.evaluate(B('.camera'));
+  const moved = c1.pos.map((v, i) => v - p0[i]);
+  const f = [-Math.sin(here.yaw), 0, -Math.cos(here.yaw)];
+  say(vDot(moved, f) > 1 && Math.abs(moved[1]) < 1e-6 && Math.hypot(...vAdd(moved, f, -vDot(moved, f))) < 0.05,
+    `W flies along the heading: ${f1(vDot(moved, f))} m ahead, level`);
+  say(v1 > 0 && v1 < v2 && v2 > speed * 0.9 && v2 <= speed + 1e-6 && v3 < v2 && v3 > 0 && v4 < 0.5,
+    `and eases in and out: ${f1(v1)}, ${f1(v2)} of ${speed} m/s held, ${f1(v3)} then ${f1(v4)} m/s let go`);
+  const y0 = (await page.evaluate(B('.camera.pos')))[1];
+  await holdKey(page, 'Space', 8);
+  const y1 = (await page.evaluate(B('.camera.pos')))[1];
+  await frames(page, 20);
+  /* Held past the moment Shift waits for a turn key to join it. */
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16, modifiers: 8 }, page.sessionId);
+  await page.sleep(300);
+  await frames(page, 8);
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16 }, page.sessionId);
+  await frames(page, 20);
+  const y2 = (await page.evaluate(B('.camera.pos')))[1];
+  say(y1 > y0 + 0.5 && y2 < y1 - 0.5, `Space rises ${f1(y1 - y0)} m, Shift sinks ${f1(y1 - y2)} m`);
+  await key(page, 'KeyW');
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'w', code: 'KeyW', windowsVirtualKeyCode: 87 }, page.sessionId);
+  await frames(page, 14);
+  const sprint = await page.evaluate(`(() => { const s = window.__build.state(); return { on: s.sprint, v: Math.hypot(...s.velocity) }; })()`);
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'w', code: 'KeyW', windowsVirtualKeyCode: 87 }, page.sessionId);
+  say(sprint.on && sprint.v > speed * 1.5, `W twice and held sprints: ${f1(sprint.v)} m/s`);
+  await key(page, 'Equal');
+  const faster = await page.evaluate(B('.speed'));
+  await key(page, 'Minus');
+  await key(page, 'Minus');
+  const slower = await page.evaluate(B('.speed'));
+  await key(page, 'Equal');
+  say(faster > speed && slower < speed && (await page.evaluate(B('.speed'))) === speed, `= and - set the fly speed: ${speed}, ${faster}, ${slower} m/s`);
+  const yaw0 = (await page.evaluate(B('.camera'))).yaw;
+  const cx = await page.evaluate('Math.round(innerWidth / 2)');
+  const cy = await page.evaluate('Math.round(innerHeight / 2)');
+  await moveMouse(page, cx, cy);
+  await frames(page, 2);
+  const yawA = (await page.evaluate(B('.camera'))).yaw;
+  await moveMouse(page, cx + 100, cy);
+  await frames(page, 2);
+  const yawB = (await page.evaluate(B('.camera'))).yaw;
+  say(Math.abs(wrap(yawA - yawB) - 0.24) < 0.02, `the mouse looks: 100 px right turns the camera ${f1((yawA - yawB) / DEG)} degrees right`);
+  await moveMouse(page, cx, cy);
+  await lookAlong(page, here.pos, yaw0, here.pitch);
+}
+
+/* R turns the ghost, G the grid. */
+async function turnAndGrid(page, g1, drop) {
+  await hold(page, 'gate');
+  await lookAt(page, [g1[0] - drop.dx * 20 + drop.dz * 12, g1[1] + 9, g1[2] - drop.dz * 20 - drop.dx * 12], [g1[0] + drop.dz * 12, g1[1], g1[2] - drop.dx * 12]);
+  /* R turns about the gate's own up, whatever it stands on: the angle
+   * between its travel before and after. */
+  const travelOf = ([x, y, z, w]) => [-(2 * (x * z + w * y)), -(2 * (y * z - w * x)), -(1 - 2 * (x * x + y * y))];
+  const a = await page.evaluate(B('.ghost.quat'));
+  await key(page, 'KeyR');
+  await frames(page, 2);
+  const b = await page.evaluate(B('.ghost.quat'));
+  const turned = Math.acos(Math.max(-1, Math.min(1, vDot(travelOf(a), travelOf(b))))) / DEG;
+  say(Math.abs(turned - 15) < 0.01, `R turns the ghost ${turned.toFixed(2)} degrees`);
+  await key(page, 'KeyR', { shift: true });
+  await frames(page, 2);
+  const c = await page.evaluate(B('.ghost.quat'));
+  /* To half a degree: Shift is down a frame before R arrives, and that
+   * frame sinks the camera and moves the ghost a little on the slope. */
+  const backBy = Math.acos(Math.max(-1, Math.min(1, vDot(travelOf(a), travelOf(c))))) / DEG;
+  say(backBy < 0.5, `and Shift+R turns it back, to ${backBy.toFixed(3)} degrees`);
+  /* The grid, on a ghost hung in the air with Alt held, where it rounds
+   * both the place and the heading. */
+  await key(page, 'KeyG');
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18, modifiers: 1 }, page.sessionId);
+  await frames(page, 3);
+  const gg = await page.evaluate(B('.ghost'));
+  await shot(page, '4-grid-ghost');
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18 }, page.sessionId);
+  const onGrid = (v) => Math.abs(v / 0.5 - Math.round(v / 0.5)) < 1e-6;
+  const hdg = headingOfQuat(gg.quat) / DEG;
+  say((await page.evaluate(B('.grid'))) && gg.mode === 'air' && onGrid(gg.base[0]) && onGrid(gg.base[2]) && Math.abs(hdg / 15 - Math.round(hdg / 15)) < 1e-6,
+    `G snaps it to the grid: base (${f1(gg.base[0])}, ${f1(gg.base[2])}), heading ${hdg.toFixed(2)} degrees`);
+  await key(page, 'KeyG');
+}
+
+/* O and clicks round the lap. */
+async function flyingOrder(page, st) {
+  const ids = st.doc.sequence.map((s) => s.elementId);
+  const badges = (await page.evaluate(B('.badges'))).map((b) => `${b.text}${b.look === 'start' ? 's' : ''}`).join();
+  say(badges === '1s,2,3', `every gate wears its number, the start marked: ${badges}`);
+  await key(page, 'KeyO');
+  say(Array.isArray(await page.evaluate(B('.order'))), 'O starts the flying order');
+  /* A click only with the crosshair on the gate: with it on the world, a
+   * click in order mode is nothing, and outside it is a new gate. */
+  const clickOn = async (id) => {
+    const on = await aimAtGate(page, id, 14);
+    say(on, `the crosshair on ${id}`);
+    if (on) {
+      await click(page, 'left');
+      await frames(page, 2);
+    }
+    return on;
+  };
+  await clickOn(ids[2]);
+  await clickOn(ids[0]);
+  const mid = (await page.evaluate(B('.badges'))).map((b) => `${b.text}:${b.look}`).join();
+  await shot(page, '5-order-mode');
+  await clickOn(ids[1]);
+  await page.until(`${B('.order')} === null`, 5000).catch(() => {});
+  let order = await page.evaluate(B('.doc.sequence.map((s) => s.elementId).join()'));
+  say(order === [ids[2], ids[0], ids[1]].join(), `three clicks set the order and the last one finishes it: ${order === [ids[2], ids[0], ids[1]].join() ? 'gate 3 first' : order}`);
+  say(mid === '2:picked,2:waiting,1:start', `the badges follow the clicks as they are made, the one not clicked grey: ${mid}`);
+  const now = (await page.evaluate(B('.badges'))).find((b) => b.id === ids[2]);
+  say(now && now.text === '1' && now.look === 'start', 'and the gate clicked first is the start now');
+  /* A round the clicks did not finish is finished by O before the next. */
+  if (await page.evaluate(B('.order'))) {
+    await key(page, 'KeyO');
+  }
+  await key(page, 'KeyO');
+  for (const id of ids) {
+    await clickOn(id);
+  }
+  await page.until(`${B('.order')} === null`, 5000).catch(() => {});
+  if (await page.evaluate(B('.order'))) {
+    await key(page, 'KeyO');
+  }
+  order = await page.evaluate(B('.doc.sequence.map((s) => s.elementId).join()'));
+  say(order === ids.join(), 'O and three more put it back');
+}
+
+/* The mouse freed: select, roll in place, the gizmo, undo. */
+async function freeEdits(page, id, drop) {
+  const before = (await page.evaluate(B('.gates'))).find((g) => g.id === id);
+  const hc = before.centre;
+  await lookAt(page, [hc[0] - drop.dx * 16 + drop.dz * 10, hc[1] + 5, hc[2] - drop.dz * 16 - drop.dx * 10], hc);
+  await freeMouse(page, 20, 360);
+  say(!(await page.evaluate(B('.locked'))) && !(await page.evaluate(B('.ghost.visible'))), 'with the mouse free the ghost is gone');
+  say(await clickGate(page, id), 'a click on the hung gate selects it');
+  await frames(page, 2);
+  say(await page.evaluate(B('.gizmo')), 'and brings up its gizmo');
+  await shot(page, '7-gizmo');
+  for (let i = 0; i < 6; i += 1) {
+    await key(page, 'KeyY');
+  }
+  const rolled = (await page.evaluate(B('.gates'))).find((g) => g.id === id);
+  const moved = vDist(rolled.centre, before.centre);
+  const upDot = vDot(before.up, rolled.up);
+  say(Math.abs(upDot) < 0.01 && moved < 1e-3, `Y six times rolls it a quarter turn onto its side in place (up . up ${upDot.toFixed(3)}, centre moved ${moved.toFixed(4)} m)`);
+  await shot(page, '7-hung-gate-on-its-side');
+  for (let i = 0; i < 6; i += 1) {
+    await key(page, 'KeyY', { shift: true });
+  }
+  const back = (await page.evaluate(B('.gates'))).find((g) => g.id === id);
+  say(back.up.every((v, i) => Math.abs(v - before.up[i]) < 1e-4), 'Shift+Y six times rolls it back');
+
+  /* The up arrow, dragged up the page. */
+  const h0 = await page.evaluate("window.__build.handleAt('move-up')");
+  await moveMouse(page, h0.x, h0.y);
+  await frames(page, 2);
+  const onArrow = await page.evaluate(B('.handle'));
+  say(onArrow === 'move-up', `the mouse over the up arrow picks it out: ${onArrow}`);
+  /* Only on the arrow: a press on the world would take the mouse back. */
+  if (onArrow === 'move-up') {
+    await dragMouse(page, h0, { x: h0.x, y: h0.y - 60 });
+  }
+  await frames(page, 2);
+  const raised = (await page.evaluate(B('.gates'))).find((g) => g.id === id);
+  const lift = raised.centre[1] - back.centre[1];
+  const side = Math.hypot(raised.centre[0] - back.centre[0], raised.centre[2] - back.centre[2]);
+  say(lift > 0.3 && side < 1e-6, `the up arrow dragged up raises it ${f1(lift)} m, straight up`);
+  await key(page, 'KeyZ', { ctrl: true });
+  await frames(page, 2);
+  const undone = (await page.evaluate(B('.gates'))).find((g) => g.id === id);
+  say(vDist(undone.centre, back.centre) < 1e-6, 'Ctrl+Z puts it back');
+  /* The yaw ring, dragged a quarter of the way round its near side: its
+   * far side crosses the other two rings on the page. */
+  await frames(page, 2);
+  const r0 = await page.evaluate("window.__build.handleAt('turn-yaw', 225)");
+  const r1 = await page.evaluate("window.__build.handleAt('turn-yaw', 315)");
+  await moveMouse(page, r0.x, r0.y);
+  await frames(page, 2);
+  const onRing = await page.evaluate(B('.handle'));
+  say(onRing === 'turn-yaw', `the mouse over the yaw ring picks it out: ${onRing}`);
+  if (onRing === 'turn-yaw') {
+    await dragMouse(page, r0, r1, 10);
+  }
+  await frames(page, 2);
+  const turned = (await page.evaluate(B('.gates'))).find((g) => g.id === id);
+  const yawed = Math.acos(Math.max(-1, Math.min(1, vDot(turned.travel, back.travel)))) / DEG;
+  say(yawed > 20 && vDist(turned.centre, back.centre) < 1e-3, `the yaw ring dragged turns it ${f1(yawed)} degrees about its opening`);
+  await shot(page, '7-gizmo-turned');
+  await key(page, 'KeyZ', { ctrl: true });
+  await frames(page, 2);
+  const again = (await page.evaluate(B('.gates'))).find((g) => g.id === id);
+  say(vDot(again.travel, back.travel) > 1 - 1e-9, 'and Ctrl+Z turns it back');
+  await key(page, 'Escape');
+  await frames(page, 2);
+  say((await page.evaluate(B('.selected'))) === null, 'Esc with the mouse free drops the selection');
+  await takeMouse(page);
 }
 
 /* ------------------------------------------------------------------ */
@@ -489,9 +752,6 @@ async function proof() {
 
 const OPENING = openingsOf({ type: 'gate', dims: ELEMENTS.gate.dims })[0];
 const STACK = openingsOf({ type: 'doubleStack', dims: ELEMENTS.doubleStack.dims });
-const vAdd = (p, v, s) => p.map((x, i) => x + v[i] * s);
-const vCross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-const vDot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
 /* The craft's own shape swept along a chord through `c` on the gate's line
  * of travel, the query the frame loop makes. The kind it meets, or null. */
@@ -528,24 +788,35 @@ function solidGap(s, p) {
   return Math.max(0, Math.hypot(...p.map((v, i) => v - s.a[i] - d[i] * t)) - s.r);
 }
 
-/* Place a gate hung level in the air, the builder's air distance in front
- * of an eye looking along `yaw`, and hand back its race frame. */
+/* Hang the piece in hand level in the air, the builder's air distance in
+ * front of an eye looking along `yaw`. Its race frame. */
 async function hangGate(page, eye, yaw) {
-  const n = await page.evaluate(B('.gates.length'));
-  await page.tap('Digit3');
-  await aimAlong(page, eye, yaw, 0);
-  await page.tap('Enter');
-  await page.until(`${B('.gates.length')} === ${n + 1}`, 10000);
-  const st = await page.evaluate(B(''));
-  return st.gates[st.gates.length - 1];
+  await lookAlong(page, eye, yaw, 0);
+  return placeHere(page, { air: true });
 }
 
-/* Tab round the lap to one gate. */
-async function select(page, id) {
-  for (let i = 0; i < 12 && (await page.evaluate(B('.selected'))) !== id; i += 1) {
-    await page.tap('Tab');
+/* Pick up a placed gate with F and put it down, level, with its opening
+ * at p flown along t: the camera the air distance back, Alt and a click. */
+async function moveTo(page, id, p, t) {
+  if (!(await aimAtGate(page, id))) {
+    console.log(`    the crosshair would not settle on ${id}`);
   }
-  return (await page.evaluate(B('.selected'))) === id;
+  await key(page, 'KeyF');
+  await page.until(`${B('.carry')} !== null`, 5000);
+  const dist = await page.evaluate(B('.airDistance'));
+  await lookAlong(page, vAdd(p, t, -dist), Math.atan2(-t[0], -t[2]), 0);
+  await click(page, 'left', { alt: true });
+  await page.until(`${B('.carry')} === null`, 10000);
+}
+
+/* Right click on a placed gate. */
+async function removeById(page, id) {
+  const n = await page.evaluate(B('.gates.length'));
+  if (!(await aimAtGate(page, id))) {
+    console.log(`    the crosshair would not settle on ${id}`);
+  }
+  await click(page, 'right');
+  await page.until(`${B('.gates.length')} === ${n - 1}`, 10000);
 }
 
 /* The world yaw, degrees, of a craft pointed along a gate's travel. */
@@ -553,7 +824,6 @@ const yawAlong = (t) => (Math.atan2(-t[0], -t[2]) * 180) / Math.PI;
 
 async function solidGates(page, { edge, drop, yawOut, at }) {
   console.log('  solid gates');
-  const H = async (x, z) => page.evaluate(`window.__heightAt(${x}, ${z})`);
   const side = [drop.dz, 0, -drop.dx];
   const eye = at(edge + 25, drop.h + 10);
   const where = vAdd(eye, [drop.dx, 0, drop.dz], (await page.evaluate(B('.airDistance'))));
@@ -561,9 +831,9 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
   const count0 = (await page.evaluate('window.__colliders()')).count;
   say(await chord(page, probeG, onUpright(probeG)) === null && await chord(page, probeG, where) === null, 'before: nothing solid in the air out over the drop');
 
-  /* Place one. */
+  await hold(page, 'gate');
   const g = await hangGate(page, eye, yawOut);
-  const under = await H(g.centre[0], g.centre[2]);
+  const under = await page.evaluate(`window.__heightAt(${g.centre[0]}, ${g.centre[2]})`);
   say(g.centre[1] - under > 20, `a gate hung ${f1(g.centre[1] - under)} m over the ground out past the edge`);
   say((await page.evaluate('window.__colliders()')).count > count0, `its members are colliders: ${count0} before, ${(await page.evaluate('window.__colliders()')).count} after`);
   const kUp = await chord(page, g, onUpright(g));
@@ -572,7 +842,7 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
 
   /* Fly into it and through it, in a test flight, on the shell's own
    * contact and the crash physics. */
-  await page.tap('KeyB');
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
   const crash0 = await page.evaluate('window.__crash()');
   say(crash0.runDamage === true, `crash damage is on for the run (runDamage ${crash0.runDamage})`);
@@ -582,7 +852,9 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
     await page.evaluate(`window.__crashThrow({ x: ${p[0]}, y: ${p[1]}, z: ${p[2]}, yaw: ${yawAlong(g.travel)}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
   };
   const plane = vDot(g.centre, g.travel);
-  const past = async (d) => page.until(`(() => { const c = window.__craftState(); return c.worldX * ${g.travel[0]} + c.worldY * ${g.travel[1]} + c.worldZ * ${g.travel[2]} > ${plane + d}; })()`, 15000).then(() => true, () => false);
+  /* On the plant's clock: two seconds of flight is 24 m at 12 m/s, however
+   * long a loaded software rasteriser takes to draw them. */
+  const past = async (d) => simWait(page, 2, `(() => { const c = window.__craftState(); return c.worldX * ${g.travel[0]} + c.worldY * ${g.travel[1]} + c.worldZ * ${g.travel[2]} > ${plane + d}; })()`);
   await throwAt(g.centre, 2.5, 12);
   const through = await past(2);
   await page.sleep(300);
@@ -602,7 +874,7 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
   await throwAt(onUpright(g), 2.5, 12);
   await page.until("window.__contacts().obstacle.length > 0 || window.__craftState().lastHitKind !== 'none'", 15000).catch(() => {});
   await page.sleep(400);
-  await shot(page, '7-into-the-built-gate');
+  await shot(page, '8-into-the-built-gate');
   const hit = await page.evaluate('({ c: window.__craftState(), k: window.__crash(), o: window.__contacts().obstacle })');
   const first = hit.o[0];
   const offUpright = first && first.solid ? solidGap(first.solid, onUpright(g)) : Infinity;
@@ -611,33 +883,27 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
       ? `into its upright at 12 m/s: the plant's parts meet a held solid on ${hit.o.length} steps, first a built ${first.kind} ${f1(offUpright * 100)} cm from the upright (${first.parts} parts)`
       : `into its upright at 12 m/s: no plant contact on a held solid, the shell's sweep says ${hit.c.lastHitKind}`);
   say(hit.k.events > clean.k.events, `and the crash physics took it: ${hit.k.events - clean.k.events} damage events, flags ${JSON.stringify(hit.k.flagNames)}`);
-  await page.tap('KeyB');
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'building'`, 10000);
+  await takeMouse(page);
 
-  /* Move it: pick it up and put it down twelve metres to the side. */
-  say(await select(page, g.id), 'Tab selects it');
-  await page.tap('KeyG');
-  await aimAlong(page, vAdd(eye, side, 12), yawOut, 0);
-  await page.tap('Enter');
-  await page.until(`${B('.held')} === null`, 10000);
+  /* Move it: F picks it up, and a click puts it down twelve metres over. */
+  await moveTo(page, g.id, vAdd(g.centre, side, 12), g.travel);
   const m = (await page.evaluate(B('.gates'))).find((x) => x.id === g.id);
-  const moved = Math.hypot(...m.centre.map((v, i) => v - g.centre[i]));
+  const moved = vDist(m.centre, g.centre);
   const kOld = await chord(page, g, onUpright(g));
   const kNew = await chord(page, m, onUpright(m));
-  say(moved > 11 && kOld === null && FRAME.includes(kNew), `moved ${f1(moved)} m: the old upright is air (${kOld}), the new one solid (${kNew})`);
+  say(moved > 11 && kOld === null && FRAME.includes(kNew), `F and a click moved it ${f1(moved)} m: the old upright is air (${kOld}), the new one solid (${kNew})`);
 
-  /* Delete it: nothing of it is left. */
-  await page.tap('Delete');
-  await page.until(`!${B('.gates')}.some((x) => x.id === ${JSON.stringify(g.id)})`, 10000);
+  /* A right click on it: nothing of it is left. */
+  await removeById(page, g.id);
   const kGone = await chord(page, m, onUpright(m));
   const kHoleGone = await chord(page, m, m.centre);
   const count1 = (await page.evaluate('window.__colliders()')).count;
-  say(kGone === null && kHoleGone === null && count1 === count0, `deleted: nothing solid where it stood (${kGone}, ${kHoleGone}), ${count1} colliders as before it was placed`);
+  say(kGone === null && kHoleGone === null && count1 === count0, `a right click removed it: nothing solid where it stood (${kGone}, ${kHoleGone}), ${count1} colliders as before it was placed`);
 
   /* A double stack: both openings open, the bar between them solid. */
-  await page.tap('KeyT');
-  await page.tap('KeyT');
-  say((await page.evaluate(B('.type'))) === 'doubleStack', 'T twice: a double stack');
+  await hold(page, 'doubleStack');
   const s = await hangGate(page, eye, yawOut);
   const lift = STACK[1].centreY - STACK[0].centreY;
   const upper = vAdd(s.centre, s.up, lift);
@@ -646,13 +912,9 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
   const k1 = await chord(page, s, upper);
   const kb = await chord(page, s, bar);
   say(k0 === null && k1 === null && kb === 'gate', `the stack's lower opening (${k0}) and upper one (${k1}) are open and the bar between them solid (${kb})`);
-  await select(page, s.id);
-  await page.tap('Delete');
-  await page.until(`${B('.gates.length')} === 3`, 10000);
-  for (let i = 0; i < BUILD_TYPES.length - 2; i += 1) {
-    await page.tap('KeyT');
-  }
-  say((await page.evaluate(B('.type'))) === 'gate' && (await page.evaluate('window.__colliders()')).count === count0, 'deleted, and back to placing gates');
+  await removeById(page, s.id);
+  await hold(page, 'gate');
+  say((await page.evaluate('window.__colliders()')).count === count0, 'removed, and back to placing gates');
 }
 
 /*
@@ -664,17 +926,23 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
 async function airStartFlight(page, { edge, drop, yawOut, at }, craft) {
   console.log(`  air start, ${craft}`);
   const eye = at(edge + 25, drop.h + 10);
+  await hold(page, 'gate');
   const g = await hangGate(page, eye, yawOut);
   /* And one after it, so the start gate is not also the whole lap. */
   await hangGate(page, vAdd(eye, [drop.dx, 0, drop.dz], 30), yawOut);
-  await select(page, g.id);
-  await page.tap('Home');
-  await page.tap('Escape');
+  /* The flying order: O, the hung gate, O. */
+  await key(page, 'KeyO');
+  await aimAtGate(page, g.id, 14);
+  await click(page, 'left');
+  await frames(page, 2);
+  if (await page.evaluate(B('.order'))) {
+    await key(page, 'KeyO');
+  }
   const first = (await page.evaluate(B('.gates')))[0];
-  say(first.id === g.id, 'Home makes the hung gate the start');
+  say(first.id === g.id, 'O and a click on the hung gate make it the start');
   const af = await page.evaluate('window.__ui.settings.airframe');
   const want = airStartSpeed(airframeById(af));
-  await page.tap('KeyB');
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
   await frames(page, 3);
   const c0 = await page.evaluate('window.__craftState()');
@@ -690,7 +958,7 @@ async function airStartFlight(page, { edge, drop, yawOut, at }, craft) {
   await page.sleep(1200);
   const c1 = await page.evaluate('window.__craftState()');
   say(Math.hypot(c1.worldX - c0.worldX, c1.worldY - c0.worldY, c1.worldZ - c0.worldZ) < 1e-6, 'held still through the countdown');
-  await shot(page, `8-air-start-${craft}`);
+  await shot(page, `9-air-start-${craft.replace(/ /g, '-')}`);
 
   /* The pilot: height on the throttle (a quad) or the elevator (a wing),
    * the line on the roll stick, pushed along on the pitch stick for a quad
@@ -735,12 +1003,282 @@ async function airStartFlight(page, { edge, drop, yawOut, at }, craft) {
   const r = await page.evaluate('({ next: window.__race().next, lap: window.__race().lapStartMs, c: window.__craftState() })');
   if (r.next !== 1) {
     const tr = await page.evaluate('window.__trail');
-    console.log(`  mode ${await page.evaluate('window.__mode')}, screen ${await page.evaluate('window.__screen')}, fault ${JSON.stringify(await page.evaluate('window.__frameFault || null'))}`);
-    console.log(`  the flight, along the travel, across, up, speed: ${JSON.stringify(tr.filter((_, i) => i % Math.max(1, Math.floor(tr.length / 40)) === 0))}`);
+    console.log(`    the pilot's trail, every 20th frame [along, side, up, speed, banner, hit]: ${JSON.stringify(tr.filter((_, i) => i % 20 === 0).slice(0, 40))}`);
   }
   say(r.next === 1 && r.lap != null && r.c.lastHitKind === 'none', `flown through the start gate: the lap clock starts, next is gate ${r.next + 1}, touched ${r.c.lastHitKind}`);
   await page.sleep(300);
 }
+
+/* ------------------------------------------------------------------ */
+/* Every piece, the inventory, undo, copy, and an old saved track      */
+/* ------------------------------------------------------------------ */
+
+/*
+ * A line for them: the flattest 150 m of dry ground on the map, level
+ * within 2 m from 30 m before its start to its end, with nothing solid in
+ * the air over it from one to eight metres up and ten metres either side,
+ * which is the pylon's square on its left and the clip on its right.
+ */
+async function clearLine(page) {
+  return page.evaluate(`(() => {
+    const H = window.__heightAt;
+    const cands = [];
+    for (let x = -2400; x <= 2400; x += 24) {
+      for (let z = -2400; z <= 2400; z += 24) {
+        for (let k = 0; k < 8; k += 1) {
+          const a = k * Math.PI / 4;
+          const dx = Math.sin(a);
+          const dz = Math.cos(a);
+          let lo = Infinity;
+          let hi = -Infinity;
+          for (let s = -30; s <= 120; s += 10) {
+            for (const o of [-10, 0, 10]) {
+              const h = H(x + dx * s + dz * o, z + dz * s - dx * o);
+              lo = Math.min(lo, h);
+              hi = Math.max(hi, h);
+            }
+          }
+          if (Number.isFinite(lo) && hi - lo < 2) {
+            cands.push({ x, z, dx, dz, h: H(x, z), flat: hi - lo });
+          }
+        }
+      }
+    }
+    cands.sort((p, q) => p.flat - q.flat);
+    const seen = {};
+    let nWet = 0;
+    const wet = (x, z) => { const w = typeof window.__water === 'function' ? window.__water(x, z) : null; return Boolean(w && w.plant != null); };
+    for (const c of cands.slice(0, 20000)) {
+      if ([-30, 0, 45, 90, 120].some((s) => wet(c.x + c.dx * s, c.z + c.dz * s))) {
+        nWet += 1;
+        continue;
+      }
+      let clear = true;
+      for (const o of [-10, -5, 0, 5, 10]) {
+        for (const y of [1, 4, 8]) {
+          const sx = c.x + c.dz * o;
+          const sz = c.z - c.dx * o;
+          const a = [sx - c.dx * 30, H(sx - c.dx * 30, sz - c.dz * 30) + y, sz - c.dz * 30];
+          const b = [sx + c.dx * 120, H(sx + c.dx * 120, sz + c.dz * 120) + y, sz + c.dz * 120];
+          const k = window.__hit(a[0], a[1], a[2], b[0], b[1], b[2]).kind;
+          if (k) { clear = false; seen[k] = (seen[k] || 0) + 1; }
+        }
+      }
+      if (clear) { return c; }
+    }
+    return { none: true, cands: cands.length, wet: nWet, seen };
+  })()`);
+}
+
+/* A track saved by the builder before the creative mode, for this map,
+ * seeded into the library before the page loads. */
+async function oldTrack() {
+  const doc = JSON.parse(await readFile(join(root, 'tests/fixtures/map-track-v4.json'), 'utf8'));
+  doc.map = opts.map;
+  return doc;
+}
+
+async function piecesStage() {
+  console.log(`every piece, undo and copy on ${opts.map}`);
+  const old = await oldTrack();
+  const seed = [...seedFor(null), `try {
+    const lib = JSON.parse(localStorage.getItem(${JSON.stringify(LIBRARY)}) || '{}');
+    if (!lib[${JSON.stringify(old.id)}]) {
+      lib[${JSON.stringify(old.id)}] = ${JSON.stringify(old)};
+      localStorage.setItem(${JSON.stringify(LIBRARY)}, JSON.stringify(lib));
+    }
+  } catch (e) { /* storage refused; the old track check will say so */ }`];
+  const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed });
+  try {
+    await flyAndBuild(page);
+    await key(page, 'KeyN');
+    await page.until(`${B('.gates.length')} === 0`, 10000);
+    const found = await clearLine(page);
+    const flat = found && !found.none ? found : null;
+    say(Boolean(flat), `a clear, level line for them: ${flat ? `(${f1(flat.x)}, ${f1(flat.h)}, ${f1(flat.z)})` : JSON.stringify(found)}`);
+    if (!flat) {
+      return;
+    }
+    const dir = [flat.dx, 0, flat.dz];
+    const sideV = [flat.dz, 0, -flat.dx];
+    const H = async (x, z) => page.evaluate(`window.__heightAt(${x}, ${z})`);
+    const spotAt = async (s) => {
+      const p = vAdd([flat.x, 0, flat.z], dir, s);
+      p[1] = await H(p[0], p[2]);
+      return p;
+    };
+    const eyeFor = (spot) => vAdd(vAdd(spot, dir, -18), [0, 1, 0], 6);
+
+    /* The inventory: E, a tile dragged onto slot 9. */
+    await key(page, 'KeyE');
+    await page.until(B('.inventory'), 5000);
+    say(!(await page.evaluate(B('.locked'))), 'E opens the inventory and frees the mouse');
+    const rects = await page.evaluate('window.__build.rects()');
+    const shelves = await page.evaluate("[...document.querySelectorAll('.bh-inv h4')].map((h) => h.textContent)");
+    say(rects.tiles.length === PIECES.length && PIECES.every((p) => rects.tiles.some((t) => t.id === p.id)), `every piece is in it, ${rects.tiles.length}, on ${shelves.length} shelves: ${shelves.join(', ')}`);
+    await shot(page, '10-inventory');
+    const tile = rects.tiles.find((t) => t.id === 'pylonRight');
+    await dragMouse(page, tile, rects.slots[8], 10);
+    await frames(page, 2);
+    say((await page.evaluate(B('.hotbar[8]'))) === 'pylonRight', 'a tile dragged onto slot 9 puts that piece there');
+    await key(page, 'KeyE');
+    await page.until(`!${B('.inventory')}`, 5000);
+    await takeMouse(page);
+
+    /* Every piece, each with a left click, 14 m apart along the line. The
+     * start gate goes last, so it is seen to take the start. */
+    const order = [...PIECES.filter((p) => !p.start), PIECES.find((p) => p.start)];
+    const placed = [];
+    for (let i = 0; i < order.length; i += 1) {
+      const p = order[i];
+      await hold(page, p.id);
+      const spot = await spotAt(-20 + 14 * i);
+      await lookAt(page, eyeFor(spot), spot);
+      const g = await placeHere(page);
+      placed.push({ piece: p, id: g.id, eye: eyeFor(spot), spot });
+    }
+    let st = await page.evaluate(B(''));
+    const types = placed.map((x) => st.doc.elements.find((e) => e.id === x.id).type).join();
+    say(types === order.map((p) => p.type).join(), `every piece placed with a left click: ${types}`);
+    const startId = placed[placed.length - 1].id;
+    say(st.doc.sequence[0].elementId === startId && st.doc.sequence.length === order.length, 'the start gate piece made its gate the start');
+    const right = placed.find((x) => x.piece.id === 'pylonRight');
+    say(st.doc.sequence.find((q) => q.elementId === right.id).passSide === 'right', 'and the right hand pylon is passed on its right');
+    const mid = await spotAt(50);
+    await lookAt(page, vAdd(vAdd(vAdd(mid, dir, -40), sideV, -70), [0, 1, 0], 30), vAdd(mid, [0, 1, 0], 2));
+    await shot(page, '10-every-piece');
+
+    /* A right click on the flagged gate. */
+    const flagged = placed.find((x) => x.piece.id === 'flaggedGate');
+    const n0 = st.gates.length;
+    const cols0 = (await page.evaluate('window.__colliders()')).count;
+    await aimAtGate(page, flagged.id, 7);
+    await click(page, 'right');
+    await page.until(`${B('.gates.length')} === ${n0 - 1}`, 10000).catch(() => {});
+    const cols1 = (await page.evaluate('window.__colliders()')).count;
+    say(!(await page.evaluate(B('.gates'))).some((g) => g.id === flagged.id) && cols1 < cols0, `a right click on the flagged gate removes it and its solids (${cols0} to ${cols1} colliders)`);
+
+    /* A middle click takes a placed piece in hand: from its hotbar slot
+     * when it has one, into the slot in hand when it has not. */
+    const middle = async (pieceId) => {
+      await hold(page, 'gate');
+      const before = await page.evaluate(`(() => { const s = window.__build.state(); return { bar: s.hotbar, slot: s.slot }; })()`);
+      const target = placed.find((x) => x.piece.id === pieceId);
+      await aimAtGate(page, target.id, 7);
+      await click(page, 'middle');
+      await frames(page, 2);
+      const after = await page.evaluate(`(() => { const s = window.__build.state(); return { piece: s.piece, slot: s.slot, bar: s.hotbar }; })()`);
+      const want = before.bar.indexOf(pieceId) >= 0 ? before.bar.indexOf(pieceId) : before.slot;
+      return { ok: after.piece === pieceId && after.slot === want && after.bar[want] === pieceId, onBar: before.bar.includes(pieceId), slot: after.slot };
+    };
+    const onBar = await middle('wideGate3');
+    say(onBar.ok && onBar.onBar, `a middle click on the 3 m gate takes it in hand from its slot, ${onBar.slot + 1}`);
+    const bar = await page.evaluate(B('.hotbar'));
+    const loose = placed.find((x) => !bar.includes(x.piece.id) && !x.piece.start && x.piece.id !== 'flaggedGate' && x.piece.id !== 'gate');
+    if (loose) {
+      const offBar = await middle(loose.piece.id);
+      say(offBar.ok && !offBar.onBar, `and on the ${loose.piece.id}, not on the hotbar, into the slot in hand, ${offBar.slot + 1}`);
+    } else {
+      say(false, `a placed piece that is not on the hotbar, for the middle click: ${bar.join()}`);
+    }
+
+    /* F picks up the wide 5 m gate, a click puts it down six metres over. */
+    const wide5 = placed.find((x) => x.piece.id === 'wideGate5');
+    const w0 = (await page.evaluate(B('.gates'))).find((g) => g.id === wide5.id);
+    await aimAtGate(page, wide5.id, 7);
+    await key(page, 'KeyF');
+    await page.until(`${B('.carry')} !== null`, 5000);
+    const carried = await page.evaluate(B('.carry'));
+    say(carried.id === wide5.id && carried.piece === 'wideGate5', `F picks it up: carrying ${carried.piece}`);
+    const to = vAdd(wide5.spot, sideV, 6);
+    await lookAt(page, eyeFor(to), to);
+    await shot(page, '10-carrying');
+    await click(page, 'left');
+    await page.until(`${B('.carry')} === null`, 10000);
+    const w1 = (await page.evaluate(B('.gates'))).find((g) => g.id === wide5.id);
+    const shift = vDot(vAdd(w1.centre, w0.centre, -1), sideV);
+    say(Math.abs(shift - 6) < 0.3 && vDot(w1.travel, w0.travel) > 1 - 1e-9, `and a click puts it down ${f1(shift)} m over, turned as it was`);
+    const kOld = await chord(page, w0, vAdd(w0.centre, vCross(w0.up, w0.travel), 2.5 + 0.03), 3, 3);
+    say(kOld === null, `where it stood is air now (${kOld})`);
+
+    /* Undo and redo the move, and a placement. */
+    await key(page, 'KeyZ', { ctrl: true });
+    await frames(page, 2);
+    const u1 = (await page.evaluate(B('.gates'))).find((g) => g.id === wide5.id);
+    await key(page, 'KeyY', { ctrl: true });
+    await frames(page, 2);
+    const u2 = (await page.evaluate(B('.gates'))).find((g) => g.id === wide5.id);
+    await key(page, 'KeyZ', { ctrl: true });
+    await key(page, 'KeyZ', { ctrl: true, shift: true });
+    await frames(page, 2);
+    const u3 = (await page.evaluate(B('.gates'))).find((g) => g.id === wide5.id);
+    say(vDist(u1.centre, w0.centre) < 1e-6 && vDist(u2.centre, w1.centre) < 1e-6 && vDist(u3.centre, w1.centre) < 1e-6,
+      'Ctrl+Z puts the move back, Ctrl+Y and Ctrl+Shift+Z do it again');
+    const nBefore = await page.evaluate(B('.gates.length'));
+    await key(page, 'KeyZ', { ctrl: true });
+    await key(page, 'KeyZ', { ctrl: true });
+    const nUndo = await page.evaluate(B('.gates.length'));
+    await key(page, 'KeyY', { ctrl: true });
+    await key(page, 'KeyY', { ctrl: true });
+    const nRedo = await page.evaluate(B('.gates.length'));
+    say(nUndo === nBefore + 1 && nRedo === nBefore, `and past it, the removal: ${nBefore} gates, ${nUndo} undone, ${nRedo} redone`);
+
+    /* Ctrl+D: a copy of the 3 m gate, put down beside it. */
+    const wide3 = placed.find((x) => x.piece.id === 'wideGate3');
+    const s0 = (await page.evaluate(B('.gates'))).find((g) => g.id === wide3.id);
+    await aimAtGate(page, wide3.id, 7);
+    await key(page, 'KeyD', { ctrl: true });
+    await page.until(`${B('.carry')} !== null`, 5000);
+    const copy = await page.evaluate(B('.carry'));
+    const spotC = vAdd(wide3.spot, sideV, -7);
+    await lookAt(page, vAdd(eyeFor(spotC), sideV, 5), spotC);
+    const nC = await page.evaluate(B('.gates.length'));
+    await click(page, 'left');
+    await page.until(`${B('.gates.length')} === ${nC + 1}`, 10000);
+    st = await page.evaluate(B(''));
+    const dup = st.gates.find((g) => g.id === st.selected);
+    const dupType = st.doc.elements.find((e) => e.id === st.selected).type;
+    say(copy.id === null && copy.piece === 'wideGate3' && dupType === 'wideGate3' && vDot(dup.travel, s0.travel) > 1 - 1e-9,
+      `Ctrl+D copies it into the hand, and a click places a ${dupType} turned as the original`);
+
+    /* The ghost goes red on another gate. */
+    await hold(page, 'gate');
+    const gate = placed.find((x) => x.piece.id === 'gate');
+    await lookAt(page, gate.eye, gate.spot);
+    await frames(page, 3);
+    const red = await page.evaluate(B('.ghost'));
+    say(red.trouble && red.trouble.code === 'overlap' && red.colour === '#ff3b3b', `on a gate already there the ghost is red: ${JSON.stringify(red.trouble)}, ${red.colour}`);
+    say(/inside gate/.test(await page.evaluate(B('.hud'))), 'and the status line says why');
+    await shot(page, '10-ghost-red');
+
+    /* 11: a track saved before this builder. */
+    const want = raceGatesOf(normalize(old).doc);
+    for (let i = 0; i < 8 && (await page.evaluate(B('.doc.id'))) !== old.id; i += 1) {
+      await key(page, 'KeyO', { ctrl: true });
+      await frames(page, 2);
+    }
+    st = await page.evaluate(B(''));
+    const sameGates = st.gates.length === want.length && st.gates.every((g, i) => vDist(g.centre, [want[i].centre.x, want[i].centre.y, want[i].centre.z]) < 1e-6);
+    say(st.doc.id === old.id && sameGates, `an old saved track opens with Ctrl+O: ${st.doc.name}, ${st.gates.length} gates where they were`);
+    say(st.doc.sequence[3].passSide === 'right' && st.doc.schemaVersion === 4, 'its pylon still passed on its right, still schemaVersion 4');
+    say(st.badges.map((b) => b.text).join() === '1,2,3,4', `and every gate wears its number: ${st.badges.map((b) => b.text).join()}`);
+    await key(page, 'KeyB');
+    await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+    const race = await page.evaluate('({ n: window.__race().gates.length, freestyle: window.__race().freestyle })');
+    say(race.n === 4 && !race.freestyle, `and B flies it: a race of ${race.n} gates`);
+    await key(page, 'KeyB');
+    await page.until(`${B('.state')} === 'building'`, 10000);
+    await leave(page);
+    const errs = pageErrors(page);
+    say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  } finally {
+    await page.close();
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* The racing line, the geometry warnings and a lap of one gate        */
+/* ------------------------------------------------------------------ */
 
 /* 12 to 15, on a page of their own so that they stand or fall by
  * themselves, over the same drop. */
@@ -752,10 +1290,9 @@ async function lineAndWarnings() {
     const where = await findDrop(page);
     await geometry(page, where);
     await oneGate(page, where);
-    await deselect(page);
-    await page.tap('Escape');
+    await leave(page);
     await page.until(`${B('.state')} === 'off'`, 10000);
-    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    const errs = pageErrors(page);
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
     await page.close();
@@ -771,7 +1308,7 @@ async function wingStart({ edge, drop, yawOut, at }) {
   try {
     await flyAndBuild(page);
     await airStartFlight(page, { edge, drop, yawOut, at }, 'fixed wing');
-    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    const errs = pageErrors(page);
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
     await page.close();
@@ -851,81 +1388,25 @@ async function pylonClips(page, { cone, coneAxis, lateral, side }, speed, label)
   return { low: await clipAt(3), high: await clipAt(7), af };
 }
 
-/* T round the types to one of them. */
-async function chooseType(page, type) {
-  for (let i = 0; i < BUILD_TYPES.length && (await page.evaluate(B('.type'))) !== type; i += 1) {
-    await page.tap('KeyT');
-  }
-  return (await page.evaluate(B('.type'))) === type;
-}
-
-/*
- * A line for them: the flattest 150 m of dry ground on the map, level
- * within 2 m from 30 m before its start to its end, with nothing solid in
- * the air over it from one to eight metres up and ten metres either side,
- * which is the pylon's square on its left and the clip on its right.
- */
-async function clearLine(page) {
-  return page.evaluate(`(() => {
-    const H = window.__heightAt;
-    const cands = [];
-    for (let x = -2400; x <= 2400; x += 24) {
-      for (let z = -2400; z <= 2400; z += 24) {
-        for (let k = 0; k < 8; k += 1) {
-          const a = k * Math.PI / 4;
-          const dx = Math.sin(a);
-          const dz = Math.cos(a);
-          let lo = Infinity;
-          let hi = -Infinity;
-          for (let s = -30; s <= 120; s += 10) {
-            for (const o of [-10, 0, 10]) {
-              const h = H(x + dx * s + dz * o, z + dz * s - dx * o);
-              lo = Math.min(lo, h);
-              hi = Math.max(hi, h);
-            }
-          }
-          if (Number.isFinite(lo) && hi - lo < 2) {
-            cands.push({ x, z, dx, dz, h: H(x, z), flat: hi - lo });
-          }
-        }
-      }
-    }
-    cands.sort((p, q) => p.flat - q.flat);
-    const seen = {};
-    let nWet = 0;
-    const wet = (x, z) => { const w = typeof window.__water === 'function' ? window.__water(x, z) : null; return Boolean(w && w.plant != null); };
-    for (const c of cands.slice(0, 20000)) {
-      if ([-30, 0, 45, 90, 120].some((s) => wet(c.x + c.dx * s, c.z + c.dz * s))) {
-        nWet += 1;
-        continue;
-      }
-      let clear = true;
-      for (const o of [-10, -5, 0, 5, 10]) {
-        for (const y of [1, 4, 8]) {
-          const sx = c.x + c.dz * o;
-          const sz = c.z - c.dx * o;
-          const a = [sx - c.dx * 30, H(sx - c.dx * 30, sz - c.dz * 30) + y, sz - c.dz * 30];
-          const b = [sx + c.dx * 120, H(sx + c.dx * 120, sz + c.dz * 120) + y, sz + c.dz * 120];
-          const k = window.__hit(a[0], a[1], a[2], b[0], b[1], b[2]).kind;
-          if (k) { clear = false; seen[k] = (seen[k] || 0) + 1; }
-        }
-      }
-      if (clear) { return c; }
-    }
-    return { none: true, cands: cands.length, wet: nWet, seen };
-  })()`);
+/* A piece in hand, clicked onto the ground at `spot` from 24 m back and 7
+ * m up. The new gate's id. */
+async function placeOn(page, pieceId, spot, dir) {
+  await hold(page, pieceId);
+  await lookAt(page, vAdd(vAdd(spot, dir, -24), [0, 1, 0], 7), spot);
+  const g = await placeHere(page);
+  return g.id;
 }
 
 /*
  * THE PLANE SIZED GATES, in the Slow Stick's page, on the clear line found
  * above: a 3 m wide gate, 45 m on a pylon pair, 45 m on a single pylon.
- * Each is placed with real keys, T to its type and Enter, and seen. Then
- * they are flown: the Slow Stick thrown along the line at 9 m/s through
- * the wide gate, between the pylons and round the pylon on its set side,
- * each pass counted by the race; the pylon's other side does not count
- * until F turns it round; its wingtips into the cone with crash damage on.
- * Saved, the page reloaded, and the same three types come back with the
- * pylon's side.
+ * Each is placed from the hotbar with a left click, and seen. Then they
+ * are flown: the Slow Stick thrown along the line at 9 m/s through the
+ * wide gate, between the pylons and round the pylon on its set side, each
+ * pass counted by the race; the pylon's other side does not count until
+ * it is replaced by the other pylon piece; its wingtips into the cone with
+ * crash damage on. Saved, the page reloaded, and the same three types come
+ * back with the pylon's side.
  */
 async function planeGates(page) {
   console.log(`  plane sized gates, ${opts.map}`);
@@ -941,29 +1422,22 @@ async function planeGates(page) {
   const dir = [flat.dx, 0, flat.dz];
   const side = [flat.dz, 0, -flat.dx];
   const H = async (x, z) => page.evaluate(`window.__heightAt(${x}, ${z})`);
-  const n0 = await page.evaluate(B('.gates.length'));
-  const placed = [];
   const plan = [['wideGate3', 0], ['pylonPair', 45], ['pylon', 90]];
-  await page.tap('Digit1');
+  const placed = [];
+  const spots = [];
   for (const [type, s] of plan) {
-    say(await chooseType(page, type), `T reaches the ${type}: ${await page.evaluate(B('.type'))}`);
     const spot = vAdd([flat.x, 0, flat.z], dir, s);
     spot[1] = await H(spot[0], spot[2]);
-    const eye = vAdd(vAdd(spot, dir, -24), [0, 1, 0], 7);
-    await aimAt(page, eye, spot);
+    spots.push(spot);
+    await hold(page, type);
+    await lookAt(page, vAdd(vAdd(spot, dir, -24), [0, 1, 0], 7), spot);
     await shot(page, `16-${opts.map}-${type}-ghost`);
-    await page.tap('Enter');
-    await page.until(`${B('.gates.length')} === ${n0 + placed.length + 1}`, 10000);
-    const st = await page.evaluate(B(''));
-    placed.push({ type, id: st.doc.elements[st.doc.elements.length - 1].id });
+    placed.push({ type, id: (await placeHere(page)).id });
   }
   const types = (await page.evaluate(B('.doc.elements'))).slice(-3).map((e) => e.type).join();
-  say(types === 'wideGate3,pylonPair,pylon', `placed a wide gate, a pylon pair and a pylon: ${types}`);
-  /* The wide gate starts the lap, and the pylons follow it. */
-  await select(page, placed[0].id);
-  await page.tap('Home');
-  await page.tap('Escape');
+  say(types === 'wideGate3,pylonPair,pylon', `placed a wide gate, a pylon pair and a pylon from the hotbar: ${types}`);
   let G = await page.evaluate(B('.gates'));
+  say(G[0].id === placed[0].id, 'the wide gate, placed first, is the start');
   const byId = (id) => G.find((g) => g.id === id);
   const wide = byId(placed[0].id);
   const pair = byId(placed[1].id);
@@ -973,13 +1447,12 @@ async function planeGates(page) {
   const lateral = vDot(vAdd(cone.centre, coneAxis, -1), side);
   say(Math.abs(Math.abs(lateral) - 7.5) < 1e-3, `the pylon scores a square whose centre is ${f1(Math.abs(lateral))} m to the pilot's left of it`);
 
-  /* Seen from behind the start and to one side, the three together. */
   const mid = vAdd([flat.x, flat.h, flat.z], dir, 45);
-  await aimAt(page, vAdd(vAdd(vAdd(mid, dir, -95), side, -30), [0, 1, 0], 22), vAdd(mid, [0, 1, 0], 3));
+  await lookAt(page, vAdd(vAdd(vAdd(mid, dir, -95), side, -30), [0, 1, 0], 22), vAdd(mid, [0, 1, 0], 3));
   await frames(page, 3);
   await shot(page, `16-${opts.map}-plane-gates`);
 
-  await page.tap('KeyB');
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
   await frames(page, 3);
   const crash0 = await page.evaluate('window.__crash()');
@@ -988,10 +1461,6 @@ async function planeGates(page) {
   const race0 = await page.evaluate('({ n: window.__race().gates.length, next: window.__race().next })');
   say(race0.n === G.length, `the race has all ${race0.n} gates`);
   const SPEED = 9;
-  const throwAlong = async (from, t, speed = SPEED) => {
-    const v = t.map((x) => x * speed);
-    return page.evaluate(`window.__crashThrow({ fresh: true, x: ${from[0]}, y: ${from[1]}, z: ${from[2]}, yaw: ${yawAlong(t)}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
-  };
   /* Through gate g at `c`, from 6 m back, until the race moves on or 4 s.
    * Fresh each time, so one throw's damage is not the next one's. */
   const flyThrough = async (g, c, want) => {
@@ -1035,41 +1504,44 @@ async function planeGates(page) {
     `a Slow Stick wingtip into it 3 m up meets it, and with crash damage on the crash physics takes it: ${light.low.events} damage events`);
   say(light.high.met.length > 0 && light.high.events > 0, `and 7 m up: ${light.high.events} damage events`);
 
-  /* F turns it round, in build mode, and the other side counts now. */
-  await page.tap('KeyB');
+  /* The other pylon piece in its place: a right click on it, the right
+   * hand pylon from slot 9 and a click from where it was placed. */
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'building'`, 10000);
-  await select(page, cone.id);
-  await page.tap('KeyF');
-  const sideNow = (await page.evaluate(B('.doc.sequence'))).find((q) => q.elementId === cone.id).passSide;
-  say(sideNow === 'right', `F turns the pylon round: passed on its ${sideNow} now`);
-  const hudSays = await panelSays(page, /keep the pylon on your left/);
-  say(hudSays, 'and the readout says so');
-  await page.tap('Escape');
+  await takeMouse(page);
+  await removeById(page, cone.id);
+  const coneR = await placeOn(page, 'pylonRight', spots[2], dir);
+  const sideNow = (await page.evaluate(B('.doc.sequence'))).find((q) => q.elementId === coneR).passSide;
+  say(sideNow === 'right', `the right hand pylon piece in its place: passed on its ${sideNow} now`);
   G = await page.evaluate(B('.gates'));
-  const cone2 = G.find((g) => g.id === cone.id);
-  await page.tap('KeyB');
+  const cone2 = G.find((g) => g.id === coneR);
+  const coneBase2 = (await page.evaluate(B('.doc.elements'))).find((e) => e.id === coneR).position;
+  say(vDist([coneBase2.x, coneBase2.z, -coneBase2.y], coneAxis) < 0.05, 'standing where the other one stood');
+  const iCone2 = G.findIndex((g) => g.id === coneR);
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
   await frames(page, 3);
-  await page.evaluate(`window.__race().next = ${iCone}, true`);
-  const okFlipped = await flyThrough(cone2, roundWrong, (iCone + 1) % G.length);
+  await page.evaluate(`window.__race().next = ${iCone2}, true`);
+  const okFlipped = await flyThrough(cone2, roundWrong, (iCone2 + 1) % G.length);
   say(okFlipped, 'and flown on that side it counts');
-  await page.tap('KeyB');
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'building'`, 10000);
+  await takeMouse(page);
 
   /* Saved, and a real reload. */
-  await ctrlTap(page, 'KeyS');
+  await key(page, 'KeyS', { ctrl: true });
   await frames(page, 3);
   const docId = await page.evaluate(B('.doc.id'));
-  const raw = await page.evaluate(`JSON.parse(localStorage.getItem('webfpv.trackbuilder.library.v1'))[${JSON.stringify(docId)}]`);
-  const rawSide = raw.sequence.find((q) => q.elementId === cone.id);
+  const raw = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(LIBRARY)}))[${JSON.stringify(docId)}]`);
+  const rawSide = raw.sequence.find((q) => q.elementId === coneR);
   say(raw.schemaVersion === 4 && rawSide && rawSide.passSide === 'right', `stored as schemaVersion ${raw.schemaVersion} with the pylon's side, ${rawSide ? rawSide.passSide : '?'}`);
   await page.cdp.send('Page.reload', {}, page.sessionId);
   await page.sleep(1000);
   await flyAndBuild(page);
   const again = await page.evaluate(B(''));
   const back = again.doc.elements.map((e) => e.type).join();
-  const backSide = again.doc.sequence.find((q) => q.elementId === cone.id);
-  const sameCentres = again.gates.length === G.length && again.gates.every((g, i) => Math.hypot(...g.centre.map((v, k) => v - G[i].centre[k])) < 1e-3);
+  const backSide = again.doc.sequence.find((q) => q.elementId === coneR);
+  const sameCentres = again.gates.length === G.length && again.gates.every((g, i) => vDist(g.centre, G[i].centre) < 1e-3);
   say(/wideGate3,pylonPair,pylon$/.test(back) && backSide && backSide.passSide === 'right' && sameCentres, `after a reload the same gates are back, the pylon still on its right: ${back}`);
 }
 
@@ -1080,7 +1552,7 @@ async function planeStage() {
   try {
     await flyAndBuild(page);
     await planeGates(page);
-    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    const errs = pageErrors(page);
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
     await page.close();
@@ -1091,7 +1563,8 @@ async function planeStage() {
  * THE HEAVIEST WING INTO A PYLON. The Slow Stick is 420 g and its wing
  * lets go before the cone has moved; the Bramor, the heaviest aircraft
  * here, meets it at its catapult's release speed. A single pylon on the
- * same clear line, placed with T and Enter, and the same two throws.
+ * same clear line, placed from the hotbar with a click, and the same two
+ * throws.
  */
 async function bramorClips() {
   console.log(`a pylon clipped by the Bramor, ${opts.map}`);
@@ -1107,24 +1580,16 @@ async function bramorClips() {
     const side = [found.dz, 0, -found.dx];
     /* A wide gate at the far end starts the lap, so a throw past the
      * pylon is not a lap flown and the run never reaches its results. */
-    await page.tap('Digit1');
-    const place = async (type, spot) => {
-      const n = await page.evaluate(B('.gates.length'));
-      say(await chooseType(page, type), `T reaches the ${type}`);
-      await aimAt(page, vAdd(vAdd(spot, dir, -24), [0, 1, 0], 7), spot);
-      await page.tap('Enter');
-      await page.until(`${B('.gates.length')} === ${n + 1}`, 10000);
-    };
     const far = vAdd([found.x, 0, found.z], dir, 110);
     far[1] = await page.evaluate(`window.__heightAt(${far[0]}, ${far[2]})`);
-    await place('wideGate5', far);
-    await place('pylon', [found.x, found.h, found.z]);
+    await placeOn(page, 'wideGate5', far, dir);
+    await placeOn(page, 'pylon', [found.x, found.h, found.z], dir);
     const st = await page.evaluate(B(''));
     const el = st.doc.elements[1];
     const coneAxis = [el.position.x, el.position.z, -el.position.y];
     const cone = st.gates[1];
     const lateral = vDot(vAdd(cone.centre, coneAxis, -1), side);
-    await page.tap('KeyB');
+    await key(page, 'KeyB');
     await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
     await page.evaluate("(document.querySelector('.osd-air-hint-btn') || { click() {} }).click(), true");
     const speed = airStartSpeed(airframeById('bramor2300'));
@@ -1134,7 +1599,7 @@ async function bramorClips() {
       `the Bramor's wingtip 3 m up at ${speed.toFixed(1)} m/s: the cone gives, ${JSON.stringify(heavy.low.met.map(heavy.low.fmt))}, ${heavy.low.events} damage events`);
     say(heavy.high.met.some((p) => p.freed),
       `and 7 m up it folds the top of the cone: ${JSON.stringify(heavy.high.met.map(heavy.high.fmt))}`);
-    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+    const errs = pageErrors(page);
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
     await page.close();
@@ -1167,66 +1632,31 @@ async function fieldTrack() {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* The racing line, the geometry warnings and a lap of one gate        */
-/* ------------------------------------------------------------------ */
-
-const vDist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const warnList = async (page) => (await page.evaluate(B('.warnings'))).map((w) => `${w.code}@${w.gate + 1}`).join(' ') || 'none';
 const warned = async (page, code, gate = null) => (await page.evaluate(B('.warnings'))).some((w) => w.code === code && (gate == null || w.gate === gate));
 /* The panel is painted on the next frame after an edit, and a frame on the
  * software renderer under load can take a second: wait for it. */
 const panelSays = async (page, re) => page.until(`${re}.test(${B('.hud')})`, 10000).then(() => true, () => false);
 
-/* Drop the selection, if there is one: Esc with nothing selected leaves
- * building altogether. */
-async function deselect(page) {
-  if (await page.evaluate(B('.held'))) {
-    await page.tap('Escape');
-  }
-  if (await page.evaluate(B('.selected'))) {
-    await page.tap('Escape');
-  }
-}
-
-/* Hang a level gate in the air with its opening centred at p, flown along
- * the horizontal unit t: the camera the air distance back from p, looking
- * along t. The new gate's race frame. */
-async function hangAt(page, p, t) {
-  const n = await page.evaluate(B('.gates.length'));
-  const dist = await page.evaluate(B('.airDistance'));
-  await page.tap('Digit3');
-  await aimAlong(page, vAdd(p, t, -dist), Math.atan2(-t[0], -t[2]), 0);
-  await page.tap('Enter');
-  await page.until(`${B('.gates.length')} === ${n + 1}`, 10000);
-  const st = await page.evaluate(B(''));
-  return st.gates[st.gates.length - 1];
-}
-
-/* Pick up a placed gate and hang it again at p along t. */
-async function moveTo(page, id, p, t) {
-  await select(page, id);
-  await page.tap('KeyG');
-  const dist = await page.evaluate(B('.airDistance'));
-  await aimAlong(page, vAdd(p, t, -dist), Math.atan2(-t[0], -t[2]), 0);
-  await page.tap('Enter');
-  await page.until(`${B('.held')} === null`, 10000);
-  await deselect(page);
-}
-
-async function removeById(page, id) {
-  const n = await page.evaluate(B('.gates.length'));
-  await select(page, id);
-  await page.tap('Delete');
-  await page.until(`${B('.gates.length')} === ${n - 1}`, 10000);
-}
-
 /* C round the aircraft until the line is drawn for `id`. */
 async function craftTo(page, id) {
   for (let i = 0; i < 16 && (await page.evaluate(B('.line.craft'))) !== id; i += 1) {
-    await page.tap('KeyC');
+    await key(page, 'KeyC');
   }
   return (await page.evaluate(B('.line.craft'))) === id;
+}
+
+/* With the mouse free, a gate selected and turned in place with R or
+ * Shift+R `n` times, and the mouse taken back. */
+async function turnSelected(page, id, n, shift) {
+  await freeMouse(page, 20, 360);
+  const ok = await clickGate(page, id);
+  for (let i = 0; i < n; i += 1) {
+    await key(page, 'KeyR', { shift });
+  }
+  await key(page, 'Escape');
+  await takeMouse(page);
+  return ok;
 }
 
 async function geometry(page, { edge, drop, at }) {
@@ -1236,11 +1666,9 @@ async function geometry(page, { edge, drop, at }) {
   const back = [-drop.dx, 0, -drop.dz];
   const side = [drop.dz, 0, -drop.dx];
   const aside = [-drop.dz, 0, drop.dx];
-  await deselect(page);
-  await page.tap('KeyN');
+  await key(page, 'KeyN');
   await page.until(`${B('.gates.length')} === 0`, 10000);
-  /* Z with nothing selected stands the next gate upright. */
-  await page.tap('KeyZ');
+  await hold(page, 'gate');
   const empty = await page.evaluate(B('.line'));
   say(empty.samples === 0 && !empty.ribbon && (await page.evaluate(B('.warnings.length'))) === 0, 'a new track: no line and no warnings');
   const seated = empty.craft;
@@ -1276,23 +1704,20 @@ async function geometry(page, { edge, drop, at }) {
   say(L.craft === seated && Number.isFinite(L.slowest) && L.slowest > 0, `drawn for the seated ${seated}: slowest corner ${f1(L.slowest)} m/s`);
   say((await warnList(page)) === 'none', `the lap has no warnings: ${await warnList(page)}`);
   say((await panelSays(page, /Racing line for/)) && (await panelSays(page, /No geometry warnings/)), 'the panel says so');
-  await aimAt(page, vAdd(vAdd(O, back, 90), [0, 1, 0], 70), vAdd(O, d, 20));
-  await shot(page, '9-racing-line');
+  await lookAt(page, vAdd(vAdd(O, back, 90), [0, 1, 0], 70), vAdd(O, d, 20));
+  await shot(page, '12-racing-line');
 
-  /* 13. backwards: B turned round, J twelve times, and back. */
-  await select(page, gB.id);
-  for (let i = 0; i < 12; i += 1) {
-    await page.tap('KeyJ');
-  }
-  say(await warned(page, 'backwards', 1), `gate 2 turned round faces the wrong way: ${await warnList(page)}`);
+  /* 13. backwards: B selected with the mouse free and turned round with R
+   * twelve times, and back with Shift+R. */
+  await lookAt(page, vAdd(vAdd(gB.centre, aside, -18), [0, 1, 0], 4), gB.centre);
+  say(await turnSelected(page, gB.id, 12, false), 'the mouse freed and gate 2 clicked');
+  say(await warned(page, 'backwards', 1), `R twelve times turns it round, facing the wrong way: ${await warnList(page)}`);
   say(await panelSays(page, /faces the wrong way/), 'the panel lists it');
   const marked = await page.evaluate(B('.line.markers'));
   say(marked === (await page.evaluate(B('.warnings.length'))) && marked > 0, `and it is marked in the valley: ${marked} markers`);
-  await shot(page, '10-gate-turned-round');
-  for (let i = 0; i < 12; i += 1) {
-    await page.tap('KeyL');
-  }
-  await deselect(page);
+  await shot(page, '13-gate-turned-round');
+  await lookAt(page, vAdd(vAdd(gB.centre, aside, 18), [0, 1, 0], 4), gB.centre);
+  await turnSelected(page, gB.id, 12, true);
   say(!(await warned(page, 'backwards')) && (await page.evaluate(B('.line.markers'))) === 0, `turned back, it is gone: ${await warnList(page)}`);
 
   /* small: the Skyhunter's 1.8 m span through 1.75 m gates. */
@@ -1304,47 +1729,46 @@ async function geometry(page, { edge, drop, at }) {
   const gD = await hangAt(page, vAdd(vAdd(gC.centre, back, 8), side, 6), back);
   const over = await page.evaluate(B('.line.over'));
   say((await warned(page, 'tight', 2)) && over > 0, `a jink after gate 3 is tighter than the Skyhunter can turn: ${over} points of the line marked, ${await warnList(page)}`);
-  await aimAt(page, vAdd(vAdd(gC.centre, side, 30), [0, 1, 0], 25), gC.centre);
-  await shot(page, '11-too-tight-for-the-skyhunter');
+  await lookAt(page, vAdd(vAdd(gC.centre, side, 30), [0, 1, 0], 25), gC.centre);
+  await shot(page, '13-too-tight-for-the-skyhunter');
   await removeById(page, gD.id);
-  say(!(await warned(page, 'tight')) && (await page.evaluate(B('.line.over'))) === 0, `removed, the line is flyable again: ${await warnList(page)}`);
+  say(!(await warned(page, 'tight')) && (await page.evaluate(B('.line.over'))) === 0, `a right click removes it, the line is flyable again: ${await warnList(page)}`);
   say(await craftTo(page, seated), `C back to the ${seated}`);
   say((await warnList(page)) === 'none', `and the small warnings are gone: ${await warnList(page)}`);
 
-  /* close: a gate two metres after gate 3, then moved twenty. */
+  /* close: a gate two metres after gate 3, then carried twenty. */
   const gE = await hangAt(page, vAdd(gC.centre, back, 2), back);
   say(await warned(page, 'close', 2), `a gate 2 m after gate 3: ${await warnList(page)}`);
   await moveTo(page, gE.id, vAdd(gC.centre, back, 22), back);
-  say(!(await warned(page, 'close')), `moved to 22 m, it is not: ${await warnList(page)}`);
+  say(!(await warned(page, 'close')), `carried to 22 m, it is not: ${await warnList(page)}`);
   await removeById(page, gE.id);
 
   /* blocked: a gate hung inside the cliff under the edge, from out over
-   * the drop looking back at the face, the air distance past it. */
+   * the drop looking back at the face, the air distance past it. The
+   * ghost is red there before it is placed. */
   const low = await H(drop.x + drop.dx * 30, drop.z + drop.dz * 30);
   const faceY = (drop.h + low) / 2;
   const eye = at(edge + 40, faceY);
-  await aimAlong(page, eye, Math.atan2(drop.dx, drop.dz), 0);
+  await lookAlong(page, eye, Math.atan2(drop.dx, drop.dz), 0);
   const face = await page.evaluate('window.__build.pickNow()');
   const want = face ? face.distance + 6 : 0;
-  for (let i = 0; i < 40 && (await page.evaluate(B('.airDistance'))) < want; i += 1) {
-    await page.tap('Equal');
-  }
-  const n0 = await page.evaluate(B('.gates.length'));
-  await page.tap('Digit3');
-  await settleCrosshair(page);
-  await page.tap('Enter');
-  await page.until(`${B('.gates.length')} === ${n0 + 1}`, 10000);
-  const inRock = (await page.evaluate(B('.gates'))).at(-1);
+  const dist0 = await page.evaluate(B('.airDistance'));
+  await airTo(page, want);
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18, modifiers: 1 }, page.sessionId);
+  await frames(page, 3);
+  const redGhost = await page.evaluate(B('.ghost'));
+  await shot(page, '14-ghost-red-in-the-rock');
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18 }, page.sessionId);
+  say(redGhost.trouble && redGhost.trouble.code === 'blocked' && redGhost.colour === '#ff3b3b', `the ghost in the rock is red before it is placed: ${JSON.stringify(redGhost.trouble)}`);
+  const inRock = await placeHere(page, { air: true });
   const under = await H(inRock.centre[0], inRock.centre[2]);
   say(face && under > inRock.centre[1] && (await warned(page, 'blocked', 3)),
     `a gate ${face ? f1(want - face.distance) : '?'} m into the cliff, ${f1(under - inRock.centre[1])} m under the ground: ${await warnList(page)}`);
-  await shot(page, '12-gate-in-the-rock');
-  for (let i = 0; i < 40 && (await page.evaluate(B('.airDistance'))) > 15; i += 1) {
-    await page.tap('Minus');
-  }
-  await moveTo(page, inRock.id, vAdd(gC.centre, back, 30), back);
-  say(!(await warned(page, 'blocked')), `moved out into the air, it is not: ${await warnList(page)}`);
-  await removeById(page, inRock.id);
+  await airTo(page, dist0);
+  /* It is in the rock, where the crosshair cannot reach it: the undo. */
+  await key(page, 'KeyZ', { ctrl: true });
+  await frames(page, 2);
+  say(!(await warned(page, 'blocked')) && !(await page.evaluate(B('.gates'))).some((g) => g.id === inRock.id), `Ctrl+Z takes it out again: ${await warnList(page)}`);
 
   /* blocked, by a building, where the map has one. */
   const stats = await page.evaluate('window.__colliders()');
@@ -1354,14 +1778,14 @@ async function geometry(page, { edge, drop, at }) {
     const hc = house.centre;
     const gH = await hangAt(page, hc, d);
     say(await warned(page, 'blocked', 3), `a gate hung in a building's wall at (${hc.map(f1).join(', ')}), ${house.size.map(f1).join(' by ')} m: ${await warnList(page)}`);
-    await moveTo(page, gH.id, vAdd(gC.centre, back, 30), back);
-    say(!(await warned(page, 'blocked')), `moved out of it, it is not: ${await warnList(page)}`);
-    await removeById(page, gH.id);
+    await key(page, 'KeyZ', { ctrl: true });
+    await frames(page, 2);
+    say(!(await warned(page, 'blocked')) && !(await page.evaluate(B('.gates'))).some((g) => g.id === gH.id), `undone, it is not: ${await warnList(page)}`);
   } else {
     console.log('  no building on this map large enough to hang a gate in');
   }
   say((await warnList(page)) === 'none', `the triangle is clean again: ${await warnList(page)}`);
-  await aimAt(page, vAdd(vAdd(O, back, 90), [0, 1, 0], 70), vAdd(O, d, 20));
+  await lookAt(page, vAdd(vAdd(O, back, 90), [0, 1, 0], 70), vAdd(O, d, 20));
   await lineCost(page);
 
   /* clips: a new track of two gates, one low out over the drop and one
@@ -1369,7 +1793,7 @@ async function geometry(page, { edge, drop, at }) {
    * between them (the alps' drops are on a mountainside that goes on
    * rising behind the edge), both flown in towards the cliff: the line
    * from the low one climbs into the face. */
-  await page.tap('KeyN');
+  await key(page, 'KeyN');
   await page.until(`${B('.gates.length')} === 0`, 10000);
   let top = -Infinity;
   for (let s = -70; s <= 70; s += 2) {
@@ -1386,11 +1810,11 @@ async function geometry(page, { edge, drop, at }) {
   if (clip) {
     const g = clip.pos;
     console.log(`  marked where it goes in, (${g.map(f1).join(', ')}), the ground there ${f1(await H(g[0], g[2]))} m`);
-    await aimAt(page, vAdd(vAdd(g, d, 60), [0, 1, 0], 30), g);
+    await lookAt(page, vAdd(vAdd(g, d, 60), [0, 1, 0], 30), g);
     await shot(page, '13-line-into-the-face');
   }
   await moveTo(page, gLow.id, at(edge + 30, clear), back);
-  say(!(await warned(page, 'clips')), `the low gate raised to the other's height, ${f1(clear - top)} m over the highest ground: the line clears the face: ${await warnList(page)}`);
+  say(!(await warned(page, 'clips')), `the low gate carried up to the other's height, ${f1(clear - top)} m over the highest ground: the line clears the face: ${await warnList(page)}`);
 }
 
 /*
@@ -1403,12 +1827,12 @@ async function geometry(page, { edge, drop, at }) {
 async function oneGate(page, { edge, drop, at }) {
   console.log('  a track of one gate');
   const d = [drop.dx, 0, drop.dz];
-  await page.tap('KeyN');
+  await key(page, 'KeyN');
   await page.until(`${B('.gates.length')} === 0`, 10000);
   const g = await hangAt(page, at(edge + 25, drop.h + 10), d);
   const L = await page.evaluate(B('.line'));
   say(L.samples > 0 && L.gateAt.join() === '0', `its line is a loop out of it and back in: ${L.samples} points`);
-  await page.tap('KeyB');
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
   say((await page.evaluate(B('.line.ribbon.opacity'))) < 0.5, 'on the test flight the line is faint');
   const laps = await page.evaluate('window.__ui.settings.laps');
@@ -1434,19 +1858,25 @@ async function oneGate(page, { edge, drop, at }) {
   r = await page.evaluate('({ lap: window.__race().lap, ms: window.__race().laps[0], mode: window.__mode })');
   say(r.lap === 1 && r.ms > 0 && (laps > 1 ? r.mode === 'flight' : r.mode === 'results'),
     `away and back through it: lap 1 in ${r.ms ? (r.ms / 1000).toFixed(2) : '?'} s of ${laps}, mode ${r.mode}`);
-  await page.tap('KeyB');
+  if (r.mode === 'results') {
+    await page.evaluate("window.__ui.onAction('restart'); true");
+    await page.until("window.__craftState().mode === 'flight'", 20000);
+  }
+  await key(page, 'KeyB');
   await page.until(`${B('.state')} === 'building'`, 10000);
   say((await page.evaluate(B('.line.ribbon.opacity'))) > 0.5, 'and back in building it is bright again');
+  await takeMouse(page);
 }
 
-/* 15. What the line costs: the main thread's time in each frame with it
- * and without it, in the page so the harness's round trips stay off the
- * thread being measured; what the line's own code adds to a frame, timed
- * directly, since on the software renderer a frame takes a second and
- * swamps it; what it asks the GPU to draw; and what working it out again
- * costs an edit. */
+/* 15. What the line and the builder cost: the main thread's time in each
+ * frame with the line and without it (V), and flying beside building with
+ * the ghost and the hotbar up, in the page so the harness's round trips
+ * stay off the thread being measured; what the builder's own code adds to
+ * a frame, timed directly, since on the software renderer a frame takes a
+ * second and swamps it; and what working the line out again costs an
+ * edit. */
 async function lineCost(page) {
-  console.log('  what the line costs');
+  console.log('  what the line and the builder cost');
   await page.evaluate(`(() => {
     const T = { on: false, cpu: [], dt: [], last: 0 };
     const tick = (now) => {
@@ -1468,9 +1898,9 @@ async function lineCost(page) {
   const rounds = [];
   for (let i = 0; i < 2; i += 1) {
     const on = await run('line on');
-    await page.tap('KeyV');
+    await key(page, 'KeyV');
     const off = await run('line off');
-    await page.tap('KeyV');
+    await key(page, 'KeyV');
     rounds.push({ on, off });
     console.log(`  round ${i + 1}: line on ${on.frames} frames, main thread ${on.cpu.toFixed(2)} ms, interval ${on.dt.toFixed(1)} ms; off ${off.frames} frames, ${off.cpu.toFixed(2)} ms, ${off.dt.toFixed(1)} ms`);
   }
@@ -1478,11 +1908,24 @@ async function lineCost(page) {
   console.log(`  the line on the main thread: ${(mean('on', 'cpu') - mean('off', 'cpu')).toFixed(2)} ms a frame (${mean('on', 'cpu').toFixed(2)} on, ${mean('off', 'cpu').toFixed(2)} off), software renderer`);
   const perFrame = await page.evaluate('window.__build.lineFrameMs(1000)');
   console.log(`  the line's own work in a frame, the panel's lines about it: ${(perFrame * 1000).toFixed(1)} microseconds`);
+  const own = await page.evaluate('window.__build.buildFrameMs(200)');
+  console.log(`  the builder's own work in a frame (hover ray, ghost and its red test, gizmo, hud): ${own.toFixed(3)} ms`);
+  const building = await run('building');
+  const cam = await page.evaluate(B('.camera'));
+  await leave(page);
+  await page.until("window.__craftState().mode === 'flight'", 10000);
+  const flying = await run('flying');
+  await key(page, 'KeyB');
+  await page.until(`${B('.state')} === 'building'`, 10000);
+  await takeMouse(page);
+  await page.evaluate(`window.__build.look(${cam.pos.join(',')}, ${cam.yaw}, ${cam.pitch})`);
+  console.log(`  building with the ghost and the hotbar: main thread ${building.cpu.toFixed(2)} ms a frame, interval ${building.dt.toFixed(1)} ms; flying: ${flying.cpu.toFixed(2)} ms, ${flying.dt.toFixed(1)} ms (software renderer, ${building.frames} and ${flying.frames} frames)`);
   const L = await page.evaluate(B('.line'));
-  console.log(`  what it draws: one mesh, one draw call, ${2 * L.samples} triangles, no shadow`);
+  console.log(`  what the line draws: one mesh, one draw call, ${2 * L.samples} triangles, no shadow`);
   const edit = await page.evaluate('window.__build.lineMs(5)');
   console.log(`  working the line and the warnings out again: ${edit.ms.toFixed(1)} ms an edit, ${edit.gates} gates, ${edit.samples} points`);
   say((await page.evaluate(B('.line.on'))) === true, 'V twice leaves the line on');
+  say(own < 2, `the builder's own work stays under 2 ms a frame: ${own.toFixed(3)} ms`);
   return rounds;
 }
 
@@ -1577,34 +2020,36 @@ async function perf() {
     /* Two rounds, flying then building, so a change in whatever else the
      * desktop is drawing lands on both rather than on one. The craft sits
      * on the strip with its own camera; building starts from exactly that
-     * camera, with six gates placed in view. */
+     * camera, with six gates placed in view with Alt and a click, the
+     * ghost up at the crosshair and the hotbar along the bottom. */
     const rounds = [];
     for (let round = 0; round < 2; round += 1) {
       const flying = await measure(page, `flying ${round + 1}`, 10, false);
-      await page.tap('KeyB');
+      await key(page, 'KeyB');
       await page.until(`${B('.state')} === 'building'`, 20000);
+      await takeMouse(page);
       const home = await page.evaluate(B('.camera'));
       if (round === 0) {
-        await page.tap('Digit3');
+        await hold(page, 'gate');
         for (let i = 0; i < 6; i += 1) {
           await page.evaluate(`window.__build.look(${home.pos.join(',')}, ${home.yaw + (i - 2.5) * 0.12}, ${home.pitch})`);
-          await page.sleep(250);
-          await page.tap('Enter');
+          await settleCrosshair(page);
+          await placeHere(page, { air: true });
         }
         await page.evaluate(`window.__build.look(${home.pos.join(',')}, ${home.yaw}, ${home.pitch})`);
         await page.sleep(3000);
         await shot(page, 'perf-building');
       }
       const building = await measure(page, `building ${round + 1}`, 10, true);
-      await page.tap('KeyV');
+      await key(page, 'KeyV');
       const noLine = await measure(page, `no line ${round + 1}`, 10, true);
-      await page.tap('KeyV');
+      await key(page, 'KeyV');
       rounds.push({ flying, building, noLine });
-      await page.tap('Escape');
+      await leave(page);
       await page.until(`${B('.state')} === 'off'`, 10000);
       await page.sleep(3000);
     }
-    const med2 = (k, key) => (rounds[0][k][key] + rounds[1][k][key]) / 2;
+    const med2 = (k, key2) => (rounds[0][k][key2] + rounds[1][k][key2]) / 2;
     const flying = { gpuMs: med2('flying', 'gpuMs'), cpuMs: med2('flying', 'cpuMs'), frameMs: med2('flying', 'frameMs') };
     const building = { gpuMs: med2('building', 'gpuMs'), cpuMs: med2('building', 'cpuMs'), frameMs: med2('building', 'frameMs') };
     const noLine = { gpuMs: med2('noLine', 'gpuMs'), cpuMs: med2('noLine', 'cpuMs'), frameMs: med2('noLine', 'frameMs') };
@@ -1619,8 +2064,7 @@ async function perf() {
   }
 }
 
-/* Each part on its own, so one that throws does not hide the rest. `--only=`
- * runs one of them: proof, line, wing or field. */
+/* Each part on its own, so one that throws does not hide the rest. */
 async function stage(name, fn) {
   if (opts.only && opts.only !== name) {
     return undefined;
@@ -1638,6 +2082,7 @@ if (opts.perf) {
   await stage('perf', perf);
 } else {
   const out = await stage('proof', proof);
+  await stage('pieces', piecesStage);
   await stage('line', lineAndWarnings);
   await stage('wing', () => wingStart(out));
   await stage('field', fieldTrack);

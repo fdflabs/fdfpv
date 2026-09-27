@@ -13,8 +13,9 @@
  * In the order a pilot would do it:
  *
  *   1. Fly the map, press B, and hang three gates in a ring in the air with
- *      the builder's own keys (3 for the air snap, Enter to place), each
- *      flown along the ring, with no geometry warning on the track.
+ *      the builder's own controls (the gate from the hotbar, Alt and a left
+ *      click to hang each one), each flown along the ring, with no geometry
+ *      warning on the track.
  *   2. P publishes it through the shell's publish dialog: the name and the
  *      pilot's board name typed in, and the board holds a schemaVersion 4
  *      document naming the map, with three gates.
@@ -55,6 +56,9 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
+import {
+  B, hold, key, leave, lookAlong, placeHere, takeMouse,
+} from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { checkLap } from '../src/game/verify.js';
@@ -116,21 +120,6 @@ async function boardJson(path) {
     throw new Error(`${path}: ${res.status}`);
   }
   return res.json();
-}
-
-const B = (expr) => `window.__build.state()${expr}`;
-
-async function settleCrosshair(page) {
-  await page.until(`(() => {
-    const s = window.__build.state();
-    if (!s.hitRay.exact) { return false; }
-    const o = s.hitRay.origin;
-    const c = s.camera.pos;
-    const d = s.hitRay.dir;
-    const f = s.camera.forward;
-    return Math.hypot(o[0] - c[0], o[1] - c[1], o[2] - c[2]) < 1e-6 && Math.hypot(d[0] - f[0], d[1] - f[1], d[2] - f[2]) < 1e-6;
-  })()`, 20000);
-  await page.sleep(150);
 }
 
 async function shellUp(page) {
@@ -247,8 +236,9 @@ async function main() {
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState().mode === 'flight'", 120000);
     await page.sleep(600);
-    await page.tap('KeyB');
+    await key(page, 'KeyB');
     await page.until(`${B('.state')} === 'building'`, 20000);
+    await takeMouse(page);
     const here = await page.evaluate('window.__craftState()');
     const R = 30;
     const cx = here.worldX;
@@ -263,8 +253,8 @@ async function main() {
       return m;
     })()`);
     const cy = ground + 45;
-    await page.tap('Digit3');
-    say((await page.evaluate(B('.snap'))) === 'air' && (await page.evaluate(B('.airDistance'))) === 20, 'the air snap, 20 m in front of the camera');
+    await hold(page, 'gate');
+    say((await page.evaluate(B('.piece'))) === 'gate' && (await page.evaluate(B('.airDistance'))) === 20, 'a gate in hand, hung 20 m in front of the camera with Alt');
     const want = [];
     for (let i = 0; i < 3; i += 1) {
       const a = (i / 3) * Math.PI * 2;
@@ -272,11 +262,8 @@ async function main() {
       const T = [-Math.sin(a), 0, Math.cos(a)];
       want.push({ P, T });
       const from = P.map((v, j) => v - T[j] * 20);
-      await page.evaluate(`window.__build.look(${from.join(',')}, ${Math.atan2(-T[0], -T[2])}, 0)`);
-      await settleCrosshair(page);
-      const n0 = await page.evaluate(B('.gates.length'));
-      await page.tap('Enter');
-      await page.until(`${B('.gates.length')} === ${n0 + 1}`, 10000);
+      await lookAlong(page, from, Math.atan2(-T[0], -T[2]), 0);
+      await placeHere(page, { air: true });
     }
     const built = await page.evaluate(B('.gates'));
     const placedRight = built.length === 3 && built.every((g, i) => Math.hypot(...g.centre.map((v, j) => v - want[i].P[j])) < 0.05
@@ -289,7 +276,7 @@ async function main() {
     /* 2. Publish. */
     console.log('publish it from build mode');
     const name = `Ring check ${Date.now().toString(36)}`;
-    await page.tap('KeyP');
+    await key(page, 'KeyP');
     await page.until("(() => { const d = document.querySelector('.name-dialog-box'); return d && d.offsetParent !== null; })()", 10000);
     const fields = await page.evaluate("[...document.querySelectorAll('.name-dialog-input')].map((f) => f.dataset.key)");
     say(fields.join() === 'course,author', `P opens the shell's publish dialog, asking for ${fields.join(' and ')}`);
@@ -330,7 +317,7 @@ async function main() {
     const doc = served.document || served;
     say(doc.schemaVersion === 4 && doc.map === opts.map && doc.elements.length === 3 && doc.elements.every((e) => e.orientation),
       `and serves a schemaVersion ${doc.schemaVersion} document on ${doc.map} with every gate's orientation`);
-    await page.tap('Escape');
+    await leave(page);
     await page.until(`${B('.state')} === 'off'`, 10000);
 
     /* 3. Reload, find it, load it. */

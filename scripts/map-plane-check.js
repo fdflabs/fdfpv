@@ -13,10 +13,10 @@
  * In the order a pilot would do it:
  *
  *   1. The Skyhunter on swiss2: build a ring of plane sized gates in the air
- *      with the builder's own keys (T for the type, 3 for the air snap,
- *      Enter to place), a 5 m wide gate, the air race pylon pair and another
- *      wide gate, with no geometry warning for the Skyhunter, and publish
- *      it with P through the shell's dialog.
+ *      with the builder's own controls (the piece from the hotbar, Alt and a
+ *      left click to hang it), a 5 m wide gate, the air race pylon pair and
+ *      another wide gate, with no geometry warning for the Skyhunter, and
+ *      publish it with P through the shell's dialog.
  *   2. Reload. The Track room, with the Skyhunter seated, lists it and not
  *      a map track of five inch gates it does not fit; choosing it seats
  *      the course in the Skyhunter's own seat, as a race.
@@ -59,6 +59,9 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
+import {
+  B, hold, key, leave, lookAlong, placeHere, takeMouse,
+} from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { checkLap } from '../src/game/verify.js';
@@ -124,55 +127,28 @@ async function boardJson(path, init) {
   return res.json();
 }
 
-const B = (expr) => `window.__build.state()${expr}`;
-
-async function settleCrosshair(page) {
-  await page.until(`(() => {
-    const s = window.__build.state();
-    if (!s.hitRay.exact) { return false; }
-    const o = s.hitRay.origin;
-    const c = s.camera.pos;
-    const d = s.hitRay.dir;
-    const f = s.camera.forward;
-    return Math.hypot(o[0] - c[0], o[1] - c[1], o[2] - c[2]) < 1e-6 && Math.hypot(d[0] - f[0], d[1] - f[1], d[2] - f[2]) < 1e-6;
-  })()`, 20000);
-  await page.sleep(150);
-}
-
 async function shellUp(page) {
   await page.until('!!window.__shellReady', 240000);
   await page.until('window.__map && window.__map().ready', 300000);
 }
 
-/* T until the builder's next gate is `type`. */
-async function chooseType(page, type) {
-  for (let k = 0; k < 12; k += 1) {
-    if ((await page.evaluate(B('.type'))) === type) {
-      return true;
-    }
-    await page.tap('KeyT');
-    await page.sleep(60);
-  }
-  return false;
-}
-
-/* Place one gate of `type` with snap key `snapKey`, its opening at P flown
- * along T, from a camera `back` metres behind it (and `up` above it,
- * looking down at `pitch`). */
-async function place(page, type, P, T, { back = 20, up = 0, pitch = 0 } = {}) {
-  await chooseType(page, type);
+/* Place one piece of `type` from the hotbar, its opening at P flown along
+ * T, from a camera `back` metres behind it (and `up` above it, looking
+ * down at `pitch`): hung in the air with Alt held, or with `air` false on
+ * whatever the crosshair meets. */
+async function place(page, type, P, T, {
+  back = 20, up = 0, pitch = 0, air = true,
+} = {}) {
+  await hold(page, type);
   const from = [P[0] - T[0] * back, P[1] + up, P[2] - T[2] * back];
-  await page.evaluate(`window.__build.look(${from.join(',')}, ${Math.atan2(-T[0], -T[2])}, ${pitch})`);
-  await settleCrosshair(page);
-  const n0 = await page.evaluate(B('.gates.length'));
-  await page.tap('Enter');
-  await page.until(`${B('.gates.length')} === ${n0 + 1}`, 10000);
+  await lookAlong(page, from, Math.atan2(-T[0], -T[2]), pitch);
+  await placeHere(page, { air });
 }
 
 /* P in build mode, the name and the pilot typed into the shell's dialog.
  * The pilot's name is the one this page's times go up under. */
 async function publish(page, name, pilot = PILOT) {
-  await page.tap('KeyP');
+  await key(page, 'KeyP');
   await page.until("(() => { const d = document.querySelector('.name-dialog-box'); return d && d.offsetParent !== null; })()", 10000);
   await page.evaluate(`(() => {
     const f = [...document.querySelectorAll('.name-dialog-input')];
@@ -498,8 +474,9 @@ async function skyhunter() {
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState().mode === 'flight'", 120000);
     await page.sleep(600);
-    await page.tap('KeyB');
+    await key(page, 'KeyB');
     await page.until(`${B('.state')} === 'building'`, 20000);
+    await takeMouse(page);
     say((await page.evaluate(B('.line.craft'))) === sky.id, `the builder works the line out for the seated ${sky.short}`);
     const here = await page.evaluate('window.__craftState()');
     const R = 90;
@@ -515,7 +492,6 @@ async function skyhunter() {
       return m;
     })()`);
     const cy = ground + 45;
-    await page.tap('Digit3');
     for (let i = 0; i < WIDE.length; i += 1) {
       const a = (i / WIDE.length) * Math.PI * 2;
       await place(page, WIDE[i], [cx + R * Math.cos(a), cy, cz + R * Math.sin(a)], [-Math.sin(a), 0, Math.cos(a)]);
@@ -535,7 +511,7 @@ async function skyhunter() {
     const seatKey = 'webfpv.share.import.wing.v1';
     const seatWas = await page.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(seatKey)}) || 'null') || {}).id || null`);
     say(seatWas === id, `publishing seated it in the plane's seat, ${seatKey}`);
-    await page.tap('Escape');
+    await leave(page);
     await page.until(`${B('.state')} === 'off'`, 10000);
 
     /* A map track of five inch gates on the same world, straight onto the
@@ -683,8 +659,9 @@ async function floats() {
     await page.sleep(600);
     const water = (await page.evaluate('window.__crashWater()'))[0];
     say(Boolean(water), `the Alps have a lake, its surface at ${water ? f1(water.surfaceY) : '?'} m`);
-    await page.tap('KeyB');
+    await key(page, 'KeyB');
     await page.until(`${B('.state')} === 'building'`, 20000);
+    await takeMouse(page);
     /*
      * The lake measured along its own spawn's heading, which is up the lake:
      * how far the water runs ahead and behind, and how wide it is either
@@ -725,12 +702,12 @@ async function floats() {
     const d1 = ahead - 100;
     const side = (rightW >= left ? 1 : -1) * Math.min(90, Math.max(rightW, left) - 45);
     console.log(`  gates at ${f1(d0)} m (on the water), ${f1(d1)} m (hung), and ${f1((d0 + d1) / 2)} m ${f1(side)} m across (hung)`);
-    await page.tap('Digit1');
-    await place(page, 'wideGate5', at(d0, 0, S), F, { back: 18, up: 12, pitch: -Math.atan2(12, 18) });
+    await place(page, 'wideGate5', at(d0, 0, S), F, {
+      back: 18, up: 12, pitch: -Math.atan2(12, 18), air: false,
+    });
     const afterStart = await page.evaluate(B('.gates'));
     const onWater = afterStart[0] && Math.abs(afterStart[0].centre[1] - (S + 2.5)) < 0.3;
     say(onWater, `the start gate stands on the lake: its opening's centre ${afterStart[0] ? f1(afterStart[0].centre[1] - S) : '?'} m over the water`);
-    await page.tap('Digit3');
     await place(page, 'wideGate5', at(d1, 0, S + 15), F);
     await place(page, 'pylonPair', at((d0 + d1) / 2, side, S + 15), [-F[0], 0, -F[2]]);
     const doc0 = await page.evaluate(B('.doc'));
@@ -745,7 +722,7 @@ async function floats() {
     const id = await page.evaluate(B('.doc.id'));
     const row = (await boardJson('/api/tracks')).tracks.find((t) => t.id === id);
     say(Boolean(row) && row.map === 'alps' && row.planes.includes(tf.id), `the board lists it on the Alps for the ${tf.short} among ${row ? row.planes.length : 0} planes`);
-    await page.tap('Escape');
+    await leave(page);
     await page.until(`${B('.state')} === 'off'`, 10000);
     await page.evaluate("localStorage.removeItem('webfpv.share.import.wing.v1'), true");
     await page.cdp.send('Page.reload', {}, page.sessionId);
