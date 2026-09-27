@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 4,
+  "id": "fixture-built-v4",
+  "name": "Saved before creative mode",
+  "createdUtc": "2026-09-26T23:38:07Z",
+  "modifiedUtc": "2026-09-26T23:38:07Z",
+  "trackClass": "full",
+  "map": "swiss2",
+  "field": {
+    "width": 60,
+    "depth": 40,
+    "gridSize": 1
+  },
+  "settings": {
+    "tangentScale": 1.1,
+    "minCurveRadius": 2.5,
+    "samplesPerSegment": 48
+  },
+  "branding": {
+    "logos": []
+  },
+  "credit": null,
+  "elements": [
+    {
+      "id": "el-1",
+      "type": "gate",
+      "name": "",
+      "position": {
+        "x": 170,
+        "y": 80,
+        "z": 640
+      },
+      "yaw": 1.570796,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      },
+      "orientation": {
+        "w": 0,
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "el-2",
+      "type": "doubleStack",
+      "name": "",
+      "position": {
+        "x": 120,
+        "y": 30,
+        "z": 640
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 2,
+        "sillH": 0,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      },
+      "orientation": {
+        "w": 0.685125,
+        "x": -0.174941,
+        "y": -0.174941,
+        "z": 0.685125
+      }
+    },
+    {
+      "id": "el-3",
+      "type": "wideGate3",
+      "name": "",
+      "position": {
+        "x": 70,
+        "y": 80,
+        "z": 640
+      },
+      "yaw": -1.570796,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0,
+        "clearW": 3,
+        "clearH": 3,
+        "levelPitch": 3.033401
+      },
+      "orientation": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "el-4",
+      "type": "pylon",
+      "name": "",
+      "position": {
+        "x": 120,
+        "y": 130,
+        "z": 640
+      },
+      "yaw": -3.141593,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "height": 8,
+        "baseRadius": 0.8,
+        "tipRadius": 0.125,
+        "clearance": 5
+      },
+      "orientation": {
+        "w": 0.707107,
+        "x": 0,
+        "y": 0,
+        "z": -0.707107
+      }
+    }
+  ],
+  "sequence": [
+    {
+      "id": "sq-1",
+      "elementId": "el-1",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-2",
+      "elementId": "el-2",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-3",
+      "elementId": "el-3",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-4",
+      "elementId": "el-4",
+      "apertureIndex": null,
+      "entry": null,
+      "passSide": "right",
+      "clearance": 5,
+      "overridden": true
+    }
+  ]
+}

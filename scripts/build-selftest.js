@@ -25,10 +25,20 @@
  *   the lap it started, the way it did when every frame inside the scoring
  *   box counted as the next pass.
  *
- *   The placement modes put a gate where they say: upright on the ground,
+ *   The snap puts a piece where it says: upright on ground and slopes,
  *   standing out of a cliff face along its normal, or centred in the air in
- *   front of the camera; the test flight parks behind the start gate facing
- *   it; reordering and choosing the start keep the lap a loop.
+ *   front of the camera with Alt held or nothing under the crosshair; the
+ *   grid rounds it to half a metre and fifteen degrees without lifting it
+ *   off what it stands on; a carried piece keeps its own orientation. The
+ *   test flight parks behind the start gate facing it; clicking the lap in
+ *   order and choosing the start keep the lap a loop.
+ *
+ *   The pieces: every placeable type is one, the default hotbar is nine of
+ *   them, a middle click reads the right one back (the start gate, a pylon
+ *   by its side), and the ghost's race gate is the placed one's, so it is
+ *   red by the blocked warning's own rule. Undo and redo walk whole
+ *   documents; two pieces overlap when their solids do; the gizmo moves
+ *   along the level and up, and turns about the gate's own axes.
  *
  *   The built gates are solid: a gate's colliders, carried by its whole
  *   pose, are met by the collider query in its frame and not in its
@@ -84,11 +94,12 @@ import {
 import { PRESETS } from '../src/trackbuilder/presets.js';
 import { Race } from '../src/game/race.js';
 import {
-  addGate, axesOf, flipPass, gateSpec, makeStart, moveInLap, newCourse, openingCentre, openingsOf, orderOf, poseOf, qAxis, qMul,
-  qRot, raceGatesOf, readoutFor, removeGate, setPose, snapPose, spawnFor, startFor, floatStart, stepOf, turnGate, worldCaps, SPAWN_BACK,
+  BUILD_TYPES, DEFAULT_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, addGate, axesOf, capsOverlap, createHistory, gateSpec, gizmoAxes,
+  makeStart, newCourse, openingCentre, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf, qAxis, qMul, qRot, raceGatesOf,
+  readoutFor, removeGate, setOrder, setPose, snapPose, spawnFor, startFor, floatStart, stepOf, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
 import { Colliders, KINDS, contactMaterial } from '../src/game/collide.js';
-import { craftLimits, lineWarnings, racingLine, speedAt } from '../src/builder/line.js';
+import { craftLimits, lineWarnings, openingBlocked, racingLine, speedAt } from '../src/builder/line.js';
 import { postGive } from '../src/game/crashworld.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
 import {
@@ -294,27 +305,118 @@ console.log('placement');
   const cam = { position: { x: 0, y: 100, z: 0 }, forward: { x: 0, y: -0.2, z: -0.98 } };
   const turn = { yaw: 0, pitch: 0, roll: 0 };
   const flat = { point: { x: 3, y: 20, z: -40 }, normal: { x: 0.3, y: 0.95, z: 0 } };
-  const ground = snapPose('ground', flat, cam, turn, 20, 0.88);
+  const ground = snapPose(flat, cam, turn, 20, 0.88);
   const up = qRot(ground.quat, 0, 1, 0);
   const tr = qRot(ground.quat, 0, 0, -1);
-  check('ground: stands on the hit point', nearV(ground.base, flat.point));
+  check('ground: a slope is ground, and the gate stands on the hit point', ground.mode === 'ground' && nearV(ground.base, flat.point));
   check('ground: upright whatever the slope', near(up.y, 1, 1e-9));
   check('ground: flown the way the camera looks', tr.z < -0.99, fmtV(tr));
+  const steep = { point: flat.point, normal: { x: Math.sin(55 * DEG), y: Math.cos(55 * DEG), z: 0 } };
+  check('a face 55 degrees off level is a face, 45 is still ground',
+    snapPose(steep, cam, turn, 20, 0.88).mode === 'surface'
+    && snapPose({ point: flat.point, normal: { x: Math.sin(45 * DEG), y: Math.cos(45 * DEG), z: 0 } }, cam, turn, 20, 0.88).mode === 'ground');
   const wall = { point: { x: 5, y: 60, z: -30 }, normal: { x: 0, y: 0, z: 1 } };
-  const face = snapPose('surface', wall, cam, turn, 20, 0.88);
+  const face = snapPose(wall, cam, turn, 20, 0.88);
   const fu = qRot(face.quat, 0, 1, 0);
   const ft = qRot(face.quat, 0, 0, -1);
-  check('surface: stands out of a cliff face along its normal', nearV(fu, { x: 0, y: 0, z: 1 }, 1e-9), fmtV(fu));
+  check('surface: stands out of a cliff face along its normal', face.mode === 'surface' && nearV(fu, { x: 0, y: 0, z: 1 }, 1e-9), fmtV(fu));
   check('surface: flown along the face, down it when the camera looks at it', near(ft.x * 0 + ft.y * 0 + ft.z * 1, 0, 1e-9) && ft.y < -0.9, fmtV(ft));
-  const air = snapPose('air', null, cam, turn, 20, 0.88);
+  const air = snapPose(null, cam, turn, 20, 0.88);
   const centre = qRot(air.quat, 0, 0.88, 0);
   const at = { x: air.base.x + centre.x, y: air.base.y + centre.y, z: air.base.z + centre.z };
   const aim = { x: 0 + cam.forward.x * 20, y: 100 + cam.forward.y * 20, z: 0 + cam.forward.z * 20 };
-  check('air: the opening is centred where the camera points, at the distance', nearV(at, aim, 1e-9), `${fmtV(at)} vs ${fmtV(aim)}`);
-  const lost = snapPose('ground', null, cam, turn, 20, 0.88);
-  check('ground with nothing under the crosshair falls back to air, and says so', lost.mode === 'air');
-  const dive = snapPose('air', null, cam, { yaw: 0, pitch: -60 * DEG, roll: 0 }, 20, 0.88);
+  check('nothing under the crosshair: the opening is centred where the camera points, at the distance, and it says air',
+    air.mode === 'air' && nearV(at, aim, 1e-9), `${fmtV(at)} vs ${fmtV(aim)}`);
+  const held = snapPose(flat, cam, turn, 20, 0.88, { air: true });
+  check('Alt held hangs it in the air even over ground', held.mode === 'air' && nearV(held.base, air.base, 1e-9));
+  const dive = snapPose(null, cam, { yaw: 0, pitch: -60 * DEG, roll: 0 }, 20, 0.88);
   check('a negative tilt points the travel down: a dive gate', qRot(dive.quat, 0, 0, -1).y < -0.8);
+
+  /* The grid: half a metre and fifteen degrees. */
+  const skew = { position: { x: 0.13, y: 100, z: 0.41 }, forward: { x: Math.sin(-7 * DEG) * 0.98, y: -0.2, z: -Math.cos(7 * DEG) * 0.98 } };
+  const gAir = snapPose(null, skew, turn, 20, 0.88, { grid: true });
+  const gc = qRot(gAir.quat, 0, 0.88, 0);
+  const onGrid = (v) => near(v / 0.5, Math.round(v / 0.5), 1e-9);
+  check('grid, in the air: the opening centre on the half metre grid',
+    onGrid(gAir.base.x + gc.x) && onGrid(gAir.base.y + gc.y) && onGrid(gAir.base.z + gc.z), fmtV({ x: gAir.base.x + gc.x, y: gAir.base.y + gc.y, z: gAir.base.z + gc.z }));
+  const gt = qRot(gAir.quat, 0, 0, -1);
+  const gh = Math.atan2(-gt.x, -gt.z) / DEG;
+  check('grid: the heading on 15 degrees', near(gh / 15, Math.round(gh / 15), 1e-6), `${gh.toFixed(3)} deg`);
+  const slope = { point: { x: 3.3, y: 20.07, z: -40.2 }, normal: { x: 0.3, y: 0.95, z: 0.1 } };
+  const gG = snapPose(slope, cam, turn, 20, 0.88, { grid: true });
+  const nG = Math.hypot(0.3, 0.95, 0.1);
+  const offPlane = ((gG.base.x - 3.3) * 0.3 + (gG.base.y - 20.07) * 0.95 + (gG.base.z + 40.2) * 0.1) / nG;
+  check('grid, on a slope: x and z on the grid and the base still on the ground plane',
+    onGrid(gG.base.x) && onGrid(gG.base.z) && Math.abs(offPlane) < 1e-9, `${fmtV(gG.base)}, ${offPlane.toExponential(1)} m off`);
+  const gF = snapPose({ point: { x: 5.2, y: 60.3, z: -30 }, normal: { x: 0, y: 0, z: 1 } }, cam, turn, 20, 0.88, { grid: true });
+  check('grid, on a face: on the grid in the face and still on it', onGrid(gF.base.x) && onGrid(gF.base.y) && near(gF.base.z, -30, 1e-9), fmtV(gF.base));
+
+  /* A carried piece keeps its own orientation wherever it goes. */
+  const tilted = qMul(qAxis(0, 1, 0, 1.1), qAxis(1, 0, 0, -0.4));
+  const carried = snapPose(wall, cam, turn, 20, 0.88, { keep: tilted });
+  const kept = ['x', 'y', 'z', 'w'].every((k) => near(Math.abs(carried.quat[k]), Math.abs(tilted[k]), 1e-9));
+  check('carried: it keeps its orientation even against a face, and lands on the hit point', kept && nearV(carried.base, wall.point, 1e-9));
+  const turned = snapPose(null, cam, { yaw: 15 * DEG, pitch: 0, roll: 0 }, 20, 0.88, { keep: tilted });
+  const ty = qRot(turned.quat, 0, 1, 0);
+  const oy = qRot(tilted, 0, 1, 0);
+  check('carried: R turns it about its own up', nearV(ty, oy, 1e-9) && !['x', 'y', 'z', 'w'].every((k) => near(turned.quat[k], tilted[k], 1e-6)));
+}
+
+/* ------------------------------------------------------------------ */
+console.log('the pieces');
+{
+  check('every type the builder places is a piece', BUILD_TYPES.every((t) => PIECES.some((p) => p.type === t)));
+  check('every piece is on an inventory shelf', PIECES.every((p) => PIECE_CATS.includes(p.cat)));
+  check('the default hotbar is nine real pieces', DEFAULT_HOTBAR.length === HOTBAR_SLOTS && DEFAULT_HOTBAR.every((id) => pieceById(id)));
+  const d = newCourse('swiss2', 'Pieces');
+  const q = qAxis(0, 1, 0, 0);
+  const a = addGate(d, 'gate', { x: 0, y: 10, z: 0 }, q);
+  const b = addGate(d, 'gate', { x: 0, y: 10, z: -30 }, q);
+  const l = addGate(d, 'pylon', { x: 20, y: 10, z: -60 }, q);
+  const r = addGate(d, 'pylon', { x: 20, y: 10, z: -90 }, q, 'right');
+  check('a right hand pylon piece lands passed on its right', stepOf(d, r.id).passSide === 'right' && stepOf(d, l.id).passSide === 'left');
+  check('a middle click reads the piece back: the start gate, a gate, and each pylon by its side',
+    pieceOf(d, a.id).id === 'start' && pieceOf(d, b.id).id === 'gate' && pieceOf(d, l.id).id === 'pylon' && pieceOf(d, r.id).id === 'pylonRight');
+  const pg = pieceGate(pieceById('pylonRight'), poseOf(r).base, poseOf(r).quat);
+  const rg = raceGatesOf(d)[3];
+  check('the ghost\'s race gate is the placed one\'s, scoring square and all', nearV(pg.centre, rg.centre, 1e-9) && near(pg.aperture.clearW, rg.aperture.clearW, 1e-9));
+}
+
+/* ------------------------------------------------------------------ */
+console.log('undo, overlap and the gizmo');
+{
+  const h = createHistory(3);
+  check('nothing to undo on a new track', h.undo('now') === null);
+  h.record('a');
+  h.record('b');
+  check('undo steps back one edit at a time', h.undo('c') === 'b' && h.undo('b') === 'a' && h.undo('a') === null);
+  check('and redo forward again', h.redo('a') === 'b' && h.redo('b') === 'c' && h.redo('c') === null);
+  h.undo('c');
+  h.record('x');
+  check('a new edit forgets what could be redone', h.redo('y') === null);
+  ['1', '2', '3', '4', '5'].forEach((s) => h.record(s));
+  check('and it holds only so many', h.depth.undo === 3);
+
+  const d = newCourse('swiss2', 'Overlap');
+  const g1 = addGate(d, 'gate', { x: 0, y: 10, z: 0 }, qAxis(0, 1, 0, 0));
+  const caps = (el) => worldCaps(el, [
+    { kind: 'gate', ax: -0.85, ay: 0, az: 0, bx: -0.85, by: 1.7, bz: 0, r: 0.03 },
+    { kind: 'gate', ax: 0.85, ay: 0, az: 0, bx: 0.85, by: 1.7, bz: 0, r: 0.03 },
+    { kind: 'gate', ax: -0.85, ay: 1.7, az: 0, bx: 0.85, by: 1.7, bz: 0, r: 0.03 },
+  ]);
+  const same = addGate(d, 'gate', { x: 0.2, y: 10, z: 0 }, qAxis(0, 1, 0, 0));
+  const crossed = addGate(d, 'gate', { x: 0, y: 10, z: 0 }, qAxis(0, 1, 0, Math.PI / 2));
+  const beside = addGate(d, 'gate', { x: 3, y: 10, z: 0 }, qAxis(0, 1, 0, 0));
+  const behind = addGate(d, 'gate', { x: 0, y: 10, z: 2 }, qAxis(0, 1, 0, 0));
+  check('a gate on another, or crossed through it, overlaps it', capsOverlap(caps(g1), caps(same)) && capsOverlap(caps(g1), caps(crossed)));
+  check('one beside it or behind it does not', !capsOverlap(caps(g1), caps(beside)) && !capsOverlap(caps(g1), caps(behind)));
+
+  const tilt = addGate(d, 'gate', { x: 0, y: 10, z: 0 }, qMul(qAxis(0, 1, 0, 0.7), qAxis(1, 0, 0, -0.6)));
+  const gz = gizmoAxes(tilt);
+  const tt = axesOf(poseOf(tilt).quat).travel;
+  check('the gizmo moves a tilted gate along the level: ahead is its travel laid flat, and up is straight up',
+    near(gz.move.travel.y, 0, 1e-12) && near(gz.move.up.y, 1, 1e-12) && gz.move.travel.x * tt.x + gz.move.travel.z * tt.z > 0.7);
+  check('and turns it about its own axes, from its opening', nearV(gz.turn.roll, tt, 1e-12) && nearV(gz.pivot, openingCentre(tilt, 0), 1e-12));
 }
 
 /* ------------------------------------------------------------------ */
@@ -324,8 +426,10 @@ console.log('the lap');
   const g1 = addGate(d, 'gate', { x: 0, y: 10, z: 0 }, qAxis(0, 1, 0, 0));
   const g2 = addGate(d, 'gate', { x: 0, y: 30, z: -50 }, qAxis(0, 1, 0, 0));
   const g3 = addGate(d, 'tower', { x: 20, y: 5, z: -90 }, qAxis(0, 1, 0, 0));
-  moveInLap(d, g3.id, -1);
-  check('a gate moves one step earlier', d.sequence.map((s) => s.elementId).join() === [g1.id, g3.id, g2.id].join());
+  check('clicking the lap in order sets the order', setOrder(d, [g1.id, g3.id]) && d.sequence.map((s) => s.elementId).join() === [g1.id, g3.id, g2.id].join());
+  check('the gates not clicked keep their order after the ones that were', setOrder(d, [g2.id]) && d.sequence.map((s) => s.elementId).join() === [g2.id, g1.id, g3.id].join());
+  check('the same order again is no change', !setOrder(d, [g2.id, g1.id]));
+  setOrder(d, [g1.id, g3.id, g2.id]);
   makeStart(d, g2.id);
   check('choosing a start turns the loop, and keeps its order', d.sequence.map((s) => s.elementId).join() === [g2.id, g1.id, g3.id].join());
   check('the start is first in flying order', orderOf(d, g2.id) === 0);
@@ -589,6 +693,10 @@ console.log('geometry warnings');
   check('blocked: a gate inside the building', has(inHouse, 'blocked', 0), JSON.stringify(inHouse.map((w) => w.code)));
   const buried = codes(course([[40, -1, 0, 0], ...clean.slice(1)]), quad);
   check('blocked: a gate half under the ground', has(buried, 'blocked', 0));
+  const ghostIn = pieceGate(pieceById('gate'), { x: 0, y: 10 - 0.8763, z: 0 }, qAxis(0, 1, 0, 0));
+  const ghostOut = pieceGate(pieceById('gate'), { x: 40, y: 10 - 0.8763, z: 0 }, qAxis(0, 1, 0, 0));
+  check('the ghost is red by the same rule: in the building it is blocked, in the air it is not',
+    openingBlocked(ghostIn, world) && !openingBlocked(ghostOut, world));
 
   const wall = codes(course([[0, 10, 30, 0], [0, 10, -30, 0], [-40, 25, 0, Math.PI]]), quad);
   check('clips: the line from gate 1 to gate 2 goes through the building', has(wall, 'clips', 0) && !has(wall, 'blocked'), JSON.stringify(wall.map((w) => w.code)));
@@ -686,12 +794,16 @@ console.log('plane sized gates');
   check('over their tips: not', !pass(race, 1, 0, 108.5));
   check('round the pylon on its left: counted', pass(race, 2, -4, 103));
   check('on its right: not', !pass(race, 2, 4, 103));
-  check('F turns it round: the right now', flipPass(d, py.id) === 'right' && flipPass(d, wg.id) === null);
+  /* The right hand pylon piece, put where the left hand one was. */
+  const { base: pyBase, quat: pyQuat } = poseOf(py);
+  removeGate(d, py.id);
+  const pyR = addGate(d, 'pylon', pyBase, pyQuat, 'right');
+  check('the right hand pylon piece in its place: passed on its right', stepOf(d, pyR.id).passSide === 'right');
   const race2 = new Race(raceGatesOf(d).map((x) => ({ ...x })), 'full');
   gates.splice(0, gates.length, ...raceGatesOf(d));
   check('and on its right it counts', pass(race2, 2, 4, 103));
   check('and on its left it does not', !pass(race2, 2, -4, 103));
-  check('its ghost and its mesh show the side: the spec\'s sign', gateSpec(py, stepOf(d, py.id)).passSign === -1 && gateSpec(py).passSign === 1);
+  check('its ghost and its mesh show the side: the spec\'s sign', gateSpec(pyR, stepOf(d, pyR.id)).passSign === -1 && gateSpec(pyR).passSign === 1);
 
   const text = serialize(d);
   const back = deserialize(text).doc;
