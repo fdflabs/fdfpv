@@ -352,9 +352,12 @@ int sim_set_flight_style(int arcade);
  * on their keels on land, and 11 BMJR's 1/2A Texaco Buzzard Bombshell
  * (docs/BOMBSHELL-STAGE1.md), a 44 in balsa and tissue old timer with a
  * glow engine that idles and never stops, rudder and elevator and no
- * ailerons like the Slow Stick, on wheels and a tail skid. Returns
+ * ailerons like the Slow Stick, on wheels and a tail skid, and 12 SIG's
+ * Kadet Senior (docs/KADET-STAGE1.md), a 78 in balsa trainer on an O.S.
+ * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
+ * a tricycle gear whose nose wheel steers with the rudder. Returns
  * SIM_ERR_BAD_ARG for anything else.
- * 2 to 11 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * 2 to 12 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -383,6 +386,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_TIMBER1500F_ID 9
 #define SIM_AIRFRAME_CUB1400F_ID 10
 #define SIM_AIRFRAME_BOMBSHELL1118_ID 11
+#define SIM_AIRFRAME_KADET1981_ID 12
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -453,7 +457,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2 to 11. Additive, version unchanged; each
+ * The fixed wings, airframes 2 to 12. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *

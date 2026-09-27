@@ -82,6 +82,7 @@ const PLANES = {
   timberf: { sim: 9, Vs: 7.1, alphaStall: (1.15 + 0.305) / 5.25, rudder: true },
   cubf: { sim: 10, Vs: 8.7, alphaStall: 1.15 / 5.21, rudder: true },
   bombshell: { sim: 11, Vs: 6.49, alphaStall: 1.0 / 4.991, rudder: true },
+  kadet: { sim: 12, Vs: 7.15, alphaStall: 1.15 / 5.029, rudder: true },
 };
 
 const onlyArg = process.argv.indexOf('--only');

@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -216,6 +216,37 @@ const BOMBSHELL_VIEWS = [
 ];
 
 /*
+ * The Kadet Senior's own set: its prop at z = -0.44, its tail at +1.11,
+ * resting on its tricycle gear, first the view SIG's box art is taken
+ * from, then the covering against the sun: backlit from below as a pilot
+ * on the ground sees it overhead, from behind and above toward a low sun
+ * as the chase camera can, and the fuselage's truss side on.
+ */
+const SUN_BEHIND_FROM_BELOW = 'window.__preview.sun(0.2, 1.0, 0.3)';
+const SUN_LOW_AHEAD = 'window.__preview.sun(-0.1, 0.25, -1.0)';
+const SUN_FAR_SIDE = 'window.__preview.sun(-1.0, 0.35, 0.1)';
+const KADET_VIEWS = [
+  ['boxart', NEUTRAL, [88, 4, 4.4, 0, 0, 0.3], false, true],
+  ['front', NEUTRAL, [0, 4, 5.0, 0, 0, 0]],
+  ['three-quarter', NEUTRAL, [-140, 24, 4.6, 0, 0, 0.25]],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 4.6, 0, 0, 0.1]],
+  ['side', NEUTRAL, [90, 0, 4.4, 0, 0, 0.3]],
+  ['side-rest', NEUTRAL, [90, 3, 4.4, 0, 0, 0.3], false, true],
+  ['three-quarter-rest', NEUTRAL, [-45, 14, 3.8, 0, 0, 0.2], false, true],
+  ['top', NEUTRAL, [0, 90, 4.6, 0, 0, 0.3]],
+  ['below', NEUTRAL, [0, -90, 4.6, 0, 0, 0.3]],
+  ['backlit-below', NEUTRAL, [-30, -55, 4.2, 0, 0, 0.25], false, false, undefined, SUN_BEHIND_FROM_BELOW],
+  ['backlit-chase', NEUTRAL, [180, 18, 3.4, 0, 0, 0.2], false, false, undefined, SUN_LOW_AHEAD],
+  ['backlit-side', NEUTRAL, [90, 6, 3.6, 0, 0, 0.4], false, false, undefined, SUN_FAR_SIDE],
+  ['backlit-tail', DEFLECT, [70, 8, 1.6, 0, 0.1, 1.0], false, false, undefined, SUN_FAR_SIDE],
+  ['deflected-rear', DEFLECT, [180, 12, 4.0, 0, 0, 0.3]],
+  ['nose-close', NEUTRAL, [-40, 12, 1.1, 0, 0.0, -0.3]],
+  ['prop-blur', NEUTRAL, [-20, 10, 1.3, 0, 0, -0.3], true],
+  ['tail-close', DEFLECT, [-145, 20, 1.4, 0, 0.1, 1.0]],
+  ['gear-front', NEUTRAL, [0, -5, 1.6, 0, -0.15, -0.1], false, false, undefined, 'window.__preview.surfaces(0, 0, 0, 0.35)'],
+];
+
+/*
  * The Timber's own set: its spinner at z = -0.33, its rudder at +0.72,
  * resting on its tailwheel as the Cub does, and the flaps, which are what
  * it is for: half and full, from the side and from behind, where the slot
@@ -287,11 +318,12 @@ try {
   const views = {
     cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS, timber: TIMBER_VIEWS,
     bombshell: BOMBSHELL_VIEWS,
+    kadet: KADET_VIEWS,
     timberf: floatViews(-0.33, 0.62), cubf: floatViews(-0.26, 0.55),
   }[craft] ?? VIEWS;
   for (const [name, surf, cam, blur, rest, omega, setup] of views) {
     const [az, el, dist, tx, ty, tz] = cam;
-    await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0); window.__preview.flaps(0)');
+    await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0); window.__preview.flaps(0); window.__preview.sun()');
     await page.evaluate(`window.__preview.rest(${Boolean(rest)})`);
     if (setup) {
       await page.evaluate(setup);
@@ -361,6 +393,11 @@ try {
       ['elevator', [0, 0, FULL, 0], up],
       ['rudder', [0, 0, 0, FULL], left],
     ],
+    kadet: [
+      ['elevator', [0, 0, FULL, 0], up],
+      ['rudder', [0, 0, 0, FULL], left],
+      ['kadet-nose-leg', [0, 0, 0, FULL], left],
+    ],
     timberf: [
       ['rudder', [0, 0, 0, FULL], left],
       ['water-rudder-left', [0, 0, 0, FULL], left],
@@ -388,7 +425,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell'].includes(craft)) {
+  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet'].includes(craft)) {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
@@ -415,16 +452,17 @@ try {
    * spin: a blade pointing up must go right, +x, under a positive step of
    * the shell's spin, which is clockwise seen from the cockpit.
    */
-  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell') {
+  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell' || craft === 'kadet') {
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     const d = await page.evaluate('window.__preview.dims');
-    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres', bombshell: 'bombshell-black' }[craft];
-    /* The Bombshell has a wire skid where the others have a tailwheel. */
-    const tailMesh = craft === 'bombshell' ? 'tail-skid' : 'tyre-tail';
+    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres', bombshell: 'bombshell-black', kadet: 'kadet-tyres' }[craft];
+    /* The Bombshell has a wire skid where the others have a tailwheel, and
+     * the Kadet a nose wheel. */
+    const third = { bombshell: ['tail', 'tail-skid'], kadet: ['nose', 'tyre-nose'] }[craft] ?? ['tail', 'tyre-tail'];
     const wheels = [
       ['main left', blackMesh, -1, d.contact.mainLeft],
       ['main right', blackMesh, 1, d.contact.mainRight],
-      ['tail', tailMesh, 0, d.contact.tail],
+      [third[0], third[1], 0, d.contact[third[0]]],
     ];
     for (const [what, mesh, side, claimed] of wheels) {
       const drawn = await page.evaluate(`window.__preview.lowest('${mesh}', ${side})`);
@@ -440,7 +478,7 @@ try {
     const c = r.contact;
     const f = (p) => p.map((v) => v.toFixed(4)).join(', ');
     console.log(`rest: ${r.pitchDeg.toFixed(2)} deg nose up, CG ${r.cgHeight.toFixed(4)} m over the ground, `
-      + `contacts main (${f(c.mainRight)}) tail (${f(c.tail)})`);
+      + `contacts main (${f(c.mainRight)}) ${third[0]} (${f(c[third[0]])})`);
     const spin = await page.evaluate('window.__preview.spinProbe()');
     const cw = spin.before[1] > 0 && spin.after[0] > spin.before[0] && spin.axis[2] < -0.99;
     console.log(`${cw ? 'ok  ' : 'FAIL'} prop: axis (${f(spin.axis)}), a blade up at x ${spin.before[0].toFixed(4)} `

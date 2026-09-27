@@ -1136,6 +1136,61 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.1662, 0.0, -0.0942 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * SIG's Kadet Senior, docs/KADET-STAGE1.md: SIG's 6 lb flying, an O.S.
+ * FS-52 Surpass on a 12 x 6 0.441 m ahead of the CG, 12.7 mm under it.
+ * The pack is a 2S receiver pack on the radio, which the engine draws
+ * nothing from. The hull is the contact code's centred box and only what
+ * a crash lands on: the belly 0.163 m under the CG and the wing's top at
+ * the root 0.119 m over it, the half span wide; the fin stands outside
+ * it. The camera is the drawn one, on the cowl's top behind the engine.
+ */
+[SIM_AIRFRAME_KADET1981] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 2.7216,
+  .inertia = { 0.22, 0.29, 0.48 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.1524,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.4413, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.45,
+  .hull_hy = 0.9906,
+  .hull_hz_down = 0.163,
+  .hull_hz_up = 0.119,
+  .contact_patch_r = 0.10,
+  .contact_arm_max = 1.2,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.2127,
+  .camera_y = 0.0,
+  .camera_z = 0.0572,
+  .fw = &FW_KADET1981,
+  /*
+   * The tricycle gear, as src/render/kadetcraft.js draws it: 5/32 in
+   * wire, the mains a torsion bar under the cabin to 3 3/4 in wheels 92 mm
+   * behind the CG on a 0.330 m track, the nose leg off its bearing on the
+   * firewall to a 3 1/4 in wheel 0.302 m ahead of it (SIG's wheel sizes).
+   * Each axle is lowered here by its leg's 8 mm of static deflection, so
+   * under its own weight the plant settles onto the drawn pose: level, the
+   * CG 0.307 m over the grass, 23 percent of the weight on the nose.
+   * Stiffness for that deflection, damping at 0.6 of critical, the Cub's
+   * rule. The nose wheel steers with the rudder, 0.6 of its angle, its
+   * front the way the rudder's trailing edge goes: steer is negative here
+   * because sim.c's positive turns a wheel's front against the rudder's,
+   * which is right for a tailwheel behind the CG. Brakes on the mains.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { -0.0921, 0.1651, -0.2676 }, .r = 0.047625, .k = 1278.0, .c = 50.05, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.0921, -0.1651, -0.2676 }, .r = 0.047625, .k = 1278.0, .c = 50.05, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.3016, 0.0, -0.2739 }, .r = 0.041275, .k = 780.0, .c = 47.65, .mu_roll = 0.08, .mu_side = 0.70, .steer = -0.6, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.1524 m under the shaft: 0.142 m
+     * over the grass with the aircraft level on its wheels. */
+    { .pos = { 0.4413, 0.0, -0.1651 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*

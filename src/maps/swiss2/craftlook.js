@@ -36,6 +36,7 @@
  */
 
 import * as THREE from 'three';
+import { withFilm } from '../../render/filmmat.js';
 
 /*
  * The finishes. grain is the mottle of a moulded or foam surface, in
@@ -50,6 +51,8 @@ const FINISHES = {
   carbon: { roughness: 0.42, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.12, weave: 1 },
   metal: { roughness: 0.3, metalness: 1, grain: 0.03 },
   glass: { roughness: 0.04, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02 },
+  /* Iron on covering film, polyester, glossy over its wood. */
+  film: { roughness: 0.28, metalness: 0, clearcoat: 0.5, clearcoatRoughness: 0.1 },
 };
 
 /* Relative luminance of an sRGB hex, as the cel palette was authored. */
@@ -71,6 +74,9 @@ function celOptions(mat) {
 function finishOf(mat, inRotor) {
   if (inRotor) {
     return 'prop';
+  }
+  if (mat.userData.film) {
+    return 'film';
   }
   const o = celOptions(mat);
   const spec = o.spec ?? 0;
@@ -201,7 +207,9 @@ export function photoCraftLook(lit) {
       const finish = finishOf(cel, rotorMeshes.has(o));
       const key = `${finish}|${cel.uuid}`;
       if (!twins.has(key)) {
-        twins.set(key, lit(craftMaterial(cel, finish)));
+        /* A film keeps its light through the frame, its cel material's own. */
+        const twin = craftMaterial(cel, finish);
+        twins.set(key, lit(cel.userData.film ? withFilm(twin, cel.userData.film) : twin));
       }
       swapped.push({ mesh: o, material: cel, receive: o.receiveShadow });
       o.material = twins.get(key);

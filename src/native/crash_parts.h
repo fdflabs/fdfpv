@@ -915,6 +915,118 @@ static const PartDef PARTS_BOMBSHELL1118[] = {
     .npts = 2, .pts = { { -0.193, 0.0, 0.040 }, { -0.19, 0.0, 0.105 } } },
 };
 
+/* ------------------------------------------------------------------------
+ * SIG KADET SENIOR, SIM_AIRFRAME_KADET1981, kadetcraft.js. 2.72 kg of
+ * balsa, spruce and ply under iron on film, docs/KADET-STAGE1.md: nothing
+ * foam, so nothing crushes; a joint past its onset cracks (crash.c's
+ * default), as the Bombshell's balsa does. The wing sits on the cabin
+ * under rubber bands and each panel is a spar box on the centre section's
+ * ply dihedral braces; the rear fuselage is a truss of 1/4 in sticks; an
+ * O.S. FS-52 on glass filled mounts bolted through the ply firewall; 5/32
+ * in wire gear, a steerable nose leg.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_KADET1981[] = {
+  /* 0 the fuselage from the firewall to the wing's trailing edge: the
+   * cowl blocks, the 5/32 in ply firewall, the 3/32 in sheeted sides and
+   * bottom, the fuel tank, the servos and the receiver: the rest of the
+   * mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 3.0e5, BOX(-0.276, 0.335, -0.048, 0.048, -0.165, 0.074) },
+  /* 1 the rear fuselage, an open truss of 1/4 in square longerons (spruce
+   * on the bottom, balsa on top), uprights and diagonals, judged at its
+   * shallowest bay, 4 in deep on a 4.4 in pitch: a moment on it is a
+   * compression in one longeron, and a 1/4 in balsa stick between two
+   * uprights buckles at Euler's pi^2 E I / L^2, 362 N at balsa's 3.4 GPa
+   * (the Wood Handbook's figure, as for the Bombshell), 36 N m over the
+   * depth; and less for its glue joints, 30 N m, ESTIMATED as the
+   * Bombshell's aft fuselage is. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.16, .joint = { -0.276, 0.0, -0.05 }, .m_max = 30.0, .f_max = 300.0, .k = 3.0e4,
+    .npts = 8, .pts = { { -0.276, 0.047, -0.165 }, { -0.276, -0.047, -0.165 }, { -0.276, 0.047, 0.061 }, { -0.276, -0.047, 0.061 },
+                        { -1.014, 0.013, -0.130 }, { -1.014, -0.013, -0.130 }, { -1.014, 0.013, -0.038 }, { -1.014, -0.013, -0.038 } } },
+  /* 2 the stabiliser, a frame of 3/8 in square balsa with 1/4 x 3/8 in
+   * diagonal braces, epoxied on the fuselage's saddle: at its root the
+   * leading and trailing edge sticks, 2.86 N m each at 20 MPa, 5.7 together. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.07, .joint = { -0.95, 0.0, -0.033 }, .m_max = 2.0 * BALSA_M(0.0095, 0.0095),
+    .f_max = 60.0, .k = 2500.0, BOX(-1.032, -0.905, -0.394, 0.394, -0.038, -0.028) },
+  /* 3 the elevator on four CA hinges, which let go before its sticks do,
+   * ESTIMATED at 1 N m. */
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.035, .joint = { -1.032, 0.0, -0.033 }, .m_max = 1.0, .f_max = 30.0, .k = 2000.0,
+    BOX(-1.108, -1.032, -0.394, 0.394, -0.036, -0.030) },
+  /* 4 the fin, a frame of 5/16 in square balsa on stubs through the
+   * fuselage's top: its leading edge and post, 1.64 N m each. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.035, .joint = { -0.93, 0.0, -0.03 }, .m_max = 2.0 * BALSA_M(0.0079, 0.0079), .f_max = 50.0, .k = 2000.0,
+    BOX(-1.027, -0.808, -0.004, 0.004, -0.028, 0.246) },
+  /* 5 the rudder on three CA hinges, ESTIMATED at 0.8 N m. */
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.03, .joint = { -1.027, 0.0, 0.10 }, .m_max = 0.8, .f_max = 25.0, .k = 1500.0,
+    BOX(-1.108, -1.027, -0.004, 0.004, -0.127, 0.246) },
+  /* 6 the wing's centre section, sheeted, braced with the 5/32 in ply
+   * dihedral braces and taped, on the cabin under rubber bands over the
+   * two 1/4 in dowels. No band count is given for the Senior; eight #64
+   * bands (3.5 x 1/4 in), stretched about twice over the 14.74 in chord,
+   * each about 10 N at natural rubber's nominal stress (Ogden's fit to
+   * Treloar, as for the Bombshell's #32s): 80 N hold it down and 80 N over
+   * half the chord's 0.187 m, 15 N m, tip it off its saddle. ESTIMATED. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.12, .joint = { -0.09, 0.0, 0.074 }, .m_max = 15.0, .f_max = 80.0, .k = 3000.0,
+    BOX(-0.276, 0.098, -0.089, 0.089, 0.074, 0.122) },
+  /* 7, 8 the panels on the centre section. Up and down each is two spar
+   * boxes: the 1/4 x 1/2 in main spars top and bottom 41 mm apart on
+   * their 3/32 in webs, Z 3.3e-6 m^3, 66 N m at balsa's 20 MPa, and the
+   * 3/16 x 3/8 in rear pair 30 mm apart, 27 N m: 93 N m. Fore and aft,
+   * the 1/2 in square leading edge and the 7/16 x 1 3/8 in trailing edge
+   * on its wide face, 6.8 and 45 N m: 52. Each stick about its own axis,
+   * the ribs' frame left out, a lower bound. */
+  { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.26, .joint = { -0.09, 0.089, 0.085 }, .m_max = 93.0, .m_max_z = 52.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.098, 0.089, 0.078 }, { -0.276, 0.089, 0.074 }, { 0.098, 0.089, 0.122 }, { -0.276, 0.089, 0.080 },
+                        { 0.05, 0.991, 0.150 }, { -0.25, 0.991, 0.146 }, { 0.02, 0.991, 0.196 }, { -0.25, 0.991, 0.152 } } },
+  { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.26, .joint = { -0.09, -0.089, 0.085 }, .m_max = 93.0, .m_max_z = 52.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.098, -0.089, 0.078 }, { -0.276, -0.089, 0.074 }, { 0.098, -0.089, 0.122 }, { -0.276, -0.089, 0.080 },
+                        { 0.05, -0.991, 0.150 }, { -0.25, -0.991, 0.146 }, { 0.02, -0.991, 0.196 }, { -0.25, -0.991, 0.152 } } },
+  /* 9 the O.S. FS-52 Surpass, 434 g, and its silencer, on SIG's glass
+   * filled mounts: four 6-32 bolts into blind nuts in the 5/32 in ply
+   * firewall, two a side 25 mm apart. A blind nut pulls through 4 mm of
+   * birch ply at about 400 N, ESTIMATED from the Bombshell's screw
+   * withdrawal bound scaled to a flanged nut: 800 N on a side, 24 N m. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.52, .joint = { 0.335, 0.0, -0.013 }, .m_max = 24.0, .f_max = 800.0, .k = 1.0e6,
+    BOX(0.335, 0.43, -0.03, 0.06, -0.04, 0.064) },
+  /* 10 the 12 x 6, wood: a blade 20 x 6 mm at a quarter of its radius, at
+   * a hardwood's 100 MPa (the Wood Handbook's beech and maple), yields at
+   * 12 N m and sheds a blade at twice that. The table has no hardwood;
+   * ply is its nearest. */
+  { .kind = SIM_PART_PROP, .parent = 9, .mat = SIM_MAT_PLY, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.04, .joint = { 0.437, 0.0, -0.0127 }, .m_max = 2.0 * 12.0, .f_max = 150.0, .k = 900.0,
+    .npts = 8, .pts = { { 0.446, 0.0, -0.0127 }, { 0.1524, 0.0, 0.0 } } },
+  /* 11 the receiver pack in foam under the cabin floor, on hook and loop. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+    .mass = 0.10, .joint = { 0.20, 0.0, -0.10 }, .m_max = 2.0, .f_max = 0.6 * VELCRO_12, .k = 3.0e5,
+    BOX(0.17, 0.23, -0.02, 0.02, -0.13, -0.10) },
+  /* 12, 13 the mains, 5/32 in wire torsion arms and their wheels; 14 the
+   * nose leg, 5/32 in wire on its bearing, and its wheel. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
+    .mass = 0.09, .joint = { -0.08, 0.035, -0.165 }, .m_max = WIRE_M(0.004), .f_max = 250.0, .k = 1278.0,
+    BOX(-0.12, -0.06, 0.0, 0.19, -0.307, -0.165) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 1,
+    .mass = 0.09, .joint = { -0.08, -0.035, -0.165 }, .m_max = WIRE_M(0.004), .f_max = 250.0, .k = 1278.0,
+    BOX(-0.12, -0.06, -0.19, 0.0, -0.307, -0.165) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.08, .joint = { 0.33, 0.0, -0.10 }, .m_max = WIRE_M(0.004), .f_max = 200.0, .k = 780.0,
+    BOX(0.28, 0.345, -0.02, 0.02, -0.307, -0.10) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.213, 0.0, 0.047 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.200, 0.225, -0.010, 0.010, 0.047, 0.067) },
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.35, 0.0, 0.05 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.35, 0.0, 0.05 }, { -0.33, 0.0, 0.14 } } },
+};
+
 /*
  * The two aircraft on floats are built in crash.c from the wheeled tables
  * above: their gear taken off, every part raised by the CG drop the floats

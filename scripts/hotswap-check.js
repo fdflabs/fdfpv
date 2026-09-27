@@ -1,7 +1,7 @@
 /*
  * hotswap-check.js: changing aircraft in flight, in the real shell, headless.
  *
- * On every map it flies, it swaps through all eleven aircraft twice with the
+ * On every map it flies, it swaps through every aircraft twice with the
  * ] key, once parked on the ground and once in the air, and holds every
  * swap to the rules src/main.js hotSwap states, reading what the swap did
  * off window.__lastSwap, which is written inside the swap and so is the
