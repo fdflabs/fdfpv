@@ -422,13 +422,22 @@ Dynamics, ch. 3. It gives
   F / (mu N) = 1 - (1 - s)^3, with s = tan a / tan a_sl
 
 where tan a_sl = 3 mu F_z / C_Fa is the slip angle at which the patch
-slides. `wheel_side` in src/native/sim.c caps the stop-the-point impulse
-at that force.
+slides. `wheel_side_cap` in src/native/sim.c caps the stop-the-point
+impulse at that force.
 
 **At walking pace.** The limit handles itself. As the rolling speed falls
 to nothing, the slip angle goes to 90 deg, the patch slides whole, and the
 grip is the skid's again. The force is never more than the impulse that
 stops the point, so it cannot throw the point back the other way.
+
+**Standing still** is the exception. An aircraft held by its rolling
+resistance still has, at the start of each step, the few tenths of a
+millimetre a second that step's thrust gave it, along the heading, and
+next to nothing across it, so the ratio reads as a rolling tyre at a
+slip angle near zero and the cap near nothing: the Kadet at idle had
+0.005 N of side grip on a main wheel. A tyre its rolling resistance holds
+is not rolling and has no slip angle, so once sim.c's wheels_friction has
+found which wheels are held it gives their side rows the whole mu_side N.
 
 **Relaxation is left out.** Pacejka's relaxation length is about the
 tyre's radius. The force follows the slip within:

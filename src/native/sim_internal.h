@@ -74,7 +74,7 @@ typedef struct {
   double brake;   /* 1 on a wheel the brake channel acts on, 0 elsewhere */
   double slide;   /* a rolling tyre's side grip as a slip: tan of the slip
                    * angle at which its contact patch slides whole, the
-                   * brush model's (sim.c, wheel_side). Zero holds the
+                   * brush model's (sim.c, wheel_side_cap). Zero holds the
                    * contact across the heading as a skid does, up to
                    * mu_side N, at any speed. */
 } WheelParams;

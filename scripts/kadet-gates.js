@@ -463,15 +463,13 @@ check: {
   /* S20: the glow engine at idle. On the strip with the throttle closed
    * the engine keeps turning at its 2,300 rpm, and its 1.63 N of thrust is
    * under the 2.14 N the grass holds the aircraft with, so the wheels'
-   * friction should hold it: its ground speed after the friction's impulse
-   * nil, as the Bombshell's is (0.09 mm/s). The Kadet's reads 1.96 mm/s
-   * and it creeps 2.6 mm/s, steadily: sim.c stops each wheel's contact
-   * point in turn with an impulse through the body's pitch as well as its
-   * travel, and on three rolling wheels under a CG 0.31 m up that one pass
-   * leaves the body moving. Raising the nose wheel's friction to 0.30 in
-   * a throwaway build cut it to 0.58 mm/s, so it is the solver's single
-   * pass and not the thrust. A finding for the lead: the band is the
-   * Bombshell's and is left where it is, and this gate fails. */
+   * friction holds it. The ground speed read is the state at the end of a
+   * step, which for an aircraft held still is the step's push backwards,
+   * 1.63 N over 2.72 kg for a millisecond, 0.60 mm/s, that the next
+   * step's push cancels before it moves anything (sim.c,
+   * wheels_friction); the creep printed is the distance itself, all of it
+   * the first second's settling onto its struts. Until the wheels'
+   * friction was solved together it read 1.96 mm/s and crept 2.6 mm/s. */
   {
     const t20 = th.s20_idle;
     must(sim.reset(), 'sim_reset');
