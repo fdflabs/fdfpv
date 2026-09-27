@@ -687,6 +687,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 4.0,
   .r_cell = 0.012,
+  /* 4S 2200 (docs/WING-STAGE1.md). ESC cutoff: Hobbywing's Skywalker
+   * default, 3.0 V a cell, soft, for an ESC nobody names (POWER-STAGE1). */
+  .pack_c = 2200.0 * 3.6,
+  .lvc = 3.0,
   .rho = 1.225,
   .prop_r = 0.0762,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -721,6 +725,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 4.0,
   .r_cell = 0.008,
+  /* The review's 4S 5000. Its Castle ESC's cutoff is unpublished:
+   * Hobbywing's 3.0 V a cell, soft (docs/POWER-STAGE1.md). */
+  .pack_c = 5000.0 * 3.6,
+  .lvc = 3.0,
   .rho = 1.225,
   .prop_r = 0.1397,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -756,6 +764,9 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 3.0,
   .r_cell = 0.012,
+  /* FMS's 3S 2200; its ZTW 40 A ESC cuts softly at 3.0 V a cell. */
+  .pack_c = 2200.0 * 3.6,
+  .lvc = 3.0,
   .rho = 1.225,
   .prop_r = 0.1397,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -818,6 +829,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 3.0,
   .r_cell = 0.015,
+  /* The 3S 1300; the E-flite 30 A ESC's soft cutoff at 74 percent of a
+   * full pack's 12.6 V, 3.11 V a cell. */
+  .pack_c = 1300.0 * 3.6,
+  .lvc = 3.108,
   .rho = 1.225,
   .prop_r = 0.1238,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -853,6 +868,13 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 6.0,
   .r_cell = 0.010,
+  /* DERIVED, docs/POWER-STAGE1.md: C-Astral publishes no pack, only
+   * 3 h at 16 m/s; 22 Ah on 6S flies that on this plant. That is 488 Wh,
+   * against the 330 Wh the drag estimate needs: this plant's cruise
+   * power is high, which the estimated 45 A full throttle current is the
+   * likeliest cause of. The autopilot, not an ESC, manages the end. */
+  .pack_c = 22000.0 * 3.6,
+  .lvc = 0.0,
   .rho = 1.225,
   .prop_r = 0.1524,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -886,6 +908,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 2.0,
   .r_cell = 0.030,
+  /* A 2S 1300 (GWS's guide, 1300 to 2200 mAh); GWS's ICS-300Li cuts at
+   * 2.7 V a cell. */
+  .pack_c = 1300.0 * 3.6,
+  .lvc = 2.7,
   .rho = 1.225,
   .prop_r = 0.1397,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -943,6 +969,9 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 4.0,
   .r_cell = 0.008,
+  /* E-flite's 4S 3200; the Spektrum Avian 60's cutoff, 3.4 V a cell. */
+  .pack_c = 3200.0 * 3.6,
+  .lvc = 3.4,
   .rho = 1.225,
   .prop_r = 0.1397,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -998,6 +1027,9 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 4.0,
   .r_cell = 0.008,
+  /* E-flite's 4S 3200; the Spektrum Avian 60's cutoff, 3.4 V a cell. */
+  .pack_c = 3200.0 * 3.6,
+  .lvc = 3.4,
   .rho = 1.225,
   .prop_r = 0.1397,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -1047,6 +1079,9 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.81,
   .cells = 3.0,
   .r_cell = 0.012,
+  /* FMS's 3S 2200; its ZTW 40 A ESC cuts softly at 3.0 V a cell. */
+  .pack_c = 2200.0 * 3.6,
+  .lvc = 3.0,
   .rho = 1.225,
   .prop_r = 0.1397,
   .spin = { -1.0, 0.0, 0.0, 0.0 },
@@ -1336,6 +1371,82 @@ void plant_set_airframe(int id) {
   }
   g_airframe = id;
   PLANT_P = &PLANT_TABLE[id];
+}
+
+/*
+ * THE POWER OPTION IN FORCE, docs/POWER-STAGE1.md: a copy of the airframe's
+ * table entry and its wing table with an option's motor or engine, pack or
+ * tank, mass and CG laid over them. PLANT_P points here while an option is
+ * seated and at the const table otherwise, so an airframe no host gave an
+ * option reads exactly the table it always read. Owned by this file; the
+ * plant step only reads it, through PLANT.
+ */
+static PlantParams g_plant_live;
+static FixedWingParams g_fw_live;
+
+/* A finite number in [lo, hi]. NaN fails both comparisons. */
+static int in_range(double x, double lo, double hi) {
+  return x >= lo && x <= hi;
+}
+
+int plant_set_power(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const int glow = in[SIM_POWER_KIND] == 1.0;
+  if (!(in[SIM_POWER_KIND] == 0.0 || glow)
+      || !in_range(in[SIM_POWER_MASS], 0.05, 50.0)
+      || !in_range(in[SIM_POWER_CG_SHIFT], -0.2, 0.2)
+      || !in_range(in[SIM_POWER_CELLS], 1.0, 14.0)
+      || !in_range(in[SIM_POWER_R_CELL], 0.0, 1.0)
+      || !in_range(in[SIM_POWER_PACK_C], 0.0, 1.0e6)
+      || !in_range(in[SIM_POWER_THRUST], 0.1, 500.0)
+      || !in_range(in[SIM_POWER_PITCH_SPEED], 1.0, 150.0)
+      || !in_range(in[SIM_POWER_RPM], 100.0, 100000.0)
+      || !in_range(in[SIM_POWER_CURRENT], 0.0, 500.0)
+      || !in_range(in[SIM_POWER_IDLE], 0.0, 0.9)
+      || !in_range(in[SIM_POWER_TANK], 0.0, 0.01)
+      || !in_range(in[SIM_POWER_FLOW_FULL], 0.0, 1.0e-4)
+      || !in_range(in[SIM_POWER_FLOW_IDLE], 0.0, 1.0e-4)
+      || !in_range(in[SIM_POWER_LEAN_FRAC], 0.0, 0.5)
+      || !in_range(in[SIM_POWER_LEAN_GAIN], 0.0, 0.5)
+      || !in_range(in[SIM_POWER_LVC], 0.0, 4.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  /* A glow engine idles and burns fuel; an electric motor does neither. */
+  if (glow != (in[SIM_POWER_IDLE] > 0.0) || (!glow && in[SIM_POWER_TANK] > 0.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  g_fw_live = *base->fw;
+  g_fw_live.thrust_static = in[SIM_POWER_THRUST];
+  g_fw_live.pitch_speed = in[SIM_POWER_PITCH_SPEED];
+  g_fw_live.rpm_no_load = in[SIM_POWER_RPM];
+  g_fw_live.current_full = in[SIM_POWER_CURRENT];
+  g_fw_live.throttle_idle = in[SIM_POWER_IDLE];
+  g_fw_live.tank_m3 = in[SIM_POWER_TANK];
+  g_fw_live.flow_full = in[SIM_POWER_FLOW_FULL];
+  g_fw_live.flow_idle = in[SIM_POWER_FLOW_IDLE];
+  g_fw_live.lean_frac = in[SIM_POWER_LEAN_FRAC];
+  g_fw_live.lean_gain = in[SIM_POWER_LEAN_GAIN];
+  g_fw_live.cg_shift = in[SIM_POWER_CG_SHIFT];
+  g_plant_live = *base;
+  g_plant_live.fw = &g_fw_live;
+  g_plant_live.mass_kg = in[SIM_POWER_MASS];
+  g_plant_live.cells = in[SIM_POWER_CELLS];
+  g_plant_live.r_cell = in[SIM_POWER_R_CELL];
+  g_plant_live.pack_c = in[SIM_POWER_PACK_C];
+  g_plant_live.lvc = in[SIM_POWER_LVC];
+  PLANT_P = &g_plant_live;
+  return SIM_OK;
+}
+
+void plant_power_clear(void) {
+  PLANT_P = &PLANT_TABLE[g_airframe];
+}
+
+int plant_power_custom(void) {
+  return PLANT_P == &g_plant_live;
 }
 
 int plant_airframe(void) { return g_airframe; }

@@ -242,6 +242,208 @@ static double add_term(double sum, double term) {
   return sum - (0.0 - term);
 }
 
+/*
+ * THE PACK AND THE TANK, docs/POWER-STAGE1.md.
+ *
+ * LIPO_OCV: a LiPo cell's open circuit voltage at rest against its state of
+ * charge, at 0, 5, ..., 100 percent, linear between its points, which needs
+ * no libm. Chen and Rincon-Mora's fit to measured polymer Li-ion cells
+ * (IEEE Trans. Energy Conversion 21(2), 2006, eq. 2), charged to 4.10 V,
+ * over the lower 86 percent, the capacity Battery University's BU-808
+ * gives a cell charged to 4.10 V rather than 4.20; the top 14 percent
+ * rises linearly to 4.20 V; empty is the paper's 3.0 V end of discharge.
+ * docs/POWER-STAGE1.md has the construction.
+ */
+#define LIPO_OCV_N 21
+static const double LIPO_OCV[LIPO_OCV_N] = {
+  3.000, 3.562, 3.691, 3.718, 3.732, 3.746, 3.759, 3.775, 3.792, 3.811, 3.833,
+  3.858, 3.887, 3.919, 3.955, 3.996, 4.041, 4.092, 4.131, 4.165, 4.200,
+};
+
+double plant_lipo_ocv(double soc) {
+  if (!(soc > 0.0)) {
+    return LIPO_OCV[0];
+  }
+  if (soc >= 1.0) {
+    return LIPO_OCV[LIPO_OCV_N - 1];
+  }
+  const double x = soc * (double)(LIPO_OCV_N - 1);
+  const int i = (int)x;
+  return LIPO_OCV[i] + (x - (double)i) * (LIPO_OCV[i + 1] - LIPO_OCV[i]);
+}
+
+/* The curve read backwards: the state of charge a rested cell at v volts
+ * holds. Outside the curve it is empty or full. */
+static double lipo_soc(double v) {
+  if (!(v > LIPO_OCV[0])) {
+    return 0.0;
+  }
+  if (v >= LIPO_OCV[LIPO_OCV_N - 1]) {
+    return 1.0;
+  }
+  int i = 0;
+  while (LIPO_OCV[i + 1] < v) {
+    i += 1;
+  }
+  const double f = (v - LIPO_OCV[i]) / (LIPO_OCV[i + 1] - LIPO_OCV[i]);
+  return ((double)i + f) / (double)(LIPO_OCV_N - 1);
+}
+
+/* An electric motor on a pack that drains. A glow engine, a quad and a
+ * table with no capacity never drain. */
+static int pack_drains(const FixedWingParams *fw) {
+  return PLANT.pack_c > 0.0 && !(fw->throttle_idle > 0.0);
+}
+
+void plant_power_reset(SimState *s) {
+  s->charge_c = 0.0;
+  s->soc0 = lipo_soc(s->cell_voltage_oc);
+  s->v_cell0 = plant_lipo_ocv(s->soc0);
+  s->v_cell = s->v_cell0;
+  s->fuel_m3 = (PLANT.kind == PLANT_KIND_WING && PLANT.fw != 0) ? PLANT.fw->tank_m3 : 0.0;
+  s->power_out = 0;
+  s->lvc_cap = 1.0e9;
+}
+
+/*
+ * The duty the motor or engine turns at, from the duty the stick and the
+ * throttle stop ask for.
+ *
+ * ELECTRIC. A motor's speed is its kV times the voltage it is given, so at
+ * a duty its speed goes with the pack's LOADED voltage. The table's thrust,
+ * pitch speed and current are the pack's as it was seated; now they are
+ * the pack's at a speed scaled by the loaded voltage now over the loaded
+ * voltage seated, at last step's current, and a duty scaled by that ratio
+ * carries it through the thrust (speed squared) and the pitch speed
+ * (speed). At the seat the ratio is exactly 1 and every product below is
+ * the table's. *r_v is the ratio, for power_current. Once the ESC's low
+ * voltage cutoff has acted (power_drain) the duty is held under its cap.
+ *
+ * GLOW. Over the last lean_frac of the tank the mixture leans and the rpm
+ * rises by up to lean_gain, then power_drain stops the engine.
+ */
+static double power_duty(const SimState *s, const FixedWingParams *fw, double duty, double *r_v) {
+  *r_v = 1.0;
+  if (s->power_out) {
+    return duty;
+  }
+  if (fw->throttle_idle > 0.0) {
+    if (fw->tank_m3 > 0.0 && fw->lean_frac > 0.0) {
+      const double left = s->fuel_m3 / fw->tank_m3;
+      if (left < fw->lean_frac) {
+        return duty * (1.0 + fw->lean_gain * (1.0 - left / fw->lean_frac));
+      }
+    }
+    return duty;
+  }
+  if (!pack_drains(fw)) {
+    return duty;
+  }
+  const double sag = s->pack_current * PLANT.r_cell;
+  *r_v = (s->v_cell - sag) / (s->v_cell0 - sag);
+  const double de = duty * *r_v;
+  return de < s->lvc_cap ? de : s->lvc_cap;
+}
+
+/*
+ * The pack's current, from the power the prop takes. A prop at a speed
+ * takes power as its power coefficient; the plant's thrust law has the
+ * thrust coefficient fall as 1 - V / (pitch speed), and APC's published
+ * performance data (the 11 x 7E at 9,000 rpm, PER3_11x7E.dat) give how the
+ * power coefficient goes with it: CP_OF_CT, Cp over its static value at
+ * Ct over its static value 0, 0.1, ..., 1. It hardly moves until the thrust
+ * has fallen by a third and is a fifth of static where the thrust is gone
+ * (the 8 x 4E, 12 x 6 and 13 x 8E agree within a few percent). So the
+ * current is the table's full throttle current times the prop's speed
+ * cubed, the motor's torque (the square) through the ESC's switching (the
+ * duty), times that ratio; the same power off a sagged pack is more
+ * current, so it is over r_v. Nothing while the prop makes no thrust.
+ */
+#define CP_OF_CT_N 11
+static const double CP_OF_CT[CP_OF_CT_N] = {
+  0.187, 0.358, 0.517, 0.661, 0.789, 0.901, 0.994, 1.064, 1.099, 1.088, 1.000,
+};
+
+static double power_current(const FixedWingParams *fw, double de, double ct, double r_v) {
+  if (!(fw->current_full > 0.0) || !(ct > 0.0)) {
+    return 0.0;
+  }
+  double g = CP_OF_CT[CP_OF_CT_N - 1];
+  if (ct < 1.0) {
+    const double x = ct * (double)(CP_OF_CT_N - 1);
+    const int i = (int)x;
+    g = CP_OF_CT[i] + (x - (double)i) * (CP_OF_CT[i + 1] - CP_OF_CT[i]);
+  }
+  return fw->current_full * de * de * de * g / r_v;
+}
+
+/*
+ * One step's draw. The pack: the step's current out of its charge, the
+ * curve's voltage at what is left, and the loaded voltage under the
+ * current; flat when the charge is gone. The ESC's soft low voltage
+ * cutoff: when the loaded cell voltage falls under its threshold it caps
+ * the duty at the one whose current leaves it there, taking the current as
+ * the duty squared at the airspeed it has, and the cap holds until the
+ * pack is changed, as a hobby ESC's does until it is re-armed. The tank:
+ * the fuel the engine burns at its rpm this step, linear from the idle's
+ * flow to the full's; dry, the engine quits. A flat pack and a dry tank
+ * leave power_out set until a reset, a new pack or a new power system.
+ */
+static void power_drain(SimState *s, const FixedWingParams *fw, double duty, double de) {
+  if (fw->throttle_idle > 0.0) {
+    s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
+    if (fw->tank_m3 > 0.0 && !s->power_out) {
+      const double open = (duty - fw->throttle_idle) / (1.0 - fw->throttle_idle);
+      s->fuel_m3 -= (fw->flow_idle + (fw->flow_full - fw->flow_idle) * open) * SIM_DT;
+      if (!(s->fuel_m3 > 0.0)) {
+        s->fuel_m3 = 0.0;
+        s->power_out = 1;
+      }
+    }
+    return;
+  }
+  if (!pack_drains(fw)) {
+    s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
+    return;
+  }
+  s->charge_c += s->pack_current * SIM_DT;
+  const double soc = s->soc0 - s->charge_c / PLANT.pack_c;
+  if (!(soc > 0.0)) {
+    s->power_out = 1;
+  }
+  s->v_cell = plant_lipo_ocv(soc);
+  s->vbat_load = PLANT.cells * (s->v_cell - s->pack_current * PLANT.r_cell);
+  if (PLANT.lvc > 0.0 && s->pack_current > 0.0 && s->vbat_load < PLANT.cells * PLANT.lvc) {
+    const double i_max = (s->v_cell - PLANT.lvc) / PLANT.r_cell;
+    const double cap = i_max > 0.0 ? de * sim_sqrt(i_max / s->pack_current) : 0.0;
+    if (cap < s->lvc_cap) {
+      s->lvc_cap = cap;
+    }
+  }
+}
+
+void plant_power_state(const SimState *s, double *out) {
+  const int wing = PLANT.kind == PLANT_KIND_WING && PLANT.fw != 0;
+  const FixedWingParams *fw = PLANT.fw;
+  const int drains = wing && pack_drains(fw);
+  const double tank = wing ? fw->tank_m3 : 0.0;
+  double soc = drains ? s->soc0 - s->charge_c / PLANT.pack_c : 1.0;
+  if (!(soc > 0.0)) {
+    soc = 0.0;
+  }
+  out[0] = soc;
+  out[1] = s->charge_c;
+  out[2] = drains ? s->v_cell : s->cell_voltage_oc;
+  out[3] = tank > 0.0 ? s->fuel_m3 : 0.0;
+  out[4] = tank > 0.0 ? s->fuel_m3 / tank : 1.0;
+  out[5] = s->power_out ? 0.0 : 1.0;
+  out[6] = (wing && tank > 0.0 && fw->lean_frac > 0.0 && !s->power_out
+            && s->fuel_m3 / tank < fw->lean_frac) ? 1.0 : 0.0;
+  out[7] = drains ? PLANT.pack_c : 0.0;
+  out[8] = tank;
+  out[9] = plant_power_custom() ? 1.0 : 0.0;
+}
+
 /* Cubic smoothstep from 0 at a to 1 at b. */
 static double smoothstep(double a, double b, double x) {
   if (x <= a) {
@@ -978,8 +1180,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   }
   if (duty < fw->duty_min) duty = fw->duty_min;
   if (duty > 1.0) duty = 1.0;
+  /* The pack or the tank, power_duty below: the duty the motor actually
+   * turns at, which is the stick's while the pack is as it was seated. */
+  double r_v;
+  const double duty_e = power_duty(s, fw, duty, &r_v);
+  const int flat = s->power_out;
   const double u_pos = u > 0.0 ? u : 0.0;
-  double thrust = fw->thrust_static * duty * duty * (1.0 - u_pos / (fw->pitch_speed * duty));
+  const double ct = 1.0 - u_pos / (fw->pitch_speed * duty_e);
+  double thrust = fw->thrust_static * duty_e * duty_e * ct;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
    * stopping at zero. A fixed prop stops at zero. */
@@ -990,18 +1198,20 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     thrust = 0.0;
   }
   if (g_chute) thrust = 0.0; /* the motor is cut with the pull */
-  const int dead = CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power);
+  const int dead = flat || (CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power));
   if (CRASH.active) {
     thrust = dead ? 0.0 : thrust * CRASH.kt[0];
+  } else if (flat) {
+    thrust = 0.0;
   }
   F[0] += thrust;
-  const double rpm = (folded || g_chute || dead) ? 0.0 : 0.85 * duty * fw->rpm_no_load;
+  const double rpm = (folded || g_chute || dead) ? 0.0 : 0.85 * duty_e * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = (folded || g_chute || dead) ? 0.0 : fw->current_full * duty * duty;
-  s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
+  s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, duty_e, ct, r_v);
+  power_drain(s, fw, duty, duty_e);
   if (CRASH.active && CRASH.no_power) {
     s->vbat_load = 0.0;
   }
@@ -1062,7 +1272,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double m_aero = qbar * fw->area * fw->chord *
                         add_term(add_term(fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v + fw->cm_de * delta_e,
                                           cm_stall),
-                                 fw->cm_dcl_f * dcl_f);
+                                 add_term(fw->cm_dcl_f * dcl_f, -(fw->cg_shift / fw->chord) * CL));
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
   double M[3];
   M[0] = l_aero - fw->torque_arm * thrust; /* the prop turns one way; the airframe answers the other */
@@ -2153,6 +2363,18 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stall_arm_ac = 0.0761, /* the CG 14.5 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.0703, /* the plate's centre of pressure at 0.40 of the chord */
   .throttle_idle = 0.40,  /* the Cox throttle conversion's 6,500 of 16,000 rpm */
+  /* The tank, docs/POWER-STAGE1.md: the Texaco .049's integral 8.4 cc
+   * (Cox's sheet). A Cox .049 at full throttle burns 1.84 cc/min at 9,000
+   * rpm (Menon's dyno, U. Maryland 2010, at 7 percent efficiency), and
+   * the flow is linear in the rpm through zero, so the idle's is 0.40 of
+   * it. The lean run over the last 5 percent, 5 percent of rpm, is an
+   * estimate: Cox's chart names the lean burst before a dry tank stops
+   * the engine and gives no size. */
+  .tank_m3 = 8.4e-6,
+  .flow_full = 1.84e-6 / 60.0,
+  .flow_idle = 0.40 * (1.84e-6 / 60.0),
+  .lean_frac = 0.05,
+  .lean_gain = 0.05,
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .lowre_arm_ac = 0.0761, /* the same arms, its first post stall moment, kept short of */
   .lowre_arm_cp = 0.0703, /* the stall angle and below the section data's Reynolds numbers */
@@ -2248,6 +2470,16 @@ const FixedWingParams FW_KADET1981 = {
   .acro_i_max = 0.30,
   .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
   .throttle_idle = 0.2421, /* O.S.'s 2,300 rpm, the lowest practical, of the 9,500 */
+  /* The tank, docs/POWER-STAGE1.md: SIG's 12 oz, 355 cc. O.S.'s own
+   * figure for the FS-52's successor, the FSa-56II, 220 cc for about 12
+   * minutes, is 18.3 cc/min, taken as the full throttle flow (a measured
+   * .40 two stroke at full power, Menon 2010, burns 17.9), linear in the
+   * rpm through zero. The lean run is the Bombshell's estimate. */
+  .tank_m3 = 355.0e-6,
+  .flow_full = 18.3e-6 / 60.0,
+  .flow_idle = 0.2421 * (18.3e-6 / 60.0),
+  .lean_frac = 0.05,
+  .lean_gain = 0.05,
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0128, /* the CG 4.8 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.1372, /* the plate's centre of pressure at 0.40 of the chord */

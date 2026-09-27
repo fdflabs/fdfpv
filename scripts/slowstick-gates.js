@@ -275,12 +275,21 @@ check: {
       const o = step(sim, [roll, ms < 1000 ? 0.3 : 0, 0, 0.75]);
       if (ms >= 2000) vs.push({ t: ms / 1000, v: speed(o.s) });
     }
+    /* Crossings of the line the speed settles along, fitted over the last
+     * 8 s, not of its mean: this phugoid is damped to millimetres a second
+     * by its fifth cycle, and a draining pack (docs/POWER-STAGE1.md) walks
+     * the settled speed by about as much over the 40 s, which put a mean
+     * off to one side of the last swings and dropped their crossings. */
     const tail = vs.filter((p) => p.t >= vs[vs.length - 1].t - 8);
     const mean = tail.reduce((a, p) => a + p.v, 0) / tail.length;
+    const tMean = tail.reduce((a, p) => a + p.t, 0) / tail.length;
+    const slope = tail.reduce((a, p) => a + (p.t - tMean) * (p.v - mean), 0)
+      / tail.reduce((a, p) => a + (p.t - tMean) * (p.t - tMean), 0);
+    const settled = (t) => mean + slope * (t - tMean);
     const ups = [];
     for (let i = 1; i < vs.length; i += 1) {
-      const a = vs[i - 1].v - mean;
-      const b = vs[i].v - mean;
+      const a = vs[i - 1].v - settled(vs[i - 1].t);
+      const b = vs[i].v - settled(vs[i].t);
       if (a < 0 && b >= 0) ups.push(vs[i - 1].t + (vs[i].t - vs[i - 1].t) * (-a / (b - a)));
     }
     const period = ups.length >= 2 ? (ups[ups.length - 1] - ups[0]) / (ups.length - 1) : null;

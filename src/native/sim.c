@@ -218,6 +218,7 @@ SIM_EXPORT int sim_abi_version(void) { return SIM_ABI_VERSION; }
 static void reset_dynamics(void) {
   crash_reset();
   plant_reset(&S);
+  plant_power_reset(&S);
   plant_wing_reset();
   bridge_reset();
   g_q_head = 0;
@@ -269,6 +270,9 @@ SIM_EXPORT int sim_set_cell_voltage(double volts) {
     return SIM_ERR_BAD_ARG;
   }
   S.cell_voltage_oc = volts;
+  /* A pack at this voltage, docs/POWER-STAGE1.md: its charge is where the
+   * voltage sits on the LiPo curve, and nothing has been drawn from it. */
+  plant_power_reset(&S);
   return SIM_OK;
 }
 
@@ -2445,6 +2449,8 @@ SIM_EXPORT int sim_set_airframe(int id) {
   }
   crash_reset();
   plant_set_airframe(id);
+  /* The new aircraft's own power system, with a full pack and tank. */
+  plant_power_reset(&S);
   /* A canopy belongs to the aircraft that pulled it, and so do flaps. */
   plant_wing_chute(0);
   plant_wing_flaps_stow();
@@ -2458,6 +2464,33 @@ SIM_EXPORT int sim_set_airframe(int id) {
 }
 
 SIM_EXPORT int sim_airframe(void) { return plant_airframe(); }
+
+/* The power system, sim_abi.h and docs/POWER-STAGE1.md. Seating one fills
+ * the pack and the tank, as a pilot fits a charged pack and fuels up. */
+SIM_EXPORT int sim_set_power(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  const int rc = plant_set_power(in);
+  if (rc == SIM_OK) {
+    plant_power_reset(&S);
+  }
+  return rc;
+}
+
+SIM_EXPORT int sim_power_clear(void) {
+  plant_power_clear();
+  plant_power_reset(&S);
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_power_state(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_power_state(&S, out);
+  return SIM_OK;
+}
 
 SIM_EXPORT int sim_set_launch_control(int on) {
   bridge_set_launch_control(on);

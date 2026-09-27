@@ -122,6 +122,15 @@ import { Music } from './music.js';
  *         revolutions, each a little different, so the lope a pilot hears
  *         at idle is in the wave (fourStrokeWave). The loudness law tops
  *         out at the plant's full throttle rpm on the ground.
+ *   glow2 A two stroke glow engine, the Buzzard Bombshell's Cox .049 or a
+ *         two stroke on the Kadet Senior (docs/POWER-STAGE1.md). A two
+ *         stroke fires every revolution, so its note is rpm / 60, the
+ *         octave over a four stroke at the same rpm: the exhaust port's
+ *         blowdown once a turn, the prop's two blades twice a turn under
+ *         it, and a smaller cycle to cycle spread than the four stroke's
+ *         lope, because a two stroke at speed fires every turn and its
+ *         misses are an idle's (Heywood, 1988, 9.4, as above). `perRev` is
+ *         a quarter: one period of the wave is four firing cycles.
  *
  * `perRev` is how many periods of the voice's wave one revolution makes,
  * which for a prop's own tone is its blade count; `lpTrack` is where the
@@ -131,6 +140,7 @@ export const VOICES = {
   quad: { perRev: 3, wave: 'blade', lpTrack: 3.4, rpmFull: 9000, speedFull: 32, pan: [0.45, 0.32, -0.45, -0.32], windCorner: 900, windOpen: 0 },
   wing: { perRev: 2, wave: 'blade', lpTrack: 3.4, rpmFull: 17600, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
   glow4: { perRev: 1 / 8, wave: 'fourStroke', lpTrack: 48, rpmFull: 9500, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
+  glow2: { perRev: 1 / 4, wave: 'twoStroke', lpTrack: 24, rpmFull: 9350, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
 };
 
 /*
@@ -191,18 +201,35 @@ const FOUR_STROKE_HARMONICS = 48;
 function blowdown(x) {
   return x >= 0 ? Math.exp(-x / 0.08) * Math.sin((2 * Math.PI * x) / 0.2) : 0;
 }
+/* A two stroke's four cycles: the same kind of spread, smaller, and no
+ * suck back, since the port scavenges rather than overlapping valves. */
+const TWO_STROKE_CYCLES = [
+  { amp: 1.00, lag: 0.000 },
+  { amp: 0.95, lag: 0.006 },
+  { amp: 1.04, lag: -0.004 },
+  { amp: 0.97, lag: 0.003 },
+];
 function fourStrokeWave() {
+  return exhaustWave(FOUR_STROKE_CYCLES, 0.25, 4);
+}
+function twoStrokeWave() {
+  return exhaustWave(TWO_STROKE_CYCLES, 0, 2);
+}
+/* One firing cycle per quarter of the wave: the blowdown pulse, a suck
+ * back half a cycle later at `suckBack` of it, and `bladePasses` blade
+ * passes a cycle under them, as a spectrum for createPeriodicWave. */
+function exhaustWave(cyclesTable, suckBack, bladePasses) {
   const n = 4096;
-  const cycles = FOUR_STROKE_CYCLES.length;
+  const cycles = cyclesTable.length;
   const wave = new Float64Array(n);
   for (let i = 0; i < n; i += 1) {
     const u = (i / n) * cycles;
     const k = Math.floor(u);
     const phi = u - k;
-    const { amp, lag } = FOUR_STROKE_CYCLES[k];
+    const { amp, lag } = cyclesTable[k];
     const pulse = amp * (blowdown(phi - lag) + blowdown(phi - lag + 1));
-    const suck = -0.25 * amp * (blowdown(phi - lag - 0.5) + blowdown(phi - lag + 0.5));
-    const blades = 0.14 * Math.sin(2 * Math.PI * 4 * phi);
+    const suck = -suckBack * amp * (blowdown(phi - lag - 0.5) + blowdown(phi - lag + 0.5));
+    const blades = 0.14 * Math.sin(2 * Math.PI * bladePasses * phi);
     wave[i] = pulse + suck + blades;
   }
   const real = new Float32Array(FOUR_STROKE_HARMONICS + 1);
@@ -223,6 +250,7 @@ function fourStrokeWave() {
 const WAVES = {
   blade: () => ({ real: new Float32Array(MOTOR_WAVE_REAL), imag: new Float32Array(MOTOR_WAVE_IMAG) }),
   fourStroke: fourStrokeWave,
+  twoStroke: twoStrokeWave,
 };
 /*
  * How far the blade pass tone wanders, in cents, driven by slow noise. Real

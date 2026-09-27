@@ -52,3 +52,4 @@ jobs:
       - run: npm run pick:selftest
       - run: npm run stab:glide
       - run: npm run stab:chop
+      - run: npm run power:check

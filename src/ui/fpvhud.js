@@ -37,12 +37,16 @@
  *
  * WHAT IS NOT MODELLED, said here once so the readouts do not pretend:
  *
- *   - The pack never empties. The plant holds the open circuit voltage the
- *     pilot chose and sags it under load (src/native/plant.c), so the
- *     voltage here falls under throttle and comes back off it, and LOW
- *     BATTERY is Betaflight's own filtered-voltage test against that sag.
- *     The mAh count is the plant's real current integrated on the sim
- *     clock; it has no capacity to run out of.
+ *   - A quad's pack never empties. Its plant holds the open circuit
+ *     voltage the pilot chose and sags it under load (src/native/plant.c),
+ *     so the voltage here falls under throttle and comes back off it, and
+ *     LOW BATTERY is Betaflight's own filtered-voltage test against that
+ *     sag. The mAh count is the plant's current integrated on the sim
+ *     clock. A fixed wing's pack DOES empty (docs/POWER-STAGE1.md): the
+ *     plant counts the charge drawn and walks the open circuit voltage
+ *     down the LiPo curve, so the mAh here is the plant's own count and
+ *     the same Betaflight test fires when the real pack gets low. A glow
+ *     engine burns a tank instead, and its fuel is shown and warned on.
  *   - There is no arming step. The shell arms the moment the throttle
  *     lifts the craft, so Betaflight's THROTTLE arming refusal can never be
  *     true and is not drawn. DISARMED means the motors are stopped: before
@@ -800,6 +804,7 @@ export class FpvOsd {
     this.lastSimT = null;
     this.lastWall = null;
     this.mah = 0;
+    this.power = null;
     this.flyS = 0;
     this.onS = 0;
     this.vFilt = null;
@@ -832,8 +837,18 @@ export class FpvOsd {
      * circuit voltage. The plant is not stepped while the craft is parked,
      * so its last current and sagged voltage are stale then, not true. */
     const amps = x.armed ? st[19] : 0;
-    const volts = x.armed ? st[18] : x.restVolts;
-    this.mah += (amps * dt * 1000) / 3600;
+    /* A pack that drains is the plant's to count, and at rest it reads the
+     * curve's voltage for what is left, not the voltage it was seated at. */
+    const pw = x.power;
+    const drains = Boolean(pw && pw.capacityC > 0);
+    const rest = drains ? pw.cellOcv * x.cells : x.restVolts;
+    const volts = x.armed ? st[18] : rest;
+    if (drains) {
+      this.mah = pw.chargeC / 3.6;
+    } else {
+      this.mah += (amps * dt * 1000) / 3600;
+    }
+    this.power = pw || null;
     if (x.armed) {
       this.flyS += dt;
     }
@@ -1168,7 +1183,13 @@ export class FpvOsd {
     }
     this.readout('mode-batt', 'l', 'b', pack);
     const amps = x.armed ? x.st[19] : 0;
-    this.readout('amps-mah', 'r', 'b', [`${pad(amps.toFixed(2), 6)}A`, `${pad(String(Math.round(this.mah)), 4)}${label(SYM.MAH)}`]);
+    /* A glow engine's tank, over the current. */
+    const fuel = this.power && this.power.tankM3 > 0 ? Math.round(this.power.fuelFrac * 100) : null;
+    const draw = [`${pad(amps.toFixed(2), 6)}A`, `${pad(String(Math.round(this.mah)), 4)}${label(SYM.MAH)}`];
+    if (fuel !== null) {
+      draw.unshift(str('osd.fuel', { pct: pad(String(fuel), 3) }));
+    }
+    this.readout('amps-mah', 'r', 'b', draw);
     Object.assign(this.values, {
       mode,
       lq: this.lq,
@@ -1179,6 +1200,7 @@ export class FpvOsd {
       packV,
       amps,
       mah: this.mah,
+      fuel,
       simT: this.lastSimT,
       battery: this.batt,
       roll: this.att.roll,
@@ -1449,25 +1471,7 @@ export class FpvOsd {
    * osdElementDisarmed above it: centred, two and three instrument rows
    * under the crosshair, inside the horizon's sidebars. */
   buildWarnings(v, x, blinkOn) {
-    let warning = '';
-    let blink = false;
-    if (x.crashFlip) {
-      warning = str('osd.crash_flip');
-    } else if (v.launchState === 1 || v.launchState === 2) {
-      warning = str('osd.launch', { deg: Math.round(v.launchPitch || 0) });
-      blink = v.launchState === 2;
-    } else if (this.lq < LQ_ALARM) {
-      warning = str('osd.link_quality');
-      blink = true;
-    } else if (this.batt === 'critical') {
-      warning = str('osd.land_now');
-      blink = true;
-    } else if (this.batt === 'warning') {
-      warning = str('osd.low_battery');
-      blink = true;
-    } else if (!x.armed && !x.flown && this.vFilt / x.cells < CELL_FULL) {
-      warning = str('osd.batt_not_full');
-    }
+    const { warning, blink } = this.warningFor(v, x);
     const I = this.i;
     const under = (rows) => this.textRow(I.oy + (MID_ROW + rows + 0.5) * I.ch);
     const disarmed = !x.armed && !x.crashFlip;
@@ -1479,6 +1483,37 @@ export class FpvOsd {
     }
     this.values.warning = warning;
     this.values.disarmed = disarmed;
+  }
+
+  /* Which warning is up, and whether it blinks: nothing drawn, so a check
+   * can ask it of the same state (scripts/power-check.js). */
+  warningFor(v, x) {
+    let warning = '';
+    let blink = false;
+    if (x.crashFlip) {
+      warning = str('osd.crash_flip');
+    } else if (v.launchState === 1 || v.launchState === 2) {
+      warning = str('osd.launch', { deg: Math.round(v.launchPitch || 0) });
+      blink = v.launchState === 2;
+    } else if (this.lq < LQ_ALARM) {
+      warning = str('osd.link_quality');
+      blink = true;
+    } else if (this.power && this.power.tankM3 > 0 && !this.power.running) {
+      warning = str('osd.engine_out');
+      blink = true;
+    } else if (this.power && this.power.lean) {
+      warning = str('osd.low_fuel');
+      blink = true;
+    } else if (this.batt === 'critical') {
+      warning = str('osd.land_now');
+      blink = true;
+    } else if (this.batt === 'warning') {
+      warning = str('osd.low_battery');
+      blink = true;
+    } else if (!x.armed && !x.flown && this.vFilt / x.cells < CELL_FULL) {
+      warning = str('osd.batt_not_full');
+    }
+    return { warning, blink };
   }
 
   /*

@@ -67,6 +67,7 @@ const CAL_LABELS = {
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
+import { normalizePower } from '../../configs/power.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 import { liveryKey, normaliseLiveries, paintable } from '../../configs/liveries.js';
@@ -706,6 +707,10 @@ const DEFAULTS = {
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
+  /* Each plane's power system and pack or tank, by airframe id:
+   * { option, pack }, configs/power.js. A plane with no entry flies its
+   * stock system on its stock pack. */
+  power: {},
   /*
    * How heavy the quad is, as a percentage of the weight the airframe is
    * flown at. See WEIGHT_STOCK above. 100 is the shipped machine and the
@@ -977,6 +982,9 @@ export function loadSettings() {
       s.packVoltage = af.packVoltages[0];
     }
   }
+  /* Power choices name an option and a pack each plane still offers, or
+   * are dropped back to stock (configs/power.js). */
+  s.power = normalizePower(s.power);
   /* Angle is a range, not a list: a stored 40 from the old six-step menu
    * must survive, a stored 90 must not, and 45 has to be legal now. */
   s.cameraAngle = clampCameraAngle(s.cameraAngle);
