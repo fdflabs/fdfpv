@@ -598,9 +598,10 @@ int sim_wing_set_slats(int fitted);
  *
  * WHAT EVERY FIXED WING DOES NOW, with or without a call below: its pack
  * drains. The charge drawn is the motor's current integrated over the
- * steps, and the current is the power the prop takes by momentum theory
- * over the table's static full throttle power, so it falls as the prop
- * unloads at flight speed; the open circuit voltage follows a published
+ * steps, and the current is the power the prop takes over the table's
+ * static full throttle power, its power coefficient following its thrust
+ * coefficient as APC's measured props do, so it falls as the prop unloads
+ * at flight speed; the open circuit voltage follows a published
  * LiPo curve down the state of charge; the loaded voltage is that less
  * the current through the pack's internal resistance; and the motor's
  * speed, with its thrust and pitch speed, falls with the loaded voltage
@@ -648,8 +649,7 @@ int sim_wing_set_slats(int fitted);
 #define SIM_POWER_LEAN_FRAC 14  /* share of the tank the lean run starts at */
 #define SIM_POWER_LEAN_GAIN 15  /* rpm rise over the lean run, a fraction */
 #define SIM_POWER_LVC 16        /* ESC low voltage cutoff, volts per cell loaded; 0 none */
-#define SIM_POWER_PROP_R 17     /* prop radius, m */
-#define SIM_POWER_DOUBLES 18
+#define SIM_POWER_DOUBLES 17
 /*
  * sim_power_state block:
  *   [0] state of charge now, 0..1 (1 for a glow engine's receiver pack)

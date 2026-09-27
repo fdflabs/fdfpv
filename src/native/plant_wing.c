@@ -246,13 +246,18 @@ static double add_term(double sum, double term) {
  * THE PACK AND THE TANK, docs/POWER-STAGE1.md.
  *
  * LIPO_OCV: a LiPo cell's open circuit voltage at rest against its state of
- * charge, at 0, 5, ..., 100 percent. The source is cited in the doc; the
- * curve is linear between its points, which needs no libm.
+ * charge, at 0, 5, ..., 100 percent, linear between its points, which needs
+ * no libm. Chen and Rincon-Mora's fit to measured polymer Li-ion cells
+ * (IEEE Trans. Energy Conversion 21(2), 2006, eq. 2), charged to 4.10 V,
+ * over the lower 86 percent, the capacity Battery University's BU-808
+ * gives a cell charged to 4.10 V rather than 4.20; the top 14 percent
+ * rises linearly to 4.20 V; empty is the paper's 3.0 V end of discharge.
+ * docs/POWER-STAGE1.md has the construction.
  */
 #define LIPO_OCV_N 21
 static const double LIPO_OCV[LIPO_OCV_N] = {
-  3.27, 3.61, 3.69, 3.71, 3.73, 3.75, 3.77, 3.79, 3.80, 3.82, 3.84,
-  3.85, 3.87, 3.91, 3.95, 3.98, 4.02, 4.08, 4.11, 4.15, 4.20,
+  3.000, 3.562, 3.691, 3.718, 3.732, 3.746, 3.759, 3.775, 3.792, 3.811, 3.833,
+  3.858, 3.887, 3.919, 3.955, 3.996, 4.041, 4.092, 4.131, 4.165, 4.200,
 };
 
 double plant_lipo_ocv(double soc) {
@@ -341,26 +346,35 @@ static double power_duty(const SimState *s, const FixedWingParams *fw, double du
 }
 
 /*
- * The pack's current, from the power the prop takes. Momentum theory: a
- * disc of area A making thrust T at an inflow V takes T (V + v_i), with
- * v_i = sqrt(V^2 / 4 + T / (2 rho A)) - V / 2 (Glauert; McCormick,
- * Aerodynamics, Aeronautics and Flight Mechanics, 2nd ed., 6.2). The
- * table's full throttle current is the static full throttle thrust's
- * power, so the current is that current times the power now over the
- * power then: at a standstill a duty's current goes as its cube, the
- * motor's current (the square) through the ESC's switching (the duty), and
- * at flight speed the prop unloads. The same power off a sagged pack is
- * more current, so it is over r_v. An electric motor only; nothing when
- * the prop makes no thrust.
+ * The pack's current, from the power the prop takes. A prop at a speed
+ * takes power as its power coefficient; the plant's thrust law has the
+ * thrust coefficient fall as 1 - V / (pitch speed), and APC's published
+ * performance data (the 11 x 7E at 9,000 rpm, PER3_11x7E.dat) give how the
+ * power coefficient goes with it: CP_OF_CT, Cp over its static value at
+ * Ct over its static value 0, 0.1, ..., 1. It hardly moves until the thrust
+ * has fallen by a third and is a fifth of static where the thrust is gone
+ * (the 8 x 4E, 12 x 6 and 13 x 8E agree within a few percent). So the
+ * current is the table's full throttle current times the prop's speed
+ * cubed, the motor's torque (the square) through the ESC's switching (the
+ * duty), times that ratio; the same power off a sagged pack is more
+ * current, so it is over r_v. Nothing while the prop makes no thrust.
  */
-static double power_current(const FixedWingParams *fw, double thrust, double v, double r_v) {
-  if (!(fw->current_full > 0.0) || !(thrust > 0.0)) {
+#define CP_OF_CT_N 11
+static const double CP_OF_CT[CP_OF_CT_N] = {
+  0.187, 0.358, 0.517, 0.661, 0.789, 0.901, 0.994, 1.064, 1.099, 1.088, 1.000,
+};
+
+static double power_current(const FixedWingParams *fw, double de, double ct, double r_v) {
+  if (!(fw->current_full > 0.0) || !(ct > 0.0)) {
     return 0.0;
   }
-  const double k = 1.0 / (2.0 * PLANT.rho * WING_PI * PLANT.prop_r * PLANT.prop_r);
-  const double vi = sim_sqrt(0.25 * v * v + thrust * k) - 0.5 * v;
-  const double vi0 = sim_sqrt(fw->thrust_static * k);
-  return fw->current_full * (thrust * (v + vi)) / (fw->thrust_static * vi0) / r_v;
+  double g = CP_OF_CT[CP_OF_CT_N - 1];
+  if (ct < 1.0) {
+    const double x = ct * (double)(CP_OF_CT_N - 1);
+    const int i = (int)x;
+    g = CP_OF_CT[i] + (x - (double)i) * (CP_OF_CT[i + 1] - CP_OF_CT[i]);
+  }
+  return fw->current_full * de * de * de * g / r_v;
 }
 
 /*
@@ -1172,8 +1186,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double duty_e = power_duty(s, fw, duty, &r_v);
   const int flat = s->power_out;
   const double u_pos = u > 0.0 ? u : 0.0;
-  double thrust = fw->thrust_static * duty_e * duty_e * (1.0 - u_pos / (fw->pitch_speed * duty_e));
-  const double thrust_motor = thrust;
+  const double ct = 1.0 - u_pos / (fw->pitch_speed * duty_e);
+  double thrust = fw->thrust_static * duty_e * duty_e * ct;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
    * stopping at zero. A fixed prop stops at zero. */
@@ -1196,9 +1210,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = (folded || g_chute || dead) ? 0.0
-                    : pack_drains(fw) ? power_current(fw, thrust_motor, u_pos, r_v)
-                    : fw->current_full * duty_e * duty_e;
+  s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, duty_e, ct, r_v);
   power_drain(s, fw, duty, duty_e);
   if (CRASH.active && CRASH.no_power) {
     s->vbat_load = 0.0;
@@ -2351,6 +2363,18 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stall_arm_ac = 0.0761, /* the CG 14.5 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.0703, /* the plate's centre of pressure at 0.40 of the chord */
   .throttle_idle = 0.40,  /* the Cox throttle conversion's 6,500 of 16,000 rpm */
+  /* The tank, docs/POWER-STAGE1.md: the Texaco .049's integral 8.4 cc
+   * (Cox's sheet). A Cox .049 at full throttle burns 1.84 cc/min at 9,000
+   * rpm (Menon's dyno, U. Maryland 2010, at 7 percent efficiency), and
+   * the flow is linear in the rpm through zero, so the idle's is 0.40 of
+   * it. The lean run over the last 5 percent, 5 percent of rpm, is an
+   * estimate: Cox's chart names the lean burst before a dry tank stops
+   * the engine and gives no size. */
+  .tank_m3 = 8.4e-6,
+  .flow_full = 1.84e-6 / 60.0,
+  .flow_idle = 0.40 * (1.84e-6 / 60.0),
+  .lean_frac = 0.05,
+  .lean_gain = 0.05,
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .lowre_arm_ac = 0.0761, /* the same arms, its first post stall moment, kept short of */
   .lowre_arm_cp = 0.0703, /* the stall angle and below the section data's Reynolds numbers */
@@ -2446,6 +2470,16 @@ const FixedWingParams FW_KADET1981 = {
   .acro_i_max = 0.30,
   .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
   .throttle_idle = 0.2421, /* O.S.'s 2,300 rpm, the lowest practical, of the 9,500 */
+  /* The tank, docs/POWER-STAGE1.md: SIG's 12 oz, 355 cc. O.S.'s own
+   * figure for the FS-52's successor, the FSa-56II, 220 cc for about 12
+   * minutes, is 18.3 cc/min, taken as the full throttle flow (a measured
+   * .40 two stroke at full power, Menon 2010, burns 17.9), linear in the
+   * rpm through zero. The lean run is the Bombshell's estimate. */
+  .tank_m3 = 355.0e-6,
+  .flow_full = 18.3e-6 / 60.0,
+  .flow_idle = 0.2421 * (18.3e-6 / 60.0),
+  .lean_frac = 0.05,
+  .lean_gain = 0.05,
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0128, /* the CG 4.8 mm behind the wing's aerodynamic centre */
   .stall_arm_cp = 0.1372, /* the plate's centre of pressure at 0.40 of the chord */
