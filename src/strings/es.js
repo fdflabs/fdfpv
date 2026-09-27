@@ -193,6 +193,7 @@ export default {
   "carousel.note.5inch": "Un quad 6S de carreras y freestyle: ocho a uno de empuje, cuarenta metros por segundo.",
   "carousel.note.bombshell1118": "Un clásico de vuelo libre de 1940 en balsa y papel, con motor glow.",
   "carousel.note.bramor2300": "Un ala volante de topografía. Sale de la catapulta y vuelve bajo su paracaídas.",
+  "carousel.note.kadet1981": "El entrenador clásico de balsa con entelado translúcido y motor de cuatro tiempos. Suelta los mandos y se nivela solo.",
   "carousel.note.cub1400": "El clásico de patín de cola. Despega de la pista sobre sus ruedas y vuelve a ellas.",
   "carousel.note.cub1400f": "El Cub con flotadores: despega del lago y vuelve a posarse en él con el morro arriba.",
   "carousel.note.radian2000": "Un motovelero de dos metros. Sube, pliega la hélice y busca las térmicas.",

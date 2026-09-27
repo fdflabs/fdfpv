@@ -960,6 +960,8 @@ export const AIRFRAMES = [
     short: 'Kadet',
     blurb: 'A 78 in SIG Kadet Senior, the classic balsa trainer in transparent yellow and red film, on an O.S. FS-52 four stroke: rudder, elevator and throttle, no ailerons, and a nose wheel that steers. The roll stick works the rudder and it levels itself when you let go. Fly it against the sun to see its ribs.',
     facts: ['Four stroke .52', '1981 mm', 'Three channels'],
+    sizeMm: 1981,
+    grams: 2721.6,
     trackClass: 'wing',
     cells: 2,
     packVoltages: [4.2, 3.8, 3.5],

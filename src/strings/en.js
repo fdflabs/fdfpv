@@ -197,6 +197,7 @@ export default {
   "carousel.note.5inch": "A 6S race and freestyle quad: eight to one thrust, forty metres a second.",
   "carousel.note.bombshell1118": "A 1940 free flight classic in balsa and tissue, on a glow engine.",
   "carousel.note.bramor2300": "A survey flying wing. Off the catapult, home under its parachute.",
+  "carousel.note.kadet1981": "The classic balsa trainer in see through film, on a four stroke. Hands off, it levels itself.",
   "carousel.note.cub1400": "The classic taildragger. Off the strip on its wheels, back down on them.",
   "carousel.note.cub1400f": "The Cub on floats, flown off the lake and landed back on it nose up.",
   "carousel.note.radian2000": "A two metre motor glider. Climb, fold the prop and hunt the thermals.",
