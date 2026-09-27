@@ -1893,10 +1893,13 @@ function suiteClipCatch() {
   for (const frame of AIRFRAMES) {
     setCraftAirframe(frame.dims);
     const rig = reachRig();
-    const down = firstTouch(rig, 0.30, 0.0, false);
-    const up = 1 - firstTouch(rig, 0.70, 1.0, false);
-    const invDown = firstTouch(rig, 0.30, 0.0, true);
-    const invUp = 1 - firstTouch(rig, 0.70, 1.0, true);
+    /* Each walk starts clear of its slab for any reach up to 0.45 m, the
+     * Kadet Senior's 0.307 below its CG included, and clear of the other
+     * slab for any reach the other way up to 0.45 as well. */
+    const down = firstTouch(rig, 0.45, 0.0, false);
+    const up = 1 - firstTouch(rig, 0.55, 1.0, false);
+    const invDown = firstTouch(rig, 0.45, 0.0, true);
+    const invUp = 1 - firstTouch(rig, 0.55, 1.0, true);
     const d = frame.dims.vHalfDown;
     const u = frame.dims.vHalfUp;
     check(`${frame.id}: the hull reaches exactly its declared ${d} m below`,
