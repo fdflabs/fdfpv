@@ -31,6 +31,7 @@ import { buildBramorCraft, BRAMOR_DIMS } from '../../src/render/bramorcraft.js';
 import { buildSlowStickCraft, SLOWSTICK_DIMS } from '../../src/render/slowstickcraft.js';
 import { buildTimberCraft, TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS } from '../../src/render/timbercraft.js';
 import { buildBombshellCraft, BOMBSHELL_DIMS } from '../../src/render/bombshellcraft.js';
+import { buildKadetCraft, KADET_DIMS } from '../../src/render/kadetcraft.js';
 
 /* On floats, the float variants: the same aircraft, its reach down and up
  * and its rest the floats', its nose the floats' bows where they reach
@@ -41,12 +42,14 @@ const BUILDERS = {
   timberf: (o) => buildTimberCraft({ ...o, floats: true }),
   cubf: (o) => buildCubCraft({ ...o, floats: true }),
   bombshell: buildBombshellCraft,
+  kadet: buildKadetCraft,
 };
 const DIMS = {
   sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS,
   timberf: onFloats(TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS),
   cubf: onFloats(CUB_DIMS, CUB_FLOATS, CUB_FLOAT_DIMS),
   bombshell: BOMBSHELL_DIMS,
+  kadet: KADET_DIMS,
 };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
@@ -62,7 +65,8 @@ scene.background = new THREE.Color(0xb9c7cf);
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.02, 50);
 scene.add(new THREE.HemisphereLight(0xf0e6d0, 0x2a3828, 0.82));
 const sun = new THREE.DirectionalLight(0xffe2b8, 2.45);
-sun.position.set(0.48, 0.92, -0.52);
+const SUN_AT = [0.48, 0.92, -0.52];
+sun.position.set(...SUN_AT);
 scene.add(sun);
 
 const craft = BUILDERS[which]({ name: 'preview', fog: false, lite });
@@ -137,6 +141,13 @@ window.__preview = {
     }
     camera.lookAt(tx, ty, tz);
     composer.render();
+    return true;
+  },
+  /* Where the sun is, a direction toward it; no arguments puts it back
+   * where the showcase has it. A backlit view puts it behind the model,
+   * which is what a film covered airframe is looked at against. */
+  sun(x = SUN_AT[0], y = SUN_AT[1], z = SUN_AT[2]) {
+    sun.position.set(x, y, z);
     return true;
   },
   surfaces(...rad) {
