@@ -1720,7 +1720,7 @@ export default {
   "hangar.kmh": "{n} km/h",
   "hangar.thrust": "Thrust",
   "hangar.thrust_ratio": "{n} : 1",
-  "hangar.flight_time": "Flight time",
+  "hangar.flight_time": "Flight time at cruise",
   "hangar.minutes": "{n} min",
   "hangar.source": "From {source}",
   "hangar.schemes": "Schemes",

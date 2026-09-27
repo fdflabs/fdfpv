@@ -43,6 +43,8 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { LIVERIES, coloursFor, liveryKey, paintable, regionsFor } from '../configs/liveries.js';
+import { POWER, powerBlock } from '../configs/power.js';
+import { ESTIMATES } from '../configs/power-estimates.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const map = process.argv[2] || 'airfield';
@@ -152,6 +154,18 @@ async function choosePower(page) {
   }
   const choice = await page.evaluate('window.__ui.hangar.choice');
   say(choice.option === o.id && choice.pack === pack, `the Power tab takes option ${o.id} and pack ${pack}`);
+  /* Every option and pack configs/power.js has, and the readouts counting
+   * up to this plane's numbers for the choice: its weight from the power
+   * block, its top speed and flight time from configs/power-estimates.js. */
+  const want = POWER.timber1500.map((x) => ({ id: x.id, packs: x.packs.map((p) => p.id) }));
+  say(same(opts, want), `the Power tab lists every option and pack: ${JSON.stringify(opts)}`);
+  const e = ESTIMATES.timber1500[o.id][pack];
+  const grams = Math.round(powerBlock('timber1500', o.id, pack)[1] * 1000);
+  await page.until(`(() => { const c = window.__ui.hangar.counts; return c.minutes && c.minutes.shown === c.minutes.to && c.grams.shown === c.grams.to; })()`, 10000).catch(() => {});
+  const counts = await page.evaluate('(() => { const c = window.__ui.hangar.counts; return Object.fromEntries(Object.entries(c).map(([k, v]) => [k, { to: v.to, shown: v.shown }])); })()');
+  const shown = await page.evaluate("[...document.querySelectorAll('.hangar-stat')].map((b) => b.textContent)");
+  say(counts.minutes && counts.minutes.shown === e.minutes && counts.topSpeed.shown === e.topSpeed && counts.grams.shown === grams,
+    `the readouts count up to ${grams} g, ${e.topSpeed} m/s and ${e.minutes} min at cruise: ${JSON.stringify(shown)}`);
   return choice;
 }
 
@@ -191,6 +205,13 @@ async function main() {
     await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
     /* The model is swapped from the title's on a drawn frame after that. */
     await page.until('window.__craftPaint().id === window.__craft().run', 60000).catch(() => {});
+    if (power) {
+      /* The plant flies the saved option on the saved pack. */
+      const p = await page.evaluate('window.__craft()');
+      const want = powerBlock('timber1500', power.option, power.pack);
+      say(p.power && p.power.custom && p.power.capacityC === want[5] && p.cells === want[3],
+        `flown on it: the plant has option ${power.option}, a ${p.power ? p.power.capacityC / 3.6 : '?'} mAh pack, ${p.cells}S`);
+    }
     const flown = await page.evaluate('window.__craftPaint()');
     const drawnHas = Object.values(want).every((hx) => flown.drawn.includes(hx));
     say(flown.id === 'timber1500' && same(sorted(flown.regions), sorted(want)) && drawnHas,

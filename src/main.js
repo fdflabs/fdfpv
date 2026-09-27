@@ -105,7 +105,8 @@ import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
-import { powerCells, powerChoice, powerOption, powerParams } from '../configs/power.js';
+import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams } from '../configs/power.js';
+import { ESTIMATES } from '../configs/power-estimates.js';
 import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { setLiverySource } from './render/livery.js';
@@ -6738,9 +6739,52 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       shell.repaintCraft(drawnCraft);
     }
   };
-  /* The power options the hangar offers: none yet beyond the stock setup,
-   * which the hangar draws from configs/airframes.js on its own. */
-  const hangarPower = () => null;
+  /*
+   * The power options the hangar offers (configs/power.js), in the shape
+   * src/ui/hangar.js draws: each option and its packs or tanks by name, the
+   * stock choice and the stored one, and the readouts for any choice: the
+   * all up weight and thrust to weight from the option's own data, the top
+   * speed and the flight time at cruise flown on the plant ahead of time
+   * (configs/power-estimates.js). Null for a quad, which has none.
+   */
+  const hangarPower = (id) => {
+    const list = POWER[id];
+    if (!list) {
+      return null;
+    }
+    const hostOf = (url) => {
+      const m = /^https?:\/\/(?:www\.)?([^/]+)/.exec(url);
+      return m ? m[1] : url;
+    };
+    const stock = list[0];
+    return {
+      options: list.map((o) => ({
+        id: o.id,
+        name: str(o.name),
+        kind: o.kind,
+        source: o.source && o.source.length ? hostOf(o.source[0]) : null,
+        packs: o.packs.map((p) => ({
+          id: p.id,
+          name: o.kind === 'glow' ? str('power.tank', { cc: p.cc }) : str('power.pack', { cells: p.cells, mah: p.mAh }),
+          detail: p.massKg == null ? null : str('carousel.grams', { n: Math.round(p.massKg * 1000) }),
+        })),
+      })),
+      stock: { option: stock.id, pack: stock.pack },
+      chosen: powerChoice(id, ui.settings.power),
+      estimate: (choice) => {
+        const c = powerChoice(id, { [id]: choice });
+        const o = powerOption(id, c.option);
+        const mass = powerBlock(id, c.option, c.pack)[1];
+        const e = ((ESTIMATES[id] || {})[c.option] || {})[c.pack] || {};
+        return {
+          grams: Math.round(mass * 1000),
+          topSpeed: e.topSpeed ?? null,
+          minutes: e.minutes ?? null,
+          thrustToWeight: o.thrustN / (mass * 9.80665),
+        };
+      },
+    };
+  };
   ui.hangarPower = hangarPower;
   ui.hangarWarning = (id) => (liveryKey(id) === liveryKey(runAirframe) && race.currentLapMs(simTimeMs) != null
     && hangarPower(id) ? str('hangar.power_voids_lap') : '');
