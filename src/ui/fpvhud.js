@@ -1471,6 +1471,23 @@ export class FpvOsd {
    * osdElementDisarmed above it: centred, two and three instrument rows
    * under the crosshair, inside the horizon's sidebars. */
   buildWarnings(v, x, blinkOn) {
+    const { warning, blink } = this.warningFor(v, x);
+    const I = this.i;
+    const under = (rows) => this.textRow(I.oy + (MID_ROW + rows + 0.5) * I.ch);
+    const disarmed = !x.armed && !x.crashFlip;
+    if (disarmed) {
+      this.readout('disarmed', 'c', under(2), [str('osd.disarmed')]);
+    }
+    if (warning && (!blink || blinkOn)) {
+      this.readout('warning', 'c', under(3), [warning]);
+    }
+    this.values.warning = warning;
+    this.values.disarmed = disarmed;
+  }
+
+  /* Which warning is up, and whether it blinks: nothing drawn, so a check
+   * can ask it of the same state (scripts/power-check.js). */
+  warningFor(v, x) {
     let warning = '';
     let blink = false;
     if (x.crashFlip) {
@@ -1496,17 +1513,7 @@ export class FpvOsd {
     } else if (!x.armed && !x.flown && this.vFilt / x.cells < CELL_FULL) {
       warning = str('osd.batt_not_full');
     }
-    const I = this.i;
-    const under = (rows) => this.textRow(I.oy + (MID_ROW + rows + 0.5) * I.ch);
-    const disarmed = !x.armed && !x.crashFlip;
-    if (disarmed) {
-      this.readout('disarmed', 'c', under(2), [str('osd.disarmed')]);
-    }
-    if (warning && (!blink || blinkOn)) {
-      this.readout('warning', 'c', under(3), [warning]);
-    }
-    this.values.warning = warning;
-    this.values.disarmed = disarmed;
+    return { warning, blink };
   }
 
   /*
