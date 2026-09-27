@@ -80,6 +80,7 @@
 import * as THREE from 'three';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
+import { paintRegions } from './livery.js';
 import { BRAMOR_CATAPULT } from '../../configs/airframes.js';
 
 /* The nose to the CG, metres: scripts/bramor-derive.js. */
@@ -537,9 +538,12 @@ export function buildBramorCraft(opts = {}) {
   };
   const seg = lite ? 10 : 18;
 
-  /* Cool greys: under the game's warm sun a neutral grey reads as sand. */
-  const skin = cel({ color: 0xa9b5c1, rim: 0.30, spec: 0.34, specWidth: 0.014 });
-  const skinDark = cel({ color: 0x94a0ac, rim: 0.28, spec: 0.28, specWidth: 0.014 });
+  /* Cool greys: under the game's warm sun a neutral grey reads as sand.
+   * One region of paint (src/render/livery.js), the elevons and the chute
+   * bay's lid a shade of it. */
+  const coat = paintRegions();
+  const skin = coat.base('airframe', cel({ color: 0xa9b5c1, rim: 0.30, spec: 0.34, specWidth: 0.014 }));
+  const skinDark = coat.shade('airframe', cel({ color: 0x94a0ac, rim: 0.28, spec: 0.28, specWidth: 0.014 }));
   const gimbalMat = cel({ color: 0x8e979f, rim: 0.30, spec: 0.50, specWidth: 0.02 });
   const glass = cel({ color: 0x241c2c, rim: 0.40, spec: 0.95, specWidth: 0.03, specColor: 0xe8c8ff });
   const black = cel({ color: 0x1c1f22, rim: 0.22, spec: 0.25 });
@@ -599,7 +603,7 @@ export function buildBramorCraft(opts = {}) {
       lp.setXYZ(i, lp.getX(i), pts[row].x, pts[row].y);
     }
     lidGeo.computeVertexNormals();
-    const lid = new THREE.Mesh(lidGeo, cel({ color: 0x94a0ac, rim: 0.28, spec: 0.28, side: THREE.DoubleSide }));
+    const lid = new THREE.Mesh(lidGeo, coat.shade('airframe', cel({ color: 0x94a0ac, rim: 0.28, spec: 0.28, side: THREE.DoubleSide })));
     group.add(lid);
   }
   if (!lite) {
@@ -835,5 +839,6 @@ export function buildBramorCraft(opts = {}) {
     setChute,
     launcher,
     launcherRest,
+    livery: coat.livery,
   };
 }

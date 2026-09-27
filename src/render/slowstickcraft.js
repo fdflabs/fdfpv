@@ -74,6 +74,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
+import { paintRegions } from './livery.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -554,9 +555,15 @@ export function buildSlowStickCraft(opts = {}) {
   };
   const seg = lite ? 6 : 10;
 
-  const foam = cel({ color: 0xe5402a, rim: 0.28, spec: 0.22, specWidth: 0.012 });
-  const flapMat = cel({ color: 0xcf3522, rim: 0.28, spec: 0.20, specWidth: 0.012 });
-  const tape = cel({ color: 0xf4f1ea, rim: 0.30, spec: 0.40, specWidth: 0.016 });
+  /* The scheme's colours by region (src/render/livery.js): the foam of the
+   * wing and of the tail each its own material, the surfaces a shade of
+   * the tail's, and the tape. */
+  const coat = paintRegions();
+  const foamOf = (id) => coat.base(id, cel({ color: 0xe5402a, rim: 0.28, spec: 0.22, specWidth: 0.012 }));
+  const foam = foamOf('wing');
+  const tailFoam = foamOf('tail');
+  const flapMat = coat.shade('tail', cel({ color: 0xcf3522, rim: 0.28, spec: 0.20, specWidth: 0.012 }));
+  const tape = coat.base('tape', cel({ color: 0xf4f1ea, rim: 0.30, spec: 0.40, specWidth: 0.016 }));
   const black = cel({ color: 0x17191b, rim: 0.30, spec: 0.40, specWidth: 0.016, specColor: 0xd8e0e8 });
   const wire = cel({ color: 0x2a2c2e, rim: 0.30, spec: 0.55, specWidth: 0.020 });
   const band = cel({ color: 0xd9b24a, rim: 0.26, spec: 0.20 });
@@ -591,7 +598,7 @@ export function buildSlowStickCraft(opts = {}) {
   {
     const parts = [plate(stabOutline().map(([x, s]) => [x, s]), STAB_Y),
       finPlate(finOutline(FIN_FRONT_S, RUDDER_S - 0.001, lite ? 6 : 12))];
-    const tail = new THREE.Mesh(merged(parts, 'tail'), foam);
+    const tail = new THREE.Mesh(merged(parts, 'tail'), tailFoam);
     tail.name = 'slowstick-tail';
     tail.castShadow = shade;
     group.add(tail);
@@ -873,5 +880,6 @@ export function buildSlowStickCraft(opts = {}) {
     stator,
     propSpin: SLOWSTICK_PROP_SPIN,
     setSurfaces,
+    livery: coat.livery,
   };
 }

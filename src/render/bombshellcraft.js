@@ -85,6 +85,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
+import { paintRegions } from './livery.js';
 
 /* The plan's inches in metres of the BMJR aircraft: 44 in for 42 in. */
 const P = (inches) => inches * 0.0254 * (44 / 42);
@@ -696,11 +697,20 @@ export function buildBombshellCraft(opts = {}) {
   const seg = lite ? 8 : 12;
   const rodSeg = lite ? 4 : 6;
 
-  /* Doped tissue: a deep red, a little translucent in life, and black. */
-  const red = cel({ color: 0xc8161a, rim: 0.28, spec: 0.22, specWidth: 0.014 });
-  const redSurf = cel({ color: 0xa81216, rim: 0.28, spec: 0.20, specWidth: 0.014 });
-  const black = cel({ color: 0x17171a, rim: 0.30, spec: 0.40, specWidth: 0.016, specColor: 0xd8e0e8 });
-  const blackSurf = cel({ color: 0x232327, rim: 0.30, spec: 0.36, specWidth: 0.016, specColor: 0xd8e0e8 });
+  /* Doped tissue: a deep red, a little translucent in life, and black. By
+   * region (src/render/livery.js): the wing with the stabiliser, the
+   * swoops, the fuselage and the fin each their own material, the
+   * surfaces a shade of theirs, and the tyres' black apart from the paint. */
+  const coat = paintRegions();
+  const redOf = (id) => coat.base(id, cel({ color: 0xc8161a, rim: 0.28, spec: 0.22, specWidth: 0.014 }));
+  const blackOf = (id) => coat.base(id, cel({ color: 0x17171a, rim: 0.30, spec: 0.40, specWidth: 0.016, specColor: 0xd8e0e8 }));
+  const red = redOf('wing');
+  const swoopRed = redOf('swoop');
+  const redSurf = coat.shade('wing', cel({ color: 0xa81216, rim: 0.28, spec: 0.20, specWidth: 0.014 }));
+  const black = blackOf('fuselage');
+  const finBlack = blackOf('tail');
+  const tyreBlack = cel({ color: 0x17171a, rim: 0.30, spec: 0.40, specWidth: 0.016, specColor: 0xd8e0e8 });
+  const blackSurf = coat.shade('tail', cel({ color: 0x232327, rim: 0.30, spec: 0.36, specWidth: 0.016, specColor: 0xd8e0e8 }));
   const metal = cel({ color: 0xc2c6ca, rim: 0.30, spec: 0.75, specWidth: 0.022 });
   const band = cel({ color: 0xfaf8f2, rim: 0.30, spec: 0.20 });
   const hub = cel({ color: 0xd6d4cc, rim: 0.28, spec: 0.35 });
@@ -743,27 +753,34 @@ export function buildBombshellCraft(opts = {}) {
     group.add(fuse);
   }
 
-  /* Red tissue, one draw: the wing, the stabiliser and the swoops. */
+  /* Red tissue, two draws: the wing and the stabiliser, and the swoops. */
   {
     const n = lite ? 5 : 7;
-    const parts = [wingGeometry(lite), stabGeometry(n, lite), swoopGeometry(1, lite), swoopGeometry(-1, lite)];
-    const redMesh = new THREE.Mesh(merged(parts), red);
+    const redMesh = new THREE.Mesh(merged([wingGeometry(lite), stabGeometry(n, lite)]), red);
     redMesh.name = 'bombshell-red';
     redMesh.castShadow = shade;
     group.add(redMesh);
+    const swoops = new THREE.Mesh(merged([swoopGeometry(1, lite), swoopGeometry(-1, lite)]), swoopRed);
+    swoops.name = 'bombshell-swoops';
+    swoops.castShadow = shade;
+    group.add(swoops);
   }
 
-  /* Black, one draw: the fin, the tyres and the prop driver's washer. */
+  /* Black, two draws: the fin, which is tissue, and the tyres. */
   {
     const n = lite ? 5 : 7;
-    const parts = [finGeometry(n, lite)];
+    const fin = new THREE.Mesh(merged([finGeometry(n, lite)]), finBlack);
+    fin.name = 'bombshell-fin';
+    fin.castShadow = shade;
+    group.add(fin);
+    const parts = [];
     for (const sign of [-1, 1]) {
       const tyre = new THREE.TorusGeometry(MAIN_R - 0.0055, 0.0055, lite ? 5 : 6, lite ? 16 : 20);
       tyre.rotateY(Math.PI / 2);
       tyre.translate(sign * MAIN_AXLE[0], MAIN_AXLE[1], MAIN_AXLE[2]);
       parts.push(tyre);
     }
-    const blackMesh = new THREE.Mesh(merged(parts), black);
+    const blackMesh = new THREE.Mesh(merged(parts), tyreBlack);
     blackMesh.name = 'bombshell-black';
     blackMesh.castShadow = shade;
     group.add(blackMesh);
@@ -1054,5 +1071,6 @@ export function buildBombshellCraft(opts = {}) {
     stator,
     propSpin: BOMBSHELL_PROP_SPIN,
     setSurfaces,
+    livery: coat.livery,
   };
 }

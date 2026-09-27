@@ -37,6 +37,7 @@
 
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
+import { paintable } from '../../configs/liveries.js';
 
 /* Which lists the tabs offer. A card or a row opens on one kind and the
  * pilot can widen it to every aircraft. */
@@ -215,9 +216,13 @@ export class Carousel {
     const buttons = el('div', 'carousel-buttons');
     this.backBtn = button('carousel-back', str('ui.back'));
     this.chooseBtn = button('carousel-choose', str('carousel.choose'));
+    /* The hangar for the plane in the middle (src/ui/hangar.js): shown when
+     * the opener offers it and the centred aircraft can be painted. */
+    this.customBtn = button('carousel-back carousel-custom', str('hangar.customise'));
     this.backBtn.addEventListener('click', () => this.cancel());
     this.chooseBtn.addEventListener('click', () => this.choose());
-    buttons.append(this.backBtn, this.chooseBtn);
+    this.customBtn.addEventListener('click', () => this.customise());
+    buttons.append(this.backBtn, this.customBtn, this.chooseBtn);
     this.hintEl = el('p', 'carousel-hint');
     foot.append(this.warnEl, buttons, this.hintEl);
 
@@ -330,8 +335,9 @@ export class Carousel {
    * rather than a page; `warn` is a line under the choice, for what a
    * choice will cost. onChoose gets the aircraft id, onCancel nothing.
    */
-  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', onChoose, onCancel } = {}) {
-    this.opts = { onChoose, onCancel };
+  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', onChoose, onCancel, onCustomise } = {}) {
+    this.opts = { onChoose, onCancel, onCustomise };
+    this.openArgs = { filter, compact, title, warn, onChoose, onCancel, onCustomise };
     this.isOpen = true;
     this.hintKind = hint;
     this.root.classList.toggle('compact', Boolean(compact));
@@ -382,6 +388,23 @@ export class Carousel {
     if (back) {
       back();
     }
+  }
+
+  canCustomise() {
+    return Boolean(this.opts && this.opts.onCustomise) && paintable(this.current());
+  }
+
+  /* To the hangar with the centred plane, the picker put away and handed
+   * over as `reopen`, which brings it back on the same plane and tab. */
+  customise() {
+    if (!this.canCustomise()) {
+      return;
+    }
+    const id = this.current();
+    const args = { ...this.openArgs, filter: this.filter, hint: this.hintKind };
+    const go = this.opts.onCustomise;
+    this.close();
+    go(id, () => this.open({ ...args, current: id }));
   }
 
   goTo(i) {
@@ -440,6 +463,7 @@ export class Carousel {
     this.prevBtn.disabled = this.index === 0;
     this.nextBtn.disabled = this.index === this.ids.length - 1;
     this.chooseBtn.textContent = str('carousel.choose');
+    this.customBtn.hidden = !this.canCustomise();
     this.paintHint();
   }
 
@@ -468,6 +492,8 @@ export class Carousel {
       this.goTo(this.ids.length - 1);
     } else if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
       this.choose();
+    } else if (code === 'KeyC') {
+      this.customise();
     } else if (code === 'Escape' || code === 'Backspace' || code === 'Tab') {
       this.cancel();
     }
@@ -476,7 +502,7 @@ export class Carousel {
 
   /*
    * A gamepad or a radio, as the shell resolves it: { up, down, left, right,
-   * select, back }, levels. Edge triggered, and the first poll after
+   * select, back, alt }, levels, alt being a standard pad's X. Edge triggered, and the first poll after
    * opening only learns where the sticks are, because the press that
    * opened this is usually still held.
    */
@@ -488,6 +514,7 @@ export class Carousel {
       right: Boolean(nav.right),
       select: Boolean(nav.select),
       back: Boolean(nav.back),
+      alt: Boolean(nav.alt),
     };
     const prev = this.padPrev;
     this.padPrev = now;
@@ -495,7 +522,7 @@ export class Carousel {
       return;
     }
     const edge = (k) => now[k] && !prev[k];
-    if (['up', 'down', 'left', 'right', 'select', 'back'].some(edge) && this.hintKind !== 'pad') {
+    if (['up', 'down', 'left', 'right', 'select', 'back', 'alt'].some(edge) && this.hintKind !== 'pad') {
       this.hintKind = 'pad';
       this.paintHint();
     }
@@ -511,7 +538,11 @@ export class Carousel {
     if (edge('down')) {
       this.cycleFilter(1);
     }
-    if (edge('select')) {
+    /* A standard pad's X is also one of the buttons a menu takes as
+     * select, so X customises first and the same press chooses nothing. */
+    if (edge('alt')) {
+      this.customise();
+    } else if (edge('select')) {
       this.choose();
     } else if (edge('back')) {
       this.cancel();

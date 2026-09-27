@@ -42,6 +42,7 @@ import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildKadetCraft } from './kadetcraft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { airframeById } from '../../configs/airframes.js';
+import { dressLivery } from './livery.js';
 
 /*
  * ONE BUILDER PER SILHOUETTE, NOT ONE WITH FLAGS. A five inch is four arms
@@ -137,10 +138,12 @@ export function buildCraft(airframeId = '5inch') {
    */
   currentCraftId = airframeById(airframeId).id;
   const build = craftBuilderFor(currentCraftId);
-  return build({
+  /* In the pilot's paint for it (src/render/livery.js), before a map's
+   * look restyles it, so the look's twins take the painted colours. */
+  return dressLivery(build({
     name: 'craft',
     fog: true,
     worldScale: true,
     measure: true,
-  });
+  }), currentCraftId);
 }

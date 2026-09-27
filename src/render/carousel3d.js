@@ -24,7 +24,10 @@
  * MODELS ARE BUILT ONCE, from the builders the shell flies
  * (src/render/craft.js craftBuilderFor), and kept for the session. Each is
  * scaled to one size on the stage: a 65 mm whoop and a 2.3 m Bramor are
- * the same size here and their real sizes are in words underneath.
+ * the same size here and their real sizes are in words underneath. Each
+ * wears the pilot's paint (src/render/livery.js), repainted in place when
+ * it changes, and the hangar (src/ui/hangar.js) shows its unsaved choices
+ * on the same model through repaint().
  *
  * This file is part of WebFPVSimulator.
  *
@@ -44,6 +47,8 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { dressLivery } from './livery.js';
+import { buildHangarEnv, createHangarRig } from './hangarstage.js';
 import { slotScale, slotX } from '../ui/carousel.js';
 
 /* Vertical field of view, degrees: long, so the models read as objects on
@@ -78,6 +83,11 @@ const RETURN_RATE = 3;
  * still looking at where they are: `from` is the band's top edge in the
  * canvas's own 0 to 1 height, bottom up. */
 const SCRIM = { centre: 0.66, edge: 0.86 };
+/* The hangar's plane: its footprint radius as a share of the stage's half
+ * width, and at most of its half height. Larger than the picker's centre
+ * model, since it is the only one. */
+const HANGAR_FILL = 0.62;
+const HANGAR_FILL_HEIGHT = 0.9;
 const SCRIM_COMPACT = { below: 0.8, above: 0.18 };
 
 const BLIT_VERT = `
@@ -173,12 +183,15 @@ export function createCarouselStage(renderer) {
   shadowGeo.rotateX(-Math.PI / 2);
 
   const models = new Map();
+  const previews = new Map();
   function modelFor(id) {
     let m = models.get(id);
     if (m) {
       return m;
     }
-    const craft = craftBuilderFor(id)({ name: `pick-${id}`, fog: false });
+    /* In a preview asked for before it was built, or the saved paint. */
+    const craft = dressLivery(craftBuilderFor(id)({ name: `pick-${id}`, fog: false }), id, previews.get(id) ?? undefined);
+    previews.delete(id);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -215,7 +228,19 @@ export function createCarouselStage(renderer) {
     holder.add(turn, shadow);
     holder.visible = false;
     scene.add(holder);
-    m = { holder, turn, yaw: REST_YAW };
+    m = {
+      holder,
+      turn,
+      shadow,
+      yaw: REST_YAW,
+      craft,
+      /* For the hangar, in the unit frame: half the model's height, which
+       * is where its lowest point stands under its centre, and its nose's
+       * and tail's z. */
+      halfY: 0.5 * size.y / radius,
+      noseZ: (box.min.z - centre.z) / radius,
+      tailZ: (box.max.z - centre.z) / radius,
+    };
     models.set(id, m);
     return m;
   }
@@ -256,6 +281,12 @@ export function createCarouselStage(renderer) {
   const blitScene = new THREE.Scene();
   blitScene.add(new THREE.Mesh(quadGeo, blitMat));
 
+  /* The hangar's set and camera (src/render/hangarstage.js), in this scene,
+   * shown only while the hangar is. */
+  const set = buildHangarEnv();
+  scene.add(set.group);
+  const rig = createHangarRig();
+
   let target = null;
   let lastMs = 0;
   const stats = { ms: 0, calls: 0, width: 0, height: 0, models: 0 };
@@ -288,6 +319,11 @@ export function createCarouselStage(renderer) {
     const dt = lastMs ? Math.min(0.05, (t0 - lastMs) / 1000) : 0;
     lastMs = t0;
     const callsBefore = renderer.info.render.calls;
+    if (view.hangar) {
+      drawHangar(view, dt, t0, callsBefore);
+      return;
+    }
+    set.group.visible = false;
 
     /* The renderer's own units, which are CSS pixels: buildShell sizes it
      * to the window. Its viewport counts up from the bottom. */
@@ -328,7 +364,7 @@ export function createCarouselStage(renderer) {
       m.holder.scale.setScalar(slotScale(it.d));
       m.holder.visible = true;
       if (a < 0.5) {
-        m.yaw += TURN_RATE * dt;
+        m.yaw += (view.hold ? 0 : TURN_RATE * dt) + (view.turn ?? 0);
       } else {
         let off = (m.yaw - REST_YAW) % (2 * Math.PI);
         if (off > Math.PI) {
@@ -380,5 +416,136 @@ export function createCarouselStage(renderer) {
     stats.models = models.size;
   }
 
-  return { draw, stats: () => ({ ...stats }) };
+  /*
+   * THE HANGAR (src/ui/hangar.js): one model on the set, over the whole
+   * canvas, opaque, so the world behind is not drawn at all (src/main.js
+   * skips it while the hangar is up). The model sits in the stage's
+   * rectangle by a lens shift of the projection, so the set runs on under
+   * the side panel. Two passes: the backdrop and the model mirrored in the
+   * floor, then the floor over that reflection, the model and its rings.
+   */
+  const cam = new THREE.Vector3();
+  const aim = new THREE.Vector3();
+  function drawHangar(view, dt, t0, callsBefore) {
+    renderer.getSize(buf);
+    const r = view.rect;
+    const dens = Math.min(window.devicePixelRatio || 1, 2);
+    const tw = Math.max(1, Math.round(buf.x * dens));
+    const th = Math.max(1, Math.round(buf.y * dens));
+    if (!target) {
+      target = new THREE.WebGLRenderTarget(tw, th, { samples: 4, depthBuffer: true, stencilBuffer: false });
+    } else if (target.width !== tw || target.height !== th) {
+      target.setSize(tw, th);
+    }
+    const m = modelFor(view.items[0].id);
+    for (const other of models.values()) {
+      other.holder.visible = false;
+    }
+    m.holder.visible = true;
+    set.group.visible = true;
+    const k = rig.update(dt, view.hangar, view.turn ?? 0);
+    const floorY = -m.halfY;
+    set.place(floorY, k.reveal, k.pulse);
+    /* Set down from a hand's height as it opens. */
+    const drop = 0.35 * (1 - k.reveal);
+    m.holder.position.set(0, drop, 0);
+    m.holder.scale.setScalar(k.pop * (0.94 + 0.06 * k.reveal));
+    m.yaw = k.yaw;
+    m.turn.rotation.y = k.yaw;
+    const shadowY = m.shadow.position.y;
+    m.shadow.position.y = floorY + 0.004 - drop;
+
+    const aspect = buf.x / buf.y;
+    camera.aspect = aspect;
+    camera.updateProjectionMatrix();
+    const tanHalf = Math.tan((FOV * Math.PI) / 360);
+    const sw = r.width / buf.x;
+    const sh = r.height / buf.y;
+    const dist = k.zoom * Math.max(1 / (HANGAR_FILL * tanHalf * aspect * sw), 1 / (HANGAR_FILL_HEIGHT * tanHalf * sh));
+    const tz = k.along < 0 ? -k.along * m.noseZ : k.along * m.tailZ;
+    aim.set(tz * Math.sin(k.yaw), k.up * m.halfY + drop, tz * Math.cos(k.yaw));
+    cam.set(0, Math.sin(k.elev) * dist, Math.cos(k.elev) * dist).add(aim);
+    camera.position.copy(cam);
+    camera.lookAt(aim);
+    /* The lens shift: the stage's middle is the picture's middle. */
+    const cx = ((r.left + r.width / 2) / buf.x) * 2 - 1;
+    const cy = 1 - ((r.top + r.height / 2) / buf.y) * 2;
+    camera.projectionMatrix.elements[8] = -cx;
+    camera.projectionMatrix.elements[9] = -cy;
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+
+    const prevTarget = renderer.getRenderTarget();
+    const prevAutoClear = renderer.autoClear;
+    const prevScissorTest = renderer.getScissorTest();
+    renderer.getViewport(saveViewport);
+    renderer.getScissor(saveScissor);
+    renderer.getClearColor(saveClear);
+    const prevAlpha = renderer.getClearAlpha();
+
+    renderer.autoClear = false;
+    renderer.setRenderTarget(target);
+    renderer.setScissorTest(false);
+    renderer.setClearColor(0x000000, 1);
+    renderer.clear(true, true, false);
+    /* The reflection: the backdrop, and the model turned over the floor. */
+    set.floorSet.visible = false;
+    m.shadow.visible = false;
+    m.holder.position.y = 2 * floorY - drop;
+    m.holder.scale.y = -m.holder.scale.y;
+    renderer.render(scene, camera);
+    m.holder.position.y = drop;
+    m.holder.scale.y = -m.holder.scale.y;
+    set.floorSet.visible = true;
+    m.shadow.visible = true;
+    set.backdrop.visible = false;
+    renderer.clear(false, true, false);
+    renderer.render(scene, camera);
+    set.backdrop.visible = true;
+    m.shadow.position.y = shadowY;
+    set.group.visible = false;
+
+    renderer.setRenderTarget(null);
+    renderer.setScissorTest(false);
+    renderer.setViewport(0, 0, buf.x, buf.y);
+    blitMat.uniforms.map.value = target.texture;
+    renderer.render(blitScene, ortho);
+
+    renderer.setRenderTarget(prevTarget);
+    renderer.setViewport(saveViewport);
+    renderer.setScissor(saveScissor);
+    renderer.setScissorTest(prevScissorTest);
+    renderer.setClearColor(saveClear, prevAlpha);
+    renderer.autoClear = prevAutoClear;
+
+    stats.ms = performance.now() - t0;
+    stats.calls = renderer.info.render.calls - callsBefore;
+    stats.width = tw;
+    stats.height = th;
+    stats.models = models.size;
+  }
+
+  /* Paint a model again: in `colours` (region to 0xRRGGBB) for a preview,
+   * or in what the pilot has saved. A model not built yet will be built in
+   * the saved paint when it is first drawn. */
+  function repaint(id, colours = null) {
+    const m = models.get(id);
+    if (m) {
+      dressLivery(m.craft, id, colours ?? undefined);
+    } else if (colours) {
+      previews.set(id, colours);
+    } else {
+      previews.delete(id);
+    }
+  }
+
+  /* A model's region colours as #rrggbb, for a check; null if not built. */
+  function paint(id) {
+    const m = models.get(id);
+    if (!m || !m.craft.livery) {
+      return null;
+    }
+    return Object.fromEntries(Object.entries(m.craft.livery.read()).map(([k, v]) => [k, `#${v.toString(16).padStart(6, '0')}`]));
+  }
+
+  return { draw, repaint, paint, stats: () => ({ ...stats }) };
 }

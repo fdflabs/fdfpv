@@ -69,6 +69,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
+import { paintRegions } from './livery.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -573,9 +574,15 @@ export function buildSkyCraft(opts = {}) {
   };
   const seg = lite ? 10 : 18;
 
-  const foam = cel({ color: 0xd4e2ee, rim: 0.30, spec: 0.20, specWidth: 0.012 });
-  const flapMat = cel({ color: 0xc6d2dc, rim: 0.30, spec: 0.18, specWidth: 0.012 });
-  const podMat = cel({ color: 0xd4e2ee, rim: 0.30, spec: 0.24, specWidth: 0.014 });
+  /* The scheme's colours by region (src/render/livery.js): the foam of the
+   * wing, the tail and the pod each its own material, the surfaces a shade
+   * of their region. */
+  const coat = paintRegions();
+  const foamOf = (id) => coat.base(id, cel({ color: 0xd4e2ee, rim: 0.30, spec: 0.20, specWidth: 0.012 }));
+  const flapOf = (id) => coat.shade(id, cel({ color: 0xc6d2dc, rim: 0.30, spec: 0.18, specWidth: 0.012 }));
+  const foam = foamOf('wing');
+  const tailFoam = foamOf('tail');
+  const podMat = coat.base('pod', cel({ color: 0xd4e2ee, rim: 0.30, spec: 0.24, specWidth: 0.014 }));
   const carbon = cel({ color: 0x1b1f22, rim: 0.34, spec: 0.60, specWidth: 0.020, specColor: 0xd8e0e8 });
   const plastic = cel({ color: 0x262b28, rim: 0.26, spec: 0.22 });
   const seamMat = cel({ color: 0x6a6e66, rim: 0.10 });
@@ -607,9 +614,10 @@ export function buildSkyCraft(opts = {}) {
   }
 
   /*
-   * Every fixed foam part in one draw: the wing, the two boom fairings, the
-   * stabiliser and both fins. The servo covers are thin plates on the wing
-   * over each aileron's inboard end, as the photographs show them.
+   * The fixed foam parts in two draws, one region each: the wing, the two
+   * boom fairings and the servo covers, thin plates on the wing over each
+   * aileron's inboard end, as the photographs show them; and the
+   * stabiliser and both fins.
    */
   {
     const n = lite ? 6 : 9;
@@ -617,9 +625,6 @@ export function buildSkyCraft(opts = {}) {
       wingGeometry(lite),
       nacelleGeometry(-1, seg),
       nacelleGeometry(1, seg),
-      stabGeometry(0, ELEV_HINGE, n),
-      finGeometry(-BOOM_X, false, n),
-      finGeometry(BOOM_X, false, n),
     ];
     for (const sign of [-1, 1]) {
       const x = sign * (AIL_IN + 0.050);
@@ -631,6 +636,14 @@ export function buildSkyCraft(opts = {}) {
     airframe.name = 'sky-airframe';
     airframe.castShadow = shade;
     group.add(airframe);
+    const tail = new THREE.Mesh(merged([
+      stabGeometry(0, ELEV_HINGE, n),
+      finGeometry(-BOOM_X, false, n),
+      finGeometry(BOOM_X, false, n),
+    ]), tailFoam);
+    tail.name = 'sky-tail';
+    tail.castShadow = shade;
+    group.add(tail);
   }
 
   /* The pod, centred on its own middle so the hull thickens it evenly. */
@@ -686,19 +699,21 @@ export function buildSkyCraft(opts = {}) {
    * The five moving surfaces. One angle drives both rudders, because on the
    * aircraft one servo does through a pull pull across the stabiliser.
    */
+  const flapMat = flapOf('wing');
+  const tailFlap = flapOf('tail');
   const leftAil = aileron(-1, flapMat, shade, lite);
   const rightAil = aileron(1, flapMat, shade, lite);
   const n = lite ? 5 : 7;
   const y0 = boomY();
   const hingeY = (x) => new THREE.Vector3(x, y0, STAB_LE + ELEV_HINGE * STAB_CHORD);
-  const elevator = hinged(stabGeometry(ELEV_HINGE, 1, n), hingeY(-STAB_HALF), hingeY(STAB_HALF), flapMat, shade);
+  const elevator = hinged(stabGeometry(ELEV_HINGE, 1, n), hingeY(-STAB_HALF), hingeY(STAB_HALF), tailFlap, shade);
   const rudders = [-1, 1].map((sign) => {
     const x = sign * BOOM_X;
     return hinged(
       finGeometry(x, true, n),
       new THREE.Vector3(x, y0 - FIN_DOWN, RUDDER_Z),
       new THREE.Vector3(x, y0 + FIN_UP, RUDDER_Z),
-      flapMat,
+      tailFlap,
       shade,
     );
   });
@@ -876,5 +891,6 @@ export function buildSkyCraft(opts = {}) {
     stator,
     propSpin: SKY_PROP_SPIN,
     setSurfaces,
+    livery: coat.livery,
   };
 }
