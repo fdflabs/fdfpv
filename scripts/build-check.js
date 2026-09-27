@@ -310,6 +310,7 @@ async function proof() {
     say((await dockShown(page)) === 'hidden', 'the music dock is off while building, so no record name sits over the build panel');
     await hotbarAndHelp(page);
     await flight(page);
+    await padWhileBuilding(page);
     await page.evaluate("window.__build.rename('Cliff drop'); true");
 
     const { edge, drop, yawOut, at } = await findDrop(page);
@@ -464,6 +465,7 @@ async function proof() {
       await page.evaluate("window.__ui.onAction('restart'); true");
       await page.until("window.__craftState().mode === 'flight'", 20000);
     }
+    await swapInTest(page);
     await key(page, 'KeyB');
     await page.until(`${B('.state')} === 'building'`, 10000);
     const camBack = await page.evaluate(B('.camera'));
@@ -486,6 +488,82 @@ async function proof() {
     await page.close();
   }
   return out;
+}
+
+/*
+ * The aircraft swap (#94) on a test flight: ] swaps to the next aircraft
+ * in place, the run stays the builder's test of this track, and [ swaps
+ * back. While building, ] is the builder's (every key is) and nothing
+ * swaps.
+ */
+async function swapInTest(page) {
+  const watch = `(() => {
+    const old = window.__lastSwap();
+    window.__swapSeen = null;
+    window.__swapWatch = setInterval(() => {
+      const s = window.__lastSwap();
+      if (s && s !== old) { window.__swapSeen = s; clearInterval(window.__swapWatch); }
+    }, 5);
+    return true;
+  })()`;
+  const run0 = await page.evaluate('window.__craft().run');
+  await page.evaluate(watch);
+  await key(page, 'BracketRight');
+  await page.until('!!window.__swapSeen', 30000).catch(() => {});
+  const after = await page.evaluate(`({ run: window.__craft().run, state: ${B('.state')}, gates: window.__race().gates.length, key: window.__race().key, mode: window.__map().mode })`);
+  say(after.run !== run0 && after.state === 'testing' && after.gates === 3 && /\.build\./.test(after.key) && after.mode === 'race',
+    `] on the test flight swaps ${run0} for ${after.run} in place, still the test of this track (${after.gates} gates, ${after.key.split('.').pop()})`);
+  await page.evaluate(watch);
+  await key(page, 'BracketLeft');
+  await page.until('!!window.__swapSeen', 30000).catch(() => {});
+  say((await page.evaluate('window.__craft().run')) === run0, `and [ swaps back to the ${run0}`);
+  await page.evaluate('clearInterval(window.__swapWatch), true');
+}
+
+/*
+ * A standard gamepad while building: the right shoulder walks the hotbar
+ * and the left stick flies, and neither the shoulder nor Y reaches the
+ * shell's aircraft swap, which has the same buttons in flight.
+ */
+async function padWhileBuilding(page) {
+  await page.evaluate(`(() => {
+    const btn = () => ({ pressed: false, touched: false, value: 0 });
+    window.__pad = {
+      id: 'Check pad (STANDARD GAMEPAD)', index: 0, connected: true, mapping: 'standard', timestamp: 0,
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, btn), vibrationActuator: null,
+    };
+    navigator.getGamepads = () => [window.__pad];
+    window.__padSet = (i, on) => { window.__pad.buttons[i] = { pressed: on, touched: on, value: on ? 1 : 0 }; window.__pad.timestamp += 1; };
+    return true;
+  })()`);
+  await frames(page, 3);
+  await page.evaluate('window.__swap0 = window.__lastSwap(), true');
+  const run0 = await page.evaluate('window.__craft().run');
+  const slot0 = await page.evaluate(B('.slot'));
+  await page.evaluate('window.__padSet(5, true)');
+  await frames(page, 3);
+  await page.evaluate('window.__padSet(5, false)');
+  await frames(page, 3);
+  await page.evaluate('window.__padSet(3, true)');
+  await frames(page, 3);
+  await page.evaluate('window.__padSet(3, false)');
+  await frames(page, 3);
+  const slot1 = await page.evaluate(B('.slot'));
+  const p0 = await page.evaluate(B('.camera.pos'));
+  await page.evaluate('window.__pad.axes[1] = -1, true');
+  await frames(page, 6);
+  await page.evaluate('window.__pad.axes[1] = 0, true');
+  await frames(page, 3);
+  const p1 = await page.evaluate(B('.camera.pos'));
+  await key(page, 'BracketRight');
+  await frames(page, 3);
+  const swapped = await page.evaluate('window.__lastSwap() !== window.__swap0');
+  say(slot1 === (slot0 + 1) % 9, `the pad's right shoulder walks the hotbar: slot ${slot0 + 1} to ${slot1 + 1}`);
+  say(vDist(p0, p1) > 1, `and its left stick flies the camera: ${f1(vDist(p0, p1))} m`);
+  say(!swapped && (await page.evaluate('window.__craft().run')) === run0, `neither the shoulder, Y nor ] swapped the aircraft: still the ${run0}`);
+  await page.evaluate('navigator.getGamepads = () => [], true');
+  await frames(page, 3);
+  await key(page, `Digit${slot0 + 1}`);
 }
 
 /* The hotbar, its icons, and the controls card. */

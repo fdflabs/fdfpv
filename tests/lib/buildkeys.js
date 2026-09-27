@@ -69,11 +69,18 @@ async function modsUp(page, mods) {
   }
 }
 
+/* The brackets, which tests/lib/page.js does not know: the aircraft swap's
+ * keys in flight. */
+const BRACKETS = {
+  BracketLeft: { key: '[', code: 'BracketLeft', windowsVirtualKeyCode: 219, text: '[' },
+  BracketRight: { key: ']', code: 'BracketRight', windowsVirtualKeyCode: 221, text: ']' },
+};
+
 /* A key with modifiers held the way a keyboard sends them: the modifier's
  * own key first, so the shell's held set sees it as well as the flags. */
 export async function key(page, code, mods = {}) {
   await modsDown(page, mods);
-  const k = keyInfo(code);
+  const k = BRACKETS[code] ?? keyInfo(code);
   const m = bits(mods);
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...k, text: m & (MOD.ctrl | MOD.alt) ? undefined : k.text, modifiers: m }, page.sessionId);
   await page.sleep(30);
