@@ -1,8 +1,8 @@
 /*
  * osd-check.js: the FPV OSD, flown in the real shell and read back.
  *
- * Flies a five inch quad and a Timber on the Alps, and a quad round the
- * reference course, in the FPV view, and asserts that each OSD element
+ * Flies a five inch quad and a Timber on the Alps, and a quad round a built
+ * ring in Track mode, in the FPV view, and asserts that each OSD element
  * shows the live value it claims to: the pack falls under load and the
  * warnings come up on a low pack, the timers count, the horizon follows
  * the attitude, a plane's altitude, speeds and home distance match
@@ -420,19 +420,55 @@ async function plane() {
   }
 }
 
+/*
+ * A race needs a built track now that the race field is gone: the ring in
+ * tests/fixtures/map-track-v4.json (three gates on the Swiss valley) goes
+ * in the library, and Track mode plays it the way a pilot does, through
+ * My tracks, the card and the launch card, as scripts/track-mode-check.js
+ * walks it.
+ */
+const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
+
+async function choose(page, action) {
+  const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})`);
+  if (at < 0) {
+    throw new Error(`no row ${action} on ${await page.evaluate('window.__ui.screen')}`);
+  }
+  await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);
+}
+
 async function race() {
-  console.log('\nrace: five inch round the reference course');
-  const doc = await readFile(join(root, 'tests/fixtures/course-reference.json'), 'utf8');
-  const cls = JSON.parse(doc).trackClass;
-  const key = cls === 'micro' ? 'webfpv.trackbuilder.autosave.micro.v1'
-    : cls === 'wing' ? 'webfpv.trackbuilder.autosave.wing.v1'
-      : 'webfpv.trackbuilder.autosave.v1';
-  const page = await open(seatFor('5inch', 'custom'), 'custom',
-    [`try { localStorage.setItem(${JSON.stringify(key)}, JSON.stringify(${doc})); } catch (e) { /* refused */ }`]);
+  console.log('\nrace: five inch round a built ring on the Swiss valley');
+  const track = JSON.parse(await readFile(join(root, 'tests/fixtures/map-track-v4.json'), 'utf8'));
+  const n = track.sequence.length;
+  const page = await openPage({
+    root,
+    width: 1280,
+    height: 720,
+    url: '/index.html',
+    seed: seed({ ...seatFor('5inch', 'track'), fpsCap: 0 },
+      [`try { localStorage.setItem(${JSON.stringify(LIBRARY_KEY)}, ${JSON.stringify(JSON.stringify({ [track.id]: track }))}); } catch (e) { /* refused */ }`]),
+  });
   try {
-    await flyAndWait(page, 'custom');
+    await page.until('!!window.__shellReady', 300000);
+    await page.until('window.__map && window.__map().ready', 400000);
+    await page.until('window.__ui.onGate()', 60000);
+    await choose(page, 'way-race-5inch');
+    await page.until('window.__ui.carousel.isOpen', 10000);
+    await page.tap('Enter');
+    await page.until("window.__ui.screen === 'courses'", 20000);
+    const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.course && it.course.track.id === ${JSON.stringify(track.id)})`);
+    await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);
+    await page.until(`window.__ui.cardSubject && window.__ui.cardSubject.endsWith(${JSON.stringify(`:${track.id}`)})`, 5000);
+    await choose(page, 'card-fly');
+    await page.until(`window.__ui.screen === 'launch' && window.__map().ready && window.__map().id === ${JSON.stringify(track.map)} && window.__race().gates.length === ${n}`, 600000);
+    await choose(page, 'launch-go');
+    await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
+    await page.until('window.__fpvOsd().on', 120000);
+    await settle(page);
     const o = await osd(page);
-    say(/^LAP /.test(o.values.clock) && /^GATE 1\/\d+$/.test(o.values.gate) && rowsHave(o, o.values.gate), `the race: "${o.values.clock}", "${o.values.gate}", cue "${o.values.cue}"`);
+    say(/^LAP /.test(o.values.clock) && o.values.gate === `GATE 1/${n}` && rowsHave(o, o.values.gate) && rowsHave(o, 'LAP'),
+      `the race: "${o.values.clock}", "${o.values.gate}"${o.values.cue ? `, cue "${o.values.cue}"` : ''}`);
     /* Lit for 2.8 s of wall clock, as a crossing lights it. */
     await page.evaluate('window.__ghostGapShow(-340, false)');
     let g = await osd(page);
