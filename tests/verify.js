@@ -225,13 +225,17 @@ async function main() {
       return { ...parsed, windowMs };
     }),
     /*
-     * One page run that loads both maps and reports what each one measures.
+     * One page run that loads two maps and reports what each one measures.
      *
      * It doubles as the isolation evidence for the lazy load: it records every
-     * URL the page requests while the RACE FIELD is selected, so the city's
+     * URL the page requests while the AIRFIELD is selected, so the city's
      * modules being absent is a measurement rather than a claim. The city is
      * then chosen and the same list is read again, which is what proves the
      * modules arrive only when they are asked for.
+     *
+     * The airfield is the smallest world there is. This run used the race
+     * field until the field was deleted; nothing it measures was about the
+     * field's own dressing except the three bands check 15 dropped with it.
      */
     scaleRun: memo(async () => {
       const out = join(root, 'dist/world-scale');
@@ -250,29 +254,19 @@ async function main() {
          * nothing at all on a machine with a GPU, and this check would
          * answer differently depending on who ran it. */
         '--graphics=high',
-        /*
-         * A COURSE, because without one this run measured a map with nothing
-         * in it and then asserted a gate's aperture.
-         *
-         * The custom map reads a track from the share seat or the builder's
-         * autosave, both of which are localStorage, and a headless profile is
-         * fresh every time. So `workingDocument()` returned null, custom.js
-         * built `emptyCourse()`, and `gates[0]` was undefined: check 15 read
-         * the gate opening as 0.0000 against a band of 1.7476 to 1.7576 and
-         * failed on every machine since the day it was written. With this
-         * seeded it reads 1.7526.
-         *
-         * The fixture is verify's own copy and not a path into tracks/json,
-         * so republishing a track cannot quietly change what this asserts.
-         */
-        `--course=${join('tests', 'fixtures', 'course-reference.json')}`,
+        /* The world, named in the address so the title shows it rather than
+         * its own valley, and the aircraft the craft bands are for. */
+        '--url=/index.html?map=airfield',
+        '--airframe=5inch',
         'until:!!window.__boot && window.__boot().frames > 2',
         `eval:${collect}`,
-        /* The race field's cost, at two parked cameras so the numbers are
-         * reproducible. Measured with the field selected, which is the whole
-         * point: the city must cost nothing at all until it is chosen. */
+        /* The airfield's cost, at a parked camera over its spawn so the
+         * numbers are reproducible. Measured with the airfield selected,
+         * which is the whole point: the city must cost nothing at all until
+         * it is chosen. */
         'eval:JSON.stringify((() => {' +
-          'window.__setCam(104.99, 1.6, 14.0, 104.99, 1.2, -30);' +
+          'const sp = window.__map().spawn;' +
+          'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30);' +
           'window.__camFrame = window.__boot().frames;' +
           'return { tag: "budget-pending" };' +
         '})())',
@@ -283,7 +277,7 @@ async function main() {
          * the override has landed. */
         'until:window.__boot().frames > window.__camFrame + 3',
         'eval:JSON.stringify((() => {' +
-          'const b = window.__budget("field spawn");' +
+          'const b = window.__budget("airfield spawn");' +
           'window.__setCam(null);' +
           'return { tag: "budget", p1: b.p1_calls, p2: b.p2_triangles, p5: b.p5_target_MB, p10: b.p10_attribute_MB, meshes: b.meshes, cel: window.__celCount() };' +
         '})())',
@@ -297,9 +291,8 @@ async function main() {
         'eval:JSON.stringify({ tag: "fly", started: (window.__ui.onAction("fly", window.__ui.settings), true) })',
         'until:window.__craftState().mode === "flight" && window.__craft().shown === window.__craft().run',
         'eval:JSON.stringify({' +
-          'tag: "field",' +
+          'tag: "craft",' +
           'map: window.__map().id,' +
-          'references: window.__map().references,' +
           'gateScale: window.__gateScale(),' +
           /*
            * MEASURED IN WORLD SPACE, from bounding boxes, not from the
@@ -402,22 +395,23 @@ async function main() {
         'eval:JSON.stringify({ tag: "city", references: window.__map().references, loading: window.__map().loading, expectedModules: window.__map().expectedModules, colliderFit: (() => { const f = window.__map().colliderFit; const { rows, worst, ...rest } = f; return rest; })(), colliderScan: (() => { const s = window.__map().colliderScan; if (!s) { return null; } return { drawnMeshes: s.drawnMeshes, phantom: { totalPhantom: s.phantom.totalPhantom, solidVolume: s.phantom.solidVolume, overOne: s.phantom.overOne, overFive: s.phantom.overFive, standingOnAir: s.phantom.standingOnAir, boxes: s.phantom.boxes }, holes: { probed: s.holes.probed, count: s.holes.count, meanCovered: s.holes.meanCovered, softProbed: s.holes.softProbed, softCount: s.holes.softCount } }; })() })',
         `eval:${collect}`,
         /*
-         * BACK TO THE FIELD, AND MEASURE IT AGAIN. The budget taken at boot
-         * cannot see a leak, because at that point the city has never existed:
-         * anything the city fails to free on its way out is invisible until
-         * the field is measured on the far side of a round trip. A review
-         * pointed this out and it was right.
+         * BACK TO THE AIRFIELD, AND MEASURE IT AGAIN. The budget taken at
+         * boot cannot see a leak, because at that point the city has never
+         * existed: anything the city fails to free on its way out is invisible
+         * until the airfield is measured on the far side of a round trip. A
+         * review pointed this out and it was right.
          */
-        'eval:JSON.stringify({ tag: "back", started: (window.__setMap("custom"), true) })',
-        'until:window.__map().id === "custom" && window.__map().ready',
+        'eval:JSON.stringify({ tag: "back", started: (window.__setMap("airfield"), true) })',
+        'until:window.__map().id === "airfield" && window.__map().ready',
         'eval:JSON.stringify((() => {' +
-          'window.__setCam(104.99, 1.6, 14.0, 104.99, 1.2, -30);' +
+          'const sp = window.__map().spawn;' +
+          'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30);' +
           'window.__camFrame2 = window.__boot().frames;' +
           'return { tag: "budget2-pending" };' +
         '})())',
         'until:window.__boot().frames > window.__camFrame2 + 3',
         'eval:JSON.stringify((() => {' +
-          'const b = window.__budget("field spawn after round trip");' +
+          'const b = window.__budget("airfield spawn after round trip");' +
           'window.__setCam(null);' +
           'return { tag: "budget2", p1: b.p1_calls, p2: b.p2_triangles, p5: b.p5_target_MB, p10: b.p10_attribute_MB, meshes: b.meshes, cel: window.__celCount() };' +
         '})())',
@@ -446,29 +440,19 @@ async function main() {
       const urls = values.filter((v) => v.tag === 'urls');
       const budget = values.find((v) => v.tag === 'budget');
       const budgetAfter = values.find((v) => v.tag === 'budget2');
-      const fieldData = values.find((v) => v.tag === 'field');
+      const craftData = values.find((v) => v.tag === 'craft');
       const cityData = values.find((v) => v.tag === 'city');
-      if (urls.length < 2 || !fieldData || !cityData) {
+      if (urls.length < 2 || !craftData || !cityData) {
         throw new Error(
           `world-scale run produced tags [${values.map((v) => v.tag).join(', ')}]: ` +
           `${text.trim().split('\n').slice(-3).join(' | ')}`,
         );
       }
-      const [fieldUrls, cityUrls] = urls;
+      const [airfieldUrls, cityUrls] = urls;
       const cr = cityData.references;
-      const fr = fieldData.references;
       return {
-        craft: fieldData.craft,
-        field: {
-          gateOpeningW: fr.gateOpeningW.measured,
-          gateOpeningH: fr.gateOpeningH.measured,
-          gateScale: fieldData.gateScale ?? null,
-          grassMin: fr.grassBladeHeight.measured[0],
-          grassMax: fr.grassBladeHeight.measured[1],
-          clubhouseVerandah: fr.clubhouseVerandahClear
-            ? fr.clubhouseVerandahClear.measured
-            : null,
-        },
+        craft: craftData.craft,
+        gateScale: craftData.gateScale ?? null,
         city: {
           kerb: cr.kerbHeight.measured,
           doorway: cr.doorwayHeight.measured,
@@ -483,8 +467,8 @@ async function main() {
         },
         loading: cityData.loading,
         cityExpectedModules: cityData.expectedModules ?? null,
-        fieldBudget: budget,
-        fieldBudgetAfterRoundTrip: budgetAfter,
+        airfieldBudget: budget,
+        airfieldBudgetAfterRoundTrip: budgetAfter,
         /*
          * src/maps/city/scan.js is the collider audit, and it is dropped from
          * both lists on purpose. The city imports it dynamically and only when
@@ -493,7 +477,7 @@ async function main() {
          * Counting it would make check 16 report the harness's own diagnostic
          * as a module the map costs a player.
          */
-        cityUrlsWhileFieldSelected: fieldUrls.urls
+        cityUrlsWhileAirfieldSelected: airfieldUrls.urls
           .filter((u) => u.includes('/src/maps/city') && !u.includes('/city/scan.js')),
         cityUrlsAfterChoosingCity: cityUrls.urls
           .filter((u) => u.includes('/src/maps/city') && !u.includes('/city/scan.js')),

@@ -688,8 +688,8 @@ async function mousePage(page) {
   /* --------------------------------------------------------------------
    * 6. The camera angle that changed the track. bug-4d5b2c51: on a whoop,
    *    in the town, nudging the camera angle threw the pilot onto the
-   *    custom track, because syncMode ran on every settings write and
-   *    forces race and custom on an aircraft that is not offered
+   *    track seat, because syncMode ran on every settings write and
+   *    forces race and the track seat on an aircraft that is not offered
    *    freestyle. It is gated on the aircraft moving now. Both halves:
    *    the camera leaves the seat alone, and swapping to the whoop still
    *    moves it, which is the case the sync was written for.
@@ -722,8 +722,8 @@ async function mousePage(page) {
   `).then(JSON.parse);
   check('camera angle on a seated whoop leaves freestyle and the town alone',
     sync.afterCamera.mode === 'freestyle' && sync.afterCamera.map === 'city', JSON.stringify(sync.afterCamera));
-  check('swapping to the whoop still seats race on the custom track',
-    sync.afterSwap.mode === 'race' && sync.afterSwap.map === 'custom', JSON.stringify(sync.afterSwap));
+  check('swapping to the whoop still seats race on the track seat',
+    sync.afterSwap.mode === 'race' && sync.afterSwap.map === 'track', JSON.stringify(sync.afterSwap));
 }
 
 async function touchPage(page) {

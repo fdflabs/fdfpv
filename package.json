@@ -13,7 +13,6 @@
     "build:wasm": "node scripts/run-bash.js scripts/build-wasm.sh",
     "gen:baseline": "node tests/gen/gen-baseline.js",
     "serve": "node scripts/serve.js",
-    "micro:check": "node scripts/micro-check.js",
     "whoop:gates": "node scripts/whoop-gates.js",
     "lint:presets": "node scripts/preset-lint.js",
     "lint:catalog": "node scripts/fc-catalog-lint.js",
@@ -25,19 +24,15 @@
     "lint:fc": "node scripts/fc-trace.js",
     "lint:frame": "node scripts/frame-check.js",
     "check:wall": "node scripts/wall-check.js",
-    "check:clip": "node src/trackbuilder/selftest.js",
+    "crash:rules": "node scripts/crash-rules-selftest.js",
     "check:orbit": "node scripts/orbit-check.js",
     "check:path": "node scripts/path-check.js",
     "gen:catalog": "node scripts/fc-catalog-gen.js",
     "gen:music": "node scripts/music.js",
-    "gen:icons": "node scripts/icons.js sakura . && node scripts/icons.js amber src/trackbuilder",
+    "gen:icons": "node scripts/icons.js sakura .",
     "gen:og": "node scripts/og.js .",
     "gen:posters": "node scripts/posters.js",
-    "gen:trackgif": "node scripts/trackgif.js",
-    "gen:boardgif": "node scripts/boardgif.js",
-    "gen:boardpresets": "node scripts/boardpresets.js",
     "gen:gatecards": "node scripts/gatecards.js",
-    "gif:selftest": "node scripts/gif-selftest.js",
     "ghost:selftest": "node scripts/ghost-selftest.js",
     "contact:selftest": "node scripts/contact-selftest.js",
     "crash:core": "node scripts/crash-core-selftest.js",
@@ -122,6 +117,7 @@
     "builder:share": "node scripts/map-share-check.js",
     "builder:plane": "node scripts/map-plane-check.js",
     "pick:selftest": "node scripts/craft-pick-selftest.js",
-    "hotswap:check": "node scripts/hotswap-check.js"
+    "hotswap:check": "node scripts/hotswap-check.js",
+    "trackmode:check": "node scripts/track-mode-check.js"
   }
 }

@@ -77,9 +77,6 @@ export function groundSurface(view, x, z, normalY, wet, y) {
       return SURFACE[name];
     }
   }
-  if (view && view.trackClass === 'micro') {
-    return SURFACE.default;
-  }
   const byMap = view ? MAP_GROUND[view.id] : null;
   if (normalY < ROCK_NORMAL_Y && view && view.id !== 'city') {
     return SURFACE.rock;
@@ -166,9 +163,7 @@ export function solidSurface(kindName) {
  * the world's gate scale (src/game/track.js GATE_SCALE draws a full size
  * course 1.15 times life size for the camera, and src/units.js takes a
  * MultiGP gate's frame for 1 inch schedule 40). Its length is the one it
- * stands at in the world. A micro room is not declared: the whoop is the
- * five inch's plant in a room 3.43 times its size, so no real pipe's give
- * is what it meets there.
+ * stands at in the world.
  */
 const SCH40 = [
   { od: 1.050, wall: 0.113, lbft: 0.21 },

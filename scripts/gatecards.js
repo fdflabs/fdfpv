@@ -21,13 +21,14 @@
  *
  * WHAT EACH FRAME IS, and why those numbers.
  *
- * Race is a lit start gate at eleven metres, left of centre, with the course
- * markers running away to the right and the rest of the gates small behind
- * them. The green is the renderer's own "this is the way through" and it is
- * the one colour in this product that means racing. The track under it is
- * tracks/json/trk-0870b164.json, the 2022 AU Nationals layout, because a
- * real published course is the honest thing to photograph and it is already
- * in the repository.
+ * Race is a lit start gate at ten metres, left of centre, with the rest of
+ * the gates running away up the Alps' strip to the right, small under the
+ * valley wall. The green is the renderer's own "this is the way through" and
+ * it is the one colour in this product that means racing. The track is
+ * scripts/gatecards-track.json, six gates built on the strip with the
+ * in-sim builder's own pieces, because Track mode races tracks built in a
+ * world and the card should show one. It was the race field's AU Nationals
+ * layout until the field went.
  *
  * Free Flight is the photoreal valley's lake from sixty metres over its
  * north shore, looking down the water to the village and the east wall:
@@ -104,11 +105,13 @@ const hide = `${JSON.stringify(HIDE)}.forEach((s) => document.querySelectorAll(s
 const SHOTS = [
   {
     name: 'race',
-    args: ['--course=tracks/json/trk-0870b164.json'],
+    args: ['--course=scripts/gatecards-track.json'],
     /* Behind the start gate and a little to its right, so the gate is left
-     * of centre and the course leaves the frame rather than stopping in it. */
-    cam: [-21.5, 2.4, 36.6, -40, 1.6, 28],
+     * of centre and the course leaves the frame rather than stopping in it.
+     * The seated aircraft waits behind the gate, out of the frame's left. */
+    cam: [6.5, 2.2, 34, -4.5, 1.5, 12],
     anim: null,
+    ready: 'window.__map && window.__map().id === "alps" && window.__map().ready && window.__race().gates.length === 6',
   },
   {
     name: 'flight',

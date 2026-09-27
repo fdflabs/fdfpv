@@ -1,31 +1,26 @@
 # The track document
 
-This is the track builder's output and the only thing it shares with the rest
-of FDFPV. The builder does not import a line of the simulator.
+Two kinds of document share this format.
 
-**The game now reads it.** `src/game/trackdoc.js` turns a document into a
-course, `src/render/scene.js` builds the race field around that course instead
-of around its own figure eight, and `src/maps/custom.js` offers it as the
-**Your track** map. The loop is: build a course, press **Fly this track**, and
-the world you get is this one with your gates in it.
+**Version 4, a track inside a world**, is the one the simulator writes and
+flies today. The in-sim builder (`src/builder/`, B in flight, or My tracks'
+Edit and New track) writes it: a `map` naming the world, and gates standing
+at poses in that world. It is described under
+[3 to 4: a track inside a world](#3-to-4-a-track-inside-a-world); everything
+else below is shared with it or belongs to the older kind.
 
-That reading goes **through this module's own code**. `trackdoc.js` imports
-`model.js`, `elements.js`, `geometry.js` and `path.js`, which are pure data and
-pure functions with no DOM and no Three.js, so the game and the builder cannot
-disagree about what a document means. The dependency is one way and stays one
-way: the game may read the builder's data modules, the builder may not import
-anything from the game.
+**Versions 1 to 3, a track on the race field**, are the documents the
+separate 2D track builder page wrote, laid out on a flat field of their own.
+The simulator no longer flies them: the field, the page and its bundled
+tracks were removed when Track mode became the pilot's own built tracks. The
+board still stores them and still checks laps posted on them, and its check
+reads them through this directory's `model.js`, `elements.js`,
+`geometry.js` and `path.js` and `src/game/trackdoc.js`, which is why those
+modules and this description stay.
 
-Everything below describes `schemaVersion: 1`.
-
-The worked example at the end is not hand written. It is emitted by
-
-```
-node src/trackbuilder/selftest.js --emit
-```
-
-and the same file checks that it round trips byte for byte, so the example and
-the implementation cannot drift apart.
+The worked example at the end was emitted by the 2D builder's own selftest,
+which went with the page. It is kept as the reference for a version 1
+document the board accepts.
 
 ---
 

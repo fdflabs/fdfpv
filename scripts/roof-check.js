@@ -155,13 +155,6 @@ const KINDS = {
    * over it before it can climb onto it, so it is not ramped. */
   shed: { fly: ['dive', 'wall', 'gable', 'slope', 'quad'], min: 1 },
   cityRoof: { fly: CLOSED, min: 2.5 },
-  /* The race field's pavilion (map custom), and its verandah, which falls
-   * toward the field off the front wall as a lean-to does. A skid along
-   * the verandah's 53 m slides the Skyhunter to a stop on it and knocks
-   * its camera at the first touch at 5.6 degrees (the crash physics'
-   * call), so it is dived onto and a quad set down on it. */
-  clubhouse: { fly: CLOSED, min: 2.5 },
-  verandah: { fly: ['dive', 'quad'], min: 1 },
   kiosk: { fly: ['dive', 'wall', 'quad'], min: 1.5 },
   /* The bus shelter's roof falls three degrees: a ramp is a skim. */
   spire: { fly: ['dive', 'wall', 'slope'], min: 1 },

@@ -19,7 +19,7 @@
  *   2. P publishes it through the shell's publish dialog: the name and the
  *      pilot's board name typed in, and the board holds a schemaVersion 4
  *      document naming the map, with three gates.
- *   3. Reload. The Track room lists it among the board's tracks; choosing
+ *   3. Reload. My tracks lists it among the board's tracks; choosing
  *      it seats the course on the world already built, as a race of three
  *      gates with a record of its own.
  *   4. Fly it: from the air start a pilot in the page flies a lap through
@@ -321,13 +321,13 @@ async function main() {
     await page.until(`${B('.state')} === 'off'`, 10000);
 
     /* 3. Reload, find it, load it. */
-    console.log('reload, and find it in the Track room');
-    /* Publishing seats the track, as a publish from the Track room does, and
-     * the room shows the seated track as its own card rather than twice.
+    console.log('reload, and find it in My tracks');
+    /* Publishing seats the track, as a publish from the builder does, and
+     * My tracks shows the seated track as its own card rather than twice.
      * The seat is emptied here, as if the pilot had flown something else
      * since, so the track has to be found among the board's. */
     const seatWas = await page.evaluate(`(JSON.parse(localStorage.getItem('webfpv.share.import.v1') || 'null') || {}).id || null`);
-    say(seatWas === id, `publishing seated it, as a Track room publish does: ${seatWas}`);
+    say(seatWas === id, `publishing seated it, as a publish from the builder does: ${seatWas}`);
     await page.evaluate("localStorage.removeItem('webfpv.share.import.v1'), true");
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await page.sleep(1000);
@@ -335,9 +335,9 @@ async function main() {
     await page.evaluate("window.__ui.act('courses'); true");
     await page.until(`(window.__ui.boardCourses || []).some((t) => t.id === ${JSON.stringify(id)})`, 60000).catch(() => {});
     const card = await page.evaluate(`(window.__ui.boardCourses || []).find((t) => t.id === ${JSON.stringify(id)}) || null`);
-    say(Boolean(card) && card.map === opts.map, `the Track room lists it among the board's tracks, on ${card ? card.map : '?'}`);
-    await shot(page, '3-track-room');
-    await page.evaluate(`window.__ui.openBoardCourse(${JSON.stringify(id)}); true`);
+    say(Boolean(card) && card.map === opts.map, `My tracks lists it among the board's tracks, on ${card ? card.map : '?'}`);
+    await shot(page, '3-my-tracks');
+    await page.evaluate(`window.__ui.openBoardCourse(${JSON.stringify(id)}, () => window.__ui.play()); true`);
     await page.until(`window.__map().ready && window.__map().id === ${JSON.stringify(opts.map)} && window.__map().mode === 'race' && window.__race().gates.length === 3`, 300000).catch(() => {});
     const seated = await page.evaluate('({ map: window.__map(), key: window.__race().key, freestyle: window.__race().freestyle, build: window.__build.state().state })');
     say(seated.map.id === opts.map && seated.map.mode === 'race' && seated.map.gates === 3 && !seated.freestyle,

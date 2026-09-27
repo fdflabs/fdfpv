@@ -56,7 +56,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -65,6 +65,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { floatDigDeg } from '../tests/crash/scenarios.js';
+import { standGate } from './lib/standgate.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -272,7 +273,10 @@ const SCENARIOS = [
    * reference's clip (docs/CRASH-REFERENCES.md, q5-gate-15 and -30): the
    * struck arm and prop meet the bare PVC upright. The sleeve panel hangs
    * outboard of each upright, so a pass on the outside meets the panel's
-   * face, not the post; that one is kept as its own scenario. */
+   * face, not the post; that one is kept as its own scenario. The gate is
+   * a built track's, standing on the grass of the Swiss valley's strip
+   * (standGate); it was a gate of the race field's until the field went,
+   * built by the same builder at the same scale. */
   ...[[15, 'inside'], [30, 'inside'], [15, 'outside']].map(([v, side]) => ({
     id: side === 'inside' ? `quad-gate-${v}` : `quad-gate-sleeve-${v}`,
     item: 6,
@@ -280,8 +284,8 @@ const SCENARIOS = [
       ? `a five inch clipping a gate post from inside the opening at ${v} m/s with an arm`
       : `a five inch passing outside a gate post at ${v} m/s, into the sleeve panel's face`,
     airframe: '5inch',
-    map: 'custom',
-    trackFile: 'tests/fixtures/course-reference.json',
+    map: 'swiss2',
+    standGate: true,
     chase: 'script',
     plan: `
       const s = window.__craftState();
@@ -420,23 +424,14 @@ function seeds(airframe, map) {
   } catch (e) { /* Storage refused; the run boots on its defaults. */ }`];
 }
 
-async function trackSeed(file) {
-  if (!file) {
-    return [];
-  }
-  const doc = await readFile(join(root, file), 'utf8');
-  const cls = JSON.parse(doc).trackClass;
-  const key = cls === 'micro' ? 'webfpv.trackbuilder.autosave.micro.v1'
-    : cls === 'wing' ? 'webfpv.trackbuilder.autosave.wing.v1'
-      : 'webfpv.trackbuilder.autosave.v1';
-  return [`try { localStorage.setItem(${JSON.stringify(key)}, JSON.stringify(${doc})); } catch (e) { /* refused */ }`];
-}
-
-async function open(airframe, map, trackFile) {
+async function open(airframe, map, gate) {
   const page = await openPage({
-    root, width: W, height: H, url: `/index.html?map=${map}`, seed: [...seeds(airframe, map), ...await trackSeed(trackFile)],
+    root, width: W, height: H, url: `/index.html?map=${map}`, seed: seeds(airframe, map),
   });
   await page.until('window.__shellReady && window.__map && window.__map().ready', 240000);
+  if (gate) {
+    await standGate(page, map);
+  }
   await page.sleep(1500);
   const seated = await page.evaluate('JSON.stringify([window.__map().id, window.__craft().run])').then(JSON.parse);
   if (seated[0] !== map || seated[1] !== airframe) {
@@ -958,7 +953,7 @@ const list = SCENARIOS.filter((sc) => !want || want.has(sc.id));
 /* One page per aircraft and map, the scenarios on it run in turn. */
 const groups = new Map();
 for (const sc of list) {
-  const key = `${sc.airframe} ${sc.map} ${sc.trackFile ?? ''}`;
+  const key = `${sc.airframe} ${sc.map} ${sc.standGate ? 'gate' : ''}`;
   groups.set(key, [...(groups.get(key) ?? []), sc]);
 }
 const sheets = [];
@@ -966,7 +961,7 @@ const reruns = [];
 for (const scs of groups.values()) {
   let page = null;
   try {
-    page = await open(scs[0].airframe, scs[0].map, scs[0].trackFile);
+    page = await open(scs[0].airframe, scs[0].map, Boolean(scs[0].standGate));
   } catch (e) {
     failed += scs.length;
     console.log(`\n${scs.map((s) => s.id).join(', ')}: FAILED to open: ${e.message}`);

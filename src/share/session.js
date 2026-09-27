@@ -1,22 +1,20 @@
 import { str } from '../strings/index.js';
 /*
- * session.js: the published course this browser is currently flying.
+ * session.js: the track this browser is flying.
  *
  * THE BOARD HANDS THE SIMULATOR A TRACK THROUGH THE URL, not through a file
  * and not through postMessage. The page at the other end opens
  *
- *   {sim}/?map=custom&share={id}
+ *   {sim}/?share={id}
  *
  * and this module is what that query becomes: a document in local storage,
  * plus the id and the board it came from, so a lap time can go back to the
- * same board. The document is the same schema.md object the builder writes,
- * logo included, so a published course arrives wearing its sponsor print.
+ * same board. The document is the schemaVersion 4 track the in-sim builder
+ * writes (src/builder/), naming the world it stands in.
  *
- * THE BUILDER'S AUTOSAVE IS A DIFFERENT KEY. A community course opened from
- * the board sits in the share seat. The working canvas is the autosave.
- * They do not overwrite each other, unless the player asks to edit a copy.
- * Flying a course this browser published writes the share seat from the
- * canvas, so a time can still go back to the same listing.
+ * A TRACK OF THE PILOT'S OWN sits in the same seat, marked `local`, when
+ * My tracks plays it: it is flown exactly as a published one is, and it is
+ * not on the board, so no time goes anywhere and no board ghost is fetched.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -35,131 +33,69 @@ import { str } from '../strings/index.js';
  */
 
 /*
- * THE ACTIVE CLASS, AND IT IS ONE ANSWER IN ONE PLACE.
+ * THE SEAT FOLLOWS THE KIND OF AIRCRAFT, AND THERE ARE TWO.
  *
- * A pilot flies a five inch on a sixty metre field or a 65 mm whoop in a
- * RaceGOW room, and that choice governs everything downstream of it: which
- * track the shell loads behind the title, which canvas the builder opens,
- * which tracks the board offers. The alternative, threading a class argument
- * through the nine modules that read a seat, was tried on paper and it is
- * nine places for the answer to be different.
+ * A track built in a world is raced by every quad and by every fixed wing
+ * that fits its gates (src/game/verify.js planesFor), and the quads and the
+ * planes race on boards of their own. So a pilot holding a track for the
+ * five inch and another for a plane holds two, and the shell reads whichever
+ * the seated aircraft is: the planes' seat for a fixed wing, the quads' for
+ * anything else.
  *
  * The seated AIRCRAFT is the copy of record, because that is the thing a
- * pilot chooses; the class is read off it. It lives in the shell's settings
- * because the shell owns settings, and this module reads that key rather
- * than importing the shell, which would be a cycle and would pull the whole
- * user interface into the builder.
+ * pilot chooses. It lives in the shell's settings because the shell owns
+ * settings, and this module reads that key rather than importing the shell,
+ * which would be a cycle.
  *
- * This file still imports nothing. See the note under readJson.
+ * This file imports nothing but the strings. See the note under readJson.
  */
 const SETTINGS_KEY = 'webfpv.settings.v3';
 
 /*
- * MIRRORS trackClass in configs/airframes.js. A mirror rather than an
- * import because this file imports nothing (see above); an airframe added
- * there without a row here reads as the field, which is the safe way to be
- * wrong. A class can be flown by more than one airframe since the
- * Skyhunter joined the wing on the airfield, so there are two tables: the
- * class each airframe flies, and the one a class seats when it has to
- * choose.
+ * MIRRORS fixedWing in configs/airframes.js. A mirror rather than an import
+ * because this file imports nothing (see above); an airframe added there
+ * without a row here takes the quads' seat. wing1000 is here as the seat a
+ * stored profile or a link that still names the retired flying wing reads,
+ * until the shell reseats it on the Bramor.
  */
-/* wing1000 stays in the first table as the class a stored profile or a
- * link that still names the retired flying wing flies, until the shell
- * reseats it on the Bramor, which is the wing class's own now. */
-const CLASS_OF_AIRFRAME = {
-  '5inch': 'full',
-  whoop65: 'micro',
-  wing1000: 'wing',
-  sky1800: 'wing',
-  cub1400: 'wing',
-  radian2000: 'wing',
-  bramor2300: 'wing',
-  slowstick1180: 'wing',
-  timber1500: 'wing',
-  timber1500f: 'wing',
-  cub1400f: 'wing',
-  bombshell1118: 'wing',
-  kadet1981: 'wing',
-};
-export const AIRFRAME_BY_CLASS = { full: '5inch', micro: 'whoop65', wing: 'bramor2300' };
+const PLANES = new Set([
+  'wing1000', 'sky1800', 'cub1400', 'radian2000', 'bramor2300', 'slowstick1180',
+  'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981',
+]);
 
-/* The class an airframe id flies, 'full' for anything not in the table. */
-export function classOfAirframe(id) {
-  return CLASS_OF_AIRFRAME[id] ?? 'full';
-}
-
-export function activeTrackClass() {
+function activeSeat() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) {
-      return 'full';
-    }
-    const s = JSON.parse(raw);
-    return classOfAirframe(s && s.airframe);
+    const s = raw ? JSON.parse(raw) : null;
+    return s && PLANES.has(s.airframe) ? 'wing' : 'full';
   } catch (e) {
-    /* Private mode, or a blob that is not JSON. The field is what this
-     * simulator has always been. */
+    /* Private mode, or a blob that is not JSON: the five inch's seat. */
     return 'full';
   }
 }
 
 /*
- * Move the whole experience to a class, by seating the aircraft that flies
- * it. Returns true when the setting was written.
- *
- * It writes the AIRFRAME and marks the question answered, and nothing else.
- * The tune, the pack, the rates and the camera belong to the shell, which
- * reseats any of them still belonging to the other aircraft the next time it
- * loads its settings: see reseatIfForeign in src/ui/ui.js. Doing it here
- * would mean this module knowing the airframe table, and the builder pulling
- * it in to draw a toggle.
- */
-export function setActiveTrackClass(cls) {
-  const want = AIRFRAME_BY_CLASS[cls] ?? AIRFRAME_BY_CLASS.full;
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    const s = raw ? JSON.parse(raw) : {};
-    const next = (s && typeof s === 'object' && !Array.isArray(s)) ? s : {};
-    /* An aircraft already seated in the class stays: moving to the wing
-     * class with the Skyhunter seated must not swap it for the wing. */
-    if (classOfAirframe(next.airframe) !== cls) {
-      next.airframe = want;
-    }
-    next.airframeAsked = true;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-/*
- * The share seat, one per class.
- *
- * A pilot holding a published room, a published field track and a
- * published wing course is holding three different things, and the shell
- * reads whichever the seated aircraft flies. The five inch keeps the
- * original key, so a pilot who has been here before still holds what they
- * were holding.
+ * The share seat, one per kind. The five inch keeps the original key, so a
+ * pilot who has been here before still holds what they were holding. The
+ * whoop's own seat, webfpv.share.import.micro.v1, held a RaceGOW room and is
+ * no longer read: a whoop is a quad and takes the quads' seat.
  */
 const IMPORT_KEYS = {
   full: 'webfpv.share.import.v1',
-  micro: 'webfpv.share.import.micro.v1',
   wing: 'webfpv.share.import.wing.v1',
 };
 
-function importKey(cls) {
-  return IMPORT_KEYS[cls ?? activeTrackClass()] ?? IMPORT_KEYS.full;
+function importKey(seat) {
+  return IMPORT_KEYS[seat ?? activeSeat()] ?? IMPORT_KEYS.full;
 }
 
 const EDIT_KEY = 'webfpv.share.editkeys.v1';
 const BIND_KEY = 'webfpv.share.bind.v1';
 const PENDING_KEY = 'webfpv.share.pending.v1';
 const POSTED_KEY = 'webfpv.share.posted.v1';
-const INTENT_KEY = 'webfpv.share.builderIntent.v1';
 
 /* Exported: src/trackbuilder/storage.js had a byte-identical pair. This
- * module imports nothing, so the builder can take them from here without a
+ * module imports nothing, so storage can take them from here without a
  * cycle. */
 export function readJson(key, fallback) {
   try {
@@ -182,11 +118,12 @@ export function writeJson(key, value) {
   }
 }
 
-/* `cls` is for the two callers that need to look at the other class's seat,
- * chiefly the builder deciding what to open. Everything else wants the seat
- * for the aircraft that is actually seated, which is the default. */
-export function readShareImport(cls) {
-  const raw = readJson(importKey(cls), null);
+/* `seat` is for the callers that look at the other kind's seat: a link that
+ * named a plane which does not fit its track moves the track to the quads'.
+ * Everything else wants the seat of the aircraft that is actually seated,
+ * which is the default. */
+export function readShareImport(seat) {
+  const raw = readJson(importKey(seat), null);
   if (!raw || typeof raw !== 'object' || !raw.document || !raw.id) {
     return null;
   }
@@ -194,76 +131,57 @@ export function readShareImport(cls) {
 }
 
 /*
- * Which course a custom world was built from, or should be built from.
- * The map id is only "custom"; two published courses share that id, so a
- * swap has to compare this key or picking a second course from the menu
- * leaves the first one standing.
+ * Which track the world was seated with, or should be, or '' for none. A
+ * world is one id and many tracks, so a swap has to compare this key or
+ * choosing a second track leaves the first one standing. A track of the
+ * pilot's own changes under them in the builder, so its key carries when it
+ * was last changed: playing it after an edit seats the edit.
  */
-export function courseSeatKey(share, doc) {
-  if (share && share.id) {
-    return `share:${share.id}`;
+export function courseSeatKey(share) {
+  if (!share || !share.id) {
+    return '';
   }
-  if (doc && (doc.id || doc.modifiedUtc)) {
-    return `local:${doc.id || 'draft'}:${doc.modifiedUtc || ''}`;
-  }
-  /*
-   * NOTHING SEATED, AND EVEN THAT HAS A CLASS.
-   *
-   * This is the key the shell compares the built world against, so a value
-   * that is the same on both aircraft says "the world already matches" when
-   * a pilot swaps from the five inch to the whoop with neither seat filled.
-   * That is a new visitor, which is most of them, and it left the whoop
-   * standing in the sixty metre paddock because the empty custom map is
-   * built once and never rebuilt. See emptyCourse in src/maps/custom.js,
-   * which is the other half: it is what makes the two empties different
-   * worlds in the first place.
-   */
-  return `custom:empty:${activeTrackClass()}`;
+  return share.local ? `local:${share.id}:${share.document.modifiedUtc || ''}` : `share:${share.id}`;
 }
 
 /*
- * The seat a document belongs in, not the one currently seated: a pilot on a
- * five inch who opens a room from the board is holding a room, and it has to
- * be there when they change aircraft.
- *
- * A TRACK BUILT INSIDE A WORLD (schemaVersion 4 naming a map) is the one
- * document two classes race: the five inch, as it always has, and every
- * fixed wing that fits its gates. It is filed as the five inch's, unless the
- * pilot is flying a plane when it arrives, which is what choosing it from
- * the Track room with a plane seated, or a board link naming a plane, both
- * mean: then it is the plane's. The same shape test as isMapTrack in
- * src/trackbuilder/model.js, written out because this file imports nothing.
+ * A track built inside a world: schemaVersion 4 naming its map. The same
+ * shape test as isMapTrack in src/trackbuilder/model.js, written out
+ * because this file imports nothing. Nothing else can be seated: the race
+ * field the older documents were drawn for is gone.
  */
-function seatClassOf(doc) {
-  if (doc.schemaVersion >= 4 && typeof doc.map === 'string' && doc.map) {
-    return activeTrackClass() === 'wing' ? 'wing' : 'full';
-  }
-  return Object.hasOwn(IMPORT_KEYS, doc.trackClass) ? doc.trackClass : 'full';
+function isMapDocument(doc) {
+  return doc.schemaVersion >= 4 && typeof doc.map === 'string' && Boolean(doc.map);
 }
 
+/*
+ * Seat a track, in the seat of the aircraft flying when it arrives: a plane
+ * choosing it from My tracks, or a board link naming a plane, files it in
+ * the planes' seat, and anything else in the quads'. Returns false, and
+ * writes nothing, for a document that is not a track built in a world.
+ */
 export function writeShareImport(payload) {
-  if (!payload || !payload.document || !payload.id) {
+  if (!payload || !payload.document || !payload.id || !isMapDocument(payload.document)) {
     return false;
   }
-  return writeJson(importKey(seatClassOf(payload.document)), {
+  return writeJson(importKey(), {
     id: String(payload.id),
     name: String(payload.name || payload.document.name || str('ui.untitled_track')),
     author: String(payload.author || ''),
     board: String(payload.board || ''),
     document: payload.document,
-    /* A track that ships with the simulator, seated from the Track room
-     * rather than fetched from the board. inspectCourse reads it: such a
-     * seat is not published, cannot take a time, and opens in the builder
-     * as a copy. Written as a boolean so a stale seat cannot smuggle
-     * anything else in under the name. */
-    stock: Boolean(payload.stock),
+    /* One of this browser's own tracks, played from My tracks rather than
+     * fetched from the board. inspectCourse reads it: such a seat is not
+     * published, cannot take a time and has no board ghost. Written as a
+     * boolean so a stale seat cannot smuggle anything else in under the
+     * name. */
+    local: Boolean(payload.local),
     importedUtc: new Date().toISOString(),
   });
 }
-
-export function clearShareImport(cls) {
+export function clearShareImport(seat) {
   try {
-    localStorage.removeItem(importKey(cls));
+    localStorage.removeItem(importKey(seat));
   } catch (e) {
     /* nothing to do about it */
   }
@@ -362,21 +280,12 @@ export function writePendingTime(payload) {
   if (!payload || !payload.trackId || !Number.isFinite(payload.lapMs)) {
     return false;
   }
-  /*
-   * trackId, lapMs, and the three lap total when the run had one. There used
-   * to be a `name` here holding the TRACK name, written by every caller and
-   * read by none, sitting one field away from the pilot name it reads like.
-   *
-   * threeMs is the fastest three CONSECUTIVE clean laps of that run, which is
-   * what RaceGOW scores, and it is optional in exactly the way the board
-   * treats it: absent when the run never put three together, and absent on
-   * every run flown on the sixty metre field, which is scored on one lap.
-   */
-  const three = Number(payload.threeMs);
+  /* trackId and lapMs. There used to be a `name` here holding the TRACK
+   * name, written by every caller and read by none, sitting one field away
+   * from the pilot name it reads like. */
   return writeJson(PENDING_KEY, {
     trackId: String(payload.trackId),
     lapMs: Math.round(payload.lapMs),
-    threeMs: Number.isFinite(three) && three > 0 ? Math.round(three) : null,
     /* The plane that flew it, on a map track, so a later upload goes to the
      * board it was flown for; empty for every other lap. */
     craft: payload.craft ? String(payload.craft) : '',
@@ -411,29 +320,4 @@ export function writePostedBest(trackId, lapMs) {
     return true;
   }
   return mapSet(POSTED_KEY, trackId, { lapMs: next });
-}
-
-export function writeBuilderIntent(intent) {
-  if (!intent || typeof intent !== 'object') {
-    return false;
-  }
-  return writeJson(INTENT_KEY, { kind: String(intent.kind || '') });
-}
-
-export function readBuilderIntent() {
-  const raw = readJson(INTENT_KEY, null);
-  if (!raw || typeof raw !== 'object' || !raw.kind) {
-    return null;
-  }
-  return raw;
-}
-
-export function takeBuilderIntent() {
-  const raw = readBuilderIntent();
-  try {
-    localStorage.removeItem(INTENT_KEY);
-  } catch (e) {
-    /* nothing to do about it */
-  }
-  return raw;
 }

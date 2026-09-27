@@ -5,11 +5,6 @@
  *
  * What it holds, and why each one:
  *
- *   A field track is written exactly as before: schemaVersion 3, no `map`
- *   and no `orientation`, for every shipped preset and the reference
- *   course. The board refuses anything but 1, 2 and 3, so a field track
- *   that started saying 4 would stop being publishable.
- *
  *   A map track (schemaVersion 4) round trips byte for byte, keeps its map
  *   and every gate's full orientation, and a 4 that names no usable map is
  *   read as a field track rather than trusted.
@@ -84,14 +79,11 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import {
-  MAP_SCHEMA_VERSION, SCHEMA_VERSION, deserialize, isMapTrack, normalize, serialize,
+  MAP_SCHEMA_VERSION, deserialize, isMapTrack, normalize, serialize, toPlain,
 } from '../src/trackbuilder/model.js';
-import { PRESETS } from '../src/trackbuilder/presets.js';
+import { inspectCourse, layoutFingerprint } from '../src/share/listing.js';
+import { courseSeatKey } from '../src/share/session.js';
 import { Race } from '../src/game/race.js';
 import {
   BUILD_TYPES, DEFAULT_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, addGate, axesOf, capsOverlap, createHistory, gateSpec, gizmoAxes,
@@ -106,8 +98,6 @@ import {
   AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
 } from '../configs/airframes.js';
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../src/render/frame.js';
-
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 let failed = 0;
 let passed = 0;
@@ -125,19 +115,6 @@ const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
 const nearV = (a, b, tol = 1e-6) => near(a.x, b.x, tol) && near(a.y, b.y, tol) && near(a.z, b.z, tol);
 const fmtV = (v) => `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`;
 const DEG = Math.PI / 180;
-
-/* ------------------------------------------------------------------ */
-console.log('field tracks are written as they were');
-const reference = JSON.parse(await readFile(join(root, 'tests/fixtures/course-reference.json'), 'utf8'));
-for (const raw of [...PRESETS, reference]) {
-  const text = serialize(normalize(raw).doc);
-  const plain = JSON.parse(text);
-  const keys = JSON.stringify(plain);
-  check(`${raw.name}: schemaVersion ${SCHEMA_VERSION}, no map, no orientation`,
-    plain.schemaVersion === SCHEMA_VERSION && !('map' in plain) && !keys.includes('"orientation"'),
-    `v${plain.schemaVersion}`);
-  check(`${raw.name}: round trips byte for byte`, serialize(deserialize(text).doc) === text);
-}
 
 /* ------------------------------------------------------------------ */
 console.log('a map track');
@@ -837,6 +814,56 @@ console.log('plane sized gates');
   check('the pylon collapses at pi p r^3: about 1.2 kN m at the base, 29 N m at the tip',
     near(base.mFree, Math.PI * 1000 * 0.7156 ** 3) && tip.mFree < 30, `${base.mFree.toFixed(0)} ${tip.mFree.toFixed(1)}`);
   check('and it gives nothing without a length', postGive('pylon', 0.5, 1) === null);
+}
+
+/* ------------------------------------------------------------------ */
+/*
+ * The seat, which is how the shell flies a track: one of the pilot's own
+ * played from My tracks, or one from the board, and what each is to the
+ * board. These are the cases the 2D builder's selftest held for field
+ * tracks, on a track built in a world, and the pilot's own beside them.
+ */
+console.log('the seat and the board');
+{
+  const d = newCourse('swiss2', 'Ladder loop');
+  addGate(d, 'gate', { x: 10, y: 400, z: -20 }, qAxis(0, 1, 0, 0));
+  const plainDoc = toPlain(d);
+  const renamed = { ...plainDoc, name: 'Renamed loop' };
+  check('the layout fingerprint ignores the title', layoutFingerprint(plainDoc) === layoutFingerprint(renamed));
+  const board = { id: plainDoc.id, name: plainDoc.name, author: 'Ada Rook', board: 'http://127.0.0.1:3180', document: plainDoc };
+  const community = inspectCourse({ share: board, editKeyFor: () => null, bindFor: () => null });
+  check('a board track you do not own is a community listing that takes a time',
+    community.kind === 'community' && community.canPostTime && community.shareId === plainDoc.id);
+  const owned = inspectCourse({
+    share: board,
+    editKeyFor: (id) => (id === plainDoc.id ? 'key' : null),
+    bindFor: () => ({ layoutFingerprint: layoutFingerprint(plainDoc), nameOnBoard: plainDoc.name, owned: true }),
+  });
+  check('a board track you published is owned', owned.kind === 'owned' && owned.canPostTime);
+  const drifted = inspectCourse({
+    share: { ...board, document: renamed, name: renamed.name },
+    editKeyFor: (id) => (id === plainDoc.id ? 'key' : null),
+    bindFor: () => ({ layoutFingerprint: layoutFingerprint(plainDoc), nameOnBoard: 'Old name', owned: true }),
+  });
+  check('an owned rename is name drift, not layout drift', drifted.nameDrift === true && drifted.layoutDrift === false && drifted.canPostTime);
+  const authorShift = inspectCourse({
+    share: board,
+    editKeyFor: (id) => (id === plainDoc.id ? 'key' : null),
+    bindFor: () => ({ layoutFingerprint: layoutFingerprint(plainDoc), nameOnBoard: plainDoc.name, owned: true, author: 'Ada Rook' }),
+    pilotName: 'Ada Two',
+  });
+  check('an owned handle change is author drift, not layout drift',
+    authorShift.authorDrift === true && authorShift.layoutDrift === false && authorShift.canUpdateListing === true);
+  const local = inspectCourse({ share: { id: plainDoc.id, name: plainDoc.name, document: plainDoc, local: true }, editKeyFor: () => null, bindFor: () => null });
+  check('one of your own played from My tracks is on no board: no share id, no time to post',
+    local.kind === 'local' && local.shareId === null && !local.canPostTime && !local.published && local.gates === 1);
+  check('and nothing seated is none', inspectCourse({ share: null }).kind === 'none');
+  check('a board track is seated by its id',
+    courseSeatKey(board) === `share:${plainDoc.id}`);
+  const edited = { ...plainDoc, modifiedUtc: '2099-01-01T00:00:00.000Z' };
+  check('one of your own by its id and when it last changed, so playing it after an edit seats the edit',
+    courseSeatKey({ id: plainDoc.id, local: true, document: plainDoc }) !== courseSeatKey({ id: plainDoc.id, local: true, document: edited }));
+  check('and nothing seated has no key', courseSeatKey(null) === '');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

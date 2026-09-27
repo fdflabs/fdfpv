@@ -7,14 +7,14 @@
  * renderer, through scripts/shots.js, which is the same harness every
  * rendering bug in this project was found with.
  *
- * WHAT THE FRAME IS. The title screen on the race field, with the menu, the
- * chips and the body copy hidden so that only the wordmark and its subtitle
- * are left over the world. The camera is parked by hand at the numbers
- * below, off to the right of the course and low, so the lit start gate sits
- * centre with the parked quad in the near left and the flags and markers
- * running away behind it. Those numbers are the whole design: change them
- * and the card changes, so they live here rather than in somebody's shell
- * history.
+ * WHAT THE FRAME IS. The title screen over a track built on the Alps' strip
+ * (scripts/gatecards-track.json, the Track mode card's), with the menu, the
+ * chips and the body copy hidden so that the wordmark and the cards are
+ * left over the world. The camera is parked by hand at the numbers below,
+ * behind the start gate, low and a little to its right, so the lit gate
+ * sits centre with the rest of the course running away up the strip. Those
+ * numbers are the whole design: change them and the card changes, so they
+ * live here rather than in somebody's shell history.
  *
  * WHY THE MENU GOES AND THE WORDMARK STAYS. A share card is read at about
  * 500 px wide in a feed, next to a headline. The menu is six rows of text
@@ -67,7 +67,7 @@ const HIDE = [
 ];
 
 /* Camera, then the point it looks at. Metres, world frame. */
-const CAM = [108.5, 1.4, 11, 104.6, 1.4, -6];
+const CAM = [5, 1.4, 41, -0.5, 1.4, 24];
 
 const hide = `${JSON.stringify(HIDE)}.forEach((s) => document.querySelectorAll(s)`
   + `.forEach((n) => { n.style.display = 'none'; }));`
@@ -89,10 +89,10 @@ try {
      * detect a slow machine and drop the preset, and the card would come out
      * at a different quality depending on who regenerated it. */
     '--graphics=high',
-    /* The field this camera is set for. A page that names no world opens
-     * on the Alps, see src/boot.js. */
-    '--url=/index.html?map=custom',
+    /* The track this camera is set for, seated as one of the pilot's own. */
+    '--course=scripts/gatecards-track.json',
     'until:!!window.__boot && window.__boot().frames > 2',
+    'until:window.__map && window.__map().id === "alps" && window.__map().ready && window.__race().gates.length === 6',
     `eval:(() => { ${hide} })()`,
     'wait:400',
     `eval:JSON.stringify((() => { window.__setCam(${CAM.join(',')});`

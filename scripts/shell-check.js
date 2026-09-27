@@ -58,37 +58,32 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
-/* The shipped track set, so the Track room's assertions below are about
- * whatever ships rather than about a track named in this file. */
-import { presetsForClass } from '../src/trackbuilder/presets.js';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
+import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const BASELINE = join(root, 'tests', 'shell-baseline.json');
 
 /*
- * THE PILOT'S LIBRARY, as the Track room will find it.
+ * THE PILOT'S LIBRARY, as My tracks will find it.
  *
- * Real documents rather than hand written ones: copies of two shipped
- * tracks under fresh trk- ids, which is exactly what the library holds
- * after somebody opens a shipped track in the builder and saves it. A
+ * Real documents rather than hand written ones: two tracks built in the
+ * Swiss valley with the builder's own functions (tests/lib/maptrack.js),
+ * which is what the library holds after somebody builds and saves them. A
  * fabricated shape would pass this check and tell us nothing about the
- * documents the room actually meets.
+ * documents the list actually meets.
  *
- * Two, so that seating one can be told from listing them: one moves to the
- * top card and the other stays in the list.
+ * Two, so that seating one can be told from listing them.
  */
 const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
-const LIBRARY_SEED = presetsForClass('micro').slice(0, 2).map((d, i) => ({
-  ...d,
-  id: `trk-5e1f00${i}0`,
-  name: `${d.name} (mine)`,
-  /* Newest first is the room's order, so these are dated apart to make it
+const LIBRARY_SEED = [0, 1].map((i) => ({
+  ...mapTrackDocument({ id: `trk-5e1f00${i}0`, name: `Ring ${i + 1} (mine)` }),
+  /* Newest first is the list's order, so these are dated apart to make it
    * an order rather than whatever the object happened to enumerate in. */
   modifiedUtc: `2026-0${i + 1}-01T00:00:00.000Z`,
 }));
@@ -1324,11 +1319,10 @@ const BEHAVIOUR = `(() => {
     /*
      * THE GATE WITH THE MODE ALREADY ANSWERED, which is the case that
      * shipped broken once and which a probe that always nulls the mode
-     * cannot see. The builder's Fly this track link carries map=custom,
-     * which linkedMode reads as race, and renderMenu once dressed the
-     * screen from the mode alone rather than from onGate(), so the cards
-     * were built and then left invisible by CSS with the menu's own copy
-     * showing behind them and no way to fly.
+     * cannot see. A link that names the track reads as race, and
+     * renderMenu once dressed the screen from the mode alone rather than
+     * from onGate(), so the cards were built and then left invisible by
+     * CSS with the menu's own copy showing behind them and no way to fly.
      */
     ui.mode = 'race';
     ui.show('title');
@@ -1344,50 +1338,32 @@ const BEHAVIOUR = `(() => {
     ui.show('title');
 
     /*
-     * ONE PRESS SEATS BOTH HALVES. The whoop card is pressed for real, and
-     * it has to leave the gate, seat the whoop, and set race: the aircraft
-     * is what makes the seat readable, so a card that moved the mode and
-     * not the machine would send a whoop pilot to the five inch's track.
+     * ONE PRESS, AND IT LANDS ON MY TRACKS. The Track mode card is pressed
+     * for real with the whoop seated, and it has to leave the gate, keep
+     * the whoop, set race, and open My tracks: Track mode is the list of
+     * tracks, whatever quad or plane is flying it.
      */
     ui.settings.airframe = 'whoop65';
     ui.act('way-race-5inch');
     const whoop = {
       craft: ui.settings.airframe,
       mode: ui.mode,
-      map: ui.settings.map,
+      screen: ui.screen,
       gate: ui.onGate(),
       menu: ui.items().filter((it) => ui.isStop(it)).map((it) => it.label),
       cards: ui.items().filter((it) => it.card).length,
     };
     /*
-     * THE TRACK ROOM LISTS TWO THINGS AND NO THIRD: what is on the board,
-     * and what is in this browser's library.
-     *
-     * It used to list the tracks that ship with the simulator as well, and
-     * this check pinned that. A shipped track is a copy of something that
-     * is also on the board under another id, so taking one off the board
-     * did not take it off the screen, and one that was still on the board
-     * was listed twice. The rule changed; this changed with it, and it
-     * now pins the rule rather than the old behaviour.
-     *
-     * The library was seeded before the page loaded, with copies of the
-     * shipped documents, which is what a pilot's library holds after they
-     * open one and save it. No comment here may contain a backtick: this
+     * MY TRACKS LISTS THE PILOT'S OWN, out of this browser's library, and
+     * seating one puts it in the share seat as the pilot's own: marked
+     * local, so it is on no board and takes no time. The library was seeded
+     * before the page loaded. No comment here may contain a backtick: this
      * body is a template literal.
      */
     ui.show('courses');
-    const stockCards = ui.items().filter((it) => it.course && it.course.kind === 'stock');
     const localCards = ui.items().filter((it) => it.course && it.course.kind === 'local');
-    const localNames = localCards.map((it) => it.label);
     const picked = localCards[0] ? localCards[0].course.track : null;
-    ui.act(picked ? 'local:' + picked.id : 'local:nothing-is-saved');
-    const seatedMap = ui.settings.map;
-    /*
-     * Seating leaves the Track room for the map, so come back to it
-     * before counting: the seated track moves to the top card and the
-     * others stay listed beneath it.
-     */
-    ui.show('courses');
+    const seatedOk = picked ? ui.seatLocal(picked.id) : false;
     const readKey = (k) => {
       try {
         return JSON.parse(localStorage.getItem(k) || 'null');
@@ -1395,29 +1371,15 @@ const BEHAVIOUR = `(() => {
         return null;
       }
     };
-    /* writeAutosave stores the DOCUMENT, not a wrapper round it, so the id
-       is on the object itself. It files by the document's own class, which
-       is why this is the micro chair. */
-    const autosaved = readKey('webfpv.trackbuilder.autosave.micro.v1');
-    const stockSeat = {
-      stockCount: stockCards.length,
+    const seat = readKey('webfpv.share.import.v1');
+    const mine = {
       count: localCards.length,
-      names: localNames,
+      names: localCards.map((it) => it.label),
       pickedId: picked ? picked.id : null,
-      pickedName: picked ? picked.name : null,
-      map: seatedMap,
-      /*
-       * THE AUTOSAVE, AND AN EMPTY SHARE SEAT. Your own track is what the
-       * autosave holds; the share seat is for a track that is not yours,
-       * and a leftover one would shadow this and fly the wrong course.
-       */
-      shareId: ui.share ? ui.share.id : null,
-      shareImport: readKey('webfpv.share.import.micro.v1'),
-      autosaveId: autosaved ? autosaved.id : null,
-      topCard: (ui.items().filter((it) => it.course)[0] || {}).label || null,
+      seatedOk,
+      seat: seat ? { id: seat.id, local: seat.local, map: seat.document && seat.document.map } : null,
       listedAfter: ui.items().filter((it) => it.course && it.course.kind === 'local').length,
     };
-    ui.setShare(null);
     ui.show('title');
     /* And Escape from the menu is the gate, one level, on the whoop as on
      * anything else. It used to be two levels on one aircraft and one on
@@ -1425,17 +1387,17 @@ const BEHAVIOUR = `(() => {
     ui.back();
     const backFromWhoop = ui.items().filter((it) => ui.isStop(it)).map((it) => it.label);
     /*
-     * Race is pressed for real on the five inch too. Freestyle is only set,
-     * because answering it can seat a world, and seating a world hands
-     * main.js a swap: the city is nineteen thousand meshes and this check
-     * has nothing to say about it. What act() does on the way is the same
-     * code either way.
+     * Track mode is pressed for real with a plane seated too, and the plane
+     * stays: every plane that fits a track's gates races it. Freestyle is
+     * only set, because answering it can seat a world, and seating a world
+     * hands main.js a swap: the city is nineteen thousand meshes and this
+     * check has nothing to say about it. What act() does on the way is the
+     * same code either way.
      */
     ui.settings.airframe = 'bramor2300';
     ui.act('way-race-5inch');
     const landed = ui.screen;
-    const seated = ui.seatMatchesMode();
-    const fiveCraft = ui.settings.airframe;
+    const planeCraft = ui.settings.airframe;
     ui.show('title');
     const race = ui.items().map((it) => it.label);
     ui.mode = 'freestyle';
@@ -1444,7 +1406,7 @@ const BEHAVIOUR = `(() => {
     ui.firstRun = heldFirst;
     ui.craftGate = heldCraft;
     ui.show('title');
-    out.stockSeat = stockSeat;
+    out.mine = mine;
     out.modeGate = {
       gate,
       cards,
@@ -1463,19 +1425,16 @@ const BEHAVIOUR = `(() => {
        * screen, when the mode is answered and the aircraft is not. */
       gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 2
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
-      /* One press: the whoop is seated, the mode is race, the seat is a
-       * track rather than a world, the gate is gone and no Freestyle row
-       * turned up on the menu behind it. */
-      onePress: whoop.craft === 'whoop65' && whoop.mode === 'race' && whoop.map === 'custom'
+      /* One press: the whoop stays seated, the mode is race, the gate is
+       * gone, My tracks is up, and no Freestyle row turned up on it. */
+      onePress: whoop.craft === 'whoop65' && whoop.mode === 'race' && whoop.screen === 'courses'
         && !whoop.gate && whoop.cards === 0 && !whoop.menu.includes('Freestyle'),
       escapeToGate: backFromWhoop.join() === gate.join(),
-      /* Answering it either seats something to fly or opens the picker for
-       * the thing it could not seat. Landing on a menu with neither is the
-       * failure: a Fly row over an empty seat. And the five inch card seats
-       * the five inch, which is the other half of the same press. */
-      answered: seated || landed === 'courses',
+      /* Answering it opens My tracks, with a plane seated as with a quad,
+       * and the plane stays seated: it races the tracks it fits. */
+      answered: landed === 'courses',
       landed,
-      fiveCraft,
+      planeCraft,
       race,
       free,
       raceNamesTrack: race.includes('Track') && !race.includes('Race') && !race.includes('Freestyle'),
@@ -1555,7 +1514,7 @@ async function main() {
       s.graphicsAuto = false;
       localStorage.setItem(k, JSON.stringify(s));
     } catch (e) { /* Storage refused. The run still boots. */ }`,
-    /* A pilot who has saved two tracks, because the Track room lists the
+    /* A pilot who has saved two tracks, because My tracks lists the
      * library now and an empty one would let the whole half of the screen
      * be missing without a word. Seeded through the same key the builder
      * writes rather than through a hook, so what is checked is what a
@@ -1793,45 +1752,24 @@ async function main() {
       }
     }
 
-    const st = b.stockSeat;
+    const st = b.mine;
     if (!st) {
-      failures.push('the Track room: the library seat probe returned nothing');
+      failures.push('My tracks: the library seat probe returned nothing');
     } else {
-      /*
-       * NOT ONE SHIPPED TRACK, however many presets.js carries. This is the
-       * rule the room was changed to keep: it lists the board and this
-       * browser, and a shipped track is neither. presetsForClass is read
-       * here only to say how many were on offer and are now correctly not.
-       */
-      const shipped = presetsForClass('micro');
-      if (st.stockCount !== 0) {
-        failures.push(`the Track room lists ${st.stockCount} shipped track(s) on the whoop, and should list none of the ${shipped.length} in presets.js`);
-      }
       if (st.count !== LIBRARY_SEED.length) {
-        failures.push(`the Track room lists ${st.count} of the pilot's own ${LIBRARY_SEED.length} saved track(s): ${(st.names || []).join(', ') || 'none'}`);
+        failures.push(`My tracks lists ${st.count} of the pilot's own ${LIBRARY_SEED.length} saved track(s): ${(st.names || []).join(', ') || 'none'}`);
       }
       if (!st.pickedId || !LIBRARY_SEED.some((d) => d.id === st.pickedId)) {
-        failures.push(`the Track room offered ${st.pickedId || 'no'} saved track, which the seeded library does not carry`);
+        failures.push(`My tracks offered ${st.pickedId || 'no'} saved track, which the seeded library does not carry`);
       }
-      /*
-       * SEATED IN THE AUTOSAVE AND NOWHERE ELSE. A share seat left behind
-       * here is read BEFORE the autosave by inspectCourse, so the pilot
-       * would fly whatever they last opened from the board instead of the
-       * card they just pressed.
-       */
-      if (st.map !== 'custom' || st.autosaveId !== st.pickedId) {
-        failures.push(`choosing a saved track seated map ${st.map} and autosave ${st.autosaveId}, not ${st.pickedId}`);
+      /* SEATED AS THE PILOT'S OWN: in the share seat, marked local, so it is
+       * flown the way a board track is and posts nothing to any board. */
+      if (!st.seatedOk || !st.seat || st.seat.id !== st.pickedId || st.seat.local !== true) {
+        failures.push(`choosing a saved track seated ${JSON.stringify(st.seat)}, not ${st.pickedId} as the pilot's own`);
       }
-      if (st.shareId !== null || st.shareImport !== null) {
-        failures.push(`choosing a saved track left a share seat behind: ${JSON.stringify(st.shareImport)}`);
-      }
-      /* It becomes the seated card at the top, so it is listed once, not
-       * twice: as itself above and as a library row below. */
-      if (st.topCard !== st.pickedName) {
-        failures.push(`the seated track is ${st.topCard}, not the ${st.pickedName} that was chosen`);
-      }
-      if (st.listedAfter !== LIBRARY_SEED.length - 1) {
-        failures.push(`with one saved track seated the room lists ${st.listedAfter} others, not ${LIBRARY_SEED.length - 1}`);
+      /* It stays on the list as its own card, marked as the one seated. */
+      if (st.listedAfter !== LIBRARY_SEED.length) {
+        failures.push(`with one saved track seated My tracks lists ${st.listedAfter}, not ${LIBRARY_SEED.length}`);
       }
     }
     if (!b.modeGate || b.modeGate.error) {
@@ -1850,16 +1788,16 @@ async function main() {
         failures.push(`the gate: with the mode already answered it drew ${g.modeSetGate.cards.length} card(s), ${g.modeSetGate.cards.filter((c) => c.wide).length} of them visible, is-gate ${g.modeSetGate.isGate}, ${g.modeSetGate.keepNote} menu note(s) still showing`);
       }
       if (!g.onePress) {
-        failures.push(`the gate: Track mode with the whoop seated left ${g.whoop.craft} in ${g.whoop.mode} on ${g.whoop.map}, gate ${g.whoop.gate}, and landed on ${g.whoop.menu.join(', ') || 'nothing'}`);
+        failures.push(`the gate: Track mode with the whoop seated left ${g.whoop.craft} in ${g.whoop.mode} on ${g.whoop.screen}, gate ${g.whoop.gate}, and landed on ${g.whoop.menu.join(', ') || 'nothing'}`);
       }
       if (!g.escapeToGate) {
         failures.push(`the gate: Escape from the menu reached ${g.backFromWhoop.join(', ') || 'nothing'}, not the three cards`);
       }
       if (!g.answered) {
-        failures.push(`the gate: answering Track mode left nothing seated and stayed on ${g.landed}`);
+        failures.push(`the gate: answering Track mode with a plane seated stayed on ${g.landed}, not My tracks`);
       }
-      if (g.fiveCraft !== '5inch') {
-        failures.push(`the gate: the five inch card seated ${g.fiveCraft}, so a card moves the mode and not the machine`);
+      if (g.planeCraft !== 'bramor2300') {
+        failures.push(`the gate: Track mode with a plane seated seated ${g.planeCraft}, and a plane that fits a track races it`);
       }
       if (!g.raceNamesTrack) {
         failures.push(`the title in Race names ${g.race.join(', ')}, which is not a Track row without a mode beside it`);

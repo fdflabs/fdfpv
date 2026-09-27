@@ -75,12 +75,11 @@ import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, cra
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
 import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
 import {
-  adoptMostFlownTrack, adoptShareFromLocation, boardPageUrl, fetchGhost, fetchTrackDocument,
+  adoptShareFromLocation, boardPageUrl, fetchGhost, fetchTrackDocument,
   fetchTrackTimes, postFreestyleRun, postTime,
 } from './share/board.js';
-import { findBoardTwin, hasFlyableTrack, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, suggestRemixName, syncOwnedIdentity } from './share/listing.js';
+import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
-import { sendCardAnimation } from './share/cardgif.js';
 import { nameRules, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
@@ -96,11 +95,11 @@ import {
   readPendingTime,
   readShareImport,
   lapSlot,
-  writePendingTime,
   writePostedBest,
   writeShareImport,
 } from './share/session.js';
 import { isMapTrack } from './trackbuilder/model.js';
+import { loadMapTrack } from './trackbuilder/storage.js';
 import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
@@ -444,7 +443,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * makes that stage's bar move at the wrong rate; it cannot break the load,
  * and the stage still ends when the import resolves.
  */
-/* field: field.js, scene.js, post.js. city: all 59 vendored files, plus
+/* city: all 59 vendored files, plus
  * index.js, animation.js, bake.js, drawn.js and references.js, plus the
  * eight under places/ that build the works road, the disused works, the
  * municipal pool, the training field and the blossom that falls over the
@@ -459,7 +458,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * Bardwell's yard were removed on 2026-08-30, and their three entries went
  * with them. `npm run lint:memory` prints the fetched count per map beside
  * this number. */
-const MAP_MODULE_COUNT = { field: 1, city: 72, custom: 1 };
+const MAP_MODULE_COUNT = { city: 72 };
 /* Where a map's modules live, so the loading bar can count them. Data, not a
  * ternary: the ternary read "field or else city", so a third map counted its
  * modules under the city's prefix and the bar sat at zero.
@@ -469,13 +468,19 @@ const MAP_MODULE_COUNT = { field: 1, city: 72, custom: 1 };
  * SUBSTRING of each performance entry's full URL, and a shell mounted at
  * https://fdfpv.example/sim/ still produces names containing /src/maps/city/. */
 const MAP_MODULE_PREFIX = {
-  field: '/src/maps/field',
   city: '/src/maps/city/',
-  custom: '/src/maps/custom',
 };
+
+/* The world a boot that could not build its own falls back to. */
+const FLOOR_WORLD = 'airfield';
 
 async function loadMap(shell, id, loading, options) {
   const entry = mapById(id);
+  /* Track mode's seat is resolved to a world by worldId before anything
+   * asks for one, so a seat reaching here is a caller that skipped it. */
+  if (entry.id !== id || !entry.load) {
+    throw new Error(`${id} is not a world that can be built`);
+  }
   loading.start('module');
   const counter = moduleCounter(
     MAP_MODULE_PREFIX[id] ?? `/src/maps/${id}`,
@@ -602,7 +607,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   const flightStats = createFlightStats({
     describe: () => ({
       craft: ui.settings.airframe === 'whoop65' ? 'whoop65' : '5inch',
-      map: ui.settings.map,
+      /* The board's stats still spell Track mode 'custom', the seat's old
+       * name (STATS_MAPS in fdfpv-leaderboard's validate.js). */
+      map: ui.settings.map === 'track' ? 'custom' : ui.settings.map,
       input: (() => {
         if (input.firstGamepad()) {
           return 'gamepad';
@@ -693,38 +700,42 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * The menu is rebuilt after the change, not just the value. The Ui builds
    * its rows in its constructor, which has already run by this line, so a
    * map named in the URL used to land in the settings and leave the Map row
-   * still reading the map it was not showing. That only became reachable
-   * when the track builder started linking to ?map=custom; before it, the
-   * two could never disagree at this point.
+   * still reading the map it was not showing.
    */
   if (mapId && ui.settings.map !== mapId) {
     ui.settings.map = mapId;
     ui.renderMenu();
   }
   /*
-   * THE TITLE'S WORLD, boot.js's Alps, or null when the address named a
-   * world. While it is set the title shows it and the pilot's seat waits
-   * for Fly; the first fly clears it for the session. Returning to the
+   * THE TITLE'S WORLD, boot.js's Swiss valley, or null when the address
+   * named a world. While it is set the title shows it and the pilot's seat
+   * waits for Fly; the first fly clears it for the session. Returning to the
    * title after a flight keeps the flown world rather than rebuilding the
-   * Alps: measured on this machine, the Alps take 9.1 s to rebuild in
-   * session (world 6.9 s, first frame 2.2 s) against 1.7 s for the track
-   * world, and a quit to the menu is instant today.
+   * valley: measured on this machine, the Alps took 9.1 s to rebuild in
+   * session (world 6.9 s, first frame 2.2 s), and a quit to the menu is
+   * instant today.
    */
   let titleWorld = titleMap;
   /*
-   * A PUBLISHED TRACK BUILT INSIDE A WORLD, when that is what the pilot's
-   * seat holds, or null.
+   * THE WORLD THE BUILDER IS OPEN IN, when My tracks opened it on a track
+   * (Edit) or on a map (New track), or null. While it is set the world is
+   * that one with no track seated on it, whatever the seat holds, because
+   * what is standing in it is the track being built. Leaving the builder for
+   * My tracks clears it, and the next Play seats its track on the world
+   * already built when it is the same one.
+   */
+  let buildWorld = null;
+  /*
+   * THE TRACK THE PILOT'S SEAT HOLDS, or null.
    *
-   * "Track" (map:custom) means "fly the seated track", and the Track room,
-   * a board link and a publish all seat one the same way. A field track is
-   * flown on the custom map as it always was. A map track (schemaVersion 4,
-   * src/builder/) is flown in the world it names, with its gates seated on
+   * "Track" (map:track) means "fly the seated track", and My tracks, a board
+   * link and a publish all seat one the same way. A track is flown in the
+   * world it names (schemaVersion 4, src/builder/), with its gates seated on
    * that world's view by the in-sim builder (seatMapCourse below), so the
-   * seat decides the world. Only a world this build can build in counts: a
-   * track on any other is left to the custom map's best effort reading.
+   * seat decides the world. Only a world this build can build in counts.
    */
   function seatedMapTrack() {
-    if (titleWorld || ui.settings.map !== 'custom') {
+    if (titleWorld || buildWorld || ui.settings.map !== 'track') {
       return null;
     }
     let share = null;
@@ -734,15 +745,24 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       return null;
     }
     const doc = share && share.document;
-    if (!doc || !(doc.schemaVersion >= 4) || !isMapTrack(doc)) {
+    if (!doc || !isMapTrack(doc)) {
       return null;
     }
     const entry = mapById(doc.map);
     return entry.id === doc.map && entry.build ? share : null;
   }
+  /* The world to build: the title's, the builder's, the seated track's, the
+   * Track seat's home when no track is seated, or the map the pilot chose. */
   function worldId() {
+    if (titleWorld || buildWorld) {
+      return titleWorld || buildWorld;
+    }
+    const seat = mapById(ui.settings.map);
+    if (seat.load) {
+      return seat.id;
+    }
     const seated = seatedMapTrack();
-    return seated ? seated.document.map : mapById(titleWorld ?? ui.settings.map).id;
+    return seated ? seated.document.map : seat.home;
   }
   /* The record line. While the title shows its own world the seat's course
    * is not built, so the Ui is told that rather than the Alps' mode. */
@@ -785,9 +805,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * its honest message. */
   simBytes.catch(() => {});
   /*
-   * A published course arrives as ?share=id. Fetch it before the world is
-   * built so the custom map reads the document the board sent, not the
-   * draft sitting in the builder's autosave.
+   * A published track arrives as ?share=id. Fetch it before the world is
+   * built so the world built is the one the track the board sent stands in.
    *
    * This is a named stage because it is a network wait on a service that
    * sleeps, and a player who is told "Renderer" while the board wakes up
@@ -798,34 +817,23 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const fromUrl = await adoptShareFromLocation();
     if (fromUrl) {
       /*
-       * THE AIRCRAFT THE LINKED TRACK IS FOR, before anything reads a seat.
-       *
-       * The seats are one per class. adoptShareFromLocation files the
-       * document by ITS class, so a five inch profile following the board's
-       * Fly link to a room wrote the room into the whoop seat and then, with
-       * the five inch still seated, read the five inch's seat: the pilot
-       * landed on their old field with the track they were sent to nowhere.
-       * Seating the aircraft the document is built for makes the write and
-       * the read the same seat. applySettings runs once below and swaps the
-       * plant to match, the same path an aircraft change from the menu takes.
+       * THE AIRCRAFT THAT MAY RACE THE LINKED TRACK, before anything reads
+       * a seat. Every quad may, and a plane that fits every gate; a link
+       * naming a plane that does not fit gives way to the five inch, and the
+       * track moves from the planes' seat to the quads' with it, or the
+       * pilot lands with the track they were sent to in the other seat.
+       * applySettings runs once below and swaps the plant to match, the
+       * same path an aircraft change from the menu takes.
        */
-      /* A map track the link filed in a plane's seat, for a plane that
-       * does not fit it, moves to the five inch's with the aircraft. */
-      if (ui.seatCraftForDoc(fromUrl.document) && isMapTrack(fromUrl.document)) {
+      if (ui.seatCraftForDoc(fromUrl.document)) {
         const stale = readShareImport('wing');
         if (stale && stale.id === fromUrl.id) {
           clearShareImport('wing');
         }
         writeShareImport(fromUrl);
       }
-      ui.settings.map = 'custom';
+      ui.settings.map = 'track';
       ui.renderMenu();
-    } else if (ui.settings.map !== 'city' && !hasFlyableTrack()) {
-      const featured = await adoptMostFlownTrack(airframeById(ui.settings.airframe).trackClass);
-      if (featured) {
-        ui.settings.map = 'custom';
-        ui.renderMenu();
-      }
     }
   } catch (e) {
     ui.setBanner(str('main.could_not_open_that_published_track', { v1: e.message ?? e }), true);
@@ -1127,11 +1135,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /*
    * The swap path has fallen back to the previous map on a failed load for
    * a while; boot had nothing, so one map that would not build (a bad
-   * asset, a WebGL context the city cannot have, a course the custom map
-   * chokes on) took the whole session down before the title screen. The
-   * track world is the floor: it is the default map and the smallest world
-   * here, so if it cannot build there is nothing to fall back TO and the
-   * throw is honest.
+   * asset, a WebGL context the city cannot have) took the whole session
+   * down before the title screen. The airfield is the floor: it is the
+   * smallest world here, a flat field and a dozen meshes, so if it cannot
+   * build there is nothing to fall back TO and the throw is honest.
    */
   try {
     view = await loadMap(shell, worldId(), loading, {
@@ -1139,7 +1146,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       renderScale: renderScaleOf(ui.settings),
     });
   } catch (e) {
-    if (worldId() === 'custom') {
+    if (worldId() === FLOOR_WORLD) {
       throw e;
     }
     console.error(e);
@@ -1150,17 +1157,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (titleWorld) {
       titleWorld = null;
     } else {
-      ui.settings.map = 'custom';
+      ui.settings.map = FLOOR_WORLD;
     }
     ui.renderMenu();
-    view = await loadMap(shell, 'custom', loading, {
+    view = await loadMap(shell, FLOOR_WORLD, loading, {
       quality: ui.settings.graphics,
       renderScale: renderScaleOf(ui.settings),
     });
     /* The banner, not `notice`: that is declared with the frame loop's own
      * state further down and does not exist yet. This is the same way the
      * share adoption above reports a boot failure. */
-    ui.setBanner(str('main.could_not_be_loaded_the_track', { failed }), true);
+    ui.setBanner(str('main.could_not_be_loaded_the_floor', { failed, floor: mapById(FLOOR_WORLD).name }), true);
   }
   ui.setShare(view.share || null);
   loading.start('frame');
@@ -1411,7 +1418,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
 
   /* The race: gate order, lap clock, best lap. On a freestyle map it is a
    * real object with no gates in it and it scores nothing. */
-  let race = new Race(view.gates, view.trackClass ?? 'full');
+  let race = new Race(view.gates, 'full');
   /* The in-sim builder, once a world it can build in is seated. Declared up
    * here because the ghost below asks whether a run is its test flight. See
    * buildHost. */
@@ -1727,9 +1734,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* Ghosts are course-shaped, not tune-shaped: any config's lap can pace
    * any other. The book is keyed accordingly. */
   function ghostCourseKey() {
-    /* A seated course on any world, the custom map's field or a map track in
-     * a valley, is keyed by the course; a world flown free is keyed by the
-     * world. */
+    /* A seated track is keyed by the track; a world flown free is keyed by
+     * the world. */
     const course = loadedCourseKey(view);
     return course ? `custom:${course}${lapCraft() ? '#wing' : ''}` : view.id;
   }
@@ -1742,7 +1748,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * quad's lap as its own.
    */
   function lapCraft() {
-    if (view.id === 'custom' || !view.courseKey) {
+    if (!view.courseKey) {
       return '';
     }
     const seated = seatedMapTrack();
@@ -1948,8 +1954,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
          * they are the seated aircraft's board's: the quads' laps for a
          * quad, the planes' for a plane. */
         const plane = Boolean(lapCraft());
-        const mapTrack = view.id !== 'custom';
-        ghostBoardTimes = times.filter((t) => t.hasGhost && t.id && (!mapTrack || Boolean(t.craft) === plane)).slice(0, 5);
+        ghostBoardTimes = times.filter((t) => t.hasGhost && t.id && Boolean(t.craft) === plane).slice(0, 5);
         syncGhostRow();
         if (ghostQueryId) {
           const wanted = ghostQueryId;
@@ -4268,10 +4273,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       worldPosToSim(ax, Math.min(ay, by) - r, az, crashSimA);
       const top = worldPosToSim(ax, Math.max(ay, by) + r, az, crashSimB).z;
       const idx = sim.e.sim_obstacle_cylinder(crashSimA.x, crashSimA.y, crashSimA.z, top, r, mat);
-      /* A gate's upright gives (crashworld.js postGive); not in a micro
-       * room, whose scale no real pipe's give survives. */
-      const give = idx >= 0 && view.trackClass !== 'micro'
-        ? postGive(col.kindName(col.fkind[i]), r, gateScaleFor(view.trackClass ?? 'full'), top - crashSimA.z)
+      /* A gate's upright gives (crashworld.js postGive). */
+      const give = idx >= 0
+        ? postGive(col.kindName(col.fkind[i]), r, gateScaleFor('full'), top - crashSimA.z)
         : null;
       if (give && sim.e.sim_obstacle_compliance(idx, give.ei, give.mLine, give.mFree) !== SIM_OK) {
         throw new Error('sim_obstacle_compliance refused a gate post');
@@ -5144,7 +5148,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const inAir = wasFlying || Boolean(to.floats) !== onWater;
     const s = ui.settings;
     if (!worldHold) {
-      const track = view.id !== 'custom' ? seatedMapTrack() : null;
+      const track = seatedMapTrack();
       worldHold = {
         map: s.map,
         graphics: normalizeGraphics(s.graphics),
@@ -5275,25 +5279,20 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   }
 
   /*
-   * WHO MAY RACE THE TRACK A SWAP LANDS ON: its own class. A track on the
-   * custom map was built for one class and its gates for that size. A map
-   * track (src/builder/) is the five inch's and every plane's that fits its
-   * gates (src/game/verify.js planesFor), as #93 made it. The builder's own
-   * test flight is the builder's to judge, and a world with nothing seated
-   * has nothing to fit.
+   * WHO MAY RACE THE TRACK A SWAP LANDS ON: every quad, and every plane that
+   * fits its gates (src/game/verify.js planesFor), as #93 made it. The
+   * builder's own test flight is the builder's to judge, and a world with
+   * nothing seated has nothing to fit.
    */
   function swapCourseFits(af) {
     if (build && build.testing) {
       return true;
     }
-    if (view.id === 'custom') {
-      return af.trackClass === (view.trackClass ?? 'full');
-    }
     const track = worldHold && worldHold.track;
     if (!track) {
       return true;
     }
-    return af.fixedWing ? planesFor(track.document).includes(af.id) : af.trackClass === 'full';
+    return !af.fixedWing || planesFor(track.document).includes(af.id);
   }
 
   /* Take the track off the world, or put it back, when the aircraft now
@@ -5306,25 +5305,20 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     const fits = swapCourseFits(to);
     const track = worldHold.track;
-    const custom = view.id === 'custom';
-    if (!custom && !track) {
+    if (!track) {
       return;
     }
-    if (fits && track) {
+    if (fits) {
       writeShareImport(track);
     }
     if (fits === !worldHold.courseOff) {
       return;
     }
     worldHold.courseOff = !fits;
-    if (!custom) {
-      /* The builder puts the track's gates on the view, or takes them off
-       * it; the race is made from the view, as adoptLoadedView makes it. */
-      await seatMapCourse();
-    }
-    race = custom && !fits
-      ? new Race([], view.trackClass ?? 'full')
-      : new Race(view.gates, view.trackClass ?? 'full', { recordSuffix: view.recordSuffix ?? '' });
+    /* The builder puts the track's gates on the view, or takes them off it;
+     * the race is made from the view, as adoptLoadedView makes it. */
+    await seatMapCourse();
+    race = new Race(view.gates, 'full', { recordSuffix: view.recordSuffix ?? '' });
     if (!fits) {
       notice = {
         text: str('main.the_craft_does_not_fit_through_every_gate', { craft: to.short }),
@@ -5374,7 +5368,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       /* A map track's records are its own (seatMapCourse), not the world's. */
       /* A world adopted fresh is the seat's, whatever a swap held before. */
       worldHold = null;
-      race = new Race(view.gates, view.trackClass ?? 'full', { recordSuffix: view.recordSuffix ?? '' });
+      race = new Race(view.gates, 'full', { recordSuffix: view.recordSuffix ?? '' });
       race.setRecordKey(recordKey());
       paintBest();
       adoptSpawn();
@@ -5403,14 +5397,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     mapReady = true;
   }
 
-  /* Custom is one map id and many courses. A second pick from the board
-   * used to no-op because wantId and view.id were both "custom". A world
-   * with a map track seated on it is the same: one world, and a course
-   * that is either there or not. */
+  /* A world is one id and many tracks: one world, and a track that is
+   * either seated on it or not, so the world's key alone cannot say which. */
   function wantedCourseKey(mapId) {
-    if (mapId === 'custom') {
-      return seatedCourseKey();
-    }
     const seated = seatedMapTrack();
     if (!seated || seated.document.map !== mapId) {
       return '';
@@ -5422,10 +5411,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   }
 
   /*
-   * WHO MAY RACE A MAP TRACK: the five inch, whose seat it is filed in
-   * first, and every fixed wing that fits every gate by the builder's own
-   * rule (src/game/verify.js planesFor). The seated aircraft, not the one
-   * the last run was flown on, because this decides what the next run is.
+   * WHO MAY RACE A TRACK: every quad, and every fixed wing that fits every
+   * gate by the builder's own rule (src/game/verify.js planesFor). The
+   * seated aircraft, not the one the last run was flown on, because this
+   * decides what the next run is.
    */
   function seatedFits(seated) {
     const af = airframeById(ui.settings.airframe);
@@ -5447,17 +5436,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   }
 
   /*
-   * Seat the pilot's map track on the world just built, or take one off it,
-   * so that the view's course is the one wantedCourseKey asks for. The
-   * builder builds the gates, makes them solid and swaps them in as the
-   * view's course (buildmode.js race); the view is stamped here with what
-   * the custom map stamps on its own: the course key, the listing the menus
-   * read, and the record suffix that keeps this track's best laps its own.
+   * Seat the pilot's track on the world just built, or take one off it, so
+   * that the view's course is the one wantedCourseKey asks for. The builder
+   * builds the gates, makes them solid and swaps them in as the view's
+   * course (buildmode.js race); the view is stamped here with the course
+   * key, the listing the menus read (none for one of the pilot's own, which
+   * is on no board), and the record suffix that keeps this track's best laps
+   * its own.
    */
   async function seatMapCourse() {
-    if (view.id === 'custom') {
-      return;
-    }
     if (build && build.racing) {
       build.exit(false);
     }
@@ -5483,7 +5470,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       return;
     }
     view.courseKey = seatedCourseKey();
-    view.share = { id: seated.id, name: seated.name || seated.document.name, author: seated.author, board: seated.board };
+    view.share = seated.local
+      ? null
+      : { id: seated.id, name: seated.name || seated.document.name, author: seated.author, board: seated.board };
     view.recordSuffix = `.map.${seated.document.id}`;
   }
 
@@ -5501,11 +5490,27 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       && wantedCourseKey(wantId) === loadedCourseKey(view);
   }
 
-  async function syncWorld() {
-    /* Normalised, not raw. Every loader path runs the id through mapById,
-     * which falls back to the first map for an id no map has, so a raw
-     * setting of 'bogus' would leave view.id as 'custom' and the tail guard
-     * below would see a mismatch that can never clear: dispose, rebuild,
+  /*
+   * Build the world the settings name, when it is not the one standing. The
+   * swap under way is handed back to a second caller rather than refused,
+   * so a caller that acts once the world is right (Play, the builder) can
+   * wait on it: a refused call used to resolve at once with the old world
+   * still up.
+   */
+  let worldSync = null;
+  function syncWorld() {
+    if (!worldSync) {
+      worldSync = syncWorldNow().finally(() => {
+        worldSync = null;
+      });
+    }
+    return worldSync;
+  }
+
+  async function syncWorldNow() {
+    /* Resolved, not raw: worldId turns the Track seat into a world and an id
+     * no map has into the seat's (mapById's fallback), so the tail guard
+     * below cannot see a mismatch that never clears: dispose, rebuild,
      * re-enter, forever. ?map= is taken verbatim in boot.js, so an unknown
      * id is reachable from a stale bookmark. */
     const wantId = worldId();
@@ -5522,7 +5527,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * of a minute to build and a course a few milliseconds, so the world
      * stays and only the course and the run change. Anything else is a swap.
      */
-    if (mapReady && wantId === view.id && wantQ === view.graphics && wantId !== 'custom') {
+    if (mapReady && wantId === view.id && wantQ === view.graphics) {
       swapInFlight = true;
       mapReady = false;
       try {
@@ -5533,7 +5538,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         swapInFlight = false;
       }
       if (!worldMatchesSettings()) {
-        await syncWorld();
+        await syncWorldNow();
       }
       return;
     }
@@ -5620,7 +5625,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * otherwise stay diverged with the title screen naming a map that is not
      * there. Honour it now. */
     if (mapReady && !worldMatchesSettings()) {
-      await syncWorld();
+      await syncWorldNow();
     }
   }
   async function swapMap(id) {
@@ -5989,36 +5994,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         syncCraftScale();
         /* The plant raised the old airframe's flaps with it. */
         flapNotch = 0;
-        /*
-         * AND THE TRACK, because the seats are one per class and the new one
-         * may be empty. A pilot who chooses the whoop having never built a
-         * room used to get the whoop hovering in an empty paddock: the world
-         * is the seated track, and there wasn't one.
-         *
-         * So the same cold start adopt the boot does runs again for the class
-         * being moved to, which fetches the most flown ROOM off the board and
-         * seats it. It is deliberately fire and forget: the swap must not
-         * wait on a network, the world below rebuilds from what is seated
-         * now, and syncWorld runs again when the fetch lands. A board that is
-         * down or has no track of this class leaves the pilot exactly where
-         * this used to leave everyone, which is the honest fallback.
-         */
-        const wantCls = airframeById(runAirframe).trackClass;
-        if (s.map !== 'city' && !hasFlyableTrack()) {
-          adoptMostFlownTrack(wantCls).then((got) => {
-            if (!got) {
-              return;
-            }
-            ui.settings.map = 'custom';
-            ui.renderMenu();
-            if (!worldMatchesSettings()) {
-              syncWorld();
-            }
-          }).catch(() => {
-            /* A board that is down is not an error a pilot changing aircraft
-             * needs to hear about. */
-          });
-        }
       }
       /* Crash damage rides the same rule: a run is flown on one set of
        * physics from its start. After the airframe, whose part table it
@@ -6310,17 +6285,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const fastest = fromRun != null
       ? fromRun
       : (pending && pending.trackId === trackId && (pending.craft || '') === craft ? pending.lapMs : null);
-    /*
-     * The RaceGOW metric travels with the lap, from whichever of the two the
-     * lap itself came from, so an upload from a later visit carries what the
-     * run it came from actually did. Null on the sixty metre field, which is
-     * scored on one lap and always will be.
-     */
-    const threeFrom = view.trackClass === 'micro'
-      ? (fromRun != null
-        ? (race.bestThreeMs ? race.bestThreeMs() : null)
-        : (pending && pending.trackId === trackId ? pending.threeMs : null))
-      : null;
     if (fastest == null) {
       notice = { text: str('main.no_clean_lap_to_upload'), untilMs: performance.now() + 2800 };
       return;
@@ -6368,7 +6332,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         trackId: trackIdNow,
         name,
         lapMs: Math.round(fastest),
-        threeMs: threeFrom,
         ghost,
         key: auth.key,
         sig: auth.sig,
@@ -6385,7 +6348,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           const twin = await findBoardTwin({
             doc: listing.doc,
             name: listing.name,
-            trackClass: view.trackClass,
+            trackClass: 'full',
             origin: listing.board,
           });
           if (!twin.found) {
@@ -6557,11 +6520,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /*
    * P in the in-sim builder: put the track being built on the public board.
    *
-   * THE SAME PUBLISH as the Track room's own, below: the same dialog asking
-   * for the track's name and the pilot's board name, the same
-   * publishCurrentCourse, the same edit key and bind, so a map track
-   * published here is owned by this browser exactly as a field track is and
-   * republishing it updates the listing. The board reads it as the
+   * The dialog asks for the track's name and the pilot's board name; then
+   * publishCurrentCourse, the edit key and the bind, so a track published
+   * here is owned by this browser and republishing it updates the listing. The board reads it as the
    * schemaVersion 4 document the builder writes, naming its world.
    *
    * Returns { doc, text }: the track as published, which is a new id when
@@ -6609,109 +6570,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       return { doc: result.doc, text: str('main.published', { name: result.posted.name, forked, cleared }) };
     } catch (e) {
       return { doc: null, text: str('main.could_not_publish_that_track', { v1: e.message ?? e }) };
-    }
-  }
-
-  async function submitCoursePublish() {
-    const listing = inspectCourse();
-    if (!listing || !listing.doc) {
-      notice = { text: str('main.nothing_to_publish'), untilMs: performance.now() + 2800 };
-      return;
-    }
-    if (!listing.canPublishNew && !listing.canUpdateListing) {
-      notice = { text: str('main.this_track_is_already_on_the'), untilMs: performance.now() + 2800 };
-      return;
-    }
-    const remix = listing.kind === 'remix';
-    const updating = listing.canUpdateListing && listing.layoutDrift;
-    const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
-    const by = listing.sourceAuthor ? str('ui.by_3', { sourceAuthor: listing.sourceAuthor }) : '';
-    const detail = updating
-      ? str('main.the_layout_changed_updating_the_board')
-      : remix
-        ? str('main.this_is_your_copy_it_goes', { of, by })
-        : str('main.the_public_board_keeps_a_copy');
-    const values = await ui.askForm({
-      title: updating ? str('ui.update_this_track') : str('ui.publish_this_track'),
-      detail,
-      confirmLabel: updating ? str('main.update_the_board') : str('app.publish'),
-      fields: [
-        {
-          key: 'course',
-          label: str('main.track_name'),
-          value: remix ? suggestRemixName(listing.name) : listing.name,
-          maxLength: 80,
-          placeholder: str('main.track_name'),
-        },
-        {
-          key: 'author',
-          label: str('ui.your_name'),
-          value: readPilotName() || '',
-          maxLength: 24,
-          placeholder: str('ui.name'),
-          autocomplete: 'nickname',
-          rules: nameRules(),
-          save: writePilotName,
-        },
-      ],
-    });
-    if (!values) {
-      return;
-    }
-    try {
-      const result = await publishCurrentCourse({
-        doc: listing.doc,
-        author: values.author,
-        origin: listing.board,
-        courseName: values.course,
-      });
-      const cleared = result.posted.timesCleared
-        ? str('main.old_times_were_cleared_because_the')
-        : '';
-      const forked = result.forked ? str('main.published_as_a_new_track') : '';
-      notice = { text: str('main.published', { name: result.posted.name, forked, cleared }), untilMs: performance.now() + 4000 };
-      ui.setShare({
-        id: result.posted.id,
-        name: result.posted.name,
-        author: values.author,
-        board: listing.board,
-      });
-      ui.markCoursePublished(result.posted);
-      /*
-       * A ROOM'S CARD ON THE BOARD IS A LAP OF IT, AND ONLY A BROWSER CAN
-       * DRAW ONE. The board has no WebGL and never will, so if this is not
-       * done here it is not done. The builder's Publish does exactly the
-       * same thing through the same file; this is the other way a room can
-       * reach the board.
-       *
-       * A field track returns skipped and costs nothing, not even the
-       * import: sendCardAnimation asks the class before it loads anything.
-       * Nothing here throws, so a refused GL context leaves the pilot with
-       * a published track and a plan on its card.
-       */
-      const card = await sendCardAnimation(result.doc, { origin: listing.board });
-      if (!card.skipped) {
-        notice = {
-          text: card.error
-            ? str('main.published_its_card_animation_could_not', { name: result.posted.name })
-            : str('main.published_and_its_card_on_the', { name: result.posted.name }),
-          untilMs: performance.now() + 4000,
-        };
-      }
-      /* Only when the lap on the results screen was flown on the course that
-       * was just published. Publishing course B with course A's results still
-       * up used to attach A's lap to B, because resultsFastest is a bare
-       * number with no course attached to it. */
-      if (ui.resultsFastest != null && ui.resultsDocId != null && ui.resultsDocId === listing.doc.id) {
-        writePendingTime({
-          trackId: result.posted.id,
-          lapMs: ui.resultsFastest,
-          threeMs: view.trackClass === 'micro' && race.bestThreeMs ? race.bestThreeMs() : null,
-          craft: lapCraft(),
-        });
-      }
-    } catch (e) {
-      notice = { text: str('main.could_not_publish_that_track', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
     }
   }
 
@@ -6859,10 +6717,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     return str('main.gate_by_gate', { again: words.again });
   };
   /*
-   * A published course chosen from the Courses grid. This is exactly what a
-   * ?share= link does at boot, minus the navigation: fetch the document,
-   * write the share seat, tell the shell which course it is now holding. The
-   * screen then acts map:custom and the world builds around it.
+   * A published track chosen from My tracks. This is exactly what a ?share=
+   * link does at boot, minus the navigation: fetch the document, write the
+   * share seat, tell the shell which track it is now holding. The screen
+   * then plays it and the world builds around it.
    */
   ui.onBoardCourse = async (track) => {
     const payload = await fetchTrackDocument(track.id, track.board);
@@ -6879,6 +6737,39 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     ui.setShare(share);
     return true;
+  };
+  /*
+   * THE BUILDER, FROM MY TRACKS: Edit opens it on one of the pilot's own
+   * tracks (`id`), New track on an empty one in a world (`map`). The world
+   * is built if it is not the one standing, with nothing seated on it
+   * (buildWorld), the aircraft is parked at the world's spawn, and the
+   * builder takes the view. Escape out of the builder lands back on My
+   * tracks (buildHost.leave). A world that will not build leaves the pilot
+   * on My tracks with syncWorld's own notice.
+   */
+  ui.onBuild = async ({ map, id }) => {
+    const entry = mapById(map);
+    const doc = id ? loadMapTrack(id) : null;
+    if (entry.id !== map || !entry.build || (id && !doc)) {
+      throw new Error(`the builder cannot open ${id || 'a new track'} in ${map}`);
+    }
+    titleWorld = null;
+    buildWorld = map;
+    if (!worldMatchesSettings()) {
+      await syncWorld();
+    }
+    const b = view.id === map ? await ensureBuild() : null;
+    if (!b) {
+      buildWorld = null;
+      ui.show('courses');
+      return;
+    }
+    whenConfigReady(() => {
+      reset();
+      mode = 'flight';
+      ui.show('flight');
+      b.open(doc);
+    });
   };
   /* Menu clicks. The key handler has already woken the audio context by
    * the time the menu moves, so the first keypress is audible too. */
@@ -6951,6 +6842,28 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (s) {
       applySettings(s);
     }
+    /*
+     * PLAY, FROM MY TRACKS: the seat holds the track, so build its world if
+     * it is not the one standing, seat its gates, and open the launch card
+     * the way Fly does. The title's world and the builder's end here, as
+     * they end at the first Fly.
+     */
+    if (action === 'play') {
+      titleWorld = null;
+      buildWorld = null;
+      paintBest();
+      const launch = () => {
+        if (worldMatchesSettings()) {
+          ui.act('fly');
+        }
+      };
+      if (worldMatchesSettings()) {
+        launch();
+      } else {
+        syncWorld().then(launch);
+      }
+      return;
+    }
     if (action === 'fly' && titleWorld) {
       /*
        * THE TITLE'S WORLD ENDS AT THE FIRST FLY. The pilot flies their own
@@ -7017,6 +6930,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (action === 'pause') {
       mode = 'paused';
     } else if (action === 'title') {
+      /* A builder session ends with the run: its test course comes off the
+       * view, and the world goes back to following the seat. A seated
+       * track's race (build.racing) is the seat's and stays. */
+      if (build && build.active && !build.racing) {
+        build.exit(false);
+      }
+      buildWorld = null;
       mode = 'title';
       reset();
       /* Now, not on the next frame: a choice made on the title before a
@@ -7170,8 +7090,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       submitBoardTime();
     } else if (action === 'postrun') {
       submitFreestyleRun();
-    } else if (action === 'publishcourse') {
-      submitCoursePublish();
     }
   };
 
@@ -7277,12 +7195,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     resume: () => ui.onAction('resume'),
     fly: () => ui.onAction('restart'),
     setCourse(gates, recordSuffix) {
-      race = new Race(gates, view.trackClass ?? 'full', { recordSuffix });
+      race = new Race(gates, 'full', { recordSuffix });
       race.setRecordKey(recordKey());
       paintBest();
       view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     },
     publish: (doc) => publishBuiltTrack(doc),
+    /* Out of a builder My tracks opened, back to My tracks. */
+    leave: () => ui.act('mytracks'),
   };
   function loadBuild() {
     if (build || buildLoading || !mapById(view.id).build) {
@@ -9313,13 +9233,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           setTurtleParkMotors(false);
           poseLock = false;
           paintBest();
-          ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), {
-            /* Read from the race rather than recomputed on the screen: a run
-             * of three has to be three CLEAN laps in a row, and only the
-             * race's log still knows where the voids were. */
-            threeMs: race.bestThreeMs ? race.bestThreeMs() : null,
-            trackClass: view.trackClass ?? 'full',
-          });
+          ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote());
         }
       }
       racePrev.copy(pCurr);

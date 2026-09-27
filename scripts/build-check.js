@@ -5,8 +5,8 @@
  *     node scripts/build-check.js [OUT_DIR] [--map=swiss2] [--only=pieces]
  *     SIM_GPU=1 node scripts/build-check.js [OUT_DIR] --perf
  *
- * --only runs one part on its own page: proof, pieces, line, wing, field,
- * plane or bramor.
+ * --only runs one part on its own page: proof, pieces, line, wing, plane or
+ * bramor.
  *
  * The builder is a creative mode (src/builder/buildmode.js) and every edit
  * here is made the way a pilot makes it, with mouse and key events over
@@ -64,12 +64,11 @@
  *      map-track-v4.json) opens with Ctrl+O with every gate where it was
  *      and its pylon's side, and flies.
  *
- * line (12 to 15), plane (16), bramor (17), wing (the air start on a
- * fixed wing) and field (an old field track on the custom map) are the
- * racing line and its warnings, the plane sized gates, the heaviest wing
- * into a pylon, and the field's own track, as before, on the new
- * controls. 15 also measures what building costs a frame on the main
- * thread beside flying.
+ * line (12 to 15), plane (16), bramor (17) and wing (the air start on a
+ * fixed wing) are the racing line and its warnings, the plane sized
+ * gates, the heaviest wing into a pylon and the air start, as before, on
+ * the new controls. 15 also measures what building costs a frame on the
+ * main thread beside flying.
  *
  * Pictures land in OUT_DIR (tmp/build-check by default). They are evidence
  * for one look, not for the repository: delete them after.
@@ -109,7 +108,6 @@ import {
 } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airStartSpeed, airframeById } from '../configs/airframes.js';
-import { courseFromDocument } from '../src/game/trackdoc.js';
 import { DEFAULT_HOTBAR, PIECES, openingsOf, raceGatesOf } from '../src/builder/course.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
 import { normalize } from '../src/trackbuilder/model.js';
@@ -1685,32 +1683,6 @@ async function bramorClips() {
   }
 }
 
-async function fieldTrack() {
-  console.log('an old field track on the custom map');
-  const ref = JSON.parse(await readFile(join(root, 'tests/fixtures/course-reference.json'), 'utf8'));
-  const want = courseFromDocument(ref).stations.length;
-  const seed = [...seedFor('low'), `localStorage.setItem('webfpv.trackbuilder.autosave.v1', ${JSON.stringify(JSON.stringify(ref))});`];
-  const page = await openPage({ root, width: 800, height: 450, url: '/index.html?map=custom', seed });
-  try {
-    await page.until('!!window.__shellReady', 240000);
-    await page.until("window.__map && window.__map().id === 'custom' && window.__map().ready", 240000);
-    await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
-    await page.until("window.__craftState().mode === 'flight'", 120000);
-    const m = await page.evaluate('window.__map()');
-    say(ref.schemaVersion === 1 && m.mode === 'race' && m.gates === want, `the schemaVersion ${ref.schemaVersion} reference track loads with ${m.gates} of ${want} stations`);
-    const g = await page.evaluate(`(() => { const r = window.__race(); const g = r.gates[0]; const a = g.apertures[0]; return { c: [g.x, g.y + a.centreY, g.z], t: [g.az.x, g.az.y, g.az.z], key: r.key }; })()`);
-    say(!g.key.includes('.build.'), `its record key is the shell's own: ${g.key}`);
-    const a = g.c.map((v, i) => v - g.t[i] * 2);
-    const b = g.c.map((v, i) => v + g.t[i] * 2);
-    await page.evaluate(`window.__placeCraft(${b.join(',')}, ${a.join(',')})`);
-    await page.until('window.__race().next === 1', 10000).catch(() => {});
-    const r = await page.evaluate('({ next: window.__race().next, lap: window.__race().lapStartMs })');
-    say(r.next === 1 && r.lap != null, 'a pass through its first gate is counted and starts the lap');
-  } finally {
-    await page.close();
-  }
-}
-
 const warnList = async (page) => (await page.evaluate(B('.warnings'))).map((w) => `${w.code}@${w.gate + 1}`).join(' ') || 'none';
 const warned = async (page, code, gate = null) => (await page.evaluate(B('.warnings'))).some((w) => w.code === code && (gate == null || w.gate === gate));
 /* The panel is painted on the next frame after an edit, and a frame on the
@@ -2164,7 +2136,6 @@ if (opts.perf) {
   await stage('pieces', piecesStage);
   await stage('line', lineAndWarnings);
   await stage('wing', () => wingStart(out));
-  await stage('field', fieldTrack);
   await stage('plane', planeStage);
   await stage('bramor', bramorClips);
 }

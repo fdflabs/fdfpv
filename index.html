@@ -1369,8 +1369,7 @@
         margin-top: 2px;
         font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
       }
-      .gate-card-race-5inch .gate-card-fact,
-      .gate-card-race-whoop65 .gate-card-fact { color: var(--mint); }
+      .gate-card-race-5inch .gate-card-fact { color: var(--mint); }
       /*
        * The plan drawing over the corner of each photograph.
        *
@@ -1394,7 +1393,6 @@
         background: radial-gradient(closest-side, rgba(12, 18, 14, 0.72), rgba(12, 18, 14, 0.18));
       }
       .craft-plan { width: 100%; height: 100%; color: var(--cream); }
-      .gate-card-race-whoop65 .craft-plan { color: var(--mint); }
 
       .wiki-teaser {
         display: inline-flex; align-items: center; gap: 10px;
@@ -1977,9 +1975,9 @@
        * Every row on every screen used to be the same size, weight and
        * colour, so Fly and Credits were typographic equals and the only
        * hierarchy was a 4 px cursor bar. Mint on dark ink is the treatment
-       * the track builder already gives Fly this track, and the rule the
-       * builder's own comments state is one green button per screen, so
-       * there is exactly one of these in any list.
+       * the old track builder page gave Fly this track, and its rule was
+       * one green button per screen, so there is exactly one of these in
+       * any list.
        */
       /*
        * TWO HIGHLIGHTS, ONE CURSOR.
@@ -2949,6 +2947,9 @@
           padding: 0 8px 8px;
           border-left: none;
         }
+        /* My tracks has its card strip and its notes right above the list,
+           so a line hung above the list lands on them. It goes under. */
+        .screen-courses .menu-help { position: static; padding: 8px 8px 0; }
         .title-foot .hint { text-align: left; max-width: none; }
         .craft-showcase {
           width: min(420px, 88vw);
@@ -3150,20 +3151,21 @@
       }
 
       /*
-       * The Courses screen. Worlds in one strip, courses in another, and
-       * the courses are DRAWN: same plan the board and the builder draw,
-       * from src/share/plan.js. This screen replaced three (Choose map,
-       * Custom map, Create / edit map), each of which asked the player to
-       * choose before showing them anything to choose between.
+       * My tracks, and the Freestyle room, which shares its card strip.
+       * Each track card wears the photograph of its world.
        */
       /* The PAGE scrolls, not a box inside it. Two card strips and seven
          rows do not fit a 900 px window, and a nested scroller inside a
          screen that is already too tall is two scrollbars arguing. The
          cursor's scrollIntoView drives this one. */
+      /* The bottom bar is drawn over this scroller, so its padding and the
+         cursor's scroll both clear it: at 3vh alone the last row of a
+         card's list scrolled to the window's edge and sat under the bar. */
       .screen-courses {
         justify-content: flex-start;
         padding-top: 4vh;
-        padding-bottom: 3vh;
+        padding-bottom: calc(var(--bar-bot) + 3vh);
+        scroll-padding-bottom: calc(var(--bar-bot) + 8px);
         overflow-y: auto;
         overscroll-behavior: contain;
         pointer-events: auto;
@@ -3183,10 +3185,6 @@
       .screen-courses .map-card { width: min(236px, 82vw); }
       .screen-courses .map-card-name { font-size: 16px; }
       .course-card .map-reel { background: #0b1119; }
-      .course-card canvas.plan {
-        position: absolute; inset: 0;
-        display: block; width: 100%; height: 100%;
-      }
       .map-card-meta {
         padding: 0 14px 12px;
         color: var(--slate); font-size: 12px; letter-spacing: 0.02em;
@@ -3347,10 +3345,9 @@
         text-transform: none;
         color: var(--cream);
       }
-      /* The RaceGOW rooms: one line per builder, the tracks they built
-         beside the name, and the series underneath. A list rather than a
-         card each, because six names on cards reads as an advert and the
-         point here is the credit. */
+      /* A credit list, the parks' sources: one line each and the note
+         underneath. A list rather than a card each, because names on cards
+         read as an advert and the point here is the credit. */
       .credit-rooms {
         background: rgba(16, 22, 17, 0.72);
         border-radius: 4px;
@@ -3791,22 +3788,6 @@
         height: 100%; width: 0; background: rgba(243, 234, 212, 0.55);
       }
       .result-row.fastest .result-bar-fill { background: var(--mint); }
-      /* The course the lap was flown on. Same drawing as the Courses cards
-         and the public board, from src/share/plan.js. */
-      .results-plan {
-        margin: 14px 0 0;
-        width: min(100%, 26em);
-        border-radius: 4px;
-        overflow: hidden;
-        box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.10);
-      }
-      .results-plan[hidden] { display: none; }
-      .results-plan canvas.plan {
-        display: block;
-        width: 100%;
-        aspect-ratio: 16 / 9;
-      }
-      @media (max-height: 720px) { .results-plan { display: none; } }
       .results-note {
         margin: 14px 0 0; color: rgba(235, 230, 215, 0.72);
         font-size: 13.5px; line-height: 1.55; max-width: 34em;
@@ -4080,6 +4061,11 @@
          colour: quiet until the pointer is on it, and never the default. */
       .name-dialog-btn.danger { color: #ff8f8f; border-color: rgba(255, 143, 143, 0.35); }
       .name-dialog-btn.danger:hover { color: var(--deep); background: #ff8f8f; border-color: #ff8f8f; }
+      /* The button Enter presses. On a delete confirm focus starts on the
+         keep button, and moving onto the delete lights it as a hover does,
+         so the one press that deletes is never the unmarked one. */
+      .name-dialog-btn:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+      .name-dialog-btn.danger:focus { color: var(--deep); background: #ff8f8f; border-color: #ff8f8f; }
       /*
        * The flight feel question's answers are CHIPS, not a select, because
        * the whole form is meant to be answered in two clicks and a select

@@ -17,7 +17,7 @@
  *      left click to hang it), a 5 m wide gate, the air race pylon pair and
  *      another wide gate, with no geometry warning for the Skyhunter, and
  *      publish it with P through the shell's dialog.
- *   2. Reload. The Track room, with the Skyhunter seated, lists it and not
+ *   2. Reload. My tracks, with the Skyhunter seated, lists it and not
  *      a map track of five inch gates it does not fit; choosing it seats
  *      the course in the Skyhunter's own seat, as a race.
  *   3. Fly it: from the air start a plane pilot in the page flies a lap on
@@ -28,7 +28,7 @@
  *   5. Reload on the board's chase link, which names the plane: the same
  *      course is seated for the Skyhunter, the board's plane ghost is armed
  *      and chased round the lap with a gap read at the gates.
- *   6. A quad still works: the five inch, seated from the Track room, flies
+ *   6. A quad still works: the five inch, seated from My tracks, flies
  *      the same track and its time goes on the quads' board, first there,
  *      whatever the plane flew.
  *   7. The Timber on floats on the Alps: a start gate standing on the lake
@@ -443,13 +443,13 @@ async function upload(page, id, board, before) {
   return row;
 }
 
-/* Choose track `id` from the Track room with the seated aircraft, and wait
- * for its course on `map`. Returns the Track room's list as it stood. */
-async function seatFromTrackRoom(page, id, map, gateCount) {
+/* Choose track `id` from My tracks with the seated aircraft, and wait
+ * for its course on `map`. Returns the board's tracks My tracks listed. */
+async function seatFromMyTracks(page, id, map, gateCount) {
   await page.evaluate("window.__ui.act('courses'); true");
   await page.until(`(window.__ui.boardCourses || []).some((t) => t.id === ${JSON.stringify(id)})`, 60000).catch(() => {});
   const listed = await page.evaluate('(window.__ui.boardCourses || []).map((t) => ({ id: t.id, map: t.map, planes: t.planes }))');
-  await page.evaluate(`window.__ui.openBoardCourse(${JSON.stringify(id)}); true`);
+  await page.evaluate(`window.__ui.openBoardCourse(${JSON.stringify(id)}, () => window.__ui.play()); true`);
   await page.until(`window.__map().ready && window.__map().id === ${JSON.stringify(map)} && window.__map().mode === 'race' && window.__race().gates.length === ${gateCount}`, 400000).catch(() => {});
   return listed;
 }
@@ -522,16 +522,16 @@ async function skyhunter() {
     });
 
     /* 2. Reload, find it, load it. */
-    console.log('reload, and find it in the Track room');
+    console.log('reload, and find it in My tracks');
     await page.evaluate(`localStorage.removeItem(${JSON.stringify(seatKey)}), true`);
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await page.sleep(1000);
     await shellUp(page);
-    const listed = await seatFromTrackRoom(page, id, 'swiss2', 3);
+    const listed = await seatFromMyTracks(page, id, 'swiss2', 3);
     const card = listed.find((t) => t.id === id);
-    say(Boolean(card), `the Track room lists it for the ${sky.short}`);
+    say(Boolean(card), `My tracks lists it for the ${sky.short}`);
     say(!listed.some((t) => t.id === narrowPub.id), `and not ${narrowPub.id}, a map track of five inch gates it does not fit`);
-    await shot(page, '2-plane-track-room');
+    await shot(page, '2-plane-my-tracks');
     const seated = await page.evaluate('({ map: window.__map(), key: window.__race().key, build: window.__build.state().state, seat: (JSON.parse(localStorage.getItem("webfpv.share.import.wing.v1") || "null") || {}).id })');
     say(seated.map.id === 'swiss2' && seated.map.mode === 'race' && seated.map.gates === 3 && seated.build === 'racing',
       `choosing it seats the course on ${seated.map.id}: a race over ${seated.map.gates} gates`);
@@ -619,8 +619,8 @@ async function skyhunter() {
     await page.cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: seed('5inch')[0] }, page.sessionId);
     await page.evaluate("localStorage.removeItem('webfpv.share.import.v1'), true");
     await reloadOn(page, url('map=swiss2'));
-    const quadListed = await seatFromTrackRoom(page, id, 'swiss2', 3);
-    say(quadListed.some((t) => t.id === id) && quadListed.some((t) => t.id === narrowPub.id), 'the five inch\'s Track room lists it, and the five inch gate ring beside it');
+    const quadListed = await seatFromMyTracks(page, id, 'swiss2', 3);
+    say(quadListed.some((t) => t.id === id) && quadListed.some((t) => t.id === narrowPub.id), 'My tracks, the five inch seated, lists it, and the five inch gate ring beside it');
     const quadSeat = await page.evaluate('({ af: window.__ui.settings.airframe, key: window.__race().key, seat: (JSON.parse(localStorage.getItem("webfpv.share.import.v1") || "null") || {}).id, g: window.__ghost() })');
     say(quadSeat.af === '5inch' && quadSeat.seat === id && quadSeat.key.endsWith(`.map.${id}`), 'seated in the five inch\'s seat');
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
@@ -728,7 +728,7 @@ async function floats() {
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await page.sleep(1000);
     await shellUp(page);
-    await seatFromTrackRoom(page, id, 'alps', 3);
+    await seatFromMyTracks(page, id, 'alps', 3);
     const gates = await page.evaluate(B('.gates'));
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState().mode === 'flight'", 60000);

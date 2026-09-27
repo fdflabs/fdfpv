@@ -156,10 +156,6 @@ export function isUsableLogo(value) {
 export const LOGO_SLOTS = 5;
 export const BRANDING_MAX_CHARS = 384 * 1024;
 
-/* Total characters the logos on this document already spend. */
-export function brandingBytes(doc) {
-  return (doc?.branding?.logos ?? []).reduce((n, l) => n + (l?.image?.length ?? 0), 0);
-}
 
 /* The logos, always an array, so no caller has to write the `?? []`. */
 export function logosOf(doc) {
@@ -265,15 +261,6 @@ export function newSequenceId(doc) {
   return nextId(doc.sequence.map((s) => s.id), 'sq');
 }
 
-/*
- * A logo's id. Decals name the logo they wear by id rather than by position,
- * so removing the second of three sponsors leaves the third one's painted
- * grass wearing the third one's logo instead of quietly repainting it with
- * somebody else's.
- */
-export function newLogoId(doc) {
-  return nextId(logosOf(doc).map((l) => l.id), 'logo');
-}
 
 /* A track id, for local storage. Not derived from the contents, because two
  * tracks are allowed to be identical and still be two tracks. */
@@ -1041,13 +1028,6 @@ export function deserialize(text) {
   return { doc, repairs, error: null };
 }
 
-/* Round trip check, used by the self test in tests.js and by the import
- * path to tell the user their file survived intact. */
-export function roundTripsCleanly(doc) {
-  const a = serialize(doc);
-  const b = serialize(deserialize(a).doc);
-  return a === b;
-}
 
 /* A copy of a track under a new id and name, for Duplicate. */
 export function duplicateTrack(doc, name) {

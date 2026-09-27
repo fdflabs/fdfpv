@@ -303,21 +303,6 @@
         "value": 0.0005,
         "source": "CRAFT_R must BE the swept disc, not approximate it: both are now derived from the same two numbers, so any gap at all is a regression. Half a millimetre is floating point slack."
       },
-      "gate_opening_m": {
-        "min": 1.7476,
-        "max": 1.7576,
-        "source": "MultiGP's published standard gate opening is 1.524 m square (5 ft) and src/game/track.js still says so. The course is BUILT at GATE_SCALE 1.15 times that, 1.7526 m, at the owner's explicit instruction that the gates be 15 percent larger; the band is that figure plus and minus 5 mm. scene.js already throws on a 10 mm drift at load; this is the independent check."
-      },
-      "grass_blade_m": {
-        "max_min": 0.02,
-        "max_max": 0.12,
-        "source": "The MAXIMUM blade only. Mown chapter grass is 3 to 5 cm and MultiGP asks for a course as flat as possible; the rough is authored 0.03 to 0.09 m and this bands the top of that. THE MINIMUM IS NOT BANDED, and that is the point of the rename: src/render/scene.js authors TWO grass regimes, 0.03 + roll * 0.06 in the rough and 0.006 + roll * 0.012 on the mown pitch, and the reference reports the minimum over both. So the minimum is 0.006 by construction and a 0.02 floor asserted that the mown pitch did not exist. It failed from the day the pitch was authored and it was never measuring the world. The 0.26 to 0.68 m scale error this project shipped once was a blade too TALL, so the maximum is the bound that catches it, and it still does."
-      },
-      "clubhouse_verandah_m": {
-        "min": 2.1,
-        "max": 3.0,
-        "source": "An Australian sports pavilion verandah is 2.4 to 2.7 m of clear headroom at its outer edge, where the roof has fallen for drainage. The band is that figure opened to 2.1 and 3.0, wide enough to accept a re-authored roof pitch and narrow enough that a verandah a pilot could not fly under, or one built at a warehouse's scale, fails it. The measurement is the underside of the verandah roof COLLIDER less the top of the LANDABLE deck, both taken from the lists src/render/scene.js actually consumes, so it bands the clearance a craft meets rather than a number in the dimension table. It is here because the pavilion is the only object on the race field sized by a human instead of by MultiGP or by the airframe, and check 15 exists for exactly that class of error."
-      },
       "kerb_m": {
         "min": 0.08,
         "max": 0.2,

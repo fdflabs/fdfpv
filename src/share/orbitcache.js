@@ -30,9 +30,6 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { activeTrackClass, readShareImport } from './session.js';
-import { readAutosave } from '../trackbuilder/storage.js';
-
 /*
  * 5: the four freestyle worlds were re-cut. Their title cameras used to fly
  * corridors, a chimney flue and, in two of them, the insides of walls, and
@@ -67,61 +64,8 @@ function clipPrefix() {
   return `v${CLIP_VERSION}:${CLIP_W}x${CLIP_H}@${CLIP_FPS}`;
 }
 
-export function clipKeyForShare(shareId, stamp = '') {
-  return `${clipPrefix()}:custom:share:${shareId}:${stamp}`;
-}
-
-/*
- * The key for a published course, stamped with the version of it this
- * browser is holding.
- *
- * The share branch used to key on the id alone, while the autosave branch
- * below already carried a modifiedUtc. So a course that was republished
- * with a new layout kept serving the shot of the old one, for as long as
- * the cache lived, and the only way out was clearing storage. The stamp
- * comes from the seat rather than from the caller because BOTH readers,
- * the map screen through clipKeyForMap and the orbit page itself, have to
- * arrive at the same string or one records under a key the other never
- * looks up.
- */
-export function clipKeyForSeatedShare(shareId) {
-  try {
-    const share = readShareImport();
-    if (share && share.id === shareId) {
-      return clipKeyForShare(shareId, (share.document && share.document.modifiedUtc) || '');
-    }
-  } catch (e) {
-    /* Private mode, or a corrupt seat: fall through to the bare id. */
-  }
-  return clipKeyForShare(shareId);
-}
-
-/*
- * Built in maps are one clip each. A designed course is keyed by the share
- * id if this browser is flying a published one, otherwise by the working
- * document's id and modified stamp, so editing the track records a new
- * shot instead of showing yesterday's layout.
- */
+/* One clip a world. A track's card shows the world it stands in. */
 export function clipKeyForMap(mapId) {
-  if (mapId === 'custom') {
-    try {
-      const share = readShareImport();
-      if (share && share.id) {
-        return clipKeyForShare(share.id, (share.document && share.document.modifiedUtc) || '');
-      }
-      const saved = readAutosave();
-      const doc = saved && saved.doc;
-      if (doc && doc.id) {
-        return `${clipPrefix()}:custom:${doc.id}:${doc.modifiedUtc || ''}`;
-      }
-    } catch (e) {
-      /* Private mode, or a corrupt seat: treat as empty. */
-    }
-    /* Tagged with the class for the same reason courseSeatKey is: an empty
-     * room and an empty field are two different worlds and their attract
-     * clips are two different clips. */
-    return `${clipPrefix()}:custom:empty:${activeTrackClass()}`;
-  }
   return `${clipPrefix()}:${mapId}`;
 }
 

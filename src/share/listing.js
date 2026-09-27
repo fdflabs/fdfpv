@@ -1,12 +1,12 @@
 /*
- * listing.js: how a course in this browser relates to the public board.
+ * listing.js: how a track in this browser relates to the public board.
  *
- * The share seat is a published listing this run can post a time to. The
- * builder canvas is a different key. This file is the one place that looks
- * at both, plus the edit key, and says what the player can do next: upload
- * a time, update a name they own, or publish a copy under a new name.
+ * The share seat holds the track being flown: a published listing this run
+ * can post a time to, or one of the pilot's own that is on no board. This
+ * file is the one place that looks at it, plus the edit key, and says what
+ * the player can do next: upload a time, or update a name they own.
  *
- * Layout is everything that makes two courses different races: the field,
+ * Layout is everything that makes two tracks different races: the world,
  * the elements, the flying order. The title is not layout. The handle is
  * not layout either. The board uses the same split, so renaming an owned
  * course keeps the times, and changing the name this browser flies under
@@ -31,12 +31,11 @@
 
 import { trackClassOf } from '../trackbuilder/elements.js';
 import { duplicateTrack, isMapTrack, toPlain } from '../trackbuilder/model.js';
-import { readAutosave, writeAutosave } from '../trackbuilder/storage.js';
+import { writeAutosave } from '../trackbuilder/storage.js';
 import { boardOrigin, fetchTrackDocument, fetchTrackList, publishTrack } from './board.js';
 import { readPilotName } from './pilot.js';
 import { str } from '../strings/index.js';
 import {
-  clearShareImport,
   courseSeatKey,
   readAllEditKeys,
   readBind,
@@ -179,32 +178,15 @@ export async function findBoardTwin({ doc, name, trackClass, origin } = {}) {
   return { found: null, sameName };
 }
 
-export function isEmptyCanvas(doc) {
-  return !doc || ((doc.elements || []).length === 0 && (doc.sequence || []).length === 0);
-}
-
 export function suggestRemixName(original) {
   const base = String(original || '').trim() || str('ui.untitled_track');
   const tagged = / remix$/i.test(base) ? base : `${base} remix`;
   return tagged.slice(0, 80);
 }
 
-export function hasFlyingOrder(doc) {
-  return Boolean(doc && Array.isArray(doc.sequence) && doc.sequence.length > 0);
-}
-
-/* The custom map the shell should be showing, from the two seats. */
+/* The track the world should be seated with, from the share seat. */
 export function seatedCourseKey() {
-  const share = readShareImport();
-  if (share && share.id) {
-    return courseSeatKey(share, share.document);
-  }
-  try {
-    const saved = readAutosave();
-    return courseSeatKey(null, saved && saved.doc);
-  } catch (e) {
-    return courseSeatKey(null, null);
-  }
+  return courseSeatKey(readShareImport());
 }
 
 function pick(parts, key, fallback) {
@@ -216,10 +198,7 @@ function summaryOf(doc, extra) {
     name: extra.name || (doc && doc.name) || str('ui.untitled_track'),
     /* GATES, NOT STEPS. A waypoint is a step in the flying order that
      * pins the line through a point and scores nothing, so counting the
-     * order advertises gates a pilot will never fly through: the RaceGOW
-     * Track 1 reconstruction has six scored passes and eight waypoints,
-     * and this said fourteen. The card in src/ui/ui.js counts a stock
-     * track the same way. */
+     * order would advertise gates a pilot will never fly through. */
     gates: doc && Array.isArray(doc.sequence)
       ? doc.sequence.filter((s) => {
         const el = (doc.elements || []).find((e) => e.id === s.elementId);
@@ -231,14 +210,6 @@ function summaryOf(doc, extra) {
     shareId: extra.shareId || null,
     board: extra.board || '',
     ...extra,
-    /* Who BUILT it, where that is somebody other than who published it. The
-     * document's own credit block is the source, so a track seated from the
-     * board, from this browser's library or from a preset all name the same
-     * person. See byLine in src/ui/ui.js. AFTER the spread, because every
-     * caller passes an empty author for a track that has none and one that
-     * did the same with the designer would have blanked the document's. */
-    designer: extra.designer || (doc && doc.credit ? String(doc.credit.designer || '') : ''),
-    series: extra.series || (doc && doc.credit ? String(doc.credit.series || '') : ''),
     doc: doc || null,
   };
 }
@@ -246,266 +217,99 @@ function summaryOf(doc, extra) {
 /*
  * What this browser will fly, and what the menus should offer.
  *
- *   community   a published course opened from the board, not ours
+ *   community   a published track opened from the board, not ours
  *   owned       a listing this browser published, edit key in hand
- *   remix       a local copy of someone else's course, not on the board yet
- *   local       an unpublished original
+ *   local       one of this browser's own tracks, not on the board
  *   none        nothing to fly
  *
- * `parts` is for tests. The live path reads the two seats and the keys.
+ * `parts` is for tests. The live path reads the share seat and the keys.
  */
 export function inspectCourse(parts = {}) {
   const share = pick(parts, 'share', readShareImport);
-  const saved = pick(parts, 'autosave', () => {
-    try {
-      return readAutosave();
-    } catch (e) {
-      return null;
-    }
-  });
   const editKeyFor = parts.editKeyFor || readEditKey;
   const bindFor = parts.bindFor || readBind;
   const currentName = pick(parts, 'pilotName', () => readPilotName());
 
-  if (share && share.document && share.stock) {
-    /*
-     * SHIPPED WITH THE SIMULATOR. Seated from the Track room, not fetched
-     * from the board, and it behaves like a remix in waiting: nothing is
-     * published, no time can be posted against it, and the builder opens
-     * it as a COPY under a new id, because the board only accepts trk-
-     * ids and a copy is the only thing that can be published. The record
-     * key is share:<preset id>, which is stable, so local laps on a
-     * shipped track accumulate against one name.
-     */
-    const doc = share.document;
-    return summaryOf(doc, {
-      kind: 'stock',
-      published: false,
-      owned: false,
-      remix: false,
-      shareId: null,
-      board: '',
-      author: share.author || '',
-      name: share.name || doc.name,
-      canPostTime: false,
-      canPublishNew: false,
-      canUpdateListing: false,
-      layoutDrift: false,
-      nameDrift: false,
-      authorDrift: false,
-      canRemix: true,
-      sourceName: share.name || doc.name,
-      sourceAuthor: share.author || '',
-    });
-  }
-
-  if (share && share.document) {
-    const doc = share.document;
-    const id = share.id || doc.id;
-    const owned = Boolean(editKeyFor(id));
-    const bind = bindFor(id);
-    const fp = layoutFingerprint(doc);
-    const layoutMatch = !bind || !bind.layoutFingerprint || bind.layoutFingerprint === fp;
-    const nameOnBoard = bind ? bind.nameOnBoard : (share.name || doc.name);
-    const listedAuthor = (bind && bind.author) || share.author || '';
-    const authorDrift = Boolean(owned && currentName && listedAuthor && currentName !== listedAuthor);
-    return summaryOf(doc, {
-      kind: owned ? 'owned' : 'community',
-      published: true,
-      owned,
-      remix: false,
-      shareId: id,
-      board: share.board || (bind && bind.board) || '',
-      author: listedAuthor,
-      name: share.name || doc.name,
-      canPostTime: layoutMatch,
-      canPublishNew: false,
-      canUpdateListing: owned && (!layoutMatch || nameOnBoard !== (doc.name || share.name) || authorDrift),
-      layoutDrift: Boolean(owned && bind && bind.layoutFingerprint && bind.layoutFingerprint !== fp),
-      nameDrift: Boolean(owned && bind && bind.nameOnBoard && bind.nameOnBoard !== (doc.name || share.name)),
-      authorDrift,
-      canRemix: !owned,
-      sourceName: '',
-      sourceAuthor: '',
-    });
-  }
-
-  const doc = saved && saved.doc ? saved.doc : null;
-  if (!doc) {
+  if (!share || !share.document) {
     return summaryOf(null, {
       kind: 'none',
       published: false,
       owned: false,
-      remix: false,
       canPostTime: false,
-      canPublishNew: false,
       canUpdateListing: false,
       layoutDrift: false,
       nameDrift: false,
       authorDrift: false,
-      canRemix: false,
-      sourceName: '',
-      sourceAuthor: '',
     });
   }
 
-  const id = doc.id;
-  const owned = Boolean(editKeyFor(id));
-  const bind = bindFor(id) || {};
-  const remix = Boolean(bind.sourceId) && !owned;
-  const fp = layoutFingerprint(doc);
-  const layoutMatch = !bind.layoutFingerprint || bind.layoutFingerprint === fp;
-
-  if (owned) {
-    const authorDrift = Boolean(currentName && bind.author && currentName !== bind.author);
+  const doc = share.document;
+  if (share.local) {
+    /*
+     * THE PILOT'S OWN, played from My tracks. Nothing is published, so no
+     * time can be posted against it and there is no board ghost; the
+     * record key is the track's own, so its laps accumulate against one
+     * name however often it is edited.
+     */
     return summaryOf(doc, {
-      kind: 'owned',
-      published: true,
-      owned: true,
-      remix: false,
-      shareId: id,
-      board: bind.board || '',
-      author: bind.author || '',
-      canPostTime: layoutMatch,
-      canPublishNew: false,
-      canUpdateListing: !layoutMatch || (bind.nameOnBoard && bind.nameOnBoard !== doc.name) || authorDrift,
-      layoutDrift: Boolean(bind.layoutFingerprint && bind.layoutFingerprint !== fp),
-      nameDrift: Boolean(bind.nameOnBoard && bind.nameOnBoard !== doc.name),
-      authorDrift,
-      canRemix: false,
-      sourceName: bind.sourceName || '',
-      sourceAuthor: bind.sourceAuthor || '',
-    });
-  }
-
-  if (remix) {
-    return summaryOf(doc, {
-      kind: 'remix',
+      kind: 'local',
       published: false,
       owned: false,
-      remix: true,
       shareId: null,
-      board: bind.board || '',
+      board: '',
       author: '',
+      name: share.name || doc.name,
       canPostTime: false,
-      canPublishNew: hasFlyingOrder(doc),
       canUpdateListing: false,
       layoutDrift: false,
       nameDrift: false,
       authorDrift: false,
-      canRemix: false,
-      sourceName: bind.sourceName || '',
-      sourceAuthor: bind.sourceAuthor || '',
     });
   }
 
+  const id = share.id || doc.id;
+  const owned = Boolean(editKeyFor(id));
+  const bind = bindFor(id);
+  const fp = layoutFingerprint(doc);
+  const layoutMatch = !bind || !bind.layoutFingerprint || bind.layoutFingerprint === fp;
+  const nameOnBoard = bind ? bind.nameOnBoard : (share.name || doc.name);
+  const listedAuthor = (bind && bind.author) || share.author || '';
+  const authorDrift = Boolean(owned && currentName && listedAuthor && currentName !== listedAuthor);
   return summaryOf(doc, {
-    kind: 'local',
-    published: false,
-    owned: false,
-    remix: false,
-    shareId: null,
-    board: '',
-    author: '',
-    canPostTime: false,
-    canPublishNew: hasFlyingOrder(doc),
-    canUpdateListing: false,
-    layoutDrift: false,
-    nameDrift: false,
-    authorDrift: false,
-    canRemix: false,
-    sourceName: '',
-    sourceAuthor: '',
+    kind: owned ? 'owned' : 'community',
+    published: true,
+    owned,
+    shareId: id,
+    board: share.board || (bind && bind.board) || '',
+    author: listedAuthor,
+    name: share.name || doc.name,
+    canPostTime: layoutMatch,
+    canUpdateListing: owned && (!layoutMatch || nameOnBoard !== (doc.name || share.name) || authorDrift),
+    layoutDrift: Boolean(owned && bind && bind.layoutFingerprint && bind.layoutFingerprint !== fp),
+    nameDrift: Boolean(owned && bind && bind.nameOnBoard && bind.nameOnBoard !== (doc.name || share.name)),
+    authorDrift,
   });
 }
 
 export function hasFlyableTrack() {
   try {
     const listing = inspectCourse();
-    return Boolean(listing && listing.doc && !isEmptyCanvas(listing.doc));
+    return Boolean(listing && listing.doc && listing.gates > 0);
   } catch (e) {
     return false;
   }
 }
 
-/*
- * How a course relates to the board, in three words.
- *
- * ONE VOCABULARY, THREE SURFACES. inspectCourse already works this out
- * exactly, and until now the answer was spoken differently everywhere it
- * appeared: the track builder had a chip in its top bar, the simulator had
- * five paragraphs of prose in a help column, and the two used different
- * words for the same state. A player had to read a paragraph to learn
- * whether they could upload a time. Both callers now take the label from
- * here, so the same course wears the same badge wherever it is met.
- *
- * `tone` is the colour role, not a colour: mint is a course that is live on
- * the board, amber is one that needs an action before it can be, slate is
- * one that has never been published. The stylesheets decide the hex.
- */
-export function courseChip(listing) {
-  if (!listing || listing.kind === 'none') {
-    return { label: str('listing.no_track'), tone: 'none', note: str('listing.nothing_loaded_to_fly') };
-  }
-  if (listing.kind === 'owned') {
-    if (listing.layoutDrift) {
-      return {
-        label: str('listing.layout_not_on_the_board'),
-        tone: 'warn',
-        note: str('listing.the_layout_changed_since_it_was'),
-      };
-    }
-    if (listing.nameDrift) {
-      return {
-        label: str('listing.rename_waiting'),
-        tone: 'warn',
-        note: str('listing.the_board_still_carries_the_old'),
-      };
-    }
-    return { label: str('listing.on_the_board'), tone: 'live', note: str('listing.yours_published_fly_it_and_upload') };
-  }
-  if (listing.kind === 'community') {
-    const by = listing.author ? str('ui.by_4', { author: listing.author }) : '';
-    return {
-      label: str('listing.on_the_board'),
-      tone: 'live',
-      note: str('listing.published_fly_it_and_upload_a', { by }),
-    };
-  }
-  if (listing.kind === 'stock') {
-    const by = listing.author ? str('ui.by_4', { author: listing.author }) : '';
-    return {
-      label: str('listing.shipped_with_the_simulator'),
-      tone: 'none',
-      note: str('listing.ships_with_the_simulator_fly_it', { by }),
-    };
-  }
-  if (listing.kind === 'remix') {
-    const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
-    return {
-      label: str('listing.copy', { of }),
-      tone: 'warn',
-      note: str('listing.your_copy_publish_it_under_a'),
-    };
-  }
-  return {
-    label: str('listing.not_on_the_board'),
-    tone: 'none',
-    note: listing.canPublishNew
-      ? str('listing.lives_in_this_browser_publish_it')
-      : str('listing.lives_in_this_browser_it_needs'),
-  };
-}
 
 /*
- * A remix of a course, and the bind that would make it this browser's.
+ * A copy of a track under a new id, and the bind that would make it this
+ * browser's: what a publish does when the board already holds this id for
+ * another browser.
  *
- * The bind is RETURNED rather than written, because one of the two callers
- * asks the author to confirm first: writing it here meant declining the
- * "open a copy?" prompt still left a bind behind for a document that was
- * never opened. The caller commits when the fork actually happens.
+ * The bind is RETURNED rather than written, so the caller commits it only
+ * when the fork actually happens.
  */
-export function forkDocument(doc, extra = {}) {
+function forkDocument(doc, extra = {}) {
   const copy = duplicateTrack(doc, extra.name || suggestRemixName(doc && doc.name));
   const bind = {
     board: extra.board || '',
@@ -520,7 +324,7 @@ export function forkDocument(doc, extra = {}) {
   return { copy, commit: () => writeBind(copy.id, bind) };
 }
 
-export function rememberPublish(doc, posted, origin, author, extra = {}) {
+function rememberPublish(doc, posted, origin, author, extra = {}) {
   const plain = toPlain(doc);
   const id = (posted && posted.id) || plain.id;
   if (posted && posted.editKey) {
@@ -532,22 +336,6 @@ export function rememberPublish(doc, posted, origin, author, extra = {}) {
     author: author || prev.author || '',
     nameOnBoard: (posted && posted.name) || plain.name || '',
     layoutFingerprint: layoutFingerprint(plain),
-    /*
-     * WHAT THE BOARD IS CURRENTLY SHOWING THIS TRACK AS.
-     *
-     * Tags are not in the document, deliberately: they travel in the
-     * publish envelope beside the author so they cannot reach the layout
-     * hash and clear somebody's times. That means the document cannot
-     * remember them either, so the bind does, and the publish dialog reads
-     * them back to pre-tick what was last sent. Without this a second
-     * publish would silently untag a track, because an omitted list is how
-     * a builder from before tags speaks and the board leaves those alone.
-     *
-     * `extra.tags` undefined means the caller did not send any, which is
-     * different from sending none: the first keeps what was there and the
-     * second is a deliberate clearing.
-     */
-    tags: Array.isArray(extra.tags) ? extra.tags.slice() : (prev.tags || []),
     owned: true,
     sourceId: prev.sourceId || '',
     sourceName: prev.sourceName || '',
@@ -563,15 +351,6 @@ export function rememberPublish(doc, posted, origin, author, extra = {}) {
     });
   }
   return id;
-}
-
-/*
- * The tags this track was last published under, or an empty list. The bind
- * is the only place they live on this side: see rememberPublish.
- */
-export function publishedTags(id) {
-  const bind = id ? readBind(id) : null;
-  return bind && Array.isArray(bind.tags) ? bind.tags.slice() : [];
 }
 
 export async function syncOwnedName(doc, origin) {
@@ -730,20 +509,4 @@ export async function publishCurrentCourse({ doc, author, origin, courseName }) 
     writeAutosave(plain);
     return { posted, doc: plain, forked: true };
   }
-}
-
-export function bindOwnedCanvas(doc, origin, author) {
-  const plain = toPlain(doc);
-  const bind = readBind(plain.id) || {};
-  writeShareImport({
-    id: plain.id,
-    name: plain.name,
-    author: author || bind.author || readPilotName() || '',
-    board: origin || bind.board || boardOrigin(),
-    document: plain,
-  });
-}
-
-export function flyCanvasWithoutListing() {
-  clearShareImport();
 }

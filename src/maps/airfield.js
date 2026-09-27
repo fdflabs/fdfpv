@@ -49,7 +49,7 @@ import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
 import { celMaterial, updateCelTime, FLAG_SAIL_CLOTH } from '../render/celmat.js';
 import { skyDome } from '../render/scene.js';
-import { attachComposer } from './field.js';
+import { attachComposer } from '../render/post.js';
 import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
@@ -502,8 +502,7 @@ async function buildAirfield(shell, progress, q) {
   };
 }
 
-/* The race field's composer on top, and its dispose folded into ours, the
- * same seven lines custom.js borrows. */
+/* The shared composer on top, and its dispose folded into ours. */
 export async function buildMap(shell, onProgress, options) {
   const progress = onProgress ?? (() => {});
   const q = qualityFor(options && options.quality);

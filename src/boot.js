@@ -71,42 +71,41 @@ const TITLE_MAP = 'swiss2';
 
 async function start() {
   /*
-   * A map named in the URL replaces the Alps, and this is the one
-   * thing the track builder asks of the game: its Fly this track button links
-   * to ?map=custom, so a course goes from the drawing board to the air in one
-   * press instead of a press and then a hunt through a menu. main.js takes
-   * the mapId and writes it into the settings, so the title is the world the
-   * link named and the Map row agrees with it. Harnesses, share links and
-   * posters name their world the same way.
+   * A map named in the URL replaces the title's world, and a board link is
+   * the one that matters: it names the track as ?share=, so the pilot lands
+   * on it rather than hunting through a menu. main.js takes the mapId and
+   * writes it into the settings, so the title is the world the link named
+   * and the Map row agrees with it. Harnesses and posters name their world
+   * the same way.
    */
   let mapId = null;
   try {
     const params = new URLSearchParams(window.location.search);
     mapId = params.get('map') || null;
-    /* A published course arrives as ?share=id. That is a custom map, even
-     * when the link omits map=, so the loading screen weights the right
-     * world and the title lands on the course the board sent. */
+    /* A published track arrives as ?share=id, which is Track mode's seat,
+     * even when the link omits map=. */
     if (params.get('share')) {
-      mapId = 'custom';
+      mapId = 'track';
     }
   } catch (e) {
-    /* No URL to read. The title is the Alps. */
+    /* No URL to read. The title is its own world. */
   }
   /*
    * An id no map has is a stale bookmark or a typo, and it used to reach
-   * main.js verbatim: the loaders normalise it to the field while the
-   * setting kept the bad string, so the Map row named a world that was not
-   * there and syncWorld saw a mismatch it could never clear. MAP_BUILD_MS is
-   * keyed by map id and is imported here anyway, so the check does not drag
-   * the registry, and its loader thunks, into the boot graph.
+   * main.js verbatim, so the Map row named a world that was not there and
+   * syncWorld saw a mismatch it could never clear. MAP_BUILD_MS is keyed by
+   * map id and is imported here anyway, so the check does not drag the
+   * registry, and its loader thunks, into the boot graph. The race field
+   * ('field', 'custom', which the board's links still carry) is gone, and
+   * any of these is the Track seat.
    */
-  /* The race field is gone. A bookmarked field id is the track world,
-   * which is the same terrain with a designed layout in it. */
-  if (mapId && (mapId === 'field' || !Object.hasOwn(MAP_BUILD_MS, mapId))) {
-    mapId = 'custom';
+  if (mapId && !Object.hasOwn(MAP_BUILD_MS, mapId)) {
+    mapId = 'track';
   }
   const titleMap = mapId ? null : TITLE_MAP;
-  const worldMs = MAP_BUILD_MS[mapId ?? titleMap];
+  /* The Track seat's world is not known until the seat is read, and it is
+   * one of the two valleys: the Swiss valley's figure is the larger. */
+  const worldMs = MAP_BUILD_MS[mapId ?? titleMap] ?? MAP_BUILD_MS.swiss2;
 
   loading.run(planStages(['three', 'board', 'sim', 'module', 'world', 'frame'], worldMs));
 

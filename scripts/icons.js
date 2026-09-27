@@ -15,16 +15,14 @@
  * the PNGs end to end. That is the whole format surface used here, so an
  * image library would be a few megabytes bought to avoid a hundred lines.
  *
- * ONE MARK, FOUR TINTS, and the tints are not decoration. A pilot ends up
- * with the simulator, the builder and the board open in three tabs at once,
- * and at sixteen pixels a tab is the icon plus four letters of title. Each
- * page's icon takes the accent that page itself is built out of, because the
- * icon is seen next to that page's title and above that page's colours:
+ * ONE MARK, THREE TINTS, and the tints are not decoration. A pilot ends up
+ * with the simulator and the board open in two tabs at once, and at sixteen
+ * pixels a tab is the icon plus four letters of title. Each page's icon
+ * takes the accent that page itself is built out of, because the icon is
+ * seen next to that page's title and above that page's colours:
  *
  *   sakura  the simulator, whose wordmark's FPV is sakura, 32 uses to mint's
  *           19, and which is the family's chrome colour everywhere else too
- *   amber   the track builder, where every armed tool, every selected object
- *           and every readout is amber
  *   mint    the board. Its own chrome is sakura, like the simulator's, and
  *           two identical icons defeat the whole point, so it takes mint,
  *           which is the colour it paints a record in
@@ -32,14 +30,12 @@
  *           and gets the other half of the wordmark
  *
  * THIS IS NOT THE MAPPING THE LANDING PAGE'S CARDS USE. Those are mint for
- * the simulator, sakura for the builder and amber for the board, which is a
- * different thing: a card sits in a row of three on one page and only has to
- * differ from its two neighbours, while an icon has to survive being looked
- * at beside the page it belongs to. Taking the cards' mapping would have put
- * a sakura icon on the amber page. Written down because the two mappings
- * disagree on every row and the next person will notice and wonder which is
- * wrong. Neither is. DEPLOY.md tabulates the same four and is the copy a
- * deploy is read from.
+ * the simulator and amber for the board, which is a different thing: a card
+ * sits in a row on one page and only has to differ from its neighbours,
+ * while an icon has to survive being looked at beside the page it belongs
+ * to. Written down because the two mappings disagree and the next person
+ * will notice and wonder which is wrong. Neither is. DEPLOY.md tabulates the
+ * same three and is the copy a deploy is read from.
  *
  * WHAT IT WRITES, into the directory it is pointed at, with the names a
  * browser looks for on its own:
@@ -50,11 +46,11 @@
  *
  * Usage:
  *   node scripts/icons.js <accent> <outdir>
- *   npm run gen:icons          both sets inside this repo
+ *   npm run gen:icons          the simulator's set, inside this repo
  *
  * The board and the landing page are separate repositories and separate
  * static sites, so their sets are written across a checkout beside this one.
- * DEPLOY.md lists the four commands.
+ * DEPLOY.md lists the three commands.
  *
  * THE OUTPUT IS COMMITTED AND NOTHING CHECKS IT, which is worth knowing
  * before trusting it. Change a number in the mark below without rerunning
@@ -62,7 +58,7 @@
  * with no check failing, because none of the sixteen Stage 1 checks looks at
  * an icon. The pixels are deterministic; the FILES are not quite, because
  * the IDAT payload is whatever the linked zlib emits, so a Node upgrade that
- * moves the bundled zlib rewrites all eight files for a mark that did not
+ * moves the bundled zlib rewrites every file for a mark that did not
  * change. Neither is a reason to generate at deploy time: there is no build
  * step on any of the three services to generate in.
  *
@@ -99,7 +95,6 @@ const HEX = {
   deep: '#141c16',
   cream: '#f3ead4',
   sakura: '#e8a8b8',
-  amber: '#ffd45c',
   mint: '#7dffb4',
 };
 
@@ -110,9 +105,9 @@ const PALETTE = Object.fromEntries(
   ])
 );
 
-/* The four a page may ask for. --deep is the ground under all of them and is
- * not an accent, so it is not in here. */
-const ACCENTS = new Set(['cream', 'sakura', 'amber', 'mint']);
+/* The three a page may ask for. --deep is the ground under all of them and
+ * is not an accent, so it is not in here. */
+const ACCENTS = new Set(['cream', 'sakura', 'mint']);
 
 /*
  * THE MARK, in a 32 unit square, which is the size the SVG declares and the

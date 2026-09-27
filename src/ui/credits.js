@@ -52,27 +52,6 @@ import { str } from '../strings/index.js';
  * because the roll is a record of who flew it and not a list of who
  * posts about it.
  */
-/*
- * THE RACEGOW5 ROOMS AND WHO BUILT THEM.
- *
- * Eight tracks in `scripts/racegow-lattice.js`, read off the official
- * animations and brought over by one person. Six other people designed
- * them, and a pilot flying one should be able to find out who. The names
- * here are the `credit.designer` fields of the shipped presets and
- * `scripts/micro-check.js` fails if this list and those presets disagree,
- * so it cannot go stale when a ninth arrives.
- */
-const RACEGOW = [
-  { designer: 'AyyyKayyy', tracks: [str('credits.track_8')] },
-  { designer: str('credits.cumber_and_hotspur'), tracks: [str('credits.track_5')] },
-  { designer: 'Skittles', tracks: [str('credits.track_1'), str('credits.track_2')] },
-  { designer: str('credits.the_lego_dans'), tracks: [str('credits.track_3'), str('credits.track_4')] },
-  { designer: 'MrE', tracks: [str('credits.track_6')] },
-  { designer: 'FPVBean', tracks: [str('credits.track_7')] },
-];
-
-export const RACEGOW_CREDITS = RACEGOW;
-
 const PILOTS = [
   {
     slot: '01',
@@ -383,27 +362,6 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
     body: tdBody,
   }));
   host.append(tracks);
-
-  /*
-   * The rooms themselves, by name, under the person who built each one.
-   * A track is somebody's afternoon with a pipe cutter; the reconstruction
-   * is not the design.
-   */
-  const rooms = section(str('credits.the_racegow5_rooms'), str('credits.eight_tracks_six_builders_read_off'));
-  const roomList = el('div', 'credit-rooms');
-  for (const r of RACEGOW) {
-    const line = el('p', 'credit-room');
-    line.append(el('b', null, r.designer));
-    line.append(document.createTextNode(str('credits.text', { v1: r.tracks.join(', ') })));
-    roomList.append(line);
-  }
-  const roomNote = el('p', 'credit-room-note');
-  roomNote.append(document.createTextNode(str('credits.series_and_animations_by')));
-  roomNote.append(link('https://racegow.com/tracks', 'RaceGOW'));
-  roomNote.append(document.createTextNode(str('credits.brought_into_this_simulator_by_andagainfpv')));
-  roomList.append(roomNote);
-  rooms.append(roomList);
-  host.append(rooms);
 
   /*
    * Yellowstone is built from public data, and one inventory that is not

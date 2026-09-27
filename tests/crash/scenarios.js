@@ -30,8 +30,8 @@
  * sim_contact_at_mat (or sim_contact_at where the module's material is not
  * the shell's numbers) at the craft's patch, then a blade strike scaled by
  * the impulse. The ground is named to the plant as the shell names it
- * (src/game/crashworld.js groundSurface): grass outdoors, today's contact
- * in a whoop's room. Only the detection is the suite's own, a
+ * (src/game/crashworld.js groundSurface): grass. Only the detection is
+ * the suite's own, a
  * disc of the airframe's sweep radius and vertical extents against a
  * plane, a capsule or a sphere, because the plant has no scene geometry
  * and the shell's colliders live in a map.
@@ -72,9 +72,9 @@ const clamp = (x, lo = -1, hi = 1) => (x < lo ? lo : (x > hi ? hi : x));
  */
 export const CRAFT = {
   '5inch': { shell: '5inch', sim: 0, quad: true, volts: 4.2 },
-  /* The shell's whoop is the five inch's plant in a room built MICRO_SCALE
-   * times life size (configs/airframes.js). Its scenarios are flown at a
-   * real whoop's speeds times that factor, and read back divided by it. */
+  /* The shell's whoop is the five inch's plant drawn MICRO_SCALE times
+   * life size (configs/airframes.js). Its scenarios are flown at a real
+   * whoop's speeds times that factor, and read back divided by it. */
   whoop: { shell: 'whoop65', sim: 0, quad: true, volts: 4.2, scale: MICRO_SCALE, partTable: 1 },
   sky: { shell: 'sky1800', sim: 3, Vs: 9.2, Vc: 14.9, Vt: 23.5, cruise: 0.65 },
   cub: { shell: 'cub1400', sim: 4, Vs: 8.1, Vc: 13.5, Vt: 18.4, cruise: 0.75, wheels: { z: 0.1463, pitchDeg: 11.0 } },
@@ -216,13 +216,6 @@ function planeLaunch(h, { z, pitch = 0, bank = 0, v, x = 0 }) {
 function grass(h) {
   h.call('sim_set_ground', 1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E);
   h.call('sim_set_ground_material', SURFACE.grass);
-}
-
-/* A whoop's room: the shell keeps today's contact on a micro track's
- * floor (src/game/crashworld.js groundSurface), so the suite does too. */
-function floor(h) {
-  h.call('sim_set_ground', 1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E);
-  h.call('sim_set_ground_material', SURFACE.default);
 }
 
 function water(h) {
@@ -481,17 +474,20 @@ export const SCENARIOS = [
 
 const K = MICRO_SCALE;
 /* A whoop that survives flies on: after the contact the hand goes back to
- * holding height and a gentle speed, and the band asks whether it can. */
+ * holding height and a gentle speed, and the band asks whether it can. The
+ * whoop flew these in its RaceGOW room, on the room's floor, until the room
+ * went; it flies the worlds now, so they are flown over the Swiss valley's
+ * grass, the Track seat's home, with the same bands. */
 SCENARIOS.push(
   {
     id: 'whoop-wall',
     title: 'Whoop into a wall at 3 m/s and flies on',
     craft: 'whoop',
     family: 'wall bounce',
-    map: 'custom',
+    map: 'swiss2',
     seconds: 8,
     setup(h) {
-      floor(h);
+      grass(h);
       quadSetup(h, 1.0 * K);
     },
     pilot(h) {
@@ -509,15 +505,15 @@ SCENARIOS.push(
   },
   {
     id: 'whoop-floor',
-    title: 'Whoop drops onto the floor at 2 m/s and flies on',
+    title: 'Whoop drops onto the grass at 2 m/s and flies on',
     craft: 'whoop',
     family: 'floor bounce',
-    map: 'custom',
+    map: 'swiss2',
     seconds: 6,
     setup(h) {
-      floor(h);
+      grass(h);
       h.call('sim_set_angle_mode', 1);
-      /* The height that gives 2 m/s, in the room's units. */
+      /* The height that gives 2 m/s, in the whoop's drawn units. */
       const z = (2 * K) * (2 * K) / (2 * 9.80665) + 0.05;
       h.call('sim_set_pose', 0, 0, z, 1, 0, 0, 0);
       h.call('sim_rest');
@@ -536,21 +532,21 @@ SCENARIOS.push(
     title: 'Whoop clips a gate upright at full speed',
     craft: 'whoop',
     family: 'gate clip',
-    map: 'custom',
+    map: 'swiss2',
     seconds: 10,
     setup(h) {
-      floor(h);
+      grass(h);
       quadSetup(h, 0.6 * K);
     },
     pilot(h) {
       /* Full speed of a 65 mm 1S whoop, the reference's figure, in the
-       * room's units; the plant is the five inch's, whose ceiling is about
-       * 35 m/s, so the room's scale caps what is flyable here. */
+       * whoop's drawn units; the plant is the five inch's, whose ceiling is
+       * about 35 m/s, so that scale caps what is flyable here. */
       const v = Math.min(8 * K, 32);
       if (!h.mem.placed && h.ms > 500 && atSpeed(h, v)) {
         const s = h.s;
         const reach = 0.110 + 0.0635;
-        /* A RaceGOW gate's side, 20 mm tube in real units. */
+        /* A whoop gate's side, 20 mm tube in real units. */
         const r = 0.010 * K;
         h.place({ kind: 'gate', shape: 'capsule', a: [s[1] + 1.0 * K, s[2] - (reach + r - 0.08), 0], b: [s[1] + 1.0 * K, s[2] - (reach + r - 0.08), 1.5 * K], r });
         h.mem.placed = true;

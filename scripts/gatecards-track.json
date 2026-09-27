@@ -1,0 +1,239 @@
+{
+ "schemaVersion": 4,
+ "id": "trk-a1b5c0de",
+ "name": "Alpine strip",
+ "createdUtc": "2026-09-27T11:49:23Z",
+ "modifiedUtc": "2026-09-27T11:49:23Z",
+ "trackClass": "full",
+ "map": "alps",
+ "field": {
+  "width": 60,
+  "depth": 40,
+  "gridSize": 1
+ },
+ "settings": {
+  "tangentScale": 1.1,
+  "minCurveRadius": 2.5,
+  "samplesPerSegment": 48
+ },
+ "branding": {
+  "logos": []
+ },
+ "credit": null,
+ "elements": [
+  {
+   "id": "el-1",
+   "type": "gate",
+   "name": "",
+   "position": {
+    "x": 0,
+    "y": -26,
+    "z": 0.02
+   },
+   "yaw": -1.367751,
+   "pitch": 0,
+   "yawOverridden": true,
+   "dims": {
+    "levels": 1,
+    "sillH": 0,
+    "clearW": 1.524,
+    "clearH": 1.524,
+    "levelPitch": 1.557401
+   },
+   "orientation": {
+    "w": 0.994851,
+    "x": 0,
+    "y": 0,
+    "z": 0.101348
+   }
+  },
+  {
+   "id": "el-2",
+   "type": "flaggedGate",
+   "name": "",
+   "position": {
+    "x": -7,
+    "y": -2,
+    "z": 0
+   },
+   "yaw": -1.670465,
+   "pitch": 0,
+   "yawOverridden": true,
+   "dims": {
+    "levels": 1,
+    "sillH": 0,
+    "clearW": 1.524,
+    "clearH": 1.524,
+    "levelPitch": 1.557401,
+    "flagH": 1.45
+   },
+   "flagSide": "left",
+   "orientation": {
+    "w": 0.998759,
+    "x": 0,
+    "y": 0,
+    "z": -0.049814
+   }
+  },
+  {
+   "id": "el-3",
+   "type": "doubleStack",
+   "name": "",
+   "position": {
+    "x": 5,
+    "y": 24,
+    "z": 0.02
+   },
+   "yaw": -1.626295,
+   "pitch": 0,
+   "yawOverridden": true,
+   "dims": {
+    "levels": 2,
+    "sillH": 0,
+    "clearW": 1.524,
+    "clearH": 1.524,
+    "levelPitch": 1.557401
+   },
+   "orientation": {
+    "w": 0.999615,
+    "x": 0,
+    "y": 0,
+    "z": -0.027746
+   }
+  },
+  {
+   "id": "el-4",
+   "type": "gate",
+   "name": "",
+   "position": {
+    "x": -4,
+    "y": 52,
+    "z": 0.02
+   },
+   "yaw": -1.624317,
+   "pitch": 0,
+   "yawOverridden": true,
+   "dims": {
+    "levels": 1,
+    "sillH": 0,
+    "clearW": 1.524,
+    "clearH": 1.524,
+    "levelPitch": 1.557401
+   },
+   "orientation": {
+    "w": 0.999642,
+    "x": 0,
+    "y": 0,
+    "z": -0.026757
+   }
+  },
+  {
+   "id": "el-5",
+   "type": "wideGate3",
+   "name": "",
+   "position": {
+    "x": 8,
+    "y": 80,
+    "z": 0
+   },
+   "yaw": -1.606495,
+   "pitch": 0,
+   "yawOverridden": true,
+   "dims": {
+    "levels": 1,
+    "sillH": 0,
+    "clearW": 3,
+    "clearH": 3,
+    "levelPitch": 3.033401
+   },
+   "orientation": {
+    "w": 0.999841,
+    "x": 0,
+    "y": 0,
+    "z": -0.017849
+   }
+  },
+  {
+   "id": "el-6",
+   "type": "ladder",
+   "name": "",
+   "position": {
+    "x": -2,
+    "y": 108,
+    "z": 0
+   },
+   "yaw": -1.227772,
+   "pitch": 0,
+   "yawOverridden": true,
+   "dims": {
+    "levels": 3,
+    "sillH": 0,
+    "clearW": 1.524,
+    "clearH": 1.524,
+    "levelPitch": 1.557401
+   },
+   "orientation": {
+    "w": 0.985328,
+    "x": 0,
+    "y": 0,
+    "z": 0.170672
+   }
+  }
+ ],
+ "sequence": [
+  {
+   "id": "sq-1",
+   "elementId": "el-1",
+   "apertureIndex": 0,
+   "entry": 1,
+   "passSide": null,
+   "clearance": null,
+   "overridden": false
+  },
+  {
+   "id": "sq-2",
+   "elementId": "el-2",
+   "apertureIndex": 0,
+   "entry": 1,
+   "passSide": null,
+   "clearance": null,
+   "overridden": false
+  },
+  {
+   "id": "sq-3",
+   "elementId": "el-3",
+   "apertureIndex": 0,
+   "entry": 1,
+   "passSide": null,
+   "clearance": null,
+   "overridden": false
+  },
+  {
+   "id": "sq-4",
+   "elementId": "el-4",
+   "apertureIndex": 0,
+   "entry": 1,
+   "passSide": null,
+   "clearance": null,
+   "overridden": false
+  },
+  {
+   "id": "sq-5",
+   "elementId": "el-5",
+   "apertureIndex": 0,
+   "entry": 1,
+   "passSide": null,
+   "clearance": null,
+   "overridden": false
+  },
+  {
+   "id": "sq-6",
+   "elementId": "el-6",
+   "apertureIndex": 0,
+   "entry": 1,
+   "passSide": null,
+   "clearance": null,
+   "overridden": false
+  }
+ ]
+}

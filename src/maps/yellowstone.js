@@ -50,7 +50,7 @@ import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
 import { celMaterial } from '../render/celmat.js';
 import { skyDome } from '../render/scene.js';
-import { attachComposer } from './field.js';
+import { attachComposer } from '../render/post.js';
 import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
