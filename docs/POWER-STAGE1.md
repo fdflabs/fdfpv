@@ -142,7 +142,14 @@ seated.
   OSD; `powerBlock` always builds the block (the checks use it).
 - The shell seats the choice with the airframe between runs and at a hot
   swap (`applyPower` in src/main.js), so a change in the hangar takes effect
-  on the next run. Nothing else needs to be called.
+  on the next run, or at once in the air through the hangar's refit.
+- The hangar's Power tab reads all of this through `hangarPower` in
+  src/main.js, which also gives it the readouts: weight and thrust to
+  weight from the option's data, top speed and flight time at cruise from
+  `configs/power-estimates.js`, which `node scripts/power-check.js
+  --estimates` writes by flying every option on every pack. A change to
+  the plant or to an option's numbers needs that run again; power:check
+  P8 fails until it is done.
 
 ## The options, per plane
 
