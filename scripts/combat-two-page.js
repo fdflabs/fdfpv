@@ -3,7 +3,8 @@
  * (docs/COMBAT-PLAN.md section 7). Two headless pages in one private room
  * on the Swiss valley: A flies the five inch in red, B the Cub in blue.
  * A starts a round; both tow their toilet paper. B hangs still sixty
- * metres up with its paper straight down; A is thrown level through it.
+ * metres up with its paper straight down; A flies past it 1.4 m off (no
+ * cut), then 0.8 m off, and the owner's metre cuts it.
  * Both screens must show the same cut from the room, the piece falling,
  * and the score. By hand, against a running rooms Worker:
  *
@@ -37,6 +38,7 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { Streamer, streamerTrace } from '../src/game/streamer.js';
 import { POINTS_CUT } from '../edge/rooms/combat.js';
+import { hullFor } from '../src/game/midair.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const rooms = process.argv[2] || 'http://127.0.0.1:8871';
@@ -105,6 +107,8 @@ try {
   for (const p of [a, b]) {
     await p.until('window.__shellReady === true', 300000);
     await p.until('window.__map && window.__map().ready', 400000);
+    /* A key, the gesture a browser wants before it makes a sound. */
+    await p.tap('KeyZ');
   }
   const code = await a.evaluate('window.__roomCreate()');
   await a.until("window.__rooms().phase === 'open'", 30000);
@@ -131,7 +135,10 @@ try {
     window.__crashThrow({ x, y, z, yaw: 0, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, fresh: true });
     return { x, y, z };
   })()`);
-  await a.evaluate('window.__combatStart(3); true');
+  /* The host presses the Combat row, as a pilot does. */
+  const row = await a.evaluate("window.__ui.friendsRows().some((r) => r.action === 'friends-combat-3')");
+  check('the host has a Combat row for 3 minutes', row === true);
+  await a.evaluate("window.__ui.act('friends-combat-3'); true");
   for (const p of [a, b]) {
     await p.until("window.__combat().round.state === 'countdown'", 15000);
   }
@@ -158,31 +165,54 @@ try {
   await shot(b, 'b-sees-own-paper');
 
   /*
-   * A level through B's paper, 25 m down it, at 10 m/s along -x. A is put
-   * at its start and held there first: a throw is a teleport, which makes
-   * A untouchable both ways for Phase 5's five seconds, and a held A's own
-   * paper hangs; at 10 m/s its snatch stays under the tear, at 20 it would
-   * not (docs/COMBAT-PLAN.md section 2.5).
+   * The owner's metre (docs/COMBAT-PLAN.md 4.1): A flies past B's hanging
+   * paper at 10 m/s along -x, first with its nearest part 1.4 m from the
+   * paper's line (no cut), then 0.8 m (a cut). The five inch flying -x
+   * reaches `side` across its path. A is put at its start and held there
+   * first: a throw is a teleport, which makes A untouchable both ways for
+   * Phase 5's five seconds, and at 10 m/s its own paper's snatch stays
+   * under the tear (section 2.5).
    */
-  const pass = await a.evaluate(`(() => {
-    const c = window.__combat();
-    const b = c.peers[0].chains[0];
-    const x = b.head[0], z = b.head[2], y = b.head[1] - 25 + 0.9;
-    return window.__crashThrow({ x: x + 8, y, z, yaw: 90, pitch: 0, roll: 0, vx: -10, vy: 0, vz: 0, hold: true, fresh: false });
-  })()`);
-  await a.sleep(6500);
-  const beforeRelease = await a.evaluate('window.__combat().paper');
-  check('A waits out its spawn, its own paper hanging whole', beforeRelease && beforeRelease.links === 50, `${beforeRelease && beforeRelease.links}`);
-  await a.evaluate('window.__releasePose(); true');
-  check('A is let go toward B\'s paper', pass && pass.ok === true, JSON.stringify(pass).slice(0, 80));
+  const h5 = hullFor('5inch').hull;
+  let side = 0;
+  for (let i = 0; i < h5.n; i += 1) {
+    side = Math.max(side, Math.abs(h5.cx[i]) + h5.hx[i]);
+  }
+  async function passBeside(gap, depth) {
+    const thrown = await a.evaluate(`(() => {
+      const c = window.__combat();
+      const n = c.peers[0].chains[0].nodes[${depth}];
+      return window.__crashThrow({ x: n[0] + 8, y: n[1], z: n[2] + ${gap + side}, yaw: 90, pitch: 0, roll: 0, vx: -10, vy: 0, vz: 0, hold: true, fresh: false });
+    })()`);
+    await a.sleep(6500);
+    const cutsBefore = (await a.evaluate('window.__combat()')).cuts.length;
+    await a.evaluate('window.__releasePose(); true');
+    return { thrown, cutsBefore };
+  }
+  const far = await passBeside(1.4, 15);
+  await a.sleep(2500);
+  const farCuts = (await a.evaluate('window.__combat()')).cuts.length;
+  check('A flies past B\'s paper 1.4 m off: no cut', far.thrown && far.thrown.ok && farCuts === far.cutsBefore, `${farCuts} cuts`);
+  const near = await passBeside(0.8, 25);
+  check('then 0.8 m off, the owner\'s near miss', near.thrown && near.thrown.ok, JSON.stringify(near.thrown).slice(0, 80));
   await a.until('window.__combat().cuts.length > 0', 8000).catch(() => {});
+  /* The shout is on screen for 1.6 s: read it at once. */
+  const bigA = (await a.evaluate('window.__combat()')).hud.big;
   await b.until('window.__combat().cuts.length > 0', 8000).catch(() => {});
-  const ca = (await a.evaluate('window.__combat()')).cuts;
-  const cb = (await b.evaluate('window.__combat()')).cuts;
+  await a.sleep(400);
+  const live = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];
+  const ca = live[0].cuts;
+  const cb = live[1].cuts;
   check('the room cut B\'s paper and both screens have the same cut', ca.length >= 1 && cb.length >= 1 && JSON.stringify(ca[0]) === JSON.stringify(cb[0]), JSON.stringify(ca[0] || {}).slice(0, 160));
   const cut = ca[0] || {};
   check(`A cut B's, for ${POINTS_CUT}`, cut.cutter === 1 && cut.victim === 2 && cut.points === POINTS_CUT, `${cut.cutter} ${cut.victim} ${cut.points} ${cut.part}`);
-  check('about 25 m down, where A went through', cut.keep >= 20 && cut.keep <= 29, `keep ${cut.keep}`);
+  check('about 25 m down, where A went by', cut.keep >= 20 && cut.keep <= 29, `keep ${cut.keep}`);
+  check('A\'s screen shouts it: +100 SCHWING!', /\+100/.test(bigA) && /SCHWING/.test(bigA), bigA);
+  check('the SCHWING rang on both screens', live.every((c) => c.schwing.voice && c.schwing.struck >= 1), live.map((c) => JSON.stringify(c.schwing)).join(' '));
+  check('and the glint and the paper burst flashed on both', live.every((c) => c.effects.glints >= 1 && c.effects.bits > 0), live.map((c) => JSON.stringify(c.effects)).join(' '));
+  const roomA = live.map((c) => c.round.scores.find((x) => x.seat === 1).points);
+  check('the round is still on, and A\'s points are the same on both screens', live.every((c) => c.round.state === 'on') && roomA[0] === roomA[1] && roomA[0] >= POINTS_CUT, roomA.join(' '));
+  check('and the live scoreboard on both screens shows them now, not only at the end', live.every((c) => c.hud.top.includes(`: ${roomA[0]}`)), live.map((c) => c.hud.top).join(' | '));
   /* Close on the cut, a few metres off it. */
   const p = cut.p || head;
   await a.evaluate(`window.__setCam(${p[0] + 6}, ${p[1] + 1.5}, ${p[2] + 7}, ${p[0]}, ${p[1] - 2}, ${p[2]}, 60); true`);
@@ -210,7 +240,7 @@ try {
     pieceA2 ? `${fa2.peers[0].chains[0].n - 1} m, piece ${pieceA1.low.toFixed(1)} to ${pieceA2.low.toFixed(1)} m` : 'no piece');
   const scoreA = fa2.round.scores.find((s) => s.seat === 1);
   const scoreB = fb2.round.scores.find((s) => s.seat === 1);
-  check('the score is on both screens', scoreA && scoreB && scoreA.points === scoreB.points && scoreA.cuts === 1, `${scoreA && scoreA.points} ${scoreB && scoreB.points}`);
+  check('one cut on both screens\' scores', scoreA && scoreB && scoreA.points === scoreB.points && scoreA.cuts === 1, `${scoreA && scoreA.points} ${scoreB && scoreB.points}`);
   check('both screens said so: A its +100, B that its paper was cut', fa2.said.some((l) => /\+100/.test(l)) && fb2.said.some((l) => /!$/.test(l) && !/\+/.test(l)), `${fa2.said.slice(-1)} | ${fb2.said.slice(-1)}`);
   await a.evaluate('window.__setCam(null); true');
   await b.evaluate('window.__setCam(null); true');
