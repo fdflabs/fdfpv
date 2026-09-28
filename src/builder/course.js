@@ -145,8 +145,14 @@ export function isHoop(type) {
 }
 
 /* How far behind the start gate a test flight is parked, the field's own
- * figure (src/game/trackdoc.js SPAWN_BACK). */
+ * figure (src/game/trackdoc.js SPAWN_BACK), or the opening's own width
+ * where that is more: from 7.5 m behind a 30 m hoop the pilot is inside
+ * its ring and sees none of it. */
 export const SPAWN_BACK = 7.5;
+
+function spawnBack(g) {
+  return Math.max(SPAWN_BACK, g.aperture.clearW);
+}
 
 /* ------------------------------------------------------------------ */
 /* Vectors and quaternions, plain objects, scene frame                 */
@@ -596,7 +602,7 @@ export function pieceGate(piece, base, quat) {
 }
 
 /*
- * Where a test flight is parked: SPAWN_BACK behind the start gate along its
+ * Where a test flight is parked: spawnBack behind the start gate along its
  * direction of travel, facing through it, on whatever ground is there. A
  * gate flown straight down has no horizontal travel to stand behind, so the
  * top edge of its opening stands in for it.
@@ -616,8 +622,8 @@ export function spawnFor(gates) {
   fx /= n;
   fz /= n;
   return {
-    x: g.centre.x - fx * SPAWN_BACK,
-    z: g.centre.z - fz * SPAWN_BACK,
+    x: g.centre.x - fx * spawnBack(g),
+    z: g.centre.z - fz * spawnBack(g),
     yaw: headingOf(fx, fz),
   };
 }
@@ -627,7 +633,7 @@ export function spawnFor(gates) {
  *
  * THE RULE. A start gate whose opening is hung more than one opening's
  * height over the ground under it cannot be flown from the ground behind
- * it without climbing first, so the run starts in the air: SPAWN_BACK
+ * it without climbing first, so the run starts in the air: spawnBack
  * before the opening along its own line of travel, which is the opening's
  * height for a level gate, lined up to fly straight through it. The spawn
  * says so with `air: { y }` and the shell (src/main.js airStart) puts the
@@ -651,7 +657,8 @@ export function startFor(gates, heightAt) {
   const g = gates[0];
   const t = g.axes.travel;
   const c = g.centre;
-  const p = v3(c.x - t.x * SPAWN_BACK, c.y - t.y * SPAWN_BACK, c.z - t.z * SPAWN_BACK);
+  const back = spawnBack(g);
+  const p = v3(c.x - t.x * back, c.y - t.y * back, c.z - t.z * back);
   const hung = c.y - heightAt(c.x, c.z) > g.aperture.clearH;
   const clear = p.y - heightAt(p.x, p.z) >= g.aperture.clearH / 2;
   if (!hung || !clear) {
