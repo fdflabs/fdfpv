@@ -1,0 +1,337 @@
+/*
+ * paint.js: the paint shop's data. Finishes, decals, saved liveries and
+ * the code a livery is shared by.
+ *
+ * A livery entry (configs/liveries.js) is a scheme and a colour per
+ * region. The paint shop adds two things to it:
+ *
+ *   finishes  a FINISH per region: gloss, matte, metallic or chrome, or
+ *             film on a region of see through film, whose kit finish it
+ *             is. A region left out wears what its builder made.
+ *   decals    up to MAX_DECALS stickers, each a KIND (a race number, a
+ *             stripe, a roundel, a generic sponsor style shape), placed on
+ *             the model where the pilot picked: a point and the surface's
+ *             normal there, in the model's own frame (metres, y up, the
+ *             nose toward -z, x across the span), a size, a stretch, a
+ *             turn about the normal, two colours, and whether it is
+ *             mirrored onto the other side of the aircraft.
+ *
+ * Saved liveries are a list per plane of a name and an entry. A livery
+ * travels as a CODE: `FPV1-` and the base64url of a small JSON object,
+ * { v, p, n, e }, the version, the plane's livery key, the name and the
+ * entry. A code is checked field by field on the way in: a code with a
+ * field this file does not know, a value out of its range, or more than
+ * CODE_MAX characters is refused whole, never half taken.
+ *
+ * Plain data and plain functions, no three.js and no DOM: the menu, the
+ * renderer and the checks all import this, the checks in Node.
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* The finishes a region can wear. `film` only on a film region, where it
+ * is the kit's own; the others there make the film an opaque paint. */
+export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome'];
+
+/*
+ * THE DECALS. `aspect` is the kind's natural width over its height, which
+ * the stretch starts from; `text` a kind that must read the right way
+ * round on both sides, so its mirrored copy is not a mirror image (a
+ * number), where every other kind is mirrored whole (a chevron points
+ * forward on both sides). `size` its first height, metres. The sponsor
+ * style shapes are generic marks drawn here, no maker's logo or name.
+ */
+export const DECAL_KINDS = {
+  num: { aspect: 0.72, text: true, size: 0.09 },
+  stripe: { aspect: 6, size: 0.05 },
+  checker: { aspect: 3, size: 0.05 },
+  chevron: { aspect: 1.4, size: 0.06 },
+  star: { aspect: 1, size: 0.07 },
+  roundel: { aspect: 1, size: 0.08 },
+  bolt: { aspect: 0.62, size: 0.08 },
+  flame: { aspect: 3, size: 0.06 },
+  shield: { aspect: 0.84, size: 0.07 },
+  wings: { aspect: 2.4, size: 0.05 },
+};
+export const DECAL_KIND_IDS = Object.keys(DECAL_KINDS);
+
+/* The number's lettering, drawn from strokes in src/render/decals.js so it
+ * is the same on every machine, with no font to load. */
+export const DECAL_FONTS = ['block', 'round', 'italic'];
+
+export const MAX_DECALS = 16;
+export const MAX_SAVED = 24;
+export const NAME_MAX = 32;
+export const CODE_MAX = 6000;
+export const CODE_PREFIX = 'FPV1-';
+
+/* The ranges a decal's numbers are held to. Metres, degrees. */
+export const DECAL_LIMITS = {
+  reach: 3,
+  size: [0.01, 0.8],
+  aspect: [0.2, 12],
+  turn: [-180, 180],
+};
+
+const HEX = /^#[0-9a-f]{6}$/;
+const DIGITS = /^[0-9]{1,3}$/;
+const DECAL_FIELDS = new Set(['k', 'p', 'n', 's', 'a', 'r', 'c', 'c2', 'm', 't', 'f']);
+
+const round = (v, places) => {
+  const k = 10 ** places;
+  return Math.round(v * k) / k;
+};
+const finite = (v) => typeof v === 'number' && Number.isFinite(v);
+const inRange = (v, [lo, hi]) => finite(v) && v >= lo && v <= hi;
+
+/*
+ * A decal made safe, or the reason it is not: { decal } or { error }.
+ * Numbers are rounded to what the store keeps (a millimetre, a thousandth
+ * of the normal, a degree), so a decal read back from a code or the
+ * settings is the one that was written.
+ */
+export function checkDecal(d) {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) {
+    return { error: 'not_decal' };
+  }
+  for (const key of Object.keys(d)) {
+    if (!DECAL_FIELDS.has(key)) {
+      return { error: 'unknown_field' };
+    }
+  }
+  if (!DECAL_KINDS[d.k]) {
+    return { error: 'bad_value' };
+  }
+  const vec = (v) => Array.isArray(v) && v.length === 3 && v.every((x) => finite(x) && Math.abs(x) <= DECAL_LIMITS.reach);
+  if (!vec(d.p) || !vec(d.n)) {
+    return { error: 'bad_value' };
+  }
+  const len = Math.hypot(...d.n);
+  if (len < 0.5) {
+    return { error: 'bad_value' };
+  }
+  if (!inRange(d.s, DECAL_LIMITS.size) || !inRange(d.a, DECAL_LIMITS.aspect) || !inRange(d.r, DECAL_LIMITS.turn)) {
+    return { error: 'bad_value' };
+  }
+  const c = typeof d.c === 'string' ? d.c.toLowerCase() : null;
+  const c2 = typeof d.c2 === 'string' ? d.c2.toLowerCase() : null;
+  if (!HEX.test(c) || !HEX.test(c2) || typeof d.m !== 'boolean') {
+    return { error: 'bad_value' };
+  }
+  const out = {
+    k: d.k,
+    p: d.p.map((x) => round(x, 3)),
+    n: d.n.map((x) => round(x / len, 3)),
+    s: round(d.s, 3),
+    a: round(d.a, 2),
+    r: Math.round(d.r),
+    c,
+    c2,
+    m: d.m,
+  };
+  if (d.k === 'num') {
+    if (typeof d.t !== 'string' || !DIGITS.test(d.t) || !DECAL_FONTS.includes(d.f)) {
+      return { error: 'bad_value' };
+    }
+    out.t = d.t;
+    out.f = d.f;
+  } else if (d.t !== undefined || d.f !== undefined) {
+    return { error: 'unknown_field' };
+  }
+  return { decal: out };
+}
+
+/*
+ * The paint shop's part of an entry, made safe against the plane's
+ * regions: { finishes, decals, dropped }, `dropped` counting what was
+ * thrown away. The settings take what is left (a stale blob must never
+ * stop the page booting); a code is refused if anything was dropped.
+ * `regions` is the plane's region list (configs/liveries.js), each with
+ * `film` for a film region and `finish: false` for one whose finish is
+ * another region's.
+ */
+export function checkPaint(regions, entry) {
+  let dropped = 0;
+  const finishes = {};
+  if (entry.finishes !== undefined) {
+    if (!entry.finishes || typeof entry.finishes !== 'object' || Array.isArray(entry.finishes)) {
+      dropped += 1;
+    } else {
+      for (const [id, f] of Object.entries(entry.finishes)) {
+        const r = regions.find((x) => x.id === id);
+        const ok = r && r.finish !== false && (FINISHES.includes(f) || (f === 'film' && r.film));
+        if (!ok) {
+          dropped += 1;
+        } else if (!(f === 'film' && r.film)) {
+          finishes[id] = f;
+        }
+      }
+    }
+  }
+  const decals = [];
+  if (entry.decals !== undefined) {
+    if (!Array.isArray(entry.decals)) {
+      dropped += 1;
+    } else {
+      for (const d of entry.decals) {
+        const got = checkDecal(d);
+        if (got.error || decals.length >= MAX_DECALS) {
+          dropped += 1;
+        } else {
+          decals.push(got.decal);
+        }
+      }
+    }
+  }
+  return { finishes, decals, dropped };
+}
+
+/* The finish a region wears under an entry: its own, else the kit's. */
+export function finishOf(region, entry) {
+  const f = entry && entry.finishes && entry.finishes[region.id];
+  return f ?? (region.film ? 'film' : 'kit');
+}
+
+/* A new decal of a kind, at a point on the model, in the kind's first
+ * size and stretch. A number starts as 7 in block lettering. */
+export function newDecal(kind, p, n, colours = {}) {
+  const k = DECAL_KINDS[kind];
+  const d = {
+    k: kind,
+    p,
+    n,
+    s: k.size,
+    a: k.aspect,
+    r: 0,
+    c: colours.c ?? '#f2f2f2',
+    c2: colours.c2 ?? '#0e1213',
+    m: true,
+  };
+  if (kind === 'num') {
+    d.t = '7';
+    d.f = 'block';
+  }
+  const got = checkDecal(d);
+  if (got.error) {
+    throw new Error(`paint: a new ${kind} decal is not a valid one`);
+  }
+  return got.decal;
+}
+
+/* A number's stretch follows how many digits it has, so 7 and 77 are
+ * lettered alike. */
+export function numberAspect(text) {
+  return round(DECAL_KINDS.num.aspect * Math.max(1, text.length) * (text.length > 1 ? 0.86 : 1), 2);
+}
+
+/* A livery's name as it is kept: trimmed, one line, NAME_MAX at most. */
+export function cleanName(name) {
+  if (typeof name !== 'string') {
+    return '';
+  }
+  return name.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+}
+
+/*
+ * THE CODE. base64url so it survives a chat message and a URL, over the
+ * UTF-8 of the JSON so a name in any language goes through. btoa and atob
+ * are in every browser and in Node.
+ */
+function toBase64Url(text) {
+  const bytes = new TextEncoder().encode(text);
+  let bin = '';
+  for (const b of bytes) {
+    bin += String.fromCharCode(b);
+  }
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromBase64Url(s) {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
+  const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+}
+
+/* A livery as a code: `family` its livery key, `entry` already safe. */
+export function encodeLivery(family, name, entry) {
+  return CODE_PREFIX + toBase64Url(JSON.stringify({ v: 1, p: family, n: cleanName(name), e: entry ?? {} }));
+}
+
+/*
+ * A code read back: { family, name, entry } or { error }, the error one
+ * of the ids the hangar has a sentence for (hangar.code_<error>).
+ * `normalise(family, entry)` and `countDropped(family, entry)` are
+ * configs/liveries.js normaliseEntry and entryDrops, handed in so this
+ * file does not import the aircraft list; the entry must come through
+ * whole, nothing dropped, or the code is refused.
+ */
+export function decodeLivery(code, normalise, countDropped) {
+  if (typeof code !== 'string') {
+    return { error: 'not_code' };
+  }
+  const s = code.replace(/\s+/g, '');
+  if (s.length > CODE_MAX) {
+    return { error: 'too_long' };
+  }
+  if (!s.startsWith(CODE_PREFIX)) {
+    return { error: 'not_code' };
+  }
+  let obj;
+  try {
+    obj = JSON.parse(fromBase64Url(s.slice(CODE_PREFIX.length)));
+  } catch {
+    return { error: 'not_code' };
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    return { error: 'not_code' };
+  }
+  for (const key of Object.keys(obj)) {
+    if (!['v', 'p', 'n', 'e'].includes(key)) {
+      return { error: 'unknown_field' };
+    }
+  }
+  if (obj.v !== 1) {
+    return { error: 'version' };
+  }
+  if (typeof obj.p !== 'string' || typeof obj.n !== 'string' || !obj.e || typeof obj.e !== 'object' || Array.isArray(obj.e)) {
+    return { error: 'not_code' };
+  }
+  for (const key of Object.keys(obj.e)) {
+    if (!['scheme', 'regions', 'finishes', 'decals'].includes(key)) {
+      return { error: 'unknown_field' };
+    }
+  }
+  if (Array.isArray(obj.e.decals)) {
+    for (const d of obj.e.decals) {
+      const got = checkDecal(d);
+      if (got.error) {
+        return { error: got.error };
+      }
+    }
+    if (obj.e.decals.length > MAX_DECALS) {
+      return { error: 'bad_value' };
+    }
+  }
+  const dropped = countDropped(obj.p, obj.e);
+  if (dropped === null) {
+    return { error: 'unknown_plane' };
+  }
+  if (dropped > 0) {
+    return { error: 'bad_value' };
+  }
+  return { family: obj.p, name: cleanName(obj.n), entry: normalise(obj.p, obj.e) ?? {} };
+}
