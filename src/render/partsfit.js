@@ -103,7 +103,10 @@ export function dressParts(craft, id, fit = partsFor(id), { hangar = false } = {
       overlayParts(craft, damage, taped, hangar ? broken : [], dress);
     }
   }
-  craft.group.add(dress.group);
+  /* Nothing fitted adds nothing: the model stays the builder's own graph. */
+  if (dress.group.children.length) {
+    craft.group.add(dress.group);
+  }
   craft.partsDress = dress;
   /* The shell holds the group, not the builder's return: the trail reads
    * the nozzle from here. */
