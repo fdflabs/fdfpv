@@ -11680,6 +11680,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     rates: stateCurr
       ? { p: stateCurr[11], q: stateCurr[12], r: stateCurr[13] }
       : null,
+    /* The plant's own clock, s, so a probe times what the aircraft did on
+     * the sim's time and not the page's, which headless runs slower. */
+    simS: stateCurr ? stateCurr[0] : 0,
     descentRate: lastDescent,
     tiltDeg: lastTiltDeg,
     lastHitKind,

@@ -342,6 +342,13 @@ const stripC = strips.map((e2) => chordAt(e2 * b / 2) / c);
  * Doenhoff, the 63 and 64 series between 12 and 15 percent). */
 const tAt = (eta2) => 15.1 - (15.1 - 11.4) * eta2;
 const stripK = strips.map((e2, i) => 1 - 0.12 * Math.log2(stripC[0] / stripC[i]) - 0.022 * (tAt(strips[0]) - tAt(e2)));
+/* How each strip stalls, by its thickness: a 15 percent section at 2e5
+ * the NACA 2415's UIUC curve (held 4.2 deg past its stall, falling to
+ * 0.76), a 12 percent one McCullough and Gault's 63-012 (NACA TN 2502,
+ * fig. 3: a sharp peak, no rounding, and its lift down to 0.57 of it at
+ * once), linear between and clamped at the ends. */
+const stripTop = strips.map((e2) => 4.2 * Math.min(1, Math.max(0, (tAt(e2) - 12) / 3)));
+const stripFall = strips.map((e2) => 0.57 + (0.76 - 0.57) * Math.min(1, Math.max(0, (tAt(e2) - 12) / 3)));
 const schrenk = strips.map((e2, i) => 0.5 * (1 + 4 / Math.PI * Math.sqrt(1 - e2 * e2) / stripC[i]));
 const stallOrder = strips.map((e2, i) => ({ eta: e2, rel: stripK[i] / schrenk[i] }));
 const relMin = Math.min(...stallOrder.map((o) => o.rel));
@@ -507,6 +514,8 @@ const rows = [
   ['   Schrenk r', schrenk.map((x) => x.toFixed(4)).join(', ')],
   ['   stall alpha rel (k/r / min), deg with washout', stallOrder.map((o) => `${(o.rel / relMin).toFixed(3)} ${((alphaS * o.rel / relMin + washout * o.eta) * DEG).toFixed(2)}`).join(', ')],
   ['washout deg', f(washout * DEG, 3)],
+  ['   thickness percent', strips.map((e2) => tAt(e2).toFixed(2)).join(', ')],
+  ['   strip_top deg, strip_kfall', `${stripTop.map((x) => x.toFixed(2)).join(', ')}; ${stripFall.map((x) => x.toFixed(3)).join(', ')}`],
   ['roll: pb/2V full aileron, deg/s at 15, 18 m/s', `${f(Clda * throwA / -Clp, 4)} ${f(Clda * throwA / -Clp * 2 * 15 / b * DEG, 0)} ${f(Clda * throwA / -Clp * 2 * 18 / b * DEG, 0)}`],
   ['glide L/D at 13 m/s, gear up; sink', `${f(ld(13), 2)} ${f(13 / ld(13), 3)}`],
   ['coast from top, gear up: v at 3 s, s to 1.3 Vs, m', J(coast(level(1), m, S, CD0, k, 1.3 * Vs), 2)],

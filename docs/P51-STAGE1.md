@@ -175,6 +175,77 @@ stalls first, then 3/8 and 7/8, the root last. With the full size's 1.97
 deg of washout the tip strip still goes before the root. That is the wing
 drop.
 
+**4. How each strip stalls (`strip_top`, `strip_kfall`).** One section
+for the whole span also meant one shape past the stall: every strip held
+its peak for the NACA 2415's 4.2 deg and fell to 0.76 of it, a thick
+section's rounded, trailing edge stall. A thin one does not stall that
+way. McCullough and Gault (NACA TN 2502, 1951, fig. 3 and its text)
+classify sections by it: "Trailing-Edge Stall. This type of stall is
+characteristic of most thick airfoil sections (thickness ratios of
+approximately 0.15 and greater) ... The peak of the lift curve is rounded,
+and the loss of lift ... after the stall is gradual"; "The leading-edge
+stall is inherent to most airfoil sections of moderate thickness
+(symmetrical sections with thickness ratios of approximately 0.09 to 0.15)
+... abrupt discontinuities when the angle of attack for maximum lift is
+exceeded. There is but little rounding of the lift curve near maximum
+lift, and the peaks of the curves are sharp", their 63-012 falling from
+1.45 to about 0.83 at once, 0.57 kept. `strip_top` and `strip_kfall` are
+the table's stall_top and stall_k strip by strip; zero leaves the table's
+for every strip. The P-51's strips are 14.6, 13.7, 12.8 and 11.9 percent
+thick; each is taken linearly by its thickness from the NACA 2415's 4.2
+deg and 0.76 at 15 percent to the 63-012's 0 deg and 0.57 at 12:
+3.69, 2.40, 1.10, 0 deg and 0.737, 0.678, 0.620, 0.570 (`p51:derive`).
+With the slats fitted, on an aircraft that has them, `slat_k` still
+rules. What it does: the outer strips now lose a third of their lift the
+moment they stall, the side whose build asymmetry stalls it first a
+fraction of a degree sooner, and the wing drops at once instead of
+sliding over.
+
+**The stall's roll off, the reference.** The owner asked for a sharper
+wing drop after the lead flew it in the shell (a slow pull, 20 deg/s
+building over three seconds). The full size's own words are mixed: the
+Pilot's Flight Operating Instructions (AN 01-60JE-1, 5 April 1944, section
+II 18) say "The stall in this airplane is comparatively mild in that it
+does not whip at the stall but rolls rather slowly, and has very little
+tendency to drop into a spin ... When the stalling speed is reached, a
+wing will drop. If the backward movement on the stick continues when the
+wing drops, the airplane will fall into a steep spiral." NACA's flight
+tests of the XP-51 (White, Hoover and Garris, 1943, "Flying Qualities and
+Stalling Characteristics of North American XP-51 Airplane") measured it:
+clean, gliding, the speed bled off slowly and the controls fixed at the
+stall, "the stall was first evidenced as a mild right roll ... If ... the
+stick was moved a little farther back ... a mild left roll would occur
+followed by a right roll which developed into an oscillatory rapid
+spiral", and their fig. 42 has the first roll off reach 0.55 rad/s about
+1.4 s after it starts, at 88 mph, and the second, the other way, 0.92.
+FMS owners say the kit does the same, more readily: "These will tip stall
+a lot easier than a high wing trainer, but it's nothing extreme if you
+understand your planes limits", and on a take off pushed too slow, "a
+typical tip stall, not enough lift over the wing so it drops one, and
+spirals into the ground" (HobbySquawk, "Official FMS 1400mm P-51D V8
+Thread", p. 14). The measured one is the band: 0.55 rad/s on the full
+size's 37 ft at 88 mph is a helix angle pb/2V of 0.079, which is the same
+number on any size; the kit's roll off onset is at about 8.9 m/s, so its
+second is the full size's 1.76 s by b/V, and in 1.76 s from its onset the
+XP-51's first roll off had taken about 39 deg of bank (the half sine its
+trace is, 2.8 s long). Read off a 1943 scan with the indicated airspeed,
+half again either way: **in the first second after the roll off's onset
+(pb/2V past 0.02), its peak pb/2V 0.040 to 0.118 and the bank it takes 20
+to 59 deg.** A slow drift is under it, a whip over it.
+
+Before and after, the lead's slow pull (P19, and in the shell p51:owner):
+level at 15.6 m/s, gear up, throttle closed, the elevator run to full
+over 8 s. Main before this: onset at 3.80 s and 10.3 m/s, peak pb/2V
+0.0349 (28 deg/s), 18.6 deg in the first second: under the band on both.
+Now: onset at 2.43 s and 8.7 m/s, the left wing, peak pb/2V 0.1115 (77
+deg/s), 32.7 deg in the first second, then the right wing and a rocking
+spiral if the stick stays back, as the XP-51 did. Faster and slower pulls
+(4 to 16 s ramps, from 14 to 18 m/s) put the first peak between 0.075 and
+0.128 and the first second's bank between 24 and 45 deg: it is the
+section, not the ramp, doing it. A pull of 4 or 6 s, or one from 18 m/s,
+lands a little over the band's top (0.121 to 0.128), which the lead may
+want to know.
+
 **What is not here: the prop wash.** The spiral slipstream on the fin,
 which on a real RC P-51 is much of the swing on the ground roll, is
 airframe 14's (the Extra 300) to build. Nothing here touches the fin's
@@ -218,10 +289,11 @@ widened to pass.
 | P16 retracts | 6 s each way | 0.05 s, refused without retracts | 6.001 s up and down |
 | P17 landing with the gear up | on the belly | hull contact, no wheel load, stopped | hull 2, prop tip 55 N, wheels 0 |
 | P18 full flap approach at 1.3 Vs (10.94 m/s) | touch under 11.6 m/s | on the wheels, at rest at P13's pitch | 8.24 m/s, rolled 28 m, 13.13 deg |
+| P19 the slow pull (8 s to full up from 15.6 m/s, gear up, idle): the first second after the roll off's onset | the XP-51's 0.079 and 39 deg | pb/2V 0.040 to 0.118, bank 20 to 59 deg | 0.1115, 32.7 deg, the left wing |
 | S17 other aircraft unmoved | main's hashes | identical | identical, the Kadet's included |
-| S18, S18b Node and Chrome | | identical | 6ad367538a476ead (the take off), 3dd9471990f40440 (gear up, the stall), both |
+| S18, S18b Node and Chrome | | identical | 466b9f93facc53d1 (the take off), 4f2f51d56c7edd01 (gear up, the stall), both |
 
-`npm run p51:gates`: 23 of 23.
+`npm run p51:gates`: 24 of 24.
 
 P14's pilot holds the heading on the rudder, 2.0 of stick per radian of
 heading and 0.4 per rad/s, and feeds in right rudder as the tail comes up,
@@ -322,6 +394,15 @@ airfield, off the ground with the sticks centred, climbing, banking right
 on full roll stick, and C to chase, on swiss2 and on the airfield, with
 no gamepad reaching the page (the findings below).
 
+`npm run p51:owner` (scripts/p51-owner.js, the lead's probe made a
+check; SIM_GPU=1 makes it quicker) flies the owner's test in the shell on
+swiss2 with p51-manual, on the plant's own clock: full throttle with the
+rudder left alone swings it 11.9 deg left by liftoff at 18.2 m/s (P15's at
+least 3); with the heading held on the rudder it stays within 2.9 deg and
+lifts off at 18.4 m/s (P14's 5); and the slow pull from 15.6 m/s at 98 m,
+gear up, idle, the elevator to full over 8 s, drops the left wing with a
+first second of peak pb/2V 0.108 and 31.9 deg of bank, inside P19's band.
+
 **Where it sits on the unlock curve: level 7, last.** It has the heaviest
 wing loading here (65 N/m^2 against the Timber's 46 and the Kadet's 36),
 it swings on the take off roll until the pilot's rudder holds it, it drops
@@ -366,6 +447,11 @@ about 11 m/s on a steady approach; it floats in the flare. Forget the
 gear and it slides in on its belly and bends its prop.
 
 ## Sources
+
+- War Department, Pilot's Flight Operating Instructions for P-51-D-5, AN 01-60JE-1, 5 April 1944 (wwiiaircraftperformance.org/mustang/P-51D-manual-5april44.pdf), section II 18, Stalls.
+- M. D. White, H. H. Hoover and H. W. Garris, Flying Qualities and Stalling Characteristics of North American XP-51 Airplane, NACA wartime report, 1943 (ntrs.nasa.gov, 19930092575), the stall section and fig. 42.
+- G. B. McCullough and D. E. Gault, Examples of Three Representative Types of Airfoil-Section Stall at Low Speed, NACA TN 2502, 1951 (ntrs.nasa.gov, 19930083422), fig. 3.
+- HobbySquawk, "Official FMS 1400mm P-51D V8 Thread", p. 14: owners on its tip stall.
 
 - FMS, 1450mm P-51D Red Tail V8 PNP, product page (fmshobby.com/products/fms-1400mm-p-51d-red-tail-v8-pnp; fms-model.com's): span, length, weight, area, loading, CG, motor, ESC, prop, pack, flaps, retracts, flight time.
 - FMS, P-51D Mustang V8 operating manual (cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf): throws at both rates, flap throws, CG and how it is measured, the trim flight, the spare parts list (the sequencer), the side and top views (figs. 76, 77).
