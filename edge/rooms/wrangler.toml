@@ -18,11 +18,24 @@ workers_dev = true
 [observability]
 enabled = false
 
+# Public rooms per map (edge/rooms/lobby.js), opened by Phase 5 once its
+# safety checks passed. "off" closes them without a code change.
+[vars]
+PUBLIC_ROOMS = "off"
+
 [[durable_objects.bindings]]
 name = "ROOMS"
 class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "Lobby"
 
 # SQLite backed, the only kind the Free plan has.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Lobby"]
