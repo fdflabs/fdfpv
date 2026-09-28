@@ -457,15 +457,52 @@ consequence without ending anyone's round.
 - **A cut (the owner's SCHWING, 2026-09-28):** on every screen, a glint (a
   four pointed star, additive, flashing big and fading in 0.45 s) and a
   burst of paper squares in the cut paper's colour, lit from inside; the
-  piece falling; the scoreboard changing at once. A synthesized SCHWING
-  (`src/render/audio.js schwing()`: pooled noise band passed and swept
-  from 700 Hz to 7 kHz in 140 ms, into two sines at an inharmonic 1 to
-  2.76, swept up an octave in 50 ms and ringing out over a second; six
-  nodes made once, no sample), full level for the cutter, a third for the
-  others, through the master so the sound setting and volume hold. The
-  cutter's screen shouts "+100 SCHWING!" big in the middle.
+  piece falling; the scoreboard changing at once. A synthesized SCHWING,
+  a sword drawn (`src/render/audio.js schwing()`, the lead's recipe the
+  owner heard and chose): a blade scrape (noise band passed Q 2.2, 900 Hz
+  to 4.5 kHz over 150 ms, gated at 380 Hz between 1.0 and 0.25, up to 1.3
+  at 50 ms, gone by 170), a whoosh (Q 1.6, 350 Hz to 3.5 kHz over 160 ms,
+  1.4 at 100 ms, gone by 220), a shing (6.5 kHz, Q 3, struck at 100 ms, 4
+  ms to 0.5, gone over 450), and the blade's ring struck at 100 ms
+  (partials 1, 2.76, 5.40, 8.93 at amplitudes 1, 0.7, 0.45, 0.28 of a base
+  swept 560 to 1150 Hz in 40 ms, each dying at 1.2 + 1.8 k a second, 4 ms
+  to 0.6 and silent by 1.5 s) into the master's tanh. Eighteen nodes made
+  once, no sample; only the fundamental is doubled 0.35 percent sharp for
+  the shimmer, because a pair on every partial would pass the graph's 64
+  node budget. Full level for the cutter, a third for the others, through
+  the master so the sound setting and volume hold. The cutter's screen
+  shouts "+100 SCHWING!" big in the middle.
 - **Results:** every pilot, points, cuts and paper left.
 - **Names** are the rooms' picker names; there is no text in any of it.
+
+### 5.5 Captured paper (the owner, 2026-09-28)
+
+> when I cut yours off, I get that length in your color added to mine;
+> then mine gets cut and right there it gets added to the back of the one
+> that cut you, so eventually it will be many many many colors.
+
+- **The list.** Each pilot's paper is a list of runs from the tow point
+  outward, `[[seat, metres], ...]`, the seat whose colour it is. The room
+  holds every list (it is the referee), sends them in every `combat`
+  view and keeps them in its `combat` store, so a late joiner and a
+  restarted room have them.
+- **A cut** parts the victim's list where the paper was met; everything
+  behind it, every colour, goes onto the far end of the cutter's list. The
+  piece still falls on every screen, in its colours; the cutter's own
+  streamer grows at its far end by the same length, laid on along its
+  last link and moving with it. That reads as paper that was always
+  there; a piece flying back to its new owner would cross the sky, and
+  with a metre of reach the cutter is already beside it.
+- **The cap: 100 m, the lead's decision, 2026-09-28.** Past it, the far
+  end of the cutter's list falls as a piece. `STREAMER_SEGS` is 100 so a
+  frame carries it (321 bytes at the cap).
+- **Real paper still tears** (the owner's choice, 9.1), and a longer
+  streamer tears slower: 100 m pulls twice the friction and weighs twice
+  as much at the tow point, so it goes at **17.9 m/s** (the selftest tore
+  it at 18.7) against 50 m's 22.3. The HUD shows the pull. A self tear's
+  piece falls to nobody.
+- **Scoring:** 100 a cut as before; the end of round paper bonus counts
+  every metre towed, captured included (2.4 a metre, 240 at the cap).
 
 ## 6. What is built where
 
@@ -533,6 +570,11 @@ consequence without ending anyone's round.
 3. **Round length:** 3 or 5 minutes offered, 5 by default. Open.
 4. **How near is a cut?** **Decided by the owner, 2026-09-28: within 1 m
    of the line, with a SCHWING, and it scores.** As built (4.1, 5.4).
+5. **Does cut paper change hands?** **Decided by the owner, 2026-09-28:
+   yes, colours and all, onto the cutter's far end; capped at 100 m by
+   the lead.** As built (5.5).
+6. **The SCHWING.** **Decided by the owner, 2026-09-28: deeper, a sword**,
+   the lead's recipe. As built (5.4).
 
 ## 10. As built, measured (2026-09-28, this machine)
 
@@ -568,6 +610,31 @@ consequence without ending anyone's round.
   the app's first line); this branch's own fix was dropped for it at the
   merge. The run after the merge is in the PR.
 - Every `checks.yml` command, 48 of them, exit 0.
+
+### The owner's metre, SCHWING and captured paper, measured (2026-09-28)
+
+- `rooms:selftest` 323 of 323: 0.9 m cuts and scores, 1.1 m does not;
+  one pass one cut; split, append and the 100 m cap in several colours;
+  A cuts B then B cuts A and tows both; the bonus counts all paper towed;
+  a restart keeps every list; #145's refusals and the ten second end of a
+  round too few are left in.
+- `streamer:selftest` 30 of 30: 100 m tears at 18.7 m/s against the
+  predicted 17.9 (50 m: 22.3).
+- `combat:harness` 10 of 10: no truth pass over 1.1 m cut, none under 0.9
+  m missed (the band: cut up to 96.9 cm, left from 102.6 cm); the cutter's
+  drawn line within 7.8 cm of the truth on every link set to 300 ms each
+  way; the room at 35 to 42 ms of CPU a second with sixteen towing.
+- `combat:twopage` 34 of 34 on `edge/rooms/node.js`: the Combat row
+  pressed; 1.4 m no cut, 0.8 m a cut; +100 SCHWING! on the cutter's
+  screen; the SCHWING struck and the glint flashed on both; the live
+  scoreboard on both during the round; A's paper grows by B's 21 m in B's
+  colour on both screens; B's Cub cuts A's paper and tows
+  `[[2,29],[1,11],[2,21]]` on both.
+- The SCHWING against the lead's reference render
+  (`scratchpad/lead/schwing-sword.wav`), the real voice rendered offline:
+  envelope correlation 0.968 (20 ms RMS); spectral centroid 3.4, 3.5, 3.6,
+  5.1, 4.6 kHz at 20, 60, 100, 140, 200 ms against the reference's 3.6,
+  3.5, 3.3, 4.9, 4.9. 62 audio nodes, under the 64 budget.
 
 ## Sources
 
