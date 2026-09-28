@@ -50,7 +50,26 @@ const ROOM_ACTION = 'friends-room-';
  * title card set up, or null.
  */
 export function createRoomBrowser({ ui, link, roomName, here, preset = () => null }) {
-  const list = createRoomList(() => ui.refreshFriends());
+  /*
+   * WHERE THE CURSOR LANDS. Rooms opened before its list has ever arrived
+   * draws Make a room as its primary, and the cursor lands there. When the
+   * list then arrives with a room to join, that room is the primary, and
+   * the cursor moves to it, once, if it is still where it landed: without
+   * this a pilot who pressed Enter on what the screen now showed first
+   * opened Make a room instead (found on the live server, where the first
+   * answer takes longer than a local one).
+   */
+  let landedOn = null;
+  const list = createRoomList(() => {
+    ui.refreshFriends();
+    const here = ui.items()[ui.cursor];
+    if (landedOn && ui.screen === 'rooms' && list.rooms() !== null) {
+      if (here && here.action === landedOn) {
+        ui.setCursor(ui.restoreCursor());
+      }
+      landedOn = null;
+    }
+  });
   const worlds = () => MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id);
   let draft = null;
   let busy = false;
@@ -259,6 +278,11 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
     },
     /* A new room's draft starts over each visit to Make a room. */
     opened(screen) {
+      landedOn = null;
+      if (screen === 'rooms' && list.rooms() === null) {
+        const here = ui.items()[ui.cursor];
+        landedOn = here ? here.action : null;
+      }
       if (screen === 'roomnew') {
         draft = fresh();
         error = null;
