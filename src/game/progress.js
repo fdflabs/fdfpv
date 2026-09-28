@@ -77,16 +77,18 @@ export const FIRST_LAP_XP = 40;
 /* The planes a new pilot has, and the level each other one opens at.
  * Float planes go with their land plane. Quads are never locked. */
 export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
-/* The P-51 last: it has the heaviest wing loading here (65 N/m^2 against
- * the Timber's 46 and the Kadet's 36), it swings on the take off roll
- * until the pilot's rudder holds it, and it drops a wing at the stall;
- * FMS rate it for an intermediate pilot. The Zagi with the Bombshell:
- * past the trainers and the Skyhunter, because it has no rudder, rolls at
- * twice the Skyhunter's rate and answers the smallest touch in pitch, but
- * before the Radian's thermals and the heavier machines, because it is
- * light, slow to stall, and slides in on its belly anywhere; Zagi sold it
- * to beginners as much as to combat pilots. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, bombshell1118: 4, zagi1219: 4, radian2000: 5, bramor2300: 6, p51d1450: 7 };
+/* The P-51: it has the heaviest wing loading here but one (65 N/m^2
+ * against the Timber's 46 and the Kadet's 36), it swings on the take off
+ * roll until the pilot's rudder holds it, and it drops a wing at the
+ * stall; FMS rate it for an intermediate pilot. The Edge is last: an
+ * unlimited aerobat at 3D throws rolls past 600 deg/s and snaps when
+ * yanked, the least forgiving aircraft here (docs/EDGE-STAGE1.md). The
+ * Zagi with the Bombshell: past the trainers and the Skyhunter, because
+ * it has no rudder, rolls fast and answers the smallest touch in pitch,
+ * but before the Radian's thermals and the heavier machines, because it
+ * is light, slow to stall, and slides in on its belly anywhere; Zagi sold
+ * it to beginners as much as to combat pilots. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, bombshell1118: 4, zagi1219: 4, radian2000: 5, bramor2300: 6, p51d1450: 7, edge1524: 8 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

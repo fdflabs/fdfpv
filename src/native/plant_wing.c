@@ -232,6 +232,13 @@ static double surface_from_stick(double x, double throw_max, double expo) {
   return d;
 }
 
+/* A plain surface's effective angle, docs/EDGE-STAGE1.md: delta over
+ * sqrt(1 + (delta / knee)^2), which keeps the sign and tends to the knee. */
+static double surface_knee(double delta, double knee) {
+  const double r = delta / knee;
+  return delta / sim_sqrt(1.0 + r * r);
+}
+
 static double clip(double x, double lim) {
   if (x > lim) return lim;
   if (x < -lim) return -lim;
@@ -1120,7 +1127,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     delta_e = fw->mix == FW_MIX_ELEVON ? 0.5 * (g_surf[0] + g_surf[1]) : g_surf[2];
     delta_r = g_surf[3];
   }
-  const double delta_a = 0.5 * (g_surf[1] - g_surf[0]);
+  double delta_a = 0.5 * (g_surf[1] - g_surf[0]);
+  /* The knee (FixedWingParams.surf_knee): past it a surface's angle buys
+   * less and less. Only a table that sets it takes the branch, so every
+   * other aircraft's arithmetic is what it was. */
+  if (fw->surf_knee > 0.0) {
+    delta_e = surface_knee(delta_e, fw->surf_knee);
+    delta_a = surface_knee(delta_a, fw->surf_knee);
+    delta_r = surface_knee(delta_r, fw->surf_knee);
+  }
 
   const double Vxz = sim_sqrt(u * u + w * w);
   /* Angle of attack of the zero lift line, which is the body's on the wing. */
@@ -1179,11 +1194,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * holding that sank a stalled Cub at 2.7 m/s. The elevator's lift is
      * in the curve, as it is in the lift the step flies on. */
     double cl_s = 0.0;
+    /* On the negative side the curve is walked at -ai, where the elevator's
+     * lift counts the other way against it: the peak is taken on the side
+     * the wing is stalling on, so a symmetric section holds the same lift
+     * on its back as right way up. The positive side is the arithmetic it
+     * always was. */
+    const int neg = add_term(alpha, shift) < 0.0;
     for (int i = 0; i <= 16; i += 1) {
       const double ai = alpha_stall - fw->stall_blend + fw->stall_blend * 0.125 * i;
       const double si = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, ai);
-      const double ag = clip(ai - shift, 0.5);
-      const double lin = fw->cl_alpha * ai + fw->cl_de * delta_e;
+      const double ag = neg ? clip(ai + shift, 0.5) : clip(ai - shift, 0.5);
+      const double lin = neg ? fw->cl_alpha * ai - fw->cl_de * delta_e : fw->cl_alpha * ai + fw->cl_de * delta_e;
       const double c = (1.0 - si) * lin + si * 2.0 * sim_sin_small(ag) * sim_cos_small(ag);
       cl_s = c > cl_s ? c : cl_s;
     }
@@ -1397,8 +1418,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       const double st0 = kmin > 0.0 ? alpha_stall * (fw->strip_k[i] / rr[i]) / kmin : alpha_stall * rmax / rr[i];
       const double st = add_term(st0, fw->washout * (0.125 + 0.25 * i));
       double fl[2], fr[2];
-      strip_stall(fw, alpha, sin_a, cos_a, -da, dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall, fl);
-      strip_stall(fw, alpha, sin_a, cos_a, da, -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall, fr);
+      /* The aileron on this strip moves its zero lift angle, trailing edge
+       * up less: the rising wing's down aileron takes it toward its stall
+       * and the falling wing's up aileron away from it, against the roll
+       * rate's own angle there (strip_tau, zero where there is none). */
+      const double sa = fw->strip_tau[i] * delta_a;
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(-da, sa), dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(da, -sa), -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall, fr);
       const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
       const double lag = WING_DT / (tau + WING_DT);
       for (int j = 0; j < 2; j += 1) {
@@ -2690,6 +2716,102 @@ const FixedWingParams FW_P51D1450 = {
   .gear_time = 6.0,       /* FMS's six second P-51 sequencer, ESTIMATED as the gear's travel */
   .cd_gear = 0.008,
   .strip_k = { 1.0, 0.9548, 0.9055, 0.8503 }, /* Reynolds number and thickness along the span */
+};
+
+/* Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md, where each number
+ * has its formula and source (scripts/edge-derive.js) and the estimated
+ * ones say so. The Red Bull Air Race's aircraft as an unlimited aerobatic
+ * model: a mid wing on a symmetric section at no incidence, so it flies on
+ * its back as it flies upright; ailerons over the whole trailing edge and
+ * a tail of 3D surfaces at Extreme Flight's high and 3D rates, read
+ * through the surface's knee; a T-Motor AM600 on 6S turning a 16 x 8,
+ * three times its weight in thrust, clockwise seen from behind; an
+ * untwisted wing whose section stalls sharply, so a hard pull at the edge
+ * of the envelope stalls one half before the other and it snaps. */
+const FixedWingParams FW_EDGE1524 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.524,          /* EF, 60 in */
+  .area = 0.48387,        /* EF, 750 sq in */
+  .chord = 0.3175,        /* S/b */
+  .cl_alpha = 4.797,      /* wing and tail, DATCOM downwash */
+  .cl_max = 0.90,
+  /* A symmetric section at zero incidence: the zero lift line is the
+   * thrust line. Zero, subtracted, as the wing's. */
+  .alpha_zl = 0.0,
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.035,           /* film on a built up frame, wheel pants, no SFGs */
+  .k_induced = 0.08289,   /* 1/(pi 0.8 4.80) */
+  .cl_de = -0.5299,
+  .cy_beta = -0.648,
+  .cy_dr = 0.4381,
+  .cl_beta = -0.0319,     /* no dihedral: the fin's alone */
+  .cl_p = -0.6653,        /* strip theory on the 0.67 taper */
+  .cl_da = 0.5632,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0256,
+  .cm_0 = 0.0482,         /* level at 3/4 throttle with the elevator neutral, the cruise it is trimmed at */
+  .cm_alpha = -1.3765,    /* static margin 0.287 at FlyingRC's 4 in */
+  .cm_q = -6.729,
+  .cm_de = 1.0848,
+  .cn_beta = 0.2765,      /* the fin and rudder's, less the slab sided fuselage's */
+  .cn_r = -0.3605,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.10,
+  .cn_dr = -0.2483,
+  /* A symmetric section's leading edge stall at 2e5 comes on over a
+   * narrower band than a flat bottomed one's: 2 deg, ESTIMATED. */
+  .stall_blend = 2.0 * WING_PI / 180.0,
+  /* EF's data sheet: aileron high rate 38 to 40 deg, elevator 3D rate 45 to
+   * 50, rudder high rate 45 to 50, the middles; its expo 60 to 90 percent. */
+  .throw_a = 39.0 * WING_PI / 180.0,
+  .throw_e = 47.5 * WING_PI / 180.0,
+  .throw_r = 47.5 * WING_PI / 180.0,
+  .surface_max = 39.0 * WING_PI / 180.0,
+  .expo = 0.70,           /* EF: 70 to 75, 60 to 65 and 70 to 90 percent; one figure for all three */
+  .thrust_static = 81.376, /* N, T-Motor's 8,298 g for the AM600 525 kV on its 16 x 8, 6S */
+  .pitch_speed = 33.551,
+  .rpm_no_load = 11655.0,
+  .torque_arm = 0.01542,  /* 1,302 W of disc power at 9,907 rpm is 1.26 N m at 81.4 N */
+  .thrust_z = 0.0,        /* the thrust line through the CG of a mid wing */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 76.6,   /* T-Motor's 1,700 W on 22.2 V */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 0.6,
+  .stab_roll_kd = 0.05,
+  .stab_pitch_kp = 1.5,
+  .stab_pitch_kd = 0.15,
+  .stab_pitch_down = 12.53 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.747, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 360.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 80.0 * WING_PI / 180.0, /* under the accelerated stall at the trim, E9's edge, 104 deg/s */
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.16,
+  .acro_roll_ff = 0.10,
+  .acro_pitch_kp = 3.0,
+  .acro_pitch_kd = 0.20,
+  .acro_pitch_ff = 0.25,
+  .acro_roll_ki = 2.0,
+  .acro_pitch_ki = 4.0,
+  .acro_i_max = 0.20,
+  .yaw_coord_k = 0.5,     /* the Cub's per unit of rudder authority */
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = -0.1200, /* the CG 1.5 in ahead of the wing's aerodynamic centre */
+  .stall_arm_cp = 0.2720,
+  .stall_dw = 0.2036,
+  .stall_asym = 0.00315,
+  .stall_k = 0.60,
+  .stall_top = 1.0 * WING_PI / 180.0,
+  .strip_c = { 1.15, 1.05, 0.95, 0.85 },
+  .washout = 0.0,         /* an aerobat's wing is built straight */
+  .strip_tau = { 0.55, 0.55, 0.55, 0.55 }, /* the ailerons span every strip */
+  .surf_knee = 0.5,       /* DATCOM's K' for plain flaps, docs/EDGE-STAGE1.md */
 };
 
 /* Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md, where each number has its

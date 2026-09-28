@@ -1227,6 +1227,67 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   },
 },
 /*
+ * Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md: EF's 5 to 6 lb,
+ * the middle, on a 6S 4000, a T-Motor AM600 on its 16 x 8
+ * 0.483 m ahead of the CG on the thrust line. The hull is the contact
+ * code's centred box and only what a crash lands on: the belly 0.10 m
+ * under the CG and the canopy's top 0.14 m over it, the half span wide,
+ * the tail's bottom 0.067 m clear of the grass at rest; the fin stands
+ * outside it. The camera is the drawn one, on the cowl's top ahead of the
+ * canopy.
+ */
+[SIM_AIRFRAME_EDGE1524] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 2.4948,
+  .inertia = { 0.105, 0.215, 0.305 },
+  .gravity = 9.81,
+  .cells = 6.0,
+  /* 3 mOhm a cell, ESTIMATED: a 40C 4000 is a pack of the five inch's 6S
+   * 1300 race pack's class (2.5 mOhm), whose cells are a third the size. */
+  .r_cell = 0.003,
+  /* A 6S 4000, the top of EF's 3000 to 4000, CNHL's 40C at 625 g. The
+   * AM116A's cutoff is unpublished: Hobbywing's 3.0 V a cell, soft
+   * (POWER-STAGE1). */
+  .pack_c = 4000.0 * 3.6,
+  .lvc = 3.0,
+  .rho = 1.225,
+  .prop_r = 0.2032,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.4826, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.50,
+  .hull_hy = 0.762,
+  .hull_hz_down = 0.10,
+  .hull_hz_up = 0.14,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 1.0,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.30,
+  .camera_y = 0.0,
+  .camera_z = 0.10,
+  .fw = &FW_EDGE1524,
+  /*
+   * The gear, as src/render/edgecraft.js draws it: carbon legs to 2 3/4 in
+   * wheels in pants, the axles 5 in ahead of the CG and 9.5 in under it on
+   * a 12 in track, the carbon tailwheel's 1.2 in wheel 37 in behind and 3
+   * in under. Each axle is lowered here by 6 mm of static deflection, so
+   * under its own weight the plant settles onto the drawn pose: 9.8 deg
+   * nose up, the CG 0.251 m over the grass, 15.4 percent on the tail.
+   * Stiffness for that deflection, damping at 0.6 of critical, the Cub's
+   * rule. The tailwheel steers from the rudder through its sliding arm, at
+   * half the rudder's angle, ESTIMATED; brakes on the mains, the brake
+   * key's, which the kit does not have.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.127, 0.1524, -0.2473 }, .r = 0.034925, .k = 1725.0, .c = 55.67, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.127, -0.1524, -0.2473 }, .r = 0.034925, .k = 1725.0, .c = 55.67, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.9398, 0.0, -0.0822 }, .r = 0.01524, .k = 629.0, .c = 14.85, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.5, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.2032 m under the hub: 73 mm over
+     * the grass level on the mains, 0.130 m at rest on three wheels. */
+    { .pos = { 0.4826, 0.0, -0.2032 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
+/*
  * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: FMS's 2,350 g, a
  * 14 x 8 four blade 0.358 m ahead of the CG, its shaft 12.9 mm over it,
  * FMS's 4S 2600. The hull is the contact code's centred box and only what
@@ -1610,9 +1671,9 @@ int plant_set_tune(const double *in) {
   if (!in_range(in[SIM_TUNE_CG_SHIFT], -0.1, 0.1)
       || !in_range(in[SIM_TUNE_BALLAST_KG], 0.0, 1.0)
       || !in_range(in[SIM_TUNE_BALLAST_X], -2.0, 2.0)
-      || !in_range(in[SIM_TUNE_THROW_A], 0.0, 45.0 * deg)
-      || !in_range(in[SIM_TUNE_THROW_E], 0.0, 45.0 * deg)
-      || !in_range(in[SIM_TUNE_THROW_R], 0.0, 45.0 * deg)
+      || !in_range(in[SIM_TUNE_THROW_A], 0.0, 60.0 * deg)
+      || !in_range(in[SIM_TUNE_THROW_E], 0.0, 60.0 * deg)
+      || !in_range(in[SIM_TUNE_THROW_R], 0.0, 60.0 * deg)
       || !in_range(in[SIM_TUNE_EXPO_A], 0.0, 1.0)
       || !in_range(in[SIM_TUNE_EXPO_E], 0.0, 1.0)
       || !in_range(in[SIM_TUNE_EXPO_R], 0.0, 1.0)

@@ -108,6 +108,7 @@ const r = (id, stock, more = {}) => ({ id, stock, ...more });
 const src = (label, url) => ({ label, url });
 const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/Piper_J-3_Cub');
 const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
+const EF_SHEET = src('Extreme Flight 60 in Edge 540T data sheet, its covering colour codes', 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_60EDGE_1cb1926a-3a06-46ce-bfb4-18a18962d730.pdf');
 const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
 export const LIVERIES = {
   sky1800: {
@@ -192,6 +193,18 @@ export const LIVERIES = {
       { id: 'combat', source: src('Zagi, Zagi 5C product photograph', 'https://web.archive.org/web/2017/https://zagi.com/category/kits/'), colours: { wing: '#f0db2c', trim: '#17191b' } },
     ],
   },
+};
+
+/* Extreme Flight's two schemes for the 60 in Edge, from its data sheet's
+ * colour codes: blue (Oracover Blue #50, Cub Yellow #30, Cadmium Yellow
+ * #33, White, Dark Blue, Silver), the stock one the model draws, and red
+ * (Ferrari Red #23, White #10, Pearl Charcoal #77, Silver, Black). */
+LIVERIES.edge1524 = {
+  regions: [r('wing', '#1d4fc4'), r('fuselage', '#1d4fc4'), r('tail', '#1d4fc4'), r('trim', '#f5d20f')],
+  schemes: [
+    { id: 'stock', source: EF_SHEET, colours: {} },
+    { id: 'ef_red', source: EF_SHEET, colours: { ...all('#dfdcd8', ['wing', 'fuselage', 'tail']), trim: '#ba100f' } },
+  ],
 };
 
 const FAMILY = { timber1500f: 'timber1500', cub1400f: 'cub1400' };
