@@ -19,7 +19,7 @@
  *      colours and leaves nothing stored.
  *   5. The side panel's layout at 1280x720, 1600x900, 1920x1080 and a phone
  *      on its side, on the Kadet (4 engines, 2 tanks) and the Skyhunter (5
- *      motors, 5 packs), every tab: no readout wraps onto a second line or
+ *      motors, 5 packs), every tab and every page of Colours: no readout wraps onto a second line or
  *      overflows its tile, and the panel's last line (the source line on
  *      Power) is fully in view, without scrolling where it fits, otherwise
  *      once Down from the panel's last control has scrolled it to its end.
@@ -40,6 +40,17 @@
  *      both carry them and O turns the smoke on and off; a wing broken in
  *      the air is shown broken in the hangar, taped, saved into the air,
  *      and the plant flies the tape's mass, after a reset too.
+ *   8. The paint shop on the Timber: a race number and racing stripes
+ *      placed by aiming at the model, chrome on the wing, the livery saved
+ *      by name, copied as a code, the plane reset and the code imported
+ *      back whole (and a bad code refused whole); delete asks and starts
+ *      on Keep; saved and flown, the flying model wears the chrome and the
+ *      decals, at a counted cost in draw calls; reloaded, all of it kept.
+ *      And the Kadet: a number printed on its film, and a painted film
+ *      that stops the sun until its kit finish comes back. And the Cub the
+ *      Parts step fitted, tundra tyres and a taped wing: a number and a
+ *      stripe land on its skin whichever of parts and paint goes on first,
+ *      and never on a tyre, the pod or the tape.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/hangar-check.js [map]     airfield by default
@@ -86,6 +97,10 @@ function say(ok, what) {
   }
 }
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/* The same, whatever order the keys were written in. */
+const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object'
+  ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+const alike = (a, b) => same(canon(a), canon(b));
 const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
 
 const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'timber1500');
@@ -217,18 +232,23 @@ const SETTLED = "document.querySelector('.hangar-side').getAnimations({ subtree:
 const SIZES = [[1280, 720], [1600, 900], [1920, 1080], [844, 390]];
 
 async function layoutCheck(page) {
-  console.log('5. the side panel\'s layout on the Kadet and the Skyhunter, all three tabs');
+  console.log('5. the side panel\'s layout on the Kadet and the Skyhunter, every tab and page');
   for (const [w, h] of SIZES) {
     await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false }, page.sessionId);
     for (const id of ['kadet1981', 'sky1800']) {
       await openHangarFromPicker(page, id);
-      for (const tab of ['power', 'colours', 'tuning']) {
-        if (tab !== 'power') {
+      /* Every tab, and the Colours tab's three pages (src/ui/hangar-paint.js). */
+      for (const [tab, page2] of [['power'], ['colours', 'paint'], ['colours', 'decals'], ['colours', 'saved'], ['tuning'], ['parts']]) {
+        if (tab !== 'power' && !(tab === 'colours' && page2 !== 'paint')) {
           await page.tap('KeyE');
           await page.until(`window.__ui.hangar.tab === '${tab}'`, 5000);
         }
+        if (page2 && page2 !== 'paint') {
+          await page.evaluate(click(`page-${page2}`));
+          await page.until(`window.__ui.hangar.shop.page === '${page2}'`, 5000);
+        }
         await page.until(SETTLED, 10000);
-        const at = `${w}x${h} ${id} ${tab}`;
+        const at = `${w}x${h} ${id} ${tab}${page2 ? ` ${page2}` : ''}`;
         let m = await page.evaluate(LAYOUT);
         if (tab === 'power') {
           const wrapped = m.values.filter((v) => Math.abs(v.lines - 1) > 0.05 || v.overflow > 0);
@@ -453,6 +473,285 @@ async function tuningCheck(page) {
   await page.evaluate("window.__ui.show('title'); true");
 }
 
+/* Fly, and be in the Timber: the Parts step leaves the Cub seated, and
+ * the seat is changed by a swap, not by writing the setting. */
+async function flyTimber(page) {
+  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  if (await page.evaluate("window.__craft().run !== 'timber1500'")) {
+    await page.evaluate("window.__ui.swapTo('timber1500').then(() => true)");
+    await page.until("window.__craft().run === 'timber1500'", 30000);
+  }
+}
+
+/* Put a decal of `kind` where the stage's middle lands on the model in
+ * `view`: the aim moved there and Enter pressed, the keyboard's way.
+ * `facing` is a test of the hit's normal that is true once the camera has
+ * swung round to the view: a frame on this rasteriser is slow, and the
+ * camera's springs step on the frame's clock. */
+async function placeDecal(page, kind, view, facing) {
+  await page.evaluate(click(`view-${view}`));
+  const before = await page.evaluate('(window.__ui.hangar.entry.decals || []).length');
+  await page.evaluate(click('decal-add'));
+  await page.evaluate(click(`kind-${kind}`));
+  await page.until('Boolean(window.__ui.hangar.shop.placing)', 5000);
+  await page.until(`(() => { const p = window.__ui.hangar.shop.placing; const n = p && p.hit && p.hit.n; return Boolean(n) && (${facing}); })()`, 60000);
+  await page.tap('Enter');
+  await page.until(`(window.__ui.hangar.entry.decals || []).length === ${before + 1}`, 20000);
+  return page.evaluate(`window.__ui.hangar.entry.decals[${before}]`);
+}
+
+/*
+ * 8. THE PAINT SHOP on the Timber: a race number on the fuselage's side
+ * and racing stripes over the wing, placed by aiming at the model; chrome
+ * on the wing; the livery saved by name, its code copied, the plane reset
+ * to stock and the code imported back, the same livery; saved and flown,
+ * the flying model's wing in chrome and the decals drawn on it, at a cost
+ * in draw calls; the page reloaded, all of it still there. And the Kadet
+ * with a number on its film.
+ */
+async function paintShopCheck(page) {
+  console.log('8. the paint shop: decals, a finish, a saved livery, its code, flown and reloaded');
+  /* From the title, whatever the step before left flying. */
+  if (await page.evaluate("window.__ui.screen === 'flight'")) {
+    await page.tap('Escape');
+    await page.until("window.__ui.screen === 'paused'", 10000);
+  }
+  await page.evaluate("window.__ui.show('title'); true");
+  await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
+  await openHangarFromPicker(page, 'timber1500');
+  await page.tap('KeyE');
+  await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  await page.evaluate(click('page-decals'));
+  const num = await placeDecal(page, 'num', 'side_left', 'n[0] < -0.8');
+  say(num && num.k === 'num' && num.t === '7' && num.n[0] < -0.5 && num.m,
+    `aimed at the left side, Enter puts a race number 7 on the fuselage, facing out (normal ${JSON.stringify(num && num.n)}), on both sides`);
+  const stripe = await placeDecal(page, 'stripe', 'top', 'n[1] > 0.8');
+  say(stripe && stripe.k === 'stripe' && stripe.n[1] > 0.7, `aimed from the top, racing stripes on the wing's top skin (normal ${JSON.stringify(stripe && stripe.n)})`);
+  /* Turned to run nose to tail, and stretched out. */
+  await page.evaluate(click('turn-up'));
+  for (let i = 0; i < 6; i += 1) {
+    await page.evaluate(click('turn-up'));
+  }
+  await page.evaluate(click('stretch-up'));
+  const turned = await page.evaluate('window.__ui.hangar.entry.decals[1]');
+  say(turned.r === 90 || turned.r === 105, `the turn steps the stripe round to ${turned.r} degrees`);
+
+  await page.evaluate(click('page-paint'));
+  await page.evaluate(click('region-wing'));
+  await page.evaluate(click('finish-chrome'));
+  const shown = await page.evaluate("(async () => { for (let i = 0; i < 100; i += 1) { const l = window.__pickLook('timber1500'); if (l && l.finishes.wing === 'chrome' && l.decals.decals === 2) return l; await new Promise((r) => setTimeout(r, 100)); } return window.__pickLook('timber1500'); })()");
+  say(shown.finishes.wing === 'chrome' && shown.finishes.fuselage === 'kit' && shown.decals.decals === 2 && shown.decals.meshes > 0,
+    `the hangar's model wears it before it is saved: wing ${shown.finishes.wing}, 2 decals as ${shown.decals.meshes} mesh(es), ${shown.decals.triangles} triangles`);
+  const wanted = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.hangar.entry))');
+
+  await page.evaluate(click('page-saved'));
+  await page.evaluate(click('saved-new'));
+  await page.evaluate("(() => { const f = document.querySelector('.hangar [data-key=\"name-field\"]'); f.value = 'Race 7'; f.dispatchEvent(new Event('input')); return true; })()");
+  await page.evaluate(click('name-save'));
+  const lib = await page.evaluate('window.__ui.settings.liverySaves.timber1500');
+  say(lib && lib.length === 1 && lib[0].name === 'Race 7' && alike(lib[0].entry, wanted), `Save this livery keeps it by name at once: ${lib && lib.map((x) => x.name)}`);
+  await page.evaluate(click('code-copy'));
+  const code = await page.evaluate("document.querySelector('.hangar [data-key=\"code-out\"]').value");
+  say(/^FPV1-[A-Za-z0-9_-]+$/.test(code), `Copy code gives the livery as a code of ${code.length} characters`);
+
+  await page.evaluate(click('reset'));
+  const bare = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
+  say(bare === '{}', 'Reset to stock takes the decals and the finish off too');
+  await page.evaluate(click('code-paste'));
+  await page.evaluate("(() => { const f = document.querySelector('.hangar [data-key=\"code-field\"]'); f.value = 'FPV1-bm90IGEgbGl2ZXJ5'; f.dispatchEvent(new Event('input')); return true; })()");
+  await page.evaluate(click('code-import'));
+  const refused = await page.evaluate("(() => { const e = document.querySelector('.hangar .paint-error'); return { text: e ? e.textContent : '', entry: JSON.stringify(window.__ui.hangar.entry) }; })()");
+  say(refused.text.length > 0 && refused.entry === '{}', `a code that is not a livery is refused and nothing of it is used: "${refused.text}"`);
+  await page.evaluate(`(() => { const f = document.querySelector('.hangar [data-key="code-field"]'); f.value = ${JSON.stringify(code)}; f.dispatchEvent(new Event('input')); return true; })()`);
+  await page.evaluate(click('code-import'));
+  const imported = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.hangar.entry))');
+  const lib2 = await page.evaluate('window.__ui.settings.liverySaves.timber1500.map((x) => x.name)');
+  say(alike(imported, wanted) && lib2.length === 2, `the code imported back is the same livery, on the plane and saved as ${JSON.stringify(lib2)}`);
+  /* Delete asks first, and the answer the cursor starts on is Keep. */
+  await page.evaluate(click('delete-1'));
+  const asked = await page.evaluate("document.activeElement && document.activeElement.dataset.key");
+  await page.tap('Enter');
+  const kept = await page.evaluate('window.__ui.settings.liverySaves.timber1500.length');
+  say(asked === 'keep-1' && kept === 2, `Delete asks, the cursor starts on ${asked}, and Enter there keeps it (${kept} saved)`);
+  await page.evaluate(click('delete-1'));
+  await page.evaluate(click('really-1'));
+  const left = await page.evaluate('window.__ui.settings.liverySaves.timber1500.map((x) => x.name)');
+  say(same(left, ['Race 7']), `confirmed, it is deleted: ${JSON.stringify(left)}`);
+
+  await page.evaluate('window.__ui.hangar.saveBtn.click(); true');
+  await page.until('!window.__ui.hangar.isOpen', 5000);
+  const stored = await page.evaluate('window.__ui.settings.livery.timber1500');
+  say(alike(stored, wanted), 'Save stores the livery with its finish and decals');
+  /* The picker comes back on the plane once the save has repainted it;
+   * it is shut after that, or it would come up over the flight. */
+  await page.until('window.__ui.carousel.isOpen', 10000);
+  await page.evaluate('window.__ui.carousel.close(); true');
+
+  /* Flown: the decals on the flying model, and what they cost a frame. */
+  await flyTimber(page);
+  await page.until("window.__craftPaint().id === 'timber1500' && window.__craftPaint().decals.decals === 2", 60000).catch(() => {});
+  const flown = await page.evaluate('window.__craftPaint()');
+  say(flown.id === 'timber1500' && flown.finishes.wing === 'chrome' && flown.decals.decals === 2 && flown.decals.meshes > 0,
+    `flown, the Timber's wing is chrome and its 2 decals are drawn as ${flown.decals.meshes} mesh(es), ${flown.decals.triangles} triangles`);
+  /* The chase camera, which draws the plane: the intro played out, then C
+   * until the plane is on screen (the FPV view hides it). */
+  await page.until('!window.__intro().holding && !window.__intro().zooming', 60000).catch(() => {});
+  for (let i = 0; i < 4 && !(await page.evaluate('window.__intro().quadVisible')); i += 1) {
+    await page.tap('KeyC');
+    await page.sleep(1200);
+  }
+  /* Every draw of a decal mesh counted as it happens, over some frames,
+   * with the camera parked 4 m off the plane looking at it, so the count
+   * does not hang on which camera the pilot left on (in the FPV view the
+   * plane is not drawn at all). The colour pass and the outline prepass
+   * both draw a decal mesh. */
+  const cost = await page.evaluate(`(async () => {
+    const frames = (n) => new Promise((done) => { let k = 0; const t0 = performance.now(); const step = () => { k += 1; if (k < n) requestAnimationFrame(step); else done((performance.now() - t0) / n); }; requestAnimationFrame(step); });
+    const { dressDecals } = await import('/src/render/decals.js');
+    const { craftBuilderFor } = await import('/src/render/craft.js');
+    const decals = window.__ui.settings.livery.timber1500.decals;
+    const fresh = craftBuilderFor('timber1500')({ name: 'cost', fog: false });
+    const t0 = performance.now();
+    dressDecals(fresh, decals);
+    const buildMs = performance.now() - t0;
+    const meshes = [];
+    window.__mapScene().traverse((o) => { if (o.name === 'paint-decals') meshes.push(o); });
+    let draws = 0;
+    let tris = 0;
+    for (const m of meshes) {
+      m.onBeforeRender = () => { draws += 1; tris += m.geometry.attributes.position.count / 3; };
+    }
+    if (!meshes.length) {
+      return { buildMs, meshes: 0, calls: 0, tris: 0, frameCalls: window.__renderStats().calls, why: 'no decal mesh in the scene' };
+    }
+    const THREE = await import('three');
+    const at = meshes[0].getWorldPosition(new THREE.Vector3());
+    window.__setCam(at.x + 2.6, at.y + 1.4, at.z + 2.6, at.x, at.y, at.z, 50);
+    await frames(10);
+    draws = 0;
+    tris = 0;
+    const n = 30;
+    await frames(n);
+    window.__setCam(null);
+    for (const m of meshes) {
+      m.onBeforeRender = () => {};
+    }
+    const shown = (o) => { for (let p = o; p; p = p.parent) { if (!p.visible) return p.name || p.type; } return 'yes'; };
+    return { buildMs, meshes: meshes.length, calls: draws / n, tris: tris / n, frameCalls: window.__renderStats().calls,
+      why: { screen: window.__ui.screen, mode: window.__craftState().mode, hangar: window.__ui.hangar.isOpen, carousel: window.__ui.carousel.isOpen, shown: meshes.map(shown), intro: window.__intro() } };
+  })()`);
+  say(cost.meshes === flown.decals.meshes && cost.calls >= cost.meshes && cost.calls <= 2 * cost.meshes,
+    `the decals cost ${cost.calls.toFixed(1)} draw call(s) and ${cost.tris.toFixed(0)} triangles a frame of the ${cost.frameCalls} drawn (${cost.meshes} mesh(es), each drawn at least once and at most in colour and outline), no script a frame, and ${cost.buildMs.toFixed(1)} ms once to project${cost.calls < cost.meshes ? ` ${JSON.stringify(cost.why)}` : ''}`);
+
+  console.log('   reload');
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await ready(page);
+  const kept2 = await page.evaluate('({ livery: window.__ui.settings.livery.timber1500, saves: window.__ui.settings.liverySaves })');
+  say(alike(kept2.livery, wanted) && kept2.saves.timber1500 && kept2.saves.timber1500[0].name === 'Race 7',
+    'after a reload the livery and the saved list are kept');
+  await flyTimber(page);
+  await page.until('window.__craftPaint().id === window.__craft().run', 60000).catch(() => {});
+  await page.until('window.__craftPaint().decals.decals === 2', 30000).catch(() => {});
+  const again = await page.evaluate('window.__craftPaint()');
+  say(again.id === 'timber1500' && again.finishes.wing === 'chrome' && again.decals.decals === 2,
+    `and the ${again.id} flies in it: wing ${again.finishes && again.finishes.wing}, ${again.decals.decals} decals`);
+
+  /* The Kadet: a number on its film, and a painted wing stops the sun. */
+  console.log('   the Kadet');
+  const kadet = await page.evaluate(`(async () => {
+    const { craftBuilderFor } = await import('/src/render/craft.js');
+    const { dressLivery } = await import('/src/render/livery.js');
+    const { readDecals } = await import('/src/render/decals.js');
+    const { readFinish } = await import('/src/render/finish.js');
+    const { newDecal } = await import('/configs/paint.js');
+    const craft = craftBuilderFor('kadet1981')({ name: 'kadet-check', fog: false });
+    const THREE = await import('three');
+    const { paintTargets } = await import('/src/render/decals.js');
+    const films = craft.livery.materials();
+    const glow = films.wing[0].userData.film.value;
+    /* The fuselage's left side: the first ray from off the left along +x
+     * that meets a face looking left within 12 cm of the middle. */
+    craft.group.updateMatrixWorld(true);
+    let hit = null;
+    let n = null;
+    for (let y = -0.12; y <= 0.12 && !hit; y += 0.02) {
+      for (const z of [-0.2, 0, 0.2]) {
+        const ray = new THREE.Raycaster(new THREE.Vector3(-3, y, z), new THREE.Vector3(1, 0, 0));
+        const h = ray.intersectObjects(paintTargets(craft), false)[0];
+        const hn = h && h.face.normal.clone().transformDirection(h.object.matrixWorld);
+        if (h && h.point.x > -0.12 && hn.x < -0.8) {
+          hit = h;
+          n = hn;
+          break;
+        }
+      }
+    }
+    dressLivery(craft, 'kadet1981', { colours: {}, finishes: { wing: 'gloss' }, decals: [newDecal('num', hit.point.toArray(), n.toArray())] });
+    const painted = { glow: films.wing[0].userData.film.value, finish: readFinish(craft), decals: readDecals(craft) };
+    dressLivery(craft, 'kadet1981', { colours: {}, finishes: {}, decals: [] });
+    return { glow, painted, back: films.wing[0].userData.film.value, after: readDecals(craft) };
+  })()`);
+  say(kadet.painted.decals.meshes > 0 && kadet.painted.decals.triangles > 0,
+    `a number on the Kadet's fuselage film is printed on it: ${kadet.painted.decals.triangles} triangles`);
+  say(kadet.glow > 0 && kadet.painted.glow === 0 && kadet.back === kadet.glow && kadet.painted.finish.wing === 'gloss' && kadet.painted.finish.fuselage === 'kit',
+    `gloss paint over the Kadet's wing film stops the sun through it (glow ${kadet.glow} to ${kadet.painted.glow}), and the kit's film brings it back`);
+  say(kadet.after.meshes === 0, 'and taking the decals off leaves no decal mesh behind');
+
+  /* The Cub as the Parts step left it: tundra tyres, the pod, the lights,
+   * the smoke and a taped wing. A number on the fuselage's side and a
+   * stripe over the taped wing, dressed with the parts put on first (a
+   * repaint of a fitted plane) and last (a fresh build): the same decals,
+   * on the skin both ways, and not one decal mesh under the parts. */
+  console.log('   the fitted Cub');
+  const cub = await page.evaluate(`(async () => {
+    const THREE = await import('three');
+    const { craftBuilderFor } = await import('/src/render/craft.js');
+    const { dressLivery } = await import('/src/render/livery.js');
+    const { dressParts, partsFor } = await import('/src/render/partsfit.js');
+    const { paintTargets, readDecals } = await import('/src/render/decals.js');
+    const { newDecal } = await import('/configs/paint.js');
+    const probe = craftBuilderFor('cub1400')({ name: 'cub-probe', fog: false });
+    probe.group.updateMatrixWorld(true);
+    const spot = (from, dir, ok) => {
+      const h = new THREE.Raycaster(new THREE.Vector3(...from), new THREE.Vector3(...dir)).intersectObjects(paintTargets(probe), false)[0];
+      const n = h && h.face.normal.clone().transformDirection(h.object.matrixWorld);
+      return h && ok(n) ? [h.point.toArray(), n.toArray()] : null;
+    };
+    const fit = partsFor('cub1400');
+    const taped = fit && fit.entry && fit.entry.damage ? fit.entry.damage.parts.filter((q) => q.state === 'taped').length : 0;
+    const side = spot([-3, 0.02, -0.1], [1, 0, 0], (n) => n.x < -0.7);
+    const wing = spot([-0.3, 3, 0.05], [0, -1, 0], (n) => n.y > 0.7);
+    const decals = [newDecal('num', ...side), { ...newDecal('stripe', ...wing), r: 90, a: 4 }];
+    const look = { colours: {}, finishes: {}, decals };
+    const under = (craft) => {
+      let n = 0;
+      craft.group.traverse((o) => {
+        if (o.name !== 'paint-decals') return;
+        for (let p = o.parent; p && p !== craft.group; p = p.parent) {
+          if (p.name === 'parts') n += 1;
+        }
+      });
+      return n;
+    };
+    const first = craftBuilderFor('cub1400')({ name: 'cub-a', fog: false });
+    dressParts(first, 'cub1400', fit);
+    dressLivery(first, 'cub1400', look);
+    const last = craftBuilderFor('cub1400')({ name: 'cub-b', fog: false });
+    dressLivery(last, 'cub1400', look);
+    dressParts(last, 'cub1400', fit);
+    return {
+      addons: fit && fit.entry ? fit.entry.addons : [], taped, spots: Boolean(side && wing),
+      partsFirst: readDecals(first), partsLast: readDecals(last), under: under(first) + under(last),
+      tape: last.partsDress ? last.partsDress.tapeTris : 0,
+    };
+  })()`);
+  say(cub.spots && cub.addons.includes('tundra') && cub.taped > 0 && cub.tape > 0,
+    `the Cub is fitted as the Parts step left it: ${JSON.stringify(cub.addons)}, ${cub.taped} part(s) taped, ${cub.tape} tape triangles`);
+  say(cub.partsFirst.decals === 2 && cub.partsFirst.triangles > 0 && cub.partsFirst.triangles === cub.partsLast.triangles && cub.under === 0,
+    `a number and a stripe over the taped wing land on the Cub's skin alike with the parts on first or last (${cub.partsFirst.triangles} and ${cub.partsLast.triangles} triangles), none on a tyre, the pod or the tape`);
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -564,6 +863,7 @@ async function main() {
     await layoutCheck(page);
     await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
     await partsCheck(page);
+    await paintShopCheck(page);
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

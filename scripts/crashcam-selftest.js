@@ -59,6 +59,7 @@ import {
   addKey, createPose, defaults, easeInOut, evaluate, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
+import { newDecal } from '../configs/paint.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -634,6 +635,15 @@ function file() {
   refused(withHeader((h) => { h.keys[0].rig = 'drone'; }), 'an unknown camera');
   refused(withHeader((h) => { h.events[0].type = 'script'; }), 'an unknown event');
   refused(withHeader((h) => { h.meta.livery.body = -5; }), 'a colour out of range');
+  /* The paint shop's finishes and decals ride beside the colours. */
+  {
+    const paint = { finishes: { wing: 'chrome' }, decals: [newDecal('num', [0.05, 0, -0.1], [1, 0, 0])] };
+    const painted = decodeReplay(encodeReplay({ ...c, meta: { ...c.meta, paint } }));
+    check(JSON.stringify(painted.meta.paint) === JSON.stringify(paint), 'the finishes and decals come back with the clip');
+  }
+  refused(withHeader((h) => { h.meta.paint = { finishes: { wing: 'gold' }, decals: [] }; }), 'a finish that is not one');
+  refused(withHeader((h) => { h.meta.paint = { decals: [{ k: 'num', url: 'x' }] }; }), 'a decal that is not one');
+  refused(withHeader((h) => { h.meta.paint = { decals: [], script: 1 }; }), 'an unknown paint field');
   try {
     decodeReplay(buf, { airframe: (id) => id === '5inch', map: () => true });
     check(false, 'refused: an aircraft this build does not fly', 'accepted');

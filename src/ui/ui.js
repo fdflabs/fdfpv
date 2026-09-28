@@ -78,7 +78,7 @@ import { setPartsLinks } from './hangar-parts.js';
 /* Registers the Challenges tab, after the tabs that edit the plane. */
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
-import { liveryKey, normaliseLiveries, paintable } from '../../configs/liveries.js';
+import { liveryKey, normaliseLiveries, normaliseSaves, paintable } from '../../configs/liveries.js';
 import { normaliseProgress } from '../game/progress.js';
 import {
   RATE_DEFAULTS,
@@ -555,6 +555,12 @@ const DEFAULTS = {
    */
   livery: {},
   /*
+   * Each plane's saved liveries, by the same key: a list of { name, entry }
+   * the paint shop (src/ui/hangar-paint.js) writes as the pilot saves,
+   * duplicates, deletes or imports one. Made safe by normaliseSaves.
+   */
+  liverySaves: {},
+  /*
    * The whole rate profile, owned by the pilot rather than by the tune: a
    * rates type and three firmware fields per axis, plus Betaflight's
    * throttle limit, which lives in the same rate profile in the firmware and
@@ -1021,6 +1027,7 @@ export function loadSettings() {
   s.weight = clampWeight(s.weight);
   s.livery = normaliseLiveries(s.livery);
   s.progress = normaliseProgress(stored.progress, { existing: Object.keys(stored).length > 0 });
+  s.liverySaves = normaliseSaves(s.liverySaves);
   /*
    * The rate profile, from whichever shape this blob was written in.
    *
@@ -12592,7 +12599,7 @@ export class Ui {
    * hooks: the power options (hangarPower, null for the stock setup only),
    * what saving will cost here (hangarWarning), and what to repaint or
    * refit once it is saved (onHangarSave); the preview is onHangarPreview,
-   * null colours meaning back to what is saved. `after` runs once it is
+   * a null look meaning back to what is saved. `after` runs once it is
    * shut either way: the picker opens again on the same plane, the pause
    * menu redraws.
    */
@@ -12602,9 +12609,9 @@ export class Ui {
     }
     const s = this.settings;
     const family = liveryKey(id);
-    const preview = (colours) => {
+    const preview = (look) => {
       if (this.onHangarPreview) {
-        this.onHangarPreview(id, colours);
+        this.onHangarPreview(id, look);
       }
     };
     const done = () => {
@@ -12625,6 +12632,16 @@ export class Ui {
     this.hangar.open({
       airframe: id,
       livery: s.livery[family],
+      onLibrary: (list) => {
+        const saves = { ...s.liverySaves };
+        if (list.length) {
+          saves[family] = list;
+        } else {
+          delete saves[family];
+        }
+        s.liverySaves = saves;
+        this.persistSettings();
+      },
       power,
       warn: this.hangarWarning ? this.hangarWarning(id) : '',
       hint: this.pickHint(),

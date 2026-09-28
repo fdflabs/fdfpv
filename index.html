@@ -4536,6 +4536,146 @@
       .hangar .carousel-hint { text-align: center; }
       .hangar button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
       .carousel-custom[hidden] { display: none; }
+      /*
+       * THE PAINT SHOP (src/ui/hangar-paint.js): the Colours tab's three
+       * pages on a segmented switch, the finish chips with a ball of each
+       * finish, the decal tiles with the decal's own picture, the aim over
+       * the plane while one is placed, and the saved liveries.
+       */
+      .paint-pages {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 3px; margin: 0 0 6px;
+        border-radius: 12px; background: rgba(0, 0, 0, 0.32); border: 1px solid rgba(243, 234, 212, 0.1);
+      }
+      .paint-page {
+        appearance: none; border: 0; border-radius: 9px; padding: 9px 6px; cursor: pointer;
+        background: transparent; color: var(--slate); font: 700 12px/1 var(--ui-font);
+        letter-spacing: 0.12em; text-transform: uppercase;
+        transition: background 180ms, color 180ms, transform 220ms var(--hg-spring);
+      }
+      .paint-page:hover, .paint-page:focus-visible { color: var(--cream); }
+      .paint-page.on { background: var(--cream); color: var(--deep); box-shadow: 0 2px 10px rgba(243, 234, 212, 0.2); }
+      .paint-chips, .paint-row, .paint-views { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+      .paint-row + .paint-row, .paint-row + .hangar-palette, .hangar-palette + .paint-steps { margin-top: 12px; }
+      .paint-views { margin-bottom: 4px; }
+      .paint-label {
+        font: 700 10px/1 var(--ui-font); letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate);
+        min-width: 58px;
+      }
+      .paint-chip, .paint-wide {
+        appearance: none; display: inline-flex; align-items: center; gap: 7px;
+        padding: 7px 12px; border-radius: 999px; cursor: pointer; color: var(--cream);
+        border: 1px solid rgba(243, 234, 212, 0.18); background: rgba(243, 234, 212, 0.03);
+        font: 600 13px/1 var(--ui-font);
+        transition: transform 240ms var(--hg-spring), background 160ms, border-color 160ms, color 160ms;
+      }
+      .paint-chip:hover, .paint-chip:focus-visible, .paint-wide:hover, .paint-wide:focus-visible {
+        transform: translateY(-1px); border-color: rgba(243, 234, 212, 0.55);
+      }
+      .paint-chip.on { background: var(--cream); border-color: var(--cream); color: var(--deep); }
+      .paint-chip.paint-danger { color: #ff9b8a; border-color: rgba(255, 120, 100, 0.3); }
+      .paint-chip.paint-danger:hover, .paint-chip.paint-danger:focus-visible { background: rgba(255, 110, 90, 0.14); border-color: #ff9b8a; }
+      .paint-wide { width: 100%; justify-content: center; padding: 11px 12px; border-style: dashed; margin-bottom: 10px; }
+      /* A ball of each finish, lit from the top left like the plane. */
+      .paint-finish .paint-chip::before {
+        content: ""; width: 14px; height: 14px; border-radius: 50%; flex: none;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+        background: radial-gradient(circle at 34% 30%, #fff8 0 18%, transparent 19%), #b9a88a;
+      }
+      .paint-finish .paint-finish-film::before {
+        background: repeating-linear-gradient(90deg, #6b533488 0 2px, #ffdb1a99 2px 5px);
+      }
+      .paint-finish .paint-finish-gloss::before {
+        background: radial-gradient(circle at 34% 30%, #fff 0 16%, #d5271f 17% 60%, #7a120d 100%);
+      }
+      .paint-finish .paint-finish-matte::before { background: radial-gradient(circle at 38% 34%, #c9453d, #862a24); }
+      .paint-finish .paint-finish-metallic::before {
+        background: radial-gradient(circle at 34% 30%, #ffe0d8 0 12%, #e25a4f 22%, #5a1612 80%);
+      }
+      .paint-finish .paint-finish-chrome::before {
+        background: linear-gradient(180deg, #f4f8ff 0 38%, #7d8da3 44%, #fffbe8 50%, #3a332b 56%, #15130f 100%);
+      }
+      .paint-decals { display: flex; flex-wrap: wrap; gap: 8px; }
+      .paint-decal, .paint-kind {
+        appearance: none; display: flex; flex-direction: column; align-items: center; gap: 5px;
+        padding: 7px 7px 8px; border-radius: 11px; cursor: pointer; color: var(--cream);
+        border: 1px solid rgba(243, 234, 212, 0.14); background: rgba(0, 0, 0, 0.28);
+        font: 600 11px/1.15 var(--ui-font);
+        transition: transform 240ms var(--hg-spring), border-color 160ms, background 160ms;
+      }
+      .paint-decal { width: 76px; }
+      .paint-decal:hover, .paint-decal:focus-visible, .paint-kind:hover, .paint-kind:focus-visible {
+        transform: translateY(-2px); border-color: rgba(243, 234, 212, 0.5);
+      }
+      .paint-decal.on {
+        border-color: var(--mint); background: rgba(125, 255, 180, 0.1);
+        box-shadow: 0 0 0 1px rgba(125, 255, 180, 0.35), 0 6px 18px rgba(125, 255, 180, 0.12);
+      }
+      .paint-add { justify-content: center; min-height: 64px; border-style: dashed; font-size: 13px; color: var(--mint); }
+      .paint-add.on { background: rgba(125, 255, 180, 0.08); border-color: var(--mint); }
+      .paint-decal-name, .paint-kind-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .paint-thumb {
+        width: 54px; height: 34px; border-radius: 5px;
+        background: linear-gradient(180deg, #8d949b, #6c737a); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+      }
+      .paint-kind .paint-thumb { width: 64px; height: 40px; }
+      .paint-kinds {
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px;
+      }
+      .hangar-tab .paint-kind { animation: hg-pop 380ms var(--hg-spring) both; animation-delay: calc(var(--i, 0) * 22ms); }
+      .paint-editor, .paint-placing {
+        margin-top: 14px; padding: 12px; border-radius: 12px;
+        background: rgba(0, 0, 0, 0.26); border: 1px solid rgba(243, 234, 212, 0.1);
+      }
+      .paint-placing { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; border-color: rgba(125, 255, 180, 0.35); }
+      .paint-placing .hangar-note { margin: 0; }
+      .paint-steps { display: grid; grid-template-columns: auto 34px 1fr 34px; align-items: center; gap: 6px 8px; }
+      .paint-step {
+        appearance: none; width: 34px; height: 30px; border-radius: 8px; cursor: pointer;
+        border: 1px solid rgba(243, 234, 212, 0.18); background: rgba(243, 234, 212, 0.05); color: var(--cream);
+        font: 700 16px/1 var(--ui-font);
+        transition: transform 200ms var(--hg-spring), border-color 160ms;
+      }
+      .paint-step:hover, .paint-step:focus-visible { transform: scale(1.08); border-color: rgba(243, 234, 212, 0.55); }
+      .paint-value { text-align: center; font: 700 14px/1 var(--ui-font); color: var(--amber); font-variant-numeric: tabular-nums; }
+      .paint-digits, .paint-name-field, .paint-code {
+        box-sizing: border-box; border-radius: 8px; border: 1px solid rgba(243, 234, 212, 0.25);
+        background: rgba(0, 0, 0, 0.4); color: var(--cream); font: 700 16px/1.2 var(--ui-font); user-select: text;
+      }
+      .paint-digits { width: 64px; height: 30px; text-align: center; font-size: 18px; font-variant-numeric: tabular-nums; }
+      .paint-name-field { flex: 1; min-width: 120px; height: 34px; padding: 0 10px; font-weight: 600; font-size: 14px; }
+      .paint-code { width: 100%; margin-top: 10px; padding: 8px 10px; resize: vertical; font: 500 12px/1.4 ui-monospace, monospace; word-break: break-all; }
+      .paint-digits:focus, .paint-name-field:focus, .paint-code:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+      .paint-acts { margin-top: 14px; }
+      .paint-slot .hangar-dot { width: 14px; height: 14px; }
+      .paint-saved { display: flex; flex-direction: column; gap: 6px; }
+      .paint-saved-row {
+        display: flex; align-items: center; gap: 6px; padding: 5px 5px 5px 4px; border-radius: 11px;
+        background: rgba(0, 0, 0, 0.24); border: 1px solid rgba(243, 234, 212, 0.08);
+      }
+      .paint-saved-row.confirm { border-color: rgba(255, 120, 100, 0.45); background: rgba(255, 110, 90, 0.08); padding-left: 12px; }
+      .paint-saved-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 14px/1.2 var(--ui-font); }
+      .paint-wear {
+        appearance: none; text-align: left; border: 0; background: transparent; color: var(--cream); cursor: pointer;
+        padding: 8px 10px; border-radius: 8px; transition: background 160ms;
+      }
+      .paint-wear:hover, .paint-wear:focus-visible { background: rgba(243, 234, 212, 0.08); }
+      .paint-error { margin: 8px 0 0; font: 600 13px/1.4 var(--ui-font); color: #ff9b8a; }
+      /* The aim over the plane while a decal is placed: a ring and a dot,
+       * mint once it is over the plane. */
+      .paint-reticle {
+        position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 2;
+      }
+      .paint-reticle[hidden] { display: none; }
+      .paint-reticle::before, .paint-reticle::after {
+        content: ""; position: absolute; border-radius: 50%; transform: translate(-50%, -50%);
+      }
+      .paint-reticle::before {
+        width: 34px; height: 34px; border: 2px solid rgba(243, 234, 212, 0.75);
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 0, 0, 0.4);
+        transition: border-color 140ms, width 200ms var(--hg-spring), height 200ms var(--hg-spring);
+      }
+      .paint-reticle::after { width: 4px; height: 4px; background: var(--cream); }
+      .paint-reticle.on::before { border-color: var(--mint); width: 26px; height: 26px; }
       .hangar.entering .hangar-head { animation: hg-drop 560ms var(--hg-ease) both; }
       .hangar.entering .hangar-side { animation: hg-from-right 620ms var(--hg-ease) 90ms both; }
       .hangar.entering .hangar-foot { animation: hg-rise 560ms var(--hg-ease) 160ms both; }

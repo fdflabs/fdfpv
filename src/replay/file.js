@@ -39,6 +39,7 @@ import {
   CAPACITY, HEAD, HEAD_N, PART_N, PARTS_MAX, PLANT_N, POSE_N,
 } from './recorder.js';
 import { RIGS } from './cameras.js';
+import { FINISHES, MAX_DECALS, checkDecal } from '../../configs/paint.js';
 
 export const FILE_VERSION = 1;
 export const FILE_MAX_BYTES = 24 * 1024 * 1024;
@@ -48,7 +49,8 @@ const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
 const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys'];
-const META_KEYS = ['name', 'created', 'airframe', 'livery', 'map', 'scale', 'size', 'parts', 'fpv', 'duration'];
+const META_KEYS = ['name', 'created', 'airframe', 'livery', 'paint', 'map', 'scale', 'size', 'parts', 'fpv', 'duration'];
+const PAINT_KEYS = ['finishes', 'decals'];
 const PART_KEYS = ['kind', 'kindName', 'parent', 'material', 'cg', 'boxMin', 'boxMax'];
 const EVENT_KEYS = ['t', 'type', 'part', 'label', 'kind', 'point', 'normal', 'speed', 'surface', 'shed', 'floorY', 'level'];
 const EVENT_TYPES = ['off', 'impact', 'debris', 'cue'];
@@ -164,6 +166,18 @@ function checkMeta(m) {
       if (!/^[a-z][a-zA-Z0-9]{0,23}$/.test(k) || !Number.isInteger(v) || v < 0 || v > 0xffffff) {
         throw new ReplayFileError(`meta.livery.${k} is not a colour`);
       }
+    }
+  }
+  /* The paint shop's finishes and decals (configs/paint.js), optional so
+   * a clip saved before them still loads; checked as strictly as a
+   * livery code. */
+  if (m.paint !== undefined && m.paint !== null) {
+    onlyKeys(m.paint, PAINT_KEYS, 'meta.paint');
+    const f = m.paint.finishes ?? {};
+    onlyKeys(f, Object.keys(f).filter((k) => /^[a-z][a-z_]{0,23}$/.test(k) && FINISHES.includes(f[k])), 'meta.paint.finishes');
+    const d = m.paint.decals ?? [];
+    if (!Array.isArray(d) || d.length > MAX_DECALS || d.some((x) => checkDecal(x).error)) {
+      throw new ReplayFileError('meta.paint.decals is not a list of decals');
     }
   }
   if (!Array.isArray(m.parts) || m.parts.length > PARTS_MAX) {

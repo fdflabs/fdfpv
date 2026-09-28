@@ -118,7 +118,7 @@ import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
-import { coloursFor, colourNumbers, liveryKey, paintable } from '../configs/liveries.js';
+import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
@@ -572,7 +572,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* Every model of a plane is built in the pilot's paint for it
    * (src/render/livery.js, configs/liveries.js), read from the settings as
    * they are when it is built. The boot craft, built above, is a quad. */
-  setLiverySource((id) => (paintable(id) ? colourNumbers(coloursFor(id, ui.settings.livery[liveryKey(id)])) : null));
+  setLiverySource((id) => (paintable(id) ? lookFor(id, ui.settings.livery[liveryKey(id)]) : null));
   /* And what it is fitted with (configs/hangar-parts.js), on the power
    * option it flies. */
   setPartsSource((id) => (PROPS[id] ? {
@@ -7004,8 +7004,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     hangarRev = { t0: null, voice: o.voice, was: flownVoice };
   };
-  ui.onHangarPreview = (id, colours) => {
-    pickStage.repaint(id, colours);
+  ui.onHangarPreview = (id, look) => {
+    pickStage.repaint(id, look);
   };
   ui.onHangarSave = async (id, res) => {
     const family = liveryKey(id);
@@ -10376,6 +10376,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       if (drawThis) {
         pickStage.draw(worldLive ? pick : null);
       }
+      /* The paint shop's aim, read against the frame just drawn. */
+      if (pick && pick.hangar && pick.hangar.aim) {
+        ui.hangar.aimed(pickStage.pick(pick.items[0].id, pick.hangar.aim.x, pick.hangar.aim.y));
+      }
     }
 
     /*
@@ -11080,6 +11084,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     voice: Object.keys(VOICES).find((k) => VOICES[k] === audio.voice) ?? null,
     rpm: audioRpm.slice(),
   });
+  window.__pickLook = (id) => pickStage.look(id);
   window.__pickParts = (id) => pickStage.fitted(id);
   window.__craft = () => ({
     setting: ui.settings.airframe,
@@ -12675,7 +12680,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     wrecked: () => wrecked,
     partTable: () => partTable,
     airframe: () => runAirframe,
-    livery: () => liveryFor(runAirframe),
+    /* The replay file keeps the colours as it always has, and the paint
+     * shop's finishes and decals beside them (src/replay/file.js). */
+    livery: () => {
+      const look = liveryFor(runAirframe);
+      return look ? look.colours : null;
+    },
+    paint: () => {
+      const look = liveryFor(runAirframe);
+      return look && (Object.keys(look.finishes).length || look.decals.length)
+        ? { finishes: look.finishes, decals: look.decals } : null;
+    },
     mapId: () => view.id,
     spawn: (out) => {
       out[0] = startX;

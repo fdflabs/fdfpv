@@ -274,6 +274,7 @@ export function createCrashCam(host) {
       created: Date.now(),
       airframe: af,
       livery: host.livery() ?? null,
+      paint: host.paint ? host.paint() : null,
       map: host.mapId(),
       scale: shell.quad.scale.x,
       size,
@@ -354,7 +355,7 @@ export function createCrashCam(host) {
   function buildScene(clip) {
     const af = clip.meta.airframe;
     const craft = craftBuilderFor(af)({ name: 'replay-craft', fog: true, worldScale: true });
-    dressLivery(craft, af, clip.meta.livery);
+    dressLivery(craft, af, { colours: clip.meta.livery ?? {}, ...(clip.meta.paint ?? {}) });
     craft.group.scale.setScalar(clip.meta.scale || 1);
     const parent = host.scene();
     parent.add(craft.group);

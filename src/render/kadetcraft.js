@@ -1385,6 +1385,10 @@ export function buildKadetCraft(opts = {}) {
       }
     },
     read: () => Object.fromEntries(Object.entries(films).map(([k, c]) => [k, toHex(c)])),
+    /* A finish is per material, and the trims are in the same maps: the
+     * wing's finish is the wing's and the stabiliser's film, the
+     * fuselage's the fuselage's and the fin's (configs/liveries.js). */
+    materials: () => ({ wing: [wingFilm, stabFilm], fuselage: [fuseFilm, tailFilm] }),
   };
 
   /* Radians: left aileron, right aileron, elevator, rudder; the first two
