@@ -260,7 +260,10 @@ typedef struct {
 #define SIM_AIRFRAME_CUB1400F 10
 #define SIM_AIRFRAME_BOMBSHELL1118 11
 #define SIM_AIRFRAME_KADET1981 12
-#define SIM_AIRFRAME_COUNT 13
+#define SIM_AIRFRAME_EXTRA1308 14
+/* Ids 13 and 15 to 23 are held for aircraft being added alongside; an id
+ * with no table entry has mass 0 and plant_airframe_exists refuses it. */
+#define SIM_AIRFRAME_COUNT 24
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -622,6 +625,12 @@ typedef struct FixedWingParams {
    * FITTED to each kit's published stall behaviour, docs/STALL-STAGE1.md;
    * no kit publishes it. Zero is an untwisted wing. */
   double washout;
+  /* The ailerons' camber on each strip's angle past the stall, rad of
+   * angle per rad of aileron: tau, with the large deflection factor,
+   * where the strip has an aileron and zero where it has none. Zero on
+   * every table before the Extra's, whose ailerons' pb/2V stalls its
+   * descending tips on the roll rate alone. */
+  double strip_tau_a[4];
   double lowre_arm_ac;
   double lowre_arm_cp;
   /*
@@ -684,6 +693,70 @@ typedef struct FixedWingParams {
   int tune;
   double tune_expo[3];
   double trim_e;
+  /*
+   * THE SLIPSTREAM over the tail and the ailerons, docs/EXTRA-STAGE1.md.
+   * slip_r is the prop's radius; zero is an aircraft whose surfaces are
+   * not taken to sit in its wash, and then nothing below is read. By
+   * momentum theory the wash far behind the disc carries the disc's
+   * pressure jump, T / A, over the free stream's dynamic pressure, at 2 v_i
+   * over the free stream's speed, in a stream contracted to
+   * R sqrt((V + v_i)/(V + 2 v_i)). The share of each surface inside that
+   * stream: the stabiliser's, the contracted radius over slip_yh, its half
+   * span; the fin's, over its height above the thrust line slip_hv[0] and
+   * below it slip_hv[1]; the ailerons', the share of their roll moment
+   * inboard of the contracted radius, from slip_ya[0] to slip_ya[1] out
+   * along the span. A control in the wash meets the pressure jump on top
+   * of the free stream's; an angle or rate term, a crossflow over a faster
+   * stream, meets rho v_i times the crossflow, which is what makes it act
+   * with the aircraft standing still in the air. The tail's shares of the
+   * table's derivatives: its lift slope and pitch stiffness, taken about
+   * slip_a0, the body's angle of attack at which the stabiliser carries no
+   * lift with the elevator neutral, and the fin's weathercock, yaw
+   * damping, side force and roll per sideslip. cm_q, cm_de, cl_de, cn_dr,
+   * cy_dr, cl_dr and cl_da are the surfaces' alone.
+   */
+  double slip_r;
+  double slip_yh;
+  double slip_hv[2];
+  double slip_ya[2];
+  double slip_a0;
+  double slip_cl_a;
+  double slip_cm_a;
+  double slip_cn_b;
+  double slip_cn_r;
+  double slip_cy_b;
+  double slip_cl_b;
+  /*
+   * PAST THE LINEAR ANGLES, docs/EXTRA-STAGE1.md, for an aircraft flown
+   * hanging on its prop, sideways and backwards. hi_alpha 1: the pitching
+   * moment's stiffness term takes the sine of the zero lift line's angle
+   * and every sideslip term the sine of the sideslip, which are the
+   * linear terms at small angles and stay bounded and continuous all the
+   * way round, where the angles themselves wrap at 180 deg and would flip
+   * the moment. side_cda: the fuselage's crossflow drag area in side view,
+   * C_D times area, m^2 (Allen and Perkins' crossflow term), a force
+   * against the body's sideways speed squared that the linear side force
+   * leaves out, and which carries a knife edge. rot_k: the air a slow
+   * aircraft turns through, N m s^2, roll, pitch and yaw: each surface's
+   * strips swept through still air by the rotation, a flat plate's normal
+   * force on each, which the linear rate damping, proportional to the
+   * airspeed, loses as the aircraft stops; the two are taken together as
+   * the root of their squares' sum, so either one alone is itself.
+   * prop_j: the prop's and rotor's moment of inertia, kg m^2, whose spin
+   * precesses the airframe as it pitches and yaws. Zero in each is an
+   * aircraft without, and leaves its arithmetic as it was.
+   */
+  int hi_alpha;
+  /* With hi_alpha, the tail's own flow (plant_wing.c): the stabiliser's
+   * lift slope a_t, the fin's a_v, the downwash's d eps / d alpha, and the
+   * normal force coefficient each saturates on, a flat plate's. */
+  double tail_at;
+  double tail_av;
+  double tail_deda;
+  double tail_cn;
+  double side_cda;
+  double rot_k[3];
+  double prop_j;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -697,6 +770,7 @@ extern const FixedWingParams FW_TIMBER1500F;
 extern const FixedWingParams FW_CUB1400F;
 extern const FixedWingParams FW_BOMBSHELL1118;
 extern const FixedWingParams FW_KADET1981;
+extern const FixedWingParams FW_EXTRA1308;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);

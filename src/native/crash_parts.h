@@ -1038,6 +1038,86 @@ static const PartDef PARTS_KADET1981[] = {
     .npts = 2, .pts = { { -0.35, 0.0, 0.05 }, { -0.33, 0.0, 0.14 } } },
 };
 
+/* ------------------------------------------------------------------------
+ * E-FLITE EXTRA 300 3D 1.3m, SIM_AIRFRAME_EXTRA1308, extracraft.js. 1.51 kg
+ * of moulded EPO, a two piece wing on a carbon tube, the thrust line
+ * through the CG (docs/EXTRA-STAGE1.md). Wheels: 0 left main, 1 right
+ * main, 2 tailwheel, 3 the prop tip's skid.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_EXTRA1308[] = {
+  /* 0 the fuselage forward of the tail, the cowl that crushes. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .k = 3.0e5, .crush_s = EPO_CRUSH, .crush_a = 0.0090, .crush_d = 0.10,
+    BOX(-0.34, 0.260, -0.065, 0.065, -0.060, 0.090) },
+  /* 1 the aft fuselage, a hollow moulded box tapering to the rudder post. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.095, .joint = { -0.34, 0.0, 0.0 }, FOAM_SECTION(0.045), .m_max = 20.0, .f_max = 350.0, .k = 2.0e4,
+    BOX(-0.76, -0.34, -0.040, 0.040, -0.050, 0.055) },
+  /* 2 the stabiliser on the thrust line, 3 the elevator, 45 percent of it. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.028, .joint = { -0.70, 0.0, 0.0 }, .m_max = 4.0, .f_max = 150.0, .k = 3000.0,
+    BOX(-0.763, -0.649, -0.2505, 0.2505, -0.006, 0.006) },
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.017, .joint = { -0.763, 0.0, 0.0 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.857, -0.763, -0.2505, 0.2505, -0.005, 0.005) },
+  /* 4 the fin, 5 the rudder, three quarters of the vertical tail, run
+   * down under the fuselage to its foot. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.008, .joint = { -0.72, 0.0, 0.055 }, .m_max = 3.0, .f_max = 120.0, .k = 3000.0,
+    BOX(-0.804, -0.690, -0.004, 0.004, 0.055, 0.238) },
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.017, .joint = { -0.804, 0.0, 0.09 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.926, -0.804, -0.004, 0.004, -0.061, 0.238) },
+  /* 6, 7 the panels on the carbon tube, 8, 9 the ailerons nearly root to
+   * tip. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.150, .joint = { -0.03, 0.075, -0.05 }, CARBON_SPAR(0.005), .m_max = 30.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.30, 0.040), .f_max = 500.0, .k = 3000.0,
+    .crush_s = EPO_CRUSH, .crush_a = 0.0014, .crush_d = 0.10,
+    BOX(-0.266, 0.100, 0.075, 0.654, -0.070, -0.030) },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.150, .joint = { -0.03, -0.075, -0.05 }, CARBON_SPAR(0.005), .m_max = 30.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.30, 0.040), .f_max = 500.0, .k = 3000.0,
+    .crush_s = EPO_CRUSH, .crush_a = 0.0014, .crush_d = 0.10,
+    BOX(-0.266, 0.100, -0.654, -0.075, -0.070, -0.030) },
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.020, .joint = { -0.14, 0.36, -0.05 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.266, -0.078, 0.077, 0.654, -0.060, -0.040) },
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.020, .joint = { -0.14, -0.36, -0.05 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.266, -0.078, -0.654, -0.077, -0.060, -0.040) },
+  /* 10 the 4250 on its X mount, 11 the 13 x 6 wood prop and spinner, ply
+   * standing for its wood as the Kadet's does. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.195, .joint = { 0.245, 0.0, 0.0 }, .m_max = PL_MOTOR_M, .f_max = 500.0, .k = 1.0e6,
+    NOSE_CRUSH(0.0090, 0.10), BOX(0.245, 0.295, -0.021, 0.021, -0.021, 0.021) },
+  { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_PLY, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.035, .joint = { 0.295, 0.0, 0.0 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
+    .npts = 8, .pts = { { 0.302, 0.0, 0.0 }, { 0.1651, 0.0, 0.0 } } },
+  /* 12 the 4S 2200 ahead of the wing on hook and loop, 13 its hatch. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.270, .joint = { 0.098, 0.0, -0.025 }, .m_max = 5.0, .f_max = VELCRO_12, .k = 3.0e5,
+    BOX(0.030, 0.166, -0.018, 0.018, -0.040, -0.005) },
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.020, .joint = { 0.14, 0.0, 0.070 }, .m_max = 0.5, .f_max = MAGNET_2, .k = 2.0e4,
+    BOX(0.040, 0.230, -0.050, 0.050, 0.060, 0.085) },
+  /* 14, 15 the mains, moulded legs over 4 mm wire, 16 the tailwheel. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
+    .mass = 0.045, .joint = { 0.12, 0.05, -0.06 }, .m_max = WIRE_M(0.004), .f_max = 400.0, .k = 1223.0,
+    BOX(0.110, 0.180, 0.05, 0.170, -0.211, -0.06) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 1,
+    .mass = 0.045, .joint = { 0.12, -0.05, -0.06 }, .m_max = WIRE_M(0.004), .f_max = 400.0, .k = 1223.0,
+    BOX(0.110, 0.180, -0.170, -0.05, -0.211, -0.06) },
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.010, .joint = { -0.80, 0.0, -0.05 }, .m_max = WIRE_M(0.0015), .f_max = 100.0, .k = 516.0,
+    BOX(-0.845, -0.800, -0.006, 0.006, -0.303, -0.05) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.05, 0.0, 0.07 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.040, 0.065, -0.010, 0.010, 0.060, 0.080) },
+  /* Not drawn: where an FPV Extra carries its whip, behind the canopy. */
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.40, 0.0, 0.05 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.40, 0.0, 0.05 }, { -0.40, 0.0, 0.14 } } },
+};
+
 /*
  * The two aircraft on floats are built in crash.c from the wheeled tables
  * above: their gear taken off, every part raised by the CG drop the floats
