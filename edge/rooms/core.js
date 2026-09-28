@@ -10,7 +10,7 @@
  *   { close: conn, code, reason }   close that socket
  *   { attach: conn, value }         store this with the socket, to survive a hibernation
  *   { store: key, value }           keep this in the room's storage, the same; host.js
- *                                   hands it back to this[key].restore() on load (the race)
+ *                                   hands it back to this[key].restore() on load (the race, a tag match)
  *   { tick: true }                  call tick() again in TICK_MS
  *   { empty: true }                 nobody is left: schedule the purge
  *
@@ -48,6 +48,7 @@ import {
 } from '../../src/share/roomwire.js';
 import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
+import { RoomTag } from './tag.js';
 import { RoomSafety } from './safety.js';
 import { TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
 import * as wrecks from './wrecks.js';
@@ -107,6 +108,7 @@ export class RoomCore {
     /* Phase 3, mid air: edge/rooms/referee.js. */
     this.referee = new Referee(meta.friendly);
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
+    this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
   }
@@ -142,6 +144,18 @@ export class RoomCore {
       }
     }
     return best ? best.seat : 0;
+  }
+
+  /* A room runs one game at a time (docs/TAG-PLAN.md decision 10): the
+   * one on now, or null. */
+  game() {
+    if (this.race.race && this.race.race.state === 'on') {
+      return 'race';
+    }
+    if (this.tag.on()) {
+      return 'tag';
+    }
+    return this.combat.on() ? 'combat' : null;
   }
 
   peerList(except) {
@@ -287,6 +301,7 @@ export class RoomCore {
         map: this.meta.map,
         peers: this.peerList(conn),
         ...this.race.welcome(),
+        ...this.tag.welcome(this),
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
@@ -360,9 +375,14 @@ export class RoomCore {
     if (msg.type === 'kick' && !this.meta.public && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
     }
-    /* One game at a time: no race and no new track under a combat round. */
-    if (this.combat.on() && (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start'))) {
-      return [];
+    if (msg.type === 'tag') {
+      return this.tag.message(this, conn, s, msg, now);
+    }
+    /* One game at a time: no race and no new track under a tag match or a
+     * combat round. */
+    const other = this.game();
+    if ((other === 'tag' || other === 'combat') && (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start'))) {
+      return [{ send: conn, data: JSON.stringify({ type: 'race', error: `${other}_on` }) }];
     }
     /* Races are a private room's, started by its host (Phase 4). */
     if (!this.meta.public && (msg.type === 'track' || msg.type === 'race')) {
@@ -404,8 +424,9 @@ export class RoomCore {
     s.fresh = true;
     /* The referee judges the bytes the room relays: Phase 5 sets
      * FLAG_SPAWNING on a spawning or benched seat, which the rule leaves
-     * out, and every hit counts toward its ramming bench. */
-    const hits = this.referee.pose(s.seat, checked.bytes, this.roomMs(now)).flatMap((h) => {
+     * out, and every hit counts toward its ramming bench. In a tag match
+     * a touch is a tag, never a crash: the match judges it instead. */
+    const hits = this.tag.on() ? this.tag.pose(this, s, checked.bytes, now) : this.referee.pose(s.seat, checked.bytes, this.roomMs(now)).flatMap((h) => {
       this.safety.noteHit(h.a, h.b, now);
       return this.others(null, JSON.stringify(h));
     });
@@ -423,7 +444,7 @@ export class RoomCore {
   tick(now) {
     this.referee.tick(this.roomMs(now));
     const fresh = [...this.seats.values()].filter((s) => s.fresh);
-    const out = [...this.race.tick(this, now), ...this.combat.tick(this, now)];
+    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now)];
     if (!fresh.length) {
       this.ticking = false;
       return out;

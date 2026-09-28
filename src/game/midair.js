@@ -393,6 +393,9 @@ const CP = new Float64Array(6);
  *
  * The broadphase is a sphere per aircraft round its whole hull, grown by
  * its travel over the span; almost every span stops there.
+ *
+ * A negative margin is a gap: boxes within that distance of each other on
+ * every axis count (a tag, edge/rooms/tag.js), and both spheres grow by it.
  */
 export function judge(hA, hB, tA, tB, t0, t1, margin = MARGIN_M) {
   const first = Math.floor(t0) + 1;
@@ -402,7 +405,8 @@ export function judge(hA, hB, tA, tB, t0, t1, margin = MARGIN_M) {
   }
   const A = hA.hull;
   const B = hB.hull;
-  const reach = A.reach + B.reach;
+  const gap = margin < 0 ? -margin : 0;
+  const reach = A.reach + B.reach + gap;
   /* The coarse test on the span's two ends, each grown by what either
    * could travel in it at the fastest either sample says. */
   const a0 = poseAt(tA, first, PA);
@@ -448,7 +452,7 @@ export function judge(hA, hB, tA, tB, t0, t1, margin = MARGIN_M) {
     let best = null;
     for (let i = 0; i < A.n; i += 1) {
       for (let j = 0; j < B.n; j += 1) {
-        const rr = A.rho[i] + B.rho[j];
+        const rr = A.rho[i] + B.rho[j] + gap;
         const ex = CA[i * 3] - CB[j * 3];
         const ey = CA[i * 3 + 1] - CB[j * 3 + 1];
         const ez = CA[i * 3 + 2] - CB[j * 3 + 2];
