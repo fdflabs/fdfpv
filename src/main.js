@@ -1852,6 +1852,7 @@ export async function boot({
   let roomProfileCheckAt = 0;
   let roomBusy = null; /* 'creating' while a create is in flight */
   let roomNote = null; /* a one off line under the code row */
+  let roomRefusal = null; /* { text, untilMs }: why the room refused a host's action */
   let roomPublicOpen = null; /* whether the server has public rooms, once asked */
   let roomNameOffer = null; /* three picker names, while the screen is open */
 
@@ -1938,7 +1939,12 @@ export async function boot({
       }
     },
     onHit: (m) => roomHit(m),
+    onHost: () => ui.refreshFriends(),
     onMessage: (m) => {
+      if (m.type === 'refused') {
+        roomRefused(m.why);
+        return;
+      }
       if (m.type === 'combat') {
         roomCombat.onRound(m);
         ui.refreshFriends();
@@ -2098,6 +2104,45 @@ export async function boot({
     return [{
       label: str('combat.row'), value: state, note: str(r.state === 'idle' ? 'combat.waiting' : 'combat.row_note'), info: true,
     }];
+  }
+
+  /* The game running in this room, as this screen knows it, or null. */
+  function roomRunning() {
+    const r = roomCombat.round();
+    if (roomRace.race().state === 'on') {
+      return 'race';
+    }
+    if (roomTag.on()) {
+      return 'tag';
+    }
+    return r.state === 'countdown' || r.state === 'on' ? 'combat' : null;
+  }
+
+  /* The room refused something this pilot asked of it as the host: say
+   * why, on the room screen and over the flight. */
+  function roomRefused(why) {
+    const key = `rooms.refused_${why}`;
+    const text = str(key) === key ? str('rooms.refused_host') : str(key);
+    roomRefusal = { text, untilMs: performance.now() + 8000 };
+    notice = { text, untilMs: performance.now() + 4000 };
+    ui.refreshFriends();
+  }
+
+  /*
+   * The top of the room screen: why the last host action was refused, and
+   * for the host, a way out of whatever game is running, whatever its own
+   * section shows, so no game can leave the room stuck.
+   */
+  function roomTopRows(host, w) {
+    const rows = [];
+    if (roomRefusal && performance.now() < roomRefusal.untilMs) {
+      rows.push({ label: roomRefusal.text, info: true });
+    }
+    const running = w && !w.public ? roomRunning() : null;
+    if (host && running) {
+      rows.push({ label: str(`rooms.end_${running}`), note: str('rooms.end_note'), action: `friends-end-${running}` });
+    }
+    return rows;
   }
 
   function roomPeerJoin(seat, name, profile) {
@@ -2652,6 +2697,7 @@ export async function boot({
        * (src/ui/ui.js), so the host starts it and everybody sees it
        * without scrolling past the pilots. */
       const rows = [
+        ...roomTopRows(host, w),
         ...(w && w.public ? [] : [...roomRaceRows(host), ...roomTagRows(host), { label: str('roomrace.room_section'), section: true }]),
         st.publicMap
           ? { label: str('friends.public_row'), value: world, note: str('friends.public_row_note'), info: true }
@@ -2721,6 +2767,18 @@ export async function boot({
       return;
     }
     if (action === 'combat-stop') {
+      roomCombat.stop();
+      return;
+    }
+    if (action === 'friends-end-race') {
+      roomRace.end();
+      return;
+    }
+    if (action === 'friends-end-tag') {
+      roomTag.end();
+      return;
+    }
+    if (action === 'friends-end-combat') {
       roomCombat.stop();
       return;
     }
