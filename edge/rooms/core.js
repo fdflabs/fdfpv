@@ -45,8 +45,8 @@
 import {
   CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
-import { RoomRace } from './race.js';
 import { Referee } from './referee.js';
+import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
 import { RoomSafety } from './safety.js';
 import { TYPE_PARTS } from '../../src/share/roomwire.js';
@@ -103,9 +103,9 @@ export class RoomCore {
     this.joins = new Map();   /* address -> { since, n } */
     this.recent = new Map();  /* token -> { seat, until }, for a reconnect */
     this.ticking = false;
-    this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     /* Phase 3, mid air: edge/rooms/referee.js. */
     this.referee = new Referee(meta.friendly);
+    this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.safety = new RoomSafety(this);
   }

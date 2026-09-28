@@ -1931,6 +1931,7 @@ export async function boot({
         }
       }
     },
+    onHit: (m) => roomHit(m),
     onMessage: (m) => {
       if (roomRace.onMessage(m) || roomTag.onMessage(m)) {
         ui.refreshFriends();
@@ -1946,7 +1947,6 @@ export async function boot({
         }
       }
     },
-    onHit: (m) => roomHit(m),
     onState: (st) => {
       if (st.phase !== 'open') {
         roomSlot = -1;
@@ -2009,6 +2009,9 @@ export async function boot({
       }
       peer.wreckTable = table;
       peer.wreckPieces = null;
+      /* A mid air hit held this peer where it was struck; its own wreck
+       * takes over from here. */
+      peer.frozenUntil = 0;
       if (peer.wreck) {
         peer.wreck.crash(table);
       }
@@ -2257,8 +2260,8 @@ export async function boot({
    * (roomMidairStep, in the step loop), through the journaled module, so
    * the crash cam's replay flies it again to the bit. Everyone flashes
    * the contact where it happened and holds the struck aircraft where it
-   * was drawn for a moment, until their own stream shows what their plant
-   * did (the shared wreck itself is Phase 2's).
+   * was drawn until its crash event brings its shared wreck (Phase 2,
+   * roomEvent), or ROOM_FREEZE_MS if it broke nothing that makes one.
    *
    * SPAWNING: for the five seconds after a flight starts, and until 30 m
    * from where it started, this aircraft is flagged untouchable, and the
@@ -2266,7 +2269,7 @@ export async function boot({
    */
   const ROOM_SPAWN_MS = 5000;
   const ROOM_SPAWN_M = 30;
-  const ROOM_FREEZE_MS = 300;
+  const ROOM_FREEZE_MS = 600;
   const roomSpawn = { at: -Infinity, x: 0, y: 0, z: 0, clear: true, simT: Infinity };
   let roomMidairSide = null;
   const roomHits = [];
@@ -2298,9 +2301,12 @@ export async function boot({
     if (side && mode === 'flight') {
       roomMidairSide = side;
     }
+    /* Held where it was drawn until its crash event (Phase 2's wreck,
+     * roomEvent) arrives, at most ROOM_FREEZE_MS; a peer already showing
+     * its wreck is left to it. */
     for (const seat of [m.a, m.b]) {
       const peer = roomPeers.get(seat);
-      if (peer) {
+      if (peer && !peer.wreckTable) {
         peer.frozenUntil = (now ?? 0) + ROOM_FREEZE_MS;
       }
     }
@@ -2369,11 +2375,11 @@ export async function boot({
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
       })),
+      hits: roomHits.map((h) => ({ ...h })),
+      spawning: stateCurr ? roomSpawning(roomLinkState.roomNow() ?? 0) : null,
       /* This pilot's own pieces as drawn here, to hold against a peer's
        * drawing of them. */
       ownWreck: wreckRig.poses(),
-      hits: roomHits.map((h) => ({ ...h })),
-      spawning: stateCurr ? roomSpawning(roomLinkState.roomNow() ?? 0) : null,
     };
   };
   /* Harness only: every slot and station on this map, with the ground
