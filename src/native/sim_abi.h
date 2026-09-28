@@ -355,8 +355,9 @@ int sim_set_flight_style(int arcade);
  * ailerons like the Slow Stick, on wheels and a tail skid, and 12 SIG's
  * Kadet Senior (docs/KADET-STAGE1.md), a 78 in balsa trainer on an O.S.
  * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
- * a tricycle gear whose nose wheel steers with the rudder. Returns
- * SIM_ERR_BAD_ARG for anything else.
+ * a tricycle gear whose nose wheel steers with the rudder. 13 to 23 are
+ * reserved for the aircraft being added alongside each other. Returns
+ * SIM_ERR_BAD_ARG for any id without an aircraft.
  * 2 to 12 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
@@ -589,6 +590,20 @@ double sim_wing_chute_open(void);
 int sim_wing_set_flaps(int notch);
 double sim_wing_flaps(void);
 int sim_wing_flaps_settle(void);
+
+/*
+ * sim_wing_set_gear(up): the retracts of an aircraft that has them
+ * (docs/P51-STAGE1.md), 1 up and 0 down; the gear travels at the
+ * aircraft's own rate, and its wheels carry the aircraft only while it is
+ * down and locked, so a landing with it up is on the belly. A reset and
+ * sim_set_airframe put it down and locked. SIM_ERR_BAD_ARG for 1 on an
+ * aircraft without retracts, or anything but 0 or 1.
+ * sim_wing_gear(): where it is, 0 down and locked to 1 up.
+ * Additive, version unchanged: an aircraft without retracts reads none of
+ * it and its trace is bit identical.
+ */
+int sim_wing_set_gear(int up);
+double sim_wing_gear(void);
 int sim_wing_set_slats(int fitted);
 
 /*

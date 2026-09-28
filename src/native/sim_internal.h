@@ -77,6 +77,10 @@ typedef struct {
                    * brush model's (sim.c, wheel_side_cap). Zero holds the
                    * contact across the heading as a skid does, up to
                    * mu_side N, at any speed. */
+  double retract; /* 1 on a wheel the retracts fold away, which touches
+                   * nothing unless the gear is down and locked
+                   * (plant_wing_gear_down); 0 on a fixed wheel and on every
+                   * skid */
 } WheelParams;
 
 /*
@@ -260,7 +264,10 @@ typedef struct {
 #define SIM_AIRFRAME_CUB1400F 10
 #define SIM_AIRFRAME_BOMBSHELL1118 11
 #define SIM_AIRFRAME_KADET1981 12
-#define SIM_AIRFRAME_COUNT 13
+/* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
+ * each added by its own branch; a slot not yet filled is a zeroed table
+ * entry, whose zero mass plant_airframe_exists refuses. */
+#define SIM_AIRFRAME_COUNT 24
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -684,6 +691,36 @@ typedef struct FixedWingParams {
   int tune;
   double tune_expo[3];
   double trim_e;
+  /*
+   * THE PROP AS A GYROSCOPE, docs/P51-STAGE1.md. j_prop: the prop's,
+   * spinner's and motor bell's moment of inertia about the shaft, kg m^2.
+   * Turning at the motor's rate it carries angular momentum along body x,
+   * forward for a prop turning clockwise seen from behind (the way every
+   * table's torque_arm answers), and the airframe answers a pitch or yaw
+   * rate with a moment at right angles to it: raising the tail on the
+   * take off roll yaws the nose left. Zero leaves the rates as they were.
+   */
+  double j_prop;
+  /*
+   * RETRACTS, docs/P51-STAGE1.md. gear_time: seconds the gear takes to go
+   * from down and locked to up, or back; zero is fixed gear, which
+   * sim_wing_set_gear refuses to raise, and then nothing below is read.
+   * cd_gear: the drag of the gear hanging in the air, which cd0 carries,
+   * taken out in proportion as it folds away. A wheel with `retract`
+   * touches nothing unless the gear is down and locked.
+   */
+  double gear_time;
+  double cd_gear;
+  /*
+   * THE SECTION ALONG THE SPAN, docs/P51-STAGE1.md. strip_k: each of the
+   * four strips' section CL max over the root strip's, where a tapered
+   * wing's thinner, lower Reynolds number outer sections stall at a lower
+   * lift than its root. The strip whose share of the wing's lift (rr)
+   * over its own section's limit is the largest stalls at the table's
+   * stall angle and the others later by their own ratio, so cl_max is
+   * still the wing's. All zero leaves one section for the whole span.
+   */
+  double strip_k[4];
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -775,6 +812,17 @@ void plant_wing_flaps_settle(void);
 /* Slats: 1 fitted, the default, 0 removed. A mode; no effect on an
  * aircraft without slats. */
 void plant_wing_set_slats(int fitted);
+/* Retracts: 1 selects the gear up and returns 0, on an aircraft whose
+ * table has them (gear_time > 0), -1 elsewhere; 0 selects it down. The
+ * gear travels at its own rate; plant_wing_gear is where it is, 0 down and
+ * locked to 1 up, and plant_wing_gear_down is 1 only while it is down and
+ * locked, when the retracting wheels carry the aircraft. A reset and an
+ * airframe change put it down and locked at once: every run starts on its
+ * wheels. */
+int plant_wing_set_gear(int up);
+double plant_wing_gear(void);
+int plant_wing_gear_down(void);
+void plant_wing_gear_reset(void);
 
 /*
  * WATER, src/native/water.c: the bodies of water a host declares, still

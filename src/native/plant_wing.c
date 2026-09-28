@@ -161,6 +161,15 @@ static double g_chute_t = 0.0;
 static int g_flap_notch = 0;
 static double g_flap = 0.0;
 
+/*
+ * THE RETRACTS, docs/P51-STAGE1.md: the gear selected up (1) or down (0),
+ * and where it is, 0 down and locked to 1 up, travelling at 1/gear_time a
+ * second. A reset puts it down and locked; every aircraft without
+ * retracts keeps both at zero.
+ */
+static int g_gear_up = 0;
+static double g_gear = 0.0;
+
 /* THE STALL TAKES TIME. Each wing strip's shortfall past the stall, lift
  * and drag, left half and right, as the flow has so far let it develop:
  * a separation grows and heals over a few semichords of travel, so it
@@ -626,12 +635,35 @@ void plant_wing_reset(void) {
   g_chute = 0;
   g_chute_t = 0.0;
   g_flap = flap_target();
+  g_gear_up = 0;
+  g_gear = 0.0;
   for (int i = 0; i < 4; i += 1) {
     for (int j = 0; j < 2; j += 1) {
       g_sep[i][j][0] = 0.0;
       g_sep[i][j][1] = 0.0;
     }
   }
+}
+
+int plant_wing_set_gear(int up) {
+  if (up && (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->gear_time > 0.0))) {
+    return -1;
+  }
+  g_gear_up = up ? 1 : 0;
+  return 0;
+}
+
+double plant_wing_gear(void) {
+  return g_gear;
+}
+
+int plant_wing_gear_down(void) {
+  return g_gear == 0.0;
+}
+
+void plant_wing_gear_reset(void) {
+  g_gear_up = 0;
+  g_gear = 0.0;
 }
 
 int plant_wing_set_flaps(int notch) {
@@ -1023,6 +1055,16 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   }
   const double df = g_flap;
 
+  /* The retracts travel toward what is selected at their own rate. */
+  if (fw->gear_time > 0.0) {
+    const double dg = WING_DT / fw->gear_time;
+    if (g_gear_up) {
+      g_gear = g_gear + dg < 1.0 ? g_gear + dg : 1.0;
+    } else {
+      g_gear = g_gear - dg > 0.0 ? g_gear - dg : 0.0;
+    }
+  }
+
   /*
    * Surfaces. Roll right needs the right surface up and the left one down.
    * The rudder is trailing edge left positive and the yaw stick nose right
@@ -1103,7 +1145,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double sin_a = add_term(sin_b * fw->cos_zl, -(cos_b * fw->sin_zl));
   const double cos_a = add_term(cos_b * fw->cos_zl, sin_b * fw->sin_zl);
   const double cl_flat = 2.0 * sin_a * cos_a;
-  const double cd0 = add_term(add_term(fw->cd0, g_slats ? fw->slat_cd0 : 0.0), fw->cd_df2 * df * df);
+  double cd0 = add_term(add_term(fw->cd0, g_slats ? fw->slat_cd0 : 0.0), fw->cd_df2 * df * df);
+  /* Retracts: the gear's drag goes as it folds away. */
+  if (fw->gear_time > 0.0) {
+    cd0 -= fw->cd_gear * g_gear;
+  }
   const double cd_lin = cd0 + fw->k_induced * cl_lin * cl_lin;
   const double cd_flat = cd0 + 2.0 * sin_a * sin_a;
   /* Up to its stall angle the wing's lift is the plant's own curve, the
@@ -1289,6 +1335,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (s->motor_omega[0] > 0.0) {
     M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
   }
+  /* The prop as a gyroscope: its angular momentum H along body x, and the
+   * airframe's answer to turning it, -omega x H. A pitch rate nose down
+   * (q positive) yaws the nose left and a yaw rate nose right pitches it
+   * down, for a prop turning clockwise seen from behind. */
+  if (fw->j_prop > 0.0) {
+    const double H = fw->j_prop * s->motor_omega[0];
+    M[1] -= s->omega[2] * H;
+    M[2] += s->omega[1] * H;
+  }
 
   /* The wing's strips past the stall, strip_stall above. A strip that
    * stalls first drops its side, by the lift it loses at its arm; a
@@ -1321,12 +1376,22 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double chord_mean = fw->area / fw->span;
     const double kr = -fw->cl_p * fw->area * fw->span * fw->span /
                       (4.0 * fw->cl_alpha * chord_mean * half * half * half * cyy);
+    /* A section along the span: the strip nearest its own limit, its
+     * section's CL max over its share of the wing's lift, stalls first. */
+    double kmin = 0.0;
+    if (fw->strip_k[0] > 0.0) {
+      kmin = fw->strip_k[0] / rr[0];
+      for (int i = 1; i < 4; i += 1) {
+        kmin = fw->strip_k[i] / rr[i] < kmin ? fw->strip_k[i] / rr[i] : kmin;
+      }
+    }
     double ml = 0.0, mn = 0.0;
     for (int i = 0; i < 4; i += 1) {
       const double y = (0.125 + 0.25 * i) * half;
       const double da = p * y / Vrate;
       const double dr = (-w / V) * s->omega[2] * y / Vrate;
-      const double st = add_term(alpha_stall * rmax / rr[i], fw->washout * (0.125 + 0.25 * i));
+      const double st0 = kmin > 0.0 ? alpha_stall * (fw->strip_k[i] / rr[i]) / kmin : alpha_stall * rmax / rr[i];
+      const double st = add_term(st0, fw->washout * (0.125 + 0.25 * i));
       double fl[2], fr[2];
       strip_stall(fw, alpha, sin_a, cos_a, -da, dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall, fl);
       strip_stall(fw, alpha, sin_a, cos_a, da, -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall, fr);
@@ -2516,3 +2581,4 @@ const FixedWingParams FW_KADET1981 = {
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
+
