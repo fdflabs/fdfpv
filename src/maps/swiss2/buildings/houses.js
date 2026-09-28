@@ -58,7 +58,7 @@ const WASH = [
 ];
 const FRIEZES = [['frescoRed', 'surroundWhite'], ['frescoGreen', 'surroundWhite'], ['frescoGrey', 'frescoRed'], ['frescoOchre', 'frescoRed']];
 
-function facadeOf(f, base, board) {
+export function facadeOf(f, base, board) {
   const bloom = own(f, 22) < 0.1 ? null : own(f, 23) < 0.28 ? 'geraniumPink' : 'geranium';
   const growth = {
     ivy: own(f, 24) < 0.3,
@@ -83,7 +83,7 @@ function facadeOf(f, base, board) {
 }
 
 /* What the roof carries: panels on a few, a dormer on some. */
-function roofOf(f) {
+export function roofOf(f) {
   return { solar: own(f, 31) < 0.22, dormer: own(f, 32) < 0.3 };
 }
 
@@ -92,7 +92,7 @@ function roofOf(f) {
  * were one roof printed eight times: here a few were re-covered in new
  * larch not yet grey, some have gone green under their trees, some were
  * re-done in eternit, the rest are as the plan says. */
-function coverOf(f, planned) {
+export function coverOf(f, planned) {
   const r = own(f, 33);
   if (r < 0.14) {
     return 'shingleNew';
@@ -116,7 +116,7 @@ function joists(wall, len, y) {
 
 /* Windows spread along a gable face: two on a narrow house, three on a
  * wide one, the Bernese row. */
-function gableRow(wall, len, y, opts) {
+export function gableRow(wall, len, y, opts) {
   const n = len >= 9.6 ? 3 : 2;
   for (let k = 0; k < n; k += 1) {
     const x = n === 3 ? (k - 1) * (len / 3.3) : (k - 0.5) * (len / 2);
@@ -263,7 +263,7 @@ export function chalet(f, rng, spec) {
 }
 
 /* A plank door, its boards up and down, braced in a Z. */
-function plankDoor(wall, x, y0, w, h, key) {
+export function plankDoor(wall, x, y0, w, h, key) {
   wall.put(`${key}:v`, box(w, h, 0.06), x, y0 + h / 2, 0.03);
   wall.put(near('boardLine'), box(0.05, h, 0.03), x, y0 + h / 2, 0.075);
   for (const y of [0.25, h - 0.25]) {
@@ -358,27 +358,33 @@ export function barn(f, spec) {
  * the gaps between, the odd one replaced and still brown, a big hay
  * door in the gable, a low door to the byre, and a steep roof of old
  * shingle far over the gable on its purlins. The gable is +z.
+ *
+ * The spec's sizes default to the farm-low view's Stadel; the hay huts
+ * scattered over the valley (props/index.js) are smaller ones, whose
+ * boards are near only (`boardMark` 'vf') over a backing of logs that
+ * stands in for them from afar, where the Stadel's dark would read as a
+ * hole.
  */
 export function stadel(f, spec) {
-  const { w = 7, d = 9, found = 0.3, roofKey = 'shingleDark', pitch = 0.6 } = spec;
+  const {
+    w = 7, d = 9, found = 0.3, roofKey = 'shingleDark', pitch = 0.6, footH = 0.75, logH = 2.3, loftH = 2.1,
+    ov = 0.75, ovA = 1.1, ovB = 1.3, logKey = 'larchDark', backing = 'shade', boardMark = 'v',
+  } = spec;
   const hw = w / 2;
   const hd = d / 2;
-  const footH = 0.75;
-  const logH = 2.3;
-  const loftH = 2.1;
   plinth(f, w, d, found, false);
   f.put('stone', boxUp(w + 0.1, footH, d + 0.1), 0, SOCLE, 0);
   const y1 = SOCLE + footH;
-  f.put('larchDark', boxUp(w, logH, d), 0, y1, 0);
-  logCorners(f, 'larchDark', hw, hd, y1, y1 + logH);
+  f.put(logKey, boxUp(w, logH, d), 0, y1, 0);
+  logCorners(f, logKey, hw, hd, y1, y1 + logH);
   const y2 = y1 + logH;
-  f.put('larchDark', box(w + 0.16, 0.2, d + 0.16), 0, y2 + 0.1, 0);
+  f.put(logKey, box(w + 0.16, 0.2, d + 0.16), 0, y2 + 0.1, 0);
   const plateY = y2 + loftH;
-  const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.75, ovA: 1.1, ovB: 1.3, pitch });
-  Object.assign(roof, { hw, hd, kind: 'gable', zA0: 1.1, zB0: 1.3 });
+  const roof = roofShell({ kind: 'gable', hw, hd, ov, ovA, ovB, pitch });
+  Object.assign(roof, { hw, hd, kind: 'gable', zA0: ovA, zB0: ovB });
   /* The loft's dark inside, which is all the gaps show. */
   const gable = gableProfile(roof, 'gable', hw);
-  f.put('shade', prism([[hw - 0.02, y2 + 0.2], ...gable.map(([x, y]) => [x * 0.99, y + plateY]), [-hw + 0.02, y2 + 0.2]], -hd + 0.02, hd - 0.02));
+  f.put(backing, prism([[hw - 0.02, y2 + 0.2], ...gable.map(([x, y]) => [x * 0.99, y + plateY]), [-hw + 0.02, y2 + 0.2]], -hd + 0.02, hd - 0.02));
   const flat = frame(f, 0, plateY, 0, 0);
   flat.put(roofKey, roof.geo);
   dressRoof(flat, roof, { roofKey, key: 'weathered', rafters: true, purlins: true });
@@ -386,7 +392,7 @@ export function stadel(f, spec) {
    * up to the plate on the long walls and to the verge on the gables. */
   const pitchB = 0.25;
   const board = (wall, u, y0, y1b, k) => {
-    const key = own(f, 60 + k) < 0.12 ? 'larch:v' : 'weathered:v';
+    const key = own(f, 60 + k) < 0.12 ? `larch:${boardMark}` : `weathered:${boardMark}`;
     wall.put(key, boxUp(pitchB - 0.035, y1b - y0, 0.035), u, y0, 0.03);
   };
   let k = 0;
@@ -408,24 +414,29 @@ export function stadel(f, spec) {
   /* The hay door up in the gable, in a frame with the hoist beam over
    * it, and the byre's low door beside the corner. */
   const front = frame(f, 0, 0, hd + 0.08, 0);
-  plankDoor(front, 0, y2 + 0.35, 1.9, 1.75, 'larchDark');
-  front.put('larchDark', box(2.3, 0.16, 0.12), 0, y2 + 2.2, 0.02);
+  const hayW = Math.min(1.9, w * 0.4);
+  const hayH = Math.min(1.75, loftH + hw * tanP * 0.5 - 0.6);
+  plankDoor(front, 0, y2 + 0.35, hayW, hayH, 'larchDark');
+  front.put('larchDark', box(hayW + 0.4, 0.16, 0.12), 0, y2 + hayH + 0.45, 0.02);
   for (const s of [-1, 1]) {
-    front.put('larchDark', boxUp(0.14, 1.9, 0.1), s * 1.05, y2 + 0.3, 0.02);
+    front.put('larchDark', boxUp(0.14, hayH + 0.15, 0.1), s * (hayW / 2 + 0.1), y2 + 0.3, 0.02);
   }
-  front.put('larchDark', box(0.16, 0.16, 1.2), 0, plateY + 0.9, 0.5);
+  front.put('larchDark', box(0.16, 0.16, 1.2), 0, plateY + Math.min(0.9, hw * tanP - 0.3), 0.5);
   const byre = frame(f, 0, 0, hd, 0);
-  plankDoor(byre, -hw + 1.3, y1, 1.1, 1.85, 'larch');
-  byre.put('larchDark', box(1.4, 0.14, 0.1), -hw + 1.3, y1 + 1.95, 0.06);
+  const byreH = Math.min(1.85, logH - 0.15);
+  plankDoor(byre, -hw + 1.3, y1, 1.1, byreH, 'larch');
+  byre.put('larchDark', box(1.4, 0.14, 0.1), -hw + 1.3, y1 + byreH + 0.1, 0.06);
   /* A hatch on the long side for the dung, and a bench of a board. */
   const side = frame(f, hw, 0, 0, Math.PI / 2);
-  side.put('shade', plate(0.7, 0.55), hd * 0.4, y1 + 1.35, 0.01);
-  side.put('larchDark', box(0.9, 0.08, 0.1), hd * 0.4, y1 + 1.66, 0.05);
+  if (logH > 1.8) {
+    side.put('shade', plate(0.7, 0.55), hd * 0.4, y1 + 1.35, 0.01);
+    side.put('larchDark', box(0.9, 0.08, 0.1), hd * 0.4, y1 + 1.66, 0.05);
+  }
   side.put('weathered', box(2.2, 0.06, 0.34), -hd * 0.3, y1 + 0.45, 0.2);
   for (const s of [-1, 1]) {
     side.put('larchDark', boxUp(0.08, 0.45, 0.3), -hd * 0.3 + s * 0.95, y1, 0.2);
   }
-  const ext = { hw: hw + 0.75, hd: hd + 1.3, top: plateY + roof.yR + 0.1 };
+  const ext = { hw: hw + ov, hd: hd + Math.max(ovA, ovB), top: plateY + roof.yR + 0.1 };
   notes(f).houses.push({ at: f.at(0, 0, 0), m: f.m.clone(), w, d, door: 0, ext, garden: false });
   return ext;
 }
@@ -534,7 +545,7 @@ export function gasthof(f, rng, spec) {
 }
 
 /* A shop awning: a sloping canvas on two arms, in stripes. */
-function awning(wall, x, y, len, out) {
+export function awning(wall, x, y, len, out) {
   const n = Math.max(4, Math.round(len / 0.5));
   const slope = Math.atan2(0.55, out);
   const run = Math.hypot(0.55, out);
@@ -616,17 +627,16 @@ export function shop(f, rng, spec) {
  * moulded cornice, a square tower at the +z end with stone quoins, a
  * louvred bell opening on each face, a clock on the two faces that
  * matter, an octagonal slate spire with a ball and cross, and the
- * graveyard wall round the plot with its gate toward +z.
+ * graveyard wall round the plot with its gate toward +z. The spec's
+ * sizes default to the village's church; the lake's is smaller and
+ * stands among the houses with no walled plot (`yard` false).
  */
 export function church(f, spec) {
-  const { found = 0.3 } = spec;
-  const w = 10;
-  const d = 20;
-  const wallH = 7;
+  const {
+    found = 0.3, w = 10, d = 20, wallH = 7, tw = 5.5, towerH = 18, yard = true,
+  } = spec;
   const hw = w / 2;
   const hd = d / 2;
-  const tw = 5.5;
-  const towerH = 18;
   plinth(f, w, d, found);
   const top = timberTop(f, {
     w, d, y0: SOCLE, floors: 1, floorH: wallH, kind: 'gable', key: 'render', roofKey: 'slate',
@@ -682,7 +692,7 @@ export function church(f, spec) {
   quoins(0, 0, hw, hd, wallH);
   /* Eight sided, a flat to each face of the tower, its flats just
    * inside the cap so nothing overhangs unsupported. */
-  const spire = cached('s2spire', () => new THREE.ConeGeometry(tw * 0.58, 13, 8).translate(0, 6.5, 0));
+  const spire = cached(`s2spire${tw}`, () => new THREE.ConeGeometry(tw * 0.58, 13, 8).translate(0, 6.5, 0));
   f.put('slate', spire, 0, SOCLE + towerH + 0.3, tz, Math.PI / 8);
   /* The cap and the spire are ground over the tower's walls, as the cel
    * church's are (alps/kit.js). */
@@ -741,6 +751,10 @@ export function church(f, spec) {
     casement(face, 0, SOCLE + 8, 0.6, 1.6, { bars: false, sill: false });
     casement(face, 0, SOCLE + 4, 0.6, 1.6, { bars: false, sill: false });
   }
+  const tower = { z: tz, half: tw / 2, top: SOCLE + towerH + 15.2 };
+  if (!yard) {
+    return { hw: hw + 0.7, hd: tz + tw / 2 + 1.5, top: tower.top, tower };
+  }
   /* The graveyard: a low stone wall round the plot with a gate toward
    * +z beside the tower, a few stones and crosses in the grass. */
   const gx = hw + 6;
@@ -783,7 +797,7 @@ export function church(f, spec) {
   });
   return {
     hw, hd, top: SOCLE + top.roof.yR + wallH + 0.5,
-    tower: { z: tz, half: tw / 2, top: SOCLE + towerH + 15.2 },
+    tower,
     yard: { hw: gx + 0.3, zA: gzA - 0.3, zB: gzB + 0.3 },
   };
 }
