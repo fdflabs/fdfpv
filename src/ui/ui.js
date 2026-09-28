@@ -6713,6 +6713,11 @@ export class Ui {
         { label: str('ui.quit_to_title'), action: 'title' },
       ];
     }
+    /* A room's race has the shell's rows: its results are the room's, and
+     * nothing on them posts to a board (src/main.js roomResultsRows). */
+    if (this.screen === 'results' && this.roomResults && this.roomResultsRows) {
+      return this.roomResultsRows();
+    }
     if (this.screen === 'results') {
       /* The same rows on every race, greyed when an action does not apply,
        * and the way back to My tracks, which is where a pilot racing goes
@@ -10353,6 +10358,7 @@ export class Ui {
    * figure to say whether this lap beat it.
    */
   showResults(log, best, recordAtStart, ghostNote = null) {
+    this.roomResults = false;
     this.resultsBody.textContent = '';
     this.resultsNote.textContent = '';
     const clean = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
@@ -10495,6 +10501,46 @@ export class Ui {
     /* The one automatic offer of the flight feel question, because this is
      * the only place a first race finishes. */
     this.maybeOfferFeel();
+  }
+
+  /*
+   * A room's race on the same screen (src/share/roomrace.js): everybody in
+   * it in order, one row each, written by the shell because only it knows
+   * the pilots' names. v is { kicker, head, heroCap, heroTime, heroMeta,
+   * win, rows: [{ label, time, tag, me, out }] }. Called again as the
+   * others finish; nothing here is posted anywhere.
+   */
+  showRoomResults(v) {
+    this.roomResults = true;
+    this.resultsBody.textContent = '';
+    this.resultsNote.textContent = '';
+    const screen = this.screens.results;
+    screen.classList.toggle('is-record', Boolean(v.win));
+    screen.classList.remove('is-empty');
+    this.resultsKicker.textContent = v.kicker;
+    this.resultsHead.textContent = v.head;
+    this.resultsHeroCap.textContent = v.heroCap;
+    this.resultsHeroTime.textContent = v.heroTime;
+    this.resultsHeroMeta.textContent = v.heroMeta;
+    this.resultsHeroMeta.className = 'results-hero-meta';
+    for (const r of v.rows) {
+      const row = el('div', `result-row${r.out ? ' void' : ''}${r.me ? ' fastest' : ''}`);
+      const main = el('div', 'result-main');
+      main.append(el('span', 'result-label', r.label), el('span', 'result-time', r.time));
+      if (r.tag) {
+        main.append(el('span', 'result-tag', r.tag));
+      }
+      row.append(main);
+      this.resultsBody.append(row);
+    }
+    if (this.screen !== 'results') {
+      screen.classList.remove('is-in');
+      void screen.offsetWidth;
+      screen.classList.add('is-in');
+      this.show('results');
+    } else {
+      this.renderMenu();
+    }
   }
 
   /* `panelled` true boxes the text in the middle of the frame; 'edge' is
@@ -10924,6 +10970,7 @@ export class Ui {
    * cares about: you flew nine flips and they were worth this much.
    */
   showFreestyleResults(summary) {
+    this.roomResults = false;
     this.freestyleRun = summary;
     this.runPosted = null;
     this.resultsBody.textContent = '';
