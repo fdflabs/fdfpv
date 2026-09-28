@@ -395,7 +395,7 @@ function sweep(sc, clock) {
   const truth = truthOf(sc);
   const r = {
     name: sc.name, graze: sc.graze ?? null, series: sc.series ?? null, truth, runs: 0, disagree: 0, notRef: 0, swapChanged: 0,
-    falseHits: 0, deepMisses: 0, lateHits: 0, hitRuns: 0, missRuns: 0, delays: [], drawn: [], latency: [], examples: [],
+    falseHits: 0, deepMisses: 0, lateHits: 0, hitRuns: 0, missRuns: 0, onTimeHits: 0, onTimeMisses: 0, delays: [], drawn: [], latency: [], examples: [],
   };
   for (let seed = 1; seed <= SEEDS; seed += 1) {
     const ref = runOne({ sc, seed, clock, la: { base: 0, jitter: 0 }, lb: { base: 0, jitter: 0 } });
@@ -417,6 +417,10 @@ function sweep(sc, clock) {
             }
           }
           const onTime = allOnTime(res) && !sc.dropA;
+          if (onTime) {
+            r.onTimeHits += ca.hits.length > 0 ? 1 : 0;
+            r.onTimeMisses += ca.hits.length > 0 ? 0 : 1;
+          }
           if (onTime && kA !== refKey) {
             r.notRef += 1;
             if (r.examples.length < 3) {
@@ -524,10 +528,12 @@ function report(clock, results) {
   }
   for (const series of ['head on', 'crossing']) {
     const grazes = results.filter((r) => r.series === series);
-    const band = grazes.map((r) => `${Math.round(r.graze * 100)}:${Math.round((100 * r.hitRuns) / r.runs)}%`).join(' ');
-    console.log(`    ${series} graze, depth cm: percent of runs judged a hit\n      ${band}`);
-    const falseStart = grazes.find((r) => r.hitRuns > 0);
-    const missStop = [...grazes].reverse().find((r) => r.missRuns > 0);
+    /* Runs inside LATE_MS only: a late run's miss is promise 3, not the
+     * rule's resolution. */
+    const band = grazes.map((r) => `${Math.round(r.graze * 100)}:${Math.round((100 * r.onTimeHits) / Math.max(1, r.onTimeHits + r.onTimeMisses))}%`).join(' ');
+    console.log(`    ${series} graze, depth cm: percent of runs inside LATE_MS judged a hit\n      ${band}`);
+    const falseStart = grazes.find((r) => r.onTimeHits > 0);
+    const missStop = [...grazes].reverse().find((r) => r.onTimeMisses > 0);
     console.log(`    band: hits start at ${falseStart ? Math.round(falseStart.graze * 100) : 'none'} cm, misses stop past ${missStop ? Math.round(missStop.graze * 100) : 'none'} cm (margin ${MARGIN_M * 100} cm)`);
   }
   row('both seats got the same set of hits', sum('disagree') === 0, `${sum('disagree')} of ${runs} disagree`);
