@@ -399,7 +399,7 @@ export function boathouse(f, {
 
 /*
  * The landing stage's hut: the ticket window and the waiting room in one,
- * boarded, under a slate gable, its name board over the door. The door
+ * boarded, under a shingle gable, its name board over the door. The door
  * and the window are on +z, where the stage's walk is; w across the
  * ridge, d along it.
  */
@@ -413,13 +413,16 @@ export function stageHut(f, { w = 4.0, d = 3.4, h = 2.5 } = {}) {
       f.put(near('larchDark'), boxUp(0.14, h, 0.14), sx * (hw + 0.02), 0.18, sz * (hd + 0.02));
     }
   }
-  const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.5, ovA: 0.5, ovB: 0.8, pitch: 0.55, t: 0.14 });
+  /* Shingle at 29 degrees: a five inch set down on slate at the 31 the
+   * hut was first given slid off it into the lake (scripts/roof-check.js
+   * kiosk quad), where one set down on the village's shingle stays. */
+  const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.5, ovA: 0.5, ovB: 0.8, pitch: 0.5, t: 0.14 });
   Object.assign(roof, { hw, hd, kind: 'gable', zA0: 0.5, zB0: 0.8 });
   const gable = gableProfile(roof, 'gable', hw);
   f.put('larch:v', prism(gable.map(([x, y]) => [x, y + h + 0.18]), -hd, hd));
   const rf = frame(f, 0, h + 0.18, 0, 0);
-  rf.put('slate', roof.geo);
-  dressRoof(rf, roof, { roofKey: 'slate', key: 'larchDark' });
+  rf.put('shingleDark', roof.geo);
+  dressRoof(rf, roof, { roofKey: 'shingleDark', key: 'larchDark' });
   const front = frame(f, 0, 0, hd, 0);
   plankDoor(front, -hw + 0.8, 0.18, 0.85, 1.95, 'larchDark');
   casement(front, hw - 1.1, 1.45, 1.2, 0.9, { key: 'larchDark', bars: true });
