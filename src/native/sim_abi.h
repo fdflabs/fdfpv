@@ -355,10 +355,12 @@ int sim_set_flight_style(int arcade);
  * ailerons like the Slow Stick, on wheels and a tail skid, and 12 SIG's
  * Kadet Senior (docs/KADET-STAGE1.md), a 78 in balsa trainer on an O.S.
  * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
- * a tricycle gear whose nose wheel steers with the rudder. 13 to 23 are
- * reserved for the aircraft being added alongside each other. Returns
- * SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 12 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * a tricycle gear whose nose wheel steers with the rudder, and 15 FMS's
+ * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
+ * flaps on retracting taildragger gear. 13, 14 and 16 to 23 are reserved
+ * for the aircraft being added alongside it. Returns SIM_ERR_BAD_ARG for
+ * any id without an aircraft.
+ * 2 to 12 and 15 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -388,6 +390,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_CUB1400F_ID 10
 #define SIM_AIRFRAME_BOMBSHELL1118_ID 11
 #define SIM_AIRFRAME_KADET1981_ID 12
+#define SIM_AIRFRAME_P51D1450_ID 15
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */

@@ -37,7 +37,7 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
 import {
   bramorPrelude, recordChuteFlight, recordCubFlight, recordGliderFlight, recordScriptedFlight,
-  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, skyPrelude, wingPrelude,
+  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordP51Flight, recordP51AirFlight, skyPrelude, wingPrelude,
 } from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
@@ -51,7 +51,8 @@ import {
  * swell, flight and landing back on the water for floats-gates.js;
  * `bombshell` the Buzzard Bombshell's take off and flight for
  * bombshell-gates.js S18; `kadet` the Kadet Senior's take off and flight
- * for kadet-gates.js S18. */
+ * for kadet-gates.js S18; `p51` the P-51's take off and flight and
+ * `p51-air` its retracts and stall in the air, for p51-gates.js S18. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
   sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
@@ -64,6 +65,8 @@ const PLANES = {
   timberf: { file: 'tests/inputs/timberf-baseline.rec', record: recordTimberFloatFlight },
   bombshell: { file: 'tests/inputs/bombshell-baseline.rec', record: recordBombshellFlight },
   kadet: { file: 'tests/inputs/kadet-baseline.rec', record: recordKadetFlight },
+  p51: { file: 'tests/inputs/p51-baseline.rec', record: recordP51Flight },
+  'p51-air': { file: 'tests/inputs/p51-air.rec', record: recordP51AirFlight },
 };
 const plane = PLANES[process.argv[2] || 'wing'];
 if (!plane) {

@@ -2582,3 +2582,107 @@ const FixedWingParams FW_KADET1981 = {
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
+/* FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md, where each number
+ * has its formula and source and the estimated ones say so: the full size
+ * P-51D to the kit's span, ailerons, elevator, rudder and plain flaps, a
+ * tapered laminar wing washed out 1 deg 58 min, on FMS's 4250 540 kV and a
+ * 14 x 8 four blade, clockwise seen from behind, on 4S, on retracts. */
+const FixedWingParams FW_P51D1450 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.450,          /* FMS, 1450 mm */
+  .area = 0.354,          /* FMS, 35.4 dm^2 */
+  .chord = 0.24413793103448276, /* S/b */
+  .cl_alpha = 4.960,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
+  .cl_max = 1.05,         /* the laminar section at 2e5, ESTIMATED */
+  /* The zero lift line 1.28 degrees under the thrust line: a 6 series
+   * section's 1.3 deg under its chord at the wing's mean incidence of 0.13
+   * deg, less the tail's share. sin and cos of minus 1.28 degrees. */
+  .alpha_zl = -1.28 * WING_PI / 180.0,
+  .sin_zl = -0.022338356193573706,
+  .cos_zl = 0.99975046778812215,
+  .cd0 = 0.038,           /* 0.030 clean and 0.008 of gear hanging, ESTIMATED */
+  .k_induced = 0.06699,   /* 1/(pi 0.80 5.94) */
+  .cl_de = -0.412,
+  .cy_beta = -0.336,
+  .cy_dr = 0.1982,
+  .cl_beta = -0.0925,     /* 5 degrees of dihedral, less the low wing's, and the fin */
+  .cl_p = -0.648,
+  .cl_da = 0.2270,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0177,
+  .cm_0 = 0.0183,         /* level at 3/4 throttle with the elevator neutral, gear up */
+  .cm_alpha = -0.1684,    /* static margin 0.034 at FMS's 110 mm */
+  .cm_q = -8.305,
+  .cm_de = 1.168,
+  .cn_beta = 0.0992,      /* the fin's, less the long fuselage's */
+  .cn_r = -0.1202,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.12,
+  .cn_dr = -0.0969,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* FMS's low rates at the surfaces' widest point: 17 mm on the 50 mm
+   * aileron, 24 on the 55 mm elevator, 21 on the 100 mm rudder. */
+  .throw_a = 0.34691689752716176,
+  .throw_e = 0.45155325894532278,
+  .throw_r = 0.21157495975809559,
+  .surface_max = 0.34691689752716176,
+  .expo = 0.30,
+  .thrust_static = 30.7,  /* N, the 14 x 8 four blade on the 540 kV motor at 4S, ESTIMATED */
+  .pitch_speed = 23.006,  /* 0.85 of 7,992 rpm on the 8 in pitch */
+  .rpm_no_load = 7992.0,
+  .torque_arm = 0.0158,   /* 345 W of disc power at 6,793 rpm is 0.485 N m at 30.7 N */
+  .thrust_z = 0.0129,     /* the thrust line 12.9 mm over the CG */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 55.2,   /* A, the static balance of the motor on the pack */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.20,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 3.14 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.769, /* the stick that flies it level, elevator neutral, gear down */
+  .acro_roll_rate = 120.0 * WING_PI / 180.0, /* 0.7 of full aileron's 168 deg/s at 17.5 m/s */
+  .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* at 16 m/s, 2.5 g, the most it pulls short of its stall */
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 4.0,
+  .acro_roll_kd = 0.70,
+  .acro_roll_ff = 0.20,
+  .acro_pitch_kp = 4.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.5,
+  /* The flaps: FMS's 22 and 45 mm on the 78 mm flap at the fuselage, 16.3
+   * and 35.1 deg, plain flaps over the inner 56 percent of the area, on
+   * slow flap servos, ESTIMATED at 3 s across. No mix: FMS gives none. */
+  .flap_half = 0.28510428711100527,
+  .flap_full = 0.61297025535831962,
+  .flap_rate = 0.2043,
+  .cl_df = 1.5431,
+  .cl_df2 = -0.9665,
+  .clmax_df = 0.7370,
+  .cd_df2 = 0.1520,
+  .cm_dcl_f = 0.1959,
+  .de_df = 0.0,
+  /* Past the stall: a 15 percent section at 2e5, the NACA 2415's UIUC
+   * curve standing for the laminar NAA/NACA 45-100, docs/P51-STAGE1.md. */
+  .stall_arm_ac = 0.1303, /* the CG 31.8 mm behind the wing's aerodynamic centre */
+  .stall_arm_cp = 0.0254, /* the plate's centre of pressure at 0.40 of the MAC */
+  .stall_dw = 0.1347,
+  .stall_asym = 0.0041,
+  .stall_k = 0.76,
+  .stall_top = 4.2 * WING_PI / 180.0,
+  .strip_c = { 1.2507, 1.0836, 0.9164, 0.7493 }, /* the 0.499 taper */
+  .washout = (1.0 + 58.0 / 60.0) * WING_PI / 180.0, /* the full size's +1 deg root, -58 min tip */
+  .j_prop = 0.001170,     /* four 25 g blades, the spinner and the bell */
+  .gear_time = 6.0,       /* FMS's six second P-51 sequencer, ESTIMATED as the gear's travel */
+  .cd_gear = 0.008,
+  .strip_k = { 1.0, 0.9548, 0.9055, 0.8503 }, /* Reynolds number and thickness along the span */
+};
