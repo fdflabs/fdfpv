@@ -496,6 +496,14 @@ export class Hangar {
     this.changed(`pack-${id}`);
   }
 
+  /* A card progression may not have opened yet: src/ui/progress-ui.js
+   * sets markLock when the hangar opens, and it dims and disables it. */
+  lockMark(b, kind, id) {
+    if (this.markLock) {
+      this.markLock(b, kind, id);
+    }
+  }
+
   reset() {
     this.entry = {};
     this.choice = { ...this.power.stock };
@@ -633,6 +641,7 @@ export class Hangar {
         this.focus = 'nose';
       });
       b.addEventListener('click', () => this.pickOption(o.id));
+      this.lockMark(b, 'power', o.id);
       opts.append(b);
     });
     box.append(opts);
@@ -755,6 +764,7 @@ export class Hangar {
       }
       this.trial(b, { scheme: sc.id }, 'overview');
       b.addEventListener('click', () => this.pickScheme(sc.id));
+      this.lockMark(b, 'scheme', sc.id);
       grid.append(b);
     });
     box.append(grid);

@@ -58,6 +58,7 @@ import { measureBudget } from './render/budget.js';
 import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
 import { MotorAudio } from './render/audio.js';
+import { courseKind } from './game/progress.js';
 import { InputManager, NAV_DEFLECT } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
@@ -2620,6 +2621,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * sim_rest zeroes the velocity at each judged touchdown so the frozen
    * state is a true rest state rather than a falling one. */
   let landed = true;
+  /* The run the challenges are judging (progressRun's key). */
+  let progressKey = '';
   /* Capture hold: keep the plant pose and FPV lens as seated, without
    * the parked overlay or the intro orbit. Used by __seatCraft so a
    * camera-down crash can be photographed before the hull tumbles. */
@@ -5008,6 +5011,37 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (sp && sp.air && mode !== 'title') {
       airStart(sp.air.y);
     }
+    progressKey = '';
+  }
+
+  /*
+   * PROGRESSION (src/game/progress.js through ui.progress). What the run is
+   * flown on, for the challenges: the plane, its power's kind and whether
+   * it is on its smallest pack or tank. A new run, a swap or a refit is a
+   * new key, and the judge starts over on it.
+   */
+  function progressRun() {
+    const af = airframeById(runAirframe);
+    const { option, pack } = powerChoice(af.id, ui.settings.power);
+    const opt = af.fixedWing ? powerOption(af.id, option) : null;
+    const packs = opt ? opt.packs : [];
+    const size = (p) => p.cc ?? p.mAh;
+    const smallest = packs.length > 1 && pack === packs.reduce((a, b) => (size(a) <= size(b) ? a : b)).id;
+    return { airframe: af.id, fixedWing: Boolean(af.fixedWing), power: opt ? opt.kind : null, smallestPack: smallest, key: `${af.id}:${option}:${pack}` };
+  }
+  function progressTick(power) {
+    const ctx = progressRun();
+    if (ctx.key !== progressKey) {
+      progressKey = ctx.key;
+      ui.progress.startRun(ctx);
+    }
+    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt });
+  }
+  /* The track a lap closed on: a seated built track, the hoops' casual
+   * starter among them, or the world's own. */
+  function progressCourse() {
+    const seated = seatedMapTrack();
+    return { key: ghostCourseKey(), kind: courseKind(seated ? seated.document : null) };
   }
 
   /*
@@ -8048,6 +8082,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
       lastHitKind = col.kindName(k);
       lastHitIndex = col.hitIndex;
+      ui.progress.touch(lastHitKind);
       lastClosing = speedNow * col.hitNormalDot;
       obsTouched = true;
       if (lastClosing > obsClosing) {
@@ -9352,6 +9387,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           }
         }
         ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, res.passed != null);
+        /* XP and the challenges, never for a builder's test flight. */
+        if (!race.freestyle && !(build && build.testing)) {
+          if (res.passed != null) {
+            ui.progress.gatePass();
+          }
+          if (race.laps.length > lapsBefore) {
+            ui.progress.lap(progressCourse());
+          }
+        }
         if (!race.freestyle && race.lap >= runLaps) {
           mode = 'results';
           if (turtleWait || turtleFlip.active) {
@@ -10179,12 +10223,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         ghostFinal: Boolean(ghostGap && ghostGap.final),
       };
       ui.setOsd(osdView);
+      const powerNow = readPower();
       fpvOsd.feed(osdView, {
         st,
         sim,
         cells: runCells,
         restVolts: runVoltage * runCells,
-        power: readPower(),
+        power: powerNow,
         fixedWing: Boolean(airframeById(runAirframe).fixedWing),
         quat: shell.quad.quaternion,
         pos: shell.quad.position,
@@ -10199,6 +10244,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         /* Last frame's, since the banner is chosen further down. */
         banner: ui.bannerText,
       });
+      progressTick(powerNow);
       const ch = input.channels;
       const vis = turtleAxes(ch.roll, ch.pitch);
       ui.setStickOverlay({

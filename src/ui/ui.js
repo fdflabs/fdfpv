@@ -70,7 +70,9 @@ import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../co
 import { normalizePower } from '../../configs/power.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
+import { Progress, bindProgress } from './progress-ui.js';
 import { liveryKey, normaliseLiveries, paintable } from '../../configs/liveries.js';
+import { normaliseProgress } from '../game/progress.js';
 import {
   RATE_DEFAULTS,
   RATE_FIELDS,
@@ -711,6 +713,11 @@ const DEFAULTS = {
    * { option, pack }, configs/power.js. A plane with no entry flies its
    * stock system on its stock pack. */
   power: {},
+  /* What the pilot has earned and what it opens, and the Unlock all
+   * switch (src/game/progress.js). Made safe by normaliseProgress on load;
+   * a profile stored before progression existed starts with everything
+   * open, so nobody loses a plane they already flew. */
+  progress: {},
   /*
    * How heavy the quad is, as a percentage of the weight the airframe is
    * flown at. See WEIGHT_STOCK above. 100 is the shipped machine and the
@@ -993,6 +1000,7 @@ export function loadSettings() {
    * sim_set_gravity. */
   s.weight = clampWeight(s.weight);
   s.livery = normaliseLiveries(s.livery);
+  s.progress = normaliseProgress(stored.progress, { existing: Object.keys(stored).length > 0 });
   /*
    * The rate profile, from whichever shape this blob was written in.
    *
@@ -4028,6 +4036,8 @@ export class Ui {
     r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.musicDock, this.nameDialog);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
+    this.progress = new Progress(this, r);
+    bindProgress(this.progress);
     this.syncChips();
   }
 
@@ -5974,6 +5984,7 @@ export class Ui {
           action: 'importkey',
           note: str('ui.paste_a_key_exported_from_another'),
         },
+        ...this.progress.settingsRows(toggle),
         { label: str('ui.sticks'), section: true },
         {
           label: str('ui.choose_joystick'),
