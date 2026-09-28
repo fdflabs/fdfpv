@@ -126,6 +126,7 @@ import { BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP } from './render/bramorcraft.js';
 import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickcraft.js';
 import { BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP } from './render/bombshellcraft.js';
 import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
+import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
@@ -139,6 +140,7 @@ const WING_MOUNTS = {
   slowstick1180: [SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP],
   bombshell1118: [BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP],
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
+  p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
   /* On floats the CG is lower, so the camera stands higher over it. */
   timber1500f: [TIMBER_MOUNT_FORWARD, TIMBER_FLOAT_MOUNT_UP],
@@ -7736,6 +7738,19 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
       return;
     }
+    /* THE RETRACTS' SWITCH, on an aircraft that has them (airframes.js
+     * `retracts`): G flips it, and the plant moves the gear at its own
+     * rate. The switch is the plant's, which a reset puts down, so it is
+     * read back rather than kept here. Up on the ground puts the aircraft
+     * on its belly, as a real one's would. */
+    if (code === 'KeyG' && ui.screen === 'flight' && airframeById(runAirframe).retracts
+      && typeof sim.e.sim_wing_set_gear === 'function') {
+      const up = sim.e.sim_wing_gear_selected() ? 0 : 1;
+      if (sim.e.sim_wing_set_gear(up) === SIM_OK) {
+        notice = { text: up ? str('ui.gear_up') : str('ui.gear_down'), untilMs: performance.now() + 1600 };
+      }
+      return;
+    }
     if (code === 'KeyO' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing && smokeFitted()) {
       smokeOn = !smokeOn;
       notice = { text: str(smokeOn ? 'main.smoke_on' : 'main.smoke_off'), untilMs: performance.now() + 1400 };
@@ -9912,6 +9927,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function') {
       shell.setFlaps(sim.e.sim_wing_flaps());
     }
+    /* And the retracts, where the plant has them, 0 down to 1 up. */
+    if (shell.setGear && typeof sim.e.sim_wing_gear === 'function') {
+      shell.setGear(sim.e.sim_wing_gear());
+    }
     poseBramorExtras();
 
     /* The lens sits where herocraft.js bolts it, forward AND up, not at the
@@ -10640,6 +10659,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           : (turtleWait || turtleFlip.active) ? 'turtle' : (angleModeOn ? 'angle' : 'acro'),
         /* The flaps' notch, on an aircraft that has them; null hides it. */
         flaps: airframeById(runAirframe).flaps ? flapNotch : null,
+        /* The retracts, on an aircraft that has them: 'up', 'down' or
+         * 'moving'; null hides it. */
+        gear: airframeById(runAirframe).retracts && typeof sim.e.sim_wing_gear === 'function'
+          ? (sim.e.sim_wing_gear() >= 1 ? 'up' : sim.e.sim_wing_gear() <= 0 ? 'down' : 'moving')
+          : null,
         /* No damage model, so nothing to count down. How much this run has
          * bounced is still worth telling a pilot, and the OSD says nothing
          * at all until there is something to say. */
@@ -10844,6 +10868,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       const isWing = Boolean(airframeById(runAirframe).fixedWing);
       const start = startsAfloat()
         ? str('main.throttle_up_on_the_water')
+        : airframeById(runAirframe).retracts
+        ? str('main.throttle_up_gear_g')
         : airframeById(runAirframe).flaps
         ? str('main.throttle_up_flaps_f')
         : airframeById(runAirframe).gear

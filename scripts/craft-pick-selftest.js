@@ -81,7 +81,7 @@ for (const af of AIRFRAMES) {
 
 console.log('2. the lists and the cycle');
 check('the quads are the quads', pickList('quad').every((id) => !airframeById(id).fixedWing) && pickList('quad').length === 2);
-check('the planes are the planes', pickList('plane').every((id) => airframeById(id).fixedWing) && pickList('plane').length === 10);
+check('the planes are the planes', pickList('plane').every((id) => airframeById(id).fixedWing) && pickList('plane').length === AIRFRAMES.filter((a) => a.fixedWing).length);
 check('all is every aircraft, in the table\'s order', pickList('all').join() === AIRFRAMES.map((a) => a.id).join());
 check('kindOf agrees', kindOf('5inch') === 'quad' && kindOf('cub1400f') === 'plane');
 {

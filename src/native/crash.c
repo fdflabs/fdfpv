@@ -449,6 +449,7 @@ static void tables_build(void) {
     { SIM_AIRFRAME_BRAMOR2300, PARTS_BRAMOR2300, COUNT(PARTS_BRAMOR2300) },
     { SIM_AIRFRAME_BOMBSHELL1118, PARTS_BOMBSHELL1118, COUNT(PARTS_BOMBSHELL1118) },
     { SIM_AIRFRAME_KADET1981, PARTS_KADET1981, COUNT(PARTS_KADET1981) },
+    { SIM_AIRFRAME_P51D1450, PARTS_P51D1450, COUNT(PARTS_P51D1450) },
   };
   for (int s = 0; s < COUNT(src); s += 1) {
     Table *t = &T[src[s].id];
@@ -667,6 +668,17 @@ static void live_pt(const double p[3], double out[3]) {
 
 static int attached(int i) {
   return PS[i].status == SIM_PART_ATTACHED;
+}
+
+/* A gear leg the retracts have folded into the wing, docs/P51-STAGE1.md:
+ * a leg that carries a retracting wheel, while the gear is not down and
+ * locked. It is still there, its mass and its joint, but inside the
+ * airframe, so nothing outside can touch it; the belly is what meets the
+ * ground. Never true on an aircraft without retracts. */
+static int stowed(const Table *t, int i) {
+  const PartDef *d = &t->p[i];
+  return d->kind == SIM_PART_GEAR && d->wheel >= 0 && d->wheel < PLANT.wheel_count
+      && PLANT.wheel[d->wheel].retract > 0.0 && !plant_wing_gear_down();
 }
 
 /* ---------------------------------------------------------------------
@@ -993,11 +1005,13 @@ static void live_rebuild(SimState *s) {
  * craft out of a depth the foam gave up, in one step and with its speed
  * into the ground taken away (433 g on a Skyhunter's belly crushed 7 mm
  * into concrete, where the crush itself stopped it at 94). */
+static int g_samp_stowed = 0; /* whether the samplers were built with the gear folded */
 static void samplers_rebuild(void) {
   const Table *t = tab();
   g_nsamp = 0;
+  g_samp_stowed = !plant_wing_gear_down();
   for (int i = 0; i < t->n; i += 1) {
-    if (!attached(i)) {
+    if (!attached(i) || stowed(t, i)) {
       continue;
     }
     const double *dent = PS[i].dent;
@@ -1415,7 +1429,7 @@ int crash_part_at(const double b[3]) {
   double near = 1.0e9;
   int best = 0;
   for (int i = 0; i < t->n; i += 1) {
-    if (!attached(i)) {
+    if (!attached(i) || stowed(t, i)) {
       continue;
     }
     for (int k = 0; k < t->p[i].npts; k += 1) {
@@ -2854,6 +2868,11 @@ int crash_float_part(int f) {
 void crash_batch_begin(const SimState *s, int from_step) {
   if (!SIM_DAMAGE) {
     return;
+  }
+  /* The retracts moved since the samplers were built: a leg folded away
+   * or back out. Never on an aircraft without them. */
+  if (g_samp_stowed != !plant_wing_gear_down()) {
+    samplers_rebuild();
   }
   g_nh = 0;
   g_batch_open = 1;
@@ -4815,7 +4834,7 @@ int crash_touches(const SimState *s) {
   static double b[OWN_SAMPLES][3];
   static double w[OWN_SAMPLES][3];
   for (int i = 0; i < t->n; i += 1) {
-    if (!attached(i)) {
+    if (!attached(i) || stowed(t, i)) {
       g_own_solid[i] = 0;
       continue;
     }
