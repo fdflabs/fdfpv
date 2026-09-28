@@ -122,6 +122,7 @@
     "pick:selftest": "node scripts/craft-pick-selftest.js",
     "hotswap:check": "node scripts/hotswap-check.js",
     "hangar:check": "node scripts/hangar-check.js",
-    "trackmode:check": "node scripts/track-mode-check.js"
+    "trackmode:check": "node scripts/track-mode-check.js",
+    "progress:selftest": "node scripts/progress-selftest.js"
   }
 }
