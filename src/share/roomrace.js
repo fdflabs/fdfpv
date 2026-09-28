@@ -291,9 +291,11 @@ export function createRoomRace(send) {
       send({ type: 'race', op: 'ready', track: track ? track.id : null, ready: Boolean(want) });
     },
 
-    /* Host only, the room checks. */
+    /* Host only, the room checks. Without its logos, which the room
+     * drops anyway (edge/rooms/race.js roomTrack) and which are most of a
+     * big document's bytes. */
     loadTrack(doc) {
-      send({ type: 'track', doc });
+      send({ type: 'track', doc: { ...doc, branding: { logos: [] } } });
     },
     start(laps) {
       send({ type: 'race', op: 'start', laps });

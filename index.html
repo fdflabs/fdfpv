@@ -184,6 +184,26 @@
          so this costs no frame time when nothing has happened. */
       .score-hud { position: absolute; inset: 0; pointer-events: none; }
       .score-hud.is-off { display: none; }
+      /* A ROOM'S RACE, down the left under the link readout (src/ui/
+         roomhud.js): the right has the flight buttons and the throttle, the
+         top centre the lap clock, and the left column's other tenant, the
+         freestyle score, is never up in a race. */
+      .room-race {
+        position: absolute; left: 16px; top: calc(var(--bar-top) + 96px);
+        min-width: 180px; max-width: 42vw; pointer-events: none;
+        padding: 6px 10px; border-radius: 4px; background: rgba(16, 22, 17, 0.62);
+        font-size: 13px; line-height: 1.45; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+      }
+      .room-race.is-off { display: none; }
+      .room-race-title {
+        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+        color: var(--slate); margin-bottom: 2px;
+      }
+      .room-race-row { display: flex; gap: 8px; white-space: nowrap; }
+      .room-race-row.is-me { color: var(--amber); }
+      .room-race-place { width: 1.2em; text-align: right; }
+      .room-race-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+      .room-race-value { font-variant-numeric: tabular-nums; }
       /* Clear of the music dock, which moves to the top left corner on the
          flight screen (.music-dock.on-flight) and is 30 px tall at 16 px.
          --bar-top is zero in flight, so this offset is measured from the

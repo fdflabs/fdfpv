@@ -764,6 +764,31 @@ estimate can slip.
 scoring, results, a host's track loaded for everyone. Check: a two client
 race in Node through `race.js`, then two browsers. **3 to 4 days.**
 
+As built (2026-09-28): the room's half is `edge/rooms/race.js`, the
+client's `src/share/roomrace.js`, the screens `src/ui/roomhud.js`. Where
+it departs from sections 4 and 7:
+
+- The host sends the track document their seat holds (My tracks, the
+  online tracks and the casual sky course are all one kind of map track
+  document); there is no board track by id. The room normalises it with
+  the builder's own `normalize` (`src/trackbuilder/model.js`, as the
+  tracks server does), not `trackdoc.js`, which is the retired race
+  field's; it drops the logos, runs the name through the tracks server's
+  word list and caps it at 64 KB.
+- Race times are on the room clock, ms from goAt, not on each sim clock:
+  the plant does not step while an aircraft sits parked, so a sim clock
+  started at goAt would not count a pilot's wait on the line. Each pass is
+  stamped at its crossing (the race's own interpolated time), not at the
+  frame that saw it.
+- The racers are the seats whose world had the track standing when the
+  host pressed start; anybody else, and a joiner mid race, flies the track
+  free and watches the order until the next one.
+- The track and the race are kept in the room's storage for a
+  hibernation; readiness is not.
+- Checks: `rooms:selftest` (the race sections, two clients each with a
+  real `Race` over the builder's gates), and `rooms:racetwopage` by hand
+  against `wrangler dev`, two pages on swiss2.
+
 **Phase 5, safety complete.** Quick chat, emotes, mute, reports, kicks,
 the ramming and pose sanity rules, the name filter with its lists.
 Check: `rooms:selftest` cases for each, and the owner reading every

@@ -198,7 +198,8 @@ export function setFigurePick(f) {
 
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
- * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state).
+ * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
+ * onMessage(message) for every other text message (a race's, Phase 4).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -336,6 +337,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onLeave?.(m.seat);
       } else if (m.type === 'profile') {
         handlers.onProfile?.(m.seat, m.profile);
+      } else {
+        handlers.onMessage?.(m);
       }
     };
     socket.onclose = (ev) => {
@@ -453,6 +456,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     },
     kick(seat) {
       sendText({ type: 'kick', seat });
+    },
+    /* A text message the room's modules own (edge/rooms/race.js). */
+    send(obj) {
+      sendText(obj);
     },
   };
 }

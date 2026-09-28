@@ -54,6 +54,7 @@
     "rooms:selftest": "node scripts/rooms-selftest.js",
     "rooms:soak": "node scripts/rooms-soak.js",
     "rooms:twopage": "node scripts/rooms-two-page.js",
+    "rooms:racetwopage": "node scripts/rooms-race-two-page.js",
     "rooms:slots": "node scripts/rooms-slots-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",
     "waves:selftest": "node scripts/waves-selftest.js",
