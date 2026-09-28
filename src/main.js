@@ -5041,10 +5041,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt });
   }
   /* The track a lap closed on: a seated built track, the hoops' casual
-   * starter among them, or the world's own. */
+   * starter among them, or the world's own. A built track is keyed by its
+   * id alone, so saving an edit is not a new track's first lap. */
   function progressCourse() {
     const seated = seatedMapTrack();
-    return { key: ghostCourseKey(), kind: courseKind(seated ? seated.document : null) };
+    const doc = seated ? seated.document : null;
+    return { key: doc && doc.id ? `track:${doc.id}` : ghostCourseKey(), kind: courseKind(doc) };
   }
 
   /*
