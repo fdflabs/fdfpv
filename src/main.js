@@ -1899,14 +1899,11 @@ export async function boot({
       roomSafety.left(seat);
       ui.refreshFriends();
     },
-    /* A race's passes (src/share/roomrace.js); each other phase takes the
-     * kinds it knows and passes over the rest. */
+    /* Each phase takes the kinds it knows and passes over the rest. */
     onEvent: (ev) => {
-      if (roomRace.onMessage(ev)) {
-        return;
-      }
       roomSafety.event(ev);
       roomEvent(ev);
+      roomRace.onMessage(ev);
     },
     onReported: (seat) => {
       roomSafety.reported(seat);
@@ -1929,6 +1926,11 @@ export async function boot({
         }
       }
     },
+    onMessage: (m) => {
+      if (roomRace.onMessage(m) || roomTag.onMessage(m)) {
+        ui.refreshFriends();
+      }
+    },
     onBinary: (bytes) => {
       const got = decodePartsRelay(bytes);
       const peer = got ? roomPeers.get(got.seat) : null;
@@ -1937,11 +1939,6 @@ export async function boot({
         if (peer.wreck) {
           peer.wreck.pieces(got.pieces, performance.now());
         }
-      }
-    },
-    onMessage: (m) => {
-      if (roomRace.onMessage(m) || roomTag.onMessage(m)) {
-        ui.refreshFriends();
       }
     },
     onHit: (m) => roomHit(m),

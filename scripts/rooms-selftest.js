@@ -706,11 +706,11 @@ check('the order puts the finished first, then laps, gates and who got there fir
 ]).map((r) => r.seat).join() === '5,2,3,1,4');
 
 console.log('race: hibernation');
-const savedRace = lastStore.value;
+const raceSaved = lastStore.value;
 const asleep = [ha, hb2, hc].map((s) => ({ conn: s, attachment: s.attachment }));
 room = new RoomCore(meta);
 room.restore(asleep);
-room.race.restore(savedRace);
+room.race.restore(raceSaved);
 const hd = sock('race-d', '10.2.0.4');
 hello(hd, { name: [9, 9, 19] });
 const wd = texts(hd, 'welcome')[0];

@@ -57,7 +57,14 @@ import * as wrecks from './wrecks.js';
 const EVENTS = {
   crash: wrecks.onCrash,
   whack: wrecks.onWhack,
+  gate: raceEvent,
+  hoop: raceEvent,
 };
+
+/* A racer's pass (edge/rooms/race.js). Races are a private room's. */
+function raceEvent(core, conn, s, msg, now) {
+  return core.meta.public ? [] : core.race.message(core, conn, s, msg, now);
+}
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
@@ -352,7 +359,6 @@ export class RoomCore {
     if (msg.type === 'kick' && !this.meta.public && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
     }
-    /* Races are a private room's, started by its host (Phase 4). */
     if (msg.type === 'tag') {
       return this.tag.message(this, conn, s, msg, now);
     }
@@ -360,7 +366,8 @@ export class RoomCore {
     if (this.game() === 'tag' && (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start'))) {
       return [{ send: conn, data: JSON.stringify({ type: 'race', error: 'tag_on' }) }];
     }
-    if (!this.meta.public && (msg.type === 'track' || msg.type === 'race' || (msg.type === 'event' && (msg.kind === 'gate' || msg.kind === 'hoop')))) {
+    /* Races are a private room's, started by its host (Phase 4). */
+    if (!this.meta.public && (msg.type === 'track' || msg.type === 'race')) {
       return this.race.message(this, conn, s, msg, now);
     }
     return [];

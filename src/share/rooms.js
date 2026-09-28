@@ -200,9 +200,9 @@ export function setFigurePick(f) {
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
- * onEvent(event), onBinary(bytes) for any binary message but a batch,
- * onReported(seat), onMessage(message) for every other text message (a
- * race's, Phase 4), onHit(hit) (the referee's mid air contact,
+ * onEvent(event) for an event, onReported(seat), onBinary(bytes) for any
+ * binary message but a batch, and onMessage(message) for every other text
+ * message (a race's, Phase 4), onHit(hit) (the referee's mid air contact,
  * src/game/midair.js).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
