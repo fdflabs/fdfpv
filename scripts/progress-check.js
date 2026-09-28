@@ -207,7 +207,7 @@ async function hangarTouches(page) {
   await page.until(EXPLODED('e.amount === 0'), 120000).catch(() => {});
   const back = await exploded(page);
   say(back.amount === 0 && back.parts.length === 0 && back.propOut < 1e-9, `the Colours tab puts it back together: ${JSON.stringify(back)}`);
-  await page.tap('KeyE');
+  await page.evaluate(click('tab-challenges'));
   await page.until("window.__ui.hangar.tab === 'challenges'", 5000);
   await settle(page, 900);
   const tab = await page.evaluate(`({

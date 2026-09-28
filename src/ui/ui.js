@@ -71,10 +71,11 @@ import { normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
-import { Progress, bindProgress } from './progress-ui.js';
-import { installHangarPolish } from './hangar-polish.js';
 /* Registers the hangar's Tuning tab. */
 import './hangar-tuning.js';
+/* Registers the Challenges tab, after the tabs that edit the plane. */
+import { Progress, bindProgress } from './progress-ui.js';
+import { installHangarPolish } from './hangar-polish.js';
 import { liveryKey, normaliseLiveries, paintable } from '../../configs/liveries.js';
 import { normaliseProgress } from '../game/progress.js';
 import {
