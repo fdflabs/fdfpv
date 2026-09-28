@@ -48,6 +48,8 @@
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { dressLivery } from './livery.js';
+import { animateParts, dressParts } from './partsfit.js';
+import { powerOption } from '../../configs/power.js';
 import { buildHangarEnv, createHangarRig } from './hangarstage.js';
 import { slotScale, slotX } from '../ui/carousel.js';
 
@@ -154,6 +156,32 @@ function visibleBox(root) {
   return box;
 }
 
+/* The lowest drawn point of a craft in its own frame, y, m: what stands on
+ * the hangar's floor once parts hang under it. */
+function lowestY(root) {
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const m = new THREE.Matrix4();
+  const one = new THREE.Box3();
+  let low = Infinity;
+  root.traverse((o) => {
+    if (!o.isMesh || !o.geometry) {
+      return;
+    }
+    for (let p = o; p && p !== root; p = p.parent) {
+      if (!p.visible) {
+        return;
+      }
+    }
+    if (!o.geometry.boundingBox) {
+      o.geometry.computeBoundingBox();
+    }
+    one.copy(o.geometry.boundingBox).applyMatrix4(m.multiplyMatrices(inv, o.matrixWorld));
+    low = Math.min(low, one.min.y);
+  });
+  return low;
+}
+
 export function createCarouselStage(renderer) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 80);
@@ -190,7 +218,7 @@ export function createCarouselStage(renderer) {
       return m;
     }
     /* In a preview asked for before it was built, or the saved paint. */
-    const craft = dressLivery(craftBuilderFor(id)({ name: `pick-${id}`, fog: false }), id, previews.get(id) ?? undefined);
+    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${id}`, fog: false }), id, previews.get(id) ?? undefined), id);
     previews.delete(id);
     if (craft.launcher) {
       craft.launcher.visible = false;
@@ -240,9 +268,32 @@ export function createCarouselStage(renderer) {
       halfY: 0.5 * size.y / radius,
       noseZ: (box.min.z - centre.z) / radius,
       tailZ: (box.max.z - centre.z) / radius,
+      /* Where its drawing was centred and scaled, and the half height it
+       * was built with, for a part hung under it later (fitParts). */
+      centreY: centre.y,
+      radius,
+      builtHalfY: 0.5 * size.y / radius,
+      dressKey: null,
     };
     models.set(id, m);
     return m;
+  }
+
+  /* A model in what it is fitted with: the saved parts, or in the hangar
+   * the Parts tab's choice before it is saved (`want`, frame().hangar.tabs
+   * .parts). A pod under a plane that stands on its belly reaches the
+   * floor, so the half height follows the lowest point. */
+  function fitParts(m, id, want = null, hangar = false) {
+    const fit = want && want.id === id
+      ? { entry: want.entry, option: want.option ? powerOption(id, want.option) : null }
+      : undefined;
+    dressParts(m.craft, id, fit, { hangar });
+    const key = m.craft.partsDress ? m.craft.partsDress.key : '';
+    if (key !== m.dressKey) {
+      m.dressKey = key;
+      const low = lowestY(m.craft.group);
+      m.halfY = Math.max(m.builtHalfY, (m.centreY - low) / m.radius);
+    }
   }
 
   const quadGeo = new THREE.PlaneGeometry(2, 2);
@@ -356,6 +407,7 @@ export function createCarouselStage(renderer) {
     }
     for (const it of view.items) {
       const m = modelFor(it.id);
+      fitParts(m, it.id);
       const a = Math.abs(it.d);
       const back = Math.min(a, 2.5) * DEPTH;
       /* Put the model where slotX says on screen at its own depth. */
@@ -438,6 +490,8 @@ export function createCarouselStage(renderer) {
       target.setSize(tw, th);
     }
     const m = modelFor(view.items[0].id);
+    fitParts(m, view.items[0].id, view.hangar.tabs ? view.hangar.tabs.parts : null, true);
+    animateParts(m.craft, t0 / 1000);
     for (const other of models.values()) {
       other.holder.visible = false;
     }
