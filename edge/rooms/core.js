@@ -44,7 +44,7 @@
  */
 
 import {
-  CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
+  CLOSE, POSE_BYTES, PROTO, PUBLIC_CAP, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
 import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
@@ -75,7 +75,12 @@ export const PRIVATE_CAP = 8;
 export const POSE_PER_S = 35;
 export const TEXT_PER_S = 5;
 export const TEXT_CLOSE_PER_S = 20;
-export const JOINS_PER_MIN = 10;
+/* New joins a minute from one address, in one room. One address is often
+ * a whole household (siblings on one Wi-Fi, a school behind one NAT), so
+ * it is sized for a full public room joining at once, twice over: it
+ * stops a script's join and leave churn, never a family filling a room.
+ * A seat taken back after a drop is not a new join. */
+export const JOINS_PER_MIN = 2 * PUBLIC_CAP;
 export const KICK_MS = 30 * 60 * 1000;
 /* A seat's token takes the same seat back for this long after its socket
  * drops, so a reconnect lands where it was rather than in a new slot. */
