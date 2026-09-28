@@ -96,10 +96,14 @@ import {
 import { PeerTrack, nearWeight } from './game/peer.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
+import { startTrackSync } from './share/cloud.js';
 
-/* The pilot's key for signing posted times, made on first use and kept in
- * this browser. See src/share/identity.js. */
+/* The pilot's key for signing posted times and saved tracks, made on first
+ * use and kept in this browser. See src/share/identity.js. */
 const identity = createIdentity();
+/* Saved tracks go online with that key (src/share/cloud.js), from boot on,
+ * whether or not the builder is ever opened this visit. */
+startTrackSync(identity);
 import {
   clearPendingTime,
   clearShareImport,
@@ -136,6 +140,7 @@ import { BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP } from './render/bramorcraft.js';
 import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickcraft.js';
 import { BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP } from './render/bombshellcraft.js';
 import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
+import { EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP } from './render/edgecraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
 
@@ -150,6 +155,7 @@ const WING_MOUNTS = {
   slowstick1180: [SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP],
   bombshell1118: [BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP],
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
+  edge1524: [EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
   /* On floats the CG is lower, so the camera stands higher over it. */
@@ -12189,6 +12195,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     rates: stateCurr
       ? { p: stateCurr[11], q: stateCurr[12], r: stateCurr[13] }
       : null,
+    /* The plant's own clock, s, so a probe times what the aircraft did on
+     * the sim's time and not the page's, which headless runs slower. */
+    simS: stateCurr ? stateCurr[0] : 0,
     descentRate: lastDescent,
     tiltDeg: lastTiltDeg,
     lastHitKind,

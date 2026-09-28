@@ -1,18 +1,91 @@
 # Deploying FDFPV
 
-Two resources today, and the rest of this file is the upstream walkthrough
-for the Render half, kept because it is still accurate for the board.
+Three resources, two of them live. The rest of this file after the tracks
+server is the upstream walkthrough for the Render half, kept because it is
+still accurate for the board.
 
 | Resource | Where | How |
 | --- | --- | --- |
 | Simulator | GitHub Pages, https://fdflabs.github.io/fdfpv/ | `.github/workflows/pages.yml` on every push to `main`. Nothing to build. |
-| Board | Render, Node web service plus Postgres | `render.yaml` in the board repo as a Blueprint. Set `SIM_ORIGIN` to the Pages URL. |
+| Tracks server | Cloudflare Worker plus D1, https://fdfpv-tracks.fdfretes.workers.dev | `tracks-api/deploy.sh`. Live since 2026-09-28. |
+| Board | Render, Node web service plus Postgres | `render.yaml` in the board repo as a Blueprint. Set `SIM_ORIGIN` to the Pages URL. Not deployed. |
 
 The simulator finds the board through `PRODUCTION_BOARD_ORIGIN` in
 `src/share/board.js`, and the board finds the simulator through
 `SIM_ORIGIN` in its environment. Both are placeholders until the board
 exists. The Cloudflare Worker under `edge/` is not deployed: it joined
 three deploys under one domain, and there is no domain yet.
+
+# The tracks server
+
+Every track a pilot saves goes online here, and everybody can list, open,
+fly and copy it, with no login. The simulator talks to it through
+`src/share/cloud.js`; the Worker is `tracks-api/worker.js`, and its header
+is the API. A save is signed with the browser's pilot key
+(`src/share/identity.js`), and the first key to save a track id owns it.
+
+Free tier throughout: one Worker on its workers.dev address and one D1
+database, both named `fdfpv-tracks`. No domain.
+
+## Deploy or update it
+
+```sh
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... \
+  tracks-api/deploy.sh /home/brains/Desktop/fdfpv-loop/online-tracks/ADMIN-SECRET.txt
+```
+
+The token needs Workers Scripts edit and D1 edit. The script creates the
+database the first time and writes its id into `tracks-api/wrangler.toml`,
+applies `tracks-api/migrations/`, deploys, and the first time only makes the
+admin secret and writes it to the file named, mode 600. That file is the
+only copy of the secret; it is never in the repository.
+
+A schema change is a new numbered file in `tracks-api/migrations/`, never
+an edit to one that has been applied.
+
+## Check it
+
+```sh
+# Publish, list, get, update, a refused wrong key, the word filter and the
+# rate limit, then the admin route deletes what it made. The rate limit
+# step spends this address's writes for ten minutes; --no-rate skips it.
+ADMIN_SECRET=... node tracks-api/smoke.js https://fdfpv-tracks.fdfretes.workers.dev
+
+# The owner's acceptance test: two browser profiles, one builds and saves,
+# the other finds it, flies it and edits a copy. Cleans up after itself.
+TRACKS_ORIGIN=https://fdfpv-tracks.fdfretes.workers.dev ADMIN_SECRET=... npm run tracks:e2e
+```
+
+Locally, with no Cloudflare account, the same two work against
+`npx wrangler dev --local --config tracks-api/wrangler.toml` (apply the
+migrations with `--local` first, and put `ADMIN_SECRET=...` in a
+`.dev.vars` file beside the config or pass `--env-file`). The browser only
+talks to a local server when told to, once, with
+`?tracks=http://127.0.0.1:8787`; `?tracks=off` forgets it.
+
+## Moderation
+
+Track names and pilot names pass a word filter (`tracks-api/words.js`) at
+save. Anything that gets past it is hidden or deleted by hand:
+
+```sh
+# Hide (false shows it again). A hidden track is in no list and cannot be
+# opened; its owner's later saves keep it hidden.
+curl -X POST -H "authorization: Bearer $ADMIN_SECRET" -d '{"hidden":true}' \
+  https://fdfpv-tracks.fdfretes.workers.dev/api/admin/tracks/trk-xxxxxxxx
+# Delete for good.
+curl -X DELETE -H "authorization: Bearer $ADMIN_SECRET" \
+  https://fdfpv-tracks.fdfretes.workers.dev/api/admin/tracks/trk-xxxxxxxx
+```
+
+## What it does not do yet
+
+Lap times, ghosts and leaderboards stay on the board, which is not
+deployed. Moving them here needs the board's lap verification
+(`src/game/verify.js checkLap`, already DOM free) run in the Worker on each
+posted time, a times table keyed by track and layout hash, and the ghost
+bytes in R2 or D1 under a size cap; `src/share/board.js` would then point
+at this Worker's routes instead of the board's.
 
 # Deploying to Render
 

@@ -14,5 +14,7 @@ tracks/_review/
 assets/music-src/
 # Agent worktrees the Claude Code harness makes inside the checkout.
 .claude/worktrees/
-# Local state wrangler dev writes beside a Worker.
+# Wrangler's local state and cache, from running tracks-api/ or
+# edge/rooms/ locally.
 .wrangler/
+tracks-api/.dev.vars

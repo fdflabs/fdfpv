@@ -88,9 +88,37 @@ export async function timeMessage({ trackId, lapMs, ghost, craft }) {
 /* key and sig are base64: the raw 65 byte P-256 public key and the 64 byte
  * IEEE P1363 signature WebCrypto produces. False for anything malformed. */
 export async function verifyTimeSignature({ key, sig, trackId, lapMs, ghost, craft }) {
+  const message = await timeMessage({ trackId, lapMs, ghost, craft });
+  return verifySignature({ key, sig, message });
+}
+
+/*
+ * A SAVED TRACK IS SIGNED THE SAME WAY, and the tracks server
+ * (tracks-api/worker.js) files each track id under the first key that saved
+ * it. The message is the track id, the save's own counter `ts`, and the
+ * SHA-256 of the pilot name and of the document text exactly as sent, so a
+ * signed save cannot be moved onto another id, renamed to someone else, or
+ * replayed over a newer save: the server only takes a `ts` above the one it
+ * holds. A delete signs the id and its `ts` under its own prefix, so a save's
+ * signature can never be turned into a delete.
+ */
+export const TRACK_MESSAGE_PREFIX = 'fdfpv-track/v1';
+export const TRACK_DELETE_PREFIX = 'fdfpv-track-delete/v1';
+
+export async function trackMessage({ id, ts, author, documentText }) {
+  const authorHash = await sha256Base64(author || '');
+  const docHash = await sha256Base64(documentText || '');
+  return new TextEncoder().encode(`${TRACK_MESSAGE_PREFIX}\n${id}\n${ts}\n${authorHash}\n${docHash}`);
+}
+
+export function trackDeleteMessage({ id, ts }) {
+  return new TextEncoder().encode(`${TRACK_DELETE_PREFIX}\n${id}\n${ts}`);
+}
+
+/* False for anything malformed, like verifyTimeSignature. */
+export async function verifySignature({ key, sig, message }) {
   try {
     const pub = await subtle().importKey('raw', fromBase64(key), CURVE, false, ['verify']);
-    const message = await timeMessage({ trackId, lapMs, ghost, craft });
     return await subtle().verify(SIGN, pub, fromBase64(sig), message);
   } catch (e) {
     return false;
@@ -161,6 +189,12 @@ export function createIdentity(storage = browserStorage() || memoryStorage()) {
     async signTime({ trackId, lapMs, ghost, craft }) {
       const id = await load();
       const message = await timeMessage({ trackId, lapMs, ghost, craft });
+      const sig = new Uint8Array(await subtle().sign(SIGN, id.priv, message));
+      return { key: id.publicRaw, sig: toBase64(sig) };
+    },
+    /* { key, sig } over trackMessage or trackDeleteMessage bytes. */
+    async signBytes(message) {
+      const id = await load();
       const sig = new Uint8Array(await subtle().sign(SIGN, id.priv, message));
       return { key: id.publicRaw, sig: toBase64(sig) };
     },
