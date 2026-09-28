@@ -55,12 +55,15 @@ import { readPilotName } from './pilot.js';
 import { str } from '../strings/index.js';
 
 /*
- * The deployed server, from tracks-api/deploy.sh. A fork without one sets
- * this to PLACEHOLDER_ORIGIN, which counts as no server at all: the page
- * then behaves exactly like the build before this file.
+ * The deployed server: tracks-api/node.js on the owner's VM, behind Caddy
+ * (deploy/vm/README.md). The Worker it replaced,
+ * https://fdfpv-tracks.fdfretes.workers.dev, is still deployed, and
+ * putting that address back here is the way back to it. A fork without a
+ * server sets this to PLACEHOLDER_ORIGIN, which counts as no server at
+ * all: the page then behaves exactly like the build before this file.
  */
 const PLACEHOLDER_ORIGIN = 'https://fdfpv-tracks.example.workers.dev';
-export const PRODUCTION_TRACKS_ORIGIN = 'https://fdfpv-tracks.fdfretes.workers.dev';
+export const PRODUCTION_TRACKS_ORIGIN = 'https://129.151.39.48';
 const ORIGIN_KEY = 'webfpv.tracks.origin';
 
 /* The event every upload outcome goes out on: detail { id, name, state,

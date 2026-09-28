@@ -9,7 +9,8 @@
  *   { send: conn, data }            a text (string) or binary (Uint8Array) message
  *   { close: conn, code, reason }   close that socket
  *   { attach: conn, value }         store this with the socket, to survive a hibernation
- *   { store: key, value }           keep this in the room's storage, the same (the race)
+ *   { store: key, value }           keep this in the room's storage, the same; host.js
+ *                                   hands it back to this[key].restore() on load (the race)
  *   { tick: true }                  call tick() again in TICK_MS
  *   { empty: true }                 nobody is left: schedule the purge
  *
