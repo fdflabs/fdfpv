@@ -232,6 +232,23 @@ export class Sim {
     return this.e.sim_power_clear();
   }
 
+  /* Seat the hangar's add-ons: `params` is the SIM_ADDON_DOUBLES block that
+   * configs/hangar-parts.js addonParams builds. See sim_abi.h. */
+  setAddons(params) {
+    const ptr = this.e.malloc(params.length * 8);
+    if (!ptr) {
+      throw new Error('sim.wasm malloc failed for the add-on block');
+    }
+    new Float64Array(this.e.memory.buffer, ptr, params.length).set(params);
+    const code = this.e.sim_set_addons(ptr);
+    this.e.free(ptr);
+    return code;
+  }
+
+  clearAddons() {
+    return this.e.sim_addons_clear();
+  }
+
   /* The sim_power_state block, named. */
   powerState() {
     if (!this.powerPtr) {

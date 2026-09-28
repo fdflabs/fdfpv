@@ -1365,12 +1365,18 @@ static void plant_build_axes(void) {
   plant_axis_ready = 1;
 }
 
+static void plant_seat(void);
+static int g_power_on = 0;
+static int g_addons_on = 0;
+
 void plant_set_airframe(int id) {
   if (!plant_airframe_exists(id)) {
     return;
   }
   g_airframe = id;
-  PLANT_P = &PLANT_TABLE[id];
+  g_power_on = 0;
+  g_addons_on = 0;
+  plant_seat();
 }
 
 /*
@@ -1383,10 +1389,98 @@ void plant_set_airframe(int id) {
  */
 static PlantParams g_plant_live;
 static FixedWingParams g_fw_live;
+/* What the host seated, kept so either can be laid over the table again
+ * when the other changes. */
+static double g_power_in[SIM_POWER_DOUBLES];
+static double g_addons_in[SIM_ADDON_DOUBLES];
 
 /* A finite number in [lo, hi]. NaN fails both comparisons. */
 static int in_range(double x, double lo, double hi) {
   return x >= lo && x <= hi;
+}
+
+/*
+ * The live copy: the table, the power option over it, the add-ons over
+ * that. With neither PLANT_P is the const table itself, and with the power
+ * option alone every field is set exactly as before the add-ons existed.
+ */
+static void plant_seat(void) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (!g_power_on && !g_addons_on) {
+    PLANT_P = base;
+    return;
+  }
+  g_plant_live = *base;
+  if (g_power_on) {
+    const double *in = g_power_in;
+    g_fw_live = *base->fw;
+    g_fw_live.thrust_static = in[SIM_POWER_THRUST];
+    g_fw_live.pitch_speed = in[SIM_POWER_PITCH_SPEED];
+    g_fw_live.rpm_no_load = in[SIM_POWER_RPM];
+    g_fw_live.current_full = in[SIM_POWER_CURRENT];
+    g_fw_live.throttle_idle = in[SIM_POWER_IDLE];
+    g_fw_live.tank_m3 = in[SIM_POWER_TANK];
+    g_fw_live.flow_full = in[SIM_POWER_FLOW_FULL];
+    g_fw_live.flow_idle = in[SIM_POWER_FLOW_IDLE];
+    g_fw_live.lean_frac = in[SIM_POWER_LEAN_FRAC];
+    g_fw_live.lean_gain = in[SIM_POWER_LEAN_GAIN];
+    g_fw_live.cg_shift = in[SIM_POWER_CG_SHIFT];
+    g_plant_live.fw = &g_fw_live;
+    g_plant_live.mass_kg = in[SIM_POWER_MASS];
+    g_plant_live.cells = in[SIM_POWER_CELLS];
+    g_plant_live.r_cell = in[SIM_POWER_R_CELL];
+    g_plant_live.pack_c = in[SIM_POWER_PACK_C];
+    g_plant_live.lvc = in[SIM_POWER_LVC];
+  }
+  if (g_addons_on) {
+    /*
+     * A point mass m at r joins the airframe's M: the CG moves to
+     * m r / (M + m), the state's origin with it, and every body frame
+     * position the plants read moves the other way, as a lost part moves
+     * them (crash.c live_rebuild). The inertia about the new CG is the
+     * table's plus m r^2 about the old, less (M + m) sh^2 (parallel axes).
+     */
+    const double *in = g_addons_in;
+    const double m = in[SIM_ADDON_MASS];
+    const double M = g_plant_live.mass_kg + m;
+    const double r[3] = { in[SIM_ADDON_CG_X], in[SIM_ADDON_CG_Y], in[SIM_ADDON_CG_Z] };
+    double sh[3];
+    for (int a = 0; a < 3; a += 1) {
+      sh[a] = m * r[a] / M;
+    }
+    g_plant_live.inertia[0] += m * (r[1] * r[1] + r[2] * r[2]) - M * (sh[1] * sh[1] + sh[2] * sh[2]);
+    g_plant_live.inertia[1] += m * (r[0] * r[0] + r[2] * r[2]) - M * (sh[0] * sh[0] + sh[2] * sh[2]);
+    g_plant_live.inertia[2] += m * (r[0] * r[0] + r[1] * r[1]) - M * (sh[0] * sh[0] + sh[1] * sh[1]);
+    g_plant_live.mass_kg = M;
+    for (int k = 0; k < SIM_MOTOR_COUNT; k += 1) {
+      g_plant_live.pos_x[k] -= sh[0];
+      g_plant_live.pos_y[k] -= sh[1];
+      g_plant_live.pos_z[k] -= sh[2];
+    }
+    g_plant_live.camera_x -= sh[0];
+    g_plant_live.camera_y -= sh[1];
+    g_plant_live.camera_z -= sh[2];
+    for (int w = 0; w < g_plant_live.wheel_count; w += 1) {
+      WheelParams *wp = &g_plant_live.wheel[w];
+      for (int a = 0; a < 3; a += 1) {
+        wp->pos[a] -= sh[a];
+      }
+      /* The main wheels are the braked ones with a tyre. */
+      if (wp->brake > 0.0 && wp->r > 0.0) {
+        if (in[SIM_ADDON_WHEEL_R] > 0.0) {
+          wp->r = in[SIM_ADDON_WHEEL_R];
+        }
+        wp->mu_roll *= in[SIM_ADDON_ROLL_K];
+      }
+    }
+    g_plant_live.add_on = 1;
+    for (int a = 0; a < 3; a += 1) {
+      g_plant_live.add_shift[a] = sh[a];
+      g_plant_live.add_drag_at[a] = in[SIM_ADDON_DRAG_X + a];
+    }
+    g_plant_live.add_cda = in[SIM_ADDON_CDA];
+  }
+  PLANT_P = &g_plant_live;
 }
 
 int plant_set_power(const double *in) {
@@ -1418,35 +1512,55 @@ int plant_set_power(const double *in) {
   if (glow != (in[SIM_POWER_IDLE] > 0.0) || (!glow && in[SIM_POWER_TANK] > 0.0)) {
     return SIM_ERR_BAD_ARG;
   }
-  g_fw_live = *base->fw;
-  g_fw_live.thrust_static = in[SIM_POWER_THRUST];
-  g_fw_live.pitch_speed = in[SIM_POWER_PITCH_SPEED];
-  g_fw_live.rpm_no_load = in[SIM_POWER_RPM];
-  g_fw_live.current_full = in[SIM_POWER_CURRENT];
-  g_fw_live.throttle_idle = in[SIM_POWER_IDLE];
-  g_fw_live.tank_m3 = in[SIM_POWER_TANK];
-  g_fw_live.flow_full = in[SIM_POWER_FLOW_FULL];
-  g_fw_live.flow_idle = in[SIM_POWER_FLOW_IDLE];
-  g_fw_live.lean_frac = in[SIM_POWER_LEAN_FRAC];
-  g_fw_live.lean_gain = in[SIM_POWER_LEAN_GAIN];
-  g_fw_live.cg_shift = in[SIM_POWER_CG_SHIFT];
-  g_plant_live = *base;
-  g_plant_live.fw = &g_fw_live;
-  g_plant_live.mass_kg = in[SIM_POWER_MASS];
-  g_plant_live.cells = in[SIM_POWER_CELLS];
-  g_plant_live.r_cell = in[SIM_POWER_R_CELL];
-  g_plant_live.pack_c = in[SIM_POWER_PACK_C];
-  g_plant_live.lvc = in[SIM_POWER_LVC];
-  PLANT_P = &g_plant_live;
+  for (int i = 0; i < SIM_POWER_DOUBLES; i += 1) {
+    g_power_in[i] = in[i];
+  }
+  g_power_on = 1;
+  plant_seat();
   return SIM_OK;
 }
 
 void plant_power_clear(void) {
-  PLANT_P = &PLANT_TABLE[g_airframe];
+  g_power_on = 0;
+  plant_seat();
 }
 
 int plant_power_custom(void) {
-  return PLANT_P == &g_plant_live;
+  return g_power_on;
+}
+
+int plant_set_addons(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const double m0 = g_power_on ? g_power_in[SIM_POWER_MASS] : base->mass_kg;
+  if (!in_range(in[SIM_ADDON_MASS], -1.0, 5.0) || !(m0 + in[SIM_ADDON_MASS] >= 0.05)
+      || !in_range(in[SIM_ADDON_CDA], 0.0, 0.5)
+      || !(in[SIM_ADDON_WHEEL_R] == 0.0 || in_range(in[SIM_ADDON_WHEEL_R], 0.005, 0.2))
+      || !in_range(in[SIM_ADDON_ROLL_K], 0.1, 10.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int a = 0; a < 3; a += 1) {
+    if (!in_range(in[SIM_ADDON_CG_X + a], -3.0, 3.0) || !in_range(in[SIM_ADDON_DRAG_X + a], -3.0, 3.0)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
+  for (int i = 0; i < SIM_ADDON_DOUBLES; i += 1) {
+    g_addons_in[i] = in[i];
+  }
+  g_addons_on = 1;
+  plant_seat();
+  return SIM_OK;
+}
+
+void plant_reseat(void) {
+  plant_seat();
+}
+
+void plant_addons_clear(void) {
+  g_addons_on = 0;
+  plant_seat();
 }
 
 int plant_airframe(void) { return g_airframe; }

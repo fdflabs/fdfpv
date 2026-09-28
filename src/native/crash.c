@@ -1231,7 +1231,9 @@ void crash_reset(void) {
   }
   g_shift[0] = g_shift[1] = g_shift[2] = 0.0;
   if (g_live_on) {
-    plant_set_airframe(plant_airframe());
+    /* Back to what the host seated, power option and add-ons with it: a
+     * plant_set_airframe here used to drop both after every broken part. */
+    plant_reseat();
     g_live_on = 0;
   }
   g_nsamp = 0;

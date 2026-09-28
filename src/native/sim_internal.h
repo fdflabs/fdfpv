@@ -232,6 +232,14 @@ typedef struct {
   /* Floats. Zero count for every airframe that does not have them, which
    * leaves sim.c's step exactly what it was for them. */
   FloatParams floats;
+  /* The hangar's add-ons, sim_set_addons in sim_abi.h: zero on every table
+   * and set only on the live copy plant.c builds, and nothing reads the
+   * rest unless add_on is 1, so an aircraft without add-ons runs exactly
+   * the arithmetic it always ran. */
+  int add_on;
+  double add_shift[3];   /* the CG's move from the table's, body frame, m */
+  double add_cda;        /* drag area, C_D times area, m^2 */
+  double add_drag_at[3]; /* where that drag acts, body frame about the table's CG, m */
 } PlantParams;
 
 /*
@@ -694,6 +702,14 @@ void plant_power_reset(SimState *s);
 int plant_set_power(const double *in);
 void plant_power_clear(void);
 int plant_power_custom(void);
+/* The hangar's add-ons, the sim_set_addons layout in sim_abi.h, seated over
+ * the table and any power option the same way; plant_addons_clear takes
+ * them off. */
+int plant_set_addons(const double *in);
+/* PLANT_P back to the seated airframe, power option and add-ons, after
+ * crash.c has pointed it at its own copy. */
+void plant_reseat(void);
+void plant_addons_clear(void);
 void plant_power_state(const SimState *s, double *out);
 double plant_lipo_ocv(double soc);
 void plant_wing_launch(SimState *s, double speed);

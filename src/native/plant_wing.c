@@ -1376,6 +1376,32 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     M[2] += ra[0] * Fc[1] - ra[1] * Fc[0];
   }
 
+  /* The hangar's add-ons (sim_set_addons): their drag, quadratic in the
+   * air speed at its point as the canopy's is, then every force's arm
+   * about the CG their mass moved. */
+  if (PLANT.add_on) {
+    const double *ra = PLANT.add_drag_at;
+    const double *om = s->omega;
+    const double va[3] = {
+      u + (om[1] * ra[2] - om[2] * ra[1]),
+      v + (om[2] * ra[0] - om[0] * ra[2]),
+      w + (om[0] * ra[1] - om[1] * ra[0]),
+    };
+    const double vam = sim_sqrt(va[0] * va[0] + va[1] * va[1] + va[2] * va[2]);
+    const double kd = -0.5 * PLANT.rho * PLANT.add_cda * vam;
+    const double Fd[3] = { kd * va[0], kd * va[1], kd * va[2] };
+    F[0] += Fd[0];
+    F[1] += Fd[1];
+    F[2] += Fd[2];
+    M[0] += ra[1] * Fd[2] - ra[2] * Fd[1];
+    M[1] += ra[2] * Fd[0] - ra[0] * Fd[2];
+    M[2] += ra[0] * Fd[1] - ra[1] * Fd[0];
+    const double *c = PLANT.add_shift;
+    M[0] -= c[1] * F[2] - c[2] * F[1];
+    M[1] -= c[2] * F[0] - c[0] * F[2];
+    M[2] -= c[0] * F[1] - c[1] * F[0];
+  }
+
   /* Crash damage: the lost panel's roll, and the forces' arm about a CG a
    * lost part has moved. The aero was taken about the table's CG, so about
    * the new one every force has the arm minus the shift. */

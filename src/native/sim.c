@@ -206,9 +206,12 @@ static void contact_build_corners(void) {
     { -hx, -hy, dn }, { hx, -hy, dn }, { -hx, hy, dn }, { hx, hy, dn },
     { -hx, -hy, up }, { hx, -hy, up }, { -hx, hy, up }, { hx, hy, up },
   };
+  /* The hangar's add-ons move the CG, the body origin, and the hull with
+   * it the other way; without them this is the table's box exactly. */
+  const double *sh = PLANT.add_shift;
   for (int c = 0; c < CONTACT_CORNERS; c += 1) {
     for (int a = 0; a < 3; a += 1) {
-      CONTACT_CORNER[c][a] = src[c][a];
+      CONTACT_CORNER[c][a] = PLANT.add_on ? src[c][a] - sh[a] : src[c][a];
     }
   }
 }
@@ -2481,6 +2484,26 @@ SIM_EXPORT int sim_set_power(const double *in) {
 SIM_EXPORT int sim_power_clear(void) {
   plant_power_clear();
   plant_power_reset(&S);
+  return SIM_OK;
+}
+
+/* The hangar's add-ons, sim_abi.h. A new mass moves the CG, so the state
+ * is taken back to rest at the reset the shell makes next; nothing here
+ * moves the craft. */
+SIM_EXPORT int sim_set_addons(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  const int rc = plant_set_addons(in);
+  if (rc == SIM_OK) {
+    contact_build_corners();
+  }
+  return rc;
+}
+
+SIM_EXPORT int sim_addons_clear(void) {
+  plant_addons_clear();
+  contact_build_corners();
   return SIM_OK;
 }
 
