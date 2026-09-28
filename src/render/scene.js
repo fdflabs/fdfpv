@@ -5,7 +5,7 @@
  * src/render/pylons.js): the frame, the printed sleeves and header, the
  * corner fittings, the lit target the pilot aims at and the pennants a
  * flagged gate carries, with their colliders. The sky is the cel dome the
- * Alps, the airfield and Yellowstone draw behind them.
+ * Alps and Yellowstone draw behind them.
  *
  * All of it is authored directly in Three.js space (y up). Only the quad's
  * simulated state crosses frames, and that conversion lives in frame.js and

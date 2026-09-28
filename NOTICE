@@ -10,55 +10,6 @@ GPLv3, and the MIT copyright notice and permission notice travel with the
 copied files. Nothing here is relicensed, and no MIT file has had a GPLv3
 header pasted onto it.
 
-## sakura-crossing
-
-    Upstream    https://github.com/kenton-gmi/sakura-crossing
-    Commit      de01898e89c7f6ab3fad93fa802f0f5ac66fbd81
-    Licence     MIT, Copyright (c) 2026 Kenton Wang
-    Vendored at src/maps/city/vendored/
-    Files       59 JavaScript source files, byte identical to upstream
-    Licence text travels with them at src/maps/city/vendored/LICENSE
-
-The 59 files are exactly the transitive import closure of the three entry
-points the freestyle city map uses: `src/world/index.js` (57 files),
-`src/core/post.js` and `src/core/sky.js`. Neither `src/core/audio.js`,
-`src/core/player.js`, `src/core/hud.js`, `src/main.js` nor `src/world/ebike.js`
-is on that path, so no upstream music, walker, interface or entry point is
-incorporated, and the 3.9 MB music mp3 in the upstream repository is not
-vendored.
-
-Three of the 59 city files carry changes; the other 56 are byte identical
-to upstream.
-
-  * `world/index.js` carries the four line change recorded in full at
-    `src/maps/city/vendored/PATCH-world-index.diff`, which makes the planet
-    bake optional so the city can be taken in its flat authoring. The change
-    adds a parameter with the upstream behaviour as its default, so calling
-    `buildWorld(scene)` still does exactly what it does upstream. It also
-    carries the town thinning pass of 2026-08-26, which is a set of edits to
-    the town's own composition rather than to its interface: dressing removed,
-    planting thinned. Those are described in PROGRESS.md rather than in a diff
-    file, because a diff against upstream would be the wrong record for a
-    change to what the town contains.
-  * `core/toon.js` carries the one line change recorded at
-    `src/maps/city/vendored/PATCH-core-toon.diff`, which drops `flatShading`.
-  * `world/petals.js` carries the three line change recorded at
-    `src/maps/city/vendored/PATCH-world-petals.diff`, which gives its
-    instanced meshes the names `petalField` and `fallenPetal`. Every other
-    instanced set in the town is named (`sakuraCanopy0`, `groveCanopy1`,
-    `hillTuft`, `lakeReed`); these three were the exception, and two passes
-    of ours read mesh names to decide what a drawn thing means. Nothing about
-    what is drawn changes.
-
-The line above used to read "fifty eight of the 59 city files are byte
-identical", which stopped being true when `core/toon.js` was patched and was
-never corrected.
-
-Everywhere else our shell needs different behaviour from a vendored class, it
-subclasses or wraps it in our own GPLv3 code under `src/maps/city/` rather
-than editing the vendored copy, so an upstream update is a re-copy plus one
-patch rather than a merge.
-
 ## three.js
 
     Upstream    https://github.com/mrdoob/three.js
@@ -112,7 +63,12 @@ copyright line. Removed from this fork, and still in the history: the
 upstream design log PROGRESS.md, the agent loop records under .loop/,
 the agent prompts under prompts/ and .claude/, CITY-PERF-PLAN.md,
 TRACK-FROM-GIF.md, and scripts/gates.js with scripts/judge-loop.md,
-which read the loop records at run time. The freestyle scoring
+which read the loop records at run time. Removed on 2026-09-28 with the
+freestyle city map: the MIT licensed sakura-crossing files vendored at
+src/maps/city/vendored/ (Copyright (c) 2026 Kenton Wang, upstream
+https://github.com/kenton-gmi/sakura-crossing at de01898), which this
+repository no longer ships and whose notice therefore no longer travels
+with it. The freestyle scoring
 definitions that scripts/score-selftest.js reads moved from
 .loop/evidence/freestyle-scoring/ to tests/fixtures/freestyle-scoring/
 unchanged. Comments in the code that cite PROGRESS.md or anything else

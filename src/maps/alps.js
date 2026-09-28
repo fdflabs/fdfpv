@@ -1,7 +1,8 @@
 /*
  * alps.js: a Swiss valley for the wing.
  *
- * The airfield is flat because a first wing needs nothing in the way.
+ * The airfield, retired now, was flat because a first wing needed nothing
+ * in the way.
  * This is the opposite: a glacial valley six kilometres long, a floor of
  * meadow with a grass strip and a village on it, pine on the lower
  * slopes, rock above, snow on the ridges a kilometre and more over the
@@ -391,8 +392,7 @@ export async function buildValley(shell, progress, q, style) {
   };
 }
 
-/* The race field's composer on top, and its dispose folded into ours, the
- * same as the airfield. */
+/* The race field's composer on top, and its dispose folded into ours. */
 export async function buildMap(shell, onProgress, options) {
   const progress = onProgress ?? (() => {});
   const q = qualityFor(options && options.quality);

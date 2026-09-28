@@ -2,25 +2,24 @@
  * memory-check.js: does a map cost nothing until it is chosen, and give the
  * memory back when it is left.
  *
- * WHY, ON A LAPTOP. The freestyle city is 59 vendored source files, about
- * nineteen thousand meshes and a few hundred Canvas2D textures. A pilot who
- * only ever flies a track must not pay for any of it, and a pilot who tries
- * the city and goes back must not keep paying for it either.
+ * WHY, ON A LAPTOP. A world is dozens of source files, thousands of meshes
+ * and its photographs and baked textures. A pilot who only ever flies one
+ * valley must not pay for another, and a pilot who tries one and goes back
+ * must not keep paying for it either.
  * Both halves are easy to break by accident and neither is visible until a
  * tab runs out of memory on somebody else's machine.
  *
  * WHAT verify's CHECK 16 ALREADY DOES, so this does not repeat it: it proves
- * the city is not fetched while the airfield is selected, that a full graph
- * arrives once the city is chosen, that MAP_MODULE_COUNT matches what the
- * browser fetched, and that the airfield's draw cost is unchanged. That check
- * is good and it is the reference for this one.
+ * the Swiss valley is not fetched while the Alps are selected, that a full
+ * graph arrives once the valley is chosen, that MAP_MODULE_COUNT matches
+ * what the browser fetched, and that the Alps' draw cost is unchanged. That
+ * check is good and it is the reference for this one.
  *
  * WHAT THIS ADDS:
  *
- *   1. The other maps. Check 16 covers city against the airfield. Industrial
- *      the city is the only freestyle world now, and it copies nothing into
- *      their own directory precisely so choosing one does not drag in the
- *      city's, and nothing was measuring that.
+ *   1. The other maps. Check 16 covers the Swiss valley against the Alps;
+ *      this also takes Yellowstone, and asks of each that choosing it drags
+ *      in no other world's directory, which nothing else measures.
  *   2. Release, not just laziness. After switching away, three.js's own count
  *      of live geometries and textures has to come back down. A lazy load
  *      that never frees is a leak with extra steps.
@@ -30,7 +29,7 @@
  *
  * Usage:
  *   node scripts/memory-check.js
- *   node scripts/memory-check.js --map=city      just one map
+ *   node scripts/memory-check.js --map=swiss2    just one map
  *
  * This file is part of WebFPVSimulator.
  *
@@ -57,12 +56,12 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /* The world loaded at boot, which every other is measured against: the
- * smallest there is. It was the race field until the field was deleted, and
- * like the field it is not itself measured as a lazily loaded world, since
- * the title always has a world behind it. */
-const BASE = 'airfield';
+ * smallest there is. It was the race field and then the airfield until each
+ * was retired, and like them it is not itself measured as a lazily loaded
+ * world, since the title always has a world behind it. */
+const BASE = 'alps';
 /* The lazily loaded worlds. */
-const HEAVY = ['city', 'alps', 'yellowstone', 'swiss2'];
+const HEAVY = ['yellowstone', 'swiss2'];
 
 /*
  * Worlds built from another world's code on purpose, and whose graph that
@@ -70,8 +69,9 @@ const HEAVY = ['city', 'alps', 'yellowstone', 'swiss2'];
  * style by the Alps' own builders (src/maps/swiss2.js), so choosing it
  * fetches src/maps/alps.js and src/maps/alps/; copying them to keep the
  * graphs apart would be six thousand lines kept twice. Only a declared
- * dependency is let through: swiss2 pulling in the city is still a fault,
- * and so is the Alps pulling in swiss2.
+ * dependency is let through: swiss2 pulling in Yellowstone is still a
+ * fault, and so is the Alps pulling in swiss2, which the boot half below
+ * catches with the Alps as the baseline.
  */
 const SHARES = { swiss2: ['alps'] };
 
@@ -81,8 +81,8 @@ const SHARES = { swiss2: ['alps'] };
  * did not fetch something.
  *
  * It is CUMULATIVE for the life of the page, which is the trap: after the
- * city has been loaded once, its URLs are in every later reading, so a naive
- * "did choosing the city pull in its graph" test reports yes for a page that
+ * valley has been loaded once, its URLs are in every later reading, so a naive
+ * "did choosing the valley pull in its graph" test reports yes for a page that
  * did nothing wrong. Every question here is therefore asked about a SLICE,
  * from a mark taken just before the switch.
  */
@@ -93,8 +93,7 @@ const URL_COUNT = 'performance.getEntriesByType("resource").length';
 
 const MEMORY = 'JSON.stringify(window.__gpuMemory())';
 
-/* A world is a directory under src/maps or a single module beside them;
- * the airfield is the second kind. */
+/* A world is a directory under src/maps and a module beside it. */
 function underMap(urls, id) {
   return urls.filter((u) => u.includes(`/src/maps/${id}/`) || u.endsWith(`/src/maps/${id}.js`));
 }
@@ -132,7 +131,7 @@ async function main() {
     } catch (e) { /* Storage refused. The run still boots. */ }`,
     /* The browser keeps 250 resource timing entries unless told otherwise
      * and drops every one after that without a word. The boot and the
-     * city's graph alone come to more, so the fifth world's fetches were
+     * city's graph alone came to more, so the fifth world's fetches were
      * never recorded and it read as fetching nothing at all. */
     'performance.setResourceTimingBufferSize(20000);'],
   });

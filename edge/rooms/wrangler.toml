@@ -1,0 +1,28 @@
+# Wrangler config for the rooms Worker, fdfpv-rooms. See edge/rooms/do.js
+# and docs/MULTIPLAYER-PLAN.md.
+#
+#     npx wrangler deploy --config edge/rooms/wrangler.toml
+#     npx wrangler dev --config edge/rooms/wrangler.toml
+#
+# No wrangler in package.json, for the reason edge/wrangler.toml gives.
+# Separate from the router and from the tracks server on purpose: rooms hold
+# sockets and nothing else, and share no storage with either.
+
+name = "fdfpv-rooms"
+main = "do.js"
+compatibility_date = "2026-08-01"
+workers_dev = true
+
+# Off, so connecting addresses never land in logs (docs/MULTIPLAYER-PLAN.md
+# section 9, "What a kick remembers").
+[observability]
+enabled = false
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+# SQLite backed, the only kind the Free plan has.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]

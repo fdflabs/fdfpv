@@ -228,14 +228,17 @@ async function main() {
      * One page run that loads two maps and reports what each one measures.
      *
      * It doubles as the isolation evidence for the lazy load: it records every
-     * URL the page requests while the AIRFIELD is selected, so the city's
-     * modules being absent is a measurement rather than a claim. The city is
-     * then chosen and the same list is read again, which is what proves the
-     * modules arrive only when they are asked for.
+     * URL the page requests while the ALPS are selected, so the Swiss valley's
+     * own modules being absent is a measurement rather than a claim. The
+     * valley is then chosen and the same list is read again, which is what
+     * proves the modules arrive only when they are asked for.
      *
-     * The airfield is the smallest world there is. This run used the race
-     * field until the field was deleted; nothing it measures was about the
-     * field's own dressing except the three bands check 15 dropped with it.
+     * The Alps are the smallest world there is now. This run used the
+     * airfield and the city until both were retired on 2026-09-28, and the
+     * race field before them; nothing it measures was about either's own
+     * dressing except the town's bands check 15 dropped with it. The valley
+     * builds through the Alps' modules, so the pair only works this way
+     * round: the Alps first, the valley second.
      */
     scaleRun: memo(async () => {
       const out = join(root, 'dist/world-scale');
@@ -256,14 +259,14 @@ async function main() {
         '--graphics=high',
         /* The world, named in the address so the title shows it rather than
          * its own valley, and the aircraft the craft bands are for. */
-        '--url=/index.html?map=airfield',
+        '--url=/index.html?map=alps',
         '--airframe=5inch',
         'until:!!window.__boot && window.__boot().frames > 2',
         `eval:${collect}`,
-        /* The airfield's cost, at a parked camera over its spawn so the
-         * numbers are reproducible. Measured with the airfield selected,
-         * which is the whole point: the city must cost nothing at all until
-         * it is chosen. */
+        /* The Alps' cost, at a parked camera over their spawn so the
+         * numbers are reproducible. Measured with the Alps selected, which is
+         * the whole point: the Swiss valley must cost nothing at all until it
+         * is chosen. */
         'eval:JSON.stringify((() => {' +
           'const sp = window.__map().spawn;' +
           'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30);' +
@@ -276,8 +279,14 @@ async function main() {
          * left. Waiting on the frame counter is the only honest way to know
          * the override has landed. */
         'until:window.__boot().frames > window.__camFrame + 3',
+        /* The animation clock is parked in the same expression as the
+         * budget, because the Alps move (the traffic, the gondola, the
+         * herd): a car driving into the parked camera's frame between the
+         * two readings would be a draw call that is not a leak. __budget
+         * renders directly, so no frame can move the clock in between. */
         'eval:JSON.stringify((() => {' +
-          'const b = window.__budget("airfield spawn");' +
+          'window.__animTo(0);' +
+          'const b = window.__budget("alps spawn");' +
           'window.__setCam(null);' +
           'return { tag: "budget", p1: b.p1_calls, p2: b.p2_triangles, p5: b.p5_target_MB, p10: b.p10_attribute_MB, meshes: b.meshes, cel: window.__celCount() };' +
         '})())',
@@ -379,30 +388,21 @@ async function main() {
             'return { bodyLength: Math.max(bs.x, bs.z), bodyWidth: Math.min(bs.x, bs.z), bodyHeight: bs.y, sweepMeasured: maxR, craftR: th.craftRadius, craftRTrue: th.craftRadiusTrue, worldScale: th.worldScale };' +
           '})()' +
         '})',
-        /*
-         * Turn the collider audit on BEFORE the city is built, because it can
-         * only run in the window between the collider set being finished and
-         * bake.js merging the per mesh geometry away. It costs a few seconds
-         * on this one run and it is what lets check 15 assert that the solid
-         * world hugs the drawn one instead of describing it. See
-         * src/maps/city/scan.js and scripts/collider-audit.js.
-         */
         'eval:JSON.stringify({ tag: "title", back: (window.__ui.act("title"), window.__ui.screen) })',
         'until:window.__craftState().mode === "title"',
-        'eval:JSON.stringify({ tag: "arm", on: (globalThis.__CITY_SCAN = true) })',
-        'eval:JSON.stringify({ tag: "swap", started: (window.__setMap("city"), true) })',
-        'until:window.__map().id === "city" && window.__map().ready',
-        'eval:JSON.stringify({ tag: "city", references: window.__map().references, loading: window.__map().loading, expectedModules: window.__map().expectedModules, colliderFit: (() => { const f = window.__map().colliderFit; const { rows, worst, ...rest } = f; return rest; })(), colliderScan: (() => { const s = window.__map().colliderScan; if (!s) { return null; } return { drawnMeshes: s.drawnMeshes, phantom: { totalPhantom: s.phantom.totalPhantom, solidVolume: s.phantom.solidVolume, overOne: s.phantom.overOne, overFive: s.phantom.overFive, standingOnAir: s.phantom.standingOnAir, boxes: s.phantom.boxes }, holes: { probed: s.holes.probed, count: s.holes.count, meanCovered: s.holes.meanCovered, softProbed: s.holes.softProbed, softCount: s.holes.softCount } }; })() })',
+        'eval:JSON.stringify({ tag: "swap", started: (window.__setMap("swiss2"), true) })',
+        'until:window.__map().id === "swiss2" && window.__map().ready',
+        'eval:JSON.stringify({ tag: "other", expectedModules: window.__map().expectedModules })',
         `eval:${collect}`,
         /*
-         * BACK TO THE AIRFIELD, AND MEASURE IT AGAIN. The budget taken at
-         * boot cannot see a leak, because at that point the city has never
-         * existed: anything the city fails to free on its way out is invisible
-         * until the airfield is measured on the far side of a round trip. A
-         * review pointed this out and it was right.
+         * BACK TO THE ALPS, AND MEASURE THEM AGAIN. The budget taken at boot
+         * cannot see a leak, because at that point the valley has never
+         * existed: anything the valley fails to free on its way out is
+         * invisible until the Alps are measured on the far side of a round
+         * trip. A review pointed this out and it was right.
          */
-        'eval:JSON.stringify({ tag: "back", started: (window.__setMap("airfield"), true) })',
-        'until:window.__map().id === "airfield" && window.__map().ready',
+        'eval:JSON.stringify({ tag: "back", started: (window.__setMap("alps"), true) })',
+        'until:window.__map().id === "alps" && window.__map().ready',
         'eval:JSON.stringify((() => {' +
           'const sp = window.__map().spawn;' +
           'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30);' +
@@ -411,7 +411,8 @@ async function main() {
         '})())',
         'until:window.__boot().frames > window.__camFrame2 + 3',
         'eval:JSON.stringify((() => {' +
-          'const b = window.__budget("airfield spawn after round trip");' +
+          'window.__animTo(0);' +
+          'const b = window.__budget("alps spawn after round trip");' +
           'window.__setCam(null);' +
           'return { tag: "budget2", p1: b.p1_calls, p2: b.p2_triangles, p5: b.p5_target_MB, p10: b.p10_attribute_MB, meshes: b.meshes, cel: window.__celCount() };' +
         '})())',
@@ -441,46 +442,23 @@ async function main() {
       const budget = values.find((v) => v.tag === 'budget');
       const budgetAfter = values.find((v) => v.tag === 'budget2');
       const craftData = values.find((v) => v.tag === 'craft');
-      const cityData = values.find((v) => v.tag === 'city');
-      if (urls.length < 2 || !craftData || !cityData) {
+      const otherData = values.find((v) => v.tag === 'other');
+      if (urls.length < 2 || !craftData || !otherData) {
         throw new Error(
           `world-scale run produced tags [${values.map((v) => v.tag).join(', ')}]: ` +
           `${text.trim().split('\n').slice(-3).join(' | ')}`,
         );
       }
-      const [airfieldUrls, cityUrls] = urls;
-      const cr = cityData.references;
+      const [baseUrls, otherUrls] = urls;
+      const ofOther = (u) => u.includes('/src/maps/swiss2');
       return {
         craft: craftData.craft,
         gateScale: craftData.gateScale ?? null,
-        city: {
-          kerb: cr.kerbHeight.measured,
-          doorway: cr.doorwayHeight.measured,
-          doorwayWidth: cr.doorwayWidth.measured,
-          handrail: cr.handrailHeight.measured,
-          boom: cr.crossingBoomHeight.measured,
-          boomCollider: cr.crossingBoomCollider ? cr.crossingBoomCollider.measured : null,
-          doorCount: cr.doorwayHeight.count,
-          railCount: cr.handrailHeight.count,
-          colliderFit: cityData.colliderFit ?? null,
-          colliderScan: cityData.colliderScan ?? null,
-        },
-        loading: cityData.loading,
-        cityExpectedModules: cityData.expectedModules ?? null,
-        airfieldBudget: budget,
-        airfieldBudgetAfterRoundTrip: budgetAfter,
-        /*
-         * src/maps/city/scan.js is the collider audit, and it is dropped from
-         * both lists on purpose. The city imports it dynamically and only when
-         * globalThis.__CITY_SCAN is set, which no ordinary load does and which
-         * THIS RUN sets a few steps above so check 15 can assert the fit.
-         * Counting it would make check 16 report the harness's own diagnostic
-         * as a module the map costs a player.
-         */
-        cityUrlsWhileAirfieldSelected: airfieldUrls.urls
-          .filter((u) => u.includes('/src/maps/city') && !u.includes('/city/scan.js')),
-        cityUrlsAfterChoosingCity: cityUrls.urls
-          .filter((u) => u.includes('/src/maps/city') && !u.includes('/city/scan.js')),
+        otherExpectedModules: otherData.expectedModules ?? null,
+        baseBudget: budget,
+        baseBudgetAfterRoundTrip: budgetAfter,
+        otherUrlsWhileBaseSelected: baseUrls.urls.filter(ofOther),
+        otherUrlsAfterChoosing: otherUrls.urls.filter(ofOther),
       };
     }),
     browserRun: memo(async () => {

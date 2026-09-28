@@ -152,8 +152,15 @@ export function encodeReplay(clip) {
 /* ---- read ---- */
 
 /* What a refusal throws: its message is for the log, in English; the
- * screen says it in the pilot's language (src/replay/crashcam.js). */
-class ReplayFileError extends Error {}
+ * screen says it in the pilot's language (src/replay/crashcam.js). `map`
+ * is the map a clip names when that map is what was refused, so the screen
+ * can say a retired world by name rather than "not a replay". */
+class ReplayFileError extends Error {
+  constructor(message, map = null) {
+    super(message);
+    this.map = map;
+  }
+}
 
 function onlyKeys(o, allowed, what) {
   if (!o || typeof o !== 'object' || Array.isArray(o)) {
@@ -344,7 +351,7 @@ export function decodeReplay(buf, known = null) {
     throw new ReplayFileError('its aircraft is not one this build flies');
   }
   if (known && !known.map(header.meta.map)) {
-    throw new ReplayFileError('its map is not one this build has');
+    throw new ReplayFileError('its map is not one this build has', header.meta.map);
   }
   if (!Array.isArray(header.events) || header.events.length > 4000) {
     throw new ReplayFileError('events is not a list');

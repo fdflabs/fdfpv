@@ -26,8 +26,8 @@
  *
  * REGENERATE, DO NOT EDIT, the same rule as the icons and the share card:
  *
- *     npm run gen:posters                 # all four
- *     node scripts/posters.js city       # just this one
+ *     npm run gen:posters                 # every world
+ *     node scripts/posters.js alps       # just this one
  *
  * A run takes minutes: it builds each world in headless Chromium at the
  * authored preset, one at a time.
@@ -69,22 +69,6 @@ const QUALITY = 82;
  * the render frame rather than the physics frame; see CLAUDE.md.
  */
 const CAMERAS = {
-  /*
-   * The high street looking north at the level crossing, from about a
-   * first floor window. The town is the one world here that CANNOT be shot
-   * from outside: its fog ends at 65 m and its cull radius is 70, so an
-   * aerial of the district is a grey square. So the establishing shot is
-   * the street itself, which is what the place is anyway, with the sakura
-   * and the wires over it and the crossing closing the far end.
-   */
-  city: [2.6, 4.2, 26, 0, 3.0, 4],
-  /*
-   * The runway from off the threshold's right shoulder, at about a hangar
-   * roof, so the piano keys, the length of the strip, the windsock and a
-   * pylon are all in one frame: what an airfield is, before anything is
-   * flown on it.
-   */
-  airfield: [22, 9, 78, -6, 1, 0],
   /*
    * Down the valley from 260 m over its south end: the village and its
    * church by the river, the road, forest on both walls and the range
@@ -179,9 +163,9 @@ try {
        * come out at whatever quality the machine that made it happened to
        * pick. The authored look, every time. */
       '--graphics=high',
-      /* Boot the airfield, the light one, before choosing. A page that
-       * names no world opens on the title's own valley, see src/boot.js. */
-      '--url=/index.html?map=airfield',
+      /* Boot the Alps, the light one, before choosing. A page that names
+       * no world opens on the title's own valley, see src/boot.js. */
+      '--url=/index.html?map=alps',
       'until:!!window.__boot && window.__boot().frames > 2',
       `eval:(() => { window.__setMap(${JSON.stringify(map.id)}); return 'swap'; })()`,
       /* Both halves. `ready` alone is true of the previous world for a

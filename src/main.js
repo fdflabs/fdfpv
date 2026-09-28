@@ -51,7 +51,7 @@
 
 import * as THREE from 'three';
 import { buildShell } from './render/shell.js';
-import { applyPixelRatio, internalScale, normalizeGraphics, pixelRatioFor, qualityFor } from './render/quality.js';
+import { applyPixelRatio, normalizeGraphics, pixelRatioFor } from './render/quality.js';
 import { createPace, PACE_COOL } from './render/pace.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
@@ -86,6 +86,16 @@ import { createFlightStats, pingVisit } from './share/stats.js';
 import { nameRules, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
+import {
+  createRoomLink, figurePick, namePick, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
+} from './share/rooms.js';
+import {
+  FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
+  encodePose, normaliseCode,
+} from './share/roomwire.js';
+import { PeerTrack, nearWeight } from './game/peer.js';
+import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
+import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { startTrackSync } from './share/cloud.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
@@ -111,6 +121,7 @@ import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
+import { retiredMap } from './maps/retired.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, SIM_POWER } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
@@ -477,36 +488,30 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * makes that stage's bar move at the wrong rate; it cannot break the load,
  * and the stage still ends when the import resolves.
  */
-/* city: all 59 vendored files, plus
- * index.js, animation.js, bake.js, drawn.js and references.js, plus the
- * eight under places/ that build the works road, the disused works, the
- * municipal pool, the training field and the blossom that falls over the
- * first three: 72 in all. It was 63 while vendored/world/petals.js sat
- * in the tree unimported, and 64 once the falling blossom was built again.
- * scan.js is ours and harness only, so it never arrives on a player's
- * load. Check 16 asserts the city count against what the browser actually
- * fetched on a cold load, because 61 sat here for a round and nothing
- * could notice.
+/* swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 49 in
+ * all. The Alps modules it builds through are counted under their own
+ * prefix, so they are not in this number, and a pilot who flew the Alps
+ * first already has them. Check 16 asserts this count against what the
+ * browser actually fetched on choosing the valley, because a bar weight
+ * that is wrong cannot break a load and so nothing else would notice: 61
+ * sat here for a round for the city while the real count was 63.
  *
- * There is one freestyle world now. Industrial bando, Municipal baths and
- * Bardwell's yard were removed on 2026-08-30, and their three entries went
- * with them. `npm run lint:memory` prints the fetched count per map beside
- * this number. */
-const MAP_MODULE_COUNT = { city: 72 };
-/* Where a map's modules live, so the loading bar can count them. Data, not a
- * ternary: the ternary read "field or else city", so a third map counted its
- * modules under the city's prefix and the bar sat at zero.
+ * A map with no entry weighs 4, which is a guess and only a bar's pace.
+ * The freestyle town and the airfield were removed on 2026-09-28, and the
+ * town's 72 went with it. `npm run lint:memory` prints the fetched count
+ * per map beside this number.
  *
- * These stay leading-slash while the rest of the file went relative, and that
- * is not an oversight. They are never fetched. moduleCounter matches them as a
+ * The prefix a map's modules are counted under is `/src/maps/<id>`, and it
+ * stays leading-slash while the rest of the file went relative, which is
+ * not an oversight. It is never fetched. moduleCounter matches it as a
  * SUBSTRING of each performance entry's full URL, and a shell mounted at
- * https://fdfpv.example/sim/ still produces names containing /src/maps/city/. */
-const MAP_MODULE_PREFIX = {
-  city: '/src/maps/city/',
-};
+ * https://fdfpv.example/sim/ still produces names containing
+ * /src/maps/swiss2. */
+const MAP_MODULE_COUNT = { swiss2: 49 };
 
-/* The world a boot that could not build its own falls back to. */
-const FLOOR_WORLD = 'airfield';
+/* The world a boot that could not build its own falls back to: the Alps,
+ * the lightest world left and the one the Swiss valley builds through. */
+const FLOOR_WORLD = 'alps';
 
 async function loadMap(shell, id, loading, options) {
   const entry = mapById(id);
@@ -517,7 +522,7 @@ async function loadMap(shell, id, loading, options) {
   }
   loading.start('module');
   const counter = moduleCounter(
-    MAP_MODULE_PREFIX[id] ?? `/src/maps/${id}`,
+    `/src/maps/${id}`,
     MAP_MODULE_COUNT[id] ?? 4,
     (f, got, total) => loading.progress('module', f, str('main.of_modules', { got, total })),
   );
@@ -539,7 +544,9 @@ async function loadMap(shell, id, loading, options) {
   return map;
 }
 
-export async function boot({ loading, bootStart, mapId, titleMap }) {
+export async function boot({
+  loading, bootStart, mapId, titleMap, retiredFrom,
+}) {
   const BOOT_START = bootStart ?? performance.now();
   /*
    * FIRST, BEFORE ANYTHING READS THE QUERY.
@@ -1188,10 +1195,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /*
    * The swap path has fallen back to the previous map on a failed load for
    * a while; boot had nothing, so one map that would not build (a bad
-   * asset, a WebGL context the city cannot have) took the whole session
-   * down before the title screen. The airfield is the floor: it is the
-   * smallest world here, a flat field and a dozen meshes, so if it cannot
-   * build there is nothing to fall back TO and the throw is honest.
+   * asset, a WebGL context the photographs cannot have) took the whole
+   * session down before the title screen. The Alps are the floor: the
+   * smallest world here, and the one the Swiss valley builds through, so
+   * if they cannot build there is nothing to fall back TO and the throw is
+   * honest.
    */
   try {
     view = await loadMap(shell, worldId(), loading, {
@@ -1223,6 +1231,27 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     ui.setBanner(str('main.could_not_be_loaded_the_floor', { failed, floor: mapById(FLOOR_WORLD).name }), true);
   }
   ui.setShare(view.share || null);
+  /*
+   * The address named a world that has been retired, and boot.js seated the
+   * one that replaced it. Asked in a dialog rather than said on the banner:
+   * the banner is a flight message and the title clears it on its first
+   * frame, so a link would land the pilot here with nothing said. Staying is
+   * the default; the other answer is the freestyle room, where the worlds
+   * that are left are cards.
+   */
+  if (retiredFrom) {
+    const gone = retiredMap(retiredFrom);
+    ui.askConfirm({
+      title: str('main.that_world_was_retired'),
+      detail: str('main.that_map_was_retired', { map: str(gone.name), now: mapById(gone.to).name }),
+      yes: str('main.stay_here'),
+      no: str('main.choose_a_world'),
+    }).then((stay) => {
+      if (!stay) {
+        ui.show('freestyle');
+      }
+    });
+  }
   loading.start('frame');
 
   /*
@@ -1437,6 +1466,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * on land (floatStart).
    */
   function runSpawn() {
+    return roomSlotSpawn(mapSpawn());
+  }
+  function mapSpawn() {
     const sp = view.spawn;
     if (!sp || !floatsOnWater()) {
       return sp;
@@ -1445,6 +1477,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       return floatStart(sp, (x, z) => Boolean(waterAt(x, z)));
     }
     return sp.air ? sp : view.water[0].spawn;
+  }
+  /*
+   * In a room of friends, each pilot starts at their own seat's slot
+   * (src/game/slots.js), on a gateless world only: a track's start is the
+   * track's, and Phase 4 gives a room's racers the start block's lanes.
+   * -1 out of a room, and slot 0 is the map's own spawn, so a flight alone
+   * starts exactly where it always did.
+   */
+  let roomSlot = -1;
+  function roomSlotSpawn(sp) {
+    return roomSlot > 0 && race.freestyle ? slotSpawn(sp, roomSlot) : sp;
   }
   /* Whether this run starts afloat, which is where it rests. */
   function startsAfloat() {
@@ -1763,6 +1806,492 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
     }
   }
+
+  /*
+   * FLY WITH FRIENDS: a private room on the rooms Worker (edge/rooms/),
+   * the socket in src/share/rooms.js, the design in
+   * docs/MULTIPLAYER-PLAN.md. Everything here is downstream of the physics,
+   * the same standing as the ghost: the sender reads the pose the renderer
+   * already drew, the peers are models nothing collides with, and a pilot
+   * who never opens a room never builds any of it. The one thing a room
+   * changes about a flight is where it starts (roomSlot, above).
+   *
+   * peers is by seat: { seat, name, profile, track, last, rig, figure }.
+   * The rig is built when the peer is first drawn and rebuilt when their
+   * airframe, paint or add ons change; a peer flying another world is kept
+   * and not drawn.
+   */
+  const roomPeers = new Map();
+  const roomDrawn = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1 };
+  const roomVel = new THREE.Vector3();
+  const roomQLast = new THREE.Quaternion();
+  const roomQStep = new THREE.Quaternion();
+  let roomSeq = 0;
+  let roomNextSend = 0;
+  let roomLastSendT = null;
+  let roomProfileSent = '';
+  let roomProfileCheckAt = 0;
+  let roomBusy = null; /* 'creating' while a create is in flight */
+  let roomNote = null; /* a one off line under the code row */
+  let roomKickAsk = null; /* { seat, until } between the two presses of a kick */
+  let roomNameOffer = null; /* three picker names, while the screen is open */
+
+  function roomName(pick) {
+    return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
+  }
+  function roomProfile() {
+    const id = runAirframe;
+    const parts = PROPS[id] ? partsEntry(ui.settings.parts, id) : null;
+    return {
+      airframe: id,
+      map: view ? view.id : worldId(),
+      figure: figurePick(),
+      livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) || null,
+      parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
+    };
+  }
+  const roomLinkState = createRoomLink({
+    onWelcome: (w) => {
+      roomPeersClear();
+      for (const p of w.peers) {
+        roomPeerJoin(p.seat, p.name, p.profile);
+      }
+      roomSlot = w.seat - 1;
+      /* A room flies in one world. In free flight the pilot is seated
+       * there; on a track they keep their track and see whoever is in its
+       * world. */
+      if (w.map && view && w.map !== view.id && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+        roomNote = str('friends.other_world', { world: mapById(w.map).name });
+        ui.seatMap(w.map);
+      }
+      ui.refreshFriends();
+    },
+    onJoin: (seat, name, profile) => {
+      roomPeerJoin(seat, name, profile);
+      ui.refreshFriends();
+    },
+    onLeave: (seat) => {
+      roomPeerLeave(seat);
+      ui.refreshFriends();
+    },
+    onProfile: (seat, profile) => {
+      const peer = roomPeers.get(seat);
+      if (peer) {
+        peer.profile = profile;
+        ui.refreshFriends();
+      }
+    },
+    onBatch: (batch) => {
+      const now = roomLinkState.roomNow();
+      for (const p of batch.poses) {
+        const peer = roomPeers.get(p.seat);
+        if (peer && now != null) {
+          peer.track.push(p, now);
+          peer.last = peer.track.newest();
+        }
+      }
+    },
+    onState: (st) => {
+      if (st.phase !== 'open') {
+        roomSlot = -1;
+      }
+      if (st.phase === 'idle' || st.phase === 'failed') {
+        roomPeersClear();
+      }
+      ui.refreshFriends();
+    },
+  }, () => ({ name: namePick(), profile: roomProfile() }));
+
+  function roomPeerJoin(seat, name, profile) {
+    const old = roomPeers.get(seat);
+    if (old) {
+      roomPeerLeave(seat);
+    }
+    roomPeers.set(seat, { seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null });
+  }
+  function roomPeerLeave(seat) {
+    const peer = roomPeers.get(seat);
+    if (!peer) {
+      return;
+    }
+    if (peer.rig) {
+      peer.rig.dispose();
+    }
+    if (peer.figure) {
+      peer.figure.dispose();
+    }
+    roomPeers.delete(seat);
+  }
+  function roomPeersClear() {
+    for (const seat of [...roomPeers.keys()]) {
+      roomPeerLeave(seat);
+    }
+  }
+
+  /* Every frame, after the aircraft is posed: send this one, draw the
+   * others. wallMs is the render clock. */
+  let roomAutoJoined = false;
+  function roomFrame(wallMs, dt) {
+    /* A ?room= link, or the room this tab was in before a reload: joined
+     * once the shell is up, never during boot, because the hello reads
+     * the seated aircraft. */
+    if (!roomAutoJoined) {
+      roomAutoJoined = true;
+      const wanted = wantedRoom();
+      if (wanted && roomLinkState.available()) {
+        roomLinkState.join(wanted);
+      }
+    }
+    const link = roomLinkState.state();
+    if (link.phase !== 'open') {
+      return;
+    }
+    const now = roomLinkState.roomNow();
+    if (now == null) {
+      return;
+    }
+    if (wallMs > roomProfileCheckAt) {
+      roomProfileCheckAt = wallMs + 500;
+      const p = roomProfile();
+      const key = JSON.stringify(p);
+      if (key !== roomProfileSent) {
+        if (roomProfileSent) {
+          roomLinkState.sendProfile(p);
+        }
+        roomProfileSent = key;
+      }
+    }
+    if (mode === 'flight' && stateCurr && now >= roomNextSend) {
+      roomNextSend = Math.max(roomNextSend + 1000 / 30, now - 1000 / 30);
+      roomSendPose(now);
+    }
+    const scene = shell.quad.parent;
+    const simT = stateCurr ? stateCurr[0] : 0;
+    for (const peer of roomPeers.values()) {
+      roomDrawPeer(peer, now, scene, dt, simT);
+    }
+  }
+
+  function roomSendPose(now) {
+    const af = airframeById(runAirframe);
+    const quad = !af.fixedWing;
+    simPosToThree(stateCurr[4], stateCurr[5], stateCurr[6], roomVel).applyQuaternion(qSpawn);
+    /* The turn since the last pose, in the craft's own axes: q_last^-1 q_now
+     * as an axis and an angle over the time between them. */
+    let wx = 0;
+    let wy = 0;
+    let wz = 0;
+    if (roomLastSendT != null && now > roomLastSendT) {
+      roomQStep.copy(roomQLast).invert().multiply(qPrev);
+      if (roomQStep.w < 0) {
+        roomQStep.set(-roomQStep.x, -roomQStep.y, -roomQStep.z, -roomQStep.w);
+      }
+      const sinHalf = Math.hypot(roomQStep.x, roomQStep.y, roomQStep.z);
+      if (sinHalf > 1e-9) {
+        const k = (2 * Math.atan2(sinHalf, roomQStep.w)) / sinHalf / ((now - roomLastSendT) / 1000);
+        wx = roomQStep.x * k;
+        wy = roomQStep.y * k;
+        wz = roomQStep.z * k;
+      }
+    }
+    roomQLast.copy(qPrev);
+    roomLastSendT = now;
+    const surf = !quad && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null;
+    const rotors = [stateCurr[14], stateCurr[15], stateCurr[16], stateCurr[17]];
+    const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
+    const chute = typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0;
+    const fitted = PROPS[runAirframe] ? partsEntry(ui.settings.parts, runAirframe).addons : [];
+    const flags = (landed ? 0 : FLAG_AIRBORNE)
+      | (wrecked ? FLAG_CRASHED : 0)
+      | (smokeLive ? FLAG_SMOKE : 0)
+      | (fitted.includes('lights') ? FLAG_LIGHTS : 0)
+      | (chute > 0 ? FLAG_CHUTE : 0)
+      | (gear < 0.5 ? FLAG_GEAR_DOWN : 0)
+      | (quad ? FLAG_QUAD : 0);
+    roomSeq = (roomSeq + 1) & 0xffff;
+    roomLinkState.sendPose(encodePose({
+      flags,
+      seq: roomSeq,
+      t: now,
+      px: pCurr.x,
+      py: pCurr.y,
+      pz: pCurr.z,
+      qx: qPrev.x,
+      qy: qPrev.y,
+      qz: qPrev.z,
+      qw: qPrev.w,
+      vx: roomVel.x,
+      vy: roomVel.y,
+      vz: roomVel.z,
+      wx,
+      wy,
+      wz,
+      c0: surf ? surf[0] : rotors[0],
+      c1: surf ? surf[1] : rotors[1],
+      c2: surf ? surf[2] : rotors[2],
+      c3: surf ? surf[3] : rotors[3],
+      motor: quad ? (rotors[0] + rotors[1] + rotors[2] + rotors[3]) / 4 : rotors[0],
+      flaps: typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0,
+    }));
+  }
+
+  function roomDrawPeer(peer, now, scene, dt, simT) {
+    const here = Boolean(scene) && view && peer.profile && peer.profile.map === view.id;
+    const drawn = here && peer.last && peer.track.sample(now, nearWeight(Math.hypot(
+      peer.last.px - pCurr.x, peer.last.py - pCurr.y, peer.last.pz - pCurr.z,
+    )), roomDrawn);
+    if (!drawn) {
+      if (peer.rig) {
+        peer.rig.group.visible = false;
+      }
+      if (peer.figure) {
+        peer.figure.group.visible = false;
+      }
+      return;
+    }
+    if (!peer.rig || peer.rig.key !== profileKey(peer.profile)) {
+      if (peer.rig) {
+        peer.rig.dispose();
+      }
+      peer.rig = buildPeerCraft(peer.profile, (craft) => shell.lookCraft(craft));
+      peer.rig.setLabel(roomName(peer.name));
+    }
+    if (!peer.figure || peer.figure.look !== peer.profile.figure) {
+      if (peer.figure) {
+        peer.figure.dispose();
+      }
+      peer.figure = buildPilotFigure(peer.profile.figure);
+      peer.figure.look = peer.profile.figure;
+      peer.figure.setLabel(roomName(peer.name));
+    }
+    if (peer.rig.group.parent !== scene) {
+      scene.add(peer.rig.group);
+    }
+    if (peer.rig.smoke && peer.rig.smoke.parent !== scene) {
+      scene.add(peer.rig.smoke);
+    }
+    if (peer.figure.group.parent !== scene) {
+      scene.add(peer.figure.group);
+    }
+    peer.rig.group.visible = true;
+    peer.rig.pose(roomDrawn, peer.last, dt, simT, shell.canvas.clientHeight || 720, shell.camera.fov);
+    const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
+    peer.figure.group.position.set(st.x, groundAt(st.x, st.z), st.z);
+    peer.figure.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
+    peer.figure.group.visible = true;
+    peer.figure.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
+  }
+
+  /* Harness only: the room and what is drawn of it, for
+   * scripts/rooms-two-page.js. */
+  window.__rooms = () => {
+    const st = roomLinkState.state();
+    return {
+      phase: st.phase,
+      reason: st.reason,
+      code: st.code,
+      seat: st.welcome ? st.welcome.seat : null,
+      slot: roomSlot,
+      roomNow: roomLinkState.roomNow(),
+      peers: [...roomPeers.values()].map((p) => ({
+        seat: p.seat,
+        name: roomName(p.name),
+        airframe: p.profile.airframe,
+        map: p.profile.map,
+        livery: p.profile.livery,
+        drawn: Boolean(p.rig && p.rig.group.visible),
+        drawnAirframe: p.rig ? p.rig.airframe : null,
+        at: p.rig ? p.rig.group.position.toArray() : null,
+        paint: p.rig ? p.rig.paint() : null,
+        figure: p.figure ? p.figure.group.position.toArray() : null,
+      })),
+    };
+  };
+  /* Harness only: every slot and station on this map, with the ground
+   * under it and the clearance round it, for scripts/rooms-slots-check.js.
+   * The water slots are the floats' start's, on the water or not. */
+  window.__roomSlots = () => {
+    const sp = view.spawn;
+    const wet = view.water && view.water[0] ? view.water[0].spawn : null;
+    const probe = (p) => {
+      const y = groundAt(p.x, p.z);
+      return { x: p.x, z: p.z, y, gap: view.colliders ? view.colliders.gapAt(p.x, y + 1, p.z, 6) : Infinity };
+    };
+    return {
+      spawn: probe(sp),
+      slots: SLOT_RIGHT_M.map((_, i) => probe(slotSpawn(sp, i))),
+      stations: SLOT_RIGHT_M.map((_, i) => probe(stationFor(sp, i))),
+      water: wet ? SLOT_RIGHT_M.map((_, i) => {
+        const p = slotSpawn(wet, i);
+        return { x: p.x, z: p.z, wet: Boolean(waterAt(p.x, p.z)) };
+      }) : null,
+    };
+  };
+  window.__roomJoin = (code) => roomLinkState.join(code);
+  window.__roomCreate = async () => {
+    const code = await roomLinkState.create(view ? view.id : worldId());
+    roomLinkState.join(code);
+    return code;
+  };
+
+  /* The title's and the pause menu's row. Null on a page with no rooms
+   * server, so there is no row that can only fail. */
+  ui.friendsRow = () => {
+    if (!roomLinkState.available()) {
+      return null;
+    }
+    const st = roomLinkState.state();
+    if (st.phase === 'open') {
+      return { value: str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }), note: str('friends.row_in_note') };
+    }
+    if (st.phase === 'connecting') {
+      return { value: str('friends.row_joining', { code: st.code }), note: str('friends.row_in_note') };
+    }
+    return { value: '', note: str('friends.row_off') };
+  };
+
+  ui.friendsRows = () => {
+    const st = roomLinkState.state();
+    const pick = namePick();
+    if (!roomNameOffer) {
+      roomNameOffer = [pick, randomNamePick(), randomNamePick()];
+    }
+    const offers = roomNameOffer.map((p) => JSON.stringify(p));
+    const nameRow = {
+      label: str('friends.name'),
+      note: str('friends.name_note'),
+      value: roomName(pick),
+      current: JSON.stringify(pick),
+      options: offers.map((o) => ({ value: o, label: roomName(JSON.parse(o)) })),
+      pick: (v) => {
+        setNamePick(JSON.parse(v));
+        ui.refreshFriends();
+      },
+      adjust: (d) => {
+        const i = offers.indexOf(JSON.stringify(namePick()));
+        setNamePick(JSON.parse(offers[(i + d + offers.length) % offers.length]));
+        ui.refreshFriends();
+      },
+    };
+    const figure = figurePick();
+    const figureRow = {
+      label: str('friends.figure'),
+      note: str('friends.figure_note'),
+      value: str('friends.figure_value', { n: figure + 1, total: FIGURE_COUNT }),
+      adjust: (d) => {
+        setFigurePick((figurePick() + d + FIGURE_COUNT) % FIGURE_COUNT);
+        ui.refreshFriends();
+      },
+    };
+    if (st.phase === 'open' || st.phase === 'connecting') {
+      const w = st.welcome;
+      const host = w && w.host === w.seat;
+      const rows = [
+        { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
+        {
+          label: str('friends.here'),
+          value: str('friends.here_value', { n: roomPeers.size + 1, cap: w ? w.cap : 8 }),
+          note: str('friends.here_note'),
+          info: true,
+        },
+        { label: str('friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
+      ];
+      for (const peer of roomPeers.values()) {
+        const craft = airframeById(peer.profile.airframe).name;
+        const world = mapById(peer.profile.map).name;
+        const asking = roomKickAsk && roomKickAsk.seat === peer.seat && roomKickAsk.until > performance.now();
+        rows.push({
+          label: roomName(peer.name),
+          value: craft,
+          note: asking
+            ? str('friends.kick_again', { name: roomName(peer.name) })
+            : str(host ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world }),
+          ...(host ? { action: `friends-kick:${peer.seat}` } : { info: true }),
+        });
+      }
+      rows.push(nameRow, figureRow, { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
+      return rows;
+    }
+    const failed = st.phase === 'failed' && st.reason ? str(`friends.failed_${st.reason}`) : null;
+    return [
+      {
+        label: str('friends.create'),
+        value: roomBusy === 'creating' ? str('friends.creating') : '',
+        note: failed || str('friends.create_note'),
+        action: 'friends-create',
+      },
+      { label: str('friends.join'), note: failed || str('friends.join_note'), action: 'friends-join' },
+      nameRow,
+      figureRow,
+    ];
+  };
+
+  ui.onFriends = async (action) => {
+    if (action === 'friends-create') {
+      if (roomBusy) {
+        return;
+      }
+      roomBusy = 'creating';
+      roomNote = null;
+      ui.refreshFriends();
+      try {
+        const code = await roomLinkState.create(view ? view.id : worldId());
+        roomLinkState.join(code);
+      } catch (e) {
+        roomLinkState.join(null);
+      }
+      roomBusy = null;
+      ui.refreshFriends();
+      return;
+    }
+    if (action === 'friends-join') {
+      const got = await ui.askForm({
+        title: str('friends.join_title'),
+        detail: str('friends.join_detail'),
+        confirmLabel: str('friends.join_go'),
+        fields: [{
+          key: 'code', label: str('friends.code'), value: '', maxLength: 8, placeholder: 'K7PZ2M',
+          rules: str('friends.bad_code'), save: (v) => normaliseCode(v),
+        }],
+      });
+      if (got && got.code) {
+        roomNote = null;
+        roomLinkState.join(got.code);
+      }
+      ui.refreshFriends();
+      return;
+    }
+    if (action === 'friends-leave') {
+      roomLinkState.leave();
+      roomNote = null;
+      ui.refreshFriends();
+      return;
+    }
+    if (action === 'friends-copy') {
+      const st = roomLinkState.state();
+      const link = roomLink(st.code);
+      try {
+        await navigator.clipboard.writeText(link);
+      } catch (e) {
+        /* No clipboard here (an insecure page, a refused permission): the
+         * note still shows the link to copy by hand. */
+      }
+      roomNote = str('friends.copied', { link });
+      ui.refreshFriends();
+      return;
+    }
+    const kick = /^friends-kick:(\d+)$/.exec(action);
+    if (kick) {
+      const seat = Number(kick[1]);
+      if (roomKickAsk && roomKickAsk.seat === seat && roomKickAsk.until > performance.now()) {
+        roomKickAsk = null;
+        roomLinkState.kick(seat);
+      } else {
+        roomKickAsk = { seat, until: performance.now() + 4000 };
+      }
+      ui.refreshFriends();
+    }
+  };
   const ghostSample = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
   let ghostLap = null; /* the lap being chased, armed at each lap start */
   let ghostChased = null; /* the lap the last FINISHED lap was chased against */
@@ -7942,7 +8471,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    *   spawn yaw  180 deg   n . v  +10.0   REVERSED: contact_impulse sees a
    *                                       craft leaving and declines it
    *
-   * The freestyle city spawns at yaw pi (src/maps/city/index.js), so every
+   * The freestyle city, retired since, spawned at yaw pi, so every
    * vertical face in the town was the third row. sim.c returns 0 without an
    * impulse when vn >= 0 and there is no penetration to push out of, so a
    * wall tap in the town got no restitution, no friction and no separation:
@@ -8525,9 +9054,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         /*
          * A collider that JUMPED has no surface velocity, and the
          * difference of its two centres does not know that: it reports the
-         * jump divided by a frame. The map owns not jumping (the city's
-         * train seats rather than sweeps across its wrap, see
-         * src/maps/city/animation.js) and this is the seam that owns not
+         * jump divided by a frame. The map owns not jumping (the retired
+         * city's train seated rather than swept across its wrap) and this
+         * is the seam that owns not
          * handing the plant an impulse it cannot survive. Zero, not a
          * clamp: a teleport is not slow motion, it is no motion.
          */
@@ -9940,6 +10469,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       shell.setGear(sim.e.sim_wing_gear());
     }
     poseBramorExtras();
+    roomFrame(nowWall, dt / 1000);
 
     /* The lens sits where herocraft.js bolts it, forward AND up, not at the
      * centre of gravity's height. src/render/lens.js carries both numbers and
@@ -11063,36 +11593,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   window.__paceReset = () => {
     pace.resetSamples();
     return pace.state.dtN;
-  };
-  window.__scaleAt = (w, h) => {
-    const id = view && view.id;
-    const q = qualityFor(ui.settings.graphics);
-    /* The city's block is the fallback now that it is the only freestyle
-     * world: the previous default was the bando's and the bando is gone. Any
-     * id with no block of its own is the race field, whose scale is the
-     * session's rather than a map pipeline's, so the branch is a shape the
-     * caller can rely on rather than a meaningful answer. */
-    const mapQ = id && q[id] ? q[id] : q.city;
-    const user = view && view.post && view.post.userScale != null
-      ? view.post.userScale
-      : renderScaleOf(ui.settings);
-    const force = view && view.post ? view.post.forceScale : null;
-    const scale = internalScale(w, h, mapQ, force, user);
-    const ceil = internalScale(w, h, mapQ, null, user);
-    const floor = internalScale(w, h, mapQ, 0, user);
-    return {
-      w,
-      h,
-      scale,
-      ceil,
-      floor,
-      rw: Math.floor(w * scale),
-      rh: Math.floor(h * scale),
-      pixels: Math.floor(w * scale) * Math.floor(h * scale),
-      budget: mapQ.pixelBudget,
-      map: id,
-      graphics: q.id,
-    };
   };
   /*
    * What the GPU is holding, for scripts/memory-check.js. Three.js counts
@@ -12474,9 +12974,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* The three.js namespace, so a measurement in the page can build a Box3
    * without importing a second copy of the library. Harness only. */
   window.__three = THREE;
-  /* The city's own world object, for measurements that need its platform and
-   * collider lists. Null on a map that has no town. Harness only. */
-  window.__cityWorld = () => view.world ?? null;
   /* The roofs (src/maps/alps/roofs.js): each one's frame, plate, wall
    * rectangle, covering, what building it is and the collider indices of
    * the walls under it, so a capture can fly at a real roof. Empty where
@@ -12786,7 +13283,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     swapMap,
     knownAirframe: (id) => AIRFRAMES.some((a) => a.id === id),
     knownMap: (id) => MAPS.some((m) => m.id === id),
-    mapName: (id) => mapById(id).name,
+    /* A clip flown in a retired world is listed under that world's name and
+     * refused by it when played, rather than filed under the Track seat. */
+    retiredMapName: (id) => (retiredMap(id) ? str(retiredMap(id).name) : ''),
+    mapName: (id) => (retiredMap(id) ? str(retiredMap(id).name) : mapById(id).name),
     craftLook: (craft) => shell.lookCraft(craft),
     osdOn: () => fpvOsd.on,
     /* The trail's nozzle and the aircraft's velocity while it emits. */

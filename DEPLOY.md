@@ -351,10 +351,10 @@ and the onrender.com addresses keep working exactly as before.
 
 Two of those deserve a note.
 
-`MAP_MODULE_PREFIX` in `src/main.js` still has leading slashes and is meant
-to. Those strings are never fetched: `moduleCounter` matches them as a
-substring of each performance entry's full URL, and a shell at
-`https://fdfpv.example/sim/` still produces names containing `/src/maps/city/`.
+The module prefix `/src/maps/<id>` in `src/main.js` `loadMap` still has a
+leading slash and is meant to. It is never fetched: `moduleCounter` matches it
+as a substring of each performance entry's full URL, and a shell at
+`https://fdfpv.example/sim/` still produces names containing `/src/maps/swiss2`.
 
 `orbitHref` in the board's `public/app.js` is the one that would have been
 hardest to find. It read `new URL('/src/share/orbit.html', config.simOrigin)`,
@@ -602,7 +602,7 @@ It is `npm run test:edge` and it takes a second.
 ### What the free plan will do to you here
 
 **A Worker on the free plan gets 100,000 requests a day**, and every byte of
-all three sites is now a Worker request. A cold visit to the city map is the
+all three sites is now a Worker request. A cold visit to the Swiss valley is the
 page, the module graph, `sim.wasm` and its assets, so think in hundreds of
 requests per visitor rather than one. The music is the exception and stays the
 exception: `/assets/music/*` is still immutable for a year, so the CDN answers
