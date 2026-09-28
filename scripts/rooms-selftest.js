@@ -46,6 +46,7 @@ import {
 } from '../edge/rooms/safety.js';
 import { LobbyBook, MAX_MAPS, PENDING_MS } from '../edge/rooms/lobby.js';
 import { TELEPORT_SPEED } from '../src/game/verify.js';
+import { combatSection } from './rooms-selftest-combat.js';
 
 let failed = 0;
 let passed = 0;
@@ -686,6 +687,8 @@ for (const [lang, table] of [['en', en], ['es', es]]) {
   }
 }
 check('every chat, emote and report reason has its words in English and Spanish', gaps.length === 0, gaps.join(' '));
+
+combatSection(check);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
