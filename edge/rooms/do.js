@@ -98,8 +98,10 @@ export class Room extends DurableObject {
       return null;
     }
     const race = await this.ctx.storage.get('race');
+    const tag = await this.ctx.storage.get('tag');
     this.core = new RoomCore(meta);
     this.core.race.restore(race);
+    this.core.tag.restore(tag);
     this.core.restore(this.ctx.getWebSockets().map((ws) => ({ conn: ws, attachment: ws.deserializeAttachment() })));
     return this.core;
   }

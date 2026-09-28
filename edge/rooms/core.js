@@ -9,7 +9,7 @@
  *   { send: conn, data }            a text (string) or binary (Uint8Array) message
  *   { close: conn, code, reason }   close that socket
  *   { attach: conn, value }         store this with the socket, to survive a hibernation
- *   { store: key, value }           keep this in the room's storage, the same (the race)
+ *   { store: key, value }           keep this in the room's storage, the same (the race, a tag match)
  *   { tick: true }                  call tick() again in TICK_MS
  *   { empty: true }                 nobody is left: schedule the purge
  *
@@ -47,6 +47,7 @@ import {
 } from '../../src/share/roomwire.js';
 import { RoomRace } from './race.js';
 import { Referee } from './referee.js';
+import { RoomTag } from './tag.js';
 import { RoomSafety } from './safety.js';
 import { TYPE_PARTS } from '../../src/share/roomwire.js';
 import * as wrecks from './wrecks.js';
@@ -98,6 +99,7 @@ export class RoomCore {
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     /* Phase 3, mid air: edge/rooms/referee.js. */
     this.referee = new Referee(meta.friendly);
+    this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.safety = new RoomSafety(this);
   }
 
@@ -131,6 +133,15 @@ export class RoomCore {
       }
     }
     return best ? best.seat : 0;
+  }
+
+  /* A room runs one game at a time (docs/TAG-PLAN.md decision 10): the
+   * one on now, or null. */
+  game() {
+    if (this.race.race && this.race.race.state === 'on') {
+      return 'race';
+    }
+    return this.tag.on() ? 'tag' : null;
   }
 
   peerList(except) {
@@ -276,6 +287,7 @@ export class RoomCore {
         map: this.meta.map,
         peers: this.peerList(conn),
         ...this.race.welcome(),
+        ...this.tag.welcome(this),
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
@@ -341,6 +353,13 @@ export class RoomCore {
       return this.kick(msg.seat, now);
     }
     /* Races are a private room's, started by its host (Phase 4). */
+    if (msg.type === 'tag') {
+      return this.tag.message(this, conn, s, msg, now);
+    }
+    /* One game at a time: no race and no new track under a tag match. */
+    if (this.game() === 'tag' && (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start'))) {
+      return [{ send: conn, data: JSON.stringify({ type: 'race', error: 'tag_on' }) }];
+    }
     if (!this.meta.public && (msg.type === 'track' || msg.type === 'race' || (msg.type === 'event' && (msg.kind === 'gate' || msg.kind === 'hoop')))) {
       return this.race.message(this, conn, s, msg, now);
     }
@@ -379,8 +398,9 @@ export class RoomCore {
     s.fresh = true;
     /* The referee judges the bytes the room relays: Phase 5 sets
      * FLAG_SPAWNING on a spawning or benched seat, which the rule leaves
-     * out, and every hit counts toward its ramming bench. */
-    const hits = this.referee.pose(s.seat, checked.bytes, this.roomMs(now)).flatMap((h) => {
+     * out, and every hit counts toward its ramming bench. In a tag match
+     * a touch is a tag, never a crash: the match judges it instead. */
+    const hits = this.tag.on() ? this.tag.pose(this, s, checked.bytes, now) : this.referee.pose(s.seat, checked.bytes, this.roomMs(now)).flatMap((h) => {
       this.safety.noteHit(h.a, h.b, now);
       return this.others(null, JSON.stringify(h));
     });
@@ -396,7 +416,7 @@ export class RoomCore {
   tick(now) {
     this.referee.tick(this.roomMs(now));
     const fresh = [...this.seats.values()].filter((s) => s.fresh);
-    const out = this.race.tick(this, now);
+    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now)];
     if (!fresh.length) {
       this.ticking = false;
       return out;
