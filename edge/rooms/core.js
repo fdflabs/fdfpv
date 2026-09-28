@@ -45,8 +45,9 @@ import {
   CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
 import { RoomSafety } from './safety.js';
-import { TYPE_PARTS } from '../../src/share/roomwire.js';
+import { TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
 import * as wrecks from './wrecks.js';
+import { RoomCombat } from './combat.js';
 
 /* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
  * ownership in fdfpv-loop/multiplayer/COORD.md). */
@@ -93,6 +94,7 @@ export class RoomCore {
     this.recent = new Map();  /* token -> { seat, until }, for a reconnect */
     this.ticking = false;
     this.safety = new RoomSafety(this);
+    this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
   }
 
   roomMs(now) {
@@ -105,6 +107,7 @@ export class RoomCore {
     for (const { conn, attachment } of conns) {
       if (attachment && attachment.seat) {
         this.seats.set(conn, { ...attachment, pose: null, fresh: false, poseRate: { since: 0, n: 0 }, textRate: { since: 0, n: 0 } });
+        this.combat.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
       } else {
         this.pending.set(conn, { since: 0, n: 0 });
       }
@@ -267,6 +270,8 @@ export class RoomCore {
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
     actions.push(...wrecks.wrecksFor(this, conn));
+    this.combat.seat(seat, profile.airframe);
+    actions.push(...this.combat.join(this, conn));
     return actions;
   }
 
@@ -275,6 +280,9 @@ export class RoomCore {
     if (typeof data !== 'string') {
       if (s && data[0] === TYPE_PARTS) {
         return wrecks.onParts(this, conn, s, data, now);
+      }
+      if (s && data[0] === TYPE_STREAMER) {
+        return this.combat.frame(this, conn, s, data, now);
       }
       return s ? this.pose(conn, s, data, now) : [];
     }
@@ -310,6 +318,7 @@ export class RoomCore {
         return [];
       }
       s.profile = profile;
+      this.combat.seat(s.seat, profile.airframe);
       return [
         { attach: conn, value: this.attachmentOf(s) },
         ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
@@ -317,6 +326,9 @@ export class RoomCore {
     }
     if (msg.type === 'event' && Object.hasOwn(EVENTS, msg.kind)) {
       return EVENTS[msg.kind](this, conn, s, msg, now);
+    }
+    if (msg.type === 'combat') {
+      return this.combat.message(this, conn, s, msg, now);
     }
     const safe = this.safety.text(conn, s, msg, now);
     if (safe) {
@@ -335,6 +347,7 @@ export class RoomCore {
       if (t.seat === seat) {
         this.kicked.push({ token: t.token, address: t.address, until: now + KICK_MS });
         this.seats.delete(conn);
+        this.combat.leave(seat);
         return [
           { close: conn, code: CLOSE.kicked, reason: 'kicked' },
           ...this.others(conn, JSON.stringify({ type: 'leave', seat, host: this.host() })),
@@ -357,22 +370,23 @@ export class RoomCore {
     }
     s.pose = checked.bytes;
     s.fresh = true;
+    const cuts = this.combat.pose(this, s, now);
     if (this.ticking) {
-      return [];
+      return cuts;
     }
     this.ticking = true;
-    return [{ tick: true }];
+    return [...cuts, { tick: true }];
   }
 
   /* One room tick: every seat gets one batch of the others' poses that
    * arrived since the last. Ticks stop when nobody sent a pose. */
   tick(now) {
     const fresh = [...this.seats.values()].filter((s) => s.fresh);
+    const out = this.combat.tick(this, now);
     if (!fresh.length) {
       this.ticking = false;
-      return [];
+      return out;
     }
-    const out = [];
     for (const [conn, s] of this.seats) {
       const entries = fresh.filter((f) => f !== s).map((f) => ({ seat: f.seat, pose: f.pose }));
       if (entries.length) {
@@ -393,6 +407,7 @@ export class RoomCore {
       return this.seats.size ? [] : [{ empty: true }];
     }
     this.seats.delete(conn);
+    this.combat.leave(s.seat);
     for (const [token, r] of this.recent) {
       if (r.until <= now) {
         this.recent.delete(token);

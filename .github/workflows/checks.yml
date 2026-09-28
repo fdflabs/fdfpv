@@ -33,6 +33,7 @@ jobs:
       - run: npm run rooms:selftest
       - run: npm run streamer:selftest
       - run: npm run marks:selftest
+      - run: npm run combat:harness
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact

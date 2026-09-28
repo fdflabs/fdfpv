@@ -62,6 +62,7 @@
     "streamer:selftest": "node scripts/streamer-selftest.js",
     "marks:selftest": "node scripts/peermarks-selftest.js",
     "marks:twopage": "node scripts/peermarks-two-page.js",
+    "combat:harness": "node scripts/combat-harness.js",
     "friends:card": "node scripts/friends-card-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",
     "waves:selftest": "node scripts/waves-selftest.js",
