@@ -141,6 +141,7 @@ import { BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP } from './render/bramorcraft.js';
 import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickcraft.js';
 import { BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP } from './render/bombshellcraft.js';
 import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
+import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP } from './render/edgecraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
@@ -155,6 +156,7 @@ const WING_MOUNTS = {
   bramor2300: [BRAMOR_MOUNT_FORWARD, BRAMOR_MOUNT_UP],
   slowstick1180: [SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP],
   bombshell1118: [BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP],
+  f16878: [F16_MOUNT_FORWARD, F16_MOUNT_UP],
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
   edge1524: [EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
@@ -11404,8 +11406,10 @@ export async function boot({
       const isWing = Boolean(airframeById(runAirframe).fixedWing);
       const start = startsAfloat()
         ? str('main.throttle_up_on_the_water')
-        : airframeById(runAirframe).retracts
+        : airframeById(runAirframe).retracts && airframeById(runAirframe).flaps
         ? str('main.throttle_up_gear_g')
+        : airframeById(runAirframe).retracts
+        ? str('main.throttle_up_retracts_g')
         : airframeById(runAirframe).flaps
         ? str('main.throttle_up_flaps_f')
         : airframeById(runAirframe).gear

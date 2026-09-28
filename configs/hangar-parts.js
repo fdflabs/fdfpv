@@ -144,6 +144,8 @@ export const PROPS = {
   edge1524: [STOCK, apcProp('16x8e', '16x8E', 16, 8, 2), apcProp('16x10e', '16x10E', 16, 10, 2)],
   radian2000: [STOCK],
   bramor2300: [STOCK],
+  /* A fan is its duct's: Freewing sells the one rotor for it. */
+  f16878: [STOCK],
   /* FMS's four blade has no APC counterpart to anchor another prop's
    * figures on, and a two blade would change what the pilot sees turning
    * on the nose: none offered. */
@@ -176,6 +178,8 @@ export const ANCHORS = {
   cub1400f: { prop: [0.23, 0, 0.028], belly: [0, 0, -0.030], tail: [-0.58, 0, 0.016], tank: [-0.01, 0, 0.006], led: [[0.038, 0.21, 0.126], [0.038, 0.63, 0.133]] },
   sky1800: { prop: [-0.268, 0, 0.032], belly: [0.10, 0, -0.095], tail: [-0.25, 0, -0.07], tank: [-0.01, 0, -0.04], led: [[0.061, 0.27, 0.048], [0.061, 0.81, 0.074]] },
   radian2000: { prop: [0.293, 0, -0.008], belly: [0, 0, -0.040], tail: [-0.70, 0, 0.012], tank: [-0.01, 0, -0.01], led: [[0.040, 0.30, 0.039], [-0.028, 0.90, 0.111]] },
+  /* The F-16's `prop` is its fan, inside the fuselage behind the wing. */
+  f16878: { prop: [-0.24, 0, 0], belly: [0, 0, -0.061], tail: [-0.59, 0, -0.038], tank: [-0.01, 0, -0.02], led: [[0.080, 0.13, -0.006], [-0.139, 0.40, -0.006]] },
   bramor2300: { prop: [-0.35, 0, 0.087], belly: [0, 0, -0.044], tail: [-0.19, 0, 0.0], tank: [-0.01, 0, 0.0], led: [[0.008, 0.35, -0.004], [-0.276, 1.03, 0.004]] },
   slowstick1180: { prop: [0.31, 0, 0], belly: [0.02, 0, -0.007], tail: [-0.56, 0, -0.012], tank: [-0.01, 0, -0.01], led: [[0.080, 0.18, 0.064], [0.080, 0.41, 0.114]] },
   bombshell1118: { prop: [0.166, 0, -0.005], belly: [0.02, 0, -0.064], tail: [-0.60, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.042, 0.17, 0.075], [0.042, 0.50, 0.146]] },

@@ -41,6 +41,7 @@ import { buildSlowStickCraft } from './slowstickcraft.js';
 import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildKadetCraft } from './kadetcraft.js';
 import { buildEdgeCraft } from './edgecraft.js';
+import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
 import { airframeById } from '../../configs/airframes.js';
@@ -66,6 +67,7 @@ const BUILDERS = {
   bramor2300: buildBramorCraft,
   slowstick1180: buildSlowStickCraft,
   bombshell1118: buildBombshellCraft,
+  f16878: buildF16Craft,
   kadet1981: buildKadetCraft,
   edge1524: buildEdgeCraft,
   p51d1450: buildP51Craft,
