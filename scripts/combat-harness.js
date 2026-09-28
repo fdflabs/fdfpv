@@ -14,16 +14,19 @@
  *
  * THE TRUTH is the same pass with nothing on the wire: B's streamer at
  * every quarter millisecond, A's analytic pose, and the least distance
- * between any of A's part boxes and the paper's centre line. The paper is
- * 10.16 cm wide, so truth touches under 5.08 cm.
+ * between any of A's part boxes and the paper's centre line. The owner's
+ * rule (2026-09-28) cuts within a metre of it.
  *
  * What it holds (the bands of the plan's section 7):
  *   - both clients receive the same cuts, and B's paper as A decodes it is
  *     the length the room left
  *   - every run whose links, with a frame's 100 ms wait, are under
  *     COMBAT_LATE_MS decides what the zero latency run decided
- *   - a truth clearance over 8 cm is never cut; a pass within 1 cm of the
- *     paper's centre line is never missed
+ *   - a truth pass further than 1.1 m from the line is never cut, and one
+ *     nearer than 0.9 m is never missed
+ *   - and it reports how far A's own screen drew B's paper from the truth
+ *     at the pass, per link set: what a pass that LOOKED within a metre
+ *     can be off by
  *   - the decision delay over the slower client link, p95, under 250 ms
  * and it reports the band between, the room's CPU with 16 seats towing,
  * and the pieces falling on A's screen.
@@ -51,7 +54,8 @@ import {
 } from '../src/share/roomwire.js';
 import { hullFor } from '../src/game/midair.js';
 import { bodyAxes } from '../src/game/airframehull.js';
-import { PAPER_HALF_M, segmentBox } from '../src/game/cut.js';
+import { REACH_M, segmentBox } from '../src/game/cut.js';
+import { createRoomCombat } from '../src/share/roomcombat.js';
 import { Streamer } from '../src/game/streamer.js';
 
 let failed = 0;
@@ -160,7 +164,7 @@ function makeGeometry(cutter) {
   let nrm = [t0[1] * aDir[2] - t0[2] * aDir[1], t0[2] * aDir[0] - t0[0] * aDir[2], t0[0] * aDir[1] - t0[1] * aDir[0]];
   const nl = Math.hypot(...nrm) || 1;
   nrm = nrm.map((v) => v / nl);
-  const miss = (2 * rnd() - 1) * (hA.hull.reach + 0.25);
+  const miss = (2 * rnd() - 1) * (hA.hull.reach + REACH_M + 0.5);
   const vA = 12 + 26 * rnd();
   const bank = (rnd() - 0.5) * Math.PI;
   const through = [0, 1, 2].map((k) => node[k] + nrm[k] * miss);
@@ -209,7 +213,7 @@ function truthOf(g) {
           Q[m] = prev[k * 3 + 3 + m] + (x[k * 3 + 3 + m] - prev[k * 3 + 3 + m]) * u;
         }
         const mid = [(P[0] + Q[0]) / 2 - a[0], (P[1] + Q[1]) / 2 - a[1], (P[2] + Q[2]) / 2 - a[2]];
-        if (Math.hypot(...mid) > H.reach + 1) {
+        if (Math.hypot(...mid) > H.reach + REACH_M + 1) {
           continue;
         }
         for (let j = 0; j < H.n; j += 1) {
@@ -293,6 +297,10 @@ function runOnce(g, lat, clock = { A: 0, B: 0 }) {
   const seen = { A: [], B: [] };
   let bOnA = null;
   let pieceLow = [];
+  /* What A's screen draws of B's paper (src/share/roomcombat.js, the
+   * shell's own code), against where B's paper truly is, at the pass. */
+  const aView = createRoomCombat({ send() {}, sendBinary() {} });
+  let drawnErr = null;
   let seq = 0;
   let cpu = 0n;
   for (now = 1; now <= RUN_MS; now += 1) {
@@ -332,6 +340,7 @@ function runOnce(g, lat, clock = { A: 0, B: 0 }) {
           seen.A.push(d);
         }
       } else {
+        aView.onBinary(d);
         const got = decodeStreamerRelay(d);
         if (got) {
           bOnA = got;
@@ -344,6 +353,37 @@ function runOnce(g, lat, clock = { A: 0, B: 0 }) {
             pieceLow.push(low);
           }
         }
+      }
+    }
+    if (now === g.PASS_AT_MS) {
+      /* A near peer is drawn in the present: the room clock now. */
+      const drawn = aView.peerChains(2, now)[0];
+      if (drawn && s.attached) {
+        /* How far the line A drew is from the true line, where A passes:
+         * each true node near the pass against A's drawn polyline, since
+         * the rule is a distance from the line, and a line drawn slid along
+         * itself is the same line. */
+        let worst = 0;
+        const t = s.attached;
+        for (let k = Math.max(0, g.arc - 3); k <= Math.min(g.arc + 3, t.n - 1); k += 1) {
+          let best = Infinity;
+          for (let j = 0; j < drawn.n - 1; j += 1) {
+            const ax0 = drawn.x[j * 3];
+            const ay0 = drawn.x[j * 3 + 1];
+            const az0 = drawn.x[j * 3 + 2];
+            const dx = drawn.x[j * 3 + 3] - ax0;
+            const dy = drawn.x[j * 3 + 4] - ay0;
+            const dz = drawn.x[j * 3 + 5] - az0;
+            const px = t.x[k * 3] - ax0;
+            const py = t.x[k * 3 + 1] - ay0;
+            const pz = t.x[k * 3 + 2] - az0;
+            const l2 = dx * dx + dy * dy + dz * dz || 1;
+            const u = Math.max(0, Math.min(1, (px * dx + py * dy + pz * dz) / l2));
+            best = Math.min(best, Math.hypot(px - dx * u, py - dy * u, pz - dz * u));
+          }
+          worst = Math.max(worst, best);
+        }
+        drawnErr = worst;
       }
     }
     for (const d of links.Bdown.due(now)) {
@@ -359,7 +399,7 @@ function runOnce(g, lat, clock = { A: 0, B: 0 }) {
     }
   }
   return {
-    log: room.combat.log, seen, bOnA, pieceLow, cpuMs: Number(cpu) / 1e6, links: s.length(),
+    log: room.combat.log, seen, bOnA, pieceLow, cpuMs: Number(cpu) / 1e6, links: s.length(), drawnErr,
   };
 }
 
@@ -379,6 +419,7 @@ let misses = 0;
 let hits = 0;
 let clears = 0;
 const band = [];
+const drawnErrs = new Map();
 const skewBand = [];
 const delays = [];
 let pieceFalls = true;
@@ -400,11 +441,19 @@ for (let gi = 0; gi < GEOMETRIES; gi += 1) {
       sameAsZero = false;
       detail.push(`${g.cutter} miss ${g.miss.toFixed(3)} ${lat.name}: ${key} vs ${zero}`);
     }
+    if (r.drawnErr != null) {
+      if (!drawnErrs.has(lat.name)) {
+        drawnErrs.set(lat.name, []);
+      }
+      drawnErrs.get(lat.name).push(r.drawnErr);
+    }
     if (cut) {
       const slower = Math.max(lat.A[0] + lat.A[1], lat.B[0] + lat.B[1]);
       delays.push(cut.decided - cut.tc - slower);
       if (r.bOnA) {
-        lengthsAgree &&= r.bOnA.chains[0].n - 1 === Math.min(cut.keep, r.links);
+        /* No chain 0 is no paper left: a cut at the tow point. */
+        const c0 = r.bOnA.chains.find((c) => c.id === 0);
+        lengthsAgree &&= (c0 ? c0.n - 1 : 0) === Math.min(cut.keep, r.links);
       }
       if (r.pieceLow.length) {
         pieceSeen += 1;
@@ -418,15 +467,15 @@ for (let gi = 0; gi < GEOMETRIES; gi += 1) {
       const skew = runOnce(g, LATS[1], { A: Math.round(20 * rnd() - 10), B: Math.round(20 * rnd() - 10) });
       agree &&= skew.seen.A.length === skew.seen.B.length && skew.seen.A.every((d, i) => d === skew.seen.B[i]);
       skewBand.push({ d: truth.d, cut: skew.log.length > 0 });
-      if (truth.d > PAPER_HALF_M + 0.03 && cut) {
+      if (truth.d > REACH_M + 0.1 && cut) {
         falseCuts += 1;
         detail.push(`false cut: ${g.cutter} truth ${truth.d.toFixed(3)} m`);
       }
-      if (truth.d < 0.01 && !cut) {
+      if (truth.d < REACH_M - 0.1 && !cut) {
         misses += 1;
         detail.push(`miss: ${g.cutter} truth ${truth.d.toFixed(3)} m at link ${truth.link}`);
       }
-      if (truth.d < PAPER_HALF_M) {
+      if (truth.d < REACH_M) {
         hits += 1;
       } else {
         clears += 1;
@@ -437,8 +486,8 @@ for (let gi = 0; gi < GEOMETRIES; gi += 1) {
 }
 check('both pilots receive the same cuts, in the same order, every run', agree);
 check(`every run whose links are under COMBAT_LATE_MS (${COMBAT_LATE_MS} ms) with a frame's wait decides what the zero latency run decided`, sameAsZero, detail.slice(0, 3).join('; '));
-check('a truth clearance over 8 cm is never cut', falseCuts === 0, `${falseCuts} of ${GEOMETRIES}`);
-check('a pass within 1 cm of the paper is never missed', misses === 0, `${misses} of ${GEOMETRIES}`);
+check(`the owner's metre: a truth pass further than ${REACH_M + 0.1} m from the line is never cut`, falseCuts === 0, `${falseCuts} of ${GEOMETRIES}`);
+check(`and one nearer than ${REACH_M - 0.1} m is never missed`, misses === 0, `${misses} of ${GEOMETRIES}`);
 check('B\'s paper on A\'s screen is the length the room left it', lengthsAgree);
 check('A sees the cut piece fall', pieceSeen > 0 && pieceFalls, `${pieceSeen} runs showed a piece`);
 delays.sort((x, y) => x - y);
@@ -447,13 +496,21 @@ check('decision delay over the slower link, p95, under 250 ms', delays.length > 
 band.sort((x, y) => x.d - y.d);
 const lastCut = band.filter((b) => b.cut).map((b) => b.d).pop();
 const firstClear = band.find((b) => !b.cut);
-console.log(`  truth touches in ${hits} geometries, clears in ${clears}; distance from the paper's centre line (its edge at ${(PAPER_HALF_M * 100).toFixed(2)} cm): the widest cut ${lastCut != null ? `${(lastCut * 100).toFixed(1)} cm` : 'none'}, the nearest left uncut ${firstClear ? `${(firstClear.d * 100).toFixed(1)} cm` : 'none'}`);
+console.log(`  truth within the metre in ${hits} geometries, beyond it in ${clears}; nearest part to the line: the widest cut ${lastCut != null ? `${(lastCut * 100).toFixed(1)} cm` : 'none'}, the nearest left uncut ${firstClear ? `${(firstClear.d * 100).toFixed(1)} cm` : 'none'}`);
+let drawnWorst = 0;
+for (const [name, errs] of drawnErrs) {
+  errs.sort((x, y) => x - y);
+  drawnWorst = Math.max(drawnWorst, errs[errs.length - 1]);
+  const q = (f) => errs[Math.floor(f * (errs.length - 1))];
+  console.log(`  A's drawing of B's paper at the pass, its line off the true line by (links ${name}): median ${(q(0.5) * 100).toFixed(1)} cm, p95 ${(q(0.95) * 100).toFixed(1)} cm, worst ${(q(1) * 100).toFixed(1)} cm`);
+}
 
 skewBand.sort((x, y) => x.d - y.d);
 const skewCut = skewBand.filter((b) => b.cut).map((b) => b.d).pop();
 const skewClear = skewBand.find((b) => !b.cut);
-const skewFalse = skewBand.filter((b) => b.cut && b.d > PAPER_HALF_M).length;
-check('with clocks off by up to 10 ms each, still no cut where the truth missed the paper', skewFalse === 0, `${skewFalse}`);
+check('what A drew of B\'s line at the pass is within 10 cm of the truth on every link set, so a pass that looked within 0.9 m counts', drawnWorst < 0.1, `worst ${(drawnWorst * 100).toFixed(1)} cm`);
+const skewFalse = skewBand.filter((b) => b.cut && b.d > REACH_M + 0.1).length;
+check(`with clocks off by up to 10 ms each, still no cut past ${REACH_M + 0.1} m`, skewFalse === 0, `${skewFalse}`);
 console.log(`  with clocks off by up to 10 ms each: the widest truth distance cut ${skewCut != null ? `${(skewCut * 100).toFixed(1)} cm` : 'none'}, the nearest left uncut ${skewClear ? `${(skewClear.d * 100).toFixed(1)} cm` : 'none'}`);
 
 console.log('the room with sixteen seats towing');

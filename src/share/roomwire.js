@@ -548,7 +548,7 @@ export function takeChat(allowance, now) {
 export const TYPE_STREAMER = 0x80;
 export const TYPE_STREAMER_RELAY = 0x81;
 export const STREAMER_HZ = 10;
-export const STREAMER_SEGS = 64;
+export const STREAMER_SEGS = 100;
 export const STREAMER_PIECES = 4;
 export const STREAMER_SEG_M = 1;
 export const STREAMER_LEN_MAX_M = 1.25;
@@ -775,4 +775,82 @@ export const STREAMER_COLOURS = [
 
 export function streamerColour(seat) {
   return STREAMER_COLOURS[(Math.max(1, seat) - 1) % STREAMER_COLOURS.length];
+}
+
+/*
+ * CAPTURED PAPER (the owner, 2026-09-28: "when I cut yours off, I get that
+ * length in your color added to mine ... so eventually it will be many
+ * many many colors"). A pilot's paper is a list of runs from the tow point
+ * outward, [[seat, links], ...], seat the colour's owner. The room holds
+ * the lists (edge/rooms/combat.js) and sends them in its combat view; the
+ * owner's streamer and every drawing follow them. At most PAPER_CAP_LINKS
+ * links: the lead's cap, and what the far end loses past it falls.
+ */
+export const PAPER_CAP_LINKS = 100;
+
+export function runsLinks(runs) {
+  let n = 0;
+  for (const r of runs) {
+    n += r[1];
+  }
+  return n;
+}
+
+/* [the first k links, the rest], each a list of runs. */
+export function splitRuns(runs, k) {
+  const head = [];
+  const tail = [];
+  let left = Math.max(0, k);
+  for (const [seat, n] of runs) {
+    const h = Math.min(n, left);
+    left -= h;
+    if (h > 0) {
+      head.push([seat, h]);
+    }
+    if (n - h > 0) {
+      tail.push([seat, n - h]);
+    }
+  }
+  return [head, tail];
+}
+
+/* a with b added at its far end, a run joining the one before when it is
+ * the same colour, cut to `cap` links: [kept, dropped off the far end]. */
+export function appendRuns(a, b, cap = PAPER_CAP_LINKS) {
+  const out = a.map((r) => r.slice());
+  for (const [seat, n] of b) {
+    const last = out[out.length - 1];
+    if (last && last[0] === seat) {
+      last[1] += n;
+    } else if (n > 0) {
+      out.push([seat, n]);
+    }
+  }
+  return splitRuns(out, cap);
+}
+
+/* Each link's colour seat, tow point first, into a Uint8Array. */
+export function runsColours(runs, out = null) {
+  const n = runsLinks(runs);
+  const c = out && out.length === n ? out : new Uint8Array(n);
+  let i = 0;
+  for (const [seat, k] of runs) {
+    c.fill(seat, i, i + k);
+    i += k;
+  }
+  return c;
+}
+
+/* A list as the room accepts it back from storage: runs of whole links,
+ * seats 1 to 255, at most PAPER_CAP_LINKS in all; null otherwise. */
+export function checkRuns(runs) {
+  if (!Array.isArray(runs) || runs.length > PAPER_CAP_LINKS) {
+    return null;
+  }
+  for (const r of runs) {
+    if (!Array.isArray(r) || r.length !== 2 || !Number.isInteger(r[0]) || r[0] < 1 || r[0] > 255 || !Number.isInteger(r[1]) || r[1] < 1) {
+      return null;
+    }
+  }
+  return runsLinks(runs) <= PAPER_CAP_LINKS ? runs.map((r) => r.slice()) : null;
 }

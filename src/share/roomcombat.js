@@ -40,7 +40,7 @@
 import { Streamer, LENGTH_M, SEG_M } from '../game/streamer.js';
 import { HULLS } from '../../configs/hulls.js';
 import {
-  STREAMER_HZ, decodeStreamerRelay, encodeStreamer, streamerColour,
+  STREAMER_HZ, decodeStreamerRelay, encodeStreamer, runsColours, runsLinks,
 } from './roomwire.js';
 
 const FULL_LINKS = LENGTH_M / SEG_M;
@@ -51,7 +51,13 @@ const TELEPORT_M = 1;
  * slower, it hangs if the aircraft is up, or lies behind it on the ground. */
 const LAY_MOVING_MPS = 3;
 const LAY_HANG_M = 2;
-export const EXTRAP_MAX_MS = 250;
+/* A peer's paper is carried forward up to this far from its newest frame.
+ * Longer than an aircraft's 250 ms (src/game/peer.js), because paper moves
+ * along its own path and a line slid along itself is the same line: at
+ * 250 ms a 300 ms link drew the line 15 to 20 cm off the truth at a pass,
+ * at 600 ms under 6 cm on every link set (scripts/combat-harness.js), and
+ * the owner's metre (src/game/cut.js) is judged against the truth. */
+export const EXTRAP_MAX_MS = 600;
 const FRAMES_KEPT = 4;
 /* A frame longer than this (a tab in the background) is not caught up. */
 const IDLE_MAX_STEPS = 100;
@@ -111,7 +117,12 @@ export function createRoomCombat(link) {
   let hasLast = false;
   const at = new Float64Array(3);
   let nextSend = 0;
-  const peers = new Map(); /* seat -> { frames: [{ t, chains }] } */
+  /* seat -> { frames: [{ t, chains }], cols (the colours chain 0 wore at
+   * the newest frame), pieceCols: Map(piece id -> colours) } */
+  const peers = new Map();
+  /* Each seat's paper as the room holds it: link colours, tow point first. */
+  const colours = new Map();
+  let owedWas = 0;
   const cuts = []; /* the room's cuts, newest last, for the shell to show */
   const news = [];
 
@@ -127,17 +138,49 @@ export function createRoomCombat(link) {
   function onRound(m) {
     const was = round.state;
     round = m;
+    for (const sc of m.scores || []) {
+      if (Array.isArray(sc.runs)) {
+        colours.set(sc.seat, runsColours(sc.runs));
+      }
+    }
     if (m.state === 'idle') {
       paper = null;
       laidRound = -1;
+      owedWas = 0;
       return;
     }
+    follow();
     if (m.state === 'countdown' && laidRound !== m.round) {
       wantLay = true;
       laidRound = m.round;
     }
     if (was !== m.state) {
       news.push({ kind: 'round', state: m.state });
+    }
+  }
+
+  /*
+   * This pilot's paper follows the room's list: a capture grows it at the
+   * far end by what the room added (a torn streamer grows too, from where
+   * it tore), the cap or a cut the room made shortens it, and every link
+   * wears its colour.
+   */
+  function follow() {
+    const me = mine();
+    if (!me || !Array.isArray(me.runs)) {
+      return;
+    }
+    const owed = runsLinks(me.runs);
+    if (paper && owedWas > 0) {
+      if (owed > owedWas) {
+        paper.extendTo(paper.length() + (owed - owedWas));
+      } else if (paper.length() > owed) {
+        paper.cutTo(owed);
+      }
+    }
+    owedWas = owed;
+    if (paper) {
+      paper.setColours(colours.get(seat));
     }
   }
 
@@ -163,11 +206,28 @@ export function createRoomCombat(link) {
     }
     let p = peers.get(got.seat);
     if (!p) {
-      p = { frames: [] };
+      p = { frames: [], cols: null, pieceCols: new Map() };
       peers.set(got.seat, p);
     }
     const lastFrame = p.frames[p.frames.length - 1];
     if (!lastFrame || got.t > lastFrame.t) {
+      /* A piece this frame is the first to carry came off chain 0 since
+       * the frame before: it wears the colours those links wore then. */
+      const was = p.cols || colours.get(got.seat) || new Uint8Array([got.seat]);
+      const c0 = got.chains.find((c) => c.id === 0);
+      const keep = c0 ? c0.n - 1 : 0;
+      for (const c of got.chains) {
+        if (c.id !== 0 && !p.pieceCols.has(c.id)) {
+          const cut = was.slice(keep);
+          p.pieceCols.set(c.id, cut.length ? cut : was.slice(-1));
+        }
+      }
+      for (const id of [...p.pieceCols.keys()]) {
+        if (!got.chains.some((c) => c.id === id)) {
+          p.pieceCols.delete(id);
+        }
+      }
+      p.cols = (colours.get(got.seat) || new Uint8Array([got.seat])).slice(0, Math.max(1, keep));
       p.frames.push({ t: got.t, chains: got.chains });
       if (p.frames.length > FRAMES_KEPT) {
         p.frames.shift();
@@ -207,6 +267,8 @@ export function createRoomCombat(link) {
     const links = round.state === 'countdown' || !me ? FULL_LINKS : me.owed;
     paper = paper || new Streamer();
     paper.lay(at[0], at[1], at[2], d[0], d[1], d[2], links, groundAt, speed > LAY_MOVING_MPS ? v : null);
+    owedWas = links;
+    paper.setColours(colours.get(seat) || [seat]);
     last.set(at);
     hasLast = true;
   }
@@ -313,9 +375,8 @@ export function createRoomCombat(link) {
     if (paper && own) {
       rotate(own.qx, own.qy, own.qz, own.qw, tow[0], tow[1], tow[2], at, 0);
       const anchor = [own.px + at[0], own.py + at[1], own.pz + at[2]];
-      const colour = streamerColour(seat);
       for (const c of paper.chains()) {
-        layer.draw(seat, colour, c.id, c.x, c.n, t, c.id !== 0, c.id === 0 ? anchor : null);
+        layer.draw(seat, c.col.length ? c.col : [seat], c.id, c.x, c.n, t, c.id !== 0, c.id === 0 ? anchor : null);
       }
     }
     for (const [s, p] of peers) {
@@ -326,9 +387,10 @@ export function createRoomCombat(link) {
       const pt = towPoint(peerAirframe(s));
       rotate(pose.qx, pose.qy, pose.qz, pose.qw, pt[0], pt[1], pt[2], at, 0);
       const anchor = [pose.px + at[0], pose.py + at[1], pose.pz + at[2]];
-      const colour = streamerColour(s);
+      const own = colours.get(s) || [s];
       for (const c of peerChains(p, roomNow)) {
-        layer.draw(s, colour, c.id, c.x, c.n, t, c.id !== 0, c.id === 0 ? anchor : null);
+        const cols = c.id === 0 ? own : (p.pieceCols.get(c.id) || [s]);
+        layer.draw(s, cols, c.id, c.x, c.n, t, c.id !== 0, c.id === 0 ? anchor : null);
       }
     }
   }
@@ -356,7 +418,9 @@ export function createRoomCombat(link) {
       round = { round: 0, state: 'idle', scores: [] };
       paper = null;
       laidRound = -1;
+      owedWas = 0;
       peers.clear();
+      colours.clear();
       cuts.length = 0;
     },
     start(minutes) {
@@ -371,5 +435,10 @@ export function createRoomCombat(link) {
       return p ? peerChains(p, t) : [];
     },
     cuts: () => cuts.slice(),
+    /* For the checks: each seat's paper as the room holds it, as runs. */
+    runs(s) {
+      const sc = round.scores.find((x) => x.seat === s);
+      return sc && sc.runs ? sc.runs.map((r) => r.slice()) : null;
+    },
   };
 }

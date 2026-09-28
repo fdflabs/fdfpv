@@ -23,13 +23,15 @@
 import {
   FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, STREAMER_COLOURS, STREAMER_ERR_M, STREAMER_PIECES, STREAMER_SEGS,
   TYPE_STREAMER_RELAY, decodeStreamer, decodeStreamerRelay, encodePose, encodeStreamer, relayStreamer, streamerColour,
-  trimStreamer,
+  trimStreamer, PAPER_CAP_LINKS, appendRuns, runsColours, runsLinks, splitRuns,
 } from '../src/share/roomwire.js';
 import { RoomCore } from '../edge/rooms/core.js';
 import {
-  COUNTDOWN_MS, FULL_LINKS, POINTS_CUT, POINTS_FLIGHT, POINTS_LAUNCH, POINTS_PER_METRE,
+  COUNTDOWN_MS, FULL_LINKS, capture, POINTS_CUT, POINTS_FLIGHT, POINTS_LAUNCH, POINTS_PER_METRE,
 } from '../edge/rooms/combat.js';
 import { PAPER_HALF_M } from '../src/game/cut.js';
+import { hullFor } from '../src/game/midair.js';
+import { bodyAxes } from '../src/game/airframehull.js';
 import { WIDTH_M } from '../src/game/streamer.js';
 
 /* A deterministic wander: a chain that bends and stretches like paper. */
@@ -79,7 +81,7 @@ export function combatSection(check) {
   check('a full fifty metre streamer is 171 bytes', full.byteLength === 171, `${full.byteLength}`);
   const many = [];
   for (let i = 0; i < 8; i += 1) {
-    many.push({ id: i, n: 90, x: randomChain(rnd, 90, false) });
+    many.push({ id: i, n: 130, x: randomChain(rnd, 130, false) });
   }
   const capped = decodeStreamer(encodeStreamer(0, many));
   check(`at most ${1 + STREAMER_PIECES} chains of ${STREAMER_SEGS} segments are sent`, capped.chains.length === 1 + STREAMER_PIECES && capped.chains.every((c) => c.n === STREAMER_SEGS + 1));
@@ -231,7 +233,9 @@ function roundSection(check) {
     const eb = texts(r.socks.B, 'event', 'cut');
     check('A flies through B\'s paper and both are told of one cut', ea.length === 1 && eb.length === 1 && JSON.stringify(ea[0]) === JSON.stringify(eb[0]), `${ea.length} ${eb.length}`);
     const c = ea[0] || {};
-    check('the cut is where the paper was met: 20 m down it, at the pass', c.cutter === 1 && c.victim === 2 && c.keep === 19 && Math.abs(c.tc - 7000) < 20, `keep ${c.keep} at ${c.tc}`);
+    /* A metre of reach: the quad's nose is a metre from the line about
+     * (1 + its half length) / 20 m/s before it is over it. */
+    check('the cut is where the paper was met: 20 m down it, a metre before the quad was over it', c.cutter === 1 && c.victim === 2 && c.keep === 19 && c.tc > 6930 && c.tc < 6960, `keep ${c.keep} at ${c.tc}`);
     check(`it scores ${POINTS_CUT}, cut by a part of the quad`, c.points === POINTS_CUT && typeof c.part === 'string', `${c.points} ${c.part}`);
     const sc = texts(r.socks.B, 'combat').pop();
     const sa = sc.scores.find((x) => x.seat === 1);
@@ -251,9 +255,97 @@ function roundSection(check) {
     const r = started();
     fly(r, 1, 8000, thereAndBack(7000, 7700), { links: FULL_LINKS });
     const cuts = texts(r.socks.A, 'event', 'cut');
-    check('back through the paper 0.7 s later, still the pass: it cuts, and does not score', cuts.length === 2 && cuts[1].pass === true && cuts[1].points === 0 && cuts[1].keep < cuts[0].keep, cuts.map((c) => `${c.keep}/${c.points}`).join(' '));
+    check('back through the paper 0.7 s later, still the pass: no second cut', cuts.length === 1, cuts.map((c) => `${c.keep}/${c.points}`).join(' '));
     const sa = texts(r.socks.A, 'combat').pop().scores.find((x) => x.seat === 1);
     check('and counts as one cut', sa.cuts === 1 && sa.points === POINTS_CUT);
+  }
+
+  console.log('combat: within a metre of the line is a cut (the owner\'s rule)');
+  {
+    /* How far the quad's part boxes reach across its path, flying +x with
+     * the pose's attitude: the pass is set by the distance from its
+     * nearest box to the paper's line, not from its centre. */
+    const h = hullFor('5inch').hull;
+    const ax = bodyAxes(0, 0.7071068, 0, 0.7071068, new Float64Array(9));
+    let side = 0;
+    for (let i = 0; i < h.n; i += 1) {
+      const cz = h.cx[i] * ax[2] + h.cy[i] * ax[5] + h.cz[i] * ax[8];
+      const ez = h.hx[i] * Math.abs(ax[2]) + h.hy[i] * Math.abs(ax[5]) + h.hz[i] * Math.abs(ax[8]);
+      side = Math.max(side, cz + ez);
+    }
+    for (const [d, want] of [[0.9, true], [1.1, false]]) {
+      const r = started();
+      const z = 0.02 - side - d;
+      fly(r, 1, 7600, (t) => ({ p: [20 * (t - 7000) / 1000, A_Y, z], v: [20, 0, 0] }));
+      const got = texts(r.socks.A, 'event', 'cut');
+      check(`a pass whose nearest part is ${d} m from the paper ${want ? 'cuts it, and scores' : 'does not cut it'}`, want ? got.length === 1 && got[0].points === POINTS_CUT : got.length === 0, `${got.length} cuts`);
+    }
+  }
+
+  console.log('combat: captured paper (the owner\'s rule), many colours');
+  {
+    const [head, tail] = splitRuns([[1, 50], [2, 31], [3, 10]], 60);
+    check('a list parts where the cut was, colours and all', JSON.stringify(head) === '[[1,50],[2,10]]' && JSON.stringify(tail) === '[[2,21],[3,10]]', `${JSON.stringify(head)} ${JSON.stringify(tail)}`);
+    const [grown] = appendRuns([[4, 50], [2, 5]], tail);
+    check('and the cut part goes onto the cutter\'s far end, a run joining its own colour', JSON.stringify(grown) === '[[4,50],[2,26],[3,10]]', JSON.stringify(grown));
+    const [capped, fell] = appendRuns([[1, 50], [2, 40]], [[3, 30]]);
+    check(`at most ${PAPER_CAP_LINKS} links: the far end past it falls`, runsLinks(capped) === PAPER_CAP_LINKS && JSON.stringify(fell) === '[[3,20]]', `${JSON.stringify(capped)} fell ${JSON.stringify(fell)}`);
+    check('each link\'s colour, tow point first', Array.from(runsColours([[5, 2], [7, 1]])).join() === '5,5,7');
+
+    const r = started();
+    fly(r, 1, 7600, passAt(7000));
+    const v1 = texts(r.socks.B, 'combat').pop();
+    const a1 = v1.scores.find((x) => x.seat === 1);
+    const b1 = v1.scores.find((x) => x.seat === 2);
+    check('A cuts B: B keeps its first 19 m, and A tows B\'s other 31 m at its end, in B\'s colour', JSON.stringify(b1.runs) === '[[2,19]]' && JSON.stringify(a1.runs) === '[[1,50],[2,31]]' && a1.owed === 81, `${JSON.stringify(a1.runs)} ${JSON.stringify(b1.runs)}`);
+    const recA = r.room.combat.seats.get(1);
+    const recB = r.room.combat.seats.get(2);
+    capture(recB, recA, 40);
+    check('then B cuts A 40 m down: B gets A\'s last 10 m of its own and the 31 m of B\'s, both colours', JSON.stringify(recB.runs) === '[[2,19],[1,10],[2,31]]' && JSON.stringify(recA.runs) === '[[1,40]]', `${JSON.stringify(recB.runs)} ${JSON.stringify(recA.runs)}`);
+    recA.runs = [[1, 50], [3, 45]];
+    recA.owed = 95;
+    recB.runs = [[2, 30], [4, 20]];
+    recB.owed = 50;
+    capture(recA, recB, 10);
+    check(`a capture past ${PAPER_CAP_LINKS} m keeps the cap: A at 100, its far end fallen`, recA.owed === PAPER_CAP_LINKS && JSON.stringify(recA.runs) === '[[1,50],[3,45],[2,5]]', JSON.stringify(recA.runs));
+    let kept = null;
+    for (const x of r.room.combat.broadcast(r.room)) {
+      if (x.store === 'combat') {
+        kept = JSON.parse(JSON.stringify(x.value));
+      }
+    }
+    const fresh = new RoomCore({ ...r.room.meta });
+    fresh.combat.restore(kept);
+    const fv = fresh.combat.view();
+    /* The round ends with A towing all 100: the paper bonus counts it all. */
+    recA.links = recA.owed;
+    const before = recA.points;
+    r.room.combat.round.endsAt = 7700;
+    r.room.combat.advance(r.room, 7800);
+    check(`the paper bonus counts every metre towed, captured included: ${Math.floor(POINTS_PER_METRE * PAPER_CAP_LINKS)} for 100 m`, recA.points - before >= Math.floor(POINTS_PER_METRE * PAPER_CAP_LINKS), `${recA.points - before}`);
+    check('a restart keeps every pilot\'s colours', JSON.stringify(fv.scores.find((x) => x.seat === 1).runs) === JSON.stringify(recA.runs)
+      && JSON.stringify(fv.scores.find((x) => x.seat === 2).runs) === JSON.stringify(recB.runs));
+  }
+
+  console.log('combat: the room\'s host checks and stale rounds (#145)');
+  {
+    const r = makeRoom({}, [['A', '5inch'], ['B', 'cub1400']]);
+    r.send('B', { type: 'combat', op: 'start', minutes: 3 }, 100);
+    const said = texts(r.socks.B, 'refused').pop();
+    check('a pilot who is not the host is told why a start is refused', said && said.why === 'host', JSON.stringify(said));
+    const pub = makeRoom({ public: true, shard: 0 }, [['A', '5inch'], ['B', 'cub1400']]);
+    pub.send('A', { type: 'combat', op: 'start', minutes: 3 }, 100);
+    const pubSaid = texts(pub.socks.A, 'refused').pop();
+    check('and a public room says so too', pubSaid && pubSaid.why === 'public', JSON.stringify(pubSaid));
+    const g = started();
+    fly(g, 1, 7600, passAt(7000));
+    check('a round with its cut and its captured paper', g.room.combat.round.state === 'on' && JSON.stringify(g.room.combat.seats.get(1).runs) === '[[1,50],[2,31]]');
+    /* B leaves: one pilot is no round, and ten seconds later the room ends it. */
+    g.room.close(g.socks.B, 7700);
+    g.tick(7800);
+    check('with one pilot left the round waits ten seconds', g.room.combat.round.state === 'on');
+    g.tick(7700 + 10100);
+    check('and then the room ends it for everyone', g.room.combat.round.state === 'idle' && texts(g.socks.A, 'combat').pop().state === 'idle');
   }
 
   console.log('combat: who can cut and be cut');
@@ -272,13 +364,17 @@ function roundSection(check) {
   }
   {
     const r = started();
-    fly(r, 1, 7600, passAt(7000), { aLinks: 10 });
+    /* Whole, then torn to ten metres a few seconds before the pass. */
+    fly(r, 1, 3000, passAt(7000));
+    fly(r, 3001, 7600, passAt(7000), { aLinks: 10 });
     const c = texts(r.socks.A, 'event', 'cut')[0];
     const me = texts(r.socks.A, 'combat').pop().scores.find((x) => x.seat === 1);
     check('a pilot whose own paper tore still cuts, and scores nothing', c && c.points === 0 && me.lost === true, c && `${c.points} ${me.lost}`);
-    fly(r, 7601, 9000, away);
+    /* A respawn lays what the room owes: A's own fifty and B's paper A
+     * captured with that cut. */
+    fly(r, 7601, 9000, away, { aLinks: me.owed });
     const back = texts(r.socks.A, 'combat').pop().scores.find((x) => x.seat === 1);
-    check('until a respawn lays it at the length owed again', back.lost === false && back.links === FULL_LINKS);
+    check('until a respawn lays it at the length owed again, captured paper and all', back.lost === false && back.links === me.owed && me.owed === FULL_LINKS + (FULL_LINKS - c.keep), `${back.links} of ${me.owed}`);
   }
 
   console.log('combat: the clock and the bonuses');

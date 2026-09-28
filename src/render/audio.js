@@ -809,6 +809,83 @@ export class MotorAudio {
     this.wreckGain = wreckGain;
     this.wreckBp = wreckBp;
 
+    /*
+     * The combat cut's SCHWING (docs/COMBAT-PLAN.md section 5.4), a sword
+     * drawn, all synthesis, no sample: the lead's recipe, which the owner
+     * heard rendered and chose. A blade scrape (the wreck's noise, band
+     * passed and swept up, gated at 380 Hz into a rasp), a whoosh (a lower
+     * band swept up), a shing (a high band struck), and the blade's ring:
+     * four partials at the inharmonic 1, 2.76, 5.40, 8.93 of a thin bar,
+     * the fundamental doubled 0.35 percent sharp for its shimmer, each
+     * higher partial dying faster, into the master's tanh. Eighteen nodes,
+     * made once, fed by the wreck voice's noise loop; schwing() only moves
+     * their envelopes. Only the fundamental is doubled: the graph's budget
+     * is 64 nodes (tests/thresholds.json max_nodes), and a pair on every
+     * partial would pass it.
+     */
+    const bandOf = (type, q) => {
+      const f = keep(ctx.createBiquadFilter());
+      f.type = type;
+      f.Q.value = q;
+      return f;
+    };
+    const envOf = () => {
+      const g = keep(ctx.createGain());
+      g.gain.value = 0;
+      return g;
+    };
+    const scrapeBp = bandOf('bandpass', 2.2);
+    const scrapeGate = keep(ctx.createGain());
+    scrapeGate.gain.value = 0.625;
+    const gateOsc = keep(ctx.createOscillator());
+    /* A square of amplitude 0.375 about 0.625: the gate's 1.0 and 0.25. */
+    const sq = new Float32Array(16);
+    const sqIm = new Float32Array(16);
+    for (let k = 1; k < 16; k += 2) {
+      sqIm[k] = (0.375 * 4) / (Math.PI * k);
+    }
+    gateOsc.setPeriodicWave(ctx.createPeriodicWave(sq, sqIm, { disableNormalization: true }));
+    gateOsc.frequency.value = 380;
+    gateOsc.connect(scrapeGate.gain);
+    gateOsc.start();
+    const scrapeEnv = envOf();
+    wreckSrc.connect(scrapeBp);
+    scrapeBp.connect(scrapeGate);
+    scrapeGate.connect(scrapeEnv);
+    scrapeEnv.connect(shaper);
+    const whooshBp = bandOf('bandpass', 1.6);
+    const whooshEnv = envOf();
+    wreckSrc.connect(whooshBp);
+    whooshBp.connect(whooshEnv);
+    whooshEnv.connect(shaper);
+    const shingBp = bandOf('bandpass', 3);
+    shingBp.frequency.value = 6500;
+    const shingEnv = envOf();
+    wreckSrc.connect(shingBp);
+    shingBp.connect(shingEnv);
+    shingEnv.connect(shaper);
+    const ringEnv = envOf();
+    ringEnv.connect(shaper);
+    const partials = [];
+    for (const [k, ratio] of [1, 2.76, 5.4, 8.93].entries()) {
+      const g = envOf();
+      g.connect(ringEnv);
+      const oscs = [];
+      for (const detune of k === 0 ? [1, 1.0035] : [1]) {
+        const o = keep(ctx.createOscillator());
+        o.type = 'sine';
+        o.frequency.value = 560 * ratio * detune;
+        o.connect(g);
+        o.start();
+        oscs.push({ o, mult: ratio * detune });
+      }
+      partials.push({ g, oscs, amp: [1, 0.7, 0.45, 0.28][k], rate: 1.2 + 1.8 * k });
+    }
+    this.schwingVoice = {
+      scrapeBp, scrapeEnv, whooshBp, whooshEnv, shingEnv, ringEnv, partials,
+    };
+    this.schwings = 0;
+
     /* The bed. It brings its own nodes and counts them through keep. */
     this.music.attach(ctx, shaper, keep);
     this.music.setLevel(this.mix.music);
@@ -1004,6 +1081,60 @@ export class MotorAudio {
     g.exponentialRampToValueAtTime(2.2 * lv, t + 0.012);
     g.exponentialRampToValueAtTime(0.0001, t + 0.6);
     this.duckFlight(t, 0.6, 0.4);
+  }
+
+  /*
+   * A combat cut: level 1 for the pilot who made it, lower for everyone
+   * else who saw it. On its own voice, and through the master like every
+   * cue, so the sound setting and the volume hold for it too.
+   */
+  schwing(level = 1, atTime) {
+    if (!this.ctx || !this.schwingVoice) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const lv = Math.max(0.05, Math.min(1, level));
+    const v = this.schwingVoice;
+    const params = [v.scrapeBp.frequency, v.scrapeEnv.gain, v.whooshBp.frequency, v.whooshEnv.gain, v.shingEnv.gain, v.ringEnv.gain];
+    for (const p of v.partials) {
+      params.push(p.g.gain, ...p.oscs.map((x) => x.o.frequency));
+    }
+    for (const p of params) {
+      p.cancelScheduledValues(t);
+    }
+    /* (a) The scrape, 0 to 170 ms: 900 Hz to 4.5 kHz, up to 1.3 at 50 ms. */
+    v.scrapeBp.frequency.setValueAtTime(900, t);
+    v.scrapeBp.frequency.exponentialRampToValueAtTime(4500, t + 0.15);
+    v.scrapeEnv.gain.setValueAtTime(0.0001, t);
+    v.scrapeEnv.gain.exponentialRampToValueAtTime(1.3 * lv, t + 0.05);
+    v.scrapeEnv.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+    /* (b) The whoosh: 350 Hz to 3.5 kHz over 160 ms, 1.4 at 100 ms. */
+    v.whooshBp.frequency.setValueAtTime(350, t);
+    v.whooshBp.frequency.exponentialRampToValueAtTime(3500, t + 0.16);
+    v.whooshEnv.gain.setValueAtTime(0.0001, t);
+    v.whooshEnv.gain.exponentialRampToValueAtTime(1.4 * lv, t + 0.1);
+    v.whooshEnv.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    /* (c) The shing, struck at 100 ms: 4 ms to 0.5, gone over 450 ms. */
+    const at = t + 0.1;
+    v.shingEnv.gain.setValueAtTime(0.0001, at);
+    v.shingEnv.gain.exponentialRampToValueAtTime(0.5 * lv, at + 0.004);
+    v.shingEnv.gain.exponentialRampToValueAtTime(0.0001, at + 0.45);
+    /* (d) The ring, struck at 100 ms: the base swept 560 to 1150 Hz in 40
+     * ms, each partial dying at its own rate, the whole 4 ms to 0.6 and
+     * silent by 1.5 s. */
+    for (const p of v.partials) {
+      for (const { o, mult } of p.oscs) {
+        o.frequency.setValueAtTime(560 * mult, at);
+        o.frequency.exponentialRampToValueAtTime(1150 * mult, at + 0.04);
+      }
+      p.g.gain.setValueAtTime(p.amp / p.oscs.length, at);
+      p.g.gain.setTargetAtTime(0.0001, at, 1 / p.rate);
+    }
+    v.ringEnv.gain.setValueAtTime(0.0001, at);
+    v.ringEnv.gain.exponentialRampToValueAtTime(0.6 * lv, at + 0.004);
+    v.ringEnv.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+    this.schwings += 1;
+    this.duckFlight(t, 0.7, 0.3);
   }
 
   /*

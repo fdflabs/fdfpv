@@ -10,14 +10,15 @@
  * 30 Hz POSE samples as Phase 3 poses them. The streamer is its owner's 10
  * Hz STREAMER frames (src/share/roomwire.js), each node interpolated
  * linearly between the two frames round the moment. Both are stepped every
- * SUBSTEP_MS on the room clock; a link is cut when its distance to any part
- * box is under REACH_M, half the paper's width less CUT_MARGIN_M. The first
- * such moment is the cut, and of the links it touches then, the one
- * nearest the tow point, because everything behind that falls.
+ * SUBSTEP_MS on the room clock; a link is cut when any part box comes
+ * within REACH_M of the paper's centre line: a metre, the owner's rule
+ * (docs/COMBAT-PLAN.md section 4.1, decided 2026-09-28, "if you get even
+ * within 1 m of the other person's line ... cut it"). The first such
+ * moment is the cut, and of the links it touches then, the one nearest
+ * the tow point, because everything behind that falls.
  *
- * Why a quarter millisecond: a prop disc is a box with no thickness, so the
- * test's reach is all the depth it has, 3.1 cm; 60 m/s of closing is 1.5
- * cm a quarter millisecond, so nothing steps over the paper.
+ * A metre is the whole reach, so it is also the depth nothing may step
+ * over: 60 m/s of closing is 1.5 cm a quarter millisecond, far inside it.
  *
  * The distance from a segment to a box is convex along the segment, so it
  * is found exactly by golden section search. No trigonometry anywhere: a
@@ -47,19 +48,21 @@ import { FLAG_CRASHED, FLAG_SPAWNING } from '../share/roomwire.js';
  * Kept here so the room's bundle does not carry the paper's physics. */
 export const PAPER_HALF_M = 0.0508;
 /*
- * What the room's picture of a streamer can be off by: the codec's 1.1 cm,
- * the chord of a node's path between two 10 Hz frames in a turn (2 cm at
- * 20 m/s round a 25 m radius), and Phase 3's 7 to 14 mm for a pose. A
- * contact counts only this far inside the paper's half width.
+ * The owner's rule: within a metre of the line is a cut. Not grown for
+ * lag: the room judges on the samples' own times, so a link's delay
+ * changes when a cut is known, never whether, and the room's picture of
+ * the paper is within 1.1 cm (codec) plus 2 cm (a turn between 10 Hz
+ * frames) of its owner's. What the cutter DREW can be further off, and
+ * scripts/combat-harness.js measures that against this metre.
  */
-export const CUT_MARGIN_M = 0.02;
-export const REACH_M = PAPER_HALF_M - CUT_MARGIN_M;
+export const REACH_M = 1.0;
 /* Two streamer frames further apart than this bracket nothing. */
 export const FRAME_GAP_MS = 350;
 export const SUBSTEP_MS = 0.25;
 /* The rules' "multiple cuts on a single streamer in a single pass count as
- * one cut": the same cutter on the same streamer within this of its last
- * contact is the same pass. */
+ * one cut": the same cutter on the same streamer within this of its cut
+ * is the same pass, and cuts nothing more. With a metre of reach, a pass
+ * that followed the paper would otherwise chew all of it. */
 export const PASS_MS = 1500;
 /* How much of a streamer's past the room keeps. */
 export const KEEP_MS = 2000;

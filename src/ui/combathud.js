@@ -1,6 +1,8 @@
 /*
  * combathud.js: a combat round on screen (docs/COMBAT-PLAN.md section 5.4):
- * the clock, this pilot's points, paper and pull, the top three, a line
+ * the clock, this pilot's points, paper and pull, every pilot's points
+ * live (LIVE_ROWS at most, this pilot always among them), a big +100
+ * SCHWING! for a cut this pilot made, a line
  * for every cut, and the results when the round is over. Drawn from the
  * room's round (src/share/roomcombat.js) and nothing else; every word is
  * from the string table, every name a picker name.
@@ -28,6 +30,8 @@ import { str } from '../strings/index.js';
 import { streamerColour } from '../share/roomwire.js';
 
 const LINE_MS = 5000;
+const SHOUT_MS = 1600;
+const LIVE_ROWS = 8;
 
 function clock(ms) {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -46,6 +50,8 @@ export function createCombatHud(nameOf) {
   let top = null;
   let feed = null;
   let board = null;
+  let big = null;
+  let bigTimer = null;
   let shown = '';
   const lines = [];
   /* What the page showed, for the two page check. */
@@ -67,7 +73,7 @@ export function createCombatHud(nameOf) {
     });
     box.className = 'combat-hud';
     head = el({ font: '700 18px system-ui, sans-serif', background: 'rgba(0, 0, 0, 0.35)', padding: '4px 12px', borderRadius: '6px' });
-    top = el({ font: '600 13px system-ui, sans-serif' });
+    top = el({ font: '600 14px system-ui, sans-serif', background: 'rgba(0, 0, 0, 0.3)', padding: '4px 10px', borderRadius: '6px' });
     feed = el({ font: '600 15px system-ui, sans-serif', color: '#ffe7a3' });
     board = el({
       display: 'none', marginTop: '10px', background: 'rgba(0, 0, 0, 0.55)', padding: '10px 16px', borderRadius: '8px',
@@ -75,6 +81,15 @@ export function createCombatHud(nameOf) {
     });
     box.append(head, top, feed, board);
     document.body.append(box);
+    /* The cutter's shout, big in the middle of the screen, over the view. */
+    big = el({
+      position: 'fixed', top: '34%', left: '50%', transform: 'translate(-50%, -50%) scale(1)', zIndex: '41', pointerEvents: 'none',
+      font: '900 64px system-ui, sans-serif', color: '#fff6c8', letterSpacing: '0.04em',
+      textShadow: '0 0 18px rgba(255, 210, 90, 0.95), 0 3px 6px rgba(0, 0, 0, 0.9)', opacity: '0',
+      transition: 'opacity 0.25s ease-out, transform 0.25s ease-out',
+    });
+    big.className = 'combat-schwing';
+    document.body.append(big);
   }
 
   function swatch(seat) {
@@ -83,6 +98,25 @@ export function createCombatHud(nameOf) {
       display: 'inline-block', width: '10px', height: '10px', marginRight: '6px', borderRadius: '2px', background: streamerColour(seat),
     });
     return s;
+  }
+
+  /* The big one, for a cut this pilot made. */
+  function shout(text) {
+    if (!box) {
+      build();
+    }
+    said.push(text);
+    big.textContent = text;
+    big.style.transition = 'none';
+    big.style.opacity = '1';
+    big.style.transform = 'translate(-50%, -50%) scale(1.25)';
+    void big.offsetWidth;
+    big.style.transition = 'opacity 0.25s ease-out, transform 0.25s ease-out';
+    big.style.transform = 'translate(-50%, -50%) scale(1)';
+    clearTimeout(bigTimer);
+    bigTimer = setTimeout(() => {
+      big.style.opacity = '0';
+    }, SHOUT_MS);
   }
 
   /* A line under the clock for a while: a cut, a round starting. */
@@ -139,7 +173,9 @@ export function createCombatHud(nameOf) {
     } else {
       text = str('combat.hud_over');
     }
-    const three = rows.slice(0, 3).map((r, i) => str('combat.hud_row', { place: i + 1, name: nameOf(r.seat), points: r.points })).join('   ');
+    /* Everyone's points as they stand, this pilot always shown. */
+    const live = rows.map((r, i) => ({ r, place: i + 1 })).filter((x, i) => i < LIVE_ROWS - 1 || x.r.seat === me || rows.length <= LIVE_ROWS);
+    const three = live.map((x) => str('combat.hud_row', { place: x.place, name: nameOf(x.r.seat), points: x.r.points })).join('   ');
     const key = `${text}|${three}|${round.state}|${JSON.stringify(rows)}`;
     if (key === shown) {
       return;
@@ -166,8 +202,14 @@ export function createCombatHud(nameOf) {
 
   return {
     say,
+    shout,
     update,
     said: () => said.slice(),
-    shown: () => ({ head: head ? head.textContent : '', top: top ? top.textContent : '', board: board && board.style.display !== 'none' ? board.textContent : '' }),
+    shown: () => ({
+      head: head ? head.textContent : '',
+      top: top ? top.textContent : '',
+      board: board && board.style.display !== 'none' ? board.textContent : '',
+      big: big && big.style.opacity === '1' ? big.textContent : '',
+    }),
   };
 }
