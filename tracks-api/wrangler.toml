@@ -1,0 +1,28 @@
+# Wrangler config for the tracks server. See DEPLOY.md, "The tracks server".
+#
+# Local, with no Cloudflare account at all:
+#
+#     npx wrangler d1 migrations apply fdfpv-tracks --local --config tracks-api/wrangler.toml
+#     npx wrangler dev --local --config tracks-api/wrangler.toml
+#
+# and open the simulator with ?tracks=http://127.0.0.1:8787 once, which the
+# page remembers (src/share/cloud.js). Deploying is tracks-api/deploy.sh.
+#
+# There is no wrangler in package.json on purpose, the same as edge/: this
+# repo has no build step and no dependencies. npx fetches it for the command.
+
+name = "fdfpv-tracks"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fdfpv-tracks"
+# Written by tracks-api/deploy.sh the first time it creates the database.
+# The local database does not need it.
+database_id = "25b094e0-c0ca-40e0-b286-b0efea3ed446"
+migrations_dir = "migrations"
+
+# ADMIN_SECRET is a secret, never a var: `wrangler secret put ADMIN_SECRET`,
+# which deploy.sh does from a freshly generated value.

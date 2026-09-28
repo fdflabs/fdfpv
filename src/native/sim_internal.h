@@ -747,6 +747,19 @@ typedef struct FixedWingParams {
    */
   double strip_k[4];
   /*
+   * AND HOW EACH STRIP STALLS, docs/P51-STAGE1.md. strip_top: how far
+   * past its own stall angle each strip holds its peak lift, rad, and
+   * strip_kfall the share of it that it keeps once it falls: the table's
+   * stall_top and stall_k, strip by strip. A section of 15 percent or more
+   * stalls from the trailing edge, rounded over and gradually; one near 12
+   * percent from the leading edge, its peak sharp and its lift falling at
+   * once (McCullough and Gault, NACA TN 2502). With slats fitted the
+   * slat_k still rules. strip_kfall all zero takes the table's two for
+   * every strip.
+   */
+  double strip_top[4];
+  double strip_kfall[4];
+  /*
    * THE DUCTED FAN, docs/F16-STAGE1.md. Zero fan_tau is a prop, whose
    * thrust follows the stick in the step it moves, and then nothing below
    * is read: every propeller's arithmetic is what it was. Above zero the

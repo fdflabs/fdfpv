@@ -86,10 +86,14 @@ import { createFlightStats, pingVisit } from './share/stats.js';
 import { nameRules, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
+import { startTrackSync } from './share/cloud.js';
 
-/* The pilot's key for signing posted times, made on first use and kept in
- * this browser. See src/share/identity.js. */
+/* The pilot's key for signing posted times and saved tracks, made on first
+ * use and kept in this browser. See src/share/identity.js. */
 const identity = createIdentity();
+/* Saved tracks go online with that key (src/share/cloud.js), from boot on,
+ * whether or not the builder is ever opened this visit. */
+startTrackSync(identity);
 import {
   clearPendingTime,
   clearShareImport,
@@ -11684,6 +11688,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     rates: stateCurr
       ? { p: stateCurr[11], q: stateCurr[12], r: stateCurr[13] }
       : null,
+    /* The plant's own clock, s, so a probe times what the aircraft did on
+     * the sim's time and not the page's, which headless runs slower. */
+    simS: stateCurr ? stateCurr[0] : 0,
     descentRate: lastDescent,
     tiltDeg: lastTiltDeg,
     lastHitKind,
