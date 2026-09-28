@@ -61,7 +61,7 @@ const VIEWS = {
   /* The Power tab: the nose three quarters on, far enough out for the
    * exploded view (src/render/hangar-exploded.js), the prop off ahead and
    * the pack out beside it. `motor` and `pack` are the two parts close. */
-  nose: { yaw: Math.PI - 0.62, elev: 0.2, zoom: 0.7, along: -0.85, up: -0.15 },
+  nose: { yaw: Math.PI - 0.62, elev: 0.2, zoom: 0.6, along: -0.85, up: -0.1 },
   motor: { yaw: Math.PI - 0.95, elev: 0.16, zoom: 0.4, along: -1.05, up: 0 },
   pack: { yaw: Math.PI / 2 + 0.55, elev: 0.12, zoom: 0.42, along: -0.5, up: -0.3 },
   canopy: { yaw: Math.PI - 0.7, elev: 0.3, zoom: 0.58, along: -0.35, up: 0.2 },
@@ -72,6 +72,21 @@ const VIEWS = {
 
 export function viewFor(focus) {
   return VIEWS[focus] ?? OVERVIEW;
+}
+
+/*
+ * The Power tab's views aimed at the model's own prop rather than at a
+ * share of the nose, since a pusher's is behind the wing or at its tail:
+ * `prop` is where the prop is, in `along` units. A pusher is looked at
+ * from behind, the same view turned half round.
+ */
+function aimAtProp(v, focus, prop) {
+  if (prop == null || (focus !== 'nose' && focus !== 'motor')) {
+    return v;
+  }
+  const pusher = prop > 0;
+  const along = focus === 'motor' ? prop + (pusher ? 0.12 : -0.12) : 0.85 * prop;
+  return { ...v, yaw: pusher ? v.yaw - Math.PI : v.yaw, along };
 }
 
 /* The overview's turn, radians a second: once round in about twenty. */
@@ -154,7 +169,7 @@ export function createHangarRig() {
     revealT = Math.min(1, revealT + dt / 0.9);
     pulseT = Math.min(1, pulseT + dt / 0.8);
 
-    const v = viewFor(h.focus);
+    const v = aimAtProp(viewFor(h.focus), h.focus, h.prop);
     if (h.focus !== lastFocus) {
       if (lastFocus !== null && revealT >= 1) {
         const turnBy = v.yaw === null ? 0 : Math.abs(wrap(v.yaw - yaw.x)) / Math.PI;
@@ -201,10 +216,11 @@ export function createHangarRig() {
       pop: pop.x,
       reveal: 1 - (1 - revealT) ** 3,
       pulse: pulseT,
-      /* How many moves between views it has flown, and how big the last
-       * one's lift was, for a check. */
+      /* How many moves between views it has flown, how big the last
+       * one's lift was, and the view it is flying to, for a check. */
       moves,
       lift,
+      target: v,
     };
   }
   return { update };

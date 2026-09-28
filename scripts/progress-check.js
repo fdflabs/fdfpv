@@ -128,7 +128,8 @@ const exploded = (page) => page.evaluate('window.__carouselStats().exploded');
  * numbers rather than on a clock. */
 const settle = (page, ms = 1400) => page.sleep(ms);
 const EXPLODED = (cond) => `(() => { const e = window.__carouselStats().exploded; return Boolean(e) && (${cond}); })()`;
-const LANDED = (v) => `(() => { const c = window.__carouselStats().camera; return Boolean(c) && c.focus === '${v.focus}' && Math.abs(c.zoom - ${v.zoom}) < 0.02 && Math.abs(c.up - ${v.up}) < 0.02 && Math.abs(c.along - ${v.along}) < 0.02; })()`;
+/* The camera on the view it was flying to (the rig's own target). */
+const LANDED = (focus) => `(() => { const c = window.__carouselStats().camera; return Boolean(c) && c.focus === '${focus}' && ['zoom', 'up', 'along', 'elev'].every((k) => Math.abs(c[k] - c.target[k]) < 0.01); })()`;
 
 async function openPicker(page, id) {
   await page.evaluate('window.__ui.openCraftRow(false); true');
@@ -180,19 +181,21 @@ async function hangarTouches(page) {
   await page.evaluate(click('pack-4s5000'));
   await page.until(`window.__carouselStats().camera.moves > ${before.moves}`, 30000).catch(() => {});
   const mid = await cam(page);
-  await page.until(LANDED({ focus: 'pack', zoom: 0.42, up: -0.3, along: -0.5 }), 120000).catch(() => {});
+  await page.until(LANDED('pack'), 120000).catch(() => {});
   await page.until(EXPLODED("e.key.endsWith(':4s5000') && e.amount > 0.98"), 60000).catch(() => {});
   const pack = await cam(page);
   say(pack.focus === 'pack' && pack.moves > before.moves && mid.lift > 0,
     `a pack card flies the camera to the pack: focus ${pack.focus}, moves ${before.moves} to ${pack.moves}, lift ${mid.lift.toFixed(2)}`);
-  say(Math.abs(pack.zoom - 0.42) < 0.02 && Math.abs(pack.up + 0.3) < 0.02, `and it lands on the pack's view: zoom ${pack.zoom.toFixed(3)}, up ${pack.up.toFixed(3)}`);
+  say(['zoom', 'up', 'along', 'elev'].every((k) => Math.abs(pack[k] - pack.target[k]) < 0.01) && pack.target.up < 0 && pack.target.zoom < 0.5,
+    `and it lands on the pack's view, close and low: zoom ${pack.zoom.toFixed(3)}, up ${pack.up.toFixed(3)}, target ${JSON.stringify(pack.target)}`);
   const exPack = await exploded(page);
   say(exPack.key.endsWith(':4s5000') && exPack.parts.includes('pack'), `the pack drawn is the one chosen: ${exPack.key}`);
   await shot(page, '2-power-pack');
   await page.evaluate(click('option-stock'));
-  await page.until(LANDED({ focus: 'motor', zoom: 0.4, up: 0, along: -1.05 }), 120000).catch(() => {});
+  await page.until(LANDED('motor'), 120000).catch(() => {});
   const motor = await cam(page);
-  say(motor.focus === 'motor' && motor.moves > pack.moves, `a motor card flies it to the motor: focus ${motor.focus}, moves ${motor.moves}`);
+  say(motor.focus === 'motor' && motor.moves > pack.moves && motor.target.along < -1 && Math.abs(motor.along - motor.target.along) < 0.01,
+    `a motor card flies it to the motor, just ahead of the Timber's prop: focus ${motor.focus}, moves ${motor.moves}, along ${motor.along.toFixed(3)}`);
   await shot(page, '2-power-motor');
   await page.evaluate(click('pack-4s3200'));
   await page.tap('KeyE');
@@ -356,6 +359,30 @@ async function earn(page) {
   return p;
 }
 
+/* Click `keyName` and sample, every drawn frame while the rev plays, the
+ * voice it speaks on, the one it gives back and the least rpm fed to any
+ * of the mix's four motor voices. */
+async function revOf(page, keyName) {
+  await page.evaluate(`(() => {
+    window.__revSeen = { peak: 0, voice: null, was: null };
+    const t0 = performance.now();
+    const f = () => {
+      const r = window.__hangarRev();
+      if (r.rev) {
+        window.__revSeen.voice = r.voice;
+        window.__revSeen.was = r.rev.was;
+        window.__revSeen.peak = Math.max(window.__revSeen.peak, Math.min(...r.rpm));
+      }
+      if (performance.now() - t0 < 4000) { requestAnimationFrame(f); }
+    };
+    requestAnimationFrame(f);
+    return true;
+  })()`);
+  await page.evaluate(click(keyName));
+  await page.until('window.__revSeen.peak > 5000 || window.__hangarRev().rev === null', 10000).catch(() => {});
+  return page.evaluate('window.__revSeen');
+}
+
 async function unlocked(page) {
   console.log('4. the unlocked item in the hangar, the rev and the ghost bars');
   if ((await page.evaluate('window.__ui.screen')) === 'flight') {
@@ -372,11 +399,8 @@ async function unlocked(page) {
   say(three && !three.disabled && !three.locked && three.isNew, `the Timber's 3S option is open, and New: ${JSON.stringify(three)}`);
   await settle(page, 1200);
   const counts = await page.evaluate('Object.fromEntries(Object.entries(window.__ui.hangar.counts).map(([k, v]) => [k, v.to]))');
-  await page.evaluate(click('option-3s'));
-  await page.sleep(250);
-  const rev = await page.evaluate('window.__hangarRev()');
-  say(rev.rev && rev.rev.voice === 'wing' && rev.voice === 'wing' && rev.rpm.every((r) => r > 1000),
-    `picking it plays a rev on its voice: ${JSON.stringify(rev)}`);
+  const rev = await revOf(page, 'option-3s');
+  say(rev.voice === 'wing' && rev.peak > 5000, `picking it plays a rev on its voice, every motor of the mix fed up to ${Math.round(rev.peak)} rpm: ${JSON.stringify(rev)}`);
   const ghosts = await page.evaluate(`[...document.querySelectorAll('.hangar-stat')].map((b) => {
     const g = b.querySelector('.hangar-stat-ghost');
     const bar = b.querySelector('.hangar-stat-bar').getBoundingClientRect().width;
@@ -391,12 +415,21 @@ async function unlocked(page) {
   await shot(page, '4-ghost-bars');
   await page.until('window.__hangarRev().rev === null', 5000).catch(() => {});
   const after = await page.evaluate('window.__hangarRev()');
-  say(after.rev === null && after.voice === rev.rev.was, `the rev ends and gives the seated voice back: ${after.voice}`);
+  say(after.rev === null && after.voice === rev.was && after.rpm.every((r) => r === 0), `the rev ends, the mix is fed nothing, and the seated voice is back: ${after.voice}`);
   await page.evaluate("window.__ui.hangar.saveBtn.click(); true");
   await page.until('!window.__ui.hangar.isOpen', 5000);
   await page.evaluate('window.__ui.carousel.close(); true');
   const power = await page.evaluate('window.__ui.settings.power.timber1500');
   say(power && power.option === '3s', `saved: ${JSON.stringify(power)}`);
+  /* A four stroke on the Kadet, opened by the level, speaks as one over
+   * the seated Timber's electric voice and gives it back. */
+  await openHangar(page, 'kadet1981');
+  const glow = await revOf(page, 'option-fsa56');
+  await page.until('window.__hangarRev().rev === null', 8000).catch(() => {});
+  const back = await page.evaluate('window.__hangarRev()');
+  say(glow.voice === 'glow4' && glow.was === 'wing' && glow.peak > 5000 && back.voice === 'wing',
+    `the Kadet's FSa-56 revs on the four stroke's voice up to ${Math.round(glow.peak)} rpm, and the Timber's electric voice comes back: ${JSON.stringify(glow)}, then ${back.voice}`);
+  await closeHangar(page);
 }
 
 async function unlockAll(page) {

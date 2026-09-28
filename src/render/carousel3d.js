@@ -450,8 +450,10 @@ export function createCarouselStage(renderer) {
     }
     m.holder.visible = true;
     set.group.visible = true;
-    const k = rig.update(dt, view.hangar, view.turn ?? 0);
-    stats.camera = { focus: view.hangar.focus, yaw: k.yaw, elev: k.elev, zoom: k.zoom, along: k.along, up: k.up, moves: k.moves, lift: k.lift };
+    const k = rig.update(dt, { ...view.hangar, prop: exploder.propAlong(m) }, view.turn ?? 0);
+    stats.camera = {
+      focus: view.hangar.focus, yaw: k.yaw, elev: k.elev, zoom: k.zoom, along: k.along, up: k.up, moves: k.moves, lift: k.lift, target: k.target,
+    };
     stats.exploded = exploder.update(m, view.hangar.power ?? null, dt);
     const floorY = -m.halfY;
     set.place(floorY, k.reveal, k.pulse);

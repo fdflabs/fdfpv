@@ -48,8 +48,9 @@ const PROP_OUT = 0.26;
 const MOTOR_OUT = 0.12;
 const PACK_SIDE = -0.3;
 const PACK_DOWN = 0.06;
-/* Where the pack is taken from: this far back from the prop, in radii. */
-const PACK_BACK = 0.3;
+/* Where the pack is taken from: this share of the way from the middle
+ * to the nose, where a pack sits to balance a plane, tractor or pusher. */
+const PACK_AT = 0.4;
 /* The explosion's spring, radians a second, and the new part's pop. */
 const OMEGA = 6;
 
@@ -213,6 +214,7 @@ export function createExploder() {
       radius,
       dir,
       propAt,
+      packAt: new THREE.Vector3(centre.x, centre.y, centre.z + PACK_AT * m.noseZ * radius),
       prop: mount ? movable(mount) : null,
       engines: [...named('-engine'), ...named('-rocker')].map(movable),
       packs: named('-pack').map(movable),
@@ -313,7 +315,7 @@ export function createExploder() {
       off.copy(r.dir).multiplyScalar(MOTOR_OUT * R * e);
       place(mv, off);
     }
-    const packFrom = new THREE.Vector3().copy(r.propAt).addScaledVector(r.dir, -PACK_BACK * R);
+    const packFrom = r.packAt;
     for (const mv of r.packs) {
       off.set(PACK_SIDE * R * e, -PACK_DOWN * R * e, 0);
       place(mv, off);
@@ -375,5 +377,14 @@ export function createExploder() {
     pose(r);
   }
 
-  return { update, rest };
+  /* Where the model's prop is along it, in the hangar rig's `along`
+   * units: shares of the nose's reach forward, negative, or of the tail's
+   * aft. */
+  function propAlong(m) {
+    const r = rigFor(m);
+    const z = (r.propAt.z + r.root.position.z) / r.radius;
+    return z < 0 ? -z / m.noseZ : z / m.tailZ;
+  }
+
+  return { update, rest, propAlong };
 }
