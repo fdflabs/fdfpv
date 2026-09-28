@@ -2776,6 +2776,9 @@ export async function boot({
           section: true,
         },
         ...roomEndRows(host, w),
+        /* Who starts the games, for everybody else: without it a pilot
+         * who is not the host sees rows that do nothing and no reason. */
+        ...(w && !host ? [{ label: str('friends.host_starts', { name: roomSeatName(w.host) }), info: true }] : []),
         ...order.flatMap((g) => blocks[g]),
         { label: str('roomrace.room_section'), section: true },
       ];
@@ -2793,22 +2796,27 @@ export async function boot({
           note: str('friends.here_note'),
           info: true,
         },
-        { label: str('friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
+        { label: str(host ? 'friends.you_host' : 'friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
         ...roomSafety.sayRows(),
       ];
       for (const peer of roomPeers.values()) {
         const craft = airframeById(peer.profile.airframe).name;
         const muted = roomSafety.isMuted(peer.seat);
+        const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
         rows.push({
-          label: muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name),
+          label: w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown,
           value: craft,
           note: str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
           current: '',
           pickOnly: true,
-          options: roomSafety.peerOptions(peer.seat, kicks),
+          /* The host hands the room over from any pilot's row. */
+          options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
           pick: (v) => {
-            if (roomSafety.peerPick(peer.seat, v) === 'kick') {
+            const picked = roomSafety.peerPick(peer.seat, v);
+            if (picked === 'kick') {
               roomLinkState.kick(peer.seat);
+            } else if (picked === 'handhost') {
+              roomLinkState.send({ type: 'handhost', seat: peer.seat });
             }
             ui.refreshFriends();
           },

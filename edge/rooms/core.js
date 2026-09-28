@@ -216,6 +216,21 @@ export class RoomCore {
     return out;
   }
 
+  /*
+   * The host hands the room to another pilot here (hostCheck has already
+   * said the sender is the host): the token moves, is stored, and
+   * everybody is told. A seat nobody holds is refused as 'gone'.
+   */
+  handHost(conn, s, seat, now) {
+    const to = [...this.seats.values()].find((t) => t.seat === seat && t !== s);
+    if (!to) {
+      return [{ send: conn, data: JSON.stringify({ type: 'refused', why: 'gone' }) }];
+    }
+    this.hosting.token = to.token;
+    this.hosting.awaySince = null;
+    return [this.hosting.store(), ...this.settleHost(now)];
+  }
+
   /* The games a room can run: whether each is on, its players' seats, and
    * the fewest of them here that keep it going. */
   games(now) {
@@ -292,7 +307,7 @@ export class RoomCore {
     const start = (msg.type === 'tag' && msg.op === 'start') ? 'tag'
       : (msg.type === 'combat' && msg.op === 'start') ? 'combat'
         : (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start')) ? 'race' : null;
-    const hostOnly = start || msg.type === 'kick' || (msg.type === 'tag' && msg.op === 'end')
+    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end')
       || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop');
     if (!hostOnly) {
       return null;
@@ -578,6 +593,9 @@ export class RoomCore {
     }
     if (msg.type === 'kick' && !this.meta.public && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
+    }
+    if (msg.type === 'handhost') {
+      return this.handHost(conn, s, msg.seat, now);
     }
     if (msg.type === 'tag') {
       return [...first, ...this.tag.message(this, conn, s, msg, now)];

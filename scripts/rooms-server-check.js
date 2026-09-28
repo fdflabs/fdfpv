@@ -282,6 +282,11 @@ if (server) {
   check('so B\'s combat start is refused, and B is told why: host', Boolean(await b2.until((x) => x.text('refused').find((m) => m.why === 'host'))));
   a2.say({ type: 'combat', op: 'start', minutes: 5 });
   check('A\'s is refused while the match its two players came back to runs: tag', Boolean(await a2.until((x) => x.text('refused').find((m) => m.why === 'tag'))));
+  /* The host hands the room to B and B hands it back, each told. */
+  a2.say({ type: 'handhost', seat: 2 });
+  check('A hands the room to B: B is told it is the host', Boolean(await b2.until((x) => x.text('host').at(-1)?.seat === 2)));
+  b2.say({ type: 'handhost', seat: 1 });
+  check('and B hands it back: A is told', Boolean(await a2.until((x) => x.text('host').at(-1)?.seat === 1)));
   /* B leaves for good: the match has one player, and the room ends it by
    * itself after ABANDON_MS, with nobody flying to drive the clock. */
   b2.ws.close(1000);
