@@ -675,6 +675,15 @@ typedef struct FixedWingParams {
    * about, m, forward positive: a heavier engine or pack that the pilot
    * did not balance out. Zero on every table. */
   double cg_shift;
+  /* THE PILOT'S TUNING, sim_wing_set_tune: 1 where a tuning is seated,
+   * whose expo per surface (aileron, elevator, rudder) then replaces the
+   * table's one expo; 0 on every table, which reads `expo` as it always
+   * did. trim_e: the elevator trim, rad, trailing edge up positive, added
+   * to the stick's elevator within its travel; zero on every table, so
+   * add_term leaves the elevator what it was. */
+  int tune;
+  double tune_expo[3];
+  double trim_e;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -702,14 +711,22 @@ void plant_power_reset(SimState *s);
 int plant_set_power(const double *in);
 void plant_power_clear(void);
 int plant_power_custom(void);
-/* The hangar's add-ons, the sim_set_addons layout in sim_abi.h, seated over
- * the table and any power option the same way; plant_addons_clear takes
- * them off. */
+/* The hangar's add-ons, the sim_set_addons layout in sim_abi.h, seated
+ * last, over the table, the power option and the tuning; plant_addons_clear
+ * takes them off. */
 int plant_set_addons(const double *in);
-/* PLANT_P back to the seated airframe, power option and add-ons, after
- * crash.c has pointed it at its own copy. */
-void plant_reseat(void);
 void plant_addons_clear(void);
+/* THE PILOT'S TUNING, sim_wing_set_tune in sim_abi.h: plant_set_tune
+ * seats a block over the power option or the table, SIM_OK or
+ * SIM_ERR_BAD_ARG; plant_tune_clear takes it off; plant_tune_read fills
+ * the block in force, the table's own values where none is seated.
+ * plant_reseat puts the seated airframe back after crash.c's live copy,
+ * power option, tuning and add-ons all. */
+int plant_set_tune(const double *in);
+void plant_tune_clear(void);
+void plant_tune_read(double *out);
+int plant_tune_on(void);
+void plant_reseat(void);
 void plant_power_state(const SimState *s, double *out);
 double plant_lipo_ocv(double soc);
 void plant_wing_launch(SimState *s, double speed);

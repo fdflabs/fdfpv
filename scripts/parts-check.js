@@ -24,8 +24,9 @@
  *       speed
  *   A9  tape on a wing: heavier on that side, the CG toward it, a slower
  *       top speed, and a plane that needs roll trim toward the other wing
- *   A10 a crash reset keeps the add-ons and the power option: after a part
- *       breaks off and the reset, the flight is the one a fresh seat flies
+ *   A10 a crash reset keeps the power option, the tuning and the add-ons,
+ *       seated in the shell's order: after a part breaks off and the
+ *       reset, the flight is the one a fresh seat flies
  *
  *   node scripts/parts-check.js           the checks
  *   node scripts/parts-check.js --derive  also print the Cub's pose on
@@ -60,6 +61,7 @@ import {
   partsPowerBlock, tapeable,
 } from '../configs/hangar-parts.js';
 import { PROP_ESTIMATES } from '../configs/prop-estimates.js';
+import { normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
 import { PART_KINDS } from '../configs/parts.js';
 import { readPartTable } from './lib/crash.js';
 
@@ -379,7 +381,12 @@ console.log('A10 a crash reset keeps what was seated');
   const e = entry({ prop: '11x7e', addons: ['pod', 'smoke'] });
   seat(id, e);
   must(sim.setPower(partsPowerBlock(id, '3s', '11x7e', powerBlock(id, '3s', '3s2200'))), 'sim_set_power');
+  /* The seat order the shell keeps: power, then the tuning, then these. */
+  const set = setupFor(id, { option: '3s', pack: '3s2200' });
+  const tune = tuneBlock(id, normalizeEntry(id, { packMm: 10, ballastG: 20, rate: 'low', trimDeg: 1 }, set.limits), set.massKg, set.packKg);
+  must(sim.setTune(tune), 'sim_wing_set_tune');
   must(sim.setAddons(addonParams(id, e, POWER[id][1], powerBlock(id, '3s', '3s2200')[SIM_POWER.MASS])), 'sim_set_addons');
+  const seated = sim.addonsState();
   const fresh = traceHash();
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
   must(sim.reset(), 'sim_reset');
@@ -388,7 +395,9 @@ console.log('A10 a crash reset keeps what was seated');
   must(sim.step(RC_STEP_MS), 'sim_step');
   must(sim.e.sim_set_damage(0), 'sim_set_damage');
   const after = traceHash();
-  check('the flight after the reset is the fresh seat\'s', after === fresh, `${fresh} ${after}`);
+  const back = sim.addonsState();
+  check('the power option, the tuning and the add-ons all come back: the flight after the reset is the fresh seat\'s',
+    after === fresh && back.massKg === seated.massKg && back.on, `${fresh} ${after}, ${(back.massKg * 1000).toFixed(1)} g`);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

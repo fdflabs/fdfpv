@@ -504,11 +504,37 @@ export class Race {
     return t0;
   }
 
-  /* Is a world point outside every scoring box of gate g? */
+  /*
+   * Does the travel from local point a to local point b cross this ROUND
+   * opening, a sky hoop's disc of radius r? The craft's centre has to cross
+   * the disc's own plane, forward, inside the radius: the owner's rule, "a
+   * pass counts when the craft's centre crosses the hoop's disc inside its
+   * radius". A swept segment cannot step over a plane however fast it is
+   * flown, so the disc needs no depth to be caught, and a line that crosses
+   * beside the rim, however near, is not a pass: the square round the disc
+   * is not the hoop. Returns t in [0, 1] at the crossing, or -1.
+   */
+  discHits(a, b, r) {
+    const dz = b.z - a.z;
+    if (!(r > 0) || dz <= 1e-9 || a.z > 0 || b.z < 0) {
+      return -1;
+    }
+    const t = -a.z / dz;
+    const x = a.x + (b.x - a.x) * t;
+    const y = a.y + (b.y - a.y) * t;
+    return x * x + y * y <= r * r ? t : -1;
+  }
+
+  /* Is a world point outside every scoring box of gate g? A disc's box is
+   * the cylinder through it, as deep as a square opening's. */
   outsideBoxes(g, p) {
     return g.apertures.every((ap) => {
       const l = this.local(g, ap.centreY, p.x, p.y, p.z);
-      return Math.abs(l.x) > ap.clearW * 0.5 - this.passMargin
+      const r = ap.clearW * 0.5 - this.passMargin;
+      if (ap.round) {
+        return l.x * l.x + l.y * l.y > r * r || Math.abs(l.z) > this.passDepth;
+      }
+      return Math.abs(l.x) > r
         || Math.abs(l.y) > ap.clearH * 0.5 - this.passMargin
         || Math.abs(l.z) > this.passDepth;
     });
@@ -571,7 +597,7 @@ export class Race {
       const b = this.local(g, ap.centreY, curr.x, curr.y, curr.z);
       const halfW = ap.clearW * 0.5 - this.passMargin;
       const halfH = ap.clearH * 0.5 - this.passMargin;
-      const tk = this.openingHits(a, b, halfW, halfH);
+      const tk = ap.round ? this.discHits(a, b, halfW) : this.openingHits(a, b, halfW, halfH);
       if (tk < 0) {
         continue;
       }

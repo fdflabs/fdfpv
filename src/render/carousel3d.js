@@ -51,6 +51,7 @@ import { dressLivery } from './livery.js';
 import { animateParts, dressParts } from './partsfit.js';
 import { powerOption } from '../../configs/power.js';
 import { buildHangarEnv, createHangarRig } from './hangarstage.js';
+import { dressTuning, undressTuning } from './hangar-tuning3d.js';
 import { slotScale, slotX } from '../ui/carousel.js';
 
 /* Vertical field of view, degrees: long, so the models read as objects on
@@ -498,6 +499,9 @@ export function createCarouselStage(renderer) {
     m.holder.visible = true;
     set.group.visible = true;
     const k = rig.update(dt, view.hangar, view.turn ?? 0);
+    /* The Tuning tab's marks, surfaces and prop (src/render/
+     * hangar-tuning3d.js), on for this draw only. */
+    dressTuning(m.craft, view.hangar.tabs && view.hangar.tabs.tuning, dt);
     const floorY = -m.halfY;
     set.place(floorY, k.reveal, k.pulse);
     /* Set down from a hand's height as it opens. */
@@ -557,6 +561,7 @@ export function createCarouselStage(renderer) {
     set.backdrop.visible = true;
     m.shadow.position.y = shadowY;
     set.group.visible = false;
+    undressTuning(m.craft);
 
     renderer.setRenderTarget(null);
     renderer.setScissorTest(false);

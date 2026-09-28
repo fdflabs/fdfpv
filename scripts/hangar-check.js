@@ -19,12 +19,22 @@
  *      colours and leaves nothing stored.
  *   5. The side panel's layout at 1280x720, 1600x900, 1920x1080 and a phone
  *      on its side, on the Kadet (4 engines, 2 tanks) and the Skyhunter (5
- *      motors, 5 packs), both tabs: no readout wraps onto a second line or
+ *      motors, 5 packs), every tab: no readout wraps onto a second line or
  *      overflows its tile, and the panel's last line (the source line on
  *      Power) is fully in view, without scrolling where it fits, otherwise
  *      once Down from the panel's last control has scrolled it to its end.
  *      The Kadet's Power tab fits with no scroll at 1600x900 and above.
- *   6. The Parts tab on the Cub: tundra tyres, the camera pod, the lights,
+ *   6. The Timber's Tuning tab (src/ui/hangar-tuning.js): the battery slid
+ *      forward and lead in the nose move the CG on the tab and on the
+ *      model's mark; low rates, more elevator expo, a click of up trim,
+ *      takeoff flaps and the flap mix off; the test stand runs the motor
+ *      (the plant's thrust, rpm and current live, the prop turning on the
+ *      model, the motor's voice on the audio) and runs the pack down;
+ *      Save stores exactly that setup, flying seats configs/tuning.js's
+ *      block for it in the plant with the flaps at takeoff, a reload keeps
+ *      it and flies it again; and a plane nobody tuned (the Kadet) flies
+ *      its table's own throws with nothing seated.
+ *   7. The Parts tab on the Cub: tundra tyres, the camera pod, the lights,
  *      the smoke system and a three blade prop on the model before Save,
  *      stored by it; flown, the model and the plant (sim_addons_state)
  *      both carry them and O turns the smoke on and off; a wing broken in
@@ -56,8 +66,9 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { LIVERIES, coloursFor, liveryKey, paintable, regionsFor } from '../configs/liveries.js';
-import { POWER, SIM_POWER, powerBlock } from '../configs/power.js';
+import { POWER, SIM_POWER, powerBlock, powerChoice } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
+import { normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
 import { SIM_ADDON, addonParams } from '../configs/hangar-parts.js';
 import { PROP_ESTIMATES } from '../configs/prop-estimates.js';
 
@@ -206,15 +217,15 @@ const SETTLED = "document.querySelector('.hangar-side').getAnimations({ subtree:
 const SIZES = [[1280, 720], [1600, 900], [1920, 1080], [844, 390]];
 
 async function layoutCheck(page) {
-  console.log('5. the side panel\'s layout on the Kadet and the Skyhunter');
+  console.log('5. the side panel\'s layout on the Kadet and the Skyhunter, all three tabs');
   for (const [w, h] of SIZES) {
     await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false }, page.sessionId);
     for (const id of ['kadet1981', 'sky1800']) {
       await openHangarFromPicker(page, id);
-      for (const tab of ['power', 'colours']) {
-        if (tab === 'colours') {
+      for (const tab of ['power', 'colours', 'tuning']) {
+        if (tab !== 'power') {
           await page.tap('KeyE');
-          await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+          await page.until(`window.__ui.hangar.tab === '${tab}'`, 5000);
         }
         await page.until(SETTLED, 10000);
         const at = `${w}x${h} ${id} ${tab}`;
@@ -249,14 +260,14 @@ async function layoutCheck(page) {
 }
 
 /*
- * 6. The Parts tab on the Cub, the whole way: the tab, tundra tyres, the
+ * 7. The Parts tab on the Cub, the whole way: the tab, tundra tyres, the
  * camera pod, the lights, the smoke system and the three blade prop on
  * the model before Save; saved; flown, the model and the plant both
  * carrying them and the smoke on and off with O; a wing broken in the
  * air, shown broken in the hangar, taped, and flown taped.
  */
 async function partsCheck(page) {
-  console.log('6. the Parts tab: fit the Cub, fly it, break a wing, tape it, fly it');
+  console.log('7. the Parts tab: fit the Cub, fly it, break a wing, tape it, fly it');
   const id = 'cub1400';
   const fit = ['tundra', 'pod', 'lights', 'smoke'];
   const prop = '11x7e-3';
@@ -352,6 +363,94 @@ async function partsCheck(page) {
   await page.sleep(500);
   const after = await page.evaluate('window.__craft()');
   say(after.addons.massKg === c.addons.massKg, `and after a reset it still does: ${(after.addons.massKg * 1000).toFixed(1)} g`);
+}
+
+const TUNE_STATE = '(async () => (await import("/src/ui/hangar-tuning.js")).tuningState())()';
+const TUNING_TAB = '(window.__ui.hangar.frame() || { hangar: { tabs: {} } }).hangar.tabs.tuning';
+const WANT_TUNE = { packMm: 10, ballastG: 20, rate: 'low', expo: { e: 35 }, trimDeg: 1, flapStart: 1, flapMix: false };
+
+/* The block the plant should hold for the Timber's stored setup, on its
+ * stored power. */
+function wantBlock(settings) {
+  const set = setupFor('timber1500', powerChoice('timber1500', settings.power));
+  return Array.from(tuneBlock('timber1500', normalizeEntry('timber1500', settings.tuning.timber1500, set.limits), set.massKg, set.packKg));
+}
+
+async function tuningCheck(page) {
+  console.log('6. the Timber\'s Tuning tab, its test stand, Save, fly, reload');
+  await openHangarFromPicker(page, 'timber1500');
+  await page.evaluate(click('tab-tuning'));
+  await page.until("window.__ui.hangar.tab === 'tuning'", 5000);
+  const cg0 = await page.evaluate(`${TUNING_TAB}.cg.shift`);
+  const text0 = await page.evaluate("document.querySelector('.tn-cg-value').textContent");
+  for (const k of ['pack-inc', 'pack-inc', 'lead-inc', 'lead-inc', 'lead-inc', 'lead-inc']) {
+    await page.evaluate(click(k));
+  }
+  const cg1 = await page.evaluate(`${TUNING_TAB}.cg.shift`);
+  const text1 = await page.evaluate("document.querySelector('.tn-cg-value').textContent");
+  say(cg0 === 0 && cg1 > 0 && text1 !== text0,
+    `the battery 10 mm forward and 20 g of nose lead move the CG ${(cg1 * 1000).toFixed(2)} mm forward: "${text0}" to "${text1}", and the model's mark with it`);
+  await page.evaluate(click('tuning-rates'));
+  for (const k of ['rate-low', 'expo-e-inc', 'trim-inc', 'trim-inc', 'trim-inc', 'trim-inc', 'flap-1', 'mix-off']) {
+    await page.evaluate(click(k));
+  }
+  const surf = await page.evaluate(`${TUNING_TAB}.surfaces`);
+  say(Array.isArray(surf) && surf.length === 4, `the Rates page sweeps the model's surfaces: ${JSON.stringify(surf && surf.map((x) => +x.toFixed(3)))}`);
+  const st = await page.evaluate(TUNE_STATE);
+  say(same(st.entry, { packMm: 10, ballastG: 20, rate: 'low', expo: { a: 30, e: 35, r: 30 }, trimDeg: 1, flapStart: 1, flapMix: false }),
+    `the tab holds the setup: ${JSON.stringify(st.entry)}`);
+
+  await page.evaluate(click('tuning-stand'));
+  await page.evaluate(click('throttle-inc'));
+  await page.evaluate(click('stand-run'));
+  await page.until(`(async () => { const s = await ${TUNE_STATE}; return Boolean(s.reading && s.reading.thrustN > 0); })()`, 60000);
+  await page.sleep(500);
+  const run = await page.evaluate(TUNE_STATE);
+  const rpmOnModel = await page.evaluate(`${TUNING_TAB}.rpm`);
+  const audio = await page.evaluate('window.__craft().standAudio');
+  const r = run.reading;
+  say(r.thrustN > 1 && r.currentA > 1 && r.rpm > 1000 && r.volts > 14,
+    `the stand runs the motor at ${Math.round(run.throttle * 100)} percent: ${r.thrustN.toFixed(2)} N, ${r.currentA.toFixed(1)} A, ${Math.round(r.rpm)} rpm, ${r.volts.toFixed(2)} V`);
+  say(rpmOnModel === r.rpm || rpmOnModel > 1000, `the prop turns on the model at the stand's ${Math.round(rpmOnModel)} rpm`);
+  say(audio.voice === 'wing' && audio.rpm > 1000, `the motor's voice plays it: ${JSON.stringify(audio)}`);
+  await page.evaluate(click('stand-run'));
+  await page.evaluate(click('stand-measure'));
+  await page.until(`(async () => (await ${TUNE_STATE}).endurance != null)()`, 180000).catch(() => {});
+  const run2 = await page.evaluate(TUNE_STATE);
+  say(run2.endurance && run2.endurance.seconds > 60, `run down at ${Math.round(run.throttle * 100)} percent the pack lasts ${run2.endurance ? (run2.endurance.seconds / 60).toFixed(1) : '?'} min (${run2.endurance && run2.endurance.why})`);
+  const quiet = await page.evaluate('window.__craft().standAudio');
+  say(quiet.voice === null, `stopped, the flown craft's voice is back: ${JSON.stringify(quiet)}`);
+
+  await page.evaluate("window.__ui.hangar.saveBtn.click(); true");
+  await page.until('!window.__ui.hangar.isOpen', 5000);
+  const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).tuning`);
+  say(same(stored, { timber1500: WANT_TUNE }), `Save stores it: ${JSON.stringify(stored)}`);
+  await page.tap('Escape');
+  const settings = await page.evaluate('window.__ui.settings');
+  const want = wantBlock(settings);
+  await page.evaluate("window.__ui.settings.airframe = 'timber1500'; window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight' && window.__craft().run === 'timber1500'", 400000);
+  const flown = await page.evaluate('window.__craft()');
+  say(same(flown.tune, want) && flown.flapNotch === 1,
+    `flown, the plant holds its block: CG ${(flown.tune[0] * 1000).toFixed(2)} mm forward, throws ${flown.tune.slice(3, 6).map((x) => (x * 180 / Math.PI).toFixed(1)).join(', ')} deg, elevator expo ${flown.tune[7]}, trim ${(flown.tune[9] * 180 / Math.PI).toFixed(2)} deg, mix ${flown.tune[10]}; flaps at notch ${flown.flapNotch}`);
+  await page.evaluate("window.__ui.swapTo('kadet1981').then(() => true)");
+  await page.until("window.__craft().run === 'kadet1981'", 30000);
+  const kadet = await page.evaluate('window.__craft()');
+  say(kadet.tune && kadet.tune[0] === 0 && kadet.tune[1] === 0 && kadet.tune[9] === 0 && Math.abs(kadet.tune[4] * 180 / Math.PI - 14.4775) < 1e-9,
+    `the Kadet, which nobody tuned, flies its table: ${JSON.stringify(kadet.tune.map((x) => +x.toFixed(4)))}`);
+
+  console.log('   reload');
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await ready(page);
+  const kept = await page.evaluate('window.__ui.settings.tuning');
+  say(same(kept, { timber1500: WANT_TUNE }), `after a reload the setup is kept: ${JSON.stringify(kept)}`);
+  await page.evaluate("window.__ui.settings.airframe = 'timber1500'; window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight' && window.__craft().run === 'timber1500'", 400000);
+  const again = await page.evaluate('window.__craft()');
+  say(same(again.tune, want), 'and flown again the plant holds the same block');
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'paused'", 10000);
+  await page.evaluate("window.__ui.show('title'); true");
 }
 
 async function main() {
@@ -461,6 +560,7 @@ async function main() {
     say(!after.timber1500 && same(sorted(stockPaint), sorted(stock)), `Reset to stock leaves nothing stored for it and the model in its kit's colours: ${JSON.stringify(stockPaint)}`);
     say(Object.keys(LIVERIES).length === 8, `${Object.keys(LIVERIES).length} planes have paint`);
     await page.evaluate('window.__ui.carousel.close(); true');
+    await tuningCheck(page);
     await layoutCheck(page);
     await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
     await partsCheck(page);

@@ -678,9 +678,9 @@ int sim_power_state(double *out);
  *   MASS    kg added, -1 to 5 (a lighter prop takes a little off), a
  *           point mass at CG_X..CG_Z (body frame, m, each within 3 m of the
  *           table's CG); the aircraft keeps at least 0.05 kg, and a power
- *           option seated after the add-ons is not checked against them
- *           again, so a host seats the power first. The CG moves to the mass
- *           weighted mean, the state's origin with it, and every body
+ *           option or tuning seated after the add-ons is not checked
+ *           against them again. The CG moves to the mass weighted
+ *           mean, the state's origin with it, and every body
  *           frame position the plants read (the motor, the camera, the
  *           wheels) moves the other way, as a part that leaves moves them
  *           (crash.c). The aero is still taken about the table's CG, so
@@ -702,12 +702,15 @@ int sim_power_state(double *out);
  *           higher.
  *   ROLL_K  the main wheels' rolling resistance over the table's, 0.1 to
  *           10; 1 is the table's.
- * A MODE like sim_set_power, laid over the table and any power option:
- * kept across sim_reset and sim_init, cleared by sim_set_airframe to a
- * different airframe and by sim_addons_clear. Once a part breaks off, the
- * crash physics flies the table's airframe until the reset, as it does a
- * power option. SIM_ERR_BAD_ARG on a quad, for a null pointer and for any
- * value out of its range; SIM_ERR_BAD_STATE before sim_init.
+ * A MODE like sim_set_power, laid last, over the table, any power option
+ * and any tuning (sim_wing_set_tune): kept across sim_reset and sim_init,
+ * cleared by sim_set_airframe to a different airframe and by
+ * sim_addons_clear, and put back with the power option and the tuning at
+ * the reset after a part broke off. Once a part breaks off, the crash
+ * physics flies the table's airframe until that reset, as it does a power
+ * option. A host seats the power option, then the tuning, then these.
+ * SIM_ERR_BAD_ARG on a quad, for a null pointer and for any value out of
+ * its range; SIM_ERR_BAD_STATE before sim_init.
  *
  * Additive, version unchanged: with no add-ons set nothing reads any of
  * this and every trace is bit identical.
@@ -724,7 +727,7 @@ int sim_power_state(double *out);
 #define SIM_ADDON_ROLL_K 9
 #define SIM_ADDON_DOUBLES 10
 /*
- * sim_addons_state(out): the plant as the power option and the add-ons
+ * sim_addons_state(out): the plant as the power option, tuning and add-ons
  * leave it, for a host's check, SIM_ADDONS_STATE_DOUBLES:
  *   [0] 1 while add-ons are seated, else 0
  *   [1] all up mass, kg
@@ -738,6 +741,55 @@ int sim_power_state(double *out);
 int sim_set_addons(const double *in);
 int sim_addons_clear(void);
 int sim_addons_state(double *out);
+
+/*
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 12): what the
+ * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
+ * configs/tuning.js.
+ *
+ * sim_wing_set_tune(in): seat SIM_TUNE_DOUBLES below, SI units, over the
+ * power option in force or the table. The CG shift moves the point the
+ * pitching moment is taken about, the path a power option's CG already
+ * takes (plant_wing.c, the lift's moment at the CG's arm), so a nose
+ * heavy aircraft is more stable in pitch and needs more elevator for the
+ * same lift, and a tail heavy one less of both, from the aerodynamics
+ * and nothing else. The ballast is a point mass BALLAST_X ahead of the
+ * table's CG (negative behind): it adds its mass, and its m x^2 to the
+ * pitch and yaw inertia; its share of the CG shift is in CG_SHIFT
+ * already, which is the whole move the host computed. The throws are the
+ * surfaces' travel at full stick, the expo per surface replaces the
+ * table's one expo (0 linear, 1 all cubic), the trim is added to the
+ * elevator within its travel, and FLAP_MIX is the radio's flap to
+ * elevator mix, elevator rad per rad of flap. A MODE like the power
+ * option: kept across sim_reset and sim_init, kept by sim_set_power and
+ * sim_power_clear, cleared by sim_set_airframe to a different airframe.
+ * SIM_ERR_BAD_ARG on a quad, for a null pointer and for a value outside
+ * its range (plant_set_tune in src/native/plant.c); SIM_ERR_BAD_STATE
+ * before sim_init.
+ * sim_wing_tune_clear(): the table's own again.
+ * sim_wing_tune(out): the block in force; with none seated, the table's
+ * (or the power option's) throws, expo and mix, and zeros for the rest.
+ * SIM_ERR_BAD_ARG for a null pointer or on a quad.
+ *
+ * Additive, version unchanged. Nothing seated, no step reads any of it,
+ * so every trace from before it existed is bit identical; seated with the
+ * table's own values it is bit identical too (scripts/tuning-check.js).
+ */
+#define SIM_TUNE_CG_SHIFT 0   /* m, forward positive, from the table's CG */
+#define SIM_TUNE_BALLAST_KG 1 /* kg added, 0 to 1 */
+#define SIM_TUNE_BALLAST_X 2  /* m ahead of the table's CG, negative behind */
+#define SIM_TUNE_THROW_A 3    /* rad at full stick, 0 to 45 deg */
+#define SIM_TUNE_THROW_E 4
+#define SIM_TUNE_THROW_R 5
+#define SIM_TUNE_EXPO_A 6     /* 0 to 1 */
+#define SIM_TUNE_EXPO_E 7
+#define SIM_TUNE_EXPO_R 8
+#define SIM_TUNE_TRIM_E 9     /* rad, trailing edge up positive, within 10 deg */
+#define SIM_TUNE_FLAP_MIX 10  /* elevator rad per rad of flap, -1 to 1 */
+#define SIM_TUNE_DOUBLES 11
+int sim_wing_set_tune(const double *in);
+int sim_wing_tune_clear(void);
+int sim_wing_tune(double *out);
 
 /*
  * WATER, src/native/water.c and docs/FLOATS-STAGE1.md. A host declares the

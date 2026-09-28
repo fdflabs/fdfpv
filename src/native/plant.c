@@ -1365,9 +1365,12 @@ static void plant_build_axes(void) {
   plant_axis_ready = 1;
 }
 
-static void plant_seat(void);
+/* The power option, the tuning and the hangar's add-ons in force, below;
+ * plant_seat lays them over the airframe's table in that order. */
 static int g_power_on = 0;
+static int g_tune_on = 0;
 static int g_addons_on = 0;
+static void plant_seat(void);
 
 void plant_set_airframe(int id) {
   if (!plant_airframe_exists(id)) {
@@ -1375,7 +1378,14 @@ void plant_set_airframe(int id) {
   }
   g_airframe = id;
   g_power_on = 0;
+  g_tune_on = 0;
   g_addons_on = 0;
+  PLANT_P = &PLANT_TABLE[id];
+}
+
+/* The airframe as the host seated it, power option, tuning and add-ons
+ * included, for crash.c to go back to at a reset after a part left. */
+void plant_reseat(void) {
   plant_seat();
 }
 
@@ -1389,98 +1399,10 @@ void plant_set_airframe(int id) {
  */
 static PlantParams g_plant_live;
 static FixedWingParams g_fw_live;
-/* What the host seated, kept so either can be laid over the table again
- * when the other changes. */
-static double g_power_in[SIM_POWER_DOUBLES];
-static double g_addons_in[SIM_ADDON_DOUBLES];
 
 /* A finite number in [lo, hi]. NaN fails both comparisons. */
 static int in_range(double x, double lo, double hi) {
   return x >= lo && x <= hi;
-}
-
-/*
- * The live copy: the table, the power option over it, the add-ons over
- * that. With neither PLANT_P is the const table itself, and with the power
- * option alone every field is set exactly as before the add-ons existed.
- */
-static void plant_seat(void) {
-  const PlantParams *base = &PLANT_TABLE[g_airframe];
-  if (!g_power_on && !g_addons_on) {
-    PLANT_P = base;
-    return;
-  }
-  g_plant_live = *base;
-  if (g_power_on) {
-    const double *in = g_power_in;
-    g_fw_live = *base->fw;
-    g_fw_live.thrust_static = in[SIM_POWER_THRUST];
-    g_fw_live.pitch_speed = in[SIM_POWER_PITCH_SPEED];
-    g_fw_live.rpm_no_load = in[SIM_POWER_RPM];
-    g_fw_live.current_full = in[SIM_POWER_CURRENT];
-    g_fw_live.throttle_idle = in[SIM_POWER_IDLE];
-    g_fw_live.tank_m3 = in[SIM_POWER_TANK];
-    g_fw_live.flow_full = in[SIM_POWER_FLOW_FULL];
-    g_fw_live.flow_idle = in[SIM_POWER_FLOW_IDLE];
-    g_fw_live.lean_frac = in[SIM_POWER_LEAN_FRAC];
-    g_fw_live.lean_gain = in[SIM_POWER_LEAN_GAIN];
-    g_fw_live.cg_shift = in[SIM_POWER_CG_SHIFT];
-    g_plant_live.fw = &g_fw_live;
-    g_plant_live.mass_kg = in[SIM_POWER_MASS];
-    g_plant_live.cells = in[SIM_POWER_CELLS];
-    g_plant_live.r_cell = in[SIM_POWER_R_CELL];
-    g_plant_live.pack_c = in[SIM_POWER_PACK_C];
-    g_plant_live.lvc = in[SIM_POWER_LVC];
-  }
-  if (g_addons_on) {
-    /*
-     * A point mass m at r joins the airframe's M: the CG moves to
-     * m r / (M + m), the state's origin with it, and every body frame
-     * position the plants read moves the other way, as a lost part moves
-     * them (crash.c live_rebuild). The inertia about the new CG is the
-     * table's plus m r^2 about the old, less (M + m) sh^2 (parallel axes).
-     */
-    const double *in = g_addons_in;
-    const double m = in[SIM_ADDON_MASS];
-    const double M = g_plant_live.mass_kg + m;
-    const double r[3] = { in[SIM_ADDON_CG_X], in[SIM_ADDON_CG_Y], in[SIM_ADDON_CG_Z] };
-    double sh[3];
-    for (int a = 0; a < 3; a += 1) {
-      sh[a] = m * r[a] / M;
-    }
-    g_plant_live.inertia[0] += m * (r[1] * r[1] + r[2] * r[2]) - M * (sh[1] * sh[1] + sh[2] * sh[2]);
-    g_plant_live.inertia[1] += m * (r[0] * r[0] + r[2] * r[2]) - M * (sh[0] * sh[0] + sh[2] * sh[2]);
-    g_plant_live.inertia[2] += m * (r[0] * r[0] + r[1] * r[1]) - M * (sh[0] * sh[0] + sh[1] * sh[1]);
-    g_plant_live.mass_kg = M;
-    for (int k = 0; k < SIM_MOTOR_COUNT; k += 1) {
-      g_plant_live.pos_x[k] -= sh[0];
-      g_plant_live.pos_y[k] -= sh[1];
-      g_plant_live.pos_z[k] -= sh[2];
-    }
-    g_plant_live.camera_x -= sh[0];
-    g_plant_live.camera_y -= sh[1];
-    g_plant_live.camera_z -= sh[2];
-    for (int w = 0; w < g_plant_live.wheel_count; w += 1) {
-      WheelParams *wp = &g_plant_live.wheel[w];
-      for (int a = 0; a < 3; a += 1) {
-        wp->pos[a] -= sh[a];
-      }
-      /* The main wheels are the braked ones with a tyre. */
-      if (wp->brake > 0.0 && wp->r > 0.0) {
-        if (in[SIM_ADDON_WHEEL_R] > 0.0) {
-          wp->r = in[SIM_ADDON_WHEEL_R];
-        }
-        wp->mu_roll *= in[SIM_ADDON_ROLL_K];
-      }
-    }
-    g_plant_live.add_on = 1;
-    for (int a = 0; a < 3; a += 1) {
-      g_plant_live.add_shift[a] = sh[a];
-      g_plant_live.add_drag_at[a] = in[SIM_ADDON_DRAG_X + a];
-    }
-    g_plant_live.add_cda = in[SIM_ADDON_CDA];
-  }
-  PLANT_P = &g_plant_live;
 }
 
 int plant_set_power(const double *in) {
@@ -1512,9 +1434,25 @@ int plant_set_power(const double *in) {
   if (glow != (in[SIM_POWER_IDLE] > 0.0) || (!glow && in[SIM_POWER_TANK] > 0.0)) {
     return SIM_ERR_BAD_ARG;
   }
-  for (int i = 0; i < SIM_POWER_DOUBLES; i += 1) {
-    g_power_in[i] = in[i];
-  }
+  g_fw_live = *base->fw;
+  g_fw_live.thrust_static = in[SIM_POWER_THRUST];
+  g_fw_live.pitch_speed = in[SIM_POWER_PITCH_SPEED];
+  g_fw_live.rpm_no_load = in[SIM_POWER_RPM];
+  g_fw_live.current_full = in[SIM_POWER_CURRENT];
+  g_fw_live.throttle_idle = in[SIM_POWER_IDLE];
+  g_fw_live.tank_m3 = in[SIM_POWER_TANK];
+  g_fw_live.flow_full = in[SIM_POWER_FLOW_FULL];
+  g_fw_live.flow_idle = in[SIM_POWER_FLOW_IDLE];
+  g_fw_live.lean_frac = in[SIM_POWER_LEAN_FRAC];
+  g_fw_live.lean_gain = in[SIM_POWER_LEAN_GAIN];
+  g_fw_live.cg_shift = in[SIM_POWER_CG_SHIFT];
+  g_plant_live = *base;
+  g_plant_live.fw = &g_fw_live;
+  g_plant_live.mass_kg = in[SIM_POWER_MASS];
+  g_plant_live.cells = in[SIM_POWER_CELLS];
+  g_plant_live.r_cell = in[SIM_POWER_R_CELL];
+  g_plant_live.pack_c = in[SIM_POWER_PACK_C];
+  g_plant_live.lvc = in[SIM_POWER_LVC];
   g_power_on = 1;
   plant_seat();
   return SIM_OK;
@@ -1529,12 +1467,178 @@ int plant_power_custom(void) {
   return g_power_on;
 }
 
+/*
+ * THE PILOT'S TUNING, sim_wing_set_tune in sim_abi.h: the CG where the
+ * pack or the ballast put it, the ballast's mass, the throws, the expo,
+ * the elevator trim and the flap to elevator mix, laid over the power
+ * option in force or the table. Owned by this file like the power copy;
+ * the plant step only reads it. The ballast is a point mass at its arm:
+ * it adds its mass, and m x^2 to the pitch and yaw inertia about the
+ * table's CG, the parallel axis term, leaving out the few tenths of a
+ * percent the CG's own move takes back.
+ */
+static PlantParams g_plant_tune;
+static FixedWingParams g_fw_tune;
+static double g_tune[SIM_TUNE_DOUBLES];
+
+/* The tuning laid over `base`, the power option or the table. */
+static const PlantParams *plant_tune_over(const PlantParams *base) {
+  const double *t = g_tune;
+  g_fw_tune = *base->fw;
+  g_fw_tune.cg_shift = base->fw->cg_shift + t[SIM_TUNE_CG_SHIFT];
+  g_fw_tune.throw_a = t[SIM_TUNE_THROW_A];
+  g_fw_tune.throw_e = t[SIM_TUNE_THROW_E];
+  g_fw_tune.throw_r = t[SIM_TUNE_THROW_R];
+  g_fw_tune.tune = 1;
+  g_fw_tune.tune_expo[0] = t[SIM_TUNE_EXPO_A];
+  g_fw_tune.tune_expo[1] = t[SIM_TUNE_EXPO_E];
+  g_fw_tune.tune_expo[2] = t[SIM_TUNE_EXPO_R];
+  g_fw_tune.trim_e = t[SIM_TUNE_TRIM_E];
+  g_fw_tune.de_df = t[SIM_TUNE_FLAP_MIX];
+  g_plant_tune = *base;
+  g_plant_tune.fw = &g_fw_tune;
+  const double mb = t[SIM_TUNE_BALLAST_KG];
+  const double xb = t[SIM_TUNE_BALLAST_X];
+  g_plant_tune.mass_kg = base->mass_kg + mb;
+  g_plant_tune.inertia[1] = base->inertia[1] + mb * xb * xb;
+  g_plant_tune.inertia[2] = base->inertia[2] + mb * xb * xb;
+  return &g_plant_tune;
+}
+
+int plant_set_tune(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const double deg = 0.017453292519943295;
+  if (!in_range(in[SIM_TUNE_CG_SHIFT], -0.1, 0.1)
+      || !in_range(in[SIM_TUNE_BALLAST_KG], 0.0, 1.0)
+      || !in_range(in[SIM_TUNE_BALLAST_X], -2.0, 2.0)
+      || !in_range(in[SIM_TUNE_THROW_A], 0.0, 45.0 * deg)
+      || !in_range(in[SIM_TUNE_THROW_E], 0.0, 45.0 * deg)
+      || !in_range(in[SIM_TUNE_THROW_R], 0.0, 45.0 * deg)
+      || !in_range(in[SIM_TUNE_EXPO_A], 0.0, 1.0)
+      || !in_range(in[SIM_TUNE_EXPO_E], 0.0, 1.0)
+      || !in_range(in[SIM_TUNE_EXPO_R], 0.0, 1.0)
+      || !in_range(in[SIM_TUNE_TRIM_E], -10.0 * deg, 10.0 * deg)
+      || !in_range(in[SIM_TUNE_FLAP_MIX], -1.0, 1.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 0; i < SIM_TUNE_DOUBLES; i += 1) {
+    g_tune[i] = in[i];
+  }
+  g_tune_on = 1;
+  plant_seat();
+  return SIM_OK;
+}
+
+void plant_tune_clear(void) {
+  g_tune_on = 0;
+  plant_seat();
+}
+
+/* The tuning in force as the sim_wing_set_tune block: the table's (or the
+ * power option's) own throws, expo and mix and a zero CG shift, ballast
+ * and trim when none is seated. */
+void plant_tune_read(double *out) {
+  if (g_tune_on) {
+    for (int i = 0; i < SIM_TUNE_DOUBLES; i += 1) {
+      out[i] = g_tune[i];
+    }
+    return;
+  }
+  const FixedWingParams *fw = PLANT.fw;
+  out[SIM_TUNE_CG_SHIFT] = 0.0;
+  out[SIM_TUNE_BALLAST_KG] = 0.0;
+  out[SIM_TUNE_BALLAST_X] = 0.0;
+  out[SIM_TUNE_THROW_A] = fw ? fw->throw_a : 0.0;
+  out[SIM_TUNE_THROW_E] = fw ? fw->throw_e : 0.0;
+  out[SIM_TUNE_THROW_R] = fw ? fw->throw_r : 0.0;
+  out[SIM_TUNE_EXPO_A] = fw ? fw->expo : 0.0;
+  out[SIM_TUNE_EXPO_E] = fw ? fw->expo : 0.0;
+  out[SIM_TUNE_EXPO_R] = fw ? fw->expo : 0.0;
+  out[SIM_TUNE_TRIM_E] = 0.0;
+  out[SIM_TUNE_FLAP_MIX] = fw ? fw->de_df : 0.0;
+}
+
+int plant_tune_on(void) {
+  return g_tune_on;
+}
+
+/*
+ * THE HANGAR'S ADD-ONS, sim_set_addons in sim_abi.h, laid last over the
+ * table, the power option and the tuning. A point mass m at r joins the
+ * aircraft's M: the CG moves to m r / (M + m), the state's origin with
+ * it, and every body frame position the plants read moves the other way,
+ * as a lost part moves them (crash.c live_rebuild). The inertia about the
+ * new CG is what it was plus m r^2 about the old, less (M + m) sh^2
+ * (parallel axes). Owned by this file like the other copies.
+ */
+static PlantParams g_plant_add;
+static double g_addons_in[SIM_ADDON_DOUBLES];
+
+/* What the add-ons are laid over: the tuning over the power option over
+ * the table, as far as each is seated. */
+static const PlantParams *plant_under_addons(void) {
+  const PlantParams *base = g_power_on ? &g_plant_live : &PLANT_TABLE[g_airframe];
+  return g_tune_on ? plant_tune_over(base) : base;
+}
+
+static void plant_seat(void) {
+  const PlantParams *under = plant_under_addons();
+  if (!g_addons_on) {
+    PLANT_P = under;
+    return;
+  }
+  const double *in = g_addons_in;
+  g_plant_add = *under;
+  const double m = in[SIM_ADDON_MASS];
+  const double M = g_plant_add.mass_kg + m;
+  const double r[3] = { in[SIM_ADDON_CG_X], in[SIM_ADDON_CG_Y], in[SIM_ADDON_CG_Z] };
+  double sh[3];
+  for (int a = 0; a < 3; a += 1) {
+    sh[a] = m * r[a] / M;
+  }
+  g_plant_add.inertia[0] += m * (r[1] * r[1] + r[2] * r[2]) - M * (sh[1] * sh[1] + sh[2] * sh[2]);
+  g_plant_add.inertia[1] += m * (r[0] * r[0] + r[2] * r[2]) - M * (sh[0] * sh[0] + sh[2] * sh[2]);
+  g_plant_add.inertia[2] += m * (r[0] * r[0] + r[1] * r[1]) - M * (sh[0] * sh[0] + sh[1] * sh[1]);
+  g_plant_add.mass_kg = M;
+  for (int k = 0; k < SIM_MOTOR_COUNT; k += 1) {
+    g_plant_add.pos_x[k] -= sh[0];
+    g_plant_add.pos_y[k] -= sh[1];
+    g_plant_add.pos_z[k] -= sh[2];
+  }
+  g_plant_add.camera_x -= sh[0];
+  g_plant_add.camera_y -= sh[1];
+  g_plant_add.camera_z -= sh[2];
+  for (int w = 0; w < g_plant_add.wheel_count; w += 1) {
+    WheelParams *wp = &g_plant_add.wheel[w];
+    for (int a = 0; a < 3; a += 1) {
+      wp->pos[a] -= sh[a];
+    }
+    /* The main wheels are the braked ones with a tyre. */
+    if (wp->brake > 0.0 && wp->r > 0.0) {
+      if (in[SIM_ADDON_WHEEL_R] > 0.0) {
+        wp->r = in[SIM_ADDON_WHEEL_R];
+      }
+      wp->mu_roll *= in[SIM_ADDON_ROLL_K];
+    }
+  }
+  g_plant_add.add_on = 1;
+  for (int a = 0; a < 3; a += 1) {
+    g_plant_add.add_shift[a] = sh[a];
+    g_plant_add.add_drag_at[a] = in[SIM_ADDON_DRAG_X + a];
+  }
+  g_plant_add.add_cda = in[SIM_ADDON_CDA];
+  PLANT_P = &g_plant_add;
+}
+
 int plant_set_addons(const double *in) {
   const PlantParams *base = &PLANT_TABLE[g_airframe];
   if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0) {
     return SIM_ERR_BAD_ARG;
   }
-  const double m0 = g_power_on ? g_power_in[SIM_POWER_MASS] : base->mass_kg;
+  const double m0 = plant_under_addons()->mass_kg;
   if (!in_range(in[SIM_ADDON_MASS], -1.0, 5.0) || !(m0 + in[SIM_ADDON_MASS] >= 0.05)
       || !in_range(in[SIM_ADDON_CDA], 0.0, 0.5)
       || !(in[SIM_ADDON_WHEEL_R] == 0.0 || in_range(in[SIM_ADDON_WHEEL_R], 0.005, 0.2))
@@ -1552,10 +1656,6 @@ int plant_set_addons(const double *in) {
   g_addons_on = 1;
   plant_seat();
   return SIM_OK;
-}
-
-void plant_reseat(void) {
-  plant_seat();
 }
 
 void plant_addons_clear(void) {

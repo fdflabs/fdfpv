@@ -617,7 +617,9 @@ export function apertureMarkers(group, sills, clearW, clearH, stack, isStart, pr
  * value of it: a gate that scores differently from how it looks is a gate the
  * pilot cannot learn.
  */
-function gateCue(clearW, clearH) {
+/* `round` makes it a disc of diameter clearW, for a sky hoop
+ * (src/render/pylons.js). */
+export function gateCue(clearW, clearH, round = false) {
   const cue = new THREE.Group();
   cue.visible = false;
   const mat = new THREE.ShaderMaterial({
@@ -672,7 +674,7 @@ function gateCue(clearW, clearH) {
     `,
   });
   const fill = new THREE.Mesh(
-    new THREE.PlaneGeometry(clearW * 0.94, clearH * 0.94),
+    round ? new THREE.CircleGeometry(clearW * 0.47, 64) : new THREE.PlaneGeometry(clearW * 0.94, clearH * 0.94),
     mat,
   );
   cue.add(fill);

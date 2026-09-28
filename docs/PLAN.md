@@ -244,6 +244,13 @@ Language row in Settings and a footer toggle on the board; links
 between the two carry ?lang=. Still to do: a real lap flown by the owner
 posted to a running board as the end to end check, and a Spanish speaker
 reading the copy in place.
+Shared sky DESIGNED 2026-09-27, nothing built: docs/MULTIPLAYER-PLAN.md.
+Rooms on Cloudflare Durable Objects replace the undeployed Node relay;
+public rooms per map and private invite codes; peers in their own
+airframe and paint with their pilots on the field; real mid air crashes
+judged once by the room and applied by each client as a recorded external
+input; picker names and no free text for children. Seven phases, 22 to 31
+agent days, open questions for the owner in its section 14.
 
 ## 3. Risks
 

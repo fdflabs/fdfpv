@@ -2478,11 +2478,14 @@ SIM_EXPORT int sim_set_power(const double *in) {
   if (rc == SIM_OK) {
     plant_power_reset(&S);
   }
+  /* Add-ons laid over it move the CG by their share of the new mass. */
+  contact_build_corners();
   return rc;
 }
 
 SIM_EXPORT int sim_power_clear(void) {
   plant_power_clear();
+  contact_build_corners();
   plant_power_reset(&S);
   return SIM_OK;
 }
@@ -2525,6 +2528,33 @@ SIM_EXPORT int sim_addons_state(double *out) {
 SIM_EXPORT int sim_addons_clear(void) {
   plant_addons_clear();
   contact_build_corners();
+  return SIM_OK;
+}
+
+/* The pilot's tuning, sim_abi.h. Seating it leaves the pack and the tank
+ * as they are: it moves no energy, only where the mass sits and how far
+ * the surfaces travel. */
+SIM_EXPORT int sim_wing_set_tune(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  const int rc = plant_set_tune(in);
+  /* Add-ons laid over it move the CG by their share of the new mass. */
+  contact_build_corners();
+  return rc;
+}
+
+SIM_EXPORT int sim_wing_tune_clear(void) {
+  plant_tune_clear();
+  contact_build_corners();
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wing_tune(double *out) {
+  if (out == 0 || PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_tune_read(out);
   return SIM_OK;
 }
 

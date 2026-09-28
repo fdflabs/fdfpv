@@ -245,6 +245,19 @@ export class Sim {
     return code;
   }
 
+  /* Seat the pilot's tuning: `params` is the SIM_TUNE_DOUBLES block that
+   * configs/tuning.js tuneBlock builds. See sim_abi.h. */
+  setTune(params) {
+    const ptr = this.e.malloc(params.length * 8);
+    if (!ptr) {
+      throw new Error('sim.wasm malloc failed for the tune block');
+    }
+    new Float64Array(this.e.memory.buffer, ptr, params.length).set(params);
+    const code = this.e.sim_wing_set_tune(ptr);
+    this.e.free(ptr);
+    return code;
+  }
+
   clearAddons() {
     return this.e.sim_addons_clear();
   }
@@ -260,6 +273,19 @@ export class Sim {
     }
     const f = new Float64Array(this.e.memory.buffer, this.addonsPtr, 8);
     return { on: f[0] === 1, massKg: f[1], cda: f[2], shift: [f[3], f[4], f[5]], wheelR: f[6], thrustN: f[7] };
+  }
+
+  clearTune() {
+    return this.e.sim_wing_tune_clear();
+  }
+
+  /* The tune block in force, a Float64Array copy, or null on a quad. */
+  tune() {
+    const ptr = this.e.malloc(TUNE_DOUBLES * 8);
+    const code = this.e.sim_wing_tune(ptr);
+    const out = code === SIM_OK ? new Float64Array(new Float64Array(this.e.memory.buffer, ptr, TUNE_DOUBLES)) : null;
+    this.e.free(ptr);
+    return out;
   }
 
   /* The sim_power_state block, named. */
@@ -281,3 +307,6 @@ export class Sim {
 
 /* SIM_POWER_STATE_DOUBLES in src/native/sim_abi.h. */
 export const POWER_STATE_DOUBLES = 10;
+
+/* SIM_TUNE_DOUBLES in src/native/sim_abi.h. */
+export const TUNE_DOUBLES = 11;
