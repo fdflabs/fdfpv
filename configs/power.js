@@ -21,7 +21,10 @@
  *   `packs` is what it can be flown on: for 'electric' LiPo packs
  *   { id, cells, mAh, massKg, source }, for 'glow' fuel tanks
  *   { id, cc, massKg, source }, and `pack` names the default one.
- *   `source` is a list of URLs.
+ *   `source` is a list of URLs. `fan`, on a ducted fan's option only, is
+ *   its spool as the plant's table has it (fan_tau and esc_start in
+ *   src/native/plant_wing.c, which no power block changes): { tauS,
+ *   escStartS }, so a bench or a check knows its thrust lags the stick.
  *
  *   The pilot's choice is settings.power[airframeId] = { option, pack }.
  *   normalizePower validates a stored map (an unknown airframe, option or
@@ -119,6 +122,12 @@ const COX_REVIEW = 'https://www.coxengines.ca/public/files/review.pdf';
 const SAM_RULES = 'https://www.antiquemodeler.org/images/Rulebook/2025%20Final%20-%20Jan%2017%202025.pdf';
 const MENON = 'https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content';
 const APC = 'https://www.apcprop.com/files/PER3_';
+const FREEWING_F16 = 'https://www.freewing-model.com/freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html';
+const FREEWING_F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
+const FREEWING_F16_4S = 'https://freewing-model.com/freewing-f-16-v2-4s-standard-70mm-edf-jet-pnp-rc-airplane.html';
+const FREEWING_FAN = 'https://www.rc-castle.com/index.php?route=product/product&product_id=7558';
+const NASA_EDF = 'https://ntrs.nasa.gov/api/citations/20230017299/downloads/Weinstein_SciTech2024_Final.pdf';
+const ADMIRAL = 'https://motionrc.com/products/';
 /* Glow fuel's density, g/cc, the figure Menon's fuel flows are converted
  * with; a tank's mass here is its fuel's, full. */
 const FUEL_G_CC = 0.875;
@@ -152,6 +161,10 @@ export const TABLE = {
     flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 7, note: 'E-flite, as the Timber on wheels', source: TIMBER_MANUAL },
   },
   bombshell1118: { simId: 11, massKg: 0.5599, cells: 3, rCell: 0.030, propIn: 7, cruiseMs: 8, flightTime: null },
+  f16878: {
+    simId: 16, massKg: 2.116, cells: 6, rCell: 0.006, propIn: 69 / 25.4, cruiseMs: 20,
+    flightTime: { kind: 'mixed', minutesLow: 4, minutesHigh: 4, note: "Model Aviation's review of the V2 6S Pro on a 6S 4000, flown as a jet is: 'Flight duration: 4 minutes'", source: 'https://www.modelaviation.com/freewing-f-16' },
+  },
   kadet1981: {
     simId: 12, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 10,
     flightTime: { kind: 'mixed', minutesLow: 19.4, minutesHigh: 19.4, note: "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc", source: OS_56_MANUAL },
@@ -467,6 +480,46 @@ const KADET = [
   },
 ];
 
+/* Freewing's F-16 V3 70 mm EDF, docs/F16-STAGE1.md: the 70 mm twelve
+ * blade fan on its 2957 2210 kV inrunner and an 80 A ESC, 6S 3500 to 4500
+ * (Freewing's page and the V3 manual: 2,400 g of thrust); the fan unit's
+ * listing gives 70 A at 22.2 V. The plant's pitch speed for a fan is its
+ * zero thrust speed, NASA's 1.603 n D (f16:derive). Freewing's own 4S
+ * Standard flies the same fan on a 2849 2850 kV outrunner and a 60 A ESC at
+ * 1,800 g and "a maximum speed of 78mph": that speed on this fan and drag
+ * is the fan at 0.767 of the 6S's speed (f16:derive), so its thrust, zero
+ * thrust speed and current follow the fan's laws, the speed squared, the
+ * speed, and the speed cubed at two thirds the voltage: 47 A, inside its
+ * 60 A ESC. The packs are Motion RC's Admiral, which Freewing's dealer
+ * sells for it; the pack slides to the manual's 90 mm CG. */
+const F16_6S = [
+  lipo('6s4000', 6, 4000, 566, `${ADMIRAL}admiral-4000mah-6s-22-2v-40c-lipo-battery-with-ec5-connector-epr40006e`),
+  lipo('6s4500', 6, 4500, 652, `${ADMIRAL}admiral-4500mah-6s-22-2v-40c-lipo-battery-with-ec5-connector-epr45006e`),
+];
+const F16_4S_R = 0.7667;
+const F16_FAN = { tauS: 0.08, escStartS: 0.3 };
+const F16 = [
+  {
+    id: 'stock', name: 'power.f16.stock', kind: 'electric', voice: 'edf',
+    kv: 2210, propIn: 69 / 25.4, pitchIn: 0, blades: 12,
+    thrustN: 23.536, currentA: 70.0, rpmNoLoad: 49062, pitchSpeedMs: 76.87, lvcV: 3.15,
+    fan: F16_FAN,
+    massKg: 2.116, cgShiftM: 0, packs: F16_6S, pack: '6s4000',
+    source: [FREEWING_F16, FREEWING_F16_MANUAL, FREEWING_FAN, NASA_EDF],
+  },
+  {
+    id: '4s', name: 'power.f16.4s', kind: 'electric', voice: 'edf',
+    kv: 2850, propIn: 69 / 25.4, pitchIn: 0, blades: 12,
+    thrustN: 23.536 * F16_4S_R * F16_4S_R, currentA: 70.0 * F16_4S_R * F16_4S_R * F16_4S_R * (22.2 / 14.8),
+    rpmNoLoad: 49062 * F16_4S_R, pitchSpeedMs: 76.87 * F16_4S_R, lvcV: 3.15,
+    fan: F16_FAN,
+    massKg: 1.800, cgShiftM: 0,
+    packs: [lipo('4s4000', 4, 4000, 386, `${ADMIRAL}admiral-4000mah-4s-14-8v-40c-lipo-battery-with-xt60-connector-multi-pack-2-batteries-adm6024-002`)],
+    pack: '4s4000',
+    source: [FREEWING_F16_4S, FREEWING_FAN, NASA_EDF],
+  },
+];
+
 export const POWER = {
   wing1000: WING,
   sky1800: SKY,
@@ -479,6 +532,7 @@ export const POWER = {
   timber1500f: TIMBER,
   bombshell1118: BOMBSHELL,
   kadet1981: KADET,
+  f16878: F16,
 };
 
 /* ------------------------------------------------------------------ */

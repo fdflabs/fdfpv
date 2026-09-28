@@ -141,6 +141,8 @@ export const PROPS = {
   kadet1981: [STOCK, apcProp('12x8', '12x8', 12, 8, 2), apcProp('11x7', '11x7', 11, 7, 2)],
   radian2000: [STOCK],
   bramor2300: [STOCK],
+  /* A fan is its duct's: Freewing sells the one rotor for it. */
+  f16878: [STOCK],
 };
 
 /* The planes the tab serves: every fixed wing the picker offers. */
@@ -173,6 +175,8 @@ export const ANCHORS = {
   slowstick1180: { prop: [0.31, 0, 0], belly: [0.02, 0, -0.007], tail: [-0.56, 0, -0.012], tank: [-0.01, 0, -0.01], led: [[0.080, 0.18, 0.064], [0.080, 0.41, 0.114]] },
   bombshell1118: { prop: [0.166, 0, -0.005], belly: [0.02, 0, -0.064], tail: [-0.60, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.042, 0.17, 0.075], [0.042, 0.50, 0.146]] },
   kadet1981: { prop: [0.441, 0, -0.013], belly: [0, 0, -0.159], tail: [-0.93, 0, -0.13], tank: [-0.01, 0, -0.08], led: [[0.075, 0.30, 0.093], [0.075, 0.89, 0.139]] },
+  /* The F-16's `prop` is its fan, inside the fuselage behind the wing. */
+  f16878: { prop: [-0.24, 0, 0], belly: [0, 0, -0.061], tail: [-0.59, 0, -0.038], tank: [-0.01, 0, -0.02], led: [[0.080, 0.13, -0.006], [-0.139, 0.40, -0.006]] },
 };
 
 /* A body frame point: one mass or drag and where it is. */

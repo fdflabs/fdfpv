@@ -144,13 +144,13 @@ try {
     const st = await page.evaluate('window.__craftState()');
     const g = await page.evaluate('window.__ground ? window.__ground() : null');
     const drawn = await page.evaluate("(() => { let n = null; window.__mapScene().traverse((o) => { if (o.name === 'craft') { o.traverse((c) => { if (!n && /-fuselage$/.test(c.name)) n = c.name; }); } }); return n; })()");
-    say(craft.setting === AF && craft.run === AF && craft.module === af.simId && drawn === `${AF.replace(/[0-9]+$/, '')}-fuselage`,
+    say(craft.setting === AF && craft.run === AF && craft.module === af.simId && drawn === `${AF.replace(new RegExp(`${af.sizeMm}$`), '')}-fuselage`,
       `the setting, the run, the module and the drawn model: ${craft.setting}, ${craft.run}, module ${craft.module}, ${drawn}`);
     say(st.tune === af.defaultTune && st.wingStab === 2, `on ${st.tune} with the stabiliser in mode ${st.wingStab}`);
     /* Its sound: the voice the airframe names, or the fixed wings' blade
      * pass, read off the mix's own voice (src/render/audio.js VOICES). */
     const voice = await page.evaluate("(() => { const v = window.__audio.voice; return { perRev: v.perRev, wave: v.wave, rpmFull: v.rpmFull }; })()");
-    const want = { glow4: 'fourStroke' }[af.voice] ?? 'blade';
+    const want = { glow4: 'fourStroke', edf: 'fan' }[af.voice] ?? 'blade';
     say(voice.wave === want, `its sound: the ${voice.wave} voice, ${voice.perRev} wave periods a revolution, full at ${voice.rpmFull} rpm`);
     if (g) {
       say(g.landed && Math.abs(g.above - af.gear.restHeight) < 0.02,

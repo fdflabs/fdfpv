@@ -335,5 +335,23 @@ export const ESTIMATES = {
         minutes: 66.7
       }
     }
+  },
+  f16878: {
+    stock: {
+      '6s4000': {
+        topSpeed: 44.16,
+        minutes: 23.7
+      },
+      '6s4500': {
+        topSpeed: 44.37,
+        minutes: 25.1
+      }
+    },
+    '4s': {
+      '4s4000': {
+        topSpeed: 34.01,
+        minutes: 20.1
+      }
+    }
   }
 };

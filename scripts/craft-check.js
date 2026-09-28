@@ -116,6 +116,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             held by craft-preview.js's half span row. The reach is the
  *             elevator's rounded outer trailing corner, 1.168 m.
  *             src/render/kadetcraft.js draws it.
+ *   f16878    Freewing's F-16 V3, 878 mm over its tip rails, whose pitot
+ *             reaches further from the CG than anything else: 0.710 m
+ *             ahead, against the rails' 0.439 m out and the fin's tip
+ *             0.596 m aft, so the width this file measures is twice the
+ *             pitot's reach, 1420 mm, and Freewing's 878 mm span is held
+ *             by craft-preview.js's half span row. src/render/f16craft.js
+ *             draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -136,6 +143,7 @@ const REAL = {
   cub1400f: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
   kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
+  f16878: { spanMm: 1420.0, sweepMm: 1420.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

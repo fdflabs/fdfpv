@@ -109,6 +109,7 @@ const src = (label, url) => ({ label, url });
 const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/Piper_J-3_Cub');
 const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
 const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
+const FREEWING = 'https://www.freewing-model.com/';
 export const LIVERIES = {
   sky1800: {
     regions: [r('wing', '#d4e2ee'), r('tail', '#d4e2ee'), r('pod', '#d4e2ee')],
@@ -170,6 +171,16 @@ export const LIVERIES = {
       { id: 'sig_kit', source: src('SIG Kadet Senior kit RC-58', 'https://sigmfg.com/products/kadet-senior-kit'), colours: { wing: '#b21527', wing_trim: '#0e1213', fuselage: '#b21527', fuse_trim: '#0e1213' } },
       { id: 'sport_red', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#b21527', fuselage: '#b21527', fuse_trim: '#f2f2f2' } },
       { id: 'sport_blue', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#335a9a', fuselage: '#335a9a', fuse_trim: '#f2f2f2' } },
+    ],
+  },
+  f16878: {
+    /* Painted foam, not film: Freewing's "modern three tone gray US Air
+     * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270
+     * Medium Gray and 36375 Light Ghost Gray, and the canopy's gold tint. */
+    regions: [r('dark', '#4d5357'), r('medium', '#7f878c'), r('light', '#a9b0b4'), r('canopy', '#8a7440')],
+    schemes: [
+      { id: 'stock', source: src('Freewing F-16 Falcon V3 6S High Performance, FJ21115P', `${FREEWING}freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html`), colours: {} },
+      { id: 'arctic', source: src('Freewing F-16 V3 Arctic Camo, FJ21125P', 'https://motionrc.com/products/freewing-f-16-v3-arctic-camo-high-performance-70mm-edf-jet-pnp-fj21125p'), colours: { dark: '#3b3f44', medium: '#c9ced2', light: '#eef0f1' } },
     ],
   },
 };

@@ -131,16 +131,33 @@ import { Music } from './music.js';
  *         lope, because a two stroke at speed fires every turn and its
  *         misses are an idle's (Heywood, 1988, 9.4, as above). `perRev` is
  *         a quarter: one period of the wave is four firing cycles.
+ *   edf   A ducted fan, the F-16's 70 mm twelve blade rotor
+ *         (docs/F16-STAGE1.md). What makes a fan a whine and not a prop's
+ *         buzz is its blade pass: twelve blades at 41,700 rpm pass 8.3 kHz,
+ *         a tone high in the ear's most sensitive band, over a little of
+ *         the shaft's own rate, which an unbalanced rotor and the motor's
+ *         poles put there. The wave is one revolution long (`perRev` 1, so
+ *         its fundamental is the shaft rate the plant reports), its twelfth
+ *         harmonic the blade pass and its twenty fourth the pass's octave
+ *         (fanWave). The lowpass cap that keeps the props' 2 to 8 kHz band
+ *         quiet would take the whine away, so this voice carries its own,
+ *         `lpCap`, over the blade pass at full throttle, and a `gain` that
+ *         takes the stem 9.5 dB under a prop's so a tone that high is not
+ *         a hurt. The fan spools behind the stick in the plant, so the
+ *         whine rises and falls a beat after the throttle, as a real one
+ *         does.
  *
  * `perRev` is how many periods of the voice's wave one revolution makes,
  * which for a prop's own tone is its blade count; `lpTrack` is where the
- * motor lowpass sits as a multiple of that frequency.
+ * motor lowpass sits as a multiple of that frequency; `lpCap`, where given,
+ * replaces MOTOR_LP_CAP for that voice, and `gain` scales its stem.
  */
 export const VOICES = {
   quad: { perRev: 3, wave: 'blade', lpTrack: 3.4, rpmFull: 9000, speedFull: 32, pan: [0.45, 0.32, -0.45, -0.32], windCorner: 900, windOpen: 0 },
   wing: { perRev: 2, wave: 'blade', lpTrack: 3.4, rpmFull: 17600, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
   glow4: { perRev: 1 / 8, wave: 'fourStroke', lpTrack: 48, rpmFull: 9500, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
   glow2: { perRev: 1 / 4, wave: 'twoStroke', lpTrack: 24, rpmFull: 9350, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
+  edf: { perRev: 1, wave: 'fan', lpTrack: 14, lpCap: 10000, gain: 0.335, rpmFull: 41700, speedFull: 46, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
 };
 
 /*
@@ -247,8 +264,30 @@ function exhaustWave(cyclesTable, suckBack, bladePasses) {
   }
   return { real, imag };
 }
+/* A twelve blade fan, one revolution long: the shaft's rate and its
+ * first harmonics faint, the blade pass (the twelfth) the tone, its
+ * octave and twelfth under it, and a sideband either side of the pass
+ * where the rotor's small imbalance modulates it. Magnitudes from the
+ * shape of a ducted rotor's published spectra, tonal at the blade pass
+ * over a broadband floor (Weinstein et al.'s EDF, and the aeroacoustics of
+ * electric ducted fans surveyed in Aerospace Science and Technology,
+ * 2024); no recording was used. */
+function fanWave() {
+  const real = new Float32Array(37);
+  const imag = new Float32Array(37);
+  const tone = { 1: 0.10, 2: 0.06, 3: 0.03, 11: 0.10, 12: 1.0, 13: 0.10, 24: 0.28, 36: 0.08 };
+  let k = 0;
+  for (const [h, a] of Object.entries(tone)) {
+    const phase = 0.7 * k;
+    real[Number(h)] = a * Math.cos(phase);
+    imag[Number(h)] = a * Math.sin(phase);
+    k += 1;
+  }
+  return { real, imag };
+}
 const WAVES = {
   blade: () => ({ real: new Float32Array(MOTOR_WAVE_REAL), imag: new Float32Array(MOTOR_WAVE_IMAG) }),
+  fan: fanWave,
   fourStroke: fourStrokeWave,
   twoStroke: twoStrokeWave,
 };
@@ -1089,7 +1128,7 @@ export class MotorAudio {
       /* setTargetAtTime, not linearRamp: the ear hears a step in
        * frequency as a click, and the motors change fast. */
       node.osc.frequency.setTargetAtTime(hz, t, 0.012);
-      const corner = Math.min(MOTOR_LP_CAP, Math.max(MOTOR_LP_FLOOR, hz * voice.lpTrack));
+      const corner = Math.min(voice.lpCap ?? MOTOR_LP_CAP, Math.max(MOTOR_LP_FLOOR, hz * voice.lpTrack));
       node.lp1.frequency.setTargetAtTime(corner, t, 0.03);
       /*
        * Loudness, LINEAR in throttle rather than squared.
@@ -1110,7 +1149,7 @@ export class MotorAudio {
        * 70 percent went and why it could not all come off here.
        */
       const loud = Math.min(1, r / voice.rpmFull);
-      node.gain.gain.setTargetAtTime(0.139 + 0.139 * loud, t, 0.03);
+      node.gain.gain.setTargetAtTime((0.139 + 0.139 * loud) * (voice.gain ?? 1), t, 0.03);
       if (loud > loudest) {
         loudest = loud;
       }
