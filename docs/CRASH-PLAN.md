@@ -715,3 +715,37 @@ an arm. Quad into a wall: props, arms, camera, pack, drops at the
 wall. Bombshell into grass and onto a roof: balsa breaks up, pieces
 rest where they fall. The crash loop is closed at feels right; the
 suite's bands stay as background work.
+
+### Foam springs back (owner decision, 2026-09-28)
+
+Since eafd19d a Skyhunter's pod settling onto a wood or rock roof at 0.7
+to 1.8 m/s crushed 3 to 6 mm on its first touch, raised `crushed` and a
+crush event, and roof-check failed 6 scenarios on swiss2, 4 on alps and
+1 on the city. The owner decided foam springs back. A foam part (EPO,
+EPP, and a motor crushing the foam nose behind it) now reports as its
+dent and damage FOAM_SET of what it crushed, all of it once crushed
+through its crush depth, and a crush that has not strained the foam
+under its patch into the plateau (10 percent of the patch's width) is a
+scuff: no event, no `crushed`. The contact hull keeps the whole crush for
+the flight, so no trajectory changes (springing the hull back turned the
+Cub's sand nose over into a broken tail and gear).
+
+FOAM_SET is 0.26, not 0.12. ARPRO's 7 and 12 percent compression set
+after 25 and 50 percent strain are percents of the ORIGINAL THICKNESS
+(ASTM D3575 Suffix B, Cd = (to - tf) / to), so 30 g/l EPP keeps 0.28 and
+0.24 of what was crushed (R-FOAM). The scuff gate compares the crush with
+the plateau onset and never reads FOAM_SET, so the constant changes the
+size of a dent, not whether there is one.
+
+The bus shelter's ramp was the last failure, on swiss2 and alps, and it
+was the scenario's aim, not the physics: aimed 0.3 m under the roof's
+plane as a pitched roof is, the Skyhunter met the 3 degree slab's front
+edge head on at 14 m/s (14 to 1 m/s in one sample, its centre 1 cm over
+the top). A slab is now skimmed: over the edge 0.15 m above its top,
+settling toward 0.06 m over its middle. The pass condition is unchanged.
+roof-check is `npm run check:roof` and stays local: checks.yml runs only
+browserless checks under a minute, and this is minutes of headless
+Chromium per map. Evidence: roof-check swiss2, alps and city all pass
+(each run alone; crash:identity swaps dist/sim.wasm while it runs, so
+never run a browser check beside it), crash:core 238/238, crash:rules
+209/209, crash:handoff and crash:identity pass.

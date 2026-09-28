@@ -991,7 +991,8 @@ int sim_part_hull(int part, double *out);
  *   [15] the free body it rides on, 0..SIM_PARTS_MAX-1, or -1
  *   [16] its peak load this step over its limit, 0 when untouched
  *   [17..19] its permanent deformation, body frame: a crushed part's dent,
- *            m, pointing into it; an arm, a boom or a gear leg's bend and
+ *            m, pointing into it (a foam part's, what it keeps once
+ *            unloaded: crash.c, FOAM SPRINGS BACK); an arm, a boom or a gear leg's bend and
  *            a camera or antenna's knock, a rotation vector, rad
  *   [20] energy it has absorbed, J
  *   [21] kind, as sim_part_info [0]
@@ -1026,7 +1027,9 @@ int sim_parts_state(double *out);
 #define SIM_DAMAGE_EVENT_DOUBLES 16
 #define SIM_DAMAGE_EVENTS_MAX 64
 #define SIM_EVENT_BREAK 1  /* the joint failed: the part and its children left */
-#define SIM_EVENT_CRUSH 2  /* foam crushed, a permanent dent */
+#define SIM_EVENT_CRUSH 2  /* foam crushed past a scuff: a permanent dent. Its
+                            * step is when it began, and it may be read out
+                            * after later events (crash.c, FOAM SPRINGS BACK) */
 #define SIM_EVENT_CHIP 3   /* a prop chipped: thrust down, imbalance up. A
                             * spinning blade chips only past its tip's impact
                             * limit, and each strike starts with an event; its
@@ -1070,7 +1073,7 @@ int sim_damage_events_dropped(void);
 #define SIM_DMG_GEAR_LOST (1 << 11)
 #define SIM_DMG_FLOAT_LOST (1 << 12)
 #define SIM_DMG_TAIL_LOST (1 << 13)      /* a stabiliser, a fin or a boom */
-#define SIM_DMG_CRUSHED (1 << 14)
+#define SIM_DMG_CRUSHED (1 << 14)        /* a dent past a scuff (crash.c, FOAM SPRINGS BACK) */
 #define SIM_DMG_IN_TREE (1 << 15)        /* held by a tree's crown this step */
 #define SIM_DMG_IN_WATER (1 << 16)       /* a part other than a float is wet */
 #define SIM_DMG_MOTOR_LOST (1 << 17)

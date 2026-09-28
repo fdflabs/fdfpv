@@ -526,9 +526,16 @@ typedef struct {
                       * the stop of the slide still going */
   double slip_v[3];  /* that slide's speed on the craft, world, m/s */
   long long slip_step; /* the step it was last driven */
+  double ep_crush;   /* a foam part's crush since it last met nothing, m */
+  int ep_dented;     /* that crush has passed its scuff depth */
+  int marked;        /* a crush has left a dent past a scuff: `crushed` */
 } PartState;
 
 static PartState PS[SIM_PARTS_MAX];
+/* A foam part's crush event held while its crush is a scuff (FOAM SPRINGS
+ * BACK, crush_event). */
+static double g_pend_ev[SIM_PARTS_MAX][SIM_DAMAGE_EVENT_DOUBLES];
+static int g_pend_on[SIM_PARTS_MAX];
 /* A part that slid out of its strap this batch: the share of the batch's
  * change of speed it leaves with (slip_take), for detach; -1 for none. */
 static double g_slip_keep[SIM_PARTS_MAX];
@@ -665,17 +672,20 @@ static int attached(int i) {
 /* ---------------------------------------------------------------------
  * EVENTS
  * ------------------------------------------------------------------- */
-static void event_push(const SimState *s, int part, int type, double ratio, double force,
-                       double moment, double energy, const double pw[3], const double nw[3],
-                       double vin, int surf) {
-  double *e;
+static double *event_slot(void) {
   if (g_ev_count == SIM_DAMAGE_EVENTS_MAX) {
     g_ev_head = (g_ev_head + 1) % SIM_DAMAGE_EVENTS_MAX;
     g_ev_count -= 1;
     g_ev_dropped += 1;
   }
-  e = g_ev[(g_ev_head + g_ev_count) % SIM_DAMAGE_EVENTS_MAX];
+  double *e = g_ev[(g_ev_head + g_ev_count) % SIM_DAMAGE_EVENTS_MAX];
   g_ev_count += 1;
+  return e;
+}
+
+static void event_fill(double *e, const SimState *s, int part, int type, double ratio, double force,
+                       double moment, double energy, const double pw[3], const double nw[3],
+                       double vin, int surf) {
   e[0] = (double)s->step_index;
   e[1] = (double)part;
   e[2] = (double)type;
@@ -690,6 +700,12 @@ static void event_push(const SimState *s, int part, int type, double ratio, doub
   e[13] = vin;
   e[14] = (double)(surf == SURF_OBSTACLE ? SIM_SURF_DEFAULT : surf);
   e[15] = PS[part].damage;
+}
+
+static void event_push(const SimState *s, int part, int type, double ratio, double force,
+                       double moment, double energy, const double pw[3], const double nw[3],
+                       double vin, int surf) {
+  event_fill(event_slot(), s, part, type, ratio, force, moment, energy, pw, nw, vin, surf);
 }
 
 /* ---------------------------------------------------------------------
@@ -1226,6 +1242,10 @@ void crash_reset(void) {
     p->slip = 0.0;
     p->slip_v[0] = p->slip_v[1] = p->slip_v[2] = 0.0;
     p->slip_step = 0;
+    p->ep_crush = 0.0;
+    p->ep_dented = 0;
+    p->marked = 0;
+    g_pend_on[i] = 0;
     g_slip_keep[i] = -1.0;
     FB[i].state = 0;
   }
@@ -1433,6 +1453,9 @@ typedef struct {
   int crush;        /* its impulses were capped: the part was crushing */
   int soft;         /* its impulses were the ground's spring's */
   double fc;        /* the plateau force it crushed at, N */
+  int sh_kind;      /* the shape it crushed on (CrushShape), for its patch */
+  double sh_r;
+  double sh_ax[3];
   double room;      /* how much further the front can go, m (crush_room) */
   int ground;       /* the ground plane's contact */
   int sever;        /* the joint the blow broke on its way in, + 1, or 0 */
@@ -1677,6 +1700,84 @@ static double crush_force(const Table *t, int i, const double nb[3], const Crush
   return fc;
 }
 
+/*
+ * FOAM SPRINGS BACK (the owner's decision, 2026-09-28). Bead foam crushed
+ * and let go recovers all but its compression set: ARPRO EPP 30 g/L keeps
+ * 24 to 28 percent of what was crushed (R-FOAM), FOAM_SET here. A foam part's dent, as the
+ * module reads it out, and its damage are FOAM_SET of what it crushed.
+ * The recovery is slow: the set is what is left once the foam has been
+ * let rest after the crush, and a crash is over in seconds. So the contact
+ * hull keeps the crush, front, patch and force exactly as above, for the
+ * rest of the flight, and what springs back is the dent the part is left
+ * with. Springing the hull back the step a part met nothing, tried first,
+ * put millimetres of foam back into ground it was still resting on and
+ * turned the Cub's nose over on sand from a prop strike into a broken tail
+ * and gear, upright (docs/CRASH-STAGE1.md). A part crushed through its
+ * whole crush depth has gone past the plateau into the densified foam the
+ * set was not measured on (R-FOAM: 10 to 50 percent strain), and keeps it
+ * all.
+ *
+ * A SCUFF MARKS NOTHING. The plateau starts at 10 percent strain
+ * (FOAM_ONSET, R-FOAM), and the foam under a patch is strained over about
+ * the patch's width w (crush_force). A crush shallower than FOAM_ONSET w
+ * has not taken that foam into its plateau, and keeps less than FOAM_SET
+ * FOAM_ONSET w: the scuff depth, w the patch at the front the crush has
+ * reached. A Skyhunter's pod skidding onto a roof at 0.7 m/s crushes 3.9
+ * mm on a 7.4 cm patch, against 7.4 mm to reach the plateau: it keeps 1.0
+ * mm, under its 1.9 mm scuff depth. The crush is counted from the last
+ * step the part met nothing. Such a crush raises no event and no
+ * `crushed`; a crush that passes it pushes the event it began with and
+ * every one after, each at the step it happened. The parts are exactly
+ * those crush_foam names; any other crush marks as it always did.
+ */
+
+/* What part i keeps of its crush, m. */
+static double crush_kept(int i) {
+  const Table *t = tab();
+  const double c = PS[i].crush;
+  return crush_foam(t, i) && c < t->p[i].crush_d ? FOAM_SET * c : c;
+}
+
+/* The crush just advanced part i by dl along nb (body, into the part),
+ * against the shape sh; the dent itself has been moved by the caller. */
+static void crush_advance(int i, double dl, const double nb[3], const CrushShape *sh) {
+  const Table *t = tab();
+  PartState *p = &PS[i];
+  if (!crush_foam(t, i)) {
+    p->marked = 1;
+    return;
+  }
+  p->ep_crush += dl;
+  /* The patch at the front the crush has reached. */
+  const double area = crush_area(t, i, nb, sh, crush_front(i, nb));
+  if (p->ep_dented || !(area > 0.0) || p->ep_crush < FOAM_ONSET * sim_sqrt(area)) {
+    return;
+  }
+  p->ep_dented = 1;
+  p->marked = 1;
+  if (g_pend_on[i]) {
+    double *e = event_slot();
+    for (int k = 0; k < SIM_DAMAGE_EVENT_DOUBLES; k += 1) {
+      e[k] = g_pend_ev[i][k];
+    }
+    g_pend_on[i] = 0;
+  }
+}
+
+/* A crush event: pushed, or held while its crush is still a scuff. A
+ * scuff's later events fold into the first it held. */
+static void crush_event(const SimState *s, int i, double ratio, double force, double energy,
+                        const double pw[3], const double nw[3], double vin, int surf) {
+  if (!crush_foam(tab(), i) || PS[i].ep_dented) {
+    event_push(s, i, SIM_EVENT_CRUSH, ratio, force, 0.0, energy, pw, nw, vin, surf);
+    return;
+  }
+  if (!g_pend_on[i]) {
+    event_fill(g_pend_ev[i], s, i, SIM_EVENT_CRUSH, ratio, force, 0.0, energy, pw, nw, vin, surf);
+    g_pend_on[i] = 1;
+  }
+}
+
 int crash_obstacle_surface(void) {
   return SURF_OBSTACLE;
 }
@@ -1704,6 +1805,9 @@ static Hit *hit_get(int part, int force) {
   h->crush = 0;
   h->soft = 0;
   h->fc = 0.0;
+  h->sh_kind = CR_EDGE;
+  h->sh_r = 0.0;
+  h->sh_ax[0] = h->sh_ax[1] = h->sh_ax[2] = 0.0;
   h->room = 0.0;
   h->ground = g_surf_ground;
   h->sever = 0;
@@ -2677,6 +2781,11 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
     } else {
       h->crush = 1;
       h->fc = g_capped_fc;
+      h->sh_kind = g_cr_shape.kind;
+      h->sh_r = g_cr_shape.r;
+      for (int a = 0; a < 3; a += 1) {
+        h->sh_ax[a] = g_cr_shape.ax[a];
+      }
       if (g_crush_room > h->room) {
         h->room = g_crush_room;
       }
@@ -2840,8 +2949,8 @@ static double part_damage(int i) {
   if (d->kind == SIM_PART_PROP && p->chip > dmg) {
     dmg = p->chip;
   }
-  if (d->crush_d > 0.0 && p->crush / d->crush_d > dmg) {
-    dmg = p->crush / d->crush_d;
+  if (d->crush_d > 0.0 && crush_kept(i) / d->crush_d > dmg) {
+    dmg = crush_kept(i) / d->crush_d;
   }
   if (d->slip_d > 0.0 && p->slip / d->slip_d > dmg) {
     dmg = p->slip / d->slip_d;
@@ -3487,6 +3596,8 @@ static void judge(SimState *s) {
         for (int a = 0; a < 3; a += 1) {
           p->dent[a] += dl * nb[a];
         }
+        const CrushShape met = { x->sh_kind, x->sh_r, { x->sh_ax[0], x->sh_ax[1], x->sh_ax[2] } };
+        crush_advance(i, dl, nb, &met);
         dented = 1;
         g_crush_mask |= 1u << i;
         fp = x->jn / g_batch_dt;
@@ -3495,7 +3606,7 @@ static void judge(SimState *s) {
         if (first || !(p->crush < d->crush_d)) {
           double pw[3];
           world_of(s, bb[h], pw);
-          event_push(s, i, SIM_EVENT_CRUSH, sim_sqrt(k * x->jn * x->vin) / fc, fc, 0.0, p->energy, pw, x->n, x->vin, x->surf);
+          crush_event(s, i, sim_sqrt(k * x->jn * x->vin) / fc, fc, p->energy, pw, x->n, x->vin, x->surf);
         }
       } else if (d->crush_s > 0.0 && p->crush < d->crush_d && attached(i)) {
         const CrushShape met = { x->ground ? CR_FLAT : CR_EDGE, 0.0, { 0.0, 0.0, 0.0 } };
@@ -3524,11 +3635,12 @@ static void judge(SimState *s) {
           for (int a = 0; a < 3; a += 1) {
             p->dent[a] += dl * nb[a];
           }
+          crush_advance(i, dl, nb, &met);
           dented = 1;
           p->damage = part_damage(i);
           double pw[3];
           world_of(s, bb[h], pw);
-          event_push(s, i, SIM_EVENT_CRUSH, f0 / fc, f0, 0.0, absorbed, pw, x->n, x->vin, x->surf);
+          crush_event(s, i, f0 / fc, f0, absorbed, pw, x->n, x->vin, x->surf);
           changed = 1;
         }
       }
@@ -4009,6 +4121,27 @@ static int ring_live(void) {
   return live;
 }
 
+/* A step's batch that met none of a foam part ends the crush its scuff
+ * is judged on, and a held scuff's event with it. A host's obstacle batch
+ * between two steps says nothing about the ground the part may be on. */
+static void unload(void) {
+  if (!g_from_step) {
+    return;
+  }
+  unsigned int met = 0;
+  for (int h = 0; h < g_nh; h += 1) {
+    met |= 1u << H[h].part;
+  }
+  const Table *t = tab();
+  for (int i = 0; i < t->n; i += 1) {
+    if (!(met & (1u << i))) {
+      PS[i].ep_crush = 0.0;
+      PS[i].ep_dented = 0;
+      g_pend_on[i] = 0;
+    }
+  }
+}
+
 void crash_batch_end(SimState *s) {
   if (!SIM_DAMAGE || !g_batch_open) {
     return;
@@ -4027,6 +4160,7 @@ void crash_batch_end(SimState *s) {
       crack_settle(i, 0.0);
     }
     g_crush_mask = 0;
+    unload();
     return;
   }
   judge(s);
@@ -4039,6 +4173,7 @@ void crash_batch_end(SimState *s) {
     }
   }
   g_crush_mask &= now;
+  unload();
 }
 
 /* ---------------------------------------------------------------------
@@ -5628,7 +5763,7 @@ int crash_parts_state(const SimState *s, double *out) {
     }
     o[16] = p->peak;
     for (int a = 0; a < 3; a += 1) {
-      o[17 + a] = d->crush_s > 0.0 ? p->dent[a] : p->bend[a];
+      o[17 + a] = d->crush_s > 0.0 ? p->dent[a] * (p->crush > 0.0 ? crush_kept(i) / p->crush : 1.0) : p->bend[a];
     }
     o[20] = p->energy;
     o[21] = (double)d->kind;
@@ -5714,7 +5849,7 @@ SIM_EXPORT int sim_damage_flags(void) {
     default:
       break;
     }
-    if (p->crush > 0.0) {
+    if (p->crush > 0.0 && p->marked) {
       f |= SIM_DMG_CRUSHED;
     }
   }
@@ -5814,6 +5949,7 @@ int crash_part_set_damage(SimState *s, int part, double dmg) {
     p->chip_evt = dmg;
   } else if (d->crush_s > 0.0) {
     p->crush = dmg * d->crush_d;
+    p->marked = dmg > 0.0;
   } else if (d->kind == SIM_PART_ARM || d->kind == SIM_PART_CAMERA || d->kind == SIM_PART_ANTENNA
              || d->mat == SIM_MAT_WIRE || (d->mat == SIM_MAT_ALU && (d->kind == SIM_PART_BOOM || d->kind == SIM_PART_GEAR))) {
     /* An arm's tip up, which leans its motor's thrust inboard; a camera's

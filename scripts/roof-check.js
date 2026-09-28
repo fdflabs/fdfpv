@@ -329,7 +329,15 @@ const PLAN = (scn, R) => `(() => {
   const yaw = Math.atan2(ux, uz) / d2r;
   const V = ${SPEED};
   let lx, y, climb, back, attitude;
-  if (scn === 'ramp' && ((R.kind || 'house') === 'house' || pitch < 8 || R.hw >= 3.5)) {
+  if (scn === 'ramp' && ${Boolean(KINDS[R.kind]?.flat)}) {
+    /* A slab roof, the bus shelter's: aimed 0.3 m under its plane as a
+     * pitched roof is, the craft met the slab's front edge head on at 14
+     * m/s, not its top. A pilot skims one: over the edge with the centre
+     * 0.15 m above the top, settling to 0.06 m, the Skyhunter's pod
+     * resting on a roof, over its middle. */
+    const hi = T(R.hw) + 0.15, lo = T(0) + 0.06;
+    lx = R.hw; y = hi; back = 5; climb = -Math.atan((hi - lo) / R.hw) / d2r; attitude = pitch;
+  } else if (scn === 'ramp' && ((R.kind || 'house') === 'house' || pitch < 8 || R.hw >= 3.5)) {
     /* Level with the roof's plane, the way a pilot meets a ramp (on a
      * roof as near flat as the bus shelter's, a skim onto it), on any
      * roof as wide as a village house's. */
