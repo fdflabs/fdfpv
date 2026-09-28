@@ -141,13 +141,13 @@ All times are room clock ms (edge/rooms/core.js `roomMs`).
   until `goAt`, the race's hold. The players are everybody in the room;
   a joiner joins as a hunter with nothing.
 - **The first Ace** is drawn at `goAt`, at random among the seats present,
-  by a generator seeded from the room's own random source (`newToken`, so
-  the harness can seed it). The frontier `f` starts at `goAt`.
+  by `Math.random` in the room (the harness puts a seeded generator in its
+  place, `room.tag.random`). The frontier `f` starts at `goAt`.
 - **The judged timeline.** The room judges room milliseconds in order, up
-  to `t1`: the oldest newest sample among the seats seen in the last
-  `LATE_MS`, but never older than `LATE_MS` behind the room clock. So a
-  millisecond is decided once every live seat has covered it, or once it
-  is `LATE_MS` old, whichever is first, and a sample that arrives after
+  to `t1`: the oldest newest sample among the seats heard from in the last
+  `WAIT_MS` (2 s), but never older than `LATE_MS` behind the room clock.
+  So a millisecond is decided once every live seat has covered it, or once
+  it is `LATE_MS` old, whichever is first, and a sample that arrives after
   its millisecond was decided is never used: the Phase 3 promises, for
   every pair at once. Over `(f, t1]`:
   1. **The touch**: for each hunter, in seat order, `judge()` of the Ace
@@ -215,7 +215,11 @@ memory only, since a room that hibernated had nobody flying.
   millisecond waits for every live seat. A pilot on a slow link learns of
   a tag later, never differently. A pilot whose samples are later than
   `LATE_MS` is judged as not there for that span: they cannot tag or be
-  tagged, and as the Ace they do not score (decision 8).
+  tagged, and as the Ace they do not score (decision 8). A seat silent for
+  more than `WAIT_MS` (a menu, a tab in the background) is not waited
+  for, so one pilot on a menu does not hold every decision back; when it
+  flies again, its first samples, as many milliseconds as it is late, are
+  judged without it.
 - **What the clock costs**: a clock error of d ms between two seats moves
   each along its own path by v d, the Phase 3 band (0.36 m at 20 m/s,
   17 ms). `TAG_M` is sized to cover it (decision 3); the harness reports
@@ -276,3 +280,72 @@ memory only, since a room that hibernated had nobody flying.
 4. **Single player is bit identical.** Nothing in a flight alone calls
    anything of this mode: `npm run verify` 16 of 16, `npm run
    crash:identity`, and every `checks.yml` command.
+
+## As built (2026-09-28)
+
+Where the build departs from the plan above, and why:
+
+- **`WAIT_MS` = 2 s.** The first harness run had the frontier waiting only
+  for seats heard from in the last `LATE_MS`, and a seat that paused for a
+  second came back to find the room had judged the milliseconds its
+  delayed samples covered: 6 of 1,185 on time runs differed from the zero
+  latency run. A seat is now waited for while it has been heard from in
+  the last `WAIT_MS` (the referee's `KEEP_MS`); every row holds.
+- **`judge()` takes a negative margin as a gap** (`src/game/midair.js`,
+  Phase 3's file: four lines). Its two broadphase radii grow by the gap;
+  with a positive margin the arithmetic is what it was, and
+  `midair:harness` and `midair:twopage` pass as before.
+- **The go is a whole room millisecond** (`Math.ceil`): the judgement
+  steps on them, and the Durable Object's clock is whole already.
+- **The crown is this branch's own** (`src/render/crown.js`): a sprite the
+  same size on screen near and far, drawn through terrain and above the
+  name tag. The peer markers branch was not on origin, so there was no
+  `setPeerRole` to call; the one place it goes is `tagMarkPeers` in
+  `src/main.js`.
+- **The scoreboard is the race's box** (`RoomRaceHud`, a second one), the
+  results the race's screen (`ui.showRoomResults`), with the shell told
+  whose results are up (`roomResultsOf`), since only one game runs at a
+  time.
+- **A match plays where the room lives**: free flight in the room's own
+  world. A pilot elsewhere at the countdown (a track, another world) is
+  seated there from a menu and joins as a hunter when they fly.
+
+Found on the way, for their owners:
+
+- **Phase 5's spawn window is on arrival time** (`edge/rooms/safety.js`:
+  `spawnUntil = now + SPAWN_MS`, compared with each sample's arrival), so
+  where a respawn's protection ends moves by a sample with the link's
+  jitter. For the mid air referee that is the edge of a 5 s window; for a
+  tag Ace it would move a score by up to 33 ms. The harness's crashes
+  stamp their own `FLAG_SPAWNING`, as the client does, and avoid
+  teleports; stamping the window by sample time in `safety.js` would make
+  it exact. Not changed here.
+- **The Phase 3 merge had left conflict markers in `package.json`** on
+  this branch (fixed in its own commit). Phases 2, 3 and 4 merged into one
+  another here conflict only where each added a line beside the others'
+  (core.js, main.js, rooms.js, the selftest), resolved by keeping every
+  side.
+- `score:selftest` fails one case ("the same lap without the flip is a
+  Maverick Loop") on `origin/main` itself; it is not in `checks.yml`.
+
+Measured:
+
+- `npm run tag:harness`, the full grid (12 furball seeds and 22 scripted
+  passes, 16 random link sets each, 2,496 runs over both clock modes,
+  25 s on this machine): exact clocks, every row passes over 1,248 runs
+  and 2,432 tags (1,808 in the furballs): no client disagrees, no on time
+  run differs from its zero latency run, no mid air hit in a match, no
+  early tag, every score recounted exactly, every furball ends at exactly
+  40 points; the truth gap at a tag is at most 0.802 m; a head on pass is
+  a tag at 0.75 m of truth gap and not at 0.80 m, in every run. Decision
+  delay (decided less the touch) median 249 ms, p95 356 ms, max 389 ms,
+  on links of 0 to 300 ms. Clocks off by up to 10 ms each: the same rows
+  pass; the band is a truth gap at the tag of p95 0.874 m and max
+  0.938 m (256 of 2,432 tags past 0.85 m), and the head on pass band does
+  not move. The station keeper's tag back is 3,001 ms after the tag in
+  every run.
+- `scripts/tag-two-page.js`, three pages against `wrangler dev` on
+  swiss2, two Cubs and a five inch: 20 passed. The crown moved to A on
+  all three pages at the same room time, 5,034 ms after A was thrown in
+  (its own spawn protection), with 20 cm of wing overlap and no hit, both
+  Cubs whole; the match ended at 15 points to A on all three.
