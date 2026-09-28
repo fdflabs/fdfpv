@@ -206,6 +206,35 @@ export function townhouse(f, rng, spec) {
 }
 
 /*
+ * A house's cellar where the slope falls away under it toward the water:
+ * a plank door with its lintel and step, and two small barred windows,
+ * let into the rubble of the plinth. `face` is the plinth's downhill face
+ * (a frame on its surface), w its width, and `found` how far the plinth
+ * goes down under the frame's y 0, the lowest ground being 0.4 over its
+ * foot (props/lakeside.js placeInto). A plinth too low for a door shows
+ * none.
+ */
+export function cellar(face, w, found) {
+  const floor = -found + 0.45;
+  const h = Math.min(1.9, -floor - 0.2);
+  if (h < 1.2) {
+    return;
+  }
+  plankDoor(face, -w / 4, floor, 0.95, h, 'larchDark');
+  face.put('stone', box(1.35, 0.16, 0.2), -w / 4, floor + h + 0.1, 0.05);
+  face.put('stone', box(1.4, 0.12, 0.5), -w / 4, floor - 0.06, 0.25);
+  for (const x of [w / 8, (3 * w) / 8]) {
+    const y = floor + h - 0.45;
+    face.put(near('shade'), plate(0.5, 0.35), x, y, 0.01);
+    face.put(near('stone'), box(0.66, 0.08, 0.14), x, y - 0.22, 0.05);
+    face.put(near('stone'), box(0.66, 0.08, 0.1), x, y + 0.22, 0.04);
+    for (const bx of [-0.12, 0, 0.12]) {
+      face.put(detail('ink'), box(0.02, 0.35, 0.02), x + bx, y, 0.03);
+    }
+  }
+}
+
+/*
  * The hotel at the landing stage. Its front, toward the lake, is -x: the
  * roof's ridge runs along it, and the dormers go on the slope over it.
  * w deep, d along the front.
@@ -280,8 +309,24 @@ export function hotel(f, { w = 13, d = 17, storeys = 4, found = 0.3 } = {}) {
    * tables laid under parasols. */
   const tx = -hw - 3.4;
   f.put('stone', box(6.4, 0.24, d + 1.6), tx, 0, 0);
-  f.put('render', boxUp(0.3, 0.9, d + 1.6), tx - 3.05, 0.12, 0);
-  f.put(near('stone'), box(0.44, 0.08, d + 1.7), tx - 3.05, 1.06, 0);
+  /* Its retaining wall down the slope to the shore, below the lowest
+   * ground under the house. */
+  f.put('stone', boxUp(6.3, found + 1.4, d + 1.5), tx, -found - 1.5, 0);
+  /* The balustrade on the shore, open in the middle where the steps go
+   * down from the terrace to the beach and the landing stage. */
+  const gap = 1.3;
+  const run = (d + 1.6) / 2 - gap;
+  for (const s of [-1, 1]) {
+    const z = s * (gap + run / 2);
+    f.put('render', boxUp(0.3, 0.9, run), tx - 3.05, 0.12, z);
+    f.put(near('stone'), box(0.44, 0.08, run + 0.1), tx - 3.05, 1.06, z);
+  }
+  const rise = 0.17;
+  const steps = Math.max(2, Math.round((found - 0.3) / rise));
+  for (let k = 1; k <= steps; k += 1) {
+    const top = 0.12 - k * rise;
+    f.put('stone', boxUp(0.32, top + found + 1.5, 2 * gap - 0.2), tx - 3.2 - 0.31 * (k - 0.5), -found - 1.5, 0);
+  }
   for (const s of [-1, 1]) {
     f.put('render', boxUp(6.1, 0.9, 0.3), tx + 0.15, 0.12, s * (hd + 0.65));
     f.put(near('stone'), box(6.2, 0.08, 0.44), tx + 0.15, 1.06, s * (hd + 0.65));

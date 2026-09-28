@@ -72,7 +72,7 @@ import { standWalls } from '../../alps/roofs.js';
 import { frame as kitFrame } from '../buildings/parts.js';
 import { chalet, church } from '../buildings/houses.js';
 import {
-  townhouse, hotel, boathouse, stageHut, landingStage,
+  townhouse, hotel, boathouse, stageHut, landingStage, cellar,
 } from '../buildings/lake.js';
 
 /* Albedos, linear, of what is still drawn here in the props' colours. */
@@ -644,13 +644,20 @@ export function buildLakeside({
       /* A house of one rendered storey is a chalet, its log storeys over
        * it; of two, a town house. Its gable, where the balconies are,
        * to the water (+z of the frame is -ez of the old one). */
-      const build = spec.masonry === 1
+      const house = spec.masonry === 1
         ? (f, found) => chalet(f, houseRng, {
           ...common, found, floors: spec.floors - 1, roof: 'gable', base: 'render', balconies: spec.balconies > 1 ? 'both' : 'one',
         })
         : (f, found) => townhouse(f, houseRng, {
           ...common, found, storeys: 2, timber: spec.floors - 2, balconies: spec.balconies,
         });
+      /* The slope falls toward the water, under the gable: the cellar's
+       * door is there. */
+      const build = (f, found) => {
+        const ext = house(f, found);
+        cellar(kitFrame(f, 0, 0, d / 2 + 0.1, 0), w + 0.2, found);
+        return ext;
+      };
       stand(placeInto(bake, build, {
         x, z, ry: Math.PI - spec.yaw, ground: corners.map((c) => heightAt(c.x, c.z)), kind: 'lakeHouse',
       }));
