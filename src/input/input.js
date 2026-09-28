@@ -841,17 +841,20 @@ function analogMag(heldMs) {
  * between the pilot and the airframe, and the whole point of this project
  * is that nothing sits there.
  *
- * The gimbal either SPRINGS back to centre or HOLDS where it was left, and
- * which one is right depends on what the stick commands:
+ * The gimbal either SPRINGS back to centre or HOLDS where it was left:
  *
- *   spring  A RATE: a quad in Acro, or a plane on an Acro tune. Moving the
- *           mouse turns the craft and stopping stops it, which is mouse
- *           look and is what a mouse is good at, and hands off holds the
- *           attitude, as it does on a radio.
- *   hold    An ATTITUDE or a SURFACE: a quad in Angle, a plane on a
- *           Stabilised or Manual tune. There a bank or a pulled turn is a
- *           stick HELD over, and a spring would make every one of them a
- *           mouse that has to keep moving until it runs off the mat.
+ *   spring  A quad in Acro. The stick is a rate and Betaflight holds
+ *           whatever attitude it is left in, so moving the mouse turns the
+ *           quad and stopping stops it, which is mouse look and is what a
+ *           mouse is good at.
+ *   hold    A quad in Angle, and every plane on every tune. There a bank
+ *           or a pulled turn is a stick HELD over: Angle levels a centred
+ *           stick, and a plane's own stability rolls it back out of a bank
+ *           even on its Acro tune. The headless Timber on its Acro tune,
+ *           flown on a springing mouse, could not be held past 15 degrees
+ *           of bank however hard the mouse was pushed: every push decayed
+ *           and the dihedral won. A spring there makes every turn a mouse
+ *           that has to keep moving until it runs off the mat.
  *
  * 'auto' picks between the two from what is being flown, and the pilot can
  * pin either one. The middle button or Z puts the gimbal back
@@ -2559,9 +2562,9 @@ export class InputManager {
   }
 
   /* What is being flown: a plane or a quad decides the throttle step, and
-   * whether the stick commands a rate decides what 'auto' centring means.
-   * The shell reads `rates` off the SETTING and the tune, not off the
-   * switch of the moment, so a turtle recovery does not change the feel. */
+   * with `rates` (a quad on Acro) what 'auto' centring means. The shell
+   * reads it off the SETTING, not the switch of the moment, so a turtle
+   * recovery does not change the feel. */
   setMouseCraft(wing, rates) {
     this.mouseCraft = { wing: Boolean(wing), rates: Boolean(rates) };
   }
@@ -2570,7 +2573,7 @@ export class InputManager {
     if (this.mouseCfg.centre !== 'auto') {
       return this.mouseCfg.centre;
     }
-    return this.mouseCraft.rates ? 'spring' : 'hold';
+    return this.mouseCraft.rates && !this.mouseCraft.wing ? 'spring' : 'hold';
   }
 
   mouseThrottleStep() {

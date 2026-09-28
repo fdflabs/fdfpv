@@ -852,6 +852,8 @@ async function mouseFlightPage(page) {
   await ev(`${PAST_GATE} ui.onAction('fly', ui.settings); return true;`);
   await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
   await page.until('window.__mouseLock().wants', 20000);
+  /* The banner is painted a frame after the wish is first seen. */
+  await page.until("/Click to fly/.test(window.__ui.banner ? window.__ui.banner.textContent : '')", 10000).catch(() => {});
   const before = await ev("return JSON.stringify({ lock: window.__mouseLock(), banner: ui.banner ? ui.banner.textContent : '' });").then(JSON.parse);
   check('in flight it wants the pointer, and with no click yet the mouse flies nothing',
     before.lock.wants && !before.lock.live, JSON.stringify(before.lock));

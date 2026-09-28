@@ -818,7 +818,7 @@ section('mouse flight: off unless picked, and then only while live');
   window.removeEventListener = () => {};
 }
 
-function mouseRig({ wing = false, rates = !wing, cfg = {}, pad = null } = {}) {
+function mouseRig({ wing = false, rates = true, cfg = {}, pad = null } = {}) {
   const rig = new Rig(pad);
   rig.im.setMouseConfig({
     enabled: true, sens: 100, expo: 0, invert: false, centre: 'auto', ...cfg,
@@ -896,12 +896,10 @@ section('mouse flight: movement is roll and pitch, and it centres or holds');
   const q = im.queue.length;
   rig.run(1000);
   check('at rest it emits only the heartbeat, not a sample per poll', im.queue.length - q <= 11, `${im.queue.length - q}`);
-  im.setMouseCraft(true, true);
-  check('a plane on an Acro tune springs too: its stick is a rate', im.mouseCentring() === 'spring');
   im.setMouseCraft(false, false);
   check('a quad in Angle holds', im.mouseCentring() === 'hold');
-  im.setMouseCraft(true, false);
-  check('a plane on Stabilised or Manual holds', im.mouseCentring() === 'hold');
+  im.setMouseCraft(true, true);
+  check('every plane holds, even with the quad setting on Acro', im.mouseCentring() === 'hold');
   im.mouseMove(150, 0);
   rig.run(2000);
   check('held, half right roll is still exactly half two seconds later', near(im.channels.roll, 0.5), String(im.channels.roll));

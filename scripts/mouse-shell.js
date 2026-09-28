@@ -11,7 +11,8 @@
  *   1. A five inch in Track mode, in Acro, where the mouse stick springs
  *      back: wheel it off the start, then hold a hover on the wheel alone,
  *      nudging the attitude level with the mouse.
- *   2. The Timber in Free Flight on swiss2, on its Acro tune: wheel to full,
+ *   2. The Timber in Free Flight on swiss2, on its Acro tune, where the stick
+ *      stays put: wheel to full,
  *      off the strip, a climb held with the mouse, and a bank to the right.
  *
  * Each asserts on what the aircraft did, not on a stopwatch: headless draws
@@ -145,7 +146,6 @@ async function quad(page) {
   let { c, m, simMs, held, fps } = await state(page);
   say(m.source === 'the mouse' && m.centring === 'spring' && Math.abs(m.step - 0.02) < 1e-9 && !m.angle,
     `the mouse is the source, the stick springs back, a notch is 2 percent, and it flies Acro: ${m.source}, ${m.centring}, ${m.step}, angle ${m.angle}`);
-  const rest = c.groundClearance;
   /* Fifteen notches, 30 percent, to start; more below until it leaves the
    * ground, then the wheel holds it near two metres. */
   await mouse.wheel(15);
@@ -153,8 +153,10 @@ async function quad(page) {
   let lastSim = simMs;
   let airborneMs = 0;
   let groundMs = 0;
-  let notchMs = 0;
-  let hAtLook = 0;
+  let lookMs = 0;
+  let hoverEst = -1;
+  const y0 = c.worldY;
+  const heldThr = [];
   let hoverMs = 0;
   let bestHoverMs = 0;
   let worstTilt = 0;
@@ -174,7 +176,10 @@ async function quad(page) {
       await page.sleep(100);
       continue;
     }
-    const h = c.groundClearance - rest;
+    /* Height off the start, not over the ground under the quad: a drift
+     * across a slope is not a climb. */
+    const h = c.worldY - y0;
+    const climb = c.vel.y;
     lastSim = simMs;
     peakH = Math.max(peakH, h);
     if (h > 0.3) {
@@ -193,22 +198,32 @@ async function quad(page) {
         notchesUp += 1;
       }
     } else {
-      /* A pilot's thumb, not a controller: once a second of sim it looks
-       * at where the quad is and which way it went over that second, and
-       * turns the wheel a notch, or does not. The climb is measured over
-       * the whole second because one look is too noisy to steer on. */
-      notchMs += dtSim;
-      if (notchMs >= 1000) {
-        const climb = (h - hAtLook) / (notchMs / 1000);
-        hAtLook = h;
-        notchMs = 0;
-        const want = TARGET - h > 0.3 ? 0.4 : TARGET - h < -0.3 ? -0.4 : 0;
-        if (climb < want - 0.25) {
-          await mouse.wheel(1);
-          notchesUp += 1;
-        } else if (climb > want + 0.25) {
-          await mouse.wheel(-1);
-          notchesDown += 1;
+      /*
+       * Height hold on the wheel: a PI on climb rate. The height error asks
+       * for a climb, the climb error moves the throttle about an estimate
+       * of hover, and that estimate integrates the error that is left. The
+       * answer is rounded to the wheel's 2 percent notches, which is the
+       * one thing a thumb cannot do better. Four looks a second of sim.
+       */
+      lookMs += dtSim;
+      if (hoverEst < 0) {
+        hoverEst = m.channels.throttle - 0.02;
+      }
+      if (lookMs >= 250) {
+        const dt = lookMs / 1000;
+        lookMs = 0;
+        const wantClimb = Math.max(-0.8, Math.min(0.8, 0.8 * (TARGET - h)));
+        const err = wantClimb - climb;
+        hoverEst = Math.max(0.1, Math.min(0.7, hoverEst + 0.006 * err * dt));
+        const want = hoverEst + 0.03 * err;
+        const notches = Math.max(-3, Math.min(3, Math.round((want - m.channels.throttle) / 0.02)));
+        if (notches !== 0) {
+          await mouse.wheel(notches);
+          if (notches > 0) {
+            notchesUp += notches;
+          } else {
+            notchesDown -= notches;
+          }
         }
       }
     }
@@ -226,6 +241,9 @@ async function quad(page) {
     }
     /* The hover is the longest UNBROKEN stretch in the band. */
     hoverMs = h > 1 && h < 3.5 ? hoverMs + dtSim : 0;
+    if (hoverMs > 0) {
+      heldThr.push(m.channels.throttle);
+    }
     bestHoverMs = Math.max(bestHoverMs, hoverMs);
     if (!shotTaken && hoverMs > 4000) {
       shotTaken = true;
@@ -237,7 +255,34 @@ async function quad(page) {
     await page.sleep(100);
   }
   ({ c, m } = await state(page));
-  const hEnd = c.groundClearance - rest;
+  const hEnd = c.worldY - y0;
+  const hover = heldThr.length ? heldThr.reduce((x, y) => x + y, 0) / heldThr.length : 0;
+  console.log(`    hover throttle, the mean held in the band: ${(hover * 100).toFixed(1)} percent`);
+  /* What one notch either side of hover does, three seconds of sim each:
+   * the number that says whether 2 percent is fine enough for a thumb. */
+  if (!c.crashed && c.mode === 'flight') {
+    const base = Math.round(hover / 0.02) * 0.02;
+    for (const at of [base - 0.02, base, base + 0.02]) {
+      ({ m } = await state(page));
+      await mouse.wheel(Math.round((at - m.channels.throttle) / 0.02));
+      let s0 = null;
+      for (;;) {
+        ({ c, m, simMs } = await state(page));
+        if (s0 === null) {
+          s0 = { t: simMs, y: c.worldY };
+        }
+        if (simMs - s0.t >= 3000 || c.crashed) {
+          break;
+        }
+        const a = attitude(c);
+        if (Math.abs(a.bank) > 1 || Math.abs(a.pitch) > 1) {
+          await mouse.move(Math.round(Math.max(-30, Math.min(30, -a.bank * 3))), Math.round(Math.max(-30, Math.min(30, -a.pitch * 3))));
+        }
+        await page.sleep(100);
+      }
+      console.log(`    held at ${(m.channels.throttle * 100).toFixed(0)} percent for 3 s of sim: ${((c.worldY - s0.y) / ((simMs - s0.t) / 1000)).toFixed(2)} m/s mean climb`);
+    }
+  }
   console.log(`    height ${hEnd.toFixed(2)} m, peak ${peakH.toFixed(2)} m, throttle ${(m.channels.throttle * 100).toFixed(0)} percent, notches up ${notchesUp} down ${notchesDown}, worst tilt ${worstTilt.toFixed(1)} deg`);
   say(!c.crashed && c.mode === 'flight', 'not crashed');
   say(airborneMs > 0 && peakH > 1, `the wheel took it off the ground: peak ${peakH.toFixed(2)} m`);
@@ -261,8 +306,14 @@ async function plane(page) {
   const mouse = makeMouse(page);
   say(await capture(page, mouse), 'one click captures the pointer');
   let { c, m, simMs } = await state(page);
-  say(m.source === 'the mouse' && m.centring === 'spring' && Math.abs(m.step - 0.05) < 1e-9,
-    `a plane on an Acro tune: the stick springs back and a notch is 5 percent: ${m.centring}, ${m.step}`);
+  say(m.source === 'the mouse' && m.centring === 'hold' && Math.abs(m.step - 0.05) < 1e-9,
+    `a plane, even on its Acro tune: the stick stays put and a notch is 5 percent: ${m.centring}, ${m.step}`);
+  /* The stick stays put, so the pilot flies it to a position, reading
+   * where it is off the gimbal on screen: 300 counts is a full stick. */
+  const stickTo = async (x, y) => {
+    const clamp = (v) => Math.max(-0.6, Math.min(0.6, v));
+    await mouse.move(Math.round((clamp(x) - m.stick.x) * 300), Math.round((clamp(y) - m.stick.y) * 300));
+  };
   const rest = c.groundClearance;
   await mouse.wheel(20);
   ({ m } = await state(page));
@@ -308,12 +359,9 @@ async function plane(page) {
         break;
       }
     } else if (phase === 'climb') {
-      /* A ten degree climb, wings level, held on the mouse: back for nose
-       * up, sideways against any bank. The Acro tune holds the attitude
-       * between corrections, so a correction is a nudge, not a hold. */
-      const dy = Math.max(-25, Math.min(25, (10 - a.pitch) * 2));
-      const dx = Math.max(-25, Math.min(25, -a.bank * 2));
-      await mouse.move(Math.round(dx), Math.round(dy));
+      /* A ten degree climb, wings level: back stick for nose up (+y),
+       * sideways against any bank. */
+      await stickTo(-0.03 * a.bank, 0.03 * (10 - a.pitch));
       if (h > 8) {
         mark('climbed', c);
         await shot(page, 'plane-climb.png');
@@ -324,13 +372,8 @@ async function plane(page) {
         break;
       }
     } else if (phase === 'bank') {
-      /* Right, to twenty five degrees, nose held up a little. The Timber's
-       * dihedral rolls it back level, so a spring stick has to keep being
-       * pushed, and headless the spring runs on the wall clock while the
-       * sim crawls, so the pushes are big. */
-      const dx = Math.max(-90, Math.min(90, (25 - a.bank) * 6));
-      const dy = Math.max(-25, Math.min(25, (5 - a.pitch) * 2));
-      await mouse.move(Math.round(dx), Math.round(dy));
+      /* Right, to twenty five degrees, the nose held a little up. */
+      await stickTo(0.03 * (25 - a.bank), 0.03 * (5 - a.pitch));
       if (a.bank > 20) {
         mark('banked', c);
         phase = 'done';

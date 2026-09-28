@@ -8321,9 +8321,7 @@ export async function boot({
     const locked = mouseLocked();
     input.setMouseLive(want && locked);
     const wing = Boolean(airframeById(runAirframe).fixedWing);
-    /* Whether the stick commands a rate: Acro on a quad, the Acro tune
-     * (wingStab 2) on a plane. */
-    input.setMouseCraft(wing, wing ? tuneById(configId).wingStab === 2 : ui.settings.flightMode !== 'angle');
+    input.setMouseCraft(wing, ui.settings.flightMode !== 'angle');
     if (!want) {
       mouseLockAsked = false;
       if (locked) {
