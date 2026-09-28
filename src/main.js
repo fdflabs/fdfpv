@@ -114,7 +114,7 @@ import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
-import { setPartsSource } from './render/partsfit.js';
+import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
@@ -3878,6 +3878,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   const smoke = createSmoke();
   shell.keepAcrossMaps(smoke.group);
   let smokeOn = false;
+  /* Whether the trail was emitting this frame, for the crash cam. */
+  let smokeLive = false;
   const smokeAt = new THREE.Vector3();
   const smokeVel = new THREE.Vector3();
   function smokeFitted() {
@@ -3891,6 +3893,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     const nozzle = shell.quad.userData.smokeNozzle;
     const on = smokeOn && nozzle && stateCurr && mode === 'flight';
+    smokeLive = Boolean(on);
     if (on) {
       nozzle.getWorldPosition(smokeAt);
       simPosToThree(stateCurr[4], stateCurr[5], stateCurr[6], smokeVel).applyQuaternion(qSpawn);
@@ -12566,7 +12569,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     audio,
     input,
     journal,
-    liveGroups: [wreckRig.group, debris.group],
+    liveGroups: [wreckRig.group, debris.group, smoke.group],
     mode: () => mode,
     screen: () => ui.screen,
     enter: () => {
@@ -12626,6 +12629,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     mapName: (id) => mapById(id).name,
     craftLook: (craft) => shell.lookCraft(craft),
     osdOn: () => fpvOsd.on,
+    /* The trail's nozzle and the aircraft's velocity while it emits. */
+    smoke: () => (smokeLive ? { nozzle: smokeAt, velocity: smokeVel } : null),
+    /* The hangar parts it flies with, as a saved replay keeps them. */
+    fit: () => {
+      const f = partsFor(runAirframe);
+      return f && f.entry ? { entry: f.entry, option: f.option ? f.option.id : null } : null;
+    },
   });
   crashCam.tap(debris);
   /* Harness: the crash cam's controls, its costs, and a switch for the

@@ -44,7 +44,7 @@
 
 import * as THREE from 'three';
 import {
-  createRecorder, createSample, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE,
+  createRecorder, createSample, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE, SMOKE, SMOKE_N,
 } from './recorder.js';
 import {
   RIGS, addKey, createPose, defaults, evaluate, evaluateKeys, rotate,
@@ -56,6 +56,9 @@ import { craftBuilderFor } from '../render/craft.js';
 import { dressLivery } from '../render/livery.js';
 import { createWreck, ROTATION_KINDS, BEND_SHOWN } from '../render/wreck.js';
 import { createDebris } from '../render/debris.js';
+import { createSmoke, LIFE_S as SMOKE_LIFE_S } from '../render/smoke.js';
+import { dressParts } from '../render/partsfit.js';
+import { powerOption } from '../../configs/power.js';
 import { simPosToThree, simQuatToThree } from '../render/frame.js';
 import { pickRecorderMime } from '../share/orbitcache.js';
 import { partLabel, PART_KINDS } from '../../configs/parts.js';
@@ -138,6 +141,8 @@ export function createCrashCam(host) {
     rec.pose(i, quad.position, quad.quaternion);
     rec.drive(i, st[14], st[15], st[16], st[17], host.surfaces(), host.flaps(), st[14]);
     rec.plant(i, st);
+    const sm = host.smoke();
+    rec.smoke(i, Boolean(sm), sm && sm.nozzle, sm && sm.velocity);
     host.spawn(spawnScratch);
     const sp = rec.spawnIndex(spawnScratch[0], spawnScratch[1], spawnScratch[2], spawnScratch[3],
       spawnScratch[4], spawnScratch[5], spawnScratch[6], spawnScratch[7]);
@@ -286,6 +291,7 @@ export function createCrashCam(host) {
       size,
       parts: table,
       fpv: { fwd: fpv.fwd, up: fpv.up, tilt: fpv.tilt, fov: fpv.fov },
+      fit: host.fit(),
       duration: 0,
     };
   }
@@ -330,6 +336,7 @@ export function createCrashCam(host) {
       pose: createPose(),
       scene: buildScene(clip),
       exporting: null,
+      drawnT: -1,
       photo: null,
       toast: null,
     };
@@ -363,6 +370,11 @@ export function createCrashCam(host) {
     const af = clip.meta.airframe;
     const craft = craftBuilderFor(af)({ name: 'replay-craft', fog: true, worldScale: true });
     dressLivery(craft, af, { colours: clip.meta.livery ?? {}, ...(clip.meta.paint ?? {}) });
+    /* In the hangar parts it flew with: the pod, the nozzle, the prop. */
+    const fit = clip.meta.fit;
+    if (fit && fit.entry) {
+      dressParts(craft, af, { entry: fit.entry, option: fit.option ? powerOption(af, fit.option) : null });
+    }
     craft.group.scale.setScalar(clip.meta.scale || 1);
     const parent = host.scene();
     parent.add(craft.group);
@@ -372,8 +384,10 @@ export function createCrashCam(host) {
     wreck.attach(craft.group, clip.meta.parts, craft.discs);
     const debris = createDebris();
     parent.add(debris.group);
+    const smoke = createSmoke();
+    parent.add(smoke.group);
     return {
-      craft, wreck, debris, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
+      craft, wreck, debris, smoke, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
     };
   }
 
@@ -382,7 +396,7 @@ export function createCrashCam(host) {
     if (sc.undoLook) {
       sc.undoLook();
     }
-    for (const g of [sc.craft.group, sc.wreck.group, sc.debris.group]) {
+    for (const g of [sc.craft.group, sc.wreck.group, sc.debris.group, sc.smoke.group]) {
       g.removeFromParent();
       g.traverse((o) => {
         if (o.geometry) {
@@ -563,7 +577,10 @@ export function createCrashCam(host) {
     padInEditor();
     driveFree(dtS);
     const dur = S.clip.time[S.clip.n - 1];
-    const from = S.t;
+    /* From the time last drawn, not the playhead at the start of this
+     * frame: a scrub or a jump moves the playhead between frames, and
+     * that is a jump for the debris and the smoke, not a step forward. */
+    const from = S.drawnT;
     if (S.playing) {
       S.t += dtS * S.speed;
       const end = S.exporting ? S.out : dur;
@@ -577,13 +594,50 @@ export function createCrashCam(host) {
     }
     const s = sampleAt(S.clip, S.t, S.sample);
     events(from, S.t);
+    smokeTo(from, S.t);
     if (S.playing) {
       S.scene.debris.update(dtS * S.speed);
     }
     poseScene(s, dtS, S.speed);
     aimCamera();
+    S.drawnT = S.t;
     editor.tick(view());
   }
+
+  /*
+   * The smoke trail at t. src/render/smoke.js emits on the clock it is
+   * given, so the replay gives it the clip's: played forward, one update a
+   * frame with the nozzle where it was; anywhere else (a scrub, a jump, the
+   * first frame) the trail is flown again from LIFE_S before t over the
+   * recorded rows, so it is the trail that was in the air then.
+   */
+  function smokeTo(from, to) {
+    const sc = S.scene;
+    const forward = to >= from && to - from < 0.25;
+    if (!forward) {
+      sc.smoke.clear();
+      const c = S.clip;
+      for (let k = 0; k < c.n; k += 1) {
+        const tk = c.time[k];
+        if (tk < to - SMOKE_LIFE_S || tk >= to) {
+          continue;
+        }
+        const o = k * SMOKE_N;
+        smokeFeed(tk, c.smoke[o + SMOKE.on] !== 0, c.smoke, o);
+      }
+    }
+    smokeFeed(to, S.sample.smoke[SMOKE.on] !== 0, S.sample.smoke, 0);
+  }
+
+  function smokeFeed(t, on, col, o) {
+    if (on) {
+      vSmokeAt.set(col[o + SMOKE.nozzle], col[o + SMOKE.nozzle + 1], col[o + SMOKE.nozzle + 2]);
+      vSmokeVel.set(col[o + SMOKE.vel], col[o + SMOKE.vel + 1], col[o + SMOKE.vel + 2]);
+    }
+    S.scene.smoke.update(t, on ? vSmokeAt : null, vSmokeVel, shell.canvas.clientHeight || 720, shell.camera.fov);
+  }
+  const vSmokeAt = new THREE.Vector3();
+  const vSmokeVel = new THREE.Vector3();
 
   /* Debris thrown and sounds cued between two times played forward; a
    * jump anywhere else clears the air. */
@@ -665,6 +719,7 @@ export function createCrashCam(host) {
     const c = S.clip;
     return {
       t: S.t,
+      drawn: S.drawnT,
       dur: c.time[c.n - 1],
       playing: S.playing,
       speed: S.speed,
@@ -1302,6 +1357,8 @@ export function createCrashCam(host) {
       setRig: (r, target) => setRig(r, target),
       speeds: SPEEDS,
       clipPartKinds: () => (S ? S.clip.meta.parts.map((p) => PART_KINDS[p.kind]) : []),
+      smokePuffs: () => (S ? S.scene.smoke.live() : 0),
+      smokeFitted: () => Boolean(S && S.clip.meta.fit && S.clip.meta.fit.entry && S.clip.meta.fit.entry.addons.includes('smoke')),
     }),
   };
 }
