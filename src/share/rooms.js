@@ -204,6 +204,7 @@ export function setFigurePick(f) {
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
  * onHit(hit) (the referee's mid air contact, src/game/midair.js),
+ * onHost(seat) when the room's host changes,
  * onEvent(event) for an event, onReported(seat), onBinary(bytes) for any
  * binary message but a batch, and onMessage(message) for every other text
  * message (a race's, Phase 4).
@@ -361,6 +362,13 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.host = m.host;
         }
         handlers.onLeave?.(m.seat);
+      } else if (m.type === 'host') {
+        /* The room's host changed (edge/rooms/core.js settleHost): a
+         * restart, the host leaving or coming back. */
+        if (welcome && Number.isInteger(m.seat)) {
+          welcome.host = m.seat;
+        }
+        handlers.onHost?.(m.seat);
       } else if (m.type === 'profile') {
         handlers.onProfile?.(m.seat, m.profile);
       } else if (m.type === 'hit') {
