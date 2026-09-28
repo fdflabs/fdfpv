@@ -27,7 +27,8 @@
  *
  * Keys in flight: Escape pauses, R returns to the start line, L is launch
  * control when that setting is on, F steps the flaps of an aircraft that
- * has them, F3 toggles the performance readout, F8 reports a bug.
+ * has them, V opens the crash cam's replay (src/replay/crashcam.js), F8
+ * reports a bug.
  * Everything else is a menu choice.
  * Sticks: radio in joystick mode (Gamepad API) or WASD plus arrows.
  * Drop a Betaflight diff file onto the page to fly your own config.
@@ -112,7 +113,7 @@ import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
-import { setLiverySource } from './render/livery.js';
+import { liveryFor, setLiverySource } from './render/livery.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
@@ -163,6 +164,9 @@ import {
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
 import { createFpvFail } from './render/fpvfail.js';
+import { createJournal } from './replay/journal.js';
+import { createCrashCam } from './replay/crashcam.js';
+import { stateHash } from './replay/recorder.js';
 
 /*
  * The module's bytes, resolved against this file rather than the site root.
@@ -985,6 +989,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     loading.progress('sim', simProgress[0], simProgress[1]);
   }
   const sim = await loadSim(await simBytes);
+  /* The crash cam's journal stands between the shell and the module from
+   * here on, before anything has allocated or captured sim.e: it writes
+   * down the calls take over replays, and changes none of them
+   * (src/replay/journal.js). */
+  const journal = createJournal(sim.e);
+  sim.e = journal.exports;
   if (typeof sim.e.sim_deflect !== 'function') {
     throw new Error('sim.wasm does not export sim_deflect');
   }
@@ -2175,7 +2185,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     return `webfpv.best.${h.toString(16)}.${runVoltage.toFixed(2)}${style}${craft}${gravPart}`;
   }
 
-  let mode = 'title'; /* title, flight, paused, results */
+  let mode = 'title'; /* title, flight, paused, results, replay */
+  /* The crash cam (src/replay/crashcam.js), made once the shell is. */
+  let crashCam = null;
   let simTimeMs = 0;
   /*
    * Milliseconds the INTEGRATOR has actually stepped since reset: a mirror
@@ -4589,6 +4601,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function enterWreck(nowWall) {
     wrecked = true;
     wreckAtWall = nowWall;
+    if (crashCam) {
+      crashCam.noteCrash('wreck');
+    }
     setCrashflip(false);
     turtleRecover = false;
     if (view.mode === 'freestyle') {
@@ -4872,6 +4887,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * hard ground hit at the bounce ceiling in the ground path, which is
      * the one a pilot actually flies into; this one is the glitch catch. */
     flightStats.noteCrash();
+    if (crashCam) {
+      crashCam.noteCrash('clip');
+    }
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     /* The same departure window feelImpact reads. This cue is the loudest
      * thing in the mix, it plays at full level with no scale, and it sat
@@ -7439,6 +7457,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (build && build.onKey(code, repeat)) {
       return;
     }
+    if (crashCam && crashCam.onKey(code, repeat)) {
+      return;
+    }
     if (ui.handleKey(code, repeat)) {
       return;
     }
@@ -8733,7 +8754,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * while the builder is building, on the same flight screen with the run
      * paused under it: there Y carries a gate and the shoulders walk its
      * hotbar. Its test flight is a flight, and swaps like one. */
-    if (ui.screen === 'flight' && !(build && build.cameraLive)) {
+    if (ui.screen === 'flight' && mode !== 'replay' && !(build && build.cameraLive)) {
       ui.pollFlightPad(input.padSwapButtons());
     }
     /* The title ends the run a swap held the world for. */
@@ -9216,6 +9237,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
            */
           if (hard) {
             flightStats.noteCrash();
+            if (crashCam) {
+              crashCam.noteCrash('ground');
+            }
           }
           if (view.mode === 'freestyle') {
             if (hard) {
@@ -9320,7 +9344,14 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     shell.quad.position.copy(pCurr);
     shell.quad.quaternion.copy(qPrev);
-    crashFrame(nowWall, dt);
+    /* Not in the replay editor: the plant is held, and the replay draws a
+     * wreck of its own over the live one, which is left as it was. */
+    if (mode !== 'replay') {
+      crashFrame(nowWall, dt);
+    }
+    if (crashCam) {
+      crashCam.record(nowWall);
+    }
 
     /*
      * The solid world was resolved inside the step loop above, on the sim
@@ -9580,6 +9611,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       Boolean(finishLoadingOnFrame)
       || mode === 'flight'
       || mode === 'paused'
+      || mode === 'replay'
       || mode === 'results'
       || ui.screen === 'courses'
       || attractOn
@@ -9737,7 +9769,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
 
     fpvLensLive = false;
-    if (mode === 'title') {
+    if (mode === 'replay') {
+      /* The crash cam poses its own craft and points the camera. */
+      shell.quad.visible = false;
+      crashCam.frame(dt);
+    } else if (mode === 'title') {
       if (worldLive && !camOverride) {
         shell.quad.visible = true;
         attractCam.update(nowWall, shell.camera, {
@@ -10068,7 +10104,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           : (mode === 'results' ? simTimeMs + Math.max(0, finishCamMs) : simTimeMs),
       );
 
-      const focus = camOverride || (build && build.cameraLive)
+      const focus = camOverride || (build && build.cameraLive) || mode === 'replay'
         ? shell.camera.position
         : (mode === 'title' ? shell.quad.position : pCurr);
       view.updateShadowFocus(focus);
@@ -10109,6 +10145,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
      * world under it is not drawn at all while it is up. */
     if (worldLive && drawThis && !ui.hangar.isOpen) {
       view.post.render();
+      if (mode === 'replay') {
+        crashCam.afterRender();
+      }
     }
     if (ui.screen === 'courses') {
       ui.paintMapThumbs(shell.canvas);
@@ -10234,7 +10273,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       audio.setVoice(flownVoice);
       standVoiceOn = null;
     }
-    audio.update(audioRpm, motorsTurning ? speed : 0);
+    /* The replay plays its own motors, slowed with its picture. */
+    const replayWind = mode === 'replay' ? crashCam.sound(audioRpm) : -1;
+    audio.update(audioRpm, replayWind >= 0 ? replayWind : (motorsTurning ? speed : 0));
     const audioMs = performance.now() - audioStart;
     if (frames > 2 && audioMs > worstAudioMs) {
       worstAudioMs = audioMs;
@@ -12294,6 +12335,155 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     return { map: view.id, kind: probe.kind, periodMs: period, samples: out };
   };
   window.__budget = (name) => measureBudget(shell, view, { view: name });
+
+  /*
+   * TAKE OVER, from the crash cam: the plant put back at a recorded frame
+   * (src/replay/journal.js), and the shell's own beliefs about it put
+   * level with what it now is. First the proof, the plant's state hashed
+   * against the hash the frame recorded; then the modes the shell holds
+   * are sent again, since the calls that set them may lie after the frame,
+   * and the world is declared again round where the craft now is. The lap
+   * it happened in is void: a lap flown from a rewind is not a lap.
+   */
+  function replayTakeOver(mark, simT, hash) {
+    if (!journal.restore(mark, simT)) {
+      return { ok: false, match: false };
+    }
+    const back = readState();
+    const match = stateHash(back) === hash;
+    const nowWall = performance.now();
+    stateCurr = back;
+    statePrev = back;
+    acc = 0;
+    adoptSimClock();
+    /* What __placeCraft puts back for a teleport, which this is. */
+    setManualFlip(false);
+    setCrashflip(false);
+    turtleRecover = false;
+    turtleWait = false;
+    introMs = -1;
+    landed = false;
+    takingOff = false;
+    launchStaging = false;
+    crashed = false;
+    poseLock = false;
+    flownThisRun = true;
+    clipCrashKind = '';
+    clipCrashUntil = 0;
+    clipGraceUntil = 0;
+    resetClipWatch(clipWatch);
+    turtleParkMotors = false;
+    sim.motorOverride(-1, -1);
+    sim.setAngleMode(angleModeOn);
+    wingStabApplied = -1;
+    obsHasPrev = false;
+    obsPhase = 0;
+    poseFromState(back, pCurr);
+    racePrev.copy(pCurr);
+    raceHasPrev = true;
+    groundPrev.copy(pCurr);
+    groundHasPrev = true;
+    if (runDamage) {
+      wreckRig.reset();
+      debris.clear();
+      fpvFail.clear();
+      crashLog.length = 0;
+      crashFlags = damage.flags();
+      lastParts = crashFlags ? damage.parts() : null;
+      wrecked = isWreck(crashFlags, airframeById(runAirframe).fixedWing);
+      wreckAtWall = nowWall;
+      wreckStillSince = -1;
+      if (craftHull) {
+        hullIntact(craftHull);
+        syncCraftParts(back);
+      }
+      crashWorldX = NaN;
+      crashWorldPhase = 0;
+      refreshCrashWorld(back);
+    }
+    trickDetector.reset();
+    race.voidLap(str('replay.lap_void'), nowWall);
+    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+    mode = 'flight';
+    ui.show('flight');
+    return { ok: true, match, t: back[0] };
+  }
+
+  crashCam = createCrashCam({
+    shell,
+    audio,
+    input,
+    journal,
+    liveGroups: [wreckRig.group, debris.group],
+    mode: () => mode,
+    screen: () => ui.screen,
+    enter: () => {
+      mode = 'replay';
+    },
+    exit: () => {
+      mode = 'flight';
+      acc = 0;
+      ui.show('flight');
+    },
+    notice: (text) => {
+      notice = { text, untilMs: performance.now() + 2400 };
+    },
+    state: () => stateCurr,
+    parts: () => lastParts,
+    partCount: () => damage.count(),
+    flags: () => crashFlags,
+    wrecked: () => wrecked,
+    partTable: () => partTable,
+    airframe: () => runAirframe,
+    /* The replay file keeps the colours as it always has, and the paint
+     * shop's finishes and decals beside them (src/replay/file.js). */
+    livery: () => {
+      const look = liveryFor(runAirframe);
+      return look ? look.colours : null;
+    },
+    paint: () => {
+      const look = liveryFor(runAirframe);
+      return look && (Object.keys(look.finishes).length || look.decals.length)
+        ? { finishes: look.finishes, decals: look.decals } : null;
+    },
+    mapId: () => view.id,
+    spawn: (out) => {
+      out[0] = startX;
+      out[1] = startY;
+      out[2] = startZ;
+      out[3] = qSpawn.x;
+      out[4] = qSpawn.y;
+      out[5] = qSpawn.z;
+      out[6] = qSpawn.w;
+      out[7] = SPAWN_ALT;
+    },
+    speed: () => speedNow,
+    throttle: () => input.channels.throttle,
+    agl: () => lastClearance,
+    surfaces: () => (shell.setSurfaces && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null),
+    flaps: () => (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0),
+    fpv: () => ({
+      fwd: simLenToWorld(camMountFwd), up: simLenToWorld(camMountUp), tilt: cameraTiltRad(camTilt), fov: ui.settings.cameraFov,
+    }),
+    ground: pieceGround,
+    scene: () => shell.quad.parent,
+    takeOver: replayTakeOver,
+    swapMap,
+    knownAirframe: (id) => AIRFRAMES.some((a) => a.id === id),
+    knownMap: (id) => MAPS.some((m) => m.id === id),
+    mapName: (id) => mapById(id).name,
+    craftLook: (craft) => shell.lookCraft(craft),
+  });
+  crashCam.tap(debris);
+  /* Harness: the crash cam's controls, its costs, and a switch for the
+   * proof that recording changes nothing. */
+  window.__crashCam = {
+    stats: () => crashCam.stats(),
+    open: () => crashCam.open(),
+    live: () => crashCam.live,
+    setRecording: (on) => crashCam.setRecording(on),
+    h: () => crashCam.harness(),
+  };
   requestAnimationFrame(frame);
   /* A map track seated before this page loaded (a board link, or the Track
    * room last visit) is flown in a world boot has just built bare: the

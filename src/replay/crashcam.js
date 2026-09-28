@@ -1,0 +1,1291 @@
+/*
+ * crashcam.js: the crash cam. Watch, direct and keep what just happened.
+ *
+ * The owner's request: "a crash cam. We are going to have lots of funny
+ * mishaps where I lose a wing and keep going. When something like that
+ * happens and you crash, there should be an option to play back and edit
+ * what just happened, reanimate it, and save those shots."
+ *
+ * Four parts, each its own file:
+ *   recorder.js  the last 30 s of what was drawn, always on in flight;
+ *   journal.js   the plant's copies and calls, for TAKE OVER;
+ *   cameras.js   where the replay's camera is, and its keys;
+ *   file.js, store.js  a replay as bytes, and My clips;
+ *   editor.js    the screen.
+ * This one joins them to the shell: it records a row a frame, raises the
+ * REPLAY prompt after a crash, and while the editor is open it draws the
+ * replay with a craft and a wreck of its own (the live ones are hidden and
+ * left exactly as they were), points the camera, plays the sound, and
+ * writes pictures, videos and replays.
+ *
+ * While the editor is open the shell is in mode 'replay': nothing steps
+ * the plant. Closing it returns to flight where it was. TAKE OVER puts the
+ * plant back at the frame on the playhead (src/replay/journal.js) and the
+ * pilot flies on from there, with the momentum the craft had.
+ *
+ * The shell hands in a `host` of getters and a few actions (src/main.js,
+ * where it is made); nothing here reaches into the shell otherwise.
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import * as THREE from 'three';
+import {
+  createRecorder, createSample, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE,
+} from './recorder.js';
+import {
+  RIGS, addKey, createPose, defaults, evaluate, evaluateKeys, rotate,
+} from './cameras.js';
+import { decodeReplay, encodeReplay, FILE_EXT, NAME_MAX, ReplayFileError } from './file.js';
+import * as store from './store.js';
+import { createEditor } from './editor.js';
+import { craftBuilderFor } from '../render/craft.js';
+import { dressLivery } from '../render/livery.js';
+import { createWreck, ROTATION_KINDS, BEND_SHOWN } from '../render/wreck.js';
+import { createDebris } from '../render/debris.js';
+import { simPosToThree, simQuatToThree } from '../render/frame.js';
+import { pickRecorderMime } from '../share/orbitcache.js';
+import { partLabel, PART_KINDS } from '../../configs/parts.js';
+import { airframeById } from '../../configs/airframes.js';
+import { str } from '../strings/index.js';
+
+/* The keyboard key and the standard pad button that open the replay. */
+export const REPLAY_KEY = 'KeyV';
+export const REPLAY_PAD = 2;
+/* How long the prompt stays up after a crash, ms. */
+const PROMPT_MS = 9000;
+/* A crash this long after a part came off is "lost a part and crashed". */
+const LOST_PART_S = 30;
+const SPEEDS = [0.1, 0.25, 0.5, 1, 2];
+/* The letterbox's picture ratio. */
+const SCOPE = 2.39;
+/* The free camera's speed, m/s, and Shift's multiple; mouse radians per px. */
+const FREE_SPEED = 6;
+const FREE_FAST = 4;
+const LOOK_RATE = 0.004;
+const THUMB_W = 320;
+const THUMB_H = 180;
+
+export function createCrashCam(host) {
+  const { shell, audio, input, journal } = host;
+  const rec = createRecorder();
+  let recording = true;
+  let promptUntil = 0;
+  let lostPartAt = -1e9;
+  const prevStatus = new Int8Array(PARTS_MAX);
+  const wasStatus = new Int8Array(PARTS_MAX);
+  /* The aircraft and the world the ring holds: a replay is one of each. */
+  let ringAirframe = null;
+  let ringMap = null;
+  const spawnScratch = new Float64Array(8);
+  const cost = { frames: 0, totalMs: 0, maxMs: 0, snapMs: 0, snapMaxMs: 0, snaps: 0 };
+  let padPrev = 0;
+
+  /* The editor's session, null while flying. */
+  let S = null;
+  const editor = createEditor(api());
+
+  /* ---- recording, once a frame in flight ---- */
+
+  function record(nowWall) {
+    if (S) {
+      return;
+    }
+    pollFlightPad();
+    /* Up for a while after a crash, and for as long as a wreck lies there. */
+    editor.prompt(host.mode() === 'flight' && host.screen() === 'flight' && (nowWall < promptUntil || host.wrecked()),
+      padConnected() ? 'X' : 'V');
+    if (!recording || host.mode() !== 'flight') {
+      return;
+    }
+    const st = host.state();
+    if (!st) {
+      return;
+    }
+    const t0 = performance.now();
+    if (host.airframe() !== ringAirframe || host.mapId() !== ringMap) {
+      /* A new aircraft or a new world: what came before cannot be drawn
+       * with this one's model and part table, so it is let go. */
+      rec.clear();
+      prevStatus.fill(0);
+      ringAirframe = host.airframe();
+      ringMap = host.mapId();
+    }
+    const i = rec.begin(st[0], nowWall);
+    if (i < 0) {
+      return;
+    }
+    const quad = shell.quad;
+    rec.pose(i, quad.position, quad.quaternion);
+    rec.drive(i, st[14], st[15], st[16], st[17], host.surfaces(), host.flaps(), st[14]);
+    rec.plant(i, st);
+    host.spawn(spawnScratch);
+    const sp = rec.spawnIndex(spawnScratch[0], spawnScratch[1], spawnScratch[2], spawnScratch[3],
+      spawnScratch[4], spawnScratch[5], spawnScratch[6], spawnScratch[7]);
+    const flags = host.flags();
+    rec.status(i, journal.mark(), sp, flags, host.wrecked(), host.speed(), host.throttle(), host.agl());
+    const parts = host.parts();
+    const count = parts ? host.partCount() : 0;
+    if (parts && count > 1) {
+      rec.parts(i, parts, count);
+      partsLeaving(parts, count);
+    } else {
+      prevStatus.fill(0);
+    }
+    const ms = performance.now() - t0;
+    cost.frames += 1;
+    cost.totalMs += ms;
+    cost.maxMs = Math.max(cost.maxMs, ms);
+    /* The journal's copy, once a second, timed on its own: it is not a
+     * cost of every frame. It follows the row, so the row's mark is the
+     * end of the stretch before it. */
+    if (journal.due(st[0])) {
+      const s0 = performance.now();
+      journal.snapshot(st[0]);
+      const sms = performance.now() - s0;
+      cost.snapMs += sms;
+      cost.snapMaxMs = Math.max(cost.snapMaxMs, sms);
+      cost.snaps += 1;
+    }
+  }
+
+  /* A part that was on last frame and is off now: a marker, named. */
+  function partsLeaving(parts, count) {
+    const table = host.partTable();
+    const quad = !airframeById(host.airframe()).fixedWing;
+    wasStatus.set(prevStatus);
+    for (let k = 1; k < count && k < PARTS_MAX; k += 1) {
+      const status = parts[k * PART_STATE_STRIDE] !== 0 ? 1 : 0;
+      if (status && !wasStatus[k]) {
+        const p = table[k];
+        /* Only the part whose own joint went: its children leave with it. */
+        const parent = p ? p.parent : -1;
+        if (!(parent > 0 && wasStatus[parent] === 0 && parts[parent * PART_STATE_STRIDE] !== 0)) {
+          rec.event('off', { part: k, label: p ? partLabel(p.kind, p.cg[0], p.cg[1], quad) : String(k) });
+        }
+        lostPartAt = rec.now();
+      }
+      prevStatus[k] = status;
+    }
+  }
+
+  /* From the shell, where it declares a crash: a hard hit or a wreck. */
+  function noteCrash(kind) {
+    if (S || host.mode() !== 'flight') {
+      return;
+    }
+    rec.event('impact', { kind });
+    const lost = rec.now() - lostPartAt < LOST_PART_S;
+    if (kind === 'wreck' || kind === 'ground' || lost) {
+      promptUntil = performance.now() + PROMPT_MS;
+    }
+  }
+
+  /* The debris the shell throws and the sounds it cues, for the replay to
+   * throw and cue again. Wrapped here so the shell's calls are unchanged. */
+  function tap(debris) {
+    const emit = debris.emit;
+    debris.emit = (point, normal, speed, surface, shed, floorY, kind) => {
+      if (!S && recording && host.mode() === 'flight') {
+        rec.event('debris', {
+          point: [point.x, point.y, point.z], normal: [normal.x, normal.y, normal.z],
+          speed, surface, shed: shed ?? null, floorY, kind,
+        });
+      }
+      return emit(point, normal, speed, surface, shed, floorY, kind);
+    };
+    if (typeof audio.wreck === 'function') {
+      const wreck = audio.wreck.bind(audio);
+      audio.wreck = (kind, level, atTime) => {
+        if (!S && recording && host.mode() === 'flight') {
+          rec.event('cue', { kind, level });
+        }
+        return wreck(kind, level, atTime);
+      };
+    }
+  }
+
+  /* ---- the pad ---- */
+
+  function standardPad() {
+    const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const gp of pads) {
+      if (gp && gp.connected && gp.mapping === 'standard') {
+        return gp;
+      }
+    }
+    return null;
+  }
+
+  function padConnected() {
+    return Boolean(standardPad());
+  }
+
+  /* Edges of the pad's buttons as a bit mask. */
+  function padEdges() {
+    const gp = standardPad();
+    let now = 0;
+    if (gp) {
+      gp.buttons.forEach((b, i) => {
+        if (b && b.pressed && i < 31) {
+          now |= 1 << i;
+        }
+      });
+    }
+    const edges = now & ~padPrev;
+    padPrev = now;
+    return edges;
+  }
+
+  function pollFlightPad() {
+    const edges = padEdges();
+    if ((edges & (1 << REPLAY_PAD)) && host.mode() === 'flight' && host.screen() === 'flight') {
+      open();
+    }
+  }
+
+  /* ---- the editor's session ---- */
+
+  function metaNow() {
+    const af = host.airframe();
+    const box = new THREE.Box3().setFromObject(shell.quad);
+    const size = box.isEmpty() ? 0.5 : box.getSize(new THREE.Vector3()).length();
+    const table = host.partTable().map((p) => ({
+      kind: p.kind, kindName: p.kindName, parent: p.parent, material: p.material,
+      cg: p.cg.slice(), boxMin: p.boxMin.slice(), boxMax: p.boxMax.slice(),
+    }));
+    const fpv = host.fpv();
+    const d = new Date();
+    return {
+      name: str('replay.default_name', { aircraft: airframeById(af).name ?? af, time: `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}` }).slice(0, NAME_MAX),
+      created: Date.now(),
+      airframe: af,
+      livery: host.livery() ?? null,
+      paint: host.paint ? host.paint() : null,
+      map: host.mapId(),
+      scale: shell.quad.scale.x,
+      size,
+      parts: table,
+      fpv: { fwd: fpv.fwd, up: fpv.up, tilt: fpv.tilt, fov: fpv.fov },
+      duration: 0,
+    };
+  }
+
+  /* Open the editor on the recording (live, take over allowed) or on a
+   * saved clip. */
+  function open(saved = null) {
+    if (S) {
+      return false;
+    }
+    const clip = saved || rec.clip(metaNow());
+    if (clip.n < 2) {
+      host.notice(str('replay.nothing_recorded_yet'));
+      return false;
+    }
+    clip.meta.duration = clip.time[clip.n - 1];
+    clip.keys = (clip.keys || []).slice();
+    host.enter();
+    const dur = clip.time[clip.n - 1];
+    /* Start a few seconds before the last thing that happened, playing. */
+    const lastBang = [...clip.events].reverse().find((e) => e.type === 'impact' || e.type === 'off');
+    const t = Math.max(0, (lastBang ? lastBang.t : dur) - 4);
+    S = {
+      clip,
+      live: !saved,
+      t,
+      playing: true,
+      speed: 1,
+      rig: 'chase',
+      target: -1,
+      params: Object.fromEntries(RIGS.map((r) => [r, defaults(r, clip.meta.size)])),
+      manual: false,
+      followSized: -1,
+      osd: true,
+      bare: false,
+      letterbox: false,
+      in: 0,
+      out: dur,
+      sample: createSample(),
+      probe: createSample(),
+      pose: createPose(),
+      scene: buildScene(clip),
+      exporting: null,
+      photo: null,
+      toast: null,
+    };
+    S.params.tripod.pos = [shell.camera.position.x, shell.camera.position.y, shell.camera.position.z];
+    for (const g of host.liveGroups) {
+      g.visible = false;
+    }
+    editor.open(S.clip.meta.name);
+    return true;
+  }
+
+  function close() {
+    if (!S) {
+      return;
+    }
+    if (S.exporting) {
+      S.exporting.cancel();
+    }
+    disposeScene(S.scene);
+    for (const g of host.liveGroups) {
+      g.visible = true;
+    }
+    S = null;
+    editor.close();
+    host.exit();
+  }
+
+  /* ---- the replay's own craft, wreck and debris ---- */
+
+  function buildScene(clip) {
+    const af = clip.meta.airframe;
+    const craft = craftBuilderFor(af)({ name: 'replay-craft', fog: true, worldScale: true });
+    dressLivery(craft, af, { colours: clip.meta.livery ?? {}, ...(clip.meta.paint ?? {}) });
+    craft.group.scale.setScalar(clip.meta.scale || 1);
+    const parent = host.scene();
+    parent.add(craft.group);
+    const undoLook = host.craftLook ? host.craftLook(craft) : null;
+    const wreck = createWreck();
+    parent.add(wreck.group);
+    wreck.attach(craft.group, clip.meta.parts, craft.discs);
+    const debris = createDebris();
+    parent.add(debris.group);
+    return {
+      craft, wreck, debris, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
+    };
+  }
+
+  function disposeScene(sc) {
+    sc.wreck.reset();
+    if (sc.undoLook) {
+      sc.undoLook();
+    }
+    for (const g of [sc.craft.group, sc.wreck.group, sc.debris.group]) {
+      g.removeFromParent();
+      g.traverse((o) => {
+        if (o.geometry) {
+          o.geometry.dispose();
+        }
+        const m = o.material;
+        for (const one of Array.isArray(m) ? m : [m]) {
+          if (one && one.dispose) {
+            one.dispose();
+          }
+        }
+      });
+    }
+  }
+
+  /* Plant to world through a recorded spawn, the conversion src/main.js
+   * plantToWorld makes, through src/render/frame.js. */
+  function toWorldVia(sp) {
+    return (px, py, pz, qw, qx, qy, qz, outPos, outQuat) => {
+      const q = S.scene.qSpawn.set(sp[3], sp[4], sp[5], sp[6]);
+      simPosToThree(px, py, pz + sp[7], outPos);
+      outPos.applyQuaternion(q);
+      outPos.x += sp[0];
+      outPos.y += sp[1];
+      outPos.z += sp[2];
+      if (outQuat) {
+        simQuatToThree(qw, qx, qy, qz, outQuat);
+        outQuat.premultiply(q);
+      }
+      return outPos;
+    };
+  }
+
+  /* How damaged a sample looks: the parts wreck.js would draw as pieces.
+   * It only grows with time, so a smaller number is a scrub back past a
+   * break, and the wreck is put back whole before it is drawn again. */
+  function damageSig(s) {
+    let n = 0;
+    for (let i = 1; i < s.count; i += 1) {
+      const o = i * PART_STATE_STRIDE;
+      if (s.parts[o] !== 0) {
+        n += 1;
+      } else if (ROTATION_KINDS.has(s.parts[o + 21])) {
+        const dx = s.parts[o + 17];
+        const dy = s.parts[o + 18];
+        const dz = s.parts[o + 19];
+        if (dx * dx + dy * dy + dz * dz > BEND_SHOWN * BEND_SHOWN) {
+          n += 1;
+        }
+      }
+    }
+    return n;
+  }
+
+  function poseScene(s, dtS, rate) {
+    const sc = S.scene;
+    const { craft } = sc;
+    craft.group.position.set(s.pose[0], s.pose[1], s.pose[2]);
+    craft.group.quaternion.set(s.pose[3], s.pose[4], s.pose[5], s.pose[6]);
+    const moving = S.playing ? rate : 0;
+    for (let m = 0; m < 4 && m < craft.discs.length; m += 1) {
+      const vis = s.pose[POSE.rpm + m] * 1e-4 * moving * Math.min(1, dtS * 60);
+      craft.discs[m].rotation.y += vis;
+      if (craft.blades && craft.blades[m]) {
+        craft.blades[m].rotation.y += vis * (craft.propSpin ? craft.propSpin[m] : 1);
+      }
+    }
+    if (craft.setProp) {
+      craft.setProp(s.pose[POSE.prop]);
+    }
+    if (craft.setSurfaces) {
+      craft.setSurfaces(s.pose[POSE.surf], s.pose[POSE.surf + 1], s.pose[POSE.surf + 2], s.pose[POSE.surf + 3]);
+    }
+    if (craft.setFlaps) {
+      craft.setFlaps(s.pose[POSE.flaps]);
+    }
+    const onboard = S.rig === 'fpv' && !directed();
+    craft.group.visible = !onboard;
+    const sig = damageSig(s);
+    if (sig < sc.sig) {
+      sc.wreck.reset();
+      sc.wreck.attach(craft.group, S.clip.meta.parts, craft.discs);
+      sc.sig = 0;
+    }
+    if (s.count > 1) {
+      const st = sc.state;
+      st[1] = s.plant[0];
+      st[2] = s.plant[1];
+      st[3] = s.plant[2];
+      st[7] = s.plant[3];
+      st[8] = s.plant[4];
+      st[9] = s.plant[5];
+      st[10] = s.plant[6];
+      const sp = S.clip.spawns[s.head[HEAD.spawn]] || S.clip.spawns[0];
+      craft.group.updateMatrixWorld(true);
+      sc.wreck.update(s.parts, s.count, st, toWorldVia(sp), host.ground);
+      sc.sig = Math.max(sc.sig, sig);
+    }
+    sc.wreck.setCraftVisible(!onboard);
+  }
+
+  /* The clip seen by the cameras. */
+  const camCtx = {
+    at(t, target, out) {
+      const s = sampleAt(S.clip, t, S.probe);
+      if (target >= 0 && target < s.count) {
+        const o = target * PART_STATE_STRIDE;
+        const sp = S.clip.spawns[s.head[HEAD.spawn]] || S.clip.spawns[0];
+        toWorldVia(sp)(s.parts[o + 2], s.parts[o + 3], s.parts[o + 4], 1, 0, 0, 0, vAt, null);
+        out[0] = vAt.x;
+        out[1] = vAt.y;
+        out[2] = vAt.z;
+      } else {
+        out[0] = s.pose[0];
+        out[1] = s.pose[1];
+        out[2] = s.pose[2];
+      }
+      return out;
+    },
+    craftQuat(t, out) {
+      const s = sampleAt(S.clip, t, S.probe);
+      out[0] = s.pose[3];
+      out[1] = s.pose[4];
+      out[2] = s.pose[5];
+      out[3] = s.pose[6];
+      return out;
+    },
+    fpv(t, pos, quat) {
+      const s = sampleAt(S.clip, t, S.probe);
+      const q = [s.pose[3], s.pose[4], s.pose[5], s.pose[6]];
+      const f = S.clip.meta.fpv;
+      const fwd = rotate(q, [0, 0, -1]);
+      const up = rotate(q, [0, 1, 0]);
+      for (let i = 0; i < 3; i += 1) {
+        pos[i] = s.pose[i] + fwd[i] * f.fwd + up[i] * f.up;
+      }
+      qFpv.set(q[0], q[1], q[2], q[3]).multiply(qTilt.setFromAxisAngle(AXIS_X, f.tilt));
+      quat[0] = qFpv.x;
+      quat[1] = qFpv.y;
+      quat[2] = qFpv.z;
+      quat[3] = qFpv.w;
+      return f.fov;
+    },
+  };
+  const vAt = new THREE.Vector3();
+  const qFpv = new THREE.Quaternion();
+  const qTilt = new THREE.Quaternion();
+  const AXIS_X = new THREE.Vector3(1, 0, 0);
+
+  function directed() {
+    return S.clip.keys.length > 0 && !S.manual;
+  }
+
+  function aimCamera() {
+    const pose = S.pose;
+    if (directed()) {
+      evaluateKeys(camCtx, S.clip.keys, S.t, pose);
+    } else {
+      evaluate(camCtx, S.rig, S.params[S.rig], S.target, S.t, pose);
+    }
+    const cam = shell.camera;
+    cam.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
+    cam.quaternion.set(pose.quat[0], pose.quat[1], pose.quat[2], pose.quat[3]);
+    cam.up.set(0, 1, 0);
+    if (Math.abs(cam.fov - pose.fov) > 0.01) {
+      cam.fov = pose.fov;
+      cam.updateProjectionMatrix();
+    }
+  }
+
+  /* ---- once a frame while the editor is open, in the camera chain ---- */
+
+  function frame(dtMs) {
+    if (!S) {
+      return;
+    }
+    const dtS = Math.min(dtMs, 100) / 1000;
+    padInEditor();
+    driveFree(dtS);
+    const dur = S.clip.time[S.clip.n - 1];
+    const from = S.t;
+    if (S.playing) {
+      S.t += dtS * S.speed;
+      const end = S.exporting ? S.out : dur;
+      if (S.t >= end) {
+        S.t = end;
+        S.playing = false;
+        if (S.exporting) {
+          S.exporting.finish();
+        }
+      }
+    }
+    const s = sampleAt(S.clip, S.t, S.sample);
+    events(from, S.t);
+    if (S.playing) {
+      S.scene.debris.update(dtS * S.speed);
+    }
+    poseScene(s, dtS, S.speed);
+    aimCamera();
+    editor.tick(view());
+  }
+
+  /* Debris thrown and sounds cued between two times played forward; a
+   * jump anywhere else clears the air. */
+  function events(from, to) {
+    const forward = to >= from && to - from < 0.25;
+    if (!forward) {
+      S.scene.debris.clear();
+      return;
+    }
+    if (to === from) {
+      return;
+    }
+    for (const e of S.clip.events) {
+      if (e.t <= from || e.t > to) {
+        continue;
+      }
+      if (e.type === 'debris') {
+        vA.set(e.point[0], e.point[1], e.point[2]);
+        vB.set(e.normal[0], e.normal[1], e.normal[2]);
+        S.scene.debris.emit(vA, vB, e.speed, e.surface, e.shed, e.floorY, e.kind);
+      } else if (e.type === 'cue' && typeof audio.wreck === 'function' ) {
+        audio.wreck(e.kind, e.level * Math.min(1, S.speed));
+      }
+    }
+  }
+  const vA = new THREE.Vector3();
+  const vB = new THREE.Vector3();
+
+  /* The motors for the mix, slowed with the picture. Returns the speed
+   * for the wind, or -1 when the replay is not playing sound. */
+  function sound(outRpm) {
+    if (!S) {
+      return -1;
+    }
+    const k = S.playing ? S.speed : 0;
+    for (let m = 0; m < 4; m += 1) {
+      outRpm[m] = S.sample.pose[POSE.rpm + m] * k;
+    }
+    return S.sample.head[HEAD.speed] * k;
+  }
+
+  /* After the world is drawn: the letterbox, and a picture if one is due.
+   * The canvas keeps no drawing buffer, so this is the one moment its
+   * pixels can be read. */
+  function afterRender() {
+    if (!S) {
+      return;
+    }
+    const r = shell.renderer;
+    if (S.letterbox) {
+      const size = r.getSize(vSize);
+      const bar = Math.floor((size.y - size.x / SCOPE) / 2);
+      if (bar > 0) {
+        r.setRenderTarget(null);
+        r.getClearColor(cSave);
+        const a = r.getClearAlpha();
+        r.setScissorTest(true);
+        r.setClearColor(0x000000, 1);
+        r.setScissor(0, 0, size.x, bar);
+        r.clear(true, false, false);
+        r.setScissor(0, size.y - bar, size.x, bar);
+        r.clear(true, false, false);
+        r.setScissorTest(false);
+        r.setClearColor(cSave, a);
+      }
+    }
+    if (S.photo) {
+      const want = S.photo;
+      S.photo = null;
+      shell.canvas.toBlob((blob) => want(blob), 'image/png');
+    }
+  }
+  const vSize = new THREE.Vector2();
+  const cSave = new THREE.Color();
+
+  /* ---- controls ---- */
+
+  function view() {
+    const c = S.clip;
+    return {
+      t: S.t,
+      dur: c.time[c.n - 1],
+      playing: S.playing,
+      speed: S.speed,
+      rig: S.rig,
+      target: S.target,
+      directed: directed(),
+      keys: c.keys,
+      markers: c.events.filter((e) => e.type === 'off' || e.type === 'impact'),
+      parts: partsOff(),
+      in: S.in,
+      out: S.out,
+      osd: S.osd,
+      bare: S.bare,
+      letterbox: S.letterbox,
+      live: S.live,
+      canTakeOver: canTakeOver(),
+      exporting: Boolean(S.exporting),
+      readout: S.sample.head,
+      toast: S.toast,
+      name: c.meta.name,
+    };
+  }
+
+  function partsOff() {
+    const seen = new Set();
+    const out = [];
+    for (const e of S.clip.events) {
+      if (e.type === 'off' && !seen.has(e.part)) {
+        seen.add(e.part);
+        out.push({ part: e.part, label: e.label, t: e.t });
+      }
+    }
+    return out;
+  }
+
+  function frameAt(t) {
+    const [k, a] = locateFrame(t);
+    return a > 0.5 && k + 1 < S.clip.n ? k + 1 : k;
+  }
+
+  function locateFrame(t) {
+    const s = sampleAt(S.clip, t, S.probe);
+    return [s.k, s.a];
+  }
+
+  function canTakeOver() {
+    if (!S.live) {
+      return false;
+    }
+    const k = frameAt(S.t);
+    const h = k * HEAD_N;
+    return journal.canRestore([S.clip.head[h + HEAD.markSeg], S.clip.head[h + HEAD.markPos]]);
+  }
+
+  function seek(t) {
+    const dur = S.clip.time[S.clip.n - 1];
+    S.t = Math.max(0, Math.min(dur, t));
+  }
+
+  function step(frames) {
+    S.playing = false;
+    const k = Math.max(0, Math.min(S.clip.n - 1, frameAt(S.t) + frames));
+    S.t = S.clip.time[k];
+  }
+
+  function setSpeed(dir) {
+    const i = SPEEDS.indexOf(S.speed);
+    S.speed = SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, (i < 0 ? 3 : i) + dir))];
+  }
+
+  function setRig(rig, target = S.target) {
+    if (!RIGS.includes(rig)) {
+      return;
+    }
+    const cam = shell.camera;
+    if (rig === 'free' && S.rig !== 'free') {
+      const p = S.params.free;
+      p.pos = [cam.position.x, cam.position.y, cam.position.z];
+      eFree.setFromQuaternion(cam.quaternion, 'YXZ');
+      p.yaw = eFree.y;
+      p.pitch = eFree.x;
+    }
+    if (rig === 'tripod' && S.rig !== 'tripod') {
+      S.params.tripod.pos = [cam.position.x, cam.position.y, cam.position.z];
+    }
+    if (rig === 'follow') {
+      const parts = partsOff();
+      if (!parts.length) {
+        toast(str('replay.nothing_came_off'));
+        return;
+      }
+      if (!parts.some((p) => p.part === target)) {
+        /* The part that left nearest the playhead: the one in the picture. */
+        let best = null;
+        for (const e of S.clip.events) {
+          if (e.type === 'off' && (!best || Math.abs(e.t - S.t) < Math.abs(best.t - S.t))) {
+            best = e;
+          }
+        }
+        target = best.part;
+      }
+    }
+    if (rig === 'follow' && target !== S.followSized) {
+      /* Framed by the part's own size: a wing panel, not the aircraft. */
+      const p = S.clip.meta.parts[target];
+      const size = p ? Math.hypot(p.boxMax[0] - p.boxMin[0], p.boxMax[1] - p.boxMin[1], p.boxMax[2] - p.boxMin[2]) : 0.5;
+      S.params.follow = defaults('follow', size);
+      S.followSized = target;
+    }
+    S.rig = rig;
+    S.target = rig === 'follow' || rig === 'tripod' || rig === 'orbit' ? target : -1;
+    if (rig !== 'follow' && S.target >= 0 && rig !== 'tripod' && rig !== 'orbit') {
+      S.target = -1;
+    }
+    S.manual = true;
+  }
+  const eFree = new THREE.Euler();
+
+  /* Follow the next part that came off, from any camera. */
+  function nextPart() {
+    const parts = partsOff();
+    if (!parts.length) {
+      toast(str('replay.nothing_came_off'));
+      return;
+    }
+    const i = parts.findIndex((p) => p.part === S.target);
+    const next = parts[(i + 1) % parts.length].part;
+    setRig('follow', next);
+  }
+
+  function keyNow() {
+    addKey(S.clip.keys, {
+      t: S.t, rig: S.rig, target: S.target, p: JSON.parse(JSON.stringify(S.params[S.rig])),
+    });
+    S.manual = false;
+    toast(str('replay.key_added', { n: S.clip.keys.length }));
+  }
+
+  function removeKey() {
+    const keys = S.clip.keys;
+    let best = -1;
+    let bestD = 0.3;
+    keys.forEach((k, i) => {
+      const d = Math.abs(k.t - S.t);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    if (best >= 0) {
+      keys.splice(best, 1);
+      toast(str('replay.key_removed'));
+    }
+  }
+
+  function toast(text) {
+    S.toast = { text, until: performance.now() + 2200 };
+  }
+
+  /* The free camera and the orbit, from the keys held and the mouse. */
+  function driveFree(dtS) {
+    if (S.rig !== 'free' || directed()) {
+      return;
+    }
+    const k = input.keys;
+    const f = (k.has('KeyW') ? 1 : 0) - (k.has('KeyS') ? 1 : 0);
+    const r = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0);
+    const u = (k.has('KeyE') ? 1 : 0) - (k.has('KeyQ') ? 1 : 0);
+    if (!f && !r && !u) {
+      return;
+    }
+    const p = S.params.free;
+    const v = FREE_SPEED * (k.has('ShiftLeft') || k.has('ShiftRight') ? FREE_FAST : 1) * dtS;
+    const cy = Math.cos(p.yaw);
+    const sy = Math.sin(p.yaw);
+    const cp = Math.cos(p.pitch);
+    p.pos[0] += (-sy * cp * f + cy * r) * v;
+    p.pos[1] += (Math.sin(p.pitch) * f + u) * v;
+    p.pos[2] += (-cy * cp * f - sy * r) * v;
+    S.manual = true;
+  }
+
+  function drag(dx, dy) {
+    const p = S.params[S.rig];
+    if (S.rig === 'orbit') {
+      p.az -= dx * LOOK_RATE * 1.5;
+      p.el = Math.max(-0.2, Math.min(1.45, p.el + dy * LOOK_RATE * 1.5));
+    } else if (S.rig === 'free') {
+      p.yaw -= dx * LOOK_RATE;
+      p.pitch = Math.max(-1.5, Math.min(1.5, p.pitch - dy * LOOK_RATE));
+    } else if (S.rig === 'chase' || S.rig === 'follow') {
+      p.height = Math.max(-2, Math.min(20, p.height + dy * 0.01));
+    } else {
+      return;
+    }
+    S.manual = true;
+  }
+
+  function wheel(dy) {
+    const p = S.params[S.rig];
+    const k = Math.exp(dy * 0.001);
+    if (p.dist !== undefined) {
+      p.dist = Math.max(0.3, Math.min(200, p.dist * k));
+    } else if (S.rig === 'tripod' || S.rig === 'free') {
+      p.fov = Math.max(8, Math.min(100, p.fov * k));
+    } else {
+      return;
+    }
+    S.manual = true;
+  }
+
+  function padInEditor() {
+    const e = padEdges();
+    if (!e) {
+      return;
+    }
+    const b = (i) => (e & (1 << i)) !== 0;
+    if (b(0)) {
+      togglePlay();
+    }
+    if (b(1)) {
+      close();
+      return;
+    }
+    if (b(2)) {
+      setRig(RIGS[(RIGS.indexOf(S.rig) + 1) % RIGS.length]);
+    }
+    if (b(3)) {
+      keyNow();
+    }
+    if (b(4) || b(14)) {
+      step(-1);
+    }
+    if (b(5) || b(15)) {
+      step(1);
+    }
+    if (b(12)) {
+      setSpeed(1);
+    }
+    if (b(13)) {
+      setSpeed(-1);
+    }
+  }
+
+  function togglePlay() {
+    const dur = S.clip.time[S.clip.n - 1];
+    if (!S.playing && S.t >= dur - 1e-6) {
+      S.t = 0;
+    }
+    S.playing = !S.playing;
+    if (S.playing && S.clip.keys.length) {
+      S.manual = false;
+    }
+  }
+
+  /* ---- keeping what happened ---- */
+
+  function photo() {
+    return new Promise((resolve) => {
+      S.photo = (blob) => {
+        if (!blob) {
+          toast(str('replay.photo_failed'));
+          resolve(null);
+          return;
+        }
+        store.downloadBlob(store.stampedName(S ? S.clip.meta.map : 'replay', '.png'), blob);
+        window.__crashCamLast = { ...(window.__crashCamLast || {}), photo: { size: blob.size, type: blob.type, w: shell.canvas.width, h: shell.canvas.height } };
+        if (S) {
+          toast(str('replay.photo_saved'));
+        }
+        resolve(blob);
+      };
+    });
+  }
+
+  /* A small picture of the current frame, for My clips. */
+  function thumbnail() {
+    return new Promise((resolve) => {
+      S.photo = (blob) => {
+        if (!blob || typeof createImageBitmap !== 'function') {
+          resolve(blob);
+          return;
+        }
+        createImageBitmap(blob).then((bmp) => {
+          const c = document.createElement('canvas');
+          c.width = THUMB_W;
+          c.height = THUMB_H;
+          const g = c.getContext('2d');
+          const s = Math.max(THUMB_W / bmp.width, THUMB_H / bmp.height);
+          g.drawImage(bmp, (THUMB_W - bmp.width * s) / 2, (THUMB_H - bmp.height * s) / 2, bmp.width * s, bmp.height * s);
+          c.toBlob((b) => resolve(b), 'image/jpeg', 0.82);
+        }, () => resolve(null));
+      };
+    });
+  }
+
+  /* Record the in to out range as a video with the camera path, at the
+   * speed chosen, and hand it over as a file. */
+  function exportVideo() {
+    if (S.exporting) {
+      return Promise.resolve(null);
+    }
+    const mime = pickRecorderMime();
+    if (!mime || typeof shell.canvas.captureStream !== 'function') {
+      toast(str('replay.video_unsupported'));
+      return Promise.resolve(null);
+    }
+    const stream = shell.canvas.captureStream(60);
+    let tap = null;
+    if (audio.ctx && audio.master && typeof audio.ctx.createMediaStreamDestination === 'function') {
+      tap = audio.ctx.createMediaStreamDestination();
+      audio.master.connect(tap);
+      for (const tr of tap.stream.getAudioTracks()) {
+        stream.addTrack(tr);
+      }
+    }
+    const type = mime.split(';')[0];
+    const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12e6 });
+    const chunks = [];
+    mr.ondataavailable = (ev) => {
+      if (ev.data && ev.data.size) {
+        chunks.push(ev.data);
+      }
+    };
+    const session = S;
+    return new Promise((resolve) => {
+      let cancelled = false;
+      const done = () => {
+        if (tap) {
+          audio.master.disconnect(tap);
+        }
+        for (const tr of stream.getTracks()) {
+          tr.stop();
+        }
+        session.exporting = null;
+        if (cancelled) {
+          resolve(null);
+          return;
+        }
+        const blob = new Blob(chunks, { type });
+        window.__crashCamLast = {
+          ...(window.__crashCamLast || {}),
+          video: { size: blob.size, type: blob.type, audioTracks: tap ? tap.stream.getAudioTracks().length : 0 },
+        };
+        if (blob.size) {
+          store.downloadBlob(store.stampedName(session.clip.meta.map, type === 'video/mp4' ? '.mp4' : '.webm'), blob);
+          if (S === session) {
+            toast(str('replay.video_saved'));
+          }
+        } else if (S === session) {
+          toast(str('replay.video_failed'));
+        }
+        resolve(blob);
+      };
+      mr.onstop = done;
+      session.exporting = {
+        finish: () => {
+          if (mr.state !== 'inactive') {
+            mr.stop();
+          }
+        },
+        cancel: () => {
+          cancelled = true;
+          if (mr.state !== 'inactive') {
+            mr.stop();
+          }
+        },
+      };
+      S.t = S.in;
+      S.playing = true;
+      if (S.clip.keys.length) {
+        S.manual = false;
+      }
+      mr.start(250);
+      toast(str('replay.recording_video'));
+    });
+  }
+
+  async function saveReplay(name) {
+    const clip = S.in > 0 || S.out < S.clip.time[S.clip.n - 1] ? trimClip(S.clip, S.in, S.out) : S.clip;
+    clip.meta = { ...clip.meta, name: String(name || S.clip.meta.name).slice(0, NAME_MAX), duration: clip.time[clip.n - 1] };
+    const bytes = encodeReplay(clip);
+    const thumb = await thumbnail();
+    const id = store.newId();
+    try {
+      const dropped = await store.putClip({
+        id, name: clip.meta.name, created: Date.now(), thumb, bytes,
+        airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration,
+      });
+      if (S) {
+        toast(dropped ? str('replay.saved_oldest_removed', { n: dropped }) : str('replay.saved'));
+      }
+      return id;
+    } catch (err) {
+      if (S) {
+        toast(str('replay.save_failed', { why: err.message }));
+      }
+      throw err;
+    }
+  }
+
+  function known() {
+    return { airframe: host.knownAirframe, map: host.knownMap };
+  }
+
+  /* A replay from bytes, or an error the pilot can read. */
+  function decode(bytes) {
+    try {
+      return decodeReplay(bytes, known());
+    } catch (err) {
+      if (err instanceof ReplayFileError) {
+        console.warn('replay refused:', err.message);
+        throw new Error(str('replay.not_a_replay'));
+      }
+      throw err;
+    }
+  }
+
+  async function playSaved(id) {
+    const row = await store.getClip(id);
+    if (!row) {
+      throw new Error('that clip is gone');
+    }
+    const clip = decode(row.bytes);
+    if (clip.meta.map !== host.mapId()) {
+      await host.swapMap(clip.meta.map);
+    }
+    if (S) {
+      close();
+    }
+    return open(clip);
+  }
+
+  async function exportSaved(id) {
+    const row = await store.getClip(id);
+    if (!row) {
+      throw new Error('that clip is gone');
+    }
+    const blob = new Blob([row.bytes], { type: 'application/octet-stream' });
+    const safe = row.name.replace(/[^a-z0-9 _-]/gi, '').trim().replace(/\s+/g, '-') || 'replay';
+    store.downloadBlob(`${safe}${FILE_EXT}`, blob);
+    return blob.size;
+  }
+
+  async function importFile(file) {
+    if (file.size > 24 * 1024 * 1024) {
+      throw new Error(str('replay.import_too_big'));
+    }
+    const bytes = await file.arrayBuffer();
+    const clip = decode(bytes);
+    await store.putClip({
+      id: store.newId(), name: clip.meta.name, created: Date.now(), thumb: null, bytes,
+      airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration,
+    });
+    return clip.meta.name;
+  }
+
+  /* ---- take over ---- */
+
+  function takeOver() {
+    if (!S || !canTakeOver()) {
+      toast(str('replay.cannot_take_over'));
+      return null;
+    }
+    const k = frameAt(S.t);
+    const h = k * HEAD_N;
+    const clip = S.clip;
+    const mark = [clip.head[h + HEAD.markSeg], clip.head[h + HEAD.markPos]];
+    const drop = clip.n - 1 - k;
+    const session = S;
+    if (S.exporting) {
+      S.exporting.cancel();
+    }
+    disposeScene(session.scene);
+    for (const g of host.liveGroups) {
+      g.visible = true;
+    }
+    S = null;
+    editor.close();
+    const res = host.takeOver(mark, clip.head[h + HEAD.simT], clip.head[h + HEAD.stateHash]);
+    if (res && res.ok) {
+      rec.dropNewest(drop);
+      prevStatus.fill(0);
+    }
+    window.__crashCamLast = { ...(window.__crashCamLast || {}), takeOver: { ...res, frame: k, clipT: clip.time[k] } };
+    return res;
+  }
+
+  /* ---- what the editor calls ---- */
+
+  function api() {
+    return {
+      view: () => view(),
+      togglePlay: () => togglePlay(),
+      seek: (t) => { seek(t); S.playing = false; },
+      step,
+      setSpeed: (s) => {
+        if (typeof s === 'number' && SPEEDS.includes(s)) {
+          S.speed = s;
+        } else {
+          setSpeed(s);
+        }
+      },
+      speeds: SPEEDS,
+      rigs: RIGS,
+      setRig: (r) => setRig(r),
+      follow: (part) => setRig('follow', part),
+      nextPart,
+      addKey: keyNow,
+      removeKey,
+      clearKeys: () => {
+        S.clip.keys.length = 0;
+        S.manual = true;
+      },
+      toggleOsd: () => {
+        S.osd = !S.osd;
+      },
+      toggleLetterbox: () => {
+        S.letterbox = !S.letterbox;
+      },
+      toggleBare: () => {
+        S.bare = !S.bare;
+      },
+      mapName: (id) => host.mapName(id),
+      setIn: () => {
+        S.in = Math.min(S.t, S.out - 0.1);
+      },
+      setOut: () => {
+        S.out = Math.max(S.t, S.in + 0.1);
+      },
+      photo,
+      exportVideo,
+      saveReplay,
+      takeOver,
+      close,
+      drag,
+      wheel,
+      prevMarker: () => jumpMarker(-1),
+      nextMarker: () => jumpMarker(1),
+      jumpTo: (t) => {
+        seek(t);
+        S.playing = false;
+      },
+      seekBy: (d) => {
+        seek(S.t + d);
+        S.playing = false;
+      },
+      shiftHeld: () => input.keys.has('ShiftLeft') || input.keys.has('ShiftRight'),
+      listClips: () => store.listClips(),
+      playSaved,
+      renameSaved: (id, name) => store.renameClip(id, String(name).slice(0, NAME_MAX)),
+      deleteSaved: (id) => store.deleteClip(id),
+      exportSaved,
+      importFile,
+      clipName: () => (S ? S.clip.meta.name : ''),
+      key: REPLAY_KEY,
+    };
+  }
+
+  function jumpMarker(dir) {
+    const ms = S.clip.events.filter((e) => e.type === 'off' || e.type === 'impact').map((e) => e.t);
+    const lead = 0.5;
+    const cur = S.t + lead;
+    const next = dir > 0 ? ms.find((t) => t > cur + 0.05) : [...ms].reverse().find((t) => t < cur - 0.05);
+    if (next !== undefined) {
+      seek(next - lead);
+      S.playing = false;
+    }
+  }
+
+  /* ---- keys ---- */
+
+  function onKey(code, repeat) {
+    if (S) {
+      return editor.onKey(code, repeat);
+    }
+    if (code === REPLAY_KEY && !repeat && host.mode() === 'flight' && host.screen() === 'flight') {
+      open();
+      return true;
+    }
+    return false;
+  }
+
+  /* For the harness and the memory report. */
+  function stats() {
+    const j = journal.stats();
+    return {
+      frames: cost.frames,
+      recordMsMean: cost.frames ? cost.totalMs / cost.frames : 0,
+      recordMsMax: cost.maxMs,
+      snapshots: cost.snaps,
+      snapshotMsMean: cost.snaps ? cost.snapMs / cost.snaps : 0,
+      snapshotMsMax: cost.snapMaxMs,
+      ringBytes: rec.bytes,
+      ringFrames: rec.size(),
+      journalBytes: j.bytes,
+      journalSegments: j.segments,
+      journalCalls: j.calls,
+      regionBytes: j.region,
+    };
+  }
+
+  return {
+    record,
+    noteCrash,
+    tap,
+    onKey,
+    frame,
+    afterRender,
+    sound,
+    stats,
+    open: () => open(),
+    get live() {
+      return S !== null;
+    },
+    /* Harness only: switch recording and the journal's notes off, for the
+     * proof that the flight is the same with them off. */
+    setRecording(on) {
+      recording = Boolean(on);
+      journal.setLogging(Boolean(on));
+    },
+    harness: () => ({
+      api: api(),
+      view: () => (S ? view() : null),
+      setRig: (r, target) => setRig(r, target),
+      speeds: SPEEDS,
+      clipPartKinds: () => (S ? S.clip.meta.parts.map((p) => PART_KINDS[p.kind]) : []),
+    }),
+  };
+}
+

@@ -365,6 +365,9 @@ export function buildShell(canvas, opts) {
     repaintCraft,
     craftPaint,
     setCraftLook,
+    /* The seated map's look put on another craft (the crash cam's replay
+     * craft), so it is drawn as the flown one is; returns its undo. */
+    lookCraft: (other) => (craftLook ? craftLook(other) : null),
     keepAcrossMaps,
     evictSessionRoots,
   };
