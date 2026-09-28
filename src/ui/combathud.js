@@ -37,6 +37,11 @@ const CARD_MS = 10000;
 /* The last seconds of a round are counted big, so the end is no surprise. */
 const FINAL_S = 10;
 const LIVE_ROWS = 8;
+/* The paper's speed warning, under the owner's 120 km/h tear rule
+ * (src/game/streamer.js TEAR_SPEED_MPS): amber from 100 km/h, red from
+ * 112. */
+const WARN_MPS = 100 / 3.6;
+const DANGER_MPS = 112 / 3.6;
 
 function clock(ms) {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -146,13 +151,15 @@ export function createCombatHud(nameOf) {
     }
   }
 
-  /* The big one, for a cut this pilot made. */
-  function shout(text) {
+  /* The big one: a cut this pilot made, or ('warn') its paper tearing. */
+  function shout(text, kind = '') {
     if (!box) {
       build();
     }
     said.push(text);
     big.textContent = text;
+    big.style.color = kind === 'warn' ? '#ff8a6a' : '#fff6c8';
+    big.style.fontSize = kind === 'warn' ? '40px' : '64px';
     big.style.transition = 'none';
     big.style.opacity = '1';
     big.style.transform = 'translate(-50%, -50%) scale(1.25)';
@@ -195,7 +202,7 @@ export function createCombatHud(nameOf) {
    * roomNow the room clock, paper metres on the aircraft, pull newtons at
    * the tail.
    */
-  function update(round, me, roomNow, paper, pull) {
+  function update(round, me, roomNow, paper, pull, speed = 0) {
     if (round.state === 'idle' || roomNow == null) {
       if (box && shown !== '') {
         box.style.display = 'none';
@@ -217,7 +224,7 @@ export function createCombatHud(nameOf) {
     if (round.state === 'countdown') {
       text = str('combat.hud_countdown', { time: clock(round.startsAt - roomNow) });
     } else if (round.state === 'on') {
-      text = str(mine && mine.lost ? 'combat.hud_lost' : 'combat.hud', {
+      text = str('combat.hud', {
         time: clock(round.endsAt - roomNow), points: mine ? mine.points : 0, paper: Math.round(paper), pull: pull.toFixed(1),
       });
     } else {
@@ -236,12 +243,15 @@ export function createCombatHud(nameOf) {
     /* Everyone's points as they stand, this pilot always shown. */
     const live = rows.map((r, i) => ({ r, place: i + 1 })).filter((x, i) => i < LIVE_ROWS - 1 || x.r.seat === me || rows.length <= LIVE_ROWS);
     const three = live.map((x) => str('combat.hud_row', { place: x.place, name: nameOf(x.r.seat), points: x.r.points })).join('   ');
-    const key = `${text}|${three}|${round.state}|${JSON.stringify(rows)}|${clockText}|${finalText}|${wantCard}`;
+    const warn = round.state === 'on' && paper > 0 ? (speed >= DANGER_MPS ? 'red' : (speed >= WARN_MPS ? 'amber' : '')) : '';
+    const key = `${text}|${three}|${round.state}|${JSON.stringify(rows)}|${clockText}|${finalText}|${wantCard}|${warn}`;
     if (key === shown) {
       return;
     }
     shown = key;
     head.textContent = text;
+    head.style.color = warn === 'red' ? '#ff5a4a' : (warn === 'amber' ? '#ffb020' : '#fff');
+    head.dataset.warn = warn;
     roundClock.style.display = clockText ? 'block' : 'none';
     roundClock.textContent = clockText;
     roundClock.style.color = finalText ? '#ff5a4a' : '#fff';
@@ -279,6 +289,7 @@ export function createCombatHud(nameOf) {
       clock: roundClock && roundClock.style.display !== 'none' ? roundClock.textContent : '',
       final: finalCount && finalCount.style.display !== 'none' ? finalCount.textContent : '',
       card,
+      warn: head ? head.dataset.warn || '' : '',
     }),
   };
 }

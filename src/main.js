@@ -2072,12 +2072,13 @@ export async function boot({
     const paper = roomCombat.paper();
     for (const n of paper ? paper.news.splice(0, paper.news.length) : []) {
       if (n.kind === 'tear') {
-        combatHud.say(str('combat.tore'));
+        /* The owner's rule, said out loud: over 120 km/h the paper goes. */
+        combatHud.shout(str('combat.tore', { speed: Math.round((n.speed || 0) * 3.6) }), 'warn');
       }
     }
     if (wallMs > combatHudAt) {
       combatHudAt = wallMs + 200;
-      combatHud.update(roomCombat.round(), roomCombat.seat(), now, paper ? paper.length() : 0, paper ? paper.towTension() : 0);
+      combatHud.update(roomCombat.round(), roomCombat.seat(), now, paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow);
     }
     if (!roomCombat.out()) {
       if (combatLayer.count()) {

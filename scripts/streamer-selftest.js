@@ -35,7 +35,7 @@
  */
 
 import {
-  AREAL_KG_M2, CD_ACROSS, COMPLIANCE, STRETCH_AT_TEAR, CD_FLUTTER, CD_FRICTION, G, LENGTH_M, RHO, SEG_M, Streamer, TAIL_M, TEAR_N, WIDTH_M,
+  AREAL_KG_M2, CD_ACROSS, COMPLIANCE, STRETCH_AT_TEAR, TEAR_HOLD_S, TEAR_SPEED_MPS, CD_FLUTTER, CD_FRICTION, G, LENGTH_M, RHO, SEG_M, Streamer, TAIL_M, TEAR_N, WIDTH_M,
   streamerTrace,
 } from '../src/game/streamer.js';
 
@@ -146,45 +146,52 @@ for (const speed of [8, 12, 16]) {
   check(`${speed} m/s: and the whole pull is no more than drag and weight together, ${Math.hypot(drag, weight).toFixed(2)} N`, T <= Math.hypot(drag, weight) * 1.1, `${T.toFixed(2)} N`);
 }
 
-console.log('tear');
+console.log('tear: the owner\'s rule, only over 120 km/h');
 {
-  const q1 = 0.5 * RHO * WIDTH_M * (CD_FRICTION * LENGTH_M + (CD_FLUTTER - CD_FRICTION) * TAIL_M);
-  const weight = AREAL_KG_M2 * WIDTH_M * LENGTH_M * G;
-  /* TEAR_N^2 = (q1 v^2)^2 + W^2, at the limit. */
-  const vTear = Math.sqrt(Math.sqrt(TEAR_N * TEAR_N - weight * weight) / q1);
-  const below = new Streamer();
-  below.lay(0, 20, 0, 0, 0, 1, undefined, null, [0, 0, -0.9 * vTear]);
-  const z = tow(below, 0.9 * vTear, 30);
-  check(`at 90 percent of the predicted ${vTear.toFixed(1)} m/s, thirty seconds, no tear`, below.length() === LENGTH_M && below.news.length === 0, `${below.length()} m, ${below.news.length} tears, pull ${below.towTension().toFixed(2)} N`);
-  /* Then ramp at 0.5 m/s per second until it goes. */
-  let v = 0.9 * vTear;
-  let at = z;
-  let tearV = null;
-  let tearT = 0;
-  for (let k = 0; k < 20000 && tearV == null; k += 1) {
-    v += 0.0005;
-    at -= v * 0.001;
-    const before = below.towTension();
-    below.step(0, 20, at, flat);
-    if (below.news.length) {
-      tearV = v;
-      tearT = before;
+  /* The owner, 2026-09-28: "the paper only gets dropped over 120 km/h".
+   * A game rule: the tow point faster than TEAR_SPEED_MPS for TEAR_HOLD_S. */
+  check('the rule\'s speed is 120 km/h', Math.abs(TEAR_SPEED_MPS * 3.6 - 120) < 1e-9 && TEAR_HOLD_S === 0.3);
+  const run = (len, speed, seconds) => {
+    const s = new Streamer(len);
+    s.lay(0, 20, 0, 0, 0, 1, undefined, null, [0, 0, -speed]);
+    let worst = 0;
+    let z = 0;
+    let tornAt = null;
+    for (let k = 0; k < seconds * 1000 && tornAt == null; k += 1) {
+      z -= speed * 0.001;
+      s.step(0, 20, z, flat);
+      if (s.news.length) {
+        tornAt = (k + 1) / 1000;
+      }
+      const c = s.attached;
+      for (let i = 0; c && i < c.n - 1; i += 1) {
+        const d = Math.hypot(c.x[i * 3 + 3] - c.x[i * 3], c.x[i * 3 + 4] - c.x[i * 3 + 1], c.x[i * 3 + 5] - c.x[i * 3 + 2]);
+        worst = Math.max(worst, (d - SEG_M) / SEG_M);
+      }
     }
+    return { s, worst, tornAt };
+  };
+  const slow = run(100, 32, 60);
+  check('a hundred metres at 32 m/s (115 km/h) for sixty seconds does not tear', slow.tornAt == null && slow.s.length() === 100, `${slow.s.length()} m, pull ${slow.s.towTension().toFixed(1)} N`);
+  check('and the paper stops stretching where paper does: no link past a fifth more', slow.worst < 0.25, `worst ${(slow.worst * 100).toFixed(1)} percent`);
+  const fifty = run(50, 32, 60);
+  check('fifty metres at 32 m/s for sixty seconds does not tear either', fifty.tornAt == null && fifty.s.length() === 50);
+  const fast = run(100, 34, 5);
+  const tear = fast.s.news[0];
+  check('at 34 m/s (122 km/h) a hundred metres tears, after the rule\'s 0.3 s', fast.tornAt != null && Math.abs(fast.tornAt - TEAR_HOLD_S) < 0.01, `torn at ${fast.tornAt} s`);
+  check('at the tow point, all of it, and the tear says how fast', tear && tear.kind === 'tear' && tear.segs === 0 && fast.s.length() === 0 && tear.speed > TEAR_SPEED_MPS, tear ? `kept ${tear.segs} m at ${(tear.speed * 3.6).toFixed(0)} km/h` : '');
+  const tiny = run(2, 34, 5);
+  check('two metres at 34 m/s tears too: a rule, not a strength', tiny.tornAt != null);
+  /* A spike through 120 km/h shorter than the hold is not a tear. */
+  const s = new Streamer();
+  s.lay(0, 20, 0, 0, 0, 1, undefined, null, [0, 0, -30]);
+  let z = 0;
+  for (let k = 0; k < 3000; k += 1) {
+    const v = k >= 1000 && k < 1200 ? 36 : 30;
+    z -= v * 0.001;
+    s.step(0, 20, z, flat);
   }
-  check(`ramped, it tears near the predicted ${vTear.toFixed(1)} m/s, to 10 percent`, tearV != null && Math.abs(tearV - vTear) / vTear < 0.1, `${tearV ? tearV.toFixed(2) : 'never'} m/s`);
-  check(`the pull when it went was TEAR_N, ${TEAR_N.toFixed(2)} N, to 5 percent`, tearV != null && Math.abs(tearT - TEAR_N) / TEAR_N < 0.05, `${tearT.toFixed(2)} N`);
-  const news = below.news[0];
-  check('it tore at the tow point, where the pull is greatest', news && news.kind === 'tear' && news.segs <= 1, news ? `kept ${news.segs} m` : '');
-  const fast = new Streamer();
-  fast.lay(0, 20, 0, 0, 0, 1, undefined, null, [0, 0, -1.2 * vTear]);
-  tow(fast, 1.2 * vTear, 10);
-  check('held at 120 percent it tears at the tow point and all of it goes', fast.length() === 0 && fast.news.length === 1 && fast.news[0].segs === 0, `${fast.length()} m left after ${fast.news.length} tears`);
-  /* Shorter paper holds more speed: 10 m, towed at the speed that took
-   * the fifty off, stays on. */
-  const short = new Streamer(10);
-  short.lay(0, 20, 0, 0, 0, 1, undefined, null, [0, 0, -1.2 * vTear]);
-  tow(short, 1.2 * vTear, 10);
-  check(`ten metres at that ${(1.2 * vTear).toFixed(1)} m/s stays on, pulling ${short.towTension().toFixed(1)} N`, short.length() === 10 && short.towTension() < TEAR_N, `${short.length()} m`);
+  check('a 0.2 s spike to 36 m/s is not a tear', s.length() === LENGTH_M && s.news.length === 0);
 }
 
 console.log('cut');
@@ -234,26 +241,6 @@ console.log('captured paper: grown at the far end, a hundred metres');
   s.cutTo(60);
   check('a cut keeps each link\'s colour on both sides of it', s.attached.col[49] === 1 && s.attached.col[50] === 2 && s.pieces[0].col[0] === 2, `${s.attached.col[49]} ${s.attached.col[50]} ${s.pieces[0].col[0]}`);
 
-  /* A hundred metres tears sooner than fifty: twice the friction and
-   * twice the weight for the same paper at the tow point. */
-  const q100 = 0.5 * RHO * WIDTH_M * (CD_FRICTION * 100 + (CD_FLUTTER - CD_FRICTION) * TAIL_M);
-  const w100 = AREAL_KG_M2 * WIDTH_M * 100 * G;
-  const v100 = Math.sqrt(Math.sqrt(TEAR_N * TEAR_N - w100 * w100) / q100);
-  const long = new Streamer(100);
-  long.lay(0, 20, 0, 0, 0, 1, undefined, null, [0, 0, -0.85 * v100]);
-  let at = tow(long, 0.85 * v100, 20);
-  check(`a hundred metres holds at 85 percent of its predicted ${v100.toFixed(1)} m/s`, long.length() === 100 && long.news.length === 0, `${long.length()} m`);
-  let v = 0.85 * v100;
-  let tearV = null;
-  for (let k = 0; k < 30000 && tearV == null; k += 1) {
-    v += 0.0005;
-    at -= v * 0.001;
-    long.step(0, 20, at, flat);
-    if (long.news.length) {
-      tearV = v;
-    }
-  }
-  check(`and tears near ${v100.toFixed(1)} m/s, to 10 percent (fifty metres: 22.3)`, tearV != null && Math.abs(tearV - v100) / v100 < 0.1, `${tearV ? tearV.toFixed(2) : 'never'} m/s`);
 }
 
 console.log('frames');

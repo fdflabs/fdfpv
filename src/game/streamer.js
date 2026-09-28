@@ -25,8 +25,10 @@
  *   4. The velocity is what the positions did.
  *
  * The solve's multipliers are the tensions, in newtons, for free: lambda
- * over dt squared. A segment whose tension passes TEAR_N tears there, and
- * the part behind it comes off and falls, as a cut does.
+ * over dt squared. The paper tears by the owner's rule, not its strength:
+ * only once the tow point has gone faster than 120 km/h for 0.3 s, at the
+ * link pulling hardest (TEAR_SPEED_MPS below); the part behind comes off
+ * and falls, as a cut does.
  *
  * DETERMINISM (CLAUDE.md). Fixed 1 ms steps, one per plant step, driven by
  * the shell's own accumulator and fed the plant's pose of that step, so a
@@ -71,14 +73,9 @@ export const RHO = 1.225;
 export const WIDTH_M = 0.1016;
 export const AREAL_KG_M2 = 0.038;
 export const TENSILE_N_PER_M = 131;
+/* What real paper this wide breaks at; the game's rule below replaces it
+ * (docs/COMBAT-PLAN.md section 2.5), and it is kept for the comparison. */
 export const TEAR_N = TENSILE_N_PER_M * WIDTH_M;
-/* Creped tissue stretches before it breaks: the finished toilet paper
- * Vieira et al. measured broke at 19.9 percent along the machine
- * direction, the roll's length. Taken as linear to the break, the boring
- * choice, a metre of paper is a spring of TEAR_N / STRETCH_AT_TEAR / SEG_M
- * newtons a metre, and COMPLIANCE is its inverse. */
-export const STRETCH_AT_TEAR = 0.199;
-export const COMPLIANCE = (STRETCH_AT_TEAR * SEG_M) / TEAR_N;
 /*
  * Drag, each on the paper's plan area (one side, Carruthers and
  * Filippone's reference). Along the paper, turbulent skin friction on both
@@ -89,6 +86,30 @@ export const COMPLIANCE = (STRETCH_AT_TEAR * SEG_M) / TEAR_N;
 export const CD_FRICTION = 0.0042;
 export const TAIL_M = 30 * WIDTH_M;
 export const CD_FLUTTER = 0.0755;
+/*
+ * THE TEAR RULE (the owner, 2026-09-28: "the paper only gets dropped over
+ * 120 km/h"). A game rule, not a strength: the paper tears when the tow
+ * point has gone faster than TEAR_SPEED_MPS for TEAR_HOLD_S together (a
+ * brief spike through it is not flight at that speed), and then at the
+ * link pulling hardest, the tow point's. Below it the paper never tears,
+ * whatever its length or tension; the tension still shows on the HUD and
+ * still shapes the paper.
+ */
+export const TEAR_SPEED_MPS = 120 / 3.6;
+export const TEAR_HOLD_S = 0.3;
+/* The hardest steady pull the rule allows: a full hundred metres (the cap)
+ * towed level at TEAR_SPEED_MPS, drag and weight together. */
+const CAP_M = 100;
+const CAP_DRAG_N = 0.5 * RHO * WIDTH_M * (CD_FRICTION * CAP_M + (CD_FLUTTER - CD_FRICTION) * TAIL_M) * TEAR_SPEED_MPS * TEAR_SPEED_MPS;
+const CAP_WEIGHT_N = AREAL_KG_M2 * WIDTH_M * CAP_M * G;
+export const MAX_PULL_N = Math.sqrt(CAP_DRAG_N * CAP_DRAG_N + CAP_WEIGHT_N * CAP_WEIGHT_N);
+/* Creped tissue stretches: the finished toilet paper Vieira et al.
+ * measured broke at 19.9 percent along the machine direction. The paper
+ * here stretches that far at MAX_PULL_N, the most the rule lets it be
+ * pulled, and linearly below it, so no paper ever stretches further than
+ * paper does. COMPLIANCE is the inverse of that spring, a metre long. */
+export const STRETCH_AT_TEAR = 0.199;
+export const COMPLIANCE = (STRETCH_AT_TEAR * SEG_M) / MAX_PULL_N;
 export const CD_ACROSS = 1.17;
 /* Paper on the ground: sliding friction. */
 export const GROUND_MU = 0.5;
@@ -391,6 +412,10 @@ export class Streamer {
     this.pieces = [];
     this.nextId = 1;
     this.steps = 0;
+    /* The tow point's speed the last step, m/s, and how long it has been
+     * over TEAR_SPEED_MPS, s. */
+    this.speed = 0;
+    this.over = 0;
     /* What came off, for the owner's shell to report: { kind, segs, step }. */
     this.news = [];
   }
@@ -406,6 +431,7 @@ export class Streamer {
     this.segs = Math.max(0, Math.min(STREAMER_SEGS, segs));
     this.attached = this.segs > 0 ? chain(this.segs + 1, true, 0) : null;
     this.pieces = [];
+    this.over = 0;
     if (!this.attached) {
       return;
     }
@@ -513,20 +539,26 @@ export class Streamer {
     this.steps += 1;
     const c = this.attached;
     if (c) {
+      const dx = ax - c.x[0];
+      const dy = ay - c.x[1];
+      const dz = az - c.x[2];
+      this.speed = Math.sqrt(dx * dx + dy * dy + dz * dz) / STEP_S;
       c.x[0] = ax;
       c.x[1] = ay;
       c.x[2] = az;
       stepChain(c, groundAt, refresh);
-      let worst = -1;
-      let worstT = TEAR_N;
-      for (let i = 0; i < c.n - 1; i += 1) {
-        if (c.tension[i] > worstT) {
-          worstT = c.tension[i];
-          worst = i;
+      this.over = this.speed > TEAR_SPEED_MPS ? this.over + STEP_S : 0;
+      if (this.over >= TEAR_HOLD_S && c.n > 1) {
+        let worst = 0;
+        for (let i = 1; i < c.n - 1; i += 1) {
+          if (c.tension[i] > c.tension[worst]) {
+            worst = i;
+          }
         }
-      }
-      if (worst >= 0) {
+        const speed = this.speed;
         this.split(worst, 'tear');
+        this.news[this.news.length - 1].speed = speed;
+        this.over = 0;
       }
     }
     for (const p of this.pieces) {
