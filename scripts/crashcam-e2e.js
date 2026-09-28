@@ -107,9 +107,25 @@ async function shot(page, name) {
   console.log(`  shot ${join(shots, `${name}.png`)}`);
 }
 
+/*
+ * WAITS ARE ON THE PAGE'S OWN CLOCKS, NEVER ON THE WALL.
+ *
+ * This ran on the airfield, which drew about 555 frames over the flight;
+ * the Swiss valley draws about 120. Fixed sleeps sized for the one read
+ * the other before the frame that answers had been drawn: the REPLAY chip
+ * before the HUD change reached it, the follow camera before the scrub was
+ * drawn. So a wait is either on the state the check is about (the frame
+ * the editor drew, the plant's clock) or on n frames the shell rendered,
+ * and it means the same thing at any frame rate.
+ */
+async function frames(page, n) {
+  const f0 = await page.evaluate('window.__boot().frames');
+  await page.until(`window.__boot().frames >= ${f0 + n}`, WAIT);
+}
+
 async function ready(page) {
-  await page.until('window.__shellReady && window.__map && window.__map().ready && window.__crashCam', 180000);
-  await page.sleep(800);
+  await page.until('window.__shellReady && window.__map && window.__map().ready && window.__crashCam && window.__boot', 180000);
+  await frames(page, 3);
 }
 
 const H = 'window.__crashCam.h()';
@@ -122,7 +138,7 @@ const view = (page) => page.evaluate(`JSON.stringify(${H}.view())`).then(JSON.pa
 async function tracedThrow(page, pad) {
   await page.evaluate('window.__stick(0, 0, 0, 0)');
   const r = await page.evaluate(`window.__crashThrow({ fresh: true, hold: true, x: ${pad.x}, y: ${pad.g + 20}, z: ${pad.z}, yaw: 0, pitch: -25, vx: 0, vy: 0, vz: -18, showCraft: true }).ok`);
-  await page.sleep(300);
+  await frames(page, 2);
   await page.evaluate('window.__releasePose()');
   await afterSteps(page, 3000);
   return page.evaluate(`(() => {
@@ -164,6 +180,13 @@ async function main() {
     await page.tap('ShiftLeft');
 
     console.log('0. the recorder and the journal change nothing');
+    /* The picture is off wherever only the plant and the recorder are being
+     * asked something: the recorder runs every frame whether or not the
+     * frame is drawn (src/main.js records before the draw), so nothing it
+     * keeps changes, and a world that draws a frame a second on a loaded
+     * software rasteriser would otherwise spend minutes drawing a flight
+     * nobody looks at. It is back on before anything on screen is read. */
+    await page.evaluate('window.__drawOff(true)');
     const pad = await page.evaluate('(() => { const s = window.__craftState(); return { x: s.worldX, z: s.worldZ, g: s.worldY - s.groundClearance }; })()');
     const a = await tracedThrow(page, pad);
     const b = await tracedThrow(page, pad);
@@ -193,6 +216,8 @@ async function main() {
     await page.evaluate('window.__stick(-0.3, 0.3, 0, 0.4)');
     await page.until('window.__crash().wrecked || window.__craftState().landed', WAIT);
     await afterSteps(page, 1200);
+    await page.evaluate('window.__drawOff(false)');
+    await frames(page, 3);
     /* The prompt as the pilot sees it: in the FPV OSD's type while that
      * OSD is on screen, as a chip otherwise (the Game HUD, or a chase view
      * the OSD is not drawn over). */
@@ -202,7 +227,7 @@ async function main() {
       return { chip: Boolean(p && !p.hidden), osdOn: o.on, osd: o.values.replay || '', rows: o.rows.join(' / ') };
     })()`);
     await page.evaluate("(window.__ui.settings.hudStyle = 'osd', true)");
-    await page.sleep(800);
+    await frames(page, 3);
     const inOsd = await prompt();
     if (inOsd.osdOn) {
       check('with the FPV OSD up, REPLAY is drawn in the OSD and the chip is hidden',
@@ -212,7 +237,7 @@ async function main() {
     }
     await shot(page, 'prompt-osd');
     await page.evaluate("(window.__ui.settings.hudStyle = 'game', true)");
-    await page.sleep(800);
+    await frames(page, 3);
     const inGame = await prompt();
     check('with the Game HUD, REPLAY is the chip and not in the OSD', inGame.chip && !inGame.osdOn, `chip ${inGame.chip}, osd on ${inGame.osdOn}`);
     await shot(page, 'prompt-game');
@@ -227,13 +252,17 @@ async function main() {
     const t0 = await simT(page);
     await page.tap('KeyV');
     await page.until('window.__crashCam.live()', 10000);
-    await page.sleep(600);
+    await frames(page, 3);
     const t1 = await simT(page);
     check('V opens the replay and the plant is held', Math.abs(t1 - t0) < 0.2, `sim ${t0.toFixed(3)} then ${t1.toFixed(3)}`);
     let v = await view(page);
     check('the clip holds the flight', v.dur > 5 && v.live, `${v.dur.toFixed(2)} s`);
     console.log(`     markers: ${v.markers.map((m) => `${m.type}${m.label ? ` ${m.label}` : ''} ${m.t.toFixed(2)}`).join(', ')}`);
-    const off = v.markers.find((m) => m.type === 'off' && m.label === 'wing right');
+    /* The LAST wing right: the clip also holds step 0's three throws, and
+     * on the Swiss valley's pad those break the right wing too (on the
+     * airfield they only ejected the pack), so the first one found was a
+     * throw's and not the wing broken off in the air. */
+    const off = v.markers.findLast((m) => m.type === 'off' && m.label === 'wing right');
     check('a marker where the wing came off', Boolean(off), off ? `at ${off.t.toFixed(2)} s` : 'none');
     check('an impact marker', v.markers.some((m) => m.type === 'impact'));
     if (!off) {
@@ -255,13 +284,16 @@ async function main() {
     v = await view(page);
     check('slow motion', v.speed === 0.1, `${v.speed}x`);
     await page.tap('Space');
-    await page.sleep(1500);
+    /* Played until the clip's clock has moved, on the clip's clock. */
+    await page.until(`${H}.view().playing && ${H}.view().t > ${before} + 0.01`, 30000).catch(() => {});
     v = await view(page);
     check('it plays at a tenth', v.playing && v.t > before, `${v.t.toFixed(3)} s`);
     await shot(page, 'editor');
     await page.tap('Digit6');
     await page.evaluate(`${H}.api.jumpTo(${off.t + 0.4})`);
-    await page.sleep(700);
+    /* The follow camera picks its part at the frame it draws, so it is read
+     * once the frame at the wing has been drawn. */
+    await page.until(`${H}.view().drawn === ${off.t + 0.4}`, 30000).catch(() => {});
     v = await view(page);
     check('follow the wing', v.rig === 'follow' && v.target === wing, `${v.rig} part ${v.target}`);
     /* The smoke plays back: a trail in the air after O, and scrubbed back
@@ -278,7 +310,7 @@ async function main() {
       puffsAfter > 20 && puffsBefore === 0 && Math.abs(puffsAgain - puffsAfter) <= 2,
       `${puffsAfter} puffs at the wing, ${puffsBefore} before O, ${puffsAgain} scrubbed back to the wing`);
     await page.tap('KeyH');
-    await page.sleep(300);
+    await frames(page, 2);
     await shot(page, 'follow-wing');
     await page.tap('KeyH');
     /* Two keys: the follow camera far, then close, a second apart. */
@@ -322,7 +354,7 @@ async function main() {
     console.log('3. take over');
     await page.tap('KeyL');
     await page.evaluate(`${H}.api.jumpTo(${off.t + 0.5})`);
-    await page.sleep(300);
+    await page.until(`${H}.view().drawn === ${off.t + 0.5}`, 30000).catch(() => {});
     v = await view(page);
     check('take over is offered after the wing came off', v.canTakeOver);
     await page.tap('Enter');
@@ -334,7 +366,7 @@ async function main() {
     const trail = [];
     for (let i = 0; i < 12; i += 1) {
       trail.push(await page.evaluate('(() => { const s = window.__craftState(); const c = window.__crash(); return `${c.simT.toFixed(2)} ${s.mode}${s.crashed ? " crashed" : ""}${s.landed ? " landed" : ""}${c.wrecked ? " wreck" : ""}`; })()'));
-      await page.sleep(150);
+      await frames(page, 1);
     }
     const tB = await simT(page);
     const forward = trail.map((x) => Number(x.split(' ')[0])).every((x, i, a) => i === 0 || x >= a[i - 1]);
@@ -342,16 +374,21 @@ async function main() {
       `from sim ${took.t.toFixed(3)} s: ${trail.join(', ')}`);
 
     console.log('4. reloaded, played from My clips');
+    /* A mark the reload clears, so ready() cannot answer from the old page. */
+    await page.evaluate('(window.__beforeReload = true)');
     await page.cdp.send('Page.reload', {}, page.sessionId);
-    await page.sleep(1500);
+    await page.until('!window.__beforeReload', WAIT);
     await ready(page);
     await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 30}, z: ${pad.z}, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: -16, showCraft: false })`);
+    await page.evaluate('window.__drawOff(true)');
     await afterSteps(page, 800);
+    await page.evaluate('window.__drawOff(false)');
+    await frames(page, 2);
     await page.tap('KeyV');
     await page.until('window.__crashCam.live()', 10000);
     await page.tap('KeyM');
     await page.until("document.querySelectorAll('.cc-clip').length > 0", 10000);
-    await page.sleep(600);
+    await frames(page, 3);
     await shot(page, 'my-clips');
     const cards = await page.evaluate("document.querySelectorAll('.cc-clip').length");
     check('My clips lists the replay after a reload', cards === 1, `${cards} card`);
@@ -381,7 +418,9 @@ async function main() {
     console.log('5. memory after more than the window, flying all the way');
     await page.evaluate('window.__stick(0, -0.05, 0, 0.75)');
     await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 200}, z: ${pad.z}, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: -16, showCraft: false })`);
+    await page.evaluate('window.__drawOff(true)');
     await afterSteps(page, 36000);
+    await page.evaluate('window.__drawOff(false)');
     const steady = await page.evaluate('window.__crashCam.stats()');
     const sim36 = await page.evaluate('({ t: window.__crash().simT, wrecked: window.__crash().wrecked })');
     check('the journal stays bounded past 30 s', steady.journalSegments <= 33,

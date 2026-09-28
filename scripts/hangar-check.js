@@ -605,9 +605,20 @@ async function paintShopCheck(page) {
    * with the camera parked 4 m off the plane looking at it, so the count
    * does not hang on which camera the pilot left on (in the FPV view the
    * plane is not drawn at all). The colour pass and the outline prepass
-   * both draw a decal mesh. */
+   * both draw a decal mesh.
+   *
+   * THE CAMERA FOLLOWS THE PLANE, every frame. It was parked once, at
+   * where the plane stood when the count began, and on the airfield the
+   * plane stood still. In the valleys the Timber is as often moving (seen
+   * at 28 km/h 7 m up, and at 34 km/h on its wheels), and over forty
+   * frames of a loaded software
+   * rasteriser it flew out of the parked frame: 0.6 draw calls a frame on
+   * the Alps, 0.0 on the Swiss valley, for decals that draw every frame
+   * when looked at. So the camera is put back 4 m off it before every
+   * frame. */
   const cost = await page.evaluate(`(async () => {
-    const frames = (n) => new Promise((done) => { let k = 0; const t0 = performance.now(); const step = () => { k += 1; if (k < n) requestAnimationFrame(step); else done((performance.now() - t0) / n); }; requestAnimationFrame(step); });
+    let aim = null;
+    const frames = (n) => new Promise((done) => { let k = 0; const t0 = performance.now(); const step = () => { k += 1; if (aim) aim(); if (k < n) requestAnimationFrame(step); else done((performance.now() - t0) / n); }; requestAnimationFrame(step); });
     const { dressDecals } = await import('/src/render/decals.js');
     const { craftBuilderFor } = await import('/src/render/craft.js');
     const decals = window.__ui.settings.livery.timber1500.decals;
@@ -626,13 +637,18 @@ async function paintShopCheck(page) {
       return { buildMs, meshes: 0, calls: 0, tris: 0, frameCalls: window.__renderStats().calls, why: 'no decal mesh in the scene' };
     }
     const THREE = await import('three');
-    const at = meshes[0].getWorldPosition(new THREE.Vector3());
-    window.__setCam(at.x + 2.6, at.y + 1.4, at.z + 2.6, at.x, at.y, at.z, 50);
+    const at = new THREE.Vector3();
+    aim = () => {
+      meshes[0].getWorldPosition(at);
+      window.__setCam(at.x + 2.6, at.y + 1.4, at.z + 2.6, at.x, at.y, at.z, 50);
+    };
+    aim();
     await frames(10);
     draws = 0;
     tris = 0;
     const n = 30;
     await frames(n);
+    aim = null;
     window.__setCam(null);
     for (const m of meshes) {
       m.onBeforeRender = () => {};
