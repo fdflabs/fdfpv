@@ -2501,6 +2501,27 @@ SIM_EXPORT int sim_set_addons(const double *in) {
   return rc;
 }
 
+SIM_EXPORT int sim_addons_state(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  out[0] = PLANT.add_on ? 1.0 : 0.0;
+  out[1] = PLANT.mass_kg;
+  out[2] = PLANT.add_on ? PLANT.add_cda : 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    out[3 + a] = PLANT.add_on ? PLANT.add_shift[a] : 0.0;
+  }
+  out[6] = 0.0;
+  for (int w = 0; w < PLANT.wheel_count; w += 1) {
+    if (PLANT.wheel[w].brake > 0.0 && PLANT.wheel[w].r > 0.0) {
+      out[6] = PLANT.wheel[w].r;
+      break;
+    }
+  }
+  out[7] = PLANT.fw ? PLANT.fw->thrust_static : 0.0;
+  return SIM_OK;
+}
+
 SIM_EXPORT int sim_addons_clear(void) {
   plant_addons_clear();
   contact_build_corners();

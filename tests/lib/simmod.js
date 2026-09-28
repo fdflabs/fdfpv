@@ -249,6 +249,19 @@ export class Sim {
     return this.e.sim_addons_clear();
   }
 
+  /* The sim_addons_state block, named. */
+  addonsState() {
+    if (!this.addonsPtr) {
+      this.addonsPtr = this.e.malloc(8 * 8);
+    }
+    const code = this.e.sim_addons_state(this.addonsPtr);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_addons_state returned ${code}`);
+    }
+    const f = new Float64Array(this.e.memory.buffer, this.addonsPtr, 8);
+    return { on: f[0] === 1, massKg: f[1], cda: f[2], shift: [f[3], f[4], f[5]], wheelR: f[6], thrustN: f[7] };
+  }
+
   /* The sim_power_state block, named. */
   powerState() {
     if (!this.powerPtr) {

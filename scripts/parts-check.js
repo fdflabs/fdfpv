@@ -185,6 +185,18 @@ console.log('A1 the ABI');
   check('an empty block flies bit identical to none', none === empty, `${none} ${empty}`);
   must(sim.clearAddons(), 'sim_addons_clear');
   check('and sim_addons_clear puts the table back', traceHash() === none);
+  const e = entry({ prop: '11x7e-3', addons: ['tundra', 'pod'] });
+  seat('cub1400', e);
+  const blk = addonParams('cub1400', e, stockOption('cub1400'), baseMass('cub1400'));
+  const st = sim.addonsState();
+  const est = PROP_ESTIMATES.cub1400.stock['11x7e-3'];
+  check('sim_addons_state reads back the mass, drag area, CG move, tyre and prop the plant flies',
+    st.on && Math.abs(st.massKg - (baseMass('cub1400') + blk[SIM_ADDON.MASS])) < 1e-12 && st.cda === blk[SIM_ADDON.CDA]
+      && st.wheelR === 0.054 && st.thrustN === est.thrustN && Math.abs(st.shift[2] - shiftOf(blk, baseMass('cub1400'))[2]) < 1e-12,
+    `${(st.massKg * 1000).toFixed(1)} g, ${(st.cda * 1e4).toFixed(2)} cm^2, CG z ${(st.shift[2] * 1000).toFixed(2)} mm, tyre ${st.wheelR} m, ${st.thrustN} N`);
+  seat('cub1400');
+  const clean = sim.addonsState();
+  check('and nothing seated reads the table', !clean.on && clean.cda === 0 && clean.wheelR === 0.035 && clean.massKg === TABLE.cub1400.massKg);
 }
 
 console.log('A2 the defaults');

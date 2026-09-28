@@ -723,8 +723,21 @@ int sim_power_state(double *out);
 #define SIM_ADDON_WHEEL_R 8
 #define SIM_ADDON_ROLL_K 9
 #define SIM_ADDON_DOUBLES 10
+/*
+ * sim_addons_state(out): the plant as the power option and the add-ons
+ * leave it, for a host's check, SIM_ADDONS_STATE_DOUBLES:
+ *   [0] 1 while add-ons are seated, else 0
+ *   [1] all up mass, kg
+ *   [2] the add-ons' drag area, m^2
+ *   [3..5] the CG's move from the table's, body frame, m
+ *   [6] the first braked wheel's tyre radius, m; 0 on an aircraft without
+ *   [7] static thrust at full throttle on a fresh pack, N; 0 on a quad
+ * SIM_ERR_BAD_ARG for a null pointer.
+ */
+#define SIM_ADDONS_STATE_DOUBLES 8
 int sim_set_addons(const double *in);
 int sim_addons_clear(void);
+int sim_addons_state(double *out);
 
 /*
  * WATER, src/native/water.c and docs/FLOATS-STAGE1.md. A host declares the
