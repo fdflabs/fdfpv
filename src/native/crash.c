@@ -1231,9 +1231,9 @@ void crash_reset(void) {
   }
   g_shift[0] = g_shift[1] = g_shift[2] = 0.0;
   if (g_live_on) {
-    /* Back to the airframe as the host seated it, its power option and
-     * tuning with it: plant_set_airframe here used to drop them for the
-     * rest of the session. */
+    /* Back to the airframe as the host seated it, its power option,
+     * tuning and add-ons with it: plant_set_airframe here used to drop
+     * them for the rest of the session. */
     plant_reseat();
     g_live_on = 0;
   }

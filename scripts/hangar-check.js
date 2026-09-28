@@ -34,6 +34,12 @@
  *      block for it in the plant with the flaps at takeoff, a reload keeps
  *      it and flies it again; and a plane nobody tuned (the Kadet) flies
  *      its table's own throws with nothing seated.
+ *   7. The Parts tab on the Cub: tundra tyres, the camera pod, the lights,
+ *      the smoke system and a three blade prop on the model before Save,
+ *      stored by it; flown, the model and the plant (sim_addons_state)
+ *      both carry them and O turns the smoke on and off; a wing broken in
+ *      the air is shown broken in the hangar, taped, saved into the air,
+ *      and the plant flies the tape's mass, after a reset too.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/hangar-check.js [map]     airfield by default
@@ -60,9 +66,11 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { LIVERIES, coloursFor, liveryKey, paintable, regionsFor } from '../configs/liveries.js';
-import { POWER, powerBlock, powerChoice } from '../configs/power.js';
+import { POWER, SIM_POWER, powerBlock, powerChoice } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
 import { normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
+import { SIM_ADDON, addonParams } from '../configs/hangar-parts.js';
+import { PROP_ESTIMATES } from '../configs/prop-estimates.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const map = process.argv[2] || 'airfield';
@@ -249,6 +257,112 @@ async function layoutCheck(page) {
       await page.evaluate('window.__ui.carousel.close(); true');
     }
   }
+}
+
+/*
+ * 7. The Parts tab on the Cub, the whole way: the tab, tundra tyres, the
+ * camera pod, the lights, the smoke system and the three blade prop on
+ * the model before Save; saved; flown, the model and the plant both
+ * carrying them and the smoke on and off with O; a wing broken in the
+ * air, shown broken in the hangar, taped, and flown taped.
+ */
+async function partsCheck(page) {
+  console.log('7. the Parts tab: fit the Cub, fly it, break a wing, tape it, fly it');
+  const id = 'cub1400';
+  const fit = ['tundra', 'pod', 'lights', 'smoke'];
+  const prop = '11x7e-3';
+  await openHangarFromPicker(page, id);
+  await page.evaluate(click('tab-parts'));
+  await page.until("window.__ui.hangar.tab === 'parts'", 5000);
+  const cards = await page.evaluate("[...document.querySelectorAll('.hangar-side [data-key]')].map((b) => b.dataset.key)");
+  say(['prop-stock', `prop-${prop}`, 'prop-11x55e', ...fit.map((a) => `addon-${a}`), 'addon-floats'].every((k) => cards.includes(k)),
+    `the Parts tab offers the Cub's props, its add-ons and its floats: ${cards.join(', ')}`);
+  for (const a of fit) {
+    await page.evaluate(click(`addon-${a}`));
+  }
+  await page.evaluate(click(`prop-${prop}`));
+  const wantEntry = { prop, addons: fit, damage: null };
+  const onModel = `(() => { const f = window.__pickParts(${JSON.stringify(id)}); return Boolean(f) && f.blades && f.blades.count === 3 && ${JSON.stringify(fit)}.every((a) => f.addons.includes(a)); })()`;
+  await page.until(onModel, 30000).catch(() => {});
+  const shown = await page.evaluate(`window.__pickParts(${JSON.stringify(id)})`);
+  say(shown && shown.blades && shown.blades.count === 3 && same(shown.addons, fit),
+    `the model in the hangar wears them before Save: ${JSON.stringify(shown)}`);
+  const stats = await page.evaluate("[...document.querySelectorAll('.parts-stats .hangar-stat-value')].map((v) => v.textContent)");
+  const b = addonParams(id, wantEntry, POWER[id][0], powerBlock(id, 'stock', POWER[id][0].pack)[SIM_POWER.MASS]);
+  say(stats[0] === `+${Math.round(b[SIM_ADDON.MASS] * 1000).toLocaleString('en')} g`, `the tab reads what they add: ${stats.join(', ')}`);
+  await page.evaluate('window.__ui.hangar.saveBtn.click(); true');
+  await page.until('!window.__ui.hangar.isOpen', 5000);
+  const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).parts`);
+  say(same(stored && stored[id], wantEntry), `Save stores them: ${JSON.stringify(stored)}`);
+  await page.evaluate('window.__ui.carousel.close(); true');
+
+  /* Fly it: a hot swap to the Cub from the flight the shell is in. */
+  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await page.evaluate(`window.__ui.swapTo(${JSON.stringify(id)}).then(() => true)`);
+  await page.until(`window.__craft().run === ${JSON.stringify(id)}`, 30000);
+  await page.sleep(500);
+  const est = PROP_ESTIMATES[id].stock[prop];
+  const base = powerBlock(id, 'stock', POWER[id][0].pack)[SIM_POWER.MASS];
+  let c = await page.evaluate('window.__craft()');
+  say(c.addons && c.addons.on && Math.abs(c.addons.massKg - (base + b[SIM_ADDON.MASS])) < 1e-9 && c.addons.cda === b[SIM_ADDON.CDA]
+    && c.addons.wheelR === 0.054 && c.addons.thrustN === est.thrustN,
+  `flown, the plant carries them: ${(c.addons.massKg * 1000).toFixed(1)} g, ${(c.addons.cda * 1e4).toFixed(2)} cm^2, tyres ${c.addons.wheelR} m, ${c.addons.thrustN} N static`);
+  say(c.parts && c.parts.blades && c.parts.blades.count === 3 && same(c.parts.addons, fit), `and the flown model shows them: ${JSON.stringify(c.parts)}`);
+  say(c.bladeScale === 1.5, `and the motor's blade pass is three blades' over the kit's two: x${c.bladeScale}`);
+
+  /* The smoke, O, in the air: launch it off the strip first. */
+  await page.tap('KeyO');
+  await page.sleep(1500);
+  c = await page.evaluate('window.__craft()');
+  const smokeOn = c.smoke;
+  await page.tap('KeyO');
+  await page.sleep(300);
+  const smokeOff = (await page.evaluate('window.__craft()')).smoke;
+  say(smokeOn.on && !smokeOff.on, `O turns the smoke on and off: ${JSON.stringify(smokeOn)} then ${JSON.stringify(smokeOff)}`);
+
+  /* A wing broken off in the air (crash damage is on by default). */
+  const table = await page.evaluate('window.__crashTable ? window.__crashTable() : null');
+  const wing = table ? table.findIndex((p) => p.kindName === 'wing' && p.cg[1] > 0) : -1;
+  say(wing > 0, `the Cub's left wing is part ${wing}`);
+  await page.evaluate(`window.__crashBreak(${wing})`);
+  await page.until(`(() => { const p = window.__ui.settings.parts[${JSON.stringify(id)}]; return Boolean(p && p.damage && p.damage.parts.some((q) => q.i === ${wing})); })()`, 20000).catch(() => {});
+  const rec = await page.evaluate(`window.__ui.settings.parts[${JSON.stringify(id)}]`);
+  say(rec && rec.damage && rec.damage.parts.some((q) => q.i === wing && q.state === 'broken'), `the break is recorded for the hangar: ${JSON.stringify(rec && rec.damage && rec.damage.parts)}`);
+  await page.tap('KeyR');
+  await page.sleep(500);
+
+  /* The hangar from the pause menu: the wing broken on the model. */
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'paused'", 10000);
+  const row = await page.evaluate("window.__ui.items().findIndex((it) => it.action === 'customise')");
+  await page.evaluate(`window.__ui.setCursor(${row}); true`);
+  await page.tap('Enter');
+  await page.until('window.__ui.hangar.isOpen', 10000);
+  await page.evaluate(click('tab-parts'));
+  await page.until("window.__ui.hangar.tab === 'parts'", 5000);
+  await page.until(`(() => { const f = window.__pickParts(${JSON.stringify(id)}); return Boolean(f) && f.glowTris > 0; })()`, 30000).catch(() => {});
+  const broken = await page.evaluate(`window.__pickParts(${JSON.stringify(id)})`);
+  const rowText = await page.evaluate("[...document.querySelectorAll('.parts-damage-row')].map((r) => r.textContent)");
+  say(broken && broken.glowTris > 0 && rowText.some((t) => t.includes('Wing, left') && t.includes('Broken')),
+    `the hangar shows the wing broken: ${broken ? broken.glowTris : 0} triangles glowing, rows ${JSON.stringify(rowText)}`);
+  await page.evaluate(click(`tape-${wing}`));
+  await page.until(`(() => { const f = window.__pickParts(${JSON.stringify(id)}); return Boolean(f) && f.tapeTris > 0 && f.glowTris === 0; })()`, 30000).catch(() => {});
+  const taped = await page.evaluate(`window.__pickParts(${JSON.stringify(id)})`);
+  say(taped && taped.tapeTris > 0 && taped.glowTris === 0 && taped.taped.includes(wing), `taped, the model shows the tape and no break: ${JSON.stringify(taped)}`);
+  const before = (await page.evaluate('window.__craft()')).addons.massKg;
+  await page.evaluate('window.__ui.hangar.saveBtn.click(); true');
+  await page.until('!window.__ui.hangar.isOpen', 5000);
+  await page.sleep(500);
+  c = await page.evaluate('window.__craft()');
+  say(c.addons.massKg > before && c.parts && c.parts.taped.includes(wing) && c.parts.tapeTris > 0,
+    `saved into the air, the Cub flies with the tape: ${(before * 1000).toFixed(1)} g to ${(c.addons.massKg * 1000).toFixed(1)} g, the flown model taped`);
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'flight'", 10000).catch(() => {});
+  await page.tap('KeyR');
+  await page.sleep(500);
+  const after = await page.evaluate('window.__craft()');
+  say(after.addons.massKg === c.addons.massKg, `and after a reset it still does: ${(after.addons.massKg * 1000).toFixed(1)} g`);
 }
 
 const TUNE_STATE = '(async () => (await import("/src/ui/hangar-tuning.js")).tuningState())()';
@@ -448,6 +562,8 @@ async function main() {
     await page.evaluate('window.__ui.carousel.close(); true');
     await tuningCheck(page);
     await layoutCheck(page);
+    await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
+    await partsCheck(page);
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

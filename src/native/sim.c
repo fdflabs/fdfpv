@@ -206,9 +206,12 @@ static void contact_build_corners(void) {
     { -hx, -hy, dn }, { hx, -hy, dn }, { -hx, hy, dn }, { hx, hy, dn },
     { -hx, -hy, up }, { hx, -hy, up }, { -hx, hy, up }, { hx, hy, up },
   };
+  /* The hangar's add-ons move the CG, the body origin, and the hull with
+   * it the other way; without them this is the table's box exactly. */
+  const double *sh = PLANT.add_shift;
   for (int c = 0; c < CONTACT_CORNERS; c += 1) {
     for (int a = 0; a < 3; a += 1) {
-      CONTACT_CORNER[c][a] = src[c][a];
+      CONTACT_CORNER[c][a] = PLANT.add_on ? src[c][a] - sh[a] : src[c][a];
     }
   }
 }
@@ -2475,12 +2478,56 @@ SIM_EXPORT int sim_set_power(const double *in) {
   if (rc == SIM_OK) {
     plant_power_reset(&S);
   }
+  /* Add-ons laid over it move the CG by their share of the new mass. */
+  contact_build_corners();
   return rc;
 }
 
 SIM_EXPORT int sim_power_clear(void) {
   plant_power_clear();
+  contact_build_corners();
   plant_power_reset(&S);
+  return SIM_OK;
+}
+
+/* The hangar's add-ons, sim_abi.h. A new mass moves the CG, so the state
+ * is taken back to rest at the reset the shell makes next; nothing here
+ * moves the craft. */
+SIM_EXPORT int sim_set_addons(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  const int rc = plant_set_addons(in);
+  if (rc == SIM_OK) {
+    contact_build_corners();
+  }
+  return rc;
+}
+
+SIM_EXPORT int sim_addons_state(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  out[0] = PLANT.add_on ? 1.0 : 0.0;
+  out[1] = PLANT.mass_kg;
+  out[2] = PLANT.add_on ? PLANT.add_cda : 0.0;
+  for (int a = 0; a < 3; a += 1) {
+    out[3 + a] = PLANT.add_on ? PLANT.add_shift[a] : 0.0;
+  }
+  out[6] = 0.0;
+  for (int w = 0; w < PLANT.wheel_count; w += 1) {
+    if (PLANT.wheel[w].brake > 0.0 && PLANT.wheel[w].r > 0.0) {
+      out[6] = PLANT.wheel[w].r;
+      break;
+    }
+  }
+  out[7] = PLANT.fw ? PLANT.fw->thrust_static : 0.0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_addons_clear(void) {
+  plant_addons_clear();
+  contact_build_corners();
   return SIM_OK;
 }
 
@@ -2491,11 +2538,15 @@ SIM_EXPORT int sim_wing_set_tune(const double *in) {
   if (!g_initialised) {
     return SIM_ERR_BAD_STATE;
   }
-  return plant_set_tune(in);
+  const int rc = plant_set_tune(in);
+  /* Add-ons laid over it move the CG by their share of the new mass. */
+  contact_build_corners();
+  return rc;
 }
 
 SIM_EXPORT int sim_wing_tune_clear(void) {
   plant_tune_clear();
+  contact_build_corners();
   return SIM_OK;
 }
 
