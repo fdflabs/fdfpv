@@ -502,3 +502,267 @@ export function takeChat(allowance, now) {
   allowance.tokens -= 1;
   return true;
 }
+
+/* ------------------------------------------------------------------ */
+/* Combat, streamers: types 0x80 to 0x8F, event kinds cut, combat, and the
+ * JSON type combat (docs/COMBAT-PLAN.md). */
+
+/*
+ * STREAMER, 0x80, client to room, STREAMER_HZ while a round is on: where
+ * the pilot's own toilet paper is, as its owner simulates it.
+ *
+ *   u8     type 0x80
+ *   u8     flags, reserved, 0
+ *   u32    sample time, room clock ms
+ *   u8     chain count, at most 1 + STREAMER_PIECES
+ *   per chain:
+ *     u8     id: 0 the streamer still on the aircraft, its first node the
+ *            tow point; any other a piece that came off and is falling
+ *     u8     segment count, at most STREAMER_SEGS
+ *     f32x3  first node, scene world metres (y up)
+ *     per segment: i8x2 direction, octahedral (x and z over |x|+|y|+|z|,
+ *            folded when y < 0; STREAMER_OCT at 1), u8 length,
+ *            STREAMER_LEN_MAX_M at 255 (paper stretches a fifth before
+ *            it tears, src/game/streamer.js)
+ *
+ * A segment is a direction and a length, not a position, because a
+ * segment is always about a metre long: 3 bytes a metre instead of 6. The encoder steers each
+ * direction from where the receiver will have put the node before it, not
+ * from where it truly was, so rounding never adds up along the streamer:
+ * every decoded node is within STREAMER_ERR_M of the owner's, whatever its
+ * distance from the tow point.
+ *
+ * STREAMER_RELAY, 0x81, room to client: the same message with the
+ * sender's seat inserted after the type byte.
+ */
+export const TYPE_STREAMER = 0x80;
+export const TYPE_STREAMER_RELAY = 0x81;
+export const STREAMER_HZ = 10;
+export const STREAMER_SEGS = 64;
+export const STREAMER_PIECES = 4;
+export const STREAMER_SEG_M = 1;
+export const STREAMER_LEN_MAX_M = 1.25;
+export const STREAMER_OCT = 127;
+export const STREAMER_HEAD = 7;
+export const STREAMER_CHAIN_HEAD = 14;
+export const STREAMER_SEG_BYTES = 3;
+/* The bound the selftest holds decoding to, any node, any chain: one
+ * octahedral step at its coarsest (near the fold, about 0.9 degrees) and
+ * half a length step (2.5 mm), on a metre, plus what the step before left
+ * over. Measured worst over the selftest's random chains: 1.1 cm. */
+export const STREAMER_ERR_M = 0.02;
+
+/* A unit direction (x, y, z) as two octahedral bytes, y the pole. */
+function octEncode(x, y, z) {
+  const s = Math.abs(x) + Math.abs(y) + Math.abs(z);
+  if (!(s > 0)) {
+    return [0, STREAMER_OCT];
+  }
+  let a = x / s;
+  let b = z / s;
+  if (y < 0) {
+    const fa = (1 - Math.abs(b)) * (a < 0 ? -1 : 1);
+    const fb = (1 - Math.abs(a)) * (b < 0 ? -1 : 1);
+    a = fa;
+    b = fb;
+  }
+  return [clampInt(a * STREAMER_OCT, -STREAMER_OCT, STREAMER_OCT), clampInt(b * STREAMER_OCT, -STREAMER_OCT, STREAMER_OCT)];
+}
+
+/* Two octahedral bytes back to a unit direction, into out at `at`. */
+function octDecode(qa, qb, out, at) {
+  let x = qa / STREAMER_OCT;
+  let z = qb / STREAMER_OCT;
+  const y = 1 - Math.abs(x) - Math.abs(z);
+  if (y < 0) {
+    const fx = (1 - Math.abs(z)) * (x < 0 ? -1 : 1);
+    const fz = (1 - Math.abs(x)) * (z < 0 ? -1 : 1);
+    x = fx;
+    z = fz;
+  }
+  const n = Math.sqrt(x * x + y * y + z * z) || 1;
+  out[at] = x / n;
+  out[at + 1] = y / n;
+  out[at + 2] = z / n;
+}
+
+/*
+ * chains: [{ id, n, x }], x a Float64Array of n nodes (3 n numbers), nodes
+ * in order from the chain's head. Chains past the limits are cut short:
+ * the first STREAMER_SEGS segments, the first 1 + STREAMER_PIECES chains.
+ */
+export function encodeStreamer(roomMs, chains) {
+  const list = chains.slice(0, 1 + STREAMER_PIECES).filter((c) => c.n >= 1);
+  let size = STREAMER_HEAD;
+  for (const c of list) {
+    size += STREAMER_CHAIN_HEAD + Math.min(STREAMER_SEGS, c.n - 1) * STREAMER_SEG_BYTES;
+  }
+  const bytes = new Uint8Array(size);
+  const v = new DataView(bytes.buffer);
+  v.setUint8(0, TYPE_STREAMER);
+  v.setUint8(1, 0);
+  v.setUint32(2, clampInt(roomMs, 0, 0xffffffff) >>> 0, true);
+  v.setUint8(6, list.length);
+  const dir = new Float64Array(3);
+  let at = STREAMER_HEAD;
+  for (const c of list) {
+    const segs = Math.min(STREAMER_SEGS, c.n - 1);
+    const x = c.x;
+    v.setUint8(at, c.id & 0xff);
+    v.setUint8(at + 1, segs);
+    v.setFloat32(at + 2, x[0], true);
+    v.setFloat32(at + 6, x[1], true);
+    v.setFloat32(at + 10, x[2], true);
+    /* The receiver's head is the float32 one. */
+    let rx = v.getFloat32(at + 2, true);
+    let ry = v.getFloat32(at + 6, true);
+    let rz = v.getFloat32(at + 10, true);
+    at += STREAMER_CHAIN_HEAD;
+    for (let k = 1; k <= segs; k += 1) {
+      const dx = x[k * 3] - rx;
+      const dy = x[k * 3 + 1] - ry;
+      const dz = x[k * 3 + 2] - rz;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const [qa, qb] = len > 1e-9 ? octEncode(dx / len, dy / len, dz / len) : [0, STREAMER_OCT];
+      /* The nearest code by angle is not always the nearest node: of the
+       * nine codes round it, the one that lands closest. */
+      let best = Infinity;
+      let ba = qa;
+      let bb = qb;
+      let bl = 0;
+      for (let ia = -1; ia <= 1; ia += 1) {
+        for (let ib = -1; ib <= 1; ib += 1) {
+          const ca = clampInt(qa + ia, -STREAMER_OCT, STREAMER_OCT);
+          const cb = clampInt(qb + ib, -STREAMER_OCT, STREAMER_OCT);
+          octDecode(ca, cb, dir, 0);
+          const along = dx * dir[0] + dy * dir[1] + dz * dir[2];
+          const cl = clampInt((along / STREAMER_LEN_MAX_M) * 255, 0, 255);
+          const l = (cl / 255) * STREAMER_LEN_MAX_M;
+          const ex = dx - dir[0] * l;
+          const ey = dy - dir[1] * l;
+          const ez = dz - dir[2] * l;
+          const e = ex * ex + ey * ey + ez * ez;
+          if (e < best) {
+            best = e;
+            ba = ca;
+            bb = cb;
+            bl = cl;
+          }
+        }
+      }
+      v.setInt8(at, ba);
+      v.setInt8(at + 1, bb);
+      v.setUint8(at + 2, bl);
+      octDecode(ba, bb, dir, 0);
+      const l = (bl / 255) * STREAMER_LEN_MAX_M;
+      rx += dir[0] * l;
+      ry += dir[1] * l;
+      rz += dir[2] * l;
+      at += STREAMER_SEG_BYTES;
+    }
+  }
+  return bytes;
+}
+
+/* The chains of a STREAMER body starting at `at` (the chain count byte's
+ * offset less 5), or null when the lengths do not add up. */
+function readStreamer(bytes, v, at) {
+  const t = v.getUint32(at, true);
+  const count = v.getUint8(at + 4);
+  if (count > 1 + STREAMER_PIECES) {
+    return null;
+  }
+  let p = at + 5;
+  const chains = [];
+  const dir = new Float64Array(3);
+  for (let i = 0; i < count; i += 1) {
+    if (p + STREAMER_CHAIN_HEAD > bytes.byteLength) {
+      return null;
+    }
+    const id = v.getUint8(p);
+    const segs = v.getUint8(p + 1);
+    if (segs > STREAMER_SEGS || p + STREAMER_CHAIN_HEAD + segs * STREAMER_SEG_BYTES > bytes.byteLength) {
+      return null;
+    }
+    const x = new Float64Array((segs + 1) * 3);
+    x[0] = v.getFloat32(p + 2, true);
+    x[1] = v.getFloat32(p + 6, true);
+    x[2] = v.getFloat32(p + 10, true);
+    if (!Number.isFinite(x[0]) || !Number.isFinite(x[1]) || !Number.isFinite(x[2])) {
+      return null;
+    }
+    p += STREAMER_CHAIN_HEAD;
+    for (let k = 1; k <= segs; k += 1) {
+      octDecode(v.getInt8(p), v.getInt8(p + 1), dir, 0);
+      const l = (v.getUint8(p + 2) / 255) * STREAMER_LEN_MAX_M;
+      x[k * 3] = x[k * 3 - 3] + dir[0] * l;
+      x[k * 3 + 1] = x[k * 3 - 2] + dir[1] * l;
+      x[k * 3 + 2] = x[k * 3 - 1] + dir[2] * l;
+      p += STREAMER_SEG_BYTES;
+    }
+    chains.push({ id, n: segs + 1, x });
+  }
+  return p === bytes.byteLength ? { t, chains } : null;
+}
+
+/* A client's STREAMER as { t, chains }, or null when it is not one. */
+export function decodeStreamer(bytes) {
+  if (!bytes || bytes.byteLength < STREAMER_HEAD || bytes[0] !== TYPE_STREAMER) {
+    return null;
+  }
+  return readStreamer(bytes, new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), 2);
+}
+
+/* The relayed form: the seat after the type byte. */
+export function relayStreamer(seat, bytes) {
+  const out = new Uint8Array(bytes.byteLength + 1);
+  out[0] = TYPE_STREAMER_RELAY;
+  out[1] = seat;
+  out.set(bytes.subarray(1), 2);
+  return out;
+}
+
+/* { seat, t, chains }, or null when not a relayed STREAMER. */
+export function decodeStreamerRelay(bytes) {
+  if (!bytes || bytes.byteLength < STREAMER_HEAD + 1 || bytes[0] !== TYPE_STREAMER_RELAY) {
+    return null;
+  }
+  const got = readStreamer(bytes, new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), 3);
+  return got ? { seat: bytes[1], ...got } : null;
+}
+
+/*
+ * A client's STREAMER with its streamer (chain 0) cut to at most `segs`
+ * segments: what the room relays after its referee cut it, so an owner
+ * whose screen has not caught up, or who would rather not, shows everyone
+ * the streamer the referee left. The bytes as they were when nothing
+ * needs cutting.
+ */
+export function trimStreamer(bytes, segs) {
+  if (bytes.byteLength < STREAMER_HEAD + STREAMER_CHAIN_HEAD || bytes[6] < 1 || bytes[STREAMER_HEAD] !== 0) {
+    return bytes;
+  }
+  const had = bytes[STREAMER_HEAD + 1];
+  const keep = Math.max(0, Math.min(had, segs));
+  if (keep === had) {
+    return bytes;
+  }
+  const cutFrom = STREAMER_HEAD + STREAMER_CHAIN_HEAD + keep * STREAMER_SEG_BYTES;
+  const cutTo = STREAMER_HEAD + STREAMER_CHAIN_HEAD + had * STREAMER_SEG_BYTES;
+  const out = new Uint8Array(bytes.byteLength - (cutTo - cutFrom));
+  out.set(bytes.subarray(0, cutFrom), 0);
+  out.set(bytes.subarray(cutTo), cutFrom);
+  out[STREAMER_HEAD + 1] = keep;
+  return out;
+}
+
+/* Sixteen toilet paper colours, one per seat (a seat is unique in its
+ * room, so the colours are too), far enough apart to tell in the air. */
+export const STREAMER_COLOURS = [
+  '#e8352e', '#2f6fe0', '#f5c518', '#2fb04a', '#ff8a1f', '#8e44d6', '#ff5fa2', '#1fc6d6',
+  '#f4f1ea', '#a4d619', '#111111', '#8b5a2b', '#00897b', '#c2185b', '#7fa7ff', '#ffd9a0',
+];
+
+export function streamerColour(seat) {
+  return STREAMER_COLOURS[(Math.max(1, seat) - 1) % STREAMER_COLOURS.length];
+}

@@ -50,8 +50,9 @@ import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
 import { RoomSafety } from './safety.js';
-import { TYPE_PARTS } from '../../src/share/roomwire.js';
+import { TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
 import * as wrecks from './wrecks.js';
+import { RoomCombat } from './combat.js';
 
 /* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
  * ownership in fdfpv-loop/multiplayer/COORD.md). */
@@ -109,6 +110,7 @@ export class RoomCore {
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.safety = new RoomSafety(this);
+    this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
   }
 
   roomMs(now) {
@@ -122,6 +124,7 @@ export class RoomCore {
       if (attachment && attachment.seat) {
         this.seats.set(conn, { ...attachment, pose: null, fresh: false, poseRate: { since: 0, n: 0 }, textRate: { since: 0, n: 0 } });
         this.referee.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
+        this.combat.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
       } else {
         this.pending.set(conn, { since: 0, n: 0 });
       }
@@ -149,7 +152,10 @@ export class RoomCore {
     if (this.race.race && this.race.race.state === 'on') {
       return 'race';
     }
-    return this.tag.on() ? 'tag' : null;
+    if (this.tag.on()) {
+      return 'tag';
+    }
+    return this.combat.on() ? 'combat' : null;
   }
 
   peerList(except) {
@@ -301,6 +307,8 @@ export class RoomCore {
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
     actions.push(...wrecks.wrecksFor(this, conn));
     actions.push(...this.race.join(this, seat));
+    this.combat.seat(seat, profile.airframe);
+    actions.push(...this.combat.join(this, conn));
     return actions;
   }
 
@@ -309,6 +317,9 @@ export class RoomCore {
     if (typeof data !== 'string') {
       if (s && data[0] === TYPE_PARTS) {
         return wrecks.onParts(this, conn, s, data, now);
+      }
+      if (s && data[0] === TYPE_STREAMER) {
+        return this.combat.frame(this, conn, s, data, now);
       }
       return s ? this.pose(conn, s, data, now) : [];
     }
@@ -345,6 +356,7 @@ export class RoomCore {
       }
       s.profile = profile;
       this.referee.seat(s.seat, profile.airframe);
+      this.combat.seat(s.seat, profile.airframe);
       return [
         { attach: conn, value: this.attachmentOf(s) },
         ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
@@ -352,6 +364,9 @@ export class RoomCore {
     }
     if (msg.type === 'event' && Object.hasOwn(EVENTS, msg.kind)) {
       return EVENTS[msg.kind](this, conn, s, msg, now);
+    }
+    if (msg.type === 'combat') {
+      return this.combat.message(this, conn, s, msg, now);
     }
     const safe = this.safety.text(conn, s, msg, now);
     if (safe) {
@@ -363,9 +378,11 @@ export class RoomCore {
     if (msg.type === 'tag') {
       return this.tag.message(this, conn, s, msg, now);
     }
-    /* One game at a time: no race and no new track under a tag match. */
-    if (this.game() === 'tag' && (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start'))) {
-      return [{ send: conn, data: JSON.stringify({ type: 'race', error: 'tag_on' }) }];
+    /* One game at a time: no race and no new track under a tag match or a
+     * combat round. */
+    const other = this.game();
+    if ((other === 'tag' || other === 'combat') && (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start'))) {
+      return [{ send: conn, data: JSON.stringify({ type: 'race', error: `${other}_on` }) }];
     }
     /* Races are a private room's, started by its host (Phase 4). */
     if (!this.meta.public && (msg.type === 'track' || msg.type === 'race')) {
@@ -382,6 +399,7 @@ export class RoomCore {
         this.kicked.push({ token: t.token, address: t.address, until: now + KICK_MS });
         this.seats.delete(conn);
         this.referee.leave(seat);
+        this.combat.leave(seat);
         return [
           { close: conn, code: CLOSE.kicked, reason: 'kicked' },
           ...this.others(conn, JSON.stringify({ type: 'leave', seat, host: this.host() })),
@@ -412,6 +430,8 @@ export class RoomCore {
       this.safety.noteHit(h.a, h.b, now);
       return this.others(null, JSON.stringify(h));
     });
+    /* After the referee: a crash from a hit it just decided is a mid air's. */
+    hits.push(...this.combat.pose(this, s, now));
     if (this.ticking) {
       return hits;
     }
@@ -424,7 +444,7 @@ export class RoomCore {
   tick(now) {
     this.referee.tick(this.roomMs(now));
     const fresh = [...this.seats.values()].filter((s) => s.fresh);
-    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now)];
+    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now)];
     if (!fresh.length) {
       this.ticking = false;
       return out;
@@ -450,6 +470,7 @@ export class RoomCore {
     }
     this.seats.delete(conn);
     this.referee.leave(s.seat);
+    this.combat.leave(s.seat);
     for (const [token, r] of this.recent) {
       if (r.until <= now) {
         this.recent.delete(token);
