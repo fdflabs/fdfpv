@@ -2484,6 +2484,29 @@ SIM_EXPORT int sim_power_clear(void) {
   return SIM_OK;
 }
 
+/* The pilot's tuning, sim_abi.h. Seating it leaves the pack and the tank
+ * as they are: it moves no energy, only where the mass sits and how far
+ * the surfaces travel. */
+SIM_EXPORT int sim_wing_set_tune(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  return plant_set_tune(in);
+}
+
+SIM_EXPORT int sim_wing_tune_clear(void) {
+  plant_tune_clear();
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wing_tune(double *out) {
+  if (out == 0 || PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_tune_read(out);
+  return SIM_OK;
+}
+
 SIM_EXPORT int sim_power_state(double *out) {
   if (out == 0) {
     return SIM_ERR_BAD_ARG;
