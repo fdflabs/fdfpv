@@ -360,12 +360,14 @@ int sim_set_flight_style(int arcade);
  * taildragger on a symmetric section, with the Cub's surfaces at 3D throws,
  * 14 E-flite's Extra 300 3D 1.3m (docs/EXTRA-STAGE1.md), a foam aerobatic
  * taildragger whose thrust is two and a half times its weight, which
- * hangs on its prop with its surfaces in the slipstream, and 15 FMS's
+ * hangs on its prop with its surfaces in the slipstream, 15 FMS's
  * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
- * flaps on retracting taildragger gear. 16 to 23 are reserved for the
- * aircraft being added alongside them. Returns SIM_ERR_BAD_ARG for any
- * id without an aircraft.
- * 2 to 15 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * flaps on retracting taildragger gear, and 16 Freewing's F-16 V3
+ * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
+ * the stick, on a tricycle gear. 17 to 23 are reserved for the aircraft
+ * being added alongside them. Returns SIM_ERR_BAD_ARG for any id
+ * without an aircraft.
+ * 2 to 16 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -398,6 +400,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_EDGE1524_ID 13
 #define SIM_AIRFRAME_EXTRA1308_ID 14
 #define SIM_AIRFRAME_P51D1450_ID 15
+#define SIM_AIRFRAME_F16878_ID 16
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -468,7 +471,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2 to 12. Additive, version unchanged; each
+ * The fixed wings, airframes 2 to 23. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *
@@ -770,7 +773,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 15): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 16): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

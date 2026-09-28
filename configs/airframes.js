@@ -1162,6 +1162,66 @@ export const AIRFRAMES = [
       bodyHeight: 0.4496,
     },
   },
+  {
+    /*
+     * Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High
+     * Performance PNP (FJ21115P), docs/F16-STAGE1.md: a 1/11.5 scale EPO
+     * jet, 878 mm across its tip rails, 2.116 kg on a 6S 4000, simId 16 on
+     * the fixed wing plant. Ailerons, all moving stabilators and a rudder.
+     * Its 70 mm twelve blade fan is the plant's ducted fan: the thrust
+     * lags the stick as the fan spools and falls away with airspeed, and
+     * the ESC stops the fan with the stick closed. `voice` is the fan's
+     * whine (src/render/audio.js). It stands level on a tricycle gear
+     * whose nose wheel steers with the rudder and which retracts on G
+     * (`retracts`, the P-51's system); `gear` is the plant's
+     * settled pose, which the drawn wheels in src/render/f16craft.js
+     * match: the CG 0.140 m over the runway.
+     */
+    id: 'f16878',
+    simId: 16,
+    fixedWing: true,
+    retracts: true,
+    voice: 'edf',
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/f16-thresholds.json s2_stall. */
+    stall: 11.98,
+    /* Level speed at full throttle, m/s: Freewing's 165 km/h, tests/f16-thresholds.json s4_top. */
+    topSpeed: 45.83,
+    gear: { restHeight: 0.140, restPitch: 0 },
+    name: 'F-16 Falcon',
+    short: 'F-16',
+    blurb: 'An 878 mm Freewing F-16 Fighting Falcon on a 70 mm ducted fan and 6S: ailerons, all moving stabilators, a rudder and a steerable nose wheel. The fan takes a moment to spool and its thrust falls away with speed, so it keeps its energy and wants a long, planned approach. G raises and lowers the retracts.',
+    facts: ['70 mm EDF', '878 mm', '6S'],
+    sizeMm: 878,
+    grams: 2116,
+    trackClass: 'wing',
+    cells: 6,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'f16-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/f16craft.js F16_DIMS: the furthest
+     * reach in plan is the pitot's tip, the lowest drawn point the wheels'
+     * and the highest the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.0345,
+      hullR: 0.710,
+      vHalfDown: 0.140,
+      vHalfUp: 0.265,
+      bodyLength: 1.306,
+      bodyWidth: 0.878,
+      bodyHeight: 0.405,
+    },
+  },
 ];
 
 

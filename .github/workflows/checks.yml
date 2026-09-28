@@ -43,6 +43,8 @@ jobs:
       - run: npm run edge:stab
       - run: npm run glider:gates
       - run: npm run glider:stab
+      - run: npm run f16:gates
+      - run: npm run f16:stab
       - run: npm run p51:gates
       - run: npm run p51:stab
       - run: npm run extra:gates

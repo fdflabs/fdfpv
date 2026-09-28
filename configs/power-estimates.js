@@ -348,25 +348,21 @@ export const ESTIMATES = {
       }
     }
   },
-  extra1308: {
+  f16878: {
     stock: {
-      '4s2200': {
-        topSpeed: 23.69,
-        minutes: 14.9
+      '6s4000': {
+        topSpeed: 39.97,
+        minutes: 19.1
       },
-      '4s3200': {
-        topSpeed: 23.91,
-        minutes: 20.7
+      '6s4500': {
+        topSpeed: 40.16,
+        minutes: 20.2
       }
     },
-    '3s': {
-      '3s2200': {
-        topSpeed: 17.91,
-        minutes: 12.4
-      },
-      '3s3200': {
-        topSpeed: 17.98,
-        minutes: 16.9
+    '4s': {
+      '4s4000': {
+        topSpeed: 30.77,
+        minutes: 16.1
       }
     }
   },

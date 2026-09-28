@@ -101,6 +101,7 @@ const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
+const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
@@ -217,6 +218,13 @@ export const TUNING = {
     cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
     packKg: 0.27, nose: 0.26, tail: -0.83,
     throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
+    flaps: null,
+  },
+  f16878: {
+    chord: 0.2856, area: 0.21484, margin: 0.115,
+    cg: { mm: 90, datum: 'tuning.datum.root_le', range: null, source: `Freewing V3 manual p. 9, "90mm (3-1/2")" from the wing's leading edge at the root, no range; ${F16_MANUAL}` },
+    packKg: 0.566, nose: 0.60, tail: -0.55,
+    throws: { high: [21.5, 25, 30], low: [13.975, 20, 25.5], source: `high: the full size F-16's surface limits (NASA TP-1538), Freewing's high rate, 100 percent; low: the manual's own dual rates p. 11, "D/R Rate: 65%", "80%", "85%" of it; ${F16_MANUAL}` },
     flaps: null,
   },
 };

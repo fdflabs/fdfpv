@@ -130,6 +130,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             and the reach this file measures are both 1852 mm and
  *             E-flite's 1308 mm span is held by the half span of
  *             src/render/extracraft.js EXTRA_DIMS.
+ *   f16878    Freewing's F-16 V3, 878 mm over its tip rails, whose pitot
+ *             reaches further from the CG than anything else: 0.710 m
+ *             ahead, against the rails' 0.439 m out and the fin's tip
+ *             0.596 m aft, so the width this file measures is twice the
+ *             pitot's reach, 1420 mm, and Freewing's 878 mm span is held
+ *             by craft-preview.js's half span row. src/render/f16craft.js
+ *             draws it.
  *   p51d1450  FMS's 1450 mm P-51D Mustang, whose rudder's trailing edge,
  *             0.834 m aft of the CG (the kit manual's side view), reaches
  *             further than its tips, 0.725 m out, so the width this file
@@ -150,6 +157,7 @@ const REAL = {
   cub1400: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   radian2000: { spanMm: 2000.0, sweepMm: 2018.7, tolMm: 6 },
   bramor2300: { spanMm: 2300.0, sweepMm: 2551.0, tolMm: 6 },
+  f16878: { spanMm: 1420.0, sweepMm: 1420.0, tolMm: 6 },
   slowstick1180: { spanMm: 1264.0, sweepMm: 1278.1, tolMm: 6 },
   timber1500: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
   timber1500f: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },

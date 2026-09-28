@@ -36,7 +36,7 @@
  *   node scripts/audio-probe.js [--trace=NAME] [--seconds=20] [--rate=48000]
  *        [--level=0.6] [--blades=3] [--f0=HZ] [--scream=2000,8000]
  *        [--carrier=80,600] [--beat=6] [--seam=SEC] [--tones=LO,HI]
- *        [--json=PATH] [--voice=quad|wing|glow4]
+ *        [--json=PATH] [--voice=quad|wing|glow4|edf]
  *
  * Traces: hover, full, flight, steady:RPM, idle, wing, glow.
  *
@@ -1063,7 +1063,7 @@ async function main() {
    * the caller names one. Zero means "the voice's". */
   if (!(Number(opts.blades) > 0)) {
     /* A four stroke's pulses are its firings, one each two revolutions. */
-    opts.blades = { wing: 2, glow4: 0.5 }[String(opts.voice)] ?? 3;
+    opts.blades = { wing: 2, glow4: 0.5, edf: 1 }[String(opts.voice)] ?? 3;
   }
   const mix = {};
   if (Number(opts.motors) >= 0) {

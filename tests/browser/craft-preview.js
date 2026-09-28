@@ -33,6 +33,7 @@ import { buildTimberCraft, TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS } from 
 import { buildBombshellCraft, BOMBSHELL_DIMS } from '../../src/render/bombshellcraft.js';
 import { buildKadetCraft, KADET_DIMS } from '../../src/render/kadetcraft.js';
 import { buildEdgeCraft, EDGE_DIMS } from '../../src/render/edgecraft.js';
+import { buildF16Craft, F16_DIMS } from '../../src/render/f16craft.js';
 import { buildP51Craft, P51_DIMS } from '../../src/render/p51craft.js';
 
 /* On floats, the float variants: the same aircraft, its reach down and up
@@ -44,6 +45,7 @@ const BUILDERS = {
   timberf: (o) => buildTimberCraft({ ...o, floats: true }),
   cubf: (o) => buildCubCraft({ ...o, floats: true }),
   bombshell: buildBombshellCraft,
+  f16: buildF16Craft,
   kadet: buildKadetCraft,
   edge: buildEdgeCraft,
   p51: buildP51Craft,
@@ -52,6 +54,7 @@ const DIMS = {
   sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS,
   timberf: onFloats(TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS),
   cubf: onFloats(CUB_DIMS, CUB_FLOATS, CUB_FLOAT_DIMS),
+  f16: F16_DIMS,
   bombshell: BOMBSHELL_DIMS,
   kadet: KADET_DIMS,
   edge: EDGE_DIMS,
