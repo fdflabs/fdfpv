@@ -97,10 +97,10 @@ function catchableAt(track, t) {
 export class RoomTag {
   constructor() {
     /*
-     * { id, goal, goAt, state: 'countdown'|'live'|'results', ace, from
-     *   (the seat the crown came from), protectUntil, untouchSince, f,
-     *   players: { seat: { ms } }, crowns: [{ t, seat, from, why }],
-     *   winner, endAt }, or null before the first match.
+     * { id, goal, goAt, state: 'countdown'|'live'|'results', ace,
+     *   protectUntil, untouchSince, f, players: { seat: { ms } },
+     *   crowns: [{ t, seat, from, why }] (the last CROWNS_SHOWN), winner,
+     *   endAt }, or null before the first match.
      */
     this.match = null;
     this.nextId = 1;
@@ -248,6 +248,8 @@ export class RoomTag {
     const p = decodePose(bytes);
     if (p && p.t <= roomNow + AHEAD_MS && s.profile.map === core.meta.map) {
       this.seatOf(s).track.push(p);
+      /* A pilot who joined during the match hunts, from nothing. */
+      this.match.players[s.seat] ??= { ms: 0 };
     }
     return this.advance(core, now);
   }
@@ -318,7 +320,7 @@ export class RoomTag {
   advance(core, now) {
     const m = this.match;
     const roomNow = core.roomMs(now);
-    const crowns = m.crowns.length ? m.crowns[m.crowns.length - 1] : null;
+    const crownWas = m.crowns.at(-1);
     const state = m.state;
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
@@ -334,8 +336,7 @@ export class RoomTag {
     if (m.state === 'live') {
       this.judge(core, roomNow);
     }
-    const last = m.crowns.length ? m.crowns[m.crowns.length - 1] : null;
-    if (m.state !== state || last !== crowns) {
+    if (m.state !== state || m.crowns.at(-1) !== crownWas) {
       for (const e of this.log) {
         e.decided ??= roomNow;
       }

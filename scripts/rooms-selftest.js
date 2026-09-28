@@ -1285,6 +1285,15 @@ console.log('catch the ace: starting a match');
   const other = [0, 1, 2].find((i) => i !== ace - 1);
   check('the Ace leaving passes the crown on at once', left.why === 'leave' && left.from === ace && e.view(other).ace !== ace
     && e.view(other).scores.find((r) => r.seat === ace).gone);
+  const late = sock('tag-late', '10.4.0.9');
+  e.socks.push(late);
+  e.paths.push(level(120));
+  e.apply(e.r.open(late, e.clock));
+  e.apply(e.r.message(late, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [5, 5, 55], profile: cub }), e.clock, late.address, newToken));
+  const lateSeat = texts(late, 'welcome')[0].seat;
+  check('a joiner mid match is told the match in its welcome', texts(late, 'welcome')[0].tag.state === 'live');
+  e.fly(e.clock + 1200);
+  check('and hunts from nothing once it flies', e.view(0).scores.some((r) => r.seat === lateSeat && r.ms === 0) && e.view(0).ace !== lateSeat);
   const slept = new RoomCore(e.r.meta);
   slept.restore(e.socks.filter((so) => e.r.seats.has(so)).map((so) => ({ conn: so, attachment: so.attachment })));
   slept.tag.restore(saved);
