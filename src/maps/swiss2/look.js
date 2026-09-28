@@ -385,6 +385,10 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     shingleNew: { group: 'shingle', tint: [0.95, 0.72, 0.52], weather: 'roof', grey: 0.12 },
     shingleMossy: { group: 'shingle', tint: [0.52, 0.5, 0.45], weather: 'roof', grey: 1.7 },
     slateNew: { group: 'slate', tint: [0.6, 0.62, 0.66], weather: 'roof', grey: 0.08 },
+    /* The lake town's clay tile, on the shingle's photograph: its small
+     * courses read as tiles at a street's distance, and the tint brings
+     * its albedo to an old fired clay's (0.17, 0.06, 0.03 linear). */
+    tile: { group: 'shingle', tint: [1.3, 0.55, 0.38], weather: 'roof', grey: 0.25 },
     tin: { group: 'plain', tint: [0.14, 0.14, 0.135], rough: 0.75, metal: 0.2 },
     tinRust: { group: 'plain', tint: [0.2, 0.085, 0.04], rough: 0.8, metal: 0.1 },
     hangar: { group: 'ribbed', tint: [0.36, 0.42, 0.39], weather: 'wall' },

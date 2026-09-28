@@ -95,6 +95,7 @@ import { swissBuildings } from './swiss2/buildings/index.js';
 import { swissVehicles } from './swiss2/vehicles/index.js';
 import { buildProps } from './swiss2/props/index.js';
 import { buildLakeside } from './swiss2/props/lakeside.js';
+import { makeBake } from './alps/kit.js';
 import { photoCraftLook } from './swiss2/craftlook.js';
 import { buildPeople } from './swiss2/village/people.js';
 import { buildCliffs, occupiedCells, trimGround } from './swiss2/rock/index.js';
@@ -505,6 +506,11 @@ function photoStyle() {
        * is decided on the alps' own ground, so the walls (swiss2/terrain.js)
        * move none of it; what the walls themselves moved is left out. */
       const alps = buildHeightfield();
+      /* The lake town is the village's kit, baked as the village is
+       * (swiss2/buildings/bake.js) but on its own: in the village's
+       * meshes it would stretch their bounds down the valley, and every
+       * view that saw any of it would draw it all. */
+      const lakeBake = makeBake();
       stage.props = buildProps({
         heightAt,
         decideAt: alps.height,
@@ -517,9 +523,12 @@ function photoStyle() {
       /* The lake's village, boats and promenade, their footprints the
        * map's before the forests keep off them (swiss2/props/lakeside.js). */
       stage.lakeside = buildLakeside({
-        heightAt, footprints: stage.footprints, colliders, roofs,
+        heightAt, footprints: stage.footprints, colliders, roofs, bake: lakeBake,
       });
       scene.add(stage.lakeside.group);
+      const town = style.look.buildings.bakeAll(lakeBake, style.mats);
+      town.name = 'swiss2-lake-town';
+      scene.add(town);
       /* The lakeside road's lay-by and bus stop (swiss2/props/roadside.js),
        * which the grass keeps off. */
       stage.footprints.push(...stage.props.pads);
