@@ -196,7 +196,8 @@ try {
   const near = await passBeside(0.8, 25);
   check('then 0.8 m off, the owner\'s near miss', near.thrown && near.thrown.ok, JSON.stringify(near.thrown).slice(0, 80));
   await a.until('window.__combat().cuts.length > 0', 8000).catch(() => {});
-  /* The shout is on screen for 1.6 s: read it at once. */
+  /* The shout goes up on the next frame and stays 1.6 s. */
+  await a.until('window.__combat().hud.big !== \'\'', 2000).catch(() => {});
   const bigA = (await a.evaluate('window.__combat()')).hud.big;
   await b.until('window.__combat().cuts.length > 0', 8000).catch(() => {});
   await a.sleep(400);
@@ -252,7 +253,10 @@ try {
    * end of A's paper, in B's colour, on both screens. Then B cuts A, above
    * where B's colour starts on A, and gets A's colour and its own back.
    * A is held high so its paper hangs; the held pilots wait out Phase 5's
-   * spawning seconds before B is let go past A's paper 0.8 m off.
+   * spawning seconds before B is let go past A's paper. Neither throw is
+   * `fresh`: a fresh one restarts the flight, and Phase 3 keeps a new
+   * flight untouchable until it has flown 30 m from where it started, so
+   * a pilot hovering where it started can neither cut nor be cut.
    */
   const took = FULL - cut.keep;
   const wantA = [[1, FULL], [2, took]];
@@ -265,7 +269,7 @@ try {
     const s = window.__craftState();
     const x = s.worldX - 60, z = s.worldZ + 40;
     const y = window.__heightAt(x, z) + 110;
-    window.__crashThrow({ x, y, z, yaw: 0, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, fresh: true });
+    window.__crashThrow({ x, y, z, yaw: 0, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, fresh: false });
     return { x, y, z };
   })()`);
   await a.sleep(2500);
@@ -285,11 +289,21 @@ try {
   }
   const bPass = await b.evaluate(`(() => {
     const n = window.__combat().peers[0].chains[0].nodes[40];
-    return window.__crashThrow({ x: n[0] + 10, y: n[1], z: n[2] + ${0.8 + cubSide}, yaw: 90, pitch: 0, roll: 0, vx: -12, vy: 0, vz: 0, hold: true, fresh: true });
+    return window.__crashThrow({ x: n[0] + 10, y: n[1], z: n[2] + ${0.8 + cubSide}, yaw: 90, pitch: 0, roll: 0, vx: -12, vy: 0, vz: 0, hold: true, fresh: false });
   })()`);
   await b.sleep(6500);
   await b.evaluate('window.__releasePose(); true');
-  check('B is let go past A\'s paper 0.8 m off', bPass && bPass.ok, JSON.stringify(bPass).slice(0, 80));
+  check('B is let go past A\'s paper, its wingtip 0.8 m off', bPass && bPass.ok, JSON.stringify(bPass).slice(0, 80));
+  /* Where B went, against A's paper as B's screen draws it, for the log. */
+  let nearest = Infinity;
+  for (let k = 0; k < 20; k += 1) {
+    const g = await b.evaluate(`(() => { const s = window.__craftState(); const c = window.__combat(); const ch = c.peers[0].chains[0]; return { p: [s.worldX, s.worldY, s.worldZ], nodes: ch ? ch.nodes : [], mode: s.mode, crashed: s.crashed }; })()`);
+    for (const n of g.nodes) {
+      nearest = Math.min(nearest, Math.hypot(n[0] - g.p[0], n[1] - g.p[1], n[2] - g.p[2]));
+    }
+    await b.sleep(100);
+  }
+  console.log(`  B's centre came within ${nearest.toFixed(2)} m of a node of A's paper (as B draws it)`);
   await b.until('window.__combat().cuts.length > 1', 8000).catch(() => {});
   await a.until('window.__combat().cuts.length > 1', 8000).catch(() => {});
   await a.sleep(800);
@@ -303,9 +317,14 @@ try {
   await a.sleep(1200);
   const drawnB = [await a.evaluate('window.__combat().drawnRuns[2][0]'), await b.evaluate('window.__combat().drawnRuns[2][0]')];
   check('both screens draw B\'s paper in those colours', drawnB.every((d) => JSON.stringify(d) === JSON.stringify(bRuns)), drawnB.map((d) => JSON.stringify(d)).join(' '));
-  const bp = both[1].paper;
-  await b.evaluate(`window.__setCam(${bp.chains[0].head[0] + 18}, ${bp.chains[0].head[1] - 6}, ${bp.chains[0].head[2] + 24}, ${bp.chains[0].head[0]}, ${bp.chains[0].head[1] - 20}, ${bp.chains[0].head[2]}, 70); true`);
-  await b.sleep(800);
+  /* B's camera on its own paper where it is now, looking down it. */
+  await b.evaluate(`(() => {
+    const n = window.__combat().paper.chains[0].nodes;
+    const m = n[Math.floor(n.length / 2)];
+    window.__setCam(m[0] + 30, m[1] + 12, m[2] + 30, m[0], m[1], m[2], 75);
+    return true;
+  })()`);
+  await b.sleep(300);
   await shot(b, 'b-tows-both-colours');
   await a.evaluate('window.__setCam(null); true');
   await b.evaluate('window.__setCam(null); true');
