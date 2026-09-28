@@ -1215,3 +1215,25 @@ export function createHistory(limit = 200) {
     },
   };
 }
+
+/*
+ * What the Save button says about the track being built, as a key under
+ * build.save_ in the string tables. `stored` is the library's copy of it
+ * or null, `server` whether a tracks server is configured (cloud.js), and
+ * `online` its entry in storage.js readOnlineStates. An edit since the save
+ * is unsaved whatever the server holds, because what the server holds is
+ * the save and not the edit. With no server a save is the whole story.
+ */
+export function saveState(doc, stored, server, online) {
+  if (!stored || stored.modifiedUtc !== doc.modifiedUtc) {
+    return 'unsaved';
+  }
+  if (!server) {
+    return 'saved';
+  }
+  const st = online ? online.state : '';
+  if (st === 'online') {
+    return 'online';
+  }
+  return st === 'failed' ? 'refused' : 'pending';
+}
