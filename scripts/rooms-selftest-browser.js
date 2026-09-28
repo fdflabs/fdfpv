@@ -29,7 +29,7 @@
  */
 
 import {
-  PROTO, PUBLIC_CAP, ROOM_NAME_MAX, ROOM_NAME_REPORT, normaliseRoomName, validNamePick,
+  LIST_EVERY_MS, PROTO, PUBLIC_CAP, ROOM_NAME_MAX, ROOM_NAME_REPORT, normaliseRoomName, validNamePick,
 } from '../src/share/roomwire.js';
 import front from '../edge/rooms/front.js';
 import { RoomHost } from '../edge/rooms/host.js';
@@ -128,9 +128,9 @@ function server(stores = new Map(), publicRooms = 'on') {
       await settle();
       return { status: res.status, ...(await res.json()) };
     },
-    async list() {
-      const res = await call('/v2/rooms');
-      return res.json();
+    async list(ip) {
+      const res = await call('/v2/rooms', ip ? { address: ip } : {});
+      return res.status === 200 ? res.json() : { status: res.status };
     },
     /* A pilot into the room `code` (a /v2/room socket) or a quick join
      * on a map, seated with a hello. */
@@ -271,6 +271,26 @@ export async function browserSection(check) {
   check('its pilots fly on', !b.closed && !c.closed && !d.closed);
   const later = await s.join({ code: made.code }, [9, 9, 70]);
   check('a pilot who joins later by its code sees the picker name', later.welcome && later.welcome.name === null && later.welcome.pick.join() === kept.pick.join());
+
+  console.log('room browser: a household behind one address');
+  s = server();
+  const home = await s.create({ map: 'swiss2', public: true, name: 'Family Room' });
+  const family = [];
+  for (let i = 0; i < PUBLIC_CAP; i += 1) {
+    family.push(await s.join({ code: home.code }, [i % 24, (i * 5) % 24, 20 + i], '10.50.0.1'));
+  }
+  check(`${PUBLIC_CAP} pilots from one address fill a public room: no address limit refuses a seat that is free`,
+    family.every((p) => p.welcome && !p.closed), family.filter((p) => !p.welcome || p.closed).map((p) => JSON.stringify(p.closed)).join());
+  let polled = 0;
+  for (let i = 0; i < PUBLIC_CAP * (60000 / LIST_EVERY_MS); i += 1) {
+    polled += (await s.list('10.50.0.1')).open ? 1 : 0;
+  }
+  check(`and ${PUBLIC_CAP} of them with Rooms open for a minute are all answered`, polled === PUBLIC_CAP * (60000 / LIST_EVERY_MS), `${polled}`);
+  let scripted = 0;
+  for (let i = 0; i < PUBLIC_CAP * (60000 / LIST_EVERY_MS); i += 1) {
+    scripted += (await s.list('10.50.0.1')).status === 429 ? 1 : 0;
+  }
+  check('but a script asking twice that is refused', scripted > 0, `${scripted}`);
 
   console.log('room browser: quick join');
   s = server();

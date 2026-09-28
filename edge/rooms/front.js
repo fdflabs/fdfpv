@@ -56,17 +56,22 @@
  */
 
 import {
-  PUBLIC_CAP, ROOM_MODES, codeFromBytes, normaliseCode, normaliseRoomName,
+  LIST_EVERY_MS, PUBLIC_CAP, ROOM_MODES, codeFromBytes, normaliseCode, normaliseRoomName,
 } from '../../src/share/roomwire.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { lobbyStub } from './lobby.js';
 
+/*
+ * One address is often a household or a school behind one NAT, so every
+ * per address limit is sized for a full public room of pilots (PUBLIC_CAP)
+ * behind it: quick joins twice over, and the list at its poll rate
+ * (src/share/roomlist.js, one ask each LIST_EVERY_MS while Rooms is open)
+ * half again over. A script past that is refused rather than served.
+ * Making rooms stays low: a household makes a room or two, not sixteen.
+ */
 const CREATES_PER_MIN = 6;
-const PUBLIC_JOINS_PER_MIN = 20;
-/* The browser polls the list every few seconds while it is open
- * (src/share/roomlist.js), so this is several open browsers from one
- * address, and a script past that is refused rather than served. */
-const LISTS_PER_MIN = 120;
+const PUBLIC_JOINS_PER_MIN = 2 * PUBLIC_CAP;
+const LISTS_PER_MIN = Math.ceil(1.5 * PUBLIC_CAP * (60000 / LIST_EVERY_MS));
 
 /*
  * The simulator's own origins. A browser always sends Origin on a

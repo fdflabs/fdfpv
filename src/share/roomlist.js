@@ -29,10 +29,11 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { ROOM_MODES, normaliseCode, normaliseRoomName, validNamePick } from './roomwire.js';
+import {
+  LIST_EVERY_MS, ROOM_MODES, normaliseCode, normaliseRoomName, validNamePick,
+} from './roomwire.js';
 import { roomsOrigin } from './rooms.js';
 
-export const LIST_EVERY_MS = 4000;
 const ID_RE = /^[a-z0-9_]{1,32}$/;
 const STATES = ['waiting', 'countdown', 'on'];
 

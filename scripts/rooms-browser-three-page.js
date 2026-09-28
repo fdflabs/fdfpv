@@ -20,6 +20,13 @@
  * two, and the list counts three. In the room B sees its name and no
  * invite code, and reports the name from the room's own row.
  *
+ * A server that is already in use (the live VM) has other rooms, left by
+ * earlier runs or flown by pilots, so the room's name carries this run's
+ * number and every check reads this run's rooms by code, never a count
+ * or an order of the whole list. Runs against one server go a minute
+ * apart: each makes three rooms from this machine's one address, and the
+ * create limit (edge/rooms/front.js CREATES_PER_MIN) is six a minute.
+ *
  * Pictures in outdir, not in the repository: a picture is evidence for
  * one round.
  *
@@ -146,6 +153,14 @@ if (!rooms) {
 }
 
 const url = `/index.html?lang=en&rooms=${encodeURIComponent(rooms)}`;
+const NAME = `Sky Club ${100 + Math.floor(Math.random() * 900)}`;
+/* The busiest listed room with a seat, which the list puts first and
+ * under the cursor: this run's, unless somebody else's has more pilots. */
+const BUSIEST = `(() => {
+  const it = window.__ui.items().find((x) => x.action && x.action.startsWith('friends-room-'));
+  return it ? it.action : null;
+})()`;
+const HERE = '(() => { const it = window.__ui.items()[window.__ui.cursor]; return it ? it.action || it.label : null; })()';
 console.log(`the room browser, three pages, rooms at ${rooms}${local ? ' (edge/rooms/node.js, started here)' : ''}`);
 const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('cub1400') });
 const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('p51d1450') });
@@ -182,10 +197,10 @@ try {
     && await a.evaluate("window.__rooms().phase === 'idle' && window.__ui.screen === 'roomnew'"));
   await arrowTo(a, 'friends-roomname');
   await a.tap('Enter');
-  await typeName(a, '  Sky   Club ');
+  await typeName(a, `  ${NAME.replace(' ', '   ')} `);
   const draft = await a.evaluate(ROWS);
   const pick = (label) => (draft.find((r) => r.label === label) || {}).value;
-  check('the draft reads Sky Club, public, the Swiss valley, just fly', pick(en['roombrowser.name']) === 'Sky Club'
+  check('the draft reads Sky Club, public, the Swiss valley, just fly', pick(en['roombrowser.name']) === NAME
     && pick(en['roombrowser.kind']) === en['roombrowser.public'] && /Swiss/.test(pick(en['ui.the_world']) || '')
     && pick(en['roombrowser.game']) === en['roombrowser.mode_none'], JSON.stringify(draft.map((r) => `${r.label}=${r.value}`)));
   await arrowTo(a, 'friends-make');
@@ -193,40 +208,49 @@ try {
   await a.tap('Enter');
   await a.until("window.__rooms().phase === 'open' && window.__ui.screen === 'friends'", 30000);
   const ra = await a.evaluate('window.__rooms()');
-  check('A is in its public room, named Sky Club, as its host', ra.public && ra.name === 'Sky Club' && ra.seat === 1 && ra.host === ra.seat,
+  check('A is in its public room, named Sky Club, as its host', ra.public && ra.name === NAME && ra.seat === 1 && ra.host === ra.seat,
     JSON.stringify({ code: ra.code, name: ra.name, seat: ra.seat, host: ra.host }));
 
   console.log('B finds it in Rooms and clicks it');
   await b.evaluate("window.__ui.act('friends'); true");
   await b.until("window.__ui.screen === 'friends'", 10000);
-  await b.until(`window.__ui.items()[0].action === 'rooms' && window.__ui.items()[0].value === ${JSON.stringify(en['roombrowser.entry_value'].replace('{n}', '1'))}`, 20000).catch(() => {});
-  check('Fly with friends says one room is open: the private one is not counted',
-    await b.evaluate(`window.__ui.items()[0].value === ${JSON.stringify(en['roombrowser.entry_value'].replace('{n}', '1'))}`),
-    await b.evaluate('window.__ui.items()[0].value'));
+  await b.until("window.__ui.items()[0].action === 'rooms' && window.__ui.items()[0].value !== ''", 20000).catch(() => {});
+  const open = (await (await fetch(`${rooms}/v2/rooms`)).json()).rooms;
+  const entry = await b.evaluate('window.__ui.items()[0].value');
+  check('Fly with friends counts the open rooms, this one in and the private one out',
+    open.some((r) => r.code === ra.code) && !open.some((r) => r.code === secret)
+    && entry === en['roombrowser.entry_value'].replace('{n}', String(open.length)), `${entry}, ${open.length} listed`);
   await b.tap('Enter');
   await b.until("window.__ui.screen === 'rooms'", 10000);
   const action = `friends-room-${ra.code}`;
   await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(action)})`, 20000).catch(() => {});
   const listed = await b.evaluate(ROWS);
   const row = listed.find((r) => r.action === action);
-  check('Rooms lists Sky Club with its pilots and cap, first, under the cursor', row && row.label === 'Sky Club' && row.value === '1 of 16'
-    && row.primary && await b.evaluate(`window.__ui.items()[window.__ui.cursor].action === ${JSON.stringify(action)}`), JSON.stringify(row));
+  check('Rooms lists this room with its name, its pilots and cap', row && row.label === NAME && row.value === '1 of 16', JSON.stringify(row));
+  const bFirst = await b.evaluate(BUSIEST);
+  check('and the cursor is on the busiest room, first in the list', bFirst && await b.evaluate(HERE) === bFirst, `${await b.evaluate(HERE)} ${bFirst}`);
   check('with its world and what it is doing', row && /Swiss/.test(row.note) && row.note.includes(en['roombrowser.free']), row && row.note);
   check('and never the private room, by name or by code', !listed.some((r) => r.label === 'Secret Base' || (r.action || '').endsWith(secret)),
     listed.map((r) => r.label).join(' | '));
   await shot(b, '2-rooms-list');
   check('one click on the row', await clickRow(b, action));
   await b.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(ra.code)}`, 30000).catch(() => {});
-  check('and B is in Sky Club, no code typed', await b.evaluate(`window.__rooms().code === ${JSON.stringify(ra.code)} && window.__rooms().name === 'Sky Club'`));
+  check('and B is in the room, no code typed', await b.evaluate(`window.__rooms().code === ${JSON.stringify(ra.code)} && window.__rooms().name === ${JSON.stringify(NAME)}`));
 
   console.log('C leaves its private room and joins from Rooms with Enter');
   await c.evaluate("window.__ui.act('friends'); true");
   await c.evaluate("window.__ui.onFriends('friends-leave'); true");
   await c.until("window.__rooms().phase === 'idle'", 10000);
   await c.evaluate("window.__ui.act('rooms'); true");
-  await c.until(`window.__ui.screen === 'rooms' && window.__ui.items()[window.__ui.cursor].action === ${JSON.stringify(action)}`, 20000).catch(() => {});
+  /* C opens Rooms before its list has ever arrived: the cursor must move
+   * to the busiest room when it does, not stay on Make a room. */
+  await c.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(action)})`, 20000).catch(() => {});
+  await c.sleep(300);
   const cRow = (await c.evaluate(ROWS)).find((r) => r.action === action);
-  check('C sees Sky Club with two pilots now', cRow && cRow.value === '2 of 16', JSON.stringify(cRow));
+  check('C sees the room with two pilots now', cRow && cRow.value === '2 of 16', JSON.stringify(cRow));
+  const cFirst = await c.evaluate(BUSIEST);
+  check('and the cursor went to the busiest room as the list arrived', cFirst && await c.evaluate(HERE) === cFirst, `${await c.evaluate(HERE)} ${cFirst}`);
+  check('the cursor reaches this run\'s room', await arrowTo(c, action));
   await c.tap('Enter');
   await c.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(ra.code)}`, 30000).catch(() => {});
 
@@ -238,12 +262,12 @@ try {
   }
   const seats = await Promise.all([a, b, c].map((p) => p.evaluate('window.__rooms().seat')));
   check('on three seats', new Set(seats).size === 3, seats.join());
-  await b.until(`window.__ui.items().some((it) => it.label === ${JSON.stringify(en['roombrowser.room'])} && it.value === 'Sky Club')`, 10000).catch(() => {});
+  await b.until(`window.__ui.items().some((it) => it.label === ${JSON.stringify(en['roombrowser.room'])} && it.value === ${JSON.stringify(NAME)})`, 10000).catch(() => {});
   const inRoom = await b.evaluate(ROWS);
-  check('the room screen names the room', inRoom.some((r) => r.label === en['roombrowser.room'] && r.value === 'Sky Club'));
+  check('the room screen names the room', inRoom.some((r) => r.label === en['roombrowser.room'] && r.value === NAME));
   check('and shows no invite code: a public room has none to give', !inRoom.some((r) => r.action === 'friends-copy' || r.value === ra.code),
     inRoom.map((r) => `${r.label}=${r.value}`).join(' | '));
-  check('the Fly with friends row names it too', (await b.evaluate("window.__ui.friendsRow().value")).startsWith('Sky Club'));
+  check('the Fly with friends row names it too', (await b.evaluate("window.__ui.friendsRow().value")).startsWith(NAME));
   check('the cursor reaches the report for a bad room name', await arrowTo(b, 'friends-reportname'));
   await b.tap('Enter');
   await b.until(`window.__ui.items().some((it) => it.label === ${JSON.stringify(en['friends.say'])} && it.value === ${JSON.stringify(en['friends.reported_room'])})`, 10000).catch(() => {});
@@ -252,7 +276,7 @@ try {
   await shot(b, '3-in-sky-club');
   const list = await (await fetch(`${rooms}/v2/rooms`)).json();
   const line = list.rooms.find((r) => r.code === ra.code);
-  check('the server lists Sky Club with three pilots, and nothing private', line && line.n === 3 && !list.rooms.some((r) => r.code === secret), JSON.stringify(list));
+  check('the server lists the room with three pilots, and nothing private', line && line.n === 3 && !list.rooms.some((r) => r.code === secret), JSON.stringify(list));
 
   const errs = [...a.errors, ...b.errors, ...c.errors].filter((e) => !e.startsWith('network:'));
   check('no page error on any page', errs.length === 0, errs.slice(0, 3).join(' | '));
