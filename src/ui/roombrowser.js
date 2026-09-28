@@ -1,0 +1,300 @@
+/*
+ * roombrowser.js: the Rooms screen and the Make a room screen (the owner,
+ * 2026-09-28: "have it list in the lobby the rooms that are up, I want it
+ * to be easy for people to join rooms and everyone to see every room,
+ * also when creating room let me name it").
+ *
+ *   Rooms          every open public room, live (src/share/roomlist.js):
+ *                  its name, world, pilots and game, one press to join,
+ *                  busiest first; a quick join on this world; the way to
+ *                  make a room and to join a private one with its code
+ *   Make a room    a typed name (or the room's picked one), public or
+ *                  private, the world, and a game to set it up for
+ *
+ * The rows are the menu's (src/ui/ui.js draws them, stick and keys and
+ * mouse alike); what they do is here, so src/main.js only wires this to
+ * the room's socket. Private rooms are never listed and keep their codes.
+ *
+ * A TYPED NAME is the one piece of free text in a room. The shape is
+ * checked here to answer at once, but the rooms server decides, with the
+ * tracks server's word filter (edge/rooms/front.js): a name it refuses
+ * comes back as an error on this screen and nothing is made.
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { ROOM_MODES, ROOM_NAME_REPORT, normaliseRoomName } from '../share/roomwire.js';
+import { createRoomList } from '../share/roomlist.js';
+import { MAPS, mapById } from '../maps/registry.js';
+import { str } from '../strings/index.js';
+
+const ROOM_ACTION = 'friends-room-';
+
+/*
+ * ui: the menu (show, askForm, refreshFriends); link: the room socket
+ * (src/share/rooms.js); roomName(pick): a picker name in this pilot's
+ * language; here(): the world this pilot is in; preset(): the game a
+ * title card set up, or null.
+ */
+export function createRoomBrowser({ ui, link, roomName, here, preset = () => null }) {
+  const list = createRoomList(() => ui.refreshFriends());
+  const worlds = () => MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id);
+  let draft = null;
+  let busy = false;
+  let error = null;
+  /* The code of the room whose name this pilot reported, for the note. */
+  let reportedIn = null;
+  /* The code of the last room joined from the list, never to be shown. */
+  let joined = null;
+
+  function fresh() {
+    const w = worlds();
+    return { name: null, public: list.open() !== false, map: w.includes(here()) ? here() : w[0], mode: preset() };
+  }
+
+  /* A room's name as this pilot reads it: typed, or picked. */
+  function title(r) {
+    return r.name || roomName(r.pick);
+  }
+
+  function doing(r) {
+    return r.game ? str(`roombrowser.${r.game}_${r.state}`) : str('roombrowser.free');
+  }
+
+  function roomRow(r) {
+    const full = r.n >= r.cap;
+    const note = str(full ? 'roombrowser.row_full_note' : 'roombrowser.row_note', { world: mapById(r.map).name, doing: doing(r) });
+    return full
+      ? { label: title(r), value: str('roombrowser.full'), note, info: true }
+      : { label: title(r), value: str('roombrowser.count', { n: r.n, cap: r.cap }), note, action: `${ROOM_ACTION}${r.code}` };
+  }
+
+  function listRows() {
+    const rooms = list.rooms();
+    const heading = { label: str('roombrowser.open_section'), section: true };
+    if (list.open() === false) {
+      return [heading, { label: str('roombrowser.closed'), note: str('roombrowser.closed_note'), info: true }];
+    }
+    if (rooms === null) {
+      return [heading, { label: str(list.failed() ? 'roombrowser.unreachable' : 'roombrowser.looking'), info: true }];
+    }
+    if (!rooms.length) {
+      return [heading, { label: str('roombrowser.empty'), note: str('roombrowser.empty_note'), info: true }];
+    }
+    const rows = rooms.map(roomRow);
+    const first = rows.find((row) => row.action);
+    if (first) {
+      first.primary = true;
+    }
+    return [heading, ...rows];
+  }
+
+  function browserRows() {
+    const world = mapById(here()).name;
+    const quick = list.open() === false ? [] : [{
+      label: str('roombrowser.quick'), value: world, note: str('roombrowser.quick_note', { world }), action: 'friends-quick',
+    }];
+    return [
+      ...listRows(),
+      { label: str('roombrowser.more_section'), section: true },
+      { label: str('roombrowser.new'), note: str('roombrowser.new_note'), action: 'roomnew', primary: !(list.rooms() || []).some((r) => r.n < r.cap) },
+      ...quick,
+      { label: str('friends.join'), note: str('friends.join_note'), action: 'friends-join' },
+    ];
+  }
+
+  function choiceRow(label, note, values, current, format, set) {
+    const i = Math.max(0, values.indexOf(current));
+    return {
+      label,
+      note,
+      value: format(current),
+      current: String(i),
+      options: values.map((v, k) => ({ value: String(k), label: format(v) })),
+      pick: (k) => {
+        set(values[Number(k)]);
+        ui.refreshFriends();
+      },
+      adjust: (d) => {
+        set(values[(i + d + values.length) % values.length]);
+        ui.refreshFriends();
+      },
+    };
+  }
+
+  function newRows() {
+    draft ??= fresh();
+    const open = list.open() !== false;
+    if (!open) {
+      draft.public = false;
+    }
+    return [
+      {
+        label: str('roombrowser.name'),
+        value: draft.name || str('roombrowser.name_picked'),
+        note: str('roombrowser.name_note'),
+        action: 'friends-roomname',
+      },
+      open
+        ? choiceRow(str('roombrowser.kind'), str(draft.public ? 'roombrowser.public_note' : 'roombrowser.private_note'),
+          [true, false], draft.public, (v) => str(v ? 'roombrowser.public' : 'roombrowser.private'), (v) => {
+            draft.public = v;
+          })
+        : { label: str('roombrowser.kind'), value: str('roombrowser.private'), note: str('roombrowser.closed_note'), info: true },
+      choiceRow(str('ui.the_world'), str('roombrowser.world_note'), worlds(), draft.map, (id) => mapById(id).name, (id) => {
+        draft.map = id;
+      }),
+      choiceRow(str('roombrowser.game'), str('roombrowser.game_note'), [null, ...ROOM_MODES], draft.mode,
+        (m) => str(`roombrowser.mode_${m || 'none'}`), (m) => {
+          draft.mode = m;
+        }),
+      {
+        label: str(busy ? 'roombrowser.making' : 'roombrowser.make'),
+        note: error || str(draft.public ? 'roombrowser.make_public_note' : 'roombrowser.make_private_note'),
+        action: 'friends-make',
+        primary: true,
+      },
+    ];
+  }
+
+  async function askName() {
+    const got = await ui.askForm({
+      title: str('roombrowser.name_title'),
+      detail: str('roombrowser.name_detail'),
+      confirmLabel: str('ui.save'),
+      fields: [{
+        key: 'name',
+        label: '',
+        value: draft.name || '',
+        maxLength: 64,
+        placeholder: str('roombrowser.name_placeholder'),
+        rules: str('roombrowser.name_rules'),
+        /* Blank is allowed, and means the picked name: an object, because
+         * askForm reads a falsy answer as a refusal. */
+        save: (v) => {
+          if (!String(v).trim()) {
+            return { name: null };
+          }
+          const name = normaliseRoomName(v);
+          return name ? { name } : null;
+        },
+      }],
+    });
+    if (got) {
+      draft.name = got.name.name;
+      error = null;
+    }
+    ui.refreshFriends();
+  }
+
+  async function make() {
+    if (busy) {
+      return;
+    }
+    busy = true;
+    error = null;
+    ui.refreshFriends();
+    try {
+      const code = await link.create(draft.map, false, { public: draft.public, name: draft.name, mode: draft.mode });
+      joined = draft.public ? code : null;
+      draft = null;
+      link.join(code);
+      ui.show('friends');
+    } catch (e) {
+      error = str(e.message === 'name' ? 'roombrowser.bad_name' : 'roombrowser.make_failed');
+    }
+    busy = false;
+    ui.refreshFriends();
+  }
+
+  return {
+    /* The Rooms and Make a room screens' rows, Back aside. */
+    rows(screen) {
+      return screen === 'roomnew' ? newRows() : browserRows();
+    },
+    /* The Fly with friends screen's way in, when not in a room; `failed`
+     * is why the last join did not work, or null. */
+    entryRow(failed) {
+      const rooms = list.rooms();
+      const value = rooms === null ? '' : str(rooms.length ? 'roombrowser.entry_value' : 'roombrowser.entry_none', { n: rooms.length });
+      return { label: str('roombrowser.title'), value, note: failed || str('roombrowser.entry_note'), action: 'rooms', primary: true };
+    },
+    /* In a room: its name, and a typed one's report row. */
+    nameRows(w) {
+      if (!w || !w.pick) {
+        return [];
+      }
+      const row = { label: str('roombrowser.room'), value: title(w), note: str(w.name ? 'roombrowser.room_named_note' : 'roombrowser.room_note'), info: true };
+      if (!w.name) {
+        return [row];
+      }
+      const done = reportedIn === w.code;
+      return [row, {
+        label: str('friends.report', { reason: str('rooms.report.room_name') }),
+        value: done ? str('roombrowser.reported') : '',
+        note: str(done ? 'friends.reported_room' : 'roombrowser.report_name_note'),
+        action: 'friends-reportname',
+      }];
+    },
+    title,
+    /* Whether this code is a room joined from the list: a public room's,
+     * which is never shown, even while its socket is still opening. */
+    listed: (code) => code != null && code === joined,
+    /* Poll the list while it is on screen. */
+    watch(on) {
+      list.watch(on);
+    },
+    /* A new room's draft starts over each visit to Make a room. */
+    opened(screen) {
+      if (screen === 'roomnew') {
+        draft = fresh();
+        error = null;
+      }
+    },
+    /* A friends- action of these screens: true when it was one. */
+    act(action) {
+      if (action.startsWith(ROOM_ACTION)) {
+        joined = action.slice(ROOM_ACTION.length);
+        link.join(joined);
+        ui.show('friends');
+        return true;
+      }
+      if (action === 'friends-quick') {
+        link.joinPublic(here());
+        ui.show('friends');
+        return true;
+      }
+      if (action === 'friends-roomname') {
+        askName();
+        return true;
+      }
+      if (action === 'friends-make') {
+        make();
+        return true;
+      }
+      if (action === 'friends-reportname') {
+        const st = link.state();
+        if (st.welcome && st.welcome.name && reportedIn !== st.code) {
+          link.send({ type: 'report', seat: 0, reason: ROOM_NAME_REPORT });
+          reportedIn = st.code;
+        }
+        ui.refreshFriends();
+        return true;
+      }
+      return false;
+    },
+  };
+}

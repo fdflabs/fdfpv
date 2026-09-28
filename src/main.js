@@ -90,6 +90,7 @@ import {
   createRoomLink, figurePick, namePick, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
 } from './share/rooms.js';
 import { createRoomSafety } from './share/roomsafety.js';
+import { createRoomBrowser } from './ui/roombrowser.js';
 import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
 import { tagHudView, tagResultsView, tagRows } from './ui/roomtaghud.js';
@@ -1850,9 +1851,7 @@ export async function boot({
   let roomLastSendT = null;
   let roomProfileSent = '';
   let roomProfileCheckAt = 0;
-  let roomBusy = null; /* 'creating' while a create is in flight */
   let roomNote = null; /* a one off line under the code row */
-  let roomPublicOpen = null; /* whether the server has public rooms, once asked */
   let roomNameOffer = null; /* three picker names, while the screen is open */
 
   function roomName(pick) {
@@ -1920,6 +1919,7 @@ export async function boot({
       roomSafety.reported(seat);
       ui.refreshFriends();
     },
+    onRoom: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
       if (peer) {
@@ -1979,6 +1979,7 @@ export async function boot({
         combatLayer.clear();
         combatHud.update(roomCombat.round(), 0, null, 0, 0);
       }
+      roomBrowser.watch(roomBrowsing());
       ui.refreshFriends();
     },
   }, () => ({ name: namePick(), profile: roomProfile() }));
@@ -1986,6 +1987,17 @@ export async function boot({
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
   });
+  /* The room browser and Make a room (src/ui/roombrowser.js), whose list
+   * is fetched only while somebody could be reading it. */
+  const roomBrowser = createRoomBrowser({ ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()) });
+  const roomBrowsing = () => ui.screen === 'rooms' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
+  ui.roomRows = (screen) => roomBrowser.rows(screen);
+  const screenChanged = ui.onScreenChange;
+  ui.onScreenChange = (screen) => {
+    screenChanged(screen);
+    roomBrowser.opened(screen);
+    roomBrowser.watch(roomBrowsing());
+  };
 
   /*
    * COMBAT (src/share/roomcombat.js, docs/COMBAT-PLAN.md): fifty metres of
@@ -2076,10 +2088,10 @@ export async function boot({
     }, now, wallMs / 1000);
     combatLayer.update(dt);
   }
-  /* The Fly with friends rows: a private room's host starts and stops a
-   * round; everyone sees where it is. */
+  /* The Fly with friends rows: the room's host starts and stops a round;
+   * everyone sees where it is. */
   function combatRows(host, w) {
-    if (!w || w.public) {
+    if (!w) {
       return [];
     }
     const r = roomCombat.round();
@@ -2517,7 +2529,8 @@ export async function boot({
       slot: roomSlot,
       roomNow: roomLinkState.roomNow(),
       public: Boolean(st.welcome && st.welcome.public),
-      shard: st.welcome ? st.welcome.shard : null,
+      name: st.welcome ? st.welcome.name : null,
+      host: st.welcome ? st.welcome.host : null,
       heard: roomSafety.heard(),
       peers: [...roomPeers.values()].map((p) => ({
         seat: p.seat,
@@ -2585,8 +2598,8 @@ export async function boot({
   window.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
   window.__roomSay = (kind, id) => roomSafety.say(kind, id);
   window.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
-  window.__roomCreate = async () => {
-    const code = await roomLinkState.create(view ? view.id : worldId());
+  window.__roomCreate = async (room = {}) => {
+    const code = await roomLinkState.create(room.map || (view ? view.id : worldId()), false, room);
     roomLinkState.join(code);
     return code;
   };
@@ -2600,13 +2613,16 @@ export async function boot({
     const st = roomLinkState.state();
     if (st.phase === 'open') {
       return {
-        value: st.publicMap ? str('friends.row_in_public', { n: roomPeers.size + 1 }) : str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }),
+        value: st.welcome && st.welcome.public
+          ? str('friends.row_in_public', { name: roomBrowser.title(st.welcome), n: roomPeers.size + 1 })
+          : str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }),
         note: str('friends.row_in_note'),
         inRoom: true,
       };
     }
     if (st.phase === 'connecting') {
-      return { value: st.publicMap ? str('friends.row_joining_public') : str('friends.row_joining', { code: st.code }), note: str('friends.row_in_note') };
+      const unlisted = !st.publicMap && !roomBrowser.listed(st.code);
+      return { value: unlisted ? str('friends.row_joining', { code: st.code }) : str('friends.row_joining_public'), note: str('friends.row_in_note') };
     }
     return { value: '', note: str('friends.row_off') };
   };
@@ -2646,14 +2662,19 @@ export async function boot({
     };
     if (st.phase === 'open' || st.phase === 'connecting') {
       const w = st.welcome;
-      const host = w && !w.public && w.host === w.seat;
+      /* A public room has a host too, since the room browser: the pilot
+       * in longest, who starts its games. Kicking stays a private room's. */
+      const host = w && w.host === w.seat;
+      const kicks = host && !w.public;
       const world = w ? mapById(w.map).name : '';
       /* A private room's race first, right under the screen's Fly
        * (src/ui/ui.js), so the host starts it and everybody sees it
        * without scrolling past the pilots. */
       const rows = [
-        ...(w && w.public ? [] : [...roomRaceRows(host), ...roomTagRows(host), { label: str('roomrace.room_section'), section: true }]),
-        st.publicMap
+        ...roomRaceRows(host), ...roomTagRows(host), { label: str('roomrace.room_section'), section: true },
+        ...roomBrowser.nameRows(w),
+        /* A public room's code is how the browser joins it, never shown. */
+        (w ? w.public : st.publicMap)
           ? { label: str('friends.public_row'), value: world, note: str('friends.public_row_note'), info: true }
           : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
         {
@@ -2672,10 +2693,10 @@ export async function boot({
         rows.push({
           label: muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name),
           value: craft,
-          note: str(host ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
+          note: str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
           current: '',
           pickOnly: true,
-          options: roomSafety.peerOptions(peer.seat, host),
+          options: roomSafety.peerOptions(peer.seat, kicks),
           pick: (v) => {
             if (roomSafety.peerPick(peer.seat, v) === 'kick') {
               roomLinkState.kick(peer.seat);
@@ -2688,27 +2709,11 @@ export async function boot({
       return rows;
     }
     const failed = st.phase === 'failed' && st.reason ? str(`friends.failed_${st.reason}`) : null;
-    if (roomPublicOpen == null) {
-      roomPublicOpen = false;
-      roomLinkState.publicRooms().then((open) => {
-        roomPublicOpen = open;
-        ui.refreshFriends();
-      });
-    }
-    const here = mapById(view ? view.id : worldId()).name;
+    /* Rooms first, under the cursor, whether or not the server has public
+     * rooms open: the Rooms screen says so, and still makes private ones. */
     return [
-      ...(roomPublicOpen ? [{
-        label: str('friends.public'),
-        value: here,
-        note: failed || str('friends.public_note', { world: here }),
-        action: 'friends-public',
-      }] : []),
-      {
-        label: str('friends.create'),
-        value: roomBusy === 'creating' ? str('friends.creating') : '',
-        note: failed || str('friends.create_note'),
-        action: 'friends-create',
-      },
+      roomBrowser.entryRow(failed),
+      { label: str('friends.create'), note: failed || str('friends.create_note'), action: 'roomnew' },
       { label: str('friends.join'), note: failed || str('friends.join_note'), action: 'friends-join' },
       nameRow,
       figureRow,
@@ -2724,21 +2729,8 @@ export async function boot({
       roomCombat.stop();
       return;
     }
-    if (action === 'friends-create') {
-      if (roomBusy) {
-        return;
-      }
-      roomBusy = 'creating';
+    if (roomBrowser.act(action)) {
       roomNote = null;
-      ui.refreshFriends();
-      try {
-        const code = await roomLinkState.create(view ? view.id : worldId());
-        roomLinkState.join(code);
-      } catch (e) {
-        roomLinkState.join(null);
-      }
-      roomBusy = null;
-      ui.refreshFriends();
       return;
     }
     if (action === 'friends-join') {
@@ -2755,12 +2747,6 @@ export async function boot({
         roomNote = null;
         roomLinkState.join(got.code);
       }
-      ui.refreshFriends();
-      return;
-    }
-    if (action === 'friends-public') {
-      roomNote = null;
-      roomLinkState.joinPublic(view ? view.id : worldId());
       ui.refreshFriends();
       return;
     }

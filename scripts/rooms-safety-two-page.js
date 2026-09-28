@@ -105,8 +105,8 @@ try {
   }
   const ra = await a.evaluate('window.__rooms()');
   const rb = await b.evaluate('window.__rooms()');
-  check('with no code, the lobby puts both pages in one public room', ra.public && rb.public && ra.shard === rb.shard && ra.code === null,
-    `shards ${ra.shard} ${rb.shard}`);
+  check('with no code typed, the lobby puts both pages in one public room', ra.public && rb.public && ra.code && ra.code === rb.code,
+    `rooms ${ra.code} ${rb.code}`);
 
   for (const p of [a, b]) {
     await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
