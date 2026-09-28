@@ -154,7 +154,7 @@ export function buildPeerCraft(profile, look = null) {
     }
   }
   const undoLook = look ? look(craft) : null;
-  const tag = nameTag(0.9, 2.2);
+  const tag = nameTag(1.3, 2.2);
   craft.group.add(tag.sprite);
   const quad = !airframeById(id).fixedWing;
 

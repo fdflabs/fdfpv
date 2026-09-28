@@ -105,6 +105,9 @@ try {
   }
   const code = await a.evaluate('window.__roomCreate()');
   check('page A makes a room', /^[A-Z0-9]{6}$/.test(code), code);
+  /* A's seat first, so the seats are known: create resolves once the
+   * socket is asked for, not once the room has said welcome. */
+  await a.until("window.__rooms().phase === 'open'", 30000);
   await b.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
   for (const p of [a, b]) {
     await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1 && window.__rooms().roomNow != null", 30000);

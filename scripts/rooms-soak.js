@@ -91,6 +91,9 @@ function connect(code, i, extra = {}) {
     });
     ws.addEventListener('close', (ev) => {
       c.closed = { code: ev.code, reason: ev.reason };
+      if (c.welcome) {
+        console.log(`  client ${i} (seat ${c.welcome.seat}) closed: ${ev.code} ${ev.reason || ''} after ${c.batches} batches`);
+      }
       resolve(c);
     });
     ws.addEventListener('error', () => {});
