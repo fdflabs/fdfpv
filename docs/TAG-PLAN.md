@@ -75,15 +75,12 @@ or argued. The rest are this build's, with the reason.
    about 20, so 300 s is X = 140, 90 and 50. 90 is the four pilot answer,
    quicker with two, slower with eight, and it is a number to fly.
    Standard 240 is about fifteen minutes with four, Epic 600 forty or more.
-6. **The Ace is marked for everybody.** A gold crown over the Ace's
-   aircraft and its name in gold, on every screen; the Ace's own screen
-   says so; the scoreboard puts a crown by the Ace. The PEER MARKERS agent
+6. **The Ace is marked for everybody.** A crown over the Ace's aircraft
+   on every screen, and a crown before its name; the Ace's own screen says
+   so; the scoreboard puts a crown by the Ace. The PEER MARKERS agent
    (branch `peer-markers`) is adding a role hook for exactly this,
-   `setPeerRole(seat, 'ace')`. At the time of writing that branch is not
-   on origin and its file has no such hook, so this build draws its own
-   crown in its own file (`src/render/crown.js`) and calls one function in
-   the shell, `tagMarkPeers()`, which is where `setPeerRole` goes when it
-   lands. Their files are not touched.
+   `setPeerRole(seat, 'ace')`: this build calls it from one function in
+   the shell, `tagMarkPeers()`, and touches none of their files.
 7. **A live scoreboard, results, rematch; the host picks the mode in a
    private room.** The room section of Fly with friends gets a Catch the
    Ace section under the race's, with the goal and Start for the host.
@@ -297,11 +294,15 @@ Where the build departs from the plan above, and why:
   `midair:harness` and `midair:twopage` pass as before.
 - **The go is a whole room millisecond** (`Math.ceil`): the judgement
   steps on them, and the Durable Object's clock is whole already.
-- **The crown is this branch's own** (`src/render/crown.js`): a sprite the
-  same size on screen near and far, drawn through terrain and above the
-  name tag. The peer markers branch was not on origin, so there was no
-  `setPeerRole` to call; the one place it goes is `tagMarkPeers` in
-  `src/main.js`.
+- **The crown is the peer marks' role** (#138, `src/ui/peermarks.js`,
+  landed on main during this build as `peerMarks.setRole(seat, 'ace')`,
+  not `setPeerRole`): a crown caret in the Ace's seat colour over its
+  aircraft that never fades, and a larger arrow at the frame's edge when
+  it is out of the picture. `tagMarkPeers` sets it when the crown moves
+  and clears it when the match ends or the room is left. A gold crown
+  sprite of this branch's own was built first and deleted once the hook
+  was on main, so there is one crown, not two. The name tag carries a
+  crown glyph too, which the peer marks' label repeats.
 - **The scoreboard is the race's box** (`RoomRaceHud`, a second one), the
   results the race's screen (`ui.showRoomResults`), with the shell told
   whose results are up (`roomResultsOf`), since only one game runs at a
@@ -346,6 +347,6 @@ Measured:
   every run.
 - `scripts/tag-two-page.js`, three pages against `wrangler dev` on
   swiss2, two Cubs and a five inch: 20 passed. The crown moved to A on
-  all three pages at the same room time, 5,034 ms after A was thrown in
+  all three pages at the same room time, 5 s after A was thrown in
   (its own spawn protection), with 20 cm of wing overlap and no hit, both
   Cubs whole; the match ended at 15 points to A on all three.

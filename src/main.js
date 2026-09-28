@@ -93,7 +93,6 @@ import { createRoomSafety } from './share/roomsafety.js';
 import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
 import { tagHudView, tagResultsView, tagRows } from './ui/roomtaghud.js';
-import { createCrown } from './render/crown.js';
 import {
   RoomRaceHud, hudView, raceRows, resultsView, trackName,
 } from './ui/roomhud.js';
@@ -1961,6 +1960,7 @@ export async function boot({
         roomTag.clear();
         roomTagRunId = null;
         roomTagHud.update(null);
+        tagMarkPeers();
       }
       ui.refreshFriends();
     },
@@ -2125,7 +2125,7 @@ export async function boot({
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
-    tagMarkPeers(scene);
+    tagMarkPeers();
   }
 
   function roomSendPose(now) {
@@ -2848,7 +2848,7 @@ export async function boot({
    * tag match (src/share/roomtag.js, the room's half edge/rooms/tag.js).
    * The room judges every touch and counts every point; this screen puts
    * the pilot on their slot for the countdown and holds them there (the
-   * race's hold, raceHoldMs), crowns the Ace's aircraft, shows the
+   * race's hold, raceHoldMs), crowns the Ace (tagMarkPeers), shows the
    * scoreboard (the race's box: a room runs one game at a time) and a
    * banner at each new crown, and the results when the room says the match
    * is over. A touch is never a crash: the room sends no mid air hit while
@@ -2864,7 +2864,8 @@ export async function boot({
   /* The last crown banner, for the harness. */
   let roomTagBanner = null;
   const roomTagHud = new RoomRaceHud(ui.root);
-  const roomCrown = createCrown();
+  /* The seat the peer marks crown now, or null. */
+  let roomTagMarked = null;
 
   function roomTagHoldMs(now) {
     return roomTagRunId != null && roomTagRunId === roomTag.view().id ? roomTag.holdMs(now) : 0;
@@ -2923,21 +2924,23 @@ export async function boot({
   }
 
   /*
-   * The Ace marked for everybody, after the peers are drawn: the crown
-   * over its aircraft. The peer markers' role hook (setPeerRole(seat,
-   * 'ace'), branch peer-markers) goes here when it lands on main.
+   * The Ace marked for everybody: the peer marks' role (src/ui/peermarks.js),
+   * a crown over its aircraft that never fades and a larger arrow at the
+   * frame's edge when it is out of the picture. Set when the crown moves,
+   * cleared when the match is over or the room is left.
    */
-  function tagMarkPeers(scene) {
+  function tagMarkPeers() {
     const ace = roomTag.ace();
-    const peer = ace != null ? roomPeers.get(ace) : null;
-    const on = Boolean(scene && peer && peer.rig && peer.rig.group.visible);
-    if (on) {
-      if (roomCrown.sprite.parent !== scene) {
-        scene.add(roomCrown.sprite);
-      }
-      roomCrown.at(peer.rig.group.position);
+    if (ace === roomTagMarked) {
+      return;
     }
-    roomCrown.show(on);
+    if (roomTagMarked != null) {
+      peerMarks.setRole(roomTagMarked, null);
+    }
+    if (ace != null) {
+      peerMarks.setRole(ace, 'ace');
+    }
+    roomTagMarked = ace;
   }
 
   function roomTagResultsRows() {
@@ -2990,7 +2993,7 @@ export async function boot({
       standings: roomTag.standings(),
       hold: raceHoldMs,
       run: roomTagRunId,
-      crown: roomCrown.sprite.visible ? roomCrown.sprite.position.toArray() : null,
+      marked: roomTagMarked,
       banner: roomTagBanner,
       hud: roomTagHud.key ? JSON.parse(roomTagHud.key) : null,
       results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'tag'),

@@ -12,7 +12,7 @@
  * the air and held there (window.__crashThrow): if the draw made another
  * pilot the Ace, B is thrown beside it and touches it, so that B is the
  * Ace. Then A is thrown into B, wing through wing: the crown moves to A on
- * all three screens at the same room time, nobody breaks and no mid air
+ * all three screens at the same room time, the peer marks crown it, nobody breaks and no mid air
  * hit is sent, the points tick on every scoreboard, and the match ends at
  * GOAL with the same results on all three. Pictures of what each saw, in
  * outdir, which is not in the repository.
@@ -92,6 +92,12 @@ async function shot(page, name) {
 }
 
 const tagOf = (p) => p.evaluate('window.__roomTag()');
+/* The peer marks' Ace (src/ui/peermarks.js): its seat, and how it is
+ * drawn this frame, over the aircraft or at the frame's edge. */
+const aceMark = (p) => p.evaluate(`(() => {
+  const m = window.__peerMarks().marks.find((x) => x.role === 'ace');
+  return m ? { seat: m.seat, kind: m.kind, alpha: m.alpha } : null;
+})()`);
 /* Held in the air at (x, y, z), nose toward -x, so a Cub's span is along z. */
 const hold = (p, at) => p.evaluate(`window.__crashThrow({ x: ${at.x}, y: ${at.y}, z: ${at.z}, yaw: 90, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, showCraft: true })`);
 
@@ -182,8 +188,8 @@ try {
   /* A look from C at the Ace, crowned, with A about to arrive. */
   await c.evaluate(`window.__setCam(${m.x + 6}, ${m.y + 2}, ${m.z + 12}, ${m.x}, ${m.y}, ${m.z + 4}, 55); true`);
   await c.sleep(800);
-  const cBefore = await tagOf(c);
-  check('C draws the crown over B', cBefore.crown && Math.hypot(cBefore.crown[0] - m.x, cBefore.crown[2] - m.z) < 3, JSON.stringify(cBefore.crown));
+  const cBefore = await aceMark(c);
+  check('C\'s peer marks crown B, over its aircraft', cBefore && cBefore.seat === seats[1] && cBefore.kind === 'over' && cBefore.alpha > 0.9, JSON.stringify(cBefore));
   await shot(c, 'c-sees-b-crowned');
   /* And from A, the hunter, 12 m behind and above B. */
   await a.evaluate(`window.__setCam(${m.x + 12}, ${m.y + 3}, ${m.z + 3}, ${m.x}, ${m.y}, ${m.z}, 55); true`);
@@ -220,8 +226,10 @@ try {
   await hold(b, { ...m, x: m.x + 30 });
   await c.evaluate(`window.__setCam(${m.x + 6}, ${m.y + 2}, ${m.z + 12}, ${m.x}, ${m.y}, ${m.z + 4}, 55); true`);
   await c.sleep(600);
-  const cAfter = await tagOf(c);
-  check('C draws the crown over A now', cAfter.crown && Math.hypot(cAfter.crown[0] - aThrow.x, cAfter.crown[2] - aThrow.z) < 3, JSON.stringify(cAfter.crown));
+  const cAfter = await aceMark(c);
+  const bMarks = await b.evaluate("window.__peerMarks().marks.filter((x) => x.role === 'ace').map((x) => x.seat)");
+  check('and now A, on C\'s screen and on B\'s, and nobody else', cAfter && cAfter.seat === seats[0] && cAfter.alpha > 0.9 && bMarks.join() === String(seats[0]),
+    `${JSON.stringify(cAfter)} ${bMarks}`);
   await shot(c, 'c-sees-a-crowned');
   await shot(a, 'a-is-the-ace-hud');
   await shot(b, 'b-hunts-hud');
