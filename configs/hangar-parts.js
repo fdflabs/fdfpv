@@ -11,9 +11,10 @@
  *   settings.parts[airframeId] = { prop, addons, damage }
  *     prop    'stock' (the power option's own prop) or an id in PROPS
  *     addons  ids in ADDONS that fit the plane, in ADDON_ORDER
- *     damage  null, or the last crash's broken parts: { boxes, parts }.
- *             boxes is every part's hull box ([lo, hi], body frame, m) so
- *             the drawing can tell which triangles are whose; parts is the
+ *     damage  null, or the last crash's broken parts: { boxes, parents,
+ *             parts }. boxes is every part's hull box ([lo, hi], body
+ *             frame, m) and parents its parent part, so the drawing can
+ *             find a part and what hangs off it; parts is the
  *             broken ones, { i, kind, cg, mass, joint, state }, state
  *             'broken' until the pilot tapes it ('taped'). Repair removes
  *             the entry.
@@ -325,6 +326,11 @@ function normaliseDamage(d) {
   if (!d.boxes.every((b) => Array.isArray(b) && b.length === 2 && vec3(b[0]) && vec3(b[1]))) {
     return null;
   }
+  /* Parents precede children in every part table, the root's is -1. */
+  if (!Array.isArray(d.parents) || d.parents.length !== d.boxes.length
+    || !d.parents.every((q, i) => Number.isInteger(q) && (i === 0 ? q === -1 : q >= 0 && q < i))) {
+    return null;
+  }
   const seen = new Set();
   const parts = [];
   for (const p of d.parts) {
@@ -341,7 +347,18 @@ function normaliseDamage(d) {
   if (!parts.length) {
     return null;
   }
-  return { boxes: d.boxes.map((b) => [[...b[0]], [...b[1]]]), parts };
+  return { boxes: d.boxes.map((b) => [[...b[0]], [...b[1]]]), parents: [...d.parents], parts };
+}
+
+/* A part and every part joined under it, which leave together. */
+export function partSubtree(damage, i) {
+  const out = [i];
+  for (let k = i + 1; k < damage.parents.length; k += 1) {
+    if (out.includes(damage.parents[k])) {
+      out.push(k);
+    }
+  }
+  return out;
 }
 
 /* One plane's entry, valid, or null for nothing fitted and nothing broken. */
