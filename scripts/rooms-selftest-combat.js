@@ -27,7 +27,7 @@ import {
 } from '../src/share/roomwire.js';
 import { RoomCore } from '../edge/rooms/core.js';
 import {
-  COUNTDOWN_MS, FULL_LINKS, capture, POINTS_CUT, POINTS_FLIGHT, POINTS_LAUNCH, POINTS_PER_METRE,
+  COUNTDOWN_MS, FULL_LINKS, RESULTS_MS, capture, POINTS_CUT, POINTS_FLIGHT, POINTS_LAUNCH, POINTS_PER_METRE,
 } from '../edge/rooms/combat.js';
 import { PAPER_HALF_M } from '../src/game/cut.js';
 import { hullFor } from '../src/game/midair.js';
@@ -350,6 +350,38 @@ function roundSection(check) {
     check('with one pilot left the round waits ten seconds', g.room.combat.round.state === 'on');
     g.tick(7700 + 10100);
     check('and then the room ends it for everyone', g.room.combat.round.state === 'idle' && texts(g.socks.A, 'combat').pop().state === 'idle');
+  }
+
+  console.log('combat: the end of a round, and the next (continuous play)');
+  {
+    const r = started();
+    r.room.combat.round.endsAt = 3000;
+    fly(r, 1, 3100, away);
+    const over = texts(r.socks.B, 'combat').pop();
+    check('the round ends on the clock, with results, and says when the next starts', over.state === 'over' && over.nextAt >= over.endsAt + RESULTS_MS && over.nextAt < over.endsAt + RESULTS_MS + 100, JSON.stringify({ state: over.state, nextAt: over.nextAt }));
+    const before = r.socks.A.got.length;
+    fly(r, 3101, 3400, away);
+    const relayed = r.socks.A.got.slice(before).filter((m) => m instanceof Uint8Array && m[0] === TYPE_STREAMER_RELAY).map((m) => decodeStreamerRelay(m));
+    check('no paper between rounds: what an owner still sends is relayed with no streamer on', relayed.length > 0 && relayed.every((m) => !m.chains.some((c) => c.id === 0 && c.n > 1)), `${relayed.length} frames`);
+    fly(r, 3401, 3000 + RESULTS_MS + 200, away);
+    const next = texts(r.socks.B, 'combat').pop();
+    check(`${RESULTS_MS / 1000} s of results, then the next round counts down, the same length, fresh paper`, next.state === 'countdown' && next.round === over.round + 1 && next.minutes === over.minutes
+      && next.scores.every((x) => x.points === 0 && JSON.stringify(x.runs) === JSON.stringify([[x.seat, FULL_LINKS]])), JSON.stringify({ state: next.state, round: next.round }));
+    /* Its end, and the host's stop in the results: no next round. */
+    r.room.combat.round.state = 'on';
+    r.room.combat.round.endsAt = 20000 + 100;
+    fly(r, 20000, 20300, away);
+    r.send('A', { type: 'combat', op: 'stop' }, 20400);
+    fly(r, 20401, 20400 + RESULTS_MS + 500, away);
+    check('the host\'s Stop during the results cancels the next round', texts(r.socks.B, 'combat').pop().state === 'idle');
+    const alone = started();
+    alone.room.combat.round.endsAt = 3000;
+    fly(alone, 1, 3100, away);
+    alone.room.close(alone.socks.B, 3200);
+    for (let t = 3233; t < 3000 + RESULTS_MS + 500; t += 33) {
+      alone.tick(t);
+    }
+    check('with fewer than two pilots left, play stops instead of a next round', alone.room.combat.round.state === 'idle');
   }
 
   console.log('combat: who can cut and be cut');

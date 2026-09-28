@@ -263,7 +263,7 @@ export class RoomCore {
    * the host to come back, even with nobody flying, and never in an empty
    * room, which the next arrival settles. */
   waiting() {
-    return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null);
+    return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting());
   }
 
   wake() {
