@@ -12,8 +12,8 @@
  * ?plane=bombshell the Buzzard Bombshell's, from standing on its wheels and
  * skid, ?plane=p51 and ?plane=p51-air the P-51's take off and its
  * retracts in the air, ?plane=kadet the Kadet Senior's, from standing on
- * its three wheels, and ?plane=edge the Edge 540's, from standing on its three
- * wheels; with no query it is the wing's, exactly as it always was.
+ * its three wheels, ?plane=edge the Edge 540's, from standing on its three
+ * wheels, and ?plane=zagi the Zagi's, thrown by hand; with no query it is the wing's, exactly as it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -35,7 +35,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, edgeGroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, edgeGroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, zagiPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -55,6 +55,7 @@ const PLANES = {
   edge: { rec: '/tests/inputs/edge-baseline.rec', prelude: (sim) => edgeGroundPrelude(sim) },
   p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },
   'p51-air': { rec: '/tests/inputs/p51-air.rec', prelude: p51AirPrelude },
+  zagi: { rec: '/tests/inputs/zagi-baseline.rec', prelude: (sim) => zagiPrelude(sim) },
 };
 
 async function fetchBytes(url) {

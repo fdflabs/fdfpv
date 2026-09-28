@@ -1449,3 +1449,68 @@ export function recordEdgeFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * The Zagi HP, docs/ZAGI-STAGE1.md: airframe 17, a flying wing with
+ * elevons and no rudder, thrown by hand and landed on its belly. Its
+ * throw is Zagi's "good strong throw", level at 1.4 times its trimmed
+ * stall, from over the thrower's head, the motor off as the manual says,
+ * 600 m to the side of the field's thermals, the ground raised as the
+ * shell raises it.
+ */
+export const ZAGI_AIRFRAME = 17;
+export const ZAGI_THROW = { speed: 10.3, height: 1.8 };
+export function zagiPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(ZAGI_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  must(sim.e.sim_set_pose(0, 600, ZAGI_THROW.height, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(ZAGI_THROW.speed), 'sim_wing_launch');
+}
+
+/* Wings level on the roll stick, and the nose held at a pitch on the
+ * elevons, gently: the Zagi answers a tenth of its stick. */
+export function zagiHold(s, { bank = 0, pitch = 0 } = {}) {
+  const a = attitude(s);
+  const roll = Math.max(-1, Math.min(1, -1.0 * (a.bank - bank) - 0.08 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 1.2 * (pitch - a.pitch) - 0.10 * -s[12]));
+  return [roll, pitchStick];
+}
+
+/*
+ * The Zagi's recording, for zagi-gates.js S18: the throw with the motor
+ * off, then full throttle climbing out, level at 60 percent, a full
+ * elevon roll to the right and level again, the throttle closed into a
+ * glide, full up held into the stall's mush, and the recovery.
+ */
+export function recordZagiFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  zagiPrelude(sim);
+  const samples = [];
+  for (let ms = 0; ms < 25000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    let sticks;
+    if (ms < 1000) {
+      sticks = [...zagiHold(s, { pitch: 0.03 }), 0, 0];
+    } else if (ms < 7000) {
+      sticks = [...zagiHold(s, { pitch: 0.35 }), 0, 1];
+    } else if (ms < 11000) {
+      sticks = [...zagiHold(s, { pitch: 0.02 }), 0, 0.6];
+    } else if (ms < 12200) {
+      sticks = [1, 0, 0, 0.6];
+    } else if (ms < 15000) {
+      sticks = [...zagiHold(s, { pitch: 0.02 }), 0, 0.6];
+    } else if (ms < 18000) {
+      sticks = [...zagiHold(s, { pitch: -0.05 }), 0, 0];
+    } else if (ms < 22000) {
+      sticks = [0, 1, 0, 0];
+    } else {
+      sticks = [...zagiHold(s, { pitch: -0.05 }), 0, 0.5];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
