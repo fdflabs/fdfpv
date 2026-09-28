@@ -894,9 +894,9 @@ void plant_wing_launch(SimState *s, double speed) {
  * far past the stall angle, 0 at it and 1 a stall_blend on, which is how
  * the caller brings this curve in.
  */
-static double stalled_lift(const FixedWingParams *fw, double k, double cl_s, double stall, double shift,
+static double stalled_lift(const FixedWingParams *fw, double k, double top, double cl_s, double stall, double shift,
                            double aa, double sin_a, double cos_a, double *fall, double *past) {
-  const double a0 = stall + fw->stall_top;
+  const double a0 = stall + top;
   const double a1 = a0 + 2.0 * fw->stall_blend;
   const double t = smoothstep(a0, a1, sim_fabs(aa));
   const double plate = 2.0 * sin_a * cos_a;
@@ -944,7 +944,7 @@ static double stalled_lift(const FixedWingParams *fw, double k, double cl_s, dou
  * is what it was.
  */
 static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, double cos_a, double da,
-                        double dr, double r, double cl_lin, double dcl_f, double stall, double k, double out[2]) {
+                        double dr, double r, double cl_lin, double dcl_f, double stall, double k, double top, double out[2]) {
   out[0] = 0.0;
   out[1] = 0.0;
   const double aa = add_term(alpha + (da + dr), dcl_f / fw->cl_alpha);
@@ -966,7 +966,7 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
    * nothing more. */
   const double lin = r * fw->cl_alpha * aa;
   const double hold = r * fw->cl_alpha * stall;
-  const double lift = stalled_lift(fw, k, hold, stall, dcl_f / fw->cl_alpha, aa, sp, cp, &fall, &past);
+  const double lift = stalled_lift(fw, k, top, hold, stall, dcl_f / fw->cl_alpha, aa, sp, cp, &fall, &past);
   const double blended = (1.0 - sigma) * lin + sigma * lift;
   /* The linear wing's roll damping acts on the roll about the flight path,
    * the roll rate's da and the yaw rate's dr together (plant_wing_step's
@@ -1231,7 +1231,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       const double c = (1.0 - si) * lin + si * 2.0 * sim_sin_small(ag) * sim_cos_small(ag);
       cl_s = c > cl_s ? c : cl_s;
     }
-    cl_st = stalled_lift(fw, k_stall, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
+    cl_st = stalled_lift(fw, k_stall, fw->stall_top, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
   }
   const double CL = add_term(cl_old, fre * past * (cl_st - cl_old));
   const double CD = (1.0 - sigma) * cd_lin + sigma * cd_flat;
@@ -1574,14 +1574,21 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       const double dr = (-w / V) * s->omega[2] * y / Vrate;
       const double st0 = kmin > 0.0 ? alpha_stall * (fw->strip_k[i] / rr[i]) / kmin : alpha_stall * rmax / rr[i];
       const double st = add_term(st0, fw->washout * (0.125 + 0.25 * i));
+      double fl[2], fr[2];
+      /* A section along the span stalls its own way: a thin one sharply
+       * at its peak and down to less, a thick one rounded over and down
+       * to more (strip_top, strip_kfall). The table's one section where
+       * they are not given. */
+      const int own = fw->strip_kfall[0] > 0.0 && !(g_slats && fw->slat_k > 0.0);
+      const double k_i = own ? fw->strip_kfall[i] : k_stall;
+      const double top_i = own ? fw->strip_top[i] : fw->stall_top;
       /* The aileron on this strip moves its zero lift angle, trailing edge
        * up less: the rising wing's down aileron takes it toward its stall
        * and the falling wing's up aileron away from it, against the roll
        * rate's own angle there (strip_tau, zero where there is none). */
       const double sa = fw->strip_tau[i] * delta_a;
-      double fl[2], fr[2];
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(-da, sa), dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall, fl);
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(da, -sa), -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall, fr);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(-da, sa), dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_i, top_i, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(da, -sa), -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_i, top_i, fr);
       const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
       const double lag = WING_DT / (tau + WING_DT);
       for (int j = 0; j < 2; j += 1) {
@@ -2873,6 +2880,12 @@ const FixedWingParams FW_P51D1450 = {
   .gear_time = 6.0,       /* FMS's six second P-51 sequencer, ESTIMATED as the gear's travel */
   .cd_gear = 0.008,
   .strip_k = { 1.0, 0.9548, 0.9055, 0.8503 }, /* Reynolds number and thickness along the span */
+  /* Each strip's stall by its thickness, 14.6, 13.7, 12.8 and 11.9
+   * percent: from the NACA 2415's rounded stall at 2e5 (15 percent) to the
+   * leading edge stall of McCullough and Gault's 63-012 (12 percent, NACA
+   * TN 2502: a sharp peak, and 0.57 of it kept), linear between. */
+  .strip_top = { 3.69 * WING_PI / 180.0, 2.40 * WING_PI / 180.0, 1.10 * WING_PI / 180.0, 0.0 },
+  .strip_kfall = { 0.737, 0.678, 0.620, 0.570 },
 };
 
 /* Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md, where each number
