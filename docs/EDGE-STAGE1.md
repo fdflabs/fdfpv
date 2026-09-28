@@ -149,8 +149,9 @@ hash to main's.
    elevator's share the wrong way, so a symmetric section held less on its
    back than upright. The walk now takes the side the wing is on; on the
    positive side it is the same arithmetic as before.
-4. **The table's size.** SIM_AIRFRAME_COUNT is 24: ids 14 to 23 are held
-   empty for the aircraft coming alongside this one. An empty slot is all
+4. **The table's size.** SIM_AIRFRAME_COUNT is 24 (the P-51's branch set
+   the same): ids 14 and 16 to 23 are held empty for the aircraft coming
+   alongside this one and the P-51 (15). An empty slot is all
    zeros, and mass 0 is what plant_airframe_exists reads as no airframe,
    so selecting one is refused exactly as an id past the end is. The two
    stab self tests that asked "one past the table" (13) now ask 24, and the
@@ -197,7 +198,7 @@ proportion about this aircraft's derived figure unless the row says.
 | E14b feet off the rudder, recorded | | none | 0.7 deg: the tailwheel and the fin hold it |
 | E15 taxi turn, full right rudder at a walk | 2.42 m | 1.9 to 3.2 | 2.44, turning right |
 | E16 a landing, a three point flare, the tail held down | | at rest at E12's attitude, no hull or prop | touched at 13.3 m/s, rolled 70 m, at rest at 9.83 deg |
-| E17 every other aircraft's recorded hash | main's | identical | identical, twelve recordings |
+| E17 every other aircraft's recorded hash | main's | identical | identical, fourteen recordings (the P-51's two since it merged) |
 | E18 Node and Chrome | | identical | 864269dd8336d243 both |
 
 `npm run edge:gates`: 26 of 26.
@@ -326,16 +327,16 @@ edge:shell reads "the blade voice, 2 wave periods a revolution".
 
 ## In the shell
 
-`edge1524`, simId 13, the eleventh plane behind the Free Flight card and
+`edge1524`, simId 13, one of the planes behind the Free Flight card and
 in the carousel, with Acro (the default), Stabilised and Manual rows, its
 FPV camera on the cowl, `gear` from the plant's settled pose, and the
 hangar's power (two packs), paint (two schemes), tuning (EF's high and low
 rates) and parts (the stock T16x8, APC's 16 x 8E and 16 x 10E). On the
-unlock curve it is **level 7**, after the Bramor: an unlimited aerobat at
-3D throws rolls past 600 deg/s and snaps when yanked, the least forgiving
-aircraft here. `npm run edge:shell` on swiss2 and the airfield: parked at
+unlock curve it is **level 8**, after the Bramor (6) and the P-51 (7): an
+unlimited aerobat at 3D throws rolls past 600 deg/s and snaps when
+yanked, the least forgiving aircraft here. `npm run edge:shell` on swiss2 and the airfield: parked at
 0.2510 m, off the strip, climbing, banking, chase camera, 13 aircraft
-listed.
+listed (before the P-51 merged).
 
 ## What is estimated, and what stays open
 

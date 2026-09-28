@@ -1287,6 +1287,65 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.4826, 0.0, -0.2032 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: FMS's 2,350 g, a
+ * 14 x 8 four blade 0.358 m ahead of the CG, its shaft 12.9 mm over it,
+ * FMS's 4S 2600. The hull is the contact code's centred box and only what
+ * a crash lands on: the belly scoop 0.129 m under the CG, which is what a
+ * landing with the gear up slides on, and the canopy 0.137 m over it, the
+ * half span wide, 0.36 m fore and aft of the CG, the scoop's own reach:
+ * any longer and its tail corner, 0.45 m back, touches the grass as the
+ * aircraft sits on three points at 13 deg. The camera is the pilot's, in the canopy, behind the
+ * long nose.
+ */
+[SIM_AIRFRAME_P51D1450] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 2.35,
+  .inertia = { 0.129, 0.163, 0.282 },
+  .gravity = 9.81,
+  .cells = 4.0,
+  .r_cell = 0.008,
+  /* FMS's 4S 2600, and the ESC's cutoff taken as the Timber's, 3.4 V a
+   * cell, ESTIMATED. */
+  .pack_c = 2600.0 * 3.6,
+  .lvc = 3.4,
+  .rho = 1.225,
+  .prop_r = 0.1778,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.3578, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.36,
+  .hull_hy = 0.725,
+  .hull_hz_down = 0.1293,
+  .hull_hz_up = 0.1365,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.9,
+  .vib_ref_w = 1000.0,
+  .camera_x = -0.0914,
+  .camera_y = 0.0,
+  .camera_z = 0.0864,
+  .fw = &FW_P51D1450,
+  /*
+   * The retracts, as the kit manual's side view and the full size's tread
+   * put them (scripts/p51-derive.js): the main axles 63 mm ahead of the CG
+   * and 0.205 m under it on a 0.463 m track with 88 mm wheels, the tail
+   * wheel's 0.564 m behind and 83 mm under with a 41 mm wheel. Each axle
+   * is lowered by its leg's static deflection, 8 mm on the mains and 6 on
+   * the tail, so under its own weight the plant settles on three points
+   * at 13.1 deg nose up, the CG 0.228 m over the grass, 18 percent of the
+   * weight on the tail. Stiffness for that deflection, damping at 0.6 of
+   * critical, the Cub's rule; the tail wheel steers with the rudder, one
+   * to one. All three fold away with the gear (retract); the prop's tip
+   * does not, so a landing with the gear up strikes it first.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.0633, 0.2317, -0.2131 }, .r = 0.0441, .k = 1177.0, .c = 44.62, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE, .retract = 1.0 },
+    { .pos = { 0.0633, -0.2317, -0.2131 }, .r = 0.0441, .k = 1177.0, .c = 44.62, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE, .retract = 1.0 },
+    { .pos = { -0.5639, 0.0, -0.0886 }, .r = 0.0204, .k = 704.0, .c = 21.88, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0, .slide = TYRE_SLIDE, .retract = 1.0 },
+    /* The prop's lowest tip, a skid, 0.1778 m under the shaft. */
+    { .pos = { 0.3578, 0.0, -0.1649 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*

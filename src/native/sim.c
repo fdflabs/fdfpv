@@ -1146,6 +1146,11 @@ static int ground_wheels(void) {
     if (CRASH.active && CRASH.wheel_lost[i]) {
       continue;
     }
+    /* A retracting wheel carries nothing unless the gear is down and
+     * locked: folding or folded away, it is inside the wing. */
+    if (wp->retract > 0.0 && !plant_wing_gear_down()) {
+      continue;
+    }
     double r[3];
     contact_rotate(wp->pos, r);
     r[0] -= wp->r * down[0];
@@ -2457,6 +2462,7 @@ SIM_EXPORT int sim_set_airframe(int id) {
   /* A canopy belongs to the aircraft that pulled it, and so do flaps. */
   plant_wing_chute(0);
   plant_wing_flaps_stow();
+  plant_wing_gear_reset();
   contact_build_corners();
   /* Only if the host has not raised its own plane. A shell that has already
    * called sim_set_ground owns that number and must not have it taken back. */
@@ -2786,6 +2792,34 @@ SIM_EXPORT int sim_wing_set_flaps(int notch) {
 
 SIM_EXPORT double sim_wing_flaps(void) {
   return plant_wing_flaps();
+}
+
+/*
+ * The retracts, on an aircraft that has them (docs/P51-STAGE1.md).
+ * sim_wing_set_gear(up): 1 selects the gear up, 0 down; the gear travels
+ * at the aircraft's own rate. SIM_ERR_BAD_ARG for 1 on an aircraft without
+ * retracts. sim_wing_gear: where it is, 0 down and locked to 1 up, for the
+ * renderer and the OSD. A reset and an airframe change put it down and
+ * locked. Additive, version unchanged.
+ */
+SIM_EXPORT int sim_wing_set_gear(int up) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (up != 0 && up != 1) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return plant_wing_set_gear(up) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
+}
+
+SIM_EXPORT double sim_wing_gear(void) {
+  return plant_wing_gear();
+}
+
+/* What the switch is on, 1 up and 0 down, whatever the gear's travel: a
+ * reset puts it down, so a host reads it rather than keeping a copy. */
+SIM_EXPORT int sim_wing_gear_selected(void) {
+  return plant_wing_gear_selected();
 }
 
 /* The flaps where the notch has them, at once, as sim_reset puts them: for
