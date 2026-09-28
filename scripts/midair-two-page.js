@@ -192,6 +192,13 @@ try {
     const breaks = log.filter((e) => e.type === 'break').map((e) => e.part);
     check(`${who}'s aircraft broke`, breaks.length > 0, `${breaks.join(', ')}; ${c.flagNames.join(' ')}${c.wrecked ? ', a wreck' : ''}`);
   }
+  /* Phase 2's shared wreck: each page draws the other's broken pieces,
+   * cut from its own drawing of the other's aircraft. */
+  for (const [p, who, other] of [[a, 'A', 'B'], [b, 'B', 'A']]) {
+    const w = (await p.evaluate('window.__rooms()')).peers[0].wreck;
+    check(`${who} draws ${other}'s wreck from ${other}'s crash event`, Array.isArray(w) && w.length > 0,
+      w ? w.map((x) => x.kind).join(', ') : 'none');
+  }
   const errs = [...a.errors, ...b.errors].filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

@@ -46,6 +46,15 @@ import {
 } from '../../src/share/roomwire.js';
 import { Referee } from './referee.js';
 import { RoomSafety } from './safety.js';
+import { TYPE_PARTS } from '../../src/share/roomwire.js';
+import * as wrecks from './wrecks.js';
+
+/* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
+ * ownership in fdfpv-loop/multiplayer/COORD.md). */
+const EVENTS = {
+  crash: wrecks.onCrash,
+  whack: wrecks.onWhack,
+};
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
@@ -142,7 +151,10 @@ export class RoomCore {
   }
 
   attachmentOf(s) {
-    return { seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address, muted: s.muted || [] };
+    return {
+      seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address,
+      muted: s.muted || [], wreck: s.wreck ?? null,
+    };
   }
 
   freeSeat(wanted) {
@@ -203,6 +215,13 @@ export class RoomCore {
       wanted = back.seat;
       joined = back.joined;
     }
+    /* A token this room does not know, from a client that had a seat: the
+     * object was restarted (a deploy, a tail attaching) and forgot it. The
+     * seat it names is a spawn slot and nothing more, so it is given back
+     * when free, and the pilot keeps their place on the field. */
+    if (!wanted && token && Number.isInteger(msg.seat)) {
+      wanted = msg.seat;
+    }
     if (!wanted && address) {
       if (!this.joins.has(address)) {
         this.joins.set(address, { since: now, n: 0 });
@@ -256,12 +275,16 @@ export class RoomCore {
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
+    actions.push(...wrecks.wrecksFor(this, conn));
     return actions;
   }
 
   message(conn, data, now, address = '', newToken = null) {
     const s = this.seats.get(conn);
     if (typeof data !== 'string') {
+      if (s && data[0] === TYPE_PARTS) {
+        return wrecks.onParts(this, conn, s, data, now);
+      }
       return s ? this.pose(conn, s, data, now) : [];
     }
     const rate = s ? s.textRate : this.pending.get(conn);
@@ -301,6 +324,9 @@ export class RoomCore {
         { attach: conn, value: this.attachmentOf(s) },
         ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
       ];
+    }
+    if (msg.type === 'event' && Object.hasOwn(EVENTS, msg.kind)) {
+      return EVENTS[msg.kind](this, conn, s, msg, now);
     }
     const safe = this.safety.text(conn, s, msg, now);
     if (safe) {
