@@ -67,6 +67,7 @@
     "tag:harness": "node scripts/tag-harness.js",
     "tag:twopage": "node scripts/tag-two-page.js",
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
+    "rooms:server": "node scripts/rooms-server-check.js",
     "marks:selftest": "node scripts/peermarks-selftest.js",
     "marks:twopage": "node scripts/peermarks-two-page.js",
     "friends:card": "node scripts/friends-card-check.js",
@@ -170,5 +171,8 @@
     "trackmode:check": "node scripts/track-mode-check.js",
     "progress:selftest": "node scripts/progress-selftest.js",
     "progress:check": "node scripts/progress-check.js"
+  },
+  "dependencies": {
+    "ws": "8.21.3"
   }
 }

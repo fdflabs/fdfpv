@@ -18,7 +18,7 @@
  * has no use for one, so it is never sent (section 2 of the plan).
  *
  * WHICH SERVER. A ?rooms= query (remembered here, `?rooms=off` forgets
- * it), else the production Worker when this page is the deployed site. A
+ * it), else the production server when this page is the deployed site. A
  * page served off a loopback address talks to no rooms server unless told
  * to, because the browser checks run there.
  *
@@ -43,7 +43,10 @@ import {
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
 
-export const PRODUCTION_ROOMS_ORIGIN = 'https://fdfpv-rooms.fdfretes.workers.dev';
+/* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md).
+ * The Worker it replaced, https://fdfpv-rooms.fdfretes.workers.dev, is
+ * still deployed, and putting that address back here is the way back. */
+export const PRODUCTION_ROOMS_ORIGIN = 'https://129.151.39.48';
 const DEPLOYED_HOSTS = ['fdflabs.github.io'];
 const ORIGIN_KEY = 'fdfpv.rooms';
 const ROOM_KEY = 'fdfpv.room';

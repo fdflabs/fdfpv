@@ -32,7 +32,7 @@
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. What must survive a hibernation
  * (the track and the race) is handed back as a { store } action and
- * restored from storage by edge/rooms/do.js; readiness is not kept, since
+ * restored from storage by edge/rooms/host.js; readiness is not kept, since
  * a room that slept had nobody in it racing.
  *
  * This file is part of WebFPVSimulator.
