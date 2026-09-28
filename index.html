@@ -1356,10 +1356,19 @@
         line-height: 1.1;
       }
       .gate-card.on .gate-card-name { color: var(--sakura); }
+      /* Five lines at most. Three cards share the width, and Free Flight's
+         sentence is a list of every plane: at 1280 by 720 it ran to
+         thirteen lines and put its own tags under the command bar. The
+         name and the tags are the answer; the sentence is its gloss. */
       .gate-card-blurb {
         margin: 0;
         color: rgba(235, 230, 215, 0.74);
         font-size: 13.5px; line-height: 1.55; letter-spacing: 0.01em;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 5;
+        line-clamp: 5;
+        overflow: hidden;
       }
       /* What each mode actually gives you, in three words each. Mint is the
          colour this product paints a record in, so it is Race's; Freestyle's
@@ -2926,7 +2935,14 @@
           padding: 10px 13px 11px;
           justify-content: center;
         }
-        .gate-card-blurb { font-size: 12.5px; line-height: 1.5; }
+        /* Three lines here. Free Flight's sentence ran to twenty in this
+           column, which put its tags and every card under it below the
+           window of an upright phone, and this screen does not scroll. */
+        .gate-card-blurb {
+          font-size: 12.5px; line-height: 1.5;
+          -webkit-line-clamp: 3;
+          line-clamp: 3;
+        }
         /* The art is a third of the card's width here, so the mark comes
            down with it. Same box on all three, as ever. */
         .gate-card-mark { width: 42px; height: 42px; left: 7px; bottom: 6px; }

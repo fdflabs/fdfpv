@@ -1861,10 +1861,12 @@ export async function boot({
       roomSafety.welcomed();
       /* A room flies in one world. In free flight the pilot is seated
        * there; on a track they keep their track and see whoever is in its
-       * world. */
-      if (w.map && view && w.map !== view.id && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+       * world. Against the SEAT, not the world drawn: a pilot who chose
+       * another world a moment ago is still looking at the old one while
+       * the new one builds, and comparing with that seated nothing. */
+      if (w.map && w.map !== ui.settings.map && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
         roomNote = str('friends.other_world', { world: mapById(w.map).name });
-        ui.seatMap(w.map);
+        ui.seatMap(w.map, { stay: true });
       }
       ui.refreshFriends();
     },
@@ -2171,6 +2173,7 @@ export async function boot({
       return {
         value: st.publicMap ? str('friends.row_in_public', { n: roomPeers.size + 1 }) : str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }),
         note: str('friends.row_in_note'),
+        inRoom: true,
       };
     }
     if (st.phase === 'connecting') {

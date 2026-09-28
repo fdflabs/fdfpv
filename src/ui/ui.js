@@ -2709,21 +2709,36 @@ function linkedMode() {
  * fuselage and a tailplane, in the quads' fills and strokes. One card
  * covers every fixed wing, so it is not either plane's outline.
  */
+const PLANE_PARTS = [
+  /* Fuselage, nose up. */
+  '<rect x="138" y="38" width="24" height="222" rx="12" fill="currentColor" fill-opacity="0.55"'
+    + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9"/>',
+  /* Wing, a little taper to the tips. */
+  '<path d="M 22 128 L 278 128 L 270 166 L 30 166 Z" fill="currentColor" fill-opacity="0.38"'
+    + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
+  /* Tailplane. */
+  '<path d="M 96 226 L 204 226 L 198 250 L 102 250 Z" fill="currentColor" fill-opacity="0.38"'
+    + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
+].join('');
+
 function planeSvg() {
-  const parts = [
-    /* Fuselage, nose up. */
-    '<rect x="138" y="38" width="24" height="222" rx="12" fill="currentColor" fill-opacity="0.55"'
-      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9"/>',
-    /* Wing, a little taper to the tips. */
-    '<path d="M 22 128 L 278 128 L 270 166 L 30 166 Z" fill="currentColor" fill-opacity="0.38"'
-      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
-    /* Tailplane. */
-    '<path d="M 96 226 L 204 226 L 198 250 L 102 250 Z" fill="currentColor" fill-opacity="0.38"'
-      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
-  ];
   return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
     + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
-    + parts.join('') + '</svg>';
+    + PLANE_PARTS + '</svg>';
+}
+
+/*
+ * Two of the plane symbol in echelon, for the Fly with friends card: the
+ * same symbol, so it reads as the same kind of mark as its neighbours, and
+ * two of them because company is what that card offers. Not to any scale,
+ * for the reason planeSvg gives.
+ */
+function pairSvg() {
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + `<g transform="translate(4 20) scale(0.56)">${PLANE_PARTS}</g>`
+    + `<g transform="translate(128 112) scale(0.56)">${PLANE_PARTS}</g>`
+    + '</svg>';
 }
 
 /*
@@ -2891,6 +2906,30 @@ const WAYS = [
     art: 'assets/gate/flight.jpg',
     blurb: str('ui.the_fixed_wings'),
     facts: [str('ui.every_plane'), str('ui.the_swiss_valley')],
+  },
+  {
+    /* FLY WITH FRIENDS, the owner's third card (2026-09-28). Free flight
+     * in a private room: the same mode and home as the card before it, and
+     * every aircraft free flight takes, the five inch as well as the
+     * planes. `room` is what makes it a different way in: it opens the
+     * room screen (#128, src/main.js friendsRows) instead of the aircraft
+     * picker, and the aircraft and the world are chosen there, after the
+     * room. Public rooms (Phase 5) are a row on that screen, not a card.
+     *
+     * LAST, because pickForWay's "the card that takes it" and seatedWay's
+     * "the card of its kind" are first match reads of this table and
+     * neither is meant to land here. On the gate only where there is a
+     * rooms server (friendsItems), the same rule as the menu row. */
+    id: 'friends',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'swiss2',
+    room: true,
+    label: str('friends.title'),
+    art: 'assets/gate/friends.jpg',
+    svg: pairSvg(),
+    blurb: str('friends.card_blurb'),
+    facts: [str('friends.card_public'), str('friends.card_code'), str('friends.card_craft')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
@@ -4212,10 +4251,61 @@ export class Ui {
     return [{ label: str('friends.title'), value: row.value, note: row.note, action: 'friends' }];
   }
 
+  /*
+   * The aircraft and the world, on the room screen between runs. The
+   * aircraft is the Quad room's own row. The world is a choice until there
+   * is a room and a fact after: a room is made in one world and flies
+   * there (src/main.js seats it on welcome), so changing it inside one
+   * would only put this pilot somewhere nobody else is.
+   */
+  roomSeatRows(inRoom) {
+    const s = this.settings;
+    const world = seatedFreestyleMap(s);
+    const worlds = MAPS.filter((x) => x.mode === 'freestyle').map((x) => x.id);
+    const worldRow = inRoom
+      ? { label: str('ui.the_world'), value: world ? world.name : '', note: str('friends.world_fixed'), info: true }
+      : {
+        ...choice(
+          str('ui.the_world'),
+          str('friends.world_note'),
+          worlds,
+          world ? world.id : worlds[0],
+          (id) => mapById(id).name,
+          /* The two fields seatMap writes, without its landing: this row
+           * is on the screen the pilot is staying on, and pick() and
+           * adjust() save and hand the shell the settings after it. */
+          (id) => {
+            s.freestyleMap = id;
+            s.map = id;
+          },
+        ),
+        pickOnly: true,
+      };
+    return [
+      { ...craftItem(s, null), open: () => this.openCraftRow(false) },
+      worldRow,
+    ];
+  }
+
   /* The shell's room changed: redraw a screen that shows it. */
   refreshFriends() {
+    const row = this.friendsRow ? this.friendsRow() : null;
+    const inRoom = Boolean(row && row.inRoom);
+    const entered = inRoom && !this.friendsInRoom;
+    this.friendsInRoom = inRoom;
     if (this.screen === 'title' || this.screen === 'paused' || this.screen === 'friends') {
       this.renderMenu();
+    }
+    /* The row the cursor was on, Make a room or Join, is gone the moment
+     * the room opens, so the cursor goes to Fly, the screen's primary
+     * between runs: card, Make a room, Fly is three presses of Enter. The
+     * remembered row goes too, so the next visit opens on Fly as well
+     * (restoreCursor). */
+    if (entered) {
+      delete this.cursorMemory.friends;
+    }
+    if (entered && this.screen === 'friends') {
+      this.setCursor(this.restoreCursor());
     }
   }
 
@@ -5534,12 +5624,13 @@ export class Ui {
        * says which of the three it belongs to.
        */
       if (this.onGate()) {
+        const rooms = this.friendsItems().length > 0;
         return [
-          ...WAYS.map((w) => ({
+          ...WAYS.filter((w) => rooms || !w.room).map((w) => ({
             label: w.label,
             card: w.id,
             art: w.art,
-            svg: craftSvg(airframeById(w.airframes[0])),
+            svg: w.svg ?? craftSvg(airframeById(w.airframes[0])),
             blurb: w.blurb,
             facts: w.facts,
             action: w.action,
@@ -5753,7 +5844,25 @@ export class Ui {
       return [{ label: str('ui.back'), action: 'back' }];
     }
     if (this.screen === 'friends') {
-      return [...(this.friendsRows ? this.friendsRows() : []), { label: str('ui.back'), action: 'back' }];
+      /*
+       * BETWEEN RUNS THE ROOM SCREEN IS ALSO THE WAY INTO THE AIR: Fly on
+       * top once there is a room, the title's own Fly (act('fly'), so Track
+       * mode gets its launch card), because the owner sat in a joined room
+       * and found no way to start flying from it. In free flight, which is
+       * where the card lands, the aircraft and the world go under the
+       * room's own rows too. From a paused run the pause menu has all of
+       * it, Resume first.
+       */
+      const between = this.returnTo !== 'paused';
+      const seat = between && this.mode === 'freestyle';
+      const row = this.friendsRow ? this.friendsRow() : null;
+      const inRoom = Boolean(row && row.inRoom);
+      return [
+        ...(between && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: true, note: str('friends.fly_note') }] : []),
+        ...(this.friendsRows ? this.friendsRows() : []),
+        ...(seat ? this.roomSeatRows(inRoom) : []),
+        { label: str('ui.back'), action: 'back' },
+      ];
     }
     if (this.screen === 'credits') {
       return [{ label: str('ui.back'), action: 'back' }];
@@ -11907,8 +12016,13 @@ export class Ui {
    * swaps the world, and lands the pilot back where the choice was made
    * from. The gate and both pickers go through here so none of them can
    * leave the seat and the row that names it disagreeing.
+   *
+   * `stay` keeps the pilot on the screen they are on, for a seat nobody
+   * chose on this screen: a room that flies in another world seats it on
+   * welcome (src/main.js), which used to throw a pilot who had just typed
+   * a code on the room screen out to the title.
    */
-  seatMap(id) {
+  seatMap(id, { stay = false } = {}) {
     const m = MAPS.find((x) => x.id === id);
     if (m && m.mode === 'freestyle') {
       /* So the Map row names the place you were last in rather than the
@@ -11918,7 +12032,9 @@ export class Ui {
     }
     this.settings.map = id;
     saveSettings(this.settings);
-    this.show(this.returnTo === 'paused' ? 'paused' : 'title');
+    if (!stay) {
+      this.show(this.returnTo === 'paused' ? 'paused' : 'title');
+    }
     if (this.onSettings) {
       this.onSettings(this.settings);
     }
@@ -12373,6 +12489,9 @@ export class Ui {
          * reason as below: the fourth card is not the menu's fourth row. */
         this.setCursor(this.titleStop());
         this.seatMap(want.id);
+        if (way.room) {
+          this.show('friends');
+        }
         return;
       }
       /*
@@ -12386,6 +12505,9 @@ export class Ui {
        */
       this.setCursor(this.titleStop());
       this.renderMenu();
+      if (way.room) {
+        this.show('friends');
+      }
       return;
     }
     /*
@@ -12773,6 +12895,12 @@ export class Ui {
   pickForWay(action) {
     const way = WAYS.find((w) => w.action === action);
     if (!way) {
+      return;
+    }
+    /* A room's aircraft is chosen in the room, once it is known who is
+     * flying what: the card goes straight to the room screen. */
+    if (way.room) {
+      this.act(action);
       return;
     }
     const s = this.settings;
