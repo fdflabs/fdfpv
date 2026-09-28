@@ -59,6 +59,8 @@
     "rooms:wrecks": "node scripts/rooms-wrecks-two-page.js",
     "rooms:restart": "node scripts/rooms-restart-check.js",
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
+    "marks:selftest": "node scripts/peermarks-selftest.js",
+    "marks:twopage": "node scripts/peermarks-two-page.js",
     "friends:card": "node scripts/friends-card-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",
     "waves:selftest": "node scripts/waves-selftest.js",

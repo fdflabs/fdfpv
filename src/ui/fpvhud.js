@@ -800,6 +800,17 @@ export class FpvOsd {
     };
   }
 
+  /* Each readout placed on the last tick, as CSS pixels on the screen,
+   * handed to fn(x, y, w, h): what the peer marks (src/ui/peermarks.js)
+   * slide their arrows off. */
+  readoutRects(fn) {
+    const T = this.t;
+    const s = this.s;
+    for (const b of this.placed) {
+      fn((T.ox + b.col * T.cw) / s, (T.oy + b.row * T.ch) / s, (b.cols * T.cw) / s, (b.rows * T.ch) / s);
+    }
+  }
+
   resetRun() {
     this.lastSimT = null;
     this.lastWall = null;
