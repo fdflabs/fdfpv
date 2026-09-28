@@ -2,7 +2,7 @@
  * bombshell-shell.js: the Buzzard Bombshell in the real shell, headless,
  * from the gate: the Free Flight card (the fixed wings') pressed, the Bombshell picked on the
  * machine screen, and flown from where the shell seats it, on swiss2 (the
- * Free Flight card's home) and then on the airfield. Seated with Acro and its own module, parked on its
+ * Free Flight card's home) and then on the Alps. Seated with Acro and its own module, parked on its
  * wheels and skid at the plant's rest, it takes off on full throttle with
  * the sticks centred, climbs, answers full roll stick on its rudder, and
  * the C key puts the chase camera on it.
@@ -40,7 +40,7 @@ import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const AF = process.argv[2] ?? 'bombshell1118';
-const MAPS = (process.argv[3] ?? 'swiss2,airfield').split(',');
+const MAPS = (process.argv[3] ?? 'swiss2,alps').split(',');
 const af = airframeById(AF);
 
 /*

@@ -4,16 +4,14 @@
  * It is its own file for one reason: src/boot.js needs the number BEFORE it
  * imports anything else, so the loading screen's stage weights are right from
  * the first frame, and importing src/maps/registry.js there would be fine
- * today and a trap tomorrow. The registry's whole job is to hold the two
+ * today and a trap tomorrow. The registry's whole job is to hold the
  * loader thunks, and the day somebody turns one of those dynamic imports into
- * a static one the city's 59 file graph would arrive at boot for every
- * player, which is exactly what deliverable 4 forbids. A file with two
- * numbers in it cannot do that.
+ * a static one a whole world's graph would arrive at boot for every player,
+ * which is exactly what deliverable 4 forbids. A file of numbers cannot do
+ * that.
  *
- * Measured on this container at 1280 by 720 across three runs. The city's
- * world build was 7554, 7646 and 8782 ms. These are weights for a progress
- * bar, so the spread does not matter much, but replace them with a
- * re-measurement rather than a guess.
+ * These are weights for a progress bar, so the spread does not matter much,
+ * but replace them with a re-measurement rather than a guess.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -32,11 +30,6 @@
  */
 
 export const MAP_BUILD_MS = {
-  city: 7994,
-  /* A flat field with a dozen meshes in it. The world stage as the shell's
-   * own loading ledger reports it, through shots.js on this container at
-   * 1600 by 900 on Low, two runs: 709 and 717 ms. */
-  airfield: 713,
   /* A six kilometre heightfield, its painted texture, the range beyond,
    * a baked village of forty buildings with their windows, balconies and
    * fences, the forests, the lake and the fall, and what moves: the

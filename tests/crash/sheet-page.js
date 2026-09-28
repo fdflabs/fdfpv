@@ -39,7 +39,7 @@ import { waterFor } from '../../src/game/water.js';
 import { simPosToThree, simQuatToThree } from '../../src/render/frame.js';
 
 const params = new URLSearchParams(window.location.search);
-const mapId = params.get('map') ?? 'airfield';
+const mapId = params.get('map') ?? 'alps';
 const airframe = params.get('craft') ?? '5inch';
 const onWater = params.get('water') === '1';
 

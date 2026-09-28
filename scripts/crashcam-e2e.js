@@ -1,7 +1,7 @@
 /*
  * crashcam-e2e.js: the crash cam on the real page, end to end.
  *
- * In headless Chromium, on the airfield with crash damage on, a Skyhunter:
+ * In headless Chromium, on the Swiss valley with crash damage on, a Skyhunter:
  *
  *  0. The recorder changes nothing: the same hands off crash is thrown
  *     twice with the recorder and journal on and once with them off, and
@@ -72,7 +72,7 @@ function seed() {
   const settings = {
     ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, AIRFRAME),
     airframeAsked: true,
-    map: 'airfield',
+    map: 'swiss2',
     graphics: 'low',
     graphicsAuto: false,
     crashDamage: true,
@@ -157,7 +157,7 @@ function parts(a, b) {
 
 async function main() {
   console.log('crash cam, end to end, on the real page');
-  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=airfield', seed: seed() });
+  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=swiss2', seed: seed() });
   try {
     await ready(page);
     /* A key press is the pilot's gesture that starts the sound. */

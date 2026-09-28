@@ -94,7 +94,7 @@ const SCENARIOS = [
     id: 'quad-wall',
     what: 'a five inch into the face of a wall at 25 m/s: an arm breaks',
     airframe: '5inch',
-    map: 'city',
+    map: 'alps',
     throw: `
       const s = window.__craftState();
       /* A wall standing on the ground with open air in front of its +z face
@@ -128,7 +128,7 @@ const SCENARIOS = [
     id: 'plane-nose-in',
     what: 'a Cub nosing into the grass at 22 m/s, 50 degrees down: the prop goes',
     airframe: 'cub1400',
-    map: 'airfield',
+    map: 'alps',
     throw: `
       const s = window.__craftState();
       const x = s.worldX + 30, z = s.worldZ - 10, y = window.__heightAt(x, z) + 5;
@@ -142,7 +142,7 @@ const SCENARIOS = [
     id: 'plane-cartwheel',
     what: 'a Skyhunter banked 75 degrees, low and sinking at 18 m/s: the wingtip catches',
     airframe: 'sky1800',
-    map: 'airfield',
+    map: 'alps',
     throw: `
       const s = window.__craftState();
       const x = s.worldX + 30, z = s.worldZ + 10, y = window.__heightAt(x, z) + 1.9;

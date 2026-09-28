@@ -53,7 +53,7 @@
  *      and never on a tyre, the pod or the tape.
  * And no console error or uncaught exception anywhere.
  *
- *   node scripts/hangar-check.js [map]     airfield by default
+ *   node scripts/hangar-check.js [map]     alps by default
  *
  * This file is part of WebFPVSimulator.
  *
@@ -84,7 +84,7 @@ import { SIM_ADDON, addonParams } from '../configs/hangar-parts.js';
 import { PROP_ESTIMATES } from '../configs/prop-estimates.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const map = process.argv[2] || 'airfield';
+const map = process.argv[2] || 'alps';
 
 let failed = 0;
 let passed = 0;

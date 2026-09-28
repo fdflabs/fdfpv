@@ -45,14 +45,13 @@ import { contactMaterial, KINDS } from './collide.js';
  * THE GROUND BY MAP, where the map does not answer for itself. Grass is
  * the plant's default ground to the bit (mu 1.40, e 0, the shell's
  * GROUND_MU and GROUND_E), so the field, the custom courses and the
- * Swiss valley's meadows change nothing a pilot already flies. The city is
- * streets; Yellowstone's geyser basin is bare earth. A room for the whoop
+ * Swiss valley's meadows change nothing a pilot already flies.
+ * Yellowstone's geyser basin is bare earth. A room for the whoop
  * keeps today's contact: its floor is not grass, but choosing what it is
  * changes the whoop's bounce, which the crash suite measures, so it waits
  * for the loop.
  */
 const MAP_GROUND = {
-  city: 'asphalt',
   yellowstone: 'dirt',
 };
 
@@ -78,7 +77,7 @@ export function groundSurface(view, x, z, normalY, wet, y) {
     }
   }
   const byMap = view ? MAP_GROUND[view.id] : null;
-  if (normalY < ROCK_NORMAL_Y && view && view.id !== 'city') {
+  if (normalY < ROCK_NORMAL_Y && view) {
     return SURFACE.rock;
   }
   return SURFACE[byMap ?? 'grass'];

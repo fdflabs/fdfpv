@@ -1,8 +1,8 @@
 /*
  * shell.js: everything that outlives a map.
  *
- * There are two kinds of map: tracks, and the freestyle city.
- * They are built by different code with different render pipelines. What they share is
+ * Every map is a world built by its own module with its own post chain: the
+ * Alps, the Swiss valley and Yellowstone. What they share is
  * a renderer, a canvas, a camera and an airframe, and none of those may be
  * rebuilt when the player changes map: a WebGL context is expensive, the
  * camera's layer mask is a contract the post chains read, and re-creating the

@@ -55,7 +55,7 @@ function seed(airframe) {
   const settings = {
     ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
     airframeAsked: true,
-    map: 'airfield',
+    map: 'swiss2',
     graphics: 'low',
     graphicsAuto: false,
     crashDamage: true,
@@ -110,7 +110,7 @@ async function hold(page, stick, ms) {
 }
 
 async function open(airframe) {
-  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=airfield', seed: seed(airframe) });
+  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=swiss2', seed: seed(airframe) });
   await page.until('window.__shellReady && window.__map && window.__map().ready', 120000);
   await page.sleep(1000);
   return page;

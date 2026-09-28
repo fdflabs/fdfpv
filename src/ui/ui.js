@@ -42,6 +42,7 @@
  */
 
 import { MAPS, mapById } from '../maps/registry.js';
+import { retiredMap } from '../maps/retired.js';
 import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
 import { planesFor } from '../game/verify.js';
@@ -489,8 +490,8 @@ function byLine(t) {
 
 const DEFAULTS = {
   /* Which world. 'track' is Track mode's seat, a track built in the Alps
-   * or the Swiss valley flown in the world it names, and 'city' is the
-   * freestyle town. It is a string so loadSettings' typeof gate accepts it,
+   * or the Swiss valley flown in the world it names, and any other id is a
+   * freestyle world. It is a string so loadSettings' typeof gate accepts it,
    * and an unknown value falls back to the Track seat in
    * src/maps/registry.js rather than throwing, because a stale localStorage
    * entry must not be able to stop the page booting. */
@@ -1128,10 +1129,23 @@ export function loadSettings() {
    * lands on the tune it was chosen against. One shot: see seedAirframePids.
    */
   seedAirframePids(s, s.airframe);
+  /*
+   * A RETIRED WORLD MOVES TO THE ONE THAT REPLACED IT, in both slots. The
+   * freestyle town and the airfield went on 2026-09-28, and a pilot whose
+   * seat was one of them was freestyling: dropping them into the Track seat
+   * by the unknown id rule below would change what they fly, not only
+   * where. src/maps/retired.js says where each went.
+   */
+  if (retiredMap(s.map)) {
+    s.map = retiredMap(s.map).to;
+  }
+  if (retiredMap(s.freestyleMap)) {
+    s.freestyleMap = retiredMap(s.freestyleMap).to;
+  }
   /* The race field and its track world are gone. A stored 'field' or
    * 'custom', a whoop's RaceGOW room among them, or an id no map has, is the
    * Track seat: My tracks, and the Swiss valley behind it until a track is
-   * chosen. City is left alone. */
+   * chosen. */
   if (!MAPS.some((m) => m.id === s.map)) {
     s.map = 'track';
   }
@@ -1626,7 +1640,7 @@ function wordmark() {
 
 /*
  * First-time thumbnail wait. Recording a clip takes several seconds
- * (the city, longer). A blank card looks like a stall. Same copy as the
+ * (a valley, longer). A blank card looks like a stall. Same copy as the
  * boot screen: "loading" and a joke. Cached visits never see it.
  */
 
@@ -2811,7 +2825,7 @@ const WAYS = [
   {
     /* EVERY FIXED WING, ONE CARD. A card is a kind of flying, not a
      * machine: every one of them is launched, flown long and brought home
-     * on the airfield, so they share a way in and the Plane row picks
+     * on a strip, so they share a way in and the Plane row picks
      * between them. The first, the Bramor, which took the 1000 mm flying
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
@@ -2821,7 +2835,7 @@ const WAYS = [
     /* The card's own world. A card with a home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
      * strip for the wheels, a lake for the floats and room for the rest. The
-     * Map row still seats the airfield or any other world. */
+     * Map row still seats any other world. */
     home: 'swiss2',
     label: str('ui.free_flight_card'),
     art: 'assets/gate/flight.jpg',
@@ -3551,7 +3565,7 @@ export class Ui {
      * behind the door has to describe the door that is actually open: the
      * town and the quad, with the scoring named as a switch rather than as
      * the point. See DEFAULTS.freestyleScoring. */
-    freestyle.append(el('p', 'rates-lede', str('ui.a_whole_town_and_no_gates')));
+    freestyle.append(el('p', 'rates-lede', str('ui.a_whole_valley_and_no_gates')));
     this.freestyleCards = el('div', 'map-cards');
     const freestyleBlock = wrapMenu();
     this.freestyleMenu = freestyleBlock.menu;
@@ -5481,7 +5495,7 @@ export class Ui {
            */
           note: world
             ? str('ui.your_quad_and_the_physics_model', { note: world.note })
-            : str('ui.one_town_no_gates_open_it'),
+            : str('ui.no_gates_pick_a_valley'),
         }
         : {
           label: str('ui.track'),
@@ -10501,8 +10515,8 @@ export class Ui {
     screen.classList.add('is-in');
 
     this.resultsKicker.textContent = summary.timed === false
-      ? str('ui.freestyle_city_free_flight')
-      : str('ui.freestyle_city');
+      ? str('ui.freestyle_results_free_flight')
+      : str('ui.freestyle_results');
     this.resultsHead.textContent = summary.tricks
       ? (clean ? str('ui.clean_run') : str('ui.run_complete'))
       : str('ui.run_ended');

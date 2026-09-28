@@ -23,11 +23,12 @@
  * lake (afloat, and a wheeled plane and a quad over the water), on swiss2 a
  * built track whose lap a mid lap swap voids, which every quad keeps, whose
  * gates a plane that does not fit loses and one that fits gets back, and on
- * the airfield the picker itself: the front page card, and in flight Tab,
- * the wheel, the arrows and a drag, choosing with Enter, and what it costs a
- * frame. The picker's part ran on the race field until the field went.
+ * a page of its own on the Alps the picker itself: the front page card, and
+ * in flight Tab, the wheel, the arrows and a drag, choosing with Enter, and
+ * what it costs a frame. The picker's part ran on the race field, then the
+ * airfield, until each was retired.
  *
- *   node scripts/hotswap-check.js [city|airfield|alps|swiss2|yellowstone ...]
+ *   node scripts/hotswap-check.js [alps|swiss2|yellowstone ...]
  *
  * Every map by default. Slow on a software rasteriser: a map build and two
  * dozen swaps each.
@@ -59,7 +60,7 @@ import { tunesFor } from '../configs/registry.js';
 import { powerCells, powerChoice, powerParams } from '../configs/power.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const ALL_MAPS = ['city', 'airfield', 'alps', 'swiss2', 'yellowstone'];
+const ALL_MAPS = ['alps', 'swiss2', 'yellowstone'];
 const maps = process.argv.slice(2).length ? process.argv.slice(2) : ALL_MAPS;
 /* How far the new aircraft may stand from the old one's spot, metres, and
  * turn from its heading, radians: numerical, the swap copies both. */
@@ -527,9 +528,6 @@ async function runMap(map) {
   const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: seed(craft, map) });
   try {
     await page.until('!!window.__shellReady', 300000);
-    if (map === 'airfield') {
-      await pickerOnTheGate(page);
-    }
     await flyNow(page);
     const m = await page.evaluate('window.__map()');
     say(m.id === map, `flying ${m.id}`);
@@ -558,9 +556,6 @@ async function runMap(map) {
     const missing = AIRFRAMES.map((a) => a.id).filter((id) => flying[id] !== 'air' || !(parked[id] === 'ground' || parked[id] === 'air-forced'));
     say(missing.length === 0, `every aircraft swapped in parked and in the air${missing.length ? `: not ${missing.join(', ')} ${JSON.stringify({ parked, flying })}` : ''}`);
     await page.evaluate('window.__stick(); window.__drawOff(false); true');
-    if (map === 'airfield') {
-      await pickerInFlight(page);
-    }
     if (map === 'swiss2') {
       await mapTrack(page);
     }
@@ -577,8 +572,36 @@ async function runMap(map) {
   }
 }
 
+/*
+ * The picker, on a page of its own: the front page card, a flight, and the
+ * picker over it. It ran inside the airfield's pass until the airfield was
+ * retired; it has a page of its own now because the Swiss valley's pass
+ * ends on a map track whose seat the front page's answer would change, and
+ * the Alps' pass starts afloat. The Alps, the light world, on the five
+ * inch, as the airfield's pass was.
+ */
+async function runPicker(map) {
+  console.log(`\nthe picker, on ${map}`);
+  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: seed('5inch', map) });
+  try {
+    await page.until('!!window.__shellReady', 300000);
+    await pickerOnTheGate(page);
+    await flyNow(page);
+    await pickerInFlight(page);
+    const bad = faults(page);
+    say(bad.length === 0, `no console error or uncaught exception${bad.length ? `: ${bad.slice(0, 4).join(' | ')}` : ''}`);
+  } catch (e) {
+    say(false, `the picker on ${map}: ${e.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
 for (const map of maps) {
   await runMap(map);
+}
+if (maps.includes('alps')) {
+  await runPicker('alps');
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
