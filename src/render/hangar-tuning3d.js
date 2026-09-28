@@ -7,10 +7,11 @@
  * undressTuning after, so the picker, which draws the same models, never
  * sees any of it.
  *
- *   BALANCE  a CG mark, the black and yellow quartered roundel, floating
- *            over the plane at its CG with a plumb line down to a gauge on
- *            the floor: the CG's reach nose to tail, the maker's range lit
- *            green, the kit's mark, and the CG now, red past the range.
+ *   BALANCE  a CG mark, the black and yellow quartered roundel, riding a
+ *            rail over the plane at its CG, with a plumb line to the
+ *            floor: the rail is the CG's reach nose to tail at true
+ *            scale, the maker's range lit green, the kit's mark a tick,
+ *            and the plumb line turns red past the range.
  *   RATES    the surfaces sweeping through the throws and the expo on
  *            show, and the Timber's flaps where the run starts them.
  *   STAND    the prop turning at the bench's rpm, its disc drawn as in
@@ -126,28 +127,27 @@ function rigFor(craft) {
   g.visible = false;
 
   const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: roundel(), depthTest: false, fog: false, transparent: true }));
-  const markSize = 0.075 * len;
+  const markSize = 0.042 * len;
   mark.scale.set(markSize, markSize, 1);
   mark.renderOrder = 10;
   const top = box.max.y + 0.09 * len;
-  const plumbGeo = new THREE.BoxGeometry(1, 1, 1);
-  const plumb = new THREE.Mesh(plumbGeo, flat(AMBER, 0.85));
-  const floorY = box.min.y + 0.004 * len;
+  const bar = new THREE.BoxGeometry(1, 1, 1);
+  const plumb = new THREE.Mesh(bar, flat(AMBER, 0.85));
+  const floorY = box.min.y;
 
-  const ruler = new THREE.Group();
-  ruler.position.y = floorY;
-  const plane = new THREE.PlaneGeometry(1, 1);
-  plane.rotateX(-Math.PI / 2);
-  const width = 0.05 * len;
-  const base = new THREE.Mesh(plane, flat(0x0a0e0b, 0.7));
-  const band = new THREE.Mesh(plane, flat(MINT, 0.45));
-  const kit = new THREE.Mesh(plane, flat(CREAM, 0.9));
-  const now = new THREE.Mesh(plane, flat(AMBER, 1));
-  now.rotation.y = Math.PI / 4;
-  ruler.add(base, band, kit, now);
-  g.add(mark, plumb, ruler);
+  /* The rail the mark rides, over the plane at true scale: the CG's reach
+   * with the battery and the lead, the maker's range green on it, and the
+   * kit's mark a tick across it. Bars, not flat strips, so it reads from
+   * the broadside the Balance page looks from. */
+  const base = new THREE.Mesh(bar, flat(CREAM, 0.35));
+  const band = new THREE.Mesh(bar, flat(MINT, 0.8));
+  const kit = new THREE.Mesh(bar, flat(CREAM, 0.95));
+  base.renderOrder = 8;
+  band.renderOrder = 9;
+  kit.renderOrder = 9;
+  g.add(mark, plumb, base, band, kit);
   craft.group.add(g);
-  rig = { g, mark, plumb, ruler, base, band, kit, now, top, floorY, width, len, spin: 0 };
+  rig = { g, mark, plumb, base, band, kit, top, floorY, len };
   rigs.set(craft, rig);
   return rig;
 }
@@ -159,12 +159,12 @@ function zOf(shift) {
   return v.z;
 }
 
-/* A flat strip along the model's length between two shifts, on the floor. */
-function strip(mesh, a, b, width) {
+/* A bar along the model's length between two shifts, at height y. */
+function railBar(mesh, a, b, y, thick) {
   const z0 = zOf(a);
   const z1 = zOf(b);
-  mesh.position.set(0, 0, 0.5 * (z0 + z1));
-  mesh.scale.set(width, 1, Math.max(1e-4, Math.abs(z1 - z0)));
+  mesh.position.set(0, y, 0.5 * (z0 + z1));
+  mesh.scale.set(thick, thick, Math.max(1e-4, Math.abs(z1 - z0)));
 }
 
 /*
@@ -188,17 +188,14 @@ export function dressTuning(craft, tab, dt) {
     const h = rig.top - rig.floorY;
     rig.plumb.position.set(0, rig.floorY + 0.5 * h, z);
     rig.plumb.scale.set(0.004 * rig.len, h, 0.004 * rig.len);
-    const pad = 0.012 * rig.len;
-    strip(rig.base, cg.reach[0] - pad, cg.reach[1] + pad, rig.width);
+    const t = 0.006 * rig.len;
+    railBar(rig.base, cg.reach[0], cg.reach[1], rig.top, t);
     rig.band.visible = Boolean(cg.range);
     if (cg.range) {
-      strip(rig.band, Math.max(cg.reach[0], cg.range[1]), Math.min(cg.reach[1], cg.range[0]), rig.width * 0.8);
+      railBar(rig.band, Math.max(cg.reach[0], cg.range[1]), Math.min(cg.reach[1], cg.range[0]), rig.top, 1.5 * t);
     }
-    rig.kit.position.set(0, 0.0005, zOf(0));
-    rig.kit.scale.set(rig.width * 1.3, 1, 0.006 * rig.len);
-    rig.now.position.set(0, 0.001, z);
-    rig.now.scale.set(rig.width * 0.62, 1, rig.width * 0.62);
-    rig.now.material.color.setHex(cg.warn ? WARN : AMBER);
+    rig.kit.position.set(0, rig.top, zOf(0));
+    rig.kit.scale.set(0.8 * t, 6 * t, 0.8 * t);
     rig.plumb.material.color.setHex(cg.warn ? WARN : AMBER);
   }
   if (craft.setSurfaces) {

@@ -9,8 +9,8 @@
  *            the tail, and where that puts the CG against the maker's
  *            mark and range (configs/tuning.js), with the static margin
  *            it leaves and a warning past the range or near the neutral
- *            point. The model shows a CG mark over the plane and a gauge
- *            on the floor under it (src/render/hangar-tuning3d.js).
+ *            point. The model shows a CG mark on a rail over the plane
+ *            (src/render/hangar-tuning3d.js).
  *   RATES    low, mid or high throws from the manual, the expo on each
  *            surface with the stick to surface curve drawn, the elevator
  *            trim, and on the Timber the flaps the run starts on and the
