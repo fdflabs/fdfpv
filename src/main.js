@@ -1859,10 +1859,12 @@ export async function boot({
       roomSlot = w.seat - 1;
       /* A room flies in one world. In free flight the pilot is seated
        * there; on a track they keep their track and see whoever is in its
-       * world. */
-      if (w.map && view && w.map !== view.id && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+       * world. Against the SEAT, not the world drawn: a pilot who chose
+       * another world a moment ago is still looking at the old one while
+       * the new one builds, and comparing with that seated nothing. */
+      if (w.map && w.map !== ui.settings.map && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
         roomNote = str('friends.other_world', { world: mapById(w.map).name });
-        ui.seatMap(w.map);
+        ui.seatMap(w.map, { stay: true });
       }
       ui.refreshFriends();
     },
@@ -2142,7 +2144,7 @@ export async function boot({
     }
     const st = roomLinkState.state();
     if (st.phase === 'open') {
-      return { value: str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }), note: str('friends.row_in_note') };
+      return { value: str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }), note: str('friends.row_in_note'), inRoom: true };
     }
     if (st.phase === 'connecting') {
       return { value: str('friends.row_joining', { code: st.code }), note: str('friends.row_in_note') };
@@ -2213,6 +2215,9 @@ export async function boot({
       return rows;
     }
     const failed = st.phase === 'failed' && st.reason ? str(`friends.failed_${st.reason}`) : null;
+    /* Out of a room. The title's Fly with friends card opens this screen
+     * on these rows, so a public room to drop into belongs beside Make
+     * and Join, as a third way in. */
     return [
       {
         label: str('friends.create'),
