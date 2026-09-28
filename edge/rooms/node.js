@@ -57,8 +57,11 @@ import { PURGE_MS, RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
 import { answer, refuseUpgrade, requestFrom, send } from '../node-http.js';
 
-/* Cloudflare's own limit on one WebSocket message, so a message a room
- * accepts there is accepted here. */
+/* The largest message the simulator sends is a host's race track, logos
+ * stripped (src/share/roomrace.js), which the room caps at 64 kB (race.js
+ * TRACK_MAX_BYTES). A MiB is that many times over, and even an unstripped
+ * track fits (the tracks server's documents are at most 512 kB).
+ * Cloudflare takes up to 32 MiB, which a process capped at 256 MB must not. */
 const MAX_MESSAGE_BYTES = 1024 * 1024;
 const CLOSE_RESTART = 1012;
 
