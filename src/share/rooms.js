@@ -200,7 +200,9 @@ export function setFigurePick(f) {
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
- * onEvent(event), and onBinary(bytes) for any binary message but a batch.
+ * onEvent(event), onBinary(bytes) for any binary message but a batch,
+ * onReported(seat), onMessage(message) for every other text message (a
+ * race's, Phase 4).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -361,6 +363,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onEvent?.(m);
       } else if (m.type === 'reported') {
         handlers.onReported?.(m.seat);
+      } else {
+        handlers.onMessage?.(m);
       }
     };
     socket.onclose = (ev) => {
@@ -524,7 +528,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     kick(seat) {
       sendText({ type: 'kick', seat });
     },
-    /* The safety messages (src/share/roomsafety.js builds them). */
+    /* The messages the room's modules own: the safety messages
+     * (src/share/roomsafety.js) and the race's (src/share/roomrace.js). */
     send(obj) {
       sendText(obj);
     },

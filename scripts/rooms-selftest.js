@@ -38,6 +38,11 @@ import {
 } from '../src/share/roomwire.js';
 import { PARTS_PER_S } from '../edge/rooms/wrecks.js';
 import { RoomCore, KICK_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN } from '../edge/rooms/core.js';
+import { COUNTDOWN_MS, TRACK_MAX_BYTES, roomTrack } from '../edge/rooms/race.js';
+import { createRoomRace, orderStandings } from '../src/share/roomrace.js';
+import { Race, PLANE_REACH } from '../src/game/race.js';
+import { raceGatesOf } from '../src/builder/course.js';
+import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import {
   CHAT_BURST, CHAT_EVERY_MS, CHAT_PRESETS, CLOSE_REMOVED, EMOTES, FLAG_SPAWNING, PUBLIC_CAP, REPORT_REASONS,
 } from '../src/share/roomwire.js';
@@ -111,6 +116,7 @@ function sock(name, address = '10.0.0.1') {
 /* Apply a room's actions to the fake sockets, as do.js does. */
 let ticks = 0;
 let empties = 0;
+let lastStore = null;
 function run(actions) {
   for (const a of actions) {
     if (a.send) {
@@ -123,6 +129,8 @@ function run(actions) {
       ticks += 1;
     } else if (a.empty) {
       empties += 1;
+    } else if (a.store) {
+      lastStore = { key: a.store, value: JSON.parse(JSON.stringify(a.value)) };
     }
   }
   return actions;
@@ -420,6 +428,297 @@ console.log('phase 2: shared wrecks');
   run(room.message(wb, JSON.stringify({ type: 'event', kind: 'nonsense' }), now));
   check('an event kind nobody owns is ignored', texts(wa, 'event').length === before3);
 }
+/*
+ * RACING TOGETHER (Phase 4, edge/rooms/race.js and src/share/roomrace.js).
+ * Two clients in one room race a three gate track through the room, each
+ * scoring its own gates with a real Race (src/game/race.js) over the
+ * builder's own gates (raceGatesOf), exactly as the shell does: the host
+ * loads the track, both say their world has it, the host starts, both are
+ * held until the shared goAt, then each flies its gates on its own clock,
+ * one wrecks and flies on, and both are handed the same results. Then a
+ * joiner who arrives mid race, a finish the room dropped, a retire, a
+ * dropped socket, the host ending a race, and a hibernation.
+ */
+console.log('race: the track');
+const raceDoc = mapTrackDocument({ id: 'trk-race0001', name: 'Three in the valley', types: ['gate', 'hoop30', 'gate'], radius: 60 });
+const rt = roomTrack(raceDoc);
+check('a host\'s map track is the room\'s track, three gates, in its world', rt.track && rt.track.gates === 3 && rt.track.map === 'swiss2' && rt.track.id === 'trk-race0001');
+check('without its logos, which are free content', rt.track && Array.isArray(rt.track.doc.branding.logos) && rt.track.doc.branding.logos.length === 0);
+const branded = JSON.parse(JSON.stringify(raceDoc));
+branded.branding = { logos: [{ id: 'l1', name: 'x', dataUrl: `data:image/png;base64,${'A'.repeat(1000)}` }] };
+check('a branded one loses the logo, not the track', roomTrack(branded).track && roomTrack(branded).track.doc.branding.logos.length === 0);
+check('a name off the word list is dropped', roomTrack({ ...raceDoc, name: 'fuck this track' }).track.name === '');
+check('a document that is not a map track is refused', roomTrack({ schemaVersion: 3, elements: [] }).error === 'bad' && roomTrack('text').error === 'bad');
+check('a track with no gate to race is refused', roomTrack(mapTrackDocument({ gates: 0 })).error === 'nogate');
+const hugeDoc = mapTrackDocument({ gates: 220, radius: 400 });
+check(`over ${TRACK_MAX_BYTES / 1024} kB is refused`, roomTrack(hugeDoc).error === 'big', roomTrack(hugeDoc).error || 'accepted');
+
+console.log('race: two pilots');
+room = new RoomCore(meta);
+now += 60000;
+const ha = sock('race-a', '10.2.0.1');
+const hb = sock('race-b', '10.2.0.2');
+/* Each pilot's client, its messages straight into the room. */
+const clients = new Map();
+function client(s) {
+  const rr = createRoomRace((obj) => run(room.message(s, JSON.stringify(obj), now, s.address, newToken)));
+  const c = { s, rr, read: 0 };
+  clients.set(s, c);
+  return c;
+}
+/* What each socket got since the last pump, handed to its client. */
+function pump() {
+  for (const c of clients.values()) {
+    for (; c.read < c.s.got.length; c.read += 1) {
+      const m = c.s.got[c.read];
+      if (!m || m instanceof Uint8Array) {
+        continue;
+      }
+      if (m.type === 'welcome') {
+        c.rr.onWelcome(m);
+      } else {
+        c.rr.onMessage(m);
+      }
+    }
+  }
+}
+const A = client(ha);
+const B = client(hb);
+hello(ha);
+now += 10;
+hello(hb, { name: [5, 6, 50] });
+pump();
+check('a room starts with no track and no race', A.rr.track() === null && A.rr.race().state === 'lobby' && A.rr.role(0) === 'lobby');
+B.rr.loadTrack(raceDoc);
+pump();
+check('only the host loads a track', A.rr.track() === null && B.rr.track() === null);
+A.rr.loadTrack(raceDoc);
+pump();
+check('the host loads it and everybody has it', A.rr.track() && B.rr.track() && B.rr.track().id === 'trk-race0001' && B.rr.track().doc.sequence.length === 3);
+check('and the room keeps it for a hibernation', lastStore && lastStore.key === 'race' && lastStore.value.track.id === 'trk-race0001');
+A.rr.start(2);
+pump();
+check('a race with nobody ready is refused', A.rr.error() === 'none_ready' && A.rr.race().state === 'lobby');
+A.rr.ready(true);
+B.rr.ready(true);
+pump();
+check('each says its world has the track, and everybody sees who is ready', B.rr.race().ready.join() === '1,2');
+B.rr.start(2);
+pump();
+check('only the host starts', A.rr.race().state === 'lobby');
+A.rr.start(2);
+pump();
+const goRoom = now - meta.epoch + COUNTDOWN_MS;
+const race1 = B.rr.race();
+check(`the host starts it: a countdown to a room time ${COUNTDOWN_MS / 1000} s on, the same on both`, race1.state === 'on' && race1.goAt === goRoom && A.rr.race().goAt === goRoom && race1.laps === 2);
+check('both ready pilots are racing', race1.racers.join() === '1,2');
+check('each is held on the line until goAt', A.rr.role(goRoom - 1) === 'countdown' && A.rr.holdMs(goRoom - 2500) === 2500 && B.rr.holdMs(goRoom) === 0);
+check('each is put on the line once', A.rr.takeStart(goRoom - 5000) === A.rr.race() && A.rr.takeStart(goRoom - 4000) === null);
+B.rr.takeStart(goRoom - 5000);
+const beforeGo = ha.got.length;
+run(room.message(hb, JSON.stringify({ type: 'event', kind: 'gate', race: race1.id, lap: 0, gate: 1, t: 0, points: 0 }), now, hb.address));
+check('a pass before goAt is nobody\'s business', ha.got.length === beforeGo);
+
+/* A joiner during the countdown waits for the next race. */
+now += 100;
+const hc = sock('race-c', '10.2.0.3');
+const C = client(hc);
+hello(hc, { name: [7, 8, 60] });
+pump();
+check('a pilot who joins after the start spectates, with the track and the race', C.rr.role(goRoom + 10) === 'spectating' && C.rr.track() && C.rr.race().id === race1.id);
+check('and is not put on the line', C.rr.takeStart(goRoom + 10) === null && C.rr.holdMs(goRoom - 100) === 0);
+
+/*
+ * The flying. Each pilot's own Race over the builder's gates; a pass is the
+ * craft's travel through the opening from 3 m before it to 3 m past, and a
+ * move between gates is not flown (allow false), as a teleport. Times are
+ * the room clock on each side, which in this check is the room's own.
+ */
+function centreOf(g) {
+  const cy = g.apertures[0].centreY;
+  return { x: g.x + g.ay.x * cy, y: g.y + g.ay.y * cy, z: g.z + g.ay.z * cy };
+}
+function flyer(c, plane) {
+  const race = new Race(raceGatesOf(raceDoc), 'full', { reach: plane ? PLANE_REACH : 0 });
+  return { c, race, at: null, passes: 0 };
+}
+const pA = flyer(A, false);
+const pB = flyer(B, true);
+/* Through the race's next gate at room time tRoom, and the pass handed on
+ * as src/main.js hands it on. */
+function flyGate(p, tRoom) {
+  const race = p.race;
+  const g = race.gates[race.next];
+  const c = centreOf(g);
+  const from = { x: c.x - g.az.x * 3, y: c.y - g.az.y * 3, z: c.z - g.az.z * 3 };
+  const to = { x: c.x + g.az.x * 3, y: c.y + g.az.y * 3, z: c.z + g.az.z * 3 };
+  race.update(p.at || from, from, tRoom - 60, 0, false);
+  const lapsBefore = race.laps.length;
+  const res = race.update(from, to, tRoom, 0, true);
+  p.at = to;
+  if (res.passed == null) {
+    return false;
+  }
+  const scored = race.call && race.call.gate === res.passed ? race.call.points : 0;
+  race.call = null;
+  const cross = race.lapStartMs + (race.splits.length ? race.splits[race.splits.length - 1] : 0);
+  now = meta.epoch + tRoom;
+  p.c.rr.pass({
+    lapDone: race.laps.length > lapsBefore,
+    gate: race.lapStartMs != null ? race.splits.length + 1 : 0,
+    gatePoints: scored,
+    hoop: Boolean(race.gates[res.passed].apertures[0].round),
+    lagMs: tRoom - cross,
+  }, tRoom);
+  p.passes += 1;
+  pump();
+  return true;
+}
+/* A pass is timed at its crossing, which a chord 60 ms long through the
+ * middle of the opening puts 30 ms before the frame that saw it. */
+const CROSS_LAG = 30;
+/* A: a gate every 2 s from 1 s after the go, seven passes for two laps
+ * (the start crossing, then three a lap). B: every 2.5 s, and a wreck in
+ * lap 1 after two gates: the lap in flight is void and R puts it back on
+ * its line, the lap already flown stays. */
+const plan = [];
+for (let k = 0; k < 7; k += 1) {
+  plan.push({ t: goRoom + 1000 + 2000 * k, p: pA });
+}
+for (let k = 0; k < 11; k += 1) {
+  plan.push({ t: goRoom + 1200 + 2500 * k, p: pB });
+}
+plan.sort((x, y) => x.t - y.t);
+let sawAAhead = false;
+let flewAll = true;
+for (const step of plan) {
+  if (step.p === pB && pB.passes === 6 && !pB.wrecked) {
+    pB.wrecked = true;
+    pB.race.voidLap('wrecked', 0);
+    pB.race.reset();
+    pB.at = null;
+  }
+  if (step.p.c.rr.done()) {
+    continue;
+  }
+  flewAll = flyGate(step.p, step.t) && flewAll;
+  const liveB = B.rr.standings();
+  if (liveB.length === 2 && liveB[0].seat === 1 && liveB[0].ms == null && liveB[0].lap === 1) {
+    sawAAhead = true;
+  }
+}
+check('every scripted pass through a gate scored', flewAll);
+check('each pilot sees the other move round live, from the relayed passes', sawAAhead);
+const aFinish = goRoom + 1000 + 2000 * 6;
+const res1 = A.rr.race();
+check('both flew their laps, and the race is over when the last one finishes', A.rr.done() && B.rr.done() && res1.state === 'results');
+const rowsA = A.rr.standings();
+const rowsB = B.rr.standings();
+const rowsC = C.rr.standings();
+check('the results agree on every screen, the spectator\'s too', JSON.stringify(rowsA) === JSON.stringify(rowsB) && JSON.stringify(rowsA) === JSON.stringify(rowsC));
+check('A wins, timed from goAt to the crossing on the room clock', rowsA[0].seat === 1 && rowsA[0].place === 1 && rowsA[0].ms === aFinish - CROSS_LAG - goRoom, JSON.stringify(rowsA[0]));
+check('B second, after its wreck cost it the lap in flight', rowsA[1].seat === 2 && rowsA[1].ms > rowsA[0].ms && rowsA[1].lap === 2 && B.rr.laps() === 2, JSON.stringify(rowsA[1]));
+check('the plane\'s points are carried, the quad has none', rowsA[1].points > 0 && rowsA[0].points === 0, `${rowsA[1].points} ${rowsA[0].points}`);
+check('each results screen is shown once', A.rr.takeResults() === A.rr.race() && A.rr.takeResults() === null && C.rr.takeResults() !== null);
+check('a spectator\'s passes were never counted', !rowsA.some((r) => r.seat === 3));
+
+console.log('race: a rematch, a lost finish, a retire');
+A.rr.ready(true);
+B.rr.ready(true);
+C.rr.ready(true);
+pump();
+now += 1000;
+A.rr.start(1);
+pump();
+const race2 = A.rr.race();
+const go2 = race2.goAt;
+check('the host races again on the same track, everybody ready is in it', race2.state === 'on' && race2.id === race1.id + 1 && race2.racers.join() === '1,2,3' && race2.laps === 1);
+check('the joiner is racing this time', C.rr.takeStart(go2 - 100) === C.rr.race() && C.rr.role(go2 + 1) === 'racing');
+pA.race.reset();
+pA.at = null;
+pA.passes = 0;
+/* The room drops A's finish (over its text rate): it comes again. */
+const realMessage = room.message.bind(room);
+let dropFinish = true;
+room.message = (conn, data, ...rest) => {
+  if (dropFinish && conn === ha && typeof data === 'string' && data.includes('"finish"')) {
+    dropFinish = false;
+    return [];
+  }
+  return realMessage(conn, data, ...rest);
+};
+for (let k = 0; k < 4; k += 1) {
+  flyGate(pA, go2 + 500 + 1500 * k);
+}
+room.message = realMessage;
+const heldBefore = (A.rr.race().standings.find((r) => r.seat === 1) || {}).ms;
+check('a finish the room did not get shows as flown on the pilot\'s own screen', A.rr.role(go2 + 5000) === 'finished' && heldBefore == null && A.rr.standings()[0].ms === 5000 - CROSS_LAG, JSON.stringify(A.rr.standings()[0]));
+now = meta.epoch + go2 + 5000 + 100;
+A.rr.frame(go2 + 5000 + 100);
+pump();
+check('and is not sent again before its pause', (A.rr.race().standings.find((r) => r.seat === 1) || {}).ms == null);
+now = meta.epoch + go2 + 5000 + 1600;
+A.rr.frame(go2 + 5000 + 1600);
+pump();
+check('then is sent again, and the room has it', (B.rr.race().standings.find((r) => r.seat === 1) || {}).ms === 5000 - CROSS_LAG);
+now = meta.epoch + go2 + 6000;
+run(room.close(hb, now));
+clients.delete(hb);
+pump();
+check('a racer whose socket drops is out while it is gone', A.rr.race().standings.find((r) => r.seat === 2).out === 'left' && A.rr.race().state === 'on');
+const hb2 = sock('race-b2', hb.address);
+const B2 = client(hb2);
+hello(hb2, { name: [5, 6, 50], token: texts(hb, 'welcome')[0].token });
+pump();
+check('and back in the race when the same seat comes back', B2.rr.seat() === 2 && A.rr.race().standings.find((r) => r.seat === 2).out === null && B2.rr.role(go2 + 7000) === 'racing');
+C.rr.retire(go2 + 7000);
+pump();
+check('a pilot who leaves the race is out, last', B2.rr.race().standings.find((r) => r.seat === 3).out === 'retired' && A.rr.race().state === 'on');
+A.rr.end();
+pump();
+const res2 = A.rr.race();
+check('the host ends it: results now, the unfinished after the finished', res2.state === 'results'
+  && res2.standings.map((r) => r.seat).join() === '1,2,3' && res2.standings[1].ms == null && res2.standings[2].out === 'retired');
+
+console.log('race: rules');
+A.rr.start(3);
+pump();
+const race3 = A.rr.race();
+A.rr.loadTrack(mapTrackDocument({ id: 'trk-race0002' }));
+pump();
+check('no new track while a race is on', A.rr.error() === 'busy' && A.rr.track().id === 'trk-race0001');
+check('the host picks the laps', race3.laps === 3 && race3.state === 'on');
+run(room.message(ha, JSON.stringify({ type: 'event', kind: 'gate', race: race3.id, lap: 99, gate: 1, t: 10, points: 0 }), meta.epoch + race3.goAt + 100, ha.address));
+check('a pass with a lap past the race is dropped', !room.race.race.progress[1]);
+check('the order puts the finished first, then laps, gates and who got there first, the out last', orderStandings([
+  { seat: 1, ms: null, lap: 1, gate: 2, t: 900, out: null },
+  { seat: 2, ms: 5000, lap: 3, gate: 0, t: 5000, out: null },
+  { seat: 3, ms: null, lap: 1, gate: 2, t: 800, out: null },
+  { seat: 4, ms: null, lap: 2, gate: 0, t: 999, out: 'left' },
+  { seat: 5, ms: 4000, lap: 3, gate: 0, t: 4000, out: null },
+]).map((r) => r.seat).join() === '5,2,3,1,4');
+
+console.log('race: hibernation');
+const savedRace = lastStore.value;
+const asleep = [ha, hb2, hc].map((s) => ({ conn: s, attachment: s.attachment }));
+room = new RoomCore(meta);
+room.restore(asleep);
+room.race.restore(savedRace);
+const hd = sock('race-d', '10.2.0.4');
+hello(hd, { name: [9, 9, 19] });
+const wd = texts(hd, 'welcome')[0];
+check('a room that slept still has its track and its race', wd.track && wd.track.id === 'trk-race0001' && wd.race.id === race3.id && wd.race.state === 'on');
+check('and the readiness starts again from the pilots', wd.race.ready.length === 0);
+
+console.log('race: private rooms only');
+room = new RoomCore({ ...meta, public: true, cap: 16 });
+const pubA = sock('race-pub', '10.2.0.9');
+hello(pubA);
+const beforePub = pubA.got.length;
+run(room.message(pubA, JSON.stringify({ type: 'track', doc: raceDoc }), now, pubA.address));
+run(room.message(pubA, JSON.stringify({ type: 'race', op: 'start', laps: 1 }), now, pubA.address));
+check('a public room takes no track and starts no race', room.race.track === null && room.race.race === null && pubA.got.length === beforePub);
+
 /*
  * PHASE 5, SAFETY: edge/rooms/safety.js and edge/rooms/lobby.js, driven
  * through the core the way do.js drives them.
