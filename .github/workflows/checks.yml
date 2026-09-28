@@ -44,6 +44,7 @@ jobs:
       - run: npm run midair:harness -- --seeds=2
       - run: npm run marks:selftest
       - run: npm run combat:harness
+      - run: npm run combat:restart
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
