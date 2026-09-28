@@ -4377,6 +4377,7 @@
         border: 1px solid rgba(243, 234, 212, 0.12);
         box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(243, 234, 212, 0.06);
         scrollbar-width: thin; scrollbar-color: rgba(243, 234, 212, 0.25) transparent;
+        scroll-behavior: smooth;
       }
       .hangar-tab.from-right { animation: hg-from-right 320ms var(--hg-ease) both; }
       .hangar-tab.from-left { animation: hg-from-left 320ms var(--hg-ease) both; }
@@ -4468,7 +4469,10 @@
       .hangar-cards-small { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
       .hangar-card-name { font: 700 15px/1.25 var(--ui-font); }
       .hangar-card-detail { font: 500 12px/1.4 var(--ui-font); color: var(--slate); }
-      .hangar-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-top: 20px; }
+      /* Two tiles across, not three: a value like "65 km/h" at 24px is about
+       * 100px wide, and three tiles across this panel gave each 91px, so the
+       * speed wrapped onto two lines and the fourth tile sat alone below. */
+      .hangar-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 20px; }
       .hangar-stat {
         display: flex; flex-direction: column; gap: 6px; padding: 12px 13px 11px; border-radius: 12px;
         background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 212, 92, 0.22);
@@ -4517,6 +4521,7 @@
       }
       @media (prefers-reduced-motion: reduce) {
         .hangar *, .hangar-tab-pill { animation: none !important; transition: none !important; }
+        .hangar-side { scroll-behavior: auto; }
       }
       /* A phone upright: the plane over the panel. */
       @media (max-width: 760px) {
