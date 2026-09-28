@@ -846,6 +846,128 @@ export function chainPose(from, forward, distance, turn, centreY, grid = false) 
 }
 
 /*
+ * THE CASUAL SKY TRACK, the one click starter My tracks offers a plane
+ * (src/ui/ui.js): CASUAL.hoops big hoops round a wide oval, CASUAL.spacing
+ * apart, each hung CASUAL.over metres over the highest ground on its way
+ * to the next and never more than CASUAL.top over its own, 30 m and 20 m
+ * about, flown round it counter clockwise from above. The owner's words:
+ * "even a very small child can complete the courses."
+ *
+ * Where: of ovals centred within CASUAL.reach of `from` (the world's
+ * spawn), at four turns and on a grid, the one whose ground is flattest
+ * under its path and whose hoops all fit the height rule. The oval is
+ * sized so its length is the hoops' spacing times their number, and the
+ * hoops go on it at equal steps of its length. `heightAt(x, z)` is the
+ * map's. Returns a new map track, or null where no oval fits.
+ */
+/* The casual oval's short axis over its long one. */
+const ASPECT = 0.6;
+export const CASUAL = {
+  hoops: 8, spacing: 400, over: 60, top: 150, reach: 1600, step: 200, types: ['hoop30', 'hoop20'],
+};
+
+export function casualCourse(mapId, name, heightAt, from) {
+  /* The parameter of each hoop on an oval of semi axes 1 and ASPECT, at
+   * equal steps of its length, and that length, from a fine polyline. */
+  const M = 720;
+  const len = [0];
+  for (let j = 1; j <= M; j += 1) {
+    const u0 = (2 * Math.PI * (j - 1)) / M;
+    const u1 = (2 * Math.PI * j) / M;
+    len.push(len[j - 1] + Math.hypot(Math.cos(u1) - Math.cos(u0), ASPECT * (Math.sin(u1) - Math.sin(u0))));
+  }
+  const us = [];
+  for (let i = 0, j = 0; i < CASUAL.hoops; i += 1) {
+    const want = (len[M] * i) / CASUAL.hoops;
+    while (len[j + 1] < want) {
+      j += 1;
+    }
+    us.push(((2 * Math.PI) / M) * (j + (want - len[j]) / (len[j + 1] - len[j])));
+  }
+  const a = (CASUAL.hoops * CASUAL.spacing) / len[M];
+  let best = null;
+  for (let cx = from.x - CASUAL.reach; cx <= from.x + CASUAL.reach; cx += CASUAL.step) {
+    for (let cz = from.z - CASUAL.reach; cz <= from.z + CASUAL.reach; cz += CASUAL.step) {
+      for (let k = 0; k < 4; k += 1) {
+        const turn = (k * Math.PI) / 4;
+        const plan = casualPlan(cx, cz, a, turn, us, heightAt);
+        if (plan && (!best || plan.relief < best.relief)) {
+          best = plan;
+        }
+      }
+    }
+  }
+  if (!best) {
+    return null;
+  }
+  const doc = newCourse(mapId, name);
+  best.hoops.forEach((h, i) => {
+    const type = CASUAL.types[i % CASUAL.types.length];
+    const quat = qAxis(0, 1, 0, headingOf(h.tx, h.tz));
+    const centreY = openingsOf({ type, dims: ELEMENTS[type].dims })[0].centreY;
+    addGate(doc, type, v3(h.x, h.y - centreY, h.z), quat);
+  });
+  return doc;
+}
+
+/* The hoops round one oval, or null when the ground will not let every
+ * one hang between CASUAL.over and CASUAL.top over its own ground.
+ * `relief` is the ground's rise under the whole path. */
+function casualPlan(cx, cz, a, turn, us, heightAt) {
+  const n = us.length;
+  const b = ASPECT * a;
+  const c = Math.cos(turn);
+  const sn = Math.sin(turn);
+  const at = (u) => {
+    const ex = a * Math.cos(u);
+    const ez = b * Math.sin(u);
+    return { x: cx + ex * c - ez * sn, z: cz + ex * sn + ez * c };
+  };
+  /* The ground under the path, SUB samples from each hoop to the next. */
+  const SUB = 8;
+  const ground = [];
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i < n * SUB; i += 1) {
+    const k = Math.floor(i / SUB);
+    const u1 = k + 1 < n ? us[k + 1] : 2 * Math.PI;
+    const p = at(us[k] + ((u1 - us[k]) * (i % SUB)) / SUB);
+    const h = heightAt(p.x, p.z);
+    if (!Number.isFinite(h)) {
+      return null;
+    }
+    ground.push(h);
+    lo = Math.min(lo, h);
+    hi = Math.max(hi, h);
+  }
+  const hoops = [];
+  for (let i = 0; i < n; i += 1) {
+    const u = us[i];
+    const p = at(u);
+    /* Over the highest ground from half way back to half way on. */
+    let over = -Infinity;
+    for (let j = -SUB / 2; j <= SUB / 2; j += 1) {
+      over = Math.max(over, ground[(i * SUB + j + n * SUB) % (n * SUB)]);
+    }
+    const own = ground[i * SUB];
+    const y = over + CASUAL.over;
+    if (y - own > CASUAL.top) {
+      return null;
+    }
+    /* The tangent, d/du, counter clockwise seen from above (-y). */
+    const dx = -a * Math.sin(u);
+    const dz = b * Math.cos(u);
+    const tx = dx * c - dz * sn;
+    const tz = dx * sn + dz * c;
+    const tl = Math.hypot(tx, tz);
+    hoops.push({
+      x: p.x, y, z: p.z, tx: tx / tl, tz: tz / tl,
+    });
+  }
+  return { hoops, relief: hi - lo };
+}
+
+/*
  * Turn a placed gate about one of its own axes ('yaw' up, 'pitch' across,
  * 'roll' travel), pivoting on its first opening's centre so a gate hung in
  * the air turns where it hangs. Returns the new { base, quat }.

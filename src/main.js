@@ -6890,7 +6890,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * tracks (buildHost.leave). A world that will not build leaves the pilot
    * on My tracks with syncWorld's own notice.
    */
-  ui.onBuild = async ({ map, id }) => {
+  ui.onBuild = async ({ map, id, casual = false }) => {
     const entry = mapById(map);
     const doc = id ? loadMapTrack(id) : null;
     if (entry.id !== map || !entry.build || (id && !doc)) {
@@ -6911,7 +6911,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       reset();
       mode = 'flight';
       ui.show('flight');
-      b.open(doc);
+      b.open(doc, { casual });
     });
   };
   /* Menu clicks. The key handler has already woken the audio context by

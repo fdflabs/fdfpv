@@ -123,7 +123,7 @@ import {
 import { builtGate } from '../render/pylons.js';
 import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
-  CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, chainPose,
+  CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, casualCourse, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, chainPose,
   createHistory, gateFlags, gateSpec, gizmoAxes, isHoop, makeStart, newCourse, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf,
   raceGatesOf, readoutFor, removeGate, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
 } from './course.js';
@@ -1856,10 +1856,18 @@ export function createBuildMode(host) {
    * starts, or at the world's spawn for a track with no gate yet. Escape out
    * of it goes back to My tracks rather than into a flight (stepBack).
    */
-  function open(next) {
+  function open(next, opts = {}) {
     exit(false);
-    enter(next ? normalize(next).doc : null);
+    let track = next ? normalize(next).doc : null;
+    if (opts.casual) {
+      const v = host.view();
+      track = casualCourse(v.id, str('build.casual_name'), host.heightAt, v.spawn);
+    }
+    enter(track);
     fromMenu = true;
+    if (opts.casual && !track) {
+      say(str('build.casual_none'), 4200);
+    }
     const gates = raceGatesOf(doc);
     const start = gates.length ? startFor(gates, host.heightAt) : null;
     const spot = start || view.spawn;
@@ -1868,6 +1876,11 @@ export function createBuildMode(host) {
     cam.yaw = spot.yaw;
     cam.pitch = OPEN_PITCH;
     cam.vel.set(0, 0, 0);
+    /* The casual track is one click from flying: it is flown now, and B
+     * or Escape comes back to it in the builder. */
+    if (opts.casual && track) {
+      startTest();
+    }
   }
 
   /*
