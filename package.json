@@ -108,6 +108,8 @@
     "input:selftest": "node scripts/input-selftest.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",
+    "test:tracks": "node tracks-api/selftest.js",
+    "tracks:e2e": "node scripts/tracks-online-check.js",
     "lint:nouns": "node scripts/noun-lint.js",
     "lint:copy": "node scripts/copy-lint.js",
     "lint:devices": "node scripts/device-check.js",
