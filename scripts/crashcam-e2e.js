@@ -186,9 +186,30 @@ async function main() {
     await page.evaluate('window.__stick(-0.3, 0.3, 0, 0.4)');
     await page.until('window.__crash().wrecked || window.__craftState().landed', WAIT);
     await afterSteps(page, 1200);
-    const promptUp = await page.evaluate("(() => { const p = document.querySelector('.cc-prompt'); return Boolean(p && !p.hidden); })()");
-    check('the REPLAY prompt is up after the crash', promptUp);
-    await shot(page, 'prompt');
+    /* The prompt as the pilot sees it: in the FPV OSD's type while that
+     * OSD is on screen, as a chip otherwise (the Game HUD, or a chase view
+     * the OSD is not drawn over). */
+    const prompt = () => page.evaluate(`(() => {
+      const p = document.querySelector('.cc-prompt');
+      const o = window.__fpvOsd();
+      return { chip: Boolean(p && !p.hidden), osdOn: o.on, osd: o.values.replay || '', rows: o.rows.join(' / ') };
+    })()`);
+    await page.evaluate("(window.__ui.settings.hudStyle = 'osd', true)");
+    await page.sleep(800);
+    const inOsd = await prompt();
+    if (inOsd.osdOn) {
+      check('with the FPV OSD up, REPLAY is drawn in the OSD and the chip is hidden',
+        inOsd.osd === 'REPLAY [V]' && inOsd.rows.includes('REPLAY [V]') && !inOsd.chip, `osd "${inOsd.osd}", chip ${inOsd.chip}`);
+    } else {
+      check('with the FPV OSD not on screen (a chase view), the chip carries REPLAY', inOsd.chip && !inOsd.osd, `chip ${inOsd.chip}`);
+    }
+    await shot(page, 'prompt-osd');
+    await page.evaluate("(window.__ui.settings.hudStyle = 'game', true)");
+    await page.sleep(800);
+    const inGame = await prompt();
+    check('with the Game HUD, REPLAY is the chip and not in the OSD', inGame.chip && !inGame.osdOn, `chip ${inGame.chip}, osd on ${inGame.osdOn}`);
+    await shot(page, 'prompt-game');
+    await page.evaluate("(window.__ui.settings.hudStyle = 'osd', true)");
     const flying = await page.evaluate('window.__crashCam.stats()');
     check('the recorder costs under 0.1 ms a frame', flying.recordMsMean < 0.1,
       `mean ${flying.recordMsMean.toFixed(4)} ms, worst ${flying.recordMsMax.toFixed(3)} ms over ${flying.frames} frames`);
@@ -318,7 +339,10 @@ async function main() {
     await page.until(`window.__crashCam.live() && ${H}.view() && !${H}.view().live`, 20000);
     await page.evaluate(`${H}.api.jumpTo(0)`);
     await page.tap('Space');
-    await page.sleep(1200);
+    /* Waited on the clip's clock, not the wall: the first frames of a
+     * freshly built replay craft compile its shaders, which on a software
+     * rasteriser can take longer than any fixed sleep. */
+    await page.until(`${H}.view().t > 0.05`, 30000).catch(() => {});
     v = await view(page);
     check('played from My clips: a saved clip, running, keys and all', !v.live && v.t > 0 && v.dur > 1 && v.keys.length === 2,
       `t ${v.t.toFixed(2)} of ${v.dur.toFixed(2)} s, ${v.keys.length} keys`);

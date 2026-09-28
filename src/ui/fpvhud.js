@@ -1157,6 +1157,7 @@ export class FpvOsd {
     }
     this.buildWarnings(v, x, blinkOn);
     this.buildBanner(x);
+    this.buildReplay(x);
   }
 
   /*
@@ -1550,5 +1551,20 @@ export class FpvOsd {
     }
     const I = this.i;
     this.readout('banner', 'c', this.textRow(I.oy + (MID_ROW + 4.5) * I.ch), lines);
+  }
+
+  /*
+   * The crash cam's prompt (src/replay/crashcam.js), REPLAY and its key,
+   * one line in the OSD's type where the banner would start: placed after
+   * the banner, so a banner up at the same time pushes it down a row.
+   */
+  buildReplay(x) {
+    const text = x.replayKey ? `${str('replay.prompt').toUpperCase()} [${x.replayKey}]` : '';
+    this.values.replay = text;
+    if (!text) {
+      return;
+    }
+    const I = this.i;
+    this.readout('replay', 'c', this.textRow(I.oy + (MID_ROW + 4.5) * I.ch), [text]);
   }
 }
