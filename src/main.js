@@ -2077,7 +2077,9 @@ export async function boot({
     }
     if (wallMs > combatHudAt) {
       combatHudAt = wallMs + 200;
-      combatHud.update(roomCombat.round(), roomCombat.seat(), now, paper ? paper.length() : 0, paper ? paper.towTension() : 0);
+      /* Not over the crash cam's replay, which is another moment. */
+      combatHud.update(mode === 'replay' ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
+        paper ? paper.length() : 0, paper ? paper.towTension() : 0);
     }
     if (!roomCombat.out()) {
       if (combatLayer.count()) {
@@ -2088,10 +2090,9 @@ export async function boot({
     if (scene && combatLayer.group.parent !== scene) {
       scene.add(combatLayer.group);
     }
-    /* The crash cam's replay draws the room as it was and keeps no paper,
-     * so the paper as it is now is put away with the live peers
-     * (roomDrawPeer) until flight resumes, rather than trailing behind
-     * nothing. */
+    /* The crash cam's replay draws the room as it was, its paper too
+     * (src/replay/paperscene.js), so the paper as it is now is put away
+     * with the live peers (roomDrawPeer) until flight resumes. */
     combatLayer.group.visible = mode !== 'replay';
     if (!combatStepped) {
       roomCombat.idle(dt * 1000, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w, groundAt);
@@ -14498,6 +14499,8 @@ export async function boot({
     },
   });
   crashCam.tap(debris);
+  /* Combat's paper and its SCHWING, for the replay (src/replay/paper.js). */
+  crashCam.tapPaper(combatLayer);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

@@ -46,14 +46,18 @@
 
 import * as THREE from 'three';
 import {
-  createRecorder, createSample, locate, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE, SMOKE, SMOKE_N,
+  createRecorder, createSample, locate, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE, SMOKE, SMOKE_N, WINDOW_S,
 } from './recorder.js';
 import { createPeerRing, peerPose } from './peers.js';
 import { createPeerScene } from './peerscene.js';
+import { createPaperRing } from './paper.js';
+import { createPaperScene } from './paperscene.js';
 import {
   RIGS, addKey, createPose, defaults, evaluate, evaluateKeys, rotate,
 } from './cameras.js';
-import { decodeReplay, encodeReplay, FILE_EXT, NAME_MAX, ReplayFileError } from './file.js';
+import {
+  decodeReplay, encodeReplay, FILE_EXT, FILE_MAX_BYTES, NAME_MAX, ReplayFileError,
+} from './file.js';
 import * as store from './store.js';
 import { createEditor } from './editor.js';
 import { craftBuilderFor } from '../render/craft.js';
@@ -90,6 +94,9 @@ export function createCrashCam(host) {
   const { shell, audio, input, journal } = host;
   const rec = createRecorder();
   const peerRing = createPeerRing(rec.capacity);
+  const paperRing = createPaperRing(rec.capacity);
+  /* Harness only: the paper as recorded, by ring row, while switched on. */
+  let paperLog = null;
   /* Harness only: the peers as recorded, by ring row, while switched on. */
   let peerLog = null;
   let recording = true;
@@ -105,6 +112,7 @@ export function createCrashCam(host) {
   const spawnScratch = new Float64Array(8);
   const cost = {
     frames: 0, totalMs: 0, maxMs: 0, snapMs: 0, snapMaxMs: 0, snaps: 0, peerFrames: 0, peerMs: 0, peerMaxMs: 0,
+    paperFrames: 0, paperMs: 0, paperMaxMs: 0, paperRow: -1, paperRowMs: 0,
   };
   let padPrev = 0;
 
@@ -116,6 +124,7 @@ export function createCrashCam(host) {
 
   function record(nowWall) {
     peerRing.begin(-1);
+    paperRing.begin(-1);
     if (S) {
       return;
     }
@@ -140,6 +149,7 @@ export function createCrashCam(host) {
        * with this one's model and part table, so it is let go. */
       rec.clear();
       peerRing.clear();
+      paperRing.clear();
       prevStatus.fill(0);
       ringAirframe = host.airframe();
       ringMap = host.mapId();
@@ -149,6 +159,8 @@ export function createCrashCam(host) {
       return;
     }
     peerRing.begin(i);
+    paperRing.begin(i);
+    paperRing.prune(rec.now(), WINDOW_S);
     const quad = shell.quad;
     rec.pose(i, quad.position, quad.quaternion);
     rec.drive(i, st[14], st[15], st[16], st[17], host.surfaces(), host.flaps(), st[14]);
@@ -269,6 +281,63 @@ export function createCrashCam(host) {
     }
   }
 
+  /*
+   * Combat's streamer layer (src/render/streamers.js), and the SCHWING on
+   * the shell's audio: every ribbon it is asked to draw, every cut's burst
+   * and every SCHWING, kept for the replay (src/replay/paper.js). Wrapped
+   * here, as tap() wraps the debris, so the shell's calls are unchanged;
+   * the ribbons go into the row record() began this frame.
+   */
+  /* What packing the paper cost, per row that had any. */
+  function paperCost(row, ms) {
+    if (row < 0) {
+      return;
+    }
+    if (row !== cost.paperRow) {
+      cost.paperRow = row;
+      cost.paperRowMs = 0;
+      cost.paperFrames += 1;
+    }
+    cost.paperRowMs += ms;
+    cost.paperMs += ms;
+    cost.paperMaxMs = Math.max(cost.paperMaxMs, cost.paperRowMs);
+  }
+
+  function tapPaper(layer) {
+    const draw = layer.draw;
+    layer.draw = (key, cols, id, x, n, t, free, anchor) => {
+      if (!S && recording && host.mode() === 'flight') {
+        const t0 = performance.now();
+        paperRing.draw(key, cols, id, x, n, t, free, anchor);
+        paperCost(paperRing.row(), performance.now() - t0);
+        if (paperLog && paperRing.row() >= 0 && n > 1) {
+          const m = Math.min(n, 101) - 1;
+          paperLog.push({
+            row: paperRing.row(), key, id, n: m + 1,
+            nodes: [0, m >> 1, m].map((i) => [i, x[i * 3], x[i * 3 + 1], x[i * 3 + 2]]),
+          });
+        }
+      }
+      return draw(key, cols, id, x, n, t, free, anchor);
+    };
+    const burst = layer.burst;
+    layer.burst = (p, colour, level = 1) => {
+      if (!S && recording && host.mode() === 'flight') {
+        paperRing.cut(rec.now(), p, colour, level);
+      }
+      return burst(p, colour, level);
+    };
+    if (typeof audio.schwing === 'function') {
+      const schwing = audio.schwing.bind(audio);
+      audio.schwing = (level = 1, atTime) => {
+        if (!S && recording && host.mode() === 'flight') {
+          paperRing.schwing(rec.now(), level);
+        }
+        return schwing(level, atTime);
+      };
+    }
+  }
+
   /* ---- the pad ---- */
 
   function standardPad() {
@@ -346,11 +415,15 @@ export function createCrashCam(host) {
     /* The ring row the clip's first frame is, for the harness. */
     let ringFirst = -1;
     if (!saved) {
-      const [first, n] = rec.span();
+      const [first, n, t0, t1] = rec.span();
       ringFirst = first;
       const peers = peerRing.clip(first, n);
       if (peers) {
         clip.peers = peers;
+      }
+      const paper = paperRing.clip(first, n, t0, t1);
+      if (paper) {
+        clip.paper = paper;
       }
     }
     /* A saved clip of one frame is a still, and plays as one. */
@@ -442,14 +515,19 @@ export function createCrashCam(host) {
     parent.add(smoke.group);
     /* The others in the room, when the clip has them. */
     const peers = clip.peers ? createPeerScene(clip.peers, clip.time, clip.n, parent, host.craftLook || null) : null;
+    /* Combat's paper, when the clip has it. */
+    const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio) : null;
     return {
-      craft, wreck, debris, smoke, peers, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
+      craft, wreck, debris, smoke, peers, paper, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
     };
   }
 
   function disposeScene(sc) {
     if (sc.peers) {
       sc.peers.dispose();
+    }
+    if (sc.paper) {
+      sc.paper.dispose();
     }
     sc.wreck.reset();
     if (sc.undoLook) {
@@ -695,6 +773,11 @@ export function createCrashCam(host) {
       S.scene.peers.smokeTo(from, S.t, shell.canvas.clientHeight || 720, shell.camera.fov);
     }
     aimCamera();
+    /* After the camera: the ribbons are never drawn thinner than a few
+     * pixels, so they are drawn from where it is this frame. */
+    if (S.scene.paper) {
+      S.scene.paper.frame(s.k, s.a, from, S.t, S.playing, S.speed, shell.camera, shell.canvas.clientHeight || 720);
+    }
     S.drawnT = S.t;
     editor.tick(view());
   }
@@ -1285,7 +1368,7 @@ export function createCrashCam(host) {
   }
 
   async function importFile(file) {
-    if (file.size > 24 * 1024 * 1024) {
+    if (file.size > FILE_MAX_BYTES) {
       throw new Error(str('replay.import_too_big'));
     }
     const bytes = await file.arrayBuffer();
@@ -1322,6 +1405,7 @@ export function createCrashCam(host) {
     const res = host.takeOver(mark, clip.head[h + HEAD.simT], clip.head[h + HEAD.stateHash]);
     if (res && res.ok) {
       rec.dropNewest(drop);
+      paperRing.dropAfter(rec.now());
       prevStatus.fill(0);
     }
     window.__crashCamLast = { ...(window.__crashCamLast || {}), takeOver: { ...res, frame: k, clipT: clip.time[k] } };
@@ -1455,12 +1539,21 @@ export function createCrashCam(host) {
       peersDropped: peerRing.stats.dropped,
       piecesDropped: peerRing.stats.piecesDropped,
       peerAllocMs: peerRing.stats.allocMs,
+      paperBytes: paperRing.bytes(),
+      paperRingBytes: paperRing.ringBytes,
+      paperRibbons: paperRing.stats.ribbons,
+      paperDropped: paperRing.stats.dropped,
+      paperEvents: paperRing.stats.events,
+      paperFrames: cost.paperFrames,
+      paperMsMean: cost.paperFrames ? cost.paperMs / cost.paperFrames : 0,
+      paperMsMax: cost.paperMaxMs,
     };
   }
 
   return {
     record,
     recordPeers,
+    tapPaper,
     noteCrash,
     promptKey: () => promptKey,
     tap,
@@ -1505,6 +1598,29 @@ export function createCrashCam(host) {
         peerLog = on ? [] : null;
       },
       peerLogged: () => peerLog || [],
+      /* Combat's paper as the replay drew it this frame. */
+      paper: () => {
+        if (!S || !S.scene.paper) {
+          return null;
+        }
+        const out = S.scene.paper.summary();
+        /* How many of each ribbon's nodes are in the picture. */
+        for (const r of out.ribbons) {
+          r.seen = r.nodes.filter((m) => {
+            vNdc.set(m[0], m[1], m[2]).project(shell.camera);
+            return Math.abs(vNdc.x) < 1 && Math.abs(vNdc.y) < 1 && vNdc.z < 1;
+          }).length;
+        }
+        return out;
+      },
+      /* Every ribbon the recorder takes from now on (its head, middle and
+       * end nodes as drawn), with its ring row. */
+      paperLog: (on) => {
+        paperLog = on ? [] : null;
+      },
+      paperLogged: () => paperLog || [],
+      /* The clip's cuts and SCHWINGs, on its clock. */
+      paperEvents: () => (S && S.clip.paper ? S.clip.paper.events : []),
     }),
   };
 }
