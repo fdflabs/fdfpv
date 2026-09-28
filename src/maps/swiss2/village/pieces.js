@@ -332,6 +332,93 @@ export function planter(f, len, bloom = 'geranium', key = 'larchDark') {
   }
 }
 
+/*
+ * The PostAuto's shelter by the square, on the cel one's plan (alps/
+ * kit.js busShelter): 3.2 m by 1.6, open toward +z, its roof a lean of
+ * old shingle falling toward +x that is the same ground the cel one's
+ * is. Four larch posts on a concrete pad, the back and the sides boarded
+ * up and down with a batten on each joint, the roof on a beam front and
+ * back with the rafters showing under it and a fascia round its edge, a
+ * bench inside, the timetable in its case on the back wall, and beside
+ * it the yellow stop sign on its pole and a bin.
+ */
+export function busShelter(f) {
+  const w = 3.2;
+  const d = 1.6;
+  const hw = w / 2;
+  const hd = d / 2;
+  f.put('concrete', box(w + 0.4, 0.1, d + 0.4), 0, 0.05, 0);
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      f.put('larchDark', boxUp(0.12, 2.3, 0.12), sx * (hw - 0.06), 0.1, sz * (hd - 0.06));
+    }
+  }
+  f.put('larch:v', boxUp(w - 0.12, 2.2, 0.05), 0, 0.15, -hd + 0.04);
+  for (let x = -hw + 0.3; x < hw - 0.1; x += 0.3) {
+    f.put(near('boardLine'), boxUp(0.04, 2.1, 0.02), x, 0.2, -hd + 0.075);
+  }
+  for (const s of [-1, 1]) {
+    f.put('larch:v', boxUp(0.05, 2.2, d - 0.12), s * (hw - 0.04), 0.15, 0);
+    for (let z = -hd + 0.3; z < hd - 0.1; z += 0.3) {
+      f.put(near('boardLine'), boxUp(0.02, 2.1, 0.04), s * (hw - 0.005), 0.2, z);
+    }
+  }
+  /* The roof: the covering over the cel roof's ground, its thickness
+   * showing at the eaves, the fascia, the beams and the rafters. */
+  const x0 = -hw - 0.3;
+  const x1 = hw + 0.3;
+  const z0 = -hd - 0.3;
+  const z1 = hd + 0.5;
+  const slope = Math.atan2(0.2, x1 - x0);
+  const run = Math.hypot(x1 - x0, 0.2);
+  f.put('shingleDark', box(run, 0.08, z1 - z0), 0, 2.61, (z0 + z1) / 2, 0, 0, -slope);
+  for (const z of [z0, z1]) {
+    f.put(near('larchDark'), box(run, 0.14, 0.04), 0, 2.53, z, 0, 0, -slope);
+  }
+  for (const x of [x0, x1]) {
+    f.put(near('larchDark'), box(0.04, 0.14, z1 - z0), x, 2.53 + (x < 0 ? 0.1 : -0.1), (z0 + z1) / 2);
+  }
+  for (const z of [-hd + 0.06, hd - 0.06]) {
+    f.put('larchDark', box(w + 0.1, 0.16, 0.12), 0, 2.42, z);
+  }
+  for (let k = 0; k < 5; k += 1) {
+    const z = z0 + 0.15 + (k / 4) * (z1 - z0 - 0.3);
+    f.put(near('larchDark'), box(run - 0.1, 0.1, 0.07), 0, 2.52, z, 0, 0, -slope);
+  }
+  /* The roof is ground; under it, the three walls and the open front,
+   * exactly the cel shelter's (alps/kit.js). */
+  frame(f, 0, 2.4, 0.1).roofFaces({
+    top: shedTop(-w / 2 - 0.3, 0.35, w / 2 + 0.3, 0.15, -d / 2 - 0.4, d / 2 + 0.4), dy: 0.15, hw: w / 2, hd: d / 2, open: true, kind: 'shelter',
+  }, 'shingleDark');
+  f.solid(-w / 2, 0.1, -d / 2 - 0.04, w / 2, 2.4, -d / 2 + 0.04);
+  for (const s of [-1, 1]) {
+    f.solid(s * (w / 2 - 0.04) - 0.04, 0.1, -d / 2 + 0.08, s * (w / 2 - 0.04) + 0.04, 2.4, d / 2);
+  }
+  /* The bench, a board on iron brackets off the back wall, and the
+   * timetable over it. */
+  f.put('fence', box(w - 0.6, 0.05, 0.36), 0, 0.56, -hd + 0.28);
+  for (const x of [-hw + 0.5, hw - 0.5]) {
+    f.put(near('castIron'), box(0.04, 0.04, 0.36), x, 0.51, -hd + 0.28);
+    f.put(near('castIron'), boxUp(0.04, 0.46, 0.04), x, 0.1, -hd + 0.42);
+  }
+  f.put(near('paint'), box(0.6, 0.8, 0.03), 0.7, 1.55, -hd + 0.085);
+  f.put(detail('glass'), plate(0.52, 0.72), 0.7, 1.55, -hd + 0.102);
+  f.put(detail('ink'), plate(0.4, 0.05), 0.7, 1.82, -hd + 0.104);
+  /* The stop: the yellow sign with its black band and the white square
+   * with the H, on a grey pole beside the shelter, and a bin. */
+  const px = hw + 0.6;
+  const pz = hd + 0.2;
+  f.put('metal', cyl(0.035, 0.035, 2.6, 6), px, 0.1, pz);
+  f.put('postYellow', box(0.72, 0.56, 0.04), px, 2.35, pz);
+  for (const s of [-1, 1]) {
+    f.put(detail('ink'), plate(0.64, 0.12), px, 2.19, pz + s * 0.021, s > 0 ? 0 : Math.PI);
+    f.put(detail('paint'), plate(0.22, 0.22), px, 2.46, pz + s * 0.021, s > 0 ? 0 : Math.PI);
+  }
+  f.put(near('castIron'), boxUp(0.04, 0.6, 0.04), px + 0.1, 0.1, pz - 1.2);
+  f.put('shutterGreen', boxUp(0.3, 0.42, 0.3), px + 0.1, 0.45, pz - 1.2);
+  return { hw: w / 2 + 0.8, hd: d / 2 + 0.5, top: 2.8 };
+}
+
 /* The village's notice board: two posts, a shingled hood, the board
  * with the commune's notices pinned on it. */
 export function noticeBoard(f) {
