@@ -303,4 +303,38 @@ function roundSection(check) {
     r.send('A', { type: 'combat', op: 'stop' }, go + 800);
     check('the host stops it', texts(r.socks.B, 'combat').pop().state === 'idle');
   }
+
+  console.log('combat: a restart keeps the round');
+  {
+    const r = started();
+    fly(r, 1, 7600, passAt(7000));
+    /* What do.js would have written: the last store action the room made. */
+    let kept = null;
+    for (const a of r.room.combat.broadcast(r.room)) {
+      if (a.store === 'combat') {
+        kept = JSON.parse(JSON.stringify(a.value));
+      }
+    }
+    const fresh = new RoomCore({ ...r.room.meta });
+    fresh.combat.restore(kept);
+    const v = fresh.combat.view();
+    const a = v.scores.find((x) => x.seat === 1);
+    const b = v.scores.find((x) => x.seat === 2);
+    check('every change is kept with a store action', kept && kept.round.state === 'on');
+    check('a fresh room from it has the round, the points and the paper owed', v.state === 'on' && a && a.points === POINTS_CUT && a.cuts === 1 && b && b.owed === 19, JSON.stringify(v.scores));
+  }
+
+  console.log('combat: one game at a time');
+  {
+    const r = started();
+    r.room.race.track = { id: 'tst' };
+    r.room.race.ready.set(1, 'tst');
+    r.send('A', { type: 'race', op: 'start', laps: 1 }, 2000);
+    check('no race starts under a combat round', !r.room.race.race);
+    r.send('A', { type: 'combat', op: 'stop' }, 2100);
+    r.send('A', { type: 'race', op: 'start', laps: 1 }, 2200);
+    check('the same start works once the round is stopped', r.room.race.race && r.room.race.race.state === 'on');
+    r.send('A', { type: 'combat', op: 'start', minutes: 3 }, 2300);
+    check('and no round starts under a race', r.room.combat.round.state === 'idle');
+  }
 }

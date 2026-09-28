@@ -123,7 +123,17 @@ async function main() {
    */
   const seed = [`try {
     localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
-  } catch (e) { /* Storage refused; the visit is counted. */ }`];
+  } catch (e) { /* Storage refused; the visit is counted. */ }`,
+  /*
+   * Every fetch in the resource timing list, which verify's map-isolation
+   * check counts modules from. The browser keeps 250 entries by default
+   * and drops the rest: an Alps boot and a Swiss valley swap already fetch
+   * more than that on main (the buffer overflowed 15 times, measured
+   * 2026-09-28), so the Swiss valley's count came out short by however many
+   * modules anything else added to the shell, and two new ones read as
+   * two Swiss valley modules missing.
+   */
+  'performance.setResourceTimingBufferSize(100000);'];
   if (opts.graphics) {
     seed.push(`try {
       const k = ${JSON.stringify(SETTINGS_KEY)};

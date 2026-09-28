@@ -9,6 +9,7 @@
  *   { send: conn, data }            a text (string) or binary (Uint8Array) message
  *   { close: conn, code, reason }   close that socket
  *   { attach: conn, value }         store this with the socket, to survive a hibernation
+ *   { store: key, value }           keep this in the room's storage, the same (the race)
  *   { tick: true }                  call tick() again in TICK_MS
  *   { empty: true }                 nobody is left: schedule the purge
  *
@@ -44,6 +45,7 @@
 import {
   CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
+import { RoomRace } from './race.js';
 import { RoomSafety } from './safety.js';
 import { TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
 import * as wrecks from './wrecks.js';
@@ -54,7 +56,14 @@ import { RoomCombat } from './combat.js';
 const EVENTS = {
   crash: wrecks.onCrash,
   whack: wrecks.onWhack,
+  gate: raceEvent,
+  hoop: raceEvent,
 };
+
+/* A racer's pass (edge/rooms/race.js). Races are a private room's. */
+function raceEvent(core, conn, s, msg, now) {
+  return core.meta.public ? [] : core.race.message(core, conn, s, msg, now);
+}
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
@@ -93,6 +102,7 @@ export class RoomCore {
     this.joins = new Map();   /* address -> { since, n } */
     this.recent = new Map();  /* token -> { seat, until }, for a reconnect */
     this.ticking = false;
+    this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
   }
@@ -266,10 +276,12 @@ export class RoomCore {
         shard: this.meta.public ? this.meta.shard : null,
         map: this.meta.map,
         peers: this.peerList(conn),
+        ...this.race.welcome(),
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
     actions.push(...wrecks.wrecksFor(this, conn));
+    actions.push(...this.race.join(this, seat));
     this.combat.seat(seat, profile.airframe);
     actions.push(...this.combat.join(this, conn));
     return actions;
@@ -337,6 +349,14 @@ export class RoomCore {
     if (msg.type === 'kick' && !this.meta.public && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
     }
+    /* One game at a time: no race and no new track under a combat round. */
+    if (this.combat.on() && (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start'))) {
+      return [];
+    }
+    /* Races are a private room's, started by its host (Phase 4). */
+    if (!this.meta.public && (msg.type === 'track' || msg.type === 'race')) {
+      return this.race.message(this, conn, s, msg, now);
+    }
     return [];
   }
 
@@ -382,7 +402,7 @@ export class RoomCore {
    * arrived since the last. Ticks stop when nobody sent a pose. */
   tick(now) {
     const fresh = [...this.seats.values()].filter((s) => s.fresh);
-    const out = this.combat.tick(this, now);
+    const out = [...this.race.tick(this, now), ...this.combat.tick(this, now)];
     if (!fresh.length) {
       this.ticking = false;
       return out;
@@ -415,6 +435,7 @@ export class RoomCore {
     }
     this.recent.set(s.token, { seat: s.seat, joined: s.joined, until: now + RESEAT_MS });
     const out = this.others(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.host() }));
+    out.push(...this.race.leave(this, s.seat));
     if (!this.seats.size) {
       out.push({ empty: true });
     }

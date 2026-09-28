@@ -533,12 +533,12 @@ consequence without ending anyone's round.
   B's paper 28 m on both, the piece falling on both; the score on both.
 - `crash:identity`: off equals base for all 34 scripts (the plant is not
   touched), exit 0.
-- `verify` 16 of 16, after one measurement fix: check 16 counted 43 and 44
-  of the Swiss valley's 49 modules, and an untouched copy of main counted
-  48. It reads resource timing, which the browser caps at 250 entries and
-  then drops silently; main sat at the edge and combat's five modules at
-  boot pushed the valley's last ones off. tests/verify.js now raises the
-  buffer after the boot, as scripts/memory-check.js does, and counts 49.
+- `verify`: check 16 first counted 43 and 44 of the Swiss valley's 49
+  modules here, and an untouched copy of main 48. It reads resource
+  timing, which the browser caps at 250 entries and then drops silently.
+  Main fixed that in 292efa8 (the capture page raises the buffer before
+  the app's first line); this branch's own fix was dropped for it at the
+  merge. The run after the merge is in the PR.
 - Every `checks.yml` command, 48 of them, exit 0.
 
 ## Sources

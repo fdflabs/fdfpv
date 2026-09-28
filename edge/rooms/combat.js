@@ -22,9 +22,13 @@
  * scoring until a new streamer is attached", which a respawn is.
  *
  * WHAT OWNS WHAT. The RoomCore owns this object (core.combat); a Durable
- * Object runs one event at a time, so nothing here is shared. None of it
- * is written to storage: a room that hibernated had nobody flying, and a
- * round is minutes long.
+ * Object runs one event at a time, so nothing here is shared. The round
+ * and every seat's score go out as a { store: 'combat', value } action
+ * with every change the room announces (core.js), and restore() takes
+ * them back after a restart (edge/rooms/do.js, or the VM's adapter), so a
+ * deploy mid round loses no points. The samples and frames are not kept:
+ * they are seconds old, and a restart is a gap the rule already treats as
+ * no cut.
  *
  * Each entry point returns core actions (see core.js).
  *
@@ -139,8 +143,35 @@ export class RoomCombat {
     };
   }
 
+  /* Every change the room announces is also kept. */
   broadcast(core) {
-    return core.others(null, JSON.stringify(this.view()));
+    return [this.store(), ...core.others(null, JSON.stringify(this.view()))];
+  }
+
+  store() {
+    const seats = [...this.seats.entries()].map(([seat, s]) => ({
+      seat, owed: s.owed, links: s.links, points: s.points, cuts: s.cuts, crashed: s.crashed,
+    }));
+    return { store: 'combat', value: { round: { ...this.round }, seats, nextId: this.nextId } };
+  }
+
+  /* What store() kept, after a restart; undefined when nothing was. */
+  restore(saved) {
+    if (!saved || !saved.round) {
+      return;
+    }
+    this.round = { ...saved.round };
+    this.nextId = saved.nextId || 1;
+    for (const k of saved.seats || []) {
+      Object.assign(this.record(k.seat), {
+        owed: k.owed, links: k.links, points: k.points, cuts: k.cuts, crashed: k.crashed,
+      });
+    }
+  }
+
+  /* Whether a round is out: counting down or on. */
+  on() {
+    return this.round.state === 'countdown' || this.round.state === 'on';
   }
 
   /* For a pilot just seated: the round as it stands. */

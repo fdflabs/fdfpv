@@ -262,14 +262,7 @@ async function main() {
         '--url=/index.html?map=alps',
         '--airframe=5inch',
         'until:!!window.__boot && window.__boot().frames > 2',
-        /* The browser keeps 250 resource timing entries unless told
-         * otherwise and drops every one after that without a word
-         * (scripts/memory-check.js met the same wall). The boot, the Alps
-         * and the valley together sit right at it: main counted 48 of the
-         * valley's 49, and five more modules at boot counted 43. Raised
-         * here, after the boot, so nothing the valley fetches can be lost,
-         * and read at once so the list before it is still whole. */
-        `eval:(performance.setResourceTimingBufferSize(20000), ${collect})`,
+        `eval:${collect}`,
         /* The Alps' cost, at a parked camera over their spawn so the
          * numbers are reproducible. Measured with the Alps selected, which is
          * the whole point: the Swiss valley must cost nothing at all until it
