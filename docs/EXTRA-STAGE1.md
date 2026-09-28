@@ -322,6 +322,17 @@ its bay and its hatch, the two main legs and the tailwheel, the camera
 and the antenna; 19 parts summing to 1.51 kg with the CG at the origin
 (`npm run crash:core`).
 
+A crash that takes the stabiliser or the fin scales that surface's
+slipstream shares with it, as it does the table's tail derivatives. With
+the whole surface gone its tail volume is zero, and the elevator's or the
+rudder's angle on it is taken as zero rather than divided by it: the
+first build divided, and `crash:identity`'s crash physics on run of
+`wing:contact` found the Extra's nose-in reading NaN. It now passes. The
+one check the Extra fails with crash physics on is the tip strike's "back
+on its wheels": it ends at 9.6 deg with the tailwheel carrying nothing,
+the same class of result the Cub, the Kadet, the Timber and the Edge give
+there on main.
+
 ## The stabiliser
 
 The Cub's loops scaled to throws two and a half times the Cub's. Acro asks

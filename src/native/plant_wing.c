@@ -1257,16 +1257,21 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double cyb = fw->cy_beta, clb = fw->cl_beta, cnb = fw->cn_beta;
   double cydr = fw->cy_dr, cldr = fw->cl_dr, cndr = fw->cn_dr;
   double cl_lin_m = cl_lin, stall_dw = fw->stall_dw;
-  double vh = 0.0, vv = 0.0;
+  double vh = 0.0, vv = 0.0, ae = 0.0, ar = 0.0;
   if (fw->hi_alpha) {
     const double dd = fw->tail_deda;
     vh = -fw->slip_cm_a / (fw->tail_at * (1.0 - dd));
     vv = fw->slip_cn_b / fw->tail_av;
-    const double at =sin_a - dd * CL / fw->cl_alpha - fw->slip_a0 * (1.0 - dd);
-    const double xt = fw->tail_at * at - fw->cm_de * delta_e / vh;
+    /* The elevator's and the rudder's angles on their surfaces. A surface
+     * a crash took away (crash.c zeroes its share, so vh or vv is zero)
+     * carries no angle, where the division would be 0 / 0. */
+    ae = vh > 0.0 ? -fw->cm_de * delta_e / vh : 0.0;
+    ar = vv > 0.0 ? fw->cn_dr * delta_r / vv : 0.0;
+    const double at = sin_a - dd * CL / fw->cl_alpha - fw->slip_a0 * (1.0 - dd);
+    const double xt = fw->tail_at * at + ae;
     cm_stiff = (fw->cm_alpha - fw->slip_cm_a) * sin_a + fw->slip_cm_a * fw->slip_a0 - vh * xt * plate_ratio(xt, fw->tail_cn);
     cm_de_lin = 0.0;
-    const double xv = fw->tail_av * beta_s + fw->cn_dr * delta_r / vv;
+    const double xv = fw->tail_av * beta_s + ar;
     const double rv = plate_ratio(xv, fw->tail_cn);
     cyb = fw->cy_beta - fw->slip_cy_b * (1.0 - rv);
     clb = fw->cl_beta - fw->slip_cl_b * (1.0 - rv);
@@ -1380,8 +1385,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     double rh = 1.0, rv = 1.0;
     if (fw->hi_alpha) {
       const double vw = u_pos + 2.0 * vi;
-      const double xh = fw->tail_at * xa / vw - fw->cm_de * delta_e / vh;
-      const double xv = fw->tail_av * xb / vw + fw->cn_dr * delta_r / vv;
+      const double xh = fw->tail_at * xa / vw + ae;
+      const double xv = fw->tail_av * xb / vw + ar;
       rh = plate_ratio(xh, fw->tail_cn);
       rv = plate_ratio(xv, fw->tail_cn);
     }
