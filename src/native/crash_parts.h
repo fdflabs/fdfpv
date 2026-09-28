@@ -179,6 +179,14 @@ typedef struct {
  * percent), how far a curved face gives before it starts to crush
  * (crash.c, THE PATCH GROWS AS THE FOAM GOES IN). */
 #define FOAM_E 19.7e6
+/* FOAM SPRINGS BACK (owner, 2026-09-28; crash.c, spring_back). The share of
+ * a crush a bead foam part keeps once unloaded: ARPRO EPP 30 g/L's
+ * compression set at 50 percent, 12 percent (R-FOAM). */
+#define FOAM_SET 0.12
+/* The strain the plateau starts at, the datasheet's first crush point: 10
+ * percent (R-FOAM). A crush shallower than that over its patch's width
+ * keeps less than FOAM_SET of it, a scuff, and marks nothing. */
+#define FOAM_ONSET 0.10
 #define FOAM_SECTION(c) .sect_c = (c), .sect_eos = FOAM_EOS, .sect_joint = 0
 /* A composite shell's own section, carbon skins on a honeycomb core, c its
  * half depth: woven carbon laminate's 70 GPa over its 600 MPa (DragonPlate,
