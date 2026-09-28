@@ -60,9 +60,18 @@ const BELL = { color: 0xd8483a, rim: 0.3, spec: 0.35 };
 const WRAP = { color: 0x1d2226, rim: 0.28, spec: 0.2 };
 const LABEL = { color: 0xffd45c, rim: 0.2, spec: 0.1 };
 
+/* Materials are kept for the session, like the picker's models: a new
+ * choice rebuilds the parts' geometry, and a fresh material would be a
+ * fresh shader program to compile in the very frame the pilot picked. */
+const MATS = new Map();
 function mat(o) {
-  return celMaterial({ fog: false, cloudShadow: 0, ...o });
+  const key = JSON.stringify(o);
+  if (!MATS.has(key)) {
+    MATS.set(key, celMaterial({ fog: false, cloudShadow: 0, ...o }));
+  }
+  return MATS.get(key);
 }
+let tankShell = null;
 
 function option(airframe, id) {
   const list = POWER[airframe];
@@ -139,9 +148,10 @@ function tankPart(cc) {
   const a = Math.cbrt(cc) * 0.01;
   const r = a * 0.42;
   const len = a * 1.35;
-  const shell = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 20), new THREE.MeshStandardMaterial({
+  tankShell = tankShell ?? new THREE.MeshStandardMaterial({
     color: 0xeef4f0, roughness: 0.15, metalness: 0, transparent: true, opacity: 0.38, depthWrite: false,
-  }));
+  });
+  const shell = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 20), tankShell);
   shell.rotation.x = Math.PI / 2;
   const fuel = new THREE.Mesh(new THREE.CapsuleGeometry(r * 0.86, len * 0.96, 6, 20), mat({ color: 0xc9e27a, rim: 0.25, spec: 0.3 }));
   fuel.rotation.x = Math.PI / 2;
@@ -154,13 +164,10 @@ function tankPart(cc) {
   return g;
 }
 
-function disposeTree(o) {
+function disposeGeometry(o) {
   o.traverse((n) => {
     if (n.geometry) {
       n.geometry.dispose();
-    }
-    if (n.material) {
-      n.material.dispose();
     }
   });
 }
@@ -237,7 +244,7 @@ export function createExploder() {
   function build(r, want) {
     if (r.group) {
       r.root.remove(r.group);
-      disposeTree(r.group);
+      disposeGeometry(r.group);
     }
     r.group = new THREE.Group();
     r.group.name = 'hangar-exploded';

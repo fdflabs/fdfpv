@@ -6773,7 +6773,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     const was = hangarRev ? hangarRev.was : Object.keys(VOICES).find((k) => VOICES[k] === audio.voice);
     audio.setVoice(o.voice);
-    hangarRev = { t0: performance.now(), voice: o.voice, was };
+    hangarRev = { t0: null, voice: o.voice, was };
   };
   ui.onHangarPreview = (id, colours) => {
     pickStage.repaint(id, colours);
@@ -10123,7 +10123,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     audioRpm[2] = motorsTurning ? st[16] : 0;
     audioRpm[3] = motorsTurning ? st[17] : 0;
     if (hangarRev) {
-      const rpm = ui.hangar.isOpen ? revRpm(performance.now() - hangarRev.t0, VOICES[hangarRev.voice].rpmFull) : null;
+      /* The rev's clock starts on the first frame that feeds it, so a
+       * hitch in the frame the pilot picked does not eat the sound. */
+      if (hangarRev.t0 == null) {
+        hangarRev.t0 = performance.now();
+      }
+      hangarRev.ms = performance.now() - hangarRev.t0;
+      const rpm = ui.hangar.isOpen ? revRpm(hangarRev.ms, VOICES[hangarRev.voice].rpmFull) : null;
       if (rpm == null) {
         audio.setVoice(hangarRev.was);
         hangarRev = null;
@@ -10706,7 +10712,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* The hangar's rev (ui.onHangarTry): the voice it speaks on, the one it
    * gives back, and the rpm last fed to the mix. For scripts/progress-check.js. */
   window.__hangarRev = () => ({
-    rev: hangarRev ? { voice: hangarRev.voice, was: hangarRev.was } : null,
+    rev: hangarRev ? { voice: hangarRev.voice, was: hangarRev.was, ms: hangarRev.ms ?? null } : null,
     voice: Object.keys(VOICES).find((k) => VOICES[k] === audio.voice) ?? null,
     rpm: audioRpm.slice(),
   });

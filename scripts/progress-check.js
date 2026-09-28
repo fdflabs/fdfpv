@@ -54,6 +54,8 @@ import {
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { LAP_XP, FIRST_LAP_XP, PLANE_LEVELS } from '../src/game/progress.js';
+import { revRpm } from '../src/ui/hangar-polish.js';
+import { VOICES } from '../src/render/audio.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = resolve(process.argv[2] || join(root, 'tmp', 'progress-check'));
@@ -359,28 +361,36 @@ async function earn(page) {
   return p;
 }
 
-/* Click `keyName` and sample, every drawn frame while the rev plays, the
- * voice it speaks on, the one it gives back and the least rpm fed to any
- * of the mix's four motor voices. */
-async function revOf(page, keyName) {
+/*
+ * Click `keyName` and sample, every drawn frame while the rev plays, the
+ * voice it speaks on, the one it gives back, and what each of the mix's
+ * four motor voices was fed at how far into the rev. A headless page draws
+ * a frame or two a second in the hangar, so the samples are checked
+ * against the rev's own shape at their times (fed), not for its peak.
+ */
+async function revOf(page, keyName, rpmFull) {
   await page.evaluate(`(() => {
-    window.__revSeen = { peak: 0, voice: null, was: null };
-    const t0 = performance.now();
+    window.__revSeen = { samples: [], voice: null, was: null, done: false };
     const f = () => {
       const r = window.__hangarRev();
-      if (r.rev) {
+      if (r.rev && r.rev.ms != null) {
         window.__revSeen.voice = r.voice;
         window.__revSeen.was = r.rev.was;
-        window.__revSeen.peak = Math.max(window.__revSeen.peak, Math.min(...r.rpm));
+        window.__revSeen.samples.push({ ms: r.rev.ms, rpm: r.rpm.slice() });
       }
-      if (performance.now() - t0 < 4000) { requestAnimationFrame(f); }
+      if (window.__revSeen.voice && !r.rev) { window.__revSeen.done = true; return; }
+      requestAnimationFrame(f);
     };
     requestAnimationFrame(f);
     return true;
   })()`);
   await page.evaluate(click(keyName));
-  await page.until('window.__revSeen.peak > 5000 || window.__hangarRev().rev === null', 10000).catch(() => {});
-  return page.evaluate('window.__revSeen');
+  await page.until('window.__revSeen.done', 20000).catch(() => {});
+  const seen = await page.evaluate('window.__revSeen');
+  const fed = seen.samples.filter((x) => revRpm(x.ms, rpmFull) != null);
+  seen.fed = fed.length > 0 && fed.every((x) => x.rpm.every((r) => Math.abs(r - revRpm(x.ms, rpmFull)) < 1));
+  seen.samples = seen.samples.map((x) => `${Math.round(x.ms)} ms ${Math.round(x.rpm[0])}`);
+  return seen;
 }
 
 async function unlocked(page) {
@@ -399,8 +409,8 @@ async function unlocked(page) {
   say(three && !three.disabled && !three.locked && three.isNew, `the Timber's 3S option is open, and New: ${JSON.stringify(three)}`);
   await settle(page, 1200);
   const counts = await page.evaluate('Object.fromEntries(Object.entries(window.__ui.hangar.counts).map(([k, v]) => [k, v.to]))');
-  const rev = await revOf(page, 'option-3s');
-  say(rev.voice === 'wing' && rev.peak > 5000, `picking it plays a rev on its voice, every motor of the mix fed up to ${Math.round(rev.peak)} rpm: ${JSON.stringify(rev)}`);
+  const rev = await revOf(page, 'option-3s', VOICES.wing.rpmFull);
+  say(rev.voice === 'wing' && rev.fed && rev.done, `picking it plays a rev on its voice, each of the mix's motors fed the rev's shape at every drawn frame: ${JSON.stringify(rev)}`);
   const ghosts = await page.evaluate(`[...document.querySelectorAll('.hangar-stat')].map((b) => {
     const g = b.querySelector('.hangar-stat-ghost');
     const bar = b.querySelector('.hangar-stat-bar').getBoundingClientRect().width;
@@ -413,7 +423,6 @@ async function unlocked(page) {
     `the readouts keep the old values as ghost bars: ${JSON.stringify(ghosts.map((g) => [g.label, g.on, g.share.toFixed(2)]))}, the old values' shares ${JSON.stringify(want.map((w) => w.toFixed(2)))}`);
   await settle(page, 700);
   await shot(page, '4-ghost-bars');
-  await page.until('window.__hangarRev().rev === null', 5000).catch(() => {});
   const after = await page.evaluate('window.__hangarRev()');
   say(after.rev === null && after.voice === rev.was && after.rpm.every((r) => r === 0), `the rev ends, the mix is fed nothing, and the seated voice is back: ${after.voice}`);
   await page.evaluate("window.__ui.hangar.saveBtn.click(); true");
@@ -427,11 +436,10 @@ async function unlocked(page) {
   /* A four stroke on the Kadet, opened by the level, speaks as one over
    * the seated Timber's electric voice and gives it back. */
   await openHangar(page, 'kadet1981');
-  const glow = await revOf(page, 'option-fsa56');
-  await page.until('window.__hangarRev().rev === null', 8000).catch(() => {});
+  const glow = await revOf(page, 'option-fsa56', VOICES.glow4.rpmFull);
   const back = await page.evaluate('window.__hangarRev()');
-  say(glow.voice === 'glow4' && glow.was === 'wing' && glow.peak > 5000 && back.voice === 'wing',
-    `the Kadet's FSa-56 revs on the four stroke's voice up to ${Math.round(glow.peak)} rpm, and the Timber's electric voice comes back: ${JSON.stringify(glow)}, then ${back.voice}`);
+  say(glow.voice === 'glow4' && glow.was === 'wing' && glow.fed && glow.done && back.voice === 'wing',
+    `the Kadet's FSa-56 revs on the four stroke's voice, and the Timber's electric voice comes back: ${JSON.stringify(glow)}, then ${back.voice}`);
   await closeHangar(page);
 }
 
