@@ -108,6 +108,7 @@ const r = (id, stock, more = {}) => ({ id, stock, ...more });
 const src = (label, url) => ({ label, url });
 const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/Piper_J-3_Cub');
 const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
+const EF_SHEET = src('Extreme Flight 60 in Edge 540T data sheet, its covering colour codes', 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_60EDGE_1cb1926a-3a06-46ce-bfb4-18a18962d730.pdf');
 const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
 export const LIVERIES = {
   sky1800: {
@@ -172,6 +173,27 @@ export const LIVERIES = {
       { id: 'sport_blue', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#335a9a', fuselage: '#335a9a', fuse_trim: '#f2f2f2' } },
     ],
   },
+  p51d1450: {
+    /* FMS's natural metal P-51 as its manual photographs it: silver all
+     * over, the red of the nose band, the spinner and the fin's top, and
+     * the black of the anti-glare panel and the identification bands. */
+    regions: [r('wing', '#cad0d5'), r('fuselage', '#cad0d5'), r('tail', '#cad0d5'), r('trim', '#c8161a'), r('stripe', '#17191b')],
+    schemes: [
+      { id: 'stock', source: src('FMS P-51D Mustang V8 1450 mm, the manual\'s photographs', 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf'), colours: {} },
+    ],
+  },
+};
+
+/* Extreme Flight's two schemes for the 60 in Edge, from its data sheet's
+ * colour codes: blue (Oracover Blue #50, Cub Yellow #30, Cadmium Yellow
+ * #33, White, Dark Blue, Silver), the stock one the model draws, and red
+ * (Ferrari Red #23, White #10, Pearl Charcoal #77, Silver, Black). */
+LIVERIES.edge1524 = {
+  regions: [r('wing', '#1d4fc4'), r('fuselage', '#1d4fc4'), r('tail', '#1d4fc4'), r('trim', '#f5d20f')],
+  schemes: [
+    { id: 'stock', source: EF_SHEET, colours: {} },
+    { id: 'ef_red', source: EF_SHEET, colours: { ...all('#dfdcd8', ['wing', 'fuselage', 'tail']), trim: '#ba100f' } },
+  ],
 };
 
 const FAMILY = { timber1500f: 'timber1500', cub1400f: 'cub1400' };

@@ -267,6 +267,54 @@ export const TUNES = [
     name: 'Manual',
     note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles.',
   },
+  {
+    /* The Edge's three, the Cub's on its own plant: ailerons, elevator and
+     * rudder at Extreme Flight's 3D throws. On its wheels every mode flies
+     * as Manual. Manual is where the aerobat is: yank the stick at the edge
+     * of the envelope and it snaps. */
+    id: 'edge-stab',
+    airframe: 'edge1524',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
+    wingStab: 1,
+  },
+  {
+    id: 'edge-acro',
+    airframe: 'edge1524',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 180, centred sticks hold the attitude, upright or on its back, and the rudder stick is the rudder alone.',
+    wingStab: 2,
+  },
+  {
+    id: 'edge-manual',
+    airframe: 'edge1524',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at 3D throws, which also steers the tailwheel. It rolls faster than 600 degrees a second, flies on its back as well as upright, and a hard yank of the elevator snaps it.',
+  },
+  {
+    /* The P-51's three, the Timber's: ailerons, elevator and rudder, the
+     * flaps and the retracts switches on top of every mode, F and G; on
+     * its wheels every mode flies as Manual, so the swing on the take off
+     * roll is the pilot's to hold with the rudder in all three. */
+    id: 'p51-stab',
+    airframe: 'p51d1450',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. On the take off roll it is yours: feed in right rudder as the tail comes up. G works the retracts, F the flaps.',
+    wingStab: 1,
+  },
+  {
+    id: 'p51-acro',
+    airframe: 'p51d1450',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 120 degrees a second and a pitch rate up to 60, centred sticks hold the attitude, and the rudder stick is the rudder alone. G works the retracts, F the flaps.',
+    wingStab: 2,
+  },
+  {
+    id: 'p51-manual',
+    airframe: 'p51d1450',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tail wheel. It swings left as the tail comes up and drops a wing when it stalls. G works the retracts, F the flaps.',
+  },
 ];
 
 /*

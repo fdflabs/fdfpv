@@ -355,9 +355,14 @@ int sim_set_flight_style(int arcade);
  * ailerons like the Slow Stick, on wheels and a tail skid, and 12 SIG's
  * Kadet Senior (docs/KADET-STAGE1.md), a 78 in balsa trainer on an O.S.
  * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
- * a tricycle gear whose nose wheel steers with the rudder. Returns
- * SIM_ERR_BAD_ARG for anything else.
- * 2 to 12 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * a tricycle gear whose nose wheel steers with the rudder, 13 Extreme
+ * Flight's 60 in Edge 540T (docs/EDGE-STAGE1.md), an unlimited aerobatic
+ * taildragger on a symmetric section, with the Cub's surfaces at 3D throws,
+ * and 15 FMS's 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric
+ * warbird with flaps on retracting taildragger gear. 14 and 16 to 23 are
+ * reserved for the aircraft being added alongside them. Returns
+ * SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2 to 13 and 15 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -387,6 +392,8 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_CUB1400F_ID 10
 #define SIM_AIRFRAME_BOMBSHELL1118_ID 11
 #define SIM_AIRFRAME_KADET1981_ID 12
+#define SIM_AIRFRAME_EDGE1524_ID 13
+#define SIM_AIRFRAME_P51D1450_ID 15
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -589,6 +596,22 @@ double sim_wing_chute_open(void);
 int sim_wing_set_flaps(int notch);
 double sim_wing_flaps(void);
 int sim_wing_flaps_settle(void);
+
+/*
+ * sim_wing_set_gear(up): the retracts of an aircraft that has them
+ * (docs/P51-STAGE1.md), 1 up and 0 down; the gear travels at the
+ * aircraft's own rate, and its wheels carry the aircraft only while it is
+ * down and locked, so a landing with it up is on the belly. A reset and
+ * sim_set_airframe put it down and locked. SIM_ERR_BAD_ARG for 1 on an
+ * aircraft without retracts, or anything but 0 or 1.
+ * sim_wing_gear(): where it is, 0 down and locked to 1 up.
+ * sim_wing_gear_selected(): the switch, 1 up and 0 down.
+ * Additive, version unchanged: an aircraft without retracts reads none of
+ * it and its trace is bit identical.
+ */
+int sim_wing_set_gear(int up);
+double sim_wing_gear(void);
+int sim_wing_gear_selected(void);
 int sim_wing_set_slats(int fitted);
 
 /*
@@ -743,7 +766,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 12): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 13 and 15): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *
@@ -778,7 +801,10 @@ int sim_addons_state(double *out);
 #define SIM_TUNE_CG_SHIFT 0   /* m, forward positive, from the table's CG */
 #define SIM_TUNE_BALLAST_KG 1 /* kg added, 0 to 1 */
 #define SIM_TUNE_BALLAST_X 2  /* m ahead of the table's CG, negative behind */
-#define SIM_TUNE_THROW_A 3    /* rad at full stick, 0 to 45 deg */
+/* The throws take up to 60 deg, which covers Extreme Flight's 3D and
+ * tumbling rates on the Edge (docs/EDGE-STAGE1.md); they took up to 45
+ * before it, and a block that passed then passes now. */
+#define SIM_TUNE_THROW_A 3    /* rad at full stick, 0 to 60 deg */
 #define SIM_TUNE_THROW_E 4
 #define SIM_TUNE_THROW_R 5
 #define SIM_TUNE_EXPO_A 6     /* 0 to 1 */

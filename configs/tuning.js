@@ -40,7 +40,9 @@
  * Math.asin, which is not specified to the bit.
  *
  * THE EXPO is the plant's cubic, x (1 - e) + x^3 e, the curve EdgeTX and
- * OpenTX call expo; 30 percent is every table's.
+ * OpenTX call expo; 30 percent is every table's but the Edge's, whose 3D
+ * throws its maker sets up with 60 to 90 percent, and an aircraft's own
+ * `expo` here says so, the table's one figure for all three surfaces.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -98,8 +100,11 @@ const RADIAN_PRO_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sit
 const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
+const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
+const EDGE_SHEET = 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_60EDGE_1cb1926a-3a06-46ce-bfb4-18a18962d730.pdf';
+const EDGE_REVIEW = 'https://flyingrc.net/ef540rvu.html';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
 
 /*
@@ -185,12 +190,26 @@ export const TUNING = {
     throws: { high: [0, 15, 20], low: [0, 10.5, 14], source: `high: ESTIMATED, no throws published (docs/BOMBSHELL-STAGE1.md); ${LOW_70}` },
     flaps: null,
   },
+  edge1524: {
+    chord: 0.3175, area: 0.48387, margin: 0.287, expo: 70,
+    cg: { mm: 101.6, datum: 'tuning.datum.root_le', range: [95.25, 120.65], source: `FlyingRC's review of the 60 in Edge 540T: the recommended "3-3/4" to 4-3/4" from the leading edge at the root", and its 4 in "sweet spot" the balance; EF's own data sheet says "on the wing tube" (docs/EDGE-STAGE1.md); ${EDGE_REVIEW}` },
+    packKg: 0.625, nose: 0.40, tail: -0.90,
+    throws: { high: [39, 47.5, 47.5], low: [17.5, 9, 20], source: `EF's data sheet: aileron high 38 to 40, low 15 to 20; elevator 3D 45 to 50, low 8 to 10; rudder high 45 to 50, low 20; expo 70 to 75, 60 to 65 and 70 to 90 percent, the table's one expo 70; ${EDGE_SHEET}` },
+    flaps: null,
+  },
   kadet1981: {
     chord: 0.374487, area: 0.741934, margin: 0.268,
     cg: { mm: 98.4, datum: 'tuning.datum.spar', range: null, source: `SIG, "Center of Gravity 3 7/8 inch At Main Spar", no range (the kit manual: "shown on the plan"); ${KADET_KIT}` },
     packKg: 0.10, nose: 0.335, tail: -0.95,
     throws: { high: [0, 14.4775, 14.4775], low: [0, 10.1, 10.1], source: `SIG kit manual p. 24: elevator 3/4 in up and down, rudder 7/8 in each way, one set; ${LOW_70}; ${KADET_MANUAL}` },
     flaps: null,
+  },
+  p51d1450: {
+    chord: 0.24413793103448276, area: 0.354, margin: 0.034,
+    cg: { mm: 110, datum: 'tuning.datum.root_le', range: null, source: `FMS manual, "110mm from the wing's leading edge (measured at point of contact with fuselage)", no range, p. 26; ${P51_MANUAL}` },
+    packKg: 0.295, nose: 0.30, tail: -0.70,
+    throws: { high: [19.8769, 25.8721, 12.1224], low: [13.9, 18.1, 8.5], source: `FMS manual pp. 19 and 20: the low rates, 17, 24 and 21 mm, which the manual says are for normal flying, on the 50, 55 and 100 mm surfaces (docs/P51-STAGE1.md), are the plant's; ${LOW_70}; ${P51_MANUAL}` },
+    flaps: { mix: 0, angles: [0, 0.28510428711100527, 0.61297025535831962], source: `FMS manual p. 20: mid 22 mm, full 45 mm, no elevator mix given; ${P51_MANUAL}` },
   },
 };
 /* The float planes are their land planes', balanced back to the manual's
@@ -205,11 +224,12 @@ export function tuningFor(airframeId) {
 /* The stock setup's fields. */
 export function stockEntry(airframeId) {
   const t = tuningFor(airframeId);
+  const x = (t && t.expo) || STOCK_EXPO;
   return {
     packMm: 0,
     ballastG: 0,
     rate: 'high',
-    expo: { a: STOCK_EXPO, e: STOCK_EXPO, r: STOCK_EXPO },
+    expo: { a: x, e: x, r: x },
     trimDeg: 0,
     flapStart: 0,
     flapMix: Boolean(t && t.flaps),
@@ -287,7 +307,7 @@ export function normalizeEntry(airframeId, raw, limits) {
       const v = raw.expo[k];
       if (num(v)) {
         const s = Math.round(clampTo(v, 0, 100) / 5) * 5;
-        if (s !== STOCK_EXPO) {
+        if (s !== stock.expo[k]) {
           expo[k] = s;
         }
       }

@@ -991,6 +991,121 @@ export const AIRFRAMES = [
       bodyHeight: 0.5536,
     },
   },
+  {
+    /*
+     * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
+     * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing
+     * plant, with ailerons, an elevator, a rudder, plain flaps and electric
+     * retracts, on FMS's 4250 540 kV and a 14 x 8 four blade on 4S. It
+     * stands on three points at 13 degrees and swings left on the take off
+     * roll, which right rudder holds; it drops a wing at the stall. `gear`
+     * is the plant's settled pose, which the drawn wheels in
+     * src/render/p51craft.js match: the CG 0.2291 m over the ground and
+     * 13.13 degrees nose up. `flaps` says it has flaps (F) and `retracts`
+     * that G raises and lowers the gear, which the OSD shows.
+     */
+    id: 'p51d1450',
+    simId: 15,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/p51-thresholds.json p2_stall. */
+    stall: 10.06,
+    /* Level speed at full throttle with the gear up, m/s: tests/p51-thresholds.json p4_top, derived. */
+    topSpeed: 20.64,
+    gear: { restHeight: 0.2291, restPitch: 13.13 * Math.PI / 180 },
+    flaps: true,
+    retracts: true,
+    name: 'P-51D Mustang',
+    short: 'P-51',
+    blurb: 'A 1450 mm FMS P-51D Mustang on 4S, the Second World War fighter in natural metal with a red nose and tail. It swings left as the tail comes up, so feed in right rudder; it keeps its speed, and it drops a wing if you let it get slow. G raises and lowers the retracts, F sets the flaps.',
+    facts: ['4S', '1450 mm', 'Retracts, flaps'],
+    sizeMm: 1450,
+    grams: 2350,
+    trackClass: 'wing',
+    cells: 4,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'p51-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/p51craft.js P51_DIMS: the furthest
+     * reach in plan is the rudder's trailing edge, the lowest drawn point
+     * the main tyres' and the highest the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1778,
+      hullR: 0.8326,
+      vHalfDown: 0.2491,
+      vHalfUp: 0.2303,
+      bodyLength: 1.2628,
+      bodyWidth: 1.450,
+      bodyHeight: 0.4794,
+    },
+  },
+  {
+    /*
+     * Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md: the Zivko Edge
+     * 540, the Red Bull Air Race's aircraft, as an unlimited aerobatic
+     * model, 2.49 kg, simId 13 on the fixed wing plant. Ailerons over the
+     * whole trailing edge, an elevator and a rudder at EF's 3D throws, a
+     * symmetric wing at no incidence, so it flies on its back as it flies
+     * upright, and a T-Motor AM600 on 6S with three times its weight in
+     * thrust. It rolls at over 600 deg/s, and a hard yank at the edge of
+     * the envelope stalls one wing before the other and it snaps. A
+     * taildragger on carbon gear: `gear` is the plant's settled pose, which
+     * the drawn wheels in src/render/edgecraft.js match, the CG 0.2510 m
+     * over the ground and 9.84 deg nose up.
+     */
+    id: 'edge1524',
+    simId: 13,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/edge-thresholds.json e2_stall. */
+    stall: 9.58,
+    /* Level speed at full throttle, m/s: tests/edge-thresholds.json e4_top, derived. */
+    topSpeed: 29.7,
+    gear: { restHeight: 0.2510, restPitch: 9.84 * Math.PI / 180 },
+    name: 'Edge 540',
+    short: 'Edge',
+    blurb: 'A 60 in Extreme Flight Edge 540T, the Red Bull Air Race aircraft as an unlimited aerobat, on 6S with three times its weight in thrust. It rolls at over 600 degrees a second, flies on its back as well as upright, and snaps if you yank it at the edge of the envelope. A taildragger on carbon gear.',
+    facts: ['6S', '1524 mm', 'Unlimited aerobat'],
+    sizeMm: 1524,
+    grams: 2494.8,
+    trackClass: 'wing',
+    cells: 6,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'edge-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/edgecraft.js EDGE_DIMS: the furthest
+     * reach in plan is the rudder's trailing edge at its foot, further
+     * from the CG than the tips; the main tyres' bottoms and the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.2032,
+      hullR: 0.9652,
+      vHalfDown: 0.276225,
+      vHalfUp: 0.3175,
+      bodyLength: 1.4986,
+      bodyWidth: 1.524,
+      bodyHeight: 0.593725,
+    },
+  },
 ];
 
 

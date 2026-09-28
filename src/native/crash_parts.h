@@ -1038,6 +1038,114 @@ static const PartDef PARTS_KADET1981[] = {
     .npts = 2, .pts = { { -0.35, 0.0, 0.05 }, { -0.33, 0.0, 0.14 } } },
 };
 
+/* ------------------------------------------------------------------------
+ * EXTREME FLIGHT 60 IN EDGE 540T, SIM_AIRFRAME_EDGE1524, edgecraft.js.
+ * 2.49 kg of balsa and light ply under film, with carbon and G10 where the
+ * loads are (EF: "carbon fiber and G10 composites ... in high stress areas
+ * such as the landing gear mounting structure and fuselage longerons"),
+ * docs/EDGE-STAGE1.md: nothing foam, so nothing crushes; a joint past its
+ * onset cracks, as the Kadet's balsa does. The panels slide on a carbon
+ * wing tube and latch to the fuselage; an AM600 bolted to the ply
+ * firewall; carbon gear legs and a carbon tailwheel.
+ * --------------------------------------------------------------------- */
+/* EF's carbon wing tube, ESTIMATED 16 mm outside and 14 mm inside
+ * (EF does not publish it): Z pi (D^4 - d^4) / 32 D, 1.66e-7 m^3, at a
+ * unidirectional tube's 600 MPa, 100 N m. */
+#define EDGE_TUBE_M 100.0
+static const PartDef PARTS_EDGE1524[] = {
+  /* 0 the fuselage from the firewall to the wing's trailing edge: the
+   * cowl, the ply firewall and motor box, the wing saddle and tube sleeve,
+   * the servos and the receiver: the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_PLY, .motor = -1, .wheel = -1,
+    .k = 3.0e5, BOX(-0.28, 0.46, -0.07, 0.07, -0.10, 0.14) },
+  /* 1 the rear fuselage, a light ply and balsa box on carbon longerons,
+   * judged at the stabiliser's leading edge, 40 mm square with 2.4 mm
+   * walls: Z 5.1e-6 m^3, 102 N m at balsa's 20 MPa, and half of it for the
+   * lightening holes and the glue joints, the carbon left out: 50 N m,
+   * ESTIMATED. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.15, .joint = { -0.28, 0.0, 0.0 }, .m_max = 50.0, .f_max = 400.0, .k = 3.0e4,
+    .npts = 8, .pts = { { -0.28, 0.07, -0.10 }, { -0.28, -0.07, -0.10 }, { -0.28, 0.07, 0.10 }, { -0.28, -0.07, 0.10 },
+                        { -0.84, 0.015, -0.03 }, { -0.84, -0.015, -0.03 }, { -0.84, 0.015, 0.03 }, { -0.84, -0.015, 0.03 } } },
+  /* 2 the stabiliser, built up balsa on a carbon rod, slid through the
+   * fuselage and glued: its root spar and leading edge, ESTIMATED 8 N m. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.70, 0.0, 0.0 }, .m_max = 8.0, .f_max = 80.0, .k = 2500.0,
+    BOX(-0.73, -0.597, -0.292, 0.292, -0.008, 0.008) },
+  /* 3 the elevator on pin hinges, sealed, ESTIMATED 2 N m. */
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.03, .joint = { -0.73, 0.0, 0.0 }, .m_max = 2.0, .f_max = 40.0, .k = 2000.0,
+    BOX(-0.838, -0.73, -0.292, 0.292, -0.006, 0.006) },
+  /* 4 the fin, built into the fuselage's top, ESTIMATED 5 N m. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.03, .joint = { -0.70, 0.0, 0.03 }, .m_max = 5.0, .f_max = 60.0, .k = 2000.0,
+    BOX(-0.80, -0.61, -0.005, 0.005, 0.03, 0.305) },
+  /* 5 the rudder on its Tyvek hinges, ESTIMATED 2 N m. */
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.04, .joint = { -0.80, 0.0, 0.10 }, .m_max = 2.0, .f_max = 40.0, .k = 1500.0,
+    BOX(-0.965, -0.80, -0.005, 0.005, -0.089, 0.305) },
+  /* 6, 7 the panels on the wing tube, latched: up and down the tube is
+   * the root's strength, fore and aft the panel's own 15 in root chord on
+   * its tube and anti rotation pin, ESTIMATED at 60 N m. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.25, .joint = { -0.10, 0.07, 0.0 }, .m_max = EDGE_TUBE_M, .m_max_z = 60.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.1016, 0.07, -0.024 }, { -0.2794, 0.07, -0.006 }, { 0.1016, 0.07, 0.024 }, { -0.2794, 0.07, 0.006 },
+                        { -0.0254, 0.762, -0.016 }, { -0.2794, 0.762, -0.004 }, { -0.0254, 0.762, 0.016 }, { -0.2794, 0.762, 0.004 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.25, .joint = { -0.10, -0.07, 0.0 }, .m_max = EDGE_TUBE_M, .m_max_z = 60.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.1016, -0.07, -0.024 }, { -0.2794, -0.07, -0.006 }, { 0.1016, -0.07, 0.024 }, { -0.2794, -0.07, 0.006 },
+                        { -0.0254, -0.762, -0.016 }, { -0.2794, -0.762, -0.004 }, { -0.0254, -0.762, 0.016 }, { -0.2794, -0.762, 0.004 } } },
+  /* 8, 9 the ailerons on pin hinges, 4 in of chord along the trailing edge. */
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.03, .joint = { -0.18, 0.40, 0.0 }, .m_max = 2.0, .f_max = 40.0, .k = 2000.0,
+    BOX(-0.2794, -0.178, 0.07, 0.762, -0.008, 0.008) },
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.03, .joint = { -0.18, -0.40, 0.0 }, .m_max = 2.0, .f_max = 40.0, .k = 2000.0,
+    BOX(-0.2794, -0.178, -0.762, -0.07, -0.008, 0.008) },
+  /* 10 the AM600, 360 g, on four M4 bolts into blind nuts in the ply
+   * firewall, 40 mm apart: a blind nut pulls through 6 mm of birch ply at
+   * about 600 N, ESTIMATED from the Kadet's 400 N in 4 mm, 1200 N on a
+   * side, 48 N m. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.36, .joint = { 0.40, 0.0, 0.0 }, .m_max = 48.0, .f_max = 1200.0, .k = 1.0e6,
+    BOX(0.40, 0.47, -0.030, 0.030, -0.030, 0.030) },
+  /* 11 T-Motor's carbon 16 x 8: a blade 22 x 5 mm at a quarter of its
+   * radius, woven carbon at 600 MPa, fails at about 5.5 N m in bending and
+   * does not bend first: it breaks, so the yield and the shed are close,
+   * the limit twice the Kadet's wood's rule applied to its own figure,
+   * ESTIMATED. Carbon: the table's nearest is the plate. */
+  { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_CF_PLATE, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.05, .joint = { 0.4826, 0.0, 0.0 }, .m_max = 2.0 * 5.5, .f_max = 200.0, .k = 1200.0,
+    .npts = 8, .pts = { { 0.49, 0.0, 0.0 }, { 0.2032, 0.0, 0.0 } } },
+  /* 12 the 6S 4000, 625 g, on the tray ahead of the tube under a strap
+   * that "completely encircles the lipo" (EF's guide): two straps' worth
+   * of hook and loop. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.625, .joint = { 0.12, 0.0, -0.03 }, .m_max = 6.0, .f_max = 2.0 * VELCRO_12, .k = 3.0e5,
+    BOX(0.04, 0.20, -0.025, 0.025, -0.06, 0.0) },
+  /* 13 the canopy hatch, latched. */
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.03, .joint = { 0.0, 0.0, 0.08 }, .m_max = 0.5, .f_max = MAGNET_2, .k = 2.0e4,
+    BOX(-0.15, 0.20, -0.06, 0.06, 0.07, 0.14) },
+  /* 14, 15 the carbon gear legs, ESTIMATED as a 4 mm by 30 mm laminate at
+   * the root, 600 MPa: 48 N m; 16 the carbon tailwheel bracket, 3 N m. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 0,
+    .mass = 0.06, .joint = { 0.11, 0.02, -0.10 }, .m_max = 48.0, .f_max = 600.0, .k = 1725.0,
+    BOX(0.09, 0.14, 0.0, 0.17, -0.282, -0.10) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 1,
+    .mass = 0.06, .joint = { 0.11, -0.02, -0.10 }, .m_max = 48.0, .f_max = 600.0, .k = 1725.0,
+    BOX(0.09, 0.14, -0.17, 0.0, -0.282, -0.10) },
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 2,
+    .mass = 0.02, .joint = { -0.90, 0.0, -0.03 }, .m_max = 3.0, .f_max = 80.0, .k = 629.0,
+    BOX(-0.95, -0.89, -0.006, 0.006, -0.0975, -0.03) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.30, 0.0, 0.09 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.29, 0.315, -0.010, 0.010, 0.080, 0.100) },
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.35, 0.0, 0.08 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.35, 0.0, 0.08 }, { -0.33, 0.0, 0.16 } } },
+};
+
 /*
  * The two aircraft on floats are built in crash.c from the wheeled tables
  * above: their gear taken off, every part raised by the CG drop the floats
@@ -1053,5 +1161,99 @@ static const PartDef PARTS_KADET1981[] = {
 #define BRACE_WIRE (2000.0e6 * 3.14159265358979323846 * 0.0005 * 0.0005)
 #define FLOAT_STRUT_M (BRACE_WIRE * 0.14)
 #define FLOAT_STRUT_F (2.0 * BRACE_WIRE)
+
+/* ------------------------------------------------------------------------
+ * FMS P-51D MUSTANG V8 1450, SIM_AIRFRAME_P51D1450, p51craft.js. 2.35 kg
+ * of EPO, docs/P51-STAGE1.md: a two piece wing on FMS's fibreglass and
+ * aluminium joiner tubes bolted under the fuselage, a 4250 motor on an
+ * aluminium mount in the foam nose, a four blade prop, and electric
+ * retracts screwed to ply plates in the wing, which fold their legs into
+ * it when the gear comes up (crash.c, stowed): then the belly is what
+ * meets the ground, the scoop first, and the prop's tips before it.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_P51D1450[] = {
+  /* 0 the fuselage from the spinner's back to the wing's trailing edge,
+   * the cockpit, the pack, the ESC and the scoop: the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .k = 3.0e5, .crush_s = EPO_CRUSH, .crush_a = 0.0090, .crush_d = 0.10,
+    BOX(-0.30, 0.34, -0.057, 0.057, -0.129, 0.137) },
+  /* 1 the rear fuselage, a moulded EPO shell tapering to the tail. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.110, .joint = { -0.30, 0.0, 0.0 }, FOAM_SECTION(0.05), .m_max = 25.0, .f_max = 350.0, .k = 2.0e4,
+    .npts = 8, .pts = { { -0.30, 0.050, -0.110 }, { -0.30, -0.050, -0.110 }, { -0.30, 0.050, 0.100 }, { -0.30, -0.050, 0.100 },
+                        { -0.80, 0.015, -0.020 }, { -0.80, -0.015, -0.020 }, { -0.80, 0.015, 0.060 }, { -0.80, -0.015, 0.060 } } },
+  /* 2 the stabiliser, one piece screwed through the fuselage (the manual's
+   * PA 2.6 x 20 mm), 3 the elevator on its foam hinge. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.040, .joint = { -0.66, 0.0, 0.050 }, .m_max = 4.0, .f_max = 150.0, .k = 3000.0,
+    BOX(-0.690, -0.638, -0.258, 0.258, 0.044, 0.056) },
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.015, .joint = { -0.690, 0.0, 0.050 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.745, -0.690, -0.258, 0.258, 0.045, 0.055) },
+  /* 4 the fin, screwed on its dowel pins (the manual's step 25), 5 the
+   * rudder. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.020, .joint = { -0.70, 0.0, 0.06 }, .m_max = 3.0, .f_max = 120.0, .k = 3000.0,
+    BOX(-0.760, -0.640, -0.006, 0.006, 0.060, 0.230) },
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.015, .joint = { -0.760, 0.0, 0.12 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.833, -0.760, -0.006, 0.006, -0.020, 0.230) },
+  /* 6, 7 the panels on their joiner tubes, a 10 mm fibreglass tube
+   * ESTIMATED as a 5 mm carbon spar's 60 N m, the tapered chord 0.313 m
+   * at the fuselage to 0.163 at the tip, 5 degrees of dihedral. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.250, .joint = { -0.03, 0.057, -0.050 }, CARBON_SPAR(0.005), .m_max = 60.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.3129, 0.040), .f_max = 600.0, .k = 3000.0,
+    .crush_s = EPO_CRUSH, .crush_a = 0.0017, .crush_d = 0.12,
+    .npts = 8, .pts = { { 0.110, 0.057, -0.074 }, { -0.203, 0.057, -0.060 }, { 0.110, 0.057, -0.027 }, { -0.203, 0.057, -0.050 },
+                        { 0.072, 0.725, -0.002 }, { -0.090, 0.725, 0.004 }, { 0.072, 0.725, 0.016 }, { -0.090, 0.725, 0.012 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.250, .joint = { -0.03, -0.057, -0.050 }, CARBON_SPAR(0.005), .m_max = 60.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.3129, 0.040), .f_max = 600.0, .k = 3000.0,
+    .crush_s = EPO_CRUSH, .crush_a = 0.0017, .crush_d = 0.12,
+    .npts = 8, .pts = { { 0.110, -0.057, -0.074 }, { -0.203, -0.057, -0.060 }, { 0.110, -0.057, -0.027 }, { -0.203, -0.057, -0.050 },
+                        { 0.072, -0.725, -0.002 }, { -0.090, -0.725, 0.004 }, { 0.072, -0.725, 0.016 }, { -0.090, -0.725, 0.012 } } },
+  /* 8, 9 the ailerons, 0.45 to 0.68 m out. */
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.07, 0.56, -0.012 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.130, -0.075, 0.450, 0.680, -0.022, -0.002) },
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.07, -0.56, -0.012 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.130, -0.075, -0.680, -0.450, -0.022, -0.002) },
+  /* 10 the 4250 and its aluminium mount on four screws into the ply motor
+   * board in the nose, 11 the four blade 14 x 8 and its spinner: nylon,
+   * whose blades bend before they break, the planes' bound. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.245, .joint = { 0.30, 0.0, 0.013 }, .m_max = PL_MOTOR_M, .f_max = 500.0, .k = 1.0e6,
+    NOSE_CRUSH(0.0090, 0.10), BOX(0.300, 0.345, -0.025, 0.025, -0.012, 0.038) },
+  { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = 3, .shape = SH_DISCX, .blades = 4,
+    .mass = 0.100, .joint = { 0.345, 0.0, 0.0129 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
+    .npts = 8, .pts = { { 0.3578, 0.0, 0.0129 }, { 0.1778, 0.0, 0.0 } } },
+  /* 12 the 4S 2600 on its tray under the hatch, 13 the hatch on its
+   * magnets. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.290, .joint = { 0.12, 0.0, -0.040 }, .m_max = 6.0, .f_max = 1.5 * VELCRO_12, .k = 3.0e5,
+    BOX(0.060, 0.200, -0.022, 0.022, -0.075, -0.030) },
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.030, .joint = { -0.05, 0.0, 0.10 }, .m_max = 0.8, .f_max = MAGNET_2, .k = 2.0e4,
+    BOX(-0.20, 0.10, -0.045, 0.045, 0.080, 0.137) },
+  /* 14, 15 the mains, FMS's electric retracts on their oleo legs screwed
+   * to ply plates in the wing, which tear out of the foam before a leg
+   * bends: ESTIMATED at 8 N m and 300 N. 16 the tail wheel's retract, on
+   * a 2 mm leg. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
+    .mass = 0.090, .joint = { 0.07, 0.2317, -0.070 }, .m_max = 8.0, .f_max = 300.0, .k = 1177.0,
+    BOX(0.040, 0.090, 0.205, 0.258, -0.257, -0.070) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 1,
+    .mass = 0.090, .joint = { 0.07, -0.2317, -0.070 }, .m_max = 8.0, .f_max = 300.0, .k = 1177.0,
+    BOX(0.040, 0.090, -0.258, -0.205, -0.257, -0.070) },
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.025, .joint = { -0.564, 0.0, -0.060 }, .m_max = WIRE_M(0.002), .f_max = 120.0, .k = 704.0,
+    BOX(-0.585, -0.543, -0.010, 0.010, -0.109, -0.060) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.0914, 0.0, 0.0764 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(-0.105, -0.080, -0.010, 0.010, 0.0764, 0.0964) },
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.35, 0.0, 0.08 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.35, 0.0, 0.08 }, { -0.35, 0.0, 0.15 } } },
+};
 
 #endif /* CRASH_PARTS_H */

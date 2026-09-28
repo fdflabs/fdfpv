@@ -60,7 +60,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
 import { POWER, TABLE, powerBlock, powerOption } from '../configs/power.js';
-import { SIM_TUNE, TUNING, balance, normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
+import { SIM_TUNE, TUNING, balance, normalizeEntry, setupFor, stockEntry, tuneBlock } from '../configs/tuning.js';
 import { TestStand } from '../src/game/teststand.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -210,7 +210,7 @@ for (const id of ids) {
   console.log(`\n${id}  (${electric ? `pack ${packKg} kg over ${lim.packMm} mm` : 'glow'}, lead ${lim.ballastG} g, ${massKg} kg)`);
 
   /* U1 */
-  const stockBlock = block({ packMm: 0, ballastG: 0, rate: 'high', expo: { a: 30, e: 30, r: 30 }, trimDeg: 0, flapStart: 0, flapMix: Boolean(t.flaps) });
+  const stockBlock = block({ ...stockEntry(id) });
   const expoOnly = block({ expo: { a: 35 } });
   seat(id);
   const table = sim.tune();
@@ -289,11 +289,18 @@ for (const id of ids) {
   const elevatorAt = elevator(trimmed);
   check(`U6 ${id} 2 deg of up trim puts 2 deg on the elevator at centred sticks`, Math.abs(deg(elevatorAt) - 2) < 1e-9,
     `${f3(deg(elevatorAt))} deg`);
-  if (t.flaps) {
+  if (t.flaps && t.flaps.mix !== 0) {
     const withMix = surfaces(id, null, 0, 0, 2)[2];
     const noMix = surfaces(id, block({ flapMix: false }), 0, 0, 2)[2];
     check(`U6 ${id} full flaps: the manual's mix puts down elevator on, none leaves it centred`,
       withMix < -0.05 && noMix === 0, `${f2(deg(withMix))} and ${f2(deg(noMix))} deg`);
+  } else if (t.flaps) {
+    /* A manual that gives no mix: full flaps leave the elevator centred
+     * either way. */
+    const withMix = surfaces(id, null, 0, 0, 2)[2];
+    const noMix = surfaces(id, block({ flapMix: false }), 0, 0, 2)[2];
+    check(`U6 ${id} full flaps and no mix in the manual: the elevator stays centred`,
+      withMix === 0 && noMix === 0, `${f2(deg(withMix))} and ${f2(deg(noMix))} deg`);
   }
   const lead = lim.ballastG;
   const same = balance(id, { ballastG: lead }, massKg, packKg).shift;
