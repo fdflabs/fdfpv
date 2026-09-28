@@ -64,6 +64,8 @@
     "midair:twopage": "node scripts/midair-two-page.js",
     "rooms:wrecks": "node scripts/rooms-wrecks-two-page.js",
     "rooms:restart": "node scripts/rooms-restart-check.js",
+    "tag:harness": "node scripts/tag-harness.js",
+    "tag:twopage": "node scripts/tag-two-page.js",
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
     "rooms:server": "node scripts/rooms-server-check.js",
     "marks:selftest": "node scripts/peermarks-selftest.js",
