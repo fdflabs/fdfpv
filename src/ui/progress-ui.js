@@ -227,6 +227,17 @@ export class Progress {
     return lockOf(this.state, kind, id, airframe);
   }
 
+  /* A casual sky track just made (src/main.js onBuild): its id is how its
+   * laps are known as the casual track's from now on. */
+  markCasual(id) {
+    this.state.casual[id] = true;
+    this.save();
+  }
+
+  isCasual(id) {
+    return Boolean(id) && Boolean(this.state.casual[id]);
+  }
+
   setUnlockAll(on) {
     this.state.unlockAll = Boolean(on);
     this.save();

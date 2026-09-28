@@ -61,7 +61,7 @@ check('nothing stored in a new browser: fresh, on the curve', same(normaliseProg
 check('nothing stored in a profile from before progression: all open', normaliseProgress(undefined, { existing: true }).unlockAll === true);
 check('a stored switch wins over the profile\'s age', normaliseProgress({ unlockAll: false }, { existing: true }).unlockAll === false);
 const bad = normaliseProgress({ xp: -5.5, courses: { a: true, b: 1, c: 'yes' }, challenges: ['x'], seen: null, unlockAll: 'on' });
-check('junk is made safe', bad.xp === 0 && same(bad.courses, { a: true }) && same(bad.challenges, {}) && same(bad.seen, {}) && bad.unlockAll === false, JSON.stringify(bad));
+check('junk is made safe', bad.xp === 0 && same(bad.courses, { a: true }) && same(bad.challenges, {}) && same(bad.seen, {}) && same(bad.casual, {}) && bad.unlockAll === false, JSON.stringify(bad));
 check('XP is whole and bounded', normaliseProgress({ xp: 123.9 }).xp === 123 && normaliseProgress({ xp: 1e12 }).xp === 1e7 && normaliseProgress({ xp: NaN }).xp === 0);
 
 console.log('what is locked');
@@ -104,8 +104,8 @@ check('a challenge: its XP once', c1[0].type === 'challenge' && c1[1].xp === 40 
 check('an unknown challenge earns nothing', awardChallenge(p1, 'nope').length === 0);
 const p2 = { ...freshProgress(false), unlockAll: true };
 check('with Unlock all a level opens no item toasts', addXp(p2, 5000, { kind: 'lap' }).every((e) => e.type !== 'unlock'));
-check('a document marked casual, or named so, is the casual track', courseKind({ casual: true }) === 'casual' && courseKind({ id: 'casual-sky' }) === 'casual'
-  && courseKind({ id: 'abc' }) === 'built' && courseKind(null) === 'map');
+check('a track recorded as casual is the casual track, any other a built one, none the world\'s', courseKind('trk-1', { casual: { 'trk-1': true } }) === 'casual'
+  && courseKind('trk-2', { casual: { 'trk-1': true } }) === 'built' && courseKind(null, freshProgress()) === 'map');
 
 console.log('the challenges, judged');
 const words = CHALLENGES.every((c) => en[`progress.challenge.${c.id}`] && en[`progress.challenge.${c.id}_note`] && es[`progress.challenge.${c.id}`] && es[`progress.challenge.${c.id}_note`]);

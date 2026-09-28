@@ -134,7 +134,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, unlockAll };
+  return { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll };
 }
 
 function isRecord(o) {
@@ -155,8 +155,9 @@ function flags(o, max) {
 }
 
 /*
- * Stored progress made safe: XP a finite whole number, the course and
- * challenge and seen maps of true flags only, and unlockAll a boolean.
+ * Stored progress made safe: XP a finite whole number, the course,
+ * challenge, seen and casual track maps of true flags only, and unlockAll
+ * a boolean.
  * Nothing stored and `existing` (the browser had a profile from before
  * progression) is a pilot who already flew everything: unlocked.
  */
@@ -171,6 +172,7 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     courses: flags(stored.courses, 2000),
     challenges: flags(stored.challenges, 200),
     seen: flags(stored.seen, 2000),
+    casual: flags(stored.casual, 500),
     unlockAll: typeof stored.unlockAll === 'boolean' ? stored.unlockAll : existing,
   };
 }
@@ -327,18 +329,16 @@ export function awardChallenge(progress, id) {
 }
 
 /*
- * The course a lap was closed on, from the seated track's document: the
- * hoops' one click starter is 'casual' (a document marked `casual`, or
- * whose id says so), any other built track 'built', no document 'map'.
+ * The kind of track a lap was closed on, from its id: a casual sky track
+ * (My tracks' one click starter, src/builder/course.js casualCourse),
+ * whose id progression recorded when it was made, since the document
+ * carries no mark of it; any other built track; no id, the world's own.
  */
-export function courseKind(doc) {
-  if (!doc) {
+export function courseKind(id, progress) {
+  if (!id) {
     return 'map';
   }
-  if (doc.casual === true || /casual/i.test(String(doc.id || '')) || /casual/i.test(String(doc.starter || ''))) {
-    return 'casual';
-  }
-  return 'built';
+  return progress && progress.casual && progress.casual[id] ? 'casual' : 'built';
 }
 
 /* Whether challenge c can be flown with the plane and power in ctx. */

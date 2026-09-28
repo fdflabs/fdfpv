@@ -5116,13 +5116,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt });
   }
-  /* The track a lap closed on: a seated built track, the hoops' casual
-   * starter among them, or the world's own. A built track is keyed by its
-   * id alone, so saving an edit is not a new track's first lap. */
+  /* The track a lap closed on: a built track (seated, or the casual sky
+   * track's test flight), or the world's own. A built track is keyed by
+   * its id alone, so saving an edit is not a new track's first lap. */
   function progressCourse() {
     const seated = seatedMapTrack();
-    const doc = seated ? seated.document : null;
-    return { key: doc && doc.id ? `track:${doc.id}` : ghostCourseKey(), kind: courseKind(doc) };
+    const id = build && build.testing ? build.docId : (seated && seated.document ? seated.document.id : null);
+    return { key: id ? `track:${id}` : ghostCourseKey(), kind: courseKind(id, ui.settings.progress) };
   }
 
   /*
@@ -7034,6 +7034,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       mode = 'flight';
       ui.show('flight');
       b.open(doc, { casual });
+      /* The generator marks nothing in the document, whose format is
+       * shared with the board; progression keeps the id instead. */
+      if (casual && b.docId) {
+        ui.progress.markCasual(b.docId);
+      }
     });
   };
   /* Menu clicks. The key handler has already woken the audio context by
@@ -9562,8 +9567,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           }
         }
         ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, res.passed != null);
-        /* XP and the challenges, never for a builder's test flight. */
-        if (!race.freestyle && !(build && build.testing)) {
+        /* XP and the challenges, never for a builder's test flight but
+         * the casual sky track's, which is flown the moment it is made. */
+        if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {
           if (res.passed != null) {
             ui.progress.gatePass();
           }
