@@ -49,7 +49,7 @@
  */
 
 import {
-  FLAG_AIRBORNE, FLAG_CRASHED, STREAMER_HZ, TYPE_STREAMER, decodePose, decodeStreamer, relayStreamer, trimStreamer,
+  FLAG_AIRBORNE, FLAG_CRASHED, STREAMER_HZ, TYPE_STREAMER, appendRuns, checkRuns, decodePose, runsLinks, splitRuns, decodeStreamer, relayStreamer, trimStreamer,
 } from '../../src/share/roomwire.js';
 import { LATE_MS, Track, hullFor } from '../../src/game/midair.js';
 import { PASS_MS, StreamerTrack, judgeCut } from '../../src/game/cut.js';
@@ -84,6 +84,22 @@ function bump(counter, now) {
   return counter.n;
 }
 
+/*
+ * The owner's capture (2026-09-28): B's paper parts at `link`, and what the
+ * cut took, colours and all, goes onto the far end of A's; past
+ * PAPER_CAP_LINKS, A's far end falls. a and b are the seats' records.
+ */
+export function capture(a, b, link) {
+  const [keep, taken] = splitRuns(b.runs, link);
+  b.runs = keep;
+  b.owed = runsLinks(keep);
+  b.links = Math.min(b.links, b.owed);
+  const [grown] = appendRuns(a.runs, taken);
+  a.runs = grown;
+  a.owed = runsLinks(grown);
+  a.links = Math.min(a.links, a.owed);
+}
+
 export class RoomCombat {
   constructor(meta) {
     this.meta = meta;
@@ -100,8 +116,8 @@ export class RoomCombat {
     if (!r) {
       r = {
         airframe: null, hull: null, poses: new Track(), paper: new StreamerTrack(),
-        owed: FULL_LINKS, links: 0, points: 0, cuts: 0, crashed: false, flying: false,
-        rate: { since: 0, n: 0 },
+        runs: [[seat, FULL_LINKS]], owed: FULL_LINKS, links: 0, lastLinks: 0, tore: false,
+        points: 0, cuts: 0, crashed: false, flying: false, rate: { since: 0, n: 0 },
       };
       this.seats.set(seat, r);
     }
@@ -138,7 +154,7 @@ export class RoomCombat {
       endsAt: r.endsAt,
       minutes: r.minutes,
       scores: [...this.seats.entries()].sort((a, b) => a[0] - b[0]).map(([seat, s]) => ({
-        seat, points: s.points, cuts: s.cuts, owed: s.owed, links: s.links, lost: s.links < s.owed,
+        seat, points: s.points, cuts: s.cuts, owed: s.owed, links: s.links, lost: s.tore, runs: s.runs,
       })),
     };
   }
@@ -150,7 +166,7 @@ export class RoomCombat {
 
   store() {
     const seats = [...this.seats.entries()].map(([seat, s]) => ({
-      seat, owed: s.owed, links: s.links, points: s.points, cuts: s.cuts, crashed: s.crashed,
+      seat, runs: s.runs, links: s.links, tore: s.tore, points: s.points, cuts: s.cuts, crashed: s.crashed,
     }));
     return { store: 'combat', value: { round: { ...this.round }, seats, nextId: this.nextId } };
   }
@@ -163,8 +179,9 @@ export class RoomCombat {
     this.round = { ...saved.round };
     this.nextId = saved.nextId || 1;
     for (const k of saved.seats || []) {
+      const runs = checkRuns(k.runs) || [[k.seat, FULL_LINKS]];
       Object.assign(this.record(k.seat), {
-        owed: k.owed, links: k.links, points: k.points, cuts: k.cuts, crashed: k.crashed,
+        runs, owed: runsLinks(runs), links: k.links, tore: Boolean(k.tore), points: k.points, cuts: k.cuts, crashed: k.crashed,
       });
     }
   }
@@ -196,6 +213,7 @@ export class RoomCombat {
     if (r.state === 'on' && t >= r.endsAt) {
       r.state = 'over';
       for (const s of this.seats.values()) {
+        /* All the paper towed, captured colours included. */
         s.points += Math.floor(POINTS_PER_METRE * Math.min(s.owed, s.links));
         if (!s.crashed) {
           s.points += POINTS_FLIGHT;
@@ -231,7 +249,8 @@ export class RoomCombat {
     r.endsAt = r.startsAt + msg.minutes * 60000;
     for (const [seat, rec] of this.seats) {
       Object.assign(rec, {
-        owed: FULL_LINKS, links: 0, points: 0, cuts: 0, crashed: false, paper: new StreamerTrack(),
+        runs: [[seat, FULL_LINKS]], owed: FULL_LINKS, links: 0, lastLinks: 0, tore: false,
+        points: 0, cuts: 0, crashed: false, paper: new StreamerTrack(),
       });
       for (const key of [...this.pairs.keys()]) {
         if (key.startsWith(`${seat}>`)) {
@@ -259,7 +278,16 @@ export class RoomCombat {
     }
     const chain = got.chains.find((c) => c.id === 0);
     const links = chain ? chain.n - 1 : 0;
-    const wasLost = rec.links < rec.owed;
+    /* Tore by itself: shorter than its last frame and than the room owes.
+     * A frame shorter than owed and no shorter than the last is paper the
+     * room just added (a capture) that the owner has not grown yet. */
+    const wasLost = rec.tore;
+    if (links < rec.lastLinks && links < rec.owed) {
+      rec.tore = true;
+    } else if (links >= rec.owed) {
+      rec.tore = false;
+    }
+    rec.lastLinks = links;
     rec.links = Math.min(links, rec.owed);
     if (chain && rec.links > 0) {
       rec.paper.push(got.t, rec.links + 1, chain.x);
@@ -268,7 +296,7 @@ export class RoomCombat {
     const cuts = this.judgeAll(core, now, s.seat);
     /* A streamer the owner's own frames show shorter than owed tore by
      * itself: everyone's scoreboard says so. */
-    if (!cuts.length && wasLost !== rec.links < rec.owed && this.round.state !== 'over') {
+    if (!cuts.length && wasLost !== rec.tore && this.round.state !== 'over') {
       out.push(...this.broadcast(core));
     }
     return [...out, ...cuts];
@@ -337,9 +365,8 @@ export class RoomCombat {
      * a single pass count as one cut"): this cutter cuts this streamer
      * nothing more until PASS_MS after, on the samples' own clock. */
     this.pairs.set(key, Math.floor(c.tc + PASS_MS));
-    const points = a.links < a.owed ? 0 : POINTS_CUT;
-    b.owed = c.link;
-    b.links = Math.min(b.links, b.owed);
+    const points = a.tore ? 0 : POINTS_CUT;
+    capture(a, b, c.link);
     a.points += points;
     a.cuts += 1;
     const ev = {

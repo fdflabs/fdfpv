@@ -37,7 +37,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { Streamer, streamerTrace } from '../src/game/streamer.js';
-import { POINTS_CUT } from '../edge/rooms/combat.js';
+import { FULL_LINKS as FULL, POINTS_CUT } from '../edge/rooms/combat.js';
 import { hullFor } from '../src/game/midair.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -247,6 +247,69 @@ try {
   await a.sleep(600);
   await shot(a, 'a-hud');
 
+  /*
+   * CAPTURED PAPER (the owner, 2026-09-28): what A cut off B is now on the
+   * end of A's paper, in B's colour, on both screens. Then B cuts A, above
+   * where B's colour starts on A, and gets A's colour and its own back.
+   * A is held high so its paper hangs; the held pilots wait out Phase 5's
+   * spawning seconds before B is let go past A's paper 0.8 m off.
+   */
+  const took = FULL - cut.keep;
+  const wantA = [[1, FULL], [2, took]];
+  await a.sleep(800);
+  const cap = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];
+  check(`the room adds B's ${took} m to the end of A's paper, in B's colour, on both screens`, cap.every((c) => JSON.stringify(c.runs[1]) === JSON.stringify(wantA)), cap.map((c) => JSON.stringify(c.runs[1])).join(' '));
+  check('and A\'s screen draws its own paper so', JSON.stringify(cap[0].drawnRuns[1][0]) === JSON.stringify(wantA), JSON.stringify(cap[0].drawnRuns[1]));
+  check('A\'s paper grows to that length on A\'s screen', cap[0].paper.links === FULL + took, `${cap[0].paper.links}`);
+  const high = await a.evaluate(`(() => {
+    const s = window.__craftState();
+    const x = s.worldX - 60, z = s.worldZ + 40;
+    const y = window.__heightAt(x, z) + 110;
+    window.__crashThrow({ x, y, z, yaw: 0, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, fresh: true });
+    return { x, y, z };
+  })()`);
+  await a.sleep(2500);
+  const hung = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];
+  check('A, held high, hangs all of it, and B\'s screen draws A\'s paper with B\'s colour at its end', hung[0].paper.links === FULL + took
+    && JSON.stringify(hung[1].drawnRuns[1][0]) === JSON.stringify(wantA), `${hung[0].paper.links} ${JSON.stringify(hung[1].drawnRuns[1])}`);
+  await a.evaluate(`window.__setCam(${high.x + 14}, ${high.y - 40}, ${high.z + 22}, ${high.x}, ${high.y - 45}, ${high.z}, 70); true`);
+  await b.evaluate(`window.__setCam(${high.x - 14}, ${high.y - 40}, ${high.z - 22}, ${high.x}, ${high.y - 45}, ${high.z}, 70); true`);
+  await a.sleep(800);
+  await shot(a, 'a-own-paper-two-colours');
+  await shot(b, 'b-sees-a-two-colours');
+  /* B, a Cub, past A's paper 40 m down, above where B's colour starts. */
+  const hc = hullFor('cub1400').hull;
+  let cubSide = 0;
+  for (let i = 0; i < hc.n; i += 1) {
+    cubSide = Math.max(cubSide, Math.abs(hc.cx[i]) + hc.hx[i]);
+  }
+  const bPass = await b.evaluate(`(() => {
+    const n = window.__combat().peers[0].chains[0].nodes[40];
+    return window.__crashThrow({ x: n[0] + 10, y: n[1], z: n[2] + ${0.8 + cubSide}, yaw: 90, pitch: 0, roll: 0, vx: -12, vy: 0, vz: 0, hold: true, fresh: true });
+  })()`);
+  await b.sleep(6500);
+  await b.evaluate('window.__releasePose(); true');
+  check('B is let go past A\'s paper 0.8 m off', bPass && bPass.ok, JSON.stringify(bPass).slice(0, 80));
+  await b.until('window.__combat().cuts.length > 1', 8000).catch(() => {});
+  await a.until('window.__combat().cuts.length > 1', 8000).catch(() => {});
+  await a.sleep(800);
+  const both = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];
+  const cut2 = both[1].cuts[1] || {};
+  check('B cut A\'s paper: one cut, the same on both screens', cut2.cutter === 2 && cut2.victim === 1 && JSON.stringify(both[0].cuts[1]) === JSON.stringify(cut2), JSON.stringify(cut2).slice(0, 140));
+  const bRuns = both[1].runs[2];
+  const colourSet = new Set((bRuns || []).map((r) => r[0]));
+  check('and B now tows both colours, A\'s and its own, the same on both screens', colourSet.has(1) && colourSet.has(2) && JSON.stringify(both[0].runs[2]) === JSON.stringify(bRuns), JSON.stringify(bRuns));
+  check('A keeps only what was above the cut', JSON.stringify(both[0].runs[1]) === JSON.stringify([[1, cut2.keep]]), JSON.stringify(both[0].runs[1]));
+  await a.sleep(1200);
+  const drawnB = [await a.evaluate('window.__combat().drawnRuns[2][0]'), await b.evaluate('window.__combat().drawnRuns[2][0]')];
+  check('both screens draw B\'s paper in those colours', drawnB.every((d) => JSON.stringify(d) === JSON.stringify(bRuns)), drawnB.map((d) => JSON.stringify(d)).join(' '));
+  const bp = both[1].paper;
+  await b.evaluate(`window.__setCam(${bp.chains[0].head[0] + 18}, ${bp.chains[0].head[1] - 6}, ${bp.chains[0].head[2] + 24}, ${bp.chains[0].head[0]}, ${bp.chains[0].head[1] - 20}, ${bp.chains[0].head[2]}, 70); true`);
+  await b.sleep(800);
+  await shot(b, 'b-tows-both-colours');
+  await a.evaluate('window.__setCam(null); true');
+  await b.evaluate('window.__setCam(null); true');
+
   /* Sixteen streamers drawn, as a full room would: the shaping and upload
    * of every ribbon, per frame, in this page. */
   const drawMs = await a.evaluate(`import('/src/render/streamers.js').then((m) => {
@@ -255,7 +318,7 @@ try {
     for (let i = 0; i < 51; i += 1) { x[i * 3] = i * 0.9; x[i * 3 + 1] = 40 - i * 0.3; x[i * 3 + 2] = Math.sin(i * 0.2) * 3; }
     const t0 = performance.now();
     for (let f = 0; f < 200; f += 1) {
-      for (let s = 1; s <= 16; s += 1) { layer.draw(s, '#e8352e', 0, x, 51, f / 60, false, null); }
+      for (let s = 1; s <= 16; s += 1) { layer.draw(s, [s], 0, x, 51, f / 60, false, null); }
       layer.update(1 / 60);
     }
     const ms = (performance.now() - t0) / 200;

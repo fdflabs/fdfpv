@@ -23,11 +23,11 @@
 import {
   FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, STREAMER_COLOURS, STREAMER_ERR_M, STREAMER_PIECES, STREAMER_SEGS,
   TYPE_STREAMER_RELAY, decodeStreamer, decodeStreamerRelay, encodePose, encodeStreamer, relayStreamer, streamerColour,
-  trimStreamer,
+  trimStreamer, PAPER_CAP_LINKS, appendRuns, runsColours, runsLinks, splitRuns,
 } from '../src/share/roomwire.js';
 import { RoomCore } from '../edge/rooms/core.js';
 import {
-  COUNTDOWN_MS, FULL_LINKS, POINTS_CUT, POINTS_FLIGHT, POINTS_LAUNCH, POINTS_PER_METRE,
+  COUNTDOWN_MS, FULL_LINKS, capture, POINTS_CUT, POINTS_FLIGHT, POINTS_LAUNCH, POINTS_PER_METRE,
 } from '../edge/rooms/combat.js';
 import { PAPER_HALF_M } from '../src/game/cut.js';
 import { hullFor } from '../src/game/midair.js';
@@ -81,7 +81,7 @@ export function combatSection(check) {
   check('a full fifty metre streamer is 171 bytes', full.byteLength === 171, `${full.byteLength}`);
   const many = [];
   for (let i = 0; i < 8; i += 1) {
-    many.push({ id: i, n: 90, x: randomChain(rnd, 90, false) });
+    many.push({ id: i, n: 130, x: randomChain(rnd, 130, false) });
   }
   const capped = decodeStreamer(encodeStreamer(0, many));
   check(`at most ${1 + STREAMER_PIECES} chains of ${STREAMER_SEGS} segments are sent`, capped.chains.length === 1 + STREAMER_PIECES && capped.chains.every((c) => c.n === STREAMER_SEGS + 1));
@@ -282,6 +282,51 @@ function roundSection(check) {
     }
   }
 
+  console.log('combat: captured paper (the owner\'s rule), many colours');
+  {
+    const [head, tail] = splitRuns([[1, 50], [2, 31], [3, 10]], 60);
+    check('a list parts where the cut was, colours and all', JSON.stringify(head) === '[[1,50],[2,10]]' && JSON.stringify(tail) === '[[2,21],[3,10]]', `${JSON.stringify(head)} ${JSON.stringify(tail)}`);
+    const [grown] = appendRuns([[4, 50], [2, 5]], tail);
+    check('and the cut part goes onto the cutter\'s far end, a run joining its own colour', JSON.stringify(grown) === '[[4,50],[2,26],[3,10]]', JSON.stringify(grown));
+    const [capped, fell] = appendRuns([[1, 50], [2, 40]], [[3, 30]]);
+    check(`at most ${PAPER_CAP_LINKS} links: the far end past it falls`, runsLinks(capped) === PAPER_CAP_LINKS && JSON.stringify(fell) === '[[3,20]]', `${JSON.stringify(capped)} fell ${JSON.stringify(fell)}`);
+    check('each link\'s colour, tow point first', Array.from(runsColours([[5, 2], [7, 1]])).join() === '5,5,7');
+
+    const r = started();
+    fly(r, 1, 7600, passAt(7000));
+    const v1 = texts(r.socks.B, 'combat').pop();
+    const a1 = v1.scores.find((x) => x.seat === 1);
+    const b1 = v1.scores.find((x) => x.seat === 2);
+    check('A cuts B: B keeps its first 19 m, and A tows B\'s other 31 m at its end, in B\'s colour', JSON.stringify(b1.runs) === '[[2,19]]' && JSON.stringify(a1.runs) === '[[1,50],[2,31]]' && a1.owed === 81, `${JSON.stringify(a1.runs)} ${JSON.stringify(b1.runs)}`);
+    const recA = r.room.combat.seats.get(1);
+    const recB = r.room.combat.seats.get(2);
+    capture(recB, recA, 40);
+    check('then B cuts A 40 m down: B gets A\'s last 10 m of its own and the 31 m of B\'s, both colours', JSON.stringify(recB.runs) === '[[2,19],[1,10],[2,31]]' && JSON.stringify(recA.runs) === '[[1,40]]', `${JSON.stringify(recB.runs)} ${JSON.stringify(recA.runs)}`);
+    recA.runs = [[1, 50], [3, 45]];
+    recA.owed = 95;
+    recB.runs = [[2, 30], [4, 20]];
+    recB.owed = 50;
+    capture(recA, recB, 10);
+    check(`a capture past ${PAPER_CAP_LINKS} m keeps the cap: A at 100, its far end fallen`, recA.owed === PAPER_CAP_LINKS && JSON.stringify(recA.runs) === '[[1,50],[3,45],[2,5]]', JSON.stringify(recA.runs));
+    let kept = null;
+    for (const x of r.room.combat.broadcast(r.room)) {
+      if (x.store === 'combat') {
+        kept = JSON.parse(JSON.stringify(x.value));
+      }
+    }
+    const fresh = new RoomCore({ ...r.room.meta });
+    fresh.combat.restore(kept);
+    const fv = fresh.combat.view();
+    /* The round ends with A towing all 100: the paper bonus counts it all. */
+    recA.links = recA.owed;
+    const before = recA.points;
+    r.room.combat.round.endsAt = 7700;
+    r.room.combat.advance(r.room, 7800);
+    check(`the paper bonus counts every metre towed, captured included: ${Math.floor(POINTS_PER_METRE * PAPER_CAP_LINKS)} for 100 m`, recA.points - before >= Math.floor(POINTS_PER_METRE * PAPER_CAP_LINKS), `${recA.points - before}`);
+    check('a restart keeps every pilot\'s colours', JSON.stringify(fv.scores.find((x) => x.seat === 1).runs) === JSON.stringify(recA.runs)
+      && JSON.stringify(fv.scores.find((x) => x.seat === 2).runs) === JSON.stringify(recB.runs));
+  }
+
   console.log('combat: who can cut and be cut');
   for (const [name, opts] of [
     ['a victim spawning (Phase 5\'s flag)', { bFlags: FLAG_AIRBORNE | FLAG_SPAWNING }],
@@ -298,13 +343,17 @@ function roundSection(check) {
   }
   {
     const r = started();
-    fly(r, 1, 7600, passAt(7000), { aLinks: 10 });
+    /* Whole, then torn to ten metres a few seconds before the pass. */
+    fly(r, 1, 3000, passAt(7000));
+    fly(r, 3001, 7600, passAt(7000), { aLinks: 10 });
     const c = texts(r.socks.A, 'event', 'cut')[0];
     const me = texts(r.socks.A, 'combat').pop().scores.find((x) => x.seat === 1);
     check('a pilot whose own paper tore still cuts, and scores nothing', c && c.points === 0 && me.lost === true, c && `${c.points} ${me.lost}`);
-    fly(r, 7601, 9000, away);
+    /* A respawn lays what the room owes: A's own fifty and B's paper A
+     * captured with that cut. */
+    fly(r, 7601, 9000, away, { aLinks: me.owed });
     const back = texts(r.socks.A, 'combat').pop().scores.find((x) => x.seat === 1);
-    check('until a respawn lays it at the length owed again', back.lost === false && back.links === FULL_LINKS);
+    check('until a respawn lays it at the length owed again, captured paper and all', back.lost === false && back.links === me.owed && me.owed === FULL_LINKS + (FULL_LINKS - c.keep), `${back.links} of ${me.owed}`);
   }
 
   console.log('combat: the clock and the bonuses');

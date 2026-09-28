@@ -451,7 +451,9 @@ for (let gi = 0; gi < GEOMETRIES; gi += 1) {
       const slower = Math.max(lat.A[0] + lat.A[1], lat.B[0] + lat.B[1]);
       delays.push(cut.decided - cut.tc - slower);
       if (r.bOnA) {
-        lengthsAgree &&= r.bOnA.chains[0].n - 1 === Math.min(cut.keep, r.links);
+        /* No chain 0 is no paper left: a cut at the tow point. */
+        const c0 = r.bOnA.chains.find((c) => c.id === 0);
+        lengthsAgree &&= (c0 ? c0.n - 1 : 0) === Math.min(cut.keep, r.links);
       }
       if (r.pieceLow.length) {
         pieceSeen += 1;

@@ -29,7 +29,7 @@
  */
 
 import * as THREE from 'three';
-import { STREAMER_SEGS } from '../share/roomwire.js';
+import { STREAMER_SEGS, streamerColour } from '../share/roomwire.js';
 
 const HALF_W = 0.0508;
 const MAXN = STREAMER_SEGS + 1;
@@ -48,10 +48,24 @@ const GLINT_M = 4;
 const CONFETTI_S = 4;
 const GONE = new THREE.Matrix4().makeScale(0, 0, 0);
 
-function ribbonMesh(colour) {
+/* Each seat's colour as linear RGB, made once. */
+const SEAT_RGB = new Map();
+function seatRgb(seat) {
+  let c = SEAT_RGB.get(seat);
+  if (!c) {
+    c = new THREE.Color(streamerColour(seat));
+    SEAT_RGB.set(seat, c);
+  }
+  return c;
+}
+
+/* A ribbon coloured per vertex: captured paper keeps its owner's colour,
+ * so one streamer can be many. */
+function ribbonMesh() {
   const pos = new Float32Array(MAXN * 2 * 3);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(MAXN * 2 * 3), 3));
   const idx = [];
   for (let i = 0; i < MAXN - 1; i += 1) {
     const a = i * 2;
@@ -60,13 +74,30 @@ function ribbonMesh(colour) {
   geo.setIndex(idx);
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
   const mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(colour), side: THREE.DoubleSide, roughness: 0.95, metalness: 0,
-    emissive: new THREE.Color(colour), emissiveIntensity: 0.18,
+    vertexColors: true, side: THREE.DoubleSide, roughness: 0.95, metalness: 0,
+    emissive: new THREE.Color(0x2a2a2a),
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.frustumCulled = false;
   mesh.name = 'streamer';
   return mesh;
+}
+
+/* The ribbon's colours from each link's seat, node i taking link i's (the
+ * last node its link's). */
+function paint(mesh, cols, n) {
+  const attr = mesh.geometry.getAttribute('color');
+  const c = attr.array;
+  const count = Math.min(n, MAXN);
+  for (let i = 0; i < count; i += 1) {
+    const rgb = seatRgb(cols[Math.max(0, Math.min(i, cols.length - 1, count - 2))] || 1);
+    for (const o of [i * 6, i * 6 + 3]) {
+      c[o] = rgb.r;
+      c[o + 1] = rgb.g;
+      c[o + 2] = rgb.b;
+    }
+  }
+  attr.needsUpdate = true;
 }
 
 /*
@@ -200,21 +231,24 @@ export function createStreamerLayer() {
   let glintLife = 0;
   let glintCount = 0;
 
-  /* Draw chain `id` of `key` (a seat) this frame. */
-  function draw(key, colour, id, x, n, t, free, anchor) {
+  /* Draw chain `id` of `key` (a seat) this frame; cols is each link's
+   * colour seat, tow point first (a Uint8Array or array). */
+  function draw(key, cols, id, x, n, t, free, anchor) {
     const name = `${key}:${id}`;
     let r = ribbons.get(name);
-    if (!r || r.colour !== colour) {
-      if (r) {
-        drop(name);
-      }
-      r = { mesh: ribbonMesh(colour), colour, used: true, seed: (key * 1.7 + id * 0.9) % 6.28 };
+    if (!r) {
+      r = { mesh: ribbonMesh(), paint: '', used: true, seed: (key * 1.7 + id * 0.9) % 6.28 };
       ribbons.set(name, r);
       group.add(r.mesh);
     }
     r.used = true;
     r.mesh.visible = n > 1;
     if (n > 1) {
+      const key2 = `${n}|${Array.prototype.join.call(cols, ',')}`;
+      if (key2 !== r.paint) {
+        r.paint = key2;
+        paint(r.mesh, cols, n);
+      }
       shape(r.mesh, x, n, t, free, anchor, r.seed, eye);
     }
   }
@@ -319,5 +353,37 @@ export function createStreamerLayer() {
     group, view, draw, burst, update, clear, count: () => ribbons.size,
     /* For the checks: how many glints were flashed, and paper squares out. */
     effects: () => ({ glints: glintCount, bits: bits.count }),
+    /* For the checks: the colour seats each drawn ribbon of `key` wears,
+     * tow point first, from its vertices. */
+    colours(key) {
+      const out = {};
+      for (const [name, r] of ribbons) {
+        const [k, id] = name.split(':').map(Number);
+        if (k !== key || !r.mesh.visible) {
+          continue;
+        }
+        const c = r.mesh.geometry.getAttribute('color').array;
+        const n = r.mesh.geometry.drawRange.count / 6 + 1;
+        const seats = [];
+        for (let i = 0; i < n - 1; i += 1) {
+          let best = 0;
+          let bestD = Infinity;
+          for (const [seat, rgb] of SEAT_RGB) {
+            const d = Math.abs(rgb.r - c[i * 6]) + Math.abs(rgb.g - c[i * 6 + 1]) + Math.abs(rgb.b - c[i * 6 + 2]);
+            if (d < bestD) {
+              bestD = d;
+              best = seat;
+            }
+          }
+          if (!seats.length || seats[seats.length - 1][0] !== best) {
+            seats.push([best, 1]);
+          } else {
+            seats[seats.length - 1][1] += 1;
+          }
+        }
+        out[id] = seats;
+      }
+      return out;
+    },
   };
 }

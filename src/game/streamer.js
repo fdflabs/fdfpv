@@ -118,6 +118,9 @@ function chain(n, pinned, id) {
     ground: new Float64Array(n).fill(-Infinity),
     tension: new Float64Array(Math.max(0, n - 1)),
     lambda: new Float64Array(Math.max(0, n - 1)),
+    /* Each link's colour, the seat whose paper it was (captured paper keeps
+     * its colour). Drawing only: the physics never reads it. */
+    col: new Uint8Array(Math.max(0, n - 1)),
     age: 0,
     still: 0,
   };
@@ -141,6 +144,7 @@ function slice(c, from, to, pinned, id) {
   out.x.set(c.x.subarray(from * 3, (to + 1) * 3));
   out.v.set(c.v.subarray(from * 3, (to + 1) * 3));
   out.ground.set(c.ground.subarray(from, to + 1));
+  out.col.set(c.col.subarray(from, to));
   massesFor(out);
   return out;
 }
@@ -424,6 +428,68 @@ export class Streamer {
       }
     }
     massesFor(c);
+  }
+
+  /*
+   * Captured paper (docs/COMBAT-PLAN.md section 5.5): the streamer grows
+   * to `segs` links at its far end, each new link laid on along the last
+   * one's direction (straight down from a lone tow point) and moving with
+   * the far end, so it trails on as paper that was always there.
+   */
+  extendTo(segs) {
+    const c = this.attached;
+    const want = Math.min(STREAMER_SEGS, segs);
+    if (!c || want <= c.n - 1) {
+      return;
+    }
+    const out = chain(want + 1, true, 0);
+    out.x.set(c.x);
+    out.v.set(c.v);
+    out.ground.set(c.ground);
+    out.col.set(c.col);
+    const e = (c.n - 1) * 3;
+    let dx = 0;
+    let dy = -1;
+    let dz = 0;
+    if (c.n > 1) {
+      dx = c.x[e] - c.x[e - 3];
+      dy = c.x[e + 1] - c.x[e - 2];
+      dz = c.x[e + 2] - c.x[e - 1];
+      const l = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (l > 1e-9) {
+        dx /= l;
+        dy /= l;
+        dz /= l;
+      } else {
+        dx = 0;
+        dy = -1;
+        dz = 0;
+      }
+    }
+    for (let i = c.n; i <= want; i += 1) {
+      const o = i * 3;
+      const k = (i - (c.n - 1)) * SEG_M;
+      out.x[o] = c.x[e] + dx * k;
+      out.x[o + 1] = c.x[e + 1] + dy * k;
+      out.x[o + 2] = c.x[e + 2] + dz * k;
+      out.v[o] = c.v[e];
+      out.v[o + 1] = c.v[e + 1];
+      out.v[o + 2] = c.v[e + 2];
+      out.ground[i] = c.ground[c.n - 1];
+    }
+    massesFor(out);
+    this.attached = out;
+    this.segs = want;
+  }
+
+  /* Each link's colour seat, tow point first (a Uint8Array or array). */
+  setColours(cols) {
+    const c = this.attached;
+    if (c) {
+      for (let i = 0; i < c.col.length; i += 1) {
+        c.col[i] = cols[Math.min(i, cols.length - 1)] || 0;
+      }
+    }
   }
 
   /* Metres still on the aircraft. */

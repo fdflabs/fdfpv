@@ -2583,6 +2583,10 @@ export async function boot({
       peers: [...roomPeers.keys()].map((seat) => ({ seat, chains: chains(roomCombat.peerChains(seat, now)) })),
       cuts: roomCombat.cuts(),
       ribbons: combatLayer.count(),
+      /* Each seat's paper as the room holds it, and as this page draws it:
+       * colour seats in runs, tow point first, per drawn chain. */
+      runs: Object.fromEntries([roomCombat.seat(), ...roomPeers.keys()].map((s) => [s, roomCombat.runs(s)])),
+      drawnRuns: Object.fromEntries([roomCombat.seat(), ...roomPeers.keys()].map((s) => [s, combatLayer.colours(s)])),
       effects: combatLayer.effects(),
       /* The SCHWING voice exists once the sound is up, and every cut rings
        * it: how many times it was struck. */

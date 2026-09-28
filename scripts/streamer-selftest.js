@@ -211,6 +211,51 @@ console.log('cut');
   check('the piece falls and lies on the ground', landed != null, landed != null ? `in ${(landed / 1000).toFixed(1)} s from 20 m` : 'still falling');
 }
 
+console.log('captured paper: grown at the far end, a hundred metres');
+{
+  const s = new Streamer();
+  s.lay(0, 20, 0, 0, 0, 1, undefined, null, [0, 0, -12]);
+  let z = tow(s, 12, 3);
+  const before = Float64Array.from(s.attached.x);
+  s.setColours(new Uint8Array(50).fill(1));
+  s.extendTo(81);
+  const same = before.every((v, i) => v === s.attached.x[i]);
+  check('extendTo(81) adds 31 links at the far end and moves none of the 51 nodes there were', s.length() === 81 && same);
+  const cols = new Uint8Array(81).fill(1, 0, 50).fill(2, 50);
+  s.setColours(cols);
+  z = tow(s, 12, 5, z);
+  const c = s.attached;
+  let worst = 0;
+  for (let i = 0; i < c.n - 1; i += 1) {
+    const d = Math.hypot(c.x[i * 3 + 3] - c.x[i * 3], c.x[i * 3 + 4] - c.x[i * 3 + 1], c.x[i * 3 + 5] - c.x[i * 3 + 2]);
+    worst = Math.max(worst, (d - SEG_M) / SEG_M);
+  }
+  check('towed on, all 81 stay on, no link past the paper\'s stretch', s.length() === 81 && worst < STRETCH_AT_TEAR, `${s.length()} m, worst ${(worst * 100).toFixed(1)} percent`);
+  s.cutTo(60);
+  check('a cut keeps each link\'s colour on both sides of it', s.attached.col[49] === 1 && s.attached.col[50] === 2 && s.pieces[0].col[0] === 2, `${s.attached.col[49]} ${s.attached.col[50]} ${s.pieces[0].col[0]}`);
+
+  /* A hundred metres tears sooner than fifty: twice the friction and
+   * twice the weight for the same paper at the tow point. */
+  const q100 = 0.5 * RHO * WIDTH_M * (CD_FRICTION * 100 + (CD_FLUTTER - CD_FRICTION) * TAIL_M);
+  const w100 = AREAL_KG_M2 * WIDTH_M * 100 * G;
+  const v100 = Math.sqrt(Math.sqrt(TEAR_N * TEAR_N - w100 * w100) / q100);
+  const long = new Streamer(100);
+  long.lay(0, 20, 0, 0, 0, 1, undefined, null, [0, 0, -0.85 * v100]);
+  let at = tow(long, 0.85 * v100, 20);
+  check(`a hundred metres holds at 85 percent of its predicted ${v100.toFixed(1)} m/s`, long.length() === 100 && long.news.length === 0, `${long.length()} m`);
+  let v = 0.85 * v100;
+  let tearV = null;
+  for (let k = 0; k < 30000 && tearV == null; k += 1) {
+    v += 0.0005;
+    at -= v * 0.001;
+    long.step(0, 20, at, flat);
+    if (long.news.length) {
+      tearV = v;
+    }
+  }
+  check(`and tears near ${v100.toFixed(1)} m/s, to 10 percent (fifty metres: 22.3)`, tearV != null && Math.abs(tearV - v100) / v100 < 0.1, `${tearV ? tearV.toFixed(2) : 'never'} m/s`);
+}
+
 console.log('frames');
 {
   /* The tow point is a function of the step, as the plant's pose is. */
