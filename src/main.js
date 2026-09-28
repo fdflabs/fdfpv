@@ -186,6 +186,7 @@ import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, m
 import { GATE_SCALE, gateScaleFor } from './game/track.js';
 import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { FpvOsd } from './ui/fpvhud.js';
+import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
@@ -609,6 +610,11 @@ export async function boot({
   partsGearOf = (id) => (PROPS[id] ? partsGear(id, partsEntry(ui.settings.parts, id)) : null);
   /* The flight controller's OSD over the FPV camera. See src/ui/fpvhud.js. */
   const fpvOsd = new FpvOsd(uiRoot);
+  /* Where the other pilots in a room are, when the picture does not say.
+   * See src/ui/peermarks.js; a game mode marks its special pilot with
+   * peerMarks.setRole(seat, 'ace'). */
+  const peerMarks = new PeerMarks(uiRoot, shell.renderer.domElement);
+  const peerMarkGround = (x, z) => view.height(x, z, Infinity);
   /*
    * The thumb sticks, on a device that has thumbs to offer. Mounted after
    * the Ui so the overlay sits ABOVE every screen in the stacking order,
@@ -2330,6 +2336,10 @@ export async function boot({
     return readState();
   }
 
+  /* Harness only: the peer marks as planned this frame, and a role to
+   * try one with, for scripts/peermarks-two-page.js. */
+  window.__peerMarks = () => peerMarks.summary();
+  window.__peerMarkRole = (seat, role) => peerMarks.setRole(seat, role);
   /* Harness only: the room and what is drawn of it, for
    * scripts/rooms-two-page.js. */
   window.__rooms = () => {
@@ -12129,6 +12139,14 @@ export async function boot({
      * the intro orbit or a menu. */
     fpvOsd.tick(ui.settings.hudStyle === 'osd' && fpvLensLive && !camOverride
       && (ui.screen === 'flight' || ui.screen === 'paused'), ui.screen === 'paused', nowWall);
+    peerMarks.begin(shell.camera, ui.settings.peerMarks, fpvOsd, mode === 'flight' && ui.screen === 'flight', dt / 1000, nowWall);
+    for (const peer of roomPeers.values()) {
+      if (peer.rig && peer.rig.group.visible) {
+        const at = peer.rig.group.position;
+        peerMarks.add(peer.seat, peer.rig.label(), at.x, at.y, at.z, peer.rig.extent);
+      }
+    }
+    peerMarks.end(peerMarkGround);
     /*
      * The thumb sticks live in FLIGHT and nowhere else. Over any menu
      * their catchment would sit on top of the rows (the overlay is the
