@@ -748,7 +748,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 12): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 12 and 14): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *
@@ -783,7 +783,7 @@ int sim_addons_state(double *out);
 #define SIM_TUNE_CG_SHIFT 0   /* m, forward positive, from the table's CG */
 #define SIM_TUNE_BALLAST_KG 1 /* kg added, 0 to 1 */
 #define SIM_TUNE_BALLAST_X 2  /* m ahead of the table's CG, negative behind */
-#define SIM_TUNE_THROW_A 3    /* rad at full stick, 0 to 45 deg */
+#define SIM_TUNE_THROW_A 3    /* rad at full stick, 0 to 60 deg: a 3D rudder's 55 */
 #define SIM_TUNE_THROW_E 4
 #define SIM_TUNE_THROW_R 5
 #define SIM_TUNE_EXPO_A 6     /* 0 to 1 */
