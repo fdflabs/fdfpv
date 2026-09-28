@@ -90,7 +90,7 @@ import { gravelBarGeometry } from '../water/stream.js';
 import {
   UP, Mesher, propMaterial, shade, box, frame,
 } from './mesh.js';
-import { boatShed } from './lakeside.js';
+import { placeBoathouse } from './lakeside.js';
 import { roadside } from './roadside.js';
 import { recordAt, gableTop, standWalls } from '../../alps/roofs.js';
 
@@ -623,7 +623,9 @@ function lilyPad(m, rng, x, y, z, r) {
  * and left out, its draws made, where the ground under it is not that.
  */
 export function buildProps(ctx) {
-  const { heightAt, rng, colliders, roofs = [] } = ctx;
+  const {
+    heightAt, rng, colliders, bake, roofs = [],
+  } = ctx;
   const decideAt = ctx.decideAt || heightAt;
   /* Whether the ground within r metres of (x, z) is not what it was
    * decided on. */
@@ -898,10 +900,15 @@ export function buildProps(ctx) {
     const l = Math.hypot(ox, oz);
     const x = shedAt.x + (ox / l) * 1.5;
     const z = shedAt.z + (oz / l) * 1.5;
-    const built = boatShed(m, heightAt, rng, { x, z, yaw: Math.atan2(oz, ox), len: 9, w: 5.2, h: 2.7 });
+    for (let k = 0; k < Math.round(2.7 / 0.28) + 10; k += 1) {
+      rng();
+    }
+    const built = placeBoathouse(bake, heightAt, {
+      x, z, yaw: Math.atan2(oz, ox), len: 9, w: 5.2, h: 2.7,
+    });
     if (colliders) {
-      standWalls(colliders, [x - 6, built.low, z - 6, x + 6, built.top, z + 6], [built.record], 0, { note: false });
-      roofs.push(built.record);
+      standWalls(colliders, [x - 6, built.box[1], z - 6, x + 6, built.box[4], z + 6], built.roofs, 0, { note: false, parts: built.parts });
+      roofs.push(...built.roofs);
     }
     return { x, z };
   })();

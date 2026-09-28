@@ -21,7 +21,8 @@
  *   meadow keep off them and the ground under them is trodden.
  *
  *   BOATHOUSES along the south shore and at its two corners, which the
- *   north shore's views see as the frame's far left and right.
+ *   north shore's views see as the frame's far left and right, each with
+ *   its slipway out into the water.
  *
  *   THE PROMENADE along the north shore: a gravel path along the top of
  *   the beach, benches on it facing the water, lamps and bins.
@@ -34,8 +35,7 @@
  *   STONES on the beach and in the shallows either side of the jetty,
  *   where the lake-edge view looks down into the water.
  *
- * The buildings but the boathouses are the village's kit (buildings/
- * lake.js, houses.js),
+ * The buildings are the village's kit (buildings/lake.js, houses.js),
  * put into the `bake` the map bakes as the village is baked, so they
  * have its photographed surfaces and its detail, and the detail only
  * near. Every building is walls under a roof that is ground. The rest
@@ -68,11 +68,11 @@ import {
 import {
   UP, Mesher, propMaterial, shade, box, frame,
 } from './mesh.js';
-import { recordAt, gableTop, standWalls } from '../../alps/roofs.js';
+import { standWalls } from '../../alps/roofs.js';
 import { frame as kitFrame } from '../buildings/parts.js';
 import { chalet, church } from '../buildings/houses.js';
 import {
-  townhouse, hotel, stageHut, landingStage,
+  townhouse, hotel, boathouse, stageHut, landingStage,
 } from '../buildings/lake.js';
 
 /* Albedos, linear, of what is still drawn here in the props' colours. */
@@ -108,6 +108,14 @@ function houseDraws(rng, { floors, masonry, plaster, roof, shutter }) {
   rng();
   rng();
   return { cover, shutter: paint, board: tone < 0.5 ? 'larchDark' : 'larch' };
+}
+
+/* The boathouse's draws: a shade per board course and per roof course. */
+function shedDraws(rng, h) {
+  const n = Math.round(h / 0.28) + 10;
+  for (let k = 0; k < n; k += 1) {
+    rng();
+  }
 }
 
 /* The corners of a w by d footprint at (x, z) whose width runs along
@@ -161,80 +169,18 @@ export function placeInto(bake, build, { x, z, ry, ground, y = null, kind }) {
 }
 
 /*
- * A boat shed at the water, its gable to the lake: a timber box on piles
- * with its lake end open over a slip. At (x, z) on the shore, its length
- * along `yaw` pointing out over the water.
+ * A boathouse at (x, z) on the shore, its length along `yaw` pointing
+ * out over the water, its floor over the lake's highest water: the
+ * props' own at the north shore and the south shore's row both.
  */
-export function boatShed(m, heightAt, rng, { x, z, yaw, len, w, h }) {
-  const [ex, ey, ez] = frame(yaw);
-  const y0 = Math.max(LAKE_Y + 0.6, heightAt(x, z) + 0.1);
-  const at = (a, b, d) => new THREE.Vector3(x, y0, z).addScaledVector(ex, a).addScaledVector(ey, b).addScaledVector(ez, d);
-  const wall = [0.07, 0.048, 0.032];
-  /* The piles, down into the lake bed. */
-  for (let a = -len / 2; a <= len / 2 + 0.01; a += len / 4) {
-    for (const d of [-w / 2, w / 2]) {
-      const p = at(a, 0, d);
-      const bed = Math.min(heightAt(p.x, p.z), y0) - 0.8;
-      box(m, new THREE.Vector3(p.x, (bed + y0) / 2, p.z), ex, ey, ez, 0.11, (y0 - bed) / 2, 0.11, shade(wall, 0.7));
-    }
-  }
-  /* The side walls and the landward gable in boards, the lake end open
-   * down to a lintel. */
-  const rows = Math.round(h / 0.28);
-  for (let r = 0; r < rows; r += 1) {
-    const ya = (h * r) / rows;
-    const yb = (h * (r + 1)) / rows;
-    const tone = shade(wall, 0.8 + 0.35 * rng());
-    m.quad(at(-len / 2, ya, w / 2), at(len / 2, ya, w / 2), at(len / 2, yb, w / 2), at(-len / 2, yb, w / 2), tone);
-    m.quad(at(len / 2, ya, -w / 2), at(-len / 2, ya, -w / 2), at(-len / 2, yb, -w / 2), at(len / 2, yb, -w / 2), tone);
-    m.quad(at(-len / 2, ya, -w / 2), at(-len / 2, ya, w / 2), at(-len / 2, yb, w / 2), at(-len / 2, yb, -w / 2), tone);
-    if (ya > h * 0.72) {
-      m.quad(at(len / 2, ya, w / 2), at(len / 2, ya, -w / 2), at(len / 2, yb, -w / 2), at(len / 2, yb, w / 2), tone);
-    }
-  }
-  /* The dark inside, seen through the open end. */
-  m.quad(at(-len / 2, 0, -w / 2), at(-len / 2, 0, w / 2), at(len / 2 - 0.1, 0, w / 2), at(len / 2 - 0.1, 0, -w / 2), [0.015, 0.013, 0.011]);
-  m.quad(at(-len / 2 + 0.05, 0, w / 2), at(-len / 2 + 0.05, 0, -w / 2), at(-len / 2 + 0.05, h, -w / 2), at(-len / 2 + 0.05, h, w / 2), [0.01, 0.009, 0.008]);
-  const pitch = 0.62;
-  const ridge = h + (w / 2) * Math.tan(pitch);
-  for (const a of [-len / 2, len / 2]) {
-    m.tri(at(a, h, -w / 2), at(a, ridge, 0), at(a, h, w / 2), shade(wall, 0.9));
-    m.tri(at(a, h, w / 2), at(a, ridge, 0), at(a, h, -w / 2), shade(wall, 0.9));
-  }
-  const roof = [0.1, 0.05, 0.03];
-  const o = 0.5;
-  const drop = o * Math.tan(pitch);
-  for (const s of [1, -1]) {
-    const courses = 5;
-    for (let r = 0; r < courses; r += 1) {
-      const t0 = r / courses;
-      const t1 = (r + 1) / courses;
-      const y = (t) => ridge + 0.06 + (h - drop - ridge - 0.06) * t;
-      const d = (t) => s * (w / 2 + o) * t;
-      const a = at(len / 2 + o, y(t0), d(t0));
-      const b = at(-len / 2 - o, y(t0), d(t0));
-      const c = at(-len / 2 - o, y(t1), d(t1));
-      const e = at(len / 2 + o, y(t1), d(t1));
-      const tone = shade(roof, 0.85 + 0.25 * rng());
-      if (s > 0) {
-        m.quad(a, b, c, e, tone);
-        m.quad(a, e, c, b, shade(roof, 0.4));
-      } else {
-        m.quad(b, a, e, c, tone);
-        m.quad(b, c, e, a, shade(roof, 0.4));
-      }
-    }
-  }
-  /* The roof as ground over the shed's walls (alps/roofs.js), in a
-   * frame turned a quarter from the shed's so its ridge is the frame's
-   * z. The lake end is closed with the rest, as the gondola's stations
-   * are: a shed is walls under a roof. */
-  const record = recordAt({
-    top: gableTop(w / 2 + o, -drop, (w / 2) * Math.tan(pitch) + 0.06, -len / 2 - o, len / 2 + o), dy: 0.12, hw: w / 2, hd: len / 2, kind: 'boathouse',
-  }, 'shingle', x, y0 + h, z, -yaw - Math.PI / 2);
-  return { top: y0 + ridge + 0.2, low: y0 - 1, record };
+export function placeBoathouse(bake, heightAt, { x, z, yaw, len, w, h }) {
+  const y = Math.max(LAKE_Y + 0.6, heightAt(x, z) + 0.1);
+  return placeInto(bake, (f) => boathouse(f, {
+    len, w, h, heightAt, roofKey: 'shingleDark', slip: y - LAKE_Y + 0.9,
+  }), {
+    x, z, ry: Math.PI / 2 - yaw, ground: [heightAt(x, z)], y, kind: 'boathouse',
+  });
 }
-
 
 /*
  * A hull, `len` long and `beam` wide, its sheer `depth` over its keel, at
@@ -765,11 +711,11 @@ export function buildLakeside({
     const p = shoreAt(sx, true);
     const x = p.x - p.ox * 2;
     const z = p.z - p.oz * 2;
-    const built = boatShed(m, heightAt, rng, { x, z, yaw: Math.atan2(-p.oz, -p.ox), len: 8 + 3 * rng(), w: 5 + rng(), h: 2.6 + 0.4 * rng() });
-    if (colliders) {
-      standWalls(colliders, [x - 6, built.low, z - 6, x + 6, built.low + 1, z + 6], [built.record], 0, { note: false });
-      roofs.push(built.record);
-    }
+    const spec = {
+      x, z, yaw: Math.atan2(-p.oz, -p.ox), len: 8 + 3 * rng(), w: 5 + rng(), h: 2.6 + 0.4 * rng(),
+    };
+    shedDraws(rng, spec.h);
+    stand(placeBoathouse(bake, heightAt, spec));
     sheds += 1;
   }
 

@@ -22,6 +22,10 @@
  *                the lake front, a half hipped slate roof with dormers, a
  *                painted name, awnings over the restaurant and its
  *                terrace with the tables laid under parasols;
+ *   boathouse    a timber shed on piles over the water, its lake end
+ *                open under a lintel, a slipway of two rails on sleepers
+ *                running out of it down under the water, a door on the
+ *                land side;
  *   stageHut     the ticket and waiting hut on the landing stage;
  *   landingStage the stage itself, a deck on piles with its rail, the
  *                bollards and the lamp at its end.
@@ -297,6 +301,100 @@ function bedOf(f, heightAt) {
     const p = f.at(x, 0, z);
     return heightAt(p.x, p.z) - p.y;
   };
+}
+
+/*
+ * A boathouse: len along z, its lake end (+z) open under a lintel, the
+ * floor at the frame's y 0 on piles down to the lake bed. The walls are boards
+ * with battens up and down, the roof shingle or tin on rafters that show
+ * under the eaves, and out of the open end a slipway of two rails on
+ * sleepers runs down under the water to `slip` metres below the floor.
+ */
+export function boathouse(f, {
+  len, w, h, heightAt, slip = 1.6, roofKey = 'shingleDark', board = 'weathered',
+}) {
+  const bed = bedOf(f, heightAt);
+  const hw = w / 2;
+  const hd = len / 2;
+  /* The piles along both sides and across the back, and the stone
+   * footing where the back stands on the shore. */
+  for (let k = 0; k <= 4; k += 1) {
+    const z = -hd + 0.15 + (k / 4) * (len - 0.3);
+    for (const x of [-hw + 0.12, hw - 0.12]) {
+      const b = Math.min(bed(x, z), -0.2) - 0.5;
+      f.put('larchDark', boxUp(0.22, -b, 0.22), x, b, z);
+    }
+  }
+  const backBed = Math.min(bed(0, -hd), -0.1) - 0.4;
+  f.put('stone', boxUp(w + 0.3, -backBed + 0.05, 0.9), 0, backBed, -hd + 0.3);
+  /* The sill beams the walls stand on, and the walkway either side of
+   * the slip inside. */
+  for (const s of [-1, 1]) {
+    f.put('larchDark', box(0.26, 0.26, len + 0.1), s * (hw - 0.12), -0.13, 0);
+    f.put('larch', box(0.9, 0.07, len - 0.6), s * (hw - 0.6), -0.03, 0.1);
+  }
+  /* The walls: the side walls and the back in boards up and down, a
+   * batten over each joint; the lake gable over the lintel. */
+  const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.45, ovA: 0.35, ovB: 0.95, pitch: 0.62, t: 0.16 });
+  Object.assign(roof, { hw, hd, kind: 'gable', zA0: 0.35, zB0: 0.95 });
+  const gable = gableProfile(roof, 'gable', hw);
+  for (const s of [-1, 1]) {
+    const side = frame(f, s * hw, 0, 0, s * Math.PI / 2);
+    side.put(`${board}:v`, boxUp(len, h, 0.08), 0, 0, -0.04);
+    for (let u = -hd + 0.3; u < hd - 0.1; u += 0.42) {
+      side.put(near('boardLine'), boxUp(0.05, h - 0.1, 0.03), u, 0.05, 0.015);
+    }
+  }
+  f.put(`${board}:v`, prism([[hw, 0], ...gable.map(([x, y]) => [x, y + h]), [-hw, 0]], -hd, -hd + 0.08));
+  f.put(`${board}:v`, prism([[hw, h - 0.3], ...gable.map(([x, y]) => [x, y + h]), [-hw, h - 0.3]], hd - 0.08, hd));
+  /* The dark of the shed seen through its open end. */
+  f.put('shade', plate(w - 0.3, h), 0, h / 2, -hd + 0.1);
+  const back = frame(f, 0, 0, -hd, Math.PI);
+  plankDoor(back, -hw * 0.35, 0, 0.9, 1.95, 'larchDark');
+  back.put('stone', box(1.3, 0.16, 0.6), -hw * 0.35, -0.08, 0.3);
+  casement(back, hw * 0.45, 1.4, 0.7, 0.6, { key: 'larchDark', bars: false });
+  /* The open end: the corner posts, the lintel, and the doors folded back
+   * to the walls on their strap hinges. */
+  const end = frame(f, 0, 0, hd, 0);
+  for (const s of [-1, 1]) {
+    end.put('larchDark', boxUp(0.2, h, 0.2), s * (hw - 0.1), 0, -0.1);
+    const leaf = frame(f, s * (hw + 0.07), 0, hd - 0.05, s * Math.PI / 2);
+    plankDoor(leaf, s * (hw / 2 - 0.1), 0.25, hw - 0.3, h - 0.65, board);
+  }
+  end.put('larchDark', box(w + 0.1, 0.3, 0.22), 0, h - 0.15, -0.08);
+  /* The slipway: two rails on sleepers from the back of the shed down
+   * through the open end into the water, and the winch post at its
+   * head. */
+  const runOut = 4.5;
+  const z0 = -hd + 1.0;
+  const z1 = hd + runOut;
+  const y0 = -0.12;
+  const y1 = -slip;
+  const railLen = Math.hypot(z1 - z0, y0 - y1);
+  const ang = Math.atan2(y0 - y1, z1 - z0);
+  for (const x of [-0.55, 0.55]) {
+    f.put('larchDark', box(0.14, 0.14, railLen), x, (y0 + y1) / 2, (z0 + z1) / 2, 0, ang);
+  }
+  for (let z = z0 + 0.3; z < z1; z += 0.9) {
+    const t = (z - z0) / (z1 - z0);
+    f.put(near('larchDark'), box(1.6, 0.1, 0.18), 0, y0 + (y1 - y0) * t - 0.12, z);
+  }
+  for (let k = 1; k <= 2; k += 1) {
+    const z = hd + (k / 3) * runOut;
+    const b = Math.min(bed(0, z), -0.3) - 0.4;
+    const t = (z - z0) / (z1 - z0);
+    const top = y0 + (y1 - y0) * t - 0.2;
+    if (top > b) {
+      f.put(near('larchDark'), boxUp(0.2, top - b, 0.2), 0, b, z);
+    }
+  }
+  f.put('larchDark', boxUp(0.24, 1.0, 0.24), 0, 0, z0 - 0.5);
+  f.put(near('metal'), cached('s2winch', () => new THREE.CylinderGeometry(0.14, 0.14, 0.5, 8).rotateZ(Math.PI / 2)), 0, 0.8, z0 - 0.3);
+  /* The roof, dressed as the village's are. */
+  const rf = frame(f, 0, h, 0, 0);
+  rf.put(roofKey, roof.geo);
+  dressRoof(rf, roof, { roofKey, key: 'larchDark', edgeKey: board });
+  return { hw: roof.ex, hd: hd + 0.95, top: h + roof.yR + 0.2 };
 }
 
 /*
