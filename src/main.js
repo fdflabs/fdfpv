@@ -152,6 +152,7 @@ import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
+import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
 import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
 import {
   DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, SURFACE, SURFACES, TREES_MAX, partLabel,
@@ -3814,6 +3815,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * check that reads what broke, when and how hard (window.__crashLog).
    * Bounded, the oldest kept: a crash's story is how it started. */
   const crashLog = [];
+  /* The jelly's whacks this run, newest last, for window.__jelly(), and
+   * the jelly pass's own state (jellyPass): reset with the crash log. */
+  const jellyLog = [];
+  let jellyHasPrev = false;
+  let jellyArmed = true;
   const CRASH_LOG_MAX = 400;
   let crashTreesDeclared = 0;
   let crashSolidsDeclared = 0;
@@ -3911,6 +3917,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     crashFlags = 0;
     lastParts = null;
     crashLog.length = 0;
+    jellyLog.length = 0;
+    jellyHasPrev = false;
+    jellyArmed = true;
     wreckRig.reset();
     debris.clear();
     fpvFail.clear();
@@ -4136,6 +4145,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * flight. */
   function declareCrashSolids(must = -1) {
     const col = view.colliders;
+    /* A plane's soft pieces are not the plant's (jellyPass). */
+    col.softKinds = softKindsFor();
     clearSolidPass();
     for (const i of crashKnownList) {
       crashKnown[i] = 0;
@@ -7970,6 +7981,81 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * enough for a corner (two faces) with slack; anything still overlapping
    * after that is what the clip watch reads.
    */
+  /*
+   * THE SOFT PIECES, FOR A PLANE (src/game/jelly.js): a pylon and a sky
+   * hoop's rim are jelly to a fixed wing. The sweep and the crash world
+   * pass through them (softKinds, set here for the aircraft seated) and
+   * this pass, on the obstacle pass's own sim cadence, whacks the plane
+   * instead: a speed loss into the piece and a kick on its rates, written
+   * onto the plant, once per meeting. It re-arms once the plane is clear
+   * of every soft piece by JELLY_REARM. The builder wobbles the piece
+   * (buildmode.js jiggle). Returns the state, read again after a whack.
+   */
+  const JELLY_REARM = 2;
+  const jellyA = new THREE.Vector3();
+  const jellyB = new THREE.Vector3();
+  const jellyQ = new THREE.Quaternion();
+  const jellyV = new THREE.Vector3();
+  const jellyRight = new THREE.Vector3();
+  const jellyUp = new THREE.Vector3();
+  const jellyVSim = { x: 0, y: 0, z: 0 };
+  const jellyHit = { i: -1, gap: 0, n: null };
+  function softKindsFor() {
+    return airframeById(runAirframe).fixedWing ? JELLY_MASK : 0;
+  }
+  function jellyPass(st) {
+    const col = view.colliders;
+    if (col) {
+      col.softKinds = softKindsFor();
+    }
+    if (!col || !col.softKinds || mode !== 'flight' || crashed || poseLock || launchStaging) {
+      jellyHasPrev = false;
+      return st;
+    }
+    poseFromState(st, jellyB);
+    if (!jellyHasPrev) {
+      jellyA.copy(jellyB);
+      jellyHasPrev = true;
+      return st;
+    }
+    const af = airframeById(runAirframe);
+    const reach = REACH_OF_SPAN * 2 * (af.dims.arm + (af.dims.hullR ?? af.dims.propR));
+    const i = jellyNear(col, jellyA, jellyB, reach + JELLY_REARM, jellyHit);
+    jellyA.copy(jellyB);
+    if (i < 0) {
+      jellyArmed = true;
+      return st;
+    }
+    if (!jellyArmed || jellyHit.gap > reach) {
+      return st;
+    }
+    simPosToThree(st[4], st[5], st[6], jellyV).applyQuaternion(qSpawn);
+    simQuatToThree(st[7], st[8], st[9], st[10], jellyQ);
+    jellyQ.premultiply(qSpawn);
+    jellyRight.set(1, 0, 0).applyQuaternion(jellyQ);
+    jellyUp.set(0, 1, 0).applyQuaternion(jellyQ);
+    const w = whack(jellyV, jellyHit.n, jellyRight, jellyUp);
+    if (!w) {
+      return st;
+    }
+    jellyArmed = false;
+    worldDirToSim(w.v.x, w.v.y, w.v.z, jellyVSim);
+    if (sim.e.sim_set_velocity(jellyVSim.x, jellyVSim.y, jellyVSim.z, st[11] + w.roll, st[12] + w.pitch, st[13]) !== SIM_OK) {
+      throw new Error('sim_set_velocity refused a whack');
+    }
+    jellyLog.push({
+      t: st[0], kind: col.kindName(col.fkind[i]), speed: jellyV.length(), after: Math.hypot(w.v.x, w.v.y, w.v.z),
+      loss: w.loss, roll: w.roll, pitch: w.pitch, square: w.square,
+    });
+    if (jellyLog.length > 32) {
+      jellyLog.shift();
+    }
+    if (build) {
+      build.jiggle(i, jellyHit.n, w.square);
+    }
+    return readState();
+  }
+
   function obstacleContactPass(st, dtSurface) {
     obsResolved = false;
     obsKindIndex = -1;
@@ -8890,6 +8976,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
             obsPhase += 1;
             if (obsPhase >= OBSTACLE_STEP) {
               obsPhase = 0;
+              stNow = jellyPass(stNow);
               stateCurr = stNow;
               stNow = obstacleContactPass(stNow, steps * 0.001);
               if (obsResolved) {
@@ -11355,6 +11442,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * scenario that starts damaged. All of it goes through the module's ABI.
    */
   window.__crash = () => crashSummary();
+  /* The jelly's whacks this run (jellyPass), and whether the seated
+   * aircraft meets the soft pieces as jelly. */
+  window.__jelly = () => ({ soft: softKindsFor() !== 0, whacks: jellyLog.map((w) => ({ ...w })) });
   window.__crashThrow = (o) => {
     crashCamShowsCraft = o.showCraft !== false;
     /* `fresh` puts the plant back to its first step first, as R does, so
@@ -11389,6 +11479,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     contactLog.length = 0;
     obstacleLog.length = 0;
     crashLog.length = 0;
+    jellyLog.length = 0;
+    jellyHasPrev = false;
+    jellyArmed = true;
     contactLogOn = true;
     stepTrace.on = true;
     stepTrace.n = 0;

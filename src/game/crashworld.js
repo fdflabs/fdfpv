@@ -422,7 +422,8 @@ export function nearestSolids(colliders, x, y, z, reach, max, out, skip = null) 
   const CANOPY = KINDS.indexOf('canopy');
   const TREE = KINDS.indexOf('tree');
   for (let i = 0; i < colliders.count; i += 1) {
-    if (colliders.fkind[i] === CANOPY || colliders.fkind[i] === TREE || (skip && skip[i])) {
+    if (colliders.fkind[i] === CANOPY || colliders.fkind[i] === TREE || (skip && skip[i])
+      || (colliders.softKinds & (1 << colliders.fkind[i]))) {
       continue;
     }
     const r = colliders.fbox[i] ? 0 : colliders.fr[i];

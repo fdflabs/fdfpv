@@ -726,6 +726,11 @@ function copyContact(from, to) {
 
 export class Colliders {
   constructor() {
+    /* A bit per KINDS index of kinds the craft's sweep (hit, hitParts) and
+     * the crash world's solids (crashworld.js nearestSolids) pass through:
+     * the soft pieces a plane meets as jelly instead (src/game/jelly.js).
+     * Set by the shell for the aircraft seated, 0 for a quad. */
+    this.softKinds = 0;
     /* Construction time storage. Plain arrays here on purpose: this runs
      * once while the scene is built, never per frame. */
     this.ax = [];
@@ -1915,7 +1920,7 @@ export class Colliders {
             continue;
           }
           this.stamp[i] = id;
-          if (this.pass[i] !== 0) {
+          if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
             continue;
           }
           candidates += 1;
@@ -2267,7 +2272,7 @@ export class Colliders {
             continue;
           }
           this.stamp[i] = id;
-          if (this.pass[i] !== 0) {
+          if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
             continue;
           }
           candidates += 1;

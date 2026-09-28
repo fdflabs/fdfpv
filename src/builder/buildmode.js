@@ -159,6 +159,17 @@ const AIR_NOTCH = 2;
 /* A hoop hangs at least this many of its own diameters out, so a 30 m one
  * in hand is not wrapped round the camera at the default 20 m. */
 const HOOP_HANG = 1.5;
+/* A soft piece whacked by a plane (src/game/jelly.js) wobbles: the most
+ * it leans, radians, for a square hit on a pylon and on a hoop, how much a
+ * hoop squashes, the wobble's frequency, Hz, how fast it dies away, s, and
+ * how long it is drawn, s. About two seconds of jiggle, the way a blown up
+ * fabric shape shakes after a knock. */
+const WOBBLE_PYLON = 0.3;
+const WOBBLE_HOOP = 0.2;
+const WOBBLE_SQUASH = 0.12;
+const WOBBLE_HZ = 1.4;
+const WOBBLE_TAU = 0.55;
+const WOBBLE_S = 2.5;
 /* A stick deflection under this is a stick at rest. */
 const DEAD = 0.12;
 /* How far a ray has to move, metres at its origin or radians of direction,
@@ -275,6 +286,10 @@ export function createBuildMode(host) {
   /* The gates as built, by element id: { made, group, caps, top }. caps
    * are its solids in the scene, top its highest point. */
   const meshes = new Map();
+  /* The element each built collider belongs to, by setBuilt's order, and
+   * the pieces wobbling (jiggle). */
+  const capOwners = [];
+  const wobbles = new Set();
   let root = null;
   let badges = null;
   let ghost = null;
@@ -463,16 +478,81 @@ export function createBuildMode(host) {
       return;
     }
     const caps = [];
+    capOwners.length = 0;
     for (const [id, m] of meshes) {
       const el = elementById(doc, id);
       if (el) {
         m.caps = worldCaps(el, m.made.colliders);
         caps.push(...m.caps);
+        for (let k = 0; k < m.caps.length; k += 1) {
+          capOwners.push(id);
+        }
       }
     }
     view.colliders.setBuilt(caps);
   }
 
+  /*
+   * A plane whacked collider `i` (a built one, so setBuilt's index) with
+   * the jelly's normal `n` pointing at the plane, `square` 0 to 1: its
+   * piece leans away from the hit and wobbles back. Drawn only: for a
+   * plane the piece is not a solid, so nothing collides with the lean.
+   */
+  function jiggle(i, n, square) {
+    const id = view && view.colliders ? capOwners[i - view.colliders.baseCount] : null;
+    const m = id ? meshes.get(id) : null;
+    if (!m) {
+      return;
+    }
+    /* The top goes the way the plane pushed it, level: about up x that. */
+    const push = new THREE.Vector3(-n.x, 0, -n.z);
+    const axis = push.lengthSq() > 1e-6 ? new THREE.Vector3(0, 1, 0).cross(push.normalize()) : new THREE.Vector3(1, 0, 0);
+    const hoop = Boolean(m.made.setGround);
+    m.wobble = {
+      t: 0, axis: axis.normalize(), amp: (hoop ? WOBBLE_HOOP : WOBBLE_PYLON) * square, squash: hoop ? WOBBLE_SQUASH * square : 0,
+    };
+    wobbles.add(id);
+  }
+
+  const wobbleQ = new THREE.Quaternion();
+  const wobbleP = new THREE.Vector3();
+  const wobbleC = new THREE.Vector3();
+
+  /* Every wobbling piece drawn where its wobble has got to, and put back
+   * exactly where the document has it once it has died away. It runs on
+   * the frame's time capped as the plant's is (100 ms a frame), so on a
+   * machine too slow to keep up the wobble slows with the flight rather
+   * than being over before the next frame is drawn. */
+  function wobbleAll(dtS) {
+    for (const id of wobbles) {
+      const m = meshes.get(id);
+      const el = m ? elementById(doc, id) : null;
+      if (!el || !m.wobble) {
+        wobbles.delete(id);
+        continue;
+      }
+      m.wobble.t += dtS;
+      const t = m.wobble.t;
+      if (t > WOBBLE_S) {
+        m.wobble = null;
+        wobbles.delete(id);
+        m.group.scale.set(1, 1, 1);
+        place(m, el);
+        continue;
+      }
+      const wave = Math.exp(-t / WOBBLE_TAU) * Math.cos(2 * Math.PI * WOBBLE_HZ * t);
+      const { base, quat } = poseOf(el);
+      /* A pylon leans on its base, a hoop about its centre. */
+      m.group.quaternion.set(quat.x, quat.y, quat.z, quat.w);
+      wobbleP.set(base.x, base.y, base.z);
+      wobbleC.set(0, m.made.pivotY ?? 0, 0).applyQuaternion(m.group.quaternion).add(wobbleP);
+      wobbleQ.setFromAxisAngle(m.wobble.axis, m.wobble.amp * wave);
+      m.group.quaternion.premultiply(wobbleQ);
+      m.group.position.copy(wobbleP.sub(wobbleC).applyQuaternion(wobbleQ).add(wobbleC));
+      const sq = m.wobble.squash * Math.exp(-t / WOBBLE_TAU) * Math.sin(2 * Math.PI * WOBBLE_HZ * 1.6 * t);
+      m.group.scale.set(1 + sq, 1 - sq, 1);
+    }
+  }
 
   /* While building: every gate's ring on, the one under the crosshair lit,
    * and the selected one while the mouse is free. Only redrawn when one of
@@ -2218,6 +2298,7 @@ export function createBuildMode(host) {
       }
       return;
     }
+    wobbleAll(Math.min(0.1, dtMs / 1000));
     /* A published track sits under the title too, between its runs: only a
      * new world takes it away, and the shell unseats it itself when the
      * pilot picks another course in the same one. */
@@ -2441,7 +2522,19 @@ export function createBuildMode(host) {
       badges: badges ? badges.children.map((b) => ({ id: b.userData.elementId, text: b.userData.text, look: b.userData.look })) : [],
       gates: doc ? raceGatesOf(doc).map((g) => ({
         id: g.elementId, centre: [g.centre.x, g.centre.y, g.centre.z], travel: [g.axes.travel.x, g.axes.travel.y, g.axes.travel.z], up: [g.axes.up.x, g.axes.up.y, g.axes.up.z],
+        clearW: g.aperture.clearW, round: Boolean(g.aperture.round),
       })) : [],
+      /* The pieces wobbling after a whack, and where each is drawn now
+       * against where the document has it: its lean, radians. */
+      wobbles: [...wobbles].map((id) => {
+        const m = meshes.get(id);
+        const el = elementById(doc, id);
+        if (!m || !el) {
+          return { id, lean: 0 };
+        }
+        const q = poseOf(el).quat;
+        return { id, lean: m.group.quaternion.angleTo(new THREE.Quaternion(q.x, q.y, q.z, q.w)) };
+      }),
       camera: { pos: cam.pos.toArray(), yaw: cam.yaw, pitch: cam.pitch, forward: forward(new THREE.Vector3()).toArray() },
       hud: hudText,
       /* The last line said to the author, however long ago: on a software
@@ -2572,6 +2665,7 @@ export function createBuildMode(host) {
   return {
     onKey,
     frame,
+    jiggle,
     exit,
     race,
     open,
