@@ -49,6 +49,7 @@ import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { dressLivery } from './livery.js';
 import { buildHangarEnv, createHangarRig } from './hangarstage.js';
+import { createExploder } from './hangar-exploded.js';
 import { slotScale, slotX } from '../ui/carousel.js';
 
 /* Vertical field of view, degrees: long, so the models read as objects on
@@ -238,6 +239,8 @@ export function createCarouselStage(renderer) {
        * is where its lowest point stands under its centre, and its nose's
        * and tail's z. */
       halfY: 0.5 * size.y / radius,
+      /* Metres to the unit frame's one, for the hangar's exploded view. */
+      radius,
       noseZ: (box.min.z - centre.z) / radius,
       tailZ: (box.max.z - centre.z) / radius,
     };
@@ -286,10 +289,11 @@ export function createCarouselStage(renderer) {
   const set = buildHangarEnv();
   scene.add(set.group);
   const rig = createHangarRig();
+  const exploder = createExploder();
 
   let target = null;
   let lastMs = 0;
-  const stats = { ms: 0, calls: 0, width: 0, height: 0, models: 0 };
+  const stats = { ms: 0, calls: 0, width: 0, height: 0, models: 0, camera: null, exploded: null };
   const buf = new THREE.Vector2();
   const saveViewport = new THREE.Vector4();
   const saveScissor = new THREE.Vector4();
@@ -324,6 +328,8 @@ export function createCarouselStage(renderer) {
       return;
     }
     set.group.visible = false;
+    stats.camera = null;
+    stats.exploded = null;
 
     /* The renderer's own units, which are CSS pixels: buildShell sizes it
      * to the window. Its viewport counts up from the bottom. */
@@ -363,6 +369,7 @@ export function createCarouselStage(renderer) {
       m.holder.position.set(slotX(it.d) * halfWidth, -Math.sin(ELEVATION) * back, -Math.cos(ELEVATION) * back);
       m.holder.scale.setScalar(slotScale(it.d));
       m.holder.visible = true;
+      exploder.rest(m);
       if (a < 0.5) {
         m.yaw += (view.hold ? 0 : TURN_RATE * dt) + (view.turn ?? 0);
       } else {
@@ -444,6 +451,8 @@ export function createCarouselStage(renderer) {
     m.holder.visible = true;
     set.group.visible = true;
     const k = rig.update(dt, view.hangar, view.turn ?? 0);
+    stats.camera = { focus: view.hangar.focus, yaw: k.yaw, elev: k.elev, zoom: k.zoom, along: k.along, up: k.up, moves: k.moves, lift: k.lift };
+    stats.exploded = exploder.update(m, view.hangar.power ?? null, dt);
     const floorY = -m.halfY;
     set.place(floorY, k.reveal, k.pulse);
     /* Set down from a hand's height as it opens. */

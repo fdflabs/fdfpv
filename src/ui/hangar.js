@@ -488,11 +488,13 @@ export class Hangar {
 
   pickOption(id) {
     this.choice = powerChoice(this.power, { option: id, pack: this.choice.pack });
+    this.focus = 'motor';
     this.changed(`option-${id}`);
   }
 
   pickPack(id) {
     this.choice = { ...this.choice, pack: id };
+    this.focus = 'pack';
     this.changed(`pack-${id}`);
   }
 
@@ -630,7 +632,7 @@ export class Hangar {
     this.power.options.forEach((o, i) => {
       const b = button(`hangar-card${o.id === option.id ? ' on' : ''}`);
       b.dataset.key = `option-${o.id}`;
-      b.dataset.focus = 'nose';
+      b.dataset.focus = 'motor';
       b.style.setProperty('--i', String(i));
       b.append(el('span', 'hangar-card-name', o.name));
       if (o.detail) {
@@ -638,7 +640,7 @@ export class Hangar {
       }
       b.setAttribute('aria-pressed', String(o.id === option.id));
       b.addEventListener('pointerenter', () => {
-        this.focus = 'nose';
+        this.focus = 'motor';
       });
       b.addEventListener('click', () => this.pickOption(o.id));
       this.lockMark(b, 'power', o.id);
@@ -652,7 +654,7 @@ export class Hangar {
       packs.forEach((p, i) => {
         const b = button(`hangar-card${p.id === this.choice.pack ? ' on' : ''}`);
         b.dataset.key = `pack-${p.id}`;
-        b.dataset.focus = 'fuselage';
+        b.dataset.focus = 'pack';
         b.style.setProperty('--i', String(i));
         b.append(el('span', 'hangar-card-name', p.name));
         if (p.detail) {
@@ -660,7 +662,7 @@ export class Hangar {
         }
         b.setAttribute('aria-pressed', String(p.id === this.choice.pack));
         b.addEventListener('pointerenter', () => {
-          this.focus = 'fuselage';
+          this.focus = 'pack';
         });
         b.addEventListener('click', () => this.pickPack(p.id));
         row.append(b);
@@ -1027,6 +1029,8 @@ export class Hangar {
         reveal: this.revealSeq,
         pulse: this.pulseSeq,
         hold: Boolean(this.drag),
+        /* The Power tab's choice, which the set pulls apart to show. */
+        power: this.tab === 'power' ? { airframe: this.id, ...this.choice } : null,
         tabs,
       },
     };

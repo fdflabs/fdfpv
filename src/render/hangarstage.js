@@ -58,7 +58,12 @@ const VIEWS = {
   stripe: { yaw: Math.PI / 2 + 0.12, elev: 0.12, zoom: 0.8, along: 0, up: 0 },
   swoop: { yaw: Math.PI / 2 + 0.12, elev: 0.1, zoom: 0.75, along: -0.2, up: -0.1 },
   tail: { yaw: 0.42, elev: 0.3, zoom: 0.62, along: 0.72, up: 0.15 },
-  nose: { yaw: Math.PI - 0.5, elev: 0.18, zoom: 0.55, along: -0.72, up: 0 },
+  /* The Power tab: the nose three quarters on, far enough out for the
+   * exploded view (src/render/hangar-exploded.js), the prop off ahead and
+   * the pack out beside it. `motor` and `pack` are the two parts close. */
+  nose: { yaw: Math.PI - 0.62, elev: 0.2, zoom: 0.7, along: -0.85, up: -0.15 },
+  motor: { yaw: Math.PI - 0.95, elev: 0.16, zoom: 0.4, along: -1.05, up: 0 },
+  pack: { yaw: Math.PI / 2 + 0.55, elev: 0.12, zoom: 0.42, along: -0.5, up: -0.3 },
   canopy: { yaw: Math.PI - 0.7, elev: 0.3, zoom: 0.58, along: -0.35, up: 0.2 },
   fuse_trim: { yaw: Math.PI - 0.6, elev: 0.2, zoom: 0.62, along: -0.6, up: 0 },
   floats: { yaw: Math.PI / 2 + 0.35, elev: 0.06, zoom: 0.82, along: 0, up: -0.45 },
@@ -77,6 +82,16 @@ const OMEGA = 7.5;
 /* How long a drag keeps the plane where the hand left it before the view
  * takes it back, seconds. */
 const HAND_HOLD = 4;
+/*
+ * THE FLIGHT BETWEEN VIEWS. A move from one part to another is not a
+ * slide: the camera lifts and pulls back as it goes and settles in, the
+ * way a hand held camera is carried round a car. It is a kick to the
+ * zoom's and the elevation's springs, as big as the move is long (the
+ * turn it makes, the change of distance and height), so the springs carry
+ * it out in an arc and bring it in without a bounce. Per second.
+ */
+const HOP_ZOOM = 2.6;
+const HOP_ELEV = 1.1;
 
 function wrap(a) {
   let x = a % (2 * Math.PI);
@@ -114,6 +129,9 @@ export function createHangarRig() {
   let revealT = 1;
   let pulseSeq = -1;
   let pulseT = 1;
+  let lastFocus = null;
+  let moves = 0;
+  let lift = 0;
 
   function update(dt, h, turn) {
     if (h.reveal !== revealSeq) {
@@ -137,6 +155,17 @@ export function createHangarRig() {
     pulseT = Math.min(1, pulseT + dt / 0.8);
 
     const v = viewFor(h.focus);
+    if (h.focus !== lastFocus) {
+      if (lastFocus !== null && revealT >= 1) {
+        const turnBy = v.yaw === null ? 0 : Math.abs(wrap(v.yaw - yaw.x)) / Math.PI;
+        const far = Math.min(1.2, turnBy + Math.abs(v.zoom - zoom.x) + Math.abs(v.elev - elev.x));
+        zoom.v += HOP_ZOOM * far;
+        elev.v += HOP_ELEV * far;
+        lift = far;
+        moves += 1;
+      }
+      lastFocus = h.focus;
+    }
     if (turn) {
       yaw.x += turn;
       handT = HAND_HOLD;
@@ -172,6 +201,10 @@ export function createHangarRig() {
       pop: pop.x,
       reveal: 1 - (1 - revealT) ** 3,
       pulse: pulseT,
+      /* How many moves between views it has flown, and how big the last
+       * one's lift was, for a check. */
+      moves,
+      lift,
     };
   }
   return { update };
