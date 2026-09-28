@@ -17,6 +17,13 @@
  *      the air where it is, in place.
  *   4. Reset to stock from the hangar puts the Timber back in its kit's
  *      colours and leaves nothing stored.
+ *   5. The side panel's layout at 1280x720, 1600x900, 1920x1080 and a phone
+ *      on its side, on the Kadet (4 engines, 2 tanks) and the Skyhunter (5
+ *      motors, 5 packs), both tabs: no readout wraps onto a second line or
+ *      overflows its tile, and the panel's last line (the source line on
+ *      Power) is fully in view, without scrolling where it fits, otherwise
+ *      once Down from the panel's last control has scrolled it to its end.
+ *      The Kadet's Power tab fits with no scroll at 1600x900 and above.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/hangar-check.js [map]     airfield by default
@@ -169,6 +176,70 @@ async function choosePower(page) {
   return choice;
 }
 
+/* The side panel as laid out: each readout's lines and overflow, the tab's
+ * last line against the panel's box, and how far the panel scrolls. */
+const LAYOUT = `(() => {
+  const side = document.querySelector('.hangar-side');
+  const s = side.getBoundingClientRect();
+  const last = side.querySelector('.hangar-tab').lastElementChild;
+  const l = last.getBoundingClientRect();
+  return {
+    values: [...side.querySelectorAll('.hangar-stat-value')].map((v) => ({
+      text: v.textContent,
+      lines: v.getBoundingClientRect().height / parseFloat(getComputedStyle(v).lineHeight),
+      overflow: v.scrollWidth - v.clientWidth,
+    })),
+    last: { cls: last.className, text: last.textContent, above: l.top - s.top, below: s.bottom - l.bottom },
+    over: side.scrollHeight - side.clientHeight,
+    scrollTop: side.scrollTop,
+  };
+})()`;
+const SETTLED = "document.querySelector('.hangar-side').getAnimations({ subtree: true }).every((a) => a.playState === 'finished') && !document.querySelector('.hangar').classList.contains('entering')";
+const SIZES = [[1280, 720], [1600, 900], [1920, 1080], [844, 390]];
+
+async function layoutCheck(page) {
+  console.log('5. the side panel\'s layout on the Kadet and the Skyhunter');
+  for (const [w, h] of SIZES) {
+    await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false }, page.sessionId);
+    for (const id of ['kadet1981', 'sky1800']) {
+      await openHangarFromPicker(page, id);
+      for (const tab of ['power', 'colours']) {
+        if (tab === 'colours') {
+          await page.tap('KeyE');
+          await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+        }
+        await page.until(SETTLED, 10000);
+        const at = `${w}x${h} ${id} ${tab}`;
+        let m = await page.evaluate(LAYOUT);
+        if (tab === 'power') {
+          const wrapped = m.values.filter((v) => Math.abs(v.lines - 1) > 0.05 || v.overflow > 0);
+          say(m.values.length === 4 && wrapped.length === 0,
+            `${at}: the four readouts sit on one line each and fit their tiles: ${m.values.map((v) => `"${v.text}"`).join(', ')}${wrapped.length ? `; wrapped or overflowing: ${JSON.stringify(wrapped)}` : ''}`);
+          say(m.last.cls === 'hangar-source', `${at}: the panel ends with the source line: "${m.last.text}"`);
+        }
+        if (m.over <= 0) {
+          say(m.last.below >= 0 && m.last.above >= 0, `${at}: fits with no scroll, the last line ${m.last.below.toFixed(0)} px above the panel's edge`);
+        } else {
+          /* Down from the panel's last control scrolls it to its end. */
+          const was = m.over;
+          await page.evaluate("(() => { const b = [...document.querySelectorAll('.hangar-side button')].pop(); b.focus(); return true; })()");
+          await page.tap('ArrowDown');
+          await page.until("(() => { const s = document.querySelector('.hangar-side'); return s.scrollTop + s.clientHeight >= s.scrollHeight - 1; })()", 5000).catch(() => {});
+          m = await page.evaluate(LAYOUT);
+          say(m.scrollTop >= was - 1 && m.last.below >= 0 && m.last.above >= 0,
+            `${at}: ${was} px over, Down from the last control scrolls the panel ${m.scrollTop.toFixed(0)} px to its end and the last line is ${m.last.below.toFixed(0)} px above the panel's edge`);
+        }
+        if (id === 'kadet1981' && tab === 'power' && h >= 900) {
+          say(m.over <= 0, `${at}: the Kadet's Power tab fits with no scroll (${m.over} px over)`);
+        }
+      }
+      await page.evaluate('window.__ui.hangar.cancel(); true');
+      await page.until('!window.__ui.hangar.isOpen', 5000);
+      await page.evaluate('window.__ui.carousel.close(); true');
+    }
+  }
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -275,6 +346,8 @@ async function main() {
     const stockPaint = await page.evaluate("window.__pickPaint('timber1500')") ?? {};
     say(!after.timber1500 && same(sorted(stockPaint), sorted(stock)), `Reset to stock leaves nothing stored for it and the model in its kit's colours: ${JSON.stringify(stockPaint)}`);
     say(Object.keys(LIVERIES).length === 8, `${Object.keys(LIVERIES).length} planes have paint`);
+    await page.evaluate('window.__ui.carousel.close(); true');
+    await layoutCheck(page);
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

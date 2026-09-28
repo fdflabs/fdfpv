@@ -825,10 +825,19 @@ export class Hangar {
         best = b;
       }
     }
-    if (best) {
-      best.focus();
-      this.sound('move');
+    if (!best) {
+      return;
     }
+    /* Leaving the side panel downward while it has more below its fold:
+     * the readouts and the notes under the last control are not stops, so
+     * Down shows them first and leaves for the buttons on the next press. */
+    const leavingSide = dy > 0 && this.side.contains(stops[at]) && !this.side.contains(best);
+    if (leavingSide && this.side.scrollTop + this.side.clientHeight < this.side.scrollHeight - 1) {
+      this.side.scrollTo(0, this.side.scrollHeight);
+    } else {
+      best.focus();
+    }
+    this.sound('move');
   }
 
   activate() {
