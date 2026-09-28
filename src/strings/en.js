@@ -1979,6 +1979,8 @@ export default {
   "progress.kind_scheme": "New paint",
   "progress.kind_prop": "New prop",
   "progress.kind_addon": "New add-on",
+  "progress.kind_finish": "New finish",
+  "progress.kind_decal": "New decal",
   "progress.kind_other": "New in the hangar",
   "progress.toast_lap": "Lap done",
   "progress.toast_first_track": "First lap on this track",

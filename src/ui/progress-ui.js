@@ -31,7 +31,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RunWatch, awardChallenge, awardLap, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RunWatch, awardChallenge, awardLap, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
@@ -71,7 +71,7 @@ export function itemName(it) {
 }
 
 function kindWord(kind) {
-  return str(['plane', 'power', 'scheme', 'prop', 'addon'].includes(kind) ? `progress.kind_${kind}` : 'progress.kind_other');
+  return str(['plane', 'power', 'scheme', 'prop', 'addon', 'finish', 'decal'].includes(kind) ? `progress.kind_${kind}` : 'progress.kind_other');
 }
 
 const STYLE = `
@@ -311,7 +311,7 @@ export class Progress {
         frac: info.frac,
       });
     }
-    const order = { plane: 0, power: 1, prop: 2, addon: 3, scheme: 4 };
+    const order = { plane: 0, power: 1, prop: 2, addon: 3, scheme: 4, finish: 5, decal: 6 };
     for (const e of levels) {
       const items = events.filter((u) => u.type === 'unlock' && u.item.level === e.level).map((u) => u.item)
         .sort((a, b) => (order[a.kind] ?? 3) - (order[b.kind] ?? 3));
@@ -463,10 +463,10 @@ export class Progress {
       b.append(el('span', 'pg-lock', str('progress.locked_level', { n: lock.level })));
       return;
     }
-    const key = itemKey(kind, id, airframe);
-    if (this.isNew(key)) {
+    const it = findItem(kind, id, airframe);
+    if (it && this.isNew(it.key)) {
       b.append(el('span', 'pg-new', str('progress.new')));
-      this.newShown.add(key);
+      this.newShown.add(it.key);
     }
   }
 

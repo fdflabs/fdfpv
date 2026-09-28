@@ -23,7 +23,9 @@
  * starters (PLANE_LEVELS), every power option after a plane's stock one
  * (configs/power.js), every paint scheme after a plane's first two
  * (configs/liveries.js), every prop after a plane's stock one and every
- * add-on a plane takes (configs/hangar-parts.js), and anything another
+ * add-on a plane takes (configs/hangar-parts.js), the paint shop's
+ * finishes and decals after the first few (configs/paint.js; the palette
+ * and the kit's own finish are always free), and anything another
  * module adds, by exporting
  * UNLOCKABLES from configs/power.js or configs/liveries.js or by calling
  * registerUnlockables() with a list of { kind, id, airframe?, level?,
@@ -57,6 +59,7 @@ import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
+import { DECAL_KIND_IDS, FINISHES } from '../../configs/paint.js';
 
 const { POWER } = powerConfig;
 const { liveryKey, schemesFor } = liveryConfig;
@@ -78,6 +81,8 @@ export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, bombshell1118: 4, radian
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;
+/* The decals free from the start: a number, a stripe, a checker. */
+const FREE_DECALS = 3;
 /* An item another module registers without a level. */
 const DEFAULT_LEVEL = 3;
 
@@ -274,6 +279,21 @@ export function unlockables() {
       });
     }
   }
+  /* The paint shop's (src/ui/hangar-paint.js), on every plane alike: the
+   * first finish and the first few decals are free, so a new pilot can
+   * paint a number and a stripe on the first day, and the rest open two a
+   * level. A saved livery or a shared code is worn whatever it uses: it is
+   * the pilot's own work or a friend's. */
+  FINISHES.forEach((f, i) => {
+    if (i > 0) {
+      add({ key: itemKey('finish', f), kind: 'finish', id: f, airframe: null, level: 1 + i, name: `hangar.finish_${f}` });
+    }
+  });
+  DECAL_KIND_IDS.forEach((k, i) => {
+    if (i >= FREE_DECALS) {
+      add({ key: itemKey('decal', k), kind: 'decal', id: k, airframe: null, level: 2 + Math.floor((i - FREE_DECALS) / 2), name: `hangar.decal_${k}` });
+    }
+  });
   const extra = [
     ...(Array.isArray(powerConfig.UNLOCKABLES) ? powerConfig.UNLOCKABLES : []),
     ...(Array.isArray(liveryConfig.UNLOCKABLES) ? liveryConfig.UNLOCKABLES : []),
@@ -294,13 +314,20 @@ export function unlockables() {
   return out;
 }
 
+/* The lockable item a card names: the plane's own, or one every plane
+ * shares (a finish, a decal); null when it was never lockable. */
+export function findItem(kind, id, airframe = null) {
+  const all = unlockables();
+  return all.find((it) => it.key === itemKey(kind, id, airframe)) ?? (airframe ? all.find((it) => it.key === itemKey(kind, id)) : null) ?? null;
+}
+
 /* Why an item is locked: { level } while it is, null once it is open or
  * was never lockable. */
 export function lockOf(progress, kind, id, airframe = null) {
   if (!progress || progress.unlockAll) {
     return null;
   }
-  const level = kind === 'plane' ? planeLevel(id) : (unlockables().find((it) => it.key === itemKey(kind, id, airframe)) ?? { level: 1 }).level;
+  const level = kind === 'plane' ? planeLevel(id) : (findItem(kind, id, airframe) ?? { level: 1 }).level;
   return levelOf(progress.xp) >= level ? null : { level };
 }
 

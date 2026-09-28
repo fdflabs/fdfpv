@@ -244,6 +244,7 @@ export class PaintShop {
       b.setAttribute('aria-pressed', String(on));
       this.h.trial(b, { region: region.id, finish: f }, region.id);
       b.addEventListener('click', () => this.pickFinish(region.id, f));
+      this.h.lockMark(b, 'finish', f);
       row.append(b);
     }
     box.append(row);
@@ -368,6 +369,7 @@ export class PaintShop {
       b.style.setProperty('--i', String(i));
       b.append(thumb(sample, 64, 40), el('span', 'paint-kind-name', str(`hangar.decal_${k}`)));
       b.addEventListener('click', () => this.startPlacing(sample, -1));
+      this.h.lockMark(b, 'decal', k);
       box.append(b);
     });
     return box;

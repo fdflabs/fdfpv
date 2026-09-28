@@ -1983,6 +1983,8 @@ export default {
   "progress.kind_scheme": "Pintura nueva",
   "progress.kind_prop": "Hélice nueva",
   "progress.kind_addon": "Accesorio nuevo",
+  "progress.kind_finish": "Acabado nuevo",
+  "progress.kind_decal": "Calcomanía nueva",
   "progress.kind_other": "Novedad en el hangar",
   "progress.toast_lap": "Vuelta completada",
   "progress.toast_first_track": "Primera vuelta en esta pista",

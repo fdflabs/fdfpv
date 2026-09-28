@@ -215,6 +215,18 @@ async function hangarTouches(page) {
   await page.until(EXPLODED('e.amount === 0'), 120000).catch(() => {});
   const back = await exploded(page);
   say(back.amount === 0 && back.parts.length === 0 && back.propOut < 1e-9, `the Colours tab puts it back together: ${JSON.stringify(back)}`);
+  /* The paint shop's locks: a scheme, a finish and the decals. */
+  const paint = await page.evaluate(`({ stock: ${card('scheme-stock')}, super: ${card('scheme-super')}, gloss: ${card('finish-gloss')}, chrome: ${card('finish-chrome')},
+    swatches: [...document.querySelectorAll('.hangar .hangar-swatch')].filter((b) => b.disabled).length })`);
+  say(paint.stock && !paint.stock.locked && paint.super.locked && /Level 3/.test(paint.super.text) && !paint.gloss.locked && paint.chrome.locked && /Level 4/.test(paint.chrome.text) && paint.swatches === 0,
+    `the Colours tab: the stock scheme and gloss open, Super Timber locked to 3, chrome to 4, no swatch of the palette locked: ${JSON.stringify(paint)}`);
+  await page.evaluate(click('page-decals'));
+  await page.evaluate(click('decal-add'));
+  const decals = await page.evaluate(`({ num: ${card('kind-num')}, stripe: ${card('kind-stripe')}, chevron: ${card('kind-chevron')}, wings: ${card('kind-wings')} })`);
+  say(!decals.num.locked && !decals.stripe.locked && decals.chevron.locked && /Level 2/.test(decals.chevron.text) && /Level 5/.test(decals.wings.text),
+    `the decals: a number and a stripe free, chevrons locked to 2, wings to 5: ${JSON.stringify(decals)}`);
+  await shot(page, '2-decals-locked');
+  await page.evaluate(click('page-paint'));
   await page.evaluate(click('tab-challenges'));
   await page.until("window.__ui.hangar.tab === 'challenges'", 5000);
   await settle(page, 900);
