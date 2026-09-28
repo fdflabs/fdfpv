@@ -51,7 +51,13 @@ const TELEPORT_M = 1;
  * slower, it hangs if the aircraft is up, or lies behind it on the ground. */
 const LAY_MOVING_MPS = 3;
 const LAY_HANG_M = 2;
-export const EXTRAP_MAX_MS = 250;
+/* A peer's paper is carried forward up to this far from its newest frame.
+ * Longer than an aircraft's 250 ms (src/game/peer.js), because paper moves
+ * along its own path and a line slid along itself is the same line: at
+ * 250 ms a 300 ms link drew the line 15 to 20 cm off the truth at a pass,
+ * at 600 ms under 6 cm on every link set (scripts/combat-harness.js), and
+ * the owner's metre (src/game/cut.js) is judged against the truth. */
+export const EXTRAP_MAX_MS = 600;
 const FRAMES_KEPT = 4;
 /* A frame longer than this (a tab in the background) is not caught up. */
 const IDLE_MAX_STEPS = 100;

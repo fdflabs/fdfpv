@@ -30,6 +30,8 @@ import {
   COUNTDOWN_MS, FULL_LINKS, POINTS_CUT, POINTS_FLIGHT, POINTS_LAUNCH, POINTS_PER_METRE,
 } from '../edge/rooms/combat.js';
 import { PAPER_HALF_M } from '../src/game/cut.js';
+import { hullFor } from '../src/game/midair.js';
+import { bodyAxes } from '../src/game/airframehull.js';
 import { WIDTH_M } from '../src/game/streamer.js';
 
 /* A deterministic wander: a chain that bends and stretches like paper. */
@@ -231,7 +233,9 @@ function roundSection(check) {
     const eb = texts(r.socks.B, 'event', 'cut');
     check('A flies through B\'s paper and both are told of one cut', ea.length === 1 && eb.length === 1 && JSON.stringify(ea[0]) === JSON.stringify(eb[0]), `${ea.length} ${eb.length}`);
     const c = ea[0] || {};
-    check('the cut is where the paper was met: 20 m down it, at the pass', c.cutter === 1 && c.victim === 2 && c.keep === 19 && Math.abs(c.tc - 7000) < 20, `keep ${c.keep} at ${c.tc}`);
+    /* A metre of reach: the quad's nose is a metre from the line about
+     * (1 + its half length) / 20 m/s before it is over it. */
+    check('the cut is where the paper was met: 20 m down it, a metre before the quad was over it', c.cutter === 1 && c.victim === 2 && c.keep === 19 && c.tc > 6930 && c.tc < 6960, `keep ${c.keep} at ${c.tc}`);
     check(`it scores ${POINTS_CUT}, cut by a part of the quad`, c.points === POINTS_CUT && typeof c.part === 'string', `${c.points} ${c.part}`);
     const sc = texts(r.socks.B, 'combat').pop();
     const sa = sc.scores.find((x) => x.seat === 1);
@@ -251,9 +255,31 @@ function roundSection(check) {
     const r = started();
     fly(r, 1, 8000, thereAndBack(7000, 7700), { links: FULL_LINKS });
     const cuts = texts(r.socks.A, 'event', 'cut');
-    check('back through the paper 0.7 s later, still the pass: it cuts, and does not score', cuts.length === 2 && cuts[1].pass === true && cuts[1].points === 0 && cuts[1].keep < cuts[0].keep, cuts.map((c) => `${c.keep}/${c.points}`).join(' '));
+    check('back through the paper 0.7 s later, still the pass: no second cut', cuts.length === 1, cuts.map((c) => `${c.keep}/${c.points}`).join(' '));
     const sa = texts(r.socks.A, 'combat').pop().scores.find((x) => x.seat === 1);
     check('and counts as one cut', sa.cuts === 1 && sa.points === POINTS_CUT);
+  }
+
+  console.log('combat: within a metre of the line is a cut (the owner\'s rule)');
+  {
+    /* How far the quad's part boxes reach across its path, flying +x with
+     * the pose's attitude: the pass is set by the distance from its
+     * nearest box to the paper's line, not from its centre. */
+    const h = hullFor('5inch').hull;
+    const ax = bodyAxes(0, 0.7071068, 0, 0.7071068, new Float64Array(9));
+    let side = 0;
+    for (let i = 0; i < h.n; i += 1) {
+      const cz = h.cx[i] * ax[2] + h.cy[i] * ax[5] + h.cz[i] * ax[8];
+      const ez = h.hx[i] * Math.abs(ax[2]) + h.hy[i] * Math.abs(ax[5]) + h.hz[i] * Math.abs(ax[8]);
+      side = Math.max(side, cz + ez);
+    }
+    for (const [d, want] of [[0.9, true], [1.1, false]]) {
+      const r = started();
+      const z = 0.02 - side - d;
+      fly(r, 1, 7600, (t) => ({ p: [20 * (t - 7000) / 1000, A_Y, z], v: [20, 0, 0] }));
+      const got = texts(r.socks.A, 'event', 'cut');
+      check(`a pass whose nearest part is ${d} m from the paper ${want ? 'cuts it, and scores' : 'does not cut it'}`, want ? got.length === 1 && got[0].points === POINTS_CUT : got.length === 0, `${got.length} cuts`);
+    }
   }
 
   console.log('combat: who can cut and be cut');

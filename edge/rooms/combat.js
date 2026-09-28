@@ -101,7 +101,7 @@ export class RoomCombat {
       r = {
         airframe: null, hull: null, poses: new Track(), paper: new StreamerTrack(),
         owed: FULL_LINKS, links: 0, points: 0, cuts: 0, crashed: false, flying: false,
-        rate: { since: 0, n: 0 }, pass: new Map(),
+        rate: { since: 0, n: 0 },
       };
       this.seats.set(seat, r);
     }
@@ -231,7 +231,7 @@ export class RoomCombat {
     r.endsAt = r.startsAt + msg.minutes * 60000;
     for (const [seat, rec] of this.seats) {
       Object.assign(rec, {
-        owed: FULL_LINKS, links: 0, points: 0, cuts: 0, crashed: false, paper: new StreamerTrack(), pass: new Map(),
+        owed: FULL_LINKS, links: 0, points: 0, cuts: 0, crashed: false, paper: new StreamerTrack(),
       });
       for (const key of [...this.pairs.keys()]) {
         if (key.startsWith(`${seat}>`)) {
@@ -333,18 +333,15 @@ export class RoomCombat {
     if (!c) {
       return [];
     }
-    /* The rest of the span is judged again from the cut on, against the
-     * shorter streamer. */
-    this.pairs.set(key, Math.floor(c.tc));
-    const same = a.pass.has(victim) && c.tc - a.pass.get(victim) < PASS_MS;
-    a.pass.set(victim, c.tc);
-    const points = same || a.links < a.owed ? 0 : POINTS_CUT;
+    /* One pass, one cut (the rules' "multiple cuts on a single streamer in
+     * a single pass count as one cut"): this cutter cuts this streamer
+     * nothing more until PASS_MS after, on the samples' own clock. */
+    this.pairs.set(key, Math.floor(c.tc + PASS_MS));
+    const points = a.links < a.owed ? 0 : POINTS_CUT;
     b.owed = c.link;
     b.links = Math.min(b.links, b.owed);
     a.points += points;
-    if (!same) {
-      a.cuts += 1;
-    }
+    a.cuts += 1;
     const ev = {
       type: 'event',
       kind: 'cut',
@@ -357,7 +354,6 @@ export class RoomCombat {
       part: a.hull.kinds[c.part] || 'part',
       p: c.p.map((v) => Math.round(v * 1000) / 1000),
       points,
-      pass: same,
     };
     this.nextId += 1;
     this.log.push({ ...ev, decided: core.roomMs(now) });
