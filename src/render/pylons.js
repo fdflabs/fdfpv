@@ -261,8 +261,11 @@ function pylon(spec, index, isStart) {
  *     gate the race wants next a halo round it and a soft disc of light
  *     across the opening that pulses, gently, so the next hoop is the one
  *     thing in the sky that moves;
- *   a marker light on top, unfogged, which stays a point of red at
- *     distances where the rim is a pixel;
+ *   a marker light on top, unfogged, and a sprite over it that is the same
+ *     size on the screen at any distance, so the light is a red point at a
+ *     kilometre, where the rim's tube is under a pixel;
+ *   the rim's centreline drawn as a line too, unfogged: a line is never
+ *     thinner than a pixel, so far off the hoop is still a crisp circle;
  *   a faint line straight down to the ground and a ring where it lands, so
  *     how high it hangs reads from any distance (setGround, which the
  *     builder calls wherever it puts one).
@@ -280,6 +283,8 @@ const RIM = 0xff3d1f;
 const RIM_BAND = 0xf4f1ea;
 const RIM_BANDS = 8;
 const MARKER = 0xff2a2a;
+/* The far light's size on the screen, a share of the view's height. */
+const BEACON = 0.014;
 /* The pulse on the target's disc: its period, s, and how deep it is. */
 const PULSE_S = 0.8;
 const PULSE_DEPTH = 0.3;
@@ -304,6 +309,27 @@ function rimGeometry(Rc, t) {
   return geo;
 }
 
+/* The far light's picture, a soft red dot, drawn once for every hoop. */
+let beaconTex = null;
+function beaconTexture() {
+  if (beaconTex) {
+    return beaconTex;
+  }
+  const c = document.createElement('canvas');
+  c.width = 32;
+  c.height = 32;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  grad.addColorStop(0, 'rgba(255, 235, 225, 1)');
+  grad.addColorStop(0.35, 'rgba(255, 60, 40, 1)');
+  grad.addColorStop(1, 'rgba(255, 40, 30, 0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 32, 32);
+  beaconTex = new THREE.CanvasTexture(c);
+  beaconTex.colorSpace = THREE.SRGBColorSpace;
+  return beaconTex;
+}
+
 function hoop(spec, index, isStart) {
   const g = new THREE.Group();
   const D = spec.diameter;
@@ -322,7 +348,7 @@ function hoop(spec, index, isStart) {
   const additive = (opacity) => new THREE.MeshBasicMaterial({
     color: ringColor, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
   });
-  const ringMat = additive(0.5);
+  const ringMat = additive(0.3);
   const haloMat = additive(0.22);
   const shell = new THREE.Mesh(new THREE.TorusGeometry(Rc, t * 1.08, 8, 96), ringMat);
   const halo = new THREE.Mesh(new THREE.TorusGeometry(Rc, t * 1.8 + D * 0.01, 8, 96), haloMat);
@@ -394,6 +420,26 @@ function hoop(spec, index, isStart) {
     m.layers.set(1);
     g.add(m);
   }
+  const beacon = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: beaconTexture(), sizeAttenuation: false, depthWrite: false, transparent: true, fog: false,
+  }));
+  beacon.scale.set(BEACON, BEACON, 1);
+  /* A sprite asks the raycaster for its camera, and the builder's hover
+   * ray has none: the rim is what is aimed at, not the light. */
+  beacon.raycast = () => {};
+  beacon.position.y = lightY;
+  beacon.layers.set(1);
+  g.add(beacon);
+  const loopPts = [];
+  for (let k = 0; k < 96; k += 1) {
+    const u = (2 * Math.PI * k) / 96;
+    loopPts.push(new THREE.Vector3(Rc * Math.cos(u), cy + Rc * Math.sin(u), 0));
+  }
+  const outline = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(loopPts), new THREE.LineBasicMaterial({
+    color: RIM, fog: false, transparent: true, opacity: 0.9, depthWrite: false,
+  }));
+  outline.layers.set(1);
+  g.add(outline);
 
   /* The number, both faces, on the rim under the light. */
   const scale = Math.max(1, t * 8);
@@ -494,6 +540,9 @@ function hoop(spec, index, isStart) {
     aperture,
     colliders: caps,
     setGround,
+    /* The parts that are there to be seen from far off, which a ghost and
+     * an icon leave out (src/builder/buildmode.js lightParts). */
+    beacons: [beacon, outline],
     /* Where a whack wobbles it about (src/builder/buildmode.js): its
      * centre, since it hangs in the air. */
     pivotY: cy,

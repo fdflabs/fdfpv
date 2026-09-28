@@ -907,7 +907,7 @@ export function createBuildMode(host) {
    * pane across the opening and the glow round it, which in the ghost's
    * one material would fill the hole the ghost is there to show. */
   function lightParts(made) {
-    return [made.glowMesh, made.cueGroup, ...(made.haloMeshes || [])].filter(Boolean);
+    return [made.glowMesh, made.cueGroup, ...(made.haloMeshes || []), ...(made.beacons || [])].filter(Boolean);
   }
 
   function handPiece() {
