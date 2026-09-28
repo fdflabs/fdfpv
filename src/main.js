@@ -8300,8 +8300,16 @@ export async function boot({
    * nothing about who asked, and the one for the release this file asks
    * for on leaving flight can arrive after the next flight has begun, where
    * it paused a run the pilot had just started. mouseExitAsked marks ours.
+   *
+   * AND ONLY A CAPTURE MOUSE FLIGHT TOOK IS ITS TO RELEASE. The builder
+   * captures the same canvas for its own camera (src/builder/buildmode.js),
+   * and releasing every capture off the flight screen took that away from
+   * every builder, mouse flight on or off; lint trackmode:check caught it.
+   * mouseLockMine is set when a capture this file asked for arrives.
    */
   let mouseLockAsked = false;
+  let mouseLockPending = false;
+  let mouseLockMine = false;
   let mouseExitAsked = false;
   let mouseEscGuardUntil = 0;
   const MOUSE_ESC_GUARD_MS = 300;
@@ -8311,6 +8319,7 @@ export async function boot({
       && !(build && build.active && !build.racing);
   }
   function askMouseLock() {
+    mouseLockPending = true;
     const req = shell.canvas.requestPointerLock();
     if (req && typeof req.catch === 'function') {
       req.catch(() => {});
@@ -8324,7 +8333,7 @@ export async function boot({
     input.setMouseCraft(wing, ui.settings.flightMode !== 'angle');
     if (!want) {
       mouseLockAsked = false;
-      if (locked) {
+      if (locked && mouseLockMine) {
         mouseExitAsked = true;
         document.exitPointerLock();
       }
@@ -8351,14 +8360,21 @@ export async function boot({
     }
     askMouseLock();
   });
+  document.addEventListener('pointerlockerror', () => {
+    mouseLockPending = false;
+  });
   document.addEventListener('pointerlockchange', () => {
     if (mouseLocked()) {
+      mouseLockMine = mouseLockPending;
+      mouseLockPending = false;
       return;
     }
+    const mine = mouseLockMine;
     const ours = mouseExitAsked;
+    mouseLockMine = false;
     mouseExitAsked = false;
     input.setMouseLive(false);
-    if (!ours && input.mouseEnabled && mode === 'flight' && ui.screen === 'flight') {
+    if (mine && !ours && input.mouseEnabled && mode === 'flight' && ui.screen === 'flight') {
       mouseEscGuardUntil = performance.now() + MOUSE_ESC_GUARD_MS;
       ui.act('pause');
       ui.show('paused');
