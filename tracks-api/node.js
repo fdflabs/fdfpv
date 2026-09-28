@@ -28,15 +28,12 @@ import http from 'node:http';
 import { pathToFileURL } from 'node:url';
 import worker from './worker.js';
 import { openD1 } from './d1sqlite.js';
-import { answer, requestFrom, send } from '../edge/node-http.js';
+import { listener } from '../edge/node-http.js';
 
 export function startTracks({ db, port, host = '127.0.0.1', adminSecret = '' }) {
   const opened = openD1(db);
   const env = { DB: opened.DB, ADMIN_SECRET: adminSecret };
-  const server = http.createServer(async (req, res) => {
-    const response = await answer(worker, requestFrom(req), env);
-    await send(res, response);
-  });
+  const server = http.createServer(listener(worker, env));
   function stop() {
     return new Promise((resolve) => {
       server.close(() => {

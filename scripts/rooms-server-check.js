@@ -41,6 +41,7 @@
  */
 
 import { mkdtempSync, rmSync } from 'node:fs';
+import { connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
@@ -209,7 +210,30 @@ if (pub.open) {
   check('public rooms say they are closed', pub.open === false && pub.cap === 16);
 }
 
+/* A raw request on its own connection: the first line of the answer. */
+function raw(text) {
+  return new Promise((resolve) => {
+    const u = new URL(origin);
+    const sock = connect(Number(u.port), u.hostname, () => sock.end(text));
+    let got = '';
+    sock.on('data', (d) => {
+      got += d;
+    });
+    sock.on('close', () => resolve(got.split('\r\n')[0]));
+    sock.on('error', () => resolve(''));
+  });
+}
+
 if (server) {
+  console.log('malformed requests (edge/rooms/node.js)');
+  const plain = await raw('GET / HTTP/1.1\r\nHost: a b\r\nConnection: close\r\n\r\n');
+  const upgrade = await raw('GET /v2/room/BCDFGH HTTP/1.1\r\nHost: [x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n'
+    + 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n');
+  res = await fetch(`${origin}/`);
+  check('a Host no URL can hold is answered, not thrown', /^HTTP\/1\.1 [45]\d\d/.test(plain), plain);
+  check('and on an upgrade too', upgrade === '' || /^HTTP\/1\.1 [45]\d\d/.test(upgrade), upgrade);
+  check('and the server is still up', res.status === 200);
+
   console.log('a restart with two pilots flying (edge/rooms/node.js)');
   const seats = { a: a.welcome, b: b.welcome };
   await server.stop();

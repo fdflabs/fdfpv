@@ -55,7 +55,7 @@ import { WebSocketServer } from 'ws';
 import front from './front.js';
 import { PURGE_MS, RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
-import { answer, refuseUpgrade, requestFrom, send } from '../node-http.js';
+import { answer, listener, refuseUpgrade, upgradeListener } from '../node-http.js';
 
 /* The largest message the simulator sends is a host's race track, logos
  * stripped (src/share/roomrace.js), which the room caps at 64 kB (race.js
@@ -293,19 +293,15 @@ export function startRooms({ db, port, host = '127.0.0.1', publicRooms = 'on' })
   }
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });
-  const server = http.createServer(async (req, res) => {
-    const response = await answer(front, requestFrom(req), env);
-    await send(res, response);
-  });
-  server.on('upgrade', async (req, socket, head) => {
-    socket.on('error', () => socket.destroy());
-    const result = await answer(front, requestFrom(req), env);
+  const server = http.createServer(listener(front, env));
+  server.on('upgrade', upgradeListener(async (req, socket, head) => {
+    const result = await answer(front, req, env);
     if (!(result instanceof Upgrade)) {
       await refuseUpgrade(socket, result);
       return;
     }
     wss.handleUpgrade(req, socket, head, (ws) => result.accept(ws));
-  });
+  }));
 
   function stop() {
     for (const ws of wss.clients) {

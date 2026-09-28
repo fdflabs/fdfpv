@@ -71,13 +71,41 @@ export async function refuseUpgrade(socket, response) {
   socket.end(`${head.join('\r\n')}\r\n\r\n${text}`);
 }
 
-/* The handler's answer, or a 500 with the error on stderr (the journal):
- * a thrown handler is a bug to see, and the client must not hang on it. */
-export async function answer(handler, request, env) {
+function logError(e) {
+  console.error(e && e.stack ? e.stack : e);
+}
+
+/* The handler's answer to an incoming message, or a 500 with the error on
+ * stderr (the journal): a thrown handler is a bug to see, and the client
+ * must not hang on it. */
+export async function answer(handler, req, env) {
   try {
-    return await handler.fetch(request, env);
+    return await handler.fetch(requestFrom(req), env);
   } catch (e) {
-    console.error(e && e.stack ? e.stack : e);
+    logError(e);
     return new Response('server error', { status: 500 });
   }
+}
+
+/* node:http's request listener for a fetch handler. Nothing in it may
+ * reject unhandled: that ends the process, and every room with it. */
+export function listener(handler, env) {
+  return (req, res) => {
+    answer(handler, req, env).then((response) => send(res, response)).catch((e) => {
+      logError(e);
+      res.destroy();
+    });
+  };
+}
+
+/* The same for node:http's upgrade event: run(req, socket, head) is the
+ * server's own, and a failure closes the socket rather than the process. */
+export function upgradeListener(run) {
+  return (req, socket, head) => {
+    socket.on('error', () => socket.destroy());
+    run(req, socket, head).catch((e) => {
+      logError(e);
+      socket.destroy();
+    });
+  };
 }
