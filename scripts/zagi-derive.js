@@ -88,7 +88,7 @@ function lattice({ le, te, flap, half, winglet = null, ns = 24, nc = 6, nf = 2, 
         /* Bound legs run left to right, y increasing, so a positive Gamma lifts. */
         const A = side > 0 ? [xa, ya, 0] : [xb, -yb, 0];
         const B = side > 0 ? [xb, yb, 0] : [xa, -ya, 0];
-        panels.push({ A, B, C: [xc, side * ym, 0], n: [0, 0, 1], side, flap: sa[k][2] === 1 && sb[k][2] === 1 });
+        panels.push({ A, B, C: [xc, side * ym, 0], n: [0, 0, 1], side, flap: sa[k][2] === 1 && sb[k][2] === 1, strip: i, ya, yb });
       }
     }
   }
@@ -202,7 +202,15 @@ function lattice({ le, te, flap, half, winglet = null, ns = 24, nc = 6, nf = 2, 
     /* Lift square to the air in the x z plane; the moments turned to the
      * aircraft's senses: roll about -x, pitch about +y, yaw about -z. */
     const CL = (F[2] * Math.cos(alpha) - F[0] * Math.sin(alpha)) / qS;
-    return { CL, CY: F[1] / qS, Cl: -M[0] / (qS * ref.b), Cm: M[1] / (qS * ref.c), Cn: -M[2] / (qS * ref.b) };
+    /* The right wing's span loading, cl c = 2 Gamma, strip by strip. */
+    const load = [];
+    for (let i = 0; i < N; i += 1) {
+      const pn = panels[i];
+      if (pn.fin || pn.side < 0) continue;
+      load[pn.strip] = load[pn.strip] || { ya: pn.ya, yb: pn.yb, clc: 0 };
+      load[pn.strip].clc += 2 * G[i];
+    }
+    return { CL, CY: F[1] / qS, Cl: -M[0] / (qS * ref.b), Cm: M[1] / (qS * ref.c), Cn: -M[2] / (qS * ref.b), load };
   };
 }
 
@@ -362,6 +370,7 @@ const k = 1 / (Math.PI * e * AR);
 
 /* Yaw damping: the lattice's, plus the wing's profile drag, CD0 / 4. */
 const Cnr = D.Cnr - CD0 / 4;
+const bareCruise = derivatives(hpBare, hpRef, { alpha: alphaCruise });
 
 /*
  * The throws: 3/8 in each way on either stick, measured, as the 400-X's
@@ -471,6 +480,48 @@ const Izz = Ixx + Iyy;
 const strips = [0.125, 0.375, 0.625, 0.875];
 const stripC = strips.map((e2) => chordIn(e2 * 24) / hpRef.c);
 const schrenk = strips.map((e2, i) => 0.5 * (1 + 4 / Math.PI * Math.sqrt(1 - e2 * e2) / stripC[i]));
+/* The lattice's own span loading at the cruise, winglets on, over each
+ * quarter of the semispan, as the share of the wing's lift coefficient a
+ * strip carries: cl c / (CL c_mean). Sweep and the winglets load the
+ * outer strips more than Schrenk's approximation, which leaves both out. */
+const stripRof = (run) => {
+  const res = run(hpRef, { alpha: alphaCruise });
+  return strips.map((e2, i) => {
+    const y0 = 6 * i, y1 = y0 + 6;
+    let sum = 0;
+    for (const st of res.load) {
+      const lo = Math.max(y0, st.ya), hi = Math.min(y1, st.yb);
+      if (hi > lo) sum += st.clc * (hi - lo);
+    }
+    return sum / 6 / (res.CL * hpRef.c);
+  });
+};
+const cruiseRun = hpRun(hpRef, { alpha: alphaCruise });
+const stripR = strips.map((e2, i) => {
+  const y0 = 6 * i, y1 = y0 + 6;
+  let sum = 0;
+  for (const st of cruiseRun.load) {
+    const lo = Math.max(y0, st.ya), hi = Math.min(y1, st.yb);
+    if (hi > lo) sum += st.clc * (hi - lo);
+  }
+  return sum / 6 / (cruiseRun.CL * hpRef.c);
+});
+/* The elevon on each strip, the plant's strip_tau: thin aerofoil theory's
+ * effectiveness of a trailing edge surface of the strip's chord fraction,
+ * 1 - (theta - sin theta) / pi with cos theta = 2 cf - 1, times the share
+ * of the strip's span it covers (the innermost strip, 0 to 6 in, from the
+ * bay's edge at 2.5 in). */
+const tauOf = (cf) => { const th = Math.acos(2 * cf - 1); return 1 - (th - Math.sin(th)) / Math.PI; };
+/* A surface on a stalled wing: separated, it turns the wing by the chord
+ * line it tilts, cf per radian, where attached flow gave it tau; the
+ * plant's surf_sep, at the MAC's chord fraction. */
+const cfMac = flapC / mac;
+const surfSep = cfMac / tauOf(cfMac);
+const stripTau = strips.map((e2, i) => {
+  const y0 = 24 * 0.25 * i, y1 = y0 + 6;
+  const cover = Math.max(0, y1 - Math.max(y0, flapIn)) / 6;
+  return tauOf(flapC / chordIn(e2 * 24)) * cover;
+});
 /* The MH45 past its stall at the cruise's Reynolds number on the MAC,
  * between UIUC's 1e5 (held +2.5 deg, then 0.80) and 2e5 (+2.8, 0.92). */
 const re = Vcruise * mac * IN * rho / 1.81e-5;
@@ -502,10 +553,45 @@ function shortPeriod(V) {
  * A tailless wing with a small margin has a large one: pitch sensitivity. */
 const dclPerRad = -cmDe / Cma * CLa + clDe;
 const gPerRad = (V) => 0.5 * rho * V * V * S * dclPerRad / W;
+/* A step of elevon from a steady glide at V: the linear short period, the
+ * speed held, alpha and q integrated in 0.1 ms steps; the time to the
+ * pitch rate's first peak, what a pilot feels as how fast the nose
+ * answers. And the angle of attack the glide settles to per degree of
+ * elevon, the moment's balance alone: -cm_de / cm_alpha. */
+function stepPeak(V) {
+  const q = 0.5 * rho * V * V;
+  const de = 1 / DEG;
+  let a = 0, qr = 0, t = 0, peak = 0, tPeak = 0;
+  const dt = 1e-4;
+  while (t < 1) {
+    const aDot = qr - q * S * (CLa * a + clDe * de) / (m * V);
+    const qDot = q * S * c * (Cma * a + Cmq * qr * c / (2 * V) + cmDe * de) / Iyy;
+    a += aDot * dt;
+    qr += qDot * dt;
+    t += dt;
+    if (qr > peak) { peak = qr; tPeak = t; }
+  }
+  return { tPeak, peakDegS: peak * DEG };
+}
+const alphaPerDe = -cmDe / Cma;
 /* The elevon that holds the stall, from the cruise's trim. */
 const deStall = (CLmax - CLopt) / dclPerRad;
-/* A hand throw's speed: Zagi's "a good strong throw", 1.4 Vs. */
-const Vthrow = 1.4 * Vs;
+/*
+ * The stall as the wing flies it: a tailless wing holds its CL max only
+ * with up elevon, which sheds lift, so its trimmed CL max, and its stall,
+ * is the elevon's: at the stall angle the elevon that zeroes the pitching
+ * moment, and the lift that costs.
+ */
+const alphaS = CLmax / CLa;
+const deTrimStall = -(Cm0 + Cma * alphaS) / cmDe;
+const CLmaxTrim = CLmax + clDe * deTrimStall;
+const VsTrim = Math.sqrt(2 * W / (rho * S * CLmaxTrim));
+/* A hand throw's speed: Zagi's "a good strong throw", 1.4 times that. */
+const Vthrow = 1.4 * VsTrim;
+/* A full elevon roll from level at 15 m/s: the steady rate, and the time
+ * to go round once with the roll's own lag, Ixx over the damping. */
+const rollTau = (V) => Ixx / (0.5 * rho * V * V * S * b * -Clp * b / (2 * V));
+const t360 = (V) => 2 * Math.PI / (pb2v * 2 * V / b) + rollTau(V);
 const turnR = (V) => V * V / (g * Math.tan(60 / DEG));
 
 /* The hull, from the drawn planform, body frame m. */
@@ -531,6 +617,8 @@ const rows = [
   ['   CLmax, alpha stall deg, Vs; cruise V, CL, alpha deg', `${f(CLmax)} ${f(CLmax / CLa * DEG, 2)} ${f(Vs, 3)}; ${f(Vcruise, 3)} ${f(CLcruise)} ${f(alphaCruise * DEG, 2)}`],
   ['   FF, CD0, e, k', `${f(FF)} ${f(CD0)} ${f(e)} ${f(k)}`],
   ['   CYb, Clb, Cnb; Cnr (with CD0/4)', `${f(CYb)} ${f(Clb)} ${f(Cnb)}; ${f(Cnr)}`],
+  ['   at alpha 0: CYb, Clb, Cnb, Cnr', `${f(D0.CYb)} ${f(D0.Clb)} ${f(D0.Cnb)} ${f(D0.Cnr)}`],
+  ['   bare wing at cruise: Clb, Cnb, Cnr', `${f(bareCruise.Clb)} ${f(bareCruise.Cnb)} ${f(bareCruise.Cnr)}`],
   ['   Clr, Cnp, Cnda; per CL', `${f(D.Clr)} ${f(D.Cnp)} ${f(D.Cnda)}; ${f(ClrPerCL)} ${f(CnpPerCL)} ${f(CndaPerCL)}`],
   ['   Cm0 (trim at best glide CL, elevons neutral)', `${f(Cm0)} (CL ${f(CLopt)})`],
   ['throws deg, rad', `${f(throwA * DEG)} ${throwA.toPrecision(17)}`],
@@ -543,12 +631,20 @@ const rows = [
   ['roll pb/2V; deg/s at 12, 15, 20 m/s', `${f(pb2v)} ${f(rollAt(12), 0)} ${f(rollAt(15), 0)} ${f(rollAt(20), 0)}`],
   ['pitch: dCL per rad elevon; g per rad at 12, 15; stall elevon deg', `${f(dclPerRad, 3)} ${f(gPerRad(12), 2)} ${f(gPerRad(15), 2)} ${f(deStall * DEG, 2)}`],
   ['short period at 12, 15 m/s (wn, zeta, period)', `${JSON.stringify(shortPeriod(12), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))} ${JSON.stringify(shortPeriod(15), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))}`],
-  ['throw speed 1.4 Vs, turn R at 60 deg at 15', `${f(Vthrow, 2)} ${f(turnR(15), 2)}`],
+  ['trimmed stall: elevon deg, CL max, Vs', `${f(deTrimStall * DEG, 2)} ${f(CLmaxTrim)} ${f(VsTrim, 3)}`],
+  ['throw speed 1.4 Vs trimmed, turn R at 60 deg at 15', `${f(Vthrow, 2)} ${f(turnR(15), 2)}`],
+  ['full elevon at 15 m/s: rate deg/s, roll lag s, 360 s', `${f(rollAt(15), 1)} ${f(rollTau(15), 4)} ${f(t360(15), 3)}`],
+  ['pitch: g per deg of elevon at 12 m/s', f(gPerRad(12) / DEG, 4)],
+  ['pitch: a degree of elevon from the glide: peak q s, deg/s; alpha per elevon', `${f(stepPeak(Vmd).tPeak, 4)} ${f(stepPeak(Vmd).peakDegS, 2)}; ${f(alphaPerDe, 4)}`],
   ['masses: wing, pack; wing x, pack x in', `${f(mWing)} ${f(mPack)} ${f(wingX, 3)} ${f(packX, 3)}`],
   ['Inertia Ixx Iyy Izz', `${f(Ixx)} ${f(Iyy)} ${f(Izz)}`],
   ['hull m: nose, root TE, tip LE, tip TE', `${f(hull.nose)} ${f(hull.rootTE)} ${f(hull.tipLE)} ${f(hull.tipTE)}`],
   ['strips: c/cmean', stripC.map((x) => x.toFixed(4)).join(', ')],
   ['   Schrenk r', schrenk.map((x) => x.toFixed(4)).join(', ')],
+  ['   the lattice r (loading), local cl over CL (strip_r)', `${stripR.map((x) => x.toFixed(4)).join(', ')}; ${stripR.map((x, i) => (x / stripC[i]).toFixed(4)).join(', ')}`],
+  ['   check: bare r, mean r with and without', `${stripRof(hpBare).map((x) => x.toFixed(4)).join(', ')}; ${f(stripR.reduce((x, y) => x + y) / 4)} ${f(stripRof(hpBare).reduce((x, y) => x + y) / 4)}`],
+  ['   elevon tau on the strips', stripTau.map((x) => x.toFixed(4)).join(', ')],
+  ['   elevon cf at the MAC, tau, surf_sep', `${f(cfMac)} ${f(tauOf(cfMac))} ${f(surfSep)}`],
   ['   Re, stall_top deg, stall_k', `${f(re, 0)} ${f(stallTop, 2)} ${f(stallK, 3)}`],
   ['   stall_arm_ac, stall_arm_cp, stall_asym', `${f(stallArmAc)} ${f(stallArmCp)} ${f(stallAsym, 5)}`],
 ];

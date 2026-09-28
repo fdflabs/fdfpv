@@ -713,9 +713,33 @@ typedef struct FixedWingParams {
    * each strip at the roll rate's angle alone, so in a fast aileron roll
    * the falling wing's tip read past its stall while its up aileron held
    * it short of it, and the roll ran away. Zero on every table built
-   * before it, whose strips then read what they always read.
+   * before it, whose strips then read what they always read. On a flying
+   * wing (FW_MIX_ELEVON) the same tau carries the elevons' elevator half
+   * onto the strips as well, trailing edge up taking them away from their
+   * stall, docs/ZAGI-STAGE1.md.
    */
   double strip_tau[4];
+  /*
+   * A SURFACE ON A STALLED WING, docs/ZAGI-STAGE1.md: the share of an
+   * aileron's (and on a flying wing an elevon's) moment left once the flow
+   * has separated from the wing ahead of it, reached a stall_blend past
+   * the stall angle. Separated, a trailing edge surface turns the wing
+   * only by the chord line it tilts, its chord fraction per radian, where
+   * attached flow gave it thin aerofoil theory's tau, so the share is
+   * cf / tau. The pilot feels it as the mush's loss of roll control and,
+   * on a flying wing, as up elevon that can no longer hold the nose past
+   * the stall. Zero on every table that does not model it, whose surfaces
+   * then act as they always did.
+   */
+  double surf_sep;
+  /*
+   * THE SPAN LOADING, docs/ZAGI-STAGE1.md: each strip's local lift
+   * coefficient over the wing's, where a table has it from a lattice rather
+   * than Schrenk's approximation, which leaves sweep and endplates out: a
+   * swept, tapered wing with winglets loads its tips more than Schrenk says,
+   * and stalls there first. All zero takes Schrenk's, as every table did.
+   */
+  double strip_r[4];
   /*
    * THE PROP AS A GYROSCOPE, docs/P51-STAGE1.md. j_prop: the prop's,
    * spinner's and motor bell's moment of inertia about the shaft, kg m^2.

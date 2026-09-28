@@ -1287,6 +1287,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     s->vbat_load = 0.0;
   }
 
+  /* A SURFACE ON A STALLED WING, docs/ZAGI-STAGE1.md: past the stall the
+   * flow has left the wing's trailing edge, and a surface there turns the
+   * separated wing only by the chord line it tilts, surf_sep of what it
+   * did in attached flow, taken in over the stall's own blend. The
+   * ailerons are on the wing on every aircraft; the elevator is on the
+   * wing only on a flying wing. A table that leaves surf_sep at zero
+   * multiplies by exactly 1.0, which is the arithmetic it always had. */
+  const double sep_g = fw->surf_sep > 0.0 ? 1.0 - fre * past * (1.0 - fw->surf_sep) : 1.0;
+  const double da_m = delta_a * sep_g;
+  const double de_m = fw->mix == FW_MIX_ELEVON ? delta_e * sep_g : delta_e;
+
   /* Moments, in the aero convention, then into the body frame. */
   const double p = s->omega[0];
   const double q_aero = -s->omega[1]; /* nose up positive */
@@ -1307,12 +1318,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * angle is sin_b and cos_b above, 0 and 1 below 0.5 m/s. */
   const double ps = p * cos_b + r_aero * sin_b;
   const double rs = r_aero * cos_b - p * sin_b;
-  double cl_sum = fw->cl_beta * beta + fw->cl_p * ps * b2v + fw->cl_da * delta_a;
+  double cl_sum = fw->cl_beta * beta + fw->cl_p * ps * b2v + fw->cl_da * da_m;
   cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * rs * b2v);
   cl_sum = add_term(cl_sum, fw->cl_dr * delta_r);
   double cn_sum = fw->cn_beta * beta + fw->cn_r * rs * b2v;
   cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * ps * b2v);
-  cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * delta_a);
+  cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
   cn_sum = add_term(cn_sum, fw->cn_dr * delta_r);
   const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
   const double cn_b = cn_sum * cos_b + cl_sum * sin_b;
@@ -1341,7 +1352,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* The flaps' own moment rides on the lift they add: the section's nose
    * down moment and the downwash they add at the tail, nose up net. */
   const double m_aero = qbar * fw->area * fw->chord *
-                        add_term(add_term(fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v + fw->cm_de * delta_e,
+                        add_term(add_term(fw->cm_0 + fw->cm_alpha * alpha + fw->cm_q * q_aero * c2v + fw->cm_de * de_m,
                                           cm_stall),
                                  add_term(fw->cm_dcl_f * dcl_f, -(fw->cg_shift / fw->chord) * CL));
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
@@ -1394,7 +1405,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     double rr[4], rmax = 0.0, cyy = 0.0;
     for (int i = 0; i < 4; i += 1) {
       const double eta = 0.125 + 0.25 * i;
-      rr[i] = 0.5 * (1.0 + 4.0 / WING_PI * sim_sqrt(1.0 - eta * eta) / fw->strip_c[i]);
+      /* A table that has its own span loading (strip_r, a lattice's)
+       * takes it; the rest take Schrenk's. */
+      rr[i] = fw->strip_r[0] > 0.0 ? fw->strip_r[i] : 0.5 * (1.0 + 4.0 / WING_PI * sim_sqrt(1.0 - eta * eta) / fw->strip_c[i]);
       rmax = rr[i] > rmax ? rr[i] : rmax;
       cyy += fw->strip_c[i] * eta * eta * 0.25;
     }
@@ -1423,8 +1436,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
        * and the falling wing's up aileron away from it, against the roll
        * rate's own angle there (strip_tau, zero where there is none). */
       const double sa = fw->strip_tau[i] * delta_a;
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(-da, sa), dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall, fl);
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(da, -sa), -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall, fr);
+      /* On a flying wing the elevons are the strips' own trailing edges,
+       * so their elevator half moves every strip they span as well, up
+       * elevon away from the stall: a wing held at its stall by up elevon
+       * stalls where the elevons are not, at the root, first. A tail's
+       * elevator is on the tail, and leaves the strips alone. Zero where
+       * strip_tau is, so no earlier table reads it. */
+      const double se = fw->mix == FW_MIX_ELEVON ? fw->strip_tau[i] * delta_e : 0.0;
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(-da, sa), -se), dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_stall, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(da, -sa), -se), -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_stall, fr);
       const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
       const double lag = WING_DT / (tau + WING_DT);
       for (int j = 0; j < 2; j += 1) {
@@ -2871,8 +2891,8 @@ const FixedWingParams FW_ZAGI1219 = {
   .stab_roll_kd = 0.20,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 0.0,
-  .stab_trim_throttle = 0.5,
+  .stab_pitch_down = 0.0,   /* its glide is nose higher than the trim: npm run stab:glide */
+  .stab_trim_throttle = 0.400, /* the stick that flies it level, elevons neutral */
   .acro_roll_rate = 220.0 * WING_PI / 180.0, /* 0.7 of full elevon's 315 deg/s at 15 m/s */
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -2896,4 +2916,7 @@ const FixedWingParams FW_ZAGI1219 = {
   .stall_top = 2.64 * WING_PI / 180.0,
   .strip_c = { 1.3095, 1.1032, 0.8968, 0.6905 }, /* the 0.416 taper */
   .j_prop = 0.0000112,    /* the carbon 5 x 5, its adapter and the inrunner's rotor */
+  .strip_tau = { 0.2679, 0.4981, 0.5487, 0.6184 }, /* the 1.5 in elevons, from the bay's edge to the tip */
+  .surf_sep = 0.3325,     /* the elevon's chord fraction at the MAC over its tau */
+  .strip_r = { 0.8308, 1.0065, 1.1188, 1.1386 }, /* the lattice's span loading: the tips most */
 };
