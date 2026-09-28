@@ -11,8 +11,17 @@
  *
  * Layout: "FDFR", u32 version, u32 header length, the header (UTF-8
  * JSON), padding to 8, then the columns: time f64[n], head f64[n x HEAD_N],
- * pose f32[n x POSE_N], plant f64[n x PLANT_N], and the parts, only as
- * many rows per frame as that frame has (its head's parts count), f32.
+ * pose f32[n x POSE_N] padded to 8, plant f64[n x PLANT_N], and the parts,
+ * only as many rows per frame as that frame has (its head's parts count),
+ * f32.
+ *
+ * Version 2 added the pose column's padding. POSE_N is 17, so an odd frame
+ * count left the pose column 4 bytes short of a multiple of 8 and the
+ * writer's Float64Array over the plant column threw a RangeError: saving
+ * failed about half the time. A version 1 file could therefore only ever
+ * be written with an even count, where the padding is zero and the two
+ * layouts are the same bytes, so version 1 is still read; one claiming an
+ * odd count is refused.
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -41,7 +50,15 @@ import {
 import { RIGS } from './cameras.js';
 import { FINISHES, MAX_DECALS, checkDecal } from '../../configs/paint.js';
 
-export const FILE_VERSION = 1;
+export const FILE_VERSION = 2;
+/* Every version this build reads, the current one last. */
+const READS = [1, 2];
+
+/* The pose column's bytes with its padding to 8. */
+function poseBytes(n) {
+  const b = n * POSE_N * 4;
+  return b + ((8 - (b % 8)) % 8);
+}
 export const FILE_MAX_BYTES = 24 * 1024 * 1024;
 export const FILE_EXT = '.fdfreplay';
 const MAGIC = [0x46, 0x44, 0x46, 0x52];
@@ -82,7 +99,7 @@ export function encodeReplay(clip) {
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
-  const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + n * POSE_N * 4 + n * PLANT_N * 8 + partRows * PART_N * 4;
+  const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + partRows * PART_N * 4;
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
@@ -96,7 +113,7 @@ export function encodeReplay(clip) {
   new Float64Array(buf, o, n * HEAD_N).set(head);
   o += n * HEAD_N * 8;
   new Float32Array(buf, o, n * POSE_N).set(clip.pose.subarray(0, n * POSE_N));
-  o += n * POSE_N * 4;
+  o += poseBytes(n);
   new Float64Array(buf, o, n * PLANT_N).set(clip.plant.subarray(0, n * PLANT_N));
   o += n * PLANT_N * 8;
   const parts = new Float32Array(buf, o, partRows * PART_N);
@@ -260,8 +277,8 @@ export function decodeReplay(buf, known = null) {
     throw new ReplayFileError('not a replay file');
   }
   const version = dv.getUint32(4, true);
-  if (version !== FILE_VERSION) {
-    throw new ReplayFileError(`version ${version}, this build reads ${FILE_VERSION}`);
+  if (!READS.includes(version)) {
+    throw new ReplayFileError(`version ${version}, this build reads ${READS.join(' and ')}`);
   }
   const hl = dv.getUint32(8, true);
   if (12 + hl > buf.byteLength) {
@@ -274,7 +291,7 @@ export function decodeReplay(buf, known = null) {
     throw new ReplayFileError('header is not JSON');
   }
   onlyKeys(header, HEADER_KEYS, 'header');
-  if (header.v !== FILE_VERSION) {
+  if (header.v !== version) {
     throw new ReplayFileError('header version does not match');
   }
   if (header.probe !== ENDIAN_PROBE) {
@@ -285,8 +302,11 @@ export function decodeReplay(buf, known = null) {
     throw new ReplayFileError('column layout does not match this build');
   }
   const n = header.n;
-  if (!Number.isInteger(n) || n < 2 || n > CAPACITY) {
+  if (!Number.isInteger(n) || n < 1 || n > CAPACITY) {
     throw new ReplayFileError(`frame count ${n} is out of range`);
+  }
+  if (version === 1 && n % 2 === 1) {
+    throw new ReplayFileError('a version 1 file with an odd frame count cannot have been saved whole');
   }
   checkMeta(header.meta);
   if (known && !known.airframe(header.meta.airframe)) {
@@ -310,7 +330,7 @@ export function decodeReplay(buf, known = null) {
 
   const pre = 12 + hl;
   let o = pre + ((8 - (pre % 8)) % 8);
-  const fixed = n * 8 + n * HEAD_N * 8 + n * POSE_N * 4 + n * PLANT_N * 8;
+  const fixed = n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8;
   if (o + fixed > buf.byteLength) {
     throw new ReplayFileError('columns run past the end');
   }
@@ -319,7 +339,7 @@ export function decodeReplay(buf, known = null) {
   const head = new Float64Array(buf.slice(o, o + n * HEAD_N * 8));
   o += n * HEAD_N * 8;
   const pose = new Float32Array(buf.slice(o, o + n * POSE_N * 4));
-  o += n * POSE_N * 4;
+  o += poseBytes(n);
   const plant = new Float64Array(buf.slice(o, o + n * PLANT_N * 8));
   o += n * PLANT_N * 8;
   let rows = 0;

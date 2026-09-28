@@ -291,7 +291,8 @@ export function createCrashCam(host) {
       return false;
     }
     const clip = saved || rec.clip(metaNow());
-    if (clip.n < 2) {
+    /* A saved clip of one frame is a still, and plays as one. */
+    if (clip.n < (saved ? 1 : 2)) {
       host.notice(str('replay.nothing_recorded_yet'));
       return false;
     }
@@ -1036,17 +1037,25 @@ export function createCrashCam(host) {
     });
   }
 
+  /* The clip Save keeps: the in to out range, or all of it. */
+  function rangeClip() {
+    return S.in > 0 || S.out < S.clip.time[S.clip.n - 1] ? trimClip(S.clip, S.in, S.out) : S.clip;
+  }
+
   async function saveReplay(name) {
-    const clip = S.in > 0 || S.out < S.clip.time[S.clip.n - 1] ? trimClip(S.clip, S.in, S.out) : S.clip;
+    const clip = { ...rangeClip() };
     clip.meta = { ...clip.meta, name: String(name || S.clip.meta.name).slice(0, NAME_MAX), duration: clip.time[clip.n - 1] };
-    const bytes = encodeReplay(clip);
-    const thumb = await thumbnail();
     const id = store.newId();
+    /* Everything that can fail inside the try, so the pilot is told: an
+     * encode that threw (a misaligned column, once) was a silent no-op. */
     try {
+      const bytes = encodeReplay(clip);
+      const thumb = await thumbnail();
       const dropped = await store.putClip({
         id, name: clip.meta.name, created: Date.now(), thumb, bytes,
         airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration,
       });
+      window.__crashCamLast = { ...(window.__crashCamLast || {}), saved: { frames: clip.n, bytes: bytes.byteLength } };
       if (S) {
         toast(dropped ? str('replay.saved_oldest_removed', { n: dropped }) : str('replay.saved'));
       }
@@ -1188,6 +1197,7 @@ export function createCrashCam(host) {
       setOut: () => {
         S.out = Math.max(S.t, S.in + 0.1);
       },
+      rangeFrames: () => rangeClip().n,
       photo,
       exportVideo,
       saveReplay,

@@ -12,7 +12,8 @@
  *     The recorder's cost per frame and its memory are read back.
  *  2. V opens the editor; the plant stops. A scrub; the follow camera on
  *     the wing; two camera keys; a PNG and a video of a range (a non empty
- *     webm blob); the replay saved to My clips.
+ *     webm blob); the replay saved to My clips, a range of an odd number
+ *     of frames on purpose.
  *  3. TAKE OVER at a frame after the wing came off and before the crash:
  *     the plant's state hash after the restore is the one the frame
  *     recorded, and the craft flies on from there.
@@ -257,6 +258,14 @@ async function main() {
     await page.tap('KeyI');
     await page.evaluate(`${H}.api.jumpTo(${off.t + 1.6})`);
     await page.tap('KeyO');
+    /* An odd number of frames on purpose: the pose column is 17 floats a
+     * frame, so an odd count is the one that once misaligned the file and
+     * failed the save. Out moves a frame on until the range is odd. */
+    for (let i = 0; i < 4 && (await page.evaluate(`${H}.api.rangeFrames()`)) % 2 === 0; i += 1) {
+      await page.tap('ArrowRight');
+      await page.tap('KeyO');
+    }
+    const rangeFrames = await page.evaluate(`${H}.api.rangeFrames()`);
     await page.tap('KeyC');
     await page.until('window.__crashCamLast && window.__crashCamLast.video', 60000);
     const video = await page.evaluate('window.__crashCamLast.video');
@@ -265,7 +274,9 @@ async function main() {
     await page.tap('KeyG');
     await page.until(`${H}.api.listClips().then((l) => l.length > 0)`, 20000);
     const saved = await page.evaluate(`${H}.api.listClips()`);
-    check('saved to My clips', saved.length === 1 && saved[0].duration > 1, `${saved[0].name}, ${saved[0].duration.toFixed(2)} s`);
+    const kept = await page.evaluate('window.__crashCamLast.saved');
+    check('saved to My clips, an odd number of frames', saved.length === 1 && saved[0].duration > 1 && kept.frames % 2 === 1
+      && kept.frames === rangeFrames, `${saved[0].name}, ${saved[0].duration.toFixed(2)} s, ${kept.frames} frames, ${kept.bytes} bytes`);
 
     console.log('3. take over');
     await page.tap('KeyL');

@@ -24,6 +24,10 @@
  * 8. The replay file: a round trip bit for bit, and refusals of a bad
  *    magic, version, length, size, field, name, camera, event, colour and
  *    aircraft.
+ * 9. Every frame count round trips, odd and even: 1, 2, 3, 4, 17, 41 and
+ *    a full 30 s at 60 Hz (1801) and at 120 Hz (the ring's capacity), with
+ *    parts on the odd frames; a version 1 file (the layout before the pose
+ *    column was padded) is still read, and one with an odd count refused.
  *
  * Run: npm run crashcam:selftest
  *
@@ -653,10 +657,90 @@ function file() {
 }
 const PARTS_MAX_R = PARTS_MAX;
 
+/* ---- 9. every frame count ---- */
+function counts() {
+  console.log('9. every frame count saves and reads back, odd and even');
+  const meta = {
+    name: 'Counts', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'airfield', scale: 1, size: 1.8, duration: 0,
+    parts: [0, 1, 2].map((i) => ({ kind: 8, kindName: 'fuselage', parent: i - 1, material: 2, cg: [0, 0, 0], boxMin: [-1, -1, -1], boxMax: [1, 1, 1] })),
+    fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
+  };
+  const make = (n, hz) => {
+    const r = createRecorder(n);
+    const pp = { x: 0, y: 0, z: 0 };
+    const qq = { x: 0, y: 0, z: 0, w: 1 };
+    const st = new Float64Array(20);
+    const ps = new Float64Array(24 * 3);
+    const sp = r.spawnIndex(0, 0, 0, 0, 0, 0, 1, 0.045);
+    for (let f = 0; f < n; f += 1) {
+      const i = r.begin(f / hz, (f * 1000) / hz);
+      pp.x = f * 0.1 + 1 / 3;
+      r.pose(i, pp, qq);
+      r.drive(i, f, f + 1, f + 2, f + 3, [0.1, -0.2, 0.3, -0.4], 0.5, f);
+      st[1] = f * 1.1;
+      st[7] = 1;
+      r.plant(i, st);
+      r.status(i, [1, f], sp, 0, false, f, 0.5, 2);
+      if (f % 2 === 1) {
+        ps[24] = 1;
+        ps[24 + 2] = f;
+        r.parts(i, ps, 3);
+      }
+    }
+    return { ...r.clip({ ...meta }), keys: [] };
+  };
+  const same = (a, b) => a.length === b.length && a.every((x, i) => Object.is(x, b[i]));
+  const results = [];
+  let ok = true;
+  for (const [n, hz] of [[1, 60], [2, 60], [3, 60], [4, 60], [17, 60], [41, 60], [30 * 60 + 1, 60], [CAPACITY, 120]]) {
+    const c = make(n, hz);
+    let good;
+    let why = '';
+    try {
+      const back = decodeReplay(encodeReplay(c));
+      good = back.n === c.n && same(back.time, c.time) && same(back.pose, c.pose) && same(back.plant, c.plant)
+        && same(back.parts, c.parts);
+      for (let k = 0; k < c.n && good; k += 1) {
+        const a = c.head.subarray(k * HEAD_N, (k + 1) * HEAD_N);
+        const b = back.head.subarray(k * HEAD_N, (k + 1) * HEAD_N);
+        good = a.every((x, j) => (j === HEAD.markSeg || j === HEAD.markPos ? b[j] === 0 : Object.is(x, b[j])));
+      }
+    } catch (err) {
+      good = false;
+      why = err.message;
+    }
+    ok = ok && good;
+    results.push(`${c.n}${good ? '' : ` FAILED ${why}`}`);
+  }
+  check(ok, 'odd and even frame counts round trip bit for bit', results.join(', '));
+
+  /* Version 1: the same bytes as version 2 for an even count. */
+  const asV1 = (buf) => {
+    const out = buf.slice(0);
+    const dv = new DataView(out);
+    dv.setUint32(4, 1, true);
+    const hl = dv.getUint32(8, true);
+    const u8 = new Uint8Array(out, 12, hl);
+    const text = new TextDecoder().decode(u8).replace('"v":2', '"v":1');
+    u8.set(new TextEncoder().encode(text));
+    return out;
+  };
+  const even = make(40, 60);
+  const v1 = decodeReplay(asV1(encodeReplay(even)));
+  check(v1.n === 40 && same(v1.pose, even.pose) && same(v1.plant, even.plant), 'a version 1 file (an even count) is still read');
+  try {
+    decodeReplay(asV1(encodeReplay(make(41, 60))));
+    check(false, 'refused: a version 1 file with an odd count', 'accepted');
+  } catch (err) {
+    check(err instanceof ReplayFileError, 'refused: a version 1 file with an odd count', err.message);
+  }
+}
+
 ring();
 interpolation();
 cameras();
 file();
+counts();
 await pureReaders();
 await flyTakeOver();
 await bounded();
