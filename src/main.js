@@ -2054,6 +2054,11 @@ export async function boot({
     if (scene && combatLayer.group.parent !== scene) {
       scene.add(combatLayer.group);
     }
+    /* The crash cam's replay draws the room as it was and keeps no paper,
+     * so the paper as it is now is put away with the live peers
+     * (roomDrawPeer) until flight resumes, rather than trailing behind
+     * nothing. */
+    combatLayer.group.visible = mode !== 'replay';
     if (!combatStepped) {
       roomCombat.idle(dt * 1000, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w, groundAt);
     }
