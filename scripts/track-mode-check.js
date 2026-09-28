@@ -46,7 +46,8 @@
  *
  *   9. The Timber is seated, on its own tune and camera; the Free Flight
  *      and Track mode cards' pickers both open on it; and a new track built
- *      with it opens on a plane's hotbar, a 5 m gate first.
+ *      with it opens on a plane's hotbar (course.js DEFAULT_WING_HOTBAR),
+ *      the sky hoops first.
  *
  * No console error and no uncaught exception anywhere, in any of them; a
  * resource the page could not fetch is not one, because the board is not
@@ -81,6 +82,7 @@ import {
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { DEFAULT_WING_HOTBAR } from '../src/builder/course.js';
 import { str } from '../src/strings/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -650,7 +652,7 @@ async function fresh() {
     say(chosen.airframe === timber.id && chosen.asked, `choosing it keeps the ${timber.short} and records the choice`);
     await newTrack(page, 'swiss2');
     const bar = await page.evaluate(B('.hotbar'));
-    say(bar[0] === 'wideGate5' && !bar.includes('start'), `a new track with the ${timber.short} opens on a plane's hotbar, a 5 m gate first: ${bar.join(' ')}`);
+    say(bar.join() === DEFAULT_WING_HOTBAR.join() && !bar.includes('start'), `a new track with the ${timber.short} opens on a plane's hotbar, the sky hoops first: ${bar.join(' ')}`);
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } finally {

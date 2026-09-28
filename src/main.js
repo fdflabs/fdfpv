@@ -109,6 +109,9 @@ import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
+import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
+import { TestStand } from './game/teststand.js';
+import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { setLiverySource } from './render/livery.js';
@@ -154,6 +157,7 @@ import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
+import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
 import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
 import {
   DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, SURFACE, SURFACES, TREES_MAX, partLabel,
@@ -3706,7 +3710,69 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     const opt = powerOption(af.id, option);
     runCells = powerCells(af.id, option, pack);
-    audio.setVoice(opt.voice);
+    setFlownVoice(opt.voice);
+  }
+
+  /*
+   * THE PILOT'S TUNING, configs/tuning.js and the hangar's Tuning tab: the
+   * CG, the rates, the expo, the trim and the flap mix the pilot set up
+   * for the seated plane, on the same rule as the power and after it,
+   * since the CG is balanced on the pack the power choice fits. The stock
+   * setup clears, so an untuned plane flies its table bit for bit. The
+   * flaps a run starts on are the setup's only where the pilot chose them;
+   * otherwise the switch stays where it was, as it always did.
+   * runTuneKey is what was seated, so a save can tell whether the plane in
+   * the air needs a refit.
+   */
+  let runTuneKey = 'null';
+  function applyTuning(s) {
+    const af = airframeById(runAirframe);
+    if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
+      runTuneKey = 'null';
+      return;
+    }
+    const set = setupFor(af.id, powerChoice(af.id, s.power));
+    const entry = normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits);
+    const block = tuneBlock(af.id, entry, set.massKg, set.packKg);
+    const code = block ? sim.setTune(block) : sim.clearTune();
+    if (code !== SIM_OK) {
+      throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
+    }
+    runTuneKey = JSON.stringify(entry);
+    if (entry && entry.flapStart) {
+      setFlapNotch(fullEntry(af.id, entry).flapStart);
+    }
+  }
+
+  /*
+   * THE TEST STAND the Tuning tab runs a plane's motor on: a second
+   * instance of the module, never the one the pilot flies, made the first
+   * time the bench is used and kept, initialised on the config the flown
+   * one booted on (a fixed wing's plant reads none of it).
+   */
+  let standPromise = null;
+  setTuningShell({
+    stand: () => {
+      if (!standPromise) {
+        standPromise = simBytes.then(loadSim).then((standSim) => {
+          if (standSim.init(configText) !== SIM_OK) {
+            throw new Error('the test stand could not initialise its module');
+          }
+          return new TestStand(standSim);
+        });
+      }
+      return standPromise;
+    },
+  });
+  /* The voice the stand has put on the motor's audio, or null while the
+   * flown craft's is on; and the flown craft's, to put back. */
+  let standVoiceOn = null;
+  let flownVoice = 'quad';
+  function setFlownVoice(v) {
+    flownVoice = v;
+    if (!standVoiceOn) {
+      audio.setVoice(v);
+    }
   }
 
   /* The plant's pack and tank, for the OSD. Null on a quad and on a build
@@ -3820,6 +3886,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * check that reads what broke, when and how hard (window.__crashLog).
    * Bounded, the oldest kept: a crash's story is how it started. */
   const crashLog = [];
+  /* The jelly's whacks this run, newest last, for window.__jelly(), and
+   * the jelly pass's own state (jellyPass): reset with the crash log. */
+  const jellyLog = [];
+  let jellyHasPrev = false;
+  let jellyArmed = true;
   const CRASH_LOG_MAX = 400;
   let crashTreesDeclared = 0;
   let crashSolidsDeclared = 0;
@@ -3917,6 +3988,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     crashFlags = 0;
     lastParts = null;
     crashLog.length = 0;
+    jellyLog.length = 0;
+    jellyHasPrev = false;
+    jellyArmed = true;
     wreckRig.reset();
     debris.clear();
     fpvFail.clear();
@@ -4142,6 +4216,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * flight. */
   function declareCrashSolids(must = -1) {
     const col = view.colliders;
+    /* A plane's soft pieces are not the plant's (jellyPass). */
+    col.softKinds = softKindsFor();
     clearSolidPass();
     for (const i of crashKnownList) {
       crashKnown[i] = 0;
@@ -5282,6 +5358,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     wingStabApplied = -1;
     applyCrashMode(s);
     applyPower(s);
+    applyTuning(s);
     publishPids();
     launcherLeft = null;
     chaseValid = false;
@@ -5966,7 +6043,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const isWing = Boolean(airframeById(runAirframe).fixedWing);
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
-    audio.setVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
+    setFlownVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
     [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
     /*
      * The ground PLANE needs no raising here: raiseGroundFromState asserts
@@ -6089,8 +6166,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
        * picks. See THE CRASH SHELL. */
       applyCrashMode(s);
       /* The power system too, after the airframe it belongs to: a fresh
-       * pack and a full tank every run. */
+       * pack and a full tank every run. The tuning after the power it is
+       * balanced on. */
       applyPower(s);
+      applyTuning(s);
     }
     /*
      * THE AIR, OUTSIDE THE BETWEEN-RUNS BLOCK ON PURPOSE.
@@ -6771,9 +6850,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (!o) {
       return;
     }
-    const was = hangarRev ? hangarRev.was : Object.keys(VOICES).find((k) => VOICES[k] === audio.voice);
-    audio.setVoice(o.voice);
-    hangarRev = { t0: null, voice: o.voice, was };
+    hangarRev = { t0: null, voice: o.voice, was: flownVoice };
   };
   ui.onHangarPreview = (id, colours) => {
     pickStage.repaint(id, colours);
@@ -6785,7 +6862,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         pickStage.repaint(af.id);
       }
     }
-    if (res.powerChanged && liveryKey(runAirframe) === family && swapLive()) {
+    /* The tuning is the plane's own, not its family's. */
+    const tuned = id === runAirframe && res.settings && res.settings.tuning
+      && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey;
+    if ((res.powerChanged && liveryKey(runAirframe) === family || tuned) && swapLive()) {
       await hotSwap(runAirframe, { refit: true });
     }
     if (liveryKey(drawnCraft) === family) {
@@ -6932,7 +7012,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * tracks (buildHost.leave). A world that will not build leaves the pilot
    * on My tracks with syncWorld's own notice.
    */
-  ui.onBuild = async ({ map, id }) => {
+  ui.onBuild = async ({ map, id, casual = false }) => {
     const entry = mapById(map);
     const doc = id ? loadMapTrack(id) : null;
     if (entry.id !== map || !entry.build || (id && !doc)) {
@@ -6953,7 +7033,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       reset();
       mode = 'flight';
       ui.show('flight');
-      b.open(doc);
+      b.open(doc, { casual });
     });
   };
   /* Menu clicks. The key handler has already woken the audio context by
@@ -8023,6 +8103,81 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * enough for a corner (two faces) with slack; anything still overlapping
    * after that is what the clip watch reads.
    */
+  /*
+   * THE SOFT PIECES, FOR A PLANE (src/game/jelly.js): a pylon and a sky
+   * hoop's rim are jelly to a fixed wing. The sweep and the crash world
+   * pass through them (softKinds, set here for the aircraft seated) and
+   * this pass, on the obstacle pass's own sim cadence, whacks the plane
+   * instead: a speed loss into the piece and a kick on its rates, written
+   * onto the plant, once per meeting. It re-arms once the plane is clear
+   * of every soft piece by JELLY_REARM. The builder wobbles the piece
+   * (buildmode.js jiggle). Returns the state, read again after a whack.
+   */
+  const JELLY_REARM = 2;
+  const jellyA = new THREE.Vector3();
+  const jellyB = new THREE.Vector3();
+  const jellyQ = new THREE.Quaternion();
+  const jellyV = new THREE.Vector3();
+  const jellyRight = new THREE.Vector3();
+  const jellyUp = new THREE.Vector3();
+  const jellyVSim = { x: 0, y: 0, z: 0 };
+  const jellyHit = { i: -1, gap: 0, n: null };
+  function softKindsFor() {
+    return airframeById(runAirframe).fixedWing ? JELLY_MASK : 0;
+  }
+  function jellyPass(st) {
+    const col = view.colliders;
+    if (col) {
+      col.softKinds = softKindsFor();
+    }
+    if (!col || !col.softKinds || mode !== 'flight' || crashed || poseLock || launchStaging) {
+      jellyHasPrev = false;
+      return st;
+    }
+    poseFromState(st, jellyB);
+    if (!jellyHasPrev) {
+      jellyA.copy(jellyB);
+      jellyHasPrev = true;
+      return st;
+    }
+    const af = airframeById(runAirframe);
+    const reach = REACH_OF_SPAN * 2 * (af.dims.arm + (af.dims.hullR ?? af.dims.propR));
+    const i = jellyNear(col, jellyA, jellyB, reach + JELLY_REARM, jellyHit);
+    jellyA.copy(jellyB);
+    if (i < 0) {
+      jellyArmed = true;
+      return st;
+    }
+    if (!jellyArmed || jellyHit.gap > reach) {
+      return st;
+    }
+    simPosToThree(st[4], st[5], st[6], jellyV).applyQuaternion(qSpawn);
+    simQuatToThree(st[7], st[8], st[9], st[10], jellyQ);
+    jellyQ.premultiply(qSpawn);
+    jellyRight.set(1, 0, 0).applyQuaternion(jellyQ);
+    jellyUp.set(0, 1, 0).applyQuaternion(jellyQ);
+    const w = whack(jellyV, jellyHit.n, jellyRight, jellyUp);
+    if (!w) {
+      return st;
+    }
+    jellyArmed = false;
+    worldDirToSim(w.v.x, w.v.y, w.v.z, jellyVSim);
+    if (sim.e.sim_set_velocity(jellyVSim.x, jellyVSim.y, jellyVSim.z, st[11] + w.roll, st[12] + w.pitch, st[13]) !== SIM_OK) {
+      throw new Error('sim_set_velocity refused a whack');
+    }
+    jellyLog.push({
+      t: st[0], kind: col.kindName(col.fkind[i]), speed: jellyV.length(), after: Math.hypot(w.v.x, w.v.y, w.v.z),
+      loss: w.loss, roll: w.roll, pitch: w.pitch, square: w.square,
+    });
+    if (jellyLog.length > 32) {
+      jellyLog.shift();
+    }
+    if (build) {
+      build.jiggle(i, jellyHit.n, w.square);
+    }
+    return readState();
+  }
+
   function obstacleContactPass(st, dtSurface) {
     obsResolved = false;
     obsKindIndex = -1;
@@ -8944,6 +9099,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
             obsPhase += 1;
             if (obsPhase >= OBSTACLE_STEP) {
               obsPhase = 0;
+              stNow = jellyPass(stNow);
               stateCurr = stNow;
               stNow = obstacleContactPass(stNow, steps * 0.001);
               if (obsResolved) {
@@ -10122,6 +10278,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     audioRpm[1] = motorsTurning ? st[15] : 0;
     audioRpm[2] = motorsTurning ? st[16] : 0;
     audioRpm[3] = motorsTurning ? st[17] : 0;
+    /* What the hangar plays over the mix: the rev of a motor just picked
+     * (ui.onHangarTry), on every motor voice, or else the Tuning tab's
+     * test stand, its prop in its motor's voice. The flown craft's voice
+     * is put back when neither plays. */
     if (hangarRev) {
       /* The rev's clock starts on the first frame that feeds it, so a
        * hitch in the frame the pilot picked does not eat the sound. */
@@ -10129,13 +10289,26 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         hangarRev.t0 = performance.now();
       }
       hangarRev.ms = performance.now() - hangarRev.t0;
-      const rpm = ui.hangar.isOpen ? revRpm(hangarRev.ms, VOICES[hangarRev.voice].rpmFull) : null;
-      if (rpm == null) {
-        audio.setVoice(hangarRev.was);
+      hangarRev.rpm = ui.hangar.isOpen ? revRpm(hangarRev.ms, VOICES[hangarRev.voice].rpmFull) : null;
+      if (hangarRev.rpm == null) {
         hangarRev = null;
-      } else {
-        audioRpm.fill(rpm);
       }
+    }
+    const bench = hangarRev ? null : (ui.hangar.isOpen ? standSound() : null);
+    const over = hangarRev ?? bench;
+    if (over) {
+      if (standVoiceOn !== over.voice) {
+        audio.setVoice(over.voice);
+        standVoiceOn = over.voice;
+      }
+      if (hangarRev) {
+        audioRpm.fill(hangarRev.rpm);
+      } else {
+        audioRpm[0] = bench.rpm;
+      }
+    } else if (standVoiceOn) {
+      audio.setVoice(flownVoice);
+      standVoiceOn = null;
     }
     audio.update(audioRpm, motorsTurning ? speed : 0);
     const audioMs = performance.now() - audioStart;
@@ -10726,6 +10899,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     shown: drawnCraft,
     power: readPower(),
     cells: runCells,
+    /* The sim_wing_tune block in force and the flap switch, for
+     * scripts/hangar-check.js; null on a quad. */
+    tune: airframeById(runAirframe).fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
+    flapNotch,
+    /* The hangar's test stand on the motor's audio: its voice and rpm. */
+    standAudio: { voice: standVoiceOn, rpm: standVoiceOn ? audioRpm[0] : 0 },
   });
   /*
    * WHERE THE CRAFT IS AGAINST THE FLOOR UNDER IT, which is the one thing
@@ -11442,6 +11621,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * scenario that starts damaged. All of it goes through the module's ABI.
    */
   window.__crash = () => crashSummary();
+  /* The jelly's whacks this run (jellyPass), and whether the seated
+   * aircraft meets the soft pieces as jelly. */
+  window.__jelly = () => ({ soft: softKindsFor() !== 0, whacks: jellyLog.map((w) => ({ ...w })) });
   window.__crashThrow = (o) => {
     crashCamShowsCraft = o.showCraft !== false;
     /* `fresh` puts the plant back to its first step first, as R does, so
@@ -11476,6 +11658,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     contactLog.length = 0;
     obstacleLog.length = 0;
     crashLog.length = 0;
+    jellyLog.length = 0;
+    jellyHasPrev = false;
+    jellyArmed = true;
     contactLogOn = true;
     stepTrace.on = true;
     stepTrace.n = 0;

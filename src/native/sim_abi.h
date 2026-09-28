@@ -670,6 +670,55 @@ int sim_power_clear(void);
 int sim_power_state(double *out);
 
 /*
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 12): what the
+ * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
+ * configs/tuning.js.
+ *
+ * sim_wing_set_tune(in): seat SIM_TUNE_DOUBLES below, SI units, over the
+ * power option in force or the table. The CG shift moves the point the
+ * pitching moment is taken about, the path a power option's CG already
+ * takes (plant_wing.c, the lift's moment at the CG's arm), so a nose
+ * heavy aircraft is more stable in pitch and needs more elevator for the
+ * same lift, and a tail heavy one less of both, from the aerodynamics
+ * and nothing else. The ballast is a point mass BALLAST_X ahead of the
+ * table's CG (negative behind): it adds its mass, and its m x^2 to the
+ * pitch and yaw inertia; its share of the CG shift is in CG_SHIFT
+ * already, which is the whole move the host computed. The throws are the
+ * surfaces' travel at full stick, the expo per surface replaces the
+ * table's one expo (0 linear, 1 all cubic), the trim is added to the
+ * elevator within its travel, and FLAP_MIX is the radio's flap to
+ * elevator mix, elevator rad per rad of flap. A MODE like the power
+ * option: kept across sim_reset and sim_init, kept by sim_set_power and
+ * sim_power_clear, cleared by sim_set_airframe to a different airframe.
+ * SIM_ERR_BAD_ARG on a quad, for a null pointer and for a value outside
+ * its range (plant_set_tune in src/native/plant.c); SIM_ERR_BAD_STATE
+ * before sim_init.
+ * sim_wing_tune_clear(): the table's own again.
+ * sim_wing_tune(out): the block in force; with none seated, the table's
+ * (or the power option's) throws, expo and mix, and zeros for the rest.
+ * SIM_ERR_BAD_ARG for a null pointer or on a quad.
+ *
+ * Additive, version unchanged. Nothing seated, no step reads any of it,
+ * so every trace from before it existed is bit identical; seated with the
+ * table's own values it is bit identical too (scripts/tuning-check.js).
+ */
+#define SIM_TUNE_CG_SHIFT 0   /* m, forward positive, from the table's CG */
+#define SIM_TUNE_BALLAST_KG 1 /* kg added, 0 to 1 */
+#define SIM_TUNE_BALLAST_X 2  /* m ahead of the table's CG, negative behind */
+#define SIM_TUNE_THROW_A 3    /* rad at full stick, 0 to 45 deg */
+#define SIM_TUNE_THROW_E 4
+#define SIM_TUNE_THROW_R 5
+#define SIM_TUNE_EXPO_A 6     /* 0 to 1 */
+#define SIM_TUNE_EXPO_E 7
+#define SIM_TUNE_EXPO_R 8
+#define SIM_TUNE_TRIM_E 9     /* rad, trailing edge up positive, within 10 deg */
+#define SIM_TUNE_FLAP_MIX 10  /* elevator rad per rad of flap, -1 to 1 */
+#define SIM_TUNE_DOUBLES 11
+int sim_wing_set_tune(const double *in);
+int sim_wing_tune_clear(void);
+int sim_wing_tune(double *out);
+
+/*
  * WATER, src/native/water.c and docs/FLOATS-STAGE1.md. A host declares the
  * bodies of water in its world, in the plant's frame like the ground
  * plane, and the waves on each; an aircraft on floats floats on them and

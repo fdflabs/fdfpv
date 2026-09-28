@@ -317,10 +317,11 @@ export function craftVerticalOffset() {
 /* `banner` and `pylon` are the in-sim builder's plane sized gates
  * (src/builder/course.js): a wide gate's PVC frame, which is a gate's pipe
  * a size up built one to one, and an inflatable air race pylon. Appended,
- * so every index before them is what it was. */
+ * so every index before them is what it was. `hoop` is a plane sky hoop's
+ * inflated rim, appended after them for the same reason. */
 /* Exported so src/game/obstacles.js can name a kind rather than keeping a
  * second copy of this list. `fkind` is an index into it. */
-export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner', 'pylon'];
+export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner', 'pylon', 'hoop'];
 
 /*
  * The broadphase cell, in metres. The world is about 1700 m across and the
@@ -725,6 +726,11 @@ function copyContact(from, to) {
 
 export class Colliders {
   constructor() {
+    /* A bit per KINDS index of kinds the craft's sweep (hit, hitParts) and
+     * the crash world's solids (crashworld.js nearestSolids) pass through:
+     * the soft pieces a plane meets as jelly instead (src/game/jelly.js).
+     * Set by the shell for the aircraft seated, 0 for a quad. */
+    this.softKinds = 0;
     /* Construction time storage. Plain arrays here on purpose: this runs
      * once while the scene is built, never per frame. */
     this.ax = [];
@@ -1914,7 +1920,7 @@ export class Colliders {
             continue;
           }
           this.stamp[i] = id;
-          if (this.pass[i] !== 0) {
+          if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
             continue;
           }
           candidates += 1;
@@ -2266,7 +2272,7 @@ export class Colliders {
             continue;
           }
           this.stamp[i] = id;
-          if (this.pass[i] !== 0) {
+          if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
             continue;
           }
           candidates += 1;
@@ -2772,7 +2778,7 @@ export function contactMaterial(kindName) {
   /* An inflated fabric wall: dead, and the plant's soft surface's numbers
    * (src/game/crashworld.js, the pylon), so the shell's contact and the
    * crash physics' agree on it. */
-  if (kindName === 'pylon') {
+  if (kindName === 'pylon' || kindName === 'hoop') {
     return { e: 0.0, mu: 1.00 };
   }
   if (kindName === 'tree' || kindName === 'canopy') {

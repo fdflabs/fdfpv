@@ -67,11 +67,14 @@ const CAL_LABELS = {
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
-import { normalizePower } from '../../configs/power.js';
+import { normalizePower, powerChoice } from '../../configs/power.js';
+import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
+/* Registers the hangar's Tuning tab. */
+import './hangar-tuning.js';
 import { liveryKey, normaliseLiveries, paintable } from '../../configs/liveries.js';
 import { normaliseProgress } from '../game/progress.js';
 import {
@@ -719,6 +722,11 @@ const DEFAULTS = {
    * a profile stored before progression existed starts with everything
    * open, so nobody loses a plane they already flew. */
   progress: {},
+  /* Each plane's bench setup, by airframe id: the CG (battery and lead),
+   * the rates, the expo, the trim and the flaps, configs/tuning.js, only
+   * the fields the pilot moved off stock. Written by the hangar's Tuning
+   * tab (src/ui/hangar-tuning.js); a plane with no entry flies its table. */
+  tuning: {},
   /*
    * How heavy the quad is, as a percentage of the weight the airframe is
    * flown at. See WEIGHT_STOCK above. 100 is the shipped machine and the
@@ -993,6 +1001,9 @@ export function loadSettings() {
   /* Power choices name an option and a pack each plane still offers, or
    * are dropped back to stock (configs/power.js). */
   s.power = normalizePower(s.power);
+  /* And the tuning, against the limits that power choice gives: a glow
+   * engine has no pack to slide. */
+  s.tuning = normalizeTuning(s.tuning, (id) => setupFor(id, powerChoice(id, s.power)).limits);
   /* Angle is a range, not a list: a stored 40 from the old six-step menu
    * must survive, a stored 90 must not, and 45 has to be legal now. */
   s.cameraAngle = clampCameraAngle(s.cameraAngle);
@@ -5672,6 +5683,13 @@ export class Ui {
             action: `newtrack:${m.id}`,
             note: str('ui.an_empty_track_in_the_builder', { world: m.name }),
           })),
+          /* A plane is offered a finished course too, one click from
+           * flying it (src/builder/course.js casualCourse). */
+          ...(airframeById(this.settings.airframe).fixedWing ? MAPS.filter((m) => m.build).map((m) => ({
+            label: str('ui.casual_sky_course_in', { world: m.name }),
+            action: `casualtrack:${m.id}`,
+            note: str('ui.casual_sky_course_note', { world: m.name }),
+          })) : []),
           { label: str('ui.back_to_the_list'), action: 'newtrack-back' },
         ];
       }
@@ -9358,15 +9376,16 @@ export class Ui {
 
   /*
    * Open the builder from My tracks: on one of the pilot's own tracks
-   * (`id`, Edit) or on an empty one in a world (`map`, New track). The
+   * (`id`, Edit) or on an empty one in a world (`map`, New track), or on
+   * the casual sky course laid for it there (`casual`), flying. The
    * shell builds the world if it has to and hands the pilot the builder's
    * camera there; Escape out of the builder comes back to this screen.
    */
-  openBuilder({ map, id = null }) {
+  openBuilder({ map, id = null, casual = false }) {
     if (!this.onBuild) {
       return;
     }
-    Promise.resolve(this.onBuild({ map, id })).catch((e) => {
+    Promise.resolve(this.onBuild({ map, id, casual })).catch((e) => {
       /* A track deleted in another tab since this list was read is the one
        * way in here that is not a bug; the list is read again either way. */
       console.error(e);
@@ -11972,6 +11991,11 @@ export class Ui {
     if (action.startsWith('newtrack:')) {
       this.newTrackOpen = false;
       this.openBuilder({ map: action.slice('newtrack:'.length) });
+      return;
+    }
+    if (action.startsWith('casualtrack:')) {
+      this.newTrackOpen = false;
+      this.openBuilder({ map: action.slice('casualtrack:'.length), casual: true });
       return;
     }
     if (action === 'wiki') {
