@@ -95,6 +95,7 @@ import {
 } from './mesh.js';
 import { placeInto, placeBoathouse } from './lakeside.js';
 import { stadel } from '../buildings/houses.js';
+import { boxUp } from '../buildings/parts.js';
 import { roadside } from './roadside.js';
 import { standWalls } from '../../alps/roofs.js';
 
@@ -147,17 +148,24 @@ function hut(bake, heightAt, rng, {
   const logKey = silver ? 'weathered' : 'larchDark';
   /* Its near detail casts no shadow: the shell's shadow is the hut's,
    * and boards and rafters in the shadow maps were a draw more in each
-   * map for every cell of huts near the camera. */
+   * map for every cell of huts near the camera. Its rubble footing is
+   * near only too, a log core standing in for it from afar: a hut's
+   * stone was a mesh of its own over the whole valley, three draws in
+   * every view for a band a metre high (scripts/swiss2-views.js). */
   const into = {
     ...bake,
-    pushM: (key, g, m) => bake.pushM(/:[a-z]*f/.test(key) && !/:[a-z]*o/.test(key) ? `${key}o` : key, g, m),
+    pushM: (key, g, m) => bake.pushM(key === 'stone' ? 'stone:fo' : /:[a-z]*f/.test(key) && !/:[a-z]*o/.test(key) ? `${key}o` : key, g, m),
   };
   /* The Stadel's gable (+z) is the hut's downhill end (-ex): the frame
    * turned so its z runs along -ex and its x along ez. */
-  return placeInto(into, (f, found) => stadel(f, {
-    w: d, d: w, found, roofKey, pitch, footH: 0.08, logH: h * 0.5, loftH: h * 0.5,
-    ov: 0.55, ovA: 0.55, ovB: 0.7, logKey, backing: 'weathered:v', boardMark: 'vf',
-  }), {
+  return placeInto(into, (f, found) => {
+    const ext = stadel(f, {
+      w: d, d: w, found, roofKey, pitch, footH: 0.08, logH: h * 0.5, loftH: h * 0.5,
+      ov: 0.55, ovA: 0.55, ovB: 0.7, logKey, backing: 'weathered:v', boardMark: 'vf',
+    });
+    f.put(logKey, boxUp(d - 0.1, found + 0.2, w - 0.1), 0, -found, 0);
+    return ext;
+  }, {
     x, z, ry: 1.5 * Math.PI - yaw, ground, y: Math.max(...ground), kind: 'hut',
   });
 }

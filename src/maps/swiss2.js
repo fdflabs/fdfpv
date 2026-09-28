@@ -531,10 +531,12 @@ function photoStyle() {
         heightAt, footprints: stage.footprints, colliders, roofs, bake: lakeBake,
       });
       scene.add(stage.lakeside.group);
+      const near = [];
       for (const [name, bake] of [['swiss2-huts', hutBake], ['swiss2-lake-town', lakeBake]]) {
         const baked = style.look.buildings.bakeAll(bake, style.mats);
         baked.name = name;
         scene.add(baked);
+        near.push(...baked.children.filter((o) => o.isLOD));
       }
       /* The lakeside road's lay-by and bus stop (swiss2/props/roadside.js),
        * which the grass keeps off. */
@@ -572,7 +574,11 @@ function photoStyle() {
         planted: [...yard.trees, ...stage.props.roadTrees],
       });
       scene.add(stage.veg.group);
-      stage.mirrorSkip = ['swiss2-grass', 'swiss2-meadow'].map((n) => stage.veg.group.getObjectByName(n)).filter(Boolean);
+      /* Nor the lake town's and the huts' near detail (their balconies,
+       * shutters, boards and rafters): in the rippled mirror it is below
+       * what the reflection resolves, and at lake-village-20m it was a
+       * mirror of the town's near cells, a draw for each of their groups. */
+      stage.mirrorSkip = [...['swiss2-grass', 'swiss2-meadow'].map((n) => stage.veg.group.getObjectByName(n)).filter(Boolean), ...near];
       /* What the yards built, solid only now that the forest is planted,
        * and the cars and tractors parked in them (swiss2/village/yards.js). */
       for (const [how, ...args] of yard.later) {
