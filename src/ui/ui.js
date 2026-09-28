@@ -5660,6 +5660,13 @@ export class Ui {
             action: `newtrack:${m.id}`,
             note: str('ui.an_empty_track_in_the_builder', { world: m.name }),
           })),
+          /* A plane is offered a finished course too, one click from
+           * flying it (src/builder/course.js casualCourse). */
+          ...(airframeById(this.settings.airframe).fixedWing ? MAPS.filter((m) => m.build).map((m) => ({
+            label: str('ui.casual_sky_course_in', { world: m.name }),
+            action: `casualtrack:${m.id}`,
+            note: str('ui.casual_sky_course_note', { world: m.name }),
+          })) : []),
           { label: str('ui.back_to_the_list'), action: 'newtrack-back' },
         ];
       }
@@ -9345,15 +9352,16 @@ export class Ui {
 
   /*
    * Open the builder from My tracks: on one of the pilot's own tracks
-   * (`id`, Edit) or on an empty one in a world (`map`, New track). The
+   * (`id`, Edit) or on an empty one in a world (`map`, New track), or on
+   * the casual sky course laid for it there (`casual`), flying. The
    * shell builds the world if it has to and hands the pilot the builder's
    * camera there; Escape out of the builder comes back to this screen.
    */
-  openBuilder({ map, id = null }) {
+  openBuilder({ map, id = null, casual = false }) {
     if (!this.onBuild) {
       return;
     }
-    Promise.resolve(this.onBuild({ map, id })).catch((e) => {
+    Promise.resolve(this.onBuild({ map, id, casual })).catch((e) => {
       /* A track deleted in another tab since this list was read is the one
        * way in here that is not a bug; the list is read again either way. */
       console.error(e);
@@ -11959,6 +11967,11 @@ export class Ui {
     if (action.startsWith('newtrack:')) {
       this.newTrackOpen = false;
       this.openBuilder({ map: action.slice('newtrack:'.length) });
+      return;
+    }
+    if (action.startsWith('casualtrack:')) {
+      this.newTrackOpen = false;
+      this.openBuilder({ map: action.slice('casualtrack:'.length), casual: true });
       return;
     }
     if (action === 'wiki') {
