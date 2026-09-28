@@ -3803,6 +3803,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     return partsEntry(ui.settings.parts, runAirframe).addons.includes('smoke');
   }
   function smokeFrame() {
+    /* In the world the craft is in, as the wreck's pieces are. */
+    const parent = shell.quad.parent;
+    if (parent && smoke.group.parent !== parent) {
+      parent.add(smoke.group);
+    }
     const nozzle = shell.quad.userData.smokeNozzle;
     const on = smokeOn && nozzle && stateCurr && mode === 'flight';
     if (on) {
@@ -3974,7 +3979,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * that chipped, kept in settings.parts[airframe] with the part table's
    * boxes so the hangar can find them on the model. Written when the set
    * grows, which is a few times a crash. A part already taped and broken
-   * again is broken; the rest of an earlier record stays.
+   * again is broken; the rest of an earlier record stays. Only the part a
+   * break was at is named, not the parts that went with it.
    */
   const PART_KIND_PROP = PART_KINDS.indexOf('prop');
   function recordBroken(parts) {
@@ -3996,6 +4002,17 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
       broken.set(i, { i, kind: t.kind, cg: t.cg, mass: t.mass, joint: t.joint, state: 'broken' });
       grew = true;
+    }
+    /* A part that left with its parent is the parent's break: the record
+     * names the part the break was at, and the hangar draws what hangs
+     * off it with it. Parents precede children in the table. */
+    for (const i of [...broken.keys()]) {
+      for (let q = partTable[i].parent; q > 0; q = partTable[q].parent) {
+        if (broken.has(q) && broken.get(q).state === 'broken') {
+          broken.delete(i);
+          break;
+        }
+      }
     }
     if (!grew) {
       return;
@@ -10751,6 +10768,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * for scripts/hangar-check.js. */
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
   window.__pickPaint = (id) => pickStage.paint(id);
+  window.__pickParts = (id) => pickStage.fitted(id);
   window.__craft = () => ({
     setting: ui.settings.airframe,
     run: runAirframe,
@@ -10761,6 +10779,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     shown: drawnCraft,
     power: readPower(),
     cells: runCells,
+    addons: airframeById(runAirframe).fixedWing && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
+    parts: shell.quad.userData.partsFit ?? null,
+    smoke: { on: smokeOn, puffs: smoke.live() },
   });
   /*
    * WHERE THE CRAFT IS AGAINST THE FLOOR UNDER IT, which is the one thing
@@ -11587,6 +11608,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * m/s, surface }. A break cues the snap, a crush the crunch, a chip the
    * chip, water the splash. */
   window.__crashLog = () => crashLog.slice();
+  window.__crashTable = () => partTable;
   /* The step trace since the last throw (THE STEP TRACE): per step, the
    * hashes of the state in, the ground plane, the state out. */
   window.__stepTrace = () => ({

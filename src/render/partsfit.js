@@ -108,6 +108,15 @@ export function dressParts(craft, id, fit = partsFor(id), { hangar = false } = {
   /* The shell holds the group, not the builder's return: the trail reads
    * the nozzle from here. */
   craft.group.userData.smokeNozzle = dress.nozzle;
+  /* What is on it, for a check: the prop's blades and diameter as drawn,
+   * the add-ons, and the taped and glowing parts. */
+  craft.group.userData.partsFit = {
+    blades: dress.blades ?? null,
+    addons: [...fit.entry.addons],
+    taped: fit.entry.damage ? fit.entry.damage.parts.filter((p) => p.state === 'taped').map((p) => p.i) : [],
+    tapeTris: dress.tapeTris ?? 0,
+    glowTris: dress.glowTris ?? 0,
+  };
   return craft;
 }
 
@@ -121,6 +130,7 @@ export function undress(craft) {
   }
   d.group.removeFromParent();
   craft.group.userData.smokeNozzle = null;
+  craft.group.userData.partsFit = null;
   d.group.traverse((o) => {
     if (o.geometry) {
       o.geometry.dispose();
@@ -198,6 +208,7 @@ function fitProp(craft, id, kit, want, dress) {
   for (const p of parts) {
     p.dispose();
   }
+  dress.blades = { count: want.blades, diameterIn: want.propIn };
   const blade = new THREE.Mesh(merged, mesh.material);
   blade.castShadow = mesh.castShadow;
   blade.name = 'parts-prop';
@@ -499,6 +510,8 @@ function overlayParts(craft, damage, taped, broken, dress) {
   });
   const tapeTris = jobs.filter((j) => j.band).flatMap((j) => j.out);
   const glowTris = jobs.filter((j) => !j.band).flatMap((j) => j.out);
+  dress.tapeTris = tapeTris.length;
+  dress.glowTris = glowTris.length;
   if (tapeTris.length) {
     const g = trianglesGeometry(tapeTris, 0.0012);
     const mesh = new THREE.Mesh(g, mat('tape'));

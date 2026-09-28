@@ -52,11 +52,14 @@ varying float vAlpha;
 varying float vSeed;
 void main() {
   float u = clamp(aAge / ${LIFE_S.toFixed(1)}, 0.0, 1.0);
-  float size = 0.12 + 1.5 * sqrt(u) + 0.3 * aSeed * u;
-  vAlpha = aAge < 0.0 ? 0.0 : smoothstep(0.0, 0.04, u) * (1.0 - u) * (1.0 - u) * 0.85;
+  float size = 0.10 + 1.1 * sqrt(u) + 0.3 * aSeed * u;
+  vAlpha = aAge < 0.0 ? 0.0 : smoothstep(0.0, 0.03, u) * (1.0 - u) * (1.0 - u) * 0.6;
   vSeed = aSeed;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = size * uScale / max(0.1, -mv.z);
+  /* Puffs right in front of the lens fade instead of filling it. */
+  float px = size * uScale / max(0.1, -mv.z);
+  vAlpha *= 1.0 - smoothstep(160.0, 420.0, px);
+  gl_PointSize = min(px, 420.0);
   gl_Position = projectionMatrix * mv;
 }`;
 
@@ -68,8 +71,10 @@ void main() {
   float r = length(d) * 2.0;
   if (r > 1.0) discard;
   float soft = (1.0 - r * r) * (1.0 - 0.25 * smoothstep(0.2, 1.0, r));
-  float shade = 0.84 + 0.14 * vSeed + 0.10 * (0.5 - d.y);
+  float shade = 0.80 + 0.14 * vSeed + 0.12 * (0.5 - d.y);
   gl_FragColor = vec4(vec3(shade), vAlpha * soft);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }`;
 
 export function createSmoke() {

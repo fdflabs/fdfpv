@@ -601,5 +601,11 @@ export function createCarouselStage(renderer) {
     return Object.fromEntries(Object.entries(m.craft.livery.read()).map(([k, v]) => [k, `#${v.toString(16).padStart(6, '0')}`]));
   }
 
-  return { draw, repaint, paint, stats: () => ({ ...stats }) };
+  /* What a model is fitted with (src/render/partsfit.js), for a check. */
+  function fitted(id) {
+    const m = models.get(id);
+    return m ? m.craft.group.userData.partsFit ?? null : null;
+  }
+
+  return { draw, repaint, paint, fitted, stats: () => ({ ...stats }) };
 }
