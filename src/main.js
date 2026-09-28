@@ -2142,7 +2142,7 @@ export async function boot({
     const text = str(key) === key ? str('rooms.refused_host') : str(key);
     roomRefusal = { text, untilMs: performance.now() + 8000 };
     /* On the room screen its own row says it; over a flight, the banner. */
-    if (mode === 'flight') {
+    if (ui.screen === 'flight') {
       notice = { text, untilMs: performance.now() + 4000 };
     }
     ui.refreshFriends();
