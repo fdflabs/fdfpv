@@ -43,7 +43,7 @@
  */
 
 import { courseFromDocument } from './trackdoc.js';
-import { Race } from './race.js';
+import { PLANE_REACH, Race } from './race.js';
 import { decodeGhost } from '../share/ghostdata.js';
 import { isMapTrack, normalize } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
@@ -221,7 +221,8 @@ export function checkLap(document, ghostBytes, lapMs, craft = null) {
    * armed on the timing gate, where the lap begins, rather than on gate 0
    * where a spawned craft would be.
    */
-  const race = new Race(gates, course.trackClass);
+  /* A plane's lap is scored with the plane's reach, as the shell raced it. */
+  const race = new Race(gates, course.trackClass, { reach: craft != null ? PLANE_REACH : 0 });
   race.next = race.timingIdx;
   const first = at(0);
   const second = at(1);

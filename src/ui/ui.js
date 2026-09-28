@@ -9962,6 +9962,10 @@ export class Ui {
         row.append(main);
       } else {
         main.append(el('span', 'result-time', formatTime(entry.ms)));
+        /* A plane's lap is scored (src/game/race.js PLANE_REACH). */
+        if (Number.isFinite(entry.score)) {
+          main.append(el('span', 'result-tag', str('ui.lap_points', { n: entry.score })));
+        }
         if (fastestRow && clean.length > 1) {
           main.append(el('span', 'result-tag', 'fastest'));
         }
@@ -9983,6 +9987,16 @@ export class Ui {
       const main = el('div', 'result-main');
       main.append(el('span', 'result-label', clean.length === log.length ? str('ui.total') : str('ui.clean_laps_total')));
       main.append(el('span', 'result-time', formatTime(total)));
+      row.append(main);
+      this.resultsBody.append(row);
+    }
+    /* A scored run's points, added up, beside its time. */
+    const scores = log.filter((l) => Number.isFinite(l.score)).map((l) => l.score);
+    if (scores.length) {
+      const row = el('div', 'result-row total');
+      const main = el('div', 'result-main');
+      main.append(el('span', 'result-label', str('ui.run_score')));
+      main.append(el('span', 'result-time', str('ui.lap_points', { n: scores.reduce((a, b) => a + b, 0) })));
       row.append(main);
       this.resultsBody.append(row);
     }

@@ -63,7 +63,7 @@ import { InputManager, NAV_DEFLECT } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
-import { Race } from './game/race.js';
+import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
 import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
@@ -5596,7 +5596,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     /* The builder puts the track's gates on the view, or takes them off it;
      * the race is made from the view, as adoptLoadedView makes it. */
     await seatMapCourse();
-    race = new Race(view.gates, 'full', { recordSuffix: view.recordSuffix ?? '' });
+    race = new Race(view.gates, 'full', raceOpts(view.recordSuffix ?? ''));
     if (!fits) {
       notice = {
         text: str('main.the_craft_does_not_fit_through_every_gate', { craft: to.short }),
@@ -5640,13 +5640,20 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let swapInFlight = false;
   let finishLoadingOnFrame = true;
 
+  /* A race's options for the aircraft seated: a plane's course is scored
+   * with a reach round every gate (src/game/race.js PLANE_REACH), a quad's
+   * threaded. */
+  function raceOpts(recordSuffix) {
+    return { recordSuffix, reach: airframeById(runAirframe).fixedWing ? PLANE_REACH : 0 };
+  }
+
   function adoptLoadedView(keepPlace, stayMode, stayScreen) {
     attractCam = makeAttractCamera(view);
     if (!keepPlace) {
       /* A map track's records are its own (seatMapCourse), not the world's. */
       /* A world adopted fresh is the seat's, whatever a swap held before. */
       worldHold = null;
-      race = new Race(view.gates, 'full', { recordSuffix: view.recordSuffix ?? '' });
+      race = new Race(view.gates, 'full', raceOpts(view.recordSuffix ?? ''));
       race.setRecordKey(recordKey());
       paintBest();
       adoptSpawn();
@@ -7566,7 +7573,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     resume: () => ui.onAction('resume'),
     fly: () => ui.onAction('restart'),
     setCourse(gates, recordSuffix) {
-      race = new Race(gates, 'full', { recordSuffix });
+      race = new Race(gates, 'full', raceOpts(recordSuffix));
       race.setRecordKey(recordKey());
       paintBest();
       view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
@@ -10503,7 +10510,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         runRemainMs: scoreRemainMs,
         gate: race.next + 1,
         gateCount: race.gates.length,
-        gateCue: nextGt && nextGt.cue ? nextGt.cue : '',
+        /* A scored race's running score has the cue's row: a built track's
+         * gates carry no cue. */
+        gateCue: race.reach > 0 ? str('osd.score', { n: race.runScore }) : (nextGt && nextGt.cue ? nextGt.cue : ''),
         volts: st[18],
         lastLapMs: race.lastLapMs,
         packFrac: (st[18] - PACK_EMPTY_PER_CELL * runCells) / ((PACK_FULL_PER_CELL - PACK_EMPTY_PER_CELL) * runCells),

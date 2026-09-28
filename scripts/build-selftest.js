@@ -84,7 +84,9 @@ import {
 } from '../src/trackbuilder/model.js';
 import { inspectCourse, layoutFingerprint } from '../src/share/listing.js';
 import { courseSeatKey } from '../src/share/session.js';
-import { Race } from '../src/game/race.js';
+import {
+  NEAR_POINTS, PASS_POINTS, PLANE_REACH, Race,
+} from '../src/game/race.js';
 import {
   BUILD_TYPES, CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, HOTBAR_SLOTS, PIECES, PIECE_CATS, addGate, chainPose, axesOf, capsOverlap, createHistory, gateSpec, gizmoAxes,
   makeStart, newCourse, openingCentre, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf, qAxis, qMul, qRot, raceGatesOf,
@@ -928,6 +930,95 @@ console.log('sky hoops');
   delete field.map;
   field.schemaVersion = 3;
   check('a field track naming one drops it', normalize(field).doc.elements.length === 0);
+}
+
+console.log('a plane\'s course is scored, by reach and by accuracy');
+{
+  const up = qAxis(0, 1, 0, 0.3);
+  /* Across the gate at (x, y) in its opening's plane, from the opening's
+   * centre, along its travel: what a scored race makes of it. */
+  const fly = (g, x, y, reach = PLANE_REACH) => {
+    const race = new Race([{ ...g, flyOrder: 0 }], 'full', { reach });
+    const c = (k) => ({
+      x: g.centre.x + g.axes.across.x * x + g.axes.up.x * y + g.axes.travel.x * k,
+      y: g.centre.y + g.axes.across.y * x + g.axes.up.y * y + g.axes.travel.y * k,
+      z: g.centre.z + g.axes.across.z * x + g.axes.up.z * y + g.axes.travel.z * k,
+    });
+    race.update(c(-10), c(-10), 0, 0);
+    const passed = race.update(c(-10), c(10), 2000, 0).passed === 0;
+    return { passed, call: race.call };
+  };
+  const gateOf = (type) => {
+    const d = newCourse('swiss2', type);
+    addGate(d, type, { x: 30, y: 400, z: -60 }, up);
+    return raceGatesOf(d)[0];
+  };
+  const text = (r) => (r.passed ? `${r.call.code} ${r.call.points}` : 'not counted');
+  for (const type of ['hoop6', 'hoop12', 'hoop20', 'hoop30', 'hoop175', 'hoop250', 'wideGate3', 'wideGate5', 'pylonPair', 'gate']) {
+    const g = gateOf(type);
+    const hw = g.aperture.clearW / 2;
+    /* The structure's edge, straight out across from the centre. */
+    const f = g.aperture.frame;
+    let edge = hw;
+    if (f.kind === 'ring') {
+      edge = f.r;
+    } else if (f.kind === 'box') {
+      edge = f.hw;
+    } else if (f.kind === 'cones') {
+      const cc = f.cones[1];
+      edge = cc.x + cc.r0 + ((cc.r1 - cc.r0) * (0 - cc.y0)) / cc.h;
+    }
+    const got = {
+      centre: fly(g, 0, 0), mid: fly(g, 0.45 * hw, 0), rim: fly(g, 0.98 * hw, 0),
+      out20: fly(g, edge + 20, 0), out39: fly(g, edge + 39, 0), out41: fly(g, edge + 41, 0),
+    };
+    check(`${type}: centre, mid, just inside the rim, and 20, 39 and 41 m outside: ${Object.values(got).map(text).join(', ')}`,
+      got.centre.passed && got.centre.call.code === 'centre' && got.centre.call.points === PASS_POINTS
+      && got.mid.passed && got.mid.call.code === 'good' && got.mid.call.points === Math.round(PASS_POINTS * (1 - 0.5 * 0.45 * 0.45))
+      && got.rim.passed && got.rim.call.code === 'through' && got.rim.call.points > 0.5 * PASS_POINTS && got.rim.call.points < 0.55 * PASS_POINTS
+      && got.out20.passed && got.out20.call.code === 'close' && got.out20.call.points === NEAR_POINTS
+      && got.out39.passed && got.out39.call.code === 'close'
+      && !got.out41.passed);
+    /* Over the top of it: the rim's or the frame's top, or a cone's tip. */
+    const [topX, top] = f.kind === 'ring' ? [0, f.r] : (f.kind === 'box' ? [0, f.hh] : [f.cones[1].x, f.cones[1].y0 + f.cones[1].h]);
+    check(`${type}: over the top, 39 m above it counts and 41 m does not`, fly(g, topX, top + 39).passed && !fly(g, topX, top + 41).passed);
+    check(`${type}: a quad's race threads it as before: the 20 m near miss is not counted`, !fly(g, edge + 20, 0, 0).passed && fly(g, 0, 0, 0).passed);
+  }
+  {
+    /* The single pylon's opening is its 35 m square beside it; its reach is
+     * from its cone, on the side it is rounded on only. */
+    const g = gateOf('pylon');
+    const f = g.aperture.frame;
+    const cx = f.cone.x;
+    const rMid = f.cone.r0 + ((f.cone.r1 - f.cone.r0) * (0 - f.cone.y0)) / f.cone.h;
+    const far = g.aperture.clearW / 2;
+    const inside = fly(g, 0, 0);
+    const past = fly(g, far + 3, 0);
+    const beyond = fly(g, cx + f.side * (rMid + 41), 0);
+    const wrong = fly(g, cx - f.side * (rMid + 5), 0);
+    check(`the pylon: the middle of its square ${text(inside)}; 3 m past the square's far edge (${(far + 3 - cx).toFixed(1)} m from its axis) ${text(past)}; 41 m off the cone ${text(beyond)}; 5 m off it on the wrong side ${text(wrong)}`,
+      inside.passed && inside.call.code === 'centre' && past.passed && past.call.code === 'close' && !beyond.passed && !wrong.passed);
+  }
+  {
+    /* Scores run through a lap: two hoops, the second flown well off. */
+    const d = newCourse('swiss2', 'Scored');
+    addGate(d, 'hoop30', { x: 0, y: 400, z: 0 }, qAxis(0, 1, 0, 0));
+    addGate(d, 'hoop30', { x: 0, y: 400, z: -400 }, qAxis(0, 1, 0, 0));
+    const gs = raceGatesOf(d);
+    const race = new Race(gs.map((x) => ({ ...x })), 'full', { reach: PLANE_REACH });
+    const y = gs[0].centre.y;
+    const path = [[0, y, 20], [0, y, -20], [9, y, -380], [9, y, -420], [0, y, -300], [0, y, 30], [0, y, -20]];
+    let prev = { x: path[0][0], y: path[0][1], z: path[0][2] };
+    race.update(prev, prev, 0, 0);
+    path.slice(1).forEach(([x, py, z], i) => {
+      const p = { x, y: py, z };
+      race.update(prev, p, (i + 1) * 5000, 0);
+      prev = p;
+    });
+    const want = PASS_POINTS + Math.round(PASS_POINTS * (1 - 0.5 * (9 / 15) ** 2));
+    check(`a lap's score is its gates', the start's included: ${race.lastLapScore} (${race.log.map((l) => `${l.n}: ${l.score}`).join(', ')}), the run ${race.runScore}`,
+      race.lap === 1 && race.lastLapScore === want && race.log[0].score === want && race.runScore === want + PASS_POINTS);
+  }
 }
 
 /* ------------------------------------------------------------------ */

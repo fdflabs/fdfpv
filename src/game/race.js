@@ -127,6 +127,69 @@ const PASS_BY_CLASS = {
 const DEFAULT_KEY = 'webfpv.bestLapMs';
 
 /*
+ * A PLANE'S COURSE IS SCORED, NOT THREADED. The owner: "if i am even
+ * within a 40m distance from the thing, count it as hitting it and you can
+ * go on to the next one, but if you actually go inside the thing, then you
+ * get scored by how much inside towards the middle you are... close enough
+ * just move on to the other but more accurate is more points."
+ *
+ * So with a reach (the Race's opts.reach, PLANE_REACH for a fixed wing), a
+ * gate is passed when the craft's centre crosses the gate's plane, forward,
+ * in order, anywhere within the reach of its nearest structure, measured at
+ * the crossing point in that plane (reachHits). Through the opening scores
+ * by how near the middle: PASS_POINTS at the centre falling smoothly, as
+ * the square of the way out, to half of that at the rim. Outside it but in
+ * reach scores NEAR_POINTS, flat. What each is called on the OSD is the
+ * CALLS table. A quad's race has no reach and is threaded as before.
+ */
+export const PLANE_REACH = 40;
+export const PASS_POINTS = 100;
+export const NEAR_POINTS = 20;
+/* The call for a pass through the opening, by how far out it was (0 the
+ * centre, 1 the rim), the first whose limit it is within. */
+const CALLS = [{ upTo: 0.25, code: 'centre' }, { upTo: 0.6, code: 'good' }, { upTo: 1, code: 'through' }];
+
+/* How far a point (x, y) in a gate's plane is from its nearest structure,
+ * metres, 0 on or inside it: `frame` is the aperture's (src/builder/
+ * course.js structureOf); an aperture with none is its own opening. Plain
+ * arithmetic and Math.sqrt, which is exact, so it is the same number in
+ * every engine. */
+function coneGap(c, x, y) {
+  const yc = Math.min(c.y0 + c.h, Math.max(c.y0, y));
+  const r = c.r0 + ((c.r1 - c.r0) * (yc - c.y0)) / c.h;
+  const dx = Math.max(0, Math.abs(x - c.x) - r);
+  const dy = y - yc;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+export function structureGap(ap, x, y) {
+  const f = ap.frame ?? { kind: 'box', hw: ap.clearW / 2, hh: ap.clearH / 2 };
+  if (f.kind === 'ring') {
+    return Math.max(0, Math.sqrt(x * x + y * y) - f.r);
+  }
+  if (f.kind === 'cones') {
+    return Math.min(...f.cones.map((c) => coneGap(c, x, y)));
+  }
+  if (f.kind === 'cone') {
+    /* A pylon turned round on a set side is near missed on that side only:
+     * the other side is flying round it the wrong way. */
+    return (x - f.cone.x) * f.side < 0 ? Infinity : coneGap(f.cone, x, y);
+  }
+  const dx = Math.max(0, Math.abs(x) - f.hw);
+  const dy = Math.max(0, Math.abs(y) - f.hh);
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/* The points and the call for a crossing reachHits found. */
+export function passScore(hit) {
+  if (!hit.inside) {
+    return { code: 'close', points: NEAR_POINTS };
+  }
+  const code = CALLS.find((c) => hit.s <= c.upTo).code;
+  return { code, points: Math.round(PASS_POINTS * (1 - 0.5 * hit.s * hit.s)) };
+}
+
+/*
  * A gate's own frame, from its heading and pitch. Exported because
  * render/scene.js had travelAxis written out again, and the direction of
  * travel through a gate deciding two different things in two files is how a
@@ -214,6 +277,9 @@ export class Race {
      * use: its laps must not land on that record.
      */
     this.recordSuffix = opts.recordSuffix ?? '';
+    /* A plane's reach round every gate, metres, or 0 for a precision race
+     * (PLANE_REACH above). */
+    this.reach = opts.reach ?? 0;
     /*
      * A map with no gates is a freestyle map, and it is not an error.
      *
@@ -370,6 +436,12 @@ export class Race {
      * the player just did. */
     this.log = [];
     this.laps = [];         /* completed clean lap times, in order */
+    /* A scored race's points: this lap's so far, the last lap's, and the
+     * run's, and the last gate's call { code, points, gate }. */
+    this.lapScore = 0;
+    this.lastLapScore = null;
+    this.runScore = 0;
+    this.call = null;
     /* The gate just passed, until the craft has been seen outside its
      * scoring box. See leftGate. */
     this.leaving = -1;
@@ -525,6 +597,35 @@ export class Race {
     return x * x + y * y <= r * r ? t : -1;
   }
 
+  /*
+   * A scored race's crossing (see PLANE_REACH): the travel from local a to
+   * local b crossing the opening's plane forward, where it crosses, how far
+   * out through the opening that is (s, 0 the centre, 1 the rim, the
+   * disc's radius or the square's larger half), and whether it was inside
+   * it; or null where it crossed beyond the reach of the gate's structure,
+   * or did not cross. { t, s, inside, gap }.
+   */
+  reachHits(a, b, ap) {
+    const dz = b.z - a.z;
+    if (dz <= 1e-9 || a.z > 0 || b.z < 0) {
+      return null;
+    }
+    const t = -a.z / dz;
+    const x = a.x + (b.x - a.x) * t;
+    const y = a.y + (b.y - a.y) * t;
+    const hw = ap.clearW * 0.5;
+    const s = ap.round ? Math.sqrt(x * x + y * y) / hw : Math.max(Math.abs(x) / hw, Math.abs(y) / (ap.clearH * 0.5));
+    if (s <= 1) {
+      return {
+        t, s, inside: true, gap: 0,
+      };
+    }
+    const gap = structureGap(ap, x, y);
+    return gap <= this.reach ? {
+      t, s, inside: false, gap,
+    } : null;
+  }
+
   /* Is a world point outside every scoring box of gate g? A disc's box is
    * the cylinder through it, as deep as a square opening's. */
   outsideBoxes(g, p) {
@@ -591,10 +692,21 @@ export class Race {
      */
     let used = -1;
     let t = 0;
+    let scored = null;
     for (let k = 0; k < g.apertures.length; k += 1) {
       const ap = g.apertures[k];
       const a = this.local(g, ap.centreY, prev.x, prev.y, prev.z);
       const b = this.local(g, ap.centreY, curr.x, curr.y, curr.z);
+      if (this.reach > 0) {
+        const hit = this.reachHits(a, b, ap);
+        if (!hit) {
+          continue;
+        }
+        scored = passScore(hit);
+        used = k;
+        t = hit.t;
+        break;
+      }
       const halfW = ap.clearW * 0.5 - this.passMargin;
       const halfH = ap.clearH * 0.5 - this.passMargin;
       const tk = ap.round ? this.discHits(a, b, halfW) : this.openingHits(a, b, halfW, halfH);
@@ -610,6 +722,11 @@ export class Race {
     }
     const crossMs = prevSimMs + (simMs - prevSimMs) * t;
     const passed = this.next;
+    if (scored) {
+      this.call = { ...scored, gate: passed };
+      this.runScore += scored.points;
+      this.flash = { text: str(`race.call_${scored.code}`, { points: scored.points }), untilMs: wallMs + 1400 };
+    }
     this.next = (this.next + 1) % this.gates.length;
     this.leaving = this.outsideBoxes(g, curr) ? -1 : passed;
     /* A crossing inside a running lap is a split, timed the same way the
@@ -623,8 +740,14 @@ export class Race {
         this.lastSplits = this.splits;
         this.lap += 1;
         this.laps.push(this.lastLapMs);
-        this.log.push({ n: this.lapNumber(), ms: this.lastLapMs });
-        let msgText = str('race.lap_flash', { n: this.log.length, time: fmt(this.lastLapMs) });
+        /* A scored lap's points are its gates' from the start crossing to
+         * the one before this, which starts the next lap. */
+        const lapScore = scored ? this.lapScore : null;
+        this.lastLapScore = lapScore;
+        this.log.push(scored ? { n: this.lapNumber(), ms: this.lastLapMs, score: lapScore } : { n: this.lapNumber(), ms: this.lastLapMs });
+        let msgText = scored
+          ? str('race.lap_flash_score', { n: this.log.length, time: fmt(this.lastLapMs), score: lapScore })
+          : str('race.lap_flash', { n: this.log.length, time: fmt(this.lastLapMs) });
         if (this.bestMs == null || this.lastLapMs < this.bestMs) {
           this.bestMs = this.lastLapMs;
           msgText += `\n${str('ui.new_track_record')}`;
@@ -649,6 +772,10 @@ export class Race {
       }
       this.lapStartMs = crossMs;
       this.splits = [];
+      this.lapScore = 0;
+    }
+    if (scored) {
+      this.lapScore += scored.points;
     }
     return passed;
   }
