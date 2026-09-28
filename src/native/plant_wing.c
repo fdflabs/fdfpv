@@ -177,6 +177,14 @@ static int g_slats = 1;
  * sign: alpha (of the zero lift line), beta, qbar, CL, CD, l m n (aero),
  * thrust, F body x y z, M body x y z, u v w, delta_e, delta_a. */
 static double g_debug[20];
+/* The ducted fan's speed, as a fraction of its full throttle speed, and
+ * its rate, per second; and the ESC's startup ramp, the command it lets
+ * through while it starts a stopped motor, 1 once it has. The fan is
+ * stopped and the ramp at its start after a reset. Nothing reads them on
+ * an airframe without a fan (fan_tau 0). */
+static double g_fan_n = 0.0;
+static double g_fan_v = 0.0;
+static double g_esc_ramp = 0.0;
 
 void plant_wing_debug(double out[20]) {
   for (int i = 0; i < 20; i += 1) {
@@ -368,8 +376,10 @@ static double power_current(const FixedWingParams *fw, double de, double ct, dou
   if (!(fw->current_full > 0.0) || !(ct > 0.0)) {
     return 0.0;
   }
+  /* A ducted fan's power is its speed's cube whatever the airspeed, so
+   * its ratio stays the static one, CP_OF_CT's last. */
   double g = CP_OF_CT[CP_OF_CT_N - 1];
-  if (ct < 1.0) {
+  if (ct < 1.0 && !(fw->fan_tau > 0.0)) {
     const double x = ct * (double)(CP_OF_CT_N - 1);
     const int i = (int)x;
     g = CP_OF_CT[i] + (x - (double)i) * (CP_OF_CT[i + 1] - CP_OF_CT[i]);
@@ -632,6 +642,47 @@ void plant_wing_reset(void) {
       g_sep[i][j][1] = 0.0;
     }
   }
+  g_fan_n = 0.0;
+  g_fan_v = 0.0;
+  g_esc_ramp = 0.0;
+}
+
+/*
+ * THE DUCTED FAN'S SPEED, one step: fan_tau in sim_internal.h. The ESC
+ * drives toward `de`, the duty the pack gives the stick; with the stick
+ * closed it stops driving and the fan runs down to rest, and the next
+ * opening is a start, which the ESC ramps from nothing to full over
+ * esc_start. `off` is a fan with no drive at all: a flat pack, a cut
+ * motor, a pulled chute. The speed follows the command as a critically
+ * damped second order system, n'' = (target - n) / tau^2 - 2 n' / tau,
+ * taken semi implicitly at the plant's 1 ms step (at the F-16's 80 steps
+ * a time constant it is stable, stays within 0.004 of the exact response
+ * to a step, and reaches 90 percent of the thrust 1 ms later than it);
+ * a fan does not turn backwards, so the speed stops at zero. Returns the
+ * speed.
+ */
+static double fan_spool(const FixedWingParams *fw, double throttle, double de, int off) {
+  double target = de;
+  if (off || !(throttle > 0.0)) {
+    target = 0.0;
+    g_esc_ramp = 0.0;
+  } else if (g_esc_ramp < 1.0) {
+    g_esc_ramp = fw->esc_start > 0.0 ? g_esc_ramp + SIM_DT / fw->esc_start : 1.0;
+    if (g_esc_ramp >= target) {
+      g_esc_ramp = 1.0;
+    } else {
+      target = g_esc_ramp;
+    }
+  }
+  const double tau = fw->fan_tau;
+  const double acc = (target - g_fan_n) / (tau * tau) - 2.0 * g_fan_v / tau;
+  g_fan_v += acc * SIM_DT;
+  g_fan_n += g_fan_v * SIM_DT;
+  if (g_fan_n < 0.0) {
+    g_fan_n = 0.0;
+    g_fan_v = 0.0;
+  }
+  return g_fan_n;
 }
 
 int plant_wing_set_flaps(int notch) {
@@ -1185,9 +1236,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double r_v;
   const double duty_e = power_duty(s, fw, duty, &r_v);
   const int flat = s->power_out;
+  const int dead = flat || (CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power));
+  /* The propulsor's speed as a fraction of full: a prop's is the duty's
+   * this step; a ducted fan's lags it, fan_spool above. */
+  const int fan = fw->fan_tau > 0.0;
+  const double n = fan ? fan_spool(fw, throttle, duty_e, dead || g_chute) : duty_e;
   const double u_pos = u > 0.0 ? u : 0.0;
-  const double ct = 1.0 - u_pos / (fw->pitch_speed * duty_e);
-  double thrust = fw->thrust_static * duty_e * duty_e * ct;
+  /* A fan at rest makes nothing, where 0 / 0 would be a NaN. */
+  const double ct = (fan && !(n > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * n);
+  double thrust = fw->thrust_static * n * n * ct;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
    * stopping at zero. A fixed prop stops at zero. */
@@ -1198,19 +1255,19 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     thrust = 0.0;
   }
   if (g_chute) thrust = 0.0; /* the motor is cut with the pull */
-  const int dead = flat || (CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power));
   if (CRASH.active) {
     thrust = dead ? 0.0 : thrust * CRASH.kt[0];
   } else if (flat) {
     thrust = 0.0;
   }
   F[0] += thrust;
-  const double rpm = (folded || g_chute || dead) ? 0.0 : 0.85 * duty_e * fw->rpm_no_load;
+  /* A fan runs down after its drive is cut rather than stopping. */
+  const double rpm = (folded || ((g_chute || dead) && !fan)) ? 0.0 : 0.85 * n * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, duty_e, ct, r_v);
+  s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, n, ct, r_v);
   power_drain(s, fw, duty, duty_e);
   if (CRASH.active && CRASH.no_power) {
     s->vbat_load = 0.0;
@@ -2516,3 +2573,4 @@ const FixedWingParams FW_KADET1981 = {
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
+

@@ -260,7 +260,10 @@ typedef struct {
 #define SIM_AIRFRAME_CUB1400F 10
 #define SIM_AIRFRAME_BOMBSHELL1118 11
 #define SIM_AIRFRAME_KADET1981 12
-#define SIM_AIRFRAME_COUNT 13
+/* Ids 13 to 23 are the eleven classic aircraft, each landing on its own;
+ * a slot not yet filled is all zeros, which plant_airframe_exists refuses
+ * (its mass is 0), so every array sized by the count holds it harmlessly. */
+#define SIM_AIRFRAME_COUNT 24
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -684,6 +687,27 @@ typedef struct FixedWingParams {
   int tune;
   double tune_expo[3];
   double trim_e;
+  /*
+   * THE DUCTED FAN, docs/F16-STAGE1.md. Zero fan_tau is a prop, whose
+   * thrust follows the stick in the step it moves, and then nothing below
+   * is read: every propeller's arithmetic is what it was. Above zero the
+   * propulsor is a fan in a duct, whose speed lags the ESC's command as a
+   * critically damped second order system with this time constant, s,
+   * the structure NASA measured on a ducted fan's motor, ESC and rotor
+   * (Weinstein et al., AIAA SciTech 2024, eq. 9). Its thrust is the
+   * plant's law on the fan's speed rather than the stick's: static thrust
+   * with the square of the speed, falling linearly with airspeed to zero
+   * at pitch_speed times the speed, which is the linear C_T in advance
+   * ratio that paper fits (its Table 16); pitch_speed is the fan's zero
+   * thrust speed at full throttle. Its current goes with the cube of the
+   * speed and not with the thrust: a fan's power hardly falls with
+   * airspeed (the same paper, Fig. 5f), where a prop's does (CP_OF_CT).
+   * esc_start: the ESC's startup ramp, s from a stopped motor to full,
+   * which holds the command back as it rises from a closed throttle; zero
+   * is none.
+   */
+  double fan_tau;
+  double esc_start;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
