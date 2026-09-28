@@ -64,6 +64,15 @@
 import { TUNING, tuningFor } from '../trackbuilder/elements.js';
 
 const G0 = 9.80665;
+/*
+ * How far apart two gates in a row have to be for a plane, metres. Plane
+ * racing here is casual by the owner's rule: courses laid "5 to 6 times
+ * more apart" than a quad's, so that "even a very small child can complete
+ * the courses". A plane's tightest turn (rMin, below) is the physics, 5 to
+ * 30 m; this is the room to line up on the next gate after it, 150 m, a
+ * few seconds at any plane's cruise.
+ */
+const PLANE_CLOSE = 150;
 /* A fixed wing's hard turn, radians of bank. See the header. */
 const WING_BANK = 60 * Math.PI / 180;
 /* The line is sampled at about this many metres. */
@@ -84,7 +93,7 @@ export function craftLimits(af) {
     const aLat = weight * Math.tan(WING_BANK);
     const vMin = af.stall * Math.sqrt(1 / Math.cos(WING_BANK));
     return {
-      id: af.id, span, topSpeed: af.topSpeed, aLat, rMin: (vMin * vMin) / aLat, fixedWing: true,
+      id: af.id, span, topSpeed: af.topSpeed, aLat, rMin: (vMin * vMin) / aLat, closeMin: PLANE_CLOSE, fixedWing: true,
     };
   }
   const thrust = af.thrustToWeight * G0;
@@ -97,6 +106,7 @@ export function craftLimits(af) {
      * (configs/airframes.js), so every quad's tightest turn is the five
      * inch's. The whoop's own class figure was a RaceGOW room's. */
     rMin: tuningFor('full').minCurveRadius,
+    closeMin: tuningFor('full').minCurveRadius,
     fixedWing: false,
   };
 }
@@ -232,6 +242,15 @@ const CLIP_STEP = 0.5;
 /* An opening must be this much wider than the aircraft's span: a tenth of
  * the span spare either side, room to fly it rather than thread it. */
 const SPAN_ROOM = 1.2;
+/*
+ * A sky hoop's disc must be this many spans across: a span of air all round
+ * the wingtips, so the wing fits through with room to miss by a span in
+ * any direction. Its own rule because a disc narrows away from its middle
+ * where a square does not, and because the hoops are the casual pieces:
+ * the smallest plane hoop, 6 m, is small for the Bramor (6.9 m by this)
+ * and the Kadet, and the 12 m one takes every plane here.
+ */
+export const HOOP_ROOM = 3;
 /* Where on an opening the blocked check looks: its centre and eight points
  * at this fraction of the way to its edges. */
 const OPENING_PROBE = 0.8;
@@ -247,7 +266,12 @@ const AGAINST_COS = -0.1;
  * and the board's lap check all ask it.
  */
 export function misfitGate(gates, craft) {
-  return gates.findIndex((g) => g.aperture.clearW < craft.span * SPAN_ROOM);
+  return gates.findIndex((g) => g.aperture.clearW < roomFor(g, craft));
+}
+
+/* The narrowest opening `g` may be for `craft`, metres. */
+function roomFor(g, craft) {
+  return craft.span * (g.aperture.round ? HOOP_ROOM : SPAN_ROOM);
 }
 
 /*
@@ -269,10 +293,11 @@ export function misfitGate(gates, craft) {
  *              solid, walked at CLIP_STEP; marked where it first does.
  *   tight      the line between two gates turns tighter than the craft's
  *              rMin; marked at the tightest point.
- *   close      two gates in a row are nearer than the craft's rMin: there
- *              is no room for any turn between them.
+ *   close      two gates in a row are nearer than the craft's closeMin:
+ *              for a quad its rMin, no room for any turn between them; for
+ *              a plane PLANE_CLOSE, no room to line up on the next one.
  *   small      the opening is narrower than SPAN_ROOM times the craft's
- *              span.
+ *              span, or a hoop's disc narrower than HOOP_ROOM times it.
  *   backwards  the line arrives at the gate from in front of it and leaves
  *              it behind: the chords from the gate before and to the gate
  *              after both run against its travel, so flying the lap straight
@@ -290,7 +315,7 @@ export function lineWarnings(gates, line, craft, world) {
   gates.forEach((g, i) => {
     if (misfitGate([g], craft) === 0) {
       out.push({
-        code: 'small', gate: i, pos: g.centre, value: g.aperture.clearW, limit: craft.span * SPAN_ROOM,
+        code: 'small', gate: i, pos: g.centre, value: g.aperture.clearW, limit: roomFor(g, craft),
       });
     }
   });
@@ -299,9 +324,9 @@ export function lineWarnings(gates, line, craft, world) {
       const a = gates[i].centre;
       const b = gates[(i + 1) % n].centre;
       const d = len(sub(b, a));
-      if (d < craft.rMin) {
+      if (d < craft.closeMin) {
         out.push({
-          code: 'close', gate: i, next: (i + 1) % n, pos: add(a, sub(b, a), 0.5), value: d, limit: craft.rMin,
+          code: 'close', gate: i, next: (i + 1) % n, pos: add(a, sub(b, a), 0.5), value: d, limit: craft.closeMin,
         });
       }
     }
@@ -331,7 +356,9 @@ export function openingBlocked(g, world) {
   const hh = (g.aperture.clearH / 2) * OPENING_PROBE;
   for (const u of [0, -1, 1]) {
     for (const w of [0, -1, 1]) {
-      const p = add(add(g.centre, across, u * hw), up, w * hh);
+      /* A disc's corner probes on its circle, not outside it. */
+      const k = g.aperture.round && u && w ? Math.SQRT1_2 : 1;
+      const p = add(add(g.centre, across, u * hw * k), up, w * hh * k);
       if (p.y < world.heightAt(p.x, p.z) || world.solidAt(p.x, p.y, p.z)) {
         return true;
       }

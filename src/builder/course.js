@@ -54,10 +54,13 @@ import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '..
  * now that a gate can be turned any way at all. Then the plane sized ones
  * (src/trackbuilder/elements.js, the span rule): the two wide gates, the
  * air race's pylon pair, and one pylon turned round on a set side, a marker
- * scoring through the square beside it. Flags and cones are not here: they
- * are the field's markers, sized for a five inch.
+ * scoring through the square beside it. Then the sky hoops, round openings
+ * that float: two small ones for the quads and four big ones for the
+ * planes. Flags and cones are not here: they are the field's markers,
+ * sized for a five inch.
  */
-export const BUILD_TYPES = ['gate', 'flaggedGate', 'doubleStack', 'ladder', 'tower', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon'];
+export const HOOP_TYPES = ['hoop175', 'hoop250', 'hoop6', 'hoop12', 'hoop20', 'hoop30'];
+export const BUILD_TYPES = ['gate', 'flaggedGate', 'doubleStack', 'ladder', 'tower', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon', ...HOOP_TYPES];
 
 /*
  * THE PIECES the hotbar and the inventory hold: a type, and what placing
@@ -79,20 +82,22 @@ export const PIECES = [
   { id: 'pylonPair', type: 'pylonPair', cat: 'air' },
   { id: 'pylon', type: 'pylon', passSide: 'left', cat: 'air' },
   { id: 'pylonRight', type: 'pylon', passSide: 'right', cat: 'air' },
+  ...HOOP_TYPES.map((type) => ({ id: type, type, cat: 'sky' })),
 ];
 
 /* The inventory's shelves, in order. */
-export const PIECE_CATS = ['gates', 'stacks', 'wide', 'air'];
+export const PIECE_CATS = ['gates', 'stacks', 'wide', 'air', 'sky'];
 
-/* The hotbar a new builder starts with: the common pieces, one a slot. */
-export const DEFAULT_HOTBAR = ['start', 'gate', 'flaggedGate', 'doubleStack', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon', 'ladder'];
+/* The hotbar a new builder starts with: the common pieces, one a slot, the
+ * two quad hoops among them. */
+export const DEFAULT_HOTBAR = ['start', 'gate', 'flaggedGate', 'doubleStack', 'hoop175', 'hoop250', 'wideGate3', 'wideGate5', 'ladder'];
 
-/* The hotbar a builder starts with when a fixed wing is seated. Every
- * plane fits the wide gates and the pylons; the five inch pieces fit only
- * the Cub, the Slow Stick and the Bombshell (a gate's opening must be 1.2
- * spans, verify.js planesFor), so they come last. No start piece: the
- * first gate placed is the start, and here that is a 5 m wide gate. */
-export const DEFAULT_WING_HOTBAR = ['wideGate5', 'wideGate3', 'pylonPair', 'pylon', 'pylonRight', 'gate', 'flaggedGate', 'doubleStack', 'ladder'];
+/* The hotbar a builder starts with when a fixed wing is seated: the plane
+ * hoops first, then the air race pieces and the wide gates. The five inch
+ * pieces and the quad hoops are in the inventory (E); a plane does not fit
+ * them. No start piece: the first gate placed is the start, and here that
+ * is a 20 m hoop. */
+export const DEFAULT_WING_HOTBAR = ['hoop20', 'hoop12', 'hoop30', 'hoop6', 'pylonPair', 'pylon', 'pylonRight', 'wideGate5', 'wideGate3'];
 
 export const HOTBAR_SLOTS = 9;
 
@@ -134,9 +139,20 @@ function isMarker(el) {
   return ELEMENTS[el.type].kind === KIND.MARKER;
 }
 
+/* A sky hoop: a round opening that floats (elements.js). */
+export function isHoop(type) {
+  return Boolean(ELEMENTS[type]?.round);
+}
+
 /* How far behind the start gate a test flight is parked, the field's own
- * figure (src/game/trackdoc.js SPAWN_BACK). */
+ * figure (src/game/trackdoc.js SPAWN_BACK), or the opening's own width
+ * where that is more: from 7.5 m behind a 30 m hoop the pilot is inside
+ * its ring and sees none of it. */
 export const SPAWN_BACK = 7.5;
+
+function spawnBack(g) {
+  return Math.max(SPAWN_BACK, g.aperture.clearW);
+}
 
 /* ------------------------------------------------------------------ */
 /* Vectors and quaternions, plain objects, scene frame                 */
@@ -285,6 +301,13 @@ export function gateSpec(el, step = null) {
       kindName: el.type, clearW: d.clearW, height: d.clearH, baseRadius: d.baseRadius, tipRadius: d.tipRadius,
     };
   }
+  if (isHoop(el.type)) {
+    /* A plane hoop's rim is the soft 'hoop' kind (src/game/jelly.js); a
+     * quad hoop's is a thin firm tube, a gate's. */
+    return {
+      kindName: 'hoop', diameter: d.clearW, tubeR: d.tubeR, rimKind: ELEMENTS[el.type].plane ? 'hoop' : 'gate',
+    };
+  }
   const s = scaleOf(el);
   return {
     kindName: el.type,
@@ -341,7 +364,9 @@ export function scoringOf(el, step = null) {
   if (!isMarker(el)) {
     const ops = openingsOf(el);
     const op = ops[Math.min(Math.max(0, step?.apertureIndex ?? 0), ops.length - 1)];
-    return { across: 0, centreY: op.centreY, clearW: op.clearW, clearH: op.clearH };
+    return {
+      across: 0, centreY: op.centreY, clearW: op.clearW, clearH: op.clearH, round: isHoop(el.type),
+    };
   }
   const v = virtualApertureDims(el, step, 'wing');
   const clearance = Math.max(0, step?.clearance ?? el.dims.clearance);
@@ -540,7 +565,11 @@ export function raceGateOf(el, step, flyOrder) {
     base.z + axes.up.z * sc.centreY + axes.across.z * sc.across,
   );
   const k = Math.min(Math.max(0, step.apertureIndex ?? 0), openingsOf(el).length - 1);
-  const aperture = { centreY: sc.centreY, clearW: sc.clearW, clearH: sc.clearH };
+  /* `round`: the opening is a disc of diameter clearW, scored as one
+   * (src/game/race.js) and fitted by the hoop rule (src/builder/line.js). */
+  const aperture = {
+    centreY: sc.centreY, clearW: sc.clearW, clearH: sc.clearH, ...(sc.round ? { round: true } : {}),
+  };
   return {
     position: v3(c.x, c.y - sc.centreY, c.z),
     centre: c,
@@ -573,7 +602,7 @@ export function pieceGate(piece, base, quat) {
 }
 
 /*
- * Where a test flight is parked: SPAWN_BACK behind the start gate along its
+ * Where a test flight is parked: spawnBack behind the start gate along its
  * direction of travel, facing through it, on whatever ground is there. A
  * gate flown straight down has no horizontal travel to stand behind, so the
  * top edge of its opening stands in for it.
@@ -593,8 +622,8 @@ export function spawnFor(gates) {
   fx /= n;
   fz /= n;
   return {
-    x: g.centre.x - fx * SPAWN_BACK,
-    z: g.centre.z - fz * SPAWN_BACK,
+    x: g.centre.x - fx * spawnBack(g),
+    z: g.centre.z - fz * spawnBack(g),
     yaw: headingOf(fx, fz),
   };
 }
@@ -604,7 +633,7 @@ export function spawnFor(gates) {
  *
  * THE RULE. A start gate whose opening is hung more than one opening's
  * height over the ground under it cannot be flown from the ground behind
- * it without climbing first, so the run starts in the air: SPAWN_BACK
+ * it without climbing first, so the run starts in the air: spawnBack
  * before the opening along its own line of travel, which is the opening's
  * height for a level gate, lined up to fly straight through it. The spawn
  * says so with `air: { y }` and the shell (src/main.js airStart) puts the
@@ -628,7 +657,8 @@ export function startFor(gates, heightAt) {
   const g = gates[0];
   const t = g.axes.travel;
   const c = g.centre;
-  const p = v3(c.x - t.x * SPAWN_BACK, c.y - t.y * SPAWN_BACK, c.z - t.z * SPAWN_BACK);
+  const back = spawnBack(g);
+  const p = v3(c.x - t.x * back, c.y - t.y * back, c.z - t.z * back);
   const hung = c.y - heightAt(c.x, c.z) > g.aperture.clearH;
   const clear = p.y - heightAt(p.x, p.z) >= g.aperture.clearH / 2;
   if (!hung || !clear) {
@@ -778,6 +808,163 @@ export function snapPose(hit, cam, turn, distance, centreY, opts = {}) {
   }
   const up = qRot(quat, 0, centreY, 0);
   return { base: v3(c.x - up.x, c.y - up.y, c.z - up.z), quat, mode };
+}
+
+/*
+ * THE HOOP CHAIN, Shift and a click with a hoop in hand: the next hoop
+ * `distance` metres on from `from`, the last gate in the lap (a race gate,
+ * raceGateOf), along the camera's look `forward`, and turned to be flown
+ * along that line, climbing or diving with it. So a pilot lays a sky course
+ * by looking where the next hoop goes and clicking, with no need to fly
+ * there. The author's own turn goes on top and the grid rounds it as it
+ * rounds any air placement; centreY is the hoop's centre over its base.
+ * Returns { base, quat, centre }.
+ *
+ * The spacing is the aircraft's, CHAIN below: the owner asked for plane
+ * courses laid "5 to 6 times more apart" than a quad's, so a child flying
+ * one has time to line up on every hoop.
+ */
+export const CHAIN = {
+  quad: { start: 30, min: 5, max: 200, notch: 5 },
+  plane: { start: 400, min: 50, max: 1500, notch: 25 },
+};
+
+export function chainPose(from, forward, distance, turn, centreY, grid = false) {
+  const f = unit(forward) ?? v3(0, 0, -1);
+  let c = v3(from.centre.x + f.x * distance, from.centre.y + f.y * distance, from.centre.z + f.z * distance);
+  let heading = headingOf(f.x, f.z);
+  if (grid) {
+    c = v3(snapTo(c.x, GRID_STEP), snapTo(c.y, GRID_STEP), snapTo(c.z, GRID_STEP));
+    heading = snapTo(heading, TURN_STEP);
+  }
+  /* A turn about the hoop's across axis by the climb takes its travel,
+   * (0, 0, -1) at rest, onto (0, sin, -cos): up the look. */
+  const climb = Math.asin(Math.max(-1, Math.min(1, f.y)));
+  const quat = qNorm(qMul(qMul(qAxis(0, 1, 0, heading), qAxis(1, 0, 0, climb)), userTurn(turn)));
+  const up = qRot(quat, 0, centreY, 0);
+  return { base: v3(c.x - up.x, c.y - up.y, c.z - up.z), quat, centre: c };
+}
+
+/*
+ * THE CASUAL SKY TRACK, the one click starter My tracks offers a plane
+ * (src/ui/ui.js): CASUAL.hoops big hoops round a wide oval, CASUAL.spacing
+ * apart, each hung CASUAL.over metres over the highest ground on its way
+ * to the next and never more than CASUAL.top over its own, 30 m and 20 m
+ * about, flown round it counter clockwise from above. The owner's words:
+ * "even a very small child can complete the courses."
+ *
+ * Where: of ovals centred within CASUAL.reach of `from` (the world's
+ * spawn), at four turns and on a grid, the one whose ground is flattest
+ * under its path and whose hoops all fit the height rule. The oval is
+ * sized so its length is the hoops' spacing times their number, and the
+ * hoops go on it at equal steps of its length. `heightAt(x, z)` is the
+ * map's. Returns a new map track, or null where no oval fits.
+ */
+/* The casual oval's short axis over its long one. */
+const ASPECT = 0.6;
+export const CASUAL = {
+  hoops: 8, spacing: 400, over: 60, top: 150, reach: 1600, step: 200, types: ['hoop30', 'hoop20'],
+};
+
+export function casualCourse(mapId, name, heightAt, from) {
+  /* The parameter of each hoop on an oval of semi axes 1 and ASPECT, at
+   * equal steps of its length, and that length, from a fine polyline. */
+  const M = 720;
+  const len = [0];
+  for (let j = 1; j <= M; j += 1) {
+    const u0 = (2 * Math.PI * (j - 1)) / M;
+    const u1 = (2 * Math.PI * j) / M;
+    len.push(len[j - 1] + Math.hypot(Math.cos(u1) - Math.cos(u0), ASPECT * (Math.sin(u1) - Math.sin(u0))));
+  }
+  const us = [];
+  for (let i = 0, j = 0; i < CASUAL.hoops; i += 1) {
+    const want = (len[M] * i) / CASUAL.hoops;
+    while (len[j + 1] < want) {
+      j += 1;
+    }
+    us.push(((2 * Math.PI) / M) * (j + (want - len[j]) / (len[j + 1] - len[j])));
+  }
+  const a = (CASUAL.hoops * CASUAL.spacing) / len[M];
+  let best = null;
+  for (let cx = from.x - CASUAL.reach; cx <= from.x + CASUAL.reach; cx += CASUAL.step) {
+    for (let cz = from.z - CASUAL.reach; cz <= from.z + CASUAL.reach; cz += CASUAL.step) {
+      for (let k = 0; k < 4; k += 1) {
+        const turn = (k * Math.PI) / 4;
+        const plan = casualPlan(cx, cz, a, turn, us, heightAt);
+        if (plan && (!best || plan.relief < best.relief)) {
+          best = plan;
+        }
+      }
+    }
+  }
+  if (!best) {
+    return null;
+  }
+  const doc = newCourse(mapId, name);
+  best.hoops.forEach((h, i) => {
+    const type = CASUAL.types[i % CASUAL.types.length];
+    const quat = qAxis(0, 1, 0, headingOf(h.tx, h.tz));
+    const centreY = openingsOf({ type, dims: ELEMENTS[type].dims })[0].centreY;
+    addGate(doc, type, v3(h.x, h.y - centreY, h.z), quat);
+  });
+  return doc;
+}
+
+/* The hoops round one oval, or null when the ground will not let every
+ * one hang between CASUAL.over and CASUAL.top over its own ground.
+ * `relief` is the ground's rise under the whole path. */
+function casualPlan(cx, cz, a, turn, us, heightAt) {
+  const n = us.length;
+  const b = ASPECT * a;
+  const c = Math.cos(turn);
+  const sn = Math.sin(turn);
+  const at = (u) => {
+    const ex = a * Math.cos(u);
+    const ez = b * Math.sin(u);
+    return { x: cx + ex * c - ez * sn, z: cz + ex * sn + ez * c };
+  };
+  /* The ground under the path, SUB samples from each hoop to the next. */
+  const SUB = 8;
+  const ground = [];
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i < n * SUB; i += 1) {
+    const k = Math.floor(i / SUB);
+    const u1 = k + 1 < n ? us[k + 1] : 2 * Math.PI;
+    const p = at(us[k] + ((u1 - us[k]) * (i % SUB)) / SUB);
+    const h = heightAt(p.x, p.z);
+    if (!Number.isFinite(h)) {
+      return null;
+    }
+    ground.push(h);
+    lo = Math.min(lo, h);
+    hi = Math.max(hi, h);
+  }
+  const hoops = [];
+  for (let i = 0; i < n; i += 1) {
+    const u = us[i];
+    const p = at(u);
+    /* Over the highest ground from half way back to half way on. */
+    let over = -Infinity;
+    for (let j = -SUB / 2; j <= SUB / 2; j += 1) {
+      over = Math.max(over, ground[(i * SUB + j + n * SUB) % (n * SUB)]);
+    }
+    const own = ground[i * SUB];
+    const y = over + CASUAL.over;
+    if (y - own > CASUAL.top) {
+      return null;
+    }
+    /* The tangent, d/du, counter clockwise seen from above (-y). */
+    const dx = -a * Math.sin(u);
+    const dz = b * Math.cos(u);
+    const tx = dx * c - dz * sn;
+    const tz = dx * sn + dz * c;
+    const tl = Math.hypot(tx, tz);
+    hoops.push({
+      x: p.x, y, z: p.z, tx: tx / tl, tz: tz / tl,
+    });
+  }
+  return { hoops, relief: hi - lo };
 }
 
 /*
