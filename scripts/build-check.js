@@ -1658,8 +1658,12 @@ async function throwAt(page, p, t, speed, back = 10) {
   const from = vAdd(p, t, -back);
   const v = t.map((x) => x * speed);
   await page.evaluate(`window.__crashThrow({ fresh: true, x: ${from[0]}, y: ${from[1]}, z: ${from[2]}, yaw: ${yawAlong(t)}, pitch: ${(Math.asin(t[1]) * 180) / Math.PI}, vx: ${v[0]}, vy: ${v[1]}, vz: ${v[2]} })`);
+  const t0 = await page.evaluate('window.__crash().simT');
   await simWait(page, 1.5 + back / speed, 'false');
   const after = await page.evaluate('window.__leanWatch = false, ({ k: window.__crash(), j: window.__jelly(), c: window.__craftState(), next: window.__race().next, lean: window.__leanMax })');
+  /* How much flight the wait really held: under a loaded host the wall
+   * clock can run out first, and then the throw was read short. */
+  const flown = after.k.simT - t0;
   const { whacks } = after.j;
   return {
     whacks,
@@ -1671,6 +1675,7 @@ async function throwAt(page, p, t, speed, back = 10) {
     speed: after.c.speed,
     lean: after.lean,
     next: after.next,
+    flown,
   };
 }
 
@@ -1852,7 +1857,7 @@ async function hoopStage(craft, { place = true } = {}) {
         hits.push({ what, v, w });
         const wob = r.lean > 0.02;
         say(r.whacks.length === 1 && r.events === 0 && r.flags.length === 0 && !r.wrecked && !r.crashed && r.mode === 'flight' && r.speed > af.stall,
-          `the ${af.short} head on into ${what} at ${v.toFixed(1)} m/s: whacked, not hurt (${whackText(w)}; ${r.events} damage events, flags ${r.flags.join() || 'none'}), flying on at ${r.speed.toFixed(1)} m/s`);
+          `the ${af.short} head on into ${what} at ${v.toFixed(1)} m/s: whacked, not hurt (${whackText(w)}; ${r.whacks.length} whack(s), ${r.events} damage events, flags ${r.flags.join() || 'none'}), flying on at ${r.speed.toFixed(1)} m/s, mode ${r.mode}${r.crashed ? ', crashed' : ''}, ${r.flown.toFixed(1)} s flown`);
         say(wob, `and it wobbles: leaning as much as ${r.lean.toFixed(2)} rad as it shakes`);
       }
     }
