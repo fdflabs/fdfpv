@@ -29,8 +29,8 @@
  * polylines through the corners of a condensed racing figure, stroked
  * STROKE wide, first in the second colour OUTLINE wider for the outline.
  */
-const STROKE = 0.15;
-const OUTLINE = 0.13;
+const STROKE = 0.17;
+const OUTLINE = 0.065;
 const L = 0.15;
 const R = 0.51;
 const T = 0.15;
