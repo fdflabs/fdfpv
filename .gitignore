@@ -14,3 +14,5 @@ tracks/_review/
 assets/music-src/
 # Agent worktrees the Claude Code harness makes inside the checkout.
 .claude/worktrees/
+# Local state wrangler dev writes beside a Worker.
+.wrangler/
