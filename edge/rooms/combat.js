@@ -186,6 +186,18 @@ export class RoomCombat {
     }
   }
 
+  /* The round put away: by the host's stop, or by the room when too few
+   * of its pilots are left (core.js settleGames). */
+  stop(core) {
+    this.round.state = 'idle';
+    return this.broadcast(core);
+  }
+
+  /* The seats with a streamer record (core.js game() counts who is here). */
+  players() {
+    return [...this.seats.keys()];
+  }
+
   /* Whether a round is out: counting down or on. */
   on() {
     return this.round.state === 'countdown' || this.round.state === 'on';
@@ -233,8 +245,7 @@ export class RoomCombat {
     }
     const r = this.round;
     if (msg.op === 'stop' && r.state !== 'idle') {
-      r.state = 'idle';
-      return [...out, ...this.broadcast(core)];
+      return [...out, ...this.stop(core)];
     }
     /* One game at a time (core.js game()): no round under a race or a tag
      * match. */

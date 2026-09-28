@@ -98,7 +98,7 @@ export class RoomTag {
   constructor() {
     /*
      * { id, goal, goAt, state: 'countdown'|'live'|'results', ace,
-     *   protectUntil, untouchSince, f, players: { seat: { ms } },
+     *   protectUntil, untouchSince, f, players: { seat: { ms, token } },
      *   crowns: [{ t, seat, from, why }] (the last CROWNS_SHOWN), winner,
      *   endAt }, or null before the first match.
      */
@@ -141,7 +141,7 @@ export class RoomTag {
     if (!m) {
       return { state: 'lobby' };
     }
-    const here = new Set([...core.seats.values()].map((s) => s.seat));
+    const here = new Set(this.players(core));
     return {
       state: m.state,
       id: m.id,
@@ -190,13 +190,31 @@ export class RoomTag {
     }
     if (msg.op === 'end' && this.on()) {
       const out = this.advance(core, now);
-      if (!this.on()) {
-        return out;
-      }
-      this.finish(Math.min(this.match.f, core.roomMs(now)), null);
-      return [...out, ...this.changed(core)];
+      return this.on() ? [...out, ...this.abandon(core, now)] : out;
     }
     return [];
+  }
+
+  /* The match's players who are here: their seat, held by the same pilot
+   * (the seat's token), not a newcomer given a seat a player left. */
+  players(core) {
+    const m = this.match;
+    if (!m) {
+      return [];
+    }
+    return [...core.seats.values()]
+      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token))
+      .map((t) => t.seat);
+  }
+
+  /* Ended before anybody won: by the host, or by the room when too few of
+   * its players are left (core.js settleGames). Results as they stand. */
+  abandon(core, now) {
+    if (!this.on()) {
+      return [];
+    }
+    this.finish(Math.min(this.match.f, core.roomMs(now)), null);
+    return this.changed(core);
   }
 
   start(core, conn, msg, now) {
@@ -214,7 +232,7 @@ export class RoomTag {
     const goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     const players = {};
     for (const t of core.seats.values()) {
-      players[t.seat] = { ms: 0 };
+      players[t.seat] = { ms: 0, token: t.token };
     }
     this.match = {
       id: this.nextId,
@@ -249,7 +267,7 @@ export class RoomTag {
     if (p && p.t <= roomNow + AHEAD_MS && s.profile.map === core.meta.map) {
       this.seatOf(s).track.push(p);
       /* A pilot who joined during the match hunts, from nothing. */
-      this.match.players[s.seat] ??= { ms: 0 };
+      this.match.players[s.seat] ??= { ms: 0, token: s.token };
     }
     return this.advance(core, now);
   }
@@ -267,7 +285,7 @@ export class RoomTag {
     const m = this.match;
     if (had && had.token !== s.token && m && m.players[s.seat] && m.ace !== s.seat) {
       /* The seat went to a new pilot: they start with nothing. */
-      m.players[s.seat] = { ms: 0 };
+      m.players[s.seat] = { ms: 0, token: s.token };
     }
     const next = { airframe: s.profile.airframe, hull: hullFor(s.profile.airframe), track: new Track(), token: s.token };
     this.seats.set(s.seat, next);
@@ -299,7 +317,7 @@ export class RoomTag {
     }
     this.log.push({ t, seat, from: m.ace, why });
     m.ace = seat;
-    m.players[seat] ??= { ms: 0 };
+    m.players[seat] ??= { ms: 0, token: null };
     m.protectUntil = t + PROTECT_MS;
     m.untouchSince = null;
   }

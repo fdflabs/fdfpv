@@ -37,7 +37,9 @@ import {
   TYPE_PARTS_RELAY, decodePartsRelay, encodeParts,
 } from '../src/share/roomwire.js';
 import { PARTS_PER_S } from '../edge/rooms/wrecks.js';
-import { RoomCore, KICK_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN } from '../edge/rooms/core.js';
+import {
+  ABANDON_MS, RESEAT_MS, RoomCore, KICK_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
+} from '../edge/rooms/core.js';
 import { HULLS } from '../configs/hulls.js';
 import { AIRFRAME_IDS } from '../configs/airframes.js';
 import { BREAK_MPS, LATE_MS, checkHit } from '../src/game/midair.js';
@@ -810,7 +812,8 @@ hello(pubA);
 const beforePub = pubA.got.length;
 run(room.message(pubA, JSON.stringify({ type: 'track', doc: raceDoc }), now, pubA.address));
 run(room.message(pubA, JSON.stringify({ type: 'race', op: 'start', laps: 1 }), now, pubA.address));
-check('a public room takes no track and starts no race', room.race.track === null && room.race.race === null && pubA.got.length === beforePub);
+check('a public room takes no track and starts no race, and says so', room.race.track === null && room.race.race === null
+  && pubA.got.slice(beforePub).map((m) => m.type === 'refused' && m.why).join() === 'public,public');
 
 /*
  * PHASE 5, SAFETY: edge/rooms/safety.js and edge/rooms/lobby.js, driven
@@ -1159,13 +1162,14 @@ console.log('catch the ace: starting a match');
   const e = tagRoom();
   e.fly(1000);
   e.say(1, { type: 'tag', op: 'start', goal: 5 });
-  check('only the host starts a match', e.r.tag.match === null);
+  check('only the host starts a match, and a pilot who is not is told so', e.r.tag.match === null
+    && texts(e.socks[1], 'refused').map((m) => m.why).join() === 'host');
   e.say(0, { type: 'tag', op: 'start', goal: GOAL_MAX + 5 });
   e.say(0, { type: 'tag', op: 'start', goal: 2.5 });
   check('a goal out of range or not a whole number is refused', e.r.tag.match === null && e.errors(0).join() === 'goal,goal');
   const pubRoom = tagRoom({ pub: true });
   pubRoom.say(0, { type: 'tag', op: 'start', goal: 5 });
-  check('a public room plays no tag', pubRoom.r.tag.match === null && pubRoom.errors(0).join() === 'public');
+  check('a public room plays no tag, and says so', pubRoom.r.tag.match === null && texts(pubRoom.socks[0], 'refused').map((m) => m.why).join() === 'public');
   const alone = tagRoom({ n: 1 });
   alone.say(0, { type: 'tag', op: 'start', goal: 5 });
   check('nor does a pilot alone', alone.r.tag.match === null && alone.errors(0).join() === 'alone');
@@ -1183,8 +1187,8 @@ console.log('catch the ace: starting a match');
   console.log('catch the ace: one game at a time');
   e.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-tag00001' }) });
   e.say(0, { type: 'race', op: 'start', laps: 1 });
-  const raceErrors = texts(e.socks[0], 'race').filter((m) => m.error).map((m) => m.error);
-  check('no track and no race under a tag match', e.r.race.track === null && e.r.race.race === null && raceErrors.join() === 'tag_on,tag_on');
+  check('no track and no race under a tag match: the host is told the match is running',
+    e.r.race.track === null && e.r.race.race === null && texts(e.socks[0], 'refused').map((m) => m.why).join() === 'tag,tag');
   const busy = tagRoom();
   busy.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-tag00002' }) });
   for (let i = 0; i < 3; i += 1) {
@@ -1192,7 +1196,8 @@ console.log('catch the ace: starting a match');
   }
   busy.say(0, { type: 'race', op: 'start', laps: 1 });
   busy.say(0, { type: 'tag', op: 'start', goal: 5 });
-  check('and no tag match under a race', busy.r.race.race && busy.r.race.race.state === 'on' && busy.r.tag.match === null && busy.errors(0).join() === 'busy');
+  check('and no tag match under a race: the host is told the race is running', busy.r.race.race && busy.r.race.race.state === 'on' && busy.r.tag.match === null
+    && texts(busy.socks[0], 'refused').map((m) => m.why).join() === 'race');
 
   console.log('catch the ace: the crown');
   e.fly(cd.goAt + 200);
@@ -1330,6 +1335,137 @@ console.log('catch the ace: starting a match');
 }
 
 combatSection(check);
+
+/* ---------------------------------------------------------------------
+ * Stale games and the host: a game a restart restores whether or not its
+ * players come back must never hold the room, a refused host action says
+ * why, and the host is the same pilot across a restart.
+ * ------------------------------------------------------------------- */
+console.log('stale games and the host');
+{
+  const cub = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+  const smeta = { code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: 0 };
+  let clock = 1000;
+  /* A room as host.js loads it from `kept` (storage), its sockets `socks`. */
+  const load = async (kept, socks = []) => {
+    const h = new RoomHost({
+      storage: { get: async (k) => kept.get(k), list: async () => kept },
+      getWebSockets: () => socks,
+    }, {});
+    return h.load();
+  };
+  const apply = (kept) => (actions) => {
+    for (const x of actions) {
+      if (x.send) {
+        x.send.got.push(typeof x.data === 'string' ? JSON.parse(x.data) : x.data);
+      } else if (x.store && kept) {
+        kept.set(x.store, JSON.parse(JSON.stringify(x.value)));
+      }
+    }
+    return actions;
+  };
+  const join = (r, so, kept, extra = {}) => {
+    apply(kept)(r.open(so, clock));
+    return apply(kept)(r.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [2, 3, 30], profile: cub, ...extra }), clock, so.address, newToken));
+  };
+  const say = (r, so, obj, kept) => apply(kept)(r.message(so, JSON.stringify(obj), clock, so.address));
+  const refusals = (so) => texts(so, 'refused').map((m) => m.why);
+
+  /* A live match of three pilots, stored, the three gone for good. */
+  const kept = new Map([['meta', smeta]]);
+  const r0 = new RoomCore(smeta);
+  const olds = [0, 1, 2].map((i) => sock(`old${i}`, `10.7.0.${i + 1}`));
+  for (const so of olds) {
+    join(r0, so, kept);
+  }
+  say(r0, olds[0], { type: 'tag', op: 'start', goal: 90 }, kept);
+  clock += 7000;
+  apply(kept)(r0.tick(clock));
+  check('a live match is stored with its players', kept.get('tag').match.state === 'live' && Object.keys(kept.get('tag').match.players).length === 3);
+
+  /* A restart: the room comes back from storage, and two new pilots join
+   * into the seats the old players held. */
+  const r1 = await load(kept);
+  check('it comes back live', r1.tag.on());
+  const n1 = sock('new1', '10.7.1.1');
+  const n2 = sock('new2', '10.7.1.2');
+  join(r1, n1, kept);
+  join(r1, n2, kept);
+  check('newcomers in the old players\' seats are not its players, so it holds nothing', r1.game() === null
+    && texts(n1, 'welcome')[0].seat === 1);
+  clock += ABANDON_MS + 100;
+  apply(kept)(r1.tick(clock));
+  check(`and after ${ABANDON_MS / 1000} s the room ends it: results, no winner`, r1.tag.match.state === 'results' && r1.tag.match.winner === null
+    && texts(n1, 'tag').at(-1).tag.state === 'results');
+  const host1 = r1.host();
+  const hostSock = texts(n1, 'welcome')[0].seat === host1 ? n1 : n2;
+  say(r1, hostSock, { type: 'combat', op: 'start', minutes: 5 }, kept);
+  check('and the host starts a combat round after it', r1.combat.on() && r1.game() === 'combat', r1.game());
+
+  /* The same restore, but the host presses Start at once: the stale match
+   * is ended there and then, not refused. */
+  kept.set('tag', JSON.parse(JSON.stringify(kept.get('tag'))));
+  kept.get('tag').match.state = 'live';
+  kept.delete('combat');
+  const r2 = await load(kept);
+  const m1 = sock('now1', '10.7.2.1');
+  const m2 = sock('now2', '10.7.2.2');
+  join(r2, m1, null);
+  join(r2, m2, null);
+  const hs = r2.host() === texts(m1, 'welcome')[0].seat ? m1 : m2;
+  say(r2, hs, { type: 'combat', op: 'start', minutes: 3 }, null);
+  check('a start right after a restore ends the stale match first', r2.tag.match.state === 'results' && r2.combat.on() && refusals(hs).length === 0);
+
+  /* A match its players are in is not stale: a combat start is refused,
+   * with the reason, and so is a pilot who is not the host. */
+  const r3 = new RoomCore(smeta);
+  const p3 = [0, 1].map((i) => sock(`p3${i}`, `10.7.3.${i + 1}`));
+  for (const so of p3) {
+    join(r3, so, null);
+  }
+  say(r3, p3[0], { type: 'tag', op: 'start', goal: 90 }, null);
+  say(r3, p3[0], { type: 'combat', op: 'start', minutes: 5 }, null);
+  say(r3, p3[1], { type: 'combat', op: 'start', minutes: 5 }, null);
+  say(r3, p3[1], { type: 'tag', op: 'end' }, null);
+  check('a start under a running match is refused: "tag", to the host', !r3.combat.on() && refusals(p3[0]).join() === 'tag');
+  check('a host action from a pilot who is not the host is refused: "host"', refusals(p3[1]).join() === 'host,host' && r3.tag.on());
+  /* One of the two leaves for good: after the grace the match ends. */
+  apply(null)(r3.close(p3[1], clock));
+  clock += ABANDON_MS + 100;
+  apply(null)(r3.tick(clock));
+  check('a match left with one pilot ends by itself', r3.tag.match.state === 'results' && r3.game() === null);
+
+  /* The host across a restart: A made the room, B joined; the server
+   * restarts and B reconnects first. B acts for A until A is back, then A
+   * is the host again, and everybody is told. */
+  const hk = new Map([['meta', smeta]]);
+  const r4 = new RoomCore(smeta);
+  const A = sock('hostA', '10.7.4.1');
+  const B = sock('hostB', '10.7.4.2');
+  join(r4, A, hk);
+  join(r4, B, hk);
+  const wA = texts(A, 'welcome')[0];
+  const wB = texts(B, 'welcome')[0];
+  check('the pilot who made the room is its host, and it is stored', r4.host() === wA.seat && hk.get('hosting').token === wA.token);
+  const r5 = await load(hk);
+  const B2 = sock('hostB2', '10.7.4.2');
+  const A2 = sock('hostA2', '10.7.4.1');
+  join(r5, B2, hk, { token: wB.token, seat: wB.seat });
+  check('B back first acts as host while A is away', r5.host() === wB.seat && texts(B2, 'welcome')[0].host === wB.seat);
+  clock += 2000;
+  join(r5, A2, hk, { token: wA.token, seat: wA.seat });
+  check('A back: the host again, in A\'s welcome', r5.host() === wA.seat && texts(A2, 'welcome')[0].host === wA.seat);
+  check('and B is told the host changed', texts(B2, 'host').at(-1).seat === wA.seat);
+  say(r5, B2, { type: 'combat', op: 'start', minutes: 5 }, hk);
+  check('so B\'s start is refused as not the host', refusals(B2).join() === 'host' && !r5.combat.on());
+  /* A leaves and does not come back: B acts at once, and the room is B's
+   * for good once RESEAT_MS has gone by. */
+  apply(hk)(r5.close(A2, clock));
+  check('the host gone, B is told it acts for them', texts(B2, 'host').at(-1).seat === wB.seat && r5.host() === wB.seat);
+  clock += RESEAT_MS + 100;
+  apply(hk)(r5.tick(clock));
+  check('and after RESEAT_MS the room is B\'s, stored', hk.get('hosting').token === wB.token);
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

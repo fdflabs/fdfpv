@@ -139,6 +139,10 @@ export const PROFILE_MAX_BYTES = 4096;
 
 const ID_RE = /^[a-z0-9_]{1,32}$/;
 
+/* The games a private room's host starts: toilet paper combat and Catch
+ * the Ace (roomtag). */
+export const ROOM_GAMES = ['combat', 'tag'];
+
 /*
  * The shape a room accepts for a profile: { airframe, map, figure,
  * livery, parts }, ids as short lower case words, livery and parts plain
@@ -168,6 +172,12 @@ export function checkProfile(p) {
     livery: p.livery ?? null,
     parts: p.parts ?? null,
   };
+  /* The room game the pilot came in for (a title card: 'combat', 'tag'),
+   * so a joiner sees what the host set the room up for. Optional: absent
+   * or unknown is simply not passed on, never a refused profile. */
+  if (ROOM_GAMES.includes(p.game)) {
+    out.game = p.game;
+  }
   if (new TextEncoder().encode(JSON.stringify(out)).length > PROFILE_MAX_BYTES) {
     return null;
   }
