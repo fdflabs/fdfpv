@@ -6,7 +6,8 @@
  * colour per named region of that scheme (configs/liveries.js): the wing,
  * the fuselage, the tail, the trim. So a builder hands each region's
  * materials to paintRegions() below as it makes them, and the craft it
- * returns carries `livery`, which sets and reads those colours.
+ * returns carries `livery`, which sets and reads those colours and hands
+ * the paint shop each region's materials for its finish.
  *
  * A region has BASE materials, which take the region's colour as it is,
  * and SHADE materials, the slightly darker covering a builder puts on the
@@ -45,6 +46,8 @@
  */
 
 import * as THREE from 'three';
+import { dressDecals } from './decals.js';
+import { dressFinish } from './finish.js';
 
 function luminance(c) {
   return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
@@ -115,15 +118,22 @@ export function paintRegions() {
     read() {
       return Object.fromEntries([...regions].map(([id, r]) => [id, r.base[0].mat.color.getHex()]));
     },
+    /* Each region's materials, base and shade, for its finish
+     * (src/render/finish.js). */
+    materials() {
+      return Object.fromEntries([...regions].map(([id, r]) => [id, [...r.base, ...r.shade].map((p) => p.mat)]));
+    },
   };
   return { base, shade, livery };
 }
 
 /*
  * The shell's answer to "what does this aircraft wear": a function of an
- * airframe id returning region colours (0xRRGGBB numbers) or null for
- * stock. Null until the shell sets it, so a model built by a check or a
- * preview page with no settings is the stock aircraft.
+ * airframe id returning its LOOK, { colours, finishes, decals }
+ * (configs/liveries.js lookFor: region colours as 0xRRGGBB numbers, the
+ * paint shop's finishes and decals), or null for stock. Null until the
+ * shell sets it, so a model built by a check or a preview page with no
+ * settings is the stock aircraft.
  */
 let source = null;
 
@@ -135,11 +145,15 @@ export function liveryFor(airframeId) {
   return source ? source(airframeId) : null;
 }
 
-/* Dress a freshly built craft in its airframe's livery. A craft without
- * regions (a quad) is left as it is. */
-export function dressLivery(craft, airframeId, colours = liveryFor(airframeId)) {
+/* Dress a craft in a look, by default its airframe's: the colours, then
+ * the finishes over them (src/render/finish.js), then the decals
+ * (src/render/decals.js). A craft without regions (a quad) is left as it
+ * is. */
+export function dressLivery(craft, airframeId, look = liveryFor(airframeId)) {
   if (craft && craft.livery) {
-    craft.livery.set(colours ?? {});
+    craft.livery.set((look && look.colours) ?? {});
+    dressFinish(craft, (look && look.finishes) ?? {});
+    dressDecals(craft, (look && look.decals) ?? []);
   }
   return craft;
 }

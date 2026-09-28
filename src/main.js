@@ -110,7 +110,7 @@ import { ESTIMATES } from '../configs/power-estimates.js';
 import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { setLiverySource } from './render/livery.js';
-import { coloursFor, colourNumbers, liveryKey, paintable } from '../configs/liveries.js';
+import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
@@ -553,7 +553,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* Every model of a plane is built in the pilot's paint for it
    * (src/render/livery.js, configs/liveries.js), read from the settings as
    * they are when it is built. The boot craft, built above, is a quad. */
-  setLiverySource((id) => (paintable(id) ? colourNumbers(coloursFor(id, ui.settings.livery[liveryKey(id)])) : null));
+  setLiverySource((id) => (paintable(id) ? lookFor(id, ui.settings.livery[liveryKey(id)]) : null));
   /* The flight controller's OSD over the FPV camera. See src/ui/fpvhud.js. */
   const fpvOsd = new FpvOsd(uiRoot);
   /*
@@ -6722,8 +6722,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * swap of the aircraft for itself where it is (hotSwap), so it flies on
    * the new power now; anywhere else it is the next seat's.
    */
-  ui.onHangarPreview = (id, colours) => {
-    pickStage.repaint(id, colours);
+  ui.onHangarPreview = (id, look) => {
+    pickStage.repaint(id, look);
   };
   ui.onHangarSave = async (id, res) => {
     const family = liveryKey(id);
@@ -9968,6 +9968,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       if (drawThis) {
         pickStage.draw(worldLive ? pick : null);
       }
+      /* The paint shop's aim, read against the frame just drawn. */
+      if (pick && pick.hangar && pick.hangar.aim) {
+        ui.hangar.aimed(pickStage.pick(pick.items[0].id, pick.hangar.aim.x, pick.hangar.aim.y));
+      }
     }
 
     /*
@@ -10629,6 +10633,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * for scripts/hangar-check.js. */
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
   window.__pickPaint = (id) => pickStage.paint(id);
+  window.__pickLook = (id) => pickStage.look(id);
   window.__craft = () => ({
     setting: ui.settings.airframe,
     run: runAirframe,

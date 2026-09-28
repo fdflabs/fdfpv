@@ -51,10 +51,11 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import {
-  coloursFor, colourNumbers, liveryKey, normaliseEntry, paletteColour, paletteFor, regionsFor, schemesFor,
+  coloursFor, liveryKey, lookFor, normaliseEntry, paletteColour, paletteFor, regionsFor, schemesFor,
 } from '../../configs/liveries.js';
 import { currentLocale, str } from '../strings/index.js';
 import { sizeText, weightText } from './carousel.js';
+import { PaintShop } from './hangar-paint.js';
 
 export const HANGAR_TABS = ['power', 'colours'];
 
@@ -100,6 +101,19 @@ export function stockPower(airframeId) {
     stock: { option: 'stock', pack: null },
     estimate: () => ({ grams: af.grams, topSpeed: af.topSpeed ?? null, minutes: null, thrustToWeight: null }),
   };
+}
+
+/* An entry on a scheme, its own colours dropped and its finishes and
+ * decals (src/ui/hangar-paint.js) kept. */
+function withScheme(entry, scheme) {
+  const out = scheme === 'stock' ? {} : { scheme };
+  if (entry.finishes) {
+    out.finishes = entry.finishes;
+  }
+  if (entry.decals) {
+    out.decals = entry.decals;
+  }
+  return out;
 }
 
 /* The power choice a stored one names, made valid for these options. */
@@ -196,7 +210,7 @@ export class Hangar {
     this.customInput = el('input', 'hangar-custom-input');
     this.customInput.type = 'color';
     this.customInput.tabIndex = -1;
-    this.customInput.addEventListener('input', () => this.pickColour(this.customInput.value));
+    this.customInput.addEventListener('input', () => (this.customTarget ?? ((v) => this.pickColour(v)))(this.customInput.value));
 
     const panel = el('div', 'hangar-panel');
     this.panel = panel;
@@ -210,6 +224,8 @@ export class Hangar {
       }
     });
     root.append(panel);
+    /* The Colours tab's decals, finishes and saved liveries. */
+    this.shop = new PaintShop(this);
     root.addEventListener('click', (e) => e.stopPropagation());
     root.addEventListener('keydown', (e) => {
       if (e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') {
@@ -230,18 +246,25 @@ export class Hangar {
       if (e.pointerType === 'touch') {
         this.setHint('touch');
       }
-      this.drag = { id: e.pointerId, x: e.clientX };
+      this.drag = { id: e.pointerId, x: e.clientX, moved: 0 };
       s.setPointerCapture(e.pointerId);
     });
     s.addEventListener('pointermove', (e) => {
       if (!this.drag || e.pointerId !== this.drag.id) {
+        this.shop.pointerMove(e);
         return;
       }
       this.turn += (e.clientX - this.drag.x) * DRAG_TURN;
+      this.drag.moved += Math.abs(e.clientX - this.drag.x);
       this.drag.x = e.clientX;
     });
     const end = (e) => {
       if (this.drag && e.pointerId === this.drag.id) {
+        /* A press that did not turn the plane is a click on it, which
+         * places a decal while one is being placed. */
+        if (e.type === 'pointerup') {
+          this.shop.pointerClick(e, this.drag.moved);
+        }
         this.drag = null;
       }
     };
@@ -253,12 +276,13 @@ export class Hangar {
    * Open it on one plane. `livery` is its stored entry (settings.livery),
    * `power` the options src/main.js built for it with the stored choice
    * (`power.chosen`), `warn` a line over the buttons for what saving will
-   * cost. onPreview(numbers) is called with the region colours on every
-   * change, onSave({ livery, power, liveryChanged, powerChanged }) with
-   * what to store, onCancel with nothing, sound(kind) for the menu's
-   * sounds.
+   * cost. onPreview(look) is called with the look (src/render/livery.js)
+   * on every change, onSave({ livery, power, liveryChanged, powerChanged })
+   * with what to store, onCancel with nothing, sound(kind) for the menu's
+   * sounds. `library` is the plane's saved liveries and onLibrary(list)
+   * stores a changed list at once (src/ui/hangar-paint.js).
    */
-  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, onPreview, onSave, onCancel, sound } = {}) {
+  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, library = [], onLibrary = null, onPreview, onSave, onCancel, sound } = {}) {
     this.id = airframe;
     this.family = liveryKey(airframe);
     this.saved = normaliseEntry(this.family, livery) ?? {};
@@ -276,6 +300,8 @@ export class Hangar {
     this.padPrev = null;
     this.hover = null;
     this.counts = {};
+    this.customTarget = null;
+    this.shop.reset({ library, onLibrary });
     this.revealSeq += 1;
     this.focus = this.tab === 'power' ? 'nose' : 'overview';
     this.isOpen = true;
@@ -305,6 +331,7 @@ export class Hangar {
       return;
     }
     this.isOpen = false;
+    this.shop.stopPlacing();
     this.opts = null;
     this.drag = null;
     this.hover = null;
@@ -325,12 +352,25 @@ export class Hangar {
   /* The entry on show: the chosen one, with whatever the cursor or the
    * pointer is over tried on it. */
   shownEntry() {
+    return this.shop.shownEntry(this.triedEntry());
+  }
+
+  triedEntry() {
     const h = this.hover;
     if (!h) {
       return this.entry;
     }
     if (h.scheme) {
-      return h.scheme === 'stock' ? {} : { scheme: h.scheme };
+      return withScheme(this.entry, h.scheme);
+    }
+    if (h.entry) {
+      return h.entry;
+    }
+    if (h.finish) {
+      return this.shop.withFinish(this.entry, h.region, h.finish);
+    }
+    if (h.patch) {
+      return this.shop.withDecal(this.entry, h.decal, h.patch);
     }
     return { ...this.entry, regions: { ...(this.entry.regions ?? {}), [h.region]: h.hex } };
   }
@@ -345,7 +385,7 @@ export class Hangar {
   flushPreview() {
     if (this.previewDue && this.opts && this.opts.onPreview) {
       this.previewDue = false;
-      this.opts.onPreview(colourNumbers(this.colours(this.shownEntry())));
+      this.opts.onPreview(lookFor(this.id, this.shownEntry()));
     }
   }
 
@@ -380,6 +420,7 @@ export class Hangar {
       return;
     }
     const dir = HANGAR_TABS.indexOf(t) > HANGAR_TABS.indexOf(this.tab) ? 1 : -1;
+    this.shop.stopPlacing();
     this.tab = t;
     this.hover = null;
     this.focus = t === 'power' ? 'nose' : 'overview';
@@ -394,9 +435,10 @@ export class Hangar {
     this.setTab(HANGAR_TABS[(i + dir + HANGAR_TABS.length) % HANGAR_TABS.length]);
   }
 
-  /* A preset: its colours whole, the pilot's own per region dropped. */
+  /* A preset: its colours whole, the pilot's own per region dropped; the
+   * finishes and the decals stay, being over the colours. */
   pickScheme(id) {
-    this.entry = id === 'stock' ? {} : { scheme: id };
+    this.entry = withScheme(this.entry, id);
     this.pulseSeq += 1;
     this.changed(`scheme-${id}`);
   }
@@ -664,7 +706,13 @@ export class Hangar {
   }
 
   coloursTab() {
+    if (this.shop.page !== 'paint') {
+      const page = this.shop.body();
+      page.prepend(this.shop.switcher());
+      return page;
+    }
     const box = el('div', 'hangar-tab');
+    box.append(this.shop.switcher());
     const colours = this.colours();
     const own = this.entry.regions ?? {};
     const current = this.entry.scheme ?? 'stock';
@@ -758,6 +806,7 @@ export class Hangar {
       custom.title = str('hangar.custom');
       custom.setAttribute('aria-label', str('hangar.custom'));
       custom.addEventListener('click', () => {
+        this.customTarget = null;
         this.customInput.value = hex;
         this.customInput.click();
       });
@@ -766,6 +815,7 @@ export class Hangar {
       if (region.film) {
         box.append(el('p', 'hangar-source', str('hangar.film_note')));
       }
+      box.append(this.shop.finishRow(region));
     }
     return box;
   }
@@ -850,6 +900,9 @@ export class Hangar {
   /* Every key while it is up is the hangar's. */
   handleKey(code) {
     this.setHint('key');
+    if (this.shop.handleKey(code)) {
+      return true;
+    }
     if (code === 'ArrowLeft' || code === 'KeyA') {
       this.move(-1, 0);
     } else if (code === 'ArrowRight' || code === 'KeyD') {
@@ -891,6 +944,9 @@ export class Hangar {
     const edge = (k) => now[k] && !prev[k];
     if (Object.keys(now).some(edge)) {
       this.setHint('pad');
+    }
+    if (this.shop.pollPad(now, edge)) {
+      return;
     }
     if (edge('left')) {
       this.move(-1, 0);
@@ -941,11 +997,19 @@ export class Hangar {
       compact: false,
       turn,
       hangar: {
-        focus: this.focus,
+        focus: (this.tab === 'colours' && this.shop.focus()) || this.focus,
         reveal: this.revealSeq,
         pulse: this.pulseSeq,
         hold: Boolean(this.drag),
+        stay: this.tab === 'colours' && this.shop.stay(),
+        aim: this.shop.aim(),
       },
     };
+  }
+
+  /* Where the aim (frame().hangar.aim) landed on the model, from the
+   * renderer: { p, n } in the model's frame, or null. */
+  aimed(hit) {
+    this.shop.aimed(hit);
   }
 }

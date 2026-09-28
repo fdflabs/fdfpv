@@ -55,7 +55,7 @@ export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome'];
  * style shapes are generic marks drawn here, no maker's logo or name.
  */
 export const DECAL_KINDS = {
-  num: { aspect: 0.72, text: true, size: 0.09 },
+  num: { aspect: 0.72, text: true, size: 0.12 },
   stripe: { aspect: 6, size: 0.05 },
   checker: { aspect: 3, size: 0.05 },
   chevron: { aspect: 1.4, size: 0.06 },

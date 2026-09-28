@@ -53,6 +53,11 @@ const FINISHES = {
   glass: { roughness: 0.04, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02 },
   /* Iron on covering film, polyester, glossy over its wood. */
   film: { roughness: 0.28, metalness: 0, clearcoat: 0.5, clearcoatRoughness: 0.1 },
+  /* The paint shop's finishes (src/render/finish.js), a region's own. */
+  gloss: { roughness: 0.18, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05 },
+  matte: { roughness: 0.92, metalness: 0, grain: 0.03 },
+  metallic: { roughness: 0.34, metalness: 0.85, clearcoat: 1, clearcoatRoughness: 0.08 },
+  chrome: { roughness: 0.04, metalness: 1 },
 };
 
 /* Relative luminance of an sRGB hex, as the cel palette was authored. */
@@ -74,6 +79,9 @@ function celOptions(mat) {
 function finishOf(mat, inRotor) {
   if (inRotor) {
     return 'prop';
+  }
+  if (mat.userData.paintFinish) {
+    return mat.userData.paintFinish;
   }
   if (mat.userData.film) {
     return 'film';
@@ -150,6 +158,9 @@ function craftMaterial(cel, finish) {
     alphaTest: cel.alphaTest,
     side: cel.side,
     depthWrite: cel.depthWrite,
+    polygonOffset: cel.polygonOffset,
+    polygonOffsetFactor: cel.polygonOffsetFactor,
+    polygonOffsetUnits: cel.polygonOffsetUnits,
   });
   mat.name = `craft-${finish}`;
   const grain = f.grain ?? 0;
