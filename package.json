@@ -57,6 +57,7 @@
     "rooms:slots": "node scripts/rooms-slots-check.js",
     "rooms:wrecks": "node scripts/rooms-wrecks-two-page.js",
     "rooms:restart": "node scripts/rooms-restart-check.js",
+    "rooms:safety": "node scripts/rooms-safety-two-page.js",
     "strings:selftest": "node scripts/strings-selftest.js",
     "waves:selftest": "node scripts/waves-selftest.js",
     "wing:math": "node scripts/wing-math-selftest.js",
