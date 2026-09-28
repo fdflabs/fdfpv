@@ -1851,7 +1851,10 @@ async function hoopStage(craft, { place = true } = {}) {
     ]) {
       const speeds = craft === 'bramor2300' ? [af.topSpeed] : [cruise, af.topSpeed];
       for (const v of speeds) {
-        await page.evaluate('window.__race().next = 0, true');
+        /* The race waits on the far hoop meanwhile: to a plane a rim hit is
+         * close enough to count (src/game/race.js PLANE_REACH), and laps
+         * counted here would end the run under the throws. */
+        await page.evaluate('window.__race().next = 2, true');
         const r = await throwAt(page, p, t, v);
         const w = r.whacks[0];
         hits.push({ what, v, w });
