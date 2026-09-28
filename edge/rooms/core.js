@@ -45,10 +45,11 @@ import {
   CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
 import { Referee } from './referee.js';
+import { RoomSafety } from './safety.js';
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
- * 14, answer 6). Public rooms, at 16, stay closed until Phase 5. */
+ * 14, answer 6). A public room's is roomwire.js PUBLIC_CAP, 16. */
 export const PRIVATE_CAP = 8;
 export const POSE_PER_S = 35;
 export const TEXT_PER_S = 5;
@@ -85,6 +86,7 @@ export class RoomCore {
     this.ticking = false;
     /* Phase 3, mid air: edge/rooms/referee.js. */
     this.referee = new Referee(meta.friendly);
+    this.safety = new RoomSafety(this);
   }
 
   roomMs(now) {
@@ -140,7 +142,7 @@ export class RoomCore {
   }
 
   attachmentOf(s) {
-    return { seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address };
+    return { seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address, muted: s.muted || [] };
   }
 
   freeSeat(wanted) {
@@ -230,6 +232,10 @@ export class RoomCore {
     };
     this.pending.delete(conn);
     this.seats.set(conn, s);
+    /* A seat taken back keeps its samples; a new pilot in it does not. */
+    if (!wanted) {
+      this.referee.leave(seat);
+    }
     this.referee.seat(seat, profile.airframe);
     actions.push({ attach: conn, value: this.attachmentOf(s) });
     actions.push({
@@ -243,6 +249,8 @@ export class RoomCore {
         code: this.meta.code,
         cap: this.meta.cap,
         friendly: Boolean(this.meta.friendly),
+        public: Boolean(this.meta.public),
+        shard: this.meta.public ? this.meta.shard : null,
         map: this.meta.map,
         peers: this.peerList(conn),
       }),
@@ -294,7 +302,11 @@ export class RoomCore {
         ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
       ];
     }
-    if (msg.type === 'kick' && s.seat === this.host() && msg.seat !== s.seat) {
+    const safe = this.safety.text(conn, s, msg, now);
+    if (safe) {
+      return safe;
+    }
+    if (msg.type === 'kick' && !this.meta.public && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
     }
     return [];
@@ -324,9 +336,19 @@ export class RoomCore {
     if (bump(s.poseRate, now, 1000) > POSE_PER_S) {
       return [];
     }
-    s.pose = data;
+    const checked = this.safety.pose(conn, s, data, now);
+    if (!checked.bytes) {
+      return checked.actions;
+    }
+    s.pose = checked.bytes;
     s.fresh = true;
-    const hits = this.referee.pose(s.seat, data, this.roomMs(now)).flatMap((h) => this.others(null, JSON.stringify(h)));
+    /* The referee judges the bytes the room relays: Phase 5 sets
+     * FLAG_SPAWNING on a spawning or benched seat, which the rule leaves
+     * out, and every hit counts toward its ramming bench. */
+    const hits = this.referee.pose(s.seat, checked.bytes, this.roomMs(now)).flatMap((h) => {
+      this.safety.noteHit(h.a, h.b, now);
+      return this.others(null, JSON.stringify(h));
+    });
     if (this.ticking) {
       return hits;
     }
