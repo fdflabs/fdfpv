@@ -1322,6 +1322,135 @@ export function recordTimberFloatFlight(sim) {
 }
 
 /*
+ * Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md: airframe 13, an
+ * unlimited aerobat on carbon taildragger gear. On the strip, standing on
+ * its three wheels facing down it, at the pose the plant settles to, the
+ * drawn model's (src/render/edgecraft.js): the CG 0.2510 m up and 9.84 deg
+ * nose up, the quaternion's half angle's cos and sin written out to 17
+ * digits because a recording's prelude is hashed and JS Math.cos is not
+ * specified to the bit. No steps here.
+ */
+export const EDGE_AIRFRAME = 13;
+export const EDGE_REST = { z: 0.2510, pitchDeg: 9.84 };
+const EDGE_REST_C = 0.99631541935977252;
+const EDGE_REST_S = 0.085764708044513902;
+export function edgePrelude(sim) {
+  must(sim.e.sim_set_airframe(EDGE_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(22), 'sim_wing_launch');
+}
+export function edgeGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(EDGE_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  must(sim.e.sim_set_pose(0, 0, EDGE_REST.z, EDGE_REST_C, 0, -EDGE_REST_S, 0), 'sim_set_pose');
+}
+
+/* The heading, yaw about world z from +x, and the bank through the whole
+ * circle (right wing down positive, pi on its back), from the state. */
+export function edgeHeading(s) {
+  return Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+}
+export function fullBank(s) {
+  return Math.atan2(2 * (s[9] * s[10] + s[7] * s[8]), 1 - 2 * (s[8] * s[8] + s[9] * s[9]));
+}
+
+/*
+ * The Edge's take off, a taildragger's on three times its weight in
+ * thrust: the throttle opened over a second, the stick a little forward to
+ * lift the tail to 3 deg of pitch, the wings held level on the ailerons,
+ * the heading held on the rudder and the tailwheel it steers, and at
+ * `vRotate` 10 deg of pitch to lift off. `yawHold` is the pilot's feet:
+ * nought leaves the swing to the aircraft. `ms` is the time since the
+ * throttle started to open.
+ */
+export function edgeTakeoffSticks(s, ms, { vRotate = 11.5, yawHold = 1 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const pitchT = (v < vRotate ? 3 : 10) * Math.PI / 180;
+  const roll = Math.max(-1, Math.min(1, -0.8 * bank - 0.05 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+  const yaw = Math.max(-1, Math.min(1, yawHold * (2.0 * edgeHeading(s) + 0.3 * s[13])));
+  return [roll, pitchStick, yaw, Math.min(1, ms / 1000)];
+}
+
+/*
+ * The Edge's hands for level flight upright or on its back: the bank held
+ * on the ailerons toward `b` (0 or pi), and on the elevator a pitch over
+ * the horizon that holds the climb rate at nought, fly()'s loop, whose
+ * elevator sense turns over with the aircraft. `trim` is the hand's slow
+ * part, an object kept between steps.
+ */
+export function edgeRoll(s, b = 0) {
+  const e = Math.atan2(Math.sin(fullBank(s) - b), Math.cos(fullBank(s) - b));
+  return Math.max(-1, Math.min(1, -0.8 * e - 0.05 * s[11]));
+}
+export function edgeLevel(s, { b = 0, trim }) {
+  const { pitch } = attitude(s);
+  const qAero = -s[12];
+  const roll = edgeRoll(s, b);
+  const sgn = Math.cos(fullBank(s)) < 0 ? -1 : 1;
+  trim.v = Math.max(-0.2, Math.min(0.2, trim.v - 0.0001 * s[6]));
+  const pitchT = Math.max(-0.2, Math.min(0.2, trim.v - 0.05 * s[6]));
+  const stick = Math.max(-1, Math.min(1, sgn * 2.5 * (pitchT - pitch) - 0.25 * qAero));
+  return [roll, stick];
+}
+
+/*
+ * The Edge's recording for the cross-host check: from standing on the
+ * strip, a second at idle, the take off above and a climb, then level at
+ * three quarter throttle, a full aileron roll, three seconds on its back,
+ * rolled upright again, a full up yank that snaps it, the sticks let go,
+ * and a chop: twenty four seconds, the gear, the roll's rate, the inverted
+ * trim and the snap all in the hashed trace, and still flying at the end.
+ */
+export function recordEdgeFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  edgeGroundPrelude(sim);
+  const samples = [];
+  const trim = { v: 0 };
+  for (let ms = 0; ms < 24000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch } = attitude(s);
+    const qAero = -s[12];
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 5000) {
+      sticks = edgeTakeoffSticks(s, ms - 1000);
+    } else if (ms < 9000) {
+      sticks = [edgeRoll(s), Math.max(-1, Math.min(1, 2.5 * (0.45 - pitch) - 0.25 * qAero)), 0, 1];
+    } else if (ms < 12000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 12600) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 13000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 13300) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 16300) {
+      sticks = [...edgeLevel(s, { b: Math.PI, trim }), 0, 0.75];
+    } else if (ms < 17500) {
+      sticks = [...edgeLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 18300) {
+      sticks = [0, 1, 0, 0.75];
+    } else if (ms < 18800) {
+      sticks = [0, 0, 0, 0.75];
+    } else if (ms < 22000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 0.75];
+    } else {
+      sticks = [edgeRoll(s), 0, 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
  * E-flite's Extra 300 3D 1.3m, airframe 14, docs/EXTRA-STAGE1.md: a
  * taildragger standing 6.7 deg nose up on its wheels, the CG 0.2221 m up
  * (src/render/extracraft.js), or thrown at its cruise.

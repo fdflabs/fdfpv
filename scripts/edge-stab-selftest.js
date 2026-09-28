@@ -1,22 +1,24 @@
 /*
- * p51-stab-selftest.js: the P-51's stabiliser, acro, rudder, flaps,
- * retracts and surface readback, in the air and on its wheels, in Node.
+ * edge-stab-selftest.js: the Edge 540's stabiliser, acro, rudder and
+ * surface readback, in the air and on its wheels, in Node.
  *
- * timber-stab-selftest.js's cases with the P-51's throws, acro rates and
- * gains, then what the retracts add: the switch and its refusals, the
- * gear's travel, a reset and an airframe change putting it down, the
- * wheels carrying nothing once it is up. The same stabiliser as the other
- * fixed wings' (src/native/plant_wing.c) with the P-51's own gains:
- * Stabilised flies level with the sticks centred and holds the bank and
- * pitch asked for; Acro holds the attitude it is left at, stops within
- * about 5 degrees of where the stick was centred, and holds inverted; the
- * rudder is the yaw stick in every mode. On the wheels the surfaces stay
- * where the sticks put them and nothing winds up; and where the Timber's
- * roll tracks straight with the sticks centred, the P-51's swings left in
- * every mode, the prop's P factor and the kick of the tail coming up,
- * which the take off pilot's right rudder holds straight. Last, the four
- * surface angles the renderer reads and their signs. Run with
- * npm run p51:stab.
+ * scripts/cub-stab-selftest.js flown on the Edge (docs/EDGE-STAGE1.md):
+ * the same stabiliser as the other fixed wings' (src/native/plant_wing.c)
+ * with the Edge's own gains, sized to its 3D throws, and the Cub's bar: Stabilised flies
+ * level with the sticks centred and holds the bank and pitch asked for;
+ * Acro holds the attitude it is left at, within 3 degrees over 9 s, stops
+ * within about 5 degrees of where the stick was centred, and holds
+ * inverted; the rudder is the yaw stick in every mode, with the turn
+ * coordinator on top in Stabilised and Acro. Then what only an aircraft on
+ * wheels has to get right: sitting on the grass in Stabilised or Acro the
+ * surfaces stay where the sticks put them and nothing winds up; a take
+ * off roll with the sticks centred and the throttle opened over a second
+ * tracks straight in every mode; the
+ * yaw stick still steers on the ground; and Acro leaves the ground holding
+ * the attitude it lifted off in. Last, the four surface angles the
+ * renderer reads and their signs, EF's throws at full stick. Acro is the
+ * mode an aerobat is flown in here, so it also holds inverted flight
+ * hands off, and rolls at what it asks. Run with npm run edge:stab.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -38,12 +40,9 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { AIRFRAMES } from '../configs/airframes.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
-import {
-  attitude, must, p51Prelude, p51GroundPrelude, p51TakeoffSticks, wheelLoads, wingDebug, TIMBER_AIRFRAME, P51_AIRFRAME, RC_STEP_MS,
-} from '../tests/lib/wingpilot.js';
+import { attitude, must, edgePrelude, edgeGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -78,8 +77,7 @@ let clockMs = 0;
 function throwAt(z, speed) {
   must(sim.reset(), 'reset');
   clockMs = 0;
-  p51Prelude(sim, { flaps: sim.flapNotch ?? 0 });
-  must(sim.reset(), 'reset');
+  edgePrelude(sim);
   must(sim.e.sim_set_pose(0, 0, z, 1, 0, 0, 0), 'pose');
   must(sim.e.sim_wing_launch(speed), 'launch');
 }
@@ -149,13 +147,13 @@ const deg = (x) => (x * DEG).toFixed(1);
 
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
-throwAt(40, 16);
+throwAt(30, 22);
 const level = fly(0, 0, 0, 0.75, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
 check('and straight: under 15 m off the line after 10 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
-check('at a cruising speed', level.v > 12 && level.v < 22, `${level.v.toFixed(1)} m/s`);
+check('at a cruising speed', level.v > 18 && level.v < 26, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.95, 4);
 check('full right stick banks right, 50 to 65 degrees', banked.bank * DEG > 50 && banked.bank * DEG < 65, `${deg(banked.bank)} deg`);
@@ -170,55 +168,64 @@ check('up stick lifts the nose, 10 to 30 degrees, no tumble', nosedUp.pitch * DE
 const settled = fly(0, 0, 0, 0.75, 4);
 check('and centring brings it back to trim', Math.abs(settled.pitch * DEG - 2) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
 const yawed = fly(0, 0, 1, 0.75, 1);
-/* The coordinator's gain is twice the Skyhunter's, for a rudder with
- * two thirds of its yaw acceleration per stick; the stick still wins. */
-check('full right yaw stick wins over the coordinator: rudder right of half its throw', surfaces()[3] < -0.5 * 12.1224 * Math.PI / 180, `rudder ${deg(surfaces()[3])} deg`);
+/* The Edge's coordinator is the Cub's per unit of rudder authority, a
+ * sixth of its gain; the stick still wins. */
+check('full right yaw stick wins over the coordinator: rudder right of half its throw', surfaces()[3] * DEG < -23.75, `rudder ${deg(surfaces()[3])} deg`);
 check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
 const unyawed = fly(0, 0, 0, 0.75, 4);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);
 
 console.log('acro');
 must(sim.e.sim_wing_set_stab(2), 'set acro');
-throwAt(40, 16);
+throwAt(30, 22);
 const acroLevel = fly(0, 0, 0, 0.75, 1);
 const acroHold = fly(0, 0, 0, 0.75, 9, acroLevel.endBank);
 check('centred sticks hold the attitude: bank within 3 degrees over 9 s', acroHold.worst * DEG < 3, `${deg(acroHold.worst)} deg`);
 check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitch - acroLevel.endPitch) * DEG) < 3, `${deg(acroLevel.endPitch)} -> ${deg(acroHold.endPitch)} deg`);
 check('and straight: under 15 m off the line after 10 s', Math.abs(acroHold.y) < 15, `${acroHold.y.toFixed(1)} m`);
 
-throwAt(120, 16);
-fly(0, 0, 0, 1.0, 1);
-const rolling = fly(1, 0, 0, 1.0, 0.8);
-check('full right stick rolls at 102 to 132 degrees a second', rolling.p * DEG > 102 && rolling.p * DEG < 132, `${deg(rolling.p)} deg/s`);
-/* A longer hold than the Timber's quarter second: at 120 deg/s it takes
- * 1.3 s to pass 150. */
-const inverted = fly(1, 0, 0, 1.0, 0.5);
+throwAt(120, 22);
+fly(0, 0, 0, 0.75, 1);
+const rolling = fly(1, 0, 0, 0.75, 0.4);
+check('full right stick rolls at 306 to 396 degrees a second, the 360 Acro asks', rolling.p * DEG > 306 && rolling.p * DEG < 396, `${deg(rolling.p)} deg/s`);
+const inverted = fly(1, 0, 0, 0.75, 0.1);
 const invHold = fly(0, 0, 0, 1.0, 0.3);
 const invLater = fly(0, 0, 0, 1.0, 2, invHold.endBank);
 check('and it keeps going past the stabilised cap: 150 degrees or more', Math.abs(inverted.endBank) * DEG > 150, `${deg(inverted.endBank)} deg`);
 check('centred, it stays where it stopped: within 5 degrees for 2 s', invLater.worst * DEG < 5, `${deg(invHold.endBank)} deg, moved ${deg(invLater.worst)}`);
 
-throwAt(120, 16);
-fly(0, 0, 0, 1.0, 1);
-const partial = fly(0.6, 0, 0, 1.0, 0.5);
-const stop = fly(0, 0, 0, 1.0, 0.25);
-const stopHeld = fly(0, 0, 0, 1.0, 3, stop.endBank);
+throwAt(120, 22);
+fly(0, 0, 0, 0.75, 1);
+const partial = fly(0.6, 0, 0, 0.75, 0.25);
+const stop = fly(0, 0, 0, 0.75, 0.25);
+const stopHeld = fly(0, 0, 0, 0.75, 3, stop.endBank);
 check('a partial roll stops sharply: rate under 10 degrees a second 0.25 s after centring', Math.abs(stop.p * DEG) < 10, `${deg(stop.p)} deg/s`);
 check('within about 5 degrees of where the stick was centred', Math.abs((stop.endBank - partial.endBank) * DEG) < 6, `${deg(partial.endBank)} -> ${deg(stop.endBank)} deg`);
 check('and holds that bank, no levelling, within 4 degrees over 3 s', stop.endBank * DEG > 15 && stopHeld.worst * DEG < 4, `${deg(stop.endBank)} deg, moved ${deg(stopHeld.worst)}`);
 
-throwAt(120, 16);
-fly(0, 0, 0, 1.0, 1);
-const pulling = fly(0, 1, 0, 1.0, 0.5);
-check('full up stick pitches at 45 to 71 degrees a second', pulling.q * DEG > 45 && pulling.q * DEG < 71, `${deg(pulling.q)} deg/s`);
-throwAt(120, 16);
-fly(0, 0, 0, 1.0, 1);
-fly(0, 0.5, 0, 1.0, 0.45);
-const pitched = fly(0, 0, 0, 1.0, 0.3);
-const pitchHeld = fly(0, 0, 0, 1.0, 2);
+throwAt(120, 22);
+fly(0, 0, 0, 0.75, 1);
+const pulling = fly(0, 1, 0, 0.75, 0.5);
+check('full up stick pitches at 68 to 88 degrees a second, the 80 Acro asks, short of the accelerated stall at the trim, 104, and does not snap', pulling.q * DEG > 68 && pulling.q * DEG < 88 && Math.abs(pulling.p * DEG) < 30, `${deg(pulling.q)} deg/s, roll ${deg(pulling.p)} deg/s`);
+throwAt(120, 22);
+fly(0, 0, 0, 0.75, 1);
+fly(0, 0.5, 0, 0.75, 0.3);
+const pitched = fly(0, 0, 0, 0.75, 0.3);
+const pitchHeld = fly(0, 0, 0, 0.75, 2);
 check('a nose up input is held, not trimmed away: within 4 degrees over 2 s', pitched.endPitch * DEG > 8 && Math.abs((pitchHeld.endPitch - pitched.endPitch) * DEG) < 4, `${deg(pitched.endPitch)} -> ${deg(pitchHeld.endPitch)} deg`);
 
-throwAt(120, 16);
+/* On its back, the aerobat's other half: rolled over and let go, Acro
+ * holds it inverted and level, where Manual needs down elevator. */
+throwAt(120, 22);
+fly(0, 0, 0, 0.75, 1);
+fly(1, 0, 0, 0.75, 0.25);
+fly(1, 0, 0, 0.75, 0.25);
+const flipped = fly(0, 0, 0, 0.75, 0.5);
+const invFlown = fly(0, 0, 0, 0.75, 5, flipped.endBank);
+check('rolled over and let go, Acro flies it on its back: bank within 5 degrees for 5 s', Math.abs(flipped.endBank) * DEG > 150 && invFlown.worst * DEG < 5, `${deg(flipped.endBank)} deg, moved ${deg(invFlown.worst)}`);
+check('and its pitch where it was left, within 4 degrees', Math.abs((invFlown.endPitch - flipped.endPitch) * DEG) < 4, `${deg(flipped.endPitch)} -> ${deg(invFlown.endPitch)} deg`);
+
+throwAt(120, 22);
 fly(0, 0, 0, 0.75, 1);
 const beforeYaw = fly(0, 0, 0, 0.75, 0.5);
 const acroYaw = fly(0, 0, 1, 0.75, 1);
@@ -231,101 +238,44 @@ check('and the roll lock holds the bank against it, within 5 degrees', Math.abs(
 
 console.log('manual');
 must(sim.e.sim_wing_set_stab(0), 'clear stab');
-throwAt(40, 16);
+throwAt(30, 22);
 const manual = fly(1, 0, 0, 0.75, 1.5);
 check('with the stabiliser off, full stick rolls past the 60 degree cap', manual.worstBank * DEG > 70, `${deg(manual.worstBank)} deg in 1.5 s`);
 must(sim.reset(), 'reset');
 check('a reset keeps the setting', sim.e.sim_wing_stab() === 0);
 
 console.log('surfaces');
-throwAt(30, 13);
-const A = 19.8769 * Math.PI / 180;
-const T = 25.8721 * Math.PI / 180;
-const R = 12.1224 * Math.PI / 180;
+throwAt(30, 22);
+const A = 39 / DEG;
+const T = 47.5 / DEG;
+const R = 47.5 / DEG;
 const close = (a, b) => Math.abs(a - b) < 1e-12;
 fly(1, 0, 0, 0.5, 0.02);
 let sf = surfaces();
-check('full right roll: right aileron trailing edge up 19.9 degrees, left down 19.9', close(sf[1], A) && close(sf[0], -A) && sf[2] === 0 && sf[3] === 0, sf.map(deg).join(' '));
+check('full right roll: right aileron trailing edge up 39 degrees, left down 39, the drawn angle, not the knee\'s', close(sf[1], A) && close(sf[0], -A) && sf[2] === 0 && sf[3] === 0, sf.map(deg).join(' '));
 const ws = wingSurfaces();
 check('and sim_wing_surfaces reads the same two ailerons', ws[0] === sf[0] && ws[1] === sf[1], ws.map(deg).join(' '));
 fly(0, 1, 0, 0.5, 0.02);
 sf = surfaces();
-check('full up: elevator trailing edge up 25.9 degrees, ailerons still', close(sf[2], T) && sf[0] === 0 && sf[1] === 0, sf.map(deg).join(' '));
+check('full up: elevator trailing edge up 47.5 degrees, ailerons still', close(sf[2], T) && sf[0] === 0 && sf[1] === 0, sf.map(deg).join(' '));
 fly(0, 0, 1, 0.5, 0.02);
 sf = surfaces();
-check('full right yaw: rudder trailing edge right, 12.1 degrees negative', close(sf[3], -R), sf.map(deg).join(' '));
+check('full right yaw: rudder trailing edge right, 47.5 degrees negative', close(sf[3], -R), sf.map(deg).join(' '));
 fly(0, 0, -0.5, 0.5, 0.02);
 sf = surfaces();
 check('half left yaw: rudder trailing edge left, positive, with expo', sf[3] > 0 && sf[3] < 0.5 * R, sf.map(deg).join(' '));
 check('a null pointer is refused', sim.e.sim_plane_surfaces(0) !== SIM_OK);
 
-
-console.log('flaps');
-{
-  const notchOf = (n) => sim.e.sim_wing_set_flaps(n);
-  must(sim.e.sim_wing_set_stab(0), 'manual');
-  check('a notch outside 0 to 2 is refused', notchOf(3) !== SIM_OK && notchOf(-1) !== SIM_OK);
-  check('so is a slat setting other than 0 or 1', sim.e.sim_wing_set_slats(2) !== SIM_OK);
-  sim.flapNotch = 0;
-  throwAt(40, 14);
-  fly(0, 0, 0, 0.65, 0.5);
-  check('flaps up read zero', sim.e.sim_wing_flaps() === 0, `${sim.e.sim_wing_flaps()}`);
-  must(notchOf(2), 'full');
-  let t = 0;
-  while (sim.e.sim_wing_flaps() < 0.61297025535 && t < 5) {
-    fly(0, 0, 0, 0.65, 0.02);
-    t += 0.02;
-  }
-  check('full flaps take the slow servos\' 3 s to come down', t > 2.9 && t < 3.1, `${t.toFixed(2)} s to ${deg(sim.e.sim_wing_flaps())} deg`);
-  must(notchOf(1), 'half');
-  fly(0, 0, 0, 0.65, 3);
-  check('and half is 16.3 degrees, FMS\'s 22 mm', Math.abs(sim.e.sim_wing_flaps() * DEG - 16.335) < 0.01, `${deg(sim.e.sim_wing_flaps())} deg`);
-  fly(0, 0, 0, 0.65, 0.02);
-  check('with no mix in the elevator: FMS gives none', Math.abs(surfaces()[2]) < 1e-12, `elevator ${deg(surfaces()[2])} deg`);
-  must(notchOf(2), 'full');
-  must(sim.reset(), 'reset');
-  check('a reset keeps the notch and puts the flaps there at once', Math.abs(sim.e.sim_wing_flaps() - 0.61297025535831962) < 1e-9, `${deg(sim.e.sim_wing_flaps())} deg`);
-  must(sim.e.sim_set_airframe(TIMBER_AIRFRAME), 'timber');
-  check('an airframe change raises them', sim.e.sim_wing_flaps() === 0);
-  must(sim.e.sim_set_airframe(P51_AIRFRAME), 'p51');
-  check('back on the P-51 the notch is up', sim.e.sim_wing_flaps() === 0);
-  must(sim.e.sim_set_ground(0, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E), 'ground off');
-
-  must(sim.e.sim_wing_set_stab(1), 'stabilised');
-  sim.flapNotch = 2;
-  throwAt(40, 12);
-  const slow = fly(0, 0, 0, 0.7, 10);
-  check('Stabilised on full flaps: centred sticks fly level, bank within 3 degrees', Math.abs(slow.bank * DEG) < 3 && slow.worstBank * DEG < 8, `${deg(slow.bank)} deg, worst ${deg(slow.worstBank)}`);
-  check('at the trim pitch within 4 degrees, slowly', Math.abs(slow.pitch * DEG - 2) < 4 && slow.v < 15, `${deg(slow.pitch)} deg at ${slow.v.toFixed(1)} m/s`);
-  const slowBank = fly(1, 0, 0, 0.9, 4);
-  check('and full right stick still banks 50 to 65 degrees', slowBank.bank * DEG > 50 && slowBank.bank * DEG < 65, `${deg(slowBank.bank)} deg`);
-
-  must(sim.e.sim_wing_set_stab(2), 'acro');
-  sim.flapNotch = 0;
-  throwAt(60, 16);
-  const before = fly(0, 0, 0, 0.75, 1);
-  must(notchOf(2), 'full');
-  const during = fly(0, 0, 0, 0.75, 3, before.endBank);
-  check('Acro holds its attitude while the flaps come down: pitch within 5 degrees', Math.abs((during.endPitch - before.endPitch) * DEG) < 5, `${deg(before.endPitch)} -> ${deg(during.endPitch)} deg`);
-  check('and the bank within 3 degrees', during.worst * DEG < 3, `moved ${deg(during.worst)}`);
-  must(notchOf(0), 'up');
-  sim.flapNotch = 0;
-  must(sim.e.sim_wing_set_stab(0), 'manual');
-  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E), 'ground');
-}
-
 console.log('on the wheels');
 const heading = (s) => Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
-/* The P-51 standing at the end of the strip in a mode, then sticks from a
+/* The Edge standing at the end of the strip in a mode, then sticks from a
  * function of the time, for a while. Records what the checks need; stops
  * early once the aircraft has been off its wheels for untilAirborneMs. */
 function onGround(mode) {
   must(sim.e.sim_wing_set_stab(mode), 'set mode');
   must(sim.reset(), 'reset');
   clockMs = 0;
-  p51GroundPrelude(sim, { mu: GROUND_MU, e: GROUND_E });
-  must(sim.reset(), 'reset');
-  p51GroundPrelude(sim, { mu: GROUND_MU, e: GROUND_E });
+  edgeGroundPrelude(sim, { mu: GROUND_MU, e: GROUND_E });
 }
 function roll(sticks, seconds, { untilAirborneMs = null } = {}) {
   const out = { worstSurf: [0, 0, 0, 0], worstBank: 0, worstY: 0, liftoff: null, last: null, airborneMs: 0, s: null };
@@ -371,88 +321,35 @@ for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
   check('and the aircraft has not moved: pitch within 0.5 degrees, still on its wheels', moved < 0.5 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `moved ${moved.toFixed(2)} deg`);
   const held = roll((ms) => [ms < 2000 ? 1 : 0, ms < 2000 ? 1 : 0, 0, 0], 2.02);
   const sf = surfaces();
-  check('full right and up stick held 2 s on the ground is full aileron and elevator, nothing more', Math.abs(held.worstSurf[1] - A) < 1e-9 && Math.abs(held.worstSurf[2] - T) < 1e-9 && sf.every((x) => x === 0), `${held.worstSurf.map(deg).join(' ')}, then ${sf.map(deg).join(' ')}`);
+  check('full right and up stick held 2 s on the ground is full aileron and elevator, nothing more', Math.abs(held.worstSurf[1] - 39 / DEG) < 1e-9 && Math.abs(held.worstSurf[2] - 47.5 / DEG) < 1e-9 && sf.every((x) => x === 0), `${held.worstSurf.map(deg).join(' ')}, then ${sf.map(deg).join(' ')}`);
   check('and no wind up: released, every surface is back at zero on the next step', sf.every((x) => x === 0), sf.map(deg).join(' '));
 }
 
-/* The take off roll: full throttle, the stick forward to raise the tail
- * and back at rotation as p51TakeoffSticks flies it, the wings held on the
- * ailerons. With the rudder left alone it swings left in every mode, since
- * on its wheels the stabiliser is not flying it; with the take off pilot's
- * right rudder it tracks the runway. */
 for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']]) {
-  for (const feet of [false, true]) {
-    onGround(mode);
-    roll(() => [0, 0, 0, 0], 1);
-    const run = roll((ms) => {
-      const st = p51TakeoffSticks(sim.readState().state, ms);
-      return feet ? st : [st[0], st[1], 0, st[3]];
-    }, 8, { untilAirborneMs: 2000 });
-    const lof = run.liftoff;
-    check(`${name}, ${feet ? 'the rudder flown' : 'the rudder left alone'}: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
-    if (!lof) continue;
-    if (feet) {
-      check('with right rudder it tracks: heading within 5 degrees and under 1 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 1, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
-    } else {
-      check('it swings left: heading over 3 degrees left at liftoff', lof.heading * DEG > 3, `heading ${deg(lof.heading)} deg`);
-    }
-    check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
-    if (mode === 2 && feet) {
-      const after = roll(() => [0, 0, 0, 1], 2);
-      check('and Acro holds the attitude it lifted off in, pitch within 4 degrees 2 s later', Math.abs((attitude(after.s).pitch - lof.pitch) * DEG) < 4, `${deg(lof.pitch)} -> ${deg(attitude(after.s).pitch)} deg`);
-    }
+  onGround(mode);
+  roll(() => [0, 0, 0, 0], 1);
+  /* The throttle opened over a second, as E13's pilot opens it: slammed
+   * open, three times the weight in thrust torques a wing down on the
+   * grass, which no pilot does. */
+  const run = roll((ms) => [0, 0, 0, Math.min(1, ms / 1000)], 8, { untilAirborneMs: 2000 });
+  const lof = run.liftoff;
+  check(`${name}, full throttle and the sticks centred: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
+  if (!lof) continue;
+  check('tracking straight: heading within 5 degrees and under 0.5 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 0.5, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
+  check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
+  if (mode === 2) {
+    const after = roll(() => [0, 0, 0, 1], 2);
+    check('and Acro holds the attitude it lifted off in, pitch within 4 degrees 2 s later', Math.abs((attitude(after.s).pitch - lof.pitch) * DEG) < 4, `${deg(lof.pitch)} -> ${deg(attitude(after.s).pitch)} deg`);
   }
 }
 
 for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
   onGround(mode);
-  roll(() => [0, 0, 0, 0.3], 2);
-  /* Summed step by step, as the Timber's. */
-  let prevH = heading(sim.readState().state);
-  let turnedRad = 0;
-  let taxi = null;
-  for (let i = 0; i < 40; i += 1) {
-    taxi = roll(() => [0, 0, 1, 0.3], 0.1);
-    const h = heading(taxi.s);
-    turnedRad += Math.atan2(Math.sin(h - prevH), Math.cos(h - prevH));
-    prevH = h;
-  }
-  const turned = turnedRad * DEG;
+  roll(() => [0, 0, 0, 0.18], 2);
+  const h0 = heading(sim.readState().state);
+  const taxi = roll(() => [0, 0, 1, 0.18], 4);
+  const turned = (heading(taxi.s) - h0) * DEG;
   check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);
-}
-
-console.log('retracts');
-{
-  must(sim.e.sim_wing_set_stab(0), 'manual');
-  check('a gear switch other than 0 or 1 is refused', sim.e.sim_wing_set_gear(2) !== SIM_OK && sim.e.sim_wing_set_gear(-1) !== SIM_OK);
-  must(sim.e.sim_set_airframe(TIMBER_AIRFRAME), 'timber');
-  check('the Timber, on fixed gear, refuses gear up and takes gear down', sim.e.sim_wing_set_gear(1) !== SIM_OK && sim.e.sim_wing_set_gear(0) === SIM_OK && sim.e.sim_wing_gear() === 0);
-  must(sim.e.sim_set_airframe(P51_AIRFRAME), 'p51');
-  onGround(0);
-  roll(() => [0, 0, 0, 0], 1);
-  check('standing, the gear is down and locked', sim.e.sim_wing_gear() === 0 && wheelLoads(sim).slice(0, 3).every((f) => f > 0));
-  must(sim.e.sim_wing_set_gear(1), 'gear up');
-  const folding = roll(() => [0, 0, 0, 0], 0.1);
-  check('selected up on the ground, the wheels let go at once: it sits on its belly', wheelLoads(sim).slice(0, 3).every((f) => f === 0) && folding.s[3] < 0.2, `CG ${folding.s[3].toFixed(3)} m, gear ${sim.e.sim_wing_gear().toFixed(3)}`);
-  const belly = roll(() => [0, 0, 0, 0], 3);
-  check('and comes to rest on the scoop and the prop, not the wheels', sim.e.sim_ground_contacts() > 0 && wheelLoads(sim).slice(0, 3).every((f) => f === 0), `hull ${sim.e.sim_ground_contacts()}, prop ${wheelLoads(sim)[3].toFixed(1)} N, CG ${belly.s[3].toFixed(3)} m`);
-  must(sim.reset(), 'reset');
-  check('a reset puts the gear down and locked', sim.e.sim_wing_gear() === 0);
-  throwAt(60, 16);
-  must(sim.e.sim_wing_set_gear(1), 'gear up');
-  fly(0, 0, 0, 0.75, 3);
-  const half = sim.e.sim_wing_gear();
-  check('in the air, half way up after 3 s', Math.abs(half - 0.5) < 0.01, `${half.toFixed(3)}`);
-  must(sim.e.sim_set_airframe(TIMBER_AIRFRAME), 'timber');
-  must(sim.e.sim_set_airframe(P51_AIRFRAME), 'p51');
-  check('an airframe change puts it down and locked', sim.e.sim_wing_gear() === 0);
-  /* Which of 13 to 23 are filled depends on which of the new aircraft
-   * have landed, so the slots the airframe table names are skipped: every
-   * other one, and past the end, must be refused. */
-  const named = new Set(AIRFRAMES.map((a) => a.simId));
-  const reserved = [13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24].filter((id) => !named.has(id));
-  const empty = reserved.filter((id) => sim.e.sim_set_airframe(id) === SIM_OK);
-  check('the slots reserved for the other new aircraft, and past the end, are refused while empty', empty.length === 0 && sim.e.sim_airframe() === P51_AIRFRAME, empty.length ? `accepted ${empty.join(' ')}` : `${reserved.length} refused`);
 }
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);

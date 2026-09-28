@@ -135,10 +135,11 @@ it), each deterministic (sqrt and the small angle sine and cosine of the
 fixed libm, nothing else), and each off on every table before this one,
 written so a table without it runs exactly the arithmetic it always ran;
 a fifth, the prop's precession, is the P-51's `j_prop` (#123), which the
-Extra sets. **Proof: all fourteen recorded flights' hashes (the five inch,
+Extra sets. **Proof: all fifteen recorded flights' hashes (the five inch,
 the wing, the Skyhunter, the Cub, the Radian, the Bramor and its chute,
-the Slow Stick, the Bombshell, the Timber, the Timber on floats, the Kadet
-and the P-51's two) are what main's module gives, `extra:gates` E15; every
+the Slow Stick, the Bombshell, the Timber, the Timber on floats, the Kadet,
+the P-51's two and the Edge 540's) are what main's module gives,
+`extra:gates` E15; every
 other plane's gates and stabiliser self tests pass unchanged.**
 
 ### 1. The slipstream (`slip_*`)
@@ -217,9 +218,9 @@ which took the roll damping away and autorotated the aircraft to 2,180
 deg/s at full aileron. On a real wing the descending side's aileron is up
 and holds its strips out of the stall; each strip now takes tau of its
 aileron (0.378 on all four of the Extra's). Zero on every earlier table.
-The Edge 540's branch (#124) found the same runaway and builds the same
-field, `strip_tau`, in the same place in the strip loop; this one is
-written in its form so the two merge as one. The Edge's `surf_knee` (a
+The Edge 540 (#124) found the same runaway and built the same field,
+`strip_tau`, in the same place in the strip loop; the two are merged as
+one, the Edge's field and code with the Extra's 0.378. The Edge's `surf_knee` (a
 surface's angle buying less past about 15 deg) the Extra does not set: its
 control derivatives carry Roskam's K' at full throw, as the Timber's do,
 and its surfaces saturate on a flat plate (hi_alpha).
@@ -348,9 +349,11 @@ The electric voice, `wing`, the other electric planes'.
 and extra-manual; the free flight card; the hangar's power (the stock 4S
 and E-flite's listed 3S, 2200 and 3200 mAh packs), props (APC 13 x 8E and
 12 x 6E), add-on anchors and tuning (the manual's CG range and throws). It
-opens **last on the unlock curve, at level 7**: three times the Cub's roll
-rate on throws two and a half times its own, a taildragger that swings on
-38 N of thrust, and a hover a pilot holds on every stick at once.
+opens **at level 8 on the unlock curve**, after the P-51 at 7 and before
+the Edge 540, which moves to 9: a hover a pilot holds on every stick at
+once and a torque roll the ailerons must hold, on a foam airframe that
+forgives the ground, where the Edge, by its own document the least
+forgiving aircraft here, stays last.
 
 ## What the owner should feel flying it
 

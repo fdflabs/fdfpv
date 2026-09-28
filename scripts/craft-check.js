@@ -116,6 +116,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             held by craft-preview.js's half span row. The reach is the
  *             elevator's rounded outer trailing corner, 1.168 m.
  *             src/render/kadetcraft.js draws it.
+ *   edge1524  Extreme Flight's 60 in (1524 mm) Edge 540T, whose rudder
+ *             also reaches further from the CG than its tips: its
+ *             trailing edge's foot is 0.965 m aft, EF's 58 in length less
+ *             the 19 in to the CG and the spinner's 2 in, the tips 0.762 m
+ *             out, so the width and the reach this file measures are both
+ *             1930 mm, and EF's 1524 mm is held by craft-preview.js's half
+ *             span row. src/render/edgecraft.js draws it.
  *   extra1308 E-flite's 1308 mm Extra 300 3D, whose rudder also reaches
  *             further from the CG than its tips: its trailing edge is
  *             0.926 m aft, E-flite's 1260 mm length less the CG's 0.337 m
@@ -149,6 +156,7 @@ const REAL = {
   cub1400f: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
   kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
+  edge1524: { spanMm: 1930.4, sweepMm: 1930.4, tolMm: 6 },
   extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
 };

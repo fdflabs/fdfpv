@@ -305,6 +305,20 @@ export const PROP_ESTIMATES = {
       }
     }
   },
+  edge1524: {
+    stock: {
+      "16x8e": {
+        thrustN: 81.376,
+        pitchSpeedMs: 33.551,
+        currentA: 76.6
+      },
+      "16x10e": {
+        thrustN: 85.8826,
+        pitchSpeedMs: 40.7318,
+        currentA: 89.092
+      }
+    }
+  },
   extra1308: {
     stock: {
       "13x8e": {

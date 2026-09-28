@@ -40,6 +40,7 @@ import { buildBramorCraft } from './bramorcraft.js';
 import { buildSlowStickCraft } from './slowstickcraft.js';
 import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildKadetCraft } from './kadetcraft.js';
+import { buildEdgeCraft } from './edgecraft.js';
 import { buildExtraCraft } from './extracraft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
@@ -67,6 +68,7 @@ const BUILDERS = {
   slowstick1180: buildSlowStickCraft,
   bombshell1118: buildBombshellCraft,
   kadet1981: buildKadetCraft,
+  edge1524: buildEdgeCraft,
   extra1308: buildExtraCraft,
   p51d1450: buildP51Craft,
   timber1500: buildTimberCraft,

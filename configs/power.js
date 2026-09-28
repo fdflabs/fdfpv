@@ -156,6 +156,7 @@ export const TABLE = {
     flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 7, note: 'E-flite, as the Timber on wheels', source: TIMBER_MANUAL },
   },
   bombshell1118: { simId: 11, massKg: 0.5599, cells: 3, rCell: 0.030, propIn: 7, cruiseMs: 8, flightTime: null },
+  edge1524: { simId: 13, massKg: 2.4948, cells: 6, rCell: 0.003, propIn: 16, cruiseMs: 22, flightTime: null },
   extra1308: {
     simId: 14, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
     flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
@@ -203,6 +204,28 @@ const TIMBER = [
     rpmNoLoad: 800 * 11.1, pitchSpeedMs: 31.95 * (11.1 / 14.8), lvcV: 3.4,
     massKg: 1.70 - 0.325 + 0.237, cgShiftM: 0, packs: TIMBER_3S, pack: '3s3200',
     source: ['https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html', 'https://www.modelaviation.com/turbo-timber-bnf'],
+  },
+];
+
+/* Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md: the T-Motor AM600
+ * 525 kV and its AM116A on the T16x8, EF's recommended system, on 6S 3000
+ * to 4000 mAh (EF's assembly guide); T-Motor's "up to 8298g of thrust" and
+ * "maximum power 1700W" with that prop, the no load speed the kV times 3.7
+ * V a cell. The pack slides on its tray to the balance, so no pack shifts
+ * the CG. EF's other recommendation, the XPWR 22cc, publishes no figures
+ * found, so it is not offered. */
+const EDGE = [
+  {
+    id: 'stock', name: 'power.edge.stock', kind: 'electric', voice: 'wing',
+    kv: 525, propIn: 16, pitchIn: 8, blades: 2,
+    thrustN: 81.376, currentA: 76.6, rpmNoLoad: 11655, pitchSpeedMs: 33.551, lvcV: 3.0,
+    massKg: 2.4948, cgShiftM: 0,
+    packs: [
+      lipo('6s4000', 6, 4000, 625, `${CNHL}cnhl-4000mah-22-2v-6s-40c-lipo-battery-with-xt90-plug`),
+      lipo('6s3300', 6, 3300, 535, `${CNHL}cnhl-3300mah-22-2v-6s-40c-lipo-battery-with-xt60-plug`),
+    ],
+    pack: '6s4000',
+    source: ['https://extremeflightrc.com/cdn/shop/files/60_ARF_build_guide_WEB.pdf', 'https://store.tmotor.com/product/am600-3d-freestyle-flight-plane-brushless-dc-motor.html'],
   },
 ];
 
@@ -540,6 +563,7 @@ export const POWER = {
   timber1500f: TIMBER,
   bombshell1118: BOMBSHELL,
   kadet1981: KADET,
+  edge1524: EDGE,
   extra1308: EXTRA,
   p51d1450: P51,
 };
