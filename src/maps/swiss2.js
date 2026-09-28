@@ -506,11 +506,13 @@ function photoStyle() {
        * is decided on the alps' own ground, so the walls (swiss2/terrain.js)
        * move none of it; what the walls themselves moved is left out. */
       const alps = buildHeightfield();
-      /* The props' buildings and the lake town are the village's kit,
-       * each baked as the village is (swiss2/buildings/bake.js) but on
-       * its own: in the village's meshes they would stretch its bounds
-       * down the valley, and every view that saw any of them would draw
-       * it all. */
+      /* The hay huts and the lake town are the village's kit, each baked
+       * as the village is (swiss2/buildings/bake.js) but on its own: in
+       * the village's meshes they would stretch its bounds over the
+       * valley, and every view that saw any of them would draw it all.
+       * The huts are scattered over the whole floor, the town is at the
+       * lake, so the lake's views do not pay for the huts' shells nor the
+       * strip's for the town's. */
       const hutBake = makeBake();
       const lakeBake = makeBake();
       stage.props = buildProps({
