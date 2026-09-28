@@ -60,7 +60,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
 import { POWER, TABLE, powerBlock, powerOption } from '../configs/power.js';
-import { SIM_TUNE, TUNING, balance, limitsFor, normalizeEntry, tuneBlock } from '../configs/tuning.js';
+import { SIM_TUNE, TUNING, balance, normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
 import { TestStand } from '../src/game/teststand.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -89,15 +89,6 @@ const stand = new TestStand(standSim);
 
 const HIGH = 400;
 
-/* The stock option's mass and pack, what the shell hands tuneBlock. */
-function stockMass(id) {
-  const o = POWER[id][0];
-  return { massKg: powerBlock(id, o.id, o.pack)[1], packKg: packKgOf(id, o, o.pack), electric: o.kind === 'electric' };
-}
-function packKgOf(id, option, packId) {
-  const p = option.packs.find((x) => x.id === packId);
-  return option.kind === 'electric' && p && p.massKg != null ? p.massKg : TUNING[id].packKg;
-}
 
 function seat(id, tune = null, power = null) {
   must(sim.e.sim_set_airframe(TABLE[id].simId), 'sim_set_airframe');
@@ -213,8 +204,7 @@ for (const id of ids) {
   if (!t || !POWER[id]) {
     throw new Error(`tuning-check: no tuning or power data for ${id}`);
   }
-  const { massKg, packKg, electric } = stockMass(id);
-  const lim = limitsFor(id, massKg, electric);
+  const { massKg, packKg, electric, limits: lim } = setupFor(id, null);
   const block = (entry) => tuneBlock(id, normalizeEntry(id, entry, lim), massKg, packKg);
   const rudderOnly = t.throws.high[0] === 0;
   console.log(`\n${id}  (${electric ? `pack ${packKg} kg over ${lim.packMm} mm` : 'glow'}, lead ${lim.ballastG} g, ${massKg} kg)`);
