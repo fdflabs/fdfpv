@@ -100,14 +100,19 @@ export function tagRows(o) {
   const v = rt.view();
   const on = rt.on();
   const err = rt.error();
+  /* A host between matches reads the rules on the Start row instead of a
+   * row of their own: the room screen has all three games' start rows on
+   * its first page, and this row was the one that pushed Start off it.
+   * Everybody else, and a host with an error or a match on, keeps it. */
+  const idleHost = host && !on && !err;
   const rows = [
     { label: str('roomtag.section'), section: true },
-    {
+    ...(idleHost ? [] : [{
       label: str('roomtag.rules'),
       value: on ? str('roomtag.on_value', { goal: v.goal }) : '',
       note: err ? str(`roomtag.error_${err}`) : str(host ? 'roomtag.rules_note' : 'roomtag.wait'),
       info: true,
-    },
+    }]),
   ];
   if (host && !on) {
     rows.push({ ...goalRow(o.pick), adjust: o.onPreset });
@@ -116,9 +121,10 @@ export function tagRows(o) {
         label: str('roomtag.custom'), value: String(o.pick.custom), note: str('roomtag.custom_note', { min: GOAL_MIN, max: GOAL_MAX }), adjust: o.onCustom,
       });
     }
+    const again = v.state === 'results';
     rows.push({
-      label: str(v.state === 'results' ? 'roomtag.again' : 'roomtag.start'),
-      note: str(v.state === 'results' ? 'roomtag.again_note' : 'roomtag.start_note'),
+      label: str(again ? 'roomtag.again' : 'roomtag.start'),
+      note: again ? str('roomtag.again_note') : `${str('roomtag.rules_note')} ${str('roomtag.start_note')}`,
       action: 'friends-tag-start',
     });
   }

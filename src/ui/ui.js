@@ -2764,6 +2764,28 @@ function pairSvg() {
     + '</svg>';
 }
 
+/* Combat's mark: the plane symbol towing its paper, a streamer in the
+ * same strokes waving off the tail. */
+function streamerSvg() {
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + `<g transform="translate(78 4) scale(0.48)">${PLANE_PARTS}</g>`
+    + '<path d="M 150 132 C 120 170, 190 190, 150 222 S 110 262, 150 294" fill="none"'
+    + ' stroke="currentColor" stroke-width="12" stroke-opacity="0.7" stroke-linecap="round"/>'
+    + '</svg>';
+}
+
+/* Catch the Ace's mark: the crown the Ace wears (src/ui/peermarks.js). */
+function crownSvg() {
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + '<path d="M 50 210 L 38 96 L 104 150 L 150 70 L 196 150 L 262 96 L 250 210 Z"'
+    + ' fill="currentColor" fill-opacity="0.45" stroke="currentColor" stroke-width="8"'
+    + ' stroke-opacity="0.9" stroke-linejoin="round"/>'
+    + '<rect x="50" y="222" width="200" height="26" rx="6" fill="currentColor" fill-opacity="0.7"/>'
+    + '</svg>';
+}
+
 /*
  * The two aircraft in plan, drawn TO ONE SCALE.
  *
@@ -2939,9 +2961,10 @@ const WAYS = [
      * picker, and the aircraft and the world are chosen there, after the
      * room. Public rooms (Phase 5) are a row on that screen, not a card.
      *
-     * LAST, because pickForWay's "the card that takes it" and seatedWay's
-     * "the card of its kind" are first match reads of this table and
-     * neither is meant to land here. On the gate only where there is a
+     * AFTER THE TWO SOLO CARDS, with the games after it, because
+     * pickForWay's "the card that takes it" and seatedWay's "the card of
+     * its kind" are first match reads of this table and neither is meant
+     * to land on a room card. On the gate only where there is a
      * rooms server (friendsItems), the same rule as the menu row. */
     id: 'friends',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
@@ -2953,6 +2976,41 @@ const WAYS = [
     svg: pairSvg(),
     blurb: str('friends.card_blurb'),
     facts: [str('friends.card_public'), str('friends.card_code'), str('friends.card_craft')],
+  },
+  /*
+   * THE ROOM GAMES, one card each, by the owner's word (2026-09-29): "both
+   * modes need their dedicated card on the main menu". Each is the Fly
+   * with friends card with its `game` preselected: the same room screen,
+   * where a private room's host then finds that game's start row on top
+   * and under the cursor (src/main.js friendsRows), and a pilot who joins
+   * sees what the room is set up for. Private rooms only, as the games
+   * are, so the screen they open does not offer a public room.
+   */
+  {
+    id: 'combat',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'swiss2',
+    room: true,
+    game: 'combat',
+    label: str('combat.card'),
+    art: 'assets/gate/combat.jpg',
+    svg: streamerSvg(),
+    blurb: str('combat.card_blurb'),
+    facts: [str('combat.card_cut'), str('combat.card_rounds'), str('friends.card_code')],
+  },
+  {
+    id: 'ace',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'swiss2',
+    room: true,
+    game: 'tag',
+    label: str('roomtag.section'),
+    art: 'assets/gate/ace.jpg',
+    svg: crownSvg(),
+    blurb: str('roomtag.card_blurb'),
+    facts: [str('roomtag.card_crown'), str('roomtag.card_touch'), str('friends.card_code')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
@@ -3108,6 +3166,8 @@ export class Ui {
     this.modeSyncedFor = this.settings.airframe;
     /* Set while a guided first flight is in the air. main.js reads it. */
     this.guided = false;
+    /* The room game a title card preselected; see act()'s ways. */
+    this.roomGame = null;
     this.boardCourses = [];
     /* The pilot's own tracks, read off this browser's library on entry to
      * My tracks. This and the board's above are the two things that screen
@@ -4316,6 +4376,11 @@ export class Ui {
     const inRoom = Boolean(row && row.inRoom);
     const entered = inRoom && !this.friendsInRoom;
     this.friendsInRoom = inRoom;
+    /* In a room the lede, which is about making and joining one, gives its
+     * height to the rows: see .screen-friends.in-room in index.html. */
+    if (this.screens && this.screens.friends) {
+      this.screens.friends.classList.toggle('in-room', inRoom);
+    }
     if (this.screen === 'title' || this.screen === 'paused' || this.screen === 'friends') {
       this.renderMenu();
     }
@@ -5880,9 +5945,14 @@ export class Ui {
       const seat = between && this.mode === 'freestyle';
       const row = this.friendsRow ? this.friendsRow() : null;
       const inRoom = Boolean(row && row.inRoom);
+      const rows = this.friendsRows ? this.friendsRows() : [];
+      /* A game's start row is the primary when a game card set the room up
+       * (src/main.js friendsRows), and the cursor opens on it; Fly stays on
+       * top but gives the screen's one primary up to it. */
+      const started = rows.some((it) => it.primary);
       return [
-        ...(between && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: true, note: str('friends.fly_note') }] : []),
-        ...(this.friendsRows ? this.friendsRows() : []),
+        ...(between && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: !started, note: str('friends.fly_note') }] : []),
+        ...rows,
         ...(seat ? this.roomSeatRows(inRoom) : []),
         { label: str('ui.back'), action: 'back' },
       ];
@@ -8550,6 +8620,9 @@ export class Ui {
     if (!this.titleCards || this.titleCardKey !== key) {
       this.titleCardKey = key;
       host.textContent = '';
+      /* How many share the row, for the sheet: five cards are laid out
+       * tighter than two or three (index.html, THE GATE'S CARDS). */
+      host.dataset.count = String(items.length);
       this.titleCards = items.map((it, i) => {
         const card = el('div', `gate-card gate-card-${it.card}`);
         card.setAttribute('role', 'button');
@@ -12577,6 +12650,10 @@ export class Ui {
       this.settings.airframeAsked = true;
       this.craftGate = false;
       this.mode = way.mode;
+      /* The room game a card preselected, 'combat' or 'tag', or null: read
+       * by the shell's room rows (src/main.js friendsRows) and sent in this
+       * pilot's profile, so the room screen leads with it. */
+      this.roomGame = way.game ?? null;
       saveSettings(this.settings);
       /* The shell has to hear this before anything is flown: it is the
        * call that swaps the plant in the compiled module and reloads the
