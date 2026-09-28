@@ -458,7 +458,7 @@ export function createEditor(api) {
       partSig = ps;
       partSelect.innerHTML = '';
       /* The first line says what the list is for, until a part is chosen. */
-      const head = el('option', '', str(v.parts.length ? 'replay.follow_which' : 'replay.nothing_came_off'));
+      const head = el('option', '', str(v.parts.length ? 'replay.pick_part' : 'replay.nothing_came_off'));
       head.value = '-1';
       head.disabled = v.parts.length > 0;
       partSelect.append(head);

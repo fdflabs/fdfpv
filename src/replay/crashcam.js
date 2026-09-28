@@ -997,7 +997,10 @@ export function createCrashCam(host) {
           return;
         }
         const blob = new Blob(chunks, { type });
-        window.__crashCamLast = { ...(window.__crashCamLast || {}), video: { size: blob.size, type: blob.type } };
+        window.__crashCamLast = {
+          ...(window.__crashCamLast || {}),
+          video: { size: blob.size, type: blob.type, audioTracks: tap ? tap.stream.getAudioTracks().length : 0 },
+        };
         if (blob.size) {
           store.downloadBlob(store.stampedName(session.clip.meta.map, type === 'video/mp4' ? '.mp4' : '.webm'), blob);
           if (S === session) {

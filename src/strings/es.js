@@ -1951,5 +1951,6 @@ export default {
   "replay.delete_question": "¿Borrar {name}? No se puede recuperar.",
   "replay.not_a_replay": "el archivo no es una repetición que esta versión pueda abrir",
   "replay.show_controls": "U muestra los controles",
+  "replay.pick_part": "Elige una pieza",
   "replay.keep_it": "Conservar",
 };

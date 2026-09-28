@@ -1947,5 +1947,6 @@ export default {
   "replay.delete_question": "Delete {name}? It cannot be brought back.",
   "replay.not_a_replay": "the file is not a replay this version can open",
   "replay.show_controls": "U shows the controls",
+  "replay.pick_part": "Pick a part",
   "replay.keep_it": "Keep it",
 };

@@ -18,7 +18,9 @@
  *     recorded, and the craft flies on from there.
  *  4. The page reloaded: My clips lists the replay; played, it opens as a
  *     saved clip and runs.
- *  5. No page errors.
+ *  5. Flown past the 30 s window: the journal holds its bounded number of
+ *     copies, and the steady state memory and costs are printed.
+ *  6. No page errors.
  *
  * With --shots=<dir> it leaves pictures of the editor, the follow shot and
  * My clips there.
@@ -258,7 +260,8 @@ async function main() {
     await page.tap('KeyC');
     await page.until('window.__crashCamLast && window.__crashCamLast.video', 60000);
     const video = await page.evaluate('window.__crashCamLast.video');
-    check('a video of the range, a non empty webm', video.size > 1000 && /webm/.test(video.type), `${video.size} bytes ${video.type}`);
+    check('a video of the range, a non empty webm', video.size > 1000 && /webm/.test(video.type),
+      `${video.size} bytes ${video.type}, ${video.audioTracks} audio track${video.audioTracks === 1 ? '' : 's'} from the mix`);
     await page.tap('KeyG');
     await page.until(`${H}.api.listClips().then((l) => l.length > 0)`, 20000);
     const saved = await page.evaluate(`${H}.api.listClips()`);
