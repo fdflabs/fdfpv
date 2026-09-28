@@ -64,11 +64,14 @@ export function itemName(it) {
   if (typeof it.name === 'string') {
     return str(it.name);
   }
+  if (it.name && it.name.key) {
+    return str(it.name.key, it.name.vars);
+  }
   return it.id;
 }
 
 function kindWord(kind) {
-  return str(['plane', 'power', 'scheme'].includes(kind) ? `progress.kind_${kind}` : 'progress.kind_other');
+  return str(['plane', 'power', 'scheme', 'prop', 'addon'].includes(kind) ? `progress.kind_${kind}` : 'progress.kind_other');
 }
 
 const STYLE = `
@@ -308,7 +311,7 @@ export class Progress {
         frac: info.frac,
       });
     }
-    const order = { plane: 0, power: 1, scheme: 2 };
+    const order = { plane: 0, power: 1, prop: 2, addon: 3, scheme: 4 };
     for (const e of levels) {
       const items = events.filter((u) => u.type === 'unlock' && u.item.level === e.level).map((u) => u.item)
         .sort((a, b) => (order[a.kind] ?? 3) - (order[b.kind] ?? 3));

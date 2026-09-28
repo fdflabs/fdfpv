@@ -1897,6 +1897,8 @@ export default {
   "progress.kind_plane": "Avión nuevo",
   "progress.kind_power": "Motor nuevo",
   "progress.kind_scheme": "Pintura nueva",
+  "progress.kind_prop": "Hélice nueva",
+  "progress.kind_addon": "Accesorio nuevo",
   "progress.kind_other": "Novedad en el hangar",
   "progress.toast_lap": "Vuelta completada",
   "progress.toast_first_track": "Primera vuelta en esta pista",

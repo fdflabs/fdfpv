@@ -176,6 +176,14 @@ async function hangarTouches(page) {
   await openHangar(page, 'timber1500');
   const three = await page.evaluate(card('option-3s'));
   say(three && three.disabled && three.locked && /2/.test(three.text), `the Timber's 3S option is shown locked: ${JSON.stringify(three)}`);
+  await page.evaluate(click('tab-parts'));
+  await page.until("window.__ui.hangar.tab === 'parts'", 5000);
+  const parts = await page.evaluate(`({ stock: ${card('prop-stock')}, apc: ${card('prop-11x7e')}, pod: ${card('addon-pod')}, smoke: ${card('addon-smoke')} })`);
+  say(parts.stock && !parts.stock.locked && parts.apc.locked && /Level 2/.test(parts.apc.text) && parts.pod.locked && /Level 3/.test(parts.pod.text) && /Level 5/.test(parts.smoke.text),
+    `the Parts tab: the stock prop open, the APC prop locked to level 2, the camera pod to 3, the smoke to 5: ${JSON.stringify(parts)}`);
+  await shot(page, '2-parts-locked');
+  await page.evaluate(click('tab-power'));
+  await page.until("window.__ui.hangar.tab === 'power'", 5000);
   await page.until(EXPLODED('e.amount > 0.98'), 120000).catch(() => {});
   const ex = await exploded(page);
   say(ex && ex.amount > 0.95 && ex.propOut > 0.05 && ex.parts.includes('motor') && ex.parts.includes('pack'),
@@ -485,6 +493,13 @@ async function unlocked(page) {
   await openHangar(page, 'timber1500');
   const three = await page.evaluate(card('option-3s'));
   say(three && !three.disabled && !three.locked && three.isNew, `the Timber's 3S option is open, and New: ${JSON.stringify(three)}`);
+  await page.evaluate(click('tab-parts'));
+  await page.until("window.__ui.hangar.tab === 'parts'", 5000);
+  const parts = await page.evaluate(`({ apc: ${card('prop-11x7e')}, pod: ${card('addon-pod')}, smoke: ${card('addon-smoke')} })`);
+  say(!parts.apc.locked && parts.apc.isNew && !parts.pod.locked && parts.smoke.locked,
+    `and on the Parts tab at level 3 the APC prop and the camera pod are open and New, the smoke still locked: ${JSON.stringify(parts)}`);
+  await page.evaluate(click('tab-power'));
+  await page.until("window.__ui.hangar.tab === 'power'", 5000);
   await settle(page, 1200);
   const counts = await page.evaluate('Object.fromEntries(Object.entries(window.__ui.hangar.counts).map(([k, v]) => [k, v.to]))');
   const rev = await revOf(page, 'option-3s', VOICES.wing.rpmFull);

@@ -1893,6 +1893,8 @@ export default {
   "progress.kind_plane": "New plane",
   "progress.kind_power": "New power",
   "progress.kind_scheme": "New paint",
+  "progress.kind_prop": "New prop",
+  "progress.kind_addon": "New add-on",
   "progress.kind_other": "New in the hangar",
   "progress.toast_lap": "Lap done",
   "progress.toast_first_track": "First lap on this track",

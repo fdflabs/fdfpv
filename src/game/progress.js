@@ -22,7 +22,9 @@
  * WHAT IS LOCKED is gathered, not listed by hand: every plane but the
  * starters (PLANE_LEVELS), every power option after a plane's stock one
  * (configs/power.js), every paint scheme after a plane's first two
- * (configs/liveries.js), and anything another module adds, by exporting
+ * (configs/liveries.js), every prop after a plane's stock one and every
+ * add-on a plane takes (configs/hangar-parts.js), and anything another
+ * module adds, by exporting
  * UNLOCKABLES from configs/power.js or configs/liveries.js or by calling
  * registerUnlockables() with a list of { kind, id, airframe?, level?,
  * name? }. An item not in the build is not in the list, so a part or a
@@ -54,6 +56,7 @@
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
+import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
 
 const { POWER } = powerConfig;
 const { liveryKey, schemesFor } = liveryConfig;
@@ -248,6 +251,28 @@ export function unlockables() {
       }
       add({ key: itemKey('scheme', sc.id, af.id), kind: 'scheme', id: sc.id, airframe: af.id, level: Math.max(planeLevel(af.id), i), name: `livery.scheme.${af.id}.${sc.id}` });
     });
+  }
+  /* The Parts tab's (src/ui/hangar-parts.js): a prop after the stock one
+   * a level each, like a power option; an add-on by its place in the
+   * list, the tyres and the camera pod early and the smoke last. Repairs
+   * and tape are never locked: a broken plane is always mendable. */
+  for (const [id, props] of Object.entries(PROPS)) {
+    if (id !== liveryKey(id)) {
+      continue;
+    }
+    props.forEach((p, i) => {
+      if (i === 0) {
+        return;
+      }
+      add({
+        key: itemKey('prop', p.id, id), kind: 'prop', id: p.id, airframe: id, level: Math.max(planeLevel(id), 1 + i), name: { key: 'parts.prop.apc', vars: { d: p.propIn, p: p.pitchIn } },
+      });
+    });
+    for (const a of addonsFor(id)) {
+      add({
+        key: itemKey('addon', a, id), kind: 'addon', id: a, airframe: id, level: Math.max(planeLevel(id), 2 + ADDON_ORDER.indexOf(a)), name: `parts.addon.${a}`,
+      });
+    }
   }
   const extra = [
     ...(Array.isArray(powerConfig.UNLOCKABLES) ? powerConfig.UNLOCKABLES : []),

@@ -126,6 +126,7 @@ function propCards(hangar, box, now) {
       st.entry.prop = p.id;
       changed(hangar, `prop-${p.id}`);
     });
+    hangar.lockMark(b, 'prop', p.id);
     row.append(b);
   });
   box.append(row);
@@ -166,6 +167,7 @@ function addonCards(hangar, box, now) {
       st.entry.addons = fit.filter((x) => set.has(x));
       changed(hangar, `addon-${a}`);
     });
+    hangar.lockMark(b, 'addon', a);
     grid.append(b);
   });
   if (twin) {
