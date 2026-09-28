@@ -2055,6 +2055,7 @@ export async function boot({
     if (peer.wreck.group.parent !== scene) {
       scene.add(peer.wreck.group);
     }
+    peer.wreck.group.visible = true;
     peer.wreck.update(performance.now());
   }
   function roomPeerLeave(seat) {
@@ -2195,7 +2196,29 @@ export async function boot({
     }));
   }
 
+  /* Everything of a peer's that is drawn, put away. */
+  function roomHidePeer(peer) {
+    if (peer.rig) {
+      peer.rig.group.visible = false;
+      if (peer.rig.smoke) {
+        peer.rig.smoke.visible = false;
+      }
+    }
+    if (peer.figure) {
+      peer.figure.group.visible = false;
+    }
+    if (peer.wreck) {
+      peer.wreck.group.visible = false;
+    }
+  }
+
   function roomDrawPeer(peer, now, scene, dt, simT) {
+    /* The replay draws the room as it was (src/replay/peerscene.js), so
+     * the room as it is now is put away until flight resumes. */
+    if (mode === 'replay') {
+      roomHidePeer(peer);
+      return;
+    }
     /* Struck: held where it was drawn at the hit until its own stream
      * carries what its plant did about it. */
     if (peer.frozenUntil > now && peer.rig && peer.rig.group.visible) {
@@ -2234,6 +2257,9 @@ export async function boot({
     }
     if (peer.rig.smoke && peer.rig.smoke.parent !== scene) {
       scene.add(peer.rig.smoke);
+    }
+    if (peer.rig.smoke) {
+      peer.rig.smoke.visible = true;
     }
     if (peer.figure.group.parent !== scene) {
       scene.add(peer.figure.group);
@@ -11349,6 +11375,11 @@ export async function boot({
     }
     poseBramorExtras();
     roomFrame(nowWall, dt / 1000);
+    /* The others as the room just drew them, into the row the crash cam
+     * began above (src/replay/peers.js). */
+    if (crashCam) {
+      crashCam.recordPeers(roomPeers);
+    }
 
     /* The lens sits where herocraft.js bolts it, forward AND up, not at the
      * centre of gravity's height. src/render/lens.js carries both numbers and
