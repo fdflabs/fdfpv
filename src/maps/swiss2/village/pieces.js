@@ -31,7 +31,7 @@ import * as THREE from 'three';
 import { cyl, roofShell, gableProfile } from '../../alps/kit.js';
 import { shedTop } from '../../alps/roofs.js';
 import {
-  box, boxUp, cached, near, detail, blob, plate, own, frame, prism, bloomShade, leafShade,
+  box, boxUp, cached, near, detail, blob, plate, own, frame, prism, bloomShade, leafShade, casement, dressRoof,
 } from '../buildings/parts.js';
 
 /* A hash of a frame's own place and a salt, for the little differences
@@ -572,9 +572,12 @@ export function marketStall(f) {
  * sheds and garages are half of what makes it a village and not a plan.
  *
  *   shed      a garden shed of weathered boards under a gable of old
- *             shingle or tin, a plank door, a window in the side;
- *   garage    a rendered box under a shallow gable of eternit, its door
- *             a sheet of painted steel;
+ *             shingle or tin, a batten on every joint, a plank door, a
+ *             window in the side, its roof on rafters and purlins as a
+ *             house's is (buildings/parts.js dressRoof);
+ *   garage    a rendered box under a shallow gable of eternit with its
+ *             verges flashed, a gutter and a downpipe, a window in the
+ *             side, its door a sheet of painted steel;
  *   woodshed  a lean to open at the front, the winter's wood stacked in
  *             it to the roof, its back and sides boards.
  *
@@ -625,7 +628,26 @@ export function outbuilding(f, { kind, w, d, h, wall, roofKey }) {
   const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.35, ovA: 0.35, ovB: 0.55, pitch, t: 0.12 });
   const gable = gableProfile(roof, 'gable', hw);
   f.put(wall, prism(gable.map(([x, y]) => [x, y + h]), -hd, hd));
-  frame(f, 0, h, 0, 0).put(roofKey, roof.geo);
+  const rf = frame(f, 0, h, 0, 0);
+  rf.put(roofKey, roof.geo);
+  Object.assign(roof, { hw, hd, kind: 'gable', zA0: 0.35, zB0: 0.55 });
+  const garage = kind === 'garage';
+  dressRoof(rf, roof, {
+    roofKey, key: 'larchDark', edgeKey: garage ? 'flashing' : 'larchDark', rafters: !garage, purlins: !garage,
+  });
+  const side = frame(f, hw, 0, 0, Math.PI / 2);
+  if (garage) {
+    rf.put(near('flashing'), box(0.12, 0.1, roof.zB - roof.zA), roof.ex + 0.05, roof.yT - 0.1, (roof.zA + roof.zB) / 2);
+    f.put(near('flashing'), cyl(0.04, 0.04, h + 0.1, 6), hw + 0.1, 0, roof.zB - 0.3);
+    casement(side, -0.6, h - 0.95, 0.8, 0.6, { bars: false });
+  } else {
+    for (const [wl, len] of [[frame(f, 0, 0, hd, 0), w], [side, d], [frame(f, -hw, 0, 0, -Math.PI / 2), d], [frame(f, 0, 0, -hd, Math.PI), w]]) {
+      for (let u = -len / 2 + 0.3; u < len / 2 - 0.1; u += 0.3) {
+        wl.put(detail('boardLine'), boxUp(0.04, h - 0.1, 0.02), u, 0.05, 0.01);
+      }
+    }
+    casement(side, 0, h - 0.7, 0.55, 0.45, { key: 'larchDark', bars: false });
+  }
   const front = frame(f, 0, 0, hd + 0.02, 0);
   if (kind === 'garage') {
     front.put(near('door'), box(w - 0.9, h - 0.4, 0.05), 0, (h - 0.4) / 2, 0);
@@ -636,7 +658,6 @@ export function outbuilding(f, { kind, w, d, h, wall, roofKey }) {
   } else {
     front.put('larchDark:fv', box(0.95, 1.85, 0.05), -hw + 0.8, 0.93, 0);
     front.put(detail('ink'), box(0.03, 0.03, 0.08), -hw + 1.15, 0.95, 0.05);
-    frame(f, hw + 0.02, 0, 0, Math.PI / 2).put(detail('ink'), plate(0.55, 0.45), 0, h - 0.7, 0.01);
     /* Tools leant by the door, a watering can. */
     front.put(detail('larch'), box(0.03, 1.4, 0.03), hw - 0.35, 0.68, 0.1, 0, 0.12);
     front.put(detail('metal'), box(0.2, 0.28, 0.02), hw - 0.42, 0.14, 0.14, 0, 0.12);
