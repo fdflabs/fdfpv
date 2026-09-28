@@ -59,6 +59,7 @@
     "rooms:wrecks": "node scripts/rooms-wrecks-two-page.js",
     "rooms:restart": "node scripts/rooms-restart-check.js",
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
+    "streamer:selftest": "node scripts/streamer-selftest.js",
     "friends:card": "node scripts/friends-card-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",
     "waves:selftest": "node scripts/waves-selftest.js",
