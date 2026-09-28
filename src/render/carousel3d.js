@@ -53,6 +53,7 @@ import { readFinish } from './finish.js';
 import { animateParts, dressParts } from './partsfit.js';
 import { powerOption } from '../../configs/power.js';
 import { buildHangarEnv, createHangarRig } from './hangarstage.js';
+import { createExploder } from './hangar-exploded.js';
 import { dressTuning, undressTuning } from './hangar-tuning3d.js';
 import { slotScale, slotX } from '../ui/carousel.js';
 
@@ -269,6 +270,8 @@ export function createCarouselStage(renderer) {
        * is where its lowest point stands under its centre, and its nose's
        * and tail's z. */
       halfY: 0.5 * size.y / radius,
+      /* Metres to the unit frame's one, for the hangar's exploded view. */
+      radius,
       noseZ: (box.min.z - centre.z) / radius,
       tailZ: (box.max.z - centre.z) / radius,
       /* Where its drawing was centred and scaled, and the half height it
@@ -340,10 +343,11 @@ export function createCarouselStage(renderer) {
   const set = buildHangarEnv();
   scene.add(set.group);
   const rig = createHangarRig();
+  const exploder = createExploder();
 
   let target = null;
   let lastMs = 0;
-  const stats = { ms: 0, calls: 0, width: 0, height: 0, models: 0 };
+  const stats = { ms: 0, calls: 0, width: 0, height: 0, models: 0, camera: null, exploded: null };
   const buf = new THREE.Vector2();
   const saveViewport = new THREE.Vector4();
   const saveScissor = new THREE.Vector4();
@@ -378,6 +382,8 @@ export function createCarouselStage(renderer) {
       return;
     }
     set.group.visible = false;
+    stats.camera = null;
+    stats.exploded = null;
 
     /* The renderer's own units, which are CSS pixels: buildShell sizes it
      * to the window. Its viewport counts up from the bottom. */
@@ -418,6 +424,7 @@ export function createCarouselStage(renderer) {
       m.holder.position.set(slotX(it.d) * halfWidth, -Math.sin(ELEVATION) * back, -Math.cos(ELEVATION) * back);
       m.holder.scale.setScalar(slotScale(it.d));
       m.holder.visible = true;
+      exploder.rest(m);
       if (a < 0.5) {
         m.yaw += (view.hold ? 0 : TURN_RATE * dt) + (view.turn ?? 0);
       } else {
@@ -500,7 +507,11 @@ export function createCarouselStage(renderer) {
     }
     m.holder.visible = true;
     set.group.visible = true;
-    const k = rig.update(dt, view.hangar, view.turn ?? 0);
+    const k = rig.update(dt, { ...view.hangar, prop: exploder.propAlong(m) }, view.turn ?? 0);
+    stats.camera = {
+      focus: view.hangar.focus, yaw: k.yaw, elev: k.elev, zoom: k.zoom, along: k.along, up: k.up, moves: k.moves, lift: k.lift, target: k.target,
+    };
+    stats.exploded = exploder.update(m, view.hangar.power ?? null, dt);
     /* The Tuning tab's marks, surfaces and prop (src/render/
      * hangar-tuning3d.js), on for this draw only. */
     dressTuning(m.craft, view.hangar.tabs && view.hangar.tabs.tuning, dt);

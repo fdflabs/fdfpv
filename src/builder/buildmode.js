@@ -2691,6 +2691,11 @@ export function createBuildMode(host) {
     get testing() {
       return state === 'testing';
     },
+    /* The id of the track being built or test flown, for progression's
+     * record of which tracks were made as casual ones. */
+    get docId() {
+      return doc ? doc.id : null;
+    },
     /* True while the builder's own camera is the one drawn. */
     get cameraLive() {
       return state === 'building';

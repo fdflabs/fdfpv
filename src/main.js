@@ -58,7 +58,9 @@ import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
 import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
-import { MotorAudio } from './render/audio.js';
+import { MotorAudio, VOICES } from './render/audio.js';
+import { courseKind } from './game/progress.js';
+import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
@@ -2652,6 +2654,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * sim_rest zeroes the velocity at each judged touchdown so the frozen
    * state is a true rest state rather than a falling one. */
   let landed = true;
+  /* The run the challenges are judging (progressRun's key), and the
+   * hangar's rev while it plays (ui.onHangarTry). */
+  let progressKey = '';
+  let hangarRev = null;
   /* Capture hold: keep the plant pose and FPV lens as seated, without
    * the parked overlay or the intro orbit. Used by __seatCraft so a
    * camera-down crash can be photographed before the hull tumbles. */
@@ -5234,6 +5240,39 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (sp && sp.air && mode !== 'title') {
       airStart(sp.air.y);
     }
+    progressKey = '';
+  }
+
+  /*
+   * PROGRESSION (src/game/progress.js through ui.progress). What the run is
+   * flown on, for the challenges: the plane, its power's kind and whether
+   * it is on its smallest pack or tank. A new run, a swap or a refit is a
+   * new key, and the judge starts over on it.
+   */
+  function progressRun() {
+    const af = airframeById(runAirframe);
+    const { option, pack } = powerChoice(af.id, ui.settings.power);
+    const opt = af.fixedWing ? powerOption(af.id, option) : null;
+    const packs = opt ? opt.packs : [];
+    const size = (p) => p.cc ?? p.mAh;
+    const smallest = packs.length > 1 && pack === packs.reduce((a, b) => (size(a) <= size(b) ? a : b)).id;
+    return { airframe: af.id, fixedWing: Boolean(af.fixedWing), power: opt ? opt.kind : null, smallestPack: smallest, key: `${af.id}:${option}:${pack}` };
+  }
+  function progressTick(power) {
+    const ctx = progressRun();
+    if (ctx.key !== progressKey) {
+      progressKey = ctx.key;
+      ui.progress.startRun(ctx);
+    }
+    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt });
+  }
+  /* The track a lap closed on: a built track (seated, or the casual sky
+   * track's test flight), or the world's own. A built track is keyed by
+   * its id alone, so saving an edit is not a new track's first lap. */
+  function progressCourse() {
+    const seated = seatedMapTrack();
+    const id = build && build.testing ? build.docId : (seated && seated.document ? seated.document.id : null);
+    return { key: id ? `track:${id}` : ghostCourseKey(), kind: courseKind(id, ui.settings.progress) };
   }
 
   /*
@@ -6960,6 +6999,18 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * swap of the aircraft for itself where it is (hotSwap), so it flies on
    * the new power now; anywhere else it is the next seat's.
    */
+  /*
+   * A motor or an engine picked in the hangar speaks: a short rev on its
+   * own voice (src/ui/hangar-polish.js revRpm), over whatever the mix
+   * would say, and the seated plane's voice back after it.
+   */
+  ui.onHangarTry = (id, choice) => {
+    const o = powerOption(id, choice.option);
+    if (!o) {
+      return;
+    }
+    hangarRev = { t0: null, voice: o.voice, was: flownVoice };
+  };
   ui.onHangarPreview = (id, look) => {
     pickStage.repaint(id, look);
   };
@@ -7146,6 +7197,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       mode = 'flight';
       ui.show('flight');
       b.open(doc, { casual });
+      /* The generator marks nothing in the document, whose format is
+       * shared with the board; progression keeps the id instead. */
+      if (casual && b.docId) {
+        ui.progress.markCasual(b.docId);
+      }
     });
   };
   /* Menu clicks. The key handler has already woken the audio context by
@@ -8376,6 +8432,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       }
       lastHitKind = col.kindName(k);
       lastHitIndex = col.hitIndex;
+      ui.progress.touch(lastHitKind);
       lastClosing = speedNow * col.hitNormalDot;
       obsTouched = true;
       if (lastClosing > obsClosing) {
@@ -9692,6 +9749,16 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
           }
         }
         ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, res.passed != null);
+        /* XP and the challenges, never for a builder's test flight but
+         * the casual sky track's, which is flown the moment it is made. */
+        if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {
+          if (res.passed != null) {
+            ui.progress.gatePass();
+          }
+          if (race.laps.length > lapsBefore) {
+            ui.progress.lap(progressCourse());
+          }
+        }
         if (!race.freestyle && race.lap >= runLaps) {
           mode = 'results';
           if (turtleWait || turtleFlip.active) {
@@ -10411,15 +10478,34 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     audioRpm[1] = motorsTurning ? st[15] : 0;
     audioRpm[2] = motorsTurning ? st[16] : 0;
     audioRpm[3] = motorsTurning ? st[17] : 0;
-    /* The hangar's test stand, while it runs: its prop in its motor's
-     * voice, the flown craft's put back when it stops. */
-    const bench = ui.hangar.isOpen ? standSound() : null;
-    if (bench) {
-      if (standVoiceOn !== bench.voice) {
-        audio.setVoice(bench.voice);
-        standVoiceOn = bench.voice;
+    /* What the hangar plays over the mix: the rev of a motor just picked
+     * (ui.onHangarTry), on every motor voice, or else the Tuning tab's
+     * test stand, its prop in its motor's voice. The flown craft's voice
+     * is put back when neither plays. */
+    if (hangarRev) {
+      /* The rev's clock starts on the first frame that feeds it, so a
+       * hitch in the frame the pilot picked does not eat the sound. */
+      if (hangarRev.t0 == null) {
+        hangarRev.t0 = performance.now();
       }
-      audioRpm[0] = bench.rpm;
+      hangarRev.ms = performance.now() - hangarRev.t0;
+      hangarRev.rpm = ui.hangar.isOpen ? revRpm(hangarRev.ms, VOICES[hangarRev.voice].rpmFull) : null;
+      if (hangarRev.rpm == null) {
+        hangarRev = null;
+      }
+    }
+    const bench = hangarRev ? null : (ui.hangar.isOpen ? standSound() : null);
+    const over = hangarRev ?? bench;
+    if (over) {
+      if (standVoiceOn !== over.voice) {
+        audio.setVoice(over.voice);
+        standVoiceOn = over.voice;
+      }
+      if (hangarRev) {
+        audioRpm.fill(hangarRev.rpm);
+      } else {
+        audioRpm[0] = bench.rpm;
+      }
     } else if (standVoiceOn) {
       audio.setVoice(flownVoice);
       standVoiceOn = null;
@@ -10548,12 +10634,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         ghostFinal: Boolean(ghostGap && ghostGap.final),
       };
       ui.setOsd(osdView);
+      const powerNow = readPower();
       fpvOsd.feed(osdView, {
         st,
         sim,
         cells: runCells,
         restVolts: runVoltage * runCells,
-        power: readPower(),
+        power: powerNow,
         fixedWing: Boolean(airframeById(runAirframe).fixedWing),
         quat: shell.quad.quaternion,
         pos: shell.quad.position,
@@ -10568,6 +10655,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         /* Last frame's, since the banner is chosen further down. */
         banner: ui.bannerText,
       });
+      progressTick(powerNow);
       const ch = input.channels;
       const vis = turtleAxes(ch.roll, ch.pitch);
       ui.setStickOverlay({
@@ -10998,6 +11086,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * for scripts/hangar-check.js. */
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
   window.__pickPaint = (id) => pickStage.paint(id);
+  /* The hangar's rev (ui.onHangarTry): the voice it speaks on, the one it
+   * gives back, and the rpm last fed to the mix. For scripts/progress-check.js. */
+  window.__hangarRev = () => ({
+    rev: hangarRev ? { voice: hangarRev.voice, was: hangarRev.was, ms: hangarRev.ms ?? null } : null,
+    voice: Object.keys(VOICES).find((k) => VOICES[k] === audio.voice) ?? null,
+    rpm: audioRpm.slice(),
+  });
   window.__pickLook = (id) => pickStage.look(id);
   window.__pickParts = (id) => pickStage.fitted(id);
   window.__craft = () => ({

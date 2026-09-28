@@ -75,7 +75,11 @@ import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
 import './hangar-tuning.js';
 import { setPartsLinks } from './hangar-parts.js';
+/* Registers the Challenges tab, after the tabs that edit the plane. */
+import { Progress, bindProgress } from './progress-ui.js';
+import { installHangarPolish } from './hangar-polish.js';
 import { liveryKey, normaliseLiveries, normaliseSaves, paintable } from '../../configs/liveries.js';
+import { normaliseProgress } from '../game/progress.js';
 import {
   RATE_DEFAULTS,
   RATE_FIELDS,
@@ -722,6 +726,11 @@ const DEFAULTS = {
    * { option, pack }, configs/power.js. A plane with no entry flies its
    * stock system on its stock pack. */
   power: {},
+  /* What the pilot has earned and what it opens, and the Unlock all
+   * switch (src/game/progress.js). Made safe by normaliseProgress on load;
+   * a profile stored before progression existed starts with everything
+   * open, so nobody loses a plane they already flew. */
+  progress: {},
   /* Each plane's prop, add-ons and last crash's broken parts, by airframe
    * id: { prop, addons, damage }, configs/hangar-parts.js. A plane with no
    * entry flies as the kit, whole. */
@@ -1017,6 +1026,7 @@ export function loadSettings() {
    * sim_set_gravity. */
   s.weight = clampWeight(s.weight);
   s.livery = normaliseLiveries(s.livery);
+  s.progress = normaliseProgress(stored.progress, { existing: Object.keys(stored).length > 0 });
   s.liverySaves = normaliseSaves(s.liverySaves);
   /*
    * The rate profile, from whichever shape this blob was written in.
@@ -4053,6 +4063,9 @@ export class Ui {
     r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.musicDock, this.nameDialog);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
+    this.progress = new Progress(this, r);
+    bindProgress(this.progress);
+    installHangarPolish();
     this.syncChips();
   }
 
@@ -12647,6 +12660,11 @@ export class Ui {
       warn: this.hangarWarning ? this.hangarWarning(id) : '',
       hint: this.pickHint(),
       settings: s,
+      onTry: (choice) => {
+        if (this.onHangarTry) {
+          this.onHangarTry(id, choice);
+        }
+      },
       sound: (kind) => {
         if (this.onUiSound) {
           this.onUiSound(kind);

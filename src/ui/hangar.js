@@ -333,13 +333,14 @@ export class Hangar {
    * cost. onPreview(look) is called with the look (src/render/livery.js)
    * on every change, onSave({ livery, power, liveryChanged, powerChanged })
    * with what to store, onCancel with nothing, sound(kind) for the menu's
-   * sounds. `settings` is what registered tabs read theirs from, and Save
+   * sounds, onTry(choice) when a new motor or engine is picked, for its
+   * voice. `settings` is what registered tabs read theirs from, and Save
    * hands back their patch as `settings` beside the rest; the paint shop
    * reads the plane's saved liveries from it too (settings.liverySaves),
    * and onLibrary(list) stores a changed list at once
    * (src/ui/hangar-paint.js).
    */
-  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, sound } = {}) {
+  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
     this.buildTabs();
     this.id = airframe;
     this.family = liveryKey(airframe);
@@ -350,7 +351,7 @@ export class Hangar {
     this.choice = { ...this.savedPower };
     this.regions = regionsFor(airframe);
     this.region = this.regions.length ? this.regions[0].id : null;
-    this.opts = { onPreview, onSave, onCancel, sound };
+    this.opts = { onPreview, onSave, onCancel, onTry, sound };
     this.tab = HANGAR_TABS.includes(tab) ? tab : HANGAR_TABS[0];
     this.hintKind = hint;
     this.turn = 0;
@@ -536,12 +537,25 @@ export class Hangar {
 
   pickOption(id) {
     this.choice = powerChoice(this.power, { option: id, pack: this.choice.pack });
+    this.focus = 'motor';
     this.changed(`option-${id}`);
+    if (this.opts && this.opts.onTry) {
+      this.opts.onTry({ ...this.choice });
+    }
   }
 
   pickPack(id) {
     this.choice = { ...this.choice, pack: id };
+    this.focus = 'pack';
     this.changed(`pack-${id}`);
+  }
+
+  /* A card progression may not have opened yet: src/ui/progress-ui.js
+   * sets markLock when the hangar opens, and it dims and disables it. */
+  lockMark(b, kind, id) {
+    if (this.markLock) {
+      this.markLock(b, kind, id);
+    }
   }
 
   reset() {
@@ -670,7 +684,7 @@ export class Hangar {
     this.power.options.forEach((o, i) => {
       const b = button(`hangar-card${o.id === option.id ? ' on' : ''}`);
       b.dataset.key = `option-${o.id}`;
-      b.dataset.focus = 'nose';
+      b.dataset.focus = 'motor';
       b.style.setProperty('--i', String(i));
       b.append(el('span', 'hangar-card-name', o.name));
       if (o.detail) {
@@ -678,9 +692,10 @@ export class Hangar {
       }
       b.setAttribute('aria-pressed', String(o.id === option.id));
       b.addEventListener('pointerenter', () => {
-        this.focus = 'nose';
+        this.focus = 'motor';
       });
       b.addEventListener('click', () => this.pickOption(o.id));
+      this.lockMark(b, 'power', o.id);
       opts.append(b);
     });
     box.append(opts);
@@ -691,7 +706,7 @@ export class Hangar {
       packs.forEach((p, i) => {
         const b = button(`hangar-card${p.id === this.choice.pack ? ' on' : ''}`);
         b.dataset.key = `pack-${p.id}`;
-        b.dataset.focus = 'fuselage';
+        b.dataset.focus = 'pack';
         b.style.setProperty('--i', String(i));
         b.append(el('span', 'hangar-card-name', p.name));
         if (p.detail) {
@@ -699,7 +714,7 @@ export class Hangar {
         }
         b.setAttribute('aria-pressed', String(p.id === this.choice.pack));
         b.addEventListener('pointerenter', () => {
-          this.focus = 'fuselage';
+          this.focus = 'pack';
         });
         b.addEventListener('click', () => this.pickPack(p.id));
         row.append(b);
@@ -741,7 +756,8 @@ export class Hangar {
       const value = el('span', 'hangar-stat-value');
       const bar = el('span', 'hangar-stat-bar');
       const fill = el('span', 'hangar-stat-fill');
-      bar.append(fill);
+      const ghost = el('span', 'hangar-stat-ghost');
+      bar.append(fill, ghost);
       const delta = el('span', 'hangar-stat-delta');
       const d = stock[s.key] != null ? v - stock[s.key] : 0;
       if (Math.abs(d) > 1e-9) {
@@ -755,6 +771,14 @@ export class Hangar {
       this.statEls[s.key] = { value, fill, text: s.text, top };
       value.textContent = s.text(from);
       fill.style.transform = `scaleX(${Math.max(0.02, from / top)})`;
+      /* BEFORE AND AFTER: what the choice before this one made, a faint
+       * bar ending in a tick, over which the new value counts. It stays
+       * until the next change, so the two can be read side by side. */
+      const was = c ? c.to : v;
+      if (Math.abs(was - v) > 1e-9) {
+        ghost.style.width = `${Math.min(100, Math.max(2, (100 * was) / top))}%`;
+        ghost.classList.add('on');
+      }
     }
     return stats;
   }
@@ -809,6 +833,7 @@ export class Hangar {
       }
       this.trial(b, { scheme: sc.id }, 'overview');
       b.addEventListener('click', () => this.pickScheme(sc.id));
+      this.lockMark(b, 'scheme', sc.id);
       grid.append(b);
     });
     box.append(grid);
@@ -1079,6 +1104,8 @@ export class Hangar {
         reveal: this.revealSeq,
         pulse: this.pulseSeq,
         hold: Boolean(this.drag),
+        /* The Power tab's choice, which the set pulls apart to show. */
+        power: this.tab === 'power' ? { airframe: this.id, ...this.choice } : null,
         stay: this.tab === 'colours' && this.shop.stay(),
         aim: this.shop.aim(),
         tabs,

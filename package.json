@@ -128,6 +128,8 @@
     "paint:selftest": "node scripts/paint-selftest.js",
     "parts:check": "node scripts/parts-check.js",
     "parts:derive": "node scripts/parts-derive.js",
-    "trackmode:check": "node scripts/track-mode-check.js"
+    "trackmode:check": "node scripts/track-mode-check.js",
+    "progress:selftest": "node scripts/progress-selftest.js",
+    "progress:check": "node scripts/progress-check.js"
   }
 }

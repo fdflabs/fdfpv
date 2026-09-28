@@ -376,6 +376,10 @@ export class Carousel {
   choose() {
     const pick = this.opts && this.opts.onChoose;
     const id = this.current();
+    /* A plane progression has not opened (src/ui/progress-ui.js). */
+    if (this.blocked && this.blocked(id)) {
+      return;
+    }
     this.close();
     if (pick) {
       pick(id);
@@ -465,6 +469,9 @@ export class Carousel {
     this.chooseBtn.textContent = str('carousel.choose');
     this.customBtn.hidden = !this.canCustomise();
     this.paintHint();
+    if (this.decorate) {
+      this.decorate(this, id);
+    }
   }
 
   paintHint() {
