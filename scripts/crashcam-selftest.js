@@ -16,6 +16,14 @@
  *    them with the same sticks, it gives the same trace as the first time.
  * 4. The journal keeps a bounded number of copies, and a frame older than
  *    the oldest cannot be flown back to.
+ * 5. The recorder's ring: it wraps, keeps its order, and its clock only
+ *    runs forward, through a reset of the plant's.
+ * 6. Interpolation for slow motion: position, attitude, motors, parts.
+ * 7. The cameras: lookAt, the ease, a chase behind the motion, and two
+ *    follow keys pushing in on a moving part.
+ * 8. The replay file: a round trip bit for bit, and refusals of a bad
+ *    magic, version, length, size, field, name, camera, event, colour and
+ *    aircraft.
  *
  * Run: npm run crashcam:selftest
  *
@@ -44,6 +52,13 @@ import { loadSim, Sim, SIM_OK } from '../tests/lib/simmod.js';
 import { createJournal, PURE, POINTERS } from '../src/replay/journal.js';
 import { INFO, PART_KINDS, PARTS_MAX, PART_STATE_DOUBLES, STATE, SURFACE } from '../configs/parts.js';
 import { powerBlock } from '../configs/power.js';
+import {
+  CAPACITY, HEAD, HEAD_N, PART_N, POSE_N, WINDOW_S, createRecorder, sampleAt, slerp, trimClip,
+} from '../src/replay/recorder.js';
+import {
+  addKey, createPose, defaults, easeInOut, evaluate, evaluateKeys, lookAtQuat, rotate,
+} from '../src/replay/cameras.js';
+import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -371,6 +386,234 @@ async function bounded() {
   check(j.canRestore(marks[marks.length - 10]), 'a recent frame can');
 }
 
+/* ---- 5. the ring ---- */
+function ring() {
+  console.log('5. the recorder\'s ring wraps and keeps its order');
+  const cap = 50;
+  const r = createRecorder(cap);
+  const p = { x: 0, y: 0, z: 0 };
+  const qq = { x: 0, y: 0, z: 0, w: 1 };
+  const st = new Float64Array(20);
+  let written = 0;
+  for (let f = 0; f < 137; f += 1) {
+    /* 60 frames a second of wall; the plant's clock advances with it. */
+    const i = r.begin(f / 60, 1000 + (f * 1000) / 60);
+    if (i < 0) {
+      continue;
+    }
+    written += 1;
+    p.x = f;
+    r.pose(i, p, qq);
+    st[1] = f;
+    r.plant(i, st);
+    r.status(i, [0, f], 0, 0, false, f, 0, 0);
+  }
+  const too = r.begin(136 / 60 + 0.001, 1000 + (136 * 1000) / 60 + 1);
+  check(too === -1, 'a row too soon after the last is not written');
+  const c = r.clip();
+  check(c.n === cap, 'the clip holds the ring\'s capacity once it has wrapped', `${c.n}`);
+  let ordered = true;
+  for (let k = 0; k < c.n; k += 1) {
+    if (c.pose[k * POSE_N] !== written - cap + k) {
+      ordered = false;
+    }
+    if (k > 0 && !(c.time[k] > c.time[k - 1])) {
+      ordered = false;
+    }
+  }
+  check(ordered, 'oldest first, the newest last, time increasing', `${c.pose[0]}..${c.pose[(c.n - 1) * POSE_N]}`);
+  check(Math.abs(c.time[c.n - 1] - (cap - 1) / 60) < 1e-9, 'the clip\'s clock starts at zero and runs at the plant\'s rate', c.time[c.n - 1].toFixed(6));
+
+  /* R: the plant's clock goes back to zero, the replay's keeps going. */
+  const r2 = createRecorder(10);
+  r2.begin(5, 0);
+  r2.begin(5 + 1 / 60, 1000 / 60);
+  r2.begin(0.001, 2000 / 60);
+  const c2 = r2.clip();
+  check(c2.n === 3 && c2.time[2] > c2.time[1], 'a reset of the plant\'s clock does not turn the timeline back');
+  /* Longer than the window at a slow rate: the clip is the last 30 s. */
+  const r3 = createRecorder(CAPACITY);
+  for (let f = 0; f < 40 * 30; f += 1) {
+    r3.begin(f / 30, (f * 1000) / 30);
+  }
+  const c3 = r3.clip();
+  check(Math.abs(c3.time[c3.n - 1] - WINDOW_S) < 0.05, 'a slower display still gives the last 30 s', c3.time[c3.n - 1].toFixed(3));
+}
+
+/* ---- 6. interpolation ---- */
+function interpolation() {
+  console.log('6. slow motion interpolates between rows');
+  const r = createRecorder(8);
+  const pp = { x: 0, y: 0, z: 0 };
+  const half = Math.SQRT1_2;
+  const quats = [{ x: 0, y: 0, z: 0, w: 1 }, { x: 0, y: half, z: 0, w: half }];
+  const st = new Float64Array(20);
+  const ps = new Float64Array(24 * 3);
+  for (let f = 0; f < 2; f += 1) {
+    const i = r.begin(f * 0.1, f * 100);
+    pp.x = f * 10;
+    r.pose(i, pp, quats[f]);
+    r.drive(i, 1000 + f * 1000, 0, 0, 0, null, 0, 0);
+    st[1] = f;
+    st[7] = 1;
+    r.plant(i, st);
+    /* Part 1 free and moving 2 m along x between the rows. */
+    ps[24 + 0] = 1;
+    ps[24 + 2] = f * 2;
+    ps[24 + 5] = 1;
+    r.parts(i, ps, 2);
+  }
+  const c = r.clip();
+  const s = sampleAt(c, 0.025);
+  check(Math.abs(s.pose[0] - 2.5) < 1e-6, 'position at a quarter of the way', s.pose[0].toFixed(6));
+  const yaw = 2 * Math.atan2(s.pose[4], s.pose[6]);
+  check(Math.abs(yaw - Math.PI / 8) < 1e-6, 'attitude slerped a quarter of 90 degrees', (yaw * 180 / Math.PI).toFixed(4));
+  check(Math.abs(s.pose[7] - 1250) < 1e-3, 'the motors in between', s.pose[7].toFixed(2));
+  check(Math.abs(s.parts[24 + 2] - 0.5) < 1e-6 && s.parts[24] === 1, 'a free part in between', s.parts[26].toFixed(4));
+  const q2 = [];
+  slerp(0, 0, 0, 1, 0, 0, 0, -1, 0.5, q2, 0);
+  check(Math.abs(q2[3]) > 0.999, 'slerp takes the short way round a sign flip');
+  const end = sampleAt(c, 99);
+  check(end.k === 1 && end.pose[0] === 10, 'past the end holds the last row');
+  const cut = trimClip(c, 0.05, 0.1);
+  check(cut.n === 2 && cut.time[0] === 0, 'a trim keeps the rows round its range, its clock from zero');
+}
+
+/* ---- 7. cameras ---- */
+function cameras() {
+  console.log('7. the cameras and their keys');
+  const eye = [3, 4, 5];
+  const at = [1, 1, 1];
+  const qq = lookAtQuat(eye, at);
+  const fwd = rotate(qq, [0, 0, -1]);
+  const want = [at[0] - eye[0], at[1] - eye[1], at[2] - eye[2]];
+  const wl = Math.hypot(...want);
+  const err = Math.hypot(fwd[0] - want[0] / wl, fwd[1] - want[1] / wl, fwd[2] - want[2] / wl);
+  check(err < 1e-9, 'lookAt points the camera\'s -z at its target', err.toExponential(2));
+  const up = rotate(qq, [0, 1, 0]);
+  check(up[1] > 0 && Math.abs(up[0] * want[0] + up[1] * want[1] + up[2] * want[2]) < 1e-9, 'and keeps it upright');
+  check(easeInOut(0) === 0 && easeInOut(1) === 1 && Math.abs(easeInOut(0.5) - 0.5) < 1e-12 && easeInOut(0.25) < 0.25,
+    'the ease starts and ends still');
+  /* A target moving along x at 10 m/s. */
+  const ctx = {
+    at: (t, target, out) => {
+      out[0] = 10 * t;
+      out[1] = target < 0 ? 2 : 1;
+      out[2] = 0;
+      return out;
+    },
+    craftQuat: (t, out) => { out[0] = 0; out[1] = 0; out[2] = 0; out[3] = 1; return out; },
+    fpv: (t, pos, quat) => { pos[0] = 10 * t; pos[1] = 2; pos[2] = 0; quat[3] = 1; return 90; },
+  };
+  const pose = createPose();
+  evaluate(ctx, 'chase', defaults('chase', 1), -1, 2, pose);
+  check(pose.pos[0] < 20 && Math.abs(pose.pos[2]) < 1e-9, 'the chase camera sits behind the way it goes', pose.pos.map((x) => x.toFixed(2)).join(' '));
+  const keys = [];
+  addKey(keys, { t: 1, rig: 'follow', target: 3, p: { ...defaults('follow', 1), dist: 4 } });
+  addKey(keys, { t: 3, rig: 'follow', target: 3, p: { ...defaults('follow', 1), dist: 1 } });
+  addKey(keys, { t: 3, rig: 'follow', target: 3, p: { ...defaults('follow', 1), dist: 1 } });
+  check(keys.length === 2, 'a key at the same time replaces the one there');
+  const dists = [1, 1.5, 2, 2.5, 3, 3.5].map((t) => {
+    evaluateKeys(ctx, keys, t, pose);
+    ctx.at(t, 3, scratch);
+    return Math.hypot(pose.pos[0] - scratch[0], pose.pos[2] - scratch[2]);
+  });
+  const closing = dists.every((d, i) => i === 0 || d <= dists[i - 1] + 1e-9);
+  check(closing && Math.abs(dists[0] - 4) < 1e-9 && Math.abs(dists[4] - 1) < 1e-9,
+    'two follow keys push in on the part while it moves', dists.map((d) => d.toFixed(2)).join(' '));
+  const mid = dists[2];
+  check(Math.abs(mid - 2.5) < 1e-9, 'eased: half way in time is half way in distance', mid.toFixed(4));
+}
+const scratch = [0, 0, 0];
+
+/* ---- 8. the file ---- */
+function file() {
+  console.log('8. a replay file round trips and is checked on the way in');
+  const r = createRecorder(64);
+  const pp = { x: 0, y: 0, z: 0 };
+  const qq = { x: 0, y: 0, z: 0, w: 1 };
+  const st = new Float64Array(20);
+  const ps = new Float64Array(24 * 3);
+  const sp = r.spawnIndex(1, 2, 3, 0, 0, 0, 1, 0.045);
+  for (let f = 0; f < 40; f += 1) {
+    const i = r.begin(f / 60, (f * 1000) / 60);
+    pp.x = f * 0.37;
+    pp.y = Math.sin(f);
+    r.pose(i, pp, qq);
+    r.drive(i, f, f, f, f, [0.1, -0.1, 0.2, 0], 0, f);
+    st[1] = f * 1.1;
+    r.plant(i, st);
+    r.status(i, [9, 99], sp, f > 20 ? 256 : 0, f > 30, f, 0.5, 3);
+    if (f > 20) {
+      ps[24 + 2] = f;
+      ps[24] = 1;
+      r.parts(i, ps, 3);
+    }
+    if (f === 21) {
+      r.event('off', { part: 1, label: 'wing right' });
+      r.event('debris', { point: [1, 2, 3], normal: [0, 1, 0], speed: 7, surface: 1, shed: 'epo', floorY: 0, kind: 'break' });
+    }
+  }
+  const c = r.clip({
+    name: 'Wing off', created: 1790000000000, airframe: 'sky1800', livery: { body: 0xffffff, trim: 0xff0000 },
+    map: 'alps', scale: 1, size: 1.8, duration: 0,
+    parts: [0, 1, 2].map((i) => ({ kind: i === 1 ? 9 : 8, kindName: i === 1 ? 'wing' : 'fuselage', parent: i - 1, material: 2, cg: [0, i, 0], boxMin: [-1, -1, -1], boxMax: [1, 1, 1] })),
+    fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
+  });
+  c.keys = [{ t: 0.2, rig: 'orbit', target: -1, p: defaults('orbit', 1) }];
+  const buf = encodeReplay(c);
+  const back = decodeReplay(buf);
+  let same = back.n === c.n;
+  for (const col of ['time', 'pose', 'plant']) {
+    same = same && back[col].length === c[col].length && back[col].every((x, i) => Object.is(x, c[col][i]));
+  }
+  for (let k = 0; k < c.n && same; k += 1) {
+    const np = c.head[k * HEAD_N + HEAD.parts];
+    for (let j = 0; j < np * PART_N; j += 1) {
+      same = same && Object.is(back.parts[k * PARTS_MAX_R * PART_N + j], c.parts[k * PARTS_MAX_R * PART_N + j]);
+    }
+  }
+  check(same, 'every column comes back bit for bit', `${buf.byteLength} bytes, ${c.n} frames`);
+  check(back.head[HEAD.markSeg] === 0 && back.head[HEAD.markPos] === 0, 'the journal marks are not saved');
+  check(JSON.stringify(back.meta) === JSON.stringify(c.meta) && back.events.length === 2 && back.keys.length === 1,
+    'the airframe, livery, map, parts, events and keys come back');
+  const refused = (mut, why) => {
+    const b = mut(buf.slice(0));
+    try {
+      decodeReplay(b);
+      check(false, `refused: ${why}`, 'it was accepted');
+    } catch (err) {
+      check(err instanceof ReplayFileError, `refused: ${why}`, err.message);
+    }
+  };
+  refused((b) => { new Uint8Array(b)[0] = 0; return b; }, 'a wrong magic');
+  refused((b) => { new DataView(b).setUint32(4, 99, true); return b; }, 'another version');
+  refused((b) => b.slice(0, b.byteLength - 4), 'a truncated file');
+  refused(() => new ArrayBuffer(FILE_MAX_BYTES + 1), 'a file over the size limit');
+  const withHeader = (edit) => () => {
+    const h = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 12, new DataView(buf).getUint32(8, true))));
+    edit(h);
+    const copy = { ...c, meta: h.meta, events: h.events, keys: h.keys, spawns: h.spawns };
+    return encodeReplay(copy);
+  };
+  refused(withHeader((h) => { h.meta.owner = 'x'; }), 'an unknown field');
+  refused(withHeader((h) => { h.meta.name = 'x'.repeat(200); }), 'a name too long');
+  refused(withHeader((h) => { h.keys[0].rig = 'drone'; }), 'an unknown camera');
+  refused(withHeader((h) => { h.events[0].type = 'script'; }), 'an unknown event');
+  refused(withHeader((h) => { h.meta.livery.body = -5; }), 'a colour out of range');
+  try {
+    decodeReplay(buf, { airframe: (id) => id === '5inch', map: () => true });
+    check(false, 'refused: an aircraft this build does not fly', 'accepted');
+  } catch (err) {
+    check(err instanceof ReplayFileError, 'refused: an aircraft this build does not fly', err.message);
+  }
+}
+const PARTS_MAX_R = PARTS_MAX;
+
+ring();
+interpolation();
+cameras();
+file();
 await pureReaders();
 await flyTakeOver();
 await bounded();
