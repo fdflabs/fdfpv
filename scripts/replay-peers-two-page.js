@@ -222,7 +222,7 @@ try {
     cmp.picked >= 20 && cmp.missing === 0 && cmp.worst <= TOLERANCE_M,
     `${cmp.picked} of ${cmp.rows} rows, worst ${(cmp.worst * 1000).toFixed(3)} mm, ${cmp.missing} missing`);
   const stats = await a.evaluate('window.__crashCam.stats()');
-  console.log(`     recorder: local ${stats.recordMsMean.toFixed(4)} ms a frame; peers ${stats.peerMsMean.toFixed(4)} ms mean, ${stats.peerMsMax.toFixed(3)} ms worst over ${stats.peerFrames} frames; peer ring ${(stats.peerBytes / 1048576).toFixed(2)} MB; dropped ${stats.peersDropped} pilots, ${stats.piecesDropped} pieces`);
+  console.log(`     recorder: local ${stats.recordMsMean.toFixed(4)} ms a frame; peers ${stats.peerMsMean.toFixed(4)} ms mean, ${stats.peerMsMax.toFixed(3)} ms worst over ${stats.peerFrames} frames; peer ring ${(stats.peerBytes / 1048576).toFixed(2)} MB, made once in ${stats.peerAllocMs.toFixed(3)} ms; dropped ${stats.peersDropped} pilots, ${stats.piecesDropped} pieces`);
   check('recording the room cost under 0.1 ms a frame, nothing dropped', stats.peerMsMean < 0.1 && stats.peersDropped === 0 && stats.piecesDropped === 0,
     `${stats.peerMsMean.toFixed(4)} ms`);
 

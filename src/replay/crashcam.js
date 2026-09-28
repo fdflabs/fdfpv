@@ -1454,6 +1454,7 @@ export function createCrashCam(host) {
       peersRecorded: peerRing.stats.peers,
       peersDropped: peerRing.stats.dropped,
       piecesDropped: peerRing.stats.piecesDropped,
+      peerAllocMs: peerRing.stats.allocMs,
     };
   }
 

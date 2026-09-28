@@ -97,7 +97,8 @@ export function createPeerRing(capacity) {
   /* The ids each slot held in the row before, and holds in this one. */
   const before = new Int32Array(PEERS_MAX);
   const now = new Int32Array(PEERS_MAX);
-  const stats = { rows: 0, peers: 0, dropped: 0, piecesDropped: 0 };
+  /* allocMs: what making the columns cost, once. */
+  const stats = { peers: 0, dropped: 0, piecesDropped: 0, allocMs: 0 };
 
   function begin(i) {
     row = i;
@@ -181,8 +182,10 @@ export function createPeerRing(capacity) {
       return;
     }
     if (!cols) {
+      const t0 = performance.now();
       cols = new Float32Array(capacity * ROW_N);
       pool = new Float32Array(capacity * PIECES_MAX * PIECE_N);
+      stats.allocMs = performance.now() - t0;
     }
     let id = ids.get(rig);
     if (id === undefined) {
