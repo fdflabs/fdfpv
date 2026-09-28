@@ -198,7 +198,8 @@ export function setFigurePick(f) {
 
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
- * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state).
+ * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
+ * onHit(hit) (the referee's mid air contact, src/game/midair.js).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -336,6 +337,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onLeave?.(m.seat);
       } else if (m.type === 'profile') {
         handlers.onProfile?.(m.seat, m.profile);
+      } else if (m.type === 'hit') {
+        handlers.onHit?.(m);
       }
     };
     socket.onclose = (ev) => {
