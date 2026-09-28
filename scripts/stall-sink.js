@@ -51,7 +51,7 @@ const MS = 4;
 const PLANES = {
   wing: [2, 7.25], sky: [3, 9.2], cub: [4, 8.1], slowstick: [5, 4.4], radian: [6, 6.5],
   timber: [7, 7.2], bramor: [8, 13.0], timberf: [9, 7.1], cubf: [10, 8.7], bombshell: [11, 6.49],
-  kadet: [12, 7.15],
+  kadet: [12, 7.15], edge: [13, 9.58],
 };
 const MODES = [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']];
 

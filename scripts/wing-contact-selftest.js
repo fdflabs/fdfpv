@@ -46,7 +46,9 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
  * its cases are flown at: a landing a little above its stall, a nose-in,
  * and a throw from the grass with the stick a hand would hold. The Kadet
  * rolls out for 30 s, not 12: it has no brakes, and its four stroke's
- * idle pushes 1.63 N against the grass's 2.14, so it slows at 0.2 m/s^2. */
+ * idle pushes 1.63 N against the grass's 2.14, so it slows at 0.2 m/s^2.
+ * The Edge rolls out for 20 s: arriving at 11 m/s it slows at the grass's
+ * 0.78 m/s^2 alone, 14 s to a stop. */
 const PLANES = [
   { name: 'wing', id: 2, hx: 0.25, hy: 0.5, down: 0.035, up: 0.035, land: 8, nose: 10, toss: 10, tossSticks: [0, 0.15, 0, 0.7] },
   { name: 'skyhunter', id: 3, hx: 0.61, hy: 0.9, down: 0.12, up: 0.08, land: 11, nose: 13, toss: 12, tossSticks: [0, 0.3, 0, 0.8] },
@@ -55,6 +57,7 @@ const PLANES = [
   { name: 'slowstick', id: 5, hx: 0.30, hy: 0.588, down: 0.03, up: 0.06, land: 5, nose: 6, toss: 6, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 6.91, restZ: 0.1349 } },
   { name: 'kadet', id: 12, hx: 0.45, hy: 0.9906, down: 0.163, up: 0.119, land: 8, rollMs: 30000, nose: 11, toss: 12, tossSticks: [0, 0.3, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.3072 } },
   { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
+  { name: 'edge', id: 13, hx: 0.50, hy: 0.762, down: 0.10, up: 0.14, land: 11, rollMs: 20000, nose: 12, toss: 12, tossSticks: [0, 0.2, 0, 0.6], wheels: { restPitchDeg: 9.84, restZ: 0.2510 } },
   { name: 'timber', id: 7, hx: 0.30, hy: 0.60, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 11.81, restZ: 0.2117 } },
 ];
 

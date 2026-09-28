@@ -10,7 +10,8 @@
  * Timber's, from standing on its wheels with half flaps, and
  * ?plane=timberf the Timber on floats', floating on a light swell, and
  * ?plane=bombshell the Buzzard Bombshell's, from standing on its wheels and
- * skid, and ?plane=kadet the Kadet Senior's, from standing on its three
+ * skid, ?plane=kadet the Kadet Senior's, from standing on its three
+ * wheels, and ?plane=edge the Edge 540's, from standing on its three
  * wheels; with no query it is the wing's, exactly as it always was.
  *
  * This file is part of WebFPVSimulator.
@@ -33,7 +34,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, gliderRecPrelude, kadetGroundPrelude, skyPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, edgeGroundPrelude, gliderRecPrelude, kadetGroundPrelude, skyPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -50,6 +51,7 @@ const PLANES = {
   timberf: { rec: '/tests/inputs/timberf-baseline.rec', prelude: timberFloatRecPrelude },
   bombshell: { rec: '/tests/inputs/bombshell-baseline.rec', prelude: (sim) => bombshellGroundPrelude(sim) },
   kadet: { rec: '/tests/inputs/kadet-baseline.rec', prelude: (sim) => kadetGroundPrelude(sim) },
+  edge: { rec: '/tests/inputs/edge-baseline.rec', prelude: (sim) => edgeGroundPrelude(sim) },
 };
 
 async function fetchBytes(url) {

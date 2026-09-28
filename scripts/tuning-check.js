@@ -60,7 +60,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
 import { POWER, TABLE, powerBlock, powerOption } from '../configs/power.js';
-import { SIM_TUNE, TUNING, balance, normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
+import { SIM_TUNE, TUNING, balance, normalizeEntry, setupFor, stockEntry, tuneBlock } from '../configs/tuning.js';
 import { TestStand } from '../src/game/teststand.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -210,7 +210,7 @@ for (const id of ids) {
   console.log(`\n${id}  (${electric ? `pack ${packKg} kg over ${lim.packMm} mm` : 'glow'}, lead ${lim.ballastG} g, ${massKg} kg)`);
 
   /* U1 */
-  const stockBlock = block({ packMm: 0, ballastG: 0, rate: 'high', expo: { a: 30, e: 30, r: 30 }, trimDeg: 0, flapStart: 0, flapMix: Boolean(t.flaps) });
+  const stockBlock = block({ ...stockEntry(id) });
   const expoOnly = block({ expo: { a: 35 } });
   seat(id);
   const table = sim.tune();
