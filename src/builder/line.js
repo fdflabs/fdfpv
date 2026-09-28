@@ -247,8 +247,9 @@ const SPAN_ROOM = 1.2;
  * the wingtips, so the wing fits through with room to miss by a span in
  * any direction. Its own rule because a disc narrows away from its middle
  * where a square does not, and because the hoops are the casual pieces:
- * the smallest plane hoop, 6 m, is small for the Bramor (6.9 m by this)
- * and the Kadet, and the 12 m one takes every plane here.
+ * the smallest plane hoop, 6 m (retired, but older tracks carry it), is
+ * small for the Bramor (6.9 m by this) and the Kadet, and the 12 m one
+ * takes every plane here.
  */
 export const HOOP_ROOM = 3;
 /* Where on an opening the blocked check looks: its centre and eight points
