@@ -312,3 +312,134 @@ export function decodeBatch(bytes) {
   }
   return { roomMs: v.getUint32(2, true), poses };
 }
+
+/* ------------------------------------------------------------------ */
+/* Phase 2, shared wrecks: types 0x30 to 0x3F, event kinds crash, whack. */
+
+/*
+ * PARTS, 0x30, client to room, 10 Hz while any broken piece moves and once
+ * more at rest: u8 type, u8 count, u32 room ms, then per piece u8 part
+ * index, f32x3 world position, i16x4 quaternion (x, y, z, w), 21 bytes.
+ * The world pose is the piece as its owner draws it, lifted clear of the
+ * ground, so a receiver draws it where it is and asks nothing of its own
+ * ground. PARTS_RELAY, 0x31, room to client, is the same message with the
+ * sender's seat inserted after the type byte.
+ */
+export const TYPE_PARTS = 0x30;
+export const TYPE_PARTS_RELAY = 0x31;
+export const PARTS_HEAD = 6;
+export const PARTS_ENTRY = 21;
+export const PARTS_MAX = 24;
+
+export function encodeParts(roomMs, pieces) {
+  const n = Math.min(PARTS_MAX, pieces.length);
+  const bytes = new Uint8Array(PARTS_HEAD + n * PARTS_ENTRY);
+  const v = new DataView(bytes.buffer);
+  v.setUint8(0, TYPE_PARTS);
+  v.setUint8(1, n);
+  v.setUint32(2, clampInt(roomMs, 0, 0xffffffff) >>> 0, true);
+  for (let k = 0; k < n; k += 1) {
+    const p = pieces[k];
+    const at = PARTS_HEAD + k * PARTS_ENTRY;
+    v.setUint8(at, p.part);
+    v.setFloat32(at + 1, p.x, true);
+    v.setFloat32(at + 5, p.y, true);
+    v.setFloat32(at + 9, p.z, true);
+    v.setInt16(at + 13, clampInt(p.qx * QUAT_SCALE, -QUAT_SCALE, QUAT_SCALE), true);
+    v.setInt16(at + 15, clampInt(p.qy * QUAT_SCALE, -QUAT_SCALE, QUAT_SCALE), true);
+    v.setInt16(at + 17, clampInt(p.qz * QUAT_SCALE, -QUAT_SCALE, QUAT_SCALE), true);
+    v.setInt16(at + 19, clampInt(p.qw * QUAT_SCALE, -QUAT_SCALE, QUAT_SCALE), true);
+  }
+  return bytes;
+}
+
+/* Whether bytes are a well formed PARTS message from a client. */
+export function isParts(bytes) {
+  return Boolean(bytes) && bytes.byteLength >= PARTS_HEAD && bytes[0] === TYPE_PARTS
+    && bytes[1] <= PARTS_MAX && bytes.byteLength === PARTS_HEAD + bytes[1] * PARTS_ENTRY;
+}
+
+/* The relayed form: the seat after the type byte. */
+export function relayParts(seat, bytes) {
+  const out = new Uint8Array(bytes.byteLength + 1);
+  out[0] = TYPE_PARTS_RELAY;
+  out[1] = seat;
+  out.set(bytes.subarray(1), 2);
+  return out;
+}
+
+/* { seat, roomMs, pieces: [{ part, x, y, z, qx, qy, qz, qw }] }, or null. */
+export function decodePartsRelay(bytes) {
+  if (!bytes || bytes.byteLength < PARTS_HEAD + 1 || bytes[0] !== TYPE_PARTS_RELAY) {
+    return null;
+  }
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const n = v.getUint8(2);
+  if (n > PARTS_MAX || bytes.byteLength !== PARTS_HEAD + 1 + n * PARTS_ENTRY) {
+    return null;
+  }
+  const pieces = [];
+  for (let k = 0; k < n; k += 1) {
+    const at = PARTS_HEAD + 1 + k * PARTS_ENTRY;
+    let qx = v.getInt16(at + 13, true) / QUAT_SCALE;
+    let qy = v.getInt16(at + 15, true) / QUAT_SCALE;
+    let qz = v.getInt16(at + 17, true) / QUAT_SCALE;
+    let qw = v.getInt16(at + 19, true) / QUAT_SCALE;
+    const len = Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw) || 1;
+    qx /= len;
+    qy /= len;
+    qz /= len;
+    qw /= len;
+    pieces.push({
+      part: v.getUint8(at), x: v.getFloat32(at + 1, true), y: v.getFloat32(at + 5, true), z: v.getFloat32(at + 9, true), qx, qy, qz, qw,
+    });
+  }
+  return { seat: v.getUint8(1), roomMs: v.getUint32(3, true), pieces };
+}
+
+/*
+ * The crash event: { type: 'event', kind: 'crash', table } when an
+ * aircraft first breaks, table being its part table as the wreck cuts by
+ * (src/render/wreck.js: kind, parent, cg, boxMin, boxMax per part, body
+ * frame metres), because a receiver's plant holds only its own airframe's
+ * table; and { type: 'event', kind: 'crash', clear: true } when its owner
+ * starts again. The room relays both with the seat added and keeps the
+ * newest, with the newest PARTS, for whoever joins later.
+ */
+export const CRASH_EVENT_MAX_BYTES = 8192;
+const PART_REACH_M = 5;
+
+export function checkCrashTable(table) {
+  if (!Array.isArray(table) || table.length < 2 || table.length > PARTS_MAX) {
+    return null;
+  }
+  const vec = (a) => Array.isArray(a) && a.length === 3 && a.every((x) => typeof x === 'number' && Number.isFinite(x) && Math.abs(x) <= PART_REACH_M);
+  const out = [];
+  for (const p of table) {
+    if (!p || !Number.isInteger(p.kind) || p.kind < 0 || p.kind > 63 || !Number.isInteger(p.parent) || p.parent < -1 || p.parent >= table.length) {
+      return null;
+    }
+    if (!vec(p.cg) || !vec(p.boxMin) || !vec(p.boxMax)) {
+      return null;
+    }
+    out.push({ kind: p.kind, parent: p.parent, cg: p.cg.slice(), boxMin: p.boxMin.slice(), boxMax: p.boxMax.slice() });
+  }
+  return out;
+}
+
+/* A whack on a jelly pylon or hoop: { type: 'event', kind: 'whack', map,
+ * course, i, n: [x, y, z], square }, i the soft piece's collider index in
+ * that world and course, n the jelly's normal toward the plane. */
+export function checkWhack(m) {
+  const id = /^[a-z0-9_]{1,32}$/;
+  if (!m || !id.test(String(m.map)) || typeof m.course !== 'string' || m.course.length > 200) {
+    return null;
+  }
+  if (!Number.isInteger(m.i) || m.i < 0 || m.i > 1e6 || !(m.square >= 0 && m.square <= 1)) {
+    return null;
+  }
+  if (!Array.isArray(m.n) || m.n.length !== 3 || !m.n.every((x) => typeof x === 'number' && Math.abs(x) <= 1.001)) {
+    return null;
+  }
+  return { map: m.map, course: m.course, i: m.i, n: m.n.slice(), square: m.square };
+}

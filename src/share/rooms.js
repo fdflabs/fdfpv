@@ -198,7 +198,8 @@ export function setFigurePick(f) {
 
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
- * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state).
+ * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
+ * onEvent(event), and onBinary(bytes) for any binary message but a batch.
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -289,9 +290,13 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         return;
       }
       if (typeof ev.data !== 'string') {
-        const batch = decodeBatch(new Uint8Array(ev.data));
-        if (batch && handlers.onBatch) {
-          handlers.onBatch(batch);
+        const bytes = new Uint8Array(ev.data);
+        const batch = decodeBatch(bytes);
+        if (batch) {
+          handlers.onBatch?.(batch);
+        } else {
+          /* Every other binary type is a later phase's (roomwire.js). */
+          handlers.onBinary?.(bytes);
         }
         return;
       }
@@ -336,6 +341,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onLeave?.(m.seat);
       } else if (m.type === 'profile') {
         handlers.onProfile?.(m.seat, m.profile);
+      } else if (m.type === 'event') {
+        handlers.onEvent?.(m);
       }
     };
     socket.onclose = (ev) => {
@@ -447,6 +454,16 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       if (ws && ws.readyState === 1 && phase === 'open') {
         ws.send(bytes);
       }
+    },
+    /* A later phase's binary message (roomwire.js), while in a room. */
+    sendBinary(bytes) {
+      if (ws && ws.readyState === 1 && phase === 'open') {
+        ws.send(bytes);
+      }
+    },
+    /* { kind, ... }, sent as an event (roomwire.js names each kind). */
+    sendEvent(event) {
+      sendText({ ...event, type: 'event' });
     },
     sendProfile(profile) {
       sendText({ type: 'profile', profile });

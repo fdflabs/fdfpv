@@ -33,6 +33,10 @@ import { PeerTrack, DELAY_MS, EXTRAP_MAX_MS, STALE_MS, nearWeight } from '../src
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from '../src/game/slots.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
+import {
+  TYPE_PARTS_RELAY, decodePartsRelay, encodeParts,
+} from '../src/share/roomwire.js';
+import { PARTS_PER_S } from '../edge/rooms/wrecks.js';
 import { RoomCore, KICK_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN } from '../edge/rooms/core.js';
 
 let failed = 0;
@@ -328,6 +332,69 @@ for (const table of [en, es]) {
   }
 }
 check(`every picker word the wire can name is in English and Spanish`, missing.length === 0, missing.join(' '));
+
+console.log('phase 2: shared wrecks');
+{
+  room = new RoomCore(meta);
+  const wa = sock('wa', '10.2.0.1');
+  const wb = sock('wb', '10.2.0.2');
+  hello(wa);
+  now += 5;
+  hello(wb);
+  const table = [
+    { kind: 0, parent: -1, cg: [0, 0, 0], boxMin: [-0.3, -0.1, -0.1], boxMax: [0.3, 0.1, 0.1] },
+    { kind: 2, parent: 0, cg: [0, 0.5, 0], boxMin: [-0.1, -0.2, -0.02], boxMax: [0.1, 0.2, 0.02] },
+    { kind: 2, parent: 0, cg: [0, -0.5, 0], boxMin: [-0.1, -0.2, -0.02], boxMax: [0.1, 0.2, 0.02] },
+  ];
+  const pieces = [{ part: 1, x: 10.5, y: 301.25, z: -40, qx: 0, qy: 0.7071, qz: 0, qw: 0.7071 }];
+  const binaries = (x) => x.got.filter((m) => m instanceof Uint8Array);
+  run(room.message(wa, encodeParts(100, pieces), now));
+  check('parts before a crash are nothing', binaries(wb).length === 0);
+  run(room.message(wa, JSON.stringify({ type: 'event', kind: 'crash', table: [{ kind: 0 }] }), now));
+  check('a crash with a bad part table is not passed on', !texts(wb, 'event').length);
+  now += 1000;
+  run(room.message(wa, JSON.stringify({ type: 'event', kind: 'crash', table }), now));
+  const ev = texts(wb, 'event').find((m) => m.kind === 'crash');
+  check('a crash reaches the others with the seat and the table', ev && ev.seat === 1 && ev.table.length === 3 && ev.table[1].cg[1] === 0.5);
+  check('and is kept with the seat, for a hibernation', wa.attachment.wreck && typeof wa.attachment.wreck.crash === 'string');
+  run(room.message(wa, encodeParts(200, pieces), now));
+  const relayed = binaries(wb).at(-1);
+  const dp = relayed ? decodePartsRelay(relayed) : null;
+  check('parts are relayed with the seat after the type', relayed && relayed[0] === TYPE_PARTS_RELAY && dp.seat === 1 && dp.roomMs === 200);
+  check('each piece\'s world pose survives', dp && dp.pieces[0].part === 1 && Math.abs(dp.pieces[0].y - 301.25) < 1e-4 && Math.abs(dp.pieces[0].qy - 0.7071) < 1e-3);
+  check('a PARTS frame is 27 bytes a piece plus 6, and the relay one more', encodeParts(0, pieces).length === 27 && relayed.length === 28);
+  now += 1000;
+  let sent = 0;
+  for (let i = 0; i < 25; i += 1) {
+    const n = binaries(wb).length;
+    run(room.message(wa, encodeParts(300 + i, pieces), now));
+    sent += binaries(wb).length - n;
+  }
+  check(`parts over ${PARTS_PER_S} a second are dropped`, sent === PARTS_PER_S, `${sent}`);
+  const wc = sock('wc', '10.2.0.3');
+  hello(wc);
+  check('a pilot who joins late gets the wreck as it lies', texts(wc, 'event').some((m) => m.kind === 'crash' && m.seat === 1)
+    && binaries(wc).some((m) => m[0] === TYPE_PARTS_RELAY && decodePartsRelay(m).roomMs === 300 + PARTS_PER_S - 1));
+  room = new RoomCore(meta);
+  room.restore([wa, wb, wc].map((x) => ({ conn: x, attachment: x.attachment })));
+  const wd = sock('wd', '10.2.0.4');
+  hello(wd);
+  check('and after a hibernation too', texts(wd, 'event').some((m) => m.kind === 'crash') && binaries(wd).some((m) => m[0] === TYPE_PARTS_RELAY));
+  run(room.message(wa, JSON.stringify({ type: 'event', kind: 'crash', clear: true }), now));
+  check('a clear reaches the others', texts(wb, 'event').some((m) => m.kind === 'crash' && m.clear === true && m.seat === 1));
+  const we = sock('we', '10.2.0.5');
+  hello(we);
+  check('and the room forgets the wreck', !texts(we, 'event').length && !binaries(we).length && wa.attachment.wreck === null);
+  now += 1000;
+  run(room.message(wb, JSON.stringify({ type: 'event', kind: 'whack', map: 'swiss2', course: 'k1', i: 42, n: [0, 0, 1], square: 0.8 }), now));
+  const wh = texts(wa, 'event').find((m) => m.kind === 'whack');
+  check('a whack reaches the others with the seat', wh && wh.seat === 2 && wh.i === 42 && wh.square === 0.8 && wh.course === 'k1');
+  const before3 = texts(wa, 'event').length;
+  run(room.message(wb, JSON.stringify({ type: 'event', kind: 'whack', map: 'swiss2', course: 'k1', i: 42, n: [0, 0, 9], square: 0.8 }), now));
+  check('a whack with a bad normal is not', texts(wa, 'event').length === before3);
+  run(room.message(wb, JSON.stringify({ type: 'event', kind: 'nonsense' }), now));
+  check('an event kind nobody owns is ignored', texts(wa, 'event').length === before3);
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

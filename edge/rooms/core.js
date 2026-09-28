@@ -44,6 +44,15 @@
 import {
   CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
+import { TYPE_PARTS } from '../../src/share/roomwire.js';
+import * as wrecks from './wrecks.js';
+
+/* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
+ * ownership in fdfpv-loop/multiplayer/COORD.md). */
+const EVENTS = {
+  crash: wrecks.onCrash,
+  whack: wrecks.onWhack,
+};
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
@@ -136,7 +145,7 @@ export class RoomCore {
   }
 
   attachmentOf(s) {
-    return { seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address };
+    return { seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address, wreck: s.wreck ?? null };
   }
 
   freeSeat(wanted) {
@@ -243,12 +252,16 @@ export class RoomCore {
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
+    actions.push(...wrecks.wrecksFor(this, conn));
     return actions;
   }
 
   message(conn, data, now, address = '', newToken = null) {
     const s = this.seats.get(conn);
     if (typeof data !== 'string') {
+      if (s && data[0] === TYPE_PARTS) {
+        return wrecks.onParts(this, conn, s, data, now);
+      }
       return s ? this.pose(conn, s, data, now) : [];
     }
     const rate = s ? s.textRate : this.pending.get(conn);
@@ -287,6 +300,9 @@ export class RoomCore {
         { attach: conn, value: this.attachmentOf(s) },
         ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
       ];
+    }
+    if (msg.type === 'event' && Object.hasOwn(EVENTS, msg.kind)) {
+      return EVENTS[msg.kind](this, conn, s, msg, now);
     }
     if (msg.type === 'kick' && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
