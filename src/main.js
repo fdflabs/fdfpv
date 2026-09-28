@@ -89,6 +89,7 @@ import { createLiveLink } from './share/live.js';
 import {
   createRoomLink, figurePick, namePick, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
 } from './share/rooms.js';
+import { createRoomSafety } from './share/roomsafety.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
   encodePose, normaliseCode,
@@ -1833,7 +1834,7 @@ export async function boot({
   let roomProfileCheckAt = 0;
   let roomBusy = null; /* 'creating' while a create is in flight */
   let roomNote = null; /* a one off line under the code row */
-  let roomKickAsk = null; /* { seat, until } between the two presses of a kick */
+  let roomPublicOpen = null; /* whether the server has public rooms, once asked */
   let roomNameOffer = null; /* three picker names, while the screen is open */
 
   function roomName(pick) {
@@ -1857,12 +1858,15 @@ export async function boot({
         roomPeerJoin(p.seat, p.name, p.profile);
       }
       roomSlot = w.seat - 1;
+      roomSafety.welcomed();
       /* A room flies in one world. In free flight the pilot is seated
        * there; on a track they keep their track and see whoever is in its
-       * world. */
-      if (w.map && view && w.map !== view.id && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+       * world. Against the SEAT, not the world drawn: a pilot who chose
+       * another world a moment ago is still looking at the old one while
+       * the new one builds, and comparing with that seated nothing. */
+      if (w.map && w.map !== ui.settings.map && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
         roomNote = str('friends.other_world', { world: mapById(w.map).name });
-        ui.seatMap(w.map);
+        ui.seatMap(w.map, { stay: true });
       }
       ui.refreshFriends();
     },
@@ -1872,6 +1876,12 @@ export async function boot({
     },
     onLeave: (seat) => {
       roomPeerLeave(seat);
+      roomSafety.left(seat);
+      ui.refreshFriends();
+    },
+    onEvent: (m) => roomSafety.event(m),
+    onReported: (seat) => {
+      roomSafety.reported(seat);
       ui.refreshFriends();
     },
     onProfile: (seat, profile) => {
@@ -1897,10 +1907,15 @@ export async function boot({
       }
       if (st.phase === 'idle' || st.phase === 'failed') {
         roomPeersClear();
+        roomSafety.clear();
       }
       ui.refreshFriends();
     },
   }, () => ({ name: namePick(), profile: roomProfile() }));
+  const roomSafety = createRoomSafety((m) => roomLinkState.send(m), (seat) => {
+    const peer = roomPeers.get(seat);
+    return peer ? roomName(peer.name) : null;
+  });
 
   function roomPeerJoin(seat, name, profile) {
     const old = roomPeers.get(seat);
@@ -2073,6 +2088,11 @@ export async function boot({
     if (peer.figure.group.parent !== scene) {
       scene.add(peer.figure.group);
     }
+    /* A muted pilot's aircraft is still drawn, for everyone's safety in
+     * the air, but not their name. */
+    const label = roomSafety.isMuted(peer.seat) ? '' : roomName(peer.name);
+    peer.rig.setLabel(label);
+    peer.figure.setLabel(label);
     peer.rig.group.visible = true;
     peer.rig.pose(roomDrawn, peer.last, dt, simT, shell.canvas.clientHeight || 720, shell.camera.fov);
     const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
@@ -2093,9 +2113,14 @@ export async function boot({
       seat: st.welcome ? st.welcome.seat : null,
       slot: roomSlot,
       roomNow: roomLinkState.roomNow(),
+      public: Boolean(st.welcome && st.welcome.public),
+      shard: st.welcome ? st.welcome.shard : null,
+      heard: roomSafety.heard(),
       peers: [...roomPeers.values()].map((p) => ({
         seat: p.seat,
         name: roomName(p.name),
+        muted: roomSafety.isMuted(p.seat),
+        label: p.rig ? p.rig.label() : null,
         airframe: p.profile.airframe,
         map: p.profile.map,
         livery: p.profile.livery,
@@ -2128,6 +2153,9 @@ export async function boot({
     };
   };
   window.__roomJoin = (code) => roomLinkState.join(code);
+  window.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
+  window.__roomSay = (kind, id) => roomSafety.say(kind, id);
+  window.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
   window.__roomCreate = async () => {
     const code = await roomLinkState.create(view ? view.id : worldId());
     roomLinkState.join(code);
@@ -2142,10 +2170,14 @@ export async function boot({
     }
     const st = roomLinkState.state();
     if (st.phase === 'open') {
-      return { value: str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }), note: str('friends.row_in_note') };
+      return {
+        value: st.publicMap ? str('friends.row_in_public', { n: roomPeers.size + 1 }) : str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }),
+        note: str('friends.row_in_note'),
+        inRoom: true,
+      };
     }
     if (st.phase === 'connecting') {
-      return { value: str('friends.row_joining', { code: st.code }), note: str('friends.row_in_note') };
+      return { value: st.publicMap ? str('friends.row_joining_public') : str('friends.row_joining', { code: st.code }), note: str('friends.row_in_note') };
     }
     return { value: '', note: str('friends.row_off') };
   };
@@ -2185,9 +2217,12 @@ export async function boot({
     };
     if (st.phase === 'open' || st.phase === 'connecting') {
       const w = st.welcome;
-      const host = w && w.host === w.seat;
+      const host = w && !w.public && w.host === w.seat;
+      const world = w ? mapById(w.map).name : '';
       const rows = [
-        { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
+        st.publicMap
+          ? { label: str('friends.public_row'), value: world, note: str('friends.public_row_note'), info: true }
+          : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
         {
           label: str('friends.here'),
           value: str('friends.here_value', { n: roomPeers.size + 1, cap: w ? w.cap : 8 }),
@@ -2195,25 +2230,45 @@ export async function boot({
           info: true,
         },
         { label: str('friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
+        ...roomSafety.sayRows(),
       ];
       for (const peer of roomPeers.values()) {
         const craft = airframeById(peer.profile.airframe).name;
-        const world = mapById(peer.profile.map).name;
-        const asking = roomKickAsk && roomKickAsk.seat === peer.seat && roomKickAsk.until > performance.now();
+        const muted = roomSafety.isMuted(peer.seat);
         rows.push({
-          label: roomName(peer.name),
+          label: muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name),
           value: craft,
-          note: asking
-            ? str('friends.kick_again', { name: roomName(peer.name) })
-            : str(host ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world }),
-          ...(host ? { action: `friends-kick:${peer.seat}` } : { info: true }),
+          note: str(host ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
+          current: '',
+          pickOnly: true,
+          options: roomSafety.peerOptions(peer.seat, host),
+          pick: (v) => {
+            if (roomSafety.peerPick(peer.seat, v) === 'kick') {
+              roomLinkState.kick(peer.seat);
+            }
+            ui.refreshFriends();
+          },
         });
       }
       rows.push(nameRow, figureRow, { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
       return rows;
     }
     const failed = st.phase === 'failed' && st.reason ? str(`friends.failed_${st.reason}`) : null;
+    if (roomPublicOpen == null) {
+      roomPublicOpen = false;
+      roomLinkState.publicRooms().then((open) => {
+        roomPublicOpen = open;
+        ui.refreshFriends();
+      });
+    }
+    const here = mapById(view ? view.id : worldId()).name;
     return [
+      ...(roomPublicOpen ? [{
+        label: str('friends.public'),
+        value: here,
+        note: failed || str('friends.public_note', { world: here }),
+        action: 'friends-public',
+      }] : []),
       {
         label: str('friends.create'),
         value: roomBusy === 'creating' ? str('friends.creating') : '',
@@ -2261,6 +2316,12 @@ export async function boot({
       ui.refreshFriends();
       return;
     }
+    if (action === 'friends-public') {
+      roomNote = null;
+      roomLinkState.joinPublic(view ? view.id : worldId());
+      ui.refreshFriends();
+      return;
+    }
     if (action === 'friends-leave') {
       roomLinkState.leave();
       roomNote = null;
@@ -2279,17 +2340,6 @@ export async function boot({
       roomNote = str('friends.copied', { link });
       ui.refreshFriends();
       return;
-    }
-    const kick = /^friends-kick:(\d+)$/.exec(action);
-    if (kick) {
-      const seat = Number(kick[1]);
-      if (roomKickAsk && roomKickAsk.seat === seat && roomKickAsk.until > performance.now()) {
-        roomKickAsk = null;
-        roomLinkState.kick(seat);
-      } else {
-        roomKickAsk = { seat, until: performance.now() + 4000 };
-      }
-      ui.refreshFriends();
     }
   };
   const ghostSample = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };

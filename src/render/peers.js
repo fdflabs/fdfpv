@@ -104,7 +104,7 @@ function nameTag(height, width) {
     sprite.visible = Boolean(text);
     texture.needsUpdate = true;
   }
-  return { sprite, set, texture };
+  return { sprite, set, texture, get: () => text };
 }
 
 /* Geometry and materials, released; a material another model shares
@@ -231,6 +231,7 @@ export function buildPeerCraft(profile, look = null) {
     airframe: id,
     pose,
     setLabel: tag.set,
+    label: tag.get,
     /* Each region's colour as drawn, #rrggbb, for a check; null on a quad. */
     paint() {
       if (!craft.livery) {
