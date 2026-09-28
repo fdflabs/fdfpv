@@ -10654,6 +10654,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         crashFlip: crashflipOn || turtleWait || turtleFlip.active,
         /* Last frame's, since the banner is chosen further down. */
         banner: ui.bannerText,
+        /* The crash cam's REPLAY prompt, its key while it is up. */
+        replayKey: crashCam ? crashCam.promptKey() : null,
       });
       progressTick(powerNow);
       const ch = input.channels;
@@ -12727,6 +12729,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     knownMap: (id) => MAPS.some((m) => m.id === id),
     mapName: (id) => mapById(id).name,
     craftLook: (craft) => shell.lookCraft(craft),
+    osdOn: () => fpvOsd.on,
   });
   crashCam.tap(debris);
   /* Harness: the crash cam's controls, its costs, and a switch for the

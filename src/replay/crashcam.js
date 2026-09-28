@@ -84,6 +84,8 @@ export function createCrashCam(host) {
   const rec = createRecorder();
   let recording = true;
   let promptUntil = 0;
+  /* The prompt's key while it is up, else null: for the OSD to draw. */
+  let promptKey = null;
   let lostPartAt = -1e9;
   const prevStatus = new Int8Array(PARTS_MAX);
   const wasStatus = new Int8Array(PARTS_MAX);
@@ -105,9 +107,13 @@ export function createCrashCam(host) {
       return;
     }
     pollFlightPad();
-    /* Up for a while after a crash, and for as long as a wreck lies there. */
-    editor.prompt(host.mode() === 'flight' && host.screen() === 'flight' && (nowWall < promptUntil || host.wrecked()),
-      padConnected() ? 'X' : 'V');
+    /* Up for a while after a crash, and for as long as a wreck lies there.
+     * With the FPV OSD on screen the OSD draws it in its own type (the
+     * shell hands it promptKey), as it draws the game's banners; the chip
+     * is the Game HUD's. */
+    const up = host.mode() === 'flight' && host.screen() === 'flight' && (nowWall < promptUntil || host.wrecked());
+    promptKey = up ? (padConnected() ? 'X' : 'V') : null;
+    editor.prompt(up && !host.osdOn(), promptKey || 'V');
     if (!recording || host.mode() !== 'flight') {
       return;
     }
@@ -1273,6 +1279,7 @@ export function createCrashCam(host) {
   return {
     record,
     noteCrash,
+    promptKey: () => promptKey,
     tap,
     onKey,
     frame,
