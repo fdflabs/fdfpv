@@ -3,8 +3,8 @@
  * (docs/COMBAT-PLAN.md section 7). Two headless pages in one private room
  * on the Swiss valley: A flies the five inch in red, B the Cub in blue.
  * A starts a round; both tow their toilet paper. B hangs still sixty
- * metres up with its paper straight down; A flies past it 1.4 m off (no
- * cut), then 0.8 m off, and the owner's metre cuts it.
+ * metres up with its paper straight down; A flies past it 3.4 m off (no
+ * cut), then 2.7 m off, and the owner's three metres cut it.
  * Both screens must show the same cut from the room, the piece falling,
  * and the score. By hand, against a running rooms Worker:
  *
@@ -165,9 +165,9 @@ try {
   await shot(b, 'b-sees-own-paper');
 
   /*
-   * The owner's metre (docs/COMBAT-PLAN.md 4.1): A flies past B's hanging
-   * paper at 10 m/s along -x, first with its nearest part 1.4 m from the
-   * paper's line (no cut), then 0.8 m (a cut). The five inch flying -x
+   * The owner's three metres (docs/COMBAT-PLAN.md 4.1): A flies past B's
+   * hanging paper at 10 m/s along -x, first with its nearest part 3.4 m
+   * from the paper's line (no cut), then 2.7 m (a cut). The five inch flying -x
    * reaches `side` across its path. A is put at its start and held there
    * first: a throw is a teleport, which makes A untouchable both ways for
    * Phase 5's five seconds, and at 10 m/s its own paper's snatch stays
@@ -189,12 +189,12 @@ try {
     await a.evaluate('window.__releasePose(); true');
     return { thrown, cutsBefore };
   }
-  const far = await passBeside(1.4, 15);
+  const far = await passBeside(3.4, 15);
   await a.sleep(2500);
   const farCuts = (await a.evaluate('window.__combat()')).cuts.length;
-  check('A flies past B\'s paper 1.4 m off: no cut', far.thrown && far.thrown.ok && farCuts === far.cutsBefore, `${farCuts} cuts`);
-  const near = await passBeside(0.8, 25);
-  check('then 0.8 m off, the owner\'s near miss', near.thrown && near.thrown.ok, JSON.stringify(near.thrown).slice(0, 80));
+  check('A flies past B\'s paper 3.4 m off: no cut', far.thrown && far.thrown.ok && farCuts === far.cutsBefore, `${farCuts} cuts`);
+  const near = await passBeside(2.7, 25);
+  check('then 2.7 m off, inside the owner\'s three metres', near.thrown && near.thrown.ok, JSON.stringify(near.thrown).slice(0, 80));
   await a.until('window.__combat().cuts.length > 0', 8000).catch(() => {});
   /* The shout goes up on the next frame and stays 1.6 s. */
   await a.until('window.__combat().hud.big !== \'\'', 2000).catch(() => {});
@@ -381,7 +381,7 @@ try {
     await p.until("window.__combat().round.state === 'on'", 30000).catch(() => {});
   }
   const cutsBeforeNext = (await a.evaluate('window.__combat()')).cuts.length;
-  await passBeside(0.8, 25);
+  await passBeside(2.7, 25);
   await a.until(`window.__combat().cuts.length > ${cutsBeforeNext}`, 8000).catch(() => {});
   await a.sleep(600);
   const again = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];

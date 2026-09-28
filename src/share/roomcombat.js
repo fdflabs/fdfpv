@@ -182,12 +182,16 @@ export function createRoomCombat(link) {
       return;
     }
     const owed = runsLinks(me.runs);
-    if (paper && owedWas > 0) {
+    if (paper && paper.attached && owedWas > 0) {
       if (owed > owedWas) {
         paper.extendTo(paper.length() + (owed - owedWas));
       } else if (paper.length() > owed) {
         paper.cutTo(owed);
       }
+    } else if (live() && owed > owedWas) {
+      /* No paper on the tail (torn, or cut at the knot) and some captured:
+       * a new streamer starts on the tail, in the captured colours. */
+      wantLay = true;
     }
     owedWas = owed;
     if (paper) {

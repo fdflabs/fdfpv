@@ -17,9 +17,11 @@
  * the paper it was sent and tells everyone. The owner applies the cut to
  * its own paper, and the room also trims every frame it relays to the
  * links its cuts left, so a client that ignored the cut still shows the
- * short streamer. A streamer shorter than the room owes (the paper tore
- * by itself) is read from the owner's own frames: "denied any positive
- * scoring until a new streamer is attached", which a respawn is.
+ * short streamer. A streamer the owner's frames show shorter than the room
+ * owes tore by itself (only above 120 km/h, src/game/streamer.js): the
+ * room's list is cut to it, and the torn paper is simply gone. A pilot
+ * can always cut and score, paper or none (the lead's and the owner's
+ * decision, 2026-09-28).
  *
  * WHAT OWNS WHAT. The RoomCore owns this object (core.combat); a Durable
  * Object runs one event at a time, so nothing here is shared. The round
@@ -120,7 +122,7 @@ export class RoomCombat {
     if (!r) {
       r = {
         airframe: null, hull: null, poses: new Track(), paper: new StreamerTrack(),
-        runs: [[seat, FULL_LINKS]], owed: FULL_LINKS, links: 0, lastLinks: 0, tore: false,
+        runs: [[seat, FULL_LINKS]], owed: FULL_LINKS, links: 0, lastLinks: 0,
         points: 0, cuts: 0, crashed: false, flying: false, rate: { since: 0, n: 0 },
       };
       this.seats.set(seat, r);
@@ -159,7 +161,7 @@ export class RoomCombat {
       nextAt: r.nextAt || 0,
       minutes: r.minutes,
       scores: [...this.seats.entries()].sort((a, b) => a[0] - b[0]).map(([seat, s]) => ({
-        seat, points: s.points, cuts: s.cuts, owed: s.owed, links: s.links, lost: s.tore, runs: s.runs,
+        seat, points: s.points, cuts: s.cuts, owed: s.owed, links: s.links, runs: s.runs,
       })),
     };
   }
@@ -171,7 +173,7 @@ export class RoomCombat {
 
   store() {
     const seats = [...this.seats.entries()].map(([seat, s]) => ({
-      seat, runs: s.runs, links: s.links, tore: s.tore, points: s.points, cuts: s.cuts, crashed: s.crashed,
+      seat, runs: s.runs, links: s.links, points: s.points, cuts: s.cuts, crashed: s.crashed,
     }));
     return { store: 'combat', value: { round: { ...this.round }, seats, nextId: this.nextId } };
   }
@@ -186,7 +188,7 @@ export class RoomCombat {
     for (const k of saved.seats || []) {
       const runs = checkRuns(k.runs) || [[k.seat, FULL_LINKS]];
       Object.assign(this.record(k.seat), {
-        runs, owed: runsLinks(runs), links: k.links, tore: Boolean(k.tore), points: k.points, cuts: k.cuts, crashed: k.crashed,
+        runs, owed: runsLinks(runs), links: k.links, points: k.points, cuts: k.cuts, crashed: k.crashed,
       });
     }
   }
@@ -217,7 +219,7 @@ export class RoomCombat {
     r.nextAt = 0;
     for (const [seat, rec] of this.seats) {
       Object.assign(rec, {
-        runs: [[seat, FULL_LINKS]], owed: FULL_LINKS, links: 0, lastLinks: 0, tore: false,
+        runs: [[seat, FULL_LINKS]], owed: FULL_LINKS, links: 0, lastLinks: 0,
         points: 0, cuts: 0, crashed: false, paper: new StreamerTrack(),
       });
       for (const key of [...this.pairs.keys()]) {
@@ -317,28 +319,28 @@ export class RoomCombat {
     }
     const chain = got.chains.find((c) => c.id === 0);
     const links = chain ? chain.n - 1 : 0;
+    /* Outside a round's countdown and play there is no paper: what an
+     * owner still sends then is pieces falling, never a streamer on. */
+    const live = this.round.state === 'countdown' || this.round.state === 'on';
     /* Tore by itself: shorter than its last frame and than the room owes.
-     * A frame shorter than owed and no shorter than the last is paper the
+     * The list is cut to what is left, and the rest is gone for good. A
+     * frame shorter than owed and no shorter than the last is paper the
      * room just added (a capture) that the owner has not grown yet. */
-    const wasLost = rec.tore;
-    if (links < rec.lastLinks && links < rec.owed) {
-      rec.tore = true;
-    } else if (links >= rec.owed) {
-      rec.tore = false;
+    let tore = false;
+    if (live && links < rec.lastLinks && links < rec.owed) {
+      rec.runs = splitRuns(rec.runs, links)[0];
+      rec.owed = links;
+      tore = true;
     }
     rec.lastLinks = links;
     rec.links = Math.min(links, rec.owed);
     if (chain && rec.links > 0) {
       rec.paper.push(got.t, rec.links + 1, chain.x);
     }
-    /* Outside a round's countdown and play there is no paper: what an
-     * owner still sends then is pieces falling, never a streamer on. */
-    const live = this.round.state === 'countdown' || this.round.state === 'on';
     out.push(...core.others(conn, relayStreamer(s.seat, trimStreamer(bytes, live ? rec.owed : 0))));
     const cuts = this.judgeAll(core, now, s.seat);
-    /* A streamer the owner's own frames show shorter than owed tore by
-     * itself: everyone's scoreboard says so. */
-    if (!cuts.length && wasLost !== rec.tore && this.round.state !== 'over') {
+    /* A tear: everyone's lists and scoreboards say so. */
+    if (!cuts.length && tore) {
       out.push(...this.broadcast(core));
     }
     return [...out, ...cuts];
@@ -407,7 +409,8 @@ export class RoomCombat {
      * a single pass count as one cut"): this cutter cuts this streamer
      * nothing more until PASS_MS after, on the samples' own clock. */
     this.pairs.set(key, Math.floor(c.tc + PASS_MS));
-    const points = a.tore ? 0 : POINTS_CUT;
+    /* Always scores, paper or none: a tear costs only the paper. */
+    const points = POINTS_CUT;
     capture(a, b, c.link);
     a.points += points;
     a.cuts += 1;
