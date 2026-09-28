@@ -6,7 +6,8 @@
  * sockets that record what the room sent them: joining, the welcome, the
  * cap, seats, a reconnect with a token, a hibernation (a fresh core from
  * the sockets' attachments), the version refusal, the rate limits, a
- * host's kick, and the batches.
+ * host's kick, and the batches. Then the peer track the browser draws
+ * from (src/game/peer.js) and the name and figure tables the wire counts.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -28,6 +29,10 @@ import {
   CLOSE, FLAG_QUAD, FLAG_SMOKE, POSE_BYTES, PROTO, PROFILE_MAX_BYTES, NAME_ADJECTIVES, NAME_ANIMALS,
   checkProfile, codeFromBytes, decodeBatch, decodePose, encodeBatch, encodePose, normaliseCode, validNamePick,
 } from '../src/share/roomwire.js';
+import { PeerTrack, DELAY_MS, EXTRAP_MAX_MS, STALE_MS, nearWeight } from '../src/game/peer.js';
+import { SLOT_RIGHT_M, slotSpawn, stationFor } from '../src/game/slots.js';
+import en from '../src/strings/en.js';
+import es from '../src/strings/es.js';
 import { RoomCore, KICK_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN } from '../edge/rooms/core.js';
 
 let failed = 0;
@@ -267,6 +272,62 @@ run(room.message(only, JSON.stringify({ type: 'profile', profile: { ...profile, 
 check('a profile change is attached', only.attachment.profile.airframe === '5inch');
 run(room.close(only, now));
 check('the last one out empties the room', empties === 1 && room.seats.size === 0);
+
+console.log('drawing a peer');
+const track = new PeerTrack();
+const out = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1 };
+check('nothing yet draws nothing', track.sample(0, 0, out) === false);
+/* A peer flying +x at 30 m/s, yawing at 1 rad/s about the craft's y, a
+ * sample every 33 ms, each arriving 50 ms after it was taken. */
+const at = (t) => {
+  const half = (t / 1000) * 0.5;
+  return { flags: 0, seq: 0, t, px: 30 * (t / 1000), py: 50, pz: 0, qx: 0, qy: Math.sin(half), qz: 0, qw: Math.cos(half), vx: 30, vy: 0, vz: 0, wx: 0, wy: 1, wz: 0 };
+};
+for (let t = 0; t <= 1000; t += 33) {
+  track.push(at(t), t + 50);
+}
+const newestT = track.newest().t;
+const nowT = newestT + 50;
+track.sample(nowT, 0, out);
+check(`a far peer is drawn ${DELAY_MS} ms in the past`, Math.abs(out.px - 30 * ((nowT - DELAY_MS) / 1000)) < 0.01, `${out.px.toFixed(3)}`);
+track.sample(nowT, 1, out);
+check('a near peer is drawn in the present', Math.abs(out.px - 30 * (nowT / 1000)) < 0.01, `${out.px.toFixed(3)} for ${(30 * nowT / 1000).toFixed(3)}`);
+check('turned by its body rate to the present', Math.abs(out.qy - Math.sin((nowT / 1000) * 0.5)) < 1e-3, `${out.qy.toFixed(4)}`);
+track.sample(newestT + 2000 - 60, 1, out);
+check(`extrapolation stops at ${EXTRAP_MAX_MS} ms`, Math.abs(out.px - 30 * ((newestT + EXTRAP_MAX_MS) / 1000)) < 0.01, `${out.px.toFixed(3)}`);
+check(`nothing for ${STALE_MS} ms is not drawn`, track.sample(newestT + 50 + STALE_MS + 1, 1, out) === false);
+check('near is 1 to 60 m, far is 0 from 100 m, linear between', nearWeight(10) === 1 && nearWeight(60) === 1 && nearWeight(80) === 0.5 && nearWeight(100) === 0 && nearWeight(500) === 0);
+const before2 = track.poses.length;
+track.push(at(10), 5000);
+check('an old sample is dropped, never reordered', track.poses.length === before2);
+
+console.log('slots');
+const sp = { x: 10, z: 40, yaw: Math.PI / 2 };
+check('slot 0 is the map\'s own spawn, the same object', slotSpawn(sp, 0) === sp);
+check('out of a room there is no slot', slotSpawn(sp, -1) === sp);
+const s1 = slotSpawn(sp, 1);
+check('slot 1 is 8 m to the spawn\'s right: facing -x, right is -z', Math.abs(s1.x - 10) < 1e-9 && Math.abs(s1.z - 32) < 1e-9 && s1.yaw === sp.yaw, `${s1.x} ${s1.z}`);
+const all = SLOT_RIGHT_M.map((_, i) => slotSpawn(sp, i));
+const apart = all.every((a, i) => all.every((b, j) => i === j || Math.hypot(a.x - b.x, a.z - b.z) >= 8 - 1e-9));
+check('every slot is at least 8 m from every other', apart);
+const st = stationFor(sp, 0);
+check('the stations are 12 m behind the row: facing -x, behind is +x', Math.abs(st.x - 22) < 1e-9, `${st.x}`);
+
+console.log('names');
+const missing = [];
+for (const table of [en, es]) {
+  for (let i = 0; i < NAME_ADJECTIVES; i += 1) {
+    if (!table[`rooms.adj.${i}`]) {
+      missing.push(`adj.${i}`);
+    }
+  }
+  for (let i = 0; i < NAME_ANIMALS; i += 1) {
+    if (!table[`rooms.animal.${i}`]) {
+      missing.push(`animal.${i}`);
+    }
+  }
+}
+check(`every picker word the wire can name is in English and Spanish`, missing.length === 0, missing.join(' '));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
