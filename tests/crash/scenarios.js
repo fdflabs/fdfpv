@@ -267,7 +267,7 @@ function gateClip(v) {
   return {
     craft: '5inch',
     family: 'gate clip',
-    map: 'city',
+    map: 'alps',
     seconds: 14,
     setup(h) {
       grass(h);
@@ -300,7 +300,7 @@ export const SCENARIOS = [
     title: 'Five inch into a masonry wall at full speed',
     craft: '5inch',
     family: 'wall',
-    map: 'city',
+    map: 'alps',
     seconds: 16,
     setup(h) {
       grass(h);
@@ -326,7 +326,7 @@ export const SCENARIOS = [
     title: 'Five inch lands hard, 5 m/s down and 25 deg of bank, props into the grass',
     craft: '5inch',
     family: 'prop strike',
-    map: 'city',
+    map: 'alps',
     seconds: 5,
     setup(h) {
       grass(h);
@@ -377,7 +377,7 @@ export const SCENARIOS = [
     title: 'Five inch clips a 3 cm branch with its left arms at 10 m/s',
     craft: '5inch',
     family: 'branch',
-    map: 'city',
+    map: 'alps',
     seconds: 10,
     setup(h) {
       grass(h);
@@ -405,7 +405,7 @@ export const SCENARIOS = [
     title: 'Five inch comes down upside down onto grass at 3 m/s, then turtle',
     craft: '5inch',
     family: 'inverted landing',
-    map: 'city',
+    map: 'alps',
     seconds: 8,
     afterRestMs: 2500,
     setup(h) {
@@ -440,7 +440,7 @@ export const SCENARIOS = [
     title: 'Five inch loses a prop at 15 m/s, 10 m up',
     craft: '5inch',
     family: 'prop loss',
-    map: 'city',
+    map: 'alps',
     seconds: 16,
     /* The prop on motor 0 (Betaflight's rear right) leaves through
      * sim_part_break, exactly as a load past its joint's limit would
@@ -788,7 +788,7 @@ function planeScenarios(key) {
       },
     });
   }
-  return out.map((o) => ({ craft: key, map: 'airfield', ...o, title: `${o.title}` }));
+  return out.map((o) => ({ craft: key, map: 'alps', ...o, title: `${o.title}` }));
 }
 
 for (const key of PLANES) {

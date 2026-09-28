@@ -975,10 +975,11 @@ const BEHAVIOUR = `(() => {
       return { map, landed, launched };
     };
     /* A dressed world is freestyle by MAPS[].mode and must fly straight.
-     * There was a second call here for Industrial bando, which was removed
-     * with the other two freestyle worlds on 2026-08-30; one world is all
-     * there is to try. */
-    seen.push(tryFly('city'));
+     * Every one the registry has, so a world added or retired needs no
+     * edit here: this named the town until the town was retired. */
+    for (const m of window.__maps().filter((x) => x.mode === 'freestyle')) {
+      seen.push(tryFly(m.id));
+    }
     out.launchGate = { seen };
   } catch (e) {
     out.launchGate = { error: String(e && e.message ? e.message : e) };
@@ -1390,7 +1391,7 @@ const BEHAVIOUR = `(() => {
      * Track mode is pressed for real with a plane seated too, and the plane
      * stays: every plane that fits a track's gates races it. Freestyle is
      * only set, because answering it can seat a world, and seating a world
-     * hands main.js a swap: the city is nineteen thousand meshes and this
+     * hands main.js a swap: a world is thousands of meshes and this
      * check has nothing to say about it. What act() does on the way is the
      * same code either way.
      */

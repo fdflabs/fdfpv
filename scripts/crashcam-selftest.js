@@ -656,6 +656,14 @@ function file() {
   } catch (err) {
     check(err instanceof ReplayFileError, 'refused: an aircraft this build does not fly', err.message);
   }
+  /* A clip flown in a world this build no longer has names the world, so
+   * the screen can say it was retired rather than "not a replay". */
+  try {
+    decodeReplay(buf, { airframe: () => true, map: (id) => id !== 'alps' });
+    check(false, 'refused: a map this build does not have, by name', 'accepted');
+  } catch (err) {
+    check(err instanceof ReplayFileError && err.map === 'alps', 'refused: a map this build does not have, by name', `${err.message}, map ${err.map}`);
+  }
 }
 const PARTS_MAX_R = PARTS_MAX;
 
@@ -666,7 +674,7 @@ const same = (a, b) => a.length === b.length && a.every((x, i) => Object.is(x, b
 function counts() {
   console.log('9. every frame count saves and reads back, odd and even');
   const meta = {
-    name: 'Counts', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'airfield', scale: 1, size: 1.8, duration: 0,
+    name: 'Counts', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'swiss2', scale: 1, size: 1.8, duration: 0,
     parts: [0, 1, 2].map((i) => ({ kind: 8, kindName: 'fuselage', parent: i - 1, material: 2, cg: [0, 0, 0], boxMin: [-1, -1, -1], boxMax: [1, 1, 1] })),
     fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
   };
@@ -803,7 +811,7 @@ function smokeColumn() {
     r.smoke(i, f >= 2, noz, vel);
   }
   const c = r.clip({
-    name: 'Smoke', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'airfield', scale: 1, size: 1.8, duration: 0,
+    name: 'Smoke', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'swiss2', scale: 1, size: 1.8, duration: 0,
     parts: [], fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
     fit: { entry: { prop: 'stock', addons: ['smoke', 'warp drive'], damage: null }, option: null },
   });

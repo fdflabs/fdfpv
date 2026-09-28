@@ -1140,7 +1140,8 @@ export function createCrashCam(host) {
     } catch (err) {
       if (err instanceof ReplayFileError) {
         console.warn('replay refused:', err.message);
-        throw new Error(str('replay.not_a_replay'));
+        const retired = err.map && host.retiredMapName(err.map);
+        throw new Error(retired ? str('replay.map_retired', { map: retired }) : str('replay.not_a_replay'));
       }
       throw err;
     }

@@ -702,7 +702,7 @@ async function mousePage(page) {
     ui.settings.airframe = 'whoop65';
     ui.modeSyncedFor = 'whoop65';
     ui.mode = 'freestyle';
-    ui.settings.map = 'city';
+    ui.settings.map = 'alps';
     const angle = ui.settings.cameraAngle;
     ui.settings.cameraAngle = angle === 15 ? 25 : 15;
     ui.writeSettings();
@@ -710,7 +710,7 @@ async function mousePage(page) {
     ui.settings.airframe = '5inch';
     ui.modeSyncedFor = '5inch';
     ui.mode = 'freestyle';
-    ui.settings.map = 'city';
+    ui.settings.map = 'alps';
     ui.settings.airframe = 'whoop65';
     ui.writeSettings();
     out.afterSwap = { mode: ui.mode, map: ui.settings.map };
@@ -720,8 +720,8 @@ async function mousePage(page) {
     ui.show('title');
     return JSON.stringify(out);
   `).then(JSON.parse);
-  check('camera angle on a seated whoop leaves freestyle and the town alone',
-    sync.afterCamera.mode === 'freestyle' && sync.afterCamera.map === 'city', JSON.stringify(sync.afterCamera));
+  check('camera angle on a seated whoop leaves freestyle and the Alps alone',
+    sync.afterCamera.mode === 'freestyle' && sync.afterCamera.map === 'alps', JSON.stringify(sync.afterCamera));
   check('swapping to the whoop still seats race on the track seat',
     sync.afterSwap.mode === 'race' && sync.afterSwap.map === 'track', JSON.stringify(sync.afterSwap));
 }

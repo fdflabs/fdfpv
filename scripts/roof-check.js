@@ -13,7 +13,7 @@
  * them the airplane crashes." Every scenario is thrown through
  * window.__crashThrow at one real roof of the map of each kind of building
  * (window.__roofs: a village house, a barn's lean-to, a hut, a boathouse, a
- * gondola station, a city roof...), with the run's crash damage on, and
+ * gondola station...), with the run's crash damage on, and
  * flown by the shell as a pilot's flight is:
  *
  *   ramp   up the roof's slope at 7 degrees under its pitch, level with
@@ -154,7 +154,6 @@ const KINDS = {
   /* A garden shed is 2.4 m across its ridge at 35 degrees: a plane is
    * over it before it can climb onto it, so it is not ramped. */
   shed: { fly: ['dive', 'wall', 'gable', 'slope', 'quad'], min: 1 },
-  cityRoof: { fly: CLOSED, min: 2.5 },
   kiosk: { fly: ['dive', 'wall', 'quad'], min: 1.5 },
   /* The bus shelter's roof falls three degrees: a ramp is a skim. */
   spire: { fly: ['dive', 'wall', 'slope'], min: 1 },
@@ -723,15 +722,7 @@ const SWEEP = `(() => {
     const [cx, cz] = L(0, 0);
     const foot = surf(cx, cz, -1e9);
     const ridge = window.__roofTop(i, cx, cz);
-    /* A city roof's walls are the collider fit's boxes under it, which
-     * hug the drawing rather than a rectangle: inside is in the plan of
-     * one of them, a hand in from its sides, and under the roof. */
-    const own = R.kind === 'cityRoof'
-      ? window.__colliderBoxes(cx, cz, Math.hypot(R.maxX - R.minX, R.maxZ - R.minZ)).filter((b) => R.solids.includes(b[6]))
-      : null;
-    const inside = own
-      ? (x, y, z) => y < window.__roofTop(i, x, z) - R.dy - 0.1 && own.some((b) => x > b[0] + 0.3 && x < b[3] - 0.3 && z > b[2] + 0.3 && z < b[5] - 0.3)
-      : (x, y, z) => within(i, x, y, z, 0.3);
+    const inside = (x, y, z) => within(i, x, y, z, 0.3);
     /* A sweep from inside some other building is not a way in from
      * outside: the station's machine house stands inside the station. */
     const indoors = (x, y, z) => roofs.some((o, j) => j !== i && Math.abs(o.x - x) < 40 && Math.abs(o.z - z) < 40 && within(j, x, y, z, 0));
@@ -817,29 +808,19 @@ async function sweep() {
     const byKind = {};
     let failed = 0;
     for (const r of rows) {
-      const k = (byKind[r.kind] ??= { buildings: 0, sweeps: 0, into: 0, openings: 0, fit: 0 });
-      /* A city roof's walls are the collider fit's, which this round does
-       * not touch (src/maps/city/index.js): a way in through them at wall
-       * height is the fit's, and is listed, not failed. Its attic, its
-       * gables and its roof are this round's. */
-      const fit = r.kind === 'cityRoof' ? r.bad.filter((b) => b.what === 'wall') : [];
-      const bad = r.bad.filter((b) => !fit.includes(b));
+      const k = (byKind[r.kind] ??= { buildings: 0, sweeps: 0, into: 0, openings: 0 });
+      const bad = r.bad;
       k.buildings += 1;
       k.sweeps += r.sweeps;
       k.into += bad.length;
       k.openings += r.openings;
-      k.fit += fit.length;
       if (bad.length) {
         failed += 1;
         console.log(`FAIL ${MAP} ${r.kind} ${r.key} at ${r.at.join(',')}: ${JSON.stringify(bad.slice(0, 4))}`);
       }
-      if (fit.length) {
-        console.log(`  fit ${MAP} ${r.kind} ${r.key} at ${r.at.join(',')}: ${JSON.stringify(fit.slice(0, 2))}`);
-      }
     }
     for (const [kind, k] of Object.entries(byKind)) {
-      const fit = k.fit ? `, ${k.fit} in through the collider fit's walls (the fit's, listed above)` : '';
-      console.log(`${k.into ? 'FAIL' : 'PASS'} ${MAP} sweep ${kind}: ${k.buildings} buildings, ${k.sweeps} sweeps, ${k.into} got in through the drawing, ${k.openings} in at an opening${fit}`);
+      console.log(`${k.into ? 'FAIL' : 'PASS'} ${MAP} sweep ${kind}: ${k.buildings} buildings, ${k.sweeps} sweeps, ${k.into} got in through the drawing, ${k.openings} in at an opening`);
     }
     const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED/.test(e));
     for (const e of errs) {

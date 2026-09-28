@@ -270,9 +270,9 @@ async function measure(airframeId) {
     root,
     width: 960,
     height: 540,
-    /* The light world, the airfield, rather than the title's own valley
+    /* The light world, the Alps, rather than the title's own valley
      * (src/boot.js); the model is measured in the scene either way. */
-    url: '/index.html?map=airfield',
+    url: '/index.html?map=alps',
     seed: [`try {
       const k = ${JSON.stringify(SETTINGS_KEY)};
       const s = JSON.parse(localStorage.getItem(k) || '{}');

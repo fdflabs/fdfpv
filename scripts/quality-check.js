@@ -41,7 +41,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { GRAPHICS_IDS, qualityFor, pixelRatioFor, internalScale } from '../src/render/quality.js';
+import { GRAPHICS_IDS, qualityFor, pixelRatioFor } from '../src/render/quality.js';
 import { isIntegratedGpu } from '../src/render/gpuinfo.js';
 
 const rows = [];
@@ -163,20 +163,17 @@ for (const id of GRAPHICS_IDS) {
  * lever the preset does not pull is worse than no note: it sends a pilot
  * looking for a change that will not come.
  *
- * The field reads shadowMap and shadowHalf and nothing else, so only the
- * city may be described as thinning anything.
+ * No world has a planting lever. The freestyle town's foliageKeep was the
+ * only one, and it went with the town, so no note may promise planting.
  */
 for (const id of GRAPHICS_IDS) {
   const q = qualityFor(id);
   const note = String(q.note || '');
   const plantingWords = /plant|foliage|tree|grass/i.test(note);
-  const namesTheTown = /town|city/i.test(note);
   check(
-    `${id}: note does not promise a lever the field lacks`,
-    !plantingWords || namesTheTown,
-    plantingWords
-      ? (namesTheTown ? 'planting named, and attributed to the town' : 'promises planting without saying it is the town, and the field has no planting lever')
-      : 'no planting claim',
+    `${id}: note does not promise a planting lever no world has`,
+    !plantingWords,
+    plantingWords ? 'promises planting, and no world has a planting lever' : 'no planting claim',
   );
 }
 
@@ -212,28 +209,6 @@ for (const raw of INTEGRATED) {
 }
 for (const raw of NOT_INTEGRATED) {
   check(`discrete:   ${raw.slice(0, 54)}`, !isIntegratedGpu(raw), 'left alone, so it keeps the authored look');
-}
-
-/*
- * The city's internal scale still answers with the map's own numbers. This
- * is the function the pipeline and the harness both read, and they disagreed
- * once: the formula said 1.0 where the pipeline rendered 1.34.
- */
-{
-  const cityHigh = qualityFor('high').city;
-  const s = internalScale(1600, 900, cityHigh, null, 1);
-  const px = 1600 * 900 * s * s;
-  check(
-    'city: High at 1600x900 stays inside its own budget',
-    px <= cityHigh.pixelBudget * 1.001,
-    `scale ${s.toFixed(4)}, ${(px / 1e6).toFixed(2)} Mpx against a ${(cityHigh.pixelBudget / 1e6).toFixed(2)} Mpx budget`,
-  );
-  const half = internalScale(1600, 900, cityHigh, null, 0.5);
-  check(
-    'city: the Render scale slider reaches the internal buffer',
-    half < s,
-    `100 percent gives ${s.toFixed(3)}, 50 percent gives ${half.toFixed(3)}`,
-  );
 }
 
 const w = Math.max(...rows.map((r) => r[0].length));
