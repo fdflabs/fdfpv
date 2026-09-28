@@ -222,6 +222,43 @@ check: {
       `at least ${t8.minBankDeg} deg within ${t8.withinS} s`);
   }
 
+  /*
+   * P19: the owner's stall, a slow pull. Level at 15.6 m/s with the gear
+   * up, the throttle closed and the elevator run linearly to full over 8
+   * s, ailerons and rudder centred. The roll off is timed from its onset,
+   * the first moment the helix angle pb/2V passes 0.02, a quarter of the
+   * reference's peak; in the second after it, the first roll's peak
+   * pb/2V and the bank it takes. The reference is the XP-51's clean wing
+   * gliding stall with the controls fixed (NACA, White, Hoover and Garris
+   * 1943, fig. 42): 0.55 rad/s at 88 mph on its 37 ft span, 0.079, and 39
+   * deg of bank in the time its first 1.76 s is at the kit's span and
+   * speed (b/V), both read off the scan and banded by half again either
+   * way. docs/P51-STAGE1.md.
+   */
+  {
+    const t19 = th.p19_slow_pull;
+    clockMs = flyUp(sim, { duty: 0.8, vTarget: t19.entry, seconds: 30, guard: false, speed0: t19.entry, start: STILL_AIR }).endMs;
+    const rows = [];
+    for (let ms = 0; ms < 11000; ms += RC_STEP_MS) {
+      const o = step(sim, [0, Math.min(1, ms / (t19.rampS * 1000)), 0, 0]);
+      rows.push({ ms, bank: fullBank(o.s) * DEG, p: o.s[11], v: speed(o.s) });
+    }
+    const helix = (x) => x.p * 1.450 / (2 * x.v);
+    const on = rows.find((x) => Math.abs(helix(x)) > t19.onsetPb2v);
+    let peak = 0;
+    let bankMax = 0;
+    if (on) {
+      const sg = Math.sign(on.p);
+      for (const x of rows.filter((r) => r.ms >= on.ms && r.ms <= on.ms + 1000)) {
+        peak = Math.max(peak, sg * helix(x));
+        bankMax = Math.max(bankMax, Math.abs(x.bank - on.bank));
+      }
+    }
+    gate('P19', 'slow pull to full up over 8 s: the wing drops sharply', on !== undefined && peak >= t19.min && peak <= t19.max && bankMax >= t19.bankMin && bankMax <= t19.bankMax,
+      on === undefined ? 'no roll off' : `onset ${(on.ms / 1000).toFixed(2)} s at ${on.v.toFixed(2)} m/s, ${on.p < 0 ? 'left' : 'right'} wing; first 1 s: peak pb/2V ${peak.toFixed(4)} (${(peak * 2 * on.v / 1.45 * DEG).toFixed(0)} deg/s), bank ${bankMax.toFixed(1)} deg`,
+      `pb/2V ${band(t19)}, bank ${t19.bankMin} to ${t19.bankMax} deg (XP-51: ${t19.reference}, ${t19.bankRef})`);
+  }
+
   /* P9: the phugoid, level cruise at 75 percent, gear up, a second of a
    * little up stick, then hands off with the wings held level. */
   {

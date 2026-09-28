@@ -10,6 +10,7 @@
   "p6_roll": { "speed": 18, "derived": 0.1216, "min": 0.091, "max": 0.152 },
   "p7_coast": { "seconds": 3, "derived": 17.10, "kadet": 12.72, "min": 16.2, "max": 18.0 },
   "p8_stall_drop": { "entry": 12.1, "seconds": 4, "minBankDeg": 20, "withinS": 3 },
+  "p19_slow_pull": { "entry": 15.6, "rampS": 8, "onsetPb2v": 0.02, "reference": 0.079, "min": 0.040, "max": 0.118, "bankRef": 39, "bankMin": 20, "bankMax": 59 },
   "p9_phugoid": { "derived": 11.44, "min": 9.40, "max": 13.30 },
   "p10_prop_torque": { "disc": 0.4854, "shaft": 0.950, "min": 0.41, "max": 1.08 },
   "p11_pfactor": { "speed": 8, "pitchDeg": 10, "tolerance": 0.02 },
