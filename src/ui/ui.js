@@ -12575,6 +12575,7 @@ export class Ui {
       power,
       warn: this.hangarWarning ? this.hangarWarning(id) : '',
       hint: this.pickHint(),
+      settings: s,
       sound: (kind) => {
         if (this.onUiSound) {
           this.onUiSound(kind);
@@ -12592,6 +12593,8 @@ export class Ui {
         if (power && s.power && typeof s.power === 'object') {
           s.power = { ...s.power, [id]: res.power };
         }
+        /* The registered tabs' own (registerHangarTab in src/ui/hangar.js). */
+        Object.assign(s, res.settings);
         this.persistSettings();
         preview(null);
         Promise.resolve()
