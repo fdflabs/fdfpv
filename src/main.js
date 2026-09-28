@@ -3930,6 +3930,8 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   let wreckAtWall = 0;
   /* Since when the wreck has lain still, wall ms, or -1 while it moves. */
   let wreckStillSince = -1;
+  /* Since when a tree crown has held the craft still, wall ms, or -1. */
+  let treeStillSince = -1;
   let wreckCraft = null;
   let partTable = [];
   let cameraPart = -1;
@@ -4129,6 +4131,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   function crashReset() {
     wrecked = false;
     wreckStillSince = -1;
+    treeStillSince = -1;
     crashFlags = 0;
     lastParts = null;
     crashLog.length = 0;
@@ -4680,6 +4683,21 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       nowWall,
     );
     if (!wrecked && mode === 'flight' && isWreck(crashFlags, airframeById(runAirframe).fixedWing)) {
+      enterWreck(nowWall);
+    }
+    /* HUNG UP IN A TREE. A crown that catches a craft whole raises only
+     * inTree, and no wreck flag: the owner's Timber hung at 0 m/s in the
+     * branches with no banner and no REPLAY prompt, and the frozen FPV
+     * picture read as the game hanging. Held by a crown and still for as
+     * long as a wreck must lie still is the flight's end. The sticks still
+     * answer, so a quad that punches out of the branches flies on. */
+    const held = (crashFlags & DAMAGE_FLAGS.inTree) !== 0 && stateCurr
+      && plantSpeed(stateCurr) <= PERCH_SPEED && plantRateMag(stateCurr) <= PERCH_RATE;
+    if (!held) {
+      treeStillSince = -1;
+    } else if (treeStillSince < 0) {
+      treeStillSince = nowWall;
+    } else if (!wrecked && mode === 'flight' && nowWall - treeStillSince >= WRECK_REST_MS) {
       enterWreck(nowWall);
     }
     if (!wrecked || !stateCurr) {
@@ -12652,6 +12670,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       wrecked = isWreck(crashFlags, airframeById(runAirframe).fixedWing);
       wreckAtWall = nowWall;
       wreckStillSince = -1;
+      treeStillSince = -1;
       if (craftHull) {
         hullIntact(craftHull);
         syncCraftParts(back);
