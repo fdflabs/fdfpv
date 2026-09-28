@@ -94,6 +94,15 @@ console.log('1. the journal\'s tables against sim_abi.h and the module');
   const wrongSide = withPointer.filter((n) => POINTERS[n] && POINTERS[n].in !== undefined
     && !/const\s/.test(decls.find((d) => d[1] === n)[2]));
   check(wrongSide.length === 0, 'every `in` pointer is const in the header', wrongSide.join(', ') || 'yes');
+  /* The doubles an `in` pointer carries are the header's own count. */
+  const counts = { sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES' };
+  const inputs = Object.keys(POINTERS).filter((n) => POINTERS[n].doubles);
+  const sized = inputs.map((n) => {
+    const m = counts[n] && header.match(new RegExp(`#define ${counts[n]} (\\d+)`));
+    return [n, m ? Number(m[1]) : NaN];
+  });
+  check(sized.every(([n, d]) => d === POINTERS[n].doubles), 'every input block is the size the header defines',
+    sized.map(([n, d]) => `${n} ${POINTERS[n].doubles}/${d}`).join(', '));
   const mod = new WebAssembly.Module(wasmBytes);
   const exported = WebAssembly.Module.exports(mod).filter((x) => x.kind === 'function' && x.name.startsWith('sim_')).map((x) => x.name);
   const declared = new Set(decls.map((d) => d[1]));
@@ -173,6 +182,22 @@ function wingPart(sim) {
   return found;
 }
 
+/* The wing's tune block read back and seated again with a little more
+ * aileron throw, in flight between two copies: the other call that hands
+ * the module a block of doubles through the heap (sim_wing_set_tune),
+ * which the journal copies and a restore has to make again. */
+function retune(sim) {
+  if (typeof sim.e.sim_wing_set_tune !== 'function') {
+    return;
+  }
+  const p = sim.e.malloc(16 * 8);
+  must(sim.e.sim_wing_tune(p), 'sim_wing_tune');
+  const block = new Float64Array(sim.e.memory.buffer, p, 11);
+  block[3] = block[3] > 0 ? block[3] * 1.1 : block[3];
+  must(sim.e.sim_wing_set_tune(p), 'sim_wing_set_tune');
+  sim.e.free(p);
+}
+
 function flyTakeOver() {
   return (async () => {
     console.log('3. take over: put back from the journal, bit for bit');
@@ -187,6 +212,7 @@ function flyTakeOver() {
     if (block) {
       must(sim.setPower(block), 'sim_set_power');
     }
+
     sim.e.sim_set_ground_material(SURFACE.grass);
     sim.e.sim_tree_add(40, 6, 0, 0.3, 3, 9, 3);
     sim.e.sim_obstacle_cylinder(55, -4, 0, 3, 0.08, 1);
@@ -205,6 +231,9 @@ function flyTakeOver() {
     for (let ms = 0; ms < MS; ms += 1) {
       stepMs(sim, ms, statePtr, partsPtr, eventsPtr);
       t = (ms + 1) / 1000;
+      if (ms === 1234) {
+        retune(sim);
+      }
       if (ms === 2500) {
         broke = sim.e.sim_part_break(wing) === SIM_OK;
       }
@@ -229,11 +258,11 @@ function flyTakeOver() {
     const stats = j.stats();
     console.log(`     journal: ${stats.segments} copies, ${stats.calls} calls, ${(stats.bytes / 1e6).toFixed(2)} MB, region ${stats.region} B`);
 
-    /* Frames all through: the first, around the break, while the wing
-     * falls, on the ground, the last. Later first, so each restore throws
+    /* Frames all through: the first, after the retune (93, 1.5 s), around
+     * the break, while the wing falls, on the ground, the last. Later first, so each restore throws
      * away less than the next needs. */
     const picks = [frames.length - 1, Math.floor(frames.length * 0.8), freeAt + 40, freeAt + 3, freeAt,
-      Math.floor(frames.length * 0.25), 3].filter((i, k, a) => i >= 0 && i < frames.length && a.indexOf(i) === k)
+      Math.floor(frames.length * 0.25), 93, 3].filter((i, k, a) => i >= 0 && i < frames.length && a.indexOf(i) === k)
       .sort((a, b) => b - a);
     let identical = 0;
     for (const i of picks) {
@@ -253,6 +282,7 @@ function flyTakeOver() {
       if (block) {
         g.setPower(block);
       }
+
       g.e.sim_set_ground_material(SURFACE.grass);
       g.e.sim_tree_add(40, 6, 0, 0.3, 3, 9, 3);
       g.e.sim_obstacle_cylinder(55, -4, 0, 3, 0.08, 1);
@@ -260,6 +290,9 @@ function flyTakeOver() {
       g.e.sim_wing_launch(15);
       for (let ms = 0; ms < MS; ms += 1) {
         stepMs(g, ms, sp, pp, ep);
+        if (ms === 1234) {
+          retune(g);
+        }
         if (ms === 2500) {
           g.e.sim_part_break(wing);
         }
