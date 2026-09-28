@@ -154,6 +154,11 @@ export function buildPeerCraft(profile, look = null) {
     }
   }
   const undoLook = look ? look(craft) : null;
+  /* The model's largest dimension, metres, measured once before the tag
+   * goes on: how big it stands on screen is what the peer marks
+   * (src/ui/peermarks.js) judge by. */
+  const size = new THREE.Box3().setFromObject(craft.group).getSize(new THREE.Vector3());
+  const extent = Math.max(size.x, size.y, size.z) || 1;
   const tag = nameTag(1.3, 2.2);
   craft.group.add(tag.sprite);
   const quad = !airframeById(id).fixedWing;
@@ -231,6 +236,7 @@ export function buildPeerCraft(profile, look = null) {
     smoke: smoke ? smoke.group : null,
     key: profileKey(profile),
     airframe: id,
+    extent,
     pose,
     setLabel: tag.set,
     label: tag.get,

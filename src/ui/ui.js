@@ -183,6 +183,7 @@ import {
   clampCameraAngle,
 } from '../render/lens.js';
 import { ScoreHud } from './scorehud.js';
+import { MARK_STYLES } from './peermarks.js';
 import { formatScore } from '../game/score.js';
 import { JOKE_MS, quotedJoke } from './loading.js';
 import { fillCredits } from './credits.js';
@@ -740,6 +741,10 @@ const DEFAULTS = {
    * A quad flies FPV only. */
   wingView: 'fpv',
   hudStyle: 'osd',
+  /* The marks that point out the other pilots in a room when their
+   * aircraft is small, hidden or off screen (src/ui/peermarks.js): 'on',
+   * 'minimal' (the shapes without the names and ranges) or 'off'. */
+  peerMarks: 'on',
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
@@ -1010,6 +1015,7 @@ export function loadSettings() {
     ['renderScale', RENDER_SCALES],
     ['fpsCap', FPS_CAPS],
     ['hudStyle', HUD_STYLES],
+    ['peerMarks', MARK_STYLES],
     ['flightStyle', FLIGHT_STYLES],
     ['laps', LAP_COUNTS],
     ['packVoltage', PACK_VOLTAGES],
@@ -6415,6 +6421,14 @@ export class Ui {
           s.hudStyle,
           (id) => (id === 'osd' ? str('ui.hud_osd') : str('ui.hud_game')),
           (id) => { s.hudStyle = id; },
+        ),
+        choice(
+          str('ui.peer_marks'),
+          str('ui.peer_marks_note'),
+          MARK_STYLES,
+          s.peerMarks,
+          (id) => str(`ui.peer_marks_${id}`),
+          (id) => { s.peerMarks = id; },
         ),
         { label: str('ui.sound'), section: true },
         toggle(str('ui.sound'), str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
