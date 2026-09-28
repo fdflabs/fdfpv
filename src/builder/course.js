@@ -55,12 +55,18 @@ import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '..
  * (src/trackbuilder/elements.js, the span rule): the two wide gates, the
  * air race's pylon pair, and one pylon turned round on a set side, a marker
  * scoring through the square beside it. Then the sky hoops, round openings
- * that float: two small ones for the quads and four big ones for the
+ * that float: two small ones for the quads and the 30 m one for the
  * planes. Flags and cones are not here: they are the field's markers,
  * sized for a five inch.
+ *
+ * The 6, 12 and 20 m plane hoops are retired. The owner: "I only want the
+ * 30 m hoop." No hotbar, inventory or generated course offers them, but
+ * saved and published tracks name them, so they still load, draw, race and
+ * can be moved: they stay in BUILD_TYPES and out of PIECES.
  */
-export const HOOP_TYPES = ['hoop175', 'hoop250', 'hoop6', 'hoop12', 'hoop20', 'hoop30'];
-export const BUILD_TYPES = ['gate', 'flaggedGate', 'doubleStack', 'ladder', 'tower', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon', ...HOOP_TYPES];
+export const HOOP_TYPES = ['hoop175', 'hoop250', 'hoop30'];
+export const RETIRED_HOOPS = ['hoop6', 'hoop12', 'hoop20'];
+export const BUILD_TYPES = ['gate', 'flaggedGate', 'doubleStack', 'ladder', 'tower', 'wideGate3', 'wideGate5', 'pylonPair', 'pylon', ...HOOP_TYPES, ...RETIRED_HOOPS];
 
 /*
  * THE PIECES the hotbar and the inventory hold: a type, and what placing
@@ -68,7 +74,7 @@ export const BUILD_TYPES = ['gate', 'flaggedGate', 'doubleStack', 'ladder', 'tow
  * the start when it lands (makeStart), and a pylon comes as two pieces, one
  * for each side it is passed on, so turning a pylon round is picking the
  * other piece rather than a key of its own. `cat` is the inventory's
- * shelf. Every BUILD_TYPES type is here.
+ * shelf. Every BUILD_TYPES type but the retired hoops is here.
  */
 export const PIECES = [
   { id: 'start', type: 'gate', start: true, cat: 'gates' },
@@ -85,6 +91,13 @@ export const PIECES = [
   ...HOOP_TYPES.map((type) => ({ id: type, type, cat: 'sky' })),
 ];
 
+/* What a retired hoop placed on an old track is when it is picked up (F):
+ * itself, so it moves as the size it is. A middle click or a copy of one
+ * (offeredPiece) is the 30 m hoop, the one plane hoop still placed. */
+const RETIRED_PIECES = RETIRED_HOOPS.map((type) => ({
+  id: type, type, cat: 'sky', retired: true, successor: 'hoop30',
+}));
+
 /* The inventory's shelves, in order. */
 export const PIECE_CATS = ['gates', 'stacks', 'wide', 'air', 'sky'];
 
@@ -92,14 +105,38 @@ export const PIECE_CATS = ['gates', 'stacks', 'wide', 'air', 'sky'];
  * two quad hoops among them. */
 export const DEFAULT_HOTBAR = ['start', 'gate', 'flaggedGate', 'doubleStack', 'hoop175', 'hoop250', 'wideGate3', 'wideGate5', 'ladder'];
 
-/* The hotbar a builder starts with when a fixed wing is seated: the plane
- * hoops first, then the air race pieces and the wide gates. The five inch
- * pieces and the quad hoops are in the inventory (E); a plane does not fit
- * them. No start piece: the first gate placed is the start, and here that
- * is a 20 m hoop. */
-export const DEFAULT_WING_HOTBAR = ['hoop20', 'hoop12', 'hoop30', 'hoop6', 'pylonPair', 'pylon', 'pylonRight', 'wideGate5', 'wideGate3'];
+/* The hotbar a builder starts with when a fixed wing is seated: the 30 m
+ * hoop and the air race's pylon pair first, the owner's two plane pieces
+ * ("reintroduce the large air gates like Red Bull Air Race, not only
+ * hoops"), then the single pylons and the wide gates, which are every
+ * piece a plane fits. That is six, so the last three slots are the five
+ * inch gates a mixed course is most likely to want; the quad hoops stay in
+ * the inventory (E), since the owner wants no hoop but the 30 m one in a
+ * plane's hand. No start piece: the first gate placed is the start. */
+export const WING_FIRST = ['hoop30', 'pylonPair'];
+export const DEFAULT_WING_HOTBAR = [...WING_FIRST, 'pylon', 'pylonRight', 'wideGate5', 'wideGate3', 'gate', 'flaggedGate', 'doubleStack'];
 
 export const HOTBAR_SLOTS = 9;
+
+/* A hotbar as this browser stored it (`got`, anything JSON.parse gave),
+ * against its kind's defaults. A slot that is no longer a piece, a retired
+ * hoop saved before it was retired or anything unreadable, is dropped and
+ * the pilot's own pieces close up in their order. Each of `first` the bar
+ * lacks goes back in at its default slot, which is how a bar stored
+ * before the plane pieces were put first gets them back (buildmode.js runs
+ * that once, as it moves the bar to a new key). The defaults the bar does
+ * not already hold fill the end. So a stale bar does not keep offering a
+ * retired hoop, shows no piece twice, and the old plane default comes back
+ * as the new one exactly. */
+export function restoreHotbar(got, defaults, first = []) {
+  const kept = Array.isArray(got) ? got.slice(0, defaults.length).filter((id) => pieceById(id)) : [];
+  for (const id of first) {
+    if (!kept.includes(id)) {
+      kept.splice(defaults.indexOf(id), 0, id);
+    }
+  }
+  return [...kept, ...defaults.filter((id) => !kept.includes(id))].slice(0, defaults.length);
+}
 
 export function pieceById(id) {
   return PIECES.find((p) => p.id === id) ?? null;
@@ -117,7 +154,13 @@ export function pieceOf(doc, id) {
     return pieceById('start');
   }
   return PIECES.find((p) => p.type === el.type && !p.start && (p.passSide ?? null) === (step.passSide ?? null))
-    ?? PIECES.find((p) => p.type === el.type && !p.start);
+    ?? [...PIECES, ...RETIRED_PIECES].find((p) => p.type === el.type && !p.start);
+}
+
+/* The piece a middle click or a copy puts in hand for `piece`: the piece
+ * itself, or for a retired hoop the hoop that replaced it. */
+export function offeredPiece(piece) {
+  return piece && piece.retired ? pieceById(piece.successor) : piece;
 }
 
 /* A five inch's gate is built at the field's 15 percent on MultiGP's
@@ -874,27 +917,40 @@ export function chainPose(from, forward, distance, turn, centreY, grid = false) 
 
 /*
  * THE CASUAL SKY TRACK, the one click starter My tracks offers a plane
- * (src/ui/ui.js): CASUAL.hoops big hoops round a wide oval, CASUAL.spacing
- * apart, each hung CASUAL.over metres over the highest ground on its way
- * to the next and never more than CASUAL.top over its own, 30 m and 20 m
- * about, flown round it counter clockwise from above. The owner's words:
- * "even a very small child can complete the courses."
+ * (src/ui/ui.js): CASUAL.gates big gates round a wide oval, CASUAL.spacing
+ * apart, flown round it counter clockwise from above. The owner's words:
+ * "even a very small child can complete the courses", and then
+ * "reintroduce the large air gates like Red Bull Air Race, not only
+ * hoops". So by turns a 30 m hoop, hung CASUAL.over metres over the
+ * highest ground on its way to the next and never more than CASUAL.top
+ * over its own, and the air race's pylon pair, standing on the ground,
+ * starting with a hoop. A pair goes only where the ground will take it:
+ * the ground across it, cone to cone, within CASUAL.level from its lowest
+ * to its highest, so the cones stand and the opening's foot, 2.5 m up, is
+ * out of the ground (line.js openingBlocked); none
+ * half way to either neighbour more than CASUAL.clear over it, so the line
+ * through its middle, 12.5 m up, clears it; and none all the way to either
+ * more than CASUAL.rise over it, so the dive from a hoop to it and the
+ * climb out clear the ground. Where the ground will not, that slot is a
+ * hoop too.
  *
  * Where: of ovals centred within CASUAL.reach of `from` (the world's
  * spawn), at four turns and on a grid, the one whose ground is flattest
- * under its path and whose hoops all fit the height rule. The oval is
- * sized so its length is the hoops' spacing times their number, and the
- * hoops go on it at equal steps of its length. `heightAt(x, z)` is the
+ * under its path and whose hoops all fit the height rule. Flattest first,
+ * not most pairs: a hillier oval puts hillsides beside the gates, and a
+ * child missing a hoop wide flies into them. The oval is
+ * sized so its length is the spacing times the number of gates, and the
+ * gates go on it at equal steps of its length. `heightAt(x, z)` is the
  * map's. Returns a new map track, or null where no oval fits.
  */
 /* The casual oval's short axis over its long one. */
 const ASPECT = 0.6;
 export const CASUAL = {
-  hoops: 8, spacing: 400, over: 60, top: 150, reach: 1600, step: 200, types: ['hoop30', 'hoop20'],
+  gates: 8, spacing: 400, over: 60, top: 150, reach: 1600, step: 200, types: ['hoop30', 'pylonPair'], level: 2, clear: 8, rise: 30,
 };
 
 export function casualCourse(mapId, name, heightAt, from) {
-  /* The parameter of each hoop on an oval of semi axes 1 and ASPECT, at
+  /* The parameter of each gate on an oval of semi axes 1 and ASPECT, at
    * equal steps of its length, and that length, from a fine polyline. */
   const M = 720;
   const len = [0];
@@ -904,14 +960,14 @@ export function casualCourse(mapId, name, heightAt, from) {
     len.push(len[j - 1] + Math.hypot(Math.cos(u1) - Math.cos(u0), ASPECT * (Math.sin(u1) - Math.sin(u0))));
   }
   const us = [];
-  for (let i = 0, j = 0; i < CASUAL.hoops; i += 1) {
-    const want = (len[M] * i) / CASUAL.hoops;
+  for (let i = 0, j = 0; i < CASUAL.gates; i += 1) {
+    const want = (len[M] * i) / CASUAL.gates;
     while (len[j + 1] < want) {
       j += 1;
     }
     us.push(((2 * Math.PI) / M) * (j + (want - len[j]) / (len[j + 1] - len[j])));
   }
-  const a = (CASUAL.hoops * CASUAL.spacing) / len[M];
+  const a = (CASUAL.gates * CASUAL.spacing) / len[M];
   let best = null;
   for (let cx = from.x - CASUAL.reach; cx <= from.x + CASUAL.reach; cx += CASUAL.step) {
     for (let cz = from.z - CASUAL.reach; cz <= from.z + CASUAL.reach; cz += CASUAL.step) {
@@ -928,18 +984,19 @@ export function casualCourse(mapId, name, heightAt, from) {
     return null;
   }
   const doc = newCourse(mapId, name);
-  best.hoops.forEach((h, i) => {
-    const type = CASUAL.types[i % CASUAL.types.length];
-    const quat = qAxis(0, 1, 0, headingOf(h.tx, h.tz));
-    const centreY = openingsOf({ type, dims: ELEMENTS[type].dims })[0].centreY;
-    addGate(doc, type, v3(h.x, h.y - centreY, h.z), quat);
-  });
+  for (const g of best.gates) {
+    addGate(doc, g.type, v3(g.x, g.base, g.z), qAxis(0, 1, 0, headingOf(g.tx, g.tz)));
+  }
   return doc;
 }
 
-/* The hoops round one oval, or null when the ground will not let every
- * one hang between CASUAL.over and CASUAL.top over its own ground.
- * `relief` is the ground's rise under the whole path. */
+/* The pylon pair's cone axes are this far either side of its centre. */
+const PAIR_HALF = ELEMENTS.pylonPair.dims.clearW / 2 + ELEMENTS.pylonPair.dims.baseRadius;
+
+/* The gates round one oval, { type, x, base, z, tx, tz } each with the
+ * height of its base and its level heading, or null when the ground will
+ * not let every hoop hang between CASUAL.over and CASUAL.top over its own
+ * ground. `relief` is the ground's rise under the whole path. */
 function casualPlan(cx, cz, a, turn, us, heightAt) {
   const n = us.length;
   const b = ASPECT * a;
@@ -950,7 +1007,7 @@ function casualPlan(cx, cz, a, turn, us, heightAt) {
     const ez = b * Math.sin(u);
     return { x: cx + ex * c - ez * sn, z: cz + ex * sn + ez * c };
   };
-  /* The ground under the path, SUB samples from each hoop to the next. */
+  /* The ground under the path, SUB samples from each gate to the next. */
   const SUB = 8;
   const ground = [];
   let lo = Infinity;
@@ -967,31 +1024,53 @@ function casualPlan(cx, cz, a, turn, us, heightAt) {
     lo = Math.min(lo, h);
     hi = Math.max(hi, h);
   }
-  const hoops = [];
+  /* The ground from `reach` samples back to `reach` on from gate i. */
+  const around = (i, reach) => {
+    const out = [];
+    for (let j = -reach; j <= reach; j += 1) {
+      out.push(ground[(i * SUB + j + n * SUB) % (n * SUB)]);
+    }
+    return out;
+  };
+  const hoopCentreY = openingsOf({ type: CASUAL.types[0], dims: ELEMENTS[CASUAL.types[0]].dims })[0].centreY;
+  const gates = [];
   for (let i = 0; i < n; i += 1) {
     const u = us[i];
     const p = at(u);
-    /* Over the highest ground from half way back to half way on. */
-    let over = -Infinity;
-    for (let j = -SUB / 2; j <= SUB / 2; j += 1) {
-      over = Math.max(over, ground[(i * SUB + j + n * SUB) % (n * SUB)]);
-    }
     const own = ground[i * SUB];
-    const y = over + CASUAL.over;
-    if (y - own > CASUAL.top) {
-      return null;
-    }
     /* The tangent, d/du, counter clockwise seen from above (-y). */
     const dx = -a * Math.sin(u);
     const dz = b * Math.cos(u);
     const tx = dx * c - dz * sn;
     const tz = dx * sn + dz * c;
     const tl = Math.hypot(tx, tz);
-    hoops.push({
-      x: p.x, y, z: p.z, tx: tx / tl, tz: tz / tl,
+    const t = { x: tx / tl, z: tz / tl };
+    const type = CASUAL.types[i % CASUAL.types.length];
+    if (type === 'pylonPair') {
+      /* The ground across the line from cone to cone, on its lowest. */
+      const across = [];
+      for (let k = -4; k <= 4; k += 1) {
+        across.push(heightAt(p.x - (t.z * k * PAIR_HALF) / 4, p.z + (t.x * k * PAIR_HALF) / 4));
+      }
+      const base = Math.min(...across);
+      if (Math.max(...across) - base <= CASUAL.level && Math.max(...around(i, SUB / 2)) - own <= CASUAL.clear
+        && Math.max(...around(i, SUB)) - own <= CASUAL.rise) {
+        gates.push({
+          type, x: p.x, base, z: p.z, tx: t.x, tz: t.z,
+        });
+        continue;
+      }
+    }
+    /* A hoop: over the highest ground from half way back to half way on. */
+    const y = Math.max(...around(i, SUB / 2)) + CASUAL.over;
+    if (y - own > CASUAL.top) {
+      return null;
+    }
+    gates.push({
+      type: CASUAL.types[0], x: p.x, base: y - hoopCentreY, z: p.z, tx: t.x, tz: t.z,
     });
   }
-  return { hoops, relief: hi - lo };
+  return { gates, relief: hi - lo };
 }
 
 /*

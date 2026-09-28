@@ -44,7 +44,7 @@
  *   9. The gates are solid (a gate hung out over the drop: through its
  *      opening clean, into its upright a plant contact and damage; picked
  *      up with F and moved, the old place air and the new one solid;
- *      removed with a right click, nothing left; a double stack's openings
+ *      removed with a right click and Delete, nothing left; a double stack's openings
  *      open and its bar solid), and the air start (a level gate hung out
  *      over the drop made the start in the flying order, flown through by
  *      a pilot in the page).
@@ -55,8 +55,10 @@
  *      ones not on the hotbar through the inventory (a click on a tile, and
  *      a tile dragged onto a slot); the start gate piece makes its gate the
  *      start and the right hand pylon is passed on its right. The wheel
- *      walks the hotbar. A right click removes one, a middle click takes a
- *      placed piece in hand. F picks one up and a click puts it down six
+ *      walks the hotbar. A right click selects one, frees the mouse and
+ *      brings up its gizmo, and a right click on it again removes it; a
+ *      right click on the sky takes the mouse back; Delete removes the one
+ *      under the crosshair. A middle click takes a placed piece in hand. F picks one up and a click puts it down six
  *      metres over; Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z undo and redo it and a
  *      placement. Ctrl+D copies one into the hand and a click places the
  *      copy, turned as the original. The ghost goes red on another gate.
@@ -75,7 +77,8 @@
  * hoops (18) and hoopsbramor: the sky hoops, on the Cub's page and the
  * Bramor's. Every hoop in the air with a plain click, a course laid with
  * the Shift+click chain and a pylon, the chain's spacing on Ctrl, Shift
- * and the wheel, the Bramor's small warning on the 6 m hoop, the disc
+ * and the wheel, a stale plane hotbar mended, an old track's retired
+ * hoops loaded and the Bramor's small warning on its 6 m one, the disc
  * scored as a disc, each plane thrown head on into a rim and a pylon at
  * its top speed with crash damage on (whacked, never hurt, flying on,
  * the piece wobbling and settling), saved and reloaded, and pictures
@@ -122,10 +125,10 @@ import {
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airStartSpeed, airframeById } from '../configs/airframes.js';
 import {
-  DEFAULT_HOTBAR, HOOP_TYPES, PIECES, openingsOf, raceGatesOf,
+  DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, PIECES, RETIRED_HOOPS, addGate, newCourse, openingsOf, qAxis, raceGatesOf,
 } from '../src/builder/course.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
-import { normalize } from '../src/trackbuilder/model.js';
+import { normalize, toPlain } from '../src/trackbuilder/model.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const opts = { map: 'swiss2', perf: false };
@@ -901,14 +904,18 @@ async function moveTo(page, id, p, t) {
   await page.until(`${B('.carry')} === null`, 10000);
 }
 
-/* Right click on a placed gate. */
+/* Right click on a placed gate, which selects it and frees the mouse onto
+ * its gizmo, then Delete, and the mouse taken back. */
 async function removeById(page, id) {
   const n = await page.evaluate(B('.gates.length'));
   if (!(await aimAtGate(page, id))) {
     console.log(`    the crosshair would not settle on ${id}`);
   }
   await click(page, 'right');
+  await page.until(`${B('.selected')} === ${JSON.stringify(id)} && !${B('.locked')}`, 5000);
+  await key(page, 'Delete');
   await page.until(`${B('.gates.length')} === ${n - 1}`, 10000);
+  await takeMouse(page);
 }
 
 /* The world yaw, degrees, of a craft pointed along a gate's travel. */
@@ -987,12 +994,12 @@ async function solidGates(page, { edge, drop, yawOut, at }) {
   const kNew = await chord(page, m, onUpright(m));
   say(moved > 11 && kOld === null && FRAME.includes(kNew), `F and a click moved it ${f1(moved)} m: the old upright is air (${kOld}), the new one solid (${kNew})`);
 
-  /* A right click on it: nothing of it is left. */
+  /* A right click on it and Delete: nothing of it is left. */
   await removeById(page, g.id);
   const kGone = await chord(page, m, onUpright(m));
   const kHoleGone = await chord(page, m, m.centre);
   const count1 = (await page.evaluate('window.__colliders()')).count;
-  say(kGone === null && kHoleGone === null && count1 === count0, `a right click removed it: nothing solid where it stood (${kGone}, ${kHoleGone}), ${count1} colliders as before it was placed`);
+  say(kGone === null && kHoleGone === null && count1 === count0, `a right click and Delete removed it: nothing solid where it stood (${kGone}, ${kHoleGone}), ${count1} colliders as before it was placed`);
 
   /* A double stack: both openings open, the bar between them solid. */
   await hold(page, 'doubleStack');
@@ -1208,6 +1215,7 @@ async function piecesStage() {
     const rects = await page.evaluate('window.__build.rects()');
     const shelves = await page.evaluate("[...document.querySelectorAll('.bh-inv h4')].map((h) => h.textContent)");
     say(rects.tiles.length === PIECES.length && PIECES.every((p) => rects.tiles.some((t) => t.id === p.id)), `every piece is in it, ${rects.tiles.length}, on ${shelves.length} shelves: ${shelves.join(', ')}`);
+    say(!rects.tiles.some((t) => RETIRED_HOOPS.includes(t.id)), `and no retired hoop: ${rects.tiles.filter((t) => /^hoop/.test(t.id)).map((t) => t.id).join(', ')}`);
     await shot(page, '10-inventory');
     const tile = rects.tiles.find((t) => t.id === 'pylonRight');
     await dragMouse(page, tile, rects.slots[8], 10);
@@ -1240,15 +1248,41 @@ async function piecesStage() {
     await lookAt(page, vAdd(vAdd(vAdd(mid, dir, -40), sideV, -70), [0, 1, 0], 30), vAdd(mid, [0, 1, 0], 2));
     await shot(page, '10-every-piece');
 
-    /* A right click on the flagged gate. */
+    /* A right click on the flagged gate selects it and frees the mouse
+     * onto its gizmo, the owner's ask; a right click on it again removes
+     * it. A right click on the world with the mouse free takes it back. */
     const flagged = placed.find((x) => x.piece.id === 'flaggedGate');
     const n0 = st.gates.length;
     const cols0 = (await page.evaluate('window.__colliders()')).count;
     await aimAtGate(page, flagged.id, 7);
     await click(page, 'right');
+    await page.until(`!${B('.locked')}`, 5000).catch(() => {});
+    await frames(page, 2);
+    const sel = await page.evaluate(`(() => { const s = window.__build.state(); return { selected: s.selected, locked: s.locked, gizmo: s.gizmo, gates: s.gates.length }; })()`);
+    say(sel.selected === flagged.id && !sel.locked && sel.gizmo && sel.gates === n0,
+      `a right click on the flagged gate selects it, frees the mouse and brings up its gizmo, and removes nothing: ${JSON.stringify(sel)}`);
+    await shot(page, '10-right-click-gizmo');
+    await click(page, 'right');
     await page.until(`${B('.gates.length')} === ${n0 - 1}`, 10000).catch(() => {});
     const cols1 = (await page.evaluate('window.__colliders()')).count;
-    say(!(await page.evaluate(B('.gates'))).some((g) => g.id === flagged.id) && cols1 < cols0, `a right click on the flagged gate removes it and its solids (${cols0} to ${cols1} colliders)`);
+    say(!(await page.evaluate(B('.gates'))).some((g) => g.id === flagged.id) && cols1 < cols0 && (await page.evaluate(B('.selected'))) === null,
+      `a right click on it again, selected, removes it and its solids (${cols0} to ${cols1} colliders)`);
+    const sky = vAdd(eyeFor(await spotAt(0)), [0, 40, 0], 1);
+    await lookAt(page, sky, vAdd(sky, [0, 1, 0], 10));
+    await frames(page, 2);
+    await click(page, 'right');
+    await page.until(B('.locked'), 5000).catch(() => {});
+    say(await page.evaluate(B('.locked')), 'a right click on the empty sky with the mouse free takes the mouse back');
+    await takeMouse(page);
+    /* Delete with the mouse taken removes the gate under the crosshair. */
+    const doomed = placed.find((x) => x.piece.id === 'wideGate3');
+    await aimAtGate(page, doomed.id, 7);
+    await key(page, 'Delete');
+    await page.until(`${B('.gates.length')} === ${n0 - 2}`, 10000).catch(() => {});
+    say(!(await page.evaluate(B('.gates'))).some((g) => g.id === doomed.id), 'Delete removes the gate the crosshair is on');
+    await key(page, 'KeyZ', { ctrl: true });
+    await page.until(`${B('.gates.length')} === ${n0 - 1}`, 10000).catch(() => {});
+    say((await page.evaluate(B('.gates'))).some((g) => g.id === doomed.id), 'and Ctrl+Z puts it back');
 
     /* A middle click takes a placed piece in hand: from its hotbar slot
      * when it has one, into the slot in hand when it has not. */
@@ -1696,25 +1730,33 @@ const whackText = (w) => (w ? `${w.kind}, ${w.speed.toFixed(1)} to ${w.after.toF
 /*
  * 18. THE SKY HOOPS, on the seated plane's page. Every hoop placed in the
  * air with a plain left click, as a hoop floats; then a course laid with
- * the chain: a 30 m hoop, Shift and a click for another 400 m on, the 6 m
- * hoop in hand and Shift and a click for a third, and a pylon on the
- * ground. The chain's spacing turned by Ctrl, Shift and the wheel. The
- * warnings for the Bramor. Flown: through the 30 m disc 12 m off its
+ * the chain: a 30 m hoop, Shift and a click twice for two more 400 m on,
+ * and a pylon on the ground. The chain's spacing turned by Ctrl, Shift and
+ * the wheel. A plane hotbar stored before the 6, 12 and 20 m hoops were
+ * retired opens as the new one, the 30 m hoop first and no other plane
+ * hoop. Flown: through the 30 m disc 12 m off its
  * centre scores, through the square round it outside the disc is close
  * enough, 41 m past the rim does not count,
  * and the plane thrown head on into the rim and into the pylon at its top
  * speed (and the Cub at its cruise too) with crash damage on is whacked,
  * never damaged, and flies on while the piece wobbles and settles. Saved,
  * reloaded, the same hoops. Pictures from a kilometre, 500 m and close.
+ * Then a track saved before the retirement, a 20, a 6 and a 12 m hoop,
+ * opens with Ctrl+O, draws, warns the 6 m is small for the Bramor, and
+ * flies; a middle click on its 20 m hoop hands over the 30 m one.
  */
 async function hoopStage(craft, { place = true } = {}) {
   console.log(`sky hoops on ${opts.map}, the ${craft}`);
-  const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed: seedFor(null, craft) });
+  /* The plane hotbar as this builder stored it before the retirement. */
+  const staleBar = ['hoop20', 'hoop12', 'hoop30', 'hoop6', 'pylonPair', 'pylon', 'pylonRight', 'wideGate5', 'wideGate3'];
+  const seed = [...seedFor(null, craft), `try { localStorage.setItem('webfpv.builder.hotbar.wing.v1', ${JSON.stringify(JSON.stringify(staleBar))}); } catch (e) {}`];
+  const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed });
   const af = airframeById(craft);
   try {
     await flyAndBuild(page);
     const bar = await page.evaluate(B('.hotbar'));
-    say(bar.slice(0, 4).join() === 'hoop20,hoop12,hoop30,hoop6', `the plane hotbar opens on the hoops: ${bar.join(', ')}`);
+    say(bar.join() === DEFAULT_WING_HOTBAR.join() && !bar.some((id) => RETIRED_HOOPS.includes(id)),
+      `a plane hotbar stored with the 20, 12 and 6 m hoops opens on the 30 m hoop and no other plane hoop: ${bar.join(', ')}`);
     const sky = await findSky(page);
     say(Boolean(sky), `a line in the sky: from (${f1(sky.x)}, ${f1(sky.y)}, ${f1(sky.z)}), the ground under a kilometre of it within ${f1(sky.rise)} m`);
     const dir = [sky.dx, 0, sky.dz];
@@ -1730,6 +1772,12 @@ async function hoopStage(craft, { place = true } = {}) {
         await hold(page, type);
         await lookAlong(page, vAdd(start, side, 60 * k), yaw, 0);
         const ghost = await page.evaluate(B('.ghost'));
+        if (type === 'hoop30') {
+          await lookAlong(page, vAdd(vAdd(start, side, 60 * k + 25), [0, 1, 0], 10), yaw - 0.45, -0.15);
+          await frames(page, 3);
+          await shot(page, `18-${opts.map}-hoop30-in-hand`);
+          await lookAlong(page, vAdd(start, side, 60 * k), yaw, 0);
+        }
         const g = await placeHere(page);
         const d = ELEMENTS[type].dims.clearW;
         const out = vDot(vAdd(g.centre, vAdd(start, side, 60 * k), -1), dir);
@@ -1741,6 +1789,21 @@ async function hoopStage(craft, { place = true } = {}) {
       await clearView(page);
       await shot(page, `18-${opts.map}-every-hoop`);
       await takeMouse(page);
+      /* The air race's pylon pair, from its hotbar slot, on the ground. */
+      await key(page, 'Digit2');
+      await page.until(`${B('.piece')} === 'pylonPair'`, 5000).catch(() => {});
+      say((await page.evaluate(B('.piece'))) === 'pylonPair', 'slot 2 of the plane hotbar is the air race\'s pylon pair');
+      const pairAt = vAdd(start, dir, 150);
+      pairAt[1] = await heightAt(pairAt);
+      await lookAt(page, vAdd(vAdd(pairAt, dir, -60), [0, 1, 0], 18), pairAt);
+      await frames(page, 3);
+      await shot(page, `18-${opts.map}-pylon-pair-in-hand`);
+      const pair = await placeHere(page);
+      say(Boolean(pair) && !pair.round && Math.abs(pair.clearW - ELEMENTS.pylonPair.dims.clearW) < 1e-9, `placed on the ground with a click: ${pair ? `${pair.clearW} m of air between its cones` : 'nothing'}`);
+      await lookAt(page, vAdd(vAdd(vAdd(pairAt, dir, -70), side, -45), [0, 1, 0], 22), vAdd(pairAt, [0, 1, 0], 10));
+      await clearView(page);
+      await shot(page, `18-${opts.map}-pylon-pair-placed`);
+      await takeMouse(page);
     }
 
     /* The course, with the chain. */
@@ -1749,6 +1812,20 @@ async function hoopStage(craft, { place = true } = {}) {
     await hold(page, 'hoop30');
     await lookAlong(page, start, yaw, 0);
     const g1 = await placeHere(page);
+    /* The owner's ask: place it, right click it, and its arrows and rings
+     * are on it. The crosshair on its rim, since its middle is air. */
+    const rimSide = vCross(g1.up, g1.travel);
+    await lookAt(page, vAdd(vAdd(vAdd(g1.centre, dir, -75), side, -20), [0, 1, 0], 8), vAdd(g1.centre, rimSide, 15 + ELEMENTS.hoop30.dims.tubeR));
+    await frames(page, 3);
+    await click(page, 'right');
+    await page.until(`!${B('.locked')}`, 5000).catch(() => {});
+    await frames(page, 3);
+    const rc = await page.evaluate(`(() => { const s = window.__build.state(); return { selected: s.selected, locked: s.locked, gizmo: s.gizmo, gates: s.gates.length }; })()`);
+    say(rc.selected === g1.id && !rc.locked && rc.gizmo && rc.gates === 1, `a right click on the 30 m hoop just placed brings up its arrows and rings: ${JSON.stringify(rc)}`);
+    await shot(page, `18-${opts.map}-hoop30-right-click-gizmo`);
+    await key(page, 'Escape');
+    await takeMouse(page);
+    await lookAlong(page, start, yaw, 0);
     const chain0 = await page.evaluate(B('.chainDistance.plane'));
     await wheel(page, 1, { ctrl: true, shift: true });
     const chainDown = await page.evaluate(B('.chainDistance.plane'));
@@ -1758,7 +1835,6 @@ async function hoopStage(craft, { place = true } = {}) {
     const n0 = await page.evaluate(B('.gates.length'));
     await click(page, 'left', { shift: true });
     await page.until(`${B('.gates.length')} === ${n0 + 1}`, 10000);
-    await hold(page, 'hoop6');
     await lookAlong(page, start, yaw, 0);
     await click(page, 'left', { shift: true });
     await page.until(`${B('.gates.length')} === ${n0 + 2}`, 10000);
@@ -1778,13 +1854,9 @@ async function hoopStage(craft, { place = true } = {}) {
     G = await page.evaluate(B('.gates'));
     say(G.length === 4 && G[3].id === py.id, 'and a pylon on the ground at the end of the lap');
 
-    /* The warnings: the 6 m hoop is small for the Bramor, not the Cub. */
+    /* The warnings: the 30 m hoop is small for no plane. */
     await craftTo(page, 'bramor2300');
-    const smallB = (await page.evaluate(B('.warnings'))).find((w) => w.code === 'small' && w.gate === 2);
-    say(Boolean(smallB) && Math.abs(smallB.value - 6) < 1e-9, `the 6 m hoop is small for the Bramor: ${smallB ? `${smallB.value} m, it needs ${smallB.limit.toFixed(2)}` : await warnList(page)}`);
-    say(await panelSays(page, /Gate 3 is 6\.00 m wide, too small for the Bramor/), 'and the panel says so');
-    await craftTo(page, 'cub1400');
-    say(!(await warned(page, 'small')), `not for the Cub: ${await warnList(page)}`);
+    say(!(await warned(page, 'small')), `no hoop on it is small for the Bramor: ${await warnList(page)}`);
     await craftTo(page, craft);
 
     /* Pictures: a kilometre and 500 m back down the line, and close, with
@@ -1798,9 +1870,9 @@ async function hoopStage(craft, { place = true } = {}) {
     await lookAt(page, vAdd(vAdd(a.centre, dir, -45), side, 20), a.centre);
     await frames(page, 3);
     await shot(page, `18-${opts.map}-hoop30-close`);
-    await lookAt(page, vAdd(vAdd(c.centre, dir, -14), side, 5), c.centre);
+    await lookAt(page, vAdd(vAdd(vAdd(c.centre, dir, 40), side, -35), [0, 1, 0], 12), c.centre);
     await frames(page, 3);
-    await shot(page, `18-${opts.map}-hoop6-close`);
+    await shot(page, `18-${opts.map}-hoop30-arrows-from-ahead`);
     await takeMouse(page);
 
     /* Flown. */
@@ -1876,13 +1948,61 @@ async function hoopStage(craft, { place = true } = {}) {
     await frames(page, 3);
     const docId = await page.evaluate(B('.doc.id'));
     const raw = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(LIBRARY)}))[${JSON.stringify(docId)}]`);
-    say(raw.schemaVersion === 4 && raw.elements.map((e) => e.type).join() === 'hoop30,hoop30,hoop6,pylon', `stored as schemaVersion ${raw.schemaVersion}: ${raw.elements.map((e) => e.type).join(', ')}`);
+    say(raw.schemaVersion === 4 && raw.elements.map((e) => e.type).join() === 'hoop30,hoop30,hoop30,pylon', `stored as schemaVersion ${raw.schemaVersion}: ${raw.elements.map((e) => e.type).join(', ')}`);
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await page.sleep(1000);
     await flyAndBuild(page);
     const again = await page.evaluate(B(''));
     const same = again.gates.length === G.length && again.gates.every((g, i) => vDist(g.centre, G[i].centre) < 1e-3 && g.round === G[i].round);
     say(again.doc.id === docId && same, `after a reload the same hoops are back where they were: ${again.gates.map((g) => (g.round ? `${g.clearW} m hoop` : 'pylon')).join(', ')}`);
+
+    /* A track saved before the retirement: a 20, a 6 and a 12 m hoop 400 m
+     * apart, 300 m off the line. A published contract, so it loads, draws,
+     * warns and flies as it did. */
+    const old = newCourse(opts.map, 'Hoops before the retirement');
+    const oldTypes = ['hoop20', 'hoop6', 'hoop12'];
+    oldTypes.forEach((type, k) => {
+      const centre = vAdd(vAdd(start, side, 300), dir, 400 * k);
+      const cy = openingsOf({ type, dims: ELEMENTS[type].dims })[0].centreY;
+      addGate(old, type, { x: centre[0], y: centre[1] - cy, z: centre[2] }, qAxis(0, 1, 0, yaw));
+    });
+    await page.evaluate(`(() => {
+      const lib = JSON.parse(localStorage.getItem(${JSON.stringify(LIBRARY)}) || '{}');
+      lib[${JSON.stringify(old.id)}] = ${JSON.stringify(toPlain(old))};
+      localStorage.setItem(${JSON.stringify(LIBRARY)}, JSON.stringify(lib));
+      return true;
+    })()`);
+    for (let i = 0; i < 8 && (await page.evaluate(B('.doc.id'))) !== old.id; i += 1) {
+      await key(page, 'KeyO', { ctrl: true });
+      await frames(page, 2);
+    }
+    const O = await page.evaluate(B(''));
+    const oldWant = raceGatesOf(old);
+    say(O.doc.id === old.id && O.gates.length === 3 && O.gates.every((g, i) => g.round && g.clearW === ELEMENTS[oldTypes[i]].dims.clearW && vDist(g.centre, [oldWant[i].centre.x, oldWant[i].centre.y, oldWant[i].centre.z]) < 1e-6),
+      `an old track with retired hoops opens with Ctrl+O, every hoop its own size where it was: ${O.gates.map((g) => `${g.clearW} m`).join(', ')}`);
+    say(O.badges.map((b) => b.text).join() === '1,2,3', `and each is drawn, with its number: ${O.badges.map((b) => b.text).join()}`);
+    await craftTo(page, 'bramor2300');
+    const smallB = (await page.evaluate(B('.warnings'))).find((w) => w.code === 'small' && w.gate === 1);
+    say(Boolean(smallB) && Math.abs(smallB.value - 6) < 1e-9, `its 6 m hoop is small for the Bramor: ${smallB ? `${smallB.value} m, it needs ${smallB.limit.toFixed(2)}` : await warnList(page)}`);
+    say(await panelSays(page, /Gate 2 is 6\.00 m wide, too small for the Bramor/), 'and the panel says so');
+    await craftTo(page, 'cub1400');
+    say(!(await warned(page, 'small')), `not for the Cub: ${await warnList(page)}`);
+    await craftTo(page, craft);
+    await lookAt(page, vAdd(vAdd(O.gates[0].centre, dir, -90), [0, 1, 0], 10), O.gates[0].centre);
+    await frames(page, 3);
+    await clearView(page);
+    await shot(page, `18-${opts.map}-old-hoops`);
+    await takeMouse(page);
+    await aimAtGate(page, O.gates[0].id, 40);
+    await click(page, 'middle');
+    await frames(page, 2);
+    say((await page.evaluate(B('.piece'))) === 'hoop30', `a middle click on its 20 m hoop hands over the 30 m one: ${await page.evaluate(B('.piece'))}`);
+    await key(page, 'KeyB');
+    await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 30000);
+    const oldRace = await page.evaluate('({ n: window.__race().gates.length, freestyle: window.__race().freestyle })');
+    say(oldRace.n === 3 && !oldRace.freestyle, `and B flies it: a race of ${oldRace.n} hoops`);
+    await key(page, 'KeyB');
+    await page.until(`${B('.state')} === 'building'`, 10000);
     const errs = pageErrors(page);
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
     return hits;
@@ -1900,10 +2020,11 @@ async function hoopStage(craft, { place = true } = {}) {
 /*
  * 19. THE CASUAL SKY COURSE: with a plane seated, My tracks' New track
  * offers it for each world (and with a quad seated it does not); one click
- * lays eight big hoops round a wide oval over the world, 400 m apart along
- * it and 60 to 150 m over the ground, and flies it. No warning for the
- * seated plane, and a lap flown wide on purpose, through the discs near
- * their rims and past the rims outside them, closes and is scored.
+ * lays eight big gates round a wide oval over the world, 400 m apart along
+ * it, 30 m hoops 60 to 150 m over the ground and, where the ground takes
+ * one, the air race's pylon pair standing on it, and flies it. No warning
+ * for the seated plane, and a lap flown wide on purpose, through the
+ * openings near their edges and past them outside, closes and is scored.
  */
 async function casualStage(craft) {
   console.log(`the casual sky course on ${opts.map}, the ${craft}`);
@@ -1931,14 +2052,20 @@ async function casualStage(craft) {
     await page.evaluate("(document.querySelector('.osd-air-hint-btn') || { click() {} }).click(), true");
     const st = await page.evaluate(B(''));
     const G = st.gates;
+    const typeOf = (g) => st.doc.elements.find((e) => e.id === g.id).type;
+    const isPair = (g) => typeOf(g) === 'pylonPair';
     const heights = [];
     for (const g of G) {
       heights.push(g.centre[1] - (await page.evaluate(`window.__heightAt(${g.centre[0]}, ${g.centre[2]})`)));
     }
     const gaps = G.map((g, i) => vDist(g.centre, G[(i + 1) % G.length].centre));
-    say(G.length === 8 && G.every((g) => g.round && g.clearW >= 20), `one click flies ${G.length} hoops: ${G.map((g) => `${g.clearW} m`).join(', ')}`);
+    const pairs = G.filter(isPair).length;
+    say(G.length === 8 && typeOf(G[0]) === 'hoop30' && G.every((g) => (isPair(g) ? !g.round : g.round && g.clearW === 30)) && pairs > 0,
+      `one click flies ${G.length} gates, ${pairs} of them the air race's pylon pair: ${G.map((g) => (isPair(g) ? 'pair' : `${g.clearW} m hoop`)).join(', ')}`);
     say(gaps.every((d) => d > 330 && d < 420), `about 400 m apart round the oval: ${gaps.map((d) => d.toFixed(0)).join(', ')} m`);
-    say(heights.every((h) => h >= 59.9 && h <= 150.1), `60 to 150 m over the ground: ${heights.map((h) => h.toFixed(0)).join(', ')} m`);
+    const pairMid = ELEMENTS.pylonPair.dims.clearH / 2;
+    say(G.every((g, i) => (isPair(g) ? heights[i] >= pairMid - 2.1 && heights[i] <= pairMid + 0.1 : heights[i] >= 59.9 && heights[i] <= 150.1)),
+      `the hoops 60 to 150 m over the ground, the pairs standing on it: ${heights.map((h) => h.toFixed(0)).join(', ')} m`);
     say(G.every((g, i) => vDot(g.travel, vAdd(G[(i + 1) % G.length].centre, g.centre, -1)) > 0), 'each flown towards the next');
     const warns = st.warnings.filter((w) => ['small', 'close', 'blocked', 'clips', 'backwards'].includes(w.code));
     say(warns.length === 0, `no warning for the ${af.short}: ${warns.map((w) => `${w.code}@${w.gate + 1}`).join(' ') || 'none'}`);
@@ -1958,13 +2085,15 @@ async function casualStage(craft) {
     for (let k = 0; k <= G.length; k += 1) {
       const i = k % G.length;
       const g = G[i];
-      const out = k % 2 === 0 ? 0.8 * (g.clearW / 2) : g.clearW / 2 + 2 * ELEMENTS[`hoop${g.clearW}`].dims.tubeR + 15;
+      const rim = isPair(g) ? 2 * ELEMENTS.pylonPair.dims.baseRadius : 2 * ELEMENTS.hoop30.dims.tubeR;
+      const out = k % 2 === 0 ? 0.8 * (g.clearW / 2) : g.clearW / 2 + rim + 15;
       const r = await throwAt(page, vAdd(g.centre, vCross(g.up, g.travel), out), g.travel, cruise, 12);
       const race = await page.evaluate('({ next: window.__race().next, call: window.__race().call, flash: window.__race().flashText(performance.now()) })');
-      calls.push(r.next === (i + 1) % G.length && race.call ? `${race.call.code} ${race.call.points}` : `missed at ${i + 1}`);
+      calls.push(r.next === (i + 1) % G.length && race.call ? `${race.call.code} ${race.call.points}`
+        : `missed at ${i + 1} (${r.flown.toFixed(1)} s flown, ${r.mode}${r.crashed ? ', crashed' : ''}, ${r.whacks.length} whacks, next ${r.next}, ${JSON.stringify(race.flash)})`);
     }
     const run = await page.evaluate('({ lap: window.__race().lap, log: window.__race().log, run: window.__race().runScore, flash: window.__race().flashText(performance.now()) })');
-    say(calls.every((c) => !/missed/.test(c)), `round the lap wide on purpose, every hoop counts: ${calls.join(', ')}`);
+    say(calls.every((c) => !/missed/.test(c)), `round the lap wide on purpose, every gate counts: ${calls.join(', ')}`);
     say(run.lap === 1 && Number.isFinite(run.log[0].score) && run.log[0].score > 0,
       `and the lap closes, scored: ${run.log.map((l) => `lap ${l.n} ${(l.ms / 1000).toFixed(1)} s, ${l.score} points`).join('; ')}; the run ${run.run}`);
     const osd = await page.evaluate('window.__fpvOsd ? window.__fpvOsd().values : null');

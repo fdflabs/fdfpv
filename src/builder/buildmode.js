@@ -33,8 +33,10 @@
  *
  * THE HAND AND THE HOTBAR. Nine slots of pieces (course.js PIECES), 1 to 9
  * or the wheel to pick one, E for every piece. Left click puts the piece
- * in hand where the ghost is, right click takes away the gate under the
- * crosshair, middle click puts that gate's piece in hand. R, T and Y turn,
+ * in hand where the ghost is, right click selects the gate under the
+ * crosshair and frees the mouse onto its gizmo (MOVING A GATE), middle
+ * click puts that gate's piece in hand. Delete or Backspace, or a right
+ * click on the gate already selected, removes it. R, T and Y turn,
  * tilt and roll the ghost 15 degrees (Shift the other way). The ghost
  * stands on ground and roofs, out of cliff faces, and in the air with Alt
  * held; G rounds it to a grid. It is red where the gate would be inside
@@ -45,8 +47,10 @@
  * crosshair with the same snap and keeps its orientation, R T Y turn it,
  * a click puts it down and F again puts it back. Esc frees the mouse, and
  * the last gate touched (or one clicked) carries a gizmo (gizmo.js): drag
- * an arrow to move it, a ring to turn it. A click on the world takes the
- * mouse back. Ctrl+Z and Ctrl+Y undo and redo any edit, Ctrl+D copies the
+ * an arrow to move it, a ring to turn it. A right click on a gate does both
+ * at once, the owner's ask: place it, right click, and the arrows and
+ * rings are on it. A click or right click on the world takes the mouse
+ * back. Ctrl+Z and Ctrl+Y undo and redo any edit, Ctrl+D copies the
  * gate under the crosshair into the hand.
  *
  * THE FLYING ORDER is the order gates were placed in, the start first,
@@ -114,7 +118,7 @@ import * as THREE from 'three';
 import { str } from '../strings/index.js';
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import { KINDS } from '../game/collide.js';
-import { ELEMENTS } from '../trackbuilder/elements.js';
+import { ELEMENTS, KIND } from '../trackbuilder/elements.js';
 import { elementById, normalize, touch } from '../trackbuilder/model.js';
 import { listMapTracks, makeAutosaver, readMapAutosave, saveTrack } from '../trackbuilder/storage.js';
 import {
@@ -123,9 +127,9 @@ import {
 import { builtGate } from '../render/pylons.js';
 import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
-  CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, casualCourse, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, chainPose,
-  createHistory, gateFlags, gateSpec, gizmoAxes, isHoop, makeStart, newCourse, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf,
-  raceGatesOf, readoutFor, removeGate, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
+  CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, WING_FIRST, casualCourse, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, chainPose,
+  createHistory, gateFlags, gateSpec, gizmoAxes, isHoop, makeStart, newCourse, offeredPiece, openingsOf, orderOf, pieceById, pieceGate, pieceOf,
+  poseOf, raceGatesOf, readoutFor, removeGate, restoreHotbar, scoringOf, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
 } from './course.js';
 import { craftLimits, lineWarnings, openingBlocked, racingLine } from './line.js';
 import { createHud } from './hud.js';
@@ -182,6 +186,9 @@ const REST_MS = 150;
  * release, not a request to step back. Chrome hands the page the key that
  * ended the lock on some builds and not on others. */
 const UNLOCK_GRACE_MS = 250;
+/* A right button that moved less than this, px, between press and release
+ * was a click, not a drag to look. */
+const RIGHT_CLICK_PX = 6;
 
 /* Where My tracks puts the free camera on a track: this high over the
  * ground at the start, metres, looking this far down, radians. */
@@ -223,14 +230,78 @@ const BADGE_LIFT = 0.7;
 const NOT_ROCK = ['tree', 'canopy', 'gate'].reduce((m, k) => m | (1 << KINDS.indexOf(k)), 0);
 /* This browser's own hotbars, one for the quads and one for the fixed
  * wings, and whether the controls card was hidden: conveniences, so a
- * private window that refuses storage just starts from the defaults. */
+ * private window that refuses storage just starts from the defaults. The
+ * wing bar moved to v2 when the 30 m hoop and the pylon pair were made its
+ * first two pieces: a v1 bar is read once, given back whichever of those it
+ * had dropped (`first`), and written as v2 from then on, so a pilot who
+ * takes one off the bar afterwards is not overruled. */
 const HOTBARS = {
   quad: { key: 'webfpv.builder.hotbar.v1', pieces: DEFAULT_HOTBAR },
-  wing: { key: 'webfpv.builder.hotbar.wing.v1', pieces: DEFAULT_WING_HOTBAR },
+  wing: {
+    key: 'webfpv.builder.hotbar.wing.v2', was: 'webfpv.builder.hotbar.wing.v1', pieces: DEFAULT_WING_HOTBAR, first: WING_FIRST,
+  },
 };
 const HELP_KEY = 'webfpv.builder.help.v1';
 /* The controls card's rows, each a string of keys and meaning. */
-const HELP_ROWS = ['look', 'fly', 'speed', 'hotbar', 'place', 'turn', 'air', 'chain', 'grid', 'carry', 'free', 'undo', 'order', 'line', 'test', 'file', 'pad'];
+const HELP_ROWS = ['look', 'fly', 'speed', 'hotbar', 'place', 'remove', 'turn', 'air', 'chain', 'grid', 'carry', 'free', 'undo', 'order', 'line', 'test', 'file', 'pad'];
+
+/*
+ * THE WAY THROUGH, drawn on every gate while building and on the ghost.
+ * In flight the race says it with the target pane, green from the side a
+ * gate is flown from and red and barred from the other (scene.js
+ * colourTargetSide), but only on the gate it wants next, and while
+ * building no gate is that: nothing said which way a hoop went until the
+ * lap warned it was flown backwards. So: ARROW_COUNT chevrons in a row
+ * along the line of travel through the scored opening, in two crossed
+ * planes so they read from above and from the side, each ARROW_SHARE of
+ * the opening across so a 30 m hoop's are 10 m and read from far off.
+ * One mesh a gate, on one shared geometry and material. A pylon is left
+ * out: it has its own chevron on the ground (src/render/pylons.js).
+ */
+const ARROW_SHARE = 0.34;
+const ARROW_COUNT = 3;
+/* From one chevron's tip to the next, in chevron widths. */
+const ARROW_PITCH = 0.55;
+const ARROW_COLOUR = 0xffffff;
+const ARROW_OPACITY = 0.9;
+
+/* A chevron one unit wide pointing along -z, in the xz plane and again in
+ * the yz plane, ARROW_COUNT of them centred on the origin. */
+function arrowGeometry() {
+  const s = new THREE.Shape();
+  s.moveTo(0, 0.25);
+  s.lineTo(0.5, -0.25);
+  s.lineTo(0.3, -0.25);
+  s.lineTo(0, 0.05);
+  s.lineTo(-0.3, -0.25);
+  s.lineTo(-0.5, -0.25);
+  s.closePath();
+  const flat = new THREE.ShapeGeometry(s);
+  const src = flat.attributes.position;
+  const tris = flat.index.array;
+  const pos = [];
+  const index = [];
+  for (let k = 0; k < ARROW_COUNT; k += 1) {
+    const dz = (k - (ARROW_COUNT - 1) / 2) * ARROW_PITCH;
+    for (const vertical of [false, true]) {
+      const at = pos.length / 3;
+      for (let i = 0; i < src.count; i += 1) {
+        const u = src.getX(i);
+        const w = dz - src.getY(i);
+        pos.push(vertical ? 0 : u, vertical ? u : 0, w);
+      }
+      for (const t of tris) {
+        index.push(at + t);
+      }
+    }
+  }
+  flat.dispose();
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(index);
+  geo.computeBoundingSphere();
+  return geo;
+}
 
 /* Standard gamepad buttons and axes (the W3C mapping). */
 const PAD = {
@@ -265,10 +336,17 @@ function hotbarKind(airframeId) {
   return airframeById(airframeId).fixedWing ? 'wing' : 'quad';
 }
 
-/* A kind's hotbar as stored, or its default where a slot is not a piece. */
+/* A kind's hotbar as stored, mended where a slot is no longer a piece
+ * (course.js restoreHotbar), or moved on from its old key. */
 function loadHotbar(kind) {
-  const got = readStore(HOTBARS[kind].key, null);
-  return HOTBARS[kind].pieces.map((id, i) => (Array.isArray(got) && pieceById(got[i]) ? got[i] : id));
+  const h = HOTBARS[kind];
+  const got = readStore(h.key, null);
+  if (got !== null || !h.was) {
+    return restoreHotbar(got, h.pieces);
+  }
+  const bar = restoreHotbar(readStore(h.was, null), h.pieces, h.first);
+  writeStore(h.key, bar);
+  return bar;
 }
 
 export function createBuildMode(host) {
@@ -343,6 +421,9 @@ export function createBuildMode(host) {
   let cursor = null;
   let drag = null;
   let unlockedAt = -Infinity;
+  /* How far the mouse has moved since the right button went down on the
+   * world with the mouse free, px: a click or a look. */
+  let rightTravel = 0;
   let padPrev = [];
   let message = { text: '', until: 0 };
   let showHelp = readStore(HELP_KEY, true) !== false;
@@ -418,7 +499,41 @@ export function createBuildMode(host) {
     const made = builtGate(gateSpec(el, step), index, isStart, gateFlags(el));
     const group = made.group;
     group.userData.elementId = el.id;
+    addArrow(made, el, step);
     return { made, group, caps: [], top: new THREE.Vector3() };
+  }
+
+  const arrowGeo = arrowGeometry();
+  const arrowMat = new THREE.MeshBasicMaterial({
+    color: ARROW_COLOUR, transparent: true, opacity: ARROW_OPACITY, depthWrite: false, side: THREE.DoubleSide, fog: false,
+  });
+
+  /* The way through `el` flown as `step`, on its built gate: at its scored
+   * opening's centre, in the element's own frame (x across is the race's
+   * -across, so a pylon pair's opening is where it is). */
+  function addArrow(made, el, step) {
+    if (ELEMENTS[el.type].kind === KIND.MARKER) {
+      return;
+    }
+    const sc = scoringOf(el, step);
+    const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+    arrow.name = 'build-arrow';
+    arrow.scale.setScalar(ARROW_SHARE * Math.min(sc.clearW, sc.clearH));
+    arrow.position.set(-sc.across, sc.centreY, 0);
+    arrow.renderOrder = 12;
+    /* Aimed through, not at: the crosshair picks the rim, not the air
+     * inside it. */
+    arrow.raycast = () => {};
+    made.group.add(arrow);
+    made.arrow = arrow;
+  }
+
+  /* A built gate freed, but not the arrow's shared geometry and material. */
+  function disposeGate(made) {
+    if (made.arrow) {
+      made.arrow.removeFromParent();
+    }
+    disposeStandaloneGate(made);
   }
 
   const box = new THREE.Box3();
@@ -446,7 +561,7 @@ export function createBuildMode(host) {
   function rebuildAll() {
     for (const m of meshes.values()) {
       m.group.removeFromParent();
-      disposeStandaloneGate(m.made);
+      disposeGate(m.made);
     }
     meshes.clear();
     doc.sequence.forEach((s, i) => {
@@ -804,6 +919,7 @@ export function createBuildMode(host) {
    * test flight, and not at all when V hid it. The warnings' markers are
    * for building, and V leaves them: it hides the line, not the problems. */
   function showLine() {
+    arrowMat.visible = state === 'building';
     ribbonMat.opacity = state === 'testing' ? RIBBON_FAINT : RIBBON_OPACITY;
     /* Not on a published track: the line is the author's tool, and a pilot
      * racing somebody's track flies their own line. */
@@ -929,7 +1045,7 @@ export function createBuildMode(host) {
     }
     if (ghost) {
       ghost.group.removeFromParent();
-      disposeStandaloneGate(ghost.made);
+      disposeGate(ghost.made);
     }
     const { made, el } = buildPiece(piece);
     made.group.traverse((o) => {
@@ -939,6 +1055,7 @@ export function createBuildMode(host) {
         o.renderOrder = 10;
       }
     });
+    addArrow(made, el, piece.passSide ? { passSide: piece.passSide } : null);
     for (const part of lightParts(made)) {
       part.visible = false;
     }
@@ -1285,11 +1402,48 @@ export function createBuildMode(host) {
     say(str('build.deleted', { n }));
   }
 
+  /*
+   * Right click on a placed piece: it is selected and the mouse let go the
+   * way Esc lets it go, so its gizmo is up at once and can be dragged. The
+   * cursor starts where the crosshair was, on the piece, until the mouse
+   * moves. A right click on it again removes it (the mousedown handler).
+   */
+  function grab(id) {
+    selected = id;
+    if (locked()) {
+      const r = shell.canvas.getBoundingClientRect();
+      cursor = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      unlock();
+    }
+    dressKey = '';
+    dressAll();
+  }
+
+  /* A right click on the world with the mouse free: the selection dropped
+   * and the mouse taken back, to building with the crosshair. */
+  function leaveGizmo() {
+    selected = null;
+    lock();
+    dressKey = '';
+    dressAll();
+  }
+
+  /* Delete or Backspace: the selected piece while the mouse is free, the
+   * one under the crosshair while it is taken. */
+  function removeAimed() {
+    const id = aiming() ? hovered : selected;
+    if (!id) {
+      say(str('build.aim_first'));
+      return;
+    }
+    remove(id);
+  }
+
   /* Middle click: the gate's piece into the hand, from the hotbar if it
    * is there, into the slot in hand if not, the way a creative mode picks
    * a block. */
   function pickPiece(id) {
-    const piece = pieceOf(doc, id);
+    const piece = offeredPiece(pieceOf(doc, id));
     if (!piece) {
       return;
     }
@@ -1356,7 +1510,7 @@ export function createBuildMode(host) {
       say(str('build.aim_first'));
       return;
     }
-    const piece = pieceOf(doc, id);
+    const piece = offeredPiece(pieceOf(doc, id));
     /* A copy of the start is a gate: a track has one start. */
     startCarry(null, piece.start ? pieceById('gate') : piece, id);
     say(str('build.copying', { n: orderOf(doc, id) + 1 }));
@@ -1907,12 +2061,12 @@ export function createBuildMode(host) {
       host.setCourse([], '');
     }
     for (const m of meshes.values()) {
-      disposeStandaloneGate(m.made);
+      disposeGate(m.made);
     }
     meshes.clear();
     solidify();
     if (ghost) {
-      disposeStandaloneGate(ghost.made);
+      disposeGate(ghost.made);
       ghost = null;
     }
     disposeLine();
@@ -2042,6 +2196,8 @@ export function createBuildMode(host) {
       Equal: () => setSpeed(speedIndex + 1),
       NumpadAdd: () => setSpeed(speedIndex + 1),
       Escape: stepBack,
+      Delete: removeAimed,
+      Backspace: removeAimed,
     };
     if (act[code]) {
       act[code]();
@@ -2128,7 +2284,7 @@ export function createBuildMode(host) {
       if (e.button === 0) {
         primary(alt, e.shiftKey || shiftHeld());
       } else if (e.button === 2 && hovered) {
-        remove(hovered);
+        grab(hovered);
       } else if (e.button === 1 && hovered) {
         pickPiece(hovered);
       }
@@ -2153,18 +2309,29 @@ export function createBuildMode(host) {
         lock();
       }
     } else if (e.button === 2) {
-      if (hovered) {
-        remove(hovered);
+      /* The gizmo stands on the selected gate, under the cursor a right
+       * click just left there: a right click on a handle is on that gate. */
+      const on = hovered ?? (selected && gizmo.handleOn(ray) ? selected : null);
+      if (on && on === selected) {
+        remove(on);
+      } else if (on) {
+        grab(on);
       } else {
+        /* Held and dragged it looks; let go where it was pressed, it is a
+         * right click on the world, which takes the mouse back. */
         mouse.dragging = true;
+        rightTravel = 0;
       }
     } else if (e.button === 1 && hovered) {
       pickPiece(hovered);
     }
   });
   window.addEventListener('mouseup', (e) => {
-    if (e.button === 2) {
+    if (e.button === 2 && mouse.dragging) {
       mouse.dragging = false;
+      if (state === 'building' && !locked() && rightTravel < RIGHT_CLICK_PX) {
+        leaveGizmo();
+      }
     }
     if (e.button === 0 && drag) {
       endDrag();
@@ -2177,6 +2344,7 @@ export function createBuildMode(host) {
     if (locked() || mouse.dragging) {
       mouse.dx += e.movementX || 0;
       mouse.dy += e.movementY || 0;
+      rightTravel += Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0);
       return;
     }
     setCursor(e);

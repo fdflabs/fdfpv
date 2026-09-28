@@ -88,8 +88,9 @@ import {
   NEAR_POINTS, PASS_POINTS, PLANE_REACH, Race,
 } from '../src/game/race.js';
 import {
-  BUILD_TYPES, CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, HOTBAR_SLOTS, PIECES, PIECE_CATS, addGate, chainPose, axesOf, capsOverlap, createHistory, gateSpec, gizmoAxes,
-  makeStart, newCourse, openingCentre, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf, qAxis, qMul, qRot, raceGatesOf,
+  BUILD_TYPES, CASUAL, CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, HOTBAR_SLOTS, PIECES, PIECE_CATS, RETIRED_HOOPS, WING_FIRST, addGate, casualCourse, chainPose, axesOf,
+  capsOverlap, createHistory, gateSpec, gizmoAxes, makeStart, newCourse, offeredPiece, openingCentre, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf, qAxis,
+  qMul, qRot, raceGatesOf, restoreHotbar,
   readoutFor, removeGate, setOrder, setPose, snapPose, spawnFor, startFor, floatStart, stepOf, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
 import { Colliders, KINDS, contactMaterial } from '../src/game/collide.js';
@@ -347,7 +348,8 @@ console.log('placement');
 /* ------------------------------------------------------------------ */
 console.log('the pieces');
 {
-  check('every type the builder places is a piece', BUILD_TYPES.every((t) => PIECES.some((p) => p.type === t)));
+  check('every type the builder places is a piece, and the retired hoops are not',
+    BUILD_TYPES.every((t) => RETIRED_HOOPS.includes(t) !== PIECES.some((p) => p.type === t)));
   check('every piece is on an inventory shelf', PIECES.every((p) => PIECE_CATS.includes(p.cat)));
   check('the default hotbar is nine real pieces', DEFAULT_HOTBAR.length === HOTBAR_SLOTS && DEFAULT_HOTBAR.every((id) => pieceById(id)));
   const d = newCourse('swiss2', 'Pieces');
@@ -826,11 +828,90 @@ console.log('sky hoops');
   const up = qAxis(0, 1, 0, 0);
   const span = (id) => craftLimits(airframeById(id)).span;
   check('every hoop is a piece on the sky hoops shelf', HOOP_TYPES.every((t) => PIECES.some((p) => p.type === t && p.cat === 'sky')) && PIECE_CATS.includes('sky'));
-  check('the plane hotbar opens on the plane hoops, the quad one on the quad hoops',
-    ['hoop6', 'hoop12', 'hoop20', 'hoop30'].every((t) => DEFAULT_WING_HOTBAR.includes(t)) && ['hoop175', 'hoop250'].every((t) => DEFAULT_HOTBAR.includes(t))
-    && DEFAULT_WING_HOTBAR.length === HOTBAR_SLOTS && DEFAULT_WING_HOTBAR.every((id) => pieceById(id)));
+  check('the plane hotbar opens on the 30 m hoop and the air race\'s pylon pair and holds no other hoop, the quad one on the quad hoops',
+    DEFAULT_WING_HOTBAR.slice(0, 2).join() === 'hoop30,pylonPair' && WING_FIRST.join() === 'hoop30,pylonPair' && DEFAULT_WING_HOTBAR.filter((id) => pieceById(id).cat === 'sky').join() === 'hoop30'
+    && ['hoop175', 'hoop250'].every((t) => DEFAULT_HOTBAR.includes(t))
+    && DEFAULT_WING_HOTBAR.length === HOTBAR_SLOTS && DEFAULT_WING_HOTBAR.every((id) => pieceById(id))
+    && new Set(DEFAULT_WING_HOTBAR).size === HOTBAR_SLOTS);
   const sizes = HOOP_TYPES.map((t) => ELEMENTS[t].dims.clearW);
-  check('the hoops are 1.75, 2.5, 6, 12, 20 and 30 m across', sizes.join() === '1.75,2.5,6,12,20,30', sizes.join());
+  check('the hoops placed are 1.75, 2.5 and 30 m across', sizes.join() === '1.75,2.5,30', sizes.join());
+  const retiredSizes = RETIRED_HOOPS.map((t) => ELEMENTS[t].dims.clearW);
+  check('the retired ones, 6, 12 and 20 m, are still elements', retiredSizes.join() === '6,12,20', retiredSizes.join());
+
+  /* The owner: "I only want the 30 m hoop." Nothing a pilot can place or
+   * be handed offers the others. */
+  const placeable = [...PIECES.map((p) => p.type), ...DEFAULT_HOTBAR, ...DEFAULT_WING_HOTBAR].map((id) => pieceById(id)?.type ?? id);
+  check('no piece, hotbar or inventory shelf offers a 6, 12 or 20 m hoop', !placeable.some((t) => RETIRED_HOOPS.includes(t)) && RETIRED_HOOPS.every((t) => pieceById(t) === null));
+  const casual = casualCourse('swiss2', 'Casual', () => 0, { x: 0, z: 0 });
+  const casualTypes = casual ? casual.elements.map((e) => e.type).join() : 'none';
+  check(`on level ground the casual course is ${CASUAL.gates} gates, the 30 m hoop and the air race's pylon pair by turns, a hoop first: ${casualTypes}`,
+    casual && casual.elements.length === CASUAL.gates && casual.elements.every((e, i) => e.type === (i % 2 ? 'pylonPair' : 'hoop30')));
+  const cg = casual ? raceGatesOf(casual) : [];
+  check('its pairs stand on the ground and its hoops hang 60 m over it',
+    cg.every((g, i) => (i % 2 ? near(g.position.y, 0, 1e-9) : near(g.centre.y, CASUAL.over, 1e-9))), cg.map((g) => g.centre.y.toFixed(1)).join());
+  check('each is flown towards the next', cg.every((g, i) => {
+    const q = cg[(i + 1) % cg.length].centre;
+    return (q.x - g.centre.x) * g.axes.travel.x + (q.y - g.centre.y) * g.axes.travel.y + (q.z - g.centre.z) * g.axes.travel.z > 0;
+  }));
+  {
+    const flatW = { heightAt: () => 0, solidAt: () => false };
+    const bad = AIRFRAMES.filter((af) => af.fixedWing).map((af) => {
+      const c = craftLimits(af);
+      const ws = lineWarnings(cg, racingLine(cg, c, flatW.heightAt), c, flatW);
+      return ws.length ? `${af.id}: ${ws.map((w) => `${w.code}@${w.gate + 1}`).join(' ')}` : '';
+    }).filter(Boolean);
+    check('and no plane gets a warning on it: the dives to the pairs and the climbs out are flyable', bad.length === 0, bad.join('; '));
+  }
+  /* A 10 percent slope: wherever the line runs along it the approach
+   * climbs too much for a pair, and wherever it runs across it the cones
+   * stand too far apart in height, so every slot is a hoop, still eight. */
+  const sloped = casualCourse('swiss2', 'Casual', (x) => 0.1 * x, { x: 0, z: 0 });
+  check(`on a slope too steep for a pair the casual course is still ${CASUAL.gates} gates, all hoops: ${sloped ? sloped.elements.map((e) => e.type).join() : 'none'}`,
+    sloped && sloped.elements.length === CASUAL.gates && sloped.elements.every((e) => e.type === 'hoop30'));
+  /* Rolling hills: wherever the pairs land and whichever slots stay
+   * hoops, no plane's line through them meets the ground or anything else. */
+  const hills = (x, z) => 25 * Math.sin(x / 150) * Math.cos(z / 170) + 10 * Math.sin((x + z) / 60);
+  const rolled = casualCourse('swiss2', 'Casual', hills, { x: 0, z: 0 });
+  const rg = rolled ? raceGatesOf(rolled) : [];
+  const rollBad = AIRFRAMES.filter((af) => af.fixedWing).map((af) => {
+    const c = craftLimits(af);
+    const w = { heightAt: hills, solidAt: () => false };
+    const ws = lineWarnings(rg, racingLine(rg, c, hills), c, w);
+    return ws.length ? `${af.id}: ${ws.map((x) => `${x.code}@${x.gate + 1}`).join(' ')}` : '';
+  }).filter(Boolean);
+  check(`on rolling hills: ${rolled ? rolled.elements.map((e) => e.type).join() : 'none'}, and no plane gets a warning`,
+    rolled && rg.length === CASUAL.gates && rollBad.length === 0, rollBad.join('; '));
+  const stale = ['hoop20', 'hoop12', 'hoop30', 'hoop6', 'pylonPair', 'pylon', 'pylonRight', 'wideGate5', 'wideGate3'];
+  const mended = restoreHotbar(stale, DEFAULT_WING_HOTBAR);
+  check(`the old plane default, stored, comes back as the new default: ${mended.join(' ')}`, mended.join() === DEFAULT_WING_HOTBAR.join()
+    && restoreHotbar(stale, DEFAULT_WING_HOTBAR, WING_FIRST).join() === DEFAULT_WING_HOTBAR.join());
+  const dropped = ['hoop20', 'wideGate5', 'wideGate3', 'pylon', 'pylonRight', 'tower', 'ladder', 'gate', 'hoop12'];
+  const back2 = restoreHotbar(dropped, DEFAULT_WING_HOTBAR, WING_FIRST);
+  check(`a stored plane bar that had dropped the pylon pair and the 30 m hoop gets both back in their slots, the rest kept in order: ${back2.join(' ')}`,
+    back2.slice(0, 2).join() === 'hoop30,pylonPair' && back2.slice(2).join() === 'wideGate5,wideGate3,pylon,pylonRight,tower,ladder,gate');
+  const chosen = ['hoop30', 'wideGate5', 'wideGate3', 'pylon', 'pylonRight', 'tower', 'ladder', 'gate', 'flaggedGate'];
+  check('and without `first`, the way a bar stored after that is read, the pilot\'s choice stands', restoreHotbar(chosen, DEFAULT_WING_HOTBAR).join() === chosen.join());
+  const own = restoreHotbar(['wideGate3', 'hoop12', 'pylon', 'hoop175', 'hoop6', 'hoop30', 'tower', 'pylonPair', 'hoop20'], DEFAULT_WING_HOTBAR);
+  check(`a bar the pilot arranged loses the retired hoops, keeps its own pieces in order, and fills from the defaults with no piece twice: ${own.join(' ')}`,
+    own.length === HOTBAR_SLOTS && new Set(own).size === HOTBAR_SLOTS && own.every((id) => pieceById(id))
+    && own.slice(0, 6).join() === 'wideGate3,pylon,hoop175,hoop30,tower,pylonPair' && !own.some((id) => RETIRED_HOOPS.includes(id)));
+  check('nothing stored, or junk stored, is the defaults', restoreHotbar(null, DEFAULT_WING_HOTBAR).join() === DEFAULT_WING_HOTBAR.join()
+    && restoreHotbar('x', DEFAULT_HOTBAR).join() === DEFAULT_HOTBAR.join() && restoreHotbar([1, null], DEFAULT_HOTBAR).join() === DEFAULT_HOTBAR.join());
+
+  /* A published contract: tracks already saved and on the board name the
+   * retired hoops, and they load, draw and race as before. */
+  const old = newCourse('swiss2', 'Before the retirement');
+  const h20 = addGate(old, 'hoop20', { x: 0, y: 100, z: 0 }, up);
+  addGate(old, 'hoop6', { x: 0, y: 100, z: -400 }, up);
+  const oldBack = deserialize(serialize(old)).doc;
+  const oldGates = raceGatesOf(oldBack);
+  check('an old track with a 20 m and a 6 m hoop still loads with both as race gates, round and their own size',
+    oldBack.elements.map((e) => e.type).join() === 'hoop20,hoop6' && oldGates.length === 2 && oldGates.every((g) => g.aperture.round)
+    && near(oldGates[0].aperture.clearW, 20) && near(oldGates[1].aperture.clearW, 6));
+  check('and each still has a mesh spec, a soft plane hoop\'s', oldBack.elements.every((e) => gateSpec(e).kindName === 'hoop' && gateSpec(e).rimKind === 'hoop'));
+  const picked = pieceOf(oldBack, h20.id);
+  check('picked up (F) it is itself; a middle click or a copy of it is the 30 m hoop',
+    picked && picked.type === 'hoop20' && picked.retired && offeredPiece(picked).id === 'hoop30' && offeredPiece(pieceById('pylon')).id === 'pylon');
 
   const d = newCourse('swiss2', 'Sky');
   addGate(d, 'hoop30', { x: 0, y: 100, z: 0 }, up);
