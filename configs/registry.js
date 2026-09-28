@@ -315,6 +315,31 @@ export const TUNES = [
     name: 'Manual',
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tail wheel. It swings left as the tail comes up and drops a wing when it stalls. G works the retracts, F the flaps.',
   },
+  {
+    /* The F-16's three, the Cub's pattern: ailerons, the stabilators and
+     * a rudder, the turn coordinator in Stabilised, and on its wheels
+     * every mode flies as Manual, the rudder steering the nose wheel. The
+     * fan is the pilot's in every mode: none of them touches the
+     * throttle. */
+    id: 'f16-stab',
+    airframe: 'f16878',
+    name: 'Stabilised',
+    note: 'A gyro holds the jet once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, and centred sticks fly level. Throttle closed, it lowers the nose onto its glide. The fan still takes a moment to spool.',
+    wingStab: 1,
+  },
+  {
+    id: 'f16-acro',
+    airframe: 'f16878',
+    name: 'Acro',
+    note: 'A gyro holds the jet where you leave it once it is off the ground. Sticks ask for a roll rate up to 300 degrees a second and a pitch rate up to 120, and centred sticks hold the attitude, inverted too.',
+    wingStab: 2,
+  },
+  {
+    id: 'f16-manual',
+    airframe: 'f16878',
+    name: 'Manual',
+    note: 'No flight controller. The sticks work the ailerons, the all moving stabilators and the rudder, which also steers the nose wheel. The fan spools behind the throttle stick and stops when it is closed.',
+  },
 ];
 
 /*

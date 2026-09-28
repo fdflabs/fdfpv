@@ -228,7 +228,8 @@ async function main() {
        * cache, and a fulfilled request never touches the network stack, so
        * throttling does NOT reach the three.js module. It reaches everything
        * the local server answers, which is the map module graph, dist/sim.wasm
-       * and the page itself, and for the city that is 61 files.
+       * and the page itself, and for the Swiss valley that is 49 files of its
+       * own besides the Alps modules it builds through.
        */
       const kbps = Number(arg);
       await cdp.send('Network.enable', {}, sessionId);

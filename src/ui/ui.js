@@ -42,6 +42,7 @@
  */
 
 import { MAPS, mapById } from '../maps/registry.js';
+import { retiredMap } from '../maps/retired.js';
 import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
 import { planesFor } from '../game/verify.js';
@@ -214,7 +215,7 @@ const LINK_ACTIONS = new Set(['leaderboard', 'wiki']);
 const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
-  'calibrate',
+  'calibrate', 'friends',
 ]);
 
 /* What the breadcrumb says, per screen. A room is a navigation parent, so a
@@ -251,6 +252,7 @@ const SCREEN_TITLES = {
   howto: str('ui.how_to_fly'),
   tricks: str('ui.trick_list'),
   credits: 'Credits',
+  friends: str('friends.title'),
 };
 const CRUMBS = {
   courses: [str('ui.track_mode'), str('ui.my_tracks')],
@@ -267,6 +269,7 @@ const CRUMBS = {
   howto: [str('ui.how_to_fly')],
   tricks: [str('ui.freestyle'), str('ui.trick_list')],
   credits: [str('ui.credits')],
+  friends: [str('friends.title')],
   title: ['FDFPV'],
 };
 
@@ -493,8 +496,8 @@ function byLine(t) {
 
 const DEFAULTS = {
   /* Which world. 'track' is Track mode's seat, a track built in the Alps
-   * or the Swiss valley flown in the world it names, and 'city' is the
-   * freestyle town. It is a string so loadSettings' typeof gate accepts it,
+   * or the Swiss valley flown in the world it names, and any other id is a
+   * freestyle world. It is a string so loadSettings' typeof gate accepts it,
    * and an unknown value falls back to the Track seat in
    * src/maps/registry.js rather than throwing, because a stale localStorage
    * entry must not be able to stop the page booting. */
@@ -1132,10 +1135,23 @@ export function loadSettings() {
    * lands on the tune it was chosen against. One shot: see seedAirframePids.
    */
   seedAirframePids(s, s.airframe);
+  /*
+   * A RETIRED WORLD MOVES TO THE ONE THAT REPLACED IT, in both slots. The
+   * freestyle town and the airfield went on 2026-09-28, and a pilot whose
+   * seat was one of them was freestyling: dropping them into the Track seat
+   * by the unknown id rule below would change what they fly, not only
+   * where. src/maps/retired.js says where each went.
+   */
+  if (retiredMap(s.map)) {
+    s.map = retiredMap(s.map).to;
+  }
+  if (retiredMap(s.freestyleMap)) {
+    s.freestyleMap = retiredMap(s.freestyleMap).to;
+  }
   /* The race field and its track world are gone. A stored 'field' or
    * 'custom', a whoop's RaceGOW room among them, or an id no map has, is the
    * Track seat: My tracks, and the Swiss valley behind it until a track is
-   * chosen. City is left alone. */
+   * chosen. */
   if (!MAPS.some((m) => m.id === s.map)) {
     s.map = 'track';
   }
@@ -1630,7 +1646,7 @@ function wordmark() {
 
 /*
  * First-time thumbnail wait. Recording a clip takes several seconds
- * (the city, longer). A blank card looks like a stall. Same copy as the
+ * (a valley, longer). A blank card looks like a stall. Same copy as the
  * boot screen: "loading" and a joke. Cached visits never see it.
  */
 
@@ -2859,17 +2875,17 @@ const WAYS = [
   {
     /* EVERY FIXED WING, ONE CARD. A card is a kind of flying, not a
      * machine: every one of them is launched, flown long and brought home
-     * on the airfield, so they share a way in and the Plane row picks
+     * on a strip, so they share a way in and the Plane row picks
      * between them. The first, the Bramor, which took the 1000 mm flying
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'edge1524'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'edge1524', 'f16878'],
     mode: 'freestyle',
     /* The card's own world. A card with a home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
      * strip for the wheels, a lake for the floats and room for the rest. The
-     * Map row still seats the airfield or any other world. */
+     * Map row still seats any other world. */
     home: 'swiss2',
     label: str('ui.free_flight_card'),
     art: 'assets/gate/flight.jpg',
@@ -3613,7 +3629,7 @@ export class Ui {
      * behind the door has to describe the door that is actually open: the
      * town and the quad, with the scoring named as a switch rather than as
      * the point. See DEFAULTS.freestyleScoring. */
-    freestyle.append(el('p', 'rates-lede', str('ui.a_whole_town_and_no_gates')));
+    freestyle.append(el('p', 'rates-lede', str('ui.a_whole_valley_and_no_gates')));
     this.freestyleCards = el('div', 'map-cards');
     const freestyleBlock = wrapMenu();
     this.freestyleMenu = freestyleBlock.menu;
@@ -3668,6 +3684,19 @@ export class Ui {
     this.pilotHelp = pilotBlock.help;
     pilot.append(pilotBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_changes_are_already_stored')));
     this.screens.pilot = pilot;
+
+    /* FLY WITH FRIENDS: a private room, its code and who is in it. The
+     * rows are the shell's (src/main.js friendsRows), because the room is
+     * the shell's; this is only the page they sit on. */
+    const friends = el('div', 'screen screen-page screen-friends');
+    friends.append(el('h2', null, str('friends.title')));
+    friends.append(el('p', 'rates-lede', str('friends.lede')));
+    const friendsBlock = wrapMenu();
+    this.friendsMenu = friendsBlock.menu;
+    this.friendsMenu.classList.add('menu-scroll');
+    this.friendsHelp = friendsBlock.help;
+    friends.append(friendsBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_changes_are_already_stored')));
+    this.screens.friends = friends;
 
     /*
      * STANDINGS: the board, in the game.
@@ -4169,6 +4198,25 @@ export class Ui {
         }
       },
     }];
+  }
+
+  /* The Fly with friends row, where the shell has a rooms server to offer
+   * (src/share/rooms.js roomsOrigin): { value, note } from the shell, or
+   * nothing at all on a page with no server, rather than a row that can
+   * only fail. */
+  friendsItems() {
+    const row = this.friendsRow ? this.friendsRow() : null;
+    if (!row) {
+      return [];
+    }
+    return [{ label: str('friends.title'), value: row.value, note: row.note, action: 'friends' }];
+  }
+
+  /* The shell's room changed: redraw a screen that shows it. */
+  refreshFriends() {
+    if (this.screen === 'title' || this.screen === 'paused' || this.screen === 'friends') {
+      this.renderMenu();
+    }
   }
 
   /* The Ghost row where the shell has provided one, as an array so the two
@@ -5543,7 +5591,7 @@ export class Ui {
            */
           note: world
             ? str('ui.your_quad_and_the_physics_model', { note: world.note })
-            : str('ui.one_town_no_gates_open_it'),
+            : str('ui.no_gates_pick_a_valley'),
         }
         : {
           label: str('ui.track'),
@@ -5607,6 +5655,7 @@ export class Ui {
         ...(trouble ? [trouble] : []),
         flyRow,
         modeRow,
+        ...this.friendsItems(),
         /*
          * THE TRICK LIST IS WITHDRAWN UNTIL THE SCORING IS SETTLED.
          *
@@ -5702,6 +5751,9 @@ export class Ui {
     }
     if (this.screen === 'howto') {
       return [{ label: str('ui.back'), action: 'back' }];
+    }
+    if (this.screen === 'friends') {
+      return [...(this.friendsRows ? this.friendsRows() : []), { label: str('ui.back'), action: 'back' }];
     }
     if (this.screen === 'credits') {
       return [{ label: str('ui.back'), action: 'back' }];
@@ -6426,6 +6478,7 @@ export class Ui {
         }] : []),
         ...this.ghostItems(),
         ...this.liveItems(),
+        ...this.friendsItems(),
         { label: str('ui.does_it_feel_wrong'), section: true },
         tuneItem(s, true),
         /*
@@ -6984,6 +7037,7 @@ export class Ui {
       courses: this.coursesMenu,
       freestyle: this.freestyleMenu,
       pilot: this.pilotMenu,
+      friends: this.friendsMenu,
       quad: this.quadMenu,
       launch: this.launchMenu,
       standings: this.standingsMenu,
@@ -7340,6 +7394,7 @@ export class Ui {
       courses: this.coursesHelp,
       freestyle: this.freestyleHelp,
       pilot: this.pilotHelp,
+      friends: this.friendsHelp,
       quad: this.quadHelp,
       launch: this.launchHelp,
       standings: this.standingsHelp,
@@ -10684,8 +10739,8 @@ export class Ui {
     screen.classList.add('is-in');
 
     this.resultsKicker.textContent = summary.timed === false
-      ? str('ui.freestyle_city_free_flight')
-      : str('ui.freestyle_city');
+      ? str('ui.freestyle_results_free_flight')
+      : str('ui.freestyle_results');
     this.resultsHead.textContent = summary.tricks
       ? (clean ? str('ui.clean_run') : str('ui.run_complete'))
       : str('ui.run_ended');
@@ -12347,9 +12402,15 @@ export class Ui {
      * look fine, and only pressing the key a pilot presses showed that
      * nothing happened.
      */
+    if (typeof action === 'string' && action.startsWith('friends-')) {
+      if (this.onFriends) {
+        this.onFriends(action);
+      }
+      return;
+    }
     if (action === 'howto' || action === 'pilot' || action === 'quad'
       || action === 'courses' || action === 'freestyle' || action === 'credits'
-      || action === 'tricks') {
+      || action === 'tricks' || action === 'friends') {
       /*
        * A room opened FROM another room remembers which, so Back is the way
        * you came rather than a jump to the title. Only from a real room,

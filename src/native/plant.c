@@ -1346,6 +1346,63 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.3578, 0.0, -0.1649 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * Freewing's F-16 V3 70 mm EDF, docs/F16-STAGE1.md: 1,550 g without a
+ * pack and Motion RC's Admiral 6S 4000 (566 g) in the nose, balanced 90 mm
+ * behind the wing's root leading edge. The fan 0.24 m behind the CG. The
+ * ESC's cutoff is its Medium, 3.15 V a cell. The hull is the contact
+ * code's centred box, only what a crash lands on: the tip rails across,
+ * the belly 0.06 m under the CG and the canopy over it, and 0.42 m fore
+ * and aft, so its aft lower edge is no lower than the nozzle's skid on a
+ * rotation to the nozzle's 11.4 deg; the nose and the tail beyond stand
+ * outside it, as the Kadet's tail does. The camera is in the cockpit.
+ */
+[SIM_AIRFRAME_F16878] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 2.116,
+  .inertia = { 0.0236, 0.1191, 0.1347 },
+  .gravity = 9.81,
+  .cells = 6.0,
+  .r_cell = 0.006,
+  .pack_c = 4000.0 * 3.6,
+  .lvc = 3.15,
+  .rho = 1.225,
+  .prop_r = 0.0345,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -0.24, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.42,
+  .hull_hy = 0.439,
+  .hull_hz_down = 0.06,
+  .hull_hz_up = 0.07,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.8,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.41,
+  .camera_y = 0.0,
+  .camera_z = 0.058,
+  .fw = &FW_F16878,
+  /*
+   * The tricycle gear on its electric retracts, as src/render/f16craft.js
+   * draws it: the full size F-16's 2.36 m track and 4.00 m wheelbase at
+   * 1/11.5, the mains 52 mm behind the CG so the nose wheel carries 15
+   * percent, its 27.75 in and 18 in tyres as 60 and 40 mm. Each axle is
+   * lowered by its strut's 6 mm of static deflection, so under its own
+   * weight the plant settles level, the CG 0.140 m over the runway.
+   * Stiffness for that deflection, damping 0.6 of critical, the Cub's
+   * rule; the nose wheel steers with the rudder as the Kadet's does. All
+   * three retract (the P-51's `retract`, FW_F16878's gear_time). The
+   * fourth contact is a skid under the ventral fins and the nozzle, where
+   * an over rotation strikes, and a belly landing slides: 11.4 deg of
+   * pitch on the mains.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { -0.052, 0.1025, -0.116 }, .r = 0.030, .k = 1471.0, .c = 47.35, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE, .retract = 1.0 },
+    { .pos = { -0.052, -0.1025, -0.116 }, .r = 0.030, .k = 1471.0, .c = 47.35, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE, .retract = 1.0 },
+    { .pos = { 0.296, 0.0, -0.126 }, .r = 0.020, .k = 517.0, .c = 27.70, .mu_roll = 0.08, .mu_side = 0.70, .steer = -0.6, .slide = TYRE_SLIDE, .retract = 1.0 },
+    { .pos = { -0.55, 0.0, -0.040 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*

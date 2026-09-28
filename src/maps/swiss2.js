@@ -649,9 +649,8 @@ function photoStyle() {
       shell.setCraftLook(photoCraftLook(style.lit));
       style.shell = shell;
       /* The frame's parts for scripts/swiss2-perf.js, which times each on
-       * the GPU with the frame uncapped. A diagnostic like the city's
-       * __CITY_SCAN: nothing is kept unless the harness asked before the
-       * map was built. */
+       * the GPU with the frame uncapped. A diagnostic: nothing is kept
+       * unless the harness asked before the map was built. */
       const perf = globalThis.__SWISS2_PERF;
       if (perf && typeof perf === 'object') {
         Object.assign(perf, {

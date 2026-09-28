@@ -30,6 +30,7 @@ jobs:
       - run: npm run lap:selftest
       - run: npm run identity:selftest
       - run: npm run live:selftest
+      - run: npm run rooms:selftest
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
@@ -42,6 +43,8 @@ jobs:
       - run: npm run edge:stab
       - run: npm run glider:gates
       - run: npm run glider:stab
+      - run: npm run f16:gates
+      - run: npm run f16:stab
       - run: npm run p51:gates
       - run: npm run p51:stab
       - run: npm run input:selftest
