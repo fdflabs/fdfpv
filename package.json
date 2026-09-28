@@ -59,6 +59,7 @@
     "gen:hulls": "node scripts/hulls-gen.js",
     "midair:harness": "node scripts/midair-harness.js",
     "midair:plant": "node scripts/midair-plant.js",
+    "midair:twopage": "node scripts/midair-two-page.js",
     "strings:selftest": "node scripts/strings-selftest.js",
     "waves:selftest": "node scripts/waves-selftest.js",
     "wing:math": "node scripts/wing-math-selftest.js",
