@@ -335,5 +335,17 @@ export const ESTIMATES = {
         minutes: 66.7
       }
     }
+  },
+  edge1524: {
+    stock: {
+      '6s4000': {
+        topSpeed: 29.3,
+        minutes: 17.2
+      },
+      '6s3300': {
+        topSpeed: 29.21,
+        minutes: 15
+      }
+    }
   }
 };

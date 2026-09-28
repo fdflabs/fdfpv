@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|edge] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -247,6 +247,27 @@ const KADET_VIEWS = [
 ];
 
 /*
+ * The Edge's own set: its spinner at z = -0.53, its rudder at +0.97, on
+ * its tailwheel, and the 3D throws deflected from behind and close.
+ */
+const EDGE_VIEWS = [
+  ['front', NEUTRAL, [0, 4, 3.8, 0, 0, 0]],
+  ['three-quarter', NEUTRAL, [-140, 24, 3.4, 0, 0, 0.2]],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 3.4, 0, 0, 0.1]],
+  ['side', NEUTRAL, [90, 0, 3.4, 0, 0, 0.2]],
+  ['side-rest', NEUTRAL, [90, 3, 3.4, 0, 0, 0.2], false, true],
+  ['three-quarter-rest', NEUTRAL, [-45, 12, 3.0, 0, 0, 0.15], false, true],
+  ['top', NEUTRAL, [0, 90, 3.8, 0, 0, 0.2]],
+  ['below', NEUTRAL, [0, -90, 3.8, 0, 0, 0.2]],
+  ['deflected-three-quarter', DEFLECT, [-150, 25, 3.4, 0, 0, 0.2]],
+  ['deflected-rear', DEFLECT, [180, 12, 3.4, 0, 0, 0.2]],
+  ['cowl-close', NEUTRAL, [-40, 12, 1.0, 0, 0, -0.35]],
+  ['prop-blur', NEUTRAL, [-20, 10, 1.2, 0, 0, -0.45], true],
+  ['tail-close', DEFLECT, [-145, 20, 1.2, 0, 0.05, 0.8]],
+  ['gear-front', NEUTRAL, [0, -5, 1.4, 0, -0.15, -0.1]],
+];
+
+/*
  * The Timber's own set: its spinner at z = -0.33, its rudder at +0.72,
  * resting on its tailwheel as the Cub does, and the flaps, which are what
  * it is for: half and full, from the side and from behind, where the slot
@@ -319,6 +340,7 @@ try {
     cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS, timber: TIMBER_VIEWS,
     bombshell: BOMBSHELL_VIEWS,
     kadet: KADET_VIEWS,
+    edge: EDGE_VIEWS,
     timberf: floatViews(-0.33, 0.62), cubf: floatViews(-0.26, 0.55),
   }[craft] ?? VIEWS;
   for (const [name, surf, cam, blur, rest, omega, setup] of views) {
@@ -398,6 +420,13 @@ try {
       ['rudder', [0, 0, 0, FULL], left],
       ['kadet-nose-leg', [0, 0, 0, FULL], left],
     ],
+    edge: [
+      ['aileron-left', [FULL, 0, 0, 0], up],
+      ['aileron-right', [0, FULL, 0, 0], up],
+      ['elevator', [0, 0, FULL, 0], up],
+      ['rudder', [0, 0, 0, FULL], left],
+      ['tailwheel', [0, 0, 0, FULL], left],
+    ],
     timberf: [
       ['rudder', [0, 0, 0, FULL], left],
       ['water-rudder-left', [0, 0, 0, FULL], left],
@@ -425,7 +454,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet'].includes(craft)) {
+  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet', 'edge'].includes(craft)) {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
@@ -452,10 +481,10 @@ try {
    * spin: a blade pointing up must go right, +x, under a positive step of
    * the shell's spin, which is clockwise seen from the cockpit.
    */
-  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell' || craft === 'kadet') {
+  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell' || craft === 'kadet' || craft === 'edge') {
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     const d = await page.evaluate('window.__preview.dims');
-    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres', bombshell: 'bombshell-black', kadet: 'kadet-tyres' }[craft];
+    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres', bombshell: 'bombshell-black', kadet: 'kadet-tyres', edge: 'edge-tyres' }[craft];
     /* The Bombshell has a wire skid where the others have a tailwheel, and
      * the Kadet a nose wheel. */
     const third = { bombshell: ['tail', 'tail-skid'], kadet: ['nose', 'tyre-nose'] }[craft] ?? ['tail', 'tyre-tail'];

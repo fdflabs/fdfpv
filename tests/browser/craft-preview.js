@@ -32,6 +32,7 @@ import { buildSlowStickCraft, SLOWSTICK_DIMS } from '../../src/render/slowstickc
 import { buildTimberCraft, TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS } from '../../src/render/timbercraft.js';
 import { buildBombshellCraft, BOMBSHELL_DIMS } from '../../src/render/bombshellcraft.js';
 import { buildKadetCraft, KADET_DIMS } from '../../src/render/kadetcraft.js';
+import { buildEdgeCraft, EDGE_DIMS } from '../../src/render/edgecraft.js';
 
 /* On floats, the float variants: the same aircraft, its reach down and up
  * and its rest the floats', its nose the floats' bows where they reach
@@ -43,6 +44,7 @@ const BUILDERS = {
   cubf: (o) => buildCubCraft({ ...o, floats: true }),
   bombshell: buildBombshellCraft,
   kadet: buildKadetCraft,
+  edge: buildEdgeCraft,
 };
 const DIMS = {
   sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS,
@@ -50,6 +52,7 @@ const DIMS = {
   cubf: onFloats(CUB_DIMS, CUB_FLOATS, CUB_FLOAT_DIMS),
   bombshell: BOMBSHELL_DIMS,
   kadet: KADET_DIMS,
+  edge: EDGE_DIMS,
 };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
