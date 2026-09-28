@@ -34,9 +34,9 @@
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. The match (small) is handed
  * back as a { store } action on every change of state or crown and every
- * STORE_POINTS points, and restored by edge/rooms/do.js after a
- * hibernation; the samples are memory only, since a room that slept had
- * nobody flying.
+ * STORE_POINTS points, and handed back to restore() by edge/rooms/host.js
+ * after a hibernation or a restart; the samples are memory only, since a
+ * room that slept had nobody flying.
  *
  * This file is part of WebFPVSimulator.
  *

@@ -198,8 +198,9 @@ never claim a touch, the room judges it, so there is no client event to
 relay. That is a departure from the COORD entry, stated here.
 
 Hibernation: the match is kept in the room's storage (`{ store: 'tag' }`,
-the race's pattern, restored by `edge/rooms/do.js`); the samples are
-memory only, since a room that hibernated had nobody flying.
+the race's pattern; `edge/rooms/host.js` hands every stored key back to
+`core[key].restore()` on load, on Cloudflare and on the VM alike); the
+samples are memory only, since a room that hibernated had nobody flying.
 
 ## Fairness under lag, and what each screen sees
 

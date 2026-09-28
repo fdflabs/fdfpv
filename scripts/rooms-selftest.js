@@ -55,6 +55,7 @@ import {
 import { LobbyBook, MAX_MAPS, PENDING_MS } from '../edge/rooms/lobby.js';
 import { TELEPORT_SPEED } from '../src/game/verify.js';
 import { DROP_MS, TAG_M } from '../edge/rooms/tag.js';
+import { RoomHost } from '../edge/rooms/host.js';
 import {
   GOALS, GOAL_MAX, GOAL_MIN, PROTECT_MS, createRoomTag, goalOf,
 } from '../src/share/roomtag.js';
@@ -1299,6 +1300,13 @@ console.log('catch the ace: starting a match');
   slept.tag.restore(saved);
   check('a room that slept keeps its match: goal, crown and points', slept.tag.match && slept.tag.match.goal === 10 && slept.tag.on()
     && slept.tag.view(slept).ace === saved.match.ace);
+  /* And through the hosts' generic path (edge/rooms/host.js): every stored
+   * key goes to core[key].restore() on load, so 'tag' needs no adapter. */
+  const kept = new Map([['meta', e.r.meta], ['tag', saved]]);
+  const host = new RoomHost({ storage: { get: async (k) => kept.get(k), list: async () => kept }, getWebSockets: () => [] }, {});
+  const loaded = await host.load();
+  check('and a host that loads the room from storage hands the match back to core.tag', loaded.tag.on() && loaded.tag.match.goal === 10
+    && loaded.tag.match.ace === saved.match.ace);
   e.say(0, { type: 'tag', op: 'end' });
   const early = e.view(other);
   check('the host can end it early: results as they stand, no winner', early.state === 'results' && early.winner === null);
