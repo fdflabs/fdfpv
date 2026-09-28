@@ -2095,11 +2095,11 @@ export async function boot({
       : str(`combat.state_${r.state}`);
     if (host && (r.state === 'idle' || r.state === 'over')) {
       return [5, 3].map((minutes) => ({
-        label: str('combat.start', { minutes }), note: str('combat.row_note'), action: `combat-${minutes}`,
+        label: str('combat.start', { minutes }), note: str('combat.row_note'), action: `friends-combat-${minutes}`,
       }));
     }
     if (host) {
-      return [{ label: str('combat.stop'), value: state, note: str('combat.stop_note'), action: 'combat-stop' }];
+      return [{ label: str('combat.stop'), value: state, note: str('combat.stop_note'), action: 'friends-combat-stop' }];
     }
     return [{
       label: str('combat.row'), value: state, note: str(r.state === 'idle' ? 'combat.waiting' : 'combat.row_note'), info: true,
@@ -2765,11 +2765,11 @@ export async function boot({
   };
 
   ui.onFriends = async (action) => {
-    if (action === 'combat-5' || action === 'combat-3') {
-      roomCombat.start(action === 'combat-5' ? 5 : 3);
+    if (action === 'friends-combat-5' || action === 'friends-combat-3') {
+      roomCombat.start(action === 'friends-combat-5' ? 5 : 3);
       return;
     }
-    if (action === 'combat-stop') {
+    if (action === 'friends-combat-stop') {
       roomCombat.stop();
       return;
     }
