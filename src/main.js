@@ -92,11 +92,12 @@ import {
 import { createRoomSafety } from './share/roomsafety.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  encodePose, normaliseCode,
+  checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
+import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { startTrackSync } from './share/cloud.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
@@ -1859,6 +1860,9 @@ export async function boot({
       }
       roomSlot = w.seat - 1;
       roomSafety.welcomed();
+      if (roomWreckSender) {
+        roomWreckSender.resend();
+      }
       /* A room flies in one world. In free flight the pilot is seated
        * there; on a track they keep their track and see whoever is in its
        * world. Against the SEAT, not the world drawn: a pilot who chose
@@ -1879,7 +1883,11 @@ export async function boot({
       roomSafety.left(seat);
       ui.refreshFriends();
     },
-    onEvent: (m) => roomSafety.event(m),
+    /* Each phase takes the kinds it knows and passes over the rest. */
+    onEvent: (ev) => {
+      roomSafety.event(ev);
+      roomEvent(ev);
+    },
     onReported: (seat) => {
       roomSafety.reported(seat);
       ui.refreshFriends();
@@ -1898,6 +1906,16 @@ export async function boot({
         if (peer && now != null) {
           peer.track.push(p, now);
           peer.last = peer.track.newest();
+        }
+      }
+    },
+    onBinary: (bytes) => {
+      const got = decodePartsRelay(bytes);
+      const peer = got ? roomPeers.get(got.seat) : null;
+      if (peer) {
+        peer.wreckPieces = got.pieces;
+        if (peer.wreck) {
+          peer.wreck.pieces(got.pieces, performance.now());
         }
       }
     },
@@ -1922,12 +1940,92 @@ export async function boot({
     if (old) {
       roomPeerLeave(seat);
     }
-    roomPeers.set(seat, { seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null });
+    roomPeers.set(seat, {
+      seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null, wreck: null, wreckTable: null, wreckPieces: null,
+    });
+  }
+
+  /*
+   * PHASE 2, SHARED WRECKS (src/share/roomwrecks.js). A peer's crash
+   * arrives as its part table, then its pieces' world poses; the peer's
+   * wreck is cut from its drawn aircraft and kept with the peer, rebuilt
+   * with the aircraft when that is. Sparks and dust are this screen's own,
+   * thrown where the peer is when the news arrives. A whack on a jelly
+   * piece wobbles the same piece here, when both fly the same course.
+   */
+  let roomWreckSender = null;
+  function roomEvent(ev) {
+    const peer = roomPeers.get(ev.seat);
+    if (!peer) {
+      return;
+    }
+    if (ev.kind === 'crash') {
+      if (ev.clear) {
+        peer.wreckTable = null;
+        peer.wreckPieces = null;
+        if (peer.wreck) {
+          peer.wreck.clear();
+        }
+        return;
+      }
+      const table = checkCrashTable(ev.table);
+      if (!table) {
+        return;
+      }
+      peer.wreckTable = table;
+      peer.wreckPieces = null;
+      if (peer.wreck) {
+        peer.wreck.crash(table);
+      }
+      if (peer.last && view && peer.profile.map === view.id) {
+        const at = new THREE.Vector3(peer.last.px, peer.last.py, peer.last.pz);
+        debris.emit(at, AXIS_Y, Math.max(4, Math.hypot(peer.last.vx, peer.last.vy, peer.last.vz)),
+          SURFACE.grass, null, groundAt(at.x, at.z), 'hit');
+      }
+      return;
+    }
+    if (ev.kind === 'whack') {
+      const w = checkWhack(ev);
+      if (w && build && view && w.map === view.id && w.course === String(view.courseKey ?? '')) {
+        build.jiggle(w.i, new THREE.Vector3(w.n[0], w.n[1], w.n[2]), w.square);
+      }
+    }
+  }
+  /* A whack this pilot's plane gave a jelly piece, for the others. */
+  function roomWhack(i, n, square) {
+    if (roomLinkState.state().phase !== 'open' || !view) {
+      return;
+    }
+    roomLinkState.sendEvent({ kind: 'whack', map: view.id, course: String(view.courseKey ?? ''), i, n: [n.x, n.y, n.z], square });
+  }
+  /* The peer's wreck on its current drawing, cut again when that changes. */
+  function roomPeerWreck(peer, scene) {
+    if (!peer.wreckTable) {
+      return;
+    }
+    if (!peer.wreck || peer.wreck.craft !== peer.rig.group) {
+      if (peer.wreck) {
+        peer.wreck.dispose();
+      }
+      peer.wreck = createPeerWreck(peer.rig.group, peer.rig.discs);
+      peer.wreck.craft = peer.rig.group;
+      peer.wreck.crash(peer.wreckTable);
+      if (peer.wreckPieces) {
+        peer.wreck.pieces(peer.wreckPieces, performance.now() - 1000);
+      }
+    }
+    if (peer.wreck.group.parent !== scene) {
+      scene.add(peer.wreck.group);
+    }
+    peer.wreck.update(performance.now());
   }
   function roomPeerLeave(seat) {
     const peer = roomPeers.get(seat);
     if (!peer) {
       return;
+    }
+    if (peer.wreck) {
+      peer.wreck.dispose();
     }
     if (peer.rig) {
       peer.rig.dispose();
@@ -1979,6 +2077,10 @@ export async function boot({
     if (mode === 'flight' && stateCurr && now >= roomNextSend) {
       roomNextSend = Math.max(roomNextSend + 1000 / 30, now - 1000 / 30);
       roomSendPose(now);
+    }
+    roomWreckSender ??= createWreckSender(roomLinkState, wreckRig, () => partTable);
+    if (mode === 'flight' || roomWreckSender.active()) {
+      roomWreckSender.frame(now, wallMs);
     }
     const scene = shell.quad.parent;
     const simT = stateCurr ? stateCurr[0] : 0;
@@ -2095,6 +2197,7 @@ export async function boot({
     peer.figure.setLabel(label);
     peer.rig.group.visible = true;
     peer.rig.pose(roomDrawn, peer.last, dt, simT, shell.canvas.clientHeight || 720, shell.camera.fov);
+    roomPeerWreck(peer, scene);
     const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
     peer.figure.group.position.set(st.x, groundAt(st.x, st.z), st.z);
     peer.figure.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
@@ -2129,7 +2232,11 @@ export async function boot({
         at: p.rig ? p.rig.group.position.toArray() : null,
         paint: p.rig ? p.rig.paint() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
+        wreck: p.wreck ? p.wreck.summary() : null,
       })),
+      /* This pilot's own pieces as drawn here, to hold against a peer's
+       * drawing of them. */
+      ownWreck: wreckRig.poses(),
     };
   };
   /* Harness only: every slot and station on this map, with the ground
@@ -8974,6 +9081,7 @@ export async function boot({
     if (build) {
       build.jiggle(i, jellyHit.n, w.square);
     }
+    roomWhack(i, jellyHit.n, w.square);
     return readState();
   }
 

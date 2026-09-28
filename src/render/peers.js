@@ -226,6 +226,8 @@ export function buildPeerCraft(profile, look = null) {
 
   return {
     group: craft.group,
+    /* The blur discs, which a peer's wreck hides with its props. */
+    discs: craft.discs,
     smoke: smoke ? smoke.group : null,
     key: profileKey(profile),
     airframe: id,
