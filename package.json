@@ -57,8 +57,16 @@
     "rooms:twopage": "node scripts/rooms-two-page.js",
     "rooms:racetwopage": "node scripts/rooms-race-two-page.js",
     "rooms:slots": "node scripts/rooms-slots-check.js",
+<<<<<<< HEAD
     "rooms:wrecks": "node scripts/rooms-wrecks-two-page.js",
     "rooms:restart": "node scripts/rooms-restart-check.js",
+=======
+    "hulls:check": "node scripts/hulls-gen.js --check",
+    "gen:hulls": "node scripts/hulls-gen.js",
+    "midair:harness": "node scripts/midair-harness.js",
+    "midair:plant": "node scripts/midair-plant.js",
+    "midair:twopage": "node scripts/midair-two-page.js",
+>>>>>>> multiplayer-phase3
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
     "friends:card": "node scripts/friends-card-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",

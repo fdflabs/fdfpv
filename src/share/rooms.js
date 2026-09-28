@@ -202,7 +202,8 @@ export function setFigurePick(f) {
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
  * onEvent(event), onBinary(bytes) for any binary message but a batch,
  * onReported(seat), onMessage(message) for every other text message (a
- * race's, Phase 4).
+ * race's, Phase 4), onHit(hit) (the referee's mid air contact,
+ * src/game/midair.js).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -359,6 +360,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onLeave?.(m.seat);
       } else if (m.type === 'profile') {
         handlers.onProfile?.(m.seat, m.profile);
+      } else if (m.type === 'hit') {
+        handlers.onHit?.(m);
       } else if (m.type === 'event') {
         handlers.onEvent?.(m);
       } else if (m.type === 'reported') {

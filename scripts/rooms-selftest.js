@@ -26,7 +26,7 @@
  */
 
 import {
-  CLOSE, FLAG_QUAD, FLAG_SMOKE, POSE_BYTES, PROTO, PROFILE_MAX_BYTES, NAME_ADJECTIVES, NAME_ANIMALS,
+  CLOSE, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, FLAG_SMOKE, POSE_BYTES, PROTO, PROFILE_MAX_BYTES, NAME_ADJECTIVES, NAME_ANIMALS,
   checkProfile, codeFromBytes, decodeBatch, decodePose, encodeBatch, encodePose, normaliseCode, validNamePick,
 } from '../src/share/roomwire.js';
 import { PeerTrack, DELAY_MS, EXTRAP_MAX_MS, STALE_MS, nearWeight } from '../src/game/peer.js';
@@ -43,6 +43,9 @@ import { createRoomRace, orderStandings } from '../src/share/roomrace.js';
 import { Race, PLANE_REACH } from '../src/game/race.js';
 import { raceGatesOf } from '../src/builder/course.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
+import { HULLS } from '../configs/hulls.js';
+import { AIRFRAME_IDS } from '../configs/airframes.js';
+import { BREAK_MPS, LATE_MS, checkHit } from '../src/game/midair.js';
 import {
   CHAT_BURST, CHAT_EVERY_MS, CHAT_PRESETS, CLOSE_REMOVED, EMOTES, FLAG_SPAWNING, PUBLIC_CAP, REPORT_REASONS,
 } from '../src/share/roomwire.js';
@@ -719,6 +722,90 @@ run(room.message(pubA, JSON.stringify({ type: 'track', doc: raceDoc }), now, pub
 run(room.message(pubA, JSON.stringify({ type: 'race', op: 'start', laps: 1 }), now, pubA.address));
 check('a public room takes no track and starts no race', room.race.track === null && room.race.race === null && pubA.got.length === beforePub);
 
+/* ---------------------------------------------------------------------
+ * Phase 3, mid air: the room's referee (edge/rooms/referee.js) through the
+ * core, as do.js drives it. The fairness grid is scripts/midair-harness.js
+ * and the real plant scripts/midair-plant.js; these are the room's rules.
+ * ------------------------------------------------------------------- */
+console.log('mid air referee');
+{
+  const hulls = Object.keys(HULLS);
+  check('configs/hulls.js has every airframe', AIRFRAME_IDS.every((id) => hulls.includes(id)) && hulls.length === AIRFRAME_IDS.length,
+    AIRFRAME_IDS.filter((id) => !hulls.includes(id)).join(' '));
+  const cub = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+  /* A room of two Cubs head on at 15 m/s each, level at 80 m, meeting at
+   * room time MEET, past Phase 5's five seconds of spawn protection from
+   * each one's first pose; `flagsB` on every B sample, B's samples `lagB`
+   * ms late, and the room made `friendly` or not. */
+  const MEET = SPAWN_MS + 2000;
+  const pass = ({ meet = MEET, friendly = false, flagsB = 0, lagB = 0, profileB = cub, stamp = (t) => t } = {}) => {
+    let clock = 0;
+    const r = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly, map: 'swiss2', epoch: 0 });
+    const sa = sock('ma', '10.1.0.1');
+    const sb = sock('mb', '10.1.0.2');
+    const mine = (s) => (actions) => {
+      for (const a of actions) {
+        if (a.send) {
+          a.send.got.push(typeof a.data === 'string' ? JSON.parse(a.data) : a.data);
+        }
+      }
+    };
+    mine(sa)(r.open(sa, 0));
+    mine(sa)(r.message(sa, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [1, 2, 11], profile: cub }), 0, sa.address, newToken));
+    mine(sb)(r.open(sb, 0));
+    mine(sb)(r.message(sb, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [3, 4, 12], profile: profileB }), 0, sb.address, newToken));
+    const pose = (x, dir, flags, t) => encodePose({
+      flags: FLAG_AIRBORNE | flags, seq: 1, t: stamp(t), px: x, py: 80, pz: 0,
+      qx: 0, qy: dir > 0 ? -Math.SQRT1_2 : Math.SQRT1_2, qz: 0, qw: Math.SQRT1_2,
+      vx: 15 * dir, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, c0: 0, c1: 0, c2: 0, c3: 0, motor: 0, flaps: 0,
+    });
+    const queue = [];
+    for (let t = 0; t <= meet + 1000; t += 33) {
+      queue.push([t, sa, pose(15 * (t - meet) / 1000, 1, 0, t)]);
+      queue.push([t + lagB, sb, pose(-15 * (t - meet) / 1000, -1, flagsB, t)]);
+    }
+    queue.sort((x, y) => x[0] - y[0]);
+    let tick = 33;
+    for (const [at, s, bytes] of queue) {
+      while (tick <= at) {
+        clock = tick;
+        r.tick(clock);
+        tick += 33;
+      }
+      clock = at;
+      mine(s)(r.message(s, bytes, clock));
+    }
+    const hitsOf = (s) => s.got.filter((m) => m && m.type === 'hit');
+    return { a: hitsOf(sa), b: hitsOf(sb), log: r.referee.log, room: r };
+  };
+  const plain = pass();
+  const h = plain.a[0];
+  check('two Cubs head on: one hit, to both seats, the same one', plain.a.length === 1 && plain.b.length === 1 && JSON.stringify(plain.a[0]) === JSON.stringify(plain.b[0]),
+    `${plain.a.length} and ${plain.b.length}`);
+  check('just before they would meet, CG to CG', h && h.tc > MEET - 50 && h.tc < MEET, h ? `${h.tc} ms` : '');
+  check('inside Phase 5\'s spawn protection nobody is hit: the same pass 2 s after spawning', pass({ meet: 2000 }).a.length === 0);
+  check('the hit counts toward Phase 5\'s ramming bench, on both seats', (() => {
+    const p = pass();
+    const counts = [...p.room.safety.pilots.values()].map((x) => x.hits.length);
+    return counts.length === 2 && counts.every((n) => n === 1);
+  })());
+  check('a hit a client can act on (checkHit)', h && checkHit(h));
+  check('each side is struck by the other: A\'s normal points back along its flight, in its own body frame', h && h.A.n[0] < -0.9 && h.B.n[0] < -0.9,
+    h ? `${h.A.n} ${h.B.n}` : '');
+  check('each is 15 m/s faster than the pair\'s centre of mass, forward', h && Math.abs(h.A.dv[0] - 15) < 0.1 && Math.abs(h.B.dv[0] - 15) < 0.1,
+    h ? `${h.A.dv[0]} ${h.B.dv[0]}` : '');
+  check(`at 30 m/s closing, over ${BREAK_MPS}, each breaks a part off`, h && h.A.brk > 0 && h.B.brk > 0, h ? `${h.A.brk} ${h.B.brk}` : '');
+  check('a friendly room passes them through each other', pass({ friendly: true }).a.length === 0);
+  check('a spawning aircraft is untouchable', pass({ flagsB: FLAG_SPAWNING }).a.length === 0);
+  check('so is a wreck', pass({ flagsB: FLAG_CRASHED }).a.length === 0);
+  check('a seat 100 ms late is waited for: the same hit', (() => {
+    const late = pass({ lagB: 100 });
+    return late.a.length === 1 && late.a[0].tc === h.tc;
+  })());
+  check(`a seat later than LATE_MS (${LATE_MS} ms) is not: it ghosts through`, pass({ lagB: LATE_MS + 100 }).a.length === 0);
+  check('an airframe this room does not know is never judged', pass({ profileB: { ...cub, airframe: 'zeppelin' } }).a.length === 0);
+  check('a clock gone wrong, stamping a second ahead, is not judged', pass({ stamp: (t) => t + 1000 }).a.length === 0);
+}
 /*
  * PHASE 5, SAFETY: edge/rooms/safety.js and edge/rooms/lobby.js, driven
  * through the core the way do.js drives them.

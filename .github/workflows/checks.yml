@@ -31,6 +31,12 @@ jobs:
       - run: npm run identity:selftest
       - run: npm run live:selftest
       - run: npm run rooms:selftest
+      - run: npm run hulls:check
+      - run: npm run midair:plant
+      # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
+      # by hand (npm run midair:harness) and its numbers go in the pull
+      # request. Two seeds here keep every row and every scenario.
+      - run: npm run midair:harness -- --seeds=2
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
