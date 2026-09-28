@@ -425,14 +425,22 @@ function hoop(spec, index, isStart) {
   const lp = new THREE.Vector3();
   const qInv = new THREE.Quaternion();
   const flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-  /* groundY is the ground under the hoop, in the world. The group's world
-   * matrix must be current. */
-  const setGround = (groundY) => {
+  /* heightAt(x, z) is the map's ground. */
+  const setGround = (heightAt) => {
     g.updateMatrixWorld(true);
-    /* The lowest point of the rim in the world, and straight down from it. */
+    /* Straight down from under the rim's lowest point to the ground below
+     * the hoop's centre. */
     wp.set(0, cy, 0);
     g.localToWorld(wp);
-    const low = wp.y - Rc - t;
+    const groundY = heightAt(wp.x, wp.z);
+    /* The rim's lowest point whatever the turn: the circle's plane is the
+     * group's x and y, and its drop below the centre is Rc times the
+     * length of their vertical parts. */
+    g.getWorldQuaternion(qInv);
+    lp.set(1, 0, 0).applyQuaternion(qInv);
+    const ux = lp.y;
+    lp.set(0, 1, 0).applyQuaternion(qInv);
+    const low = wp.y - Rc * Math.hypot(ux, lp.y) - t;
     const arr = dropGeo.attributes.position.array;
     lp.set(wp.x, low, wp.z);
     g.worldToLocal(lp);

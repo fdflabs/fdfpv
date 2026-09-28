@@ -1625,7 +1625,6 @@ export default {
   "build.placed_copy": "Copy placed: gate {n}",
   "build.chained": "Hoop placed: gate {n}, {distance} m on from gate {m}",
   "build.chain_distance": "Next hoop in the chain: {distance} m ahead",
-  "build.chain_needs_hoop": "Shift click lays a chain of hoops: hold a hoop first",
   "build.moved": "Gate {n} moved",
   "build.deleted": "Gate {n} removed",
   "build.carrying": "Picked up gate {n}",

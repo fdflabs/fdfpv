@@ -1629,7 +1629,6 @@ export default {
   "build.placed_copy": "Copia colocada: puerta {n}",
   "build.chained": "Aro colocado: puerta {n}, a {distance} m de la puerta {m}",
   "build.chain_distance": "Siguiente aro de la cadena: a {distance} m",
-  "build.chain_needs_hoop": "Shift clic encadena aros: toma un aro primero",
   "build.moved": "Puerta {n} movida",
   "build.deleted": "Puerta {n} quitada",
   "build.carrying": "Recogida la puerta {n}",

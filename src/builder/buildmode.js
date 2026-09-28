@@ -123,8 +123,8 @@ import {
 import { builtGate } from '../render/pylons.js';
 import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
-  DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, createHistory,
-  gateFlags, gateSpec, gizmoAxes, makeStart, newCourse, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf,
+  CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, chainPose,
+  createHistory, gateFlags, gateSpec, gizmoAxes, isHoop, makeStart, newCourse, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf,
   raceGatesOf, readoutFor, removeGate, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
 } from './course.js';
 import { craftLimits, lineWarnings, openingBlocked, racingLine } from './line.js';
@@ -156,6 +156,9 @@ const AIR_DEFAULT = 20;
 const AIR_MIN = 3;
 const AIR_MAX = 150;
 const AIR_NOTCH = 2;
+/* A hoop hangs at least this many of its own diameters out, so a 30 m one
+ * in hand is not wrapped round the camera at the default 20 m. */
+const HOOP_HANG = 1.5;
 /* A stick deflection under this is a stick at rest. */
 const DEAD = 0.12;
 /* How far a ray has to move, metres at its origin or radians of direction,
@@ -216,7 +219,7 @@ const HOTBARS = {
 };
 const HELP_KEY = 'webfpv.builder.help.v1';
 /* The controls card's rows, each a string of keys and meaning. */
-const HELP_ROWS = ['look', 'fly', 'speed', 'hotbar', 'place', 'turn', 'air', 'grid', 'carry', 'free', 'undo', 'order', 'line', 'test', 'file', 'pad'];
+const HELP_ROWS = ['look', 'fly', 'speed', 'hotbar', 'place', 'turn', 'air', 'chain', 'grid', 'carry', 'free', 'undo', 'order', 'line', 'test', 'file', 'pad'];
 
 /* Standard gamepad buttons and axes (the W3C mapping). */
 const PAD = {
@@ -290,6 +293,9 @@ export function createBuildMode(host) {
   let order = null;
   let grid = false;
   let airDistance = AIR_DEFAULT;
+  /* How far on the hoop chain (Shift and a click) puts the next hoop,
+   * metres, for the quad hoops and the plane ones (course.js CHAIN). */
+  const chainDistance = { quad: CHAIN.quad.start, plane: CHAIN.plane.start };
   let speedIndex = SPEED_START;
   let sprint = false;
   /* Shift sinks the camera, and turns a piece the other way with R, T or
@@ -407,8 +413,16 @@ export function createBuildMode(host) {
     m.group.position.set(base.x, base.y, base.z);
     m.group.quaternion.set(quat.x, quat.y, quat.z, quat.w);
     m.group.updateMatrixWorld(true);
+    grounded(m.made);
     box.setFromObject(m.group);
     m.top.set((box.min.x + box.max.x) / 2, box.max.y + BADGE_LIFT, (box.min.z + box.max.z) / 2);
+  }
+
+  /* A hoop's drop line to the ground under it (src/render/pylons.js). */
+  function grounded(made) {
+    if (made.setGround) {
+      made.setGround(host.heightAt);
+    }
   }
 
   /* Every gate from the document: numbers follow the lap, so any change to
@@ -458,6 +472,7 @@ export function createBuildMode(host) {
     }
     view.colliders.setBuilt(caps);
   }
+
 
   /* While building: every gate's ring on, the one under the crosshair lit,
    * and the selected one while the mouse is free. Only redrawn when one of
@@ -875,6 +890,10 @@ export function createBuildMode(host) {
   }
 
   const altHeld = () => input.keys.has('AltLeft') || input.keys.has('AltRight');
+  /* Whether the piece in hand goes in the air: with Alt held, or, for a
+   * hoop, which floats, without it. Alt sets a hoop down on what the
+   * crosshair is on. */
+  const airFor = (alt) => (isHoop(handPiece().type) ? !alt : alt);
   const shiftHeld = () => input.keys.has('ShiftLeft') || input.keys.has('ShiftRight');
   const ctrlHeld = () => input.keys.has('ControlLeft') || input.keys.has('ControlRight');
 
@@ -884,9 +903,53 @@ export function createBuildMode(host) {
   }
 
   function ghostPose(h, air) {
-    return snapPose(h, camFrame(), carry ? carry.turn : turn, airDistance, ghost.centreY, {
+    return snapPose(h, camFrame(), carry ? carry.turn : turn, hangDistance(), ghost.centreY, {
       air, grid, keep: carry ? carry.keep : null,
     });
+  }
+
+  /* How far out the piece in hand hangs in the air. */
+  function hangDistance() {
+    const piece = handPiece();
+    return isHoop(piece.type) ? Math.max(airDistance, HOOP_HANG * ELEMENTS[piece.type].dims.clearW) : airDistance;
+  }
+
+  /* The chain class of a hoop type: its spacing is a plane's or a quad's. */
+  const chainKind = (type) => (ELEMENTS[type].plane ? 'plane' : 'quad');
+
+  /*
+   * Shift and a click with a hoop in hand: the next hoop the chain's
+   * distance on from the last gate in the lap, along where the camera
+   * looks (course.js chainPose). With no gate yet it is an ordinary
+   * placement. True when it placed one.
+   */
+  function chainPiece() {
+    const piece = handPiece();
+    const gates = raceGatesOf(doc);
+    if (carry || !isHoop(piece.type) || !gates.length) {
+      return false;
+    }
+    const last = gates[gates.length - 1];
+    const distance = chainDistance[chainKind(piece.type)];
+    const before = snapshot();
+    const pose = chainPose(last, camFrame().forward, distance, turn, openingsOf({ type: piece.type, dims: ELEMENTS[piece.type].dims })[0].centreY, grid);
+    const el = addGate(doc, piece.type, pose.base, pose.quat);
+    selected = el.id;
+    commit(before);
+    say(str('build.chained', { n: orderOf(doc, el.id) + 1, m: gates.length, distance: Math.round(distance) }));
+    return true;
+  }
+
+  /* Ctrl, Shift and the wheel: the chain's spacing for the hoop in hand. */
+  function setChain(notch) {
+    const piece = handPiece();
+    if (!isHoop(piece.type)) {
+      return;
+    }
+    const k = chainKind(piece.type);
+    const c = CHAIN[k];
+    chainDistance[k] = Math.max(c.min, Math.min(c.max, chainDistance[k] - notch * c.notch));
+    say(str('build.chain_distance', { distance: chainDistance[k] }), 1400);
   }
 
   function ghostShown() {
@@ -902,11 +965,12 @@ export function createBuildMode(host) {
       return;
     }
     ensureGhost();
-    const pose = ghostPose(hit, altHeld());
+    const pose = ghostPose(hit, airFor(altHeld()));
     ghost.pose = pose;
     ghost.group.visible = true;
     ghost.group.position.set(pose.base.x, pose.base.y, pose.base.z);
     ghost.group.quaternion.set(pose.quat.x, pose.quat.y, pose.quat.z, pose.quat.w);
+    grounded(ghost.made);
     const key = `${pose.base.x},${pose.base.y},${pose.base.z},${pose.quat.x},${pose.quat.y},${pose.quat.z},${meshes.size}`;
     if (key !== ghost.poseKey) {
       ghost.poseKey = key;
@@ -1292,15 +1356,24 @@ export function createBuildMode(host) {
     dressAll();
   }
 
-  /* The left button, or a pad's A, with the mouse taken. */
-  function primary(air) {
+  /* The left button, or a pad's A, with the mouse taken. `alt` is whether
+   * Alt was held, `chain` Shift. */
+  function primary(alt, chain = false) {
     if (order) {
       orderClick(hovered);
       return;
     }
+    const air = airFor(alt);
     if (carry) {
       dropCarry(air);
       return;
+    }
+    if (chain) {
+      /* A click with Shift down is not the camera sinking. */
+      shiftChord = true;
+      if (chainPiece()) {
+        return;
+      }
     }
     placePiece(air);
   }
@@ -1956,11 +2029,11 @@ export function createBuildMode(host) {
       /* No autoscroll, no paste. */
       e.preventDefault();
     }
-    const air = e.altKey || altHeld();
+    const alt = e.altKey || altHeld();
     if (locked()) {
       trackHover();
       if (e.button === 0) {
-        primary(air);
+        primary(alt, e.shiftKey || shiftHeld());
       } else if (e.button === 2 && hovered) {
         remove(hovered);
       } else if (e.button === 1 && hovered) {
@@ -2024,8 +2097,12 @@ export function createBuildMode(host) {
     }
     /* Ctrl with the wheel would zoom the page. */
     e.preventDefault();
-    const notch = Math.sign(e.deltaY);
-    if (e.ctrlKey || ctrlHeld()) {
+    /* Chrome turns the wheel with Shift held into a sideways scroll. */
+    const notch = Math.sign(e.deltaY || e.deltaX);
+    if ((e.ctrlKey || ctrlHeld()) && (e.shiftKey || shiftHeld())) {
+      shiftChord = true;
+      setChain(notch);
+    } else if (e.ctrlKey || ctrlHeld()) {
       setDistance(airDistance - notch * AIR_NOTCH);
     } else if (notch) {
       setSlot(slot + notch);
@@ -2260,7 +2337,7 @@ export function createBuildMode(host) {
     return {
       text: str('build.status', {
         piece: pieceName(handPiece()),
-        snap: str(`build.snap_${mode}`, { distance: Math.round(airDistance) }),
+        snap: str(`build.snap_${mode}`, { distance: Math.round(hangDistance()) }),
         grid: str(grid ? 'build.grid_on' : 'build.grid_off'),
         speed: SPEEDS[speedIndex],
       }),
@@ -2335,6 +2412,7 @@ export function createBuildMode(host) {
       locked: locked(),
       grid,
       airDistance,
+      chainDistance: { ...chainDistance },
       speed: SPEEDS[speedIndex],
       sprint,
       velocity: cam.vel.toArray(),
