@@ -204,7 +204,7 @@ export function evaluate(ctx, rig, p, target, t, out) {
       /* Level the heading; a dive is followed from behind and above, not
        * from under the tail. */
       eye[0] = at[0] - (dx / hl) * p.dist;
-      eye[1] = at[1] + p.height + Math.max(0, -dy / (Math.hypot(dx, dy, dz) || 1)) * p.dist * 0.5;
+      eye[1] = at[1] + p.height + Math.max(0, -dy / (Math.hypot(dx, dy, dz) || 1)) * p.dist * 0.3;
       eye[2] = at[2] - (dz / hl) * p.dist;
       lookAtQuat(eye, at, out.quat);
       break;
