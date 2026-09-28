@@ -36,8 +36,9 @@
  * ADDRESSES. The connecting address, request header cf-connecting-ip on
  * both platforms (node.js sets it from the proxy in front of it), is used
  * for two things only, both in memory: the per address join, create and
- * list limits, and a host's kick, held for 30 minutes in the room object
- * and written nowhere.
+ * list limits, and slowing new joins from a kicked or removed player's
+ * address for 30 minutes in the room object (core.js keepOut), written
+ * nowhere. The player is kept out by their seat token, not the address.
  *
  * This file is part of WebFPVSimulator.
  *

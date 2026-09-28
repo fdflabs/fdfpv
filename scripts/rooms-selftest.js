@@ -38,7 +38,7 @@ import {
 } from '../src/share/roomwire.js';
 import { PARTS_PER_S } from '../edge/rooms/wrecks.js';
 import {
-  ABANDON_MS, RESEAT_MS, RoomCore, KICK_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
+  ABANDON_MS, RESEAT_MS, RoomCore, KICK_MS, KICKED_JOIN_GAP_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
 } from '../edge/rooms/core.js';
 import { HULLS } from '../configs/hulls.js';
 import { AIRFRAME_IDS } from '../configs/airframes.js';
@@ -290,9 +290,31 @@ check('and the others see them leave', texts(c, 'leave').some((m) => m.seat === 
 const again = sock('again', victim.address);
 hello(again, { token: vw.token });
 check('back with the same token is refused', again.closed && again.closed.code === CLOSE.kicked);
+/* The owner's decision (2026-09-28): the player is kept out, not their
+ * address, which is often a household; new joins from it are slowed. */
 const fresh = sock('fresh', victim.address);
 hello(fresh);
-check('back from the same address without it is refused', fresh.closed && fresh.closed.code === CLOSE.kicked);
+check(`a fresh browser on the kicked player's address, at once, is slowed, not kicked: ${KICKED_JOIN_GAP_MS / 1000} s`,
+  fresh.closed && fresh.closed.code === CLOSE.rate);
+now += KICKED_JOIN_GAP_MS;
+const sibling = sock('sibling', victim.address);
+hello(sibling, { name: [7, 8, 70] });
+check('a sibling on the same address joins after the wait, the kick notwithstanding', !sibling.closed && texts(sibling, 'welcome').length === 1);
+const burst = [];
+for (let i = 0; i < 3; i += 1) {
+  const b = sock(`burst${i}`, victim.address);
+  hello(b, { name: [i, 9, 60 + i] });
+  burst.push(b);
+}
+check('a burst of fresh tokens from that address right after is slowed, every one', burst.every((b) => b.closed && b.closed.code === CLOSE.rate));
+const again2 = sock('again2', victim.address);
+hello(again2, { token: vw.token });
+check('and the kicked token is still refused after the wait', again2.closed && again2.closed.code === CLOSE.kicked);
+const elsewhere = sock('elsewhere', '10.0.9.9');
+run(room.close(sibling, now));
+hello(elsewhere, { name: [2, 2, 22] });
+check('another address is not slowed at all', !elsewhere.closed && texts(elsewhere, 'welcome').length === 1);
+run(room.close(elsewhere, now));
 now += KICK_MS + 1;
 const later = sock('later', victim.address);
 hello(later);
@@ -920,7 +942,12 @@ hello(back5, { token: texts(p5a, 'welcome')[0].token });
 check('back with their token is refused', back5.closed && back5.closed.code === CLOSE.kicked);
 const back6 = sock('back6', '10.5.0.1');
 hello(back6);
-check('back from their address is refused', back6.closed && back6.closed.code === CLOSE.kicked);
+check('a fresh browser on their address is slowed, not refused as them', back6.closed && back6.closed.code === CLOSE.rate);
+now += KICKED_JOIN_GAP_MS;
+const back6b = sock('back6b', '10.5.0.1');
+hello(back6b, { name: [6, 6, 66] });
+check('and gets in after the wait, as a sibling would', !back6b.closed && texts(back6b, 'welcome').length === 1);
+run(room.close(back6b, now));
 now += REMOVE_MS + 1;
 const back7 = sock('back7', '10.5.0.1');
 hello(back7);
