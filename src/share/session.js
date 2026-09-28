@@ -60,7 +60,7 @@ const SETTINGS_KEY = 'webfpv.settings.v3';
  */
 const PLANES = new Set([
   'wing1000', 'sky1800', 'cub1400', 'radian2000', 'bramor2300', 'slowstick1180',
-  'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450',
+  'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'zagi1219',
 ]);
 
 function activeSeat() {

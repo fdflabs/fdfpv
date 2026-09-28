@@ -181,6 +181,17 @@ export const LIVERIES = {
       { id: 'stock', source: src('FMS P-51D Mustang V8 1450 mm, the manual\'s photographs', 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf'), colours: {} },
     ],
   },
+  zagi1219: {
+    /* Zagi's HP as zagi.com photographs it: orange covering tape all
+     * over, black winglets, the charcoal canopy and tray; and the 5C
+     * combat wing's scheme, yellow with black tape on the leading edge
+     * and black winglets. */
+    regions: [r('wing', '#f0561e'), r('trim', '#f0561e'), r('winglets', '#17191b'), r('canopy', '#34383c')],
+    schemes: [
+      { id: 'stock', source: src('Zagi, Zagi HP product photograph', 'https://web.archive.org/web/2019/https://zagi.com/product/hp/'), colours: {} },
+      { id: 'combat', source: src('Zagi, Zagi 5C product photograph', 'https://web.archive.org/web/2017/https://zagi.com/category/kits/'), colours: { wing: '#f0db2c', trim: '#17191b' } },
+    ],
+  },
 };
 
 const FAMILY = { timber1500f: 'timber1500', cub1400f: 'cub1400' };

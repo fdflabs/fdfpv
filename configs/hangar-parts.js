@@ -145,6 +145,10 @@ export const PROPS = {
    * figures on, and a two blade would change what the pilot sees turning
    * on the nose: none offered. */
   p51d1450: [STOCK],
+  /* Zagi's spoon shaped carbon 5 x 5 flew 10 to 15 mph faster than four
+   * other makers' 5 x 5s on the same Zagi (zagi.com's propeller page), and
+   * APC's own figures cannot say by how much: none offered. */
+  zagi1219: [STOCK],
 };
 
 /* The planes the tab serves: every fixed wing the picker offers. */
@@ -178,6 +182,7 @@ export const ANCHORS = {
   bombshell1118: { prop: [0.166, 0, -0.005], belly: [0.02, 0, -0.064], tail: [-0.60, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.042, 0.17, 0.075], [0.042, 0.50, 0.146]] },
   kadet1981: { prop: [0.441, 0, -0.013], belly: [0, 0, -0.159], tail: [-0.93, 0, -0.13], tank: [-0.01, 0, -0.08], led: [[0.075, 0.30, 0.093], [0.075, 0.89, 0.139]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
+  zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },
 };
 
 /* A body frame point: one mass or drag and where it is. */

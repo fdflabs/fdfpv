@@ -127,6 +127,7 @@ import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickc
 import { BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP } from './render/bombshellcraft.js';
 import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
+import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
 
 /* Where each fixed wing carries its FPV camera, forward and up from the CG
@@ -141,6 +142,7 @@ const WING_MOUNTS = {
   bombshell1118: [BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP],
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
+  zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
   /* On floats the CG is lower, so the camera stands higher over it. */
   timber1500f: [TIMBER_MOUNT_FORWARD, TIMBER_FLOAT_MOUNT_UP],
