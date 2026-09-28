@@ -302,6 +302,41 @@ export function balcony(wall, len, { out = 1.3, board = 'larch', flowers = true 
 }
 
 /*
+ * A town balcony off a rendered storey: a stone slab on two carved
+ * consoles, a wrought iron railing of square bars between a top and a
+ * bottom rail, and a window box hung inside the rail. What a lake town's
+ * houses and hotels have where a farmhouse has its Laube. The wall frame's
+ * y 0 is the floor it opens off.
+ */
+export function ironBalcony(wall, len, { out = 0.9, bloom = null } = {}) {
+  wall.put('stone', box(len, 0.16, out), 0, -0.08, out / 2);
+  wall.put(near('stone'), box(len + 0.06, 0.05, 0.05), 0, -0.02, out + 0.02);
+  for (const s of [-1, 1]) {
+    wall.put(near('stone'), box(0.18, 0.34, out - 0.1), s * (len / 2 - 0.3), -0.3, (out - 0.1) / 2, 0, 0.35);
+  }
+  const railY = 1.0;
+  wall.put(near('castIron'), box(len, 0.05, 0.05), 0, railY, out - 0.06);
+  wall.put(detail('castIron'), box(len, 0.03, 0.03), 0, 0.12, out - 0.06);
+  for (const s of [-1, 1]) {
+    wall.put(near('castIron'), box(0.05, 0.05, out), s * (len / 2 - 0.03), railY, out / 2);
+    wall.put(near('castIron'), boxUp(0.04, railY, 0.04), s * (len / 2 - 0.03), 0, out - 0.06);
+  }
+  const n = Math.max(3, Math.round(len / 0.13));
+  for (let k = 1; k < n; k += 1) {
+    wall.put(detail('castIron'), boxUp(0.018, railY - 0.02, 0.018), -len / 2 + (k * len) / n, 0, out - 0.06);
+  }
+  const m = Math.max(2, Math.round(out / 0.13));
+  for (const s of [-1, 1]) {
+    for (let k = 1; k < m; k += 1) {
+      wall.put(detail('castIron'), boxUp(0.018, railY - 0.02, 0.018), s * (len / 2 - 0.03), 0, (k * out) / m);
+    }
+  }
+  if (bloom) {
+    flowerBox(frame(wall, 0, 0, out - 0.3, 0), len - 0.3, railY - 0.05, 0.02, bloom);
+  }
+}
+
+/*
  * An outside stair up a wall to the first log storey, the way a Bernese
  * house reaches its upper floor: two stringers, open treads, a handrail
  * on posts, and a landing at the top by the door. The wall frame's x
@@ -342,7 +377,7 @@ export function stair(wall, x0, x1, rise, key) {
  * show, the face and the reveals: a village of boxes was a third back
  * faces. Round its foot runs the socle, the stone band `band` high that
  * takes the splash, broken for a door; a wall's band runs `bandLen`,
- * round the corners.
+ * round the corners. A storey stacked on another has no socle: band 0.
  */
 export const REVEAL = 0.2;
 
@@ -354,7 +389,7 @@ export function masonry(f, w, d, y0, h, key, walls, band) {
     let bx = -bandLen / 2;
     for (const o of [...doors, { x: bandLen / 2, w: 0 }]) {
       const xa = o.x - o.w / 2 - 0.12;
-      if (xa - bx > 0.01) {
+      if (xa - bx > 0.01 && band > 0) {
         wall.put('stone', boxUp(xa - bx, band, 0.08), (bx + xa) / 2, y0, 0.02);
       }
       bx = o.x + o.w / 2 + 0.12;
@@ -882,7 +917,7 @@ function solarArray(rf, roof) {
  * the kind a loft was made a room with. `side` is which half of the
  * house it goes to along the ridge, away from the chimney.
  */
-function dormerOn(rf, roof, key, roofKey, side) {
+export function dormerOn(rf, roof, key, roofKey, side) {
   const { ex, yT, tanP, zA, zB } = roof;
   const front = 2.0;
   const h = 1.35;

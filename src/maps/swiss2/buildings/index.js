@@ -28,6 +28,7 @@ import { hangar } from './hangar.js';
 import { makeBakeAll } from './bake.js';
 import { station, bakeStations } from './station.js';
 import { furnish } from '../village/index.js';
+import { busShelter } from '../village/pieces.js';
 import { farmstead } from '../village/farm.js';
 
 /* A log is wider than the boards the photograph shows: the log walls'
@@ -44,7 +45,7 @@ const LOG_UV = 0.72;
 export function swissBuildings(look) {
   const uv = { larchDark: LOG_UV, larch: LOG_UV, honey: LOG_UV, weathered: LOG_UV };
   const hook = {
-    chalet, barn, farmhouse, gasthof, shop, church, hangar, station, bakeAll: makeBakeAll(look, uv),
+    chalet, barn, farmhouse, gasthof, shop, church, hangar, station, busShelter, bakeAll: makeBakeAll(look, uv),
     layout: null,
     farmWalls: [],
     furnish(ctx) {

@@ -10,10 +10,11 @@
  * one ten metres across looked the same. This draws:
  *
  *   HAY HUTS, the Stadel, alone in the fields and up the meadows on the
- *   walls between the stands of forest: a box of sun blackened larch on
- *   a stone plinth under a shingle or tin roof with its ridge down the
- *   slope. On a field's edge, as they are (a hut is built where it
- *   takes no hay from the field).
+ *   walls between the stands of forest: the village's Stadel on a hut's
+ *   plan, sun blackened larch on a stone plinth under a shingle or tin
+ *   roof with its ridge down the slope, put into the `bake` the map bakes
+ *   as the village is baked. On a field's edge, as they are (a hut is
+ *   built where it takes no hay from the field).
  *
  *   FENCES round the pastures the ground's paint lays (vegetation/
  *   zones.js reads its parcels): posts and two rails, gapped where the
@@ -46,9 +47,11 @@
  *   of logs. Their fence lines are handed to the grass (`margins`),
  *   which leaves them long.
  *
- * The huts, the bales, the bars, the reeds and the roadside are one
- * static mesh (a few hundred huts and bales at a few tens of triangles
- * apiece, the reeds a blade two triangles); the fences are an instanced
+ * The bales, the bars, the reeds and the roadside are one static mesh
+ * (a few hundred bales at a few tens of triangles apiece, the reeds a
+ * blade two triangles, each hut's stand-in a few dozen), the huts near
+ * the camera are the `bake`'s (buildings/bake.js) and the boat shed the
+ * lake town's (`lakeBake`); the fences are an instanced
  * span of two posts and two rails, refilled from the spans near the
  * camera and in its view as the trees are, since a valley of fence posts
  * is tens of thousands of triangles and a post is under a pixel past a
@@ -56,9 +59,9 @@
  * Two draws in all (and the same two in each shadow map), which the
  * rocks paid for (vegetation/rocks.js), with one vertex coloured
  * material (propMaterial says why). What a craft can hit has a collider,
- * within 700 m of the strip as nature.js's have: a hut its box (noted
- * as a wall, so the meadow keeps off it and the ground under it is the
- * village's), a bale a sphere, a fence span, a gate and a delineator a
+ * within 700 m of the strip as nature.js's have: a hut its walls under
+ * its roof (its box noted as a wall, so the meadow keeps off it and the
+ * ground under it is the village's), a bale a sphere, a fence span, a gate and a delineator a
  * capsule, a stack of logs a box.
  *
  * This file is part of WebFPVSimulator.
@@ -88,11 +91,12 @@ import {
 import { RUNWAY_HALF } from '../ground.js';
 import { gravelBarGeometry } from '../water/stream.js';
 import {
-  UP, Mesher, propMaterial, shade, box, frame,
+  UP, Mesher, propMaterial, shade, box, frame, roofProxy, albedoOf,
 } from './mesh.js';
-import { boatShed } from './lakeside.js';
+import { placeInto, placeBoathouse } from './lakeside.js';
+import { stadel } from '../buildings/houses.js';
 import { roadside } from './roadside.js';
-import { recordAt, gableTop, standWalls } from '../../alps/roofs.js';
+import { standWalls } from '../../alps/roofs.js';
 
 const COLLIDE_R = 700;
 /* Fence spans are drawn this far from the camera. */
@@ -100,196 +104,75 @@ const FENCE_R = 420;
 /* A fence span, post to post, in metres along the ground. */
 const SPAN = 2.5;
 
-/* Colours are albedos in linear light: sun blackened larch, silvered
- * larch, shingle, stone, the wrap on a bale. */
+/* The fences' larch, an albedo in linear light. */
 const FENCE = [0.1, 0.086, 0.072];
-const STONE = [0.16, 0.155, 0.145];
-const DOOR = [0.012, 0.01, 0.009];
 
 /*
  * A hay hut at (x, z), its ridge along `yaw`, w along the ridge and d
- * across it, walls h high at the uphill end. It stands level on the
- * highest of its corners, on a footing of rubble down to the lowest.
+ * across it, walls h high. It stands level on the highest of its
+ * corners, on a footing of rubble down to the lowest.
  *
- * Built as the Stadel in the farm-low view is (buildings/houses.js):
- * the walls in courses of sun blackened log with their ends standing
- * out at the corners, the gables over the byre in upright boards gone
- * silver with the dark of the loft between them, a closed plank door
- * below and the hay door above, a roof of shingle with a thickness to
- * its eaves and verges and a cap along its ridge. The props' rng is
- * drawn exactly as many times as the round 3 hut drew it, so every hut,
- * bale and reed after this one stands where it stood; what is new is
- * chosen by the hut's own place.
+ * It is the village's Stadel (buildings/houses.js), on the hut's plan:
+ * the byre in courses of sun blackened log with their ends standing out
+ * at the corners, the loft over it in upright boards gone silver, the
+ * byre door and the hay door with its hoist beam in the downhill gable,
+ * and a roof of shingle, slate or tin on purlins and rafters that show
+ * under the eaves. A valley of them is seventy odd huts, so all of that
+ * is near only, each hut its own cell (bake.js), and what stands for it
+ * from further off, and casts its shadow at every distance, is its walls
+ * and roof in the props' colours in the props' one mesh (mesh.js
+ * roofProxy): the huts cost a draw only for the few near the camera,
+ * where round 3's cost none. The props' rng is drawn
+ * exactly as many times as the round 3 hut drew it (a shade for each
+ * log course on each wall and for each course of each roof slope), so
+ * every hut, bale and reed after this one stands where it stood; what
+ * the hut is made of is chosen by the hut's own place. With no `bake`
+ * it only draws: a hut the walls' ground has moved is not built.
  */
-function hut(m, heightAt, rng, {
-  x, z, yaw, w, d, h, pitch, wall, roof, covering = 'shingle',
+function hut(bake, m, heightAt, rng, {
+  x, z, yaw, w, d, h, pitch, silver, covering = 'shingle',
 }) {
-  const ex = new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw));
-  const ez = new THREE.Vector3(-Math.sin(yaw), 0, Math.cos(yaw));
-  const at = (lx, y, lz) => new THREE.Vector3(x, y, z).addScaledVector(ex, lx).addScaledVector(ez, lz);
-  const hw = w / 2;
-  const hd = d / 2;
-  const ground = [[hw, hd], [hw, -hd], [-hw, hd], [-hw, -hd]].map(([a, b]) => {
-    const p = at(a, 0, b);
-    return heightAt(p.x, p.z);
-  });
-  const top = Math.max(...ground);
-  const low = Math.min(...ground);
-  const y0 = top + 0.2;
-  const eave = y0 + h;
-  const tanP = Math.tan(pitch);
-  const ridge = eave + hd * tanP;
   const rows = Math.round(h / 0.3);
-  const courses = 5;
-  const tones = Array.from({ length: rows * 4 + courses * 2 }, () => rng());
+  for (let k = 0; k < rows * 4 + 10; k += 1) {
+    rng();
+  }
+  if (!bake) {
+    return null;
+  }
   const own = (k) => {
     const v = Math.sin(x * 12.9898 + z * 78.233 + k * 37.719) * 43758.5453;
     return v - Math.floor(v);
   };
-  /* A face between plan points a and b (wound to face out, as the
-   * corners run), from ya to yTop(u), pushed `out` off the wall. */
-  const face = (a, b, out, ya, yA, yB, colour) => {
-    const nx = Math.sign(a[0] === b[0] ? a[0] : 0) * out;
-    const nz = Math.sign(a[1] === b[1] ? a[1] : 0) * out;
-    m.quad(at(a[0] + nx, ya, a[1] + nz), at(b[0] + nx, ya, b[1] + nz), at(b[0] + nx, yB, b[1] + nz), at(a[0] + nx, yA, a[1] + nz), colour);
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  const ground = [[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([a, b]) => heightAt(x + c * a * w / 2 - s * b * d / 2, z + s * a * w / 2 + c * b * d / 2));
+  const shingle = own(3) < 0.3 ? 'shingleMossy' : own(3) < 0.75 ? 'shingleDark' : 'shingle';
+  const roofKey = covering === 'shingle' ? shingle : covering;
+  const logKey = silver ? 'weathered' : 'larchDark';
+  /* Every part near only, and casting no shadow: the stand-in's shadow
+   * is the hut's. */
+  const into = {
+    ...bake,
+    pushM: (key, g, mx) => {
+      const [name, mark = ''] = key.split(':');
+      bake.pushM(`${name}:${mark.replace(/[fo]/g, '')}fo`, g, mx);
+    },
   };
-  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-  /* The loft's floor on the gables: logs under it, boards over it. */
-  const loft = y0 + h * 0.5;
-  const silver = shade([0.085, 0.08, 0.072], 0.8 + 0.4 * own(1));
-  /* Round 3's walls were so dark that a hut in shade was a black box:
-   * weathered larch is darker than new, not that dark. */
-  const logs = shade(wall, 1.7);
-  const corners = [[hw, hd], [hw, -hd], [-hw, -hd], [-hw, hd]];
-  for (let k = 0; k < 4; k += 1) {
-    const a = corners[k];
-    const b = corners[(k + 1) % 4];
-    const gable = k % 2 === 0;
-    const logTop = gable ? loft : eave;
-    /* Each course a log, the shadowed seam under it a line of its own:
-     * in the shade of a wall the seams are what says log from thirty
-     * metres. */
-    for (let r = 0; r < rows; r += 1) {
-      const ya = y0 + (h * r) / rows;
-      const yb = Math.min(logTop, y0 + (h * (r + 1)) / rows);
-      if (ya < logTop) {
-        face(a, b, 0, ya, yb, yb, shade(logs, 0.82 + 0.3 * tones[k * rows + r]));
-        face(a, b, 0.012, ya, ya + 0.045, ya + 0.045, shade(logs, 0.35));
-      }
-    }
-    /* The rubble footing, in three blocks of stone a side. */
-    for (let q = 0; q < 3; q += 1) {
-      const pa = lerp(a, b, q / 3);
-      const pb = lerp(a, b, (q + 1) / 3);
-      const hTop = y0 + 0.2 + 0.1 * own(10 + k * 3 + q);
-      face(pa, pb, 0.08, low - 0.4, hTop, hTop, shade(STONE, 0.55 + 0.45 * own(20 + k * 3 + q)));
-    }
-    /* The log ends out past the corner at a, a hand proud of the other
-     * wall, up the log courses. */
-    const along = [b[0] - a[0], b[1] - a[1]];
-    const len = Math.hypot(along[0], along[1]);
-    const back = [a[0] - (along[0] / len) * 0.22, a[1] - (along[1] / len) * 0.22];
-    face(back, a, 0.02, y0, loft + (gable ? 0 : h * 0.5), loft + (gable ? 0 : h * 0.5), shade(logs, 0.7));
-    if (!gable) {
-      continue;
-    }
-    /* The gable's boards over the loft: the dark between them first,
-     * then each board, its top under the roof. */
-    const s = Math.sign(a[0]);
-    const under = (u) => eave + (hd - Math.abs(u)) * tanP - 0.04;
-    face(a, b, 0.01, loft, eave, eave, DOOR);
-    m.tri(at(s * (hw + 0.01), eave, b[1]), at(s * (hw + 0.01), ridge - 0.04, 0), at(s * (hw + 0.01), eave, a[1]), DOOR);
-    const n = Math.max(6, Math.round(d / 0.32));
-    for (let q = 0; q < n; q += 1) {
-      const t0 = q / n + 0.06 / n;
-      const t1 = (q + 1) / n - 0.06 / n;
-      const pa = lerp(a, b, t0);
-      const pb = lerp(a, b, t1);
-      /* A board's top is the lower of its two edges' under the roof, cut
-       * square: a gable is boarded board by board. */
-      const yTop = Math.min(under(pa[1]), under(pb[1]));
-      const tone = own(40 + q + (s > 0 ? 0 : 50)) < 0.12 ? shade(logs, 1.1) : shade(silver, 0.85 + 0.3 * own(100 + q + (s > 0 ? 0 : 50)));
-      face(pa, pb, 0.04, loft, yTop, yTop, tone);
-    }
-    face(a, b, 0.07, loft - 0.12, loft + 0.08, loft + 0.08, shade(logs, 0.6));
+  /* The Stadel's gable (+z) is the hut's downhill end (-ex): the frame
+   * turned so its z runs along -ex and its x along ez. */
+  const built = placeInto(into, (f, found) => stadel(f, {
+    w: d, d: w, found, roofKey, pitch, footH: 0.08, logH: h * 0.5, loftH: h * 0.5,
+    ov: 0.55, ovA: 0.55, ovB: 0.7, logKey, backing: 'weathered:v', boardMark: 'vf',
+  }), {
+    x, z, ry: 1.5 * Math.PI - yaw, ground, y: Math.max(...ground), kind: 'hut',
+  });
+  const logs = albedoOf(logKey);
+  for (const rec of built.roofs) {
+    roofProxy(m, rec, {
+      low: built.box[1], inset: 0.2, wall: () => logs, roof: albedoOf(roofKey),
+    });
   }
-  /* The doors in the downhill gable, closed: the byre's in the logs and
-   * the hay door in the boards over it, each in a darker frame. */
-  const door = (y1, y2, za, zb, colour) => {
-    m.quad(at(-hw - 0.09, y1 - 0.08, za + 0.08), at(-hw - 0.09, y2 + 0.08, za + 0.08), at(-hw - 0.09, y2 + 0.08, zb - 0.08), at(-hw - 0.09, y1 - 0.08, zb - 0.08), shade(logs, 0.45));
-    m.quad(at(-hw - 0.1, y1, za), at(-hw - 0.1, y2, za), at(-hw - 0.1, y2, zb), at(-hw - 0.1, y1, zb), colour);
-  };
-  door(y0 + 0.05, y0 + 1.85, 0.6, -0.5, shade(logs, 1.25));
-  door(Math.max(loft + 0.15, eave - 0.3), eave + 0.55, 0.5, -0.5, shade(silver, 1.1));
-  /* The roof: two planes over the eaves and the gables in courses of
-   * shingle and their undersides in the shade of the eaves, the edge
-   * boards on the eaves and the verges, the cap along the ridge. */
-  const o = 0.55;
-  const drop = o * tanP;
-  const yAt = (t) => ridge + 0.08 + (eave - drop - ridge - 0.08) * t;
-  for (const s of [1, -1]) {
-    for (let r = 0; r < courses; r += 1) {
-      const t0 = r / courses;
-      const t1 = (r + 1) / courses;
-      const zz = (t) => s * (hd + o) * t;
-      const a = at(hw + o, yAt(t0), zz(t0));
-      const b = at(-hw - o, yAt(t0), zz(t0));
-      const c = at(-hw - o, yAt(t1), zz(t1));
-      const e = at(hw + o, yAt(t1), zz(t1));
-      const tone = shade(roof, 0.85 + 0.25 * tones[rows * 4 + (s > 0 ? 0 : courses) + r]);
-      if (s > 0) {
-        m.quad(a, b, c, e, tone);
-        m.quad(a, e, c, b, shade(roof, 0.4));
-      } else {
-        m.quad(b, a, e, c, tone);
-        m.quad(b, c, e, a, shade(roof, 0.4));
-      }
-    }
-    /* The eave's edge, a shingle's thickness and the board under it. */
-    const ze = s * (hd + o);
-    const eaveY = yAt(1);
-    const ea = at(hw + o, eaveY, ze);
-    const eb = at(-hw - o, eaveY, ze);
-    const ec = at(-hw - o, eaveY - 0.16, ze);
-    const ed = at(hw + o, eaveY - 0.16, ze);
-    if (s > 0) {
-      m.quad(ea, eb, ec, ed, shade(roof, 0.55));
-    } else {
-      m.quad(eb, ea, ed, ec, shade(roof, 0.55));
-    }
-    /* The verges: a board down each gable's edge of the roof. */
-    for (const g of [1, -1]) {
-      const gx = g * (hw + o);
-      const va = at(gx, ridge + 0.08, 0);
-      const vb = at(gx, eaveY, ze);
-      const vc = at(gx, eaveY - 0.2, ze);
-      const vd = at(gx, ridge - 0.12, 0);
-      if (g * s > 0) {
-        m.quad(va, vb, vc, vd, shade(silver, 0.8));
-      } else {
-        m.quad(vb, va, vd, vc, shade(silver, 0.8));
-      }
-    }
-  }
-  const capA = at(hw + o, ridge + 0.1, 0);
-  const capB = at(-hw - o, ridge + 0.1, 0);
-  for (const s of [1, -1]) {
-    const ca = at(hw + o, ridge + 0.03, s * 0.18);
-    const cb = at(-hw - o, ridge + 0.03, s * 0.18);
-    if (s > 0) {
-      m.quad(capA, capB, cb, ca, shade(roof, 0.7));
-    } else {
-      m.quad(capB, capA, ca, cb, shade(roof, 0.7));
-    }
-  }
-  /* The roof as ground (alps/roofs.js), in a frame turned a quarter from
-   * the hut's so its ridge is the frame's z: x across it is the hut's own
-   * across, z the hut's along reversed. The walls under it are the logs'
-   * rectangle, the plate at the eaves. */
-  const record = recordAt({
-    top: gableTop(hd + o, -drop, hd * tanP + 0.08, -hw - o, hw + o), dy: 0.16, hw: hd, hd: hw, kind: 'hut',
-  }, covering, x, eave, z, -yaw - Math.PI / 2);
-  return { top: ridge + 0.1, low: low - 0.4, record };
+  return built;
 }
 
 /* A round bale, r across and len long, lying with its axis along yaw or
@@ -623,7 +506,9 @@ function lilyPad(m, rng, x, y, z, r) {
  * and left out, its draws made, where the ground under it is not that.
  */
 export function buildProps(ctx) {
-  const { heightAt, rng, colliders, roofs = [] } = ctx;
+  const {
+    heightAt, rng, colliders, bake, roofs = [],
+  } = ctx;
   const decideAt = ctx.decideAt || heightAt;
   /* Whether the ground within r metres of (x, z) is not what it was
    * decided on. */
@@ -677,16 +562,15 @@ export function buildProps(ctx) {
         : Math.atan2(1, (valleyAxis(z + 1) - valleyAxis(z - 1)) / 2) + (rng() < 0.5 ? Math.PI / 2 : 0) + (rng() - 0.5) * 0.15;
       /* Larch blackened by the sun, or on the weather side silvered;
        * the roof shingle gone grey, rusted tin, or dark eternit. */
-      const k = 0.7 + 0.6 * rng();
-      const wall = rng() < 0.2 ? [0.12 * k, 0.11 * k, 0.1 * k] : [0.05 * k, 0.034 * k, 0.022 * k];
+      rng();
+      const silver = rng() < 0.2;
       const r = rng();
-      const roof = r < 0.25 ? [0.12, 0.052, 0.03] : r < 0.4 ? [0.045, 0.047, 0.05] : [0.1 * k, 0.093 * k, 0.085 * k];
-      const covering = r < 0.25 ? 'tinRust' : r < 0.4 ? 'slate' : 'shingle';
+      const covering = r < 0.25 ? 'tinRustSheet' : r < 0.4 ? 'slate' : 'shingle';
       const spec = {
-        x, z, yaw, w: 5 + 2.5 * rng(), d: 4 + 1.6 * rng(), h: 2.4 + 0.9 * rng(), pitch: 0.42 + 0.2 * rng(), wall, roof, covering,
+        x, z, yaw, w: 5 + 2.5 * rng(), d: 4 + 1.6 * rng(), h: 2.4 + 0.9 * rng(), pitch: 0.42 + 0.2 * rng(), silver, covering,
       };
       const gone = moved(x, z, 8);
-      const built = hut(gone ? new Mesher() : m, heightAt, rng, spec);
+      const built = hut(gone ? null : bake, m, heightAt, rng, spec);
       huts.push({ x, z });
       /* Every hut that is drawn is walls under a roof that is ground;
        * within COLLIDE_R its old keep out box is still a footprint the
@@ -697,8 +581,8 @@ export function buildProps(ctx) {
         const s = Math.abs(Math.sin(yaw));
         const hx = (spec.w / 2 + 0.55) * c + (spec.d / 2 + 0.55) * s;
         const hz = (spec.w / 2 + 0.55) * s + (spec.d / 2 + 0.55) * c;
-        standWalls(colliders, [x - hx, built.low, z - hz, x + hx, built.top, z + hz], [built.record], 0, { note: near(x, z) });
-        roofs.push(built.record);
+        standWalls(colliders, [x - hx, built.box[1], z - hz, x + hx, built.box[4], z + hz], built.roofs, 0, { note: near(x, z), parts: built.parts });
+        roofs.push(...built.roofs);
       }
     }
   }
@@ -880,13 +764,13 @@ export function buildProps(ctx) {
   {
     const x = roadX(1928) + 26;
     const z = 1928;
-    const built = hut(m, heightAt, rng, {
-      x, z, yaw: 0.08, w: 6, d: 4.6, h: 2.7, pitch: 0.5, wall: [0.05, 0.034, 0.022], roof: [0.12, 0.052, 0.03], covering: 'tinRust',
+    const built = hut(bake, m, heightAt, rng, {
+      x, z, yaw: 0.08, w: 6, d: 4.6, h: 2.7, pitch: 0.5, silver: false, covering: 'tinRustSheet',
     });
     huts.push({ x, z });
     if (colliders) {
-      standWalls(colliders, [x - 4, built.low, z - 4, x + 4, built.top, z + 4], [built.record], 0, { note: false });
-      roofs.push(built.record);
+      standWalls(colliders, [x - 4, built.box[1], z - 4, x + 4, built.box[4], z + 4], built.roofs, 0, { note: false, parts: built.parts });
+      roofs.push(...built.roofs);
     }
   }
   signpost(m, heightAt, { x: roadX(1936) - 5.4, z: 1936, arms: [Math.PI + 0.1, 0.05, -Math.PI / 2] });
@@ -898,10 +782,15 @@ export function buildProps(ctx) {
     const l = Math.hypot(ox, oz);
     const x = shedAt.x + (ox / l) * 1.5;
     const z = shedAt.z + (oz / l) * 1.5;
-    const built = boatShed(m, heightAt, rng, { x, z, yaw: Math.atan2(oz, ox), len: 9, w: 5.2, h: 2.7 });
+    for (let k = 0; k < Math.round(2.7 / 0.28) + 10; k += 1) {
+      rng();
+    }
+    const built = placeBoathouse(ctx.lakeBake, heightAt, {
+      x, z, yaw: Math.atan2(oz, ox), len: 9, w: 5.2, h: 2.7,
+    });
     if (colliders) {
-      standWalls(colliders, [x - 6, built.low, z - 6, x + 6, built.top, z + 6], [built.record], 0, { note: false });
-      roofs.push(built.record);
+      standWalls(colliders, [x - 6, built.box[1], z - 6, x + 6, built.box[4], z + 6], built.roofs, 0, { note: false, parts: built.parts });
+      roofs.push(...built.roofs);
     }
     return { x, z };
   })();

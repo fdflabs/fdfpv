@@ -79,7 +79,9 @@ export async function buildVillage(ctx) {
    * the same extents and draw the rng as these do, so the layout, the
    * colliders and everything placed round them are the same; the cel
    * look has none and builds exactly what it always has. */
-  const kit = { chalet, barn, farmhouse, gasthof, shop, church, hangar, bakeAll, ...ctx.look?.buildings };
+  const kit = {
+    chalet, barn, farmhouse, gasthof, shop, church, hangar, busShelter, bakeAll, ...ctx.look?.buildings,
+  };
   const bake = makeBake();
   const villageY = heightAt(-90, STREET_Z);
   const onGround = (x, z) => heightAt(x, z) - villageY;
@@ -235,7 +237,7 @@ export async function buildVillage(ctx) {
     bench(frame(bake, SQUARE.x + 2 + dx, onGround(SQUARE.x, SQUARE.z) + 0.06, SQUARE.z + dz, ry));
     benches.push({ x: SQUARE.x + 2 + dx, z: SQUARE.z + dz, ry });
   }
-  place((f) => busShelter(f), squareEast + 7, STREET_Z + 6.5, Math.PI, 2.4, 1.3);
+  place((f) => kit.busShelter(f), squareEast + 7, STREET_Z + 6.5, Math.PI, 2.4, 1.3);
   place((f, found) => kit.gasthof(f, rng, { found }), SQUARE.x, SQUARE.z - 23, -Math.PI / 2, 7.5, 8.5);
   place((f, found) => kit.shop(f, rng, { found }), SQUARE.x + 4, SQUARE.z + 23, Math.PI / 2, 5.5, 5);
   houses += 2;

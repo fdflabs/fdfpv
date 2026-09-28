@@ -97,6 +97,12 @@ const VIEWS = [
   /* Round 10: the whole fall, rim to pool, from the bay's floor 430 m out,
    * twenty metres up: the waterfall view above sees its upper part only. */
   { id: 'fall-foot', cam: [420, 30, -1210, 846, 165, -1296], ref: 'waterfall' },
+  /* The lake town on the south shore, which no view came within seven
+   * hundred metres of while its houses were boxes: from twenty metres
+   * over the water off the landing stage, the hotel in the middle, and
+   * at eye level on the beach at the water's edge among the houses. */
+  { id: 'lake-village-20m', cam: [120, 22, 2655, 70, 8, 2735], ref: 'village' },
+  { id: 'lake-village-eye', cam: [30, 0.2, 2692, 10, 5, 2722], ref: 'village' },
 ];
 
 /* Median of a frame's duration over sixty frames, in the page. */

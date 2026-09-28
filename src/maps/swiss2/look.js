@@ -385,8 +385,19 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     shingleNew: { group: 'shingle', tint: [0.95, 0.72, 0.52], weather: 'roof', grey: 0.12 },
     shingleMossy: { group: 'shingle', tint: [0.52, 0.5, 0.45], weather: 'roof', grey: 1.7 },
     slateNew: { group: 'slate', tint: [0.6, 0.62, 0.66], weather: 'roof', grey: 0.08 },
+    /* The lake town's clay tile, on the shingle's photograph: its small
+     * courses read as tiles at a street's distance, and the tint brings
+     * its albedo to an old fired clay's (0.17, 0.06, 0.03 linear). */
+    tile: { group: 'shingle', tint: [1.3, 0.55, 0.38], weather: 'roof', grey: 0.25 },
     tin: { group: 'plain', tint: [0.14, 0.14, 0.135], rough: 0.75, metal: 0.2 },
     tinRust: { group: 'plain', tint: [0.2, 0.085, 0.04], rough: 0.8, metal: 0.1 },
+    /* The hay huts' tin, corrugated on the hangar's ribbed sheet and
+     * tinted to the albedos the flat paint has (0.13 grey, 0.2 0.085
+     * 0.04 rust) over the photograph's 0.43. The village's sheds keep
+     * the flat paint: in the ribbed group their roofs stretched the
+     * hangar's mesh over the village, three draws more in its views. */
+    tinSheet: { group: 'ribbed', tint: [0.3, 0.3, 0.3] },
+    tinRustSheet: { group: 'ribbed', tint: [0.47, 0.19, 0.093] },
     hangar: { group: 'ribbed', tint: [0.36, 0.42, 0.39], weather: 'wall' },
     hangarRoof: { group: 'ribbed', tint: [0.34, 0.36, 0.36] },
     hangarDoor: { group: 'ribbed', tint: [0.46, 0.5, 0.5], weather: 'wall' },
