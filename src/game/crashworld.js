@@ -232,9 +232,12 @@ export function postGive(kindName, r, scale, len = 0) {
  * THE PRESSURE, from the pylon having to stand: in a 10 m/s wind, more than
  * any of the park flyers here is flown in, the drag on the cone, q Cd 2 r(y)
  * over its height with a circular cylinder's 1.2 (the subcritical figure,
- * the larger of the two), is 1650 N m at its base, which the collapse
- * moment at its 0.8 m radius holds at 1.0 kPa. VERIFY: what a pylon blower
- * holds, which nothing sourced here says.
+ * the larger of the two), is about 50 kN m at the base of the full size 25
+ * m cone, which the collapse moment at its 2.5 m radius holds at 1.0 kPa.
+ * VERIFY: what a pylon blower holds, which nothing sourced here says.
+ *
+ * A PLANE NEVER MEETS THIS: to a fixed wing a pylon is jelly, not a solid
+ * (src/game/jelly.js). The give is a quad's, which still meets the cone.
  *
  * ITS MASS per metre is the fabric's and the air's inside it, which is most
  * of it: 1.225 kg/m^3 over the section. The fabric at 70 g/m^2, a middle

@@ -785,10 +785,12 @@ export const ELEMENTS = {
    * inflatable cones "approximately 25 metres high", "5 metres across the
    * base and .75 metres at their tip", of ripstop nylon made to "rip
    * instantaneously when hit by a plane" (Wikipedia, "Red Bull Air Race
-   * World Championship"). This one is that cone at the ratio of the widest
-   * aircraft here to the aircraft it was built for, the Bramor's 2.30 m
-   * span over the Edge 540's 7.42 m, 0.31: 7.75 m tall, 1.55 m across the
-   * base and 0.23 m at the tip, rounded to 8, 1.6 and 0.25.
+   * World Championship"). This one is that cone at FULL SIZE: 25 m tall,
+   * 2.5 m in radius at the base and 0.375 m at the tip. It was the cone
+   * scaled by the Bramor's span over the Edge 540's, 8 m tall, until the
+   * owner set plane racing casual: "the pylons need to be 5 to 6 times more
+   * apart, and they need to be huge, so you don't actually have to be
+   * good." A plane never breaks on one (src/game/jelly.js).
    *
    * It is not the RC pylon racer's pylon. FAI F3D's are "a minimum height of
    * 4 m" and not over 5 m, of "a rigid material at least 70mm in diameter"
@@ -812,14 +814,14 @@ export const ELEMENTS = {
      * at their bases, from the ground to their tips: flying over the top is
      * the air race's "flying too high" and does not count. It is the width
      * a gate's clearW is, clear air, so the builder's span warning reads
-     * it as it reads a frame's. By the span rule the air between the cones
-     * at half their height is two Bramor spans, 4.6 m, and the cone is
-     * 0.46 m in radius there, so the axes are 5.5 m apart; rounded up to 6,
-     * which leaves 4.4 m at the bases and 5.75 m at the tips. The axes
+     * it as it reads a frame's. The air race stood its cones 10 to 15 m
+     * apart; the owner's casual rule is 5 to 6 times that, "so even a very
+     * small child can complete the courses", so the axes stand 50 m apart,
+     * which leaves 45 m of air at the bases and 49 m at the tips. The axes
      * stand clearW plus a base's diameter apart. */
     dims: {
-      levels: 1, sillH: 0, clearW: 4.4, clearH: 8.0, levelPitch: levelPitchFor(8.0),
-      baseRadius: 0.8, tipRadius: 0.125,
+      levels: 1, sillH: 0, clearW: 45.0, clearH: 25.0, levelPitch: levelPitchFor(25.0),
+      baseRadius: 2.5, tipRadius: 0.375,
     },
   },
   /*
@@ -827,8 +829,9 @@ export const ELEMENTS = {
    * a pylon" is an infringement, 5.2.16 q) done by the air race's cone. A
    * MARKER, so its step carries the pass side and the clearance the way a
    * flag's does, and it scores through the wing class's square beside it
-   * (virtualApertureDims): the wing flag's 5 m clearance, a 15 m square
-   * whose inner edge is on the pylon's axis.
+   * (virtualApertureDims). The clearance is 15 m, six base radii, the
+   * casual rule's room: a 35 m square whose inner edge is on the pylon's
+   * axis, so a plane rounding it anywhere within 35 m of it counts.
    */
   pylon: {
     id: 'pylon',
@@ -838,7 +841,7 @@ export const ELEMENTS = {
     kind: KIND.MARKER,
     wing: true,
     note: str('elements.one_inflatable_pylon_turned_round_on'),
-    dims: { height: 8.0, baseRadius: 0.8, tipRadius: 0.125, clearance: 5.0 },
+    dims: { height: 25.0, baseRadius: 2.5, tipRadius: 0.375, clearance: 15.0 },
   },
   /*
    * SKY HOOPS: a round opening that floats, the classic ring race hoop,

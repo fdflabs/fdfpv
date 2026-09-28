@@ -728,14 +728,14 @@ console.log('plane sized gates');
   const wg = addGate(d, 'wideGate5', { x: 0, y: 100, z: 0 }, up);
   const pp = addGate(d, 'pylonPair', { x: 0, y: 100, z: -60 }, up);
   const py = addGate(d, 'pylon', { x: 0, y: 100, z: -120 }, up);
-  check('a pylon\'s step carries a side, the left, and no face', d.sequence[2].passSide === 'left' && d.sequence[2].entry === null && d.sequence[2].clearance === 5);
+  check('a pylon\'s step carries a side, the left, and no face', d.sequence[2].passSide === 'left' && d.sequence[2].entry === null && d.sequence[2].clearance === 15);
   const spec = gateSpec(wg);
   check('a wide gate is a PVC frame of 1 1/2 inch pipe, the banner kind', spec.frameKind === 'banner' && near(spec.tubeOD, 1.9 * 0.0254, 1e-12));
   const gates = raceGatesOf(d);
-  check('the pair scores the air between the cones\' bases, ground to tips',
-    near(gates[1].aperture.clearW, 4.4) && near(gates[1].aperture.clearH, 8) && near(gates[1].centre.y, 104) && !gates[1].virtual);
-  check('the pylon scores the wing class\'s 15 m square beside it, virtual',
-    near(gates[2].aperture.clearW, 15) && gates[2].virtual);
+  check('the pair is the air race\'s cones at full size, 50 m apart: it scores the 45 m between their bases, ground to their 25 m tips',
+    near(gates[1].aperture.clearW, 45) && near(gates[1].aperture.clearH, 25) && near(gates[1].centre.y, 112.5) && !gates[1].virtual);
+  check('the pylon scores the wing class\'s square for its 15 m clearance beside it, 35 m, virtual',
+    near(gates[2].aperture.clearW, 35) && gates[2].virtual);
   /* The span warning (src/builder/line.js) reads each one's clear air. */
   const flat = { heightAt: () => 100, solidAt: () => false };
   const smallFor = (gs, af) => {
@@ -755,9 +755,9 @@ console.log('plane sized gates');
   addGate(d4, 'gate', { x: 0, y: 100, z: -80 }, up);
   check('and a five inch gate is small for the Bramor', smallFor(raceGatesOf(d4), 'bramor2300').length === 2);
   /* Flown along -z, the pilot's left is -x: a pass on the left has the
-   * square's centre 7.5 m to -x and its inner edge on the pylon's axis. */
+   * square's centre 17.5 m to -x and its inner edge on the pylon's axis. */
   check('its square is on the pilot\'s left with its inner edge on the axis',
-    near(gates[2].centre.x, -7.5) && near(gates[2].centre.x + gates[2].aperture.clearW / 2, 0));
+    near(gates[2].centre.x, -17.5) && near(gates[2].centre.x + gates[2].aperture.clearW / 2, 0));
 
   const pass = (race, i, x, y, z0 = 10) => {
     const g = gates[i];
@@ -771,7 +771,7 @@ console.log('plane sized gates');
   const race = new Race(gates.map((x) => ({ ...x })), 'full');
   check('through the wide gate: counted', pass(race, 0, 1.5, 101.5));
   check('between the pylons: counted', pass(race, 1, 2, 103));
-  check('over their tips: not', !pass(race, 1, 0, 108.5));
+  check('over their tips: not', !pass(race, 1, 0, 125.5));
   check('round the pylon on its left: counted', pass(race, 2, -4, 103));
   check('on its right: not', !pass(race, 2, 4, 103));
   /* The right hand pylon piece, put where the left hand one was. */
