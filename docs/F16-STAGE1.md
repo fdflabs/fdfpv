@@ -136,7 +136,7 @@ CG, which no rotation short of the nozzle's 11.4 deg reaches.
 
 | Check | Derived | Band | Measured |
 | --- | --- | --- | --- |
-| S1 level at half stick, the pattern speed | 19.67 m/s | 16.72 to 22.62 | 20.61 |
+| S1 level at half stick, the pattern speed | 19.67 m/s | 16.72 to 22.62 | 20.58 |
 | S2 stall, power off | 11.98 m/s | 11.26 to 13.61 | 12.33 |
 | S3 glide at 1.3 Vs, gear down | L/D 6.21 (7.09 clean) | 5.53 to 6.95 | 6.28 at 15.76 |
 | S4 top speed, gear up | 45.83 m/s (Freewing) | 41.25 to 50.41 | 43.24, 156 km/h (the pack sags) |
@@ -264,12 +264,12 @@ the same fan: 0.767 of the fan's speed, 13.84 N, 47 A inside its 60 A ESC)
 and two 6S packs, Tuning with Freewing's own low rates, three presets
 (f16-acro the default). The hangar's top speed and flight time are flown
 gear down (power-check's cruise), 40 m/s and 19 min. Progression: level
-8, after the P-51 at 7: the fastest aircraft here, the hottest landing, a
-fan whose thrust has to be planned ahead of the stick, and the maker's own
-"experience flying at least two EDFs" where FMS rate the P-51
-intermediate. `npm run f16:shell` on swiss2 and the airfield: module 16
+9, the last, after the P-51 at 7 and the Edge 540 at 8: the fastest
+aircraft here, the hottest landing, a fan whose thrust has to be planned
+ahead of the stick, and the only kit whose maker asks for "experience
+flying at least two EDFs", where FMS rate the P-51 intermediate. `npm run f16:shell` on swiss2 and the airfield: module 16
 and the drawn model, the fan's voice, parked at 0.140 m; with the sticks
-centred it runs to 29 m/s before the thrust line lets the nose up, which is
+centred it runs to 31 m/s before the thrust line lets the nose up, which is
 why a jet pilot rotates it. Its swiss2 half failed once on "parked on
 its gear" (the shell's `landed` flag read before it settled, the CG
 0.1398 m up) and passed on the rerun; the Kadet's own swiss2 half fails

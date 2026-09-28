@@ -264,11 +264,13 @@ typedef struct {
 #define SIM_AIRFRAME_CUB1400F 10
 #define SIM_AIRFRAME_BOMBSHELL1118 11
 #define SIM_AIRFRAME_KADET1981 12
+#define SIM_AIRFRAME_EDGE1524 13
 #define SIM_AIRFRAME_P51D1450 15
 #define SIM_AIRFRAME_F16878 16
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
- * entry, whose zero mass plant_airframe_exists refuses. */
+ * entry, whose zero mass plant_airframe_exists refuses, as any id past the
+ * count is. */
 #define SIM_AIRFRAME_COUNT 24
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
@@ -694,6 +696,27 @@ typedef struct FixedWingParams {
   double tune_expo[3];
   double trim_e;
   /*
+   * THE SURFACE'S KNEE, docs/EDGE-STAGE1.md: a plain flap's lift stops
+   * growing in proportion to its angle past 15 deg or so as the flow
+   * leaves it (DATCOM's K', plain flaps). Where it is set, the aero reads
+   * each surface's angle as delta / sqrt(1 + (delta / surf_knee)^2), rad:
+   * a knee of 0.5 keeps 0.96 of a 15 deg throw and half of a 50 deg one.
+   * The drawn surfaces keep their real angle. Zero on every table built
+   * for throws under 20 deg, which then reads its angles as it always did.
+   */
+  double surf_knee;
+  /*
+   * THE AILERON ON EACH STRIP past the stall, docs/EDGE-STAGE1.md: the
+   * angle per radian of delta_a (the knee's, where it is set) by which the
+   * aileron on that strip moves its zero lift angle, the aileron's tau
+   * where it spans the strip and zero where it does not. strip_stall took
+   * each strip at the roll rate's angle alone, so in a fast aileron roll
+   * the falling wing's tip read past its stall while its up aileron held
+   * it short of it, and the roll ran away. Zero on every table built
+   * before it, whose strips then read what they always read.
+   */
+  double strip_tau[4];
+  /*
    * THE PROP AS A GYROSCOPE, docs/P51-STAGE1.md. j_prop: the prop's,
    * spinner's and motor bell's moment of inertia about the shaft, kg m^2.
    * Turning at the motor's rate it carries angular momentum along body x,
@@ -757,6 +780,7 @@ extern const FixedWingParams FW_TIMBER1500F;
 extern const FixedWingParams FW_CUB1400F;
 extern const FixedWingParams FW_BOMBSHELL1118;
 extern const FixedWingParams FW_KADET1981;
+extern const FixedWingParams FW_EDGE1524;
 extern const FixedWingParams FW_P51D1450;
 extern const FixedWingParams FW_F16878;
 

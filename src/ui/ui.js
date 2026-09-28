@@ -2816,7 +2816,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'f16878'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'edge1524', 'f16878'],
     mode: 'freestyle',
     /* The card's own world. A card with a home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
@@ -2825,8 +2825,8 @@ const WAYS = [
     home: 'swiss2',
     label: str('ui.free_flight_card'),
     art: 'assets/gate/flight.jpg',
-    blurb: str('ui.twelve_fixed_wings'),
-    facts: [str('ui.twelve_planes'), str('ui.the_swiss_valley')],
+    blurb: str('ui.the_fixed_wings'),
+    facts: [str('ui.every_plane'), str('ui.the_swiss_valley')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 

@@ -1051,6 +1051,63 @@ export const AIRFRAMES = [
   },
   {
     /*
+     * Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md: the Zivko Edge
+     * 540, the Red Bull Air Race's aircraft, as an unlimited aerobatic
+     * model, 2.49 kg, simId 13 on the fixed wing plant. Ailerons over the
+     * whole trailing edge, an elevator and a rudder at EF's 3D throws, a
+     * symmetric wing at no incidence, so it flies on its back as it flies
+     * upright, and a T-Motor AM600 on 6S with three times its weight in
+     * thrust. It rolls at over 600 deg/s, and a hard yank at the edge of
+     * the envelope stalls one wing before the other and it snaps. A
+     * taildragger on carbon gear: `gear` is the plant's settled pose, which
+     * the drawn wheels in src/render/edgecraft.js match, the CG 0.2510 m
+     * over the ground and 9.84 deg nose up.
+     */
+    id: 'edge1524',
+    simId: 13,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/edge-thresholds.json e2_stall. */
+    stall: 9.58,
+    /* Level speed at full throttle, m/s: tests/edge-thresholds.json e4_top, derived. */
+    topSpeed: 29.7,
+    gear: { restHeight: 0.2510, restPitch: 9.84 * Math.PI / 180 },
+    name: 'Edge 540',
+    short: 'Edge',
+    blurb: 'A 60 in Extreme Flight Edge 540T, the Red Bull Air Race aircraft as an unlimited aerobat, on 6S with three times its weight in thrust. It rolls at over 600 degrees a second, flies on its back as well as upright, and snaps if you yank it at the edge of the envelope. A taildragger on carbon gear.',
+    facts: ['6S', '1524 mm', 'Unlimited aerobat'],
+    sizeMm: 1524,
+    grams: 2494.8,
+    trackClass: 'wing',
+    cells: 6,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'edge-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/edgecraft.js EDGE_DIMS: the furthest
+     * reach in plan is the rudder's trailing edge at its foot, further
+     * from the CG than the tips; the main tyres' bottoms and the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.2032,
+      hullR: 0.9652,
+      vHalfDown: 0.276225,
+      vHalfUp: 0.3175,
+      bodyLength: 1.4986,
+      bodyWidth: 1.524,
+      bodyHeight: 0.593725,
+    },
+  },
+  {
+    /*
      * Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High
      * Performance PNP (FJ21115P), docs/F16-STAGE1.md: a 1/11.5 scale EPO
      * jet, 878 mm across its tip rails, 2.116 kg on a 6S 4000, simId 16 on

@@ -193,6 +193,18 @@ planes.FW_KADET1981 = {
   note: 'a_w 4.533, a_t 4.154, V_H 0.549, deps/dalpha 0.380 (DATCOM), its own arms',
 };
 
+/* The Edge 540, docs/EDGE-STAGE1.md and scripts/edge-derive.js: its own
+ * arms, the CG 4 in behind the root's leading edge, 1.5 in ahead of the
+ * tapered wing's aerodynamic centre, and the tail's share from the
+ * derivation's a_w, a_t, V_H and DATCOM's downwash. */
+planes.FW_EDGE1524 = {
+  arm_ac: -0.1200,
+  arm_cp: 0.2720,
+  dw: 0.9 * 0.487 * 3.754 * 0.549 / 4.435,
+  asym: TE_TOLERANCE / 0.3175,
+  note: 'a_w 4.435, a_t 3.754, V_H 0.487, deps/dalpha 0.549 (DATCOM), its own arms',
+};
+
 /* The F-16 V3, docs/F16-STAGE1.md and scripts/f16-derive.js: its own
  * arms on the manual's top view's mean chord, 0.2856 m, the CG 90 mm
  * behind the root leading edge, 0.195 of it, 16 mm ahead of the wing's
@@ -254,6 +266,9 @@ const STRIPS = {
   /* Constant chord; the sheeted tips' rounding over the outer 3 of 39 in
    * is left out. */
   FW_KADET1981: strips(rect),
+  /* 15 in at the root to 10 in at the square tip, the taper's straight
+   * line: EF's photographs, the drawn model. */
+  FW_EDGE1524: strips(taper(10 / 15)),
   /* The cropped delta's trapezoid, 414.5 mm at the centreline to 83 at
    * the tip; the strakes ahead of it are left out. */
   FW_F16878: strips(taper(0.201)),
@@ -288,6 +303,13 @@ const SECTION = {
   /* A 13 percent flat bottomed section at 2e5 (9 m/s on 0.374 m): the
    * Clark-Y's at 2e5, held +6.7 deg. */
   FW_KADET1981: { sec: 'Clark-Y at 2e5', top: 6.7, k: 0.72 },
+  /* A symmetric section of about 12 percent at 2e5 (9.6 m/s on 0.317 m):
+   * none of the four sections above. A NACA 0012 at 1.79e5 stalls at
+   * about 10 deg with an abrupt drop, the short laminar bubble bursting
+   * (aerospaceweb, "NACA 0012 Lift Characteristics", after the wind
+   * tunnel data it cites); held 1 deg and falling to 0.60, ESTIMATED from
+   * that description, sharper than any section here. */
+  FW_EDGE1524: { sec: 'symmetric 12 percent at 2e5', top: 1.0, k: 0.60 },
   /* No UIUC section: a thin 64A204 alone stalls at its leading edge, and
    * the strakes' vortex holds the lift on the F-16 past it (NASA TP-1538's
    * lift curve peaks 15 deg past its linear range). ESTIMATED: held 10 deg,

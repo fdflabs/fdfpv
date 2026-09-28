@@ -77,7 +77,7 @@ const APC_OZ = {
   '11x7E-3': 1.09, '11x7E': 0.81, '10x7E': 0.71, '11x55E': 0.81, '11x8E': 0.81, '12x6E': 0.95,
   '13x8E': 1.09, '12x6': 1.62, '12x8': 1.69, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
   '7x3': 0.42, '5x3': 0.21, '8x4E': 0.46, '10x47SF': 0.42, '10x38SF': 0.42, '11x47SF': 0.53,
-  '10x6E': 0.71, '12x8E': 0.92,
+  '10x6E': 0.71, '12x8E': 0.92, '16x8E': 1.83, '16x10E': 1.83,
 };
 
 /*
@@ -86,7 +86,8 @@ const APC_OZ = {
  * family (E thin electric, SF slow flyer, plain the sport glow prop).
  * E-flite's 11 x 7.5 three blade on the Timber takes APC's 11 x 7E-3,
  * GWS's EP1180 and EP1047 take APC's 11 x 8E and 10 x 4.7SF, and Cox's 7 x
- * 3.5 takes APC's 7 x 4, the nearer pitch of the two APC makes.
+ * 3.5 takes APC's 7 x 4, the nearer pitch of the two APC makes; T-Motor's
+ * carbon T16x8 on the Edge takes APC's 16 x 8E.
  */
 const PROXY = {
   '11/7.5/3/electric': '11x7E-3',
@@ -99,6 +100,7 @@ const PROXY = {
   '10/6/2/electric': '10x6E',
   '8/4/2/electric': '8x4E',
   '12/8/2/electric': '12x8E',
+  '16/8/2/electric': '16x8E',
   '7/3.5/2/glow': '7x4',
   '5/3/2/glow': '5x3',
   '12/6/2/glow': '12x6',
@@ -139,6 +141,7 @@ export const PROPS = {
   slowstick1180: [STOCK, apcProp('11x47sf', '11x47SF', 11, 4.7, 2), apcProp('10x38sf', '10x38SF', 10, 3.8, 2)],
   bombshell1118: [STOCK, apcProp('6x4', '6x4', 6, 4, 2), apcProp('7x3', '7x3', 7, 3, 2)],
   kadet1981: [STOCK, apcProp('12x8', '12x8', 12, 8, 2), apcProp('11x7', '11x7', 11, 7, 2)],
+  edge1524: [STOCK, apcProp('16x8e', '16x8E', 16, 8, 2), apcProp('16x10e', '16x10E', 16, 10, 2)],
   radian2000: [STOCK],
   bramor2300: [STOCK],
   /* A fan is its duct's: Freewing sells the one rotor for it. */
@@ -181,6 +184,7 @@ export const ANCHORS = {
   slowstick1180: { prop: [0.31, 0, 0], belly: [0.02, 0, -0.007], tail: [-0.56, 0, -0.012], tank: [-0.01, 0, -0.01], led: [[0.080, 0.18, 0.064], [0.080, 0.41, 0.114]] },
   bombshell1118: { prop: [0.166, 0, -0.005], belly: [0.02, 0, -0.064], tail: [-0.60, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.042, 0.17, 0.075], [0.042, 0.50, 0.146]] },
   kadet1981: { prop: [0.441, 0, -0.013], belly: [0, 0, -0.159], tail: [-0.93, 0, -0.13], tank: [-0.01, 0, -0.08], led: [[0.075, 0.30, 0.093], [0.075, 0.89, 0.139]] },
+  edge1524: { prop: [0.4826, 0, 0], belly: [0, 0, -0.114], tail: [-0.80, 0, -0.015], tank: [-0.01, 0, -0.05], led: [[0.08, 0.12, -0.016], [-0.02, 0.70, -0.013]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
 };
 
