@@ -48,6 +48,8 @@
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { dressLivery } from './livery.js';
+import { paintTargets, readDecals } from './decals.js';
+import { readFinish } from './finish.js';
 import { animateParts, dressParts } from './partsfit.js';
 import { powerOption } from '../../configs/power.js';
 import { buildHangarEnv, createHangarRig } from './hangarstage.js';
@@ -583,18 +585,58 @@ export function createCarouselStage(renderer) {
     stats.models = models.size;
   }
 
-  /* Paint a model again: in `colours` (region to 0xRRGGBB) for a preview,
+  /* Paint a model again: in `look` (src/render/livery.js) for a preview,
    * or in what the pilot has saved. A model not built yet will be built in
    * the saved paint when it is first drawn. */
-  function repaint(id, colours = null) {
+  function repaint(id, look = null) {
     const m = models.get(id);
     if (m) {
-      dressLivery(m.craft, id, colours ?? undefined);
-    } else if (colours) {
-      previews.set(id, colours);
+      dressLivery(m.craft, id, look ?? undefined);
+    } else if (look) {
+      previews.set(id, look);
     } else {
       previews.delete(id);
     }
+  }
+
+  /*
+   * Where a point on the screen lands on the hangar's model, for placing a
+   * decal: the point and the skin's outward normal there in the model's
+   * own frame (its craft group's, metres), or null off the model. Read
+   * against the camera and the pose of the last hangar frame drawn.
+   */
+  const ray = new THREE.Raycaster();
+  ray.layers.enableAll();
+  const ndc = new THREE.Vector2();
+  function pick(id, clientX, clientY) {
+    const m = models.get(id);
+    if (!m || !m.holder.visible) {
+      return null;
+    }
+    const rect = renderer.domElement.getBoundingClientRect();
+    ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, 1 - ((clientY - rect.top) / rect.height) * 2);
+    ray.setFromCamera(ndc, camera);
+    const shown = (o) => {
+      for (let p = o; p; p = p.parent) {
+        if (!p.visible) {
+          return false;
+        }
+      }
+      return true;
+    };
+    const hit = ray.intersectObjects(paintTargets(m.craft), false).find((h) => h.face && shown(h.object));
+    if (!hit) {
+      return null;
+    }
+    const g = m.craft.group;
+    const toGroup = g.matrixWorld.clone().invert();
+    const p = hit.point.clone().applyMatrix4(toGroup);
+    const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+    if (n.dot(ray.ray.direction) > 0) {
+      n.negate();
+    }
+    n.transformDirection(toGroup);
+    return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z] };
   }
 
   /* A model's region colours as #rrggbb, for a check; null if not built. */
@@ -606,11 +648,17 @@ export function createCarouselStage(renderer) {
     return Object.fromEntries(Object.entries(m.craft.livery.read()).map(([k, v]) => [k, `#${v.toString(16).padStart(6, '0')}`]));
   }
 
+  /* A model's finishes and decals, for a check; null if not built. */
+  function look(id) {
+    const m = models.get(id);
+    return m ? { finishes: readFinish(m.craft), decals: readDecals(m.craft) } : null;
+  }
+
   /* What a model is fitted with (src/render/partsfit.js), for a check. */
   function fitted(id) {
     const m = models.get(id);
     return m ? m.craft.group.userData.partsFit ?? null : null;
   }
 
-  return { draw, repaint, paint, fitted, stats: () => ({ ...stats }) };
+  return { draw, repaint, paint, pick, look, fitted, stats: () => ({ ...stats }) };
 }

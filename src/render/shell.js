@@ -39,6 +39,8 @@
 import * as THREE from 'three';
 import { buildCraft } from './craft.js';
 import { dressLivery } from './livery.js';
+import { readDecals } from './decals.js';
+import { readFinish } from './finish.js';
 import { dressParts } from './partsfit.js';
 import { CAMERA_FOV_DEFAULT } from './lens.js';
 
@@ -427,7 +429,8 @@ export function buildShell(canvas, opts) {
    */
   /* What the craft is painted in, read back for a check: each region's
    * colour on its own materials, and every colour on a mesh drawn now,
-   * which under a map's look is the look's twins. As #rrggbb. */
+   * which under a map's look is the look's twins. As #rrggbb. With them,
+   * each region's finish and what the decals are drawn as. */
   function craftPaint(airframeId) {
     const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
     const drawn = new Set();
@@ -441,6 +444,8 @@ export function buildShell(canvas, opts) {
       id: airframeId,
       regions: regions && Object.fromEntries(Object.entries(regions).map(([k, v]) => [k, hex(v)])),
       drawn: [...drawn].sort(),
+      finishes: readFinish(craft),
+      decals: readDecals(craft),
     };
   }
 

@@ -51,6 +51,7 @@ jobs:
       - run: npm run crash:rules
       - run: npm run builder:selftest
       - run: npm run pick:selftest
+      - run: npm run paint:selftest
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check

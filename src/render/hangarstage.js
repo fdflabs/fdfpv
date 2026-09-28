@@ -63,6 +63,12 @@ const VIEWS = {
   fuse_trim: { yaw: Math.PI - 0.6, elev: 0.2, zoom: 0.62, along: -0.6, up: 0 },
   floats: { yaw: Math.PI / 2 + 0.35, elev: 0.06, zoom: 0.82, along: 0, up: -0.45 },
   airframe: OVERVIEW,
+  /* The paint shop's views for placing decals (src/ui/hangar-paint.js):
+   * straight down from behind, so a number on the wing reads upright, and
+   * square on to each side. The model's -x is its left. */
+  top: { yaw: 0, elev: 1.3, zoom: 0.9, along: 0, up: 0.2 },
+  side_left: { yaw: Math.PI / 2, elev: 0.1, zoom: 0.78, along: 0, up: 0 },
+  side_right: { yaw: -Math.PI / 2, elev: 0.1, zoom: 0.78, along: 0, up: 0 },
 };
 
 export function viewFor(focus) {
@@ -110,6 +116,7 @@ export function createHangarRig() {
   const up = { x: 0, v: 0 };
   const pop = { x: 1, v: 0 };
   let handT = 0;
+  let focusSeen = null;
   let revealSeq = -1;
   let revealT = 1;
   let pulseSeq = -1;
@@ -137,11 +144,18 @@ export function createHangarRig() {
     pulseT = Math.min(1, pulseT + dt / 0.8);
 
     const v = viewFor(h.focus);
+    /* STAY (the paint shop placing decals): a plane turned by hand stays
+     * turned, so the side being worked on does not swing away under the
+     * aim, until a view is chosen, which the camera then goes to at once. */
+    if (h.stay && h.focus !== focusSeen) {
+      handT = 0;
+    }
+    focusSeen = h.focus;
     if (turn) {
       yaw.x += turn;
       handT = HAND_HOLD;
     }
-    handT = Math.max(0, handT - dt);
+    handT = h.stay && handT > 0 ? HAND_HOLD : Math.max(0, handT - dt);
     if (h.hold) {
       handT = HAND_HOLD;
     }

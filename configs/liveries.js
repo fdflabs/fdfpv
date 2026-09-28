@@ -21,6 +21,10 @@
  * paint: `liveryKey` names the one entry both are stored under, and the
  * `floats` region is offered only on the floats.
  *
+ * An entry also carries the paint shop's finishes and decals, and a plane
+ * has a list of liveries saved by name; their data, their limits and the
+ * code a livery is shared by are configs/paint.js.
+ *
  * Plain data and plain functions, no three.js: the menu and the checks
  * import this in Node.
  *
@@ -41,6 +45,7 @@
  */
 
 import { airframeById } from './airframes.js';
+import { MAX_SAVED, checkPaint, cleanName, decodeLivery } from './paint.js';
 
 /*
  * THE COVERING ON OFFER, by the makers' own names and numbers. The hex is
@@ -157,7 +162,9 @@ export const LIVERIES = {
     ],
   },
   kadet1981: {
-    regions: [r('wing', '#ffdb1a', { film: true }), r('wing_trim', '#d61214', { film: true }), r('fuselage', '#d61214', { film: true }), r('fuse_trim', '#ffdb1a', { film: true })],
+    /* The trims are drawn into the same film maps as the wing and the
+     * fuselage, so each wears its main region's finish (`finish: false`). */
+    regions: [r('wing', '#ffdb1a', { film: true }), r('wing_trim', '#d61214', { film: true, finish: false }), r('fuselage', '#d61214', { film: true }), r('fuse_trim', '#ffdb1a', { film: true, finish: false })],
     schemes: [
       { id: 'stock', source: null, colours: {} },
       { id: 'sig_kit', source: src('SIG Kadet Senior kit RC-58', 'https://sigmfg.com/products/kadet-senior-kit'), colours: { wing: '#b21527', wing_trim: '#0e1213', fuselage: '#b21527', fuse_trim: '#0e1213' } },
@@ -202,19 +209,36 @@ export function isHex(v) {
 }
 
 /*
- * A stored entry made safe: { scheme, regions } with a scheme this plane
- * has and only region colours it has, as lower case #rrggbb. Anything else
- * is dropped rather than refused, because a stale or hand edited settings
- * blob must never stop the page booting; null when nothing is left.
+ * A stored entry made safe: { scheme, regions, finishes, decals } with a
+ * scheme this plane has, only region colours it has, as lower case
+ * #rrggbb, and the paint shop's finishes and decals as configs/paint.js
+ * checks them. Anything else is dropped rather than refused, because a
+ * stale or hand edited settings blob must never stop the page booting;
+ * null when nothing is left.
  */
 export function normaliseEntry(family, entry) {
+  return checkEntry(family, entry).entry;
+}
+
+/* How many things normaliseEntry would drop from an entry, or null for a
+ * plane that has no paint: a shared code is refused unless this is 0. */
+export function entryDrops(family, entry) {
+  return LIVERIES[family] ? checkEntry(family, entry).dropped : null;
+}
+
+function checkEntry(family, entry) {
   const l = LIVERIES[family];
   if (!l || !entry || typeof entry !== 'object') {
-    return null;
+    return { entry: null, dropped: 0 };
   }
+  let dropped = 0;
   const out = {};
-  if (typeof entry.scheme === 'string' && l.schemes.some((s) => s.id === entry.scheme) && entry.scheme !== 'stock') {
-    out.scheme = entry.scheme;
+  if (typeof entry.scheme === 'string' && l.schemes.some((s) => s.id === entry.scheme)) {
+    if (entry.scheme !== 'stock') {
+      out.scheme = entry.scheme;
+    }
+  } else if (entry.scheme !== undefined) {
+    dropped += 1;
   }
   if (entry.regions && typeof entry.regions === 'object') {
     const regions = {};
@@ -224,11 +248,22 @@ export function normaliseEntry(family, entry) {
         regions[r.id] = v;
       }
     }
+    dropped += Object.keys(entry.regions).length - Object.keys(regions).length;
     if (Object.keys(regions).length) {
       out.regions = regions;
     }
+  } else if (entry.regions !== undefined) {
+    dropped += 1;
   }
-  return Object.keys(out).length ? out : null;
+  const paint = checkPaint(l.regions, entry);
+  dropped += paint.dropped;
+  if (Object.keys(paint.finishes).length) {
+    out.finishes = paint.finishes;
+  }
+  if (paint.decals.length) {
+    out.decals = paint.decals;
+  }
+  return { entry: Object.keys(out).length ? out : null, dropped };
 }
 
 /* settings.livery as loadSettings keeps it: known planes, safe entries. */
@@ -267,6 +302,52 @@ export function coloursFor(airframeId, entry) {
 /* The same colours as numbers, the form the renderer takes. */
 export function colourNumbers(colours) {
   return Object.fromEntries(Object.entries(colours).map(([k, v]) => [k, parseInt(v.slice(1), 16)]));
+}
+
+/*
+ * What the renderer dresses a model in (src/render/livery.js): each
+ * region's colour as a number, the finishes and the decals.
+ */
+export function lookFor(airframeId, entry) {
+  return {
+    colours: colourNumbers(coloursFor(airframeId, entry)),
+    finishes: (entry && entry.finishes) || {},
+    decals: (entry && entry.decals) || [],
+  };
+}
+
+/*
+ * settings.liverySaves as loadSettings keeps it: per plane, a list of
+ * { name, entry }, each name cleaned and not empty, each entry safe (an
+ * empty one is the kit's own look), at most MAX_SAVED.
+ */
+export function normaliseSaves(stored) {
+  const out = {};
+  if (!stored || typeof stored !== 'object') {
+    return out;
+  }
+  for (const [family, list] of Object.entries(stored)) {
+    if (!LIVERIES[family] || !Array.isArray(list)) {
+      continue;
+    }
+    const clean = [];
+    for (const item of list) {
+      const name = cleanName(item && item.name);
+      if (!name || clean.length >= MAX_SAVED) {
+        continue;
+      }
+      clean.push({ name, entry: normaliseEntry(family, item.entry) ?? {} });
+    }
+    if (clean.length) {
+      out[family] = clean;
+    }
+  }
+  return out;
+}
+
+/* A shared code read back against the planes that have paint. */
+export function readCode(code) {
+  return decodeLivery(code, normaliseEntry, entryDrops);
 }
 
 /* The swatches a region offers: the see through films for a film region,
