@@ -106,7 +106,7 @@ import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
-import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams } from '../configs/power.js';
+import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, SIM_POWER } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
@@ -114,6 +114,8 @@ import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
+import { setPartsSource } from './render/partsfit.js';
+import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
@@ -159,10 +161,11 @@ import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from 
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
 import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
 import {
-  DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, SURFACE, SURFACES, TREES_MAX, partLabel,
+  DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, partLabel,
 } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
+import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
@@ -225,10 +228,16 @@ let REST_HEIGHT = 0.045;
 /* One seat for both, so they cannot drift apart. An aircraft on wheels
  * rests where its gear holds it, not on its lowest drawn point; one on
  * floats rests where they float it when it starts on water. */
+/* The gear pose an aircraft stands at: the kit's, or the hangar's parts'
+ * (bigger tyres stand it higher), set by the shell once it has settings. */
+let partsGearOf = () => null;
+function gearOf(af) {
+  return af ? (partsGearOf(af.id) ?? af.gear ?? null) : null;
+}
 function seatRestHeight(af, onWater = false) {
   const dims = af && af.dims;
   const h = onWater && af.floats ? af.floats.restHeight
-    : af && af.gear ? af.gear.restHeight
+    : gearOf(af) ? gearOf(af).restHeight
     : dims && Number.isFinite(dims.vHalfDown) ? dims.vHalfDown : 0.045;
   SPAWN_ALT = h;
   REST_HEIGHT = h;
@@ -562,6 +571,13 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * (src/render/livery.js, configs/liveries.js), read from the settings as
    * they are when it is built. The boot craft, built above, is a quad. */
   setLiverySource((id) => (paintable(id) ? lookFor(id, ui.settings.livery[liveryKey(id)]) : null));
+  /* And what it is fitted with (configs/hangar-parts.js), on the power
+   * option it flies. */
+  setPartsSource((id) => (PROPS[id] ? {
+    entry: partsEntry(ui.settings.parts, id),
+    option: POWER[id] ? powerOption(id, powerChoice(id, ui.settings.power).option) : null,
+  } : null));
+  partsGearOf = (id) => (PROPS[id] ? partsGear(id, partsEntry(ui.settings.parts, id)) : null);
   /* The flight controller's OSD over the FPV camera. See src/ui/fpvhud.js. */
   const fpvOsd = new FpvOsd(uiRoot);
   /*
@@ -1255,7 +1271,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (floatsOnWater()) {
       return af.floats;
     }
-    return af.gear || null;
+    return gearOf(af);
   }
   /* The water body under a map point, or null. */
   function waterAt(x, z) {
@@ -3709,7 +3725,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       return;
     }
     const { option, pack } = powerChoice(af.id, s.power);
-    const block = powerParams(af.id, option, pack);
+    /* The hangar's prop rides the power block; the stock prop leaves the
+     * option's own block, or the table's, exactly as it was. */
+    const parts = partsEntry(s.parts, af.id);
+    const own = powerParams(af.id, option, pack);
+    const block = parts.prop === 'stock' ? own : partsPowerBlock(af.id, option, parts.prop, own ?? powerBlock(af.id, option, pack));
     const code = block ? sim.setPower(block) : sim.clearPower();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_power refused ${option}/${pack} on ${af.id}: ${simErrorName(code)}`);
@@ -3717,6 +3737,30 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const opt = powerOption(af.id, option);
     runCells = powerCells(af.id, option, pack);
     setFlownVoice(opt.voice);
+    /* A prop's own tone is its blade pass: blades times rpm. */
+    audio.setBladeScale(propShape(af.id, opt, parts.prop).blades / opt.blades);
+  }
+
+  /*
+   * THE HANGAR'S PARTS (configs/hangar-parts.js): the add-ons and the
+   * tape, seated last, after the power option and the tuning they are laid
+   * over, on the same between-runs rule and at a hot swap. Nothing fitted
+   * clears them, which is the plant's own table. The smoke is off at every
+   * seat.
+   */
+  function applyParts(s) {
+    const af = airframeById(runAirframe);
+    smokeOn = false;
+    if (!af.fixedWing || typeof sim.e.sim_set_addons !== 'function') {
+      return;
+    }
+    const { option, pack } = powerChoice(af.id, s.power);
+    const parts = partsEntry(s.parts, af.id);
+    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS]);
+    const code = block ? sim.setAddons(block) : sim.clearAddons();
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
+    }
   }
 
   /*
@@ -3825,6 +3869,34 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   const debris = createDebris();
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
+  /*
+   * THE SMOKE SYSTEM (the Parts tab's 'smoke' add-on): O in flight turns
+   * it on and off, and the trail leaves the tail's nozzle on the sim clock
+   * (src/render/smoke.js). A picture only; the pump and oil's mass is the
+   * plant's whether it is on or not. Off at every seat.
+   */
+  const smoke = createSmoke();
+  shell.keepAcrossMaps(smoke.group);
+  let smokeOn = false;
+  const smokeAt = new THREE.Vector3();
+  const smokeVel = new THREE.Vector3();
+  function smokeFitted() {
+    return partsEntry(ui.settings.parts, runAirframe).addons.includes('smoke');
+  }
+  function smokeFrame() {
+    /* In the world the craft is in, as the wreck's pieces are. */
+    const parent = shell.quad.parent;
+    if (parent && smoke.group.parent !== parent) {
+      parent.add(smoke.group);
+    }
+    const nozzle = shell.quad.userData.smokeNozzle;
+    const on = smokeOn && nozzle && stateCurr && mode === 'flight';
+    if (on) {
+      nozzle.getWorldPosition(smokeAt);
+      simPosToThree(stateCurr[4], stateCurr[5], stateCurr[6], smokeVel).applyQuaternion(qSpawn);
+    }
+    smoke.update(stateCurr ? stateCurr[0] : 0, on ? smokeAt : null, smokeVel, shell.canvas.clientHeight || 720, shell.camera.fov);
+  }
   const fpvFail = createFpvFail(shell.canvas);
   /* Collider kind to the module's surface, where the numbers agree. */
   const kindSurface = (() => {
@@ -3985,6 +4057,63 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       sim.e.sim_set_part_table(want);
       wreckCraft = null;
     }
+  }
+
+  /*
+   * WHAT BROKE, for the hangar's Parts tab (configs/hangar-parts.js
+   * damage): every part that left the aircraft, was destroyed, or a prop
+   * that chipped, kept in settings.parts[airframe] with the part table's
+   * boxes so the hangar can find them on the model. Written when the set
+   * grows, which is a few times a crash. A part already taped and broken
+   * again is broken; the rest of an earlier record stays. Only the part a
+   * break was at is named, not the parts that went with it.
+   */
+  const PART_KIND_PROP = PART_KINDS.indexOf('prop');
+  function recordBroken(parts) {
+    const id = runAirframe;
+    if (!PROPS[id] || !partTable.length) {
+      return;
+    }
+    const was = partsEntry(ui.settings.parts, id);
+    const old = was.damage ? was.damage.parts : [];
+    const broken = new Map(old.map((p) => [p.i, p]));
+    let grew = false;
+    for (let i = 1; i < partTable.length; i += 1) {
+      const o = i * PART_STATE_DOUBLES;
+      const t = partTable[i];
+      const gone = parts[o + STATE.status] !== 0 || parts[o + STATE.damage] >= 0.999
+        || (t.kind === PART_KIND_PROP && parts[o + STATE.damage] > 0);
+      if (!gone || (broken.has(i) && broken.get(i).state === 'broken')) {
+        continue;
+      }
+      broken.set(i, { i, kind: t.kind, cg: t.cg, mass: t.mass, joint: t.joint, state: 'broken' });
+      grew = true;
+    }
+    /* A part that left with its parent is the parent's break: the record
+     * names the part the break was at, and the hangar draws what hangs
+     * off it with it. Parents precede children in the table. */
+    for (const i of [...broken.keys()]) {
+      for (let q = partTable[i].parent; q > 0; q = partTable[q].parent) {
+        if (broken.has(q) && broken.get(q).state === 'broken') {
+          broken.delete(i);
+          break;
+        }
+      }
+    }
+    if (!grew) {
+      return;
+    }
+    const r = (v) => v.map((x) => Math.round(x * 1e4) / 1e4);
+    const entry = {
+      ...was,
+      damage: {
+        boxes: partTable.map((t) => [r(t.boxMin), r(t.boxMax)]),
+        parents: partTable.map((t) => t.parent),
+        parts: [...broken.values()].sort((a, b) => a.i - b.i).map((p) => ({ ...p, cg: r(p.cg), joint: r(p.joint) })),
+      },
+    };
+    ui.settings.parts = normaliseParts({ ...ui.settings.parts, [id]: entry });
+    ui.persistSettings();
   }
 
   /* From resetCraft, after sim_reset has cleared the damage state. */
@@ -4528,6 +4657,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const before = crashFlags;
     crashFlags = damage.flags();
     lastParts = crashFlags ? damage.parts() : null;
+    if (lastParts) {
+      recordBroken(lastParts);
+    }
     crashEntries(crashFlags & ~before, nowWall);
     if (lastParts) {
       wreckRig.update(lastParts, damage.count(), stateCurr, plantToWorld, pieceGround);
@@ -5338,6 +5470,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     applyCrashMode(s);
     applyPower(s);
     applyTuning(s);
+    applyParts(s);
     publishPids();
     launcherLeft = null;
     chaseValid = false;
@@ -6146,9 +6279,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
       applyCrashMode(s);
       /* The power system too, after the airframe it belongs to: a fresh
        * pack and a full tank every run. The tuning after the power it is
-       * balanced on. */
+       * balanced on, and the hangar's parts over both. */
       applyPower(s);
       applyTuning(s);
+      applyParts(s);
     }
     /*
      * THE AIR, OUTSIDE THE BETWEEN-RUNS BLOCK ON PURPOSE.
@@ -6829,11 +6963,15 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         pickStage.repaint(af.id);
       }
     }
+    const partsChanged = Boolean(res.settings && res.settings.parts);
     /* The tuning is the plane's own, not its family's. */
     const tuned = id === runAirframe && res.settings && res.settings.tuning
       && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey;
-    if ((res.powerChanged && liveryKey(runAirframe) === family || tuned) && swapLive()) {
+    if (((res.powerChanged || partsChanged) && liveryKey(runAirframe) === family || tuned) && swapLive()) {
       await hotSwap(runAirframe, { refit: true });
+    }
+    if (partsChanged && drawnCraft === id && typeof shell.redressCraft === 'function') {
+      shell.redressCraft(id);
     }
     if (liveryKey(drawnCraft) === family) {
       shell.repaintCraft(drawnCraft);
@@ -7512,6 +7650,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         const said = [str('ui.flaps_up'), str('ui.flaps_half'), str('ui.flaps_full')];
         notice = { text: said[flapNotch], untilMs: performance.now() + 1600 };
       }
+      return;
+    }
+    if (code === 'KeyO' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing && smokeFitted()) {
+      smokeOn = !smokeOn;
+      notice = { text: str(smokeOn ? 'main.smoke_on' : 'main.smoke_off'), untilMs: performance.now() + 1400 };
       return;
     }
     if (code === 'KeyC' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
@@ -9349,6 +9492,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     if (mode !== 'replay') {
       crashFrame(nowWall, dt);
     }
+    smokeFrame();
     if (crashCam) {
       crashCam.record(nowWall);
     }
@@ -10846,6 +10990,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
   window.__pickPaint = (id) => pickStage.paint(id);
   window.__pickLook = (id) => pickStage.look(id);
+  window.__pickParts = (id) => pickStage.fitted(id);
   window.__craft = () => ({
     setting: ui.settings.airframe,
     run: runAirframe,
@@ -10856,6 +11001,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     shown: drawnCraft,
     power: readPower(),
     cells: runCells,
+    addons: airframeById(runAirframe).fixedWing && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
+    parts: shell.quad.userData.partsFit ?? null,
+    smoke: { on: smokeOn, puffs: smoke.live() },
+    bladeScale: audio.bladeScale,
     /* The sim_wing_tune block in force and the flap switch, for
      * scripts/hangar-check.js; null on a quad. */
     tune: airframeById(runAirframe).fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
@@ -11694,6 +11843,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    * m/s, surface }. A break cues the snap, a crush the crunch, a chip the
    * chip, water the splash. */
   window.__crashLog = () => crashLog.slice();
+  window.__crashTable = () => partTable;
   /* The step trace since the last throw (THE STEP TRACE): per step, the
    * hashes of the state in, the ground plane, the state out. */
   window.__stepTrace = () => ({

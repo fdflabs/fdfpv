@@ -126,6 +126,8 @@
     "hotswap:check": "node scripts/hotswap-check.js",
     "hangar:check": "node scripts/hangar-check.js",
     "paint:selftest": "node scripts/paint-selftest.js",
+    "parts:check": "node scripts/parts-check.js",
+    "parts:derive": "node scripts/parts-derive.js",
     "trackmode:check": "node scripts/track-mode-check.js"
   }
 }

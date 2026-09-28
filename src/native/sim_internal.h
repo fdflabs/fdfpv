@@ -232,6 +232,14 @@ typedef struct {
   /* Floats. Zero count for every airframe that does not have them, which
    * leaves sim.c's step exactly what it was for them. */
   FloatParams floats;
+  /* The hangar's add-ons, sim_set_addons in sim_abi.h: zero on every table
+   * and set only on the live copy plant.c builds, and nothing reads the
+   * rest unless add_on is 1, so an aircraft without add-ons runs exactly
+   * the arithmetic it always ran. */
+  int add_on;
+  double add_shift[3];   /* the CG's move from the table's, body frame, m */
+  double add_cda;        /* drag area, C_D times area, m^2 */
+  double add_drag_at[3]; /* where that drag acts, body frame about the table's CG, m */
 } PlantParams;
 
 /*
@@ -703,11 +711,17 @@ void plant_power_reset(SimState *s);
 int plant_set_power(const double *in);
 void plant_power_clear(void);
 int plant_power_custom(void);
+/* The hangar's add-ons, the sim_set_addons layout in sim_abi.h, seated
+ * last, over the table, the power option and the tuning; plant_addons_clear
+ * takes them off. */
+int plant_set_addons(const double *in);
+void plant_addons_clear(void);
 /* THE PILOT'S TUNING, sim_wing_set_tune in sim_abi.h: plant_set_tune
  * seats a block over the power option or the table, SIM_OK or
  * SIM_ERR_BAD_ARG; plant_tune_clear takes it off; plant_tune_read fills
  * the block in force, the table's own values where none is seated.
- * plant_reseat puts the seated airframe back after crash.c's live copy. */
+ * plant_reseat puts the seated airframe back after crash.c's live copy,
+ * power option, tuning and add-ons all. */
 int plant_set_tune(const double *in);
 void plant_tune_clear(void);
 void plant_tune_read(double *out);

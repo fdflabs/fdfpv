@@ -27,8 +27,8 @@
  * Pointers. A call that writes its answer to the heap is made again with a
  * scratch buffer of the journal's own, so a replay never writes into a
  * buffer the shell has since freed or reused. A call that reads doubles
- * from the heap (sim_set_power, sim_wing_set_tune) has them copied into
- * the journal. A call that reads a string (sim_init) cannot be replayed
+ * from the heap (sim_set_power, sim_wing_set_tune, sim_set_addons) has
+ * them copied into the journal. A call that reads a string (sim_init) cannot be replayed
  * from here and ends the
  * stretch that can: the next copy starts a new one.
  *
@@ -60,7 +60,7 @@ export const PURE = new Set([
   'sim_water_components', 'sim_airframe', 'sim_air', 'sim_gravity', 'sim_wing_stab', 'sim_wing_chute_open',
   'sim_wing_flaps', 'sim_launch_control_state', 'sim_crashflip_active', 'sim_rate_guard_trips',
   'sim_math_sin', 'sim_math_cos', 'sim_math_atan2', 'sim_bf_debug', 'sim_bf_dump', 'sim_bf_get',
-  'sim_crash_debug', 'sim_wing_tune',
+  'sim_crash_debug', 'sim_wing_tune', 'sim_addons_state',
 ]);
 
 /* Arguments that are heap pointers, by function: `out` is written by the
@@ -71,7 +71,9 @@ export const POINTERS = {
   sim_init: { in: 0, unreplayable: true },
   sim_set_power: { in: 0, doubles: 17 },
   sim_wing_set_tune: { in: 0, doubles: 11 },
+  sim_set_addons: { in: 0, doubles: 10 },
   sim_wing_tune: { out: 0 },
+  sim_addons_state: { out: 0 },
   sim_wing_surfaces: { out: 0 },
   sim_plane_surfaces: { out: 0 },
   sim_wing_debug: { out: 0 },

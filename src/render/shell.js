@@ -41,6 +41,7 @@ import { buildCraft } from './craft.js';
 import { dressLivery } from './livery.js';
 import { readDecals } from './decals.js';
 import { readFinish } from './finish.js';
+import { dressParts } from './partsfit.js';
 import { CAMERA_FOV_DEFAULT } from './lens.js';
 
 /*
@@ -363,6 +364,7 @@ export function buildShell(canvas, opts) {
     resize,
     swapCraft,
     repaintCraft,
+    redressCraft,
     craftPaint,
     setCraftLook,
     /* The seated map's look put on another craft (the crash cam's replay
@@ -445,6 +447,16 @@ export function buildShell(canvas, opts) {
       finishes: readFinish(craft),
       decals: readDecals(craft),
     };
+  }
+
+  /* Fit the craft in the air with what its airframe is fitted with now
+   * (src/render/partsfit.js), in place, round a map's look as the paint. */
+  function redressCraft(airframeId) {
+    if (undoCraftLook) {
+      undoCraftLook();
+    }
+    dressParts(craft, airframeId);
+    undoCraftLook = craftLook ? craftLook(craft) : null;
   }
 
   function repaintCraft(airframeId) {

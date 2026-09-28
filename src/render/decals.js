@@ -130,7 +130,8 @@ function cellUv(i, count) {
 
 /* The meshes a decal can land on: the airframe's lit skin. Not the
  * rotors, not the ink hulls or lamps (not cel), not glass (transparent),
- * not the Bramor's catapult or chute, not a decal. With each, its matrix
+ * not the Bramor's catapult or chute, not the hangar's parts
+ * (src/render/partsfit.js: tyres, pod, tape), not a decal. With each, its matrix
  * into the craft group's frame at the pose it was built in. */
 function targetsOf(craft) {
   const skip = new Set([...(craft.blades || []), ...(craft.discs || [])]);
@@ -140,7 +141,7 @@ function targetsOf(craft) {
   const out = [];
   const under = (o) => {
     for (let p = o; p && p !== craft.group; p = p.parent) {
-      if (skip.has(p) || p.name === 'chute' || p.name === 'launcher' || p.userData.decal) {
+      if (skip.has(p) || p.name === 'chute' || p.name === 'launcher' || p.name === 'parts' || p.userData.decal) {
         return true;
       }
     }

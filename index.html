@@ -4487,6 +4487,38 @@
         background: linear-gradient(90deg, #ffb43c, var(--amber));
       }
       .hangar-stat-delta { min-height: 12px; font: 700 12px/1 var(--ui-font); color: var(--mint); }
+      /* The Parts tab (src/ui/hangar-parts.js): an add-on is a toggle with a
+       * light in its corner, a broken part a row with its repair. */
+      .parts-toggle { position: relative; padding-right: 30px; }
+      .parts-toggle::after {
+        content: ""; position: absolute; top: 12px; right: 11px; width: 10px; height: 10px; border-radius: 50%;
+        border: 1px solid rgba(243, 234, 212, 0.35); transition: background 160ms, box-shadow 160ms;
+      }
+      .parts-toggle.on::after { background: var(--mint); border-color: var(--mint); box-shadow: 0 0 10px rgba(125, 255, 180, 0.7); }
+      .parts-link { border-style: dashed; }
+      .parts-link:disabled { opacity: 0.5; cursor: default; transform: none; }
+      .parts-damage { display: flex; flex-direction: column; gap: 6px; }
+      .parts-damage-row {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 9px 10px 9px 12px; border-radius: 11px;
+        background: rgba(255, 59, 47, 0.08); border: 1px solid rgba(255, 90, 70, 0.4);
+      }
+      .parts-damage-row.taped { background: rgba(169, 173, 177, 0.08); border-color: rgba(200, 205, 210, 0.35); }
+      .parts-damage-words { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+      .parts-damage-name { font: 700 14px/1.2 var(--ui-font); color: var(--cream); }
+      .parts-damage-state {
+        font: 700 10px/1 var(--ui-font); letter-spacing: 0.14em; text-transform: uppercase; color: #ff7a6b;
+      }
+      .parts-damage-row.taped .parts-damage-state { color: #c9cdd1; }
+      .parts-damage-acts { display: flex; gap: 6px; flex: none; }
+      .parts-act {
+        appearance: none; padding: 7px 11px; border-radius: 999px; cursor: pointer;
+        border: 1px solid rgba(243, 234, 212, 0.3); background: rgba(243, 234, 212, 0.06); color: var(--cream);
+        font: 700 12px/1 var(--ui-font); transition: transform 220ms var(--hg-spring), background 160ms, border-color 160ms;
+      }
+      .parts-act:hover, .parts-act:focus-visible { transform: translateY(-1px); border-color: var(--cream); background: rgba(243, 234, 212, 0.14); }
+      .parts-act.tape { border-color: rgba(201, 205, 209, 0.5); color: #dfe3e6; }
+      .parts-repair-all { margin-top: 6px; }
       .hangar-foot { display: flex; flex-direction: column; gap: 8px; }
       .hangar-warn[hidden] { display: none; }
       .hangar-buttons { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }

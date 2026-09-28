@@ -34,14 +34,23 @@
  *      block for it in the plant with the flaps at takeoff, a reload keeps
  *      it and flies it again; and a plane nobody tuned (the Kadet) flies
  *      its table's own throws with nothing seated.
- *   7. The paint shop on the Timber: a race number and racing stripes
+ *   7. The Parts tab on the Cub: tundra tyres, the camera pod, the lights,
+ *      the smoke system and a three blade prop on the model before Save,
+ *      stored by it; flown, the model and the plant (sim_addons_state)
+ *      both carry them and O turns the smoke on and off; a wing broken in
+ *      the air is shown broken in the hangar, taped, saved into the air,
+ *      and the plant flies the tape's mass, after a reset too.
+ *   8. The paint shop on the Timber: a race number and racing stripes
  *      placed by aiming at the model, chrome on the wing, the livery saved
  *      by name, copied as a code, the plane reset and the code imported
  *      back whole (and a bad code refused whole); delete asks and starts
  *      on Keep; saved and flown, the flying model wears the chrome and the
  *      decals, at a counted cost in draw calls; reloaded, all of it kept.
  *      And the Kadet: a number printed on its film, and a painted film
- *      that stops the sun until its kit finish comes back.
+ *      that stops the sun until its kit finish comes back. And the Cub the
+ *      Parts step fitted, tundra tyres and a taped wing: a number and a
+ *      stripe land on its skin whichever of parts and paint goes on first,
+ *      and never on a tyre, the pod or the tape.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/hangar-check.js [map]     airfield by default
@@ -68,9 +77,11 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { LIVERIES, coloursFor, liveryKey, paintable, regionsFor } from '../configs/liveries.js';
-import { POWER, powerBlock, powerChoice } from '../configs/power.js';
+import { POWER, SIM_POWER, powerBlock, powerChoice } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
 import { normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
+import { SIM_ADDON, addonParams } from '../configs/hangar-parts.js';
+import { PROP_ESTIMATES } from '../configs/prop-estimates.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const map = process.argv[2] || 'airfield';
@@ -227,7 +238,7 @@ async function layoutCheck(page) {
     for (const id of ['kadet1981', 'sky1800']) {
       await openHangarFromPicker(page, id);
       /* Every tab, and the Colours tab's three pages (src/ui/hangar-paint.js). */
-      for (const [tab, page2] of [['power'], ['colours', 'paint'], ['colours', 'decals'], ['colours', 'saved'], ['tuning']]) {
+      for (const [tab, page2] of [['power'], ['colours', 'paint'], ['colours', 'decals'], ['colours', 'saved'], ['tuning'], ['parts']]) {
         if (tab !== 'power' && !(tab === 'colours' && page2 !== 'paint')) {
           await page.tap('KeyE');
           await page.until(`window.__ui.hangar.tab === '${tab}'`, 5000);
@@ -266,6 +277,112 @@ async function layoutCheck(page) {
       await page.evaluate('window.__ui.carousel.close(); true');
     }
   }
+}
+
+/*
+ * 7. The Parts tab on the Cub, the whole way: the tab, tundra tyres, the
+ * camera pod, the lights, the smoke system and the three blade prop on
+ * the model before Save; saved; flown, the model and the plant both
+ * carrying them and the smoke on and off with O; a wing broken in the
+ * air, shown broken in the hangar, taped, and flown taped.
+ */
+async function partsCheck(page) {
+  console.log('7. the Parts tab: fit the Cub, fly it, break a wing, tape it, fly it');
+  const id = 'cub1400';
+  const fit = ['tundra', 'pod', 'lights', 'smoke'];
+  const prop = '11x7e-3';
+  await openHangarFromPicker(page, id);
+  await page.evaluate(click('tab-parts'));
+  await page.until("window.__ui.hangar.tab === 'parts'", 5000);
+  const cards = await page.evaluate("[...document.querySelectorAll('.hangar-side [data-key]')].map((b) => b.dataset.key)");
+  say(['prop-stock', `prop-${prop}`, 'prop-11x55e', ...fit.map((a) => `addon-${a}`), 'addon-floats'].every((k) => cards.includes(k)),
+    `the Parts tab offers the Cub's props, its add-ons and its floats: ${cards.join(', ')}`);
+  for (const a of fit) {
+    await page.evaluate(click(`addon-${a}`));
+  }
+  await page.evaluate(click(`prop-${prop}`));
+  const wantEntry = { prop, addons: fit, damage: null };
+  const onModel = `(() => { const f = window.__pickParts(${JSON.stringify(id)}); return Boolean(f) && f.blades && f.blades.count === 3 && ${JSON.stringify(fit)}.every((a) => f.addons.includes(a)); })()`;
+  await page.until(onModel, 30000).catch(() => {});
+  const shown = await page.evaluate(`window.__pickParts(${JSON.stringify(id)})`);
+  say(shown && shown.blades && shown.blades.count === 3 && same(shown.addons, fit),
+    `the model in the hangar wears them before Save: ${JSON.stringify(shown)}`);
+  const stats = await page.evaluate("[...document.querySelectorAll('.parts-stats .hangar-stat-value')].map((v) => v.textContent)");
+  const b = addonParams(id, wantEntry, POWER[id][0], powerBlock(id, 'stock', POWER[id][0].pack)[SIM_POWER.MASS]);
+  say(stats[0] === `+${Math.round(b[SIM_ADDON.MASS] * 1000).toLocaleString('en')} g`, `the tab reads what they add: ${stats.join(', ')}`);
+  await page.evaluate('window.__ui.hangar.saveBtn.click(); true');
+  await page.until('!window.__ui.hangar.isOpen', 5000);
+  const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).parts`);
+  say(same(stored && stored[id], wantEntry), `Save stores them: ${JSON.stringify(stored)}`);
+  await page.evaluate('window.__ui.carousel.close(); true');
+
+  /* Fly it: a hot swap to the Cub from the flight the shell is in. */
+  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await page.evaluate(`window.__ui.swapTo(${JSON.stringify(id)}).then(() => true)`);
+  await page.until(`window.__craft().run === ${JSON.stringify(id)}`, 30000);
+  await page.sleep(500);
+  const est = PROP_ESTIMATES[id].stock[prop];
+  const base = powerBlock(id, 'stock', POWER[id][0].pack)[SIM_POWER.MASS];
+  let c = await page.evaluate('window.__craft()');
+  say(c.addons && c.addons.on && Math.abs(c.addons.massKg - (base + b[SIM_ADDON.MASS])) < 1e-9 && c.addons.cda === b[SIM_ADDON.CDA]
+    && c.addons.wheelR === 0.054 && c.addons.thrustN === est.thrustN,
+  `flown, the plant carries them: ${(c.addons.massKg * 1000).toFixed(1)} g, ${(c.addons.cda * 1e4).toFixed(2)} cm^2, tyres ${c.addons.wheelR} m, ${c.addons.thrustN} N static`);
+  say(c.parts && c.parts.blades && c.parts.blades.count === 3 && same(c.parts.addons, fit), `and the flown model shows them: ${JSON.stringify(c.parts)}`);
+  say(c.bladeScale === 1.5, `and the motor's blade pass is three blades' over the kit's two: x${c.bladeScale}`);
+
+  /* The smoke, O, in the air: launch it off the strip first. */
+  await page.tap('KeyO');
+  await page.sleep(1500);
+  c = await page.evaluate('window.__craft()');
+  const smokeOn = c.smoke;
+  await page.tap('KeyO');
+  await page.sleep(300);
+  const smokeOff = (await page.evaluate('window.__craft()')).smoke;
+  say(smokeOn.on && !smokeOff.on, `O turns the smoke on and off: ${JSON.stringify(smokeOn)} then ${JSON.stringify(smokeOff)}`);
+
+  /* A wing broken off in the air (crash damage is on by default). */
+  const table = await page.evaluate('window.__crashTable ? window.__crashTable() : null');
+  const wing = table ? table.findIndex((p) => p.kindName === 'wing' && p.cg[1] > 0) : -1;
+  say(wing > 0, `the Cub's left wing is part ${wing}`);
+  await page.evaluate(`window.__crashBreak(${wing})`);
+  await page.until(`(() => { const p = window.__ui.settings.parts[${JSON.stringify(id)}]; return Boolean(p && p.damage && p.damage.parts.some((q) => q.i === ${wing})); })()`, 20000).catch(() => {});
+  const rec = await page.evaluate(`window.__ui.settings.parts[${JSON.stringify(id)}]`);
+  say(rec && rec.damage && rec.damage.parts.some((q) => q.i === wing && q.state === 'broken'), `the break is recorded for the hangar: ${JSON.stringify(rec && rec.damage && rec.damage.parts)}`);
+  await page.tap('KeyR');
+  await page.sleep(500);
+
+  /* The hangar from the pause menu: the wing broken on the model. */
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'paused'", 10000);
+  const row = await page.evaluate("window.__ui.items().findIndex((it) => it.action === 'customise')");
+  await page.evaluate(`window.__ui.setCursor(${row}); true`);
+  await page.tap('Enter');
+  await page.until('window.__ui.hangar.isOpen', 10000);
+  await page.evaluate(click('tab-parts'));
+  await page.until("window.__ui.hangar.tab === 'parts'", 5000);
+  await page.until(`(() => { const f = window.__pickParts(${JSON.stringify(id)}); return Boolean(f) && f.glowTris > 0; })()`, 30000).catch(() => {});
+  const broken = await page.evaluate(`window.__pickParts(${JSON.stringify(id)})`);
+  const rowText = await page.evaluate("[...document.querySelectorAll('.parts-damage-row')].map((r) => r.textContent)");
+  say(broken && broken.glowTris > 0 && rowText.some((t) => t.includes('Wing, left') && t.includes('Broken')),
+    `the hangar shows the wing broken: ${broken ? broken.glowTris : 0} triangles glowing, rows ${JSON.stringify(rowText)}`);
+  await page.evaluate(click(`tape-${wing}`));
+  await page.until(`(() => { const f = window.__pickParts(${JSON.stringify(id)}); return Boolean(f) && f.tapeTris > 0 && f.glowTris === 0; })()`, 30000).catch(() => {});
+  const taped = await page.evaluate(`window.__pickParts(${JSON.stringify(id)})`);
+  say(taped && taped.tapeTris > 0 && taped.glowTris === 0 && taped.taped.includes(wing), `taped, the model shows the tape and no break: ${JSON.stringify(taped)}`);
+  const before = (await page.evaluate('window.__craft()')).addons.massKg;
+  await page.evaluate('window.__ui.hangar.saveBtn.click(); true');
+  await page.until('!window.__ui.hangar.isOpen', 5000);
+  await page.sleep(500);
+  c = await page.evaluate('window.__craft()');
+  say(c.addons.massKg > before && c.parts && c.parts.taped.includes(wing) && c.parts.tapeTris > 0,
+    `saved into the air, the Cub flies with the tape: ${(before * 1000).toFixed(1)} g to ${(c.addons.massKg * 1000).toFixed(1)} g, the flown model taped`);
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'flight'", 10000).catch(() => {});
+  await page.tap('KeyR');
+  await page.sleep(500);
+  const after = await page.evaluate('window.__craft()');
+  say(after.addons.massKg === c.addons.massKg, `and after a reset it still does: ${(after.addons.massKg * 1000).toFixed(1)} g`);
 }
 
 const TUNE_STATE = '(async () => (await import("/src/ui/hangar-tuning.js")).tuningState())()';
@@ -356,6 +473,17 @@ async function tuningCheck(page) {
   await page.evaluate("window.__ui.show('title'); true");
 }
 
+/* Fly, and be in the Timber: the Parts step leaves the Cub seated, and
+ * the seat is changed by a swap, not by writing the setting. */
+async function flyTimber(page) {
+  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  if (await page.evaluate("window.__craft().run !== 'timber1500'")) {
+    await page.evaluate("window.__ui.swapTo('timber1500').then(() => true)");
+    await page.until("window.__craft().run === 'timber1500'", 30000);
+  }
+}
+
 /* Put a decal of `kind` where the stage's middle lands on the model in
  * `view`: the aim moved there and Enter pressed, the keyboard's way.
  * `facing` is a test of the hit's normal that is true once the camera has
@@ -374,7 +502,7 @@ async function placeDecal(page, kind, view, facing) {
 }
 
 /*
- * 7. THE PAINT SHOP on the Timber: a race number on the fuselage's side
+ * 8. THE PAINT SHOP on the Timber: a race number on the fuselage's side
  * and racing stripes over the wing, placed by aiming at the model; chrome
  * on the wing; the livery saved by name, its code copied, the plane reset
  * to stock and the code imported back, the same livery; saved and flown,
@@ -383,7 +511,13 @@ async function placeDecal(page, kind, view, facing) {
  * with a number on its film.
  */
 async function paintShopCheck(page) {
-  console.log('7. the paint shop: decals, a finish, a saved livery, its code, flown and reloaded');
+  console.log('8. the paint shop: decals, a finish, a saved livery, its code, flown and reloaded');
+  /* From the title, whatever the step before left flying. */
+  if (await page.evaluate("window.__ui.screen === 'flight'")) {
+    await page.tap('Escape');
+    await page.until("window.__ui.screen === 'paused'", 10000);
+  }
+  await page.evaluate("window.__ui.show('title'); true");
   await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
   await openHangarFromPicker(page, 'timber1500');
   await page.tap('KeyE');
@@ -455,8 +589,7 @@ async function paintShopCheck(page) {
   await page.evaluate('window.__ui.carousel.close(); true');
 
   /* Flown: the decals on the flying model, and what they cost a frame. */
-  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
-  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await flyTimber(page);
   await page.until("window.__craftPaint().id === 'timber1500' && window.__craftPaint().decals.decals === 2", 60000).catch(() => {});
   const flown = await page.evaluate('window.__craftPaint()');
   say(flown.id === 'timber1500' && flown.finishes.wing === 'chrome' && flown.decals.decals === 2 && flown.decals.meshes > 0,
@@ -489,6 +622,9 @@ async function paintShopCheck(page) {
     for (const m of meshes) {
       m.onBeforeRender = () => { draws += 1; tris += m.geometry.attributes.position.count / 3; };
     }
+    if (!meshes.length) {
+      return { buildMs, meshes: 0, calls: 0, tris: 0, frameCalls: window.__renderStats().calls, why: 'no decal mesh in the scene' };
+    }
     const THREE = await import('three');
     const at = meshes[0].getWorldPosition(new THREE.Vector3());
     window.__setCam(at.x + 2.6, at.y + 1.4, at.z + 2.6, at.x, at.y, at.z, 50);
@@ -514,12 +650,11 @@ async function paintShopCheck(page) {
   const kept2 = await page.evaluate('({ livery: window.__ui.settings.livery.timber1500, saves: window.__ui.settings.liverySaves })');
   say(alike(kept2.livery, wanted) && kept2.saves.timber1500 && kept2.saves.timber1500[0].name === 'Race 7',
     'after a reload the livery and the saved list are kept');
-  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
-  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await flyTimber(page);
   await page.until('window.__craftPaint().id === window.__craft().run', 60000).catch(() => {});
   await page.until('window.__craftPaint().decals.decals === 2', 30000).catch(() => {});
   const again = await page.evaluate('window.__craftPaint()');
-  say(again.id !== 'timber1500' || (again.finishes.wing === 'chrome' && again.decals.decals === 2),
+  say(again.id === 'timber1500' && again.finishes.wing === 'chrome' && again.decals.decals === 2,
     `and the ${again.id} flies in it: wing ${again.finishes && again.finishes.wing}, ${again.decals.decals} decals`);
 
   /* The Kadet: a number on its film, and a painted wing stops the sun. */
@@ -562,6 +697,59 @@ async function paintShopCheck(page) {
   say(kadet.glow > 0 && kadet.painted.glow === 0 && kadet.back === kadet.glow && kadet.painted.finish.wing === 'gloss' && kadet.painted.finish.fuselage === 'kit',
     `gloss paint over the Kadet's wing film stops the sun through it (glow ${kadet.glow} to ${kadet.painted.glow}), and the kit's film brings it back`);
   say(kadet.after.meshes === 0, 'and taking the decals off leaves no decal mesh behind');
+
+  /* The Cub as the Parts step left it: tundra tyres, the pod, the lights,
+   * the smoke and a taped wing. A number on the fuselage's side and a
+   * stripe over the taped wing, dressed with the parts put on first (a
+   * repaint of a fitted plane) and last (a fresh build): the same decals,
+   * on the skin both ways, and not one decal mesh under the parts. */
+  console.log('   the fitted Cub');
+  const cub = await page.evaluate(`(async () => {
+    const THREE = await import('three');
+    const { craftBuilderFor } = await import('/src/render/craft.js');
+    const { dressLivery } = await import('/src/render/livery.js');
+    const { dressParts, partsFor } = await import('/src/render/partsfit.js');
+    const { paintTargets, readDecals } = await import('/src/render/decals.js');
+    const { newDecal } = await import('/configs/paint.js');
+    const probe = craftBuilderFor('cub1400')({ name: 'cub-probe', fog: false });
+    probe.group.updateMatrixWorld(true);
+    const spot = (from, dir, ok) => {
+      const h = new THREE.Raycaster(new THREE.Vector3(...from), new THREE.Vector3(...dir)).intersectObjects(paintTargets(probe), false)[0];
+      const n = h && h.face.normal.clone().transformDirection(h.object.matrixWorld);
+      return h && ok(n) ? [h.point.toArray(), n.toArray()] : null;
+    };
+    const fit = partsFor('cub1400');
+    const taped = fit && fit.entry && fit.entry.damage ? fit.entry.damage.parts.filter((q) => q.state === 'taped').length : 0;
+    const side = spot([-3, 0.02, -0.1], [1, 0, 0], (n) => n.x < -0.7);
+    const wing = spot([-0.3, 3, 0.05], [0, -1, 0], (n) => n.y > 0.7);
+    const decals = [newDecal('num', ...side), { ...newDecal('stripe', ...wing), r: 90, a: 4 }];
+    const look = { colours: {}, finishes: {}, decals };
+    const under = (craft) => {
+      let n = 0;
+      craft.group.traverse((o) => {
+        if (o.name !== 'paint-decals') return;
+        for (let p = o.parent; p && p !== craft.group; p = p.parent) {
+          if (p.name === 'parts') n += 1;
+        }
+      });
+      return n;
+    };
+    const first = craftBuilderFor('cub1400')({ name: 'cub-a', fog: false });
+    dressParts(first, 'cub1400', fit);
+    dressLivery(first, 'cub1400', look);
+    const last = craftBuilderFor('cub1400')({ name: 'cub-b', fog: false });
+    dressLivery(last, 'cub1400', look);
+    dressParts(last, 'cub1400', fit);
+    return {
+      addons: fit && fit.entry ? fit.entry.addons : [], taped, spots: Boolean(side && wing),
+      partsFirst: readDecals(first), partsLast: readDecals(last), under: under(first) + under(last),
+      tape: last.partsDress ? last.partsDress.tapeTris : 0,
+    };
+  })()`);
+  say(cub.spots && cub.addons.includes('tundra') && cub.taped > 0 && cub.tape > 0,
+    `the Cub is fitted as the Parts step left it: ${JSON.stringify(cub.addons)}, ${cub.taped} part(s) taped, ${cub.tape} tape triangles`);
+  say(cub.partsFirst.decals === 2 && cub.partsFirst.triangles > 0 && cub.partsFirst.triangles === cub.partsLast.triangles && cub.under === 0,
+    `a number and a stripe over the taped wing land on the Cub's skin alike with the parts on first or last (${cub.partsFirst.triangles} and ${cub.partsLast.triangles} triangles), none on a tyre, the pod or the tape`);
 }
 
 async function main() {
@@ -673,6 +861,8 @@ async function main() {
     await page.evaluate('window.__ui.carousel.close(); true');
     await tuningCheck(page);
     await layoutCheck(page);
+    await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
+    await partsCheck(page);
     await paintShopCheck(page);
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
