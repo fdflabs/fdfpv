@@ -9,13 +9,16 @@
  * A (a red Cub) makes the room, B (a blue Cub) and C (a five inch) join,
  * all three fly, and A starts a match to GOAL points. Every page is put on
  * its slot and held through the countdown. Then each is thrown up into
- * the air and held there (window.__crashThrow): if the draw made another
- * pilot the Ace, B is thrown beside it and touches it, so that B is the
- * Ace. Then A is thrown into B, wing through wing: the crown moves to A on
- * all three screens at the same room time, the peer marks crown it, nobody breaks and no mid air
- * hit is sent, the points tick on every scoreboard, and the match ends at
- * GOAL with the same results on all three. Pictures of what each saw, in
- * outdir, which is not in the repository.
+ * the air and held there (window.__crashThrow), and the crown is passed
+ * down one chain whatever the draw: C (the quad) touches the Ace unless it
+ * is the Ace already, B touches C, and A is thrown into B, wing through
+ * wing. So every run has a Cub take the crown from a quad and a Cub from a
+ * Cub, and a quad take it from a Cub unless the draw began with the quad.
+ * The crown moves on all three screens at the same room time, the peer
+ * marks crown it, nobody breaks and no mid air hit is sent, the points
+ * tick on every scoreboard, and the match ends at GOAL with the same
+ * results on all three. Pictures of what each saw, in outdir, which is
+ * not in the repository.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -41,6 +44,7 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { PROTECT_MS } from '../src/share/roomtag.js';
+import { hullFor } from '../src/game/midair.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const rooms = process.argv[2] || 'http://127.0.0.1:8797';
@@ -57,10 +61,23 @@ function check(name, ok, detail = '') {
   }
 }
 
-const GOAL = 15;
+/* High enough that nobody reaches it while the chain is passed down:
+ * the first Ace can hold the crown for about 12 s of it. */
+const GOAL = 25;
 const UP = 60;
-/* A Cub's wingtip is 0.7 m from its centre line (configs/hulls.js). */
-const CUB_TIP = 0.7;
+const AIR = ['cub1400', 'cub1400', '5inch'];
+
+/* How far an airframe reaches along the Three.js body's x, from its
+ * centre: a Cub's wingtip, a quad's arm (configs/hulls.js). Held with
+ * yaw 90, that is along the world's z. */
+function halfSpan(airframe) {
+  const h = hullFor(airframe).hull;
+  let hi = 0;
+  for (let i = 0; i < h.n; i += 1) {
+    hi = Math.max(hi, Math.abs(h.cx[i]) + h.hx[i]);
+  }
+  return hi;
+}
 
 function seedFor(airframe, colour) {
   const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
@@ -103,9 +120,9 @@ const hold = (p, at) => p.evaluate(`window.__crashThrow({ x: ${at.x}, y: ${at.y}
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`Catch the Ace in three pages, rooms at ${rooms}`);
-const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('cub1400', '#d8432f') });
-const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('cub1400', '#2f6fd6') });
-const c = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('5inch', null) });
+const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor(AIR[0], '#d8432f') });
+const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor(AIR[1], '#2f6fd6') });
+const c = await openPage({ root, url, width: 1280, height: 720, seed: seedFor(AIR[2], null) });
 const pages = [a, b, c];
 const names = ['A', 'B', 'C'];
 try {
@@ -167,38 +184,65 @@ try {
   await a.sleep(SPAWN_MS + 500);
 
   const idx = (seat) => seats.indexOf(seat);
-  let now = await tagOf(a);
-  if (now.view.ace !== seats[1]) {
-    const ace = spot[seatName(now.view.ace)];
-    await hold(b, { ...ace, z: ace.z + 2 * CUB_TIP + 0.5 });
-    console.log(`  info  ${seatName(now.view.ace)} was drawn the Ace: B is thrown 0.5 m off its wingtip to take the crown first`);
+  const home = [spot.A, spot.B, spot.C];
+  /* Where an old Ace goes after a tag: 40 m out from its start, and so
+   * away from the hunter just thrown in beside where it was. */
+  const bench = home.map((h) => ({ ...h, x: h.x + 40 }));
+  const pos = home.slice();
+  /*
+   * Page i takes the crown from whoever holds it: thrown beside the Ace, its
+   * nearest part `gap` metres from the Ace's on the span axis (negative is
+   * an overlap), held there until every page has the crown on it, and the
+   * old Ace sent to its bench, 40 m off, so it cannot take the crown back.
+   * Resolves the crown change as the room decided it.
+   */
+  const touch = async (i, gap) => {
+    const ace = (await tagOf(a)).view.ace;
+    const j = idx(ace);
+    const at = { ...pos[j], z: pos[j].z + halfSpan(AIR[j]) + halfSpan(AIR[i]) + gap };
+    await hold(pages[i], at);
+    pos[i] = at;
+    const thrownAt = await pages[i].evaluate('window.__rooms().roomNow');
     for (const p of pages) {
-      await p.until(`window.__roomTag().view.ace === ${seats[1]}`, 20000);
+      await p.until(`window.__roomTag().view.ace === ${seats[i]}`, 20000);
     }
-    /* Everybody but B away from it again. */
-    const old = now.view.ace;
-    await hold(pages[idx(old)], spot[seatName(old)]);
-    await hold(b, spot.B);
-    await a.sleep(SPAWN_MS + 500);
+    await hold(pages[j], bench[j]);
+    pos[j] = bench[j];
+    const crown = (await tagOf(a)).view.crowns.at(-1);
+    return { crown, thrownAt, from: j };
+  };
+  let now = await tagOf(a);
+  if (now.view.ace !== seats[2]) {
+    const first = seatName(now.view.ace);
+    const got = await touch(2, 0.5);
+    check(`C, the quad, takes the crown from ${first}, a Cub, 0.5 m off its wingtip`, got.crown.seat === seats[2] && got.crown.why === 'tag', JSON.stringify(got.crown));
+  } else {
+    console.log('  info  C, the quad, was drawn the Ace');
   }
+  const fromQuad = await touch(1, 0.5);
+  check('B, a Cub, takes the crown from C, the quad, 0.5 m off its arm', fromQuad.crown.seat === seats[1] && fromQuad.crown.from === seats[2] && fromQuad.crown.why === 'tag',
+    JSON.stringify(fromQuad.crown));
+  /* B moved beside where C was: the cameras and A's throw follow it. */
+  const bAt = pos[1];
+  await a.sleep(SPAWN_MS + 500);
   now = await tagOf(a);
   check('B is the Ace', now.view.ace === seats[1], seatName(now.view.ace));
   const before = await Promise.all(pages.map(tagOf));
   const bPointsBefore = before[0].standings.find((r) => r.seat === seats[1]).points;
   /* A look from C at the Ace, crowned, with A about to arrive. */
-  await c.evaluate(`window.__setCam(${m.x + 6}, ${m.y + 2}, ${m.z + 12}, ${m.x}, ${m.y}, ${m.z + 4}, 55); true`);
+  await c.evaluate(`window.__setCam(${bAt.x + 6}, ${bAt.y + 2}, ${bAt.z + 12}, ${bAt.x}, ${bAt.y}, ${bAt.z + 4}, 55); true`);
   await c.sleep(800);
   const cBefore = await aceMark(c);
   check('C\'s peer marks crown B, over its aircraft', cBefore && cBefore.seat === seats[1] && cBefore.kind === 'over' && cBefore.alpha > 0.9, JSON.stringify(cBefore));
   await shot(c, 'c-sees-b-crowned');
   /* And from A, the hunter, 12 m behind and above B. */
-  await a.evaluate(`window.__setCam(${m.x + 12}, ${m.y + 3}, ${m.z + 3}, ${m.x}, ${m.y}, ${m.z}, 55); true`);
+  await a.evaluate(`window.__setCam(${bAt.x + 12}, ${bAt.y + 3}, ${bAt.z + 3}, ${bAt.x}, ${bAt.y}, ${bAt.z}, 55); true`);
   await a.sleep(600);
   await shot(a, 'a-hunts-b-crowned');
 
   /* A into B, wing through wing: 20 cm of overlap, which in a room with no
    * match is a mid air crash. */
-  const aThrow = { ...m, z: m.z + 2 * CUB_TIP - 0.2 };
+  const aThrow = { ...bAt, z: bAt.z + halfSpan(AIR[1]) + halfSpan(AIR[0]) - 0.2 };
   await hold(a, aThrow);
   const thrownAt = await a.evaluate('window.__rooms().roomNow');
   for (const p of pages) {
@@ -223,8 +267,8 @@ try {
     check(`${who}'s Cub is whole`, !cr.wrecked && cr.flagNames.length === 0, `${cr.flagNames.join(' ')}${cr.wrecked ? ' wrecked' : ''}`);
   }
   /* B away before the three seconds are out, or it takes the crown back. */
-  await hold(b, { ...m, x: m.x + 30 });
-  await c.evaluate(`window.__setCam(${m.x + 6}, ${m.y + 2}, ${m.z + 12}, ${m.x}, ${m.y}, ${m.z + 4}, 55); true`);
+  await hold(b, bench[1]);
+  await c.evaluate(`window.__setCam(${bAt.x + 6}, ${bAt.y + 2}, ${bAt.z + 12}, ${bAt.x}, ${bAt.y}, ${bAt.z + 4}, 55); true`);
   await c.sleep(600);
   const cAfter = await aceMark(c);
   const bMarks = await b.evaluate("window.__peerMarks().marks.filter((x) => x.role === 'ace').map((x) => x.seat)");
@@ -244,7 +288,7 @@ try {
     && t1.hud.rows.find((r) => r.name.startsWith('♛')).place === t1.standings.find((r) => r.seat === seats[0]).place, t1.hud ? t1.hud.title : 'no board');
 
   for (const p of pages) {
-    await p.until('window.__roomTag().results === true', (GOAL + 20) * 1000);
+    await p.until('window.__roomTag().results === true', (GOAL + 30) * 1000);
   }
   const end = await Promise.all(pages.map(tagOf));
   const v = end[0].view;
