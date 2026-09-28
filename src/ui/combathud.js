@@ -31,6 +31,11 @@ import { streamerColour } from '../share/roomwire.js';
 
 const LINE_MS = 5000;
 const SHOUT_MS = 1600;
+/* The results stand big in the middle this long, then shrink to the
+ * corner until the next round. */
+const CARD_MS = 10000;
+/* The last seconds of a round are counted big, so the end is no surprise. */
+const FINAL_S = 10;
 const LIVE_ROWS = 8;
 
 function clock(ms) {
@@ -52,6 +57,10 @@ export function createCombatHud(nameOf) {
   let board = null;
   let big = null;
   let bigTimer = null;
+  let roundClock = null;
+  let finalCount = null;
+  let overAt = null;
+  let card = false;
   let shown = '';
   const lines = [];
   /* What the page showed, for the two page check. */
@@ -90,6 +99,20 @@ export function createCombatHud(nameOf) {
     });
     big.className = 'combat-schwing';
     document.body.append(big);
+    /* The round's clock, big, top right under the flight screen's buttons. */
+    roundClock = el({
+      position: 'fixed', top: '124px', right: '16px', zIndex: '40', pointerEvents: 'none', display: 'none',
+      font: '800 34px system-ui, sans-serif', color: '#fff', textShadow: '0 2px 6px rgba(0, 0, 0, 0.9)',
+      background: 'rgba(0, 0, 0, 0.35)', padding: '2px 14px', borderRadius: '8px',
+    });
+    roundClock.className = 'combat-clock';
+    document.body.append(roundClock);
+    finalCount = el({
+      position: 'fixed', top: '22%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: '41', pointerEvents: 'none', display: 'none',
+      font: '900 110px system-ui, sans-serif', color: '#ff5a4a', textShadow: '0 0 20px rgba(255, 90, 74, 0.8), 0 3px 8px rgba(0, 0, 0, 0.9)',
+    });
+    finalCount.className = 'combat-final';
+    document.body.append(finalCount);
   }
 
   function swatch(seat) {
@@ -98,6 +121,29 @@ export function createCombatHud(nameOf) {
       display: 'inline-block', width: '10px', height: '10px', marginRight: '6px', borderRadius: '2px', background: streamerColour(seat),
     });
     return s;
+  }
+
+  /* The results: a card in the middle of the screen, or compact under the
+   * clock in the corner. */
+  function placeBoard(big2) {
+    if (!board || card === big2) {
+      return;
+    }
+    card = big2;
+    if (big2) {
+      document.body.append(board);
+      Object.assign(board.style, {
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: '42',
+        font: '700 22px system-ui, sans-serif', padding: '22px 34px', minWidth: '460px', background: 'rgba(8, 10, 16, 0.82)',
+        borderRadius: '14px', pointerEvents: 'none', color: '#fff',
+      });
+    } else {
+      box.append(board);
+      Object.assign(board.style, {
+        position: 'static', transform: 'none', font: '600 15px system-ui, sans-serif', padding: '10px 16px', minWidth: '320px',
+        background: 'rgba(0, 0, 0, 0.55)', borderRadius: '8px',
+      });
+    }
   }
 
   /* The big one, for a cut this pilot made. */
@@ -153,6 +199,10 @@ export function createCombatHud(nameOf) {
     if (round.state === 'idle' || roomNow == null) {
       if (box && shown !== '') {
         box.style.display = 'none';
+        roundClock.style.display = 'none';
+        finalCount.style.display = 'none';
+        placeBoard(false);
+        overAt = null;
         shown = '';
       }
       return;
@@ -171,17 +221,33 @@ export function createCombatHud(nameOf) {
         time: clock(round.endsAt - roomNow), points: mine ? mine.points : 0, paper: Math.round(paper), pull: pull.toFixed(1),
       });
     } else {
-      text = str('combat.hud_over');
+      text = round.nextAt > 0 ? str('combat.hud_next', { time: clock(round.nextAt - roomNow) }) : str('combat.hud_over');
     }
+    /* The clock, and the last seconds counted big. */
+    const left = round.endsAt - roomNow;
+    const clockText = round.state === 'on' ? clock(left) : '';
+    const finalText = round.state === 'on' && left > 0 && left <= FINAL_S * 1000 ? String(Math.ceil(left / 1000)) : '';
+    if (round.state === 'over') {
+      overAt ??= performance.now();
+    } else {
+      overAt = null;
+    }
+    const wantCard = round.state === 'over' && performance.now() - overAt < CARD_MS;
     /* Everyone's points as they stand, this pilot always shown. */
     const live = rows.map((r, i) => ({ r, place: i + 1 })).filter((x, i) => i < LIVE_ROWS - 1 || x.r.seat === me || rows.length <= LIVE_ROWS);
     const three = live.map((x) => str('combat.hud_row', { place: x.place, name: nameOf(x.r.seat), points: x.r.points })).join('   ');
-    const key = `${text}|${three}|${round.state}|${JSON.stringify(rows)}`;
+    const key = `${text}|${three}|${round.state}|${JSON.stringify(rows)}|${clockText}|${finalText}|${wantCard}`;
     if (key === shown) {
       return;
     }
     shown = key;
     head.textContent = text;
+    roundClock.style.display = clockText ? 'block' : 'none';
+    roundClock.textContent = clockText;
+    roundClock.style.color = finalText ? '#ff5a4a' : '#fff';
+    finalCount.style.display = finalText ? 'block' : 'none';
+    finalCount.textContent = finalText;
+    placeBoard(wantCard);
     top.textContent = round.state === 'on' ? three : '';
     board.style.display = round.state === 'over' ? 'block' : 'none';
     if (round.state === 'over') {
@@ -210,6 +276,9 @@ export function createCombatHud(nameOf) {
       top: top ? top.textContent : '',
       board: board && board.style.display !== 'none' ? board.textContent : '',
       big: big && big.style.opacity === '1' ? big.textContent : '',
+      clock: roundClock && roundClock.style.display !== 'none' ? roundClock.textContent : '',
+      final: finalCount && finalCount.style.display !== 'none' ? finalCount.textContent : '',
+      card,
     }),
   };
 }
