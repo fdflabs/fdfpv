@@ -19,7 +19,7 @@ Checked on `origin/main` at 5c86b0d and on the open branches, 2026-09-28.
 
 | Claim in the brief | Holds? |
 | --- | --- |
-| Wire range 0x80 to 0x8F, event kinds `cut`, `combat`, room logic in `edge/rooms/combat.js`, client `src/game/streamer.js` and `src/share/roomcombat.js` (fdfpv-loop COORD.md) | Yes. Taken as allocated. |
+| Wire range 0x80 to 0x8F, event kinds `cut`, `combat`, room logic in `edge/rooms/combat.js`, client `src/game/streamer.js` and `src/share/roomcombat.js` (fdfpv-loop COORD.md) | Taken as allocated, less one: no client ever needs to send an event of kind `combat`. What a client would have said with it (my paper tore, I laid a new one) the room reads from the owner's own frames, which cannot disagree with what everyone sees (4.4). The JSON type `combat` carries the round. |
 | Phase 3's referee is `edge/rooms/referee.js`, PR #134 | Yes, on `multiplayer-phase3` only, not on main. Its friendly room returns before it stores a sample (`if (this.friendly ...) return []` ahead of `track.push`), so a friendly room's referee holds no poses at all. Combat therefore keeps its own samples, with Phase 3's own pieces: `Track`, `poseAt`, `hullFor`, `LATE_MS`, `GAP_MS` from `src/game/midair.js` and the part boxes of `configs/hulls.js`. The pattern is reused, the instance is not. |
 | Phase 5's untouchable flags apply | Yes. `edge/rooms/safety.js` sets `FLAG_SPAWNING` on every relayed pose of a seat that is spawning or benched, and the combat referee reads the relayed bytes, so it sees the same flag every screen does. |
 | Phase 4 racing (#132) and Phase 3 (#134) merging next | Both open at this writing. Phase 4 adds `onMessage` for any other text type to `src/share/rooms.js` and a `store` action to the core; combat uses the first once it lands and needs neither to work before. |
@@ -142,6 +142,10 @@ which the full fifty metres tears (pull equals 13.3 N):
 - **Pieces** (cut or torn off) are free chains with the same physics. A
   piece is dropped 20 s after it comes to rest, or 90 s after it came
   off, and at most 4 are kept.
+- **When the plant does not step** (perched, held, a menu) the paper still
+  hangs and falls: it is stepped on its own 1 ms accumulator with the
+  aircraft where it stands, which cannot depend on the frames either,
+  because the tow point does not move.
 
 ### 2.4 The pull stays out of the plant
 
@@ -197,9 +201,11 @@ Render only, off the physics path, so `Math.sin` is free there: a ribbon
 through the nodes, one strip 10 cm wide, twisted along its length and in
 time, and waved sideways with an amplitude that grows toward the free end,
 at 13 Hz, the flutter Carruthers and Filippone measured on their aspect
-ratio 30 streamer (13 to 15 Hz at aspect ratio 20 to 30) [CF-2005]. White
-and coloured paper, double sided, a little translucent. A falling piece
-flutters the same way.
+ratio 30 streamer (13 to 15 Hz at aspect ratio 20 to 30) [CF-2005].
+Coloured paper, double sided. A falling piece flutters all along. Ten
+centimetres of paper is two pixels at thirty metres, so a ribbon is never
+drawn thinner than 2.5 pixels: a pilot has to see what they are chasing.
+A cut throws a burst of paper squares in the cut streamer's colour.
 
 ### 2.7 Performance, for 16 pilots
 
@@ -210,8 +216,11 @@ flutters the same way.
   buffer update per ribbon per frame; a peer's streamer is interpolated
   between its owner's 10 Hz frames, never simulated.
 - **The room judges 240 ordered pairs** (every cutter against every other
-  streamer); section 4 says how little of that reaches the fine test, and
-  `combat:harness` measures the room's CPU a second with 16 seats.
+  streamer) and simulates no paper. Measured by `combat:harness`: 25 ms of
+  CPU a second with sixteen seats flying and towing in a 100 m box, a
+  fortieth of one core, which is what a one core VM referee has to spare.
+- **Drawing sixteen ribbons** costs 0.3 ms a frame to shape in the page
+  (`combat:twopage`).
 
 ## 3. The wire, and who owns what
 
@@ -245,8 +254,11 @@ the type byte. The room cuts chain 0 down to what its referee left
 | `{ type: 'combat', op: 'stop' }` | host to room | |
 | `{ type: 'combat', round, state, startsAt, endsAt, minutes, scores }` | room to all | state `idle`, `countdown`, `on`, `over`; scores per seat, numbers only |
 | `{ type: 'event', kind: 'cut', ... }` | room to all | the referee's cut (4.3) |
-| `{ type: 'event', kind: 'combat', tear }` | owner to room | its paper tore by itself, `tear` segments left |
-| `{ type: 'event', kind: 'combat', lay }` | owner to room | a new streamer laid at a respawn, `lay` segments |
+
+A client sends nothing else. A tear and a respawn are read by the room
+from the owner's frames: a streamer shorter than the room owes has torn
+(section 5.1's no scoring), and one back at the length owed has been laid
+again.
 
 ### 3.2 Bandwidth
 
@@ -289,9 +301,13 @@ samples move the pair's covered span forward:
 
 1. **Window.** The room milliseconds `(f, t1]`, `t1` the oldest of A's
    newest pose, B's newest streamer frame and B's newest pose; `f` the
-   pair's frontier. On every room tick `f` moves up to `LATE_MS` (400 ms,
-   Phase 3's) behind the room clock: a side that has not covered a span by
-   then is judged as no cut. Samples further apart than their gap (Phase
+   pair's frontier, never less than `COMBAT_LATE_MS` behind the room
+   clock: a side that has not covered a span by then is judged as no cut.
+   `COMBAT_LATE_MS` is Phase 3's `LATE_MS`, 400 ms, plus a streamer
+   frame's 100 ms, because a moment is covered only once the frame after
+   it has arrived: an owner on a link Phase 3 waits for is waited for
+   here too. (The first harness run, with Phase 3's 400 ms alone, lost
+   cuts on a 300 ms link with 60 ms of jitter.) Samples further apart than their gap (Phase
    3's `GAP_MS`, 250 ms, for poses; 350 ms for 10 Hz streamer frames)
    bracket nothing.
 2. **Broadphase.** A's hull sphere (Phase 3's `hullFor(...).hull.reach`),
@@ -312,8 +328,10 @@ samples move the pair's covered span forward:
    (Phase 5's and Phase 3's untouchable), a victim's own aircraft (the
    rules score no cut of your own streamer [AMA-RC], and a pilot's aircraft
    passes through its own paper), falling pieces ("streamers not being
-   towed ... are not eligible" [AMA-RC]), and anything outside a round's
-   `on` state.
+   towed ... are not eligible" [AMA-RC]), anything outside a round's `on`
+   state, and a victim that sends no poses (a pilot in a menu is out of the
+   air, and their paper with them: the rule needs the victim's own flags
+   for the moment, and a pilot who is not flying has none).
 
 The margin covers the gap between what the room reconstructs and what the
 owner simulated: the codec's 1.1 cm, the interpolation of 10 Hz frames in
@@ -411,8 +429,9 @@ consequence without ending anyone's round.
 - **Quads and planes together.** Every airframe in `configs/hulls.js` can
   cut and be cut. Planes carry more paper at their slower cruise (2.5);
   quads turn tighter. That is the matchup, and nothing is handicapped.
-- **Not with a race.** A round cannot start while a Phase 4 race is on, and
-  the other way round.
+- **Not with a race.** A round cannot start while a Phase 4 race is on.
+  The other way round is Phase 4's `race.js` to refuse, and is not
+  enforced here.
 
 ### 5.4 On screen
 
@@ -453,7 +472,8 @@ consequence without ending anyone's round.
 | | cost | under 20 ms a simulated second |
 | `rooms:selftest`, combat section (CI) | codec, trimming, host only start, public refused, round flow, scoring by the rules, one pass one cut, untouchable, friendly plays, tear stops scoring, respawn restores | exact |
 | `combat:harness` (CI) | randomized passes of a real streamer and a flying cutter over simulated links, latency 0 to 300 ms each way, jitter 0 to 60 ms: both clients and the room hold the same cuts | 100 percent |
-| | same cuts as the zero latency run under `LATE_MS` | 100 percent |
+| | same cuts as the zero latency run, links under `COMBAT_LATE_MS` | 100 percent |
+| | clocks off by up to 10 ms each: still the same cuts on both, and none where the truth missed the paper | 100 percent, 0 |
 | | truth clearance over 8 cm judged a cut | never |
 | | truth passing through the paper (under 1 cm) missed | never |
 | | decision delay over the slower link, p95 | reported, under 250 ms |
@@ -463,9 +483,14 @@ consequence without ending anyone's round.
 
 ## 8. Phases
 
-- **This PR:** everything above, on private rooms, deployed only after
-  Phases 3 and 4 are on main and merged here (the last deploy wins; the
-  Lobby export and the `phase5-lobby` migration are kept).
+- **This PR:** everything above, on private rooms. It is not deployed:
+  the rooms backend is moving from Cloudflare to the owner's VM (branch
+  `vm-backend`), and the lead deploys. Combat needs nothing of a backend
+  but what `edge/rooms/do.js` already gives the core: the `send` and
+  `tick` actions. A round's clock advances on any message and on the
+  room tick, which runs while anyone flies; a round nobody flies ends at
+  the next message. No timer, no storage: a restart mid round loses the
+  round.
 - **Later, on the owner's word:** the pull through the plant (2.4); a
   public room vote; streamers tangling; 2 Hz far streamers (Phase 6).
 
@@ -478,6 +503,41 @@ consequence without ending anyone's round.
 2. **Should the paper pull the aircraft?** It is measured and shown, not
    applied (2.4).
 3. **Round length:** 3 or 5 minutes offered, 5 by default.
+
+## 10. As built, measured (2026-09-28, this machine)
+
+- `streamer:selftest` 25 of 25. Hooke on every pulling link to 0.000 mm
+  over 8 s of turning; the most any link stretched 10.4 percent; a flat
+  piece falls at 0.716 m/s against 0.721; towed level the pull along the
+  tow is 1.83, 3.87, 6.77 N at 8, 12, 16 m/s against the cited 1.70, 3.83,
+  6.81; no tear in 30 s at 20.1 m/s; ramped, it tore at 22.71 m/s against
+  the predicted 22.3, at 13.31 N; ten metres holds 26.7 m/s at 11.1 N;
+  the same bits through frames of 30, 60, 144 Hz and random lengths; 4 to
+  6 ms of wall time a simulated second.
+- `rooms:selftest` 181 of 181, 34 of them combat's.
+- `combat:harness` 9 of 9: 60 random passes (the five inch, the Cub, the
+  P-51 and the Slow Stick through a Cub's streamer) over five link sets
+  from 0/0 to 300/40 and 50/300 ms with up to 60 ms of jitter: the same
+  cuts on both clients in every run, the same as with no latency, no cut
+  more than 8 cm off, none missed within 1 cm. The band: every truth pass
+  within 2.7 cm of the paper's centre line was cut, and the nearest left
+  uncut was 3.3 cm off it (the rule's reach is 3.08 cm, the paper's edge
+  5.08). With each clock off by up to 10 ms, the widest cut was 3.3 cm
+  off, still inside the paper. Decision delay over the slower link, p95,
+  81 ms.
+- `combat:twopage` 19 of 19 (SIM_GPU=1, `wrangler dev` on this machine):
+  the page's streamer hash equals Node's; both tow 50 m; A through B's
+  paper 25 m down it; one cut on both screens, keep 28, by A's prop, +100;
+  B's paper 28 m on both, the piece falling on both; the score on both.
+- `crash:identity`: off equals base for all 34 scripts (the plant is not
+  touched), exit 0.
+- `verify` 16 of 16, after one measurement fix: check 16 counted 43 and 44
+  of the Swiss valley's 49 modules, and an untouched copy of main counted
+  48. It reads resource timing, which the browser caps at 250 entries and
+  then drops silently; main sat at the edge and combat's five modules at
+  boot pushed the valley's last ones off. tests/verify.js now raises the
+  buffer after the boot, as scripts/memory-check.js does, and counts 49.
+- Every `checks.yml` command, 48 of them, exit 0.
 
 ## Sources
 
