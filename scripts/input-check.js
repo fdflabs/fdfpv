@@ -784,6 +784,132 @@ async function touchPage(page) {
   check('one arrow right puts it back', await ev("return ui.settings.stickMode === 2 && input.throttleKeys.up === 'KeyW';"));
 }
 
+/*
+ * MOUSE FLIGHT, the half main.js owns: the Settings row and its
+ * persistence, the how-to tab, the pointer capture in flight and the two
+ * ways it is lost. Driven with DevTools mouse events, so a click is a click
+ * the browser counts as the pilot's. Run on the radio page on purpose:
+ * picked, the mouse flies over a connected radio.
+ */
+async function mouseFlightPage(page) {
+  const ev = (expr) => page.evaluate(`(() => { const ui = window.__ui; const input = window.__input; ${expr} })()`);
+  const mouse = (params) => page.cdp.send('Input.dispatchMouseEvent', { x: 800, y: 450, ...params }, page.sessionId);
+  const click = async () => {
+    await mouse({ type: 'mousePressed', button: 'left', clickCount: 1 });
+    await mouse({ type: 'mouseReleased', button: 'left', clickCount: 1 });
+  };
+
+  section('mouse flight: the Settings row, off by default and remembered');
+  const row = await ev(`
+    ${PAST_GATE}
+    ui.show('pilot');
+    const items = ui.items();
+    const i = items.findIndex((it) => it && it.label === 'Mouse flight');
+    const joy = items.findIndex((it) => it && it.action === 'choosepad');
+    ui.setCursor(i);
+    return JSON.stringify({ i, joy, value: i >= 0 ? items[i].value : null, on: input.mouseEnabled,
+      subRows: items.filter((it) => it && /^(Mouse sensitivity|Mouse expo|Invert mouse pitch|Mouse stick)$/.test(it.label)).length });
+  `).then(JSON.parse);
+  check('there is a Mouse flight row, right under Choose joystick', row.i >= 0 && row.i === row.joy + 1, JSON.stringify(row));
+  check('it is Off, and the input manager agrees', row.value === 'Off' && row.on === false, JSON.stringify(row));
+  check('off, its four adjustments are not in the list', row.subRows === 0, String(row.subRows));
+  await page.tap('ArrowRight');
+  let on = true;
+  await page.until('window.__input.mouseEnabled === true', 3000).catch(() => { on = false; });
+  check('Right turns it on, and the input manager follows', on);
+  const after = await ev(`
+    const items = ui.items();
+    const stored = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}');
+    return JSON.stringify({ stored: stored.mouseFlight, value: items[ui.cursor].value,
+      rows: items.filter((it) => it && /^(Mouse sensitivity|Mouse expo|Invert mouse pitch|Mouse stick)$/.test(it.label)).map((it) => it.label + '=' + it.value) });
+  `).then(JSON.parse);
+  check('it is stored in the settings', after.stored === true, JSON.stringify(after));
+  check('on, sensitivity, expo, invert and the stick\'s centring appear with their defaults',
+    after.rows.join() === 'Mouse sensitivity=100%,Mouse expo=0%,Invert mouse pitch=Off,Mouse stick=Auto', after.rows.join());
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await page.until('window.__shellReady === true', 90000);
+  await page.until('!!window.__ui && !!window.__input', 10000);
+  check('after a reload it is still on', await ev('return ui.settings.mouseFlight === true && input.mouseEnabled === true;'));
+
+  section('mouse flight: the how-to has a Mouse tab');
+  const howto = await ev(`
+    ${PAST_GATE}
+    ui.show('howto');
+    const tab = ui.howtoTabs.mouse;
+    ui.setHowtoSource('mouse');
+    const dt = Array.from(ui.howtoKeys.querySelectorAll('dt')).map((n) => n.textContent);
+    const dd = Array.from(ui.howtoKeys.querySelectorAll('dd')).map((n) => n.textContent);
+    ui.show('pilot');
+    return JSON.stringify({ tab: tab ? tab.textContent : null, dt, dd });
+  `).then(JSON.parse);
+  check('the tab is there', howto.tab === 'Mouse', String(howto.tab));
+  check('it names the wheel, the buttons, the centring and Escape',
+    ['Wheel', 'Left and right buttons', 'Middle button or Z', 'Esc'].every((k) => howto.dt.includes(k)), howto.dt.join(' | '));
+  check('and sends the pilot to the room that holds the row', howto.dd.some((d) => d.startsWith('Settings, Sticks, Mouse flight')),
+    howto.dd.join(' | '));
+
+  section('mouse flight: the pointer is captured in flight and freed by Escape');
+  await ev(`${PAST_GATE} ui.onAction('fly', ui.settings); return true;`);
+  await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
+  await page.until('window.__mouseLock().wants', 20000);
+  /* The banner is painted a frame after the wish is first seen. */
+  await page.until("/Click to fly/.test(window.__ui.banner ? window.__ui.banner.textContent : '')", 10000).catch(() => {});
+  const before = await ev("return JSON.stringify({ lock: window.__mouseLock(), banner: ui.banner ? ui.banner.textContent : '' });").then(JSON.parse);
+  check('in flight it wants the pointer, and with no click yet the mouse flies nothing',
+    before.lock.wants && !before.lock.live, JSON.stringify(before.lock));
+  check('the source is the mouse, over the connected radio', before.lock.source === 'the mouse', before.lock.source);
+  check('the banner asks for the click', /Click to fly with the mouse/.test(before.banner), before.banner);
+  await click();
+  let live = true;
+  await page.until('window.__mouseLock().live', 5000).catch(() => { live = false; });
+  check('one click captures it', live);
+  for (let i = 0; i < 5; i += 1) {
+    await mouse({ type: 'mouseWheel', deltaX: 0, deltaY: -100 });
+  }
+  await page.until('window.__input.channels.throttle > 0.09', 3000).catch(() => {});
+  const notch = await ev(`const l = window.__mouseLock(); const af = window.__craft().run;
+    return JSON.stringify({ thr: l.channels.throttle, step: l.step, af });`).then(JSON.parse);
+  const wheeled = notch.thr;
+  check('five notches up is five steps of the aircraft\'s notch, 2 percent on a quad and 5 on a plane',
+    Math.abs(wheeled - 5 * notch.step) < 1e-9 && notch.step === (/inch|whoop/.test(notch.af) ? 0.02 : 0.05), JSON.stringify(notch));
+  await page.tap('Escape');
+  let paused = true;
+  await page.until("window.__ui.screen === 'paused' && !window.__mouseLock().locked", 5000).catch(() => { paused = false; });
+  check('Escape pauses and lets the pointer go', paused, await ev("return ui.screen + ' ' + JSON.stringify(window.__mouseLock());"));
+  check('and the throttle is kept for the resume', await ev('return window.__mouseLock().channels.throttle;') === wheeled);
+  await ev("ui.act('resume'); return true;");
+  await page.until("window.__ui.screen === 'flight'", 5000);
+  await click();
+  live = true;
+  await page.until('window.__mouseLock().live', 5000).catch(() => { live = false; });
+  check('back in flight, a click captures it again', live);
+  /* The browser's own release: what a real Escape is when Chrome spends it
+   * on the pointer lock, or a window switch. A pause, and the Escape that
+   * may follow it does not resume. */
+  await ev('document.exitPointerLock(); return true;');
+  paused = true;
+  await page.until("window.__ui.screen === 'paused'", 5000).catch(() => { paused = false; });
+  check('losing the capture in flight pauses, like a hidden tab', paused, await ev('return ui.screen;'));
+  await page.tap('Escape');
+  await page.sleep(100);
+  check('and the Escape that caused it does not resume straight back', await ev('return ui.screen;') === 'paused');
+  await ev("ui.show('pilot'); return true;");
+  const rowAt = await ev("const i = ui.items().findIndex((it) => it && it.label === 'Mouse flight'); ui.setCursor(i); return i;");
+  check('the row is still there to turn it off', rowAt >= 0);
+  await page.tap('ArrowLeft');
+  let off = true;
+  await page.until('window.__input.mouseEnabled === false', 3000).catch(() => { off = false; });
+  check('Left turns it off', off);
+  await ev(`${PAST_GATE} ui.onAction('fly', ui.settings); return true;`);
+  await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
+  await click();
+  await page.sleep(500);
+  const offLock = await ev('return JSON.stringify(window.__mouseLock());').then(JSON.parse);
+  check('off, a click in flight captures nothing and the radio is the source again',
+    !offLock.locked && !offLock.wants && offLock.source !== 'the mouse', JSON.stringify(offLock));
+  await ev("ui.onAction('title', ui.settings); return true;");
+}
+
 async function main() {
   const t0 = Date.now();
   let page = null;
@@ -791,6 +917,7 @@ async function main() {
     console.log('booting the shell with a six axis radio');
     page = await bootPage();
     await mousePage(page);
+    await mouseFlightPage(page);
     const uncaught = page.errors.filter((e) => e.startsWith('uncaught:'));
     check('no uncaught exception on the mouse page', uncaught.length === 0, uncaught.slice(0, 3).join(' | '));
     await page.close();

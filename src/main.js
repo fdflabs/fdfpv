@@ -4137,6 +4137,10 @@ export async function boot({
     if (input.isTouchPrimary()) {
       return 'touch';
     }
+    /* Every key works in mouse flight, and the keys' cue names them. */
+    if (input.isMousePrimary()) {
+      return 'keys';
+    }
     if (input.isKeyboardPrimary()) {
       return 'keys';
     }
@@ -6714,6 +6718,10 @@ export async function boot({
     if (input.isTouchPrimary()) {
       return ui.settings.flightMode === 'angle';
     }
+    /* The mouse is a proportional stick too, and for the same reason. */
+    if (input.isMousePrimary()) {
+      return ui.settings.flightMode === 'angle';
+    }
     /*
      * THE HARNESS OVERRIDE IS A GIMBAL, NOT A KEY.
      *
@@ -6975,6 +6983,13 @@ export async function boot({
     if (ui.setStickMode) {
       ui.setStickMode(s.stickMode);
     }
+    input.setMouseConfig({
+      enabled: s.mouseFlight,
+      sens: s.mouseSens,
+      expo: s.mouseExpo,
+      invert: s.mouseInvert,
+      centre: s.mouseCentre,
+    });
     camTilt = clampCameraAngle(s.cameraAngle);
     s.cameraAngle = camTilt;
     qTilt.setFromAxisAngle(AXIS_X, cameraTiltRad(camTilt));
@@ -8380,8 +8395,126 @@ export async function boot({
       });
   }
 
+  /*
+   * MOUSE FLIGHT'S POINTER LOCK. The mouse flies only while the pointer is
+   * captured, and it is captured only on the flight screen, never in the
+   * builder's editor, which has its own use for a mouse. Everywhere else
+   * the pointer is the menus' and is released.
+   *
+   * Capture needs a click or a key the browser counts as the pilot's, so
+   * it is asked for when flight begins, which usually follows the Enter or
+   * the click that started it, and again on any click in flight. A request
+   * the browser refuses is not an error to report: the banner asking for a
+   * click stays up, which is the answer to it.
+   *
+   * ESCAPE. The browser spends Escape on releasing the pointer, and a lost
+   * capture in flight is a pause, the way a hidden tab is: the same two
+   * calls Escape makes. Chrome may ALSO hand the page that Escape, which
+   * would then land on the pause menu and resume straight back into
+   * flight, so an Escape just after a capture was lost is swallowed.
+   *
+   * Only a capture the BROWSER took away pauses. The change event says
+   * nothing about who asked, and the one for the release this file asks
+   * for on leaving flight can arrive after the next flight has begun, where
+   * it paused a run the pilot had just started. mouseExitAsked marks ours.
+   *
+   * AND ONLY A CAPTURE MOUSE FLIGHT TOOK IS ITS TO RELEASE. The builder
+   * captures the same canvas for its own camera (src/builder/buildmode.js),
+   * and releasing every capture off the flight screen took that away from
+   * every builder, mouse flight on or off; lint trackmode:check caught it.
+   * mouseLockMine is set when a capture this file asked for arrives.
+   */
+  let mouseLockAsked = false;
+  let mouseLockPending = false;
+  let mouseLockMine = false;
+  let mouseExitAsked = false;
+  let mouseEscGuardUntil = 0;
+  const MOUSE_ESC_GUARD_MS = 300;
+  const mouseLocked = () => document.pointerLockElement === shell.canvas;
+  function mouseWantsLock() {
+    return input.mouseEnabled && mode === 'flight' && ui.screen === 'flight'
+      && !(build && build.active && !build.racing);
+  }
+  function askMouseLock() {
+    mouseLockPending = true;
+    const req = shell.canvas.requestPointerLock();
+    if (req && typeof req.catch === 'function') {
+      req.catch(() => {});
+    }
+  }
+  function syncMouseLock(nowWall) {
+    const want = mouseWantsLock();
+    const locked = mouseLocked();
+    input.setMouseLive(want && locked);
+    const wing = Boolean(airframeById(runAirframe).fixedWing);
+    input.setMouseCraft(wing, ui.settings.flightMode !== 'angle');
+    if (!want) {
+      mouseLockAsked = false;
+      if (locked && mouseLockMine) {
+        mouseExitAsked = true;
+        document.exitPointerLock();
+      }
+      return;
+    }
+    if (locked) {
+      return;
+    }
+    if (!mouseLockAsked) {
+      mouseLockAsked = true;
+      askMouseLock();
+    }
+    if (!notice || notice.mouse || nowWall >= notice.untilMs) {
+      notice = { text: str('main.mouse_click_to_fly'), untilMs: nowWall + 250, mouse: true };
+    }
+  }
+  window.addEventListener('mousedown', (e) => {
+    if (!mouseWantsLock() || mouseLocked()) {
+      return;
+    }
+    const t = e.target;
+    if (t && t.closest && t.closest('button,input,select,textarea,a')) {
+      return;
+    }
+    askMouseLock();
+  });
+  document.addEventListener('pointerlockerror', () => {
+    mouseLockPending = false;
+  });
+  document.addEventListener('pointerlockchange', () => {
+    if (mouseLocked()) {
+      mouseLockMine = mouseLockPending;
+      mouseLockPending = false;
+      return;
+    }
+    const mine = mouseLockMine;
+    const ours = mouseExitAsked;
+    mouseLockMine = false;
+    mouseExitAsked = false;
+    input.setMouseLive(false);
+    if (mine && !ours && input.mouseEnabled && mode === 'flight' && ui.screen === 'flight') {
+      mouseEscGuardUntil = performance.now() + MOUSE_ESC_GUARD_MS;
+      ui.act('pause');
+      ui.show('paused');
+    }
+  });
+  window.__mouseLock = () => ({
+    enabled: input.mouseEnabled,
+    live: input.mouseLive,
+    locked: mouseLocked(),
+    wants: mouseWantsLock(),
+    centring: input.mouseCentring(),
+    step: input.mouseThrottleStep(),
+    stick: { ...input.mouse },
+    channels: { ...input.channels },
+    source: input.stats().source,
+    angle: angleModeOn,
+  });
+
   input.onKey = (code, repeat) => {
     wakeAudio();
+    if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
+      return;
+    }
     if (build && build.onKey(code, repeat)) {
       return;
     }
@@ -9548,7 +9681,7 @@ export async function boot({
      * moves the corner blocks to the bottom centre; the keyboard ghost puts
      * the gimbals there. Either way the bottom band is taller than the
      * corner instruments alone. */
-    const bottomBand = (input.isKeyboardPrimary() || input.isTouchPrimary())
+    const bottomBand = (input.isKeyboardPrimary() || input.isTouchPrimary() || input.isMousePrimary())
       ? AIM_MARGIN_BOTTOM_STICKS
       : AIM_MARGIN_BOTTOM;
     const maxY = vh - bottomBand;
@@ -11412,7 +11545,9 @@ export async function boot({
       const ch = input.channels;
       const vis = turtleAxes(ch.roll, ch.pitch);
       ui.setStickOverlay({
-        show: input.isKeyboardPrimary() && !input.isTouchPrimary(),
+        /* The mouse draws the ghost gimbals too: they are where a pilot
+         * sees where the held stick and the wheel's throttle are. */
+        show: input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
         roll: vis[0],
         pitch: vis[1],
         yaw: ch.yaw,
@@ -11461,8 +11596,9 @@ export async function boot({
       };
       ui.paintFcAttitude();
     }
+    syncMouseLock(nowWall);
     if (touch) {
-      const touchOn = mode === 'flight' && ui.screen === 'flight' && !input.firstGamepad();
+      const touchOn = mode === 'flight' && ui.screen === 'flight' && !input.firstGamepad() && !input.mouseEnabled;
       /*
        * The one-time thumb-rates hand-off, at the first moment touch is
        * actually about to fly. A fresh touch profile was already seeded
