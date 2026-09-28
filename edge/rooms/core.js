@@ -44,6 +44,7 @@
 import {
   CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
+import { Referee } from './referee.js';
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
@@ -82,6 +83,8 @@ export class RoomCore {
     this.joins = new Map();   /* address -> { since, n } */
     this.recent = new Map();  /* token -> { seat, until }, for a reconnect */
     this.ticking = false;
+    /* Phase 3, mid air: edge/rooms/referee.js. */
+    this.referee = new Referee(meta.friendly);
   }
 
   roomMs(now) {
@@ -94,6 +97,7 @@ export class RoomCore {
     for (const { conn, attachment } of conns) {
       if (attachment && attachment.seat) {
         this.seats.set(conn, { ...attachment, pose: null, fresh: false, poseRate: { since: 0, n: 0 }, textRate: { since: 0, n: 0 } });
+        this.referee.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
       } else {
         this.pending.set(conn, { since: 0, n: 0 });
       }
@@ -226,6 +230,7 @@ export class RoomCore {
     };
     this.pending.delete(conn);
     this.seats.set(conn, s);
+    this.referee.seat(seat, profile.airframe);
     actions.push({ attach: conn, value: this.attachmentOf(s) });
     actions.push({
       send: conn,
@@ -283,6 +288,7 @@ export class RoomCore {
         return [];
       }
       s.profile = profile;
+      this.referee.seat(s.seat, profile.airframe);
       return [
         { attach: conn, value: this.attachmentOf(s) },
         ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
@@ -301,6 +307,7 @@ export class RoomCore {
       if (t.seat === seat) {
         this.kicked.push({ token: t.token, address: t.address, until: now + KICK_MS });
         this.seats.delete(conn);
+        this.referee.leave(seat);
         return [
           { close: conn, code: CLOSE.kicked, reason: 'kicked' },
           ...this.others(conn, JSON.stringify({ type: 'leave', seat, host: this.host() })),
@@ -319,16 +326,18 @@ export class RoomCore {
     }
     s.pose = data;
     s.fresh = true;
+    const hits = this.referee.pose(s.seat, data, this.roomMs(now)).flatMap((h) => this.others(null, JSON.stringify(h)));
     if (this.ticking) {
-      return [];
+      return hits;
     }
     this.ticking = true;
-    return [{ tick: true }];
+    return [...hits, { tick: true }];
   }
 
   /* One room tick: every seat gets one batch of the others' poses that
    * arrived since the last. Ticks stop when nobody sent a pose. */
   tick(now) {
+    this.referee.tick(this.roomMs(now));
     const fresh = [...this.seats.values()].filter((s) => s.fresh);
     if (!fresh.length) {
       this.ticking = false;
@@ -355,6 +364,7 @@ export class RoomCore {
       return this.seats.size ? [] : [{ empty: true }];
     }
     this.seats.delete(conn);
+    this.referee.leave(s.seat);
     for (const [token, r] of this.recent) {
       if (r.until <= now) {
         this.recent.delete(token);
