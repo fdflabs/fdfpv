@@ -193,6 +193,19 @@ planes.FW_KADET1981 = {
   note: 'a_w 4.533, a_t 4.154, V_H 0.549, deps/dalpha 0.380 (DATCOM), its own arms',
 };
 
+/* The F-16 V3, docs/F16-STAGE1.md and scripts/f16-derive.js: its own
+ * arms on the manual's top view's mean chord, 0.2856 m, the CG 90 mm
+ * behind the root leading edge, 0.195 of it, 16 mm ahead of the wing's
+ * aerodynamic centre; the tail's share from the derivation's a_w, a_t,
+ * V_H and Nelson's downwash. */
+planes.FW_F16878 = {
+  arm_ac: -0.0552,
+  arm_cp: 0.2052,
+  dw: 0.9 * 0.2942 * 2.644 * 0.647 / 3.142,
+  asym: TE_TOLERANCE / 0.2856,
+  note: 'a_w 3.142, a_t 2.644, V_H 0.294, deps/dalpha 0.647 (Nelson), its own arms',
+};
+
 /* The four strips' chords over the mean chord, from a planform chord(eta),
  * eta 0 at the root and 1 at the tip. */
 function strips(chord) {
@@ -241,6 +254,9 @@ const STRIPS = {
   /* Constant chord; the sheeted tips' rounding over the outer 3 of 39 in
    * is left out. */
   FW_KADET1981: strips(rect),
+  /* The cropped delta's trapezoid, 414.5 mm at the centreline to 83 at
+   * the tip; the strakes ahead of it are left out. */
+  FW_F16878: strips(taper(0.201)),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -272,6 +288,11 @@ const SECTION = {
   /* A 13 percent flat bottomed section at 2e5 (9 m/s on 0.374 m): the
    * Clark-Y's at 2e5, held +6.7 deg. */
   FW_KADET1981: { sec: 'Clark-Y at 2e5', top: 6.7, k: 0.72 },
+  /* No UIUC section: a thin 64A204 alone stalls at its leading edge, and
+   * the strakes' vortex holds the lift on the F-16 past it (NASA TP-1538's
+   * lift curve peaks 15 deg past its linear range). ESTIMATED: held 10 deg,
+   * to Freewing's 30 deg of alpha, then 0.8 of it. */
+  FW_F16878: { sec: 'the strakes\' vortex, ESTIMATED', top: 10.0, k: 0.80 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

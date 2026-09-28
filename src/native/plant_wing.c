@@ -2574,3 +2574,97 @@ const FixedWingParams FW_KADET1981 = {
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
 };
 
+/* Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High Performance
+ * (FJ21115P), docs/F16-STAGE1.md, where each number has its formula and
+ * source and the estimated ones say so. A 1/11.5 scale EPO jet, 878 mm
+ * across the tip rails: a 40 deg cropped delta with its strakes, all
+ * moving stabilators, ailerons and a rudder, on a 70 mm twelve blade
+ * ducted fan. The fan is fan_tau's propulsor: its speed lags the ESC,
+ * its thrust falls with airspeed to nothing at 1.6 n D, and its stators
+ * take out the rotor's torque, so none reaches the airframe. */
+const FixedWingParams FW_F16878 = {
+  .mix = FW_MIX_TAIL,
+  .span = 0.878,          /* Freewing, over the rails */
+  .area = 0.21484,        /* Model Aviation, 333 sq in */
+  .chord = 0.2856,        /* the manual's top view: the trapezoid's mean chord */
+  .cl_alpha = 3.310,      /* Helmbold's swept wing and the stabilators, Nelson's downwash */
+  .cl_max = 1.10,
+  /* The zero lift line 1.03 degrees under the body axis: the 64A204's
+   * camber at no incidence, less the tail's share. sin and cos of minus
+   * 1.03 degrees, to 17 digits. */
+  .alpha_zl = -1.03 * WING_PI / 180.0,
+  .sin_zl = -0.017975923049993122,
+  .cos_zl = 0.99983842004120882,
+  .cd0 = 0.0336,          /* what flies Freewing's 165 km/h on this fan */
+  .k_induced = 0.1374,    /* 1/(pi 0.75 3.09) */
+  .cl_de = -0.476,        /* all moving: the whole stabilator */
+  .cy_beta = -0.470,
+  .cy_dr = 0.2134,
+  .cl_beta = -0.1061,     /* the sweep's effective dihedral and the fin */
+  .cl_p = -0.3495,
+  .cl_da = 0.1226,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0292,
+  .cm_0 = 0.0470,         /* level at half throttle with the elevator neutral */
+  .cm_alpha = -0.3814,    /* static margin 0.115: the full size F-16's neutral point */
+  .cm_q = -2.263,
+  .cm_de = 0.700,
+  .cn_beta = 0.1420,      /* the fin's, less the long forebody's */
+  .cn_r = -0.2241,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.05,
+  .cn_dr = -0.1094,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The full size F-16's surface limits (NASA TP-1538): Freewing gives
+   * its high rates in mm at the trailing edge and not the chords. */
+  .throw_a = 21.5 * WING_PI / 180.0,
+  .throw_e = 25.0 * WING_PI / 180.0,
+  .throw_r = 30.0 * WING_PI / 180.0,
+  .surface_max = 21.5 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 23.536, /* N, Freewing's 2,400 g */
+  .pitch_speed = 76.87,   /* the fan's zero thrust speed, 1.603 n D */
+  .rpm_no_load = 49062.0, /* 2210 kV on 6S */
+  .torque_arm = 0.0,      /* the fan's stators take out its torque */
+  .current_full = 70.0,   /* A, the fan unit's static figure */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 3.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.10,
+  .stab_pitch_kp = 3.0,
+  .stab_pitch_kd = 0.30,
+  .stab_pitch_down = 4.85 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.496, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 300.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 120.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 8.0,
+  .acro_roll_kd = 0.10,
+  .acro_roll_ff = 0.14,
+  .acro_pitch_kp = 4.0,
+  .acro_pitch_kd = 0.30,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 4.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.0,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. The
+   * strakes' vortex holds the lift 10 deg past the stall, to Freewing's
+   * "high alpha of 30 degrees", then it falls to 0.8 of it. */
+  .stall_arm_ac = -0.0552, /* the CG 16 mm ahead of the wing's aerodynamic centre */
+  .stall_arm_cp = 0.2052,  /* the plate's centre of pressure at 0.40 of the mean chord */
+  .stall_dw = 0.1442,
+  .stall_asym = 0.0035,
+  .stall_k = 0.80,
+  .stall_top = 10.0 * WING_PI / 180.0,
+  .strip_c = { 1.499, 1.166, 0.834, 0.501 },
+  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The fan and its ESC: NASA's second order spool, scaled to 69 mm, and
+   * the ESC manual's Normal startup, 300 ms to full. */
+  .fan_tau = 0.08,
+  .esc_start = 0.3,
+};

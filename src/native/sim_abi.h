@@ -355,9 +355,12 @@ int sim_set_flight_style(int arcade);
  * ailerons like the Slow Stick, on wheels and a tail skid, and 12 SIG's
  * Kadet Senior (docs/KADET-STAGE1.md), a 78 in balsa trainer on an O.S.
  * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
- * a tricycle gear whose nose wheel steers with the rudder. Returns
- * SIM_ERR_BAD_ARG for anything else.
- * 2 to 12 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * a tricycle gear whose nose wheel steers with the rudder, and 16
+ * Freewing's F-16 V3 (docs/F16-STAGE1.md), a 70 mm electric ducted fan
+ * jet whose thrust lags the stick, on a tricycle gear. 13 to 23 are the
+ * slots of the classic aircraft; an empty one returns SIM_ERR_BAD_ARG, as
+ * anything else does.
+ * 2 to 23 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -387,6 +390,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_CUB1400F_ID 10
 #define SIM_AIRFRAME_BOMBSHELL1118_ID 11
 #define SIM_AIRFRAME_KADET1981_ID 12
+#define SIM_AIRFRAME_F16878_ID 16
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -457,7 +461,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2 to 12. Additive, version unchanged; each
+ * The fixed wings, airframes 2 to 23. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *
@@ -743,7 +747,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 12): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 23): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

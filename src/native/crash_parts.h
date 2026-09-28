@@ -1038,6 +1038,110 @@ static const PartDef PARTS_KADET1981[] = {
     .npts = 2, .pts = { { -0.35, 0.0, 0.05 }, { -0.33, 0.0, 0.14 } } },
 };
 
+/* ------------------------------------------------------------------------
+ * FREEWING F-16 V3 70 MM EDF, SIM_AIRFRAME_F16878, f16craft.js. 2.116 kg,
+ * EPO reinforced with carbon tubes: the panels plug onto a 6 x 500 mm
+ * carbon tube through the fuselage and are held by four screws, the
+ * stabilators turn on their shafts in fixing rings, the fin is screwed on
+ * (the V3 manual). The fan, its motor and the ESC sit in the fuselage
+ * behind the wing; the pack under the canopy, a sliding latch hatch; the
+ * nose cone is held by magnets. Stations are the manual's top view's, the
+ * CG 0.710 m behind the pitot's tip.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_F16878[] = {
+  /* 0 the fuselage from the nose to the nozzle's fairing, the intake and
+   * the strakes: the rest of the mass. Its nose crushes over the 80 mm
+   * round of the forebody behind the cone. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .k = 3.0e5, .crush_s = EPO_CRUSH, .crush_a = 0.0050, .crush_d = 0.12,
+    BOX(-0.30, 0.55, -0.065, 0.065, -0.075, 0.070) },
+  /* 1 the aft fuselage round the nozzle, a hollow EPO box about 110 x 100
+   * mm on 8 mm walls, Z 9.1e-5 m^3 at 0.6 MPa, 54 N m; the tube's ends
+   * and the moulding's joints less, 50 N m, ESTIMATED. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.080, .joint = { -0.30, 0.0, 0.0 }, FOAM_SECTION(0.050), .m_max = 50.0, .f_max = 400.0, .k = 2.0e4,
+    BOX(-0.596, -0.30, -0.060, 0.060, -0.045, 0.055) },
+  /* 2, 3 the stabilators, each on its steel shaft in its fixing ring: a
+   * 3 mm shaft's plastic hinge, WIRE_M, ESTIMATED as the shaft's size is
+   * not published. All moving, so each is the elevator too: losing one
+   * halves the tail. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.020, .joint = { -0.45, 0.088, -0.010 }, .m_max = WIRE_M(0.003), .f_max = 60.0, .k = 3000.0,
+    .npts = 8, .pts = { { -0.338, 0.088, -0.016 }, { -0.548, 0.088, -0.016 }, { -0.338, 0.088, -0.004 }, { -0.548, 0.088, -0.004 },
+                        { -0.482, 0.245, -0.012 }, { -0.546, 0.245, -0.012 }, { -0.482, 0.245, -0.008 }, { -0.546, 0.245, -0.008 } } },
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.020, .joint = { -0.45, -0.088, -0.010 }, .m_max = WIRE_M(0.003), .f_max = 60.0, .k = 3000.0,
+    .npts = 8, .pts = { { -0.338, -0.088, -0.016 }, { -0.548, -0.088, -0.016 }, { -0.338, -0.088, -0.004 }, { -0.548, -0.088, -0.004 },
+                        { -0.482, -0.245, -0.012 }, { -0.546, -0.245, -0.012 }, { -0.482, -0.245, -0.008 }, { -0.546, -0.245, -0.008 } } },
+  /* 4 the fin, four KA3 x 10 screws into the fuselage's plastic seat,
+   * ESTIMATED at 4 N m; 5 its rudder. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.030, .joint = { -0.40, 0.0, 0.055 }, .m_max = 4.0, .f_max = 100.0, .k = 3000.0,
+    BOX(-0.55, -0.29, -0.005, 0.005, 0.055, 0.265) },
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.008, .joint = { -0.50, 0.0, 0.15 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.56, -0.50, -0.004, 0.004, 0.075, 0.240) },
+  /* 6, 7 the panels on the 6 mm carbon tube: a 6 x 4 mm tube, Z 1.70e-8
+   * m^3 at the 1,000 MPa the other spars take, 17 N m, ESTIMATED as the
+   * tube's bore is not published. In their own plane the foam slab at
+   * the root, 320 mm of chord 17 mm deep. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.130, .joint = { -0.05, 0.117, 0.0 }, CARBON_SPAR(0.003), .m_max = 17.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.32, 0.017), .f_max = 300.0, .k = 3000.0,
+    .crush_s = EPO_CRUSH, .crush_a = 0.0006, .crush_d = 0.05,
+    .npts = 8, .pts = { { 0.090, 0.117, -0.008 }, { -0.230, 0.117, -0.008 }, { 0.090, 0.117, 0.008 }, { -0.230, 0.117, 0.008 },
+                        { -0.147, 0.410, -0.002 }, { -0.230, 0.410, -0.002 }, { -0.147, 0.410, 0.002 }, { -0.230, 0.410, 0.002 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.130, .joint = { -0.05, -0.117, 0.0 }, CARBON_SPAR(0.003), .m_max = 17.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.32, 0.017), .f_max = 300.0, .k = 3000.0,
+    .crush_s = EPO_CRUSH, .crush_a = 0.0006, .crush_d = 0.05,
+    .npts = 8, .pts = { { 0.090, -0.117, -0.008 }, { -0.230, -0.117, -0.008 }, { 0.090, -0.117, 0.008 }, { -0.230, -0.117, 0.008 },
+                        { -0.147, -0.410, -0.002 }, { -0.230, -0.410, -0.002 }, { -0.147, -0.410, 0.002 }, { -0.230, -0.410, 0.002 } } },
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.010, .joint = { -0.19, 0.20, 0.0 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.230, -0.180, 0.117, 0.300, -0.004, 0.004) },
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.010, .joint = { -0.19, -0.20, 0.0 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.230, -0.180, -0.300, -0.117, -0.004, 0.004) },
+  /* 10 the fan: its 240 g unit with the motor, and the ESC, its housing
+   * screwed into the moulded duct. A plane's firewall's 10 N m. No prop
+   * part: the rotor is inside its housing, and nothing a crash meets
+   * reaches it. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.320, .joint = { -0.24, 0.0, 0.0 }, .m_max = PL_MOTOR_M, .f_max = 400.0, .k = 1.0e6,
+    BOX(-0.27, -0.21, -0.037, 0.037, -0.037, 0.037) },
+  /* 11 the 6S 4000 on hook and loop in the bay under the canopy, 12 the
+   * canopy on its sliding latch, ESTIMATED at 40 N, 13 the nose cone on
+   * its magnets, which a nose in takes off first. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.566, .joint = { 0.35, 0.0, -0.02 }, .m_max = 4.0, .f_max = VELCRO_12, .k = 3.0e5,
+    BOX(0.28, 0.42, -0.021, 0.021, -0.020, 0.024) },
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.030, .joint = { 0.35, 0.0, 0.05 }, .m_max = 0.8, .f_max = 40.0, .k = 2.0e4,
+    BOX(0.24, 0.46, -0.035, 0.035, 0.040, 0.075) },
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1, .bay = { 1.0, 0.0, 0.0 },
+    .mass = 0.020, .joint = { 0.55, 0.0, 0.0 }, .m_max = 0.5, .f_max = MAGNET_2, .k = 2.0e4,
+    BOX(0.55, 0.69, -0.030, 0.030, -0.030, 0.030) },
+  /* 14, 15 the mains and 16 the nose leg on their electric retracts,
+   * screwed into plastic seats in the foam: ESTIMATED at 4 N m for a main
+   * and 2.5 for the nose, which an owner's review says "folds in on even
+   * small bumps". */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_ALU, .motor = -1, .wheel = 0,
+    .mass = 0.030, .joint = { -0.052, 0.090, -0.060 }, .m_max = 4.0, .f_max = 150.0, .k = 1471.0,
+    BOX(-0.075, -0.030, 0.090, 0.115, -0.146, -0.060) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_ALU, .motor = -1, .wheel = 1,
+    .mass = 0.030, .joint = { -0.052, -0.090, -0.060 }, .m_max = 4.0, .f_max = 150.0, .k = 1471.0,
+    BOX(-0.075, -0.030, -0.115, -0.090, -0.146, -0.060) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_ALU, .motor = -1, .wheel = 2,
+    .mass = 0.025, .joint = { 0.296, 0.0, -0.065 }, .m_max = 2.5, .f_max = 100.0, .k = 517.0,
+    BOX(0.280, 0.312, -0.010, 0.010, -0.146, -0.065) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.41, 0.0, 0.048 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.398, 0.422, -0.010, 0.010, 0.048, 0.068) },
+  /* Not drawn: an FPV jet's whip on the spine behind the canopy. */
+  { .kind = SIM_PART_ANTENNA, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { 0.10, 0.0, 0.065 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { 0.10, 0.0, 0.065 }, { 0.08, 0.0, 0.14 } } },
+};
+
 /*
  * The two aircraft on floats are built in crash.c from the wheeled tables
  * above: their gear taken off, every part raised by the CG drop the floats

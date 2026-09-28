@@ -260,6 +260,7 @@ typedef struct {
 #define SIM_AIRFRAME_CUB1400F 10
 #define SIM_AIRFRAME_BOMBSHELL1118 11
 #define SIM_AIRFRAME_KADET1981 12
+#define SIM_AIRFRAME_F16878 16
 /* Ids 13 to 23 are the eleven classic aircraft, each landing on its own;
  * a slot not yet filled is all zeros, which plant_airframe_exists refuses
  * (its mass is 0), so every array sized by the count holds it harmlessly. */
@@ -721,6 +722,7 @@ extern const FixedWingParams FW_TIMBER1500F;
 extern const FixedWingParams FW_CUB1400F;
 extern const FixedWingParams FW_BOMBSHELL1118;
 extern const FixedWingParams FW_KADET1981;
+extern const FixedWingParams FW_F16878;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
