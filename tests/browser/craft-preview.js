@@ -33,6 +33,7 @@ import { buildTimberCraft, TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS } from 
 import { buildBombshellCraft, BOMBSHELL_DIMS } from '../../src/render/bombshellcraft.js';
 import { buildKadetCraft, KADET_DIMS } from '../../src/render/kadetcraft.js';
 import { buildEdgeCraft, EDGE_DIMS } from '../../src/render/edgecraft.js';
+import { buildZagiCraft, ZAGI_DIMS } from '../../src/render/zagicraft.js';
 import { buildP51Craft, P51_DIMS } from '../../src/render/p51craft.js';
 
 /* On floats, the float variants: the same aircraft, its reach down and up
@@ -46,6 +47,7 @@ const BUILDERS = {
   bombshell: buildBombshellCraft,
   kadet: buildKadetCraft,
   edge: buildEdgeCraft,
+  zagi: buildZagiCraft,
   p51: buildP51Craft,
 };
 const DIMS = {
@@ -55,6 +57,7 @@ const DIMS = {
   bombshell: BOMBSHELL_DIMS,
   kadet: KADET_DIMS,
   edge: EDGE_DIMS,
+  zagi: ZAGI_DIMS,
   p51: P51_DIMS,
 };
 const params = new URLSearchParams(location.search);

@@ -287,11 +287,10 @@ function buildElevon(sign, material, shade) {
 }
 
 /* A winglet: a flat 1.5 mm plate, the root on the tip's chord from its
- * leading edge, swept back, straight up. Built for the right tip and
- * mirrored. */
+ * leading edge, swept back, straight up, its outer face on the half span,
+ * so the drawn span is Zagi's 48 in. */
 function wingletGeometry(sign) {
-  const t = 0.0015;
-  const x = sign * (HALF + t);
+  const t = 0.00075;
   const base = MID_Y;
   const le0 = leZ(HALF);
   const pts = [
@@ -307,7 +306,7 @@ function wingletGeometry(sign) {
   const geo = new THREE.ExtrudeGeometry(shape, { depth: 2 * t, bevelEnabled: false });
   /* The shape is drawn in (z, y); turn it so its depth lies along x. */
   geo.rotateY(-Math.PI / 2);
-  geo.translate(x + t, 0, 0);
+  geo.translate(sign > 0 ? HALF : -HALF + 2 * t, 0, 0);
   return geo;
 }
 

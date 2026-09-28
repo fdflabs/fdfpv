@@ -1272,14 +1272,16 @@ static const PartDef PARTS_ZAGI1219[] = {
     BOX(-0.098, 0.2032, -0.0635, 0.0635, -0.012, 0.025) },
   /* 1, 2 the panels, root chord 0.28 m at the bay's edge to 0.125 m at
    * the tip, 27 mm thick at the root and 11 at the tip, on the 3 mm flat
-   * carbon spar at the CG. */
+   * carbon spar at the CG. A part's mass sits at its hull's centroid,
+   * 82 mm behind the CG for a swept panel whose foam is mostly forward
+   * of it, so each carries 0.10 kg and the root the rest of the foam. */
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPP, .motor = -1, .wheel = -1,
-    .mass = 0.16, .joint = { 0.0, 0.0635, 0.0 }, CARBON_SPAR(0.0015), .m_max = 21.0, .m_max_z = SLAB_M(EPP_TENSILE, 0.28, 0.027), .f_max = 400.0, .k = 3000.0,
+    .mass = 0.10, .joint = { 0.0, 0.0635, 0.0 }, CARBON_SPAR(0.0015), .m_max = 21.0, .m_max_z = SLAB_M(EPP_TENSILE, 0.28, 0.027), .f_max = 400.0, .k = 3000.0,
     .crush_s = EPP_CRUSH, .crush_a = 0.0012, .crush_d = 0.10,
     .npts = 8, .pts = { { 0.1687, 0.0635, -0.012 }, { -0.1143, 0.0635, -0.012 }, { -0.1278, 0.6096, -0.005 }, { -0.2531, 0.6096, -0.005 },
                         { 0.1687, 0.0635, 0.015 }, { -0.1143, 0.0635, 0.015 }, { -0.1278, 0.6096, 0.006 }, { -0.2531, 0.6096, 0.006 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPP, .motor = -1, .wheel = -1,
-    .mass = 0.16, .joint = { 0.0, -0.0635, 0.0 }, CARBON_SPAR(0.0015), .m_max = 21.0, .m_max_z = SLAB_M(EPP_TENSILE, 0.28, 0.027), .f_max = 400.0, .k = 3000.0,
+    .mass = 0.10, .joint = { 0.0, -0.0635, 0.0 }, CARBON_SPAR(0.0015), .m_max = 21.0, .m_max_z = SLAB_M(EPP_TENSILE, 0.28, 0.027), .f_max = 400.0, .k = 3000.0,
     .crush_s = EPP_CRUSH, .crush_a = 0.0012, .crush_d = 0.10,
     .npts = 8, .pts = { { 0.1687, -0.0635, -0.012 }, { -0.1143, -0.0635, -0.012 }, { -0.1278, -0.6096, -0.005 }, { -0.2531, -0.6096, -0.005 },
                         { 0.1687, -0.0635, 0.015 }, { -0.1143, -0.0635, 0.015 }, { -0.1278, -0.6096, 0.006 }, { -0.2531, -0.6096, 0.006 } } },
@@ -1296,11 +1298,11 @@ static const PartDef PARTS_ZAGI1219[] = {
   { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
     .mass = 0.010, .joint = { -0.19, 0.6096, 0.006 }, .m_max = 0.8, .f_max = 12.0, .k = 2000.0,
     .npts = 8, .pts = { { -0.1278, 0.6096, 0.006 }, { -0.2531, 0.6096, 0.006 }, { -0.2040, 0.6096, 0.133 }, { -0.2675, 0.6096, 0.133 },
-                        { -0.1278, 0.6116, 0.006 }, { -0.2531, 0.6116, 0.006 }, { -0.2040, 0.6116, 0.133 }, { -0.2675, 0.6116, 0.133 } } },
+                        { -0.1278, 0.6081, 0.006 }, { -0.2531, 0.6081, 0.006 }, { -0.2040, 0.6081, 0.133 }, { -0.2675, 0.6081, 0.133 } } },
   { .kind = SIM_PART_FIN, .parent = 2, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
     .mass = 0.010, .joint = { -0.19, -0.6096, 0.006 }, .m_max = 0.8, .f_max = 12.0, .k = 2000.0,
     .npts = 8, .pts = { { -0.1278, -0.6096, 0.006 }, { -0.2531, -0.6096, 0.006 }, { -0.2040, -0.6096, 0.133 }, { -0.2675, -0.6096, 0.133 },
-                        { -0.1278, -0.6116, 0.006 }, { -0.2531, -0.6116, 0.006 }, { -0.2040, -0.6116, 0.133 }, { -0.2675, -0.6116, 0.133 } } },
+                        { -0.1278, -0.6081, 0.006 }, { -0.2531, -0.6081, 0.006 }, { -0.2040, -0.6081, 0.133 }, { -0.2675, -0.6081, 0.133 } } },
   /* 7 the 28 x 35 inrunner on the tray's ply hard point. */
   { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
     .mass = 0.070, .joint = { -0.060, 0.0, 0.010 }, .m_max = PL_MOTOR_M, .f_max = 400.0, .k = 1.0e6,
