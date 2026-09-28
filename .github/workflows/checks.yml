@@ -37,6 +37,9 @@ jobs:
       # by hand (npm run midair:harness) and its numbers go in the pull
       # request. Two seeds here keep every row and every scenario.
       - run: npm run midair:harness -- --seeds=2
+      # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
+      # half a minute on 20 cores, by hand; four and six here keep every row.
+      - run: npm run tag:harness -- --seeds=4 --runs=6
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact

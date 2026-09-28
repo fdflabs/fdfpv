@@ -11,10 +11,11 @@
  *
  * ONE TIMELINE, JUDGED IN ORDER. The crown and the points are decided on
  * the room clock, millisecond by millisecond, over the span every seat
- * seen in the last LATE_MS has covered (or LATE_MS behind the room clock,
- * whichever is later): the frontier f. So a millisecond is decided from
- * the samples' contents and stamps only, never from when they arrived,
- * and every client is sent the one answer (docs/TAG-PLAN.md, fairness).
+ * heard from in the last WAIT_MS has covered (or LATE_MS behind the room
+ * clock, whichever is later): the frontier f. So a millisecond is decided
+ * from the samples' contents and stamps only, never from when they
+ * arrived, and every client is sent the one answer (docs/TAG-PLAN.md,
+ * fairness).
  * Inside a span, the earliest touch of the Ace by any hunter wins, a tie
  * to the lower seat; the Ace's points are counted up to it; then the
  * judgement goes on from the touch with the new Ace.
@@ -70,6 +71,12 @@ import { AHEAD_MS } from './referee.js';
 export const TAG_M = 0.8;
 /* An Ace nobody can catch for this long drops the crown (decision 8). */
 export const DROP_MS = 10000;
+/* A seat silent for longer than this (a menu, a tab in the background) is
+ * not waited for. Shorter silences are, a stall or a pause for breath: a
+ * seat that the frontier ran past while it was quiet would have its first
+ * samples back judged as not there, by how late they are, and lag would
+ * decide. The midair referee's KEEP_MS, how much past a room holds. */
+export const WAIT_MS = 2000;
 /* The match is written to storage on every STORE_POINTS points the Ace
  * adds, besides every change of state or crown. */
 const STORE_POINTS = 10;
@@ -203,7 +210,8 @@ export class RoomTag {
     if (core.seats.size < 2) {
       return this.error(conn, 'alone');
     }
-    const goAt = core.roomMs(now) + COUNTDOWN_MS;
+    /* A whole room millisecond: the judgement steps on them. */
+    const goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     const players = {};
     for (const t of core.seats.values()) {
       players[t.seat] = { ms: 0 };
@@ -346,8 +354,8 @@ export class RoomTag {
     return out;
   }
 
-  /* Judge the room milliseconds (f, t1] that every seat seen in the last
-   * LATE_MS has covered, or that are LATE_MS old. */
+  /* Judge the room milliseconds (f, t1] that every seat heard from in the
+   * last WAIT_MS has covered, or that are LATE_MS old. */
   judge(core, roomNow) {
     const m = this.match;
     const cut = Math.floor(roomNow - LATE_MS);
@@ -355,7 +363,7 @@ export class RoomTag {
     let t1 = Infinity;
     for (const f of fly) {
       const n = f.track.newest();
-      if (n >= cut) {
+      if (n >= roomNow - WAIT_MS) {
         t1 = Math.min(t1, n);
       }
     }
