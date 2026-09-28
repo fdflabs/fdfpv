@@ -1852,6 +1852,7 @@ export async function boot({
   let roomProfileSent = '';
   let roomProfileCheckAt = 0;
   let roomNote = null; /* a one off line under the code row */
+  let roomRefusal = null; /* { text, untilMs }: why the room refused a host's action */
   let roomNameOffer = null; /* three picker names, while the screen is open */
 
   function roomName(pick) {
@@ -1939,7 +1940,12 @@ export async function boot({
       }
     },
     onHit: (m) => roomHit(m),
+    onHost: () => ui.refreshFriends(),
     onMessage: (m) => {
+      if (m.type === 'refused') {
+        roomRefused(m.why);
+        return;
+      }
       if (m.type === 'combat') {
         roomCombat.onRound(m);
         ui.refreshFriends();
@@ -2130,6 +2136,44 @@ export async function boot({
     return [head, {
       label: str('combat.row'), value: state, note: str(r.state === 'idle' ? 'combat.waiting' : 'combat.row_note'), info: true,
     }];
+  }
+
+  /* The game running in this room, as this screen knows it, or null. */
+  function roomRunning() {
+    const r = roomCombat.round();
+    if (roomRace.race().state === 'on') {
+      return 'race';
+    }
+    if (roomTag.on()) {
+      return 'tag';
+    }
+    return r.state === 'countdown' || r.state === 'on' ? 'combat' : null;
+  }
+
+  /* The room refused something this pilot asked of it as the host: say
+   * why, on the room screen and over the flight. */
+  function roomRefused(why) {
+    const key = `rooms.refused_${why}`;
+    const text = str(key) === key ? str('rooms.refused_host') : str(key);
+    roomRefusal = { text, untilMs: performance.now() + 8000 };
+    /* On the room screen its own row says it; over a flight, the banner. */
+    if (ui.screen === 'flight') {
+      notice = { text, untilMs: performance.now() + 4000 };
+    }
+    ui.refreshFriends();
+  }
+
+  /* The top of the room screen: why the last host action was refused. */
+  function roomRefusalRows() {
+    return roomRefusal && performance.now() < roomRefusal.untilMs ? [{ label: roomRefusal.text, info: true }] : [];
+  }
+
+  /* First in the Game section, for the host: a way out of whatever game is
+   * running, whatever its own rows show, so no game can leave the room
+   * stuck. */
+  function roomEndRows(host, w) {
+    const running = host && w ? roomRunning() : null;
+    return running ? [{ label: str(`rooms.end_${running}`), note: str('rooms.end_note'), action: `friends-end-${running}` }] : [];
   }
 
   function roomPeerJoin(seat, name, profile) {
@@ -2716,10 +2760,12 @@ export async function boot({
           label: game ? str('friends.games_for', { game: str(game === 'tag' ? 'roomtag.section' : 'combat.card') }) : str('friends.games'),
           section: true,
         },
+        ...roomEndRows(host, w),
         ...order.flatMap((g) => blocks[g]),
         { label: str('roomrace.room_section'), section: true },
       ];
       const rows = [
+        ...roomRefusalRows(),
         ...games,
         ...roomBrowser.nameRows(w),
         /* A public room's code is how the browser joins it, never shown. */
@@ -2779,6 +2825,18 @@ export async function boot({
       return;
     }
     if (action === 'friends-combat-stop') {
+      roomCombat.stop();
+      return;
+    }
+    if (action === 'friends-end-race') {
+      roomRace.end();
+      return;
+    }
+    if (action === 'friends-end-tag') {
+      roomTag.end();
+      return;
+    }
+    if (action === 'friends-end-combat') {
       roomCombat.stop();
       return;
     }

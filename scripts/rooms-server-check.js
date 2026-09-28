@@ -50,7 +50,7 @@ import WebSocket from 'ws';
 import {
   CHAT_PRESETS, CLOSE, PROTO, TYPE_PARTS_RELAY, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
-import { TEXT_CLOSE_PER_S } from '../edge/rooms/core.js';
+import { ABANDON_MS, TEXT_CLOSE_PER_S } from '../edge/rooms/core.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const given = String(process.argv[2] || '').replace(/\/+$/, '');
@@ -254,6 +254,9 @@ if (server) {
   check('and the server is still up', res.status === 200);
 
   console.log('a restart with two pilots flying (edge/rooms/node.js)');
+  /* A Catch the Ace match on, to come back with them. */
+  a.say({ type: 'tag', op: 'start', goal: 90 });
+  check('the host starts a Catch the Ace match', Boolean(await b.until((x) => x.text('tag').find((m) => m.tag && m.tag.state === 'countdown'))));
   const seats = { a: a.welcome, b: b.welcome };
   await server.stop();
   await a.until((x) => x.closed);
@@ -270,6 +273,22 @@ if (server) {
   a2.ws.send(pose(a2, 20));
   check('the room kept its race track across the restart', a2.welcome.track && a2.welcome.track.id === raceDoc.id, JSON.stringify(a2.welcome.track && a2.welcome.track.id));
   check('and they see each other fly again', Boolean(await b2.until((x) => x.got.find((m) => m instanceof Uint8Array && decodeBatch(m)))));
+  /* The host across the restart: B came back first and acted for A; A
+   * back is the host again, and B is told. */
+  check('B, back first, was told it acts as host while A was away', b2.welcome.host === 2, `${b2.welcome.host}`);
+  check('A back is the host again, in its welcome and to B', a2.welcome.host === 1
+    && Boolean(await b2.until((x) => x.text('host').find((m) => m.seat === 1))));
+  b2.say({ type: 'combat', op: 'start', minutes: 5 });
+  check('so B\'s combat start is refused, and B is told why: host', Boolean(await b2.until((x) => x.text('refused').find((m) => m.why === 'host'))));
+  a2.say({ type: 'combat', op: 'start', minutes: 5 });
+  check('A\'s is refused while the match its two players came back to runs: tag', Boolean(await a2.until((x) => x.text('refused').find((m) => m.why === 'tag'))));
+  /* B leaves for good: the match has one player, and the room ends it by
+   * itself after ABANDON_MS, with nobody flying to drive the clock. */
+  b2.ws.close(1000);
+  const ended = await a2.until((x) => x.text('tag').find((m) => m.tag && m.tag.state === 'results'), ABANDON_MS + 5000);
+  check(`the match left with one player ends by itself after ${ABANDON_MS / 1000} s`, Boolean(ended) && ended.tag.winner === null);
+  a2.say({ type: 'combat', op: 'start', minutes: 5 });
+  check('and then the host\'s combat round starts', Boolean(await a2.until((x) => x.text('combat').find((m) => m.state === 'countdown'))));
   if (publicCode) {
     const again = await listed();
     check('the public room is back in the browser though nobody has come back to it', again.rooms.some((r) => r.code === publicCode), JSON.stringify(again));
