@@ -106,6 +106,7 @@
     "edge:derive": "node scripts/edge-derive.js",
     "edge:shell": "node scripts/bombshell-shell.js edge1524",
     "edge:course": "node scripts/edge-course.js",
+    "edge:owner": "node scripts/edge-owner.js",
     "p51:gates": "node scripts/p51-gates.js",
     "p51:stab": "node scripts/p51-stab-selftest.js",
     "p51:record": "node scripts/wing-record.js p51 && node scripts/wing-record.js p51-air",

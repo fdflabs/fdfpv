@@ -352,6 +352,57 @@ listed (before the P-51 merged).
   rudder ranges and 5 over its elevator's.
 - The side force generators are not modelled.
 
+## The owner's test, in the shell
+
+The lead flew the owner test headless in the real shell (swiss2,
+edge-manual, the page's clock) and raised two findings; both were
+measured again on the plant's clock (`__craftState().simS`), and
+`npm run edge:owner` (scripts/edge-owner.js) makes the test a check, on
+p51:owner's pattern, against this aircraft's bands (tests/edge-thresholds.json).
+
+**The take off's 11.8 deg left is the torque roll after liftoff, not the
+strip.** The swiss2 spawn is level (the terrain's rise per metre is 0.0000
+along and across it, and 30 m on) and on the Alps the same. With the
+lead's hands, full throttle and 0.15 up elevator, the wheels leave the
+ground at 0.4 s and 10 m/s with the nose 0.3 deg left of the start; the
+track (the velocity's direction) and the nose agree within half a degree
+on the roll. From there, ailerons centred, the prop's 1.26 N m rolls it
+left, 17 deg of bank by 3 m up at 2 s, and the bank turns it: 13 deg of
+heading by then, the lead's 11.8 at his liftoff mark (0.3 m for 0.6 s,
+which comes a second and a half after the wheels are off). The same
+flight on the Alps gives the same numbers; the Kadet on swiss2 drifts
+1.3 deg by 3.4 s;
+the P-51 swings about 2.6 deg on its roll and banks 4.6 deg
+once off. It is the plant's torque, which a
+real 3D aerobat on three times its weight in thrust shows, and it is held
+by the pilot's ailerons: with the wings held and the heading on the
+rudder the owner check flies it within 1.0 deg to 3 m. No spawn needs
+re-aiming.
+
+**The snap recovers.** Held 2 s of full up and full rudder, then the
+stick released and the rudder reversed (AOPA's recovery), the roll rate
+falls under 30 deg/s 0.18 to 0.20 s after the reversal, the aircraft
+turning a further 36 to 39 deg; a wings level hold then levels it in 0.2
+to 0.5 s. The British Aerobatic Academy: "At the correct angle of
+rotation the roll should cease abruptly"; the band is a quarter turn. The
+lead's 62 deg in 0.3 s and the wings that never levelled were read off a
+bank angle (the up vector's roll, which in the steep nose down attitude a
+snap leaves also moves with the yaw the reversed rudder makes) on the page's
+clock; the body roll rate
+integrated on the plant's clock gives the 36 deg. The earlier line here
+that it "stops the moment you let go" is replaced by these numbers.
+
+| Owner check | Band | swiss2 |
+| --- | --- | --- |
+| take off on the rudder, heading to 3 m | e14_straight, 5 deg | 1.01 deg, off at 11.1 m/s |
+| hands off, recorded | none | lift off 0.3 deg left at 10.2 m/s; 12.8 deg left and 17 deg of bank at 3 m |
+| on its back, 3/4 throttle | e8_inverted, within 5 percent | 22.03 against 22.04 m/s |
+| its push | e8_inverted, under half stick | −0.338 (upright 0.003) |
+| a yank | e9_snap, 90 deg in 1.2 s, stops in 0.3 s | 156 deg, stopped in 0.17 s |
+| half stick | e9_snap, under 20 deg | 3 deg |
+| snap right, left | e9_snap, 270 deg, half the peak rate at the end | 310 and 341 deg, 200 and 214 deg/s against 201 and 215 |
+| their recoveries | e9_snap, 0.5 s, a quarter turn, level in 3 s | 0.18 s, 36 deg, 0.17 s; 0.20 s, 39 deg, 0.50 s |
+
 ## What the owner should feel flying it
 
 On the strip it sits tail down on carbon legs. Open the throttle over a
@@ -362,8 +413,12 @@ rate. Roll it on its back and it flies there on a touch of down elevator,
 at the same speed, rolling and stalling as it does upright. In Acro a
 full pull at cruise is 80 deg/s and never snaps; in Manual on EF's 3D
 rates, yank the stick past about two thirds and it snaps the moment you
-do, and it stops the moment you let go. Pull and boot the rudder and it
-snap rolls the rudder's way. Round the pylons at 26 m/s it holds a 70 m
+do, and let go it stops within a sixth of a second. Pull and boot the
+rudder and it snap rolls the rudder's way; stick released and rudder the
+other way, it goes on about 35 deg and stops in a fifth of a second. Take
+off hands off and it lifts at 10 m/s within half a degree of the
+runway's heading, then the prop's torque rolls it left, 17 deg of bank
+and 13 of heading by 3 m up: hold the wings with the ailerons. Round the pylons at 26 m/s it holds a 70 m
 turn.
 
 ## Sources
@@ -377,6 +432,7 @@ turn.
 - APC 16 x 8E and 16 x 10E product pages and PER3 data files (via the Internet Archive): 1.83 oz each, the static figures.
 - Wikipedia, "Zivko Edge 540": the air race, the symmetric Roncz section, 420 deg/s.
 - AOPA, "Technique: Snap rolls", Flight Training, September 2014.
+- British Aerobatic Academy, "How to fly a positive Snap roll" (britishaerobaticacademy.com/how-to-fly-a-positive-snap-roll/).
 - FAA-H-8083-3C, Airplane Flying Handbook, ch. 5.
 - aerospaceweb.org, "NACA 0012 Lift Characteristics".
 - Composite-ARF Edge 540 2.6 m manual (carf-models.com): "the snaps are crisp and clean", considered and not taken.
