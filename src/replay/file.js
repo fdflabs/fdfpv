@@ -28,6 +28,14 @@
  * the plane's hangar parts (configs/hangar-parts.js) so the replay craft
  * wears its pod, its nozzle and its prop. Versions 1 and 2 are read with
  * the smoke off and nothing fitted.
+ *
+ * Version 4 added the other pilots in a room (src/replay/peers.js): the
+ * header's `peers` ({ slots, layout, pieces, who, tables }), then after
+ * the parts the peers' columns, f32[n x slots x PEER_N], and their wreck
+ * pieces, f32[pieces x PIECE_N], each frame's in slot order. A clip with
+ * nobody else in it is written as version 3, byte for byte what the build
+ * before wrote, so a single player replay is unchanged and still opens in
+ * that build. Versions 1 to 3 are read with nobody else.
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -56,10 +64,16 @@ import {
 import { normalisePlane } from '../../configs/hangar-parts.js';
 import { RIGS } from './cameras.js';
 import { FINISHES, MAX_DECALS, checkDecal } from '../../configs/paint.js';
+import {
+  PEER, PEER_N, PEERS_MAX, PIECE_N,
+} from './peers.js';
+import { checkCrashTable, checkProfile } from '../share/roomwire.js';
 
-export const FILE_VERSION = 3;
+export const FILE_VERSION = 4;
+/* A clip with nobody else in it: the version before peers, unchanged. */
+const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3];
+const READS = [1, 2, 3, 4];
 
 /* The columns a version holds, as its header's layout says them. */
 function layoutOf(version) {
@@ -83,7 +97,14 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers'];
+const PEERS_KEYS = ['slots', 'layout', 'pieces', 'who', 'tables'];
+const WHO_KEYS = ['seat', 'label', 'profile', 'figure'];
+const FIGURE_KEYS = ['at', 'yaw'];
+/* Profiles and part tables a clip may name: every join and every crash in
+ * 30 s of a full public room, with room to spare. */
+const WHO_MAX = 64;
+const TABLES_MAX = 64;
 const META_KEYS = ['name', 'created', 'airframe', 'livery', 'paint', 'map', 'scale', 'size', 'parts', 'fpv', 'duration', 'fit'];
 const PAINT_KEYS = ['finishes', 'decals'];
 const FIT_KEYS = ['entry', 'option'];
@@ -98,6 +119,9 @@ const FPV_KEYS = ['fwd', 'up', 'tilt', 'fov'];
 
 export function encodeReplay(clip) {
   const n = clip.n;
+  const peers = clip.peers || null;
+  const version = peers ? FILE_VERSION : SOLO_VERSION;
+  const pieceCount = peers ? peers.pieceAt[n] : 0;
   const head = clip.head.slice(0, n * HEAD_N);
   let partRows = 0;
   for (let k = 0; k < n; k += 1) {
@@ -106,25 +130,30 @@ export function encodeReplay(clip) {
     partRows += head[k * HEAD_N + HEAD.parts];
   }
   const header = {
-    v: FILE_VERSION,
+    v: version,
     n,
-    layout: layoutOf(FILE_VERSION),
+    layout: layoutOf(version),
     probe: ENDIAN_PROBE,
     meta: clip.meta,
     events: clip.events,
     spawns: clip.spawns,
     keys: clip.keys || [],
   };
+  if (peers) {
+    header.peers = {
+      slots: peers.slots, layout: [PEER_N, PIECE_N], pieces: pieceCount, who: peers.who, tables: peers.tables,
+    };
+  }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
-  const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, FILE_VERSION)
-    + partRows * PART_N * 4;
+  const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, version)
+    + partRows * PART_N * 4 + (peers ? (n * peers.slots * PEER_N + pieceCount * PIECE_N) * 4 : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
   u8.set(MAGIC, 0);
-  dv.setUint32(4, FILE_VERSION, true);
+  dv.setUint32(4, version, true);
   dv.setUint32(8, json.length, true);
   u8.set(json, 12);
   let o = pre + pad;
@@ -137,7 +166,7 @@ export function encodeReplay(clip) {
   new Float64Array(buf, o, n * PLANT_N).set(clip.plant.subarray(0, n * PLANT_N));
   o += n * PLANT_N * 8;
   new Float32Array(buf, o, n * SMOKE_N).set(clip.smoke.subarray(0, n * SMOKE_N));
-  o += smokeBytes(n, FILE_VERSION);
+  o += smokeBytes(n, version);
   const parts = new Float32Array(buf, o, partRows * PART_N);
   let w = 0;
   for (let k = 0; k < n; k += 1) {
@@ -145,6 +174,12 @@ export function encodeReplay(clip) {
     const from = k * PARTS_MAX * PART_N;
     parts.set(clip.parts.subarray(from, from + np * PART_N), w);
     w += np * PART_N;
+  }
+  o += partRows * PART_N * 4;
+  if (peers) {
+    new Float32Array(buf, o, n * peers.slots * PEER_N).set(peers.cols.subarray(0, n * peers.slots * PEER_N));
+    o += n * peers.slots * PEER_N * 4;
+    new Float32Array(buf, o, pieceCount * PIECE_N).set(peers.pieces.subarray(0, pieceCount * PIECE_N));
   }
   return buf;
 }
@@ -365,6 +400,12 @@ export function decodeReplay(buf, known = null) {
     throw new ReplayFileError('keys is not a list');
   }
   header.keys.forEach(checkKey);
+  if ((version >= 4) !== (header.peers !== undefined)) {
+    throw new ReplayFileError(version >= 4 ? 'a version 4 file without its peers' : 'peers in a file older than version 4');
+  }
+  if (header.peers !== undefined) {
+    checkPeersHeader(header.peers, header.meta.map);
+  }
 
   const pre = 12 + hl;
   let o = pre + ((8 - (pre % 8)) % 8);
@@ -397,7 +438,9 @@ export function decodeReplay(buf, known = null) {
     }
     rows += np;
   }
-  if (o + rows * PART_N * 4 !== buf.byteLength) {
+  const P = header.peers;
+  const peerBytes = P ? (n * P.slots * PEER_N + P.pieces * PIECE_N) * 4 : 0;
+  if (o + rows * PART_N * 4 + peerBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
   for (const col of [time, head, pose, plant, smoke]) {
@@ -415,10 +458,122 @@ export function decodeReplay(buf, known = null) {
     parts.set(packed.subarray(r, r + np * PART_N), k * PARTS_MAX * PART_N);
     r += np * PART_N;
   }
-  return {
+  o += rows * PART_N * 4;
+  const clip = {
     n, time, head, pose, plant, parts, smoke,
     events: header.events, spawns: header.spawns, keys: header.keys, meta: header.meta,
   };
+  if (P) {
+    const cols = new Float32Array(buf.slice(o, o + n * P.slots * PEER_N * 4));
+    o += n * P.slots * PEER_N * 4;
+    const pieces = new Float32Array(buf.slice(o, o + P.pieces * PIECE_N * 4));
+    clip.peers = {
+      slots: P.slots, cols, pieceAt: checkPeerColumns(cols, pieces, n, P), pieces, who: P.who, tables: P.tables,
+    };
+  }
+  return clip;
+}
+
+/* The peers' header: who they were and the tables their wrecks were cut
+ * by, each checked as the room checks it (src/share/roomwire.js). */
+function checkPeersHeader(P, map) {
+  onlyKeys(P, PEERS_KEYS, 'peers');
+  if (!Number.isInteger(P.slots) || P.slots < 1 || P.slots > PEERS_MAX) {
+    throw new ReplayFileError('peers.slots is out of range');
+  }
+  if (!Array.isArray(P.layout) || P.layout.join() !== [PEER_N, PIECE_N].join()) {
+    throw new ReplayFileError('the peers\' column layout does not match this build');
+  }
+  if (!Number.isInteger(P.pieces) || P.pieces < 0 || P.pieces > CAPACITY * PEERS_MAX * PARTS_MAX) {
+    throw new ReplayFileError('peers.pieces is out of range');
+  }
+  if (!Array.isArray(P.who) || P.who.length < 1 || P.who.length > WHO_MAX) {
+    throw new ReplayFileError('peers.who is not a list');
+  }
+  P.who.forEach((w, i) => {
+    onlyKeys(w, WHO_KEYS, `peers.who[${i}]`);
+    if (!Number.isInteger(w.seat) || w.seat < 1 || w.seat > 64) {
+      throw new ReplayFileError(`peers.who[${i}].seat is not a seat`);
+    }
+    text(w.label, 40, `peers.who[${i}].label`);
+    /* The profile as a room would relay it, flown in this clip's world;
+     * its paint and parts are normalised again when it is drawn. */
+    const profile = checkProfile(w.profile);
+    if (!profile || profile.map !== map) {
+      throw new ReplayFileError(`peers.who[${i}].profile is not a profile`);
+    }
+    w.profile = profile;
+    if (w.figure !== null) {
+      onlyKeys(w.figure, FIGURE_KEYS, `peers.who[${i}].figure`);
+      vec(w.figure.at, 3, `peers.who[${i}].figure.at`);
+      finite(w.figure.yaw, `peers.who[${i}].figure.yaw`);
+    }
+  });
+  if (!Array.isArray(P.tables) || P.tables.length > TABLES_MAX) {
+    throw new ReplayFileError('peers.tables is not a list');
+  }
+  P.tables = P.tables.map((t, i) => {
+    const table = checkCrashTable(t);
+    if (!table) {
+      throw new ReplayFileError(`peers.tables[${i}] is not a part table`);
+    }
+    return table;
+  });
+}
+
+/* The peers' columns against their header: every id a profile, every
+ * table one of the tables, every piece a part of it, each frame's pieces
+ * where the slots before them end. Returns each frame's first piece. */
+function checkPeerColumns(cols, pieces, n, P) {
+  for (let i = 0; i < cols.length; i += 1) {
+    if (!Number.isFinite(cols[i])) {
+      throw new ReplayFileError('a peer column holds a value that is not a number');
+    }
+  }
+  for (let i = 0; i < pieces.length; i += 1) {
+    if (!Number.isFinite(pieces[i])) {
+      throw new ReplayFileError('a peer piece holds a value that is not a number');
+    }
+  }
+  const pieceAt = new Uint32Array(n + 1);
+  let w = 0;
+  for (let k = 0; k < n; k += 1) {
+    pieceAt[k] = w;
+    for (let s = 0; s < P.slots; s += 1) {
+      const o = (k * P.slots + s) * PEER_N;
+      const id = cols[o + PEER.id];
+      if (!Number.isInteger(id) || id < 0 || id > P.who.length) {
+        throw new ReplayFileError(`frame ${k} names a peer that is not in the file`);
+      }
+      const table = cols[o + PEER.table];
+      const np = cols[o + PEER.pieces];
+      if (!id) {
+        if (np !== 0) {
+          throw new ReplayFileError(`frame ${k} has pieces for nobody`);
+        }
+        continue;
+      }
+      if (!Number.isInteger(table) || table < -1 || table >= P.tables.length) {
+        throw new ReplayFileError(`frame ${k} names a part table that is not in the file`);
+      }
+      const parts = table >= 0 ? P.tables[table].length : 0;
+      if (!Number.isInteger(np) || np < 0 || np > Math.max(0, parts - 1) || cols[o + PEER.at] !== w - pieceAt[k]) {
+        throw new ReplayFileError(`frame ${k} has a bad piece count`);
+      }
+      for (let j = 0; j < np; j += 1) {
+        const part = pieces[(w + j) * PIECE_N];
+        if (w + j >= P.pieces || !Number.isInteger(part) || part < 1 || part >= parts) {
+          throw new ReplayFileError(`frame ${k} has a piece that is not a part`);
+        }
+      }
+      w += np;
+    }
+  }
+  if (w !== P.pieces) {
+    throw new ReplayFileError('the peers\' pieces are not the count the header says');
+  }
+  pieceAt[n] = w;
+  return pieceAt;
 }
 
 export { ReplayFileError };

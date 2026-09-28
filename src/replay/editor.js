@@ -213,9 +213,18 @@ export function createEditor(api) {
     api.follow(Number(partSelect.value));
     partSelect.blur();
   });
+  /* Whose aircraft the camera is on: shown when the clip has others in it
+   * (src/replay/peers.js). */
+  const watchSelect = el('select', 'cc-select');
+  watchSelect.title = str('replay.watch_which');
+  watchSelect.hidden = true;
+  watchSelect.addEventListener('change', () => {
+    api.watch(Number(watchSelect.value));
+    watchSelect.blur();
+  });
   const bKey = button('cc-btn small', str('replay.add_key'), 'K', () => api.addKey());
   const bUnkey = button('cc-btn small', str('replay.remove_key'), 'Del', () => api.removeKey());
-  camera.append(el('span', 'cc-label', str('replay.camera')), rigSeg, partSelect, bKey, bUnkey);
+  camera.append(el('span', 'cc-label', str('replay.camera')), rigSeg, watchSelect, partSelect, bKey, bUnkey);
 
   row.append(transport, camera);
   dock.append(row);
@@ -363,6 +372,7 @@ export function createEditor(api) {
   let markSig = '';
   let keySig = '';
   let partSig = '';
+  let watchSig = '';
   const last = {};
   function set(k, v, write) {
     if (last[k] !== v) {
@@ -470,6 +480,21 @@ export function createEditor(api) {
       partSelect.disabled = !v.parts.length;
       rigButtons.follow.disabled = !v.parts.length;
       partSelect.value = v.rig === 'follow' && v.target >= 0 ? String(v.target) : '-1';
+    }
+    const ws = `${v.peers.map((p) => `${p.id}:${p.label}`).join()}|${v.watch}`;
+    if (ws !== watchSig) {
+      watchSig = ws;
+      watchSelect.innerHTML = '';
+      const me = el('option', '', str('replay.watch_me'));
+      me.value = '0';
+      watchSelect.append(me);
+      for (const p of v.peers) {
+        const o = el('option', '', p.label || str('replay.watch_seat', { seat: p.seat }));
+        o.value = String(p.id);
+        watchSelect.append(o);
+      }
+      watchSelect.hidden = !v.peers.length;
+      watchSelect.value = String(v.watch);
     }
     const h = v.readout;
     set('osdv', `${Math.round(h[HEAD.speed] * 3.6)}|${h[HEAD.agl].toFixed(1)}|${Math.round(h[HEAD.throttle] * 100)}`, () => {
@@ -684,6 +709,9 @@ export function createEditor(api) {
         break;
       case 'BracketRight':
         api.nextMarker();
+        break;
+      case 'KeyJ':
+        api.nextWatch();
         break;
       case 'Tab':
         api.nextPart();

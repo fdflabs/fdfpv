@@ -139,6 +139,8 @@ export function createPeerWreck(craftGroup, discs) {
   craftState[7] = 1;
   const eased = new Map(); /* part -> { from, to, at } */
   let table = null;
+  /* Whether the last update drew the pieces in `parts`. */
+  let drawnNow = false;
 
   /* The received pose is already the world's: the plant slots carry it. */
   const toWorld = (px, py, pz, qw, qx, qy, qz, outPos, outQuat) => {
@@ -188,19 +190,26 @@ export function createPeerWreck(craftGroup, discs) {
     rig.reset();
     table = null;
     eased.clear();
+    drawnNow = false;
   }
 
-  /* Once a frame, after the peer's aircraft is posed. */
-  function update(wallMs) {
-    if (!table || !eased.size) {
-      return 0;
-    }
+  /* The table's parts, each on the craft. */
+  function base() {
     parts.fill(0);
     for (let i = 0; i < table.length; i += 1) {
       const o = i * PART_STATE_DOUBLES;
       parts[o + STATE.kind] = table[i].kind;
       parts[o + STATE.body] = -1;
     }
+  }
+
+  /* Once a frame, after the peer's aircraft is posed. */
+  function update(wallMs) {
+    if (!table || !eased.size) {
+      drawnNow = false;
+      return 0;
+    }
+    base();
     for (const [i, e] of eased) {
       const p = current(e, wallMs);
       const o = i * PART_STATE_DOUBLES;
@@ -213,6 +222,36 @@ export function createPeerWreck(craftGroup, discs) {
       parts[o + STATE.quat + 2] = p.qy;
       parts[o + STATE.quat + 3] = p.qz;
     }
+    drawnNow = true;
+    return rig.update(parts, table.length, craftState, toWorld, null);
+  }
+
+  /*
+   * The pieces at poses given outright, for the crash cam's replay
+   * (src/replay/peers.js): `n` of them in `src` from `o`, `stride` apart,
+   * each [part, x, y, z, qw, qx, qy, qz], world. Nothing is eased: these
+   * are the poses a frame drew.
+   */
+  function place(src, o, n, stride) {
+    if (!table) {
+      return 0;
+    }
+    base();
+    for (let k = 0; k < n; k += 1) {
+      const s = o + k * stride;
+      const i = src[s];
+      if (i < 1 || i >= table.length) {
+        continue;
+      }
+      const w = i * PART_STATE_DOUBLES;
+      parts[w + STATE.status] = 1;
+      for (let j = 0; j < 3; j += 1) {
+        parts[w + STATE.pos + j] = src[s + 1 + j];
+      }
+      for (let j = 0; j < 4; j += 1) {
+        parts[w + STATE.quat + j] = src[s + 4 + j];
+      }
+    }
     return rig.update(parts, table.length, craftState, toWorld, null);
   }
 
@@ -222,7 +261,14 @@ export function createPeerWreck(craftGroup, discs) {
     pieces,
     clear,
     update,
+    place,
     active: () => Boolean(table),
+    /* The part state the last update drew from (PART_STATE_DOUBLES a
+     * part, status 1 for a piece that has left, its pose world), and how
+     * many parts it covers; null when it drew none. For the crash cam's
+     * recorder. */
+    drawn: () => (drawnNow ? parts : null),
+    count: () => (table ? table.length : 0),
     summary: () => rig.summary(),
     dispose() {
       clear();

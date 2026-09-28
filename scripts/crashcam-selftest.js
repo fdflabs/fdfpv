@@ -30,6 +30,14 @@
  *    builds wrote them, are still read, and a version 1 odd count refused.
  * 10. The smoke: on and off, its nozzle interpolated, its column and the
  *    fitted parts round trip, an unknown add-on dropped on the way in.
+ * 11. The other pilots in a room (src/replay/peers.js): each row holds
+ *    each pilot exactly where that frame drew it, beside the local craft;
+ *    a join and a leave mid window; the ring wrapping; interpolation that
+ *    never blends two pilots; a scrub back the same as going straight
+ *    there; a pilot's wreck by part; the crowd past PEERS_MAX counted; a
+ *    trim; the version 4 file round trip bit for bit and its refusals; and
+ *    a single player clip still version 3, byte for byte what the build
+ *    before peers wrote.
  *
  * Run: npm run crashcam:selftest
  *
@@ -65,6 +73,9 @@ import {
   addKey, createPose, defaults, easeInOut, evaluate, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
+import {
+  PEER, PEER_N, PEERS_MAX, PIECE_N, PIECES_MAX, createPeerRing, createPeerSample, peerPose, samplePeers,
+} from '../src/replay/peers.js';
 import { newDecal } from '../configs/paint.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 
@@ -826,12 +837,380 @@ function smokeColumn() {
     JSON.stringify(back.meta.fit.entry));
 }
 
+/* ---- 11. the other pilots in a room ---- */
+
+/* A drawn peer as src/main.js keeps one: the model (src/render/peers.js),
+ * the sample it was posed with, and its shared wreck when it has one. */
+function fakePeer(seat, airframe) {
+  const pos = { x: 0, y: 0, z: 0 };
+  const quat = { x: 0, y: 0, z: 0, w: 1 };
+  const parts = new Float64Array(PARTS_MAX * PART_STATE_DOUBLES);
+  const peer = {
+    seat,
+    profile: { airframe, map: 'swiss2', figure: seat % 12, livery: null, parts: null },
+    rig: {
+      group: { visible: true, position: pos, quaternion: quat },
+      label: () => `Pilot ${seat}`,
+      gear: () => 0.25,
+      smokeAt: () => (peer.smoke ? { x: pos.x, y: pos.y - 0.2, z: pos.z } : null),
+    },
+    last: { flags: 0, c0: 0.1, c1: -0.1, c2: 0.2, c3: 0, motor: 900, flaps: 0.05, vx: 20, vy: 0, vz: 0 },
+    wreck: null,
+    wreckTable: null,
+    figure: null,
+    smoke: false,
+    /* Parts 1 and 2 of a three part table off at x, x + 1. */
+    crash(table) {
+      peer.wreckTable = table;
+      peer.wreck = { drawn: () => parts, count: () => table.length };
+    },
+    pieces(x) {
+      parts.fill(0);
+      for (const i of [1, 2]) {
+        const o = i * PART_STATE_DOUBLES;
+        parts[o + STATE.status] = 1;
+        parts[o + STATE.pos] = x + i - 1;
+        parts[o + STATE.quat] = 1;
+      }
+    },
+  };
+  return peer;
+}
+
+const TABLE = [0, 1, 2].map((i) => ({ kind: i === 0 ? 8 : 9, parent: i - 1, cg: [0, i * 0.3, 0], boxMin: [-0.5, -0.5, -0.1], boxMax: [0.5, 0.5, 0.1] }));
+
+/*
+ * `frames` of a flight at 60 Hz with the recorder and the peer ring
+ * beside it, as src/replay/crashcam.js runs them. The local craft's x is
+ * the frame number; peer A flies the whole time at x = frame + 100; B
+ * joins at frame 10 and leaves at 30 (x = frame + 200); C joins at 25
+ * (x = frame + 300). A crashes at 40 and its two pieces slide.
+ */
+function roomFlight(cap, frames) {
+  const r = createRecorder(cap);
+  const ring = createPeerRing(cap);
+  const A = fakePeer(2, 'cub1400');
+  const B = fakePeer(3, 'p51d1450');
+  const C = fakePeer(4, '5inch');
+  A.smoke = true;
+  const pp = { x: 0, y: 0, z: 0 };
+  const qq = { x: 0, y: 0, z: 0, w: 1 };
+  const st = new Float64Array(20);
+  const sp = r.spawnIndex(0, 0, 0, 0, 0, 0, 1, 0.045);
+  const drawnLive = []; /* per frame, what "the screen" drew of each seat */
+  for (let f = 0; f < frames; f += 1) {
+    ring.begin(-1);
+    const i = r.begin(f / 60, (f * 1000) / 60);
+    ring.begin(i);
+    pp.x = f;
+    r.pose(i, pp, qq);
+    r.plant(i, st);
+    r.status(i, [0, f], sp, 0, false, 0, 0, 0);
+    const room = new Map();
+    A.rig.group.position.x = f + 100;
+    A.rig.group.quaternion.y = Math.sin(f * 0.01);
+    A.rig.group.quaternion.w = Math.cos(f * 0.01);
+    room.set(2, A);
+    if (f === 40) {
+      A.crash(TABLE);
+    }
+    if (f >= 40) {
+      A.pieces(f * 0.5);
+    }
+    if (f >= 10 && f < 30) {
+      B.rig.group.position.x = f + 200;
+      room.set(3, B);
+    }
+    if (f >= 25) {
+      C.rig.group.position.x = f + 300;
+      room.set(4, C);
+    }
+    for (const p of room.values()) {
+      ring.add(p);
+    }
+    drawnLive.push(new Map([...room].map(([seat, p]) => [seat, p.rig.group.position.x])));
+  }
+  const [first, n] = r.span();
+  const clip = r.clip({
+    name: 'Room', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'swiss2', scale: 1, size: 1.8, duration: 0,
+    parts: [], fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
+  });
+  clip.keys = [];
+  clip.peers = ring.clip(first, n);
+  return { clip, ring, drawnLive, frames };
+}
+
+/* Each seat's x at clip row k, from the peer columns. */
+function seatsAt(clip, k) {
+  const P = clip.peers;
+  const out = new Map();
+  for (let s = 0; s < P.slots; s += 1) {
+    const o = (k * P.slots + s) * PEER_N;
+    const id = P.cols[o + PEER.id];
+    if (id) {
+      out.set(P.who[id - 1].seat, P.cols[o + PEER.pos]);
+    }
+  }
+  return out;
+}
+
+function peersRecord() {
+  console.log('11. the other pilots in a room are recorded, played and saved');
+  const { clip, drawnLive, ring } = roomFlight(64, 60);
+  const P = clip.peers;
+  check(Boolean(P) && P.who.length === 3 && P.slots === 3,
+    'three pilots drawn in the window, all three from 25 to 29: three slots', P ? `${P.who.length} pilots, ${P.slots} slots` : 'none');
+  /* Frame alignment: every row holds what that frame drew, local and
+   * peers alike. The local x is the frame number. */
+  let aligned = true;
+  let rows = 0;
+  for (let k = 0; k < clip.n; k += 1) {
+    const f = clip.pose[k * POSE_N];
+    const want = drawnLive[f];
+    const got = seatsAt(clip, k);
+    rows += 1;
+    if (got.size !== want.size) {
+      aligned = false;
+    }
+    for (const [seat, x] of want) {
+      if (got.get(seat) !== x) {
+        aligned = false;
+      }
+    }
+  }
+  check(aligned, 'every row holds each pilot exactly where that frame drew it, beside the local craft', `${rows} rows`);
+  /* Join and leave: B in rows for frames 10 to 29 only, C from 25 on, in
+   * a slot of its own while B is still there. */
+  const framesWith = (seat) => [...Array(clip.n).keys()].filter((k) => seatsAt(clip, k).has(seat)).map((k) => clip.pose[k * POSE_N]);
+  const b = framesWith(3);
+  const c = framesWith(4);
+  check(b[0] === 10 && b[b.length - 1] === 29 && b.length === 20 && c[0] === 25 && c.length === 35,
+    'a join and a leave in the window are the first and last rows the pilot was drawn in',
+    `B ${b[0]}..${b[b.length - 1]}, C ${c[0]}..${c[c.length - 1]}`);
+  /* The ring wrapped: 60 frames in 64 rows, then 100 frames in 64. */
+  const wrapped = roomFlight(64, 100);
+  const w0 = wrapped.clip.pose[0];
+  const wk = seatsAt(wrapped.clip, 0);
+  check(wrapped.clip.n === 64 && w0 === 36 && wk.get(2) === 136 && !wk.has(3) && wrapped.clip.peers.who.length === 2,
+    'past the ring\'s capacity the oldest rows go, and the pilots only in them', `first frame ${w0}, ${wrapped.clip.peers.who.length} pilots`);
+
+  /* Sampled between rows: A half way; B's last row held, not blended
+   * with whoever takes the slot next. */
+  const s = createPeerSample(P.slots);
+  const kA = 20;
+  samplePeers(P, clip.n, kA, 0.5, s);
+  const slotA = [...s.id].findIndex((id) => id && P.who[id - 1].seat === 2);
+  const xA = s.row[slotA * PEER_N + PEER.pos];
+  check(Math.abs(xA - 120.5) < 1e-4, 'between two rows a pilot is drawn between them', xA.toFixed(4));
+  /* This clip's rows are its frames: 60 frames in a ring of 64. */
+  samplePeers(P, clip.n, 29, 0.5, s);
+  const slotB = [...s.id].findIndex((id) => id && P.who[id - 1].seat === 3);
+  check(slotB >= 0 && s.row[slotB * PEER_N + PEER.pos] === 229, 'a pilot\'s last row is held to the next, never blended into another',
+    `B at ${slotB >= 0 ? s.row[slotB * PEER_N + PEER.pos] : 'gone'}`);
+  /* Scrubbed back: a sample depends on the time only. */
+  const ahead = createPeerSample(P.slots);
+  samplePeers(P, clip.n, 50, 0.3, ahead);
+  samplePeers(P, clip.n, 5, 0.7, ahead);
+  const fresh = createPeerSample(P.slots);
+  samplePeers(P, clip.n, 5, 0.7, fresh);
+  /* What is drawn: each slot's pilot, its row and its pieces. */
+  const drawnOf = (x) => [...x.id].map((id, sl) => (id ? [id, ...x.row.subarray(sl * PEER_N, (sl + 1) * PEER_N),
+    ...x.pieces.subarray(sl * PARTS_MAX * PIECE_N, (sl * PARTS_MAX + x.count[sl]) * PIECE_N)] : [0]));
+  check(JSON.stringify(drawnOf(ahead)) === JSON.stringify(drawnOf(fresh)),
+    'scrubbing back gives the same frame as going straight there');
+  /* The wreck: A's table from frame 40, its two pieces sliding, eased
+   * between rows by part. */
+  samplePeers(P, clip.n, 45, 0.5, s);
+  const slotW = [...s.id].findIndex((id) => id && P.who[id - 1].seat === 2);
+  const wo = slotW * PARTS_MAX * PIECE_N;
+  check(s.count[slotW] === 2 && s.row[slotW * PEER_N + PEER.table] === 0 && P.tables.length === 1
+    && s.pieces[wo] === 1 && Math.abs(s.pieces[wo + 1] - 22.75) < 1e-4 && s.pieces[wo + PIECE_N] === 2,
+  'a pilot\'s wreck: its table, its pieces by part, each between two rows', `${s.count[slotW]} pieces, part 1 at x ${s.pieces[wo + 1].toFixed(3)}`);
+  samplePeers(P, clip.n, 39, 0, s);
+  check(s.count[slotW] === 0 && s.row[slotW * PEER_N + PEER.table] === -1, 'before the crash, no wreck');
+  const pose7 = [0, 0, 0];
+  const quat7 = [0, 0, 0, 1];
+  const idA = P.who.findIndex((x) => x.seat === 2) + 1;
+  const found = peerPose(P, clip.n, 20, 0.5, idA, pose7, quat7);
+  check(found && Math.abs(pose7[0] - 120.5) < 1e-4, 'a pilot\'s pose for the camera to follow', pose7[0].toFixed(4));
+  const smokeOn = P.cols[(20 * P.slots + slotA) * PEER_N + PEER.smoke] === 1
+    && P.cols[(20 * P.slots + slotA) * PEER_N + PEER.nozzle] === 120;
+  check(smokeOn, 'the smoke nozzle where the frame drew it');
+
+  /* More pilots than PEERS_MAX drawn at once: the rest counted, not kept. */
+  const crowd = createPeerRing(4);
+  crowd.begin(0);
+  for (let seat = 1; seat <= PEERS_MAX + 3; seat += 1) {
+    crowd.add(fakePeer(seat, '5inch'));
+  }
+  check(crowd.stats.dropped === 3 && crowd.stats.peers === PEERS_MAX, 'past PEERS_MAX drawn at once, the rest are counted as dropped',
+    `${crowd.stats.peers} kept, ${crowd.stats.dropped} dropped`);
+  /* Single player allocates nothing. */
+  const solo = createPeerRing(CAPACITY);
+  solo.begin(0);
+  check(solo.bytes() === 0 && solo.clip(0, 1) === null, 'a single player flight makes no peer columns and no peers in its clip');
+  console.log(`     ring once a room draws a peer: ${(ring.ringBytes / 1048576).toFixed(2)} MB at 64 rows; at CAPACITY ${(solo.ringBytes / 1048576).toFixed(2)} MB (${PEERS_MAX} pilots, ${PIECES_MAX} pieces a row)`);
+
+  /* The budget: a full public room, every one of them wrecked, over two
+   * windows at 120 Hz, the most rows the ring takes. */
+  {
+    const cap = CAPACITY;
+    const big = createPeerRing(cap);
+    const r = createRecorder(cap);
+    const room = new Map();
+    for (let seat = 2; seat < 2 + PEERS_MAX; seat += 1) {
+      const p = fakePeer(seat, 'cub1400');
+      p.smoke = true;
+      p.crash(TABLE);
+      p.pieces(seat);
+      room.set(seat, p);
+    }
+    const frames = 2 * cap;
+    let worst = 0;
+    const t0 = performance.now();
+    for (let f = 0; f < frames; f += 1) {
+      const f0 = performance.now();
+      big.begin(-1);
+      big.begin(r.begin(f / 120, (f * 1000) / 120));
+      for (const p of room.values()) {
+        p.rig.group.position.x = f;
+        big.add(p);
+      }
+      worst = Math.max(worst, performance.now() - f0);
+    }
+    const mean = (performance.now() - t0) / frames;
+    const [first, n] = r.span();
+    const c0 = performance.now();
+    const cut = big.clip(first, n);
+    const clipMs = performance.now() - c0;
+    const full = { ...r.clip({ ...clip.meta }), keys: [], peers: cut };
+    const fileBytes = encodeReplay(full).byteLength;
+    console.log(`     ${PEERS_MAX} pilots, all wrecked, ${frames} rows: ${mean.toFixed(4)} ms a row mean, ${worst.toFixed(3)} ms worst; `
+      + `ring ${(big.bytes() / 1048576).toFixed(2)} MB (made once, at the first pilot); cutting the clip ${clipMs.toFixed(1)} ms; its file ${(fileBytes / 1048576).toFixed(2)} MB`);
+    check(mean < 0.1 && big.stats.dropped === 0 && big.stats.piecesDropped === 0 && cut.slots === PEERS_MAX && cut.pieceAt[n] === n * PEERS_MAX * 2,
+      'a full room recorded in under 0.1 ms a row, every pilot and piece kept', `${mean.toFixed(4)} ms`);
+    check(fileBytes < FILE_MAX_BYTES, 'and its 30 s at 120 Hz fits in a replay file', `${(fileBytes / 1048576).toFixed(2)} of ${FILE_MAX_BYTES / 1048576} MB`);
+  }
+
+  /* Trimmed: a range with B in it keeps the peers; a range after all of
+   * them left has none. */
+  const cut = trimClip(clip, clip.time[12], clip.time[20]);
+  check(cut.peers && cut.peers.cols.length === cut.n * P.slots * PEER_N && seatsAt(cut, 0).get(3) === 212,
+    'a trimmed clip keeps its rows of the pilots');
+  const empty = trimClip({ ...clip, peers: { ...P, cols: new Float32Array(P.cols.length) } }, clip.time[1], clip.time[3]);
+  check(empty.peers === null, 'a trimmed range with nobody in it has no peers');
+
+  /* The file: version 4, every column and list back bit for bit. */
+  const buf = encodeReplay(clip);
+  const version = new DataView(buf).getUint32(4, true);
+  const back = decodeReplay(buf);
+  const bp = back.peers;
+  check(version === 4 && Boolean(bp) && bp.slots === P.slots && same(bp.cols, P.cols) && same(bp.pieces, P.pieces)
+    && same(bp.pieceAt, P.pieceAt) && JSON.stringify(bp.tables) === JSON.stringify(P.tables),
+  'a clip with pilots in it is saved as version 4 and every peer column comes back bit for bit', `${buf.byteLength} bytes`);
+  check(JSON.stringify(bp.who.map((w) => [w.seat, w.label, w.profile.airframe])) === JSON.stringify(P.who.map((w) => [w.seat, w.label, w.profile.airframe])),
+    'who they were comes back: seat, name and airframe');
+  check(same(back.pose, clip.pose) && same(back.time, clip.time), 'and the local craft is unchanged beside them');
+  const trimmedBack = decodeReplay(encodeReplay(cut));
+  check(same(trimmedBack.peers.cols, cut.peers.cols), 'a trimmed range with a join in it round trips');
+
+  /* A single player clip: version 3, byte for byte what the build before
+   * wrote (the hash is of this clip as origin/main 23aab07 encoded it). */
+  const soloClip = soloFortyOne();
+  const soloBuf = encodeReplay(soloClip);
+  const soloHash = createHash('sha256').update(new Uint8Array(soloBuf)).digest('hex').slice(0, 16);
+  check(new DataView(soloBuf).getUint32(4, true) === 3 && soloHash === 'eaee58b3e1aebe2d' && decodeReplay(soloBuf).peers === undefined,
+    'a single player clip is written as version 3, the same bytes as before peers', soloHash);
+
+  const refused = (mut, why) => {
+    try {
+      decodeReplay(mut());
+      check(false, `refused: ${why}`, 'it was accepted');
+    } catch (err) {
+      check(err instanceof ReplayFileError, `refused: ${why}`, err.message);
+    }
+  };
+  const withPeers = (edit) => () => {
+    const copy = JSON.parse(JSON.stringify({ who: P.who, tables: P.tables }));
+    const cols = P.cols.slice();
+    const pieces = P.pieces.slice();
+    edit(copy, cols, pieces);
+    return encodeReplay({ ...clip, peers: { ...P, who: copy.who, tables: copy.tables, cols, pieces } });
+  };
+  refused(() => reheader(buf, 3), 'peers in a version 3 file');
+  refused(() => reheader(soloBuf, 4), 'a version 4 file without peers');
+  refused(withPeers((h, cols) => { cols[PEER.id] = 9; }), 'a row naming a pilot not in the file');
+  refused(withPeers((h) => { h.who[0].profile.airframe = 'NOT AN ID'; }), 'a profile a room would not relay');
+  refused(withPeers((h) => { h.who[0].profile.map = 'alps'; }), 'a pilot in another world');
+  refused(withPeers((h) => { h.who[0].owner = 'x'; }), 'an unknown field on a pilot');
+  refused(withPeers((h) => { h.tables[0][1].parent = 7; }), 'a part table that is not one');
+  refused(withPeers((h, cols, pieces) => { pieces[0] = 7; }), 'a piece that is not a part of its table');
+  refused(withPeers((h, cols) => { cols[PEER.pos] = NaN; }), 'a peer column that is not a number');
+  refused(() => encodeReplay(clip).slice(0, buf.byteLength - 4), 'a file cut short in its pieces');
+}
+
+/* A file with its version (in both places) changed and nothing else. */
+function reheader(buf, version) {
+  const dv = new DataView(buf);
+  const hl = dv.getUint32(8, true);
+  const h = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 12, hl)));
+  h.v = version;
+  const json = new TextEncoder().encode(JSON.stringify(h));
+  const oldStart = 12 + hl + ((8 - ((12 + hl) % 8)) % 8);
+  const start = 12 + json.length + ((8 - ((12 + json.length) % 8)) % 8);
+  const out = new ArrayBuffer(start + buf.byteLength - oldStart);
+  const u8 = new Uint8Array(out);
+  u8.set(new Uint8Array(buf, 0, 4), 0);
+  new DataView(out).setUint32(4, version, true);
+  new DataView(out).setUint32(8, json.length, true);
+  u8.set(json, 12);
+  u8.set(new Uint8Array(buf, oldStart), start);
+  return out;
+}
+
+/* The 41 frame single player clip the hash above is of. */
+function soloFortyOne() {
+  const r = createRecorder(46);
+  const pp = { x: 0, y: 0, z: 0 };
+  const qq = { x: 0, y: 0, z: 0, w: 1 };
+  const st = new Float64Array(20);
+  const ps = new Float64Array(24 * 3);
+  const sp = r.spawnIndex(0, 0, 0, 0, 0, 0, 1, 0.045);
+  for (let f = 0; f < 41; f += 1) {
+    const i = r.begin(f / 60, (f * 1000) / 60);
+    pp.x = f * 0.1 + 1 / 3;
+    r.pose(i, pp, qq);
+    r.drive(i, f, f + 1, f + 2, f + 3, [0.1, -0.2, 0.3, -0.4], 0.5, f);
+    st[1] = f * 1.1;
+    st[7] = 1;
+    r.plant(i, st);
+    r.smoke(i, f % 3 === 0, { x: f, y: 1, z: 2 }, { x: 3, y: 4, z: 5 });
+    r.status(i, [1, f], sp, 0, false, f, 0.5, 2);
+    if (f % 2 === 1) {
+      ps[24] = 1;
+      ps[24 + 2] = f;
+      r.parts(i, ps, 3);
+    }
+    if (f === 7) {
+      r.event('off', { part: 1, label: 'wing right' });
+    }
+  }
+  const c = r.clip({
+    name: 'Solo', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'swiss2', scale: 1, size: 1.8, duration: 0,
+    parts: [0, 1, 2].map((i) => ({ kind: 8, kindName: 'fuselage', parent: i - 1, material: 2, cg: [0, 0, 0], boxMin: [-1, -1, -1], boxMax: [1, 1, 1] })),
+    fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
+  });
+  c.keys = [];
+  return c;
+}
+
 ring();
 interpolation();
 cameras();
 file();
 counts();
 smokeColumn();
+peersRecord();
 await pureReaders();
 await flyTakeOver();
 await bounded();
