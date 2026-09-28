@@ -57,6 +57,7 @@ import { PART_STATE_DOUBLES, STATE } from '../configs/parts.js';
 import { readPartTable, readDamageEvents } from './lib/crash.js';
 import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, encodePose } from '../src/share/roomwire.js';
 import { RoomCore, PRIVATE_CAP } from '../edge/rooms/core.js';
+import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { BREAK_MPS, applyHit, sideFor } from '../src/game/midair.js';
 import { isWreck } from '../src/game/damage.js';
 
@@ -82,6 +83,7 @@ const must = (code, what) => {
 };
 
 const MEET_MS = 600;
+const FLY_AT = SPAWN_MS + 1000;
 const AFTER_MS = 1000;
 const SAMPLE_MS = 1000 / 30;
 const ALT = 60;
@@ -202,10 +204,16 @@ function pass(A, B, latency, friendly = false) {
     inbox[c.i] = [];
   }
   const uplink = [[], []]; /* [arrival ms, bytes] */
-  const next = [5, 21]; /* the two senders' sampling phases, ms */
-  const seq = [0, 0];
+  /* Each sends one pose as it spawns, at room time 0, and the flight
+   * starts at FLY_AT: Phase 5 (edge/rooms/safety.js) holds a seat
+   * untouchable for SPAWN_MS from its first pose. */
+  for (let i = 0; i < 2; i += 1) {
+    route(room.message(conns[i], poseOf(craft[i], state(craft[i]), 0, 1), 0), 0);
+  }
+  const next = [FLY_AT + 5, FLY_AT + 21]; /* the two senders' sampling phases, ms */
+  const seq = [1, 1];
   const hits = [[], []];
-  let tick = SAMPLE_MS;
+  let tick = FLY_AT + SAMPLE_MS;
   const end = MEET_MS + AFTER_MS;
   for (let t = 0; t < end; t += 1) {
     for (const ac of craft) {
@@ -216,7 +224,7 @@ function pass(A, B, latency, friendly = false) {
         ac.events.push(ev);
       }
     }
-    const now = t + 1;
+    const now = FLY_AT + t + 1;
     for (let i = 0; i < 2; i += 1) {
       if (now >= next[i]) {
         next[i] += SAMPLE_MS;

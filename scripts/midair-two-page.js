@@ -39,6 +39,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { SPAWN_MS } from '../edge/rooms/safety.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const rooms = process.argv[2] || 'http://127.0.0.1:8797';
@@ -130,10 +131,13 @@ try {
   const ta = await a.evaluate(throwAt(-1));
   const tb = await b.evaluate(throwAt(1));
   check('both thrown and held nose to nose', ta && ta.ok && tb && tb.ok, `${JSON.stringify(ta && ta.ok)} ${JSON.stringify(tb && tb.ok)}`);
-  /* Wait out the five seconds of spawn protection, held. */
+  /* Wait out the five seconds of spawn protection, held: the page's own,
+   * and the room's (edge/rooms/safety.js), which takes a throw for a
+   * teleport and starts its five seconds again. */
   for (const p of [a, b]) {
     await p.until('window.__rooms().spawning === false', 15000);
   }
+  await a.sleep(SPAWN_MS + 1000);
   check('and no longer spawning, 60 m up and 80 m out', true);
   /* A look at the two before, from A's side of the field. */
   await a.evaluate(`window.__setCam(${m.x}, ${m.y + 3}, ${m.z + 22}, ${m.x}, ${m.y}, ${m.z}, 50); true`);

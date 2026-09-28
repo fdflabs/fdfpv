@@ -64,6 +64,7 @@ import { fileURLToPath } from 'node:url';
 
 import { FLAG_AIRBORNE, PROTO, decodeBatch, encodePose } from '../src/share/roomwire.js';
 import { RoomCore, PRIVATE_CAP } from '../edge/rooms/core.js';
+import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { PeerTrack } from '../src/game/peer.js';
 import { LATE_MS, MARGIN_M, Track, hullFor, judge, poseAt } from '../src/game/midair.js';
 
@@ -74,8 +75,13 @@ const arg = (name, dflt) => {
 const SEEDS = Number(arg('seeds', 20));
 const BASES = [0, 25, 50, 100, 200, 300];
 const JITTERS = [0, 10, 30, 60];
-const T0 = 1500; /* the true moment of the pass, ms */
-const END = 3200; /* how long each run flies */
+/* Each client sends one pose as it spawns, at room time 0, and then flies
+ * from START: the room's Phase 5 safety (edge/rooms/safety.js) keeps a
+ * seat untouchable for SPAWN_MS from its first pose, so the pass is well
+ * after that. */
+const T0 = SPAWN_MS + 1500; /* the true moment of the pass, ms */
+const START = T0 - 1500;
+const END = T0 + 1700; /* how long each run flies */
 const SAMPLE_MS = 1000 / 30;
 const STALL_MS = 200;
 const STALL_P = 0.25;
@@ -178,11 +184,11 @@ function truthOf(sc) {
   const hB = hullFor(sc.b);
   const tA = new Track(Infinity);
   const tB = new Track(Infinity);
-  for (let t = 0; t <= END; t += 1) {
+  for (let t = START; t <= END; t += 1) {
     tA.push({ t, ...sc.A(t) });
     tB.push({ t, ...sc.B(t) });
   }
-  const c = judge(hA, hB, tA, tB, 0, END, 0);
+  const c = judge(hA, hB, tA, tB, START, END, 0);
   return { touch: Boolean(c), tc: c ? c.tc : null };
 }
 
@@ -338,8 +344,9 @@ function runOne(cfg) {
   const truths = [sc.A, sc.B];
   for (const c of clients) {
     let seq = 0;
-    for (let k = 0; ; k += 1) {
-      const send = Math.round(phase[c.i] + k * SAMPLE_MS);
+    for (let k = -1; ; k += 1) {
+      /* k = -1 is the spawn pose at room time 0. */
+      const send = k < 0 ? 0 : Math.round(START + phase[c.i] + k * SAMPLE_MS);
       if (send > END) {
         break;
       }
