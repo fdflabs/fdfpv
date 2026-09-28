@@ -355,12 +355,14 @@ int sim_set_flight_style(int arcade);
  * ailerons like the Slow Stick, on wheels and a tail skid, and 12 SIG's
  * Kadet Senior (docs/KADET-STAGE1.md), a 78 in balsa trainer on an O.S.
  * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
- * a tricycle gear whose nose wheel steers with the rudder, and 16
- * Freewing's F-16 V3 (docs/F16-STAGE1.md), a 70 mm electric ducted fan
- * jet whose thrust lags the stick, on a tricycle gear. 13 to 23 are the
- * slots of the classic aircraft; an empty one returns SIM_ERR_BAD_ARG, as
- * anything else does.
- * 2 to 23 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * a tricycle gear whose nose wheel steers with the rudder, and 15 FMS's
+ * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
+ * flaps on retracting taildragger gear, and 16 Freewing's F-16 V3
+ * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
+ * the stick, on a tricycle gear. 13, 14 and 17 to 23 are reserved for the
+ * aircraft being added alongside them. Returns SIM_ERR_BAD_ARG for any id
+ * without an aircraft.
+ * 2 to 12, 15 and 16 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -390,6 +392,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_CUB1400F_ID 10
 #define SIM_AIRFRAME_BOMBSHELL1118_ID 11
 #define SIM_AIRFRAME_KADET1981_ID 12
+#define SIM_AIRFRAME_P51D1450_ID 15
 #define SIM_AIRFRAME_F16878_ID 16
 int sim_set_airframe(int id);
 
@@ -593,6 +596,22 @@ double sim_wing_chute_open(void);
 int sim_wing_set_flaps(int notch);
 double sim_wing_flaps(void);
 int sim_wing_flaps_settle(void);
+
+/*
+ * sim_wing_set_gear(up): the retracts of an aircraft that has them
+ * (docs/P51-STAGE1.md), 1 up and 0 down; the gear travels at the
+ * aircraft's own rate, and its wheels carry the aircraft only while it is
+ * down and locked, so a landing with it up is on the belly. A reset and
+ * sim_set_airframe put it down and locked. SIM_ERR_BAD_ARG for 1 on an
+ * aircraft without retracts, or anything but 0 or 1.
+ * sim_wing_gear(): where it is, 0 down and locked to 1 up.
+ * sim_wing_gear_selected(): the switch, 1 up and 0 down.
+ * Additive, version unchanged: an aircraft without retracts reads none of
+ * it and its trace is bit identical.
+ */
+int sim_wing_set_gear(int up);
+double sim_wing_gear(void);
+int sim_wing_gear_selected(void);
 int sim_wing_set_slats(int fitted);
 
 /*

@@ -99,6 +99,7 @@ const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
+const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
@@ -192,6 +193,13 @@ export const TUNING = {
     packKg: 0.10, nose: 0.335, tail: -0.95,
     throws: { high: [0, 14.4775, 14.4775], low: [0, 10.1, 10.1], source: `SIG kit manual p. 24: elevator 3/4 in up and down, rudder 7/8 in each way, one set; ${LOW_70}; ${KADET_MANUAL}` },
     flaps: null,
+  },
+  p51d1450: {
+    chord: 0.24413793103448276, area: 0.354, margin: 0.034,
+    cg: { mm: 110, datum: 'tuning.datum.root_le', range: null, source: `FMS manual, "110mm from the wing's leading edge (measured at point of contact with fuselage)", no range, p. 26; ${P51_MANUAL}` },
+    packKg: 0.295, nose: 0.30, tail: -0.70,
+    throws: { high: [19.8769, 25.8721, 12.1224], low: [13.9, 18.1, 8.5], source: `FMS manual pp. 19 and 20: the low rates, 17, 24 and 21 mm, which the manual says are for normal flying, on the 50, 55 and 100 mm surfaces (docs/P51-STAGE1.md), are the plant's; ${LOW_70}; ${P51_MANUAL}` },
+    flaps: { mix: 0, angles: [0, 0.28510428711100527, 0.61297025535831962], source: `FMS manual p. 20: mid 22 mm, full 45 mm, no elevator mix given; ${P51_MANUAL}` },
   },
   f16878: {
     chord: 0.2856, area: 0.21484, margin: 0.115,

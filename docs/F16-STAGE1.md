@@ -56,7 +56,7 @@ coefficient below.
 | Cmα, Cmq, Cmδe, CLδe | -0.3814, -2.263, 0.700, -0.476 | -CLα SM; Nelson's 2.2 η V_H a_t l_h/c; η V_H a_t for an all moving tail |
 | Cm0 | 0.0470 | level at half stick with the stabilator neutral, the pattern speed |
 | Zero lift line | -1.03 deg | the 64A204's -1.2 at no incidence, less the tail's share |
-| CD0, k | 0.0336, 0.1374 | CD0 flies Freewing's 165 km/h on the fan below; k 1/(pi 0.75 3.09) |
+| CD0, k | 0.0336 clean, 0.0466 gear down; 0.1374 | CD0 flies Freewing's 165 km/h on the fan below with the gear up; the gear adds 0.013 (three legs, wheels and doors, 4.6e-3 m² at a C_D of 0.6, ESTIMATED), which the table's cd0 carries and the retracts take away; k 1/(pi 0.75 3.09) |
 | CL max, blend | 1.10, 3 deg | under the full size F-16's 1.5 to 1.6 for the model's Reynolds number and fixed leading edge; ESTIMATED |
 | Post stall | held 10 deg, falls to 0.8 | the strakes' vortex to Freewing's 30 deg of alpha; ESTIMATED (docs/STALL-STAGE1.md; stall:derive) |
 | Stall arms, stall_dw, stall_asym | -0.0552, 0.2052, 0.1442, 0.0035 | stall:derive: the CG 16 mm ahead of the wing's aerodynamic centre, the plate at 0.40 c, 1 mm of build tolerance |
@@ -115,6 +115,15 @@ physics off (the "on" column's differences are main's own, the same lines
 with main's tree). Each gate's S17 holds every other aircraft's recorded
 hash.
 
+**The retracts** are the P-51's (docs/P51-STAGE1.md), reused as the lead
+asked, not a second system: `gear_time` 4 s (Freewing's electric units
+publish no travel time; ESTIMATED), `cd_gear` 0.013 above, and all three
+wheels `retract`. G raises and lowers them in the shell, and the drawn
+model folds its mains forward and in and its nose leg aft under the
+intake (`setGear`). Every gate in the air flies with them up, as a jet
+pilot does once clear of the field; the take off, the approach glide and
+the landing with them down.
+
 A found bug, fixed on the way: the F-16's first hull box, the pitot to the
 nozzle, put its aft lower corner lower than the nozzle, so the hull dragged
 on the runway through the rotation and the scale take off ran 237 m
@@ -129,28 +138,28 @@ CG, which no rotation short of the nozzle's 11.4 deg reaches.
 | --- | --- | --- | --- |
 | S1 level at half stick, the pattern speed | 19.67 m/s | 16.72 to 22.62 | 20.61 |
 | S2 stall, power off | 11.98 m/s | 11.26 to 13.61 | 12.33 |
-| S3 glide at 1.3 Vs | L/D 7.09 | 6.31 to 7.94 | 7.25 at 15.80 |
-| S4 top speed | 45.83 m/s (Freewing) | 41.25 to 50.41 | 43.25, 156 km/h (the pack sags) |
-| S5 best climb | 14.94 m/s at 25.5 | 10.16 to 17.93 | 14.49 at 24.0 |
-| S6 30 deg bank let go, 6 s | 17.2 deg | 8 to 26 | 17.9 |
-| S7 full aileron at 30 m/s | 515 deg/s (p b/2V 0.132) | 386 to 644 | 459, p b/2V 0.114 (the full size F-16: 0.107) |
+| S3 glide at 1.3 Vs, gear down | L/D 6.21 (7.09 clean) | 5.53 to 6.95 | 6.28 at 15.76 |
+| S4 top speed, gear up | 45.83 m/s (Freewing) | 41.25 to 50.41 | 43.24, 156 km/h (the pack sags) |
+| S5 best climb | 14.94 m/s at 25.5 | 10.16 to 17.93 | 14.50 at 24.1 |
+| S6 30 deg bank let go, 6 s | 17.2 deg | 8 to 26 | 17.8 |
+| S7 full aileron at 30 m/s | 515 deg/s (p b/2V 0.132) | 386 to 644 | 460, p b/2V 0.114 (the full size F-16: 0.107) |
 | S8 45 deg bank held | V²/(g tan) | within 15 percent, level | 163 m, 2 percent |
 | S9 full up held, 60 percent, wings held | 31.5 deg of alpha | 22 to 40, bank 15 | 31.6, bank 2.7; hands off a slow spiral, 31 deg of bank in 12 s |
 | S10 phugoid | 9.84 s | 8.15 to 11.52 | 9.86 |
 | S11a spool from stopped to 90 percent thrust | 0.562 s | 0.506 to 0.618 | 0.562 |
 | S11b from 30 percent turning | 0.343 s | 0.309 to 0.377 | 0.343 |
 | S11c full to under 10 percent | 0.189 s | 0.170 to 0.208 | 0.189 |
-| S12 thrust against airspeed, full throttle | n²(1 - u/(76.87 n)) | within 0.03 of static | 0.659 at 23.5 m/s, 0.445 at 40.4 (0.694, 0.475 at full speed) |
-| S13 chop at 75 percent, height held, to 1.3 Vs | 11.0 s, 261 m | 8.8 to 13.2 s, 208 to 313 m | 11.2 s, 263 m |
+| S12 thrust against airspeed, full throttle | n²(1 - u/(76.87 n)) | within 0.03 of static | 0.659 at 23.6 m/s, 0.443 at 40.5 (0.694, 0.474 at full speed) |
+| S13 chop at 75 percent, height held, to 1.3 Vs | 11.0 s, 261 m | 8.8 to 13.2 s, 208 to 313 m | 11.2 s, 262 m |
 | S14 at rest | level, CG 0.140, nose 14.9 percent | | -0.05 deg, 0.1399, 15.0 |
-| S15 take off, full throttle, full up past 1.2 Vs | rotates at 17.0 m/s after 17.4 m | 15.6 to 25.1 m, 1.3 to 1.6 Vs | 16.9 m at 16.8 m/s |
-| S15b take off at 55 percent (Model Aviation's 50 to 60) | 66.9 m to 1.2 Vs, 189 m to 1.6 | between | 138 m at 18.1 m/s |
-| S16 landing from 1.3 Vs, idle over the threshold | touches 14.82 (tail limit) to 16.50 (at 9 deg) | under 17.33 | 16.05 m/s, rolled 127 m |
-| S17 other aircraft unmoved | main's hashes | identical | identical |
+| S15 take off, full throttle, full up past 1.2 Vs | rotates at 16.9 m/s after 17.3 m | 15.6 to 25.7 m, 1.3 to 1.6 Vs | 17.0 m at 16.7 m/s |
+| S15b take off at 55 percent (Model Aviation's 50 to 60) | 72.2 m to 1.2 Vs, 308 m to 1.6 | between | 169 m at 18.1 m/s |
+| S16 landing from 1.3 Vs, idle over the threshold | touches 14.82 (tail limit) to 16.50 (at 9 deg) | under 17.33 | 15.91 m/s, rolled 115 m |
+| S17 other aircraft unmoved, the P-51's two included | main's hashes | identical | identical |
 | S18 Node and Chrome | | identical | identical |
 | S20 stick closed on the strip | fan stopped | 0 rpm, stands | 0 rpm, stands |
-| S21 chop at 75 percent, hands off | 19.57 m/s sinking 2.68 | 2.28 to 3.09 | 2.88 at 20.80 |
-| S22 chop at the trim speed | | pitch within 30 deg | 6.9 |
+| S21 chop at 75 percent, hands off | 19.57 m/s sinking 2.68 | 2.28 to 3.09 | 2.87 at 20.80 |
+| S22 chop at the trim speed | | pitch within 30 deg | 6.8 |
 
 Three things the first run taught, each a finding and not a band moved:
 
@@ -167,7 +176,7 @@ Three things the first run taught, each a finding and not a band moved:
   stick at 1.2 Vs, as a Kadet's does, runs on to 1.7 Vs. The derived band
   is from where full up rotates it to the roll to 1.6 Vs, and the pilot
   eases in full up past 1.2 Vs and holds 8 deg of pitch. At Model
-  Aviation's scale throttle the roll is 138 m: a long jet's roll.
+  Aviation's scale throttle the roll is 169 m: a long jet's roll.
 - **S16's touchdown.** A clean jet at idle glides at 8 deg, so it is flown
   down on the throttle as Model Aviation's pilot does and closed over the
   threshold; and its tail limits the flare: the nozzle's skid strikes at
@@ -181,8 +190,9 @@ its 300, stops within 5 deg, holds inverted, pitches at 94 deg/s against
 steers. The roll lock is held against half the yaw stick, not full: full
 rudder on the F-16's 30 deg sideslips it far enough that the sweep's roll
 from it outweighs full aileron, a limit of the airframe and not of the
-loop. `npm run stab:chop`: sink 2.635 at 19.72 m/s against the derived
-2.684. `npm run stall:probe -- --only f16`: stalls, the nose drops 31 deg,
+loop. Stabilised's throttle closed pitch down is taken gear down, as
+stab:glide reads the table: 6.63 deg, trim throttle 0.531. `npm run
+stab:chop`: sink 3.250 at 19.61 m/s against the derived 3.278. `npm run stall:probe -- --only f16`: stalls, the nose drops 31 deg,
 mushes at 31.6 deg of alpha; full back and rudder spins it, and it
 recovers in 0.3 s.
 
@@ -199,10 +209,8 @@ Each wheel the Cub's model; numbers the drawn model's (`F16_DIMS`).
 | Tail skid | x -0.55, z -0.040 | the ventral fins and nozzle: strikes at 11.4 deg of pitch |
 | Hull | hx 0.42, hy 0.439, 0.06 down, 0.07 up | see above |
 
-The retracts are drawn down and the plant's wheels never retract: the
-gear's drag is in the CD0 that flies 165 km/h, which Freewing measured
-with the gear up. Retracting gear is a plant feature this round does not
-add.
+The retracts fold all three wheels away (above); with the gear up the
+skid and the hull are what a belly landing slides on.
 
 ## The crash parts
 
@@ -238,7 +246,13 @@ recording used. The props' 1 kHz lowpass cap would remove the whine, so
 this voice carries its own cap (10 kHz) and a gain 9.5 dB under a prop's so
 a tone that high is not a hurt. The fan spools in the plant, so the whine
 rises and falls a beat behind the stick. `node scripts/audio-probe.js
---voice=edf` renders it; the owner's ear is the check that matters here.
+--voice=edf --trace=steady:35000` renders it: the blade pass at 7.0 kHz is
+the loudest tone, 60 dB over its neighbourhood, and the whole voice is 9.3
+dB under the prop's (`--voice=wing --trace=steady:14000`). That puts the
+fan's tone inside the 2 to 8 kHz band the probe's A1 line guards for the
+props (A1 margin -16.8 dB where the props keep 12 over): a whine is the
+tone in that band, so the fan cannot meet a rule written to keep a prop's
+buzz out of it. That is the owner's call, and his ear is the check.
 
 ## In the shell
 
@@ -248,13 +262,18 @@ Free Flight card's planes, the carousel, the hangar with two power options
 (stock 6S, and Freewing's 4S Standard derived from its published 78 mph on
 the same fan: 0.767 of the fan's speed, 13.84 N, 47 A inside its 60 A ESC)
 and two 6S packs, Tuning with Freewing's own low rates, three presets
-(f16-acro the default). Progression: level 7, after the Bramor: the
-fastest aircraft here, the hottest landing, a fan whose thrust has to be
-planned ahead of the stick, and the maker's own "experience flying at
-least two EDFs". `npm run f16:shell` on swiss2 and the airfield: module 16
+(f16-acro the default). The hangar's top speed and flight time are flown
+gear down (power-check's cruise), 40 m/s and 19 min. Progression: level
+8, after the P-51 at 7: the fastest aircraft here, the hottest landing, a
+fan whose thrust has to be planned ahead of the stick, and the maker's own
+"experience flying at least two EDFs" where FMS rate the P-51
+intermediate. `npm run f16:shell` on swiss2 and the airfield: module 16
 and the drawn model, the fan's voice, parked at 0.140 m; with the sticks
 centred it runs to 29 m/s before the thrust line lets the nose up, which is
-why a jet pilot rotates it.
+why a jet pilot rotates it. Its swiss2 half failed once on "parked on
+its gear" (the shell's `landed` flag read before it settled, the CG
+0.1398 m up) and passed on the rerun; the Kadet's own swiss2 half fails
+on main's tree too, so the flow's timing there is a finding for the lead.
 
 ## What the owner should feel flying it
 

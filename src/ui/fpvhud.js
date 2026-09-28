@@ -1182,6 +1182,9 @@ export class FpvOsd {
     if (x.fixedWing && v.flaps != null) {
       pack.unshift([str('osd.flaps_up'), str('osd.flaps_half'), str('osd.flaps_full')][v.flaps]);
     }
+    if (x.fixedWing && v.gear != null) {
+      pack.unshift(v.gear === 'up' ? str('osd.gear_up') : v.gear === 'down' ? str('osd.gear_down') : str('osd.gear_moving'));
+    }
     this.readout('mode-batt', 'l', 'b', pack);
     const amps = x.armed ? x.st[19] : 0;
     /* A glow engine's tank, over the current. */
@@ -1404,6 +1407,7 @@ export class FpvOsd {
       homeDir: dir,
       horizonElevDeg: ladder ? ladder.elevDeg : null,
       flaps: v.flaps,
+      gear: v.gear ?? null,
       home: { x: x.home.x, y: x.home.y, z: x.home.z },
     });
   }

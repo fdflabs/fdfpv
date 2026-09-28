@@ -268,6 +268,30 @@ export const TUNES = [
     note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles.',
   },
   {
+    /* The P-51's three, the Timber's: ailerons, elevator and rudder, the
+     * flaps and the retracts switches on top of every mode, F and G; on
+     * its wheels every mode flies as Manual, so the swing on the take off
+     * roll is the pilot's to hold with the rudder in all three. */
+    id: 'p51-stab',
+    airframe: 'p51d1450',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. On the take off roll it is yours: feed in right rudder as the tail comes up. G works the retracts, F the flaps.',
+    wingStab: 1,
+  },
+  {
+    id: 'p51-acro',
+    airframe: 'p51d1450',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 120 degrees a second and a pitch rate up to 60, centred sticks hold the attitude, and the rudder stick is the rudder alone. G works the retracts, F the flaps.',
+    wingStab: 2,
+  },
+  {
+    id: 'p51-manual',
+    airframe: 'p51d1450',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tail wheel. It swings left as the tail comes up and drops a wing when it stalls. G works the retracts, F the flaps.',
+  },
+  {
     /* The F-16's three, the Cub's pattern: ailerons, the stabilators and
      * a rudder, the turn coordinator in Stabilised, and on its wheels
      * every mode flies as Manual, the rudder steering the nose wheel. The

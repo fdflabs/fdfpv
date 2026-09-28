@@ -173,6 +173,15 @@ export const LIVERIES = {
       { id: 'sport_blue', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#335a9a', fuselage: '#335a9a', fuse_trim: '#f2f2f2' } },
     ],
   },
+  p51d1450: {
+    /* FMS's natural metal P-51 as its manual photographs it: silver all
+     * over, the red of the nose band, the spinner and the fin's top, and
+     * the black of the anti-glare panel and the identification bands. */
+    regions: [r('wing', '#cad0d5'), r('fuselage', '#cad0d5'), r('tail', '#cad0d5'), r('trim', '#c8161a'), r('stripe', '#17191b')],
+    schemes: [
+      { id: 'stock', source: src('FMS P-51D Mustang V8 1450 mm, the manual\'s photographs', 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf'), colours: {} },
+    ],
+  },
   f16878: {
     /* Painted foam, not film: Freewing's "modern three tone gray US Air
      * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270

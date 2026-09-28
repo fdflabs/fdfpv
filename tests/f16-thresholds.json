@@ -1,5 +1,5 @@
 {
-  "note": "The bands the Freewing F-16 V3 70 mm EDF plant has to land in, from docs/F16-STAGE1.md, which derives each from Freewing's published figures (the V3 manual FJ211-V02 and the FJ21115P page), Model Aviation's review, the fan's maker's figures, NASA's ducted fan measurements (Weinstein et al., SciTech 2024) and NASA TP-1538's full size F-16 (scripts/f16-derive.js prints the derived figures). Each band is the Kadet's in proportion about its derived figure unless its source says otherwise. Never widened to pass; argue in the derivation instead.",
+  "note": "The bands the Freewing F-16 V3 70 mm EDF plant has to land in, from docs/F16-STAGE1.md, which derives each from Freewing's published figures (the V3 manual FJ211-V02 and the FJ21115P page), Model Aviation's review, the fan's maker's figures, NASA's ducted fan measurements (Weinstein et al., SciTech 2024) and NASA TP-1538's full size F-16 (scripts/f16-derive.js prints the derived figures). Each band is the Kadet's in proportion about its derived figure unless its source says otherwise. Never widened to pass; argue in the derivation instead. Everything in the air is flown with the retracts up, as a jet pilot has them once clear of the field; the take off, the approach glide and the landing with them down, whose drag the table's cd0 carries (the P-51's retracts).",
   "s1_level_50": {
     "duty": 0.5,
     "min": 16.72,
@@ -16,9 +16,9 @@
   },
   "s3_glide": {
     "speed": 15.57,
-    "min": 6.31,
-    "max": 7.94,
-    "source": "L/D at the approach speed, 1.3 Vs, 15.57 m/s, derived 7.09, the Kadet's -11 and +12 percent"
+    "min": 5.53,
+    "max": 6.95,
+    "source": "L/D at the approach speed, 1.3 Vs, 15.57 m/s, with the gear down as an approach is flown, derived 6.21 (7.09 clean), the Kadet's -11 and +12 percent"
   },
   "s4_top": {
     "duty": 1.0,
@@ -131,18 +131,18 @@
   "s15_takeoff": {
     "duty": 1.0,
     "distMin": 15.6,
-    "distMax": 25.1,
+    "distMax": 25.7,
     "vMin": 15.57,
     "vMax": 19.16,
-    "source": "full throttle on grass from a stopped fan, the elevator eased up to full past 1.2 Vs: the fan's thrust through the CG, 0.140 m over the mains' contact, holds the nose on its wheel until full up stabilator lifts it at 17.0 m/s after 17.4 m (f16:derive, rotation), so it lifts off between 1.3 and 1.6 Vs, from 0.9 of the roll to rotation to 1.1 of the roll to 1.6 Vs, 22.8 m: Freewing's 'short takeoff distance' at full power"
+    "source": "full throttle on grass from a stopped fan, the elevator eased up to full past 1.2 Vs: the fan's thrust through the CG, 0.140 m over the mains' contact, holds the nose on its wheel until full up stabilator lifts it at 16.9 m/s after 17.3 m (f16:derive, rotation), so it lifts off between 1.3 and 1.6 Vs, from 0.9 of the roll to rotation to 1.1 of the roll to 1.6 Vs, 23.3 m: Freewing's 'short takeoff distance' at full power"
   },
   "s15b_scale_takeoff": {
     "duty": 0.55,
-    "distMin": 66.9,
-    "distMax": 189.0,
+    "distMin": 72.2,
+    "distMax": 308.4,
     "vMin": 14.37,
     "vMax": 19.16,
-    "source": "the same at 55 percent, Model Aviation's 'takeoff throttle settings of 50% to 60% and gradual application of up-elevator will result in scalelike, shallow angle-of-attack departures': the fan's thrust with its speed squared and falling with the airspeed makes the roll to 1.2 Vs 66.9 m and to 1.6 Vs 189 m (f16:derive), a long jet's roll; it lifts off between the two"
+    "source": "the same at 55 percent, Model Aviation's 'takeoff throttle settings of 50% to 60% and gradual application of up-elevator will result in scalelike, shallow angle-of-attack departures': the fan's thrust with its speed squared and falling with the airspeed makes the roll to 1.2 Vs 72.2 m and to 1.6 Vs 308 m, the gear's drag in both (f16:derive), a long jet's roll; it lifts off between the two"
   },
   "s16_landing": {
     "z0": 12.0,
@@ -150,7 +150,7 @@
     "approach": 15.57,
     "maxTouchSpeed": 17.33,
     "pitchTolDeg": 1.5,
-    "source": "an approach from 12 m at 1.3 Vs, 15.57 m/s, on the elevator and a 3.5 deg path on the throttle (at idle its glide is 8 deg steep), the throttle closed over the threshold at 1.2 m as Model Aviation's pilot does and the nose raised to 9 deg: a jet lands fast because its tail limits the flare, the nozzle's skid striking at 11.4 deg of pitch on the mains, so it touches no slower than 14.82 m/s, 1.24 Vs, and at 9 deg at 16.50 (f16:derive, touchdown), within 5 percent over that; it comes to rest on its three wheels at S14's attitude, no hull or skid, after a roll out of about 100 m on the grass (f16:derive)"
+    "source": "an approach from 12 m at 1.3 Vs, 15.57 m/s, on the elevator and a 3.5 deg path on the throttle (at idle its glide is 8 deg steep), the throttle closed over the threshold at 1.2 m as Model Aviation's pilot does and the nose raised to 9 deg: a jet lands fast because its tail limits the flare, the nozzle's skid striking at 11.4 deg of pitch on the mains, so it touches no slower than 14.82 m/s, 1.24 Vs, and at 9 deg at 16.50 (f16:derive, touchdown), within 5 percent over that; it comes to rest on its three wheels at S14's attitude, no hull or skid, after a roll out of about 94 m with the gear's drag on the grass (f16:derive)"
   },
   "s17_unmoved": {
     "quad": "de0401cd4266c395",
@@ -165,7 +165,9 @@
     "timber": "7557ae52048aba13",
     "timberf": "7fc95d275b4f2e72",
     "kadet": "c4b3dfe7a70afdaa",
-    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed"
+    "p51": "6ad367538a476ead",
+    "p51Air": "3dd9471990f40440",
+    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 5b710b9, before the F-16 joined it"
   },
   "s18_cross_host": {
     "source": "the F-16's recorded take off and flight, state trace hash, Node against headless Chrome"

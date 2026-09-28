@@ -42,6 +42,8 @@ jobs:
       - run: npm run glider:stab
       - run: npm run f16:gates
       - run: npm run f16:stab
+      - run: npm run p51:gates
+      - run: npm run p51:stab
       - run: npm run input:selftest
       - run: npm run ghost:selftest
       - run: npm run contact:selftest

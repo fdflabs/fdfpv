@@ -51,7 +51,7 @@ import { startServer } from '../tests/lib/server.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import {
   F16_AIRFRAME, f16GroundPrelude, f16TakeoffSticks, fly, wingDebug, wheelLoads, attitude, must, bombshellGroundPrelude,
-  slowstickGroundPrelude, skyPrelude, kadetGroundPrelude,
+  slowstickGroundPrelude, skyPrelude, kadetGroundPrelude, p51RecPrelude, p51AirPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
   timberFloatRecPrelude, RC_STEP_MS,
 } from '../tests/lib/wingpilot.js';
@@ -103,8 +103,22 @@ function step(sim, sticks) {
   const loads = wheelLoads(sim);
   return { s, loads, loaded: loads.some((f) => f > 0), hull: sim.e.sim_ground_contacts() };
 }
+/* The retracts up, as a jet pilot has them once clear of the field. fly()
+ * resets the aircraft, which lowers the gear, so the switch goes up in its
+ * first step and the gear folds away over its 4 s while the flight
+ * settles; every gate in the air reads the flight's later seconds. */
+function flyUp(sim, opts) {
+  const inner = opts.onStep;
+  return fly(sim, {
+    ...opts,
+    onStep: (o) => {
+      if (o.ms === 0) must(sim.e.sim_wing_set_gear(1), 'sim_wing_set_gear');
+      if (inner) inner(o);
+    },
+  });
+}
 function levelThen(sim, duty, seconds = 25, speed0 = 20) {
-  const r = fly(sim, { duty, vzTarget: 0, seconds, ...pattern, speed0 });
+  const r = flyUp(sim, { duty, vzTarget: 0, seconds, ...pattern, speed0 });
   clockMs = r.endMs;
   return r;
 }
@@ -118,7 +132,7 @@ check: {
     break check;
   }
 
-  const s1 = fly(sim, { duty: th.s1_level_50.duty, vzTarget: 0, seconds: 40, ...pattern });
+  const s1 = flyUp(sim, { duty: th.s1_level_50.duty, vzTarget: 0, seconds: 40, ...pattern });
   gate('S1', 'pattern speed: level at half stick', within(s1.v, th.s1_level_50), `${s1.v.toFixed(2)} m/s, sink ${(-s1.vz).toFixed(2)}`, band(th.s1_level_50));
 
   let stallV = null;
@@ -133,12 +147,12 @@ check: {
   const ratio = Math.sqrt(Math.max(0, g3.v * g3.v - g3.vz * g3.vz)) / -g3.vz;
   gate('S3', 'glide ratio at the approach speed', within(ratio, th.s3_glide), `${ratio.toFixed(2)} at ${g3.v.toFixed(2)} m/s, sink ${(-g3.vz).toFixed(2)}`, band(th.s3_glide));
 
-  const s4 = fly(sim, { duty: th.s4_top.duty, vzTarget: 0, seconds: 60, ...pattern, speed0: 40 });
+  const s4 = flyUp(sim, { duty: th.s4_top.duty, vzTarget: 0, seconds: 60, ...pattern, speed0: 40 });
   gate('S4', 'top speed, level: Freewing\'s 165 km/h', within(s4.v, th.s4_top) && Math.abs(s4.vz) < 0.2, `${s4.v.toFixed(2)} m/s (${(s4.v * 3.6).toFixed(0)} km/h), climb ${s4.vz.toFixed(2)}`, band(th.s4_top));
 
   let best = null;
   for (const vT of th.s5_climb.speeds) {
-    const r = fly(sim, { duty: 1, speed0: vT, vTarget: vT, seconds: 25, pitchMax: 1.5, pitchMin: -0.5, trimMax: 1.5, guard: false, start: STILL_AIR });
+    const r = flyUp(sim, { duty: 1, speed0: vT, vTarget: vT, seconds: 25, pitchMax: 1.5, pitchMin: -0.5, trimMax: 1.5, guard: false, start: STILL_AIR });
     if (!best || r.vz > best.vz) best = { v: r.v, vz: r.vz, pitchDeg: r.pitch * DEG };
   }
   gate('S5', 'best climb, full throttle', within(best.vz, th.s5_climb), `${best.vz.toFixed(2)} m/s at ${best.v.toFixed(1)} m/s, pitch ${best.pitchDeg.toFixed(0)} deg`, band(th.s5_climb));
@@ -174,7 +188,7 @@ check: {
    * peak roll rate in the first second, and p b / 2V at it. */
   {
     const t7 = th.s7_roll;
-    const r = fly(sim, { duty: t7.duty, vTarget: t7.speed, seconds: 20, ...pattern, speed0: t7.speed });
+    const r = flyUp(sim, { duty: t7.duty, vTarget: t7.speed, seconds: 20, ...pattern, speed0: t7.speed });
     clockMs = r.endMs;
     let peak = 0;
     let vAt = 0;
@@ -193,6 +207,7 @@ check: {
     must(sim.reset(), 'sim_reset');
     must(sim.e.sim_set_pose(...STILL_AIR), 'sim_set_pose');
     must(sim.e.sim_wing_launch(t8.speed0), 'sim_wing_launch');
+    must(sim.e.sim_wing_set_gear(1), 'sim_wing_set_gear');
     clockMs = 0;
     const want = t8.bankDeg / DEG;
     let iBank = 0;
@@ -234,7 +249,7 @@ check: {
    * advertises, with no wing drop and no spin. */
   {
     const t9 = th.s9_high_alpha;
-    clockMs = fly(sim, { duty: t9.duty, vzTarget: 0, seconds: 20, ...pattern, speed0: t9.entry }).endMs;
+    clockMs = flyUp(sim, { duty: t9.duty, vzTarget: 0, seconds: 20, ...pattern, speed0: t9.entry }).endMs;
     const psi0 = heading(sim.readState().state);
     let worstBank = 0;
     let worstR = 0;
@@ -252,7 +267,7 @@ check: {
     }
     const alpha = alphaSum / n;
     /* The same hands off, for the record: the slow spiral it is. */
-    clockMs = fly(sim, { duty: t9.duty, vzTarget: 0, seconds: 20, ...pattern, speed0: t9.entry }).endMs;
+    clockMs = flyUp(sim, { duty: t9.duty, vzTarget: 0, seconds: 20, ...pattern, speed0: t9.entry }).endMs;
     let free = null;
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) free = step(sim, [0, 1, 0, t9.duty]);
     gate('S9', 'full up held: 30 deg of alpha, the wings held', alpha >= t9.alphaMinDeg && alpha <= t9.alphaMaxDeg && worstBank <= t9.maxBankDeg && worstR <= t9.maxYawRateDegS,
@@ -332,7 +347,7 @@ check: {
       let uSum = 0;
       let nSum = 0;
       let n = 0;
-      fly(sim, {
+      flyUp(sim, {
         duty: 1, speed0: vT, vTarget: vT, seconds: 20, pitchMax: 1.5, pitchMin: -0.5, trimMax: 1.5, guard: false, start: STILL_AIR,
         onStep: (o) => { if (o.ms >= 15000) { const d = wingDebug(sim); sum += d[8]; uSum += d[15]; nSum += sim.readState().state[14] / FAN_RPM; n += 1; } },
       });
@@ -548,6 +563,8 @@ const got = {
   timber: await hashOf('tests/inputs/timber-baseline.rec', timberRecPrelude),
   timberf: await hashOf('tests/inputs/timberf-baseline.rec', timberFloatRecPrelude),
   kadet: await hashOf('tests/inputs/kadet-baseline.rec', (s) => kadetGroundPrelude(s)),
+  p51: await hashOf('tests/inputs/p51-baseline.rec', p51RecPrelude),
+  p51Air: await hashOf('tests/inputs/p51-air.rec', p51AirPrelude),
 };
 const names = Object.keys(got);
 gate('S17', 'every other aircraft unmoved', names.every((k) => got[k] === u[k]),

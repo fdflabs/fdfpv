@@ -184,6 +184,15 @@ const Vtop = 165 / 3.6;
   CD0fit.value = T(Vtop) / (q * S) - k * CL * CL;
 }
 const CD0 = CD0fit.value;
+/* The gear down adds its drag, the P-51's retracts in the plant taking it
+ * away as they fold: three legs, their wheels and the doors, about 4.6e-3
+ * m^2 across the flow at a C_D of 0.6, on the wing's area. ESTIMATED. So
+ * the table's cd0 is the gear down one, and the take off, the approach and
+ * the landing are flown with it; everything in the air with the gear up. */
+const gearFrontal = 2 * 0.060 * 0.018 + 0.040 * 0.012 + 2 * 0.09 * 0.006 + 0.065 * 0.006 + 2 * 0.08 * 0.003;
+const cdGear = 0.6 * gearFrontal / S;
+const CD0g = CD0 + 0.013;
+const ldGear = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return CL / (CD0g + k * CL * CL); };
 const Dg = (V, mass = m) => { const q = 0.5 * rho * V * V; const CL = mass * g / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (n) => {
   let lo = 8, hi = 60;
@@ -365,7 +374,7 @@ const cNose = 2 * 0.6 * Math.sqrt(kNose * mNose);
  * the lift and drag at the rest attitude, the fan spooling as the plant's
  * does, to a rotation speed. */
 function takeoff(stick, vRot, mu = 0.08) {
-  const CL = CLa * (-alphaZL), CD = CD0 + k * CL * CL;
+  const CL = CLa * (-alphaZL), CD = CD0g + k * CL * CL;
   let V = 0, x = 0, t = 0, n = 0, v = 0, ramp = 0;
   const dt = 0.001;
   while (V < vRot && t < 60) {
@@ -399,7 +408,7 @@ function rotation(stick, mu = 0.08) {
     const acc = (target - n) / (fanTau * fanTau) - 2 * v / fanTau;
     v += acc * dt; n += v * dt;
     const q = 0.5 * rho * V * V;
-    const CLg = CLa * aRest, CDg = CD0 + k * CLg * CLg;
+    const CLg = CLa * aRest, CDg = CD0g + k * CLg * CLg;
     const L = q * S * (CLg + CLde * throwE), Dr = q * S * CDg, Tt = T(V, n);
     const moment = q * S * mac * (Cm0 + Cma * aRest + Cmde * throwE) + (L - W) * xm - (Tt - Dr) * h;
     if (moment > 0 && V > 1) return { V, x, t };
@@ -505,7 +514,8 @@ function mush(de) {
  * elevator let go, no brake: rolling resistance and the drag at the rest
  * attitude. */
 function rollOut(v0, mu = 0.08) {
-  const { CL, CD } = coeffs(-alphaZL);
+  const { CL } = coeffs(-alphaZL);
+  const CD = coeffs(-alphaZL).CD + (CD0g - CD0);
   let V = v0, x = 0, t = 0;
   const dt = 0.001;
   while (V > 0.05 && t < 120) {
@@ -534,7 +544,8 @@ const rows = [
   ['fan: static N, rpm no load, loaded, J0, zero thrust m/s', `${f(T0, 3)} ${f(rpmNL, 0)} ${f(rpm, 0)} ${f(J0, 3)} ${f(Vz, 2)}`],
   ['   exit area m^2, static jet m/s, ideal W', `${f(Aexit, 6)} ${f(Vjet, 1)} ${f(T0 * Vjet / 2, 0)}`],
   ['   thrust at 0, 15, 30, 45 m/s full', `${f(T(0), 2)} ${f(T(15), 2)} ${f(T(30), 2)} ${f(T(45), 2)}; ratio at 40 ${f(T(40) / T0, 3)}`],
-  ['CD0 fitted to 165 km/h', f(CD0, 4)],
+  ['CD0 fitted to 165 km/h (gear up); gear drag, estimate; table cd0', `${f(CD0, 4)}; ${f(cdGear, 4)}, taken 0.013; ${f(CD0g, 4)}`],
+  ['glide at 1.3 Vs gear down: L/D, sink', `${f(ldGear(1.3 * Vs), 2)} ${f(1.3 * Vs / ldGear(1.3 * Vs), 3)}`],
   ['level at 100, 75, 50, 35 percent stick', `${f(level(1), 2)} ${f(V75, 2)} ${f(V50, 2)} ${f(level(0.35), 2)}`],
   ['stall m/s, 1.3 Vs', `${f(Vs, 2)} ${f(1.3 * Vs, 2)}`],
   ['glide L/D best at, at 1.3 Vs', `${f(LDmax, 2)} ${f(Vmd, 2)}; ${f(ld(1.3 * Vs), 2)} sink ${f(1.3 * Vs / ld(1.3 * Vs), 3)}`],

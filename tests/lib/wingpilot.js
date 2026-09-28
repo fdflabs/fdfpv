@@ -968,6 +968,145 @@ export function recordKadetFlight(sim) {
 }
 
 /*
+ * FMS's P-51D Mustang, airframe 15, docs/P51-STAGE1.md: a warbird on
+ * retracting taildragger gear, flaps, ailerons, elevator and rudder. On the
+ * strip it stands on three points at the pose the plant settles to, the
+ * drawn model's (src/render/p51craft.js); thrown, at a cruise.
+ */
+export const P51_AIRFRAME = 15;
+export const P51_REST = { z: 0.2291, pitchDeg: 13.13 };
+export function p51Prelude(sim, { flaps = 0 } = {}) {
+  must(sim.e.sim_set_airframe(P51_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  must(sim.e.sim_wing_launch(15), 'sim_wing_launch');
+}
+export function p51GroundPrelude(sim, { mu = 1.4, e = 0, flaps = 0 } = {}) {
+  must(sim.e.sim_set_airframe(P51_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = P51_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, P51_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/* The heading of a state, about world z, left positive. */
+const p51Heading = (s) => Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+
+/*
+ * A warbird's take off: the throttle opened over a second and a half, the
+ * stick forward to bring the tail up to 4 deg, rotated to 8 deg at 11 m/s,
+ * 1.1 Vs, the wings on the ailerons and the heading held on the rudder,
+ * which the swing to the left asks to be right rudder, with right rudder
+ * fed in as the tail comes up: 1.3 of stick per rad/s of the nose's
+ * pitching down, the prop's J Omega (0.83 N m s) over what full rudder
+ * holds at 10 m/s (0.64 N m), docs/P51-STAGE1.md. The sticks for this
+ * step, `ms` into the roll.
+ */
+export function p51TakeoffSticks(s, ms) {
+  const v = Math.hypot(s[4], s[5]);
+  const { pitch, bank } = attitude(s);
+  const pt = (v < 11 ? 4 : 8) * Math.PI / 180;
+  const ps = Math.max(-1, Math.min(1, 3 * (pt - pitch) + 0.3 * s[12]));
+  const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
+  const yaw = Math.max(-1, Math.min(1, 2.0 * p51Heading(s) + 0.4 * s[13] + 1.3 * s[12]));
+  return [roll, ps, yaw, Math.min(1, ms / 1500)];
+}
+
+/*
+ * The P-51's recording for the cross-host check, on half flaps: from
+ * standing on the strip, a second at idle, the take off above and a climb,
+ * then level at 75 percent, half a second of full right aileron, a held 45
+ * deg bank, and a chop with a second and a half of full left rudder.
+ * Twenty two seconds, the gear down throughout: a stick stream cannot
+ * carry the gear switch, so the gear's travel is p51-air's.
+ */
+export const p51RecPrelude = (sim) => p51GroundPrelude(sim, { flaps: 1 });
+export function recordP51Flight(sim) {
+  must(sim.reset(), 'sim_reset');
+  p51RecPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -1.2 * (bank - b) - 0.12 * p));
+    const levelPitch = () => {
+      trim += 0.00002 * (0 - vz);
+      trim = Math.max(-0.2, Math.min(0.2, trim));
+      const pitchT = Math.max(-0.2, Math.min(0.15, 0.05 * (0 - vz) + trim));
+      return Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+    };
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 4000) {
+      sticks = p51TakeoffSticks(s, ms - 1000);
+    } else if (ms < 9000) {
+      sticks = [hold(0), Math.max(-1, Math.min(1, 2.5 * (0.2 - pitch) - 0.25 * qAero)), 0, 1];
+    } else if (ms < 12000) {
+      sticks = [hold(0), levelPitch(), 0, 0.75];
+    } else if (ms < 12500) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 18000) {
+      sticks = [hold(Math.PI / 4), levelPitch(), 0, 0.9];
+    } else {
+      sticks = [hold(0), 0, ms >= 19000 && ms < 20500 ? -1 : 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
+ * The P-51 in the air with the gear selected up, for the cross-host check
+ * of the retracts: thrown at 15 m/s 60 m up, the gear travelling up in the
+ * first six seconds of the replay. Then level at 75 percent, a pull to the
+ * stall with full up held, which drops a wing, and the recovery.
+ */
+export function p51AirPrelude(sim) {
+  must(sim.e.sim_set_airframe(P51_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_pose(0, 600, 60, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(15), 'sim_wing_launch');
+  must(sim.e.sim_wing_set_gear(1), 'sim_wing_set_gear');
+}
+export function recordP51AirFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  p51AirPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  for (let ms = 0; ms < 20000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const qAero = -s[12];
+    const hold = (b) => Math.max(-1, Math.min(1, -1.2 * (bank - b) - 0.12 * s[11]));
+    let sticks;
+    if (ms < 9000) {
+      trim += 0.00002 * (0 - s[6]);
+      trim = Math.max(-0.2, Math.min(0.2, trim));
+      const pitchT = Math.max(-0.2, Math.min(0.15, 0.05 * (0 - s[6]) + trim));
+      sticks = [hold(0), Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero)), 0, 0.75];
+    } else if (ms < 14000) {
+      sticks = [0, Math.min(1, (ms - 9000) / 2000), 0, 0];
+    } else {
+      sticks = [hold(0), Math.max(-1, Math.min(1, 2.5 * (-0.05 - pitch) - 0.25 * qAero)), 0, 0.75];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
  * Freewing's F-16 V3 70 mm EDF, airframe 16, docs/F16-STAGE1.md: ailerons,
  * all moving stabilators and a rudder, a ducted fan whose speed lags the
  * stick, on a tricycle gear whose nose wheel steers with the rudder.
@@ -980,6 +1119,8 @@ export function f16Prelude(sim) {
   must(sim.e.sim_set_airframe(F16_AIRFRAME), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_wing_launch(20), 'sim_wing_launch');
+  /* Launched in the air, the retracts go up, as the P-51's do. */
+  must(sim.e.sim_wing_set_gear(1), 'sim_wing_set_gear');
 }
 export function f16GroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
   must(sim.e.sim_set_airframe(F16_AIRFRAME), 'sim_set_airframe');

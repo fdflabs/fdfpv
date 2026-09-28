@@ -339,18 +339,32 @@ export const ESTIMATES = {
   f16878: {
     stock: {
       '6s4000': {
-        topSpeed: 44.16,
-        minutes: 23.7
+        topSpeed: 39.97,
+        minutes: 19.1
       },
       '6s4500': {
-        topSpeed: 44.37,
-        minutes: 25.1
+        topSpeed: 40.16,
+        minutes: 20.2
       }
     },
     '4s': {
       '4s4000': {
-        topSpeed: 34.01,
-        minutes: 20.1
+        topSpeed: 30.77,
+        minutes: 16.1
+      }
+    }
+  },
+  p51d1450: {
+    stock: {
+      '4s2600': {
+        topSpeed: 19.9,
+        minutes: 12.7
+      }
+    },
+    kv650: {
+      '4s2600': {
+        topSpeed: 23.3,
+        minutes: 13
       }
     }
   }

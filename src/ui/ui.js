@@ -2816,7 +2816,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'f16878'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'f16878'],
     mode: 'freestyle',
     /* The card's own world. A card with a home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
@@ -2825,8 +2825,8 @@ const WAYS = [
     home: 'swiss2',
     label: str('ui.free_flight_card'),
     art: 'assets/gate/flight.jpg',
-    blurb: str('ui.eleven_fixed_wings'),
-    facts: [str('ui.eleven_planes'), str('ui.the_swiss_valley')],
+    blurb: str('ui.twelve_fixed_wings'),
+    facts: [str('ui.twelve_planes'), str('ui.the_swiss_valley')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
@@ -3209,13 +3209,15 @@ export class Ui {
     this.osdFlight = el('div', 'osd-sub osd-mode', '');
     /* The flaps' notch, on an aircraft that has them; empty on the rest. */
     this.osdFlaps = el('div', 'osd-sub osd-mode', '');
+    /* The retracts, on an aircraft that has them; empty on the rest. */
+    this.osdGear = el('div', 'osd-sub osd-mode', '');
     this.osdLaunch = el('div', 'osd-launch is-off', '');
     this.osdAlt = el('div', 'osd-sub', '');
     this.osdThrBar = el('div', 'bar-fill warm');
     const thrBar = el('div', 'bar');
     thrBar.append(this.osdThrBar);
     const flightBlock = el('div', 'osd-corner osd-right');
-    flightBlock.append(this.osdSpeed, this.osdFlight, this.osdFlaps, this.osdAlt, el('div', 'osd-label', str('ui.throttle')), thrBar);
+    flightBlock.append(this.osdSpeed, this.osdFlight, this.osdFlaps, this.osdGear, this.osdAlt, el('div', 'osd-label', str('ui.throttle')), thrBar);
     const sticks = el('div', 'osd-sticks is-off');
     this.osdStickLeft = makeGimbal(str('ui.yaw_throttle'));
     this.osdStickRight = makeGimbal(str('ui.roll_pitch'));
@@ -10307,7 +10309,7 @@ export class Ui {
     }
   }
 
-  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal, runState, runRemainMs, runTimed, runScored }) {
+  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal, runState, runRemainMs, runTimed, runScored }) {
     const freestyle = mode === 'freestyle';
     /* Before the first gate there is no lap to time, so the clock reads
      * zero and dims rather than showing a row of dashes. */
@@ -10385,6 +10387,9 @@ export class Ui {
     }
     if (this.osdFlaps) {
       Ui.text(this.osdFlaps, flaps == null ? '' : [str('ui.flaps_up'), str('ui.flaps_half'), str('ui.flaps_full')][flaps]);
+    }
+    if (this.osdGear) {
+      Ui.text(this.osdGear, gear == null ? '' : gear === 'up' ? str('ui.gear_up') : gear === 'down' ? str('ui.gear_down') : str('ui.gear_moving'));
     }
     if (this.osdLaunch) {
       const on = launchState > 0;

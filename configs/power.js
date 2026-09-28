@@ -128,6 +128,9 @@ const FREEWING_F16_4S = 'https://freewing-model.com/freewing-f-16-v2-4s-standard
 const FREEWING_FAN = 'https://www.rc-castle.com/index.php?route=product/product&product_id=7558';
 const NASA_EDF = 'https://ntrs.nasa.gov/api/citations/20230017299/downloads/Weinstein_SciTech2024_Final.pdf';
 const ADMIRAL = 'https://motionrc.com/products/';
+const FMS_P51 = 'https://www.fmshobby.com/products/fms-1400mm-p-51d-red-tail-v8-pnp';
+const FMS_P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
+const P51_UPGRADE = 'https://www.hobbysquawk.com/forum/rc-airplanes/rc-propeller-airplanes/66486-official-fms-1400mm-p-51d-v8-thread/page22';
 /* Glow fuel's density, g/cc, the figure Menon's fuel flows are converted
  * with; a tank's mass here is its fuel's, full. */
 const FUEL_G_CC = 0.875;
@@ -168,6 +171,10 @@ export const TABLE = {
   kadet1981: {
     simId: 12, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 10,
     flightTime: { kind: 'mixed', minutesLow: 19.4, minutesHigh: 19.4, note: "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc", source: OS_56_MANUAL },
+  },
+  p51d1450: {
+    simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
+    flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
   },
 };
 
@@ -480,6 +487,31 @@ const KADET = [
   },
 ];
 
+/* FMS's P-51D 1450, docs/P51-STAGE1.md: the 4250 540 kV on the 14 x 8
+ * four blade and an 80 A ESC, FMS's one listing, on the 4S 2600 it
+ * recommends (Dynam's 4S 2600 25C, 295 g, for the mass). The alternative
+ * is the owners' upgrade, FMS's 4258 650 kV from the 1400 mm P-40 on the
+ * same prop, which wants a bigger ESC (78 A static against the 80 A's
+ * rating); its figures are scripts/p51-derive.js's motor balance,
+ * ESTIMATED as the stock's are, and it is 45 g heavier. */
+const P51_4S = [lipo('4s2600', 4, 2600, 295, 'https://www.dynamrc.com/products/14-8v-2600mah-25c-lipo-battery')];
+const P51 = [
+  {
+    id: 'stock', name: 'power.p51.stock', kind: 'electric', voice: 'wing',
+    kv: 540, propIn: 14, pitchIn: 8, blades: 4,
+    thrustN: 30.7, currentA: 55.2, rpmNoLoad: 7992, pitchSpeedMs: 23.006, lvcV: 3.4,
+    massKg: 2.35, cgShiftM: 0, packs: P51_4S, pack: '4s2600',
+    source: [FMS_P51, FMS_P51_MANUAL],
+  },
+  {
+    id: 'kv650', name: 'power.p51.kv650', kind: 'electric', voice: 'wing',
+    kv: 650, propIn: 14, pitchIn: 8, blades: 4,
+    thrustN: 36.50, currentA: 78.3, rpmNoLoad: 9620, pitchSpeedMs: 27.693, lvcV: 3.4,
+    massKg: 2.35 + 0.045, cgShiftM: 0, packs: P51_4S, pack: '4s2600',
+    source: [P51_UPGRADE, 'https://www.fmshobby.com/products/4258-kv650-motor'],
+  },
+];
+
 /* Freewing's F-16 V3 70 mm EDF, docs/F16-STAGE1.md: the 70 mm twelve
  * blade fan on its 2957 2210 kV inrunner and an 80 A ESC, 6S 3500 to 4500
  * (Freewing's page and the V3 manual: 2,400 g of thrust); the fan unit's
@@ -533,6 +565,7 @@ export const POWER = {
   bombshell1118: BOMBSHELL,
   kadet1981: KADET,
   f16878: F16,
+  p51d1450: P51,
 };
 
 /* ------------------------------------------------------------------ */

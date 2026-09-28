@@ -993,6 +993,64 @@ export const AIRFRAMES = [
   },
   {
     /*
+     * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
+     * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing
+     * plant, with ailerons, an elevator, a rudder, plain flaps and electric
+     * retracts, on FMS's 4250 540 kV and a 14 x 8 four blade on 4S. It
+     * stands on three points at 13 degrees and swings left on the take off
+     * roll, which right rudder holds; it drops a wing at the stall. `gear`
+     * is the plant's settled pose, which the drawn wheels in
+     * src/render/p51craft.js match: the CG 0.2291 m over the ground and
+     * 13.13 degrees nose up. `flaps` says it has flaps (F) and `retracts`
+     * that G raises and lowers the gear, which the OSD shows.
+     */
+    id: 'p51d1450',
+    simId: 15,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/p51-thresholds.json p2_stall. */
+    stall: 10.06,
+    /* Level speed at full throttle with the gear up, m/s: tests/p51-thresholds.json p4_top, derived. */
+    topSpeed: 20.64,
+    gear: { restHeight: 0.2291, restPitch: 13.13 * Math.PI / 180 },
+    flaps: true,
+    retracts: true,
+    name: 'P-51D Mustang',
+    short: 'P-51',
+    blurb: 'A 1450 mm FMS P-51D Mustang on 4S, the Second World War fighter in natural metal with a red nose and tail. It swings left as the tail comes up, so feed in right rudder; it keeps its speed, and it drops a wing if you let it get slow. G raises and lowers the retracts, F sets the flaps.',
+    facts: ['4S', '1450 mm', 'Retracts, flaps'],
+    sizeMm: 1450,
+    grams: 2350,
+    trackClass: 'wing',
+    cells: 4,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'p51-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/p51craft.js P51_DIMS: the furthest
+     * reach in plan is the rudder's trailing edge, the lowest drawn point
+     * the main tyres' and the highest the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1778,
+      hullR: 0.8326,
+      vHalfDown: 0.2491,
+      vHalfUp: 0.2303,
+      bodyLength: 1.2628,
+      bodyWidth: 1.450,
+      bodyHeight: 0.4794,
+    },
+  },
+  {
+    /*
      * Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High
      * Performance PNP (FJ21115P), docs/F16-STAGE1.md: a 1/11.5 scale EPO
      * jet, 878 mm across its tip rails, 2.116 kg on a 6S 4000, simId 16 on
@@ -1001,13 +1059,15 @@ export const AIRFRAMES = [
      * lags the stick as the fan spools and falls away with airspeed, and
      * the ESC stops the fan with the stick closed. `voice` is the fan's
      * whine (src/render/audio.js). It stands level on a tricycle gear
-     * whose nose wheel steers with the rudder; `gear` is the plant's
+     * whose nose wheel steers with the rudder and which retracts on G
+     * (`retracts`, the P-51's system); `gear` is the plant's
      * settled pose, which the drawn wheels in src/render/f16craft.js
      * match: the CG 0.140 m over the runway.
      */
     id: 'f16878',
     simId: 16,
     fixedWing: true,
+    retracts: true,
     voice: 'edf',
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/f16-thresholds.json s2_stall. */
     stall: 11.98,
@@ -1016,7 +1076,7 @@ export const AIRFRAMES = [
     gear: { restHeight: 0.140, restPitch: 0 },
     name: 'F-16 Falcon',
     short: 'F-16',
-    blurb: 'An 878 mm Freewing F-16 Fighting Falcon on a 70 mm ducted fan and 6S: ailerons, all moving stabilators, a rudder and a steerable nose wheel. The fan takes a moment to spool and its thrust falls away with speed, so it keeps its energy and wants a long, planned approach.',
+    blurb: 'An 878 mm Freewing F-16 Fighting Falcon on a 70 mm ducted fan and 6S: ailerons, all moving stabilators, a rudder and a steerable nose wheel. The fan takes a moment to spool and its thrust falls away with speed, so it keeps its energy and wants a long, planned approach. G raises and lowers the retracts.',
     facts: ['70 mm EDF', '878 mm', '6S'],
     sizeMm: 878,
     grams: 2116,

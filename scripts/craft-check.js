@@ -123,6 +123,12 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             pitot's reach, 1420 mm, and Freewing's 878 mm span is held
  *             by craft-preview.js's half span row. src/render/f16craft.js
  *             draws it.
+ *   p51d1450  FMS's 1450 mm P-51D Mustang, whose rudder's trailing edge,
+ *             0.834 m aft of the CG (the kit manual's side view), reaches
+ *             further than its tips, 0.725 m out, so the width this file
+ *             measures and the reach are both the rudder's, 1667 mm, and
+ *             FMS's 1450 mm is held by craft-preview.js's half span row.
+ *             src/render/p51craft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -137,13 +143,14 @@ const REAL = {
   cub1400: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   radian2000: { spanMm: 2000.0, sweepMm: 2018.7, tolMm: 6 },
   bramor2300: { spanMm: 2300.0, sweepMm: 2551.0, tolMm: 6 },
+  f16878: { spanMm: 1420.0, sweepMm: 1420.0, tolMm: 6 },
   slowstick1180: { spanMm: 1264.0, sweepMm: 1278.1, tolMm: 6 },
   timber1500: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
   timber1500f: { spanMm: 1555.0, sweepMm: 1596.2, tolMm: 6 },
   cub1400f: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
   kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
-  f16878: { spanMm: 1420.0, sweepMm: 1420.0, tolMm: 6 },
+  p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

@@ -8,8 +8,7 @@
  * with a pitot, a bubble canopy, the chin intake with the nose gear under
  * it, a cropped delta with the strakes blended into its root, one big fin,
  * all moving stabilators on booms beside the nozzle, two canted ventral
- * fins, and electric retracts, drawn down because the physics always has
- * the wheels out.
+ * fins, and electric retracts.
  *
  * THE NUMBERS are off the maker's manual's dimensioned top view, measured:
  * the length, 1.306 m pitot tip to the fin's tip; the span, 0.878 m over
@@ -40,7 +39,10 @@
  * the elevator turns both stabilators together; the nose wheel turns with
  * the rudder by F16_NOSE_STEER, its front the way the rudder's trailing
  * edge goes. The "prop" is the fan's rotor, deep in the jet pipe where a
- * look up the nozzle finds it.
+ * look up the nozzle finds it. On top of it, setGear(g): the retracts, 0
+ * down and locked to 1 up, as sim_wing_gear reports them, p51craft.js's;
+ * the mains fold forward and in to the fuselage's sides, the nose leg aft
+ * into the intake's fairing.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -641,10 +643,12 @@ function intakeGeometry(lite) {
   /* The lip's first ring is on the inside, where outward points in, so
    * the whole is faced by the fairing's rows, which are the most of it. */
   const outer = grid(rows.map(ring), true, outward);
-  const deep = 0.520;
+  /* Shallow and raked with the mouth: the nose leg folds into the
+   * fairing just behind it. */
+  const deep = 0.455;
   const tunnelRows = [
     ring((a) => ductPoint(INTAKE_S + 0.010, a, lipIn, INTAKE_RAKE)),
-    ring((a) => ductPoint(deep, a, lipIn * 0.95, 0)),
+    ring((a) => ductPoint(deep, a, lipIn * 0.95, INTAKE_RAKE)),
   ];
   const tunnel = grid(tunnelRows, true, (p) => outward(p).negate());
   const back = cap(tunnelRows[1], new THREE.Vector3(0, 0, -1));
@@ -1162,15 +1166,17 @@ export function buildF16Craft(opts = {}) {
   }
 
   /*
-   * The gear, drawn down. The mains on raked oleos up into the wing's
-   * root with a drag brace and a door inboard of each; the nose leg's
-   * oleo down from under the intake to a steering collar, and below it
-   * the fork, which turns with the wheel.
+   * The gear, electric retracts, each leg on its own pivot so setGear can
+   * fold it. Down, it is where the physics' wheels are: the mains on
+   * raked oleos up into the wing's root, and a door
+   * inboard of each on its own hinge; the nose leg's oleo down from under
+   * the intake to a steering collar, and below it the fork, which turns
+   * with the wheel.
    */
-  const metalParts = [pitotGeometry(lite)];
-  const strutParts = [];
-  const doorParts = [];
-  const tyres = [];
+  const metalMesh = new THREE.Mesh(pitotGeometry(lite), metal);
+  metalMesh.name = 'f16-metal';
+  metalMesh.castShadow = shade;
+  group.add(metalMesh);
   const tyreOf = (r, w, x, y, z) => {
     const tube = w / 2;
     const t = new THREE.TorusGeometry(r - tube, tube, lite ? 5 : 6, lite ? 16 : 24);
@@ -1184,49 +1190,106 @@ export function buildF16Craft(opts = {}) {
     h.translate(x, y, z);
     return h;
   };
-  for (const sign of [-1, 1]) {
+  /* A mesh of parts drawn in the craft frame, moved into a pivot's. */
+  const partOf = (geo, material, at, name) => {
+    geo.translate(-at.x, -at.y, -at.z);
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.castShadow = shade;
+    if (name) {
+      mesh.name = name;
+    }
+    return mesh;
+  };
+
+  /*
+   * A main leg turns about its head on a skewed axis, as the F-16's does:
+   * forward and inward, so the wheel ends inside the fuselage's side beside
+   * the intake duct with its axle at MAIN_STOWED, leaning MAIN_LEAN with
+   * its bottom inboard, because the fuselage narrows under the chine and an
+   * upright 60 mm wheel stands out of it. The turn is the one that carries
+   * the leg's direction and the axle's onto their stowed directions, built
+   * from the two frames.
+   */
+  const MAIN_STOWED = { x: 0.042, y: -0.018 };
+  const MAIN_LEAN = 30 * DEG;
+  const mainLeg = (sign) => {
     const inner = MAIN_X - MAIN_W / 2 - 0.004;
-    const foot = new THREE.Vector3(sign * inner, MAIN_Y + 0.004, st(MAIN_S));
     const head = new THREE.Vector3(sign * (inner - 0.002), -0.008, st(MAIN_S - 0.027));
+    const foot = new THREE.Vector3(sign * inner, MAIN_Y + 0.004, st(MAIN_S));
+    const axle = new THREE.Vector3(sign * MAIN_X, MAIN_Y, st(MAIN_S));
     const knee = new THREE.Vector3().lerpVectors(head, foot, 0.55);
-    strutParts.push(rod(head, knee, 0.0042, rodSeg));
-    strutParts.push(rod(knee, foot, 0.0029, rodSeg));
-    strutParts.push(rod(new THREE.Vector3(sign * inner, MAIN_Y, st(MAIN_S)),
-      new THREE.Vector3(sign * (MAIN_X + MAIN_W / 2 + 0.002), MAIN_Y, st(MAIN_S)), 0.0022, rodSeg));
-    strutParts.push(rod(new THREE.Vector3().lerpVectors(head, foot, 0.4),
-      new THREE.Vector3(sign * 0.072, -0.012, st(MAIN_S - 0.075)), 0.0017, rodSeg));
-    const door = new THREE.BoxGeometry(0.0016, 0.044, 0.080);
-    door.translate(sign * 0.078, -0.036, st(MAIN_S - 0.020));
-    doorParts.push(door);
-    tyres.push(tyreOf(MAIN_R, MAIN_W, sign * MAIN_X, MAIN_Y, st(MAIN_S)));
-    metalParts.push(hubOf(0.017, MAIN_W * 0.8, sign * MAIN_X, MAIN_Y, st(MAIN_S)));
-  }
-  /* The nose leg's fixed oleo, from the intake's floor to the collar. */
+    const legGeo = merged([
+      rod(head, knee, 0.0042, rodSeg),
+      rod(knee, foot, 0.0029, rodSeg),
+      rod(new THREE.Vector3(sign * inner, MAIN_Y, st(MAIN_S)),
+        new THREE.Vector3(sign * (MAIN_X + MAIN_W / 2 + 0.002), MAIN_Y, st(MAIN_S)), 0.0022, rodSeg),
+    ]);
+    const side = sign < 0 ? 'left' : 'right';
+    const pivot = new THREE.Group();
+    pivot.position.copy(head);
+    pivot.add(partOf(legGeo, strut, head, `f16-leg-${side}`));
+    pivot.add(partOf(tyreOf(MAIN_R, MAIN_W, axle.x, axle.y, axle.z), tyreMat, head, `tyre-main-${side}`));
+    pivot.add(partOf(hubOf(0.017, MAIN_W * 0.8, axle.x, axle.y, axle.z), metal, head));
+
+    const v0 = new THREE.Vector3().subVectors(axle, head);
+    const len = v0.length();
+    const dx = sign * MAIN_STOWED.x - head.x;
+    const dy = MAIN_STOWED.y - head.y;
+    const v1 = new THREE.Vector3(dx, dy, -Math.sqrt(len * len - dx * dx - dy * dy));
+    const frame = (d, want) => {
+      const a = want.clone().addScaledVector(d, -want.dot(d)).normalize();
+      return new THREE.Matrix4().makeBasis(d, a, new THREE.Vector3().crossVectors(d, a));
+    };
+    const m0 = frame(v0.normalize(), new THREE.Vector3(1, 0, 0));
+    const m1 = frame(v1.normalize(), new THREE.Vector3(Math.cos(MAIN_LEAN), -sign * Math.sin(MAIN_LEAN), 0));
+    const up = new THREE.Quaternion().setFromRotationMatrix(m1.multiply(m0.transpose()));
+    return { pivot, up };
+  };
+
+  /* A main door hinged along its top edge, fore and aft; retracting, it
+   * swings in under the wing's root to lie flat across the well. */
+  const mainDoor = (sign) => {
+    const hinge = new THREE.Vector3(sign * 0.078, -0.010, st(MAIN_S - 0.020));
+    const pivot = new THREE.Group();
+    pivot.position.copy(hinge);
+    const door = new THREE.BoxGeometry(0.0016, 0.048, 0.080);
+    door.translate(hinge.x, hinge.y - 0.024, hinge.z);
+    pivot.add(partOf(door, lightDim, hinge, `f16-door-${sign < 0 ? 'left' : 'right'}`));
+    return { pivot, axis: new THREE.Vector3(0, 0, 1), sign };
+  };
+
+  /*
+   * The nose leg turns aft about a transverse pivot at the oleo's top,
+   * under the intake, through NOSE_FOLD, which lifts the collar to
+   * NOSE_STOWED_Y; the fork turns on a knuckle at the collar through
+   * FORK_FOLD to trail level behind it, so the wheel lies upright in the
+   * duct's fairing behind the intake's black recess. The leg is too long
+   * for the fairing's depth folded straight: the fork would end under it.
+   * About +x, a turn by phi takes the angle atan2(y, z) to itself less phi.
+   */
+  const NOSE_TOP = new THREE.Vector3(0, -0.066, st(0.448));
+  const NOSE_STOWED_Y = -0.050;
   const collarY = NOSE_Y + NOSE_R + 0.010;
-  strutParts.push(rod(new THREE.Vector3(0, -0.066, st(0.448)), new THREE.Vector3(0, collarY + 0.004, st(NOSE_S + 0.003)), 0.0036, rodSeg));
-  const strutMesh = new THREE.Mesh(merged(strutParts), strut);
-  strutMesh.name = 'f16-struts';
-  strutMesh.castShadow = shade;
-  group.add(strutMesh);
-  const doors = new THREE.Mesh(merged(doorParts), lightDim);
-  doors.name = 'f16-gear-doors';
-  doors.castShadow = shade;
-  group.add(doors);
-  const tyreMesh = new THREE.Mesh(merged(tyres), tyreMat);
-  tyreMesh.name = 'f16-tyres';
-  tyreMesh.castShadow = shade;
-  group.add(tyreMesh);
-  const metalMesh = new THREE.Mesh(merged(metalParts), metal);
-  metalMesh.name = 'f16-metal';
-  metalMesh.castShadow = shade;
-  group.add(metalMesh);
+  const collar = new THREE.Vector3(0, collarY + 0.004, st(NOSE_S + 0.003));
+  const angleOf = (v) => Math.atan2(v.y, v.z);
+  const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+  const oleo = new THREE.Vector3().subVectors(collar, NOSE_TOP);
+  const NOSE_FOLD = angleOf(oleo) - Math.asin((NOSE_STOWED_Y - NOSE_TOP.y) / oleo.length());
+  const FORK_FOLD = wrap(angleOf(new THREE.Vector3(0, NOSE_Y - collar.y, NOSE_AXLE[2] - collar.z)) - NOSE_FOLD);
+  const noseBay = new THREE.Group();
+  noseBay.position.copy(NOSE_TOP);
+  noseBay.add(partOf(rod(NOSE_TOP.clone(), collar.clone(), 0.0036, rodSeg), strut, NOSE_TOP, 'f16-nose-oleo'));
+  const knuckle = new THREE.Group();
+  knuckle.position.copy(oleo);
+  noseBay.add(knuckle);
 
   /* The nose wheel on its fork, steered about the vertical through its
-   * axle as the Kadet's is. */
+   * axle as the Kadet's is, down; its children are in the craft frame's
+   * heights, the group standing at the axle's station. */
   const noseSteer = new THREE.Group();
   noseSteer.name = 'nosewheel';
-  noseSteer.position.set(0, 0, NOSE_AXLE[2]);
-  group.add(noseSteer);
+  noseSteer.position.set(0, -collar.y, NOSE_AXLE[2] - collar.z);
+  knuckle.add(noseSteer);
   {
     const legs = [];
     const fx = NOSE_W / 2 + 0.003;
@@ -1244,6 +1307,13 @@ export function buildF16Craft(opts = {}) {
     tyre.castShadow = shade;
     noseSteer.add(tyre);
     noseSteer.add(new THREE.Mesh(hubOf(0.011, NOSE_W * 0.8, 0, NOSE_Y, 0), metal));
+  }
+
+  const gear = { 'gear-left': mainLeg(-1), 'gear-right': mainLeg(1) };
+  const doors = { 'gear-door-left': mainDoor(-1), 'gear-door-right': mainDoor(1) };
+  for (const [name, leg] of Object.entries({ ...gear, ...doors, 'gear-nose': { pivot: noseBay } })) {
+    leg.pivot.name = name;
+    group.add(leg.pivot);
   }
 
   /* The moving surfaces: the flaperons, the stabilators on one elevator
@@ -1402,8 +1472,32 @@ export function buildF16Craft(opts = {}) {
       half.pivot.quaternion.copy(q.setFromAxisAngle(half.axis, -elevRad));
     }
     rudder.pivot.quaternion.copy(q.setFromAxisAngle(rudder.axis, -rudRad));
-    noseSteer.rotation.y = F16_NOSE_STEER * rudRad;
+    steerRad = F16_NOSE_STEER * rudRad;
+    noseSteer.rotation.y = steerRad * (1 - gearUp);
   }
+  /*
+   * The retracts, 0 down and locked to 1 up, as sim_wing_gear reports
+   * them: the mains swing forward and in on their skewed axes, the nose
+   * leg aft, the steering centred as it goes, and the main doors close
+   * over the second half once the legs are clear of them.
+   */
+  const none = new THREE.Quaternion();
+  let gearUp = 0;
+  let steerRad = 0;
+  function setGear(g) {
+    gearUp = Math.min(1, Math.max(0, g));
+    for (const leg of Object.values(gear)) {
+      leg.pivot.quaternion.slerpQuaternions(none, leg.up, gearUp);
+    }
+    const shut = Math.min(1, Math.max(0, (gearUp - 0.5) / 0.5));
+    for (const door of Object.values(doors)) {
+      door.pivot.quaternion.copy(q.setFromAxisAngle(door.axis, -door.sign * shut * Math.PI / 2));
+    }
+    noseBay.quaternion.copy(q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), gearUp * NOSE_FOLD));
+    knuckle.quaternion.copy(q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), gearUp * FORK_FOLD));
+    noseSteer.rotation.y = steerRad * (1 - gearUp);
+  }
+  setGear(0);
   setSurfaces(0, 0, 0, 0);
 
   return {
@@ -1415,6 +1509,7 @@ export function buildF16Craft(opts = {}) {
     stator,
     propSpin: F16_PROP_SPIN,
     setSurfaces,
+    setGear,
     livery: coat.livery,
   };
 }

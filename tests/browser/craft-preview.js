@@ -33,6 +33,7 @@ import { buildTimberCraft, TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS } from 
 import { buildBombshellCraft, BOMBSHELL_DIMS } from '../../src/render/bombshellcraft.js';
 import { buildKadetCraft, KADET_DIMS } from '../../src/render/kadetcraft.js';
 import { buildF16Craft, F16_DIMS } from '../../src/render/f16craft.js';
+import { buildP51Craft, P51_DIMS } from '../../src/render/p51craft.js';
 
 /* On floats, the float variants: the same aircraft, its reach down and up
  * and its rest the floats', its nose the floats' bows where they reach
@@ -43,16 +44,18 @@ const BUILDERS = {
   timberf: (o) => buildTimberCraft({ ...o, floats: true }),
   cubf: (o) => buildCubCraft({ ...o, floats: true }),
   bombshell: buildBombshellCraft,
-  kadet: buildKadetCraft,
   f16: buildF16Craft,
+  kadet: buildKadetCraft,
+  p51: buildP51Craft,
 };
 const DIMS = {
   sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS,
   timberf: onFloats(TIMBER_DIMS, TIMBER_FLOATS, TIMBER_FLOAT_DIMS),
   cubf: onFloats(CUB_DIMS, CUB_FLOATS, CUB_FLOAT_DIMS),
+  f16: F16_DIMS,
   bombshell: BOMBSHELL_DIMS,
   kadet: KADET_DIMS,
-  f16: F16_DIMS,
+  p51: P51_DIMS,
 };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';
@@ -161,6 +164,13 @@ window.__preview = {
   flaps(rad) {
     if (craft.setFlaps) {
       craft.setFlaps(rad);
+    }
+    return true;
+  },
+  /* A craft with retracts: 0 down and locked to 1 up. */
+  gear(g) {
+    if (craft.setGear) {
+      craft.setGear(g);
     }
     return true;
   },
