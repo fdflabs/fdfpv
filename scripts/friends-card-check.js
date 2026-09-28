@@ -193,6 +193,11 @@ try {
   check('Enter opens the room screen, not the aircraft picker', opened.screen === 'friends' && !opened.carousel, JSON.stringify(opened));
   check('in free flight, off the gate, the Swiss valley seated', opened.mode === 'freestyle' && !opened.gate && opened.map === 'swiss2');
   check('on Make a room and Join with a code', opened.rows.includes('friends-create') && opened.rows.includes('friends-join'), opened.rows.join());
+  /* The lobby answers whether public rooms are open after the screen is
+   * up, so the row arrives a moment later. */
+  await a.until("window.__ui.items().some((it) => it.action === 'friends-public')", 15000).catch(() => {});
+  check('and Join a public room, where the rooms server has them open',
+    await a.evaluate("window.__ui.items().some((it) => it.action === 'friends-public')"));
 
   await a.tap('Escape');
   await a.until("window.__ui.screen === 'title' && !window.__ui.onGate()", 10000).catch(() => {});

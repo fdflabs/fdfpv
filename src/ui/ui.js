@@ -2914,7 +2914,7 @@ const WAYS = [
      * planes. `room` is what makes it a different way in: it opens the
      * room screen (#128, src/main.js friendsRows) instead of the aircraft
      * picker, and the aircraft and the world are chosen there, after the
-     * room. A public lobby is another row on that screen, not a card.
+     * room. Public rooms (Phase 5) are a row on that screen, not a card.
      *
      * LAST, because pickForWay's "the card that takes it" and seatedWay's
      * "the card of its kind" are first match reads of this table and
@@ -2929,7 +2929,7 @@ const WAYS = [
     art: 'assets/gate/friends.jpg',
     svg: pairSvg(),
     blurb: str('friends.card_blurb'),
-    facts: [str('friends.card_code'), str('friends.card_eight'), str('friends.card_craft')],
+    facts: [str('friends.card_public'), str('friends.card_code'), str('friends.card_craft')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 

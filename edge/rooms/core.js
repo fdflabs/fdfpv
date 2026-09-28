@@ -44,10 +44,11 @@
 import {
   CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
+import { RoomSafety } from './safety.js';
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
- * 14, answer 6). Public rooms, at 16, stay closed until Phase 5. */
+ * 14, answer 6). A public room's is roomwire.js PUBLIC_CAP, 16. */
 export const PRIVATE_CAP = 8;
 export const POSE_PER_S = 35;
 export const TEXT_PER_S = 5;
@@ -82,6 +83,7 @@ export class RoomCore {
     this.joins = new Map();   /* address -> { since, n } */
     this.recent = new Map();  /* token -> { seat, until }, for a reconnect */
     this.ticking = false;
+    this.safety = new RoomSafety(this);
   }
 
   roomMs(now) {
@@ -136,7 +138,7 @@ export class RoomCore {
   }
 
   attachmentOf(s) {
-    return { seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address };
+    return { seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address, muted: s.muted || [] };
   }
 
   freeSeat(wanted) {
@@ -238,6 +240,8 @@ export class RoomCore {
         code: this.meta.code,
         cap: this.meta.cap,
         friendly: Boolean(this.meta.friendly),
+        public: Boolean(this.meta.public),
+        shard: this.meta.public ? this.meta.shard : null,
         map: this.meta.map,
         peers: this.peerList(conn),
       }),
@@ -288,7 +292,11 @@ export class RoomCore {
         ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
       ];
     }
-    if (msg.type === 'kick' && s.seat === this.host() && msg.seat !== s.seat) {
+    const safe = this.safety.text(conn, s, msg, now);
+    if (safe) {
+      return safe;
+    }
+    if (msg.type === 'kick' && !this.meta.public && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
     }
     return [];
@@ -317,7 +325,11 @@ export class RoomCore {
     if (bump(s.poseRate, now, 1000) > POSE_PER_S) {
       return [];
     }
-    s.pose = data;
+    const checked = this.safety.pose(conn, s, data, now);
+    if (!checked.bytes) {
+      return checked.actions;
+    }
+    s.pose = checked.bytes;
     s.fresh = true;
     if (this.ticking) {
       return [];

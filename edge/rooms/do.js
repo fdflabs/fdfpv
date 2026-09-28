@@ -12,11 +12,10 @@
  *
  *   POST /v2/create          { map, friendly } -> { code }, a new private room
  *   GET  /v2/room/<CODE>     the room's WebSocket
+ *   GET  /v2/public[/<map>]  public rooms, edge/rooms/lobby.js, named
+ *                            `pub:<map>:<shard>`; open only while the
+ *                            PUBLIC_ROOMS var in wrangler.toml is "on"
  *   GET  /                   a line of text, for a person checking it is up
- *
- * PUBLIC ROOMS ARE NOT HERE on purpose. They stay closed until the safety
- * phase lands (docs/MULTIPLAYER-PLAN.md section 12, Phase 5, and the
- * lead's answer 5), so there is no Lobby object and no `pub:` room yet.
  *
  * ADDRESSES. The connecting address is used for two things only, both in
  * memory: the per address join and create limits, and a host's kick, held
@@ -44,6 +43,9 @@
 import { DurableObject } from 'cloudflare:workers';
 import { RoomCore, PRIVATE_CAP, TICK_MS } from './core.js';
 import { CLOSE, codeFromBytes, normaliseCode } from '../../src/share/roomwire.js';
+import { Lobby, publicMeta, publicRoute, reportCount } from './lobby.js';
+
+export { Lobby };
 
 const PURGE_MS = 10 * 60 * 1000;
 const CREATES_PER_MIN = 6;
@@ -149,6 +151,7 @@ export class Room extends DurableObject {
     if (request.headers.get('upgrade') !== 'websocket') {
       return new Response('expected a websocket', { status: 426 });
     }
+    await publicMeta(this.ctx.storage, request);
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
@@ -172,12 +175,14 @@ export class Room extends DurableObject {
     const data = typeof message === 'string' ? message : new Uint8Array(message);
     const attached = ws.deserializeAttachment() || {};
     this.run(core.message(ws, data, Date.now(), attached.address || '', newToken));
+    reportCount(this.env, core);
   }
 
   async webSocketClose(ws) {
     const core = await this.load();
     if (core) {
       this.run(core.close(ws, Date.now()));
+      reportCount(this.env, core);
     }
   }
 
@@ -254,6 +259,9 @@ export default {
     if (url.pathname === '/v2/create' && request.method === 'POST') {
       return create(request, env, origin);
     }
+    if (url.pathname.startsWith('/v2/public')) {
+      return publicRoute(request, env, url, cors(origin));
+    }
     const m = url.pathname.match(/^\/v2\/room\/([^/]+)$/);
     if (m) {
       const code = normaliseCode(m[1]);
@@ -262,6 +270,8 @@ export default {
       }
       const headers = new Headers(request.headers);
       headers.set('x-room-address', request.headers.get('cf-connecting-ip') || '');
+      /* Only the public route may make a room public. */
+      headers.delete('x-room-public');
       const stub = env.ROOMS.get(env.ROOMS.idFromName(`prv:${code}`));
       return stub.fetch(new Request(request.url, { headers }));
     }
