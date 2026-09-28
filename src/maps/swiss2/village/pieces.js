@@ -632,15 +632,25 @@ export function outbuilding(f, { kind, w, d, h, wall, roofKey }) {
   rf.put(roofKey, roof.geo);
   Object.assign(roof, { hw, hd, kind: 'gable', zA0: 0.35, zB0: 0.55 });
   const garage = kind === 'garage';
-  dressRoof(rf, roof, {
-    roofKey, key: 'larchDark', edgeKey: garage ? 'flashing' : 'larchDark', rafters: !garage, purlins: !garage,
-  });
   const side = frame(f, hw, 0, 0, Math.PI / 2);
   if (garage) {
+    /* Eternit's verge is a thin flashing folded over the sheet's edge,
+     * not a timber verge board. */
+    for (const [a, b] of roof.edges) {
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const mz = (a[2] + b[2]) / 2;
+      if (Math.abs(b[2] - a[2]) > Math.abs(dx)) {
+        continue;
+      }
+      rf.put('flashing', box(Math.hypot(dx, dy) + 0.06, 0.14, 0.05), (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 0.03, mz + Math.sign(mz) * 0.02, 0, 0, Math.atan2(dy, dx));
+    }
+    rf.put('flashing', box(0.3, 0.06, roof.rzB - roof.rzA + 0.1), 0, roof.yR + 0.01, (roof.rzA + roof.rzB) / 2);
     rf.put(near('flashing'), box(0.12, 0.1, roof.zB - roof.zA), roof.ex + 0.05, roof.yT - 0.1, (roof.zA + roof.zB) / 2);
     f.put(near('flashing'), cyl(0.04, 0.04, h + 0.1, 6), hw + 0.1, 0, roof.zB - 0.3);
     casement(side, -0.6, h - 0.95, 0.8, 0.6, { bars: false });
   } else {
+    dressRoof(rf, roof, { roofKey, key: 'larchDark' });
     for (const [wl, len] of [[frame(f, 0, 0, hd, 0), w], [side, d], [frame(f, -hw, 0, 0, -Math.PI / 2), d], [frame(f, 0, 0, -hd, Math.PI), w]]) {
       for (let u = -len / 2 + 0.3; u < len / 2 - 0.1; u += 0.3) {
         wl.put(detail('boardLine'), boxUp(0.04, h - 0.1, 0.02), u, 0.05, 0.01);
