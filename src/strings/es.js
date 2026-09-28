@@ -2204,6 +2204,7 @@ export default {
   "friends.failed_rate": "Demasiados intentos. Espera un minuto y vuelve a probar.",
   "friends.failed_bad": "La sala no aceptó a este piloto.",
   "friends.other_world": "Esta sala vuela en {world}, así que estás allí.",
+  "roomrace.room_section": "Sala",
   "roomrace.section": "Carrera",
   "roomrace.track": "Pista de la carrera",
   "roomrace.track_none": "Ninguna todavía",

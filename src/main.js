@@ -2243,7 +2243,11 @@ export async function boot({
       const w = st.welcome;
       const host = w && !w.public && w.host === w.seat;
       const world = w ? mapById(w.map).name : '';
+      /* A private room's race first, right under the screen's Fly
+       * (src/ui/ui.js), so the host starts it and everybody sees it
+       * without scrolling past the pilots. */
       const rows = [
+        ...(w && w.public ? [] : [...roomRaceRows(host), { label: str('roomrace.room_section'), section: true }]),
         st.publicMap
           ? { label: str('friends.public_row'), value: world, note: str('friends.public_row_note'), info: true }
           : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
@@ -2274,7 +2278,7 @@ export async function boot({
           },
         });
       }
-      rows.push(...(w && w.public ? [] : roomRaceRows(host)), nameRow, figureRow, { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
+      rows.push(nameRow, figureRow, { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
       return rows;
     }
     const failed = st.phase === 'failed' && st.reason ? str(`friends.failed_${st.reason}`) : null;

@@ -2200,6 +2200,7 @@ export default {
   "friends.failed_rate": "Too many tries. Wait a minute and try again.",
   "friends.failed_bad": "The room did not accept this pilot.",
   "friends.other_world": "This room flies in {world}, so you are seated there.",
+  "roomrace.room_section": "Room",
   "roomrace.section": "Race",
   "roomrace.track": "Race track",
   "roomrace.track_none": "None yet",
