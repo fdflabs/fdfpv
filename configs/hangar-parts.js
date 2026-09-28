@@ -143,6 +143,10 @@ export const PROPS = {
   extra1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
   radian2000: [STOCK],
   bramor2300: [STOCK],
+  /* FMS's four blade has no APC counterpart to anchor another prop's
+   * figures on, and a two blade would change what the pilot sees turning
+   * on the nose: none offered. */
+  p51d1450: [STOCK],
 };
 
 /* The planes the tab serves: every fixed wing the picker offers. */
@@ -176,6 +180,7 @@ export const ANCHORS = {
   bombshell1118: { prop: [0.166, 0, -0.005], belly: [0.02, 0, -0.064], tail: [-0.60, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.042, 0.17, 0.075], [0.042, 0.50, 0.146]] },
   kadet1981: { prop: [0.441, 0, -0.013], belly: [0, 0, -0.159], tail: [-0.93, 0, -0.13], tank: [-0.01, 0, -0.08], led: [[0.075, 0.30, 0.093], [0.075, 0.89, 0.139]] },
   extra1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
+  p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
 };
 
 /* A body frame point: one mass or drag and where it is. */

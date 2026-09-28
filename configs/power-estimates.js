@@ -357,5 +357,19 @@ export const ESTIMATES = {
         minutes: 16.9
       }
     }
+  },
+  p51d1450: {
+    stock: {
+      '4s2600': {
+        topSpeed: 19.9,
+        minutes: 12.7
+      }
+    },
+    kv650: {
+      '4s2600': {
+        topSpeed: 23.3,
+        minutes: 13
+      }
+    }
   }
 };

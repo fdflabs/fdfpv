@@ -289,11 +289,18 @@ for (const id of ids) {
   const elevatorAt = elevator(trimmed);
   check(`U6 ${id} 2 deg of up trim puts 2 deg on the elevator at centred sticks`, Math.abs(deg(elevatorAt) - 2) < 1e-9,
     `${f3(deg(elevatorAt))} deg`);
-  if (t.flaps) {
+  if (t.flaps && t.flaps.mix !== 0) {
     const withMix = surfaces(id, null, 0, 0, 2)[2];
     const noMix = surfaces(id, block({ flapMix: false }), 0, 0, 2)[2];
     check(`U6 ${id} full flaps: the manual's mix puts down elevator on, none leaves it centred`,
       withMix < -0.05 && noMix === 0, `${f2(deg(withMix))} and ${f2(deg(noMix))} deg`);
+  } else if (t.flaps) {
+    /* A manual that gives no mix: full flaps leave the elevator centred
+     * either way. */
+    const withMix = surfaces(id, null, 0, 0, 2)[2];
+    const noMix = surfaces(id, block({ flapMix: false }), 0, 0, 2)[2];
+    check(`U6 ${id} full flaps and no mix in the manual: the elevator stays centred`,
+      withMix === 0 && noMix === 0, `${f2(deg(withMix))} and ${f2(deg(noMix))} deg`);
   }
   const lead = lim.ballastG;
   const same = balance(id, { ballastG: lead }, massKg, packKg).shift;

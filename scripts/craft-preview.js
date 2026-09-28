@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -247,6 +247,34 @@ const KADET_VIEWS = [
 ];
 
 /*
+ * The P-51's own set: its spinner at z = -0.43, its rudder at +0.83,
+ * resting on three points, the gear up and on its way, the flaps down,
+ * and the side the kit manual's view is drawn from.
+ */
+const GEAR_UP = 'window.__preview.gear(1)';
+const GEAR_HALF = 'window.__preview.gear(0.5)';
+const P51_FLAPS_FULL = 'window.__preview.flaps(0.6130)';
+const P51_VIEWS = [
+  ['manual-side', NEUTRAL, [90, 0, 4.2, 0, 0.05, 0.2]],
+  ['front', NEUTRAL, [0, 4, 4.2, 0, 0, 0]],
+  ['three-quarter', NEUTRAL, [-140, 24, 3.8, 0, 0, 0.2]],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 3.8, 0, 0, 0.05]],
+  ['side-rest', NEUTRAL, [90, 3, 3.8, 0, 0, 0.2], false, true],
+  ['three-quarter-rest', NEUTRAL, [-45, 12, 3.2, 0, 0, 0.1], false, true],
+  ['top', NEUTRAL, [0, 90, 4.2, 0, 0, 0.2]],
+  ['below', NEUTRAL, [0, -90, 4.2, 0, 0, 0.2]],
+  ['gear-up-below', NEUTRAL, [-30, -40, 3.4, 0, 0, 0.15], false, false, undefined, GEAR_UP],
+  ['gear-up-side', NEUTRAL, [90, 2, 3.8, 0, 0, 0.2], false, false, undefined, GEAR_UP],
+  ['gear-half-front', NEUTRAL, [-20, -8, 2.2, 0, -0.05, 0.0], false, false, undefined, GEAR_HALF],
+  ['flaps-full', NEUTRAL, [-130, 14, 2.6, 0, 0, 0.1], false, false, undefined, P51_FLAPS_FULL],
+  ['deflected-rear', DEFLECT, [180, 12, 3.6, 0, 0, 0.2]],
+  ['nose-close', NEUTRAL, [-40, 12, 1.2, 0, 0.0, -0.3]],
+  ['cockpit-close', NEUTRAL, [-70, 15, 1.0, 0, 0.08, 0.05]],
+  ['tail-close', DEFLECT, [-145, 20, 1.2, 0, 0.08, 0.72]],
+  ['gear-front', NEUTRAL, [0, -5, 1.6, 0, -0.12, -0.06]],
+];
+
+/*
  * The Timber's own set: its spinner at z = -0.33, its rudder at +0.72,
  * resting on its tailwheel as the Cub does, and the flaps, which are what
  * it is for: half and full, from the side and from behind, where the slot
@@ -319,11 +347,12 @@ try {
     cub: CUB_VIEWS, glider: GLIDER_VIEWS, bramor: BRAMOR_VIEWS, stick: STICK_VIEWS, timber: TIMBER_VIEWS,
     bombshell: BOMBSHELL_VIEWS,
     kadet: KADET_VIEWS,
+    p51: P51_VIEWS,
     timberf: floatViews(-0.33, 0.62), cubf: floatViews(-0.26, 0.55),
   }[craft] ?? VIEWS;
   for (const [name, surf, cam, blur, rest, omega, setup] of views) {
     const [az, el, dist, tx, ty, tz] = cam;
-    await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0); window.__preview.flaps(0); window.__preview.sun()');
+    await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0); window.__preview.flaps(0); window.__preview.gear(0); window.__preview.sun()');
     await page.evaluate(`window.__preview.rest(${Boolean(rest)})`);
     if (setup) {
       await page.evaluate(setup);
@@ -398,6 +427,12 @@ try {
       ['rudder', [0, 0, 0, FULL], left],
       ['kadet-nose-leg', [0, 0, 0, FULL], left],
     ],
+    p51: [
+      ['aileron-left', [FULL, 0, 0, 0], up],
+      ['aileron-right', [0, FULL, 0, 0], up],
+      ['elevator', [0, 0, FULL, 0], up],
+      ['rudder', [0, 0, 0, FULL], left],
+    ],
     timberf: [
       ['rudder', [0, 0, 0, FULL], left],
       ['water-rudder-left', [0, 0, 0, FULL], left],
@@ -425,7 +460,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet'].includes(craft)) {
+  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet', 'p51'].includes(craft)) {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
@@ -452,16 +487,18 @@ try {
    * spin: a blade pointing up must go right, +x, under a positive step of
    * the shell's spin, which is clockwise seen from the cockpit.
    */
-  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell' || craft === 'kadet') {
+  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell' || craft === 'kadet' || craft === 'p51') {
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     const d = await page.evaluate('window.__preview.dims');
     const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres', bombshell: 'bombshell-black', kadet: 'kadet-tyres' }[craft];
+    /* The P-51's mains are a mesh each, on their retract pivots. */
+    const mainMesh = (side) => (craft === 'p51' ? `tyre-main-${side < 0 ? 'left' : 'right'}` : blackMesh);
     /* The Bombshell has a wire skid where the others have a tailwheel, and
      * the Kadet a nose wheel. */
     const third = { bombshell: ['tail', 'tail-skid'], kadet: ['nose', 'tyre-nose'] }[craft] ?? ['tail', 'tyre-tail'];
     const wheels = [
-      ['main left', blackMesh, -1, d.contact.mainLeft],
-      ['main right', blackMesh, 1, d.contact.mainRight],
+      ['main left', mainMesh(-1), -1, d.contact.mainLeft],
+      ['main right', mainMesh(1), 1, d.contact.mainRight],
       [third[0], third[1], 0, d.contact[third[0]]],
     ];
     for (const [what, mesh, side, claimed] of wheels) {

@@ -130,16 +130,16 @@ throw's surface does not add lift linearly past 15 deg.
 ## What is new in the plant
 
 A thrust over the weight is flown on the prop's wash. The plant had none
-of it, and five capabilities were added, each general (any table can set
+of it, and four capabilities were added, each general (any table can set
 it), each deterministic (sqrt and the small angle sine and cosine of the
 fixed libm, nothing else), and each off on every table before this one,
-written so a table without it runs exactly the arithmetic it always ran.
-**Proof: all twelve recorded flights' hashes (the five inch, the wing, the
-Skyhunter, the Cub, the Radian, the Bramor and its chute, the Slow Stick,
-the Bombshell, the Timber, the Timber on floats and the Kadet) are what
-main's module gives, `extra:gates` E15; every other plane's gates and
-stabiliser self tests pass unchanged; `crash:identity` runs them all
-against main's module.**
+written so a table without it runs exactly the arithmetic it always ran;
+a fifth, the prop's precession, is the P-51's `j_prop` (#123), which the
+Extra sets. **Proof: all fourteen recorded flights' hashes (the five inch,
+the wing, the Skyhunter, the Cub, the Radian, the Bramor and its chute,
+the Slow Stick, the Bombshell, the Timber, the Timber on floats, the Kadet
+and the P-51's two) are what main's module gives, `extra:gates` E15; every
+other plane's gates and stabiliser self tests pass unchanged.**
 
 ### 1. The slipstream (`slip_*`)
 
@@ -201,14 +201,14 @@ plate's normal force, 1/2 rho C_N c |r|³ summed (C_N 1.17): **roll 0.01580,
 pitch 0.04108, yaw 0.03462 N m s²**, taken with the linear damping as the
 root of their squares' sum, so each alone is itself.
 
-### 4. The prop's precession (`prop_j`)
+### 4. The prop's precession (`j_prop`, the P-51's)
 
-h = J Omega along the nose (the plant's props turn clockwise from behind,
-the way `torque_arm` rolls the airframe left), in the rates' cross product,
-so a yaw rate pitches a hanging aircraft and a pitch rate yaws it: 0.187 N
-m s at the hover.
+H = J Omega along the nose, the airframe's answer -omega x H, so a yaw rate
+pitches a hanging aircraft and a pitch rate yaws it: 0.187 N m s at the
+hover. This branch first built the same term as `prop_j`; the P-51 merged
+first with `j_prop`, the same arithmetic, and the Extra uses that one.
 
-### 5. The ailerons on the stalled strips (`strip_tau_a`)
+### 5. The ailerons on the stalled strips (`strip_tau`)
 
 The strip model past the stall (docs/STALL-STAGE1.md) set each strip's
 angle from the roll rate alone. At a 3D pb/2V of 0.38 that puts the
@@ -217,6 +217,12 @@ which took the roll damping away and autorotated the aircraft to 2,180
 deg/s at full aileron. On a real wing the descending side's aileron is up
 and holds its strips out of the stall; each strip now takes tau of its
 aileron (0.378 on all four of the Extra's). Zero on every earlier table.
+The Edge 540's branch (#124) found the same runaway and builds the same
+field, `strip_tau`, in the same place in the strip loop; this one is
+written in its form so the two merge as one. The Edge's `surf_knee` (a
+surface's angle buying less past about 15 deg) the Extra does not set: its
+control derivatives carry Roskam's K' at full throw, as the Timber's do,
+and its surfaces saturate on a flat plate (hi_alpha).
 
 ## The intended behaviour, and how each part is proven
 

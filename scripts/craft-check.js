@@ -123,6 +123,12 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             and the reach this file measures are both 1852 mm and
  *             E-flite's 1308 mm span is held by the half span of
  *             src/render/extracraft.js EXTRA_DIMS.
+ *   p51d1450  FMS's 1450 mm P-51D Mustang, whose rudder's trailing edge,
+ *             0.834 m aft of the CG (the kit manual's side view), reaches
+ *             further than its tips, 0.725 m out, so the width this file
+ *             measures and the reach are both the rudder's, 1667 mm, and
+ *             FMS's 1450 mm is held by craft-preview.js's half span row.
+ *             src/render/p51craft.js draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -144,6 +150,7 @@ const REAL = {
   bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
   kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
   extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
+  p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
