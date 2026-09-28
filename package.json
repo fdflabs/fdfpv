@@ -66,6 +66,7 @@
     "rooms:restart": "node scripts/rooms-restart-check.js",
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
     "streamer:selftest": "node scripts/streamer-selftest.js",
+    "rooms:server": "node scripts/rooms-server-check.js",
     "marks:selftest": "node scripts/peermarks-selftest.js",
     "marks:twopage": "node scripts/peermarks-two-page.js",
     "combat:harness": "node scripts/combat-harness.js",
@@ -171,5 +172,8 @@
     "trackmode:check": "node scripts/track-mode-check.js",
     "progress:selftest": "node scripts/progress-selftest.js",
     "progress:check": "node scripts/progress-check.js"
+  },
+  "dependencies": {
+    "ws": "8.21.3"
   }
 }

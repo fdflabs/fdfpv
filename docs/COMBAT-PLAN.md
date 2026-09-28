@@ -484,13 +484,15 @@ consequence without ending anyone's round.
 ## 8. Phases
 
 - **This PR:** everything above, on private rooms. It is not deployed:
-  the rooms backend is moving from Cloudflare to the owner's VM (branch
-  `vm-backend`), and the lead deploys. Combat needs nothing of a backend
-  but what `edge/rooms/do.js` already gives the core: the `send` and
-  `tick` actions. A round's clock advances on any message and on the
-  room tick, which runs while anyone flies; a round nobody flies ends at
-  the next message. No timer, no storage: a restart mid round loses the
-  round.
+  the rooms run on the owner's VM (`edge/rooms/node.js`, #141) and the
+  lead deploys. Combat uses only the room contract of
+  `edge/rooms/README.md`: the `send` and `tick` actions, and `{ store:
+  'combat', value }` with every change it announces, which `host.js`
+  hands back to `core.combat.restore()` on load, so a restart mid round
+  keeps the round, the scores and the paper owed. A round's clock
+  advances on any message and on the room tick, which runs while anyone
+  flies; a round nobody flies ends at the next message. One game at a
+  time: no race under a round, no round under a race.
 - **Later, on the owner's word:** the pull through the plant (2.4); a
   public room vote; streamers tangling; 2 Hz far streamers (Phase 6).
 

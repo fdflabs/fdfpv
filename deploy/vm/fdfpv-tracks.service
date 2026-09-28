@@ -1,0 +1,61 @@
+# fdfpv-tracks.service: the tracks server (tracks-api/node.js) on the VM.
+# Installed into /etc/systemd/system by deploy/vm/deploy.sh. ADMIN_SECRET
+# is in /etc/fdfpv/tracks.env (root, mode 600), made by deploy.sh the first
+# time and never in the repository.
+#
+# This file is part of WebFPVSimulator.
+#
+# WebFPVSimulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# WebFPVSimulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+
+[Unit]
+Description=FDFPV tracks server
+After=network.target
+
+[Service]
+Type=simple
+User=fdfpv-tracks
+Group=fdfpv-tracks
+WorkingDirectory=/opt/fdfpv
+Environment=HOST=127.0.0.1 PORT=8787 TRACKS_DB=/var/lib/fdfpv-tracks/tracks.db
+EnvironmentFile=/etc/fdfpv/tracks.env
+# node:sqlite is still marked experimental in Node 24 and says so on every
+# start; the journal does not need to hear it.
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning --max-old-space-size=192 tracks-api/node.js
+Restart=always
+RestartSec=1
+TimeoutStopSec=5
+StateDirectory=fdfpv-tracks
+StateDirectoryMode=0700
+# Measured 2026-09-28 on this VM (systemctl show -p MemoryPeak): 26 MB
+# through tracks-api/smoke.js and the rate limit burst; ps shows 70 MB
+# RSS, part of it the shared Node library the cgroup does not charge. A
+# save body is at most 520 kB (tracks-api/limits.js), so the ceiling is
+# about ten times the cgroup peak, and V8 is told a heap limit under it so
+# it collects harder instead of being killed.
+MemoryMax=256M
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

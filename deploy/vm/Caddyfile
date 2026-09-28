@@ -1,0 +1,59 @@
+# Caddyfile: the TLS front on the VM, installed as /etc/caddy/Caddyfile by
+# deploy/vm/deploy.sh. See deploy/vm/README.md.
+#
+# The site is the VM's bare address, not a name. Let's Encrypt issues
+# certificates for IP addresses on its six day "shortlived" profile, which
+# Caddy renews by itself, and an address needs no DNS: the wildcard DNS
+# services that give an address a name (sslip.io, nip.io) are on DNS
+# blocklists, and the owner's own ISP resolver answers NXDOMAIN for them.
+#
+# One origin serves both servers, because their paths never meet: the
+# tracks server answers /api/* and the rooms server /v2/* and /. So the
+# client's two origins are the same string, and each server sees exactly
+# the paths it saw as a Worker.
+#
+# No access log: connecting addresses are written nowhere (edge/rooms/front.js,
+# ADDRESSES). The address is handed to the servers in cf-connecting-ip,
+# the header they read on Cloudflare, overwriting whatever a client sent.
+#
+# This file is part of WebFPVSimulator.
+#
+# WebFPVSimulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# WebFPVSimulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+
+# A client connecting to an address sends no SNI (RFC 6066 forbids an IP
+# there), and Caddy picks a certificate by SNI, so without this it has
+# none to offer and the handshake fails.
+{
+	default_sni 129.151.39.48
+}
+
+129.151.39.48 {
+	tls {
+		issuer acme {
+			profile shortlived
+		}
+	}
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8787 {
+			header_up CF-Connecting-IP {remote_host}
+		}
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8797 {
+			header_up CF-Connecting-IP {remote_host}
+		}
+	}
+}

@@ -21,6 +21,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # ws, the one dependency: rooms:server starts the VM's rooms server,
+      # edge/rooms/node.js, and speaks to it.
+      - run: npm ci
       - run: npm run lint:fc
       - run: npm run lint:presets
       - run: npm run lint:catalog
@@ -32,6 +35,7 @@ jobs:
       - run: npm run live:selftest
       - run: npm run rooms:selftest
       - run: npm run streamer:selftest
+      - run: npm run rooms:server
       - run: npm run hulls:check
       - run: npm run midair:plant
       # The plan's full grid is 20 seeds, about six minutes on 20 cores: run

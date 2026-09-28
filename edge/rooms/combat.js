@@ -25,8 +25,8 @@
  * Object runs one event at a time, so nothing here is shared. The round
  * and every seat's score go out as a { store: 'combat', value } action
  * with every change the room announces (core.js), and restore() takes
- * them back after a restart (edge/rooms/do.js, or the VM's adapter), so a
- * deploy mid round loses no points. The samples and frames are not kept:
+ * them back after a restart (edge/rooms/host.js hands every stored key to
+ * core[key].restore on load), so a deploy mid round loses no points. The samples and frames are not kept:
  * they are seconds old, and a restart is a gap the rule already treats as
  * no cut.
  *
