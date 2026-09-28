@@ -86,13 +86,16 @@ import { inspectCourse, layoutFingerprint } from '../src/share/listing.js';
 import { courseSeatKey } from '../src/share/session.js';
 import { Race } from '../src/game/race.js';
 import {
-  BUILD_TYPES, DEFAULT_HOTBAR, HOTBAR_SLOTS, PIECES, PIECE_CATS, addGate, axesOf, capsOverlap, createHistory, gateSpec, gizmoAxes,
+  BUILD_TYPES, CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, HOTBAR_SLOTS, PIECES, PIECE_CATS, addGate, chainPose, axesOf, capsOverlap, createHistory, gateSpec, gizmoAxes,
   makeStart, newCourse, openingCentre, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf, qAxis, qMul, qRot, raceGatesOf,
   readoutFor, removeGate, setOrder, setPose, snapPose, spawnFor, startFor, floatStart, stepOf, turnGate, worldCaps, SPAWN_BACK,
 } from '../src/builder/course.js';
 import { Colliders, KINDS, contactMaterial } from '../src/game/collide.js';
-import { craftLimits, lineWarnings, openingBlocked, racingLine, speedAt } from '../src/builder/line.js';
+import {
+  HOOP_ROOM, craftLimits, lineWarnings, misfitGate, openingBlocked, racingLine, speedAt,
+} from '../src/builder/line.js';
 import { postGive } from '../src/game/crashworld.js';
+import { planesFor } from '../src/game/verify.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
 import {
   AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
@@ -814,6 +817,117 @@ console.log('plane sized gates');
   check('the pylon collapses at pi p r^3: about 1.2 kN m at the base, 29 N m at the tip',
     near(base.mFree, Math.PI * 1000 * 0.7156 ** 3) && tip.mFree < 30, `${base.mFree.toFixed(0)} ${tip.mFree.toFixed(1)}`);
   check('and it gives nothing without a length', postGive('pylon', 0.5, 1) === null);
+}
+
+console.log('sky hoops');
+{
+  const up = qAxis(0, 1, 0, 0);
+  const span = (id) => craftLimits(airframeById(id)).span;
+  check('every hoop is a piece on the sky hoops shelf', HOOP_TYPES.every((t) => PIECES.some((p) => p.type === t && p.cat === 'sky')) && PIECE_CATS.includes('sky'));
+  check('the plane hotbar opens on the plane hoops, the quad one on the quad hoops',
+    ['hoop6', 'hoop12', 'hoop20', 'hoop30'].every((t) => DEFAULT_WING_HOTBAR.includes(t)) && ['hoop175', 'hoop250'].every((t) => DEFAULT_HOTBAR.includes(t))
+    && DEFAULT_WING_HOTBAR.length === HOTBAR_SLOTS && DEFAULT_WING_HOTBAR.every((id) => pieceById(id)));
+  const sizes = HOOP_TYPES.map((t) => ELEMENTS[t].dims.clearW);
+  check('the hoops are 1.75, 2.5, 6, 12, 20 and 30 m across', sizes.join() === '1.75,2.5,6,12,20,30', sizes.join());
+
+  const d = newCourse('swiss2', 'Sky');
+  addGate(d, 'hoop30', { x: 0, y: 100, z: 0 }, up);
+  const h6 = addGate(d, 'hoop6', { x: 0, y: 100, z: -400 }, up);
+  const gates = raceGatesOf(d);
+  const t30 = ELEMENTS.hoop30.dims.tubeR;
+  check('a hoop scores a round opening its own diameter across', gates[0].aperture.round === true && near(gates[0].aperture.clearW, 30) && !gates[0].virtual);
+  check('its centre is one outer radius over its base: it stands on its rim', near(gates[0].centre.y, 100 + 2 * t30 + 15), fmtV(gates[0].centre));
+  check('a square gate\'s opening is not round', raceGatesOf((() => { const q = newCourse('swiss2', 'q'); addGate(q, 'gate', { x: 0, y: 0, z: 0 }, up); return q; })())[0].aperture.round === undefined);
+
+  const race = new Race(gates.map((x) => ({ ...x })), 'full');
+  const through = (i, dx, dy) => {
+    const g = gates[i];
+    race.next = i;
+    race.leaving = -1;
+    race.prevSimMs = null;
+    const a = { x: g.centre.x + dx, y: g.centre.y + dy, z: g.centre.z + 20 };
+    const b = { x: g.centre.x + dx, y: g.centre.y + dy, z: g.centre.z - 20 };
+    race.update(a, a, 0, 0);
+    return race.update(a, b, 2000, 0).passed === i;
+  };
+  check('through the middle of the 30 m hoop: counted', through(0, 0, 0));
+  check('12 m off its centre: counted, the drawn disc is the whole of it', through(0, 12, 0) && through(0, -8.4, 8.4));
+  check('outside the disc but inside the square round it: not counted', !through(0, 12.5, 12.5));
+  check('past the rim: not counted', !through(0, 15.5, 0));
+  {
+    const g = gates[0];
+    race.next = 0;
+    race.leaving = -1;
+    race.prevSimMs = null;
+    const a = { x: g.centre.x, y: g.centre.y, z: g.centre.z - 20 };
+    const b = { x: g.centre.x, y: g.centre.y, z: g.centre.z + 20 };
+    race.update(a, a, 0, 0);
+    check('through it backwards: not counted', race.update(a, b, 2000, 0).passed === null);
+  }
+  {
+    /* 40 m/s at 60 frames a second is 0.67 m a frame; at 5 it is 8 m, and
+     * the segment still crosses the disc's plane. */
+    const g = gates[0];
+    race.next = 0;
+    race.leaving = -1;
+    race.prevSimMs = null;
+    const a = { x: g.centre.x + 3, y: g.centre.y, z: g.centre.z + 0.4 };
+    const b = { x: g.centre.x + 3, y: g.centre.y, z: g.centre.z - 7.6 };
+    race.update(a, a, 0, 0);
+    check('a fast plane cannot step over it in one frame: 8 m of travel across the disc counts', race.update(a, b, 200, 0).passed === 0);
+  }
+
+  const flat = { heightAt: () => 0, solidAt: () => false };
+  const warn = (gs, id) => {
+    const c = craftLimits(airframeById(id));
+    return lineWarnings(gs, racingLine(gs, c, flat.heightAt), c, flat);
+  };
+  const small6 = warn(gates, 'bramor2300').filter((w) => w.code === 'small');
+  check(`the 6 m hoop is small for the Bramor: it needs ${HOOP_ROOM} spans, ${(HOOP_ROOM * span('bramor2300')).toFixed(2)} m`,
+    small6.length === 1 && small6[0].gate === 1 && near(small6[0].value, 6) && near(small6[0].limit, HOOP_ROOM * span('bramor2300')));
+  check('and not for the Cub', !warn(gates, 'cub1400').some((w) => w.code === 'small'));
+  const wings = AIRFRAMES.filter((af) => af.fixedWing);
+  const d12 = newCourse('swiss2', 'Twelves');
+  addGate(d12, 'hoop12', { x: 0, y: 100, z: 0 }, up);
+  check('every plane fits the 12 m hoop', wings.every((af) => misfitGate(raceGatesOf(d12), craftLimits(af)) < 0));
+  const dq = newCourse('swiss2', 'Quad hoops');
+  addGate(dq, 'hoop175', { x: 0, y: 100, z: 0 }, up);
+  check('the 1.75 m hoop takes a quad and no plane',
+    misfitGate(raceGatesOf(dq), craftLimits(airframeById('5inch'))) < 0 && wings.every((af) => misfitGate(raceGatesOf(dq), craftLimits(af)) === 0));
+  check('and the board\'s rule agrees: no plane may race it', planesFor(toPlain(dq)).length === 0);
+  const close = newCourse('swiss2', 'Close');
+  addGate(close, 'hoop20', { x: 0, y: 100, z: 0 }, up);
+  addGate(close, 'hoop20', { x: 0, y: 100, z: -100 }, up);
+  check('two plane hoops 100 m apart are close for a plane: it wants 150 m', warn(raceGatesOf(close), 'cub1400').some((w) => w.code === 'close' && w.limit === 150));
+  check('and not for a quad', !warn(raceGatesOf(close), '5inch').some((w) => w.code === 'close'));
+  const far = newCourse('swiss2', 'Far');
+  addGate(far, 'hoop20', { x: 0, y: 100, z: 0 }, up);
+  addGate(far, 'hoop20', { x: 0, y: 100, z: -400 }, up);
+  check('400 m apart they are not', !warn(raceGatesOf(far), 'cub1400').some((w) => w.code === 'close'));
+  const rock = { heightAt: () => 0, solidAt: (x, y) => Math.hypot(x, y - gates[0].centre.y) > 12.3 && Math.hypot(x, y - gates[0].centre.y) < 20 };
+  check('the blocked rule probes a disc on its circle: rock just outside 0.8 of its radius is not in it', !openingBlocked(gates[0], rock));
+
+  const cam = { x: 0.3, y: 0.2, z: -1 };
+  const n = Math.hypot(cam.x, cam.y, cam.z);
+  const cy = openingsOf(h6)[0].centreY;
+  const next = chainPose(gates[0], cam, CHAIN.plane.start, { yaw: 0, pitch: 0, roll: 0 }, cy);
+  const along = qRot(next.quat, 0, 0, -1);
+  check(`the chain puts the next hoop ${CHAIN.plane.start} m on along the look`,
+    near(Math.hypot(next.centre.x - gates[0].centre.x, next.centre.y - gates[0].centre.y, next.centre.z - gates[0].centre.z), 400, 1e-6)
+    && near(along.x, cam.x / n) && near(along.y, cam.y / n) && near(along.z, cam.z / n));
+  addGate(d, 'hoop6', next.base, next.quat);
+  const g2 = raceGatesOf(d)[2];
+  check('and placed there its disc is where the chain said', nearV(g2.centre, next.centre, 1e-6), `${fmtV(g2.centre)} ${fmtV(next.centre)}`);
+  check('a plane chain is 400 m and a quad chain 30 m to start', CHAIN.plane.start === 400 && CHAIN.quad.start === 30);
+
+  const text = serialize(d);
+  const back = deserialize(text).doc;
+  check('saved and read back byte for byte, the hoops with it', serialize(back) === text && back.elements.map((e) => e.type).join() === 'hoop30,hoop6,hoop6'
+    && back.elements[0].dims.tubeR === t30);
+  const field = JSON.parse(text);
+  delete field.map;
+  field.schemaVersion = 3;
+  check('a field track naming one drops it', normalize(field).doc.elements.length === 0);
 }
 
 /* ------------------------------------------------------------------ */

@@ -317,10 +317,11 @@ export function craftVerticalOffset() {
 /* `banner` and `pylon` are the in-sim builder's plane sized gates
  * (src/builder/course.js): a wide gate's PVC frame, which is a gate's pipe
  * a size up built one to one, and an inflatable air race pylon. Appended,
- * so every index before them is what it was. */
+ * so every index before them is what it was. `hoop` is a plane sky hoop's
+ * inflated rim, appended after them for the same reason. */
 /* Exported so src/game/obstacles.js can name a kind rather than keeping a
  * second copy of this list. `fkind` is an index into it. */
-export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner', 'pylon'];
+export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner', 'pylon', 'hoop'];
 
 /*
  * The broadphase cell, in metres. The world is about 1700 m across and the
@@ -2772,7 +2773,7 @@ export function contactMaterial(kindName) {
   /* An inflated fabric wall: dead, and the plant's soft surface's numbers
    * (src/game/crashworld.js, the pylon), so the shell's contact and the
    * crash physics' agree on it. */
-  if (kindName === 'pylon') {
+  if (kindName === 'pylon' || kindName === 'hoop') {
     return { e: 0.0, mu: 1.00 };
   }
   if (kindName === 'tree' || kindName === 'canopy') {

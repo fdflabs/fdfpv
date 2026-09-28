@@ -840,6 +840,35 @@ export const ELEMENTS = {
     note: str('elements.one_inflatable_pylon_turned_round_on'),
     dims: { height: 8.0, baseRadius: 0.8, tipRadius: 0.125, clearance: 5.0 },
   },
+  /*
+   * SKY HOOPS: a round opening that floats, the classic ring race hoop,
+   * placed only by the in-sim builder and built one to one (`wing`, which
+   * here means exactly that, whatever the aircraft). `round` says the
+   * opening is a disc: clearW and clearH are both its clear diameter, the
+   * rim's inner edge, and sillH is the rim's own thickness, so a hoop set
+   * down on the ground stands on its rim with its centre one outer radius
+   * up. tubeR is the rim's tube radius.
+   *
+   * THE SIZES ARE THE OWNER'S, NOT THE SPAN RULE'S. Quad racing stays
+   * precise and plane racing is meant to be casual: "you need to be able to
+   * miss by a lot and still hit it, so that even a very small child can
+   * complete the courses." So the two quad hoops are small and firm, and
+   * the four plane hoops are 6, 12, 20 and 30 m across, an inflated tube
+   * that grows with them so a 30 m hoop still reads as an object from a
+   * kilometre off. What fits whom is the hoop rule in src/builder/line.js
+   * (HOOP_ROOM): a disc at least three spans across, a span of air all
+   * round the wingtips.
+   *
+   * The quad rims are a 50 mm tube, the size of a foam or pool noodle hoop;
+   * the plane rims are a quarter of a metre at 6 m, rising to a metre at
+   * 30 m, an inflatable's proportions (about a fifteenth of the diameter).
+   */
+  hoop175: hoopElement('hoop175', 'elements.hoop_175', 1.75, 0.025, false),
+  hoop250: hoopElement('hoop250', 'elements.hoop_250', 2.5, 0.03, false),
+  hoop6: hoopElement('hoop6', 'elements.hoop_6', 6, 0.25, true),
+  hoop12: hoopElement('hoop12', 'elements.hoop_12', 12, 0.45, true),
+  hoop20: hoopElement('hoop20', 'elements.hoop_20', 20, 0.7, true),
+  hoop30: hoopElement('hoop30', 'elements.hoop_30', 30, 1.0, true),
   startPads: {
     id: 'startPads',
     label: str('elements.start_pads'),
@@ -912,6 +941,26 @@ export const ELEMENTS = {
  */
 export function levelPitchFor(clearH) {
   return clearH + FRAME_TUBE_OD;
+}
+
+/* A sky hoop's definition (see the hoops in ELEMENTS). `plane` is whether
+ * it is sized for the fixed wings, which decides its rim's collider. */
+function hoopElement(id, labelKey, diameter, tubeR, plane) {
+  return {
+    id,
+    label: str(labelKey),
+    key: null,
+    group: 'track',
+    kind: KIND.APERTURE,
+    wing: true,
+    round: true,
+    plane,
+    note: str(plane ? 'elements.a_big_soft_hoop_for_planes' : 'elements.a_small_firm_hoop_for_quads'),
+    pitch: 0,
+    dims: {
+      levels: 1, sillH: 2 * tubeR, clearW: diameter, clearH: diameter, levelPitch: diameter, tubeR,
+    },
+  };
 }
 
 

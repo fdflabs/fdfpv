@@ -100,6 +100,7 @@ const KIND_SURFACE = {
   pole: 'pvc',
   banner: 'pvc',
   pylon: 'foliage',
+  hoop: 'foliage',
   tree: 'wood',
   wall: 'concrete',
   cliff: 'rock',
