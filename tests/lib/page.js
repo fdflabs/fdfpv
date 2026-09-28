@@ -191,6 +191,11 @@ export async function openPage({
     '--no-first-run',
     '--no-default-browser-check',
     '--hide-scrollbars',
+    /* A headless run is not a pilot: without this the title music and
+     * motors play out of the desktop's speakers while a check runs. The
+     * page's audio graph and media clock still run, so the audio-bed
+     * check still measures them. */
+    '--mute-audio',
     '--force-device-scale-factor=1',
     `--window-size=${width},${height}`,
     '--remote-debugging-port=0',
