@@ -220,9 +220,11 @@ function roundSection(check) {
     check('it carries numbers only, nothing anybody typed', st && st.scores.every((x) => Object.values(x).every((v) => typeof v !== 'string')));
     const late = r.join('C', '5inch', 200);
     check('a pilot joining mid round is told the round', texts(late, 'combat').some((m) => m.state === 'countdown'));
-    const pub = makeRoom({ public: true, shard: 0 }, [['A', '5inch'], ['B', 'cub1400']]);
+    const pub = makeRoom({ public: true }, [['A', '5inch'], ['B', 'cub1400']]);
+    pub.send('B', { type: 'combat', op: 'start', minutes: 5 }, 100);
+    check('in a public room too, only the host starts a round', texts(pub.socks.A, 'combat').length === 0);
     pub.send('A', { type: 'combat', op: 'start', minutes: 5 }, 100);
-    check('a public room plays no combat', texts(pub.socks.B, 'combat').length === 0);
+    check('and a public room\'s host does', texts(pub.socks.B, 'combat').some((m) => m.state === 'countdown'));
   }
 
   console.log('combat: a cut');
@@ -333,10 +335,12 @@ function roundSection(check) {
     r.send('B', { type: 'combat', op: 'start', minutes: 3 }, 100);
     const said = texts(r.socks.B, 'refused').pop();
     check('a pilot who is not the host is told why a start is refused', said && said.why === 'host', JSON.stringify(said));
-    const pub = makeRoom({ public: true, shard: 0 }, [['A', '5inch'], ['B', 'cub1400']]);
-    pub.send('A', { type: 'combat', op: 'start', minutes: 3 }, 100);
-    const pubSaid = texts(pub.socks.A, 'refused').pop();
-    check('and a public room says so too', pubSaid && pubSaid.why === 'public', JSON.stringify(pubSaid));
+    /* A public room has a host since the room browser (#146): the same
+     * reply there to a pilot who is not it. */
+    const pub = makeRoom({ public: true }, [['A', '5inch'], ['B', 'cub1400']]);
+    pub.send('B', { type: 'combat', op: 'start', minutes: 3 }, 100);
+    const pubSaid = texts(pub.socks.B, 'refused').pop();
+    check('and in a public room too', pubSaid && pubSaid.why === 'host', JSON.stringify(pubSaid));
     const g = started();
     fly(g, 1, 7600, passAt(7000));
     check('a round with its cut and its captured paper', g.room.combat.round.state === 'on' && JSON.stringify(g.room.combat.seats.get(1).runs) === '[[1,50],[2,31]]');

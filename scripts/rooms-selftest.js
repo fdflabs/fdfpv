@@ -54,9 +54,9 @@ import {
 import {
   BENCH_MS, IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
 } from '../edge/rooms/safety.js';
-import { LobbyBook, MAX_MAPS, PENDING_MS } from '../edge/rooms/lobby.js';
 import { TELEPORT_SPEED } from '../src/game/verify.js';
 import { combatSection } from './rooms-selftest-combat.js';
+import { browserSection } from './rooms-selftest-browser.js';
 import { DROP_MS, TAG_M } from '../edge/rooms/tag.js';
 import { RoomHost } from '../edge/rooms/host.js';
 import {
@@ -805,15 +805,16 @@ const wd = texts(hd, 'welcome')[0];
 check('a room that slept still has its track and its race', wd.track && wd.track.id === 'trk-race0001' && wd.race.id === race3.id && wd.race.state === 'on');
 check('and the readiness starts again from the pilots', wd.race.ready.length === 0);
 
-console.log('race: private rooms only');
+/* Public rooms had no host and raced nothing until the room browser gave
+ * them one (2026-09-28); scripts/rooms-selftest-browser.js has the rest. */
+console.log('race: a public room\'s host races too');
 room = new RoomCore({ ...meta, public: true, cap: 16 });
 const pubA = sock('race-pub', '10.2.0.9');
 hello(pubA);
-const beforePub = pubA.got.length;
 run(room.message(pubA, JSON.stringify({ type: 'track', doc: raceDoc }), now, pubA.address));
+run(room.message(pubA, JSON.stringify({ type: 'race', op: 'ready', ready: true, track: raceDoc.id }), now, pubA.address));
 run(room.message(pubA, JSON.stringify({ type: 'race', op: 'start', laps: 1 }), now, pubA.address));
-check('a public room takes no track and starts no race, and says so', room.race.track === null && room.race.race === null
-  && pubA.got.slice(beforePub).map((m) => m.type === 'refused' && m.why).join() === 'public,public');
+check('a public room\'s host loads a track and starts a race', room.race.track && room.race.track.id === raceDoc.id && room.race.race && room.race.race.state === 'on');
 
 /*
  * PHASE 5, SAFETY: edge/rooms/safety.js and edge/rooms/lobby.js, driven
@@ -941,7 +942,9 @@ for (let i = 1; i <= REPORTS_PER_WINDOW + 1; i += 1) {
 check(`a pilot files ${REPORTS_PER_WINDOW} reports in five minutes, no more`, filed5 === REPORTS_PER_WINDOW, `${filed5}`);
 
 console.log('phase 5: kicks and caps');
-const pubMeta = { code: null, public: true, shard: 2, cap: PUBLIC_CAP, friendly: false, map: 'swiss2', epoch: now - 5000 };
+const pubMeta = {
+  code: 'PBLC23', public: true, cap: PUBLIC_CAP, friendly: false, map: 'swiss2', epoch: now - 5000, name: 'Sky Club', pick: [1, 2, 33], mode: null, hidden: false,
+};
 room = new RoomCore(pubMeta);
 const pub = [];
 for (let i = 0; i < PUBLIC_CAP + 1; i += 1) {
@@ -950,7 +953,8 @@ for (let i = 0; i < PUBLIC_CAP + 1; i += 1) {
   pub.push(s);
 }
 const wp = texts(pub[0], 'welcome')[0];
-check(`a public room holds ${PUBLIC_CAP} and says it is public, with its shard`, room.seats.size === PUBLIC_CAP && wp.public === true && wp.shard === 2 && wp.cap === PUBLIC_CAP && wp.code === null);
+check(`a public room holds ${PUBLIC_CAP} and says it is public, with its code and name`, room.seats.size === PUBLIC_CAP && wp.public === true && wp.cap === PUBLIC_CAP
+  && wp.code === 'PBLC23' && wp.name === 'Sky Club' && wp.pick.join() === '1,2,33');
 check('the next is told it is full', pub[PUBLIC_CAP].closed && pub[PUBLIC_CAP].closed.code === CLOSE.full);
 run(room.message(pub[0], JSON.stringify({ type: 'kick', seat: 2 }), now, pub[0].address, newToken));
 check('in a public room nobody kicks, not even the first in: reports decide', !pub[1].closed);
@@ -1028,38 +1032,7 @@ check('everybody sees the benched seat as spawning', benched && (benched.flags &
 now += BENCH_MS;
 check(`for ${BENCH_MS / 60000} minutes`, !room.safety.untouchable(seatOf(g1), now));
 
-console.log('phase 5: the public lobby');
-let t5 = 0;
-const book = new LobbyBook();
-check('the first pilot on a map opens shard 0', book.assign('swiss2', t5) === 0);
-book.count('swiss2', 0, 1);
-check('the next joins it', book.assign('swiss2', t5) === 0);
-book.count('swiss2', 0, PUBLIC_CAP);
-check('a full shard opens the next', book.assign('swiss2', t5) === 1);
-book.count('swiss2', 1, 1);
-book.count('swiss2', 0, 10);
-check('the least full shard with a seat is picked', book.assign('swiss2', t5) === 1);
-book.count('swiss2', 1, 12);
-check('which moves as the counts do', book.assign('swiss2', t5) === 0);
-const burst = new LobbyBook();
-const spread = [];
-for (let i = 0; i < PUBLIC_CAP + 4; i += 1) {
-  spread.push(burst.assign('alps', t5));
-}
-check(`a burst before any room reports fills shard 0 to ${PUBLIC_CAP}, then opens shard 1`,
-  spread.filter((x) => x === 0).length === PUBLIC_CAP && spread.filter((x) => x === 1).length === 4);
-t5 += PENDING_MS;
-check('a reservation nobody took lapses', burst.assign('alps', t5) === 0);
-book.count('swiss2', 1, 0);
-check('an emptied shard is forgotten', !('1' in book.maps.swiss2));
-check('a reconnect asks for its shard back', book.assign('swiss2', t5, 5) === 5);
-check('each map has its own shards', book.assign('field', t5) === 0);
-check('a map name that is not an id is refused', book.assign('../x', t5) === -1 && book.assign('Swiss 2', t5) === -1);
-const flood = new LobbyBook();
-for (let i = 0; i < MAX_MAPS; i += 1) {
-  flood.assign(`m${i}`, t5);
-}
-check(`the lobby holds at most ${MAX_MAPS} maps`, flood.assign('onemore', t5) === -1);
+/* The public lobby became the room browser's: scripts/rooms-selftest-browser.js. */
 
 console.log('phase 5: every preset in both languages');
 const gaps = [];
@@ -1106,7 +1079,7 @@ console.log('catch the ace: starting a match');
    */
   const tagRoom = ({ n = 3, lag = [], pub = false, pick = 0.5 } = {}) => {
     const r = new RoomCore({
-      code: 'K7PZ2M', cap: pub ? PUBLIC_CAP : PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: 0, public: pub, shard: pub ? 1 : null,
+      code: 'K7PZ2M', cap: pub ? PUBLIC_CAP : PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: 0, public: pub,
     });
     r.tag.random = () => pick;
     const env = { r, socks: [], paths: [], clock: 0, due: [], stored: null, hits: 0 };
@@ -1168,8 +1141,10 @@ console.log('catch the ace: starting a match');
   e.say(0, { type: 'tag', op: 'start', goal: 2.5 });
   check('a goal out of range or not a whole number is refused', e.r.tag.match === null && e.errors(0).join() === 'goal,goal');
   const pubRoom = tagRoom({ pub: true });
+  pubRoom.say(1, { type: 'tag', op: 'start', goal: 5 });
+  check('in a public room too, only the host starts a match', pubRoom.r.tag.match === null);
   pubRoom.say(0, { type: 'tag', op: 'start', goal: 5 });
-  check('a public room plays no tag, and says so', pubRoom.r.tag.match === null && texts(pubRoom.socks[0], 'refused').map((m) => m.why).join() === 'public');
+  check('and a public room\'s host does', pubRoom.r.tag.match && pubRoom.r.tag.match.state === 'countdown');
   const alone = tagRoom({ n: 1 });
   alone.say(0, { type: 'tag', op: 'start', goal: 5 });
   check('nor does a pilot alone', alone.r.tag.match === null && alone.errors(0).join() === 'alone');
@@ -1335,6 +1310,7 @@ console.log('catch the ace: starting a match');
 }
 
 combatSection(check);
+await browserSection(check);
 
 /* ---------------------------------------------------------------------
  * Stale games and the host: a game a restart restores whether or not its

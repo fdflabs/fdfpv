@@ -218,7 +218,7 @@ const LINK_ACTIONS = new Set(['leaderboard', 'wiki']);
 const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
-  'calibrate', 'friends',
+  'calibrate', 'friends', 'rooms', 'roomnew',
 ]);
 
 /* What the breadcrumb says, per screen. A room is a navigation parent, so a
@@ -256,6 +256,8 @@ const SCREEN_TITLES = {
   tricks: str('ui.trick_list'),
   credits: 'Credits',
   friends: str('friends.title'),
+  rooms: str('roombrowser.title'),
+  roomnew: str('roombrowser.new_title'),
 };
 const CRUMBS = {
   courses: [str('ui.track_mode'), str('ui.my_tracks')],
@@ -273,6 +275,8 @@ const CRUMBS = {
   tricks: [str('ui.freestyle'), str('ui.trick_list')],
   credits: [str('ui.credits')],
   friends: [str('friends.title')],
+  rooms: [str('friends.title'), str('roombrowser.title')],
+  roomnew: [str('friends.title'), str('roombrowser.title'), str('roombrowser.new_title')],
   title: ['FDFPV'],
 };
 
@@ -3820,6 +3824,23 @@ export class Ui {
     friends.append(friendsBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_changes_are_already_stored')));
     this.screens.friends = friends;
 
+    /* THE ROOM BROWSER and MAKE A ROOM, two pages under Fly with friends
+     * whose rows are src/ui/roombrowser.js's, through the shell
+     * (roomRows), for the same reason as the room screen's. */
+    this.roomPages = {};
+    for (const [id, title, lede] of [
+      ['rooms', str('roombrowser.title'), str('roombrowser.lede')],
+      ['roomnew', str('roombrowser.new_title'), str('roombrowser.new_lede')],
+    ]) {
+      const page = el('div', `screen screen-page screen-${id}`);
+      page.append(el('h2', null, title), el('p', 'rates-lede', lede));
+      const block = wrapMenu();
+      block.menu.classList.add('menu-scroll');
+      this.roomPages[id] = block;
+      page.append(block.stage, hintWithKeys(['Esc'], str('ui.goes_back_changes_are_already_stored')));
+      this.screens[id] = page;
+    }
+
     /*
      * STANDINGS: the board, in the game.
      *
@@ -4381,7 +4402,7 @@ export class Ui {
     if (this.screens && this.screens.friends) {
       this.screens.friends.classList.toggle('in-room', inRoom);
     }
-    if (this.screen === 'title' || this.screen === 'paused' || this.screen === 'friends') {
+    if (['title', 'paused', 'friends', 'rooms', 'roomnew'].includes(this.screen)) {
       this.renderMenu();
     }
     /* The row the cursor was on, Make a room or Join, is gone the moment
@@ -5957,6 +5978,9 @@ export class Ui {
         { label: str('ui.back'), action: 'back' },
       ];
     }
+    if (this.screen === 'rooms' || this.screen === 'roomnew') {
+      return [...(this.roomRows ? this.roomRows(this.screen) : []), { label: str('ui.back'), action: 'back' }];
+    }
     if (this.screen === 'credits') {
       return [{ label: str('ui.back'), action: 'back' }];
     }
@@ -7297,6 +7321,8 @@ export class Ui {
       freestyle: this.freestyleMenu,
       pilot: this.pilotMenu,
       friends: this.friendsMenu,
+      rooms: this.roomPages.rooms && this.roomPages.rooms.menu,
+      roomnew: this.roomPages.roomnew && this.roomPages.roomnew.menu,
       quad: this.quadMenu,
       launch: this.launchMenu,
       standings: this.standingsMenu,
@@ -7654,6 +7680,8 @@ export class Ui {
       freestyle: this.freestyleHelp,
       pilot: this.pilotHelp,
       friends: this.friendsHelp,
+      rooms: this.roomPages.rooms && this.roomPages.rooms.help,
+      roomnew: this.roomPages.roomnew && this.roomPages.roomnew.help,
       quad: this.quadHelp,
       launch: this.launchHelp,
       standings: this.standingsHelp,
@@ -12323,6 +12351,12 @@ export class Ui {
       this.act('calibrate-cancel');
       return;
     }
+    /* Make a room is inside Rooms, and Rooms inside Fly with friends,
+     * whichever way the pilot came in, the pause menu included. */
+    if (this.screen === 'rooms' || this.screen === 'roomnew') {
+      this.show(this.screen === 'rooms' ? 'friends' : 'rooms');
+      return;
+    }
     if (this.screen === 'padpick') {
       if (this.padPickPhase === 'confirm') {
         this.act('padpick-no');
@@ -12741,6 +12775,12 @@ export class Ui {
       if (this.onFriends) {
         this.onFriends(action);
       }
+      return;
+    }
+    /* Pages under Fly with friends: show(), not the branch below, which
+     * would rewrite returnTo and lose a paused run. */
+    if (action === 'rooms' || action === 'roomnew') {
+      this.show(action);
       return;
     }
     if (action === 'howto' || action === 'pilot' || action === 'quad'

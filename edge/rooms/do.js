@@ -2,7 +2,7 @@
  * do.js: the rooms Worker, fdfpv-rooms, and its Durable Objects.
  *
  * The Cloudflare adapter and nothing else. One Room object per room,
- * private ones named `prv:<code>`, public ones `pub:<map>:<shard>`, holds
+ * named `prv:<code>`, public or private (front.js), holds
  * a RoomHost (host.js) over the object's own state and speaks the wire in
  * src/share/roomwire.js through the hibernation WebSocket API. The Worker
  * in front of them is front.js, the same front edge/rooms/node.js serves

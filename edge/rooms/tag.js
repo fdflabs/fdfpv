@@ -20,7 +20,7 @@
  * to the lower seat; the Ace's points are counted up to it; then the
  * judgement goes on from the touch with the new Ace.
  *
- * What a client sends (JSON text), the host only, a private room only:
+ * What a client sends (JSON text), the host only, public or private:
  *
  *   { type: 'tag', op: 'start', goal }   count down and play to goal points
  *   { type: 'tag', op: 'end' }           results now
@@ -179,9 +179,6 @@ export class RoomTag {
 
   /* One text message of type 'tag' from seat s. */
   message(core, conn, s, msg, now) {
-    if (core.meta.public) {
-      return this.error(conn, 'public');
-    }
     if (s.seat !== core.host()) {
       return [];
     }

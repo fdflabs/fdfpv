@@ -7,9 +7,9 @@ One room's logic, and the two platforms that serve it. The plan is
 | --- | --- | --- |
 | `core.js` | `RoomCore`, one room's logic: seats, hello, poses, ticks, kicks. Returns actions, never touches a socket. | none |
 | `safety.js`, `wrecks.js`, `race.js` | the phases' modules, called by the core | none |
-| `lobby.js` | public rooms: `LobbyBook` (the logic) and `Lobby` (its object) | none |
+| `lobby.js` | the room browser's book of public rooms: `LobbyBook` (the logic) and `Lobby` (its object) | none |
 | `host.js` | `RoomHost`, a room as a server holds it: load, the action loop, init, accept, message, close, alarm | none |
-| `front.js` | the HTTP front: routes, origin check, create limit | none |
+| `front.js` | the HTTP front: routes, origin check, limits, a typed room name judged (the tracks server's word filter) | none |
 | `do.js` | Cloudflare: the `Room` Durable Object around a `RoomHost`, and the Worker | Cloudflare |
 | `node.js` | Node: namespaces, a queue per object, SQLite storage, timers for alarms, `ws` sockets | the VM |
 
@@ -72,3 +72,5 @@ unless the platform contract above does.
 - `node scripts/rooms-soak.js <origin> <seconds> <clients>`: load.
 - The two page browser checks (`rooms:twopage`, `rooms:safety`,
   `rooms:wrecks`, `rooms:racetwopage`, `rooms:restart`) against any origin.
+- `npm run rooms:browser [origin]`: the room browser, three pages through
+  the real shell; with no origin it starts `node.js` itself.

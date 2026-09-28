@@ -71,6 +71,7 @@
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
     "streamer:selftest": "node scripts/streamer-selftest.js",
     "rooms:server": "node scripts/rooms-server-check.js",
+    "rooms:browser": "node scripts/rooms-browser-three-page.js",
     "marks:selftest": "node scripts/peermarks-selftest.js",
     "marks:twopage": "node scripts/peermarks-two-page.js",
     "combat:harness": "node scripts/combat-harness.js",

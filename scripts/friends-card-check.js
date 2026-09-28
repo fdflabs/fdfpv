@@ -10,9 +10,10 @@
  * window, the third wearing its picture and its mark. The arrows walk the
  * cursor onto it and back; Enter opens the room screen in free flight with
  * the Swiss valley seated; Escape twice is the gate again; a click on the
- * card opens the room screen too. Make a room, and Fly is on top of the
- * room's rows with the aircraft and the world under them; Enter on it is
- * flight, in the room, in the valley.
+ * card opens the room screen too, on Rooms (the room browser). Make a
+ * room, private this time, and Fly is on top of the room's rows with the
+ * aircraft and the world under them; Enter on it is flight, in the room,
+ * in the valley.
  *
  * Page B, 390 by 844, a phone held upright: the five cards stack inside
  * the window with no sideways scroll; a click on the third, Join with a
@@ -192,12 +193,9 @@ try {
   })`);
   check('Enter opens the room screen, not the aircraft picker', opened.screen === 'friends' && !opened.carousel, JSON.stringify(opened));
   check('in free flight, off the gate, the Swiss valley seated', opened.mode === 'freestyle' && !opened.gate && opened.map === 'swiss2');
-  check('on Make a room and Join with a code', opened.rows.includes('friends-create') && opened.rows.includes('friends-join'), opened.rows.join());
-  /* The lobby answers whether public rooms are open after the screen is
-   * up, so the row arrives a moment later. */
-  await a.until("window.__ui.items().some((it) => it.action === 'friends-public')", 15000).catch(() => {});
-  check('and Join a public room, where the rooms server has them open',
-    await a.evaluate("window.__ui.items().some((it) => it.action === 'friends-public')"));
+  check('on Make a room and Join with a code', opened.rows.includes('roomnew') && opened.rows.includes('friends-join'), opened.rows.join());
+  check('and Rooms first, under the cursor', opened.rows[0] === 'rooms'
+    && await a.evaluate("window.__ui.items()[window.__ui.cursor].action === 'rooms'"), opened.rows.join());
 
   await a.tap('Escape');
   await a.until("window.__ui.screen === 'title' && !window.__ui.onGate()", 10000).catch(() => {});
@@ -212,8 +210,15 @@ try {
   await a.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
   check('a click on the card opens the room screen', await a.evaluate("window.__ui.screen === 'friends' && !window.__ui.carousel.isOpen"));
 
-  /* MAKE A ROOM, THEN FLY. */
-  check('the cursor is on Make a room', await arrowTo(a, 'friends-create'));
+  /* MAKE A ROOM, PRIVATE, THEN FLY. */
+  check('the cursor is on Make a room', await arrowTo(a, 'roomnew'));
+  await a.tap('Enter');
+  await a.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
+  check('Enter opens Make a room', await arrowTo(a, 'Who can join'));
+  await a.tap('ArrowRight');
+  await a.sleep(150);
+  check('Right on Who can join makes it private', await a.evaluate("window.__ui.items()[window.__ui.cursor].value === 'Friends with the code'"));
+  check('the cursor reaches Make the room', await arrowTo(a, 'friends-make'));
   await a.tap('Enter');
   await a.until("window.__rooms().phase === 'open'", 30000).catch(() => {});
   const room = await a.evaluate('window.__rooms()');

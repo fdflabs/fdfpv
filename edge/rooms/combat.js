@@ -236,11 +236,11 @@ export class RoomCombat {
     return [];
   }
 
-  /* { type: 'combat', op: 'start', minutes } or { op: 'stop' }, a private
-   * room's host only. */
+  /* { type: 'combat', op: 'start', minutes } or { op: 'stop' }, the
+   * room's host only, public or private. */
   message(core, conn, s, msg, now) {
     const out = this.advance(core, now);
-    if (core.meta.public || s.seat !== core.host()) {
+    if (s.seat !== core.host()) {
       return out;
     }
     const r = this.round;

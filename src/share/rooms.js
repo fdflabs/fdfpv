@@ -2,8 +2,11 @@
  * rooms.js: the socket to a room of friends (edge/rooms/, the wire in
  * src/share/roomwire.js, the design in docs/MULTIPLAYER-PLAN.md).
  *
- * A pilot makes a private room and gets a six letter code, or joins one
- * with a code a friend read out. One WebSocket per room, a hello with the
+ * A pilot makes a room, public or private and named if they like, or
+ * joins one: a public room from the room browser (src/share/roomlist.js)
+ * or a quick join, a private one with the code a friend read out. Every
+ * room has a code; a public room's is how the browser joins it and the
+ * pilot never sees it. One WebSocket per room, a hello with the
  * picker name and the profile (airframe, paint, add ons, pilot figure,
  * world), then poses out at 30 Hz while flying and batches of everybody
  * else's in. The room's clock is learned on joining (eight pings a
@@ -203,6 +206,7 @@ export function setFigurePick(f) {
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
+ * onRoom() when the room's name changed (reports took it away),
  * onHit(hit) (the referee's mid air contact, src/game/midair.js),
  * onHost(seat) when the room's host changes,
  * onEvent(event) for an event, onReported(seat), onBinary(bytes) for any
@@ -224,12 +228,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   let pings = 0;
   let syncTimer = null;
   let keepTimer = null;
-  /* A public room is asked for by map, not code (edge/rooms/lobby.js);
-   * shard is where the lobby put this tab, so a reconnect asks for it back. */
+  /* A quick join asks for a public room by map, not code (edge/rooms/front.js);
+   * once the room answers, its code is this tab's and a reconnect uses it. */
   let publicMap = null;
-  let shard = -1;
   let fullRetried = false;
-  let publicOpen = null;
 
   function setPhase(next, why = null) {
     phase = next;
@@ -283,7 +285,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     }
     let socket;
     try {
-      const path = publicMap ? `public/${publicMap}${shard >= 0 ? `?shard=${shard}` : ''}` : `room/${code}`;
+      const path = publicMap ? `public/${publicMap}` : `room/${code}`;
       socket = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/${path}`);
     } catch (e) {
       setPhase('failed', 'noserver');
@@ -331,12 +333,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         welcome = m;
         attempt = 0;
         write('session', TOKEN_KEY, m.token);
-        if (m.public) {
-          shard = m.shard;
+        if (publicMap) {
+          code = normaliseCode(m.code);
+          publicMap = null;
           fullRetried = false;
-        } else {
-          write('session', ROOM_KEY, code);
         }
+        write('session', ROOM_KEY, code);
         pings = 0;
         bestRtt = Infinity;
         stopTimers();
@@ -377,6 +379,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onEvent?.(m);
       } else if (m.type === 'reported') {
         handlers.onReported?.(m.seat);
+      } else if (m.type === 'room') {
+        if (welcome) {
+          welcome.name = m.name;
+          welcome.hidden = m.hidden;
+        }
+        handlers.onRoom?.();
       } else {
         handlers.onMessage?.(m);
       }
@@ -392,11 +400,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         setPhase('idle');
         return;
       }
-      /* A public shard that filled between the lobby's count and this
-       * join: ask the lobby again, once, for another. */
+      /* A public room that filled between the lobby's count and this
+       * quick join: ask the lobby again, once, for another. */
       if (final === 'full' && publicMap && !fullRetried) {
         fullRetried = true;
-        shard = -1;
         setPhase('connecting', 'retrying');
         retry = setTimeout(() => {
           retry = null;
@@ -432,7 +439,6 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   function leave() {
     code = null;
     publicMap = null;
-    shard = -1;
     fullRetried = false;
     welcome = null;
     offset = null;
@@ -453,8 +459,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   }
 
   return {
-    /* Make a private room in `map`; resolves to its code. */
-    async create(map, friendly = false) {
+    /* Make a room in `map`, private unless room.public; room.name is the
+     * typed name or null, room.mode the game it is set up for or null.
+     * Resolves to its code; throws Error('name') for a name the server
+     * refused. */
+    async create(map, friendly = false, room = {}) {
       const origin = roomsOrigin();
       if (!origin) {
         throw new Error('noserver');
@@ -462,7 +471,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       const res = await fetch(`${origin}/v2/create`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ map, friendly: Boolean(friendly) }),
+        body: JSON.stringify({
+          map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null,
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !normaliseCode(body.code)) {
@@ -498,17 +509,6 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       publicMap = map;
       attempt = 0;
       open();
-    },
-    /* Whether this server has public rooms open; asked once a page. */
-    async publicRooms() {
-      const origin = roomsOrigin();
-      if (!origin) {
-        return false;
-      }
-      if (publicOpen == null) {
-        publicOpen = fetch(`${origin}/v2/public`).then((r) => (r.ok ? r.json() : {})).then((b) => b.open === true).catch(() => false);
-      }
-      return publicOpen;
     },
     leave,
     state() {

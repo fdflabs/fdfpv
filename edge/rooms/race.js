@@ -6,8 +6,8 @@
  * scores its own gates exactly as it does alone (src/game/race.js); the
  * room never judges a pass, it only orders what it is told.
  *
- * Private rooms only, and only the host starts a race (the lead's
- * decision; public rooms stay closed until Phase 5).
+ * Only the host starts a race (the lead's decision), in a private room
+ * or, since the room browser gave public rooms a host, a public one.
  *
  * What a client sends (JSON text):
  *

@@ -31,7 +31,9 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CHAT_PRESETS, EMOTES, REPORT_REASONS, chatAllowance, takeChat } from './roomwire.js';
+import {
+  CHAT_PRESETS, EMOTES, REPORT_REASONS, ROOM_NAME_REPORT, chatAllowance, takeChat,
+} from './roomwire.js';
 import { str } from '../strings/index.js';
 
 const FEED_LINES = 4;
@@ -140,9 +142,10 @@ export function createRoomSafety(send, nameOf) {
       muted.add(seat);
       sendMutes();
     },
-    /* The room's acknowledgement of this pilot's report. */
+    /* The room's acknowledgement of this pilot's report: seat 0 for one
+     * on the room's name (src/ui/roombrowser.js). */
     reported(seat) {
-      note = str('friends.reported', { name: nameOf(seat) || '' });
+      note = seat ? str('friends.reported', { name: nameOf(seat) || '' }) : str('friends.reported_room');
     },
     /* A chat or emote from the room: shown unless its sender is muted. */
     event(m) {
@@ -184,7 +187,10 @@ export function createRoomSafety(send, nameOf) {
     peerOptions(seat, kick) {
       const opts = [{ value: muted.has(seat) ? 'unmute' : 'mute', label: str(muted.has(seat) ? 'friends.unmute' : 'friends.mute') }];
       REPORT_REASONS.forEach((id, i) => {
-        opts.push({ value: `report:${i}`, label: str('friends.report', { reason: str(`rooms.report.${id}`) }) });
+        /* The room's name is reported from the room's own row. */
+        if (i !== ROOM_NAME_REPORT) {
+          opts.push({ value: `report:${i}`, label: str('friends.report', { reason: str(`rooms.report.${id}`) }) });
+        }
       });
       if (kick) {
         opts.push({ value: 'kick', label: str('friends.kick') });

@@ -15,6 +15,11 @@
  *                           within REPORT_WINDOW_MS that reach max(2, a
  *                           third of the room) remove the target for
  *                           REMOVE_MS; a pilot files REPORTS_PER_WINDOW
+ *   the room's name         the reason ROOM_NAME_REPORT is against the
+ *                           room's typed name, not a seat: the same count
+ *                           of distinct pilots takes the name away for the
+ *                           room's life, which then shows its picker name
+ *                           and is never listed again (core.js hideName)
  *   ramming                 noteHit(), for the mid air referee (Phase 3):
  *                           a seat in more than RAM_HITS hits in
  *                           RAM_WINDOW_MS is benched, untouchable and
@@ -52,7 +57,7 @@
  */
 
 import {
-  CLOSE_REMOVED, FLAG_SPAWNING, POSE_BYTES, REPORT_REASONS,
+  CLOSE_REMOVED, FLAG_SPAWNING, POSE_BYTES, REPORT_REASONS, ROOM_NAME_REPORT,
   chatAllowance, eventPresetId, takeChat,
 } from '../../src/share/roomwire.js';
 
@@ -169,11 +174,13 @@ export class RoomSafety {
 
   report(conn, s, msg, now) {
     const reason = msg.reason;
-    if (!Number.isInteger(reason) || reason < 0 || reason >= REPORT_REASONS.length || msg.seat === s.seat) {
+    if (!Number.isInteger(reason) || reason < 0 || reason >= REPORT_REASONS.length) {
       return [];
     }
-    const targetConn = this.seatConn(msg.seat);
-    if (!targetConn) {
+    /* The room's name: its target is the room, its seat 0 on the reply. */
+    const naming = reason === ROOM_NAME_REPORT;
+    const targetConn = naming ? null : this.seatConn(msg.seat);
+    if (naming ? this.core.meta.name == null : (!targetConn || msg.seat === s.seat)) {
       return [];
     }
     const filed = recent(this.pilot(s, now).filed, now, REPORT_WINDOW_MS);
@@ -181,20 +188,24 @@ export class RoomSafety {
       return [];
     }
     filed.push(now);
-    const target = this.core.seats.get(targetConn);
+    /* A token, or 'room' for the name, which no token can be. */
+    const target = naming ? 'room' : this.core.seats.get(targetConn).token;
     /* Distinct by address where there is one, so two tabs on one machine
      * are one reporter. */
     const from = s.address || s.token;
     this.reports = this.reports.filter((r) => now - r.at < REPORT_WINDOW_MS);
-    if (!this.reports.some((r) => r.target === target.token && r.from === from)) {
-      this.reports.push({ target: target.token, from, at: now });
+    if (!this.reports.some((r) => r.target === target && r.from === from)) {
+      this.reports.push({ target, from, at: now });
     }
-    const out = [{ send: conn, data: JSON.stringify({ type: 'reported', seat: msg.seat }) }];
-    const against = this.reports.filter((r) => r.target === target.token).length;
-    if (against >= this.reportsToRemove()) {
-      out.push(...this.remove(targetConn, now));
+    const out = [{ send: conn, data: JSON.stringify({ type: 'reported', seat: naming ? 0 : msg.seat }) }];
+    if (this.reports.filter((r) => r.target === target).length < this.reportsToRemove()) {
+      return out;
     }
-    return out;
+    if (naming) {
+      this.reports = this.reports.filter((r) => r.target !== 'room');
+      return [...out, ...this.core.hideName()];
+    }
+    return [...out, ...this.remove(targetConn, now)];
   }
 
   reportsToRemove() {

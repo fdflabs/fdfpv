@@ -9,8 +9,8 @@
  * Page A, 1280 by 720: five cards inside the window at 1280x720,
  * 1920x1080, 390x844, 360x640 and 844x390, tags clear of the command bar,
  * no sideways scroll, a picture of each. The arrows walk the row. Enter on
- * Toilet paper combat opens the room screen with no public room on it and
- * the cursor on Make a room; Enter makes one; the room screen leads with
+ * Toilet paper combat opens the room screen with the cursor on Make a
+ * room; Enter opens it set up for combat, Enter makes one; the room screen leads with
  * the Game heading, all three games' rows on the first page, the combat
  * start row under the cursor. Page B joins by the Fly with friends card
  * and a typed code and reads what the room is set up for. Enter on A's
@@ -152,8 +152,15 @@ const ON_FIRST_PAGE = (wants) => `(() => {
 async function makeRoom(page, name) {
   await page.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
   const pre = await page.evaluate("({ screen: window.__ui.screen, game: window.__ui.roomGame, rows: window.__ui.items().map((it) => it.action || it.label), here: window.__ui.items()[window.__ui.cursor].action })");
-  check(`${name}: the room screen, set up for its game, no public room, the cursor on Make a room`,
-    pre.screen === 'friends' && pre.game && !pre.rows.includes('friends-public') && pre.here === 'friends-create', JSON.stringify(pre));
+  check(`${name}: the room screen, set up for its game, the cursor on Make a room`,
+    pre.screen === 'friends' && pre.game && pre.here === 'roomnew', JSON.stringify(pre));
+  await page.tap('Enter');
+  /* Make a room (src/ui/roombrowser.js), its game already the card's,
+   * the cursor on Make the room. */
+  await page.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
+  const draft = await page.evaluate("({ here: window.__ui.items()[window.__ui.cursor].action, game: (window.__ui.items().find((it) => it.label === 'Game') || {}).value })");
+  check(`${name}: Make a room, set up for the card's game, the cursor on Make the room`,
+    draft.here === 'friends-make' && draft.game === (pre.game === 'tag' ? 'Catch the Ace' : 'Combat'), JSON.stringify(draft));
   await page.tap('Enter');
   await page.until("window.__rooms().phase === 'open' && window.__ui.items()[window.__ui.cursor].primary", 30000).catch(() => {});
   return (await page.evaluate('window.__rooms()')).code;
