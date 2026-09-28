@@ -75,6 +75,7 @@ class Store {
     `);
     this.getQ = this.db.prepare('SELECT value FROM kv WHERE name = ? AND key = ?');
     this.putQ = this.db.prepare('INSERT INTO kv (name, key, value) VALUES (?, ?, ?) ON CONFLICT (name, key) DO UPDATE SET value = excluded.value');
+    this.listQ = this.db.prepare('SELECT key, value FROM kv WHERE name = ? ORDER BY key');
     this.dropQ = this.db.prepare('DELETE FROM kv WHERE name = ?');
     this.alarmQ = this.db.prepare('INSERT INTO alarms (name, at) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET at = excluded.at');
     this.unalarmQ = this.db.prepare('DELETE FROM alarms WHERE name = ?');
@@ -97,6 +98,7 @@ class Store {
       put: async (key, value) => {
         this.putQ.run(name, key, serialize(value));
       },
+      list: async () => new Map(this.listQ.all(name).map((r) => [r.key, deserialize(r.value)])),
       deleteAll: async () => {
         this.dropQ.run(name);
         this.unalarmQ.run(name);
@@ -117,6 +119,7 @@ function memoryStorage() {
     put: async (key, value) => {
       kept.set(key, structuredClone(value));
     },
+    list: async () => new Map([...kept].map(([k, v]) => [k, structuredClone(v)])),
     deleteAll: async () => kept.clear(),
     setAlarm: async () => {},
   };

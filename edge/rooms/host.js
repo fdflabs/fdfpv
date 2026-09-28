@@ -10,6 +10,7 @@
  *
  *   ctx.storage.get(key)       async, the value put under key, or undefined
  *   ctx.storage.put(key, v)    async; v is structured clone data
+ *   ctx.storage.list()         async, a Map of every key to its value
  *   ctx.storage.deleteAll()    async, the room forgotten
  *   ctx.storage.setAlarm(ms)   async; alarm() is called at that wall ms
  *   ctx.getWebSockets()        the room's open sockets
@@ -24,10 +25,11 @@
  * one at a time, never interleaved across an await: a Durable Object's
  * input gate does that on Cloudflare, and node.js queues them.
  *
- * A NEW CORE FEATURE belongs in core.js and its own module; a new action,
- * or a new thing to reload from storage, belongs here, once, and both
- * platforms have it. edge/rooms/README.md says the same for whoever adds
- * the next one.
+ * A NEW CORE FEATURE belongs in core.js and its own module, and needs
+ * nothing here: what it must keep across a hibernation or a restart it
+ * returns as { store: key, value }, and load() hands the value back to
+ * core[key].restore(). Only a new KIND of action belongs here, once, and
+ * then both platforms have it. edge/rooms/README.md says the same.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -76,6 +78,15 @@ export class RoomHost {
       return null;
     }
     this.core = new RoomCore(meta);
+    /* Every key a { store } action wrote is the name of the core's part
+     * that keeps it (core.race for 'race'), restored before the seats. A
+     * key with no such part is a bug and throws here, not a race that
+     * silently comes back empty. */
+    for (const [key, value] of await this.ctx.storage.list()) {
+      if (key !== 'meta') {
+        this.core[key].restore(value);
+      }
+    }
     this.core.restore(this.ctx.getWebSockets().map((ws) => ({ conn: ws, attachment: ws.deserializeAttachment() })));
     return this.core;
   }
@@ -96,6 +107,8 @@ export class RoomHost {
         }
       } else if (a.attach) {
         a.attach.serializeAttachment(a.value);
+      } else if (a.store) {
+        this.ctx.storage.put(a.store, a.value);
       } else if (a.tick && !this.timer) {
         this.timer = setTimeout(() => {
           this.timer = null;

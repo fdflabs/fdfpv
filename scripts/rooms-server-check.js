@@ -11,13 +11,15 @@
  * browser does: the front's routes and origin check, a private room made
  * and joined by two pilots, the keepalive, poses batched from one to the
  * other, a wreck (Phase 2) passed on and shown to a pilot who joins after,
+ * the host's race track (Phase 4) kept by the room and in a later welcome,
  * quick chat (Phase 5) rebuilt from its index, a code nobody made, the text
  * rate limit, and a public room when they are open.
  *
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
  * two pilots flying, after which both reconnect into their own seats of
- * the same private room, and the purge alarm carried across the restart.
+ * the same private room, with its race track, and the purge alarm carried
+ * across the restart.
  *
  * A check against a live server makes one private room and leaves it to
  * be purged ten minutes after, like any room nobody is in.
@@ -46,6 +48,7 @@ import {
   CHAT_PRESETS, CLOSE, PROTO, TYPE_PARTS_RELAY, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
 import { TEXT_CLOSE_PER_S } from '../edge/rooms/core.js';
+import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const given = String(process.argv[2] || '').replace(/\/+$/, '');
 
@@ -159,7 +162,10 @@ const batch = await b.until((x) => x.got.find((m) => m instanceof Uint8Array && 
 const decoded = batch ? decodeBatch(batch) : null;
 check('a pose reaches the other pilot in a batch', decoded && decoded.poses.length === 1 && decoded.poses[0].seat === 1);
 
-console.log('a wreck (Phase 2) and quick chat (Phase 5)');
+console.log('a race track (Phase 4), a wreck (Phase 2) and quick chat (Phase 5)');
+const raceDoc = mapTrackDocument({ id: 'trk-check001', name: 'Server check', types: ['gate', 'hoop30', 'gate'], radius: 60 });
+a.say({ type: 'track', doc: raceDoc });
+check('the host\'s track reaches the other pilot', Boolean(await b.until((x) => x.got.find((m) => m && m.track && m.track.id === raceDoc.id))));
 const table = [
   { kind: 0, parent: -1, cg: [0, 0, 0], boxMin: [-0.3, -0.1, -0.1], boxMax: [0.3, 0.1, 0.1] },
   { kind: 2, parent: 0, cg: [0, 0.5, 0], boxMin: [-0.1, -0.2, -0.02], boxMax: [0.1, 0.2, 0.02] },
@@ -169,7 +175,8 @@ check('a crash is passed on', Boolean(await b.until((x) => x.text('event').find(
 a.ws.send(encodeParts(roomMsOf(a), [{ part: 1, x: 10, y: 300, z: 5, qx: 0, qy: 0, qz: 0, qw: 1 }]));
 check('and its pieces, relayed with the seat', Boolean(await b.until((x) => x.got.find((m) => m instanceof Uint8Array && m[0] === TYPE_PARTS_RELAY))));
 const c = await seat(`room/${code}`, { name: [5, 6, 12] });
-check('a pilot who joins after sees the wreck where it lies', Boolean(await c.until((x) => x.text('event').find((m) => m.kind === 'crash' && m.seat === 1)))
+check('a pilot who joins after is welcomed with the race track', c.welcome.track && c.welcome.track.id === raceDoc.id && c.welcome.track.gates === 3);
+check('and sees the wreck where it lies', Boolean(await c.until((x) => x.text('event').find((m) => m.kind === 'crash' && m.seat === 1)))
   && Boolean(await c.until((x) => x.got.find((m) => m instanceof Uint8Array && m[0] === TYPE_PARTS_RELAY))));
 a.say({ type: 'event', kind: 'chat', id: 1 });
 const chat = await b.until((x) => x.text('event').find((m) => m.kind === 'chat'));
@@ -218,6 +225,7 @@ if (server) {
   check('the second pilot is back in seat 2, though it came back first', b2.welcome && b2.welcome.seat === 2 && b2.welcome.code === code, JSON.stringify(b2.welcome));
   check('and the first in seat 1, with the same tokens', a2.welcome && a2.welcome.seat === 1 && a2.welcome.token === seats.a.token && b2.welcome.token === seats.b.token);
   a2.ws.send(pose(a2, 20));
+  check('the room kept its race track across the restart', a2.welcome.track && a2.welcome.track.id === raceDoc.id, JSON.stringify(a2.welcome.track && a2.welcome.track.id));
   check('and they see each other fly again', Boolean(await b2.until((x) => x.got.find((m) => m instanceof Uint8Array && decodeBatch(m)))));
   await server.stop();
   rmSync(scratch, { recursive: true, force: true });
