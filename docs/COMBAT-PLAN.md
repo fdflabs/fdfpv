@@ -319,11 +319,16 @@ samples move the pair's covered span forward:
    linearly between its two frames, stepped every quarter millisecond
    (1.5 cm of travel at 60 m/s closing, under half the test's reach, so a
    flat prop disc cannot step over the paper).
-5. **The test.** A link is cut when its distance to any of A's part boxes
-   (`configs/hulls.js`: props, wings, fuselage, every part) is under the
-   paper's half width less a margin: `0.0508 - 0.02 = 0.031 m`. The
-   distance from a segment to a box is convex along the segment and is
-   found by golden section search, exactly, with no trigonometry.
+5. **The test.** A link is cut when any of A's part boxes
+   (`configs/hulls.js`: props, wings, fuselage, every part) comes within
+   **1.0 m** of the paper's centre line. **The owner's decision,
+   2026-09-28**, verbatim: "for the combat mode I need to be very win
+   friendly: if you get even within 1 m of the other person's line, it
+   must make a special effect, say a SCHWING sound byte, and then cut it;
+   also scoring must be enabled for this." (The first build cut only on
+   touching the paper, 3.1 cm.) The distance from a segment to a box is
+   convex along the segment and is found by golden section search,
+   exactly, with no trigonometry.
 6. **Excluded:** a cutter or a victim flagged `spawning` or `crashed`
    (Phase 5's and Phase 3's untouchable), a victim's own aircraft (the
    rules score no cut of your own streamer [AMA-RC], and a pilot's aircraft
@@ -333,10 +338,19 @@ samples move the pair's covered span forward:
    air, and their paper with them: the rule needs the victim's own flags
    for the moment, and a pilot who is not flying has none).
 
-The margin covers the gap between what the room reconstructs and what the
-owner simulated: the codec's 1.1 cm, the interpolation of 10 Hz frames in
-a turn (a node moves along the path; the chord of a 25 m radius turn over
-100 ms at 20 m/s bows 2 cm), and Phase 3's 7 to 14 mm for poses.
+**The metre under lag.** The metre is not grown for lag, because lag
+cannot change the decision: the room judges on the samples' own times.
+What it can change is what the cutter saw. The room's picture of the
+paper is within 1.1 cm (codec) and 2 cm (a turn between 10 Hz frames) of
+the owner's; the cutter's DRAWING of it is carried forward from the
+newest frame to the present (`src/share/roomcombat.js`), and
+`combat:harness` measures how far that drawn line is from the true line
+at the pass. With the aircraft's 250 ms cap on carrying forward, a 300 ms
+link drew it 15 to 20 cm off; paper moves along its own path, so its cap
+is 600 ms, and every link set up to 300 ms each way draws it within 7.4
+cm (worst). So a pass that looked 0.9 m from the line on the cutter's
+screen is under a metre in the room, and cuts; the harness's band is
+0.9 m always cut, 1.1 m never.
 
 ### 4.2 Both screens agree, and nobody fakes a cut
 
@@ -381,7 +395,7 @@ Association's [RCCA-2009], score a five minute round:
 | Real rule | Here |
 | --- | --- |
 | "Streamer cut (other than your own) +100 per cut" | +100 |
-| "Multiple cuts on a single streamer in a single pass count as one cut" | A pass is one cutter on one streamer; contacts within 1.5 s of the last one of that pair are the same pass: the paper is cut, the points are not given again. |
+| "Multiple cuts on a single streamer in a single pass count as one cut" | A pass is one cutter on one streamer: after a cut, that cutter cuts that streamer nothing more for 1.5 s (sample time). With a metre of reach a pass that followed the paper would otherwise chew it all away. |
 | A cut is "any time one contestant's aircraft removes any part of a streamer" | Any contact with any part of the aircraft. **Deeper does not score more**, in either rulebook. A deep cut costs the victim more at the end, through the next line. |
 | "Remaining streamer +4 points per foot ... (+120 max.)" on a 30 ft streamer, "rounded down to the nearest foot" | +2.4 a whole metre left at the end: the same 120 for a whole streamer, scaled to fifty metres. |
 | "Continuous 5 minute flight +20" | +20 for a round with no crash; a crash from a mid air (a Phase 3 `hit`) keeps it, as the rules say. |
@@ -438,11 +452,57 @@ consequence without ending anyone's round.
 - **Fly with friends, host:** a Combat row (3 or 5 minutes), then Stop.
   Everyone: the round's state and time.
 - **In flight:** time left, your points, your paper in metres, the pull at
-  your tail in newtons, and the top three.
-- **A cut:** a burst of paper at the point, the piece falling on every
-  screen, the score changing on every screen.
+  your tail in newtons, and every pilot's points live (eight at most, you
+  always among them).
+- **A cut (the owner's SCHWING, 2026-09-28):** on every screen, a glint (a
+  four pointed star, additive, flashing big and fading in 0.45 s) and a
+  burst of paper squares in the cut paper's colour, lit from inside; the
+  piece falling; the scoreboard changing at once. A synthesized SCHWING,
+  a sword drawn (`src/render/audio.js schwing()`, the lead's recipe the
+  owner heard and chose): a blade scrape (noise band passed Q 2.2, 900 Hz
+  to 4.5 kHz over 150 ms, gated at 380 Hz between 1.0 and 0.25, up to 1.3
+  at 50 ms, gone by 170), a whoosh (Q 1.6, 350 Hz to 3.5 kHz over 160 ms,
+  1.4 at 100 ms, gone by 220), a shing (6.5 kHz, Q 3, struck at 100 ms, 4
+  ms to 0.5, gone over 450), and the blade's ring struck at 100 ms
+  (partials 1, 2.76, 5.40, 8.93 at amplitudes 1, 0.7, 0.45, 0.28 of a base
+  swept 560 to 1150 Hz in 40 ms, each dying at 1.2 + 1.8 k a second, 4 ms
+  to 0.6 and silent by 1.5 s) into the master's tanh. Eighteen nodes made
+  once, no sample; only the fundamental is doubled 0.35 percent sharp for
+  the shimmer, because a pair on every partial would pass the graph's 64
+  node budget. Full level for the cutter, a third for the others, through
+  the master so the sound setting and volume hold. The cutter's screen
+  shouts "+100 SCHWING!" big in the middle.
 - **Results:** every pilot, points, cuts and paper left.
 - **Names** are the rooms' picker names; there is no text in any of it.
+
+### 5.5 Captured paper (the owner, 2026-09-28)
+
+> when I cut yours off, I get that length in your color added to mine;
+> then mine gets cut and right there it gets added to the back of the one
+> that cut you, so eventually it will be many many many colors.
+
+- **The list.** Each pilot's paper is a list of runs from the tow point
+  outward, `[[seat, metres], ...]`, the seat whose colour it is. The room
+  holds every list (it is the referee), sends them in every `combat`
+  view and keeps them in its `combat` store, so a late joiner and a
+  restarted room have them.
+- **A cut** parts the victim's list where the paper was met; everything
+  behind it, every colour, goes onto the far end of the cutter's list. The
+  piece still falls on every screen, in its colours; the cutter's own
+  streamer grows at its far end by the same length, laid on along its
+  last link and moving with it. That reads as paper that was always
+  there; a piece flying back to its new owner would cross the sky, and
+  with a metre of reach the cutter is already beside it.
+- **The cap: 100 m, the lead's decision, 2026-09-28.** Past it, the far
+  end of the cutter's list falls as a piece. `STREAMER_SEGS` is 100 so a
+  frame carries it (321 bytes at the cap).
+- **Real paper still tears** (the owner's choice, 9.1), and a longer
+  streamer tears slower: 100 m pulls twice the friction and weighs twice
+  as much at the tow point, so it goes at **17.9 m/s** (the selftest tore
+  it at 18.7) against 50 m's 22.3. The HUD shows the pull. A self tear's
+  piece falls to nobody.
+- **Scoring:** 100 a cut as before; the end of round paper bonus counts
+  every metre towed, captured included (2.4 a metre, 240 at the cap).
 
 ## 6. What is built where
 
@@ -474,11 +534,12 @@ consequence without ending anyone's round.
 | `combat:harness` (CI) | randomized passes of a real streamer and a flying cutter over simulated links, latency 0 to 300 ms each way, jitter 0 to 60 ms: both clients and the room hold the same cuts | 100 percent |
 | | same cuts as the zero latency run, links under `COMBAT_LATE_MS` | 100 percent |
 | | clocks off by up to 10 ms each: still the same cuts on both, and none where the truth missed the paper | 100 percent, 0 |
-| | truth clearance over 8 cm judged a cut | never |
-| | truth passing through the paper (under 1 cm) missed | never |
+| | truth nearest part over 1.1 m from the line judged a cut | never |
+| | truth nearest part under 0.9 m from the line missed | never |
+| | the cutter's drawn line off the true line at the pass, every link set | under 10 cm |
 | | decision delay over the slower link, p95 | reported, under 250 ms |
 | | room CPU, 16 seats all towing | reported |
-| `combat:twopage` (by hand, `wrangler dev`) | two headless pages on swiss2, coloured streamers, A cuts B's, both screens the same cut and the piece falling, both scores | pass list |
+| `combat:twopage` (by hand, any rooms server) | two headless pages on swiss2, the host presses the Combat row, coloured streamers; A passes B's paper 1.4 m off (no cut) and 0.8 m off (a cut): the same cut on both screens, the piece falling, the SCHWING struck and the glint flashed on both, +100 SCHWING! on A's, the live scoreboard on both during the round matching the room | pass list |
 | existing | `rooms:selftest`, `verify` 16 of 16, `crash:identity`, every `checks.yml` command | unchanged |
 
 ## 8. Phases
@@ -507,6 +568,13 @@ consequence without ending anyone's round.
    2026-09-28: no.** The pull at the tail is shown on the HUD and not
    applied to the plant, as built (2.4).
 3. **Round length:** 3 or 5 minutes offered, 5 by default. Open.
+4. **How near is a cut?** **Decided by the owner, 2026-09-28: within 1 m
+   of the line, with a SCHWING, and it scores.** As built (4.1, 5.4).
+5. **Does cut paper change hands?** **Decided by the owner, 2026-09-28:
+   yes, colours and all, onto the cutter's far end; capped at 100 m by
+   the lead.** As built (5.5).
+6. **The SCHWING.** **Decided by the owner, 2026-09-28: deeper, a sword**,
+   the lead's recipe. As built (5.4).
 
 ## 10. As built, measured (2026-09-28, this machine)
 
@@ -542,6 +610,31 @@ consequence without ending anyone's round.
   the app's first line); this branch's own fix was dropped for it at the
   merge. The run after the merge is in the PR.
 - Every `checks.yml` command, 48 of them, exit 0.
+
+### The owner's metre, SCHWING and captured paper, measured (2026-09-28)
+
+- `rooms:selftest` 323 of 323: 0.9 m cuts and scores, 1.1 m does not;
+  one pass one cut; split, append and the 100 m cap in several colours;
+  A cuts B then B cuts A and tows both; the bonus counts all paper towed;
+  a restart keeps every list; #145's refusals and the ten second end of a
+  round too few are left in.
+- `streamer:selftest` 30 of 30: 100 m tears at 18.7 m/s against the
+  predicted 17.9 (50 m: 22.3).
+- `combat:harness` 10 of 10: no truth pass over 1.1 m cut, none under 0.9
+  m missed (the band: cut up to 96.9 cm, left from 102.6 cm); the cutter's
+  drawn line within 7.8 cm of the truth on every link set to 300 ms each
+  way; the room at 35 to 42 ms of CPU a second with sixteen towing.
+- `combat:twopage` 34 of 34 on `edge/rooms/node.js`: the Combat row
+  pressed; 1.4 m no cut, 0.8 m a cut; +100 SCHWING! on the cutter's
+  screen; the SCHWING struck and the glint flashed on both; the live
+  scoreboard on both during the round; A's paper grows by B's 21 m in B's
+  colour on both screens; B's Cub cuts A's paper and tows
+  `[[2,29],[1,11],[2,21]]` on both.
+- The SCHWING against the lead's reference render
+  (`scratchpad/lead/schwing-sword.wav`), the real voice rendered offline:
+  envelope correlation 0.968 (20 ms RMS); spectral centroid 3.4, 3.5, 3.6,
+  5.1, 4.6 kHz at 20, 60, 100, 140, 200 ms against the reference's 3.6,
+  3.5, 3.3, 4.9, 4.9. 62 audio nodes, under the 64 budget.
 
 ## Sources
 

@@ -2047,10 +2047,16 @@ export async function boot({
   function combatFrame(now, wallMs, scene, dt) {
     for (const n of roomCombat.news()) {
       if (n.kind === 'cut') {
+        /* The owner's SCHWING: on every screen, loudest for the pilot who
+         * made the cut, a big +100 on theirs. */
         const me = roomCombat.seat();
-        const key = n.ev.victim === me ? 'combat.cut_you'
-          : `combat.${n.ev.cutter === me ? 'you_' : ''}${n.ev.pass ? 'cut_again' : 'cut_line'}`;
-        combatLayer.burst(n.ev.p, streamerColour(n.ev.victim));
+        const mine = n.ev.cutter === me;
+        const key = n.ev.victim === me ? 'combat.cut_you' : `combat.${mine ? 'you_' : ''}cut_line`;
+        combatLayer.burst(n.ev.p, streamerColour(n.ev.victim), mine ? 1 : 0.6);
+        audio.schwing(mine ? 1 : 0.35);
+        if (mine && n.ev.points > 0) {
+          combatHud.shout(str('combat.schwing', { points: n.ev.points }));
+        }
         combatHud.say(str(key, { cutter: combatNameOf(n.ev.cutter), victim: combatNameOf(n.ev.victim), points: n.ev.points }));
       } else if (n.state === 'on') {
         combatHud.say(str('combat.go'));
@@ -2645,6 +2651,7 @@ export async function boot({
     const now = roomLinkState.roomNow();
     const chains = (list) => list.map((c) => ({
       id: c.id, n: c.n, low: Math.min(...Array.from({ length: c.n }, (_, i) => c.x[i * 3 + 1])), head: [c.x[0], c.x[1], c.x[2]],
+      nodes: Array.from({ length: c.n }, (_, i) => [c.x[i * 3], c.x[i * 3 + 1], c.x[i * 3 + 2]]),
     }));
     return {
       seat: roomCombat.seat(),
@@ -2653,6 +2660,14 @@ export async function boot({
       peers: [...roomPeers.keys()].map((seat) => ({ seat, chains: chains(roomCombat.peerChains(seat, now)) })),
       cuts: roomCombat.cuts(),
       ribbons: combatLayer.count(),
+      /* Each seat's paper as the room holds it, and as this page draws it:
+       * colour seats in runs, tow point first, per drawn chain. */
+      runs: Object.fromEntries([roomCombat.seat(), ...roomPeers.keys()].map((s) => [s, roomCombat.runs(s)])),
+      drawnRuns: Object.fromEntries([roomCombat.seat(), ...roomPeers.keys()].map((s) => [s, combatLayer.colours(s)])),
+      effects: combatLayer.effects(),
+      /* The SCHWING voice exists once the sound is up, and every cut rings
+       * it: how many times it was struck. */
+      schwing: { voice: Boolean(audio.schwingVoice), struck: audio.schwings || 0 },
       hud: combatHud.shown(),
       said: combatHud.said(),
     };
