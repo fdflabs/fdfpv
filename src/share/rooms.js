@@ -283,7 +283,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       }
       const h = hello();
       const token = read('session', TOKEN_KEY);
-      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', name: h.name, profile: h.profile, ...(token ? { token } : {}) });
+      /* The seat held before a drop, so a room that was restarted and
+       * forgot the token can put the pilot back in the same slot. */
+      const seat = welcome && welcome.code === code ? { seat: welcome.seat } : {};
+      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat });
     };
     socket.onmessage = (ev) => {
       if (ws !== socket) {

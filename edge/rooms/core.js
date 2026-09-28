@@ -206,6 +206,13 @@ export class RoomCore {
       wanted = back.seat;
       joined = back.joined;
     }
+    /* A token this room does not know, from a client that had a seat: the
+     * object was restarted (a deploy, a tail attaching) and forgot it. The
+     * seat it names is a spawn slot and nothing more, so it is given back
+     * when free, and the pilot keeps their place on the field. */
+    if (!wanted && token && Number.isInteger(msg.seat)) {
+      wanted = msg.seat;
+    }
     if (!wanted && address) {
       if (!this.joins.has(address)) {
         this.joins.set(address, { since: now, n: 0 });

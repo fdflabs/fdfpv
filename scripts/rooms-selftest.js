@@ -208,6 +208,19 @@ const b2 = sock('b2', '10.0.0.2');
 hello(b2, { token: wb.token });
 check('a token whose socket is still open replaces it', b.closed && b.closed.code === CLOSE.replaced && texts(b2, 'welcome')[0].seat === 2);
 
+const r3 = new RoomCore(meta);
+const saved = room;
+room = r3;
+const other = sock('other', '10.3.0.1');
+hello(other);
+const back5 = sock('back5', '10.3.0.2');
+hello(back5, { token: 'f'.repeat(32), seat: 5 });
+check('after a restart a known seat is given back to a token the room forgot', texts(back5, 'welcome')[0].seat === 5);
+const noToken = sock('notoken', '10.3.0.3');
+hello(noToken, { seat: 6 });
+check('but not to a newcomer naming one', texts(noToken, 'welcome')[0].seat === 2);
+room = saved;
+
 console.log('hibernation');
 const conns = [a2, b2, c].map((s) => ({ conn: s, attachment: s.attachment }));
 room = new RoomCore(meta);
