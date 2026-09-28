@@ -80,12 +80,15 @@ export function tagResultsView(rt, nameOf) {
   };
 }
 
-/* The goal the host has picked: a preset id, or 'custom' with its value. */
-function goalLabel(pick) {
+/* The goal row for what the host has picked: a preset id, or 'custom'
+ * with its value. The preset's name is in the label and the points are
+ * the value, which is all the value column has room for. */
+function goalRow(pick) {
   const preset = GOALS.find((g) => g.id === pick.preset);
-  return preset
-    ? { value: str(`roomtag.goal_${preset.id}`, { n: preset.goal }), note: str(`roomtag.goal_${preset.id}_note`) }
-    : { value: str('roomtag.goal_custom', { n: pick.custom }), note: str('roomtag.goal_custom_note') };
+  const id = preset ? preset.id : 'custom';
+  return {
+    label: str(`roomtag.goal_${id}`), value: String(preset ? preset.goal : pick.custom), note: str(`roomtag.goal_${id}_note`),
+  };
 }
 
 /*
@@ -107,8 +110,7 @@ export function tagRows(o) {
     },
   ];
   if (host && !on) {
-    const g = goalLabel(o.pick);
-    rows.push({ label: str('roomtag.goal'), value: g.value, note: g.note, adjust: o.onPreset });
+    rows.push({ ...goalRow(o.pick), adjust: o.onPreset });
     if (o.pick.preset === 'custom') {
       rows.push({
         label: str('roomtag.custom'), value: String(o.pick.custom), note: str('roomtag.custom_note', { min: GOAL_MIN, max: GOAL_MAX }), adjust: o.onCustom,
