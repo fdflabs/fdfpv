@@ -34,6 +34,14 @@ import { SLOT_RIGHT_M, slotSpawn, stationFor } from '../src/game/slots.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 import { RoomCore, KICK_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN } from '../edge/rooms/core.js';
+import {
+  CHAT_BURST, CHAT_EVERY_MS, CHAT_PRESETS, CLOSE_REMOVED, EMOTES, FLAG_SPAWNING, PUBLIC_CAP, REPORT_REASONS,
+} from '../src/share/roomwire.js';
+import {
+  BENCH_MS, IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
+} from '../edge/rooms/safety.js';
+import { LobbyBook, MAX_MAPS, PENDING_MS } from '../edge/rooms/lobby.js';
+import { TELEPORT_SPEED } from '../src/game/verify.js';
 
 let failed = 0;
 let passed = 0;
@@ -89,6 +97,9 @@ const newToken = () => {
 let now = 1_000_000;
 const meta = { code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: now - 5000 };
 let room = new RoomCore(meta);
+/* A pose stamped with the room's clock now, as an honest client stamps it:
+ * the room refuses one further than POSE_CLOCK_SLOP_MS from its clock. */
+const livePose = (extra = {}) => encodePose({ ...pose, t: now - meta.epoch, ...extra });
 
 function sock(name, address = '10.0.0.1') {
   return { name, address, got: [], closed: null, attachment: null };
@@ -156,15 +167,16 @@ ticks = 0;
 now += 33;
 run(room.tick(now));
 check('a tick with nothing new stops ticking', ticks === 0 && room.ticking === false);
-run(room.message(b, encodePose(pose), now));
+run(room.message(b, livePose(), now));
 check('the next pose starts it again', ticks === 1);
 now += 1000;
 room.tick(now);
 let stored = 0;
 for (let i = 0; i < 40; i += 1) {
-  const p = encodePose({ ...pose, seq: i });
+  const p = livePose({ seq: i });
   room.message(a, p, now);
-  if (room.seats.get(a).pose === p) {
+  /* By sequence, not identity: a spawning seat's pose is stored as a flagged copy. */
+  if (decodePose(room.seats.get(a).pose).seq === i) {
     stored += 1;
   }
 }
@@ -211,7 +223,7 @@ room.restore(conns);
 check('a fresh core from the attachments has the same seats', [...room.seats.values()].map((s) => s.seat).sort().join() === '1,2,3');
 check('and the same host', room.host() === 1);
 ticks = 0;
-run(room.message(c, encodePose(pose), now));
+run(room.message(c, livePose(), now));
 const nb = b2.got.length;
 now += 33;
 run(room.tick(now));
@@ -328,6 +340,273 @@ for (const table of [en, es]) {
   }
 }
 check(`every picker word the wire can name is in English and Spanish`, missing.length === 0, missing.join(' '));
+
+/*
+ * PHASE 5, SAFETY: edge/rooms/safety.js and edge/rooms/lobby.js, driven
+ * through the core the way do.js drives them.
+ */
+console.log('phase 5: quick chat and emotes, by id only');
+now += 60000;
+room = new RoomCore(meta);
+const p5a = sock('p5a', '10.5.0.1');
+const p5b = sock('p5b', '10.5.0.2');
+const p5c = sock('p5c', '10.5.0.3');
+for (const s of [p5a, p5b, p5c]) {
+  hello(s);
+}
+const seatOf = (s) => texts(s, 'welcome')[0].seat;
+const events = (s, kind) => s.got.filter((m) => m && m.type === 'event' && m.kind === kind);
+const say = (s, obj) => run(room.message(s, JSON.stringify(obj), now, s.address, newToken));
+say(p5a, { type: 'event', kind: 'chat', id: 1 });
+const heard = events(p5b, 'chat');
+check('a preset chat reaches the others as its id and the sender\'s seat',
+  heard.length === 1 && heard[0].id === 1 && heard[0].seat === seatOf(p5a) && events(p5c, 'chat').length === 1);
+check('rebuilt by the room: exactly type, kind, seat and id', heard[0] && Object.keys(heard[0]).sort().join() === 'id,kind,seat,type');
+check('and not echoed to the sender', events(p5a, 'chat').length === 0);
+now += 10000;
+const nb5 = p5b.got.length;
+say(p5a, { type: 'event', kind: 'chat', id: 2, text: 'meet me at' });
+say(p5a, { type: 'event', kind: 'chat', id: 'hello' });
+say(p5a, { type: 'event', kind: 'chat', id: CHAT_PRESETS.length });
+say(p5a, { type: 'event', kind: 'chat', id: -1 });
+check('a chat carrying a text field, a word for an id, or an id off the list reaches nobody', p5b.got.length === nb5);
+now += 1000;
+say(p5a, { type: 'chat', text: 'hello' });
+say(p5a, { type: 'event', kind: 'emote', id: 0, name: 'x' });
+check('nor does a made up type or an emote with an extra field', p5b.got.length === nb5);
+now += 10000;
+say(p5a, { type: 'event', kind: 'emote', id: EMOTES.indexOf('wave') });
+check('an emote goes out by id', events(p5b, 'emote').length === 1 && events(p5b, 'emote')[0].id === EMOTES.indexOf('wave'));
+now += 10000;
+let sent5 = 0;
+for (let i = 0; i < CHAT_BURST + 2; i += 1) {
+  const n = events(p5b, 'chat').length;
+  say(p5a, { type: 'event', kind: 'chat', id: 0 });
+  sent5 += events(p5b, 'chat').length - n;
+  now += 100;
+}
+check(`quick chat and emotes: ${CHAT_BURST} at once, then dropped`, sent5 === CHAT_BURST, `${sent5}`);
+now += CHAT_EVERY_MS;
+const n5 = events(p5b, 'chat').length;
+say(p5a, { type: 'event', kind: 'chat', id: 0 });
+say(p5a, { type: 'event', kind: 'chat', id: 0 });
+check(`then one every ${CHAT_EVERY_MS} ms`, events(p5b, 'chat').length === n5 + 1);
+
+console.log('phase 5: mute');
+now += 10000;
+say(p5b, { type: 'mute', seats: [seatOf(p5a)] });
+check('a mute is kept with the muting pilot\'s seat, as the muted seat\'s token', p5b.attachment.muted.length === 1
+  && p5b.attachment.muted[0] === texts(p5a, 'welcome')[0].token);
+const mb = events(p5b, 'chat').length;
+const mc = events(p5c, 'chat').length;
+say(p5a, { type: 'event', kind: 'chat', id: 3 });
+check('a muted pilot\'s chat does not reach who muted them', events(p5b, 'chat').length === mb);
+check('and still reaches everybody else', events(p5c, 'chat').length === mc + 1);
+run(room.close(p5a, now));
+const p5a2 = sock('p5a2', '10.5.0.1');
+hello(p5a2, { token: texts(p5a, 'welcome')[0].token });
+now += 10000;
+run(room.message(p5a2, JSON.stringify({ type: 'event', kind: 'chat', id: 3 }), now, p5a2.address, newToken));
+check('and still does not after they drop and take their seat back', events(p5b, 'chat').length === mb);
+room = (() => {
+  const r = new RoomCore(meta);
+  r.restore([p5a2, p5b, p5c].map((s) => ({ conn: s, attachment: s.attachment })));
+  return r;
+})();
+now += 10000;
+run(room.message(p5a2, JSON.stringify({ type: 'event', kind: 'chat', id: 3 }), now, p5a2.address, newToken));
+check('nor after the room hibernates', events(p5b, 'chat').length === mb && events(p5c, 'chat').length === mc + 3, `${events(p5b, 'chat').length - mb} ${events(p5c, 'chat').length - mc}`);
+say(p5b, { type: 'mute', seats: [] });
+now += 10000;
+run(room.message(p5a2, JSON.stringify({ type: 'event', kind: 'chat', id: 4 }), now, p5a2.address, newToken));
+check('unmuted, their chat arrives again', events(p5b, 'chat').length === mb + 1);
+say(p5b, { type: 'mute', seats: 'everyone' });
+check('a mute that is not a list of seats is refused', p5b.attachment.muted.length === 0);
+
+console.log('phase 5: reports');
+const sa = seatOf(p5a2) || texts(p5a2, 'welcome')[0].seat;
+say(p5b, { type: 'report', seat: sa, reason: REPORT_REASONS.length });
+say(p5b, { type: 'report', seat: seatOf(p5b), reason: 0 });
+say(p5b, { type: 'report', seat: 99, reason: 0 });
+check('a report with no such reason, of yourself, or of nobody, is refused', texts(p5b, 'reported').length === 0);
+say(p5b, { type: 'report', seat: sa, reason: REPORT_REASONS.indexOf('ramming') });
+check('a report is acknowledged to the reporter only', texts(p5b, 'reported').length === 1 && texts(p5c, 'reported').length === 0 && texts(p5a2, 'reported').length === 0);
+check(`one report in a room of 3 removes nobody (it takes max(2, a third))`, !p5a2.closed && room.safety.reportsToRemove() === 2);
+const twin = sock('twin', p5b.address);
+hello(twin);
+run(room.message(twin, JSON.stringify({ type: 'report', seat: sa, reason: 1 }), now, twin.address, newToken));
+check('a second tab on the reporter\'s address is not a second reporter', !p5a2.closed);
+run(room.close(twin, now));
+say(p5c, { type: 'report', seat: sa, reason: 1 });
+check('a second pilot\'s report removes them', p5a2.closed && p5a2.closed.code === CLOSE_REMOVED);
+check('and the room sees them leave', texts(p5b, 'leave').some((m) => m.seat === sa));
+const back5 = sock('back5', '10.5.0.1');
+hello(back5, { token: texts(p5a, 'welcome')[0].token });
+check('back with their token is refused', back5.closed && back5.closed.code === CLOSE.kicked);
+const back6 = sock('back6', '10.5.0.1');
+hello(back6);
+check('back from their address is refused', back6.closed && back6.closed.code === CLOSE.kicked);
+now += REMOVE_MS + 1;
+const back7 = sock('back7', '10.5.0.1');
+hello(back7);
+check('allowed back after 30 minutes', !back7.closed);
+const r9 = new RoomCore({ ...meta, cap: 16 });
+room = r9;
+const nine = [];
+for (let i = 0; i < 9; i += 1) {
+  const s = sock(`n${i}`, `10.6.0.${i}`);
+  hello(s);
+  nine.push(s);
+}
+check('in a room of 9 it takes 3 reporters', r9.safety.reportsToRemove() === 3);
+let filed5 = 0;
+for (let i = 1; i <= REPORTS_PER_WINDOW + 1; i += 1) {
+  run(r9.message(nine[0], JSON.stringify({ type: 'report', seat: seatOf(nine[i]), reason: 2 }), now, nine[0].address, newToken));
+  filed5 = texts(nine[0], 'reported').length;
+}
+check(`a pilot files ${REPORTS_PER_WINDOW} reports in five minutes, no more`, filed5 === REPORTS_PER_WINDOW, `${filed5}`);
+
+console.log('phase 5: kicks and caps');
+const pubMeta = { code: null, public: true, shard: 2, cap: PUBLIC_CAP, friendly: false, map: 'swiss2', epoch: now - 5000 };
+room = new RoomCore(pubMeta);
+const pub = [];
+for (let i = 0; i < PUBLIC_CAP + 1; i += 1) {
+  const s = sock(`pub${i}`, `10.7.0.${i}`);
+  hello(s);
+  pub.push(s);
+}
+const wp = texts(pub[0], 'welcome')[0];
+check(`a public room holds ${PUBLIC_CAP} and says it is public, with its shard`, room.seats.size === PUBLIC_CAP && wp.public === true && wp.shard === 2 && wp.cap === PUBLIC_CAP && wp.code === null);
+check('the next is told it is full', pub[PUBLIC_CAP].closed && pub[PUBLIC_CAP].closed.code === CLOSE.full);
+run(room.message(pub[0], JSON.stringify({ type: 'kick', seat: 2 }), now, pub[0].address, newToken));
+check('in a public room nobody kicks, not even the first in: reports decide', !pub[1].closed);
+check(`a private room still holds ${PRIVATE_CAP}`, PRIVATE_CAP === 8);
+
+console.log('phase 5: pose sanity');
+room = new RoomCore(meta);
+const f1 = sock('f1', '10.8.0.1');
+const f2 = sock('f2', '10.8.0.2');
+hello(f1);
+hello(f2);
+const relayed = () => {
+  const n = f2.got.length;
+  now += 34;
+  run(room.tick(now));
+  const got = f2.got.slice(n).filter((m) => m instanceof Uint8Array);
+  return got.length ? decodeBatch(got[0]).poses[0] : null;
+};
+run(room.message(f1, livePose({ px: 0, py: 10, pz: 0 }), now));
+const first = relayed();
+check('a first pose is a spawn: relayed with the spawning flag set by the room', first && (first.flags & FLAG_SPAWNING) !== 0);
+now += SPAWN_MS;
+run(room.message(f1, livePose({ px: 1, py: 10, pz: 0 }), now));
+const flying = relayed();
+check(`${SPAWN_MS} ms later it flies untouched: the flag is off`, flying && (flying.flags & FLAG_SPAWNING) === 0);
+run(room.message(f1, livePose({ px: 1, py: 10, pz: 0, flags: FLAG_SPAWNING }), now));
+check('a sender\'s own spawning flag is left as it is (it only ever protects)', (relayed().flags & FLAG_SPAWNING) !== 0);
+now += 100;
+run(room.message(f1, livePose({ px: 500, py: 10, pz: 0 }), now));
+const jumped = relayed();
+check(`a jump faster than ${POSE_MAX_SPEED} m/s is a respawn or a forgery: spawning again`, jumped && (jumped.flags & FLAG_SPAWNING) !== 0 && Math.abs(jumped.px - 500) < 1e-3);
+check('the room\'s speed limit is the board\'s teleport speed', POSE_MAX_SPEED === TELEPORT_SPEED);
+now += SPAWN_MS;
+const impossible = [
+  ['a position that is not a number', livePose({ px: NaN })],
+  ['a position a hundred kilometres out', livePose({ px: 100000 })],
+  [`a velocity over ${POSE_MAX_SPEED} m/s`, livePose({ px: 500, vx: 150 })],
+  ['a sample time a minute off the room clock', encodePose({ ...pose, px: 500, pz: 0, t: now - meta.epoch + 60000 })],
+];
+for (const [what, b] of impossible) {
+  run(room.message(f1, b, now));
+  check(`${what} is not relayed`, relayed() === null);
+}
+for (let i = 0; i < IMPOSSIBLE_LIMIT; i += 1) {
+  now += 40;
+  run(room.message(f1, livePose({ px: NaN }), now));
+}
+check(`${IMPOSSIBLE_LIMIT} impossible poses in a minute remove the seat`, f1.closed && f1.closed.code === CLOSE_REMOVED);
+
+console.log('phase 5: ramming');
+room = new RoomCore(meta);
+const g1 = sock('g1', '10.9.0.1');
+const g2 = sock('g2', '10.9.0.2');
+const g3 = sock('g3', '10.9.0.3');
+for (const s of [g1, g2, g3]) {
+  hello(s);
+}
+run(room.message(g1, livePose(), now));
+now += SPAWN_MS + 1;
+check('a flying seat can be touched', !room.safety.untouchable(seatOf(g1), now));
+for (let i = 0; i < 3; i += 1) {
+  room.safety.noteHit(seatOf(g1), i % 2 ? seatOf(g2) : seatOf(g3), now);
+  now += 1000;
+}
+check('three hits in five minutes is still flying', !room.safety.untouchable(seatOf(g1), now));
+room.safety.noteHit(seatOf(g1), seatOf(g2), now);
+check('a fourth benches the seat: untouchable and unable to touch', room.safety.untouchable(seatOf(g1), now));
+check('its two victims, hit twice each, are not', !room.safety.untouchable(seatOf(g2), now) && !room.safety.untouchable(seatOf(g3), now));
+run(room.message(g1, livePose(), now));
+const n3 = g3.got.length;
+now += 34;
+run(room.tick(now));
+const benched = g3.got.slice(n3).filter((m) => m instanceof Uint8Array).map((m) => decodeBatch(m).poses.find((q) => q.seat === seatOf(g1)))[0];
+check('everybody sees the benched seat as spawning', benched && (benched.flags & FLAG_SPAWNING) !== 0);
+now += BENCH_MS;
+check(`for ${BENCH_MS / 60000} minutes`, !room.safety.untouchable(seatOf(g1), now));
+
+console.log('phase 5: the public lobby');
+let t5 = 0;
+const book = new LobbyBook();
+check('the first pilot on a map opens shard 0', book.assign('swiss2', t5) === 0);
+book.count('swiss2', 0, 1);
+check('the next joins it', book.assign('swiss2', t5) === 0);
+book.count('swiss2', 0, PUBLIC_CAP);
+check('a full shard opens the next', book.assign('swiss2', t5) === 1);
+book.count('swiss2', 1, 1);
+book.count('swiss2', 0, 10);
+check('the least full shard with a seat is picked', book.assign('swiss2', t5) === 1);
+book.count('swiss2', 1, 12);
+check('which moves as the counts do', book.assign('swiss2', t5) === 0);
+const burst = new LobbyBook();
+const spread = [];
+for (let i = 0; i < PUBLIC_CAP + 4; i += 1) {
+  spread.push(burst.assign('alps', t5));
+}
+check(`a burst before any room reports fills shard 0 to ${PUBLIC_CAP}, then opens shard 1`,
+  spread.filter((x) => x === 0).length === PUBLIC_CAP && spread.filter((x) => x === 1).length === 4);
+t5 += PENDING_MS;
+check('a reservation nobody took lapses', burst.assign('alps', t5) === 0);
+book.count('swiss2', 1, 0);
+check('an emptied shard is forgotten', !('1' in book.maps.swiss2));
+check('a reconnect asks for its shard back', book.assign('swiss2', t5, 5) === 5);
+check('each map has its own shards', book.assign('field', t5) === 0);
+check('a map name that is not an id is refused', book.assign('../x', t5) === -1 && book.assign('Swiss 2', t5) === -1);
+const flood = new LobbyBook();
+for (let i = 0; i < MAX_MAPS; i += 1) {
+  flood.assign(`m${i}`, t5);
+}
+check(`the lobby holds at most ${MAX_MAPS} maps`, flood.assign('onemore', t5) === -1);
+
+console.log('phase 5: every preset in both languages');
+const gaps = [];
+for (const [lang, table] of [['en', en], ['es', es]]) {
+  for (const id of CHAT_PRESETS) {
+    if (!table[`rooms.chat.${id}`]) {
+      gaps.push(`${lang} chat.${id}`);
+    }
+  }
+  for (const id of EMOTES) {
+    if (!table[`rooms.emote.${id}`] || !table[`rooms.emote_line.${id}`]) {
+      gaps.push(`${lang} emote.${id}`);
+    }
+  }
+  for (const id of REPORT_REASONS) {
+    if (!table[`rooms.report.${id}`]) {
+      gaps.push(`${lang} report.${id}`);
+    }
+  }
+}
+check('every chat, emote and report reason has its words in English and Spanish', gaps.length === 0, gaps.join(' '));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

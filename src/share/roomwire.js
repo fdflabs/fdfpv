@@ -312,3 +312,62 @@ export function decodeBatch(bytes) {
   }
   return { roomMs: v.getUint32(2, true), poses };
 }
+
+/*
+ * PHASE 5, SAFETY (docs/MULTIPLAYER-PLAN.md section 9). No free text
+ * reaches another player: a chat is an index into CHAT_PRESETS, an emote
+ * an index into EMOTES, a report's reason an index into REPORT_REASONS.
+ * Every receiver shows the words from its own string table (rooms.chat.*,
+ * rooms.emote.*, rooms.report.*), in its own language, and the room
+ * rebuilds each relayed message from the index alone, so nothing a client
+ * wrote travels on. The lists are append only: an index is the wire.
+ *
+ *   c to r   { type: 'event', kind: 'chat', id }    also kind 'emote'
+ *   r to c   { type: 'event', kind: 'chat', seat, id }
+ *   c to r   { type: 'mute', seats: [seat, ...] }   the whole set, each time
+ *   c to r   { type: 'report', seat, reason }
+ *   r to c   { type: 'reported', seat }              to the reporter only
+ */
+export const CHAT_PRESETS = [
+  'hello', 'nice_flying', 'race', 'follow_me', 'wait_for_me', 'oops',
+  'good_game', 'landing', 'thanks', 'sorry', 'watch_this', 'bye',
+];
+export const EMOTES = ['wave', 'thumbs_up', 'smoke_puff', 'clap', 'laugh', 'wow'];
+export const REPORT_REASONS = ['ramming', 'spam', 'following'];
+/* Quick chat and emotes share one allowance: CHAT_BURST at once, then one
+ * every CHAT_EVERY_MS. */
+export const CHAT_BURST = 3;
+export const CHAT_EVERY_MS = 2000;
+/* A public room's cap; a private room's is edge/rooms/core.js PRIVATE_CAP. */
+export const PUBLIC_CAP = 16;
+/* A seat removed by reports or by the pose rules. Its own code so the
+ * client can say why, which a host's kick (CLOSE.kicked) does not. */
+export const CLOSE_REMOVED = 4010;
+
+/* The id of a well formed chat or emote event, or -1. Anything but
+ * exactly { type, kind, id } is refused, so no field can carry text. */
+export function eventPresetId(msg) {
+  if (!msg || msg.type !== 'event' || Object.keys(msg).length !== 3) {
+    return -1;
+  }
+  const list = msg.kind === 'chat' ? CHAT_PRESETS : msg.kind === 'emote' ? EMOTES : null;
+  return list && Number.isInteger(msg.id) && msg.id >= 0 && msg.id < list.length ? msg.id : -1;
+}
+
+/* A chat allowance, { tokens, at }: CHAT_BURST to start, refilled one per
+ * CHAT_EVERY_MS. The room enforces it; the client runs the same one so it
+ * can say "wait" instead of sending what the room would drop. */
+export function chatAllowance(now) {
+  return { tokens: CHAT_BURST, at: now };
+}
+
+export function takeChat(allowance, now) {
+  const refill = (now - allowance.at) / CHAT_EVERY_MS;
+  allowance.tokens = Math.min(CHAT_BURST, allowance.tokens + Math.max(0, refill));
+  allowance.at = now;
+  if (allowance.tokens < 1) {
+    return false;
+  }
+  allowance.tokens -= 1;
+  return true;
+}
