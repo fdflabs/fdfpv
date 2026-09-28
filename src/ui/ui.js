@@ -194,8 +194,12 @@ import { str, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } from '../st
 /* The pilot's own tracks live in this browser's library, and My tracks
  * lists, copies, renames and deletes them there. */
 import {
-  deleteTrack, listMapTracks, loadMapTrack, saveTrack,
+  deleteTrack, listMapTracks, loadMapTrack, readOnlineStates, saveTrack,
 } from '../trackbuilder/storage.js';
+/* Everybody's tracks, on the tracks server (src/share/cloud.js). */
+import {
+  TRACK_SYNC_EVENT, fetchAllTracks, fetchTrack, pilotKey, pullOwnTracks, tracksConfigured,
+} from '../share/cloud.js';
 
 /* Whether a Flight controller save exists, which is what puts Your edits
  * on the Tune row. Read fresh each time: the pilot can save one two rows
@@ -2259,6 +2263,47 @@ function courseCardKey(card) {
   return `${card.course.kind}:${card.course.track.id}`;
 }
 
+/* The day a track was last saved, in the pilot's own language's order. */
+function formatDay(utc) {
+  const d = new Date(utc);
+  return Number.isFinite(d.getTime())
+    ? d.toLocaleDateString(currentLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
+    : '';
+}
+
+/*
+ * The world a track stands in, or null when this build no longer has it:
+ * a track on a retired world is listed as retired rather than as a card
+ * that loads nothing, because mapById answers an unknown id with another
+ * world.
+ */
+function liveWorld(mapId) {
+  const entry = mapById(mapId);
+  return entry.id === mapId && entry.build ? entry : null;
+}
+
+/*
+ * Another pilot's track from the tracks server: fly it, or edit a copy of
+ * it, which is the pilot's own from the first save. Editing the original is
+ * not offered because it is not theirs: the server would refuse the save.
+ */
+function cloudCardRows(subject) {
+  const t = subject.course.track;
+  const name = subject.label;
+  const world = liveWorld(t.map);
+  const rows = [{ label: name, section: true }];
+  if (!world) {
+    rows.push({ label: str('cloud.retired_world'), section: true });
+  } else {
+    rows.push(
+      { label: str('ui.play'), action: 'card-fly', note: str('ui.race_it_in', { name, world: world.name }) },
+      { label: str('cloud.edit_a_copy'), action: 'card-editcopy', note: str('cloud.edit_a_copy_note', { name }) },
+    );
+  }
+  rows.push({ label: str('ui.back_to_the_list'), action: 'card-back' });
+  return rows;
+}
+
 /*
  * WHAT ONE TRACK CARD CAN DO, once the player has chosen it.
  *
@@ -2269,6 +2314,9 @@ function courseCardKey(card) {
  * into My tracks to build on, and its times read.
  */
 function courseCardRows(subject) {
+  if (subject.course.kind === 'cloud') {
+    return cloudCardRows(subject);
+  }
   const board = subject.course.kind === 'board';
   const name = subject.label;
   const world = mapById(subject.course.track.map).name;
@@ -2987,6 +3035,10 @@ export class Ui {
      * My tracks. This and the board's above are the two things that screen
      * lists. See loadLocalCourses. */
     this.localCourses = [];
+    /* Everybody else's tracks on the tracks server, newest save first, a
+     * page at a time (loadCloudCourses), and where the next page starts. */
+    this.cloudCourses = [];
+    this.cloudNext = '';
     /* The standings screen's subject and its times. null means "not asked
      * yet", which paintStandings draws as Reading the board; an empty array
      * means the board answered and there are none. */
@@ -3159,6 +3211,14 @@ export class Ui {
     this.ptrX = null;
     this.ptrY = null;
     this.build();
+    /* A track going online, or failing to, while My tracks is open: its
+     * card says so without the pilot leaving and coming back. */
+    window.addEventListener(TRACK_SYNC_EVENT, () => {
+      if (this.screen === 'courses') {
+        this.loadLocalCourses();
+        this.renderCourseCards();
+      }
+    });
     /* Tab is the swap key in flight and a key of the picker's, so there it
      * must not also walk the browser's focus. Everywhere else it still
      * does: the menus' rows and cards are tab stops. */
@@ -3519,7 +3579,7 @@ export class Ui {
     /* Two groups, so the caption names both. Yours first, because the track
      * you were last working on is the one you came here to fly; the board's
      * underneath, most flown first. */
-    this.courseStrip.append(el('div', 'strip-label', str('ui.yours_first_then_the_board_most')));
+    this.courseStrip.append(el('div', 'strip-label', tracksConfigured() ? str('cloud.strip_label') : str('ui.yours_first_then_the_board_most')));
     this.courseCardHost = el('div', 'map-cards course-cards');
     /* What the list holds when it holds nothing of the pilot's, and what
      * the board said, each one line under the strip. */
@@ -5674,6 +5734,17 @@ export class Ui {
           action: `local:${t.id}`,
         });
       }
+      for (const t of this.cloudCourses || []) {
+        const world = liveWorld(t.map);
+        cards.push({
+          label: t.name,
+          note: world
+            ? str('cloud.card_note', { world: world.name, author: t.author || str('ui.a_pilot') })
+            : str('cloud.retired_world'),
+          course: { kind: 'cloud', track: t },
+          action: `cloud:${t.id}`,
+        });
+      }
       for (const t of this.boardCourses || []) {
         cards.push({
           label: t.name,
@@ -5717,6 +5788,11 @@ export class Ui {
           action: 'newtrack',
           note: str('ui.build_one_choose_the_world_then'),
         },
+        ...(this.cloudNext ? [{
+          label: str('cloud.more_tracks'),
+          action: 'cloud-more',
+          note: str('cloud.more_tracks_note'),
+        }] : []),
         {
           label: str('ui.tracks_and_statistics_on_the_web'),
           action: 'leaderboard',
@@ -8390,24 +8466,27 @@ export class Ui {
     }
     const items = this.items();
     const cards = items.filter((it) => it.course);
-    const key = cards.map((it) => `${courseCardKey(it)}:${it.label}`).join('|');
+    const key = cards.map((it) => `${courseCardKey(it)}:${it.label}:${it.course.track.online || ''}`).join('|');
     if (!this.courseCards || this.courseCardKey !== key) {
       host.textContent = '';
       this.courseCardKey = key;
       this.courseCards = cards.map((it, i) => {
         const t = it.course.track;
         const card = el('div', 'map-card course-card');
-        markPoster(card, mapById(t.map));
+        markPoster(card, liveWorld(t.map));
         const shot = el('div', 'map-reel');
         const body = el('div', 'map-card-body');
         const name = el('div', 'map-card-name', it.label);
         const meta = el('div', 'map-card-meta', '');
         /* The designer where the board knows one, because the author is
          * whoever published it and those can be two different people. */
+        const world = liveWorld(t.map);
         const bits = [
-          mapById(t.map).name,
-          it.course.kind === 'board' ? byLine(t) : '',
+          world ? world.name : str('cloud.retired_world_short'),
+          it.course.kind === 'board' || it.course.kind === 'cloud' ? byLine(t) : '',
           str('ui.gate_count', { gates: t.gates, v2: t.gates === 1 ? '' : 's' }),
+          it.course.kind === 'cloud' && t.updatedUtc ? formatDay(t.updatedUtc) : '',
+          t.online ? str(`cloud.state_${t.online}`) : '',
         ];
         if (t.recordMs != null) {
           bits.push(str('ui.record', { formatTime: formatTime(t.recordMs) }));
@@ -8457,6 +8536,9 @@ export class Ui {
        * a quota. The board half of the screen is untouched by it, the same
        * way a board that is down leaves this half alone. */
     }
+    /* Where each one stands with the tracks server, for its card, when
+     * there is a server: online, or not yet and why. */
+    const online = tracksConfigured() ? readOnlineStates() : {};
     this.localCourses = docs
       .filter((doc) => !af.fixedWing || planesFor(doc).includes(af.id))
       .map((doc) => ({
@@ -8465,6 +8547,7 @@ export class Ui {
         map: doc.map,
         gates: raceGateCount(doc),
         author: '',
+        online: online[doc.id] ? online[doc.id].state : '',
         doc,
       }));
     if (this.localNote) {
@@ -8563,6 +8646,91 @@ export class Ui {
           this.renderMenu();
         }
       });
+  }
+
+  /*
+   * THE TRACKS SERVER'S HALF OF MY TRACKS, when there is a server
+   * (src/share/cloud.js). Two things, in order: this pilot's own tracks
+   * saved on another computer come into the library, so they are listed
+   * with the rest of the pilot's; then the first page of everybody else's,
+   * newest save first. `more` fetches the next page onto the end instead.
+   *
+   * Like the board, a nicety and not a dependency: a server that does not
+   * answer leaves the pilot's own tracks exactly as they are, with one line
+   * saying so.
+   */
+  loadCloudCourses(more = false) {
+    if (!tracksConfigured() || this.cloudLoading) {
+      return;
+    }
+    if (!more) {
+      this.cloudCourses = [];
+      this.cloudNext = '';
+    }
+    this.cloudLoading = true;
+    this.localNote.textContent = str('cloud.reading');
+    const repaint = () => {
+      if (this.screen === 'courses') {
+        this.renderMenu();
+        this.renderCourseCards();
+      }
+    };
+    (async () => {
+      if (!more && await pullOwnTracks()) {
+        this.loadLocalCourses();
+      }
+      const mine = await pilotKey();
+      const af = airframeById(this.settings.airframe);
+      const page = await fetchAllTracks({ before: more ? this.cloudNext : '' });
+      /* The pilot's own are already in their list above. A plane is
+       * offered only the tracks it fits, by the server's copy of the rule
+       * the builder uses (src/game/verify.js planesFor). */
+      const theirs = page.tracks.filter((t) => t.owner !== mine && (!af.fixedWing || t.planes.includes(af.id)));
+      this.cloudCourses = [...this.cloudCourses, ...theirs];
+      this.cloudNext = page.next;
+      this.localNote.textContent = this.localCourses.length ? '' : str('ui.no_tracks_of_your_own_yet');
+    })().catch(() => {
+      this.localNote.textContent = str('cloud.not_answering');
+    }).finally(() => {
+      this.cloudLoading = false;
+      repaint();
+    });
+  }
+
+  /* Another pilot's track off the server, seated to fly as a track of
+   * this browser's own would be: nothing is posted anywhere from it. */
+  seatCloud(t, then) {
+    this.localNote.textContent = str('ui.loading_2', { name: t.name });
+    fetchTrack(t.id).then((got) => {
+      const seat = { id: got.id, name: got.name, author: got.author, document: toPlain(got.doc), local: true };
+      if (!writeShareImport(seat)) {
+        this.localNote.textContent = str('ui.this_browser_would_not_store_that');
+        return;
+      }
+      this.localNote.textContent = '';
+      this.setShare(null);
+      then();
+    }).catch((err) => {
+      this.localNote.textContent = str('ui.could_not_be_loaded', { name: t.name, v2: err.message ?? err });
+    });
+  }
+
+  /* Edit a copy: the copy is this pilot's from its first save, under a new
+   * id, and opens in the builder in the track's world. */
+  editCloudCopy(t) {
+    this.localNote.textContent = str('ui.loading_2', { name: t.name });
+    fetchTrack(t.id).then((got) => {
+      const copy = duplicateTrack(got.doc, got.name);
+      if (!saveTrack(copy)) {
+        this.localNote.textContent = str('ui.this_browser_would_not_store_that');
+        return;
+      }
+      this.localNote.textContent = '';
+      this.cardSubject = null;
+      this.openBuilder({ map: copy.map, id: copy.id });
+    }).catch((err) => {
+      this.localNote.textContent = str('ui.could_not_be_loaded', { name: t.name, v2: err.message ?? err });
+    });
   }
 
   /*
@@ -9281,6 +9449,7 @@ export class Ui {
        * here: a track saved there has to be on the list they come back to. */
       this.loadLocalCourses();
       this.loadBoardCourses();
+      this.loadCloudCourses();
     }
     if (screen === 'howto') {
       this.renderHowto();
@@ -9415,6 +9584,15 @@ export class Ui {
   actOnCard(action, card) {
     const t = card.course.track;
     const board = card.course.kind === 'board';
+    if (card.course.kind === 'cloud') {
+      if (action === 'card-fly') {
+        this.cardSubject = null;
+        this.seatCloud(t, () => this.play());
+      } else if (action === 'card-editcopy') {
+        this.editCloudCopy(t);
+      }
+      return;
+    }
     if (action === 'card-fly') {
       this.cardSubject = null;
       if (board) {
@@ -9460,7 +9638,7 @@ export class Ui {
     if (action === 'card-delete') {
       this.askConfirm({
         title: str('ui.delete', { name: t.name }),
-        detail: str('ui.this_browser_holds_the_only_copy'),
+        detail: tracksConfigured() ? str('cloud.delete_detail') : str('ui.this_browser_holds_the_only_copy'),
         yes: str('ui.delete_label'),
         no: str('ui.keep_it'),
         danger: true,
@@ -12012,6 +12190,10 @@ export class Ui {
         return;
       }
       this.actOnCard(action, card);
+      return;
+    }
+    if (action === 'cloud-more') {
+      this.loadCloudCourses(true);
       return;
     }
     /* My tracks' New track: which world first, then the builder in it. */

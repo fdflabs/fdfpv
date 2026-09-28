@@ -1453,13 +1453,13 @@ export function recordEdgeFlight(sim) {
 /*
  * The Zagi HP, docs/ZAGI-STAGE1.md: airframe 17, a flying wing with
  * elevons and no rudder, thrown by hand and landed on its belly. Its
- * throw is Zagi's "good strong throw", level at 1.4 times its trimmed
- * stall, from over the thrower's head, the motor off as the manual says,
- * 600 m to the side of the field's thermals, the ground raised as the
- * shell raises it.
+ * throw is the shell's (src/main.js throwWing): level at 10 m/s, 1.36
+ * times its trimmed stall, 1.2 m over where it rests on its 12 mm belly,
+ * the motor off as Zagi's manual says; 600 m to the side of the field's
+ * thermals, the ground raised as the shell raises it.
  */
 export const ZAGI_AIRFRAME = 17;
-export const ZAGI_THROW = { speed: 10.3, height: 1.8 };
+export const ZAGI_THROW = { speed: 10, height: 0.012 + 1.2 };
 export function zagiPrelude(sim, { mu = 1.4, e = 0 } = {}) {
   must(sim.e.sim_set_airframe(ZAGI_AIRFRAME), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');

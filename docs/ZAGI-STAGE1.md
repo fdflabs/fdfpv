@@ -179,7 +179,7 @@ back does.
 | Full elevon roll | pb/2V 0.2236: 315 deg/s at 15 m/s, once round in 1.19 s | -Clda da / Clp, and the roll's lag Ixx over the damping, 0.045 s |
 | Pitch | 0.098 s to the pitch rate's first peak after a step from the glide; 1.67 deg of alpha per deg of elevon | the linear short period, speed held; -cm_de / cm_alpha |
 | Short period | 0.34 s, damping 0.51, at 12 m/s | |
-| Hand throw | 10.3 m/s | 1.4 times the trimmed stall |
+| Hand throw | 10 m/s, from 1.2 m | the shell's throw (`src/main.js` throwWing), 1.36 times the trimmed stall |
 
 Zagi's "Top Speed 85 MPH", 38 m/s, is not reached: on the plant's thrust
 model, falling linearly to the pitch speed, the published motor and prop
@@ -194,7 +194,7 @@ Three capabilities, each general, each read only by a table that sets it.
 Every earlier table leaves them zero and runs exactly the arithmetic it
 ran before: gate Z17 holds all fifteen recorded flights of the other
 aircraft bit identical, taken on main's module before the Zagi (main
-9a87a69).
+1cce6bb).
 
 1. **A flying wing's elevons on its strips.** The Edge brought
    `strip_tau`, the aileron's effectiveness on each of the four strips a
@@ -246,7 +246,7 @@ and never widened.
 | Z8 | no rudder: full yaw stick changes nothing | | bit identical | identical |
 | Z9 | the straight stall, full up held: wings level, balloons and breaks, mushes | | bank under 5 deg, break within 3 s, past the stall sinking 2 to 6 m/s | 0.7 deg, 1.17 s, alpha 17 deg sinking 3.45 |
 | Z10 | a stall in a turn: full roll held into a 30 deg bank spins it; the bank held on the stick does not | | once round within 4 s; within 20 deg | 449 deg; 14 deg |
-| Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | lowest 1.05 m, 23.7 m |
+| Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | lowest 0.21 m, 22.8 m: the shell's throw from shoulder height dips close to the grass before the motor comes on |
 | Z12 | the belly landing | | at rest upright, the CG 12 mm up | slid 1.4 m, at rest at 10.9 mm, level |
 | Z13 | circling a thermal's core, power off | | at least 0.3 m/s up, sinking in still air | 0.58 m/s up; 0.84 m/s down |
 | Z17 | every other aircraft's recorded hash | | 15 unmoved | all 15 |
@@ -273,7 +273,7 @@ What each is for:
   trims each aircraft to (`npm run stab:glide`) only the Radian's, 18.9,
   is flatter, and the Bramor's, 13.2, is next.
 - **Hand launch** (Z11): the existing throw (`sim_wing_launch`, the shell's
-  L), at 1.4 Vs, motor off as Zagi says.
+  L), 10 m/s from 1.2 m over its rest, motor off as Zagi says.
 - **Belly landing** (Z12): the hull's floor is the drawn root's underside.
 - **Thermals** (Z13): the Zagi flies in `plant_air_lift`'s thermals
   (`air_lift = 1`), as the Radian, the Slow Stick and the Bombshell do.

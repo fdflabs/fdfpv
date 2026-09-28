@@ -121,6 +121,7 @@ import { KINDS } from '../game/collide.js';
 import { ELEMENTS, KIND } from '../trackbuilder/elements.js';
 import { elementById, normalize, touch } from '../trackbuilder/model.js';
 import { listMapTracks, makeAutosaver, readMapAutosave, saveTrack } from '../trackbuilder/storage.js';
+import { TRACK_SYNC_EVENT } from '../share/cloud.js';
 import {
   colourTargetSide, disposeStandaloneGate, dressGate, lightTarget,
 } from '../render/scene.js';
@@ -2260,6 +2261,29 @@ export function createBuildMode(host) {
     }
   }
   window.addEventListener('keydown', onKeyDownCapture, true);
+  /*
+   * WHAT HAPPENED TO THE SAVE ONLINE, for the track being built: it went up,
+   * it is waiting for the connection, the server refused it and why, or its
+   * id turned out to be another pilot's and the edit is now a copy, which
+   * this builder carries on editing (storage.js forkTrack).
+   */
+  window.addEventListener(TRACK_SYNC_EVENT, (e) => {
+    const d = e.detail || {};
+    if (state === 'off' || !doc || d.id !== doc.id) {
+      return;
+    }
+    if (d.state === 'forked' && d.forkedTo) {
+      doc.id = d.forkedTo;
+      autosave.schedule(doc);
+      say(str('cloud.saved_as_copy', { name: doc.name }), 4200);
+    } else if (d.state === 'online') {
+      /* The name that went up, which is not the one in the builder when a
+       * rename came after the save being reported. */
+      say(str('cloud.is_online', { name: d.name }));
+    } else if (d.error) {
+      say(d.error, 4200);
+    }
+  });
   window.addEventListener('keyup', (e) => {
     if (state === 'building' && (e.code === 'AltLeft' || e.code === 'AltRight')) {
       e.preventDefault();
