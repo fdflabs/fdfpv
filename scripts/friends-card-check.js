@@ -287,6 +287,34 @@ try {
     world: (window.__ui.items().find((it) => it.label === 'The world') || {}).value,
   })`);
   check('seated back in the room\'s world, which the World row now states', seated.map === 'swiss2' && /Swiss/.test(seated.world || ''), JSON.stringify(seated));
+
+  /*
+   * THE OWNER'S REPORT: in a room reached from Track mode's menu row
+   * there was no way to start flying. B, still in the room, goes back to
+   * the gate, answers Track mode, and comes back to the room by the
+   * menu's Fly with friends row: Fly is on top, under the cursor.
+   */
+  await b.tap('Escape');
+  await b.until("window.__ui.screen === 'title'", 10000).catch(() => {});
+  await b.tap('Escape');
+  await b.until('window.__ui.onGate()', 10000).catch(() => {});
+  await b.evaluate("(() => { const i = window.__ui.items().findIndex((it) => it.action === 'way-race-5inch'); window.__ui.setCursor(i); return true; })()");
+  await b.tap('Enter');
+  await b.until('window.__ui.carousel.isOpen', 10000).catch(() => {});
+  await b.tap('Enter');
+  await b.until("window.__ui.mode === 'race' && window.__ui.screen === 'courses'", 30000).catch(() => {});
+  await b.tap('Escape');
+  await b.until("window.__ui.screen === 'title' && !window.__ui.onGate()", 10000).catch(() => {});
+  check('Track mode\'s menu has the Fly with friends row', await arrowTo(b, 'friends'));
+  await b.tap('Enter');
+  await b.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
+  const race = await b.evaluate(`({
+    mode: window.__ui.mode, phase: window.__rooms().phase,
+    top: window.__ui.items()[0].action, on: window.__ui.items()[window.__ui.cursor].action,
+  })`);
+  check('in Track mode, in the room: Fly on top and under the cursor', race.mode === 'race' && race.phase === 'open'
+    && race.top === 'fly' && race.on === 'fly', JSON.stringify(race));
+  await shot(b, 'b-3-phone-track-mode-room');
   await shot(b, 'b-2-phone-in-the-room');
 
   const errs = [...a.errors, ...b.errors];

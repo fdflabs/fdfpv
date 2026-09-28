@@ -4297,10 +4297,15 @@ export class Ui {
       this.renderMenu();
     }
     /* The row the cursor was on, Make a room or Join, is gone the moment
-     * the room opens, so the cursor goes to the top, which between runs is
-     * Fly: card, Make a room, Fly is three presses of Enter. */
+     * the room opens, so the cursor goes to Fly, the screen's primary
+     * between runs: card, Make a room, Fly is three presses of Enter. The
+     * remembered row goes too, so the next visit opens on Fly as well
+     * (restoreCursor). */
+    if (entered) {
+      delete this.cursorMemory.friends;
+    }
     if (entered && this.screen === 'friends') {
-      this.setCursor(this.firstStop(this.items()));
+      this.setCursor(this.restoreCursor());
     }
   }
 
@@ -5840,18 +5845,20 @@ export class Ui {
     }
     if (this.screen === 'friends') {
       /*
-       * BETWEEN RUNS IN FREE FLIGHT, which is where the Fly with friends
-       * card lands, the room screen is also the way into the air: Fly once
-       * there is a room, and the aircraft and the world under the room's
-       * own rows. The same rows as the title's, so a pilot who came by the
-       * card need not go back out to find them. From a paused run the
-       * pause menu already has all three, and Track mode flies its track.
+       * BETWEEN RUNS THE ROOM SCREEN IS ALSO THE WAY INTO THE AIR: Fly on
+       * top once there is a room, the title's own Fly (act('fly'), so Track
+       * mode gets its launch card), because the owner sat in a joined room
+       * and found no way to start flying from it. In free flight, which is
+       * where the card lands, the aircraft and the world go under the
+       * room's own rows too. From a paused run the pause menu has all of
+       * it, Resume first.
        */
-      const seat = this.returnTo !== 'paused' && this.mode === 'freestyle';
+      const between = this.returnTo !== 'paused';
+      const seat = between && this.mode === 'freestyle';
       const row = this.friendsRow ? this.friendsRow() : null;
       const inRoom = Boolean(row && row.inRoom);
       return [
-        ...(seat && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: true, note: str('friends.fly_note') }] : []),
+        ...(between && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: true, note: str('friends.fly_note') }] : []),
         ...(this.friendsRows ? this.friendsRows() : []),
         ...(seat ? this.roomSeatRows(inRoom) : []),
         { label: str('ui.back'), action: 'back' },
