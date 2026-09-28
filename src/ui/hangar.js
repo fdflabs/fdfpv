@@ -58,6 +58,48 @@ import { sizeText, weightText } from './carousel.js';
 
 export const HANGAR_TABS = ['power', 'colours'];
 
+/*
+ * TABS FROM OTHER MODULES. A module that adds a tab registers it here
+ * instead of growing this file, and ui.js imports that module so it is
+ * registered before the hangar first opens. A tab is
+ *
+ *   { id, paint(hangar) -> element,
+ *     focus        where the camera goes when the tab comes up,
+ *     open(hangar, settings)  the hangar opened on hangar.id: read what
+ *                  the tab edits from the settings (read only),
+ *     dirty()      whether Save would change anything,
+ *     reset()      Reset to stock,
+ *     save(hangar) -> { key: value } top level settings to replace, or null,
+ *     frame(hangar, now) -> numbers the renderer reads under
+ *                  frame().hangar.tabs[id],
+ *     close(hangar)  shut, saved or not }
+ *
+ * Every hook but id and paint is optional. Its label is the string
+ * hangar.tab_<id>. A tab asks for a repaint with hangar.changed(key).
+ */
+const TAB_HOOKS = {};
+
+export function registerHangarTab(tab) {
+  if (!tab || !tab.id || typeof tab.paint !== 'function' || HANGAR_TABS.includes(tab.id)) {
+    throw new Error(`hangar tab ${tab && tab.id} is malformed or registered twice`);
+  }
+  TAB_HOOKS[tab.id] = tab;
+  HANGAR_TABS.push(tab.id);
+}
+
+function tabFocus(t) {
+  const h = TAB_HOOKS[t];
+  return h && h.focus ? h.focus : t === 'power' ? 'nose' : 'overview';
+}
+
+function eachHook(fn) {
+  for (const t of HANGAR_TABS) {
+    if (TAB_HOOKS[t]) {
+      fn(TAB_HOOKS[t], t);
+    }
+  }
+}
+
 /* The model's turn under a drag: radians per CSS pixel. */
 const DRAG_TURN = 0.012;
 /* How long a number takes to count to its new value, ms. */
@@ -156,14 +198,7 @@ export class Hangar {
     this.tabPill = el('span', 'hangar-tab-pill');
     this.tabs.append(this.tabPill);
     this.tabEls = {};
-    for (const t of HANGAR_TABS) {
-      const b = button('carousel-tab hangar-tab-btn', str(`hangar.tab_${t}`));
-      b.setAttribute('role', 'tab');
-      b.dataset.key = `tab-${t}`;
-      b.addEventListener('click', () => this.setTab(t));
-      this.tabEls[t] = b;
-      this.tabs.append(b);
-    }
+    this.buildTabs();
     head.append(titles, this.tabs);
 
     this.stage = el('div', 'hangar-stage');
@@ -219,6 +254,21 @@ export class Hangar {
     this.host.append(root);
   }
 
+  /* A tab button for every tab, including any registered since the last. */
+  buildTabs() {
+    for (const t of HANGAR_TABS) {
+      if (this.tabEls[t]) {
+        continue;
+      }
+      const b = button('carousel-tab hangar-tab-btn', str(`hangar.tab_${t}`));
+      b.setAttribute('role', 'tab');
+      b.dataset.key = `tab-${t}`;
+      b.addEventListener('click', () => this.setTab(t));
+      this.tabEls[t] = b;
+      this.tabs.append(b);
+    }
+  }
+
   bindStage() {
     const s = this.stage;
     s.style.touchAction = 'none';
@@ -256,9 +306,11 @@ export class Hangar {
    * cost. onPreview(numbers) is called with the region colours on every
    * change, onSave({ livery, power, liveryChanged, powerChanged }) with
    * what to store, onCancel with nothing, sound(kind) for the menu's
-   * sounds.
+   * sounds. `settings` is what registered tabs read theirs from, and Save
+   * hands back their patch as `settings` beside the rest.
    */
-  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, onPreview, onSave, onCancel, sound } = {}) {
+  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, settings = {}, onPreview, onSave, onCancel, sound } = {}) {
+    this.buildTabs();
     this.id = airframe;
     this.family = liveryKey(airframe);
     this.saved = normaliseEntry(this.family, livery) ?? {};
@@ -277,8 +329,9 @@ export class Hangar {
     this.hover = null;
     this.counts = {};
     this.revealSeq += 1;
-    this.focus = this.tab === 'power' ? 'nose' : 'overview';
+    this.focus = tabFocus(this.tab);
     this.isOpen = true;
+    eachHook((h) => h.open && h.open(this, settings));
     const af = airframeById(airframe);
     this.nameEl.textContent = af.name;
     this.factsEl.textContent = '';
@@ -305,6 +358,7 @@ export class Hangar {
       return;
     }
     this.isOpen = false;
+    eachHook((h) => h.close && h.close(this));
     this.opts = null;
     this.drag = null;
     this.hover = null;
@@ -372,7 +426,11 @@ export class Hangar {
   dirty() {
     const a = JSON.stringify(normaliseEntry(this.family, this.entry));
     const b = JSON.stringify(normaliseEntry(this.family, this.saved));
-    return a !== b || this.choice.option !== this.savedPower.option || this.choice.pack !== this.savedPower.pack;
+    let tabs = false;
+    eachHook((h) => {
+      tabs = tabs || Boolean(h.dirty && h.dirty());
+    });
+    return tabs || a !== b || this.choice.option !== this.savedPower.option || this.choice.pack !== this.savedPower.pack;
   }
 
   setTab(t) {
@@ -382,7 +440,7 @@ export class Hangar {
     const dir = HANGAR_TABS.indexOf(t) > HANGAR_TABS.indexOf(this.tab) ? 1 : -1;
     this.tab = t;
     this.hover = null;
-    this.focus = t === 'power' ? 'nose' : 'overview';
+    this.focus = tabFocus(t);
     this.paint(dir);
     this.preview();
     this.focusKey(`tab-${t}`);
@@ -441,6 +499,7 @@ export class Hangar {
   reset() {
     this.entry = {};
     this.choice = { ...this.power.stock };
+    eachHook((h) => h.reset && h.reset());
     this.pulseSeq += 1;
     this.changed('reset');
   }
@@ -460,7 +519,13 @@ export class Hangar {
       power: { ...this.choice },
       liveryChanged: JSON.stringify(normaliseEntry(this.family, this.entry)) !== JSON.stringify(normaliseEntry(this.family, this.saved)),
       powerChanged: this.choice.option !== this.savedPower.option || this.choice.pack !== this.savedPower.pack,
+      settings: {},
     };
+    eachHook((h) => {
+      if (h.save) {
+        Object.assign(result.settings, h.save(this));
+      }
+    });
     this.sound('select');
     this.close();
     if (save) {
@@ -487,7 +552,8 @@ export class Hangar {
     }
     this.placePill();
     this.side.textContent = '';
-    const tab = this.tab === 'power' ? this.powerTab() : this.coloursTab();
+    const hook = TAB_HOOKS[this.tab];
+    const tab = hook ? hook.paint(this) : this.tab === 'power' ? this.powerTab() : this.coloursTab();
     if (slide) {
       tab.classList.add(slide > 0 ? 'from-right' : 'from-left');
     }
@@ -934,6 +1000,12 @@ export class Hangar {
     const r = this.stage.getBoundingClientRect();
     const turn = this.turn;
     this.turn = 0;
+    const tabs = {};
+    eachHook((h, t) => {
+      if (h.frame) {
+        tabs[t] = h.frame(this, now);
+      }
+    });
     return {
       items: [{ id: this.id, d: 0 }],
       rect: { left: r.left, top: r.top, width: r.width, height: r.height },
@@ -945,6 +1017,7 @@ export class Hangar {
         reveal: this.revealSeq,
         pulse: this.pulseSeq,
         hold: Boolean(this.drag),
+        tabs,
       },
     };
   }
