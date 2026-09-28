@@ -127,6 +127,7 @@
     "floats:shell": "node scripts/floats-shell.js",
     "water:render": "node scripts/water-render.js",
     "input:selftest": "node scripts/input-selftest.js",
+    "mouse:shell": "node scripts/mouse-shell.js",
     "music:selftest": "node scripts/music-selftest.js",
     "test:edge": "node edge/selftest.js",
     "test:tracks": "node tracks-api/selftest.js",
