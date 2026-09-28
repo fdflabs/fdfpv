@@ -297,6 +297,11 @@ export async function openPage({
       enabled: true, maxTouchPoints: 5,
     }, sessionId);
   }
+  /* A controller plugged into this machine is a real pad to headless
+   * Chrome too: the owner's RadioMaster flew the P-51 and the Cub off
+   * their parking spots at three quarter throttle mid check. No run sees a
+   * pad unless its own seed, evaluated after this one, stubs one. */
+  await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: 'navigator.getGamepads = () => [];' }, sessionId);
   for (const source of seed) {
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source }, sessionId);
   }
