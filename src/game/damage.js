@@ -145,6 +145,7 @@ export function createDamageLink(sim) {
           motor: d[INFO.motor],
           mass: d[INFO.mass],
           cg: [d[INFO.cg], d[INFO.cg + 1], d[INFO.cg + 2]],
+          joint: [d[INFO.joint], d[INFO.joint + 1], d[INFO.joint + 2]],
           boxMin: [d[INFO.boxMin], d[INFO.boxMin + 1], d[INFO.boxMin + 2]],
           boxMax: [d[INFO.boxMax], d[INFO.boxMax + 1], d[INFO.boxMax + 2]],
           material: d[INFO.material],

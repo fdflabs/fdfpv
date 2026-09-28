@@ -337,6 +337,10 @@ export class MotorAudio {
     this.mix = { motors: 0.5, wind: 0.5, music: 0.5, focus: 1, ambience: 0 };
     this.focusOn = false;
     this.voice = VOICES.quad;
+    /* A prop with another blade count than the voice's own: its blade
+     * pass is this many times the voice's (setBladeScale). 1 always for
+     * an engine, whose note is its firing, not its blades. */
+    this.bladeScale = 1;
     /* The periodic waves the voices use, built for a context on first use. */
     this.waves = null;
     this.music = new Music();
@@ -424,6 +428,16 @@ export class MotorAudio {
         osc.setPeriodicWave(wave);
       }
     }
+  }
+
+  /* The hangar's prop (configs/hangar-parts.js): its blade count over
+   * the one the aircraft's own prop has. Only a prop's own tone, the
+   * 'blade' wave, follows it. */
+  setBladeScale(k) {
+    if (!(k > 0) || !Number.isFinite(k)) {
+      throw new Error(`audio: blade scale ${k}`);
+    }
+    this.bladeScale = k;
   }
 
   /* The voice's wave on this context, built once per context and kind: a
@@ -1071,7 +1085,7 @@ export class MotorAudio {
        * the blade pass frequency, or a four stroke's firing pattern, and A2
        * asserts it against the RPM the module reports to within one
        * percent. */
-      const hz = (r / 60) * voice.perRev;
+      const hz = (r / 60) * voice.perRev * (voice.wave === 'blade' ? this.bladeScale : 1);
       /* setTargetAtTime, not linearRamp: the ear hears a step in
        * frequency as a click, and the motors change fast. */
       node.osc.frequency.setTargetAtTime(hz, t, 0.012);

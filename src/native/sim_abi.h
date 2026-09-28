@@ -670,6 +670,79 @@ int sim_power_clear(void);
 int sim_power_state(double *out);
 
 /*
+ * ADD-ONS, the hangar's Parts tab (configs/hangar-parts.js), fixed wings
+ * only: what the pilot bolted on or taped up, handed over as one lumped
+ * mass, one drag area and the main wheels' tyres.
+ *
+ * sim_set_addons(in): the SIM_ADDON_DOUBLES below, SI units.
+ *   MASS    kg added, -1 to 5 (a lighter prop takes a little off), a
+ *           point mass at CG_X..CG_Z (body frame, m, each within 3 m of the
+ *           table's CG); the aircraft keeps at least 0.05 kg, and a power
+ *           option or tuning seated after the add-ons is not checked
+ *           against them again. The CG moves to the mass weighted
+ *           mean, the state's origin with it, and every body
+ *           frame position the plants read (the motor, the camera, the
+ *           wheels) moves the other way, as a part that leaves moves them
+ *           (crash.c). The aero is still taken about the table's CG, so
+ *           every force the step sums gets the arm to the new one, the
+ *           same fix-up a lost part's shift gets. The inertia about the new
+ *           CG is the table's plus the point mass's m r^2 about the old,
+ *           less the whole mass times the shift squared (parallel axes).
+ *           The hull's contact corners move with them. The crash part
+ *           table does not: its parts' boxes, which say which part a
+ *           contact struck, stay where the table has them, off by the
+ *           shift, which scripts/parts-check.js holds under 2 cm for every
+ *           combination configs/hangar-parts.js allows.
+ *   CDA     drag area added, C_D times area, m^2, 0 to 0.5, quadratic in
+ *           the air speed at DRAG_X..DRAG_Z (body frame about the table's
+ *           CG, m), like the parachute's canopy.
+ *   WHEEL_R the main wheels' tyre radius, m, 0.005 to 0.2, or 0 for the
+ *           table's. The contact is the rim's point nearest the ground as
+ *           ever, so a bigger tyre on the same axle stands the aircraft
+ *           higher.
+ *   ROLL_K  the main wheels' rolling resistance over the table's, 0.1 to
+ *           10; 1 is the table's.
+ * A MODE like sim_set_power, laid last, over the table, any power option
+ * and any tuning (sim_wing_set_tune): kept across sim_reset and sim_init,
+ * cleared by sim_set_airframe to a different airframe and by
+ * sim_addons_clear, and put back with the power option and the tuning at
+ * the reset after a part broke off. Once a part breaks off, the crash
+ * physics flies the table's airframe until that reset, as it does a power
+ * option. A host seats the power option, then the tuning, then these.
+ * SIM_ERR_BAD_ARG on a quad, for a null pointer and for any value out of
+ * its range; SIM_ERR_BAD_STATE before sim_init.
+ *
+ * Additive, version unchanged: with no add-ons set nothing reads any of
+ * this and every trace is bit identical.
+ */
+#define SIM_ADDON_MASS 0
+#define SIM_ADDON_CG_X 1
+#define SIM_ADDON_CG_Y 2
+#define SIM_ADDON_CG_Z 3
+#define SIM_ADDON_CDA 4
+#define SIM_ADDON_DRAG_X 5
+#define SIM_ADDON_DRAG_Y 6
+#define SIM_ADDON_DRAG_Z 7
+#define SIM_ADDON_WHEEL_R 8
+#define SIM_ADDON_ROLL_K 9
+#define SIM_ADDON_DOUBLES 10
+/*
+ * sim_addons_state(out): the plant as the power option, tuning and add-ons
+ * leave it, for a host's check, SIM_ADDONS_STATE_DOUBLES:
+ *   [0] 1 while add-ons are seated, else 0
+ *   [1] all up mass, kg
+ *   [2] the add-ons' drag area, m^2
+ *   [3..5] the CG's move from the table's, body frame, m
+ *   [6] the first braked wheel's tyre radius, m; 0 on an aircraft without
+ *   [7] static thrust at full throttle on a fresh pack, N; 0 on a quad
+ * SIM_ERR_BAD_ARG for a null pointer.
+ */
+#define SIM_ADDONS_STATE_DOUBLES 8
+int sim_set_addons(const double *in);
+int sim_addons_clear(void);
+int sim_addons_state(double *out);
+
+/*
  * THE PILOT'S TUNING, fixed wings only (airframes 2 to 12): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.

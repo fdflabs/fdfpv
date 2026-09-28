@@ -69,10 +69,12 @@ import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.j
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
 import { normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
+import { normaliseParts } from '../../configs/hangar-parts.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
-/* Registers the hangar's Tuning tab. */
+/* Registers the hangar's Tuning tab, then the Parts tab. */
 import './hangar-tuning.js';
+import { setPartsLinks } from './hangar-parts.js';
 /* Registers the Challenges tab, after the tabs that edit the plane. */
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
@@ -723,6 +725,10 @@ const DEFAULTS = {
    * a profile stored before progression existed starts with everything
    * open, so nobody loses a plane they already flew. */
   progress: {},
+  /* Each plane's prop, add-ons and last crash's broken parts, by airframe
+   * id: { prop, addons, damage }, configs/hangar-parts.js. A plane with no
+   * entry flies as the kit, whole. */
+  parts: {},
   /* Each plane's bench setup, by airframe id: the CG (battery and lead),
    * the rates, the expo, the trim and the flaps, configs/tuning.js, only
    * the fields the pilot moved off stock. Written by the hangar's Tuning
@@ -1002,6 +1008,7 @@ export function loadSettings() {
   /* Power choices name an option and a pack each plane still offers, or
    * are dropped back to stock (configs/power.js). */
   s.power = normalizePower(s.power);
+  s.parts = normaliseParts(s.parts);
   /* And the tuning, against the limits that power choice gives: a glow
    * engine has no pack to slide. */
   s.tuning = normalizeTuning(s.tuning, (id) => setupFor(id, powerChoice(id, s.power)).limits);
@@ -12606,6 +12613,15 @@ export class Ui {
       }
     };
     const power = this.hangarPower ? this.hangarPower(id) : null;
+    /* The Parts tab's floats: the hangar again on the twin, shut quietly
+     * so `after` waits for that one. */
+    setPartsLinks((to) => {
+      if (this.hangar.isOpen) {
+        this.hangar.close();
+        preview(null);
+        this.openHangar(to, after);
+      }
+    });
     this.hangar.open({
       airframe: id,
       livery: s.livery[family],
