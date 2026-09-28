@@ -31,7 +31,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RunWatch, awardChallenge, awardLap, fits, itemKey, levelInfo, lockOf, unlockables,
+  CHALLENGES, RunWatch, awardChallenge, awardLap, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
@@ -175,7 +175,8 @@ const STYLE = `
 .hangar-card.pg-locked, .hangar-scheme.pg-locked { cursor: not-allowed; opacity: 0.6; border-style: dashed; }
 .hangar-card.pg-locked:hover, .hangar-scheme.pg-locked:hover { transform: none; }
 .carousel-info .pg-lock, .carousel-info .pg-new { align-self: center; margin-top: 6px; }
-.carousel-choose.pg-locked { opacity: 0.55; cursor: not-allowed; }
+.carousel-info .pg-why { margin: 8px auto 0; max-width: 34em; font: 600 14px/1.4 var(--ui-font); color: var(--amber); text-align: center; }
+.carousel-choose.pg-unlock { background: var(--amber); color: var(--deep); }
 @media (prefers-reduced-motion: reduce) {
   .pg-toast, .pg-toast.out { animation: none; }
   .pg-toast-fill, .pg-knob::after { transition: none; }
@@ -388,26 +389,42 @@ export class Progress {
   }
 
   /*
-   * THE PICKER'S LOCKS (src/ui/carousel.js decorate and blocked): a locked
-   * plane is on show with the level that opens it, and Choose says so
-   * instead of choosing; a plane opened since the pilot last saw it wears
-   * New until it has been centred once.
+   * THE PICKER'S LOCKS (src/ui/carousel.js decorate and blocked). This is
+   * where a pilot meets a lock, so it is where the way past one is: a
+   * locked plane is on show with the level that opens it and how far off
+   * that is, and its Choose button becomes Unlock everything, which opens
+   * it and everything else at once (the Challenges tab turns it back
+   * off). Choose then chooses. A plane opened since the pilot last saw it
+   * wears New until it has been centred once.
    */
   bindCarousel(c) {
     if (!c) {
       return;
     }
-    c.blocked = (id) => Boolean(this.lock('plane', id));
+    c.blocked = (id) => {
+      if (!this.lock('plane', id)) {
+        return false;
+      }
+      this.setUnlockAll(true);
+      if (this.ui.onUiSound) {
+        this.ui.onUiSound('select');
+      }
+      c.paint();
+      return true;
+    };
     c.decorate = (car, id) => {
-      for (const n of car.root.querySelectorAll('.carousel-info .pg-lock, .carousel-info .pg-new')) {
+      for (const n of car.root.querySelectorAll('.carousel-info .pg-lock, .carousel-info .pg-new, .carousel-info .pg-why')) {
         n.remove();
       }
       const lock = this.lock('plane', id);
-      car.chooseBtn.classList.toggle('pg-locked', Boolean(lock));
-      car.chooseBtn.setAttribute('aria-disabled', String(Boolean(lock)));
+      car.chooseBtn.classList.toggle('pg-unlock', Boolean(lock));
       if (lock) {
-        car.chooseBtn.textContent = str('progress.unlocks_at', { n: lock.level });
-        car.nameEl.after(el('span', 'pg-lock', str('progress.locked_level', { n: lock.level })));
+        const info = levelInfo(this.state.xp);
+        car.chooseBtn.textContent = str('progress.unlock_all');
+        const why = el('p', 'pg-why', str('progress.plane_opens', {
+          n: lock.level, plane: airframeById(id).name, level: info.level, xp: number(levelStart(lock.level) - this.state.xp),
+        }));
+        car.nameEl.after(el('span', 'pg-lock', str('progress.locked_level', { n: lock.level })), why);
         return;
       }
       const key = itemKey('plane', liveryKey(id));
@@ -556,16 +573,6 @@ export class Progress {
       box.append(row);
     }
     return box;
-  }
-
-  /* The Settings screen's row: the switch, with the level in its note.
-   * One row, because Settings already scrolls (scripts/shell-check.js).
-   * `toggle` is the menu's own switch row builder. */
-  settingsRows(toggle) {
-    const s = this.state;
-    const info = levelInfo(s.xp);
-    const note = str('progress.unlock_all_settings', { n: info.level, xp: number(s.xp) });
-    return [toggle(str('progress.unlock_all'), note, s.unlockAll, (v) => { s.unlockAll = Boolean(v); })];
   }
 }
 

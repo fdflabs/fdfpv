@@ -6004,7 +6004,6 @@ export class Ui {
           action: 'importkey',
           note: str('ui.paste_a_key_exported_from_another'),
         },
-        ...this.progress.settingsRows(toggle),
         { label: str('ui.sticks'), section: true },
         {
           label: str('ui.choose_joystick'),

@@ -53,7 +53,7 @@ import {
 } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
-import { LAP_XP, FIRST_LAP_XP, PLANE_LEVELS } from '../src/game/progress.js';
+import { CHALLENGES, LAP_XP, FIRST_LAP_XP, PLANE_LEVELS } from '../src/game/progress.js';
 import { revRpm } from '../src/ui/hangar-polish.js';
 import { VOICES } from '../src/render/audio.js';
 
@@ -160,13 +160,15 @@ async function newPilot(page) {
     id: window.__ui.carousel.current(),
     choose: window.__ui.carousel.chooseBtn.textContent,
     lock: (document.querySelector('.carousel-info .pg-lock') || {}).textContent || null,
+    why: (document.querySelector('.carousel-info .pg-why') || {}).textContent || null,
   })`);
-  say(sky.id === 'sky1800' && sky.lock && /3/.test(sky.lock) && /3/.test(sky.choose), `the Skyhunter is on show, locked: "${sky.lock}", its button "${sky.choose}"`);
+  say(sky.id === 'sky1800' && /3/.test(sky.lock || '') && /Level 3 opens the Skyhunter, 180 XP/.test(sky.why || '') && sky.choose === 'Unlock everything',
+    `the Skyhunter is on show, locked, with what opens it and a way past it: "${sky.lock}", "${sky.why}", its button "${sky.choose}"`);
   await shot(page, '1-picker-locked');
-  await page.evaluate('window.__ui.carousel.choose(); true');
-  const still = await page.evaluate('({ open: window.__ui.carousel.isOpen, airframe: window.__ui.settings.airframe })');
-  say(still.open && still.airframe === 'timber1500', `Choose on it does not choose: the picker is up and the Timber is still seated (${still.airframe})`);
   await page.evaluate('window.__ui.carousel.close(); true');
+  const rows = await page.evaluate("(window.__ui.show('pilot'), window.__ui.items().filter((it) => /Unlock/.test(it.label || '')).length)");
+  say(rows === 0, `Settings carries no progression row (${rows}): the switch lives where a lock is met`);
+  await page.evaluate("window.__ui.show('title'); true");
 }
 
 async function hangarTouches(page) {
@@ -264,13 +266,21 @@ async function buildRing(page, R, offset) {
   return { id, centre: [cx, cy, cz], R };
 }
 
-/* scripts/track-mode-check.js's plane pilot: L1 guidance round the ring,
- * a pitch hold for the height and the throttle for the speed. */
+/* A ring of radius R round the centre, a point a metre, flown counter
+ * clockwise from just before its first gate and on past it. */
 async function flyRing(page, [cx, cy, cz], R, speed) {
   const path = [];
   for (let a = -8 / R; a <= 2 * Math.PI + 30 / R; a += 1 / R) {
     path.push([cx + R * Math.cos(a), cy, cz + R * Math.sin(a)]);
   }
+  return flyPath(page, path, speed, 240);
+}
+
+/* scripts/track-mode-check.js's plane pilot: L1 guidance along a path of
+ * points a metre apart, a pitch hold for the path's height and the
+ * throttle for the speed, until a lap closes, a crash, or `limitS` of sim
+ * time. */
+async function flyPath(page, path, speed, limitS) {
   await page.evaluate(`(() => {
     const P = ${JSON.stringify(path)};
     const N = P.length;
@@ -320,7 +330,7 @@ async function flyRing(page, [cx, cy, cz], R, speed) {
   })()`);
   await page.evaluate('window.__drawOff(true)');
   const t0 = (await page.evaluate('window.__crash()')).simT;
-  await page.until(`window.__race().laps.length >= 1 || window.__craftState().crashed || window.__crash().simT - ${t0} > 240`, 1800000).catch(() => {});
+  await page.until(`window.__race().laps.length >= 1 || window.__craftState().crashed || window.__crash().simT - ${t0} > ${limitS}`, 1800000).catch(() => {});
   await page.evaluate('window.__drawOff(false)');
   await page.evaluate('window.__pilot = false');
   await page.sleep(300);
@@ -393,6 +403,74 @@ async function revOf(page, keyName, rpmFull) {
   return seen;
 }
 
+/*
+ * The path through the casual sky track's hoops, in order and back to the
+ * first: a Hermite curve from each hoop's centre to the next along their
+ * travel, a point a metre, with a run in and a run out.
+ */
+function hoopPath(G) {
+  const out = [];
+  const add = (p) => out.push(p.map((v) => Number(v.toFixed(2))));
+  const g0 = G[0];
+  for (let d = 120; d > 0; d -= 1) {
+    add(g0.centre.map((v, i) => v - g0.travel[i] * d));
+  }
+  for (let k = 0; k < G.length; k += 1) {
+    const a = G[k];
+    const b = G[(k + 1) % G.length];
+    const L = Math.hypot(...b.centre.map((v, i) => v - a.centre[i]));
+    const n = Math.ceil(L);
+    for (let j = 0; j < n; j += 1) {
+      const t = j / n;
+      const h00 = 2 * t ** 3 - 3 * t ** 2 + 1;
+      const h10 = t ** 3 - 2 * t ** 2 + t;
+      const h01 = -2 * t ** 3 + 3 * t ** 2;
+      const h11 = t ** 3 - t ** 2;
+      add(a.centre.map((v, i) => h00 * v + h10 * L * a.travel[i] + h01 * b.centre[i] + h11 * L * b.travel[i]));
+    }
+  }
+  for (let d = 0; d <= 80; d += 1) {
+    add(g0.centre.map((v, i) => v + g0.travel[i] * d));
+  }
+  return out;
+}
+
+async function casual(page, before) {
+  console.log('3b. the casual sky track, made in one click and flown');
+  if ((await page.evaluate('window.__ui.screen')) === 'flight') {
+    await page.evaluate("window.__ui.act('pause'); window.__ui.show('paused'); true");
+  }
+  await page.evaluate("window.__ui.show('title'); true");
+  await page.evaluate("window.__ui.act('mytracks'), window.__ui.act('newtrack'), true");
+  const offered = await page.evaluate("window.__ui.items().some((r) => r.action === 'casualtrack:alps')");
+  say(offered, 'My tracks offers the Timber the casual sky track on the Alps');
+  await page.evaluate("window.__ui.act('casualtrack:alps'), true");
+  await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 300000);
+  await page.evaluate("(document.querySelector('.osd-air-hint-btn') || { click() {} }).click(), true");
+  const st = await page.evaluate(B(''));
+  const p0 = await progress(page);
+  say(st.gates.length === 8 && p0.casual[st.doc.id] === true, `one click lays ${st.gates.length} hoops and progression records ${st.doc.id} as a casual track`);
+  const lap = await flyPath(page, hoopPath(st.gates), 15, 600);
+  say(lap.laps.length >= 1, `the Timber flies the whole casual track on the sticks: ${lap.laps.length ? (lap.laps[0] / 1000).toFixed(1) : 'no lap'} s${lap.laps.length ? '' : `, crashed ${lap.c.crashed} at ${lap.c.worldX.toFixed(0)}, ${lap.c.worldY.toFixed(0)}, ${lap.c.worldZ.toFixed(0)}`}`);
+  const p = await progress(page);
+  const lapXp = p.xp - before.xp - Object.keys(p.challenges).filter((c) => !before.challenges[c]).reduce((n, c) => n + CHALLENGES.find((x) => x.id === c).xp, 0);
+  say(lapXp === LAP_XP.casual + FIRST_LAP_XP && p.courses[`track:${st.doc.id}`], `its lap earns the casual track's ${LAP_XP.casual} XP and the first lap bonus: ${lapXp} XP, ${before.xp} to ${p.xp} in all`);
+  const log = await page.evaluate('window.__ui.progress.log');
+  const last = [...log].reverse().find((t) => t.cls.startsWith('lap'));
+  say(Boolean(last) && /First lap/.test(last.kicker) && last.xp === LAP_XP.casual + FIRST_LAP_XP, `and its toast says so: ${JSON.stringify(last)}`);
+  /* B takes the test flight back to the builder, and the builder's own
+   * way out goes to My tracks. */
+  const after = await page.evaluate(`({ state: ${B('.state')}, screen: window.__ui.screen })`);
+  await key(page, 'KeyB');
+  await page.until(`${B('.state')} === 'building'`, 60000).catch(() => {});
+  await leave(page);
+  await page.until(`${B('.state')} === 'off'`, 60000).catch(() => {});
+  const out = await page.evaluate(`({ state: ${B('.state')}, screen: window.__ui.screen })`);
+  say(out.state === 'off', `B and then Escape leave the builder: after the lap ${JSON.stringify(after)}, then ${JSON.stringify(out)}`);
+  const kept = await page.evaluate('(window.__ui.localCourses || []).map((t) => t.id)');
+  say(kept.includes(st.doc.id), `leaving, the casual track is kept in My tracks under the same id: ${JSON.stringify(kept)}`);
+}
+
 async function unlocked(page) {
   console.log('4. the unlocked item in the hangar, the rev and the ghost bars');
   if ((await page.evaluate('window.__ui.screen')) === 'flight') {
@@ -444,24 +522,25 @@ async function unlocked(page) {
 }
 
 async function unlockAll(page) {
-  console.log('5. Unlock everything, and a reload');
+  console.log('5. Unlock everything from a locked plane in the picker, and a reload');
   await page.evaluate("window.__ui.show('title'); true");
-  await choose(page, 'pilot');
-  await page.until("window.__ui.screen === 'pilot'", 10000);
-  const row = await page.evaluate("window.__ui.items().findIndex((it) => it.sw && /Unlock/.test(it.label))");
-  say(row >= 0, `Settings has the Unlock everything switch, row ${row}`);
-  await page.evaluate(`window.__ui.setCursor(${row}); true`);
-  await page.sleep(300);
-  await shot(page, '5-settings');
+  await openPicker(page, 'bramor2300');
+  const locked = await page.evaluate("({ lock: Boolean(document.querySelector('.carousel-info .pg-lock')), choose: window.__ui.carousel.chooseBtn.textContent })");
+  say(locked.lock && locked.choose === 'Unlock everything', `the Bramor, level ${PLANE_LEVELS.bramor2300} on the curve, is locked and offers ${JSON.stringify(locked.choose)}`);
   await page.tap('Enter');
   await page.until('window.__ui.settings.progress.unlockAll === true', 5000).catch(() => {});
   const p = await progress(page);
-  say(p.unlockAll === true, 'Enter on it turns it on');
-  await page.evaluate("window.__ui.show('title'); true");
-  await openPicker(page, 'bramor2300');
-  const bramor = await page.evaluate("({ lock: Boolean(document.querySelector('.carousel-info .pg-lock')), choose: window.__ui.carousel.chooseBtn.textContent })");
-  say(!bramor.lock, `the Bramor, level ${PLANE_LEVELS.bramor2300} on the curve, is open: ${JSON.stringify(bramor)}`);
+  const bramor = await page.evaluate("({ open: window.__ui.carousel.isOpen, lock: Boolean(document.querySelector('.carousel-info .pg-lock')), choose: window.__ui.carousel.chooseBtn.textContent, seated: window.__ui.settings.airframe })");
+  say(p.unlockAll === true && bramor.open && !bramor.lock && bramor.choose === 'Choose' && bramor.seated === 'timber1500',
+    `Enter on it unlocks everything and stays on the Bramor, now open with Choose: ${JSON.stringify(bramor)}`);
+  await shot(page, '5-picker-unlocked');
   await page.evaluate('window.__ui.carousel.close(); true');
+  await openHangar(page, 'timber1500');
+  await page.evaluate("window.__ui.hangar.setTab('challenges'); true");
+  await page.until("window.__ui.hangar.tab === 'challenges'", 5000);
+  const sw = await page.evaluate("document.querySelector('.pg-switch').getAttribute('aria-checked')");
+  say(sw === 'true', `the Challenges tab's switch reads on (${sw}), where it can be turned back off`);
+  await closeHangar(page);
   console.log('   reload');
   await page.cdp.send('Page.reload', {}, page.sessionId);
   await shellUp(page);
@@ -478,8 +557,12 @@ async function main() {
       await newPilot(page);
       await hangarTouches(page);
     }
+    if (only === 'casual') {
+      await casual(page, await progress(page));
+    }
     if (!only) {
-      await earn(page);
+      const earned = await earn(page);
+      await casual(page, earned);
       await unlocked(page);
       await unlockAll(page);
     }

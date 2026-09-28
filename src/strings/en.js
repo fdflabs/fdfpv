@@ -1872,7 +1872,7 @@ export default {
   "hangar.tab_challenges": "Challenges",
   "progress.your_level": "Your level",
   "progress.level": "Level {n}",
-  "progress.unlock_all_settings": "Every plane, power option and paint scheme open now. Off, they open as you fly, a level at a time. You are on level {n}, with {xp} XP.",
+  "progress.plane_opens": "Level {n} opens the {plane}, {xp} XP from here (you are on level {level}). Fly laps and challenges to get there, or unlock everything now.",
   "progress.xp_of": "{xp} of {to} XP",
   "progress.xp_gain": "+{n} XP",
   "progress.unlock_all": "Unlock everything",
