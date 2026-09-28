@@ -9,6 +9,7 @@
  *   { send: conn, data }            a text (string) or binary (Uint8Array) message
  *   { close: conn, code, reason }   close that socket
  *   { attach: conn, value }         store this with the socket, to survive a hibernation
+ *   { store: key, value }           keep this in the room's storage, the same (the race)
  *   { tick: true }                  call tick() again in TICK_MS
  *   { empty: true }                 nobody is left: schedule the purge
  *
@@ -44,6 +45,7 @@
 import {
   CLOSE, POSE_BYTES, PROTO, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
 } from '../../src/share/roomwire.js';
+import { RoomRace } from './race.js';
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
@@ -82,6 +84,7 @@ export class RoomCore {
     this.joins = new Map();   /* address -> { since, n } */
     this.recent = new Map();  /* token -> { seat, until }, for a reconnect */
     this.ticking = false;
+    this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
   }
 
   roomMs(now) {
@@ -240,9 +243,11 @@ export class RoomCore {
         friendly: Boolean(this.meta.friendly),
         map: this.meta.map,
         peers: this.peerList(conn),
+        ...this.race.welcome(),
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
+    actions.push(...this.race.join(this, seat));
     return actions;
   }
 
@@ -291,6 +296,9 @@ export class RoomCore {
     if (msg.type === 'kick' && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
     }
+    if (msg.type === 'track' || msg.type === 'race' || (msg.type === 'event' && (msg.kind === 'gate' || msg.kind === 'hoop'))) {
+      return this.race.message(this, conn, s, msg, now);
+    }
     return [];
   }
 
@@ -330,11 +338,11 @@ export class RoomCore {
    * arrived since the last. Ticks stop when nobody sent a pose. */
   tick(now) {
     const fresh = [...this.seats.values()].filter((s) => s.fresh);
+    const out = this.race.tick(this, now);
     if (!fresh.length) {
       this.ticking = false;
-      return [];
+      return out;
     }
-    const out = [];
     for (const [conn, s] of this.seats) {
       const entries = fresh.filter((f) => f !== s).map((f) => ({ seat: f.seat, pose: f.pose }));
       if (entries.length) {
@@ -362,6 +370,7 @@ export class RoomCore {
     }
     this.recent.set(s.token, { seat: s.seat, joined: s.joined, until: now + RESEAT_MS });
     const out = this.others(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.host() }));
+    out.push(...this.race.leave(this, s.seat));
     if (!this.seats.size) {
       out.push({ empty: true });
     }

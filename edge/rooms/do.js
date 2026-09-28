@@ -95,7 +95,9 @@ export class Room extends DurableObject {
     if (!meta) {
       return null;
     }
+    const race = await this.ctx.storage.get('race');
     this.core = new RoomCore(meta);
+    this.core.race.restore(race);
     this.core.restore(this.ctx.getWebSockets().map((ws) => ({ conn: ws, attachment: ws.deserializeAttachment() })));
     return this.core;
   }
@@ -116,6 +118,8 @@ export class Room extends DurableObject {
         }
       } else if (a.attach) {
         a.attach.serializeAttachment(a.value);
+      } else if (a.store) {
+        this.ctx.storage.put(a.store, a.value);
       } else if (a.tick && !this.timer) {
         this.timer = setTimeout(() => {
           this.timer = null;
