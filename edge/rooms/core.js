@@ -47,6 +47,22 @@ import {
 } from '../../src/share/roomwire.js';
 import { RoomRace } from './race.js';
 import { RoomSafety } from './safety.js';
+import { TYPE_PARTS } from '../../src/share/roomwire.js';
+import * as wrecks from './wrecks.js';
+
+/* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
+ * ownership in fdfpv-loop/multiplayer/COORD.md). */
+const EVENTS = {
+  crash: wrecks.onCrash,
+  whack: wrecks.onWhack,
+  gate: raceEvent,
+  hoop: raceEvent,
+};
+
+/* A racer's pass (edge/rooms/race.js). Races are a private room's. */
+function raceEvent(core, conn, s, msg, now) {
+  return core.meta.public ? [] : core.race.message(core, conn, s, msg, now);
+}
 
 export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
@@ -141,7 +157,10 @@ export class RoomCore {
   }
 
   attachmentOf(s) {
-    return { seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address, muted: s.muted || [] };
+    return {
+      seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address,
+      muted: s.muted || [], wreck: s.wreck ?? null,
+    };
   }
 
   freeSeat(wanted) {
@@ -202,6 +221,13 @@ export class RoomCore {
       wanted = back.seat;
       joined = back.joined;
     }
+    /* A token this room does not know, from a client that had a seat: the
+     * object was restarted (a deploy, a tail attaching) and forgot it. The
+     * seat it names is a spawn slot and nothing more, so it is given back
+     * when free, and the pilot keeps their place on the field. */
+    if (!wanted && token && Number.isInteger(msg.seat)) {
+      wanted = msg.seat;
+    }
     if (!wanted && address) {
       if (!this.joins.has(address)) {
         this.joins.set(address, { since: now, n: 0 });
@@ -251,6 +277,7 @@ export class RoomCore {
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
+    actions.push(...wrecks.wrecksFor(this, conn));
     actions.push(...this.race.join(this, seat));
     return actions;
   }
@@ -258,6 +285,9 @@ export class RoomCore {
   message(conn, data, now, address = '', newToken = null) {
     const s = this.seats.get(conn);
     if (typeof data !== 'string') {
+      if (s && data[0] === TYPE_PARTS) {
+        return wrecks.onParts(this, conn, s, data, now);
+      }
       return s ? this.pose(conn, s, data, now) : [];
     }
     const rate = s ? s.textRate : this.pending.get(conn);
@@ -297,6 +327,9 @@ export class RoomCore {
         ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
       ];
     }
+    if (msg.type === 'event' && Object.hasOwn(EVENTS, msg.kind)) {
+      return EVENTS[msg.kind](this, conn, s, msg, now);
+    }
     const safe = this.safety.text(conn, s, msg, now);
     if (safe) {
       return safe;
@@ -305,7 +338,7 @@ export class RoomCore {
       return this.kick(msg.seat, now);
     }
     /* Races are a private room's, started by its host (Phase 4). */
-    if (!this.meta.public && (msg.type === 'track' || msg.type === 'race' || (msg.type === 'event' && (msg.kind === 'gate' || msg.kind === 'hoop')))) {
+    if (!this.meta.public && (msg.type === 'track' || msg.type === 'race')) {
       return this.race.message(this, conn, s, msg, now);
     }
     return [];

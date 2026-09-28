@@ -831,6 +831,72 @@ function analogMag(heldMs) {
   return CRUISE + (1 - CRUISE) * u;
 }
 
+/*
+ * MOUSE FLIGHT: the wheel is the throttle and the mouse is the right stick.
+ *
+ * It is a direct stick, not an aim point. The mouse moves a virtual gimbal
+ * (x is roll, y is pitch) and that gimbal is what Betaflight or the wing's
+ * plant reads, exactly as it would read a radio. War Thunder's mouse aim,
+ * where the game flies the aircraft toward a cursor, would be an autopilot
+ * between the pilot and the airframe, and the whole point of this project
+ * is that nothing sits there.
+ *
+ * The gimbal either SPRINGS back to centre or HOLDS where it was left:
+ *
+ *   spring  A quad in Acro. The stick is a rate and Betaflight holds
+ *           whatever attitude it is left in, so moving the mouse turns the
+ *           quad and stopping stops it, which is mouse look and is what a
+ *           mouse is good at.
+ *   hold    A quad in Angle, and every plane on every tune. There a bank
+ *           or a pulled turn is a stick HELD over: Angle levels a centred
+ *           stick, and a plane's own stability rolls it back out of a bank
+ *           even on its Acro tune. The headless Timber on its Acro tune,
+ *           flown on a springing mouse, could not be held past 15 degrees
+ *           of bank however hard the mouse was pushed: every push decayed
+ *           and the dihedral won. A spring there makes every turn a mouse
+ *           that has to keep moving until it runs off the mat.
+ *
+ * 'auto' picks between the two from what is being flown, and the pilot can
+ * pin either one. The middle button or Z puts the gimbal back
+ * in the middle, which is the one thing a held mouse stick cannot do by
+ * feel.
+ *
+ * The throttle HOLDS on both kinds of craft. A radio throttle stays where
+ * the thumb leaves it and a wheel is the nearest thing a mouse has to that:
+ * a notch is a step, and nothing springs to hover, which is what the
+ * keyboard's collective has to do because a key cannot stay half pressed.
+ * The step is finer on a quad (2 percent: a quad lives on a hover point,
+ * a quarter to a third of the stick on the five inch, and a notch either
+ * side of it has to be a slow climb or a slow sink, not a leap) than on a
+ * plane (5 percent: a plane flies on a power setting).
+ */
+export const MOUSE_SENS = [50, 75, 100, 150, 200, 300];
+export const MOUSE_EXPOS = [0, 25, 50, 75];
+export const MOUSE_CENTRES = ['auto', 'spring', 'hold'];
+/* Held down, Z centres the gimbal: the middle button's keyboard twin. */
+export const MOUSE_CENTRE_KEY = 'KeyZ';
+const MOUSE = {
+  /* Mouse counts for a full stick at 100 percent sensitivity. */
+  FULL_PX: 300,
+  /* The spring's time constant. At 90 ms a steady 1500 counts a second
+   * sits at about half stick, and letting go is back to centre in a
+   * quarter of a second, which reads as the mouse and not as a lag. */
+  SPRING_TAU_MS: 90,
+  /* One wheel notch, in the pixels the browser reports. Chrome reports
+   * 100 on Windows, 120 or 53 elsewhere, and a trackpad a stream of small
+   * deltas; see mouseWheel for how one rule covers all of them. */
+  NOTCH_PX: 100,
+  /* A wheel event at least this big is a physical notch or several. */
+  NOTCH_EVENT_PX: 40,
+  THR_STEP_QUAD: 0.02,
+  THR_STEP_WING: 0.05,
+};
+
+/* Expo on the mouse stick, a cubic blend: 0 is linear, 1 is all cubic. */
+function mouseShape(v, expo) {
+  return v * (1 - expo) + v * v * v * expo;
+}
+
 export class InputManager {
   constructor() {
     this.channels = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
@@ -898,6 +964,23 @@ export class InputManager {
     this.stickMode = DEFAULT_STICK_MODE;
     this.keyAxes = keyAxes(this.stickMode);
     this.throttleKeys = throttleKeys(this.stickMode);
+    /*
+     * Mouse flight, off unless the pilot picked it in Settings. The shell
+     * owns the pointer lock and says through mouseLive when the mouse is
+     * flying: locked, on the flight screen, not in the builder. Movement,
+     * wheel and buttons outside that are the menus' and are ignored here.
+     * mouseKeys holds the yaw key codes the two buttons stand in for, so
+     * they ride the keyboard's own hold ramp.
+     */
+    this.mouseEnabled = false;
+    this.mouseLive = false;
+    this.mouseCfg = {
+      sens: 100, expo: 0, invert: false, centre: 'auto',
+    };
+    this.mouseCraft = { wing: false, rates: true };
+    this.mouse = { x: 0, y: 0, thr: 0, acc: 0 };
+    this.mouseKeys = new Set();
+    this.mouseListeners = null;
 
     /*
      * STICK RATE, AND WHY IT IS NOT THE FRAME RATE ANY MORE.
@@ -2304,7 +2387,7 @@ export class InputManager {
     const dtHold = Math.min(dtMs, 40);
     const step = (rate) => Math.min(rate * dt, MAX_STEP);
     for (const [ch, negKey, posKey] of this.keyAxes) {
-      const want = (this.keys.has(posKey) ? 1 : 0) - (this.keys.has(negKey) ? 1 : 0);
+      const want = (this.held(posKey) ? 1 : 0) - (this.held(negKey) ? 1 : 0);
       if (want === 0) {
         this.kbHoldMs[ch] = 0;
         this.kbHoldDir[ch] = 0;
@@ -2401,6 +2484,9 @@ export class InputManager {
     this.kb.pitch = 0;
     this.kb.yaw = 0;
     this.kb.throttle = 0;
+    /* The wheel's throttle holds, so a reset has to take it down or the
+     * craft relaunches from the pad by itself, the touch throttle's bug. */
+    this.mouse = { x: 0, y: 0, thr: 0, acc: 0 };
     this.kbAir = false;
     this.kbThrFromKeys = false;
     this.forcePadRest = false;
@@ -2409,6 +2495,202 @@ export class InputManager {
     if (this.touchSource) {
       this.touchSource.reset();
     }
+  }
+
+  /* A key, or a mouse button standing in for one. */
+  held(code) {
+    return this.keys.has(code) || this.mouseKeys.has(code);
+  }
+
+  /*
+   * The Settings rows for mouse flight. The window listeners exist only
+   * while it is on, so a pilot who never picks it has no wheel listener
+   * that could hold up a menu's scroll.
+   */
+  setMouseConfig({
+    enabled, sens, expo, invert, centre,
+  }) {
+    this.mouseCfg = {
+      sens: MOUSE_SENS.includes(sens) ? sens : 100,
+      expo: MOUSE_EXPOS.includes(expo) ? expo : 0,
+      invert: Boolean(invert),
+      centre: MOUSE_CENTRES.includes(centre) ? centre : 'auto',
+    };
+    const on = Boolean(enabled);
+    if (on === this.mouseEnabled) {
+      return;
+    }
+    this.mouseEnabled = on;
+    this.mouse = { x: 0, y: 0, thr: 0, acc: 0 };
+    this.setMouseLive(false);
+    if (on) {
+      this.mouseListeners = [
+        ['mousemove', (e) => this.mouseMove(e.movementX || 0, e.movementY || 0)],
+        ['wheel', (e) => {
+          if (this.mouseLive) {
+            e.preventDefault();
+            this.mouseWheel(e.deltaY, e.deltaMode);
+          }
+        }, { passive: false }],
+        ['mousedown', (e) => this.mouseButton(e.button, true)],
+        ['mouseup', (e) => this.mouseButton(e.button, false)],
+        /* The right button is rudder, not a menu. */
+        ['contextmenu', (e) => {
+          if (this.mouseLive) {
+            e.preventDefault();
+          }
+        }],
+      ];
+      for (const [type, fn, opts] of this.mouseListeners) {
+        window.addEventListener(type, fn, opts);
+      }
+      return;
+    }
+    for (const [type, fn, opts] of this.mouseListeners || []) {
+      window.removeEventListener(type, fn, opts);
+    }
+    this.mouseListeners = null;
+  }
+
+  /* The shell's word on whether the mouse is flying. Losing it drops the
+   * buttons, which would otherwise hold rudder through a pause. */
+  setMouseLive(live) {
+    this.mouseLive = Boolean(live);
+    if (!this.mouseLive) {
+      this.mouseKeys.clear();
+    }
+  }
+
+  /* What is being flown: a plane or a quad decides the throttle step, and
+   * with `rates` (a quad on Acro) what 'auto' centring means. The shell
+   * reads it off the SETTING, not the switch of the moment, so a turtle
+   * recovery does not change the feel. */
+  setMouseCraft(wing, rates) {
+    this.mouseCraft = { wing: Boolean(wing), rates: Boolean(rates) };
+  }
+
+  mouseCentring() {
+    if (this.mouseCfg.centre !== 'auto') {
+      return this.mouseCfg.centre;
+    }
+    return this.mouseCraft.rates && !this.mouseCraft.wing ? 'spring' : 'hold';
+  }
+
+  mouseThrottleStep() {
+    return this.mouseCraft.wing ? MOUSE.THR_STEP_WING : MOUSE.THR_STEP_QUAD;
+  }
+
+  mouseMove(dx, dy) {
+    if (!this.mouseLive) {
+      return;
+    }
+    const clamp = (v) => Math.max(-1, Math.min(1, v));
+    const k = this.mouseCfg.sens / 100 / MOUSE.FULL_PX;
+    /* Pulling the mouse toward you is pulling the stick back, nose up,
+     * which is +pitch; invert makes it a game camera instead. */
+    const ySign = this.mouseCfg.invert ? -1 : 1;
+    this.mouse.x = clamp(this.mouse.x + dx * k);
+    this.mouse.y = clamp(this.mouse.y + dy * k * ySign);
+  }
+
+  /*
+   * One notch, one step, whatever the device says a notch is. deltaMode
+   * turns lines and pages into pixels first. Then an event of at least
+   * NOTCH_EVENT_PX is a physical wheel and counts as the nearest whole
+   * number of notches, never less than one, which covers Chrome's 53, 100
+   * and 120 pixel notches alike. Anything smaller is a trackpad or a
+   * smooth wheel streaming fractions, and those add up until they make a
+   * notch. Scrolling up is more throttle.
+   */
+  mouseWheel(deltaY, deltaMode = 0) {
+    if (!this.mouseLive || !Number.isFinite(deltaY) || deltaY === 0) {
+      return;
+    }
+    const px = deltaY * [1, MOUSE.NOTCH_PX / 3, MOUSE.NOTCH_PX][deltaMode === 1 || deltaMode === 2 ? deltaMode : 0];
+    let notches = 0;
+    if (Math.abs(px) >= MOUSE.NOTCH_EVENT_PX) {
+      notches = Math.sign(px) * Math.max(1, Math.round(Math.abs(px) / MOUSE.NOTCH_PX));
+      this.mouse.acc = 0;
+    } else {
+      this.mouse.acc += px;
+      notches = Math.trunc(this.mouse.acc / MOUSE.NOTCH_PX);
+      this.mouse.acc -= notches * MOUSE.NOTCH_PX;
+    }
+    const step = this.mouseThrottleStep();
+    const n = Math.round(this.mouse.thr / step) - notches;
+    this.mouse.thr = Math.max(0, Math.min(1, n * step));
+  }
+
+  mouseButton(button, down) {
+    if (!this.mouseLive) {
+      return;
+    }
+    if (button === 1) {
+      if (down) {
+        this.mouse.x = 0;
+        this.mouse.y = 0;
+      }
+      return;
+    }
+    if (button !== 0 && button !== 2) {
+      return;
+    }
+    const yaw = this.keyAxes.find(([ch]) => ch === 'yaw');
+    const code = button === 0 ? yaw[1] : yaw[2];
+    if (down) {
+      this.mouseKeys.add(code);
+    } else {
+      this.mouseKeys.delete(code);
+    }
+  }
+
+  /*
+   * The mouse rung of poll()'s ladder. Every key still works on top, the
+   * way it does over a radio: a held stick key wins its channel, and W and
+   * S move the wheel's throttle at the radio overlay's latched rate, so a
+   * pilot with no wheel, or a broken one, can still fly all four channels.
+   */
+  readMouse(dtMs) {
+    const m = this.mouse;
+    if (this.mouseCentring() === 'spring') {
+      const k = Math.exp(-dtMs / MOUSE.SPRING_TAU_MS);
+      /* Snapped to +0 near the end, or poll() would emit a sample on every
+       * tick of an exponential that never arrives. */
+      m.x = Math.abs(m.x * k) < 1e-3 ? 0 : m.x * k;
+      m.y = Math.abs(m.y * k) < 1e-3 ? 0 : m.y * k;
+    }
+    if (this.keys.has(MOUSE_CENTRE_KEY)) {
+      m.x = 0;
+      m.y = 0;
+    }
+    this.kb.throttle = m.thr;
+    const kb = this.readKeyboard(dtMs, false);
+    if (this.keys.has(this.throttleKeys.up) || this.keys.has(this.throttleKeys.down)) {
+      m.thr = kb.throttle;
+    }
+    const expo = this.mouseCfg.expo / 100;
+    const next = {
+      roll: mouseShape(m.x, expo),
+      pitch: mouseShape(m.y, expo),
+      yaw: 0,
+      throttle: m.thr,
+    };
+    for (const ch of ['roll', 'pitch', 'yaw']) {
+      if (kb[ch] !== 0) {
+        next[ch] = kb[ch];
+      }
+    }
+    return next;
+  }
+
+  /*
+   * Whether the mouse is the stick source. It sits above a connected radio
+   * because picking it is a choice the pilot made in Settings, where a
+   * radio is merely present; the joystick picker and the wizard still come
+   * first because they are open on the screen.
+   */
+  isMousePrimary() {
+    return this.mouseEnabled && !this.harnessChannels && !this.padPick && !this.calibration;
   }
 
   /* The thumb sticks, mounted by the shell on a touch device. */
@@ -2458,7 +2740,7 @@ export class InputManager {
    * flight mode the setting says, and draw themselves.
    */
   isTouchPrimary() {
-    return this.firstGamepad() === null
+    return this.firstGamepad() === null && !this.mouseEnabled
       && Boolean(this.touchSource && this.touchSource.active());
   }
 
@@ -2507,6 +2789,9 @@ export class InputManager {
       this.runCalibration(gp, dtMs);
       next = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
       this.source = str('input.the_calibration_wizard');
+    } else if (this.mouseEnabled) {
+      next = this.readMouse(dtMs);
+      this.source = str('input.the_mouse');
     } else if (gp) {
       next = this.readGamepad(gp);
       this.noteThrottleParked(gp);

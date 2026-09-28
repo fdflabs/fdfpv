@@ -200,8 +200,9 @@ export function setFigurePick(f) {
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
- * onEvent(event) for an event, onReported(seat), onMessage(message) for
- * every other text message (a race's, Phase 4).
+ * onEvent(event) for an event, onReported(seat), onBinary(bytes) for any
+ * binary message but a batch, and onMessage(message) for every other text
+ * message (a race's, Phase 4).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -292,16 +293,23 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       }
       const h = hello();
       const token = read('session', TOKEN_KEY);
-      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', name: h.name, profile: h.profile, ...(token ? { token } : {}) });
+      /* The seat held before a drop, so a room that was restarted and
+       * forgot the token can put the pilot back in the same slot. */
+      const seat = welcome && welcome.code === code ? { seat: welcome.seat } : {};
+      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat });
     };
     socket.onmessage = (ev) => {
       if (ws !== socket) {
         return;
       }
       if (typeof ev.data !== 'string') {
-        const batch = decodeBatch(new Uint8Array(ev.data));
-        if (batch && handlers.onBatch) {
-          handlers.onBatch(batch);
+        const bytes = new Uint8Array(ev.data);
+        const batch = decodeBatch(bytes);
+        if (batch) {
+          handlers.onBatch?.(batch);
+        } else {
+          /* Every other binary type is a later phase's (roomwire.js). */
+          handlers.onBinary?.(bytes);
         }
         return;
       }
@@ -503,6 +511,16 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       if (ws && ws.readyState === 1 && phase === 'open') {
         ws.send(bytes);
       }
+    },
+    /* A later phase's binary message (roomwire.js), while in a room. */
+    sendBinary(bytes) {
+      if (ws && ws.readyState === 1 && phase === 'open') {
+        ws.send(bytes);
+      }
+    },
+    /* { kind, ... }, sent as an event (roomwire.js names each kind). */
+    sendEvent(event) {
+      sendText({ ...event, type: 'event' });
     },
     sendProfile(profile) {
       sendText({ type: 'profile', profile });

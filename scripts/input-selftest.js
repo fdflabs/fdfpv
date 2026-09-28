@@ -779,6 +779,252 @@ section('stickmode: the wizard names the right hand');
   rig.im.setStickMode(2);
 }
 
+/* ------------------------------------------------------------------------
+ * 9. Mouse flight: the wheel is the throttle, the mouse the right stick,
+ *    and every key still flies. Asserted at exact values, the way the
+ *    wizard's stops are, because a notch is a step and a step is a number.
+ * ---------------------------------------------------------------------- */
+section('mouse flight: off unless picked, and then only while live');
+{
+  const rig = new Rig(null);
+  const im = rig.im;
+  const listeners = new Map();
+  window.addEventListener = (type) => listeners.set(type, (listeners.get(type) || 0) + 1);
+  window.removeEventListener = (type) => listeners.set(type, (listeners.get(type) || 0) - 1);
+  rig.run(100);
+  check('off by default, and the keyboard is the source', !im.mouseEnabled && !im.isMousePrimary()
+    && im.stats().source === 'the keyboard', im.stats().source);
+  im.setMouseLive(true);
+  im.mouseMove(300, 0);
+  im.mouseWheel(-100);
+  rig.run(100);
+  check('off, a live mouse moves nothing', im.channels.roll === 0 && im.channels.throttle === 0,
+    JSON.stringify(im.channels));
+  check('and no wheel listener was ever attached', !listeners.get('wheel'));
+  im.setMouseConfig({ enabled: true, sens: 100, expo: 0, invert: false, centre: 'auto' });
+  check('on, the five listeners are attached',
+    ['mousemove', 'wheel', 'mousedown', 'mouseup', 'contextmenu'].every((t) => listeners.get(t) === 1));
+  rig.run(50);
+  check('on, the mouse is the source', im.isMousePrimary() && im.stats().source === 'the mouse', im.stats().source);
+  im.mouseMove(150, 0);
+  im.mouseWheel(-100);
+  rig.run(50);
+  check('not live (no pointer lock), movement and the wheel are the menus\'',
+    im.channels.roll === 0 && im.channels.throttle === 0, JSON.stringify(im.channels));
+  im.setMouseConfig({ enabled: false, sens: 100, expo: 0, invert: false, centre: 'auto' });
+  check('off again, every listener is gone',
+    ['mousemove', 'wheel', 'mousedown', 'mouseup', 'contextmenu'].every((t) => listeners.get(t) === 0));
+  window.addEventListener = () => {};
+  window.removeEventListener = () => {};
+}
+
+function mouseRig({ wing = false, rates = true, cfg = {}, pad = null } = {}) {
+  const rig = new Rig(pad);
+  rig.im.setMouseConfig({
+    enabled: true, sens: 100, expo: 0, invert: false, centre: 'auto', ...cfg,
+  });
+  rig.im.setMouseCraft(wing, rates);
+  rig.im.setMouseLive(true);
+  rig.run(50);
+  return rig;
+}
+
+const near = (a, b) => Math.abs(a - b) < 1e-9;
+
+section('mouse flight: the wheel is a throttle that holds');
+{
+  const rig = mouseRig();
+  const im = rig.im;
+  for (let i = 0; i < 11; i += 1) {
+    im.mouseWheel(-100);
+  }
+  rig.run(50);
+  check('a quad: eleven notches up is exactly 22 percent', near(im.channels.throttle, 0.22), String(im.channels.throttle));
+  rig.run(3000);
+  check('and three seconds later it is still 22, no spring to hover or to zero',
+    near(im.channels.throttle, 0.22), String(im.channels.throttle));
+  im.mouseWheel(53);
+  rig.run(20);
+  check('a 53 pixel Linux notch down is one notch: 20 percent', near(im.channels.throttle, 0.2), String(im.channels.throttle));
+  im.mouseWheel(-120);
+  rig.run(20);
+  check('a 120 pixel notch up is one notch: 22', near(im.channels.throttle, 0.22), String(im.channels.throttle));
+  for (let i = 0; i < 9; i += 1) {
+    im.mouseWheel(-10);
+  }
+  rig.run(20);
+  check('a trackpad\'s nine 10 pixel strokes are not yet a notch', near(im.channels.throttle, 0.22), String(im.channels.throttle));
+  im.mouseWheel(-10);
+  rig.run(20);
+  check('the tenth makes one', near(im.channels.throttle, 0.24), String(im.channels.throttle));
+  im.mouseWheel(-3, 1);
+  rig.run(20);
+  check('three lines (Firefox\'s notch) is one notch', near(im.channels.throttle, 0.26), String(im.channels.throttle));
+  for (let i = 0; i < 80; i += 1) {
+    im.mouseWheel(-100);
+  }
+  rig.run(20);
+  check('it stops at full', im.channels.throttle === 1, String(im.channels.throttle));
+  for (let i = 0; i < 80; i += 1) {
+    im.mouseWheel(100);
+  }
+  rig.run(20);
+  check('and at zero', im.channels.throttle === 0, String(im.channels.throttle));
+  im.setMouseCraft(true, false);
+  for (let i = 0; i < 3; i += 1) {
+    im.mouseWheel(-100);
+  }
+  rig.run(20);
+  check('a plane steps 5 percent: three notches is 15', near(im.channels.throttle, 0.15), String(im.channels.throttle));
+  im.resetKeyboardSticks();
+  rig.run(20);
+  check('a reset takes the wheel\'s throttle down, so a wreck cannot relaunch itself',
+    im.channels.throttle === 0, String(im.channels.throttle));
+}
+
+section('mouse flight: movement is roll and pitch, and it centres or holds');
+{
+  const rig = mouseRig();
+  const im = rig.im;
+  check('a quad in Acro springs back by default', im.mouseCentring() === 'spring');
+  im.mouseMove(150, 0);
+  rig.step(1);
+  check('150 counts right at 100 percent is half right roll', Math.abs(im.channels.roll - 0.5) < 0.01, String(im.channels.roll));
+  rig.run(1000);
+  check('and a second later it has sprung back to exactly zero', im.channels.roll === 0 && Object.is(im.channels.roll, 0),
+    String(im.channels.roll));
+  const q = im.queue.length;
+  rig.run(1000);
+  check('at rest it emits only the heartbeat, not a sample per poll', im.queue.length - q <= 11, `${im.queue.length - q}`);
+  im.setMouseCraft(false, false);
+  check('a quad in Angle holds', im.mouseCentring() === 'hold');
+  im.setMouseCraft(true, true);
+  check('every plane holds, even with the quad setting on Acro', im.mouseCentring() === 'hold');
+  im.mouseMove(150, 0);
+  rig.run(2000);
+  check('held, half right roll is still exactly half two seconds later', near(im.channels.roll, 0.5), String(im.channels.roll));
+  im.mouseMove(0, 150);
+  rig.run(20);
+  check('pulling the mouse back 150 is half back stick, nose up, +pitch', near(im.channels.pitch, 0.5), String(im.channels.pitch));
+  im.mouseButton(1, true);
+  im.mouseButton(1, false);
+  rig.run(20);
+  check('the middle button centres both', im.channels.roll === 0 && im.channels.pitch === 0, JSON.stringify(im.channels));
+  im.mouseMove(-600, -600);
+  rig.run(20);
+  check('past full it stops at full: left roll, nose down', im.channels.roll === -1 && im.channels.pitch === -1,
+    JSON.stringify(im.channels));
+  im.keys.add('KeyZ');
+  rig.run(20);
+  im.keys.delete('KeyZ');
+  rig.run(20);
+  check('Z centres it too', im.channels.roll === 0 && im.channels.pitch === 0, JSON.stringify(im.channels));
+  im.setMouseConfig({
+    enabled: true, sens: 100, expo: 0, invert: false, centre: 'spring',
+  });
+  check('the pilot can pin springing on a plane', im.mouseCentring() === 'spring');
+}
+
+section('mouse flight: invert, sensitivity and expo');
+{
+  const inv = mouseRig({ wing: true, cfg: { invert: true } });
+  inv.im.mouseMove(0, 150);
+  inv.run(20);
+  check('inverted, pulling back is nose DOWN', near(inv.im.channels.pitch, -0.5), String(inv.im.channels.pitch));
+  const fast = mouseRig({ wing: true, cfg: { sens: 200 } });
+  fast.im.mouseMove(75, 0);
+  fast.run(20);
+  check('at 200 percent, 75 counts is half stick', near(fast.im.channels.roll, 0.5), String(fast.im.channels.roll));
+  const soft = mouseRig({ wing: true, cfg: { expo: 50 } });
+  soft.im.mouseMove(150, 0);
+  soft.run(20);
+  check('expo 50 turns half stick into 0.3125, and full stays full', near(soft.im.channels.roll, 0.3125),
+    String(soft.im.channels.roll));
+  soft.im.mouseMove(600, 0);
+  soft.run(20);
+  check('full stays full under expo', soft.im.channels.roll === 1, String(soft.im.channels.roll));
+  const junk = mouseRig({ cfg: { sens: 7, expo: 99, centre: 'sideways' } });
+  check('a setting off the list falls back to the default',
+    junk.im.mouseCfg.sens === 100 && junk.im.mouseCfg.expo === 0 && junk.im.mouseCfg.centre === 'auto',
+    JSON.stringify(junk.im.mouseCfg));
+}
+
+section('mouse flight: the buttons are yaw, and every key is a backup');
+{
+  const rig = mouseRig({ wing: true });
+  const im = rig.im;
+  im.mouseButton(0, true);
+  rig.run(400);
+  check('left button held is left yaw on the keys\' own ramp', im.channels.yaw < -0.3, String(im.channels.yaw));
+  im.mouseButton(0, false);
+  rig.run(400);
+  check('released, yaw springs back to zero', im.channels.yaw === 0, String(im.channels.yaw));
+  im.mouseButton(2, true);
+  rig.run(400);
+  check('right button is right yaw', im.channels.yaw > 0.3, String(im.channels.yaw));
+  im.setMouseLive(false);
+  rig.run(400);
+  check('losing the pointer lets go of a held button', im.channels.yaw === 0, String(im.channels.yaw));
+  im.setMouseLive(true);
+  im.keys.add('KeyD');
+  rig.run(400);
+  check('D is right yaw, as on the keyboard', im.channels.yaw > 0.3, String(im.channels.yaw));
+  im.keys.delete('KeyD');
+  im.mouseMove(150, 0);
+  im.keys.add('ArrowLeft');
+  rig.run(400);
+  check('an arrow held wins its channel over the held mouse', im.channels.roll < -0.3, String(im.channels.roll));
+  im.keys.delete('ArrowLeft');
+  rig.run(400);
+  check('let go, the mouse\'s held roll is back', near(im.channels.roll, 0.5), String(im.channels.roll));
+  im.keys.add('ArrowUp');
+  rig.run(400);
+  check('up arrow is nose down', im.channels.pitch < -0.3, String(im.channels.pitch));
+  im.keys.delete('ArrowUp');
+  im.keys.add('KeyW');
+  rig.run(500);
+  im.keys.delete('KeyW');
+  const thr = im.channels.throttle;
+  check('W raises the throttle with no wheel at all', thr > 0.3, String(thr));
+  rig.run(2000);
+  check('and it stays there when W is let go, like the wheel', im.channels.throttle === thr, `${thr} -> ${im.channels.throttle}`);
+  im.mouseWheel(-100);
+  rig.run(20);
+  check('the next notch steps from where W left it', im.channels.throttle > thr, `${thr} -> ${im.channels.throttle}`);
+  im.keys.add('KeyS');
+  rig.run(2000);
+  im.keys.delete('KeyS');
+  rig.run(20);
+  check('S takes it all the way down', im.channels.throttle === 0, String(im.channels.throttle));
+  im.setStickMode(3);
+  im.mouseButton(0, true);
+  rig.run(400);
+  check('in Mode 3 the buttons are still yaw, on that mode\'s yaw keys', im.channels.yaw < -0.3 && im.channels.roll !== -1,
+    JSON.stringify(im.channels));
+  im.mouseButton(0, false);
+}
+
+section('mouse flight: where it sits in the ladder');
+{
+  const pad = makePad([0.4, 0, 1, 0], 4);
+  const rig = mouseRig({ pad });
+  const im = rig.im;
+  check('picked, the mouse flies over a connected radio', im.stats().source === 'the mouse'
+    && im.channels.roll === 0 && im.channels.throttle === 0, JSON.stringify([im.stats().source, im.channels]));
+  im.harnessChannels = {
+    roll: 0.1, pitch: 0.2, yaw: 0.3, throttle: 0.4,
+  };
+  rig.run(20);
+  check('the harness override is still above everything', im.channels.throttle === 0.4 && !im.isMousePrimary());
+  im.harnessChannels = null;
+  im.setMouseConfig({
+    enabled: false, sens: 100, expo: 0, invert: false, centre: 'auto',
+  });
+  rig.run(20);
+  check('switched off, the radio is back', im.channels.roll === 0.4 && im.channels.throttle === 1,
+    JSON.stringify(im.channels));
+}
+
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);
 for (const f of fails) {
   console.log(`  FAIL ${f}`);

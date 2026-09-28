@@ -46,7 +46,9 @@ import { retiredMap } from '../maps/retired.js';
 import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
 import { planesFor } from '../game/verify.js';
-import { CAL_STEPS } from '../input/input.js';
+import {
+  CAL_STEPS, MOUSE_SENS, MOUSE_EXPOS, MOUSE_CENTRES,
+} from '../input/input.js';
 import {
   STICK_MODES, DEFAULT_STICK_MODE, normaliseStickMode, stickChannels, stickCaption,
 } from '../input/stickmode.js';
@@ -656,6 +658,18 @@ const DEFAULTS = {
    */
   stickMode: DEFAULT_STICK_MODE,
   /*
+   * MOUSE FLIGHT: the wheel is the throttle and the mouse is the right
+   * stick. Off by default, and a pilot who leaves it off meets nothing new
+   * but the row. See the note above MOUSE_SENS in src/input/input.js for
+   * what each of the other four does. Sensitivity and expo are percents so
+   * the typeof gate below keeps them numbers.
+   */
+  mouseFlight: false,
+  mouseSens: 100,
+  mouseExpo: 0,
+  mouseInvert: false,
+  mouseCentre: 'auto',
+  /*
    * FREESTYLE IS THREE DIFFERENT ACTIVITIES AND THEY WANT DIFFERENT RULES.
    * See FREESTYLE_SCORING above for what each value does.
    *
@@ -1003,6 +1017,9 @@ export function loadSettings() {
     ['ghost', ['off', 'best', 'previous']],
     ['live', ['off', 'on']],
     ['freestyleScoring', FREESTYLE_SCORING],
+    ['mouseSens', MOUSE_SENS],
+    ['mouseExpo', MOUSE_EXPOS],
+    ['mouseCentre', MOUSE_CENTRES],
   ]) {
     if (!allowed.includes(s[key])) {
       /* The tune's fallback is the AIRFRAME's default tune, not the blob's:
@@ -3529,7 +3546,7 @@ export class Ui {
      * most likely holding the machine. */
     const tabList = [
       ...(touchWanted() ? [['touch', 'Touch']] : []),
-      ['keyboard', 'Keyboard'], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')],
+      ['keyboard', 'Keyboard'], ['mouse', str('ui.mouse')], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')],
     ];
     for (const [id, label] of tabList) {
       const b = btn('howto-tab', label);
@@ -3562,7 +3579,7 @@ export class Ui {
     this.howtoHelp = howtoBlock.help;
     howto.append(howtoBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_arrow_keys_still_move')));
     this.screens.howto = howto;
-    this.howtoSource = touchWanted() ? 'touch' : 'keyboard';
+    this.howtoSource = touchWanted() ? 'touch' : (this.settings.mouseFlight ? 'mouse' : 'keyboard');
     this.renderHowto();
 
     /*
@@ -6266,6 +6283,50 @@ export class Ui {
           action: 'choosepad',
           note: padChooseNote(this.padInfo),
         },
+        /*
+         * MOUSE FLIGHT, beside the joystick because it is the other answer
+         * to "what am I flying with". Its four adjustments appear only
+         * while it is on, so the list a keyboard or radio pilot walks is
+         * one row longer and no more.
+         */
+        toggle(
+          str('ui.mouse_flight'),
+          str('ui.mouse_flight_note'),
+          s.mouseFlight,
+          (v) => { s.mouseFlight = Boolean(v); },
+        ),
+        ...(s.mouseFlight ? [
+          choice(
+            str('ui.mouse_sensitivity'),
+            str('ui.mouse_sensitivity_note'),
+            MOUSE_SENS,
+            s.mouseSens,
+            (n) => `${n}%`,
+            (n) => { s.mouseSens = n; },
+          ),
+          choice(
+            str('ui.mouse_expo'),
+            str('ui.mouse_expo_note'),
+            MOUSE_EXPOS,
+            s.mouseExpo,
+            (n) => `${n}%`,
+            (n) => { s.mouseExpo = n; },
+          ),
+          toggle(
+            str('ui.mouse_invert'),
+            str('ui.mouse_invert_note'),
+            s.mouseInvert,
+            (v) => { s.mouseInvert = Boolean(v); },
+          ),
+          choice(
+            str('ui.mouse_centre'),
+            str('ui.mouse_centre_note'),
+            MOUSE_CENTRES,
+            s.mouseCentre,
+            (id) => str(`ui.mouse_centre_${id}`),
+            (id) => { s.mouseCentre = id; },
+          ),
+        ] : []),
         { label: str('ui.calibrate_sticks'), action: 'calibrate', note: str('ui.centre_full_range_then_one_named') },
         /*
          * THE WAY BACK TO THE ONLY SCREEN THAT SHOWS A MAPPING.
@@ -9900,7 +9961,7 @@ export class Ui {
    * toggled because it is six lines of type and a switch nobody flips twice.
    */
   setHowtoSource(id) {
-    this.howtoSource = ['radio', 'launch', 'touch'].includes(id) ? id : 'keyboard';
+    this.howtoSource = ['radio', 'launch', 'touch', 'mouse'].includes(id) ? id : 'keyboard';
     this.renderHowto();
     if (this.onUiSound) {
       this.onUiSound('adjust');
@@ -9934,6 +9995,16 @@ export class Ui {
         ['Acro', str('ui.hands_off_holds_the_attitude_you')],
         ['Turtle', str('ui.if_you_end_up_inverted_on_2')],
       ]
+      : source === 'mouse'
+        ? [
+          [str('ui.mouse'), str('ui.howto_mouse_move')],
+          [str('ui.howto_mouse_wheel_key'), str('ui.howto_mouse_wheel')],
+          [str('ui.howto_mouse_buttons_key'), str('ui.howto_mouse_buttons')],
+          [str('ui.howto_mouse_centre_key'), str('ui.howto_mouse_centre')],
+          [str('ui.howto_mouse_keys_key'), str('ui.howto_mouse_keys')],
+          ['Esc', str('ui.howto_mouse_escape')],
+          [str('ui.howto_mouse_on_key'), str('ui.howto_mouse_on', { pilot: SCREEN_TITLES.pilot })],
+        ]
       : source === 'launch'
         ? [
           [str('ui.what_it_is'), str('ui.betaflight_race_start_pitch_the_quad')],
@@ -9960,14 +10031,18 @@ export class Ui {
         ? str('ui.move_your_sticks_these_follow_the')
         : source === 'launch'
           ? str('ui.l_arms_it_pitch_centre_punch')
-          : str('ui.press_the_keys_these_follow_your');
+          : source === 'mouse'
+            ? str('ui.howto_mouse_live')
+            : str('ui.press_the_keys_these_follow_your');
     this.howtoMode.textContent = source === 'touch'
       ? str('ui.thumb_sticks_are_a_real_proportional')
       : source === 'radio'
         ? str('ui.a_radio_flies_acro_by_default')
         : source === 'launch'
           ? str('ui.off_by_default_because_a_punch')
-          : str('ui.keys_are_on_or_off_so');
+          : source === 'mouse'
+            ? str('ui.howto_mouse_mode')
+            : str('ui.keys_are_on_or_off_so');
   }
 
   /* Live channels for the tutorial's gimbals, fed by the shell's loop. */
