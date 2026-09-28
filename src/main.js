@@ -107,6 +107,9 @@ import { MAPS, mapById } from './maps/registry.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
+import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
+import { TestStand } from './game/teststand.js';
+import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { setLiverySource } from './render/livery.js';
@@ -3701,7 +3704,69 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     }
     const opt = powerOption(af.id, option);
     runCells = powerCells(af.id, option, pack);
-    audio.setVoice(opt.voice);
+    setFlownVoice(opt.voice);
+  }
+
+  /*
+   * THE PILOT'S TUNING, configs/tuning.js and the hangar's Tuning tab: the
+   * CG, the rates, the expo, the trim and the flap mix the pilot set up
+   * for the seated plane, on the same rule as the power and after it,
+   * since the CG is balanced on the pack the power choice fits. The stock
+   * setup clears, so an untuned plane flies its table bit for bit. The
+   * flaps a run starts on are the setup's only where the pilot chose them;
+   * otherwise the switch stays where it was, as it always did.
+   * runTuneKey is what was seated, so a save can tell whether the plane in
+   * the air needs a refit.
+   */
+  let runTuneKey = 'null';
+  function applyTuning(s) {
+    const af = airframeById(runAirframe);
+    if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
+      runTuneKey = 'null';
+      return;
+    }
+    const set = setupFor(af.id, powerChoice(af.id, s.power));
+    const entry = normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits);
+    const block = tuneBlock(af.id, entry, set.massKg, set.packKg);
+    const code = block ? sim.setTune(block) : sim.clearTune();
+    if (code !== SIM_OK) {
+      throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
+    }
+    runTuneKey = JSON.stringify(entry);
+    if (entry && entry.flapStart) {
+      setFlapNotch(fullEntry(af.id, entry).flapStart);
+    }
+  }
+
+  /*
+   * THE TEST STAND the Tuning tab runs a plane's motor on: a second
+   * instance of the module, never the one the pilot flies, made the first
+   * time the bench is used and kept, initialised on the config the flown
+   * one booted on (a fixed wing's plant reads none of it).
+   */
+  let standPromise = null;
+  setTuningShell({
+    stand: () => {
+      if (!standPromise) {
+        standPromise = simBytes.then(loadSim).then((standSim) => {
+          if (standSim.init(configText) !== SIM_OK) {
+            throw new Error('the test stand could not initialise its module');
+          }
+          return new TestStand(standSim);
+        });
+      }
+      return standPromise;
+    },
+  });
+  /* The voice the stand has put on the motor's audio, or null while the
+   * flown craft's is on; and the flown craft's, to put back. */
+  let standVoiceOn = null;
+  let flownVoice = 'quad';
+  function setFlownVoice(v) {
+    flownVoice = v;
+    if (!standVoiceOn) {
+      audio.setVoice(v);
+    }
   }
 
   /* The plant's pack and tank, for the OSD. Null on a quad and on a build
@@ -5254,6 +5319,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     wingStabApplied = -1;
     applyCrashMode(s);
     applyPower(s);
+    applyTuning(s);
     publishPids();
     launcherLeft = null;
     chaseValid = false;
@@ -5938,7 +6004,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     const isWing = Boolean(airframeById(runAirframe).fixedWing);
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
-    audio.setVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
+    setFlownVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
     [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
     /*
      * The ground PLANE needs no raising here: raiseGroundFromState asserts
@@ -6061,8 +6127,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
        * picks. See THE CRASH SHELL. */
       applyCrashMode(s);
       /* The power system too, after the airframe it belongs to: a fresh
-       * pack and a full tank every run. */
+       * pack and a full tank every run. The tuning after the power it is
+       * balanced on. */
       applyPower(s);
+      applyTuning(s);
     }
     /*
      * THE AIR, OUTSIDE THE BETWEEN-RUNS BLOCK ON PURPOSE.
@@ -6743,7 +6811,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         pickStage.repaint(af.id);
       }
     }
-    if (res.powerChanged && liveryKey(runAirframe) === family && swapLive()) {
+    /* The tuning is the plane's own, not its family's. */
+    const tuned = id === runAirframe && res.settings && res.settings.tuning
+      && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey;
+    if ((res.powerChanged && liveryKey(runAirframe) === family || tuned) && swapLive()) {
       await hotSwap(runAirframe, { refit: true });
     }
     if (liveryKey(drawnCraft) === family) {
@@ -10146,6 +10217,19 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     audioRpm[1] = motorsTurning ? st[15] : 0;
     audioRpm[2] = motorsTurning ? st[16] : 0;
     audioRpm[3] = motorsTurning ? st[17] : 0;
+    /* The hangar's test stand, while it runs: its prop in its motor's
+     * voice, the flown craft's put back when it stops. */
+    const bench = ui.hangar.isOpen ? standSound() : null;
+    if (bench) {
+      if (standVoiceOn !== bench.voice) {
+        audio.setVoice(bench.voice);
+        standVoiceOn = bench.voice;
+      }
+      audioRpm[0] = bench.rpm;
+    } else if (standVoiceOn) {
+      audio.setVoice(flownVoice);
+      standVoiceOn = null;
+    }
     audio.update(audioRpm, motorsTurning ? speed : 0);
     const audioMs = performance.now() - audioStart;
     if (frames > 2 && audioMs > worstAudioMs) {
@@ -10726,6 +10810,12 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     shown: drawnCraft,
     power: readPower(),
     cells: runCells,
+    /* The sim_wing_tune block in force and the flap switch, for
+     * scripts/hangar-check.js; null on a quad. */
+    tune: airframeById(runAirframe).fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
+    flapNotch,
+    /* The hangar's test stand on the motor's audio: its voice and rpm. */
+    standAudio: { voice: standVoiceOn, rpm: standVoiceOn ? audioRpm[0] : 0 },
   });
   /*
    * WHERE THE CRAFT IS AGAINST THE FLOOR UNDER IT, which is the one thing

@@ -1042,10 +1042,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * The elevator carries the radio's flap mix on top of the stick, within
    * its travel, as a transmitter's mix does. Without flaps it adds a zero.
    */
-  const double de = surface_from_stick(pitch, fw->throw_e, fw->expo);
-  const double da = surface_from_stick(roll, fw->throw_a, fw->expo);
+  const double de = add_term(surface_from_stick(pitch, fw->throw_e, fw->tune ? fw->tune_expo[1] : fw->expo), fw->trim_e);
+  const double da = surface_from_stick(roll, fw->throw_a, fw->tune ? fw->tune_expo[0] : fw->expo);
   const double rudder_stick = fw->mix == FW_MIX_RUDDER ? clamp1(yaw + roll) : yaw;
-  double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->expo);
+  double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->tune ? fw->tune_expo[2] : fw->expo);
   double delta_e;
   if (fw->mix == FW_MIX_ELEVON) {
     g_surf[0] = clip(de - da, fw->surface_max);

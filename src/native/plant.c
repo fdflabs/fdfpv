@@ -1365,12 +1365,26 @@ static void plant_build_axes(void) {
   plant_axis_ready = 1;
 }
 
+/* The power option and the tuning in force, below; plant_seat lays them
+ * over the airframe's table. */
+static int g_power_on = 0;
+static int g_tune_on = 0;
+static void plant_seat(void);
+
 void plant_set_airframe(int id) {
   if (!plant_airframe_exists(id)) {
     return;
   }
   g_airframe = id;
+  g_power_on = 0;
+  g_tune_on = 0;
   PLANT_P = &PLANT_TABLE[id];
+}
+
+/* The airframe as the host seated it, power option and tuning included,
+ * for crash.c to go back to at a reset after a part left. */
+void plant_reseat(void) {
+  plant_seat();
 }
 
 /*
@@ -1437,16 +1451,120 @@ int plant_set_power(const double *in) {
   g_plant_live.r_cell = in[SIM_POWER_R_CELL];
   g_plant_live.pack_c = in[SIM_POWER_PACK_C];
   g_plant_live.lvc = in[SIM_POWER_LVC];
-  PLANT_P = &g_plant_live;
+  g_power_on = 1;
+  plant_seat();
   return SIM_OK;
 }
 
 void plant_power_clear(void) {
-  PLANT_P = &PLANT_TABLE[g_airframe];
+  g_power_on = 0;
+  plant_seat();
 }
 
 int plant_power_custom(void) {
-  return PLANT_P == &g_plant_live;
+  return g_power_on;
+}
+
+/*
+ * THE PILOT'S TUNING, sim_wing_set_tune in sim_abi.h: the CG where the
+ * pack or the ballast put it, the ballast's mass, the throws, the expo,
+ * the elevator trim and the flap to elevator mix, laid over the power
+ * option in force or the table. Owned by this file like the power copy;
+ * the plant step only reads it. The ballast is a point mass at its arm:
+ * it adds its mass, and m x^2 to the pitch and yaw inertia about the
+ * table's CG, the parallel axis term, leaving out the few tenths of a
+ * percent the CG's own move takes back.
+ */
+static PlantParams g_plant_tune;
+static FixedWingParams g_fw_tune;
+static double g_tune[SIM_TUNE_DOUBLES];
+
+static void plant_seat(void) {
+  const PlantParams *base = g_power_on ? &g_plant_live : &PLANT_TABLE[g_airframe];
+  if (!g_tune_on) {
+    PLANT_P = base;
+    return;
+  }
+  const double *t = g_tune;
+  g_fw_tune = *base->fw;
+  g_fw_tune.cg_shift = base->fw->cg_shift + t[SIM_TUNE_CG_SHIFT];
+  g_fw_tune.throw_a = t[SIM_TUNE_THROW_A];
+  g_fw_tune.throw_e = t[SIM_TUNE_THROW_E];
+  g_fw_tune.throw_r = t[SIM_TUNE_THROW_R];
+  g_fw_tune.tune = 1;
+  g_fw_tune.tune_expo[0] = t[SIM_TUNE_EXPO_A];
+  g_fw_tune.tune_expo[1] = t[SIM_TUNE_EXPO_E];
+  g_fw_tune.tune_expo[2] = t[SIM_TUNE_EXPO_R];
+  g_fw_tune.trim_e = t[SIM_TUNE_TRIM_E];
+  g_fw_tune.de_df = t[SIM_TUNE_FLAP_MIX];
+  g_plant_tune = *base;
+  g_plant_tune.fw = &g_fw_tune;
+  const double mb = t[SIM_TUNE_BALLAST_KG];
+  const double xb = t[SIM_TUNE_BALLAST_X];
+  g_plant_tune.mass_kg = base->mass_kg + mb;
+  g_plant_tune.inertia[1] = base->inertia[1] + mb * xb * xb;
+  g_plant_tune.inertia[2] = base->inertia[2] + mb * xb * xb;
+  PLANT_P = &g_plant_tune;
+}
+
+int plant_set_tune(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const double deg = 0.017453292519943295;
+  if (!in_range(in[SIM_TUNE_CG_SHIFT], -0.1, 0.1)
+      || !in_range(in[SIM_TUNE_BALLAST_KG], 0.0, 1.0)
+      || !in_range(in[SIM_TUNE_BALLAST_X], -2.0, 2.0)
+      || !in_range(in[SIM_TUNE_THROW_A], 0.0, 45.0 * deg)
+      || !in_range(in[SIM_TUNE_THROW_E], 0.0, 45.0 * deg)
+      || !in_range(in[SIM_TUNE_THROW_R], 0.0, 45.0 * deg)
+      || !in_range(in[SIM_TUNE_EXPO_A], 0.0, 1.0)
+      || !in_range(in[SIM_TUNE_EXPO_E], 0.0, 1.0)
+      || !in_range(in[SIM_TUNE_EXPO_R], 0.0, 1.0)
+      || !in_range(in[SIM_TUNE_TRIM_E], -10.0 * deg, 10.0 * deg)
+      || !in_range(in[SIM_TUNE_FLAP_MIX], -1.0, 1.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 0; i < SIM_TUNE_DOUBLES; i += 1) {
+    g_tune[i] = in[i];
+  }
+  g_tune_on = 1;
+  plant_seat();
+  return SIM_OK;
+}
+
+void plant_tune_clear(void) {
+  g_tune_on = 0;
+  plant_seat();
+}
+
+/* The tuning in force as the sim_wing_set_tune block: the table's (or the
+ * power option's) own throws, expo and mix and a zero CG shift, ballast
+ * and trim when none is seated. */
+void plant_tune_read(double *out) {
+  if (g_tune_on) {
+    for (int i = 0; i < SIM_TUNE_DOUBLES; i += 1) {
+      out[i] = g_tune[i];
+    }
+    return;
+  }
+  const FixedWingParams *fw = PLANT.fw;
+  out[SIM_TUNE_CG_SHIFT] = 0.0;
+  out[SIM_TUNE_BALLAST_KG] = 0.0;
+  out[SIM_TUNE_BALLAST_X] = 0.0;
+  out[SIM_TUNE_THROW_A] = fw ? fw->throw_a : 0.0;
+  out[SIM_TUNE_THROW_E] = fw ? fw->throw_e : 0.0;
+  out[SIM_TUNE_THROW_R] = fw ? fw->throw_r : 0.0;
+  out[SIM_TUNE_EXPO_A] = fw ? fw->expo : 0.0;
+  out[SIM_TUNE_EXPO_E] = fw ? fw->expo : 0.0;
+  out[SIM_TUNE_EXPO_R] = fw ? fw->expo : 0.0;
+  out[SIM_TUNE_TRIM_E] = 0.0;
+  out[SIM_TUNE_FLAP_MIX] = fw ? fw->de_df : 0.0;
+}
+
+int plant_tune_on(void) {
+  return g_tune_on;
 }
 
 int plant_airframe(void) { return g_airframe; }
