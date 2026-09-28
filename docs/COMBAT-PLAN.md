@@ -319,11 +319,16 @@ samples move the pair's covered span forward:
    linearly between its two frames, stepped every quarter millisecond
    (1.5 cm of travel at 60 m/s closing, under half the test's reach, so a
    flat prop disc cannot step over the paper).
-5. **The test.** A link is cut when its distance to any of A's part boxes
-   (`configs/hulls.js`: props, wings, fuselage, every part) is under the
-   paper's half width less a margin: `0.0508 - 0.02 = 0.031 m`. The
-   distance from a segment to a box is convex along the segment and is
-   found by golden section search, exactly, with no trigonometry.
+5. **The test.** A link is cut when any of A's part boxes
+   (`configs/hulls.js`: props, wings, fuselage, every part) comes within
+   **1.0 m** of the paper's centre line. **The owner's decision,
+   2026-09-28**, verbatim: "for the combat mode I need to be very win
+   friendly: if you get even within 1 m of the other person's line, it
+   must make a special effect, say a SCHWING sound byte, and then cut it;
+   also scoring must be enabled for this." (The first build cut only on
+   touching the paper, 3.1 cm.) The distance from a segment to a box is
+   convex along the segment and is found by golden section search,
+   exactly, with no trigonometry.
 6. **Excluded:** a cutter or a victim flagged `spawning` or `crashed`
    (Phase 5's and Phase 3's untouchable), a victim's own aircraft (the
    rules score no cut of your own streamer [AMA-RC], and a pilot's aircraft
@@ -333,10 +338,19 @@ samples move the pair's covered span forward:
    air, and their paper with them: the rule needs the victim's own flags
    for the moment, and a pilot who is not flying has none).
 
-The margin covers the gap between what the room reconstructs and what the
-owner simulated: the codec's 1.1 cm, the interpolation of 10 Hz frames in
-a turn (a node moves along the path; the chord of a 25 m radius turn over
-100 ms at 20 m/s bows 2 cm), and Phase 3's 7 to 14 mm for poses.
+**The metre under lag.** The metre is not grown for lag, because lag
+cannot change the decision: the room judges on the samples' own times.
+What it can change is what the cutter saw. The room's picture of the
+paper is within 1.1 cm (codec) and 2 cm (a turn between 10 Hz frames) of
+the owner's; the cutter's DRAWING of it is carried forward from the
+newest frame to the present (`src/share/roomcombat.js`), and
+`combat:harness` measures how far that drawn line is from the true line
+at the pass. With the aircraft's 250 ms cap on carrying forward, a 300 ms
+link drew it 15 to 20 cm off; paper moves along its own path, so its cap
+is 600 ms, and every link set up to 300 ms each way draws it within 7.4
+cm (worst). So a pass that looked 0.9 m from the line on the cutter's
+screen is under a metre in the room, and cuts; the harness's band is
+0.9 m always cut, 1.1 m never.
 
 ### 4.2 Both screens agree, and nobody fakes a cut
 
@@ -381,7 +395,7 @@ Association's [RCCA-2009], score a five minute round:
 | Real rule | Here |
 | --- | --- |
 | "Streamer cut (other than your own) +100 per cut" | +100 |
-| "Multiple cuts on a single streamer in a single pass count as one cut" | A pass is one cutter on one streamer; contacts within 1.5 s of the last one of that pair are the same pass: the paper is cut, the points are not given again. |
+| "Multiple cuts on a single streamer in a single pass count as one cut" | A pass is one cutter on one streamer: after a cut, that cutter cuts that streamer nothing more for 1.5 s (sample time). With a metre of reach a pass that followed the paper would otherwise chew it all away. |
 | A cut is "any time one contestant's aircraft removes any part of a streamer" | Any contact with any part of the aircraft. **Deeper does not score more**, in either rulebook. A deep cut costs the victim more at the end, through the next line. |
 | "Remaining streamer +4 points per foot ... (+120 max.)" on a 30 ft streamer, "rounded down to the nearest foot" | +2.4 a whole metre left at the end: the same 120 for a whole streamer, scaled to fifty metres. |
 | "Continuous 5 minute flight +20" | +20 for a round with no crash; a crash from a mid air (a Phase 3 `hit`) keeps it, as the rules say. |
@@ -438,9 +452,18 @@ consequence without ending anyone's round.
 - **Fly with friends, host:** a Combat row (3 or 5 minutes), then Stop.
   Everyone: the round's state and time.
 - **In flight:** time left, your points, your paper in metres, the pull at
-  your tail in newtons, and the top three.
-- **A cut:** a burst of paper at the point, the piece falling on every
-  screen, the score changing on every screen.
+  your tail in newtons, and every pilot's points live (eight at most, you
+  always among them).
+- **A cut (the owner's SCHWING, 2026-09-28):** on every screen, a glint (a
+  four pointed star, additive, flashing big and fading in 0.45 s) and a
+  burst of paper squares in the cut paper's colour, lit from inside; the
+  piece falling; the scoreboard changing at once. A synthesized SCHWING
+  (`src/render/audio.js schwing()`: pooled noise band passed and swept
+  from 700 Hz to 7 kHz in 140 ms, into two sines at an inharmonic 1 to
+  2.76, swept up an octave in 50 ms and ringing out over a second; six
+  nodes made once, no sample), full level for the cutter, a third for the
+  others, through the master so the sound setting and volume hold. The
+  cutter's screen shouts "+100 SCHWING!" big in the middle.
 - **Results:** every pilot, points, cuts and paper left.
 - **Names** are the rooms' picker names; there is no text in any of it.
 
@@ -474,11 +497,12 @@ consequence without ending anyone's round.
 | `combat:harness` (CI) | randomized passes of a real streamer and a flying cutter over simulated links, latency 0 to 300 ms each way, jitter 0 to 60 ms: both clients and the room hold the same cuts | 100 percent |
 | | same cuts as the zero latency run, links under `COMBAT_LATE_MS` | 100 percent |
 | | clocks off by up to 10 ms each: still the same cuts on both, and none where the truth missed the paper | 100 percent, 0 |
-| | truth clearance over 8 cm judged a cut | never |
-| | truth passing through the paper (under 1 cm) missed | never |
+| | truth nearest part over 1.1 m from the line judged a cut | never |
+| | truth nearest part under 0.9 m from the line missed | never |
+| | the cutter's drawn line off the true line at the pass, every link set | under 10 cm |
 | | decision delay over the slower link, p95 | reported, under 250 ms |
 | | room CPU, 16 seats all towing | reported |
-| `combat:twopage` (by hand, `wrangler dev`) | two headless pages on swiss2, coloured streamers, A cuts B's, both screens the same cut and the piece falling, both scores | pass list |
+| `combat:twopage` (by hand, any rooms server) | two headless pages on swiss2, the host presses the Combat row, coloured streamers; A passes B's paper 1.4 m off (no cut) and 0.8 m off (a cut): the same cut on both screens, the piece falling, the SCHWING struck and the glint flashed on both, +100 SCHWING! on A's, the live scoreboard on both during the round matching the room | pass list |
 | existing | `rooms:selftest`, `verify` 16 of 16, `crash:identity`, every `checks.yml` command | unchanged |
 
 ## 8. Phases
@@ -507,6 +531,8 @@ consequence without ending anyone's round.
    2026-09-28: no.** The pull at the tail is shown on the HUD and not
    applied to the plant, as built (2.4).
 3. **Round length:** 3 or 5 minutes offered, 5 by default. Open.
+4. **How near is a cut?** **Decided by the owner, 2026-09-28: within 1 m
+   of the line, with a SCHWING, and it scores.** As built (4.1, 5.4).
 
 ## 10. As built, measured (2026-09-28, this machine)
 
