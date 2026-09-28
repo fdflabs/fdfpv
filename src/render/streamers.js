@@ -42,7 +42,9 @@ const TAIL_M = 3;
  * centimetres of paper is two pixels at thirty metres, and a pilot has to
  * see what they are chasing. */
 const MIN_PX = 2.5;
-const CONFETTI = 96;
+const CONFETTI = 192;
+const GLINT_S = 0.45;
+const GLINT_M = 4;
 const CONFETTI_S = 4;
 const GONE = new THREE.Matrix4().makeScale(0, 0, 0);
 
@@ -150,7 +152,8 @@ export function createStreamerLayer() {
    * falls (0.7 m/s, src/game/streamer.js), tumbling. */
   const bits = new THREE.InstancedMesh(
     new THREE.PlaneGeometry(0.09, 0.06),
-    new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.95 }),
+    /* Lit a little from inside, so the burst reads bright in any light. */
+    new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.95, emissive: 0xffffff, emissiveIntensity: 0.35 }),
     CONFETTI,
   );
   bits.frustumCulled = false;
@@ -162,6 +165,40 @@ export function createStreamerLayer() {
   const m4 = new THREE.Matrix4();
   const quat = new THREE.Quaternion();
   const one = new THREE.Vector3(1, 1, 1);
+
+  /* The glint where the cut was: a four pointed star, additive, flashing
+   * big and fading in GLINT_S. One sprite, reused; a canvas texture drawn
+   * once. */
+  const glintCanvas = document.createElement('canvas');
+  glintCanvas.width = 128;
+  glintCanvas.height = 128;
+  const g2 = glintCanvas.getContext('2d');
+  const halo = g2.createRadialGradient(64, 64, 0, 64, 64, 64);
+  halo.addColorStop(0, 'rgba(255,255,255,1)');
+  halo.addColorStop(0.18, 'rgba(255,245,200,0.8)');
+  halo.addColorStop(1, 'rgba(255,220,120,0)');
+  g2.fillStyle = halo;
+  g2.fillRect(0, 0, 128, 128);
+  g2.fillStyle = 'rgba(255,255,255,0.95)';
+  g2.beginPath();
+  g2.moveTo(64, 0);
+  g2.lineTo(69, 59);
+  g2.lineTo(128, 64);
+  g2.lineTo(69, 69);
+  g2.lineTo(64, 128);
+  g2.lineTo(59, 69);
+  g2.lineTo(0, 64);
+  g2.lineTo(59, 59);
+  g2.closePath();
+  g2.fill();
+  const glint = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(glintCanvas), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
+  }));
+  glint.visible = false;
+  glint.renderOrder = 4;
+  group.add(glint);
+  let glintLife = 0;
+  let glintCount = 0;
 
   /* Draw chain `id` of `key` (a seat) this frame. */
   function draw(key, colour, id, x, n, t, free, anchor) {
@@ -192,16 +229,22 @@ export function createStreamerLayer() {
     }
   }
 
-  /* A cut's burst at p, in the cut paper's colour. */
-  function burst(p, colour) {
+  /* A cut's burst at p, in the cut paper's colour, with a glint; `level`
+   * 1 for the pilot who made the cut, less for the others. */
+  function burst(p, colour, level = 1) {
     const c = new THREE.Color(colour);
-    for (let k = 0; k < 24; k += 1) {
+    glint.position.set(p[0], p[1], p[2]);
+    glint.visible = true;
+    glintLife = GLINT_S;
+    glint.userData.level = level;
+    glintCount += 1;
+    for (let k = 0; k < Math.round(64 * level); k += 1) {
       const i = nextBit;
       const b = bit[i];
       nextBit = (nextBit + 1) % CONFETTI;
       b.life = CONFETTI_S * (0.6 + 0.4 * Math.random());
       b.p.set(p[0], p[1], p[2]);
-      b.v.set(Math.random() * 6 - 3, Math.random() * 4 - 1, Math.random() * 6 - 3);
+      b.v.set(Math.random() * 10 - 5, Math.random() * 7 - 1.5, Math.random() * 10 - 5);
       b.spin.set(Math.random() * 12 - 6, Math.random() * 12 - 6, Math.random() * 12 - 6);
       bits.setColorAt(i, c);
     }
@@ -216,6 +259,14 @@ export function createStreamerLayer() {
         r.mesh.visible = false;
       }
       r.used = false;
+    }
+    if (glintLife > 0) {
+      glintLife -= dt;
+      const u = Math.max(0, glintLife / GLINT_S);
+      glint.scale.setScalar(GLINT_M * (glint.userData.level || 1) * (0.4 + 0.6 * Math.sqrt(1 - u) + 0.3 * u));
+      glint.material.opacity = u;
+      glint.material.rotation += dt * 4;
+      glint.visible = glintLife > 0;
     }
     let live = 0;
     for (let i = 0; i < CONFETTI; i += 1) {
@@ -251,6 +302,8 @@ export function createStreamerLayer() {
       b.life = 0;
     }
     bits.count = 0;
+    glintLife = 0;
+    glint.visible = false;
   }
 
   /* Once a frame, before draw(): where the camera is. */
@@ -264,5 +317,7 @@ export function createStreamerLayer() {
 
   return {
     group, view, draw, burst, update, clear, count: () => ribbons.size,
+    /* For the checks: how many glints were flashed, and paper squares out. */
+    effects: () => ({ glints: glintCount, bits: bits.count }),
   };
 }

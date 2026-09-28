@@ -809,6 +809,43 @@ export class MotorAudio {
     this.wreckGain = wreckGain;
     this.wreckBp = wreckBp;
 
+    /*
+     * The combat cut's SCHWING (docs/COMBAT-PLAN.md section 5.4): a blade
+     * swipe, all synthesis, no sample. A whoosh (the pooled noise, band
+     * passed and swept up fast) into a ring (two sines at an inharmonic
+     * ratio, which is what reads as struck metal rather than a note, swept
+     * up an octave in a few tens of milliseconds and left to decay). Six
+     * nodes, created once; schwing() only moves their envelopes.
+     */
+    const swSrc = keep(ctx.createBufferSource());
+    swSrc.buffer = buf;
+    swSrc.loop = true;
+    const swBp = keep(ctx.createBiquadFilter());
+    swBp.type = 'bandpass';
+    swBp.frequency.value = 900;
+    swBp.Q.value = 1.6;
+    const swGain = keep(ctx.createGain());
+    swGain.gain.value = 0;
+    swSrc.connect(swBp);
+    swBp.connect(swGain);
+    swGain.connect(shaper);
+    swSrc.start();
+    const ringA = keep(ctx.createOscillator());
+    ringA.type = 'sine';
+    ringA.frequency.value = 1400;
+    const ringB = keep(ctx.createOscillator());
+    ringB.type = 'sine';
+    ringB.frequency.value = 1400 * 2.76;
+    const ringGain = keep(ctx.createGain());
+    ringGain.gain.value = 0;
+    ringA.connect(ringGain);
+    ringB.connect(ringGain);
+    ringGain.connect(shaper);
+    ringA.start();
+    ringB.start();
+    this.schwingVoice = { swGain, swBp, ringA, ringB, ringGain };
+    this.schwings = 0;
+
     /* The bed. It brings its own nodes and counts them through keep. */
     this.music.attach(ctx, shaper, keep);
     this.music.setLevel(this.mix.music);
@@ -1004,6 +1041,41 @@ export class MotorAudio {
     g.exponentialRampToValueAtTime(2.2 * lv, t + 0.012);
     g.exponentialRampToValueAtTime(0.0001, t + 0.6);
     this.duckFlight(t, 0.6, 0.4);
+  }
+
+  /*
+   * A combat cut: level 1 for the pilot who made it, lower for everyone
+   * else who saw it. On its own voice, and through the master like every
+   * cue, so the sound setting and the volume hold for it too.
+   */
+  schwing(level = 1, atTime) {
+    if (!this.ctx || !this.schwingVoice) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const lv = Math.max(0.05, Math.min(1, level));
+    const v = this.schwingVoice;
+    for (const p of [v.swGain.gain, v.swBp.frequency, v.ringGain.gain, v.ringA.frequency, v.ringB.frequency]) {
+      p.cancelScheduledValues(t);
+    }
+    /* The whoosh: 140 ms, the band racing from 700 Hz to 7 kHz. */
+    v.swBp.frequency.setValueAtTime(700, t);
+    v.swBp.frequency.exponentialRampToValueAtTime(7000, t + 0.14);
+    v.swGain.gain.setValueAtTime(0.0001, t);
+    v.swGain.gain.exponentialRampToValueAtTime(1.8 * lv, t + 0.09);
+    v.swGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    /* The ring: struck as the whoosh peaks, swept up to its pitch, and a
+     * long bright tail. */
+    const at = t + 0.08;
+    v.ringA.frequency.setValueAtTime(1100, at);
+    v.ringA.frequency.exponentialRampToValueAtTime(2300, at + 0.05);
+    v.ringB.frequency.setValueAtTime(1100 * 2.76, at);
+    v.ringB.frequency.exponentialRampToValueAtTime(2300 * 2.76, at + 0.05);
+    v.ringGain.gain.setValueAtTime(0.0001, at);
+    v.ringGain.gain.exponentialRampToValueAtTime(0.55 * lv, at + 0.006);
+    v.ringGain.gain.exponentialRampToValueAtTime(0.0001, at + 1.1);
+    this.schwings += 1;
+    this.duckFlight(t, 0.7, 0.3);
   }
 
   /*
