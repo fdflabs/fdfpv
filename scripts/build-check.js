@@ -1695,7 +1695,8 @@ const whackText = (w) => (w ? `${w.kind}, ${w.speed.toFixed(1)} to ${w.after.toF
  * hoop in hand and Shift and a click for a third, and a pylon on the
  * ground. The chain's spacing turned by Ctrl, Shift and the wheel. The
  * warnings for the Bramor. Flown: through the 30 m disc 12 m off its
- * centre counts, through the square round it outside the disc does not,
+ * centre scores, through the square round it outside the disc is close
+ * enough, 41 m past the rim does not count,
  * and the plane thrown head on into the rim and into the pylon at its top
  * speed (and the Cub at its cruise too) with crash damage on is whacked,
  * never damaged, and flies on while the piece wobbles and settles. Saved,
@@ -1818,12 +1819,22 @@ async function hoopStage(craft, { place = true } = {}) {
       await shot(page, `18-${opts.map}-${craft}-flying-${back}m-out`);
     }
     if (craft !== 'bramor2300') {
+      /* A plane's course is scored (src/game/race.js PLANE_REACH): through
+       * the disc by how near its middle, near it within 40 m of the rim for
+       * a flat few points, and past that not at all. */
+      const callOf = async () => page.evaluate('window.__race().call');
       await page.evaluate('window.__race().next = 0, true');
       const off12 = await throwAt(page, vAdd(a.centre, across(a), 12), a.travel, cruise);
-      say(off12.next === 1 && off12.whacks.length === 0, `through the 30 m hoop 12 m off its centre at ${cruise.toFixed(1)} m/s: counted, nothing touched`);
+      const c12 = await callOf();
+      say(off12.next === 1 && off12.whacks.length === 0 && c12 && c12.code === 'through',
+        `through the 30 m hoop 12 m off its centre at ${cruise.toFixed(1)} m/s: counted, ${c12 ? `${c12.code} ${c12.points}` : 'no call'}, nothing touched`);
       await page.evaluate('window.__race().next = 0, true');
       const corner = await throwAt(page, vAdd(vAdd(a.centre, across(a), 13), a.up, 13), a.travel, cruise);
-      say(corner.next === 0 && corner.whacks.length === 0, 'through the square round it, outside the disc (13 m across and 13 m up): not counted');
+      const cc = await callOf();
+      say(corner.next === 1 && cc && cc.code === 'close', `through the square round it, outside the disc (13 m across and 13 m up): close enough, ${cc ? cc.points : 0} points`);
+      await page.evaluate('window.__race().next = 0, true');
+      const far = await throwAt(page, vAdd(a.centre, across(a), 15 + 2 * ELEMENTS.hoop30.dims.tubeR + 41), a.travel, cruise);
+      say(far.next === 0, '41 m past its rim: not counted');
     }
     const Rc = 15 + ELEMENTS.hoop30.dims.tubeR;
     const pyEl = (await page.evaluate(B('.doc.elements'))).find((e) => e.id === py.id);
@@ -1883,7 +1894,8 @@ async function hoopStage(craft, { place = true } = {}) {
  * offers it for each world (and with a quad seated it does not); one click
  * lays eight big hoops round a wide oval over the world, 400 m apart along
  * it and 60 to 150 m over the ground, and flies it. No warning for the
- * seated plane, and the hoops are flown through in order.
+ * seated plane, and a lap flown wide on purpose, through the discs near
+ * their rims and past the rims outside them, closes and is scored.
  */
 async function casualStage(craft) {
   console.log(`the casual sky course on ${opts.map}, the ${craft}`);
@@ -1925,14 +1937,30 @@ async function casualStage(craft) {
     say(st.doc.name === 'Casual sky track', `named ${JSON.stringify(st.doc.name)}`);
     await frames(page, 3);
     await shot(page, `19-${opts.map}-casual-start`);
+    /*
+     * A lap flown wide on purpose (src/game/race.js PLANE_REACH): round the
+     * eight hoops and back through the first, in order, each thrown through
+     * well off its centre or right outside it: through the disc at 80
+     * percent of its radius, then past its rim by 15 m, by turns. Every
+     * one counts, the lap closes, and it is scored.
+     */
     const cruise = airStartSpeed(af);
-    let counted = 0;
-    for (let i = 0; i < 3; i += 1) {
-      await page.evaluate(`window.__race().next = ${i}, true`);
-      const r = await throwAt(page, vAdd(G[i].centre, vCross(G[i].up, G[i].travel), 0.3 * G[i].clearW), G[i].travel, cruise, 12);
-      counted += r.next === (i + 1) % G.length ? 1 : 0;
+    await page.evaluate('window.__race().next = 0, true');
+    const calls = [];
+    for (let k = 0; k <= G.length; k += 1) {
+      const i = k % G.length;
+      const g = G[i];
+      const out = k % 2 === 0 ? 0.8 * (g.clearW / 2) : g.clearW / 2 + 2 * ELEMENTS[`hoop${g.clearW}`].dims.tubeR + 15;
+      const r = await throwAt(page, vAdd(g.centre, vCross(g.up, g.travel), out), g.travel, cruise, 12);
+      const race = await page.evaluate('({ next: window.__race().next, call: window.__race().call, flash: window.__race().flashText(performance.now()) })');
+      calls.push(r.next === (i + 1) % G.length && race.call ? `${race.call.code} ${race.call.points}` : `missed at ${i + 1}`);
     }
-    say(counted === 3, `thrown through the first three hoops, each well off its centre: ${counted} of 3 counted`);
+    const run = await page.evaluate('({ lap: window.__race().lap, log: window.__race().log, run: window.__race().runScore, flash: window.__race().flashText(performance.now()) })');
+    say(calls.every((c) => !/missed/.test(c)), `round the lap wide on purpose, every hoop counts: ${calls.join(', ')}`);
+    say(run.lap === 1 && Number.isFinite(run.log[0].score) && run.log[0].score > 0,
+      `and the lap closes, scored: ${run.log.map((l) => `lap ${l.n} ${(l.ms / 1000).toFixed(1)} s, ${l.score} points`).join('; ')}; the run ${run.run}`);
+    const osd = await page.evaluate('window.__fpvOsd ? window.__fpvOsd().values : null');
+    console.log(`    the OSD's score row: ${osd ? JSON.stringify(osd.cue) : 'no OSD'}; the banner: ${JSON.stringify(run.flash)}`);
     const errs = pageErrors(page);
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
