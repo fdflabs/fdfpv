@@ -91,6 +91,9 @@ import {
 } from './share/rooms.js';
 import { createRoomSafety } from './share/roomsafety.js';
 import { createRoomRace } from './share/roomrace.js';
+import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
+import { tagHudView, tagResultsView, tagRows } from './ui/roomtaghud.js';
+import { createCrown } from './render/crown.js';
 import {
   RoomRaceHud, hudView, raceRows, resultsView, trackName,
 } from './ui/roomhud.js';
@@ -1861,9 +1864,12 @@ export async function boot({
   /* The room's race (src/share/roomrace.js), wired below at RACING
    * TOGETHER. Its messages go out on the room's socket. */
   const roomRace = createRoomRace((obj) => roomLinkState.send(obj));
+  /* Catch the Ace (src/share/roomtag.js), wired below at CATCH THE ACE. */
+  const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   const roomLinkState = createRoomLink({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
+      roomTag.onWelcome(w);
       roomPeersClear();
       for (const p of w.peers) {
         roomPeerJoin(p.seat, p.name, p.profile);
@@ -1934,7 +1940,7 @@ export async function boot({
       }
     },
     onMessage: (m) => {
-      if (roomRace.onMessage(m)) {
+      if (roomRace.onMessage(m) || roomTag.onMessage(m)) {
         ui.refreshFriends();
       }
     },
@@ -1949,6 +1955,9 @@ export async function boot({
         roomRace.clear();
         roomRaceRunId = null;
         roomRaceHud.update(null);
+        roomTag.clear();
+        roomTagRunId = null;
+        roomTagHud.update(null);
       }
       ui.refreshFriends();
     },
@@ -2088,6 +2097,7 @@ export async function boot({
       return;
     }
     roomRaceFrame(now, wallMs);
+    roomTagFrame(now, wallMs);
     if (wallMs > roomProfileCheckAt) {
       roomProfileCheckAt = wallMs + 500;
       const p = roomProfile();
@@ -2112,6 +2122,7 @@ export async function boot({
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
+    tagMarkPeers(scene);
   }
 
   function roomSendPose(now) {
@@ -2223,7 +2234,7 @@ export async function boot({
     }
     /* A muted pilot's aircraft is still drawn, for everyone's safety in
      * the air, but not their name. */
-    const label = roomSafety.isMuted(peer.seat) ? '' : roomName(peer.name);
+    const label = roomSafety.isMuted(peer.seat) ? '' : roomTagName(peer.seat, roomName(peer.name));
     peer.rig.setLabel(label);
     peer.figure.setLabel(label);
     peer.rig.group.visible = true;
@@ -2449,7 +2460,7 @@ export async function boot({
        * (src/ui/ui.js), so the host starts it and everybody sees it
        * without scrolling past the pilots. */
       const rows = [
-        ...(w && w.public ? [] : [...roomRaceRows(host), { label: str('roomrace.room_section'), section: true }]),
+        ...(w && w.public ? [] : [...roomRaceRows(host), ...roomTagRows(host), { label: str('roomrace.room_section'), section: true }]),
         st.publicMap
           ? { label: str('friends.public_row'), value: world, note: str('friends.public_row_note'), info: true }
           : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
@@ -2576,6 +2587,10 @@ export async function boot({
       roomRaceAction(action.slice('friends-'.length));
       ui.refreshFriends();
     }
+    if (action.startsWith('friends-tag-')) {
+      roomTagAction(action.slice('friends-'.length));
+      ui.refreshFriends();
+    }
   };
 
   /*
@@ -2680,7 +2695,7 @@ export async function boot({
       }
     }
     roomRace.frame(now);
-    raceHoldMs = roomRun() ? roomRace.holdMs(now) : 0;
+    raceHoldMs = roomRun() ? roomRace.holdMs(now) : roomTagHoldMs(now);
     /* An air start lets go when its own countdown runs out (tickAirStart),
      * so the room's is written into it; a parked aircraft is held by
      * raceHoldMs where it would take off, and its GO is shown here. */
@@ -2701,7 +2716,7 @@ export async function boot({
     }
     roomHudAt = wallMs + 250;
     roomRaceHud.update(mode === 'flight' && ui.screen === 'flight' ? hudView(roomRace, now, roomSeatName) : null);
-    if (mode === 'results' && ui.roomResults && ui.screen === 'results') {
+    if (mode === 'results' && ui.roomResults && ui.screen === 'results' && roomResultsOf === 'race') {
       roomShowResults();
     }
     /* The race is over and this run's part in it is shown: what is flown
@@ -2726,9 +2741,13 @@ export async function boot({
       return;
     }
     roomResultsKey = key;
+    roomResultsOf = 'race';
     ui.showRoomResults(view);
   }
   ui.roomResultsRows = () => {
+    if (roomResultsOf === 'tag') {
+      return roomTagResultsRows();
+    }
     const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomRace.seat();
     return [
       ...(host && roomRace.race().state === 'results'
@@ -2814,6 +2833,169 @@ export async function boot({
       roomRaceLaps = laps;
     }
     roomRaceAction(action);
+    return true;
+  };
+
+  /*
+   * CATCH THE ACE! (¡Atrapa al As!), docs/TAG-PLAN.md: a private room's
+   * tag match (src/share/roomtag.js, the room's half edge/rooms/tag.js).
+   * The room judges every touch and counts every point; this screen puts
+   * the pilot on their slot for the countdown and holds them there (the
+   * race's hold, raceHoldMs), crowns the Ace's aircraft, shows the
+   * scoreboard (the race's box: a room runs one game at a time) and a
+   * banner at each new crown, and the results when the room says the match
+   * is over. A touch is never a crash: the room sends no mid air hit while
+   * a match is on, so nothing here touches the plant.
+   */
+  /* The host's goal: a preset of GOALS, or 'custom' with its points. */
+  let roomTagPick = { preset: GOALS[0].id, custom: 30 };
+  /* The match this flight was put on its slot for, or null. */
+  let roomTagRunId = null;
+  /* Whose results the results screen shows: 'race' or 'tag'. */
+  let roomResultsOf = null;
+  let roomTagHudAt = 0;
+  /* The last crown banner, for the harness. */
+  let roomTagBanner = null;
+  const roomTagHud = new RoomRaceHud(ui.root);
+  const roomCrown = createCrown();
+
+  function roomTagHoldMs(now) {
+    return roomTagRunId != null && roomTagRunId === roomTag.view().id ? roomTag.holdMs(now) : 0;
+  }
+  /* A pilot's name tag, crowned while they are the Ace. */
+  function roomTagName(seat, name) {
+    return roomTag.ace() === seat ? str('roomtag.ace_name', { name }) : name;
+  }
+  /* The room's world standing, in free flight: where a match is played. */
+  function roomTagWorldReady(map) {
+    return Boolean(view) && view.id === map && race.freestyle && mapReady && !swapInFlight && worldMatchesSettings();
+  }
+
+  /* Every frame the room is open, after the race's. */
+  function roomTagFrame(now, wallMs) {
+    const w = roomLinkState.state().welcome;
+    const start = roomTag.takeStart(now);
+    if (start && w) {
+      if (roomTagWorldReady(w.map)) {
+        roomTagRunId = start.id;
+        ui.onAction('restart');
+      } else if (mode !== 'flight' && ROOM_SEAT_SCREENS.includes(ui.screen) && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+        /* Another world or a track: seated in the room's, to fly in as
+         * soon as it stands. */
+        notice = { text: str('roomtag.other_world', { world: mapById(w.map).name }), untilMs: performance.now() + 3000 };
+        ui.mode = 'freestyle';
+        ui.seatMap(w.map, { stay: true });
+      }
+    }
+    const crown = roomTag.takeCrown();
+    if (crown) {
+      const me = roomTag.seat();
+      let text = str('roomtag.banner_other', { name: roomSeatName(crown.seat) });
+      if (crown.seat === me) {
+        text = str('roomtag.banner_you');
+      } else if (crown.from === me && crown.why === 'tag') {
+        text = str('roomtag.banner_lost', { name: roomSeatName(crown.seat) });
+      }
+      notice = { text, untilMs: performance.now() + 2500 };
+      roomTagBanner = { ...crown, text };
+    }
+    const done = roomTag.takeResults();
+    if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+      if (mode === 'flight') {
+        leaveFlightForResults();
+      }
+      roomTagRunId = null;
+      roomResultsOf = 'tag';
+      ui.showRoomResults(tagResultsView(roomTag, roomSeatName));
+    }
+    if (wallMs < roomTagHudAt) {
+      return;
+    }
+    roomTagHudAt = wallMs + 250;
+    roomTagHud.update(mode === 'flight' && ui.screen === 'flight' ? tagHudView(roomTag, now, roomSeatName) : null);
+  }
+
+  /*
+   * The Ace marked for everybody, after the peers are drawn: the crown
+   * over its aircraft. The peer markers' role hook (setPeerRole(seat,
+   * 'ace'), branch peer-markers) goes here when it lands on main.
+   */
+  function tagMarkPeers(scene) {
+    const ace = roomTag.ace();
+    const peer = ace != null ? roomPeers.get(ace) : null;
+    const on = Boolean(scene && peer && peer.rig && peer.rig.group.visible);
+    if (on) {
+      if (roomCrown.sprite.parent !== scene) {
+        scene.add(roomCrown.sprite);
+      }
+      roomCrown.at(peer.rig.group.position);
+    }
+    roomCrown.show(on);
+  }
+
+  function roomTagResultsRows() {
+    const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomTag.seat();
+    return [
+      ...(host && roomTag.view().state === 'results'
+        ? [{ label: str('roomtag.again'), note: str('roomtag.again_note'), action: 'friends-tag-start', primary: true }]
+        : []),
+      { label: str('roomtag.fly_on'), action: 'restart', note: str('roomtag.fly_on_note'), primary: !host },
+      ...ui.friendsItems(),
+      { label: str('ui.back_to_title'), action: 'title' },
+    ];
+  }
+
+  /* The Fly with friends screen's match rows. */
+  function roomTagRows(host) {
+    const ids = [...GOALS.map((g) => g.id), 'custom'];
+    return tagRows({
+      rt: roomTag,
+      host,
+      nameOf: roomSeatName,
+      pick: roomTagPick,
+      onPreset: (d) => {
+        const i = ids.indexOf(roomTagPick.preset);
+        roomTagPick = { ...roomTagPick, preset: ids[(i + d + ids.length) % ids.length] };
+        ui.refreshFriends();
+      },
+      onCustom: (d) => {
+        roomTagPick = { ...roomTagPick, custom: goalOf(roomTagPick.custom + d * GOAL_STEP) };
+        ui.refreshFriends();
+      },
+    });
+  }
+
+  function roomTagAction(action) {
+    if (action === 'tag-start') {
+      roomTag.start(roomTagPick.preset === 'custom' ? roomTagPick.custom : roomTagPick.preset);
+    } else if (action === 'tag-end') {
+      roomTag.end();
+    }
+  }
+
+  /* Harness only: the match as this page has it, for
+   * scripts/tag-two-page.js. */
+  window.__roomTag = () => {
+    const now = roomLinkState.roomNow();
+    return {
+      role: roomTag.role(now),
+      view: roomTag.view(),
+      standings: roomTag.standings(),
+      hold: raceHoldMs,
+      run: roomTagRunId,
+      crown: roomCrown.sprite.visible ? roomCrown.sprite.position.toArray() : null,
+      banner: roomTagBanner,
+      hud: roomTagHud.key ? JSON.parse(roomTagHud.key) : null,
+      results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'tag'),
+      error: roomTag.error(),
+      roomNow: now,
+    };
+  };
+  window.__roomTagDo = (action, goal) => {
+    if (goal != null) {
+      roomTagPick = { preset: 'custom', custom: goalOf(goal) };
+    }
+    roomTagAction(action);
     return true;
   };
   const ghostSample = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
@@ -7832,6 +8014,12 @@ export async function boot({
    * run starts with the motors parked.
    */
   function endFreestyleRun() {
+    leaveFlightForResults();
+    ui.showFreestyleResults(score.summary());
+  }
+  /* A flight put down for a results screen: the freestyle clock's, or a
+   * room's match over (roomTagFrame). */
+  function leaveFlightForResults() {
     mode = 'results';
     if (turtleWait || turtleFlip.active) {
       if (turtleWait && !turtleFlip.active) {
@@ -7844,7 +8032,6 @@ export async function boot({
     turtleOnSupport = false;
     setTurtleParkMotors(false);
     poseLock = false;
-    ui.showFreestyleResults(score.summary());
   }
 
   async function submitFreestyleRun() {
