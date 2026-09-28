@@ -86,10 +86,14 @@ import { createFlightStats, pingVisit } from './share/stats.js';
 import { nameRules, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
+import { startTrackSync } from './share/cloud.js';
 
-/* The pilot's key for signing posted times, made on first use and kept in
- * this browser. See src/share/identity.js. */
+/* The pilot's key for signing posted times and saved tracks, made on first
+ * use and kept in this browser. See src/share/identity.js. */
 const identity = createIdentity();
+/* Saved tracks go online with that key (src/share/cloud.js), from boot on,
+ * whether or not the builder is ever opened this visit. */
+startTrackSync(identity);
 import {
   clearPendingTime,
   clearShareImport,

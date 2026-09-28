@@ -52,6 +52,7 @@ jobs:
       - run: npm run link:selftest
       - run: npm run music:selftest
       - run: npm run test:edge
+      - run: npm run test:tracks
       - run: npm run crash:rules
       - run: npm run builder:selftest
       - run: npm run pick:selftest
