@@ -1816,6 +1816,7 @@ export default {
   "tuning.measuring": "Agotándola, {n} min por ahora",
   "tuning.minutes_at": "{n} min al {pct}%",
   "tuning.watts": "{n} W",
+  "tuning.minutes_over": "Más de {n} min al {pct}%",
   "tuning.stand_note": "En el banco, con el aire quieto, la hélice trabaja más que en vuelo, así que una batería dura menos aquí que con el mismo gas en el aire.",
   "livery.region.wing": "Ala",
   "livery.region.fuselage": "Fuselaje",

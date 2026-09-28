@@ -19,7 +19,7 @@
  *      colours and leaves nothing stored.
  *   5. The side panel's layout at 1280x720, 1600x900, 1920x1080 and a phone
  *      on its side, on the Kadet (4 engines, 2 tanks) and the Skyhunter (5
- *      motors, 5 packs), both tabs: no readout wraps onto a second line or
+ *      motors, 5 packs), every tab: no readout wraps onto a second line or
  *      overflows its tile, and the panel's last line (the source line on
  *      Power) is fully in view, without scrolling where it fits, otherwise
  *      once Down from the panel's last control has scrolled it to its end.
@@ -209,15 +209,15 @@ const SETTLED = "document.querySelector('.hangar-side').getAnimations({ subtree:
 const SIZES = [[1280, 720], [1600, 900], [1920, 1080], [844, 390]];
 
 async function layoutCheck(page) {
-  console.log('5. the side panel\'s layout on the Kadet and the Skyhunter');
+  console.log('5. the side panel\'s layout on the Kadet and the Skyhunter, all three tabs');
   for (const [w, h] of SIZES) {
     await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false }, page.sessionId);
     for (const id of ['kadet1981', 'sky1800']) {
       await openHangarFromPicker(page, id);
-      for (const tab of ['power', 'colours']) {
-        if (tab === 'colours') {
+      for (const tab of ['power', 'colours', 'tuning']) {
+        if (tab !== 'power') {
           await page.tap('KeyE');
-          await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+          await page.until(`window.__ui.hangar.tab === '${tab}'`, 5000);
         }
         await page.until(SETTLED, 10000);
         const at = `${w}x${h} ${id} ${tab}`;

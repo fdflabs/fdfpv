@@ -69,10 +69,10 @@ const THROTTLE_STEP = 5;
 /* The stand runs at most this much sim time a frame, ms, so a frame the
  * browser drops does not make it run a burst. */
 const STAND_FRAME_MS = 50;
-/* The run down's steps a frame: about 5 ms of work on the machines the
- * checks were measured on (scripts/tuning-check.js runs a million a
- * second in Node). */
-const RUN_DOWN_STEPS = 5000;
+/* The run down's share of a frame, ms, taken in slices of steps: a Slow
+ * Stick at half throttle runs for over an hour, millions of steps. */
+const RUN_DOWN_MS = 8;
+const RUN_DOWN_SLICE = 2000;
 /* The surfaces' sweep on the model on the Rates page, a full stick and
  * back, seconds. */
 const SWEEP_S = 3.2;
@@ -590,7 +590,7 @@ function standPage(h, box) {
   box.append(el('h3', 'hangar-h', str('tuning.endurance')));
   const row = el('div', 'tn-endurance');
   const out = el('span', 'tn-endurance-value', T.endurance
-    ? str('tuning.minutes_at', { n: number(T.endurance.seconds / 60, 1), pct: number(Math.round(T.endurance.throttle * 100)) })
+    ? str(T.endurance.capped ? 'tuning.minutes_over' : 'tuning.minutes_at', { n: number(T.endurance.seconds / 60, 1), pct: number(Math.round(T.endurance.throttle * 100)) })
     : '');
   T.els.endurance = out;
   const measure = button('tn-seg-btn tn-measure', str('tuning.measure'));
@@ -687,7 +687,11 @@ function standFrame(h, now) {
     return;
   }
   if (T.runDown) {
-    const r = T.stand.endurance(T.runDown.throttle, T.runDown.cells, RUN_DOWN_STEPS);
+    let r = null;
+    const t0 = performance.now();
+    do {
+      r = T.stand.endurance(T.runDown.throttle, T.runDown.cells, RUN_DOWN_SLICE);
+    } while (!r && performance.now() - t0 < RUN_DOWN_MS);
     if (r) {
       T.endurance = { ...r, throttle: T.runDown.throttle };
       T.runDown = null;

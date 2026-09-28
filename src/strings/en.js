@@ -1812,6 +1812,7 @@ export default {
   "tuning.measuring": "Running it down, {n} min so far",
   "tuning.minutes_at": "{n} min at {pct}%",
   "tuning.watts": "{n} W",
+  "tuning.minutes_over": "Over {n} min at {pct}%",
   "tuning.stand_note": "On the bench in still air the prop works harder than in flight, so a pack lasts less here than at the same throttle in the air.",
   "livery.region.wing": "Wing",
   "livery.region.fuselage": "Fuselage",

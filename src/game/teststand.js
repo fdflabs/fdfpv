@@ -54,6 +54,7 @@ const ENDURANCE_CAP_S = 3 * 3600;
 const DEBUG_THRUST = 8;
 /* LOW BATTERY, volts a cell, loaded. */
 const LAND_CELL_V = 3.5;
+const CHECK_STEPS = 20;
 
 function must(code, what) {
   if (code !== SIM_OK) {
@@ -150,8 +151,10 @@ export class TestStand {
       this.run = { throttle };
     }
     const land = cells > 0 ? LAND_CELL_V * cells : 0;
-    for (let done = 0; done < budget; done += 1) {
-      this.steps(1);
+    /* Checked every CHECK_STEPS, which ends it at most that many ms late
+     * and spares the state reads their cost on every step. */
+    for (let done = 0; done < budget; done += CHECK_STEPS) {
+      this.steps(CHECK_STEPS);
       if (!this.sim.powerState().running) {
         return this.finish('empty');
       }
