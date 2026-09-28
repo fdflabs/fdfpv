@@ -171,7 +171,7 @@ check('and centring brings it back to trim', Math.abs(settled.pitch * DEG - 2) <
 const yawed = fly(0, 0, 1, 0.75, 1);
 /* The coordinator's gain is twice the Skyhunter's, for a rudder with
  * two thirds of its yaw acceleration per stick; the stick still wins. */
-check('full right yaw stick wins over the coordinator: rudder right of half its throw', surfaces()[3] < -0.5 * 0.21157495975809559, `rudder ${deg(surfaces()[3])} deg`);
+check('full right yaw stick wins over the coordinator: rudder right of half its throw', surfaces()[3] < -0.5 * 12.1224 * Math.PI / 180, `rudder ${deg(surfaces()[3])} deg`);
 check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
 const unyawed = fly(0, 0, 0, 0.75, 4);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);
@@ -238,9 +238,9 @@ check('a reset keeps the setting', sim.e.sim_wing_stab() === 0);
 
 console.log('surfaces');
 throwAt(30, 13);
-const A = 0.34691689752716176;
-const T = 0.45155325894532278;
-const R = 0.21157495975809559;
+const A = 19.8769 * Math.PI / 180;
+const T = 25.8721 * Math.PI / 180;
+const R = 12.1224 * Math.PI / 180;
 const close = (a, b) => Math.abs(a - b) < 1e-12;
 fly(1, 0, 0, 0.5, 0.02);
 let sf = surfaces();

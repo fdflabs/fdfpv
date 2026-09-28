@@ -104,6 +104,7 @@
     "p51:stab": "node scripts/p51-stab-selftest.js",
     "p51:record": "node scripts/wing-record.js p51 && node scripts/wing-record.js p51-air",
     "p51:derive": "node scripts/p51-derive.js",
+    "p51:shell": "node scripts/bombshell-shell.js p51d1450",
     "floats:gates": "node scripts/floats-gates.js",
     "floats:record": "node scripts/wing-record.js timberf",
     "floats:derive": "node scripts/floats-derive.js",

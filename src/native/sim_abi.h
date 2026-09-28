@@ -602,11 +602,13 @@ int sim_wing_flaps_settle(void);
  * sim_set_airframe put it down and locked. SIM_ERR_BAD_ARG for 1 on an
  * aircraft without retracts, or anything but 0 or 1.
  * sim_wing_gear(): where it is, 0 down and locked to 1 up.
+ * sim_wing_gear_selected(): the switch, 1 up and 0 down.
  * Additive, version unchanged: an aircraft without retracts reads none of
  * it and its trace is bit identical.
  */
 int sim_wing_set_gear(int up);
 double sim_wing_gear(void);
+int sim_wing_gear_selected(void);
 int sim_wing_set_slats(int fitted);
 
 /*

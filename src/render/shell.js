@@ -359,6 +359,8 @@ export function buildShell(canvas, opts) {
     setChute: craft.setChute ?? null,
     /* Only a craft with flaps has one; the Timber does. */
     setFlaps: craft.setFlaps ?? null,
+    /* Only a craft with retracts has one; the P-51 does. */
+    setGear: craft.setGear ?? null,
     launcher: craft.launcher ?? null,
     launcherRest: craft.launcherRest ?? null,
     resize,
@@ -415,6 +417,7 @@ export function buildShell(canvas, opts) {
     api.setProp = next.setProp ?? null;
     api.setChute = next.setChute ?? null;
     api.setFlaps = next.setFlaps ?? null;
+    api.setGear = next.setGear ?? null;
     api.launcher = next.launcher ?? null;
     api.launcherRest = next.launcherRest ?? null;
     return next;

@@ -2816,6 +2816,12 @@ SIM_EXPORT double sim_wing_gear(void) {
   return plant_wing_gear();
 }
 
+/* What the switch is on, 1 up and 0 down, whatever the gear's travel: a
+ * reset puts it down, so a host reads it rather than keeping a copy. */
+SIM_EXPORT int sim_wing_gear_selected(void) {
+  return plant_wing_gear_selected();
+}
+
 /* The flaps where the notch has them, at once, as sim_reset puts them: for
  * a host that holds a parked aircraft by not stepping it, during which the
  * servos would have finished moving. */

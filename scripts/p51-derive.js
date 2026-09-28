@@ -224,6 +224,21 @@ const staticPoint = (() => {
   return { rpm: n * 60, I: P / (2 * Math.PI * n) / Kt + i0, T: Ct * rho * n * n * Dp ** 4, P };
 })();
 const Ts = staticPoint.T;
+/* The owners' upgrade on 4S: FMS's 4258 650 kV from the 1400 mm P-40 on
+ * the stock four blade (HobbySquawk's FMS P-51 threads), turned the same
+ * way, its resistance ESTIMATED at 0.018 ohm. */
+const point650 = (() => {
+  const kv2 = 650, r2 = 0.018 + 0.003 + 0.008 * cells, Kt2 = 60 / (2 * Math.PI * kv2);
+  let lo = 10, hi = kv2 * 3.7 * cells / 60;
+  for (let it = 0; it < 80; it += 1) {
+    const n = (lo + hi) / 2;
+    const P = Cp * rho * n ** 3 * Dp ** 5;
+    const I = P / (2 * Math.PI * n) / Kt2 + i0;
+    if (n * 60 / kv2 + I * r2 < 3.7 * cells) lo = n; else hi = n;
+  }
+  const P = Cp * rho * lo ** 3 * Dp ** 5;
+  return { rpm: lo * 60, I: P / (2 * Math.PI * lo) / Kt2 + i0, T: Ct * rho * lo * lo * Dp ** 4, rpmNL: kv2 * 3.7 * cells, Vp: kv2 * 3.7 * cells / 60 * pitchIn * IN * 0.85 };
+})();
 const rpmNL = kv * 3.7 * cells, Vp = rpmNL / 60 * pitchIn * IN * 0.85;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
 const discP = Math.pow(Ts, 1.5) / Math.sqrt(2 * rho * Math.PI * propR * propR);
@@ -461,12 +476,13 @@ const rows = [
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['Clβ (the low wing\'s), Clp, Clδa', `${f(Clb, 4)} (${f(ClbLow, 4)}) ${f(Clp)} ${f(Clda, 4)}`],
   ['Cnδr, CYδr, Clδr; tau e, r, a', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}; ${f(tauE)} ${f(tauR)} ${f(tauAil)}`],
-  ['throws a, e, r deg; flaps half, full deg', `${f(throwA * DEG, 2)} ${f(throwE * DEG, 2)} ${f(throwR * DEG, 2)}; ${f(flapHalf * DEG, 2)} ${f(flapFull * DEG, 2)}`],
+  ['throws a, e, r deg; flaps half, full deg', `${f(throwA * DEG, 4)} ${f(throwE * DEG, 4)} ${f(throwR * DEG, 4)}; ${f(flapHalf * DEG, 2)} ${f(flapFull * DEG, 2)}`],
   ['   in rad a, e, r, flaps half, full', `${throwA.toPrecision(17)} ${throwE.toPrecision(17)} ${throwR.toPrecision(17)} ${flapHalf.toPrecision(17)} ${flapFull.toPrecision(17)}`],
   ['flaps: S_f/S, dCL half full, fit a b', `${f(SfS)} ${f(dclHalf)} ${f(dclFull)}; ${f(clDf, 4)} ${f(clDf2, 4)}`],
   ['   dCLmax full, per rad; CD per rad2; Cm per dCL', `${f(dclmaxFull)} ${f(clmaxDf, 4)}; ${f(cdDf2, 4)}; ${f(cmPerDcl, 4)}`],
   ['motor static: rpm, A, W shaft, thrust N', `${f(staticPoint.rpm, 0)} ${f(staticPoint.I, 1)} ${f(staticPoint.P, 0)} ${f(Ts, 2)}`],
-  ['rpm no load, Vp, omega loaded', `${f(rpmNL, 0)} ${f(Vp, 3)} ${f(Oml, 1)}`],
+  ['the 650 kV upgrade: static rpm, A, thrust N; rpm NL, Vp', `${f(point650.rpm, 0)} ${f(point650.I, 1)} ${f(point650.T, 2)}; ${f(point650.rpmNL, 0)} ${f(point650.Vp, 3)}`],
+  ['rpm no load, Vp, omega loaded',`${f(rpmNL, 0)} ${f(Vp, 3)} ${f(Oml, 1)}`],
   ['disc W, torque N m, torque arm m', `${f(discP, 1)} ${f(discP / Oml, 4)} ${f(discP / Oml / Ts, 4)}`],
   ['prop J kg m2, H at full N m s', `${jProp.toPrecision(4)} ${f(jProp * Oml, 4)}`],
   ['level at 100, 75, 50 percent, gear up', `${f(level(1), 2)} ${f(level(0.75), 2)} ${f(level(0.5), 2)}`],
@@ -477,7 +493,7 @@ const rows = [
   ['energy: decel at top speed throttle closed m/s2, time const s', `${f(D(level(1)) / m, 3)} ${f(level(1) * m / (2 * D(level(1))), 2)}`],
   ['best climb m/s at m/s', `${f(best.vz, 2)} ${f(best.V, 2)}`],
   ['Inertia Ixx Iyy Izz', `${f(Ixx)} ${f(Iyy)} ${f(Izz)}`],
-  ['trim: V at half throttle', f(Vtrim, 2)],
+  ['trim: V at 3/4 throttle', f(Vtrim, 2)],
   ['gear: main x z, tail x z (body)', `${f(main.x, 4)} ${f(main.z, 4)} ${f(tail.x, 4)} ${f(tail.z, 4)}`],
   ['   rest pitch deg, CG height, tail share', `${f(restPitch * DEG, 2)} ${f(cgHeight, 4)} ${f(tailShare, 4)}`],
   ['   k main, c main, k tail, c tail; nose over deg', `${f(kMain, 0)} ${f(cMain, 2)} ${f(kTail, 0)} ${f(cTail, 2)}; ${f(noseOver * DEG, 1)}`],

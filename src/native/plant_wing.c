@@ -657,6 +657,10 @@ double plant_wing_gear(void) {
   return g_gear;
 }
 
+int plant_wing_gear_selected(void) {
+  return g_gear_up;
+}
+
 int plant_wing_gear_down(void) {
   return g_gear == 0.0;
 }
@@ -2621,11 +2625,12 @@ const FixedWingParams FW_P51D1450 = {
   .cn_dr = -0.0969,
   .stall_blend = 3.0 * WING_PI / 180.0,
   /* FMS's low rates at the surfaces' widest point: 17 mm on the 50 mm
-   * aileron, 24 on the 55 mm elevator, 21 on the 100 mm rudder. */
-  .throw_a = 0.34691689752716176,
-  .throw_e = 0.45155325894532278,
-  .throw_r = 0.21157495975809559,
-  .surface_max = 0.34691689752716176,
+   * aileron, 24 on the 55 mm elevator, 21 on the 100 mm rudder, their
+   * arcsines to 0.0001 deg, which configs/tuning.js restates. */
+  .throw_a = 19.8769 * WING_PI / 180.0,
+  .throw_e = 25.8721 * WING_PI / 180.0,
+  .throw_r = 12.1224 * WING_PI / 180.0,
+  .surface_max = 19.8769 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 30.7,  /* N, the 14 x 8 four blade on the 540 kV motor at 4S, ESTIMATED */
   .pitch_speed = 23.006,  /* 0.85 of 7,992 rpm on the 8 in pitch */

@@ -991,6 +991,64 @@ export const AIRFRAMES = [
       bodyHeight: 0.5536,
     },
   },
+  {
+    /*
+     * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
+     * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing
+     * plant, with ailerons, an elevator, a rudder, plain flaps and electric
+     * retracts, on FMS's 4250 540 kV and a 14 x 8 four blade on 4S. It
+     * stands on three points at 13 degrees and swings left on the take off
+     * roll, which right rudder holds; it drops a wing at the stall. `gear`
+     * is the plant's settled pose, which the drawn wheels in
+     * src/render/p51craft.js match: the CG 0.2291 m over the ground and
+     * 13.13 degrees nose up. `flaps` says it has flaps (F) and `retracts`
+     * that G raises and lowers the gear, which the OSD shows.
+     */
+    id: 'p51d1450',
+    simId: 15,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/p51-thresholds.json p2_stall. */
+    stall: 10.06,
+    /* Level speed at full throttle with the gear up, m/s: tests/p51-thresholds.json p4_top, derived. */
+    topSpeed: 20.64,
+    gear: { restHeight: 0.2291, restPitch: 13.13 * Math.PI / 180 },
+    flaps: true,
+    retracts: true,
+    name: 'P-51D Mustang',
+    short: 'P-51',
+    blurb: 'A 1450 mm FMS P-51D Mustang on 4S, the Second World War fighter in natural metal with a red nose and tail. It swings left as the tail comes up, so feed in right rudder; it keeps its speed, and it drops a wing if you let it get slow. G raises and lowers the retracts, F sets the flaps.',
+    facts: ['4S', '1450 mm', 'Retracts, flaps'],
+    sizeMm: 1450,
+    grams: 2350,
+    trackClass: 'wing',
+    cells: 4,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'p51-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/p51craft.js P51_DIMS: the furthest
+     * reach in plan is the rudder's trailing edge, the lowest drawn point
+     * the main tyres' and the highest the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1778,
+      hullR: 0.8326,
+      vHalfDown: 0.2491,
+      vHalfUp: 0.2303,
+      bodyLength: 1.2628,
+      bodyWidth: 1.450,
+      bodyHeight: 0.4794,
+    },
+  },
 ];
 
 

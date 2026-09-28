@@ -823,6 +823,7 @@ void plant_wing_set_slats(int fitted);
  * wheels. */
 int plant_wing_set_gear(int up);
 double plant_wing_gear(void);
+int plant_wing_gear_selected(void);
 int plant_wing_gear_down(void);
 void plant_wing_gear_reset(void);
 
