@@ -306,10 +306,11 @@ export class Hangar {
    * cost. onPreview(numbers) is called with the region colours on every
    * change, onSave({ livery, power, liveryChanged, powerChanged }) with
    * what to store, onCancel with nothing, sound(kind) for the menu's
-   * sounds. `settings` is what registered tabs read theirs from, and Save
+   * sounds, onTry(choice) when a new motor or engine is picked, for its
+   * voice. `settings` is what registered tabs read theirs from, and Save
    * hands back their patch as `settings` beside the rest.
    */
-  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, settings = {}, onPreview, onSave, onCancel, sound } = {}) {
+  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, settings = {}, onPreview, onSave, onCancel, onTry, sound } = {}) {
     this.buildTabs();
     this.id = airframe;
     this.family = liveryKey(airframe);
@@ -320,7 +321,7 @@ export class Hangar {
     this.choice = { ...this.savedPower };
     this.regions = regionsFor(airframe);
     this.region = this.regions.length ? this.regions[0].id : null;
-    this.opts = { onPreview, onSave, onCancel, sound };
+    this.opts = { onPreview, onSave, onCancel, onTry, sound };
     this.tab = HANGAR_TABS.includes(tab) ? tab : HANGAR_TABS[0];
     this.hintKind = hint;
     this.turn = 0;
@@ -490,6 +491,9 @@ export class Hangar {
     this.choice = powerChoice(this.power, { option: id, pack: this.choice.pack });
     this.focus = 'motor';
     this.changed(`option-${id}`);
+    if (this.opts && this.opts.onTry) {
+      this.opts.onTry({ ...this.choice });
+    }
   }
 
   pickPack(id) {
@@ -704,7 +708,8 @@ export class Hangar {
       const value = el('span', 'hangar-stat-value');
       const bar = el('span', 'hangar-stat-bar');
       const fill = el('span', 'hangar-stat-fill');
-      bar.append(fill);
+      const ghost = el('span', 'hangar-stat-ghost');
+      bar.append(fill, ghost);
       const delta = el('span', 'hangar-stat-delta');
       const d = stock[s.key] != null ? v - stock[s.key] : 0;
       if (Math.abs(d) > 1e-9) {
@@ -718,6 +723,14 @@ export class Hangar {
       this.statEls[s.key] = { value, fill, text: s.text, top };
       value.textContent = s.text(from);
       fill.style.transform = `scaleX(${Math.max(0.02, from / top)})`;
+      /* BEFORE AND AFTER: what the choice before this one made, a faint
+       * bar ending in a tick, over which the new value counts. It stays
+       * until the next change, so the two can be read side by side. */
+      const was = c ? c.to : v;
+      if (Math.abs(was - v) > 1e-9) {
+        ghost.style.width = `${Math.min(100, Math.max(2, (100 * was) / top))}%`;
+        ghost.classList.add('on');
+      }
     }
     return stats;
   }

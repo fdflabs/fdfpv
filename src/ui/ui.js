@@ -71,6 +71,7 @@ import { normalizePower } from '../../configs/power.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 import { Progress, bindProgress } from './progress-ui.js';
+import { installHangarPolish } from './hangar-polish.js';
 import { liveryKey, normaliseLiveries, paintable } from '../../configs/liveries.js';
 import { normaliseProgress } from '../game/progress.js';
 import {
@@ -4038,6 +4039,7 @@ export class Ui {
     this.hangar = new Hangar(r);
     this.progress = new Progress(this, r);
     bindProgress(this.progress);
+    installHangarPolish();
     this.syncChips();
   }
 
@@ -12587,6 +12589,11 @@ export class Ui {
       warn: this.hangarWarning ? this.hangarWarning(id) : '',
       hint: this.pickHint(),
       settings: s,
+      onTry: (choice) => {
+        if (this.onHangarTry) {
+          this.onHangarTry(id, choice);
+        }
+      },
       sound: (kind) => {
         if (this.onUiSound) {
           this.onUiSound(kind);
