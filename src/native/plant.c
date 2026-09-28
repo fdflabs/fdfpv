@@ -1285,6 +1285,43 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.3578, 0.0, -0.1649 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md: Zagi's 25.5 oz on its 3S
+ * 2200, a 5 x 5 pusher in the motor bay 0.098 m behind the CG. The hull
+ * is the contact code's centred box, the half span wide and 0.23 m fore
+ * and aft (the nose is 0.203 m ahead, the tips' trailing corners 0.253
+ * m behind), the belly 12 mm under the CG, where src/render/zagicraft.js
+ * draws the root's underside, and the winglets' tops 0.127 m over it,
+ * which is what it lies on upside down. It lands on that belly: no gear.
+ * The camera is an FPV camera on the canopy's nose.
+ */
+[SIM_AIRFRAME_ZAGI1219] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 0.7229,
+  .inertia = { 0.0377, 0.0058, 0.0436 },
+  .gravity = 9.81,
+  .cells = 3.0,
+  .r_cell = 0.008,
+  /* Zagi's 3S 2200 30C, the internal resistance ESTIMATED; the ESC's
+   * cutoff is the manual's, "below 3 V per cell". */
+  .pack_c = 2200.0 * 3.6,
+  .lvc = 3.0,
+  .rho = 1.225,
+  .prop_r = 0.0635,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -0.098, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.23,
+  .hull_hy = 0.6096,
+  .hull_hz_down = 0.012,
+  .hull_hz_up = 0.127,
+  .contact_patch_r = 0.05,
+  .contact_arm_max = 0.66,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.17,
+  .camera_y = 0.0,
+  .camera_z = 0.025,
+  .fw = &FW_ZAGI1219,
+},
 };
 
 /*

@@ -2691,3 +2691,87 @@ const FixedWingParams FW_P51D1450 = {
   .cd_gear = 0.008,
   .strip_k = { 1.0, 0.9548, 0.9055, 0.8503 }, /* Reynolds number and thickness along the span */
 };
+
+/* Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md, where each number has its
+ * formula and source and the estimated ones say so: an EPP flying wing
+ * on the planform Trick R/C drew for the Zagi-400 X, elevons and no
+ * rudder, winglets, the Zagi 101.4 reflexed section, 25.5 oz, balanced 8
+ * in back from the nose, a 3100 kV inrunner turning a 5 x 5 carbon
+ * pusher clockwise seen from behind, on 3S. The derivatives are a vortex
+ * lattice's on that planform with its winglets, scripts/zagi-derive.js. */
+const FixedWingParams FW_ZAGI1219 = {
+  .mix = FW_MIX_ELEVON,
+  .span = 1.2192,         /* Zagi, 48 in */
+  .area = 0.26012851,     /* Zagi, 2.8 sq ft */
+  .chord = 0.21335338,    /* S/b */
+  .cl_alpha = 4.1152,     /* the lattice, winglets on */
+  .cl_max = 0.9283,       /* 0.9 of the MH45's 1.14 at 2e5, cos of the quarter chord's sweep */
+  .alpha_zl = 0.0,        /* a reflexed section: zero lift on the body axis */
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.0186,          /* a component build up, ESTIMATED */
+  .k_induced = 0.0737,    /* 1/(pi e AR), Raymer's swept e 0.756 */
+  .cl_de = -1.7282,       /* elevon lift, per rad: trailing edge up sheds lift */
+  .cy_beta = -0.2399,
+  .cl_beta = -0.1338,     /* the sweep's, at the cruise's lift, and the winglets' */
+  .cl_p = -0.4697,
+  .cl_da = 0.4157,
+  .cl_r_per_cl = 0.2222,
+  .cm_0 = 0.0498,         /* the reflex: trims at the best glide's CL, elevons neutral */
+  .cm_alpha = -0.4076,    /* static margin 0.099 of S/b at Zagi's 8 in, FITTED */
+  .cm_q = -1.5146,
+  .cm_de = 0.6814,        /* delta_e positive pitches the nose up */
+  .cn_beta = 0.0173,      /* the winglets', short behind the CG */
+  .cn_r = -0.0180,
+  .cn_p_per_cl = -0.1600,
+  .cn_da_per_cl = 0.0153, /* a little proverse: the elevons are at the swept tips */
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* Zagi's throws: 3/8 in each way on either stick on the 1.5 in elevon,
+   * its arcsine to 0.0001 deg, one rate. Each elevon clips at it. No
+   * rudder, so the yaw stick moves nothing. */
+  .throw_a = 14.4775 * WING_PI / 180.0,
+  .throw_e = 14.4775 * WING_PI / 180.0,
+  .throw_r = 0.0,
+  .surface_max = 14.4775 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 7.295, /* N, 202 W on the shaft through the 5 in disc at an APC 5 x 5E's figure of merit */
+  .pitch_speed = 46.567,  /* Zagi's loaded 22,000 rpm on the 5 in pitch */
+  .rpm_no_load = 25882.0, /* the plant's rule: 22,000 is 0.85 of it */
+  .torque_arm = 0.01203,  /* the shaft's 0.0878 N m at 30 A over the static thrust; clockwise from behind */
+  .thrust_z = 0.052,      /* the motor on the tray, its shaft 52 mm over the CG: power pitches the nose down */
+  .current_full = 30.0,   /* A, Zagi's static figure */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,    /* the wing's 1.2 through its 25 deg, on 14.5 */
+  .stab_roll_kd = 0.20,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 0.0,
+  .stab_trim_throttle = 0.5,
+  .acro_roll_rate = 220.0 * WING_PI / 180.0, /* 0.7 of full elevon's 315 deg/s at 15 m/s */
+  .acro_pitch_rate = 100.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 5.0,
+  .acro_roll_kd = 0.40,
+  .acro_roll_ff = 0.20,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,     /* no rudder */
+  .air_lift = 1,          /* "motor up to those distant thermals then power-down and soar", Zagi */
+  /* Past the stall: the MH45 at 1.5e5 (UIUC), the flying wing's arms. */
+  .stall_arm_ac = -0.0990,
+  .stall_arm_cp = 0.2490,
+  .stall_asym = 0.00469,
+  .stall_k = 0.858,
+  .stall_top = 2.64 * WING_PI / 180.0,
+  .strip_c = { 1.3095, 1.1032, 0.8968, 0.6905 }, /* the 0.416 taper */
+  .j_prop = 0.0000112,    /* the carbon 5 x 5, its adapter and the inrunner's rotor */
+};

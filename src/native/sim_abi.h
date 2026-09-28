@@ -357,10 +357,12 @@ int sim_set_flight_style(int arcade);
  * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
  * a tricycle gear whose nose wheel steers with the rudder, and 15 FMS's
  * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
- * flaps on retracting taildragger gear. 13, 14 and 16 to 23 are reserved
- * for the aircraft being added alongside it. Returns SIM_ERR_BAD_ARG for
- * any id without an aircraft.
- * 2 to 12 and 15 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * flaps on retracting taildragger gear, and 17 Zagi's 48 in Zagi HP
+ * (docs/ZAGI-STAGE1.md), an EPP flying wing with elevons and winglets
+ * and no rudder, thrown by hand and landed on its belly. 13, 14, 16 and
+ * 18 to 23 are reserved for the aircraft being added alongside them.
+ * Returns SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2 to 12, 15 and 17 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -391,6 +393,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_BOMBSHELL1118_ID 11
 #define SIM_AIRFRAME_KADET1981_ID 12
 #define SIM_AIRFRAME_P51D1450_ID 15
+#define SIM_AIRFRAME_ZAGI1219_ID 17
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
