@@ -193,6 +193,18 @@ planes.FW_KADET1981 = {
   note: 'a_w 4.533, a_t 4.154, V_H 0.549, deps/dalpha 0.380 (DATCOM), its own arms',
 };
 
+/* The Extra 300 3D, scripts/extra-derive.js: E-flite's 95 mm CG on the
+ * measured taper's mean chord, the manual's CG at the wing's aerodynamic
+ * centre within 2 mm, and the tail's share from the derivation's a_w,
+ * a_t, V_H and Nelson's downwash. */
+planes.FW_EXTRA1308 = {
+  arm_ac: 0.0018,
+  arm_cp: 0.1482,
+  dw: 0.9 * 0.582 * 3.699 * 0.603 / 4.390,
+  asym: TE_TOLERANCE / 0.2927,
+  note: 'a_w 4.390, a_t 3.699, V_H 0.582, deps/dalpha 0.603 (Nelson), its own arms',
+};
+
 /* The four strips' chords over the mean chord, from a planform chord(eta),
  * eta 0 at the root and 1 at the tip. */
 function strips(chord) {
@@ -241,6 +253,8 @@ const STRIPS = {
   /* Constant chord; the sheeted tips' rounding over the outer 3 of 39 in
    * is left out. */
   FW_KADET1981: strips(rect),
+  /* E-flite's measured taper, 0.204 over 0.366. */
+  FW_EXTRA1308: strips(taper(0.557)),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -272,6 +286,11 @@ const SECTION = {
   /* A 13 percent flat bottomed section at 2e5 (9 m/s on 0.374 m): the
    * Clark-Y's at 2e5, held +6.7 deg. */
   FW_KADET1981: { sec: 'Clark-Y at 2e5', top: 6.7, k: 0.72 },
+  /* A thick symmetric section at 2e5: ESTIMATED, a sharp stall held 2 deg
+   * and falling to 0.70, the NACA 0015's shape at a low Reynolds number
+   * (Sheldahl and Klimas, SAND80-2114, 1981), read loosely; UIUC has no
+   * symmetric section tested in the range. */
+  FW_EXTRA1308: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

@@ -857,7 +857,7 @@ async function main() {
     await page.until(wears('timber1500', stock), 60000).catch(() => {});
     const stockPaint = await page.evaluate("window.__pickPaint('timber1500')") ?? {};
     say(!after.timber1500 && same(sorted(stockPaint), sorted(stock)), `Reset to stock leaves nothing stored for it and the model in its kit's colours: ${JSON.stringify(stockPaint)}`);
-    say(Object.keys(LIVERIES).length === 8, `${Object.keys(LIVERIES).length} planes have paint`);
+    say(Object.keys(LIVERIES).length === 9, `${Object.keys(LIVERIES).length} planes have paint`);
     await page.evaluate('window.__ui.carousel.close(); true');
     await tuningCheck(page);
     await layoutCheck(page);

@@ -97,6 +97,7 @@ const RADIAN_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-h
 const RADIAN_PRO_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/PKZ5480-Manual_EN.pdf';
 const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
+const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
@@ -190,6 +191,13 @@ export const TUNING = {
     cg: { mm: 98.4, datum: 'tuning.datum.spar', range: null, source: `SIG, "Center of Gravity 3 7/8 inch At Main Spar", no range (the kit manual: "shown on the plan"); ${KADET_KIT}` },
     packKg: 0.10, nose: 0.335, tail: -0.95,
     throws: { high: [0, 14.4775, 14.4775], low: [0, 10.1, 10.1], source: `SIG kit manual p. 24: elevator 3/4 in up and down, rudder 7/8 in each way, one set; ${LOW_70}; ${KADET_MANUAL}` },
+    flaps: null,
+  },
+  extra1308: {
+    chord: 0.2927, area: 0.369, margin: 0.154,
+    cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
+    packKg: 0.27, nose: 0.26, tail: -0.83,
+    throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
     flaps: null,
   },
 };

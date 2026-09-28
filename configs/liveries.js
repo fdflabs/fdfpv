@@ -172,6 +172,16 @@ export const LIVERIES = {
       { id: 'sport_blue', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#335a9a', fuselage: '#335a9a', fuse_trim: '#f2f2f2' } },
     ],
   },
+  extra1308: {
+    /* E-flite's moulded foam in its own paint: the nose and spats yellow
+     * orange, the wing's top white with grey outer panels (the tail's
+     * grey), its underside in yellow and black squares. */
+    regions: [r('wing', '#eceef0'), r('fuselage', '#eceef0'), r('nose', '#f2a81d'), r('tail', '#8a9096'), r('trim', '#16181a'), r('checks', '#f2b21d')],
+    schemes: [
+      { id: 'stock', source: src('E-flite Extra 300 3D 1.3m, EFL115500', 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'), colours: {} },
+      { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
+    ],
+  },
 };
 
 const FAMILY = { timber1500f: 'timber1500', cub1400f: 'cub1400' };

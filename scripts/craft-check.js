@@ -116,6 +116,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             held by craft-preview.js's half span row. The reach is the
  *             elevator's rounded outer trailing corner, 1.168 m.
  *             src/render/kadetcraft.js draws it.
+ *   extra1308 E-flite's 1308 mm Extra 300 3D, whose rudder also reaches
+ *             further from the CG than its tips: its trailing edge is
+ *             0.926 m aft, E-flite's 1260 mm length less the CG's 0.337 m
+ *             behind the spinner, and the tips 0.654 m out, so the width
+ *             and the reach this file measures are both 1852 mm and
+ *             E-flite's 1308 mm span is held by the half span of
+ *             src/render/extracraft.js EXTRA_DIMS.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -136,6 +143,7 @@ const REAL = {
   cub1400f: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
   kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
+  extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

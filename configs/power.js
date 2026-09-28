@@ -101,6 +101,7 @@ function tank(id, cc, m3, grams, source) {
  */
 const HH = 'https://www.horizonhobby.com/product/x/';
 const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
+const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const CNHL = 'https://chinahobbyline.com/products/';
 const SUNNYSKY = 'https://sunnyskyusa.com/products/sunnysky-x2820-brushless-motors';
 const SONIC_SKY = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
@@ -152,6 +153,10 @@ export const TABLE = {
     flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 7, note: 'E-flite, as the Timber on wheels', source: TIMBER_MANUAL },
   },
   bombshell1118: { simId: 11, massKg: 0.5599, cells: 3, rCell: 0.030, propIn: 7, cruiseMs: 8, flightTime: null },
+  extra1308: {
+    simId: 14, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
+    flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
+  },
   kadet1981: {
     simId: 12, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 10,
     flightTime: { kind: 'mixed', minutesLow: 19.4, minutesHigh: 19.4, note: "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc", source: OS_56_MANUAL },
@@ -467,6 +472,30 @@ const KADET = [
   },
 ];
 
+/* The Extra 300 3D 1.3m, docs/EXTRA-STAGE1.md: E-flite's 4250 910 kV on
+ * the 13 x 6 wood prop and a 60 A ESC, 4S or 3S, 2200 to 3200 mAh
+ * (E-flite's manual and listing). The thrust and current are ESTIMATED,
+ * the motor against APC's 13 x 6.5E (scripts/extra-derive.js); the 3S
+ * option scales them as the Timber's does. The pack sits to the manual's
+ * CG, so no option shifts it. */
+const EXTRA = [
+  {
+    id: 'stock', name: 'power.extra.stock', kind: 'electric', voice: 'wing',
+    kv: 910, propIn: 13, pitchIn: 6, blades: 2,
+    thrustN: 37.86, currentA: 64.4, rpmNoLoad: 13468, pitchSpeedMs: 29.08, lvcV: 3.0,
+    massKg: 1.51, cgShiftM: 0, packs: [TIMBER_4S[0], TIMBER_4S[1]], pack: '4s2200',
+    source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html', `${APC}13x65E.dat`],
+  },
+  {
+    id: '3s', name: 'power.extra.3s', kind: 'electric', voice: 'wing',
+    kv: 910, propIn: 13, pitchIn: 6, blades: 2,
+    thrustN: 37.86 * (11.1 / 14.8) * (11.1 / 14.8), currentA: 64.4 * (11.1 / 14.8) * (11.1 / 14.8),
+    rpmNoLoad: 910 * 11.1, pitchSpeedMs: 29.08 * (11.1 / 14.8), lvcV: 3.0,
+    massKg: 1.51 - 0.270 + 0.16556, cgShiftM: 0, packs: TIMBER_3S, pack: '3s2200',
+    source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'],
+  },
+];
+
 export const POWER = {
   wing1000: WING,
   sky1800: SKY,
@@ -479,6 +508,7 @@ export const POWER = {
   timber1500f: TIMBER,
   bombshell1118: BOMBSHELL,
   kadet1981: KADET,
+  extra1308: EXTRA,
 };
 
 /* ------------------------------------------------------------------ */

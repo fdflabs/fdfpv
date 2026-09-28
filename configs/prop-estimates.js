@@ -304,5 +304,31 @@ export const PROP_ESTIMATES = {
         currentA: 23.368
       }
     }
+  },
+  extra1308: {
+    stock: {
+      "13x8e": {
+        thrustN: 39.9451,
+        pitchSpeedMs: 37.7268,
+        currentA: 74.256
+      },
+      "12x6e": {
+        thrustN: 30.9451,
+        pitchSpeedMs: 30.2635,
+        currentA: 49.539
+      }
+    },
+    "3s": {
+      "13x8e": {
+        thrustN: 22.5523,
+        pitchSpeedMs: 28.2787,
+        currentA: 41.885
+      },
+      "12x6e": {
+        thrustN: 17.4222,
+        pitchSpeedMs: 22.6897,
+        currentA: 27.941
+      }
+    }
   }
 };

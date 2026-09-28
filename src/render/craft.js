@@ -40,6 +40,7 @@ import { buildBramorCraft } from './bramorcraft.js';
 import { buildSlowStickCraft } from './slowstickcraft.js';
 import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildKadetCraft } from './kadetcraft.js';
+import { buildExtraCraft } from './extracraft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { airframeById } from '../../configs/airframes.js';
 import { dressLivery } from './livery.js';
@@ -65,6 +66,7 @@ const BUILDERS = {
   slowstick1180: buildSlowStickCraft,
   bombshell1118: buildBombshellCraft,
   kadet1981: buildKadetCraft,
+  extra1308: buildExtraCraft,
   timber1500: buildTimberCraft,
   /* On floats, the same builders with the float set in place of the gear. */
   timber1500f: (opts) => buildTimberCraft({ ...opts, floats: true }),

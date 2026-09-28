@@ -267,6 +267,29 @@ export const TUNES = [
     name: 'Manual',
     note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles.',
   },
+  {
+    /* The Extra's three, the Cub's: on its wheels every mode flies as
+     * Manual. Manual is where a 3D aircraft is flown: hanging on the
+     * prop, a harrier and a knife edge are the pilot's hands. */
+    id: 'extra-stab',
+    airframe: 'extra1308',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
+    wingStab: 1,
+  },
+  {
+    id: 'extra-acro',
+    airframe: 'extra1308',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
+    wingStab: 2,
+  },
+  {
+    id: 'extra-manual',
+    airframe: 'extra1308',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at E-flite\'s 3D throws. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons, which work in the slipstream at no airspeed at all.',
+  },
 ];
 
 /*
