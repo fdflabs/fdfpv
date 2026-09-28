@@ -327,6 +327,27 @@ function roundSection(check) {
       && JSON.stringify(fv.scores.find((x) => x.seat === 2).runs) === JSON.stringify(recB.runs));
   }
 
+  console.log('combat: the room\'s host checks and stale rounds (#145)');
+  {
+    const r = makeRoom({}, [['A', '5inch'], ['B', 'cub1400']]);
+    r.send('B', { type: 'combat', op: 'start', minutes: 3 }, 100);
+    const said = texts(r.socks.B, 'refused').pop();
+    check('a pilot who is not the host is told why a start is refused', said && said.why === 'host', JSON.stringify(said));
+    const pub = makeRoom({ public: true, shard: 0 }, [['A', '5inch'], ['B', 'cub1400']]);
+    pub.send('A', { type: 'combat', op: 'start', minutes: 3 }, 100);
+    const pubSaid = texts(pub.socks.A, 'refused').pop();
+    check('and a public room says so too', pubSaid && pubSaid.why === 'public', JSON.stringify(pubSaid));
+    const g = started();
+    fly(g, 1, 7600, passAt(7000));
+    check('a round with its cut and its captured paper', g.room.combat.round.state === 'on' && JSON.stringify(g.room.combat.seats.get(1).runs) === '[[1,50],[2,31]]');
+    /* B leaves: one pilot is no round, and ten seconds later the room ends it. */
+    g.room.close(g.socks.B, 7700);
+    g.tick(7800);
+    check('with one pilot left the round waits ten seconds', g.room.combat.round.state === 'on');
+    g.tick(7700 + 10100);
+    check('and then the room ends it for everyone', g.room.combat.round.state === 'idle' && texts(g.socks.A, 'combat').pop().state === 'idle');
+  }
+
   console.log('combat: who can cut and be cut');
   for (const [name, opts] of [
     ['a victim spawning (Phase 5\'s flag)', { bFlags: FLAG_AIRBORNE | FLAG_SPAWNING }],
