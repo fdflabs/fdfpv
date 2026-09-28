@@ -55,6 +55,8 @@
     "rooms:soak": "node scripts/rooms-soak.js",
     "rooms:twopage": "node scripts/rooms-two-page.js",
     "rooms:slots": "node scripts/rooms-slots-check.js",
+    "hulls:check": "node scripts/hulls-gen.js --check",
+    "gen:hulls": "node scripts/hulls-gen.js",
     "strings:selftest": "node scripts/strings-selftest.js",
     "waves:selftest": "node scripts/waves-selftest.js",
     "wing:math": "node scripts/wing-math-selftest.js",
