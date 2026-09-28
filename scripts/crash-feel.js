@@ -183,7 +183,7 @@ const SCENARIOS = [
     item: 2,
     what: 'a Skyhunter banked 75 degrees, low and sinking at 17 m/s: the wingtip catches the grass',
     airframe: 'sky1800',
-    map: 'airfield',
+    map: 'alps',
     chase: 'shell',
     plan: `
       const s = window.__craftState();
@@ -195,7 +195,7 @@ const SCENARIOS = [
     item: 2,
     what: 'a Timber banked 70 degrees, low and sinking at 13 m/s: the wingtip catches the grass',
     airframe: 'timber1500',
-    map: 'airfield',
+    map: 'alps',
     chase: 'shell',
     plan: `
       const s = window.__craftState();
@@ -207,7 +207,7 @@ const SCENARIOS = [
     item: 3,
     what: 'a Cub at 8 m, slow and nose high with the throttle closed: it stalls and mushes in',
     airframe: 'cub1400',
-    map: 'airfield',
+    map: 'alps',
     chase: 'shell',
     plan: `
       const s = window.__craftState();
@@ -219,7 +219,7 @@ const SCENARIOS = [
     item: 3,
     what: 'a Skyhunter at 8 m, slow and nose high with the throttle closed: it stalls and mushes in',
     airframe: 'sky1800',
-    map: 'airfield',
+    map: 'alps',
     chase: 'shell',
     plan: `
       const s = window.__craftState();
@@ -231,7 +231,7 @@ const SCENARIOS = [
     item: 4,
     what: 'a Cub on its take off roll at 6 m/s on the grass, full power and the stick held full forward: the tail comes up too early and it goes over its nose',
     airframe: 'cub1400',
-    map: 'airfield',
+    map: 'alps',
     chase: 'shell',
     plan: `
       const s = window.__craftState();
@@ -244,7 +244,7 @@ const SCENARIOS = [
     item: 4,
     what: 'a Timber on its take off roll at 6 m/s on the grass, full power and the stick held full forward: the tail comes up too early and it goes over its nose',
     airframe: 'timber1500',
-    map: 'airfield',
+    map: 'alps',
     chase: 'shell',
     plan: `
       const s = window.__craftState();
@@ -320,7 +320,7 @@ const SCENARIOS = [
     item: 6,
     what: 'a five inch into the face of a wall at 25 m/s',
     airframe: '5inch',
-    map: 'city',
+    map: 'alps',
     chase: 'script',
     plan: `
       const s = window.__craftState();
@@ -349,7 +349,7 @@ const SCENARIOS = [
     item: 7,
     what: 'the Bombshell diving into the grass at 15 m/s, 30 degrees down',
     airframe: 'bombshell1118',
-    map: 'airfield',
+    map: 'swiss2',
     chase: 'shell',
     plan: `
       const s = window.__craftState();
@@ -849,7 +849,7 @@ function compareRuns(a, b) {
 async function drawingCheck() {
   let bad = 0;
   for (const a of AIRFRAMES) {
-    const page = await open(a.id, 'airfield');
+    const page = await open(a.id, 'alps');
     try {
       await page.evaluate(`(() => { const s = window.__craftState(); window.__crashThrow({ x: s.worldX + 20, y: window.__heightAt(s.worldX + 20, s.worldZ) + 20, z: s.worldZ, yaw: 90, pitch: 0, vx: 0, vy: 0, vz: 0, hold: true }); })()`);
       await page.sleep(300);

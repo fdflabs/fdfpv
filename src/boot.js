@@ -30,6 +30,7 @@
 
 import { Loading, planStages } from './ui/loading.js';
 import { MAP_BUILD_MS } from './maps/build-cost.js';
+import { retiredMap } from './maps/retired.js';
 import { SIM_WINDOW, claimWindowName } from './share/windows.js';
 
 /* P6: navigation to the first interactive frame. Stamped in the first module
@@ -99,6 +100,13 @@ async function start() {
    * ('field', 'custom', which the board's links still carry) is gone, and
    * any of these is the Track seat.
    */
+  /* A retired world's link lands in the world that replaced it, and says
+   * so: main.js asks the pilot about `retiredFrom`, so they are not left
+   * thinking the link meant to send them to the Swiss valley. */
+  const retiredFrom = retiredMap(mapId) ? mapId : null;
+  if (retiredFrom) {
+    mapId = retiredMap(retiredFrom).to;
+  }
   if (mapId && !Object.hasOwn(MAP_BUILD_MS, mapId)) {
     mapId = 'track';
   }
@@ -143,7 +151,9 @@ async function start() {
   const strings = await import('./strings/index.js');
   await strings.useLocale(strings.preferredLocale());
   const main = await import('./main.js');
-  await main.boot({ loading, bootStart: BOOT_START, mapId, titleMap });
+  await main.boot({
+    loading, bootStart: BOOT_START, mapId, titleMap, retiredFrom,
+  });
 }
 
 start().catch((e) => {

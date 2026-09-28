@@ -387,7 +387,8 @@ The room sends one `hit` to both seats:
 
 ### 6.3 How the other aircraft's body enters the local crash sim
 
-The plant already has the door, used today by the city's train:
+The plant already has the door, used by the city's train until the city
+was retired on 2026-09-28:
 `sim_contact_part(part)` then `sim_contact_at_mat(n, mat, p, vs, r)`,
 a rigid body contact with a caller given arm `r` and a moving surface
 velocity `vs`, judged by the damage mode against the struck part's

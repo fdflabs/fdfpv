@@ -38,7 +38,7 @@ services:
     buildCommand: "test -f dist/sim.wasm && test -f tests/lib/simmod.js"
 
     # The whole tree, because the page reaches across it at boot:
-    # ../dist/sim.wasm, ./maps/city/... and ../tests/lib/simmod.js, which
+    # ../dist/sim.wasm, ./maps/swiss2/... and ../tests/lib/simmod.js, which
     # src/main.js imports to load the module. Those resolve against the module
     # rather than the site root, which is what lets this same tree also serve
     # under fdfpv.example/sim/, but they still span the repository. Trimming this

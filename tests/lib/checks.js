@@ -586,14 +586,15 @@ export function buildChecks() {
        * 0.26 to 0.68 m and a 1.524 m regulation gate vanished from frame. A
        * draw call count cannot see a scale error; only an object whose real
        * size is known can. So this asserts that things whose size a tape
-       * measure would settle measure what they claim, the craft and the town,
-       * and it prints every number it measured so a reviewer reads the value
-       * rather than the verdict.
+       * measure would settle measure what they claim, the craft and the
+       * gate, and it prints every number it measured so a reviewer reads the
+       * value rather than the verdict. Every band below is a real world size,
+       * not a comparison against the quad.
        *
-       * The trap it is written around: the city is authored for a walker with
-       * a 1.7 m eye, so a doorway is correctly four times the craft's width
-       * and that is right. Every band below is a real world size, not a
-       * comparison against the quad.
+       * The town's bands, its kerb, doorway and level crossing boom and the
+       * audit of its collider fit, went with the town on 2026-09-28: they
+       * measured the town's own geometry and there is nothing left for them
+       * to measure. The valleys' buildings are held by scripts/roof-check.js.
        */
       async run(ctx) {
         const r = await ctx.scaleRun();
@@ -675,131 +676,6 @@ export function buildChecks() {
         }
         rows.push(`gate scale ${(r.gateScale ?? 0).toFixed(4)}`);
 
-        /* The city, all three measured off the built world by three different
-         * routes: the height query, the geometry and the collider list. */
-        band('city kerb', r.city.kerb, th.kerb_m.min, th.kerb_m.max, ' m');
-        band('city doorway', r.city.doorway, th.doorway_m.min, th.doorway_m.max, ' m');
-        /*
-         * THE HANDRAIL IS NOT ASSERTED, and it is the one deletion here that
-         * is hiding a bug rather than a stale number, so it is written down.
-         *
-         * It banded the rail height at 0.8 to 1.25 m and measured null with a
-         * count of zero. The width filter is fine: 18 colliders are exactly
-         * 0.18 m thin and over 2 m long. They are all rejected by the height
-         * test, because references.js takes the ground under a rail with
-         * `heightAt(cx, cz, -1000)`, and a fromY of -1000 excludes every
-         * platform by design. So a rail standing on a 7 m deck is measured
-         * from the STREET and reads 7.00 m tall.
-         *
-         * Passing no fromY does not rescue it either: several then read
-         * exactly 0.40 against a strict `> 0.4`, and the ones on the
-         * overbridge have no platform under their centre at all because the
-         * rail overhangs the deck edge. The reference needs the deck it
-         * stands on, which is a fix to references.js and its own change.
-         * Until then this asserted nothing and failed every run.
-         */
-        band('city crossing boom', r.city.boom, th.boom_m.min, th.boom_m.max, ' m');
-        /* And the SOLID barrier against the DRAWN arm. Measuring only the
-         * hinge would let the collider be moved to 3 m without the check
-         * noticing, which is the difference between a reference object and a
-         * cross check. */
-        /*
-         * The city's contact model, asserted rather than described.
-         *
-         * WHAT THIS USED TO ASSERT AND WHY IT NO LONGER CAN. src/maps/city
-         * used to fit each walker rectangle by taking the bounding union of
-         * the meshes that "belonged" to it, which is a SAMPLE of the drawing
-         * and can therefore lose it: an early version chopped a 78.9 m
-         * lineside railing down to a single 0.18 m post. The guard against
-         * that was a cap on how far any one face could move, two metres, and
-         * it worked because under that algorithm a large trim really was
-         * evidence of a fit that had misunderstood a collider.
-         *
-         * The fit is now a slab cut (src/maps/city/index.js) and every box it
-         * produces is a HULL over the drawn geometry assigned to it, so it
-         * cannot lose the drawing however far a face moves. A large trim is
-         * now evidence of the opposite thing: a rectangle that was 89 m
-         * longer than anything drawn inside it, which is exactly the
-         * invisible wall this work exists to remove. Capping it would forbid
-         * the fix. So the cap is gone and what it stood for is asserted
-         * directly instead, off the audit in src/maps/city/scan.js, which
-         * measures both failure directions over the built town:
-         *
-         *   PHANTOM, solid volume with nothing drawn under it. The invisible
-         *   wall, in cubic metres, over the whole map.
-         *
-         *   HOLES, drawn objects less than half inside anything solid. The
-         *   failure the other way, and the gate on any trim: a fit that
-         *   starts chopping shows up here as a number before it shows up as a
-         *   report from the pilot.
-         *
-         * Both are asserted as ceilings at the measured value with headroom,
-         * so this fails on a regression and does not fail on an improvement.
-         */
-        const cf = r.city.colliderFit;
-        if (!cf) {
-          fails.push('the city published no collider fit');
-        } else {
-          rows.push(
-            `collider fit ${cf.fitted} fitted of ${cf.fitted + cf.unmatched}, `
-            + `${cf.split} rectangles cut into ${cf.split + cf.extraBoxes} boxes, `
-            + `${cf.sideTrims} side trims to ${cf.maxSideTrim.toFixed(2)} m, `
-            + `${cf.topTrims} top trims to ${cf.maxTopTrim.toFixed(2)} m`,
-          );
-          if (!(cf.maxSideTrim >= 0 && cf.maxTopTrim >= 0)) {
-            fails.push('the collider fit grew a box, and it may only ever shrink or cut');
-          }
-          if (!(cf.fitted > 0)) {
-            fails.push('the collider fit trimmed nothing at all, so it is not running');
-          }
-          if (!(cf.split > 0)) {
-            fails.push('the collider fit cut no rectangle in two, so the gaps are not being opened');
-          }
-        }
-
-        const cs = r.city.colliderScan;
-        if (!cs) {
-          fails.push('the city published no collider scan');
-        } else {
-          const th15 = th.collider_scan;
-          rows.push(
-            `collider scan ${cs.phantom.totalPhantom} m3 phantom of ${cs.phantom.solidVolume} m3 solid `
-            + `over ${cs.phantom.boxes} boxes, ${cs.phantom.overFive} reaching over 5 m past the drawing, `
-            + `${cs.phantom.standingOnAir} on air; ${cs.holes.count} of ${cs.holes.probed} drawn things `
-            + `under half solid, mean cover ${cs.holes.meanCovered}`,
-          );
-          if (!(cs.phantom.totalPhantom <= th15.phantom_m3_max.value)) {
-            fails.push(
-              `${cs.phantom.totalPhantom} m3 of solid has nothing drawn under it, past the `
-              + `${th15.phantom_m3_max.value} m3 ceiling`,
-            );
-          }
-          if (!(cs.phantom.overFive <= th15.over_five_max.value)) {
-            fails.push(
-              `${cs.phantom.overFive} boxes reach over 5 m past anything drawn, past the `
-              + `${th15.over_five_max.value} ceiling`,
-            );
-          }
-          if (!(cs.holes.count <= th15.holes_max.value)) {
-            fails.push(
-              `${cs.holes.count} drawn things are less than half solid, past the `
-              + `${th15.holes_max.value} ceiling`,
-            );
-          }
-          if (!(cs.holes.meanCovered >= th15.mean_cover_min.value)) {
-            fails.push(
-              `the mean drawn object is ${cs.holes.meanCovered} inside something solid, under the `
-              + `${th15.mean_cover_min.value} floor`,
-            );
-          }
-        }
-
-        const bc = r.city.boomCollider;
-        rows.push(`crossing boom collider ${bc && bc.y0 != null ? `${bc.y0.toFixed(3)} to ${bc.y1.toFixed(3)}` : 'none'} m`);
-        if (!bc || bc.y0 == null || !(bc.y0 < r.city.boom && bc.y1 > r.city.boom)) {
-          fails.push('the boom collider does not bracket the drawn arm hinge');
-        }
-
         return {
           measured: rows.join(', '),
           pass: fails.length === 0,
@@ -810,93 +686,77 @@ export function buildChecks() {
     {
       num: 16,
       id: 'map-isolation',
-      thresholdText: 'no city module requested with the airfield selected, airfield cost unchanged',
+      thresholdText: 'no Swiss valley module requested with the Alps selected, Alps cost unchanged',
       /*
        * THE LAZY LOAD, MEASURED RATHER THAN ASSERTED.
        *
-       * "The city loads only when chosen" is exactly the kind of claim that
+       * "A world loads only when chosen" is exactly the kind of claim that
        * stays true right up until somebody adds a convenience import at the
-       * top of a shared file and the whole 59 file graph comes back at boot
+       * top of a shared file and a whole world's graph comes back at boot
        * with nothing to show for it. So this reads the browser's own resource
-       * timing: every URL the page requested while the airfield was
-       * selected, and every URL after the city was chosen. Zero city modules
-       * in the first list is the isolation; a full graph in the second is the
-       * proof that the first list is not empty because the loader is broken.
+       * timing: every URL the page requested while the Alps were selected,
+       * and every URL after the Swiss valley was chosen. Zero Swiss valley
+       * modules in the first list is the isolation; a full graph in the
+       * second is the proof that the first list is not empty because the
+       * loader is broken.
        *
-       * The second half is the cost. The airfield's frame must be untouched
-       * by the city existing at all, so its draw calls, triangles, render
-       * target bytes and attribute bytes after a round trip through the city
-       * are asserted against the same run's figures from before it. The
-       * baseline world was the race field until the field was deleted.
+       * The second half is the cost. The Alps' frame must be untouched by
+       * the Swiss valley existing at all, so its draw calls, triangles,
+       * render target bytes and attribute bytes after a round trip through
+       * the valley are asserted against the same run's figures from before
+       * it. The pair was the airfield and the city until both were retired
+       * on 2026-09-28; the Alps and the Swiss valley are the pair that is
+       * left with one of them not importing the other, since the valley
+       * builds through the Alps' modules and not the other way round.
        */
       async run(ctx) {
         const r = await ctx.scaleRun();
         const th = ctx.th.checks['map-isolation'];
         const fails = [];
-        const before = r.cityUrlsWhileAirfieldSelected.length;
-        const after = r.cityUrlsAfterChoosingCity.length;
+        const before = r.otherUrlsWhileBaseSelected.length;
+        const after = r.otherUrlsAfterChoosing.length;
         if (before !== 0) {
-          fails.push(`${before} city module(s) fetched with the airfield selected, first ${r.cityUrlsWhileAirfieldSelected[0]}`);
+          fails.push(`${before} Swiss valley module(s) fetched with the Alps selected, first ${r.otherUrlsWhileBaseSelected[0]}`);
         }
-        if (after < th.city_modules_min.value) {
-          fails.push(`only ${after} city modules fetched after choosing the city`);
+        if (after < th.swiss2_modules_min.value) {
+          fails.push(`only ${after} Swiss valley modules fetched after choosing it`);
         }
         /* The loading bar's typed module weight against what the browser
          * actually fetched on this cold load. 61 sat in main.js for a round
-         * while the real count was 63, and nothing could notice: a bar
-         * weight cannot break a load, which is exactly why it needs a
+         * while the city's real count was 63, and nothing could notice: a
+         * bar weight cannot break a load, which is exactly why it needs a
          * check rather than a comment. */
-        if (r.cityExpectedModules != null && after !== r.cityExpectedModules) {
-          fails.push(`MAP_MODULE_COUNT says ${r.cityExpectedModules} city modules, the browser fetched ${after}`);
+        if (r.otherExpectedModules == null) {
+          fails.push('MAP_MODULE_COUNT has no count for the Swiss valley');
+        } else if (after !== r.otherExpectedModules) {
+          fails.push(`MAP_MODULE_COUNT says ${r.otherExpectedModules} Swiss valley modules, the browser fetched ${after}`);
         }
         /*
-         * THE RECORDED FIGURES ARE GONE, and this is the reasoning, because
-         * deleting an assertion deserves more of it than adding one.
-         *
-         * P1 303, P2 1014037, P10 32 MB and 169 meshes were compared here as
-         * exact equalities. They never once matched what this check measures.
-         * Driving verify's own steps at 84628bf, the commit that WROTE those
-         * numbers into thresholds.json, returns 93, 913063, 29 and 101, which
-         * is what it returns today. The figures came from a run with a course
-         * seeded and verify has never seeded one, so the check compared a
-         * populated track against an empty one and called the difference a
-         * regression, on every machine, from the day it was written.
-         *
-         * That is worse than no assertion. It reported a fault that was not
-         * there, every run, and it drowned the two sentences this check is
-         * actually named for. Those two are kept and they are enough: no city
-         * module may be fetched with the baseline world selected, and it must
-         * cost the same on the far side of a city round trip. Both compare
-         * measurements from THIS run to each other, so neither needs a
-         * constant recorded on somebody's machine, and neither can rot.
-         *
-         * What is lost is the ability to notice the baseline world's own cost
-         * drifting between commits. That was never working, so nothing is lost today,
-         * but it is worth having: it wants a course fixture committed beside
-         * the test and a figure re-measured against it, which is its own
-         * change and not this one.
+         * No recorded figures, only this run's against itself: P1 303, P2
+         * 1014037, P10 32 MB and 169 meshes were once compared here as
+         * exact equalities and never matched what this check measures,
+         * because they came from a run with a course seeded and verify has
+         * never seeded one. Both sentences below compare measurements from
+         * THIS run to each other, so neither needs a constant recorded on
+         * somebody's machine, and neither can rot.
          */
-        const b = r.airfieldBudget;
-        const b2 = r.airfieldBudgetAfterRoundTrip;
+        const b = r.baseBudget;
+        const b2 = r.baseBudgetAfterRoundTrip;
         if (!b) {
-          fails.push('the airfield budget was not measured');
+          fails.push('the Alps budget was not measured');
         }
-        /* And again after airfield to city to airfield. This is the
-         * measurement that can see a leak: anything the city fails to free is
-         * invisible until the airfield is measured on the far side of a round
-         * trip. */
+        /* And again after Alps to Swiss valley to Alps. This is the
+         * measurement that can see a leak: anything the valley fails to free
+         * is invisible until the Alps are measured on the far side of a
+         * round trip. */
         if (!b2) {
-          fails.push('the airfield budget after a round trip was not measured');
+          fails.push('the Alps budget after a round trip was not measured');
         } else {
           /*
-           * Against BOOT, not against the constant. This is the assertion
-           * the check was named for and it was the one thing missing: both
-           * halves were compared only to a figure recorded at a commit, so
-           * the sentence "the baseline world costs the same after visiting the
-           * city" was never actually written down. Anything the city fails
+           * Against BOOT, not against a constant. Anything the valley fails
            * to free shows up here, on any machine, without anybody having to
            * re-measure a constant first, and a legitimate change to the
-           * airfield's own dressing cannot switch the leak detector off.
+           * Alps' own dressing cannot switch the leak detector off.
            */
           if (b) {
             const held = (label, got, want, tol) => {
@@ -915,18 +775,17 @@ export function buildChecks() {
            * uniform kept alive forever: every budget above counts targets
            * and triangles, and a dead uniform object costs neither. Not an
            * equality: a material only registers when it first compiles, so
-           * the rebuilt airfield legitimately reports fewer until every view
-           * has rendered once. With the old push-only array this read boot
-           * plus rebuild, 93 against 54. */
+           * the rebuilt Alps legitimately report fewer until every view has
+           * rendered once. */
           if (b && b2.cel > b.cel) {
             fails.push(`cel material clock walk grew ${b.cel} to ${b2.cel} across a round trip`);
           }
         }
         return {
           measured:
-            `city modules: ${before} with the airfield selected, ${after} after choosing it; ` +
-            (b ? `airfield P1 ${b.p1}, P2 ${b.p2}, P5 ${b.p5} MB, P10 ${b.p10} MB, ${b.meshes} meshes` : 'no budget') +
-            (b2 ? `; after a city round trip P1 ${b2.p1}, P2 ${b2.p2}, P5 ${b2.p5} MB, P10 ${b2.p10} MB` : ''),
+            `Swiss valley modules: ${before} with the Alps selected, ${after} after choosing it; ` +
+            (b ? `Alps P1 ${b.p1}, P2 ${b.p2}, P5 ${b.p5} MB, P10 ${b.p10} MB, ${b.meshes} meshes` : 'no budget') +
+            (b2 ? `; after a Swiss valley round trip P1 ${b2.p1}, P2 ${b2.p2}, P5 ${b2.p5} MB, P10 ${b2.p10} MB` : ''),
           pass: fails.length === 0,
           reason: fails.join('; '),
         };

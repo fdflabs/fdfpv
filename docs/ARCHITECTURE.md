@@ -31,7 +31,7 @@ in the world, and lap times post back against its id.
 | `src/input/input.js` | 3.3k | Gamepad API, keyboard, touch. Calibration wizard |
 | `src/game/` | 13k | `race.js` gates and laps, `track.js` lap maths, `collide.js`, `ghost.js`, `score.js` (freestyle only) |
 | `src/render/` | 13k | Three.js scene, `frame.js` coordinate boundary, audio, post |
-| `src/maps/` | 68k | `registry.js` is the seam. `alps.js`, `swiss2.js` (the two worlds tracks are built in), `airfield.js`, `yellowstone.js`, `city/` (3 MB vendored MIT city) |
+| `src/maps/` | | `registry.js` is the seam. `alps.js`, `swiss2.js` (the two worlds tracks are built in), `yellowstone.js`. The freestyle city and the airfield were retired on 2026-09-28; `retired.js` says where a stored or linked id of either goes |
 | `src/builder/` | | The in-sim track builder (B in flight, or My tracks' Edit and New track) |
 | `src/trackbuilder/` | | The track document: its model, the pilot's library in localStorage, and the field document's geometry the board's lap check still reads |
 | `src/share/` | 5.7k | `board.js` HTTP client and origin constants, `session.js` localStorage seats, ghost encoding |
@@ -122,7 +122,7 @@ The quad's replay hash is pinned by those checks and has not moved.
 
 ## Seams for our own work
 
-- New map: a row in `src/maps/registry.js` and a module like `airfield.js`.
+- New map: a row in `src/maps/registry.js` and a module like `alps.js`.
 - New airframe: a table in `plant.c`, a row in `configs/airframes.js`, an id in `sim_set_airframe`. A new kind of aircraft is a second plant with a `kind` in the table, the way `plant_wing.c` is; see `docs/WING-PLAN.md` for the stages that took.
 - New tune: a Betaflight diff in `configs/` and a row in `configs/registry.js`.
 - Board origin: two constants in `src/share/board.js` and one in the board's `public/origins.js`.

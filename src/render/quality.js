@@ -7,8 +7,8 @@ import { str } from '../strings/index.js';
  * console racer treat Low / Medium / High as the player-facing control and
  * hide the knobs behind them. One row, three values, a note that says what
  * the current one is for. Changing it rebuilds the world, because the
- * expensive levers (city foliage, shadow proxies) are bake time, not
- * frame time. Grass blades are not a lever: they are not drawn.
+ * expensive levers (shadow maps, the photographic ground) are bake time,
+ * not frame time. Grass blades are not a lever: they are not drawn.
  *
  * WHAT THE ORIGINAL SPEC GOT WRONG, AND WHAT THIS FILE FIXES.
  *
@@ -49,8 +49,7 @@ import { str } from '../strings/index.js';
  *
  * TARGETS, not promises. These are the machines the presets are BUILT
  * for, at 60 fps where the hardware can hold it, 40 fps on a Deck in its
- * 40 Hz mode. Fill rate is the enemy on handhelds; draw calls and
- * triangles are the enemy in the city.
+ * 40 Hz mode. Fill rate is the enemy on handhelds.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -70,16 +69,9 @@ import { str } from '../strings/index.js';
 
 /*
  * A NOTE ON THE NOTES, because they are read by a pilot deciding what to
- * pick and they were promising something the field does not do.
- *
- * They used to say "fewer plants", "thinned planting" and "full planting"
- * without saying where. Only the city has a planting lever, `foliageKeep`;
- * the field reads shadowMap and shadowHalf out of this table and nothing
- * else, and its trees, rocks and cliffs come off a fixed rng walk. Measured
- * at 1600 by 900, the field draws 949,309 triangles on High and 949,296 on
- * Medium, the difference being the bloom quads, with the same 134 meshes on
- * all three presets. So the notes now say "the town", which is true, rather
- * than implying a lever the race field has never had.
+ * pick. They say nothing about planting: no world here has a planting
+ * lever, and the one that did, the freestyle town's `foliageKeep`, went
+ * with the town on 2026-09-28. scripts/quality-check.js holds them to it.
  */
 export const GRAPHICS_IDS = ['low', 'medium', 'high'];
 
@@ -104,30 +96,9 @@ const PRESETS = {
        * squared, so a 1080p screen at DPR 1 lands exactly on its authored
        * ratio and is not clamped at all: the budget catches dense panels
        * and nothing else, on this preset as on the other two. It is also
-       * comfortably above MIN_INTERNAL_PIXELS, the 1.2 Mpx floor the city's
-       * rubric F4 sets against pacing a 1080p panel into 720p. */
+       * comfortably above MIN_INTERNAL_PIXELS, the 1.2 Mpx floor rubric F4
+       * sets against pacing a 1080p panel into 720p. */
       pixelBudget: 1.5e6,
-    },
-    city: {
-      shadowMap: 0,
-      shadowHalf: 22,
-      shadowProxyCell: 0,
-      foliageKeep: 0.22,
-      cullRadius: 50,
-      fogNear: 22,
-      fogFar: 46,
-      pixelBudget: 0.9e6,
-      /* Allow the city pipeline to render below CSS resolution. The vendored
-       * walker pipeline floors scale at 1.0; a Deck cannot afford that. */
-      minScale: 0.55,
-      preferScale: 0.85,
-      ink: false,
-      fxaa: false,
-      /* No live blossom on a handheld. The field is 980 instanced cards
-       * whose matrices are rewritten and re-uploaded every frame, and
-       * memory bandwidth is what a 4 to 15 W APU is short of. The fallen
-       * drifts stay: they are static and cost three draws. */
-      petals: false,
     },
   },
   medium: {
@@ -147,21 +118,6 @@ const PRESETS = {
        * quarter of High's shadow map, so it is comfortably inside the
        * ceiling at this count rather than up against it. */
       pixelBudget: 2.07e6,
-    },
-    city: {
-      shadowMap: 1024,
-      shadowHalf: 18,
-      shadowProxyCell: 24,
-      foliageKeep: 0.30,
-      cullRadius: 58,
-      fogNear: 22,
-      fogFar: 53,
-      pixelBudget: 1.55e6,
-      minScale: 0.85,
-      preferScale: null,
-      ink: true,
-      fxaa: false,
-      petals: true,
     },
   },
   high: {
@@ -204,25 +160,6 @@ const PRESETS = {
        * 4K monitor from 8.3.
        */
       pixelBudget: 2.07e6,
-    },
-    city: {
-      shadowMap: 2048,
-      shadowHalf: 22,
-      shadowProxyCell: 24,
-      foliageKeep: 0.48,
-      cullRadius: 70,
-      fogNear: 22,
-      fogFar: 65,
-      pixelBudget: 2.6e6,
-      /* Floor 1.0 matches the vendored pipeline, so 1080p High is the
-       * same frame the budget check was measured against. */
-      minScale: 1,
-      preferScale: null,
-      ink: true,
-      fxaa: true,
-      /* The authored look. Falling blossom down the street corridor, three
-       * instanced draws, driven from the fixed step count. */
-      petals: true,
     },
   },
 };
@@ -291,9 +228,7 @@ export function pixelRatioFor(id, scale = 1, viewport = null) {
    *
    * pixelRatioCap 2 says nothing about how big the window is. The same cap
    * is 2.1 Mpx on a 720p laptop panel and 8.3 Mpx on a 4K monitor, through
-   * the same three full resolution passes. The city has had an area budget
-   * since it shipped; the field never had one, and the field is the map a
-   * first visit lands on.
+   * the same three full resolution passes.
    *
    * The budget is a CEILING, so a machine already under it is not touched
    * and the authored 1080p frame does not move. The floor is the existing
@@ -313,10 +248,7 @@ export function pixelRatioFor(id, scale = 1, viewport = null) {
      * render targets and a 4K one to 343 MB, against the 120 MB ceiling this
      * project set itself and spent a whole low spec loop getting under.
      * A budget that exempts the two largest screens is not a budget.
-     *
-     * The city's pipeline has always clamped those same screens through its
-     * own pixelBudget. The field being the exception was the inconsistency,
-     * not the clamp.
+
      *
      * The floor is the existing 0.5, below which text painted into the world
      * stops being text, and a pilot who wants fewer pixels still has the

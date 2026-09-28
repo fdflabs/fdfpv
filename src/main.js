@@ -51,7 +51,7 @@
 
 import * as THREE from 'three';
 import { buildShell } from './render/shell.js';
-import { applyPixelRatio, internalScale, normalizeGraphics, pixelRatioFor, qualityFor } from './render/quality.js';
+import { applyPixelRatio, normalizeGraphics, pixelRatioFor } from './render/quality.js';
 import { createPace, PACE_COOL } from './render/pace.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
@@ -111,6 +111,7 @@ import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
+import { retiredMap } from './maps/retired.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, SIM_POWER } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
@@ -475,36 +476,30 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * makes that stage's bar move at the wrong rate; it cannot break the load,
  * and the stage still ends when the import resolves.
  */
-/* city: all 59 vendored files, plus
- * index.js, animation.js, bake.js, drawn.js and references.js, plus the
- * eight under places/ that build the works road, the disused works, the
- * municipal pool, the training field and the blossom that falls over the
- * first three: 72 in all. It was 63 while vendored/world/petals.js sat
- * in the tree unimported, and 64 once the falling blossom was built again.
- * scan.js is ours and harness only, so it never arrives on a player's
- * load. Check 16 asserts the city count against what the browser actually
- * fetched on a cold load, because 61 sat here for a round and nothing
- * could notice.
+/* swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 49 in
+ * all. The Alps modules it builds through are counted under their own
+ * prefix, so they are not in this number, and a pilot who flew the Alps
+ * first already has them. Check 16 asserts this count against what the
+ * browser actually fetched on choosing the valley, because a bar weight
+ * that is wrong cannot break a load and so nothing else would notice: 61
+ * sat here for a round for the city while the real count was 63.
  *
- * There is one freestyle world now. Industrial bando, Municipal baths and
- * Bardwell's yard were removed on 2026-08-30, and their three entries went
- * with them. `npm run lint:memory` prints the fetched count per map beside
- * this number. */
-const MAP_MODULE_COUNT = { city: 72 };
-/* Where a map's modules live, so the loading bar can count them. Data, not a
- * ternary: the ternary read "field or else city", so a third map counted its
- * modules under the city's prefix and the bar sat at zero.
+ * A map with no entry weighs 4, which is a guess and only a bar's pace.
+ * The freestyle town and the airfield were removed on 2026-09-28, and the
+ * town's 72 went with it. `npm run lint:memory` prints the fetched count
+ * per map beside this number.
  *
- * These stay leading-slash while the rest of the file went relative, and that
- * is not an oversight. They are never fetched. moduleCounter matches them as a
+ * The prefix a map's modules are counted under is `/src/maps/<id>`, and it
+ * stays leading-slash while the rest of the file went relative, which is
+ * not an oversight. It is never fetched. moduleCounter matches it as a
  * SUBSTRING of each performance entry's full URL, and a shell mounted at
- * https://fdfpv.example/sim/ still produces names containing /src/maps/city/. */
-const MAP_MODULE_PREFIX = {
-  city: '/src/maps/city/',
-};
+ * https://fdfpv.example/sim/ still produces names containing
+ * /src/maps/swiss2. */
+const MAP_MODULE_COUNT = { swiss2: 49 };
 
-/* The world a boot that could not build its own falls back to. */
-const FLOOR_WORLD = 'airfield';
+/* The world a boot that could not build its own falls back to: the Alps,
+ * the lightest world left and the one the Swiss valley builds through. */
+const FLOOR_WORLD = 'alps';
 
 async function loadMap(shell, id, loading, options) {
   const entry = mapById(id);
@@ -515,7 +510,7 @@ async function loadMap(shell, id, loading, options) {
   }
   loading.start('module');
   const counter = moduleCounter(
-    MAP_MODULE_PREFIX[id] ?? `/src/maps/${id}`,
+    `/src/maps/${id}`,
     MAP_MODULE_COUNT[id] ?? 4,
     (f, got, total) => loading.progress('module', f, str('main.of_modules', { got, total })),
   );
@@ -537,7 +532,9 @@ async function loadMap(shell, id, loading, options) {
   return map;
 }
 
-export async function boot({ loading, bootStart, mapId, titleMap }) {
+export async function boot({
+  loading, bootStart, mapId, titleMap, retiredFrom,
+}) {
   const BOOT_START = bootStart ?? performance.now();
   /*
    * FIRST, BEFORE ANYTHING READS THE QUERY.
@@ -1186,10 +1183,11 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /*
    * The swap path has fallen back to the previous map on a failed load for
    * a while; boot had nothing, so one map that would not build (a bad
-   * asset, a WebGL context the city cannot have) took the whole session
-   * down before the title screen. The airfield is the floor: it is the
-   * smallest world here, a flat field and a dozen meshes, so if it cannot
-   * build there is nothing to fall back TO and the throw is honest.
+   * asset, a WebGL context the photographs cannot have) took the whole
+   * session down before the title screen. The Alps are the floor: the
+   * smallest world here, and the one the Swiss valley builds through, so
+   * if they cannot build there is nothing to fall back TO and the throw is
+   * honest.
    */
   try {
     view = await loadMap(shell, worldId(), loading, {
@@ -1221,6 +1219,27 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     ui.setBanner(str('main.could_not_be_loaded_the_floor', { failed, floor: mapById(FLOOR_WORLD).name }), true);
   }
   ui.setShare(view.share || null);
+  /*
+   * The address named a world that has been retired, and boot.js seated the
+   * one that replaced it. Asked in a dialog rather than said on the banner:
+   * the banner is a flight message and the title clears it on its first
+   * frame, so a link would land the pilot here with nothing said. Staying is
+   * the default; the other answer is the freestyle room, where the worlds
+   * that are left are cards.
+   */
+  if (retiredFrom) {
+    const gone = retiredMap(retiredFrom);
+    ui.askConfirm({
+      title: str('main.that_world_was_retired'),
+      detail: str('main.that_map_was_retired', { map: str(gone.name), now: mapById(gone.to).name }),
+      yes: str('main.stay_here'),
+      no: str('main.choose_a_world'),
+    }).then((stay) => {
+      if (!stay) {
+        ui.show('freestyle');
+      }
+    });
+  }
   loading.start('frame');
 
   /*
@@ -7940,7 +7959,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
    *   spawn yaw  180 deg   n . v  +10.0   REVERSED: contact_impulse sees a
    *                                       craft leaving and declines it
    *
-   * The freestyle city spawns at yaw pi (src/maps/city/index.js), so every
+   * The freestyle city, retired since, spawned at yaw pi, so every
    * vertical face in the town was the third row. sim.c returns 0 without an
    * impulse when vn >= 0 and there is no penetration to push out of, so a
    * wall tap in the town got no restitution, no friction and no separation:
@@ -8523,9 +8542,9 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
         /*
          * A collider that JUMPED has no surface velocity, and the
          * difference of its two centres does not know that: it reports the
-         * jump divided by a frame. The map owns not jumping (the city's
-         * train seats rather than sweeps across its wrap, see
-         * src/maps/city/animation.js) and this is the seam that owns not
+         * jump divided by a frame. The map owns not jumping (the retired
+         * city's train seated rather than swept across its wrap) and this
+         * is the seam that owns not
          * handing the plant an impulse it cannot survive. Zero, not a
          * clamp: a teleport is not slow motion, it is no motion.
          */
@@ -11062,36 +11081,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     pace.resetSamples();
     return pace.state.dtN;
   };
-  window.__scaleAt = (w, h) => {
-    const id = view && view.id;
-    const q = qualityFor(ui.settings.graphics);
-    /* The city's block is the fallback now that it is the only freestyle
-     * world: the previous default was the bando's and the bando is gone. Any
-     * id with no block of its own is the race field, whose scale is the
-     * session's rather than a map pipeline's, so the branch is a shape the
-     * caller can rely on rather than a meaningful answer. */
-    const mapQ = id && q[id] ? q[id] : q.city;
-    const user = view && view.post && view.post.userScale != null
-      ? view.post.userScale
-      : renderScaleOf(ui.settings);
-    const force = view && view.post ? view.post.forceScale : null;
-    const scale = internalScale(w, h, mapQ, force, user);
-    const ceil = internalScale(w, h, mapQ, null, user);
-    const floor = internalScale(w, h, mapQ, 0, user);
-    return {
-      w,
-      h,
-      scale,
-      ceil,
-      floor,
-      rw: Math.floor(w * scale),
-      rh: Math.floor(h * scale),
-      pixels: Math.floor(w * scale) * Math.floor(h * scale),
-      budget: mapQ.pixelBudget,
-      map: id,
-      graphics: q.id,
-    };
-  };
   /*
    * What the GPU is holding, for scripts/memory-check.js. Three.js counts
    * live geometries and textures itself, and those two numbers are the ones
@@ -12472,9 +12461,6 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
   /* The three.js namespace, so a measurement in the page can build a Box3
    * without importing a second copy of the library. Harness only. */
   window.__three = THREE;
-  /* The city's own world object, for measurements that need its platform and
-   * collider lists. Null on a map that has no town. Harness only. */
-  window.__cityWorld = () => view.world ?? null;
   /* The roofs (src/maps/alps/roofs.js): each one's frame, plate, wall
    * rectangle, covering, what building it is and the collider indices of
    * the walls under it, so a capture can fly at a real roof. Empty where
@@ -12784,7 +12770,10 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     swapMap,
     knownAirframe: (id) => AIRFRAMES.some((a) => a.id === id),
     knownMap: (id) => MAPS.some((m) => m.id === id),
-    mapName: (id) => mapById(id).name,
+    /* A clip flown in a retired world is listed under that world's name and
+     * refused by it when played, rather than filed under the Track seat. */
+    retiredMapName: (id) => (retiredMap(id) ? str(retiredMap(id).name) : ''),
+    mapName: (id) => (retiredMap(id) ? str(retiredMap(id).name) : mapById(id).name),
     craftLook: (craft) => shell.lookCraft(craft),
     osdOn: () => fpvOsd.on,
     /* The trail's nozzle and the aircraft's velocity while it emits. */

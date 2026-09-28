@@ -41,7 +41,6 @@ const EXCUSED = new Map([
   ['src/share/live.js', 'socket; no copy'],
   ['src/game/verify.js', 'runs on the board; its refusal reasons are the board\'s to translate'],
   ['src/game/race.js', 'runs on the board too; its flash text is composed on the OSD'],
-  ['src/maps/city/places/signs.js', 'signage baked into the world, English and Japanese by design'],
   ['src/game/tricks.js', 'trick proper names stay as they are in every language'],
   ['src/ui/fc.js', 'Betaflight field names are the firmware\'s, not ours to translate'],
   ['src/boot.js', 'runs before the string table can load'],
