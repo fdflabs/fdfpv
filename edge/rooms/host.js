@@ -48,8 +48,10 @@
  */
 
 import { RoomCore, PRIVATE_CAP, TICK_MS } from './core.js';
-import { CLOSE } from '../../src/share/roomwire.js';
-import { publicMeta, reportCount } from './lobby.js';
+import {
+  CLOSE, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PUBLIC_CAP,
+} from '../../src/share/roomwire.js';
+import { reportRoom } from './lobby.js';
 
 export const PURGE_MS = 10 * 60 * 1000;
 
@@ -59,6 +61,12 @@ function hex(bytes) {
 
 export function newToken() {
   return hex(crypto.getRandomValues(new Uint8Array(16)));
+}
+
+/* A room's picker name, the name it shows when it has no typed one. */
+function roomPick() {
+  const r = crypto.getRandomValues(new Uint32Array(3));
+  return [r[0] % NAME_ADJECTIVES, r[1] % NAME_ANIMALS, NAME_NUMBER_MIN + (r[2] % (NAME_NUMBER_MAX - NAME_NUMBER_MIN + 1))];
 }
 
 export class RoomHost {
@@ -112,7 +120,10 @@ export class RoomHost {
       } else if (a.tick && !this.timer) {
         this.timer = setTimeout(() => {
           this.timer = null;
-          this.run(this.core.tick(Date.now()));
+          const now = Date.now();
+          this.run(this.core.tick(now));
+          /* A countdown runs out on a tick, and the browser shows it. */
+          reportRoom(this.env, this.core, now);
         }, TICK_MS);
       } else if (a.empty) {
         this.ctx.storage.setAlarm(Date.now() + PURGE_MS);
@@ -120,27 +131,42 @@ export class RoomHost {
     }
   }
 
-  /* A new private room, from the Worker's POST /v2/create: false when the
-   * code is already taken. */
+  /* A new room, from front.js (POST /v2/create, or a quick join that
+   * found no room): false when the code is already taken. body is {
+   * code, map, friendly, public, name, mode }, checked by the front; the
+   * name typed and filtered there, or null for the picker name drawn
+   * here. A public room is listed at once, before anybody joins it. */
   async init(body) {
     if (await this.ctx.storage.get('meta')) {
       return false;
     }
+    const open = body.public === true;
     await this.ctx.storage.put('meta', {
       code: body.code,
-      cap: PRIVATE_CAP,
+      cap: open ? PUBLIC_CAP : PRIVATE_CAP,
       friendly: Boolean(body.friendly),
       map: body.map,
       epoch: Date.now(),
+      public: open,
+      name: body.name ?? null,
+      pick: roomPick(),
+      mode: body.mode ?? null,
+      hidden: false,
     });
     /* A room made and never joined is purged like an emptied one. */
     await this.ctx.storage.setAlarm(Date.now() + PURGE_MS);
+    await this.announce();
     return true;
+  }
+
+  /* Tell the lobby this room is here, if it is a public one: after init,
+   * and on the VM after a restart (node.js), whose lobby forgot it. */
+  async announce() {
+    reportRoom(this.env, await this.load(), Date.now());
   }
 
   /* A socket the platform has just accepted into this room. */
   async accept(conn, request) {
-    await publicMeta(this.ctx.storage, request);
     conn.serializeAttachment({ address: request.headers.get('x-room-address') || '' });
     /* A code nobody made is answered at the hello (message), not here: a
      * close sent before the 101 has reached the client was lost in local
@@ -159,15 +185,21 @@ export class RoomHost {
     }
     const data = typeof message === 'string' ? message : new Uint8Array(message);
     const attached = conn.deserializeAttachment() || {};
-    this.run(core.message(conn, data, Date.now(), attached.address || '', newToken));
-    reportCount(this.env, core);
+    const now = Date.now();
+    this.run(core.message(conn, data, now, attached.address || '', newToken));
+    /* A pose never changes the room's line, and a seat the pose rules
+     * remove is reported by the tick that is running while poses come. */
+    if (typeof data === 'string') {
+      reportRoom(this.env, core, now);
+    }
   }
 
   async close(conn) {
     const core = await this.load();
     if (core) {
-      this.run(core.close(conn, Date.now()));
-      reportCount(this.env, core);
+      const now = Date.now();
+      this.run(core.close(conn, now));
+      reportRoom(this.env, core, now);
     }
   }
 

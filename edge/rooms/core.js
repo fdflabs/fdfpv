@@ -63,9 +63,9 @@ const EVENTS = {
   hoop: raceEvent,
 };
 
-/* A racer's pass (edge/rooms/race.js). Races are a private room's. */
+/* A racer's pass (edge/rooms/race.js). */
 function raceEvent(core, conn, s, msg, now) {
-  return core.meta.public ? [] : core.race.message(core, conn, s, msg, now);
+  return core.race.message(core, conn, s, msg, now);
 }
 
 export const TICK_MS = 1000 / 30;
@@ -93,9 +93,14 @@ function bump(counter, now, windowMs) {
 
 export class RoomCore {
   /*
-   * meta: { code, cap, friendly, map, epoch }, what the room was made with.
-   * epoch is the wall ms the room's clock counts from, so room times fit
-   * the wire's u32 for 49 days.
+   * meta: { code, cap, friendly, map, epoch, public, name, pick, mode,
+   * hidden }, what the room was made with (host.js init). epoch is the
+   * wall ms the room's clock counts from, so room times fit the wire's
+   * u32 for 49 days. name is the creator's typed name or null, pick the
+   * picker name shown when there is none, mode the game the room was set
+   * up for or null, hidden true once reports took its name away
+   * (safety.js). A room stored before the browser has none of the last
+   * five, and reads as private, unnamed and set up for nothing.
    */
   constructor(meta) {
     this.meta = meta;
@@ -156,6 +161,37 @@ export class RoomCore {
       return 'tag';
     }
     return this.combat.on() ? 'combat' : null;
+  }
+
+  /* What the room browser shows the room doing (edge/rooms/lobby.js):
+   * { game, state }, game null for free flight, state 'countdown' or 'on'
+   * for a game under way and 'waiting' otherwise, when a room set up for
+   * a game shows that game. */
+  activity(now) {
+    const r = this.race.race;
+    if (r && r.state === 'on') {
+      return { game: 'race', state: this.roomMs(now) < r.goAt ? 'countdown' : 'on' };
+    }
+    const m = this.tag.match;
+    if (this.tag.on()) {
+      return { game: 'tag', state: m.state === 'live' ? 'on' : 'countdown' };
+    }
+    if (this.combat.on()) {
+      return { game: 'combat', state: this.combat.round.state };
+    }
+    return { game: this.meta.mode ?? null, state: 'waiting' };
+  }
+
+  /* Reports took the room's typed name away (safety.js): it shows its
+   * picker name from now on, to its pilots at once, and the browser no
+   * longer lists it. Kept in storage with the rest of the meta. */
+  hideName() {
+    this.meta.name = null;
+    this.meta.hidden = true;
+    return [
+      { store: 'meta', value: this.meta },
+      ...this.others(null, JSON.stringify({ type: 'room', name: null, pick: this.meta.pick, hidden: true })),
+    ];
   }
 
   peerList(except) {
@@ -297,7 +333,9 @@ export class RoomCore {
         cap: this.meta.cap,
         friendly: Boolean(this.meta.friendly),
         public: Boolean(this.meta.public),
-        shard: this.meta.public ? this.meta.shard : null,
+        name: this.meta.name ?? null,
+        pick: this.meta.pick ?? null,
+        mode: this.meta.mode ?? null,
         map: this.meta.map,
         peers: this.peerList(conn),
         ...this.race.welcome(),
@@ -384,8 +422,9 @@ export class RoomCore {
     if ((other === 'tag' || other === 'combat') && (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start'))) {
       return [{ send: conn, data: JSON.stringify({ type: 'race', error: `${other}_on` }) }];
     }
-    /* Races are a private room's, started by its host (Phase 4). */
-    if (!this.meta.public && (msg.type === 'track' || msg.type === 'race')) {
+    /* Started by the room's host (Phase 4), in a public room as in a
+     * private one since the room browser gave public rooms a host. */
+    if (msg.type === 'track' || msg.type === 'race') {
       return this.race.message(this, conn, s, msg, now);
     }
     return [];

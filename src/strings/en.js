@@ -2378,6 +2378,7 @@ export default {
   "rooms.report.ramming": "crashing into me on purpose",
   "rooms.report.spam": "too many messages",
   "rooms.report.following": "will not leave me alone",
+  "rooms.report.room_name": "a bad room name",
   "combat.row": "Combat",
   "combat.row_note": "Everybody tows 50 metres of toilet paper. Cut the others' paper with your aircraft, 100 points a cut, and keep yours.",
   "combat.start": "Combat: start a {minutes} minute round",

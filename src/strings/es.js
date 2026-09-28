@@ -2382,6 +2382,7 @@ export default {
   "rooms.report.ramming": "me choca a propósito",
   "rooms.report.spam": "demasiados mensajes",
   "rooms.report.following": "no me deja en paz",
+  "rooms.report.room_name": "un nombre de sala feo",
   "combat.row": "Combate",
   "combat.row_note": "Todos arrastran 50 metros de papel higiénico. Corta el papel de los demás con tu aeronave, 100 puntos por corte, y cuida el tuyo.",
   "combat.start": "Combate: empezar una ronda de {minutes} minutos",

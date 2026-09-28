@@ -464,13 +464,54 @@ export const CHAT_PRESETS = [
   'good_game', 'landing', 'thanks', 'sorry', 'watch_this', 'bye',
 ];
 export const EMOTES = ['wave', 'thumbs_up', 'smoke_puff', 'clap', 'laugh', 'wow'];
-export const REPORT_REASONS = ['ramming', 'spam', 'following'];
+/* 'room_name' is a report against the room's typed name, not a pilot:
+ * its seat is ignored (edge/rooms/safety.js roomName). */
+export const REPORT_REASONS = ['ramming', 'spam', 'following', 'room_name'];
+export const ROOM_NAME_REPORT = REPORT_REASONS.indexOf('room_name');
 /* Quick chat and emotes share one allowance: CHAT_BURST at once, then one
  * every CHAT_EVERY_MS. */
 export const CHAT_BURST = 3;
 export const CHAT_EVERY_MS = 2000;
 /* A public room's cap; a private room's is edge/rooms/core.js PRIVATE_CAP. */
 export const PUBLIC_CAP = 16;
+/*
+ * THE ROOM BROWSER (edge/rooms/lobby.js). Every public room is listed with
+ * its name, and a room's creator may type that name: the one piece of
+ * free text any room carries, so it is held to more than the no free
+ * text rule's replacement would be. normaliseRoomName is the shape, run
+ * by the client for a quick answer and by the server, which alone also
+ * runs the word filter (tracks-api/words.js) and alone decides.
+ *
+ * Latin letters with the accents English and Spanish use, digits, spaces
+ * and a little punctuation: no other script and no symbol, because the
+ * word filter folds only those, and a lookalike letter from another
+ * script would carry any word past it.
+ *
+ * A room with no typed name, or whose name enough pilots reported, shows
+ * its picker name instead: `pick`, three indices like a pilot's, drawn by
+ * the room, shown by each receiver in its own language.
+ *
+ *   GET /v2/rooms   { open, rooms: [{ code, name, pick, map, n, cap,
+ *                   game, state, mode }] }, public rooms only, people
+ *                   first then newest; game null (free flight), 'race',
+ *                   'tag' or 'combat', state 'waiting', 'countdown' or 'on'
+ */
+export const ROOM_NAME_MIN = 3;
+export const ROOM_NAME_MAX = 32;
+export const ROOM_MODES = ['race', 'tag', 'combat'];
+const ROOM_NAME_RE = /^[A-Za-z0-9\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u00ff .,\u0027!?\u00a1\u00bf#&_-]+$/;
+
+/* A typed room name, its spaces collapsed and trimmed, or null when it
+ * is not one. Length is counted in letters, not bytes. */
+export function normaliseRoomName(text) {
+  if (typeof text !== 'string') {
+    return null;
+  }
+  const name = text.normalize('NFC').replace(/\s+/g, ' ').trim();
+  const n = [...name].length;
+  return n >= ROOM_NAME_MIN && n <= ROOM_NAME_MAX && ROOM_NAME_RE.test(name) ? name : null;
+}
+
 /* A seat removed by reports or by the pose rules. Its own code so the
  * client can say why, which a host's kick (CLOSE.kicked) does not. */
 export const CLOSE_REMOVED = 4010;

@@ -25,8 +25,10 @@
  *                    the room, as setWebSocketAutoResponse does
  *
  * The Lobby keeps its book in memory only: a restart drops every socket,
- * so every count it held is wrong afterwards and the rooms report their
- * real ones as their pilots come back.
+ * so every count it held is wrong afterwards. Instead every stored room
+ * announces itself as the process starts (host.js announce), so the room
+ * browser lists the public ones again at once, with nobody in them yet,
+ * and each reports its real count as its pilots come back.
  *
  * On SIGTERM (systemctl restart) every socket is closed with 1012, service
  * restart, which the client (src/share/rooms.js) answers by reconnecting.
@@ -289,7 +291,9 @@ export function startRooms({ db, port, host = '127.0.0.1', publicRooms = 'on' })
    * PURGE_MS from now if it had none (it had pilots when the process
    * stopped, and they have that long to come back). */
   for (const { name, at } of store.names()) {
-    env.ROOMS.get(name).schedule(at ?? Date.now() + PURGE_MS);
+    const room = env.ROOMS.get(name);
+    room.schedule(at ?? Date.now() + PURGE_MS);
+    room.enqueue(() => room.host.announce());
   }
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });

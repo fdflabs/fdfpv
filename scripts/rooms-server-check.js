@@ -13,13 +13,15 @@
  * other, a wreck (Phase 2) passed on and shown to a pilot who joins after,
  * the host's race track (Phase 4) kept by the room and in a later welcome,
  * quick chat (Phase 5) rebuilt from its index, a code nobody made, the text
- * rate limit, and a public room when they are open.
+ * rate limit, and, when public rooms are open, the room browser: a named
+ * public room made and listed, a bad name refused, a private room never
+ * listed, and a quick join.
  *
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
  * two pilots flying, after which both reconnect into their own seats of
  * the same private room, with its race track, and the purge alarm carried
- * across the restart.
+ * across the restart, and the public room listed again straight after it.
  *
  * A check against a live server makes one private room and leaves it to
  * be purged ten minutes after, like any room nobody is in.
@@ -199,13 +201,30 @@ for (let i = 0; i <= TEXT_CLOSE_PER_S; i += 1) {
 await flood.until((x) => x.closed);
 check('a text flood is closed for its rate', flood.closed && flood.closed.code === CLOSE.rate, JSON.stringify(flood.closed));
 
-console.log('public rooms');
+console.log('public rooms and the room browser');
 res = await fetch(`${origin}/v2/public`);
 const pub = await res.json();
+const make = (body) => fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify(body) });
+const listed = async () => (await (await fetch(`${origin}/v2/rooms`)).json());
+let publicCode = null;
 if (pub.open) {
-  const p = await seat('public/swiss2');
-  check('a public room seats a pilot', p.welcome && p.welcome.public === true && Number.isInteger(p.welcome.shard) && p.welcome.cap === 16, JSON.stringify(p.welcome));
+  res = await make({ map: 'swiss2', public: true, name: ' Server  check ' });
+  publicCode = (await res.json()).code;
+  check('a named public room is made', res.status === 200 && /^[A-Z0-9]{6}$/.test(publicCode));
+  let rooms = await listed();
+  const line = rooms.rooms.find((r) => r.code === publicCode);
+  check('the browser lists it with its name, before anybody joins', rooms.open === true && line && line.name === 'Server check' && line.n === 0, JSON.stringify(line));
+  check('and not the private room, which has pilots in it', !rooms.rooms.some((r) => r.code === code));
+  res = await make({ map: 'swiss2', public: true, name: 'fuck this' });
+  check('a name the word filter refuses is refused', res.status === 400 && (await res.json()).error === 'name');
+  const p = await seat(`room/${publicCode}`);
+  check('a pilot joins it by its code', p.welcome && p.welcome.public === true && p.welcome.code === publicCode && p.welcome.name === 'Server check' && p.welcome.cap === 16, JSON.stringify(p.welcome));
+  const q = await seat('public/swiss2', { name: [2, 3, 44] });
+  check('a quick join on its world lands in the busiest room there', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
+  rooms = await listed();
+  check('and the list, read at once, counts both', rooms.rooms.find((r) => r.code === publicCode).n === 2);
   p.ws.close(1000);
+  q.ws.close(1000);
 } else {
   check('public rooms say they are closed', pub.open === false && pub.cap === 16);
 }
@@ -251,6 +270,10 @@ if (server) {
   a2.ws.send(pose(a2, 20));
   check('the room kept its race track across the restart', a2.welcome.track && a2.welcome.track.id === raceDoc.id, JSON.stringify(a2.welcome.track && a2.welcome.track.id));
   check('and they see each other fly again', Boolean(await b2.until((x) => x.got.find((m) => m instanceof Uint8Array && decodeBatch(m)))));
+  if (publicCode) {
+    const again = await listed();
+    check('the public room is back in the browser though nobody has come back to it', again.rooms.some((r) => r.code === publicCode), JSON.stringify(again));
+  }
   await server.stop();
   rmSync(scratch, { recursive: true, force: true });
 } else {

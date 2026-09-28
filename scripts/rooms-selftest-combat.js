@@ -218,9 +218,11 @@ function roundSection(check) {
     check('it carries numbers only, nothing anybody typed', st && st.scores.every((x) => Object.values(x).every((v) => typeof v !== 'string')));
     const late = r.join('C', '5inch', 200);
     check('a pilot joining mid round is told the round', texts(late, 'combat').some((m) => m.state === 'countdown'));
-    const pub = makeRoom({ public: true, shard: 0 }, [['A', '5inch'], ['B', 'cub1400']]);
+    const pub = makeRoom({ public: true }, [['A', '5inch'], ['B', 'cub1400']]);
+    pub.send('B', { type: 'combat', op: 'start', minutes: 5 }, 100);
+    check('in a public room too, only the host starts a round', texts(pub.socks.A, 'combat').length === 0);
     pub.send('A', { type: 'combat', op: 'start', minutes: 5 }, 100);
-    check('a public room plays no combat', texts(pub.socks.B, 'combat').length === 0);
+    check('and a public room\'s host does', texts(pub.socks.B, 'combat').some((m) => m.state === 'countdown'));
   }
 
   console.log('combat: a cut');
