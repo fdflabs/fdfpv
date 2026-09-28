@@ -10782,6 +10782,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     addons: airframeById(runAirframe).fixedWing && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
     parts: shell.quad.userData.partsFit ?? null,
     smoke: { on: smokeOn, puffs: smoke.live() },
+    bladeScale: audio.bladeScale,
   });
   /*
    * WHERE THE CRAFT IS AGAINST THE FLOOR UNDER IT, which is the one thing

@@ -298,6 +298,7 @@ async function partsCheck(page) {
     && c.addons.wheelR === 0.054 && c.addons.thrustN === est.thrustN,
   `flown, the plant carries them: ${(c.addons.massKg * 1000).toFixed(1)} g, ${(c.addons.cda * 1e4).toFixed(2)} cm^2, tyres ${c.addons.wheelR} m, ${c.addons.thrustN} N static`);
   say(c.parts && c.parts.blades && c.parts.blades.count === 3 && same(c.parts.addons, fit), `and the flown model shows them: ${JSON.stringify(c.parts)}`);
+  say(c.bladeScale === 1.5, `and the motor's blade pass is three blades' over the kit's two: x${c.bladeScale}`);
 
   /* The smoke, O, in the air: launch it off the strip first. */
   await page.tap('KeyO');
