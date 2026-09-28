@@ -218,8 +218,9 @@ export class RoomCombat {
       r.state = 'idle';
       return [...out, ...this.broadcast(core)];
     }
-    const racing = core.race && core.race.race && core.race.race.state === 'on';
-    if (msg.op !== 'start' || !ROUND_MINUTES.includes(msg.minutes) || r.state === 'countdown' || r.state === 'on' || racing) {
+    /* One game at a time (core.js game()): no round under a race or a tag
+     * match. */
+    if (msg.op !== 'start' || !ROUND_MINUTES.includes(msg.minutes) || core.game()) {
       return out;
     }
     const t = core.roomMs(now);
