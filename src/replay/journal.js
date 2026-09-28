@@ -148,7 +148,7 @@ export function createJournal(e, opts = {}) {
     raw.push(f);
     const ptr = POINTERS[name];
     exports[name] = ptr && ptr.in !== undefined ? pointerIn(id, f, ptr) : function logged() {
-      if (seg) {
+      if (seg && logging) {
         note(id, arguments, null);
       }
       return f.apply(null, arguments);
@@ -163,10 +163,20 @@ export function createJournal(e, opts = {}) {
   let base = null;
   let head = null;
   let calls = 0;
+  let logging = true;
+
+  /* Off, the calls go unwritten, so the stretch they fall in cannot be
+   * flown back through; the next copy starts a sound one. */
+  function setLogging(on) {
+    if (!on && seg) {
+      seg.brokenAt = Math.min(seg.brokenAt, seg.n);
+    }
+    logging = Boolean(on);
+  }
 
   function pointerIn(id, f, ptr) {
     return function loggedIn() {
-      if (seg) {
+      if (seg && logging) {
         if (ptr.unreplayable) {
           seg.brokenAt = Math.min(seg.brokenAt, seg.n);
         } else {
@@ -398,5 +408,5 @@ export function createJournal(e, opts = {}) {
     };
   }
 
-  return { exports, snapshot, mark, due, canRestore, restore, stats, region, names };
+  return { exports, snapshot, mark, due, canRestore, restore, stats, setLogging, region, names };
 }

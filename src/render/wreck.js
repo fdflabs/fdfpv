@@ -49,11 +49,11 @@ import { PART_STATE_DOUBLES, STATE } from '../game/damage.js';
 /* Kinds whose deformation is a rotation (a bend or a knock), which the
  * piece shows by turning; the others' deformation is a crush dent. By
  * configs/parts.js PART_KINDS: arm, camera, antenna, gear, boom. */
-const ROTATION_KINDS = new Set([1, 5, 6, 16, 18]);
+export const ROTATION_KINDS = new Set([1, 5, 6, 16, 18]);
 
 /* A bend or a knock smaller than this is not worth cutting the model for:
  * about two degrees, under what the eye reads on a part this small. */
-const BEND_SHOWN = 0.035;
+export const BEND_SHOWN = 0.035;
 
 /* Subtrees that are not the aircraft: the Bramor's catapult and its
  * parachute, which the shell poses on its own. */

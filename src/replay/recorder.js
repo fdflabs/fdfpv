@@ -237,6 +237,22 @@ export function createRecorder(capacity = CAPACITY) {
     events.push({ t: clock, type, ...data });
   }
 
+  /* Forget the newest `count` rows: a take over flies on from before
+   * them, so they are no longer what happened. */
+  function dropNewest(count) {
+    const k = Math.min(count, size);
+    head = (head - k + capacity) % capacity;
+    size -= k;
+    if (size > 0) {
+      const i = (head - 1 + capacity) % capacity;
+      clock = c.time[i];
+      lastSimT = c.head[i * HEAD_N + HEAD.simT];
+    }
+    while (events.length && events[events.length - 1].t > clock) {
+      events.pop();
+    }
+  }
+
   function clear() {
     head = 0;
     size = 0;
@@ -272,7 +288,7 @@ export function createRecorder(capacity = CAPACITY) {
   }
 
   return {
-    begin, pose, drive, plant, status, parts, spawnIndex, event, clear, clip,
+    begin, pose, drive, plant, status, parts, spawnIndex, event, clear, clip, dropNewest,
     size: () => size,
     capacity,
     bytes: capacity * FRAME_BYTES,

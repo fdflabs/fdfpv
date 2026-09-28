@@ -9571,6 +9571,7 @@ export class Ui {
       : [
         ...keyHowtoRows(this.settings.stickMode),
         ['L', str('ui.launch_control_if_you_turned_it')],
+        ['V', str('replay.howto')],
         [str('ui.r_then_escape'), str('ui.back_to_the_start_line_and')],
         ['Turtle', str('ui.if_you_end_up_inverted_on_3')],
         ['F8', str('ui.report_a_bug_or_give_feedback')],

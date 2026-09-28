@@ -110,33 +110,31 @@ export function encodeReplay(clip) {
 
 /* ---- read ---- */
 
+/* What a refusal throws: its message is for the log, in English; the
+ * screen says it in the pilot's language (src/replay/crashcam.js). */
 class ReplayFileError extends Error {}
-
-function refuse(why) {
-  throw new ReplayFileError(why);
-}
 
 function onlyKeys(o, allowed, what) {
   if (!o || typeof o !== 'object' || Array.isArray(o)) {
-    refuse(`${what} is not an object`);
+    throw new ReplayFileError(`${what} is not an object`);
   }
   for (const k of Object.keys(o)) {
     if (!allowed.includes(k)) {
-      refuse(`${what} has an unknown field ${JSON.stringify(k).slice(0, 40)}`);
+      throw new ReplayFileError(`${what} has an unknown field ${JSON.stringify(k).slice(0, 40)}`);
     }
   }
 }
 
 function finite(x, what) {
   if (typeof x !== 'number' || !Number.isFinite(x)) {
-    refuse(`${what} is not a finite number`);
+    throw new ReplayFileError(`${what} is not a finite number`);
   }
   return x;
 }
 
 function vec(a, len, what) {
   if (!Array.isArray(a) || a.length !== len) {
-    refuse(`${what} is not ${len} numbers`);
+    throw new ReplayFileError(`${what} is not ${len} numbers`);
   }
   a.forEach((x, i) => finite(x, `${what}[${i}]`));
   return a;
@@ -144,7 +142,7 @@ function vec(a, len, what) {
 
 function text(s, max, what) {
   if (typeof s !== 'string' || s.length > max) {
-    refuse(`${what} is not text of at most ${max} characters`);
+    throw new ReplayFileError(`${what} is not text of at most ${max} characters`);
   }
   return s;
 }
@@ -160,16 +158,16 @@ function checkMeta(m) {
   finite(m.duration, 'meta.duration');
   if (m.livery !== null) {
     if (!m.livery || typeof m.livery !== 'object' || Array.isArray(m.livery) || Object.keys(m.livery).length > 16) {
-      refuse('meta.livery is not a livery');
+      throw new ReplayFileError('meta.livery is not a livery');
     }
     for (const [k, v] of Object.entries(m.livery)) {
       if (!/^[a-z][a-zA-Z0-9]{0,23}$/.test(k) || !Number.isInteger(v) || v < 0 || v > 0xffffff) {
-        refuse(`meta.livery.${k} is not a colour`);
+        throw new ReplayFileError(`meta.livery.${k} is not a colour`);
       }
     }
   }
   if (!Array.isArray(m.parts) || m.parts.length > PARTS_MAX) {
-    refuse('meta.parts is not a part table');
+    throw new ReplayFileError('meta.parts is not a part table');
   }
   m.parts.forEach((p, i) => {
     onlyKeys(p, PART_KEYS, `meta.parts[${i}]`);
@@ -189,7 +187,7 @@ function checkEvent(e, i) {
   onlyKeys(e, EVENT_KEYS, `events[${i}]`);
   finite(e.t, `events[${i}].t`);
   if (!EVENT_TYPES.includes(e.type)) {
-    refuse(`events[${i}].type is unknown`);
+    throw new ReplayFileError(`events[${i}].type is unknown`);
   }
   for (const k of ['part', 'speed', 'surface', 'floorY', 'level']) {
     if (e[k] !== undefined && e[k] !== null) {
@@ -212,10 +210,10 @@ function checkKey(k, i) {
   onlyKeys(k, KEY_KEYS, `keys[${i}]`);
   finite(k.t, `keys[${i}].t`);
   if (!RIGS.includes(k.rig)) {
-    refuse(`keys[${i}].rig is unknown`);
+    throw new ReplayFileError(`keys[${i}].rig is unknown`);
   }
   if (!Number.isInteger(k.target) || k.target < -1 || k.target >= PARTS_MAX) {
-    refuse(`keys[${i}].target is not a part`);
+    throw new ReplayFileError(`keys[${i}].target is not a part`);
   }
   onlyKeys(k.p, P_KEYS, `keys[${i}].p`);
   for (const [name, v] of Object.entries(k.p)) {
@@ -234,65 +232,65 @@ function checkKey(k, i) {
  */
 export function decodeReplay(buf, known = null) {
   if (!(buf instanceof ArrayBuffer)) {
-    refuse('not a file');
+    throw new ReplayFileError('not a file');
   }
   if (buf.byteLength > FILE_MAX_BYTES) {
-    refuse(`larger than ${FILE_MAX_BYTES / 1048576} MB`);
+    throw new ReplayFileError(`larger than ${FILE_MAX_BYTES / 1048576} MB`);
   }
   if (buf.byteLength < 12) {
-    refuse('too short to be a replay');
+    throw new ReplayFileError('too short to be a replay');
   }
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
   if (MAGIC.some((b, i) => u8[i] !== b)) {
-    refuse('not a replay file');
+    throw new ReplayFileError('not a replay file');
   }
   const version = dv.getUint32(4, true);
   if (version !== FILE_VERSION) {
-    refuse(`version ${version}, this build reads ${FILE_VERSION}`);
+    throw new ReplayFileError(`version ${version}, this build reads ${FILE_VERSION}`);
   }
   const hl = dv.getUint32(8, true);
   if (12 + hl > buf.byteLength) {
-    refuse('header runs past the end');
+    throw new ReplayFileError('header runs past the end');
   }
   let header;
   try {
     header = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(u8.subarray(12, 12 + hl)));
   } catch (err) {
-    refuse('header is not JSON');
+    throw new ReplayFileError('header is not JSON');
   }
   onlyKeys(header, HEADER_KEYS, 'header');
   if (header.v !== FILE_VERSION) {
-    refuse('header version does not match');
+    throw new ReplayFileError('header version does not match');
   }
   if (header.probe !== ENDIAN_PROBE) {
-    refuse('byte order probe does not match');
+    throw new ReplayFileError('byte order probe does not match');
   }
   const layout = [HEAD_N, POSE_N, PLANT_N, PART_N, PARTS_MAX];
   if (!Array.isArray(header.layout) || header.layout.join() !== layout.join()) {
-    refuse('column layout does not match this build');
+    throw new ReplayFileError('column layout does not match this build');
   }
   const n = header.n;
   if (!Number.isInteger(n) || n < 2 || n > CAPACITY) {
-    refuse(`frame count ${n} is out of range`);
+    throw new ReplayFileError(`frame count ${n} is out of range`);
   }
   checkMeta(header.meta);
   if (known && !known.airframe(header.meta.airframe)) {
-    refuse('its aircraft is not one this build flies');
+    throw new ReplayFileError('its aircraft is not one this build flies');
   }
   if (known && !known.map(header.meta.map)) {
-    refuse('its map is not one this build has');
+    throw new ReplayFileError('its map is not one this build has');
   }
   if (!Array.isArray(header.events) || header.events.length > 4000) {
-    refuse('events is not a list');
+    throw new ReplayFileError('events is not a list');
   }
   header.events.forEach(checkEvent);
   if (!Array.isArray(header.spawns) || header.spawns.length < 1 || header.spawns.length > 64) {
-    refuse('spawns is not a list');
+    throw new ReplayFileError('spawns is not a list');
   }
   header.spawns.forEach((s, i) => vec(s, 8, `spawns[${i}]`));
   if (!Array.isArray(header.keys) || header.keys.length > 64) {
-    refuse('keys is not a list');
+    throw new ReplayFileError('keys is not a list');
   }
   header.keys.forEach(checkKey);
 
@@ -300,7 +298,7 @@ export function decodeReplay(buf, known = null) {
   let o = pre + ((8 - (pre % 8)) % 8);
   const fixed = n * 8 + n * HEAD_N * 8 + n * POSE_N * 4 + n * PLANT_N * 8;
   if (o + fixed > buf.byteLength) {
-    refuse('columns run past the end');
+    throw new ReplayFileError('columns run past the end');
   }
   const time = new Float64Array(buf.slice(o, o + n * 8));
   o += n * 8;
@@ -314,24 +312,24 @@ export function decodeReplay(buf, known = null) {
   for (let k = 0; k < n; k += 1) {
     const np = head[k * HEAD_N + HEAD.parts];
     if (!Number.isInteger(np) || np < 0 || np > PARTS_MAX || (np > 0 && np !== header.meta.parts.length)) {
-      refuse(`frame ${k} has a bad part count`);
+      throw new ReplayFileError(`frame ${k} has a bad part count`);
     }
     const sp = head[k * HEAD_N + HEAD.spawn];
     if (!Number.isInteger(sp) || sp < 0 || sp >= header.spawns.length) {
-      refuse(`frame ${k} has a bad spawn`);
+      throw new ReplayFileError(`frame ${k} has a bad spawn`);
     }
     if (k > 0 && !(time[k] >= time[k - 1])) {
-      refuse(`frame ${k} goes back in time`);
+      throw new ReplayFileError(`frame ${k} goes back in time`);
     }
     rows += np;
   }
   if (o + rows * PART_N * 4 !== buf.byteLength) {
-    refuse('the file is not the length its header says');
+    throw new ReplayFileError('the file is not the length its header says');
   }
   for (const col of [time, head, pose, plant]) {
     for (let i = 0; i < col.length; i += 1) {
       if (!Number.isFinite(col[i])) {
-        refuse('a column holds a value that is not a number');
+        throw new ReplayFileError('a column holds a value that is not a number');
       }
     }
   }

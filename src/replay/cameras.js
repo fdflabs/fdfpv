@@ -155,12 +155,12 @@ export function yawPitchQuat(yaw, pitch, out = [0, 0, 0, 1]) {
 export function defaults(rig, size = 1) {
   const s = Math.max(0.3, size);
   switch (rig) {
-    case 'chase': return { dist: 2.6 * s + 1.2, height: 0.7 * s + 0.4, fov: 70 };
-    case 'orbit': return { az: 0.6, el: 0.35, dist: 3 * s + 1.5, fov: 60 };
+    case 'chase': return { dist: 1.6 * s + 1, height: 0.45 * s + 0.3, fov: 68 };
+    case 'orbit': return { az: 0.6, el: 0.35, dist: 1.8 * s + 1.2, fov: 60 };
     case 'free': return { pos: [0, 0, 0], yaw: 0, pitch: 0, fov: 70 };
     case 'tripod': return { pos: [0, 0, 0], fov: 45 };
     case 'fpv': return { fov: 0 };
-    case 'follow': return { dist: 2.2 * s + 0.8, height: 0.6 * s + 0.3, fov: 55 };
+    case 'follow': return { dist: 1.4 * s + 0.8, height: 0.4 * s + 0.3, fov: 55 };
     default: throw new Error(`no rig ${rig}`);
   }
 }
