@@ -1951,6 +1951,5 @@ export default {
   "replay.delete_question": "¿Borrar {name}? No se puede recuperar.",
   "replay.not_a_replay": "el archivo no es una repetición que esta versión pueda abrir",
   "replay.show_controls": "U muestra los controles",
-  "replay.howto": "Repite los últimos 30 segundos: mira el choque desde cualquier cámara, guarda la toma o toma el control y sigue volando desde cualquier momento",
   "replay.keep_it": "Conservar",
 };

@@ -1947,6 +1947,5 @@ export default {
   "replay.delete_question": "Delete {name}? It cannot be brought back.",
   "replay.not_a_replay": "the file is not a replay this version can open",
   "replay.show_controls": "U shows the controls",
-  "replay.howto": "Replay the last 30 seconds: watch the crash from any camera, keep the shot, or take over and fly on from any moment",
   "replay.keep_it": "Keep it",
 };
