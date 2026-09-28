@@ -21,6 +21,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # ws, the one dependency: rooms:server starts the VM's rooms server,
+      # edge/rooms/node.js, and speaks to it.
+      - run: npm ci
       - run: npm run lint:fc
       - run: npm run lint:presets
       - run: npm run lint:catalog
@@ -31,6 +34,7 @@ jobs:
       - run: npm run identity:selftest
       - run: npm run live:selftest
       - run: npm run rooms:selftest
+      - run: npm run rooms:server
       - run: npm run marks:selftest
       - run: npm run wing:math
       - run: npm run wing:gates
