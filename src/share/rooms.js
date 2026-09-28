@@ -200,7 +200,8 @@ export function setFigurePick(f) {
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
- * onEvent(event), and onBinary(bytes) for any binary message but a batch.
+ * onEvent(event), onCombat(round) for combat's (src/share/roomcombat.js),
+ * and onBinary(bytes) for any binary message but a batch.
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -361,6 +362,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onEvent?.(m);
       } else if (m.type === 'reported') {
         handlers.onReported?.(m.seat);
+      } else if (m.type === 'combat') {
+        handlers.onCombat?.(m);
       }
     };
     socket.onclose = (ev) => {

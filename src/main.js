@@ -92,12 +92,15 @@ import {
 import { createRoomSafety } from './share/roomsafety.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode,
+  checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
+import { createRoomCombat } from './share/roomcombat.js';
+import { createStreamerLayer } from './render/streamers.js';
+import { createCombatHud } from './ui/combathud.js';
 import { startTrackSync } from './share/cloud.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
@@ -1866,6 +1869,7 @@ export async function boot({
       }
       roomSlot = w.seat - 1;
       roomSafety.welcomed();
+      roomCombat.seated(w.seat, runAirframe);
       if (roomWreckSender) {
         roomWreckSender.resend();
       }
@@ -1887,12 +1891,18 @@ export async function boot({
     onLeave: (seat) => {
       roomPeerLeave(seat);
       roomSafety.left(seat);
+      roomCombat.leave(seat);
       ui.refreshFriends();
     },
     /* Each phase takes the kinds it knows and passes over the rest. */
     onEvent: (ev) => {
       roomSafety.event(ev);
       roomEvent(ev);
+      roomCombat.onEvent(ev);
+    },
+    onCombat: (m) => {
+      roomCombat.onRound(m);
+      ui.refreshFriends();
     },
     onReported: (seat) => {
       roomSafety.reported(seat);
@@ -1916,6 +1926,9 @@ export async function boot({
       }
     },
     onBinary: (bytes) => {
+      if (roomCombat.onBinary(bytes)) {
+        return;
+      }
       const got = decodePartsRelay(bytes);
       const peer = got ? roomPeers.get(got.seat) : null;
       if (peer) {
@@ -1932,6 +1945,9 @@ export async function boot({
       if (st.phase === 'idle' || st.phase === 'failed') {
         roomPeersClear();
         roomSafety.clear();
+        roomCombat.clear();
+        combatLayer.clear();
+        combatHud.update(roomCombat.round(), 0, null, 0, 0);
       }
       ui.refreshFriends();
     },
@@ -1940,6 +1956,114 @@ export async function boot({
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
   });
+
+  /*
+   * COMBAT (src/share/roomcombat.js, docs/COMBAT-PLAN.md): fifty metres of
+   * toilet paper behind every pilot while a round is out. This pilot's is
+   * stepped on every plant step (combatStep, in the step loop) with the
+   * pose of that step; the plant never sees it. Every streamer is drawn by
+   * combatLayer, the round by combatHud.
+   */
+  const roomCombat = createRoomCombat(roomLinkState);
+  const combatLayer = createStreamerLayer();
+  const combatNameOf = (seat) => {
+    if (seat === roomCombat.seat()) {
+      return str('friends.you', { name: roomName(namePick()) });
+    }
+    const peer = roomPeers.get(seat);
+    return peer ? roomName(peer.name) : '';
+  };
+  const combatHud = createCombatHud(combatNameOf);
+  const combatPos = new THREE.Vector3();
+  const combatQuat = new THREE.Quaternion();
+  const combatVel = new THREE.Vector3();
+  const combatV = [0, 0, 0];
+  let combatStepped = false;
+  function combatStep(st) {
+    combatStepped = true;
+    poseFromState(st, combatPos);
+    simQuatToThree(st[7], st[8], st[9], st[10], combatQuat);
+    combatQuat.premultiply(qSpawn);
+    simPosToThree(st[4], st[5], st[6], combatVel).applyQuaternion(qSpawn);
+    combatV[0] = combatVel.x;
+    combatV[1] = combatVel.y;
+    combatV[2] = combatVel.z;
+    roomCombat.step(combatPos.x, combatPos.y, combatPos.z, combatQuat.x, combatQuat.y, combatQuat.z, combatQuat.w, combatV, groundAt);
+  }
+  let combatHudAt = 0;
+  /* Once a frame in a room: this pilot's paper to the room, every paper
+   * drawn, the cuts shown, the round on screen. */
+  function combatFrame(now, wallMs, scene, dt) {
+    for (const n of roomCombat.news()) {
+      if (n.kind === 'cut') {
+        const me = roomCombat.seat();
+        const key = n.ev.victim === me ? 'combat.cut_you'
+          : `combat.${n.ev.cutter === me ? 'you_' : ''}${n.ev.pass ? 'cut_again' : 'cut_line'}`;
+        combatLayer.burst(n.ev.p, streamerColour(n.ev.victim));
+        combatHud.say(str(key, { cutter: combatNameOf(n.ev.cutter), victim: combatNameOf(n.ev.victim), points: n.ev.points }));
+      } else if (n.state === 'on') {
+        combatHud.say(str('combat.go'));
+      }
+    }
+    const paper = roomCombat.paper();
+    for (const n of paper ? paper.news.splice(0, paper.news.length) : []) {
+      if (n.kind === 'tear') {
+        combatHud.say(str('combat.tore'));
+      }
+    }
+    if (wallMs > combatHudAt) {
+      combatHudAt = wallMs + 200;
+      combatHud.update(roomCombat.round(), roomCombat.seat(), now, paper ? paper.length() : 0, paper ? paper.towTension() : 0);
+    }
+    if (!roomCombat.out()) {
+      if (combatLayer.count()) {
+        combatLayer.clear();
+      }
+      return;
+    }
+    if (scene && combatLayer.group.parent !== scene) {
+      scene.add(combatLayer.group);
+    }
+    if (!combatStepped) {
+      roomCombat.idle(dt * 1000, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w, groundAt);
+    }
+    combatStepped = false;
+    roomCombat.send(now);
+    combatLayer.view(shell.camera, shell.canvas.clientHeight || 720);
+    roomCombat.draw(combatLayer, {
+      px: pCurr.x, py: pCurr.y, pz: pCurr.z, qx: qPrev.x, qy: qPrev.y, qz: qPrev.z, qw: qPrev.w,
+    }, (seat) => {
+      const peer = roomPeers.get(seat);
+      return peer && peer.drawnPose ? peer.drawnPose : null;
+    }, (seat) => {
+      const peer = roomPeers.get(seat);
+      return peer ? peer.profile.airframe : null;
+    }, now, wallMs / 1000);
+    combatLayer.update(dt);
+  }
+  /* The Fly with friends rows: a private room's host starts and stops a
+   * round; everyone sees where it is. */
+  function combatRows(host, w) {
+    if (!w || w.public) {
+      return [];
+    }
+    const r = roomCombat.round();
+    const now = roomLinkState.roomNow();
+    const state = r.state === 'on' && now != null
+      ? str('combat.state_on', { minutes: Math.max(0, Math.ceil((r.endsAt - now) / 60000)) })
+      : str(`combat.state_${r.state}`);
+    if (host && (r.state === 'idle' || r.state === 'over')) {
+      return [5, 3].map((minutes) => ({
+        label: str('combat.start', { minutes }), note: str('combat.row_note'), action: `combat-${minutes}`,
+      }));
+    }
+    if (host) {
+      return [{ label: str('combat.stop'), value: state, note: str('combat.stop_note'), action: 'combat-stop' }];
+    }
+    return [{
+      label: str('combat.row'), value: state, note: str(r.state === 'idle' ? 'combat.waiting' : 'combat.row_note'), info: true,
+    }];
+  }
 
   function roomPeerJoin(seat, name, profile) {
     const old = roomPeers.get(seat);
@@ -2093,6 +2217,8 @@ export async function boot({
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
+    roomCombat.seated(link.welcome ? link.welcome.seat : 0, runAirframe);
+    combatFrame(now, wallMs, scene, dt);
   }
 
   function roomSendPose(now) {
@@ -2163,6 +2289,7 @@ export async function boot({
     const drawn = here && peer.last && peer.track.sample(now, nearWeight(Math.hypot(
       peer.last.px - pCurr.x, peer.last.py - pCurr.y, peer.last.pz - pCurr.z,
     )), roomDrawn);
+    peer.drawnPose = drawn ? Object.assign(peer.drawnPose || {}, roomDrawn) : null;
     if (!drawn) {
       if (peer.rig) {
         peer.rig.group.visible = false;
@@ -2269,6 +2396,26 @@ export async function boot({
       }) : null,
     };
   };
+  /* Harness only: the combat round and what this page draws of it, for
+   * scripts/combat-two-page.js. */
+  window.__combat = () => {
+    const paper = roomCombat.paper();
+    const now = roomLinkState.roomNow();
+    const chains = (list) => list.map((c) => ({
+      id: c.id, n: c.n, low: Math.min(...Array.from({ length: c.n }, (_, i) => c.x[i * 3 + 1])), head: [c.x[0], c.x[1], c.x[2]],
+    }));
+    return {
+      seat: roomCombat.seat(),
+      round: roomCombat.round(),
+      paper: paper ? { links: paper.length(), pull: paper.towTension(), chains: chains(paper.chains()) } : null,
+      peers: [...roomPeers.keys()].map((seat) => ({ seat, chains: chains(roomCombat.peerChains(seat, now)) })),
+      cuts: roomCombat.cuts(),
+      ribbons: combatLayer.count(),
+      hud: combatHud.shown(),
+      said: combatHud.said(),
+    };
+  };
+  window.__combatStart = (minutes) => roomCombat.start(minutes);
   window.__roomJoin = (code) => roomLinkState.join(code);
   window.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
   window.__roomSay = (kind, id) => roomSafety.say(kind, id);
@@ -2347,6 +2494,7 @@ export async function boot({
           info: true,
         },
         { label: str('friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
+        ...combatRows(host, w),
         ...roomSafety.sayRows(),
       ];
       for (const peer of roomPeers.values()) {
@@ -2399,6 +2547,14 @@ export async function boot({
   };
 
   ui.onFriends = async (action) => {
+    if (action === 'combat-5' || action === 'combat-3') {
+      roomCombat.start(action === 'combat-5' ? 5 : 3);
+      return;
+    }
+    if (action === 'combat-stop') {
+      roomCombat.stop();
+      return;
+    }
     if (action === 'friends-create') {
       if (roomBusy) {
         return;
@@ -10109,6 +10265,9 @@ export async function boot({
             tracePre(stNow);
             sim.step(1);
             stNow = readState();
+            if (roomCombat.out()) {
+              combatStep(stNow);
+            }
             if (runDamage) {
               crashAfterStep(stNow);
             }

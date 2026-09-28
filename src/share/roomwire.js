@@ -759,8 +759,8 @@ export function trimStreamer(bytes, segs) {
 /* Sixteen toilet paper colours, one per seat (a seat is unique in its
  * room, so the colours are too), far enough apart to tell in the air. */
 export const STREAMER_COLOURS = [
-  '#f4f1ea', '#e8352e', '#2f6fe0', '#f5c518', '#2fb04a', '#ff8a1f', '#8e44d6', '#ff5fa2',
-  '#1fc6d6', '#a4d619', '#111111', '#8b5a2b', '#00897b', '#c2185b', '#7fa7ff', '#ffd9a0',
+  '#e8352e', '#2f6fe0', '#f5c518', '#2fb04a', '#ff8a1f', '#8e44d6', '#ff5fa2', '#1fc6d6',
+  '#f4f1ea', '#a4d619', '#111111', '#8b5a2b', '#00897b', '#c2185b', '#7fa7ff', '#ffd9a0',
 ];
 
 export function streamerColour(seat) {
