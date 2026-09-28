@@ -58,6 +58,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { powerBlock, powerOption } from './power.js';
+
 /* sim_abi.h's SIM_TUNE_* layout. */
 export const SIM_TUNE = {
   CG_SHIFT: 0, BALLAST_KG: 1, BALLAST_X: 2, THROW_A: 3, THROW_E: 4, THROW_R: 5,
@@ -122,8 +124,9 @@ const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Rad
  *   throws     { high: [a, e, r], low: [a, e, r] } degrees, and their
  *              sources; a 0 is a surface the aircraft does not have
  *   elevons    true for a flying wing, whose elevons are its elevator
- *   flaps      the Timber's: the notches and the manual's flap to
- *              elevator mix; null where there are none
+ *   flaps      the Timber's: the manual's flap to elevator mix and the
+ *              notches' angles, rad, both restated from plant_wing.c;
+ *              null where there are none
  */
 export const TUNING = {
   wing1000: {
@@ -173,7 +176,7 @@ export const TUNING = {
     cg: { mm: 60, datum: 'tuning.datum.root_le', range: [55, 65], source: `E-flite manual, "60mm +/-5mm back from the leading edge of the wing, measured at the wing root", pp. 3 and 13; ${TIMBER_MANUAL}` },
     packKg: 0.33, nose: 0.255, tail: -0.56,
     throws: { high: [30, 20, 27], low: [22.2, 14.9, 17.6], source: `E-flite manual pp. 3 and 14: high 33, 20, 30 mm, low 25, 15, 20 mm, on 64.8, 60 and 65 mm horn chords; ${TIMBER_MANUAL}` },
-    flaps: { mix: -0.183531, source: `E-flite manual p. 3: half 20 mm, full 35 mm; "Flap/Down-Elevator Compensation 16% 30%"; ${TIMBER_MANUAL}` },
+    flaps: { mix: -0.183531, angles: [0, 0.31376497222433070, 0.57058379792549596], source: `E-flite manual p. 3: half 20 mm, full 35 mm; "Flap/Down-Elevator Compensation 16% 30%"; ${TIMBER_MANUAL}` },
   },
   bombshell1118: {
     chord: 0.1905, area: 0.212903, margin: 0.287,
@@ -223,6 +226,22 @@ export function throwsFor(airframeId, rate) {
     return t.high.map((h, i) => (h + t.low[i]) / 2);
   }
   return t.high.slice();
+}
+
+/*
+ * What the setup is balanced on, for a power choice { option, pack }
+ * (configs/power.js powerChoice): the all up mass the plant flies at, the
+ * pack that slides (the choice's where its mass is published, else the
+ * drawn model's), whether there is one to slide, and the limits.
+ */
+export function setupFor(airframeId, choice) {
+  const opt = powerOption(airframeId, choice && choice.option);
+  const packId = (choice && choice.pack) || opt.pack;
+  const massKg = powerBlock(airframeId, opt.id, packId)[1];
+  const electric = opt.kind === 'electric';
+  const p = opt.packs.find((x) => x.id === packId);
+  const packKg = electric && p && p.massKg != null ? p.massKg : TUNING[airframeId].packKg;
+  return { massKg, packKg, electric, limits: limitsFor(airframeId, massKg, electric) };
 }
 
 /* The limits the controls move within: the pack's slide, mm, and the

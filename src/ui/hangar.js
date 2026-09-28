@@ -64,7 +64,8 @@ export const HANGAR_TABS = ['power', 'colours'];
  * registered before the hangar first opens. A tab is
  *
  *   { id, paint(hangar) -> element,
- *     focus        where the camera goes when the tab comes up,
+ *     focus        where the camera goes when the tab comes up, or a
+ *                  function answering it,
  *     open(hangar, settings)  the hangar opened on hangar.id: read what
  *                  the tab edits from the settings (read only),
  *     dirty()      whether Save would change anything,
@@ -89,7 +90,10 @@ export function registerHangarTab(tab) {
 
 function tabFocus(t) {
   const h = TAB_HOOKS[t];
-  return h && h.focus ? h.focus : t === 'power' ? 'nose' : 'overview';
+  if (h && h.focus) {
+    return typeof h.focus === 'function' ? h.focus() : h.focus;
+  }
+  return t === 'power' ? 'nose' : 'overview';
 }
 
 function eachHook(fn) {
