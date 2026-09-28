@@ -494,15 +494,17 @@ consequence without ending anyone's round.
 - **Later, on the owner's word:** the pull through the plant (2.4); a
   public room vote; streamers tangling; 2 Hz far streamers (Phase 6).
 
-## 9. Questions for the owner
+## 9. Questions for the owner, and the answers
 
 1. **Toilet paper tears at speed** (2.5): the whole fifty metres goes above
-   about 22 m/s. Fly it as real paper (built), or give it the strength of
+   about 22 m/s. Fly it as real paper, or give it the strength of
    something tougher (doubled paper holds twice the pull, about 31 m/s at
-   full length)?
-2. **Should the paper pull the aircraft?** It is measured and shown, not
-   applied (2.4).
-3. **Round length:** 3 or 5 minutes offered, 5 by default.
+   full length)? **Decided by the owner, 2026-09-28: real paper.** It
+   tears at about 22 m/s at fifty metres, as built.
+2. **Should the paper pull the aircraft?** **Decided by the owner,
+   2026-09-28: no.** The pull at the tail is shown on the HUD and not
+   applied to the plant, as built (2.4).
+3. **Round length:** 3 or 5 minutes offered, 5 by default. Open.
 
 ## 10. As built, measured (2026-09-28, this machine)
 
