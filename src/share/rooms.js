@@ -39,7 +39,7 @@
  */
 
 import {
-  CLOSE, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO,
+  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO,
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
 
@@ -65,6 +65,7 @@ const FINAL = new Map([
   [CLOSE.nosuch, 'nosuch'],
   [CLOSE.bad, 'bad'],
   [CLOSE.rate, 'rate'],
+  [CLOSE_REMOVED, 'removed'],
 ]);
 
 function store(kind) {
@@ -199,7 +200,8 @@ export function setFigurePick(f) {
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
- * onMessage(message) for every other text message (a race's, Phase 4).
+ * onEvent(event) for an event, onReported(seat), onMessage(message) for
+ * every other text message (a race's, Phase 4).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -216,12 +218,18 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   let pings = 0;
   let syncTimer = null;
   let keepTimer = null;
+  /* A public room is asked for by map, not code (edge/rooms/lobby.js);
+   * shard is where the lobby put this tab, so a reconnect asks for it back. */
+  let publicMap = null;
+  let shard = -1;
+  let fullRetried = false;
+  let publicOpen = null;
 
   function setPhase(next, why = null) {
     phase = next;
     reason = why;
     if (handlers.onState) {
-      handlers.onState({ phase, reason, code });
+      handlers.onState({ phase, reason, code, publicMap });
     }
   }
 
@@ -263,13 +271,14 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
 
   function open() {
     const origin = roomsOrigin();
-    if (!code || !origin || typeof WebSocket === 'undefined') {
+    if ((!code && !publicMap) || !origin || typeof WebSocket === 'undefined') {
       setPhase('failed', 'noserver');
       return;
     }
     let socket;
     try {
-      socket = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/room/${code}`);
+      const path = publicMap ? `public/${publicMap}${shard >= 0 ? `?shard=${shard}` : ''}` : `room/${code}`;
+      socket = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/${path}`);
     } catch (e) {
       setPhase('failed', 'noserver');
       return;
@@ -309,7 +318,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         welcome = m;
         attempt = 0;
         write('session', TOKEN_KEY, m.token);
-        write('session', ROOM_KEY, code);
+        if (m.public) {
+          shard = m.shard;
+          fullRetried = false;
+        } else {
+          write('session', ROOM_KEY, code);
+        }
         pings = 0;
         bestRtt = Infinity;
         stopTimers();
@@ -337,6 +351,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onLeave?.(m.seat);
       } else if (m.type === 'profile') {
         handlers.onProfile?.(m.seat, m.profile);
+      } else if (m.type === 'event') {
+        handlers.onEvent?.(m);
+      } else if (m.type === 'reported') {
+        handlers.onReported?.(m.seat);
       } else {
         handlers.onMessage?.(m);
       }
@@ -348,8 +366,20 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       ws = null;
       stopTimers();
       const final = FINAL.get(ev.code);
-      if (!code) {
+      if (!code && !publicMap) {
         setPhase('idle');
+        return;
+      }
+      /* A public shard that filled between the lobby's count and this
+       * join: ask the lobby again, once, for another. */
+      if (final === 'full' && publicMap && !fullRetried) {
+        fullRetried = true;
+        shard = -1;
+        setPhase('connecting', 'retrying');
+        retry = setTimeout(() => {
+          retry = null;
+          open();
+        }, 1000);
         return;
       }
       if (final) {
@@ -379,6 +409,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
 
   function leave() {
     code = null;
+    publicMap = null;
+    shard = -1;
+    fullRetried = false;
     welcome = null;
     offset = null;
     clearTimeout(retry);
@@ -431,13 +464,33 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       if (ws || retry) {
         return;
       }
+      publicMap = null;
       code = next;
       attempt = 0;
       open();
     },
+    /* A public room on `map`, wherever the lobby has a seat. */
+    joinPublic(map) {
+      leave();
+      write('session', TOKEN_KEY, null);
+      publicMap = map;
+      attempt = 0;
+      open();
+    },
+    /* Whether this server has public rooms open; asked once a page. */
+    async publicRooms() {
+      const origin = roomsOrigin();
+      if (!origin) {
+        return false;
+      }
+      if (publicOpen == null) {
+        publicOpen = fetch(`${origin}/v2/public`).then((r) => (r.ok ? r.json() : {})).then((b) => b.open === true).catch(() => false);
+      }
+      return publicOpen;
+    },
     leave,
     state() {
-      return { phase, reason, code, welcome };
+      return { phase, reason, code, publicMap, welcome };
     },
     available() {
       return Boolean(roomsOrigin());
@@ -457,7 +510,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     kick(seat) {
       sendText({ type: 'kick', seat });
     },
-    /* A text message the room's modules own (edge/rooms/race.js). */
+    /* The messages the room's modules own: the safety messages
+     * (src/share/roomsafety.js) and the race's (src/share/roomrace.js). */
     send(obj) {
       sendText(obj);
     },
