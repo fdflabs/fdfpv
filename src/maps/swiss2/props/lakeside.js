@@ -66,7 +66,7 @@ import {
   lakeShore, jettyClear, ROAD_END, ROAD_DX,
 } from '../vegetation/zones.js';
 import {
-  UP, Mesher, propMaterial, shade, box, frame,
+  UP, Mesher, propMaterial, shade, box, frame, roofProxy, albedoOf,
 } from './mesh.js';
 import { standWalls } from '../../alps/roofs.js';
 import { frame as kitFrame } from '../buildings/parts.js';
@@ -162,6 +162,7 @@ export function placeInto(bake, build, { x, z, ry, ground, y = null, kind }) {
   const xs = pts.map((p) => p[0]);
   const zs = pts.map((p) => p[1]);
   return {
+    at,
     box: [Math.min(...xs), at - found, Math.min(...zs), Math.max(...xs), at + ext.top, Math.max(...zs)],
     roofs,
     parts: bake.solids.slice(fromSolids),
@@ -570,13 +571,28 @@ export function buildLakeside({
   /* The chalets' own draws (houses.js chalet draws for a balcony on a
    * lower storey), so the hamlet's rng goes on as it did. */
   const houseRng = makeRng(20261104);
-  const stand = ({ box: walls, roofs: own, parts }) => {
+  const m = new Mesher();
+  /* Stand a building's walls, and put its stand-in for the distance
+   * into the lakeside's mesh (props/mesh.js roofProxy; `far` its
+   * colours, none for a boathouse, whose open end looks into it). */
+  const stand = ({ box: walls, roofs: own, parts }, far = null) => {
     if (colliders) {
       standWalls(colliders, walls, own, 0, { parts, note: false });
       roofs.push(...own);
     }
+    if (!far) {
+      return;
+    }
+    for (const rec of own) {
+      if (rec.kind !== 'dormer') {
+        roofProxy(m, rec, {
+          low: far.low ?? walls[1], inset: 0.6, wall: far.wall, roof: albedoOf(String(rec.key).split(':')[0]),
+        });
+      }
+    }
   };
-  const m = new Mesher();
+  /* A wall in `below` under the height `split` and `above` over it. */
+  const twoTone = (split, below, above) => (y) => albedoOf(y < split ? below : above);
   const group = new THREE.Group();
   group.name = 'swiss2-lakeside';
   const { shore: rim, cx: lakeX, cz: lakeZ } = lakeShore(heightAt, 288);
@@ -658,9 +674,11 @@ export function buildLakeside({
         cellar(kitFrame(f, 0, 0, d / 2 + 0.1, 0), w + 0.2, found);
         return ext;
       };
-      stand(placeInto(bake, build, {
+      const built = placeInto(bake, build, {
         x, z, ry: Math.PI - spec.yaw, ground: corners.map((c) => heightAt(c.x, c.z)), kind: 'lakeHouse',
-      }));
+      });
+      const rendered = spec.masonry === 1 ? 2.62 : 0.12 + 2 * 2.8;
+      stand(built, { wall: twoTone(built.at + rendered, 'render', look.board) });
       walls.push(footprintOf(corners));
       houses += 1;
     }
@@ -679,7 +697,7 @@ export function buildLakeside({
     const corners = cornersOf(x, z, yaw, 17, 13);
     stand(placeInto(bake, (f, found) => hotel(f, { w: 13, d: 17, found }), {
       x, z, ry: -yaw - Math.PI / 2, ground: corners.map((c) => heightAt(c.x, c.z)), kind: 'lakeHouse',
-    }));
+    }), { wall: () => albedoOf('renderCream') });
     walls.push(footprintOf(corners));
     /* The landing stage for the lake boats, out from in front of it, and
      * the ticket hut on it. */
@@ -692,7 +710,7 @@ export function buildLakeside({
     const hutAt = { x: root.x + ex.x * 23.5, z: root.z + ex.z * 23.5 };
     stand(placeInto(bake, (f) => stageHut(f, { w: 3.4, d: 4.0 }), {
       x: hutAt.x, z: hutAt.z, ry: -ys - Math.PI / 2, ground: [deckY], y: deckY, kind: 'kiosk',
-    }));
+    }), { low: deckY + 0.05, wall: () => albedoOf('larch') });
   }
   /* The church, up the slope behind the hotel: the village's church on
    * the lake church's plan, its tower toward the water. */
@@ -707,7 +725,7 @@ export function buildLakeside({
     }), {
       x, z, ry: Math.PI - yaw, ground: corners.map((c) => heightAt(c.x, c.z)), kind: 'church',
     });
-    stand(built);
+    stand(built, { wall: () => albedoOf('render') });
     walls.push(footprintOf(corners));
   }
 

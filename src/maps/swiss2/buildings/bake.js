@@ -48,9 +48,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { disposeSources } from '../../alps/kit.js';
 import { worldUv } from '../look.js';
 
-const CELL = 250;
+const CELL_M = 250;
 /* How far past a cell's own radius its near detail is still drawn. */
-const NEAR = 170;
+const NEAR_M = 170;
 
 /* A part as the merge wants it: unindexed, metre uvs (turned a quarter
  * for boards that run upright), the key's colour and finish on every
@@ -86,7 +86,13 @@ function prepare(geo, finish, uvScale, upright) {
  * key's surface where it is not one (a log is wider than a board).
  */
 export function makeBakeAll(look, uvScale = {}) {
-  return function bakeAll(bake, mats, { castShadow = true } = {}) {
+  /* `cell` and `near` are the near detail's cell and reach for a bake of
+   * its own (the lake town's, the huts'); `far`, when given, is how far
+   * from their middle the far meshes are drawn at all, for a bake whose
+   * buildings have a stand-in beyond it (props/mesh.js roofProxy). */
+  return function bakeAll(bake, mats, {
+    castShadow = true, cell: CELL = CELL_M, near: NEAR = NEAR_M, far: FAR = Infinity,
+  } = {}) {
     const materials = look.buildingGroups(mats);
     const far = {};
     const cells = new Map();
@@ -128,8 +134,29 @@ export function makeBakeAll(look, uvScale = {}) {
       return m;
     };
     const root = new THREE.Group();
-    for (const [bucket, geos] of Object.entries(far)) {
-      root.add(mesh(bucket, geos, `village-${bucket.replace('|', '-')}`));
+    const farMeshes = Object.entries(far).map(([bucket, geos]) => mesh(bucket, geos, `village-${bucket.replace('|', '-')}`));
+    if (FAR === Infinity || !farMeshes.length) {
+      farMeshes.forEach((m) => root.add(m));
+    } else {
+      /* The far meshes about their middle, in a level of detail that
+       * drops them past FAR metres from it. */
+      const box = new THREE.Box3();
+      for (const m of farMeshes) {
+        m.geometry.computeBoundingBox();
+        box.union(m.geometry.boundingBox);
+      }
+      const centre = box.getCenter(new THREE.Vector3());
+      const g = new THREE.Group();
+      for (const m of farMeshes) {
+        m.geometry.translate(-centre.x, -centre.y, -centre.z);
+        g.add(m);
+      }
+      const lod = new THREE.LOD();
+      lod.name = 'village-far';
+      lod.position.copy(centre);
+      lod.addLevel(g, 0);
+      lod.addLevel(new THREE.Object3D(), FAR);
+      root.add(lod);
     }
     /* A cell's meshes about the cell's centre, so their vertices stay
      * small; the caller stands the group there. */

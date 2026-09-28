@@ -402,7 +402,7 @@ export function busShelter(f) {
     f.put(near('castIron'), boxUp(0.04, 0.46, 0.04), x, 0.1, -hd + 0.42);
   }
   f.put(near('paint'), box(0.6, 0.8, 0.03), 0.7, 1.55, -hd + 0.085);
-  f.put(detail('glass'), plate(0.52, 0.72), 0.7, 1.55, -hd + 0.102);
+  f.put('glass:o', plate(0.52, 0.72), 0.7, 1.55, -hd + 0.102);
   f.put(detail('ink'), plate(0.4, 0.05), 0.7, 1.82, -hd + 0.104);
   /* The stop: the yellow sign with its black band and the white square
    * with the H, on a grey pole beside the shelter, and a bin. */

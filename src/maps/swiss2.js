@@ -510,9 +510,15 @@ function photoStyle() {
        * as the village is (swiss2/buildings/bake.js) but on its own: in
        * the village's meshes they would stretch its bounds over the
        * valley, and every view that saw any of them would draw it all.
-       * The huts are scattered over the whole floor, the town is at the
-       * lake, so the lake's views do not pay for the huts' shells nor the
-       * strip's for the town's. */
+       * Each building has a stand-in in the props' colours for the
+       * distance (props/mesh.js roofProxy), drawn in a mesh every view
+       * already draws, so: a hut is only near detail, its own cell, drawn
+       * within a hundred and ten metres of it; the town's near detail is
+       * a cell or two for the whole town, and its shells are dropped past
+       * fifteen hundred metres, where its stand-ins are all there is.
+       * Measured before (scripts/swiss2-views.js cameras, each draw
+       * counted by what drew it): the huts were 12 to 38 draws in every
+       * view, the town 16 in the village's. */
       const hutBake = makeBake();
       const lakeBake = makeBake();
       stage.props = buildProps({
@@ -523,6 +529,7 @@ function photoStyle() {
         footprints: gardens,
         roofs,
         bake: hutBake,
+        lakeBake,
       });
       scene.add(stage.props.group);
       /* The lake's village, boats and promenade, their footprints the
@@ -532,8 +539,8 @@ function photoStyle() {
       });
       scene.add(stage.lakeside.group);
       const near = [];
-      for (const [name, bake] of [['swiss2-huts', hutBake], ['swiss2-lake-town', lakeBake]]) {
-        const baked = style.look.buildings.bakeAll(bake, style.mats);
+      for (const [name, bake, opts] of [['swiss2-huts', hutBake, { cell: 60, near: 110 }], ['swiss2-lake-town', lakeBake, { cell: 800, far: 1500 }]]) {
+        const baked = style.look.buildings.bakeAll(bake, style.mats, opts);
         baked.name = name;
         scene.add(baked);
         near.push(...baked.children.filter((o) => o.isLOD));
@@ -574,10 +581,10 @@ function photoStyle() {
         planted: [...yard.trees, ...stage.props.roadTrees],
       });
       scene.add(stage.veg.group);
-      /* Nor the lake town's and the huts' near detail (their balconies,
-       * shutters, boards and rafters): in the rippled mirror it is below
-       * what the reflection resolves, and at lake-village-20m it was a
-       * mirror of the town's near cells, a draw for each of their groups. */
+      /* Nor the lake town's and the huts' kit geometry: the rippled
+       * mirror has their stand-ins (props/mesh.js roofProxy), which are
+       * all it resolves, and the kit's meshes in it were a draw more for
+       * each of their groups in every view over the water. */
       stage.mirrorSkip = [...['swiss2-grass', 'swiss2-meadow'].map((n) => stage.veg.group.getObjectByName(n)).filter(Boolean), ...near];
       /* What the yards built, solid only now that the forest is planted,
        * and the cars and tractors parked in them (swiss2/village/yards.js). */

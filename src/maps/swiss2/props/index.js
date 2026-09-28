@@ -49,9 +49,9 @@
  *
  * The bales, the bars, the reeds and the roadside are one static mesh
  * (a few hundred bales at a few tens of triangles apiece, the reeds a
- * blade two triangles), the huts and the boat shed are the bake's (their
- * shells drawn at any distance, their boards and their roofs' dressing
- * near only, buildings/bake.js); the fences are an instanced
+ * blade two triangles, each hut's stand-in a few dozen), the huts near
+ * the camera are the `bake`'s (buildings/bake.js) and the boat shed the
+ * lake town's (`lakeBake`); the fences are an instanced
  * span of two posts and two rails, refilled from the spans near the
  * camera and in its view as the trees are, since a valley of fence posts
  * is tens of thousands of triangles and a post is under a pixel past a
@@ -91,11 +91,10 @@ import {
 import { RUNWAY_HALF } from '../ground.js';
 import { gravelBarGeometry } from '../water/stream.js';
 import {
-  UP, Mesher, propMaterial, shade, box, frame,
+  UP, Mesher, propMaterial, shade, box, frame, roofProxy, albedoOf,
 } from './mesh.js';
 import { placeInto, placeBoathouse } from './lakeside.js';
 import { stadel } from '../buildings/houses.js';
-import { boxUp } from '../buildings/parts.js';
 import { roadside } from './roadside.js';
 import { standWalls } from '../../alps/roofs.js';
 
@@ -118,15 +117,19 @@ const FENCE = [0.1, 0.086, 0.072];
  * at the corners, the loft over it in upright boards gone silver, the
  * byre door and the hay door with its hoist beam in the downhill gable,
  * and a roof of shingle, slate or tin on purlins and rafters that show
- * under the eaves; its boards and its roof's dressing near only, since
- * a valley of them is a few hundred huts. The props' rng is drawn
+ * under the eaves. A valley of them is seventy odd huts, so all of that
+ * is near only, each hut its own cell (bake.js), and what stands for it
+ * from further off, and casts its shadow at every distance, is its walls
+ * and roof in the props' colours in the props' one mesh (mesh.js
+ * roofProxy): the huts cost a draw only for the few near the camera,
+ * where round 3's cost none. The props' rng is drawn
  * exactly as many times as the round 3 hut drew it (a shade for each
  * log course on each wall and for each course of each roof slope), so
  * every hut, bale and reed after this one stands where it stood; what
  * the hut is made of is chosen by the hut's own place. With no `bake`
  * it only draws: a hut the walls' ground has moved is not built.
  */
-function hut(bake, heightAt, rng, {
+function hut(bake, m, heightAt, rng, {
   x, z, yaw, w, d, h, pitch, silver, covering = 'shingle',
 }) {
   const rows = Math.round(h / 0.3);
@@ -146,28 +149,30 @@ function hut(bake, heightAt, rng, {
   const shingle = own(3) < 0.3 ? 'shingleMossy' : own(3) < 0.75 ? 'shingleDark' : 'shingle';
   const roofKey = covering === 'shingle' ? shingle : covering;
   const logKey = silver ? 'weathered' : 'larchDark';
-  /* Its near detail casts no shadow: the shell's shadow is the hut's,
-   * and boards and rafters in the shadow maps were a draw more in each
-   * map for every cell of huts near the camera. Its rubble footing is
-   * near only too, a log core standing in for it from afar: a hut's
-   * stone was a mesh of its own over the whole valley, three draws in
-   * every view for a band a metre high (scripts/swiss2-views.js). */
+  /* Every part near only, and casting no shadow: the stand-in's shadow
+   * is the hut's. */
   const into = {
     ...bake,
-    pushM: (key, g, m) => bake.pushM(key === 'stone' ? 'stone:fo' : /:[a-z]*f/.test(key) && !/:[a-z]*o/.test(key) ? `${key}o` : key, g, m),
+    pushM: (key, g, mx) => {
+      const [name, mark = ''] = key.split(':');
+      bake.pushM(`${name}:${mark.replace(/[fo]/g, '')}fo`, g, mx);
+    },
   };
   /* The Stadel's gable (+z) is the hut's downhill end (-ex): the frame
    * turned so its z runs along -ex and its x along ez. */
-  return placeInto(into, (f, found) => {
-    const ext = stadel(f, {
-      w: d, d: w, found, roofKey, pitch, footH: 0.08, logH: h * 0.5, loftH: h * 0.5,
-      ov: 0.55, ovA: 0.55, ovB: 0.7, logKey, backing: 'weathered:v', boardMark: 'vf',
-    });
-    f.put(logKey, boxUp(d - 0.1, found + 0.2, w - 0.1), 0, -found, 0);
-    return ext;
-  }, {
+  const built = placeInto(into, (f, found) => stadel(f, {
+    w: d, d: w, found, roofKey, pitch, footH: 0.08, logH: h * 0.5, loftH: h * 0.5,
+    ov: 0.55, ovA: 0.55, ovB: 0.7, logKey, backing: 'weathered:v', boardMark: 'vf',
+  }), {
     x, z, ry: 1.5 * Math.PI - yaw, ground, y: Math.max(...ground), kind: 'hut',
   });
+  const logs = albedoOf(logKey);
+  for (const rec of built.roofs) {
+    roofProxy(m, rec, {
+      low: built.box[1], inset: 0.2, wall: () => logs, roof: albedoOf(roofKey),
+    });
+  }
+  return built;
 }
 
 /* A round bale, r across and len long, lying with its axis along yaw or
@@ -560,12 +565,12 @@ export function buildProps(ctx) {
       rng();
       const silver = rng() < 0.2;
       const r = rng();
-      const covering = r < 0.25 ? 'tinRust' : r < 0.4 ? 'slate' : 'shingle';
+      const covering = r < 0.25 ? 'tinRustSheet' : r < 0.4 ? 'slate' : 'shingle';
       const spec = {
         x, z, yaw, w: 5 + 2.5 * rng(), d: 4 + 1.6 * rng(), h: 2.4 + 0.9 * rng(), pitch: 0.42 + 0.2 * rng(), silver, covering,
       };
       const gone = moved(x, z, 8);
-      const built = hut(gone ? null : bake, heightAt, rng, spec);
+      const built = hut(gone ? null : bake, m, heightAt, rng, spec);
       huts.push({ x, z });
       /* Every hut that is drawn is walls under a roof that is ground;
        * within COLLIDE_R its old keep out box is still a footprint the
@@ -759,8 +764,8 @@ export function buildProps(ctx) {
   {
     const x = roadX(1928) + 26;
     const z = 1928;
-    const built = hut(bake, heightAt, rng, {
-      x, z, yaw: 0.08, w: 6, d: 4.6, h: 2.7, pitch: 0.5, silver: false, covering: 'tinRust',
+    const built = hut(bake, m, heightAt, rng, {
+      x, z, yaw: 0.08, w: 6, d: 4.6, h: 2.7, pitch: 0.5, silver: false, covering: 'tinRustSheet',
     });
     huts.push({ x, z });
     if (colliders) {
@@ -780,7 +785,7 @@ export function buildProps(ctx) {
     for (let k = 0; k < Math.round(2.7 / 0.28) + 10; k += 1) {
       rng();
     }
-    const built = placeBoathouse(bake, heightAt, {
+    const built = placeBoathouse(ctx.lakeBake, heightAt, {
       x, z, yaw: Math.atan2(oz, ox), len: 9, w: 5.2, h: 2.7,
     });
     if (colliders) {
