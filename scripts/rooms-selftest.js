@@ -54,6 +54,7 @@ import {
 } from '../edge/rooms/safety.js';
 import { LobbyBook, MAX_MAPS, PENDING_MS } from '../edge/rooms/lobby.js';
 import { TELEPORT_SPEED } from '../src/game/verify.js';
+import { combatSection } from './rooms-selftest-combat.js';
 import { DROP_MS, TAG_M } from '../edge/rooms/tag.js';
 import { RoomHost } from '../edge/rooms/host.js';
 import {
@@ -1327,6 +1328,8 @@ console.log('catch the ace: starting a match');
     [[150, 0, 300], [0, 300, 150], [60, 60, 60]].every((lag) => timeline(lag) === zero), zero);
   check(`and a seat later than LATE_MS (${LATE_MS} ms) is not waited for: the match still ends`, JSON.parse(timeline([0, 0, LATE_MS + 200])).end != null);
 }
+
+combatSection(check);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
