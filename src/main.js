@@ -1866,6 +1866,7 @@ export async function boot({
       figure: figurePick(),
       livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) || null,
       parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
+      ...(ui.roomGame ? { game: ui.roomGame } : {}),
     };
   }
   /* The room's race (src/share/roomrace.js), wired below at RACING
@@ -1989,7 +1990,9 @@ export async function boot({
   });
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
-  const roomBrowser = createRoomBrowser({ ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()) });
+  const roomBrowser = createRoomBrowser({
+    ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()), preset: () => ui.roomGame || null,
+  });
   const roomBrowsing = () => ui.screen === 'rooms' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
   ui.roomRows = (screen) => roomBrowser.rows(screen);
   const screenChanged = ui.onScreenChange;
@@ -2045,6 +2048,13 @@ export async function boot({
         combatHud.say(str(key, { cutter: combatNameOf(n.ev.cutter), victim: combatNameOf(n.ev.victim), points: n.ev.points }));
       } else if (n.state === 'on') {
         combatHud.say(str('combat.go'));
+      } else if (n.state === 'countdown' && (mode === 'title' || mode === 'results')
+        && ROOM_SEAT_SCREENS.includes(ui.screen) && mapReady && !swapInFlight) {
+        /* A round's countdown is the time to take off in, so a pilot
+         * waiting between runs on the room screen goes up with it, as a
+         * Catch the Ace match does: the Combat card's start row is one
+         * press from the air. A pilot already flying flies on. */
+        ui.onAction('fly', ui.settings);
       }
     }
     const paper = roomCombat.paper();
@@ -2088,9 +2098,15 @@ export async function boot({
     }, now, wallMs / 1000);
     combatLayer.update(dt);
   }
-  /* The Fly with friends rows: the room's host starts and stops a round;
-   * everyone sees where it is. */
-  function combatRows(host, w) {
+  /* The Fly with friends rows: the room's host, public or private, starts
+   * and stops a round; everyone sees where it is. `lead` is the room set
+   * up for combat, by its title card or at Make a room: the five minute
+   * start row is then the screen's primary, under the cursor, one press
+   * from a round.
+   *
+   * friends- actions (#143), because that prefix is what the menu hands
+   * to the shell (src/ui/ui.js act). */
+  function combatRows(host, w, lead) {
     if (!w) {
       return [];
     }
@@ -2099,15 +2115,19 @@ export async function boot({
     const state = r.state === 'on' && now != null
       ? str('combat.state_on', { minutes: Math.max(0, Math.ceil((r.endsAt - now) / 60000)) })
       : str(`combat.state_${r.state}`);
+    const head = { label: str('combat.card'), section: true };
     if (host && (r.state === 'idle' || r.state === 'over')) {
-      return [5, 3].map((minutes) => ({
-        label: str('combat.start', { minutes }), note: str('combat.row_note'), action: `combat-${minutes}`,
-      }));
+      return [head, ...[5, 3].map((minutes, i) => ({
+        label: str('combat.start', { minutes }),
+        note: str('combat.row_note'),
+        action: `friends-combat-${minutes}`,
+        primary: lead && i === 0,
+      }))];
     }
     if (host) {
-      return [{ label: str('combat.stop'), value: state, note: str('combat.stop_note'), action: 'combat-stop' }];
+      return [head, { label: str('combat.stop'), value: state, note: str('combat.stop_note'), action: 'friends-combat-stop' }];
     }
-    return [{
+    return [head, {
       label: str('combat.row'), value: state, note: str(r.state === 'idle' ? 'combat.waiting' : 'combat.row_note'), info: true,
     }];
   }
@@ -2667,11 +2687,40 @@ export async function boot({
       const host = w && w.host === w.seat;
       const kicks = host && !w.public;
       const world = w ? mapById(w.map).name : '';
-      /* A private room's race first, right under the screen's Fly
-       * (src/ui/ui.js), so the host starts it and everybody sees it
-       * without scrolling past the pilots. */
+      /*
+       * A PRIVATE ROOM'S GAMES, ALL THREE, right under the screen's Fly
+       * (src/ui/ui.js), under one heading: the race, Catch the Ace and
+       * toilet paper combat, each with its start row. Combat used to sit
+       * below the pilot rows, and the owner, hosting, saw Catch the Ace
+       * and no toilet paper at all. Public rooms have them too, since the
+       * room browser gave them a host.
+       *
+       * A room set up for a game puts that game first, its start row the
+       * primary under the host's cursor, and the heading says what the
+       * room is for, to everybody in it. The room says so itself when it
+       * was made for one (Make a room, welcome.mode); otherwise the host's
+       * game is its own card's and a joiner's the host's, from the host's
+       * profile.
+       */
+      const hostPeer = w && !host ? roomPeers.get(w.host) : null;
+      const game = w ? (w.mode || (host ? ui.roomGame : (hostPeer && hostPeer.profile.game)) || null) : null;
+      const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
+      const blocks = {
+        race: roomRaceRows(host),
+        tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
+        combat: combatRows(host, w, game === 'combat'),
+      };
+      const order = game ? [game, ...['race', 'tag', 'combat'].filter((g) => g !== game)] : ['race', 'tag', 'combat'];
+      const games = [
+        {
+          label: game ? str('friends.games_for', { game: str(game === 'tag' ? 'roomtag.section' : 'combat.card') }) : str('friends.games'),
+          section: true,
+        },
+        ...order.flatMap((g) => blocks[g]),
+        { label: str('roomrace.room_section'), section: true },
+      ];
       const rows = [
-        ...roomRaceRows(host), ...roomTagRows(host), { label: str('roomrace.room_section'), section: true },
+        ...games,
         ...roomBrowser.nameRows(w),
         /* A public room's code is how the browser joins it, never shown. */
         (w ? w.public : st.publicMap)
@@ -2684,7 +2733,6 @@ export async function boot({
           info: true,
         },
         { label: str('friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
-        ...combatRows(host, w),
         ...roomSafety.sayRows(),
       ];
       for (const peer of roomPeers.values()) {
@@ -2709,11 +2757,16 @@ export async function boot({
       return rows;
     }
     const failed = st.phase === 'failed' && st.reason ? str(`friends.failed_${st.reason}`) : null;
-    /* Rooms first, under the cursor, whether or not the server has public
-     * rooms open: the Rooms screen says so, and still makes private ones. */
+    /*
+     * Rooms first, under the cursor, whether or not the server has public
+     * rooms open: the Rooms screen says so, and still makes private ones.
+     * A game's title card (ui.roomGame) puts Make a room first instead,
+     * its game set up already, under that game's heading.
+     */
+    const make = { label: str('friends.create'), note: failed || str('friends.create_note'), action: 'roomnew', primary: Boolean(ui.roomGame) };
+    const browse = roomBrowser.entryRow(failed);
     return [
-      roomBrowser.entryRow(failed),
-      { label: str('friends.create'), note: failed || str('friends.create_note'), action: 'roomnew' },
+      ...(ui.roomGame ? [{ label: str(ui.roomGame === 'tag' ? 'roomtag.section' : 'combat.card'), section: true }, make, { ...browse, primary: false }] : [browse, make]),
       { label: str('friends.join'), note: failed || str('friends.join_note'), action: 'friends-join' },
       nameRow,
       figureRow,
@@ -2721,11 +2774,11 @@ export async function boot({
   };
 
   ui.onFriends = async (action) => {
-    if (action === 'combat-5' || action === 'combat-3') {
-      roomCombat.start(action === 'combat-5' ? 5 : 3);
+    if (action === 'friends-combat-5' || action === 'friends-combat-3') {
+      roomCombat.start(action === 'friends-combat-5' ? 5 : 3);
       return;
     }
-    if (action === 'combat-stop') {
+    if (action === 'friends-combat-stop') {
       roomCombat.stop();
       return;
     }
