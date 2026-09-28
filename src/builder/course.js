@@ -44,7 +44,7 @@ import {
 } from '../trackbuilder/elements.js';
 import { passOffsetSign } from '../trackbuilder/faces.js';
 import { createElement, createMapTrack, elementById, newSequenceId } from '../trackbuilder/model.js';
-import { gateScaleFor } from '../game/track.js';
+import { BUILT_FRAME_TUBE_OD, gateScaleFor } from '../game/track.js';
 import { IN } from '../units.js';
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../render/frame.js';
 
@@ -554,6 +554,33 @@ export function raceGatesOf(doc) {
   return out;
 }
 
+/*
+ * The gate's structure in its scoring opening's own plane, for a scored
+ * race's reach (src/game/race.js structureGap): x along the race's across
+ * axis, y up, from the opening's centre, metres, from the same figures
+ * the mesh is built from. A hoop is its rim's outer circle; a framed gate
+ * the box its tubes stand in round the opening; the pylon pair its two
+ * cones; a pylon its cone, and the side of it the square is on.
+ */
+function structureOf(el, sc) {
+  const d = el.dims;
+  if (isHoop(el.type)) {
+    return { kind: 'ring', r: d.clearW / 2 + 2 * d.tubeR };
+  }
+  const cone = (x, y0) => ({
+    x, y0, h: d.height ?? d.clearH, r0: d.baseRadius, r1: d.tipRadius,
+  });
+  if (el.type === 'pylonPair') {
+    const x = d.clearW / 2 + d.baseRadius;
+    return { kind: 'cones', cones: [cone(-x, -sc.centreY), cone(x, -sc.centreY)] };
+  }
+  if (isMarker(el)) {
+    return { kind: 'cone', cone: cone(-sc.across, -sc.centreY), side: sc.across < 0 ? -1 : 1 };
+  }
+  const tube = ELEMENTS[el.type].wing ? BANNER_TUBE_OD : BUILT_FRAME_TUBE_OD;
+  return { kind: 'box', hw: sc.clearW / 2 + tube, hh: sc.clearH / 2 + tube };
+}
+
 /* One element's race gate, flown as `step`, at place `flyOrder` in the lap. */
 export function raceGateOf(el, step, flyOrder) {
   const sc = scoringOf(el, step);
@@ -568,7 +595,7 @@ export function raceGateOf(el, step, flyOrder) {
   /* `round`: the opening is a disc of diameter clearW, scored as one
    * (src/game/race.js) and fitted by the hoop rule (src/builder/line.js). */
   const aperture = {
-    centreY: sc.centreY, clearW: sc.clearW, clearH: sc.clearH, ...(sc.round ? { round: true } : {}),
+    centreY: sc.centreY, clearW: sc.clearW, clearH: sc.clearH, ...(sc.round ? { round: true } : {}), frame: structureOf(el, sc),
   };
   return {
     position: v3(c.x, c.y - sc.centreY, c.z),
