@@ -199,7 +199,12 @@ has no statistics behind it: LOW.
 **R-FOAM. Foams.** EPP (ARPRO, ASTM D3575, via
 https://rapiddiecut.com/website_rdc/static/src/datasheets/closed_cell_foam/EPP%20Physical%20Properties_RDC%20(1).pdf):
 30 g/l crushes at 0.12 to 0.23 MPa from 10 to 50 percent strain, about 77
-kJ/m3 to 50 percent (DERIVED), 7 to 14 percent permanent set: it recovers.
+kJ/m3 to 50 percent (DERIVED), and it recovers: the compression set is 7
+to 8 percent after 25 percent strain and 11 to 14 percent after 50 across
+the grades, 7 and 12 at 30 g/l. ASTM D3575 Suffix B states set as a
+percent of the original thickness (Cd = (to - tf) / to), so 30 g/l keeps
+7/25 = 0.28 and 12/50 = 0.24 of what was crushed (DERIVED), not 7 to 12
+percent of it.
 EPS (EUMEPS White Book, EN 13163,
 https://my.civil.utah.edu/~bartlett/Geofoam/EPS%20White%20Book%20-%20European%20Standard.pdf):
 the 10 percent crush stress is 10 kPa per kg/m3 of density less 109.1 kPa,

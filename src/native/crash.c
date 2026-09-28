@@ -1703,7 +1703,7 @@ static double crush_force(const Table *t, int i, const double nb[3], const Crush
 /*
  * FOAM SPRINGS BACK (the owner's decision, 2026-09-28). Bead foam crushed
  * and let go recovers all but its compression set: ARPRO EPP 30 g/L keeps
- * 7 to 12 percent (R-FOAM), FOAM_SET here. A foam part's dent, as the
+ * 24 to 28 percent of what was crushed (R-FOAM), FOAM_SET here. A foam part's dent, as the
  * module reads it out, and its damage are FOAM_SET of what it crushed.
  * The recovery is slow: the set is what is left once the foam has been
  * let rest after the crush, and a crash is over in seconds. So the contact
@@ -1723,8 +1723,8 @@ static double crush_force(const Table *t, int i, const double nb[3], const Crush
  * has not taken that foam into its plateau, and keeps less than FOAM_SET
  * FOAM_ONSET w: the scuff depth, w the patch at the front the crush has
  * reached. A Skyhunter's pod skidding onto a roof at 0.7 m/s crushes 3.9
- * mm on a 7.4 cm patch, against 7.4 mm to reach the plateau: it keeps 0.5
- * mm, under its 0.9 mm scuff depth. The crush is counted from the last
+ * mm on a 7.4 cm patch, against 7.4 mm to reach the plateau: it keeps 1.0
+ * mm, under its 1.9 mm scuff depth. The crush is counted from the last
  * step the part met nothing. Such a crush raises no event and no
  * `crushed`; a crush that passes it pushes the event it began with and
  * every one after, each at the step it happened. The parts are exactly
