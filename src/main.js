@@ -96,9 +96,10 @@ import {
 } from './ui/roomhud.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, streamerColour,
+  FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
+import { applyHit, checkHit, sideFor } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
@@ -1931,6 +1932,7 @@ export async function boot({
         }
       }
     },
+    onHit: (m) => roomHit(m),
     onMessage: (m) => {
       if (m.type === 'combat') {
         roomCombat.onRound(m);
@@ -2090,7 +2092,7 @@ export async function boot({
       roomPeerLeave(seat);
     }
     roomPeers.set(seat, {
-      seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null, wreck: null, wreckTable: null, wreckPieces: null,
+      seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null, wreck: null, wreckTable: null, wreckPieces: null, frozenUntil: 0,
     });
   }
 
@@ -2123,6 +2125,9 @@ export async function boot({
       }
       peer.wreckTable = table;
       peer.wreckPieces = null;
+      /* A mid air hit held this peer where it was struck; its own wreck
+       * takes over from here. */
+      peer.frozenUntil = 0;
       if (peer.wreck) {
         peer.wreck.crash(table);
       }
@@ -2273,6 +2278,7 @@ export async function boot({
     const fitted = PROPS[runAirframe] ? partsEntry(ui.settings.parts, runAirframe).addons : [];
     const flags = (landed ? 0 : FLAG_AIRBORNE)
       | (wrecked ? FLAG_CRASHED : 0)
+      | (roomSpawning(now) ? FLAG_SPAWNING : 0)
       | (smokeLive ? FLAG_SMOKE : 0)
       | (fitted.includes('lights') ? FLAG_LIGHTS : 0)
       | (chute > 0 ? FLAG_CHUTE : 0)
@@ -2306,6 +2312,11 @@ export async function boot({
   }
 
   function roomDrawPeer(peer, now, scene, dt, simT) {
+    /* Struck: held where it was drawn at the hit until its own stream
+     * carries what its plant did about it. */
+    if (peer.frozenUntil > now && peer.rig && peer.rig.group.visible) {
+      return;
+    }
     const here = Boolean(scene) && view && peer.profile && peer.profile.map === view.id;
     const drawn = here && peer.last && peer.track.sample(now, nearWeight(Math.hypot(
       peer.last.px - pCurr.x, peer.last.py - pCurr.y, peer.last.pz - pCurr.z,
@@ -2359,6 +2370,95 @@ export async function boot({
     peer.figure.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
   }
 
+  /*
+   * MID AIR (docs/MULTIPLAYER-PLAN.md section 6, src/game/midair.js). The
+   * room judges contact and sends one `hit` to everyone; the two it names
+   * each apply their own side to their own plant at the next 1 ms step
+   * (roomMidairStep, in the step loop), through the journaled module, so
+   * the crash cam's replay flies it again to the bit. Everyone flashes
+   * the contact where it happened and holds the struck aircraft where it
+   * was drawn until its crash event brings its shared wreck (Phase 2,
+   * roomEvent), or ROOM_FREEZE_MS if it broke nothing that makes one.
+   *
+   * SPAWNING: for the five seconds after a flight starts, and until 30 m
+   * from where it started, this aircraft is flagged untouchable, and the
+   * room neither hits it nor lets it hit anyone (section 6.2, rule 5).
+   */
+  const ROOM_SPAWN_MS = 5000;
+  const ROOM_SPAWN_M = 30;
+  const ROOM_FREEZE_MS = 600;
+  const roomSpawn = { at: -Infinity, x: 0, y: 0, z: 0, clear: true, simT: Infinity };
+  let roomMidairSide = null;
+  const roomHits = [];
+  const roomFlashAt = new THREE.Vector3();
+  const roomFlashN = new THREE.Vector3();
+
+  function roomSpawning(now) {
+    const simT = stateCurr[0];
+    /* A new flight, or R: the sim clock starts again from zero. */
+    if (simT < roomSpawn.simT) {
+      Object.assign(roomSpawn, { at: now, x: pCurr.x, y: pCurr.y, z: pCurr.z, clear: false });
+    }
+    roomSpawn.simT = simT;
+    if (!roomSpawn.clear && Math.hypot(pCurr.x - roomSpawn.x, pCurr.y - roomSpawn.y, pCurr.z - roomSpawn.z) >= ROOM_SPAWN_M) {
+      roomSpawn.clear = true;
+    }
+    return now - roomSpawn.at < ROOM_SPAWN_MS || !roomSpawn.clear;
+  }
+
+  function roomHit(m) {
+    if (!checkHit(m)) {
+      return;
+    }
+    const st = roomLinkState.state();
+    const me = st.welcome ? st.welcome.seat : null;
+    const now = roomLinkState.roomNow();
+    const side = sideFor(m, me);
+    roomHits.push({ id: m.id, tc: m.tc, a: m.a, b: m.b, p: m.p, mine: Boolean(side), at: now, applied: null });
+    if (side && mode === 'flight') {
+      roomMidairSide = side;
+    }
+    /* Held where it was drawn until its crash event (Phase 2's wreck,
+     * roomEvent) arrives, at most ROOM_FREEZE_MS; a peer already showing
+     * its wreck is left to it. */
+    for (const seat of [m.a, m.b]) {
+      const peer = roomPeers.get(seat);
+      if (peer && !peer.wreckTable) {
+        peer.frozenUntil = (now ?? 0) + ROOM_FREEZE_MS;
+      }
+    }
+    const scene = shell.quad.parent;
+    if (scene && view && debris.group.parent !== scene) {
+      scene.add(debris.group);
+    }
+    if (view) {
+      roomFlashAt.set(m.p[0], m.p[1], m.p[2]);
+      roomFlashN.set(m.n[0], m.n[1], m.n[2]);
+      const floorY = view.height(m.p[0], m.p[2], m.p[1] + 0.5);
+      const closing = Math.hypot(m.va[0] - m.vb[0], m.va[1] - m.vb[1], m.va[2] - m.vb[2]);
+      debris.emit(roomFlashAt, roomFlashN, closing, -1, m.B.mat, floorY, 'break');
+      debris.emit(roomFlashAt, roomFlashN.negate(), closing, -1, m.A.mat, floorY, 'break');
+    }
+  }
+
+  /* Before a 1 ms step: this pilot's side of a hit, if one has come. */
+  function roomMidairStep(st) {
+    if (!roomMidairSide) {
+      return st;
+    }
+    const side = roomMidairSide;
+    roomMidairSide = null;
+    const r = applyHit(sim.e, side, st);
+    const h = roomHits[roomHits.length - 1];
+    if (h) {
+      h.applied = { rc: r.rc, brk: r.brk, simT: st[0] };
+    }
+    if (crashCam) {
+      crashCam.noteCrash('midair');
+    }
+    return readState();
+  }
+
   /* Harness only: the peer marks as planned this frame, and a role to
    * try one with, for scripts/peermarks-two-page.js. */
   window.__peerMarks = () => peerMarks.summary();
@@ -2392,6 +2492,8 @@ export async function boot({
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
       })),
+      hits: roomHits.map((h) => ({ ...h })),
+      spawning: stateCurr ? roomSpawning(roomLinkState.roomNow() ?? 0) : null,
       /* This pilot's own pieces as drawn here, to hold against a peer's
        * drawing of them. */
       ownWreck: wreckRig.poses(),
@@ -10529,6 +10631,7 @@ export async function boot({
           peakGroundSpeed = 0;
           sawGroundHit = false;
           for (let i = 0; i < steps; i += 1) {
+            stNow = roomMidairStep(stNow);
             if (groundNormalDue(stNow)) {
               sampleGroundNormalFromState(stNow);
             }

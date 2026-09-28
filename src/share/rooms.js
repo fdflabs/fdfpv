@@ -200,6 +200,7 @@ export function setFigurePick(f) {
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
+ * onHit(hit) (the referee's mid air contact, src/game/midair.js),
  * onEvent(event) for an event, onReported(seat), onBinary(bytes) for any
  * binary message but a batch, and onMessage(message) for every other text
  * message (a race's, Phase 4).
@@ -359,6 +360,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onLeave?.(m.seat);
       } else if (m.type === 'profile') {
         handlers.onProfile?.(m.seat, m.profile);
+      } else if (m.type === 'hit') {
+        handlers.onHit?.(m);
       } else if (m.type === 'event') {
         handlers.onEvent?.(m);
       } else if (m.type === 'reported') {
