@@ -1868,6 +1868,7 @@ export async function boot({
       figure: figurePick(),
       livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) || null,
       parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
+      ...(ui.roomGame ? { game: ui.roomGame } : {}),
     };
   }
   /* The room's race (src/share/roomrace.js), wired below at RACING
@@ -2039,6 +2040,13 @@ export async function boot({
         combatHud.say(str(key, { cutter: combatNameOf(n.ev.cutter), victim: combatNameOf(n.ev.victim), points: n.ev.points }));
       } else if (n.state === 'on') {
         combatHud.say(str('combat.go'));
+      } else if (n.state === 'countdown' && (mode === 'title' || mode === 'results')
+        && ROOM_SEAT_SCREENS.includes(ui.screen) && mapReady && !swapInFlight) {
+        /* A round's countdown is the time to take off in, so a pilot
+         * waiting between runs on the room screen goes up with it, as a
+         * Catch the Ace match does: the Combat card's start row is one
+         * press from the air. A pilot already flying flies on. */
+        ui.onAction('fly', ui.settings);
       }
     }
     const paper = roomCombat.paper();
@@ -2083,8 +2091,13 @@ export async function boot({
     combatLayer.update(dt);
   }
   /* The Fly with friends rows: a private room's host starts and stops a
-   * round; everyone sees where it is. */
-  function combatRows(host, w) {
+   * round; everyone sees where it is. `lead` is the room set up for
+   * combat by its title card: the five minute start row is then the
+   * screen's primary, under the cursor, one press from a round.
+   *
+   * friends- actions (#143), because that prefix is what the menu hands
+   * to the shell (src/ui/ui.js act). */
+  function combatRows(host, w, lead) {
     if (!w || w.public) {
       return [];
     }
@@ -2093,15 +2106,19 @@ export async function boot({
     const state = r.state === 'on' && now != null
       ? str('combat.state_on', { minutes: Math.max(0, Math.ceil((r.endsAt - now) / 60000)) })
       : str(`combat.state_${r.state}`);
+    const head = { label: str('combat.card'), section: true };
     if (host && (r.state === 'idle' || r.state === 'over')) {
-      return [5, 3].map((minutes) => ({
-        label: str('combat.start', { minutes }), note: str('combat.row_note'), action: `friends-combat-${minutes}`,
-      }));
+      return [head, ...[5, 3].map((minutes, i) => ({
+        label: str('combat.start', { minutes }),
+        note: str('combat.row_note'),
+        action: `friends-combat-${minutes}`,
+        primary: lead && i === 0,
+      }))];
     }
     if (host) {
-      return [{ label: str('combat.stop'), value: state, note: str('combat.stop_note'), action: 'friends-combat-stop' }];
+      return [head, { label: str('combat.stop'), value: state, note: str('combat.stop_note'), action: 'friends-combat-stop' }];
     }
-    return [{
+    return [head, {
       label: str('combat.row'), value: state, note: str(r.state === 'idle' ? 'combat.waiting' : 'combat.row_note'), info: true,
     }];
   }
@@ -2131,21 +2148,17 @@ export async function boot({
     ui.refreshFriends();
   }
 
-  /*
-   * The top of the room screen: why the last host action was refused, and
-   * for the host, a way out of whatever game is running, whatever its own
-   * section shows, so no game can leave the room stuck.
-   */
-  function roomTopRows(host, w) {
-    const rows = [];
-    if (roomRefusal && performance.now() < roomRefusal.untilMs) {
-      rows.push({ label: roomRefusal.text, info: true });
-    }
-    const running = w && !w.public ? roomRunning() : null;
-    if (host && running) {
-      rows.push({ label: str(`rooms.end_${running}`), note: str('rooms.end_note'), action: `friends-end-${running}` });
-    }
-    return rows;
+  /* The top of the room screen: why the last host action was refused. */
+  function roomRefusalRows() {
+    return roomRefusal && performance.now() < roomRefusal.untilMs ? [{ label: roomRefusal.text, info: true }] : [];
+  }
+
+  /* First in the Game section, for the host: a way out of whatever game is
+   * running, whatever its own rows show, so no game can leave the room
+   * stuck. */
+  function roomEndRows(host, w) {
+    const running = host && w && !w.public ? roomRunning() : null;
+    return running ? [{ label: str(`rooms.end_${running}`), note: str('rooms.end_note'), action: `friends-end-${running}` }] : [];
   }
 
   function roomPeerJoin(seat, name, profile) {
@@ -2696,12 +2709,39 @@ export async function boot({
       const w = st.welcome;
       const host = w && !w.public && w.host === w.seat;
       const world = w ? mapById(w.map).name : '';
-      /* A private room's race first, right under the screen's Fly
-       * (src/ui/ui.js), so the host starts it and everybody sees it
-       * without scrolling past the pilots. */
+      /*
+       * A PRIVATE ROOM'S GAMES, ALL THREE, right under the screen's Fly
+       * (src/ui/ui.js), under one heading: the race, Catch the Ace and
+       * toilet paper combat, each with its start row. Combat used to sit
+       * below the pilot rows, and the owner, hosting, saw Catch the Ace
+       * and no toilet paper at all. Public rooms have no games.
+       *
+       * A room set up by a game's title card puts that game first, its
+       * start row the primary under the host's cursor, and the heading
+       * says what the room is for, to everybody in it. The host's game is
+       * its own card's; a joiner's is the host's, from the host's profile.
+       */
+      const hostPeer = w && !host ? roomPeers.get(w.host) : null;
+      const game = w && !w.public ? (host ? ui.roomGame : (hostPeer && hostPeer.profile.game) || null) : null;
+      const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
+      const blocks = {
+        race: roomRaceRows(host),
+        tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
+        combat: combatRows(host, w, game === 'combat'),
+      };
+      const order = game ? [game, ...['race', 'tag', 'combat'].filter((g) => g !== game)] : ['race', 'tag', 'combat'];
+      const games = w && w.public ? [] : [
+        {
+          label: game ? str('friends.games_for', { game: str(game === 'tag' ? 'roomtag.section' : 'combat.card') }) : str('friends.games'),
+          section: true,
+        },
+        ...roomEndRows(host, w),
+        ...order.flatMap((g) => blocks[g]),
+        { label: str('roomrace.room_section'), section: true },
+      ];
       const rows = [
-        ...roomTopRows(host, w),
-        ...(w && w.public ? [] : [...roomRaceRows(host), ...roomTagRows(host), { label: str('roomrace.room_section'), section: true }]),
+        ...roomRefusalRows(),
+        ...games,
         st.publicMap
           ? { label: str('friends.public_row'), value: world, note: str('friends.public_row_note'), info: true }
           : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
@@ -2712,7 +2752,6 @@ export async function boot({
           info: true,
         },
         { label: str('friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
-        ...combatRows(host, w),
         ...roomSafety.sayRows(),
       ];
       for (const peer of roomPeers.values()) {
@@ -2745,8 +2784,11 @@ export async function boot({
       });
     }
     const here = mapById(view ? view.id : worldId()).name;
+    /* The games are a private room's, so a game card's screen offers no
+     * public room: Make a room is then the first row, under the cursor. */
     return [
-      ...(roomPublicOpen ? [{
+      ...(ui.roomGame ? [{ label: str(ui.roomGame === 'tag' ? 'roomtag.section' : 'combat.card'), section: true }] : []),
+      ...(roomPublicOpen && !ui.roomGame ? [{
         label: str('friends.public'),
         value: here,
         note: failed || str('friends.public_note', { world: here }),
