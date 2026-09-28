@@ -77,6 +77,8 @@ function seed() {
     graphicsAuto: false,
     crashDamage: true,
     sound: true,
+    /* The Parts tab's smoke system fitted, so O trails smoke. */
+    parts: { [AIRFRAME]: { prop: 'stock', addons: ['smoke'] } },
   };
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
@@ -176,7 +178,12 @@ async function main() {
     await page.evaluate('window.__stick(0, 0, 0, 0.7)');
     const thrown = await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 60}, z: ${pad.z}, yaw: 30, pitch: 0, vx: -9, vy: 0, vz: -15.6, showCraft: false }).ok`);
     check('thrown at 60 m', thrown);
-    await afterSteps(page, 1500);
+    await afterSteps(page, 300);
+    const smokeT0 = await page.evaluate('window.__crashCam.stats().ringFrames');
+    await page.tap('KeyO');
+    await afterSteps(page, 1200);
+    const smokeLive = await page.evaluate('window.__craft().smoke');
+    check('O turns the smoke on and it trails', smokeLive.on && smokeLive.puffs > 20, `${smokeLive.puffs} puffs, from ring frame ${smokeT0}`);
     const wing = await page.evaluate("window.__crash().partLabels.findIndex((l) => l === 'wing right')");
     const broke = await page.evaluate(`window.__crashBreak(${wing})`);
     check('the right wing is broken off in flight', wing > 0 && broke === 'OK', `part ${wing} ${broke}`);
@@ -257,6 +264,19 @@ async function main() {
     await page.sleep(700);
     v = await view(page);
     check('follow the wing', v.rig === 'follow' && v.target === wing, `${v.rig} part ${v.target}`);
+    /* The smoke plays back: a trail in the air after O, and scrubbed back
+     * to before O, none. */
+    await page.until(`${H}.view().drawn === ${off.t + 0.4}`, 30000);
+    const puffsAfter = await page.evaluate(`${H}.smokePuffs()`);
+    await page.evaluate(`${H}.api.jumpTo(0.5)`);
+    await page.until(`${H}.view().drawn === 0.5`, 30000);
+    const puffsBefore = await page.evaluate(`${H}.smokePuffs()`);
+    await page.evaluate(`${H}.api.jumpTo(${off.t + 0.4})`);
+    await page.until(`${H}.view().drawn === ${off.t + 0.4}`, 30000);
+    const puffsAgain = await page.evaluate(`${H}.smokePuffs()`);
+    check('the smoke plays back, and scrubbing rebuilds the trail that was in the air',
+      puffsAfter > 20 && puffsBefore === 0 && Math.abs(puffsAgain - puffsAfter) <= 2,
+      `${puffsAfter} puffs at the wing, ${puffsBefore} before O, ${puffsAgain} scrubbed back to the wing`);
     await page.tap('KeyH');
     await page.sleep(300);
     await shot(page, 'follow-wing');
@@ -347,6 +367,13 @@ async function main() {
     check('played from My clips: a saved clip, running, keys and all', !v.live && v.t > 0 && v.dur > 1 && v.keys.length === 2,
       `t ${v.t.toFixed(2)} of ${v.dur.toFixed(2)} s, ${v.keys.length} keys`);
     check('a saved clip offers no take over', !v.canTakeOver);
+    await page.evaluate(`${H}.api.jumpTo(1)`);
+    /* Waited on the frame that drew it: on SwiftShader a frame can take
+     * longer than any fixed sleep. */
+    await page.until(`${H}.view().drawn === 1`, 30000);
+    const savedSmoke = await page.evaluate(`({ puffs: ${H}.smokePuffs(), fitted: ${H}.smokeFitted() })`);
+    check('the saved clip plays its smoke, on a plane wearing its smoke system', savedSmoke.puffs > 20 && savedSmoke.fitted,
+      `${savedSmoke.puffs} puffs, fitted ${savedSmoke.fitted}`);
     await shot(page, 'saved-clip');
     await page.tap('Escape');
     await page.until('!window.__crashCam.live()', 10000);

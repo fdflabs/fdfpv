@@ -32,7 +32,7 @@
 import * as THREE from 'three';
 
 const EMIT_HZ = 90;
-const LIFE_S = 5;
+export const LIFE_S = 5;
 const DRAG_S = 0.6;
 const MAX = Math.ceil(EMIT_HZ * LIFE_S) + 8;
 

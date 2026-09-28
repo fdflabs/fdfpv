@@ -26,8 +26,10 @@
  *    aircraft.
  * 9. Every frame count round trips, odd and even: 1, 2, 3, 4, 17, 41 and
  *    a full 30 s at 60 Hz (1801) and at 120 Hz (the ring's capacity), with
- *    parts on the odd frames; a version 1 file (the layout before the pose
- *    column was padded) is still read, and one with an odd count refused.
+ *    parts on the odd frames; version 1 and 2 files, written as those
+ *    builds wrote them, are still read, and a version 1 odd count refused.
+ * 10. The smoke: on and off, its nozzle interpolated, its column and the
+ *    fitted parts round trip, an unknown add-on dropped on the way in.
  *
  * Run: npm run crashcam:selftest
  *
@@ -57,7 +59,7 @@ import { createJournal, PURE, POINTERS } from '../src/replay/journal.js';
 import { INFO, PART_KINDS, PARTS_MAX, PART_STATE_DOUBLES, STATE, SURFACE } from '../configs/parts.js';
 import { powerBlock } from '../configs/power.js';
 import {
-  CAPACITY, HEAD, HEAD_N, PART_N, POSE_N, WINDOW_S, createRecorder, sampleAt, slerp, trimClip,
+  CAPACITY, HEAD, HEAD_N, PART_N, PLANT_N, POSE_N, SMOKE, WINDOW_S, createRecorder, sampleAt, slerp, trimClip,
 } from '../src/replay/recorder.js';
 import {
   addKey, createPose, defaults, easeInOut, evaluate, evaluateKeys, lookAtQuat, rotate,
@@ -657,6 +659,9 @@ function file() {
 }
 const PARTS_MAX_R = PARTS_MAX;
 
+/* Two typed arrays, the same doubles bit for bit. */
+const same = (a, b) => a.length === b.length && a.every((x, i) => Object.is(x, b[i]));
+
 /* ---- 9. every frame count ---- */
 function counts() {
   console.log('9. every frame count saves and reads back, odd and even');
@@ -689,7 +694,6 @@ function counts() {
     }
     return { ...r.clip({ ...meta }), keys: [] };
   };
-  const same = (a, b) => a.length === b.length && a.every((x, i) => Object.is(x, b[i]));
   const results = [];
   let ok = true;
   for (const [n, hz] of [[1, 60], [2, 60], [3, 60], [4, 60], [17, 60], [41, 60], [30 * 60 + 1, 60], [CAPACITY, 120]]) {
@@ -714,26 +718,104 @@ function counts() {
   }
   check(ok, 'odd and even frame counts round trip bit for bit', results.join(', '));
 
-  /* Version 1: the same bytes as version 2 for an even count. */
-  const asV1 = (buf) => {
-    const out = buf.slice(0);
-    const dv = new DataView(out);
-    dv.setUint32(4, 1, true);
-    const hl = dv.getUint32(8, true);
-    const u8 = new Uint8Array(out, 12, hl);
-    const text = new TextDecoder().decode(u8).replace('"v":2', '"v":1');
-    u8.set(new TextEncoder().encode(text));
-    return out;
+  /* The layouts before this one, written here as those builds wrote
+   * them: version 1 (no padding, so an even count only) and version 2
+   * (the pose column padded to 8), neither with a smoke column. */
+  const writeOld = (clip, version) => {
+    const n = clip.n;
+    const head = clip.head.slice(0, n * HEAD_N);
+    let rowsP = 0;
+    for (let k = 0; k < n; k += 1) {
+      rowsP += head[k * HEAD_N + HEAD.parts];
+    }
+    const { smoke, ...rest } = clip;
+    void smoke;
+    const { fit, ...meta } = rest.meta;
+    void fit;
+    const json = new TextEncoder().encode(JSON.stringify({
+      v: version, n, layout: [HEAD_N, POSE_N, PLANT_N, PART_N, PARTS_MAX], probe: 1.5, meta, events: clip.events, spawns: clip.spawns, keys: [],
+    }));
+    const pre = 12 + json.length;
+    const poseB = n * POSE_N * 4;
+    const posePad = version >= 2 ? (8 - (poseB % 8)) % 8 : 0;
+    const start = pre + ((8 - (pre % 8)) % 8);
+    const buf = new ArrayBuffer(start + n * 8 + n * HEAD_N * 8 + poseB + posePad + n * PLANT_N * 8 + rowsP * PART_N * 4);
+    const dv = new DataView(buf);
+    new Uint8Array(buf).set([0x46, 0x44, 0x46, 0x52], 0);
+    dv.setUint32(4, version, true);
+    dv.setUint32(8, json.length, true);
+    new Uint8Array(buf).set(json, 12);
+    let o = start;
+    const put = (arr, width) => {
+      for (let i = 0; i < arr.length; i += 1) {
+        if (width === 8) {
+          dv.setFloat64(o + i * 8, arr[i], true);
+        } else {
+          dv.setFloat32(o + i * 4, arr[i], true);
+        }
+      }
+      o += arr.length * width;
+    };
+    put(clip.time.subarray(0, n), 8);
+    put(head, 8);
+    put(clip.pose.subarray(0, n * POSE_N), 4);
+    o += posePad;
+    put(clip.plant.subarray(0, n * PLANT_N), 8);
+    for (let k = 0; k < n; k += 1) {
+      const np = head[k * HEAD_N + HEAD.parts];
+      put(clip.parts.subarray(k * PARTS_MAX * PART_N, k * PARTS_MAX * PART_N + np * PART_N), 4);
+    }
+    return buf;
   };
+  const noSmoke = (c) => c.smoke.every((x) => x === 0);
   const even = make(40, 60);
-  const v1 = decodeReplay(asV1(encodeReplay(even)));
-  check(v1.n === 40 && same(v1.pose, even.pose) && same(v1.plant, even.plant), 'a version 1 file (an even count) is still read');
+  const v1 = decodeReplay(writeOld(even, 1));
+  check(v1.n === 40 && same(v1.pose, even.pose) && same(v1.plant, even.plant) && same(v1.parts, even.parts) && noSmoke(v1),
+    'a version 1 file (an even count) is still read, the smoke off');
+  const odd = make(41, 60);
+  const v2 = decodeReplay(writeOld(odd, 2));
+  check(v2.n === 41 && same(v2.pose, odd.pose) && same(v2.plant, odd.plant) && same(v2.parts, odd.parts) && noSmoke(v2),
+    'a version 2 file (an odd count) is still read, the smoke off');
   try {
-    decodeReplay(asV1(encodeReplay(make(41, 60))));
+    decodeReplay(writeOld(odd, 1));
     check(false, 'refused: a version 1 file with an odd count', 'accepted');
   } catch (err) {
     check(err instanceof ReplayFileError, 'refused: a version 1 file with an odd count', err.message);
   }
+}
+
+/* ---- 10. the smoke ---- */
+function smokeColumn() {
+  console.log('10. the smoke is recorded, interpolated and saved');
+  const r = createRecorder(16);
+  const pp = { x: 0, y: 0, z: 0 };
+  const qq = { x: 0, y: 0, z: 0, w: 1 };
+  const st = new Float64Array(20);
+  const noz = { x: 0, y: 2, z: 0 };
+  const vel = { x: -10, y: 0, z: 0 };
+  const sp = r.spawnIndex(0, 0, 0, 0, 0, 0, 1, 0.045);
+  for (let f = 0; f < 5; f += 1) {
+    const i = r.begin(f / 10, f * 100);
+    r.pose(i, pp, qq);
+    r.plant(i, st);
+    r.status(i, [0, 0], sp, 0, false, 0, 0, 0);
+    noz.x = -f;
+    r.smoke(i, f >= 2, noz, vel);
+  }
+  const c = r.clip({
+    name: 'Smoke', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'airfield', scale: 1, size: 1.8, duration: 0,
+    parts: [], fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
+    fit: { entry: { prop: 'stock', addons: ['smoke', 'warp drive'], damage: null }, option: null },
+  });
+  c.keys = [];
+  const off = sampleAt(c, 0.15);
+  const on = sampleAt(c, 0.35);
+  check(off.smoke[SMOKE.on] === 0 && on.smoke[SMOKE.on] === 1 && Math.abs(on.smoke[SMOKE.nozzle] + 3.5) < 1e-6,
+    'off before O, on after it, the nozzle between two rows', `x ${on.smoke[SMOKE.nozzle].toFixed(3)}`);
+  const back = decodeReplay(encodeReplay(c));
+  check(same(back.smoke, c.smoke), 'the smoke column round trips bit for bit', `${back.smoke.length} floats`);
+  check(JSON.stringify(back.meta.fit.entry.addons) === '["smoke"]', 'the fitted parts come back, an unknown add-on dropped',
+    JSON.stringify(back.meta.fit.entry));
 }
 
 ring();
@@ -741,6 +823,7 @@ interpolation();
 cameras();
 file();
 counts();
+smokeColumn();
 await pureReaders();
 await flyTakeOver();
 await bounded();

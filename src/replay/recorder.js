@@ -77,6 +77,12 @@ const S_KIND = 21;
 const S_PARENT = 22;
 const S_DOUBLES = 24;
 
+/* Per frame, floats: the smoke system (src/render/smoke.js), on or off,
+ * its nozzle's world position and the aircraft's world velocity, which is
+ * all the trail is made from. */
+export const SMOKE = { on: 0, nozzle: 1, vel: 4 };
+export const SMOKE_N = 7;
+
 function columns(n) {
   return {
     time: new Float64Array(n),
@@ -84,11 +90,12 @@ function columns(n) {
     pose: new Float32Array(n * POSE_N),
     plant: new Float64Array(n * PLANT_N),
     parts: new Float32Array(n * PARTS_MAX * PART_N),
+    smoke: new Float32Array(n * SMOKE_N),
   };
 }
 
 /* The bytes one frame costs, for the memory report. */
-export const FRAME_BYTES = 8 + HEAD_N * 8 + POSE_N * 4 + PLANT_N * 8 + PARTS_MAX * PART_N * 4;
+export const FRAME_BYTES = 8 + HEAD_N * 8 + POSE_N * 4 + PLANT_N * 8 + PARTS_MAX * PART_N * 4 + SMOKE_N * 4;
 
 /* FNV-1a over a state vector's bytes: what TAKE OVER checks the plant
  * against once it is put back. */
@@ -167,6 +174,19 @@ export function createRecorder(capacity = CAPACITY) {
     }
     c.pose[o + POSE.flaps] = flaps;
     c.pose[o + POSE.prop] = prop;
+  }
+
+  /* The smoke: `on`, and while it is, the nozzle and the velocity (world
+   * frame, Three.js vectors). */
+  function smoke(i, on, nozzle, vel) {
+    const o = i * SMOKE_N;
+    c.smoke[o + SMOKE.on] = on ? 1 : 0;
+    c.smoke[o + SMOKE.nozzle] = on ? nozzle.x : 0;
+    c.smoke[o + SMOKE.nozzle + 1] = on ? nozzle.y : 0;
+    c.smoke[o + SMOKE.nozzle + 2] = on ? nozzle.z : 0;
+    c.smoke[o + SMOKE.vel] = on ? vel.x : 0;
+    c.smoke[o + SMOKE.vel + 1] = on ? vel.y : 0;
+    c.smoke[o + SMOKE.vel + 2] = on ? vel.z : 0;
   }
 
   /* The plant's state block: its craft pose, and its hash. */
@@ -282,13 +302,14 @@ export function createRecorder(capacity = CAPACITY) {
       out.plant.set(c.plant.subarray(i * PLANT_N, (i + 1) * PLANT_N), k * PLANT_N);
       const np = c.head[i * HEAD_N + HEAD.parts];
       out.parts.set(c.parts.subarray(i * PARTS_MAX * PART_N, i * PARTS_MAX * PART_N + np * PART_N), k * PARTS_MAX * PART_N);
+      out.smoke.set(c.smoke.subarray(i * SMOKE_N, (i + 1) * SMOKE_N), k * SMOKE_N);
     }
     const evs = events.filter((e) => n && e.t >= t0).map((e) => ({ ...e, t: e.t - t0 }));
     return { n, ...out, events: evs, spawns: spawns.map((s) => s.slice()), meta: { ...meta } };
   }
 
   return {
-    begin, pose, drive, plant, status, parts, spawnIndex, event, clear, clip, dropNewest,
+    begin, pose, drive, plant, smoke, status, parts, spawnIndex, event, clear, clip, dropNewest,
     size: () => size,
     capacity,
     bytes: capacity * FRAME_BYTES,
@@ -317,6 +338,7 @@ export function trimClip(clip, t0, t1) {
     pose: clip.pose.slice(a * POSE_N, (b + 1) * POSE_N),
     plant: clip.plant.slice(a * PLANT_N, (b + 1) * PLANT_N),
     parts: clip.parts.slice(a * PARTS_MAX * PART_N, (b + 1) * PARTS_MAX * PART_N),
+    smoke: clip.smoke.slice(a * SMOKE_N, (b + 1) * SMOKE_N),
     events: clip.events.filter((e) => e.t >= base && e.t <= clip.time[b]).map((e) => ({ ...e, t: e.t - base })),
     keys: (clip.keys || []).filter((k) => k.t >= base && k.t <= clip.time[b]).map((k) => ({ ...k, t: k.t - base })),
     meta: { ...clip.meta, duration: time[n - 1] },
@@ -399,6 +421,7 @@ export function createSample() {
     head: new Float64Array(HEAD_N),
     parts: new Float64Array(PARTS_MAX * S_DOUBLES),
     count: 0,
+    smoke: new Float64Array(SMOKE_N),
   };
 }
 
@@ -439,6 +462,16 @@ export function sampleAt(clip, t, s = createSample()) {
   s.head[HEAD.speed] += (clip.head[h1 + HEAD.speed] - s.head[HEAD.speed]) * a;
   s.head[HEAD.throttle] += (clip.head[h1 + HEAD.throttle] - s.head[HEAD.throttle]) * a;
   s.head[HEAD.agl] += (clip.head[h1 + HEAD.agl] - s.head[HEAD.agl]) * a;
+  /* The smoke: on as the row before has it, the nozzle and the velocity
+   * between the two rows while both have it on. */
+  const m0 = k * SMOKE_N;
+  const m1 = k1 * SMOKE_N;
+  const M = clip.smoke;
+  const bothOn = M[m0 + SMOKE.on] !== 0 && M[m1 + SMOKE.on] !== 0;
+  s.smoke[SMOKE.on] = M[m0 + SMOKE.on];
+  for (let i = 1; i < SMOKE_N; i += 1) {
+    s.smoke[i] = bothOn ? M[m0 + i] + (M[m1 + i] - M[m0 + i]) * a : M[m0 + i];
+  }
   /* Parts: the row before's status and structure, the pose between. A
    * part only in the later row (the first frame of a crash) is not drawn
    * until that row. */

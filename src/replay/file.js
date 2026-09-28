@@ -22,6 +22,12 @@
  * be written with an even count, where the padding is zero and the two
  * layouts are the same bytes, so version 1 is still read; one claiming an
  * odd count is refused.
+ *
+ * Version 3 added the smoke system (src/render/smoke.js): a column of
+ * SMOKE_N floats a frame between the plant and the parts, and meta.fit,
+ * the plane's hangar parts (configs/hangar-parts.js) so the replay craft
+ * wears its pod, its nozzle and its prop. Versions 1 and 2 are read with
+ * the smoke off and nothing fitted.
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -45,14 +51,26 @@
  */
 
 import {
-  CAPACITY, HEAD, HEAD_N, PART_N, PARTS_MAX, PLANT_N, POSE_N,
+  CAPACITY, HEAD, HEAD_N, PART_N, PARTS_MAX, PLANT_N, POSE_N, SMOKE_N,
 } from './recorder.js';
+import { normalisePlane } from '../../configs/hangar-parts.js';
 import { RIGS } from './cameras.js';
 import { FINISHES, MAX_DECALS, checkDecal } from '../../configs/paint.js';
 
-export const FILE_VERSION = 2;
+export const FILE_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2];
+const READS = [1, 2, 3];
+
+/* The columns a version holds, as its header's layout says them. */
+function layoutOf(version) {
+  const base = [HEAD_N, POSE_N, PLANT_N, PART_N, PARTS_MAX];
+  return version >= 3 ? [...base, SMOKE_N] : base;
+}
+
+/* The smoke column's bytes: none before version 3. */
+function smokeBytes(n, version) {
+  return version >= 3 ? n * SMOKE_N * 4 : 0;
+}
 
 /* The pose column's bytes with its padding to 8. */
 function poseBytes(n) {
@@ -66,8 +84,9 @@ const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
 const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys'];
-const META_KEYS = ['name', 'created', 'airframe', 'livery', 'paint', 'map', 'scale', 'size', 'parts', 'fpv', 'duration'];
+const META_KEYS = ['name', 'created', 'airframe', 'livery', 'paint', 'map', 'scale', 'size', 'parts', 'fpv', 'duration', 'fit'];
 const PAINT_KEYS = ['finishes', 'decals'];
+const FIT_KEYS = ['entry', 'option'];
 const PART_KEYS = ['kind', 'kindName', 'parent', 'material', 'cg', 'boxMin', 'boxMax'];
 const EVENT_KEYS = ['t', 'type', 'part', 'label', 'kind', 'point', 'normal', 'speed', 'surface', 'shed', 'floorY', 'level'];
 const EVENT_TYPES = ['off', 'impact', 'debris', 'cue'];
@@ -89,7 +108,7 @@ export function encodeReplay(clip) {
   const header = {
     v: FILE_VERSION,
     n,
-    layout: [HEAD_N, POSE_N, PLANT_N, PART_N, PARTS_MAX],
+    layout: layoutOf(FILE_VERSION),
     probe: ENDIAN_PROBE,
     meta: clip.meta,
     events: clip.events,
@@ -99,7 +118,8 @@ export function encodeReplay(clip) {
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
-  const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + partRows * PART_N * 4;
+  const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, FILE_VERSION)
+    + partRows * PART_N * 4;
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
@@ -116,6 +136,8 @@ export function encodeReplay(clip) {
   o += poseBytes(n);
   new Float64Array(buf, o, n * PLANT_N).set(clip.plant.subarray(0, n * PLANT_N));
   o += n * PLANT_N * 8;
+  new Float32Array(buf, o, n * SMOKE_N).set(clip.smoke.subarray(0, n * SMOKE_N));
+  o += smokeBytes(n, FILE_VERSION);
   const parts = new Float32Array(buf, o, partRows * PART_N);
   let w = 0;
   for (let k = 0; k < n; k += 1) {
@@ -210,6 +232,15 @@ function checkMeta(m) {
     vec(p.boxMin, 3, `meta.parts[${i}].boxMin`);
     vec(p.boxMax, 3, `meta.parts[${i}].boxMax`);
   });
+  if (m.fit !== undefined && m.fit !== null) {
+    onlyKeys(m.fit, FIT_KEYS, 'meta.fit');
+    if (m.fit.option !== null) {
+      text(m.fit.option, 40, 'meta.fit.option');
+    }
+    /* What the hangar would seat from the same entry: unknown props and
+     * add-ons fall away, so nothing the file says reaches the model raw. */
+    m.fit.entry = normalisePlane(m.airframe, m.fit.entry);
+  }
   onlyKeys(m.fpv, FPV_KEYS, 'meta.fpv');
   FPV_KEYS.forEach((k) => finite(m.fpv[k], `meta.fpv.${k}`));
 }
@@ -297,7 +328,7 @@ export function decodeReplay(buf, known = null) {
   if (header.probe !== ENDIAN_PROBE) {
     throw new ReplayFileError('byte order probe does not match');
   }
-  const layout = [HEAD_N, POSE_N, PLANT_N, PART_N, PARTS_MAX];
+  const layout = layoutOf(version);
   if (!Array.isArray(header.layout) || header.layout.join() !== layout.join()) {
     throw new ReplayFileError('column layout does not match this build');
   }
@@ -330,7 +361,7 @@ export function decodeReplay(buf, known = null) {
 
   const pre = 12 + hl;
   let o = pre + ((8 - (pre % 8)) % 8);
-  const fixed = n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8;
+  const fixed = n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, version);
   if (o + fixed > buf.byteLength) {
     throw new ReplayFileError('columns run past the end');
   }
@@ -342,6 +373,8 @@ export function decodeReplay(buf, known = null) {
   o += poseBytes(n);
   const plant = new Float64Array(buf.slice(o, o + n * PLANT_N * 8));
   o += n * PLANT_N * 8;
+  const smoke = version >= 3 ? new Float32Array(buf.slice(o, o + smokeBytes(n, version))) : new Float32Array(n * SMOKE_N);
+  o += smokeBytes(n, version);
   let rows = 0;
   for (let k = 0; k < n; k += 1) {
     const np = head[k * HEAD_N + HEAD.parts];
@@ -360,7 +393,7 @@ export function decodeReplay(buf, known = null) {
   if (o + rows * PART_N * 4 !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
-  for (const col of [time, head, pose, plant]) {
+  for (const col of [time, head, pose, plant, smoke]) {
     for (let i = 0; i < col.length; i += 1) {
       if (!Number.isFinite(col[i])) {
         throw new ReplayFileError('a column holds a value that is not a number');
@@ -376,7 +409,7 @@ export function decodeReplay(buf, known = null) {
     r += np * PART_N;
   }
   return {
-    n, time, head, pose, plant, parts,
+    n, time, head, pose, plant, parts, smoke,
     events: header.events, spawns: header.spawns, keys: header.keys, meta: header.meta,
   };
 }
