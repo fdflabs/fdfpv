@@ -150,8 +150,9 @@ export function yawPitchQuat(yaw, pitch, out = [0, 0, 0, 1]) {
   return out;
 }
 
-/* The default numbers of each rig, scaled by the aircraft's size in
- * metres (a whoop's chase sits closer than a two metre glider's). */
+/* The default numbers of each rig, scaled by the size in metres of what
+ * it looks at (a whoop's chase sits closer than a two metre glider's, and
+ * the follow camera is sized to the part it follows). */
 export function defaults(rig, size = 1) {
   const s = Math.max(0.3, size);
   switch (rig) {
@@ -160,7 +161,7 @@ export function defaults(rig, size = 1) {
     case 'free': return { pos: [0, 0, 0], yaw: 0, pitch: 0, fov: 70 };
     case 'tripod': return { pos: [0, 0, 0], fov: 45 };
     case 'fpv': return { fov: 0 };
-    case 'follow': return { dist: 1.4 * s + 0.8, height: 0.4 * s + 0.3, fov: 55 };
+    case 'follow': return { dist: 2 * s + 0.7, height: 0.5 * s + 0.2, fov: 55 };
     default: throw new Error(`no rig ${rig}`);
   }
 }

@@ -453,15 +453,15 @@ export function createEditor(api) {
         keyLayer.append(d);
       }
     }
-    const ps = `${v.parts.map((p) => p.part).join()}|${v.target}`;
+    const ps = `${v.parts.map((p) => p.part).join()}|${v.target}|${v.rig}`;
     if (ps !== partSig) {
       partSig = ps;
       partSelect.innerHTML = '';
-      if (!v.parts.length) {
-        const o = el('option', '', str('replay.nothing_came_off'));
-        o.value = '-1';
-        partSelect.append(o);
-      }
+      /* The first line says what the list is for, until a part is chosen. */
+      const head = el('option', '', str(v.parts.length ? 'replay.follow_which' : 'replay.nothing_came_off'));
+      head.value = '-1';
+      head.disabled = v.parts.length > 0;
+      partSelect.append(head);
       for (const p of v.parts) {
         const o = el('option', '', str('replay.follow_part', { part: p.label }));
         o.value = String(p.part);
@@ -469,9 +469,7 @@ export function createEditor(api) {
       }
       partSelect.disabled = !v.parts.length;
       rigButtons.follow.disabled = !v.parts.length;
-      if (v.target >= 0) {
-        partSelect.value = String(v.target);
-      }
+      partSelect.value = v.rig === 'follow' && v.target >= 0 ? String(v.target) : '-1';
     }
     const h = v.readout;
     set('osdv', `${Math.round(h[HEAD.speed] * 3.6)}|${h[HEAD.agl].toFixed(1)}|${Math.round(h[HEAD.throttle] * 100)}`, () => {

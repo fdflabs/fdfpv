@@ -303,7 +303,13 @@ export function createJournal(e, opts = {}) {
     } else {
       delta = diffPages();
     }
-    seg = { id: nextId, t, delta, buf: seg ? new Float64Array(Math.max(1024, seg.n)) : new Float64Array(4096), n: 0, brokenAt: Infinity };
+    let room = 4096;
+    if (seg) {
+      /* The stretch just closed is kept at its length, not its capacity. */
+      seg.buf = seg.buf.slice(0, seg.n);
+      room = Math.max(1024, seg.n);
+    }
+    seg = { id: nextId, t, delta, buf: new Float64Array(room), n: 0, brokenAt: Infinity };
     nextId += 1;
     segs.push(seg);
     while (segs.length > retain) {

@@ -86,6 +86,10 @@ export function createCrashCam(host) {
   let promptUntil = 0;
   let lostPartAt = -1e9;
   const prevStatus = new Int8Array(PARTS_MAX);
+  const wasStatus = new Int8Array(PARTS_MAX);
+  /* The aircraft and the world the ring holds: a replay is one of each. */
+  let ringAirframe = null;
+  let ringMap = null;
   const spawnScratch = new Float64Array(8);
   const cost = { frames: 0, totalMs: 0, maxMs: 0, snapMs: 0, snapMaxMs: 0, snaps: 0 };
   let padPrev = 0;
@@ -112,6 +116,14 @@ export function createCrashCam(host) {
       return;
     }
     const t0 = performance.now();
+    if (host.airframe() !== ringAirframe || host.mapId() !== ringMap) {
+      /* A new aircraft or a new world: what came before cannot be drawn
+       * with this one's model and part table, so it is let go. */
+      rec.clear();
+      prevStatus.fill(0);
+      ringAirframe = host.airframe();
+      ringMap = host.mapId();
+    }
     const i = rec.begin(st[0], nowWall);
     if (i < 0) {
       return;
@@ -154,13 +166,14 @@ export function createCrashCam(host) {
   function partsLeaving(parts, count) {
     const table = host.partTable();
     const quad = !airframeById(host.airframe()).fixedWing;
+    wasStatus.set(prevStatus);
     for (let k = 1; k < count && k < PARTS_MAX; k += 1) {
       const status = parts[k * PART_STATE_STRIDE] !== 0 ? 1 : 0;
-      if (status && !prevStatus[k]) {
+      if (status && !wasStatus[k]) {
         const p = table[k];
         /* Only the part whose own joint went: its children leave with it. */
         const parent = p ? p.parent : -1;
-        if (!(parent > 0 && prevStatus[parent] === 0 && parts[parent * PART_STATE_STRIDE] !== 0)) {
+        if (!(parent > 0 && wasStatus[parent] === 0 && parts[parent * PART_STATE_STRIDE] !== 0)) {
           rec.event('off', { part: k, label: p ? partLabel(p.kind, p.cg[0], p.cg[1], quad) : String(k) });
         }
         lostPartAt = rec.now();
@@ -298,6 +311,7 @@ export function createCrashCam(host) {
       target: -1,
       params: Object.fromEntries(RIGS.map((r) => [r, defaults(r, clip.meta.size)])),
       manual: false,
+      followSized: -1,
       osd: true,
       bare: false,
       letterbox: false,
@@ -307,12 +321,9 @@ export function createCrashCam(host) {
       probe: createSample(),
       pose: createPose(),
       scene: buildScene(clip),
-      lastT: t,
       exporting: null,
       photo: null,
-      drag: null,
       toast: null,
-      savedId: saved ? saved.id ?? null : null,
     };
     S.params.tripod.pos = [shell.camera.position.x, shell.camera.position.y, shell.camera.position.z];
     for (const g of host.liveGroups) {
@@ -354,9 +365,7 @@ export function createCrashCam(host) {
     const debris = createDebris();
     parent.add(debris.group);
     return {
-      craft, wreck, debris, undoLook, sig: 0, spin: 0,
-      state: new Float64Array(11),
-      spawn: new THREE.Vector3(), qSpawn: new THREE.Quaternion(), qTmp: new THREE.Quaternion(),
+      craft, wreck, debris, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
     };
   }
 
@@ -565,7 +574,6 @@ export function createCrashCam(host) {
     }
     poseScene(s, dtS, S.speed);
     aimCamera();
-    S.lastT = S.t;
     editor.tick(view());
   }
 
@@ -750,6 +758,13 @@ export function createCrashCam(host) {
         }
         target = best.part;
       }
+    }
+    if (rig === 'follow' && target !== S.followSized) {
+      /* Framed by the part's own size: a wing panel, not the aircraft. */
+      const p = S.clip.meta.parts[target];
+      const size = p ? Math.hypot(p.boxMax[0] - p.boxMin[0], p.boxMax[1] - p.boxMin[1], p.boxMax[2] - p.boxMin[2]) : 0.5;
+      S.params.follow = defaults('follow', size);
+      S.followSized = target;
     }
     S.rig = rig;
     S.target = rig === 'follow' || rig === 'tripod' || rig === 'orbit' ? target : -1;
@@ -1063,7 +1078,6 @@ export function createCrashCam(host) {
       throw new Error('that clip is gone');
     }
     const clip = decode(row.bytes);
-    clip.id = id;
     if (clip.meta.map !== host.mapId()) {
       await host.swapMap(clip.meta.map);
     }

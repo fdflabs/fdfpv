@@ -313,7 +313,17 @@ async function main() {
     await page.tap('Escape');
     await page.until('!window.__crashCam.live()', 10000);
 
-    console.log('5. errors');
+    console.log('5. memory after more than the window, flying all the way');
+    await page.evaluate('window.__stick(0, -0.05, 0, 0.75)');
+    await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 200}, z: ${pad.z}, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: -16, showCraft: false })`);
+    await afterSteps(page, 36000);
+    const steady = await page.evaluate('window.__crashCam.stats()');
+    const sim36 = await page.evaluate('({ t: window.__crash().simT, wrecked: window.__crash().wrecked })');
+    check('the journal stays bounded past 30 s', steady.journalSegments <= 33,
+      `${steady.journalSegments} copies, ${(steady.journalBytes / 1048576).toFixed(2)} MB, after ${sim36.t.toFixed(1)} s of sim${sim36.wrecked ? ' (wrecked)' : ''}`);
+    console.log(`     steady: ring ${(steady.ringBytes / 1048576).toFixed(2)} MB fixed, journal ${(steady.journalBytes / 1048576).toFixed(2)} MB, record mean ${steady.recordMsMean.toFixed(4)} ms, worst ${steady.recordMsMax.toFixed(3)} ms over ${steady.frames} frames; copies mean ${steady.snapshotMsMean.toFixed(3)} ms, worst ${steady.snapshotMsMax.toFixed(3)} ms`);
+
+    console.log('6. errors');
     const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED/.test(e));
     check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   } finally {

@@ -12457,6 +12457,7 @@ export async function boot({ loading, bootStart, mapId, titleMap }) {
     knownAirframe: (id) => AIRFRAMES.some((a) => a.id === id),
     knownMap: (id) => MAPS.some((m) => m.id === id),
     mapName: (id) => mapById(id).name,
+    craftLook: (craft) => shell.lookCraft(craft),
   });
   crashCam.tap(debris);
   /* Harness: the crash cam's controls, its costs, and a switch for the
