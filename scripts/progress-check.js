@@ -418,6 +418,9 @@ async function unlocked(page) {
   say(after.rev === null && after.voice === rev.was && after.rpm.every((r) => r === 0), `the rev ends, the mix is fed nothing, and the seated voice is back: ${after.voice}`);
   await page.evaluate("window.__ui.hangar.saveBtn.click(); true");
   await page.until('!window.__ui.hangar.isOpen', 5000);
+  /* Save hands back to the picker once the shell has taken it, a moment
+   * later; shut it only then, or it opens again over the next step. */
+  await page.until('window.__ui.carousel.isOpen', 10000);
   await page.evaluate('window.__ui.carousel.close(); true');
   const power = await page.evaluate('window.__ui.settings.power.timber1500');
   say(power && power.option === '3s', `saved: ${JSON.stringify(power)}`);
