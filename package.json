@@ -60,6 +60,7 @@
     "export:check": "node scripts/export-check.js",
     "replay": "node scripts/replay-log.js",
     "link:selftest": "node scripts/link-selftest.js",
+    "signal:check": "node scripts/signal-check.js",
     "lap:selftest": "node scripts/lap-selftest.js",
     "identity:selftest": "node scripts/identity-selftest.js",
     "live:selftest": "node scripts/live-selftest.js",
