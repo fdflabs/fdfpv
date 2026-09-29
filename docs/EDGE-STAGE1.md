@@ -381,27 +381,27 @@ re-aiming.
 
 **The snap recovers.** Held 2 s of full up and full rudder, then the
 stick released and the rudder reversed (AOPA's recovery), the roll rate
-falls under 30 deg/s 0.18 to 0.20 s after the reversal, the aircraft
-turning a further 36 to 39 deg; a wings level hold then levels it in 0.2
-to 0.5 s. The British Aerobatic Academy: "At the correct angle of
+falls under 30 deg/s 0.18 to 0.25 s after the reversal, the aircraft
+turning a further 36 to 49 deg over the runs on both maps; a wings level
+hold then levels it in 0.2 to 0.5 s. The British Aerobatic Academy: "At the correct angle of
 rotation the roll should cease abruptly"; the band is a quarter turn. The
 lead's 62 deg in 0.3 s and the wings that never levelled were read off a
 bank angle (the up vector's roll, which in the steep nose down attitude a
 snap leaves also moves with the yaw the reversed rudder makes) on the page's
 clock; the body roll rate
-integrated on the plant's clock gives the 36 deg. The earlier line here
+integrated on the plant's clock gives the 36 to 49 deg. The earlier line here
 that it "stops the moment you let go" is replaced by these numbers.
 
-| Owner check | Band | swiss2 |
-| --- | --- | --- |
-| take off on the rudder, heading to 3 m | e14_straight, 5 deg | 1.01 deg, off at 11.1 m/s |
-| hands off, recorded | none | lift off 0.3 deg left at 10.2 m/s; 12.8 deg left and 17 deg of bank at 3 m |
-| on its back, 3/4 throttle | e8_inverted, within 5 percent | 22.03 against 22.04 m/s |
-| its push | e8_inverted, under half stick | −0.338 (upright 0.003) |
-| a yank | e9_snap, 90 deg in 1.2 s, stops in 0.3 s | 156 deg, stopped in 0.17 s |
-| half stick | e9_snap, under 20 deg | 3 deg |
-| snap right, left | e9_snap, 270 deg, half the peak rate at the end | 310 and 341 deg, 200 and 214 deg/s against 201 and 215 |
-| their recoveries | e9_snap, 0.5 s, a quarter turn, level in 3 s | 0.18 s, 36 deg, 0.17 s; 0.20 s, 39 deg, 0.50 s |
+| Owner check | Band | swiss2 | alps |
+| --- | --- | --- | --- |
+| take off on the rudder, heading to 3 m | e14_straight, 5 deg | 1.0 deg, off at 11.1 m/s | 0.99 deg, off at 11.1 m/s |
+| hands off, recorded | none | lift off 0.3 deg left at 10.4 m/s; 12.7 deg left and 16.9 deg of bank at 3 m | lift off 0.4 deg left at 10.8 m/s; 12.8 deg left and 16.9 deg of bank at 3 m |
+| on its back, 3/4 throttle | e8_inverted, within 5 percent | 22.03 against 22.04 m/s | 22.02 against 22.04 m/s |
+| its push | e8_inverted, under half stick | −0.338 (upright 0.003) | −0.338 (upright 0.002) |
+| a yank | e9_snap, 90 deg in 1.2 s, stops in 0.3 s | 155 deg, stopped in 0.17 s | 152 deg, stopped in 0.20 s |
+| half stick | e9_snap, under 20 deg | 3 deg | 3 deg |
+| snap right, left | e9_snap, 270 deg, half the peak rate at the end | 310 and 340 deg, 200 and 214 deg/s against 202 and 215 | 302 and 344 deg, 199 and 217 deg/s against 201 and 217 |
+| their recoveries | e9_snap, 0.5 s, a quarter turn, level in 3 s | 0.20 s, 40 deg, 0.18 s; 0.25 s, 49 deg, 0.50 s | 0.22 s, 38 deg, 0.17 s; 0.20 s, 40 deg, 0.28 s |
 
 ## What the owner should feel flying it
 
@@ -415,7 +415,8 @@ full pull at cruise is 80 deg/s and never snaps; in Manual on EF's 3D
 rates, yank the stick past about two thirds and it snaps the moment you
 do, and let go it stops within a sixth of a second. Pull and boot the
 rudder and it snap rolls the rudder's way; stick released and rudder the
-other way, it goes on about 35 deg and stops in a fifth of a second. Take
+other way, it goes on 35 to 50 deg and stops in a fifth to a quarter of
+a second. Take
 off hands off and it lifts at 10 m/s within half a degree of the
 runway's heading, then the prop's torque rolls it left, 17 deg of bank
 and 13 of heading by 3 m up: hold the wings with the ailerons. Round the pylons at 26 m/s it holds a 70 m
