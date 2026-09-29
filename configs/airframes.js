@@ -1454,6 +1454,32 @@ export function currentAirframeId(id) {
   return gone ? gone.to : id;
 }
 
+/*
+ * THE FLOAT VERSIONS. A plane on floats is its own airframe to the module
+ * (its own simId, plant and physics) but not to the pilot: it is the land
+ * plane with the Floats toggle on, beside the span and the weight in the
+ * hangar. The picker and the progression show the land plane alone. A
+ * float version is the row with `floats` whose `tunesOf` names its land
+ * plane, which is how the table already said so.
+ */
+const LAND_OF = Object.fromEntries(AIRFRAMES.filter((a) => a.floats && a.tunesOf).map((a) => [a.id, a.tunesOf]));
+const FLOATS_OF = Object.fromEntries(Object.entries(LAND_OF).map(([f, land]) => [land, f]));
+
+/* The land plane a float version is, or the id itself. */
+export function landPlaneOf(id) {
+  return LAND_OF[id] ?? id;
+}
+
+/* The float version of a land plane, or null for one that has none. */
+export function floatVersionOf(id) {
+  return FLOATS_OF[id] ?? null;
+}
+
+/* Whether this id is a float version. */
+export function isFloatVersion(id) {
+  return Object.hasOwn(LAND_OF, id);
+}
+
 /* The sim_set_airframe argument for a stored id, falling back to the five
  * inch rather than throwing. A stale setting must not stop the page. */
 export function simIdFor(id) {
