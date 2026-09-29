@@ -461,6 +461,8 @@ async function main() {
       await page.evaluate('window.__setCam(-500, 330, -1100, 0, 170, -1650, 60)');
       await page.sleep(1500);
       const quiet = JSON.parse(await page.evaluate('JSON.stringify(window.__renderStats())'));
+      /* The penstocks' own paint, which charring takes to a fraction of. */
+      const pen0 = await page.evaluate("window.__mapScene().userData.itaipu.parts.dam.group.getObjectByName('itaipu-dam-penstocks').geometry.getAttribute('color').array[0]");
       const errs0 = page.errors.length;
       const report = [];
       for (const state of ['smoke', 'fire', 'destroyed', 'ok']) {
@@ -485,7 +487,7 @@ async function main() {
           fail(`state ${state}: ${r.puffs} puffs drawn for ${r.stats.burning} targets`);
         }
         report.push(`${state}: set all ${TARGET_IDS.length} in ${r.ms.toFixed(2)} ms, ${r.stats.burning} burning, ${r.puffs} puffs, penstock colour ${r.pen.toFixed(3)}, darkest intake column ${r.col.toFixed(3)}, frame ${rs.calls} calls (${rs.calls - quiet.calls} over none burning)`);
-        const charred = r.pen < 0.3 && r.col < 0.3;
+        const charred = r.pen < 0.3 * pen0 && r.col < 0.3;
         if ((state === 'destroyed') !== charred) {
           fail(`state ${state}: the parts are ${charred ? '' : 'not '}charred`);
         }

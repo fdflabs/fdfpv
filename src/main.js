@@ -216,6 +216,7 @@ import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
+import { crashRecord } from './share/crashrecord.js';
 import { stateHash } from './replay/recorder.js';
 
 /*
@@ -15049,6 +15050,19 @@ export async function boot({
       notice = { text, untilMs: performance.now() + 2400 };
     },
     state: () => stateCurr,
+    /* Every crash, written down for the next F8 while it is still on
+     * screen: what broke, the last hits (part, what it met, how fast) and
+     * where. See share/crashrecord.js. */
+    onCrash: (kind) => crashRecord.noteCraft({
+      kind,
+      airframe: runAirframe,
+      map: view ? view.id : '',
+      flags: Object.keys(DAMAGE_FLAGS).filter((k) => (crashFlags & DAMAGE_FLAGS[k]) !== 0),
+      hits: crashLog.slice(-4),
+      speed: speedNow,
+      agl: lastClearance,
+      at: [shell.quad.position.x, shell.quad.position.y, shell.quad.position.z],
+    }),
     parts: () => lastParts,
     partCount: () => damage.count(),
     flags: () => crashFlags,

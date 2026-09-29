@@ -137,6 +137,7 @@ import { trickByName } from '../game/tricks.js';
 import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, WIKI_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
+import { crashRecord } from '../share/crashrecord.js';
 import { createShotTray } from './bugshots.js';
 import { watchVersion } from './update.js';
 import { nameRules, readPilotName, writePilotName } from '../share/pilot.js';
@@ -5094,11 +5095,18 @@ export class Ui {
       /* The shell itself is what broke. A report with no fault field is
        * still worth more than no report at all. */
     }
+    /* The last aircraft crash and the last uncaught page errors, if either
+     * was recent. Written down when they happened rather than read now,
+     * because by the time F8 is pressed the wreck is under a menu or
+     * already reset (bug-484f7119). One key, only when there is something
+     * in it, clipped by share/crashrecord.js to fit the same cap. */
+    const crash = crashRecord.report();
     return {
       href,
       screen: this.screen,
       map: s.map || '',
       ...(fault ? { fault } : {}),
+      ...(crash ? { crash } : {}),
       courseId: (seat && (seat.shareId || (seat.doc && seat.doc.id))) || '',
       courseName: (seat && seat.name) || '',
       flightMode: s.flightMode || '',
@@ -5199,14 +5207,35 @@ export class Ui {
     const feelDoor = btn('name-dialog-door', str('ui.just_here_to_say_how_it'));
     box.append(feelDoor);
 
+    /*
+     * WHAT THE REPORT ALREADY KNOWS, SAID ON THE FORM. A pilot who presses
+     * F8 over a wreck sees the pause menu cover it and the banner go, and
+     * reads that as the crash being gone (bug-484f7119). It is not, and
+     * neither is the record of it: say so, in the form, where they look.
+     * Nothing is sent until they press Send. A page error or a frame fault
+     * opens the form on Crash or freeze, the kind that names it; an
+     * aircraft crash does not, because a wreck is the game working and a
+     * report written after one is usually about how it flew or broke.
+     */
+    const crashNow = context && context.crash;
+    const pageFault = Boolean((context && context.fault) || (crashNow && crashNow.errors));
+    if (crashNow && crashNow.craft) {
+      box.append(el('p', 'lede', str('ui.bug_crash_attached', { age: Math.round(crashNow.craft.ageS) })));
+    }
+    if (pageFault) {
+      const message = context.fault ? context.fault.message : crashNow.errors[crashNow.errors.length - 1].message;
+      box.append(el('p', 'lede', str('ui.bug_error_attached', { message })));
+    }
+
     const kindLabel = el('p', 'name-dialog-label', str('ui.kind'));
     const kind = document.createElement('select');
     kind.className = 'name-dialog-input';
+    const startKind = pageFault ? 'crash' : 'wrong';
     for (const opt of BUG_KINDS) {
       const o = document.createElement('option');
       o.value = opt.id;
       o.textContent = opt.label;
-      if (opt.id === 'wrong') {
+      if (opt.id === startKind) {
         o.selected = true;
       }
       kind.append(o);
