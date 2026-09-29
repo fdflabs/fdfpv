@@ -373,12 +373,15 @@ int sim_set_flight_style(int arcade);
  * a section near enough symmetric to fly on its back, on a tricycle gear,
  * and 21 OA Composites' NRJ (docs/DLG-STAGE1.md), a 1490 mm F3K discus
  * launch glider with no motor, thrown by its wingtip (sim_wing_discus) into
- * the thermals of sim_air_lift, and 22 Glen Spickler's Quickie 500
- * (docs/QUICKIE-STAGE1.md), the 1972 club pylon racer the class is named
- * after, a 51 in low wing box on a K&B 40 glow engine, on wire gear and a
- * tail skid. 18, 20 and 23 are reserved for the aircraft being added
- * alongside them. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 17, 19, 21 and 22 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * the thermals of sim_air_lift, and 18 E-flite's Pitts S-1S 850mm
+ * (docs/PITTS-STAGE1.md), a foam aerobatic biplane, its two wings each in
+ * the other's flow, on a taildragger's gear, and 22 Glen Spickler's
+ * Quickie 500 (docs/QUICKIE-STAGE1.md), the 1972 club pylon racer the
+ * class is named after, a 51 in low wing box on a K&B 40 glow engine, on
+ * wire gear and a tail skid. 20 and 23 are reserved for the aircraft being
+ * added alongside them. Returns SIM_ERR_BAD_ARG for any id without an
+ * aircraft.
+ * 2 to 19, 21 and 22 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -413,6 +416,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_P51D1450_ID 15
 #define SIM_AIRFRAME_F16878_ID 16
 #define SIM_AIRFRAME_ZAGI1219_ID 17
+#define SIM_AIRFRAME_PITTS850_ID 18
 #define SIM_AIRFRAME_UGLYSTIK1567_ID 19
 #define SIM_AIRFRAME_NRJ1490_ID 21
 #define SIM_AIRFRAME_QUICKIE1293_ID 22
@@ -510,6 +514,11 @@ double sim_gravity(void);
  * sim_wing_debug(out[20]): what the last step saw, for the gates: alpha
  * (of the zero lift line), beta, qbar, CL, CD, l m n (aero convention),
  * thrust, force body x y z, moment body x y z, u v w, delta_e, delta_a.
+ * sim_wing_biplane(out[4]): a biplane's two wings as the last step took
+ * them, docs/PITTS-STAGE1.md: the top wing's own lift coefficient, the
+ * bottom wing's, and the linear lift each would carry at the cell's
+ * angle, for the gates. Zeros on a monoplane. Additive, version
+ * unchanged.
  */
 int sim_wing_launch(double speed);
 /* THE DISCUS LAUNCH, docs/DLG-STAGE1.md, on an aircraft thrown by its
@@ -525,6 +534,7 @@ int sim_wing_stab(void);
 int sim_wing_surfaces(double *out);
 int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
+int sim_wing_biplane(double *out);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an
@@ -796,7 +806,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 17, 19, 21 and 22): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 19, 21 and 22): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *
