@@ -61,6 +61,25 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  * to press once thrown }. A feed scenario seats the craft instead and
  * returns { seated: true }; its frames are the pilot's own picture.
  */
+/* The broadleaf crown nearest the start: its trunk's post with the crown
+ * spheres over it, one a drawn clump of leaves (src/game/crashworld.js
+ * collectTrees). { x, z } the trunk, y the crown's middle, top its
+ * highest leaf, r its reach from the trunk. */
+const CROWN = `
+      const s = window.__craftState();
+      const crown = window.__crashSolids(s.worldX, s.worldZ, 3000, 'tree')
+        .filter((p) => !p.box && p.r < 0.6)
+        .map((p) => ({ p, leaves: window.__crashSolids(p.a[0], p.a[2], 12, 'canopy').filter((c) => !c.box && c.a[1] > Math.max(p.a[1], p.b[1])) }))
+        .find((t) => t.leaves.length >= 10);
+      const x = crown.p.a[0], z = crown.p.a[2];
+      const ys = crown.leaves.map((c) => c.a[1]);
+      const c = {
+        x, z,
+        y: ys.reduce((u, v) => u + v, 0) / ys.length,
+        top: Math.max(...crown.leaves.map((l) => l.a[1] + l.r)),
+        r: Math.max(...crown.leaves.map((l) => Math.hypot(l.a[0] - x, l.a[2] - z) + l.r)),
+      };`;
+
 const SCENARIOS = [
   {
     id: 'quad-gate',
@@ -157,11 +176,8 @@ const SCENARIOS = [
     what: 'a Timber flown into a tree crown at 13 m/s: caught in the branches',
     airframe: 'timber1500',
     map: 'swiss2',
-    throw: `
-      const s = window.__craftState();
-      const crowns = window.__crashSolids(s.worldX, s.worldZ, 3000, 'canopy').filter((c) => !c.box && c.r > 2);
-      const c = crowns[0];
-      const x = c.a[0], y = c.a[1], z = c.a[2];
+    throw: `${CROWN}
+      const y = c.y;
       return {
         at: [x + c.r * 0.6, y, z],
         cam: [x + c.r * 1.3 + 4, y + 0.8, z + c.r * 0.9 + 4],
@@ -188,14 +204,11 @@ const SCENARIOS = [
     what: 'a Bramor coming down under its chute into a tree',
     airframe: 'bramor2300',
     map: 'swiss2',
-    throw: `
-      const s = window.__craftState();
-      const crowns = window.__crashSolids(s.worldX, s.worldZ, 3000, 'canopy').filter((c) => !c.box && c.r > 2);
-      const c = crowns[0];
-      const x = c.a[0], y = c.a[1] + c.r + 9, z = c.a[2];
+    throw: `${CROWN}
+      const y = c.top + 9;
       return {
-        at: [x, c.a[1] + c.r, z],
-        cam: [x + 9, c.a[1] + c.r + 3, z + 9],
+        at: [x, c.top, z],
+        cam: [x + 9, c.top + 3, z + 9],
         throw: { x, y, z, yaw: 0, pitch: 0, vx: 0, vy: -1, vz: -9 },
         after: 'P',
       };`,

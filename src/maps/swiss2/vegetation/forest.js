@@ -64,13 +64,37 @@
 import * as THREE from 'three';
 import { noise2, smoothstep } from '../../alps/noise.js';
 import { FIELD, HALF, LAKE_Y, TREE_LINE, treeLine, forestDensity, valleyAxis } from '../../alps/terrain.js';
-import { VARIANTS } from './species.js';
+import { CLUMP_REACH, VARIANTS, crownClumps } from './species.js';
 import { meadowCuts } from './zones.js';
 
 const V = Object.fromEntries(VARIANTS.map((v, k) => [v.name, k]));
 const OPEN = VARIANTS.map((v) => v.name.endsWith('-open') || v.kind === 'maple');
 /* Colliders stop here, as nature.js's do. */
 const COLLIDE_R = 700;
+
+/*
+ * A broadleaf's crown as colliders: a 'canopy' sphere round each of its
+ * drawn clumps of leaves (species.js crownClumps, out to CLUMP_REACH), so
+ * a craft meets leaves where leaves are drawn and flies through the air
+ * between them. Placed by the instance matrix the forest draws the tree
+ * with (forestLod put: the stored Float32 position, scale and yaw, the
+ * model turned about up by the yaw), so each sphere is round its clump to
+ * the float. They follow the tree's trunk post in the colliders, which is
+ * how src/game/crashworld.js collectTrees knows them for its crown.
+ */
+const CLUMPS = new Map();
+function crownColliders(colliders, v, x, y, z, s, yaw) {
+  if (!CLUMPS.has(v)) {
+    CLUMPS.set(v, crownClumps(VARIANTS[v]).clumps);
+  }
+  const f = Math.fround;
+  const S = f(s);
+  const c = Math.cos(f(yaw)) * S;
+  const sn = Math.sin(f(yaw)) * S;
+  for (const q of CLUMPS.get(v)) {
+    colliders.addSphere('canopy', f(x) + c * q.c.x + sn * q.c.z, f(y) + S * q.c.y, f(z) - sn * q.c.x + c * q.c.z, q.rc * S * CLUMP_REACH);
+  }
+}
 /* The density is read on a grid this fine and interpolated: the terms
  * in it vary over two hundred metres and more. */
 const DGRID = 20;
@@ -237,7 +261,7 @@ export function plantForest({
       const h = spec.h * s;
       if (spec.kind === 'beech' || spec.kind === 'maple') {
         colliders.addPost('tree', x, z, y, y + spec.trunk * h, 0.35 * s);
-        colliders.addSphere('canopy', x, y + 0.6 * h, z, spec.rx * h * 0.85);
+        crownColliders(colliders, v, x, y - 0.2, z, s, yaw * Math.PI * 2);
       } else {
         colliders.addPost('tree', x, z, y, y + h * 0.95, 0.45 * spec.reach * (spec.h / 26) * s);
       }

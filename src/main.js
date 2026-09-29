@@ -5933,8 +5933,18 @@ export async function boot({
       const z0 = crashSimA.z;
       const c0 = worldPosToSim(t.x, t.crownY0, t.z, crashSimB).z;
       const c1 = worldPosToSim(t.x, t.crownY1, t.z, crashSimB).z;
-      if (sim.e.sim_tree_add(crashSimA.x, crashSimA.y, z0, t.trunkR, c0, c1, t.crownR) < 0) {
+      const k = sim.e.sim_tree_add(crashSimA.x, crashSimA.y, z0, t.trunkR, c0, c1, t.crownR);
+      if (k < 0) {
         break;
+      }
+      /* Its leaves: the crown spheres, each a clump the plant flies the
+       * craft into, with the air between them left as air. */
+      for (const j of t.crown) {
+        worldPosToSim(col.fax[j], col.fay[j], col.faz[j], crashSimB);
+        const code = sim.e.sim_tree_clump_add(k, crashSimB.x, crashSimB.y, crashSimB.z, col.fr[j]);
+        if (code !== SIM_OK) {
+          throw new Error(`sim_tree_clump_add: ${simErrorName(code)} for crown sphere ${j} of a tree with ${t.crown.length}`);
+        }
       }
       crashTreesDeclared += 1;
       /* The crown is the plant's now: the sweep flies into it. */
