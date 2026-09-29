@@ -123,6 +123,9 @@ const COX_REVIEW = 'https://www.coxengines.ca/public/files/review.pdf';
 const SAM_RULES = 'https://www.antiquemodeler.org/images/Rulebook/2025%20Final%20-%20Jan%2017%202025.pdf';
 const MENON = 'https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content';
 const APC = 'https://www.apcprop.com/files/PER3_';
+const OS_FX_MANUAL = 'https://www.os-engines.co.jp/english/line_up/engine/air/aircraft/manual/50sx_40-91fx.pdf';
+const RCU_61FX = 'https://www.rcuniverse.com/forum/glow-engines-114/6767782-o-s-61-fx-engines.html';
+const RCM_STIK = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
 const FREEWING_F16 = 'https://www.freewing-model.com/freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html';
 const FREEWING_F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const FREEWING_F16_4S = 'https://freewing-model.com/freewing-f-16-v2-4s-standard-70mm-edf-jet-pnp-rc-airplane.html';
@@ -178,6 +181,7 @@ export const TABLE = {
     simId: 12, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 10,
     flightTime: { kind: 'mixed', minutesLow: 19.4, minutesHigh: 19.4, note: "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc", source: OS_56_MANUAL },
   },
+  uglystik1567: { simId: 19, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 17.33, flightTime: null },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
@@ -604,6 +608,37 @@ const F16 = [
   },
 ];
 
+/* The Ugly Stik: the O.S. 61FX two stroke on a 12 x 6 at 10,895 rpm, its
+ * torque from an owner's tachometer and APC's data (docs/UGLYSTIK-
+ * STAGE1.md). RCM's kit takes .40 to .61 engines and a 12 oz tank; the
+ * flying weight is RCM's 96 oz ready to fly, taken with the tank full. */
+const STIK_TANKS = [
+  tank('355cc', 355, 355.0e-6, 355 * FUEL_G_CC, RCM_STIK),
+];
+const STIK = [
+  {
+    id: 'stock', name: 'power.uglystik.stock', kind: 'glow', voice: 'glow2',
+    propIn: 12, pitchIn: 6, blades: 2,
+    thrustN: 36.206, rpmNoLoad: 12817.6, pitchSpeedMs: 27.673, idle: 0.1836,
+    flowFullM3s: 27.4e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
+    massKg: 2.7216, cgShiftM: 0, packs: STIK_TANKS, pack: '355cc',
+    source: [RCM_STIK, OS_FX_MANUAL, RCU_61FX, `${APC}12x6.dat`, MENON],
+  },
+  {
+    /* The bottom of RCM's range: O.S.'s 46FX, 1.62 ps at 16,000 against
+     * the 61FX's 1.9, on the 11 x 6 in its list: 11,591 rpm and 30.51 N
+     * (scripts/power-derive.js). 375 g against 550 g, the pack moved to
+     * balance it on the same mark; its flow the 61FX's scaled by the
+     * displacement, 7.45 over 9.95 cc. Its idle O.S.'s 2,500 rpm. */
+    id: 'fx46', name: 'power.uglystik.fx46', kind: 'glow', voice: 'glow2',
+    propIn: 11, pitchIn: 6, blades: 2,
+    thrustN: 30.506, rpmNoLoad: 11591 / 0.85, pitchSpeedMs: (11591 * 6 * IN) / 60, idle: 2500 / 11591,
+    flowFullM3s: (27.4e-6 / 60) * (7.45 / 9.95), leanFrac: 0.05, leanGain: 0.05,
+    massKg: 2.7216 - 0.175, cgShiftM: 0, packs: STIK_TANKS, pack: '355cc',
+    source: [OS_FX_MANUAL, `${APC}11x6.dat`],
+  },
+];
+
 export const POWER = {
   wing1000: WING,
   sky1800: SKY,
@@ -616,6 +651,7 @@ export const POWER = {
   timber1500f: TIMBER,
   bombshell1118: BOMBSHELL,
   kadet1981: KADET,
+  uglystik1567: STIK,
   edge1524: EDGE,
   extra1308: EXTRA,
   f16878: F16,

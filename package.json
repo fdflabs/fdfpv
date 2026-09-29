@@ -157,6 +157,7 @@
     "uglystik:stab": "node scripts/uglystik-stab-selftest.js",
     "uglystik:record": "node scripts/wing-record.js uglystik",
     "uglystik:derive": "node scripts/uglystik-derive.js",
+    "uglystik:owner": "node scripts/uglystik-owner.js",
     "floats:gates": "node scripts/floats-gates.js",
     "floats:record": "node scripts/wing-record.js timberf",
     "floats:derive": "node scripts/floats-derive.js",
