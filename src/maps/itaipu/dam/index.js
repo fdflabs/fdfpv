@@ -592,9 +592,131 @@ function mergeGeometries(THREE, list) {
   return out;
 }
 
+/* ------------------------------------------------------------ damage */
+
+/* What a target can be (docs/WARFARE-PLAN.md section 8). */
+export const TARGET_STATES = ['ok', 'smoke', 'fire', 'destroyed'];
+/* Particles per target in the one shared smoke and fire buffer. */
+const PUFFS = 32;
+
+/*
+ * Smoke and fire over every target, in one Points draw: each target owns
+ * PUFFS particles of one buffer from the build on, so setting a state is
+ * writing its 32 entries and nothing is made or freed in flight. Each
+ * puff rises and spreads on a loop of its own from its seed, in the
+ * vertex shader, off the sim's clock (update(step)): smoke drifts with
+ * the north east breeze (itaipu.js WIND) and fades, fire is short lived
+ * flecks low over the target. Size 0 draws nothing.
+ */
+function makeDamage(THREE, ids, targets) {
+  const n = ids.length * PUFFS;
+  const centre = new Float32Array(n * 3);
+  const seed = new Float32Array(n * 4);
+  const look = new Float32Array(n * 4);
+  let h = 20260929;
+  const rnd = () => {
+    h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
+    return h / 4294967296;
+  };
+  ids.forEach((id, k) => {
+    for (let i = 0; i < PUFFS; i += 1) {
+      const j = k * PUFFS + i;
+      centre.set(targets[id].at, j * 3);
+      seed.set([rnd(), rnd(), rnd(), rnd()], j * 4);
+    }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(centre, 3));
+  g.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 4));
+  /* Not Float32BufferAttribute, which copies: set() writes `look`. */
+  const lookAttr = new THREE.BufferAttribute(look, 4);
+  g.setAttribute('aLook', lookAttr);
+  const uniforms = { uTime: { value: 0 }, uScale: { value: 600 } };
+  const mat = new THREE.ShaderMaterial({
+    uniforms,
+    transparent: true,
+    depthWrite: false,
+    vertexShader: /* glsl */ `
+      uniform float uTime;
+      uniform float uScale;
+      attribute vec4 aSeed;
+      attribute vec4 aLook;
+      varying float vFire;
+      varying float vFade;
+      varying float vDark;
+      void main() {
+        float fire = step(aLook.x, aSeed.w);
+        float life = mix(7.0, 1.3, fire);
+        float ph = fract(aSeed.x + uTime / life);
+        float r = aLook.y;
+        vec3 p = position;
+        p.x += (aSeed.y - 0.5) * r * (0.5 + ph) + ph * mix(18.0, 1.0, fire) * 0.7;
+        p.z += (aSeed.z - 0.5) * r * (0.5 + ph) + ph * mix(18.0, 1.0, fire) * 0.7;
+        p.y += ph * mix(42.0, 9.0, fire) + mix(2.0, 0.5, fire);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        float size = mix(7.0 + ph * 26.0, 7.0 * (1.0 - 0.6 * ph), fire) * aLook.z;
+        gl_PointSize = size * uScale / max(-mv.z, 1.0);
+        vFire = fire;
+        vFade = 1.0 - ph;
+        vDark = aLook.w;
+      }`,
+    fragmentShader: /* glsl */ `
+      varying float vFire;
+      varying float vFade;
+      varying float vDark;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float a = 1.0 - smoothstep(0.2, 0.5, length(c));
+        vec3 smoke = mix(vec3(0.5, 0.49, 0.47), vec3(0.09, 0.085, 0.08), vDark);
+        vec3 col = mix(smoke, vec3(4.0, 1.7, 0.45), vFire);
+        float alpha = a * vFade * mix(0.6, 0.95, vFire);
+        if (alpha < 0.01) discard;
+        gl_FragColor = vec4(col, alpha);
+      }`,
+  });
+  mat.name = 'itaipu-dam-damage';
+  const points = new THREE.Points(g, mat);
+  points.name = 'itaipu-dam-damage';
+  points.frustumCulled = false;
+  points.renderOrder = 10;
+  points.onBeforeRender = (renderer, scene, camera) => {
+    uniforms.uScale.value = renderer.getContext().drawingBufferHeight * camera.projectionMatrix.elements[5] * 0.5;
+  };
+  /* A state as [fire share, smoke darkness, size]: that share of the
+   * puffs are fire, the rest smoke that darkens with the damage; size 0
+   * draws nothing. */
+  const LOOK = {
+    ok: [0, 0, 0],
+    smoke: [0, 0.25, 1],
+    fire: [0.45, 0.6, 1],
+    destroyed: [0.25, 1, 1.4],
+  };
+  const index = new Map(ids.map((id, k) => [id, k]));
+  return {
+    points,
+    set(id, state) {
+      const k = index.get(id);
+      const [share, dark, size] = LOOK[state];
+      const r = targets[id].r;
+      for (let i = 0; i < PUFFS; i += 1) {
+        /* aLook: x the seed at and over which a puff is fire (over 1 for
+         * none), y the spread, z the size, w the smoke's darkness. */
+        look.set([share > 0 ? 1 - share : 2, r, size, dark], (k * PUFFS + i) * 4);
+      }
+      lookAttr.addUpdateRange(k * PUFFS * 4, PUFFS * 4);
+      lookAttr.needsUpdate = true;
+    },
+    update(step) {
+      uniforms.uTime.value = step / 1000;
+    },
+  };
+}
+
 /* ------------------------------------------------------------ the build */
 
 export async function buildPart(ctx) {
+  const started = performance.now();
   const { THREE } = ctx;
   const byPart = Object.fromEntries(ctx.data['dam.json'].map((e) => [e.part, e]));
   const need = (name) => {
@@ -613,6 +735,10 @@ export async function buildPart(ctx) {
   const faces = [];
   const figures = {};
   const sites = {};
+  /* The war mode's targets (docs/WARFARE-PLAN.md section 8), by id, and
+   * what each one's damage darkens: a colour range of one of the meshes. */
+  const targets = {};
+  const darken = {};
 
   const addBox = (x0, y0, z0, x1, y1, z1) => {
     const i = ctx.colliders.addBox('wall', x0, y0, z0, x1, y1, z1);
@@ -1072,14 +1198,32 @@ export async function buildPart(ctx) {
    * two is the gap the collision holds (34 - 10.5 = 23.5 m): the
    * stiffener rings are painted on, not stood proud. */
   const penstockTris = { p: [], n: [], c: [] };
+  const penRanges = [];
   for (const [A, B] of penEnds) {
+    const from = penstockTris.c.length;
     const len = Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]);
     const bands = [];
     for (let m = 4; m < len; m += 6) {
       bands.push([m, m + 0.35, TONE.band]);
     }
     tube(A, B, penR, 32, TONE.penstock, bands, penstockTris);
+    penRanges.push([from, penstockTris.c.length]);
   }
+  /* Each penstock's target: a point on its drawn surface, on top of it
+   * where it runs at 165 m, halfway down the face. */
+  penEnds.forEach(([A, B], k) => {
+    const f = (165 - A[1]) / (B[1] - A[1]);
+    const P = [A[0] + (B[0] - A[0]) * f, 165, A[2] + (B[2] - A[2]) * f];
+    const d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+    const l = Math.hypot(d[0], d[1], d[2]);
+    const w = [d[0] / l, d[1] / l, d[2] / l];
+    const u = [-w[0] * w[1], 1 - w[1] * w[1], -w[2] * w[1]];
+    const ul = Math.hypot(u[0], u[1], u[2]);
+    targets[`penstock-${k}`] = {
+      at: [P[0] + (u[0] / ul) * penR, P[1] + (u[1] / ul) * penR, P[2] + (u[2] / ul) * penR], r: 8, part: 'penstock', colliders: [penIndex[k]],
+    };
+    darken[`penstock-${k}`] = { mesh: 'penstocks', range: penRanges[k] };
+  });
   let penstockMesh;
   {
     const g = new THREE.BufferGeometry();
@@ -1135,10 +1279,22 @@ export async function buildPart(ctx) {
   {
     const t0 = F.local(...ph.units[0])[0];
     const pitch = ph.figures.unitSpacing;
+    const unitT = ph.units.map((u) => F.local(...u)[0]);
     for (let t = t0 - pitch * Math.floor((t0 - tStart - 10) / pitch); t < tEnd - 10; t += pitch) {
       const [x, z] = F.at(t, sUp(t) + 2.5);
+      const i = addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height, z], VENT.r);
+      /* An intake (dam.json intakes.points, one per unit) is the column
+       * over it, its gate's servomotor house on the crest (section 8): its
+       * target the crest at the column's foot. */
+      const k = unitT.findIndex((u) => Math.abs(u - t) < 1);
+      if (k >= 0) {
+        const [ix, iz] = F.at(t, sUp(t) + 2.5 + VENT.r + 1);
+        targets[`intake-${k}`] = {
+          at: [ix, CREST_Y, iz], r: 12, part: 'intake', colliders: [i],
+        };
+        darken[`intake-${k}`] = { mesh: 'intake-columns', instance: vents.length };
+      }
       vents.push([x, CREST_Y, z]);
-      addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height, z], VENT.r);
     }
   }
   /* ---- the intake gate cranes on the upstream deck (crest-road photo) */
@@ -1459,8 +1615,14 @@ export async function buildPart(ctx) {
     for (let g = 0; g < SPILL.gates; g += 1) {
       const u0 = pierU[g] + pierW / 2;
       const u1 = pierU[g + 1] - pierW / 2;
+      const from = metal.c.length;
       block(metal, u0, u1, SPILL.gate[0], SPILL.gate[1], gateBottom, gateTop, gateTop, TONE.gate, false);
-      prismBoxes(plan(u0, u1, SPILL.gate[0], SPILL.gate[1]), gateBottom, () => gateTop);
+      const ids = prismBoxes(plan(u0, u1, SPILL.gate[0], SPILL.gate[1]), gateBottom, () => gateTop);
+      /* gate-0 is the westernmost: u runs east. */
+      targets[`gate-${g}`] = {
+        at: at3((u0 + u1) / 2, SPILL.gate[1], (gateBottom + gateTop) / 2), r: 12, part: 'gate', colliders: ids,
+      };
+      darken[`gate-${g}`] = { mesh: 'steel', range: [from, metal.c.length] };
       face('spillway gate', 'wall', [at3(u0, SPILL.gate[1], gateBottom), at3(u1, SPILL.gate[1], gateBottom), at3(u1, SPILL.gate[1], gateTop), at3(u0, SPILL.gate[1], gateTop)]);
     }
     figures.spillwayGates = SPILL.gates;
@@ -1588,6 +1750,36 @@ export async function buildPart(ctx) {
     }
   }
 
+  /* ================================================== the switchyard */
+  /*
+   * The right bank switchyard, OSM way 32302779 (48 ha): the war package
+   * builds the yard itself (docs/WARFARE-PLAN.md section 8); here only its
+   * target, on the ground at the outline's area centroid, and the outline.
+   */
+  {
+    const yard = (ctx.data['osm/power.json']?.substations ?? []).find((f) => f.id === 'w32302779');
+    if (!yard) {
+      throw new Error('itaipu dam: osm/power.json has no substation w32302779, the right bank switchyard');
+    }
+    let a = 0;
+    let cx = 0;
+    let cz = 0;
+    const o = yard.outer;
+    for (let i = 0; i < o.length; i += 1) {
+      const [x0, z0] = o[i];
+      const [x1, z1] = o[(i + 1) % o.length];
+      const c = x0 * z1 - x1 * z0;
+      a += c;
+      cx += (x0 + x1) * c;
+      cz += (z0 + z1) * c;
+    }
+    cx /= 3 * a;
+    cz /= 3 * a;
+    targets['yard-right'] = {
+      at: [cx, ctx.ground(cx, cz), cz], r: 60, part: 'yard', colliders: [], outline: o.map((q) => q.slice()),
+    };
+  }
+
   /* ================================================== the meshes */
   const kit = ctx.mats.surfaces;
   const group = new THREE.Group();
@@ -1600,6 +1792,7 @@ export async function buildPart(ctx) {
   });
   const metalMat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.15 }), 'steel');
   const meshes = [[concrete, concreteMat, 'concrete'], [road, roadMat, 'roads'], [metal, metalMat, 'steel']];
+  const drawn = {};
   let triangles = 0;
   for (const [m, mat, name] of meshes) {
     if (!m.triangles) {
@@ -1610,9 +1803,11 @@ export async function buildPart(ctx) {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
+    drawn[name] = mesh;
     triangles += m.triangles;
   }
   group.add(penstockMesh);
+  drawn.penstocks = penstockMesh;
   triangles += penstockTris.p.length / 9;
   /* The lamps and the intake columns, one instanced draw each. */
   const instanced = (geo, mat, list, name, turn) => {
@@ -1629,7 +1824,10 @@ export async function buildPart(ctx) {
     mesh.name = `itaipu-dam-${name}`;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    const white = new THREE.Color(1, 1, 1);
+    list.forEach((_, k) => mesh.setColorAt(k, white));
     group.add(mesh);
+    drawn[name] = mesh;
     triangles += (geo.getAttribute('position').count / 3) * list.length;
   };
   {
@@ -1646,22 +1844,92 @@ export async function buildPart(ctx) {
     const mat = bounced(new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(0.75, 0.75, 0.73, THREE.LinearSRGBColorSpace), roughness: 0.5, metalness: 0.1 }), 'column');
     instanced(mergeGeometries(THREE, [shaft, cap, band]), mat, vents, 'intake-columns', false);
   }
+
+  /* ---- the targets' states: smoke and fire over them, and a destroyed
+   * part drawn charred, its colours put back when it is anything else. */
+  const targetIds = Object.keys(targets).sort();
+  for (const t of Object.values(targets)) {
+    Object.freeze(t.at);
+    Object.freeze(t.colliders);
+    Object.freeze(t);
+  }
+  Object.freeze(targets);
+  const damage = makeDamage(THREE, targetIds, targets);
+  group.add(damage.points);
+  const states = Object.fromEntries(targetIds.map((id) => [id, 'ok']));
+  const CHAR = 0.16;
+  const kept = new Map();
+  const char = (id, on) => {
+    const d = darken[id];
+    if (!d) {
+      return;
+    }
+    const mesh = drawn[d.mesh];
+    if (d.instance != null) {
+      mesh.setColorAt(d.instance, new THREE.Color(on ? CHAR : 1, on ? CHAR : 1, on ? CHAR : 1));
+      mesh.instanceColor.needsUpdate = true;
+      return;
+    }
+    const attr = mesh.geometry.getAttribute('color');
+    const [a, b] = d.range;
+    if (!kept.has(id)) {
+      kept.set(id, attr.array.slice(a, b));
+    }
+    const orig = kept.get(id);
+    for (let i = a; i < b; i += 1) {
+      attr.array[i] = on ? orig[i - a] * CHAR : orig[i - a];
+    }
+    attr.addUpdateRange(a, b - a);
+    attr.needsUpdate = true;
+  };
+  const setTargetState = (id, state) => {
+    if (!(id in targets)) {
+      throw new Error(`itaipu dam: no target ${id}`);
+    }
+    if (!TARGET_STATES.includes(state)) {
+      throw new Error(`itaipu dam: a target is ${TARGET_STATES.join(', ')}, not ${state}`);
+    }
+    if (states[id] === state) {
+      return;
+    }
+    if ((states[id] === 'destroyed') !== (state === 'destroyed')) {
+      char(id, state === 'destroyed');
+    }
+    states[id] = state;
+    damage.set(id, state);
+    /* No draw at all while nothing burns. */
+    damage.points.visible = targetIds.some((t) => states[t] !== 'ok');
+  };
+  damage.points.visible = false;
   ctx.progress(1);
+  const buildMs = performance.now() - started;
 
   const counts = () => ({
+    buildMs,
     solids: solids.length,
     boxes: boxes.length,
     capsules: capsules.length,
     roofs: records.length,
     meshes: group.children.length,
+    targets: targetIds.length,
+    burning: targetIds.filter((id) => states[id] !== 'ok').length,
     triangles,
     mainTriangles,
   });
   return {
     group,
-    update() {},
+    update(step) {
+      damage.update(step);
+    },
     dispose() {},
     stats: counts,
+    /* The war mode's targets (docs/WARFARE-PLAN.md section 8), frozen:
+     * { id: { at: [x, y, z], r, part, colliders } }, `colliders` the
+     * static collider indices a hit on the target is (none for the yard,
+     * which the war package builds), and their state. */
+    targets,
+    setTargetState,
+    targetState: (id) => states[id],
     /* What scripts/dam-check.js measures: the drawn faces the collision
      * must hold, the figures as built, where to fly, and the part's own
      * collider indices. */

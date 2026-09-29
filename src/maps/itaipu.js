@@ -377,6 +377,10 @@ async function buildItaipu(shell, progress, q) {
     /* The reservoir and the river in src/game/water.js's lake form, for
      * the shell to declare to the plant (package C's water host). */
     lakes,
+    /* The war mode's targets and their damage, the dam part's
+     * (docs/WARFARE-PLAN.md section 8). */
+    targets: parts.dam.targets,
+    setTargetState: (id, state) => parts.dam.setTargetState(id, state),
     setNextGate() {},
     targetAim: () => AIM,
     approachSide: () => null,

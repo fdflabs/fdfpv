@@ -22,7 +22,14 @@
  *   gap        a Timber flown out between two penstocks meets nothing,
  *              and one let down onto a penstock meets it;
  *   chute      a Timber put down on the spillway chute skids down it on
- *              its floor record and never through it.
+ *              its floor record and never through it;
+ *   targets    the war mode's targets (docs/WARFARE-PLAN.md section 8):
+ *              intake-0..19, gate-0..13, penstock-0..19 and yard-right
+ *              all present, each at a point of the drawn dam within
+ *              TARGET_ON of it (the yard on the ground), its colliders
+ *              the dam's own and within its radius, and every state
+ *              drawn, the charred colour put on and taken off, with no
+ *              page error.
  *
  *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/dam-check.js [--only=count,figures,...]
  *
@@ -56,13 +63,20 @@ import { airframeById } from '../configs/airframes.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
 const onlyArg = process.argv.find((a) => a.startsWith('--only='));
-const ONLY = onlyArg ? onlyArg.slice(7).split(',') : ['count', 'figures', 'faces', 'land', 'face', 'gap', 'chute'];
+const ONLY = onlyArg ? onlyArg.slice(7).split(',') : ['count', 'figures', 'faces', 'targets', 'land', 'face', 'gap', 'chute'];
 
 /* Section 6 and section 14, row D. */
 const SOLIDS_MAX = 15000;
 const FIGURE_TOL = 0.01;
 const FACE_POINTS = 400;
 const FACE_TOL = 0.5;
+const TARGET_ON = 0.1;
+const TARGET_IDS = [
+  ...Array.from({ length: 20 }, (_, k) => `intake-${k}`),
+  ...Array.from({ length: 14 }, (_, k) => `gate-${k}`),
+  ...Array.from({ length: 20 }, (_, k) => `penstock-${k}`),
+  'yard-right',
+];
 const AIRFRAME = 'timber1500';
 /* A little over the Timber's 7.2 m/s clean stall (configs/airframes.js). */
 const LAND_SPEED = 8.5;
@@ -207,6 +221,62 @@ const FACES = `(() => {
   return out;
 })()`;
 
+/* Each target's distance to the dam's drawn triangles (the yard's to the
+ * ground), and its colliders' distance to it. */
+const TARGETS = `(() => {
+  const part = window.__mapScene().userData.itaipu.parts.dam;
+  const d = part.survey();
+  const col = d.colliders;
+  const solids = new Set(d.solidIndices);
+  const tris = [];
+  part.group.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh) return;
+    const p = o.geometry.getAttribute('position').array;
+    for (let i = 0; i + 8 < p.length; i += 9) tris.push(i, p);
+  });
+  const near = (x, y, z) => {
+    let best = Infinity;
+    for (let k = 0; k < tris.length; k += 2) {
+      const i = tris[k], p = tris[k + 1];
+      const ax = p[i], ay = p[i + 1], az = p[i + 2];
+      const minx = Math.min(ax, p[i + 3], p[i + 6]), maxx = Math.max(ax, p[i + 3], p[i + 6]);
+      const miny = Math.min(ay, p[i + 4], p[i + 7]), maxy = Math.max(ay, p[i + 4], p[i + 7]);
+      const minz = Math.min(az, p[i + 5], p[i + 8]), maxz = Math.max(az, p[i + 5], p[i + 8]);
+      if (x < minx - best || x > maxx + best || y < miny - best || y > maxy + best || z < minz - best || z > maxz + best) continue;
+      const ux = p[i + 3] - ax, uy = p[i + 4] - ay, uz = p[i + 5] - az;
+      const vx = p[i + 6] - ax, vy = p[i + 7] - ay, vz = p[i + 8] - az;
+      let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+      const nl = Math.hypot(nx, ny, nz);
+      if (nl < 1e-9) continue;
+      nx /= nl; ny /= nl; nz /= nl;
+      const dist = (x - ax) * nx + (y - ay) * ny + (z - az) * nz;
+      const qx = x - nx * dist - ax, qy = y - ny * dist - ay, qz = z - nz * dist - az;
+      const uu = ux * ux + uy * uy + uz * uz, uv = ux * vx + uy * vy + uz * vz, vv = vx * vx + vy * vy + vz * vz;
+      const qu = qx * ux + qy * uy + qz * uz, qv = qx * vx + qy * vy + qz * vz;
+      const den = uu * vv - uv * uv;
+      const a = (vv * qu - uv * qv) / den, b = (uu * qv - uv * qu) / den;
+      if (a >= -1e-6 && b >= -1e-6 && a + b <= 1 + 1e-6) best = Math.min(best, Math.abs(dist));
+    }
+    return best;
+  };
+  const out = {};
+  for (const [id, t] of Object.entries(part.targets)) {
+    const [x, y, z] = t.at;
+    const on = t.part === 'yard' ? Math.abs(window.__surface(x, z, -1e9) - y) : near(x, y, z);
+    let far = 0, foreign = 0;
+    for (const i of t.colliders) {
+      if (!solids.has(i)) foreign += 1;
+      const r = col.fbox[i] ? 0 : col.fr[i];
+      const dx = Math.max(Math.min(col.fax[i], col.fbx[i]) - r - x, 0, x - Math.max(col.fax[i], col.fbx[i]) - r);
+      const dy = Math.max(Math.min(col.fay[i], col.fby[i]) - r - y, 0, y - Math.max(col.fay[i], col.fby[i]) - r);
+      const dz = Math.max(Math.min(col.faz[i], col.fbz[i]) - r - z, 0, z - Math.max(col.faz[i], col.fbz[i]) - r);
+      far = Math.max(far, Math.hypot(dx, dy, dz));
+    }
+    out[id] = { part: t.part, r: t.r, on, colliders: t.colliders.length, far, foreign, frozen: Object.isFrozen(t) };
+  }
+  return out;
+})()`;
+
 /* One flight: throw, release, sample until `ms` of the page's clock. */
 async function fly(page, plan, ms, stick = [0, 0, 0, 0]) {
   await page.evaluate(`window.__crashThrow(${JSON.stringify({ ...plan, hold: true, fresh: true })})`);
@@ -277,6 +347,90 @@ async function main() {
           fail(`${r.label}: ${r.over} of ${FACE_POINTS} points more than ${FACE_TOL} m from its ${r.kind === 'wall' ? 'solids' : 'ground'}, worst ${r.worst.toFixed(2)} m`);
         }
       }
+    }
+
+    if (ONLY.includes('targets')) {
+      const got = JSON.parse(await page.evaluate(`JSON.stringify(${TARGETS})`));
+      const missing = TARGET_IDS.filter((id) => !(id in got));
+      const extra = Object.keys(got).filter((id) => !TARGET_IDS.includes(id));
+      let worstOn = 0;
+      let worstId = null;
+      for (const id of TARGET_IDS.filter((i) => i in got)) {
+        const t = got[id];
+        if (t.on > worstOn) {
+          worstOn = t.on;
+          worstId = id;
+        }
+        if (t.on > TARGET_ON) {
+          fail(`target ${id} is ${t.on.toFixed(2)} m off the drawn ${t.part === 'yard' ? 'ground' : 'dam'}`);
+        }
+        if (t.part !== 'yard' && !t.colliders) {
+          fail(`target ${id} lists no colliders`);
+        }
+        if (t.foreign || t.far > t.r) {
+          fail(`target ${id}: ${t.foreign} collider(s) not the dam's, the farthest ${t.far.toFixed(1)} m from it (radius ${t.r})`);
+        }
+        if (!t.frozen) {
+          fail(`target ${id} is not frozen`);
+        }
+      }
+      console.log(`targets: ${Object.keys(got).length} (${TARGET_IDS.length} wanted), missing ${missing.join(', ') || 'none'}, extra ${extra.join(', ') || 'none'}; `
+        + `worst distance to the drawn geometry ${worstOn.toFixed(3)} m (${worstId}), tolerance ${TARGET_ON}`);
+      for (const id of missing) {
+        fail(`target ${id} missing`);
+      }
+      /* Every state drawn: the draw on, each target through smoke, fire,
+       * destroyed and back, frames between, the clock moving. */
+      await page.evaluate('window.__drawOff(false)');
+      await page.evaluate('window.__setCam(-500, 330, -1100, 0, 170, -1650, 60)');
+      await page.sleep(1500);
+      const quiet = JSON.parse(await page.evaluate('JSON.stringify(window.__renderStats())'));
+      const errs0 = page.errors.length;
+      const report = [];
+      for (const state of ['smoke', 'fire', 'destroyed', 'ok']) {
+        const r = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+          const part = window.__mapScene().userData.itaipu.parts.dam;
+          const t0 = performance.now();
+          for (const id of ${JSON.stringify(TARGET_IDS)}) part.setTargetState(id, ${JSON.stringify(state)});
+          const ms = performance.now() - t0;
+          const pen = part.group.getObjectByName('itaipu-dam-penstocks').geometry.getAttribute('color').array[0];
+          const col = Math.min(...part.group.getObjectByName('itaipu-dam-intake-columns').instanceColor.array);
+          const look = part.group.getObjectByName('itaipu-dam-damage').geometry.getAttribute('aLook').array;
+          let puffs = 0;
+          for (let i = 2; i < look.length; i += 4) puffs += look[i] > 0 ? 1 : 0;
+          return { ms, pen, col, puffs, stats: part.stats() };
+        })())`));
+        for (let k = 1; k <= 3; k += 1) {
+          await page.evaluate(`window.__animTo(${k * 700})`);
+          await page.sleep(500);
+        }
+        const rs = JSON.parse(await page.evaluate('JSON.stringify(window.__renderStats())'));
+        if ((r.puffs > 0) !== (state !== 'ok') || (state !== 'ok' && r.puffs % TARGET_IDS.length !== 0)) {
+          fail(`state ${state}: ${r.puffs} puffs drawn for ${r.stats.burning} targets`);
+        }
+        report.push(`${state}: set all ${TARGET_IDS.length} in ${r.ms.toFixed(2)} ms, ${r.stats.burning} burning, ${r.puffs} puffs, penstock colour ${r.pen.toFixed(3)}, darkest intake column ${r.col.toFixed(3)}, frame ${rs.calls} calls (${rs.calls - quiet.calls} over none burning)`);
+        const charred = r.pen < 0.3 && r.col < 0.3;
+        if ((state === 'destroyed') !== charred) {
+          fail(`state ${state}: the parts are ${charred ? '' : 'not '}charred`);
+        }
+        if (r.stats.burning !== (state === 'ok' ? 0 : TARGET_IDS.length)) {
+          fail(`state ${state}: ${r.stats.burning} targets not ok`);
+        }
+      }
+      for (const line of report) {
+        console.log(`  ${line}`);
+      }
+      const bad = await page.evaluate(`(() => { try { window.__mapScene().userData.itaipu.parts.dam.setTargetState('intake-99', 'fire'); return 'accepted'; } catch (e) { return 'refused'; } })()`);
+      console.log(`  an unknown target is ${bad}`);
+      if (bad !== 'refused') {
+        fail('setTargetState accepted an unknown target');
+      }
+      const newErrs = page.errors.slice(errs0).filter((e) => !/net::ERR_|Failed to load resource/.test(e));
+      if (newErrs.length) {
+        fail(`drawing the target states logged ${newErrs.length} error(s), first ${newErrs[0]}`);
+      }
+      await page.evaluate('window.__setCam()');
+      await page.evaluate('window.__drawOff(true)');
     }
 
     /* The first throw of a page pays for the crash world; take it in the air. */
