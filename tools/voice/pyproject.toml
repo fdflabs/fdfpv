@@ -1,0 +1,31 @@
+# Python environment for the war mode's voice and music build. Kokoro
+# speaks a reference clip, Chatterbox clones it for every line, Whisper
+# listens to each take, and numpy and scipy put it through the radio.
+#
+# The pins are exact because a different torch or model build is a
+# different take of every line. chatterbox-tts pins torch 2.6.0 itself.
+# setuptools stays under 81 because resemble-perth, Chatterbox's
+# watermarker, imports pkg_resources, which setuptools 81 removed; without
+# it perth imports as None and the model fails to construct.
+#
+# This file is part of WebFPVSimulator, licensed GPLv3 or later.
+
+[project]
+name = "fdfpv-war-voice"
+version = "0.1.0"
+description = "Builds the war mode's radio voice and music from assets/audio/war/lines.json"
+license = "GPL-3.0-or-later"
+requires-python = "==3.12.*"
+dependencies = [
+  "chatterbox-tts==0.1.7",
+  "kokoro==0.9.4",
+  "misaki[en]==0.9.4",
+  "numpy>=1.26,<2",
+  "scipy==1.15.3",
+  "soundfile==0.13.1",
+  "transformers==5.2.0",
+  "setuptools<81",
+]
+
+[tool.uv]
+package = false

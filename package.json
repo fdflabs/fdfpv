@@ -194,6 +194,7 @@
     "input:selftest": "node scripts/input-selftest.js",
     "mouse:shell": "node scripts/mouse-shell.js",
     "music:selftest": "node scripts/music-selftest.js",
+    "voice:check": "python3 tools/voice/check.py",
     "test:edge": "node edge/selftest.js",
     "test:tracks": "node tracks-api/selftest.js",
     "cloud:selftest": "node scripts/cloud-selftest.js",
