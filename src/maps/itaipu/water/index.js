@@ -7,8 +7,10 @@
  *   (swiss2/water/surface.js): Fresnel at water's index, the sun's
  *   glitter, ripples drifting with the wind (on the river, downstream
  *   with the current), shore foam, and the body's colour deepening away
- *   from the shore. Past the ring each body carries on over the apron
- *   (APRON_REACH), so from the air the lake fades into the haze.
+ *   from the shore; calmer than swiss2's lake, and without its patches
+ *   over the bed (LOOK mottle and gust). Past the ring each body carries
+ *   on over the apron (APRON_REACH), so from the air the lake fades into
+ *   the haze.
  *
  *   The spillway's three chutes running white, a sheet CHUTE_SHEET deep
  *   over package D's chute floors (the dam part's roof records of kind
@@ -109,10 +111,10 @@ const PLUNGE_R = 170;
  */
 const LOOK = {
   reservoir: {
-    body: [0.02, 0.075, 0.085], shallow: [0.05, 0.1, 0.075], deep: [0.012, 0.05, 0.07], clarity: 0.9, ripple: 0.35, roughness: 0.035,
+    body: [0.018, 0.055, 0.09], shallow: [0.04, 0.07, 0.06], deep: [0.012, 0.042, 0.078], clarity: 0.9, ripple: 0.15, roughness: 0.03, mottle: 0.15, gust: 0.4,
   },
   river: {
-    body: [0.035, 0.07, 0.062], shallow: [0.06, 0.085, 0.065], deep: [0.028, 0.06, 0.058], clarity: 1.2, ripple: 0.55, roughness: 0.05,
+    body: [0.024, 0.036, 0.03], shallow: [0.05, 0.047, 0.032], deep: [0.018, 0.03, 0.028], clarity: 2.5, ripple: 0.25, roughness: 0.05, mottle: 0, gust: 0.5,
   },
 };
 /* A spillway at speed is air as much as water: white, a little green
@@ -339,7 +341,11 @@ const FIELD_GLSL = /* glsl */ `
   uniform float uItLevel;
   uniform vec4 uItChurn;
   uniform vec3 uItChurnN;
+  uniform vec2 uItCalm;
   const float s2Sun = 1.0;
+  float itMottle(float mott) {
+    return mix(1.0 - 0.28 * uItCalm.x, 1.0 + 0.22 * uItCalm.x, smoothstep(0.3, 0.7, mott));
+  }
   vec4 itWater(vec2 p) {
     vec2 g = (p - uItGrid.xy) / uItGrid.z;
     if (g.x < 0.0 || g.y < 0.0 || g.x > 1.0 || g.y > 1.0) {
@@ -373,6 +379,13 @@ function withField(THREE, mat, uniforms) {
   const baseKey = mat.customProgramCacheKey();
   const DECL = 'varying vec4 vWater;';
   const FOAM = 'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.86, 0.88), wFoam);';
+  /* swiss2's lake's broad patches over its bed, and its gusts and slicks:
+   * scaled by uItCalm (x the patches, y the gusts' contrast), since from
+   * the air a big warm reservoir reads one even colour, calmed and not
+   * blotched, and a turbid river shows nothing of its bed. A pattern, as
+   * MAIN below. */
+  const MOTT = /mix\(0\.72, 1\.22, smoothstep\(0\.3, 0\.7, mott\)\)/;
+  const WINDY = 'float windy = max(0.4 * (1.0 - slick), gust);';
   /* The fragment shader's main, where the field's depth is read once. A
    * pattern, not a string: it is the shader's text, not copy. */
   const MAIN = /void main\(\) \{/;
@@ -380,7 +393,7 @@ function withField(THREE, mat, uniforms) {
     base.call(this, shader, renderer);
     Object.assign(shader.uniforms, uniforms);
     const fs = shader.fragmentShader;
-    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MAIN.test(fs)) {
+    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MOTT.test(fs) || !fs.includes(WINDY) || !MAIN.test(fs)) {
       throw new Error('itaipu water: swiss2\'s water shader no longer has the lines the depth field is spliced at');
     }
     shader.fragmentShader = fs
@@ -388,6 +401,8 @@ function withField(THREE, mat, uniforms) {
       .replace(/\bvWater\b/g, 'iWater')
       .replace('@DECL@', `${DECL}\n${FIELD_GLSL}`)
       .replace(MAIN, (m) => `${m}\n  vec4 iWater = itWater(vWaterWorld.xz);`)
+      .replace(MOTT, 'itMottle(mott)')
+      .replace(WINDY, 'float windy = mix(0.4, max(0.4 * (1.0 - slick), gust), uItCalm.y);')
       .replace(FOAM, `{
           float churn = itChurn(vWaterWorld.xz);
           if (churn > 0.0) {
@@ -527,6 +542,7 @@ export async function buildPart(ctx) {
       uItLevel: { value: body.y },
       uItChurn: { value: churn },
       uItChurnN: { value: new THREE.Vector3(pn[0], pn[1], body.name === 'river' ? CHURN_REACH : 0) },
+      uItCalm: { value: new THREE.Vector2(look.mottle, look.gust) },
     };
     const env = withField(THREE, waterMaterial(opts), uniforms);
     env.name = `itaipu-water-${body.name}`;
