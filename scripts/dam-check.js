@@ -7,10 +7,10 @@
  *
  *   count      the dam's solids, at most 15 000 (section 6's budget);
  *   figures    every row of section 6's table dam.json carries a figure
- *              for, against the geometry as built, within 1 %; a height
- *              the ground under the part is lower than its published
- *              foundation is built taller, down to that ground, and is
- *              reported, not failed, when it is at least the figure;
+ *              for, against the geometry as built, within 1 %; a part's
+ *              height is its concrete's, from its published foundation,
+ *              and the basalt drawn under it down to A's flattened
+ *              footprint is printed beside;
  *   faces      400 points on every drawn face the part names: a wall's
  *              within 0.5 m of one of the dam's solids, a top's within
  *              0.5 m of the ground height() gives there;
@@ -91,8 +91,7 @@ function seed() {
 /* ------------------------------------------------------------ figures */
 
 /* What the built geometry says for each published figure: [row, what,
- * published, built, kind]. `height` rows may be built taller (down to
- * lower ground); `length` and `count` rows must match within 1 %. */
+ * published, built, kind], every one within 1 %. */
 function figureRows(dam, f) {
   const by = Object.fromEntries(dam.map((e) => [e.part, e]));
   const g = (p) => by[p].figures;
@@ -120,6 +119,7 @@ function figureRows(dam, f) {
     ['powerhouse', 'unit spacing', g('powerhouse').unitSpacing, f.unitSpacing, 'length'],
     ['penstocks', 'count', g('penstocks').count, f.penstocks, 'count'],
     ['penstocks', 'inside diameter', g('penstocks').innerDiameter, f.penstockDiameter, 'length'],
+    ['penstocks', 'clear gap (unit spacing less the diameter)', g('powerhouse').unitSpacing - g('penstocks').innerDiameter, f.penstockGap, 'length'],
     ['rockfill dam', 'crest length', g('rockfill dam').crestLength, f['rockfill dam crest'], 'length'],
     ['left bank earth dam', 'crest length', g('left bank earth dam').crestLength, f['left bank earth dam crest'], 'length'],
     ['right bank earth dam', 'crest length', g('right bank earth dam').crestLength, f['right bank earth dam crest'], 'length'],
@@ -256,13 +256,15 @@ async function main() {
       console.log('figures (published, built):');
       for (const [part, what, want, got, kind] of figureRows(dam, survey.figures)) {
         const off = (got - want) / want;
-        const taller = kind === 'height' && off > FIGURE_TOL;
-        const ok = Math.abs(off) <= FIGURE_TOL || taller;
-        console.log(`  ${ok ? 'ok  ' : 'BAD '} ${part} ${what}: ${want}, ${Number.isFinite(got) ? +got.toFixed(2) : got} (${(off * 100).toFixed(2)} %)${taller ? ', built taller: the ground under it is lower than its foundation' : ''}`);
+        const ok = Math.abs(off) <= FIGURE_TOL;
+        console.log(`  ${ok ? 'ok  ' : 'BAD '} ${part} ${what}: ${want}, ${Number.isFinite(got) ? +got.toFixed(2) : got} (${(off * 100).toFixed(2)} %)`);
         if (!ok) {
           fail(`${part} ${what}: published ${want}, built ${got}`);
         }
       }
+      /* Where A's flattened footprint lies under a part's published
+       * foundation, the part stands on basalt drawn down to it. */
+      console.log(`  basalt under the foundation: spillway ${survey.figures.spillwayBasalt.toFixed(1)} m, right lateral ${survey.figures.rightLateralBasalt.toFixed(1)} m`);
     }
 
     if (ONLY.includes('faces')) {
