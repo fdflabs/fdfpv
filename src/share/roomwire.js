@@ -468,6 +468,10 @@ export function checkWhack(m) {
  *   c to r   { type: 'mute', seats: [seat, ...] }   the whole set, each time
  *   c to r   { type: 'report', seat, reason }
  *   r to c   { type: 'reported', seat }              to the reporter only
+ *   c to r   { type: 'unreport', seat }               the sender's own report back
+ *   r to c   { type: 'unreported', seat, undone }     to the reporter only;
+ *                                                     undone false when there
+ *                                                     was none still counting
  */
 export const CHAT_PRESETS = [
   'hello', 'nice_flying', 'race', 'follow_me', 'wait_for_me', 'oops',
@@ -478,6 +482,9 @@ export const EMOTES = ['wave', 'thumbs_up', 'smoke_puff', 'clap', 'laugh', 'wow'
  * its seat is ignored (edge/rooms/safety.js roomName). */
 export const REPORT_REASONS = ['ramming', 'spam', 'following', 'room_name'];
 export const ROOM_NAME_REPORT = REPORT_REASONS.indexOf('room_name');
+/* How long a report counts toward a removal, and so how long its pilot
+ * can take it back (edge/rooms/safety.js unreport). */
+export const REPORT_WINDOW_MS = 5 * 60 * 1000;
 /* Quick chat and emotes share one allowance: CHAT_BURST at once, then one
  * every CHAT_EVERY_MS. */
 export const CHAT_BURST = 3;

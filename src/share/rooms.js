@@ -379,6 +379,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onEvent?.(m);
       } else if (m.type === 'reported') {
         handlers.onReported?.(m.seat);
+      } else if (m.type === 'unreported') {
+        handlers.onUnreported?.(m.seat, m.undone === true);
       } else if (m.type === 'room') {
         if (welcome) {
           welcome.name = m.name;

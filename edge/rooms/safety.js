@@ -14,7 +14,9 @@
  *   report                  a reason index; reports from distinct pilots
  *                           within REPORT_WINDOW_MS that reach max(2, a
  *                           third of the room) remove the target for
- *                           REMOVE_MS; a pilot files REPORTS_PER_WINDOW
+ *                           REMOVE_MS; a pilot files REPORTS_PER_WINDOW;
+ *                           an unreport takes the sender's own report
+ *                           back while it still counts
  *   the room's name         the reason ROOM_NAME_REPORT is against the
  *                           room's typed name, not a seat: the same count
  *                           of distinct pilots takes the name away for the
@@ -58,11 +60,11 @@
  */
 
 import {
-  CLOSE_REMOVED, FLAG_SPAWNING, POSE_BYTES, REPORT_REASONS, ROOM_NAME_REPORT,
+  CLOSE_REMOVED, FLAG_SPAWNING, POSE_BYTES, REPORT_REASONS, REPORT_WINDOW_MS, ROOM_NAME_REPORT,
   chatAllowance, eventPresetId, takeChat,
 } from '../../src/share/roomwire.js';
 
-export const REPORT_WINDOW_MS = 5 * 60 * 1000;
+export { REPORT_WINDOW_MS };
 export const REPORTS_PER_WINDOW = 3;
 export const REMOVE_MS = 30 * 60 * 1000;
 export const RAM_WINDOW_MS = 5 * 60 * 1000;
@@ -94,7 +96,10 @@ export class RoomSafety {
     this.core = core;
     /* token -> what this module knows of that pilot, in memory only. */
     this.pilots = new Map();
-    /* [{ target, from, at }], target a token, from a reporter's address or token. */
+    /* [{ target, seat, from, by, at }]: target the reported token (or
+     * 'room') and seat its seat then, from the reporter's address or
+     * token, by the reporter's own token, the one pilot who may take it
+     * back (unreport). */
     this.reports = [];
   }
 
@@ -138,6 +143,9 @@ export class RoomSafety {
     }
     if (msg.type === 'report') {
       return this.report(conn, s, msg, now);
+    }
+    if (msg.type === 'unreport') {
+      return this.unreport(conn, s, msg, now);
     }
     return null;
   }
@@ -196,7 +204,7 @@ export class RoomSafety {
     const from = s.address || s.token;
     this.reports = this.reports.filter((r) => now - r.at < REPORT_WINDOW_MS);
     if (!this.reports.some((r) => r.target === target && r.from === from)) {
-      this.reports.push({ target, from, at: now });
+      this.reports.push({ target, seat: naming ? 0 : msg.seat, from, by: s.token, at: now });
     }
     const out = [{ send: conn, data: JSON.stringify({ type: 'reported', seat: naming ? 0 : msg.seat }) }];
     if (this.reports.filter((r) => r.target === target).length < this.reportsToRemove()) {
@@ -207,6 +215,27 @@ export class RoomSafety {
       return [...out, ...this.core.hideName()];
     }
     return [...out, ...this.remove(targetConn, now)];
+  }
+
+  /*
+   * A report taken back by the pilot who filed it (a report sent by
+   * accident): their own report on that seat, while it still counts, is
+   * gone, so it helps remove nobody. Only by, the reporter's token, takes
+   * it back: a second tab on the same address was never a second reporter
+   * and cannot undo the first's. The filed allowance is not given back,
+   * so reporting and taking it back over and over costs the reporter
+   * their reports. The mute that came with the report is the client's,
+   * sent as a mute of its own.
+   */
+  unreport(conn, s, msg, now) {
+    if (!Number.isInteger(msg.seat) || msg.seat < 1) {
+      return [];
+    }
+    const counting = this.reports.filter((r) => now - r.at < REPORT_WINDOW_MS);
+    const mine = (r) => r.by === s.token && r.seat === msg.seat;
+    const undone = counting.some(mine);
+    this.reports = counting.filter((r) => !mine(r));
+    return [{ send: conn, data: JSON.stringify({ type: 'unreported', seat: msg.seat, undone }) }];
   }
 
   reportsToRemove() {

@@ -49,13 +49,15 @@ import { Race, PLANE_REACH } from '../src/game/race.js';
 import { raceGatesOf } from '../src/builder/course.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import {
-  CHAT_BURST, CHAT_EVERY_MS, CHAT_PRESETS, CLOSE_REMOVED, EMOTES, FLAG_SPAWNING, PUBLIC_CAP, REPORT_REASONS,
+  CHAT_BURST, CHAT_EVERY_MS, CHAT_PRESETS, CLOSE_REMOVED, EMOTES, FLAG_SPAWNING, PUBLIC_CAP, REPORT_REASONS, REPORT_WINDOW_MS,
 } from '../src/share/roomwire.js';
 import {
   BENCH_MS, IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
 } from '../edge/rooms/safety.js';
 import { TELEPORT_SPEED } from '../src/game/verify.js';
 import { SYNC_GAP_MS } from '../src/share/rooms.js';
+import { UNDO_MS, createRoomSafety } from '../src/share/roomsafety.js';
+import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { browserSection } from './rooms-selftest-browser.js';
 import { DROP_MS, TAG_M } from '../edge/rooms/tag.js';
@@ -959,7 +961,32 @@ const twin = sock('twin', p5b.address);
 hello(twin);
 run(room.message(twin, JSON.stringify({ type: 'report', seat: sa, reason: 1 }), now, twin.address, newToken));
 check('a second tab on the reporter\'s address is not a second reporter', !p5a2.closed);
+run(room.message(twin, JSON.stringify({ type: 'unreport', seat: sa }), now, twin.address, newToken));
+const twinBack = texts(twin, 'unreported');
+check('nor can it take the first tab\'s report back', twinBack.length === 1 && twinBack[0].undone === false
+  && room.safety.reports.filter((r) => r.seat === sa).length === 1);
 run(room.close(twin, now));
+say(p5c, { type: 'unreport', seat: sa });
+check('a pilot who never reported takes nothing back', texts(p5c, 'unreported')[0].undone === false
+  && room.safety.reports.filter((r) => r.seat === sa).length === 1);
+/* A second on, so the room's text rate (TEXT_PER_S) counts afresh. */
+now += 1000;
+say(p5b, { type: 'unreport', seat: 'all' });
+say(p5b, { type: 'unreport' });
+check('an unreport with no seat is refused', texts(p5b, 'unreported').length === 0);
+say(p5b, { type: 'unreport', seat: sa });
+const back5b = texts(p5b, 'unreported');
+check('the reporter takes their own report back, told to them only', back5b.length === 1 && back5b[0].seat === sa && back5b[0].undone === true
+  && texts(p5c, 'unreported').length === 1 && texts(p5a2, 'unreported').length === 0 && room.safety.reports.length === 0);
+say(p5c, { type: 'report', seat: sa, reason: 1 });
+check('so one more pilot\'s report is one report, and removes nobody', !p5a2.closed);
+say(p5c, { type: 'unreport', seat: sa });
+check('taken back as well', texts(p5c, 'unreported')[1].undone === true && room.safety.reports.length === 0);
+say(p5b, { type: 'report', seat: sa, reason: REPORT_REASONS.indexOf('ramming') });
+now += REPORT_WINDOW_MS;
+say(p5b, { type: 'unreport', seat: sa });
+check('a report that no longer counts has nothing to take back', texts(p5b, 'unreported')[1].undone === false);
+say(p5b, { type: 'report', seat: sa, reason: REPORT_REASONS.indexOf('ramming') });
 say(p5c, { type: 'report', seat: sa, reason: 1 });
 check('a second pilot\'s report removes them', p5a2.closed && p5a2.closed.code === CLOSE_REMOVED);
 check('and the room sees them leave', texts(p5b, 'leave').some((m) => m.seat === sa));
@@ -993,6 +1020,67 @@ for (let i = 1; i <= REPORTS_PER_WINDOW + 1; i += 1) {
   filed5 = texts(nine[0], 'reported').length;
 }
 check(`a pilot files ${REPORTS_PER_WINDOW} reports in five minutes, no more`, filed5 === REPORTS_PER_WINDOW, `${filed5}`);
+
+console.log('phase 5: a report asks first, and can be taken back');
+room = new RoomCore(meta);
+const [ra, rb, rc] = ['ra', 'rb', 'rc'].map((name, i) => {
+  const s = sock(name, `10.9.0.${i + 1}`);
+  hello(s);
+  return s;
+});
+/* ra's own client (src/share/roomsafety.js), its messages put straight
+ * into the room a second apart, so the text rate never decides. */
+const sentByRa = [];
+const raSafety = createRoomSafety((m) => {
+  sentByRa.push(m);
+  now += 1000;
+  run(room.message(ra, JSON.stringify(m), now, ra.address, newToken));
+}, (seat) => `pilot ${seat}`);
+const rbSeat = seatOf(rb);
+const reasonOf = (id) => `report:${REPORT_REASONS.indexOf(id)}`;
+const optionValues = (seat) => raSafety.peerOptions(seat, false).map((o) => o.value);
+raSafety.peerPick(rbSeat, reasonOf('ramming'));
+check('picking a reason sends nothing yet', sentByRa.length === 0 && room.safety.reports.length === 0 && !raSafety.isMuted(rbSeat));
+check('the row asks, with only Confirm and Cancel', raSafety.question(rbSeat) === str('friends.report_confirm', { name: `pilot ${rbSeat}`, reason: str('rooms.report.ramming') })
+  && optionValues(rbSeat).join() === 'confirm,cancel');
+raSafety.peerPick(rbSeat, 'cancel');
+check('cancel sends nothing, and the row is the pilot\'s again', sentByRa.length === 0 && raSafety.question(rbSeat) === null && optionValues(rbSeat)[0] === 'mute');
+raSafety.peerPick(rbSeat, reasonOf('spam'));
+raSafety.peerPick(rbSeat, 'confirm');
+check('confirm sends the report and the mute', sentByRa.map((m) => m.type).join() === 'report,mute' && sentByRa[0].reason === REPORT_REASONS.indexOf('spam')
+  && room.safety.reports.length === 1 && raSafety.isMuted(rbSeat) && ra.attachment.muted.length === 1);
+check('then the pilot\'s row takes it back, and reports them no more', optionValues(rbSeat).join() === 'unmute,unreport,unreport_unmute');
+check(`and an Undo row sits under it for ${UNDO_MS / 1000} s`, raSafety.undoRows(rbSeat).length === 1 && raSafety.undoRows(seatOf(rc)).length === 0);
+raSafety.undoRows(rbSeat)[0].pick('unreport');
+raSafety.unreported(rbSeat, texts(ra, 'unreported')[0].undone);
+check('undo takes the report back in the room and keeps the mute', room.safety.reports.length === 0 && raSafety.isMuted(rbSeat)
+  && ra.attachment.muted.length === 1 && raSafety.note() === str('friends.unreported', { name: `pilot ${rbSeat}` }));
+check('and the row offers the reasons again, and unmute on its own', optionValues(rbSeat).join() === `unmute,${[0, 1, 2].map((i) => `report:${i}`).join()}`);
+raSafety.peerPick(rbSeat, reasonOf('following'));
+raSafety.peerPick(rbSeat, 'confirm');
+check('a report on a pilot already muted does not own the mute', optionValues(rbSeat).join() === 'unmute,unreport');
+raSafety.peerPick(rbSeat, 'unmute');
+raSafety.peerPick(seatOf(rc), reasonOf('ramming'));
+raSafety.peerPick(seatOf(rc), 'confirm');
+say(rb, { type: 'report', seat: seatOf(rc), reason: 0 });
+check('two reports in a room of three remove a pilot, as before', rc.closed && rc.closed.code === CLOSE_REMOVED);
+raSafety.peerPick(rbSeat, 'unreport');
+check('and a report taken back from the row is gone from the room', !room.safety.reports.some((r) => r.seat === rbSeat));
+room = new RoomCore(meta);
+const [ua, ub] = ['ua', 'ub'].map((name, i) => {
+  const s = sock(name, `10.9.1.${i + 1}`);
+  hello(s);
+  return s;
+});
+const uaSafety = createRoomSafety((m) => {
+  now += 1000;
+  run(room.message(ua, JSON.stringify(m), now, ua.address, newToken));
+}, (seat) => `pilot ${seat}`);
+uaSafety.peerPick(seatOf(ub), reasonOf('spam'));
+uaSafety.peerPick(seatOf(ub), 'confirm');
+uaSafety.peerPick(seatOf(ub), 'unreport_unmute');
+check('undo and unmute takes back the report and the mute that came with it', room.safety.reports.length === 0 && !uaSafety.isMuted(seatOf(ub))
+  && ua.attachment.muted.length === 0);
 
 console.log('phase 5: kicks and caps');
 const pubMeta = {
