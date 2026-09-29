@@ -235,7 +235,7 @@ def check_osm(reg):
 # The OpenStreetMap features section 2's landmark table is read from.
 LANDMARK_WAYS = {
     32236291: 'main dam and powerhouse (building, "Usina Hidreletrica de Itaipu")',
-    428443544: 'main dam, diversion side (waterway=dam area, height 150)',
+    428443544: 'right lateral dam footprint, main dam to spillway (waterway=dam area, height 150)',
     32303023: 'right lateral dam axis (waterway=dam line)',
     32303021: 'dam axis east of the main dam (waterway=dam line)',
     262637862: 'spillway (waterway=dam area, usage=spillway)',
