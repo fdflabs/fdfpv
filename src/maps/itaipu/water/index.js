@@ -12,7 +12,7 @@
  *   on over the apron (APRON_REACH), so from the air the lake fades into
  *   the haze. Each body is one sheet, its apron strips and all: one draw.
  *
- *   The spillway's three chutes running white, a sheet CHUTE_SHEET deep
+ *   The spillway's three chutes running (spill.js), a sheet CHUTE_SHEET deep
  *   over package D's chute floors (the dam part's roof records of kind
  *   `spillway chute`, which are built before this part), so the water
  *   lies between D's training walls on D's floor, whatever profile D
@@ -22,8 +22,9 @@
  *   craft that touches the chute rides the floor, the crash world reads
  *   water there (the map's surfaceAt), and it never floats.
  *
- *   White water where the chute plunges into the river, and the churn
- *   of the draft tubes along the powerhouse's downstream face.
+ *   The jets off the flip buckets, the plume and mist where they land and
+ *   the plunge pool's broken water (spill.js), and the churn of the draft
+ *   tubes along the powerhouse's downstream face.
  *
  *   ONE planar mirror, following the body under the camera: over the
  *   reservoir the reservoir mirrors the dam and its shores, down in the
@@ -66,14 +67,15 @@
  */
 
 import { insideWater } from '../../../game/water.js';
+import { SUN_COLOR, SUN_IRRADIANCE } from '../../swiss2/light.js';
+import { sunDirection } from '../look/light.js';
+import {
+  bays, chuteMaterial, plume, PLUNGE_GLSL,
+} from './spill.js';
 
 /* The drawn sheet of water running down the chute over D's floor, m: a
  * spillway's flow at speed is a few decimetres to a metre deep. */
 const CHUTE_SHEET = 0.4;
-/* The roughness the chute's water is drawn with, as a bed slope (the
- * stream shader's measure of white water): the whole chute runs white at
- * speed, its level reach included, not only where the floor is steep. */
-const CHUTE_ROUGH = 0.32;
 /* D's roof records for the chute floors (dam/index.js slopeRoof). */
 const CHUTE_KIND = 'spillway chute';
 
@@ -101,8 +103,13 @@ const MIRROR_REACH = 2000;
  * this far, m. The face is half the powerhouse's published width off its
  * axis (dam.json figures.width). */
 const CHURN_REACH = 170;
-/* The white water where the chute's jet comes down, m round the foot. */
-const PLUNGE_R = 170;
+/* The way the map's wind blows, from the north east. */
+const WIND_TO = [Math.sin(Math.PI * 1.25), -Math.cos(Math.PI * 1.25)];
+/* The river's way where the jets land: down the canyon, south. */
+const PLUNGE_DOWN = [0, 1];
+/* The sky's light on the spray, linear: swiss2's fall's mist's
+ * (swiss2/water/index.js mistLight), under Itaipu's clearer sky. */
+const SPRAY_SKY = [0.7, 0.74, 0.8];
 
 /*
  * The colours, linear. Itaipu's water is a tropical reservoir's, not a
@@ -119,9 +126,6 @@ const LOOK = {
     body: [0.024, 0.036, 0.03], shallow: [0.05, 0.047, 0.032], deep: [0.018, 0.03, 0.028], clarity: 2.5, ripple: 0.25, roughness: 0.05, mottle: 0, gust: 0.5,
   },
 };
-/* A spillway at speed is air as much as water: white, a little green
- * grey in its troughs (chute-running). */
-const CHUTE_BODY = [0.55, 0.58, 0.55];
 
 /* ----------------------------------------------------------- the chute */
 
@@ -155,23 +159,20 @@ export function chuteFloors(roofs) {
 }
 
 /* The sheet over D's floors: per floor a quad CHUTE_SHEET over it, with
- * the stream material's aWater (depth, metres down the chute, across -1
- * to 1, the roughness as a slope) and aFlow. */
+ * spill.js chuteMaterial's aChute (metres down the chute from the gates,
+ * metres across from the bay's middle). */
 function chuteGeometry(THREE, floors, axis) {
   const pos = [];
-  const water = [];
-  const flow = [];
+  const chute = [];
   const idx = [];
   const down = (p) => (p[0] - axis.origin[0]) * axis.along[0] + (p[2] - axis.origin[1]) * axis.along[1];
   for (const { quad } of floors) {
     const [a, b, c, d] = quad;
-    const run = Math.max(1e-6, down(d) - down(a));
-    const slope = Math.max(CHUTE_ROUGH, Math.min(0.8, (a[1] - d[1]) / run));
+    const half = Math.hypot(b[0] - a[0], b[2] - a[2]) / 2;
     const k = pos.length / 3;
     for (const [p, t] of [[a, -1], [b, 1], [c, 1], [d, -1]]) {
       pos.push(p[0], p[1] + CHUTE_SHEET, p[2]);
-      water.push(CHUTE_SHEET, down(p), t, slope);
-      flow.push(axis.along[0], axis.along[1]);
+      chute.push(down(p), t * half);
     }
     /* Up facing whichever way D wound it. */
     const ux = b[0] - a[0];
@@ -183,8 +184,7 @@ function chuteGeometry(THREE, floors, axis) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, k) => (k % 3 === 1 ? 1 : 0)), 3));
-  g.setAttribute('aWater', new THREE.Float32BufferAttribute(water, 4));
-  g.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2));
+  g.setAttribute('aChute', new THREE.Float32BufferAttribute(chute, 2));
   g.setIndex(idx);
   g.computeBoundingSphere();
   return g;
@@ -363,6 +363,7 @@ const FIELD_GLSL = /* glsl */ `
   float itMottle(float mott) {
     return mix(1.0 - 0.28 * uItCalm.x, 1.0 + 0.22 * uItCalm.x, smoothstep(0.3, 0.7, mott));
   }
+  ${PLUNGE_GLSL}
   vec4 itWater(vec2 p) {
     vec2 g = (p - uItGrid.xy) / uItGrid.z;
     if (g.x < 0.0 || g.y < 0.0 || g.x > 1.0 || g.y > 1.0) {
@@ -421,6 +422,32 @@ function withField(THREE, mat, uniforms) {
       .replace(MOTT, 'itMottle(mott)')
       .replace(WINDY, 'float windy = mix(0.4, max(0.4 * (1.0 - slick), gust), uItCalm.y);')
       .replace(FOAM, `{
+          /* The plunge pool: pale, aerated water, and foam torn into
+           * streaks and swirls that the current carries off. */
+          float spill = itPlunge(vWaterWorld.xz);
+          if (spill > 0.0) {
+            vec2 sq = vWaterWorld.xz - uItDown * uTime * 4.0;
+            vec2 sw = vec2(-uItDown.y, uItDown.x);
+            float lace = texture2D(uWaves, vec2(dot(sq, sw) / 23.0, dot(sq, uItDown) / 61.0)).a;
+            float rag = texture2D(uWaves, sq / 7.9 + vec2(uTime * 0.05, 0.0)).a;
+            float fine = texture2D(uWaves, sq / 2.3 - vec2(0.0, uTime * 0.3)).a;
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.16, 0.12), smoothstep(0.0, 0.6, spill) * 0.7);
+            /* Far off, a pixel holds many of the rags and the fine lace
+             * and the foam is a paler sheet torn only at its edges: the
+             * fine terms alone alias into a regular grain. */
+            float far = smoothstep(150.0, 900.0, distance(cameraPosition, vWaterWorld));
+            /* Downstream of the boil the foam lies in lines, the edges
+             * of the eddies the current tears off it: ridges of the
+             * lace, thickest where the water is most churned. */
+            float ridge = 1.0 - abs(lace * 2.0 - 1.0);
+            float lines = smoothstep(0.93 - 0.35 * spill, 0.99 - 0.2 * spill, ridge * 0.8 + rag * 0.2 + fine * 0.1);
+            float lift = mix(lace * 0.45 + rag * 0.35 + fine * 0.2, lace * 0.7 + 0.15, far);
+            float boiled = smoothstep(0.66 - 0.5 * spill, mix(0.8, 0.9, far) - 0.35 * spill, lift) * smoothstep(0.45, 0.9, spill);
+            wFoam = max(wFoam, max(boiled * (1.0 - 0.35 * far), mix(lines, 0.25 * spill, far)) * min(1.0, spill * 1.4));
+            wSlope *= 1.0 + 3.0 * spill * (1.0 - 0.8 * far);
+          }
+        }
+        {
           float churn = itChurn(vWaterWorld.xz);
           if (churn > 0.0) {
             float boil = texture2D(uWaves, vWaterWorld.xz / 4.1 + vec2(uTime * 0.21, -uTime * 0.17)).a;
@@ -560,9 +587,13 @@ export async function buildPart(ctx) {
   if (!floors.length) {
     throw new Error(`itaipu water: no ${CHUTE_KIND} roof records; the dam part must be built before the water`);
   }
-  /* Where the jets come down: past the longest bay's flip bucket. */
-  const reach = Math.max(...floors.map(({ quad }) => (quad[3][0] - axis.origin[0]) * axis.along[0] + (quad[3][2] - axis.origin[1]) * axis.along[1]));
-  const foot = { x: axis.origin[0] + axis.along[0] * (reach + 40), z: axis.origin[1] + axis.along[1] * (reach + 40) };
+  /* Where the jets come down, off each bay's flip bucket. */
+  const river = bodies.find((b) => b.name === 'river');
+  const spill = bays(floors, axis, river.y);
+  if (spill.length !== 3) {
+    throw new Error(`itaipu water: ${spill.length} spillway bays; the plunge pool (spill.js PLUNGE_GLSL) is drawn for three`);
+  }
+  const plunge = spill.map((b) => new THREE.Vector4(b.land.x, b.land.z, b.half, 1));
 
   const tier = MIRROR_SCALE[ctx.quality] != null ? ctx.quality : 'high';
   const scale = MIRROR_SCALE[tier];
@@ -570,7 +601,7 @@ export async function buildPart(ctx) {
     const look = LOOK[body.name] || LOOK.reservoir;
     const colour = new THREE.Color(...look.body);
     const sea = makeWaves();
-    const to = body.name === 'river' ? [0, 1] : [Math.sin(Math.PI * 1.25), -Math.cos(Math.PI * 1.25)];
+    const to = body.name === 'river' ? [0, 1] : WIND_TO;
     const opts = {
       waves,
       time,
@@ -585,7 +616,6 @@ export async function buildPart(ctx) {
       roughness: look.roughness,
       envMap,
       shoreFoam: 0.6,
-      foamAt: body.name === 'river' ? [foot.x, foot.z, PLUNGE_R, 1] : null,
       field: sea,
     };
     const uniforms = {
@@ -595,6 +625,8 @@ export async function buildPart(ctx) {
       uItChurn: { value: churn },
       uItChurnN: { value: new THREE.Vector3(pn[0], pn[1], body.name === 'river' ? CHURN_REACH : 0) },
       uItCalm: { value: new THREE.Vector2(look.mottle, look.gust) },
+      uItPlunge: { value: body.name === 'river' ? plunge : plunge.map(() => new THREE.Vector4()) },
+      uItDown: { value: new THREE.Vector2(...PLUNGE_DOWN) },
     };
     const env = withField(THREE, waterMaterial(opts), uniforms);
     env.name = `itaipu-water-${body.name}`;
@@ -615,17 +647,20 @@ export async function buildPart(ctx) {
   });
   ctx.progress(0.8);
 
-  /* The chutes, drawn over D's floors, whose crash surface is water. */
-  const q0 = floors[0].quad;
-  const bayWidth = Math.hypot(q0[1][0] - q0[0][0], q0[1][2] - q0[0][2]);
-  const chuteMat = waterMaterial({
-    waves, time, wind: { value: new THREE.Vector2(axis.along[0], axis.along[1]) }, flow: true, colour: new THREE.Color(...CHUTE_BODY), clarity: 6, ripple: 1.2, roughness: 0.35, envMap, width: bayWidth,
-  });
-  chuteMat.name = 'itaipu-water-chute';
+  /* The chutes, drawn over D's floors, whose crash surface is water;
+   * the jets off their flip buckets, and the plume where they land. */
+  const chuteMat = chuteMaterial(THREE, { waves, time, envMap });
   const chute = new THREE.Mesh(chuteGeometry(THREE, floors, axis), chuteMat);
   chute.name = 'itaipu-chute';
   chute.receiveShadow = true;
   group.add(chute);
+  const sun = {
+    direction: sunDirection(), color: SUN_COLOR, irradiance: SUN_IRRADIANCE, sky: SPRAY_SKY,
+  };
+  const spray = plume(THREE, spill, axis, PLUNGE_DOWN, WIND_TO, {
+    waves, time, sun, riverY: river.y,
+  });
+  group.add(spray);
   const records = floors.map(({ rec }) => rec);
   for (const rec of records) {
     rec.material = 'water';
@@ -748,6 +783,8 @@ export async function buildPart(ctx) {
         m.env.dispose();
       }
       chuteMat.dispose();
+      spray.geometry.dispose();
+      spray.material.dispose();
       fieldTex.dispose();
       waves.dispose();
     },
