@@ -884,10 +884,20 @@ export async function buildPart(ctx) {
   const up = [0, 1, 0];
   const face = (name, kind, pts) => faces.push({ name, kind, pts });
 
-  /* The ground under a plan: the lowest of its corners and middle, for
-   * the parts with no published foundation. */
-  const lowest = (pts) => Math.min(...pts.map(([x, z]) => ctx.ground(x, z)));
-  const bottomOf = (e, pts) => Math.min(e.baseY ?? Infinity, (e.groundY ?? Infinity) - 2, lowest(pts) - 2);
+  /* Where a part stops: its published foundation, or 2 m under the
+   * ground package A flattened its footprint to, whichever is lower, the
+   * 2 m hiding the terrain's triangles along the footprint's edge. That
+   * ground is dam.json's, not the terrain at the plan's corners, which
+   * reach past the footprint onto the tailrace: the spillway's is its
+   * groundProfile at `ds`, its points' metres down the chute from the
+   * middle of the gates, and every other part's is its groundY. */
+  const bottomOf = (e, ds) => {
+    const g = e.groundProfile ? Math.min(...ds.map(linear(e.groundProfile))) : e.groundY;
+    if (!Number.isFinite(g)) {
+      throw new Error(`itaipu dam: ${e.part} has no groundY or groundProfile in dam.json`);
+    }
+    return Math.min(e.baseY ?? Infinity, g - 2);
+  };
 
   /*
    * A gravity section swept along an axis: [s, y] points from the
@@ -1489,8 +1499,7 @@ export async function buildPart(ctx) {
   /* ================================================== gravity parts */
   const gravity = (e, section, name, colour) => {
     const secs = sectionsOf(e.axis);
-    const pts = secs.flatMap((s) => [offset(s, section.up), offset(s, section.crestDown)]);
-    const base = bottomOf(e, pts.concat(e.footprint || []));
+    const base = bottomOf(e);
     const toe = section.crestDown + (section.bandY - base) * section.slope;
     /* Where the ground A flattened the footprint to is lower than the
      * published foundation, what stands under the foundation is drawn as
@@ -1556,13 +1565,7 @@ export async function buildPart(ctx) {
     const cf = chuteFloor(sp);
     const floor = cf.y;
     const knots = cf.knots.slice(1).map(([d]) => d);
-    const pts = [];
-    for (const u of [-W, W]) {
-      for (const d of [SPILL.upstream, 200, 483]) {
-        pts.push(C.at(u, d));
-      }
-    }
-    const base = bottomOf(sp, pts.concat(sp.footprint));
+    const base = bottomOf(sp, [SPILL.upstream, 483, ...sp.footprint.map(([x, z]) => C.local(x, z)[1])]);
     const at3 = (u, d, y) => {
       const [x, z] = C.at(u, d);
       return [x, y, z];

@@ -4,12 +4,14 @@
  * The engine (src/maps/yellowstone/terrain/engine.js) is a quadtree of
  * 64 cell chunks over a tile pyramid, streamed round the craft and the
  * camera; here it runs on Itaipu's frame (frame.js), the ring of 40.96 km
- * and the hero of 10.24 km. The whole pyramid is 66 tiles, 8.7 MB, so it
- * is not streamed: every tile is fetched before the first chunk is built,
- * the two gaps reconcile.js names are closed on them, and then the
- * engine's own load walks the selection round the spawn. The ceiling is
- * above the whole set, so nothing is ever evicted and nothing is fetched
- * in flight.
+ * and the hero of 10.24 km. The whole pyramid is 86 tiles, 11.4 MB, so
+ * it is not streamed: every tile is fetched before the first chunk is
+ * built, and then the engine's own load walks the selection round the
+ * spawn. The data's pyramid is built from the edited hero and the hero
+ * tiles are whole level 0 nodes (data v2, scripts/itaipu-check.js holds
+ * both), so every level draws the same ground and every node over the
+ * hero splits to 10 m. The ceiling is above the whole set, so nothing is
+ * ever evicted and nothing is fetched in flight.
  *
  * What the map gets: the engine, whose height(x, z) is the drawn ground
  * (the craft's), and ground(x, z), the finest data at a point, which is
@@ -37,12 +39,11 @@ import { Terrain } from '../../yellowstone/terrain/engine.js';
 import { tileKey } from '../../yellowstone/terrain/tiles.js';
 import { HERO } from '../../yellowstone/terrain/frame.js';
 import { ITAIPU_FRAME } from './frame.js';
-import { reconcile } from './reconcile.js';
 
 /*
  * The engine's budgets per preset (src/maps/yellowstone.js has what each
- * one is). The tile ceiling holds the whole pyramid and the hero's pads,
- * 75 tiles of 132 098 bytes, 9.9 MB, under section 13's 12 MB. The mesh
+ * one is). The tile ceiling holds the whole pyramid, 86 tiles of 132 098
+ * bytes on data v2, 11.4 MB, under section 13's 12 MB. The mesh
  * cap holds the chunk buffers under section 13's 24 MB: a chunk is 126 kB
  * (measured, 35.1 MB over 279 at Yellowstone's cap of 300), so 180 is
  * 22.6 MB, and the selection draws 105 to 116 of them at High from the
@@ -96,12 +97,6 @@ export async function buildTerrain({
     const [first] = store.failed.values();
     throw new Error(`itaipu: ${store.failed.size} terrain tile(s) failed to load, first: ${first}`);
   }
-  const t0 = performance.now();
-  const { pads, changed } = reconcile((level, i, j) => store.get(level, i, j), manifest.hero.tiles, ITAIPU_FRAME.coarsest);
-  for (const p of pads) {
-    store.put(HERO, p.i, p.j, p.data);
-  }
-  terrain.reconciled = { pads: pads.map((p) => [p.i, p.j]), changed, ms: performance.now() - t0 };
   await terrain.load(spawn, eye, (f) => progress(0.7 + 0.3 * f));
   return terrain;
 }
