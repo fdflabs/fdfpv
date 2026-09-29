@@ -1441,6 +1441,34 @@ console.log('stale games and the host');
   clock += RESEAT_MS + 100;
   apply(hk)(r5.tick(clock));
   check('and after RESEAT_MS the room is B\'s, stored', hk.get('hosting').token === wB.token);
+
+  /* Handing the room over: only the host can, only to a pilot here. */
+  const hh = new Map([['meta', smeta]]);
+  const r6 = new RoomCore(smeta);
+  const H = sock('handA', '10.7.6.1');
+  const G = sock('handB', '10.7.6.2');
+  join(r6, H, hh);
+  join(r6, G, hh);
+  const wG = texts(G, 'welcome')[0];
+  say(r6, G, { type: 'handhost', seat: 1 }, hh);
+  check('a pilot who is not the host cannot take it: refused "host"', refusals(G).join() === 'host' && r6.host() === 1);
+  say(r6, H, { type: 'handhost', seat: 7 }, hh);
+  check('nor can the host hand it to a seat nobody holds: refused "gone"', refusals(H).join() === 'gone' && r6.host() === 1);
+  say(r6, H, { type: 'handhost', seat: wG.seat }, hh);
+  check('the host hands it over: everybody is told, and it is stored', r6.host() === wG.seat && hh.get('hosting').token === wG.token
+    && texts(H, 'host').at(-1).seat === wG.seat && texts(G, 'host').at(-1).seat === wG.seat);
+  say(r6, H, { type: 'combat', op: 'start', minutes: 5 }, hh);
+  say(r6, G, { type: 'combat', op: 'start', minutes: 5 }, hh);
+  check('then the old host\'s start is refused and the new host\'s runs', refusals(H).at(-1) === 'host' && r6.combat.on());
+
+  /* A room made before the host was stored: the first pilot back after a
+   * restart holds it, and is stored, so the next restart keeps it. */
+  const old = new Map([['meta', smeta]]);
+  const r7 = await load(old);
+  const F = sock('first', '10.7.7.1');
+  join(r7, F, old, { token: 'a'.repeat(32), seat: 2 });
+  check('a room with no stored host: the first pilot back holds it, stored, and its welcome says so',
+    r7.host() === texts(F, 'welcome')[0].seat && texts(F, 'welcome')[0].host === texts(F, 'welcome')[0].seat && old.get('hosting').token === texts(F, 'welcome')[0].token);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
