@@ -89,13 +89,26 @@ import { createLiveLink } from './share/live.js';
 import {
   createRoomLink, figurePick, namePick, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
 } from './share/rooms.js';
+import { createRoomSafety } from './share/roomsafety.js';
+import { createRoomBrowser } from './ui/roombrowser.js';
+import { createRoomRace } from './share/roomrace.js';
+import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
+import { tagHudView, tagResultsView, tagRows } from './ui/roomtaghud.js';
+import {
+  RoomRaceHud, hudView, raceRows, resultsView, trackName,
+} from './ui/roomhud.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  encodePose, normaliseCode,
+  FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
+import { applyHit, checkHit, sideFor } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
+import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
+import { createRoomCombat } from './share/roomcombat.js';
+import { createStreamerLayer } from './render/streamers.js';
+import { createCombatHud } from './ui/combathud.js';
 import { startTrackSync } from './share/cloud.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
@@ -178,6 +191,7 @@ import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, m
 import { GATE_SCALE, gateScaleFor } from './game/track.js';
 import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { FpvOsd } from './ui/fpvhud.js';
+import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { str } from './strings/index.js';
 import { insideWater, waterFor } from './game/water.js';
@@ -601,6 +615,11 @@ export async function boot({
   partsGearOf = (id) => (PROPS[id] ? partsGear(id, partsEntry(ui.settings.parts, id)) : null);
   /* The flight controller's OSD over the FPV camera. See src/ui/fpvhud.js. */
   const fpvOsd = new FpvOsd(uiRoot);
+  /* Where the other pilots in a room are, when the picture does not say.
+   * See src/ui/peermarks.js; a game mode marks its special pilot with
+   * peerMarks.setRole(seat, 'ace'). */
+  const peerMarks = new PeerMarks(uiRoot, shell.renderer.domElement);
+  const peerMarkGround = (x, z) => view.height(x, z, Infinity);
   /*
    * The thumb sticks, on a device that has thumbs to offer. Mounted after
    * the Ui so the overlay sits ABOVE every screen in the stacking order,
@@ -1482,14 +1501,15 @@ export async function boot({
   }
   /*
    * In a room of friends, each pilot starts at their own seat's slot
-   * (src/game/slots.js), on a gateless world only: a track's start is the
-   * track's, and Phase 4 gives a room's racers the start block's lanes.
-   * -1 out of a room, and slot 0 is the map's own spawn, so a flight alone
-   * starts exactly where it always did.
+   * (src/game/slots.js): on a gateless world, and on the room's own track,
+   * where the row is laid across the track's start, so a room's racers
+   * line up side by side rather than in one another. Another track's start
+   * is the track's. -1 out of a room, and slot 0 is the spawn itself, so a
+   * flight alone starts exactly where it always did.
    */
   let roomSlot = -1;
   function roomSlotSpawn(sp) {
-    return roomSlot > 0 && race.freestyle ? slotSpawn(sp, roomSlot) : sp;
+    return roomSlot > 0 && (race.freestyle || roomTrackSeated()) ? slotSpawn(sp, roomSlot) : sp;
   }
   /* Whether this run starts afloat, which is where it rests. */
   function startsAfloat() {
@@ -1833,9 +1853,8 @@ export async function boot({
   let roomLastSendT = null;
   let roomProfileSent = '';
   let roomProfileCheckAt = 0;
-  let roomBusy = null; /* 'creating' while a create is in flight */
   let roomNote = null; /* a one off line under the code row */
-  let roomKickAsk = null; /* { seat, until } between the two presses of a kick */
+  let roomRefusal = null; /* { text, untilMs }: why the room refused a host's action */
   let roomNameOffer = null; /* three picker names, while the screen is open */
 
   function roomName(pick) {
@@ -1850,21 +1869,36 @@ export async function boot({
       figure: figurePick(),
       livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) || null,
       parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
+      ...(ui.roomGame ? { game: ui.roomGame } : {}),
     };
   }
+  /* The room's race (src/share/roomrace.js), wired below at RACING
+   * TOGETHER. Its messages go out on the room's socket. */
+  const roomRace = createRoomRace((obj) => roomLinkState.send(obj));
+  /* Catch the Ace (src/share/roomtag.js), wired below at CATCH THE ACE. */
+  const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   const roomLinkState = createRoomLink({
     onWelcome: (w) => {
+      roomRace.onWelcome(w);
+      roomTag.onWelcome(w);
       roomPeersClear();
       for (const p of w.peers) {
         roomPeerJoin(p.seat, p.name, p.profile);
       }
       roomSlot = w.seat - 1;
+      roomSafety.welcomed();
+      roomCombat.seated(w.seat, runAirframe);
+      if (roomWreckSender) {
+        roomWreckSender.resend();
+      }
       /* A room flies in one world. In free flight the pilot is seated
        * there; on a track they keep their track and see whoever is in its
-       * world. */
-      if (w.map && view && w.map !== view.id && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+       * world. Against the SEAT, not the world drawn: a pilot who chose
+       * another world a moment ago is still looking at the old one while
+       * the new one builds, and comparing with that seated nothing. */
+      if (w.map && w.map !== ui.settings.map && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
         roomNote = str('friends.other_world', { world: mapById(w.map).name });
-        ui.seatMap(w.map);
+        ui.seatMap(w.map, { stay: true });
       }
       ui.refreshFriends();
     },
@@ -1874,8 +1908,22 @@ export async function boot({
     },
     onLeave: (seat) => {
       roomPeerLeave(seat);
+      roomSafety.left(seat);
+      roomCombat.leave(seat);
       ui.refreshFriends();
     },
+    /* Each phase takes the kinds it knows and passes over the rest. */
+    onEvent: (ev) => {
+      roomSafety.event(ev);
+      roomEvent(ev);
+      roomRace.onMessage(ev);
+      roomCombat.onEvent(ev);
+    },
+    onReported: (seat) => {
+      roomSafety.reported(seat);
+      ui.refreshFriends();
+    },
+    onRoom: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
       if (peer) {
@@ -1893,28 +1941,353 @@ export async function boot({
         }
       }
     },
+    onHit: (m) => roomHit(m),
+    onHost: () => ui.refreshFriends(),
+    onMessage: (m) => {
+      if (m.type === 'refused') {
+        roomRefused(m.why);
+        return;
+      }
+      if (m.type === 'combat') {
+        roomCombat.onRound(m);
+        ui.refreshFriends();
+        return;
+      }
+      if (roomRace.onMessage(m) || roomTag.onMessage(m)) {
+        ui.refreshFriends();
+      }
+    },
+    onBinary: (bytes) => {
+      if (roomCombat.onBinary(bytes)) {
+        return;
+      }
+      const got = decodePartsRelay(bytes);
+      const peer = got ? roomPeers.get(got.seat) : null;
+      if (peer) {
+        peer.wreckPieces = got.pieces;
+        if (peer.wreck) {
+          peer.wreck.pieces(got.pieces, performance.now());
+        }
+      }
+    },
     onState: (st) => {
       if (st.phase !== 'open') {
         roomSlot = -1;
       }
       if (st.phase === 'idle' || st.phase === 'failed') {
         roomPeersClear();
+        roomSafety.clear();
+        roomRace.clear();
+        roomRaceRunId = null;
+        roomRaceHud.update(null);
+        roomTag.clear();
+        roomTagRunId = null;
+        roomTagHud.update(null);
+        tagMarkPeers();
+        roomCombat.clear();
+        combatLayer.clear();
+        combatHud.update(roomCombat.round(), 0, null, 0, 0);
       }
+      roomBrowser.watch(roomBrowsing());
       ui.refreshFriends();
     },
   }, () => ({ name: namePick(), profile: roomProfile() }));
+  const roomSafety = createRoomSafety((m) => roomLinkState.send(m), (seat) => {
+    const peer = roomPeers.get(seat);
+    return peer ? roomName(peer.name) : null;
+  });
+  /* The room browser and Make a room (src/ui/roombrowser.js), whose list
+   * is fetched only while somebody could be reading it. */
+  const roomBrowser = createRoomBrowser({
+    ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()), preset: () => ui.roomGame || null,
+  });
+  const roomBrowsing = () => ui.screen === 'rooms' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
+  ui.roomRows = (screen) => roomBrowser.rows(screen);
+  const screenChanged = ui.onScreenChange;
+  ui.onScreenChange = (screen) => {
+    screenChanged(screen);
+    roomBrowser.opened(screen);
+    roomBrowser.watch(roomBrowsing());
+  };
+
+  /*
+   * COMBAT (src/share/roomcombat.js, docs/COMBAT-PLAN.md): fifty metres of
+   * toilet paper behind every pilot while a round is out. This pilot's is
+   * stepped on every plant step (combatStep, in the step loop) with the
+   * pose of that step; the plant never sees it. Every streamer is drawn by
+   * combatLayer, the round by combatHud.
+   */
+  const roomCombat = createRoomCombat(roomLinkState);
+  const combatLayer = createStreamerLayer();
+  const combatNameOf = (seat) => {
+    if (seat === roomCombat.seat()) {
+      return str('friends.you', { name: roomName(namePick()) });
+    }
+    const peer = roomPeers.get(seat);
+    return peer ? roomName(peer.name) : '';
+  };
+  const combatHud = createCombatHud(combatNameOf);
+  const combatPos = new THREE.Vector3();
+  const combatQuat = new THREE.Quaternion();
+  const combatVel = new THREE.Vector3();
+  const combatV = [0, 0, 0];
+  let combatStepped = false;
+  function combatStep(st) {
+    combatStepped = true;
+    poseFromState(st, combatPos);
+    simQuatToThree(st[7], st[8], st[9], st[10], combatQuat);
+    combatQuat.premultiply(qSpawn);
+    simPosToThree(st[4], st[5], st[6], combatVel).applyQuaternion(qSpawn);
+    combatV[0] = combatVel.x;
+    combatV[1] = combatVel.y;
+    combatV[2] = combatVel.z;
+    roomCombat.step(combatPos.x, combatPos.y, combatPos.z, combatQuat.x, combatQuat.y, combatQuat.z, combatQuat.w, combatV, groundAt);
+  }
+  let combatHudAt = 0;
+  /* Once a frame in a room: this pilot's paper to the room, every paper
+   * drawn, the cuts shown, the round on screen. */
+  function combatFrame(now, wallMs, scene, dt) {
+    for (const n of roomCombat.news()) {
+      if (n.kind === 'cut') {
+        /* The owner's SCHWING: on every screen, loudest for the pilot who
+         * made the cut, a big +100 on theirs. */
+        const me = roomCombat.seat();
+        const mine = n.ev.cutter === me;
+        const key = n.ev.victim === me ? 'combat.cut_you' : `combat.${mine ? 'you_' : ''}cut_line`;
+        combatLayer.burst(n.ev.p, streamerColour(n.ev.victim), mine ? 1 : 0.6);
+        audio.schwing(mine ? 1 : 0.35);
+        if (mine && n.ev.points > 0) {
+          combatHud.shout(str('combat.schwing', { points: n.ev.points }));
+        }
+        combatHud.say(str(key, { cutter: combatNameOf(n.ev.cutter), victim: combatNameOf(n.ev.victim), points: n.ev.points }));
+      } else if (n.state === 'on') {
+        combatHud.say(str('combat.go'));
+      } else if (n.state === 'countdown' && (mode === 'title' || mode === 'results')
+        && ROOM_SEAT_SCREENS.includes(ui.screen) && mapReady && !swapInFlight) {
+        /* A round's countdown is the time to take off in, so a pilot
+         * waiting between runs on the room screen goes up with it, as a
+         * Catch the Ace match does: the Combat card's start row is one
+         * press from the air. A pilot already flying flies on. */
+        ui.onAction('fly', ui.settings);
+      }
+    }
+    const paper = roomCombat.paper();
+    for (const n of paper ? paper.news.splice(0, paper.news.length) : []) {
+      if (n.kind === 'tear') {
+        /* The owner's rule, said out loud: over 120 km/h the paper goes. */
+        combatHud.shout(str('combat.tore', { speed: Math.round((n.speed || 0) * 3.6) }), 'warn');
+      }
+    }
+    if (wallMs > combatHudAt) {
+      combatHudAt = wallMs + 200;
+      /* Not over the crash cam's replay, which is another moment. */
+      combatHud.update(mode === 'replay' ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
+        paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow);
+    }
+    if (!roomCombat.out()) {
+      if (combatLayer.count()) {
+        combatLayer.clear();
+      }
+      return;
+    }
+    if (scene && combatLayer.group.parent !== scene) {
+      scene.add(combatLayer.group);
+    }
+    /* The crash cam's replay draws the room as it was, its paper too
+     * (src/replay/paperscene.js), so the paper as it is now is put away
+     * with the live peers (roomDrawPeer) until flight resumes. */
+    combatLayer.group.visible = mode !== 'replay';
+    if (!combatStepped) {
+      roomCombat.idle(dt * 1000, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w, groundAt);
+    }
+    combatStepped = false;
+    roomCombat.send(now);
+    combatLayer.view(shell.camera, shell.canvas.clientHeight || 720);
+    roomCombat.draw(combatLayer, {
+      px: pCurr.x, py: pCurr.y, pz: pCurr.z, qx: qPrev.x, qy: qPrev.y, qz: qPrev.z, qw: qPrev.w,
+    }, (seat) => {
+      const peer = roomPeers.get(seat);
+      return peer && peer.drawnPose ? peer.drawnPose : null;
+    }, (seat) => {
+      const peer = roomPeers.get(seat);
+      return peer ? peer.profile.airframe : null;
+    }, now, wallMs / 1000);
+    combatLayer.update(dt);
+  }
+  /* The Fly with friends rows: the room's host, public or private, starts
+   * and stops a round; everyone sees where it is. `lead` is the room set
+   * up for combat, by its title card or at Make a room: the five minute
+   * start row is then the screen's primary, under the cursor, one press
+   * from a round.
+   *
+   * friends- actions (#143), because that prefix is what the menu hands
+   * to the shell (src/ui/ui.js act). */
+  function combatRows(host, w, lead) {
+    if (!w) {
+      return [];
+    }
+    const r = roomCombat.round();
+    const now = roomLinkState.roomNow();
+    /* Continuous play: between rounds the next one is counting down, and
+     * the host's row stops it. */
+    const next = r.state === 'over' && r.nextAt > 0 && now != null;
+    const mmss = (ms) => {
+      const sec = Math.max(0, Math.ceil(ms / 1000));
+      return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    };
+    const state = r.state === 'on' && now != null
+      ? str('combat.state_on', { minutes: Math.max(0, Math.ceil((r.endsAt - now) / 60000)) })
+      : (next ? str('combat.state_next', { time: mmss(r.nextAt - now) }) : str(`combat.state_${r.state}`));
+    const head = { label: str('combat.card'), section: true };
+    if (host && (r.state === 'idle' || (r.state === 'over' && !next))) {
+      return [head, ...[5, 3].map((minutes, i) => ({
+        label: str('combat.start', { minutes }),
+        note: str('combat.row_note'),
+        action: `friends-combat-${minutes}`,
+        primary: lead && i === 0,
+      }))];
+    }
+    if (host) {
+      return [head, { label: str('combat.stop'), value: state, note: str('combat.stop_note'), action: 'friends-combat-stop' }];
+    }
+    return [head, {
+      label: str('combat.row'), value: state, note: str(r.state === 'idle' ? 'combat.waiting' : 'combat.row_note'), info: true,
+    }];
+  }
+
+  /* The game running in this room, as this screen knows it, or null. */
+  function roomRunning() {
+    const r = roomCombat.round();
+    if (roomRace.race().state === 'on') {
+      return 'race';
+    }
+    if (roomTag.on()) {
+      return 'tag';
+    }
+    return r.state === 'countdown' || r.state === 'on' ? 'combat' : null;
+  }
+
+  /* The room refused something this pilot asked of it as the host: say
+   * why, on the room screen and over the flight. */
+  function roomRefused(why) {
+    const key = `rooms.refused_${why}`;
+    const text = str(key) === key ? str('rooms.refused_host') : str(key);
+    roomRefusal = { text, untilMs: performance.now() + 8000 };
+    /* On the room screen its own row says it; over a flight, the banner. */
+    if (ui.screen === 'flight') {
+      notice = { text, untilMs: performance.now() + 4000 };
+    }
+    ui.refreshFriends();
+  }
+
+  /* The top of the room screen: why the last host action was refused. */
+  function roomRefusalRows() {
+    return roomRefusal && performance.now() < roomRefusal.untilMs ? [{ label: roomRefusal.text, info: true }] : [];
+  }
+
+  /* First in the Game section, for the host: a way out of whatever game is
+   * running, whatever its own rows show, so no game can leave the room
+   * stuck. */
+  function roomEndRows(host, w) {
+    const running = host && w ? roomRunning() : null;
+    return running ? [{ label: str(`rooms.end_${running}`), note: str('rooms.end_note'), action: `friends-end-${running}` }] : [];
+  }
 
   function roomPeerJoin(seat, name, profile) {
     const old = roomPeers.get(seat);
     if (old) {
       roomPeerLeave(seat);
     }
-    roomPeers.set(seat, { seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null });
+    roomPeers.set(seat, {
+      seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null, wreck: null, wreckTable: null, wreckPieces: null, frozenUntil: 0,
+    });
+  }
+
+  /*
+   * PHASE 2, SHARED WRECKS (src/share/roomwrecks.js). A peer's crash
+   * arrives as its part table, then its pieces' world poses; the peer's
+   * wreck is cut from its drawn aircraft and kept with the peer, rebuilt
+   * with the aircraft when that is. Sparks and dust are this screen's own,
+   * thrown where the peer is when the news arrives. A whack on a jelly
+   * piece wobbles the same piece here, when both fly the same course.
+   */
+  let roomWreckSender = null;
+  function roomEvent(ev) {
+    const peer = roomPeers.get(ev.seat);
+    if (!peer) {
+      return;
+    }
+    if (ev.kind === 'crash') {
+      if (ev.clear) {
+        peer.wreckTable = null;
+        peer.wreckPieces = null;
+        if (peer.wreck) {
+          peer.wreck.clear();
+        }
+        return;
+      }
+      const table = checkCrashTable(ev.table);
+      if (!table) {
+        return;
+      }
+      peer.wreckTable = table;
+      peer.wreckPieces = null;
+      /* A mid air hit held this peer where it was struck; its own wreck
+       * takes over from here. */
+      peer.frozenUntil = 0;
+      if (peer.wreck) {
+        peer.wreck.crash(table);
+      }
+      if (peer.last && view && peer.profile.map === view.id) {
+        const at = new THREE.Vector3(peer.last.px, peer.last.py, peer.last.pz);
+        debris.emit(at, AXIS_Y, Math.max(4, Math.hypot(peer.last.vx, peer.last.vy, peer.last.vz)),
+          SURFACE.grass, null, groundAt(at.x, at.z), 'hit');
+      }
+      return;
+    }
+    if (ev.kind === 'whack') {
+      const w = checkWhack(ev);
+      if (w && build && view && w.map === view.id && w.course === String(view.courseKey ?? '')) {
+        build.jiggle(w.i, new THREE.Vector3(w.n[0], w.n[1], w.n[2]), w.square);
+      }
+    }
+  }
+  /* A whack this pilot's plane gave a jelly piece, for the others. */
+  function roomWhack(i, n, square) {
+    if (roomLinkState.state().phase !== 'open' || !view) {
+      return;
+    }
+    roomLinkState.sendEvent({ kind: 'whack', map: view.id, course: String(view.courseKey ?? ''), i, n: [n.x, n.y, n.z], square });
+  }
+  /* The peer's wreck on its current drawing, cut again when that changes. */
+  function roomPeerWreck(peer, scene) {
+    if (!peer.wreckTable) {
+      return;
+    }
+    if (!peer.wreck || peer.wreck.craft !== peer.rig.group) {
+      if (peer.wreck) {
+        peer.wreck.dispose();
+      }
+      peer.wreck = createPeerWreck(peer.rig.group, peer.rig.discs);
+      peer.wreck.craft = peer.rig.group;
+      peer.wreck.crash(peer.wreckTable);
+      if (peer.wreckPieces) {
+        peer.wreck.pieces(peer.wreckPieces, performance.now() - 1000);
+      }
+    }
+    if (peer.wreck.group.parent !== scene) {
+      scene.add(peer.wreck.group);
+    }
+    peer.wreck.group.visible = true;
+    peer.wreck.update(performance.now());
   }
   function roomPeerLeave(seat) {
     const peer = roomPeers.get(seat);
     if (!peer) {
       return;
+    }
+    if (peer.wreck) {
+      peer.wreck.dispose();
     }
     if (peer.rig) {
       peer.rig.dispose();
@@ -1934,6 +2307,7 @@ export async function boot({
    * others. wallMs is the render clock. */
   let roomAutoJoined = false;
   function roomFrame(wallMs, dt) {
+    raceHoldMs = 0;
     /* A ?room= link, or the room this tab was in before a reload: joined
      * once the shell is up, never during boot, because the hello reads
      * the seated aircraft. */
@@ -1952,6 +2326,8 @@ export async function boot({
     if (now == null) {
       return;
     }
+    roomRaceFrame(now, wallMs);
+    roomTagFrame(now, wallMs);
     if (wallMs > roomProfileCheckAt) {
       roomProfileCheckAt = wallMs + 500;
       const p = roomProfile();
@@ -1967,11 +2343,18 @@ export async function boot({
       roomNextSend = Math.max(roomNextSend + 1000 / 30, now - 1000 / 30);
       roomSendPose(now);
     }
+    roomWreckSender ??= createWreckSender(roomLinkState, wreckRig, () => partTable);
+    if (mode === 'flight' || roomWreckSender.active()) {
+      roomWreckSender.frame(now, wallMs);
+    }
     const scene = shell.quad.parent;
     const simT = stateCurr ? stateCurr[0] : 0;
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
+    tagMarkPeers();
+    roomCombat.seated(link.welcome ? link.welcome.seat : 0, runAirframe);
+    combatFrame(now, wallMs, scene, dt);
   }
 
   function roomSendPose(now) {
@@ -2005,6 +2388,7 @@ export async function boot({
     const fitted = PROPS[runAirframe] ? partsEntry(ui.settings.parts, runAirframe).addons : [];
     const flags = (landed ? 0 : FLAG_AIRBORNE)
       | (wrecked ? FLAG_CRASHED : 0)
+      | (roomSpawning(now) ? FLAG_SPAWNING : 0)
       | (smokeLive ? FLAG_SMOKE : 0)
       | (fitted.includes('lights') ? FLAG_LIGHTS : 0)
       | (chute > 0 ? FLAG_CHUTE : 0)
@@ -2037,11 +2421,39 @@ export async function boot({
     }));
   }
 
+  /* Everything of a peer's that is drawn, put away. */
+  function roomHidePeer(peer) {
+    if (peer.rig) {
+      peer.rig.group.visible = false;
+      if (peer.rig.smoke) {
+        peer.rig.smoke.visible = false;
+      }
+    }
+    if (peer.figure) {
+      peer.figure.group.visible = false;
+    }
+    if (peer.wreck) {
+      peer.wreck.group.visible = false;
+    }
+  }
+
   function roomDrawPeer(peer, now, scene, dt, simT) {
+    /* The replay draws the room as it was (src/replay/peerscene.js), so
+     * the room as it is now is put away until flight resumes. */
+    if (mode === 'replay') {
+      roomHidePeer(peer);
+      return;
+    }
+    /* Struck: held where it was drawn at the hit until its own stream
+     * carries what its plant did about it. */
+    if (peer.frozenUntil > now && peer.rig && peer.rig.group.visible) {
+      return;
+    }
     const here = Boolean(scene) && view && peer.profile && peer.profile.map === view.id;
     const drawn = here && peer.last && peer.track.sample(now, nearWeight(Math.hypot(
       peer.last.px - pCurr.x, peer.last.py - pCurr.y, peer.last.pz - pCurr.z,
     )), roomDrawn);
+    peer.drawnPose = drawn ? Object.assign(peer.drawnPose || {}, roomDrawn) : null;
     if (!drawn) {
       if (peer.rig) {
         peer.rig.group.visible = false;
@@ -2072,11 +2484,20 @@ export async function boot({
     if (peer.rig.smoke && peer.rig.smoke.parent !== scene) {
       scene.add(peer.rig.smoke);
     }
+    if (peer.rig.smoke) {
+      peer.rig.smoke.visible = true;
+    }
     if (peer.figure.group.parent !== scene) {
       scene.add(peer.figure.group);
     }
+    /* A muted pilot's aircraft is still drawn, for everyone's safety in
+     * the air, but not their name. */
+    const label = roomSafety.isMuted(peer.seat) ? '' : roomTagName(peer.seat, roomName(peer.name));
+    peer.rig.setLabel(label);
+    peer.figure.setLabel(label);
     peer.rig.group.visible = true;
     peer.rig.pose(roomDrawn, peer.last, dt, simT, shell.canvas.clientHeight || 720, shell.camera.fov);
+    roomPeerWreck(peer, scene);
     const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
     peer.figure.group.position.set(st.x, groundAt(st.x, st.z), st.z);
     peer.figure.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
@@ -2084,6 +2505,99 @@ export async function boot({
     peer.figure.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
   }
 
+  /*
+   * MID AIR (docs/MULTIPLAYER-PLAN.md section 6, src/game/midair.js). The
+   * room judges contact and sends one `hit` to everyone; the two it names
+   * each apply their own side to their own plant at the next 1 ms step
+   * (roomMidairStep, in the step loop), through the journaled module, so
+   * the crash cam's replay flies it again to the bit. Everyone flashes
+   * the contact where it happened and holds the struck aircraft where it
+   * was drawn until its crash event brings its shared wreck (Phase 2,
+   * roomEvent), or ROOM_FREEZE_MS if it broke nothing that makes one.
+   *
+   * SPAWNING: for the five seconds after a flight starts, and until 30 m
+   * from where it started, this aircraft is flagged untouchable, and the
+   * room neither hits it nor lets it hit anyone (section 6.2, rule 5).
+   */
+  const ROOM_SPAWN_MS = 5000;
+  const ROOM_SPAWN_M = 30;
+  const ROOM_FREEZE_MS = 600;
+  const roomSpawn = { at: -Infinity, x: 0, y: 0, z: 0, clear: true, simT: Infinity };
+  let roomMidairSide = null;
+  const roomHits = [];
+  const roomFlashAt = new THREE.Vector3();
+  const roomFlashN = new THREE.Vector3();
+
+  function roomSpawning(now) {
+    const simT = stateCurr[0];
+    /* A new flight, or R: the sim clock starts again from zero. */
+    if (simT < roomSpawn.simT) {
+      Object.assign(roomSpawn, { at: now, x: pCurr.x, y: pCurr.y, z: pCurr.z, clear: false });
+    }
+    roomSpawn.simT = simT;
+    if (!roomSpawn.clear && Math.hypot(pCurr.x - roomSpawn.x, pCurr.y - roomSpawn.y, pCurr.z - roomSpawn.z) >= ROOM_SPAWN_M) {
+      roomSpawn.clear = true;
+    }
+    return now - roomSpawn.at < ROOM_SPAWN_MS || !roomSpawn.clear;
+  }
+
+  function roomHit(m) {
+    if (!checkHit(m)) {
+      return;
+    }
+    const st = roomLinkState.state();
+    const me = st.welcome ? st.welcome.seat : null;
+    const now = roomLinkState.roomNow();
+    const side = sideFor(m, me);
+    roomHits.push({ id: m.id, tc: m.tc, a: m.a, b: m.b, p: m.p, mine: Boolean(side), at: now, applied: null });
+    if (side && mode === 'flight') {
+      roomMidairSide = side;
+    }
+    /* Held where it was drawn until its crash event (Phase 2's wreck,
+     * roomEvent) arrives, at most ROOM_FREEZE_MS; a peer already showing
+     * its wreck is left to it. */
+    for (const seat of [m.a, m.b]) {
+      const peer = roomPeers.get(seat);
+      if (peer && !peer.wreckTable) {
+        peer.frozenUntil = (now ?? 0) + ROOM_FREEZE_MS;
+      }
+    }
+    const scene = shell.quad.parent;
+    if (scene && view && debris.group.parent !== scene) {
+      scene.add(debris.group);
+    }
+    if (view) {
+      roomFlashAt.set(m.p[0], m.p[1], m.p[2]);
+      roomFlashN.set(m.n[0], m.n[1], m.n[2]);
+      const floorY = view.height(m.p[0], m.p[2], m.p[1] + 0.5);
+      const closing = Math.hypot(m.va[0] - m.vb[0], m.va[1] - m.vb[1], m.va[2] - m.vb[2]);
+      debris.emit(roomFlashAt, roomFlashN, closing, -1, m.B.mat, floorY, 'break');
+      debris.emit(roomFlashAt, roomFlashN.negate(), closing, -1, m.A.mat, floorY, 'break');
+    }
+  }
+
+  /* Before a 1 ms step: this pilot's side of a hit, if one has come. */
+  function roomMidairStep(st) {
+    if (!roomMidairSide) {
+      return st;
+    }
+    const side = roomMidairSide;
+    roomMidairSide = null;
+    const r = applyHit(sim.e, side, st);
+    const h = roomHits[roomHits.length - 1];
+    if (h) {
+      h.applied = { rc: r.rc, brk: r.brk, simT: st[0] };
+    }
+    if (crashCam) {
+      crashCam.noteCrash('midair');
+    }
+    return readState();
+  }
+
+  /* Harness only: the peer marks as planned this frame, and a role to
+   * try one with, for scripts/peermarks-two-page.js. */
+  window.__peerMarks = () => peerMarks.summary();
+  window.__peerMarkRole = (seat, role) => peerMarks.setRole(seat, role);
   /* Harness only: the room and what is drawn of it, for
    * scripts/rooms-two-page.js. */
   window.__rooms = () => {
@@ -2095,9 +2609,15 @@ export async function boot({
       seat: st.welcome ? st.welcome.seat : null,
       slot: roomSlot,
       roomNow: roomLinkState.roomNow(),
+      public: Boolean(st.welcome && st.welcome.public),
+      name: st.welcome ? st.welcome.name : null,
+      host: st.welcome ? st.welcome.host : null,
+      heard: roomSafety.heard(),
       peers: [...roomPeers.values()].map((p) => ({
         seat: p.seat,
         name: roomName(p.name),
+        muted: roomSafety.isMuted(p.seat),
+        label: p.rig ? p.rig.label() : null,
         airframe: p.profile.airframe,
         map: p.profile.map,
         livery: p.profile.livery,
@@ -2106,7 +2626,13 @@ export async function boot({
         at: p.rig ? p.rig.group.position.toArray() : null,
         paint: p.rig ? p.rig.paint() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
+        wreck: p.wreck ? p.wreck.summary() : null,
       })),
+      hits: roomHits.map((h) => ({ ...h })),
+      spawning: stateCurr ? roomSpawning(roomLinkState.roomNow() ?? 0) : null,
+      /* This pilot's own pieces as drawn here, to hold against a peer's
+       * drawing of them. */
+      ownWreck: wreckRig.poses(),
     };
   };
   /* Harness only: every slot and station on this map, with the ground
@@ -2129,9 +2655,41 @@ export async function boot({
       }) : null,
     };
   };
+  /* Harness only: the combat round and what this page draws of it, for
+   * scripts/combat-two-page.js. */
+  window.__combat = () => {
+    const paper = roomCombat.paper();
+    const now = roomLinkState.roomNow();
+    const chains = (list) => list.map((c) => ({
+      id: c.id, n: c.n, low: Math.min(...Array.from({ length: c.n }, (_, i) => c.x[i * 3 + 1])), head: [c.x[0], c.x[1], c.x[2]],
+      nodes: Array.from({ length: c.n }, (_, i) => [c.x[i * 3], c.x[i * 3 + 1], c.x[i * 3 + 2]]),
+    }));
+    return {
+      seat: roomCombat.seat(),
+      round: roomCombat.round(),
+      paper: paper ? { links: paper.length(), pull: paper.towTension(), chains: chains(paper.chains()) } : null,
+      peers: [...roomPeers.keys()].map((seat) => ({ seat, chains: chains(roomCombat.peerChains(seat, now)) })),
+      cuts: roomCombat.cuts(),
+      ribbons: combatLayer.count(),
+      /* Each seat's paper as the room holds it, and as this page draws it:
+       * colour seats in runs, tow point first, per drawn chain. */
+      runs: Object.fromEntries([roomCombat.seat(), ...roomPeers.keys()].map((s) => [s, roomCombat.runs(s)])),
+      drawnRuns: Object.fromEntries([roomCombat.seat(), ...roomPeers.keys()].map((s) => [s, combatLayer.colours(s)])),
+      effects: combatLayer.effects(),
+      /* The SCHWING voice exists once the sound is up, and every cut rings
+       * it: how many times it was struck. */
+      schwing: { voice: Boolean(audio.schwingVoice), struck: audio.schwings || 0 },
+      hud: combatHud.shown(),
+      said: combatHud.said(),
+    };
+  };
+  window.__combatStart = (minutes) => roomCombat.start(minutes);
   window.__roomJoin = (code) => roomLinkState.join(code);
-  window.__roomCreate = async () => {
-    const code = await roomLinkState.create(view ? view.id : worldId());
+  window.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
+  window.__roomSay = (kind, id) => roomSafety.say(kind, id);
+  window.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
+  window.__roomCreate = async (room = {}) => {
+    const code = await roomLinkState.create(room.map || (view ? view.id : worldId()), false, room);
     roomLinkState.join(code);
     return code;
   };
@@ -2144,10 +2702,17 @@ export async function boot({
     }
     const st = roomLinkState.state();
     if (st.phase === 'open') {
-      return { value: str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }), note: str('friends.row_in_note') };
+      return {
+        value: st.welcome && st.welcome.public
+          ? str('friends.row_in_public', { name: roomBrowser.title(st.welcome), n: roomPeers.size + 1 })
+          : str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }),
+        note: str('friends.row_in_note'),
+        inRoom: true,
+      };
     }
     if (st.phase === 'connecting') {
-      return { value: str('friends.row_joining', { code: st.code }), note: str('friends.row_in_note') };
+      const unlisted = !st.publicMap && !roomBrowser.listed(st.code);
+      return { value: unlisted ? str('friends.row_joining', { code: st.code }) : str('friends.row_joining_public'), note: str('friends.row_in_note') };
     }
     return { value: '', note: str('friends.row_off') };
   };
@@ -2187,41 +2752,101 @@ export async function boot({
     };
     if (st.phase === 'open' || st.phase === 'connecting') {
       const w = st.welcome;
+      /* A public room has a host too, since the room browser: the pilot
+       * in longest, who starts its games. Kicking stays a private room's. */
       const host = w && w.host === w.seat;
+      const kicks = host && !w.public;
+      const world = w ? mapById(w.map).name : '';
+      /*
+       * A PRIVATE ROOM'S GAMES, ALL THREE, right under the screen's Fly
+       * (src/ui/ui.js), under one heading: the race, Catch the Ace and
+       * toilet paper combat, each with its start row. Combat used to sit
+       * below the pilot rows, and the owner, hosting, saw Catch the Ace
+       * and no toilet paper at all. Public rooms have them too, since the
+       * room browser gave them a host.
+       *
+       * A room set up for a game puts that game first, its start row the
+       * primary under the host's cursor, and the heading says what the
+       * room is for, to everybody in it. The room says so itself when it
+       * was made for one (Make a room, welcome.mode); otherwise the host's
+       * game is its own card's and a joiner's the host's, from the host's
+       * profile.
+       */
+      const hostPeer = w && !host ? roomPeers.get(w.host) : null;
+      const game = w ? (w.mode || (host ? ui.roomGame : (hostPeer && hostPeer.profile.game)) || null) : null;
+      const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
+      const blocks = {
+        race: roomRaceRows(host),
+        tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
+        combat: combatRows(host, w, game === 'combat'),
+      };
+      const order = game ? [game, ...['race', 'tag', 'combat'].filter((g) => g !== game)] : ['race', 'tag', 'combat'];
+      const games = [
+        {
+          label: game ? str('friends.games_for', { game: str(game === 'tag' ? 'roomtag.section' : 'combat.card') }) : str('friends.games'),
+          section: true,
+        },
+        ...roomEndRows(host, w),
+        /* Who starts the games, for everybody else: without it a pilot
+         * who is not the host sees rows that do nothing and no reason. */
+        ...(w && !host ? [{ label: str('friends.host_starts', { name: roomSeatName(w.host) }), info: true }] : []),
+        ...order.flatMap((g) => blocks[g]),
+        { label: str('roomrace.room_section'), section: true },
+      ];
       const rows = [
-        { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
+        ...roomRefusalRows(),
+        ...games,
+        ...roomBrowser.nameRows(w),
+        /* A public room's code is how the browser joins it, never shown. */
+        (w ? w.public : st.publicMap)
+          ? { label: str('friends.public_row'), value: world, note: str('friends.public_row_note'), info: true }
+          : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
         {
           label: str('friends.here'),
           value: str('friends.here_value', { n: roomPeers.size + 1, cap: w ? w.cap : 8 }),
           note: str('friends.here_note'),
           info: true,
         },
-        { label: str('friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
+        { label: str(host ? 'friends.you_host' : 'friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
+        ...roomSafety.sayRows(),
       ];
       for (const peer of roomPeers.values()) {
         const craft = airframeById(peer.profile.airframe).name;
-        const world = mapById(peer.profile.map).name;
-        const asking = roomKickAsk && roomKickAsk.seat === peer.seat && roomKickAsk.until > performance.now();
+        const muted = roomSafety.isMuted(peer.seat);
+        const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
         rows.push({
-          label: roomName(peer.name),
+          label: w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown,
           value: craft,
-          note: asking
-            ? str('friends.kick_again', { name: roomName(peer.name) })
-            : str(host ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world }),
-          ...(host ? { action: `friends-kick:${peer.seat}` } : { info: true }),
+          note: str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
+          current: '',
+          pickOnly: true,
+          /* The host hands the room over from any pilot's row. */
+          options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
+          pick: (v) => {
+            const picked = roomSafety.peerPick(peer.seat, v);
+            if (picked === 'kick') {
+              roomLinkState.kick(peer.seat);
+            } else if (picked === 'handhost') {
+              roomLinkState.send({ type: 'handhost', seat: peer.seat });
+            }
+            ui.refreshFriends();
+          },
         });
       }
       rows.push(nameRow, figureRow, { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
       return rows;
     }
     const failed = st.phase === 'failed' && st.reason ? str(`friends.failed_${st.reason}`) : null;
+    /*
+     * Rooms first, under the cursor, whether or not the server has public
+     * rooms open: the Rooms screen says so, and still makes private ones.
+     * A game's title card (ui.roomGame) puts Make a room first instead,
+     * its game set up already, under that game's heading.
+     */
+    const make = { label: str('friends.create'), note: failed || str('friends.create_note'), action: 'roomnew', primary: Boolean(ui.roomGame) };
+    const browse = roomBrowser.entryRow(failed);
     return [
-      {
-        label: str('friends.create'),
-        value: roomBusy === 'creating' ? str('friends.creating') : '',
-        note: failed || str('friends.create_note'),
-        action: 'friends-create',
-      },
+      ...(ui.roomGame ? [{ label: str(ui.roomGame === 'tag' ? 'roomtag.section' : 'combat.card'), section: true }, make, { ...browse, primary: false }] : [browse, make]),
       { label: str('friends.join'), note: failed || str('friends.join_note'), action: 'friends-join' },
       nameRow,
       figureRow,
@@ -2229,21 +2854,28 @@ export async function boot({
   };
 
   ui.onFriends = async (action) => {
-    if (action === 'friends-create') {
-      if (roomBusy) {
-        return;
-      }
-      roomBusy = 'creating';
+    if (action === 'friends-combat-5' || action === 'friends-combat-3') {
+      roomCombat.start(action === 'friends-combat-5' ? 5 : 3);
+      return;
+    }
+    if (action === 'friends-combat-stop') {
+      roomCombat.stop();
+      return;
+    }
+    if (action === 'friends-end-race') {
+      roomRace.end();
+      return;
+    }
+    if (action === 'friends-end-tag') {
+      roomTag.end();
+      return;
+    }
+    if (action === 'friends-end-combat') {
+      roomCombat.stop();
+      return;
+    }
+    if (roomBrowser.act(action)) {
       roomNote = null;
-      ui.refreshFriends();
-      try {
-        const code = await roomLinkState.create(view ? view.id : worldId());
-        roomLinkState.join(code);
-      } catch (e) {
-        roomLinkState.join(null);
-      }
-      roomBusy = null;
-      ui.refreshFriends();
       return;
     }
     if (action === 'friends-join') {
@@ -2264,6 +2896,7 @@ export async function boot({
       return;
     }
     if (action === 'friends-leave') {
+      roomRaceRetire();
       roomLinkState.leave();
       roomNote = null;
       ui.refreshFriends();
@@ -2282,17 +2915,423 @@ export async function boot({
       ui.refreshFriends();
       return;
     }
-    const kick = /^friends-kick:(\d+)$/.exec(action);
-    if (kick) {
-      const seat = Number(kick[1]);
-      if (roomKickAsk && roomKickAsk.seat === seat && roomKickAsk.until > performance.now()) {
-        roomKickAsk = null;
-        roomLinkState.kick(seat);
-      } else {
-        roomKickAsk = { seat, until: performance.now() + 4000 };
-      }
+    if (action.startsWith('friends-race-')) {
+      roomRaceAction(action.slice('friends-'.length));
       ui.refreshFriends();
     }
+    if (action.startsWith('friends-tag-')) {
+      roomTagAction(action.slice('friends-'.length));
+      ui.refreshFriends();
+    }
+  };
+
+  /*
+   * RACING TOGETHER, Phase 4 of docs/MULTIPLAYER-PLAN.md: the room's race
+   * (src/share/roomrace.js, the room's half edge/rooms/race.js). The host
+   * sends the track their seat holds (from My tracks, the online tracks or
+   * a casual sky course: they are all one kind of document), every pilot's
+   * seat takes it and their world stands it up, and each says so. The host
+   * starts; every pilot whose world had it is put on their slot on the
+   * track's start row (roomSlotSpawn) and held there until the room's
+   * goAt, the same instant on every screen; then each flies and scores
+   * their own gates exactly as alone, and the room orders what it is told.
+   *
+   * What a room race changes about a run, and nothing else: the hold on
+   * the line (raceHoldMs, read where a parked aircraft takes off and where
+   * an air start lets go), which lap count ends the run (roomRace.done
+   * instead of runLaps), and the results screen. A wreck is the wreck
+   * rules as ever (enterWreck voids the lap in flight); R puts the pilot
+   * back on their slot and the laps already flown stay flown. Leaving for
+   * the title retires them. A pilot who was not ready when it started
+   * flies the track free and watches the order until the next one.
+   */
+  /* ms the room's countdown still holds this aircraft on the line. */
+  let raceHoldMs = 0;
+  let raceHoldWas = 0;
+  /* The race this run was put on the line for, or null for a run alone. */
+  let roomRaceRunId = null;
+  let roomRaceLaps = 3;
+  let roomRaceCheckAt = 0;
+  let roomResultsKey = '';
+  let roomGoWall = null;
+  let roomHudAt = 0;
+  const roomRaceHud = new RoomRaceHud(ui.root);
+
+  /* The room's track is the one this pilot's seat holds. */
+  function roomTrackSeated() {
+    const t = roomRace.track();
+    const seated = t ? seatedMapTrack() : null;
+    return Boolean(seated && seated.document.id === t.id);
+  }
+  /* And it stands in this world, with its gates, for the aircraft seated. */
+  function roomTrackReady() {
+    return roomTrackSeated() && mapReady && !swapInFlight && worldMatchesSettings()
+      && !race.freestyle && seatedFits(seatedMapTrack());
+  }
+  function roomRun() {
+    return roomRaceRunId != null && roomRaceRunId === roomRace.race().id;
+  }
+  function roomRaceRetire() {
+    if (roomRun()) {
+      roomRace.retire(roomLinkState.roomNow());
+    }
+    roomRaceRunId = null;
+  }
+
+  /*
+   * Seat the room's track and stand it up, when this pilot is not in the
+   * middle of something: on the title, the pause menu, a results screen,
+   * the launch card or Fly with friends, never under a flight, in the
+   * builder or in the hangar and settings. On the world already standing
+   * that is the course alone, milliseconds (syncWorldNow); another world
+   * is its loading screen. Either way the pilot lands on the title.
+   */
+  const ROOM_SEAT_SCREENS = ['title', 'paused', 'results', 'launch', 'friends'];
+  function roomSeatTrack() {
+    const t = roomRace.track();
+    if (!t || swapInFlight || !mapReady || mode === 'flight' || (build && build.active) || !ROOM_SEAT_SCREENS.includes(ui.screen)) {
+      return;
+    }
+    if (roomTrackSeated() && worldMatchesSettings()) {
+      return;
+    }
+    titleWorld = null;
+    buildWorld = null;
+    if (!roomTrackSeated()) {
+      if (!writeShareImport({ id: t.id, name: trackName(t), document: t.doc, local: true })) {
+        return;
+      }
+      ui.setShare(null);
+      notice = { text: str('roomrace.loading', { name: trackName(t) }), untilMs: performance.now() + 3000 };
+    }
+    ui.settings.map = 'track';
+    ui.mode = 'race';
+    ui.persistSettings();
+    syncWorld();
+  }
+
+  /* Every frame the room is open, after the aircraft is posed. */
+  function roomRaceFrame(now, wallMs) {
+    if (wallMs > roomRaceCheckAt) {
+      roomRaceCheckAt = wallMs + 500;
+      roomSeatTrack();
+      roomRace.ready(roomTrackReady());
+    }
+    const start = roomRace.takeStart(now);
+    if (start) {
+      if (roomTrackReady()) {
+        roomRaceRunId = start.id;
+        ui.onAction('restart');
+      } else {
+        roomRace.retire(now);
+      }
+    }
+    roomRace.frame(now);
+    raceHoldMs = roomRun() ? roomRace.holdMs(now) : roomTagHoldMs(now);
+    /* An air start lets go when its own countdown runs out (tickAirStart),
+     * so the room's is written into it; a parked aircraft is held by
+     * raceHoldMs where it would take off, and its GO is shown here. */
+    if (raceHoldMs > 0 && airHoldMs > 0) {
+      airHoldMs = raceHoldMs;
+    }
+    if (raceHoldWas > 0 && raceHoldMs === 0) {
+      roomGoWall = Date.now();
+      if (!(airHoldMs > 0)) {
+        airGoUntil = wallMs + AIR_GO_MS;
+      }
+    }
+    raceHoldWas = raceHoldMs;
+    /* Four times a second is plenty for an order that moves a gate at a
+     * time, and it keeps the names' lookups off every frame. */
+    if (wallMs < roomHudAt) {
+      return;
+    }
+    roomHudAt = wallMs + 250;
+    roomRaceHud.update(mode === 'flight' && ui.screen === 'flight' ? hudView(roomRace, now, roomSeatName) : null);
+    if (mode === 'results' && ui.roomResults && ui.screen === 'results' && roomResultsOf === 'race') {
+      roomShowResults();
+    }
+    /* The race is over and this run's part in it is shown: what is flown
+     * next is flown alone until the next start. */
+    if (roomRun() && roomRace.race().state === 'results' && mode !== 'flight') {
+      roomRaceRunId = null;
+    }
+  }
+
+  function roomSeatName(seat) {
+    if (seat === roomRace.seat()) {
+      return str('friends.you', { name: roomName(namePick()) });
+    }
+    const peer = roomPeers.get(seat);
+    return peer ? roomName(peer.name) : str('roomrace.gone');
+  }
+  /* The results screen, from the room's order; again as it changes. */
+  function roomShowResults() {
+    const view = resultsView(roomRace, roomSeatName);
+    const key = JSON.stringify(view);
+    if (key === roomResultsKey && ui.screen === 'results') {
+      return;
+    }
+    roomResultsKey = key;
+    roomResultsOf = 'race';
+    ui.showRoomResults(view);
+  }
+  ui.roomResultsRows = () => {
+    if (roomResultsOf === 'tag') {
+      return roomTagResultsRows();
+    }
+    const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomRace.seat();
+    return [
+      ...(host && roomRace.race().state === 'results'
+        ? [{ label: str('roomrace.again'), note: str('roomrace.again_note', { laps: roomRaceLaps }), action: 'friends-race-start', primary: true }]
+        : []),
+      { label: str('roomrace.fly_on'), action: 'restart', note: str('roomrace.fly_on_note'), primary: !host },
+      ...ui.friendsItems(),
+      { label: str('ui.back_to_title'), action: 'title' },
+    ];
+  };
+
+  /* A pass the local race just scored, handed to the room's race. */
+  function roomRacePass(passed, lapsBefore, simNow) {
+    const now = roomLinkState.roomNow();
+    if (!roomRun() || now == null) {
+      return;
+    }
+    const cross = race.lapStartMs + (race.splits.length ? race.splits[race.splits.length - 1] : 0);
+    roomRace.pass({
+      lapDone: race.laps.length > lapsBefore,
+      gate: race.lapStartMs != null ? race.splits.length + 1 : 0,
+      gatePoints: race.call && race.call.gate === passed ? race.call.points : 0,
+      hoop: Boolean(race.gates[passed].apertures[0].round),
+      lagMs: Math.max(0, simNow - cross),
+    }, now);
+  }
+
+  /* The Fly with friends screen's race rows. */
+  function roomRaceRows(host) {
+    return raceRows({
+      rr: roomRace,
+      host,
+      nameOf: roomSeatName,
+      seated: seatedMapTrack(),
+      fits: !roomTrackSeated() || seatedFits(seatedMapTrack()),
+      ready: roomTrackReady(),
+      craft: airframeById(ui.settings.airframe).short,
+      laps: roomRaceLaps,
+      here: roomPeers.size + 1,
+      onLaps: (d) => {
+        roomRaceLaps = Math.max(1, Math.min(10, roomRaceLaps + d));
+        ui.refreshFriends();
+      },
+    });
+  }
+
+  function roomRaceAction(action) {
+    if (action === 'race-send') {
+      const seated = seatedMapTrack();
+      if (seated) {
+        roomRace.loadTrack(seated.document);
+      }
+    } else if (action === 'race-start') {
+      roomRace.start(roomRaceLaps);
+    } else if (action === 'race-end') {
+      roomRace.end();
+    }
+  }
+
+  /* Harness only: the room's race as this page has it, for
+   * scripts/rooms-race-two-page.js. goWall is the wall clock (Date.now)
+   * at the frame the hold let go, to compare two pages' starts. */
+  window.__roomRace = () => {
+    const now = roomLinkState.roomNow();
+    return {
+      role: roomRace.role(now),
+      track: roomRace.track() ? { id: roomRace.track().id, name: roomRace.track().name } : null,
+      race: roomRace.race(),
+      standings: roomRace.standings(),
+      laps: roomRace.laps(),
+      seated: roomTrackSeated(),
+      ready: roomTrackReady(),
+      hold: raceHoldMs,
+      run: roomRaceRunId,
+      goWall: roomGoWall,
+      roomNow: now,
+      results: ui.roomResults && ui.screen === 'results',
+      error: roomRace.error(),
+    };
+  };
+  window.__roomRaceDo = (action, laps) => {
+    if (laps) {
+      roomRaceLaps = laps;
+    }
+    roomRaceAction(action);
+    return true;
+  };
+
+  /*
+   * CATCH THE ACE! (¡Atrapa al As!), docs/TAG-PLAN.md: a private room's
+   * tag match (src/share/roomtag.js, the room's half edge/rooms/tag.js).
+   * The room judges every touch and counts every point; this screen puts
+   * the pilot on their slot for the countdown and holds them there (the
+   * race's hold, raceHoldMs), crowns the Ace (tagMarkPeers), shows the
+   * scoreboard (the race's box: a room runs one game at a time) and a
+   * banner at each new crown, and the results when the room says the match
+   * is over. A touch is never a crash: the room sends no mid air hit while
+   * a match is on, so nothing here touches the plant.
+   */
+  /* The host's goal: a preset of GOALS, or 'custom' with its points. */
+  let roomTagPick = { preset: GOALS[0].id, custom: 30 };
+  /* The match this flight was put on its slot for, or null. */
+  let roomTagRunId = null;
+  /* Whose results the results screen shows: 'race' or 'tag'. */
+  let roomResultsOf = null;
+  let roomTagHudAt = 0;
+  /* The last crown banner, for the harness. */
+  let roomTagBanner = null;
+  const roomTagHud = new RoomRaceHud(ui.root);
+  /* The seat the peer marks crown now, or null. */
+  let roomTagMarked = null;
+
+  function roomTagHoldMs(now) {
+    return roomTagRunId != null && roomTagRunId === roomTag.view().id ? roomTag.holdMs(now) : 0;
+  }
+  /* A pilot's name tag, crowned while they are the Ace. */
+  function roomTagName(seat, name) {
+    return roomTag.ace() === seat ? str('roomtag.ace_name', { name }) : name;
+  }
+  /* The room's world standing, in free flight: where a match is played. */
+  function roomTagWorldReady(map) {
+    return Boolean(view) && view.id === map && race.freestyle && mapReady && !swapInFlight && worldMatchesSettings();
+  }
+
+  /* Every frame the room is open, after the race's. */
+  function roomTagFrame(now, wallMs) {
+    const w = roomLinkState.state().welcome;
+    const start = roomTag.takeStart(now);
+    if (start && w) {
+      if (roomTagWorldReady(w.map)) {
+        roomTagRunId = start.id;
+        ui.onAction('restart');
+      } else if (mode !== 'flight' && ROOM_SEAT_SCREENS.includes(ui.screen) && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+        /* Another world or a track: seated in the room's, to fly in as
+         * soon as it stands. */
+        notice = { text: str('roomtag.other_world', { world: mapById(w.map).name }), untilMs: performance.now() + 3000 };
+        ui.mode = 'freestyle';
+        ui.seatMap(w.map, { stay: true });
+      }
+    }
+    const crown = roomTag.takeCrown();
+    if (crown) {
+      const me = roomTag.seat();
+      let text = str('roomtag.banner_other', { name: roomSeatName(crown.seat) });
+      if (crown.seat === me) {
+        text = str('roomtag.banner_you');
+      } else if (crown.from === me && crown.why === 'tag') {
+        text = str('roomtag.banner_lost', { name: roomSeatName(crown.seat) });
+      }
+      notice = { text, untilMs: performance.now() + 2500 };
+      roomTagBanner = { ...crown, text };
+    }
+    const done = roomTag.takeResults();
+    if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+      if (mode === 'flight') {
+        leaveFlightForResults();
+      }
+      roomTagRunId = null;
+      roomResultsOf = 'tag';
+      ui.showRoomResults(tagResultsView(roomTag, roomSeatName));
+    }
+    if (wallMs < roomTagHudAt) {
+      return;
+    }
+    roomTagHudAt = wallMs + 250;
+    roomTagHud.update(mode === 'flight' && ui.screen === 'flight' ? tagHudView(roomTag, now, roomSeatName) : null);
+  }
+
+  /*
+   * The Ace marked for everybody: the peer marks' role (src/ui/peermarks.js),
+   * a crown over its aircraft that never fades and a larger arrow at the
+   * frame's edge when it is out of the picture. Set when the crown moves,
+   * cleared when the match is over or the room is left.
+   */
+  function tagMarkPeers() {
+    const ace = roomTag.ace();
+    if (ace === roomTagMarked) {
+      return;
+    }
+    if (roomTagMarked != null) {
+      peerMarks.setRole(roomTagMarked, null);
+    }
+    if (ace != null) {
+      peerMarks.setRole(ace, 'ace');
+    }
+    roomTagMarked = ace;
+  }
+
+  function roomTagResultsRows() {
+    const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomTag.seat();
+    return [
+      ...(host && roomTag.view().state === 'results'
+        ? [{ label: str('roomtag.again'), note: str('roomtag.again_note'), action: 'friends-tag-start', primary: true }]
+        : []),
+      { label: str('roomtag.fly_on'), action: 'restart', note: str('roomtag.fly_on_note'), primary: !host },
+      ...ui.friendsItems(),
+      { label: str('ui.back_to_title'), action: 'title' },
+    ];
+  }
+
+  /* The Fly with friends screen's match rows. */
+  function roomTagRows(host) {
+    const ids = [...GOALS.map((g) => g.id), 'custom'];
+    return tagRows({
+      rt: roomTag,
+      host,
+      nameOf: roomSeatName,
+      pick: roomTagPick,
+      onPreset: (d) => {
+        const i = ids.indexOf(roomTagPick.preset);
+        roomTagPick = { ...roomTagPick, preset: ids[(i + d + ids.length) % ids.length] };
+        ui.refreshFriends();
+      },
+      onCustom: (d) => {
+        roomTagPick = { ...roomTagPick, custom: goalOf(roomTagPick.custom + d * GOAL_STEP) };
+        ui.refreshFriends();
+      },
+    });
+  }
+
+  function roomTagAction(action) {
+    if (action === 'tag-start') {
+      roomTag.start(roomTagPick.preset === 'custom' ? roomTagPick.custom : roomTagPick.preset);
+    } else if (action === 'tag-end') {
+      roomTag.end();
+    }
+  }
+
+  /* Harness only: the match as this page has it, for
+   * scripts/tag-two-page.js. */
+  window.__roomTag = () => {
+    const now = roomLinkState.roomNow();
+    return {
+      role: roomTag.role(now),
+      view: roomTag.view(),
+      standings: roomTag.standings(),
+      hold: raceHoldMs,
+      run: roomTagRunId,
+      marked: roomTagMarked,
+      banner: roomTagBanner,
+      hud: roomTagHud.key ? JSON.parse(roomTagHud.key) : null,
+      results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'tag'),
+      error: roomTag.error(),
+      roomNow: now,
+    };
+  };
+  window.__roomTagDo = (action, goal) => {
+    if (goal != null) {
+      roomTagPick = { preset: 'custom', custom: goalOf(goal) };
+    }
+    roomTagAction(action);
+    return true;
   };
   const ghostSample = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
   let ghostLap = null; /* the lap being chased, armed at each lap start */
@@ -3971,6 +5010,10 @@ export async function boot({
   function turtleCueSource() {
     if (input.isTouchPrimary()) {
       return 'touch';
+    }
+    /* Every key works in mouse flight, and the keys' cue names them. */
+    if (input.isMousePrimary()) {
+      return 'keys';
     }
     if (input.isKeyboardPrimary()) {
       return 'keys';
@@ -6549,6 +7592,10 @@ export async function boot({
     if (input.isTouchPrimary()) {
       return ui.settings.flightMode === 'angle';
     }
+    /* The mouse is a proportional stick too, and for the same reason. */
+    if (input.isMousePrimary()) {
+      return ui.settings.flightMode === 'angle';
+    }
     /*
      * THE HARNESS OVERRIDE IS A GIMBAL, NOT A KEY.
      *
@@ -6810,6 +7857,13 @@ export async function boot({
     if (ui.setStickMode) {
       ui.setStickMode(s.stickMode);
     }
+    input.setMouseConfig({
+      enabled: s.mouseFlight,
+      sens: s.mouseSens,
+      expo: s.mouseExpo,
+      invert: s.mouseInvert,
+      centre: s.mouseCentre,
+    });
     camTilt = clampCameraAngle(s.cameraAngle);
     s.cameraAngle = camTilt;
     qTilt.setFromAxisAngle(AXIS_X, cameraTiltRad(camTilt));
@@ -7310,6 +8364,12 @@ export async function boot({
    * run starts with the motors parked.
    */
   function endFreestyleRun() {
+    leaveFlightForResults();
+    ui.showFreestyleResults(score.summary());
+  }
+  /* A flight put down for a results screen: the freestyle clock's, or a
+   * room's match over (roomTagFrame). */
+  function leaveFlightForResults() {
     mode = 'results';
     if (turtleWait || turtleFlip.active) {
       if (turtleWait && !turtleFlip.active) {
@@ -7322,7 +8382,6 @@ export async function boot({
     turtleOnSupport = false;
     setTurtleParkMotors(false);
     poseLock = false;
-    ui.showFreestyleResults(score.summary());
   }
 
   async function submitFreestyleRun() {
@@ -7879,6 +8938,11 @@ export async function boot({
       }
     }
     if (action === 'fly' || action === 'restart') {
+      /* A room race this pilot has finished is over for them: flying on
+       * is flying alone. */
+      if (roomRun() && roomRace.done()) {
+        roomRaceRunId = null;
+      }
       /* A tune fetch in flight would sim_init under a run whose lastTs had
        * already started climbing. Wait until the load is the current one. */
       whenConfigReady(() => {
@@ -7932,6 +8996,7 @@ export async function boot({
         build.exit(false);
       }
       buildWorld = null;
+      roomRaceRetire();
       mode = 'title';
       reset();
       /* Now, not on the next frame: a choice made on the title before a
@@ -8215,8 +9280,126 @@ export async function boot({
       });
   }
 
+  /*
+   * MOUSE FLIGHT'S POINTER LOCK. The mouse flies only while the pointer is
+   * captured, and it is captured only on the flight screen, never in the
+   * builder's editor, which has its own use for a mouse. Everywhere else
+   * the pointer is the menus' and is released.
+   *
+   * Capture needs a click or a key the browser counts as the pilot's, so
+   * it is asked for when flight begins, which usually follows the Enter or
+   * the click that started it, and again on any click in flight. A request
+   * the browser refuses is not an error to report: the banner asking for a
+   * click stays up, which is the answer to it.
+   *
+   * ESCAPE. The browser spends Escape on releasing the pointer, and a lost
+   * capture in flight is a pause, the way a hidden tab is: the same two
+   * calls Escape makes. Chrome may ALSO hand the page that Escape, which
+   * would then land on the pause menu and resume straight back into
+   * flight, so an Escape just after a capture was lost is swallowed.
+   *
+   * Only a capture the BROWSER took away pauses. The change event says
+   * nothing about who asked, and the one for the release this file asks
+   * for on leaving flight can arrive after the next flight has begun, where
+   * it paused a run the pilot had just started. mouseExitAsked marks ours.
+   *
+   * AND ONLY A CAPTURE MOUSE FLIGHT TOOK IS ITS TO RELEASE. The builder
+   * captures the same canvas for its own camera (src/builder/buildmode.js),
+   * and releasing every capture off the flight screen took that away from
+   * every builder, mouse flight on or off; lint trackmode:check caught it.
+   * mouseLockMine is set when a capture this file asked for arrives.
+   */
+  let mouseLockAsked = false;
+  let mouseLockPending = false;
+  let mouseLockMine = false;
+  let mouseExitAsked = false;
+  let mouseEscGuardUntil = 0;
+  const MOUSE_ESC_GUARD_MS = 300;
+  const mouseLocked = () => document.pointerLockElement === shell.canvas;
+  function mouseWantsLock() {
+    return input.mouseEnabled && mode === 'flight' && ui.screen === 'flight'
+      && !(build && build.active && !build.racing);
+  }
+  function askMouseLock() {
+    mouseLockPending = true;
+    const req = shell.canvas.requestPointerLock();
+    if (req && typeof req.catch === 'function') {
+      req.catch(() => {});
+    }
+  }
+  function syncMouseLock(nowWall) {
+    const want = mouseWantsLock();
+    const locked = mouseLocked();
+    input.setMouseLive(want && locked);
+    const wing = Boolean(airframeById(runAirframe).fixedWing);
+    input.setMouseCraft(wing, ui.settings.flightMode !== 'angle');
+    if (!want) {
+      mouseLockAsked = false;
+      if (locked && mouseLockMine) {
+        mouseExitAsked = true;
+        document.exitPointerLock();
+      }
+      return;
+    }
+    if (locked) {
+      return;
+    }
+    if (!mouseLockAsked) {
+      mouseLockAsked = true;
+      askMouseLock();
+    }
+    if (!notice || notice.mouse || nowWall >= notice.untilMs) {
+      notice = { text: str('main.mouse_click_to_fly'), untilMs: nowWall + 250, mouse: true };
+    }
+  }
+  window.addEventListener('mousedown', (e) => {
+    if (!mouseWantsLock() || mouseLocked()) {
+      return;
+    }
+    const t = e.target;
+    if (t && t.closest && t.closest('button,input,select,textarea,a')) {
+      return;
+    }
+    askMouseLock();
+  });
+  document.addEventListener('pointerlockerror', () => {
+    mouseLockPending = false;
+  });
+  document.addEventListener('pointerlockchange', () => {
+    if (mouseLocked()) {
+      mouseLockMine = mouseLockPending;
+      mouseLockPending = false;
+      return;
+    }
+    const mine = mouseLockMine;
+    const ours = mouseExitAsked;
+    mouseLockMine = false;
+    mouseExitAsked = false;
+    input.setMouseLive(false);
+    if (mine && !ours && input.mouseEnabled && mode === 'flight' && ui.screen === 'flight') {
+      mouseEscGuardUntil = performance.now() + MOUSE_ESC_GUARD_MS;
+      ui.act('pause');
+      ui.show('paused');
+    }
+  });
+  window.__mouseLock = () => ({
+    enabled: input.mouseEnabled,
+    live: input.mouseLive,
+    locked: mouseLocked(),
+    wants: mouseWantsLock(),
+    centring: input.mouseCentring(),
+    step: input.mouseThrottleStep(),
+    stick: { ...input.mouse },
+    channels: { ...input.channels },
+    source: input.stats().source,
+    angle: angleModeOn,
+  });
+
   input.onKey = (code, repeat) => {
     wakeAudio();
+    if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
+      return;
+    }
     if (build && build.onKey(code, repeat)) {
       return;
     }
@@ -8926,6 +10109,7 @@ export async function boot({
     if (build) {
       build.jiggle(i, jellyHit.n, w.square);
     }
+    roomWhack(i, jellyHit.n, w.square);
     return readState();
   }
 
@@ -9382,7 +10566,7 @@ export async function boot({
      * moves the corner blocks to the bottom centre; the keyboard ghost puts
      * the gimbals there. Either way the bottom band is taller than the
      * corner instruments alone. */
-    const bottomBand = (input.isKeyboardPrimary() || input.isTouchPrimary())
+    const bottomBand = (input.isKeyboardPrimary() || input.isTouchPrimary() || input.isMousePrimary())
       ? AIM_MARGIN_BOTTOM_STICKS
       : AIM_MARGIN_BOTTOM;
     const maxY = vh - bottomBand;
@@ -9614,7 +10798,7 @@ export async function boot({
        * is let go onto the water at once and rocks there. */
       if (landed && floatsOnWater()) {
         releaseOnWheels();
-      } else if (landed && thr > TAKEOFF_THROTTLE) {
+      } else if (landed && thr > TAKEOFF_THROTTLE && !(raceHoldMs > 0)) {
         if (airframeById(runAirframe).gear) {
           /* On wheels, throttle up is the takeoff roll. */
           releaseOnWheels();
@@ -9799,6 +10983,7 @@ export async function boot({
           peakGroundSpeed = 0;
           sawGroundHit = false;
           for (let i = 0; i < steps; i += 1) {
+            stNow = roomMidairStep(stNow);
             if (groundNormalDue(stNow)) {
               sampleGroundNormalFromState(stNow);
             }
@@ -9810,6 +10995,9 @@ export async function boot({
             tracePre(stNow);
             sim.step(1);
             stNow = readState();
+            if (roomCombat.out()) {
+              combatStep(stNow);
+            }
             if (runDamage) {
               crashAfterStep(stNow);
             }
@@ -10318,6 +11506,7 @@ export async function boot({
         });
         const res = race.update(racePrev, pCurr, simNow, nowWall, allowPass);
         if (res.passed != null) {
+          roomRacePass(res.passed, lapsBefore, simNow);
           view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
           if (typeof audio.event === 'function') {
             audio.event('gate');
@@ -10334,7 +11523,10 @@ export async function boot({
             ui.progress.lap(progressCourse());
           }
         }
-        if (!race.freestyle && race.lap >= runLaps) {
+        /* A room's race ends on the room's laps, or when the room says it
+         * is over (src/share/roomrace.js); a run alone on runLaps. */
+        const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');
+        if (!race.freestyle && (roomRun() ? roomOver : race.lap >= runLaps)) {
           mode = 'results';
           if (turtleWait || turtleFlip.active) {
             if (turtleWait && !turtleFlip.active) {
@@ -10348,7 +11540,14 @@ export async function boot({
           setTurtleParkMotors(false);
           poseLock = false;
           paintBest();
-          ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote());
+          if (roomRun()) {
+            roomShowResults();
+            if (roomRace.race().state === 'results') {
+              roomRaceRunId = null;
+            }
+          } else {
+            ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote());
+          }
         }
       }
       racePrev.copy(pCurr);
@@ -10472,6 +11671,11 @@ export async function boot({
     }
     poseBramorExtras();
     roomFrame(nowWall, dt / 1000);
+    /* The others as the room just drew them, into the row the crash cam
+     * began above (src/replay/peers.js). */
+    if (crashCam) {
+      crashCam.recordPeers(roomPeers);
+    }
 
     /* The lens sits where herocraft.js bolts it, forward AND up, not at the
      * centre of gravity's height. src/render/lens.js carries both numbers and
@@ -11246,7 +12450,9 @@ export async function boot({
       const ch = input.channels;
       const vis = turtleAxes(ch.roll, ch.pitch);
       ui.setStickOverlay({
-        show: input.isKeyboardPrimary() && !input.isTouchPrimary(),
+        /* The mouse draws the ghost gimbals too: they are where a pilot
+         * sees where the held stick and the wheel's throttle are. */
+        show: input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
         roll: vis[0],
         pitch: vis[1],
         yaw: ch.yaw,
@@ -11269,6 +12475,14 @@ export async function boot({
      * the intro orbit or a menu. */
     fpvOsd.tick(ui.settings.hudStyle === 'osd' && fpvLensLive && !camOverride
       && (ui.screen === 'flight' || ui.screen === 'paused'), ui.screen === 'paused', nowWall);
+    peerMarks.begin(shell.camera, ui.settings.peerMarks, fpvOsd, mode === 'flight' && ui.screen === 'flight', dt / 1000, nowWall);
+    for (const peer of roomPeers.values()) {
+      if (peer.rig && peer.rig.group.visible) {
+        const at = peer.rig.group.position;
+        peerMarks.add(peer.seat, peer.rig.label(), at.x, at.y, at.z, peer.rig.extent);
+      }
+    }
+    peerMarks.end(peerMarkGround);
     /*
      * The thumb sticks live in FLIGHT and nowhere else. Over any menu
      * their catchment would sit on top of the rows (the overlay is the
@@ -11287,8 +12501,9 @@ export async function boot({
       };
       ui.paintFcAttitude();
     }
+    syncMouseLock(nowWall);
     if (touch) {
-      const touchOn = mode === 'flight' && ui.screen === 'flight' && !input.firstGamepad();
+      const touchOn = mode === 'flight' && ui.screen === 'flight' && !input.firstGamepad() && !input.mouseEnabled;
       /*
        * The one-time thumb-rates hand-off, at the first moment touch is
        * actually about to fly. A fresh touch profile was already seeded
@@ -11365,8 +12580,8 @@ export async function boot({
       && ui.screen === 'flight'
     ) {
       ui.setBanner(turtleBannerText(), true);
-    } else if (airHoldMs > 0 && !ui.isModal()) {
-      ui.setBanner(String(Math.ceil(airHoldMs / 1000)));
+    } else if ((airHoldMs > 0 || raceHoldMs > 0) && !ui.isModal()) {
+      ui.setBanner(String(Math.ceil(Math.max(airHoldMs, raceHoldMs) / 1000)));
     } else if (nowWall < airGoUntil && !ui.isModal()) {
       ui.setBanner('GO');
     } else if (notice && nowWall < notice.untilMs && !(launchNow > 0) && !crashflipOn) {
@@ -13302,6 +14517,8 @@ export async function boot({
     },
   });
   crashCam.tap(debris);
+  /* Combat's paper and its SCHWING, for the replay (src/replay/paper.js). */
+  crashCam.tapPaper(combatLayer);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

@@ -264,7 +264,7 @@ the same fan: 0.767 of the fan's speed, 13.84 N, 47 A inside its 60 A ESC)
 and two 6S packs, Tuning with Freewing's own low rates, three presets
 (f16-acro the default). The hangar's top speed and flight time are flown
 gear down (power-check's cruise), 40 m/s and 19 min. Progression: level
-9, the last, after the P-51 at 7 and the Edge 540 at 8: the fastest
+10, the last, after the P-51 at 7, the Extra 300 at 8 and the Edge 540 at 9: the fastest
 aircraft here, the hottest landing, a fan whose thrust has to be planned
 ahead of the stick, and the only kit whose maker asks for "experience
 flying at least two EDFs", where FMS rate the P-51 intermediate. `npm run f16:shell` on swiss2 and the airfield: module 16

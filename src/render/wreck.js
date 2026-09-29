@@ -929,5 +929,22 @@ export function createWreck() {
     return out;
   }
 
-  return { group, attach, reset, update, setCraftVisible, summary, audit, pieceCount: () => pieces.size };
+  /* The pieces that have left the craft, as drawn now: [{ part, x, y, z,
+   * qx, qy, qz, qw }], world, lift included. What a room sends of a wreck
+   * (src/share/roomwrecks.js); a piece still riding the craft is left to
+   * the craft's own pose. */
+  function poses() {
+    const out = [];
+    for (const [i, piece] of pieces) {
+      if (!free[i]) {
+        continue;
+      }
+      const p = piece.position;
+      const q = piece.quaternion;
+      out.push({ part: i, x: p.x, y: p.y, z: p.z, qx: q.x, qy: q.y, qz: q.z, qw: q.w });
+    }
+    return out;
+  }
+
+  return { group, attach, reset, update, setCraftVisible, summary, audit, poses, pieceCount: () => pieces.size };
 }

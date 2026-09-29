@@ -46,7 +46,7 @@ import { findChrome, runBrowserHarness } from '../tests/lib/browser.js';
 import { startServer } from '../tests/lib/server.js';
 import {
   EXTRA_AIRFRAME, extraGroundPrelude, extraTakeoffSticks, hangSticks, fly, wingDebug, wheelLoads, attitude, must,
-  bombshellGroundPrelude, kadetGroundPrelude, slowstickGroundPrelude, skyPrelude, wingPrelude, cubGroundPrelude, p51RecPrelude, p51AirPrelude, edgeGroundPrelude,
+  bombshellGroundPrelude, kadetGroundPrelude, slowstickGroundPrelude, skyPrelude, wingPrelude, cubGroundPrelude, p51RecPrelude, p51AirPrelude, edgeGroundPrelude, f16GroundPrelude,
   gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude, timberFloatRecPrelude, RC_STEP_MS,
 } from '../tests/lib/wingpilot.js';
 
@@ -393,6 +393,7 @@ const got = {
   p51: await hashOf('tests/inputs/p51-baseline.rec', p51RecPrelude),
   p51air: await hashOf('tests/inputs/p51-air.rec', p51AirPrelude),
   edge: await hashOf('tests/inputs/edge-baseline.rec', (s) => edgeGroundPrelude(s)),
+  f16: await hashOf('tests/inputs/f16-baseline.rec', (s) => f16GroundPrelude(s)),
 };
 const names = Object.keys(got);
 gate('E15', 'every other aircraft unmoved', names.every((k) => got[k] === u[k]),
