@@ -22,10 +22,11 @@
  *               from a local page, never Yellowstone's data) and only the
  *               modules it is built from: its own, Yellowstone's terrain
  *               engine and swiss2's look, never Yellowstone's features;
- *   ground      map.height() at 200 random hero points, each with the
- *               camera over it, equals the tiles within 0.05 m (the
- *               water's surface where the point is on a body), and the
- *               ground under the camera there is drawn at 10 m;
+ *   ground      map.height() under every roof at 200 random hero points,
+ *               each with the camera over it, equals the tiles within
+ *               0.05 m (the water's surface where the point is on a
+ *               body), and the ground under the camera there is drawn at
+ *               10 m;
  *   water       the reservoir and the river are drawn at 219.0 and
  *               103.5 m, and height() on each body's spawn is its level;
  *   budget      chunk buffers under 24 MB and tiles under 12 MB
@@ -404,10 +405,15 @@ async function main() {
       const gy = heroGround(get, cx, cz);
       await page.evaluate(`window.__setCam(${cx}, ${gy + 120}, ${cz}, ${cx + 1}, ${gy}, ${cz + 1})`);
       await settle(page);
+      /* The bare ground: height() asked from far below every roof record
+       * (src/maps/alps/roofs.js offers a roof only within a step of the
+       * height it is asked from), so a point under a building's roof, the
+       * dam's crest or a bridge deck reads the terrain and the water the
+       * tiles hold, not the roof over it. */
       const got = JSON.parse(await page.evaluate(`JSON.stringify(${JSON.stringify(pts)}.map(([x, z]) => {
         const t = window.__mapScene().userData.itaipu.terrain;
         const leaf = t.leafAt(x, z);
-        return [window.__heightAt(x, z), leaf ? leaf.level : null];
+        return [window.__surface(x, z, -1e9), leaf ? leaf.level : null];
       }))`));
       pts.forEach(([x, z], k) => {
         let want = heroGround(get, x, z);
