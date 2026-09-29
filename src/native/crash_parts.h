@@ -1439,4 +1439,111 @@ static const PartDef PARTS_P51D1450[] = {
     .npts = 2, .pts = { { -0.35, 0.0, 0.08 }, { -0.35, 0.0, 0.15 } } },
 };
 
+
+/* ------------------------------------------------------------------------
+ * DAS UGLY STIK, RCM PLAN 939, SIM_AIRFRAME_UGLYSTIK1567, uglystikcraft.js.
+ * 2.72 kg of balsa, spruce and ply under film, docs/UGLYSTIK-STAGE1.md:
+ * nothing foam, so nothing crushes; a joint past its onset cracks, as the
+ * Kadet's balsa does. A slab sided box of 1/4 in balsa sheet on a ply
+ * nose; the wing on a saddle under #64 rubber bands over two 5/16 in
+ * dowels, each panel a pair of spruce spars; a flat stabiliser glued to
+ * the fuselage's bottom and a 1/4 in sheet fin on top; an O.S. 61FX on a
+ * nylon mount bolted to the 1/4 in ply firewall; a dural strap main gear
+ * held on by bands and a 5/32 in wire nose leg.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_UGLYSTIK1567[] = {
+  /* 0 the fuselage from the firewall to the wing's trailing edge: the
+   * 1/4 in ply firewall, the 1/4 in sheet sides, the ply bottom, the tank,
+   * the servos and the receiver: the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 3.0e5, BOX(-0.196, 0.2985, -0.051, 0.051, -0.053, 0.052) },
+  /* 1 the rear fuselage, a box of 1/4 in balsa sides, a 1/8 in top and a
+   * 3/32 in bottom, judged ahead of the stabiliser where it is 1.65 in
+   * deep and 1.84 in wide: its sides and sheets 0.46 in^4, Z 9.1e-6 m^3,
+   * 181 N m at balsa's 20 MPa, taken at two thirds for its glue joints and
+   * the sheet's buckling in compression, 120 N m, ESTIMATED. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.16, .joint = { -0.196, 0.0, -0.003 }, .m_max = 120.0, .f_max = 600.0, .k = 3.0e4,
+    .npts = 8, .pts = { { -0.196, 0.051, -0.053 }, { -0.196, -0.051, -0.053 }, { -0.196, 0.051, 0.050 }, { -0.196, -0.051, 0.050 },
+                        { -0.785, 0.010, -0.053 }, { -0.785, -0.010, -0.053 }, { -0.785, 0.010, -0.035 }, { -0.785, -0.010, -0.035 } } },
+  /* 2 the stabiliser, 3/16 x 3/4 in edges and 1/8 x 3/16 in ribs under
+   * 1/16 in skins, glued flat to the fuselage's bottom: the skins 0.31 in
+   * apart over its 5.79 in root, Z 1.2e-6 m^3, 24 N m at 20 MPa; its glue
+   * line over the fuselage's 1.8 in, 20 N m, ESTIMATED. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.07, .joint = { -0.72, 0.0, -0.052 }, .m_max = 20.0,
+    .f_max = 150.0, .k = 2500.0, BOX(-0.793, -0.648, -0.277, 0.277, -0.057, -0.048) },
+  /* 3 the elevator, 1/4 in sheet on Du-Bro nylon hinges, ESTIMATED at
+   * 2 N m. */
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.03, .joint = { -0.793, 0.0, -0.052 }, .m_max = 2.0, .f_max = 40.0, .k = 2000.0,
+    BOX(-0.838, -0.793, -0.283, 0.283, -0.056, -0.049) },
+  /* 4 the fin, 1/4 in sheet glued between 1/4 in square supports on the
+   * fuselage's top: its 7.6 in foot on edge, Z 1.3e-6 m^3, 26 N m at 20
+   * MPa, and its glue, 10 N m, ESTIMATED. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.035, .joint = { -0.69, 0.0, -0.028 }, .m_max = 10.0, .f_max = 80.0, .k = 2000.0,
+    BOX(-0.785, -0.592, -0.003, 0.003, -0.030, 0.1735) },
+  /* 5 the rudder, 1/4 in sheet on three Du-Bro hinges, ESTIMATED at
+   * 1.5 N m. */
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.02, .joint = { -0.785, 0.0, 0.07 }, .m_max = 1.5, .f_max = 30.0, .k = 1500.0,
+    BOX(-0.886, -0.785, -0.003, 0.003, -0.035, 0.1735) },
+  /* 6 the wing's centre, its spar doublers and the aileron servo, on the
+   * saddle under #64 rubber bands over two 5/16 in dowels (RCM: "a one
+   * pound box of number 64 rubber bands"): eight bands at about 10 N,
+   * 80 N, over half the 13.7 in chord, 14 N m, as the Kadet's are,
+   * ESTIMATED. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.11, .joint = { -0.04, 0.0, 0.052 }, .m_max = 14.0, .f_max = 80.0, .k = 3000.0,
+    BOX(-0.196, 0.119, -0.145, 0.145, 0.028, 0.077) },
+  /* 7, 8 the panels on the centre. Up and down, the 1/4 x 1/2 in spruce
+   * spars top and bottom 1.6 in apart would be a box of Z 2.8e-6 m^3, 198
+   * N m at spruce's 70 MPa, but they have no shear web, only the ribs
+   * between them, which carry a part of it: 60 N m, ESTIMATED. Fore and
+   * aft, the 1/8 x 1 7/8 in trailing edge sheets on edge, 48 N m. */
+  { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.22, .joint = { -0.04, 0.145, 0.055 }, .m_max = 60.0, .m_max_z = 48.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.119, 0.145, 0.052 }, { -0.231, 0.145, 0.052 }, { 0.119, 0.145, 0.077 }, { -0.196, 0.145, 0.028 },
+                        { 0.119, 0.711, 0.080 }, { -0.196, 0.776, 0.086 }, { 0.119, 0.711, 0.104 }, { -0.231, 0.784, 0.086 } } },
+  { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.22, .joint = { -0.04, -0.145, 0.055 }, .m_max = 60.0, .m_max_z = 48.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.119, -0.145, 0.052 }, { -0.231, -0.145, 0.052 }, { 0.119, -0.145, 0.077 }, { -0.196, -0.145, 0.028 },
+                        { 0.119, -0.711, 0.080 }, { -0.196, -0.776, 0.086 }, { 0.119, -0.711, 0.104 }, { -0.231, -0.784, 0.086 } } },
+  /* 9 the O.S. 61FX, 550 g, and its silencer, on a nylon mount: four 6-32
+   * bolts into blind nuts in the 1/4 in ply firewall, the Kadet's 800 N
+   * and 24 N m, ESTIMATED as its are. Its cylinder out to the right at 45
+   * deg (the plan's "Engine mounted at 45 deg angle"). */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.62, .joint = { 0.2985, 0.0, -0.004 }, .m_max = 24.0, .f_max = 800.0, .k = 1.0e6,
+    BOX(0.2985, 0.40, -0.08, 0.035, -0.04, 0.06) },
+  /* 10 the 12 x 6, wood, the Kadet's: 12 N m to yield, twice to shed a
+   * blade. */
+  { .kind = SIM_PART_PROP, .parent = 9, .mat = SIM_MAT_PLY, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.045, .joint = { 0.402, 0.0, -0.0043 }, .m_max = 2.0 * 12.0, .f_max = 150.0, .k = 900.0,
+    .npts = 8, .pts = { { 0.410, 0.0, -0.0043 }, { 0.1524, 0.0, 0.0 } } },
+  /* 11 the receiver pack in foam ahead of the receiver, on hook and loop. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+    .mass = 0.10, .joint = { 0.08, 0.0, -0.04 }, .m_max = 2.0, .f_max = 0.6 * VELCRO_12, .k = 3.0e5,
+    BOX(0.05, 0.11, -0.02, 0.02, -0.05, -0.02) },
+  /* 12, 13 the dural strap's legs, 1/8 in 2024 aluminium about an inch
+   * wide, Z 4.3e-8 m^3 at 345 MPa, 15 N m, and their wheels; 14 the nose
+   * leg, 5/32 in wire on its bearing, and its wheel. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_ALU, .motor = -1, .wheel = 0,
+    .mass = 0.095, .joint = { -0.02, 0.05, -0.053 }, .m_max = 15.0, .f_max = 400.0, .k = 1997.0,
+    BOX(-0.05, 0.0, 0.0, 0.215, -0.165, -0.053) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_ALU, .motor = -1, .wheel = 1,
+    .mass = 0.095, .joint = { -0.02, -0.05, -0.053 }, .m_max = 15.0, .f_max = 400.0, .k = 1997.0,
+    BOX(-0.05, 0.0, -0.215, 0.0, -0.165, -0.053) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.055, .joint = { 0.29, 0.0, -0.053 }, .m_max = WIRE_M(0.004), .f_max = 200.0, .k = 455.0,
+    BOX(0.26, 0.30, -0.02, 0.02, -0.167, -0.053) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.1778, 0.0, 0.048 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.165, 0.19, -0.010, 0.010, 0.048, 0.068) },
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.30, 0.0, 0.033 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.30, 0.0, 0.033 }, { -0.28, 0.0, 0.12 } } },
+};
+
 #endif /* CRASH_PARTS_H */

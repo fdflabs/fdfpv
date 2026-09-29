@@ -1658,3 +1658,97 @@ export function recordExtraFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * Phil Kraft's Das Ugly Stik, airframe 19, docs/UGLYSTIK-STAGE1.md: a
+ * sport aerobat on a tricycle gear whose nose wheel steers with the
+ * rudder. On the strip it stands on its three wheels at the pose the plant
+ * settles to with the engine idling, 2.06 deg nose down and the CG 0.2024
+ * m up (the drawn model's is 1.48 deg nose down, src/render/
+ * uglystikcraft.js, before the idle's thrust leans it onto its nose
+ * wheel), the quaternion's half angle's cos and sin written out to 17
+ * digits because a recording's prelude is hashed and JS Math.cos is not
+ * specified to the bit; thrown, at its cruise.
+ */
+export const UGLYSTIK_AIRFRAME = 19;
+export const UGLYSTIK_REST = { z: 0.2024, pitchDeg: -2.06 };
+const UGLYSTIK_REST_C = 0.99983842004120882;
+const UGLYSTIK_REST_S = -0.017975923049993122;
+export function uglystikPrelude(sim) {
+  must(sim.e.sim_set_airframe(UGLYSTIK_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(17), 'sim_wing_launch');
+}
+export function uglystikGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(UGLYSTIK_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  must(sim.e.sim_set_pose(0, 0, UGLYSTIK_REST.z, UGLYSTIK_REST_C, 0, -UGLYSTIK_REST_S, 0), 'sim_set_pose');
+}
+
+/*
+ * The Stik's take off, a tricycle's: full throttle, the wings held level
+ * on the ailerons and the heading on the rudder and the nose wheel it
+ * steers, and at `vRotate` a firm pull that raises the nose to 8 deg: on
+ * RCM's 3/8 in of elevator the Stik sitting nose down takes most of the
+ * stick to rotate. Returns roll, pitch and yaw sticks.
+ */
+export function uglystikTakeoffSticks(s, { vRotate = 11.4 } = {}) {
+  const { pitch } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const heading = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+  const pitchStick = v < vRotate ? 0 : Math.max(-1, Math.min(1, 5.0 * (8 * Math.PI / 180 - pitch) - 0.25 * qAero));
+  const yaw = Math.max(-1, Math.min(1, 2.0 * heading + 0.3 * s[13]));
+  return [edgeRoll(s), pitchStick, yaw];
+}
+
+/*
+ * The Stik's recording for the cross-host check: from standing on the
+ * strip, a second at idle, the take off above and a climb, then level at
+ * three quarter throttle, a full aileron roll, three seconds on its back,
+ * rolled upright again, half up stick into a loop at full throttle, the
+ * sticks let go, and a chop: twenty six seconds, the gear, the roll, the
+ * inverted trim and the loop all in the hashed trace, still flying at the
+ * end.
+ */
+export function recordUglystikFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  uglystikGroundPrelude(sim);
+  const samples = [];
+  const trim = { v: 0 };
+  for (let ms = 0; ms < 26000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch } = attitude(s);
+    const qAero = -s[12];
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 6000) {
+      sticks = [...uglystikTakeoffSticks(s), 1];
+    } else if (ms < 9000) {
+      sticks = [edgeRoll(s), Math.max(-1, Math.min(1, 2.5 * (0.3 - pitch) - 0.25 * qAero)), 0, 1];
+    } else if (ms < 12000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 15800) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 16800) {
+      sticks = [...edgeLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 18700) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 20000) {
+      sticks = [...edgeLevel(s, { b: Math.PI, trim }), 0, 0.75];
+    } else if (ms < 22000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 1];
+    } else if (ms < 24500) {
+      sticks = [0, 0.5, 0, 1];
+    } else {
+      sticks = [edgeRoll(s), 0, 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
