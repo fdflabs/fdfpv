@@ -1147,11 +1147,16 @@ export function createCrashCam(host) {
 
   /* ---- the edit ---- */
 
-  /* Every change to the edit: a step of its own, or, inside a gesture,
-   * the gesture's step so far. Nothing changes while a movie exports. */
+  /* Every change to the edit: a step of its own, or, inside a gesture
+   * from the screen, that gesture's step so far. A wheel or a free flight
+   * still settling is its own step, ended first. Nothing changes while a
+   * movie exports. */
   function change(next) {
     if (S.exporting || next === S.history.current) {
       return false;
+    }
+    if (S.gesture === 'auto') {
+      endGesture();
     }
     if (S.gesture) {
       S.history.preview(next);
@@ -1161,7 +1166,8 @@ export function createCrashCam(host) {
     return true;
   }
 
-  /* An input that is its own gesture until it has been still a while. */
+  /* An input that is its own gesture until it has been still a while,
+   * or part of the screen's gesture when one is open. */
   function touch() {
     if (!S.gesture) {
       S.history.begin();
@@ -1196,7 +1202,7 @@ export function createCrashCam(host) {
     }
     S.params[cam.rig] = clone(p);
     touch();
-    change(ed.setCam(edit, i, { ...cam, p }));
+    S.history.preview(ed.setCam(edit, i, { ...cam, p }));
   }
 
   function cut() {
@@ -1501,12 +1507,12 @@ export function createCrashCam(host) {
 
   /*
    * A movie is written by a job (src/replay/export.js) driven from the
-   * frame loop, since that is where the world is
-   * drawn: each display frame asks job.next() for a movie frame, steps
-   * the replay to it (stepTo, the same stepping as playback), and once the
-   * shell has drawn it, afterRender hands the canvas to job.capture. A
-   * frame stepped for the job is never replaced before it is captured, so
-   * a display frame the shell skips drawing only delays the movie.
+   * frame loop, since that is where the world is drawn: each display
+   * frame asks job.next() for a movie frame, steps the replay to it
+   * (stepTo, the same stepping as playback), and once the shell has drawn
+   * it, afterRender hands the canvas to job.capture. A frame stepped for
+   * the job is never replaced before it is captured, so a display frame
+   * the shell skips drawing only delays the movie.
    *
    * job.next(): a frame index, -1 to hold (nothing stepped anew), null
    * after the last. job.capture(canvas) is synchronous. job.progress is
