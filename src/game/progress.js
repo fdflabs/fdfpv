@@ -85,9 +85,9 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * stalls straight and lands on a tricycle at 11 m/s: nothing it does
  * needs the P-51's rudder or the aerobats' hands. The Wot 4 at 4, with the
  * Bombshell and the Zagi: the Stik's British counterpart, but a
- * taildragger that rolls half as fast again (146 deg/s on the manual's
- * throws) and spins on its big rudder; forgiving, its stall mushes wings
- * level and the spin stops when the sticks are let go
+ * taildragger that rolls a quarter faster (pb/2V 0.094 against 0.074 on
+ * the manual's throws) and spins on its big rudder; forgiving, its stall
+ * mushes wings level and the spin stops when the sticks are let go
  * (docs/WOT4-STAGE1.md). The P-51 at 7: it has the heaviest wing loading
  * here but one (65 N/m^2
  * against the Timber's 46 and the Kadet's 36), it swings on the take off

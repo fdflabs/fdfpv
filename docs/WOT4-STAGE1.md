@@ -144,13 +144,14 @@ general one, and it reuses them:
 The one change to the plant's files beyond the table is the table's own
 registration: SIM_AIRFRAME_WOT41334 (20) in sim_internal.h and sim_abi.h,
 its PLANT_TABLE entry, PARTS_WOT41334 in crash_parts.h and its line in
-crash.c. `npm run wot4:gates` W17 holds every other aircraft's seventeen
-recorded trace hashes to main's at 3637fef, identical. `npm run
+crash.c. `npm run wot4:gates` W17 holds every other aircraft's nineteen
+recorded trace hashes to main's, identical: seventeen from 3637fef, and the
+Zagi's and the Ugly Stik's from 4223337, where they merged. `npm run
 crash:identity` against origin/main: every existing gate and self test
 prints byte for byte what main prints (the `off == base` column), but for
 three that enumerate the airframe table and so meet the Wot 4 where main
 has an empty slot: whoop:gates and wing:contact (main's module refuses
-airframe 20) and glider:stab's count of empty slots, 7 on main and 6 here.
+airframe 20) and glider:stab's count of empty slots, 5 on main and 4 here.
 
 Found on the way and fixed: `scripts/stall-derive.js` did not parse on
 main (a merge had dropped the `};` closing the Edge's entry), so `npm run
@@ -182,7 +183,7 @@ flown in Manual on the table.
 | W14c feet off the rudder, recorded | | none | 0.7 deg |
 | W15 taxi turn, full right rudder | 1.46 m | 1.1 to 1.83 | 1.41 m, turning right |
 | W16 an easy landing | | touching at 1.3 Vs or slower, no bounce, at rest at W13's attitude, no hull or prop | touched at 11.1 m/s sinking 0.89, no bounce, rolled 45 m, at rest at 12.56 deg |
-| W17 every other aircraft's recorded hash | main's | identical | 17 identical |
+| W17 every other aircraft's recorded hash | main's | identical | 19 identical |
 | W18 Node and Chrome | | identical | identical |
 
 `npm run wot4:gates`: 21 of 21. `npm run wot4:stab`: 58 passed, the Edge's
@@ -237,20 +238,30 @@ eighth of full aileron.
 
 ## How it differs from the Ugly Stik
 
-The Ugly Stik (id 19) is being built alongside from Phil Kraft's Das Ugly
-Stik, RCM plan 939 (its branch's scripts/uglystik-derive.js, read on
-2026-09-29). The two are the classic sport aerobats of either side of the
-Atlantic, and the models differ where the aircraft do:
+The Ugly Stik (id 19) is Phil Kraft's Das Ugly Stik to RCM plan 939,
+merged on main (docs/UGLYSTIK-STAGE1.md). The two are the classic sport
+aerobats of either side of the Atlantic, and the models differ where the
+aircraft do. Every number below is from the two stage 1 documents, the Stik's
+from its gates as measured:
 
 | | Wot 4 | Ugly Stik |
 | --- | --- | --- |
-| Gear | taildragger, an aluminium strap and a wire tailwheel | tricycle, a steerable nose leg (RCM's table, "Tricycle") |
-| Wing | 1334 mm, 590 sq in, flat, no dihedral, on top of the box | 61.7 in, 1.5 in of dihedral a side at the tip rib, a shoulder wing |
-| Roll stability | the high wing's and the fin's alone, Cl beta -0.050 | the dihedral adds to it: the Stik levels itself more |
-| Power | electric, Foss's AXI 4120/14 on 4S, 1.54 times its weight | glow, an O.S. 61FX with an idle |
-| Weight | 80 oz | 96 oz |
-| Tail | a big rudder, 8.7 percent of the wing, down to the fuselage's bottom | the rounded "egg" fin, 8 in by 11 1/2 |
-| Feel | crisper roll on a shorter span, a knife edge pass on the big rudder, a taildragger's take off | more wing and more dihedral, a tricycle's ground handling |
+| Gear | taildragger, an aluminium strap and a wire tailwheel in the rudder | tricycle, a nose wheel steered at 0.6 of the rudder |
+| Wing | 1334 mm, 590 sq in, flat, NACA 2415 class, cambered | 1568 mm, 3.07 deg of dihedral a side, a 16 percent near symmetric section |
+| Roll stability | the high wing's and the fin's alone, Cl beta -0.050 | the dihedral adds to it, Cl beta -0.081: the Stik levels itself more |
+| Roll | pb/2V 0.094, 146 deg/s at 18 m/s | pb/2V 0.074, 128 deg/s at 23.8 m/s |
+| Rudder | 30.4 deg on the manual's 45 mm, Cn dr -0.132 | 14.6 deg on the plan's 1 in, Cn dr -0.066, half the Wot 4's |
+| Inverted | a push of 0.30 of the stick on the cambered section | a push of 0.50 on the symmetric one |
+| Power | electric, Foss's AXI 4120/14 on 4S, 34 N static, 1.54 times its weight | glow, an O.S. 61FX on a 12 x 6 with an idle that never stops |
+| Weight, loading | 80 oz, 58.4 N/m^2 | 96 oz, 52.3 N/m^2 |
+| Loop at half stick | 31.6 m | 41.3 m |
+| Landing | touches at 11.1 m/s, rolls 45 m | touches at 14.1 m/s, rolls 78 m |
+
+In the hand: the Wot 4 rolls faster on a shorter span, has twice the
+rudder for the knife edge and the spin, needs less push on its back, and
+lands slower and shorter, but its tail has to be kept straight on the
+ground. The Stik is the bigger, steadier wing: more dihedral, bigger loops
+on its lower loading, and a tricycle that tracks by itself.
 
 ## The landing gear
 
@@ -304,10 +315,12 @@ the carousel, with Acro (the default), Stabilised and Manual rows, its FPV
 camera on the cowl, `gear` from the plant's settled pose, and the hangar's
 power (two packs), paint (two schemes), tuning (the manual's high and low
 throws, its 82 mm CG) and parts (the stock 13 x 8, and APC's 12 x 6E and 12
-x 8E, AXI's other suggestions). On the unlock curve it is **level 3**,
-beside the Skyhunter: a sport aerobat, but the one the manual calls "an
+x 8E, AXI's other suggestions). On the unlock curve it is **level 4**,
+beside the Bombshell and the Zagi: a sport aerobat the manual calls "an
 excellent first aileron model with reduced control throws" after a
-trainer, after the Kadet (2) and before the Bombshell's glow engine (4).
+trainer, one step past the Ugly Stik (3), whose tricycle gear and dihedral
+forgive more, since the Wot 4 rolls a quarter faster (pb/2V) and has to be
+steered on its tailwheel.
 
 ## What is estimated, and what stays open
 
