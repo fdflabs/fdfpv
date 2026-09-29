@@ -37,7 +37,8 @@
  * (and so in their socket's attachment, which survives a hibernation):
  * seat tokens, nothing else. Reports, allowances, hits and pose history
  * are in this object's memory only and go with it; a removal is on the
- * core's kick list, token and address, in memory, for REMOVE_MS. Nothing
+ * core's kick list (core.js keepOut: the token kept out, the address's
+ * new joins slowed), in memory, for REMOVE_MS. Nothing
  * here is written to storage or to a log.
  *
  * This file is part of WebFPVSimulator.
@@ -212,13 +213,13 @@ export class RoomSafety {
     return Math.max(2, Math.ceil(this.core.seats.size / 3));
   }
 
-  /* Out of the room, and kept out for REMOVE_MS by token and address. */
+  /* Out of the room, and kept out for REMOVE_MS (core.js keepOut). */
   remove(conn, now) {
     const s = this.core.seats.get(conn);
     if (!s) {
       return [];
     }
-    this.core.kicked.push({ token: s.token, address: s.address, until: now + REMOVE_MS });
+    this.core.keepOut(s, now, REMOVE_MS);
     this.core.seats.delete(conn);
     this.reports = this.reports.filter((r) => r.target !== s.token);
     return [

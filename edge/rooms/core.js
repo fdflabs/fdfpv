@@ -82,6 +82,17 @@ export const TEXT_CLOSE_PER_S = 20;
  * A seat taken back after a drop is not a new join. */
 export const JOINS_PER_MIN = 2 * PUBLIC_CAP;
 export const KICK_MS = 30 * 60 * 1000;
+/*
+ * A kick or a removal keeps out that PLAYER, their seat token, for its
+ * time, never their address: the owner's decision (2026-09-28), because
+ * an address is often a household, and a sibling on the same Wi-Fi must
+ * still get in. Against the one kicked coming straight back from a fresh
+ * browser, new joins to this room from that address are slowed for the
+ * same time: one per KICKED_JOIN_GAP_MS, the first that long after the
+ * kick. Slowed, never blocked. A seat taken back after a drop is not a
+ * new join.
+ */
+export const KICKED_JOIN_GAP_MS = 60 * 1000;
 /* A seat's token takes the same seat back for this long after its socket
  * drops, so a reconnect lands where it was rather than in a new slot. */
 export const RESEAT_MS = 60 * 1000;
@@ -140,7 +151,7 @@ export class RoomCore {
     this.meta = meta;
     this.seats = new Map();   /* conn -> seat record */
     this.pending = new Map(); /* conn -> text rate, before its hello */
-    this.kicked = [];         /* { token, address, until } in memory only */
+    this.kicked = [];         /* { token, address, until, lastJoin } in memory only */
     this.joins = new Map();   /* address -> { since, n } */
     this.recent = new Map();  /* token -> { seat, until }, for a reconnect */
     this.ticking = false;
@@ -415,9 +426,27 @@ export class RoomCore {
     return 0;
   }
 
-  isKicked(token, address, now) {
+  isKicked(token, now) {
     this.kicked = this.kicked.filter((k) => k.until > now);
-    return this.kicked.some((k) => (token && k.token === token) || (address && k.address === address));
+    return Boolean(token) && this.kicked.some((k) => k.token === token);
+  }
+
+  /* Keep a player out: their token for `ms`, their address slowed. */
+  keepOut(s, now, ms) {
+    this.kicked.push({ token: s.token, address: s.address, until: now + ms, lastJoin: now });
+  }
+
+  /* A new join from an address a kick or a removal slows: false while it
+   * must wait, else true, and the wait starts again. */
+  slowedJoin(address, now) {
+    const held = this.kicked.filter((k) => address && k.address === address);
+    if (held.some((k) => now - k.lastJoin < KICKED_JOIN_GAP_MS)) {
+      return false;
+    }
+    for (const k of held) {
+      k.lastJoin = now;
+    }
+    return true;
   }
 
   /*
@@ -429,7 +458,7 @@ export class RoomCore {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
     const token = typeof msg.token === 'string' && /^[0-9a-f]{32}$/.test(msg.token) ? msg.token : null;
-    if (this.isKicked(token, address, now)) {
+    if (this.isKicked(token, now)) {
       return [{ close: conn, code: CLOSE.kicked, reason: 'kicked' }];
     }
     const profile = checkProfile(msg.profile);
@@ -466,7 +495,7 @@ export class RoomCore {
       if (!this.joins.has(address)) {
         this.joins.set(address, { since: now, n: 0 });
       }
-      if (bump(this.joins.get(address), now, 60000) > JOINS_PER_MIN) {
+      if (bump(this.joins.get(address), now, 60000) > JOINS_PER_MIN || !this.slowedJoin(address, now)) {
         return [...actions, { close: conn, code: CLOSE.rate, reason: 'rate' }];
       }
     }
@@ -614,11 +643,11 @@ export class RoomCore {
   }
 
   /* A host's kick: gone for the room's life, which is what the token and
-   * the address are held against, in memory, for KICK_MS. */
+   * the token is held against, in memory, for KICK_MS (keepOut). */
   kick(seat, now) {
     for (const [conn, t] of this.seats) {
       if (t.seat === seat) {
-        this.kicked.push({ token: t.token, address: t.address, until: now + KICK_MS });
+        this.keepOut(t, now, KICK_MS);
         this.seats.delete(conn);
         this.referee.leave(seat);
         this.combat.leave(seat);
