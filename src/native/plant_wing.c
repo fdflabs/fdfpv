@@ -33,8 +33,10 @@
  * E-flite's Extra 300 3D of docs/EXTRA-STAGE1.md, whose thrust is over its
  * weight, which adds the slipstream over its surfaces, the tail's own
  * flow past the linear angles and the damping of a slow aircraft's own
- * rotation, so it hangs on its prop and flies sideways. A term an
- * airframe does not have
+ * rotation, so it hangs on its prop and flies sideways; and
+ * FW_UGLYSTIK1567, Phil Kraft's Das Ugly Stik of docs/UGLYSTIK-STAGE1.md,
+ * a four channel sport aerobat on a two stroke glow engine, which adds
+ * nothing. A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
@@ -42,8 +44,8 @@
  * scripts/skyhunter-gates.js, scripts/cub-gates.js,
  * scripts/glider-gates.js, scripts/bramor-gates.js,
  * scripts/slowstick-gates.js, scripts/timber-gates.js,
- * scripts/bombshell-gates.js, scripts/kadet-gates.js and
- * scripts/extra-gates.js.
+ * scripts/bombshell-gates.js, scripts/kadet-gates.js,
+ * scripts/extra-gates.js and scripts/uglystik-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -3258,4 +3260,120 @@ const FixedWingParams FW_EXTRA1308 = {
   .side_cda = 0.1323,
   .rot_k = { 0.01580, 0.04108, 0.03462 },
   .j_prop = 0.000249,     /* a 35 g wood blade and the outrunner's can, ESTIMATED */
+};
+
+/* Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,
+ * plan 939, May and June 1985, docs/UGLYSTIK-STAGE1.md, where each number
+ * has its formula and source (scripts/uglystik-derive.js) and the
+ * estimated ones say so. A 62 in balsa sport aerobat: a constant chord
+ * shoulder wing on a section within a percent of symmetric at half a
+ * degree of incidence, 1.5 in of dihedral a side, strip ailerons along
+ * the whole trailing edge outside the centre, a flat stabiliser on the
+ * fuselage's bottom and the rounded "egg" of a fin; RCM's own travel
+ * limits. An O.S. 61FX two stroke on a 12 x 6, clockwise seen from
+ * behind, on no thrust offsets ("No thrust offsets are used", Kraft); the
+ * stick runs it from its 2,000 rpm idle to full and it never stops. A
+ * straight, untwisted wing whose thick section stalls from the trailing
+ * edge: it drops its nose and does not drop a wing. */
+const FixedWingParams FW_UGLYSTIK1567 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.5682,         /* the plan, 61.7 in over the aileron tips */
+  .area = 0.51055,        /* the plan: 731 sq in to the hinge line, 60 of strip ailerons */
+  .chord = 0.3256,        /* S/b */
+  .cl_alpha = 4.824,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
+  .cl_max = 0.95,         /* a 16 percent near symmetric section at 2.3e5, ESTIMATED */
+  /* The zero lift line 0.43 degrees under the thrust line: the section's
+   * zero at the plan's half degree of incidence, less the tail's share.
+   * sin and cos of minus 0.43 degrees, to 17 digits. */
+  .alpha_zl = -0.43 * WING_PI / 180.0,
+  .sin_zl = -0.0075048453329269677,
+  .cos_zl = 0.99997183825172242,
+  .cd0 = 0.045,           /* an open side mounted engine, a slab box, strip ailerons, strap gear */
+  .k_induced = 0.08811,   /* 1/(pi 0.75 4.82) */
+  .cl_de = -0.3057,
+  .cy_beta = -0.2505,
+  .cy_dr = 0.1403,
+  .cl_beta = -0.0813,     /* 3.07 degrees of dihedral, the shoulder wing and the fin */
+  .cl_p = -0.7378,
+  .cl_da = 0.2510,        /* strip ailerons, 9 percent of the chord, from 5.7 in to the tip */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0059,
+  .cm_0 = 0.0281,         /* level at 3/4 throttle with the elevator neutral, RCM's trim */
+  .cm_alpha = -0.4880,    /* static margin 0.101 at the plan's CG, on the main spar */
+  .cm_q = -6.792,
+  .cm_de = 0.6835,
+  .cn_beta = 0.1068,      /* the egg and its sub fin, less the slab box's */
+  .cn_r = -0.1218,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.06,  /* the bellcranks' differential takes half the Cub's adverse yaw */
+  .cn_dr = -0.0659,
+  /* A thick section's trailing edge stall comes on over the P-51's 3 deg,
+   * ESTIMATED. */
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* RCM's travel limits at the trailing edge: 5/16 in up and 1/4 down on
+   * the 1.29 in aileron, their mean; 3/8 in on the 1.67 in elevator; 1 in
+   * on the 3.96 in rudder; their arcsines, which configs/tuning.js
+   * restates. */
+  .throw_a = 12.5969 * WING_PI / 180.0,
+  .throw_e = 12.9765 * WING_PI / 180.0,
+  .throw_r = 14.6270 * WING_PI / 180.0,
+  .surface_max = 12.5969 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 36.206, /* N, APC's 12 x 6 at 10,895 rpm */
+  .pitch_speed = 27.673,
+  .rpm_no_load = 12817.6,
+  .torque_arm = 0.01690,  /* APC's 0.612 N m at 10,895 rpm, the engine's torque, over 36.2 N */
+  .thrust_z = -0.0043,    /* the crankshaft 0.17 in under the CG */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 0.0,    /* the engine burns fuel, not the pack */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.20,
+  .stab_pitch_kp = 3.0,
+  .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 9.69 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.745, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 80.0 * WING_PI / 180.0, /* 0.85 of full aileron's 95 deg/s at the trim */
+  .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* under the accelerated stall at the trim, 76 deg/s */
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 4.0,
+  .acro_roll_kd = 0.70,
+  .acro_roll_ff = 0.20,
+  .acro_pitch_kp = 4.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.5,
+  .throttle_idle = 0.1836, /* O.S.'s 2,000 rpm, the lowest practical, of the 10,895 */
+  /* The tank, docs/POWER-STAGE1.md: RCM's 12 oz, 355 cc. The full
+   * throttle flow a measured .40 two stroke's (Menon 2010, 17.9 cc/min)
+   * scaled by the displacement, 9.95 over 6.5 cc: 27.4 cc/min, linear in
+   * the rpm through zero, ESTIMATED; the lean run the Bombshell's. */
+  .tank_m3 = 355.0e-6,
+  .flow_full = 27.4e-6 / 60.0,
+  .flow_idle = 0.1836 * (27.4e-6 / 60.0),
+  .lean_frac = 0.05,
+  .lean_gain = 0.05,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js: a
+   * 16 percent section within a percent of symmetric at 2.3e5, the NACA
+   * 2415's UIUC curve at 2e5, held 4.2 deg and falling to 0.76. */
+  .stall_arm_ac = 0.0991, /* the CG 1.27 in behind the wing's aerodynamic centre */
+  .stall_arm_cp = 0.0610, /* the plate's centre of pressure at 0.40 of the chord */
+  .stall_dw = 0.1427,
+  .stall_asym = 0.00307,
+  .stall_k = 0.76,
+  .stall_top = 4.2 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 0.0,         /* "Keep the trailing edge flat": built flat on the board */
+  /* The ailerons from 5.7 in out: a quarter of the inner strip, all of
+   * the rest. */
+  .strip_tau = { 0.055, 0.22, 0.22, 0.22 },
+  .j_prop = 0.00027,      /* the 12 x 6's 46 g of wood blades and the crank's front, ESTIMATED */
 };

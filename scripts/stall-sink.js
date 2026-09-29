@@ -53,6 +53,7 @@ const PLANES = {
   timber: [7, 7.2], bramor: [8, 13.0], timberf: [9, 7.1], cubf: [10, 8.7], bombshell: [11, 6.49],
   kadet: [12, 7.15], edge: [13, 9.58],
   f16: [16, 12.33],
+  uglystik: [19, 9.48],
 };
 const MODES = [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']];
 
