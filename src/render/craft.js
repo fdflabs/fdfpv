@@ -42,6 +42,7 @@ import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildKadetCraft } from './kadetcraft.js';
 import { buildEdgeCraft } from './edgecraft.js';
 import { buildExtraCraft } from './extracraft.js';
+import { buildPittsCraft } from './pittscraft.js';
 import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
@@ -72,6 +73,7 @@ const BUILDERS = {
   kadet1981: buildKadetCraft,
   edge1524: buildEdgeCraft,
   extra1308: buildExtraCraft,
+  pitts850: buildPittsCraft,
   p51d1450: buildP51Craft,
   timber1500: buildTimberCraft,
   /* On floats, the same builders with the float set in place of the gear. */

@@ -344,5 +344,31 @@ export const PROP_ESTIMATES = {
         currentA: 27.941
       }
     }
+  },
+  pitts850: {
+    stock: {
+      "11x8e": {
+        thrustN: 16.5317,
+        pitchSpeedMs: 27.6951,
+        currentA: 29.74
+      },
+      "10x7e": {
+        thrustN: 12.9873,
+        pitchSpeedMs: 25.5558,
+        currentA: 21.394
+      }
+    },
+    "4s": {
+      "11x8e": {
+        thrustN: 26.4374,
+        pitchSpeedMs: 36.9354,
+        currentA: 45.855
+      },
+      "10x7e": {
+        thrustN: 20.7677,
+        pitchSpeedMs: 34.0824,
+        currentA: 32.967
+      }
+    }
   }
 };

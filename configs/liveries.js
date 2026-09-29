@@ -193,6 +193,15 @@ export const LIVERIES = {
       { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
     ],
   },
+  pitts850: {
+    /* E-flite's moulded foam in its own paint: red all over, the top
+     * wing's top a white sunburst from the cockpit, white bars across the
+     * bottom wing's underside, white pinstripes down the fuselage. */
+    regions: [r('wing', '#d42a22'), r('fuselage', '#d42a22'), r('tail', '#d42a22'), r('rays', '#f2f0ec'), r('trim', '#16181a')],
+    schemes: [
+      { id: 'stock', source: src('E-flite Pitts S-1S 850mm, EFL35500', 'https://www.horizonhobby.com/product/pitts-s-1s-bnf-basic-with-as3x-and-safe-select-850mm/EFL35500.html'), colours: {} },
+    ],
+  },
   f16878: {
     /* Painted foam, not film: Freewing's "modern three tone gray US Air
      * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270
