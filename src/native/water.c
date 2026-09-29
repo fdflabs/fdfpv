@@ -289,11 +289,39 @@ int water_channel_point(int i, double x, double y, double z) {
   return 0;
 }
 
+/* Chunk c's segments of a channel whose last point is `last`, against the
+ * nearest found so far, `best` (-1 for none): the squared distance, and
+ * the surface and its slope where it is nearer. The first nearest segment
+ * wins a tie. */
+static double chunk_nearest(int c, int last, double x, double y, double best, double *z, double *sx, double *sy) {
+  int k1 = (c + 1) * WATER_CHUNK;
+  if (k1 > last) k1 = last;
+  for (int k = c * WATER_CHUNK; k < k1; k += 1) {
+    const double ax = g_cx[k], ay = g_cy[k];
+    const double ex = g_cx[k + 1] - ax, ey = g_cy[k + 1] - ay;
+    const double l2 = ex * ex + ey * ey;
+    double t = l2 > 0.0 ? ((x - ax) * ex + (y - ay) * ey) / l2 : 0.0;
+    if (t < 0.0) t = 0.0;
+    if (t > 1.0) t = 1.0;
+    const double dx = x - (ax + t * ex), dy = y - (ay + t * ey);
+    const double d2 = dx * dx + dy * dy;
+    if (best < 0.0 || d2 < best) {
+      const double dz = g_cz[k + 1] - g_cz[k];
+      best = d2;
+      *z = g_cz[k] + t * dz;
+      *sx = l2 > 0.0 ? dz * ex / l2 : 0.0;
+      *sy = l2 > 0.0 ? dz * ey / l2 : 0.0;
+    }
+  }
+  return best;
+}
+
 /*
  * The channel's centre line nearest (x, y): the squared distance to it,
  * and the surface there, level across, straight along the segment
- * between its two points' heights, with its slope. The first nearest
- * segment wins a tie. -1 when the channel has under two points.
+ * between its two points' heights, with its slope. Only the chunks whose
+ * box holds the point are read, which is every chunk that can hold water
+ * there. -1 when none does, or the channel has under two points.
  */
 static double channel_nearest(const WaterBody *b, double x, double y, double *z, double *sx, double *sy) {
   double best = -1.0;
@@ -303,25 +331,29 @@ static double channel_nearest(const WaterBody *b, double x, double y, double *z,
     if (x < box[0] || x > box[1] || y < box[2] || y > box[3]) {
       continue;
     }
-    int k1 = (c + 1) * WATER_CHUNK;
-    if (k1 > last) k1 = last;
-    for (int k = c * WATER_CHUNK; k < k1; k += 1) {
-      const double ax = g_cx[k], ay = g_cy[k];
-      const double ex = g_cx[k + 1] - ax, ey = g_cy[k + 1] - ay;
-      const double l2 = ex * ex + ey * ey;
-      double t = l2 > 0.0 ? ((x - ax) * ex + (y - ay) * ey) / l2 : 0.0;
-      if (t < 0.0) t = 0.0;
-      if (t > 1.0) t = 1.0;
-      const double dx = x - (ax + t * ex), dy = y - (ay + t * ey);
-      const double d2 = dx * dx + dy * dy;
-      if (best < 0.0 || d2 < best) {
-        const double dz = g_cz[k + 1] - g_cz[k];
-        best = d2;
-        *z = g_cz[k] + t * dz;
-        *sx = l2 > 0.0 ? dz * ex / l2 : 0.0;
-        *sy = l2 > 0.0 ? dz * ey / l2 : 0.0;
-      }
+    best = chunk_nearest(c, last, x, y, best, z, sx, sy);
+  }
+  return best;
+}
+
+/*
+ * The same line's nearest point to a point that may lie outside every
+ * chunk's box: a hull point of a craft whose centre is over the channel,
+ * a wing tip out over the bank. Every chunk is a candidate, and one whose
+ * box is farther than the nearest segment found so far is skipped, which
+ * cannot skip the nearest. -1 when the channel has under two points.
+ */
+static double channel_nearest_any(const WaterBody *b, double x, double y, double *z, double *sx, double *sy) {
+  double best = -1.0;
+  const int last = b->first + b->npts - 1;
+  for (int c = b->first / WATER_CHUNK; c * WATER_CHUNK < last; c += 1) {
+    const double *box = g_cbox[c];
+    const double ox = x < box[0] ? box[0] - x : (x > box[1] ? x - box[1] : 0.0);
+    const double oy = y < box[2] ? box[2] - y : (y > box[3] ? y - box[3] : 0.0);
+    if (best >= 0.0 && ox * ox + oy * oy > best) {
+      continue;
     }
+    best = chunk_nearest(c, last, x, y, best, z, sx, sy);
   }
   return best;
 }
@@ -405,7 +437,14 @@ int water_body_at(double x, double y) {
 void water_sample(int i, double x, double y, double t, double out[6]) {
   const WaterBody *b = &g_water[i];
   double z = b->z0, sx = 0.0, sy = 0.0, u = 0.0, v = 0.0, w = 0.0;
-  if (b->half_width > 0.0 && channel_nearest(b, x, y, &z, &sx, &sy) < 0.0) {
+  /* A point past every chunk's box takes the surface of the line's
+   * nearest segment, level across as everywhere else on the channel. It
+   * took z0, the channel's HIGHEST point, and a Skyhunter 3 m over
+   * swiss2's valley stream with a wing tip out over the bank had that
+   * tip under the head of the stream: in the water, the wing torn off in
+   * the open air (scripts/river-water-check.js). */
+  if (b->half_width > 0.0 && channel_nearest(b, x, y, &z, &sx, &sy) < 0.0
+      && channel_nearest_any(b, x, y, &z, &sx, &sy) < 0.0) {
     z = b->z0;
   }
   const double px = x - b->ox;
