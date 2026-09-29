@@ -550,7 +550,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * switchyard 2). The Yellowstone terrain engine and the swiss2 look it
  * is built with are under their own prefixes, as the Alps' modules are
  * for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 24 };
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 25 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
