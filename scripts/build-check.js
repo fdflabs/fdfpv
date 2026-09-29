@@ -120,7 +120,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import {
   B, airTo, click, dragMouse, frames, freeMouse, hangAt, hold, holdKey, key, leave, lookAlong, lookAt, moveMouse, placeHere,
-  settleCrosshair, takeMouse, wheel,
+  saveKey, settleCrosshair, takeMouse, wheel,
 } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airStartSpeed, airframeById } from '../configs/airframes.js';
@@ -416,7 +416,7 @@ async function proof() {
 
     /* Save, and a real reload. */
     st = await page.evaluate(B(''));
-    await key(page, 'KeyS', { ctrl: true });
+    await saveKey(page);
     await page.sleep(300);
     const lib = await page.evaluate('window.__build.library()');
     const saved = lib.find((t) => t.id === st.doc.id);
@@ -1600,7 +1600,7 @@ async function planeGates(page) {
   await takeMouse(page);
 
   /* Saved, and a real reload. */
-  await key(page, 'KeyS', { ctrl: true });
+  await saveKey(page);
   await frames(page, 3);
   const docId = await page.evaluate(B('.doc.id'));
   const raw = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(LIBRARY)}))[${JSON.stringify(docId)}]`);
@@ -1944,7 +1944,7 @@ async function hoopStage(craft, { place = true } = {}) {
     await takeMouse(page);
 
     /* Saved, and a real reload. */
-    await key(page, 'KeyS', { ctrl: true });
+    await saveKey(page);
     await frames(page, 3);
     const docId = await page.evaluate(B('.doc.id'));
     const raw = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(LIBRARY)}))[${JSON.stringify(docId)}]`);

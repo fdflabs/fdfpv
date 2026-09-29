@@ -4,11 +4,17 @@
  * A crosshair, a nine slot hotbar along the bottom with the piece in hand
  * named over it, a status line above that (the piece, the snap, the grid,
  * the fly speed, or what the mouse is doing now), a panel in the top left
- * for the track and its warnings, the controls card (H) on the right, and
+ * for the track and its warnings, the controls card (H) on the right, the
+ * Save button in the bottom left with what became of the last save, and
  * the inventory (E): every piece on its shelf, a click puts it in the slot
  * in hand and a drag puts it in any slot. Nothing here knows what a gate
  * is: buildmode.js hands it names, icons and text, and hears back which
- * slot or piece was picked.
+ * slot or piece was picked and when Save was clicked.
+ *
+ * The Save button is clicked with the mouse free (Esc, or a right click on
+ * a gate), the way the hotbar is: while the builder holds the mouse every
+ * click goes to the world, so it cannot take a click meant for a piece,
+ * and its Ctrl S says how to save without letting go.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -80,6 +86,23 @@ const CSS = `
 .bh-tile:hover { border-color: var(--amber); background: rgba(255, 212, 92, 0.1); }
 .bh-tile img { width: 60px; height: 60px; object-fit: contain; pointer-events: none; display: block; margin: 0 auto 3px; }
 .bh-tile span { display: block; font-size: 11px; line-height: 1.2; pointer-events: none; }
+.bh-file { position: absolute; left: 16px; bottom: 14px; display: flex; flex-direction: column; gap: 4px;
+  max-width: 260px; pointer-events: auto; }
+.bh-save { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 4px; cursor: pointer;
+  font: 700 15px/1.2 var(--ui-font); color: var(--cream); background: rgba(8, 12, 10, 0.78);
+  border: 2px solid rgba(243, 234, 212, 0.35); }
+.bh-save:hover { border-color: var(--amber); background: rgba(40, 34, 14, 0.85); }
+.bh-save kbd { font: 700 11px/1.3 var(--ui-font); color: var(--amber); }
+.bh-savestate { font: 12px/1.3 var(--ui-font); padding: 3px 8px; border-radius: 4px; background: rgba(12, 18, 14, 0.62);
+  text-shadow: 0 1px 2px #000; }
+.bh-savestate b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bh-savestate span::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%;
+  background: rgba(243, 234, 212, 0.5); }
+.bh-savestate[data-state="online"] span::before { background: var(--mint); }
+.bh-savestate[data-state="pending"] span::before, .bh-savestate[data-state="saved"] span::before { background: var(--amber); }
+.bh-savestate[data-state="refused"] span::before { background: #e04848; }
+.bh.inv-open .bh-file { display: none; }
+@media (max-width: 1000px) { .bh-file { bottom: 124px; } }
 .bh-drag { position: fixed; width: 56px; height: 56px; pointer-events: none; opacity: 0.85; z-index: 6;
   transform: translate(-50%, -50%); }
 `;
@@ -97,10 +120,11 @@ function el(tag, cls, text) {
 
 /*
  * `onSlot(i)` hears a hotbar slot clicked; `onAssign(pieceId, slot)` hears
- * a piece from the inventory put in a slot. Both are the builder's to act
- * on: the hotbar is redrawn from what it hands back in setHotbar.
+ * a piece from the inventory put in a slot; `onSave()` hears Save clicked.
+ * All are the builder's to act on: the hotbar is redrawn from what it hands
+ * back in setHotbar, and the save's state from setSave.
  */
-export function createHud({ onSlot, onAssign }) {
+export function createHud({ onSlot, onAssign, onSave }) {
   if (!document.getElementById('bh-style')) {
     const style = el('style');
     style.id = 'bh-style';
@@ -117,14 +141,37 @@ export function createHud({ onSlot, onAssign }) {
   const status = el('div', 'bh-status');
   const bar = el('div', 'bh-bar');
   bottom.append(name, status, bar);
-  root.append(cross, panel, help, helpHint, bottom);
+  const file = el('div', 'bh-file');
+  const saveButton = el('button', 'bh-save');
+  saveButton.type = 'button';
+  const saveLabel = el('span');
+  const saveKey = el('kbd');
+  saveButton.append(saveLabel, saveKey);
+  const saveState = el('div', 'bh-savestate');
+  const saveName = el('b');
+  const saveText = el('span');
+  saveState.append(saveName, saveText);
+  file.append(saveButton, saveState);
+  /* No focus on the press: a focused button would take the builder's
+   * Space (rise) as a click of its own. */
+  saveButton.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  saveButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onSave();
+  });
+  root.append(cross, panel, help, helpHint, bottom, file);
   (document.getElementById('ui') || document.body).append(root);
 
   const slots = [];
   let nameUntil = 0;
   let inv = null;
   let drag = null;
-  const last = { panel: null, status: null, warn: null };
+  const last = {
+    panel: null, status: null, warn: null, save: null,
+  };
 
   function setHotbar(items, slot) {
     while (slots.length < items.length) {
@@ -171,6 +218,24 @@ export function createHud({ onSlot, onAssign }) {
       last.panel = text;
       panel.textContent = text;
     }
+  }
+
+  /* The button's words and the last save's state: `state` is a
+   * course.js saveState key, `text` what it reads as, `name` the track's. */
+  function setSave({
+    label, key, tip, name: trackName, state, text,
+  }) {
+    const k = [label, key, tip, trackName, state, text].join('\n');
+    if (k === last.save) {
+      return;
+    }
+    last.save = k;
+    saveLabel.textContent = label;
+    saveKey.textContent = key;
+    saveButton.title = tip;
+    saveName.textContent = trackName;
+    saveText.textContent = text;
+    saveState.dataset.state = state;
   }
 
   /* rows: [keys, meaning] pairs, or null for the one line hint. */
@@ -308,6 +373,7 @@ export function createHud({ onSlot, onAssign }) {
     flashName,
     setStatus,
     setPanel,
+    setSave,
     setHelp,
     setCrosshair,
     openInventory,
@@ -328,6 +394,7 @@ export function createHud({ onSlot, onAssign }) {
         slots: slots.map(box),
         tiles: inv ? [...inv.querySelectorAll('.bh-tile')].map((t) => ({ id: t.dataset.piece, ...box(t) })) : [],
         help: help.style.display === 'none' ? null : box(help),
+        save: { ...box(saveButton), state: saveState.dataset.state || '', text: saveText.textContent, name: saveName.textContent },
       };
     },
   };

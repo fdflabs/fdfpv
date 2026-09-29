@@ -49,7 +49,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import {
-  B, hold, key, leave, lookAlong, placeHere, takeMouse,
+  B, hold, key, leave, lookAlong, placeHere, saveKey, takeMouse,
 } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
@@ -278,7 +278,7 @@ async function buildRing(page, R, offset) {
     await lookAlong(page, P.map((v, j) => v - T[j] * 20), Math.atan2(-T[0], -T[2]), 0);
     await placeHere(page, { air: true });
   }
-  await key(page, 'KeyS', { ctrl: true });
+  await saveKey(page);
   await page.until(`/Saved/.test(${B('.message')})`, 10000).catch(() => {});
   const id = await page.evaluate(B('.doc.id'));
   await leave(page);
