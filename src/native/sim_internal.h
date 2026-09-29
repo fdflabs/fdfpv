@@ -1065,8 +1065,13 @@ void plant_wing_gear_reset(void);
  * waves on each, a sum of linear deep water components raised by a wind
  * over a fetch and an optional swell. docs/FLOATS-STAGE1.md.
  */
-#define WATER_BODIES_MAX 4
+#define WATER_BODIES_MAX 8
 #define WATER_VERTS_MAX 256
+/* A channel's centre line lives in one pool shared by every channel, in
+ * chunks of WATER_CHUNK segments that each keep a box, so finding the
+ * segment under a point looks at a chunk's box before its segments. */
+#define WATER_CHANNEL_PTS_MAX 8192
+#define WATER_CHUNK 32
 #define WATER_SEA 6
 #define WATER_COMP_MAX (WATER_SEA + 1)
 
@@ -1078,7 +1083,7 @@ typedef struct {
 } WaterComp;
 
 typedef struct {
-  double z0;                /* still water, world z, m */
+  double z0;                /* still water, world z, m; a channel's highest point */
   double ox, oy;            /* where the phases are measured from */
   int nvert;                /* polygon, world x y; under 3 is everywhere */
   double vx[WATER_VERTS_MAX];
@@ -1089,6 +1094,12 @@ typedef struct {
   double hs, tp;            /* the wind sea's significant height and peak period */
   int ncomp;
   WaterComp comp[WATER_COMP_MAX];
+  /* A CHANNEL, a river: half_width > 0. Its water is within half_width
+   * of its centre line, npts points from first in the pool, and its
+   * surface is level across and runs straight between the points'
+   * heights along. The polygon above is then unused. */
+  double half_width;
+  int first, npts;
 } WaterBody;
 
 void water_clear(void);
@@ -1098,6 +1109,8 @@ int water_add(double z0, double ox, double oy);
 int water_vertex(int i, double x, double y);
 int water_wind(int i, double speed, double dx, double dy, double fetch);
 int water_swell(int i, double height, double period, double dx, double dy);
+int water_channel_add(double half_width);
+int water_channel_point(int i, double x, double y, double z);
 int water_body_at(double x, double y);
 /* out[6]: surface z, dz/dx, dz/dy, and the water's velocity x y z. */
 void water_sample(int i, double x, double y, double t, double out[6]);

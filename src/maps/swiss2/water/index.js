@@ -45,7 +45,7 @@ import { valleyLayout, lakeShore } from '../vegetation/zones.js';
 import { waveTexture } from './waves.js';
 import { waterMaterial, bedMaterial } from './surface.js';
 import { lakeGeometry, planarMirror } from './lake.js';
-import { streamGeometry } from './stream.js';
+import { streamGeometry, streamSurface } from './stream.js';
 import { buildFall } from './fall.js';
 import { makeWaves, patchGeometry, placePatch, outlineBox, probeSurface } from '../../../render/lakewaves.js';
 import { buildSpray } from '../../../render/spray.js';
@@ -153,8 +153,11 @@ export async function buildWater(ctx) {
   const streamMat = waterMaterial({
     waves, time, wind, flow: true, colour: STREAM_BODY, clarity: 3, ripple: 0.6, roughness: 0.06, envMap, width: 4,
   });
-  const runs = [[layout.aboveFall, 3.6], [layout.belowFall, 3.6], [layout.lower, 5.2]]
-    .filter(([pts]) => pts.length > 1)
+  const runsDrawn = [[layout.aboveFall, 3.6], [layout.belowFall, 3.6], [layout.lower, 5.2]]
+    .filter(([pts]) => pts.length > 1);
+  /* The runs as the physics has them: the drawn centre line and width. */
+  const rivers = runsDrawn.map(([pts, w]) => ({ line: streamSurface(pts, layout.groundAt), width: w }));
+  const runs = runsDrawn
     .map(([pts, w]) => {
       const m = new THREE.Mesh(streamGeometry(pts, w, layout.groundAt), streamMat);
       m.name = 'swiss2-stream';
@@ -301,6 +304,9 @@ export async function buildWater(ctx) {
     stats,
     layout,
     lake: { cx, cz, shore },
+    rivers,
+    /* The pool as the physics has it: the drawn disc. */
+    pools: [{ x: pool.x, z: pool.z, r: pool.r * 0.97, y: poolY }],
     dispose() {
       group.removeFromParent();
       waves.dispose();

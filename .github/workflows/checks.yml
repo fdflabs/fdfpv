@@ -96,6 +96,7 @@ jobs:
       - run: npm run test:tracks
       - run: npm run cloud:selftest
       - run: npm run crash:rules
+      - run: npm run river:check
       - run: npm run builder:selftest
       - run: npm run pick:selftest
       - run: npm run paint:selftest

@@ -478,6 +478,8 @@ function photoStyle() {
         setWaves: (bodies) => stage.water.setWaves(bodies),
         updateWaves: (t, craft) => stage.water.updateWaves(t, craft, camera),
         probeWater: (x, z) => stage.water.probe(x, z),
+        rivers: stage.water.rivers,
+        pools: stage.water.pools,
       };
       style.stage = stage;
       style.updateWind = out.updateWind;

@@ -34,7 +34,7 @@
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { noise2, smoothstep } from './noise.js';
-import { ribbon } from './ribbon.js';
+import { ribbon, ribbonCentre } from './ribbon.js';
 import {
   FIELD, HALF, STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,
   TREE_LINE, SNOW_LINE, streamX, treeLine, forestDensity,
@@ -663,18 +663,24 @@ export function buildShore(ctx, sites) {
 
 /* The stream along the line natureSites laid: three ribbons, a dark wet
  * bank under a gravel bed under the water, the water seen through to
- * the bed. */
+ * the bed. Returns the water's runs as the physics has them
+ * (src/game/water.js): each drawn centre line and its width. */
 export function buildStream(ctx, sites) {
   const { scene, look } = ctx;
   const { groundAt, aboveFall, belowFall, lower } = sites;
   const bankMat = look.material('stream-bank', { color: 0x4d6a31, rim: 0.05 });
   const bedMat = look.material('stream-bed', { color: 0x8f8a78, rim: 0.05 });
   const streamMat = look.material('stream', { color: 0x3d7a97, rim: 0.4, rimColor: 0xe6f3ff, transparent: true, opacity: 0.72 });
+  const rivers = [];
   for (const [pts, w] of [[aboveFall, 3.6], [belowFall, 3.6], [lower, 5.2]]) {
     scene.add(ribbon(pts, w * 1.5, 0.04, groundAt, bankMat).mesh);
     scene.add(ribbon(pts, w * 1.1, 0.08, groundAt, bedMat).mesh);
     scene.add(ribbon(pts, w, 0.14, groundAt, streamMat).mesh);
+    if (pts.length > 1) {
+      rivers.push({ line: ribbonCentre(pts, w, 0.14, groundAt), width: w });
+    }
   }
+  return rivers;
 }
 
 /*
@@ -1136,7 +1142,7 @@ export async function buildNature(ctx) {
   buildShore(ctx, sites);
   await ctx.paint(0.5);
 
-  buildStream(ctx, sites);
+  const rivers = buildStream(ctx, sites);
   buildHeadwall(ctx, sites);
   buildFall(ctx, sites, waterMat);
   buildFoam(ctx, sites);
@@ -1151,7 +1157,7 @@ export async function buildNature(ctx) {
   await ctx.paint(0.64);
 
   return {
-    pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps,
+    pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps, rivers,
     setWaves: waves.setWaves, updateWaves: waves.updateWaves, probeWater: waves.probeWater, disposeWaves: waves.dispose,
   };
 }

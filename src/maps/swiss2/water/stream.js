@@ -31,11 +31,12 @@
 import * as THREE from 'three';
 
 const ACROSS = [-1, -0.5, 0, 0.5, 1];
+/* The water over the ground at the ribbon's centre, m. */
+export const STREAM_LIFT = 0.16;
 
-/* One ribbon along `pts` (in flow order), `width` metres wide, on
- * `groundAt`, `lift` over it. */
-export function streamGeometry(pts, width, groundAt, lift = 0.16) {
-  /* Resample to two metres, so the torrent's steps are followed. */
+/* The ribbon's rows along `pts`: resampled to two metres, so the
+ * torrent's steps are followed. */
+function streamRows(pts) {
   const line = [];
   for (let k = 0; k + 1 < pts.length; k += 1) {
     const a = pts[k];
@@ -46,6 +47,21 @@ export function streamGeometry(pts, width, groundAt, lift = 0.16) {
     }
   }
   line.push(pts[pts.length - 1]);
+  return line;
+}
+
+/* The drawn water's centre line, every row with the surface's height
+ * there: what the plant is told the river is (src/game/water.js), so the
+ * water it floats on is the water drawn. Between two rows the drawn
+ * centre runs straight, as the plant's does. */
+export function streamSurface(pts, groundAt, lift = STREAM_LIFT) {
+  return streamRows(pts).map((p) => ({ x: p.x, y: groundAt(p.x, p.z) + lift, z: p.z }));
+}
+
+/* One ribbon along `pts` (in flow order), `width` metres wide, on
+ * `groundAt`, `lift` over it. */
+export function streamGeometry(pts, width, groundAt, lift = STREAM_LIFT) {
+  const line = streamRows(pts);
   const pos = [];
   const water = [];
   const flow = [];
