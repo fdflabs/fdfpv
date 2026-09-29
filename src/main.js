@@ -5776,9 +5776,11 @@ export async function boot({
   let partTable = [];
   let cameraPart = -1;
   let lastParts = null;
-  /* The trees and solids declared to the plant, and where from. */
+  /* The trees and solids declared to the plant, and where from: the
+   * collider set and its streamed set's generation (crashWorldStale). */
   let crashTrees = [];
   let crashTreesFrom = null;
+  let crashTreesGen = 0;
   const treePick = [];
   const solidPick = [];
   /* The colliders a roof covers, marked for nearestSolids to leave out;
@@ -5989,7 +5991,44 @@ export async function boot({
     }
   }
 
+  /*
+   * A REFILL OF THE STREAMED SET RENUMBERS IT (src/game/collide.js
+   * streamFill): after the swap every index from staticCount up names
+   * another collider, and the swap has cleared their pass flags. The
+   * trees are collected again, and the streamed indices this crash world
+   * holds (the flags it set, the solids it declared) are forgotten
+   * without touching the flags: clearing one now would clear a flag the
+   * roofs' cover has since set on the collider that took its number. The
+   * static ones stay, to be cleared as ever. The world is declared again
+   * at the next refresh on the sim clock, whatever the craft has done
+   * since (crashWorldX NaN); true when it was stale.
+   */
+  function crashWorldStale(col) {
+    if (!col || crashTreesFrom !== col || col.streamGen === crashTreesGen) {
+      return false;
+    }
+    for (const list of [passSet, solidPassSet]) {
+      let n = 0;
+      for (const i of list) {
+        if (i < col.staticCount) {
+          list[n] = i;
+          n += 1;
+        }
+      }
+      list.length = n;
+    }
+    for (const i of crashKnownList) {
+      crashKnown[i] = 0;
+    }
+    crashKnownList.length = 0;
+    crashTrees = collectTrees(col);
+    crashTreesGen = col.streamGen;
+    crashWorldX = NaN;
+    return true;
+  }
+
   function clearCrashPass() {
+    crashWorldStale(view.colliders);
     const pass = crashTreesFrom && crashTreesFrom.pass;
     for (const i of passSet) {
       if (pass) {
@@ -6001,6 +6040,7 @@ export async function boot({
   }
 
   function clearSolidPass() {
+    crashWorldStale(view.colliders);
     const pass = view.colliders && view.colliders.pass;
     for (const i of solidPassSet) {
       if (pass) {
@@ -6145,6 +6185,7 @@ export async function boot({
    */
   function refreshCrashWorld(st) {
     poseFromState(st, crashProbe);
+    crashWorldStale(view.colliders);
     if (crashWorldX === crashWorldX) {
       const dx = crashProbe.x - crashWorldX;
       const dz = crashProbe.z - crashWorldZ;
@@ -6165,6 +6206,7 @@ export async function boot({
       clearCrashPass();
       crashTrees = collectTrees(col);
       crashTreesFrom = col;
+      crashTreesGen = col.streamGen;
     }
     clearCrashPass();
     sim.e.sim_tree_clear();
@@ -6351,6 +6393,7 @@ export async function boot({
    */
   function plantMustHold(col, x, y, z) {
     const i = col.hitIndex;
+    crashWorldStale(col);
     if (i < 0 || (crashKnown && crashKnown[i])) {
       return;
     }
@@ -6727,6 +6770,9 @@ export async function boot({
       debris: debris.active(),
       trees: crashTreesDeclared,
       treesOnMap: crashTrees.length,
+      /* The streamed set's generation the crash world was declared from,
+       * which follows the map's own (window.__colliders().streamGen). */
+      streamGen: crashTreesGen,
       solids: crashSolidsDeclared,
       feed: fpvFail.level(performance.now()),
       chase: wreckWantsChase(performance.now()),
