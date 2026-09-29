@@ -556,6 +556,12 @@ const DEFAULTS = {
    */
   airframeAsked: false,
   /*
+   * Whether this profile has read Defend Itaipu's one screen and gone on
+   * (docs/WARFARE-PLAN.md section 9): the war mode is the game's first
+   * mature content, so a host is told what it is once before starting it.
+   */
+  warConsent: false,
+  /*
    * The tune each aircraft was last flown on, by airframe id, so that
    * changing aircraft and changing back, which a swap in flight makes a
    * matter of seconds, lands on the tune the pilot had rather than the

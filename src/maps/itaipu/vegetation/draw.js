@@ -12,8 +12,8 @@
  * pasture seen from the air.
  *
  * THE CANOPY, the forest's far drawing: one surface over the whole
- * forest at the height the canopy model gives it, in a mesh per hero
- * tile, coloured by the satellite (vertex colours, the same reflectance
+ * forest at the height the canopy model gives it, one batch of chunks
+ * (SHELL_CHUNK), coloured by the satellite (vertex colours, the same reflectance
  * the ground's material decodes, look/ground.js) and shaded in the
  * fragment as crowns: a cell pattern ten metres across whose cells are
  * domes, dark in the gaps between them, each crown its own brightness,
@@ -49,6 +49,7 @@ import { plantMaterial, plantDepthMaterial, DITHER_GLSL } from '../../swiss2/veg
 import {
   HALF, KINDS, K_LONE, K_EUCALYPTUS, YAW_COS, YAW_SIN,
 } from './plant.js';
+import { FOREST_GRADE } from '../look/ground.js';
 
 /*
  * The bands per preset, m: the whole model to `near`, the reduced model
@@ -468,13 +469,22 @@ function shellDepthMaterial(band, eye, forestTex) {
   return mat;
 }
 
+/* The canopy's chunks, metres a side. A mesh per 2 560 m hero tile was
+ * up to 16 meshes, each drawn in every pass that saw a corner of it: 30
+ * to 40 of yard-west's calls and most of its shadow maps' canopy. One
+ * batch of 640 m chunks is one call a pass, and each pass draws only the
+ * chunks in its own frustum. The vertices are in the world and every
+ * chunk's matrix is the identity: the shell's shaders take the world
+ * position from modelMatrix alone. */
+const SHELL_CHUNK = 640;
+
 /*
- * The canopy over the hero, a mesh per 2560 m hero tile. `topAt(x, z)`
+ * The canopy over the hero, one BatchedMesh of SHELL_CHUNK chunks. `topAt(x, z)`
  * is the canopy's height over the ground there, or a negative number
  * where there is no forest; `colourAt(x, z)` the linear reflectance
  * there, [r, g, b]; `ground(x, z)` the terrain; `forest` the mask's
  * forest weight, 0 to 255, 1024 x 1024 over the hero, north row first.
- * Returns the meshes (in `group`), setEye(camera position) and the
+ * Returns the batch as `meshes` (in `group`), setEye(camera position) and the
  * triangle count.
  */
 export function canopyShell({
@@ -489,16 +499,16 @@ export function canopyShell({
   forestTex.needsUpdate = true;
   const mat = shellMaterial(band, forestTex);
   const depth = shellDepthMaterial(band, eye, forestTex);
-  const TILE = 2560;
   const step = tier.shell;
-  const m = TILE / step;
+  const m = SHELL_CHUNK / step;
   const row = m + 1;
+  const n = (2 * HALF) / SHELL_CHUNK;
   let tris = 0;
-  const meshes = [];
-  for (let tj = 0; tj < 4; tj += 1) {
-    for (let ti = 0; ti < 4; ti += 1) {
-      const x0 = -HALF + ti * TILE;
-      const z0 = -HALF + tj * TILE;
+  const geos = [];
+  for (let tj = 0; tj < n; tj += 1) {
+    for (let ti = 0; ti < n; ti += 1) {
+      const x0 = -HALF + ti * SHELL_CHUNK;
+      const z0 = -HALF + tj * SHELL_CHUNK;
       const top = new Float32Array(row * row);
       let any = false;
       for (let v = 0; v <= m; v += 1) {
@@ -528,8 +538,9 @@ export function canopyShell({
           index[k] = pos.length / 3;
           pos.push(x, ground(x, z) + (h >= 0 ? h : -0.5), z);
           const c = colourAt(x, z);
+          /* Graded as the ground's forest is, so the two meet unseen. */
           const shade = h >= 0 ? 1 : 0.6;
-          col.push(c[0] * shade, c[1] * shade, c[2] * shade);
+          col.push(c[0] * shade * FOREST_GRADE[0], c[1] * shade * FOREST_GRADE[1], c[2] * shade * FOREST_GRADE[2]);
         }
         return index[k];
       };
@@ -554,19 +565,26 @@ export function canopyShell({
       geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
       geo.setIndex(idx);
       geo.computeVertexNormals();
-      geo.computeBoundingSphere();
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.name = `itaipu-canopy-${ti}-${tj}`;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      mesh.customDepthMaterial = depth;
-      group.add(mesh);
-      meshes.push(mesh);
+      geos.push(geo);
       tris += idx.length / 3;
     }
   }
+  const verts = geos.reduce((s, g) => s + g.getAttribute('position').count, 0);
+  const indices = geos.reduce((s, g) => s + g.getIndex().count, 0);
+  const mesh = new THREE.BatchedMesh(geos.length, verts, indices, mat);
+  mesh.name = 'itaipu-canopy';
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.customDepthMaterial = depth;
+  /* The batch's sphere is the hero's: the chunks cull themselves. */
+  mesh.frustumCulled = false;
+  for (const g of geos) {
+    mesh.addGeometry(g);
+    g.dispose();
+  }
+  group.add(mesh);
   return {
-    meshes,
+    meshes: [mesh],
     tris,
     setEye(p) {
       eye.value.copy(p);

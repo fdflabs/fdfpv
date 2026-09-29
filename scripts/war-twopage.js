@@ -5,6 +5,7 @@
  * process (edge/rooms/node.js), and A, the host, starts mission 1:
  *
  *   SIM_GPU=1 npm run war:twopage [-- outdir]
+ *   SIM_GPU=1 npm run war:twopage -- --main [outdir]
  *
  * SIM_GPU=1 renders on the machine's GPU (tests/lib/page.js). Under the
  * software rasteriser, two pages of Itaipu on a busy machine draw a frame
@@ -12,11 +13,14 @@
  * judges past a pilot's newest pose (LATE_MS) and a pass through the
  * bubble goes unseen. The check says so rather than failing silently.
  *
- * src/main.js does not wire the war client yet (docs/WAR-WIRING.md is
- * that wiring, the lead's to make), so each page gets it from
+ * Two ways to wire the client. By default each page gets it from
  * scripts/war-twopage-wire.js, fed by TAP_SEED below, a WebSocket that
  * hands the rooms socket's frames to it: the room's real wire, on the
- * real shell, with the real map's scene.
+ * real shell, with the real map's scene, and no plant. With --main the
+ * pages run src/main.js's own wiring (docs/WAR-WIRING.md), the plant and
+ * all, and the check holds that too: B flies with crash damage off and
+ * the war turns it on; A's warhead breaks A's craft; the Switchyard burns
+ * while the war lasts and is whole after it; the link is judged live.
  *
  * What must hold:
  *   - both pages draw every attacker at the same place at the same room
@@ -66,7 +70,8 @@ import { planAgent, poseAt } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const outDir = process.argv[2] || join(root, 'build', 'war-twopage');
+const MAIN = process.argv.includes('--main');
+const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', MAIN ? 'war-twopage-main' : 'war-twopage');
 
 let failed = 0;
 let passed = 0;
@@ -118,7 +123,7 @@ const TAP_SEED = `(() => {
   };
 })();`;
 
-function seedFor(colour) {
+function seedFor(colour, crashDamage = true) {
   const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
   s.map = 'itaipu';
   s.freestyleMap = 'itaipu';
@@ -126,10 +131,11 @@ function seedFor(colour) {
   s.flightMode = 'angle';
   s.fpsCap = 0;
   s.airframeAsked = true;
-  s.crashDamage = true;
+  s.crashDamage = crashDamage;
+  s.warConsent = true;
   s.livery = { '5inch': { regions: { frame: colour } } };
   s.parts = {};
-  return [TAP_SEED, `try {
+  return [...(MAIN ? [] : [TAP_SEED]), `try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
     if (!s.roomsSeeded) {
@@ -200,10 +206,12 @@ function roomSeats() {
   }).join('; ');
 }
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
-console.log(`Defend Itaipu in two pages, rooms at ${rooms}`);
+console.log(`Defend Itaipu in two pages, rooms at ${rooms}, wired by ${MAIN ? 'src/main.js' : 'scripts/war-twopage-wire.js'}`);
 
 const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#d8432f') });
-const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2f6fd6') });
+/* With main.js's wiring, B's own setting has crash damage off: the war
+ * must turn it on for B's warhead to break anything. */
+const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2f6fd6', !MAIN) });
 const pages = [a, b];
 const names = ['A', 'B'];
 
@@ -277,7 +285,12 @@ try {
   }
   for (const p of pages) {
     await p.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
-    await p.evaluate("import('/scripts/war-twopage-wire.js').then((m) => m.install())");
+    if (!MAIN) {
+      await p.evaluate("import('/scripts/war-twopage-wire.js').then((m) => m.install())");
+    }
+  }
+  if (MAIN) {
+    check('B flies with its own crash damage setting off before the war', (await b.evaluate('window.__war().damage')) === false);
   }
   const seats = await Promise.all(pages.map((p) => p.evaluate('window.__rooms().seat')));
   const w0 = await Promise.all(pages.map(warOf));
@@ -294,6 +307,15 @@ try {
     await p.until("window.__war().view.state === 'live'", 20000);
   }
   const [live] = await sameView('at the go');
+  if (MAIN) {
+    /* The go's restart put both back on the slot under the war's damage
+     * mode, B's setting notwithstanding. */
+    await b.until('window.__war().damage === true', 20000).catch(() => {});
+    const dmg = await Promise.all(pages.map((p) => p.evaluate('window.__war().damage')));
+    check('the war forces crash damage on for both, B\'s own setting off', dmg.every(Boolean), JSON.stringify(dmg));
+    const sig = await a.evaluate('window.__war().signal');
+    check('A\'s link is judged while the war is live', sig && sig.q >= 0 && sig.q <= 1, JSON.stringify(sig));
+  }
   /* The room's side, traced for a failure's details: every pose the war
    * took (its t, and the room ms it came in at) and every judgement. */
   const trace = { poses: [], judged: [] };
@@ -387,11 +409,17 @@ try {
   const deadB = bb.log.find((e) => e.type === 'dead' && e.why === 'boom');
   check('both pages take the same Striker off, at the same ms and place', deadA && deadB && sameEvent(deadA, deadB) && deadA.ids.length === 1 && deadA.mine && !deadB.mine,
     deadA ? `ids ${deadA.ids} by ${deadA.by}` : 'none');
+  if (MAIN) {
+    const c = await a.evaluate('(() => { const c = window.__crash(); return { flags: c.flags, wrecked: c.wrecked, names: c.flagNames }; })()');
+    check('A\'s own warhead broke A\'s craft (sim_part_break over its parts)', c.flags !== 0, JSON.stringify(c));
+  }
   const [va] = await sameView('after the detonation');
   const me = va.view.scores.find((r) => r.seat === seats[0]);
   check('A scores the kill and the Switchyard\'s megawatts saved, and the rack is one down', me && me.kills === 1 && me.mw === itaipu1.targets[sw.target].mw && va.view.rack === 5,
     JSON.stringify(me) + ` rack ${va.view.rack}`);
-  check('A\'s HUD calls its own kill and the warhead, B\'s calls A\'s', ba.said.some((s) => /SPLASH ONE/.test(s)) && bb.said.some((s) => s.includes(`#${seats[0]}`)),
+  /* The wire names a seat #n; main.js by its picker name. */
+  check('A\'s HUD calls its own kill and the warhead, B\'s calls A\'s', ba.said.some((s) => /SPLASH ONE/.test(s))
+    && bb.said.some((s) => (MAIN ? /^[^:]+: SPLASH ONE/.test(s) : s.includes(`#${seats[0]}`))),
     `${ba.said.slice(-3).join(' | ')} || ${bb.said.slice(-3).join(' | ')}`);
 
   /* Both up the gorge, the Hunters' way, 40 m apart. */
@@ -433,6 +461,10 @@ try {
   /* Every target hit takes its megawatts once, whoever else hits it. */
   const hitTargets = [...new Set(ya.log.filter((e) => e.type === 'dead' && e.hit).map((e) => e.target))];
   const lost = hitTargets.reduce((sum, id) => sum + itaipu1.targets[id].mw, 0);
+  if (MAIN) {
+    const burn = await Promise.all(pages.map((p) => p.evaluate('window.__war().burning')));
+    check('the Switchyard burns on both pages', burn.every((x) => sw.target in x), JSON.stringify(burn));
+  }
   check('both take each hit target\'s megawatts once, and call the Switchyard', ya.view.output === itaipu1.output - lost && yb.view.output === ya.view.output
     && JSON.stringify(ya.view.down) === JSON.stringify(hitTargets) && [ya, yb].every((w) => w.said.some((s) => s.includes('SWITCHYARD HIT'))),
   `${ya.view.output} and ${yb.view.output} MW, down ${hitTargets.join(',')}; ${ya.said.filter((s) => s.includes('HIT')).join(' | ')}`);
@@ -461,6 +493,12 @@ try {
   }
   const [ea, eb] = await sameView('at the end');
   check('both show the mission ended', ea.hud.banner !== '' && ea.hud.banner === eb.hud.banner, ea.hud.banner);
+  if (MAIN) {
+    await a.sleep(500);
+    const after = await Promise.all(pages.map((p) => p.evaluate('window.__war()')));
+    check('after it the dam is whole and the link is the preset\'s again', after.every((w) => Object.keys(w.burning).length === 0 && w.signal === null),
+      after.map((w) => `${JSON.stringify(w.burning)} ${JSON.stringify(w.signal)}`).join(' | '));
+  }
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } catch (e) {
