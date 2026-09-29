@@ -17,7 +17,8 @@ Translated from the owner's Spanish, intent kept exactly:
   or wings.
 - The instant any player touches the Ace, the crown changes owner: the
   toucher becomes the new Ace (now scoring), and the previous Ace joins
-  the hunters.
+  the hunters. (Since 2026-09-29 "touches" is "enters the Ace's 6 m
+  bubble", decision 2.)
 - The match ends automatically the instant the first player reaches X
   points. X is configurable: **Lightning** is a low goal, a quick match of
   about five minutes; **Epic** a high one, long sessions of endurance,
@@ -33,35 +34,37 @@ or argued. The rest are this build's, with the reason.
    sends no `hit` from the countdown until the results, exactly as in a
    friendly room. A crash into the ground, a tree or a building is still a
    crash, by the pilot's own crash settings.
-2. **The room judges the touch**, with Phase 3's rule and nothing new: the
-   same interpolated 30 Hz samples on the room clock, the same crash part
-   boxes (`configs/hulls.js`), the same separating axis sweep on the whole
-   millisecond (`judge()` in `src/game/midair.js`). The only difference is
-   the margin: a crash needs the boxes to overlap by 2 cm (`MARGIN_M`); a
-   tag needs them to come within **`TAG_M` = 0.8 m** of each other on every
-   separating axis. `judge()` already takes the margin as a number, and a
-   negative one is a gap; its two broadphase radii grow by the gap so a
-   near miss is not thrown out before it is looked at. A graze counts.
-3. **`TAG_M` = 0.8 m, from the hulls and the lag.** The hulls run from the
-   quads' 0.28 m frame to the Bramor's 2.3 m span. What the pilot sees is
-   not what the room judges: Phase 3 measured a near peer drawn 0.39 m off
-   the referee's pose in a 6 g turn, and a clock error of up to 17 ms
-   between two seats sliding a 20 m/s crossing by up to 0.36 m. Those add
-   to 0.75 m, so a pass that looks like a touch on the hunter's screen is
-   judged one at 0.8 m. Measured on every separating axis, the gap is 0.8 m
-   face on and at most 0.8 times root 3, 1.39 m, corner to corner, still
-   inside the lead's 0.5 to 1.5 m. Smaller would make the quads (a 0.28 m
-   target) miss touches their pilots saw; larger and a plane's wingtip a
-   body length away would take the crown.
+2. **The room judges the tag: the Ace's bubble.** The owner, 2026-09-29:
+   "I want there to be a bubble light ghost bubble around the leader, 6
+   meter bubble around it, and when you enter that then you change
+   leaders." So a tag is no longer a touch. A hunter takes the crown the
+   first millisecond any of its crash part boxes (`configs/hulls.js`)
+   comes within **`BUBBLE_M` = 6 m** of the Ace's centre, the point its
+   pose carries (its CG): `within()` in `src/game/midair.js`, on Phase 3's
+   interpolated 30 Hz samples on the room clock, with Phase 3's untouchable
+   flags and taxiing pair, and nothing else new. Every screen draws that
+   sphere round the Ace (`src/render/acebubble.js`). This replaced `TAG_M`
+   = 0.8 m, a gap between the two hulls on every separating axis.
+3. **From the centre, not the Ace's skin.** The rule is the sphere that is
+   drawn: a hunter sees its wingtip meet the glow and that is the tag. The
+   widest hull reaches under 1.5 m from its CG, so any Ace sits well inside
+   its bubble, and a wide Ace gets no bigger bubble than a quad. The
+   hunter's whole hull counts, as a touch did, so a Cub's wingtip enters
+   before its nose. What the pilot sees is still not exactly what the room
+   judges (the near peer drawing error and the clock band, below), but
+   against 6 m those 0.4 m are small, and a pass at 6.5 m is never a tag
+   and one at 5.5 m always is (`npm run tag:harness`).
 4. **Tag back protection, `PROTECT_MS` = 3 s.** At the moment of a tag the
    two are within 0.8 m, often on one heading at one speed. Without a
    window the old Ace, now a hunter, takes the crown straight back on the
-   next millisecond. The new Ace learns it holds the crown 100 to 400 ms
+   next millisecond; with the bubble the old Ace starts inside it. The new
+   Ace learns it holds the crown 100 to 400 ms
    after the touch (the decision waits for every seat's samples, up to
    `LATE_MS`, then one hop down), so 3 s leaves at least 2.6 s to break
    away: at a closing speed of 5 m/s between two aircraft that were
-   flying together that is 13 m, well clear of 0.8 m and far enough that
-   a re-tag is a chase, not a reflex. Protection covers the new Ace
+   flying together that is 13 m, clear of the 6 m bubble, and a re-tag is
+   a chase, not a reflex. The bubble is drawn at half its brightness while
+   the Ace is protected. Protection covers the new Ace
    against everybody, not only the old Ace: a third pilot in the same
    furball would otherwise take it on the same pass.
 5. **One point per second** of reign, as the owner said. Counted on the
@@ -147,8 +150,8 @@ All times are room clock ms (edge/rooms/core.js `roomMs`).
   it is `LATE_MS` old, whichever is first, and a sample that arrives after
   its millisecond was decided is never used: the Phase 3 promises, for
   every pair at once. Over `(f, t1]`:
-  1. **The touch**: for each hunter, in seat order, `judge()` of the Ace
-     against it over `(max(f, protectUntil), t1]` with the gap `TAG_M`.
+  1. **The tag**: for each hunter, in seat order, `within()` of the Ace
+     against it over `(max(f, protectUntil), t1]` with `BUBBLE_M`.
      The earliest `tc` wins; a tie goes to the lower seat, so the answer
      is one answer.
   2. **The points**: each millisecond up to the touch (or `t1`) where the
@@ -220,8 +223,8 @@ samples are memory only, since a room that hibernated had nobody flying.
   judged without it.
 - **What the clock costs**: a clock error of d ms between two seats moves
   each along its own path by v d, the Phase 3 band (0.36 m at 20 m/s,
-  17 ms). `TAG_M` is sized to cover it (decision 3); the harness reports
-  the band.
+  17 ms). Against the 6 m bubble it is small (decision 3); the harness
+  reports the band.
 - **On screen**: a tag reaches the screens 100 to 400 ms after the touch.
   The crown moves to the new Ace's aircraft, a banner says who took it
   ("You are the Ace!" on the toucher's), and the scoreboard's crown moves.
@@ -243,9 +246,10 @@ samples are memory only, since a room that hibernated had nobody flying.
    - the crown timeline and the scores equal the zero latency run's for
      every run whose samples all reached the room inside `LATE_MS`: 100
      percent;
-   - no false tag: every tag's pair is within `TAG_M` (plus 5 cm for the
-     30 Hz interpolation) on the true 1 kHz paths at `tc`: 0 failures;
-   - no missed tag: a scripted pass at 15 cm or more inside `TAG_M`, the
+   - no false tag: every tag's hunter is within `BUBBLE_M` of the Ace's
+     centre (plus 5 cm for the 30 Hz interpolation) on the true 1 kHz
+     paths at `tc`: 0 failures;
+   - no missed tag: a scripted pass at 15 cm or more inside `BUBBLE_M`, the
      Ace catchable and not protected, is a tag: 0 misses;
    - tag back protection: no crown change by touch inside `PROTECT_MS` of
      the last, and a scripted re-touch at 1.5 s is not a tag and at 3.5 s
