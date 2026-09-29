@@ -20,7 +20,9 @@
  *    runs forward, through a reset of the plant's.
  * 6. Interpolation for slow motion: position, attitude, motors, parts.
  * 7. The cameras: lookAt, the ease, a chase behind the motion, and two
- *    follow keys pushing in on a moving part.
+ *    follow shots gliding in on a moving part; an edit: four keys of four
+ *    rigs as shots are the camera the keys gave at 2000 times, and a
+ *    blend's midpoint.
  * 8. The replay file: a round trip bit for bit, and refusals of a bad
  *    magic, version, length, size, field, name, camera, event, colour and
  *    aircraft.
@@ -77,7 +79,7 @@ import {
   CAPACITY, HEAD, HEAD_N, PART_N, PLANT_N, POSE_N, SMOKE, WINDOW_S, createRecorder, sampleAt, slerp, trimClip,
 } from '../src/replay/recorder.js';
 import {
-  addKey, createPose, defaults, easeInOut, evaluate, evaluateEdit, evaluateKeys, lookAtQuat, rotate,
+  createPose, defaults, easeInOut, evaluate, evaluateEdit, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
 import { cut as cutEdit, defaultEdit, fromKeys, setCam, setEnter } from '../src/replay/edit.js';
 import { slerp as slerpQ } from '../src/replay/recorder.js';
@@ -544,7 +546,7 @@ function interpolation() {
 
 /* ---- 7. cameras ---- */
 function cameras() {
-  console.log('7. the cameras and their keys');
+  console.log('7. the cameras, and keys as an edit');
   const eye = [3, 4, 5];
   const at = [1, 1, 1];
   const qq = lookAtQuat(eye, at);
@@ -571,19 +573,19 @@ function cameras() {
   const pose = createPose();
   evaluate(ctx, 'chase', defaults('chase', 1), -1, 2, pose);
   check(pose.pos[0] < 20 && Math.abs(pose.pos[2]) < 1e-9, 'the chase camera sits behind the way it goes', pose.pos.map((x) => x.toFixed(2)).join(' '));
-  const keys = [];
-  addKey(keys, { t: 1, rig: 'follow', target: 3, p: { ...defaults('follow', 1), dist: 4 } });
-  addKey(keys, { t: 3, rig: 'follow', target: 3, p: { ...defaults('follow', 1), dist: 1 } });
-  addKey(keys, { t: 3, rig: 'follow', target: 3, p: { ...defaults('follow', 1), dist: 1 } });
-  check(keys.length === 2, 'a key at the same time replaces the one there');
+  const keys = [
+    { t: 1, rig: 'follow', target: 3, p: { ...defaults('follow', 1), dist: 4 } },
+    { t: 3, rig: 'follow', target: 3, p: { ...defaults('follow', 1), dist: 1 } },
+  ];
+  const glide = fromKeys(keys, 5, { rig: 'chase', target: -1, watch: 0, p: defaults('chase', 1) });
   const dists = [1, 1.5, 2, 2.5, 3, 3.5].map((t) => {
-    evaluateKeys(ctx, keys, t, pose);
+    evaluateEdit(ctx, glide, t, pose);
     ctx.at(t, 3, scratch);
     return Math.hypot(pose.pos[0] - scratch[0], pose.pos[2] - scratch[2]);
   });
   const closing = dists.every((d, i) => i === 0 || d <= dists[i - 1] + 1e-9);
   check(closing && Math.abs(dists[0] - 4) < 1e-9 && Math.abs(dists[4] - 1) < 1e-9,
-    'two follow keys push in on the part while it moves', dists.map((d) => d.toFixed(2)).join(' '));
+    'two follow shots glide in on the part while it moves', dists.map((d) => d.toFixed(2)).join(' '));
   const mid = dists[2];
   check(Math.abs(mid - 2.5) < 1e-9, 'eased: half way in time is half way in distance', mid.toFixed(4));
   editCameras();

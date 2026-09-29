@@ -252,18 +252,6 @@ export function createPose() {
   return { pos: [0, 0, 0], quat: [0, 0, 0, 1], fov: 60 };
 }
 
-/* A key: { t, rig, target, p }. Kept sorted by t. */
-export function addKey(keys, key) {
-  const same = keys.findIndex((k) => Math.abs(k.t - key.t) < 1e-3);
-  if (same >= 0) {
-    keys[same] = key;
-  } else {
-    keys.push(key);
-    keys.sort((a, b) => a.t - b.t);
-  }
-  return keys;
-}
-
 const poseA = createPose();
 const poseB = createPose();
 const mix = { a: 0, b: 0, w: 0 };
@@ -293,8 +281,10 @@ function mixPoses(pa, pb, w, out) {
   out.fov = pa.fov + (pb.fov - pa.fov) * w;
 }
 
-/* The directed camera at t: the keys' rigs blended. Null without keys.
- * Kept only until the selftest has shown fromKeys gives the same camera. */
+/* The camera the keys gave at t (the files before edits kept keys):
+ * the keys' rigs blended. Null without keys. Nothing plays keys any more;
+ * it stays as the reference scripts/edit-selftest.js and
+ * scripts/crashcam-selftest.js hold fromKeys to. */
 export function evaluateKeys(ctx, keys, t, out) {
   if (!keys.length) {
     return null;
