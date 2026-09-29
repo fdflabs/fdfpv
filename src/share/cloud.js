@@ -279,6 +279,24 @@ async function send(method, id, body) {
   return { status: res.status, body: await readBody(res) };
 }
 
+/*
+ * Record what became of an upload of `text`, unless the track was saved
+ * again while the upload was on the wire. That save has not gone up, so the
+ * track stays pending, keeping what the server now holds for the next hash
+ * compare, and the pass goes round again. Writing the outcome regardless
+ * marked a save made during an upload as online when only the one before
+ * it was, and nothing ever sent it.
+ */
+function settle(id, text, outcome) {
+  const now = loadMapTrack(id);
+  if (now && JSON.stringify(toPlain(now)) !== text) {
+    writeOnlineState(id, { state: 'pending', hash: outcome.hash, updatedUtc: outcome.updatedUtc });
+    again = true;
+    return;
+  }
+  writeOnlineState(id, outcome);
+}
+
 async function uploadOne(id, st) {
   const doc = loadMapTrack(id);
   if (!doc) {
@@ -289,7 +307,7 @@ async function uploadOne(id, st) {
   const text = JSON.stringify(toPlain(doc));
   const hash = await uploadHash(author, text);
   if (st.hash === hash && st.updatedUtc) {
-    writeOnlineState(id, { state: 'online', hash, updatedUtc: st.updatedUtc });
+    settle(id, text, { state: 'online', hash, updatedUtc: st.updatedUtc });
     announce({ id, name: doc.name, state: 'online' });
     return 'next';
   }
@@ -298,7 +316,7 @@ async function uploadOne(id, st) {
     const signed = await identity.signBytes(await trackMessage({ id, ts, author, documentText: text }));
     const r = await send('PUT', id, { document: text, author, ts, ...signed });
     if (r.status === 200 || r.status === 201) {
-      writeOnlineState(id, { state: 'online', hash, updatedUtc: r.body && r.body.updatedUtc });
+      settle(id, text, { state: 'online', hash, updatedUtc: r.body && r.body.updatedUtc });
       announce({ id, name: doc.name, state: 'online' });
       return 'next';
     }
@@ -319,7 +337,7 @@ async function uploadOne(id, st) {
       return { wait };
     }
     const error = refusalText(r.status, r.body);
-    writeOnlineState(id, { ...st, state: 'failed', error });
+    settle(id, text, { ...st, state: 'failed', error });
     announce({ id, name: doc.name, state: 'failed', error });
     return 'next';
   }
