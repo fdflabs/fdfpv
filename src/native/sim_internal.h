@@ -431,6 +431,12 @@ extern double SIM_AIR;
  */
 extern double SIM_GRAVITY;
 
+/* THE CHASE BOOST, set by sim_set_boost (sim_abi.h): every propulsor as if
+ * its prop turned this much faster, its pitch speed scaled by it and its
+ * thrust, last, by its square, in plant_step and wing_step. A mode, same
+ * rule as SIM_GRAVITY; bit identical at 1.0. */
+extern double SIM_BOOST;
+
 /* Motor spin direction, position and cant moved INTO PlantParams when the
  * second airframe landed: they are airframe data and a whoop's are its own.
  * The names below are the shorthand plant.c reads them through. */

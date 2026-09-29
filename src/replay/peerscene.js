@@ -58,8 +58,9 @@ export function createPeerScene(peers, time, n, parent, look) {
   const vel = new THREE.Vector3();
   const bubble = peers.bubble ? createAceBubble() : null;
   const bubbleNow = {
-    r: 0, x: 0, y: 0, z: 0, level: 0,
+    r: 0, x: 0, y: 0, z: 0, level: 0, seat: 0,
   };
+  const aceNow = new THREE.Vector3();
   if (bubble) {
     parent.add(bubble.mesh);
   }
@@ -122,7 +123,8 @@ export function createPeerScene(peers, time, n, parent, look) {
     samplePeers(peers, n, k, a, sample);
     if (bubble) {
       const b = bubbleAt(peers.bubble, n, k, a, bubbleNow);
-      bubble.set(b.r, b.x, b.y, b.z, b.level);
+      const k1 = Math.min(k + 1, n - 1);
+      bubble.set(b.r, b.x, b.y, b.z, b.level, b.seat, time[k] + (time[k1] - time[k]) * a);
     }
     for (const e of entries) {
       e.seen = false;
@@ -257,6 +259,10 @@ export function createPeerScene(peers, time, n, parent, look) {
     pose,
     smokeTo,
     dispose,
+    /* Where the Ace's bubble is drawn this frame, the new Ace a crown
+     * flies to (src/replay/paperscene.js), or null: none, or the free
+     * orb. */
+    aceAt: () => (bubble && bubbleNow.r > 0 && bubbleNow.seat !== 0 ? aceNow.set(bubbleNow.x, bubbleNow.y, bubbleNow.z) : null),
     /* For the harness: each drawn peer's seat, label and position, and its
      * wreck's pieces, as this frame drew them. */
     summary: () => entries.map((e, i) => ({

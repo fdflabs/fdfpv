@@ -95,6 +95,9 @@ export class RcLink {
   constructor(presetId = LINK_DEFAULT, seed = 0x9E3779B9) {
     this.seed0 = seed >>> 0;
     this.setPreset(presetId);
+    this.sigDelayMs = 0;
+    this.sigLossPpm = 0;
+    this.failsafeRc = null;
     this.reset(0);
   }
 
@@ -106,6 +109,49 @@ export class RcLink {
     this.jitterMs = p.jitterMs;
     this.lossPpm = p.lossPpm;
     this.periodMs = 1000 / p.hz;
+  }
+
+  /*
+   * THE SIGNAL, on top of the preset: what the radio's reach does to the
+   * link at this moment (src/game/signal.js linkDegradeFor and
+   * PlaneFailsafe), set by the shell once a frame.
+   *
+   *   delayMs     extra age of the sticks a packet carries
+   *   lossPpm     extra loss, on top of the preset's, 1e6 for none arriving
+   *   failsafeRc  the receiver's own failsafe output while the link is
+   *               lost, or null: emitted on every slot in place of the
+   *               sticks, since it is made in the receiver and crosses no
+   *               air
+   *   atMs        the shell's RC slot clock now
+   *
+   * The extra delay is applied as AGE, not transport: the packet is still
+   * stamped on its slot but carries the sticks from delayMs before it. A
+   * delay that switches on and off as transport would, when it switched
+   * off, deliver fresh packets ahead of stale ones still in flight, and
+   * the flight controller would take the stale sticks last. As age, the
+   * sticks hold while the delay opens and jump forward when it closes,
+   * which is what a pilot sees from a link that stalls and recovers.
+   *
+   * All zero and null is the preset exactly: not one extra random draw,
+   * so a link with no signal set is bit identical to one from before this
+   * existed. While the preset is 'perfect' the shell runs its own slot
+   * clock and not this one, so the moment the signal makes the link
+   * imperfect the clock is taken over from atMs.
+   *
+   * The shell's per frame call makes what the link emits depend on how the
+   * frames fell, which a preset alone never does. That is the price of a
+   * signal read from rendered positions, and it is why the replay contract
+   * rests on the recording: a .rec holds what reached sim_input, so it
+   * replays exactly however the link got there.
+   */
+  setSignal(delayMs, lossPpm, failsafeRc, atMs) {
+    const wasPerfect = this.isPerfect();
+    this.sigDelayMs = delayMs;
+    this.sigLossPpm = lossPpm;
+    this.failsafeRc = failsafeRc;
+    if (wasPerfect && !this.isPerfect()) {
+      this.nextMs = atMs;
+    }
   }
 
   /* Back to a known state at a given point on the sim clock. */
@@ -134,7 +180,8 @@ export class RcLink {
   /* Is this link the identity? The shell skips the whole path when so, and
    * the harness relies on that being exact rather than approximate. */
   isPerfect() {
-    return this.delayMs === 0 && this.jitterMs === 0 && this.lossPpm === 0;
+    return this.delayMs === 0 && this.jitterMs === 0 && this.lossPpm === 0
+      && this.sigDelayMs === 0 && this.sigLossPpm === 0 && this.failsafeRc === null;
   }
 
   /*
@@ -143,9 +190,11 @@ export class RcLink {
    *
    * `pick(atMs)` is asked for the stick values the transmitter would have
    * sampled at that moment; the shell holds the pending queue, so this
-   * module never has to know how sticks are polled. Returns an array of
-   * { tMs, rc } ready for sim_input, in non decreasing tMs order, which
-   * the ABI requires.
+   * module never has to know how sticks are polled. When a signal delay
+   * opens, atMs steps back behind a moment already asked for, and pick
+   * must answer with the value it holds, as main.js pickAt does. Returns
+   * an array of { tMs, rc } ready for sim_input, in non decreasing tMs
+   * order, which the ABI requires.
    *
    * A packet is SAMPLED at its slot and ARRIVES delayMs plus jitter later,
    * which is the real ordering: the delay is transport, so the stick value
@@ -171,7 +220,16 @@ export class RcLink {
       const sampledAt = this.nextMs;
       this.nextMs += this.periodMs;
       this.sent += 1;
-      if (this.lossPpm > 0 && this.rand() * 1e6 < this.lossPpm) {
+      if (this.failsafeRc) {
+        this.pending.push({ tMs: sampledAt, rc: this.failsafeRc });
+        continue;
+      }
+      /* The preset's loss and the signal's are independent, and with no
+       * signal this is the preset's own number to the bit. */
+      const lossPpm = this.sigLossPpm > 0
+        ? this.lossPpm + this.sigLossPpm * (1 - this.lossPpm / 1e6)
+        : this.lossPpm;
+      if (lossPpm > 0 && this.rand() * 1e6 < lossPpm) {
         /* Lost. The receiver holds its last value, which is what the
          * shell's held sample already does by not being replaced, so a
          * drop is simply a packet that is never emitted. */
@@ -179,7 +237,7 @@ export class RcLink {
         continue;
       }
       const jitter = this.jitterMs > 0 ? (this.rand() * 2 - 1) * this.jitterMs : 0;
-      const rc = pick(sampledAt);
+      const rc = pick(sampledAt - this.sigDelayMs);
       if (!rc) {
         continue;
       }
