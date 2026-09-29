@@ -364,10 +364,12 @@ int sim_set_flight_style(int arcade);
  * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
  * flaps on retracting taildragger gear, and 16 Freewing's F-16 V3
  * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
- * the stick, on a tricycle gear. 17 to 23 are reserved for the aircraft
- * being added alongside them. Returns SIM_ERR_BAD_ARG for any id
- * without an aircraft.
- * 2 to 16 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * the stick, on a tricycle gear, and 18 E-flite's Pitts S-1S 850mm
+ * (docs/PITTS-STAGE1.md), a foam aerobatic biplane, its two wings each in
+ * the other's flow, on a taildragger's gear. 17 and 19 to 23 are reserved
+ * for the aircraft being added alongside them. Returns SIM_ERR_BAD_ARG
+ * for any id without an aircraft.
+ * 2 to 16 and 18 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -401,6 +403,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_EXTRA1308_ID 14
 #define SIM_AIRFRAME_P51D1450_ID 15
 #define SIM_AIRFRAME_F16878_ID 16
+#define SIM_AIRFRAME_PITTS850_ID 18
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -496,7 +499,7 @@ double sim_gravity(void);
  * (of the zero lift line), beta, qbar, CL, CD, l m n (aero convention),
  * thrust, force body x y z, moment body x y z, u v w, delta_e, delta_a.
  * sim_wing_biplane(out[4]): a biplane's two wings as the last step took
- * them (FixedWingParams.bip_*): the top wing's own lift coefficient, the
+ * them, docs/PITTS-STAGE1.md: the top wing's own lift coefficient, the
  * bottom wing's, and the linear lift each would carry at the cell's
  * angle, for the gates. Zeros on a monoplane. Additive, version
  * unchanged.
@@ -779,7 +782,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 16): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 16 and 18): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

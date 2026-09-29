@@ -33,7 +33,10 @@
  * E-flite's Extra 300 3D of docs/EXTRA-STAGE1.md, whose thrust is over its
  * weight, which adds the slipstream over its surfaces, the tail's own
  * flow past the linear angles and the damping of a slow aircraft's own
- * rotation, so it hangs on its prop and flies sideways. A term an
+ * rotation, so it hangs on its prop and flies sideways; and FW_PITTS850,
+ * E-flite's Pitts S-1S 850mm of docs/PITTS-STAGE1.md, a biplane, which
+ * adds the second wing: each wing's lift in the other's flow, Prandtl's
+ * induced drag and each wing's own stall. A term an
  * airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
@@ -42,8 +45,8 @@
  * scripts/skyhunter-gates.js, scripts/cub-gates.js,
  * scripts/glider-gates.js, scripts/bramor-gates.js,
  * scripts/slowstick-gates.js, scripts/timber-gates.js,
- * scripts/bombshell-gates.js, scripts/kadet-gates.js and
- * scripts/extra-gates.js.
+ * scripts/bombshell-gates.js, scripts/kadet-gates.js,
+ * scripts/extra-gates.js and scripts/pitts-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -3374,3 +3377,121 @@ const FixedWingParams FW_EXTRA1308 = {
   .j_prop = 0.000249,     /* a 35 g wood blade and the outrunner's can, ESTIMATED */
 };
 
+/* E-flite's Pitts S-1S 850mm, EFL35500, docs/PITTS-STAGE1.md, where every
+ * number has its formula and source and the estimated ones say so
+ * (scripts/pitts-derive.js prints them). A moulded foam biplane on the
+ * BL15 880 kV and an 11 x 7 on 3S, four ailerons joined by struts, a
+ * steerable tailwheel. The cell's derivatives are on E-flite's 28.2 dm^2
+ * and the top wing's 850 mm span, the reference chord the two wings'
+ * mean; the wings themselves are the second wing's (bip_*). */
+const FixedWingParams FW_PITTS850 = {
+  .mix = FW_MIX_TAIL,
+  .span = 0.850,          /* E-flite, 33.5 in, the top wing */
+  .area = 0.282,          /* E-flite, 28.2 dm^2, both wings */
+  .chord = 0.1880,        /* the two wings' chords, 0.200 and 0.175, by their areas */
+  .cl_alpha = 4.1895,     /* the cell in each wing's wash, and the tail, DATCOM downwash */
+  .cl_max = 0.90,         /* each wing's own, the Edge's symmetric section, ESTIMATED */
+  /* A symmetric section at no incidence: zero lift on the body axis. */
+  .alpha_zl = 0.0,
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.055,           /* two wings, eight struts and the wires, the pants, a round cowl, ESTIMATED */
+  .k_induced = 0.11428,   /* the biplane at its own split, Munk's span 1.131 b, e 0.85: the strips' drag */
+  .cl_de = -0.3457,
+  .cy_beta = -0.3424,
+  .cy_dr = 0.1887,
+  .cl_beta = -0.0396,     /* the fin and the bottom wing's 3 deg of dihedral */
+  .cl_p = -0.7134,        /* strip theory on both wings at their own slopes */
+  .cl_da = 0.4766,        /* four ailerons, 0.131 to 0.378 m out on both wings */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0133,
+  .cm_0 = 0.0659,         /* level at 3/4 throttle with the elevator neutral, the cruise it is trimmed at */
+  .cm_alpha = -0.5655,    /* static margin 0.135 at E-flite's 70 mm */
+  .cm_q = -3.574,
+  .cm_de = 0.6832,
+  .cn_beta = 0.0982,      /* the small fin and rudder, less the round fuselage's */
+  .cn_r = -0.1292,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.10,
+  .cn_dr = -0.0977,
+  /* A symmetric section's leading edge stall, the Edge's 2 deg, ESTIMATED. */
+  .stall_blend = 2.0 * WING_PI / 180.0,
+  /* E-flite's high rates, 18, 32 and 28 mm at the surfaces' widest chords,
+   * 48, 70 and 66 mm. */
+  .throw_a = 22.02 * WING_PI / 180.0,
+  .throw_e = 27.20 * WING_PI / 180.0,
+  .throw_r = 25.10 * WING_PI / 180.0,
+  .surface_max = 22.02 * WING_PI / 180.0,
+  .expo = 0.30,           /* the house stock expo; E-flite gives none */
+  .thrust_static = 16.184, /* N, ESTIMATED: the BL15 880 kV on 3S against APC's 11 x 7E, 8,344 rpm */
+  .pitch_speed = 24.604,
+  .rpm_no_load = 9768.0,
+  .torque_arm = 0.01705,  /* the prop's 0.276 N m at 16.2 N */
+  .thrust_z = 0.0,        /* the thrust line through the CG; E-flite gives no down or side thrust */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 27.4,
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 0.8,
+  .stab_roll_kd = 0.06,
+  .stab_pitch_kp = 1.5,
+  .stab_pitch_kd = 0.15,
+  .stab_pitch_down = 4.88 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.741, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 300.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 35.0 * WING_PI / 180.0, /* under the accelerated stall at the trim, 36 deg/s */
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 4.0,
+  .acro_roll_kd = 0.14,
+  .acro_roll_ff = 0.10,
+  .acro_pitch_kp = 3.0,
+  .acro_pitch_kd = 0.20,
+  .acro_pitch_ff = 0.25,
+  .acro_roll_ki = 2.0,
+  .acro_pitch_ki = 6.0,
+  .acro_i_max = 0.60,     /* on its back it trims on half a stick of push, P8a */
+  .yaw_coord_k = 1.3,     /* the Cub's per unit of rudder authority */
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/pitts-derive.js: the
+   * CG 0.0713 chords ahead of the cell's aerodynamic centre. */
+  .stall_arm_ac = -0.0713,
+  .stall_arm_cp = 0.2213,
+  .stall_dw = 0.1438,
+  .stall_asym = 0.00532,
+  .stall_k = 0.60,
+  .stall_top = 1.0 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 }, /* both wings rectangles */
+  .washout = 0.0,         /* an aerobat's wing is built straight */
+  /* The ailerons' tau on the strips they span: none on the inner quarter,
+   * 76 percent of the second, all of the third, 56 percent of the tip's. */
+  .strip_tau = { 0.0, 0.48, 0.635, 0.36 },
+  .surf_knee = 0.5,       /* DATCOM's K' for plain flaps, docs/EDGE-STAGE1.md */
+  .j_prop = 0.00012,      /* APC's 23 g 11 x 7E and the BL15's can, ESTIMATED */
+  /* The slipstream over the tail, the Extra's capability: the 11 in prop
+   * close ahead of a small tail; the stabiliser's half span, the fin over
+   * and under the thrust line, the ailerons' span (outside the wash); the
+   * tail's shares, scripts/pitts-derive.js. */
+  .slip_r = 0.1397,
+  .slip_yh = 0.163,
+  .slip_hv = { 0.105, 0.066 },
+  .slip_ya = { 0.131, 0.378 },
+  .slip_a0 = 0.1166,
+  .slip_cl_a = 0.1647,
+  .slip_cm_a = -0.3255,
+  .slip_cn_b = 0.1151,
+  .slip_cn_r = -0.1192,
+  .slip_cy_b = -0.2224,
+  .slip_cl_b = -0.0157,
+  /* The second wing, scripts/pitts-derive.js: the top wing (0) and the
+   * bottom one (1), 0.150 m apart, the top one's quarter chord 15 mm ahead
+   * at its mean chord, Prandtl's sigma 0.552 on the Trefftz plane. */
+  .bip_w = { 0.5460, 0.4540 },
+  .bip_r = { 0.9911, 0.8993 },
+  .bip_m = { 0.1118, 0.2187 },
+  .bip_x = { 0.0369, -0.0444 },
+  .bip_ki = { 0.04435, 0.03770 },
+  .bip_kx = { 0.02256, 0.02256 },
+};
