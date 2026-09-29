@@ -107,15 +107,14 @@ or argued. The rest are this build's, with the reason.
    30 m from where it started), crashed, or not seen by the room (its
    samples missing or later than `LATE_MS`, a tab on a menu or in the
    background) cannot be touched, so it does not score either. Otherwise
-   an Ace would sit on its slot, spawning, and win. And an Ace that cannot
-   be caught for **`DROP_MS` = 10 s** in a row drops the crown as a
-   crashed one does (decision 14): nobody is the Ace, and the orb is free
-   where the Ace could last be caught. 10 s is longer than any take off
-   roll or respawn needs to clear 30 m, and short enough that an Ace who
-   went to the menu does not stall the match. It used to hand the crown
-   to a hunter drawn at random; the owner's orb rule (decision 14) took
-   that out, and an Ace that is never seen at all, so has no place to
-   drop the orb, keeps a crown it scores nothing with.
+   an Ace would sit on its slot, spawning, and win. An Ace that could
+   not be caught for `DROP_MS` = 10 s in a row used to drop the crown to a
+   hunter drawn at random; the owner took that timeout out with the orb
+   rule (decision 14): "there is no 10 s timeout that hands the crown to
+   someone". A crashed Ace drops the crown at once as the free orb; one
+   that is only spawning or unseen (a menu, a tab in the background)
+   keeps it and scores nothing, which stalls nobody's points but its own
+   and which the host can always end.
 9. **Public rooms: no tag.** A public room is strangers on a map. A match
    takes over everybody's flight: it puts them back on their slot, holds
    them for the countdown and makes them players. In a public room nobody
@@ -169,7 +168,7 @@ or argued. The rest are this build's, with the reason.
 ## Rules as the room applies them
 
 A match is `{ id, goal, goAt, state, ace, reignFrom, protectUntil,
-untouchSince, seenAt, orb, f, players: { seat: { ms } }, crowns: [...], winner, endAt }`.
+orb, f, players: { seat: { ms } }, crowns: [...], winner, endAt }`.
 All times are room clock ms (edge/rooms/core.js `roomMs`).
 
 - **Start.** The host sends `{ type: 'tag', op: 'start', goal }`. The room
@@ -196,10 +195,8 @@ All times are room clock ms (edge/rooms/core.js `roomMs`).
      more than `GAP_MS` apart, not spawning, not crashed) adds one to the
      Ace's ms. The millisecond its ms reaches `goal x 1000` ends the match
      there: `endAt`, `winner`, results.
-  3. **The drop**: the first millisecond the Ace's pose is crashed, or the
-     millisecond it has been uncatchable for `DROP_MS`, nobody is the Ace
-     and the orb is free: where it went down, or where it could last be
-     caught (decision 14).
+  3. **The drop**: the first millisecond the Ace's pose is crashed, nobody
+     is the Ace and the orb is free where it went down (decision 14).
   3a. **The catch**: while the orb is free nobody scores, and the first
      millisecond a flying pilot has a part within `BUBBLE_M` of the orb's
      centre it is the Ace (a tie to the lower seat), with protection.
@@ -273,8 +270,24 @@ samples are memory only, since a room that hibernated had nobody flying.
   17 ms). Against the 6 m bubble it is small (decision 3); the harness
   reports the band.
 - **On screen**: a tag reaches the screens 100 to 400 ms after the touch.
-  The crown moves to the new Ace's aircraft, a banner says who took it
-  ("You are the Ace!" on the toucher's), and the scoreboard's crown moves.
+  The crown moves to the new Ace's aircraft and the scoreboard's crown
+  moves. The owner: "there should be a very visual thing...almost
+  gamelike...kaching or something", and of four synthesized options he
+  chose the arcade coin. So every crown change, a tag or a catch of the
+  free orb, is on every screen: the coin (`src/render/audio.js` coin(),
+  B5 then E6 in square waves, level 1 for the new Ace and 0.4 for
+  everybody else), a gold burst of sparks and a ring shockwave where the
+  new Ace is and a small crown flying over 0.6 s from the old Ace, or out
+  of the orb, to the new one (`src/render/acecrown.js`, three meshes made
+  once), the bubble snapping over with a pulse up to twice its brightest,
+  a big banner in combat's shout style ("👑 YOU ARE THE ACE!", "👑 name
+  IS THE ACE!", "👑 name TOOK YOUR CROWN!", "👑 name caught the crown!"),
+  and a flash round the screen's edge, gold for the pilot who took it and
+  red for the one who lost it or dropped it. The crash cam keeps the
+  burst and the coin beside combat's paper events (`src/replay/paper.js`,
+  file version 7) and the bubble in its rows (the free orb as seat 0), so
+  a replay throws the burst, rings the coin at 1x and draws the orb as
+  they were, and an exported movie's soundtrack has the coin in it.
   The points on the board are the room's, at most one room tick behind
   the room's frontier; they are not extrapolated, so they never run
   backwards when a tag lands in the past.

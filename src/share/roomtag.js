@@ -84,8 +84,10 @@ export function createRoomTag(send) {
   let error = null;
   let startTaken = null;
   let resultsTaken = null;
-  /* The newest crown handed out, as `${match id}:${t}:${seat}`. */
+  /* The newest crown handed out, as `${match id}:${t}:${seat}`, and the
+   * newest orb dropped, as `${match id}:${t}`. */
   let crownTaken = null;
+  let dropTaken = null;
 
   const api = {
     onWelcome(w) {
@@ -99,6 +101,7 @@ export function createRoomTag(send) {
       }
       const last = (tag.crowns || []).at(-1);
       crownTaken = last ? `${tag.id}:${last.t}:${last.seat}` : crownTaken;
+      dropTaken = tag.orb ? `${tag.id}:${tag.orb.t}` : dropTaken;
     },
 
     /* A room message this module owns. Returns true when it was one. */
@@ -132,7 +135,12 @@ export function createRoomTag(send) {
      * 0. A room from before the bubble sends none and judges a touch, so
      * nothing is drawn that would not be a tag. */
     bubble() {
-      return tag.state === 'live' && tag.ace != null && tag.bubble > 0 ? tag.bubble : 0;
+      return tag.state === 'live' && (tag.ace != null || tag.orb) && tag.bubble > 0 ? tag.bubble : 0;
+    },
+    /* The free orb while nobody is the Ace (a crashed Ace dropped it,
+     * docs/TAG-PLAN.md decision 14): { t, from, px, py, pz }, else null. */
+    orb() {
+      return tag.state === 'live' && tag.orb ? tag.orb : null;
     },
     on() {
       return tag.state === 'countdown' || tag.state === 'live';
@@ -187,6 +195,20 @@ export function createRoomTag(send) {
       }
       crownTaken = key;
       return last;
+    },
+
+    /* The newest orb dropped, once: { t, from, px, py, pz }. */
+    takeDrop() {
+      const o = api.orb();
+      if (!o) {
+        return null;
+      }
+      const key = `${tag.id}:${o.t}`;
+      if (key === dropTaken) {
+        return null;
+      }
+      dropTaken = key;
+      return o;
     },
 
     /* Whether the Ace is inside its tag back protection now. */

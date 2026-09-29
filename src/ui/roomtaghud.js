@@ -9,6 +9,11 @@
  * nameOf(seat) is the shell's: a pilot's picker name in this pilot's
  * language, or this pilot's own with "you".
  *
+ * And the crown changing hands, big (createTagShout): the banner in the
+ * middle of the screen in combat's shout style (src/ui/combathud.js,
+ * "+100 SCHWING!"), crown gold, and a flash round the screen's edge, gold
+ * for the pilot who took the crown and red for the one who lost it.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -43,10 +48,14 @@ export function tagHudView(rt, now, nameOf) {
     return null;
   }
   const v = rt.view();
+  let title = str('roomtag.hud_hunter', { goal: v.goal });
+  if (role === 'ace') {
+    title = str('roomtag.hud_ace', { goal: v.goal });
+  } else if (rt.orb()) {
+    title = str('roomtag.hud_loose');
+  }
   return {
-    title: role === 'ace'
-      ? str('roomtag.hud_ace', { goal: v.goal })
-      : str('roomtag.hud_hunter', { goal: v.goal }),
+    title,
     rows: rt.standings().map((row) => ({
       place: row.place, name: crowned(row, nameOf), value: String(row.points), me: row.seat === rt.seat(),
     })),
@@ -141,4 +150,119 @@ export function tagRows(o) {
     }
   }
   return rows;
+}
+
+/* How long the banner stands, and each flash, ms. */
+const SHOUT_MS = 1800;
+const FLASH_MS = { gold: 700, red: 450 };
+const FLASH_RGB = { gold: '255, 198, 74', red: '255, 70, 60' };
+
+/*
+ * The big banner and the edge flash. Two elements, made on first use and
+ * kept; a shout or a flash only restyles them.
+ */
+export function createTagShout() {
+  let big = null;
+  let edge = null;
+  let bigTimer = null;
+  let edgeTimer = null;
+  const said = [];
+  const flashes = [];
+
+  function el(style, className) {
+    const d = document.createElement('div');
+    Object.assign(d.style, style);
+    d.className = className;
+    d.setAttribute('aria-hidden', 'true');
+    document.body.append(d);
+    return d;
+  }
+
+  function build() {
+    big = el({
+      position: 'fixed', top: '30%', left: '50%', transform: 'translate(-50%, -50%) scale(1)', zIndex: '41', pointerEvents: 'none',
+      font: '900 60px system-ui, sans-serif', color: '#ffe18a', letterSpacing: '0.04em', whiteSpace: 'nowrap', maxWidth: '96vw',
+      textShadow: '0 0 20px rgba(255, 198, 74, 0.95), 0 3px 6px rgba(0, 0, 0, 0.9)', opacity: '0', display: 'none',
+      transition: 'opacity 0.25s ease-out, transform 0.25s ease-out',
+    }, 'tag-shout');
+    /* Taken out of the page between flashes: a full screen blurred inset
+     * shadow costs every frame it is laid out, even at nil opacity, and on
+     * a software rasteriser that alone stalled the page. */
+    edge = el({
+      position: 'fixed', inset: '0', zIndex: '39', pointerEvents: 'none', opacity: '0', display: 'none',
+    }, 'tag-flash');
+  }
+
+  /* The banner, big in the middle. Long names shrink it to fit. */
+  function shout(text) {
+    if (!big) {
+      build();
+    }
+    said.push(text);
+    if (said.length > 20) {
+      said.shift();
+    }
+    big.textContent = text;
+    big.style.fontSize = `${Math.max(30, Math.min(60, Math.floor(1500 / Math.max(10, text.length))))}px`;
+    big.style.display = 'block';
+    big.style.transition = 'none';
+    big.style.opacity = '1';
+    big.style.transform = 'translate(-50%, -50%) scale(1.3)';
+    void big.offsetWidth;
+    big.style.transition = 'opacity 0.25s ease-out, transform 0.25s ease-out';
+    big.style.transform = 'translate(-50%, -50%) scale(1)';
+    clearTimeout(bigTimer);
+    bigTimer = setTimeout(() => {
+      big.style.opacity = '0';
+      bigTimer = setTimeout(() => {
+        big.style.display = 'none';
+      }, 300);
+    }, SHOUT_MS);
+  }
+
+  /* The screen's edge lit, 'gold' or 'red', and let go. */
+  function flash(kind) {
+    if (!edge) {
+      build();
+    }
+    flashes.push(kind);
+    if (flashes.length > 20) {
+      flashes.shift();
+    }
+    const rgb = FLASH_RGB[kind];
+    edge.style.boxShadow = `inset 0 0 90px 28px rgba(${rgb}, 0.85), inset 0 0 14px 6px rgba(${rgb}, 1)`;
+    edge.style.display = 'block';
+    edge.style.transition = 'none';
+    edge.style.opacity = '1';
+    void edge.offsetWidth;
+    edge.style.transition = `opacity ${FLASH_MS[kind]}ms ease-in`;
+    clearTimeout(edgeTimer);
+    edgeTimer = setTimeout(() => {
+      edge.style.opacity = '0';
+      edgeTimer = setTimeout(() => {
+        edge.style.display = 'none';
+      }, FLASH_MS[kind] + 50);
+    }, 60);
+  }
+
+  /* Off at once: a replay, the room left. */
+  function hide() {
+    clearTimeout(bigTimer);
+    clearTimeout(edgeTimer);
+    if (big) {
+      big.style.opacity = '0';
+      edge.style.opacity = '0';
+      edge.style.display = 'none';
+    }
+  }
+
+  return {
+    shout,
+    flash,
+    hide,
+    /* For the two page check: every banner and flash, and what shows. */
+    said: () => said.slice(),
+    flashes: () => flashes.slice(),
+    shown: () => (big && big.style.opacity === '1' ? big.textContent : ''),
+  };
 }
