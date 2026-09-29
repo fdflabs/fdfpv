@@ -139,9 +139,9 @@ export const PROFILE_MAX_BYTES = 4096;
 
 const ID_RE = /^[a-z0-9_]{1,32}$/;
 
-/* The games a private room's host starts: toilet paper combat and Catch
- * the Ace (roomtag). */
-export const ROOM_GAMES = ['combat', 'tag'];
+/* The games a private room's host starts: toilet paper combat, Catch
+ * the Ace (roomtag) and the war mode (docs/WARFARE-PLAN.md). */
+export const ROOM_GAMES = ['combat', 'tag', 'war'];
 
 /*
  * The shape a room accepts for a profile: { airframe, map, figure,
@@ -904,4 +904,84 @@ export function checkRuns(runs) {
     }
   }
   return runsLinks(runs) <= PAPER_CAP_LINKS ? runs.map((r) => r.slice()) : null;
+}
+
+/* ------------------------------------------------------------------ */
+/* War: types 0xA0 to 0xAF and the JSON type war (docs/WARFARE-PLAN.md
+ * section 5.1; the room's half is edge/rooms/war.js). */
+
+/*
+ * AGENTS, 0xA0, room to client, on the room tick while a war game has
+ * hunters: the attackers the room steers, since their paths hang on the
+ * players (the scripted ones are src/share/war/routes.js on every screen
+ * and never sent). Thinned per seat by distance, as BATCH is.
+ *
+ *   u8     type 0xA0
+ *   u8     count
+ *   u32    room ms of the poses
+ *   per agent:
+ *     u16    id
+ *     u8     kind, an index into routes.js KINDS
+ *     f32x3  position, scene world metres (y up)
+ *     i16x4  attitude quaternion, component x 32767
+ *
+ * The JSON type war, room to client (edge/rooms/war.js says what each
+ * carries): { war } the view, { op: 'born', agents }, { op: 'dead', ids,
+ * at, by, why, p }, { op: 'boom', seat, at, p }, { error }. Client to room,
+ * the host only, in a private room only: { op: 'start', mission } and
+ * { op: 'end' }.
+ */
+export const TYPE_AGENTS = 0xA0;
+export const AGENTS_HEAD = 6;
+export const AGENTS_ENTRY = 23;
+/* The most a message carries: a count byte. */
+export const AGENTS_MAX = 255;
+
+/* agents: [{ id, kind, p: [x, y, z], q: [x, y, z, w] }], the first
+ * AGENTS_MAX of them. */
+export function encodeAgents(roomMs, agents) {
+  const list = agents.slice(0, AGENTS_MAX);
+  const bytes = new Uint8Array(AGENTS_HEAD + list.length * AGENTS_ENTRY);
+  const v = new DataView(bytes.buffer);
+  v.setUint8(0, TYPE_AGENTS);
+  v.setUint8(1, list.length);
+  v.setUint32(2, clampInt(roomMs, 0, 0xffffffff) >>> 0, true);
+  let at = AGENTS_HEAD;
+  for (const a of list) {
+    v.setUint16(at, a.id & 0xffff, true);
+    v.setUint8(at + 2, a.kind & 0xff);
+    v.setFloat32(at + 3, a.p[0], true);
+    v.setFloat32(at + 7, a.p[1], true);
+    v.setFloat32(at + 11, a.p[2], true);
+    for (let i = 0; i < 4; i += 1) {
+      v.setInt16(at + 15 + 2 * i, clampInt(a.q[i] * QUAT_SCALE, -QUAT_SCALE, QUAT_SCALE), true);
+    }
+    at += AGENTS_ENTRY;
+  }
+  return bytes;
+}
+
+/* { roomMs, agents: [{ id, kind, p, q }] }, or null when not an AGENTS. */
+export function decodeAgents(bytes) {
+  if (!bytes || bytes.byteLength < AGENTS_HEAD || bytes[0] !== TYPE_AGENTS) {
+    return null;
+  }
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const count = v.getUint8(1);
+  if (bytes.byteLength !== AGENTS_HEAD + count * AGENTS_ENTRY) {
+    return null;
+  }
+  const agents = [];
+  for (let k = 0; k < count; k += 1) {
+    const at = AGENTS_HEAD + k * AGENTS_ENTRY;
+    const q = [0, 1, 2, 3].map((i) => v.getInt16(at + 15 + 2 * i, true) / QUAT_SCALE);
+    const n = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+    agents.push({
+      id: v.getUint16(at, true),
+      kind: v.getUint8(at + 2),
+      p: [v.getFloat32(at + 3, true), v.getFloat32(at + 7, true), v.getFloat32(at + 11, true)],
+      q: n > 1e-6 ? q.map((x) => x / n) : [0, 0, 0, 1],
+    });
+  }
+  return { roomMs: v.getUint32(2, true), agents };
 }
