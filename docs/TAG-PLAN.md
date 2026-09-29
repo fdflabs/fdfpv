@@ -164,6 +164,23 @@ or argued. The rest are this build's, with the reason.
    orb. An earlier rule of the same day, the crown handed at once to the
    pilot flying nearest the wreck, was replaced by this one before it
    shipped.
+15. **The chase boost.** The owner, 2026-09-29: "ok if you are NOT the
+   ace, you get a 5% speed boost for chasing". While a match is live (not
+   in its countdown), every pilot who is not the Ace, which is everybody
+   while the orb is free, flies with the plant's `sim_set_boost` at
+   `CHASE_BOOST` (`src/share/roomtag.js`), switched by the shell on the
+   frame the role changes on the room clock and put back to 1 when the
+   match or the room is over. It is physics, not a pose moved: every prop
+   aerodynamically as if it turned 1.06 times faster, its pitch speed
+   scaled by that and its thrust by the square (`src/native/sim_abi.h`).
+   A thrust scale alone was measured first and barely moves a
+   prop-limited top speed (5 percent more thrust bought the Cub 1.1
+   percent); a faster prop raises a top speed held by drag in the square
+   of the speed by exactly its own factor. 1.05 measured 3.7 percent on
+   the five inch, which also holds itself up with its props, and 5.4 on
+   the Cub; 1.06 measured 4.4 and 6.5 (`npm run boost:check`). A call
+   into the plant, so the crash cam's journal keeps it. The scoreboard
+   shows "Chase boost +5%" while it is on.
 
 ## Rules as the room applies them
 

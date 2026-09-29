@@ -2404,6 +2404,7 @@ export async function boot({
     raceHoldMs = 0;
     /* Put up again below when there is a live match to put it round. */
     roomTagBubble.set(0);
+    tagBoost();
     /* A ?room= link, or the room this tab was in before a reload: joined
      * once the shell is up, never during boot, because the hello reads
      * the seated aircraft. */
@@ -3303,8 +3304,8 @@ export async function boot({
    * the new (src/render/acecrown.js), the bubble snapping over with a
    * bright pulse, a big banner and an edge flash (tagShout); and the
    * results when the room says the match is over. A collision in a match
-   * is a mid air crash like any other, judged by the room's referee, and
-   * nothing here touches the plant.
+   * is a mid air crash like any other, judged by the room's referee; the
+   * one thing here that touches the plant is the chase boost (tagBoost).
    */
   /* The host's goal: a preset of GOALS, or 'custom' with its points. */
   let roomTagPick = { preset: GOALS[0].id, custom: 30 };
@@ -3336,6 +3337,28 @@ export async function boot({
   function roomTagHoldMs(now) {
     return roomTagRunId != null && roomTagRunId === roomTag.view().id ? roomTag.holdMs(now) : 0;
   }
+  /*
+   * THE CHASE BOOST (src/share/roomtag.js CHASE_BOOST): every pilot who is
+   * not the Ace flies a live match with the plant's sim_set_boost, set here
+   * on the flight frame the role changes on the room clock, and put back to
+   * 1 the frame the match or the room is over. A call into the plant, so
+   * the crash cam's journal keeps it and a take over flies it again.
+   */
+  function tagBoost() {
+    if (mode !== 'flight' || typeof sim.e.sim_set_boost !== 'function') {
+      return;
+    }
+    const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
+    const want = now == null ? 1 : roomTag.boost(now);
+    if (sim.e.sim_boost() === want) {
+      return;
+    }
+    const code = sim.e.sim_set_boost(want);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_boost refused ${want}: ${simErrorName(code)}`);
+    }
+  }
+
   /* Where a seat's aircraft is drawn on this screen, or null. */
   function roomTagSeatAt(seat) {
     if (seat == null) {
@@ -3589,6 +3612,8 @@ export async function boot({
       shout: tagShout.shown(),
       flashes: tagShout.flashes(),
       orb: roomTag.orb(),
+      /* The chase boost the plant flies with now. */
+      boost: typeof sim.e.sim_boost === 'function' ? sim.e.sim_boost() : null,
       bubble: roomTagBubble.mesh.visible ? { ...roomTagBubble.drawn() } : null,
       hud: roomTagHud.key ? JSON.parse(roomTagHud.key) : null,
       results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'tag'),

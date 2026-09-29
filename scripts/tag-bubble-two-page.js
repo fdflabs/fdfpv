@@ -23,7 +23,9 @@
  * burst (src/render/acecrown.js) and put up the banner, gold round the
  * new Ace's screen and red round the old one's, and the replay has the
  * burst and the coin at the tag.
-
+ *
+ * THE CHASE BOOST: while the match is live the hunter's plant flies with
+ * CHASE_BOOST and the Ace's with none, and the two swap at the tag.
  *
  * THE FREE ORB (the owner: "when a person crashes, their orb just stays
  * in that spot, nobody is ace, and whoever goes and catches it, is the new
@@ -57,7 +59,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
-import { BUBBLE_M, PROTECT_MS } from '../src/share/roomtag.js';
+import { BUBBLE_M, CHASE_BOOST, PROTECT_MS } from '../src/share/roomtag.js';
 import { hullDistance, hullFor } from '../src/game/midair.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -219,6 +221,11 @@ try {
   check('and the hunter\'s round the Ace as it draws it', liveH.length === 1 && liveH[0].r === BUBBLE_M && dist(liveH[0].at, m) < 0.5,
     liveH.map((x) => `${x.r} m at ${dist(x.at, m).toFixed(3)} m, level ${x.level.toFixed(2)}`).join());
 
+  const [boostAce, boostHunter] = [await tagOf(ace), await tagOf(hunter)];
+  check(`the chase boost: the hunter's plant flies with ${CHASE_BOOST}, the Ace's with none, and the hunter is told`,
+    boostHunter.boost === CHASE_BOOST && boostAce.boost === 1 && boostHunter.hud && /Chase boost \+5%/.test(boostHunter.hud.chip) && !(boostAce.hud && boostAce.hud.chip),
+    `hunter ${boostHunter.boost} "${boostHunter.hud && boostHunter.hud.chip}", Ace ${boostAce.boost}`);
+
   /* 6.5 m: held there past the room's teleport protection and more. */
   const out = { ...m, z: m.z + offsetFor(6.5) };
   await hold(hunter, out);
@@ -286,6 +293,8 @@ try {
     /YOU ARE THE ACE/.test(mHunter.shouts.at(-1)) && mHunter.flashes.at(-1) === 'gold'
     && /TOOK YOUR CROWN/.test(mAce.shouts.at(-1)) && mAce.flashes.at(-1) === 'red',
     `"${mHunter.shouts.at(-1)}" ${mHunter.flashes.at(-1)} | "${mAce.shouts.at(-1)}" ${mAce.flashes.at(-1)}`);
+  const [bAce, bHunter] = [await tagOf(ace), await tagOf(hunter)];
+  check('the chase boost changes hands with the crown', bAce.boost === CHASE_BOOST && bHunter.boost === 1, `old Ace ${bAce.boost}, new Ace ${bHunter.boost}`);
   const moved = await bubbles(ace);
   const newAceAt = steps.at(-1).at;
   check('the bubble moves to the new Ace on the old Ace\'s screen', moved.length === 1 && dist(moved[0].at, newAceAt) < 0.5,
@@ -371,9 +380,9 @@ try {
   const aLoose = await tagOf(ace);
   const marks = await ace.evaluate('window.__peerMarks()');
   const orbMark = (marks.marks || marks).find ? (marks.marks || marks).find((mk) => mk.seat === 0) : null;
-  check('the old Ace\'s scoreboard says the crown is loose, and its marks point at the orb',
-    aLoose.hud && /crown is loose/i.test(aLoose.hud.title) && orbMark && orbMark.role === 'ace',
-    `"${aLoose.hud && aLoose.hud.title}", mark ${JSON.stringify(orbMark && { role: orbMark.role, kind: orbMark.kind })}`);
+  check('the old Ace\'s scoreboard says the crown is loose, its marks point at the orb, and it flies boosted',
+    aLoose.hud && /crown is loose/i.test(aLoose.hud.title) && orbMark && orbMark.role === 'ace' && aLoose.boost === CHASE_BOOST,
+    `"${aLoose.hud && aLoose.hud.title}", mark ${JSON.stringify(orbMark && { role: orbMark.role, kind: orbMark.kind })}, boost ${aLoose.boost}`);
   const mDrop = await moment(hunter);
   check('the pilot who dropped it is told, edged red', /crown is loose/i.test(mDrop.shouts.at(-1)) && mDrop.flashes.at(-1) === 'red',
     `"${mDrop.shouts.at(-1)}" ${mDrop.flashes.at(-1)}`);
@@ -410,8 +419,9 @@ try {
   check('the banner: you caught the crown, edged gold; the other screen names who did',
     /You caught the crown/.test(cAce.shouts.at(-1)) && cAce.flashes.at(-1) === 'gold' && /caught the crown/.test(cHunter.shouts.at(-1)),
     `"${cAce.shouts.at(-1)}" ${cAce.flashes.at(-1)} | "${cHunter.shouts.at(-1)}"`);
-  const dAce = await tagOf(ace);
-  check('the orb is gone', dAce.view.orb === null);
+  const [dAce, dHunter] = [await tagOf(ace), await tagOf(hunter)];
+  check('the catcher is the Ace and flies unboosted; the orb is gone', dAce.boost === 1 && dHunter.boost === CHASE_BOOST && dAce.view.orb === null,
+    `${dAce.boost} ${dHunter.boost}`);
   await hunter.evaluate('window.__setCam(null); true');
 
   console.log('the orb and the catch in the replay');

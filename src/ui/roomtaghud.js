@@ -56,6 +56,7 @@ export function tagHudView(rt, now, nameOf) {
   }
   return {
     title,
+    ...(rt.boost(now) > 1 ? { chip: str('roomtag.boost_chip') } : {}),
     rows: rt.standings().map((row) => ({
       place: row.place, name: crowned(row, nameOf), value: String(row.points), me: row.seat === rt.seat(),
     })),

@@ -1549,7 +1549,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double n = fan ? fan_spool(fw, throttle, duty_e, dead || g_chute) : duty_e;
   const double u_pos = u > 0.0 ? u : 0.0;
   /* A fan at rest makes nothing, where 0 / 0 would be a NaN. */
-  const double ct = ((fan && !(n > 0.0)) || !(fw->thrust_static > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * n);
+  /* The chase boost's faster prop has the faster pitch speed; exact at
+   * 1.0 (sim_set_boost). */
+  const double ct = ((fan && !(n > 0.0)) || !(fw->thrust_static > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * SIM_BOOST * n);
   double thrust = fw->thrust_static * n * n * ct;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
@@ -1566,6 +1568,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   } else if (flat) {
     thrust = 0.0;
   }
+  /* The chase boost's faster prop, last; exact at 1.0 (sim_set_boost). */
+  thrust *= SIM_BOOST * SIM_BOOST;
   F[0] += thrust;
   /* A fan runs down after its drive is cut rather than stopping. */
   const double rpm = (folded || ((g_chute || dead) && !fan)) ? 0.0 : 0.85 * n * fw->rpm_no_load;
