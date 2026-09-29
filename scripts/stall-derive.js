@@ -203,6 +203,8 @@ planes.FW_EDGE1524 = {
   dw: 0.9 * 0.487 * 3.754 * 0.549 / 4.435,
   asym: TE_TOLERANCE / 0.3175,
   note: 'a_w 4.435, a_t 3.754, V_H 0.487, deps/dalpha 0.549 (DATCOM), its own arms',
+};
+
 /* The Extra 300 3D, scripts/extra-derive.js: E-flite's 95 mm CG on the
  * measured taper's mean chord, the manual's CG at the wing's aerodynamic
  * centre within 2 mm, and the tail's share from the derivation's a_w,
@@ -226,6 +228,18 @@ planes.FW_F16878 = {
   dw: 0.9 * 0.2942 * 2.644 * 0.647 / 3.142,
   asym: TE_TOLERANCE / 0.2856,
   note: 'a_w 3.142, a_t 2.644, V_H 0.294, deps/dalpha 0.647 (Nelson), its own arms',
+};
+
+/* The Wot 4, docs/WOT4-STAGE1.md and scripts/wot4-derive.js: the
+ * manual's 82 mm CG, 11 mm behind the constant chord's aerodynamic centre,
+ * and the tail's share from the derivation's a_w, a_t, V_H and DATCOM's
+ * downwash. */
+planes.FW_WOT41334 = {
+  arm_ac: 0.0374,
+  arm_cp: 0.1126,
+  dw: 0.9 * 0.405 * 4.138 * 0.427 / 4.401,
+  asym: TE_TOLERANCE / 0.2853,
+  note: 'a_w 4.401, a_t 4.138, V_H 0.405, deps/dalpha 0.427 (DATCOM), its own arms',
 };
 
 /* The four strips' chords over the mean chord, from a planform chord(eta),
@@ -284,6 +298,8 @@ const STRIPS = {
   /* The cropped delta's trapezoid, 414.5 mm at the centreline to 83 at
    * the tip; the strakes ahead of it are left out. */
   FW_F16878: strips(taper(0.201)),
+  /* Constant chord; the rounded tips left out, as the Kadet's are. */
+  FW_WOT41334: strips(rect),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -332,6 +348,11 @@ const SECTION = {
    * lift curve peaks 15 deg past its linear range). ESTIMATED: held 10 deg,
    * to Freewing's 30 deg of alpha, then 0.8 of it. */
   FW_F16878: { sec: 'the strakes\' vortex, ESTIMATED', top: 10.0, k: 0.80 },
+  /* A semi-symmetrical sport section of about 14 percent at 1.8e5 (9.3
+   * m/s on 0.285 m), the NACA 2415 standing for it: held +2.9 deg at 1e5
+   * and +4.2 at 2e5, interpolated +3.94; 0.765 and 0.76 of the peak after,
+   * 0.76. */
+  FW_WOT41334: { sec: 'NACA 2415 at 1.8e5', top: 3.94, k: 0.76 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;
