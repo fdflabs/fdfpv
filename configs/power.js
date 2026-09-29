@@ -126,6 +126,8 @@ const APC = 'https://www.apcprop.com/files/PER3_';
 const OS_FX_MANUAL = 'https://www.os-engines.co.jp/english/line_up/engine/air/aircraft/manual/50sx_40-91fx.pdf';
 const RCU_61FX = 'https://www.rcuniverse.com/forum/glow-engines-114/6767782-o-s-61-fx-engines.html';
 const RCM_STIK = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
+const QUICKIE_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6868';
+const CHINN_KB40 = 'https://sceptreflight.com/Model%20Engine%20Tests/K&B%2040%20Series%2070F%20RC.html';
 const FREEWING_F16 = 'https://www.freewing-model.com/freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html';
 const FREEWING_F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const FREEWING_F16_4S = 'https://freewing-model.com/freewing-f-16-v2-4s-standard-70mm-edf-jet-pnp-rc-airplane.html';
@@ -182,6 +184,7 @@ export const TABLE = {
     flightTime: { kind: 'mixed', minutesLow: 19.4, minutesHigh: 19.4, note: "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc", source: OS_56_MANUAL },
   },
   uglystik1567: { simId: 19, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 17.33, flightTime: null },
+  quickie1293: { simId: 22, massKg: 1.5876, cells: 2, rCell: 0.030, propIn: 9, cruiseMs: 39.37, flightTime: null },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
@@ -639,6 +642,42 @@ const STIK = [
   },
 ];
 
+/* The Quickie 500: a K&B 40 R/C front intake with no silencer, as RCM's
+ * prototype flew ("Muffler Used: No"), on the APC 9 x 6 the Sport
+ * Quickie rule names, from Peter Chinn's bench test of its Series 70F
+ * opened up by what he says the silencer cost (scripts/power-derive.js,
+ * docs/QUICKIE-STAGE1.md): 14,831 rpm and 24.55 N standing. Its pitch
+ * speed is the zero of the plant's thrust line through the unloading
+ * engine's thrust at its top speed, 68.6 m/s, not the static rpm times
+ * the pitch: a racer's engine runs up in the air. RCM's 8 oz tank, the
+ * flying weight its 3 1/2 lb ready to fly, taken with the tank full. */
+const QUICKIE_TANKS = [
+  tank('237cc', 236.6, 236.6e-6, 236.6 * FUEL_G_CC, QUICKIE_PLAN),
+];
+const QUICKIE = [
+  {
+    id: 'stock', name: 'power.quickie.stock', kind: 'glow', voice: 'glow2',
+    propIn: 9, pitchIn: 6, blades: 2,
+    thrustN: 24.553, rpmNoLoad: 17448.2, pitchSpeedMs: 68.638, idle: 0.1821,
+    flowFullM3s: 18.01e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
+    massKg: 1.5876, cgShiftM: 0, packs: QUICKIE_TANKS, pack: '237cc',
+    source: [QUICKIE_PLAN, CHINN_KB40, `${APC}9x6.dat`, MENON],
+  },
+  {
+    /* The same engine as Chinn tested it, with the Irvine silencer: its
+     * measured curve, 42 g more (306 g against 264), 14,011 rpm and 21.83
+     * N standing on the 9 x 6, the line through its thrust at its own top
+     * speed, 35.1 m/s, reaching zero at 57.0 m/s. The pack moved to balance
+     * it on the same mark. Its idle Chinn's 2,700 rpm. */
+    id: 'silenced', name: 'power.quickie.silenced', kind: 'glow', voice: 'glow2',
+    propIn: 9, pitchIn: 6, blades: 2,
+    thrustN: 21.832, rpmNoLoad: 14011 / 0.85, pitchSpeedMs: 57.014, idle: 2700 / 14011,
+    flowFullM3s: 18.01e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
+    massKg: 1.5876 + 0.042, cgShiftM: 0, packs: QUICKIE_TANKS, pack: '237cc',
+    source: [CHINN_KB40, `${APC}9x6.dat`],
+  },
+];
+
 export const POWER = {
   wing1000: WING,
   sky1800: SKY,
@@ -652,6 +691,7 @@ export const POWER = {
   bombshell1118: BOMBSHELL,
   kadet1981: KADET,
   uglystik1567: STIK,
+  quickie1293: QUICKIE,
   edge1524: EDGE,
   extra1308: EXTRA,
   f16878: F16,

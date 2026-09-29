@@ -1056,6 +1056,69 @@ export const AIRFRAMES = [
   },
   {
     /*
+     * Glen Spickler's Quickie 500, American Aircraft Modeler, December
+     * 1972, docs/QUICKIE-STAGE1.md: the club pylon racer the Quickie 500
+     * class is named after, 51 in of balsa box and constant chord low
+     * wing, RCM's 3 1/2 lb ready to fly, simId 22 on the fixed wing plant.
+     * A K&B 40 R/C hung out on its side with no silencer on an APC 9 x 6:
+     * flat out it does 88 mph (Spickler: "around 100 mph on the
+     * straightaway"), rolls at 400 deg/s and stops where the stick is
+     * centred, goes round a pylon at 6 g losing 5 percent of its speed and
+     * needs no rudder to do it; closed, it glides long and flat. The stick
+     * runs the engine from its 2,700 rpm idle to full and it never stops,
+     * and `voice` is the two stroke's note. It stands on wire gear and a
+     * tail skid and takes off from the ground, as the class does; `gear`
+     * is the plant's settled pose idling, which the drawn wheels in
+     * src/render/quickiecraft.js match: the CG 0.1326 m over the ground
+     * and 6.47 degrees nose up.
+     */
+    id: 'quickie1293',
+    simId: 22,
+    fixedWing: true,
+    voice: 'glow2',
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/quickie-thresholds.json q2_stall. */
+    stall: 9.31,
+    /* Level speed at full throttle, m/s: tests/quickie-thresholds.json q1_top, derived. */
+    topSpeed: 39.37,
+    gear: { restHeight: 0.1326, restPitch: 6.47 * Math.PI / 180 },
+    name: 'Quickie 500',
+    short: 'Quickie',
+    blurb: 'Glen Spickler\'s Quickie 500 of 1972, the club pylon racer the class is named after: a 51 in box on a K&B .40 hung out in the wind, in white with a red sunburst and a blue band of stars. Flat out it does nearly 90 mph, rolls at 400 degrees a second and goes round a pylon flat, bleeding speed in every corner.',
+    facts: ['K&B .40 glow', '1293 mm', 'Pylon racer'],
+    sizeMm: 1293,
+    grams: 1587.6,
+    trackClass: 'wing',
+    cells: 2,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'quickie-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/quickiecraft.js QUICKIE_DIMS: the
+     * furthest reach in plan is the rudder's trailing edge, 0.716 m aft,
+     * further than the tips; the lowest drawn point the mains' and the
+     * highest the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1143,
+      hullR: 0.7163,
+      vHalfDown: 0.1449,
+      vHalfUp: 0.1669,
+      bodyLength: 1.0566,
+      bodyWidth: 1.2934,
+      bodyHeight: 0.3118,
+    },
+  },
+  {
+    /*
      * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
      * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing
      * plant, with ailerons, an elevator, a rudder, plain flaps and electric

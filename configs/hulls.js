@@ -310,6 +310,28 @@ export const HULLS = {
       { kind: 'antenna', mat: 'wire', min: [-0.3, 0, 0.033], max: [-0.28, 0, 0.12] },
     ],
   },
+  'quickie1293': {
+    mass: 1.5876000000000006,
+    parts: [
+      { kind: 'fuselage', mat: 'balsa', min: [-0.183, -0.038, -0.043], max: [0.2235, 0.038, 0.049] },
+      { kind: 'boom', mat: 'balsa', min: [-0.682, -0.038, -0.03], max: [-0.183, 0.038, 0.047] },
+      { kind: 'hstab', mat: 'balsa', min: [-0.681, -0.2032, 0.02], max: [-0.537, 0.2032, 0.027] },
+      { kind: 'elevator', mat: 'balsa', min: [-0.719, -0.2032, 0.02], max: [-0.681, 0.2032, 0.027] },
+      { kind: 'fin', mat: 'balsa', min: [-0.682, -0.003, 0.021], max: [-0.483, 0.003, 0.1656] },
+      { kind: 'rudder', mat: 'balsa', min: [-0.716, -0.003, -0.03], max: [-0.631, 0.003, 0.1656] },
+      { kind: 'wing', mat: 'balsa', min: [-0.183, -0.038, -0.045], max: [0.071, 0.038, -0.007] },
+      { kind: 'wing', mat: 'balsa', min: [-0.183, 0.038, -0.045], max: [0.071, 0.6467, 0.018] },
+      { kind: 'wing', mat: 'balsa', min: [-0.183, -0.6467, -0.045], max: [0.071, -0.038, 0.018] },
+      { kind: 'motor', mat: 'alu', min: [0.2235, -0.075, -0.012], max: [0.315, 0.022, 0.036] },
+      { kind: 'prop', mat: 'nylon-gf', min: [0.3327, -0.1143, -0.1023], max: [0.3327, 0.1143, 0.1263] },
+      { kind: 'battery', mat: 'lipo', min: [-0.03, -0.02, -0.035], max: [0.02, 0.02, -0.005] },
+      { kind: 'gear', mat: 'wire', min: [0.075, 0, -0.15], max: [0.11, 0.175, -0.043] },
+      { kind: 'gear', mat: 'wire', min: [0.075, -0.175, -0.15], max: [0.11, 0, -0.043] },
+      { kind: 'gear', mat: 'wire', min: [-0.7, -0.003, -0.06], max: [-0.655, 0.003, -0.03] },
+      { kind: 'camera', mat: 'electronics', min: [0.115, -0.01, 0.049], max: [0.14, 0.01, 0.069] },
+      { kind: 'antenna', mat: 'wire', min: [-0.3, 0, 0.04], max: [-0.28, 0, 0.12] },
+    ],
+  },
   'p51d1450': {
     mass: 2.3499999999999996,
     parts: [

@@ -146,6 +146,12 @@ export const PROPS = {
   edge1524: [STOCK, apcProp('16x8e', '16x8E', 16, 8, 2), apcProp('16x10e', '16x10E', 16, 10, 2)],
   extra1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
   uglystik1567: [STOCK, apcProp('12x7', '12x7', 12, 7, 2), apcProp('12x8', '12x8', 12, 8, 2)],
+  /* A racer's prop is its engine's in flight, and the derivation that
+   * swaps a prop (scripts/parts-derive.js) reads the loaded rpm off the
+   * pitch speed, which on the Quickie is the unloading engine's line, not
+   * the static rpm times the pitch (docs/QUICKIE-STAGE1.md): the class's
+   * 9 x 6 only. */
+  quickie1293: [STOCK],
   radian2000: [STOCK],
   bramor2300: [STOCK],
   /* A fan is its duct's: Freewing sells the one rotor for it. */
@@ -191,6 +197,7 @@ export const ANCHORS = {
   edge1524: { prop: [0.4826, 0, 0], belly: [0, 0, -0.114], tail: [-0.80, 0, -0.015], tank: [-0.01, 0, -0.05], led: [[0.08, 0.12, -0.016], [-0.02, 0.70, -0.013]] },
   extra1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
   uglystik1567: { prop: [0.4064, 0, -0.0043], belly: [0, 0, -0.053], tail: [-0.785, 0, -0.053], tank: [-0.01, 0, -0.03], led: [[0.117, 0.15, 0.045], [0.117, 0.70, 0.082]] },
+  quickie1293: { prop: [0.3327, 0, 0.012], belly: [0, 0, -0.041], tail: [-0.682, 0, -0.030], tank: [-0.01, 0, 0.0], led: [[0.065, 0.15, -0.032], [0.065, 0.55, -0.002]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
 };
 

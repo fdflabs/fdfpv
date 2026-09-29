@@ -149,6 +149,12 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             the width and the reach this file measures are both the
  *             rudder's, 1769 mm, and the plan's 61.7 in span is held by
  *             src/render/uglystikcraft.js UGLYSTIK_DIMS.
+ *   quickie1293 Spickler's 51 in Quickie 500, whose rudder's trailing
+ *             edge, 0.716 m behind the CG on the plan (station 42.2
+ *             against the CG's 14.0), reaches further than its tips, 0.647
+ *             m out, so the width and the reach this file measures are
+ *             both the rudder's, 1433 mm, and the plan's 50.9 in span is
+ *             held by src/render/quickiecraft.js QUICKIE_DIMS.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -174,6 +180,7 @@ const REAL = {
   extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
+  quickie1293: { spanMm: 1432.6, sweepMm: 1432.6, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

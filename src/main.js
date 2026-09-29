@@ -158,6 +158,7 @@ import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP } from './render/edgecraft.js';
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
+import { QUICKIE_MOUNT_FORWARD, QUICKIE_MOUNT_UP } from './render/quickiecraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
 
@@ -176,6 +177,7 @@ const WING_MOUNTS = {
   edge1524: [EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP],
   extra1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
+  quickie1293: [QUICKIE_MOUNT_FORWARD, QUICKIE_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
   /* On floats the CG is lower, so the camera stands higher over it. */
