@@ -32,7 +32,7 @@ import {
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 
-const Y = 150;
+const Y = 300;
 
 /* A mission for one check: targets a (at the origin) and b, output 3000
  * over a floor of 1500, two airframes a pilot. */

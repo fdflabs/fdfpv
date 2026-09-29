@@ -101,13 +101,14 @@ import {
   LATE_MS, Track, hullFor, poseAt as trackPose, within,
 } from '../../src/game/midair.js';
 import {
-  BLAST_M, KIND, KINDS, noseTo, planAgent, poseAt,
+  BLAST_M, KIND, KINDS, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
 import itaipu1 from '../../src/share/war/missions/itaipu-1.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
 import { POSE_MAX_SPEED } from './safety.js';
+import { Hunters, loadHeight } from './warhunt.js';
 import { HERE_MS, interestEvery } from './core.js';
 
 export const MISSIONS = { [itaipu1.id]: itaipu1 };
@@ -154,69 +155,23 @@ function draw(seed, id) {
 }
 
 /*
- * THE HUNTERS' PLACEHOLDER. Package B owns the steering
- * (edge/rooms/warhunt.js, docs/WARFARE-PLAN.md section 4.4: pure pursuit
- * with lead, the turn rate cap, the terrain floor) behind exactly this
- * interface; until it lands, a hunter flies straight at the nearest live
- * defender within HUNT_RANGE_M at its kind's speed, and holds still with
- * nobody to chase. When warhunt.js lands, this class goes and the import
- * takes its place.
+ * The floor each map's hunters hold over (edge/rooms/warhunt.js), read once
+ * per process. Node reads Itaipu's heightfield from beside the missions
+ * (the VM's deploy copies src/ whole); a Cloudflare Worker has no files, so
+ * there it is null and the hunters fly over flat ground at 0, which is
+ * wrong at Itaipu and the reason the Worker, the retired platform
+ * (edge/rooms/README.md), is not where a war is fought. getBuiltinModule
+ * rather than an import, so the Worker's bundle never meets node:fs.
  */
-const HUNT_RANGE_M = 1500;
-const HUNT_FLOOR_M = 25;
-
-export class Hunters {
-  /* height: { floorAt(x, z) -> metres } or null. */
-  constructor(height) {
-    this.height = height;
-    this.h = new Map();
+const FLOORS = new Map();
+function floorOf(map) {
+  if (FLOORS.has(map)) {
+    return FLOORS.get(map);
   }
-
-  spawn(id, pos, roomMs) {
-    this.h.set(id, { id, p: pos.slice(), d: [0, 0, -1], t: roomMs });
-  }
-
-  kill(id) {
-    this.h.delete(id);
-  }
-
-  /* defenders: [{ seat, p, v, live }]. Returns [{ id, p, q, target }]. */
-  step(roomMs, defenders) {
-    const out = [];
-    for (const h of this.h.values()) {
-      const dt = Math.max(0, (roomMs - h.t) / 1000);
-      h.t = roomMs;
-      let best = null;
-      let bestD = HUNT_RANGE_M;
-      for (const d of defenders) {
-        const dist = Math.hypot(d.p[0] - h.p[0], d.p[1] - h.p[1], d.p[2] - h.p[2]);
-        if (d.live && dist < bestD) {
-          best = d;
-          bestD = dist;
-        }
-      }
-      if (best && bestD > 1e-6) {
-        h.d = [0, 1, 2].map((i) => (best.p[i] - h.p[i]) / bestD);
-        const go = Math.min(bestD, KIND.hunter.speed * dt);
-        for (let i = 0; i < 3; i += 1) {
-          h.p[i] += h.d[i] * go;
-        }
-      }
-      if (this.height) {
-        h.p[1] = Math.max(h.p[1], this.height.floorAt(h.p[0], h.p[2]) + HUNT_FLOOR_M);
-      }
-      out.push({ id: h.id, p: h.p.slice(), q: noseTo(h.d), target: best ? best.seat : -1 });
-    }
-    return out;
-  }
-
-  save() {
-    return [...this.h.values()].map((h) => ({ id: h.id, p: h.p, d: h.d, t: h.t }));
-  }
-
-  restore(value) {
-    this.h = new Map((value || []).map((h) => [h.id, { id: h.id, p: h.p.slice(), d: h.d.slice(), t: h.t }]));
-  }
+  const fs = map === 'itaipu' && globalThis.process && process.getBuiltinModule ? process.getBuiltinModule('node:fs') : null;
+  const floor = fs ? loadHeight(fs.readFileSync(new URL('../../src/share/war/itaipu-height.bin', import.meta.url))) : null;
+  FLOORS.set(map, floor);
+  return floor;
 }
 
 export class RoomWar {
@@ -236,9 +191,7 @@ export class RoomWar {
     /* The seed of a game's error draws. Math.random in the room; the
      * checks put a fixed one here so their runs repeat. */
     this.random = Math.random;
-    /* The terrain the hunters hold over: package B's heightfield. */
-    this.height = null;
-    this.hunters = new Hunters(this.height);
+    this.hunters = new Hunters(null);
     /* id -> { a (birth record), plan, track, next, spawned }. Memory. */
     this.live = new Map();
     /* seat -> { airframe, hull, track, token, down, armFrom, crashT }. */
@@ -263,11 +216,11 @@ export class RoomWar {
     this.match = saved.match ?? null;
     this.nextId = saved.nextId ?? 1;
     this.live = new Map();
-    this.hunters = new Hunters(this.height);
     if (!this.match || !this.missions[this.match.mission]) {
       this.match = null;
       return;
     }
+    this.hunters = new Hunters(floorOf(this.mission().map));
     this.hunters.restore(this.match.hunters);
     for (const a of this.match.agents) {
       this.adopt(a, true);
@@ -424,12 +377,12 @@ export class RoomWar {
       nextAgent: 1,
       scouts: null,
       spawned: [],
-      hunters: [],
+      hunters: null,
       endAt: null,
     };
     this.nextId += 1;
     this.live = new Map();
-    this.hunters = new Hunters(this.height);
+    this.hunters = new Hunters(floorOf(mission.map));
     this.lastStep = -Infinity;
     this.lastPoses = [];
     this.sent = new Map();
