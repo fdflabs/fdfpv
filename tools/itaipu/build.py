@@ -4,7 +4,14 @@
 # then validate.py. Everything it writes is rebuilt from scratch, so a
 # stale file from an earlier layout cannot survive a build.
 #
-# Usage: uv run python build.py   (after fetch.py; about a minute)
+# It builds into the staging folder beside the live one (the live folder's
+# name with -next, or ITAIPU_STAGE), never into the live folder, which the
+# local server and every other check read while a build runs; swap.py
+# then puts the staged build live with one rename. The stage reads the
+# live folder's _sources through a symlink.
+#
+# Usage: uv run python build.py   (after fetch.py; about two minutes)
+#        uv run python swap.py    (when the staged build is to go live)
 #
 # This file is part of WebFPVSimulator.
 #
@@ -21,21 +28,31 @@
 # You should have received a copy of the GNU General Public License
 # along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
 
+import os
 import shutil
 import sys
 import time
+from pathlib import Path
 
-from shapely.geometry import Polygon
+LIVE = Path(os.environ.get('ITAIPU_DATA', Path.home() / 'Desktop' / 'fdfpv-itaipu-data'))
+STAGE = Path(os.environ.get('ITAIPU_STAGE', LIVE.with_name(LIVE.name + '-next')))
+# Every module below reads the data folder from ITAIPU_DATA at import.
+os.environ['ITAIPU_DATA'] = str(STAGE)
+STAGE.mkdir(parents=True, exist_ok=True)
+if not (STAGE / '_sources').exists():
+    (STAGE / '_sources').symlink_to((LIVE / '_sources').resolve())
 
-import build_dam
-import build_imagery
-import build_osm
-import build_terrain
-import manifest
-import validate
-import water
-from common import DATA, dump_json
-from osm import Osm
+from shapely.geometry import Polygon  # noqa: E402 (after the data folder is chosen)
+
+import build_dam  # noqa: E402
+import build_imagery  # noqa: E402
+import build_osm  # noqa: E402
+import build_terrain  # noqa: E402
+import manifest  # noqa: E402
+import validate  # noqa: E402
+import water  # noqa: E402
+from common import DATA, dump_json  # noqa: E402
+from osm import Osm  # noqa: E402
 
 # What build.py owns in the data folder. _sources, _tmp and the
 # repository's own files are never touched.
@@ -49,6 +66,8 @@ def step(name):
 
 def main():
     t0 = time.time()
+    assert DATA == STAGE, (DATA, STAGE)
+    print(f'building into {STAGE} (live: {LIVE})')
     for o in OUTPUTS:
         p = DATA / o
         if p.is_dir():

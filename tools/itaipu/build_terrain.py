@@ -8,12 +8,17 @@
 #   2. The two water bodies on G30 (water.py): each is the flat water
 #      Copernicus drew at its level, grown over every sample connected to
 #      it that lies at most 0.2 m above the level, stopped by the dam.
-#   3. Level 0 = ANADEM with each body's bed 1 m under its level; levels
-#      1 to 3 from level 0's codes (Yellowstone's integer tent).
-#   4. The hero: level 0's ANADEM bilinear at 10 m, then the dam (below),
-#      then the bodies found again at 10 m and their beds 3 m under the
-#      level, then each concrete footprint flattened to groundY, the
-#      lowest ground just outside it after the beds.
+#   3. The hero tiles: ANADEM on G30 bilinear at 10 m, then the dam
+#      (below), then the bodies found again at 10 m and their beds 3 m
+#      under the level, then each concrete footprint's ground as its
+#      groundRule says: the lowest ground just outside it after the beds,
+#      at most its foundation for the right lateral dam, and under the
+#      spillway a ground that falls with the chute.
+#   4. Level 0 = ANADEM with each body's bed 1 m under its level, and
+#      the hero's own samples wherever the hero tiles are; levels 1 to 3
+#      from level 0's codes (Yellowstone's integer tent). So every level
+#      agrees with the hero over it, and the terrain engine has nothing
+#      to reconcile.
 #   5. Canopy: Copernicus minus ANADEM on G30, 0 to 40 m, 0 on water.
 #
 # The dam in the hero (docs/ITAIPU-PLAN.md section 4). A 30 m DEM smears
@@ -52,9 +57,9 @@ from shapely.geometry import LineString, Polygon
 
 import water
 from build_dam import DESMEAR_WINDOW
-from common import (DATA, E0, HERO_HALF, HERO_I, HERO_J, LEVELS, MARGIN, N0, RESERVOIR_Y, RING_HALF, RIVER_Y,
+from common import (DATA, E0, HERO_X0, HERO_X1, HERO_I, HERO_J, LEVELS, MARGIN, N0, RESERVOIR_Y, RING_HALF, RIVER_Y,
                     SOURCES, TILE_CELLS, TILE_SAMPLES, encode, level_tiles, load_sources, write_tile)
-from grids import G10, G30, upsample_hero, warp_dem
+from grids import G10, G30, H30, upsample_hero, warp_dem
 
 BED_HERO = 3.0
 BED_RING = 1.0
@@ -104,8 +109,8 @@ def seen_water():
     bands = {}
     for b in ('green', 'nir'):
         with rasterio.open(SOURCES / reg[f's2_21JYM_{b}']['file']) as src:
-            win = from_bounds(E0 - HERO_HALF - G10.cell, N0 - HERO_HALF - G10.cell, E0 + HERO_HALF + G10.cell,
-                              N0 + HERO_HALF + G10.cell, src.transform).round_offsets().round_lengths()
+            win = from_bounds(E0 + HERO_X0 - G10.cell, N0 - HERO_X1 - G10.cell, E0 + HERO_X1 + G10.cell,
+                              N0 - HERO_X0 + G10.cell, src.transform).round_offsets().round_lengths()
             bands[b] = src.read(1, window=win).astype(np.float64)
     ndwi = (bands['green'] - bands['nir']) / np.maximum(bands['green'] + bands['nir'], 1.0)
     # Pixel k spans the samples k - 1 and k of G10 (the window starts one pixel before the hero's first sample).
@@ -144,6 +149,28 @@ def dam_edits(h, parts, crest):
     return zone
 
 
+def flatten(h, e, poly):
+    """The ground under a concrete footprint, as its `groundRule` says (build_dam.py), and its groundY set."""
+    inside = G10.burn([poly])
+    ring = ndimage.binary_dilation(inside, structure=np.ones((3, 3), dtype=bool)) & ~inside
+    low = float(h[ring].min())
+    rule = e['groundRule']
+    if rule == 'chute':
+        sec = next(s for s in e['sections'] if s['at'] == 'chute')
+        (ax, az), (bx, bz) = sec['axis'][0], sec['axis'][-1]
+        ux, uz = bx - ax, bz - az
+        n = np.hypot(ux, uz)
+        xx, zz = np.meshgrid(G10.coords, G10.coords)
+        d = ((xx - ax) * ux + (zz - az) * uz) / n
+        knots = np.array(e['groundProfile'])
+        h[inside] = np.interp(d[inside], knots[:, 0], knots[:, 1])
+        e['groundY'] = round(float(h[inside].min()), 1)
+        return
+    y = min(low, e['baseY']) if rule == 'ring, at most baseY' else low
+    e['groundY'] = round(y, 1)
+    h[inside] = e['groundY']
+
+
 def run(osm, parts, crest):
     ana = warp_dem('anadem')
     cop = warp_dem('cop30')
@@ -152,9 +179,27 @@ def run(osm, parts, crest):
     foot = [Polygon(e['footprint']) for e in parts if e['footprint']]
     bodies30 = water.find30(osm, ana, cop, crest, foot)
 
+    h = upsample_hero(ana)
+    zone = dam_edits(h, parts, crest)
+    bodies10 = water.find10(osm, h, bodies30, crest, foot)
+    for b in bodies10:
+        h[b.mask] = np.minimum(h[b.mask], b.y - BED_HERO)
+    for e, poly in zip([e for e in parts if e['footprint']], foot):
+        flatten(h, e, poly)
+    hcodes = encode(h)
+    for i, j in level_tiles(-1):
+        r0, c0 = (j - HERO_J.start) * TILE_CELLS, (i - HERO_I.start) * TILE_CELLS
+        write_tile(DATA / 'hero' / f'{i}_{j}.bin', hcodes[r0:r0 + TILE_SAMPLES, c0:c0 + TILE_SAMPLES])
+    print(f'hero: {len(level_tiles(-1))} tiles, {h.min():.1f} .. {h.max():.1f} m, dam zone {zone.mean():.2%} of it')
+
+    # Level 0 is the hero wherever the hero is (every third hero sample),
+    # so every level agrees with the ground the craft lands on, and the
+    # 1 m beds on the 30 m water outside it.
     l0 = ana.copy()
     for b in bodies30:
         l0[b.mask] = np.minimum(l0[b.mask], b.y - BED_RING)
+    k = (G10.n - 1) // 3 + 1
+    l0[H30:H30 + k, H30:H30 + k] = h[::3, ::3]
     codes = encode(l0).astype(np.int64)
     counts = {}
     for level in LEVELS:
@@ -168,22 +213,6 @@ def run(osm, parts, crest):
             write_tile(DATA / str(level) / f'{i}_{j}.bin', tile)
         counts[level] = len(level_tiles(level))
         print(f'level {level}: {counts[level]} tiles')
-
-    h = upsample_hero(ana)
-    zone = dam_edits(h, parts, crest)
-    bodies10 = water.find10(osm, h, bodies30, crest, foot)
-    for b in bodies10:
-        h[b.mask] = np.minimum(h[b.mask], b.y - BED_HERO)
-    for e, poly in zip([e for e in parts if e['footprint']], foot):
-        inside = G10.burn([poly])
-        ring = ndimage.binary_dilation(inside, structure=np.ones((3, 3), dtype=bool)) & ~inside
-        e['groundY'] = round(float(h[ring].min()), 1)
-        h[inside] = e['groundY']
-    hcodes = encode(h)
-    for i, j in level_tiles(-1):
-        r0, c0 = (j - HERO_J.start) * TILE_CELLS, (i - HERO_I.start) * TILE_CELLS
-        write_tile(DATA / 'hero' / f'{i}_{j}.bin', hcodes[r0:r0 + TILE_SAMPLES, c0:c0 + TILE_SAMPLES])
-    print(f'hero: {len(level_tiles(-1))} tiles, {h.min():.1f} .. {h.max():.1f} m, dam zone {zone.mean():.2%} of it')
 
     canopy = np.clip(np.rint(cop - ana), 0, CANOPY_MAX)
     for b in bodies30:

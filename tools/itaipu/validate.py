@@ -7,9 +7,9 @@
 #              the plan's 25 MB (section 13), sources and attribution
 #   tiles      tile counts and the origin rule, heights in range, shared
 #              edges bit for bit, level L+1 the integer tent of level L
-#              (tolerance 0 dm), the hero equal to level 0 at every
-#              shared sample outside the dam's zones and the water beds
-#              within the encoding's 0.1 m
+#              (tolerance 0 dm), the hero tiles whole level 0 tiles
+#              covering the hero square, and level 0 equal to the hero
+#              at every shared sample (tolerance 0 dm)
 #   canopy     36 level 0 tiles, 0 to 40 m, shared edges
 #   water      reservoir first at 219.0, river at 103.5, outlines of at
 #              most 240 vertices, simple, disjoint and inside the ring;
@@ -21,7 +21,8 @@
 #              of its published length (2 % for the spillway's gate
 #              bridge against its width), the crest lengths summing to
 #              the published total, a citation per part whose quote is on
-#              its page (when _sources is present), footprints flattened
+#              its page (when _sources is present), the ground under each
+#              footprint as its groundRule says
 #   osm        ids, every feature inside the square it belongs to, the
 #              section 7 fields
 #   imagery    1024 by 1024, colour sRGB, masks RGBA summing to 255
@@ -45,6 +46,7 @@
 
 import hashlib
 import json
+import math
 import sys
 
 import numpy as np
@@ -53,7 +55,7 @@ from PIL import Image
 from scipy import ndimage
 from shapely.geometry import LineString, Point, Polygon, box
 
-from common import (DATA, HERO_HALF, HERO_I, HERO_J, LEVELS, RESERVOIR_Y, RING_HALF, RIVER_Y, SOURCES, TILE_BYTES,
+from common import (DATA, HERO_HALF, HERO_I, HERO_J, HERO_X0, HERO_X1, LEVELS, RESERVOIR_Y, RING_HALF, RIVER_Y, SOURCES, TILE_BYTES,
                     TILE_CELLS, TILE_SAMPLES, decode, level_tiles, read_tile, tile_origin, tile_path, tile_size)
 
 BUDGET = 25 * 1000 * 1000
@@ -220,42 +222,31 @@ def tile_checks():
     pairs = check_edges(htiles, reader(-1), 'hero')
     h = decode(hero)
     check(h.min() >= LOW and h.max() <= HIGH, f'hero ground {h.min():.1f} .. {h.max():.1f}')
-    x0, _ = tile_origin(-1, HERO_I.start, HERO_J.start)
-    check(x0 == -HERO_HALF and len(HERO_I) * tile_size(-1) == 2 * HERO_HALF, 'hero tiles do not tile the hero square')
-    stats.append(f'hero: {len(htiles)} tiles, {pairs} shared edges, {h.min():.1f} .. {h.max():.1f} m')
+    x0, z0 = tile_origin(-1, HERO_I.start, HERO_J.start)
+    x1 = x0 + len(HERO_I) * tile_size(-1)
+    l0 = tile_size(0)
+    check((x0, z0) == (HERO_X0, HERO_X0) and x1 == HERO_X1 and len(HERO_I) == len(HERO_J),
+          'hero tiles are not the HERO_X0 .. HERO_X1 square')
+    # The engine splits a level 0 node into hero nodes only where all nine
+    # children have data: the hero must be whole level 0 tiles.
+    check((x0 + RING_HALF) % l0 == 0 and (x1 + RING_HALF) % l0 == 0,
+          f'hero {x0:.0f} .. {x1:.0f} is not whole level 0 tiles')
+    check(x0 <= -HERO_HALF and x1 >= HERO_HALF, 'hero tiles do not cover the hero square')
+    stats.append(f'hero: {len(htiles)} tiles, x and z {x0:.0f} .. {x1:.0f} (whole level 0 tiles), {pairs} shared '
+                 f'edges, {h.min():.1f} .. {h.max():.1f} m')
+    mos[-1] = hero
     return mos, h, stats
 
 
-def hero_vs_l0(mos, h, water, dam, stats):
-    # Every third hero sample is a level 0 sample: hero (3a, 3b) is level 0
-    # sample (c0 + a, c0 + b).
-    c0 = int((RING_HALF - HERO_HALF) / 30)
-    sub = h[::3, ::3]
-    l0 = decode(mos[0][c0:c0 + sub.shape[0], c0:c0 + sub.shape[1]])
-    xs = -HERO_HALF + 30.0 * np.arange(sub.shape[1])
-    xx, zz = np.meshgrid(xs, xs)
-    pts = shapely.points(xx.ravel(), zz.ravel())
-    excluded = np.zeros(sub.shape, dtype=bool)
-    for b in water:
-        inside = shapely.contains(Polygon(b['outline']), pts).reshape(sub.shape)
-        rise = 0.2 if b['name'] == 'reservoir' else 1.8
-        excluded |= inside & (np.minimum(sub, l0) < b['y'] + rise + 0.05)
-        # Level 0's own bed (1 m, found on the 30 m grid) where the hero's
-        # 10 m water ends a sample earlier: both are beds, by design apart.
-        excluded |= np.abs(l0 - (b['y'] - b['bedDepthRing'])) < 0.05
-    for e in dam:
-        zone = (e.get('burn') or {}).get('zone')
-        if not zone:
-            continue
-        g = Polygon(e['footprint']) if e['footprint'] else LineString(e['axis'])
-        excluded |= (shapely.distance(pts, g) <= zone + 10.0).reshape(sub.shape)
+def hero_vs_l0(mos, stats):
+    # Every third hero sample is a level 0 sample, and level 0 is built
+    # from the hero there: the codes must be equal, not near.
+    c0 = int((HERO_X0 + RING_HALF) / 30)
+    sub = mos[-1][::3, ::3]
+    l0 = mos[0][c0:c0 + sub.shape[0], c0:c0 + sub.shape[1]]
     d = np.abs(sub - l0)
-    bad = (d > 0.1 + 1e-9) & ~excluded
-    check(not bad.any(), f'hero vs level 0: {int(bad.sum())} shared samples outside the dam and the beds differ by more '
-          f'than 0.1 m, worst {d[~excluded].max():.2f} m at x, z {xx[bad][0] if bad.any() else 0:.0f}, '
-          f'{zz[bad][0] if bad.any() else 0:.0f}')
-    stats.append(f'hero vs level 0: {int((~excluded).sum())} shared samples compared, max |diff| '
-                 f'{d[~excluded].max():.2f} m; {int(excluded.sum())} in the dam\'s zones or the beds skipped')
+    check(d.max() == 0, f'hero vs level 0: {int((d > 0).sum())} of {d.size} shared samples differ, worst {d.max()} dm')
+    stats.append(f'hero vs level 0: all {d.size} shared samples equal (level 0 is the hero there)')
 
 
 def canopy_checks():
@@ -269,8 +260,8 @@ def canopy_checks():
 
 def ground_at(mos, h, x, z):
     """The finest tile's sample nearest (x, z)."""
-    if abs(x) <= HERO_HALF and abs(z) <= HERO_HALF:
-        return h[int(round((z + HERO_HALF) / 10)), int(round((x + HERO_HALF) / 10))]
+    if HERO_X0 <= x <= HERO_X1 and HERO_X0 <= z <= HERO_X1:
+        return h[int(round((z - HERO_X0) / 10)), int(round((x - HERO_X0) / 10))]
     return decode(mos[0][int(round((z + RING_HALF) / 30)), int(round((x + RING_HALF) / 30))])
 
 
@@ -318,16 +309,16 @@ def water_checks(water, mos, h, dam):
         p = polys.get(b['name'])
         if p is None:
             continue
-        for grid, a, cell, half, depth in ((None, h, 10.0, HERO_HALF, b['bedDepth']),
-                                            (0, decode(mos[0]), 30.0, RING_HALF, b['bedDepthRing'])):
-            n = int(round(2 * half / cell)) + 1
+        for grid, a, cell, x0, x1, depth in ((None, h, 10.0, HERO_X0, HERO_X1, b['bedDepth']),
+                                              (0, decode(mos[0]), 30.0, -RING_HALF, RING_HALF, b['bedDepthRing'])):
+            n = int((x1 - x0) // cell) + 1
             a = a[:n, :n]
-            xs = -half + cell * np.arange(n)
+            xs = x0 + cell * np.arange(n)
             # The carved bed is level less depth, or lower where the source
             # already was (ANADEM's river reads down to 101.5 in the ring).
             bed = (a <= b['y'] - depth + 0.05) & (a >= b['y'] - depth - 1.5)
             s = b['spawn']
-            seed_rc = (int(round((s['z'] + half) / cell)), int(round((s['x'] + half) / cell)))
+            seed_rc = (int(round((s['z'] - x0) / cell)), int(round((s['x'] - x0) / cell)))
             lab, _ = ndimage.label(bed, structure=np.ones((3, 3), dtype=bool))
             k = lab[seed_rc]
             if grid == 0 and k == 0:
@@ -337,7 +328,7 @@ def water_checks(water, mos, h, dam):
             check(k > 0, f'{b["name"]}: no carved bed at the spawn ({"hero" if grid is None else "level 0"})')
             if grid == 0:
                 # Inside the hero the hero tiles are the ground.
-                c = np.abs(xs) > HERO_HALF
+                c = (xs < HERO_X0) | (xs > HERO_X1)
                 outside_hero = c[:, None] | c[None, :]
             else:
                 outside_hero = np.ones(a.shape, dtype=bool)
@@ -376,8 +367,10 @@ def dam_checks(dam):
         for k, v in figs.items():
             check(e['figures'].get(k) == v, f'{name}: {k} {e["figures"].get(k)}, the table says {v}')
         check(e['crestY'] == CREST_Y, f'{name}: crestY {e["crestY"]}')
+        # The powerhouse's 112 m stand under its roof, the rest under the crest.
+        top = figs['roofY'] if name == 'powerhouse' else CREST_Y
         if 'maxHeight' in figs:
-            check(e['baseY'] == round(CREST_Y - figs['maxHeight'], 1), f'{name}: baseY {e["baseY"]}')
+            check(e['baseY'] == round(top - figs['maxHeight'], 1), f'{name}: baseY {e["baseY"]}')
         check(bool(e['source']) and all(s.get('page') and s.get('quote') for s in e['source']),
               f'{name}: no citation')
         if name in BY_LENGTH:
@@ -412,6 +405,41 @@ def dam_checks(dam):
         lines.append(f'every quote found on its page ({sum(len(e["source"]) for e in dam)} citations)')
     else:
         lines.append('quotes not re-read: no _sources/itaipu-pages here')
+    return lines
+
+
+def footprint_checks(dam, h):
+    """The ground under every concrete footprint is what its groundRule says: flat at groundY, at most the right
+    lateral dam's foundation, under the powerhouse's roof, and falling with the spillway's chute."""
+    lines = []
+    xs = HERO_X0 + 10.0 * np.arange(h.shape[1])
+    xx, zz = np.meshgrid(xs, xs)
+    for e in dam:
+        if not e['footprint']:
+            continue
+        inside = shapely.contains_xy(Polygon(e['footprint']), xx, zz)
+        g = h[inside]
+        rule = e.get('groundRule')
+        if rule == 'chute':
+            sec = next(s for s in e['sections'] if s['at'] == 'chute')
+            (ax, az), (bx, bz) = sec['axis'][0], sec['axis'][-1]
+            n = math.hypot(bx - ax, bz - az)
+            d = ((xx - ax) * (bx - ax) + (zz - az) * (bz - az)) / n
+            k = np.array(e['groundProfile'])
+            want = np.interp(d[inside], k[:, 0], k[:, 1])
+            off = np.abs(g - want).max()
+            check(off <= 0.051, f'{e["part"]}: ground off its profile by {off:.2f} m')
+            check(k[:, 1].max() <= e['baseY'] + 0.05, f'{e["part"]}: ground profile over the foundation')
+            lines.append(f'{e["part"]}: {g.size} samples on the chute ground profile within {off:.2f} m, '
+                         f'{g.max():.1f} m at the gates to {g.min():.1f} m at the flip buckets')
+            continue
+        flat = np.abs(g - e['groundY']).max()
+        check(flat <= 0.051, f'{e["part"]}: ground under the footprint off groundY {e["groundY"]} by {flat:.2f} m')
+        if rule == 'ring, at most baseY':
+            check(e['groundY'] <= e['baseY'] + 0.05, f'{e["part"]}: groundY {e["groundY"]} over baseY {e["baseY"]}')
+        if e['part'] == 'powerhouse':
+            check(g.max() < e['figures']['roofY'], f'powerhouse: ground {g.max():.1f} m over the roof')
+        lines.append(f'{e["part"]}: {g.size} samples flat at {e["groundY"]} m ({rule})')
     return lines
 
 
@@ -483,11 +511,11 @@ def main():
     mos, h, stats = tile_checks()
     water = json.loads((DATA / 'water.json').read_text())
     dam = json.loads((DATA / 'dam.json').read_text())
-    hero_vs_l0(mos, h, water, dam, stats)
+    hero_vs_l0(mos, stats)
     group('tiles', '\n     '.join(stats))
     group('canopy', canopy_checks())
     group('water', '\n     '.join(water_checks(water, mos, h, dam)))
-    group('dam', '\n     '.join(dam_checks(dam)))
+    group('dam', '\n     '.join(dam_checks(dam) + footprint_checks(dam, h)))
     group('osm', '\n     '.join(osm_checks()))
     group('imagery', '\n     '.join(imagery_checks()))
     print(f'{len(failures)} failed' if failures else 'ALL CHECKS PASSED')
