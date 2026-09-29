@@ -74,6 +74,15 @@ export const TICK_MS = 1000 / 30;
 export const PRIVATE_CAP = 8;
 export const POSE_PER_S = 35;
 export const TEXT_PER_S = 5;
+/* The clock's pings ({ type: 't' }) have an allowance of their own. A
+ * client syncing its clock sends 1000 / SYNC_GAP_MS of them a second
+ * (src/share/rooms.js, four), for two seconds after every welcome and
+ * later still on a page that was stalled; counted with the rest, a phrase
+ * and a wave said then made six, and the wave was dropped without a word
+ * (the live rooms:safety check, 2026-09-28). rooms:selftest checks the
+ * client's rate fits under this one. */
+export const CLOCK_PER_S = 5;
+/* Every text counts toward this, the clock's pings too. */
 export const TEXT_CLOSE_PER_S = 20;
 /* New joins a minute from one address, in one room. One address is often
  * a whole household (siblings on one Wi-Fi, a school behind one NAT), so
@@ -126,6 +135,12 @@ class Hosting {
   }
 }
 
+/* A seat's text counters: textRate every text, for the close and a cap
+ * before parsing; clockRate the clock's pings; sayRate everything else. */
+function textRates(now) {
+  return { textRate: { since: now, n: 0 }, clockRate: { since: now, n: 0 }, sayRate: { since: now, n: 0 } };
+}
+
 /* A count of events in the current one second (or one minute) window. */
 function bump(counter, now, windowMs) {
   if (now - counter.since >= windowMs) {
@@ -175,7 +190,7 @@ export class RoomCore {
   restore(conns) {
     for (const { conn, attachment } of conns) {
       if (attachment && attachment.seat) {
-        this.seats.set(conn, { ...attachment, pose: null, fresh: false, poseRate: { since: 0, n: 0 }, textRate: { since: 0, n: 0 } });
+        this.seats.set(conn, { ...attachment, pose: null, fresh: false, poseRate: { since: 0, n: 0 }, ...textRates(0) });
         this.referee.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
         this.combat.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
       } else {
@@ -516,7 +531,7 @@ export class RoomCore {
       pose: null,
       fresh: false,
       poseRate: { since: now, n: 0 },
-      textRate: { since: now, n: 0 },
+      ...textRates(now),
     };
     this.pending.delete(conn);
     this.seats.set(conn, s);
@@ -579,7 +594,7 @@ export class RoomCore {
     if (n > TEXT_CLOSE_PER_S) {
       return [{ close: conn, code: CLOSE.rate, reason: 'rate' }];
     }
-    if (n > TEXT_PER_S) {
+    if (n > (s ? TEXT_PER_S + CLOCK_PER_S : TEXT_PER_S)) {
       return [];
     }
     let msg;
@@ -594,7 +609,11 @@ export class RoomCore {
     if (!s) {
       return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken) : [];
     }
-    if (msg.type === 't' && Number.isFinite(msg.c)) {
+    const clock = msg.type === 't';
+    if (bump(clock ? s.clockRate : s.sayRate, now, 1000) > (clock ? CLOCK_PER_S : TEXT_PER_S)) {
+      return [];
+    }
+    if (clock && Number.isFinite(msg.c)) {
       return [{ send: conn, data: JSON.stringify({ type: 't', c: msg.c, s: this.roomMs(now) }) }];
     }
     if (msg.type === 'profile') {

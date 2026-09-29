@@ -26,7 +26,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { str } from '../strings/index.js';
+import { str, plural } from '../strings/index.js';
 import { streamerColour } from '../share/roomwire.js';
 
 const LINE_MS = 5000;
@@ -225,7 +225,7 @@ export function createCombatHud(nameOf) {
       text = str('combat.hud_countdown', { time: clock(round.startsAt - roomNow) });
     } else if (round.state === 'on') {
       text = str('combat.hud', {
-        time: clock(round.endsAt - roomNow), points: mine ? mine.points : 0, paper: Math.round(paper), pull: pull.toFixed(1),
+        time: clock(round.endsAt - roomNow), points: plural('count.points', mine ? mine.points : 0), paper: Math.round(paper), pull: pull.toFixed(1),
       });
     } else {
       text = round.nextAt > 0 ? str('combat.hud_next', { time: clock(round.nextAt - roomNow) }) : str('combat.hud_over');
@@ -269,7 +269,8 @@ export function createCombatHud(nameOf) {
         const row = el({});
         row.append(swatch(r.seat));
         row.append(document.createTextNode(str('combat.results_row', {
-          place: i + 1, name: nameOf(r.seat), points: r.points, cuts: r.cuts, paper: Math.min(r.owed, r.links),
+          place: i + 1, name: nameOf(r.seat), points: plural('count.points', r.points), cuts: plural('count.cuts', r.cuts),
+          paper: plural('count.paper_left', Math.min(r.owed, r.links)),
         })));
         board.append(row);
       });

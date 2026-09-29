@@ -57,7 +57,7 @@
  * Collision already owns a clip of the tube.
  */
 import { fastestLap, fastestThreeConsecutive, MICRO_SCALE } from './track.js';
-import { str } from '../strings/index.js';
+import { str, plural } from '../strings/index.js';
 
 /*
  * How far the scoring volume sticks out either side of the opening, metres.
@@ -746,7 +746,7 @@ export class Race {
         this.lastLapScore = lapScore;
         this.log.push(scored ? { n: this.lapNumber(), ms: this.lastLapMs, score: lapScore } : { n: this.lapNumber(), ms: this.lastLapMs });
         let msgText = scored
-          ? str('race.lap_flash_score', { n: this.log.length, time: fmt(this.lastLapMs), score: lapScore })
+          ? str('race.lap_flash_score', { n: this.log.length, time: fmt(this.lastLapMs), score: plural('count.points', lapScore) })
           : str('race.lap_flash', { n: this.log.length, time: fmt(this.lastLapMs) });
         if (this.bestMs == null || this.lastLapMs < this.bestMs) {
           this.bestMs = this.lastLapMs;
