@@ -238,6 +238,7 @@
     "pick:selftest": "node scripts/craft-pick-selftest.js",
     "hotswap:check": "node scripts/hotswap-check.js",
     "itaipu:check": "node scripts/itaipu-check.js",
+    "check:dam": "node scripts/dam-check.js",
     "hangar:check": "node scripts/hangar-check.js",
     "paint:selftest": "node scripts/paint-selftest.js",
     "parts:check": "node scripts/parts-check.js",
