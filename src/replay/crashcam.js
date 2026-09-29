@@ -11,14 +11,24 @@
  *   peers.js, peerscene.js  the other pilots in a room, in the same rows,
  *                and drawn again;
  *   journal.js   the plant's copies and calls, for TAKE OVER;
- *   cameras.js   where the replay's camera is, and its keys;
+ *   edit.js      the movie: shots, cuts, speeds, and how they map to time;
+ *   cameras.js   where the replay's camera is, for a rig or an edit;
  *   file.js, store.js  a replay as bytes, and My clips;
  *   editor.js    the screen.
  * This one joins them to the shell: it records a row a frame, raises the
  * REPLAY prompt after a crash, and while the editor is open it draws the
  * replay with a craft and a wreck of its own (the live ones are hidden and
  * left exactly as they were), points the camera, plays the sound, and
- * writes pictures, videos and replays.
+ * writes pictures, movies and replays.
+ *
+ * THE EDIT CLOCK. A replay always plays an edit (src/replay/edit.js): one
+ * Chase shot over the whole clip until the pilot cuts it. While it plays,
+ * movie time advances with the wall clock and the picture is the movie
+ * frame under it, at the frame rate the movie is exported at. Every frame
+ * between the last one drawn and that one is stepped in order, the debris,
+ * the smoke and the paper each advanced by exactly that frame's clip time,
+ * so a slow display skips pictures and never changes them, and an export,
+ * which steps the same frames one by one, draws the same ones.
  *
  * While the editor is open the shell is in mode 'replay': nothing steps
  * the plant. Closing it returns to flight where it was. TAKE OVER puts the
@@ -53,13 +63,14 @@ import { createPeerScene } from './peerscene.js';
 import { createPaperRing } from './paper.js';
 import { createPaperScene } from './paperscene.js';
 import {
-  RIGS, addKey, createPose, defaults, evaluate, evaluateKeys, rotate,
+  RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
 } from './cameras.js';
+import * as ed from './edit.js';
 import {
   decodeReplay, encodeReplay, FILE_EXT, FILE_MAX_BYTES, NAME_MAX, ReplayFileError,
 } from './file.js';
 import * as store from './store.js';
-import { createEditor } from './editor.js';
+import { createEditor, EXPORT_PREFS_KEY } from './editor.js';
 import { craftBuilderFor } from '../render/craft.js';
 import { dressLivery } from '../render/livery.js';
 import { createWreck, ROTATION_KINDS, BEND_SHOWN } from '../render/wreck.js';
@@ -68,7 +79,6 @@ import { createSmoke, LIFE_S as SMOKE_LIFE_S } from '../render/smoke.js';
 import { dressParts } from '../render/partsfit.js';
 import { powerOption } from '../../configs/power.js';
 import { simPosToThree, simQuatToThree } from '../render/frame.js';
-import { pickRecorderMime } from '../share/orbitcache.js';
 import { partLabel, PART_KINDS } from '../../configs/parts.js';
 import { airframeById } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
@@ -80,7 +90,16 @@ export const REPLAY_PAD = 2;
 const PROMPT_MS = 9000;
 /* A crash this long after a part came off is "lost a part and crashed". */
 const LOST_PART_S = 30;
-const SPEEDS = [0.1, 0.25, 0.5, 1, 2];
+const { SPEEDS } = ed;
+/* A gap between two times drawn that is still one step forward, s; a
+ * bigger one, or any step back, is a jump and the air is rebuilt. */
+const FORWARD_S = 0.25;
+/* How many movie frames behind the playhead may be stepped through in one
+ * display frame before it is a jump instead. */
+const CATCH_UP = 6;
+/* The wheel, the free camera and a drag not bracketed by the screen end
+ * their undo step this long after the last input, ms. */
+const GESTURE_IDLE_MS = 400;
 /* The letterbox's picture ratio. */
 const SCOPE = 2.39;
 /* The free camera's speed, m/s, and Shift's multiple; mouse radians per px. */
@@ -118,6 +137,19 @@ export function createCrashCam(host) {
 
   /* The editor's session, null while flying. */
   let S = null;
+  /* The movie's frame rate: the edit clock's, the export dialog's last
+   * choice (src/replay/editor.js keeps it). */
+  let clockFps = 60;
+
+  function lastExportFps() {
+    try {
+      const fps = JSON.parse(localStorage.getItem(EXPORT_PREFS_KEY) || '{}').fps;
+      return fps === 30 || fps === 60 ? fps : 60;
+    } catch (err) {
+      /* Storage refused or a bad value: the default. */
+      return 60;
+    }
+  }
   const editor = createEditor(api());
 
   /* ---- recording, once a frame in flight ---- */
@@ -406,8 +438,8 @@ export function createCrashCam(host) {
   }
 
   /* Open the editor on the recording (live, take over allowed) or on a
-   * saved clip. */
-  function open(saved = null) {
+   * saved clip, and the My clips row it came from. */
+  function open(saved = null, row = null) {
     if (S) {
       return false;
     }
@@ -432,7 +464,6 @@ export function createCrashCam(host) {
       return false;
     }
     clip.meta.duration = clip.time[clip.n - 1];
-    clip.keys = (clip.keys || []).slice();
     host.enter();
     const dur = clip.time[clip.n - 1];
     /* Start a few seconds before the last thing that happened, playing. */
@@ -443,21 +474,31 @@ export function createCrashCam(host) {
       live: !saved,
       t,
       playing: true,
-      speed: 1,
-      rig: 'chase',
-      target: -1,
-      /* Whose aircraft the camera is on: 0 this pilot's, else a peer's id
-       * in the clip (src/replay/peers.js). */
-      watch: 0,
+      /* The edit, as an undo history of immutable edits: the file's, else
+       * the keys an older file kept as the same camera, else one Chase
+       * shot over the whole clip. */
+      history: ed.createHistory(firstEdit(clip, dur)),
+      /* An undo step being gathered: 'screen' between the screen's begin
+       * and end, 'auto' for the wheel, the free camera and a bare drag. */
+      gesture: null,
+      lastInput: 0,
+      /* The edit clock: the movie's frames, the movie time of the playhead
+       * while playing, and the movie frame last drawn (-1 none). */
+      plan: null,
+      planOf: null,
+      planSig: '',
+      m: 0,
+      frameI: -1,
+      /* The My clips row this session saves over, once it has one. */
+      savedId: row ? row.id : null,
+      savedCreated: row ? row.created : 0,
       ringFirst,
+      /* The framing each rig starts with when a shot is switched to it:
+       * the last one given to a shot of that rig. */
       params: Object.fromEntries(RIGS.map((r) => [r, defaults(r, clip.meta.size)])),
-      manual: false,
       followSized: -1,
       osd: true,
       bare: false,
-      letterbox: false,
-      in: 0,
-      out: dur,
       sample: createSample(),
       probe: createSample(),
       pose: createPose(),
@@ -466,7 +507,11 @@ export function createCrashCam(host) {
       drawnT: -1,
       photo: null,
       toast: null,
+      /* Harness only: every movie frame stepped, while switched on. */
+      stepLog: null,
     };
+    clockFps = lastExportFps();
+    startClock();
     S.params.tripod.pos = [shell.camera.position.x, shell.camera.position.y, shell.camera.position.z];
     for (const g of host.liveGroups) {
       g.visible = false;
@@ -475,12 +520,30 @@ export function createCrashCam(host) {
     return true;
   }
 
+  /* The camera a clip's movie starts with: the Chase, sized to the craft. */
+  function chaseOf(clip) {
+    return { rig: 'chase', target: -1, watch: 0, p: defaults('chase', clip.meta.size) };
+  }
+
+  /* The edit a clip opens with. Keys are only in files written before
+   * edits; each becomes a shot entering by a glide, the same camera. */
+  function firstEdit(clip, dur) {
+    const chase = chaseOf(clip);
+    if (clip.edit) {
+      return clip.edit;
+    }
+    if (clip.keys && clip.keys.length) {
+      return ed.fromKeys(clip.keys, dur, chase);
+    }
+    return ed.defaultEdit(dur, chase);
+  }
+
   function close() {
     if (!S) {
       return;
     }
     if (S.exporting) {
-      S.exporting.cancel();
+      cancelExport();
     }
     disposeScene(S.scene);
     for (const g of host.liveGroups) {
@@ -588,14 +651,15 @@ export function createCrashCam(host) {
     return n;
   }
 
+  /* The craft at sample s. dtS is the movie time this frame steps and
+   * rate the clip seconds per movie second, both 0 when nothing runs. */
   function poseScene(s, dtS, rate) {
     const sc = S.scene;
     const { craft } = sc;
     craft.group.position.set(s.pose[0], s.pose[1], s.pose[2]);
     craft.group.quaternion.set(s.pose[3], s.pose[4], s.pose[5], s.pose[6]);
-    const moving = S.playing ? rate : 0;
     for (let m = 0; m < 4 && m < craft.discs.length; m += 1) {
-      const vis = s.pose[POSE.rpm + m] * 1e-4 * moving * Math.min(1, dtS * 60);
+      const vis = s.pose[POSE.rpm + m] * 1e-4 * rate * Math.min(1, dtS * 60);
       craft.discs[m].rotation.y += vis;
       if (craft.blades && craft.blades[m]) {
         craft.blades[m].rotation.y += vis * (craft.propSpin ? craft.propSpin[m] : 1);
@@ -610,7 +674,8 @@ export function createCrashCam(host) {
     if (craft.setFlaps) {
       craft.setFlaps(s.pose[POSE.flaps]);
     }
-    const onboard = S.rig === 'fpv' && !directed() && !S.watch;
+    const cam = shownCam();
+    const onboard = Boolean(cam) && cam.rig === 'fpv' && !cam.watch;
     craft.group.visible = !onboard;
     const sig = damageSig(s);
     if (sig < sc.sig) {
@@ -637,8 +702,8 @@ export function createCrashCam(host) {
 
   /* The clip seen by the cameras. */
   const camCtx = {
-    at(t, target, out) {
-      if (target < 0 && watched(t, out, null)) {
+    at(t, target, out, watch) {
+      if (target < 0 && watched(t, out, null, watch)) {
         return out;
       }
       const s = sampleAt(S.clip, t, S.probe);
@@ -656,8 +721,8 @@ export function createCrashCam(host) {
       }
       return out;
     },
-    craftQuat(t, out) {
-      if (watched(t, vWatch, out)) {
+    craftQuat(t, out, watch) {
+      if (watched(t, vWatch, out, watch)) {
         return out;
       }
       const s = sampleAt(S.clip, t, S.probe);
@@ -667,11 +732,11 @@ export function createCrashCam(host) {
       out[3] = s.pose[6];
       return out;
     },
-    fpv(t, pos, quat) {
+    fpv(t, pos, quat, watch) {
       const f = S.clip.meta.fpv;
       /* Aboard a peer: at its centre, this pilot's tilt and lens, since
        * where its camera is mounted is not something a room sends. */
-      if (watched(t, pos, qWatch)) {
+      if (watched(t, pos, qWatch, watch)) {
         qFpv.set(qWatch[0], qWatch[1], qWatch[2], qWatch[3]).multiply(qTilt.setFromAxisAngle(AXIS_X, f.tilt));
         quat[0] = qFpv.x;
         quat[1] = qFpv.y;
@@ -703,28 +768,37 @@ export function createCrashCam(host) {
   const qTilt = new THREE.Quaternion();
   const AXIS_X = new THREE.Vector3(1, 0, 0);
 
-  /* The watched peer at t, into pos and quat (either may be null); false
-   * when the camera is on this pilot's aircraft, or the peer is not drawn
-   * at t, and the camera stays on this pilot's then. */
-  function watched(t, pos, quat) {
-    if (!S.watch || !S.clip.peers) {
+  /* The peer `watch` at t, into pos and quat (either may be null); false
+   * when the camera is on this pilot's aircraft (watch 0), or the peer is
+   * not drawn at t, and the camera stays on this pilot's then. */
+  function watched(t, pos, quat, watch) {
+    if (!watch || !S.clip.peers) {
       return false;
     }
     const [k, a] = locate(S.clip, t);
-    return peerPose(S.clip.peers, S.clip.n, k, a, S.watch, pos || vWatch, quat);
+    return peerPose(S.clip.peers, S.clip.n, k, a, watch, pos || vWatch, quat);
   }
 
-  function directed() {
-    return S.clip.keys.length > 0 && !S.manual;
+  /* The edit being drawn: the export's own while one runs. */
+  function drawnEdit() {
+    return S.exporting ? S.exporting.edit : S.history.current;
   }
+
+  /* The camera on screen when it is one shot's alone, else null (a blend
+   * or a glide under way): an onboard view hides only its own aircraft. */
+  function shownCam() {
+    const edit = drawnEdit();
+    const w = ed.weights(edit, S.t, mixNow);
+    if (w.a === w.b || w.w <= 0) {
+      return edit.shots[w.a].cam;
+    }
+    return w.w >= 1 ? edit.shots[w.b].cam : null;
+  }
+  const mixNow = { a: 0, b: 0, w: 0 };
 
   function aimCamera() {
     const pose = S.pose;
-    if (directed()) {
-      evaluateKeys(camCtx, S.clip.keys, S.t, pose);
-    } else {
-      evaluate(camCtx, S.rig, S.params[S.rig], S.target, S.t, pose);
-    }
+    evaluateEdit(camCtx, drawnEdit(), S.t, pose);
     const cam = shell.camera;
     cam.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
     cam.quaternion.set(pose.quat[0], pose.quat[1], pose.quat[2], pose.quat[3]);
@@ -743,43 +817,133 @@ export function createCrashCam(host) {
     }
     const dtS = Math.min(dtMs, 100) / 1000;
     padInEditor();
+    if (!S) {
+      return;
+    }
     driveFree(dtS);
-    const dur = S.clip.time[S.clip.n - 1];
-    /* From the time last drawn, not the playhead at the start of this
-     * frame: a scrub or a jump moves the playhead between frames, and
-     * that is a jump for the debris and the smoke, not a step forward. */
-    const from = S.drawnT;
-    if (S.playing) {
-      S.t += dtS * S.speed;
-      const end = S.exporting ? S.out : dur;
-      if (S.t >= end) {
-        S.t = end;
-        S.playing = false;
-        if (S.exporting) {
-          S.exporting.finish();
-        }
+    if (S.gesture === 'auto' && performance.now() - S.lastInput > GESTURE_IDLE_MS) {
+      endGesture();
+    }
+    if (S.exporting) {
+      exportStep();
+    } else if (S.playing) {
+      playStep(dtS);
+    } else {
+      show(S.t, false);
+    }
+    editor.tick(view());
+  }
+
+  /* The movie's frames for the current edit. A new plan only when the
+   * shots' times, speeds or the end moved (a camera change keeps it), and
+   * then a running clock is set again from the playhead. */
+  function planNow() {
+    const edit = S.history.current;
+    if (S.planOf === edit && S.plan.fps === clockFps) {
+      return S.plan;
+    }
+    S.planOf = edit;
+    const sig = `${clockFps}|${edit.out}|${edit.shots.map((s) => `${s.t0}:${s.speed}`).join()}`;
+    if (sig !== S.planSig) {
+      S.planSig = sig;
+      S.plan = ed.planMovie(edit, clockFps);
+      startClock();
+    }
+    return S.plan;
+  }
+
+  /* The clock set from the playhead: the first movie frame at or after
+   * it, so starting never steps back and clears the air. */
+  function startClock() {
+    const edit = S.history.current;
+    let m = ed.movieTime(edit, S.t);
+    if (!Number.isFinite(m)) {
+      m = 0;
+    }
+    S.m = Math.ceil(m * clockFps - 1e-6) / clockFps;
+    S.frameI = -1;
+  }
+
+  function playStep(dtS) {
+    const plan = planNow();
+    S.m += dtS;
+    let i = Math.floor(S.m * plan.fps + 1e-9);
+    const end = i >= plan.n - 1;
+    if (end) {
+      i = plan.n - 1;
+    }
+    stepTo(plan, i);
+    if (end) {
+      /* Stopped at Out, so Play starts again from In. */
+      S.playing = false;
+      S.t = S.history.current.out;
+    }
+  }
+
+  /* Movie frame i of `plan` drawn: each frame since the last one drawn
+   * stepped in order, or, more than CATCH_UP behind or backwards, a jump
+   * that rebuilds the air. The same i again steps nothing. */
+  function stepTo(plan, i) {
+    const last = S.frameI;
+    if (i === last) {
+      aimCamera();
+      return;
+    }
+    let j = i;
+    if (last >= 0 && i > last && i - last <= CATCH_UP) {
+      j = last + 1;
+    } else if (last >= 0) {
+      S.drawnT = -Infinity;
+    }
+    for (; j <= i; j += 1) {
+      show(plan.clipT[j], true);
+      if (S.stepLog) {
+        S.stepLog.push({ i: j, t: plan.clipT[j] });
       }
     }
-    const s = sampleAt(S.clip, S.t, S.sample);
-    events(from, S.t);
-    smokeTo(from, S.t);
-    if (S.playing) {
-      S.scene.debris.update(dtS * S.speed);
+    S.frameI = i;
+  }
+
+  /*
+   * The replay at clip time t, stepped from the time last drawn: debris
+   * thrown and sounds cued in between, the smoke and the paper flown on.
+   * `running` is the clock moving forward (the props turn, the debris
+   * flies); a step back or a gap past FORWARD_S is a jump, and the air is
+   * rebuilt at t instead.
+   */
+  function show(t, running) {
+    /* A resync can land a hair behind the time drawn; that is not a jump. */
+    const from = S.drawnT > t && S.drawnT - t < 1e-6 ? t : S.drawnT;
+    const speed = speedAt(t);
+    const step = t >= from && t - from < FORWARD_S ? t - from : 0;
+    const moving = running && step > 0;
+    S.t = t;
+    const s = sampleAt(S.clip, t, S.sample);
+    events(from, t, speed);
+    smokeTo(from, t);
+    if (moving) {
+      S.scene.debris.update(step);
     }
-    poseScene(s, dtS, S.speed);
+    poseScene(s, moving ? step / speed : 0, moving ? speed : 0);
     if (S.scene.peers) {
-      const inside = S.rig === 'fpv' && !directed() ? S.watch : 0;
-      S.scene.peers.pose(s.k, s.a, S.playing ? S.speed * Math.min(1, dtS * 60) : 0, S.osd, inside);
-      S.scene.peers.smokeTo(from, S.t, shell.canvas.clientHeight || 720, shell.camera.fov);
+      const cam = shownCam();
+      const inside = cam && cam.rig === 'fpv' ? cam.watch : 0;
+      S.scene.peers.pose(s.k, s.a, moving ? speed * Math.min(1, (step / speed) * 60) : 0, S.osd, inside);
+      S.scene.peers.smokeTo(from, t, shell.canvas.clientHeight || 720, shell.camera.fov);
     }
     aimCamera();
     /* After the camera: the ribbons are never drawn thinner than a few
      * pixels, so they are drawn from where it is this frame. */
     if (S.scene.paper) {
-      S.scene.paper.frame(s.k, s.a, from, S.t, S.playing, S.speed, shell.camera, shell.canvas.clientHeight || 720);
+      S.scene.paper.frame(s.k, s.a, from, t, running, speed, shell.camera, shell.canvas.clientHeight || 720);
     }
-    S.drawnT = S.t;
-    editor.tick(view());
+    S.drawnT = t;
+  }
+
+  /* Clip seconds per movie second at clip time t: its shot's speed. */
+  function speedAt(t) {
+    const edit = drawnEdit();
+    return edit.shots[ed.shotAt(edit, t)].speed;
   }
 
   /*
@@ -791,7 +955,7 @@ export function createCrashCam(host) {
    */
   function smokeTo(from, to) {
     const sc = S.scene;
-    const forward = to >= from && to - from < 0.25;
+    const forward = to >= from && to - from < FORWARD_S;
     if (!forward) {
       sc.smoke.clear();
       const c = S.clip;
@@ -819,8 +983,8 @@ export function createCrashCam(host) {
 
   /* Debris thrown and sounds cued between two times played forward; a
    * jump anywhere else clears the air. */
-  function events(from, to) {
-    const forward = to >= from && to - from < 0.25;
+  function events(from, to, speed) {
+    const forward = to >= from && to - from < FORWARD_S;
     if (!forward) {
       S.scene.debris.clear();
       return;
@@ -837,7 +1001,7 @@ export function createCrashCam(host) {
         vB.set(e.normal[0], e.normal[1], e.normal[2]);
         S.scene.debris.emit(vA, vB, e.speed, e.surface, e.shed, e.floorY, e.kind);
       } else if (e.type === 'cue' && typeof audio.wreck === 'function' ) {
-        audio.wreck(e.kind, e.level * Math.min(1, S.speed));
+        audio.wreck(e.kind, e.level * Math.min(1, speed));
       }
     }
   }
@@ -850,7 +1014,7 @@ export function createCrashCam(host) {
     if (!S) {
       return -1;
     }
-    const k = S.playing ? S.speed : 0;
+    const k = S.playing || S.exporting ? speedAt(S.t) : 0;
     for (let m = 0; m < 4; m += 1) {
       outRpm[m] = S.sample.pose[POSE.rpm + m] * k;
     }
@@ -865,7 +1029,7 @@ export function createCrashCam(host) {
       return;
     }
     const r = shell.renderer;
-    if (S.letterbox) {
+    if (drawnEdit().look.letterbox) {
       const size = r.getSize(vSize);
       const bar = Math.floor((size.y - size.x / SCOPE) / 2);
       if (bar > 0) {
@@ -887,6 +1051,15 @@ export function createCrashCam(host) {
       S.photo = null;
       shell.canvas.toBlob((blob) => want(blob), 'image/png');
     }
+    const x = S.exporting;
+    if (x && x.pending) {
+      x.pending = false;
+      try {
+        x.job.capture(shell.canvas);
+      } catch (err) {
+        failExport(err);
+      }
+    }
   }
   const vSize = new THREE.Vector2();
   const cSave = new THREE.Color();
@@ -895,31 +1068,38 @@ export function createCrashCam(host) {
 
   function view() {
     const c = S.clip;
+    const edit = S.history.current;
+    const shot = ed.shotAt(edit, S.t);
+    const cam = edit.shots[shot].cam;
     return {
       t: S.t,
       drawn: S.drawnT,
       dur: c.time[c.n - 1],
       playing: S.playing,
-      speed: S.speed,
-      rig: S.rig,
-      target: S.target,
-      directed: directed(),
-      keys: c.keys,
+      /* The shot under the playhead: its speed and its camera. */
+      speed: edit.shots[shot].speed,
+      rig: cam.rig,
+      target: cam.target,
+      watch: cam.watch,
       markers: c.events.filter((e) => e.type === 'off' || e.type === 'impact'),
       parts: partsOff(),
-      in: S.in,
-      out: S.out,
       osd: S.osd,
       bare: S.bare,
-      letterbox: S.letterbox,
+      letterbox: edit.look.letterbox,
       live: S.live,
       canTakeOver: canTakeOver(),
-      exporting: Boolean(S.exporting),
+      exporting: S.exporting ? { ...S.exporting.job.progress } : null,
       readout: S.sample.head,
       toast: S.toast,
       name: c.meta.name,
-      watch: S.watch,
       peers: S.scene.peers ? S.scene.peers.list() : [],
+      edit,
+      shot,
+      movie: { t: ed.movieTime(edit, S.t), dur: ed.movieDuration(edit) },
+      canUndo: S.history.canUndo,
+      canRedo: S.history.canRedo,
+      saved: S.savedId !== null,
+      pad: padConnected(),
     };
   }
 
@@ -965,24 +1145,178 @@ export function createCrashCam(host) {
     S.t = S.clip.time[k];
   }
 
-  function setSpeed(dir) {
-    const i = SPEEDS.indexOf(S.speed);
-    S.speed = SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, (i < 0 ? 3 : i) + dir))];
+  /* ---- the edit ---- */
+
+  /* Every change to the edit: a step of its own, or, inside a gesture,
+   * the gesture's step so far. Nothing changes while a movie exports. */
+  function change(next) {
+    if (S.exporting || next === S.history.current) {
+      return false;
+    }
+    if (S.gesture) {
+      S.history.preview(next);
+    } else {
+      S.history.commit(next);
+    }
+    return true;
   }
 
-  function setRig(rig, target = S.target) {
+  /* An input that is its own gesture until it has been still a while. */
+  function touch() {
+    if (!S.gesture) {
+      S.history.begin();
+      S.gesture = 'auto';
+    }
+    S.lastInput = performance.now();
+  }
+
+  function endGesture() {
+    if (S.gesture) {
+      S.history.end();
+      S.gesture = null;
+    }
+  }
+
+  const clone = (p) => JSON.parse(JSON.stringify(p));
+
+  /* The shot under the playhead: its index and its camera. */
+  function shotNow() {
+    const edit = S.history.current;
+    const i = ed.shotAt(edit, S.t);
+    return { edit, i, cam: edit.shots[i].cam };
+  }
+
+  /* This shot's camera changed: `fn` edits a copy of its numbers and
+   * says whether it did. The framing is kept for the rig's next shot. */
+  function tweakCam(fn) {
+    const { edit, i, cam } = shotNow();
+    const p = clone(cam.p);
+    if (S.exporting || !fn(p, cam.rig)) {
+      return;
+    }
+    S.params[cam.rig] = clone(p);
+    touch();
+    change(ed.setCam(edit, i, { ...cam, p }));
+  }
+
+  function cut() {
+    return change(ed.cut(S.history.current, S.t));
+  }
+
+  function removeCut(i) {
+    const edit = S.history.current;
+    const at = i === undefined ? ed.nearestCut(edit, S.t) : i;
+    return at >= 1 && change(ed.removeCut(edit, at));
+  }
+
+  function speedBy(dir) {
+    const { edit, i } = shotNow();
+    const k = SPEEDS.indexOf(edit.shots[i].speed);
+    change(ed.setSpeed(edit, i, SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, (k < 0 ? 3 : k) + dir))]));
+  }
+
+  /* Cut, then a blend of half a second, then a glide, for the cut that
+   * starts the shot under the playhead. */
+  function cycleEnter() {
+    const { edit, i } = shotNow();
+    if (i < 1) {
+      return;
+    }
+    const order = ['cut', 'blend', 'glide'];
+    const type = order[(order.indexOf(edit.shots[i].enter.type) + 1) % order.length];
+    change(ed.setEnter(edit, i, type === 'blend' ? { type, d: 0.5 } : { type }));
+  }
+
+  /* The playhead to the previous or the next cut. */
+  function jumpCut(dir) {
+    const cuts = S.history.current.shots.slice(1).map((s) => s.t0);
+    const next = dir > 0 ? cuts.find((t) => t > S.t + 1e-6) : [...cuts].reverse().find((t) => t < S.t - 1e-6);
+    if (next !== undefined) {
+      seek(next);
+      S.playing = false;
+    }
+  }
+
+  /* In at t from the keyboard: the shots before the one under t go, and
+   * that one starts the movie with its camera and speed. A dragged edge
+   * (setEdge) stops at the next cut instead. */
+  function inAt(edit, t) {
+    let e = edit;
+    let k = ed.shotAt(e, t);
+    if (k + 1 < e.shots.length && e.shots[k + 1].t0 - t < ed.MIN_SHOT_S) {
+      k += 1;
+    }
+    if (k > 0) {
+      e = ed.setSpeed(ed.setCam(e, 0, e.shots[k].cam), 0, e.shots[k].speed);
+      for (let i = 0; i < k; i += 1) {
+        e = ed.removeCut(e, 1);
+      }
+    }
+    return ed.setIn(e, t);
+  }
+
+  /* Out at t from the keyboard: the shots after the one under t go. */
+  function outAt(edit, t) {
+    let e = edit;
+    let k = ed.shotAt(e, t);
+    if (k > 0 && t - e.shots[k].t0 < ed.MIN_SHOT_S) {
+      k -= 1;
+    }
+    while (e.shots.length - 1 > k) {
+      e = ed.removeCut(e, e.shots.length - 1);
+    }
+    return ed.setOut(e, t);
+  }
+
+  /* After an undo or a redo the playhead stays, unless it would be
+   * outside the movie. */
+  function undoTo(edit) {
+    if (S.t < edit.shots[0].t0 || S.t > edit.out) {
+      seek(edit.shots[0].t0);
+      S.playing = false;
+    }
+  }
+
+  function undo() {
+    if (S.exporting) {
+      return;
+    }
+    endGesture();
+    if (S.history.canUndo) {
+      S.history.undo();
+      undoTo(S.history.current);
+    }
+  }
+
+  function redo() {
+    if (S.exporting) {
+      return;
+    }
+    endGesture();
+    if (S.history.canRedo) {
+      S.history.redo();
+      undoTo(S.history.current);
+    }
+  }
+
+  /* This shot's camera onto `rig`, aimed at `target` (a part, for follow,
+   * orbit and tripod), with the framing that rig had last. */
+  function setRig(rig, target) {
     if (!RIGS.includes(rig)) {
       return;
     }
+    const { edit, i, cam: now } = shotNow();
+    let aim = target === undefined ? now.target : target;
+    let watchId = now.watch;
     const cam = shell.camera;
-    if (rig === 'free' && S.rig !== 'free') {
+    if (rig === 'free' && now.rig !== 'free') {
       const p = S.params.free;
       p.pos = [cam.position.x, cam.position.y, cam.position.z];
       eFree.setFromQuaternion(cam.quaternion, 'YXZ');
       p.yaw = eFree.y;
       p.pitch = eFree.x;
     }
-    if (rig === 'tripod' && S.rig !== 'tripod') {
+    if (rig === 'tripod' && now.rig !== 'tripod') {
       S.params.tripod.pos = [cam.position.x, cam.position.y, cam.position.z];
     }
     if (rig === 'follow') {
@@ -992,8 +1326,8 @@ export function createCrashCam(host) {
         return;
       }
       /* The parts are this pilot's own: the camera comes back to them. */
-      S.watch = 0;
-      if (!parts.some((p) => p.part === target)) {
+      watchId = 0;
+      if (!parts.some((p) => p.part === aim)) {
         /* The part that left nearest the playhead: the one in the picture. */
         let best = null;
         for (const e of S.clip.events) {
@@ -1001,35 +1335,32 @@ export function createCrashCam(host) {
             best = e;
           }
         }
-        target = best.part;
+        aim = best.part;
+      }
+      if (aim !== S.followSized) {
+        /* Framed by the part's own size: a wing panel, not the aircraft. */
+        const p = S.clip.meta.parts[aim];
+        const size = p ? Math.hypot(p.boxMax[0] - p.boxMin[0], p.boxMax[1] - p.boxMin[1], p.boxMax[2] - p.boxMin[2]) : 0.5;
+        S.params.follow = defaults('follow', size);
+        S.followSized = aim;
       }
     }
-    if (rig === 'follow' && target !== S.followSized) {
-      /* Framed by the part's own size: a wing panel, not the aircraft. */
-      const p = S.clip.meta.parts[target];
-      const size = p ? Math.hypot(p.boxMax[0] - p.boxMin[0], p.boxMax[1] - p.boxMin[1], p.boxMax[2] - p.boxMin[2]) : 0.5;
-      S.params.follow = defaults('follow', size);
-      S.followSized = target;
-    }
-    S.rig = rig;
-    S.target = rig === 'follow' || rig === 'tripod' || rig === 'orbit' ? target : -1;
-    if (rig !== 'follow' && S.target >= 0 && rig !== 'tripod' && rig !== 'orbit') {
-      S.target = -1;
-    }
-    S.manual = true;
+    const aimed = rig === 'follow' || rig === 'tripod' || rig === 'orbit';
+    change(ed.setCam(edit, i, {
+      rig, target: aimed ? aim : -1, watch: watchId, p: clone(S.params[rig]),
+    }));
   }
   const eFree = new THREE.Euler();
 
-  /* The camera onto this pilot's aircraft (0) or a peer's (its id). A
-   * part being followed is let go: the rig goes back to the chase. */
+  /* This shot onto this pilot's aircraft (0) or a peer's (its id). A part
+   * being followed is let go: the shot goes back to the chase. */
   function watch(id) {
     const list = S.scene.peers ? S.scene.peers.list() : [];
-    S.watch = list.some((p) => p.id === id) ? id : 0;
-    if (S.rig === 'follow') {
-      setRig('chase', -1);
-    }
-    S.target = -1;
-    S.manual = true;
+    const { edit, i, cam } = shotNow();
+    const rig = cam.rig === 'follow' ? 'chase' : cam.rig;
+    change(ed.setCam(edit, i, {
+      rig, target: -1, watch: list.some((p) => p.id === id) ? id : 0, p: clone(rig === cam.rig ? cam.p : S.params[rig]),
+    }));
   }
 
   /* Follow the next part that came off, from any camera. */
@@ -1039,43 +1370,18 @@ export function createCrashCam(host) {
       toast(str('replay.nothing_came_off'));
       return;
     }
-    const i = parts.findIndex((p) => p.part === S.target);
-    const next = parts[(i + 1) % parts.length].part;
-    setRig('follow', next);
-  }
-
-  function keyNow() {
-    addKey(S.clip.keys, {
-      t: S.t, rig: S.rig, target: S.target, p: JSON.parse(JSON.stringify(S.params[S.rig])),
-    });
-    S.manual = false;
-    toast(str('replay.key_added', { n: S.clip.keys.length }));
-  }
-
-  function removeKey() {
-    const keys = S.clip.keys;
-    let best = -1;
-    let bestD = 0.3;
-    keys.forEach((k, i) => {
-      const d = Math.abs(k.t - S.t);
-      if (d < bestD) {
-        bestD = d;
-        best = i;
-      }
-    });
-    if (best >= 0) {
-      keys.splice(best, 1);
-      toast(str('replay.key_removed'));
-    }
+    const { cam } = shotNow();
+    const i = parts.findIndex((p) => p.part === cam.target);
+    setRig('follow', parts[(i + 1) % parts.length].part);
   }
 
   function toast(text) {
     S.toast = { text, until: performance.now() + 2200 };
   }
 
-  /* The free camera and the orbit, from the keys held and the mouse. */
+  /* The free camera, from the keys held, when this shot is one. */
   function driveFree(dtS) {
-    if (S.rig !== 'free' || directed()) {
+    if (S.exporting || shotNow().cam.rig !== 'free') {
       return;
     }
     const k = input.keys;
@@ -1085,88 +1391,69 @@ export function createCrashCam(host) {
     if (!f && !r && !u) {
       return;
     }
-    const p = S.params.free;
     const v = FREE_SPEED * (k.has('ShiftLeft') || k.has('ShiftRight') ? FREE_FAST : 1) * dtS;
-    const cy = Math.cos(p.yaw);
-    const sy = Math.sin(p.yaw);
-    const cp = Math.cos(p.pitch);
-    p.pos[0] += (-sy * cp * f + cy * r) * v;
-    p.pos[1] += (Math.sin(p.pitch) * f + u) * v;
-    p.pos[2] += (-cy * cp * f - sy * r) * v;
-    S.manual = true;
+    tweakCam((p) => {
+      const cy = Math.cos(p.yaw);
+      const sy = Math.sin(p.yaw);
+      const cp = Math.cos(p.pitch);
+      p.pos[0] += (-sy * cp * f + cy * r) * v;
+      p.pos[1] += (Math.sin(p.pitch) * f + u) * v;
+      p.pos[2] += (-cy * cp * f - sy * r) * v;
+      return true;
+    });
   }
 
   function drag(dx, dy) {
-    const p = S.params[S.rig];
-    if (S.rig === 'orbit') {
-      p.az -= dx * LOOK_RATE * 1.5;
-      p.el = Math.max(-0.2, Math.min(1.45, p.el + dy * LOOK_RATE * 1.5));
-    } else if (S.rig === 'free') {
-      p.yaw -= dx * LOOK_RATE;
-      p.pitch = Math.max(-1.5, Math.min(1.5, p.pitch - dy * LOOK_RATE));
-    } else if (S.rig === 'chase' || S.rig === 'follow') {
-      p.height = Math.max(-2, Math.min(20, p.height + dy * 0.01));
-    } else {
-      return;
-    }
-    S.manual = true;
+    tweakCam((p, rig) => {
+      if (rig === 'orbit') {
+        p.az -= dx * LOOK_RATE * 1.5;
+        p.el = Math.max(-0.2, Math.min(1.45, p.el + dy * LOOK_RATE * 1.5));
+      } else if (rig === 'free') {
+        p.yaw -= dx * LOOK_RATE;
+        p.pitch = Math.max(-1.5, Math.min(1.5, p.pitch - dy * LOOK_RATE));
+      } else if (rig === 'chase' || rig === 'follow') {
+        p.height = Math.max(-2, Math.min(20, p.height + dy * 0.01));
+      } else {
+        return false;
+      }
+      return true;
+    });
   }
 
   function wheel(dy) {
-    const p = S.params[S.rig];
-    const k = Math.exp(dy * 0.001);
-    if (p.dist !== undefined) {
-      p.dist = Math.max(0.3, Math.min(200, p.dist * k));
-    } else if (S.rig === 'tripod' || S.rig === 'free') {
-      p.fov = Math.max(8, Math.min(100, p.fov * k));
-    } else {
-      return;
-    }
-    S.manual = true;
+    tweakCam((p, rig) => {
+      const k = Math.exp(dy * 0.001);
+      if (p.dist !== undefined) {
+        p.dist = Math.max(0.3, Math.min(200, p.dist * k));
+      } else if (rig === 'tripod' || rig === 'free') {
+        p.fov = Math.max(8, Math.min(100, p.fov * k));
+      } else {
+        return false;
+      }
+      return true;
+    });
   }
 
+  /* The standard pad's button edges, for the screen to bind beside the
+   * keys (src/replay/editor.js onPad). */
   function padInEditor() {
-    const e = padEdges();
-    if (!e) {
-      return;
-    }
-    const b = (i) => (e & (1 << i)) !== 0;
-    if (b(0)) {
-      togglePlay();
-    }
-    if (b(1)) {
-      close();
-      return;
-    }
-    if (b(2)) {
-      setRig(RIGS[(RIGS.indexOf(S.rig) + 1) % RIGS.length]);
-    }
-    if (b(3)) {
-      keyNow();
-    }
-    if (b(4) || b(14)) {
-      step(-1);
-    }
-    if (b(5) || b(15)) {
-      step(1);
-    }
-    if (b(12)) {
-      setSpeed(1);
-    }
-    if (b(13)) {
-      setSpeed(-1);
-    }
+    editor.onPad(padEdges());
   }
 
+  /* Play from the playhead, or from In when it is outside the movie. */
   function togglePlay() {
-    const dur = S.clip.time[S.clip.n - 1];
-    if (!S.playing && S.t >= dur - 1e-6) {
-      S.t = 0;
+    if (S.exporting) {
+      return;
+    }
+    if (!S.playing) {
+      const edit = S.history.current;
+      if (S.t < edit.shots[0].t0 || S.t >= edit.out - 1e-9) {
+        S.t = edit.shots[0].t0;
+      }
+      planNow();
+      startClock();
     }
     S.playing = !S.playing;
-    if (S.playing && S.clip.keys.length) {
-      S.manual = false;
-    }
   }
 
   /* ---- keeping what happened ---- */
@@ -1210,107 +1497,169 @@ export function createCrashCam(host) {
     });
   }
 
-  /* Record the in to out range as a video with the camera path, at the
-   * speed chosen, and hand it over as a file. */
-  function exportVideo() {
-    if (S.exporting) {
-      return Promise.resolve(null);
-    }
-    const mime = pickRecorderMime();
-    if (!mime || typeof shell.canvas.captureStream !== 'function') {
-      toast(str('replay.video_unsupported'));
-      return Promise.resolve(null);
-    }
-    const stream = shell.canvas.captureStream(60);
-    let tap = null;
-    if (audio.ctx && audio.master && typeof audio.ctx.createMediaStreamDestination === 'function') {
-      tap = audio.ctx.createMediaStreamDestination();
-      audio.master.connect(tap);
-      for (const tr of tap.stream.getAudioTracks()) {
-        stream.addTrack(tr);
-      }
-    }
-    const type = mime.split(';')[0];
-    const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12e6 });
-    const chunks = [];
-    mr.ondataavailable = (ev) => {
-      if (ev.data && ev.data.size) {
-        chunks.push(ev.data);
-      }
-    };
+  /* ---- the export driver ---- */
+
+  /*
+   * A movie is written by a job (src/replay/export.js) driven from the
+   * frame loop, since that is where the world is
+   * drawn: each display frame asks job.next() for a movie frame, steps
+   * the replay to it (stepTo, the same stepping as playback), and once the
+   * shell has drawn it, afterRender hands the canvas to job.capture. A
+   * frame stepped for the job is never replaced before it is captured, so
+   * a display frame the shell skips drawing only delays the movie.
+   *
+   * job.next(): a frame index, -1 to hold (nothing stepped anew), null
+   * after the last. job.capture(canvas) is synchronous. job.progress is
+   * { done, total, etaS, realtime }. job.finish() resolves { name, bytes }.
+   */
+  function runJob(job, plan, edit, abort = null) {
     const session = S;
-    return new Promise((resolve) => {
-      let cancelled = false;
-      const done = () => {
-        if (tap) {
-          audio.master.disconnect(tap);
-        }
-        for (const tr of stream.getTracks()) {
-          tr.stop();
-        }
-        session.exporting = null;
-        if (cancelled) {
-          resolve(null);
-          return;
-        }
-        const blob = new Blob(chunks, { type });
-        window.__crashCamLast = {
-          ...(window.__crashCamLast || {}),
-          video: { size: blob.size, type: blob.type, audioTracks: tap ? tap.stream.getAudioTracks().length : 0 },
-        };
-        if (blob.size) {
-          store.downloadBlob(store.stampedName(session.clip.meta.map, type === 'video/mp4' ? '.mp4' : '.webm'), blob);
-          if (S === session) {
-            toast(str('replay.video_saved'));
-          }
-        } else if (S === session) {
-          toast(str('replay.video_failed'));
-        }
-        resolve(blob);
+    return new Promise((resolve, reject) => {
+      S.exporting = {
+        job, plan, edit, abort, session, resolve, reject, pending: false, finishing: false,
       };
-      mr.onstop = done;
-      session.exporting = {
-        finish: () => {
-          if (mr.state !== 'inactive') {
-            mr.stop();
-          }
-        },
-        cancel: () => {
-          cancelled = true;
-          if (mr.state !== 'inactive') {
-            mr.stop();
-          }
-        },
-      };
-      S.t = S.in;
-      S.playing = true;
-      if (S.clip.keys.length) {
-        S.manual = false;
-      }
-      mr.start(250);
-      toast(str('replay.recording_video'));
+      S.playing = false;
+      endGesture();
+      S.frameI = -1;
+      /* The first frame rebuilds the air, whatever was drawn before. */
+      S.drawnT = -Infinity;
     });
   }
 
-  /* The clip Save keeps: the in to out range, or all of it. */
-  function rangeClip() {
-    return S.in > 0 || S.out < S.clip.time[S.clip.n - 1] ? trimClip(S.clip, S.in, S.out) : S.clip;
+  function exportStep() {
+    const x = S.exporting;
+    if (x.pending || x.finishing) {
+      aimCamera();
+      return;
+    }
+    const i = x.job.next();
+    if (i === null) {
+      x.finishing = true;
+      x.job.finish().then((res) => {
+        endExport(x);
+        x.resolve(res);
+      }, (err) => {
+        endExport(x);
+        x.reject(err);
+      });
+      return;
+    }
+    if (i < 0) {
+      aimCamera();
+      return;
+    }
+    stepTo(x.plan, i);
+    x.pending = true;
   }
 
+  /* The session is back to editing; the playhead stays where the movie
+   * stopped. */
+  function endExport(x) {
+    if (x.session.exporting === x) {
+      x.session.exporting = null;
+      x.session.frameI = -1;
+    }
+  }
+
+  /* A capture that threw ends the export; exportMovie rejects with it
+   * and the screen says why. */
+  function failExport(err) {
+    const x = S.exporting;
+    x.job.cancel();
+    endExport(x);
+    x.reject(err);
+  }
+
+  function cancelExport() {
+    const x = S && S.exporting;
+    if (!x) {
+      return;
+    }
+    if (x.abort) {
+      x.abort.abort();
+    }
+    x.job.cancel();
+    endExport(x);
+    x.resolve(null);
+  }
+
+  /* What the export dialog can offer in this browser. */
+  async function exportOptions() {
+    const { exportCapabilities } = await import('./export.js');
+    return exportCapabilities();
+  }
+
+  /* The movie of the edit, written frame by frame: { name, bytes } for
+   * the screen to hand over, null when cancelled. */
+  async function exportMovie({
+    size, fps, format, sound,
+  }) {
+    if (!S || S.exporting) {
+      return null;
+    }
+    const { createExportJob } = await import('./export.js');
+    clockFps = fps;
+    const edit = S.history.current;
+    /* No longer than MOVIE_MAX_S (src/replay/edit.js planMovie). */
+    const plan = ed.planMovie(edit, fps);
+    const abort = new AbortController();
+    const session = S;
+    const job = await createExportJob({
+      clip: S.clip, edit, plan, size, fps, format, sound, audio, surface: host.exportSurface, signal: abort.signal,
+    });
+    if (S !== session || S.exporting) {
+      job.cancel();
+      return null;
+    }
+    const res = await runJob(job, plan, edit, abort);
+    if (res) {
+      window.__crashCamLast = { ...(window.__crashCamLast || {}), movie: { name: res.name, size: res.bytes.size, type: res.bytes.type, frames: plan.n } };
+    }
+    return res;
+  }
+
+  /* The clip Save keeps: the edit's In to Out, or all of it, with the
+   * edit on the trimmed clip's clock. The keys an older file had are in
+   * the edit by now, so none are written; an edit that is only the
+   * default is not written either. */
+  function rangeClip() {
+    const edit = S.history.current;
+    const dur = S.clip.time[S.clip.n - 1];
+    const tIn = edit.shots[0].t0;
+    const trim = tIn > 0 || edit.out < dur;
+    const clip = { ...(trim ? trimClip(S.clip, tIn, edit.out) : S.clip), keys: [] };
+    /* The row trimClip starts from: the one at or before In. */
+    const base = trim ? S.clip.time[locate(S.clip, tIn)[0]] : 0;
+    const kept = ed.trimEdit(edit, base, clip.time[clip.n - 1]);
+    delete clip.edit;
+    if (!ed.isDefault(kept, clip.time[clip.n - 1], chaseOf(clip))) {
+      clip.edit = kept;
+    }
+    return clip;
+  }
+
+  /* Save to My clips: over the row this session came from or saved
+   * before, else a new one. */
   async function saveReplay(name) {
-    const clip = { ...rangeClip() };
+    const clip = rangeClip();
     clip.meta = { ...clip.meta, name: String(name || S.clip.meta.name).slice(0, NAME_MAX), duration: clip.time[clip.n - 1] };
-    const id = store.newId();
+    const session = S;
+    const id = S.savedId || store.newId();
+    const created = S.savedId ? S.savedCreated : Date.now();
     /* Everything that can fail inside the try, so the pilot is told: an
      * encode that threw (a misaligned column, once) was a silent no-op. */
     try {
       const bytes = encodeReplay(clip);
       const thumb = await thumbnail();
       const dropped = await store.putClip({
-        id, name: clip.meta.name, created: Date.now(), thumb, bytes,
+        id, name: clip.meta.name, created, thumb, bytes,
         airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration,
       });
-      window.__crashCamLast = { ...(window.__crashCamLast || {}), saved: { frames: clip.n, bytes: bytes.byteLength } };
+      session.savedId = id;
+      session.savedCreated = created;
+      window.__crashCamLast = {
+        ...(window.__crashCamLast || {}), saved: { id, frames: clip.n, bytes: bytes.byteLength, shots: clip.edit ? clip.edit.shots.length : 1 },
+      };
       if (S) {
         toast(dropped ? str('replay.saved_oldest_removed', { n: dropped }) : str('replay.saved'));
       }
@@ -1353,7 +1702,7 @@ export function createCrashCam(host) {
     if (S) {
       close();
     }
-    return open(clip);
+    return open(clip, row);
   }
 
   async function exportSaved(id) {
@@ -1394,7 +1743,7 @@ export function createCrashCam(host) {
     const drop = clip.n - 1 - k;
     const session = S;
     if (S.exporting) {
-      S.exporting.cancel();
+      cancelExport();
     }
     disposeScene(session.scene);
     for (const g of host.liveGroups) {
@@ -1420,13 +1769,17 @@ export function createCrashCam(host) {
       togglePlay: () => togglePlay(),
       seek: (t) => { seek(t); S.playing = false; },
       step,
+      /* This shot's speed: one of SPEEDS, or -1 for a step down. For a step
+       * up use speedBy(1), since 1 is a speed. */
       setSpeed: (s) => {
         if (typeof s === 'number' && SPEEDS.includes(s)) {
-          S.speed = s;
+          const { edit, i } = shotNow();
+          change(ed.setSpeed(edit, i, s));
         } else {
-          setSpeed(s);
+          speedBy(s);
         }
       },
+      speedBy,
       speeds: SPEEDS,
       rigs: RIGS,
       setRig: (r) => setRig(r),
@@ -1436,33 +1789,47 @@ export function createCrashCam(host) {
       nextWatch: () => {
         const list = S.scene.peers ? S.scene.peers.list() : [];
         const ids = [0, ...list.map((p) => p.id)];
-        watch(ids[(ids.indexOf(S.watch) + 1) % ids.length]);
+        watch(ids[(ids.indexOf(shotNow().cam.watch) + 1) % ids.length]);
       },
-      addKey: keyNow,
-      removeKey,
-      clearKeys: () => {
-        S.clip.keys.length = 0;
-        S.manual = true;
+      /* The edit. Each returns whether the edit changed. */
+      cut,
+      removeCut,
+      moveCut: (i, t) => change(ed.moveCut(S.history.current, i, t)),
+      setIn: () => change(inAt(S.history.current, S.t)),
+      setOut: () => change(outAt(S.history.current, S.t)),
+      setEdge: (which, t) => {
+        const at = Math.max(0, Math.min(S.clip.time[S.clip.n - 1], t));
+        return change(which === 'in' ? ed.setIn(S.history.current, at) : ed.setOut(S.history.current, at));
       },
+      setEnter: (i, enter) => change(ed.setEnter(S.history.current, i, enter)),
+      cycleEnter,
+      undo,
+      redo,
+      /* A gesture from the screen (a grip dragged, a drag on the picture):
+       * everything between is one undo step. */
+      begin: () => {
+        endGesture();
+        S.history.begin();
+        S.gesture = 'screen';
+      },
+      end: endGesture,
+      jumpCut,
       toggleOsd: () => {
         S.osd = !S.osd;
       },
       toggleLetterbox: () => {
-        S.letterbox = !S.letterbox;
+        const edit = S.history.current;
+        change(ed.setLook(edit, { ...edit.look, letterbox: !edit.look.letterbox }));
       },
       toggleBare: () => {
         S.bare = !S.bare;
       },
       mapName: (id) => host.mapName(id),
-      setIn: () => {
-        S.in = Math.min(S.t, S.out - 0.1);
-      },
-      setOut: () => {
-        S.out = Math.max(S.t, S.in + 0.1);
-      },
       rangeFrames: () => rangeClip().n,
       photo,
-      exportVideo,
+      exportOptions,
+      exportMovie,
+      cancelExport,
       saveReplay,
       takeOver,
       close,
@@ -1479,6 +1846,7 @@ export function createCrashCam(host) {
         S.playing = false;
       },
       shiftHeld: () => input.keys.has('ShiftLeft') || input.keys.has('ShiftRight'),
+      ctrlHeld: () => input.keys.has('ControlLeft') || input.keys.has('ControlRight'),
       listClips: () => store.listClips(),
       playSaved,
       renameSaved: (id, name) => store.renameClip(id, String(name).slice(0, NAME_MAX)),
@@ -1577,6 +1945,37 @@ export function createCrashCam(host) {
       view: () => (S ? view() : null),
       setRig: (r, target) => setRig(r, target),
       speeds: SPEEDS,
+      /* The edit clock and the export driver, for scripts/edit-play-check.js. */
+      edit: () => (S ? S.history.current : null),
+      plan: () => {
+        if (!S) {
+          return null;
+        }
+        const plan = planNow();
+        return { n: plan.n, fps: plan.fps, clipT: Array.from(plan.clipT) };
+      },
+      stepLog: (on) => {
+        if (S) {
+          S.stepLog = on ? [] : null;
+        }
+      },
+      stepped: () => (S && S.stepLog ? S.stepLog : []),
+      /* A job of the export driver's shape, run on the current edit. */
+      runJob: (job, fps = clockFps) => {
+        clockFps = fps;
+        const edit = S.history.current;
+        return runJob(job, ed.planMovie(edit, fps), edit);
+      },
+      /* The camera one shot's camera would have at t, and the one on screen. */
+      poseOf: (cam, t) => {
+        const pose = evaluate(camCtx, cam.rig, cam.p, cam.target, t, createPose(), cam.watch);
+        return { pos: pose.pos.slice(), quat: pose.quat.slice(), fov: pose.fov };
+      },
+      camera: () => {
+        const c = shell.camera;
+        return { pos: c.position.toArray(), quat: c.quaternion.toArray(), fov: c.fov };
+      },
+      clip: () => (S ? S.clip : null),
       clipPartKinds: () => (S ? S.clip.meta.parts.map((p) => PART_KINDS[p.kind]) : []),
       smokePuffs: () => (S ? S.scene.smoke.live() : 0),
       smokeFitted: () => Boolean(S && S.clip.meta.fit && S.clip.meta.fit.entry && S.clip.meta.fit.entry.addons.includes('smoke')),

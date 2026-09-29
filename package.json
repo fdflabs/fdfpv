@@ -51,6 +51,7 @@
     "replay:selftest": "node scripts/replay-log.js --selftest",
     "crashcam:selftest": "node scripts/crashcam-selftest.js",
     "crashcam:e2e": "node scripts/crashcam-e2e.js",
+    "edit:play": "node scripts/edit-play-check.js",
     "editor:ui": "node scripts/editor-ui-check.js",
     "edit:selftest": "node scripts/edit-selftest.js",
     "edit:file": "node scripts/edit-file-check.js",
