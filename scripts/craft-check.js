@@ -157,6 +157,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             0.2675 m aft of the CG at the tips, reach further than the
  *             half span: the width is Zagi's 1219 mm, the reach 1331 mm.
  *             src/render/zagicraft.js draws it.
+ *   tigermoth1803 Great Planes' 71 in Tiger Moth, whose rudder's trailing
+ *             edge, 1.070 m behind the CG, reaches further than its tips,
+ *             0.902 m out, so the width and the reach this file measures
+ *             are both the rudder's, 2139 mm, and the kit's 71 in span is
+ *             held by src/render/tigermothcraft.js TIGERMOTH_DIMS.
  *   uglystik1567 RCM's 62 in Das Ugly Stik, whose rudder's trailing edge,
  *             0.884 m behind the CG on the plan (station 50.82 against the
  *             CG's 16.00), reaches further than its tips, 0.784 m out, so
@@ -206,6 +211,7 @@ const REAL = {
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
   wot41334: { spanMm: 1666.0, sweepMm: 1666.0, tolMm: 6 },
   nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
+  tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
   quickie1293: { spanMm: 1437.6, sweepMm: 1494.0, tolMm: 6 },
 };
 

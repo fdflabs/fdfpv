@@ -184,6 +184,18 @@ export const LIVERIES = {
       { id: 'stock', source: src('RCM, Das Ugly Stik, plan 939, May 1985 (Outerzone oz6801)', 'https://outerzone.co.uk/plan_details.asp?ID=6801'), colours: {} },
     ],
   },
+  tigermoth1803: {
+    /* Great Planes' own covering, Top Flite's Cub Yellow film all over with
+     * the cowl and a stripe black (the manual's cover and its repair
+     * colour, TOPQ0220); and the RAF's post war trainer finish, overall
+     * silver with yellow bands round the rear fuselage and across the
+     * wings, which the Tiger Moth wore to the end of its RAF service. */
+    regions: [r('wing', '#f5b21c'), r('fuselage', '#f5b21c'), r('tail', '#f5b21c'), r('cowl', '#17181a'), r('bands', '#f5b21c'), r('trim', '#17181a')],
+    schemes: [
+      { id: 'stock', source: src('Great Planes, Tiger Moth ARF GPMA1330 instruction manual', 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf'), colours: {} },
+      { id: 'raf_silver', source: src('RAF Museum, Training Aircraft Colour Schemes', 'https://www.rafmuseum.org.uk/research/online-exhibitions/taking-flight/training-aircraft-colour-schemes/'), colours: { wing: '#c9ccce', fuselage: '#c9ccce', tail: '#c9ccce', cowl: '#b7babd', bands: '#f2c200', trim: '#17181a' } },
+    ],
+  },
   quickie1293: {
     /* Spickler's own as AAM's December 1972 colour photographs show it:
      * white, a red sunburst fanning across each wing panel, a blue band

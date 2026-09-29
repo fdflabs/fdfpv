@@ -1119,6 +1119,69 @@ export const AIRFRAMES = [
   },
   {
     /*
+     * Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md: a 71
+     * in balsa and ply scale de Havilland DH.82A, the full size at 1/4.96,
+     * 10.25 lb, simId 23 on the fixed wing plant. A biplane (the plant's
+     * second wing, bip_*): two wings of one span and chord, the top one
+     * staggered ahead and stalling first, so it drops its nose and no wing;
+     * ailerons on the bottom wing alone with no differential, so a turn
+     * entered on them yaws the wrong way first and wants the rudder with
+     * them. An O.S. 61FX two stroke on a 12 x 6, the first engine Great
+     * Planes list: the stick runs it from its 2,000 rpm idle to full and it
+     * never stops, and `voice` is the two stroke's note in the mix. The
+     * pack is a 4.8 V receiver pack, which the engine draws nothing from. It
+     * stands on V strut main gear and a tail wheel whose wire is set in the
+     * rudder; `gear` is the plant's settled pose, which the drawn wheels in
+     * src/render/tigermothcraft.js match: the CG 0.2654 m over the ground
+     * and 8.16 degrees nose up.
+     */
+    id: 'tigermoth1803',
+    simId: 23,
+    fixedWing: true,
+    voice: 'glow2',
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax) on the cell: tests/tigermoth-thresholds.json t2_stall. */
+    stall: 9.47,
+    /* Level speed at full throttle, m/s: tests/tigermoth-thresholds.json t4_top, derived. */
+    topSpeed: 18.69,
+    gear: { restHeight: 0.2654, restPitch: 8.16 * Math.PI / 180 },
+    name: 'Tiger Moth',
+    short: 'Tiger',
+    blurb: 'Great Planes\' Tiger Moth, 71 in of scale de Havilland DH.82A biplane in Cub Yellow with a black cowl, on an O.S. .61 two stroke. The trainer of the 1930s: slow and gentle, its top wing stalls first and the nose drops, but its ailerons on the bottom wing yaw it the wrong way, and every turn wants the rudder with them.',
+    facts: ['Biplane', '1803 mm', 'Two stroke .61'],
+    sizeMm: 1803,
+    grams: 4649.3,
+    trackClass: 'wing',
+    cells: 2,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'tigermoth-stab',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/tigermothcraft.js TIGERMOTH_DIMS: the
+     * furthest reach in plan is the rudder's trailing edge, 1.070 m aft,
+     * further than the tips' 0.902 m; the lowest drawn point the mains'
+     * and the highest the top wing's tips. */
+    dims: {
+      arm: 0,
+      propR: 0.1524,
+      hullR: 1.0696,
+      vHalfDown: 0.2921,
+      vHalfUp: 0.2771,
+      bodyLength: 1.4706,
+      bodyWidth: 1.8034,
+      bodyHeight: 0.5692,
+    },
+  },
+  {
+    /*
      * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
      * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing
      * plant, with ailerons, an elevator, a rudder, plain flaps and electric

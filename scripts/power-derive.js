@@ -149,6 +149,11 @@ await glow('kadet1981 FS-64V', { stockProp: '12x6', stockRpm: 9500, stockThrust:
   console.log(`uglystik1567 61FX: APC 12.25x3.75 at 13100 rpm, ${q.toFixed(4)} N m; the 12x6 at that torque: ${lo.toFixed(0)} rpm, ${interp(b, lo, 'thrust').toFixed(3)} N`);
 }
 await glow('uglystik1567 46FX', { stockProp: '12x6', stockRpm: 10895, stockThrust: 36.206, stockPowerW: 1397, prop: '11x6', dStockIn: 12, dIn: 11, powerW: 1191 });
+/* Tiger Moth, Great Planes' GPMA1330: the stock engine is the first on
+ * its list, the Stik's 61FX on the 12 x 6, above; the four stroke on it,
+ * O.S.'s FS-91 II Surpass (1.6 bhp at 11,000 rpm, O.S.'s manual), on the
+ * 14 x 7 in O.S.'s list for it, by the glow rule on the rated powers. */
+await glow('tigermoth1803 FS-91 II', { stockProp: '12x6', stockRpm: 10895, stockThrust: 36.206, stockPowerW: 1397, prop: '14x7', dStockIn: 12, dIn: 14, powerW: 1193 });
 /* Quickie 500, a K&B 40 R/C front intake on APC's 9 x 6, the Sport
  * Quickie rule's nine inch, six pitch prop. Peter Chinn's bench test of
  * the K&B Torpedo 40 R/C Series 70F with the Irvine silencer (Radio

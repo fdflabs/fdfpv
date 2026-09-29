@@ -315,6 +315,31 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the nose wheel, at RCM\'s travel limits. It goes where you point it and stays there: it holds a bank, loops round at full throttle and flies on its back with half the stick pushed. Throttle closed, the two stroke idles.',
   },
   {
+    /* The Tiger Moth's three, the Cub's on its own plant: ailerons,
+     * elevator and rudder at Great Planes' high rate; on its wheels every
+     * mode flies as Manual, and the rudder turns the tail wheel. Stabilised
+     * is the default: the turn coordinator puts in the rudder its adverse
+     * yaw asks for, which in Manual is the pilot's. */
+    id: 'tigermoth-stab',
+    airframe: 'tigermoth1803',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you, which on a Tiger Moth is most of flying it. Throttle closed, it lowers the nose onto its glide.',
+    wingStab: 1,
+  },
+  {
+    id: 'tigermoth-acro',
+    airframe: 'tigermoth1803',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 75 degrees a second and a pitch rate up to 45, centred sticks hold the attitude, and the rudder stick is the rudder alone: bank on the ailerons and the nose still swings the wrong way until you feed in rudder.',
+    wingStab: 2,
+  },
+  {
+    id: 'tigermoth-manual',
+    airframe: 'tigermoth1803',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons on the bottom wing, the elevator and the rudder, which also turns the tail wheel, at Great Planes\' throws. Roll into a turn on the ailerons alone and the nose swings the other way first: feed in rudder with them. Pull it into the stall and the nose drops. Throttle closed, the two stroke idles.',
+  },
+  {
     /* The Quickie's three, the Stik's on its own plant: ailerons, elevator
      * and rudder at OSMW's throws; on its wheels every mode flies as
      * Manual, and there is no steerable wheel: the rudder steers in the
