@@ -2,16 +2,17 @@
  * roomtag.js: Catch the Ace! (¡Atrapa al As!), the client's half of a
  * room's tag match (docs/TAG-PLAN.md; the room's half is edge/rooms/tag.js).
  *
- * The room judges every touch and counts every point; this module keeps
- * the room's view of the match, says what this pilot's part in it is now
- * (role), and hands the shell each new crown once, for its banner. It
- * never touches the physics or the page: the shell (src/main.js) reads
- * role and holdMs to put the pilot on their slot and hold them there
- * until the go, the room's race's way (src/share/roomrace.js).
+ * The room judges every tag (a hunter inside the Ace's bubble, BUBBLE_M)
+ * and counts every point; this module keeps the room's view of the match,
+ * says what this pilot's part in it is now (role), and hands the shell
+ * each new crown once, for its banner. It never touches the physics or
+ * the page: the shell (src/main.js) reads role and holdMs to put the
+ * pilot on their slot and hold them there until the go, the room's
+ * race's way (src/share/roomrace.js).
  *
  * The scores are the room's, not extrapolated: the room sends the match
  * on every whole point the Ace adds, so what every screen shows is the
- * one count, and it never runs backwards when a touch lands in the past.
+ * one count, and it never runs backwards when a tag lands in the past.
  *
  * Pure: no DOM, no timers, the room clock handed in, so scripts/rooms-
  * selftest.js drives two of these against edge/rooms/core.js.
@@ -46,6 +47,15 @@ export const GOAL_MAX = 995;
 export const GOAL_STEP = 5;
 /* A new Ace cannot be touched for this long (decision 4). */
 export const PROTECT_MS = 3000;
+/* The Ace's bubble, metres from its centre (the point its pose carries,
+ * its CG): a hunter any part of whose aircraft comes this close takes the
+ * crown (edge/rooms/tag.js), and every screen draws a sphere this big
+ * round the Ace (src/render/acebubble.js). The owner's number. It is from
+ * the centre, not the Ace's own skin, so the rule is the sphere that is
+ * drawn: every hull reaches under 1.5 m from its CG (configs/hulls.js),
+ * so any Ace sits well inside it, and none gets a bigger bubble for being
+ * wider. */
+export const BUBBLE_M = 6;
 /* How many of the last crown changes the room's view carries. */
 export const CROWNS_SHOWN = 8;
 
@@ -117,6 +127,12 @@ export function createRoomTag(send) {
     /* The Ace's seat while the match is on, else null. */
     ace() {
       return tag.state === 'live' ? tag.ace : null;
+    },
+    /* The bubble's radius the room judges by while the match is on, else
+     * 0. A room from before the bubble sends none and judges a touch, so
+     * nothing is drawn that would not be a tag. */
+    bubble() {
+      return tag.state === 'live' && tag.ace != null && tag.bubble > 0 ? tag.bubble : 0;
     },
     on() {
       return tag.state === 'countdown' || tag.state === 'live';
