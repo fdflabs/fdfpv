@@ -495,6 +495,11 @@ double sim_gravity(void);
  * sim_wing_debug(out[20]): what the last step saw, for the gates: alpha
  * (of the zero lift line), beta, qbar, CL, CD, l m n (aero convention),
  * thrust, force body x y z, moment body x y z, u v w, delta_e, delta_a.
+ * sim_wing_biplane(out[4]): a biplane's two wings as the last step took
+ * them (FixedWingParams.bip_*): the top wing's own lift coefficient, the
+ * bottom wing's, and the linear lift each would carry at the cell's
+ * angle, for the gates. Zeros on a monoplane. Additive, version
+ * unchanged.
  */
 int sim_wing_launch(double speed);
 int sim_wing_set_stab(int mode);
@@ -502,6 +507,7 @@ int sim_wing_stab(void);
 int sim_wing_surfaces(double *out);
 int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
+int sim_wing_biplane(double *out);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an
