@@ -80,6 +80,7 @@ const PARTS = [
   ['water', buildWater, 0.1],
   ['town', buildTown, 0.3],
   ['vegetation', buildVegetation, 0.2],
+  ['war', (ctx) => import('./itaipu/war/index.js').then((m) => m.buildPart(ctx)), 0],
 ];
 
 /*

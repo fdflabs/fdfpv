@@ -1,0 +1,319 @@
+/*
+ * war-check.js: the right bank switchyard on the Itaipu map, measured
+ * (docs/WARFARE-PLAN.md section 8, package M; src/maps/itaipu/war/).
+ *
+ * In Node, on the data folder's own files:
+ *
+ *   plan        the yard's plan is the same built twice; every transformer
+ *               is inside the fence, CLEAR of every gantry, tower and wire
+ *               the town stands (town/power.js layOut) and off every
+ *               building the town draws; the sphere reaches them all.
+ *
+ * In headless Chromium, the map built by the shell:
+ *
+ *   built       the part is Node's plan, its transformers are solid where
+ *               they stand, and the static colliders are at most 15 000
+ *               (docs/ITAIPU-PLAN.md section 13);
+ *   fence       a Timber flown level into the fence at 15 m/s meets it;
+ *   shots       with --shots=DIR, the yard from the air and from low, and
+ *               the frame's draw calls in each view with and without the
+ *               yard: the yard never takes a view over 300 (section 13).
+ *               A view already over without it is printed, loud, and is
+ *               not this part's to fix.
+ *
+ *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node tools/itaipu/war-check.js [--shots=DIR]
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+
+import { openPage } from '../../tests/lib/page.js';
+import { SETTINGS_KEY, seatAirframe } from '../../src/ui/ui.js';
+import { airframeById } from '../../configs/airframes.js';
+import { planYard, TANK } from '../../src/maps/itaipu/war/plan.js';
+import { layOut, piecesOf } from '../../src/maps/itaipu/town/power.js';
+
+const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
+const shotsArg = process.argv.find((a) => a.startsWith('--shots='));
+const SHOTS = shotsArg ? resolve(shotsArg.slice('--shots='.length)) : null;
+
+/* A plinth's corner to anything the town stands, metres: room for a
+ * whoop between them. */
+const CLEAR = 4;
+const SOLIDS_MAX = 15000;
+const CALLS_MAX = 300;
+const AIRFRAME = 'timber1500';
+const PART = 'window.__mapScene().userData.itaipu.parts.war';
+
+const failures = [];
+const fail = (m) => {
+  failures.push(m);
+  console.log(`  FAIL ${m}`);
+};
+const check = (ok, good, bad) => {
+  console.log(`  ${ok ? 'ok  ' : 'BAD '} ${ok ? good : bad}`);
+  if (!ok) {
+    fail(bad);
+  }
+};
+const js = async (page, expr) => JSON.parse(await page.evaluate(`JSON.stringify(${expr})`));
+
+function seed() {
+  const settings = {
+    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, AIRFRAME),
+    airframeAsked: true, map: 'itaipu', graphics: process.env.SIM_GPU === '1' ? 'high' : 'low', graphicsAuto: false, crashDamage: true, sound: false,
+  };
+  return [`try {
+    const k = ${JSON.stringify(SETTINGS_KEY)};
+    const s = JSON.parse(localStorage.getItem(k) || '{}');
+    Object.assign(s, ${JSON.stringify(settings)});
+    localStorage.setItem(k, JSON.stringify(s));
+    localStorage.setItem('webfpv.airhint.v2', '1');
+    localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
+  } catch (e) { /* Storage refused; the run boots on its defaults. */ }`];
+}
+
+function inside(poly, x, z) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) {
+    const [ax, az] = poly[i];
+    const [bx, bz] = poly[j];
+    if ((az > z) !== (bz > z) && x < ((bx - ax) * (z - az)) / (bz - az) + ax) {
+      c = !c;
+    }
+  }
+  return c;
+}
+
+/* Plan distance from (x, z) to segment a b, each [x, z]. */
+function segDist(x, z, a, b) {
+  const vx = b[0] - a[0];
+  const vz = b[1] - a[1];
+  const l2 = vx * vx + vz * vz;
+  const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - a[0]) * vx + (z - a[1]) * vz) / l2)) : 0;
+  return Math.hypot(x - a[0] - vx * t, z - a[1] - vz * t);
+}
+
+/* A plinth's four corners in plan. */
+function corners(t) {
+  const h = TANK.length / 2 + 0.5;
+  const w = TANK.width / 2 + 0.5;
+  return [[-h, -w], [h, -w], [h, w], [-h, w]].map(([u, v]) => [t.x + t.ax * u - t.az * v, t.z + t.az * u + t.ax * v]);
+}
+
+/* ------------------------------------------------------------------ Node */
+
+async function nodeChecks() {
+  console.log('Node, on the data folder\'s own files');
+  const power = JSON.parse(await readFile(join(DATA, 'osm', 'power.json'), 'utf8'));
+  const buildings = JSON.parse(await readFile(join(DATA, 'osm', 'buildings.json'), 'utf8')).features;
+  /* The layout reads the ground only for heights: flat is enough here. */
+  const flat = () => 225;
+  const a = planYard(power, buildings, flat);
+  const b = planYard(power, buildings, flat);
+  check(JSON.stringify(a) === JSON.stringify(b), 'plan: built twice, identical', 'plan: two plans of the same data differ');
+  console.log(`       plan: ${a.transformers.length} transformers, ${a.fence.length} fence pieces, axis ${((Math.atan2(a.axis[1], a.axis[0]) * 180) / Math.PI).toFixed(1)} degrees from +x, `
+    + `${a.wires} spans over it, ${a.houses} buildings in or by it; sphere at (${a.site.at.map((v) => v.toFixed(0)).join(', ')}), r ${a.site.r}`);
+
+  const across = a.transformers.filter((t) => !corners(t).every(([x, z]) => inside(a.outline, x, z)));
+  check(a.transformers.length > 0 && !across.length, 'plan: every transformer inside the fence', `plan: ${across.length} transformer(s) cross the fence`);
+
+  /* What the town stands by the yard: its gantries' and towers' pieces
+   * and its wires, in plan, each with its radius. */
+  const town = layOut(power, flat);
+  const near = (x, z) => Math.hypot(x - a.site.at[0], z - a.site.at[2]) < a.site.r + 100;
+  const segs = [];
+  for (const s of town.structures.filter((st) => near(st.x, st.z))) {
+    for (const p of piecesOf(s)) {
+      segs.push([[p[0], p[2]], [p[3], p[5]], p[6]]);
+    }
+  }
+  for (const w of town.wires.filter((c) => near(c[0], c[2]))) {
+    segs.push([[w[0], w[2]], [w[3], w[5]], 0.1]);
+  }
+  let worst = Infinity;
+  for (const t of a.transformers) {
+    for (const [x, z] of [[t.x, t.z], ...corners(t)]) {
+      for (const [p, q, r] of segs) {
+        worst = Math.min(worst, segDist(x, z, p, q) - r);
+      }
+    }
+  }
+  check(worst >= CLEAR, `plan: every plinth ${worst.toFixed(1)} m or more from the ${segs.length} gantry, tower and wire pieces the town stands by the yard`,
+    `plan: a plinth ${worst.toFixed(1)} m from something the town stands`);
+
+  const houses = buildings.filter((f) => f.outer.some(([x, z]) => near(x, z)));
+  const onHouse = a.transformers.filter((t) => corners(t).some(([x, z]) => houses.some((f) => inside(f.outer, x, z))));
+  check(!onHouse.length, `plan: no transformer on any of the ${houses.length} buildings by the yard`, `plan: ${onHouse.length} transformer(s) on a building`);
+
+  const reach = Math.max(...a.transformers.map((t) => Math.hypot(t.x - a.site.at[0], t.z - a.site.at[2]))) + TANK.length / 2;
+  check(reach <= a.site.r, `plan: the sphere reaches every transformer (${reach.toFixed(0)} of ${a.site.r} m)`, 'plan: a transformer is outside the sphere');
+  return a;
+}
+
+/* ------------------------------------------------------------ page side */
+
+async function pageChecks(page, plan) {
+  const s = await js(page, `(() => {
+    const it = window.__mapScene().userData.itaipu;
+    const col = it.parts.dam.survey().colliders;
+    const w = ${PART};
+    const gaps = w.yard.solids.map((i) => col.gapAt((col.fax[i] + col.fbx[i]) / 2, (col.fay[i] + col.fby[i]) / 2, (col.faz[i] + col.fbz[i]) / 2, 1));
+    return { stats: w.stats(), solids: w.yard.solids.length, staticCount: col.staticCount, maxGap: Math.max(...gaps) };
+  })()`);
+  console.log(`       built: ${s.stats.transformers} transformers, ${s.stats.fence} fence pieces, ${s.stats.solids} solids, `
+    + `${s.stats.drawn.meshes} meshes, ${s.stats.drawn.triangles} triangles, in ${s.stats.buildMs} ms`);
+  check(s.stats.transformers === plan.transformers.length && s.solids === plan.transformers.length,
+    'built: the page\'s yard is Node\'s, one solid per transformer', `built: the page has ${s.stats.transformers} transformers and ${s.solids} of their solids, Node ${plan.transformers.length}`);
+  check(s.maxGap === 0, 'built: every transformer is solid at its middle', `built: a transformer's middle is ${s.maxGap} m from any solid`);
+  check(s.staticCount <= SOLIDS_MAX, `built: ${s.staticCount} static colliders, at most ${SOLIDS_MAX}`, `built: ${s.staticCount} static colliders, over ${SOLIDS_MAX}`);
+}
+
+/* A Timber level into the middle of the fence's longest piece, from
+ * outside the yard. */
+async function fence(page, plan) {
+  const span = (f) => Math.hypot(f[1][0] - f[0][0], f[1][2] - f[0][2]);
+  const [a, b] = plan.fence.reduce((m, f) => (span(f) > span(m) ? f : m));
+  const mx = (a[0] + b[0]) / 2;
+  const mz = (a[2] + b[2]) / 2;
+  const gy = await page.evaluate(`window.__surface(${mx}, ${mz}, -1e9)`);
+  const l = span([a, b]);
+  let nx = -(b[2] - a[2]) / l;
+  let nz = (b[0] - a[0]) / l;
+  if (inside(plan.outline, mx + nx * 5, mz + nz * 5)) {
+    nx = -nx;
+    nz = -nz;
+  }
+  const back = 12;
+  const v = 15;
+  const throwAt = {
+    x: mx + nx * back, y: gy + 1.2, z: mz + nz * back, yaw: (Math.atan2(nx, nz) * 180) / Math.PI, pitch: 0, vx: -nx * v, vy: 0, vz: -nz * v, hold: true, fresh: true,
+  };
+  /* The first throw of a page pays for the crash world; take it in the air. */
+  await page.evaluate(`window.__crashThrow(${JSON.stringify({ x: mx, y: gy + 400, z: mz, fresh: true })})`);
+  await page.sleep(1500);
+  const r = await js(page, `window.__crashThrow(${JSON.stringify(throwAt)})`);
+  if (!r || r.ok === false) {
+    fail(`fence: the throw was refused: ${JSON.stringify(r)}`);
+    return;
+  }
+  await page.evaluate('window.__stick(0, 0, 0, 0.6)');
+  await page.sleep(300);
+  await page.evaluate('window.__releasePose()');
+  const t0 = await page.evaluate('window.__crash().simT');
+  const until = Date.now() + 30000;
+  let last = null;
+  const kinds = new Set();
+  while (Date.now() < until) {
+    last = await js(page, `(() => { const s = window.__craftState(); const c = window.__crash(); const k = window.__contacts();
+      return { simT: c.simT, x: s.worldX, z: s.worldZ, hit: s.lastHitKind, wrecked: c.wrecked, obstacle: k.obstacle.length }; })()`);
+    if (last.hit && last.hit !== 'none') {
+      kinds.add(last.hit);
+    }
+    if (last.simT - t0 >= 1.5) {
+      break;
+    }
+    await page.sleep(40);
+  }
+  /* How far past the fence's line, toward the yard, it ended. */
+  const past = -((last.x - mx) * nx + (last.z - mz) * nz);
+  const ok = (kinds.size > 0 || last.obstacle > 0 || last.wrecked) && past < 1;
+  check(ok, `fence: a Timber into the fence at ${v} m/s met it (${[...kinds].join(', ') || 'plant contact'}, wrecked ${last.wrecked}), ended ${(-past).toFixed(1)} m short of its line`,
+    `fence: a Timber at ${v} m/s ended ${past.toFixed(1)} m past the fence, hits ${[...kinds].join(', ') || 'none'}, wrecked ${last.wrecked}`);
+}
+
+/* ----------------------------------------------------------------- shots */
+
+async function shots(page) {
+  await mkdir(SHOTS, { recursive: true });
+  await page.evaluate('window.__drawOff(false)');
+  const at = (await js(page, `${PART}.yard`)).at;
+  const views = [
+    ['yard-high', [at[0] + 500, at[1] + 260, at[2] + 450, ...at]],
+    ['yard-low', [at[0] + 90, at[1] + 30, at[2] + 60, ...at]],
+    ['yard-west', [at[0] - 560, at[1] + 60, at[2] - 120, ...at]],
+  ];
+  const rows = [];
+  for (const [name, cam] of views) {
+    await page.evaluate(`window.__crashThrow(${JSON.stringify({ x: cam[0], y: cam[1] + 30, z: cam[2], hold: true })})`);
+    await page.evaluate(`window.__setCam(${cam.join(',')}, 60)`);
+    const f0 = await page.evaluate('window.__boot().frames');
+    await page.until(`window.__boot().frames > ${f0 + 20}`, 120000);
+    await page.sleep(2500);
+    const all = await js(page, 'window.__renderStats()');
+    const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
+    await writeFile(join(SHOTS, `${name}.png`), Buffer.from(data, 'base64'));
+    await page.evaluate(`${PART}.group.visible = false`);
+    const f1 = await page.evaluate('window.__boot().frames');
+    await page.until(`window.__boot().frames > ${f1 + 4}`, 60000);
+    const without = await js(page, 'window.__renderStats()');
+    await page.evaluate(`${PART}.group.visible = true`);
+    rows.push({
+      name, calls: all.calls, triangles: all.triangles, without: without.calls, withoutTriangles: without.triangles,
+    });
+    const line = `shot ${name}: ${all.calls} calls, ${without.calls} without the yard; ${(all.triangles / 1e6).toFixed(2)} M triangles, ${(without.triangles / 1e6).toFixed(2)} M without`;
+    if (without.calls > CALLS_MAX) {
+      console.log(`  OVER ${line}: the view is over ${CALLS_MAX} without the yard`);
+      continue;
+    }
+    check(all.calls <= CALLS_MAX, line, `${line}: the yard takes it over ${CALLS_MAX}`);
+  }
+  await page.evaluate('window.__setCam()');
+  await writeFile(join(SHOTS, 'stats.json'), `${JSON.stringify(rows, null, 1)}\n`);
+}
+
+/* ------------------------------------------------------------------ main */
+
+async function main() {
+  const plan = await nodeChecks();
+  console.log('');
+  console.log('headless Chromium, the Itaipu map, a Timber with crash damage on');
+  const page = await openPage({
+    root, width: 1280, height: 720, url: '/index.html?map=itaipu', seed: seed(),
+  });
+  try {
+    await page.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);
+    await page.evaluate('window.__drawOff(true)');
+    await pageChecks(page, plan);
+    await fence(page, plan);
+    if (SHOTS) {
+      await shots(page);
+    }
+    const real = page.errors.filter((e) => !/net::ERR_|Failed to load resource/.test(e));
+    for (const e of real) {
+      fail(`console: ${e}`);
+    }
+  } finally {
+    await page.close();
+  }
+  console.log('');
+  if (failures.length) {
+    console.error(`FAIL, ${failures.length} problem(s)`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log('PASS, the right bank yard stands fenced and solid round what the town draws');
+}
+
+main().catch((e) => {
+  console.error(e && e.stack ? e.stack : e);
+  process.exitCode = 1;
+});
