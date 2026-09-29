@@ -160,9 +160,6 @@ export const PROPS = {
 /* The planes the tab serves: every fixed wing the picker offers. */
 export const PARTS_PLANES = Object.keys(PROPS);
 
-/* The float variant of a land plane and back: the tab links to it. */
-export const FLOAT_TWIN = { timber1500: 'timber1500f', timber1500f: 'timber1500', cub1400: 'cub1400f', cub1400f: 'cub1400' };
-
 /*
  * WHERE THINGS GO on each plane, body frame, from the drawn models
  * (src/render/*craft.js, measured by ray against the built meshes):
