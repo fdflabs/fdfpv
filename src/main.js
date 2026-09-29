@@ -539,10 +539,10 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 12. The Yellowstone terrain
- * engine and the swiss2 look it is built with are under their own
- * prefixes, as the Alps' modules are for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 12 };
+ * itaipu: itaipu.js and src/maps/itaipu/, 20 (the town is 9 of them).
+ * The Yellowstone terrain engine and the swiss2 look it is built with
+ * are under their own prefixes, as the Alps' modules are for swiss2. */
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 20 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */

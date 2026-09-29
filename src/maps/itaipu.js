@@ -54,6 +54,7 @@ import { buildPart as buildDam } from './itaipu/dam/index.js';
 import { buildPart as buildWater } from './itaipu/water/index.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
+import { makeStream } from './itaipu/town/stream.js';
 
 /* The one place the public data's address is written. */
 export const DATA_BASE = 'https://fdflabs.github.io/fdfpv-itaipu-data/';
@@ -196,6 +197,20 @@ async function buildItaipu(shell, progress, q) {
   }
   colliders.build();
   const roofs = makeRoofs(roofRecords);
+  /* The streamed set round the pilot, filled by every part that streams
+   * (the town's walls and wires, the near trees): one refill for all of
+   * them, since a Colliders has one (town/stream.js). The first ones
+   * whole while the bar is up: round the heaviest point of the hero, so
+   * the store grows here, then round the spawn. Before each step the
+   * roofs' cover
+   * is lifted, from under every roof: a swap renumbers the walls it
+   * flagged, and the obstacle pass sets it again from the craft. */
+  const stream = makeStream({
+    colliders,
+    parts: Object.values(parts),
+    uncover: () => roofs.cover(colliders, 0, 0, -Infinity),
+  });
+  stream.load(SPAWN.x, SPAWN.z, { half: HERO_HALF, pitch: 500 });
   look.setHeights(ground, HERO_HALF, 10);
   look.finish();
   progress(0.93);
@@ -236,7 +251,9 @@ async function buildItaipu(shell, progress, q) {
   progress(1);
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
-  scene.userData.itaipu = { terrain, camera, parts, look };
+  scene.userData.itaipu = {
+    terrain, camera, parts, look, stream,
+  };
   return {
     id: 'itaipu',
     name: str('registry.itaipu'),
@@ -276,6 +293,7 @@ async function buildItaipu(shell, progress, q) {
     updateShadowFocus(target) {
       look.updateShadowFocus(target);
       terrain.update(target, camera.position);
+      stream.update(target.x, target.z);
     },
     updateWind() {},
     updateAnim(step) {
@@ -294,6 +312,7 @@ async function buildItaipu(shell, progress, q) {
       terrain: terrain.stats(),
       reconciled: terrain.reconciled,
       colliders: colliders.stats(),
+      stream: stream.stats(),
       parts: Object.fromEntries(Object.entries(parts).map(([n, p]) => [n, p.stats()])),
     }),
     /* The terrain frees its chunks and leaves the scene; the graph frees
