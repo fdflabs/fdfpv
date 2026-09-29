@@ -78,7 +78,7 @@ import { ribbon } from './alps/ribbon.js';
 import { standWalls } from './alps/roofs.js';
 import { PAINT } from './alps/vehicles.js';
 import {
-  loadTerrainArrays, loadSurface, loadSky, SURFACES, SKY_K, SKY_SPAN_DEG,
+  loadTerrainArrays, loadSurface, loadSky, loadMark, SURFACES, SKY_K, SKY_SPAN_DEG,
 } from './swiss2/assets.js';
 import {
   groundMasks, pathMask, groundMaterial, floorUnderTrees, wallUniform, wallMask, craftUniforms, craftFootprint,
@@ -235,14 +235,16 @@ function photoStyle() {
       /* Texture memory is the thing Low and Medium are short of: the
        * terrain's layers go up at half size there. */
       const layerPx = q.id === 'high' ? 1024 : 512;
-      const [arrays, sky, ...sets] = await Promise.all([
+      const [arrays, sky, lanpy, ...sets] = await Promise.all([
         loadTerrainArrays(layerPx, aniso),
         loadSky(),
+        loadMark('lanpy', aniso),
         ...SURFACES.map((n) => loadSurface(n, aniso)),
       ]);
       own(arrays.col);
       own(arrays.nrh);
       own(sky.back);
+      own(lanpy);
       const surfaces = {};
       SURFACES.forEach((n, k) => {
         surfaces[n] = sets[k];
@@ -282,7 +284,7 @@ function photoStyle() {
         arrays, zones: masks.zones, path: masks.path, walls: masks.walls, lit, craft, clock: groundClock, ...opts,
       });
       const heights = { texture: { value: null }, grid: { value: new THREE.Vector3(HALF, CELL, CELLS + 1) } };
-      style.look = makePhotoLook({ surfaces, ground, heights });
+      style.look = makePhotoLook({ surfaces, marks: { lanpy }, ground, heights });
       style.look.buildings = swissBuildings(style.look);
       style.look.vehicles = swissVehicles();
       style.mats = style.look.village;

@@ -279,11 +279,12 @@ function ribbedSheet(metal) {
 
 /*
  * Build the look. `surfaces` are assets.js's loaded texture sets by name,
- * `ground(opts)` makes a ground material (ground.js), and `heights` is
- * where the field's heights will be for the walls' weather ({ texture,
- * grid } uniforms, filled after the bake).
+ * `marks` its loaded marks by name (loadMark), `ground(opts)` makes a
+ * ground material (ground.js), and `heights` is where the field's heights
+ * will be for the walls' weather ({ texture, grid } uniforms, filled
+ * after the bake).
  */
-export function makePhotoLook({ surfaces, ground, heights }) {
+export function makePhotoLook({ surfaces, marks, ground, heights }) {
   for (const [name, set] of Object.entries(surfaces)) {
     for (const t of [set.col, set.nrm, set.arm]) {
       t.repeat.set(1 / TILE[name], 1 / TILE[name]);
@@ -401,6 +402,10 @@ export function makePhotoLook({ surfaces, ground, heights }) {
     hangar: { group: 'ribbed', tint: [0.36, 0.42, 0.39], weather: 'wall' },
     hangarRoof: { group: 'ribbed', tint: [0.34, 0.36, 0.36] },
     hangarDoor: { group: 'ribbed', tint: [0.46, 0.5, 0.5], weather: 'wall' },
+    /* The LANPY mark painted on the hangar's roof (buildings/hangar.js).
+     * Instanced, never baked: its geometry carries the art's own uvs,
+     * which a bake would overwrite with metres. */
+    lanpy: { group: 'mark', mark: 'lanpy' },
     /* The hangar's inside, what the open door shows: the sky does not
      * reach it, and the look's light cannot know that, so it is dark. */
     hangarIn: { group: 'plain', tint: [0.018, 0.019, 0.02], rough: 0.9 },
@@ -582,6 +587,9 @@ export function makePhotoLook({ surfaces, ground, heights }) {
    * poles' insulators, the cones) and what nature.js and life.js borrow
    * from the table (the jetty's timber, the windsock's mast). */
   const keyMaterial = (b) => {
+    if (b.group === 'mark') {
+      return markMaterial(marks[b.mark]);
+    }
     if (b.group === 'glass') {
       return glass();
     }
@@ -595,6 +603,49 @@ export function makePhotoLook({ surfaces, ground, heights }) {
       metal: b.group === 'metal' || b.group === 'ribbed' ? 0.4 : 0, normal: b.normal ?? 1, weather: b.weather ?? false, grey: b.grey ?? 0,
     });
   };
+  /*
+   * Paint on the ribbed sheet: the mark's colours on uv1, over the
+   * sheet's own ribs from the same normal map on the same metre uvs as
+   * the roof under it, so the paint takes the corrugation's shading rib
+   * for rib. Weathered by the sheet's photograph under it: where the
+   * sheet is grimy the paint is dulled, rougher and worn a little thin.
+   * Dielectric and matt, no emission. The art's colours are a screen's,
+   * its white 1.0 and its red 0.79 linear, and no paint is that bright:
+   * scaled to 0.7, its white is the look's other white paints and its
+   * red about the fuel pump's. At 1.0 the grade washed it to salmon.
+   * Drawn over the roof, not in it: polygon offset, no depth write,
+   * casting no shadow.
+   */
+  const SHEET_ALBEDO = 0.43;
+  const markMaterial = (tex) => {
+    tex.channel = 1;
+    const m = new THREE.MeshStandardMaterial({
+      color: lin(0.7, 0.7, 0.7),
+      map: tex,
+      normalMap: surfaces.ribbed.nrm,
+      roughness: 0.72,
+      metalness: 0,
+      transparent: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -4,
+    });
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uS2Sheet = { value: surfaces.ribbed.col };
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform sampler2D uS2Sheet;')
+        .replace('#include <map_fragment>', `#include <map_fragment>
+          float s2Sheet = dot(texture2D(uS2Sheet, vNormalMapUv).rgb, vec3(0.2126, 0.7152, 0.0722)) / ${SHEET_ALBEDO.toFixed(2)};
+          diffuseColor.rgb *= mix(1.0, clamp(s2Sheet, 0.55, 1.2), 0.35);
+          diffuseColor.a *= mix(0.78, 1.0, smoothstep(0.45, 0.9, s2Sheet));`)
+        .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+          roughnessFactor = mix(0.86, roughnessFactor, smoothstep(0.5, 1.0, s2Sheet));`);
+    };
+    m.customProgramCacheKey = () => 's2-mark';
+    return m;
+  };
+
   const village = () => Object.fromEntries(Object.entries(BUILDING).map(([key, b]) => [key, keyMaterial(b)]));
 
   /*

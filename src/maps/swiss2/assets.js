@@ -2,9 +2,11 @@
  * assets.js: the photographs swiss2 is textured with, fetched and handed
  * to the GPU.
  *
- * Every file is under assets/swiss2/ and every one is CC0, from Poly Haven
- * or ambientCG; docs/SWISS2-ASSETS.md names each with its source and
- * licence, and says how the files were packed from the originals.
+ * Every file is under assets/swiss2/ and every one but the marks is CC0,
+ * from Poly Haven or ambientCG; docs/SWISS2-ASSETS.md names each with its
+ * source and licence, and says how the files were packed from the
+ * originals. The marks (marks/) are other people's logos, used by
+ * permission and not under any free licence: NOTICE says whose.
  *
  *   terrain layers   <name>_col.jpg albedo, <name>_nrh.jpg with the
  *                    OpenGL normal in red and green and the height in blue.
@@ -124,6 +126,25 @@ export async function loadSurface(name, anisotropy) {
     t.anisotropy = anisotropy;
   }
   return { col, nrm, arm };
+}
+
+/*
+ * A mark painted on a building (marks/<name>_col.webp, see NOTICE: these
+ * are not CC0). sRGB, straight alpha, every transparent texel already the
+ * colour of the art nearest it so no mip level darkens the edge. It is
+ * decoded unpremultiplied, as fetchBitmap does, because a browser that
+ * premultiplies on decode zeroes that colour. An ImageBitmap cannot be
+ * flipped on upload, so its rows stay top first: v runs down the image.
+ */
+export async function loadMark(name, anisotropy) {
+  const bitmap = await fetchBitmap(`marks/${name}_col.webp`);
+  const t = new THREE.Texture(bitmap);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.flipY = false;
+  t.anisotropy = anisotropy;
+  t.needsUpdate = true;
+  t.addEventListener('dispose', () => bitmap.close());
+  return t;
 }
 
 export async function loadSky() {

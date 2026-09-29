@@ -51,6 +51,22 @@ from. Whichever it is, the answer belongs here:
 Recorded rather than quietly left, because a silent gap in a licence file is
 the kind of thing that is discovered by somebody else.
 
+## The LANPY mark on the swiss2 hangar roof
+
+    File        assets/swiss2/marks/lanpy_col.webp
+    Drawn by    src/maps/swiss2/buildings/hangar.js, both roof slopes
+    Owner       LANPY esports. The skull mark is theirs.
+    Licence     NONE GRANTED. This file is NOT under the GPL.
+
+The mark is painted on the main hangar's roof at the project owner's
+request, and is used by permission of its owner, LANPY esports. It is
+not covered by this repository's GPLv3 grant and no licence to it
+passes to anyone who copies this repository: whoever redistributes or
+forks the project takes the mark out, or gets LANPY esports' own
+permission for it. The file is an upscale of the Twitch profile image
+LANPY esports publish, cropped to the art and enlarged four times; the
+colours and the drawing are theirs, unchanged.
+
 ## Origin of this fork
 
     Upstream    https://github.com/Mathew-Harvey/WebFPVSimulator
