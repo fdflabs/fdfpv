@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 4,
+  "id": "itaipu-run-planes",
+  "name": "Itaipu run",
+  "createdUtc": "2026-09-29T00:00:00.000Z",
+  "modifiedUtc": "2026-09-29T00:00:00.000Z",
+  "trackClass": "full",
+  "map": "itaipu",
+  "field": {
+    "width": 60,
+    "depth": 40,
+    "gridSize": 1
+  },
+  "settings": {
+    "tangentScale": 1.1,
+    "minCurveRadius": 2.5,
+    "samplesPerSegment": 48
+  },
+  "branding": {
+    "logos": []
+  },
+  "credit": null,
+  "elements": [
+    {
+      "id": "el-1",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": 450,
+        "y": 2500,
+        "z": 263
+      },
+      "yaw": 1.138389,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.214523,
+        "x": 0,
+        "y": 0,
+        "z": 0.976719
+      }
+    },
+    {
+      "id": "el-2",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": 100,
+        "y": 1729,
+        "z": 245
+      },
+      "yaw": 1.356141,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.107122,
+        "x": 0,
+        "y": 0,
+        "z": 0.994246
+      }
+    },
+    {
+      "id": "el-3",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": -150,
+        "y": 1350,
+        "z": 133
+      },
+      "yaw": 1.102664,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.231934,
+        "x": 0,
+        "y": 0,
+        "z": 0.972731
+      }
+    },
+    {
+      "id": "el-4",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": -450,
+        "y": 800,
+        "z": 133
+      },
+      "yaw": 0.985579,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.288451,
+        "x": 0,
+        "y": 0,
+        "z": 0.957495
+      }
+    },
+    {
+      "id": "el-5",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": -760,
+        "y": 450,
+        "z": 153
+      },
+      "yaw": -1.160669,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.979048,
+        "x": 0,
+        "y": 0,
+        "z": 0.203629
+      }
+    },
+    {
+      "id": "el-6",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": -900,
+        "y": 800,
+        "z": 198
+      },
+      "yaw": -1.264917,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.988328,
+        "x": 0,
+        "y": 0,
+        "z": 0.152344
+      }
+    },
+    {
+      "id": "el-7",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": -990,
+        "y": 1030,
+        "z": 245
+      },
+      "yaw": -1.369479,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.994938,
+        "x": 0,
+        "y": 0,
+        "z": 0.100489
+      }
+    },
+    {
+      "id": "el-8",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": -760,
+        "y": 1550,
+        "z": 245
+      },
+      "yaw": -2.038928,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.972731,
+        "x": 0,
+        "y": 0,
+        "z": -0.231934
+      }
+    },
+    {
+      "id": "el-9",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": -300,
+        "y": 2300,
+        "z": 245
+      },
+      "yaw": -2.772259,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": 0.824922,
+        "x": 0,
+        "y": 0,
+        "z": -0.565246
+      }
+    }
+  ],
+  "sequence": [
+    {
+      "id": "sq-1",
+      "elementId": "el-1",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-2",
+      "elementId": "el-2",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-3",
+      "elementId": "el-3",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-4",
+      "elementId": "el-4",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-5",
+      "elementId": "el-5",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-6",
+      "elementId": "el-6",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-7",
+      "elementId": "el-7",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-8",
+      "elementId": "el-8",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-9",
+      "elementId": "el-9",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    }
+  ]
+}

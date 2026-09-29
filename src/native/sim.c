@@ -2438,6 +2438,20 @@ SIM_EXPORT int sim_set_gravity(double scale) {
 
 SIM_EXPORT double sim_gravity(void) { return SIM_GRAVITY; }
 
+/* The chase boost, see sim_internal.h. A mode, same rule as gravity. */
+double SIM_BOOST = 1.0;
+
+SIM_EXPORT int sim_set_boost(double scale) {
+  /* Refused rather than clamped, same argument as sim_set_air. */
+  if (!(scale >= 1.0) || !(scale <= 1.5)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  SIM_BOOST = scale;
+  return SIM_OK;
+}
+
+SIM_EXPORT double sim_boost(void) { return SIM_BOOST; }
+
 /*
  * The airframe. A MODE, not dynamic state, in exactly the sense
  * sim_set_flight_style above is one: it survives sim_reset and sim_init, the

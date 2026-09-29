@@ -47,13 +47,15 @@ import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
 import { makeRoofs } from './alps/roofs.js';
-import { HERO_HALF, LANDMARKS } from './itaipu/terrain/frame.js';
+import { HERO_HALF } from './itaipu/terrain/frame.js';
 import { buildTerrain, TERRAIN_Q } from './itaipu/terrain/index.js';
 import { makeLook } from './itaipu/look/index.js';
 import { buildPart as buildDam } from './itaipu/dam/index.js';
 import { buildPart as buildWater } from './itaipu/water/index.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
+import { QUAD_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
+import { attractPath } from './itaipu/attract.js';
 
 /* The one place the public data's address is written. */
 export const DATA_BASE = 'https://fdflabs.github.io/fdfpv-itaipu-data/';
@@ -61,12 +63,11 @@ const LOCAL_BASE = 'itaipu-data/';
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /*
- * The shell's default spawn: the Brazilian viewpoint below the dam, facing
- * the crest (section 10's quad spawn), which is where the dam fills the
- * view at takeoff. Package H confirms every spawn on the running shell and
- * adds the others.
+ * The shell's default spawn: the quads' field by the Brazilian viewpoint
+ * below the dam, facing the crest, which is where the dam fills the view at
+ * takeoff. Every other aircraft's start is spawnFor's (itaipu/spawns.js).
  */
-const SPAWN = { x: LANDMARKS.mirante.x, z: LANDMARKS.mirante.z, yaw: 0.265 };
+const SPAWN = QUAD_SPAWN;
 
 /* The breeze on the water, for the plant's waves once the shell declares
  * this map's water (src/game/water.js): light air from the north east,
@@ -327,21 +328,6 @@ async function buildItaipu(shell, progress, q) {
     return h;
   };
 
-  /* The title shot: a loop round the dam two kilometres out and 250 m over
-   * the highest ground near each point, so the crest, the spillway and the
-   * reservoir all cross the frame. */
-  const attractPath = [];
-  for (let i = 0; i < 36; i += 1) {
-    const a = (i / 36) * Math.PI * 2;
-    const x = LANDMARKS.crest.x + Math.sin(a) * 2400;
-    const z = LANDMARKS.crest.z + Math.cos(a) * 2000;
-    let top = -Infinity;
-    for (let k = -2; k <= 2; k += 1) {
-      top = Math.max(top, wet(x + k * 60, z), wet(x, z + k * 60));
-    }
-    attractPath.push({ x, y: top + 250, z });
-  }
-
   scene.add(shell.quad);
   renderer.compile(scene, camera);
   progress(1);
@@ -360,9 +346,11 @@ async function buildItaipu(shell, progress, q) {
     gates: [],
     curve: null,
     spawn: SPAWN,
+    spawnFor: makeSpawnFor(SPAWN, lakes),
     notes: [],
     attract: {
-      path: attractPath,
+      /* Over the roofs too: the dam's crest is one. */
+      path: attractPath((x, z) => roofs.height(x, z, Infinity, wet(x, z))),
       speed: 30,
       lookAhead: 80,
       aimDrop: 40,
@@ -377,6 +365,14 @@ async function buildItaipu(shell, progress, q) {
     /* The reservoir and the river in src/game/water.js's lake form, for
      * the shell to declare to the plant (package C's water host). */
     lakes,
+    /* The war mode's targets and their damage, the dam part's
+     * (docs/WARFARE-PLAN.md section 8). */
+    targets: parts.dam.targets,
+    /* A method, so a later part that replaces map.targets (the war part's
+     * yard) has its entries burn where they say. */
+    setTargetState(id, state) {
+      return parts.dam.setTargetState(id, state, this.targets);
+    },
     setNextGate() {},
     targetAim: () => AIM,
     approachSide: () => null,

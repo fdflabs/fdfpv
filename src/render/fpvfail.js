@@ -7,7 +7,9 @@
  * that has gone leaves nothing but static, and a pack that has left the
  * aircraft takes the transmitter with it and the goggles go dark. The crash
  * physics reports all four (sim_damage_flags); the tilt is the shell's
- * camera, and this draws the other three over the picture.
+ * camera, and this draws the other three over the picture. A war game's
+ * radio (src/game/signal.js) breaks the feed up the same way through
+ * signal(), with or without crash damage.
  *
  * A small 2D canvas over the world canvas and under the OSD, filled with
  * noise at a fraction of the screen's resolution and stretched, which is
@@ -58,6 +60,9 @@ export function createFpvFail(viewCanvas) {
   let seed = 0x9e3779b9;
   let shown = false;
   let tearing = false;
+  /* The radio's own snow, 0..1 (src/game/signal.js snowFor), apart from
+   * the damage: a war game drives it with crash damage off. */
+  let signalSnow = 0;
 
   /* Onsets, wall ms, or -1. */
   const onset = { antenna: -1, camera: -1, battery: -1 };
@@ -80,10 +85,16 @@ export function createFpvFail(viewCanvas) {
     onset.battery = batteryEjected ? (onset.battery < 0 ? nowMs : onset.battery) : -1;
   }
 
+  /* The signal's snow this frame. Instant, with no ramp: the link's
+   * quality already moves frame to frame the way a fading feed does. */
+  function signal(snow) {
+    signalSnow = snow > 0 ? Math.min(1, snow) : 0;
+  }
+
   /* How far gone the picture is: { snow 0..1, black 0..1 }, and whether
    * there is any picture left to fly by. */
   function level(nowMs) {
-    let snow = 0;
+    let snow = signalSnow;
     let black = 0;
     if (onset.antenna >= 0) {
       const u = Math.min(1, (nowMs - onset.antenna) / BREAKUP_RAMP_MS);
@@ -180,8 +191,9 @@ export function createFpvFail(viewCanvas) {
     onset.antenna = -1;
     onset.camera = -1;
     onset.battery = -1;
+    signalSnow = 0;
     hide();
   }
 
-  return { set, update, clear, level, deadSince, element: canvas };
+  return { set, signal, update, clear, level, deadSince, element: canvas };
 }
