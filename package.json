@@ -217,6 +217,8 @@
     "check:dam": "node scripts/dam-check.js",
     "itaipu:water": "node scripts/itaipu-water-check.js",
     "town:check": "node scripts/town-check.js",
+    "itaipu:spawns": "node scripts/itaipu-spawns-check.js",
+    "itaipu:courses": "node scripts/itaipu-courses.js --check",
     "hangar:check": "node scripts/hangar-check.js",
     "paint:selftest": "node scripts/paint-selftest.js",
     "parts:check": "node scripts/parts-check.js",
