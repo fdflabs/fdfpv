@@ -9,9 +9,14 @@
  * Its frames go to the room at STREAMER_HZ on the room clock. A cut the
  * room sends against this seat is applied to the paper here (cutTo), and
  * the part behind falls on every screen from the next frame. A jump of the
- * tail faster than any flight is a respawn: the paper is laid again
- * behind the aircraft at the length the room owes it, which gives back
- * what a tear took and not what a cut took.
+ * tail faster than any flight is a teleport: the paper is laid again
+ * behind the aircraft at the length the room owes it. A restart gives the
+ * tail back (the lead's rule, 2026-09-29): when the plant starts again (a
+ * crash and restart, R, a fresh flight) the shell calls respawned(), the
+ * room tops the list up to FULL_LINKS in this pilot's colour, keeping any
+ * captured paper past that, and tells everyone; the paper here grows to
+ * it from that view (follow()) like a capture. A cut or a tear costs the
+ * paper for the rest of that life only.
  *
  * THE OTHERS. A peer's streamer and its falling pieces are drawn from its
  * owner's frames, carried to the moment the peer's aircraft is drawn at
@@ -341,6 +346,15 @@ export function createRoomCombat(link) {
     }
   }
 
+  /* The plant started again: the room gives the tail back. Only the
+   * room changes the list, so this screen and every other draw what it
+   * says, and a room that does not know the op leaves it as it was. */
+  function respawned() {
+    if (out() && live()) {
+      link.send({ type: 'combat', op: 'respawn' });
+    }
+  }
+
   /* Once a frame: this pilot's frame to the room when one is due. */
   function send(roomNow) {
     if (!out() || !paper || roomNow == null || roomNow < nextSend) {
@@ -424,6 +438,7 @@ export function createRoomCombat(link) {
     seated,
     step,
     idle,
+    respawned,
     send,
     draw,
     out,

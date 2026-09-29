@@ -255,13 +255,16 @@ the type byte. The room cuts chain 0 down to what its referee left
 | --- | --- | --- |
 | `{ type: 'combat', op: 'start', minutes }` | host to room | 3 or 5 |
 | `{ type: 'combat', op: 'stop' }` | host to room | |
+| `{ type: 'combat', op: 'respawn' }` | any pilot to room | its plant started again (5.2); a room that does not know it ignores it |
 | `{ type: 'combat', round, state, startsAt, endsAt, minutes, scores }` | room to all | state `idle`, `countdown`, `on`, `over`; scores per seat, numbers only |
 | `{ type: 'event', kind: 'cut', ... }` | room to all | the referee's cut (4.3) |
 
-A client sends nothing else. A tear and a respawn are read by the room
-from the owner's frames: a streamer shorter than the room owes has torn
-(section 5.1's no scoring), and one back at the length owed has been laid
-again.
+A client sends nothing else. A tear is read by the room from the
+owner's frames: a streamer shorter than its last frame and than the room
+owes has torn, and the list is cut to it. A respawn is said with
+`op: 'respawn'` (5.2), because only the owner knows its plant started
+again; the room answers with the view, and the owner's streamer grows to
+the list as it does for a capture.
 
 ### 3.2 Bandwidth
 
@@ -387,10 +390,9 @@ and fall. Everyone draws that piece from B's next frames.
 
 ### 4.4 The referee's length
 
-The room keeps, per seat, the links its cuts have left this round, and
-trims chain 0 of every relayed frame to it. A tear reported by the owner
-shortens what the owner flies, not what it is owed: at a respawn the owner
-lays the streamer again at the referee's length (section 5.2).
+The room keeps, per seat, the links its cuts and tears have left in this
+life, and trims chain 0 of every relayed frame to it. A respawn tops it
+up to fifty metres again (section 5.2).
 
 ## 5. The game
 
@@ -407,7 +409,7 @@ Association's [RCCA-2009], score a five minute round:
 | "Remaining streamer +4 points per foot ... (+120 max.)" on a 30 ft streamer, "rounded down to the nearest foot" | +2.4 a whole metre left at the end: the same 120 for a whole streamer, scaled to fifty metres. |
 | "Continuous 5 minute flight +20" | +20 for a round with no crash; a crash from a mid air (a Phase 3 `hit`) keeps it, as the rules say. |
 | "Launch within 90 second launch window ... airborne with a complete streamer when Start Combat is called +20" | +20 for being airborne with the whole streamer at the go. |
-| A streamer lost other than by a cut: "denied any positive scoring until a new streamer is attached" | **Not followed** (the lead's decision, confirmed by the owner, 2026-09-28): a pilot can always cut and score, paper or none. A tear costs only the torn paper, gone for good, and so the end of round paper bonus. Paper captured by a pilot with none starts a new streamer on their tail, in the captured colours. |
+| A streamer lost other than by a cut: "denied any positive scoring until a new streamer is attached" | **Not followed** (the lead's decision, confirmed by the owner, 2026-09-28): a pilot can always cut and score, paper or none. A tear costs only the torn paper, gone until the next respawn (5.2), and so the end of round paper bonus. Paper captured by a pilot with none starts a new streamer on their tail, in the captured colours. |
 | Non engagement, safety lines, judges | Not modelled: there are no lines on a map. |
 | Intertwined streamers | Not modelled: streamers do not touch each other. |
 
@@ -425,12 +427,21 @@ consequence without ending anyone's round.
 - **Streamers.** Laid at the countdown, fifty metres each, behind the
   aircraft: along its travel if it moves, hanging if it hovers, on the
   ground behind it if it stands.
-- **Cuts stay.** A streamer cut short stays short for the round, through
-  every respawn.
-- **Respawn** (a crash, or R) lays the streamer again behind the aircraft
-  at the referee's length, what the pilot tows: neither what a cut took
-  nor what a tear took comes back. For five seconds after, Phase 5's spawning flag makes the pilot
-  untouchable both ways.
+- **Cuts stay for that life.** A streamer cut short or torn stays short
+  until the pilot respawns.
+- **Respawn gives the tail back** (the lead's rule, 2026-09-29, after the
+  owner's "after a while, even after restarts, everyone starts back up
+  without a tail"). When the plant starts again (a crash and restart, R,
+  a fresh flight, a recovery in place) the owner sends
+  `op: 'respawn'` and the room tops the list up to fifty metres, the new
+  links the pilot's own colour at the tow point; captured paper past
+  fifty is kept, still capped at 100 m. Everyone is told, so every screen
+  draws the same length and the next cut splits the right runs. The
+  streamer is laid again behind the aircraft and grows to the list. For
+  five seconds after, Phase 5's spawning flag makes the pilot untouchable
+  both ways. Before this rule a respawn laid only what the room still
+  owed, so a pilot cut or torn to nothing stayed tailless until the next
+  round.
 - **The clock** is big on screen through the round, and its last ten
   seconds are counted big.
 - **The end.** At the clock, the room adds the remaining streamer and
@@ -514,7 +525,7 @@ consequence without ending anyone's round.
 - **Tearing** is the owner's 120 km/h rule (2.5) at every length up to
   the cap; as real paper, 100 m would have gone at 17.9 m/s against 50
   m's 22.3. The HUD shows the pull. A self tear's piece falls to nobody,
-  and the torn paper is gone from the pilot's list.
+  and the torn paper is gone from the pilot's list until a respawn (5.2).
 - **Scoring:** 100 a cut as before; the end of round paper bonus counts
   every metre towed, captured included (2.4 a metre, 240 at the cap).
 

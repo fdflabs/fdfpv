@@ -2067,6 +2067,15 @@ export async function boot({
   const combatVel = new THREE.Vector3();
   const combatV = [0, 0, 0];
   let combatStepped = false;
+  /* How many times the plant has started again (resetCraft: a new
+   * flight, R, a crash recovery), and how many the room has been told of.
+   * Read once a frame, not per step, because a craft back on the pad is
+   * not stepped until it takes off, and the tail is owed from the
+   * restart. A count, not the plant's clock going back: a craft reset
+   * before its clock has run (held, or R twice on the pad) is a restart
+   * too. */
+  let plantStarts = 0;
+  let combatStarts = 0;
   function combatStep(st) {
     combatStepped = true;
     poseFromState(st, combatPos);
@@ -2132,6 +2141,10 @@ export async function boot({
      * (src/replay/paperscene.js), so the paper as it is now is put away
      * with the live peers (roomDrawPeer) until flight resumes. */
     combatLayer.group.visible = mode !== 'replay';
+    if (mode === 'flight' && combatStarts !== plantStarts) {
+      combatStarts = plantStarts;
+      roomCombat.respawned();
+    }
     if (!combatStepped) {
       roomCombat.idle(dt * 1000, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w, groundAt);
     }
@@ -6649,6 +6662,7 @@ export async function boot({
       qSpawnInv.copy(qSpawn).invert();
     }
     sim.reset();
+    plantStarts += 1;
     sim.setCellVoltage(runVoltage);
     declareWater();
     crashReset();

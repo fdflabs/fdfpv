@@ -82,6 +82,7 @@
     "combat:twopage": "node scripts/combat-two-page.js",
     "combat:restart": "node scripts/combat-restart-check.js",
     "combat:water": "node scripts/combat-water-check.js",
+    "combat:respawn": "node scripts/combat-respawn-pages.js",
     "friends:card": "node scripts/friends-card-check.js",
     "modes:card": "node scripts/mode-cards-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",
