@@ -205,6 +205,17 @@ static double g_debug[20];
 static double g_fan_n = 0.0;
 static double g_fan_v = 0.0;
 static double g_esc_ramp = 0.0;
+/* THE DISCUS LAUNCH (FixedWingParams.discus_v): the phase, 0 none, 1 the
+ * pilot's turn, 2 the zoom under the launch preset; the turn's time, s,
+ * its centre, world x y, and the CG's height on it, m, the angle round it
+ * the turn starts at, rad, its angular acceleration, rad/s^2, and how long
+ * it lasts, s. Nothing reads them on an aircraft without one. */
+static int g_discus = 0;
+static double g_discus_t = 0.0;
+static double g_discus_c[3] = { 0.0, 0.0, 0.0 };
+static double g_discus_a0 = 0.0;
+static double g_discus_acc = 0.0;
+static double g_discus_T = 0.0;
 
 /* A biplane's wings as the last step took them (biplane_lift): each
  * wing's own lift coefficient, top and bottom, and the linear lift each
@@ -693,6 +704,8 @@ void plant_wing_reset(void) {
   g_fan_n = 0.0;
   g_fan_v = 0.0;
   g_esc_ramp = 0.0;
+  g_discus = 0;
+  g_discus_t = 0.0;
 }
 
 /*
@@ -940,6 +953,99 @@ void plant_wing_launch(SimState *s, double speed) {
   s->vel[0] = v[0];
   s->vel[1] = v[1];
   s->vel[2] = v[2];
+}
+
+/*
+ * THE DISCUS LAUNCH, docs/DLG-STAGE1.md: the pilot's turn, flown as a
+ * path and not as a plant, because the hand holds the glider on it. The
+ * turn is counter clockwise seen from above, a right handed pilot's with
+ * the peg on the left tip, so the pilot stands to the glider's left and
+ * the heading is the angle round the centre plus a right angle. The
+ * angle is a0 + acc t^2 / 2 and the rate acc t, from standing to
+ * discus_v / discus_r at the end of discus_turn. Over the last quarter of
+ * the turn's time the nose comes up to discus_pitch, the arm's sweep and
+ * the wrist; at the end the hand opens and the glider leaves at discus_v
+ * along its nose with no rotation, and from the next step it is the
+ * plant's. All of it in the fixed libm, so a replay turns the same turn.
+ */
+static void discus_pose(SimState *s, const FixedWingParams *fw, double t, int release) {
+  const double phi = g_discus_a0 + 0.5 * g_discus_acc * t * t;
+  const double cph = sim_cos(phi), sph = sim_sin(phi);
+  const double psi = phi + 0.5 * WING_PI;
+  const double theta = fw->discus_pitch * smoothstep(0.75 * g_discus_T, g_discus_T, t);
+  const double cy = sim_cos(0.5 * psi), sy = sim_sin(0.5 * psi);
+  const double cp = sim_cos(0.5 * theta), sp = sim_sin(0.5 * theta);
+  s->pos[0] = g_discus_c[0] + fw->discus_r * cph;
+  s->pos[1] = g_discus_c[1] + fw->discus_r * sph;
+  s->pos[2] = g_discus_c[2];
+  s->quat[0] = cy * cp;
+  s->quat[1] = sy * sp;
+  s->quat[2] = -cy * sp;
+  s->quat[3] = sy * cp;
+  s->omega[0] = 0.0;
+  s->omega[1] = 0.0;
+  s->omega[2] = 0.0;
+  if (release) {
+    /* Along the nose: heading psi, pitched theta up. cos psi is -sin phi
+     * and sin psi is cos phi. */
+    const double ct = sim_cos(theta), st = sim_sin(theta);
+    s->vel[0] = fw->discus_v * ct * -sph;
+    s->vel[1] = fw->discus_v * ct * cph;
+    s->vel[2] = fw->discus_v * st;
+    return;
+  }
+  const double w = g_discus_acc * t;
+  s->vel[0] = w * fw->discus_r * -sph;
+  s->vel[1] = w * fw->discus_r * cph;
+  s->vel[2] = 0.0;
+  s->omega[2] = w;
+}
+
+int plant_wing_discus_start(SimState *s, double z_release) {
+  if (PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0 || !(PLANT.fw->discus_v > 0.0)) {
+    return -1;
+  }
+  const FixedWingParams *fw = PLANT.fw;
+  const double w = s->quat[0], x = s->quat[1], y = s->quat[2], z = s->quat[3];
+  const double psi = sim_atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
+  const double phi_rel = psi - 0.5 * WING_PI;
+  g_discus_c[0] = s->pos[0] - fw->discus_r * sim_cos(phi_rel);
+  g_discus_c[1] = s->pos[1] - fw->discus_r * sim_sin(phi_rel);
+  g_discus_c[2] = z_release;
+  const double wf = fw->discus_v / fw->discus_r;
+  g_discus_a0 = phi_rel - fw->discus_turn;
+  g_discus_acc = wf * wf / (2.0 * fw->discus_turn);
+  g_discus_T = 2.0 * fw->discus_turn / wf;
+  g_discus_t = 0.0;
+  g_discus = 1;
+  g_acro_held = 0;
+  discus_pose(s, fw, 0.0, 0);
+  return 0;
+}
+
+int plant_wing_discus_hold(SimState *s) {
+  if (g_discus != 1) {
+    return 0;
+  }
+  const FixedWingParams *fw = PLANT.fw;
+  g_discus_t += WING_DT;
+  if (g_discus_t >= g_discus_T) {
+    discus_pose(s, fw, g_discus_T, 1);
+    g_discus = 2;
+    g_acro_held = 0;
+    return 1;
+  }
+  discus_pose(s, fw, g_discus_t, 0);
+  return 1;
+}
+
+int plant_wing_discus_phase(void) {
+  return g_discus;
+}
+
+void plant_wing_discus_stop(void) {
+  g_discus = 0;
+  g_discus_t = 0.0;
 }
 
 /*
@@ -1231,6 +1337,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double u = vb[0], v = vb[1], w = vb[2];
   const double V2 = u * u + v * v + w * w;
   const double V = sim_sqrt(V2);
+  /* The discus launch's zoom lasts as long as the climb does. */
+  if (g_discus == 2 && !(s->vel[2] > 0.0)) {
+    g_discus = 0;
+  }
+  const int preset = g_discus == 2;
 
   /* On its wheels a stabiliser has nothing to hold: the gear holds the
    * attitude, so an attitude loop would only wind its error up against the
@@ -1258,6 +1369,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     wing_attitude(s->quat, &pitch_att, &bank);
     const double bank_t = fw->stab_bank_max * deadband1(roll, fw->stab_deadband);
     double pitch_t = fw->stab_trim_pitch + fw->stab_pitch_max * deadband1(pitch, fw->stab_deadband);
+    if (preset) {
+      pitch_t = fw->discus_pitch + fw->stab_pitch_max * deadband1(pitch, fw->stab_deadband);
+    }
     /* With the power gone, a pitch held at the cruise's attitude bleeds
      * the speed into a stall; lower it toward the glide the airframe
      * trims at by itself, as ArduPilot's adjust_nav_pitch_throttle does. */
@@ -1309,7 +1423,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * The elevator carries the radio's flap mix on top of the stick, within
    * its travel, as a transmitter's mix does. Without flaps it adds a zero.
    */
-  const double de = add_term(surface_from_stick(pitch, fw->throw_e, fw->tune ? fw->tune_expo[1] : fw->expo), fw->trim_e);
+  double de = add_term(surface_from_stick(pitch, fw->throw_e, fw->tune ? fw->tune_expo[1] : fw->expo), fw->trim_e);
+  /* The launch preset's elevator is the radio's, under every mode. */
+  if (preset) {
+    de = clip(de + fw->discus_de, fw->throw_e);
+  }
   const double da = surface_from_stick(roll, fw->throw_a, fw->tune ? fw->tune_expo[0] : fw->expo);
   const double rudder_stick = fw->mix == FW_MIX_RUDDER ? clamp1(yaw + roll) : yaw;
   double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->tune ? fw->tune_expo[2] : fw->expo);
@@ -1383,6 +1501,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* Retracts: the gear's drag goes as it folds away. */
   if (fw->gear_time > 0.0) {
     cd0 -= fw->cd_gear * g_gear;
+  }
+  /* The drag across the Reynolds numbers (FixedWingParams.cd0_re). */
+  if (fw->cd0_re > 0.0) {
+    const double re_now = V * fw->chord * PLANT.rho / AIR_MU;
+    const double re_d = re_now > 0.5 * fw->cd0_re ? re_now : 0.5 * fw->cd0_re;
+    cd0 *= sim_sqrt(fw->cd0_re / re_d);
   }
   const double cd_flat = cd0 + 2.0 * sin_a * sin_a;
   /* Up to its stall angle the wing's lift is the plant's own curve, the
@@ -1504,7 +1628,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double n = fan ? fan_spool(fw, throttle, duty_e, dead || g_chute) : duty_e;
   const double u_pos = u > 0.0 ? u : 0.0;
   /* A fan at rest makes nothing, where 0 / 0 would be a NaN. */
-  const double ct = (fan && !(n > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * n);
+  const double ct = ((fan && !(n > 0.0)) || !(fw->thrust_static > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * n);
   double thrust = fw->thrust_static * n * n * ct;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
@@ -2270,6 +2394,103 @@ const FixedWingParams FW_RADIAN2000 = {
   .stall_top = 1.4 * WING_PI / 180.0,
   .strip_c = { 1.101, 1.096, 1.074, 0.775 },
   .washout = 6.0 * WING_PI / 180.0, /* FITTED, past the 5 deg bound by lead decision, docs/STALL-STAGE1.md */
+};
+
+/* OA Composites' NRJ, docs/DLG-STAGE1.md, where each number has its
+ * formula and source and the estimated ones say so; scripts/dlg-derive.js
+ * prints them. A 1490 mm F3K discus launch glider of 213 g: flaperons, an
+ * elevator and a rudder, 7 degrees of dihedral a panel, and no motor. It
+ * is thrown by its left wingtip, climbs 60 m on the throw and stays up in
+ * the thermals, the Radian's. */
+const FixedWingParams FW_NRJ1490 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.49,
+  .area = 0.190,
+  .chord = 0.1378,        /* the mean aerodynamic chord of the elliptic planform */
+  .cl_alpha = 5.657,      /* wing and tail, Nelson eq. 2.52 */
+  .cl_max = 0.95,
+  /* The zero lift line 3 degrees under the body axis: a thin, lightly
+   * cambered section at about 1 degree of incidence. sin and cos of minus
+   * 3 degrees, to 17 digits. */
+  .alpha_zl = -3.0 * WING_PI / 180.0,
+  .sin_zl = -0.052335956242943835,
+  .cos_zl = 0.9986295347545738,
+  .cd0 = 0.0240,          /* at 5 m/s, cd0_re below: built up part by part */
+  .k_induced = 0.0382,    /* 1/(pi 0.714 11.68), Raymer's e for a straight wing */
+  .cl_de = -0.2267,
+  .cy_beta = -0.365,
+  .cy_dr = 0.2070,
+  .cl_beta = -0.1576,     /* 7 degrees of dihedral a panel, and the fin */
+  .cl_p = -0.671,
+  .cl_da = 0.537,         /* flaperons 0.08 to 0.70 m out */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0111,
+  .cm_0 = 0.1157,         /* trims at 5.13 m/s, the best glide, with the elevator neutral */
+  .cm_alpha = -0.959,     /* static margin 0.17 at the manual's 66 mm CG */
+  .cm_q = -13.609,
+  .cm_de = 0.921,
+  .cn_beta = 0.1389,
+  .cn_r = -0.1179,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.1824,
+  .cn_dr = -0.0834,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The manual's 13 mm of aileron, 9 mm of elevator and 12 mm of rudder
+   * over the surfaces' chords at the horn, 40, 30 and 45 mm. */
+  .throw_a = 19.0 * WING_PI / 180.0,
+  .throw_e = 17.5 * WING_PI / 180.0,
+  .throw_r = 15.5 * WING_PI / 180.0,
+  .surface_max = 19.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  /* No motor: thrust, speed and current all zero, and the plant makes
+   * no thrust and draws nothing (plant_wing_step). The pack is the
+   * receiver's. */
+  .stab_bank_max = 50.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  /* Centred sticks glide a little faster than the best glide, whose
+   * attitude is half a degree nose up. */
+  .stab_trim_pitch = 0.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 1.2,    /* over half the Radian's: two and a half times its roll per stick, against 7 deg of dihedral */
+  .stab_roll_kd = 0.12,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 0.0, /* there is no throttle to close */
+  .stab_trim_throttle = 0.0,
+  .acro_roll_rate = 150.0 * WING_PI / 180.0, /* full aileron rolls 163 deg/s at 8 m/s */
+  .acro_pitch_rate = 60.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.20,
+  .acro_roll_ff = 0.36,   /* full aileron rolls 2.8 rad/s at 9 m/s */
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.5,     /* the Radian's: long flaperons' adverse yaw */
+  .air_lift = 1,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = 0.0510,
+  .stall_arm_cp = 0.0990,
+  .stall_dw = 0.0912,
+  .stall_asym = 0.00726,
+  .stall_k = 0.80,
+  .stall_top = 1.0 * WING_PI / 180.0,
+  .strip_c = { 1.263, 1.180, 0.994, 0.616 },
+  .cd0_re = 47180.0,      /* 5 m/s on the mean chord */
+  /* The throw: an experienced pilot's 60 m (Lindinger), which this drag
+   * reaches from 41 m/s at 70 degrees; a 1.6 m arm and half span, one turn,
+   * let go at the shoulder's 1.5 m. The preset's elevator trims the zoom
+   * at zero lift: -Cm0 / Cm_de. */
+  .discus_v = 41.0,
+  .discus_r = 1.6,
+  .discus_turn = 2.0 * WING_PI,
+  .discus_pitch = 70.0 * WING_PI / 180.0,
+  .discus_h = 1.5,
+  .discus_de = -0.12563,
 };
 
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has

@@ -2459,8 +2459,10 @@ SIM_EXPORT int sim_set_airframe(int id) {
   plant_set_airframe(id);
   /* The new aircraft's own power system, with a full pack and tank. */
   plant_power_reset(&S);
-  /* A canopy belongs to the aircraft that pulled it, and so do flaps. */
+  /* A canopy belongs to the aircraft that pulled it, and so do flaps, and
+   * a discus launch to the glider being thrown. */
   plant_wing_chute(0);
+  plant_wing_discus_stop();
   plant_wing_flaps_stow();
   plant_wing_gear_reset();
   contact_build_corners();
@@ -2656,6 +2658,13 @@ SIM_EXPORT int sim_step(int n) {
       float_mass_begin();
     }
     /* The wing has no controller: the sticks go to its plant as they are. */
+    /* A discus launch's turn is the pilot's hand, not the air: the
+     * aircraft is on its path and meets neither the plant nor the ground
+     * until it is let go (plant_wing.c, THE DISCUS LAUNCH). */
+    if (PLANT.kind == PLANT_KIND_WING && plant_wing_discus_hold(&S)) {
+      S.step_index += 1;
+      continue;
+    }
     const double v0[3] = { S.vel[0], S.vel[1], S.vel[2] };
     const double w0[3] = { S.omega[0], S.omega[1], S.omega[2] };
     if (PLANT.kind == PLANT_KIND_WING) {
@@ -2710,6 +2719,33 @@ SIM_EXPORT int sim_wing_launch(double speed) {
   }
   plant_wing_launch(&S, speed);
   return SIM_OK;
+}
+
+/*
+ * sim_wing_discus: the discus launch, on an aircraft whose table has one
+ * (FixedWingParams.discus_v): the pilot turns once with the glider by its
+ * wingtip and lets it go where it is now, facing the way it faces, its CG
+ * discus_h over the ground plane the host raised (or where it is, with no
+ * ground), pitched up and at the table's speed. The turn runs in the
+ * following steps; sim_wing_discus_phase reads it: 0 none, 1 the turn, 2
+ * the zoom under the launch preset. SIM_ERR_BAD_ARG on any other aircraft.
+ */
+SIM_EXPORT int sim_wing_discus(void) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->discus_v > 0.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  double z = S.pos[2];
+  if (g_ground_on && g_ground_n[2] > 0.1) {
+    z = (g_ground_d - g_ground_n[0] * S.pos[0] - g_ground_n[1] * S.pos[1]) / g_ground_n[2] + PLANT.fw->discus_h;
+  }
+  return plant_wing_discus_start(&S, z) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
+}
+
+SIM_EXPORT int sim_wing_discus_phase(void) {
+  return plant_wing_discus_phase();
 }
 
 SIM_EXPORT int sim_wing_debug(double *out) {

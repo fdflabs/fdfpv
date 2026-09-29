@@ -60,7 +60,7 @@ export const PURE = new Set([
   'sim_water_components', 'sim_airframe', 'sim_air', 'sim_gravity', 'sim_wing_stab', 'sim_wing_chute_open',
   'sim_wing_flaps', 'sim_launch_control_state', 'sim_crashflip_active', 'sim_rate_guard_trips',
   'sim_math_sin', 'sim_math_cos', 'sim_math_atan2', 'sim_bf_debug', 'sim_bf_dump', 'sim_bf_get',
-  'sim_crash_debug', 'sim_wing_tune', 'sim_addons_state',
+  'sim_crash_debug', 'sim_wing_tune', 'sim_addons_state', 'sim_wing_discus_phase',
 ]);
 
 /* Arguments that are heap pointers, by function: `out` is written by the

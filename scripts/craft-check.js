@@ -74,6 +74,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *   cub1400   a 1400 mm Piper J-3 Cub: the span is FMS's, and the reach is
  *             the tip, the tail being 0.6 m aft on the centreline.
  *             src/render/cubcraft.js draws it.
+ *   nrj1490   OA Composites' 1490 mm NRJ: the span is Lindinger's, and
+ *             the reach is the tip's trailing corner, 96 mm aft of the
+ *             CG on the straight trailing edge, 751.2 mm; the rudder's
+ *             0.70 m aft is short of it. src/render/dlgcraft.js draws it.
  *   radian2000 a 2000 mm E-flite Radian: the span is E-flite's, and the
  *             reach is the tip's trailing corner, 137 mm aft of the CG,
  *             since the fin's is 0.83 m aft on the centreline.
@@ -186,6 +190,7 @@ const REAL = {
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
   zagi1219: { spanMm: 1219.2, sweepMm: 1331.4, tolMm: 6 },
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
+  nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

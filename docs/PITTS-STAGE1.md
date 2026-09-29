@@ -180,7 +180,7 @@ cosine, nothing else.
 **Proof that nothing else moved.** `npm run crash:identity` runs every
 gate and self test three times (main's module, this tree's, this tree's
 with crash physics on) and compares their printed output byte for byte;
-pitts:gates B4 holds all nineteen recorded flights' hashes (the five
+pitts:gates B4 holds all twenty recorded flights' hashes (the five
 inch, every fixed wing, the Extra's) to main's module's at 71c0cbc.
 
 **Reused, not duplicated.** The Extra's **slipstream** over the tail
@@ -255,7 +255,7 @@ this aircraft's derived figure unless the row says. `npm run pitts:gates`:
 | B1 the induced drag flown, dCD/d(CL²) | 0.1143 (a monoplane: 0.1462) | 0.1086 to 0.1200 | 0.11427 |
 | B2 the two wings' lift is the cell's, short of the stall | cl_alpha α + cl_de δe | within 0.5 percent | 0.3104 against 0.3104 |
 | B3 the top wing stalls first, upright and on its back | | the top wing alone, the bottom gaining | at 10.74 and -10.75 deg; the bottom +0.0017 over its own |
-| B4 every other aircraft's recorded hash | main's | identical | identical, nineteen |
+| B4 every other aircraft's recorded hash | main's | identical | identical, twenty |
 | B5 Node and Chrome | | identical | identical |
 
 ### Short, and a little squirrelly, on the ground

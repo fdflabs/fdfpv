@@ -1393,6 +1393,62 @@ export const AIRFRAMES = [
       bodyHeight: 0.1387,
     },
   },
+  {
+    /*
+     * OA Composites' NRJ, docs/DLG-STAGE1.md: a 1490 mm F3K discus launch
+     * glider of 213 g, simId 21 on the fixed wing plant, flaperons, an
+     * elevator and a rudder, and no motor at all. `discus` is its launch:
+     * L, or the throttle stick up, and the pilot turns once with it by
+     * the peg on its left wingtip and lets it go climbing at 41 m/s
+     * (sim_wing_discus), to about 60 m, where it has to find a thermal,
+     * the Radian's, to stay up. `noMotor`: the hangar has no power to
+     * offer, and says so. It comes home on its belly, or into the hand.
+     */
+    id: 'nrj1490',
+    simId: 21,
+    fixedWing: true,
+    discus: true,
+    noMotor: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/dlg-thresholds.json d3_stall. */
+    stall: 4.35,
+    /* The release, m/s: the fastest it flies is the throw. */
+    topSpeed: 41,
+    name: 'NRJ DLG',
+    short: 'DLG',
+    blurb: 'A 1490 mm OA Composites NRJ, a 213 g carbon discus launch glider with no motor. Spin and throw it by the wingtip to 60 m, then work the thermals to stay up; bring it home on its belly or catch it.',
+    facts: ['No motor', '1490 mm', '213 g'],
+    sizeMm: 1490,
+    grams: 213,
+    trackClass: 'wing',
+    cells: 1,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'nrj-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/dlgcraft.js DLG_DIMS: the tips'
+     * trailing corners 0.7512 m from the CG, the rudder's trailing edge
+     * 0.700 m aft, the pod's belly 0.042 m under the CG and the fin's top
+     * 0.180 m over it. */
+    dims: {
+      arm: 0,
+      propR: 0,
+      hullR: 0.7512,
+      vHalfDown: 0.042,
+      vHalfUp: 0.180,
+      bodyLength: 0.959,
+      bodyWidth: 1.49,
+      bodyHeight: 0.222,
+    },
+  },
 ];
 
 

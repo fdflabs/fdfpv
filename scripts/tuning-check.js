@@ -201,13 +201,13 @@ function surfaces(id, tune, roll, pitch, flapNotch = 0) {
 const ids = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(TUNING);
 for (const id of ids) {
   const t = TUNING[id];
-  if (!t || !POWER[id]) {
+  if (!t || !TABLE[id]) {
     throw new Error(`tuning-check: no tuning or power data for ${id}`);
   }
   const { massKg, packKg, electric, limits: lim } = setupFor(id, null);
   const block = (entry) => tuneBlock(id, normalizeEntry(id, entry, lim), massKg, packKg);
   const rudderOnly = t.throws.high[0] === 0;
-  console.log(`\n${id}  (${electric ? `pack ${packKg} kg over ${lim.packMm} mm` : 'glow'}, lead ${lim.ballastG} g, ${massKg} kg)`);
+  console.log(`\n${id}  (${electric ? `pack ${packKg} kg over ${lim.packMm} mm` : POWER[id] ? 'glow' : 'no motor'}, lead ${lim.ballastG} g, ${massKg} kg)`);
 
   /* U1 */
   const stockBlock = block({ ...stockEntry(id) });
@@ -223,7 +223,7 @@ for (const id of ids) {
   const bare = traceHash(id, null, null);
   const seated = traceHash(id, stockSeated, null);
   check(`U1 ${id} the stock block flies the table bit for bit`, bare === seated, `${bare} ${seated}`);
-  if (POWER[id].length > 1) {
+  if (POWER[id] && POWER[id].length > 1) {
     const o = POWER[id][1];
     const pb = powerBlock(id, o.id, o.pack);
     const a = traceHash(id, null, pb);
@@ -311,7 +311,17 @@ for (const id of ids) {
   check(`U6 ${id} ${lead} g of nose lead pitches up slower than the same CG without it`, qLead < qNone,
     `${f2(deg(qLead))} and ${f2(deg(qNone))} deg/s`);
 
-  /* U7 */
+  /* U7. A glider with no motor (no POWER entry, the DLG): the stand
+   * reads nothing at any throttle, and that is all there is to check. */
+  if (!POWER[id]) {
+    stand.seat(TABLE[id].simId);
+    stand.setThrottle(1);
+    stand.steps(1);
+    const r0 = stand.reading();
+    check(`U7 ${id} no motor: full throttle on the stand makes no thrust, turns nothing and draws nothing`,
+      r0.thrustN === 0 && r0.rpm === 0 && r0.currentA === 0, `${r0.thrustN} N, ${r0.rpm} rpm, ${r0.currentA} A`);
+    continue;
+  }
   const o = POWER[id][0];
   const opt = powerOption(id, o.id);
   /* The first step, on the pack as it was seated: the table's figures

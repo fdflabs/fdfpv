@@ -212,6 +212,18 @@ export const LIVERIES = {
       { id: 'stock', source: src('E-flite Pitts S-1S 850mm, EFL35500', 'https://www.horizonhobby.com/product/pitts-s-1s-bnf-basic-with-as3x-and-safe-select-850mm/EFL35500.html'), colours: {} },
     ],
   },
+  nrj1490: {
+    /* OA Composites' own colourways, spread tow carbon under a painted
+     * design: the wing's dark carbon, two bands of colour and the nose
+     * cone, the tail bare carbon. Hyperflight's and Lindinger's listings
+     * name them by colour and number. */
+    regions: [r('wing', '#2b2d31'), r('stripe', '#e8358f'), r('band', '#39b3e6'), r('cone', '#3a9ad9'), r('tail', '#1a1b1d')],
+    schemes: [
+      { id: 'stock', source: src('Hyperflight, NRJ 1.5m DLG, "Blue #5"', 'https://www.hyperflight.co.uk/products.asp?code=NRJ&name=nrj-dlg'), colours: {} },
+      { id: 'red2', source: src('Lindinger, OA-Composites NRJ F3K RED #2', 'https://www.lindinger.at/en/Airplanes/Aircraft-Models/Electric-gliders-Hotliners/OA-COMPOSITES-NRJ-F3K-RED-2-CW40-CENTRIFUGAL-GLIDER/9776531'), colours: { wing: '#9a9ea3', stripe: '#e8358f', band: '#5a5d62', cone: '#e0314a' } },
+      { id: 'orange18', source: src('Lindinger, OA-Composites NRJ F3K ORANGE #18', 'https://www.lindinger.at/en/Airplanes/Aircraft-Models/Electric-gliders-Hotliners/OA-COMPOSITES-NRJ-F3K-ORANGE-18-EXTREME-60-SPIN-GLIDER/9776534'), colours: { stripe: '#f07a1c', band: '#f3d02a', cone: '#f07a1c' } },
+    ],
+  },
   f16878: {
     /* Painted foam, not film: Freewing's "modern three tone gray US Air
      * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270

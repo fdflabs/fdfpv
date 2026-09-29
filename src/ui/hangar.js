@@ -142,6 +142,15 @@ function number(n, digits = 0) {
  */
 export function stockPower(airframeId) {
   const af = airframeById(airframeId);
+  /* A glider with no motor (airframes.js `noMotor`): nothing to choose,
+   * and the tab says why rather than offering a motor it does not have. */
+  if (af.noMotor) {
+    return {
+      options: [{ id: 'stock', name: str('hangar.no_motor_setup'), kind: 'none', packs: [] }],
+      stock: { option: 'stock', pack: null },
+      estimate: () => ({ grams: af.grams, topSpeed: null, minutes: null, thrustToWeight: null }),
+    };
+  }
   return {
     options: [{ id: 'stock', name: str('hangar.stock_setup'), kind: af.voice === 'glow' ? 'glow' : 'electric', packs: [] }],
     stock: { option: 'stock', pack: null },
@@ -679,7 +688,8 @@ export class Hangar {
     const box = el('div', 'hangar-tab');
     const option = this.power.options.find((o) => o.id === this.choice.option) ?? this.power.options[0];
     const glow = option.kind === 'glow';
-    box.append(el('h3', 'hangar-h', str(glow ? 'hangar.engine' : 'hangar.motor')));
+    const none = option.kind === 'none';
+    box.append(el('h3', 'hangar-h', str(none ? 'hangar.no_motor' : glow ? 'hangar.engine' : 'hangar.motor')));
     const opts = el('div', 'hangar-cards');
     this.power.options.forEach((o, i) => {
       const b = button(`hangar-card${o.id === option.id ? ' on' : ''}`);
@@ -722,6 +732,9 @@ export class Hangar {
       box.append(row);
     }
     box.append(this.statsBlock());
+    if (none) {
+      box.append(el('p', 'hangar-note', str('hangar.no_motor_note')));
+    }
     box.append(el('p', 'hangar-note', str(`carousel.note.${this.id}`)));
     if (option.source) {
       box.append(el('p', 'hangar-source', str('hangar.source', { source: option.source })));
