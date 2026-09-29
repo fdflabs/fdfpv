@@ -62,6 +62,7 @@ const PLANES = [
   { name: 'zagi', id: 17, hx: 0.23, hy: 0.6096, down: 0.012, up: 0.127, land: 8, nose: 10, toss: 10.3, tossSticks: [0, 0.05, 0, 0.7] },
   { name: 'timber', id: 7, hx: 0.30, hy: 0.60, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 11.81, restZ: 0.2117 } },
   { name: 'extra', id: 14, hx: 0.35, hy: 0.654, down: 0.10, up: 0.09, land: 10, nose: 11, toss: 10, tossSticks: [0, 0.1, 0, 0.7], wheels: { restPitchDeg: 6.7, restZ: 0.2221 } },
+  { name: 'pitts', id: 18, hx: 0.30, hy: 0.425, down: 0.11, up: 0.11, land: 10, nose: 11, toss: 11, tossSticks: [0, 0.1, 0, 0.7], wheels: { restPitchDeg: 12.30, restZ: 0.2134 } },
   /* The Ugly Stik stands 2.06 deg nose down idling; it arrives at 11 m/s
    * and its 2,000 rpm idle pushes 1.22 N against the grass's 2.14, so it
    * rolls out for 25 s. */

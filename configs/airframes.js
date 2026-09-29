@@ -1227,6 +1227,61 @@ export const AIRFRAMES = [
   },
   {
     /*
+     * E-flite's Pitts S-1S 850mm, EFL35500, docs/PITTS-STAGE1.md: a moulded
+     * foam biplane, 1.529 kg on 3S, simId 18 on the fixed wing plant, its
+     * two wings each in the other's flow (the plant's second wing). Four
+     * ailerons roll it at the full size S-1S's rate, the top wing stalls
+     * first, and a yank with a boot of rudder snaps it. A short taildragger
+     * on wire gear in pants; `gear` is the plant's settled pose, which the
+     * drawn wheels in src/render/pittscraft.js match: the CG 0.2134 m over
+     * the ground and 12.3 degrees nose up, tail down.
+     */
+    id: 'pitts850',
+    simId: 18,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/pitts-thresholds.json p2_stall. */
+    stall: 9.78,
+    /* Level speed at full throttle, m/s: tests/pitts-thresholds.json p4_top, derived. */
+    topSpeed: 18.84,
+    gear: { restHeight: 0.2134, restPitch: 12.30 * Math.PI / 180 },
+    name: 'Pitts S-1S',
+    short: 'Pitts',
+    blurb: 'An 850 mm E-flite Pitts S-1S on 3S, the aerobatic biplane. Four ailerons roll it at over 400 degrees a second, its top wing stalls first, and a yank with a boot of rudder snaps it. Short coupled and a little squirrelly on its wheels: keep your feet on the rudder.',
+    facts: ['3S', '850 mm', 'Biplane'],
+    sizeMm: 850,
+    grams: 1529,
+    trackClass: 'wing',
+    cells: 3,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'pitts-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/pittscraft.js PITTS_DIMS: the furthest
+     * reach in plan is the rudder's trailing edge, 0.541 m aft, further
+     * than the tips; the lowest drawn point the wheels' and the highest the
+     * prop's tip, over the fin and the top wing. */
+    dims: {
+      arm: 0,
+      propR: 0.1397,
+      hullR: 0.541,
+      vHalfDown: 0.2336,
+      vHalfUp: 0.1397,
+      bodyLength: 0.787,
+      bodyWidth: 0.850,
+      bodyHeight: 0.3733,
+    },
+  },
+  {
+    /*
      * Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High
      * Performance PNP (FJ21115P), docs/F16-STAGE1.md: a 1/11.5 scale EPO
      * jet, 878 mm across its tip rails, 2.116 kg on a 6S 4000, simId 16 on

@@ -384,6 +384,20 @@ export const ESTIMATES = {
       }
     }
   },
+  pitts850: {
+    stock: {
+      '3s2200': {
+        topSpeed: 18.6,
+        minutes: 16.1
+      }
+    },
+    '4s': {
+      '4s2200': {
+        topSpeed: 24.42,
+        minutes: 21.4
+      }
+    }
+  },
   f16878: {
     stock: {
       '6s4000': {

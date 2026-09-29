@@ -269,6 +269,7 @@ typedef struct {
 #define SIM_AIRFRAME_P51D1450 15
 #define SIM_AIRFRAME_F16878 16
 #define SIM_AIRFRAME_ZAGI1219 17
+#define SIM_AIRFRAME_PITTS850 18
 #define SIM_AIRFRAME_UGLYSTIK1567 19
 #define SIM_AIRFRAME_WOT41334 20
 #define SIM_AIRFRAME_NRJ1490 21
@@ -872,6 +873,32 @@ typedef struct FixedWingParams {
   double fan_tau;
   double esc_start;
   /*
+   * THE SECOND WING, docs/PITTS-STAGE1.md: a biplane, whose two wings are
+   * each a lifting line in the other's flow. The table's cl_alpha, cl_max
+   * curve and derivatives stay the cell's; the lift is taken on each wing
+   * apart, index 0 the top wing and 1 the bottom one. bip_w: each wing's
+   * share of the cell's linear lift, summing to 1; all zero is a
+   * monoplane, and then nothing below is read. bip_r: each wing's own lift
+   * coefficient, on its own area, over the cell's on the reference area
+   * (the wing ahead, in the other's bound vortex upwash, carries more for
+   * its area, so it reaches its CL max, and stalls, first); each wing is
+   * the table's curve at bip_r times the cell's angle, elevator and flap,
+   * weighted by bip_w / bip_r, its area over the reference. bip_m: the lift
+   * coefficient a wing gains per unit its partner falls short of its
+   * linear lift, a stalled wing's trailing sheet and bound vortex no longer
+   * washing it down (Prandtl's mutual term and the bound vortex, times the
+   * wing's own slope). bip_x: each wing's aerodynamic centre ahead of the
+   * cell's, per chord, the arm its own stall pitches on. bip_ki and bip_kx:
+   * Prandtl's induced drag, sum over the wings of CL_i (bip_ki[i] CL_i +
+   * bip_kx[i] CL_j), in place of k_induced CL^2 (Prandtl, NACA TN 182).
+   */
+  double bip_w[2];
+  double bip_r[2];
+  double bip_m[2];
+  double bip_x[2];
+  double bip_ki[2];
+  double bip_kx[2];
+  /*
    * THE DRAG ACROSS THE REYNOLDS NUMBERS, docs/DLG-STAGE1.md. Zero cd0_re
    * is a CD0 that is the same at every speed, every other table's, and then
    * nothing below is read. Above zero it is the Reynolds number, on the
@@ -919,6 +946,7 @@ extern const FixedWingParams FW_EDGE1524;
 extern const FixedWingParams FW_EXTRA1308;
 extern const FixedWingParams FW_P51D1450;
 extern const FixedWingParams FW_F16878;
+extern const FixedWingParams FW_PITTS850;
 extern const FixedWingParams FW_ZAGI1219;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_WOT41334;
@@ -971,6 +999,7 @@ void plant_wing_discus_stop(void);
 void plant_wing_surfaces(double out[2]);
 void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
+void plant_wing_biplane(double out[4]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any

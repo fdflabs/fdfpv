@@ -105,6 +105,8 @@ function tank(id, cc, m3, grams, source) {
 const HH = 'https://www.horizonhobby.com/product/x/';
 const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
+const PITTS_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw927db137/Manuals/EFL35500_Manual_EN_548653.pdf';
+const PITTS_PAGE = 'https://www.horizonhobby.com/product/pitts-s-1s-bnf-basic-with-as3x-and-safe-select-850mm/EFL35500.html';
 const CNHL = 'https://chinahobbyline.com/products/';
 const SUNNYSKY = 'https://sunnyskyusa.com/products/sunnysky-x2820-brushless-motors';
 const SONIC_SKY = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
@@ -178,6 +180,10 @@ export const TABLE = {
   extra1308: {
     simId: 14, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
     flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
+  },
+  pitts850: {
+    simId: 18, massKg: 1.529, cells: 3, rCell: 0.008, propIn: 11, cruiseMs: 13.3,
+    flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 6, note: "E-flite: a 4 minute timer for the first flights on the 3S 2200 (the manual), '4 to 6 minutes' (Park Pilot's review of the kit's figures)", source: PITTS_MANUAL },
   },
   f16878: {
     simId: 16, massKg: 2.116, cells: 6, rCell: 0.006, propIn: 69 / 25.4, cruiseMs: 20,
@@ -551,6 +557,34 @@ const EXTRA = [
   },
 ];
 
+/* E-flite's Pitts S-1S 850mm, docs/PITTS-STAGE1.md: the BL15 880 kV on
+ * the 11 x 7 and a 40 A ESC, 3S or 4S, 1800 to 2200 mAh (E-flite's
+ * manual and listing). The thrust and current are ESTIMATED, the motor as
+ * E-flite's Power 15's class against APC's 11 x 7E (scripts/pitts-derive.js),
+ * on each pack. The suggested 3S 2200 is E-flite's 225 g (the 1529 g with
+ * it less the 1304 g without, the dimensioned top view), and it goes all
+ * the way forward on the tray (the manual), so the heavier 4S moves the
+ * CG forward by its extra mass there, 0.0995 m ahead of the CG. */
+const PITTS_3S = [lipo('3s2200', 3, 2200, 225, PITTS_PAGE)];
+const PITTS = [
+  {
+    id: 'stock', name: 'power.pitts.stock', kind: 'electric', voice: 'wing',
+    kv: 880, propIn: 11, pitchIn: 7, blades: 2,
+    thrustN: 16.184, currentA: 27.4, rpmNoLoad: 9768, pitchSpeedMs: 24.604, lvcV: 3.0,
+    massKg: 1.529, cgShiftM: 0, packs: PITTS_3S, pack: '3s2200',
+    source: [PITTS_MANUAL, PITTS_PAGE, `${APC}11x7E.dat`],
+  },
+  {
+    /* The same motor and prop on 4S, which E-flite lists and the review
+     * flew ("with 4S, it's a whole step beyond"). */
+    id: '4s', name: 'power.pitts.4s', kind: 'electric', voice: 'wing',
+    kv: 880, propIn: 11, pitchIn: 7, blades: 2,
+    thrustN: 25.926, currentA: 42.3, rpmNoLoad: 13024, pitchSpeedMs: 32.805, lvcV: 3.0,
+    massKg: 1.529 - 0.225 + 0.270, cgShiftM: (0.270 - 0.225) * 0.0995 / (1.529 - 0.225 + 0.270), packs: [TIMBER_4S[0]], pack: '4s2200',
+    source: [PITTS_MANUAL, PITTS_PAGE, 'https://www.theparkpilot.org/horizon-eflite-pitts', `${APC}11x7E.dat`],
+  },
+];
+
 /* The Wot 4, docs/WOT4-STAGE1.md: Chris Foss's own electric conversion,
  * "AXI 4120/14 brushless motor, or equivalent, and APC 13 x 8
  * propeller", a "60 amp speed controller" and a "3700 mah 4 cell 14.8v
@@ -709,6 +743,7 @@ export const POWER = {
   uglystik1567: STIK,
   edge1524: EDGE,
   extra1308: EXTRA,
+  pitts850: PITTS,
   f16878: F16,
   p51d1450: P51,
   zagi1219: ZAGI,

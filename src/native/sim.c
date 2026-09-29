@@ -2756,6 +2756,14 @@ SIM_EXPORT int sim_wing_debug(double *out) {
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_wing_biplane(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_biplane(out);
+  return SIM_OK;
+}
+
 /* The wing's stabiliser: 0 off, 1 stabilised, 2 acro. Kept across
  * resets, like the airframe; the shell sets it from the tune. Additive:
  * 2 arrived after 0 and 1 and they mean what they did. */

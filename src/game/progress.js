@@ -92,9 +92,13 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * here but one (65 N/m^2
  * against the Timber's 46 and the Kadet's 36), it swings on the take off
  * roll until the pilot's rudder holds it, and it drops a wing at the
- * stall; FMS rate it for an intermediate pilot. The Extra at 8: a hover
+ * stall; FMS rate it for an intermediate pilot. The Pitts at 8: E-flite's
+ * own intermediate rating, a short coupled biplane whose half stick yank
+ * is past its stall and snaps it with a boot of rudder, and which swerves
+ * on the ground without the pilot's feet, at a trainer's speeds on a
+ * foam airframe (docs/PITTS-STAGE1.md). The Extra at 9: a hover
  * held on every stick at once, and a torque roll the ailerons must hold,
- * on a foam airframe that forgives the ground. The Edge at 9: an
+ * on a foam airframe that forgives the ground. The Edge at 10: an
  * unlimited aerobat at 3D throws rolls past 600 deg/s and snaps when
  * yanked (docs/EDGE-STAGE1.md). The F-16 last: the fastest here, the
  * hottest landing, and a fan whose thrust has to be planned ahead of the
@@ -112,7 +116,7 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * and not a stick one, so it sits after the Radian and ahead of the fast
  * and the aerobatic. Shared rather than slotted in, so no plane a pilot
  * already has goes back behind a lock. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, wot41334: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, extra1308: 8, edge1524: 9, f16878: 10 };
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, wot41334: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, pitts850: 8, extra1308: 9, edge1524: 10, f16878: 11 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

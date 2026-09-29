@@ -19,8 +19,9 @@
  * standing on its wheels, ?plane=f16 the F-16's, from
  * standing on its three wheels with its fan stopped, ?plane=zagi the
  * Zagi's, thrown by hand, and ?plane=dlg the NRJ's, thrown by its wingtip
- * from the grass into a thermal; with no query it is the wing's, exactly
- * as it always was.
+ * from the grass into a thermal, and ?plane=pitts the Pitts's, from
+ * standing on its wheels through a roll and a snap; with no query it is
+ * the wing's, exactly as it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -42,7 +43,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, edgeGroundPrelude, extraGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, uglystikGroundPrelude, wot4GroundPrelude, zagiPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, edgeGroundPrelude, extraGroundPrelude, pittsGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, uglystikGroundPrelude, wot4GroundPrelude, zagiPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -61,6 +62,7 @@ const PLANES = {
   kadet: { rec: '/tests/inputs/kadet-baseline.rec', prelude: (sim) => kadetGroundPrelude(sim) },
   edge: { rec: '/tests/inputs/edge-baseline.rec', prelude: (sim) => edgeGroundPrelude(sim) },
   extra: { rec: '/tests/inputs/extra-baseline.rec', prelude: (sim) => extraGroundPrelude(sim) },
+  pitts: { rec: '/tests/inputs/pitts-baseline.rec', prelude: (sim) => pittsGroundPrelude(sim) },
   uglystik: { rec: '/tests/inputs/uglystik-baseline.rec', prelude: (sim) => uglystikGroundPrelude(sim) },
   wot4: { rec: '/tests/inputs/wot4-baseline.rec', prelude: (sim) => wot4GroundPrelude(sim) },
   dlg: { rec: '/tests/inputs/dlg-baseline.rec', prelude: dlgRecPrelude },

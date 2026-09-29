@@ -42,6 +42,7 @@ import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildKadetCraft } from './kadetcraft.js';
 import { buildEdgeCraft } from './edgecraft.js';
 import { buildExtraCraft } from './extracraft.js';
+import { buildPittsCraft } from './pittscraft.js';
 import { buildUglystikCraft } from './uglystikcraft.js';
 import { buildWot4Craft } from './wot4craft.js';
 import { buildDlgCraft } from './dlgcraft.js';
@@ -76,6 +77,7 @@ const BUILDERS = {
   kadet1981: buildKadetCraft,
   edge1524: buildEdgeCraft,
   extra1308: buildExtraCraft,
+  pitts850: buildPittsCraft,
   uglystik1567: buildUglystikCraft,
   wot41334: buildWot4Craft,
   nrj1490: buildDlgCraft,

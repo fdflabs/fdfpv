@@ -1919,6 +1919,127 @@ export function recordDlgFlight(sim) {
 }
 
 /*
+ * E-flite's Pitts S-1S 850mm, airframe 18, docs/PITTS-STAGE1.md: a foam
+ * biplane on a taildragger's wire gear. On the strip, standing on its
+ * three wheels at the pose the plant settles to, the drawn model's
+ * (src/render/pittscraft.js): the CG 0.2134 m up and 12.3 deg nose up, the
+ * half angle's cos and sin written out to 17 digits because a recording's
+ * prelude is hashed and JS Math.cos is not specified to the bit.
+ */
+export const PITTS_AIRFRAME = 18;
+export const PITTS_REST = { z: 0.2134, pitchDeg: 12.30 };
+const PITTS_REST_C = 0.99424576749617044;
+const PITTS_REST_S = 0.10712307788684429;
+export function pittsPrelude(sim) {
+  must(sim.e.sim_set_airframe(PITTS_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(14), 'sim_wing_launch');
+}
+export function pittsGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(PITTS_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  must(sim.e.sim_set_pose(0, 0, PITTS_REST.z, PITTS_REST_C, 0, -PITTS_REST_S, 0), 'sim_set_pose');
+}
+
+/* A biplane's two wings as the last step took them, sim_wing_biplane: the
+ * top wing's own CL, the bottom's, and each one's linear lift. */
+export function wingBiplane(sim) {
+  if (!sim.bipPtr) {
+    sim.bipPtr = sim.e.malloc(4 * 8);
+  }
+  must(sim.e.sim_wing_biplane(sim.bipPtr), 'sim_wing_biplane');
+  return Array.from(new Float64Array(sim.e.memory.buffer, sim.bipPtr, 4));
+}
+
+/*
+ * The Pitts's take off, E-flite's manual's: "Gradually increase the
+ * throttle to 75% and steer with the rudder. As the tail comes off the
+ * ground, pull back gently on the elevator": the throttle opened to
+ * `duty` over a second, the stick a little forward to lift the tail to 3
+ * deg of pitch, the wings held on the ailerons, the heading on the rudder
+ * and the tailwheel it steers (`yawHold` nought takes the pilot's feet
+ * off), and at `vRotate` 10 deg of pitch. `ms` is the time since the
+ * throttle started to open.
+ */
+export function pittsTakeoffSticks(s, ms, { vRotate = 11.7, yawHold = 1, duty = 1 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const pitchT = (v < vRotate ? 3 : 10) * Math.PI / 180;
+  const roll = Math.max(-1, Math.min(1, -0.8 * bank - 0.05 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+  const yaw = Math.max(-1, Math.min(1, yawHold * (2.0 * edgeHeading(s) + 0.3 * s[13])));
+  return [roll, pitchStick, yaw, duty * Math.min(1, ms / 1000)];
+}
+
+/*
+ * The Pitts's hands for level flight upright or on its back: the Edge's
+ * (edgeLevel), with the elevator's own slow part, an integral of the pitch
+ * error kept in `trim.e`. The Pitts trims nose up with the elevator
+ * neutral and its elevator is small, so on its back it holds level on half
+ * a stick of push, which the Edge's proportional hand alone leaves short.
+ */
+export function pittsLevel(s, { b = 0, trim }) {
+  const { pitch } = attitude(s);
+  const qAero = -s[12];
+  const roll = edgeRoll(s, b);
+  const sgn = Math.cos(fullBank(s)) < 0 ? -1 : 1;
+  trim.v = Math.max(-0.2, Math.min(0.2, trim.v - 0.0001 * s[6]));
+  const pitchT = Math.max(-0.2, Math.min(0.2, trim.v - 0.05 * s[6]));
+  trim.e = Math.max(-1, Math.min(1, (trim.e || 0) + 0.004 * sgn * (pitchT - pitch)));
+  const stick = Math.max(-1, Math.min(1, sgn * 2.5 * (pitchT - pitch) - 0.25 * qAero + trim.e));
+  return [roll, stick];
+}
+
+/*
+ * The Pitts's recording for the cross-host check: from standing on the
+ * strip, a second at idle, the take off above and a climb, level at three
+ * quarter throttle, a full aileron roll, a snap roll (full up and full
+ * left rudder, held a second and a half) and AOPA's recovery, level again
+ * and a chop: twenty four seconds, the gear, both wings' stalls and the
+ * snap in the hashed trace, and still flying at the end.
+ */
+export function recordPittsFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  pittsGroundPrelude(sim);
+  const samples = [];
+  const trim = { v: 0, e: 0 };
+  for (let ms = 0; ms < 24000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch } = attitude(s);
+    const qAero = -s[12];
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 6000) {
+      sticks = pittsTakeoffSticks(s, ms - 1000);
+    } else if (ms < 10000) {
+      sticks = [edgeRoll(s), Math.max(-1, Math.min(1, 2.5 * (0.25 - pitch) - 0.25 * qAero)), 0, 1];
+    } else if (ms < 13000) {
+      sticks = [...pittsLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 13800) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 16000) {
+      sticks = [...pittsLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 17500) {
+      sticks = [0, 1, -1, 0.75];
+    } else if (ms < 18000) {
+      sticks = [0, 0, 1, 0.75];
+    } else if (ms < 22000) {
+      sticks = [...pittsLevel(s, { trim }), 0, 0.75];
+    } else {
+      sticks = [edgeRoll(s), 0, 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
  * The Ripmax Wot 4 Mk2, docs/WOT4-STAGE1.md: airframe 20, Chris Foss's club
  * sport aerobat on a taildragger's aluminium strap. On the strip at the
  * pose the plant settles to, the drawn model's (src/render/wot4craft.js):
