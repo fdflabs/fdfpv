@@ -27,7 +27,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { DAMAGE_FLAGS, PART_STATE_DOUBLES, SURFACE } from '../../configs/parts.js';
+import { DAMAGE_FLAGS, PART_STATE_DOUBLES, SURFACE, TREE_CLUMPS_MAX } from '../../configs/parts.js';
 import { floatDigDeg } from '../../tests/crash/scenarios.js';
 import { readDamageEvents, readMotorDamage, readPartTable, readPartsState } from './crash.js';
 import { airframeHull, bodyAxes, hullContact, hullFromPartsState, sweepPartCapsule, PLANT_BODY } from '../../src/game/airframehull.js';
@@ -1039,6 +1039,62 @@ export const CRASH_SCENARIOS = [
       return [
         { name: 'the Cub is held in the crown', ok: cs[3] > 2.5 && speedOf(cs) < 0.5, detail: `z ${cs[3].toFixed(2)} m, ${speedOf(cs).toFixed(2)} m/s` },
         { name: 'the five inch punches through', ok: qOut > 3, detail: `${qOut.toFixed(1)} m/s out the far side` },
+      ];
+    },
+  },
+  {
+    /*
+     * A crown of clumps (sim_tree_clump_add): the same tree's cylinder,
+     * its leaves only in the clumps. A Cub flown into a clump is held in
+     * it; one flown down a gap between clumps goes through and out the far
+     * side, where the whole cylinder would have held it in open air (the
+     * owner's Skyhunter, 9.6 m up beside a swiss2 beech).
+     */
+    name: 'a Cub into a crown of clumps, and down a gap in it',
+    async run(mk) {
+      const tree = (r, clumps) => {
+        const k = r.sim.e.sim_tree_add(20, 0, 0, 0.15, 3, 9, 3);
+        for (const c of clumps) {
+          r.sim.e.sim_tree_clump_add(k, ...c);
+        }
+      };
+      const into = await mk({ id: 4 });
+      tree(into, [[20, 0, 6, 1.6]]);
+      into.pose([0, 0, 6], [1, 0, 0, 0]);
+      into.launch(12);
+      into.run(4000, [0, 0, 0, 0.5]);
+      const gap = await mk({ id: 4 });
+      /* 1.6 m off the trunk, which the parts meet, with a clump either
+       * side of its 1.4 m span, one over it and one under it. */
+      tree(gap, [[20, 3.6, 6, 1.0], [20, -0.4, 6, 1.0], [20, 1.6, 8.4, 0.6], [20, 1.6, 3.6, 0.6]]);
+      gap.pose([0, 1.6, 6], [1, 0, 0, 0]);
+      gap.launch(12);
+      let past = 0;
+      gap.run(4000, [0, 0, 0, 0.5], (s) => { if (s[1] > 23.5) past = Math.max(past, speedOf(s)); });
+      const whole = await mk({ id: 4 });
+      tree(whole, []);
+      whole.pose([0, 1.6, 6], [1, 0, 0, 0]);
+      whole.launch(12);
+      whole.run(4000, [0, 0, 0, 0.5]);
+      const bad = await mk({ id: 4 });
+      const k = bad.sim.e.sim_tree_add(20, 0, 0, 0.15, 3, 9, 3);
+      const codes = [
+        bad.sim.e.sim_tree_clump_add(k + 1, 20, 0, 6, 1),
+        bad.sim.e.sim_tree_clump_add(k, 20, 0, 6, 0),
+        bad.sim.e.sim_tree_clump_add(k, 20, 0, Infinity, 1),
+      ];
+      let full = 0;
+      for (let j = 0; j <= TREE_CLUMPS_MAX; j += 1) {
+        full = bad.sim.e.sim_tree_clump_add(k, 20, 0, 6, 1);
+      }
+      const is = into.state();
+      const ws = whole.state();
+      return [
+        { name: 'the Cub flown into a clump is held in it', ok: is[3] > 4.4 && speedOf(is) < 0.5, detail: `z ${is[3].toFixed(2)} m, ${speedOf(is).toFixed(2)} m/s` },
+        { name: 'the Cub flown down a gap goes through', ok: past > 6, detail: `${past.toFixed(1)} m/s out the far side` },
+        { name: 'the same flight into the tree with no clumps is held by its cylinder', ok: ws[3] > 2.5 && speedOf(ws) < 0.5, detail: `z ${ws[3].toFixed(2)} m, ${speedOf(ws).toFixed(2)} m/s` },
+        { name: 'a clump of no tree, of no size or off the map is refused', ok: codes.every((c) => c === -2), detail: codes.join(', ') },
+        { name: `a tree takes ${TREE_CLUMPS_MAX} clumps and no more`, ok: full === -3, detail: `the next one ${full}` },
       ];
     },
   },
