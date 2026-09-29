@@ -340,7 +340,6 @@ const FIELD_GLSL = /* glsl */ `
   uniform vec4 uItChurn;
   uniform vec3 uItChurnN;
   const float s2Sun = 1.0;
-  vec4 iWater;
   vec4 itWater(vec2 p) {
     vec2 g = (p - uItGrid.xy) / uItGrid.z;
     if (g.x < 0.0 || g.y < 0.0 || g.x > 1.0 || g.y > 1.0) {
@@ -374,18 +373,21 @@ function withField(THREE, mat, uniforms) {
   const baseKey = mat.customProgramCacheKey();
   const DECL = 'varying vec4 vWater;';
   const FOAM = 'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.86, 0.88), wFoam);';
+  /* The fragment shader's main, where the field's depth is read once. A
+   * pattern, not a string: it is the shader's text, not copy. */
+  const MAIN = /void main\(\) \{/;
   mat.onBeforeCompile = function onBeforeCompile(shader, renderer) {
     base.call(this, shader, renderer);
     Object.assign(shader.uniforms, uniforms);
     const fs = shader.fragmentShader;
-    if (!fs.includes(DECL) || !fs.includes(FOAM) || !fs.includes('void main() {')) {
+    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MAIN.test(fs)) {
       throw new Error('itaipu water: swiss2\'s water shader no longer has the lines the depth field is spliced at');
     }
     shader.fragmentShader = fs
       .replace(DECL, '@DECL@')
       .replace(/\bvWater\b/g, 'iWater')
       .replace('@DECL@', `${DECL}\n${FIELD_GLSL}`)
-      .replace('void main() {', 'void main() {\n  iWater = itWater(vWaterWorld.xz);')
+      .replace(MAIN, (m) => `${m}\n  vec4 iWater = itWater(vWaterWorld.xz);`)
       .replace(FOAM, `{
           float churn = itChurn(vWaterWorld.xz);
           if (churn > 0.0) {
