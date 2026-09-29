@@ -68,6 +68,15 @@
  * by its version rather than by an event it does not know, and every other
  * clip is written as before, byte for byte.
  *
+ * Version 8 added the map's animation clock (src/replay/recorder.js,
+ * anim): the header's `anim: true`, and a column f64[n] between the plant
+ * and the smoke, each frame's clock in ms, so a saved replay draws the
+ * traffic where it was when the flight was flown. Everything else is as
+ * version 7 lays it out, each part there when the clip has it. A clip
+ * without the clock (a test's, or one read from an older file) is written
+ * as the version before, byte for byte, and versions 1 to 7 are read
+ * without it, the traffic then drawn at the live clock as before.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -103,7 +112,10 @@ import {
 import { checkCrashTable, checkProfile } from '../share/roomwire.js';
 import { CROWN_EVENTS, checkPaper, rowsOf } from './paper.js';
 
-export const FILE_VERSION = 7;
+export const FILE_VERSION = 8;
+/* A clip with a crown and no animation clock: the version before the
+ * clock. */
+const CROWN_VERSION = 7;
 /* A clip with an edit of its own or a bubble, and no crown: the version
  * before crowns. */
 const EDIT_VERSION = 6;
@@ -115,11 +127,14 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
-  if (clip.paper && crowned(clip.paper.events)) {
+  if (clip.anim) {
     return FILE_VERSION;
+  }
+  if (clip.paper && crowned(clip.paper.events)) {
+    return CROWN_VERSION;
   }
   if (realEdit(clip) || bubbleOf(clip)) {
     return EDIT_VERSION;
@@ -168,6 +183,11 @@ function peersLayout(bubble) {
   return bubble ? [PEER_N, PIECE_N, BUBBLE_N] : [PEER_N, PIECE_N];
 }
 
+/* The animation clock's bytes: none before version 8. */
+function animBytes(n, version) {
+  return version >= 8 ? n * 8 : 0;
+}
+
 /* The pose column's bytes with its padding to 8. */
 function poseBytes(n) {
   const b = n * POSE_N * 4;
@@ -184,7 +204,7 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim'];
 const PAPER_KEYS = ['bytes', 'events'];
 const PEERS_KEYS = ['slots', 'layout', 'pieces', 'who', 'tables'];
 const WHO_KEYS = ['seat', 'label', 'profile', 'figure'];
@@ -244,10 +264,13 @@ export function encodeReplay(clip) {
      * than making a file that will not open. */
     header.edit = checkedEdit(clip.edit, clip.time[n - 1], peers);
   }
+  if (clip.anim) {
+    header.anim = true;
+  }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
-  const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, version)
+  const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + animBytes(n, version) + smokeBytes(n, version)
     + partRows * PART_N * 4 + (peers ? (n * peers.slots * PEER_N + pieceCount * PIECE_N) * 4 : 0)
     + (bubbleOf(clip) ? n * BUBBLE_N * 4 : 0)
     + (paper ? paper.bytes.byteLength : 0);
@@ -267,6 +290,10 @@ export function encodeReplay(clip) {
   o += poseBytes(n);
   new Float64Array(buf, o, n * PLANT_N).set(clip.plant.subarray(0, n * PLANT_N));
   o += n * PLANT_N * 8;
+  if (clip.anim) {
+    new Float64Array(buf, o, n).set(clip.anim.subarray(0, n));
+  }
+  o += animBytes(n, version);
   new Float32Array(buf, o, n * SMOKE_N).set(clip.smoke.subarray(0, n * SMOKE_N));
   o += smokeBytes(n, version);
   const parts = new Float32Array(buf, o, partRows * PART_N);
@@ -534,8 +561,14 @@ export function decodeReplay(buf, known = null) {
   if (version < 7 && crowns) {
     throw new ReplayFileError('a crown in a file older than version 7');
   }
-  if (version >= 7 && !crowns) {
+  if (version === 7 && !crowns) {
     throw new ReplayFileError('a version 7 file without a crown');
+  }
+  if (version < 8 && header.anim !== undefined) {
+    throw new ReplayFileError('an animation clock in a file older than version 8');
+  }
+  if (version >= 8 && header.anim !== true) {
+    throw new ReplayFileError('a version 8 file without its animation clock');
   }
   if (header.edit !== undefined && header.keys.length) {
     throw new ReplayFileError('a version 6 file with camera keys');
@@ -552,7 +585,7 @@ export function decodeReplay(buf, known = null) {
 
   const pre = 12 + hl;
   let o = pre + ((8 - (pre % 8)) % 8);
-  const fixed = n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, version);
+  const fixed = n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + animBytes(n, version) + smokeBytes(n, version);
   if (o + fixed > buf.byteLength) {
     throw new ReplayFileError('columns run past the end');
   }
@@ -564,6 +597,8 @@ export function decodeReplay(buf, known = null) {
   o += poseBytes(n);
   const plant = new Float64Array(buf.slice(o, o + n * PLANT_N * 8));
   o += n * PLANT_N * 8;
+  const anim = version >= 8 ? new Float64Array(buf.slice(o, o + animBytes(n, version))) : null;
+  o += animBytes(n, version);
   const smoke = version >= 3 ? new Float32Array(buf.slice(o, o + smokeBytes(n, version))) : new Float32Array(n * SMOKE_N);
   o += smokeBytes(n, version);
   let rows = 0;
@@ -588,7 +623,7 @@ export function decodeReplay(buf, known = null) {
   if (o + rows * PART_N * 4 + peerBytes + paperBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
-  for (const col of [time, head, pose, plant, smoke]) {
+  for (const col of [time, head, pose, plant, smoke, ...(anim ? [anim] : [])]) {
     for (let i = 0; i < col.length; i += 1) {
       if (!Number.isFinite(col[i])) {
         throw new ReplayFileError('a column holds a value that is not a number');
@@ -608,6 +643,9 @@ export function decodeReplay(buf, known = null) {
     n, time, head, pose, plant, parts, smoke,
     events: header.events, spawns: header.spawns, keys: header.keys, meta: header.meta,
   };
+  if (anim) {
+    clip.anim = anim;
+  }
   if (header.edit !== undefined) {
     clip.edit = checkedEdit(header.edit, time[n - 1], P);
   }
