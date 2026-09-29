@@ -185,6 +185,30 @@ def rect_axes(poly):
     return c, a / la, b / lb, la, lb
 
 
+# The spillway's ground: the chute floor less SLAB, never over the
+# published foundation. The floor is the sill from the gates to SILL_END
+# (the gates stand 10.5 to 12 m down the axis), then straight to the
+# surface model's profile, which is the floor from FLOOR_DEM_FROM on (the
+# surface model reads 216.9 at the gates, the bridge's smear).
+SLAB = 4.0
+SILL_END = 12.0
+FLOOR_DEM_FROM = 90.0
+
+
+def spill_ground(floor, sill, foundation):
+    knots = [(SILL_END, sill)] + [(d, y) for d, y in floor if d >= FLOOR_DEM_FROM]
+    ds = np.array([k[0] for k in knots])
+    ys = np.array([k[1] for k in knots]) - SLAB
+    pts = [(-30.0, foundation)]
+    for k in range(len(ds) - 1):
+        a, b = ys[k] - foundation, ys[k + 1] - foundation
+        if a > 0 >= b:
+            pts.append((ds[k] + (ds[k + 1] - ds[k]) * a / (a - b), foundation))
+    pts += [(d, y) for d, y in zip(ds, ys) if y < foundation]
+    pts.append((pts[-1][0] + 30.0, pts[-1][1]))
+    return [[r1(d), r1(y)] for d, y in pts]
+
+
 def chute_profile(axis):
     """Copernicus GLO-30 along the spillway chute's axis every 30 m, [[metres from the gates, y]]. A DSM on a
     30 m grid: the floor's shape, smeared by the grid, not its concrete to the decimetre."""
@@ -290,26 +314,37 @@ def build(osm):
                                   f'usual for {kind} dams'}],
             'burn': {'zone': DESMEAR_EMBANKMENT, 'window': DESMEAR_WINDOW}})
 
-    def concrete(name, axis, axis_from, footprint, footprint_from, sections=None):
+    def concrete(name, axis, axis_from, footprint, footprint_from, sections=None, ground='ring', extra=None):
         kind, figs, quotes = row(name)
         return part(name, kind, axis, axis_from, figs, quotes, footprint, footprint_from,
-                    extra={'sections': sections or [], 'burn': {'zone': DESMEAR_CONCRETE, 'window': DESMEAR_WINDOW}})
+                    extra={'sections': sections or [], 'burn': {'zone': DESMEAR_CONCRETE, 'window': DESMEAR_WINDOW},
+                           'groundRule': ground, **(extra or {})})
 
     rb = substring(crest, *cuts['right bank earth dam'])
     embankment('right bank earth dam', rb,
                'OSM way 1395860536, the crest road west of the spillway (868 m; not tagged as a dam in OSM). ANADEM shows '
                'a 220 to 225 m bench along it between the reservoir and 207 m ground south of it.')
     sp = substring(crest, *cuts['spillway'])
+    floor = chute_profile(chute)
+    spill_figs = rows['spillway'][1]
     concrete('spillway', sp, 'OSM way 203751164 from its first to its fourth node: the gate bridge, '
              f'{sp.length:.0f} m (Itaipu: 362 m wide)', spill_poly, 'OSM way 262637862 (waterway=dam, usage=spillway)',
              sections=[{'at': 'chute', 'axis': xz_list(chute), 'axisFrom': 'from the middle of the gate bridge along '
                         'the long side of the OSM footprint, for the published 483 m',
-                        'floor': chute_profile(chute),
+                        'floor': floor,
                         'floorFrom': 'Copernicus GLO-30 (a surface model, 30 m grid) along the chute axis every 30 m, '
-                                     'metres from the gates and y'}])
+                                     'metres from the gates and y'}],
+             ground='chute',
+             extra={'groundProfile': spill_ground(floor, spill_figs['sillY'], CREST_Y - spill_figs['maxHeight']),
+                    'groundProfileFrom': f'[metres down the chute axis from the middle of the gates, y]: the lower of '
+                    f'the published foundation ({CREST_Y - spill_figs["maxHeight"]:.1f} m, 225 less 43.7) and the '
+                    f'floor less {SLAB} m, the floor being the published sill ({spill_figs["sillY"]} m) to '
+                    f'{SILL_END} m and the surface model from {FLOOR_DEM_FROM} m; flat past both ends. The terrain '
+                    'under the footprint is this at each sample\'s distance along the axis.'})
     rl = substring(crest, *cuts['right lateral dam'])
     concrete('right lateral dam', rl, 'the crest road (OSM way 203751164) from the spillway, for the published 998 m',
-             osm.polygon(osm.ways[428443544]), 'OSM way 428443544 (waterway=dam, height 150)')
+             osm.polygon(osm.ways[428443544]), 'OSM way 428443544 (waterway=dam, height 150)',
+             ground='ring, at most baseY')
     concrete('main dam and connecting blocks', crest_main,
              'the crest road (OSM ways 203751164 and 1395860535) after the right lateral dam, for the published 1 064 m',
              main_bldg, 'OSM way 32236291, "Usina Hidreletrica de Itaipu" (building=industrial): the dam and the '
@@ -322,7 +357,7 @@ def build(osm):
          'the crest road between the diversion structure and the rockfill dam; Itaipu letters it G on its plan and '
          'publishes no figure for it', footprint=ll.buffer(20.0, cap_style='flat'),
          footprint_from='derived: the axis buffered 20 m each side (no OSM footprint)',
-         extra={'burn': {'zone': DESMEAR_CONCRETE, 'window': DESMEAR_WINDOW}})
+         extra={'burn': {'zone': DESMEAR_CONCRETE, 'window': DESMEAR_WINDOW}, 'groundRule': 'ring'})
     embankment('rockfill dam', substring(crest, *cuts['rockfill dam']),
                'OSM way 262638260, the crest road, from its start for the published 1 984 m')
     le = substring(crest, *cuts['left bank earth dam'])
@@ -331,10 +366,16 @@ def build(osm):
     embankment('left bank earth dam', le, f'OSM way 262638260 after the rockfill dam, extended {short:.0f} m past its '
                'south end along its last segment to the published 2 294 m')
     kind, figs, quotes = row('powerhouse')
-    part('powerhouse', kind, ph_axis, 'the centre line of the downstream 99 m of OSM way 32236291, extended east to the '
-         'published 968 m into the diversion channel', figs, quotes,
-         extra={'units': [[r1(p.x), r1(p.y)] for p in unit_pts],
-                'unitsFrom': 'derived: 20 units 34 m apart, centred on the axis'})
+    e = part('powerhouse', kind, ph_axis, 'the centre line of the downstream 99 m of OSM way 32236291, extended east to '
+             'the published 968 m into the diversion channel', figs, quotes,
+             ph_axis.buffer(ph['width'] / 2, cap_style='flat').simplify(0.01),
+             'derived: the axis buffered half the published 99 m width each side, the length of the axis',
+             extra={'units': [[r1(p.x), r1(p.y)] for p in unit_pts],
+                    'unitsFrom': 'derived: 20 units 34 m apart, centred on the axis',
+                    'burn': {'zone': DESMEAR_CONCRETE, 'window': DESMEAR_WINDOW}, 'groundRule': 'ring'})
+    # The powerhouse's top is its roof, not the crest: its 112 m stand
+    # under the published 148 m roof.
+    e['baseY'] = r1(ph['roofY'] - ph['maxHeight'])
     kind, figs, quotes = row('penstocks')
     # Each penstock runs from its intake on the crest down the downstream
     # face to its unit: from the crest road's nearest point to the unit.
