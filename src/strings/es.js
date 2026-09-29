@@ -1492,6 +1492,8 @@ export default {
   "ui.times_flown_at_a_weight_that": " Los tiempos volados con un peso distinto de 100 por ciento quedan fuera del tablero público, así que esta sesión no contará ahí.",
   "ui.title": "Título",
   "ui.title_and_what_happened_are_enough": "Con el título y qué pasó alcanza. El mapa, los gráficos, la GPU y el navegador van con el ticket, así que no tienes que escribirlos.",
+  "ui.bug_crash_attached": "Tu choque de hace {age} s va con este reporte: qué se rompió, contra qué chocó y a qué velocidad. No se envía nada hasta que presiones Enviar.",
+  "ui.bug_error_attached": "El error que tuvo el simulador va con este reporte: {message}",
   "ui.to_throw_the_switch_you_want": " que muevas el switch que quieras como Enter, y después funciona como un botón.",
   "ui.track": "Pista",
   "ui.track_record": "Récord de la pista ",

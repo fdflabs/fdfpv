@@ -23,6 +23,13 @@
  *   embankments      terrain (package A burns them in); here only their
  *                    crest roads, as flat ground a plane can land on
  *
+ * v3 (the Itaipu loop's round 1): the buttress heads in relief down the
+ * main dam's and the right wing's downstream faces, capsules, with their
+ * recesses in shade; the penstocks' stiffener rings and roof flanges; the
+ * spillway's piers with noses and sloped tops, and its gates radial, with
+ * arms, trunnions and hoist cylinders, one instanced draw for fourteen;
+ * the intake cranes' rails along the deck.
+ *
  * AND ON THEM (v2): the penstocks' exit hoods, the intake columns and two
  * intake gate cranes on the crest, street lamps and painted lines on every
  * crest road, the coping on the parapets, transmission gantries, the
@@ -139,17 +146,25 @@ const SPILL = {
 /* Linear colours (vertex colour times the photograph). */
 const TONE = {
   concrete: [1.45, 1.41, 1.33],
-  crest: [1.6, 1.56, 1.48],
+  crest: [1.2, 1.1, 0.94],
   face: [1.35, 1.3, 1.22],
   chute: [1.0, 0.94, 0.86],
   deck: [1.55, 1.5, 1.42],
-  road: [1.3, 1.27, 1.2],
+  road: [1.1, 1.02, 0.88],
   asphalt: [0.55, 0.55, 0.56],
   shoulder: [0.7, 0.6, 0.5],
-  rock: [0.45, 0.33, 0.27],
-  gate: [0.36, 0.1, 0.04],
-  penstock: [0.82, 0.82, 0.8],
-  band: [0.62, 0.63, 0.62],
+  /* The rockfill's dumped basalt, dark red brown (rockfill-road photo). */
+  rock: [0.22, 0.16, 0.14],
+  /* The radial gates' skin plates, rust red, and their arms and hoist
+   * cylinders, orange (spill-gates photo). */
+  gate: [0.2, 0.045, 0.025],
+  arm: [0.4, 0.13, 0.05],
+  /* White paint. The sun and the ground's bounce (BOUNCE) take a tone
+   * much over this to clipped white: v2's 0.82 drew as a flat white plank
+   * with no roundness (round 0's penstocks view); here the tube keeps its
+   * shading and its rings, and still reads white. */
+  penstock: [0.22, 0.22, 0.215],
+  ring: [0.18, 0.18, 0.175],
   /* The basalt the dam stands on, where the footprint's flattened ground
    * leaves its foundation standing clear (spillway, right wing). */
   basalt: [0.52, 0.4, 0.34],
@@ -159,7 +174,10 @@ const TONE = {
   roofRib: [1.2, 1.2, 1.17],
   yellow: [2.0, 1.25, 0.08],
   white: [2.3, 2.3, 2.2],
-  craneLilac: [0.36, 0.3, 0.4],
+  /* The intake gantry cranes' paint: a dull mauve grey, which the
+   * photographs show purple in sun and blue grey in shade (crest-road,
+   * dam-downstream); v2's pastel lilac read as a toy. */
+  craneMauve: [0.2, 0.18, 0.22],
   craneOrange: [0.5, 0.2, 0.05],
   craneRust: [0.28, 0.1, 0.05],
   steel: [0.32, 0.33, 0.34],
@@ -180,6 +198,41 @@ const GANTRY = { s: [5, 19], height: 14, leg: 0.6 };
 /* The central building on the powerhouse, between units 14 and 15 (the
  * dam-downstream photograph), metres over the roof. */
 const CENTRE = { length: 80, s: [22, 50], height: 36 };
+/*
+ * The buttress heads down the hollow parts' downstream faces (the
+ * dam-downstream, powerlines and aerial-dam photographs): a comb of heads
+ * standing proud of the face, their radius, with dark recesses between.
+ * On the main dam two between every two units' hoods, RIB.pair either side
+ * of the units' middle, against the hoods, with a recess 2 x (6.5 - 3.5)
+ * = 6 m wide between them, the way check:dam flies out between two
+ * penstocks; on the right wing one a block, 17.2 m apart,
+ * recesses 5.2 m. Each is a capsule of that radius with its axis in the
+ * face, which the drawn head's facets lie inside: collision is the drawn
+ * shape to within 0.3 m (the check's 0.5). The heads weathered darker
+ * and browner than the crest, as the photographs' (RIB.tone); RECESS is
+ * the face's own tone between them, where little sky reaches.
+ */
+const RIB = {
+  main: 3.5, pair: 6.5, wing: 6, tone: [0.58, 0.54, 0.49],
+};
+const RECESS = 0.3;
+/* Stiffener rings on the penstocks, proud of the tube, metres, and a
+ * wider flange where each enters the powerhouse roof: both inside the
+ * 0.5 m the collision allows beyond the capsule. A ring has half the
+ * tube's sides: its facets' 0.1 m of chord hide in its 0.3 m, and the
+ * rings were most of the penstocks' triangles at 24. */
+const RING = {
+  pitch: 6, width: 0.5, proud: 0.3, flange: 0.45, flangeLength: 2.5, sides: 16,
+};
+/* The spillway's radial gates (spill-gates photo): the skin an arc of
+ * RADIAL.r about its trunnion on the pier's side, the arms' beams
+ * RADIAL.beam square, the hoist cylinders' radius, and the skin's ribs. */
+const RADIAL = {
+  r: 21, beam: 0.9, cylinder: 0.4, ribs: 6,
+};
+/* The piers downstream of the bridge fall on a slope to their hoist
+ * decks; upstream their noses stand into the reservoir. */
+const PIER = { slopeFrom: 7, slopeTo: 29, nose: 1.4 };
 
 /* ------------------------------------------------------------ plan math */
 
@@ -528,11 +581,8 @@ export function chuteFloor(spill) {
   return { knots, y: linear(knots) };
 }
 
-/* A cylinder from A to B of radius r, n sides, smooth, open, into flat
- * arrays of positions, normals and colours; `bands` [[from, to, colour]]
- * along its length in metres from A colour rings on it. */
-function tube(A, B, r, n, col, bands, out) {
-  const d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+/* A frame round a direction: two unit vectors square to it and each other. */
+function basisOf(d) {
   const len = Math.hypot(d[0], d[1], d[2]);
   const w = [d[0] / len, d[1] / len, d[2] / len];
   const ref = Math.abs(w[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
@@ -540,44 +590,59 @@ function tube(A, B, r, n, col, bands, out) {
   const ul = Math.hypot(u[0], u[1], u[2]);
   u = [u[0] / ul, u[1] / ul, u[2] / ul];
   const v = [w[1] * u[2] - w[2] * u[1], w[2] * u[0] - w[0] * u[2], w[0] * u[1] - w[1] * u[0]];
-  const cuts = [0, len];
-  for (const [a, b] of bands) {
-    if (a > 0 && a < len) {
-      cuts.push(a);
+  return { w, u, v, len };
+}
+
+const push = (out, P, N, col) => {
+  out.p.push(P[0], P[1], P[2]);
+  out.n.push(N[0], N[1], N[2]);
+  out.c.push(col[0], col[1], col[2]);
+};
+
+/* A cylinder from A to B of radius r, n sides, smooth, open, into flat
+ * arrays of positions, normals and colours. */
+function tube(A, B, r, n, col, out) {
+  const { w, u, v, len } = basisOf([B[0] - A[0], B[1] - A[1], B[2] - A[2]]);
+  for (let i = 0; i < n; i += 1) {
+    const pts = [];
+    for (const [k, l] of [[i, 0], [i + 1, 0], [i + 1, len], [i, len]]) {
+      const a = (k / n) * Math.PI * 2;
+      const N = [0, 1, 2].map((q) => u[q] * Math.cos(a) + v[q] * Math.sin(a));
+      pts.push([[0, 1, 2].map((q) => A[q] + w[q] * l + N[q] * r), N]);
     }
-    if (b > 0 && b < len) {
-      cuts.push(b);
+    for (const q of [pts[0], pts[1], pts[2], pts[0], pts[2], pts[3]]) {
+      push(out, q[0], q[1], col);
     }
   }
-  cuts.sort((a, b) => a - b);
-  const colAt = (m) => {
-    for (const [a, b, c] of bands) {
-      if (m > a && m < b) {
-        return c;
-      }
-    }
-    return col;
+}
+
+/* The flat ring between radii r0 and r1 about C, square to `d` and facing
+ * along it (or against it, `face` -1), its n sides where tube's are. */
+function annulus(C, d, r0, r1, n, col, face, out) {
+  const { w, u, v } = basisOf(d);
+  const N = w.map((q) => q * face);
+  const at = (k, r) => {
+    const a = (k / n) * Math.PI * 2;
+    return [0, 1, 2].map((q) => C[q] + (u[q] * Math.cos(a) + v[q] * Math.sin(a)) * r);
   };
-  for (let c = 0; c + 1 < cuts.length; c += 1) {
-    const l0 = cuts[c];
-    const l1 = cuts[c + 1];
-    const cc = colAt((l0 + l1) / 2);
-    for (let i = 0; i < n; i += 1) {
-      const pts = [];
-      for (const [k, l] of [[i, l0], [i + 1, l0], [i + 1, l1], [i, l1]]) {
-        const a = (k / n) * Math.PI * 2;
-        const nx = u[0] * Math.cos(a) + v[0] * Math.sin(a);
-        const ny = u[1] * Math.cos(a) + v[1] * Math.sin(a);
-        const nz = u[2] * Math.cos(a) + v[2] * Math.sin(a);
-        pts.push([A[0] + w[0] * l + nx * r, A[1] + w[1] * l + ny * r, A[2] + w[2] * l + nz * r, nx, ny, nz]);
-      }
-      for (const q of [pts[0], pts[1], pts[2], pts[0], pts[2], pts[3]]) {
-        out.p.push(q[0], q[1], q[2]);
-        out.n.push(q[3], q[4], q[5]);
-        out.c.push(cc[0], cc[1], cc[2]);
-      }
+  for (let i = 0; i < n; i += 1) {
+    const quad = [at(i, r0), at(i + 1, r0), at(i + 1, r1), at(i, r1)];
+    const tris = face > 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+    for (const j of tris) {
+      push(out, quad[j], N, col);
     }
   }
+}
+
+/* A proud ring on a tube: its outside from `from` to `to` metres along
+ * A to B, at radius r1 over the tube's r0, and its two faces. */
+function collar(A, B, from, to, r0, r1, n, col, out) {
+  const d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+  const len = Math.hypot(d[0], d[1], d[2]);
+  const P = (m) => [A[0] + (d[0] * m) / len, A[1] + (d[1] * m) / len, A[2] + (d[2] * m) / len];
+  tube(P(from), P(to), r1, n, col, out);
+  annulus(P(from), d, r0, r1, n, col, -1, out);
+  annulus(P(to), d, r0, r1, n, col, 1, out);
 }
 
 /* Several three geometries as one, non indexed, position and normal. */
@@ -884,18 +949,30 @@ export async function buildPart(ctx) {
   const up = [0, 1, 0];
   const face = (name, kind, pts) => faces.push({ name, kind, pts });
 
-  /* The ground under a plan: the lowest of its corners and middle, for
-   * the parts with no published foundation. */
-  const lowest = (pts) => Math.min(...pts.map(([x, z]) => ctx.ground(x, z)));
-  const bottomOf = (e, pts) => Math.min(e.baseY ?? Infinity, (e.groundY ?? Infinity) - 2, lowest(pts) - 2);
+  /* Where a part stops: its published foundation, or 2 m under the
+   * ground package A flattened its footprint to, whichever is lower, the
+   * 2 m hiding the terrain's triangles along the footprint's edge. That
+   * ground is dam.json's, not the terrain at the plan's corners, which
+   * reach past the footprint onto the tailrace: the spillway's is its
+   * groundProfile at `ds`, its points' metres down the chute from the
+   * middle of the gates, and every other part's is its groundY. */
+  const bottomOf = (e, ds) => {
+    const g = e.groundProfile ? Math.min(...ds.map(linear(e.groundProfile))) : e.groundY;
+    if (!Number.isFinite(g)) {
+      throw new Error(`itaipu dam: ${e.part} has no groundY or groundProfile in dam.json`);
+    }
+    return Math.min(e.baseY ?? Infinity, g - 2);
+  };
 
   /*
    * A gravity section swept along an axis: [s, y] points from the
    * upstream foot over the crest to the downstream foot, the same count
    * at every section. Draws every face but the underside, and the ends;
-   * a face wholly under rockY is the basalt it stands on.
+   * a face wholly under rockY is the basalt it stands on, and the face
+   * from profile point `recess` to the next is the floor of the buttress
+   * heads' recesses, in their shade.
    */
-  const sweep = (secs, profileAt, col, rockY = -Infinity) => {
+  const sweep = (secs, profileAt, col, rockY = -Infinity, recess = -1) => {
     const P = secs.map((sec, k) => profileAt(sec, k).map(([s, y]) => {
       const [x, z] = offset(sec, s);
       return [x, y, z];
@@ -913,7 +990,8 @@ export async function buildPart(ctx) {
         const outY = ds;
         const out = [sec.m[0] * outS, outY, sec.m[1] * outS];
         const rock = prof[i][1] <= rockY + 1e-6 && prof[i + 1][1] <= rockY + 1e-6;
-        concrete.quad(a[i], b[i], b[i + 1], a[i + 1], rock ? shade(TONE.basalt, k, 0.12) : c, out);
+        const tone = i === recess ? c.map((v) => v * RECESS) : c;
+        concrete.quad(a[i], b[i], b[i + 1], a[i + 1], rock ? shade(TONE.basalt, k, 0.12) : tone, out);
       }
     }
     for (const [k, dir] of [[0, -1], [secs.length - 1, 1]]) {
@@ -1051,6 +1129,74 @@ export async function buildPart(ctx) {
     closeRun(run);
   };
 
+  /*
+   * A buttress head (RIB) down a face from `top` to `toe`, world points on
+   * it, `faceOut` the face's outward normal: the capsule of radius r whose
+   * axis runs down the face from `top`, let down until its cap is a metre
+   * under the crest, to r short of the toe, so its cap ends there. Drawn
+   * as the capsule's outer half, five facets round, its head rounded and
+   * its foot tapered to the toe, every facet inside the capsule; its
+   * sides, which see little sky, a shade darker.
+   */
+  const ribs = [];
+  const rib = (name, top, toe, faceOut, r, col) => {
+    const d = [toe[0] - top[0], toe[1] - top[1], toe[2] - top[2]];
+    const len = Math.hypot(d[0], d[1], d[2]);
+    const e = d.map((v) => v / len);
+    const lift = Math.max(0, (top[1] + r - (CREST_Y - 1)) / -e[1]);
+    if (!(len - lift - r > r)) {
+      throw new Error(`itaipu dam: a ${name} is too short for its radius`);
+    }
+    const along = (P, m) => [P[0] + e[0] * m, P[1] + e[1] * m, P[2] + e[2] * m];
+    const A = along(top, lift);
+    const B = along(toe, -r);
+    const k = faceOut[0] * e[0] + faceOut[1] * e[1] + faceOut[2] * e[2];
+    let o = [faceOut[0] - e[0] * k, faceOut[1] - e[1] * k, faceOut[2] - e[2] * k];
+    const ol = Math.hypot(o[0], o[1], o[2]);
+    o = o.map((v) => v / ol);
+    const side = [e[1] * o[2] - e[2] * o[1], e[2] * o[0] - e[0] * o[2], e[0] * o[1] - e[1] * o[0]];
+    const radial = (phi) => [0, 1, 2].map((q) => Math.cos(phi) * side[q] + Math.sin(phi) * o[q]);
+    const at = (C, dir, psi, phi) => {
+      const w = radial(phi);
+      return [0, 1, 2].map((q) => C[q] + dir[q] * r * Math.sin(psi) + w[q] * r * Math.cos(psi));
+    };
+    const FACETS = 5;
+    const shadeOf = (i) => col.map((v, q) => v * RIB.tone[q] * [0.72, 0.88, 1, 0.88, 0.72][i]);
+    const wall = (P, c, outDir) => {
+      if (P.length === 4) {
+        concrete.quad(P[0], P[1], P[2], P[3], c, outDir);
+      } else {
+        concrete.tri(P[0], P[1], P[2], c, outDir);
+      }
+      face(name, 'wall', P);
+    };
+    for (let i = 0; i < FACETS; i += 1) {
+      const p0 = (i * Math.PI) / FACETS;
+      const p1 = ((i + 1) * Math.PI) / FACETS;
+      wall([at(A, e, 0, p0), at(B, e, 0, p0), at(B, e, 0, p1), at(A, e, 0, p1)], shadeOf(i), radial((p0 + p1) / 2));
+      /* The head: rings at 30 and 60 degrees over its end, then its tip. */
+      const w = radial((p0 + p1) / 2);
+      const back = e.map((v) => -v);
+      const psi = [0, Math.PI / 6, Math.PI / 3, Math.PI / 2];
+      for (let j = 0; j + 1 < psi.length; j += 1) {
+        const q0 = psi[j];
+        const q1 = psi[j + 1];
+        const m = (q0 + q1) / 2;
+        const outDir = [0, 1, 2].map((q) => back[q] * Math.sin(m) + w[q] * Math.cos(m));
+        const pts = j + 2 < psi.length
+          ? [at(A, back, q0, p0), at(A, back, q0, p1), at(A, back, q1, p1), at(A, back, q1, p0)]
+          : [at(A, back, q0, p0), at(A, back, q0, p1), at(A, back, q1, 0)];
+        wall(pts, shadeOf(i).map((v) => v * 0.92), outDir);
+      }
+      /* The foot tapers to a point on the face at the toe, chords of the
+       * capsule's end. */
+      const m = Math.PI / 4;
+      wall([at(B, e, 0, p0), at(B, e, 0, p1), at(B, e, Math.PI / 2, 0)], shadeOf(i).map((v) => v * 0.92), [0, 1, 2].map((q) => e[q] * Math.sin(m) + w[q] * Math.cos(m)));
+    }
+    const index = addCapsule('wall', A, B, r);
+    ribs.push({ a: A, b: B, r, index });
+  };
+
   /* ================================================== the main dam */
   /* dam.json names it "main dam and connecting blocks" (section 6's row). */
   const main = ctx.data['dam.json'].find((e) => e.part.startsWith('main dam'));
@@ -1111,7 +1257,7 @@ export async function buildPart(ctx) {
     }
     fine.push(tb);
     const secs = fine.map((t) => ({ p: F.at(t, 0), m: F.n, t }));
-    sweep(secs, (sec) => mainProfile(sec.t), (k) => shade(TONE.face, Math.round(secs[k].t / blockLen)));
+    sweep(secs, (sec) => mainProfile(sec.t), (k) => shade(TONE.face, Math.round(secs[k].t / blockLen)), -Infinity, 3);
     for (let k = 0; k + 1 < secs.length; k += 1) {
       const t0 = secs[k].t;
       const t1 = secs[k + 1].t;
@@ -1136,12 +1282,50 @@ export async function buildPart(ctx) {
     drawParapet(crestSecs, -5.3);
     drawParapet(crestSecs, MAIN.crestDown - 0.3);
     drawRoad(crestSecs, -5, MAIN.crestDown - 0.6, TONE.road);
+    /* The intake cranes' rails along the deck, one under each row of
+     * their legs (crest-road photo). */
+    for (let k = 0; k + 1 < crestSecs.length; k += 1) {
+      const t0 = crestSecs[k].t;
+      const t1 = crestSecs[k + 1].t;
+      for (const sAt of [(t) => sUp(t) + 1.7, () => -6.9]) {
+        const P = (t, ds) => {
+          const [x, z] = F.at(t, sAt(t) + ds);
+          return [x, CREST_Y + 0.03, z];
+        };
+        road.quad(P(t0, -0.15), P(t1, -0.15), P(t1, 0.15), P(t0, 0.15), TONE.steel, up);
+      }
+    }
   }
   closeRun(crestRun);
   {
     const whole = [{ p: F.at(tStart, 0), m: F.n, t: 0 }, { p: F.at(tEnd, 0), m: F.n, t: tEnd - tStart }];
     markings(whole, (MAIN.crestDown - 0.6 - 5) / 2, (MAIN.crestDown - 0.6 + 5) / 2);
     lampsAlong(whole, MAIN.crestDown - 0.3, CREST_Y + 2 * PARAPET_R);
+  }
+  /* The buttress heads, a pair between every two units and on at the
+   * same pitch to the dam's ends. */
+  {
+    const unitT = ph.units.map((u) => F.local(...u)[0]);
+    const pitch = ph.figures.unitSpacing;
+    const at = [];
+    for (let k = 0; k + 1 < unitT.length; k += 1) {
+      at.push((unitT[k] + unitT[k + 1]) / 2);
+    }
+    for (let t = unitT[0] - pitch / 2; t > tStart + RIB.pair + RIB.main + 2; t -= pitch) {
+      at.push(t);
+    }
+    for (let t = unitT[unitT.length - 1] + pitch / 2; t < tEnd - RIB.pair - RIB.main - 2; t += pitch) {
+      at.push(t);
+    }
+    for (const t of at.flatMap((m) => [m - RIB.pair, m + RIB.pair])) {
+      const [st, yt] = toeOf(t);
+      const ds = st - MAIN.crestDown;
+      const dy = yt - MAIN.bandY;
+      const l = Math.hypot(ds, dy);
+      const top = F.at(t, MAIN.crestDown);
+      const toe = F.at(t, st);
+      rib('main dam buttress', [top[0], MAIN.bandY, top[1]], [toe[0], yt, toe[1]], [F.n[0] * (-dy / l), ds / l, F.n[1] * (-dy / l)], RIB.main, shade(TONE.face, 8000 + Math.round(t)));
+    }
   }
   mainTriangles = concrete.triangles - mainTriangles;
   figures.mainCrestLength = tEnd - tStart;
@@ -1212,21 +1396,25 @@ export async function buildPart(ctx) {
     penEnds.push([[A[0], 185 + 6 * k, A[1]], [B[0], ph.figures.roofY - 5, B[1]]]);
   }
   const penIndex = penEnds.map(([A, B]) => addCapsule('wall', A, B, penR));
-  /* Drawn at the capsule's own radius, so the gap a pilot sees between
-   * two is the gap the collision holds (34 - 10.5 = 23.5 m): the
-   * stiffener rings are painted on, not stood proud. */
+  /* Drawn at the capsule's radius, with the stiffener rings and the
+   * flange at the roof RING.proud and RING.flange over it, once the hoods
+   * have said where each leaves the face (drawPenstocks). */
   const penstockTris = { p: [], n: [], c: [] };
   const penRanges = [];
-  for (const [A, B] of penEnds) {
+  const drawPenstocks = () => penEnds.forEach(([A, B], k) => {
     const from = penstockTris.c.length;
     const len = Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]);
-    const bands = [];
-    for (let m = 4; m < len; m += 6) {
-      bands.push([m, m + 0.35, TONE.band]);
+    tube(A, B, penR, 32, TONE.penstock, penstockTris);
+    const sA = F.local(A[0], A[2])[1];
+    const sB = F.local(B[0], B[2])[1];
+    const out = ((hoodFront[k] - sA) / (sB - sA)) * len;
+    const roof = ((ph.figures.roofY - A[1]) / (B[1] - A[1])) * len;
+    for (let m = out + 1.5; m + RING.width < roof - RING.flangeLength; m += RING.pitch) {
+      collar(A, B, m, m + RING.width, penR, penR + RING.proud, RING.sides, TONE.ring, penstockTris);
     }
-    tube(A, B, penR, 32, TONE.penstock, bands, penstockTris);
+    collar(A, B, roof - RING.flangeLength, roof + 0.5, penR, penR + RING.flange, 32, TONE.penstock, penstockTris);
     penRanges.push([from, penstockTris.c.length]);
-  }
+  });
   /* Each penstock's target: a capsule round its drawn length, from where
    * it leaves its hood to where it enters the powerhouse roof, 8 m about
    * its axis (its 5.25 m and a margin, and 34 - 16 = 18 m clear of the
@@ -1254,19 +1442,6 @@ export async function buildPart(ctx) {
     };
     darken[`penstock-${k}`] = { mesh: 'penstocks', range: penRanges[k] };
   });
-  let penstockMesh;
-  {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(penstockTris.p, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(penstockTris.n, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(penstockTris.c, 3));
-    g.computeBoundingSphere();
-    const mat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.45, metalness: 0.1 }), 'penstock');
-    penstockMesh = new THREE.Mesh(g, mat);
-    penstockMesh.name = 'itaipu-dam-penstocks';
-    penstockMesh.castShadow = true;
-    penstockMesh.receiveShadow = true;
-  }
 
   /* ---- the hoods over the penstocks' exits: a flat topped block on the
    * face, its top high enough that the penstock leaves through its front */
@@ -1306,7 +1481,21 @@ export async function buildPart(ctx) {
     face('penstock hood top', 'roof', [P(t0, s1, top), P(t1, s1, top), P(t1, s2, top), P(t0, s2, top)]);
   });
   closeRun(hoodRun);
+  drawPenstocks();
   penstockTargets();
+  let penstockMesh;
+  {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(penstockTris.p, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(penstockTris.n, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(penstockTris.c, 3));
+    g.computeBoundingSphere();
+    const mat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.55, metalness: 0 }), 'penstock');
+    penstockMesh = new THREE.Mesh(g, mat);
+    penstockMesh.name = 'itaipu-dam-penstocks';
+    penstockMesh.castShadow = true;
+    penstockMesh.receiveShadow = true;
+  }
 
   /* ---- the intake columns on the upstream edge, a unit's pitch apart */
   const vents = [];
@@ -1352,7 +1541,7 @@ export async function buildPart(ctx) {
   /* ---- the intake gate cranes on the upstream deck (crest-road photo) */
   for (const u of [3, 16]) {
     const t = F.local(...ph.units[u])[0] + ph.figures.unitSpacing / 2;
-    crane(F, t - 6, t + 6, sUp(t) + 1, -6.2, CREST_Y, CREST_Y + 22, CREST_Y + 30, TONE.craneLilac);
+    crane(F, t - 6, t + 6, sUp(t) + 1, -6.2, CREST_Y, CREST_Y + 22, CREST_Y + 30, TONE.craneMauve);
   }
 
   /* ---- the powerhouse roof: transmission gantries between the
@@ -1485,12 +1674,13 @@ export async function buildPart(ctx) {
   sites.face = {
     crestDown: MAIN.crestDown, bandY: MAIN.bandY, roofY: ph.figures.roofY, n: F.n, a: F.a,
   };
+  /* The buttress heads, main dam's and the right wing's: capsules. */
+  sites.buttresses = ribs;
 
   /* ================================================== gravity parts */
-  const gravity = (e, section, name, colour) => {
+  const gravity = (e, section, name, colour, ribR = 0) => {
     const secs = sectionsOf(e.axis);
-    const pts = secs.flatMap((s) => [offset(s, section.up), offset(s, section.crestDown)]);
-    const base = bottomOf(e, pts.concat(e.footprint || []));
+    const base = bottomOf(e);
     const toe = section.crestDown + (section.bandY - base) * section.slope;
     /* Where the ground A flattened the footprint to is lower than the
      * published foundation, what stands under the foundation is drawn as
@@ -1500,7 +1690,26 @@ export async function buildPart(ctx) {
     const prof = found > base
       ? () => [[section.up, base], [section.up, found], [section.up, CREST_Y], [section.crestDown, CREST_Y], [section.crestDown, section.bandY], [sF, found], [toe, base]]
       : () => [[section.up, base], [section.up, CREST_Y], [section.crestDown, CREST_Y], [section.crestDown, section.bandY], [toe, base]];
-    sweep(secs, prof, (k) => shade(colour, 1000 * name.length + k), found > base ? found : -Infinity);
+    sweep(secs, prof, (k) => shade(colour, 1000 * name.length + k), found > base ? found : -Infinity, ribR ? prof().findIndex(([s2, y]) => s2 === section.crestDown && y === section.bandY) : -1);
+    /* A buttress head in the middle of every block, RIB. */
+    for (let b = 0; ribR && b < e.figures.blocks; b += 1) {
+      const t = ((b + 0.5) * secs[secs.length - 1].t) / e.figures.blocks;
+      let k = 0;
+      while (k + 2 < secs.length && secs[k + 1].t < t) {
+        k += 1;
+      }
+      const p = secs[k].p;
+      const q = secs[k + 1].p;
+      const l = dist(p, q);
+      const f = (t - secs[k].t) / (secs[k + 1].t - secs[k].t);
+      const sec = { p: [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f], m: [-(q[1] - p[1]) / l, (q[0] - p[0]) / l] };
+      const [tx, tz] = offset(sec, section.crestDown);
+      const [bx, bz] = offset(sec, toe);
+      const ds = toe - section.crestDown;
+      const dy = base - section.bandY;
+      const n = Math.hypot(ds, dy);
+      rib(`${name} buttress`, [tx, section.bandY, tz], [bx, base, bz], [sec.m[0] * (-dy / n), ds / n, sec.m[1] * (-dy / n)], ribR, shade(colour, 9500 + b));
+    }
     const run = [];
     for (let k = 0; k + 1 < secs.length; k += 1) {
       const a = secs[k];
@@ -1531,7 +1740,7 @@ export async function buildPart(ctx) {
   const rightLateral = need('right lateral dam');
   const diversion = need('diversion structure');
   const leftLateral = need('left lateral dam');
-  const rl = gravity(rightLateral, BUTTRESS, 'right lateral dam', TONE.face);
+  const rl = gravity(rightLateral, BUTTRESS, 'right lateral dam', TONE.face, RIB.wing);
   const dv = gravity(diversion, GRAVITY, 'diversion', TONE.concrete);
   const ll = gravity(leftLateral, GRAVITY, 'left lateral dam', TONE.concrete);
   figures.rightLateralLength = rl.length;
@@ -1543,6 +1752,10 @@ export async function buildPart(ctx) {
 
   /* ================================================== the spillway */
   const sp = need('spillway');
+  /* The gates' steel behind their skins, gate 0's, and where each gate's
+   * copy of it stands (one instanced draw, made with the meshes). */
+  const gear = new Mesher();
+  const gearAt = [];
   {
     const chute = sp.sections.find((s) => s.at === 'chute');
     const [c0, c1] = chute.axis;
@@ -1556,13 +1769,7 @@ export async function buildPart(ctx) {
     const cf = chuteFloor(sp);
     const floor = cf.y;
     const knots = cf.knots.slice(1).map(([d]) => d);
-    const pts = [];
-    for (const u of [-W, W]) {
-      for (const d of [SPILL.upstream, 200, 483]) {
-        pts.push(C.at(u, d));
-      }
-    }
-    const base = bottomOf(sp, pts.concat(sp.footprint));
+    const base = bottomOf(sp, [SPILL.upstream, 483, ...sp.footprint.map(([x, z]) => C.local(x, z)[1])]);
     const at3 = (u, d, y) => {
       const [x, z] = C.at(u, d);
       return [x, y, z];
@@ -1640,44 +1847,186 @@ export async function buildPart(ctx) {
         x: m[0], z: m[1], y: CREST_Y, dir: C.a,
       };
     }
-    /* The piers: under the bridge to 225, then their hoist decks falling
-     * down the chute. */
+    /* The piers: their noses into the reservoir and their tops under the
+     * bridge at 225, falling on a slope from PIER.slopeFrom to their hoist
+     * decks, flat to their ends (spill-gates photo). The slope's columns
+     * are held under it by as much as its fall across a column, 1.5 m, so
+     * a capsule along each of its top edges, just inside, takes the rest
+     * of its sides. */
+    const yLow = SPILL.pierLow;
+    const [s0, s1] = [PIER.slopeFrom, PIER.slopeTo];
+    const fall = (CREST_Y - yLow) / (s1 - s0);
+    const edgeR = 0.5;
+    const edgeDrop = edgeR * Math.sqrt(1 + fall * fall);
+    const rockNose = Math.max(base, rockAt(SPILL.upstream));
     for (const [k, u] of pierU.entries()) {
       const u0 = u - pierW / 2;
       const u1 = u + pierW / 2;
-      const hi = [SPILL.upstream, SPILL.ogee + 2];
-      block(concrete, u0, u1, hi[0], hi[1], base, CREST_Y, CREST_Y, shade(TONE.concrete, 2000 + k));
+      const col = shade(TONE.concrete, 2000 + k);
+      const nose = [];
+      for (let i = 0; i <= 4; i += 1) {
+        const a = Math.PI * (1 + i / 4);
+        nose.push([u + (pierW / 2) * Math.cos(a), SPILL.upstream + (pierW / 2) * PIER.nose * Math.sin(a)]);
+      }
+      concrete.poly(nose.map(([nu, nd]) => at3(nu, nd, CREST_Y)), col, up);
+      const o = C.at(u, SPILL.upstream);
+      for (let i = 0; i + 1 < nose.length; i += 1) {
+        const [ua, da] = nose[i];
+        const [ub, db] = nose[i + 1];
+        const c = C.at((ua + ub) / 2, (da + db) / 2);
+        const m = [c[0] - o[0], 0, c[1] - o[1]];
+        concrete.quad(at3(ua, da, base), at3(ub, db, base), at3(ub, db, rockNose), at3(ua, da, rockNose), shade(TONE.basalt, 9050 + k, 0.12), m);
+        concrete.quad(at3(ua, da, rockNose), at3(ub, db, rockNose), at3(ub, db, CREST_Y), at3(ua, da, CREST_Y), col, m);
+        face('spillway pier nose', 'wall', [at3(ua, da, 205), at3(ub, db, 205), at3(ub, db, CREST_Y), at3(ua, da, CREST_Y)]);
+      }
       const run = [];
-      flatBlock(plan(u0, u1, hi[0], hi[1]), base, CREST_Y, 'spillway pier', run);
+      flatBlock(nose.map(([nu, nd]) => C.at(nu, nd)), base, CREST_Y, 'spillway pier', run);
+      block(concrete, u0, u1, SPILL.upstream, s0, base, CREST_Y, CREST_Y, col);
+      flatBlock(plan(u0, u1, SPILL.upstream, s0), base, CREST_Y, 'spillway pier', run);
       closeRun(run);
-      const yLow = SPILL.pierLow;
-      block(concrete, u0, u1, hi[1], SPILL.pierEnd, base, yLow, yLow, shade(TONE.concrete, 2100 + k));
+      const top = block(concrete, u0, u1, s0, s1, base, CREST_Y, yLow, col);
+      slopeRoof(top[0], top[1], top[2], top[3], 'spillway pier slope');
+      prismBoxes(plan(u0, u1, s0, s1), base, planeTop(top[0], top[1], top[3]));
+      for (const side of [u0 + edgeR, u1 - edgeR]) {
+        addCapsule('wall', at3(side, s0, CREST_Y - edgeDrop), at3(side, s1, yLow - edgeDrop), edgeR);
+      }
+      face('spillway pier slope', 'roof', top);
+      block(concrete, u0, u1, s1, SPILL.pierEnd, base, yLow, yLow, col);
       const lowRun = [];
-      flatBlock(plan(u0, u1, hi[1], SPILL.pierEnd), base, yLow, 'spillway pier', lowRun, C.n);
+      flatBlock(plan(u0, u1, s1, SPILL.pierEnd), base, yLow, 'spillway pier', lowRun, C.n);
       closeRun(lowRun);
       for (const side of [u0, u1]) {
-        face('spillway pier side', 'wall', [at3(side, hi[1], 205), at3(side, SPILL.pierEnd, 205), at3(side, SPILL.pierEnd, yLow), at3(side, hi[1], yLow)]);
+        face('spillway pier side', 'wall', [at3(side, s0, 205), at3(side, s1, 205), at3(side, s1, yLow), at3(side, s0, CREST_Y)]);
+        face('spillway pier side', 'wall', [at3(side, s1, 205), at3(side, SPILL.pierEnd, 205), at3(side, SPILL.pierEnd, yLow), at3(side, s1, yLow)]);
       }
     }
     figures.spillwayPiers = pierU.length;
-    /* The gates, radial in the photographs, drawn as their skin plates
-     * held part open. */
+    /*
+     * The gates: radial (tainter) gates held part open, each a skin plate
+     * on an arc of RADIAL.r about its trunnions on the piers' sides, the
+     * arc's middle where v2's flat plate stood, so each gate's target,
+     * colliders and reach are v2's. Behind the skin its ribs and two
+     * girders, and on each side two arms back to the trunnion, a brace
+     * between them and the hoist cylinder from the pier's slope. The skin
+     * is drawn per gate, so a destroyed one chars alone; the steel behind
+     * it is the same for all fourteen, one instanced draw (gear).
+     */
     const gateBottom = sp.figures.sillY + SPILL.gateOpen;
     const gateTop = sp.figures.sillY + sp.figures.gateHeight;
+    const R = RADIAL.r;
+    const tY = (gateBottom + gateTop) / 2;
+    const tD = SPILL.gate[0] + R;
+    const aMax = Math.asin((gateTop - tY) / R);
+    const ROWS = 8;
+    /* The point at radius rr from the trunnion, al up from its level, at u. */
+    const arc = (u, rr, al) => at3(u, tD - rr * Math.cos(al), tY + rr * Math.sin(al));
+    const radialOut = (al) => [-C.n[0] * Math.cos(al), Math.sin(al), -C.n[1] * Math.cos(al)];
+    const gearFaces = [];
+    const across = [C.a[0], 0, C.a[1]];
+    /* A beam of square section, `half` across, from P to Q, its sides
+     * square to `side` and to itself; its long faces checked as `name`. */
+    const beam = (P, Q, half, side, col, name) => {
+      const d = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]];
+      const l = Math.hypot(d[0], d[1], d[2]);
+      const w = d.map((v) => v / l);
+      const k2 = side[0] * w[0] + side[1] * w[1] + side[2] * w[2];
+      let a = [side[0] - w[0] * k2, side[1] - w[1] * k2, side[2] - w[2] * k2];
+      const al = Math.hypot(a[0], a[1], a[2]);
+      a = a.map((v) => v / al);
+      const b = [w[1] * a[2] - w[2] * a[1], w[2] * a[0] - w[0] * a[2], w[0] * a[1] - w[1] * a[0]];
+      const corner = (E, i) => {
+        const sa = i === 0 || i === 3 ? -half : half;
+        const sb = i < 2 ? -half : half;
+        return [0, 1, 2].map((q) => E[q] + a[q] * sa + b[q] * sb);
+      };
+      for (let i = 0; i < 4; i += 1) {
+        const j = (i + 1) % 4;
+        const pts = [corner(P, i), corner(P, j), corner(Q, j), corner(Q, i)];
+        const m = [0, 1, 2].map((q) => (pts[0][q] + pts[1][q]) / 2 - P[q]);
+        gear.quad(pts[0], pts[1], pts[2], pts[3], col, m);
+        if (name) {
+          gearFaces.push([name, pts]);
+        }
+      }
+      gear.poly([0, 1, 2, 3].map((i) => corner(P, i)), col, w.map((v) => -v));
+      gear.poly([0, 1, 2, 3].map((i) => corner(Q, i)), col, w);
+    };
+    const aArm = aMax * 0.6;
+    const armIn = R - 1.5;
+    const gateR = Math.min(12.5, (SPILL.gateWidth + pierW) / 2);
     for (let g = 0; g < SPILL.gates; g += 1) {
       const u0 = pierU[g] + pierW / 2;
       const u1 = pierU[g + 1] - pierW / 2;
       const from = metal.c.length;
-      block(metal, u0, u1, SPILL.gate[0], SPILL.gate[1], gateBottom, gateTop, gateTop, TONE.gate, false);
+      for (let i = 0; i < ROWS; i += 1) {
+        const a0 = -aMax + (2 * aMax * i) / ROWS;
+        const a1 = -aMax + (2 * aMax * (i + 1)) / ROWS;
+        const skin = [arc(u0, R, a0), arc(u1, R, a0), arc(u1, R, a1), arc(u0, R, a1)];
+        metal.quad(...skin, TONE.gate, radialOut((a0 + a1) / 2));
+        metal.quad(arc(u0, R - 0.3, a0), arc(u1, R - 0.3, a0), arc(u1, R - 0.3, a1), arc(u0, R - 0.3, a1), TONE.gate, radialOut((a0 + a1) / 2).map((v) => -v));
+        face('spillway gate', 'wall', skin);
+      }
+      for (const [al, dir] of [[aMax, 1], [-aMax, -1]]) {
+        const o = [C.n[0] * Math.sin(al) * dir, Math.cos(al) * dir, C.n[1] * Math.sin(al) * dir];
+        metal.quad(arc(u0, R, al), arc(u1, R, al), arc(u1, R - 0.3, al), arc(u0, R - 0.3, al), TONE.gate, o);
+      }
       const ids = prismBoxes(plan(u0, u1, SPILL.gate[0], SPILL.gate[1]), gateBottom, () => gateTop);
       /* gate-0 is the westernmost: u runs east. */
       /* On its upstream face; its reach at most half the gates' pitch,
        * so neighbours' spheres never overlap. */
       targets[`gate-${g}`] = {
-        at: at3((u0 + u1) / 2, SPILL.gate[0], (gateBottom + gateTop) / 2), r: Math.min(12.5, (SPILL.gateWidth + pierW) / 2), part: 'gate', colliders: ids,
+        at: arc((u0 + u1) / 2, R, 0), r: gateR, part: 'gate', colliders: ids,
       };
-      darken[`gate-${g}`] = { mesh: 'steel', range: [from, metal.c.length] };
-      face('spillway gate', 'wall', [at3(u0, SPILL.gate[1], gateBottom), at3(u1, SPILL.gate[1], gateBottom), at3(u1, SPILL.gate[1], gateTop), at3(u0, SPILL.gate[1], gateTop)]);
+      darken[`gate-${g}`] = [{ mesh: 'steel', range: [from, metal.c.length] }, { mesh: 'gate-gear', instance: g }];
+      for (const [side, us] of [[u0, u0 + 1], [u1, u1 - 1]]) {
+        const T = arc(us, 0, 0);
+        const ends = [aArm, -aArm].map((al) => arc(us, armIn, al));
+        const brace = [arc(us, armIn * 0.55, aArm), arc(us, armIn * 0.55, -aArm)];
+        const pivot = at3(us, 9.5, CREST_Y - 4);
+        const rodEnd = arc(us, R - 0.9, aMax * 0.9);
+        for (const E of ends) {
+          addCapsule('wall', T, E, 0.55);
+        }
+        addCapsule('wall', brace[0], brace[1], 0.4);
+        addCapsule('wall', arc(side, 0, 0), T, 0.95);
+        addCapsule('wall', pivot, rodEnd, RADIAL.cylinder + 0.05);
+        if (g > 0) {
+          continue;
+        }
+        for (const E of ends) {
+          beam(T, E, RADIAL.beam / 2, across, TONE.arm, 'spillway gate arm');
+        }
+        beam(brace[0], brace[1], 0.3, across, TONE.arm, 'spillway gate arm');
+        beam(arc(side, 0, 0), T, 0.65, up, TONE.steel, 'spillway gate trunnion');
+        const mid = [0, 1, 2].map((q) => pivot[q] + (rodEnd[q] - pivot[q]) * 0.6);
+        beam(pivot, mid, RADIAL.cylinder * 0.9, across, TONE.arm, 'spillway hoist cylinder');
+        beam(mid, rodEnd, 0.14, across, TONE.steel, null);
+      }
+      if (g > 0) {
+        continue;
+      }
+      for (let j = 0; j < RADIAL.ribs; j += 1) {
+        const ur = u0 + ((j + 0.5) * (u1 - u0)) / RADIAL.ribs;
+        for (let i = 0; i < ROWS; i += 1) {
+          const a0 = -aMax + (2 * aMax * i) / ROWS;
+          const a1 = -aMax + (2 * aMax * (i + 1)) / ROWS;
+          for (const du of [-0.12, 0.12]) {
+            gear.quad(arc(ur + du, R - 0.3, a0), arc(ur + du, R - 1.2, a0), arc(ur + du, R - 1.2, a1), arc(ur + du, R - 0.3, a1), TONE.gate, [C.a[0] * du, 0, C.a[1] * du]);
+          }
+          gear.quad(arc(ur - 0.12, R - 1.2, a0), arc(ur + 0.12, R - 1.2, a0), arc(ur + 0.12, R - 1.2, a1), arc(ur - 0.12, R - 1.2, a1), TONE.gate, radialOut((a0 + a1) / 2).map((v) => -v));
+        }
+      }
+      for (const al of [aArm, -aArm]) {
+        beam(arc(u0 + 0.2, R - 0.9, al), arc(u1 - 0.2, R - 0.9, al), 0.6, up, TONE.gate, null);
+      }
+    }
+    const [ox, oz] = C.at(pierU[0], 0);
+    for (const u of pierU.slice(0, SPILL.gates)) {
+      const [x, z] = C.at(u, 0);
+      gearAt.push([x - ox, 0, z - oz]);
+      for (const [name, pts] of gearFaces) {
+        face(name, 'wall', pts.map((q) => [q[0] + x - ox, q[1], q[2] + z - oz]));
+      }
     }
     figures.spillwayGates = SPILL.gates;
     figures.spillwayGateWidth = pierU[1] - pierU[0] - pierW;
@@ -1902,6 +2251,7 @@ export async function buildPart(ctx) {
     const mat = bounced(new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(0.75, 0.75, 0.73, THREE.LinearSRGBColorSpace), roughness: 0.5, metalness: 0.1 }), 'column');
     instanced(mergeGeometries(THREE, [shaft, cap, band]), mat, vents, 'intake-columns', false);
   }
+  instanced(gear.geometry(THREE), metalMat, gearAt, 'gate-gear', false);
 
   /* ---- the targets' states: smoke and fire over them, and a destroyed
    * part drawn charred, its colours put back when it is anything else. */
@@ -2017,8 +2367,8 @@ export async function buildPart(ctx) {
     setTargetState,
     targetState: (id) => states[id],
     /* What scripts/dam-check.js measures: the drawn faces the collision
-     * must hold, the figures as built, where to fly, and the part's own
-     * collider indices. */
+     * must hold, the figures as built, where to fly (sites, with the
+     * buttress heads' capsules), and the part's own collider indices. */
     survey: () => ({
       ...counts(),
       faces,

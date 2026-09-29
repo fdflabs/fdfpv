@@ -264,8 +264,8 @@ async function buildItaipu(shell, progress, q) {
     progress: (f) => progress(0.2 + 0.5 * f),
   });
   /* The ground the parts place on and the plant stands on near the
-   * craft: the finest level, which after terrain/reconcile.js is what the
-   * engine draws wherever it can draw 10 m. */
+   * craft: the finest level, which is what the engine draws wherever it
+   * can draw 10 m. */
   const ground = (x, z) => terrain.finestAt(x, z);
   progress(0.7);
   await yieldToPaint();
@@ -413,7 +413,6 @@ async function buildItaipu(shell, progress, q) {
     },
     stats: () => ({
       terrain: terrain.stats(),
-      reconciled: terrain.reconciled,
       colliders: colliders.stats(),
       stream: streamer.stats,
       parts: Object.fromEntries(Object.entries(parts).map(([n, p]) => [n, p.stats()])),

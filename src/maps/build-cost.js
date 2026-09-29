@@ -63,8 +63,9 @@ export const MAP_BUILD_MS = {
    * test fleets, so these carry the Alps' figure's spread and more. */
   swiss2: 2500,
   /* Itaipu with every part in: the manifest and every JSON file it
-   * lists, the whole 66 tile pyramid (8.7 MB) fetched and reconciled
-   * (terrain/reconcile.js, about 0.2 s), the imagery, the masks and
+   * lists, the whole tile pyramid fetched (86 tiles, 11.4 MB on data v2;
+   * these figures are v1's 66 and its reconcile pass, about 0.2 s, since
+   * removed), the imagery, the masks and
    * swiss2's photographs, the chunks round the spawn, then the dam, the
    * water, the town and the forest, and the streamed colliders filled
    * round the spawn. World stage from the shell's loading ledger, the data

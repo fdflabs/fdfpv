@@ -111,7 +111,7 @@ import {
 import {
   BLAST_M, KIND, KINDS, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
-import itaipu1 from '../../src/share/war/missions/itaipu-1.js';
+import { MISSIONS } from '../../src/share/war/missions/index.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
@@ -119,7 +119,7 @@ import { POSE_MAX_SPEED } from './safety.js';
 import { Hunters, loadHeight } from './warhunt.js';
 import { HERE_MS, interestEvery } from './core.js';
 
-export const MISSIONS = { [itaipu1.id]: itaipu1 };
+export { MISSIONS };
 
 /* A scripted attacker's samples: this far apart on the room clock, on
  * multiples of it, whatever the ticks do. The route's curvature between

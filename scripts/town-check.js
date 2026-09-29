@@ -81,7 +81,6 @@ import { airframeById } from '../configs/airframes.js';
 import {
   decode, HERO, TILE_CELLS, TILE_SAMPLES,
 } from '../src/maps/yellowstone/terrain/frame.js';
-import { reconcile } from '../src/maps/itaipu/terrain/reconcile.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
 import {
   planTown, WALLS_R, FINE_R, MOVE,
@@ -119,8 +118,7 @@ const ok = (m) => console.log(`  ok   ${m}`);
 /*
  * The ground as the engine reads it (src/maps/yellowstone/terrain/
  * engine.js finestAt and tri): the finest tile's two triangles a cell,
- * after package B's reconcile (terrain/reconcile.js), run here on the same
- * tiles as the page runs it, so the hero's edge pads are the page's too.
+ * on the same tiles the page draws.
  */
 async function groundFrom(manifest) {
   const half = manifest.frame.ring[1];
@@ -142,10 +140,6 @@ async function groundFrom(manifest) {
   }
   await Promise.all(jobs);
   const get = (level, i, j) => tiles.get(`${level}:${i}:${j}`) ?? null;
-  const { pads } = reconcile(get, manifest.hero.tiles, ITAIPU_FRAME.coarsest);
-  for (const p of pads) {
-    tiles.set(`${HERO}:${p.i}:${p.j}`, p.data);
-  }
   const extent = 2 * half;
   return (x, z) => {
     for (let level = HERO; level <= ITAIPU_FRAME.coarsest; level += 1) {

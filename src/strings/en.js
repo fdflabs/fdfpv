@@ -1518,6 +1518,8 @@ export default {
   "ui.times_flown_at_a_weight_that": " Times flown at a weight that is not 100 percent stay off the public board, so this run will not count there.",
   "ui.title": "Title",
   "ui.title_and_what_happened_are_enough": "Title and what happened are enough. The map, graphics, GPU and browser go with the ticket so you do not have to type those.",
+  "ui.bug_crash_attached": "Your crash {age} s ago goes with this report: what broke, what it hit and how fast. Nothing is sent until you press Send.",
+  "ui.bug_error_attached": "The error the simulator hit goes with this report: {message}",
   "ui.to_throw_the_switch_you_want": " to throw the switch you want as Enter, and after that it works like a button.",
   "ui.total": "Total",
   "ui.track": "Track",

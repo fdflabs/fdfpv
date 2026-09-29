@@ -223,6 +223,7 @@ import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
+import { crashRecord } from './share/crashrecord.js';
 import { stateHash } from './replay/recorder.js';
 
 /*
@@ -544,12 +545,12 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 25 (the town is 8 of them,
+ * itaipu: itaipu.js and src/maps/itaipu/, 24 (the town is 8 of them,
  * the vegetation 3, the spawns and the title's flight 2, the war's
  * switchyard 2). The Yellowstone terrain engine and the swiss2 look it
  * is built with are under their own prefixes, as the Alps' modules are
  * for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 25 };
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 24 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -15504,6 +15505,19 @@ export async function boot({
       notice = { text, untilMs: performance.now() + 2400 };
     },
     state: () => stateCurr,
+    /* Every crash, written down for the next F8 while it is still on
+     * screen: what broke, the last hits (part, what it met, how fast) and
+     * where. See share/crashrecord.js. */
+    onCrash: (kind) => crashRecord.noteCraft({
+      kind,
+      airframe: runAirframe,
+      map: view ? view.id : '',
+      flags: Object.keys(DAMAGE_FLAGS).filter((k) => (crashFlags & DAMAGE_FLAGS[k]) !== 0),
+      hits: crashLog.slice(-4),
+      speed: speedNow,
+      agl: lastClearance,
+      at: [shell.quad.position.x, shell.quad.position.y, shell.quad.position.z],
+    }),
     parts: () => lastParts,
     partCount: () => damage.count(),
     flags: () => crashFlags,
