@@ -58,6 +58,18 @@ export const PROTECT_MS = 3000;
 export const BUBBLE_M = 6;
 /* How many of the last crown changes the room's view carries. */
 export const CROWNS_SHOWN = 8;
+/*
+ * THE CHASE BOOST, the owner's "if you are NOT the ace, you get a 5% speed
+ * boost for chasing": while a match is live, every pilot who is not the Ace
+ * (everybody while the orb is free) flies with the plant's sim_set_boost
+ * at this, every prop as if it turned this much faster (src/native/
+ * sim_abi.h says why a prop speed and not a thrust scale). Measured by
+ * scripts/boost-check.js: 1.05 bought 3.7 percent of level top speed on
+ * the five inch and 5.4 on the Cub, because a quad at full tilt still
+ * holds itself up with its props; 1.06 buys about 4.4 and 6.5, the pair
+ * nearest the owner's 5 percent either side of it.
+ */
+export const CHASE_BOOST = 1.06;
 
 export function points(ms) {
   return Math.floor(ms / POINT_MS);
@@ -84,8 +96,10 @@ export function createRoomTag(send) {
   let error = null;
   let startTaken = null;
   let resultsTaken = null;
-  /* The newest crown handed out, as `${match id}:${t}:${seat}`. */
+  /* The newest crown handed out, as `${match id}:${t}:${seat}`, and the
+   * newest orb dropped, as `${match id}:${t}`. */
   let crownTaken = null;
+  let dropTaken = null;
 
   const api = {
     onWelcome(w) {
@@ -99,6 +113,7 @@ export function createRoomTag(send) {
       }
       const last = (tag.crowns || []).at(-1);
       crownTaken = last ? `${tag.id}:${last.t}:${last.seat}` : crownTaken;
+      dropTaken = tag.orb ? `${tag.id}:${tag.orb.t}` : dropTaken;
     },
 
     /* A room message this module owns. Returns true when it was one. */
@@ -132,7 +147,12 @@ export function createRoomTag(send) {
      * 0. A room from before the bubble sends none and judges a touch, so
      * nothing is drawn that would not be a tag. */
     bubble() {
-      return tag.state === 'live' && tag.ace != null && tag.bubble > 0 ? tag.bubble : 0;
+      return tag.state === 'live' && (tag.ace != null || tag.orb) && tag.bubble > 0 ? tag.bubble : 0;
+    },
+    /* The free orb while nobody is the Ace (a crashed Ace dropped it,
+     * docs/TAG-PLAN.md decision 14): { t, from, px, py, pz }, else null. */
+    orb() {
+      return tag.state === 'live' && tag.orb ? tag.orb : null;
     },
     on() {
       return tag.state === 'countdown' || tag.state === 'live';
@@ -150,6 +170,13 @@ export function createRoomTag(send) {
         return tag.ace === seat ? 'ace' : 'hunter';
       }
       return 'lobby';
+    },
+
+    /* The chase boost this pilot flies with now: CHASE_BOOST while a
+     * match is live and it is not the Ace, else 1. The countdown is
+     * everybody's hold, and gets none. */
+    boost(roomNow) {
+      return api.role(roomNow) === 'hunter' ? CHASE_BOOST : 1;
     },
 
     /* ms to hold the aircraft on its slot, 0 when it may fly. */
@@ -187,6 +214,20 @@ export function createRoomTag(send) {
       }
       crownTaken = key;
       return last;
+    },
+
+    /* The newest orb dropped, once: { t, from, px, py, pz }. */
+    takeDrop() {
+      const o = api.orb();
+      if (!o) {
+        return null;
+      }
+      const key = `${tag.id}:${o.t}`;
+      if (key === dropTaken) {
+        return null;
+      }
+      dropTaken = key;
+      return o;
     },
 
     /* Whether the Ace is inside its tag back protection now. */

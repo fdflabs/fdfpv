@@ -152,7 +152,8 @@ export class RoomRaceHud {
     this.key = '';
   }
 
-  /* view: null to hide, or { title, rows: [{ place, name, value, me }] }. */
+  /* view: null to hide, or { title, rows: [{ place, name, value, me }],
+   * chip }, chip a short line under the title, or absent. */
   update(view) {
     const key = view ? JSON.stringify(view) : '';
     if (key === this.key) {
@@ -165,6 +166,9 @@ export class RoomRaceHud {
       return;
     }
     this.root.append(el('div', 'room-race-title', view.title));
+    if (view.chip) {
+      this.root.append(el('div', 'room-race-chip', view.chip));
+    }
     for (const r of view.rows) {
       const row = el('div', `room-race-row${r.me ? ' is-me' : ''}`);
       row.append(el('span', 'room-race-place', String(r.place)), el('span', 'room-race-name', r.name), el('span', 'room-race-value', r.value));

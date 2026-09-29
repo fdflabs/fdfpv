@@ -373,6 +373,30 @@ export function createCrashCam(host) {
     }
   }
 
+  /*
+   * Catch the Ace's crown burst (src/render/acecrown.js) and the coin on
+   * the shell's audio, kept beside the paper's events (src/replay/
+   * paper.js) the way tapPaper keeps the cuts and the SCHWINGs.
+   */
+  function tapCrown(fx) {
+    const play = fx.play;
+    fx.play = (at, from, level = 1, ageS = 0) => {
+      if (!S && recording && host.mode() === 'flight') {
+        paperRing.crown(rec.now() - ageS, at, from, level);
+      }
+      return play(at, from, level, ageS);
+    };
+    if (typeof audio.coin === 'function') {
+      const coin = audio.coin.bind(audio);
+      audio.coin = (level = 1, atTime) => {
+        if (!S && recording && host.mode() === 'flight') {
+          paperRing.coin(rec.now(), level);
+        }
+        return coin(level, atTime);
+      };
+    }
+  }
+
   /* ---- the pad ---- */
 
   function standardPad() {
@@ -938,7 +962,8 @@ export function createCrashCam(host) {
     /* After the camera: the ribbons are never drawn thinner than a few
      * pixels, so they are drawn from where it is this frame. */
     if (S.scene.paper) {
-      S.scene.paper.frame(s.k, s.a, from, t, running, speed, shell.camera, shell.canvas.clientHeight || 720);
+      const ace = S.scene.peers ? S.scene.peers.aceAt() : null;
+      S.scene.paper.frame(s.k, s.a, from, t, running, speed, shell.camera, shell.canvas.clientHeight || 720, ace);
     }
     S.drawnT = t;
   }
@@ -1937,6 +1962,7 @@ export function createCrashCam(host) {
     record,
     recordPeers,
     tapPaper,
+    tapCrown,
     noteCrash,
     promptKey: () => promptKey,
     tap,

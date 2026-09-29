@@ -463,9 +463,9 @@ export function trimPeers(peers, a, b) {
 
 /*
  * The bubble between rows k and k + 1, `a` of the way, into out ({ r, x,
- * y, z, level }): eased between two rows that drew one round the same
- * Ace, else the earlier row's, so a crown changing hands is a jump, as
- * it was live.
+ * y, z, level, seat }): eased between two rows that drew one round the
+ * same Ace, else the earlier row's, so a crown changing hands is a jump,
+ * as it was live. Seat 0 is the free orb (src/render/acebubble.js).
  */
 export function bubbleAt(bubble, n, k, a, out) {
   const o0 = k * BUBBLE_N;
@@ -478,6 +478,7 @@ export function bubbleAt(bubble, n, k, a, out) {
   out.y = at(BUBBLE.pos + 1);
   out.z = at(BUBBLE.pos + 2);
   out.level = at(BUBBLE.level);
+  out.seat = bubble[o0 + BUBBLE.seat];
   return out;
 }
 
