@@ -23,6 +23,15 @@
  *   embankments      terrain (package A burns them in); here only their
  *                    crest roads, as flat ground a plane can land on
  *
+ * AND ON THEM (v2): the penstocks' exit hoods, the intake columns and two
+ * intake gate cranes on the crest, street lamps and painted lines on every
+ * crest road, the coping on the parapets, transmission gantries, the
+ * central building and the tailrace crane on the powerhouse roof, the
+ * spillway bridge's hoist house, and the concrete aged by its shader.
+ * Where a footprint was flattened under a part's published foundation
+ * (the spillway, the right wing) the part stands on basalt drawn down to
+ * the flattened ground, and its concrete is its published height.
+ *
  * HOW IT COLLIDES (section 6, collision model). The shell has capsules,
  * spheres and world aligned boxes. A top a craft can stand on is a roof
  * record (src/maps/alps/roofs.js), a plane over a convex plan, which the
@@ -112,7 +121,12 @@ const SPILL = {
   upstream: -8,
   deck: [-7, 7],
   deckUnder: 222.8,
-  gate: [10.5, 12],
+  /* The gates' skin plates, on the upstream face between the piers'
+   * noses (the war session's reading of spill-gates: the frames are on the
+   * upstream face), under the bridge's deck. */
+  gate: [-6.5, -5],
+  /* Where the sill's flat ends and the ogee falls away. */
+  ogee: 12,
   pierEnd: 42,
   /* The piers' hoist decks downstream of the bridge, flat. */
   pierLow: 213,
@@ -135,7 +149,37 @@ const TONE = {
   rock: [0.45, 0.33, 0.27],
   gate: [0.36, 0.1, 0.04],
   penstock: [0.82, 0.82, 0.8],
+  band: [0.62, 0.63, 0.62],
+  /* The basalt the dam stands on, where the footprint's flattened ground
+   * leaves its foundation standing clear (spillway, right wing). */
+  basalt: [0.52, 0.4, 0.34],
+  hood: [1.25, 1.2, 1.12],
+  coping: [1.75, 1.72, 1.64],
+  roofSheet: [1.5, 1.5, 1.46],
+  roofRib: [1.2, 1.2, 1.17],
+  yellow: [2.0, 1.25, 0.08],
+  white: [2.3, 2.3, 2.2],
+  craneLilac: [0.36, 0.3, 0.4],
+  craneOrange: [0.5, 0.2, 0.05],
+  craneRust: [0.28, 0.1, 0.05],
+  steel: [0.32, 0.33, 0.34],
+  glass: [0.05, 0.06, 0.07],
+  draft: [0.02, 0.022, 0.02],
 };
+
+/* The penstocks' exit hoods on the face (the dam-downstream photograph):
+ * a block over each penstock, HOOD.width along the dam, reaching
+ * HOOD.reach out from where its flat top meets the face. */
+const HOOD = { width: 16, reach: 13, top: 196 };
+/* Street lamps along the crest roads, metres apart, and the white intake
+ * columns on the main dam's upstream edge, one a unit's pitch. */
+const LAMP = { spacing: 30, height: 10, arm: 2.4, r: 0.12 };
+const VENT = { r: 0.7, height: 12 };
+/* Transmission gantries over the powerhouse roof between the penstocks. */
+const GANTRY = { s: [5, 19], height: 14, leg: 0.6 };
+/* The central building on the powerhouse, between units 14 and 15 (the
+ * dam-downstream photograph), metres over the roof. */
+const CENTRE = { length: 80, s: [22, 50], height: 36 };
 
 /* ------------------------------------------------------------ plan math */
 
@@ -361,21 +405,34 @@ function shade(tone, k, spread = 0.07) {
  * ground, lit at the sun's 65.8 degrees (look/light.js) with swiss2's
  * SUN_IRRADIANCE 3.51, at the red earth's albedo of about 0.2:
  * 0.5 x 0.2 x 3.51 x 0.91 = 0.32, and the sunlit concrete round it
- * (the powerhouse roof, the chute, the next buttress) about as much
- * again: 0.55 on a vertical face, twice that on one turned down.
+ * (the powerhouse roof, the chute, the next buttress, all at 0.35 or
+ * more) as much again and more, and the photographs are lit by a lower
+ * sun than the scene's 65.8 degrees, so their downstream faces carry
+ * light this one does not: 1.2 on a vertical face, twice that on one
+ * turned down. v1 had 0.55 and its downstream walls read black against
+ * the dam-downstream and powerhouse photographs, where the shaded
+ * concrete is about half as bright as the sunlit.
  */
 const BOUNCE = /* glsl */ `
-  reflectedLight.indirectDiffuse += 1.1 * 0.5 * (1.0 - itdN.y) * vec3(1.0, 0.93, 0.84) * BRDF_Lambert(material.diffuseColor);
+  reflectedLight.indirectDiffuse += 7.0 * 0.5 * (1.0 - itdN.y) * vec3(1.0, 0.94, 0.86) * BRDF_Lambert(material.diffuseColor);
 `;
 
 /*
  * The dam's concrete: swiss2's photographed concrete, tinted per vertex,
  * aged in world space so its 3 m tile never repeats across a kilometre of
- * face: blotches a few tens of metres across, rain run down every steep
- * face in long dark streaks with the lime leached pale between them, and
- * the water's marks, green black at the tailwater and a dark band at the
- * reservoir's line. vS2World is declared by the look's light
- * (look/light.js inject), which every material in the scene goes through.
+ * face (the dam-downstream and spill-gates photographs):
+ *   - blotches a few tens of metres across, each pour its own grey;
+ *   - the lift joints every 2.4 m and the block joints every 15.4 m (the
+ *     main dam's 69 blocks over 1 064 m) as fine dark lines;
+ *   - rain run down every steep face in long dark streaks, heaviest
+ *     under the crest band where the parapet's drains let it go;
+ *   - efflorescence: lime leached white out of the lift joints and run
+ *     down a few metres under them, in patches;
+ *   - rust run brown from the steelwork on the face;
+ *   - the water's marks, green black at the tailwater and a dark band
+ *     at the reservoir's line.
+ * vS2World is declared by the look's light (look/light.js inject), which
+ * every material in the scene goes through.
  */
 const AGE_PARS = /* glsl */ `
   vec3 itdN = vec3(0.0, 1.0, 0.0);
@@ -399,16 +456,39 @@ const AGE_BODY = /* glsl */ `
     float steep = 1.0 - smoothstep(0.5, 0.85, abs(wn.y));
     vec2 along = normalize(vec2(wn.z, -wn.x) + 1e-5);
     float h = dot(vS2World.xz, along);
-    float blot = itdNoise(vS2World.xz / 29.0 + vS2World.y / 37.0) * 0.6 + itdNoise(vS2World.xz / 7.0 - vS2World.y / 11.0) * 0.4;
-    diffuseColor.rgb *= 0.8 + 0.34 * blot;
-    float run = itdNoise(vec2(h * 0.45, vS2World.y * 0.03)) * 0.65 + itdNoise(vec2(h * 1.9 + 17.0, vS2World.y * 0.07)) * 0.35;
-    diffuseColor.rgb *= 1.0 - 0.42 * smoothstep(0.48, 0.82, run) * steep;
-    float leach = smoothstep(0.68, 0.9, itdNoise(vec2(h * 0.8 + 5.0, vS2World.y * 0.018)));
-    diffuseColor.rgb *= 1.0 + 0.22 * leach * steep;
-    diffuseColor.rgb *= mix(vec3(0.42, 0.46, 0.38), vec3(1.0), smoothstep(103.5, 109.0, vS2World.y));
-    diffuseColor.rgb *= 1.0 - 0.3 * steep * (1.0 - smoothstep(0.0, 2.2, abs(vS2World.y - 220.0)));
+    float y = vS2World.y;
+    float far = smoothstep(150.0, 900.0, length(vViewPosition));
+    float blot = itdNoise(vS2World.xz / 29.0 + y / 37.0) * 0.6 + itdNoise(vS2World.xz / 7.0 - y / 11.0) * 0.4;
+    diffuseColor.rgb *= 0.82 + 0.3 * blot;
+    float lift = abs(fract(y / 2.4) - 0.5) * 2.4;
+    float block = abs(fract(h / 15.42) - 0.5) * 15.42;
+    float joint = max(1.0 - smoothstep(0.03, 0.09, 1.2 - lift), 1.0 - smoothstep(0.03, 0.1, 7.71 - block));
+    diffuseColor.rgb *= 1.0 - 0.28 * joint * steep * (1.0 - far);
+    float run = itdNoise(vec2(h * 0.45, y * 0.03)) * 0.65 + itdNoise(vec2(h * 1.9 + 17.0, y * 0.07)) * 0.35;
+    float underCrest = 0.55 + 0.45 * smoothstep(150.0, 215.0, y);
+    diffuseColor.rgb *= 1.0 - 0.45 * smoothstep(0.46, 0.8, run) * steep * underCrest;
+    float drip = fract(y / 2.4);
+    float patchy = smoothstep(0.62, 0.86, itdNoise(vec2(h * 0.35 + 3.0, floor(y / 2.4) * 0.7)));
+    float runs = smoothstep(0.35, 0.8, itdNoise(vec2(h * 2.3 + 9.0, y * 0.05)));
+    float efflor = patchy * runs * smoothstep(0.35, 1.0, drip) * steep * (1.0 - 0.7 * far);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.92, 0.9, 0.84) * (0.55 + 0.45 * blot), 0.45 * efflor);
+    float rust = smoothstep(0.78, 0.95, itdNoise(vec2(h * 0.9 + 41.0, y * 0.04))) * steep * smoothstep(140.0, 160.0, y);
+    diffuseColor.rgb *= mix(vec3(1.0), vec3(1.05, 0.78, 0.6), rust * 0.5);
+    diffuseColor.rgb *= mix(vec3(0.42, 0.46, 0.38), vec3(1.0), smoothstep(103.5, 109.0, y));
+    diffuseColor.rgb *= 1.0 - 0.3 * steep * (1.0 - smoothstep(0.0, 2.2, abs(y - 220.0)));
   }
 `;
+
+/* The same bounce on the dam's painted steel and its plain paints. */
+function bounced(mat, key) {
+  mat.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nvec3 itdN = inverseTransformDirection(normal, viewMatrix);')
+      .replace('#include <aomap_fragment>', `${BOUNCE}\n#include <aomap_fragment>`);
+  };
+  mat.customProgramCacheKey = () => `itaipu-dam-${key}`;
+  return mat;
+}
 
 function concreteMaterial(THREE, set, key) {
   const m = new THREE.MeshStandardMaterial({
@@ -432,9 +512,229 @@ function concreteMaterial(THREE, set, key) {
   return m;
 }
 
+/*
+ * The chute floor the spillway is built with, for package E's water on
+ * it: dam.json's surface model profile from 90 m down the chute, and
+ * before that the published sill at the gates eased over the ogee (the
+ * surface model reads 216.9 at the gates, the bridge's smear, section
+ * 6's note). `spill` is dam.json's spillway entry. Returns the knots
+ * [[d, y]...] (d metres down the chute axis from the middle of the gates)
+ * and y(d).
+ */
+export function chuteFloor(spill) {
+  const chute = spill.sections.find((s) => s.at === 'chute');
+  const dem = chute.floor.filter(([d]) => d >= 90);
+  const knots = [[SPILL.upstream, spill.figures.sillY], [SPILL.ogee, spill.figures.sillY], [40, 196.6], [60.4, 193.8], ...dem];
+  return { knots, y: linear(knots) };
+}
+
+/* A cylinder from A to B of radius r, n sides, smooth, open, into flat
+ * arrays of positions, normals and colours; `bands` [[from, to, colour]]
+ * along its length in metres from A colour rings on it. */
+function tube(A, B, r, n, col, bands, out) {
+  const d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+  const len = Math.hypot(d[0], d[1], d[2]);
+  const w = [d[0] / len, d[1] / len, d[2] / len];
+  const ref = Math.abs(w[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+  let u = [w[1] * ref[2] - w[2] * ref[1], w[2] * ref[0] - w[0] * ref[2], w[0] * ref[1] - w[1] * ref[0]];
+  const ul = Math.hypot(u[0], u[1], u[2]);
+  u = [u[0] / ul, u[1] / ul, u[2] / ul];
+  const v = [w[1] * u[2] - w[2] * u[1], w[2] * u[0] - w[0] * u[2], w[0] * u[1] - w[1] * u[0]];
+  const cuts = [0, len];
+  for (const [a, b] of bands) {
+    if (a > 0 && a < len) {
+      cuts.push(a);
+    }
+    if (b > 0 && b < len) {
+      cuts.push(b);
+    }
+  }
+  cuts.sort((a, b) => a - b);
+  const colAt = (m) => {
+    for (const [a, b, c] of bands) {
+      if (m > a && m < b) {
+        return c;
+      }
+    }
+    return col;
+  };
+  for (let c = 0; c + 1 < cuts.length; c += 1) {
+    const l0 = cuts[c];
+    const l1 = cuts[c + 1];
+    const cc = colAt((l0 + l1) / 2);
+    for (let i = 0; i < n; i += 1) {
+      const pts = [];
+      for (const [k, l] of [[i, l0], [i + 1, l0], [i + 1, l1], [i, l1]]) {
+        const a = (k / n) * Math.PI * 2;
+        const nx = u[0] * Math.cos(a) + v[0] * Math.sin(a);
+        const ny = u[1] * Math.cos(a) + v[1] * Math.sin(a);
+        const nz = u[2] * Math.cos(a) + v[2] * Math.sin(a);
+        pts.push([A[0] + w[0] * l + nx * r, A[1] + w[1] * l + ny * r, A[2] + w[2] * l + nz * r, nx, ny, nz]);
+      }
+      for (const q of [pts[0], pts[1], pts[2], pts[0], pts[2], pts[3]]) {
+        out.p.push(q[0], q[1], q[2]);
+        out.n.push(q[3], q[4], q[5]);
+        out.c.push(cc[0], cc[1], cc[2]);
+      }
+    }
+  }
+}
+
+/* Several three geometries as one, non indexed, position and normal. */
+function mergeGeometries(THREE, list) {
+  const p = [];
+  const n = [];
+  for (const g of list) {
+    const h = g.index ? g.toNonIndexed() : g;
+    p.push(...h.getAttribute('position').array);
+    n.push(...h.getAttribute('normal').array);
+    h.dispose();
+    g.dispose();
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(n, 3));
+  return out;
+}
+
+/* ------------------------------------------------------------ damage */
+
+/* What a target can be (docs/WARFARE-PLAN.md section 8). */
+export const TARGET_STATES = ['ok', 'smoke', 'fire', 'destroyed'];
+/* Particles per target in the one shared smoke and fire buffer, and the
+ * most a target's puffs spread about each of its centres, metres. */
+const PUFFS = 32;
+const SPREAD = 60;
+
+/*
+ * Smoke and fire over every target, in one Points draw: each target owns
+ * PUFFS particles of one buffer from the build on, so setting a state is
+ * writing its 32 entries and nothing is made or freed in flight. Each
+ * puff rises and spreads on a loop of its own from its seed, in the
+ * vertex shader, off the sim's clock (update(step)): smoke drifts with
+ * the north east breeze (itaipu.js WIND) and fades, fire is short lived
+ * flecks low over the target. Size 0 draws nothing.
+ */
+function makeDamage(THREE, ids, targets) {
+  const n = ids.length * PUFFS;
+  const centre = new Float32Array(n * 3);
+  const seed = new Float32Array(n * 4);
+  const look = new Float32Array(n * 4);
+  let h = 20260929;
+  const rnd = () => {
+    h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
+    return h / 4294967296;
+  };
+  ids.forEach((id, k) => {
+    for (let i = 0; i < PUFFS; i += 1) {
+      const j = k * PUFFS + i;
+      centre.set(targets[id].at, j * 3);
+      seed.set([rnd(), rnd(), rnd(), rnd()], j * 4);
+    }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(centre, 3));
+  g.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 4));
+  /* Not Float32BufferAttribute, which copies: set() writes `look`. */
+  const lookAttr = new THREE.BufferAttribute(look, 4);
+  g.setAttribute('aLook', lookAttr);
+  const uniforms = { uTime: { value: 0 }, uScale: { value: 600 } };
+  const mat = new THREE.ShaderMaterial({
+    uniforms,
+    transparent: true,
+    depthWrite: false,
+    vertexShader: /* glsl */ `
+      uniform float uTime;
+      uniform float uScale;
+      attribute vec4 aSeed;
+      attribute vec4 aLook;
+      varying float vFire;
+      varying float vFade;
+      varying float vDark;
+      void main() {
+        float fire = step(aLook.x, aSeed.w);
+        float life = mix(7.0, 1.3, fire);
+        float ph = fract(aSeed.x + uTime / life);
+        float r = aLook.y;
+        vec3 p = position;
+        p.x += (aSeed.y - 0.5) * r * (0.5 + ph) + ph * mix(18.0, 1.0, fire) * 0.7;
+        p.z += (aSeed.z - 0.5) * r * (0.5 + ph) + ph * mix(18.0, 1.0, fire) * 0.7;
+        p.y += ph * mix(42.0, 9.0, fire) + mix(2.0, 0.5, fire);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        float size = mix(7.0 + ph * 26.0, 7.0 * (1.0 - 0.6 * ph), fire) * aLook.z;
+        gl_PointSize = size * uScale / max(-mv.z, 1.0);
+        vFire = fire;
+        vFade = 1.0 - ph;
+        vDark = aLook.w;
+      }`,
+    fragmentShader: /* glsl */ `
+      varying float vFire;
+      varying float vFade;
+      varying float vDark;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float a = 1.0 - smoothstep(0.2, 0.5, length(c));
+        vec3 smoke = mix(vec3(0.5, 0.49, 0.47), vec3(0.09, 0.085, 0.08), vDark);
+        vec3 col = mix(smoke, vec3(4.0, 1.7, 0.45), vFire);
+        float alpha = a * vFade * mix(0.6, 0.95, vFire);
+        if (alpha < 0.01) discard;
+        gl_FragColor = vec4(col, alpha);
+      }`,
+  });
+  mat.name = 'itaipu-dam-damage';
+  const points = new THREE.Points(g, mat);
+  points.name = 'itaipu-dam-damage';
+  points.frustumCulled = false;
+  points.renderOrder = 10;
+  points.onBeforeRender = (renderer, scene, camera) => {
+    uniforms.uScale.value = renderer.getContext().drawingBufferHeight * camera.projectionMatrix.elements[5] * 0.5;
+  };
+  /* A state as [fire share, smoke darkness, size]: that share of the
+   * puffs are fire, the rest smoke that darkens with the damage; size 0
+   * draws nothing. */
+  const LOOK = {
+    ok: [0, 0, 0],
+    smoke: [0, 0.25, 1],
+    fire: [0.45, 0.6, 1],
+    destroyed: [0.25, 1, 1.4],
+  };
+  const index = new Map(ids.map((id, k) => [id, k]));
+  const pos = g.getAttribute('position');
+  return {
+    points,
+    /* `target` is the entry as the map holds it when the state is set,
+     * which a later part may have replaced (the war part's yard): its
+     * puffs spread over its `fires` when it has them, else round `at`,
+     * each centre's spread at most SPREAD whatever its reach. */
+    set(id, state, target) {
+      const k = index.get(id);
+      const [share, dark, size] = LOOK[state];
+      const fires = target.fires && target.fires.length ? target.fires : [target.at];
+      const r = Math.min(target.r, SPREAD);
+      for (let i = 0; i < PUFFS; i += 1) {
+        pos.array.set(fires[i % fires.length], (k * PUFFS + i) * 3);
+      }
+      pos.addUpdateRange(k * PUFFS * 3, PUFFS * 3);
+      pos.needsUpdate = true;
+      for (let i = 0; i < PUFFS; i += 1) {
+        /* aLook: x the seed at and over which a puff is fire (over 1 for
+         * none), y the spread, z the size, w the smoke's darkness. */
+        look.set([share > 0 ? 1 - share : 2, r, size, dark], (k * PUFFS + i) * 4);
+      }
+      lookAttr.addUpdateRange(k * PUFFS * 4, PUFFS * 4);
+      lookAttr.needsUpdate = true;
+    },
+    update(step) {
+      uniforms.uTime.value = step / 1000;
+    },
+  };
+}
+
 /* ------------------------------------------------------------ the build */
 
 export async function buildPart(ctx) {
+  const started = performance.now();
   const { THREE } = ctx;
   const byPart = Object.fromEntries(ctx.data['dam.json'].map((e) => [e.part, e]));
   const need = (name) => {
@@ -453,11 +753,15 @@ export async function buildPart(ctx) {
   const faces = [];
   const figures = {};
   const sites = {};
+  /* The war mode's targets (docs/WARFARE-PLAN.md section 8), by id, and
+   * what each one's damage darkens: a colour range of one of the meshes. */
+  const targets = {};
+  const darken = {};
 
   const addBox = (x0, y0, z0, x1, y1, z1) => {
     const i = ctx.colliders.addBox('wall', x0, y0, z0, x1, y1, z1);
     solids.push(i);
-    boxes.push([x0, y0, z0, x1, y1, z1]);
+    boxes.push([x0, y0, z0, x1, y1, z1, i]);
     return i;
   };
   const addCapsule = (kind, a, b, r) => {
@@ -588,9 +892,10 @@ export async function buildPart(ctx) {
   /*
    * A gravity section swept along an axis: [s, y] points from the
    * upstream foot over the crest to the downstream foot, the same count
-   * at every section. Draws every face but the underside, and the ends.
+   * at every section. Draws every face but the underside, and the ends;
+   * a face wholly under rockY is the basalt it stands on.
    */
-  const sweep = (secs, profileAt, col) => {
+  const sweep = (secs, profileAt, col, rockY = -Infinity) => {
     const P = secs.map((sec, k) => profileAt(sec, k).map(([s, y]) => {
       const [x, z] = offset(sec, s);
       return [x, y, z];
@@ -607,7 +912,8 @@ export async function buildPart(ctx) {
         const outS = -dy;
         const outY = ds;
         const out = [sec.m[0] * outS, outY, sec.m[1] * outS];
-        concrete.quad(a[i], b[i], b[i + 1], a[i + 1], c, out);
+        const rock = prof[i][1] <= rockY + 1e-6 && prof[i + 1][1] <= rockY + 1e-6;
+        concrete.quad(a[i], b[i], b[i + 1], a[i + 1], rock ? shade(TONE.basalt, k, 0.12) : c, out);
       }
     }
     for (const [k, dir] of [[0, -1], [secs.length - 1, 1]]) {
@@ -637,12 +943,22 @@ export async function buildPart(ctx) {
       const b0 = offset(secs[k + 1], s - t / 2);
       const b1 = offset(secs[k + 1], s + t / 2);
       const y0 = CREST_Y;
-      const y1 = CREST_Y + 2 * PARAPET_R;
-      const c = TONE.crest;
+      const y1 = CREST_Y + 2 * PARAPET_R - 0.12;
+      const y2 = CREST_Y + 2 * PARAPET_R;
+      const c = shade(TONE.crest, k, 0.05);
       const m = secs[k].m;
       concrete.quad([a0[0], y0, a0[1]], [b0[0], y0, b0[1]], [b0[0], y1, b0[1]], [a0[0], y1, a0[1]], c, [-m[0], 0, -m[1]]);
       concrete.quad([a1[0], y0, a1[1]], [b1[0], y0, b1[1]], [b1[0], y1, b1[1]], [a1[0], y1, a1[1]], c, [m[0], 0, m[1]]);
-      concrete.quad([a0[0], y1, a0[1]], [b0[0], y1, b0[1]], [b1[0], y1, b1[1]], [a1[0], y1, a1[1]], c, up);
+      /* The coping: a cap 5 cm proud of each face, a shade lighter. */
+      const c0 = offset(secs[k], s - t / 2 - 0.05);
+      const c1 = offset(secs[k], s + t / 2 + 0.05);
+      const d0 = offset(secs[k + 1], s - t / 2 - 0.05);
+      const d1 = offset(secs[k + 1], s + t / 2 + 0.05);
+      const cc = TONE.coping;
+      concrete.quad([c0[0], y1, c0[1]], [d0[0], y1, d0[1]], [d0[0], y2, d0[1]], [c0[0], y2, c0[1]], cc, [-m[0], 0, -m[1]]);
+      concrete.quad([c1[0], y1, c1[1]], [d1[0], y1, d1[1]], [d1[0], y2, d1[1]], [c1[0], y2, c1[1]], cc, [m[0], 0, m[1]]);
+      concrete.quad([c0[0], y2, c0[1]], [d0[0], y2, d0[1]], [d1[0], y2, d1[1]], [c1[0], y2, c1[1]], cc, up);
+      concrete.quad([c0[0], y1, c0[1]], [d0[0], y1, d0[1]], [d1[0], y1, d1[1]], [c1[0], y1, c1[1]], cc, [0, -1, 0]);
     }
   };
   /* The road's surface along a crest, s0 to s1, a hair over its record. */
@@ -655,6 +971,84 @@ export async function buildPart(ctx) {
       const y = CREST_Y + 0.02;
       road.quad([a0[0], y, a0[1]], [b0[0], y, b0[1]], [b1[0], y, b1[1]], [a1[0], y, a1[1]], tone, up);
     }
+  };
+
+  /* Painted lines along a crest road: a double yellow on its middle sc
+   * and a white line inside each edge, half its width from the middle. */
+  const markings = (secs, sc, half) => {
+    const line = (s0, s1, col) => {
+      for (let k = 0; k + 1 < secs.length; k += 1) {
+        const a0 = offset(secs[k], s0);
+        const a1 = offset(secs[k], s1);
+        const b0 = offset(secs[k + 1], s0);
+        const b1 = offset(secs[k + 1], s1);
+        const y = CREST_Y + 0.035;
+        road.quad([a0[0], y, a0[1]], [b0[0], y, b0[1]], [b1[0], y, b1[1]], [a1[0], y, a1[1]], col, up);
+      }
+    };
+    line(sc - 0.26, sc - 0.14, TONE.yellow);
+    line(sc + 0.14, sc + 0.26, TONE.yellow);
+    line(sc - half + 0.3, sc - half + 0.45, TONE.white);
+    line(sc + half - 0.45, sc + half - 0.3, TONE.white);
+  };
+
+  /* Lamps: [x, y, z, yaw] at their foot, the arm reaching toward -s of
+   * the section they stand on (over the road), and their colliders. */
+  const lamps = [];
+  const lampsAlong = (secs, s, y, spacing = LAMP.spacing) => {
+    const len = secs[secs.length - 1].t;
+    for (let t = spacing / 2; t < len; t += spacing) {
+      let k = 0;
+      while (k + 2 < secs.length && secs[k + 1].t < t) {
+        k += 1;
+      }
+      const a = secs[k];
+      const b = secs[k + 1];
+      const f = (t - a.t) / (b.t - a.t);
+      const p = [a.p[0] + (b.p[0] - a.p[0]) * f, a.p[1] + (b.p[1] - a.p[1]) * f];
+      const m = b.m;
+      const foot = [p[0] + m[0] * s, y, p[1] + m[1] * s];
+      const top = [foot[0], y + LAMP.height, foot[2]];
+      const tip = [foot[0] - m[0] * LAMP.arm, y + LAMP.height, foot[2] - m[1] * LAMP.arm];
+      addCapsule('pole', foot, top, LAMP.r);
+      addCapsule('pole', top, tip, LAMP.r);
+      /* The lamp's arm is its local +x: turn +x onto -m. */
+      lamps.push([foot[0], y, foot[2], Math.atan2(m[1], -m[0])]);
+    }
+  };
+
+  /* A box in a frame (t along, s across, y up), drawn into `mesh`. */
+  const frameBox = (mesh, fr, t0, t1, s0, s1, y0, y1, col) => {
+    const c = [[t0, s0], [t1, s0], [t1, s1], [t0, s1]].map(([t, s2]) => fr.at(t, s2));
+    const top = c.map(([x, z]) => [x, y1, z]);
+    const bot = c.map(([x, z]) => [x, y0, z]);
+    mesh.poly(top, col, up);
+    const mid = fr.at((t0 + t1) / 2, (s0 + s1) / 2);
+    for (let i = 0; i < 4; i += 1) {
+      const j = (i + 1) % 4;
+      mesh.quad(bot[i], bot[j], top[j], top[i], col, [(c[i][0] + c[j][0]) / 2 - mid[0], 0, (c[i][1] + c[j][1]) / 2 - mid[1]]);
+    }
+    return c;
+  };
+  /* A portal crane in a frame: four legs, two sills and the machinery
+   * house on top, drawn in steel, its legs as boxes and its house as a
+   * block with a roof a quad can land on. */
+  const crane = (fr, t0, t1, s0, s1, y0, legTop, houseTop, col) => {
+    const L = 1.4;
+    for (const t of [t0, t1 - L]) {
+      for (const s2 of [s0, s1 - L]) {
+        const c = frameBox(metal, fr, t, t + L, s2, s2 + L, y0, legTop, col);
+        const xs = c.map((q) => q[0]);
+        const zs = c.map((q) => q[1]);
+        addBox(Math.min(...xs), y0, Math.min(...zs), Math.max(...xs), legTop, Math.max(...zs));
+      }
+      frameBox(metal, fr, t, t + L, s0, s1, legTop - 1.6, legTop, col);
+    }
+    frameBox(metal, fr, t0 - 0.5, t1 + 0.5, s0 - 0.5, s1 + 0.5, legTop, houseTop, col);
+    const poly = [fr.at(t0 - 0.5, s0 - 0.5), fr.at(t1 + 0.5, s0 - 0.5), fr.at(t1 + 0.5, s1 + 0.5), fr.at(t0 - 0.5, s1 + 0.5)];
+    const run = [];
+    flatBlock(poly, legTop, houseTop, 'crane', run, fr.a);
+    closeRun(run);
   };
 
   /* ================================================== the main dam */
@@ -744,6 +1138,11 @@ export async function buildPart(ctx) {
     drawRoad(crestSecs, -5, MAIN.crestDown - 0.6, TONE.road);
   }
   closeRun(crestRun);
+  {
+    const whole = [{ p: F.at(tStart, 0), m: F.n, t: 0 }, { p: F.at(tEnd, 0), m: F.n, t: tEnd - tStart }];
+    markings(whole, (MAIN.crestDown - 0.6 - 5) / 2, (MAIN.crestDown - 0.6 + 5) / 2);
+    lampsAlong(whole, MAIN.crestDown - 0.3, CREST_Y + 2 * PARAPET_R);
+  }
   mainTriangles = concrete.triangles - mainTriangles;
   figures.mainCrestLength = tEnd - tStart;
   figures.mainMaxHeight = CREST_Y - mainBase;
@@ -813,27 +1212,245 @@ export async function buildPart(ctx) {
     penEnds.push([[A[0], 185 + 6 * k, A[1]], [B[0], ph.figures.roofY - 5, B[1]]]);
   }
   const penIndex = penEnds.map(([A, B]) => addCapsule('wall', A, B, penR));
+  /* Drawn at the capsule's own radius, so the gap a pilot sees between
+   * two is the gap the collision holds (34 - 10.5 = 23.5 m): the
+   * stiffener rings are painted on, not stood proud. */
+  const penstockTris = { p: [], n: [], c: [] };
+  const penRanges = [];
+  for (const [A, B] of penEnds) {
+    const from = penstockTris.c.length;
+    const len = Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]);
+    const bands = [];
+    for (let m = 4; m < len; m += 6) {
+      bands.push([m, m + 0.35, TONE.band]);
+    }
+    tube(A, B, penR, 32, TONE.penstock, bands, penstockTris);
+    penRanges.push([from, penstockTris.c.length]);
+  }
+  /* Each penstock's target: a capsule round its drawn length, from where
+   * it leaves its hood to where it enters the powerhouse roof, 8 m about
+   * its axis (its 5.25 m and a margin, and 34 - 16 = 18 m clear of the
+   * next one's), and `at` a point on its drawn surface, on top of it where
+   * it runs at 165 m. Made once the hoods are placed (penstockTargets). */
+  const penstockTargets = () => penEnds.forEach(([A, B], k) => {
+    const f = (165 - A[1]) / (B[1] - A[1]);
+    const P = [A[0] + (B[0] - A[0]) * f, 165, A[2] + (B[2] - A[2]) * f];
+    const d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+    const l = Math.hypot(d[0], d[1], d[2]);
+    const w = [d[0] / l, d[1] / l, d[2] / l];
+    const u = [-w[0] * w[1], 1 - w[1] * w[1], -w[2] * w[1]];
+    const ul = Math.hypot(u[0], u[1], u[2]);
+    const sA = F.local(A[0], A[2])[1];
+    const sB = F.local(B[0], B[2])[1];
+    const along = (f2) => [A[0] + (B[0] - A[0]) * f2, A[1] + (B[1] - A[1]) * f2, A[2] + (B[2] - A[2]) * f2];
+    targets[`penstock-${k}`] = {
+      shape: 'capsule',
+      a: along((hoodFront[k] - sA) / (sB - sA)),
+      b: along((ph.figures.roofY - A[1]) / (B[1] - A[1])),
+      at: [P[0] + (u[0] / ul) * penR, P[1] + (u[1] / ul) * penR, P[2] + (u[2] / ul) * penR],
+      r: 8,
+      part: 'penstock',
+      colliders: [penIndex[k]],
+    };
+    darken[`penstock-${k}`] = { mesh: 'penstocks', range: penRanges[k] };
+  });
   let penstockMesh;
   {
-    const geo = new THREE.CylinderGeometry(penR, penR, 1, 28, 1, true);
-    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(...TONE.penstock, THREE.LinearSRGBColorSpace), roughness: 0.5, metalness: 0.1 });
-    const mesh = new THREE.InstancedMesh(geo, mat, penEnds.length);
-    const q = new THREE.Quaternion();
-    const Y = new THREE.Vector3(0, 1, 0);
-    const d = new THREE.Vector3();
-    const m4 = new THREE.Matrix4();
-    penEnds.forEach(([A, B], k) => {
-      d.set(B[0] - A[0], B[1] - A[1], B[2] - A[2]);
-      const len = d.length();
-      q.setFromUnitVectors(Y, d.normalize());
-      m4.compose(new THREE.Vector3((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2), q, new THREE.Vector3(1, len, 1));
-      mesh.setMatrixAt(k, m4);
-    });
-    mesh.computeBoundingSphere();
-    mesh.name = 'itaipu-dam-penstocks';
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    penstockMesh = mesh;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(penstockTris.p, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(penstockTris.n, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(penstockTris.c, 3));
+    g.computeBoundingSphere();
+    const mat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.45, metalness: 0.1 }), 'penstock');
+    penstockMesh = new THREE.Mesh(g, mat);
+    penstockMesh.name = 'itaipu-dam-penstocks';
+    penstockMesh.castShadow = true;
+    penstockMesh.receiveShadow = true;
+  }
+
+  /* ---- the hoods over the penstocks' exits: a flat topped block on the
+   * face, its top high enough that the penstock leaves through its front */
+  const hoodRun = [];
+  /* Where each penstock leaves its hood, metres downstream of the crest. */
+  const hoodFront = [];
+  ph.units.forEach(([ux, uz], k) => {
+    const [t] = F.local(ux, uz);
+    const slope = faceDrop / faceRun(t);
+    const faceS = (y) => MAIN.crestDown + (MAIN.bandY - y) / slope;
+    const faceY = (s2) => MAIN.bandY - (s2 - MAIN.crestDown) * slope;
+    const [A, B] = penEnds[k];
+    const [, sA] = F.local(A[0], A[2]);
+    const [, sB] = F.local(B[0], B[2]);
+    const penY = (s2) => A[1] + ((B[1] - A[1]) * (s2 - sA)) / (sB - sA);
+    let top = HOOD.top;
+    for (let i = 0; i < 4; i += 1) {
+      top = Math.max(HOOD.top, penY(faceS(top) + HOOD.reach) + penR + 1);
+    }
+    const s1 = faceS(top);
+    const s2 = s1 + HOOD.reach;
+    hoodFront[k] = s2;
+    const t0 = t - HOOD.width / 2;
+    const t1 = t + HOOD.width / 2;
+    const col = shade(TONE.hood, 7000 + k, 0.05);
+    const P = (tt, ss, y) => {
+      const [x, z] = F.at(tt, ss);
+      return [x, y, z];
+    };
+    const foot = faceY(s2);
+    concrete.poly([P(t0, s1, top), P(t1, s1, top), P(t1, s2, top), P(t0, s2, top)], col, up);
+    concrete.quad(P(t0, s2, foot), P(t1, s2, foot), P(t1, s2, top), P(t0, s2, top), col, [F.n[0], 0, F.n[1]]);
+    concrete.tri(P(t0, s1, top), P(t0, s2, top), P(t0, s2, foot), col, [-F.a[0], 0, -F.a[1]]);
+    concrete.tri(P(t1, s1, top), P(t1, s2, top), P(t1, s2, foot), col, [F.a[0], 0, F.a[1]]);
+    flatBlock([F.at(t0, s1), F.at(t1, s1), F.at(t1, s2), F.at(t0, s2)], mainBase, top, 'hood', hoodRun, F.a);
+    face('penstock hood front', 'wall', [P(t0, s2, foot), P(t1, s2, foot), P(t1, s2, top), P(t0, s2, top)]);
+    face('penstock hood top', 'roof', [P(t0, s1, top), P(t1, s1, top), P(t1, s2, top), P(t0, s2, top)]);
+  });
+  closeRun(hoodRun);
+  penstockTargets();
+
+  /* ---- the intake columns on the upstream edge, a unit's pitch apart */
+  const vents = [];
+  {
+    const t0 = F.local(...ph.units[0])[0];
+    const pitch = ph.figures.unitSpacing;
+    const unitT = ph.units.map((u) => F.local(...u)[0]);
+    for (let t = t0 - pitch * Math.floor((t0 - tStart - 10) / pitch); t < tEnd - 10; t += pitch) {
+      const [x, z] = F.at(t, sUp(t) + 2.5);
+      addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height, z], VENT.r);
+      /* An intake: dam.json's point is on the crest road's centre line,
+       * the intake itself is its gate in the upstream face, 8.2 m wide and
+       * 19.3 m tall on a 177.6 m sill, under the column: its target the
+       * middle of that gate, on the face; its colliders the face's columns
+       * within its reach (intakeColliders); its damage the frame and the
+       * column over it. */
+      const k = unitT.findIndex((u) => Math.abs(u - t) < 1);
+      if (k >= 0) {
+        const intake = need('intakes').figures;
+        const mid = intake.sillY + intake.gateHeight / 2;
+        const [ix, iz] = F.at(t, sUp(t));
+        targets[`intake-${k}`] = {
+          at: [ix, mid, iz], r: 12, part: 'intake', colliders: [],
+        };
+        const from = metal.c.length;
+        const hw = intake.gateWidth / 2;
+        const P = (tt, y) => {
+          const [x, z] = F.at(tt, sUp(tt) - 0.05);
+          return [x, y, z];
+        };
+        const outward = [-F.n[0], 0, -F.n[1]];
+        metal.quad(P(t - hw - 0.8, intake.sillY - 0.8), P(t + hw + 0.8, intake.sillY - 0.8), P(t + hw + 0.8, intake.sillY + intake.gateHeight + 0.8), P(t - hw - 0.8, intake.sillY + intake.gateHeight + 0.8), TONE.steel, outward);
+        const Q = (tt, y) => {
+          const [x, z] = F.at(tt, sUp(tt) - 0.1);
+          return [x, y, z];
+        };
+        metal.quad(Q(t - hw, intake.sillY), Q(t + hw, intake.sillY), Q(t + hw, intake.sillY + intake.gateHeight), Q(t - hw, intake.sillY + intake.gateHeight), TONE.draft, outward);
+        darken[`intake-${k}`] = [{ mesh: 'intake-columns', instance: vents.length }, { mesh: 'steel', range: [from, metal.c.length] }];
+      }
+      vents.push([x, CREST_Y, z]);
+    }
+  }
+  /* ---- the intake gate cranes on the upstream deck (crest-road photo) */
+  for (const u of [3, 16]) {
+    const t = F.local(...ph.units[u])[0] + ph.figures.unitSpacing / 2;
+    crane(F, t - 6, t + 6, sUp(t) + 1, -6.2, CREST_Y, CREST_Y + 22, CREST_Y + 30, TONE.craneLilac);
+  }
+
+  /* ---- the powerhouse roof: transmission gantries between the
+   * penstocks, the central building, the tailrace crane, and the roof's
+   * own finish, in the main dam's frame (the powerhouse's axis runs
+   * within 0.6 degrees of it). */
+  {
+    const roofY = ph.figures.roofY;
+    const units = ph.units.map((u) => F.local(...u)[0]);
+    const pitch = ph.figures.unitSpacing;
+    for (let k = 0; k + 1 < units.length; k += 1) {
+      const t = (units[k] + units[k + 1]) / 2;
+      if (k === 13) {
+        continue;
+      }
+      const base = sPh(t);
+      const [sa, sb] = GANTRY.s;
+      const y1 = roofY + GANTRY.height;
+      for (const s2 of [sa, sb]) {
+        frameBox(metal, F, t - GANTRY.leg, t + GANTRY.leg, base + s2 - GANTRY.leg, base + s2 + GANTRY.leg, roofY, y1, TONE.steel);
+        const [x, z] = F.at(t, base + s2);
+        addCapsule('pole', [x, roofY, z], [x, y1, z], GANTRY.leg);
+      }
+      frameBox(metal, F, t - 0.5, t + 0.5, base + sa - 1, base + sb + 1, y1 - 1.2, y1, TONE.steel);
+      const [xa, za] = F.at(t, base + sa);
+      const [xb, zb] = F.at(t, base + sb);
+      addCapsule('pole', [xa, y1 - 0.6, za], [xb, y1 - 0.6, zb], GANTRY.leg);
+      /* The insulator strings hanging from the beam. */
+      for (const f of [0.25, 0.5, 0.75]) {
+        const ss = base + sa + (sb - sa) * f;
+        frameBox(metal, F, t - 0.15, t + 0.15, ss - 0.15, ss + 0.15, y1 - 4, y1 - 1.2, TONE.coping);
+      }
+    }
+    /* The central building, between units 14 and 15. */
+    {
+      const t = (units[13] + units[14]) / 2;
+      const h = CENTRE.length / 2;
+      const base = sPh(t);
+      const top = roofY + CENTRE.height;
+      const [s0, s1] = CENTRE.s;
+      frameBox(concrete, F, t - h, t + h, base + s0, base + s1, roofY, top, TONE.concrete);
+      /* Its storeys: a band of dark glass over each floor slab. */
+      for (let y = roofY + 2.6; y + 2 < top; y += 4) {
+        for (const [ss, dir] of [[base + s1 + 0.04, 1], [base + s0 - 0.04, -1]]) {
+          const a = F.at(t - h + 1, ss);
+          const b = F.at(t + h - 1, ss);
+          metal.quad([a[0], y, a[1]], [b[0], y, b[1]], [b[0], y + 1.3, b[1]], [a[0], y + 1.3, a[1]], TONE.glass, [F.n[0] * dir, 0, F.n[1] * dir]);
+        }
+      }
+      const poly = [F.at(t - h, base + s0), F.at(t + h, base + s0), F.at(t + h, base + s1), F.at(t - h, base + s1)];
+      const run = [];
+      flatBlock(poly, roofY, top, 'central building', run, F.a);
+      closeRun(run);
+      const P = (tt, ss, y) => {
+        const [x, z] = F.at(tt, ss);
+        return [x, y, z];
+      };
+      face('central building front', 'wall', [P(t - h, base + s1, roofY), P(t + h, base + s1, roofY), P(t + h, base + s1, top), P(t - h, base + s1, top)]);
+    }
+    /* The tailrace crane on the downstream deck. */
+    {
+      const t = units[units.length - 1] + 0.7 * pitch;
+      const base = sPh(t);
+      crane(F, t - 7, t + 7, base + 84, base + 98, roofY, roofY + 20, roofY + 26, TONE.craneRust);
+    }
+    /* The roof's finish: the deck at the penstocks' feet, the long ribbed
+     * roof over the generator hall, the tailrace deck and its road, and the
+     * draft tubes' dark mouths along the downstream wall. */
+    const tA = Math.max(phT0, tStart) + 1;
+    const tB = phT1 - 1;
+    const strip = (s0, s1, col, lift = 0.02) => {
+      const n = Math.max(1, Math.ceil((tB - tA) / CHUNK));
+      for (let i = 0; i < n; i += 1) {
+        const t0 = tA + ((tB - tA) * i) / n;
+        const t1 = tA + ((tB - tA) * (i + 1)) / n;
+        const P = (tt, ss) => {
+          const [x, z] = F.at(tt, sPh(tt) + ss);
+          return [x, roofY + lift, z];
+        };
+        road.quad(P(t0, s0), P(t1, s0), P(t1, s1), P(t0, s1), col, up);
+      }
+    };
+    strip(30, 82, TONE.roofSheet);
+    for (let s2 = 32; s2 < 81; s2 += 3) {
+      strip(s2, s2 + 0.25, TONE.roofRib, 0.03);
+    }
+    strip(88.5, 88.65, TONE.yellow, 0.03);
+    strip(88.85, 89.0, TONE.yellow, 0.03);
+    for (const t of units) {
+      for (let q = -1; q <= 1; q += 2) {
+        const tt = t + q * 8;
+        const ss = sPh(tt) + 2 * POWERHOUSE.halfWidth + 0.05;
+        const a = F.at(tt - 5, ss);
+        const b = F.at(tt + 5, ss);
+        metal.quad([a[0], 103.6, a[1]], [b[0], 103.6, b[1]], [b[0], 114, b[1]], [a[0], 114, a[1]], TONE.draft, [F.n[0], 0, F.n[1]]);
+      }
+    }
+    sites.gantries = { s: GANTRY.s, height: GANTRY.height };
   }
   figures.penstocks = penEnds.length;
   figures.penstockDiameter = 2 * penR;
@@ -844,6 +1461,25 @@ export async function buildPart(ctx) {
       gaps.push(dist([penEnds[k][1][0], penEnds[k][1][2]], [penEnds[k + 1][1][0], penEnds[k + 1][1][2]]));
     }
     figures.unitSpacing = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    /* The clear gap between neighbours, surface to surface, the least
+     * along their length: the segments' least distance less both radii. */
+    const segDist = ([A, B], [C2, D]) => {
+      let best = Infinity;
+      for (let i = 0; i <= 40; i += 1) {
+        const f = i / 40;
+        const p = [A[0] + (B[0] - A[0]) * f, A[1] + (B[1] - A[1]) * f, A[2] + (B[2] - A[2]) * f];
+        const v = [D[0] - C2[0], D[1] - C2[1], D[2] - C2[2]];
+        const l2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+        const g = Math.max(0, Math.min(1, ((p[0] - C2[0]) * v[0] + (p[1] - C2[1]) * v[1] + (p[2] - C2[2]) * v[2]) / l2));
+        best = Math.min(best, Math.hypot(p[0] - C2[0] - v[0] * g, p[1] - C2[1] - v[1] * g, p[2] - C2[2] - v[2] * g));
+      }
+      return best;
+    };
+    let least = Infinity;
+    for (let k = 0; k + 1 < penEnds.length; k += 1) {
+      least = Math.min(least, segDist(penEnds[k], penEnds[k + 1]) - 2 * penR);
+    }
+    figures.penstockGap = least;
   }
   sites.penstocks = penEnds.map(([a, b], k) => ({ a, b, r: penR, index: penIndex[k] }));
   sites.face = {
@@ -856,8 +1492,15 @@ export async function buildPart(ctx) {
     const pts = secs.flatMap((s) => [offset(s, section.up), offset(s, section.crestDown)]);
     const base = bottomOf(e, pts.concat(e.footprint || []));
     const toe = section.crestDown + (section.bandY - base) * section.slope;
-    const prof = () => [[section.up, base], [section.up, CREST_Y], [section.crestDown, CREST_Y], [section.crestDown, section.bandY], [toe, base]];
-    sweep(secs, prof, (k) => shade(colour, 1000 * name.length + k));
+    /* Where the ground A flattened the footprint to is lower than the
+     * published foundation, what stands under the foundation is drawn as
+     * the basalt the dam is founded on, not as more dam. */
+    const found = e.baseY != null && e.baseY > base + 0.5 ? e.baseY : base;
+    const sF = section.crestDown + (section.bandY - found) * section.slope;
+    const prof = found > base
+      ? () => [[section.up, base], [section.up, found], [section.up, CREST_Y], [section.crestDown, CREST_Y], [section.crestDown, section.bandY], [sF, found], [toe, base]]
+      : () => [[section.up, base], [section.up, CREST_Y], [section.crestDown, CREST_Y], [section.crestDown, section.bandY], [toe, base]];
+    sweep(secs, prof, (k) => shade(colour, 1000 * name.length + k), found > base ? found : -Infinity);
     const run = [];
     for (let k = 0; k + 1 < secs.length; k += 1) {
       const a = secs[k];
@@ -879,7 +1522,11 @@ export async function buildPart(ctx) {
     drawParapet(secs, section.up + 0.8);
     drawParapet(secs, section.crestDown - 0.3);
     drawRoad(secs, -4, 4, TONE.road);
-    return { length: secs[secs.length - 1].t, base, secs };
+    markings(secs, 0, 4);
+    lampsAlong(secs, section.crestDown - 0.3, CREST_Y + 2 * PARAPET_R);
+    return {
+      length: secs[secs.length - 1].t, base, found, secs,
+    };
   };
   const rightLateral = need('right lateral dam');
   const diversion = need('diversion structure');
@@ -888,9 +1535,10 @@ export async function buildPart(ctx) {
   const dv = gravity(diversion, GRAVITY, 'diversion', TONE.concrete);
   const ll = gravity(leftLateral, GRAVITY, 'left lateral dam', TONE.concrete);
   figures.rightLateralLength = rl.length;
-  figures.rightLateralMaxHeight = CREST_Y - rl.base;
+  figures.rightLateralMaxHeight = CREST_Y - rl.found;
+  figures.rightLateralBasalt = rl.found - rl.base;
   figures.diversionLength = dv.length;
-  figures.diversionMaxHeight = CREST_Y - dv.base;
+  figures.diversionMaxHeight = CREST_Y - dv.found;
   figures.leftLateralLength = ll.length;
 
   /* ================================================== the spillway */
@@ -903,13 +1551,11 @@ export async function buildPart(ctx) {
     const W = SPILL.width / 2;
     const pierW = (SPILL.width - SPILL.gates * SPILL.gateWidth) / (SPILL.gates + 1);
     const pierU = Array.from({ length: SPILL.gates + 1 }, (_, k) => -W + pierW / 2 + k * (pierW + SPILL.gateWidth));
-    /* The floor: the published sill at the gates, then the surface
-     * model's profile from where it falls below the sill (it reads
-     * 216.9 at the gates, the bridge's smear, section 6's note), eased
-     * over the ogee. */
-    const dem = chute.floor.filter(([d, y]) => d >= 90);
-    const floor = linear([[SPILL.upstream, sp.figures.sillY], [SPILL.gate[1], sp.figures.sillY], [40, 196.6], [60.4, 193.8], ...dem]);
-    const knots = [SPILL.gate[1], 40, 60.4, ...dem.map(([d]) => d)];
+    /* The floor: chuteFloor, the published sill eased onto the surface
+     * model's profile. */
+    const cf = chuteFloor(sp);
+    const floor = cf.y;
+    const knots = cf.knots.slice(1).map(([d]) => d);
     const pts = [];
     for (const u of [-W, W]) {
       for (const d of [SPILL.upstream, 200, 483]) {
@@ -922,18 +1568,30 @@ export async function buildPart(ctx) {
       return [x, y, z];
     };
     const plan = (u0, u1, d0, d1) => [C.at(u0, d0), C.at(u1, d0), C.at(u1, d1), C.at(u0, d1)];
+    /*
+     * The spillway's concrete stands on its published foundation, 181.3 m
+     * at the gates (225 less its 43.7 m), and the chute's floor slab and
+     * walls a few metres into the rock under them. Package A flattened
+     * the whole footprint to 108.7 m, the plunge pool's level, so what
+     * fills it under the concrete is drawn as the basalt the chute was
+     * cut in (the chute-dry photograph's walls), not as more dam.
+     */
+    const rockAt = (d) => Math.min(sp.baseY, floor(Math.max(d, SPILL.ogee)) - 4);
     /* A box in the chute's frame, drawn: its four sides and its top,
-     * which is flat, or a plane given at its two d ends. */
-    const block = (mesh, u0, u1, d0, d1, y0, yA, yB, col) => {
+     * which is flat, or a plane given at its two d ends; its sides under
+     * the rock line basalt. */
+    const block = (mesh, u0, u1, d0, d1, y0, yA, yB, col, rock = true) => {
       const P = [[u0, d0, yA], [u1, d0, yA], [u1, d1, yB], [u0, d1, yB]];
       const top = P.map(([u, d, y]) => at3(u, d, y));
       const bot = P.map(([u, d]) => at3(u, d, y0));
+      const cut = P.map(([u, d, y]) => at3(u, d, rock ? Math.min(y, Math.max(y0, rockAt(d))) : y0));
       mesh.poly(top, col, up);
       const cu = C.at((u0 + u1) / 2, (d0 + d1) / 2);
       for (let i = 0; i < 4; i += 1) {
         const j = (i + 1) % 4;
         const m = [(top[i][0] + top[j][0]) / 2 - cu[0], 0, (top[i][2] + top[j][2]) / 2 - cu[1]];
-        mesh.quad(bot[i], bot[j], top[j], top[i], col, m);
+        concrete.quad(bot[i], bot[j], cut[j], cut[i], shade(TONE.basalt, 9000 + i + 7 * d0, 0.12), m);
+        mesh.quad(cut[i], cut[j], top[j], top[i], col, m);
       }
       return top;
     };
@@ -955,12 +1613,12 @@ export async function buildPart(ctx) {
     };
 
     /* The approach under the bridge and the ogee to the gates. */
-    block(concrete, -W, W, SPILL.upstream, SPILL.gate[1], base, sp.figures.sillY, sp.figures.sillY, TONE.chute);
+    block(concrete, -W, W, SPILL.upstream, SPILL.ogee, base, sp.figures.sillY, sp.figures.sillY, TONE.chute);
     /* The bridge: its deck the road over the gates. */
     const deckRun = [];
     {
       const [d0, d1] = SPILL.deck;
-      const top = block(concrete, -W, W, d0, d1, SPILL.deckUnder, CREST_Y, CREST_Y, TONE.deck);
+      const top = block(concrete, -W, W, d0, d1, SPILL.deckUnder, CREST_Y, CREST_Y, TONE.deck, false);
       flatBlock(plan(-W, W, d0, d1), SPILL.deckUnder, CREST_Y, 'spillway bridge', deckRun);
       closeRun(deckRun);
       face('spillway bridge deck', 'roof', top);
@@ -972,6 +1630,11 @@ export async function buildPart(ctx) {
       drawParapet(secs, d0 + 0.6);
       drawParapet(secs, d1 - 0.6);
       drawRoad(secs, d0 + 1, d1 - 1, TONE.road);
+      markings(secs, (d0 + d1) / 2, (d1 - d0) / 2 - 1);
+      lampsAlong(secs, d1 - 0.6, CREST_Y + 2 * PARAPET_R);
+      /* The bridge's hoist, a machinery house on the upstream edge
+       * (aerial-spill-2 photograph), over no road lane a quad needs. */
+      crane(C, 132, 146, d0 - 0.2, d0 + 3.4, CREST_Y, CREST_Y + 3, CREST_Y + 11, TONE.craneOrange);
       const m = C.at(0, 0);
       sites.spillwayBridge = {
         x: m[0], z: m[1], y: CREST_Y, dir: C.a,
@@ -982,7 +1645,7 @@ export async function buildPart(ctx) {
     for (const [k, u] of pierU.entries()) {
       const u0 = u - pierW / 2;
       const u1 = u + pierW / 2;
-      const hi = [SPILL.upstream, SPILL.gate[1] + 2];
+      const hi = [SPILL.upstream, SPILL.ogee + 2];
       block(concrete, u0, u1, hi[0], hi[1], base, CREST_Y, CREST_Y, shade(TONE.concrete, 2000 + k));
       const run = [];
       flatBlock(plan(u0, u1, hi[0], hi[1]), base, CREST_Y, 'spillway pier', run);
@@ -1004,8 +1667,16 @@ export async function buildPart(ctx) {
     for (let g = 0; g < SPILL.gates; g += 1) {
       const u0 = pierU[g] + pierW / 2;
       const u1 = pierU[g + 1] - pierW / 2;
-      block(metal, u0, u1, SPILL.gate[0], SPILL.gate[1], gateBottom, gateTop, gateTop, TONE.gate);
-      prismBoxes(plan(u0, u1, SPILL.gate[0], SPILL.gate[1]), gateBottom, () => gateTop);
+      const from = metal.c.length;
+      block(metal, u0, u1, SPILL.gate[0], SPILL.gate[1], gateBottom, gateTop, gateTop, TONE.gate, false);
+      const ids = prismBoxes(plan(u0, u1, SPILL.gate[0], SPILL.gate[1]), gateBottom, () => gateTop);
+      /* gate-0 is the westernmost: u runs east. */
+      /* On its upstream face; its reach at most half the gates' pitch,
+       * so neighbours' spheres never overlap. */
+      targets[`gate-${g}`] = {
+        at: at3((u0 + u1) / 2, SPILL.gate[0], (gateBottom + gateTop) / 2), r: Math.min(12.5, (SPILL.gateWidth + pierW) / 2), part: 'gate', colliders: ids,
+      };
+      darken[`gate-${g}`] = { mesh: 'steel', range: [from, metal.c.length] };
       face('spillway gate', 'wall', [at3(u0, SPILL.gate[1], gateBottom), at3(u1, SPILL.gate[1], gateBottom), at3(u1, SPILL.gate[1], gateTop), at3(u0, SPILL.gate[1], gateTop)]);
     }
     figures.spillwayGates = SPILL.gates;
@@ -1044,7 +1715,9 @@ export async function buildPart(ctx) {
       const e0 = at3(u0, end, base);
       const e1 = at3(u1, end, base);
       const m = [C.n[0], 0, C.n[1]];
-      concrete.quad(e0, e1, at3(u1, end, yEnd), at3(u0, end, yEnd), TONE.chute, m);
+      const eR = Math.max(base, yEnd - 3);
+      concrete.quad(e0, e1, at3(u1, end, eR), at3(u0, end, eR), shade(TONE.basalt, 9100 + b, 0.12), m);
+      concrete.quad(at3(u0, end, eR), at3(u1, end, eR), at3(u1, end, yEnd), at3(u0, end, yEnd), TONE.chute, m);
       const lip = [at3(u0, end - 2, floor(end - 2)), at3(u1, end - 2, floor(end - 2)), at3(u1, end, yEnd)];
       prismBoxes(plan(u0, u1, end - 2, end), base, planeTop(...lip));
       face('spillway chute end', 'wall', [at3(u0, end, Math.max(base, 104)), at3(u1, end, Math.max(base, 104)), at3(u1, end, yEnd), at3(u0, end, yEnd)]);
@@ -1087,7 +1760,8 @@ export async function buildPart(ctx) {
       }
     }
     figures.spillwayChutes = SPILL.bayEnds.length;
-    figures.spillwayMaxHeight = CREST_Y - base;
+    figures.spillwayMaxHeight = CREST_Y - sp.baseY;
+    figures.spillwayBasalt = sp.baseY - base;
   }
 
   /* ================================================== embankment crests */
@@ -1114,6 +1788,8 @@ export async function buildPart(ctx) {
     drawRoad(secs, -EMBANKMENT_HALF, -4, TONE.shoulder);
     drawRoad(secs, -4, 4, TONE.asphalt);
     drawRoad(secs, 4, EMBANKMENT_HALF, TONE.shoulder);
+    markings(secs, 0, 4);
+    lampsAlong(secs, EMBANKMENT_HALF - 0.4, CREST_Y, 40);
     figures[`${name} crest`] = secs[secs.length - 1].t;
     if (name === 'rockfill dam') {
       /* The straight run of the crest road, clear of the curve. */
@@ -1128,6 +1804,40 @@ export async function buildPart(ctx) {
     }
   }
 
+  /* ================================================== the switchyard */
+  /*
+   * The right bank switchyard, OSM way 32302779 (48 ha): the war package
+   * builds the yard itself (docs/WARFARE-PLAN.md section 8); here only its
+   * target, on the ground at the outline's area centroid, and the outline.
+   */
+  {
+    const yard = (ctx.data['osm/power.json']?.substations ?? []).find((f) => f.id === 'w32302779');
+    if (!yard) {
+      throw new Error('itaipu dam: osm/power.json has no substation w32302779, the right bank switchyard');
+    }
+    let a = 0;
+    let cx = 0;
+    let cz = 0;
+    const o = yard.outer;
+    for (let i = 0; i < o.length; i += 1) {
+      const [x0, z0] = o[i];
+      const [x1, z1] = o[(i + 1) % o.length];
+      const c = x0 * z1 - x1 * z0;
+      a += c;
+      cx += (x0 + x1) * c;
+      cz += (z0 + z1) * c;
+    }
+    cx /= 3 * a;
+    cz /= 3 * a;
+    /* A placeholder: the war part (src/maps/itaipu/war, PR #199) builds
+     * the yard and puts its own target in this id's place, its transformer
+     * rows' middle and a reach over all of them, with their solids and
+     * fires. The outline's area centroid here is within 20 m of that. */
+    targets['yard-right'] = {
+      at: [cx, ctx.ground(cx, cz), cz], r: 60, part: 'yard', colliders: [], outline: o.map((q) => q.slice()),
+    };
+  }
+
   /* ================================================== the meshes */
   const kit = ctx.mats.surfaces;
   const group = new THREE.Group();
@@ -1138,8 +1848,9 @@ export async function buildPart(ctx) {
   const roadMat = new THREE.MeshStandardMaterial({
     color: 0xffffff, vertexColors: true, map: kit.concrete.col, normalMap: kit.concrete.nrm, roughnessMap: kit.concrete.arm, roughness: 1,
   });
-  const metalMat = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.35 });
+  const metalMat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.15 }), 'steel');
   const meshes = [[concrete, concreteMat, 'concrete'], [road, roadMat, 'roads'], [metal, metalMat, 'steel']];
+  const drawn = {};
   let triangles = 0;
   for (const [m, mat, name] of meshes) {
     if (!m.triangles) {
@@ -1150,26 +1861,161 @@ export async function buildPart(ctx) {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
+    drawn[name] = mesh;
     triangles += m.triangles;
   }
   group.add(penstockMesh);
-  triangles += penEnds.length * 28 * 2;
+  drawn.penstocks = penstockMesh;
+  triangles += penstockTris.p.length / 9;
+  /* The lamps and the intake columns, one instanced draw each. */
+  const instanced = (geo, mat, list, name, turn) => {
+    const mesh = new THREE.InstancedMesh(geo, mat, list.length);
+    const m4 = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const one = new THREE.Vector3(1, 1, 1);
+    list.forEach((e, k) => {
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), turn ? e[3] : 0);
+      m4.compose(new THREE.Vector3(e[0], e[1], e[2]), q, one);
+      mesh.setMatrixAt(k, m4);
+    });
+    mesh.computeBoundingSphere();
+    mesh.name = `itaipu-dam-${name}`;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    const white = new THREE.Color(1, 1, 1);
+    list.forEach((_, k) => mesh.setColorAt(k, white));
+    group.add(mesh);
+    drawn[name] = mesh;
+    triangles += (geo.getAttribute('position').count / 3) * list.length;
+  };
+  {
+    const pole = new THREE.CylinderGeometry(LAMP.r * 0.7, LAMP.r, LAMP.height, 8, 1, true).translate(0, LAMP.height / 2, 0);
+    const arm = new THREE.BoxGeometry(LAMP.arm, 0.12, 0.12).translate(LAMP.arm / 2, LAMP.height - 0.1, 0);
+    const head = new THREE.BoxGeometry(0.7, 0.18, 0.32).translate(LAMP.arm, LAMP.height - 0.25, 0);
+    const mat = bounced(new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(0.42, 0.44, 0.45, THREE.LinearSRGBColorSpace), roughness: 0.45, metalness: 0.3 }), 'lamp');
+    instanced(mergeGeometries(THREE, [pole, arm, head]), mat, lamps, 'lamps', true);
+  }
+  {
+    const shaft = new THREE.CylinderGeometry(VENT.r, VENT.r, VENT.height, 16, 1, true).translate(0, VENT.height / 2, 0);
+    const cap = new THREE.CylinderGeometry(VENT.r + 0.18, VENT.r + 0.18, 0.7, 16).translate(0, VENT.height - 0.35, 0);
+    const band = new THREE.CylinderGeometry(VENT.r + 0.08, VENT.r + 0.08, 0.4, 16, 1, true).translate(0, VENT.height * 0.55, 0);
+    const mat = bounced(new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(0.75, 0.75, 0.73, THREE.LinearSRGBColorSpace), roughness: 0.5, metalness: 0.1 }), 'column');
+    instanced(mergeGeometries(THREE, [shaft, cap, band]), mat, vents, 'intake-columns', false);
+  }
+
+  /* ---- the targets' states: smoke and fire over them, and a destroyed
+   * part drawn charred, its colours put back when it is anything else. */
+  /* An intake's colliders: the dam's boxes its sphere reaches, the
+   * upstream face's columns round its gate. */
+  for (const t of Object.values(targets)) {
+    if (t.part !== 'intake') {
+      continue;
+    }
+    const [x, y, z] = t.at;
+    for (const b of boxes) {
+      const dx = Math.max(b[0] - x, 0, x - b[3]);
+      const dy = Math.max(b[1] - y, 0, y - b[4]);
+      const dz = Math.max(b[2] - z, 0, z - b[5]);
+      if (dx * dx + dy * dy + dz * dz <= t.r * t.r) {
+        t.colliders.push(b[6]);
+      }
+    }
+  }
+  const targetIds = Object.keys(targets).sort();
+  for (const t of Object.values(targets)) {
+    Object.freeze(t.at);
+    Object.freeze(t.colliders);
+    Object.freeze(t);
+  }
+  Object.freeze(targets);
+  const damage = makeDamage(THREE, targetIds, targets);
+  group.add(damage.points);
+  const states = Object.fromEntries(targetIds.map((id) => [id, 'ok']));
+  const CHAR = 0.16;
+  const kept = new Map();
+  const char = (id, on) => {
+    for (const [j, d] of [darken[id] ?? []].flat().entries()) {
+      charOne(`${id}#${j}`, d, on);
+    }
+  };
+  const charOne = (key, d, on) => {
+    const mesh = drawn[d.mesh];
+    if (d.instance != null) {
+      mesh.setColorAt(d.instance, new THREE.Color(on ? CHAR : 1, on ? CHAR : 1, on ? CHAR : 1));
+      mesh.instanceColor.needsUpdate = true;
+      return;
+    }
+    const attr = mesh.geometry.getAttribute('color');
+    const [a, b] = d.range;
+    if (!kept.has(key)) {
+      kept.set(key, attr.array.slice(a, b));
+    }
+    const orig = kept.get(key);
+    for (let i = a; i < b; i += 1) {
+      attr.array[i] = on ? orig[i - a] * CHAR : orig[i - a];
+    }
+    attr.addUpdateRange(a, b - a);
+    attr.needsUpdate = true;
+  };
+  /* `table` is the map's targets as they are now (itaipu.js passes
+   * map.targets), so an entry another part put in place of one of these
+   * burns where that entry says. */
+  const setTargetState = (id, state, table = targets) => {
+    if (!(id in table) || !(id in targets)) {
+      throw new Error(`itaipu dam: no target ${id}`);
+    }
+    if (!TARGET_STATES.includes(state)) {
+      throw new Error(`itaipu dam: a target is ${TARGET_STATES.join(', ')}, not ${state}`);
+    }
+    if (states[id] === state) {
+      return;
+    }
+    if ((states[id] === 'destroyed') !== (state === 'destroyed')) {
+      char(id, state === 'destroyed');
+    }
+    states[id] = state;
+    damage.set(id, state, table[id]);
+    /* No draw at all while nothing burns. */
+    damage.points.visible = targetIds.some((t) => states[t] !== 'ok');
+  };
+  damage.points.visible = false;
   ctx.progress(1);
+  const buildMs = performance.now() - started;
 
   const counts = () => ({
+    buildMs,
     solids: solids.length,
     boxes: boxes.length,
     capsules: capsules.length,
     roofs: records.length,
     meshes: group.children.length,
+    targets: targetIds.length,
+    burning: targetIds.filter((id) => states[id] !== 'ok').length,
     triangles,
     mainTriangles,
   });
   return {
     group,
-    update() {},
+    update(step) {
+      damage.update(step);
+    },
     dispose() {},
     stats: counts,
+    /* The war mode's targets (docs/WARFARE-PLAN.md section 8), frozen:
+     * { id: { at: [x, y, z], r, part, colliders, shape?, a?, b? } }.
+     *   - A target is a sphere of radius r about `at` unless `shape` is
+     *     'capsule' (the penstocks): then it is every point within r of
+     *     the segment a to b, and `at` a point on the part for a camera
+     *     or a marker. Targets of one kind never overlap.
+     *   - intake-0..19: the gate in the upstream face; gate-0..13, west to
+     *     east: the spillway gate's upstream face, r at most 12.5, half
+     *     the gates' pitch; penstock-0..19: capsules; yard-right: a
+     *     placeholder the war part (PR #199) replaces with the real yard.
+     *   - `colliders`: the static collider indices a hit on it is (none
+     *     for the yard's placeholder). */
+    targets,
+    setTargetState,
+    targetState: (id) => states[id],
     /* What scripts/dam-check.js measures: the drawn faces the collision
      * must hold, the figures as built, where to fly, and the part's own
      * collider indices. */

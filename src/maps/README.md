@@ -41,6 +41,9 @@ A MapInstance is:
     gates         array, EMPTY on a freestyle map and that is a real state
     curve         the racing line, or null
     spawn         { x, z, yaw }
+    spawnFor(spawn, kind, wish)   optional: the start for 'plane', 'quad'
+                  or 'float' and the page's ?spawn=, given `spawn`, which
+                  it hands back when it is a course's start (itaipu/spawns.js)
     attract       { path, speed, lookAhead, aimDrop } for the title camera
     height(x, z, fromY)   the contact surface
     setNextGate(sceneIndex)

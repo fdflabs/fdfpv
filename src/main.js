@@ -537,11 +537,11 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 21 (the town is 8 of them,
- * the vegetation 3). The Yellowstone terrain engine and the swiss2 look
- * it is built with are under their own prefixes, as the Alps' modules
- * are for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 21 };
+ * itaipu: itaipu.js and src/maps/itaipu/, 23 (the town is 8 of them,
+ * the vegetation 3, the spawns and the title's flight 2). The
+ * Yellowstone terrain engine and the swiss2 look it is built with are
+ * under their own prefixes, as the Alps' modules are for swiss2. */
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 23 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -1550,17 +1550,29 @@ export async function boot({
     return roomSlotSpawn(mapSpawn());
   }
   /* The water body an aircraft on floats starts on when flown free, an
-   * index into view.water: the pilot's choice where a map has more than one
-   * body with a spawn (Itaipu's reservoir and river). Nothing in the shell
-   * offers the choice yet, so it is the map's first body. */
+   * index into view.water: the map's first body on a map that does not
+   * choose its own spawns (spawnFor, below). */
   let floatBody = 0;
+  /*
+   * A map with more than one start (Itaipu: a crest road for the planes, a
+   * field for the quads, the reservoir and the river for the floats, and
+   * one in the air) answers spawnFor(spawn, kind, wish) with the one for
+   * this aircraft, given the view's spawn, which it hands back when that
+   * is a course's start rather than its own. `wish` is the page's ?spawn=,
+   * the one way a pilot picks among them until the shell has a row for it.
+   */
+  const spawnWish = new URLSearchParams(window.location.search).get('spawn');
   function mapSpawn() {
     const sp = view.spawn;
+    if (sp && sp.lift && floatsOnWater()) {
+      return floatStart(sp, (x, z) => Boolean(waterAt(x, z)));
+    }
+    if (sp && view.spawnFor) {
+      const kind = floatsOnWater() ? 'float' : airframeById(runAirframe).fixedWing ? 'plane' : 'quad';
+      return view.spawnFor(sp, kind, spawnWish);
+    }
     if (!sp || !floatsOnWater()) {
       return sp;
-    }
-    if (sp.lift) {
-      return floatStart(sp, (x, z) => Boolean(waterAt(x, z)));
     }
     return sp.air ? sp : floatSpawn(view.water, floatBody);
   }
