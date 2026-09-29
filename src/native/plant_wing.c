@@ -42,7 +42,10 @@
  * own stall; and FW_QUICKIE1293, Glen Spickler's Quickie 500 of
  * docs/QUICKIE-STAGE1.md, the club pylon racer, which adds nothing but
  * reads pitch_speed as its engine's in flight: the line's zero through
- * the thrust an unloading glow engine makes. A term an airframe does not have
+ * the thrust an unloading glow engine makes; and FW_TIGERMOTH1803, Great
+ * Planes' Tiger Moth ARF of docs/TIGERMOTH-STAGE1.md, a scale biplane on
+ * a glow engine, which adds nothing: it flies on the Pitts's second wing.
+ * A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
@@ -4173,4 +4176,132 @@ const FixedWingParams FW_QUICKIE1293 = {
    * and outer strips, all of the middle two. */
   .strip_tau = { 0.1819, 0.24, 0.24, 0.1838 },
   .j_prop = 0.00006,      /* the 9 x 6's 16 g composite blades and the drive washer, ESTIMATED */
+};
+
+/* Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md, where
+ * every number has its formula and source and the estimated ones say so
+ * (scripts/tigermoth-derive.js prints them). A 71 in balsa and ply scale
+ * de Havilland DH.82A, the full size at 1/4.96 on its span: two wings of
+ * one chord and span, both swept back and staggered, the top one 0.113 m
+ * ahead at the root, rigged at the full size's 4 deg of incidence; the
+ * ailerons on the bottom wing alone and no differential; a long tail on a
+ * small fin and a big rudder; an O.S. 61FX on a 12 x 6, the first engine
+ * Great Planes list; a taildragger on V strut gear and a tail wheel on a
+ * wire in the rudder. The cell's derivatives are on Great Planes' 1360 sq
+ * in and the 71 in span, the reference chord the wings' own; the wings
+ * themselves are the second wing's (bip_*). Its CG, the kit's 70 mm
+ * behind the bottom wing's leading edge, is 0.107 chords behind the
+ * cell's aerodynamic centre: the tail holds a static margin of 0.038, and
+ * it pitches easily and does not right itself. */
+const FixedWingParams FW_TIGERMOTH1803 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.8034,         /* Great Planes, 71 in, both wings */
+  .area = 0.87742,        /* Great Planes, 1360 sq in, both wings */
+  .chord = 0.2683,        /* the full size's 1.33 m at 1/4.96, both wings */
+  .cl_alpha = 4.6328,     /* the cell in each wing's wash, and the tail, DATCOM downwash */
+  .cl_max = 1.05,         /* each wing's own, a cambered trainer section at 1.8e5, ESTIMATED */
+  /* The zero lift line 5.47 deg under the thrust line: the section's -2
+   * deg at the full size's 4 deg of incidence, less the tail's share.
+   * sin and cos of minus 5.47 deg, to 17 digits. */
+  .alpha_zl = -5.47 * WING_PI / 180.0,
+  .sin_zl = -0.095324551175009861,
+  .cos_zl = 0.99544624663679504,
+  .cd0 = 0.058,           /* two wings, the struts and wires, open cockpits, V strut gear, ESTIMATED */
+  .k_induced = 0.07819,   /* the biplane at its own split, Munk's span 1.137 b, e 0.85: the strips' drag */
+  .cl_de = -0.3359,
+  .cy_beta = -0.3080,
+  .cy_dr = 0.1996,
+  .cl_beta = -0.0577,     /* the two dihedrals, the top wing high over the fuselage, the fin */
+  .cl_p = -0.8070,        /* strip theory on both wings at their own slopes */
+  .cl_da = 0.2696,        /* the bottom wing's ailerons, 0.35 to 0.89 m out */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0112,
+  .cm_0 = 0.0174,         /* level at 3/4 throttle with the elevator neutral */
+  .cm_alpha = -0.1745,    /* static margin 0.038 at the kit's 70 mm */
+  .cm_q = -8.013,
+  .cm_de = 1.0494,
+  .cn_beta = 0.0965,      /* the small fin and big rudder, less the fuselage's */
+  .cn_r = -0.1262,
+  .cn_p_per_cl = -0.125,
+  /* Adverse yaw: Nelson's 2 K CL Cl_da on the bottom wing's own CL, and
+   * the top wing's downwash tilting the lift the ailerons add: no
+   * differential, the ailerons on one wing. */
+  .cn_da_per_cl = -0.0944,
+  .cn_dr = -0.1034,
+  /* A cambered section's trailing edge stall, the Cub's 3 deg. */
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* Great Planes' high rate at the widest part of each surface: aileron
+   * 3/4 in on 67 mm, elevator 1 in on 121 mm, rudder 2 in on 202 mm; their
+   * arcsines, which configs/tuning.js restates. */
+  .throw_a = 16.5003 * WING_PI / 180.0,
+  .throw_e = 12.1141 * WING_PI / 180.0,
+  .throw_r = 14.5859 * WING_PI / 180.0,
+  .surface_max = 16.5003 * WING_PI / 180.0,
+  .expo = 0.30,           /* the house stock expo; Great Planes give none */
+  .thrust_static = 36.206, /* N, the Ugly Stik's 61FX on APC's 12 x 6 at 10,895 rpm */
+  .pitch_speed = 27.673,
+  .rpm_no_load = 12817.6,
+  .torque_arm = 0.01690,  /* APC's 0.612 N m at 10,895 rpm over 36.2 N */
+  .thrust_z = 0.0074,     /* the thrust line 7 mm over the CG, from the masses */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 0.0,    /* the engine burns fuel, not the pack */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 0.0,   /* level at the trim flies at 0.3 deg nose down: it cruises tail up */
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.20,
+  .stab_pitch_kp = 2.0,
+  .stab_pitch_kd = 0.4,
+  .stab_pitch_down = 8.94 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.749, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 75.0 * WING_PI / 180.0, /* 0.85 of full aileron's 88 deg/s at the trim */
+  .acro_pitch_rate = 45.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 4.0,
+  .acro_roll_kd = 0.70,
+  .acro_roll_ff = 0.20,
+  .acro_pitch_kp = 3.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.30,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 6.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.5,
+  .throttle_idle = 0.1836, /* O.S.'s 2,000 rpm, the lowest practical, of the 10,895 */
+  /* The tank, the Stik's 12 oz, ESTIMATED (Great Planes give no size), and
+   * the Stik's 61FX flow: 27.4 cc/min at full throttle, linear in the
+   * rpm; the lean run the Bombshell's. */
+  .tank_m3 = 355.0e-6,
+  .flow_full = 27.4e-6 / 60.0,
+  .flow_idle = 0.1836 * (27.4e-6 / 60.0),
+  .lean_frac = 0.05,
+  .lean_gain = 0.05,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/tigermoth-derive.js:
+   * the CG 0.107 chords behind the cell's aerodynamic centre; a Clark-Y
+   * class section at 1.8e5, held 6.2 deg past its peak and falling to
+   * 0.72. */
+  .stall_arm_ac = 0.1068,
+  .stall_arm_cp = 0.0432,
+  .stall_dw = 0.1286,
+  .stall_asym = 0.00373,
+  .stall_k = 0.72,
+  .stall_top = 6.2 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 }, /* both wings rectangles */
+  .washout = 0.0,         /* built flat; Great Planes give none */
+  /* No strip_tau: the strips judge their stall on the top wing, which
+   * stalls first and has no ailerons. */
+  .j_prop = 0.00027,      /* the Stik's 12 x 6 and the crank's front, ESTIMATED */
+  /* The second wing, scripts/tigermoth-derive.js: the top wing (0) and the
+   * bottom one (1), 0.333 m apart at the root, the top one's quarter chord
+   * 0.108 m ahead at the mean chords, Prandtl's sigma 0.539 on the Trefftz
+   * plane. */
+  .bip_w = { 0.5684, 0.4316 },
+  .bip_r = { 1.1087, 0.8856 },
+  .bip_m = { 0.0101, 0.2202 },
+  .bip_x = { 0.1729, -0.2277 },
+  .bip_ki = { 0.02655, 0.02399 },
+  .bip_kx = { 0.01361, 0.01361 },
 };

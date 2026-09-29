@@ -380,10 +380,13 @@ int sim_set_flight_style(int arcade);
  * class is named after, a 51 in low wing box on a K&B 40 glow engine, on
  * wire gear and a tail skid, and 20 the Ripmax Wot 4 Mk2
  * (docs/WOT4-STAGE1.md), Chris Foss's club sport aerobat on his electric
- * conversion, a shoulder wing taildragger with a big rudder. 23 is
- * reserved for the aircraft being added alongside them. Returns
- * SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 22 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * conversion, a shoulder wing taildragger with a big rudder, and 23 Great
+ * Planes' Tiger Moth ARF (docs/TIGERMOTH-STAGE1.md), a 71 in scale de
+ * Havilland DH.82A on a .61 two stroke glow engine, a biplane on the
+ * Pitts's second wing whose ailerons are on its bottom wing alone, on a
+ * taildragger's gear. Returns SIM_ERR_BAD_ARG for any id without an
+ * aircraft.
+ * 2 to 23 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -423,6 +426,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_WOT41334_ID 20
 #define SIM_AIRFRAME_NRJ1490_ID 21
 #define SIM_AIRFRAME_QUICKIE1293_ID 22
+#define SIM_AIRFRAME_TIGERMOTH1803_ID 23
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -809,7 +813,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 22): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 23): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

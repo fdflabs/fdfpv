@@ -66,6 +66,10 @@ const PLANES = [
   /* The Ugly Stik stands 2.06 deg nose down idling; it arrives at 11 m/s
    * and its 2,000 rpm idle pushes 1.22 N against the grass's 2.14, so it
    * rolls out for 25 s. */
+  /* The Tiger Moth stands 8.16 deg nose up on its three points; it
+   * arrives at 11 m/s and its 2,000 rpm idle pushes 1.22 N against the
+   * grass's 3.65, so it rolls out for 25 s. */
+  { name: 'tigermoth', id: 23, hx: 0.40, hy: 0.9017, down: 0.125, up: 0.222, land: 11, rollMs: 25000, nose: 12, toss: 12, tossSticks: [0, 0.1, 0, 1], wheels: { restPitchDeg: 8.16, restZ: 0.2654 } },
   { name: 'uglystik', id: 19, hx: 0.45, hy: 0.7841, down: 0.053, up: 0.077, land: 11, rollMs: 25000, nose: 13, toss: 12, tossSticks: [0, 0.1, 0, 1], wheels: { restPitchDeg: -2.06, restZ: 0.2024 } },
   /* The Quickie stands 6.47 deg nose up on its mains and skid idling; it
    * arrives at 12 m/s and its 2,700 rpm idle pushes 0.81 N against the

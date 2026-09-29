@@ -12,6 +12,15 @@
  * NO WORK ON A QUIET FRAME beyond the ribbons that are out: one buffer
  * update each, and nothing allocated after a ribbon is first built.
  *
+ * PAPER LYING ON SOMETHING IS DRAWN ON IT, never through it. The physics
+ * rests a node on the surface itself, and the twist and the flutter swing
+ * the ribbon's edges about the node, half of the time below it: on the
+ * water that drew the paper as dashes, the lake showing through wherever
+ * the ribbon turned under it (the owner, 2026-09-29: "the paper tail rips
+ * when on water"). So with a floorAt(x, z) the layer is made with, paper
+ * coming within SETTLE_M of it settles flat, twist and flutter fading out,
+ * and no vertex is drawn below LIFT_M over it.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -46,6 +55,12 @@ const CONFETTI = 192;
 const GLINT_S = 0.45;
 const GLINT_M = 4;
 export const CONFETTI_S = 4;
+/* Above the floor, the least a ribbon is drawn: clear of the depth
+ * buffer's resolution (the shell's camera has a 0.2 m near plane) out to
+ * a quarter of a kilometre, so the surface under it never shows through. */
+const LIFT_M = 0.02;
+/* Paper this close above the floor is drawn settling onto it, flat at it. */
+const SETTLE_M = 0.5;
 const GONE = new THREE.Matrix4().makeScale(0, 0, 0);
 
 /* Each seat's colour as linear RGB, made once. */
@@ -104,8 +119,11 @@ function paint(mesh, cols, n) {
  * One ribbon's vertices from nodes x (3 n) for n nodes: head at node 0,
  * free end at node n - 1; `free` when both ends are free (a piece), so it
  * flutters all along. anchor, when given, is where node 0 is drawn.
+ * floorAt, when given, is what the paper lies on; its height is asked at
+ * each node and held for both of that node's vertices, which are the
+ * ribbon's width apart.
  */
-function shape(mesh, x, n, t, free, anchor, seed, eye) {
+function shape(mesh, x, n, t, free, anchor, seed, eye, floorAt) {
   const attr = mesh.geometry.getAttribute('position');
   const pos = attr.array;
   const count = Math.min(n, MAXN);
@@ -141,28 +159,39 @@ function shape(mesh, x, n, t, free, anchor, seed, eye) {
     const uy = tz * sx - tx * sz;
     const uz = tx * sy - ty * sx;
     const s = i;
+    /* The drawn tow point pulls the first metres with it, fading out. */
+    const k = anchor ? Math.max(0, 1 - i / 8) : 0;
+    const floor = floorAt ? floorAt(x[i * 3] + ox * k, x[i * 3 + 2] + oz * k) : -Infinity;
+    const lie = Math.min(1, Math.max(0, 1 - (x[i * 3 + 1] + oy * k - floor) / SETTLE_M));
     const fromEnd = (count - 1 - i);
-    const amp = free ? 0.05 : 0.008 + TAIL_AMP * Math.exp(-fromEnd / TAIL_M);
+    const amp = (1 - lie) * (free ? 0.05 : 0.008 + TAIL_AMP * Math.exp(-fromEnd / TAIL_M));
     const phase = 2 * Math.PI * FLUTTER_HZ * t - (2 * Math.PI * s) / WAVE_M + seed;
     const wave = amp * Math.sin(phase);
     const twist = 0.7 * s + 2.2 * t + seed + 0.6 * Math.sin(phase * 0.5);
-    const c = Math.cos(twist);
-    const d = Math.sin(twist);
+    /* Lying, the twist is turned flat, toward whichever face is nearer. */
+    let c = Math.cos(twist);
+    let d = Math.sin(twist);
+    if (lie > 0) {
+      c = (1 - lie) * c + (c < 0 ? -lie : lie);
+      d *= 1 - lie;
+      const cl = Math.hypot(c, d);
+      c /= cl;
+      d /= cl;
+    }
     const far = eye.perPx > 0 ? Math.hypot(x[i * 3] - eye.x, x[i * 3 + 1] - eye.y, x[i * 3 + 2] - eye.z) * eye.perPx * MIN_PX * 0.5 : 0;
     const half = Math.max(HALF_W, far);
     const wx = (sx * c + ux * d) * half;
     const wy = (sy * c + uy * d) * half;
     const wz = (sz * c + uz * d) * half;
-    /* The drawn tow point pulls the first metres with it, fading out. */
-    const k = anchor ? Math.max(0, 1 - i / 8) : 0;
     const px = x[i * 3] + ox * k + ux * wave;
     const py = x[i * 3 + 1] + oy * k + uy * wave;
     const pz = x[i * 3 + 2] + oz * k + uz * wave;
+    const low = floor + LIFT_M;
     pos[i * 6] = px - wx;
-    pos[i * 6 + 1] = py - wy;
+    pos[i * 6 + 1] = Math.max(low, py - wy);
     pos[i * 6 + 2] = pz - wz;
     pos[i * 6 + 3] = px + wx;
-    pos[i * 6 + 4] = py + wy;
+    pos[i * 6 + 4] = Math.max(low, py + wy);
     pos[i * 6 + 5] = pz + wz;
   }
   mesh.geometry.setDrawRange(0, Math.max(0, count - 1) * 6);
@@ -170,7 +199,8 @@ function shape(mesh, x, n, t, free, anchor, seed, eye) {
   mesh.geometry.computeVertexNormals();
 }
 
-export function createStreamerLayer() {
+/* floorAt(x, z): the height of what paper lies on there, or null for none. */
+export function createStreamerLayer(floorAt = null) {
   const group = new THREE.Group();
   group.name = 'streamers';
   const ribbons = new Map(); /* 'key:id' -> { mesh, used } */
@@ -249,7 +279,7 @@ export function createStreamerLayer() {
         r.paint = key2;
         paint(r.mesh, cols, n);
       }
-      shape(r.mesh, x, n, t, free, anchor, r.seed, eye);
+      shape(r.mesh, x, n, t, free, anchor, r.seed, eye, floorAt);
     }
   }
 

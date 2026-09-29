@@ -2253,3 +2253,117 @@ export function recordWot4Flight(sim) {
   }
   return samples;
 }
+
+/*
+ * Great Planes' Tiger Moth ARF, airframe 23, docs/TIGERMOTH-STAGE1.md: a
+ * scale biplane on a taildragger's gear whose tail wheel turns with the
+ * rudder. On the strip it stands on its three wheels at the pose the plant
+ * settles to, 8.16 deg nose up and the CG 0.2654 m up (the drawn model's,
+ * src/render/tigermothcraft.js), the quaternion's half angle's cos and sin
+ * written out to 17 digits because a recording's prelude is hashed and JS
+ * Math.cos is not specified to the bit.
+ */
+export const TIGERMOTH_AIRFRAME = 23;
+export const TIGERMOTH_REST = { z: 0.2654, pitchDeg: 8.16 };
+const TIGERMOTH_REST_C = 0.99746567947907760;
+const TIGERMOTH_REST_S = 0.071149267468766889;
+export function tigermothGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(TIGERMOTH_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  must(sim.e.sim_set_pose(0, 0, TIGERMOTH_REST.z, TIGERMOTH_REST_C, 0, -TIGERMOTH_REST_S, 0), 'sim_set_pose');
+}
+
+/*
+ * The Tiger Moth's take off, Great Planes' manual's: "hold a bit of up
+ * elevator to keep the tail on the ground to maintain tail wheel
+ * steering, then gradually advance the throttle. As the model gains speed
+ * decrease up elevator allowing the tail to come off the ground", "always
+ * be ready to apply right rudder to counteract engine torque", then
+ * "gently applying up elevator". The throttle opened over two seconds;
+ * the tail held down to a third of `vRotate`, then raised to 1 deg of
+ * pitch; the wings held level on the ailerons and the heading on the
+ * rudder and the tail wheel it turns, `yawHold` of it (nought is the
+ * pilot's feet off); at `vRotate` 6 deg of pitch. `ms` is the time since
+ * the throttle started to open.
+ */
+export function tigermothTakeoffSticks(s, ms, { vRotate = 11.4, yawHold = 1 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const roll = Math.max(-1, Math.min(1, -0.8 * bank - 0.05 * s[11]));
+  let pitchStick;
+  if (v < vRotate / 3) {
+    pitchStick = 0.3;
+  } else {
+    const pitchT = (v < vRotate ? 1 : 6) * Math.PI / 180;
+    pitchStick = Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+  }
+  const yaw = Math.max(-1, Math.min(1, yawHold * (2.0 * edgeHeading(s) + 0.3 * s[13])));
+  return [roll, pitchStick, yaw, Math.min(1, ms / 2000)];
+}
+
+/*
+ * The Tiger Moth's hands for level flight: the Edge's (edgeLevel) with the
+ * elevator's own slow part, an integral of the pitch error kept in
+ * `trim.e`, as the Stik's and the Pitts's.
+ */
+export function tigermothLevel(s, { b = 0, trim }) {
+  const [roll, stick] = edgeLevel(s, { b, trim });
+  const { pitch } = attitude(s);
+  const sgn = Math.cos(fullBank(s)) < 0 ? -1 : 1;
+  const pitchT = Math.max(-0.2, Math.min(0.2, trim.v - 0.05 * s[6]));
+  trim.e = Math.max(-0.8, Math.min(0.8, (trim.e ?? 0) + 0.004 * sgn * (pitchT - pitch)));
+  return [roll, Math.max(-1, Math.min(1, stick + trim.e))];
+}
+
+/*
+ * The Tiger Moth's recording for the cross-host check: from standing on
+ * the strip, a second at idle, the take off above and a climb, level at
+ * three quarter throttle, a turn entered on the ailerons alone (its
+ * adverse yaw), level again, the same turn with the rudder with them, a
+ * slow pull to full up into the stall, the sticks let go, and a climb
+ * away at full throttle: twenty eight seconds, the gear, the adverse yaw,
+ * both wings' stalls and the recovery in the hashed trace, and still
+ * flying at the end.
+ */
+export function recordTigermothFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  tigermothGroundPrelude(sim);
+  const samples = [];
+  const trim = { v: 0, e: 0 };
+  for (let ms = 0; ms < 28000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch } = attitude(s);
+    const qAero = -s[12];
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 7000) {
+      sticks = tigermothTakeoffSticks(s, ms - 1000);
+    } else if (ms < 11000) {
+      sticks = [edgeRoll(s), Math.max(-1, Math.min(1, 2.5 * (0.15 - pitch) - 0.25 * qAero)), 0, 1];
+    } else if (ms < 14000) {
+      sticks = [...tigermothLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 15000) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 17000) {
+      sticks = [...tigermothLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 18000) {
+      sticks = [1, 0, 1, 0.75];
+    } else if (ms < 20000) {
+      sticks = [...tigermothLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 24000) {
+      sticks = [edgeRoll(s), Math.min(1, (ms - 20000) / 3000), 0, 0.2];
+    } else if (ms < 25000) {
+      sticks = [0, 0, 0, 0.75];
+    } else {
+      sticks = [edgeRoll(s), Math.max(-1, Math.min(1, 2.5 * (0.1 - pitch) - 0.25 * qAero)), 0, 1];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}

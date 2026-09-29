@@ -410,5 +410,31 @@ export const PROP_ESTIMATES = {
         currentA: 45.031
       }
     }
+  },
+  tigermoth1803: {
+    stock: {
+      "13x6": {
+        thrustN: 38.2175,
+        pitchSpeedMs: 26.4488,
+        rpmNoLoad: 12250.5
+      },
+      "12x8": {
+        thrustN: 35.175,
+        pitchSpeedMs: 33.8612,
+        rpmNoLoad: 11762.8
+      }
+    },
+    fs91: {
+      "13x6": {
+        thrustN: 34.2933,
+        pitchSpeedMs: 25.1152,
+        rpmNoLoad: 11632.8
+      },
+      "12x8": {
+        thrustN: 31.5866,
+        pitchSpeedMs: 32.1296,
+        rpmNoLoad: 11161.3
+      }
+    }
   }
 };

@@ -121,8 +121,15 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * fly (docs/DLG-STAGE1.md) and hard to keep up, which is a soaring skill
  * and not a stick one, so it sits after the Radian and ahead of the fast
  * and the aerobatic. Shared rather than slotted in, so no plane a pilot
- * already has goes back behind a lock. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, wot41334: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, quickie1293: 7, pitts850: 8, extra1308: 9, edge1524: 10, f16878: 11 };
+ * already has goes back behind a lock. The Tiger Moth at 4 with the
+ * Bombshell, the Zagi and the Wot 4: slow, and its stall drops the nose
+ * and no wing, but it asks for the rudder in every turn (its ailerons on
+ * the bottom wing alone yaw it the wrong way) and on every take off (a
+ * taildragger on a two stroke's torque), and Great Planes say it "does
+ * not, however, possess the self-recovery characteristics of a primary
+ * R/C trainer". Nothing it does needs the aerobats' hands or the P-51's
+ * speed. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, wot41334: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, quickie1293: 7, pitts850: 8, extra1308: 9, edge1524: 10, f16878: 11 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

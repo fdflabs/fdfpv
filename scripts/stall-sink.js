@@ -56,6 +56,7 @@ const PLANES = {
   uglystik: [19, 9.48],
   wot4: [20, 10.05],
   quickie: [22, 9.31],
+  tigermoth: [23, 9.47],
 };
 const MODES = [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']];
 

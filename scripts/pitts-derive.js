@@ -30,6 +30,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { biplaneCell } from './lib/biplane.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -85,119 +87,27 @@ const gap = z1 - z2;
 const stagger = xAc1 - xAc2;
 
 /*
- * THE BIPLANE'S INDUCED DRAG, in the Trefftz plane (Munk's theorem: the
- * total induced drag does not depend on the stagger, so the far wake's
- * cross section is all it takes). Each wing is a line in the y z plane,
- * the top one flat at z1, the bottom one at z2 rising with its dihedral,
- * each shedding the vortex sheet of an elliptic load. The induced drag of
- * a set of sheets is -rho / (4 pi) times the double sum over their shed
- * vorticity of gamma_k gamma_l ln r_kl, a point vortex's own term being a
- * strip of width h's mean ln, ln h - 3/2. One wing alone checks it against
- * L^2 / (pi q b^2); the two together give Prandtl's
- *   D = (L1^2 / b1^2 + 2 sigma L1 L2 / (b1 b2) + L2^2 / b2^2) / (pi q),
- * and sigma is the mutual term over that form (Prandtl, "Induced drag of
- * multiplanes", NACA TN 182, 1924).
+ * THE TWO WINGS, scripts/lib/biplane.js: Prandtl's induced drag of the
+ * pair on the Trefftz plane (NACA TN 182, 1924), Munk's span factor, each
+ * wing's own lift slope and load in the other's trailing sheet and bound
+ * vortex, and the plant's bip_* from them. The solver was this file's own;
+ * it is shared so the Tiger Moth's derivation runs the same one. Both
+ * wings are rigged at one incidence (E-flite's foam wings, like the full
+ * size S-1S's: "symmetrical wings are parallel (same angle of incidence)",
+ * Davisson). e for the planform's and the fuselage's losses on top of the
+ * pair's own, 0.85, ESTIMATED.
  */
-function sheet(span, zAt, n, gamma0) {
-  /* Nodes at the ends of n equal strips along the span, the elliptic
-   * circulation at each; the shed vorticity between two nodes is the
-   * circulation's drop, at the strip's middle. */
-  const pts = [];
-  const h = span / n;
-  const circ = (y) => gamma0 * Math.sqrt(Math.max(0, 1 - (2 * y / span) ** 2));
-  for (let i = 0; i < n; i += 1) {
-    const y0 = -span / 2 + i * h, y1 = y0 + h;
-    const ym = (y0 + y1) / 2;
-    pts.push({ y: ym, z: zAt(ym), g: circ(y0) - circ(y1), h });
-  }
-  return { pts, lift: (V) => rho * V * gamma0 * Math.PI * span / 4 };
-}
-function trefftz(a, bSheet) {
-  let d = 0;
-  for (const p of a.pts) {
-    for (const q of bSheet.pts) {
-      const r = Math.hypot(p.y - q.y, p.z - q.z);
-      const lr = a === bSheet && p === q ? Math.log(p.h) - 1.5 : Math.log(r);
-      d += p.g * q.g * lr;
-    }
-  }
-  return -rho / (4 * Math.PI) * d;
-}
-const Vt = 10, qt = 0.5 * rho * Vt * Vt, N = 900;
-const w1 = sheet(b1, () => z1, N, 1.0);
-const w2 = sheet(b2, (y) => z2 + Math.abs(y) * Math.tan(dihedral2), N, 1.0);
-const L1t = w1.lift(Vt), L2t = w2.lift(Vt);
-const D11 = trefftz(w1, w1), D22 = trefftz(w2, w2), D12 = trefftz(w1, w2);
-const selfCheck = D11 / (L1t * L1t / (Math.PI * qt * b1 * b1));
-const sigma = (2 * D12) * Math.PI * qt * b1 * b2 / (2 * L1t * L2t);
-/* A common curve fit of Prandtl's chart for equal spans: sigma of the gap over
- * the mean span, (1 - 0.66 G/b) / (1.055 + 3.7 G/b). A cross check only. */
-const gOverB = gap / ((b1 + b2) / 2);
-const sigmaFit = (1 - 0.66 * gOverB) / (1.055 + 3.7 * gOverB);
-/* Munk's span factor: the monoplane of span k b1 with the biplane's least
- * induced drag, the lift split as it minimises Prandtl's form,
- * L1 / L2 = (1 / b2^2 - sigma / (b1 b2)) / (1 / b1^2 - sigma / (b1 b2)). */
-const mu = b2 / b1;
-const splitOpt = (1 / (b2 * b2) - sigma / (b1 * b2)) / (1 / (b1 * b1) - sigma / (b1 * b2));
-const kMunk = (() => {
-  const l1 = splitOpt / (1 + splitOpt), l2 = 1 / (1 + splitOpt);
-  const f = l1 * l1 / (b1 * b1) + 2 * sigma * l1 * l2 / (b1 * b2) + l2 * l2 / (b2 * b2);
-  return 1 / (b1 * Math.sqrt(f));
-})();
-
-/*
- * THE LIFT EACH WING CARRIES, as two lifting lines at the same geometric
- * angle (E-flite's foam wings, like the full size S-1S's, are rigged at
- * one incidence: "symmetrical wings are parallel (same angle of
- * incidence)", Davisson). Each wing's section lifts at a0 = 2 pi on its
- * angle less the induced angles: its own trailing sheet's, CL S / (pi b^2)
- * for an elliptic load, and the other's, sigma CL' S' / (pi b1 b2)
- * (Prandtl's mutual term shared equally, as his theory takes it); and the
- * bound vortex of the other wing, which Munk's theorem moves between them
- * without changing their sum: the top wing, ahead, sits in the upwash of
- * the bottom wing's bound vortex and the bottom one in the downwash of
- * the top one's, a 2D vortex's c CL s / (4 pi r^2) with s the stagger of
- * the quarter chords and r their distance (an upper bound: a finite wing's
- * bound vortex induces less). a0 = 2 pi with the own sheet's term is the
- * 2 pi AR / (AR + 2) every other table's wing takes.
- */
-const a0 = 2 * Math.PI;
-const r2 = stagger * stagger + gap * gap;
-const kappa1 = c2 * stagger / (4 * Math.PI * r2), kappa2 = c1 * stagger / (4 * Math.PI * r2);
-const own1 = S1 / (Math.PI * b1 * b1), own2 = S2 / (Math.PI * b2 * b2);
-const mut1 = sigma * S2 / (Math.PI * b1 * b2) - kappa1; /* at the top wing, per unit of the bottom's CL */
-const mut2 = sigma * S1 / (Math.PI * b1 * b2) + kappa2; /* at the bottom wing, per unit of the top's CL */
-/* CL1 = a0 (alpha - own1 CL1 - mut1 CL2), CL2 = a0 (alpha - own2 CL2 - mut2 CL1). */
-const M11 = 1 / a0 + own1, M22 = 1 / a0 + own2;
-const det = M11 * M22 - mut1 * mut2;
-const A1 = (M22 - mut1) / det, A2 = (M11 - mut2) / det;
-/* The cell's lift slope on the reference area, the lift both carry. */
-const aw = (S1 * A1 + S2 * A2) / S;
-const share1 = S1 * A1 / (S * aw), share2 = S2 * A2 / (S * aw);
-/* Each wing's own lift coefficient over the cell's: the plant's bip_r. */
-const r1 = A1 / aw, r2w = A2 / aw;
-/* A wing's own slope in the other's wash with the other held: what a
- * change in the other's lift, a stall, moves it by, a0 / (1 + a0 own). */
-const aOwn1 = a0 / (1 + a0 * own1), aOwn2 = a0 / (1 + a0 * own2);
-const bipM = [aOwn1 * mut1, aOwn2 * mut2];
-/* The aerodynamic centre of the cell, each wing's weighted by its share of
- * the lift, and each wing's ahead of it over the reference chord. */
-const xAc = share1 * xAc1 + share2 * xAc2;
-const bipX = [(xAc1 - xAc) / cbar, (xAc2 - xAc) / cbar];
-/* The equivalent monoplane: the span factor at the split the wings carry
- * (not quite Munk's optimum), and e for the planform's and the fuselage's
- * losses on top, 0.85, ESTIMATED. */
 const eSpan = 0.85;
-const kIndOf = (l1, l2) => (l1 * l1 / (b1 * b1) + 2 * sigma * l1 * l2 / (b1 * b2) + l2 * l2 / (b2 * b2)) / (Math.PI * eSpan) * S;
-const kInduced = kIndOf(share1, share2); /* CD_i = k CL^2 on the reference area */
-const kSpanCarried = 1 / Math.sqrt(kInduced * Math.PI * eSpan / S) / b1;
-/* The plant's Prandtl terms, per wing i on its own CL_i (bip_ki, bip_kx):
- * CD_i = sum_i (S_i / S) CL_i (CL_i S_i / (pi e b_i^2) + sigma CL_j S_j / (pi e b1 b2)). */
-const bipKi = [S1 / S * S1 / (Math.PI * eSpan * b1 * b1), S2 / S * S2 / (Math.PI * eSpan * b2 * b2)];
-const bipKx = [S1 / S * sigma * S2 / (Math.PI * eSpan * b1 * b2), S2 / S * sigma * S1 / (Math.PI * eSpan * b1 * b2)];
-/* And the same wings as one monoplane of the reference area and span, for
- * what the second wing changes. */
-const awMono = 2 * Math.PI * AR / (AR + 2), kMono = 1 / (Math.PI * eSpan * AR);
+const cell = biplaneCell({
+  w1: { b: b1, c: c1, S: S1, z: z1, dihedral: 0, xAc: xAc1 },
+  w2: { b: b2, c: c2, S: S2, z: z2, dihedral: dihedral2, xAc: xAc2 },
+  S, eSpan,
+});
+const {
+  selfCheck, sigma, sigmaFit, gOverB, kMunk, kSpanCarried, kappa1, kappa2, A1, A2, aw, share1, share2, r1,
+  bipM, bipX, bipKi, bipKx, kInduced, xAc, awMono, kMono,
+} = cell;
+const r2w = cell.r2;
 
 /* The tail, off the top view (0.6348 mm a pixel): the stabiliser and
  * elevator 0.326 m across and 0.043 m^2 with the fuselage's strip, 0.040
