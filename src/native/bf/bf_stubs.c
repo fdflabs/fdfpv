@@ -1,7 +1,7 @@
 /*
  * bf_stubs.c: the hardware and subsystem symbols Betaflight's compiled
  * control loop references but which live in files we do not compile
- * (imu, failsafe, battery monitor, rx link, system clock). Each stub is
+ * (imu, battery monitor, receiver drivers, scheduler, system clock). Each stub is
  * the neutral value for a healthy, armed, acro quad. The real Betaflight
  * headers are included so every signature is compiler checked against the
  * vendor tree.
@@ -31,9 +31,13 @@
 #include "drivers/time.h"
 #include "fc/core.h"
 #include "fc/rc_controls.h"
+#include "fc/tasks.h"
 #include "pg/rx.h"
+#include "pg/rx_spi.h"
 #include "rx/rx.h"
-#include "flight/failsafe.h"
+#include "rx/msp.h"
+#include "rx/msp_override.h"
+#include "rx/rx_spi.h"
 #include "flight/imu.h"
 #include "io/beeper.h"
 #include "scheduler/scheduler.h"
@@ -48,8 +52,6 @@ accelerometerConfig_t accelerometerConfig_System;
  * angles into this from bf_glue.c, which is what SITL does instead of
  * compiling the AHRS. */
 attitudeEulerAngles_t attitude;
-
-bool failsafeIsActive(void) { return false; }
 
 const lowVoltageCutoff_t *getLowVoltageCutoff(void) {
   static const lowVoltageCutoff_t cutoff = { .enabled = false, .percentage = 100, .startTime = 0 };
@@ -77,15 +79,6 @@ void imuQuaternionHeadfreeTransformVectorEarthToBody(t_fp_vector_def *v) { (void
 uint32_t sim_bf_now_us;
 timeMs_t millis(void) { return sim_bf_now_us / 1000u; }
 timeUs_t micros(void) { return (timeUs_t)sim_bf_now_us; }
-
-bool rxIsReceivingSignal(void) { return true; }
-
-/* No hardware rx frame timestamps; updateRcRefreshRate falls back to its
- * call interval on the simulated clock, one frame per 1 ms step. */
-timeDelta_t rxGetFrameDelta(timeDelta_t *frameAgeUs) {
-  *frameAgeUs = 0;
-  return 0;
-}
 
 /*
  * Parameter group storage normally defined in sensors/battery.c, WITH
@@ -172,14 +165,13 @@ void beeperConfirmationBeeps(uint8_t beepCount) { (void)beepCount; }
 void beeperSilence(void) {}
 void schedulerResetTaskStatistics(taskId_e taskId) { (void)taskId; }
 
-/* Core state: never disarming. Crashflip is owned by bf_glue.c, the
- * same pattern as isLaunchControlActive: mixer.c already compiled the
- * turtle mix, and a stub that returned false left it unreachable.
+/* Core state. disarm() and crashflip are owned by bf_glue.c: failsafe.c
+ * disarms on a stage 2 drop, and mixer.c already compiled the turtle mix,
+ * so neither can be a stub that does nothing.
  *
  * isAirmodeActivated is core.c's throttle latch, not the airmode feature.
  * The feature itself is airmodeIsEnabled() in rc_modes.c, which this file
  * once claimed to cover and did not: bf_glue.c raises it now. */
-void disarm(flightLogDisarmReason_e reason) { (void)reason; }
 bool isAirmodeActivated(void) { return true; }
 
 #ifdef USE_LAUNCH_CONTROL
@@ -192,9 +184,31 @@ const char * const osdLaunchControlModeNames[LAUNCH_CONTROL_MODE_COUNT] = {
 void mixerTricopterInit(void) {}
 float mixerTricopterMotorCorrection(int motor) { (void)motor; return 0.0f; }
 
-/* rcmap parsing from rx/rx.c; rcData is written by function index in the
- * glue, so the map is never consulted. */
-void parseRcChannels(const char *input, struct rxConfig_s *rxConfig) {
-  (void)input;
+/*
+ * Receiver drivers rx/rx.c names but this build does not compile. rxInit
+ * reaches the MSP and SPI ones only when FEATURE_RX_MSP or FEATURE_RX_SPI is
+ * set, which nothing here sets, and the MSP override only with its channel
+ * mask set, which no key here writes: bf_glue.c registers the one receiver
+ * this simulator has, the way target/SITL/sitl.c registers its UDP link.
+ */
+rxSpiConfig_t rxSpiConfig_System;
+void rxMspInit(const struct rxConfig_s *rxConfig, struct rxRuntimeState_s *rxRuntimeState) {
   (void)rxConfig;
+  (void)rxRuntimeState;
 }
+bool rxSpiInit(const rxSpiConfig_t *rxSpiConfig, rxRuntimeState_t *rxRuntimeState) {
+  (void)rxSpiConfig;
+  (void)rxRuntimeState;
+  return false;
+}
+uint8_t rxMspOverrideFrameStatus(void) { return RX_FRAME_PENDING; }
+uint16_t rxMspOverrideReadRawRc(const rxRuntimeState_t *rxRuntimeState, const rxConfig_t *rxConfig, uint8_t chan) {
+  (void)rxRuntimeState;
+  (void)rxConfig;
+  (void)chan;
+  return 0;
+}
+
+/* fc/tasks.c's rx state machine: bf_glue.c runs a whole receiver task inside
+ * one step, so a task is never part way through when rx.c asks. */
+bool taskUpdateRxMainInProgress(void) { return false; }

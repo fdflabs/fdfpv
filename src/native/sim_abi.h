@@ -303,6 +303,35 @@ int sim_set_launch_control(int on);
 int sim_launch_control_state(void);
 
 /*
+ * The radio link, for Betaflight's failsafe. ok non-zero: the link is up
+ * and every sim_input sample the module consumes is a packet that arrived.
+ * ok zero: the link is down and a consumed sample is a packet that never
+ * arrived; it does not reach the controller. Holds until called again,
+ * across sim_reset.
+ *
+ * Until the first call nothing about the link is judged, and a replay that
+ * never calls this is bit-identical to one from before it existed. From
+ * the first call Betaflight's flight/failsafe.c and rx/rx.c judge it as a
+ * real receiver's: 100 ms without a packet is signal loss (stage 1: the
+ * channels hold, then go to centred sticks and low throttle), and
+ * failsafe_delay of it is stage 2, which failsafe_procedure makes a DROP
+ * (disarm, motors stop) or an AUTO-LAND. So once the host calls this with
+ * the link up it must queue samples at a radio's frame rate, as the live
+ * shell does, and not hold sticks by queueing one sample and stepping.
+ *
+ * A dropped craft stays disarmed until sim_reset: there is no arm switch.
+ *
+ * Returns the state after the call: failsafe.c's phase in the low four bits
+ * (0 idle, 1 rx loss detected, 2 landing, 3 landed, 4 rx loss monitoring,
+ * 5 recovered), plus SIM_RX_FAILSAFE_ACTIVE while stage 2 is on and
+ * SIM_RX_ARMED while the craft is armed. Additive ABI, version unchanged.
+ * Quads only: a fixed wing runs no flight controller, and ignores it.
+ */
+#define SIM_RX_FAILSAFE_ACTIVE 0x10
+#define SIM_RX_ARMED 0x20
+int sim_rx_signal(int ok);
+
+/*
  * Mechanical launch stand. Off (0) is the default. On (non-zero) holds
  * the craft on a hinge at the rear underside: linear velocity is killed,
  * roll and yaw rates are killed, attitude is projected onto pitch about
@@ -485,6 +514,44 @@ int sim_set_gravity(double scale);
 
 /* The gravity scale in force. */
 double sim_gravity(void);
+
+/*
+ * The chase boost: every propulsor's aerodynamics as if its prop turned
+ * `scale` times faster, the quads' rotors and a fixed wing's prop or fan.
+ * Catch the Ace (docs/TAG-PLAN.md) gives it to every pilot who is not the
+ * Ace, the owner's "if you are NOT the ace, you get a 5% speed boost for
+ * chasing". 1.0 is the machine every threshold was measured against and
+ * the path every harness replay takes. The accepted range is 1.0 to 1.5;
+ * outside it returns SIM_ERR_BAD_ARG rather than being clamped, same
+ * argument as sim_set_air.
+ *
+ * WHY A PROP SPEED AND NOT A THRUST SCALE. A prop's thrust falls with the
+ * airspeed and is gone at its pitch speed, so at full throttle the top
+ * speed sits close under the pitch speed, and a scale on the thrust alone
+ * barely moves it: measured on the Cub, 5 percent more thrust bought 1.1
+ * percent of level top speed, and 5 percent of speed would have cost about
+ * 28 percent of thrust, far more climb and punch than the owner asked for.
+ * A prop turning k times faster has k times the pitch speed and k squared
+ * the thrust at the same advance ratio, so against a drag that goes as the
+ * square of the speed its top speed is exactly k times higher: k = 1.05 is
+ * the owner's 5 percent, with 10 percent more static pull.
+ *
+ * So the pitch speed the thrust loss is keyed on is scaled by `scale`, and
+ * the thrust, after every other factor (advance ratio, duct, ground effect,
+ * a chipped prop), by its square. Nothing else: the motor's torque, current
+ * and rpm are untouched, so the pack, the sound and the rates are as they
+ * were.
+ *
+ * A MODE, not state: it survives sim_reset and sim_init, as the gravity
+ * scale does, and the shell owns asserting it. Additive ABI change,
+ * version unchanged, and a flight that never calls this is bit identical
+ * to one from before it existed (a multiply by 1.0 is exact), MEASURED
+ * against the recorded trace hashes.
+ */
+int sim_set_boost(double scale);
+
+/* The chase boost in force. */
+double sim_boost(void);
 
 /*
  * The fixed wings, airframes 2 to 23. Additive, version unchanged; each

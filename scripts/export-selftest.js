@@ -13,10 +13,10 @@
  *    gives the same frame; a capture nobody asked for is refused.
  * 4. The job refuses a movie over the 120 s cap, and a plan at another
  *    rate, before it touches a browser API.
- * 5. The soundtrack's cues: a clip's crash cues and its paper's SCHWINGs,
- *    through an edit of three shots at 1x, 0.25x and 2x (edit.js), at
- *    their movie times, levels scaled by a slow shot; those outside In to
- *    Out, and events that make no sound, left out.
+ * 5. The soundtrack's cues: a clip's crash cues and its paper's SCHWINGs
+ *    and coins, through an edit of three shots at 1x, 0.25x and 2x
+ *    (edit.js), at their movie times, levels scaled by a slow shot; those
+ *    outside In to Out, and events that make no sound, left out.
  * 6. tests/lib/moviefile.js against movies written by the two muxers the
  *    page loads, fetched from the exact jsDelivr URLs in index.html's
  *    import map and checked against their pinned SHA-256: frames, their
@@ -225,11 +225,14 @@ function sound() {
       { t: 6.5, type: 'off', part: 3 },
       { t: 9, type: 'cue', kind: 'splash', level: 1 },
     ],
-    paper: { events: [{ t: 4.25, type: 'schwing', level: 1 }, { t: 7, type: 'schwing', level: 0.5 }, { t: 5.5, type: 'cut' }] },
+    paper: {
+      events: [{ t: 4.25, type: 'schwing', level: 1 }, { t: 7, type: 'schwing', level: 0.5 }, { t: 5.5, type: 'cut' },
+        { t: 6, type: 'crown', p: [0, 0, 0], from: null, level: 1 }, { t: 6, type: 'coin', level: 0.4 }],
+    },
   };
   const got = soundCues(clip, edit).map((c) => `${c.type} ${c.kind || ''} ${c.m.toFixed(3)} ${c.level.toFixed(3)}`).join(', ');
-  const exp = 'cue snap 1.000 0.800, schwing  3.000 0.250, cue crunch 4.000 0.250, schwing  7.000 0.500';
-  check(got === exp, 'cues and SCHWINGs at their movie times, a slow shot\'s quieter, the rest left out', got);
+  const exp = 'cue snap 1.000 0.800, schwing  3.000 0.250, cue crunch 4.000 0.250, coin  6.500 0.400, schwing  7.000 0.500';
+  check(got === exp, 'cues, SCHWINGs and Catch the Ace coins at their movie times, a slow shot\'s quieter, the rest left out', got);
   const bare = soundCues({ events: clip.events }, edit).map((c) => c.type).join();
   check(bare === 'cue,cue', 'a clip with no paper plays its cues', bare);
 }

@@ -44,12 +44,16 @@ function place(sp, right, forward) {
 }
 
 /* The spawn for slot `slot` (0 based), as the spawn it is derived from
- * with x and z moved. */
+ * with x and z moved. A spawn may carry its own row, `slots`, a
+ * [right, forward] in metres per slot, where the default row across the
+ * heading would leave the ground it stands on: a runway on a dam's crest
+ * lines its planes up along it (src/maps/itaipu/spawns.js). */
 export function slotSpawn(sp, slot) {
   if (!sp || !(slot > 0) || slot >= SLOT_RIGHT_M.length) {
     return sp;
   }
-  return { ...sp, ...place(sp, SLOT_RIGHT_M[slot], 0) };
+  const [right, forward] = sp.slots ? sp.slots[slot] : [SLOT_RIGHT_M[slot], 0];
+  return { ...sp, ...place(sp, right, forward) };
 }
 
 /* Where slot `slot`'s pilot stands: { x, z }. */

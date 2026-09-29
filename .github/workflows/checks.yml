@@ -86,12 +86,18 @@ jobs:
       - run: npm run export:selftest
       - run: npm run link:selftest
       - run: npm run music:selftest
+      # The war audio against its script, credits and manifest: python3's
+      # standard library only, no GPU and no model download.
+      - run: npm run voice:check
       - run: npm run test:edge
       - run: npm run test:tracks
       - run: npm run cloud:selftest
       - run: npm run crash:rules
       - run: npm run river:check
       - run: npm run builder:selftest
+      # Itaipu's two shipped courses are what scripts/itaipu-courses.js
+      # writes; flying them is scripts/itaipu-spawns-check.js, local.
+      - run: npm run itaipu:courses
       - run: npm run pick:selftest
       - run: npm run paint:selftest
       - run: npm run stab:glide

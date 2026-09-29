@@ -50,7 +50,7 @@ from shapely.geometry import Polygon, box, shape
 from shapely.geometry.polygon import orient
 from shapely.ops import unary_union
 
-from common import HERO_HALF, RESERVOIR_Y, RING_HALF, RIVER_Y, r1
+from common import HERO_X0, HERO_X1, RESERVOIR_Y, RING_HALF, RIVER_Y, r1
 from grids import G10, G30, H30, flat_water
 from osm import polygons_of
 
@@ -72,6 +72,9 @@ BODIES = [
      'rise': 1.8, 'spawn': {'x': -925.0, 'z': 400.0, 'yaw': 0.0}, 'fetchMax': 400.0,
      'osm': lambda t: t.get('natural') == 'water' and t.get('water') == 'river'},
 ]
+# Where the 10 m hero tiles are: there the bodies are the hero's 10 m
+# ones, elsewhere level 0's.
+HERO_TILES = box(HERO_X0, HERO_X0, HERO_X1, HERO_X1)
 # OSM water is added only where the ground is within this of the level:
 # an OSM polygon over a bank or a bridge must not dig a pit.
 OSM_RISE = 3.0
@@ -195,7 +198,7 @@ def cells(grid, mask):
 
 
 def body_region(b30, b10):
-    hero = box(-HERO_HALF, -HERO_HALF, HERO_HALF, HERO_HALF)
+    hero = HERO_TILES
     ring = box(-RING_HALF, -RING_HALF, RING_HALF, RING_HALF)
     outer = cells(G30, b30.mask).difference(hero).intersection(ring)
     inner = cells(G10, b10.mask).intersection(hero)
@@ -206,7 +209,7 @@ def body_region(b30, b10):
 
 def dry_low(b30, b10, h30, h10):
     """Samples under the body's level that are not the body: what its outline must not reach."""
-    hero = box(-HERO_HALF, -HERO_HALF, HERO_HALF, HERO_HALF)
+    hero = HERO_TILES
     inring = in_square(G30, RING_HALF)
     a = cells(G30, inring & (h30 < b30.y) & ~b30.mask).difference(hero)
     b = cells(G10, (h10 < b10.y) & ~b10.mask).intersection(hero)
@@ -350,7 +353,7 @@ def fetch(b30, b10, spec):
         t = 0.0
         while t < spec['fetchMax']:
             x, z = x0 + dx * (t + 10), z0 + dz * (t + 10)
-            if abs(x) <= HERO_HALF and abs(z) <= HERO_HALF:
+            if HERO_X0 <= x <= HERO_X1 and HERO_X0 <= z <= HERO_X1:
                 wet = b10.mask[G10.index(z), G10.index(x)]
             elif abs(x) <= RING_HALF and abs(z) <= RING_HALF:
                 wet = b30.mask[G30.index(z), G30.index(x)]

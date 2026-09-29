@@ -24,7 +24,7 @@ import datetime
 import hashlib
 import json
 
-from common import (DATA, E0, HERO_CELL, HERO_HALF, LEVELS, N0, RING_HALF, TILE_SAMPLES, UTM, Y0, cell,
+from common import (DATA, E0, HERO_CELL, HERO_HALF, HERO_X0, HERO_X1, LEVELS, N0, RING_HALF, TILE_SAMPLES, UTM, Y0, cell,
                     level_tiles, load_sources, tile_size)
 
 # Not data: the repository's own files, never fetched by the map.
@@ -108,7 +108,12 @@ def main(extra):
         'levels': [{'level': L, 'cell': cell(L), 'tileSize': tile_size(L), 'tiles': len(level_tiles(L)),
                     'grid': max(i for i, _ in level_tiles(L)) + 1} for L in LEVELS],
         'hero': {'level': -1, 'cell': HERO_CELL, 'tileSize': tile_size(-1),
-                 'tiles': [[i, j] for i, j in level_tiles(-1)]},
+                 'tiles': [[i, j] for i, j in level_tiles(-1)],
+                 'extent': [HERO_X0, HERO_X1],
+                 'note': f'the hero tiles cover x and z {HERO_X0:.0f} to {HERO_X1:.0f}, whole level 0 tiles, so every '
+                         f'level 0 node over them has all its 10 m children; the hero square (buildings, the dam, '
+                         f'hero.jpg) is {-HERO_HALF:.0f} to {HERO_HALF:.0f}. Level 0 to 3 are built from the hero '
+                         f'over it: level 0 is every third hero sample there.'},
         'canopy': {'tiling': 'level 0', 'type': 'uint8', 'unit': 'm', 'max': 40, 'tiles': len(level_tiles(0)),
                    'path': 'canopy/{i}_{j}.bin',
                    'from': 'Copernicus GLO-30 minus ANADEM on level 0\'s samples, rounded, clamped to 0..40, 0 on '

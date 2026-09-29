@@ -2503,7 +2503,9 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
      */
     const double v_rot = p * PLANT_POS_Y[m] - q * PLANT_POS_X[m];
     const double va = v_body[2] + v_rot;
-    const double pitch_speed = (w < 60.0 ? 60.0 : w) * PLANT.k_inflow;
+    /* The chase boost's faster prop has the faster pitch speed; exact at
+     * 1.0 (sim_set_boost). */
+    const double pitch_speed = (w < 60.0 ? 60.0 : w) * PLANT.k_inflow * SIM_BOOST;
     const double mu = va / pitch_speed;
     double axial;
     /*
@@ -2873,7 +2875,8 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     if (CRASH.active) {
       t *= CRASH.kt[m];
     }
-    thrust[m] = t;
+    /* The chase boost's faster prop, last; exact at 1.0 (sim_set_boost). */
+    thrust[m] = t * (SIM_BOOST * SIM_BOOST);
     /* Frame feels minus the stator drive torque, about the MOTOR's axis
      * rather than about body z, because the axes are not parallel. */
     const double st = -PLANT_SPIN[m] * PLANT.ke * i;
