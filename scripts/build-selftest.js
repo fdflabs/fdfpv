@@ -538,6 +538,8 @@ console.log('where a test flight starts');
   const { lift, ...groundOnly } = onGround;
   check('a start gate on the ground starts on the ground behind it, as before', !onGround.air && JSON.stringify(groundOnly) === JSON.stringify(spawnFor(gates)));
   const g0 = gates[0];
+  check('and asks the ground from the bottom of its opening, so a gate on a roof starts on the roof',
+    near(onGround.y, g0.centre.y - g0.aperture.clearH / 2, 1e-9) && onGround.y >= 100 - 1e-9, `${onGround.y}`);
   check('and carries the air start the same gate would give, lined up on its opening',
     Boolean(lift) && near(lift.y, g0.centre.y, 1e-9)
     && near(Math.hypot(g0.centre.x - lift.x, g0.centre.z - lift.z), SPAWN_BACK, 1e-9), JSON.stringify(lift));
