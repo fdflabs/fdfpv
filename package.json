@@ -149,6 +149,7 @@
     "extra:stab": "node scripts/extra-stab-selftest.js",
     "extra:record": "node scripts/wing-record.js extra",
     "extra:derive": "node scripts/extra-derive.js",
+    "extra:owner": "node scripts/extra-owner.js",
     "p51:owner": "node scripts/p51-owner.js",
     "floats:gates": "node scripts/floats-gates.js",
     "floats:record": "node scripts/wing-record.js timberf",

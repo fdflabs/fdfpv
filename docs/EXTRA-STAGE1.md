@@ -135,10 +135,10 @@ it), each deterministic (sqrt and the small angle sine and cosine of the
 fixed libm, nothing else), and each off on every table before this one,
 written so a table without it runs exactly the arithmetic it always ran;
 a fifth, the prop's precession, is the P-51's `j_prop` (#123), which the
-Extra sets. **Proof: all fifteen recorded flights' hashes (the five inch,
+Extra sets. **Proof: all sixteen recorded flights' hashes (the five inch,
 the wing, the Skyhunter, the Cub, the Radian, the Bramor and its chute,
 the Slow Stick, the Bombshell, the Timber, the Timber on floats, the Kadet,
-the P-51's two and the Edge 540's) are what main's module gives,
+the P-51's two, the Edge 540's and the F-16's) are what main's module gives,
 `extra:gates` E15; every
 other plane's gates and stabiliser self tests pass unchanged.**
 
@@ -361,10 +361,20 @@ and extra-manual; the free flight card; the hangar's power (the stock 4S
 and E-flite's listed 3S, 2200 and 3200 mAh packs), props (APC 13 x 8E and
 12 x 6E), add-on anchors and tuning (the manual's CG range and throws). It
 opens **at level 8 on the unlock curve**, after the P-51 at 7 and before
-the Edge 540, which moves to 9: a hover a pilot holds on every stick at
-once and a torque roll the ailerons must hold, on a foam airframe that
-forgives the ground, where the Edge, by its own document the least
-forgiving aircraft here, stays last.
+the Edge 540, which moves to 9, and the F-16 at 10: a hover a pilot holds
+on every stick at once and a torque roll the ailerons must hold, on a
+foam airframe that forgives the ground, where the Edge is an unlimited
+aerobat that snaps and the F-16 a jet whose maker asks for experience.
+
+`npm run extra:owner` flies the four in the real shell on swiss2 with
+the extra-manual tune, each from a take off and a climb of 80 m, the
+pilots extra:gates E6, E8, E11 and E12's closed once a frame on the
+plant's clock: hanging on the prop (the throttle and the height held,
+E6's band), the torque roll with the ailerons let go (E8's), the
+harrier at 40 deg (E11's) and the knife edge at 15 m/s (E12's). The
+gates' attitude gains close at the plant's 250 Hz and ring once a frame,
+so the page's hover pilot runs lower ones with an integral kept in the
+world's axes, and hangs with the nose at 80 to 88 deg rather than 90.
 
 ## What the owner should feel flying it
 
