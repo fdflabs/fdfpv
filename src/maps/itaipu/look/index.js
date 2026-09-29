@@ -46,7 +46,9 @@ import { buildPhotoComposer, AIR } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
 import { sunDirection, makeLit } from './light.js';
-import { skyBackdrop, skyTurn, turnEquirect } from './sky.js';
+import {
+  skyBackdrop, skyTurn, turnEquirect, stretchEquirect,
+} from './sky.js';
 import { groundMaterial, loadImage } from './ground.js';
 
 /* Past the horizon from 500 m (80 km) the apron and the fog have it. */
@@ -94,6 +96,7 @@ export async function makeLook({
   scene.background = AIR.haze.clone();
   scene.add(skyBackdrop(sky.back, sunDir));
   turnEquirect(sky.env, skyTurn(sunDir));
+  stretchEquirect(sky.env, sunDir);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envTarget = pmrem.fromEquirectangular(sky.env);
   pmrem.dispose();
