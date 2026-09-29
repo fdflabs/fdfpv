@@ -77,7 +77,7 @@ const APC_OZ = {
   '11x7E-3': 1.09, '11x7E': 0.81, '10x7E': 0.71, '11x55E': 0.81, '11x8E': 0.81, '12x6E': 0.95,
   '13x8E': 1.09, '12x6': 1.62, '12x8': 1.69, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
   '7x3': 0.42, '5x3': 0.21, '8x4E': 0.46, '10x47SF': 0.42, '10x38SF': 0.42, '11x47SF': 0.53,
-  '10x6E': 0.71, '12x8E': 0.92, '16x8E': 1.83, '16x10E': 1.83,
+  '10x6E': 0.71, '12x8E': 0.92, '13x65E': 1.06, '16x8E': 1.83, '16x10E': 1.83,
 };
 
 /*
@@ -95,6 +95,7 @@ const PROXY = {
   '11/5.5/2/electric': '11x55E',
   '12/6/2/electric': '12x6E',
   '13/8/2/electric': '13x8E',
+  '13/6/2/electric': '13x65E',
   '11/8/2/electric': '11x8E',
   '10/4.7/2/electric': '10x47SF',
   '10/6/2/electric': '10x6E',
@@ -117,7 +118,7 @@ export function propProxy(option) {
 }
 
 /* APC's product pages spell a decimal pitch with a hyphen. */
-const APC_SLUG = { '11x55E': '11x5-5e', '11x47SF': '11x4-7sf', '10x38SF': '10x3-8sf', '10x47SF': '10x4-7sf' };
+const APC_SLUG = { '13x65E': '13x6-5e', '11x55E': '11x5-5e', '11x47SF': '11x4-7sf', '10x38SF': '10x3-8sf', '10x47SF': '10x4-7sf' };
 function apcProp(id, apc, propIn, pitchIn, blades) {
   return { id, name: `parts.prop.${id}`, apc, propIn, pitchIn, blades, massKg: APC_OZ[apc] * OZ, source: [`${APC}${APC_SLUG[apc] ?? apc.toLowerCase()}/`, `${APC_DATA}${apc}.dat`] };
 }
@@ -142,6 +143,7 @@ export const PROPS = {
   bombshell1118: [STOCK, apcProp('6x4', '6x4', 6, 4, 2), apcProp('7x3', '7x3', 7, 3, 2)],
   kadet1981: [STOCK, apcProp('12x8', '12x8', 12, 8, 2), apcProp('11x7', '11x7', 11, 7, 2)],
   edge1524: [STOCK, apcProp('16x8e', '16x8E', 16, 8, 2), apcProp('16x10e', '16x10E', 16, 10, 2)],
+  extra1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
   radian2000: [STOCK],
   bramor2300: [STOCK],
   /* A fan is its duct's: Freewing sells the one rotor for it. */
@@ -185,6 +187,7 @@ export const ANCHORS = {
   bombshell1118: { prop: [0.166, 0, -0.005], belly: [0.02, 0, -0.064], tail: [-0.60, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.042, 0.17, 0.075], [0.042, 0.50, 0.146]] },
   kadet1981: { prop: [0.441, 0, -0.013], belly: [0, 0, -0.159], tail: [-0.93, 0, -0.13], tank: [-0.01, 0, -0.08], led: [[0.075, 0.30, 0.093], [0.075, 0.89, 0.139]] },
   edge1524: { prop: [0.4826, 0, 0], belly: [0, 0, -0.114], tail: [-0.80, 0, -0.015], tank: [-0.01, 0, -0.05], led: [[0.08, 0.12, -0.016], [-0.02, 0.70, -0.013]] },
+  extra1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
 };
 

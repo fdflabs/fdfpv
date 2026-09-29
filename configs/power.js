@@ -104,6 +104,7 @@ function tank(id, cc, m3, grams, source) {
  */
 const HH = 'https://www.horizonhobby.com/product/x/';
 const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
+const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const CNHL = 'https://chinahobbyline.com/products/';
 const SUNNYSKY = 'https://sunnyskyusa.com/products/sunnysky-x2820-brushless-motors';
 const SONIC_SKY = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
@@ -165,6 +166,10 @@ export const TABLE = {
   },
   bombshell1118: { simId: 11, massKg: 0.5599, cells: 3, rCell: 0.030, propIn: 7, cruiseMs: 8, flightTime: null },
   edge1524: { simId: 13, massKg: 2.4948, cells: 6, rCell: 0.003, propIn: 16, cruiseMs: 22, flightTime: null },
+  extra1308: {
+    simId: 14, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
+    flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
+  },
   f16878: {
     simId: 16, massKg: 2.116, cells: 6, rCell: 0.006, propIn: 69 / 25.4, cruiseMs: 20,
     flightTime: { kind: 'mixed', minutesLow: 4, minutesHigh: 4, note: "Model Aviation's review of the V2 6S Pro on a 6S 4000, flown as a jet is: 'Flight duration: 4 minutes'", source: 'https://www.modelaviation.com/freewing-f-16' },
@@ -510,6 +515,30 @@ const KADET = [
   },
 ];
 
+/* The Extra 300 3D 1.3m, docs/EXTRA-STAGE1.md: E-flite's 4250 910 kV on
+ * the 13 x 6 wood prop and a 60 A ESC, 4S or 3S, 2200 to 3200 mAh
+ * (E-flite's manual and listing). The thrust and current are ESTIMATED,
+ * the motor against APC's 13 x 6.5E (scripts/extra-derive.js); the 3S
+ * option scales them as the Timber's does. The pack sits to the manual's
+ * CG, so no option shifts it. */
+const EXTRA = [
+  {
+    id: 'stock', name: 'power.extra.stock', kind: 'electric', voice: 'wing',
+    kv: 910, propIn: 13, pitchIn: 6, blades: 2,
+    thrustN: 37.86, currentA: 64.4, rpmNoLoad: 13468, pitchSpeedMs: 29.08, lvcV: 3.0,
+    massKg: 1.51, cgShiftM: 0, packs: [TIMBER_4S[0], TIMBER_4S[1]], pack: '4s2200',
+    source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html', `${APC}13x65E.dat`],
+  },
+  {
+    id: '3s', name: 'power.extra.3s', kind: 'electric', voice: 'wing',
+    kv: 910, propIn: 13, pitchIn: 6, blades: 2,
+    thrustN: 37.86 * (11.1 / 14.8) * (11.1 / 14.8), currentA: 64.4 * (11.1 / 14.8) * (11.1 / 14.8),
+    rpmNoLoad: 910 * 11.1, pitchSpeedMs: 29.08 * (11.1 / 14.8), lvcV: 3.0,
+    massKg: 1.51 - 0.270 + 0.16556, cgShiftM: 0, packs: TIMBER_3S, pack: '3s2200',
+    source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'],
+  },
+];
+
 /* FMS's P-51D 1450, docs/P51-STAGE1.md: the 4250 540 kV on the 14 x 8
  * four blade and an 80 A ESC, FMS's one listing, on the 4S 2600 it
  * recommends (Dynam's 4S 2600 25C, 295 g, for the mass). The alternative
@@ -588,6 +617,7 @@ export const POWER = {
   bombshell1118: BOMBSHELL,
   kadet1981: KADET,
   edge1524: EDGE,
+  extra1308: EXTRA,
   f16878: F16,
   p51d1450: P51,
 };

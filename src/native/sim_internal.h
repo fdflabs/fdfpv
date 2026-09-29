@@ -265,6 +265,7 @@ typedef struct {
 #define SIM_AIRFRAME_BOMBSHELL1118 11
 #define SIM_AIRFRAME_KADET1981 12
 #define SIM_AIRFRAME_EDGE1524 13
+#define SIM_AIRFRAME_EXTRA1308 14
 #define SIM_AIRFRAME_P51D1450 15
 #define SIM_AIRFRAME_F16878 16
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
@@ -747,6 +748,68 @@ typedef struct FixedWingParams {
    */
   double strip_k[4];
   /*
+   * THE SLIPSTREAM over the tail and the ailerons, docs/EXTRA-STAGE1.md.
+   * slip_r is the prop's radius; zero is an aircraft whose surfaces are
+   * not taken to sit in its wash, and then nothing below is read. By
+   * momentum theory the wash far behind the disc carries the disc's
+   * pressure jump, T / A, over the free stream's dynamic pressure, at 2 v_i
+   * over the free stream's speed, in a stream contracted to
+   * R sqrt((V + v_i)/(V + 2 v_i)). The share of each surface inside that
+   * stream: the stabiliser's, the contracted radius over slip_yh, its half
+   * span; the fin's, over its height above the thrust line slip_hv[0] and
+   * below it slip_hv[1]; the ailerons', the share of their roll moment
+   * inboard of the contracted radius, from slip_ya[0] to slip_ya[1] out
+   * along the span. A control in the wash meets the pressure jump on top
+   * of the free stream's; an angle or rate term, a crossflow over a faster
+   * stream, meets rho v_i times the crossflow, which is what makes it act
+   * with the aircraft standing still in the air. The tail's shares of the
+   * table's derivatives: its lift slope and pitch stiffness, taken about
+   * slip_a0, the body's angle of attack at which the stabiliser carries no
+   * lift with the elevator neutral, and the fin's weathercock, yaw
+   * damping, side force and roll per sideslip. cm_q, cm_de, cl_de, cn_dr,
+   * cy_dr, cl_dr and cl_da are the surfaces' alone.
+   */
+  double slip_r;
+  double slip_yh;
+  double slip_hv[2];
+  double slip_ya[2];
+  double slip_a0;
+  double slip_cl_a;
+  double slip_cm_a;
+  double slip_cn_b;
+  double slip_cn_r;
+  double slip_cy_b;
+  double slip_cl_b;
+  /*
+   * PAST THE LINEAR ANGLES, docs/EXTRA-STAGE1.md, for an aircraft flown
+   * hanging on its prop, sideways and backwards. hi_alpha 1: the pitching
+   * moment's stiffness term takes the sine of the zero lift line's angle
+   * and every sideslip term the sine of the sideslip, which are the
+   * linear terms at small angles and stay bounded and continuous all the
+   * way round, where the angles themselves wrap at 180 deg and would flip
+   * the moment. side_cda: the fuselage's crossflow drag area in side view,
+   * C_D times area, m^2 (Allen and Perkins' crossflow term), a force
+   * against the body's sideways speed squared that the linear side force
+   * leaves out, and which carries a knife edge. rot_k: the air a slow
+   * aircraft turns through, N m s^2, roll, pitch and yaw: each surface's
+   * strips swept through still air by the rotation, a flat plate's normal
+   * force on each, which the linear rate damping, proportional to the
+   * airspeed, loses as the aircraft stops; the two are taken together as
+   * the root of their squares' sum, so either one alone is itself.
+   * Zero in each is an aircraft without, and leaves its arithmetic as it
+   * was. The prop's precession is j_prop's, above.
+   */
+  int hi_alpha;
+  /* With hi_alpha, the tail's own flow (plant_wing.c): the stabiliser's
+   * lift slope a_t, the fin's a_v, the downwash's d eps / d alpha, and the
+   * normal force coefficient each saturates on, a flat plate's. */
+  double tail_at;
+  double tail_av;
+  double tail_deda;
+  double tail_cn;
+  double side_cda;
+  double rot_k[3];
+  /*
    * AND HOW EACH STRIP STALLS, docs/P51-STAGE1.md. strip_top: how far
    * past its own stall angle each strip holds its peak lift, rad, and
    * strip_kfall the share of it that it keeps once it falls: the table's
@@ -794,6 +857,7 @@ extern const FixedWingParams FW_CUB1400F;
 extern const FixedWingParams FW_BOMBSHELL1118;
 extern const FixedWingParams FW_KADET1981;
 extern const FixedWingParams FW_EDGE1524;
+extern const FixedWingParams FW_EXTRA1308;
 extern const FixedWingParams FW_P51D1450;
 extern const FixedWingParams FW_F16878;
 
