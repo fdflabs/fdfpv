@@ -100,6 +100,8 @@ const RADIAN_PRO_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sit
 const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
+const PITTS_REVIEW = 'https://www.theparkpilot.org/horizon-eflite-pitts';
+const PITTS_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw927db137/Manuals/EFL35500_Manual_EN_548653.pdf';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
@@ -228,6 +230,13 @@ export const TUNING = {
     cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
     packKg: 0.27, nose: 0.26, tail: -0.83,
     throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
+    flaps: null,
+  },
+  pitts850: {
+    chord: 0.1880, area: 0.282, margin: 0.135,
+    cg: { mm: 70, datum: 'tuning.datum.top_le', range: [67, 73], source: `The CG for the BL15 motor, "70 mm, plus or minus 3 mm, from the leading edge of the top wing" (Park Pilot's review, the corrected figure; the manual's 86 mm was the BL10's); ${PITTS_REVIEW}` },
+    packKg: 0.225, nose: 0.19, tail: -0.50,
+    throws: { high: [22.02, 27.20, 25.10], low: [14.48, 20.05, 17.64], source: `E-flite manual p. 4: high 18, 32 and 28 mm, low 12, 24 and 20 mm, at the surfaces' widest chords, 48, 70 and 66 mm (docs/PITTS-STAGE1.md); ${PITTS_MANUAL}` },
     flaps: null,
   },
   nrj1490: {

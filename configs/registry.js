@@ -386,6 +386,28 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at E-flite\'s 3D throws. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons, which work in the slipstream at no airspeed at all.',
   },
   {
+    /* The Pitts's three, the Cub's: on its wheels every mode flies as
+     * Manual. Acro is where an aerobat is flown; Manual has the snap. */
+    id: 'pitts-stab',
+    airframe: 'pitts850',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
+    wingStab: 1,
+  },
+  {
+    id: 'pitts-acro',
+    airframe: 'pitts850',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 300 degrees a second and a pitch rate up to 35, short of the stall at cruise, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
+    wingStab: 2,
+  },
+  {
+    id: 'pitts-manual',
+    airframe: 'pitts850',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the four ailerons, the elevator and the rudder at E-flite\'s high rates. Yank the elevator with a boot of rudder and it snap rolls; let go and put the rudder the other way and it stops. On the ground, steer it with the rudder the whole way.',
+  },
+  {
     /* The F-16's three, the Cub's pattern: ailerons, the stabilators and
      * a rudder, the turn coordinator in Stabilised, and on its wheels
      * every mode flies as Manual, the rudder steering the nose wheel. The

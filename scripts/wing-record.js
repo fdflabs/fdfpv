@@ -37,7 +37,7 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
 import {
   bramorPrelude, recordChuteFlight, recordCubFlight, recordGliderFlight, recordScriptedFlight,
-  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordEdgeFlight, recordExtraFlight, recordUglystikFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, recordZagiFlight, recordDlgFlight, skyPrelude, wingPrelude,
+  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordEdgeFlight, recordExtraFlight, recordPittsFlight, recordUglystikFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, recordZagiFlight, recordDlgFlight, skyPrelude, wingPrelude,
 } from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
@@ -59,7 +59,9 @@ import {
  * spooling up and down, for f16-gates.js S18; `zagi` the Zagi's hand throw, climb, roll,
  * glide and stall for zagi-gates.js Z18; `uglystik` the Ugly Stik's
  * take off, roll, inverted run and loop for uglystik-gates.js U18; `dlg`
- * the NRJ's discus launch, glide and thermal for dlg-gates.js D14. */
+ * the NRJ's discus launch, glide and thermal for dlg-gates.js D14;
+ * `pitts` the Pitts's take off, roll, snap and recovery for
+ * pitts-gates.js B5. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
   sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
@@ -75,6 +77,7 @@ const PLANES = {
   kadet: { file: 'tests/inputs/kadet-baseline.rec', record: recordKadetFlight },
   edge: { file: 'tests/inputs/edge-baseline.rec', record: recordEdgeFlight },
   extra: { file: 'tests/inputs/extra-baseline.rec', record: recordExtraFlight },
+  pitts: { file: 'tests/inputs/pitts-baseline.rec', record: recordPittsFlight },
   uglystik: { file: 'tests/inputs/uglystik-baseline.rec', record: recordUglystikFlight },
   dlg: { file: 'tests/inputs/dlg-baseline.rec', record: recordDlgFlight },
   p51: { file: 'tests/inputs/p51-baseline.rec', record: recordP51Flight },

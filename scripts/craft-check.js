@@ -134,6 +134,12 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             and the reach this file measures are both 1852 mm and
  *             E-flite's 1308 mm span is held by the half span of
  *             src/render/extracraft.js EXTRA_DIMS.
+ *   pitts850  E-flite's 850 mm Pitts S-1S, whose round rudder reaches
+ *             further from the CG than its top wing's tips: its trailing
+ *             edge 0.541 m aft against the tips' 0.425 m out, so the width
+ *             and the reach this file measures are both 1082 mm and
+ *             E-flite's 850 mm span is held by the half span of
+ *             src/render/pittscraft.js PITTS_DIMS.
  *   f16878    Freewing's F-16 V3, 878 mm over its tip rails, whose pitot
  *             reaches further from the CG than anything else: 0.710 m
  *             ahead, against the rails' 0.439 m out and the fin's tip
@@ -180,6 +186,7 @@ const REAL = {
   kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
   edge1524: { spanMm: 1930.4, sweepMm: 1930.4, tolMm: 6 },
   extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
+  pitts850: { spanMm: 1082.0, sweepMm: 1082.0, tolMm: 6 },
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
   zagi1219: { spanMm: 1219.2, sweepMm: 1331.4, tolMm: 6 },
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },

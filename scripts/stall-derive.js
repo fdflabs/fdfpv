@@ -230,6 +230,19 @@ planes.FW_F16878 = {
   note: 'a_w 3.142, a_t 2.644, V_H 0.294, deps/dalpha 0.647 (Nelson), its own arms',
 };
 
+/* The Pitts S-1S 850mm, scripts/pitts-derive.js: E-flite's 70 mm CG on the
+ * two wings' mean chord, 0.0713 of it ahead of the cell's aerodynamic
+ * centre, the plate's centre of pressure at 0.40 of it, and the tail's
+ * share from the cell's a_w, its a_t, V_H and DATCOM's downwash on Munk's
+ * equivalent span. Each wing's own arm is the cell's moved by bip_x. */
+planes.FW_PITTS850 = {
+  arm_ac: -0.0713,
+  arm_cp: 0.2213,
+  dw: 0.9 * 0.2803 * 3.5847 * 0.6401 / 4.0248,
+  asym: TE_TOLERANCE / 0.1880,
+  note: 'a_w 4.025 (the cell), a_t 3.585, V_H 0.280, deps/dalpha 0.640 (DATCOM), its own arms',
+};
+
 /* The Ugly Stik, docs/UGLYSTIK-STAGE1.md and scripts/uglystik-derive.js:
  * its own arms, the plan's CG 4.69 in behind the leading edge of the
  * 13.68 in chord with its strip ailerons, 1.27 in behind the wing's
@@ -302,6 +315,8 @@ const STRIPS = {
   FW_EDGE1524: strips(taper(10 / 15)),
   /* E-flite's measured taper, 0.204 over 0.366. */
   FW_EXTRA1308: strips(taper(0.557)),
+  /* Both of the Pitts's wings are rectangles, square to the flow. */
+  FW_PITTS850: strips(rect),
   /* The cropped delta's trapezoid, 414.5 mm at the centreline to 83 at
    * the tip; the strakes ahead of it are left out. */
   FW_F16878: strips(taper(0.201)),
@@ -354,6 +369,10 @@ const SECTION = {
    * (Sheldahl and Klimas, SAND80-2114, 1981), read loosely; UIUC has no
    * symmetric section tested in the range. */
   FW_EXTRA1308: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },
+  /* E-flite's moulded foam wings, a thin symmetric section at 1e5 to 2e5:
+   * the Edge's, held 1 deg and falling to 0.60, ESTIMATED; E-flite
+   * publishes no section. */
+  FW_PITTS850: { sec: 'symmetric 12 percent at 1e5 to 2e5', top: 1.0, k: 0.60 },
   /* No UIUC section: a thin 64A204 alone stalls at its leading edge, and
    * the strakes' vortex holds the lift on the F-16 past it (NASA TP-1538's
    * lift curve peaks 15 deg past its linear range). ESTIMATED: held 10 deg,

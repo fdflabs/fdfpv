@@ -1458,6 +1458,65 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   },
 },
 /*
+ * E-flite's Pitts S-1S 850mm, docs/PITTS-STAGE1.md: E-flite's 1529 g on the
+ * suggested 3S 2200, an 11 x 7 0.200 m ahead of the CG on a thrust line
+ * through it. The hull is only what a crash lands on: the belly 0.11 m
+ * under the CG (the thrust line is high on the fuselage), the top wing's
+ * top 0.11 m over it, the half span wide, 0.30 m fore and aft: its aft
+ * lower corner stays 0.04 m off the grass at the 12.3 deg the aircraft
+ * stands at. The camera sits on the top wing's
+ * centre section, over the cowl, where an FPV pilot on a Pitts mounts it:
+ * from the cockpit the top wing is the whole view ahead.
+ */
+[SIM_AIRFRAME_PITTS850] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 1.529,
+  .inertia = { 0.03269, 0.04784, 0.07012 },
+  .gravity = 9.81,
+  .cells = 3.0,
+  .r_cell = 0.008,
+  /* The suggested Spektrum 3S 2200; the 40 A ESC's cutoff taken as the
+   * Extra's E-flite ESC's, 3.0 V a cell, ESTIMATED. */
+  .pack_c = 2200.0 * 3.6,
+  .lvc = 3.0,
+  .rho = 1.225,
+  .prop_r = 0.1397,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.1997, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.30,
+  .hull_hy = 0.425,
+  .hull_hz_down = 0.11,
+  .hull_hz_up = 0.11,
+  .contact_patch_r = 0.06,
+  .contact_arm_max = 0.6,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.06,
+  .camera_y = 0.0,
+  .camera_z = 0.115,
+  .fw = &FW_PITTS850,
+  /*
+   * The gear, as src/render/pittscraft.js draws it off E-flite's side
+   * photograph (scripts/pitts-derive.js): the main axles 0.070 m ahead of
+   * the CG and 0.209 m under it on a 0.21 m track with 49 mm wheels in
+   * their pants, the tailwheel's axle 0.493 m behind and 0.099 m under
+   * with a 24 mm wheel. Each axle is lowered by its 5 mm of static
+   * deflection, so the plant settles onto the drawn pose: 12.3 deg nose
+   * up, the CG 0.2134 m over the grass, 19.7 percent of the weight on the
+   * tail. Stiffness for that, damping at 0.6 of critical, the Cub's rule.
+   * The tailwheel steers off the rudder through its wire, at half the
+   * rudder's angle, ESTIMATED as the Edge's.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.0700, 0.105, -0.2143 }, .r = 0.0243, .k = 1204.0, .c = 36.41, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.0700, -0.105, -0.2143 }, .r = 0.0243, .k = 1204.0, .c = 36.41, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.4926, 0.0, -0.1041 }, .r = 0.0120, .k = 591.0, .c = 13.21, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.5, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.1397 m under the hub on the thrust
+     * line through the CG. */
+    { .pos = { 0.1997, 0.0, -0.1397 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
+/*
  * Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md: Zagi's 25.5 oz on its 3S
  * 2200, a 5 x 5 pusher in the motor bay 0.098 m behind the CG. The hull
  * is the contact code's centred box, the half span wide and 0.23 m fore
