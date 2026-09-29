@@ -4,7 +4,13 @@
  * running rooms server:
  *
  *   PORT=8871 ROOMS_DB=/some/scratch/rooms.db node edge/rooms/node.js
- *   node scripts/tag-bubble-two-page.js http://127.0.0.1:8871 [outdir]
+ *   SIM_GPU=1 node scripts/tag-bubble-two-page.js http://127.0.0.1:8871 [outdir]
+ *
+ * SIM_GPU=1 (tests/lib/page.js) where the machine has a GPU: a pose goes
+ * out once a frame and the room scores an Ace only across samples GAP_MS
+ * (250 ms) apart or closer, so on a busy host the software rasteriser's
+ * frames outrun it and the Ace can neither score nor be drawn. The run
+ * prints each page's frame time so that is never a guess.
  *
  * A (a red Cub) makes the room, B (a blue Cub) joins, both fly, and A
  * starts a match. Both are held in the air 40 m apart. The hunter is held
@@ -167,6 +173,9 @@ try {
   for (const p of pages) {
     await p.until('window.__shellReady === true', 300000);
     await p.until('window.__map && window.__map().ready && window.__crashCam', 400000);
+    /* A key, the gesture a browser wants before it makes a sound, so the
+     * coin has a voice to ring (scripts/combat-two-page.js does the same). */
+    await p.tap('KeyZ');
   }
   const code = await a.evaluate('window.__roomCreate()');
   check('page A makes a room', /^[A-Z0-9]{6}$/.test(code), code);
@@ -215,6 +224,11 @@ try {
   const crownsAt = settled.view.crowns.length;
   console.log(`  info  seats A ${seats[0]}, B ${seats[1]}; ${aceName} is the Ace, ${crownsAt} crowns so far`);
   await hold(hunter, { ...m, z: m.z + 40 });
+  /* A pose goes out once a frame, and the room scores the Ace only across
+   * two samples GAP_MS (250 ms) or less apart: a page slower than that is
+   * an Ace that cannot be caught, and scores nothing. Said, not assumed. */
+  const frameMs = async (p) => p.evaluate(`new Promise((ok) => { const t = []; const f = (x) => { t.push(x); if (t.length < 21) { requestAnimationFrame(f); } else { ok((t[20] - t[0]) / 20); } }; requestAnimationFrame(f); })`);
+  console.log(`  info  frame ${(await frameMs(ace)).toFixed(0)} ms on the Ace's page, ${(await frameMs(hunter)).toFixed(0)} ms on the hunter's`);
   const [liveA, liveH] = [await bubbles(ace), await bubbles(hunter)];
   check(`the Ace's own screen draws one bubble, ${BUBBLE_M} m, round its own craft`, liveA.length === 1 && liveA[0].r === BUBBLE_M && dist(liveA[0].at, m) < 0.05,
     liveA.map((x) => `${x.r} m at ${dist(x.at, m).toFixed(3)} m`).join());
