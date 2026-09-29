@@ -152,7 +152,7 @@ crash:identity` against origin/main: every existing gate and self test
 prints byte for byte what main prints (the `off == base` column), but for
 three that enumerate the airframe table and so meet the Wot 4 where main
 has an empty slot: whoop:gates and wing:contact (main's module refuses
-airframe 20) and glider:stab's count of empty slots, 5 on main and 4 here.
+airframe 20) and glider:stab's count of empty slots, 4 on main and 3 here.
 
 Found on the way and fixed: `scripts/stall-derive.js` did not parse on
 main (a merge had dropped the `};` closing the Edge's entry), so `npm run
