@@ -284,6 +284,20 @@ planes.FW_QUICKIE1293 = {
   note: 'a_w 4.500, a_t 3.590, V_H 0.460, deps/dalpha 0.405 (DATCOM), its own arms',
 };
 
+/* Great Planes' Tiger Moth, docs/TIGERMOTH-STAGE1.md and
+ * scripts/tigermoth-derive.js: a biplane, its arms the cell's (the two
+ * wings' aerodynamic centres by their shares of the lift, the biplane
+ * solver's): the kit's CG, 70 mm behind the bottom wing's leading edge,
+ * 0.107 chords behind the cell's aerodynamic centre, and the tail's share
+ * from the derivation's cell a_w, a_t, V_H and DATCOM's downwash. */
+planes.FW_TIGERMOTH1803 = {
+  arm_ac: 0.1068,
+  arm_cp: 0.0432,
+  dw: 0.9 * 0.3477 * 4.0977 * 0.4416 / 4.4036,
+  asym: TE_TOLERANCE / 0.2683,
+  note: 'a_w 4.404 (the cell), a_t 4.098, V_H 0.348, deps/dalpha 0.442 (DATCOM), its own arms',
+};
+
 /* The four strips' chords over the mean chord, from a planform chord(eta),
  * eta 0 at the root and 1 at the tip. */
 function strips(chord) {
@@ -353,6 +367,9 @@ const STRIPS = {
   /* Constant chord; the soft block tips, the outer 1.5 of 25.5 in, are
    * left out. */
   FW_QUICKIE1293: strips(rect),
+  /* Both of the Tiger Moth's wings constant chord; the rounded tips are
+   * left out, as the Kadet's rounding is. */
+  FW_TIGERMOTH1803: strips(rect),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -422,6 +439,11 @@ const SECTION = {
   /* RCM's "15% Symmetrical" at 1.7e5 (10 m/s on 0.254 m): the Extra's
    * thick symmetric section at 2e5, ESTIMATED as its is. */
   FW_QUICKIE1293: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },
+  /* A cambered trainer's section at 1.8e5 (10 m/s on the 0.268 m chord),
+   * ESTIMATED of the Clark-Y's class, Great Planes publishing none: its
+   * figures between 1e5 and 2e5, held +6.2 deg then 0.72, the Cub's and
+   * the Kadet's fall. */
+  FW_TIGERMOTH1803: { sec: 'Clark-Y at 1.8e5', top: 6.2, k: 0.72 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

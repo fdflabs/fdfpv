@@ -1710,6 +1710,112 @@ static const PartDef PARTS_UGLYSTIK1567[] = {
 };
 
 /* ------------------------------------------------------------------------
+ * GREAT PLANES TIGER MOTH ARF, SIM_AIRFRAME_TIGERMOTH1803,
+ * tigermothcraft.js. 4.65 kg of balsa and ply under film
+ * (docs/TIGERMOTH-STAGE1.md): nothing foam, so nothing crushes, as the
+ * Kadet's and the Stik's. A built up fuselage on a ply nose and firewall;
+ * the top wing on its cabane struts, the bottom wing's two panels on
+ * joiners through the fuselage, the four panels braced by the interplane
+ * struts and the flying wires, whose share of the load each panel's limit
+ * carries; the ailerons on the bottom panels; an O.S. 61FX on a nylon
+ * mount on the ply firewall under a glass cowl; wire V struts to the main
+ * wheels and a tail wheel wire in the rudder. Wheels: 0 left main, 1 right
+ * main, 2 the tail wheel, 3 the prop tip's skid.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_TIGERMOTH1803[] = {
+  /* 0 the fuselage from the firewall to the rear cockpit: the ply
+   * firewall and doublers, the cowl, the tank, the servos, the receiver,
+   * the cabane and interplane struts and the wires: the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 3.0e5, BOX(-0.25, 0.205, -0.060, 0.060, -0.120, 0.060) },
+  /* 1 the rear fuselage, a built up box of 3/16 in square balsa longerons
+   * under sheet, 0.10 m deep and 0.09 wide at the rear cockpit: ESTIMATED
+   * at the Stik's sheet box's 120 N m for its deeper section, 150 N m. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.20, .joint = { -0.25, 0.0, -0.03 }, .m_max = 150.0, .f_max = 700.0, .k = 3.0e4,
+    .npts = 8, .pts = { { -0.25, 0.060, -0.120 }, { -0.25, -0.060, -0.120 }, { -0.25, 0.060, 0.060 }, { -0.25, -0.060, 0.060 },
+                        { -1.05, 0.012, -0.073 }, { -1.05, -0.012, -0.073 }, { -1.05, 0.012, 0.004 }, { -1.05, -0.012, 0.004 } } },
+  /* 2 the tailplane on the top longerons, built up, its glue line and two
+   * screws, 25 N m, ESTIMATED; 3 the elevators, half its chord, on CA
+   * hinges, 2 N m. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.08, .joint = { -0.82, 0.0, 0.005 }, .m_max = 25.0, .f_max = 150.0, .k = 2500.0,
+    BOX(-0.886, -0.755, -0.3025, 0.3025, 0.002, 0.014) },
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.886, 0.0, 0.008 }, .m_max = 2.0, .f_max = 40.0, .k = 2000.0,
+    BOX(-1.039, -0.886, -0.30, 0.30, 0.003, 0.013) },
+  /* 4 the small fin, 5 the big rudder, the full size's egg, on CA hinges;
+   * the tail wheel's wire runs down its post. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.03, .joint = { -0.84, 0.0, 0.01 }, .m_max = 10.0, .f_max = 80.0, .k = 2000.0,
+    BOX(-0.886, -0.80, -0.003, 0.003, 0.010, 0.180) },
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.886, 0.0, 0.08 }, .m_max = 2.0, .f_max = 40.0, .k = 1500.0,
+    BOX(-1.070, -0.886, -0.003, 0.003, -0.073, 0.246) },
+  /* 6, 7 the top wing's halves on the cabane over the front cockpit, 8, 9
+   * the bottom wing's panels on the fuselage's sides. Each a pair of
+   * spruce spars braced by its interplane strut and the flying and landing
+   * wires, which carry most of a lift load: 50 N m up and down, ESTIMATED;
+   * fore and aft the leading and trailing edges on edge, 40 N m. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.26, .joint = { 0.05, 0.03, 0.207 }, .m_max = 50.0, .m_max_z = 40.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.183, 0.0, 0.195 }, { -0.085, 0.0, 0.195 }, { 0.183, 0.0, 0.222 }, { -0.085, 0.0, 0.215 },
+                        { 0.101, 0.90, 0.238 }, { -0.168, 0.90, 0.238 }, { 0.101, 0.90, 0.262 }, { -0.168, 0.90, 0.256 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.26, .joint = { 0.05, -0.03, 0.207 }, .m_max = 50.0, .m_max_z = 40.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.183, 0.0, 0.195 }, { -0.085, 0.0, 0.195 }, { 0.183, 0.0, 0.222 }, { -0.085, 0.0, 0.215 },
+                        { 0.101, -0.90, 0.238 }, { -0.168, -0.90, 0.238 }, { 0.101, -0.90, 0.262 }, { -0.168, -0.90, 0.256 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.22, .joint = { -0.06, 0.0625, -0.110 }, .m_max = 50.0, .m_max_z = 40.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.070, 0.0625, -0.122 }, { -0.198, 0.0625, -0.122 }, { 0.070, 0.0625, -0.095 }, { -0.198, 0.0625, -0.102 },
+                        { -0.001, 0.90, -0.056 }, { -0.269, 0.90, -0.056 }, { -0.001, 0.90, -0.031 }, { -0.269, 0.90, -0.038 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.22, .joint = { -0.06, -0.0625, -0.110 }, .m_max = 50.0, .m_max_z = 40.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.070, -0.0625, -0.122 }, { -0.198, -0.0625, -0.122 }, { 0.070, -0.0625, -0.095 }, { -0.198, -0.0625, -0.102 },
+                        { -0.001, -0.90, -0.056 }, { -0.269, -0.90, -0.056 }, { -0.001, -0.90, -0.031 }, { -0.269, -0.90, -0.038 } } },
+  /* 10, 11 the ailerons on the bottom panels, 0.35 to 0.89 m out, on CA
+   * hinges, 1.5 N m. */
+  { .kind = SIM_PART_AILERON, .parent = 8, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.02, .joint = { -0.22, 0.60, -0.075 }, .m_max = 1.5, .f_max = 30.0, .k = 2000.0,
+    BOX(-0.268, -0.195, 0.35, 0.89, -0.090, -0.050) },
+  { .kind = SIM_PART_AILERON, .parent = 9, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.02, .joint = { -0.22, -0.60, -0.075 }, .m_max = 1.5, .f_max = 30.0, .k = 2000.0,
+    BOX(-0.268, -0.195, -0.89, -0.35, -0.090, -0.050) },
+  /* 12 the O.S. 61FX, 550 g, its silencer and mount: four 8-32 bolts into
+   * blind nuts in the ply firewall (the manual's), the Kadet's 800 N and
+   * 24 N m, ESTIMATED as its are. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.62, .joint = { 0.205, 0.0, 0.0 }, .m_max = 24.0, .f_max = 800.0, .k = 1.0e6,
+    BOX(0.205, 0.365, -0.045, 0.045, -0.060, 0.050) },
+  /* 13 the 12 x 6, wood: 12 N m to yield, twice to shed a blade. */
+  { .kind = SIM_PART_PROP, .parent = 12, .mat = SIM_MAT_PLY, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.05, .joint = { 0.372, 0.0, 0.0074 }, .m_max = 2.0 * 12.0, .f_max = 150.0, .k = 900.0,
+    .npts = 8, .pts = { { 0.3808, 0.0, 0.0074 }, { 0.1524, 0.0, 0.0 } } },
+  /* 14 the receiver pack in foam ahead of the servos. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+    .mass = 0.10, .joint = { 0.10, 0.0, -0.08 }, .m_max = 2.0, .f_max = 0.6 * VELCRO_12, .k = 3.0e5,
+    BOX(0.07, 0.13, -0.02, 0.02, -0.10, -0.07) },
+  /* 15, 16 the V strut legs, 5/32 in wire under the kit's covers, and
+   * their 3 1/4 in wheels; 17 the tail wheel's wire in the rudder post. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
+    .mass = 0.16, .joint = { 0.14, 0.04, -0.12 }, .m_max = WIRE_M(0.004), .f_max = 400.0, .k = 3165.0,
+    BOX(0.10, 0.20, 0.0, 0.18, -0.292, -0.120) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 1,
+    .mass = 0.16, .joint = { 0.14, -0.04, -0.12 }, .m_max = WIRE_M(0.004), .f_max = 400.0, .k = 3165.0,
+    BOX(0.10, 0.20, -0.18, 0.0, -0.292, -0.120) },
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.03, .joint = { -1.035, 0.0, -0.073 }, .m_max = WIRE_M(0.0024), .f_max = 80.0, .k = 1271.0,
+    BOX(-1.05, -1.02, -0.008, 0.008, -0.125, -0.073) },
+  /* 18 the camera, the pilot's eye in the rear cockpit. */
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.10, 0.0, 0.06 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(-0.112, -0.088, -0.010, 0.010, 0.070, 0.090) },
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.40, 0.0, 0.03 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.40, 0.0, 0.03 }, { -0.40, 0.0, 0.11 } } },
+};
+
+/* ------------------------------------------------------------------------
  * NRJ DLG 1490, SIM_AIRFRAME_NRJ1490, dlgcraft.js. 213 g, Hyperflight's
  * typical standard layup: a moulded carbon pod with a slip on nose cone
  * over the pack and receiver, a 9 mm carbon boom, spread tow carbon skins

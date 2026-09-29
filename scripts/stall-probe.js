@@ -88,6 +88,8 @@ const PLANES = {
   uglystik: { sim: 19, Vs: 9.48, alphaStall: 0.95 / 4.824, rudder: true },
   wot4: { sim: 20, Vs: 10.05, alphaStall: 1.098 / 4.752, rudder: true },
   quickie: { sim: 22, Vs: 9.31, alphaStall: 0.90 / 4.866, rudder: true },
+  /* The cell's angle at which the top wing, the first, reaches its CL max. */
+  tigermoth: { sim: 23, Vs: 9.47, alphaStall: 1.05 / (1.1087 * 4.6328), rudder: true },
 };
 
 const onlyArg = process.argv.indexOf('--only');

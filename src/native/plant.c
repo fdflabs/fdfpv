@@ -1611,6 +1611,64 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   },
 },
 /*
+ * Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md: 10.25
+ * lb, the kit's figure taken with the tank full, an O.S. 61FX on a 12 x 6
+ * 0.381 m ahead of the CG, its crankshaft 7 mm over it. The pack is a 4.8
+ * V receiver pack, which the engine draws nothing from. The hull is the
+ * contact code's centred box and only what a crash lands on: the bottom
+ * wing's underside 0.125 m under the CG and the top wing's top 0.222 m
+ * over it, the half span wide, 0.40 m fore and aft; the tail stands
+ * outside it, as the Kadet's does. The camera is the pilot's, in the rear
+ * cockpit under the top wing's trailing edge, looking out between the
+ * wings over the long nose.
+ */
+[SIM_AIRFRAME_TIGERMOTH1803] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 4.6493,
+  .inertia = { 0.3902, 0.5833, 0.8797 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.1524,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.3808, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.40,
+  .hull_hy = 0.9017,
+  .hull_hz_down = 0.125,
+  .hull_hz_up = 0.222,
+  .contact_patch_r = 0.10,
+  .contact_arm_max = 1.2,
+  .vib_ref_w = 1000.0,
+  .camera_x = -0.10,
+  .camera_y = 0.0,
+  .camera_z = 0.08,
+  .fw = &FW_TIGERMOTH1803,
+  /*
+   * The taildragger, as src/render/tigermothcraft.js draws it: the full
+   * size's V strut main gear at 1/4.96 (the rigging diagram's side view),
+   * its axles 0.169 m ahead of the CG and 0.251 m under it on the kit's
+   * 3 1/4 in wheels, a 0.323 m track; the kit's 1 1/4 in tail wheel on its
+   * wire under the rudder post, 1.035 m behind. Each axle is lowered by 6
+   * mm of static deflection, so under its own weight the plant settles
+   * onto the drawn pose: 8.2 deg nose up, the CG 0.265 m over the grass,
+   * 16.7 percent of the weight on the tail. Stiffness for that deflection,
+   * damping 0.6 of critical, the Cub's rule. The tail wheel's wire is set
+   * in the rudder (the manual's "Locate the tail wheel wire in the
+   * rudder"), so it turns with it, 1.0 of its angle. Brakes on the mains,
+   * the brake key's, which the kit does not have.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.1688, 0.1614, -0.2568 }, .r = 0.0413, .k = 3165.0, .c = 102.94, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.1688, -0.1614, -0.2568 }, .r = 0.0413, .k = 3165.0, .c = 102.94, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -1.0354, 0.0, -0.1093 }, .r = 0.0159, .k = 1271.0, .c = 31.03, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.1524 m under the crankshaft: 0.18
+     * m over the grass at rest. */
+    { .pos = { 0.3808, 0.0, -0.1450 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
+/*
  * OA Composites' NRJ discus launch glider, docs/DLG-STAGE1.md: Hyperflight's
  * typical 213 g standard layup, on the 1S 350 mAh receiver pack they
  * recommend, which is all it carries: there is no motor, no prop and no
