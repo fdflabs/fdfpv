@@ -28,9 +28,10 @@ CREDITS = REPO / 'assets/audio/war/CREDITS.md'
 LANGS = ('en', 'es')
 FORMATS = ('webm', 'mp3')
 
-# Nothing in the build is committed until the lead decides where the audio
-# lives, so it goes where the map data goes: beside the checkout.
-DEFAULT_OUT = Path(os.environ.get('WAR_AUDIO', Path.home() / 'Desktop/fdfpv-war-audio'))
+# The built audio is committed beside its script, as assets/music is.
+# WAR_AUDIO points a trial build somewhere else.
+AUDIO = REPO / 'assets/audio/war'
+DEFAULT_OUT = Path(os.environ.get('WAR_AUDIO', AUDIO))
 
 ID = re.compile(r'^[a-z][a-z0-9-]*$')
 # The plan's rule is that no real figure is spoken until the plan sources

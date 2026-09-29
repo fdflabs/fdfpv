@@ -1,0 +1,4 @@
+# tools/voice's scratch: the downloaded music masters and the float WAV
+# takes before the encode. Only the encoded files and manifest.json ship.
+_sources/
+_work/

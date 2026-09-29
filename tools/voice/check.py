@@ -1,15 +1,17 @@
 # check.py: the war audio's audit. Standard library only, so it runs
 # with a bare python3 and no model environment.
 #
-#   python3 tools/voice/check.py              lines.json and CREDITS.md
-#   python3 tools/voice/check.py --out DIR    and a built folder against both
+#   python3 tools/voice/check.py              the committed folder, assets/audio/war
+#   python3 tools/voice/check.py --out DIR    a trial build somewhere else
 #   python3 tools/voice/check.py --fix        rewrite CREDITS.md's voice table
 #
 # What it holds: lines.json passes script.load() (ids, delivery, notes, no
 # digit spoken, no dashes); CREDITS.md's voice table is the one lines.json
-# implies; every music file has a credit row; and, given a folder, every
-# audio file in it is credited, is in the manifest with the same sha256,
-# and every credited file exists.
+# implies; every music file has a credit row; every audio file in the
+# folder is credited and is in manifest.json with the same sha256; every
+# credited file exists; and every take in the manifest was spoken from the
+# text lines.json has now, so a line edited without a rebuild fails. CI
+# runs it: no GPU, no model, no download.
 #
 # This file is part of WebFPVSimulator.
 #
@@ -55,7 +57,7 @@ def credited(text):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--out', type=Path)
+    ap.add_argument('--out', type=Path, default=script.AUDIO)
     ap.add_argument('--fix', action='store_true')
     args = ap.parse_args()
     faults = []
@@ -87,36 +89,43 @@ def main():
     for f in sorted(expected - listed):
         faults.append(f'{script.CREDITS.name}: {f} has no credit')
 
+    manifest_path = args.out / 'manifest.json'
+    if not manifest_path.exists():
+        sys.exit(f'check: no {manifest_path}; build the folder with tools/voice/build.py and music.py')
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+    spoken = {f'{line["id"]}.{lang}': line[lang] for line in doc['lines'] for lang in script.LANGS}
+    shas = {}
+    for key, v in manifest.get('voice', {}).items():
+        line_id, lang = key.rsplit('.', 1)
+        if key not in spoken:
+            faults.append(f'manifest.json: {key} is not a line in lines.json')
+        elif v['text'] != spoken[key]:
+            faults.append(f'voice/{lang}/{line_id}: spoken as {v["text"]!r}, but lines.json says '
+                          f'{spoken[key]!r}; rebuild it with build.py --only {line_id}')
+        for fmt, f in v['files'].items():
+            shas[f'voice/{lang}/{line_id}.{fmt}'] = f['sha256']
+    for name, v in manifest.get('music', {}).items():
+        for fmt, f in v['files'].items():
+            shas[f'music/{name}.{fmt}'] = f['sha256']
+
+    on_disk = {p.relative_to(args.out).as_posix(): p for p in args.out.rglob('*')
+               if p.is_file() and AUDIO.search(p.name) and not p.relative_to(args.out).parts[0].startswith('_')}
     total = 0
-    if args.out:
-        manifest = json.loads((args.out / 'manifest.json').read_text(encoding='utf-8'))
-        shas = {}
-        for key, v in manifest.get('voice', {}).items():
-            line_id, lang = key.rsplit('.', 1)
-            for fmt, f in v['files'].items():
-                shas[f'voice/{lang}/{line_id}.{fmt}'] = f['sha256']
-        for name, v in manifest.get('music', {}).items():
-            for fmt, f in v['files'].items():
-                shas[f'music/{name}.{fmt}'] = f['sha256']
-        on_disk = {p.relative_to(args.out).as_posix(): p for p in args.out.rglob('*')
-                   if p.is_file() and AUDIO.search(p.name) and not p.relative_to(args.out).parts[0].startswith('_')}
-        for rel, p in sorted(on_disk.items()):
-            total += p.stat().st_size
-            if rel not in listed:
-                faults.append(f'{rel}: on disk with no credit')
-            if rel not in shas:
-                faults.append(f'{rel}: on disk, not in manifest.json')
-            elif hashlib.sha256(p.read_bytes()).hexdigest() != shas[rel]:
-                faults.append(f'{rel}: sha256 differs from manifest.json')
-        for rel in sorted(expected - set(on_disk)):
-            faults.append(f'{rel}: credited, not built')
+    for rel, p in sorted(on_disk.items()):
+        total += p.stat().st_size
+        if rel not in listed:
+            faults.append(f'{rel}: on disk with no credit')
+        if rel not in shas:
+            faults.append(f'{rel}: on disk, not in manifest.json')
+        elif hashlib.sha256(p.read_bytes()).hexdigest() != shas[rel]:
+            faults.append(f'{rel}: sha256 differs from manifest.json')
+    for rel in sorted(expected - set(on_disk)):
+        faults.append(f'{rel}: credited, not built')
 
     if faults:
         sys.exit('check: FAIL\n  ' + '\n  '.join(faults))
-    summary = f'check: ok, {len(doc["lines"])} lines, {len(expected)} files credited'
-    if args.out:
-        summary += f', {len(on_disk)} built, {total / 1e6:.2f} MB'
-    print(summary)
+    print(f'check: ok, {len(doc["lines"])} lines, {len(expected)} files credited, '
+          f'{len(on_disk)} built in {args.out.name}, {total / 1e6:.2f} MB, every sha256 matches manifest.json')
 
 
 if __name__ == '__main__':

@@ -2,9 +2,10 @@
 
 Every audio file of the war mode (docs/WARFARE-PLAN.md section 7) is
 listed here with where it came from and under what licence. Paths are
-relative to the war audio folder that `tools/voice/` builds.
-`python3 tools/voice/check.py --out DIR` fails if a built file is missing
-from this page, or a file on this page was not built.
+relative to this folder, which `tools/voice/` builds. `npm run
+voice:check`, in CI, fails if a file here is missing from this page, if
+a file on this page is missing here, or if a file's sha256 is not the
+one in `manifest.json`.
 
 This file is part of WebFPVSimulator, licensed GPLv3 or later.
 
