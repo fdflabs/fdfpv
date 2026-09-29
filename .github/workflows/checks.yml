@@ -82,6 +82,7 @@ jobs:
       - run: npm run contact:selftest
       - run: npm run crash:handoff
       - run: npm run crashcam:selftest
+      - run: npm run crashrecord:selftest
       - run: npm run edit:selftest
       - run: npm run export:selftest
       - run: npm run link:selftest
