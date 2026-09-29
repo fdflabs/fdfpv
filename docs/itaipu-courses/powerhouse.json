@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 4,
+  "id": "itaipu-powerhouse-quads",
+  "name": "Powerhouse",
+  "createdUtc": "2026-09-29T00:00:00.000Z",
+  "modifiedUtc": "2026-09-29T00:00:00.000Z",
+  "trackClass": "full",
+  "map": "itaipu",
+  "field": {
+    "width": 60,
+    "depth": 40,
+    "gridSize": 1
+  },
+  "settings": {
+    "tangentScale": 1.1,
+    "minCurveRadius": 2.5,
+    "samplesPerSegment": 48
+  },
+  "branding": {
+    "logos": []
+  },
+  "credit": null,
+  "elements": [
+    {
+      "id": "el-1",
+      "type": "gate",
+      "name": "",
+      "position": {
+        "x": -150,
+        "y": 1670,
+        "z": 148
+      },
+      "yaw": 2.915873,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      },
+      "orientation": {
+        "w": 0.622974,
+        "x": 0,
+        "y": 0,
+        "z": -0.782243
+      }
+    },
+    {
+      "id": "el-2",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 0,
+        "y": 1630,
+        "z": 150.19
+      },
+      "yaw": 2.915873,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.622974,
+        "x": 0,
+        "y": 0,
+        "z": -0.782243
+      }
+    },
+    {
+      "id": "el-3",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 36.312325,
+        "y": 1688.8785,
+        "z": 170.255277
+      },
+      "yaw": -1.784475,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.901699,
+        "x": 0.419008,
+        "y": -0.044938,
+        "z": -0.096705
+      }
+    },
+    {
+      "id": "el-4",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 45,
+        "y": 1738,
+        "z": 248.69
+      },
+      "yaw": -1.784475,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.994298,
+        "x": 0,
+        "y": 0,
+        "z": -0.106636
+      }
+    },
+    {
+      "id": "el-5",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 200,
+        "y": 1707,
+        "z": 230.69
+      },
+      "yaw": 2.926937,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.627291,
+        "x": 0,
+        "y": 0,
+        "z": -0.778785
+      }
+    },
+    {
+      "id": "el-6",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 292.218583,
+        "y": 1673.002608,
+        "z": 235.185691
+      },
+      "yaw": 1.356141,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.096458,
+        "x": -0.046594,
+        "y": -0.432463,
+        "z": 0.895266
+      }
+    },
+    {
+      "id": "el-7",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 300.221375,
+        "y": 1622.456728,
+        "z": 165.120414
+      },
+      "yaw": 1.356141,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.104422,
+        "x": -0.0239,
+        "y": -0.221823,
+        "z": 0.969185
+      }
+    },
+    {
+      "id": "el-8",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 200,
+        "y": 1515,
+        "z": 153.69
+      },
+      "yaw": -0.214656,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.778785,
+        "x": 0,
+        "y": 0,
+        "z": 0.627291
+      }
+    },
+    {
+      "id": "el-9",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": -60,
+        "y": 1540,
+        "z": 110.69
+      },
+      "yaw": -0.214656,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.778785,
+        "x": 0,
+        "y": 0,
+        "z": 0.627291
+      }
+    },
+    {
+      "id": "el-10",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": -300,
+        "y": 1600,
+        "z": 150.69
+      },
+      "yaw": -0.927295,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": 0.948683,
+        "x": 0,
+        "y": 0,
+        "z": 0.316228
+      }
+    }
+  ],
+  "sequence": [
+    {
+      "id": "sq-1",
+      "elementId": "el-1",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-2",
+      "elementId": "el-2",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-3",
+      "elementId": "el-3",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-4",
+      "elementId": "el-4",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-5",
+      "elementId": "el-5",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-6",
+      "elementId": "el-6",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-7",
+      "elementId": "el-7",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-8",
+      "elementId": "el-8",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-9",
+      "elementId": "el-9",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-10",
+      "elementId": "el-10",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    }
+  ]
+}
