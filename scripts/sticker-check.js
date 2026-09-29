@@ -195,7 +195,7 @@ const HELPERS = `
     });
     let skinLow = Infinity;
     for (const s of skin) { skinLow = Math.min(skinLow, new THREE.Box3().setFromObject(s).min.y); }
-    return { triangles, off, under, worst: Number.isFinite(worst) ? `${(worst * 1000).toFixed(1)} mm` : 'over 20 mm', where, decalLow: +decalLow.toFixed(4), skinLow: +skinLow.toFixed(4) };
+    return { triangles, off, under, worst: Number.isFinite(worst) ? (worst * 1000).toFixed(1) + ' mm' : 'over 20 mm', where, decalLow: +decalLow.toFixed(4), skinLow: +skinLow.toFixed(4) };
   };
 `;
 
