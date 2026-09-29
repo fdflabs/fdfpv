@@ -166,6 +166,10 @@ export function skyBackdrop(back, sunDir) {
       void main() {
         vDir = normalize(position);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        /* On the far plane whatever the projection: the water's mirror
+         * draws with an oblique near plane (swiss2/water/lake.js), which
+         * clipped the sphere into a curved edge across the reservoir. */
+        gl_Position.z = gl_Position.w * 0.99999;
       }
     `,
     fragmentShader: /* glsl */ `
