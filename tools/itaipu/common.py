@@ -73,8 +73,21 @@ TILE_BYTES = TILE_SAMPLES * TILE_SAMPLES * 2
 L0_CELL = 30.0
 HERO_CELL = 10.0
 LEVELS = range(0, 4)
-HERO_I = range(6, 10)
-HERO_J = range(6, 10)
+# The hero TILES, the 10 m ground, cover x and z from -5120 to 10240:
+# the hero square and more, because the terrain engine splits a level 0
+# node (1920 m) into 10 m ones only when all nine of its 640 m children
+# have data, and a 2560 m hero tile and a 1920 m node share edges only
+# every 7680 m, a level 0 tile. So the 10 m ground is whole level 0
+# tiles, (2, 2) and (3, 3) and the tiles between: the square's low edge
+# is on one, its high edge (5120, 13.3 nodes from the ring's corner) is
+# not, and the next level 0 edge is 10240. The hero SQUARE (HERO_HALF),
+# where buildings, the dam, colliders and hero.jpg live, is unchanged;
+# past it to 10240 the 10 m ground is level 0's, bilinear, with the 10 m
+# water beds. Section 3 of the plan names the square only.
+HERO_I = range(6, 12)
+HERO_J = range(6, 12)
+HERO_X0 = -RING_HALF + HERO_I.start * TILE_CELLS * HERO_CELL
+HERO_X1 = -RING_HALF + HERO_I.stop * TILE_CELLS * HERO_CELL
 # Level 0 samples on the low side of the ring, so every level's tent
 # filter reads real ground at x = -RING_HALF (64 >> 3 = 8 samples at
 # level 3). The DEM is real to DEM_HALF on the high side; level 2 and 3's

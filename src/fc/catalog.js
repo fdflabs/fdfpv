@@ -96,7 +96,8 @@ const INERT_REASONS = [
   [/^gps_/, str('catalog.no_gps_sensor_in_the_plant')],
   [/^led_/, str('catalog.no_led_strip_in_the_plant')],
   [/^blackbox_/, str('catalog.no_blackbox_device_in_this_build')],
-  [/^failsafe_/, str('catalog.would_need_flight_failsafe_c_compiled')],
+  [/^failsafe_switch_mode/, str('catalog.no_aux_channels_until_they_are')],
+  [/^failsafe_stick_threshold/, str('catalog.no_gps_sensor_in_the_plant')],
   [/^mag_/, str('catalog.no_magnetometer_in_the_plant')],
   [/^baro_/, str('catalog.no_barometer_in_the_plant')],
   [/^acc_/, str('catalog.simulated_gyro_needs_no_accelerometer_hardware')],
@@ -355,7 +356,7 @@ export const TABS = [
   { id: 'vtx', label: str('catalog.vtx'), grey: true, reason: str('catalog.no_vtx_in_the_sim') },
   { id: 'led', label: str('catalog.led_strip'), grey: true, reason: str('catalog.no_led_strip_in_the_plant') },
   { id: 'gps', label: str('catalog.gps'), grey: true, reason: str('catalog.no_gps_sensor_in_the_plant') },
-  { id: 'failsafe', label: str('catalog.failsafe'), grey: true, reason: str('catalog.would_need_flight_failsafe_c_compiled') },
+  { id: 'failsafe', label: str('catalog.failsafe'), grey: false, reason: '' },
   { id: 'blackbox', label: str('catalog.blackbox'), grey: true, reason: str('catalog.no_blackbox_device_in_this_build') },
   { id: 'blackbox-viewer', label: str('catalog.blackbox_viewer'), grey: true, reason: str('catalog.no_blackbox_device_in_this_build') },
   { id: 'power', label: str('catalog.power'), grey: true, reason: str('catalog.plant_owns_pack_voltage_use_pack') },
@@ -476,6 +477,10 @@ export const LOOKUPS = {
   CRASH_RECOVERY: ['OFF', 'ON', 'BEEP', 'DISARM'],
   GYRO_HARDWARE_LPF: ['NORMAL', 'OPTION_1', 'OPTION_2', 'EXPERIMENTAL'],
   LAUNCH_CONTROL_MODE: ['NORMAL', 'PITCHONLY', 'FULL'],
+  /* GPS-RESCUE is not built here: no GPS. The module still accepts it from
+   * a pasted dump and flies it as DROP, which is what a rescue with no fix
+   * does, but the screen does not offer it. */
+  FAILSAFE: ['AUTO-LAND', 'DROP'],
 };
 
 const MACRO_BOUNDS = {
@@ -504,6 +509,8 @@ const MACRO_BOUNDS = {
   LAUNCH_CONTROL_THROTTLE_TRIGGER_MAX: 90,
   PWM_RANGE_MIN: 1000,
   PWM_RANGE_MAX: 2000,
+  PWM_PULSE_MIN: 750,
+  PWM_PULSE_MAX: 2250,
   UINT8_MAX: 255,
   UINT16_MAX: 65535,
 };

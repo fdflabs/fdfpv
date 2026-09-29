@@ -7,9 +7,15 @@
  * surface's normal there, and every triangle of the airframe inside it,
  * facing the way the box looks, cut to the box and kept, with the box's
  * face as its texture coordinates. That is three's DecalGeometry, with
- * the one thing it lacks: a triangle facing away is dropped, so a number
+ * the two things it lacks. A triangle facing away is dropped, so a number
  * on the wing's top skin is not printed through onto the bottom one, nor
- * a fuselage number onto the far side.
+ * a fuselage number onto the far side. And a piece with other skin over
+ * it along the box's direction is dropped, because the merged pieces
+ * overlap: the Skyhunter's boom fairings run on inside its wing, a few
+ * millimetres under the top skin and facing up like it, and a stripe over
+ * them was printed on both: a second copy drawn every frame a few
+ * millimetres inside the wing, which the polygon offset below pulls
+ * toward the camera.
  *
  * CHEAP BY CONSTRUCTION. Every decal of a model is drawn into ONE atlas
  * (a canvas, one cell per decal, larger cells when there are fewer), and
@@ -69,6 +75,13 @@ const FACING = 0.3;
  * height, and its least, metres. */
 const DEPTH_SHARE = 0.5;
 const DEPTH_MIN = 0.02;
+/* Skin over a piece of a decal hides it when it stands this far out
+ * along the box's normal, metres: past the rounding of skins merged
+ * edge to edge, and under the thinnest thing laid on a skin (a servo
+ * cover, a millimetre or two). */
+const COVER_GAP = 0.0002;
+/* The cells per side of the grid a box's cover is binned in. */
+const COVER_GRID = 12;
 /* The atlas, texels square. */
 const ATLAS = 1024;
 
@@ -131,8 +144,14 @@ function cellUv(i, count) {
 /* The meshes a decal can land on: the airframe's lit skin. Not the
  * rotors, not the ink hulls or lamps (not cel), not glass (transparent),
  * not the Bramor's catapult or chute, not the hangar's parts
- * (src/render/partsfit.js: tyres, pod, tape), not a decal. With each, its matrix
- * into the craft group's frame at the pose it was built in. */
+ * (src/render/partsfit.js: tyres, pod, tape), not a decal, and nothing
+ * hidden. The flying model carries a hidden box the size of the whole
+ * aircraft for check 15 (opts.measure, in every builder), in the skin's
+ * own material; the hangar's model has none. A decal's box that reached
+ * one of its faces printed there, and since the decal mesh is not hidden
+ * with it, a sticker placed on the model hung in the air beside the
+ * aircraft in flight and nowhere in the hangar. With each, its matrix into
+ * the craft group's frame at the pose it was built in. */
 function targetsOf(craft) {
   const skip = new Set([...(craft.blades || []), ...(craft.discs || [])]);
   if (craft.launcher) {
@@ -141,7 +160,7 @@ function targetsOf(craft) {
   const out = [];
   const under = (o) => {
     for (let p = o; p && p !== craft.group; p = p.parent) {
-      if (skip.has(p) || p.name === 'chute' || p.name === 'launcher' || p.name === 'parts' || p.userData.decal) {
+      if (!p.visible || skip.has(p) || p.name === 'chute' || p.name === 'launcher' || p.name === 'parts' || p.userData.decal) {
         return true;
       }
     }
@@ -257,11 +276,89 @@ function clip(poly, axis) {
 }
 
 /*
+ * Every triangle of the targets that could lie over a point in the box,
+ * whichever way it faces: in the box's frame in metres, [x right, y up,
+ * z out along the normal] for each corner, nine numbers a triangle, and
+ * binned in a COVER_GRID square grid over the box's face so a point is
+ * tested against the few that fall on its cell. Above the box is kept:
+ * skin over a point need not be inside the box to hide it.
+ */
+function coverOf(box, targets) {
+  const tris = [];
+  const cells = Array.from({ length: COVER_GRID * COVER_GRID }, () => []);
+  const cellOf = (v, half) => Math.min(COVER_GRID - 1, Math.max(0, Math.floor(((v + half) / (2 * half)) * COVER_GRID)));
+  const q = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  for (const target of targets) {
+    const geo = target.mesh.geometry;
+    const pos = geo.attributes.position;
+    const index = geo.index;
+    const count = index ? index.count : pos.count;
+    for (let t = 0; t + 2 < count; t += 3) {
+      for (let k = 0; k < 3; k += 1) {
+        vt.fromBufferAttribute(pos, index ? index.getX(t + k) : t + k).applyMatrix4(target.matrix).sub(box.p);
+        q[3 * k] = vt.dot(box.right);
+        q[3 * k + 1] = vt.dot(box.up);
+        q[3 * k + 2] = vt.dot(box.n);
+      }
+      const [x0, y0, z0, x1, y1, z1, x2, y2, z2] = q;
+      const xLo = Math.min(x0, x1, x2);
+      const xHi = Math.max(x0, x1, x2);
+      const yLo = Math.min(y0, y1, y2);
+      const yHi = Math.max(y0, y1, y2);
+      if (xLo > box.hw || xHi < -box.hw || yLo > box.hh || yHi < -box.hh || Math.max(z0, z1, z2) < -box.hd) {
+        continue;
+      }
+      const at = tris.length / 9;
+      tris.push(...q);
+      for (let j = cellOf(yLo, box.hh); j <= cellOf(yHi, box.hh); j += 1) {
+        for (let i = cellOf(xLo, box.hw); i <= cellOf(xHi, box.hw); i += 1) {
+          cells[j * COVER_GRID + i].push(at);
+        }
+      }
+    }
+  }
+  return { tris, cells, cellOf };
+}
+
+/* Whether skin lies over the point (x, y, z) of the box's frame, metres:
+ * a triangle of the cover whose face holds (x, y) and whose surface there
+ * stands more than COVER_GAP further out along the normal. */
+function covered(cover, box, x, y, z) {
+  const { tris } = cover;
+  for (const at of cover.cells[cover.cellOf(y, box.hh) * COVER_GRID + cover.cellOf(x, box.hw)]) {
+    const o = at * 9;
+    const ax = tris[o];
+    const ay = tris[o + 1];
+    const bx = tris[o + 3] - ax;
+    const by = tris[o + 4] - ay;
+    const cx = tris[o + 6] - ax;
+    const cy = tris[o + 7] - ay;
+    const det = bx * cy - by * cx;
+    if (Math.abs(det) < 1e-14) {
+      continue;
+    }
+    const px = x - ax;
+    const py = y - ay;
+    const s = (px * cy - py * cx) / det;
+    const t = (bx * py - by * px) / det;
+    if (s < 0 || t < 0 || s + t > 1) {
+      continue;
+    }
+    const over = tris[o + 2] + s * (tris[o + 5] - tris[o + 2]) + t * (tris[o + 8] - tris[o + 2]);
+    if (over > z + COVER_GAP) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
  * One decal on one target: the triangles, in the target mesh's own frame,
  * as flat arrays of positions, normals and uvs, or null for none. `uv` is
- * the decal's atlas cell, `flip` mirrors its picture left to right.
+ * the decal's atlas cell, `flip` mirrors its picture left to right, and
+ * `cover` is coverOf the box, for the pieces other skin hides.
  */
-function project(box, target, uv, flip) {
+function project(box, target, uv, flip, cover) {
   const geo = target.mesh.geometry;
   const pos = geo.attributes.position;
   const nor = geo.attributes.normal;
@@ -329,7 +426,16 @@ function project(box, target, uv, flip) {
       continue;
     }
     for (let k = 1; k + 1 < poly.length; k += 1) {
-      for (const v of back ? [poly[0], poly[k + 1], poly[k]] : [poly[0], poly[k], poly[k + 1]]) {
+      const tri = back ? [poly[0], poly[k + 1], poly[k]] : [poly[0], poly[k], poly[k + 1]];
+      /* Hidden or not by the triangle's middle, in the box's frame in
+       * metres: a triangle of the fan, not the whole piece, so a seam
+       * laid over part of a large skin triangle takes only what it
+       * covers. */
+      const mid = (axis, half) => ((tri[0].q[axis] + tri[1].q[axis] + tri[2].q[axis]) / 3) * half;
+      if (covered(cover, box, mid(0, box.hw), mid(1, box.hh), mid(2, box.hd))) {
+        continue;
+      }
+      for (const v of tri) {
         out.copy(box.p)
           .addScaledVector(box.right, v.q[0] * box.hw)
           .addScaledVector(box.up, v.q[1] * box.hh)
@@ -426,7 +532,8 @@ export function dressDecals(craft, decals = []) {
       let parts = s.cache.get(ck);
       if (!parts) {
         const box = boxOf(d, mirror);
-        parts = s.targets.map((t) => project(box, t, uv, flip));
+        const cover = coverOf(box, s.targets);
+        parts = s.targets.map((t) => project(box, t, uv, flip, cover));
       }
       cache.set(ck, parts);
       parts.forEach((part, ti) => {

@@ -7,7 +7,10 @@
  *   floor       the heightfield at 600 points (400 seeded over the hero
  *               square, 200 across the gorge) against the client's own
  *               terrain engine finestAt on the hero tiles, with the water
- *               outlines: never under either, and how far over
+ *               outlines: never under either, and how far over; and at
+ *               every cell centre inside a dam.json footprint, at least
+ *               that part's crestY, so a floor built from an older
+ *               dam.json fails
  *   straight    a hunter catches a defender flying straight away from it
  *   crossing    ... one crossing its nose
  *   turning     ... one circling as tight as a quad cruises
@@ -51,7 +54,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  CLEAR_M, HUNTER_SPEED, Hunters, TARGET_RANGE_M, TERMINAL_M, loadHeight,
+  CLEAR_M, HEIGHT_CELLS, HEIGHT_CELL_M, HEIGHT_HALF, HUNTER_SPEED, Hunters, TARGET_RANGE_M, TERMINAL_M, loadHeight,
 } from '../edge/rooms/warhunt.js';
 import { insideWater } from '../src/game/water.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
@@ -112,7 +115,7 @@ function groundFromData() {
     return { missing: 'manifest.json' };
   }
   const manifest = JSON.parse(readFileSync(join(DATA, 'manifest.json'), 'utf8'));
-  const need = ['water.json', ...manifest.hero.tiles.map(([i, j]) => join('hero', `${i}_${j}.bin`))];
+  const need = ['water.json', 'dam.json', ...manifest.hero.tiles.map(([i, j]) => join('hero', `${i}_${j}.bin`))];
   const missing = need.filter((f) => !existsSync(join(DATA, f)));
   if (missing.length) {
     return { missing: `${missing[0]} (${missing.length} of the files its manifest lists are missing)` };
@@ -131,9 +134,15 @@ function groundFromData() {
   };
   const water = JSON.parse(readFileSync(join(DATA, 'water.json'), 'utf8'))
     .map((b) => ({ y: b.y, outline: b.outline.map(([x, z]) => ({ x, z })) }));
+  /* The footprints the builder folds at crestY: every dam.json part with
+   * one (tools/itaipu/build_war_height.py fold_dam). */
+  const dam = JSON.parse(readFileSync(join(DATA, 'dam.json'), 'utf8'))
+    .filter((p) => p.footprint)
+    .map((p) => ({ part: p.part, crestY: p.crestY, outline: p.footprint.map(([x, z]) => ({ x, z })) }));
   return {
     ground: (x, z) => Terrain.prototype.finestAt.call(self, x, z),
     wet: (x, z) => Math.max(-Infinity, ...water.filter((b) => insideWater(b, x, z)).map((b) => b.y)),
+    dam,
   };
 }
 
@@ -169,6 +178,35 @@ function floorRows() {
   /* The 100 m window's price on this terrain, measured at 2.9 m mean when
    * the file was built; ten means the window or the file's layout broke. */
   check('floor: not far over it', st.mean < 10, `mean ${st.mean.toFixed(2)} m under 10`);
+
+  /* The concrete is not ground, so the rows above cannot see a floor built
+   * from an older dam.json. Every cell centre is one of the builder's 10 m
+   * samples and floorAt reads it exactly there, so a centre inside a
+   * footprint must read at least that part's crestY. */
+  const short = [];
+  let centres = 0;
+  for (let j = 0; j < HEIGHT_CELLS; j += 1) {
+    for (let i = 0; i < HEIGHT_CELLS; i += 1) {
+      const x = -HEIGHT_HALF + HEIGHT_CELL_M * (i + 0.5);
+      const z = -HEIGHT_HALF + HEIGHT_CELL_M * (j + 0.5);
+      for (const p of truth.dam) {
+        if (!insideWater(p, x, z)) {
+          continue;
+        }
+        centres += 1;
+        const under = p.crestY - floorAt(x, z);
+        if (under > 1e-6) {
+          short.push({ part: p.part, x, z, under });
+        }
+      }
+    }
+  }
+  const worst = short.reduce((a, b) => (b.under > a.under ? b : a), short[0]);
+  check(`floor: at the crest over every dam.json footprint (${truth.dam.map((p) => p.part).join(', ')})`,
+    centres > 0 && short.length === 0,
+    short.length
+      ? `${short.length} of ${centres} cell centres under their crest, worst ${worst.under.toFixed(1)} m under ${worst.part} at (${worst.x}, ${worst.z}); rebuild with tools/itaipu/build_war_height.py`
+      : `${centres} cell centres, none under its crestY`);
 }
 
 /* ------------------------------------------------------------- chase */

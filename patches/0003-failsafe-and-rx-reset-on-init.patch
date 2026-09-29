@@ -1,0 +1,39 @@
+diff --git a/src/main/flight/failsafe.c b/src/main/flight/failsafe.c
+index 2a83a7910..675aa862d 100644
+--- a/src/main/flight/failsafe.c
++++ b/src/main/flight/failsafe.c
+@@ -20,6 +20,7 @@
+ 
+ #include <stdbool.h>
+ #include <stdint.h>
++#include <string.h>
+ 
+ #include "platform.h"
+ 
+@@ -115,6 +116,7 @@ void failsafeReset(void)
+ 
+ void failsafeInit(void)
+ {
++    memset(&failsafeState, 0, sizeof(failsafeState));
+     failsafeState.events = 0;
+     failsafeState.monitoring = false;
+ 
+diff --git a/src/main/rx/rx.c b/src/main/rx/rx.c
+index 8704051e3..5e22a62fa 100644
+--- a/src/main/rx/rx.c
++++ b/src/main/rx/rx.c
+@@ -296,6 +296,14 @@ void rxInit(void)
+     rxRuntimeState.rcProcessFrameFn = nullProcessFrame;
+     rxRuntimeState.lastRcFrameTimeUs = 0;
+     rcSampleIndex = 0;
++    rxDataProcessingRequired = false;
++    auxiliaryProcessingRequired = false;
++    rxSignalReceived = false;
++    rxFlightChannelsValid = false;
++    needRxSignalBefore = 0;
++    suspendRxSignalUntil = 0;
++    skipRxSamples = 0;
++    memset(rcRaw, 0, sizeof(rcRaw));
+ 
+     uint32_t now = millis();
+     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {

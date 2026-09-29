@@ -3,8 +3,8 @@
 #
 # G30 is level 0's grid: samples at x, z = X30 + k * 30, from MARGIN
 # samples before the ring's low edge to far enough past its high edge for
-# level 3's tent filter. G10 is the hero grid: samples at x, z = -5120 +
-# k * 10, and hero sample 3k is G30 sample H30 + k, so the hero is exactly
+# level 3's tent filter. G10 is the hero tiles' grid: samples at x, z =
+# HERO_X0 + k * 10, and hero sample 3k is G30 sample H30 + k, so the hero is exactly
 # level 0 at every third sample before the hero's own edits.
 #
 # Samples, not pixels: a raster warped onto a grid here has its pixel
@@ -32,7 +32,7 @@ from rasterio.transform import Affine
 from rasterio.warp import Resampling, reproject
 from scipy import ndimage
 
-from common import (DEM_HALF, E0, HERO_CELL, HERO_HALF, L0_CELL, MARGIN, N0, RING_HALF, SOURCES, TILE_CELLS, UTM,
+from common import (DEM_HALF, E0, HERO_CELL, HERO_X0, HERO_X1, L0_CELL, MARGIN, N0, RING_HALF, SOURCES, TILE_CELLS, UTM,
                     load_sources)
 
 
@@ -77,8 +77,8 @@ G30 = Grid(X30, L0_CELL, N30)
 # (fetch.py cut ANADEM there, and a bilinear sample on the cut has no
 # neighbour past it).
 REAL30 = G30.index(DEM_HALF - L0_CELL) + 1
-G10 = Grid(-HERO_HALF, HERO_CELL, int(2 * HERO_HALF / HERO_CELL) + 1)
-H30 = G30.index(-HERO_HALF)
+G10 = Grid(HERO_X0, HERO_CELL, int((HERO_X1 - HERO_X0) / HERO_CELL) + 1)
+H30 = G30.index(HERO_X0)
 
 
 def warp_dem(key):
