@@ -151,6 +151,7 @@
     "zagi:stab": "node scripts/zagi-stab-selftest.js",
     "zagi:record": "node scripts/wing-record.js zagi",
     "zagi:derive": "node scripts/zagi-derive.js",
+    "zagi:owner": "node scripts/zagi-owner.js",
     "floats:gates": "node scripts/floats-gates.js",
     "floats:record": "node scripts/wing-record.js timberf",
     "floats:derive": "node scripts/floats-derive.js",
