@@ -1,41 +1,44 @@
 /*
- * water/index.js: the reservoir and the river, drawn. A STUB, package
- * B's, until package E replaces it (docs/ITAIPU-PLAN.md section 14): flat
- * planes at each body's level over its outline from water.json, one
- * still material with the sky in it, so the map has its water at the
- * right heights from the first build. No waves, no mirror, no spillway.
+ * water/index.js: Itaipu's water, drawn (docs/ITAIPU-PLAN.md section 5,
+ * package E).
  *
- * Past the ring the reservoir and the river do not stop, but the data
- * does. Where a body's outline runs along the ring's edge, a strip of the
- * same water carries on outward over the apron (APRON_REACH deep), which
- * the apron's ground rises out of a few kilometres on, so from the air
- * the lake fades into the haze instead of ending on a ruled line.
+ *   The reservoir at 219.0 m and the river below the dam at 103.5 m, each
+ *   over its outline from water.json, in swiss2's water material
+ *   (swiss2/water/surface.js): Fresnel at water's index, the sun's
+ *   glitter, ripples drifting with the wind (on the river, downstream
+ *   with the current), shore foam, and the body's colour deepening away
+ *   from the shore. Past the ring each body carries on over the apron
+ *   (APRON_REACH), so from the air the lake fades into the haze.
  *
- * The part interface, the seam every part is built against:
+ *   The spillway's chute running white, on the chute floor dam.json
+ *   gives (the spillway's "chute" section: its axis and the floor's
+ *   height every 30 m along it, the same numbers package D builds the
+ *   floor from), CHUTE_DEPTH over it, across the spillway's footprint.
+ *   It is not plant water: its tops are roof records whose material is
+ *   `water`, so a craft that touches the chute rides it as ground and
+ *   the crash world reads water there (the map's surfaceAt), and never
+ *   floats.
  *
- *   export async function buildPart(ctx) -> { group, update(stepIndex), dispose(), stats() }
+ *   White water where the chute plunges into the river, and the churn
+ *   of the draft tubes along the powerhouse's downstream face.
  *
- *   ctx = {
- *     THREE, scene, quality: 'low'|'medium'|'high',
- *     data,          parsed JSON files from the data folder, by name
- *                    ('water.json', 'dam.json', 'osm/roads.json', ...)
- *     base,          the data folder's URL, ending in a slash, for what is
- *                    not JSON (canopy/, masks/, imagery/)
- *     manifest,      the data's manifest.json
- *     ground(x, z),  terrain height, world metres, water beds included
- *     colliders,     the map's Colliders, not yet built
- *     roofs,         the map's roofs record (src/maps/alps/roofs.js)
- *     mats,          swiss2's material kit, shared, never disposed by a part
- *     progress(f),   0 to 1 within the part's share of the bar
- *   }
+ *   ONE planar mirror, following the body under the camera: over the
+ *   reservoir the reservoir mirrors the dam and its shores, down in the
+ *   canyon the river mirrors the canyon walls; the other body takes the
+ *   sky's light only. At swiss2's own scales (WATER_TIERS), and drawn at
+ *   most once a frame, from the scene's onBeforeRender, since the part
+ *   is handed no renderer: the map's first scene draw each frame after
+ *   update() draws it.
  *
- * A part adds its colliders and roof records during buildPart and never
- * after; the map calls colliders.build() once, when every part is in.
- * The map adds `group` to the scene, and passes every material in it
- * through the light (look/index.js finish) once all the parts are built.
- * On a swap the scene graph frees every geometry, material and texture
- * in `group` (src/render/shell.js disposeSceneGraph); dispose() frees
- * only what the graph cannot reach (a render target, a worker's buffer).
+ * WHY THE DEPTH IS NOT THE GROUND'S. The pipeline lowered the terrain
+ * inside every outline to a bed three metres under the water (section 4),
+ * so under the water the ground says every body is three metres deep. That
+ * is right for the shore, where the drawn ground rises through the water,
+ * and is what the foam and the shallows are drawn from; away from it the
+ * water deepens with the distance from dry ground (DEEPEN per metre),
+ * which is what a drowned valley does. Both come from one texture over the
+ * hero at the terrain's 10 m (field()), read per pixel, so the shore's
+ * line is the drawn terrain's and not a mesh's.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -53,10 +56,204 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { roofRecord, frameElements } from '../../alps/roofs.js';
+import { insideWater } from '../../../game/water.js';
+
+/* The water running down the chute over its floor, m: a sheet of the
+ * spillway's flow at speed is a few decimetres to a metre deep. */
+export const CHUTE_DEPTH = 0.5;
+/* The drawn chute's rows between two of the floor's stations, and its
+ * columns across. */
+const CHUTE_ROWS = 6;
+const CHUTE_COLS = 12;
+/* The roughness the chute's water is drawn with, as a bed slope (the
+ * stream shader's measure of white water): the whole chute runs white at
+ * speed, its level reach included, not only where the floor is steep. */
+const CHUTE_ROUGH = 0.32;
+
 /* How far past the ring a body's water is carried over the apron, and
  * past either end of where it meets the edge. */
 const APRON_REACH = 30000;
 const APRON_WIDEN = 200;
+
+/* The depth field's cell, m: the hero terrain's own. */
+const FIELD_CELL = 10;
+/* How much deeper the water gets per metre from dry ground. */
+const DEEPEN = 0.08;
+/* How far the distance to dry ground is counted, m. */
+const FIELD_REACH = 3000;
+
+/* swiss2's WATER_TIERS mirror scales (swiss2/water/index.js), so this
+ * mirror costs what swiss2's lake's does: a fraction of the drawing
+ * buffer's size, none on Low. */
+const MIRROR_SCALE = { high: 0.5, medium: 0.34, low: 0 };
+/* Past this from a body's shore the camera's view of it is a sliver the
+ * sky's light carries: swiss2's MIRROR_REACH. */
+const MIRROR_REACH = 2000;
+
+/* The churn along the powerhouse's downstream face: from the face out
+ * this far, m. The face is half the powerhouse's published width off its
+ * axis (dam.json figures.width). */
+const CHURN_REACH = 170;
+/* The white water where the chute's jet comes down, m round the foot. */
+const PLUNGE_R = 170;
+
+/*
+ * The colours, linear. Itaipu's water is a tropical reservoir's, not a
+ * glacier's: a blue green that reads blue from the air for the sky it
+ * holds, green brown over its mud shallows, and the river below a greyer
+ * green with the sediment the turbines stir (reservoir-dam, aerial-dam,
+ * river-below).
+ */
+const LOOK = {
+  reservoir: {
+    body: [0.02, 0.075, 0.085], shallow: [0.05, 0.1, 0.075], deep: [0.012, 0.05, 0.07], clarity: 0.9, ripple: 0.35, roughness: 0.035,
+  },
+  river: {
+    body: [0.035, 0.07, 0.062], shallow: [0.06, 0.085, 0.065], deep: [0.028, 0.06, 0.058], clarity: 1.2, ripple: 0.55, roughness: 0.05,
+  },
+};
+const CHUTE_BODY = [0.1, 0.13, 0.12];
+
+/* ----------------------------------------------------------- the chute */
+
+/*
+ * The chute's sheet of water from dam.json, in world metres: its rows at
+ * the floor's stations, each { s, x, z, y (the water's top), left, right
+ * (along `across` from the axis) }, and the axis's unit vectors along the
+ * flow and across it. `dam` is dam.json's parsed list.
+ */
+export function chuteSheet(dam) {
+  const spill = dam.find((p) => p.part === 'spillway');
+  const chute = spill && (spill.sections || []).find((s) => s.at === 'chute');
+  if (!chute || !chute.floor || chute.floor.length < 2 || !spill.footprint) {
+    throw new Error('itaipu water: dam.json has no spillway chute with a floor and a footprint');
+  }
+  const [a, b] = chute.axis;
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const along = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
+  const across = [-along[1], along[0]];
+  const foot = spill.footprint;
+  /* The footprint's extent across the axis at s: its two outermost
+   * crossings with the line through the axis's point there. */
+  const extent = (x, z) => {
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = 0; i < foot.length; i += 1) {
+      const p = foot[i];
+      const q = foot[(i + 1) % foot.length];
+      const ex = q[0] - p[0];
+      const ez = q[1] - p[1];
+      const det = across[1] * ex - across[0] * ez;
+      if (Math.abs(det) < 1e-9) {
+        continue;
+      }
+      const rx = p[0] - x;
+      const rz = p[1] - z;
+      const v = (across[0] * rz - across[1] * rx) / det;
+      if (v < 0 || v > 1) {
+        continue;
+      }
+      const u = (ex * rz - ez * rx) / det;
+      lo = Math.min(lo, u);
+      hi = Math.max(hi, u);
+    }
+    return hi > lo ? [lo, hi] : null;
+  };
+  let last = extent(a[0], a[1]);
+  if (!last) {
+    throw new Error('itaipu water: the chute axis starts outside the spillway footprint');
+  }
+  const rows = chute.floor.map(([s, floorY]) => {
+    const x = a[0] + along[0] * s;
+    const z = a[1] + along[1] * s;
+    /* Where the footprint narrows to its corner past the flip bucket,
+     * the chute keeps the width it had. */
+    const e = extent(x, z);
+    if (e && e[1] - e[0] > 0.8 * (last[1] - last[0])) {
+      last = e;
+    }
+    return {
+      s, x, z, floor: floorY, y: floorY + CHUTE_DEPTH, left: last[0], right: last[1],
+    };
+  });
+  return { rows, along, across };
+}
+
+/*
+ * The chute's water as ground: one roof record per stretch between two
+ * of the floor's stations, a plane falling along the chute over the
+ * trapezoid the stretch covers, its material water.
+ */
+export function chuteRecords(sheet) {
+  const { rows, across } = sheet;
+  const out = [];
+  for (let k = 0; k + 1 < rows.length; k += 1) {
+    const p = rows[k];
+    const q = rows[k + 1];
+    const at = (r, u) => [r.x + across[0] * u, r.y, r.z + across[1] * u];
+    const rec = roofRecord({
+      top: [[at(p, p.left), at(q, q.left), at(q, q.right), at(p, p.right)]], dy: 0, hw: 0, hd: 0, kind: 'water',
+    }, frameElements(0, 0, 0, 0), 'water:chute');
+    rec.material = 'water';
+    out.push(rec);
+  }
+  return out;
+}
+
+function chuteGeometry(THREE, sheet) {
+  const { rows, along, across } = sheet;
+  const pos = [];
+  const water = [];
+  const flow = [];
+  const idx = [];
+  let lines = 0;
+  for (let k = 0; k + 1 < rows.length; k += 1) {
+    const p = rows[k];
+    const q = rows[k + 1];
+    const slope = Math.max(CHUTE_ROUGH, Math.min(0.8, (p.y - q.y) / (q.s - p.s)));
+    const last = k + 2 === rows.length;
+    for (let r = 0; r < CHUTE_ROWS + (last ? 1 : 0); r += 1) {
+      const f = r / CHUTE_ROWS;
+      const s = p.s + (q.s - p.s) * f;
+      const y = p.y + (q.y - p.y) * f;
+      const left = p.left + (q.left - p.left) * f;
+      const right = p.right + (q.right - p.right) * f;
+      const cx = p.x + (q.x - p.x) * f;
+      const cz = p.z + (q.z - p.z) * f;
+      for (let c = 0; c <= CHUTE_COLS; c += 1) {
+        const t = c / CHUTE_COLS;
+        const u = left + (right - left) * t;
+        pos.push(cx + across[0] * u, y, cz + across[1] * u);
+        water.push(CHUTE_DEPTH, s, t * 2 - 1, slope);
+        flow.push(along[0], along[1]);
+      }
+      lines += 1;
+    }
+  }
+  const cols = CHUTE_COLS + 1;
+  for (let k = 0; k + 1 < lines; k += 1) {
+    for (let c = 0; c < CHUTE_COLS; c += 1) {
+      const a = k * cols + c;
+      const b = a + 1;
+      const d = a + cols;
+      const e = d + 1;
+      /* Up facing: `across` is `along` turned a right angle toward -x
+       * of the flow, so across then along turns anticlockwise from above. */
+      idx.push(a, b, d, b, e, d);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, k) => (k % 3 === 1 ? 1 : 0)), 3));
+  g.setAttribute('aWater', new THREE.Float32BufferAttribute(water, 4));
+  g.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2));
+  g.setIndex(idx);
+  g.computeBoundingSphere();
+  return g;
+}
+
+/* ----------------------------------------------------- the two bodies */
 
 /* A body's outline as a mesh at its level, holes and all. */
 function surface(THREE, body) {
@@ -76,11 +273,7 @@ function surface(THREE, body) {
     const cross = (all[b].x - all[a].x) * (all[c].y - all[a].y) - (all[b].y - all[a].y) * (all[c].x - all[a].x);
     idx.push(...(cross < 0 ? [a, b, c] : [a, c, b]));
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setIndex(idx);
-  geo.computeVertexNormals();
-  return geo;
+  return flatGeometry(THREE, pos, idx);
 }
 
 /* The strips past the ring's edge where `body` meets it. */
@@ -96,47 +289,430 @@ function strips(THREE, body, half) {
     const a1 = Math.min(half, Math.max(...along) + APRON_WIDEN);
     const d0 = sign * half;
     const d1 = sign * (half + APRON_REACH);
-    const geo = new THREE.PlaneGeometry(Math.abs(a1 - a0), APRON_REACH);
-    geo.rotateX(-Math.PI / 2);
-    if (axis === 'x') {
-      geo.rotateY(Math.PI / 2);
-      geo.translate((d0 + d1) / 2, body.y, (a0 + a1) / 2);
-    } else {
-      geo.translate((a0 + a1) / 2, body.y, (d0 + d1) / 2);
-    }
-    out.push(geo);
+    const [x0, x1, z0, z1] = axis === 'x' ? [Math.min(d0, d1), Math.max(d0, d1), a0, a1] : [a0, a1, Math.min(d0, d1), Math.max(d0, d1)];
+    const y = body.y;
+    out.push(flatGeometry(THREE, new Float32Array([x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1]), [0, 3, 1, 1, 3, 2]));
   }
   return out;
 }
 
+/* A flat sheet of water: its normals up, and the aWater the material
+ * declares, which the depth field replaces per pixel (withField). */
+function flatGeometry(THREE, pos, idx) {
+  const n = pos.length / 3;
+  const normal = new Float32Array(n * 3);
+  for (let k = 0; k < n; k += 1) {
+    normal[k * 3 + 1] = 1;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+  g.setAttribute('aWater', new THREE.BufferAttribute(new Float32Array(n * 4), 4));
+  g.setIndex(idx);
+  g.computeBoundingSphere();
+  return g;
+}
+
+/*
+ * The depth field over the hero at FIELD_CELL: per sample the ground's
+ * height and the distance to the nearest dry sample, m (dry: outside
+ * every body's outline, or ground at or over the body's level there).
+ * Returns { data (RG float, (n x n)), n, x0, extent }.
+ */
+export function field(bodies, ground, half) {
+  const n = Math.round((2 * half) / FIELD_CELL) + 1;
+  const x0 = -half;
+  const dist = new Float32Array(n * n);
+  const data = new Float32Array(n * n * 2);
+  /* Which body each sample is in, by scanlines across each outline. */
+  const within = new Int8Array(n * n).fill(-1);
+  bodies.forEach((b, k) => {
+    const o = b.outline;
+    for (let j = 0; j < n; j += 1) {
+      const z = x0 + j * FIELD_CELL;
+      const xs = [];
+      for (let i = 0, m = o.length - 1; i < o.length; m = i, i += 1) {
+        if ((o[i][1] > z) !== (o[m][1] > z)) {
+          xs.push(o[i][0] + ((z - o[i][1]) * (o[m][0] - o[i][0])) / (o[m][1] - o[i][1]));
+        }
+      }
+      xs.sort((p, q) => p - q);
+      for (let h = 0; h + 1 < xs.length; h += 2) {
+        const i0 = Math.max(0, Math.ceil((xs[h] - x0) / FIELD_CELL));
+        const i1 = Math.min(n - 1, Math.floor((xs[h + 1] - x0) / FIELD_CELL));
+        for (let i = i0; i <= i1; i += 1) {
+          within[j * n + i] = k;
+        }
+      }
+    }
+  });
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      const c = j * n + i;
+      const g = ground(x0 + i * FIELD_CELL, x0 + j * FIELD_CELL);
+      data[c * 2] = g;
+      const k = within[c];
+      dist[c] = k >= 0 && g < bodies[k].y ? FIELD_REACH : 0;
+    }
+  }
+  /* A two pass chamfer distance, 10 m and 14.1 m steps. */
+  const D = FIELD_CELL;
+  const E = FIELD_CELL * Math.SQRT2;
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      const c = j * n + i;
+      let v = dist[c];
+      if (i > 0) v = Math.min(v, dist[c - 1] + D);
+      if (j > 0) {
+        v = Math.min(v, dist[c - n] + D);
+        if (i > 0) v = Math.min(v, dist[c - n - 1] + E);
+        if (i + 1 < n) v = Math.min(v, dist[c - n + 1] + E);
+      }
+      dist[c] = v;
+    }
+  }
+  for (let j = n - 1; j >= 0; j -= 1) {
+    for (let i = n - 1; i >= 0; i -= 1) {
+      const c = j * n + i;
+      let v = dist[c];
+      if (i + 1 < n) v = Math.min(v, dist[c + 1] + D);
+      if (j + 1 < n) {
+        v = Math.min(v, dist[c + n] + D);
+        if (i + 1 < n) v = Math.min(v, dist[c + n + 1] + E);
+        if (i > 0) v = Math.min(v, dist[c + n - 1] + E);
+      }
+      dist[c] = v;
+      data[c * 2 + 1] = v;
+    }
+  }
+  return {
+    data, n, x0, extent: 2 * half,
+  };
+}
+
+/*
+ * swiss2's still water with the depth this map has: every vWater the
+ * sheet's fragment shader reads becomes the field's (the level less the
+ * ground, and DEEPEN per metre from dry ground), so the shore's foam and
+ * the shallows follow the drawn terrain, per pixel. Outside the hero the
+ * water is open and deep. swiss2's light gives its water s2Sun, the sun
+ * through the valley's terrain and clouds; nothing stands between
+ * Itaipu's sun and its water but the shadow maps, so it is 1 here. The
+ * churn is the draft tubes' boil along the powerhouse's face.
+ */
+const FIELD_GLSL = /* glsl */ `
+  uniform sampler2D uItField;
+  uniform vec3 uItGrid;
+  uniform float uItLevel;
+  uniform vec4 uItChurn;
+  uniform vec3 uItChurnN;
+  const float s2Sun = 1.0;
+  vec4 iWater;
+  vec4 itWater(vec2 p) {
+    vec2 g = (p - uItGrid.xy) / uItGrid.z;
+    if (g.x < 0.0 || g.y < 0.0 || g.x > 1.0 || g.y > 1.0) {
+      return vec4(60.0, 0.0, 0.0, 0.0);
+    }
+    float n = float(textureSize(uItField, 0).x);
+    vec2 f = texture2D(uItField, (g * (n - 1.0) + 0.5) / n).rg;
+    float d = uItLevel - f.r;
+    return vec4(d <= 0.0 ? d : d + ${DEEPEN.toFixed(3)} * f.g, 0.0, 0.0, 0.0);
+  }
+  float itChurn(vec2 p) {
+    if (uItChurnN.z <= 0.0) {
+      return 0.0;
+    }
+    vec2 ab = uItChurn.zw - uItChurn.xy;
+    float t = clamp(dot(p - uItChurn.xy, ab) / dot(ab, ab), 0.0, 1.0);
+    float out_ = dot(p - uItChurn.xy, uItChurnN.xy);
+    float along = t * length(ab);
+    if (out_ < -5.0 || out_ > uItChurnN.z || t <= 0.0 || t >= 1.0) {
+      return 0.0;
+    }
+    /* A boil in front of each unit, 34 m apart, spreading and fading
+     * downstream. */
+    float unit = abs(fract(along / 34.0) - 0.5) * 2.0;
+    float fall = 1.0 - smoothstep(0.1, 1.0, out_ / uItChurnN.z);
+    return fall * mix(0.55, 1.0, smoothstep(0.3, 0.9, 1.0 - unit + out_ / uItChurnN.z));
+  }`;
+
+function withField(THREE, mat, uniforms) {
+  const base = mat.onBeforeCompile;
+  const baseKey = mat.customProgramCacheKey();
+  const DECL = 'varying vec4 vWater;';
+  const FOAM = 'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.86, 0.88), wFoam);';
+  mat.onBeforeCompile = function onBeforeCompile(shader, renderer) {
+    base.call(this, shader, renderer);
+    Object.assign(shader.uniforms, uniforms);
+    const fs = shader.fragmentShader;
+    if (!fs.includes(DECL) || !fs.includes(FOAM) || !fs.includes('void main() {')) {
+      throw new Error('itaipu water: swiss2\'s water shader no longer has the lines the depth field is spliced at');
+    }
+    shader.fragmentShader = fs
+      .replace(DECL, '@DECL@')
+      .replace(/\bvWater\b/g, 'iWater')
+      .replace('@DECL@', `${DECL}\n${FIELD_GLSL}`)
+      .replace('void main() {', 'void main() {\n  iWater = itWater(vWaterWorld.xz);')
+      .replace(FOAM, `{
+          float churn = itChurn(vWaterWorld.xz);
+          if (churn > 0.0) {
+            float boil = texture2D(uWaves, vWaterWorld.xz / 4.1 + vec2(uTime * 0.21, -uTime * 0.17)).a;
+            float fine = texture2D(uWaves, vWaterWorld.xz / 1.3 - vec2(0.0, uTime * 0.5)).a;
+            wFoam = max(wFoam, churn * smoothstep(0.3, 0.62, boil * 0.6 + fine * 0.4 + 0.25 * churn));
+            wSlope *= 1.0 + 2.5 * churn;
+          }
+        }
+        ${FOAM}`);
+  };
+  mat.customProgramCacheKey = () => `itaipu-field|${baseKey}`;
+  return mat;
+}
+
+/* The shortest distance from (x, z) to an outline's edges, m. */
+function toShore(outline, x, z) {
+  let best = Infinity;
+  for (let i = 0, k = outline.length - 1; i < outline.length; k = i, i += 1) {
+    const [ax, az] = outline[k];
+    const ex = outline[i][0] - ax;
+    const ez = outline[i][1] - az;
+    const l2 = ex * ex + ez * ez;
+    let t = l2 > 0 ? ((x - ax) * ex + (z - az) * ez) / l2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const dx = x - (ax + t * ex);
+    const dz = z - (az + t * ez);
+    best = Math.min(best, dx * dx + dz * dz);
+  }
+  return Math.sqrt(best);
+}
+
+/*
+ * The body the mirror follows for a camera at (x, y, z): the one under
+ * it, else the nearest within MIRROR_REACH of its shore, and only one the
+ * camera is above. -1 for none. `bodies` are { y, outline, lake }.
+ */
+export function mirrorBody(bodies, x, y, z) {
+  let best = -1;
+  let bestD = MIRROR_REACH;
+  bodies.forEach((b, k) => {
+    if (y <= b.y) {
+      return;
+    }
+    const d = insideWater(b.lake, x, z) ? 0 : toShore(b.outline, x, z);
+    if (d < bestD) {
+      best = k;
+      bestD = d;
+    }
+  });
+  return best;
+}
+
+/* ------------------------------------------------------------ the part */
+
 export async function buildPart(ctx) {
   const { THREE } = ctx;
+  const [{ waterMaterial }, { planarMirror }, { waveTexture }] = await Promise.all([
+    import('../../swiss2/water/surface.js'),
+    import('../../swiss2/water/lake.js'),
+    import('../../swiss2/water/waves.js'),
+  ]);
   const group = new THREE.Group();
   group.name = 'itaipu-water';
   const half = ctx.manifest.frame.ring[1];
-  /* The satellite's own water, darkened to what still water under a high
-   * sun shows of its depth; the sky is the environment's. */
-  const material = new THREE.MeshStandardMaterial({
-    color: new THREE.Color().setRGB(0.035, 0.06, 0.05, THREE.LinearSRGBColorSpace),
-    roughness: 0.06,
-    metalness: 0,
-    envMapIntensity: 1,
-  });
-  material.name = 'itaipu-water';
+  const heroHalf = ctx.manifest.frame.hero[1];
   const bodies = ctx.data['water.json'];
-  for (const body of bodies) {
+  const dam = ctx.data['dam.json'];
+  const envMap = ctx.mats.envMap;
+  const waves = waveTexture(512);
+  const time = { value: 0 };
+  ctx.progress(0.1);
+
+  /* The depth field, one texture both bodies read. */
+  const f = field(bodies, ctx.ground, heroHalf);
+  const half16 = new Uint16Array(f.data.length);
+  for (let k = 0; k < f.data.length; k += 1) {
+    half16[k] = THREE.DataUtils.toHalfFloat(f.data[k]);
+  }
+  const fieldTex = new THREE.DataTexture(half16, f.n, f.n, THREE.RGFormat, THREE.HalfFloatType);
+  fieldTex.minFilter = THREE.LinearFilter;
+  fieldTex.magFilter = THREE.LinearFilter;
+  fieldTex.generateMipmaps = false;
+  fieldTex.needsUpdate = true;
+  const grid = new THREE.Vector3(f.x0, f.x0, f.extent);
+  ctx.progress(0.6);
+
+  /* The tailrace: the powerhouse's downstream face, and the chute's foot. */
+  const power = dam.find((p) => p.part === 'powerhouse');
+  const pa = power.axis[0];
+  const pb = power.axis[power.axis.length - 1];
+  const pl = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]);
+  /* Downstream is +z, the canyon's side of the axis. */
+  let pn = [-(pb[1] - pa[1]) / pl, (pb[0] - pa[0]) / pl];
+  if (pn[1] < 0) {
+    pn = [-pn[0], -pn[1]];
+  }
+  const face = power.figures.width / 2;
+  const churn = new THREE.Vector4(pa[0] + pn[0] * face, pa[1] + pn[1] * face, pb[0] + pn[0] * face, pb[1] + pn[1] * face);
+  const sheet = chuteSheet(dam);
+  const foot = sheet.rows[sheet.rows.length - 1];
+
+  const tier = MIRROR_SCALE[ctx.quality] != null ? ctx.quality : 'high';
+  const scale = MIRROR_SCALE[tier];
+  const made = bodies.map((body) => {
+    const look = LOOK[body.name] || LOOK.reservoir;
+    const colour = new THREE.Color(...look.body);
+    const to = body.name === 'river' ? [0, 1] : [Math.sin(Math.PI * 1.25), -Math.cos(Math.PI * 1.25)];
+    const opts = {
+      waves,
+      time,
+      /* The ripples drift with the wind on the reservoir (the map's, from
+       * the north east) and with the current down the river. */
+      wind: { value: new THREE.Vector2(to[0], to[1]).normalize() },
+      colour,
+      shallow: new THREE.Color(...look.shallow),
+      deep: new THREE.Color(...look.deep),
+      clarity: look.clarity,
+      ripple: look.ripple,
+      roughness: look.roughness,
+      envMap,
+      shoreFoam: 0.6,
+      foamAt: body.name === 'river' ? [foot.x, foot.z, PLUNGE_R, 1] : null,
+    };
+    const uniforms = {
+      uItField: { value: fieldTex },
+      uItGrid: { value: grid },
+      uItLevel: { value: body.y },
+      uItChurn: { value: churn },
+      uItChurnN: { value: new THREE.Vector3(pn[0], pn[1], body.name === 'river' ? CHURN_REACH : 0) },
+    };
+    const env = withField(THREE, waterMaterial(opts), uniforms);
+    env.name = `itaipu-water-${body.name}`;
+    /* The mirror is made when this body first has the camera over it,
+     * and freed when the camera leaves for the other: one at a time. */
+    const state = {
+      body, env, opts, uniforms, mirror: null, planar: null, meshes: [],
+      lake: { kind: 'lake', outline: body.outline.map(([x, z]) => ({ x, z })) },
+      y: body.y,
+      outline: body.outline,
+    };
     for (const geo of [surface(THREE, body), ...strips(THREE, body, half)]) {
-      const mesh = new THREE.Mesh(geo, material);
+      const mesh = new THREE.Mesh(geo, env);
       mesh.name = `itaipu-water-${body.name}`;
       mesh.receiveShadow = true;
       group.add(mesh);
+      state.meshes.push(mesh);
     }
-  }
+    return state;
+  });
+  ctx.progress(0.8);
+
+  /* The chute, and its tops as ground. */
+  const chuteMat = waterMaterial({
+    waves, time, wind: { value: new THREE.Vector2(sheet.along[0], sheet.along[1]) }, flow: true, colour: new THREE.Color(...CHUTE_BODY), clarity: 6, ripple: 1.2, roughness: 0.08, envMap, width: foot.right - foot.left,
+  });
+  chuteMat.name = 'itaipu-water-chute';
+  const chute = new THREE.Mesh(chuteGeometry(THREE, sheet), chuteMat);
+  chute.name = 'itaipu-chute';
+  chute.receiveShadow = true;
+  group.add(chute);
+  const records = chuteRecords(sheet);
+  ctx.roofs.push(...records);
+
+  /* THE MIRROR. The body under the camera, drawn once a frame. */
+  const stats = {
+    tier, mirrorScale: scale, mirrorBody: -1, mirrorDrawn: false, mirrorCalls: 0, mirrorTriangles: 0, mirrorsLive: 0,
+    chuteRecords: records.length, chuteRows: sheet.rows.length, fieldSize: f.n,
+  };
+  const eye = new THREE.Vector3();
+  const choose = (k) => {
+    made.forEach((m, j) => {
+      if (j !== k && m.mirror) {
+        m.mirror.dispose();
+        m.mirror = null;
+        m.planar.dispose();
+        m.planar = null;
+      }
+      const want = j === k && scale > 0;
+      if (want && !m.mirror) {
+        m.mirror = planarMirror(m.y, scale);
+        m.planar = withField(THREE, waterMaterial({ ...m.opts, planar: m.mirror }), m.uniforms);
+        m.planar.name = m.env.name;
+        if (ctx.mats.lit) {
+          ctx.mats.lit(m.planar);
+        }
+      }
+      for (const mesh of m.meshes) {
+        mesh.material = want ? m.planar : m.env;
+      }
+    });
+    stats.mirrorsLive = made.filter((m) => m.mirror).length;
+  };
+  const hide = [group];
+  const renderMirror = (renderer, scene, camera) => {
+    camera.updateMatrixWorld();
+    eye.setFromMatrixPosition(camera.matrixWorld);
+    const k = scale > 0 ? mirrorBody(made, eye.x, eye.y, eye.z) : -1;
+    if (k !== stats.mirrorBody) {
+      choose(k);
+      stats.mirrorBody = k;
+    }
+    stats.mirrorDrawn = false;
+    if (k < 0) {
+      return false;
+    }
+    const info = renderer.info.render;
+    const calls = info.calls;
+    const triangles = info.triangles;
+    stats.mirrorDrawn = made[k].mirror.render(renderer, scene, camera, hide);
+    stats.mirrorCalls = info.calls - calls;
+    stats.mirrorTriangles = info.triangles - triangles;
+    return stats.mirrorDrawn;
+  };
+  let due = false;
+  /* What the mirror was last drawn with, for the check's timing. */
+  const seen = { renderer: null, scene: null, camera: null };
+  const scene = ctx.scene;
+  const before = scene.onBeforeRender;
+  scene.onBeforeRender = function onBeforeRender(renderer, s, camera, target) {
+    before.call(this, renderer, s, camera, target);
+    if (!due || !camera.isPerspectiveCamera) {
+      return;
+    }
+    due = false;
+    seen.renderer = renderer;
+    seen.scene = s;
+    seen.camera = camera;
+    renderMirror(renderer, s, camera);
+  };
   ctx.progress(1);
+
   return {
     group,
-    update() {},
-    dispose() {},
-    stats: () => ({ stub: true, bodies: bodies.map((b) => ({ name: b.name, y: b.y, vertices: b.outline.length })) }),
+    /* The sim clock's milliseconds: the ripples and the chute's flow run
+     * on it, and the mirror is due again. */
+    update(step) {
+      time.value = step / 1000;
+      due = true;
+    },
+    /* For scripts/itaipu-water-check.js, which times the mirror alone. */
+    renderMirror,
+    seen,
+    records,
+    dispose() {
+      scene.onBeforeRender = before;
+      for (const m of made) {
+        if (m.mirror) {
+          m.mirror.dispose();
+          m.planar.dispose();
+        }
+        m.env.dispose();
+      }
+      chuteMat.dispose();
+      fieldTex.dispose();
+      waves.dispose();
+    },
+    stats: () => ({
+      ...stats,
+      bodies: bodies.map((b) => ({ name: b.name, y: b.y, vertices: b.outline.length })),
+    }),
   };
 }
