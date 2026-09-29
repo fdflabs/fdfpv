@@ -1917,8 +1917,12 @@ function padTroubleItem(info) {
    * what a flag holds: a spring centred axis where the throttle should be is
    * a gamepad or a radio in some other order, and that pilot is about to
    * take off at half power on a stick that springs back.
+   *
+   * A standard gamepad on its own default is neither: the browser has said
+   * where its sticks are and input.js has put the channels there. See
+   * standardPadMap. info.mapKnown says so.
    */
-  if (!info.calibrated && !info.mapUsable) {
+  if (!info.calibrated && !info.mapKnown && !info.mapUsable) {
     return {
       label: str('ui.this_browser_is_guessing_your_stick'),
       action: 'calibrate',

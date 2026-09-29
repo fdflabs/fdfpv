@@ -1634,6 +1634,7 @@ export default {
   "ui.gear_up": "Tren arriba",
   "ui.gear_down": "Tren abajo",
   "ui.gear_moving": "Tren en movimiento",
+  "main.throttle_down_to_start": "Baja el acelerador para empezar",
   "main.throttle_up_on_the_water": "A flote en el lago. Sube el acelerador con la palanca atrás para ponerlo en el escalón, déjalo correr y tira para volar. El timón lo guía en el agua; F pone los flaps, C cambia la cámara.",
   "main.throttle_up_flaps_f": "Sube el acelerador para despegar desde la pista, o pulsa L para lanzarlo. F pone los flaps, C cambia la cámara.",
   "main.throttle_up_retracts_g": "Sube el acelerador para despegar desde la pista, o pulsa L para lanzarlo. G mueve el tren retráctil, C cambia la cámara.",

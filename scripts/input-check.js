@@ -172,12 +172,12 @@ const DRIVE = (lay) => `(async () => {
   return log;
 })()`;
 
-async function bootPage(extra = {}) {
+async function bootPage(extra = {}, pad = PAD_SEED) {
   const page = await openPage({
     root,
     width: 1600,
     height: 900,
-    seed: [SETTINGS_SEED, PAD_SEED],
+    seed: [SETTINGS_SEED, pad],
     ...extra,
   });
   await page.until('window.__shellReady === true', 90000);
@@ -910,6 +910,158 @@ async function mouseFlightPage(page) {
   await ev("ui.onAction('title', ui.settings); return true;");
 }
 
+/*
+ * An Xbox pad as the browser reports one: mapping 'standard', axes 0 and 1
+ * the left stick, 2 and 3 the right, right and down positive. Every stick
+ * at rest, which on the Mode 2 default is half throttle.
+ */
+const XBOX_SEED = `window.__pad = {
+  index: 0,
+  id: 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)',
+  connected: true,
+  mapping: 'standard',
+  timestamp: 1,
+  axes: [0, 0, 0, 0],
+  buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })),
+};
+navigator.getGamepads = () => [window.__pad];`;
+
+/*
+ * Hold one physical stick direction on the pad and wait, in the page, until
+ * the aircraft has turned far enough to have an unambiguous sign in the
+ * frame it started from, then let go. Returns that reading. Waiting on the
+ * attitude rather than on a clock is what keeps this independent of how
+ * many sim milliseconds a headless frame is: whatever the rates, the sign
+ * is read at about nine degrees, long before an acro roll can come round
+ * past ninety and flip it.
+ *
+ *   yaw    the nose, against where the right wing pointed
+ *   roll   the top of the craft, against where the right wing pointed
+ *   pitch  the nose, against where the top pointed
+ */
+const HOLD = (axis, value, measure) => `(async () => {
+  const pad = window.__pad;
+  const set = (v) => { pad.axes[${axis}] = v; pad.timestamp += 1; };
+  const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+  const cross = (a, b) => ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
+  const s0 = window.__craftState();
+  const right0 = cross(s0.fwd, s0.up);
+  const read = (s) => ({
+    yaw: dot(s.fwd, right0),
+    roll: dot(s.up, right0),
+    pitch: dot(s.fwd, s0.up),
+  })[${JSON.stringify(measure)}];
+  set(${value});
+  const t0 = performance.now();
+  let m = 0;
+  let s = s0;
+  while (performance.now() - t0 < 90000) {
+    await new Promise((r) => setTimeout(r, 5));
+    s = window.__craftState();
+    m = read(s);
+    if (Math.abs(m) > 0.15) { break; }
+  }
+  set(0);
+  return { m, dt: s.simS - s0.simS, crashed: s.crashed, landed: s.landed };
+})()`;
+
+async function xboxPage(page) {
+  const ev = (expr) => page.evaluate(`(() => { const ui = window.__ui; const input = window.__input; ${expr} })()`);
+
+  section('an Xbox pad on the default map: the sticks are where the pilot\'s hands are');
+  const boot = await ev(`
+    const s = input.padSummary();
+    return JSON.stringify({ s, thr: input.map.throttle, yaw: input.map.yaw, roll: input.map.roll, pitch: input.map.pitch,
+      mode: ui.settings.stickMode });
+  `).then(JSON.parse);
+  check('Mode 2 on a standard pad: left stick yaw and throttle, right stick roll and pitch',
+    boot.mode === 2 && boot.yaw.axis === 0 && boot.thr.axis === 1 && boot.roll.axis === 2 && boot.pitch.axis === 3,
+    JSON.stringify(boot));
+  check('it is not called a guess, and it is not called calibrated',
+    boot.s.mapKnown === true && boot.s.calibrated === false && boot.s.guessNoYaw === false, JSON.stringify(boot.s));
+  await ev(`${PAST_GATE} ui.show('title');`);
+  /* The frame loop repaints the row from padSummary; give it frames. */
+  await page.sleep(1000);
+  const warn = await ev("return JSON.stringify(Array.from(ui.screens.title.querySelectorAll('.row-warn .row-label')).map((n) => n.textContent));")
+    .then(JSON.parse);
+  check('the title carries no calibration warning for it', warn.length === 0, JSON.stringify(warn));
+
+  await ev(`${PAST_GATE} ui.onAction('fly', ui.settings); return true;`);
+  await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
+  /*
+   * THROTTLE LOW FIRST. Hands off, the pad reads half throttle, which used
+   * to launch the quad the moment the run began. It is held at zero until
+   * the stick has been down, and the banner says so.
+   */
+  await page.sleep(3000);
+  const parked = await page.evaluate(`({ c: window.__craftState(), thr: window.__input.channels.throttle,
+    src: window.__input.stats().source, waiting: window.__input.throttleWaiting,
+    banner: window.__ui.banner ? window.__ui.banner.textContent : '' })`);
+  check('sticks centred at spawn: throttle held at 0 and the quad stays on the ground',
+    parked.thr === 0 && parked.waiting === true && parked.c.landed === true && !parked.c.flownThisRun,
+    JSON.stringify({ thr: parked.thr, waiting: parked.waiting, landed: parked.c.landed }));
+  check('and the banner tells the pilot why', parked.banner === 'Throttle down to start', parked.banner);
+  check('the source is the pad, not a guess', parked.src === 'a radio', parked.src);
+  await page.evaluate('window.__pad.axes[1] = -1; window.__pad.timestamp += 1; true');
+  await page.sleep(1500);
+  const pushed = await page.evaluate('({ c: window.__craftState(), thr: window.__input.channels.throttle })');
+  check('full up without having been down first: still held, still on the ground',
+    pushed.thr === 0 && pushed.c.landed === true, JSON.stringify({ thr: pushed.thr, landed: pushed.c.landed }));
+
+  /* Down, then UP. */
+  await page.evaluate('window.__pad.axes[1] = 1; window.__pad.timestamp += 1; true');
+  /* The banner is repainted by the frame loop, and a headless frame can be
+   * a second long, so it is waited on rather than read after a sleep. */
+  let bannerGone = true;
+  await page.until("window.__input.throttleWaiting === false && (window.__ui.banner ? window.__ui.banner.textContent : '') !== 'Throttle down to start'", 15000)
+    .catch(() => { bannerGone = false; });
+  const banner = await page.evaluate("window.__ui.banner ? window.__ui.banner.textContent : ''");
+  check('pulled down: the hold is gone and so is the banner', bannerGone, banner);
+  await page.evaluate('window.__pad.axes[1] = -1; window.__pad.timestamp += 1; true');
+  /* The plant's own height, z up: the drawn pose can still be seating at
+   * this point, the plant cannot. */
+  const z0 = parked.c.plantPos.z;
+  let climbed = true;
+  await page.until(`window.__craftState().plantPos.z - ${z0} > 3`, 120000).catch(() => { climbed = false; });
+  const up = await page.evaluate('({ c: window.__craftState(), thr: window.__input.channels.throttle })');
+  check('left stick up is full throttle and the quad climbs', climbed && up.thr === 1 && !up.c.landed && !up.c.crashed,
+    JSON.stringify({ thr: up.thr, dz: up.c.plantPos.z - z0, landed: up.c.landed, crashed: up.c.crashed }));
+  /* Let the left stick spring back: half throttle, a gentle climb, which
+   * keeps the quad clear of the ground for the three turns below. */
+  await page.evaluate('window.__pad.axes[1] = 0; window.__pad.timestamp += 1; true');
+  await page.sleep(300);
+
+  const yaw = await page.evaluate(HOLD(0, 1, 'yaw'));
+  check('left stick right yaws the nose right', yaw.m > 0.15 && !yaw.crashed, JSON.stringify(yaw));
+  const roll = await page.evaluate(HOLD(2, 0.5, 'roll'));
+  check('right stick right rolls right', roll.m > 0.15 && !roll.crashed, JSON.stringify(roll));
+  const pitch = await page.evaluate(HOLD(3, -0.5, 'pitch'));
+  check('right stick up pitches the nose down', pitch.m < -0.15 && !pitch.crashed, JSON.stringify(pitch));
+
+  /*
+   * AND A RADIO IS NOT HELD. The same slot now reports a radio with its
+   * throttle parked at the bottom, R puts it back on the pad, and throttle
+   * straight up takes off exactly as it always has, with no banner.
+   */
+  await page.evaluate(`(() => { const p = window.__pad; p.mapping = ''; p.id = 'Selftest radio (Vendor: 1209 Product: 4f54)';
+    p.axes = [0, 0, -1, 0]; p.timestamp += 1; return true; })()`);
+  await page.sleep(300);
+  await page.tap('KeyR');
+  await page.until('window.__craftState().landed === true', 20000).catch(() => {});
+  await page.sleep(500);
+  const r0 = await page.evaluate('({ c: window.__craftState(), waiting: window.__input.throttleWaiting, held: window.__input.throttleHeld, map: window.__input.map.throttle })');
+  check('a radio after R: back on the ground, AETR, and not held', r0.c.landed && !r0.waiting && !r0.held && r0.map.axis === 2,
+    JSON.stringify({ landed: r0.c.landed, waiting: r0.waiting, held: r0.held, map: r0.map }));
+  await page.evaluate('window.__pad.axes[2] = 1; window.__pad.timestamp += 1; true');
+  let radioUp = true;
+  await page.until(`window.__craftState().plantPos.z - ${r0.c.plantPos.z} > 1`, 120000).catch(() => { radioUp = false; });
+  const r1 = await page.evaluate("({ c: window.__craftState(), thr: window.__input.channels.throttle, banner: window.__ui.banner ? window.__ui.banner.textContent : '' })");
+  check('throttle straight up from the bottom: full throttle and it climbs, as ever',
+    radioUp && r1.thr === 1 && !r1.c.landed && r1.banner !== 'Throttle down to start',
+    JSON.stringify({ thr: r1.thr, landed: r1.c.landed, banner: r1.banner }));
+  await ev("ui.onAction('title', ui.settings); return true;");
+}
+
 async function main() {
   const t0 = Date.now();
   let page = null;
@@ -928,6 +1080,14 @@ async function main() {
     await touchPage(page);
     const uncaught2 = page.errors.filter((e) => e.startsWith('uncaught:'));
     check('no uncaught exception on the touch page', uncaught2.length === 0, uncaught2.slice(0, 3).join(' | '));
+    await page.close();
+    page = null;
+
+    console.log('\nbooting the shell with an Xbox pad');
+    page = await bootPage({}, XBOX_SEED);
+    await xboxPage(page);
+    const uncaught3 = page.errors.filter((e) => e.startsWith('uncaught:'));
+    check('no uncaught exception on the Xbox page', uncaught3.length === 0, uncaught3.slice(0, 3).join(' | '));
     await page.close();
     page = null;
   } catch (e) {

@@ -69,6 +69,48 @@ const DEFAULT_MAP = {
   throttle: { axis: 2, low: -1, high: 1 },
 };
 
+/*
+ * A GAMEPAD IS NOT A RADIO, AND THE BROWSER SAYS WHICH ONE IT IS.
+ *
+ * DEFAULT_MAP is AETR because that is what a transmitter in joystick mode
+ * sends. An Xbox pad sends something else entirely, and the browser tells
+ * us so: `gamepad.mapping === 'standard'` promises the W3C layout, axes 0
+ * and 1 the left stick, 2 and 3 the right, down and right positive. Flown
+ * through AETR that pad had roll and pitch on the left stick, throttle on
+ * the right stick's horizontal sprung to half, and yaw on the right stick's
+ * vertical: "am having a hard time finding the order of sticks".
+ *
+ * So a standard pad's default puts the channels where the pilot's stick
+ * mode puts them, read out of the same table the thumb sticks and the
+ * keyboard use. Right is right. Pitch is +1 pulled back, which on this
+ * layout is the positive end. Throttle is the whole of a stick that springs
+ * to its middle: nought at the bottom, half at rest, full at the top, the
+ * way drone sims treat a gamepad. A radio never reports 'standard', so it
+ * never gets here, and a pilot's own saved calibration wins over both.
+ */
+const STANDARD_STICKS = {
+  left: { horiz: 0, vert: 1 },
+  right: { horiz: 2, vert: 3 },
+};
+
+export function standardPadMap(mode) {
+  const sticks = stickChannels(mode);
+  const map = {};
+  for (const side of ['left', 'right']) {
+    const axes = STANDARD_STICKS[side];
+    map[sticks[side].horiz] = { axis: axes.horiz, center: 0, full: 1 };
+    map[sticks[side].vert] = sticks[side].vert === 'throttle'
+      ? { axis: axes.vert, low: 1, high: -1 }
+      : { axis: axes.vert, center: 0, full: 1 };
+  }
+  return map;
+}
+
+/* The built in map for whatever is plugged in. */
+function defaultMapFor(gp, mode) {
+  return gp && gp.mapping === 'standard' ? standardPadMap(mode) : DEFAULT_MAP;
+}
+
 export const CAL_STEPS = ['center', 'sweep', 'throttle', 'roll', 'pitch', 'yaw', 'confirm'];
 
 /*
@@ -952,6 +994,17 @@ export class InputManager {
     this.guessSpan = null;
     this.guessYawAlive = false;
     this.guessWrongOrder = false;
+    /* Which built in map this.map is while nothing is stored: the stick
+     * mode it was built for when the pad is a standard one, 0 for AETR.
+     * See followDefaultMap. */
+    this.defaultMode = 0;
+    /* The throttle hold for a pad whose throttle rests at half: set by the
+     * shell at a spawn or a landing, cleared by the throttle going low. See
+     * holdThrottleLow. `throttleLow` is the level that clears it, and
+     * throttleWaiting is whether a throttle is being held back right now. */
+    this.throttleHeld = false;
+    this.throttleLow = 0;
+    this.throttleWaiting = false;
     /* The hold-to-select bootstrap for a radio reporting zero buttons.
      * See SELECT_STEP. */
     this.holdMs = 0;
@@ -1165,7 +1218,7 @@ export class InputManager {
    * than either answer.
    */
   noteThrottleParked(gp) {
-    if (this.mapSeenParked || this.map.stored) {
+    if (this.mapSeenParked || this.mapKnown()) {
       return;
     }
     const spec = this.map.throttle;
@@ -1225,7 +1278,7 @@ export class InputManager {
    * wrong thing to offer them.
    */
   noteGuessOrder(gp) {
-    if (this.map.stored || this.guessYawAlive) {
+    if (this.mapKnown() || this.guessYawAlive) {
       return;
     }
     const n = Math.min(gp.axes.length, 8);
@@ -1289,6 +1342,92 @@ export class InputManager {
    * whether the front page says anything at all. */
   mapUsable() {
     return Boolean(this.map.stored || this.mapSeenParked);
+  }
+
+  /*
+   * Is the map in force known to describe this device, rather than a guess
+   * waiting on evidence: the pilot's own, or a standard pad's default,
+   * whose layout the browser vouches for. The two radio heuristics above
+   * do not run on a known map, because a gamepad's sprung sticks would feed
+   * them a parked throttle or a stray gimbal that is neither. It is
+   * deliberately NOT mapUsable: that one also decides how the menus read
+   * the sticks, and a standard pad's menus stay as they were.
+   */
+  mapKnown() {
+    return Boolean(this.map.stored || this.defaultMode);
+  }
+
+  /*
+   * THROTTLE LOW FIRST, which is Betaflight refusing to arm with the
+   * throttle up, for the one stick that needs it.
+   *
+   * A standard pad on its default map rests its throttle at half, which is
+   * past the shell's takeoff threshold, so every spawn and every landing
+   * launched the aircraft with nobody touching anything: a quad lifted off,
+   * a wing was thrown, a plane on wheels began its roll. So at a spawn or a
+   * landing the shell calls this, and until the pad's throttle has been at
+   * or below `low` the throttle it reports is zero. The plant is fed from
+   * those samples, so what it never sees it never flies on.
+   *
+   * ONLY THAT PAD. A radio parks its throttle at the bottom, the keyboard,
+   * the mouse wheel and the thumbs start from zero or hold what the pilot
+   * set, and a calibrated gamepad already has zero at rest, so for all of
+   * them this sets nothing and every sample is what it was before. The
+   * decision is taken now, at the spawn or landing, so a hold can never
+   * start in the air.
+   */
+  holdThrottleLow(low) {
+    this.throttleLow = low;
+    this.throttleHeld = this.throttleRestsHalf();
+    this.throttleWaiting = false;
+  }
+
+  /* An aircraft put straight into the air (an air start, a take over) is
+   * flying, and a throttle held at zero would drop it. */
+  releaseThrottleHold() {
+    this.throttleHeld = false;
+    this.throttleWaiting = false;
+  }
+
+  throttleRestsHalf() {
+    const gp = this.firstGamepad();
+    return Boolean(gp && gp.mapping === 'standard' && !this.map.stored && this.defaultMode);
+  }
+
+  gateThrottle(throttle) {
+    if (!this.throttleHeld) {
+      return throttle;
+    }
+    if (throttle <= this.throttleLow) {
+      this.releaseThrottleHold();
+      return throttle;
+    }
+    this.throttleWaiting = true;
+    return 0;
+  }
+
+  /*
+   * Keep the built in map matched to the pad and the stick mode, while
+   * nothing is stored. Run from poll, so a pad swapped for a radio, or a
+   * mode changed in Settings, takes effect on the next sample. The guess's
+   * evidence is dropped with the map it was gathered against, as
+   * acceptCalibration drops it.
+   */
+  followDefaultMap(gp) {
+    if (!gp || this.map.stored) {
+      return;
+    }
+    const mode = gp.mapping === 'standard' ? this.stickMode : 0;
+    if (mode === this.defaultMode) {
+      return;
+    }
+    this.defaultMode = mode;
+    this.map = cloneMap({ ...defaultMapFor(gp, this.stickMode), stored: false });
+    this.mapSeenParked = false;
+    this.guessSpan = null;
+    this.guessYawAlive = false;
+    this.guessWrongOrder = false;
+    this.forgetAxisResolution();
   }
 
   firstGamepad() {
@@ -1662,6 +1801,9 @@ export class InputManager {
        *            pilot has no yaw and does not know why. See
        *            noteGuessOrder. */
       guessNoYaw: this.guessWrongOrder,
+      /* mapKnown   the pilot's own map, or a standard pad's default. See
+       *            mapKnown. Neither is a guess to warn about. */
+      mapKnown: this.mapKnown(),
     };
   }
 
@@ -2107,7 +2249,7 @@ export class InputManager {
         });
       }
       if (c.step === 'center' || c.step === 'sweep') {
-        channels = this.readGamepad(gp, DEFAULT_MAP);
+        channels = this.readGamepad(gp, defaultMapFor(gp, this.stickMode));
       } else {
         channels = this.readGamepad(gp, c.draft);
         /*
@@ -2752,6 +2894,7 @@ export class InputManager {
 
     const gp = this.firstGamepad();
     this.notePadRoster();
+    this.followDefaultMap(gp);
     /* The Gamepad object's own timestamp is the only honest statement of when
      * the browser last refreshed it. Counting its changes is how we find out
      * whether polling faster than the frame rate buys anything at all. */
@@ -2771,6 +2914,7 @@ export class InputManager {
       this.rateWindowMs = 0;
     }
     let next;
+    let padFlies = false;
     if (this.harnessChannels) {
       /* The harness override, above everything: a capture wrote a stick
        * and means it. Mirrored into kb.throttle so releasing the override
@@ -2794,9 +2938,11 @@ export class InputManager {
       this.source = str('input.the_mouse');
     } else if (gp) {
       next = this.readGamepad(gp);
+      next.throttle = this.gateThrottle(next.throttle);
+      padFlies = true;
       this.noteThrottleParked(gp);
       this.noteGuessOrder(gp);
-      this.source = this.mapUsable() ? str('input.a_radio') : str('input.a_radio_whose_stick_order_is');
+      this.source = this.mapUsable() || this.mapKnown() ? str('input.a_radio') : str('input.a_radio_whose_stick_order_is');
       /* Keyboard still works while a pad is plugged in: any held stick
        * key overrides that channel. */
       const kb = this.readKeyboard(dtMs, false);
@@ -2819,6 +2965,11 @@ export class InputManager {
     } else {
       next = this.readKeyboard(dtMs, true);
       this.source = str('input.the_keyboard');
+    }
+    /* The hold is about the pad's throttle. Anything else flying, even for
+     * a moment, ends it, so a pad plugged back in mid air is never cut. */
+    if (!padFlies) {
+      this.releaseThrottleHold();
     }
 
     const changed =

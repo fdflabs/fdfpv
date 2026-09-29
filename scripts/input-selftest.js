@@ -1025,6 +1025,256 @@ section('mouse flight: where it sits in the ladder');
     JSON.stringify(im.channels));
 }
 
+/* ------------------------------------------------------------------------
+ * 8. A standard gamepad on the default map. The owner, on an Xbox pad:
+ *    "am having a hard time finding the order of sticks". AETR put roll
+ *    and pitch on the left stick, throttle on the right stick's horizontal
+ *    sprung to half, and yaw on the right stick's vertical. A pad the
+ *    browser calls 'standard' now gets the pilot's stick mode on its
+ *    physical sticks, and a radio keeps AETR exactly.
+ *
+ *    Asserted at the stops, per stick, per mode, with the W3C layout
+ *    spelled out here rather than read from the code under test: axis 0
+ *    left X, 1 left Y, 2 right X, 3 right Y, right and down positive.
+ * ---------------------------------------------------------------------- */
+function standardPad(id = 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)') {
+  const pad = makePad([0, 0, 0, 0], 17, id);
+  pad.mapping = 'standard';
+  return pad;
+}
+
+/* What each physical stick direction must do, by mode, straight from the
+ * stick mode table in stickmode.js's header. up/down are the vertical,
+ * right the horizontal. */
+const STICK_WANT = {
+  1: { left: ['yaw', 'pitch'], right: ['roll', 'throttle'] },
+  2: { left: ['yaw', 'throttle'], right: ['roll', 'pitch'] },
+  3: { left: ['roll', 'pitch'], right: ['yaw', 'throttle'] },
+  4: { left: ['roll', 'throttle'], right: ['yaw', 'pitch'] },
+};
+const PHYS = { left: { x: 0, y: 1 }, right: { x: 2, y: 3 } };
+
+section('a standard gamepad flies the pilot\'s stick mode on its physical sticks');
+for (const mode of [1, 2, 3, 4]) {
+  const rig = new Rig(standardPad());
+  rig.im.setStickMode(mode);
+  rig.run(50);
+  const im = rig.im;
+  const read = () => ({ ...im.channels });
+  const at = (axis, v) => {
+    rig.ax(axis, v); rig.step();
+    const c = read();
+    rig.ax(axis, 0); rig.step();
+    return c;
+  };
+  const rest = read();
+  const thrSide = STICK_WANT[mode].left[1] === 'throttle' ? 'left' : 'right';
+  check(`mode ${mode}: hands off, roll pitch yaw are 0 and throttle is half`,
+    rest.roll === 0 && rest.pitch === 0 && rest.yaw === 0 && rest.throttle === 0.5, JSON.stringify(rest));
+  for (const side of ['left', 'right']) {
+    const [horiz, vert] = STICK_WANT[mode][side];
+    const r = at(PHYS[side].x, 1);
+    check(`mode ${mode}: ${side} stick right is ${horiz} +1 and nothing else moves`,
+      r[horiz] === 1 && ['roll', 'pitch', 'yaw'].filter((ch) => ch !== horiz).every((ch) => r[ch] === 0)
+        && r.throttle === 0.5, JSON.stringify(r));
+    const l = at(PHYS[side].x, -1);
+    check(`mode ${mode}: ${side} stick left is ${horiz} -1`, l[horiz] === -1, JSON.stringify(l));
+    const up = at(PHYS[side].y, -1);
+    const down = at(PHYS[side].y, 1);
+    if (vert === 'throttle') {
+      check(`mode ${mode}: ${side} stick up is full throttle, down is zero`,
+        up.throttle === 1 && down.throttle === 0 && up.pitch === 0 && up.roll === 0 && up.yaw === 0,
+        JSON.stringify([up, down]));
+    } else {
+      /* Pitch +1 is nose up, the stick pulled back toward the pilot. */
+      check(`mode ${mode}: ${side} stick up is pitch forward (-1), down is pulled back (+1)`,
+        up.pitch === -1 && down.pitch === 1 && up.throttle === 0.5, JSON.stringify([up, down]));
+    }
+  }
+  check(`mode ${mode}: the throttle is on the ${thrSide} stick`, stickSideOf(mode, 'throttle') === thrSide);
+}
+
+section('a standard gamepad on its default is not a guess');
+{
+  const rig = new Rig(standardPad());
+  rig.run(50);
+  let s = rig.im.padSummary();
+  check('it is known, not calibrated, and nothing warns about it',
+    s.mapKnown === true && s.calibrated === false && s.guessNoYaw === false, JSON.stringify(s));
+  check('the source says a radio, not a guess', rig.im.stats().source === 'a radio', rig.im.stats().source);
+  /* What misfired before: the AETR throttle axis is the right stick's
+   * horizontal, so a hard roll "parked the throttle" and switched the menus
+   * to reading an AETR map, and the right stick's vertical, which AETR calls
+   * yaw, left the no-yaw check watching the wrong axis. */
+  for (const v of [0.2, 0.6, 1, 0.6, -0.4, -1, 0]) {
+    rig.ax(2, v); rig.step();
+    rig.ax(1, v); rig.step();
+  }
+  s = rig.im.padSummary();
+  check('rolling and throttling hard does not make it look like a parked radio throttle',
+    rig.im.mapSeenParked === false && s.mapUsable === false, JSON.stringify(s));
+  check('and does not raise the no-yaw verdict', s.guessNoYaw === false);
+  check('the menus keep reading any stick, as a standard pad always has', rig.im.mapUsable() === false);
+}
+
+section('a radio still gets AETR, exactly');
+{
+  const rig = new Rig(makePad([0, 0, -1, 0], 4, 'TX16S'));
+  rig.run(50);
+  const m = rig.im.map;
+  check('roll 0, pitch 1 reversed, throttle 2 from -1, yaw 3',
+    m.roll.axis === 0 && m.roll.full === 1 && m.pitch.axis === 1 && m.pitch.full === -1
+      && m.throttle.axis === 2 && m.throttle.low === -1 && m.throttle.high === 1
+      && m.yaw.axis === 3 && m.yaw.full === 1, JSON.stringify(m));
+  check('throttle parked at the bottom reads 0', rig.im.channels.throttle === 0);
+  rig.im.setStickMode(1);
+  rig.run(20);
+  check('a stick mode change leaves a radio\'s map alone', rig.im.map.throttle.axis === 2 && rig.im.map.pitch.axis === 1);
+  check('and it is still the guess the radio checks watch', rig.im.mapKnown() === false);
+}
+
+section('the default follows the pad and the mode; a saved map wins');
+{
+  const pad = standardPad();
+  const rig = new Rig(pad);
+  rig.run(20);
+  check('mode 2: throttle on axis 1', rig.im.map.throttle.axis === 1);
+  rig.im.setStickMode(1);
+  rig.run(20);
+  check('switched to mode 1 in Settings: throttle moves to axis 3', rig.im.map.throttle.axis === 3 && rig.im.map.pitch.axis === 1);
+  /* The same slot now reports a radio. */
+  pad.mapping = '';
+  pad.axes = [0, 0, -1, 0];
+  rig.run(20);
+  check('a radio in its place gets AETR back', rig.im.map.throttle.axis === 2 && rig.im.map.throttle.low === -1);
+}
+{
+  /* A pilot who calibrated this pad keeps their map, whatever it is. */
+  const store = memoryStorage();
+  store.setItem('webfpv_stick_map_v1', JSON.stringify({
+    roll: { axis: 0, center: 0, full: 1 },
+    pitch: { axis: 1, center: 0, full: -1 },
+    yaw: { axis: 3, center: 0, full: 1 },
+    throttle: { axis: 2, low: 0, high: 1, sprung: true },
+  }));
+  const rig = new Rig(standardPad(), store);
+  rig.run(20);
+  check('a saved map on a standard pad is the one flown', rig.im.map.stored === true
+    && rig.im.map.throttle.axis === 2 && rig.im.map.roll.axis === 0, JSON.stringify(rig.im.map.throttle));
+  rig.im.setStickMode(1);
+  rig.run(20);
+  check('and a mode change does not replace it', rig.im.map.stored === true && rig.im.map.throttle.axis === 2);
+  check('hands off it reads its own zero', rig.im.channels.throttle === 0);
+}
+{
+  /* The wizard on a standard pad still learns whatever is moved, and the
+   * result is stored over the default. */
+  const rig = new Rig(standardPad());
+  rig.run(20);
+  const drove = driveWizard(rig, {
+    roll: 2, pitch: 3, yaw: 0, thr: 1, thrRest: 0, thrReturn: 0,
+  });
+  check('the wizard completes on a standard pad', drove === true, String(drove));
+  rig.im.acceptCalibration();
+  check('and its map is stored', rig.im.map.stored === true && rig.im.map.yaw.axis === 0 && rig.im.map.roll.axis === 2);
+}
+
+/* ------------------------------------------------------------------------
+ * 9. Throttle low first. A standard pad's throttle rests at half, past the
+ *    shell's 0.25 takeoff threshold, so a spawn launched every aircraft
+ *    with nobody touching anything. At a spawn or a landing the shell asks
+ *    for a hold, and that pad's throttle reads zero until it has been down.
+ *    Nothing else is held, and that is asserted as hard as the hold.
+ * ---------------------------------------------------------------------- */
+section('throttle low first: a standard pad at rest is held until it has been down');
+{
+  const pad = standardPad();
+  const rig = new Rig(pad);
+  rig.run(20);
+  rig.im.drain();
+  rig.im.holdThrottleLow(0.18);
+  rig.run(20);
+  check('centred at spawn: throttle reads 0, and the shell is told it is waiting',
+    rig.im.channels.throttle === 0 && rig.im.throttleWaiting === true, JSON.stringify(rig.im.channels));
+  rig.ax(1, -1); rig.step();
+  check('full up without having been down: still 0', rig.im.channels.throttle === 0);
+  check('and every sample queued for the plant says 0', rig.im.drain().every((q) => q.throttle === 0));
+  rig.ax(1, 1); rig.step();
+  check('pulled down: 0, and no longer waiting', rig.im.channels.throttle === 0 && rig.im.throttleWaiting === false);
+  rig.ax(1, -1); rig.step();
+  check('then up: full throttle', rig.im.channels.throttle === 1);
+  rig.ax(1, 0); rig.step();
+  check('and let go: half, the hold does not come back on its own', rig.im.channels.throttle === 0.5);
+  rig.im.holdThrottleLow(0.18);
+  rig.ax(1, 0.8); rig.step();
+  check('a landing with the stick near the bottom (0.1) clears at once',
+    Math.abs(rig.im.channels.throttle - 0.1) < 1e-9 && !rig.im.throttleWaiting,
+    String(rig.im.channels.throttle));
+  rig.ax(1, 0);
+  rig.im.holdThrottleLow(0.18);
+  rig.step();
+  rig.im.releaseThrottleHold();
+  rig.step();
+  check('an air start or a take over releases it: half at once', rig.im.channels.throttle === 0.5);
+  rig.im.holdThrottleLow(0.18);
+  rig.step();
+  rig.im.keys.add('KeyW');
+  rig.run(200);
+  const thrW = rig.im.channels.throttle;
+  rig.im.keys.delete('KeyW');
+  check('W on the keyboard still drives the throttle over a held pad', thrW > 0, String(thrW));
+}
+{
+  const rig = new Rig(makePad([0, 0, 0, 0], 4, 'LiteRadio 3, sprung, uncalibrated'));
+  rig.run(20);
+  rig.im.holdThrottleLow(0.18);
+  rig.run(20);
+  check('a radio is never held, even one whose throttle rests at half',
+    rig.im.throttleHeld === false && rig.im.channels.throttle === 0.5 && !rig.im.throttleWaiting, JSON.stringify(rig.im.channels));
+}
+{
+  const rig = new Rig(makePad([0, 0, -1, 0], 4, 'TX16S'));
+  rig.run(20);
+  rig.im.holdThrottleLow(0.18);
+  rig.ax(2, 0.5); rig.step();
+  check('a parked radio pushed straight up after a spawn flies as it always did', rig.im.channels.throttle === 0.75);
+}
+{
+  const rig = new Rig(null);
+  rig.im.holdThrottleLow(0.18);
+  rig.im.keys.add('KeyW');
+  rig.run(300);
+  check('no pad: the keyboard is never held', rig.im.throttleHeld === false && rig.im.channels.throttle > 0,
+    String(rig.im.channels.throttle));
+}
+{
+  const store = memoryStorage();
+  store.setItem('webfpv_stick_map_v1', JSON.stringify({
+    roll: { axis: 2, center: 0, full: 1 },
+    pitch: { axis: 3, center: 0, full: 1 },
+    yaw: { axis: 0, center: 0, full: 1 },
+    throttle: { axis: 1, low: 0, high: -1, sprung: true },
+  }));
+  const rig = new Rig(standardPad(), store);
+  rig.run(20);
+  rig.im.holdThrottleLow(0.18);
+  rig.ax(1, -1); rig.step();
+  check('a calibrated standard pad, zero at rest, is not held', rig.im.channels.throttle === 1);
+}
+{
+  const pad = standardPad();
+  const rig = new Rig(pad);
+  rig.run(20);
+  rig.im.holdThrottleLow(0.18);
+  rig.step();
+  rig.im.harnessChannels = { roll: 0, pitch: 0, yaw: 0, throttle: 0.6 };
+  rig.step();
+  rig.im.harnessChannels = null;
+  rig.step();
+  check('anything else flying, even once, ends the hold, so a pad is never cut in the air',
+    rig.im.throttleHeld === false && rig.im.channels.throttle === 0.5);
+}
+
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);
 for (const f of fails) {
   console.log(`  FAIL ${f}`);
