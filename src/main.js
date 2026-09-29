@@ -10532,6 +10532,19 @@ export async function boot({
 
     poseFromState(stateCurr, obsPrev);
 
+    /* THE FOREST AS A VOLUME (docs/ITAIPU-PLAN.md section 9): a map that
+     * answers canopyAt(x, z), the top of the canopy there or -Infinity,
+     * has forest too dense to give every tree a collider, and a craft below
+     * that top is in the trees whether or not a near tree was built there.
+     * It is a contact as a collider's is, told to everything that listens
+     * for one; it applies no impulse, because the volume has no face. */
+    if (view.canopyAt && obsPrev.y < view.canopyAt(obsPrev.x, obsPrev.z)) {
+      lastHitKind = 'canopy';
+      lastHitIndex = -1;
+      ui.progress.touch(lastHitKind);
+      obsTouched = true;
+    }
+
     if (!clean) {
       obsLeftover = true;
     } else if (attempts >= 4) {
@@ -14543,6 +14556,13 @@ export async function boot({
       /* The fixed wing's part it met, -1 for the discs. */
       part: view.colliders.hitArm ? view.colliders.hitPart : -1,
     };
+  };
+  /* Harness only: a flat canopy over the whole of the map now loaded, its
+   * top at world y `top`, for scripts/canopy-check.js to fly the contact
+   * pass's canopy call on a map that has no forest volume of its own. The
+   * next map load builds its view afresh without it. */
+  window.__canopyTop = (top) => {
+    view.canopyAt = () => top;
   };
   /* Shadow pass on or off, so the ledger can attribute draw calls between the
    * colour pass and the shadow pass rather than guessing at the split.

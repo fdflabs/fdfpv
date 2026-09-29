@@ -92,6 +92,7 @@
     "river:page": "node scripts/river-page-check.js",
     "grid:check": "node scripts/grid-check.js",
     "water:host": "node scripts/water-host-check.js",
+    "canopy:check": "node scripts/canopy-check.js",
     "wing:math": "node scripts/wing-math-selftest.js",
     "wing:gates": "node scripts/wing-gates.js",
     "wing:record": "node scripts/wing-record.js",
