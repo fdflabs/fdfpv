@@ -10,9 +10,9 @@
  * all three fly, and A starts a match to GOAL points. Every page is put on
  * its slot and held through the countdown. Then each is thrown up into
  * the air and held there (window.__crashThrow), and the crown is passed
- * down one chain whatever the draw: C (the quad) touches the Ace unless it
- * is the Ace already, B touches C, and A is thrown into B, wing through
- * wing. So every run has a Cub take the crown from a quad and a Cub from a
+ * down one chain whatever the draw: C (the quad) enters the Ace's bubble
+ * unless it is the Ace already, B enters C's, and A is thrown into B's,
+ * 0.5 m off its wing. So every run has a Cub take the crown from a quad and a Cub from a
  * Cub, and a quad take it from a Cub unless the draw began with the quad.
  * The crown moves on all three screens at the same room time, the peer
  * marks crown it, nobody breaks and no mid air hit is sent, the points
@@ -240,9 +240,10 @@ try {
   await a.sleep(600);
   await shot(a, 'a-hunts-b-crowned');
 
-  /* A into B, wing through wing: 20 cm of overlap, which in a room with no
-   * match is a mid air crash. */
-  const aThrow = { ...bAt, z: bAt.z + halfSpan(AIR[1]) + halfSpan(AIR[0]) - 0.2 };
+  /* A into B's bubble, 0.5 m off its wing: a tag without a touch. A
+   * collision in a match is a mid air crash (docs/TAG-PLAN.md decision 1),
+   * which scripts/midair-ace-two-page.js flies. */
+  const aThrow = { ...bAt, z: bAt.z + halfSpan(AIR[1]) + halfSpan(AIR[0]) + 0.5 };
   await hold(a, aThrow);
   const thrownAt = await a.evaluate('window.__rooms().roomNow');
   for (const p of pages) {
@@ -250,7 +251,7 @@ try {
   }
   const after = await Promise.all(pages.map(tagOf));
   const tagged = after[0].view.crowns.at(-1);
-  check('A touches B and takes the crown: every page has the same crown, at the same room time',
+  check('A enters B\'s bubble and takes the crown: every page has the same crown, at the same room time',
     after.every((t) => JSON.stringify(t.view.crowns) === JSON.stringify(after[0].view.crowns)) && tagged.seat === seats[0] && tagged.from === seats[1] && tagged.why === 'tag',
     JSON.stringify(tagged));
   check('not before A\'s own spawn protection was over, nor inside B\'s', tagged.t >= thrownAt + SPAWN_MS - 100
@@ -261,7 +262,7 @@ try {
   check('and each page\'s banner said it its own way', banners.every((t) => t.banner && t.banner.seat === seats[0]),
     banners.map((t) => t.banner && t.banner.text).join(' | '));
   const hits = await Promise.all(pages.map((p) => p.evaluate('window.__rooms().hits.length')));
-  check('a touch is a tag, not a crash: no page got a mid air hit', hits.every((n) => n === 0), hits.join(' '));
+  check('a tag is not a crash: nothing touched, and no page got a mid air hit', hits.every((n) => n === 0), hits.join(' '));
   for (const [p, who] of [[a, 'A'], [b, 'B']]) {
     const cr = await p.evaluate('window.__crash()');
     check(`${who}'s Cub is whole`, !cr.wrecked && cr.flagNames.length === 0, `${cr.flagNames.join(' ')}${cr.wrecked ? ' wrecked' : ''}`);

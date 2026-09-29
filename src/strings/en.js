@@ -2392,7 +2392,7 @@ export default {
   "roomrace.fly_on_note": "On your own, from your place on the line, until the next race.",
   "roomtag.section": "Catch the Ace!",
   "roomtag.rules": "How it works",
-  "roomtag.rules_note": "One pilot is the Ace and scores a point a second, inside a glowing bubble that reaches {m} m out from it. Everybody else hunts it: fly any part of your aircraft into the bubble and the crown is yours. No need to touch, and touching never breaks anything. A new Ace is safe for a few seconds, while its bubble is dim. The first to the goal wins.",
+  "roomtag.rules_note": "One pilot is the Ace and scores a point a second, inside a glowing bubble that reaches {m} m out from it. Everybody else hunts it: fly any part of your aircraft into the bubble and the crown is yours. No need to touch, and if you hit it, you both crash, as in free flight. A new Ace is safe for a few seconds, while its bubble is dim. The first to the goal wins.",
   "roomtag.wait": "One pilot is the Ace and scores a point a second; the others hunt it, and flying into its {m} m bubble takes the crown. The pilot who made this room starts a match.",
   "roomtag.on_value": "First to {goal}",
   "roomtag.goal_lightning": "Goal: Lightning",

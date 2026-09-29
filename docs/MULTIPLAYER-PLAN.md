@@ -733,9 +733,12 @@ typed into a public room, not a track name.
 - **Kick.** In a private room the host kicks directly, for the room's
   life.
 - **Ramming.** Real crashes invite a player who rams on purpose. It costs
-  them their aircraft too, and a seat whose hits in five minutes exceed
-  three is made `spawning` (untouchable, and unable to touch) for two
-  minutes, which ends the game for them without a report.
+  them their aircraft too, and the report has a reason for it. There is
+  no automatic rule: a bench (a seat in more than three mid airs in five
+  minutes made `spawning`, untouchable and unable to touch, for two
+  minutes, with nothing on screen to say so) was built and then removed
+  by the owner on 2026-09-29 ("kill anti ramming rule"). Every mid air
+  counts, in every room and in a Catch the Ace match.
 - **Pose sanity.** The room refuses POSE frames that break the airframe's
   envelope (speed, acceleration, a teleport), with the numbers
   `src/game/verify.js` already uses, and marks the seat `spawning` while it
@@ -880,7 +883,8 @@ it departs from sections 4 and 7:
   against `wrangler dev`, two pages on swiss2.
 
 **Phase 5, safety complete.** Quick chat, emotes, mute, reports, kicks,
-the ramming and pose sanity rules, the name filter with its lists.
+the pose sanity rule, the name filter with its lists (the ramming rule
+was built here and removed on 2026-09-29, section 9).
 Check: `rooms:selftest` cases for each, and the owner reading every
 preset in both languages. **2 to 3 days.** **Public rooms stay closed
 until this lands**; Phases 0 to 4 run on private codes only.

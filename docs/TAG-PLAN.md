@@ -29,11 +29,23 @@ Translated from the owner's Spanish, intent kept exactly:
 The lead's decisions are the first seven; each says where the code agreed
 or argued. The rest are this build's, with the reason.
 
-1. **A touch is a tag, not a crash.** Nobody breaks from touching in a
-   tag match: the room's mid air referee (Phase 3, `edge/rooms/referee.js`)
-   sends no `hit` from the countdown until the results, exactly as in a
-   friendly room. A crash into the ground, a tree or a building is still a
-   crash, by the pilot's own crash settings.
+1. **A tag is not a crash, and a collision is.** Superseded on
+   2026-09-29 by the owner: "keep collisions for ace". Entering the
+   Ace's bubble (decision 2) takes the crown and breaks nothing, since a
+   hunter can do it metres clear of the Ace. A real collision is what it
+   is in free flight: the room's mid air referee (Phase 3,
+   `edge/rooms/referee.js`) judges every pose in a match as it does
+   outside one and sends the `hit`, and both aircraft take the normal mid
+   air wreck. A hunter that rams the Ace has flown through the bubble on
+   the way in, so it takes the crown first and crashes a moment later.
+   What a crash does to the match is what it always did to a wreck
+   (decision 8): a crashed seat, and then a respawned one while it is
+   spawning, cannot tag or be tagged, and a crashed Ace scores nothing
+   and drops the crown after `DROP_MS` if it is still not flying. The
+   first build had the referee send no `hit` from the countdown to the
+   results, as in a friendly room; `edge/rooms/core.js` now hands every
+   pose to both the referee and the match. A friendly room still has no
+   mid airs, match or not.
 2. **The room judges the tag: the Ace's bubble.** The owner, 2026-09-29:
    "I want there to be a bubble light ghost bubble around the leader, 6
    meter bubble around it, and when you enter that then you change
@@ -122,9 +134,10 @@ or argued. The rest are this build's, with the reason.
 12. **Kid safe.** A match adds no text anybody types: the host sends a
    number (the goal), the room sends seats and numbers, and names are the
    picker names every screen already renders. Phase 5 applies unchanged:
-   mute, report and the host's kick. A tag is not a ramming hit
-   (`safety.noteHit` is fed by crash hits only): touching the Ace is the
-   game. Spawn protection is honoured (decision 8).
+   mute, report and the host's kick. There is no ramming bench any more
+   (the owner removed it on 2026-09-29), so a pilot who crashes into
+   others on purpose is a report. Spawn protection is honoured
+   (decision 8).
 13. **Strings in both languages**, the owner's names: "Catch the Ace!" and
    "¡Atrapa al As!", Lightning / Relámpago, Standard / Estándar, Epic /
    Épica, the Ace / el As, hunters / cazadores.
@@ -246,6 +259,8 @@ samples are memory only, since a room that hibernated had nobody flying.
    - the crown timeline and the scores equal the zero latency run's for
      every run whose samples all reached the room inside `LATE_MS`: 100
      percent;
+   - a collision in a match is a mid air crash (decision 1): the furballs
+     collide, and every client gets exactly the hits the referee sent;
    - no false tag: every tag's hunter is within `BUBBLE_M` of the Ace's
      centre (plus 5 cm for the 30 Hz interpolation) on the true 1 kHz
      paths at `tc`: 0 failures;
@@ -268,15 +283,16 @@ samples are memory only, since a room that hibernated had nobody flying.
    only, private only, one mode at a time both ways, the countdown and the
    random first Ace, a touch moves the crown, protection, points tick and
    are broadcast, the end at exactly X, rematch, the Ace leaving, a
-   hibernation mid match, no mid air `hit` during a match, no token in any
-   view, and two `createRoomTag` clients (`src/share/roomtag.js`) against
+   hibernation mid match, a collision in a match sent as a mid air `hit`
+   after the bubble's tag, no token in any view, and two `createRoomTag` clients (`src/share/roomtag.js`) against
    the core agreeing with it.
 3. **`scripts/tag-two-page.js`** by hand against `wrangler dev`, three
    headless pages of the real shell (`tests/lib/page.js`, `SIM_GPU=1`) on
    swiss2: A hosts, B and C join, A starts a match at a low goal. B is
-   made the Ace (by touching it if the draw was another), A is thrown at
-   B and touches it: the crown moves on all three screens at the same `t`,
-   no aircraft breaks, the points tick, the match ends at the goal and the
+   made the Ace (by entering its bubble if the draw was another), A is
+   thrown into B's bubble 0.5 m off its wing: the crown moves on all three
+   screens at the same `t`, no aircraft breaks, since nothing touched, the
+   points tick, the match ends at the goal and the
    three results agree. Pictures, looked at, in
    `~/Desktop/fdfpv-loop/multiplayer/tag/`, not in the repository.
 4. **Single player is bit identical.** Nothing in a flight alone calls
@@ -355,3 +371,43 @@ Measured:
   all three pages at the same room time, 5 s after A was thrown in
   (its own spawn protection), with 20 cm of wing overlap and no hit, both
   Cubs whole; the match ended at 15 points to A on all three.
+
+## As changed (2026-09-29): collisions count in a match
+
+The owner: "ok keep collisions for ace, kill anti ramming rule". Decision
+1 is rewritten above; this is what changed in the code and what was
+measured.
+
+- `edge/rooms/core.js` `pose()` hands every relayed pose to the mid air
+  referee and then to the match, where it used to hand it to one or the
+  other by `tag.on()`. The two rules are independent: the bubble decides
+  the crown, the referee decides the crash, on the same bytes.
+- Nothing in the match changed. A wreck was already uncatchable
+  (decision 8), so a crash in a match is judged by the rules a wreck
+  always had: no tag and no points while crashed or spawning, and the
+  crown drops after `DROP_MS` if the Ace is still not flying.
+- A hunter that rams the Ace takes the crown on the way in (the bubble
+  is 6 m, the hulls meet later) and then both crash. The new Ace is
+  protected for `PROTECT_MS` and a wreck, so it scores nothing until it
+  has respawned and flown clear of its spawn protection.
+- The ramming bench is gone (`edge/rooms/safety.js`, docs/
+  MULTIPLAYER-PLAN.md section 9), so repeated collisions in a match cost
+  nobody their seat.
+
+Measured, all against this change:
+
+- `rooms:selftest`, "catch the ace: a collision is a crash": A flies
+  into B's lane and on into B: the tag first, the hit 200 ms or so after
+  it, the same hit on all three seats, parts broken on both, and the new
+  Ace, a wreck, scores nothing while it is one. It fails on main (no
+  hit). "Lag does not decide" now also holds the mid airs up to the end
+  the same under 0 to 300 ms of lag.
+- `tag:harness`: the row "a touch is never a crash" became "a collision
+  in a match is a mid air crash": 64 hits in the furballs, every client
+  got every one.
+- `scripts/midair-ace-two-page.js` against `edge/rooms/node.js`: two
+  Cubs flown nose to nose into a match, the hunter took the crown and
+  213 ms later both broke on the one hit.
+- `scripts/tag-two-page.js` now throws A 0.5 m off B's wing, a tag
+  without a touch, where it used to push 20 cm of wing through B's to
+  show a touch was no crash. It has not been run since the change.

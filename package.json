@@ -73,6 +73,7 @@
     "midair:harness": "node scripts/midair-harness.js",
     "midair:plant": "node scripts/midair-plant.js",
     "midair:twopage": "node scripts/midair-two-page.js",
+    "midair:acetwopage": "node scripts/midair-ace-two-page.js",
     "rooms:wrecks": "node scripts/rooms-wrecks-two-page.js",
     "replay:peers": "node scripts/replay-peers-two-page.js",
     "replay:paper": "node scripts/replay-paper-two-page.js",
