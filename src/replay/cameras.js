@@ -10,12 +10,13 @@
  * was a moment before, not from a damped value that would depend on the
  * frames drawn before it.
  *
- * A KEYFRAME is a rig with its numbers at a time. Between two keys the
- * camera is both keys' rigs evaluated NOW, blended with an ease in and out.
- * Evaluating both at the current time rather than at their own is what
- * makes a push in on a tumbling wing work: two follow shots of the wing, 4 m
- * back and 1 m back, blend into a camera that closes in while it keeps the
- * wing framed.
+ * An EDIT (src/replay/edit.js) is a list of shots, each a rig with its
+ * numbers over a stretch of the clip. Where two shots mix, a blend or a
+ * glide, the camera is both shots' rigs evaluated NOW, mixed with an ease
+ * in and out. Evaluating both at the current time rather than at their own
+ * is what makes a push in on a tumbling wing work: two follow shots of the
+ * wing, 4 m back and 1 m back, glide into a camera that closes in while it
+ * keeps the wing framed.
  *
  * Plain arrays, no Three.js, so a check in Node can hold the maths to its
  * word. Poses are world frame (Three.js axes, y up): pos [x, y, z], quat
@@ -38,6 +39,7 @@
  */
 
 import { slerp } from './recorder.js';
+import { weights } from './edit.js';
 
 export const RIGS = ['chase', 'orbit', 'free', 'tripod', 'fpv', 'follow'];
 
@@ -168,21 +170,22 @@ export function defaults(rig, size = 1) {
 
 /*
  * The camera of `rig` with numbers `p` aimed at `target` (-1 the craft, a
- * part index otherwise) at time t. `ctx` is the clip seen through the
- * scene: ctx.at(t, target, out) the target's world position,
- * ctx.craftQuat(t, out) the craft's attitude, ctx.fpv(t, outPos, outQuat)
- * the onboard lens and its fov.
+ * part index otherwise) on the aircraft of `watch` (0 this pilot's, else a
+ * peer's id in the clip) at time t. `ctx` is the clip seen through the
+ * scene: ctx.at(t, target, out, watch) the target's world position,
+ * ctx.craftQuat(t, out, watch) the craft's attitude, ctx.fpv(t, outPos,
+ * outQuat, watch) the onboard lens and its fov.
  */
-export function evaluate(ctx, rig, p, target, t, out) {
+export function evaluate(ctx, rig, p, target, t, out, watch = 0) {
   const eye = out.pos;
   const at = scratchAt;
-  ctx.at(t, target, at);
+  ctx.at(t, target, at, watch);
   out.fov = p.fov;
   switch (rig) {
     case 'chase':
     case 'follow': {
       const before = scratchBefore;
-      ctx.at(t - HEADING_S, target, before);
+      ctx.at(t - HEADING_S, target, before, watch);
       let dx = at[0] - before[0];
       let dz = at[2] - before[2];
       let dy = at[1] - before[1];
@@ -190,9 +193,9 @@ export function evaluate(ctx, rig, p, target, t, out) {
       if (v < STILL) {
         /* Still: behind the craft's nose, or a piece seen from the craft. */
         if (target < 0) {
-          rotate(ctx.craftQuat(t, scratchQ), FWD, scratchDir);
+          rotate(ctx.craftQuat(t, scratchQ, watch), FWD, scratchDir);
         } else {
-          ctx.at(t, -1, scratchDir);
+          ctx.at(t, -1, scratchDir, watch);
           scratchDir[0] = at[0] - scratchDir[0];
           scratchDir[1] = 0;
           scratchDir[2] = at[2] - scratchDir[2];
@@ -231,7 +234,7 @@ export function evaluate(ctx, rig, p, target, t, out) {
       lookAtQuat(eye, at, out.quat);
       break;
     case 'fpv':
-      out.fov = ctx.fpv(t, eye, out.quat);
+      out.fov = ctx.fpv(t, eye, out.quat, watch);
       break;
     default:
       throw new Error(`no rig ${rig}`);
@@ -249,22 +252,39 @@ export function createPose() {
   return { pos: [0, 0, 0], quat: [0, 0, 0, 1], fov: 60 };
 }
 
-/* A key: { t, rig, target, p }. Kept sorted by t. */
-export function addKey(keys, key) {
-  const same = keys.findIndex((k) => Math.abs(k.t - key.t) < 1e-3);
-  if (same >= 0) {
-    keys[same] = key;
-  } else {
-    keys.push(key);
-    keys.sort((a, b) => a.t - b.t);
-  }
-  return keys;
-}
-
 const poseA = createPose();
 const poseB = createPose();
+const mix = { a: 0, b: 0, w: 0 };
 
-/* The directed camera at t: the keys' rigs blended. Null without keys. */
+/* The camera of an edit at clip time t: the shot's, or two shots' mixed
+ * by the edit's weights (src/replay/edit.js weights), position lerped,
+ * attitude slerped, fov lerped. */
+export function evaluateEdit(ctx, edit, t, out) {
+  const { a, b, w } = weights(edit, t, mix);
+  const ca = edit.shots[a].cam;
+  if (a === b || w <= 0) {
+    return evaluate(ctx, ca.rig, ca.p, ca.target, t, out, ca.watch);
+  }
+  const cb = edit.shots[b].cam;
+  evaluate(ctx, ca.rig, ca.p, ca.target, t, poseA, ca.watch);
+  evaluate(ctx, cb.rig, cb.p, cb.target, t, poseB, cb.watch);
+  mixPoses(poseA, poseB, w, out);
+  return out;
+}
+
+function mixPoses(pa, pb, w, out) {
+  for (let i = 0; i < 3; i += 1) {
+    out.pos[i] = pa.pos[i] + (pb.pos[i] - pa.pos[i]) * w;
+  }
+  slerp(pa.quat[0], pa.quat[1], pa.quat[2], pa.quat[3],
+    pb.quat[0], pb.quat[1], pb.quat[2], pb.quat[3], w, out.quat, 0);
+  out.fov = pa.fov + (pb.fov - pa.fov) * w;
+}
+
+/* The camera the keys gave at t (the files before edits kept keys):
+ * the keys' rigs blended. Null without keys. Nothing plays keys any more;
+ * it stays as the reference scripts/edit-selftest.js and
+ * scripts/crashcam-selftest.js hold fromKeys to. */
 export function evaluateKeys(ctx, keys, t, out) {
   if (!keys.length) {
     return null;
@@ -281,11 +301,6 @@ export function evaluateKeys(ctx, keys, t, out) {
   const w = easeInOut((t - a.t) / (b.t - a.t));
   evaluate(ctx, a.rig, a.p, a.target, t, poseA);
   evaluate(ctx, b.rig, b.p, b.target, t, poseB);
-  for (let i = 0; i < 3; i += 1) {
-    out.pos[i] = poseA.pos[i] + (poseB.pos[i] - poseA.pos[i]) * w;
-  }
-  slerp(poseA.quat[0], poseA.quat[1], poseA.quat[2], poseA.quat[3],
-    poseB.quat[0], poseB.quat[1], poseB.quat[2], poseB.quat[3], w, out.quat, 0);
-  out.fov = poseA.fov + (poseB.fov - poseA.fov) * w;
+  mixPoses(poseA, poseB, w, out);
   return out;
 }

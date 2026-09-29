@@ -73,6 +73,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { simErrorName, SIM_OK } from '../../tests/lib/simmod.js';
+
 const RAYS = 96;
 const STEP = 3;
 /* The breeze on the Alps' lake, m/s. */
@@ -175,6 +177,67 @@ export async function waterFor(mapId, map) {
     ...(map.pools || []).map((p) => pool(p, bed)),
     ...(map.rivers || []).map((r) => channel(r.line, r.width, bed)),
   ];
+}
+
+/*
+ * THE WATER, DECLARED TO THE PLANT: every body in `bodies`, in order, as
+ * plant body 0, 1, 2 ..., through the module's exports `e`. `frame` turns
+ * the map's frame into the plant's, which moves with the spawn: pos(x, y,
+ * z, out) a point, dir(x, y, z, out) a direction, perMetre the plant's
+ * metres in one of the map's (src/main.js declareWater gives the shell's
+ * own). Returns [{ w, body }] for the lakes, whose waves the shell reads
+ * back. The caller clears the plant's water first.
+ *
+ * Every refusal THROWS. The host used to drop them: a ninth body was
+ * skipped, and an outline past the plant's 256 corners was cut short at
+ * the 256th without a word, so a float plane met a shore that was not
+ * drawn and fell through water that was. A map whose water the plant
+ * cannot hold is a map to fix, and the error says which body and why.
+ */
+const waterSim = { x: 0, y: 0, z: 0 };
+export function declareBodies(e, bodies, frame) {
+  const must = (code, what, k) => {
+    if (code !== SIM_OK) {
+      throw new Error(`${what}: ${simErrorName(code)} for water body ${k} of ${bodies.length}`);
+    }
+  };
+  const lakes = [];
+  bodies.forEach((w, k) => {
+    if (w.kind === 'channel') {
+      const body = e.sim_water_channel(w.halfWidth * frame.perMetre);
+      must(body < 0 ? body : SIM_OK, 'sim_water_channel', k);
+      for (const p of w.line) {
+        frame.pos(p.x, p.y, p.z, waterSim);
+        must(e.sim_water_channel_point(body, waterSim.x, waterSim.y, waterSim.z), 'sim_water_channel_point', k);
+      }
+      return;
+    }
+    frame.pos(w.centre.x, w.surfaceY, w.centre.z, waterSim);
+    const body = e.sim_water_add(waterSim.z, waterSim.x, waterSim.y);
+    must(body < 0 ? body : SIM_OK, 'sim_water_add', k);
+    w.outline.forEach((p, j) => {
+      frame.pos(p.x, w.surfaceY, p.z, waterSim);
+      must(e.sim_water_vertex(body, waterSim.x, waterSim.y), `sim_water_vertex (corner ${j + 1} of ${w.outline.length})`, k);
+    });
+    frame.dir(w.wind.toX, 0, w.wind.toZ, waterSim);
+    const n = Math.hypot(waterSim.x, waterSim.y);
+    must(e.sim_water_wind(body, w.wind.speed, waterSim.x / n, waterSim.y / n, w.wind.fetch), 'sim_water_wind', k);
+    lakes.push({ w, body });
+  });
+  return lakes;
+}
+
+/*
+ * Where an aircraft on floats starts, flown free: body `chosen`'s own
+ * spawn. A body without one (a pool, a river channel) is not a start, and
+ * choosing it throws rather than starting on some other body.
+ */
+export function floatSpawn(bodies, chosen) {
+  const w = bodies[chosen];
+  if (!w || !w.spawn) {
+    throw new Error(`water body ${chosen} of ${bodies.length} has no float spawn`);
+  }
+  return w.spawn;
 }
 
 /*

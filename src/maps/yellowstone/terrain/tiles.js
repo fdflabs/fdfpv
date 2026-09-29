@@ -143,6 +143,22 @@ export class TileStore {
     }
   }
 
+  /* A tile made in memory rather than fetched: listed and ready at once,
+   * and held to the ceiling like any other. */
+  put(level, i, j, data) {
+    if (data.length !== TILE_BYTES / 2) {
+      throw new Error(`tile ${level}/${i}_${j}: ${data.length} samples, want ${TILE_BYTES / 2}`);
+    }
+    const key = tileKey(level, i, j);
+    const was = this.ready.get(key);
+    if (was) {
+      this.bytes -= was.data.byteLength;
+    }
+    this.have.add(key);
+    this.ready.set(key, { key, level, i, j, data, used: this.clock });
+    this.bytes += data.byteLength;
+  }
+
   pin(level, i, j) {
     this.pinned.add(tileKey(level, i, j));
   }

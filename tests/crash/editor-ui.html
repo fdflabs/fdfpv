@@ -1,0 +1,44 @@
+<!doctype html>
+<!--
+  editor-ui.html: the crash cam's screen (src/replay/editor.js) mounted on
+  a fake api, for scripts/editor-ui-check.js. No sim, no Three.js scene and
+  no recorded flight: the api holds a thirty second clip with two moments
+  and an edit, which is all the screen reads. Not loaded by the game.
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FDFPV editor screen</title>
+    <link rel="icon" href="data:," />
+    <style>
+      /* The page's own tokens, as index.html sets them. */
+      :root {
+        --cream: #f3ead4;
+        --amber: #ffd45c;
+        --mint: #7dffb4;
+        --slate: #9db3c8;
+        --deep: #141c16;
+        --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      html, body { margin: 0; height: 100%; background: #0b100c; overflow: hidden; }
+      canvas { position: fixed; inset: 0; width: 100%; height: 100%; }
+    </style>
+    <script type="module" src="/tests/crash/editor-ui.js"></script>
+  </head>
+  <body><canvas id="scene"></canvas></body>
+</html>
