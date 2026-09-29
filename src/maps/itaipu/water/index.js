@@ -10,7 +10,7 @@
  *   from the shore; calmer than swiss2's lake, and without its patches
  *   over the bed (LOOK mottle and gust). Past the ring each body carries
  *   on over the apron (APRON_REACH), so from the air the lake fades into
- *   the haze.
+ *   the haze. Each body is one sheet, its apron strips and all: one draw.
  *
  *   The spillway's three chutes running white, a sheet CHUTE_SHEET deep
  *   over package D's chute floors (the dam part's roof records of kind
@@ -31,7 +31,9 @@
  *   sky's light only. At swiss2's own scales (WATER_TIERS), and drawn at
  *   most once a frame, from the scene's onBeforeRender, since the part
  *   is handed no renderer: the map's first scene draw each frame after
- *   update() draws it.
+ *   update() draws it. Not drawn at all while none of its body is in the
+ *   camera's view (inView): it draws the scene a second time, and from
+ *   the chute or the switchyard that was all for water behind the camera.
  *
  *   The plant's waves (src/render/lakewaves.js), once the shell hands
  *   them over (setWaves, updateWaves, from the map): each body's
@@ -190,7 +192,22 @@ function chuteGeometry(THREE, floors, axis) {
 
 /* ----------------------------------------------------- the two bodies */
 
-/* A body's outline as a mesh at its level, holes and all. */
+/* A body's outline as a mesh at its level, holes and all, and its strips
+ * past the ring: one geometry, so one draw. */
+function sheet(THREE, body, half) {
+  const parts = [surface(THREE, body), ...strips(body, half)];
+  const pos = new Float32Array(parts.reduce((n, p) => n + p.pos.length, 0));
+  const idx = [];
+  let at = 0;
+  for (const p of parts) {
+    pos.set(p.pos, at);
+    idx.push(...p.idx.map((k) => k + at / 3));
+    at += p.pos.length;
+  }
+  return flatGeometry(THREE, pos, idx);
+}
+
+/* A body's outline at its level, holes and all, as { pos, idx }. */
 function surface(THREE, body) {
   const pts = body.outline.map(([x, z]) => new THREE.Vector2(x, z));
   const holes = (body.holes || []).map((h) => h.map(([x, z]) => new THREE.Vector2(x, z)));
@@ -208,11 +225,11 @@ function surface(THREE, body) {
     const cross = (all[b].x - all[a].x) * (all[c].y - all[a].y) - (all[b].y - all[a].y) * (all[c].x - all[a].x);
     idx.push(...(cross < 0 ? [a, b, c] : [a, c, b]));
   }
-  return flatGeometry(THREE, pos, idx);
+  return { pos, idx };
 }
 
-/* The strips past the ring's edge where `body` meets it. */
-function strips(THREE, body, half) {
+/* The strips past the ring's edge where `body` meets it, as { pos, idx }. */
+function strips(body, half) {
   const out = [];
   for (const [axis, sign] of [['x', -1], ['x', 1], ['z', -1], ['z', 1]]) {
     const along = body.outline.filter((p) => Math.abs((axis === 'x' ? p[0] : p[1]) - sign * half) < 1)
@@ -226,7 +243,7 @@ function strips(THREE, body, half) {
     const d1 = sign * (half + APRON_REACH);
     const [x0, x1, z0, z1] = axis === 'x' ? [Math.min(d0, d1), Math.max(d0, d1), a0, a1] : [a0, a1, Math.min(d0, d1), Math.max(d0, d1)];
     const y = body.y;
-    out.push(flatGeometry(THREE, new Float32Array([x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1]), [0, 3, 1, 1, 3, 2]));
+    out.push({ pos: [x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1], idx: [0, 3, 1, 1, 3, 2] });
   }
   return out;
 }
@@ -456,6 +473,41 @@ export function mirrorBody(bodies, x, y, z) {
   return best;
 }
 
+/*
+ * inView(b, camera): whether any of body `b` ({ y, lake }) is in the
+ * camera's view, by rays on a VIEW_RAYS grid over the frame, each down to
+ * the body's level within VIEW_REACH. Nothing in the way is asked about,
+ * so it says yes to water behind a hill, and water in sight between the
+ * rays is a sliver too thin for its reflection to show.
+ */
+const VIEW_RAYS = [12, 8];
+const VIEW_REACH = 30000;
+function viewTest(THREE) {
+  const eye = new THREE.Vector3();
+  const ray = { p: new THREE.Vector3(), d: new THREE.Vector3() };
+  return (b, camera) => {
+    eye.setFromMatrixPosition(camera.matrixWorld);
+    if (eye.y <= b.y) {
+      return false;
+    }
+    const [nx, ny] = VIEW_RAYS;
+    for (let j = 0; j <= ny; j += 1) {
+      for (let i = 0; i <= nx; i += 1) {
+        ray.d.set((i / nx) * 2 - 1, (j / ny) * 2 - 1, 0.5).unproject(camera).sub(eye);
+        if (ray.d.y >= 0) {
+          continue;
+        }
+        const t = (b.y - eye.y) / ray.d.y;
+        ray.p.copy(ray.d).multiplyScalar(t).add(eye);
+        if (Math.hypot(ray.p.x - eye.x, ray.p.z - eye.z) < VIEW_REACH && insideWater(b.lake, ray.p.x, ray.p.z)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+}
+
 /* ------------------------------------------------------------ the part */
 
 export async function buildPart(ctx) {
@@ -554,13 +606,11 @@ export async function buildPart(ctx) {
       y: body.y,
       outline: body.outline,
     };
-    for (const geo of [surface(THREE, body), ...strips(THREE, body, half)]) {
-      const mesh = new THREE.Mesh(geo, env);
-      mesh.name = `itaipu-water-${body.name}`;
-      mesh.receiveShadow = true;
-      group.add(mesh);
-      state.meshes.push(mesh);
-    }
+    const mesh = new THREE.Mesh(sheet(THREE, body, half), env);
+    mesh.name = `itaipu-water-${body.name}`;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    state.meshes.push(mesh);
     return state;
   });
   ctx.progress(0.8);
@@ -587,6 +637,7 @@ export async function buildPart(ctx) {
     chuteFloors: records.length, fieldSize: f.n,
   };
   const eye = new THREE.Vector3();
+  const inView = viewTest(THREE);
   const choose = (k) => {
     made.forEach((m, j) => {
       if (j !== k && m.mirror) {
@@ -621,6 +672,17 @@ export async function buildPart(ctx) {
     }
     stats.mirrorDrawn = false;
     if (k < 0) {
+      return false;
+    }
+    /* The mirror draws the whole scene again: not for a body the camera
+     * cannot see, which then takes the sky's light as the other does. */
+    const shown = inView(made[k], camera);
+    for (const mesh of made[k].meshes) {
+      mesh.material = shown ? made[k].planar : made[k].env;
+    }
+    if (!shown) {
+      stats.mirrorCalls = 0;
+      stats.mirrorTriangles = 0;
       return false;
     }
     const info = renderer.info.render;
