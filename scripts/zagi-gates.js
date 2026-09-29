@@ -47,7 +47,7 @@ import {
   wingDebug, attitude, must, fullBank, RC_STEP_MS,
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, kadetGroundPrelude, timberRecPrelude, timberFloatRecPrelude,
-  p51RecPrelude, p51AirPrelude, edgeGroundPrelude, f16GroundPrelude, extraGroundPrelude,
+  p51RecPrelude, p51AirPrelude, edgeGroundPrelude, f16GroundPrelude, extraGroundPrelude, uglystikGroundPrelude,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -344,6 +344,7 @@ const got = {
   edge: await hashOf('tests/inputs/edge-baseline.rec', (s) => edgeGroundPrelude(s)),
   f16: await hashOf('tests/inputs/f16-baseline.rec', (s) => f16GroundPrelude(s)),
   extra: await hashOf('tests/inputs/extra-baseline.rec', (s) => extraGroundPrelude(s)),
+  uglystik: await hashOf('tests/inputs/uglystik-baseline.rec', (s) => uglystikGroundPrelude(s)),
 };
 const names = Object.keys(got);
 gate('Z17', 'every other aircraft unmoved', names.every((k) => got[k] === u[k]),

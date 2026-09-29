@@ -192,9 +192,9 @@ for, and it is left as the upper bound it probably is (in a dive).
 
 Three capabilities, each general, each read only by a table that sets it.
 Every earlier table leaves them zero and runs exactly the arithmetic it
-ran before: gate Z17 holds all seventeen recorded flights of the other
+ran before: gate Z17 holds all eighteen recorded flights of the other
 aircraft bit identical, taken on main's module before the Zagi (main
-71c0cbc, the Extra 300 in).
+b82865f, the Ugly Stik in).
 
 1. **A flying wing's elevons on its strips.** The Edge brought
    `strip_tau`, the aileron's effectiveness on each of the four strips a
