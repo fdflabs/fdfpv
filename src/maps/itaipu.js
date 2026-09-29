@@ -380,7 +380,11 @@ async function buildItaipu(shell, progress, q) {
     /* The war mode's targets and their damage, the dam part's
      * (docs/WARFARE-PLAN.md section 8). */
     targets: parts.dam.targets,
-    setTargetState: (id, state) => parts.dam.setTargetState(id, state),
+    /* A method, so a later part that replaces map.targets (the war part's
+     * yard) has its entries burn where they say. */
+    setTargetState(id, state) {
+      return parts.dam.setTargetState(id, state, this.targets);
+    },
     setNextGate() {},
     targetAim: () => AIM,
     approachSide: () => null,

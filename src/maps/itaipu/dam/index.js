@@ -121,7 +121,12 @@ const SPILL = {
   upstream: -8,
   deck: [-7, 7],
   deckUnder: 222.8,
-  gate: [10.5, 12],
+  /* The gates' skin plates, on the upstream face between the piers'
+   * noses (the war session's reading of spill-gates: the frames are on the
+   * upstream face), under the bridge's deck. */
+  gate: [-6.5, -5],
+  /* Where the sill's flat ends and the ogee falls away. */
+  ogee: 12,
   pierEnd: 42,
   /* The piers' hoist decks downstream of the bridge, flat. */
   pierLow: 213,
@@ -519,7 +524,7 @@ function concreteMaterial(THREE, set, key) {
 export function chuteFloor(spill) {
   const chute = spill.sections.find((s) => s.at === 'chute');
   const dem = chute.floor.filter(([d]) => d >= 90);
-  const knots = [[SPILL.upstream, spill.figures.sillY], [SPILL.gate[1], spill.figures.sillY], [40, 196.6], [60.4, 193.8], ...dem];
+  const knots = [[SPILL.upstream, spill.figures.sillY], [SPILL.ogee, spill.figures.sillY], [40, 196.6], [60.4, 193.8], ...dem];
   return { knots, y: linear(knots) };
 }
 
@@ -596,8 +601,10 @@ function mergeGeometries(THREE, list) {
 
 /* What a target can be (docs/WARFARE-PLAN.md section 8). */
 export const TARGET_STATES = ['ok', 'smoke', 'fire', 'destroyed'];
-/* Particles per target in the one shared smoke and fire buffer. */
+/* Particles per target in the one shared smoke and fire buffer, and the
+ * most a target's puffs spread about each of its centres, metres. */
 const PUFFS = 32;
+const SPREAD = 60;
 
 /*
  * Smoke and fire over every target, in one Points draw: each target owns
@@ -693,12 +700,23 @@ function makeDamage(THREE, ids, targets) {
     destroyed: [0.25, 1, 1.4],
   };
   const index = new Map(ids.map((id, k) => [id, k]));
+  const pos = g.getAttribute('position');
   return {
     points,
-    set(id, state) {
+    /* `target` is the entry as the map holds it when the state is set,
+     * which a later part may have replaced (the war part's yard): its
+     * puffs spread over its `fires` when it has them, else round `at`,
+     * each centre's spread at most SPREAD whatever its reach. */
+    set(id, state, target) {
       const k = index.get(id);
       const [share, dark, size] = LOOK[state];
-      const r = targets[id].r;
+      const fires = target.fires && target.fires.length ? target.fires : [target.at];
+      const r = Math.min(target.r, SPREAD);
+      for (let i = 0; i < PUFFS; i += 1) {
+        pos.array.set(fires[i % fires.length], (k * PUFFS + i) * 3);
+      }
+      pos.addUpdateRange(k * PUFFS * 3, PUFFS * 3);
+      pos.needsUpdate = true;
       for (let i = 0; i < PUFFS; i += 1) {
         /* aLook: x the seed at and over which a puff is fire (over 1 for
          * none), y the spread, z the size, w the smoke's darkness. */
@@ -743,7 +761,7 @@ export async function buildPart(ctx) {
   const addBox = (x0, y0, z0, x1, y1, z1) => {
     const i = ctx.colliders.addBox('wall', x0, y0, z0, x1, y1, z1);
     solids.push(i);
-    boxes.push([x0, y0, z0, x1, y1, z1]);
+    boxes.push([x0, y0, z0, x1, y1, z1, i]);
     return i;
   };
   const addCapsule = (kind, a, b, r) => {
@@ -1209,9 +1227,12 @@ export async function buildPart(ctx) {
     tube(A, B, penR, 32, TONE.penstock, bands, penstockTris);
     penRanges.push([from, penstockTris.c.length]);
   }
-  /* Each penstock's target: a point on its drawn surface, on top of it
-   * where it runs at 165 m, halfway down the face. */
-  penEnds.forEach(([A, B], k) => {
+  /* Each penstock's target: a capsule round its drawn length, from where
+   * it leaves its hood to where it enters the powerhouse roof, 8 m about
+   * its axis (its 5.25 m and a margin, and 34 - 16 = 18 m clear of the
+   * next one's), and `at` a point on its drawn surface, on top of it where
+   * it runs at 165 m. Made once the hoods are placed (penstockTargets). */
+  const penstockTargets = () => penEnds.forEach(([A, B], k) => {
     const f = (165 - A[1]) / (B[1] - A[1]);
     const P = [A[0] + (B[0] - A[0]) * f, 165, A[2] + (B[2] - A[2]) * f];
     const d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
@@ -1219,8 +1240,17 @@ export async function buildPart(ctx) {
     const w = [d[0] / l, d[1] / l, d[2] / l];
     const u = [-w[0] * w[1], 1 - w[1] * w[1], -w[2] * w[1]];
     const ul = Math.hypot(u[0], u[1], u[2]);
+    const sA = F.local(A[0], A[2])[1];
+    const sB = F.local(B[0], B[2])[1];
+    const along = (f2) => [A[0] + (B[0] - A[0]) * f2, A[1] + (B[1] - A[1]) * f2, A[2] + (B[2] - A[2]) * f2];
     targets[`penstock-${k}`] = {
-      at: [P[0] + (u[0] / ul) * penR, P[1] + (u[1] / ul) * penR, P[2] + (u[2] / ul) * penR], r: 8, part: 'penstock', colliders: [penIndex[k]],
+      shape: 'capsule',
+      a: along((hoodFront[k] - sA) / (sB - sA)),
+      b: along((ph.figures.roofY - A[1]) / (B[1] - A[1])),
+      at: [P[0] + (u[0] / ul) * penR, P[1] + (u[1] / ul) * penR, P[2] + (u[2] / ul) * penR],
+      r: 8,
+      part: 'penstock',
+      colliders: [penIndex[k]],
     };
     darken[`penstock-${k}`] = { mesh: 'penstocks', range: penRanges[k] };
   });
@@ -1241,6 +1271,8 @@ export async function buildPart(ctx) {
   /* ---- the hoods over the penstocks' exits: a flat topped block on the
    * face, its top high enough that the penstock leaves through its front */
   const hoodRun = [];
+  /* Where each penstock leaves its hood, metres downstream of the crest. */
+  const hoodFront = [];
   ph.units.forEach(([ux, uz], k) => {
     const [t] = F.local(ux, uz);
     const slope = faceDrop / faceRun(t);
@@ -1256,6 +1288,7 @@ export async function buildPart(ctx) {
     }
     const s1 = faceS(top);
     const s2 = s1 + HOOD.reach;
+    hoodFront[k] = s2;
     const t0 = t - HOOD.width / 2;
     const t1 = t + HOOD.width / 2;
     const col = shade(TONE.hood, 7000 + k, 0.05);
@@ -1273,6 +1306,7 @@ export async function buildPart(ctx) {
     face('penstock hood top', 'roof', [P(t0, s1, top), P(t1, s1, top), P(t1, s2, top), P(t0, s2, top)]);
   });
   closeRun(hoodRun);
+  penstockTargets();
 
   /* ---- the intake columns on the upstream edge, a unit's pitch apart */
   const vents = [];
@@ -1282,17 +1316,35 @@ export async function buildPart(ctx) {
     const unitT = ph.units.map((u) => F.local(...u)[0]);
     for (let t = t0 - pitch * Math.floor((t0 - tStart - 10) / pitch); t < tEnd - 10; t += pitch) {
       const [x, z] = F.at(t, sUp(t) + 2.5);
-      const i = addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height, z], VENT.r);
-      /* An intake (dam.json intakes.points, one per unit) is the column
-       * over it, its gate's servomotor house on the crest (section 8): its
-       * target the crest at the column's foot. */
+      addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height, z], VENT.r);
+      /* An intake: dam.json's point is on the crest road's centre line,
+       * the intake itself is its gate in the upstream face, 8.2 m wide and
+       * 19.3 m tall on a 177.6 m sill, under the column: its target the
+       * middle of that gate, on the face; its colliders the face's columns
+       * within its reach (intakeColliders); its damage the frame and the
+       * column over it. */
       const k = unitT.findIndex((u) => Math.abs(u - t) < 1);
       if (k >= 0) {
-        const [ix, iz] = F.at(t, sUp(t) + 2.5 + VENT.r + 1);
+        const intake = need('intakes').figures;
+        const mid = intake.sillY + intake.gateHeight / 2;
+        const [ix, iz] = F.at(t, sUp(t));
         targets[`intake-${k}`] = {
-          at: [ix, CREST_Y, iz], r: 12, part: 'intake', colliders: [i],
+          at: [ix, mid, iz], r: 12, part: 'intake', colliders: [],
         };
-        darken[`intake-${k}`] = { mesh: 'intake-columns', instance: vents.length };
+        const from = metal.c.length;
+        const hw = intake.gateWidth / 2;
+        const P = (tt, y) => {
+          const [x, z] = F.at(tt, sUp(tt) - 0.05);
+          return [x, y, z];
+        };
+        const outward = [-F.n[0], 0, -F.n[1]];
+        metal.quad(P(t - hw - 0.8, intake.sillY - 0.8), P(t + hw + 0.8, intake.sillY - 0.8), P(t + hw + 0.8, intake.sillY + intake.gateHeight + 0.8), P(t - hw - 0.8, intake.sillY + intake.gateHeight + 0.8), TONE.steel, outward);
+        const Q = (tt, y) => {
+          const [x, z] = F.at(tt, sUp(tt) - 0.1);
+          return [x, y, z];
+        };
+        metal.quad(Q(t - hw, intake.sillY), Q(t + hw, intake.sillY), Q(t + hw, intake.sillY + intake.gateHeight), Q(t - hw, intake.sillY + intake.gateHeight), TONE.draft, outward);
+        darken[`intake-${k}`] = [{ mesh: 'intake-columns', instance: vents.length }, { mesh: 'steel', range: [from, metal.c.length] }];
       }
       vents.push([x, CREST_Y, z]);
     }
@@ -1524,7 +1576,7 @@ export async function buildPart(ctx) {
      * fills it under the concrete is drawn as the basalt the chute was
      * cut in (the chute-dry photograph's walls), not as more dam.
      */
-    const rockAt = (d) => Math.min(sp.baseY, floor(Math.max(d, SPILL.gate[1])) - 4);
+    const rockAt = (d) => Math.min(sp.baseY, floor(Math.max(d, SPILL.ogee)) - 4);
     /* A box in the chute's frame, drawn: its four sides and its top,
      * which is flat, or a plane given at its two d ends; its sides under
      * the rock line basalt. */
@@ -1561,7 +1613,7 @@ export async function buildPart(ctx) {
     };
 
     /* The approach under the bridge and the ogee to the gates. */
-    block(concrete, -W, W, SPILL.upstream, SPILL.gate[1], base, sp.figures.sillY, sp.figures.sillY, TONE.chute);
+    block(concrete, -W, W, SPILL.upstream, SPILL.ogee, base, sp.figures.sillY, sp.figures.sillY, TONE.chute);
     /* The bridge: its deck the road over the gates. */
     const deckRun = [];
     {
@@ -1593,7 +1645,7 @@ export async function buildPart(ctx) {
     for (const [k, u] of pierU.entries()) {
       const u0 = u - pierW / 2;
       const u1 = u + pierW / 2;
-      const hi = [SPILL.upstream, SPILL.gate[1] + 2];
+      const hi = [SPILL.upstream, SPILL.ogee + 2];
       block(concrete, u0, u1, hi[0], hi[1], base, CREST_Y, CREST_Y, shade(TONE.concrete, 2000 + k));
       const run = [];
       flatBlock(plan(u0, u1, hi[0], hi[1]), base, CREST_Y, 'spillway pier', run);
@@ -1619,8 +1671,10 @@ export async function buildPart(ctx) {
       block(metal, u0, u1, SPILL.gate[0], SPILL.gate[1], gateBottom, gateTop, gateTop, TONE.gate, false);
       const ids = prismBoxes(plan(u0, u1, SPILL.gate[0], SPILL.gate[1]), gateBottom, () => gateTop);
       /* gate-0 is the westernmost: u runs east. */
+      /* On its upstream face; its reach at most half the gates' pitch,
+       * so neighbours' spheres never overlap. */
       targets[`gate-${g}`] = {
-        at: at3((u0 + u1) / 2, SPILL.gate[1], (gateBottom + gateTop) / 2), r: 12, part: 'gate', colliders: ids,
+        at: at3((u0 + u1) / 2, SPILL.gate[0], (gateBottom + gateTop) / 2), r: Math.min(12.5, (SPILL.gateWidth + pierW) / 2), part: 'gate', colliders: ids,
       };
       darken[`gate-${g}`] = { mesh: 'steel', range: [from, metal.c.length] };
       face('spillway gate', 'wall', [at3(u0, SPILL.gate[1], gateBottom), at3(u1, SPILL.gate[1], gateBottom), at3(u1, SPILL.gate[1], gateTop), at3(u0, SPILL.gate[1], gateTop)]);
@@ -1775,6 +1829,10 @@ export async function buildPart(ctx) {
     }
     cx /= 3 * a;
     cz /= 3 * a;
+    /* A placeholder: the war part (src/maps/itaipu/war, PR #199) builds
+     * the yard and puts its own target in this id's place, its transformer
+     * rows' middle and a reach over all of them, with their solids and
+     * fires. The outline's area centroid here is within 20 m of that. */
     targets['yard-right'] = {
       at: [cx, ctx.ground(cx, cz), cz], r: 60, part: 'yard', colliders: [], outline: o.map((q) => q.slice()),
     };
@@ -1847,6 +1905,22 @@ export async function buildPart(ctx) {
 
   /* ---- the targets' states: smoke and fire over them, and a destroyed
    * part drawn charred, its colours put back when it is anything else. */
+  /* An intake's colliders: the dam's boxes its sphere reaches, the
+   * upstream face's columns round its gate. */
+  for (const t of Object.values(targets)) {
+    if (t.part !== 'intake') {
+      continue;
+    }
+    const [x, y, z] = t.at;
+    for (const b of boxes) {
+      const dx = Math.max(b[0] - x, 0, x - b[3]);
+      const dy = Math.max(b[1] - y, 0, y - b[4]);
+      const dz = Math.max(b[2] - z, 0, z - b[5]);
+      if (dx * dx + dy * dy + dz * dz <= t.r * t.r) {
+        t.colliders.push(b[6]);
+      }
+    }
+  }
   const targetIds = Object.keys(targets).sort();
   for (const t of Object.values(targets)) {
     Object.freeze(t.at);
@@ -1860,10 +1934,11 @@ export async function buildPart(ctx) {
   const CHAR = 0.16;
   const kept = new Map();
   const char = (id, on) => {
-    const d = darken[id];
-    if (!d) {
-      return;
+    for (const [j, d] of [darken[id] ?? []].flat().entries()) {
+      charOne(`${id}#${j}`, d, on);
     }
+  };
+  const charOne = (key, d, on) => {
     const mesh = drawn[d.mesh];
     if (d.instance != null) {
       mesh.setColorAt(d.instance, new THREE.Color(on ? CHAR : 1, on ? CHAR : 1, on ? CHAR : 1));
@@ -1872,18 +1947,21 @@ export async function buildPart(ctx) {
     }
     const attr = mesh.geometry.getAttribute('color');
     const [a, b] = d.range;
-    if (!kept.has(id)) {
-      kept.set(id, attr.array.slice(a, b));
+    if (!kept.has(key)) {
+      kept.set(key, attr.array.slice(a, b));
     }
-    const orig = kept.get(id);
+    const orig = kept.get(key);
     for (let i = a; i < b; i += 1) {
       attr.array[i] = on ? orig[i - a] * CHAR : orig[i - a];
     }
     attr.addUpdateRange(a, b - a);
     attr.needsUpdate = true;
   };
-  const setTargetState = (id, state) => {
-    if (!(id in targets)) {
+  /* `table` is the map's targets as they are now (itaipu.js passes
+   * map.targets), so an entry another part put in place of one of these
+   * burns where that entry says. */
+  const setTargetState = (id, state, table = targets) => {
+    if (!(id in table) || !(id in targets)) {
       throw new Error(`itaipu dam: no target ${id}`);
     }
     if (!TARGET_STATES.includes(state)) {
@@ -1896,7 +1974,7 @@ export async function buildPart(ctx) {
       char(id, state === 'destroyed');
     }
     states[id] = state;
-    damage.set(id, state);
+    damage.set(id, state, table[id]);
     /* No draw at all while nothing burns. */
     damage.points.visible = targetIds.some((t) => states[t] !== 'ok');
   };
@@ -1924,9 +2002,17 @@ export async function buildPart(ctx) {
     dispose() {},
     stats: counts,
     /* The war mode's targets (docs/WARFARE-PLAN.md section 8), frozen:
-     * { id: { at: [x, y, z], r, part, colliders } }, `colliders` the
-     * static collider indices a hit on the target is (none for the yard,
-     * which the war package builds), and their state. */
+     * { id: { at: [x, y, z], r, part, colliders, shape?, a?, b? } }.
+     *   - A target is a sphere of radius r about `at` unless `shape` is
+     *     'capsule' (the penstocks): then it is every point within r of
+     *     the segment a to b, and `at` a point on the part for a camera
+     *     or a marker. Targets of one kind never overlap.
+     *   - intake-0..19: the gate in the upstream face; gate-0..13, west to
+     *     east: the spillway gate's upstream face, r at most 12.5, half
+     *     the gates' pitch; penstock-0..19: capsules; yard-right: a
+     *     placeholder the war part (PR #199) replaces with the real yard.
+     *   - `colliders`: the static collider indices a hit on it is (none
+     *     for the yard's placeholder). */
     targets,
     setTargetState,
     targetState: (id) => states[id],

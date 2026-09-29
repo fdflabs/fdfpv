@@ -29,7 +29,8 @@
  *              TARGET_ON of it (the yard on the ground), its colliders
  *              the dam's own and within its radius, and every state
  *              drawn, the charred colour put on and taken off, with no
- *              page error.
+ *              page error; a target entry replaced after the build, with
+ *              fire points, burns at them.
  *
  *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/dam-check.js [--only=count,figures,...]
  *
@@ -272,7 +273,23 @@ const TARGETS = `(() => {
       const dz = Math.max(Math.min(col.faz[i], col.fbz[i]) - r - z, 0, z - Math.max(col.faz[i], col.fbz[i]) - r);
       far = Math.max(far, Math.hypot(dx, dy, dz));
     }
-    out[id] = { part: t.part, r: t.r, on, colliders: t.colliders.length, far, foreign, frozen: Object.isFrozen(t) };
+    /* A capsule target's axis against its part's own capsule collider. */
+    let axisOff = 0;
+    if (t.shape === 'capsule') {
+      const i = t.colliders[0];
+      const ax = [col.fax[i], col.fay[i], col.faz[i]];
+      const v = [col.fbx[i] - ax[0], col.fby[i] - ax[1], col.fbz[i] - ax[2]];
+      const l2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+      for (const p of [t.a, t.b]) {
+        const g = Math.max(0, Math.min(1, ((p[0] - ax[0]) * v[0] + (p[1] - ax[1]) * v[1] + (p[2] - ax[2]) * v[2]) / l2));
+        axisOff = Math.max(axisOff, Math.hypot(p[0] - ax[0] - v[0] * g, p[1] - ax[1] - v[1] * g, p[2] - ax[2] - v[2] * g));
+      }
+      axisOff = t.r >= col.fr[i] ? axisOff : Infinity;
+    }
+    out[id] = {
+      part: t.part, r: t.r, on, colliders: t.colliders.length, far, foreign, frozen: Object.isFrozen(t),
+      shape: t.shape ?? 'sphere', at: t.at, a: t.a ?? null, b: t.b ?? null, axisOff,
+    };
   }
   return out;
 })()`;
@@ -374,6 +391,65 @@ async function main() {
           fail(`target ${id} is not frozen`);
         }
       }
+      /* Shapes: a capsule's axis on its collider's and wide enough to
+       * hold it; no two targets of a kind overlapping; a gate's reach at
+       * most half the gates' pitch; an intake in the upstream face, at
+       * its gate's height. */
+      const segDist = (p, q, r2, s2) => {
+        let best = Infinity;
+        for (let i = 0; i <= 50; i += 1) {
+          const f = i / 50;
+          const x = [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f, p[2] + (q[2] - p[2]) * f];
+          const v = [s2[0] - r2[0], s2[1] - r2[1], s2[2] - r2[2]];
+          const l2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+          const g = l2 > 0 ? Math.max(0, Math.min(1, ((x[0] - r2[0]) * v[0] + (x[1] - r2[1]) * v[1] + (x[2] - r2[2]) * v[2]) / l2)) : 0;
+          best = Math.min(best, Math.hypot(x[0] - r2[0] - v[0] * g, x[1] - r2[1] - v[1] * g, x[2] - r2[2] - v[2] * g));
+        }
+        return best;
+      };
+      const seg = (t) => (t.shape === 'capsule' ? [t.a, t.b] : [t.at, t.at]);
+      let tightest = Infinity;
+      let tightPair = null;
+      const ids = TARGET_IDS.filter((i) => i in got);
+      for (let i = 0; i < ids.length; i += 1) {
+        for (let j = i + 1; j < ids.length; j += 1) {
+          const a = got[ids[i]];
+          const b = got[ids[j]];
+          if (a.part !== b.part) {
+            continue;
+          }
+          const clear = segDist(...seg(a), ...seg(b)) - a.r - b.r;
+          if (clear < tightest) {
+            tightest = clear;
+            tightPair = `${ids[i]} and ${ids[j]}`;
+          }
+          if (clear < 0) {
+            fail(`targets ${ids[i]} and ${ids[j]} overlap by ${(-clear).toFixed(2)} m`);
+          }
+        }
+      }
+      const pens = ids.filter((i) => got[i].part === 'penstock');
+      const worstAxis = Math.max(...pens.map((i) => got[i].axisOff));
+      for (const i of pens) {
+        if (got[i].shape !== 'capsule' || !(got[i].axisOff < 0.01)) {
+          fail(`target ${i} is not a capsule on its penstock's axis holding it (${got[i].shape}, off ${got[i].axisOff})`);
+        }
+      }
+      const gates = ids.filter((i) => got[i].part === 'gate');
+      for (const i of gates) {
+        if (got[i].r > 12.5) {
+          fail(`target ${i} reaches ${got[i].r} m, over half the gates' pitch`);
+        }
+      }
+      const intake = dam.find((e) => e.part === 'intakes').figures;
+      for (const i of ids.filter((k) => got[k].part === 'intake')) {
+        const y = got[i].at[1];
+        if (!(y >= intake.sillY && y <= intake.sillY + intake.gateHeight)) {
+          fail(`target ${i} at ${y.toFixed(1)} m is not at its gate's height (${intake.sillY} to ${intake.sillY + intake.gateHeight})`);
+        }
+      }
+      console.log(`  shapes: ${pens.length} penstock capsules, axes within ${worstAxis.toFixed(4)} m of their colliders; gates r ${Math.max(...gates.map((i) => got[i].r))}; `
+        + `the tightest two of a kind ${tightest.toFixed(2)} m clear (${tightPair})`);
       console.log(`targets: ${Object.keys(got).length} (${TARGET_IDS.length} wanted), missing ${missing.join(', ') || 'none'}, extra ${extra.join(', ') || 'none'}; `
         + `worst distance to the drawn geometry ${worstOn.toFixed(3)} m (${worstId}), tolerance ${TARGET_ON}`);
       for (const id of missing) {
@@ -419,6 +495,37 @@ async function main() {
       }
       for (const line of report) {
         console.log(`  ${line}`);
+      }
+      /* An entry another part put in place after the build (the war
+       * part's yard, PR #199): it burns at its fire points, each centre's
+       * spread at most 60 m however far it reaches. */
+      const moved = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+        const part = window.__mapScene().userData.itaipu.parts.dam;
+        const y = part.targets['yard-right'];
+        const fires = [[-2200, 230, -470], [-2170, 229, -450], [-2146, 228, -432], [-2120, 228, -410], [-2090, 227, -395]];
+        const table = Object.freeze({ ...part.targets, 'yard-right': Object.freeze({ at: [-2146, 228, -432], r: 537, part: 'yard', colliders: [], fires, outline: y.outline }) });
+        part.setTargetState('yard-right', 'fire', table);
+        const pts = part.group.getObjectByName('itaipu-dam-damage').geometry;
+        const k = Object.keys(part.targets).sort().indexOf('yard-right');
+        const pos = pts.getAttribute('position').array;
+        const look = pts.getAttribute('aLook').array;
+        const used = new Set();
+        let off = 0;
+        let spread = 0;
+        for (let i = 0; i < 32; i += 1) {
+          const p = [pos[(k * 32 + i) * 3], pos[(k * 32 + i) * 3 + 1], pos[(k * 32 + i) * 3 + 2]];
+          const d = fires.map((f) => Math.hypot(p[0] - f[0], p[1] - f[1], p[2] - f[2]));
+          const j = d.indexOf(Math.min(...d));
+          used.add(j);
+          off = Math.max(off, d[j]);
+          spread = Math.max(spread, look[(k * 32 + i) * 4 + 1]);
+        }
+        part.setTargetState('yard-right', 'ok', table);
+        return { used: used.size, off, spread };
+      })())`));
+      console.log(`  a replaced yard-right with 5 fire points burns at ${moved.used} of them, every puff within ${moved.off.toFixed(4)} m of one, spread ${moved.spread} m`);
+      if (moved.used !== 5 || moved.off > 1e-3 || moved.spread > 60) {
+        fail(`a replaced target does not burn at its fire points (${moved.used} of 5 used, ${moved.off} m off, spread ${moved.spread})`);
       }
       const bad = await page.evaluate(`(() => { try { window.__mapScene().userData.itaipu.parts.dam.setTargetState('intake-99', 'fire'); return 'accepted'; } catch (e) { return 'refused'; } })()`);
       console.log(`  an unknown target is ${bad}`);
