@@ -10,14 +10,15 @@
  *   from the shore. Past the ring each body carries on over the apron
  *   (APRON_REACH), so from the air the lake fades into the haze.
  *
- *   The spillway's chute running white, on the chute floor dam.json
- *   gives (the spillway's "chute" section: its axis and the floor's
- *   height every 30 m along it, the same numbers package D builds the
- *   floor from), CHUTE_DEPTH over it, across the spillway's footprint.
- *   It is not plant water: its tops are roof records whose material is
- *   `water`, so a craft that touches the chute rides it as ground and
- *   the crash world reads water there (the map's surfaceAt), and never
- *   floats.
+ *   The spillway's three chutes running white, a sheet CHUTE_SHEET deep
+ *   over package D's chute floors (the dam part's roof records of kind
+ *   `spillway chute`, which are built before this part), so the water
+ *   lies between D's training walls on D's floor, whatever profile D
+ *   gave it. The chute is not plant water. Its floor stays D's ground,
+ *   and this part makes those records' material `water` (section 5:
+ *   "whose crash surface answers water while the spillway runs"), so a
+ *   craft that touches the chute rides the floor, the crash world reads
+ *   water there (the map's surfaceAt), and it never floats.
  *
  *   White water where the chute plunges into the river, and the churn
  *   of the draft tubes along the powerhouse's downstream face.
@@ -29,6 +30,10 @@
  *   most once a frame, from the scene's onBeforeRender, since the part
  *   is handed no renderer: the map's first scene draw each frame after
  *   update() draws it.
+ *
+ *   The plant's waves (src/render/lakewaves.js), once the shell hands
+ *   them over (setWaves, updateWaves, from the map): each body's
+ *   surface lit by the slope of its own waves.
  *
  * WHY THE DEPTH IS NOT THE GROUND'S. The pipeline lowered the terrain
  * inside every outline to a bed three metres under the water (section 4),
@@ -56,20 +61,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { roofRecord, frameElements } from '../../alps/roofs.js';
 import { insideWater } from '../../../game/water.js';
 
-/* The water running down the chute over its floor, m: a sheet of the
+/* The drawn sheet of water running down the chute over D's floor, m: a
  * spillway's flow at speed is a few decimetres to a metre deep. */
-export const CHUTE_DEPTH = 0.5;
-/* The drawn chute's rows between two of the floor's stations, and its
- * columns across. */
-const CHUTE_ROWS = 6;
-const CHUTE_COLS = 12;
+const CHUTE_SHEET = 0.4;
 /* The roughness the chute's water is drawn with, as a bed slope (the
  * stream shader's measure of white water): the whole chute runs white at
  * speed, its level reach included, not only where the floor is steep. */
 const CHUTE_ROUGH = 0.32;
+/* D's roof records for the chute floors (dam/index.js slopeRoof). */
+const CHUTE_KIND = 'spillway chute';
 
 /* How far past the ring a body's water is carried over the apron, and
  * past either end of where it meets the edge. */
@@ -113,135 +115,66 @@ const LOOK = {
     body: [0.035, 0.07, 0.062], shallow: [0.06, 0.085, 0.065], deep: [0.028, 0.06, 0.058], clarity: 1.2, ripple: 0.55, roughness: 0.05,
   },
 };
-const CHUTE_BODY = [0.1, 0.13, 0.12];
+/* A spillway at speed is air as much as water: white, a little green
+ * grey in its troughs (chute-running). */
+const CHUTE_BODY = [0.55, 0.58, 0.55];
 
 /* ----------------------------------------------------------- the chute */
 
-/*
- * The chute's sheet of water from dam.json, in world metres: its rows at
- * the floor's stations, each { s, x, z, y (the water's top), left, right
- * (along `across` from the axis) }, and the axis's unit vectors along the
- * flow and across it. `dam` is dam.json's parsed list.
- */
-export function chuteSheet(dam) {
+/* The chute's axis from dam.json, as D lays its floors out along it: the
+ * point at the gates and the unit vector down the chute. */
+export function chuteAxis(dam) {
   const spill = dam.find((p) => p.part === 'spillway');
   const chute = spill && (spill.sections || []).find((s) => s.at === 'chute');
-  if (!chute || !chute.floor || chute.floor.length < 2 || !spill.footprint) {
-    throw new Error('itaipu water: dam.json has no spillway chute with a floor and a footprint');
+  if (!chute) {
+    throw new Error('itaipu water: dam.json has no spillway chute section');
   }
   const [a, b] = chute.axis;
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  const along = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
-  const across = [-along[1], along[0]];
-  const foot = spill.footprint;
-  /* The footprint's extent across the axis at s: its two outermost
-   * crossings with the line through the axis's point there. */
-  const extent = (x, z) => {
-    let lo = Infinity;
-    let hi = -Infinity;
-    for (let i = 0; i < foot.length; i += 1) {
-      const p = foot[i];
-      const q = foot[(i + 1) % foot.length];
-      const ex = q[0] - p[0];
-      const ez = q[1] - p[1];
-      const det = across[1] * ex - across[0] * ez;
-      if (Math.abs(det) < 1e-9) {
-        continue;
-      }
-      const rx = p[0] - x;
-      const rz = p[1] - z;
-      const v = (across[0] * rz - across[1] * rx) / det;
-      if (v < 0 || v > 1) {
-        continue;
-      }
-      const u = (ex * rz - ez * rx) / det;
-      lo = Math.min(lo, u);
-      hi = Math.max(hi, u);
-    }
-    return hi > lo ? [lo, hi] : null;
-  };
-  let last = extent(a[0], a[1]);
-  if (!last) {
-    throw new Error('itaipu water: the chute axis starts outside the spillway footprint');
-  }
-  const rows = chute.floor.map(([s, floorY]) => {
-    const x = a[0] + along[0] * s;
-    const z = a[1] + along[1] * s;
-    /* Where the footprint narrows to its corner past the flip bucket,
-     * the chute keeps the width it had. */
-    const e = extent(x, z);
-    if (e && e[1] - e[0] > 0.8 * (last[1] - last[0])) {
-      last = e;
-    }
-    return {
-      s, x, z, floor: floorY, y: floorY + CHUTE_DEPTH, left: last[0], right: last[1],
-    };
-  });
-  return { rows, along, across };
+  return { origin: a, along: [(b[0] - a[0]) / len, (b[1] - a[1]) / len], length: len };
 }
 
 /*
- * The chute's water as ground: one roof record per stretch between two
- * of the floor's stations, a plane falling along the chute over the
- * trapezoid the stretch covers, its material water.
+ * D's chute floor records among `roofs`, each as its quad: corners
+ * [x, y, z] in D's order (across at the upper end, then back at the
+ * lower), the floor's height at each from the record's own plane.
  */
-export function chuteRecords(sheet) {
-  const { rows, across } = sheet;
-  const out = [];
-  for (let k = 0; k + 1 < rows.length; k += 1) {
-    const p = rows[k];
-    const q = rows[k + 1];
-    const at = (r, u) => [r.x + across[0] * u, r.y, r.z + across[1] * u];
-    const rec = roofRecord({
-      top: [[at(p, p.left), at(q, q.left), at(q, q.right), at(p, p.right)]], dy: 0, hw: 0, hd: 0, kind: 'water',
-    }, frameElements(0, 0, 0, 0), 'water:chute');
-    rec.material = 'water';
-    out.push(rec);
-  }
-  return out;
+export function chuteFloors(roofs) {
+  return roofs.filter((r) => r.kind === CHUTE_KIND).map((rec) => {
+    if (rec.c !== 1 || rec.s !== 0 || rec.faces.length !== 2) {
+      throw new Error('itaipu water: a spillway chute record is not the two world triangles dam/index.js slopeRoof makes');
+    }
+    const [f0, f1] = rec.faces;
+    const at = (f, [x, z]) => [x + rec.tx, rec.ty + f.a * x + f.b * z + f.d, z + rec.tz];
+    return { rec, quad: [at(f0, f0.pts[0]), at(f0, f0.pts[1]), at(f0, f0.pts[2]), at(f1, f1.pts[2])] };
+  });
 }
 
-function chuteGeometry(THREE, sheet) {
-  const { rows, along, across } = sheet;
+/* The sheet over D's floors: per floor a quad CHUTE_SHEET over it, with
+ * the stream material's aWater (depth, metres down the chute, across -1
+ * to 1, the roughness as a slope) and aFlow. */
+function chuteGeometry(THREE, floors, axis) {
   const pos = [];
   const water = [];
   const flow = [];
   const idx = [];
-  let lines = 0;
-  for (let k = 0; k + 1 < rows.length; k += 1) {
-    const p = rows[k];
-    const q = rows[k + 1];
-    const slope = Math.max(CHUTE_ROUGH, Math.min(0.8, (p.y - q.y) / (q.s - p.s)));
-    const last = k + 2 === rows.length;
-    for (let r = 0; r < CHUTE_ROWS + (last ? 1 : 0); r += 1) {
-      const f = r / CHUTE_ROWS;
-      const s = p.s + (q.s - p.s) * f;
-      const y = p.y + (q.y - p.y) * f;
-      const left = p.left + (q.left - p.left) * f;
-      const right = p.right + (q.right - p.right) * f;
-      const cx = p.x + (q.x - p.x) * f;
-      const cz = p.z + (q.z - p.z) * f;
-      for (let c = 0; c <= CHUTE_COLS; c += 1) {
-        const t = c / CHUTE_COLS;
-        const u = left + (right - left) * t;
-        pos.push(cx + across[0] * u, y, cz + across[1] * u);
-        water.push(CHUTE_DEPTH, s, t * 2 - 1, slope);
-        flow.push(along[0], along[1]);
-      }
-      lines += 1;
+  const down = (p) => (p[0] - axis.origin[0]) * axis.along[0] + (p[2] - axis.origin[1]) * axis.along[1];
+  for (const { quad } of floors) {
+    const [a, b, c, d] = quad;
+    const run = Math.max(1e-6, down(d) - down(a));
+    const slope = Math.max(CHUTE_ROUGH, Math.min(0.8, (a[1] - d[1]) / run));
+    const k = pos.length / 3;
+    for (const [p, t] of [[a, -1], [b, 1], [c, 1], [d, -1]]) {
+      pos.push(p[0], p[1] + CHUTE_SHEET, p[2]);
+      water.push(CHUTE_SHEET, down(p), t, slope);
+      flow.push(axis.along[0], axis.along[1]);
     }
-  }
-  const cols = CHUTE_COLS + 1;
-  for (let k = 0; k + 1 < lines; k += 1) {
-    for (let c = 0; c < CHUTE_COLS; c += 1) {
-      const a = k * cols + c;
-      const b = a + 1;
-      const d = a + cols;
-      const e = d + 1;
-      /* Up facing: `across` is `along` turned a right angle toward -x
-       * of the flow, so across then along turns anticlockwise from above. */
-      idx.push(a, b, d, b, e, d);
-    }
+    /* Up facing whichever way D wound it. */
+    const ux = b[0] - a[0];
+    const uz = b[2] - a[2];
+    const vx = d[0] - a[0];
+    const vz = d[2] - a[2];
+    idx.push(...(uz * vx - ux * vz > 0 ? [k, k + 1, k + 3, k + 1, k + 2, k + 3] : [k, k + 3, k + 1, k + 1, k + 3, k + 2]));
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -510,10 +443,11 @@ export function mirrorBody(bodies, x, y, z) {
 
 export async function buildPart(ctx) {
   const { THREE } = ctx;
-  const [{ waterMaterial }, { planarMirror }, { waveTexture }] = await Promise.all([
+  const [{ waterMaterial }, { planarMirror }, { waveTexture }, { makeWaves }] = await Promise.all([
     import('../../swiss2/water/surface.js'),
     import('../../swiss2/water/lake.js'),
     import('../../swiss2/water/waves.js'),
+    import('../../../render/lakewaves.js'),
   ]);
   const group = new THREE.Group();
   group.name = 'itaipu-water';
@@ -552,14 +486,21 @@ export async function buildPart(ctx) {
   }
   const face = power.figures.width / 2;
   const churn = new THREE.Vector4(pa[0] + pn[0] * face, pa[1] + pn[1] * face, pb[0] + pn[0] * face, pb[1] + pn[1] * face);
-  const sheet = chuteSheet(dam);
-  const foot = sheet.rows[sheet.rows.length - 1];
+  const axis = chuteAxis(dam);
+  const floors = chuteFloors(ctx.roofs);
+  if (!floors.length) {
+    throw new Error(`itaipu water: no ${CHUTE_KIND} roof records; the dam part must be built before the water`);
+  }
+  /* Where the jets come down: past the longest bay's flip bucket. */
+  const reach = Math.max(...floors.map(({ quad }) => (quad[3][0] - axis.origin[0]) * axis.along[0] + (quad[3][2] - axis.origin[1]) * axis.along[1]));
+  const foot = { x: axis.origin[0] + axis.along[0] * (reach + 40), z: axis.origin[1] + axis.along[1] * (reach + 40) };
 
   const tier = MIRROR_SCALE[ctx.quality] != null ? ctx.quality : 'high';
   const scale = MIRROR_SCALE[tier];
   const made = bodies.map((body) => {
     const look = LOOK[body.name] || LOOK.reservoir;
     const colour = new THREE.Color(...look.body);
+    const sea = makeWaves();
     const to = body.name === 'river' ? [0, 1] : [Math.sin(Math.PI * 1.25), -Math.cos(Math.PI * 1.25)];
     const opts = {
       waves,
@@ -576,6 +517,7 @@ export async function buildPart(ctx) {
       envMap,
       shoreFoam: 0.6,
       foamAt: body.name === 'river' ? [foot.x, foot.z, PLUNGE_R, 1] : null,
+      field: sea,
     };
     const uniforms = {
       uItField: { value: fieldTex },
@@ -589,7 +531,7 @@ export async function buildPart(ctx) {
     /* The mirror is made when this body first has the camera over it,
      * and freed when the camera leaves for the other: one at a time. */
     const state = {
-      body, env, opts, uniforms, mirror: null, planar: null, meshes: [],
+      body, env, opts, sea, uniforms, mirror: null, planar: null, meshes: [],
       lake: { kind: 'lake', outline: body.outline.map(([x, z]) => ({ x, z })) },
       y: body.y,
       outline: body.outline,
@@ -605,22 +547,26 @@ export async function buildPart(ctx) {
   });
   ctx.progress(0.8);
 
-  /* The chute, and its tops as ground. */
+  /* The chutes, drawn over D's floors, whose crash surface is water. */
+  const q0 = floors[0].quad;
+  const bayWidth = Math.hypot(q0[1][0] - q0[0][0], q0[1][2] - q0[0][2]);
   const chuteMat = waterMaterial({
-    waves, time, wind: { value: new THREE.Vector2(sheet.along[0], sheet.along[1]) }, flow: true, colour: new THREE.Color(...CHUTE_BODY), clarity: 6, ripple: 1.2, roughness: 0.08, envMap, width: foot.right - foot.left,
+    waves, time, wind: { value: new THREE.Vector2(axis.along[0], axis.along[1]) }, flow: true, colour: new THREE.Color(...CHUTE_BODY), clarity: 6, ripple: 1.2, roughness: 0.35, envMap, width: bayWidth,
   });
   chuteMat.name = 'itaipu-water-chute';
-  const chute = new THREE.Mesh(chuteGeometry(THREE, sheet), chuteMat);
+  const chute = new THREE.Mesh(chuteGeometry(THREE, floors, axis), chuteMat);
   chute.name = 'itaipu-chute';
   chute.receiveShadow = true;
   group.add(chute);
-  const records = chuteRecords(sheet);
-  ctx.roofs.push(...records);
+  const records = floors.map(({ rec }) => rec);
+  for (const rec of records) {
+    rec.material = 'water';
+  }
 
   /* THE MIRROR. The body under the camera, drawn once a frame. */
   const stats = {
     tier, mirrorScale: scale, mirrorBody: -1, mirrorDrawn: false, mirrorCalls: 0, mirrorTriangles: 0, mirrorsLive: 0,
-    chuteRecords: records.length, chuteRows: sheet.rows.length, fieldSize: f.n,
+    chuteFloors: records.length, fieldSize: f.n,
   };
   const eye = new THREE.Vector3();
   const choose = (k) => {
@@ -692,6 +638,21 @@ export async function buildPart(ctx) {
     update(step) {
       time.value = step / 1000;
       due = true;
+    },
+    /* The shell's waves, in the map's frame, in view.water's order
+     * (src/main.js handWaves): each drawn body takes the one whose still
+     * water is at its level. Empty for still water. */
+    setWaves(handed) {
+      for (const m of made) {
+        m.sea.set((handed || []).find((b) => Math.abs(b.y0 - m.y) < 0.5) || null);
+      }
+      stats.waves = made.map((m) => m.sea.uniforms.uWaveN.value);
+    },
+    /* The sim clock, s, every drawn frame. */
+    updateWaves(t) {
+      for (const m of made) {
+        m.sea.tick(t);
+      }
     },
     /* For scripts/itaipu-water-check.js, which times the mirror alone. */
     renderMirror,
