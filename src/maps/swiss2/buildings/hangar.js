@@ -12,7 +12,9 @@
  * leaves on a bottom track and a top guide, two stacked open past the
  * corner, one part slid, the dark of the shed behind; the apron in cast
  * bays with their joints sealed dark, oil where aircraft stand, a yellow
- * lead in line; the fuel pump on its pad.
+ * lead in line; the fuel pump on its pad. And on both slopes of the
+ * roof the LANPY skull, painted at the owner's request (NOTICE: the mark
+ * is LANPY esports', not GPL).
  *
  * This file is part of WebFPVSimulator.
  *
@@ -31,8 +33,45 @@
  */
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { roofShell } from '../../alps/kit.js';
+import { worldUv } from '../look.js';
 import { frame, box, boxUp, cached, prism, near, detail, plate } from './parts.js';
+
+/* The painted mark: metres up the slope, and assets/swiss2/marks/
+ * lanpy_col.webp's width over its height. */
+const MARK_H = 11;
+const MARK_ASPECT = 912 / 1244;
+
+/*
+ * The mark on both slopes of a gable roofShell, in the roof's frame rf:
+ * one quad on each slope's top face, centred on it, its top toward the
+ * ridge, so it reads upright from its own side. uv1 is the art (rows top
+ * first, see assets.js loadMark); uv is the metres worldUv gives the
+ * sheet under it, so the paint's ribs are the roof's own. One instance
+ * of both quads: one draw, and none in the shadow maps (`o`).
+ */
+function roofMark(rf, roof, pitch) {
+  const c = Math.cos(pitch);
+  const s = Math.sin(pitch);
+  const quads = [-1, 1].map((side) => {
+    const g = new THREE.PlaneGeometry(MARK_H * MARK_ASPECT, MARK_H);
+    const uv = g.getAttribute('uv');
+    const art = new Float32Array(uv.count * 2);
+    for (let i = 0; i < uv.count; i += 1) {
+      art[i * 2] = uv.getX(i);
+      art[i * 2 + 1] = 1 - uv.getY(i);
+    }
+    g.setAttribute('uv1', new THREE.BufferAttribute(art, 2));
+    const n = new THREE.Vector3(side * s, c, 0);
+    const up = new THREE.Vector3(-side * c, s, 0);
+    const right = new THREE.Vector3().crossVectors(up, n);
+    const onSlope = new THREE.Matrix4().makeBasis(right, up, n).setPosition(side * roof.ex / 2, (roof.yT + roof.yR) / 2, 0);
+    return worldUv(g.applyMatrix4(onSlope).applyMatrix4(rf.m));
+  });
+  rf.bake.instance('lanpyRoof', 'lanpy:o', mergeGeometries(quads, false), new THREE.Matrix4());
+  quads.forEach((g) => g.dispose());
+}
 
 /* An I section steel member `len` long, centred at (x, y, z) in the
  * plane of its portal (x, y), turned rz from upright: the web in that
@@ -114,6 +153,7 @@ export function hangar(f, spec) {
     }
   }
   rf.put('flashing', box(0.5, 0.06, roof.zB - roof.zA), 0, roof.yR + 0.03, 0);
+  roofMark(rf, roof, pitch);
   /* The corner flashings and the wall's head. */
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {

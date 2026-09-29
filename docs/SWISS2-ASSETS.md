@@ -8,6 +8,16 @@ place. Nothing here is a real map, a real village or a real photograph of
 Lauterbrunnen: the valley is the Alps' own procedural one, and these are
 material photographs laid on it.
 
+`marks/` is the exception and is not CC0: `marks/lanpy_col.webp` (212,758
+bytes, 912 by 1244, lossless WebP) is LANPY esports' logo, painted on the
+hangar's roof at the owner's request and used by permission, under no
+free licence. NOTICE says whose it is. It was made from their 300 pixel
+Twitch profile image: cropped to the art with an 8 pixel margin,
+upscaled four times with Lanczos on premultiplied colour, the alpha edge
+steepened back to about a pixel and a half and the colour boundaries
+lightly unsharpened, and every transparent texel filled with the colour
+of the art nearest it (pull push), so no mip level darkens the edge.
+
 Total: **9.05 MB** (9,051,035 bytes) in 50 files, against a budget of
 25 MB for this part.
 

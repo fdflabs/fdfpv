@@ -188,15 +188,17 @@ export function makeBakeAll(look, uvScale = {}) {
       root.add(lod);
     }
     /* Instanced parts, as the cel bake has them: one InstancedMesh each
-     * with the key's own material from the village table. */
+     * with the key's own material from the village table, `o` after a
+     * colon casting no shadow as it does for a baked part. */
     for (const name of Object.keys(bake.instances)) {
       const entry = bake.instances[name];
-      if (!entry.matrices.length || !mats[entry.key]) {
+      const [key, mark = ''] = entry.key.split(':');
+      if (!entry.matrices.length || !mats[key]) {
         continue;
       }
-      const m = new THREE.InstancedMesh(entry.geometry, mats[entry.key], entry.matrices.length);
+      const m = new THREE.InstancedMesh(entry.geometry, mats[key], entry.matrices.length);
       entry.matrices.forEach((mx, i) => m.setMatrixAt(i, mx));
-      m.castShadow = castShadow;
+      m.castShadow = castShadow && !mark.includes('o');
       m.receiveShadow = true;
       m.name = `village-${name}`;
       root.add(m);
