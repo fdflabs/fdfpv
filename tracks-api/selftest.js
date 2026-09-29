@@ -4,9 +4,11 @@
  *   node tracks-api/selftest.js      (npm run test:tracks)
  *
  * The Worker's own fetch handler is called with real Request objects, over
- * the real migration in migrations/, on node:sqlite standing in for D1. The
- * stand in is the four calls worker.js makes (prepare, bind, first, all,
- * run) and nothing else, so the SQL under test is the SQL that ships.
+ * the real migrations in migrations/, on node:sqlite standing in for D1
+ * (d1sqlite.js, the same stand in the VM runs). It is the calls worker.js
+ * makes (prepare, bind, first, all, run) and nothing else, so the SQL under
+ * test is the SQL that ships. Then the VM's server, tracks-api/node.js, is
+ * started on a scratch file and spoken to over HTTP.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -24,34 +26,23 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 
 import worker from './worker.js';
+import { openD1 } from './d1sqlite.js';
+import { startTracks } from './node.js';
 import { DOCUMENT_MAX_CHARS, WRITE_LIMIT } from './limits.js';
 import { createIdentity, memoryStorage, trackDeleteMessage, trackMessage } from '../src/share/identity.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-function d1(db) {
-  const statement = (sql, args = []) => ({
-    bind: (...next) => statement(sql, next),
-    first: async () => db.prepare(sql).get(...args) ?? null,
-    all: async () => ({ results: db.prepare(sql).all(...args) }),
-    run: async () => ({ meta: { changes: Number(db.prepare(sql).run(...args).changes) } }),
-  });
-  return { prepare: (sql) => statement(sql) };
-}
-
 function freshEnv() {
-  const db = new DatabaseSync(':memory:');
-  for (const f of readdirSync(join(HERE, 'migrations')).sort()) {
-    db.exec(readFileSync(join(HERE, 'migrations', f), 'utf8'));
-  }
-  return { DB: d1(db), ADMIN_SECRET: 'selftest-admin-secret' };
+  return { DB: openD1(':memory:').DB, ADMIN_SECRET: 'selftest-admin-secret' };
 }
 
 let failed = 0;
@@ -221,6 +212,70 @@ ip = '198.51.100.9';
 r = await save(bob, burst, { author: 'Bob' });
 check('and a refused conflict spends nothing', r.status === 409
   && (await save(alice, burst)).status === 200);
+
+console.log('the VM\'s server, over HTTP (tracks-api/node.js)');
+const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-tracks-'));
+const dbFile = join(scratch, 'tracks.db');
+let server = await startTracks({ db: dbFile, port: 0, adminSecret: 'selftest-admin-secret' });
+let base = `http://127.0.0.1:${server.port}`;
+async function over(method, path, body, headers = {}) {
+  const init = { method, headers: { 'cf-connecting-ip': '192.0.2.1', ...headers } };
+  if (body !== undefined) {
+    init.body = typeof body === 'string' ? body : JSON.stringify(body);
+    init.headers['content-type'] = 'application/json';
+  }
+  const res = await fetch(`${base}${path}`, init);
+  const text = await res.text();
+  return { status: res.status, body: text ? JSON.parse(text) : null, headers: res.headers };
+}
+async function saveOver(pilot, doc, ts = (clock += 1)) {
+  const documentText = JSON.stringify(doc);
+  const signed = await pilot.signBytes(await trackMessage({ id: doc.id, ts, author: 'Fernando', documentText }));
+  return over('PUT', `/api/tracks/${doc.id}`, { document: documentText, author: 'Fernando', ts, ...signed });
+}
+r = await over('GET', '/api/health');
+check('it answers its health check', r.status === 200 && r.body.ok === true);
+const vmTrack = mapTrackDocument({ id: 'trk-0000d001', name: 'On the VM', gates: 2 });
+r = await saveOver(alice, vmTrack);
+check('a save over HTTP is created', r.status === 201 && r.body.owner === aliceKey, JSON.stringify(r.body));
+check('with the CORS answer the page needs', r.headers.get('access-control-allow-origin') === '*');
+r = await saveOver(bob, { ...vmTrack, name: 'Mine now' });
+check('another key\'s save is refused as a conflict', r.status === 409 && r.body.conflict === true);
+r = await over('PUT', `/api/tracks/${vmTrack.id}`, 'x'.repeat(DOCUMENT_MAX_CHARS + 16 * 1024));
+check('a body over the cap is refused, streamed through the bridge', r.status === 413, `${r.status}`);
+r = await over('POST', `/api/admin/tracks/${vmTrack.id}`, { hidden: true }, { authorization: 'Bearer wrong' });
+check('a wrong admin secret is refused', r.status === 401);
+await server.stop();
+server = await startTracks({ db: dbFile, port: 0, adminSecret: 'selftest-admin-secret' });
+base = `http://127.0.0.1:${server.port}`;
+r = await over('GET', `/api/tracks/${vmTrack.id}`);
+check('the track is still there after a restart', r.status === 200 && r.body.document.id === vmTrack.id);
+r = await over('GET', '/api/tracks?map=swiss2');
+check('and listed under its world', r.status === 200 && r.body.tracks.some((t) => t.id === vmTrack.id));
+const applied = openD1(dbFile).db;
+check('a restart applies no migration twice', applied.prepare('SELECT COUNT(*) AS n FROM d1_migrations').get().n === 1);
+applied.close();
+r = await over('DELETE', `/api/admin/tracks/${vmTrack.id}`, undefined, { authorization: 'Bearer selftest-admin-secret' });
+check('the admin can delete it', r.status === 200);
+await server.stop();
+
+/* The shape `wrangler d1 export` writes: d1_migrations already counting
+ * the migration, then the tables. It must open with nothing reapplied. */
+const exported = join(scratch, 'exported.db');
+const d1db = new DatabaseSync(exported);
+d1db.exec(`CREATE TABLE d1_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL);
+  INSERT INTO d1_migrations (name) VALUES ('0001_tracks.sql');`);
+d1db.exec(readFileSync(join(HERE, 'migrations', '0001_tracks.sql'), 'utf8'));
+d1db.close();
+let opened = null;
+try {
+  opened = openD1(exported);
+} catch (e) {
+  opened = null;
+}
+check('a D1 export opens with its migrations already counted', opened !== null);
+opened?.db.close();
+rmSync(scratch, { recursive: true, force: true });
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -2,8 +2,11 @@
  * rooms.js: the socket to a room of friends (edge/rooms/, the wire in
  * src/share/roomwire.js, the design in docs/MULTIPLAYER-PLAN.md).
  *
- * A pilot makes a private room and gets a six letter code, or joins one
- * with a code a friend read out. One WebSocket per room, a hello with the
+ * A pilot makes a room, public or private and named if they like, or
+ * joins one: a public room from the room browser (src/share/roomlist.js)
+ * or a quick join, a private one with the code a friend read out. Every
+ * room has a code; a public room's is how the browser joins it and the
+ * pilot never sees it. One WebSocket per room, a hello with the
  * picker name and the profile (airframe, paint, add ons, pilot figure,
  * world), then poses out at 30 Hz while flying and batches of everybody
  * else's in. The room's clock is learned on joining (eight pings a
@@ -18,7 +21,7 @@
  * has no use for one, so it is never sent (section 2 of the plan).
  *
  * WHICH SERVER. A ?rooms= query (remembered here, `?rooms=off` forgets
- * it), else the production Worker when this page is the deployed site. A
+ * it), else the production server when this page is the deployed site. A
  * page served off a loopback address talks to no rooms server unless told
  * to, because the browser checks run there.
  *
@@ -39,11 +42,14 @@
  */
 
 import {
-  CLOSE, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO,
+  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO,
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
 
-export const PRODUCTION_ROOMS_ORIGIN = 'https://fdfpv-rooms.fdfretes.workers.dev';
+/* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md).
+ * The Worker it replaced, https://fdfpv-rooms.fdfretes.workers.dev, is
+ * still deployed, and putting that address back here is the way back. */
+export const PRODUCTION_ROOMS_ORIGIN = 'https://129.151.39.48';
 const DEPLOYED_HOSTS = ['fdflabs.github.io'];
 const ORIGIN_KEY = 'fdfpv.rooms';
 const ROOM_KEY = 'fdfpv.room';
@@ -52,7 +58,7 @@ const PICK_KEY = 'fdfpv.pilotPick';
 const FIGURE_KEY = 'fdfpv.pilotFigure';
 const RETRY_MS = [1000, 2000, 4000, 8000, 16000];
 const SYNC_PINGS = 8;
-const SYNC_GAP_MS = 250;
+export const SYNC_GAP_MS = 250;
 const RESYNC_MS = 30000;
 const SLEW_MS = 2;
 const KEEPALIVE_MS = 20000;
@@ -65,6 +71,7 @@ const FINAL = new Map([
   [CLOSE.nosuch, 'nosuch'],
   [CLOSE.bad, 'bad'],
   [CLOSE.rate, 'rate'],
+  [CLOSE_REMOVED, 'removed'],
 ]);
 
 function store(kind) {
@@ -198,7 +205,13 @@ export function setFigurePick(f) {
 
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
- * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state).
+ * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
+ * onRoom() when the room's name changed (reports took it away),
+ * onHit(hit) (the referee's mid air contact, src/game/midair.js),
+ * onHost(seat) when the room's host changes,
+ * onEvent(event) for an event, onReported(seat), onBinary(bytes) for any
+ * binary message but a batch, and onMessage(message) for every other text
+ * message (a race's, Phase 4).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
  */
@@ -215,12 +228,16 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   let pings = 0;
   let syncTimer = null;
   let keepTimer = null;
+  /* A quick join asks for a public room by map, not code (edge/rooms/front.js);
+   * once the room answers, its code is this tab's and a reconnect uses it. */
+  let publicMap = null;
+  let fullRetried = false;
 
   function setPhase(next, why = null) {
     phase = next;
     reason = why;
     if (handlers.onState) {
-      handlers.onState({ phase, reason, code });
+      handlers.onState({ phase, reason, code, publicMap });
     }
   }
 
@@ -262,13 +279,14 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
 
   function open() {
     const origin = roomsOrigin();
-    if (!code || !origin || typeof WebSocket === 'undefined') {
+    if ((!code && !publicMap) || !origin || typeof WebSocket === 'undefined') {
       setPhase('failed', 'noserver');
       return;
     }
     let socket;
     try {
-      socket = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/room/${code}`);
+      const path = publicMap ? `public/${publicMap}` : `room/${code}`;
+      socket = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/${path}`);
     } catch (e) {
       setPhase('failed', 'noserver');
       return;
@@ -282,16 +300,23 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       }
       const h = hello();
       const token = read('session', TOKEN_KEY);
-      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', name: h.name, profile: h.profile, ...(token ? { token } : {}) });
+      /* The seat held before a drop, so a room that was restarted and
+       * forgot the token can put the pilot back in the same slot. */
+      const seat = welcome && welcome.code === code ? { seat: welcome.seat } : {};
+      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat });
     };
     socket.onmessage = (ev) => {
       if (ws !== socket) {
         return;
       }
       if (typeof ev.data !== 'string') {
-        const batch = decodeBatch(new Uint8Array(ev.data));
-        if (batch && handlers.onBatch) {
-          handlers.onBatch(batch);
+        const bytes = new Uint8Array(ev.data);
+        const batch = decodeBatch(bytes);
+        if (batch) {
+          handlers.onBatch?.(batch);
+        } else {
+          /* Every other binary type is a later phase's (roomwire.js). */
+          handlers.onBinary?.(bytes);
         }
         return;
       }
@@ -308,6 +333,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         welcome = m;
         attempt = 0;
         write('session', TOKEN_KEY, m.token);
+        if (publicMap) {
+          code = normaliseCode(m.code);
+          publicMap = null;
+          fullRetried = false;
+        }
         write('session', ROOM_KEY, code);
         pings = 0;
         bestRtt = Infinity;
@@ -334,8 +364,31 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.host = m.host;
         }
         handlers.onLeave?.(m.seat);
+      } else if (m.type === 'host') {
+        /* The room's host changed (edge/rooms/core.js settleHost): a
+         * restart, the host leaving or coming back. */
+        if (welcome && Number.isInteger(m.seat)) {
+          welcome.host = m.seat;
+        }
+        handlers.onHost?.(m.seat);
       } else if (m.type === 'profile') {
         handlers.onProfile?.(m.seat, m.profile);
+      } else if (m.type === 'hit') {
+        handlers.onHit?.(m);
+      } else if (m.type === 'event') {
+        handlers.onEvent?.(m);
+      } else if (m.type === 'reported') {
+        handlers.onReported?.(m.seat);
+      } else if (m.type === 'unreported') {
+        handlers.onUnreported?.(m.seat, m.undone === true);
+      } else if (m.type === 'room') {
+        if (welcome) {
+          welcome.name = m.name;
+          welcome.hidden = m.hidden;
+        }
+        handlers.onRoom?.();
+      } else {
+        handlers.onMessage?.(m);
       }
     };
     socket.onclose = (ev) => {
@@ -345,8 +398,19 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       ws = null;
       stopTimers();
       const final = FINAL.get(ev.code);
-      if (!code) {
+      if (!code && !publicMap) {
         setPhase('idle');
+        return;
+      }
+      /* A public room that filled between the lobby's count and this
+       * quick join: ask the lobby again, once, for another. */
+      if (final === 'full' && publicMap && !fullRetried) {
+        fullRetried = true;
+        setPhase('connecting', 'retrying');
+        retry = setTimeout(() => {
+          retry = null;
+          open();
+        }, 1000);
         return;
       }
       if (final) {
@@ -376,6 +440,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
 
   function leave() {
     code = null;
+    publicMap = null;
+    fullRetried = false;
     welcome = null;
     offset = null;
     clearTimeout(retry);
@@ -395,8 +461,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   }
 
   return {
-    /* Make a private room in `map`; resolves to its code. */
-    async create(map, friendly = false) {
+    /* Make a room in `map`, private unless room.public; room.name is the
+     * typed name or null, room.mode the game it is set up for or null.
+     * Resolves to its code; throws Error('name') for a name the server
+     * refused. */
+    async create(map, friendly = false, room = {}) {
       const origin = roomsOrigin();
       if (!origin) {
         throw new Error('noserver');
@@ -404,7 +473,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       const res = await fetch(`${origin}/v2/create`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ map, friendly: Boolean(friendly) }),
+        body: JSON.stringify({
+          map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null,
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !normaliseCode(body.code)) {
@@ -428,13 +499,22 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       if (ws || retry) {
         return;
       }
+      publicMap = null;
       code = next;
+      attempt = 0;
+      open();
+    },
+    /* A public room on `map`, wherever the lobby has a seat. */
+    joinPublic(map) {
+      leave();
+      write('session', TOKEN_KEY, null);
+      publicMap = map;
       attempt = 0;
       open();
     },
     leave,
     state() {
-      return { phase, reason, code, welcome };
+      return { phase, reason, code, publicMap, welcome };
     },
     available() {
       return Boolean(roomsOrigin());
@@ -448,11 +528,26 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         ws.send(bytes);
       }
     },
+    /* A later phase's binary message (roomwire.js), while in a room. */
+    sendBinary(bytes) {
+      if (ws && ws.readyState === 1 && phase === 'open') {
+        ws.send(bytes);
+      }
+    },
+    /* { kind, ... }, sent as an event (roomwire.js names each kind). */
+    sendEvent(event) {
+      sendText({ ...event, type: 'event' });
+    },
     sendProfile(profile) {
       sendText({ type: 'profile', profile });
     },
     kick(seat) {
       sendText({ type: 'kick', seat });
+    },
+    /* The messages the room's modules own: the safety messages
+     * (src/share/roomsafety.js) and the race's (src/share/roomrace.js). */
+    send(obj) {
+      sendText(obj);
     },
   };
 }

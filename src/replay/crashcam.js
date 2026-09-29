@@ -8,6 +8,8 @@
  *
  * Four parts, each its own file:
  *   recorder.js  the last 30 s of what was drawn, always on in flight;
+ *   peers.js, peerscene.js  the other pilots in a room, in the same rows,
+ *                and drawn again;
  *   journal.js   the plant's copies and calls, for TAKE OVER;
  *   cameras.js   where the replay's camera is, and its keys;
  *   file.js, store.js  a replay as bytes, and My clips;
@@ -44,12 +46,18 @@
 
 import * as THREE from 'three';
 import {
-  createRecorder, createSample, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE, SMOKE, SMOKE_N,
+  createRecorder, createSample, locate, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE, SMOKE, SMOKE_N, WINDOW_S,
 } from './recorder.js';
+import { createPeerRing, peerPose } from './peers.js';
+import { createPeerScene } from './peerscene.js';
+import { createPaperRing } from './paper.js';
+import { createPaperScene } from './paperscene.js';
 import {
   RIGS, addKey, createPose, defaults, evaluate, evaluateKeys, rotate,
 } from './cameras.js';
-import { decodeReplay, encodeReplay, FILE_EXT, NAME_MAX, ReplayFileError } from './file.js';
+import {
+  decodeReplay, encodeReplay, FILE_EXT, FILE_MAX_BYTES, NAME_MAX, ReplayFileError,
+} from './file.js';
 import * as store from './store.js';
 import { createEditor } from './editor.js';
 import { craftBuilderFor } from '../render/craft.js';
@@ -85,6 +93,12 @@ const THUMB_H = 180;
 export function createCrashCam(host) {
   const { shell, audio, input, journal } = host;
   const rec = createRecorder();
+  const peerRing = createPeerRing(rec.capacity);
+  const paperRing = createPaperRing(rec.capacity);
+  /* Harness only: the paper as recorded, by ring row, while switched on. */
+  let paperLog = null;
+  /* Harness only: the peers as recorded, by ring row, while switched on. */
+  let peerLog = null;
   let recording = true;
   let promptUntil = 0;
   /* The prompt's key while it is up, else null: for the OSD to draw. */
@@ -96,7 +110,10 @@ export function createCrashCam(host) {
   let ringAirframe = null;
   let ringMap = null;
   const spawnScratch = new Float64Array(8);
-  const cost = { frames: 0, totalMs: 0, maxMs: 0, snapMs: 0, snapMaxMs: 0, snaps: 0 };
+  const cost = {
+    frames: 0, totalMs: 0, maxMs: 0, snapMs: 0, snapMaxMs: 0, snaps: 0, peerFrames: 0, peerMs: 0, peerMaxMs: 0,
+    paperFrames: 0, paperMs: 0, paperMaxMs: 0, paperRow: -1, paperRowMs: 0,
+  };
   let padPrev = 0;
 
   /* The editor's session, null while flying. */
@@ -106,6 +123,8 @@ export function createCrashCam(host) {
   /* ---- recording, once a frame in flight ---- */
 
   function record(nowWall) {
+    peerRing.begin(-1);
+    paperRing.begin(-1);
     if (S) {
       return;
     }
@@ -129,6 +148,8 @@ export function createCrashCam(host) {
       /* A new aircraft or a new world: what came before cannot be drawn
        * with this one's model and part table, so it is let go. */
       rec.clear();
+      peerRing.clear();
+      paperRing.clear();
       prevStatus.fill(0);
       ringAirframe = host.airframe();
       ringMap = host.mapId();
@@ -137,6 +158,9 @@ export function createCrashCam(host) {
     if (i < 0) {
       return;
     }
+    peerRing.begin(i);
+    paperRing.begin(i);
+    paperRing.prune(rec.now(), WINDOW_S);
     const quad = shell.quad;
     rec.pose(i, quad.position, quad.quaternion);
     rec.drive(i, st[14], st[15], st[16], st[17], host.surfaces(), host.flaps(), st[14]);
@@ -171,6 +195,34 @@ export function createCrashCam(host) {
       cost.snapMaxMs = Math.max(cost.snapMaxMs, sms);
       cost.snaps += 1;
     }
+  }
+
+  /*
+   * The other pilots in a room, once the room has drawn them this frame
+   * (src/main.js calls it after roomFrame), into the row record() began.
+   * `peers` is the room's map of them by seat (src/replay/peers.js add
+   * says what each carries). A frame record() wrote no row for writes
+   * nothing, and with nobody in the room nothing is touched.
+   */
+  function recordPeers(peers) {
+    if (!peers.size || S) {
+      return;
+    }
+    const t0 = performance.now();
+    for (const peer of peers.values()) {
+      peerRing.add(peer);
+      if (peerLog && peer.rig && peer.rig.group.visible && peerRing.row() >= 0) {
+        const p = peer.rig.group.position;
+        peerLog.push({ row: peerRing.row(), seat: peer.seat, at: [p.x, p.y, p.z] });
+      }
+    }
+    if (peerRing.row() < 0) {
+      return;
+    }
+    const ms = performance.now() - t0;
+    cost.peerFrames += 1;
+    cost.peerMs += ms;
+    cost.peerMaxMs = Math.max(cost.peerMaxMs, ms);
   }
 
   /* A part that was on last frame and is off now: a marker, named. */
@@ -225,6 +277,63 @@ export function createCrashCam(host) {
           rec.event('cue', { kind, level });
         }
         return wreck(kind, level, atTime);
+      };
+    }
+  }
+
+  /*
+   * Combat's streamer layer (src/render/streamers.js), and the SCHWING on
+   * the shell's audio: every ribbon it is asked to draw, every cut's burst
+   * and every SCHWING, kept for the replay (src/replay/paper.js). Wrapped
+   * here, as tap() wraps the debris, so the shell's calls are unchanged;
+   * the ribbons go into the row record() began this frame.
+   */
+  /* What packing the paper cost, per row that had any. */
+  function paperCost(row, ms) {
+    if (row < 0) {
+      return;
+    }
+    if (row !== cost.paperRow) {
+      cost.paperRow = row;
+      cost.paperRowMs = 0;
+      cost.paperFrames += 1;
+    }
+    cost.paperRowMs += ms;
+    cost.paperMs += ms;
+    cost.paperMaxMs = Math.max(cost.paperMaxMs, cost.paperRowMs);
+  }
+
+  function tapPaper(layer) {
+    const draw = layer.draw;
+    layer.draw = (key, cols, id, x, n, t, free, anchor) => {
+      if (!S && recording && host.mode() === 'flight') {
+        const t0 = performance.now();
+        paperRing.draw(key, cols, id, x, n, t, free, anchor);
+        paperCost(paperRing.row(), performance.now() - t0);
+        if (paperLog && paperRing.row() >= 0 && n > 1) {
+          const m = Math.min(n, 101) - 1;
+          paperLog.push({
+            row: paperRing.row(), key, id, n: m + 1,
+            nodes: [0, m >> 1, m].map((i) => [i, x[i * 3], x[i * 3 + 1], x[i * 3 + 2]]),
+          });
+        }
+      }
+      return draw(key, cols, id, x, n, t, free, anchor);
+    };
+    const burst = layer.burst;
+    layer.burst = (p, colour, level = 1) => {
+      if (!S && recording && host.mode() === 'flight') {
+        paperRing.cut(rec.now(), p, colour, level);
+      }
+      return burst(p, colour, level);
+    };
+    if (typeof audio.schwing === 'function') {
+      const schwing = audio.schwing.bind(audio);
+      audio.schwing = (level = 1, atTime) => {
+        if (!S && recording && host.mode() === 'flight') {
+          paperRing.schwing(rec.now(), level);
+        }
+        return schwing(level, atTime);
       };
     }
   }
@@ -303,6 +412,20 @@ export function createCrashCam(host) {
       return false;
     }
     const clip = saved || rec.clip(metaNow());
+    /* The ring row the clip's first frame is, for the harness. */
+    let ringFirst = -1;
+    if (!saved) {
+      const [first, n, t0, t1] = rec.span();
+      ringFirst = first;
+      const peers = peerRing.clip(first, n);
+      if (peers) {
+        clip.peers = peers;
+      }
+      const paper = paperRing.clip(first, n, t0, t1);
+      if (paper) {
+        clip.paper = paper;
+      }
+    }
     /* A saved clip of one frame is a still, and plays as one. */
     if (clip.n < (saved ? 1 : 2)) {
       host.notice(str('replay.nothing_recorded_yet'));
@@ -323,6 +446,10 @@ export function createCrashCam(host) {
       speed: 1,
       rig: 'chase',
       target: -1,
+      /* Whose aircraft the camera is on: 0 this pilot's, else a peer's id
+       * in the clip (src/replay/peers.js). */
+      watch: 0,
+      ringFirst,
       params: Object.fromEntries(RIGS.map((r) => [r, defaults(r, clip.meta.size)])),
       manual: false,
       followSized: -1,
@@ -386,12 +513,22 @@ export function createCrashCam(host) {
     parent.add(debris.group);
     const smoke = createSmoke();
     parent.add(smoke.group);
+    /* The others in the room, when the clip has them. */
+    const peers = clip.peers ? createPeerScene(clip.peers, clip.time, clip.n, parent, host.craftLook || null) : null;
+    /* Combat's paper, when the clip has it. */
+    const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio) : null;
     return {
-      craft, wreck, debris, smoke, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
+      craft, wreck, debris, smoke, peers, paper, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
     };
   }
 
   function disposeScene(sc) {
+    if (sc.peers) {
+      sc.peers.dispose();
+    }
+    if (sc.paper) {
+      sc.paper.dispose();
+    }
     sc.wreck.reset();
     if (sc.undoLook) {
       sc.undoLook();
@@ -473,7 +610,7 @@ export function createCrashCam(host) {
     if (craft.setFlaps) {
       craft.setFlaps(s.pose[POSE.flaps]);
     }
-    const onboard = S.rig === 'fpv' && !directed();
+    const onboard = S.rig === 'fpv' && !directed() && !S.watch;
     craft.group.visible = !onboard;
     const sig = damageSig(s);
     if (sig < sc.sig) {
@@ -501,6 +638,9 @@ export function createCrashCam(host) {
   /* The clip seen by the cameras. */
   const camCtx = {
     at(t, target, out) {
+      if (target < 0 && watched(t, out, null)) {
+        return out;
+      }
       const s = sampleAt(S.clip, t, S.probe);
       if (target >= 0 && target < s.count) {
         const o = target * PART_STATE_STRIDE;
@@ -517,6 +657,9 @@ export function createCrashCam(host) {
       return out;
     },
     craftQuat(t, out) {
+      if (watched(t, vWatch, out)) {
+        return out;
+      }
       const s = sampleAt(S.clip, t, S.probe);
       out[0] = s.pose[3];
       out[1] = s.pose[4];
@@ -525,9 +668,19 @@ export function createCrashCam(host) {
       return out;
     },
     fpv(t, pos, quat) {
+      const f = S.clip.meta.fpv;
+      /* Aboard a peer: at its centre, this pilot's tilt and lens, since
+       * where its camera is mounted is not something a room sends. */
+      if (watched(t, pos, qWatch)) {
+        qFpv.set(qWatch[0], qWatch[1], qWatch[2], qWatch[3]).multiply(qTilt.setFromAxisAngle(AXIS_X, f.tilt));
+        quat[0] = qFpv.x;
+        quat[1] = qFpv.y;
+        quat[2] = qFpv.z;
+        quat[3] = qFpv.w;
+        return f.fov;
+      }
       const s = sampleAt(S.clip, t, S.probe);
       const q = [s.pose[3], s.pose[4], s.pose[5], s.pose[6]];
-      const f = S.clip.meta.fpv;
       const fwd = rotate(q, [0, 0, -1]);
       const up = rotate(q, [0, 1, 0]);
       for (let i = 0; i < 3; i += 1) {
@@ -542,9 +695,24 @@ export function createCrashCam(host) {
     },
   };
   const vAt = new THREE.Vector3();
+  const vNdc = new THREE.Vector3();
+  const vWatch = [0, 0, 0];
+  const qWatch = [0, 0, 0, 1];
   const qFpv = new THREE.Quaternion();
+
   const qTilt = new THREE.Quaternion();
   const AXIS_X = new THREE.Vector3(1, 0, 0);
+
+  /* The watched peer at t, into pos and quat (either may be null); false
+   * when the camera is on this pilot's aircraft, or the peer is not drawn
+   * at t, and the camera stays on this pilot's then. */
+  function watched(t, pos, quat) {
+    if (!S.watch || !S.clip.peers) {
+      return false;
+    }
+    const [k, a] = locate(S.clip, t);
+    return peerPose(S.clip.peers, S.clip.n, k, a, S.watch, pos || vWatch, quat);
+  }
 
   function directed() {
     return S.clip.keys.length > 0 && !S.manual;
@@ -599,7 +767,17 @@ export function createCrashCam(host) {
       S.scene.debris.update(dtS * S.speed);
     }
     poseScene(s, dtS, S.speed);
+    if (S.scene.peers) {
+      const inside = S.rig === 'fpv' && !directed() ? S.watch : 0;
+      S.scene.peers.pose(s.k, s.a, S.playing ? S.speed * Math.min(1, dtS * 60) : 0, S.osd, inside);
+      S.scene.peers.smokeTo(from, S.t, shell.canvas.clientHeight || 720, shell.camera.fov);
+    }
     aimCamera();
+    /* After the camera: the ribbons are never drawn thinner than a few
+     * pixels, so they are drawn from where it is this frame. */
+    if (S.scene.paper) {
+      S.scene.paper.frame(s.k, s.a, from, S.t, S.playing, S.speed, shell.camera, shell.canvas.clientHeight || 720);
+    }
     S.drawnT = S.t;
     editor.tick(view());
   }
@@ -740,6 +918,8 @@ export function createCrashCam(host) {
       readout: S.sample.head,
       toast: S.toast,
       name: c.meta.name,
+      watch: S.watch,
+      peers: S.scene.peers ? S.scene.peers.list() : [],
     };
   }
 
@@ -811,6 +991,8 @@ export function createCrashCam(host) {
         toast(str('replay.nothing_came_off'));
         return;
       }
+      /* The parts are this pilot's own: the camera comes back to them. */
+      S.watch = 0;
       if (!parts.some((p) => p.part === target)) {
         /* The part that left nearest the playhead: the one in the picture. */
         let best = null;
@@ -837,6 +1019,18 @@ export function createCrashCam(host) {
     S.manual = true;
   }
   const eFree = new THREE.Euler();
+
+  /* The camera onto this pilot's aircraft (0) or a peer's (its id). A
+   * part being followed is let go: the rig goes back to the chase. */
+  function watch(id) {
+    const list = S.scene.peers ? S.scene.peers.list() : [];
+    S.watch = list.some((p) => p.id === id) ? id : 0;
+    if (S.rig === 'follow') {
+      setRig('chase', -1);
+    }
+    S.target = -1;
+    S.manual = true;
+  }
 
   /* Follow the next part that came off, from any camera. */
   function nextPart() {
@@ -1174,7 +1368,7 @@ export function createCrashCam(host) {
   }
 
   async function importFile(file) {
-    if (file.size > 24 * 1024 * 1024) {
+    if (file.size > FILE_MAX_BYTES) {
       throw new Error(str('replay.import_too_big'));
     }
     const bytes = await file.arrayBuffer();
@@ -1211,6 +1405,7 @@ export function createCrashCam(host) {
     const res = host.takeOver(mark, clip.head[h + HEAD.simT], clip.head[h + HEAD.stateHash]);
     if (res && res.ok) {
       rec.dropNewest(drop);
+      paperRing.dropAfter(rec.now());
       prevStatus.fill(0);
     }
     window.__crashCamLast = { ...(window.__crashCamLast || {}), takeOver: { ...res, frame: k, clipT: clip.time[k] } };
@@ -1237,6 +1432,12 @@ export function createCrashCam(host) {
       setRig: (r) => setRig(r),
       follow: (part) => setRig('follow', part),
       nextPart,
+      watch: (id) => watch(id),
+      nextWatch: () => {
+        const list = S.scene.peers ? S.scene.peers.list() : [];
+        const ids = [0, ...list.map((p) => p.id)];
+        watch(ids[(ids.indexOf(S.watch) + 1) % ids.length]);
+      },
       addKey: keyNow,
       removeKey,
       clearKeys: () => {
@@ -1329,11 +1530,30 @@ export function createCrashCam(host) {
       journalSegments: j.segments,
       journalCalls: j.calls,
       regionBytes: j.region,
+      peerFrames: cost.peerFrames,
+      peerMsMean: cost.peerFrames ? cost.peerMs / cost.peerFrames : 0,
+      peerMsMax: cost.peerMaxMs,
+      peerBytes: peerRing.bytes(),
+      peerRingBytes: peerRing.ringBytes,
+      peersRecorded: peerRing.stats.peers,
+      peersDropped: peerRing.stats.dropped,
+      piecesDropped: peerRing.stats.piecesDropped,
+      peerAllocMs: peerRing.stats.allocMs,
+      paperBytes: paperRing.bytes(),
+      paperRingBytes: paperRing.ringBytes,
+      paperRibbons: paperRing.stats.ribbons,
+      paperDropped: paperRing.stats.dropped,
+      paperEvents: paperRing.stats.events,
+      paperFrames: cost.paperFrames,
+      paperMsMean: cost.paperFrames ? cost.paperMs / cost.paperFrames : 0,
+      paperMsMax: cost.paperMaxMs,
     };
   }
 
   return {
     record,
+    recordPeers,
+    tapPaper,
     noteCrash,
     promptKey: () => promptKey,
     tap,
@@ -1360,6 +1580,47 @@ export function createCrashCam(host) {
       clipPartKinds: () => (S ? S.clip.meta.parts.map((p) => PART_KINDS[p.kind]) : []),
       smokePuffs: () => (S ? S.scene.smoke.live() : 0),
       smokeFitted: () => Boolean(S && S.clip.meta.fit && S.clip.meta.fit.entry && S.clip.meta.fit.entry.addons.includes('smoke')),
+      /* The peers as the replay drew them this frame. */
+      peers: () => (S && S.scene.peers ? S.scene.peers.summary().map((p) => ({
+        ...p, ndc: vNdc.set(p.at[0], p.at[1], p.at[2]).project(shell.camera).toArray(),
+      })) : []),
+      /* The clip's row for a ring row logged live, or -1 outside it. */
+      clipRow: (ringRow) => {
+        if (!S || S.ringFirst < 0) {
+          return -1;
+        }
+        const k = (ringRow - S.ringFirst + rec.capacity) % rec.capacity;
+        return k < S.clip.n ? k : -1;
+      },
+      clipTime: (k) => (S ? S.clip.time[k] : null),
+      /* Every peer the recorder takes from now on, with its ring row. */
+      peerLog: (on) => {
+        peerLog = on ? [] : null;
+      },
+      peerLogged: () => peerLog || [],
+      /* Combat's paper as the replay drew it this frame. */
+      paper: () => {
+        if (!S || !S.scene.paper) {
+          return null;
+        }
+        const out = S.scene.paper.summary();
+        /* How many of each ribbon's nodes are in the picture. */
+        for (const r of out.ribbons) {
+          r.seen = r.nodes.filter((m) => {
+            vNdc.set(m[0], m[1], m[2]).project(shell.camera);
+            return Math.abs(vNdc.x) < 1 && Math.abs(vNdc.y) < 1 && vNdc.z < 1;
+          }).length;
+        }
+        return out;
+      },
+      /* Every ribbon the recorder takes from now on (its head, middle and
+       * end nodes as drawn), with its ring row. */
+      paperLog: (on) => {
+        paperLog = on ? [] : null;
+      },
+      paperLogged: () => paperLog || [],
+      /* The clip's cuts and SCHWINGs, on its clock. */
+      paperEvents: () => (S && S.clip.paper ? S.clip.paper.events : []),
     }),
   };
 }

@@ -1107,6 +1107,96 @@ export function recordP51AirFlight(sim) {
 }
 
 /*
+ * Freewing's F-16 V3 70 mm EDF, airframe 16, docs/F16-STAGE1.md: ailerons,
+ * all moving stabilators and a rudder, a ducted fan whose speed lags the
+ * stick, on a tricycle gear whose nose wheel steers with the rudder.
+ * Launched at the pattern speed, or standing level on its three wheels at
+ * the drawn pose, the CG 0.140 m up (src/render/f16craft.js).
+ */
+export const F16_AIRFRAME = 16;
+export const F16_REST = { z: 0.140, pitchDeg: 0 };
+export function f16Prelude(sim) {
+  must(sim.e.sim_set_airframe(F16_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(20), 'sim_wing_launch');
+  /* Launched in the air, the retracts go up, as the P-51's do. */
+  must(sim.e.sim_wing_set_gear(1), 'sim_wing_set_gear');
+}
+export function f16GroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(F16_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = F16_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, F16_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+/* A tricycle jet's take off: the throttle held at `duty`, the sticks
+ * centred, and past 1.2 Vs the elevator eased up to full over two metres
+ * a second, the gradual application of up elevator Model Aviation
+ * describes; the fan's thrust through the CG high over the mains holds
+ * the nose wheel down until full up lifts it (docs/F16-STAGE1.md). Once
+ * the nose is 8 deg up the elevator eases off to hold it there, as a
+ * pilot does, so it does not over rotate onto its tail. */
+export function f16TakeoffSticks(s, { vRotate = 14.4, duty = 1 } = {}) {
+  const v = Math.hypot(s[4], s[5], s[6]);
+  if (v < vRotate) {
+    return [0, 0, 0, duty];
+  }
+  const { pitch } = attitude(s);
+  const ease = Math.min(1, (v - vRotate) * 0.5);
+  const hold = Math.max(-1, Math.min(1, 3.0 * (8 * Math.PI / 180 - pitch) + 0.3 * s[12]));
+  return [0, pitch > 4 * Math.PI / 180 ? Math.min(ease, hold) : ease, 0, duty];
+}
+
+/*
+ * The F-16's recording for the cross-host check: from standing on the
+ * strip, a second with the fan stopped, then full throttle and the take
+ * off, level at 60 percent with the wings held on the ailerons, a second
+ * of full right roll stick, a held 45 deg bank, and the throttle closed
+ * with a second and a half of full right yaw stick: twenty two seconds,
+ * the fan's spool up and down both in the hashed trace, and still flying
+ * at the end.
+ */
+export function recordF16Flight(sim) {
+  must(sim.reset(), 'sim_reset');
+  f16GroundPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -0.8 * (bank - b) - 0.05 * p));
+    const levelPitch = () => {
+      trim += 0.00002 * (0 - vz);
+      trim = Math.max(-0.2, Math.min(0.2, trim));
+      const pitchT = Math.max(-0.2, Math.min(0.15, 0.05 * (0 - vz) + trim));
+      return Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+    };
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 7000) {
+      sticks = ms < 4000 ? f16TakeoffSticks(s) : [hold(0), Math.max(-1, Math.min(1, 2.5 * (0.2 - pitch) - 0.25 * qAero)), 0, 1];
+    } else if (ms < 12000) {
+      sticks = [hold(0), levelPitch(), 0, 0.6];
+    } else if (ms < 13000) {
+      sticks = [ms < 12300 ? 1 : hold(Math.PI / 4), levelPitch(), 0, 0.6];
+    } else if (ms < 18000) {
+      sticks = [hold(Math.PI / 4), levelPitch(), 0, 0.8];
+    } else {
+      sticks = [hold(0), levelPitch(), ms >= 19000 && ms < 20500 ? 1 : 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
  * The Timber, docs/TIMBER-STAGE1.md: airframe 7, a STOL taildragger with
  * flaps and slats. On the strip, standing on its three wheels facing down
  * it, at the pose the plant settles to, the drawn model's

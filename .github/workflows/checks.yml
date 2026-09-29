@@ -21,6 +21,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # ws, the one dependency: rooms:server starts the VM's rooms server,
+      # edge/rooms/node.js, and speaks to it.
+      - run: npm ci
       - run: npm run lint:fc
       - run: npm run lint:presets
       - run: npm run lint:catalog
@@ -31,6 +34,20 @@ jobs:
       - run: npm run identity:selftest
       - run: npm run live:selftest
       - run: npm run rooms:selftest
+      - run: npm run streamer:selftest
+      - run: npm run rooms:server
+      - run: npm run hulls:check
+      - run: npm run midair:plant
+      # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
+      # by hand (npm run midair:harness) and its numbers go in the pull
+      # request. Two seeds here keep every row and every scenario.
+      - run: npm run midair:harness -- --seeds=2
+      # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
+      # half a minute on 20 cores, by hand; four and six here keep every row.
+      - run: npm run tag:harness -- --seeds=4 --runs=6
+      - run: npm run marks:selftest
+      - run: npm run combat:harness
+      - run: npm run combat:restart
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
@@ -43,6 +60,8 @@ jobs:
       - run: npm run edge:stab
       - run: npm run glider:gates
       - run: npm run glider:stab
+      - run: npm run f16:gates
+      - run: npm run f16:stab
       - run: npm run p51:gates
       - run: npm run p51:stab
       - run: npm run zagi:gates

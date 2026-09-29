@@ -186,6 +186,14 @@ static int g_slats = 1;
  * sign: alpha (of the zero lift line), beta, qbar, CL, CD, l m n (aero),
  * thrust, F body x y z, M body x y z, u v w, delta_e, delta_a. */
 static double g_debug[20];
+/* The ducted fan's speed, as a fraction of its full throttle speed, and
+ * its rate, per second; and the ESC's startup ramp, the command it lets
+ * through while it starts a stopped motor, 1 once it has. The fan is
+ * stopped and the ramp at its start after a reset. Nothing reads them on
+ * an airframe without a fan (fan_tau 0). */
+static double g_fan_n = 0.0;
+static double g_fan_v = 0.0;
+static double g_esc_ramp = 0.0;
 
 void plant_wing_debug(double out[20]) {
   for (int i = 0; i < 20; i += 1) {
@@ -384,8 +392,10 @@ static double power_current(const FixedWingParams *fw, double de, double ct, dou
   if (!(fw->current_full > 0.0) || !(ct > 0.0)) {
     return 0.0;
   }
+  /* A ducted fan's power is its speed's cube whatever the airspeed, so
+   * its ratio stays the static one, CP_OF_CT's last. */
   double g = CP_OF_CT[CP_OF_CT_N - 1];
-  if (ct < 1.0) {
+  if (ct < 1.0 && !(fw->fan_tau > 0.0)) {
     const double x = ct * (double)(CP_OF_CT_N - 1);
     const int i = (int)x;
     g = CP_OF_CT[i] + (x - (double)i) * (CP_OF_CT[i + 1] - CP_OF_CT[i]);
@@ -650,6 +660,47 @@ void plant_wing_reset(void) {
       g_sep[i][j][1] = 0.0;
     }
   }
+  g_fan_n = 0.0;
+  g_fan_v = 0.0;
+  g_esc_ramp = 0.0;
+}
+
+/*
+ * THE DUCTED FAN'S SPEED, one step: fan_tau in sim_internal.h. The ESC
+ * drives toward `de`, the duty the pack gives the stick; with the stick
+ * closed it stops driving and the fan runs down to rest, and the next
+ * opening is a start, which the ESC ramps from nothing to full over
+ * esc_start. `off` is a fan with no drive at all: a flat pack, a cut
+ * motor, a pulled chute. The speed follows the command as a critically
+ * damped second order system, n'' = (target - n) / tau^2 - 2 n' / tau,
+ * taken semi implicitly at the plant's 1 ms step (at the F-16's 80 steps
+ * a time constant it is stable, stays within 0.004 of the exact response
+ * to a step, and reaches 90 percent of the thrust 1 ms later than it);
+ * a fan does not turn backwards, so the speed stops at zero. Returns the
+ * speed.
+ */
+static double fan_spool(const FixedWingParams *fw, double throttle, double de, int off) {
+  double target = de;
+  if (off || !(throttle > 0.0)) {
+    target = 0.0;
+    g_esc_ramp = 0.0;
+  } else if (g_esc_ramp < 1.0) {
+    g_esc_ramp = fw->esc_start > 0.0 ? g_esc_ramp + SIM_DT / fw->esc_start : 1.0;
+    if (g_esc_ramp >= target) {
+      g_esc_ramp = 1.0;
+    } else {
+      target = g_esc_ramp;
+    }
+  }
+  const double tau = fw->fan_tau;
+  const double acc = (target - g_fan_n) / (tau * tau) - 2.0 * g_fan_v / tau;
+  g_fan_v += acc * SIM_DT;
+  g_fan_n += g_fan_v * SIM_DT;
+  if (g_fan_n < 0.0) {
+    g_fan_n = 0.0;
+    g_fan_v = 0.0;
+  }
+  return g_fan_n;
 }
 
 int plant_wing_set_gear(int up) {
@@ -1256,9 +1307,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double r_v;
   const double duty_e = power_duty(s, fw, duty, &r_v);
   const int flat = s->power_out;
+  const int dead = flat || (CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power));
+  /* The propulsor's speed as a fraction of full: a prop's is the duty's
+   * this step; a ducted fan's lags it, fan_spool above. */
+  const int fan = fw->fan_tau > 0.0;
+  const double n = fan ? fan_spool(fw, throttle, duty_e, dead || g_chute) : duty_e;
   const double u_pos = u > 0.0 ? u : 0.0;
-  const double ct = 1.0 - u_pos / (fw->pitch_speed * duty_e);
-  double thrust = fw->thrust_static * duty_e * duty_e * ct;
+  /* A fan at rest makes nothing, where 0 / 0 would be a NaN. */
+  const double ct = (fan && !(n > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * n);
+  double thrust = fw->thrust_static * n * n * ct;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
    * stopping at zero. A fixed prop stops at zero. */
@@ -1269,19 +1326,19 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     thrust = 0.0;
   }
   if (g_chute) thrust = 0.0; /* the motor is cut with the pull */
-  const int dead = flat || (CRASH.active && (CRASH.motor_dead[0] || CRASH.no_power));
   if (CRASH.active) {
     thrust = dead ? 0.0 : thrust * CRASH.kt[0];
   } else if (flat) {
     thrust = 0.0;
   }
   F[0] += thrust;
-  const double rpm = (folded || g_chute || dead) ? 0.0 : 0.85 * duty_e * fw->rpm_no_load;
+  /* A fan runs down after its drive is cut rather than stopping. */
+  const double rpm = (folded || ((g_chute || dead) && !fan)) ? 0.0 : 0.85 * n * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, duty_e, ct, r_v);
+  s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, n, ct, r_v);
   power_drain(s, fw, duty, duty_e);
   if (CRASH.active && CRASH.no_power) {
     s->vbat_load = 0.0;
@@ -2845,6 +2902,110 @@ const FixedWingParams FW_EDGE1524 = {
   .washout = 0.0,         /* an aerobat's wing is built straight */
   .strip_tau = { 0.55, 0.55, 0.55, 0.55 }, /* the ailerons span every strip */
   .surf_knee = 0.5,       /* DATCOM's K' for plain flaps, docs/EDGE-STAGE1.md */
+};
+
+/* Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High Performance
+ * (FJ21115P), docs/F16-STAGE1.md, where each number has its formula and
+ * source and the estimated ones say so. A 1/11.5 scale EPO jet, 878 mm
+ * across the tip rails: a 40 deg cropped delta with its strakes, all
+ * moving stabilators, ailerons and a rudder, on a 70 mm twelve blade
+ * ducted fan. The fan is fan_tau's propulsor: its speed lags the ESC,
+ * its thrust falls with airspeed to nothing at 1.6 n D, and its stators
+ * take out the rotor's torque, so none reaches the airframe. */
+const FixedWingParams FW_F16878 = {
+  .mix = FW_MIX_TAIL,
+  .span = 0.878,          /* Freewing, over the rails */
+  .area = 0.21484,        /* Model Aviation, 333 sq in */
+  .chord = 0.2856,        /* the manual's top view: the trapezoid's mean chord */
+  .cl_alpha = 3.310,      /* Helmbold's swept wing and the stabilators, Nelson's downwash */
+  .cl_max = 1.10,
+  /* The zero lift line 1.03 degrees under the body axis: the 64A204's
+   * camber at no incidence, less the tail's share. sin and cos of minus
+   * 1.03 degrees, to 17 digits. */
+  .alpha_zl = -1.03 * WING_PI / 180.0,
+  .sin_zl = -0.017975923049993122,
+  .cos_zl = 0.99983842004120882,
+  /* Gear down: the clean airframe's 0.0336 that flies Freewing's 165 km/h
+   * on this fan, gear up, and the gear's cd_gear, which the retracts take
+   * away. */
+  .cd0 = 0.0336 + 0.013,
+  .k_induced = 0.1374,    /* 1/(pi 0.75 3.09) */
+  .cl_de = -0.476,        /* all moving: the whole stabilator */
+  .cy_beta = -0.470,
+  .cy_dr = 0.2134,
+  .cl_beta = -0.1061,     /* the sweep's effective dihedral and the fin */
+  .cl_p = -0.3495,
+  .cl_da = 0.1226,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0292,
+  .cm_0 = 0.0470,         /* level at half throttle with the elevator neutral */
+  .cm_alpha = -0.3814,    /* static margin 0.115: the full size F-16's neutral point */
+  .cm_q = -2.263,
+  .cm_de = 0.700,
+  .cn_beta = 0.1420,      /* the fin's, less the long forebody's */
+  .cn_r = -0.2241,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.05,
+  .cn_dr = -0.1094,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The full size F-16's surface limits (NASA TP-1538): Freewing gives
+   * its high rates in mm at the trailing edge and not the chords. */
+  .throw_a = 21.5 * WING_PI / 180.0,
+  .throw_e = 25.0 * WING_PI / 180.0,
+  .throw_r = 30.0 * WING_PI / 180.0,
+  .surface_max = 21.5 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 23.536, /* N, Freewing's 2,400 g */
+  .pitch_speed = 76.87,   /* the fan's zero thrust speed, 1.603 n D */
+  .rpm_no_load = 49062.0, /* 2210 kV on 6S */
+  .torque_arm = 0.0,      /* the fan's stators take out its torque */
+  .current_full = 70.0,   /* A, the fan unit's static figure */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 3.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.10,
+  .stab_pitch_kp = 3.0,
+  .stab_pitch_kd = 0.30,
+  .stab_pitch_down = 6.63 * WING_PI / 180.0, /* to its power off glide, gear down, npm run stab:glide */
+  .stab_trim_throttle = 0.531, /* the stick that flies it level, elevator neutral, gear down */
+  .acro_roll_rate = 300.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 120.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 8.0,
+  .acro_roll_kd = 0.10,
+  .acro_roll_ff = 0.14,
+  .acro_pitch_kp = 4.0,
+  .acro_pitch_kd = 0.30,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 4.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.0,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. The
+   * strakes' vortex holds the lift 10 deg past the stall, to Freewing's
+   * "high alpha of 30 degrees", then it falls to 0.8 of it. */
+  .stall_arm_ac = -0.0552, /* the CG 16 mm ahead of the wing's aerodynamic centre */
+  .stall_arm_cp = 0.2052,  /* the plate's centre of pressure at 0.40 of the mean chord */
+  .stall_dw = 0.1442,
+  .stall_asym = 0.0035,
+  .stall_k = 0.80,
+  .stall_top = 10.0 * WING_PI / 180.0,
+  .strip_c = { 1.499, 1.166, 0.834, 0.501 },
+  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The fan and its ESC: NASA's second order spool, scaled to 69 mm, and
+   * the ESC manual's Normal startup, 300 ms to full. */
+  .fan_tau = 0.08,
+  .esc_start = 0.3,
+  /* Freewing's electric retracts, the P-51's system: no travel time is
+   * published, 4 s ESTIMATED; the gear's drag, three legs, their wheels
+   * and the doors, 4.6e-3 m^2 across the flow at a C_D of 0.6 on the
+   * 0.2148 m^2 wing, ESTIMATED (f16:derive). */
+  .gear_time = 4.0,
+  .cd_gear = 0.013,
 };
 
 /* Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md, where each number has its

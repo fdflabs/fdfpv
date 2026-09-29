@@ -110,6 +110,7 @@ const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/
 const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
 const EF_SHEET = src('Extreme Flight 60 in Edge 540T data sheet, its covering colour codes', 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_60EDGE_1cb1926a-3a06-46ce-bfb4-18a18962d730.pdf');
 const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
+const FREEWING = 'https://www.freewing-model.com/';
 export const LIVERIES = {
   sky1800: {
     regions: [r('wing', '#d4e2ee'), r('tail', '#d4e2ee'), r('pod', '#d4e2ee')],
@@ -180,6 +181,16 @@ export const LIVERIES = {
     regions: [r('wing', '#cad0d5'), r('fuselage', '#cad0d5'), r('tail', '#cad0d5'), r('trim', '#c8161a'), r('stripe', '#17191b')],
     schemes: [
       { id: 'stock', source: src('FMS P-51D Mustang V8 1450 mm, the manual\'s photographs', 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf'), colours: {} },
+    ],
+  },
+  f16878: {
+    /* Painted foam, not film: Freewing's "modern three tone gray US Air
+     * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270
+     * Medium Gray and 36375 Light Ghost Gray, and the canopy's gold tint. */
+    regions: [r('dark', '#4d5357'), r('medium', '#7f878c'), r('light', '#a9b0b4'), r('canopy', '#8a7440')],
+    schemes: [
+      { id: 'stock', source: src('Freewing F-16 Falcon V3 6S High Performance, FJ21115P', `${FREEWING}freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html`), colours: {} },
+      { id: 'arctic', source: src('Freewing F-16 V3 Arctic Camo, FJ21125P', 'https://motionrc.com/products/freewing-f-16-v3-arctic-camo-high-performance-70mm-edf-jet-pnp-fj21125p'), colours: { dark: '#3b3f44', medium: '#c9ced2', light: '#eef0f1' } },
     ],
   },
   zagi1219: {

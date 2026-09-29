@@ -358,13 +358,15 @@ int sim_set_flight_style(int arcade);
  * a tricycle gear whose nose wheel steers with the rudder, 13 Extreme
  * Flight's 60 in Edge 540T (docs/EDGE-STAGE1.md), an unlimited aerobatic
  * taildragger on a symmetric section, with the Cub's surfaces at 3D throws,
- * 15 FMS's 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric
- * warbird with flaps on retracting taildragger gear, and 17 Zagi's 48 in
- * Zagi HP (docs/ZAGI-STAGE1.md), an EPP flying wing with elevons and
- * winglets and no rudder, thrown by hand and landed on its belly. 14, 16
- * and 18 to 23 are reserved for the aircraft being added alongside them.
- * Returns SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 13, 15 and 17 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * 15 FMS's 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird
+ * with flaps on retracting taildragger gear, 16 Freewing's F-16 V3
+ * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
+ * the stick, on a tricycle gear, and 17 Zagi's 48 in Zagi HP
+ * (docs/ZAGI-STAGE1.md), an EPP flying wing with elevons and winglets and
+ * no rudder, thrown by hand and landed on its belly. 14 and 18 to 23 are
+ * reserved for the aircraft being added alongside them. Returns
+ * SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2 to 13 and 15 to 17 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -396,6 +398,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_KADET1981_ID 12
 #define SIM_AIRFRAME_EDGE1524_ID 13
 #define SIM_AIRFRAME_P51D1450_ID 15
+#define SIM_AIRFRAME_F16878_ID 16
 #define SIM_AIRFRAME_ZAGI1219_ID 17
 int sim_set_airframe(int id);
 
@@ -467,7 +470,7 @@ int sim_set_gravity(double scale);
 double sim_gravity(void);
 
 /*
- * The fixed wings, airframes 2 to 12. Additive, version unchanged; each
+ * The fixed wings, airframes 2 to 23. Additive, version unchanged; each
  * returns SIM_ERR_BAD_ARG for a null pointer, and the first two
  * SIM_ERR_BAD_STATE before sim_init.
  *
@@ -769,7 +772,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 13 and 15): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 13, 15 and 16): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

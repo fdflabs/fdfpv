@@ -313,23 +313,35 @@ for (const id of ids) {
 
   /* U7 */
   const o = POWER[id][0];
+  const opt = powerOption(id, o.id);
   /* The first step, on the pack as it was seated: the table's figures
-   * exactly. The pack sags from there, which the stand shows. */
+   * exactly. The pack sags from there, which the stand shows. A ducted
+   * fan (the option's `fan`) makes nothing on its first step: its speed
+   * lags the stick, so it is read once it has spooled, three seconds on,
+   * where its thrust and current are its speed's square and cube of the
+   * table's, off a pack sagged a little under them. */
+  const spoolSteps = opt.fan ? 3000 : 1;
   stand.seat(TABLE[id].simId);
   stand.setThrottle(1);
-  stand.steps(1);
+  stand.steps(spoolSteps);
   const r = stand.reading();
-  const opt = powerOption(id, o.id);
   /* 0.85 of the no load rpm at full throttle, the plant's rule for both
    * kinds (a glow option's rpmNoLoad is its full rpm over 0.85). */
   const rpmFull = 0.85 * opt.rpmNoLoad;
-  check(`U7 ${id} the stand reads the plant's static thrust, rpm and current at full throttle`,
-    Math.abs(r.thrustN / opt.thrustN - 1) < 1e-9 && Math.abs(r.rpm / rpmFull - 1) < 1e-9
-      && (electric ? Math.abs(r.currentA / opt.currentA - 1) < 1e-9 : r.currentA === 0),
-    `${f2(r.thrustN)} N, ${r.rpm.toFixed(0)} rpm, ${f2(r.currentA)} A`);
+  if (opt.fan) {
+    const n = r.rpm / rpmFull;
+    check(`U7 ${id} the stand reads the fan's static thrust, rpm and current at full throttle once it has spooled`,
+      n > 0.95 && n <= 1 && Math.abs(r.thrustN / (opt.thrustN * n * n) - 1) < 1e-9 && Math.abs(r.currentA / (opt.currentA * n * n * n) - 1) < 0.05,
+      `${f2(r.thrustN)} N, ${r.rpm.toFixed(0)} rpm (${n.toFixed(4)} of full), ${f2(r.currentA)} A`);
+  } else {
+    check(`U7 ${id} the stand reads the plant's static thrust, rpm and current at full throttle`,
+      Math.abs(r.thrustN / opt.thrustN - 1) < 1e-9 && Math.abs(r.rpm / rpmFull - 1) < 1e-9
+        && (electric ? Math.abs(r.currentA / opt.currentA - 1) < 1e-9 : r.currentA === 0),
+      `${f2(r.thrustN)} N, ${r.rpm.toFixed(0)} rpm, ${f2(r.currentA)} A`);
+  }
   stand.seat(TABLE[id].simId, null, block({ ballastG: lead }));
   stand.setThrottle(1);
-  stand.steps(1);
+  stand.steps(spoolSteps);
   const rl = stand.reading();
   check(`U7 ${id} lead on it changes none of them`, rl.thrustN === r.thrustN && rl.rpm === r.rpm && rl.currentA === r.currentA);
   const cells = electric ? powerBlock(id, o.id, o.pack)[3] : 0;

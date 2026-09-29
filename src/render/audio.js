@@ -131,16 +131,33 @@ import { Music } from './music.js';
  *         lope, because a two stroke at speed fires every turn and its
  *         misses are an idle's (Heywood, 1988, 9.4, as above). `perRev` is
  *         a quarter: one period of the wave is four firing cycles.
+ *   edf   A ducted fan, the F-16's 70 mm twelve blade rotor
+ *         (docs/F16-STAGE1.md). What makes a fan a whine and not a prop's
+ *         buzz is its blade pass: twelve blades at 41,700 rpm pass 8.3 kHz,
+ *         a tone high in the ear's most sensitive band, over a little of
+ *         the shaft's own rate, which an unbalanced rotor and the motor's
+ *         poles put there. The wave is one revolution long (`perRev` 1, so
+ *         its fundamental is the shaft rate the plant reports), its twelfth
+ *         harmonic the blade pass and its twenty fourth the pass's octave
+ *         (fanWave). The lowpass cap that keeps the props' 2 to 8 kHz band
+ *         quiet would take the whine away, so this voice carries its own,
+ *         `lpCap`, over the blade pass at full throttle, and a `gain` that
+ *         takes the stem 9.5 dB under a prop's so a tone that high is not
+ *         a hurt. The fan spools behind the stick in the plant, so the
+ *         whine rises and falls a beat after the throttle, as a real one
+ *         does.
  *
  * `perRev` is how many periods of the voice's wave one revolution makes,
  * which for a prop's own tone is its blade count; `lpTrack` is where the
- * motor lowpass sits as a multiple of that frequency.
+ * motor lowpass sits as a multiple of that frequency; `lpCap`, where given,
+ * replaces MOTOR_LP_CAP for that voice, and `gain` scales its stem.
  */
 export const VOICES = {
   quad: { perRev: 3, wave: 'blade', lpTrack: 3.4, rpmFull: 9000, speedFull: 32, pan: [0.45, 0.32, -0.45, -0.32], windCorner: 900, windOpen: 0 },
   wing: { perRev: 2, wave: 'blade', lpTrack: 3.4, rpmFull: 17600, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
   glow4: { perRev: 1 / 8, wave: 'fourStroke', lpTrack: 48, rpmFull: 9500, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
   glow2: { perRev: 1 / 4, wave: 'twoStroke', lpTrack: 24, rpmFull: 9350, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
+  edf: { perRev: 1, wave: 'fan', lpTrack: 14, lpCap: 10000, gain: 0.335, rpmFull: 41700, speedFull: 46, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
 };
 
 /*
@@ -247,8 +264,30 @@ function exhaustWave(cyclesTable, suckBack, bladePasses) {
   }
   return { real, imag };
 }
+/* A twelve blade fan, one revolution long: the shaft's rate and its
+ * first harmonics faint, the blade pass (the twelfth) the tone, its
+ * octave and twelfth under it, and a sideband either side of the pass
+ * where the rotor's small imbalance modulates it. Magnitudes from the
+ * shape of a ducted rotor's published spectra, tonal at the blade pass
+ * over a broadband floor (Weinstein et al.'s EDF, and the aeroacoustics of
+ * electric ducted fans surveyed in Aerospace Science and Technology,
+ * 2024); no recording was used. */
+function fanWave() {
+  const real = new Float32Array(37);
+  const imag = new Float32Array(37);
+  const tone = { 1: 0.10, 2: 0.06, 3: 0.03, 11: 0.10, 12: 1.0, 13: 0.10, 24: 0.28, 36: 0.08 };
+  let k = 0;
+  for (const [h, a] of Object.entries(tone)) {
+    const phase = 0.7 * k;
+    real[Number(h)] = a * Math.cos(phase);
+    imag[Number(h)] = a * Math.sin(phase);
+    k += 1;
+  }
+  return { real, imag };
+}
 const WAVES = {
   blade: () => ({ real: new Float32Array(MOTOR_WAVE_REAL), imag: new Float32Array(MOTOR_WAVE_IMAG) }),
+  fan: fanWave,
   fourStroke: fourStrokeWave,
   twoStroke: twoStrokeWave,
 };
@@ -770,6 +809,83 @@ export class MotorAudio {
     this.wreckGain = wreckGain;
     this.wreckBp = wreckBp;
 
+    /*
+     * The combat cut's SCHWING (docs/COMBAT-PLAN.md section 5.4), a sword
+     * drawn, all synthesis, no sample: the lead's recipe, which the owner
+     * heard rendered and chose. A blade scrape (the wreck's noise, band
+     * passed and swept up, gated at 380 Hz into a rasp), a whoosh (a lower
+     * band swept up), a shing (a high band struck), and the blade's ring:
+     * four partials at the inharmonic 1, 2.76, 5.40, 8.93 of a thin bar,
+     * the fundamental doubled 0.35 percent sharp for its shimmer, each
+     * higher partial dying faster, into the master's tanh. Eighteen nodes,
+     * made once, fed by the wreck voice's noise loop; schwing() only moves
+     * their envelopes. Only the fundamental is doubled: the graph's budget
+     * is 64 nodes (tests/thresholds.json max_nodes), and a pair on every
+     * partial would pass it.
+     */
+    const bandOf = (type, q) => {
+      const f = keep(ctx.createBiquadFilter());
+      f.type = type;
+      f.Q.value = q;
+      return f;
+    };
+    const envOf = () => {
+      const g = keep(ctx.createGain());
+      g.gain.value = 0;
+      return g;
+    };
+    const scrapeBp = bandOf('bandpass', 2.2);
+    const scrapeGate = keep(ctx.createGain());
+    scrapeGate.gain.value = 0.625;
+    const gateOsc = keep(ctx.createOscillator());
+    /* A square of amplitude 0.375 about 0.625: the gate's 1.0 and 0.25. */
+    const sq = new Float32Array(16);
+    const sqIm = new Float32Array(16);
+    for (let k = 1; k < 16; k += 2) {
+      sqIm[k] = (0.375 * 4) / (Math.PI * k);
+    }
+    gateOsc.setPeriodicWave(ctx.createPeriodicWave(sq, sqIm, { disableNormalization: true }));
+    gateOsc.frequency.value = 380;
+    gateOsc.connect(scrapeGate.gain);
+    gateOsc.start();
+    const scrapeEnv = envOf();
+    wreckSrc.connect(scrapeBp);
+    scrapeBp.connect(scrapeGate);
+    scrapeGate.connect(scrapeEnv);
+    scrapeEnv.connect(shaper);
+    const whooshBp = bandOf('bandpass', 1.6);
+    const whooshEnv = envOf();
+    wreckSrc.connect(whooshBp);
+    whooshBp.connect(whooshEnv);
+    whooshEnv.connect(shaper);
+    const shingBp = bandOf('bandpass', 3);
+    shingBp.frequency.value = 6500;
+    const shingEnv = envOf();
+    wreckSrc.connect(shingBp);
+    shingBp.connect(shingEnv);
+    shingEnv.connect(shaper);
+    const ringEnv = envOf();
+    ringEnv.connect(shaper);
+    const partials = [];
+    for (const [k, ratio] of [1, 2.76, 5.4, 8.93].entries()) {
+      const g = envOf();
+      g.connect(ringEnv);
+      const oscs = [];
+      for (const detune of k === 0 ? [1, 1.0035] : [1]) {
+        const o = keep(ctx.createOscillator());
+        o.type = 'sine';
+        o.frequency.value = 560 * ratio * detune;
+        o.connect(g);
+        o.start();
+        oscs.push({ o, mult: ratio * detune });
+      }
+      partials.push({ g, oscs, amp: [1, 0.7, 0.45, 0.28][k], rate: 1.2 + 1.8 * k });
+    }
+    this.schwingVoice = {
+      scrapeBp, scrapeEnv, whooshBp, whooshEnv, shingEnv, ringEnv, partials,
+    };
+    this.schwings = 0;
+
     /* The bed. It brings its own nodes and counts them through keep. */
     this.music.attach(ctx, shaper, keep);
     this.music.setLevel(this.mix.music);
@@ -968,6 +1084,60 @@ export class MotorAudio {
   }
 
   /*
+   * A combat cut: level 1 for the pilot who made it, lower for everyone
+   * else who saw it. On its own voice, and through the master like every
+   * cue, so the sound setting and the volume hold for it too.
+   */
+  schwing(level = 1, atTime) {
+    if (!this.ctx || !this.schwingVoice) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const lv = Math.max(0.05, Math.min(1, level));
+    const v = this.schwingVoice;
+    const params = [v.scrapeBp.frequency, v.scrapeEnv.gain, v.whooshBp.frequency, v.whooshEnv.gain, v.shingEnv.gain, v.ringEnv.gain];
+    for (const p of v.partials) {
+      params.push(p.g.gain, ...p.oscs.map((x) => x.o.frequency));
+    }
+    for (const p of params) {
+      p.cancelScheduledValues(t);
+    }
+    /* (a) The scrape, 0 to 170 ms: 900 Hz to 4.5 kHz, up to 1.3 at 50 ms. */
+    v.scrapeBp.frequency.setValueAtTime(900, t);
+    v.scrapeBp.frequency.exponentialRampToValueAtTime(4500, t + 0.15);
+    v.scrapeEnv.gain.setValueAtTime(0.0001, t);
+    v.scrapeEnv.gain.exponentialRampToValueAtTime(1.3 * lv, t + 0.05);
+    v.scrapeEnv.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+    /* (b) The whoosh: 350 Hz to 3.5 kHz over 160 ms, 1.4 at 100 ms. */
+    v.whooshBp.frequency.setValueAtTime(350, t);
+    v.whooshBp.frequency.exponentialRampToValueAtTime(3500, t + 0.16);
+    v.whooshEnv.gain.setValueAtTime(0.0001, t);
+    v.whooshEnv.gain.exponentialRampToValueAtTime(1.4 * lv, t + 0.1);
+    v.whooshEnv.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    /* (c) The shing, struck at 100 ms: 4 ms to 0.5, gone over 450 ms. */
+    const at = t + 0.1;
+    v.shingEnv.gain.setValueAtTime(0.0001, at);
+    v.shingEnv.gain.exponentialRampToValueAtTime(0.5 * lv, at + 0.004);
+    v.shingEnv.gain.exponentialRampToValueAtTime(0.0001, at + 0.45);
+    /* (d) The ring, struck at 100 ms: the base swept 560 to 1150 Hz in 40
+     * ms, each partial dying at its own rate, the whole 4 ms to 0.6 and
+     * silent by 1.5 s. */
+    for (const p of v.partials) {
+      for (const { o, mult } of p.oscs) {
+        o.frequency.setValueAtTime(560 * mult, at);
+        o.frequency.exponentialRampToValueAtTime(1150 * mult, at + 0.04);
+      }
+      p.g.gain.setValueAtTime(p.amp / p.oscs.length, at);
+      p.g.gain.setTargetAtTime(0.0001, at, 1 / p.rate);
+    }
+    v.ringEnv.gain.setValueAtTime(0.0001, at);
+    v.ringEnv.gain.exponentialRampToValueAtTime(0.6 * lv, at + 0.004);
+    v.ringEnv.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+    this.schwings += 1;
+    this.duckFlight(t, 0.7, 0.3);
+  }
+
+  /*
    * Menu sounds: the same click family as the gate, small and dry. kind is
    * 'move', 'adjust', 'select' or 'back'. Runs on the same two pooled cue
    * voices, so it creates nothing; it never ducks anything, because a menu
@@ -1089,7 +1259,7 @@ export class MotorAudio {
       /* setTargetAtTime, not linearRamp: the ear hears a step in
        * frequency as a click, and the motors change fast. */
       node.osc.frequency.setTargetAtTime(hz, t, 0.012);
-      const corner = Math.min(MOTOR_LP_CAP, Math.max(MOTOR_LP_FLOOR, hz * voice.lpTrack));
+      const corner = Math.min(voice.lpCap ?? MOTOR_LP_CAP, Math.max(MOTOR_LP_FLOOR, hz * voice.lpTrack));
       node.lp1.frequency.setTargetAtTime(corner, t, 0.03);
       /*
        * Loudness, LINEAR in throttle rather than squared.
@@ -1110,7 +1280,7 @@ export class MotorAudio {
        * 70 percent went and why it could not all come off here.
        */
       const loud = Math.min(1, r / voice.rpmFull);
-      node.gain.gain.setTargetAtTime(0.139 + 0.139 * loud, t, 0.03);
+      node.gain.gain.setTargetAtTime((0.139 + 0.139 * loud) * (voice.gain ?? 1), t, 0.03);
       if (loud > loudest) {
         loudest = loud;
       }

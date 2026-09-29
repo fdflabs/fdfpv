@@ -1,0 +1,61 @@
+# fdfpv-rooms.service: the rooms server (edge/rooms/node.js) on the VM.
+# Installed into /etc/systemd/system by deploy/vm/deploy.sh.
+#
+# This file is part of WebFPVSimulator.
+#
+# WebFPVSimulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# WebFPVSimulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+
+[Unit]
+Description=FDFPV rooms server
+After=network.target
+
+[Service]
+Type=simple
+User=fdfpv-rooms
+Group=fdfpv-rooms
+WorkingDirectory=/opt/fdfpv
+Environment=HOST=127.0.0.1 PORT=8797 PUBLIC_ROOMS=on ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db
+# node:sqlite is still marked experimental in Node 24 and says so on every
+# start; the journal does not need to hear it.
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning --max-old-space-size=192 edge/rooms/node.js
+Restart=always
+RestartSec=1
+# SIGTERM closes every socket with 1012 and the process exits in half a
+# second; five is the most it may take before systemd kills it.
+TimeoutStopSec=5
+StateDirectory=fdfpv-rooms
+StateDirectoryMode=0700
+# Measured 2026-09-28 on this VM (systemctl show -p MemoryPeak): 31 MB with
+# 8 pilots flying 3 minutes in one room, 34 MB with 32 pilots in four rooms
+# (rooms at 10% of the core, Caddy 6%); ps shows 70 MB RSS, part of it
+# the shared Node library the cgroup does not charge. The ceiling is about
+# seven times the cgroup peak, for public rooms of 16 and the heap's own
+# slack, and V8 is told a heap limit under it so it collects harder
+# instead of being killed.
+MemoryMax=256M
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

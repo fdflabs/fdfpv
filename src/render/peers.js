@@ -104,7 +104,7 @@ function nameTag(height, width) {
     sprite.visible = Boolean(text);
     texture.needsUpdate = true;
   }
-  return { sprite, set, texture };
+  return { sprite, set, texture, get: () => text };
 }
 
 /* Geometry and materials, released; a material another model shares
@@ -154,28 +154,29 @@ export function buildPeerCraft(profile, look = null) {
     }
   }
   const undoLook = look ? look(craft) : null;
+  /* The model's largest dimension, metres, measured once before the tag
+   * goes on: how big it stands on screen is what the peer marks
+   * (src/ui/peermarks.js) judge by. */
+  const size = new THREE.Box3().setFromObject(craft.group).getSize(new THREE.Vector3());
+  const extent = Math.max(size.x, size.y, size.z) || 1;
   const tag = nameTag(1.3, 2.2);
   craft.group.add(tag.sprite);
   const quad = !airframeById(id).fixedWing;
 
   let gear = 0;
+  let smokeOn = false;
   const nozzle = new THREE.Vector3();
   const vel = new THREE.Vector3();
   const chuteDir = [0, 1, 0];
   const bodyV = new THREE.Vector3();
   const qInv = new THREE.Quaternion();
 
-  /*
-   * Put the aircraft at a drawn pose (src/game/peer.js) with the moving
-   * parts from the newest sample `p`. simT is the sim clock the smoke's
-   * puffs are timed on, dt the frame's seconds.
-   */
-  function pose(drawn, p, dt, simT, viewHeight, fov) {
-    craft.group.position.set(drawn.px, drawn.py, drawn.pz);
-    craft.group.quaternion.set(drawn.qx, drawn.qy, drawn.qz, drawn.qw);
+  /* The moving parts from a sample `p`: the props turned by `spinK` of
+   * a live frame's turn, the retracts at `gearAt`, 0 down to 1 up. */
+  function drive(p, spinK, gearAt) {
     const rotors = (p.flags & FLAG_QUAD) ? [p.c0, p.c1, p.c2, p.c3] : [p.motor, p.motor, p.motor, p.motor];
     for (let m = 0; m < craft.discs.length && m < 4; m += 1) {
-      const spin = rotors[m] * 1e-4 + (rotors[m] > 0 ? 0.10 : 0);
+      const spin = (rotors[m] * 1e-4 + (rotors[m] > 0 ? 0.10 : 0)) * spinK;
       craft.discs[m].rotation.y += spin;
       if (craft.blades && craft.blades[m]) {
         craft.blades[m].rotation.y += spin * (craft.propSpin ? craft.propSpin[m] : 1);
@@ -191,11 +192,7 @@ export function buildPeerCraft(profile, look = null) {
       craft.setFlaps(p.flaps);
     }
     if (craft.setGear) {
-      /* The retracts travel in about two seconds; the wire says only
-       * whether they are down. */
-      const want = (p.flags & FLAG_GEAR_DOWN) ? 0 : 1;
-      gear += Math.max(-dt * 0.5, Math.min(dt * 0.5, want - gear));
-      craft.setGear(gear);
+      craft.setGear(gearAt);
     }
     if (craft.setChute) {
       if (p.flags & FLAG_CHUTE) {
@@ -212,25 +209,65 @@ export function buildPeerCraft(profile, look = null) {
         craft.setChute(0);
       }
     }
+  }
+
+  /*
+   * Put the aircraft at a drawn pose (src/game/peer.js) with the moving
+   * parts from the newest sample `p`. simT is the sim clock the smoke's
+   * puffs are timed on, dt the frame's seconds.
+   */
+  function pose(drawn, p, dt, simT, viewHeight, fov) {
+    craft.group.position.set(drawn.px, drawn.py, drawn.pz);
+    craft.group.quaternion.set(drawn.qx, drawn.qy, drawn.qz, drawn.qw);
+    if (craft.setGear) {
+      /* The retracts travel in about two seconds; the wire says only
+       * whether they are down. */
+      const want = (p.flags & FLAG_GEAR_DOWN) ? 0 : 1;
+      gear += Math.max(-dt * 0.5, Math.min(dt * 0.5, want - gear));
+    }
+    drive(p, 1, gear);
+    smokeOn = false;
     if (smoke) {
       const at = craft.group.userData.smokeNozzle;
-      const on = Boolean(at) && (p.flags & FLAG_SMOKE) !== 0;
-      if (on) {
+      smokeOn = Boolean(at) && (p.flags & FLAG_SMOKE) !== 0;
+      if (smokeOn) {
         craft.group.updateMatrixWorld(true);
         at.getWorldPosition(nozzle);
         vel.set(p.vx, p.vy, p.vz);
       }
-      smoke.update(simT, on ? nozzle : null, vel, viewHeight, fov);
+      smoke.update(simT, smokeOn ? nozzle : null, vel, viewHeight, fov);
     }
+  }
+
+  /* A recorded frame, for the crash cam's replay (src/replay/peers.js):
+   * the pose as it was drawn and the moving parts as they were, the props
+   * turned by spinK and the retracts where they stood. Its smoke is fed
+   * by the replay, which owns that clock. */
+  function replay(drawn, p, spinK, gearAt) {
+    craft.group.position.set(drawn.px, drawn.py, drawn.pz);
+    craft.group.quaternion.set(drawn.qx, drawn.qy, drawn.qz, drawn.qw);
+    drive(p, spinK, gearAt);
   }
 
   return {
     group: craft.group,
+    /* The blur discs, which a peer's wreck hides with its props. */
+    discs: craft.discs,
     smoke: smoke ? smoke.group : null,
     key: profileKey(profile),
     airframe: id,
+    extent,
     pose,
+    replay,
+    /* What the last pose drew, for the crash cam's recorder: the
+     * retracts, 0 down to 1 up, and the smoke's nozzle (world) while it
+     * trails, else null. */
+    gear: () => gear,
+    smokeAt: () => (smokeOn ? nozzle : null),
+    /* The trail itself (src/render/smoke.js), or null without the add on. */
+    trail: smoke,
     setLabel: tag.set,
+    label: tag.get,
     /* Each region's colour as drawn, #rrggbb, for a check; null on a quad. */
     paint() {
       if (!craft.livery) {

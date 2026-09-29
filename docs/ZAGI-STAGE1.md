@@ -192,9 +192,9 @@ for, and it is left as the upper bound it probably is (in a dive).
 
 Three capabilities, each general, each read only by a table that sets it.
 Every earlier table leaves them zero and runs exactly the arithmetic it
-ran before: gate Z17 holds all fifteen recorded flights of the other
+ran before: gate Z17 holds all sixteen recorded flights of the other
 aircraft bit identical, taken on main's module before the Zagi (main
-1cce6bb).
+c9d9eba, the F-16 in).
 
 1. **A flying wing's elevons on its strips.** The Edge brought
    `strip_tau`, the aileron's effectiveness on each of the four strips a
@@ -249,7 +249,7 @@ and never widened.
 | Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | lowest 0.21 m, 22.8 m: the shell's throw from shoulder height dips close to the grass before the motor comes on |
 | Z12 | the belly landing | | at rest upright, the CG 12 mm up | slid 1.4 m, at rest at 10.9 mm, level |
 | Z13 | circling a thermal's core, power off | | at least 0.3 m/s up, sinking in still air | 0.58 m/s up; 0.84 m/s down |
-| Z17 | every other aircraft's recorded hash | | 15 unmoved | all 15 |
+| Z17 | every other aircraft's recorded hash | | 16 unmoved | all 16 |
 | Z18 | Node and headless Chrome on the Zagi's recording | | identical | identical |
 
 What each is for:
