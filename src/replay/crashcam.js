@@ -201,10 +201,12 @@ export function createCrashCam(host) {
    * The other pilots in a room, once the room has drawn them this frame
    * (src/main.js calls it after roomFrame), into the row record() began.
    * `peers` is the room's map of them by seat (src/replay/peers.js add
-   * says what each carries). A frame record() wrote no row for writes
-   * nothing, and with nobody in the room nothing is touched.
+   * says what each carries), and `bubble` Catch the Ace's bubble as the
+   * room drew it (src/render/acebubble.js drawn). A frame record() wrote
+   * no row for writes nothing, and with nobody in the room nothing is
+   * touched.
    */
-  function recordPeers(peers) {
+  function recordPeers(peers, bubble) {
     if (!peers.size || S) {
       return;
     }
@@ -216,6 +218,7 @@ export function createCrashCam(host) {
         peerLog.push({ row: peerRing.row(), seat: peer.seat, at: [p.x, p.y, p.z] });
       }
     }
+    peerRing.bubble(bubble);
     if (peerRing.row() < 0) {
       return;
     }

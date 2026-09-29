@@ -13,30 +13,35 @@
  * Two kinds of run:
  *
  *   furball   four aircraft (planes and quads) on random smooth paths
- *             through one 12 m ball, so the Ace is passed round by real
- *             touches; one of them crashes for 3 s and flies on spawning
- *             for 5 s, and one pauses (sends nothing) for 1 s. A match
- *             to GOAL points, played until the room says it is over.
+ *             through one ball about 36 m across, so the Ace is passed
+ *             round through its bubble; one of them crashes for 3 s and
+ *             flies on spawning for 5 s, and one pauses (sends nothing)
+ *             for 1 s. A match to GOAL points, played until the room says
+ *             it is over.
  *   pass      the edges, scripted: a hunter passing the Ace head on with
- *             a truth box gap from 0.30 to 1.30 m in 5 cm steps (is it a
- *             tag?), and a hunter that touches the Ace and then keeps
- *             station 0.5 m off its wing (when is the tag back?).
+ *             its nearest part at a truth reach of 5.0 to 7.0 m from the
+ *             Ace's centre in 10 cm steps (is it a tag?), and a hunter
+ *             that flies into the bubble and then keeps station 3 m from
+ *             the Ace's centre (when is the tag back?).
  *
  * Every run is held to:
  *   1. every client's crown timeline and final scores are the room's
  *   2. the timeline and the scores are the zero latency run's, for every
  *      run whose samples all reached the room inside LATE_MS
- *   3. no false tag: at every tag the true paths are within TAG_M (plus
- *      5 cm, the 30 Hz interpolation) of each other on every axis
- *   4. no miss: a pass 15 cm or more inside TAG_M is a tag
- *   5. tag back protection: no crown changes by touch inside PROTECT_MS of
+ *   3. no false tag: at every tag the hunter's true hull is within
+ *      BUBBLE_M (plus 5 cm, the 30 Hz interpolation) of the Ace's true
+ *      centre
+ *   4. no miss: a pass 15 cm or more inside BUBBLE_M is a tag, and the
+ *      owner's two numbers: a pass at 6.5 m is never a tag, on any run,
+ *      and one at 5.5 m always is, on every run inside LATE_MS
+ *   5. tag back protection: no crown changes by a tag inside PROTECT_MS of
  *      the last change, and the station keeper's tag back is at exactly
  *      PROTECT_MS and a millisecond
  *   6. the scores add up: recounted from the script (the crown timeline,
  *      and the Ace's sampled flags and gaps), every seat's ms is the room's
  *   7. the match ends at exactly the goal: the winner has GOAL x 1000 ms,
  *      nobody else has as much, and the recount reaches it at endAt
- * and reports the decision delay (decided less the touch). Run 1 has
+ * and reports the decision delay (decided less the tag). Run 1 has
  * exact clocks; run 2 puts each client's clock off by up to 10 ms either
  * way, holds rows 1, 2, 5, 6, 7 and reports the band for 3 and 4.
  *
@@ -67,10 +72,9 @@ import {
 } from '../src/share/roomwire.js';
 import { RoomCore, PRIVATE_CAP } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
-import { TAG_M } from '../edge/rooms/tag.js';
-import { POINT_MS, PROTECT_MS } from '../src/share/roomtag.js';
+import { BUBBLE_M, POINT_MS, PROTECT_MS } from '../src/share/roomtag.js';
 import {
-  GAP_MS, LATE_MS, Track, hullFor, judge,
+  GAP_MS, LATE_MS, hullDistance, hullFor,
 } from '../src/game/midair.js';
 
 const arg = (name, dflt) => {
@@ -91,6 +95,10 @@ const FURBALL_END = GO + 240000; /* a match not over by then fails row 7 */
 const Y = 100;
 const DEEP_M = 0.15;
 const INTERP_M = 0.05;
+/* The furball's ball, as a multiple of two sines of 2.5 to 5 m a side,
+ * each slowed by as much so the speeds are the small ball's: big enough
+ * that a 6 m bubble is entered and left, not lived in. */
+const BALL = 3;
 
 /* ------------------------------------------------------------ helpers */
 
@@ -116,8 +124,8 @@ function headingQ(vx, vz) {
 /* A random smooth path through the ball: two sines on each axis. */
 function wander(rand) {
   const terms = [0, 1, 2].map((k) => [0, 1].map(() => ({
-    a: (k === 1 ? 1 : 2.5) + rand() * (k === 1 ? 1.5 : 2.5),
-    w: 0.6 + rand() * 0.8,
+    a: BALL * ((k === 1 ? 1 : 2.5) + rand() * (k === 1 ? 1.5 : 2.5)),
+    w: (0.6 + rand() * 0.8) / BALL,
     p: rand() * 2 * Math.PI,
   })));
   return (t) => {
@@ -143,13 +151,26 @@ function level(z, v, x0) {
   });
 }
 
-/* The widest half extent of a hull along the Three.js body's x, the span
- * of a plane, the width of a quad. */
-function halfSpan(airframe) {
-  const h = hullFor(airframe).hull;
-  let hi = 0;
-  for (let i = 0; i < h.n; i += 1) {
-    hi = Math.max(hi, Math.abs(h.cx[i]) + h.hx[i]);
+/* How far a pose's nearest part box is from the point (x, y, z): the
+ * referee's own measure (src/game/midair.js hullDistance). */
+function reachOf(airframe, pose, x, y, z) {
+  return hullDistance(hullFor(airframe), pose, x, y, z);
+}
+
+/* The side offset, level at Y heading along x at speed v, that puts an
+ * airframe's nearest part `reach` from a point on the line beside it, by
+ * bisection: the reach only grows with the offset. */
+function offsetFor(airframe, v, reach) {
+  const q = headingQ(v, 0);
+  let lo = 0;
+  let hi = 30;
+  while (hi - lo > 1e-9) {
+    const mid = (lo + hi) / 2;
+    if (reachOf(airframe, { px: 0, py: Y, pz: mid, ...q }, 0, Y, 0) < reach) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
   }
   return hi;
 }
@@ -220,7 +241,7 @@ class Queue {
  * events per seat: crash [t0, t1] (FLAG_CRASHED, then FLAG_SPAWNING for
  * 5 s, as the client sets them), pause [t0, t1] (nothing sent), ace: the
  * seat the first draw gives, end: room ms to fly to, and for a pass its
- * truth gap }.
+ * truth reach }.
  */
 function furball(seed) {
   const rand = rng(seed * 31 + 7);
@@ -237,15 +258,16 @@ function furball(seed) {
   return { name: `furball ${seed}`, kind: 'furball', air, paths, events, pick: rand(), end: FURBALL_END };
 }
 
-/* Head on, the hunter's wingtip passing the Ace's at a truth box gap. */
-function pass(gap) {
+/* Head on, the hunter's nearest part passing `reach` from the Ace's
+ * centre. */
+function pass(reach) {
   const air = ['cub1400', 'cub1400'];
-  const off = 2 * halfSpan('cub1400') + gap;
+  const off = offsetFor(air[0], -20, reach);
   const meet = GO + PROTECT_MS + 2000;
   return {
-    name: `pass ${gap.toFixed(2)} m`,
+    name: `pass ${reach.toFixed(2)} m`,
     kind: 'pass',
-    gap,
+    reach,
     air,
     /* Seat 1 is the hunter, seat 2 the Ace (the draw is made to say so). */
     paths: [level(off, -20, 20 * meet / 1000), level(0, 20, -20 * meet / 1000)],
@@ -256,11 +278,11 @@ function pass(gap) {
   };
 }
 
-/* The hunter slides in beside the Ace and keeps station 0.5 m off its
- * wingtip: a tag, then, PROTECT_MS later, the tag back. */
+/* The hunter slides in beside the Ace and keeps station 3 m from its
+ * centre: a tag, then, PROTECT_MS later, the tag back. */
 function station() {
   const air = ['cub1400', 'cub1400'];
-  const off = 2 * halfSpan('cub1400') + 0.5;
+  const off = offsetFor(air[0], 18, BUBBLE_M / 2);
   const from = GO + PROTECT_MS + 1000;
   const ace = level(0, 18, 0);
   return {
@@ -279,8 +301,8 @@ function scenarios() {
   for (let s = 1; s <= SEEDS; s += 1) {
     out.push(furball(s));
   }
-  for (let cm = 30; cm <= 130; cm += 5) {
-    out.push(pass(cm / 100));
+  for (let dm = 50; dm <= 70; dm += 1) {
+    out.push(pass(dm / 10));
   }
   out.push(station());
   return out;
@@ -452,42 +474,20 @@ function recount(res, sc) {
   return { ms, reachedAt };
 }
 
-/* The truth box gap at t between two seats, by bisection on judge's gap,
- * over the scripted paths themselves on the millisecond. */
-function truthGap(sc, a, b, t) {
-  const hA = hullFor(sc.air[a - 1]);
-  const hB = hullFor(sc.air[b - 1]);
-  const tA = new Track(Infinity);
-  const tB = new Track(Infinity);
-  for (let u = t - 2; u <= t + 1; u += 1) {
-    tA.push({ t: u, ...sc.paths[a - 1](u), flags: FLAG_AIRBORNE });
-    tB.push({ t: u, ...sc.paths[b - 1](u), flags: FLAG_AIRBORNE });
-  }
-  let lo = 0;
-  let hi = 5;
-  if (!judge(hA, hB, tA, tB, t - 1, t, -hi)) {
-    return Infinity;
-  }
-  if (judge(hA, hB, tA, tB, t - 1, t, 0)) {
-    return 0;
-  }
-  while (hi - lo > 0.002) {
-    const mid = (lo + hi) / 2;
-    if (judge(hA, hB, tA, tB, t - 1, t, -mid)) {
-      hi = mid;
-    } else {
-      lo = mid;
-    }
-  }
-  return hi;
+/* The truth reach at t: how far the hunter's nearest part is from the
+ * Ace's centre, on the scripted paths themselves on the millisecond. */
+function truthReach(sc, ace, hunter, t) {
+  const a = sc.paths[ace - 1](t);
+  return reachOf(sc.air[hunter - 1], sc.paths[hunter - 1](t), a.px, a.py, a.pz);
 }
 
 /* One scenario over RUNS random latency assignments and a zero latency
  * reference, for one clock mode. */
 function sweep(sc, clock) {
   const r = {
-    name: sc.name, kind: sc.kind, gap: sc.gap ?? null, runs: 0, disagree: 0, notRef: 0, lateRuns: 0, falseTags: 0, misses: 0,
-    protect: 0, badScores: 0, badEnd: 0, notOver: 0, hits: 0, tags: 0, tagRuns: 0, onTimeRuns: 0, delays: [], gaps: [], stationBack: [], examples: [],
+    name: sc.name, kind: sc.kind, reach: sc.reach ?? null, runs: 0, disagree: 0, notRef: 0, lateRuns: 0, falseTags: 0, misses: 0,
+    owner: 0, protect: 0, badScores: 0, badEnd: 0, notOver: 0, hits: 0, tags: 0, tagRuns: 0, onTimeRuns: 0, delays: [], reaches: [], stationBack: [],
+    examples: [],
   };
   const seeds = sc.kind === 'furball' ? [Number(sc.name.split(' ')[1])] : [1, 2, 3];
   for (const seed of seeds) {
@@ -525,20 +525,25 @@ function sweep(sc, clock) {
       const tags = res.log.filter((c) => c.why === 'tag');
       r.tags += tags.length;
       r.tagRuns += tags.length ? 1 : 0;
-      /* 3. no false tag: the truth gap at every tag. */
+      /* 3. no false tag: the truth reach at every tag. */
       for (const c of tags) {
-        const g = truthGap(sc, c.seat, c.from, c.t);
-        r.gaps.push(g);
-        if (g > TAG_M + INTERP_M) {
+        const g = truthReach(sc, c.from, c.seat, c.t);
+        r.reaches.push(g);
+        if (g > BUBBLE_M + INTERP_M) {
           r.falseTags += 1;
-          note(`false tag at ${c.t}: truth gap ${g.toFixed(3)} m`);
+          note(`false tag at ${c.t}: truth reach ${g.toFixed(3)} m`);
         }
         r.delays.push(c.decided - c.t);
       }
-      /* 4. a pass deep inside TAG_M is a tag, when the run is on time. */
-      if (sc.kind === 'pass' && onTime && sc.gap <= TAG_M - DEEP_M && !tags.length) {
+      /* 4. a pass deep inside BUBBLE_M is a tag, when the run is on time;
+       * the owner's 6.5 m never is and 5.5 m always is. */
+      if (sc.kind === 'pass' && onTime && sc.reach <= BUBBLE_M - DEEP_M && !tags.length) {
         r.misses += 1;
-        note(`miss at ${sc.gap} m`);
+        note(`miss at ${sc.reach} m`);
+      }
+      if (sc.kind === 'pass' && ((sc.reach === 6.5 && tags.length) || (sc.reach === 5.5 && onTime && !tags.length))) {
+        r.owner += 1;
+        note(`${tags.length ? 'a tag' : 'no tag'} at ${sc.reach} m`);
       }
       /* 5. protection. */
       for (let i = 1; i < res.log.length; i += 1) {
@@ -604,8 +609,8 @@ function report(clock, results) {
   const passes = results.filter((r) => r.kind === 'pass');
   console.log(`\nrun ${clock + 1}, ${clock ? 'clocks off by up to 10 ms either way' : 'exact clocks'}: ${sum('runs')} runs, ${sum('onTimeRuns')} of them inside LATE_MS`);
   console.log(`    furballs: ${furballs.length} seeds x ${RUNS} runs, ${sum('tags', furballs)} tags in ${sum('tagRuns', furballs)} runs, mid air hits sent during the matches: ${sum('hits', furballs)}`);
-  const band = passes.map((r) => `${Math.round(r.gap * 100)}:${Math.round((100 * r.tagRuns) / Math.max(1, r.runs))}%`).join(' ');
-  console.log(`    head on pass, truth box gap cm: percent of runs judged a tag (TAG_M ${TAG_M * 100} cm)\n      ${band}`);
+  const band = passes.map((r) => `${r.reach.toFixed(1)}:${Math.round((100 * r.tagRuns) / Math.max(1, r.runs))}%`).join(' ');
+  console.log(`    head on pass, truth reach from the Ace's centre in m: percent of runs judged a tag (BUBBLE_M ${BUBBLE_M} m)\n      ${band}`);
   const station = results.find((r) => r.kind === 'station');
   if (station) {
     console.log(`    station keeping: the tag back came ${[...new Set(station.stationBack)].join(', ')} ms after the tag (PROTECT_MS ${PROTECT_MS})`);
@@ -623,14 +628,16 @@ function report(clock, results) {
   row('the scores add up to the recount from the script', sum('badScores') === 0, `${sum('badScores')} of ${runs} runs off`);
   row(`every furball ends at exactly ${GOAL} points, the first to get there`, sum('badEnd') === 0 && sum('notOver') === 0,
     `${sum('badEnd')} wrong ends, ${sum('notOver')} not over`);
-  const gaps = all('gaps').filter(Number.isFinite);
+  const reaches = all('reaches').filter(Number.isFinite);
   const accuracy = (name, ok, detail) => (clock ? console.log(`  band  ${name}  (${detail})`) : row(name, ok, detail));
-  accuracy(`no false tag: the truth gap at every tag is within TAG_M plus ${INTERP_M * 100} cm`, sum('falseTags') === 0,
-    `${sum('falseTags')} false of ${gaps.length}; truth gap at the tag max ${pct(gaps, 1).toFixed(3)} m, p95 ${pct(gaps, 0.95).toFixed(3)} m`);
-  accuracy(`no miss: a pass ${DEEP_M * 100} cm or more inside TAG_M is a tag`, sum('misses') === 0, `${sum('misses')} misses`);
+  accuracy(`no false tag: the truth reach at every tag is within BUBBLE_M plus ${INTERP_M * 100} cm`, sum('falseTags') === 0,
+    `${sum('falseTags')} false of ${reaches.length}; truth reach at the tag max ${pct(reaches, 1).toFixed(3)} m, p95 ${pct(reaches, 0.95).toFixed(3)} m`);
+  accuracy(`no miss: a pass ${DEEP_M * 100} cm or more inside BUBBLE_M is a tag`, sum('misses') === 0, `${sum('misses')} misses`);
+  row('a pass 6.5 m from the Ace\'s centre is never a tag, and one at 5.5 m always is', sum('owner') === 0,
+    `${sum('owner')} wrong; 6.5 m tagged in ${passes.find((x) => x.reach === 6.5).tagRuns} of ${passes.find((x) => x.reach === 6.5).runs}, 5.5 m in ${passes.find((x) => x.reach === 5.5).tagRuns} of ${passes.find((x) => x.reach === 5.5).runs}`);
   const d = all('delays');
-  console.log(`  info  decision delay, tag decided less the touch: median ${pct(d, 0.5).toFixed(0)} ms, p95 ${pct(d, 0.95).toFixed(0)} ms, max ${pct(d, 1).toFixed(0)} ms over ${d.length} tags (LATE_MS ${LATE_MS})`);
-  row('no tag is decided later than LATE_MS and a tick after the touch', !(pct(d, 1) > LATE_MS + SAMPLE_MS), `max ${pct(d, 1).toFixed(0)} ms`);
+  console.log(`  info  decision delay, tag decided less the tag: median ${pct(d, 0.5).toFixed(0)} ms, p95 ${pct(d, 0.95).toFixed(0)} ms, max ${pct(d, 1).toFixed(0)} ms over ${d.length} tags (LATE_MS ${LATE_MS})`);
+  row('no tag is decided later than LATE_MS and a tick after it happened', !(pct(d, 1) > LATE_MS + SAMPLE_MS), `max ${pct(d, 1).toFixed(0)} ms`);
   return failed;
 }
 

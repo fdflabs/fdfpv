@@ -17,6 +17,10 @@
  * and a smoke trail is flown again from the rows before, the way the
  * replay's own craft does it (src/replay/crashcam.js smokeTo).
  *
+ * Catch the Ace's bubble, when the clip has one, is the live one's mesh
+ * (src/render/acebubble.js) put where the row says it was drawn, as big
+ * and as bright.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -35,10 +39,13 @@
 
 import * as THREE from 'three';
 import { buildPeerCraft, buildPilotFigure } from '../render/peers.js';
+import { createAceBubble } from '../render/acebubble.js';
 import { createPeerWreck } from '../share/roomwrecks.js';
 import { LIFE_S as SMOKE_LIFE_S } from '../render/smoke.js';
 import { PARTS_MAX } from '../../configs/parts.js';
-import { PEER, PEER_N, PIECE_N, createPeerSample, samplePeers } from './peers.js';
+import {
+  PEER, PEER_N, PIECE_N, bubbleAt, createPeerSample, samplePeers,
+} from './peers.js';
 
 /*
  * `peers` is a clip's, `time` its clock and `n` its rows; `parent` the
@@ -49,6 +56,13 @@ export function createPeerScene(peers, time, n, parent, look) {
   const drawn = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1 };
   const nozzle = new THREE.Vector3();
   const vel = new THREE.Vector3();
+  const bubble = peers.bubble ? createAceBubble() : null;
+  const bubbleNow = {
+    r: 0, x: 0, y: 0, z: 0, level: 0,
+  };
+  if (bubble) {
+    parent.add(bubble.mesh);
+  }
 
   /* One per id, in `who` order: id i + 1 is entries[i]. */
   const entries = peers.who.map((w) => {
@@ -106,6 +120,10 @@ export function createPeerScene(peers, time, n, parent, look) {
    */
   function pose(k, a, spinK, labels, inside) {
     samplePeers(peers, n, k, a, sample);
+    if (bubble) {
+      const b = bubbleAt(peers.bubble, n, k, a, bubbleNow);
+      bubble.set(b.r, b.x, b.y, b.z, b.level);
+    }
     for (const e of entries) {
       e.seen = false;
     }
@@ -221,6 +239,9 @@ export function createPeerScene(peers, time, n, parent, look) {
   }
 
   function dispose() {
+    if (bubble) {
+      bubble.dispose();
+    }
     for (const e of entries) {
       if (e.wreck) {
         e.wreck.dispose();

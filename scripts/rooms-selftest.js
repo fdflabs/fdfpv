@@ -42,7 +42,9 @@ import {
 } from '../edge/rooms/core.js';
 import { HULLS } from '../configs/hulls.js';
 import { AIRFRAME_IDS } from '../configs/airframes.js';
-import { BREAK_MPS, LATE_MS, checkHit } from '../src/game/midair.js';
+import {
+  BREAK_MPS, LATE_MS, checkHit, hullDistance, hullFor,
+} from '../src/game/midair.js';
 import { COUNTDOWN_MS, TRACK_MAX_BYTES, roomTrack } from '../edge/rooms/race.js';
 import { createRoomRace, orderStandings } from '../src/share/roomrace.js';
 import { Race, PLANE_REACH } from '../src/game/race.js';
@@ -61,10 +63,10 @@ import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { browserSection } from './rooms-selftest-browser.js';
 import { scaleSection } from './rooms-selftest-scale.js';
-import { DROP_MS, TAG_M } from '../edge/rooms/tag.js';
+import { DROP_MS } from '../edge/rooms/tag.js';
 import { RoomHost } from '../edge/rooms/host.js';
 import {
-  GOALS, GOAL_MAX, GOAL_MIN, PROTECT_MS, createRoomTag, goalOf,
+  BUBBLE_M, GOALS, GOAL_MAX, GOAL_MIN, PROTECT_MS, createRoomTag, goalOf,
 } from '../src/share/roomtag.js';
 
 let failed = 0;
@@ -1323,7 +1325,8 @@ console.log('catch the ace: starting a match');
     && live.crowns.length === 1 && live.crowns[0].why === 'start' && live.crowns[0].t === cd.goAt
     && [1, 2].every((i) => e.view(i).ace === 2));
   /* A flies over into B's lane and sits 0.5 m off its wingtip, from 1 s
-   * before the Ace's protection ends: the touch waits for it. */
+   * before the Ace's protection ends: deep in the bubble, and the tag
+   * waits for the protection. */
   const B = level(40);
   const meet = cd.goAt + PROTECT_MS - 1000;
   const CUB_SPAN = 1.4;
@@ -1332,11 +1335,11 @@ console.log('catch the ace: starting a match');
   e.fly(cd.goAt + PROTECT_MS + 600);
   const tagged = e.r.tag.log.find((c) => c.why === 'tag');
   check('the Ace is not touched while it is protected', tagged && tagged.t > cd.goAt + PROTECT_MS, tagged ? `${tagged.t - cd.goAt} ms after the go` : 'no tag');
-  check('and the first millisecond after, a touch at 0.5 m wingtip to wingtip takes the crown',
+  check('and the first millisecond after, the hunter already in the bubble takes the crown',
     tagged && tagged.t === cd.goAt + PROTECT_MS + 1 && tagged.seat === 1 && tagged.from === 2, tagged ? JSON.stringify(tagged) : '');
   check('every seat is told who and when, the same', [0, 1, 2].every((i) => JSON.stringify(e.view(i).crowns) === JSON.stringify(e.view(0).crowns))
     && e.view(0).ace === 1);
-  check(`a touch is a tag, not a crash: no mid air hit was sent (TAG_M ${TAG_M} m)`, e.hits === 0);
+  check('a touch is a tag, not a crash: no mid air hit was sent', e.hits === 0);
   /* B keeps station 0.5 m off A's wing: the tag back waits out A's three
    * seconds too. */
   e.fly(tagged.t + PROTECT_MS + 400);
@@ -1449,6 +1452,85 @@ console.log('catch the ace: starting a match');
   check('two hunters closing on the Ace from both sides: the same crowns, points and end with 0, 60, 150 and 300 ms of lag',
     [[150, 0, 300], [0, 300, 150], [60, 60, 60]].every((lag) => timeline(lag) === zero), zero);
   check(`and a seat later than LATE_MS (${LATE_MS} ms) is not waited for: the match still ends`, JSON.parse(timeline([0, 0, LATE_MS + 200])).end != null);
+
+  console.log('catch the ace: the bubble');
+  check(`every view of a live match says the bubble the room judges by, ${BUBBLE_M} m`, live.bubble === BUBBLE_M
+    && [0, 1, 2].every((i) => e.views(i).filter((x) => x.state === 'live').every((x) => x.bubble === BUBBLE_M)));
+  /* How far a Cub flying level beside the Ace (level() above) is from the
+   * Ace's centre: its nearest part box, the referee's own measure. */
+  const cubHull = hullFor('cub1400');
+  const reachAt = (dz) => hullDistance(cubHull, {
+    ...level(dz)(0), qx: 0, qz: 0,
+  }, 0, Y, 0);
+  /* The lateral offset at which that is d, by bisection: it only grows. */
+  const offsetFor = (d) => {
+    let lo = 0;
+    let hi = 20;
+    while (hi - lo > 1e-9) {
+      const mid = (lo + hi) / 2;
+      if (reachAt(mid) < d) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return hi;
+  };
+  const bubbleRoom = () => {
+    const x = tagRoom();
+    x.fly(1000);
+    x.say(0, { type: 'tag', op: 'start', goal: 60 });
+    return x;
+  };
+  /* Across from z0 to z1 beside the Ace's lane over `ms` from `at`,
+   * linear in time on the way, so the room's 30 Hz samples interpolate it
+   * exactly. */
+  const slide = (z0, z1, at, ms) => (t) => ({ ...level(40)(t), pz: z0 + (z1 - z0) * Math.max(0, Math.min(1, (t - at) / ms)) });
+  const outside = offsetFor(6.5);
+  const inside = offsetFor(5.5);
+  const b1 = bubbleRoom();
+  const go = b1.view(0).goAt;
+  b1.paths[0] = slide(0, 40 - outside, go + 200, 1000);
+  b1.fly(go + PROTECT_MS + 3000);
+  check(`a hunter holding 6.5 m from the Ace's centre (${outside.toFixed(2)} m centre to centre) never takes the crown`,
+    b1.r.tag.log.every((c) => c.why !== 'tag') && b1.view(0).ace === 2, b1.r.tag.log.map((c) => c.why).join(','));
+  const enterAt = b1.clock + 500;
+  const moving = slide(40 - outside, 40 - inside, enterAt, 1000);
+  b1.paths[0] = moving;
+  b1.fly(enterAt + 1500);
+  const bubbleTag = b1.r.tag.log.find((c) => c.why === 'tag');
+  /* The truth: the first whole millisecond the scripted path is inside. */
+  let crossed = null;
+  for (let t = enterAt; t <= enterAt + 1000 && crossed == null; t += 1) {
+    crossed = reachAt(40 - moving(t).pz) <= BUBBLE_M ? t : null;
+  }
+  const tagReach = bubbleTag ? reachAt(40 - moving(bubbleTag.t).pz) : NaN;
+  check('flying on in to 5.5 m, it takes the crown the first millisecond any part of it is inside the bubble',
+    bubbleTag && bubbleTag.seat === 1 && bubbleTag.from === 2 && bubbleTag.t === crossed,
+    bubbleTag ? `tag at ${bubbleTag.t}, truth ${crossed}, ${tagReach.toFixed(4)} m from the centre` : 'no tag');
+  /* The Ace's own hull reaches cubHull.hull.reach from its centre, so
+   * the two were never nearer than the difference: no touch. */
+  const apart = BUBBLE_M - cubHull.hull.reach;
+  check(`without touching: at the tag the two Cubs were over ${apart.toFixed(1)} m apart, and no mid air hit was sent`,
+    tagReach > BUBBLE_M - 0.05 && apart > 4 && b1.hits === 0, `${tagReach.toFixed(3)} m from the centre`);
+  /* Two hunters into the bubble on mirror paths, seats 1 and 3, sampled
+   * on phases of their own: one millisecond, one crown, to the lower
+   * seat, as a touch was. Alone, seat 3 enters at that same millisecond,
+   * so the tie was one. */
+  const pincer = (both) => {
+    const x = bubbleRoom();
+    const at = x.view(0).goAt + PROTECT_MS + 500;
+    const mirror = slide(0, 40 - inside, at, 1500);
+    x.paths[0] = both ? mirror : level(0);
+    x.paths[2] = (t) => ({ ...mirror(t), pz: 80 - mirror(t).pz });
+    x.fly(at + 2000);
+    return x.r.tag.log.filter((c) => c.why === 'tag');
+  };
+  const two = pincer(true);
+  const lone = pincer(false);
+  check('two hunters into the bubble the same millisecond: the lower seat takes the crown',
+    two.length >= 1 && two[0].seat === 1 && lone.length >= 1 && lone[0].seat === 3 && lone[0].t === two[0].t,
+    `both: ${JSON.stringify(two[0])}, seat 3 alone: ${JSON.stringify(lone[0])}`);
 }
 
 combatSection(check);
