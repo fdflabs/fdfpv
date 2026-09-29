@@ -108,7 +108,6 @@ const r = (id, stock, more = {}) => ({ id, stock, ...more });
 const src = (label, url) => ({ label, url });
 const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/Piper_J-3_Cub');
 const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
-const EF_SHEET = src('Extreme Flight 60 in Edge 540T data sheet, its covering colour codes', 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_60EDGE_1cb1926a-3a06-46ce-bfb4-18a18962d730.pdf');
 const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
 const FREEWING = 'https://www.freewing-model.com/';
 export const LIVERIES = {
@@ -196,17 +195,6 @@ export const LIVERIES = {
       { id: 'raf_silver', source: src('RAF Museum, Training Aircraft Colour Schemes', 'https://www.rafmuseum.org.uk/research/online-exhibitions/taking-flight/training-aircraft-colour-schemes/'), colours: { wing: '#c9ccce', fuselage: '#c9ccce', tail: '#c9ccce', cowl: '#b7babd', bands: '#f2c200', trim: '#17181a' } },
     ],
   },
-  quickie1293: {
-    /* Spickler's own as AAM's December 1972 colour photographs show it:
-     * white, a red sunburst fanning across each wing panel, a blue band
-     * along the leading edge with white stars, red and blue stripes down
-     * the fuselage and over the fin: "Stars and stripes, would you
-     * believe". */
-    regions: [r('wing', '#f1efe8'), r('fuselage', '#f1efe8'), r('tail', '#f1efe8'), r('stripe', '#c3161c'), r('trim', '#1d3f8f')],
-    schemes: [
-      { id: 'stock', source: src('American Aircraft Modeler, Quicky 500, December 1972 (Outerzone oz6868)', 'https://outerzone.co.uk/plan_details.asp?ID=6868'), colours: {} },
-    ],
-  },
   p51d1450: {
     /* FMS's natural metal P-51 as its manual photographs it: silver all
      * over, the red of the nose band, the spinner and the fin's top, and
@@ -214,37 +202,6 @@ export const LIVERIES = {
     regions: [r('wing', '#cad0d5'), r('fuselage', '#cad0d5'), r('tail', '#cad0d5'), r('trim', '#c8161a'), r('stripe', '#17191b')],
     schemes: [
       { id: 'stock', source: src('FMS P-51D Mustang V8 1450 mm, the manual\'s photographs', 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf'), colours: {} },
-    ],
-  },
-  extra1308: {
-    /* E-flite's moulded foam in its own paint: the nose and spats yellow
-     * orange, the wing's top white with grey outer panels (the tail's
-     * grey), its underside in yellow and black squares. */
-    regions: [r('wing', '#eceef0'), r('fuselage', '#eceef0'), r('nose', '#f2a81d'), r('tail', '#8a9096'), r('trim', '#16181a'), r('checks', '#f2b21d')],
-    schemes: [
-      { id: 'stock', source: src('E-flite Extra 300 3D 1.3m, EFL115500', 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'), colours: {} },
-      { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
-    ],
-  },
-  pitts850: {
-    /* E-flite's moulded foam in its own paint: red all over, the top
-     * wing's top a white sunburst from the cockpit, white bars across the
-     * bottom wing's underside, white pinstripes down the fuselage. */
-    regions: [r('wing', '#d42a22'), r('fuselage', '#d42a22'), r('tail', '#d42a22'), r('rays', '#f2f0ec'), r('trim', '#16181a')],
-    schemes: [
-      { id: 'stock', source: src('E-flite Pitts S-1S 850mm, EFL35500', 'https://www.horizonhobby.com/product/pitts-s-1s-bnf-basic-with-as3x-and-safe-select-850mm/EFL35500.html'), colours: {} },
-    ],
-  },
-  wot41334: {
-    /* Ripmax's white film with the Wot 4's box scheme bands, red, orange
-     * and yellow round the tips, along the fuselage and over the fin, the
-     * canopy black (the manual's cover); and the other decal set Ripmax
-     * sells for the Wot 4 Foam-E Mk2+, blue and black (Z-CF020/12B, the
-     * Foam-E manual's "Optional Decal Schemes"). */
-    regions: [r('wing', '#f2f1ec'), r('fuselage', '#f2f1ec'), r('tail', '#f2f1ec'), r('trim', '#d8232a'), r('stripe', '#f07c1e'), r('swoop', '#f6d418'), r('canopy', '#15171a')],
-    schemes: [
-      { id: 'stock', source: src('Ripmax Wot 4 Mk2 ARTF manual, its cover', 'https://web.archive.org/web/20240712155211id_/http://www.ripmax.com/Instructions/a-cf002-elp.pdf'), colours: {} },
-      { id: 'foam_blue', source: src('Ripmax Wot 4 Foam-E Mk2+ manual, the blue and black decals Z-CF020/12B', 'https://web.archive.org/web/20250121072146id_/http://www.ripmax.com/Instructions/a-cf020a.pdf'), colours: { trim: '#1c3f9e', stripe: '#16181a', swoop: '#3f7fd8' } },
     ],
   },
   nrj1490: {
@@ -280,18 +237,6 @@ export const LIVERIES = {
       { id: 'combat', source: src('Zagi, Zagi 5C product photograph', 'https://web.archive.org/web/2017/https://zagi.com/category/kits/'), colours: { wing: '#f0db2c', trim: '#17191b' } },
     ],
   },
-};
-
-/* Extreme Flight's two schemes for the 60 in Edge, from its data sheet's
- * colour codes: blue (Oracover Blue #50, Cub Yellow #30, Cadmium Yellow
- * #33, White, Dark Blue, Silver), the stock one the model draws, and red
- * (Ferrari Red #23, White #10, Pearl Charcoal #77, Silver, Black). */
-LIVERIES.edge1524 = {
-  regions: [r('wing', '#1d4fc4'), r('fuselage', '#1d4fc4'), r('tail', '#1d4fc4'), r('trim', '#f5d20f')],
-  schemes: [
-    { id: 'stock', source: EF_SHEET, colours: {} },
-    { id: 'ef_red', source: EF_SHEET, colours: { ...all('#dfdcd8', ['wing', 'fuselage', 'tail']), trim: '#ba100f' } },
-  ],
 };
 
 const FAMILY = { timber1500f: 'timber1500', cub1400f: 'cub1400' };

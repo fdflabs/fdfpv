@@ -1,5 +1,13 @@
 # P-51D Mustang, stage 1: the aircraft, the model and what it is meant to do
 
+**Removed aircraft.** The Edge 540, the Extra 300 3D, the Pitts S-1S, the
+Wot 4 and the Quickie 500 were removed from the game on 2026-09-29 at the
+owner's request, with their airframes, models, tunes, gates and recorded
+flights; their sim ids (13, 14, 18, 20 and 22) stay reserved. Where this
+document names them it is as a comparison or as the aircraft that brought
+a capability, and every capability this aircraft flies on stays in the
+plant.
+
 The owner asked for eleven all time great RC airplanes; this is the P-51
 Mustang, airframe 15 (`p51d1450`). This file gives every number the plant
 is built from with its formula and source, the three things the plant

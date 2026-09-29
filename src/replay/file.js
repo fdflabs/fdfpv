@@ -283,9 +283,10 @@ export function encodeReplay(clip) {
  * is the map a clip names when that map is what was refused, so the screen
  * can say a retired world by name rather than "not a replay". */
 class ReplayFileError extends Error {
-  constructor(message, map = null) {
+  constructor(message, map = null, airframe = null) {
     super(message);
     this.map = map;
+    this.airframe = airframe;
   }
 }
 
@@ -475,7 +476,7 @@ export function decodeReplay(buf, known = null) {
   }
   checkMeta(header.meta);
   if (known && !known.airframe(header.meta.airframe)) {
-    throw new ReplayFileError('its aircraft is not one this build flies');
+    throw new ReplayFileError('its aircraft is not one this build flies', null, header.meta.airframe);
   }
   if (known && !known.map(header.meta.map)) {
     throw new ReplayFileError('its map is not one this build has', header.meta.map);

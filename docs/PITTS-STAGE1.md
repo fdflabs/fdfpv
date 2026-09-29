@@ -1,5 +1,12 @@
 # Pitts S-1S, stage 1: the aircraft, the model and what it is meant to do
 
+**Removed on 2026-09-29.** The Pitts S-1S was removed from the game at the
+owner's request, with its airframe, model, tunes, gates and recorded
+flight; its sim id, 18, stays reserved. This document stays because the
+plant capability it derives, the second wing (`bip_*`, `biplane_lift`,
+`sim_wing_biplane`, scripts/lib/biplane.js), is the Tiger Moth's. The
+scripts and checks it names for the Pitts itself are in git history.
+
 The owner asked for eleven all time great RC aeroplanes, and this is id
 18: the Pitts Special, the aerobatic biplane. Why it is here: a biplane,
 very agile and short coupled, with abrupt snap stalls, which looks great

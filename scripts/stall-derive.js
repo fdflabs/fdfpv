@@ -193,30 +193,6 @@ planes.FW_KADET1981 = {
   note: 'a_w 4.533, a_t 4.154, V_H 0.549, deps/dalpha 0.380 (DATCOM), its own arms',
 };
 
-/* The Edge 540, docs/EDGE-STAGE1.md and scripts/edge-derive.js: its own
- * arms, the CG 4 in behind the root's leading edge, 1.5 in ahead of the
- * tapered wing's aerodynamic centre, and the tail's share from the
- * derivation's a_w, a_t, V_H and DATCOM's downwash. */
-planes.FW_EDGE1524 = {
-  arm_ac: -0.1200,
-  arm_cp: 0.2720,
-  dw: 0.9 * 0.487 * 3.754 * 0.549 / 4.435,
-  asym: TE_TOLERANCE / 0.3175,
-  note: 'a_w 4.435, a_t 3.754, V_H 0.487, deps/dalpha 0.549 (DATCOM), its own arms',
-};
-
-/* The Extra 300 3D, scripts/extra-derive.js: E-flite's 95 mm CG on the
- * measured taper's mean chord, the manual's CG at the wing's aerodynamic
- * centre within 2 mm, and the tail's share from the derivation's a_w,
- * a_t, V_H and Nelson's downwash. */
-planes.FW_EXTRA1308 = {
-  arm_ac: 0.0018,
-  arm_cp: 0.1482,
-  dw: 0.9 * 0.582 * 3.699 * 0.603 / 4.390,
-  asym: TE_TOLERANCE / 0.2927,
-  note: 'a_w 4.390, a_t 3.699, V_H 0.582, deps/dalpha 0.603 (Nelson), its own arms',
-};
-
 /* The F-16 V3, docs/F16-STAGE1.md and scripts/f16-derive.js: its own
  * arms on the manual's top view's mean chord, 0.2856 m, the CG 90 mm
  * behind the root leading edge, 0.195 of it, 16 mm ahead of the wing's
@@ -228,19 +204,6 @@ planes.FW_F16878 = {
   dw: 0.9 * 0.2942 * 2.644 * 0.647 / 3.142,
   asym: TE_TOLERANCE / 0.2856,
   note: 'a_w 3.142, a_t 2.644, V_H 0.294, deps/dalpha 0.647 (Nelson), its own arms',
-};
-
-/* The Pitts S-1S 850mm, scripts/pitts-derive.js: E-flite's 70 mm CG on the
- * two wings' mean chord, 0.0713 of it ahead of the cell's aerodynamic
- * centre, the plate's centre of pressure at 0.40 of it, and the tail's
- * share from the cell's a_w, its a_t, V_H and DATCOM's downwash on Munk's
- * equivalent span. Each wing's own arm is the cell's moved by bip_x. */
-planes.FW_PITTS850 = {
-  arm_ac: -0.0713,
-  arm_cp: 0.2213,
-  dw: 0.9 * 0.2803 * 3.5847 * 0.6401 / 4.0248,
-  asym: TE_TOLERANCE / 0.1880,
-  note: 'a_w 4.025 (the cell), a_t 3.585, V_H 0.280, deps/dalpha 0.640 (DATCOM), its own arms',
 };
 
 /* The Ugly Stik, docs/UGLYSTIK-STAGE1.md and scripts/uglystik-derive.js:
@@ -256,34 +219,11 @@ planes.FW_UGLYSTIK1567 = {
   note: 'a_w 4.427, a_t 3.880, V_H 0.435, deps/dalpha 0.416 (DATCOM), its own arms',
 };
 
-/* The Wot 4, docs/WOT4-STAGE1.md and scripts/wot4-derive.js: the
- * manual's 82 mm CG, 11 mm behind the constant chord's aerodynamic centre,
- * and the tail's share from the derivation's a_w, a_t, V_H and DATCOM's
- * downwash. */
-planes.FW_WOT41334 = {
-  arm_ac: 0.0374,
-  arm_cp: 0.1126,
-  dw: 0.9 * 0.405 * 4.138 * 0.427 / 4.401,
-  asym: TE_TOLERANCE / 0.2853,
-  note: 'a_w 4.401, a_t 4.138, V_H 0.405, deps/dalpha 0.427 (DATCOM), its own arms',
-};
 /* OA Composites' NRJ, scripts/dlg-derive.js: the manual's 66 mm CG on
  * the elliptic planform's mean chord, 0.1378 m, whose leading edge is
  * 24.5 mm behind the root's; the tail measured off Hyperflight's
  * photograph. */
 planes.FW_NRJ1490 = tailed({ b: 1.49, S: 0.190, c: 0.1378, hCG: 0.301, Sh: 0.020, lh: 0.56, bh: 0.30 });
-/* The Quickie 500, docs/QUICKIE-STAGE1.md and scripts/quickie-derive.js:
- * its own arms, the plan's CG 2.8 in behind the leading edge of the 10 in
- * chord, 0.3 in behind the wing's aerodynamic centre, and the tail's share
- * from the derivation's a_w, a_t, V_H and DATCOM's downwash. */
-planes.FW_QUICKIE1293 = {
-  arm_ac: 0.0303,
-  arm_cp: 0.1211,
-  dw: 0.9 * 0.460 * 3.590 * 0.405 / 4.500,
-  asym: TE_TOLERANCE / 0.2518,
-  note: 'a_w 4.500, a_t 3.590, V_H 0.460, deps/dalpha 0.405 (DATCOM), its own arms',
-};
-
 /* Great Planes' Tiger Moth, docs/TIGERMOTH-STAGE1.md and
  * scripts/tigermoth-derive.js: a biplane, its arms the cell's (the two
  * wings' aerodynamic centres by their shares of the lift, the biplane
@@ -346,27 +286,15 @@ const STRIPS = {
   /* Constant chord; the sheeted tips' rounding over the outer 3 of 39 in
    * is left out. */
   FW_KADET1981: strips(rect),
-  /* 15 in at the root to 10 in at the square tip, the taper's straight
-   * line: EF's photographs, the drawn model. */
-  FW_EDGE1524: strips(taper(10 / 15)),
-  /* E-flite's measured taper, 0.204 over 0.366. */
-  FW_EXTRA1308: strips(taper(0.557)),
-  /* Both of the Pitts's wings are rectangles, square to the flow. */
-  FW_PITTS850: strips(rect),
   /* The cropped delta's trapezoid, 414.5 mm at the centreline to 83 at
    * the tip; the strakes ahead of it are left out. */
   FW_F16878: strips(taper(0.201)),
   /* Constant chord; the raked tips over the outer 2.9 of 30.9 in are left
    * out, as the Kadet's rounding is. */
   FW_UGLYSTIK1567: strips(rect),
-  /* Constant chord; the rounded tips left out, as the Kadet's are. */
-  FW_WOT41334: strips(rect),
   /* The NRJ's elliptic chord, the tips' last few millimetres of rounding
    * left out. */
   FW_NRJ1490: strips((eta) => Math.sqrt(1 - eta * eta)),
-  /* Constant chord; the soft block tips, the outer 1.5 of 25.5 in, are
-   * left out. */
-  FW_QUICKIE1293: strips(rect),
   /* Both of the Tiger Moth's wings constant chord; the rounded tips are
    * left out, as the Kadet's rounding is. */
   FW_TIGERMOTH1803: strips(rect),
@@ -401,22 +329,6 @@ const SECTION = {
   /* A 13 percent flat bottomed section at 2e5 (9 m/s on 0.374 m): the
    * Clark-Y's at 2e5, held +6.7 deg. */
   FW_KADET1981: { sec: 'Clark-Y at 2e5', top: 6.7, k: 0.72 },
-  /* A symmetric section of about 12 percent at 2e5 (9.6 m/s on 0.317 m):
-   * none of the four sections above. A NACA 0012 at 1.79e5 stalls at
-   * about 10 deg with an abrupt drop, the short laminar bubble bursting
-   * (aerospaceweb, "NACA 0012 Lift Characteristics", after the wind
-   * tunnel data it cites); held 1 deg and falling to 0.60, ESTIMATED from
-   * that description, sharper than any section here. */
-  FW_EDGE1524: { sec: 'symmetric 12 percent at 2e5', top: 1.0, k: 0.60 },
-  /* A thick symmetric section at 2e5: ESTIMATED, a sharp stall held 2 deg
-   * and falling to 0.70, the NACA 0015's shape at a low Reynolds number
-   * (Sheldahl and Klimas, SAND80-2114, 1981), read loosely; UIUC has no
-   * symmetric section tested in the range. */
-  FW_EXTRA1308: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },
-  /* E-flite's moulded foam wings, a thin symmetric section at 1e5 to 2e5:
-   * the Edge's, held 1 deg and falling to 0.60, ESTIMATED; E-flite
-   * publishes no section. */
-  FW_PITTS850: { sec: 'symmetric 12 percent at 1e5 to 2e5', top: 1.0, k: 0.60 },
   /* No UIUC section: a thin 64A204 alone stalls at its leading edge, and
    * the strakes' vortex holds the lift on the F-16 past it (NASA TP-1538's
    * lift curve peaks 15 deg past its linear range). ESTIMATED: held 10 deg,
@@ -426,19 +338,11 @@ const SECTION = {
    * on its 0.33 m chord): the NACA 2415's at 2e5, the thick section here
    * that stalls from the trailing edge, held +4.2 deg then 0.76. */
   FW_UGLYSTIK1567: { sec: 'NACA 2415 at 2e5', top: 4.2, k: 0.76 },
-  /* A semi-symmetrical sport section of about 14 percent at 1.8e5 (9.3
-   * m/s on 0.285 m), the NACA 2415 standing for it: held +2.9 deg at 1e5
-   * and +4.2 at 2e5, interpolated +3.94; 0.765 and 0.76 of the peak after,
-   * 0.76. */
-  FW_WOT41334: { sec: 'NACA 2415 at 1.8e5', top: 3.94, k: 0.76 },
   /* A 6 percent F3K section at 5e4, thinner than the SD7037 (9.2
    * percent), which at 6e4 holds 1.8 deg: a thin section's bubble bursts
    * at its leading edge, so ESTIMATED sharper, held 1 deg and falling to
    * 0.80. No UIUC section this thin was tested at this Reynolds number. */
   FW_NRJ1490: { sec: '6 percent F3K section at 5e4, ESTIMATED', top: 1.0, k: 0.80 },
-  /* RCM's "15% Symmetrical" at 1.7e5 (10 m/s on 0.254 m): the Extra's
-   * thick symmetric section at 2e5, ESTIMATED as its is. */
-  FW_QUICKIE1293: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },
   /* A cambered trainer's section at 1.8e5 (10 m/s on the 0.268 m chord),
    * ESTIMATED of the Clark-Y's class, Great Planes publishing none: its
    * figures between 1e5 and 2e5, held +6.2 deg then 0.72, the Cub's and

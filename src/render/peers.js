@@ -47,7 +47,7 @@ import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
-import { airframeById } from '../../configs/airframes.js';
+import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { liveryKey, lookFor, normaliseEntry, paintable } from '../../configs/liveries.js';
 import { PROPS, normalisePlane } from '../../configs/hangar-parts.js';
 import { FIGURE_COUNT, FLAG_CHUTE, FLAG_GEAR_DOWN, FLAG_QUAD, FLAG_SMOKE } from '../share/roomwire.js';
@@ -138,7 +138,9 @@ export function profileKey(profile) {
  * setLabel, dispose }; smoke is a trail group for the scene or null.
  */
 export function buildPeerCraft(profile, look = null) {
-  const id = airframeById(profile.airframe).id;
+  /* A peer on an old tab can still fly an aircraft this build no longer
+   * has: it is drawn as that aircraft's successor, a plane for a plane. */
+  const id = airframeById(currentAirframeId(profile.airframe)).id;
   const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true });
   if (paintable(id)) {
     dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), profile.livery)));

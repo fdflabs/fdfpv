@@ -104,9 +104,6 @@ function tank(id, cc, m3, grams, source) {
  */
 const HH = 'https://www.horizonhobby.com/product/x/';
 const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
-const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
-const PITTS_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw927db137/Manuals/EFL35500_Manual_EN_548653.pdf';
-const PITTS_PAGE = 'https://www.horizonhobby.com/product/pitts-s-1s-bnf-basic-with-as3x-and-safe-select-850mm/EFL35500.html';
 const CNHL = 'https://chinahobbyline.com/products/';
 const SUNNYSKY = 'https://sunnyskyusa.com/products/sunnysky-x2820-brushless-motors';
 const SONIC_SKY = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
@@ -130,8 +127,6 @@ const RCU_61FX = 'https://www.rcuniverse.com/forum/glow-engines-114/6767782-o-s-
 const RCM_STIK = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
 const GP_TIGER = 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf';
 const OS_FS91 = 'https://www.os-engines.co.jp/english/line_up/engine/air/single/manual/fs70-91s2_series.pdf';
-const QUICKIE_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6868';
-const CHINN_KB40 = 'https://sceptreflight.com/Model%20Engine%20Tests/K&B%2040%20Series%2070F%20RC.html';
 const FREEWING_F16 = 'https://www.freewing-model.com/freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html';
 const FREEWING_F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const FREEWING_F16_4S = 'https://freewing-model.com/freewing-f-16-v2-4s-standard-70mm-edf-jet-pnp-rc-airplane.html';
@@ -180,15 +175,6 @@ export const TABLE = {
   /* No motor and no POWER entry: the NRJ's plant table, its 1S receiver
    * pack, and its best glide for a cruise (docs/DLG-STAGE1.md). */
   nrj1490: { simId: 21, massKg: 0.213, cells: 1, rCell: 0.10, propIn: 0, cruiseMs: 5.14, flightTime: null },
-  edge1524: { simId: 13, massKg: 2.4948, cells: 6, rCell: 0.003, propIn: 16, cruiseMs: 22, flightTime: null },
-  extra1308: {
-    simId: 14, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
-    flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
-  },
-  pitts850: {
-    simId: 18, massKg: 1.529, cells: 3, rCell: 0.008, propIn: 11, cruiseMs: 13.3,
-    flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 6, note: "E-flite: a 4 minute timer for the first flights on the 3S 2200 (the manual), '4 to 6 minutes' (Park Pilot's review of the kit's figures)", source: PITTS_MANUAL },
-  },
   f16878: {
     simId: 16, massKg: 2.116, cells: 6, rCell: 0.006, propIn: 69 / 25.4, cruiseMs: 20,
     flightTime: { kind: 'mixed', minutesLow: 4, minutesHigh: 4, note: "Model Aviation's review of the V2 6S Pro on a 6S 4000, flown as a jet is: 'Flight duration: 4 minutes'", source: 'https://www.modelaviation.com/freewing-f-16' },
@@ -197,10 +183,8 @@ export const TABLE = {
     simId: 12, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 10,
     flightTime: { kind: 'mixed', minutesLow: 19.4, minutesHigh: 19.4, note: "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc", source: OS_56_MANUAL },
   },
-  wot41334: { simId: 20, massKg: 2.268, cells: 4, rCell: 0.005, propIn: 13, cruiseMs: 17.3, flightTime: { kind: 'mixed', minutesLow: 12, minutesHigh: 12, note: "Chris Foss's electric conversion: 'For typical Wot 4 spirited aerobatics expect a flight duration, per battery charge, of around 12 minutes' on the 4S 3700", source: 'https://www.dropbox.com/s/iskfu6w46a2y9ub/Wot4-Elec-Conv.pdf' } },
   uglystik1567: { simId: 19, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 17.33, flightTime: null },
   tigermoth1803: { simId: 23, massKg: 4.6493, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 14.41, flightTime: null },
-  quickie1293: { simId: 22, massKg: 1.5876, cells: 2, rCell: 0.030, propIn: 9, cruiseMs: 39.37, flightTime: null },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
@@ -241,28 +225,6 @@ const TIMBER = [
     rpmNoLoad: 800 * 11.1, pitchSpeedMs: 31.95 * (11.1 / 14.8), lvcV: 3.4,
     massKg: 1.70 - 0.325 + 0.237, cgShiftM: 0, packs: TIMBER_3S, pack: '3s3200',
     source: ['https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html', 'https://www.modelaviation.com/turbo-timber-bnf'],
-  },
-];
-
-/* Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md: the T-Motor AM600
- * 525 kV and its AM116A on the T16x8, EF's recommended system, on 6S 3000
- * to 4000 mAh (EF's assembly guide); T-Motor's "up to 8298g of thrust" and
- * "maximum power 1700W" with that prop, the no load speed the kV times 3.7
- * V a cell. The pack slides on its tray to the balance, so no pack shifts
- * the CG. EF's other recommendation, the XPWR 22cc, publishes no figures
- * found, so it is not offered. */
-const EDGE = [
-  {
-    id: 'stock', name: 'power.edge.stock', kind: 'electric', voice: 'wing',
-    kv: 525, propIn: 16, pitchIn: 8, blades: 2,
-    thrustN: 81.376, currentA: 76.6, rpmNoLoad: 11655, pitchSpeedMs: 33.551, lvcV: 3.0,
-    massKg: 2.4948, cgShiftM: 0,
-    packs: [
-      lipo('6s4000', 6, 4000, 625, `${CNHL}cnhl-4000mah-22-2v-6s-40c-lipo-battery-with-xt90-plug`),
-      lipo('6s3300', 6, 3300, 535, `${CNHL}cnhl-3300mah-22-2v-6s-40c-lipo-battery-with-xt60-plug`),
-    ],
-    pack: '6s4000',
-    source: ['https://extremeflightrc.com/cdn/shop/files/60_ARF_build_guide_WEB.pdf', 'https://store.tmotor.com/product/am600-3d-freestyle-flight-plane-brushless-dc-motor.html'],
   },
 ];
 
@@ -539,83 +501,6 @@ const KADET = [
   },
 ];
 
-/* The Extra 300 3D 1.3m, docs/EXTRA-STAGE1.md: E-flite's 4250 910 kV on
- * the 13 x 6 wood prop and a 60 A ESC, 4S or 3S, 2200 to 3200 mAh
- * (E-flite's manual and listing). The thrust and current are ESTIMATED,
- * the motor against APC's 13 x 6.5E (scripts/extra-derive.js); the 3S
- * option scales them as the Timber's does. The pack sits to the manual's
- * CG, so no option shifts it. */
-const EXTRA = [
-  {
-    id: 'stock', name: 'power.extra.stock', kind: 'electric', voice: 'wing',
-    kv: 910, propIn: 13, pitchIn: 6, blades: 2,
-    thrustN: 37.86, currentA: 64.4, rpmNoLoad: 13468, pitchSpeedMs: 29.08, lvcV: 3.0,
-    massKg: 1.51, cgShiftM: 0, packs: [TIMBER_4S[0], TIMBER_4S[1]], pack: '4s2200',
-    source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html', `${APC}13x65E.dat`],
-  },
-  {
-    id: '3s', name: 'power.extra.3s', kind: 'electric', voice: 'wing',
-    kv: 910, propIn: 13, pitchIn: 6, blades: 2,
-    thrustN: 37.86 * (11.1 / 14.8) * (11.1 / 14.8), currentA: 64.4 * (11.1 / 14.8) * (11.1 / 14.8),
-    rpmNoLoad: 910 * 11.1, pitchSpeedMs: 29.08 * (11.1 / 14.8), lvcV: 3.0,
-    massKg: 1.51 - 0.270 + 0.16556, cgShiftM: 0, packs: TIMBER_3S, pack: '3s2200',
-    source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'],
-  },
-];
-
-/* E-flite's Pitts S-1S 850mm, docs/PITTS-STAGE1.md: the BL15 880 kV on
- * the 11 x 7 and a 40 A ESC, 3S or 4S, 1800 to 2200 mAh (E-flite's
- * manual and listing). The thrust and current are ESTIMATED, the motor as
- * E-flite's Power 15's class against APC's 11 x 7E (scripts/pitts-derive.js),
- * on each pack. The suggested 3S 2200 is E-flite's 225 g (the 1529 g with
- * it less the 1304 g without, the dimensioned top view), and it goes all
- * the way forward on the tray (the manual), so the heavier 4S moves the
- * CG forward by its extra mass there, 0.0995 m ahead of the CG. */
-const PITTS_3S = [lipo('3s2200', 3, 2200, 225, PITTS_PAGE)];
-const PITTS = [
-  {
-    id: 'stock', name: 'power.pitts.stock', kind: 'electric', voice: 'wing',
-    kv: 880, propIn: 11, pitchIn: 7, blades: 2,
-    thrustN: 16.184, currentA: 27.4, rpmNoLoad: 9768, pitchSpeedMs: 24.604, lvcV: 3.0,
-    massKg: 1.529, cgShiftM: 0, packs: PITTS_3S, pack: '3s2200',
-    source: [PITTS_MANUAL, PITTS_PAGE, `${APC}11x7E.dat`],
-  },
-  {
-    /* The same motor and prop on 4S, which E-flite lists and the review
-     * flew ("with 4S, it's a whole step beyond"). */
-    id: '4s', name: 'power.pitts.4s', kind: 'electric', voice: 'wing',
-    kv: 880, propIn: 11, pitchIn: 7, blades: 2,
-    thrustN: 25.926, currentA: 42.3, rpmNoLoad: 13024, pitchSpeedMs: 32.805, lvcV: 3.0,
-    massKg: 1.529 - 0.225 + 0.270, cgShiftM: (0.270 - 0.225) * 0.0995 / (1.529 - 0.225 + 0.270), packs: [TIMBER_4S[0]], pack: '4s2200',
-    source: [PITTS_MANUAL, PITTS_PAGE, 'https://www.theparkpilot.org/horizon-eflite-pitts', `${APC}11x7E.dat`],
-  },
-];
-
-/* The Wot 4, docs/WOT4-STAGE1.md: Chris Foss's own electric conversion,
- * "AXI 4120/14 brushless motor, or equivalent, and APC 13 x 8
- * propeller", a "60 amp speed controller" and a "3700 mah 4 cell 14.8v
- * Li-Poly battery"; AXI's 3,500 g of thrust and 55 A for the 4120/14 on
- * 4S with a 13 x 8, the no load speed its 660 rpm/V times 3.7 V a cell.
- * Foss names no pack's maker: the 3700 is Overlander's 4S 25C Sport, the
- * UK club flyer's pack, 312 g; CNHL's 4S 4000 is the other. The pack slides on its carrier to the balance
- * ("Adjust position of battery on carrier, as necessary"), so no pack
- * shifts the CG. Ripmax's own recommendation for the ARTF, a Quantum II
- * 40, publishes no figures found, so it is not offered. */
-const WOT4 = [
-  {
-    id: 'stock', name: 'power.wot4.stock', kind: 'electric', voice: 'wing',
-    kv: 660, propIn: 13, pitchIn: 8, blades: 2,
-    thrustN: 34.323, currentA: 55, rpmNoLoad: 9768, pitchSpeedMs: 28.119, lvcV: 3.0,
-    massKg: 2.268, cgShiftM: 0,
-    packs: [
-      lipo('4s3700', 4, 3700, 312, 'https://wheelspinmodels.co.uk/i/3700mah-4s-14.8v-25c-lipo-battery-overlander-262221/'),
-      lipo('4s4000', 4, 4000, 429, `${CNHL}cnhl-4000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug`),
-    ],
-    pack: '4s3700',
-    source: ['https://www.dropbox.com/s/iskfu6w46a2y9ub/Wot4-Elec-Conv.pdf', 'https://www.modelmotors.cz/product/detail/272/'],
-  },
-];
-
 /* FMS's P-51D 1450, docs/P51-STAGE1.md: the 4250 540 kV on the 14 x 8
  * four blade and an 80 A ESC, FMS's one listing, on the 4S 2600 it
  * recommends (Dynam's 4S 2600 25C, 295 g, for the mass). The alternative
@@ -734,42 +619,6 @@ const STIK = [
   },
 ];
 
-/* The Quickie 500: a K&B 40 R/C front intake with no silencer, as RCM's
- * prototype flew ("Muffler Used: No"), on the APC 9 x 6 the Sport
- * Quickie rule names, from Peter Chinn's bench test of its Series 70F
- * opened up by what he says the silencer cost (scripts/power-derive.js,
- * docs/QUICKIE-STAGE1.md): 14,831 rpm and 24.55 N standing. Its pitch
- * speed is the zero of the plant's thrust line through the unloading
- * engine's thrust at its top speed, 68.6 m/s, not the static rpm times
- * the pitch: a racer's engine runs up in the air. RCM's 8 oz tank, the
- * flying weight its 3 1/2 lb ready to fly, taken with the tank full. */
-const QUICKIE_TANKS = [
-  tank('237cc', 236.6, 236.6e-6, 236.6 * FUEL_G_CC, QUICKIE_PLAN),
-];
-const QUICKIE = [
-  {
-    id: 'stock', name: 'power.quickie.stock', kind: 'glow', voice: 'glow2',
-    propIn: 9, pitchIn: 6, blades: 2,
-    thrustN: 24.553, rpmNoLoad: 17448.2, pitchSpeedMs: 68.638, idle: 0.1821,
-    flowFullM3s: 18.01e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
-    massKg: 1.5876, cgShiftM: 0, packs: QUICKIE_TANKS, pack: '237cc',
-    source: [QUICKIE_PLAN, CHINN_KB40, `${APC}9x6.dat`, MENON],
-  },
-  {
-    /* The same engine as Chinn tested it, with the Irvine silencer: its
-     * measured curve, 42 g more (306 g against 264), 14,011 rpm and 21.83
-     * N standing on the 9 x 6, the line through its thrust at its own top
-     * speed, 35.1 m/s, reaching zero at 57.0 m/s. The pack moved to balance
-     * it on the same mark. Its idle Chinn's 2,700 rpm. */
-    id: 'silenced', name: 'power.quickie.silenced', kind: 'glow', voice: 'glow2',
-    propIn: 9, pitchIn: 6, blades: 2,
-    thrustN: 21.832, rpmNoLoad: 14011 / 0.85, pitchSpeedMs: 57.014, idle: 2700 / 14011,
-    flowFullM3s: 18.01e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
-    massKg: 1.5876 + 0.042, cgShiftM: 0, packs: QUICKIE_TANKS, pack: '237cc',
-    source: [CHINN_KB40, `${APC}9x6.dat`],
-  },
-];
-
 /* The Tiger Moth: the O.S. 61FX two stroke on a 12 x 6, the first engine in
  * Great Planes' list and the Ugly Stik's, at the Stik's 10,895 rpm and
  * 36.206 N (docs/TIGERMOTH-STAGE1.md). Great Planes give no tank size; the
@@ -817,14 +666,9 @@ export const POWER = {
   kadet1981: KADET,
   uglystik1567: STIK,
   tigermoth1803: TIGER,
-  quickie1293: QUICKIE,
-  edge1524: EDGE,
-  extra1308: EXTRA,
-  pitts850: PITTS,
   f16878: F16,
   p51d1450: P51,
   zagi1219: ZAGI,
-  wot41334: WOT4,
 };
 
 /* ------------------------------------------------------------------ */
