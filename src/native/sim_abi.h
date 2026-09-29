@@ -367,10 +367,13 @@ int sim_set_flight_style(int arcade);
  * the stick, on a tricycle gear, and 19 Phil Kraft's Das Ugly Stik as RCM
  * published Jim Jensen's kit of it (docs/UGLYSTIK-STAGE1.md), a 62 in
  * balsa sport aerobat on a .61 two stroke glow engine, a shoulder wing on
- * a section near enough symmetric to fly on its back, on a tricycle gear.
- * 17, 18 and 20 to 23 are reserved for the aircraft being added alongside
- * them. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 16 and 19 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * a section near enough symmetric to fly on its back, on a tricycle gear,
+ * and 22 Glen Spickler's Quickie 500 (docs/QUICKIE-STAGE1.md), the 1972
+ * club pylon racer the class is named after, a 51 in low wing box on a
+ * K&B 40 glow engine, on wire gear and a tail skid. 17, 18, 20, 21 and 23
+ * are reserved for the aircraft being added alongside them. Returns
+ * SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2 to 16, 19 and 22 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -405,6 +408,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_P51D1450_ID 15
 #define SIM_AIRFRAME_F16878_ID 16
 #define SIM_AIRFRAME_UGLYSTIK1567_ID 19
+#define SIM_AIRFRAME_QUICKIE1293_ID 22
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -777,7 +781,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 16 and 19): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 16, 19 and 22): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

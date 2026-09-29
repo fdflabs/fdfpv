@@ -54,6 +54,7 @@ const PLANES = {
   kadet: [12, 7.15], edge: [13, 9.58],
   f16: [16, 12.33],
   uglystik: [19, 9.48],
+  quickie: [22, 9.31],
 };
 const MODES = [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']];
 

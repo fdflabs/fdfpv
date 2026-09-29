@@ -243,6 +243,18 @@ planes.FW_UGLYSTIK1567 = {
   note: 'a_w 4.427, a_t 3.880, V_H 0.435, deps/dalpha 0.416 (DATCOM), its own arms',
 };
 
+/* The Quickie 500, docs/QUICKIE-STAGE1.md and scripts/quickie-derive.js:
+ * its own arms, the plan's CG 2.8 in behind the leading edge of the 10 in
+ * chord, 0.3 in behind the wing's aerodynamic centre, and the tail's share
+ * from the derivation's a_w, a_t, V_H and DATCOM's downwash. */
+planes.FW_QUICKIE1293 = {
+  arm_ac: 0.0303,
+  arm_cp: 0.1211,
+  dw: 0.9 * 0.460 * 3.590 * 0.405 / 4.500,
+  asym: TE_TOLERANCE / 0.2518,
+  note: 'a_w 4.500, a_t 3.590, V_H 0.460, deps/dalpha 0.405 (DATCOM), its own arms',
+};
+
 /* The four strips' chords over the mean chord, from a planform chord(eta),
  * eta 0 at the root and 1 at the tip. */
 function strips(chord) {
@@ -302,6 +314,9 @@ const STRIPS = {
   /* Constant chord; the raked tips over the outer 2.9 of 30.9 in are left
    * out, as the Kadet's rounding is. */
   FW_UGLYSTIK1567: strips(rect),
+  /* Constant chord; the soft block tips, the outer 1.5 of 25.5 in, are
+   * left out. */
+  FW_QUICKIE1293: strips(rect),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -354,6 +369,9 @@ const SECTION = {
    * on its 0.33 m chord): the NACA 2415's at 2e5, the thick section here
    * that stalls from the trailing edge, held +4.2 deg then 0.76. */
   FW_UGLYSTIK1567: { sec: 'NACA 2415 at 2e5', top: 4.2, k: 0.76 },
+  /* RCM's "15% Symmetrical" at 1.7e5 (10 m/s on 0.254 m): the Extra's
+   * thick symmetric section at 2e5, ESTIMATED as its is. */
+  FW_QUICKIE1293: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

@@ -86,6 +86,7 @@ const PLANES = {
   edge: { sim: 13, Vs: 9.58, alphaStall: 0.90 / 4.797, rudder: true },
   f16: { sim: 16, Vs: 12.33, alphaStall: 1.1 / 3.310, rudder: true },
   uglystik: { sim: 19, Vs: 9.48, alphaStall: 0.95 / 4.824, rudder: true },
+  quickie: { sim: 22, Vs: 9.31, alphaStall: 0.90 / 4.866, rudder: true },
 };
 
 const onlyArg = process.argv.indexOf('--only');

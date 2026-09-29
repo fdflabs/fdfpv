@@ -36,7 +36,10 @@
  * rotation, so it hangs on its prop and flies sideways; and
  * FW_UGLYSTIK1567, Phil Kraft's Das Ugly Stik of docs/UGLYSTIK-STAGE1.md,
  * a four channel sport aerobat on a two stroke glow engine, which adds
- * nothing. A term an airframe does not have
+ * nothing; and FW_QUICKIE1293, Glen Spickler's Quickie 500 of
+ * docs/QUICKIE-STAGE1.md, the club pylon racer, which adds nothing but
+ * reads pitch_speed as its engine's in flight: the line's zero through
+ * the thrust an unloading glow engine makes. A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
@@ -45,7 +48,8 @@
  * scripts/glider-gates.js, scripts/bramor-gates.js,
  * scripts/slowstick-gates.js, scripts/timber-gates.js,
  * scripts/bombshell-gates.js, scripts/kadet-gates.js,
- * scripts/extra-gates.js and scripts/uglystik-gates.js.
+ * scripts/extra-gates.js, scripts/uglystik-gates.js and
+ * scripts/quickie-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -3376,4 +3380,123 @@ const FixedWingParams FW_UGLYSTIK1567 = {
    * the rest. */
   .strip_tau = { 0.055, 0.22, 0.22, 0.22 },
   .j_prop = 0.00027,      /* the 12 x 6's 46 g of wood blades and the crank's front, ESTIMATED */
+};
+
+/* Glen Spickler's Quickie 500 as American Aircraft Modeler published it
+ * in December 1972 and Glen Spickler Radiomodels kitted it,
+ * docs/QUICKIE-STAGE1.md, where each number has its formula and source
+ * (scripts/quickie-derive.js) and the estimated ones say so. The club
+ * pylon racer the Quickie 500 class is named after: a 51 in constant
+ * chord low wing on a box, "15% Symmetrical", 4 deg of dihedral a side,
+ * strip ailerons from the fuselage to the tips, everything "zero-zero",
+ * a flat stab on the fuselage's top and a swept sheet fin; Old School
+ * Model Works' throws for its kit of the same design. A K&B 40 R/C on an
+ * APC 9 x 6, fully exposed as the class wants it, with no silencer,
+ * clockwise seen from behind; the stick runs it from its 2,700 rpm idle
+ * to full and it never stops. Its thrust line is fitted to the engine's
+ * operating point in the air, where the prop unloads and the engine runs
+ * up past its static rpm: pitch_speed is where that line reaches zero,
+ * not the static rpm times the pitch. Wire gear and a tail skid. */
+const FixedWingParams FW_QUICKIE1293 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.2934,         /* the plan, 25.46 in to each soft block tip */
+  .area = 0.32565,        /* the plan: 479.4 sq in of panel and 25.4 of tips */
+  .chord = 0.2518,        /* S/b */
+  .cl_alpha = 4.866,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
+  .cl_max = 0.90,         /* a 15 percent symmetric section at 1.7e5, ESTIMATED */
+  /* "Everything is zero-zero": the symmetric wing and the stab at no
+   * incidence to the thrust line. */
+  .alpha_zl = 0.0,
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.0336,          /* built up part by part: the exposed engine, wire gear, a box */
+  .k_induced = 0.08262,   /* 1/(pi 0.75 5.14) */
+  .cl_de = -0.2888,
+  .cy_beta = -0.1569,
+  .cy_dr = 0.0941,
+  .cl_beta = -0.0801,     /* 4 deg of dihedral and the fin, less the low wing's */
+  .cl_p = -0.7501,
+  .cl_da = 0.2405,        /* strip ailerons, 10 percent of the chord, from 1.54 in to the tip rib */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0058,
+  .cm_0 = 0.0100,         /* level flat out with the elevator neutral: a racer's trim */
+  .cm_alpha = -0.8078,    /* static margin 0.166 at the plan's CG */
+  .cm_q = -7.183,
+  .cm_de = 0.6983,
+  .cn_beta = 0.0669,      /* the swept sheet fin, less the box's */
+  .cn_r = -0.0834,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.12,  /* no differential: the Cub's adverse yaw */
+  .cn_dr = -0.0460,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* OSMW's throws for the design: 1/2 in on the 1.0 in strip aileron and
+   * the 1.5 in elevator, 3/4 in on the 2.0 in rudder, their arcsines,
+   * which configs/tuning.js restates; past 20 deg a plain surface's lift
+   * stops growing in proportion, so the Edge's knee. */
+  .throw_a = 30.0 * WING_PI / 180.0,
+  .throw_e = 19.4712 * WING_PI / 180.0,
+  .throw_r = 22.0243 * WING_PI / 180.0,
+  .surface_max = 30.0 * WING_PI / 180.0,
+  .surf_knee = 0.5,
+  .expo = 0.20,           /* OSMW's 20 percent on the ailerons */
+  .thrust_static = 24.553, /* N, APC's 9 x 6 at the engine's 14,831 rpm */
+  .pitch_speed = 68.638,  /* the line's zero through the unloading engine's thrust at 39.4 m/s */
+  .rpm_no_load = 17448.2, /* the static 14,831 over 0.85 */
+  .torque_arm = 0.01437,  /* the engine's 0.3528 N m at 14,831 rpm over 24.55 N */
+  .thrust_z = 0.0120,     /* the crankshaft 0.47 in over the CG */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
+  .current_full = 0.0,    /* the engine burns fuel, not the pack */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.20,
+  .stab_pitch_kp = 3.0,
+  .stab_pitch_kd = 0.5,
+  /* A racer trimmed flat out glides at its trim's alpha, 0.71 deg: with
+   * the throttle closed and the elevator neutral it dives at 33.6 m/s, 28.7
+   * deg nose down, and Stabilised asks that. */
+  .stab_pitch_down = 30.66 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.993, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 340.0 * WING_PI / 180.0, /* 0.85 of full aileron's 404 deg/s at the trim */
+  .acro_pitch_rate = 150.0 * WING_PI / 180.0, /* under full up's 209 deg/s at the trim, which meets the stall */
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 4.0,
+  .acro_roll_kd = 0.70,
+  .acro_roll_ff = 0.20,
+  .acro_pitch_kp = 4.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 1.5,
+  .throttle_idle = 0.1821, /* Chinn's 2,700 rpm idle of the 14,831 */
+  /* The tank, docs/POWER-STAGE1.md: RCM's 8 oz, 236.6 cc. The full
+   * throttle flow a measured .40 two stroke's (Menon 2010, 17.9 cc/min)
+   * scaled by the displacement, 6.54 over 6.5 cc: 18.0 cc/min, linear in
+   * the rpm through zero, ESTIMATED; the lean run the Bombshell's. */
+  .tank_m3 = 236.6e-6,
+  .flow_full = 18.01e-6 / 60.0,
+  .flow_idle = 0.1821 * (18.01e-6 / 60.0),
+  .lean_frac = 0.05,
+  .lean_gain = 0.05,
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js: a
+   * 15 percent symmetric section at 1.7e5, the Extra's thick symmetric
+   * section, held 2 deg and falling to 0.70. */
+  .stall_arm_ac = 0.0303, /* the CG 0.3 in behind the wing's aerodynamic centre */
+  .stall_arm_cp = 0.1211, /* the plate's centre of pressure at 0.40 of the chord */
+  .stall_dw = 0.1338,
+  .stall_asym = 0.00397,
+  .stall_k = 0.70,
+  .stall_top = 2.0 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 0.0,         /* built flat on the board: "any built-in warps are there to stay" */
+  /* The ailerons from 0.06 to 0.94 of the half span: 0.76 of the inner
+   * and outer strips, all of the middle two. */
+  .strip_tau = { 0.1819, 0.24, 0.24, 0.1838 },
+  .j_prop = 0.00006,      /* the 9 x 6's 16 g composite blades and the drive washer, ESTIMATED */
 };

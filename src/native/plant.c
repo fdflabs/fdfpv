@@ -1514,6 +1514,61 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.4064, 0.0, -0.1567 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * Glen Spickler's Quickie 500, AAM December 1972, docs/QUICKIE-STAGE1.md:
+ * RCM's 3 1/2 lb ready to fly, a K&B 40 R/C on an APC 9 x 6 0.333 m
+ * ahead of the CG, its crankshaft 12 mm over it. The pack is a 4.8 V
+ * receiver pack, which the engine draws nothing from. The hull is the
+ * contact code's centred box and only what a crash lands on: the wing's
+ * underside 0.041 m under the CG and the fuselage's top 0.050 m over it,
+ * the half span wide; the fin and the tail skid stand outside it. The
+ * camera is on the hatch over the tank.
+ */
+[SIM_AIRFRAME_QUICKIE1293] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 1.5876,
+  .inertia = { 0.0446, 0.1110, 0.1512 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.1143,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.3327, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.40,
+  .hull_hy = 0.6467,
+  .hull_hz_down = 0.041,
+  .hull_hz_up = 0.050,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.9,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.127,
+  .camera_y = 0.0,
+  .camera_z = 0.0593,
+  .fw = &FW_QUICKIE1293,
+  /*
+   * The gear, as src/render/quickiecraft.js draws it off the plan: 5/32 in
+   * wire legs to 2 1/4 in Kraft-Hayes wheels, the axles 4 in ahead of the
+   * CG and 4.6 in under it on a 12.6 in track, and the wire tail skid's
+   * tip 27.4 in behind and 2.1 in under. Each is lowered here by 5 mm of
+   * static deflection, so under its own weight the plant settles onto the
+   * drawn pose: 6.5 deg nose up, the CG 0.1325 m over the grass, 14.6
+   * percent of the weight on the skid. Stiffness for that deflection,
+   * damping at 0.6 of critical, the Cub's rule. The skid is a wire dragged
+   * over the grass, the Bombshell's, and does not steer: on the ground the
+   * rudder steers only in the prop's blast and the airflow, as a Quickie's
+   * does. Brakes on the mains, the brake key's; the kit has none.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.1016, 0.1600, -0.1213 }, .r = 0.028575, .k = 1330.0, .c = 38.99, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.1016, -0.1600, -0.1213 }, .r = 0.028575, .k = 1330.0, .c = 38.99, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.6960, 0.0, -0.0591 }, .r = 0.0, .k = 455.0, .c = 11.63, .mu_roll = 0.35, .mu_side = 0.50, .steer = 0.0 },
+    /* The prop's lowest tip, a skid, 0.1143 m under the crankshaft: 42 mm
+     * over the grass level on the mains, 68 mm at rest. */
+    { .pos = { 0.3327, 0.0, -0.1023 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*
