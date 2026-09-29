@@ -9,7 +9,8 @@
      "seed": 2509635639,
      "heard": "We lost a bird. Next one up.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -32,7 +33,8 @@
      "seed": 1315652417,
      "heard": "Perdimos un aparato que salga al siguiente.",
      "wer": 0.143,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -55,14 +57,19 @@
      "seed": 960228906,
      "heard": "Spillway Gates hit, keeps him off the crest.",
      "wer": 0.25,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "keep",
+      "them"
+     ]
     },
     {
      "attempt": 1,
      "seed": 2803074691,
      "heard": "Spillway gates hit keep them off the crest.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -85,7 +92,8 @@
      "seed": 1027981321,
      "heard": "Impacto en una compuerta del vertedero que no lleguen a la cresta.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -108,7 +116,8 @@
      "seed": 371608399,
      "heard": "Intakes hit, we're losing output.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -131,7 +140,8 @@
      "seed": 3151431972,
      "heard": "Impacto en una toma. Estamos perdiendo generación.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -154,7 +164,8 @@
      "seed": 4203696771,
      "heard": "Penn stock hit, we just lost a unit.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -177,7 +188,8 @@
      "seed": 3976923869,
      "heard": "Le dieron a una tubería forzada, perdimos una unidad,",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -200,7 +212,8 @@
      "seed": 2122671813,
      "heard": "Switchyards hit. The right bank's going dark.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -223,7 +236,8 @@
      "seed": 3016737438,
      "heard": "Impacto en la subestación. La margen derecha se queda a oscuras.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -246,7 +260,8 @@
      "seed": 1629440765,
      "heard": "2030.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -269,7 +284,8 @@
      "seed": 2969761641,
      "heard": "2030.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -292,14 +308,19 @@
      "seed": 4221049265,
      "heard": "Wars aren't one with jets anymore, they're one with swarms. Cheap, fast, endless.",
      "wer": 0.154,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "won",
+      "won"
+     ]
     },
     {
      "attempt": 1,
      "seed": 2472711426,
      "heard": "Wars aren't won with jets anymore, they're won with swarms, cheap, fast, endless.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -314,32 +335,26 @@
    }
   },
   "intro-2.es": {
-   "text": "Las guerras ya no se ganan con cazas. Se ganan con enjambres. Baratos. Rápidos. Interminables.",
-   "seconds": 6.265,
+   "text": "Las guerras ya no se ganan con aviones de combate. Se ganan con enjambres. Baratos. Rápidos. Interminables.",
+   "seconds": 6.565,
    "takes": [
     {
      "attempt": 0,
      "seed": 515285757,
-     "heard": "Las guerras de ancianos se ganan con casas, se ganan con enjambres, baratos, rápidos, interminables.",
-     "wer": 0.2,
-     "extra": 0
-    },
-    {
-     "attempt": 1,
-     "seed": 3299197673,
-     "heard": "Las guerras ya no se ganan con casas. Se ganan con enjambres. Baratos, rápidos, interminables.",
-     "wer": 0.067,
-     "extra": 0
+     "heard": "Las guerras ya no se ganan con aviones de combate, se ganan con enjambres, baratos, rápidos, interminables.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 28435,
-     "sha256": "23cdae321e2ab66da548ea6c570881719cf9724d31d6865736b196492ac65b29"
+     "bytes": 29907,
+     "sha256": "e37939148e489ad62c13db6e23458337a524d0b08c76003c917c96e0adbda3ba"
     },
     "mp3": {
-     "bytes": 25724,
-     "sha256": "d85eaccb306b37ef8f07ea292e7f12f40190fc116f641fc8344864ff0d36060d"
+     "bytes": 27380,
+     "sha256": "96bb9b43a3a71c81f1ce98d6d1f6cabb0956f3499c9e9db7e351b68a8863e3ba"
     }
    }
   },
@@ -352,7 +367,8 @@
      "seed": 3164815959,
      "heard": "Every country's lights hang on a few structures. Ours hang on this one.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -374,8 +390,9 @@
      "attempt": 0,
      "seed": 145703202,
      "heard": "La luz de cada país cuelga de un puñado de estructuras. La nuestra cuelga de ésta.",
-     "wer": 0.062,
-     "extra": 0
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -398,7 +415,8 @@
      "seed": 229730429,
      "heard": "The interceptors ran out in the first week. What we have left is you.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -421,7 +439,8 @@
      "seed": 1913808050,
      "heard": "Los interceptores se acabaron la primera semana. Lo que nos queda son ustedes.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -444,7 +463,8 @@
      "seed": 2113973502,
      "heard": "Every aircraft in your hangar carries a warhead now, one flight, one kill, make it count.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -459,25 +479,26 @@
    }
   },
   "intro-5.es": {
-   "text": "Cada aparato de tu hangar lleva una ojiva. Un vuelo. Un derribo. Que cuente.",
-   "seconds": 4.305,
+   "text": "Cada aparato de sus hangares lleva una ojiva. Un vuelo. Un derribo. Que cuente.",
+   "seconds": 5.315,
    "takes": [
     {
      "attempt": 0,
      "seed": 3148143328,
-     "heard": "Cada aparato de tu hangar lleva una ojiva, un vuelo, un derribo, que cuente.",
+     "heard": "Cada aparato de sus hangares lleva una ojiva, un vuelo, un derribo, que cuente.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 19747,
-     "sha256": "b90d9cb4af89c9ecf441d2af10274ee5691b924aa447cafdda4e46a4ddc36639"
+     "bytes": 24333,
+     "sha256": "e5b1ba892d371d985d70ca05545c2114e1f9bfd93df609e77d576c444be39a96"
     },
     "mp3": {
-     "bytes": 18308,
-     "sha256": "fbdc062b83842681df6af97e256a4241dd27f5e9dc49b587b1d3b6fc9fec77de"
+     "bytes": 21956,
+     "sha256": "a89dc531e799c741fd38d5fc293098feabb5b4533b9dc0fea6ee3d8a6e1683bc"
     }
    }
   },
@@ -490,7 +511,8 @@
      "seed": 3069191705,
      "heard": "Lose your signal. You lose your bird. Stay high. Stay in line of sight.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -505,25 +527,26 @@
    }
   },
   "intro-6.es": {
-   "text": "Si pierdes la señal, pierdes el aparato. Mantente alto. Mantente en línea de vista.",
-   "seconds": 5.885,
+   "text": "Si pierden la señal, pierden el aparato. Manténganse altos. Manténganse en línea de vista.",
+   "seconds": 5.695,
    "takes": [
     {
      "attempt": 0,
      "seed": 3537919182,
-     "heard": "Si pierdes la señal, pierdes el aparato, mantente alto, mantente en línea de vista.",
+     "heard": "Si pierden la señal, pierden el aparato. Manténganse altos. Manténganse en línea de vista.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 26848,
-     "sha256": "a9ca13b3a73de9d18e603d89e78535caecd95ca91c0db7e93f3b9359bb2906ba"
+     "bytes": 26037,
+     "sha256": "dbd354a7141796562c48376ba5fccce7d63c212ca7c6f57c3f3fdd074884071f"
     },
     "mp3": {
-     "bytes": 24404,
-     "sha256": "2db2593c9cd875cc1301977d2ca730f41bca855eceea5d41256a24c55b14df7a"
+     "bytes": 24092,
+     "sha256": "933f6c08cc5826c62042acdf89d90a88ee4d7434aeeac504b929c0eb9e491efc"
     }
    }
   },
@@ -536,7 +559,8 @@
      "seed": 4276690683,
      "heard": "Contacts north, over the water. All pilots get up there.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -559,7 +583,8 @@
      "seed": 667815435,
      "heard": "Contactos al norte sobre el agua. Todos los pilotos arriba.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -582,14 +607,18 @@
      "seed": 2750727273,
      "heard": "Stammers down, your video should clear.",
      "wer": 0.167,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "jammers"
+     ]
     },
     {
      "attempt": 1,
      "seed": 3166971553,
      "heard": "Jammers down. Your video should clear.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -612,7 +641,8 @@
      "seed": 406360526,
      "heard": "Inhibidor abatido. Se les debería limpiar el video.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -635,7 +665,8 @@
      "seed": 3189715124,
      "heard": "Splash One.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -658,7 +689,8 @@
      "seed": 3389801043,
      "heard": "Uno menos. Bien hecho.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -681,7 +713,8 @@
      "seed": 3275251821,
      "heard": "good kill.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -704,7 +737,8 @@
      "seed": 2345857225,
      "heard": "Buen derribo.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -727,7 +761,8 @@
      "seed": 2523283314,
      "heard": "Multiple kills, that's how it's done.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -750,7 +785,8 @@
      "seed": 3473805492,
      "heard": "Derribo múltiple, así se hace.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -773,7 +809,8 @@
      "seed": 3111459677,
      "heard": "We're below the floor. The grid's gone dark. All pilots pull back.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -795,8 +832,9 @@
      "attempt": 0,
      "seed": 136377679,
      "heard": "Estamos bajo el mínimo. La red se apagó. Todos los pilotos replieguense.",
-     "wer": 0.083,
-     "extra": 0
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -819,7 +857,8 @@
      "seed": 508681130,
      "heard": "No birds left. We can't hold it. All pilots pull back.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -842,17 +881,28 @@
      "seed": 46334087,
      "heard": "No quedan aparatos. No podemos sostenerla todos los pilotos, repléguense.",
      "wer": 0.1,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "replieguense"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 650487488,
+     "heard": "No quedan aparatos. No podemos sostenerla. Todos los pilotos, repliéguense.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 23404,
-     "sha256": "e3e303c0abbbe28e614d0f6afdeff1e27acfe0ca9e49502b238508d9c1b4c00d"
+     "bytes": 23435,
+     "sha256": "806c92b16c0c52d2b001031fcf3d976284f641a18ccc08cc9a9cd07713391212"
     },
     "mp3": {
-     "bytes": 21380,
-     "sha256": "46270bb6425eea0e30bdf2f527d7ef2d053840d54b8633c4d8bf12f6328b8c6f"
+     "bytes": 21356,
+     "sha256": "a51d7899a7e7dcbf3d7ddd069a08f5d45dd3788c71a61c03560aa55cf351f066"
     }
    }
   },
@@ -865,7 +915,8 @@
      "seed": 872703255,
      "heard": "We're right on the edge. One more hit and the grid goes.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -888,7 +939,8 @@
      "seed": 2985976815,
      "heard": "Estamos al límite, un impacto más y se cae la red.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -911,7 +963,8 @@
      "seed": 4236948336,
      "heard": "Last airframe. Don't waste it.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -934,7 +987,8 @@
      "seed": 197360560,
      "heard": "Último aparato, no lo desperdicien.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -957,7 +1011,8 @@
      "seed": 141821364,
      "heard": "Racks running low, make every flight count.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -973,24 +1028,85 @@
   },
   "rack-low.es": {
    "text": "Nos quedan pocos aparatos. Que cada vuelo cuente.",
-   "seconds": 3.315,
+   "seconds": 4.095,
    "takes": [
     {
      "attempt": 0,
      "seed": 2533394954,
      "heard": "Nos quedan pocos aparatos que cada abuelo cuente.",
      "wer": 0.125,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "vuelo"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 3012125138,
+     "heard": "Nos quedan pocos aparatos. Que cada abuelo cuente.",
+     "wer": 0.125,
+     "extra": 0,
+     "missing": [
+      "vuelo"
+     ]
+    },
+    {
+     "attempt": 2,
+     "seed": 1520307528,
+     "heard": "Nos quedan pocos aparatos. Que cada abuelo cuente.",
+     "wer": 0.125,
+     "extra": 0,
+     "missing": [
+      "vuelo"
+     ]
+    },
+    {
+     "attempt": 3,
+     "seed": 2688148583,
+     "heard": "Nos quedan pocos aparatos, que cada abuelo cuente.",
+     "wer": 0.125,
+     "extra": 0,
+     "missing": [
+      "vuelo"
+     ]
+    },
+    {
+     "attempt": 4,
+     "seed": 2996186660,
+     "heard": "Nos quedan pocos aparatos que cada abuelo cuente.",
+     "wer": 0.125,
+     "extra": 0,
+     "missing": [
+      "vuelo"
+     ]
+    },
+    {
+     "attempt": 5,
+     "seed": 2661097061,
+     "heard": "Nos quedan pocos aparatos que cada abuelo cuente.",
+     "wer": 0.125,
+     "extra": 0,
+     "missing": [
+      "vuelo"
+     ]
+    },
+    {
+     "attempt": 6,
+     "seed": 365032735,
+     "heard": "Nos quedan pocos aparatos. Que cada vuelo cuente.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 15264,
-     "sha256": "ab4f763131f0e13ba6b9a00db5a621fa12d83cb4e884357396161dba024db3d7"
+     "bytes": 18579,
+     "sha256": "15fd774de782e7457a5e486d77c300e0952d3b4ffc065ae7e81af90dba665f9f"
     },
     "mp3": {
-     "bytes": 14204,
-     "sha256": "820e0a1f201efc48304f344cfa3d16108e588e46e4b79f2b89615f8bcbf8b368"
+     "bytes": 16700,
+     "sha256": "187cb73f65afd9dcec0664d759a9d38d650b99b608505970e43f8042c67e9aa1"
     }
    }
   },
@@ -1003,7 +1119,8 @@
      "seed": 437667116,
      "heard": "Relays down. Get another one up high.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1026,14 +1143,16 @@
      "seed": 2706112137,
      "heard": "Cayó el repetidor. Suban otro bien alto. Y...",
      "wer": 0.143,
-     "extra": 1
+     "extra": 1,
+     "missing": []
     },
     {
      "attempt": 1,
      "seed": 2477314995,
      "heard": "cayó el repetidor suban otro bien alto",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1049,47 +1168,79 @@
   },
   "relay-up.en": {
    "text": "Relay's up. Anyone down in the gorge, you've got signal.",
-   "seconds": 3.445,
+   "seconds": 3.615,
    "takes": [
     {
      "attempt": 0,
      "seed": 2028321841,
      "heard": "Relays up. Anyone down in the gorge, you got signal.",
      "wer": 0.1,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "youve"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 4066028723,
+     "heard": "Relays up, anyone down in the gorge, you got signal.",
+     "wer": 0.1,
+     "extra": 0,
+     "missing": [
+      "youve"
+     ]
+    },
+    {
+     "attempt": 2,
+     "seed": 352698702,
+     "heard": "Relays up. Anyone down in the gorge you've got signal.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 15877,
-     "sha256": "6769977a7c3dbd640d14d82aa12a71f4d3be43c6af77321d4fa8d23b16effc16"
+     "bytes": 16506,
+     "sha256": "34e9bc270ac5697df7b6aad1a1978dd9aa4fb668775d7beb7bf8635c5009665d"
     },
     "mp3": {
-     "bytes": 15020,
-     "sha256": "059866521bb4a9b978e568876437f577c42937edc77ea44d2f30af24e91691b5"
+     "bytes": 15524,
+     "sha256": "35af1f796523730b411f8cd30d50b89c9817f7e3b1610c693776fd5042f8eebf"
     }
    }
   },
   "relay-up.es": {
    "text": "Repetidor arriba. Los que estén en el cañón, ya tienen señal.",
-   "seconds": 3.845,
+   "seconds": 3.815,
    "takes": [
     {
      "attempt": 0,
      "seed": 1721132743,
      "heard": "Petidor arriba. Los que estén en el cañón ya tienen señal.",
      "wer": 0.091,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "repetidor"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 1871698526,
+     "heard": "Repetidor arriba. Los que estén en el cañón ya tienen señal.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 17747,
-     "sha256": "c093ec75ce7413944687dfa21fcb273e67af2a0eb6fc05ab156074fa8fa96a81"
+     "bytes": 17693,
+     "sha256": "18bab1201adde9b313d7c7c6110182ce054de173cd3a280cfb436249fe6a5929"
     },
     "mp3": {
-     "bytes": 16652,
-     "sha256": "4cebabc1ea3fbf8cb635d8722aeeacaa22e49f9729042234c26fc49405c3e0d8"
+     "bytes": 16892,
+     "sha256": "e30eea04f3b39125218029c561850916a31fe87642da07f370ac0b80a7057c33"
     }
    }
   },
@@ -1102,7 +1253,8 @@
      "seed": 3128160197,
      "heard": "Scouts down. They're flying blind now.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1125,7 +1277,8 @@
      "seed": 317179986,
      "heard": "Explorador abatido. Ahora vuelan a ciegas.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1148,7 +1301,8 @@
      "seed": 1669953440,
      "heard": "Links back, you're flying.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1163,25 +1317,26 @@
    }
   },
   "signal-back.es": {
-   "text": "Enlace recuperado. Vuelves a tener el control.",
+   "text": "Enlace recuperado. Vuelven a tener el control.",
    "seconds": 3.185,
    "takes": [
     {
      "attempt": 0,
      "seed": 3709728410,
-     "heard": "Enlace recuperado. Vuelves a tener el control.",
+     "heard": "Enlace recuperado. Vuelven a tener el control.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 14757,
-     "sha256": "f30473aa140e9740fa8b6b784d7bd6a473d9dd91e8973004745a642bb9185e6f"
+     "bytes": 14776,
+     "sha256": "42904af14db238ed8226067a02fc0cc5988f359807ad57c89c40867d2811b265"
     },
     "mp3": {
-     "bytes": 14204,
-     "sha256": "b6d3403560818b21b016f4034c1c73df7702fc5c03ce57ee9f58064478ba88d7"
+     "bytes": 14300,
+     "sha256": "8046a545e1f4a099dd90dd7e02c24589436dcef47cbb5b22514de37b83f9078d"
     }
    }
   },
@@ -1194,7 +1349,8 @@
      "seed": 1117324906,
      "heard": "Lost your link, your bird's on its own.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1209,25 +1365,36 @@
    }
   },
   "signal-lost.es": {
-   "text": "¡Perdiste el enlace! ¡El aparato está solo!",
-   "seconds": 4.335,
+   "text": "¡Perdieron el enlace! ¡El aparato está solo!",
+   "seconds": 3.135,
    "takes": [
     {
      "attempt": 0,
      "seed": 687951604,
-     "heard": "Perdiste el enlace. El aparato está solo.",
+     "heard": "Vieron el enlace. El aparato está solo.",
+     "wer": 0.143,
+     "extra": 0,
+     "missing": [
+      "perdieron"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 576382982,
+     "heard": "Perdieron el enlace. El aparato está solo.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 19728,
-     "sha256": "4a4122bc7abee62bb19150f28fd7eb3ed1372b6d4f5637c8045e960f82efd26f"
+     "bytes": 14625,
+     "sha256": "b7fa979749c9a96f79c3a492d0e10a12cc31b8798752001c384edf50c704e9ec"
     },
     "mp3": {
-     "bytes": 17828,
-     "sha256": "8ac2f5326436fa6f382149cc0b905362fc8491c187e09e1fae3183635b5904bf"
+     "bytes": 13940,
+     "sha256": "d38fb2fa69c207070132e0835481eb44a68651c811a41609afb31664f644520d"
     }
    }
   },
@@ -1240,7 +1407,8 @@
      "seed": 3556725301,
      "heard": "Your signal's breaking up. Climb.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1255,25 +1423,26 @@
    }
   },
   "signal-weak.es": {
-   "text": "Se te corta la señal. ¡Sube!",
-   "seconds": 2.525,
+   "text": "Se les corta la señal. ¡Suban!",
+   "seconds": 2.315,
    "takes": [
     {
      "attempt": 0,
      "seed": 405396614,
-     "heard": "Se te corta la señal. Sube.",
+     "heard": "Se les corta la señal. Suban.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 11706,
-     "sha256": "9bef7dae3984e014489ab5eea50a36a82c90199dae04521432c2a5dd8cd31033"
+     "bytes": 10902,
+     "sha256": "d045430d2efd6e740b9189cbec59f9069d7f6bfa266d56f10c5c239e5b5536fa"
     },
     "mp3": {
-     "bytes": 11180,
-     "sha256": "37ddd11a2f7b3d262371625d6ebb8f03ce45bdba81e7298074511191328c2622"
+     "bytes": 10772,
+     "sha256": "29150aac3150dd32ba491eb8f225fa1c3ae2dae9fbd07d4bc12ecc06d7f50fa0"
     }
    }
   },
@@ -1286,7 +1455,8 @@
      "seed": 1018003512,
      "heard": "Pilots of both banks, this is crest control. Warheads armed, good hunting.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1301,25 +1471,36 @@
    }
   },
   "start.es": {
-   "text": "Pilotos de las dos márgenes, aquí Control Cresta. Ojivas armadas. Buena caza.",
-   "seconds": 5.805,
+   "text": "Pilotos de las dos márgenes, aquí Control Cresta. Ojivas armadas. Buena cacería.",
+   "seconds": 5.755,
    "takes": [
     {
      "attempt": 0,
      "seed": 157940205,
-     "heard": "Pilotos de las dos márgenes, aquí control cresta, ojivas armadas, buena casa.",
-     "wer": 0.083,
-     "extra": 0
+     "heard": "Pilotos de las dos márgenes, aquí con teor cresta, ojivas armadas, buena cacería.",
+     "wer": 0.167,
+     "extra": 1,
+     "missing": [
+      "control"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 2795241664,
+     "heard": "Pilotos de las dos márgenes, aquí control cresta. Ojivas armadas, buena cacería.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 26574,
-     "sha256": "2733419edaad2579863db6582219b38bcc99131f3785e263e2b57a49ca10178f"
+     "bytes": 26317,
+     "sha256": "2a9c61480a8fcd2a5ca5241f89785263aebd976c226e8643831ba9ab5269f2f6"
     },
     "mp3": {
-     "bytes": 24860,
-     "sha256": "1ede032c84b218bd371f360af04e9e08700be80ae152971107c8943117cbdcaa"
+     "bytes": 23924,
+     "sha256": "38b06bdf81db0b914a6c0c3da9236b5868240d137c263a087e99ee44229c255a"
     }
    }
   },
@@ -1332,7 +1513,8 @@
      "seed": 906197187,
      "heard": "Sea drones on the reservoir, heading for the dam, get down on the water.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1355,7 +1537,8 @@
      "seed": 4185190833,
      "heard": "Drones navales en el embalse, rumbo a la represa, bajen al agua.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1378,14 +1561,16 @@
      "seed": 720615596,
      "heard": "Wave down. Reset and climb. More coming. More cover.",
      "wer": 0.286,
-     "extra": 2
+     "extra": 2,
+     "missing": []
     },
     {
      "attempt": 1,
      "seed": 4085618978,
      "heard": "Wave down, reset and climb. More coming.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1401,31 +1586,56 @@
   },
   "wave-clear.es": {
    "text": "Oleada abatida. Reagrúpense y suban. Vienen más.",
-   "seconds": 5.005,
+   "seconds": 4.665,
    "takes": [
     {
      "attempt": 0,
      "seed": 2218334506,
      "heard": "Oleada batida. Reaglúpense y suban. Vienen más.",
      "wer": 0.286,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "abatida",
+      "reagrupense"
+     ]
     },
     {
      "attempt": 1,
      "seed": 3558904488,
      "heard": "Oleada abatida. Regrúpense y suban. Vienen más.",
      "wer": 0.143,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "reagrupense"
+     ]
+    },
+    {
+     "attempt": 2,
+     "seed": 2430431579,
+     "heard": "Oleada abatida. Reagrúpense y suban. Viene más.",
+     "wer": 0.143,
+     "extra": 0,
+     "missing": [
+      "vienen"
+     ]
+    },
+    {
+     "attempt": 3,
+     "seed": 651451200,
+     "heard": "Oleada abatida. Reagrúpense y suban. Vienen más.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 22672,
-     "sha256": "54200301fdd7b01a10e62beeecb2e866d8ff29f8169e5477a2fb448990758b42"
+     "bytes": 21251,
+     "sha256": "9c51dcec75724d91cea263db6d5dd6ed0c5acf17ea35062b3ea9e6c9259bc166"
     },
     "mp3": {
-     "bytes": 20444,
-     "sha256": "b1fd63dbb4f4095c312fe33fde7506657979079b87f78ed12635e6a72b50555d"
+     "bytes": 19748,
+     "sha256": "f347ff281443ec1f605a1fd7e060110a92d6de77718dec6c8515f4e6faedc0e5"
     }
    }
   },
@@ -1438,14 +1648,16 @@
      "seed": 1396408579,
      "heard": "Swarm coming up the gorge. FPVs low and weaving. Go meet them. Go meet them.",
      "wer": 0.25,
-     "extra": 3
+     "extra": 3,
+     "missing": []
     },
     {
      "attempt": 1,
      "seed": 4116058207,
      "heard": "Swarm coming up the gorge. FPVs, low and weaving. Go meet them.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1468,7 +1680,8 @@
      "seed": 3462604834,
      "heard": "Enjambre, subiendo por el cañón, vienen bajos y zigzagueando salgan a recibirlos.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1491,14 +1704,16 @@
      "seed": 922164426,
      "heard": "Hunters inbound, they're coming for you, not the dam, watch your backs, watch your",
      "wer": 0.167,
-     "extra": 2
+     "extra": 2,
+     "missing": []
     },
     {
      "attempt": 1,
      "seed": 1869427716,
      "heard": "Hunters inbound. They're coming for you, not the dam. Watch your backs.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1514,24 +1729,35 @@
   },
   "wave-hunter.es": {
    "text": "Cazadores en camino. Vienen por ustedes, no por la represa. Cuiden sus espaldas.",
-   "seconds": 5.995,
+   "seconds": 5.695,
    "takes": [
     {
      "attempt": 0,
      "seed": 1630674248,
      "heard": "Cazadores en camino, vienen por ustedes, no por la depresa, cuiden sus espaldas.",
      "wer": 0.077,
-     "extra": 0
+     "extra": 0,
+     "missing": [
+      "represa"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 775406256,
+     "heard": "Cazadores en camino, vienen por ustedes, no por la represa, cuiden sus espaldas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 27283,
-     "sha256": "f17e3daca1744fabbffc9f1d45737b6c593e962a653b9842dd7138ef74e52bfb"
+     "bytes": 25980,
+     "sha256": "789e1746619d0b384249dd2484354204b4da231477649d1258a7d80bc7ca2492"
     },
     "mp3": {
-     "bytes": 24740,
-     "sha256": "b8d3c7939eff57a5105bc6afacfe1d494d48f6b471c779d891cb7498ed8db35c"
+     "bytes": 23156,
+     "sha256": "1381e0db6161759c226080ded470d57cf812691ee2fc3a285cd1260329d05f43"
     }
    }
   },
@@ -1544,7 +1770,8 @@
      "seed": 2634515560,
      "heard": "Jammer on the field. Your video's about to get ugly, hunt it down.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1567,7 +1794,8 @@
      "seed": 3147606647,
      "heard": "Hay un inhibidor activo. Se les va a ensuciar el video. Encuéntrenlo y elimínenlo.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1590,7 +1818,8 @@
      "seed": 3985134274,
      "heard": "Last wave. Everything they've got, hold the line.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1613,7 +1842,8 @@
      "seed": 3622357418,
      "heard": "Última oleada. Vienen con todo. Aguanten.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1636,7 +1866,8 @@
      "seed": 853339876,
      "heard": "Loiterers, high, circling, they'll dive on the intakes, get above them.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1659,7 +1890,8 @@
      "seed": 2034961239,
      "heard": "Merodeadores en altura, orbitando, van a picar sobre las tomas. Pónganse encima.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1682,7 +1914,8 @@
      "seed": 3388713806,
      "heard": "Scout up high, circling, kill it and the next wave flies blind.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1705,7 +1938,8 @@
      "seed": 3507880109,
      "heard": "Explorador en altura, dando vueltas. Derríbenlo y la próxima oleada vuela ciegas.",
      "wer": 0.077,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1728,7 +1962,8 @@
      "seed": 1391416508,
      "heard": "Strikers, low, over the reservoir, fast movers, cut them off.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1751,7 +1986,8 @@
      "seed": 2858114739,
      "heard": "Drones de ataque bajos sobre el embalse vienen rápido, córtenles el paso.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1774,7 +2010,8 @@
      "seed": 2793110406,
      "heard": "All contacts down. The dam holds. Good work, both banks. The lights stay on tonight.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
@@ -1797,7 +2034,8 @@
      "seed": 895167507,
      "heard": "Todos los contactos abatidos. La represa resiste. Buen trabajo, las dos márgenes. Esta noche no se apaga la luz.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {

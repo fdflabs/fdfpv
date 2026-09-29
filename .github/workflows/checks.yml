@@ -51,6 +51,7 @@ jobs:
       # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
       # half a minute on 20 cores, by hand; four and six here keep every row.
       - run: npm run tag:harness -- --seeds=4 --runs=6
+      - run: npm run war:harness -- --seeds=3 --runs=6
       - run: npm run marks:selftest
       - run: npm run combat:harness
       - run: npm run combat:restart

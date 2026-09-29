@@ -63,6 +63,7 @@ import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { browserSection } from './rooms-selftest-browser.js';
 import { scaleSection } from './rooms-selftest-scale.js';
+import { warSection } from './rooms-selftest-war.js';
 import { RoomTag } from '../edge/rooms/tag.js';
 import { Track, hullFor as tagHullFor } from '../src/game/midair.js';
 import { RoomHost } from '../edge/rooms/host.js';
@@ -1741,6 +1742,7 @@ console.log('catch the ace: starting a match');
 }
 
 combatSection(check);
+warSection(check);
 await browserSection(check);
 await scaleSection(check);
 
