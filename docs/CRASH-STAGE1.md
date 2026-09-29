@@ -151,6 +151,10 @@ mode on.
 - `sim_tree_add(x, y, z0, trunk_r, crown_z0, crown_z1, crown_r)`,
   `sim_tree_clear`: a crown the craft and the free bodies fly into, which
   drags and can hold; the trunk is an obstacle for the free bodies.
+- `sim_tree_clump_add(tree, x, y, z, r)`: a clump of that tree's leaves,
+  a sphere; a tree given clumps has leaves only in them (section 5,
+  trees), a tree given none is its whole cylinder. At most
+  `SIM_TREE_CLUMPS_MAX` (32) a tree.
 
 ### A reader
 
@@ -1498,6 +1502,42 @@ branches up to 60 N per square metre of its plan area inside
 punches through at 8.9 m/s out of 15. Held, the branches take its
 attitude too. Both constants are chosen and flagged.
 
+**A crown of clumps** (the tree clumps round, after #120). The owner flew
+a Skyhunter into a swiss2 beech and it hung 9.6 m up at 0 km/h in open
+air beside the tree. The crown was the upright cylinder round the whole
+tree, and a swiss2 broadleaf is drawn as 26 to 31 clumps of leaves with
+the sky between them (src/maps/swiss2/vegetation/species.js
+crownClumps), so most of the cylinder was air: its rim, the gaps between
+clumps, the space under the crown round the trunk. Now a tree may be
+given clumps (`sim_tree_clump_add`), each a sphere, and a hull point (or
+a free body's point) is in the crown only inside its cylinder and inside
+one of its clumps; the cylinder stays as the bound the craft is tested
+against first. A tree given none is its cylinder, as before: a conifer,
+whose post is its crown. The shell hands every crown sphere a map draws
+over a trunk (src/game/crashworld.js collectTrees) as a clump: swiss2's
+broadleaves one per drawn clump, out to 1.2 times the radius its leaf
+cards are scattered in (nine tenths of the near model's card area), and
+the alps' beech one per blob of its five. Measured (`crash:core`): a Cub
+flown into a clump is held in it 5.07 m up; flown down a gap between four
+clumps it goes through at 12.2 m/s; the same flight into the same tree
+with no clumps is held by the cylinder 5.10 m up. In the shell
+(`check:trees`, a Skyhunter and a Timber at three swiss2 maples from two
+sides): thrown into the crown at 12 to 22 m/s, before 7 of 25 held crafts
+hung outside every drawn clump (up to 3.3 m from the nearest leaf card),
+after 0 of 39, and 25 of the 48 glancing throws go through or fall out;
+flown level under the crown, 1 and 2 m under the lowest drawn leaf over
+the path, beside the trunk with the wing tip 0.5 m clear of the drawn
+bark and half way out, at 15 and 25 m/s, before 19 of 35 met the tree
+(the owner's Turbo Timber breaking up under a village broadleaf), after
+0 of 20. A Bramor let down under its chute onto a crown (crash-shots
+`bramor-chute-trees`) was held on main at the top of the invisible
+cylinder; now it falls through where neither the chute nor the airframe
+meets a drawn clump and comes down on the ground under the tree. That is
+right: the leaves it would have caught on are not there to catch it. The
+crown test costs the plant about 6 microseconds a step with
+every hull point in a crown's cylinder and in none of its 31 clumps, the
+whole list scanned.
+
 **Posts that give** (the post compliance round, after #82). A race
 gate's upright is a PVC pipe standing in its base, and the obstacles were
 immovable and rigid: a five inch clipping one from inside the opening broke
@@ -1865,7 +1905,7 @@ bombshell:stab on main d043d2a, with the mode off and on alike.
   `sim_contact_at_mat` instead of `sim_contact_at` with the collider's
   material (collide.js `contactMaterial` maps onto the ids, gates to pvc,
   trees to wood, walls to concrete or rock), `sim_tree_add` for trees with
-  crowns, and `sim_obstacle_box` and `sim_obstacle_cylinder` for what is
+  crowns and `sim_tree_clump_add` for the clumps of leaves in them, and `sim_obstacle_box` and `sim_obstacle_cylinder` for what is
   near a crash so the pieces have something to land on besides the ground.
 - Draw what the module says: every part's pose from `sim_parts_state` (the
   attached ones ride the craft, with a bent arm or a knocked camera turned
