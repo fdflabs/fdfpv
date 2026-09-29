@@ -137,6 +137,7 @@ import { trickByName } from '../game/tricks.js';
 import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, WIKI_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
+import { createShotTray } from './bugshots.js';
 import { nameRules, readPilotName, writePilotName } from '../share/pilot.js';
 import { hasFlyableTrack, inspectCourse } from '../share/listing.js';
 import { activeCourseSummary } from '../share/summary.js';
@@ -5182,6 +5183,10 @@ export class Ui {
     reporter.value = readPilotName() || '';
     reporter.placeholder = str('ui.leave_blank_to_stay_anonymous');
 
+    /* Screenshots: Ctrl+V anywhere in this box, a drop, or a file. The
+     * tray listens on the box, so a paste into the textareas above counts. */
+    const shots = createShotTray(box);
+
     const err = el('p', 'name-dialog-err', '');
     const row = el('div', 'name-dialog-row');
     const send = btn('name-dialog-btn on', str('ui.send'));
@@ -5193,6 +5198,7 @@ export class Ui {
       whatLabel, what,
       expectedLabel, expected,
       stepsLabel, steps,
+      el('p', 'name-dialog-label', str('ui.shots_label')), shots.node,
       nameLabel, reporter,
       err, row,
     );
@@ -5218,7 +5224,8 @@ export class Ui {
      * would ask whether to keep a report that is already on the board. */
     let sent = false;
     const isDirty = () => !sent && Boolean(
-      title.value.trim() || what.value.trim() || expected.value.trim() || steps.value.trim(),
+      title.value.trim() || what.value.trim() || expected.value.trim() || steps.value.trim()
+      || shots.count(),
     );
     /* Every close a pilot can trip goes through the guard, and the guard
      * lets an empty form straight through. See confirmDiscard. */
@@ -5279,20 +5286,22 @@ export class Ui {
         what.focus();
         return;
       }
-      const payload = {
-        kind: kind.value,
-        title: title.value,
-        what: what.value,
-        expected: expected.value,
-        steps: steps.value,
-        reporter: reporter.value,
-        context,
-      };
       sending = true;
       send.disabled = true;
       cancel.disabled = true;
+      shots.lock(true);
       send.textContent = str('ui.sending');
       try {
+        const payload = {
+          kind: kind.value,
+          title: title.value,
+          what: what.value,
+          expected: expected.value,
+          steps: steps.value,
+          reporter: reporter.value,
+          context,
+          images: await shots.dataUrls(),
+        };
         const posted = await submitBug(payload);
         sending = false;
         sent = true;
@@ -5313,6 +5322,7 @@ export class Ui {
         sending = false;
         send.disabled = false;
         cancel.disabled = false;
+        shots.lock(false);
         send.textContent = str('ui.send');
         err.textContent = e.message || str('ui.the_board_could_not_take_that');
       }
@@ -5512,6 +5522,8 @@ export class Ui {
     reporter.value = readPilotName() || '';
     reporter.placeholder = str('ui.leave_blank_to_stay_anonymous');
 
+    const shots = createShotTray(box);
+
     const err = el('p', 'name-dialog-err', '');
     const row = el('div', 'name-dialog-row');
     const send = btn('name-dialog-btn on', str('ui.send'));
@@ -5525,6 +5537,7 @@ export class Ui {
       capHint,
       airHint,
       wordsLabel, words,
+      el('p', 'name-dialog-label', str('ui.shots_label')), shots.node,
       nameLabel, reporter,
       err, row,
     );
@@ -5549,7 +5562,7 @@ export class Ui {
      * to lose. The name is prefilled and does not count. `sent` retires
      * the guard once it has landed, for the reason the bug form gives. */
     let sent = false;
-    const isDirty = () => !sent && Boolean(feel || issues.size || words.value.trim());
+    const isDirty = () => !sent && Boolean(feel || issues.size || words.value.trim() || shots.count());
     const tryClose = (after) => {
       if (sending || this.discarding) {
         return;
@@ -5609,18 +5622,20 @@ export class Ui {
       if (words.value.trim()) {
         lines.push(words.value.trim());
       }
-      const payload = {
-        kind: 'feel',
-        title: str('ui.flight_feel_2', { feelLabel, v2: picked.length ? `, ${picked[0]}` : '' }),
-        what: lines.join('\n'),
-        reporter: reporter.value,
-        context,
-      };
       sending = true;
       send.disabled = true;
       dismiss.disabled = true;
+      shots.lock(true);
       send.textContent = str('ui.sending');
       try {
+        const payload = {
+          kind: 'feel',
+          title: str('ui.flight_feel_2', { feelLabel, v2: picked.length ? `, ${picked[0]}` : '' }),
+          what: lines.join('\n'),
+          reporter: reporter.value,
+          context,
+          images: await shots.dataUrls(),
+        };
         const posted = await submitBug(payload);
         sending = false;
         sent = true;
@@ -5641,6 +5656,7 @@ export class Ui {
         sending = false;
         send.disabled = false;
         dismiss.disabled = false;
+        shots.lock(false);
         send.textContent = str('ui.send');
         err.textContent = e.message || str('ui.the_board_could_not_take_that');
       }

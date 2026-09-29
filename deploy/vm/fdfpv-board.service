@@ -51,12 +51,21 @@ TimeoutStopSec=5
 # through scripts/board-live-check.js (a bug, a feel report, a publish, a
 # verified lap with its ghost, a live room of two, the board's pages) and
 # 400 reads forty at a time; ps shows 107 MB RSS, part of it the shared
-# Node library the cgroup does not charge. The largest body the board
-# reads is 660 kB (a publish), so the ceiling is about six times the
-# cgroup peak, the same as the other two units, and V8 is told a heap
-# limit under it so it collects harder instead of being killed. Postgres
-# has no ceiling of its own: its unit peaked at 144 MB over two runs of
-# the check, page cache included, under the stock 128 MB shared_buffers.
+# Node library the cgroup does not charge. The ceiling was about six times
+# that peak, the same as the other two units, and V8 is told a heap limit
+# under it so it collects harder instead of being killed.
+#
+# Bug reports now carry up to four screenshots, so the largest body the
+# board reads is 5.6 MB (it was 660 kB, a publish). Measured again the
+# same day after `board-live-check.js --only=paste` and one report at the
+# cap and one past it, through Caddy: 72 MB. A report at the cap should
+# cost about 20 MB while it is parsed (the bytes, the string, the parsed
+# base64, the decoded images; an estimate, not a measurement), so 256M
+# still leaves room for several at once and stays where it was.
+#
+# Postgres has no ceiling of its own: its unit peaked at 144 MB over two
+# runs of the check, page cache included, under the stock 128 MB
+# shared_buffers.
 MemoryMax=256M
 
 NoNewPrivileges=yes
