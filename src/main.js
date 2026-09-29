@@ -208,7 +208,7 @@ import { FpvOsd } from './ui/fpvhud.js';
 import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { str } from './strings/index.js';
-import { insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
+import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
@@ -1375,52 +1375,19 @@ export async function boot({
   }
   /*
    * Tell the plant the map's water, in its own frame, which is the spawn's:
-   * so at every reset, since a reset can move the spawn. The surface, the
-   * outline and the waves' origin go through worldPosToSim like the ground
-   * plane's point, the wind's direction through worldDirToSim like its
-   * normal. A map without water clears whatever the last one declared.
+   * so at every reset, since a reset can move the spawn. Points go through
+   * worldPosToSim like the ground plane's point, the wind's direction
+   * through worldDirToSim like its normal (src/game/water.js declareBodies,
+   * which throws on anything the plant refuses). A map without water
+   * clears whatever the last one declared.
    */
-  const waterSim = { x: 0, y: 0, z: 0 };
+  const waterFrame = { pos: worldPosToSim, dir: worldDirToSim, perMetre: 1 / simLenToWorld(1) };
   function declareWater() {
     if (typeof sim.e.sim_water_clear !== 'function') {
       return;
     }
     sim.e.sim_water_clear();
-    const bodies = [];
-    for (const w of (view && view.water) || []) {
-      if (w.kind === 'channel') {
-        declareChannel(w);
-        continue;
-      }
-      worldPosToSim(w.centre.x, w.surfaceY, w.centre.z, waterSim);
-      const body = sim.e.sim_water_add(waterSim.z, waterSim.x, waterSim.y);
-      if (body < 0) {
-        continue;
-      }
-      for (const p of w.outline) {
-        worldPosToSim(p.x, w.surfaceY, p.z, waterSim);
-        sim.e.sim_water_vertex(body, waterSim.x, waterSim.y);
-      }
-      worldDirToSim(w.wind.toX, 0, w.wind.toZ, waterSim);
-      const n = Math.hypot(waterSim.x, waterSim.y);
-      sim.e.sim_water_wind(body, w.wind.speed, waterSim.x / n, waterSim.y / n, w.wind.fetch);
-      bodies.push({ w, body });
-    }
-    handWaves(bodies);
-  }
-  /* A river, its centre line with the surface at every point: no waves. */
-  function declareChannel(w) {
-    const body = sim.e.sim_water_channel(w.halfWidth / simLenToWorld(1));
-    if (body < 0) {
-      return;
-    }
-    for (const p of w.line) {
-      worldPosToSim(p.x, p.y, p.z, waterSim);
-      const code = sim.e.sim_water_channel_point(body, waterSim.x, waterSim.y, waterSim.z);
-      if (code !== SIM_OK) {
-        throw new Error(`sim_water_channel_point: ${simErrorName(code)}`);
-      }
-    }
+    handWaves(declareBodies(sim.e, (view && view.water) || [], waterFrame));
   }
 
   /*
@@ -1542,6 +1509,11 @@ export async function boot({
   function runSpawn() {
     return roomSlotSpawn(mapSpawn());
   }
+  /* The water body an aircraft on floats starts on when flown free, an
+   * index into view.water: the pilot's choice where a map has more than one
+   * body with a spawn (Itaipu's reservoir and river). Nothing in the shell
+   * offers the choice yet, so it is the map's first body. */
+  let floatBody = 0;
   function mapSpawn() {
     const sp = view.spawn;
     if (!sp || !floatsOnWater()) {
@@ -1550,7 +1522,7 @@ export async function boot({
     if (sp.lift) {
       return floatStart(sp, (x, z) => Boolean(waterAt(x, z)));
     }
-    return sp.air ? sp : view.water[0].spawn;
+    return sp.air ? sp : floatSpawn(view.water, floatBody);
   }
   /*
    * In a room of friends, each pilot starts at their own seat's slot
