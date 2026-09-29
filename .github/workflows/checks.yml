@@ -76,6 +76,8 @@ jobs:
       - run: npm run uglystik:stab
       - run: npm run dlg:gates
       - run: npm run dlg:stab
+      - run: npm run quickie:gates
+      - run: npm run quickie:stab
       - run: npm run input:selftest
       - run: npm run ghost:selftest
       - run: npm run contact:selftest

@@ -46,6 +46,7 @@ import { buildPittsCraft } from './pittscraft.js';
 import { buildUglystikCraft } from './uglystikcraft.js';
 import { buildWot4Craft } from './wot4craft.js';
 import { buildDlgCraft } from './dlgcraft.js';
+import { buildQuickieCraft } from './quickiecraft.js';
 import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
@@ -81,6 +82,7 @@ const BUILDERS = {
   uglystik1567: buildUglystikCraft,
   wot41334: buildWot4Craft,
   nrj1490: buildDlgCraft,
+  quickie1293: buildQuickieCraft,
   p51d1450: buildP51Craft,
   zagi1219: buildZagiCraft,
   timber1500: buildTimberCraft,

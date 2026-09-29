@@ -184,6 +184,17 @@ export const LIVERIES = {
       { id: 'stock', source: src('RCM, Das Ugly Stik, plan 939, May 1985 (Outerzone oz6801)', 'https://outerzone.co.uk/plan_details.asp?ID=6801'), colours: {} },
     ],
   },
+  quickie1293: {
+    /* Spickler's own as AAM's December 1972 colour photographs show it:
+     * white, a red sunburst fanning across each wing panel, a blue band
+     * along the leading edge with white stars, red and blue stripes down
+     * the fuselage and over the fin: "Stars and stripes, would you
+     * believe". */
+    regions: [r('wing', '#f1efe8'), r('fuselage', '#f1efe8'), r('tail', '#f1efe8'), r('stripe', '#c3161c'), r('trim', '#1d3f8f')],
+    schemes: [
+      { id: 'stock', source: src('American Aircraft Modeler, Quicky 500, December 1972 (Outerzone oz6868)', 'https://outerzone.co.uk/plan_details.asp?ID=6868'), colours: {} },
+    ],
+  },
   p51d1450: {
     /* FMS's natural metal P-51 as its manual photographs it: silver all
      * over, the red of the nose band, the spinner and the fin's top, and

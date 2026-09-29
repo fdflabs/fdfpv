@@ -371,16 +371,19 @@ int sim_set_flight_style(int arcade);
  * (docs/UGLYSTIK-STAGE1.md), a 62 in
  * balsa sport aerobat on a .61 two stroke glow engine, a shoulder wing on
  * a section near enough symmetric to fly on its back, on a tricycle gear,
- * 21 OA Composites' NRJ (docs/DLG-STAGE1.md), a 1490 mm F3K discus
+ * and 21 OA Composites' NRJ (docs/DLG-STAGE1.md), a 1490 mm F3K discus
  * launch glider with no motor, thrown by its wingtip (sim_wing_discus) into
- * the thermals of sim_air_lift, 18 E-flite's Pitts S-1S 850mm
+ * the thermals of sim_air_lift, and 18 E-flite's Pitts S-1S 850mm
  * (docs/PITTS-STAGE1.md), a foam aerobatic biplane, its two wings each in
- * the other's flow, on a taildragger's gear, and 20 the Ripmax Wot 4 Mk2
+ * the other's flow, on a taildragger's gear, 22 Glen Spickler's
+ * Quickie 500 (docs/QUICKIE-STAGE1.md), the 1972 club pylon racer the
+ * class is named after, a 51 in low wing box on a K&B 40 glow engine, on
+ * wire gear and a tail skid, and 20 the Ripmax Wot 4 Mk2
  * (docs/WOT4-STAGE1.md), Chris Foss's club sport aerobat on his electric
- * conversion, a shoulder wing taildragger with a big rudder. 22 and 23 are
+ * conversion, a shoulder wing taildragger with a big rudder. 23 is
  * reserved for the aircraft being added alongside them. Returns
  * SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 21 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * 2 to 22 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -419,6 +422,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_UGLYSTIK1567_ID 19
 #define SIM_AIRFRAME_WOT41334_ID 20
 #define SIM_AIRFRAME_NRJ1490_ID 21
+#define SIM_AIRFRAME_QUICKIE1293_ID 22
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -805,7 +809,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 21): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 22): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

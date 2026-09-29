@@ -48,7 +48,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, kadetGroundPrelude, timberRecPrelude, timberFloatRecPrelude,
   p51RecPrelude, p51AirPrelude, edgeGroundPrelude, extraGroundPrelude, f16GroundPrelude, uglystikGroundPrelude, zagiPrelude,
-  dlgRecPrelude, pittsGroundPrelude,
+  dlgRecPrelude, pittsGroundPrelude, quickieGroundPrelude,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -493,6 +493,7 @@ const got = {
   uglystik: await hashOf('tests/inputs/uglystik-baseline.rec', (s) => uglystikGroundPrelude(s)),
   dlg: await hashOf('tests/inputs/dlg-baseline.rec', dlgRecPrelude),
   pitts: await hashOf('tests/inputs/pitts-baseline.rec', (s) => pittsGroundPrelude(s)),
+  quickie: await hashOf('tests/inputs/quickie-baseline.rec', (s) => quickieGroundPrelude(s)),
 };
 const names = Object.keys(got);
 gate('W17', 'every other aircraft unmoved', names.every((k) => got[k] === u[k]),

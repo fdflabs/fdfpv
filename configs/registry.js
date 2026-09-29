@@ -315,6 +315,30 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the nose wheel, at RCM\'s travel limits. It goes where you point it and stays there: it holds a bank, loops round at full throttle and flies on its back with half the stick pushed. Throttle closed, the two stroke idles.',
   },
   {
+    /* The Quickie's three, the Stik's on its own plant: ailerons, elevator
+     * and rudder at OSMW's throws; on its wheels every mode flies as
+     * Manual, and there is no steerable wheel: the rudder steers in the
+     * prop's blast. Manual is where a pylon racer is flown. */
+    id: 'quickie-stab',
+    airframe: 'quickie1293',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It is trimmed flat out: throttle closed, it puts the nose down onto its own fast glide.',
+    wingStab: 1,
+  },
+  {
+    id: 'quickie-acro',
+    airframe: 'quickie1293',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 340 degrees a second and a pitch rate up to 150, centred sticks hold the attitude, upright or on its back, and the rudder stick is the rudder alone.',
+    wingStab: 2,
+  },
+  {
+    id: 'quickie-manual',
+    airframe: 'quickie1293',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at OSMW\'s throws. Trimmed flat out: it holds its line down the straight, rolls at 400 degrees a second and stops where you centre the stick, and turns round a pylon on ailerons and elevator alone, losing speed in every corner. Throttle closed, the two stroke idles and it glides a long way.',
+  },
+  {
     /* The Edge's three, the Cub's on its own plant: ailerons, elevator and
      * rudder at Extreme Flight's 3D throws. On its wheels every mode flies
      * as Manual. Manual is where the aerobat is: yank the stick at the edge

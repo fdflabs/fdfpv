@@ -37,7 +37,7 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
 import {
   bramorPrelude, recordChuteFlight, recordCubFlight, recordGliderFlight, recordScriptedFlight,
-  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordEdgeFlight, recordExtraFlight, recordPittsFlight, recordUglystikFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, recordZagiFlight, recordWot4Flight, recordDlgFlight, skyPrelude, wingPrelude,
+  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordEdgeFlight, recordExtraFlight, recordPittsFlight, recordUglystikFlight, recordQuickieFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, recordZagiFlight, recordWot4Flight, recordDlgFlight, skyPrelude, wingPrelude,
 } from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
@@ -62,7 +62,8 @@ import {
  * the Wot 4's take off, roll, loop, stall and spin for wot4-gates.js
  * W18; `dlg` the NRJ's discus launch, glide and thermal for dlg-gates.js
  * D14; `pitts` the Pitts's take off, roll, snap and recovery for
- * pitts-gates.js B5. */
+ * pitts-gates.js B5; `quickie` the Quickie 500's take off, roll,
+ * pylon turn and inverted run for quickie-gates.js Q17. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
   sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
@@ -81,6 +82,7 @@ const PLANES = {
   pitts: { file: 'tests/inputs/pitts-baseline.rec', record: recordPittsFlight },
   uglystik: { file: 'tests/inputs/uglystik-baseline.rec', record: recordUglystikFlight },
   dlg: { file: 'tests/inputs/dlg-baseline.rec', record: recordDlgFlight },
+  quickie: { file: 'tests/inputs/quickie-baseline.rec', record: recordQuickieFlight },
   p51: { file: 'tests/inputs/p51-baseline.rec', record: recordP51Flight },
   'p51-air': { file: 'tests/inputs/p51-air.rec', record: recordP51AirFlight },
   zagi: { file: 'tests/inputs/zagi-baseline.rec', record: recordZagiFlight },

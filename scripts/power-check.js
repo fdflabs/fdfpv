@@ -435,19 +435,25 @@ for (const id of ids) {
     check('P6 the OSD warns LOW FUEL in the lean run and ENGINE OUT when it quits',
       ft.leanWarning === 'LOW FUEL' && ft.outWarning === 'ENGINE OUT',
       `"${ft.leanWarning}", then "${ft.outWarning}"`);
-    /* And it glides: 20 s more with the throttle where it was. */
+    /* And it glides: 20 s more with the throttle where it was, flown at
+     * its cruise or at 1.4 times its stall, whichever is slower, as a
+     * pilot slows a dead stick aircraft to its glide: a racer's cruise is
+     * its race speed, 39 m/s on the Quickie, where it sinks at 9 m/s.
+     * Slowing to it zooms the aircraft up (the Quickie's 39 to 13 m/s is
+     * 69 m of height), so where it has to slow, 15 s of that first and
+     * the sink measured over the 20 s after. */
     let minZ = Infinity;
     let vMin = Infinity;
+    const glideAt = Math.min(t.cruiseMs, 1.4 * airframeById(id).stall);
+    const every = (st) => {
+      minZ = Math.min(minZ, st[3]);
+      vMin = Math.min(vMin, Math.hypot(st[4], st[5], st[6]));
+    };
+    if (glideAt < t.cruiseMs) {
+      cruise({ speed: glideAt, seconds: 15, start: false, every });
+    }
     const z0 = sim.readState().state[3];
-    cruise({
-      speed: t.cruiseMs,
-      seconds: 20,
-      start: false,
-      every: (st) => {
-        minZ = Math.min(minZ, st[3]);
-        vMin = Math.min(vMin, Math.hypot(st[4], st[5], st[6]));
-      },
-    });
+    cruise({ speed: glideAt, seconds: 20, start: false, every });
     const st = sim.readState().state;
     const sink = (z0 - st[3]) / 20;
     check('P6 dead stick: no thrust, and it glides down',

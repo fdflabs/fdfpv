@@ -144,15 +144,16 @@ general one, and it reuses them:
 The one change to the plant's files beyond the table is the table's own
 registration: SIM_AIRFRAME_WOT41334 (20) in sim_internal.h and sim_abi.h,
 its PLANT_TABLE entry, PARTS_WOT41334 in crash_parts.h and its line in
-crash.c. `npm run wot4:gates` W17 holds every other aircraft's twenty one
+crash.c. `npm run wot4:gates` W17 holds every other aircraft's twenty two
 recorded trace hashes to main's, identical: seventeen from 3637fef, the
-Zagi's and the Ugly Stik's from 4223337, the NRJ's from 1fd93f3 and the
-Pitts's from a894327, where they merged. `npm run
+Zagi's and the Ugly Stik's from 4223337, the NRJ's from 1fd93f3, the
+Pitts's from a894327 and the Quickie 500's from ccd6ae8, where they
+merged. `npm run
 crash:identity` against origin/main: every existing gate and self test
 prints byte for byte what main prints (the `off == base` column), but for
 three that enumerate the airframe table and so meet the Wot 4 where main
 has an empty slot: whoop:gates and wing:contact (main's module refuses
-airframe 20) and glider:stab's count of empty slots, 3 on main and 2 here.
+airframe 20) and glider:stab's count of empty slots, 2 on main and 1 here.
 
 Found on the way and fixed: `scripts/stall-derive.js` did not parse on
 main (a merge had dropped the `};` closing the Edge's entry), so `npm run
@@ -184,7 +185,7 @@ flown in Manual on the table.
 | W14c feet off the rudder, recorded | | none | 0.7 deg |
 | W15 taxi turn, full right rudder | 1.46 m | 1.1 to 1.83 | 1.41 m, turning right |
 | W16 an easy landing | | touching at 1.3 Vs or slower, no bounce, at rest at W13's attitude, no hull or prop | touched at 11.1 m/s sinking 0.89, no bounce, rolled 45 m, at rest at 12.56 deg |
-| W17 every other aircraft's recorded hash | main's | identical | 21 identical |
+| W17 every other aircraft's recorded hash | main's | identical | 22 identical |
 | W18 Node and Chrome | | identical | identical |
 
 `npm run wot4:gates`: 21 of 21. `npm run wot4:stab`: 58 passed, the Edge's

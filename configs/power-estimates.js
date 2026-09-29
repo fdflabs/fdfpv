@@ -350,6 +350,20 @@ export const ESTIMATES = {
       }
     }
   },
+  quickie1293: {
+    stock: {
+      '237cc': {
+        topSpeed: 39.4,
+        minutes: 13.2
+      }
+    },
+    silenced: {
+      '237cc': {
+        topSpeed: 35.17,
+        minutes: 13.1
+      }
+    }
+  },
   edge1524: {
     stock: {
       '6s4000': {

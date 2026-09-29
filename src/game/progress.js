@@ -88,8 +88,14 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * taildragger that rolls a quarter faster (pb/2V 0.094 against 0.074 on
  * the manual's throws) and spins on its big rudder; forgiving, its stall
  * mushes wings level and the spin stops when the sticks are let go
- * (docs/WOT4-STAGE1.md). The P-51 at 7: it has the heaviest wing loading
- * here but one (65 N/m^2
+ * (docs/WOT4-STAGE1.md). The Quickie 500 at 7,
+ * with the P-51: Spickler's "I don't consider the Quicky 500 a trainer,
+ * but anyone who has advanced to the aileron stage shouldn't have any
+ * problems", and FM's "not intended for the beginner ... someone who has
+ * passed the trainer stage". It handles as gently as the Stik and stalls
+ * as straight, but at nearly twice its speed, rolling at 400 deg/s, on a
+ * taildragger with no steerable wheel: the pace, not the handling, is the
+ * step, and 6 already holds the Bramor and the NRJ. The P-51 at 7: it has the heaviest wing loading here but one (65 N/m^2
  * against the Timber's 46 and the Kadet's 36), it swings on the take off
  * roll until the pilot's rudder holds it, and it drops a wing at the
  * stall; FMS rate it for an intermediate pilot. The Pitts at 8: E-flite's
@@ -116,7 +122,7 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * and not a stick one, so it sits after the Radian and ahead of the fast
  * and the aerobatic. Shared rather than slotted in, so no plane a pilot
  * already has goes back behind a lock. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, wot41334: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, pitts850: 8, extra1308: 9, edge1524: 10, f16878: 11 };
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, wot41334: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, quickie1293: 7, pitts850: 8, extra1308: 9, edge1524: 10, f16878: 11 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

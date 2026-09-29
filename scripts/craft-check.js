@@ -170,6 +170,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             are both the rudder's, 1666 mm, and Ripmax's 1334 mm is held
  *             by craft-preview.js's half span row. src/render/wot4craft.js
  *             draws it.
+ *   quickie1293 Spickler's 51 in Quickie 500, whose elevator's trailing
+ *             edge, 0.719 m behind the CG on the plan (station 42.3
+ *             against the CG's 14.0), reaches further than its tips, 0.647
+ *             m out, so the width this file measures is the elevator's,
+ *             1438 mm, and the reach its tip corner's, 8 in out, 1494 mm;
+ *             the plan's 50.9 in span is held by
+ *             src/render/quickiecraft.js QUICKIE_DIMS.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -199,6 +206,7 @@ const REAL = {
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
   wot41334: { spanMm: 1666.0, sweepMm: 1666.0, tolMm: 6 },
   nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
+  quickie1293: { spanMm: 1437.6, sweepMm: 1494.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
