@@ -5,13 +5,15 @@
  * In Node, on the data folder's own files (FDFPV_ITAIPU_DATA, by default
  * ~/Desktop/fdfpv-itaipu-data):
  *
- *   tent        src/maps/itaipu/terrain/reconcile.js's tent filter gives
- *               every published level 1 to 3 sample away from the hero
- *               from the finer level's, exactly: it is the pipeline's.
- *   reconcile   after reconcile, level 0 equals the hero at every sample
- *               they share, and nothing it did not mean to touch changed;
- *               the hero pads are level 0 bilinear at 10 m and meet the
- *               real hero tiles on one line.
+ *   tent        every published level 1 to 3 sample is the tent filter
+ *               of the finer level's nine round it, exactly: the
+ *               pipeline's pyramid, built from the edited hero (data v2);
+ *   hero        level 0 equals the hero at every sample they share, and
+ *               the hero tiles cover whole level 0 nodes, so the engine
+ *               draws the same ground at every level and splits every
+ *               node over the hero to 10 m. The page draws the tiles as
+ *               published; data that broke either would pop the dam in
+ *               and out with distance, so it fails here.
  *
  * In headless Chromium, the map built by the shell as a pilot's choice
  * builds it:
@@ -61,9 +63,6 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 import {
   HERO, TILE_CELLS, TILE_SAMPLES, decode,
 } from '../src/maps/yellowstone/terrain/frame.js';
-import {
-  reconcile, tentAt, sampleAt, heroPads,
-} from '../src/maps/itaipu/terrain/reconcile.js';
 import { ITAIPU_FRAME, RESERVOIR_Y, RIVER_Y } from '../src/maps/itaipu/terrain/frame.js';
 import { insideWater } from '../src/game/water.js';
 
@@ -124,20 +123,43 @@ async function readTiles(manifest) {
   return tiles;
 }
 
-function nodeChecks(manifest, tiles) {
-  const published = new Map([...tiles].map(([k, v]) => [k, v.slice()]));
-  const get = (level, i, j) => tiles.get(`${level}:${i}:${j}`) || null;
-  const pub = (level, i, j) => published.get(`${level}:${i}:${j}`) || null;
+/* Global sample (gx, gz) of a level, from whichever loaded tile holds
+ * it (a sample on a tile edge is in two, or four), or -1. */
+function sampleAt(get, level, gx, gz) {
+  for (const i of new Set([Math.floor(gx / TILE_CELLS), Math.max(0, Math.ceil(gx / TILE_CELLS) - 1)])) {
+    for (const j of new Set([Math.floor(gz / TILE_CELLS), Math.max(0, Math.ceil(gz / TILE_CELLS) - 1)])) {
+      const t = get(level, i, j);
+      if (t) {
+        return t[(gz - j * TILE_CELLS) * TILE_SAMPLES + (gx - i * TILE_CELLS)];
+      }
+    }
+  }
+  return -1;
+}
 
-  /* The tent, on the published pyramid, at every sample of levels 1 to 3
-   * whose finer samples are all in the files, away from the hero. */
+/* One coarser sample from the finer level's nine round it, in the
+ * pipeline's integers: Yellowstone's (1 2 1) x (1 2 1) / 16 rounded half
+ * up (tools/itaipu/build_terrain.py tent_down). */
+function tentAt(get, level, kx, kz) {
+  const w = [1, 2, 1];
+  let sum = 0;
+  for (let b = -1; b <= 1; b += 1) {
+    for (let a = -1; a <= 1; a += 1) {
+      sum += w[a + 1] * w[b + 1] * sampleAt(get, level - 1, 2 * kx + a, 2 * kz + b);
+    }
+  }
+  return Math.floor((sum + 8) / 16);
+}
+
+function nodeChecks(manifest, tiles) {
+  const get = (level, i, j) => tiles.get(`${level}:${i}:${j}`) || null;
+
+  /* The tent at every sample of levels 1 to 3 whose finer samples are
+   * all in the files. */
   let tentN = 0;
   let tentBad = 0;
   let tentFirst = null;
-  const hero = manifest.frame.hero;
-  const half = manifest.frame.ring[1];
   for (let level = 1; level <= ITAIPU_FRAME.coarsest; level += 1) {
-    const cell = 30 * 2 ** level;
     const n = manifest.levels.find((l) => l.level === level).grid * TILE_CELLS;
     const fine = manifest.levels.find((l) => l.level === level - 1).grid * TILE_CELLS;
     for (let z = 1; z < n; z += 1) {
@@ -145,15 +167,8 @@ function nodeChecks(manifest, tiles) {
         if (2 * x + 1 > fine || 2 * z + 1 > fine) {
           continue;
         }
-        const wx = -half + x * cell;
-        const wz = -half + z * cell;
-        /* Clear of the hero by the tent's reach at every level below. */
-        const pad = 2 * cell;
-        if (wx > hero[0] - pad && wx < hero[1] + pad && wz > hero[0] - pad && wz < hero[1] + pad) {
-          continue;
-        }
-        const want = sampleAt(pub, level, x, z);
-        const got = tentAt(pub, level, x, z);
+        const want = sampleAt(get, level, x, z);
+        const got = tentAt(get, level, x, z);
         tentN += 1;
         if (got !== want) {
           tentBad += 1;
@@ -162,14 +177,13 @@ function nodeChecks(manifest, tiles) {
       }
     }
   }
-  console.log(`tent: ${tentN} published samples of levels 1 to 3 away from the hero, ${tentBad} differ from the filter`);
+  console.log(`tent: ${tentN} published samples of levels 1 to 3, ${tentBad} differ from the filter`);
   if (tentBad) {
     fail(`the tent filter disagrees with ${tentBad} published samples, first ${JSON.stringify(tentFirst)}`);
   }
 
-  const { pads, changed } = reconcile(get, manifest.hero.tiles, ITAIPU_FRAME.coarsest);
-  console.log(`reconcile: level 0 to 3 samples changed ${JSON.stringify(changed)}, ${pads.length} hero pads ${JSON.stringify(pads.map((p) => [p.i, p.j]))}`);
-  /* Level 0 is the hero at every shared sample. */
+  /* Level 0 is the hero at every shared sample: a 30 m sample is every
+   * third 10 m one. */
   let shared = 0;
   let off = 0;
   const hs = manifest.hero.tiles;
@@ -185,67 +199,19 @@ function nodeChecks(manifest, tiles) {
       }
     }
   }
-  console.log(`  level 0 against the hero: ${shared} shared samples, ${off} differ`);
+  /* A level 0 node is 64 cells of 30 m and splits into nine hero nodes
+   * only when all nine have data, so the hero must be a whole number of
+   * level 0 nodes on each axis, every tile inside it listed. */
+  const node = 64 * 3;
+  const whole = [hx0, hx1, hz0, hz1].every((v) => v % node === 0)
+    && hs.length === ((hx1 - hx0) / TILE_CELLS) * ((hz1 - hz0) / TILE_CELLS);
+  console.log(`hero: level 0 against the hero, ${shared} shared samples, ${off} differ; ${hs.length} hero tiles, `
+    + `${whole ? 'whole' : 'NOT whole'} level 0 nodes`);
   if (off || !shared) {
-    fail(`level 0 differs from the hero at ${off} of ${shared} shared samples after reconcile`);
+    fail(`level 0 differs from the hero at ${off} of ${shared} shared samples`);
   }
-  /* The hero tiles themselves are untouched, and so is every tile of
-   * levels 1 to 3 outside the region the tent reaches from the hero. */
-  for (const [i, j] of hs) {
-    const a = get(HERO, i, j);
-    const b = pub(HERO, i, j);
-    if (a.some((v, k) => v !== b[k])) {
-      fail(`reconcile changed hero tile ${i}_${j}`);
-    }
-  }
-  /* A pad is level 0 bilinear at 10 m, but on its edges shared with a
-   * real hero tile, which are that tile's. */
-  const want = heroPads(hs);
-  if (want.length !== pads.length) {
-    fail(`${pads.length} pads made, ${want.length} wanted`);
-  }
-  let padSamples = 0;
-  let padOff = 0;
-  let seam = 0;
-  let seamOff = 0;
-  for (const p of pads) {
-    for (let b = 0; b <= TILE_CELLS; b += 1) {
-      for (let a = 0; a <= TILE_CELLS; a += 1) {
-        const v = p.data[b * TILE_SAMPLES + a];
-        const gx = p.i * TILE_CELLS + a;
-        const gz = p.j * TILE_CELLS + b;
-        const realHere = [[p.i - 1, p.j, a === 0], [p.i, p.j - 1, b === 0]]
-          .some(([ri, rj, on]) => on && hs.some(([x, y]) => x === ri && y === rj));
-        if (realHere) {
-          seam += 1;
-          if (v !== sampleAt(get, HERO, gx, gz)) {
-            seamOff += 1;
-          }
-          continue;
-        }
-        const fx = gx / 3;
-        const fz = gz / 3;
-        const x0 = Math.floor(fx);
-        const z0 = Math.floor(fz);
-        const u = fx - x0;
-        const w = fz - z0;
-        const c = (dx, dz) => sampleAt(get, 0, x0 + dx, z0 + dz);
-        const bl = c(0, 0) * (1 - u) * (1 - w) + (u ? c(1, 0) : c(0, 0)) * u * (1 - w)
-          + (w ? c(0, 1) : c(0, 0)) * (1 - u) * w + (u && w ? c(1, 1) : 0) * u * w;
-        padSamples += 1;
-        if (Math.abs(v - bl) > 0.5 + 1e-9) {
-          padOff += 1;
-        }
-      }
-    }
-  }
-  console.log(`  pads: ${padSamples} samples against level 0 bilinear, ${padOff} off by more than rounding; `
-    + `${seam} seam samples against the real hero, ${seamOff} differ`);
-  if (padOff || seamOff) {
-    fail(`hero pads: ${padOff} samples off level 0's bilinear, ${seamOff} seam samples off the real hero`);
-  }
-  for (const p of pads) {
-    tiles.set(`${HERO}:${p.i}:${p.j}`, p.data);
+  if (!whole) {
+    fail(`the hero tiles (samples x ${hx0} to ${hx1}, z ${hz0} to ${hz1}) are not whole level 0 nodes of ${node} hero samples`);
   }
   return get;
 }
@@ -263,7 +229,7 @@ function tri(data, ci, cj, fu, fv) {
   return h11 + (h01 - h11) * (1 - fu) + (h10 - h11) * (1 - fv);
 }
 
-/* The hero level's ground at (x, z) from the reconciled tiles. */
+/* The hero level's ground at (x, z) from the tiles. */
 function heroGround(get, x, z) {
   const half = ITAIPU_FRAME.half;
   const gx = (x + half) / 10;
@@ -330,7 +296,6 @@ async function main() {
     console.log(`itaipu loaded in ${loadS.toFixed(1)} s; loading ledger ${JSON.stringify(m.loading)}; `
       + `spawn ${m.spawn.x.toFixed(0)}, ${m.spawn.y.toFixed(1)}, ${m.spawn.z.toFixed(0)}`);
     console.log(`  WORLD STAGE ${Math.round(m.loading.world)} ms (src/maps/build-cost.js MAP_BUILD_MS.itaipu)`);
-    console.log(`  reconciled in the page: ${JSON.stringify(m.reconciled)}`);
 
     /* What the choice fetched. */
     const urls = JSON.parse(await page.evaluate(`JSON.stringify(performance.getEntriesByType('resource').slice(${mark}).map((e) => e.name))`));

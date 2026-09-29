@@ -6,7 +6,7 @@
  *
  * The ground is the pipeline's tiles in FDFPV_ITAIPU_DATA (by default
  * ~/Desktop/fdfpv-itaipu-data), read the way the page reads them: every
- * level and the hero, package B's reconcile over them, then engine.js
+ * level and the hero, then engine.js
  * finestAt's walk from the hero down and its two triangles a cell. The
  * walk is restated here, as scripts/town-check.js restates it, because
  * engine.js imports three.js and Node has none; the water is water.json's
@@ -43,7 +43,6 @@ import { execFileSync } from 'node:child_process';
 import {
   decode, HERO, TILE_CELLS, TILE_SAMPLES, cellOf,
 } from '../src/maps/yellowstone/terrain/frame.js';
-import { reconcile } from '../src/maps/itaipu/terrain/reconcile.js';
 import {
   ITAIPU_FRAME, LANDMARKS, RESERVOIR_Y, RIVER_Y,
 } from '../src/maps/itaipu/terrain/frame.js';
@@ -97,10 +96,6 @@ async function loadGround() {
   }
   await Promise.all(jobs);
   const get = (level, i, j) => tiles.get(`${level}:${i}:${j}`) ?? null;
-  const { pads } = reconcile(get, manifest.hero.tiles, ITAIPU_FRAME.coarsest);
-  for (const p of pads) {
-    tiles.set(`${HERO}:${p.i}:${p.j}`, p.data);
-  }
   const HALF = ITAIPU_FRAME.half;
   const EXTENT = ITAIPU_FRAME.extent;
   const finestAt = (x, z) => {
