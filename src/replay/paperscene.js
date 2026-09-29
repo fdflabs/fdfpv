@@ -46,10 +46,11 @@ const REBUILD_STEP_S = 1 / 60;
 
 /*
  * `paper` is a clip's, `n` its rows; `parent` the scene; `audio` the
- * shell's (its schwing(), when it has one).
+ * shell's (its schwing(), when it has one); floorAt what the paper lies
+ * on, as the live layer has it (src/render/streamers.js).
  */
-export function createPaperScene(paper, n, parent, audio) {
-  const layer = createStreamerLayer();
+export function createPaperScene(paper, n, parent, audio, floorAt) {
+  const layer = createStreamerLayer(floorAt);
   parent.add(layer.group);
   const sample = createPaperSample();
   let schwings = 0;
