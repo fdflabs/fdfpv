@@ -1,0 +1,482 @@
+/*
+ * war-twopage.js: the war client's proof on the real shell
+ * (docs/WARFARE-PLAN.md section 5.2). Two headless pages join one private
+ * room on the Itaipu map, on a rooms server this check runs in its own
+ * process (edge/rooms/node.js), and A, the host, starts mission 1:
+ *
+ *   SIM_GPU=1 npm run war:twopage [-- outdir]
+ *
+ * SIM_GPU=1 renders on the machine's GPU (tests/lib/page.js). Under the
+ * software rasteriser, two pages of Itaipu on a busy machine draw a frame
+ * every half second or so, and so send a pose as seldom: the room then
+ * judges past a pilot's newest pose (LATE_MS) and a pass through the
+ * bubble goes unseen. The check says so rather than failing silently.
+ *
+ * src/main.js does not wire the war client yet (docs/WAR-WIRING.md is
+ * that wiring, the lead's to make), so each page gets it from
+ * scripts/war-twopage-wire.js, fed by TAP_SEED below, a WebSocket that
+ * hands the rooms socket's frames to it: the room's real wire, on the
+ * real shell, with the real map's scene.
+ *
+ * What must hold:
+ *   - both pages draw every attacker at the same place at the same room
+ *     millisecond: a scripted one to the micrometre, since routes.js is
+ *     the same function on the same numbers; a hunter (AGENTS, 0xA0,
+ *     interpolated) within HUNTER_M
+ *   - each page draws what it says: its instanced meshes hold its own
+ *     attackersAt, at most one draw call a kind
+ *   - the same output, wave, rack and scores on both, all the way
+ *   - A is held on the middle Striker's route: it detonates, and both
+ *     pages hear the same boom and the same dead, A scores the kill, and
+ *     the rack drops by one; the other two Strikers reach the switchyard
+ *     and both pages take its megawatts and call it
+ *   - then both are held on the Hunters' way up the gorge: a Hunter goes
+ *     off on one of them, and both pages agree on that too
+ *
+ * Pictures go in outdir (build/war-twopage by default, not in the
+ * repository).
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { openPage } from '../tests/lib/page.js';
+import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
+import { airframeById } from '../configs/airframes.js';
+import { SPAWN_MS } from '../edge/rooms/safety.js';
+import { LATE_MS } from '../src/game/midair.js';
+import { planAgent, poseAt } from '../src/share/war/routes.js';
+import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const outDir = process.argv[2] || join(root, 'build', 'war-twopage');
+
+let failed = 0;
+let passed = 0;
+function check(name, ok, detail = '') {
+  console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`);
+  if (ok) {
+    passed += 1;
+  } else {
+    failed += 1;
+  }
+}
+
+/* A scripted attacker on the two pages: the same function on the same
+ * numbers, so any difference is a bug, not a tolerance. */
+const SCRIPTED_M = 1e-6;
+/* A hunter, interpolated on each page from the AGENTS frames that page
+ * was sent: each seat's are thinned on its own distance (core.js
+ * INTEREST), so two pages can hold different samples of one flight. Both
+ * pilots are held within 40 m of each other, so they sit in the same band
+ * but for the moments a hunter crosses a band's edge. */
+const HUNTER_M = 1.0;
+/* How far behind the older of the two clocks the positions are compared:
+ * far enough that both pages hold the samples either side. */
+const BEHIND_MS = 1500;
+
+/* The rooms socket's frames, queued for scripts/war-twopage-wire.js. */
+const TAP_SEED = `(() => {
+  const Native = window.WebSocket;
+  const tap = { socket: null, queue: [], on: null };
+  window.__warTap = tap;
+  window.WebSocket = class extends Native {
+    constructor(url, protocols) {
+      super(url, protocols);
+      if (/\\/v2\\//.test(String(url))) {
+        tap.socket = this;
+        this.addEventListener('message', (ev) => {
+          if (tap.socket !== this) {
+            return;
+          }
+          const d = typeof ev.data === 'string' ? ev.data : new Uint8Array(ev.data);
+          if (tap.on) {
+            tap.on(d);
+          } else {
+            tap.queue.push(d);
+          }
+        });
+      }
+    }
+  };
+})();`;
+
+function seedFor(colour) {
+  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+  s.map = 'itaipu';
+  s.freestyleMap = 'itaipu';
+  s.graphics = 'low';
+  s.flightMode = 'angle';
+  s.fpsCap = 0;
+  s.airframeAsked = true;
+  s.crashDamage = true;
+  s.livery = { '5inch': { regions: { frame: colour } } };
+  s.parts = {};
+  return [TAP_SEED, `try {
+    const k = ${JSON.stringify(SETTINGS_KEY)};
+    const s = JSON.parse(localStorage.getItem(k) || '{}');
+    if (!s.roomsSeeded) {
+      Object.assign(s, ${JSON.stringify(s)}, { roomsSeeded: true });
+      localStorage.setItem(k, JSON.stringify(s));
+    }
+    localStorage.setItem('webfpv.airhint.v2', '1');
+  } catch (e) { /* storage refused */ }`];
+}
+
+async function shot(page, name) {
+  await mkdir(outDir, { recursive: true });
+  const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
+  const path = join(outDir, `${name}.png`);
+  await writeFile(path, Buffer.from(data, 'base64'));
+  console.log(`  shot ${path}`);
+}
+
+const throwTo = (p, at, fresh) => p.evaluate(`window.__crashThrow({ x: ${at[0]}, y: ${at[1]}, z: ${at[2]}, yaw: 0, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, fresh: ${fresh}, showCraft: true })`);
+/*
+ * Held at `at`, a whole airframe that can go off. `fresh` puts back one
+ * whole, since a quad left on the Mirante's pad may already be a wreck,
+ * whose poses say crashed and never detonate; but a fresh flight is
+ * spawning (main.js roomSpawning) until it has moved ROOM_SPAWN_M, 30 m,
+ * from where it began, which a held craft never does. So it begins 40 m
+ * over the point and is thrown down onto it, the same flight.
+ */
+async function hold(p, at) {
+  await throwTo(p, [at[0], at[1] + 40, at[2]], true);
+  /* The spawn point is taken on the first pose sent after the reset, so
+   * a few frames must go by there before the throw down. */
+  await p.evaluate('new Promise((r) => { let n = 0; const f = () => (++n >= 4 ? r(true) : requestAnimationFrame(f)); requestAnimationFrame(f); })');
+  await p.sleep(300);
+  await throwTo(p, at, false);
+}
+const warOf = (p) => p.evaluate('window.__war()');
+const nowOf = (p) => p.evaluate('window.__rooms().roomNow');
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+/* The view without what only differs by when it was read. */
+const same = (v) => JSON.stringify({ ...v, f: undefined });
+/* One event as two pages heard it: the same but for whose it is. */
+const sameEvent = (x, y) => Boolean(x && y) && JSON.stringify({ ...x, mine: 0 }) === JSON.stringify({ ...y, mine: 0 });
+
+const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-war-'));
+const { startRooms } = await import('../edge/rooms/node.js');
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+const rooms = `http://127.0.0.1:${server.port}`;
+/* The room's own half, in this process: what it judged, for the details
+ * of a failure. */
+const roomWarOf = () => {
+  const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.war.match);
+  return room ? room.host.core.war : null;
+};
+function roomSeats() {
+  const w = roomWarOf();
+  if (!w) {
+    return 'no war room';
+  }
+  const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.war === w);
+  const core = room.host.core;
+  const relayed = [...core.seats.values()].map((s) => {
+    const v = s.pose ? new DataView(s.pose.buffer, s.pose.byteOffset) : null;
+    return `seat ${s.seat} map ${s.profile.map} relayed t ${v ? v.getUint32(4, true) : '-'} at ${v ? [8, 12, 16].map((o) => v.getFloat32(o, true).toFixed(1)).join(',') : '-'}`;
+  }).join('; ');
+  return `room ms ${Math.round(core.roomMs(Date.now()))}, meta map ${core.meta.map}; ${relayed}; judged: ` + [...w.seats.entries()].map(([seat, r]) => {
+    const n = r.track.s.at(-1);
+    return `seat ${seat}: ${n ? `t ${n.t} at ${[n.px, n.py, n.pz].map((v) => v.toFixed(1)).join(',')} flags 0x${n.flags.toString(16)}` : 'no sample'} down ${JSON.stringify(r.down)} armFrom ${r.armFrom}`;
+  }).join('; ');
+}
+const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
+console.log(`Defend Itaipu in two pages, rooms at ${rooms}`);
+
+const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#d8432f') });
+const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2f6fd6') });
+const pages = [a, b];
+const names = ['A', 'B'];
+
+/* Every attacker on both pages at one room ms, and each page's drawing
+ * against its own list. Returns the worst differences seen. */
+const worst = { scripted: 0, hunter: 0, samples: 0, hunters: 0, mismatch: [], drawn: 0, calls: 0 };
+async function compare() {
+  const t = Math.floor(Math.min(await nowOf(a), await nowOf(b))) - BEHIND_MS;
+  const [la, lb] = await Promise.all(pages.map((p) => p.evaluate(`window.__warAt(${t})`)));
+  const ids = (l) => l.map((x) => x.id).join(',');
+  if (ids(la) !== ids(lb)) {
+    worst.mismatch.push(`${t}: A ${ids(la)} B ${ids(lb)}`);
+    return;
+  }
+  for (let i = 0; i < la.length; i += 1) {
+    const d = dist(la[i].p, lb[i].p);
+    const k = la[i].kind === 'hunter' ? 'hunter' : 'scripted';
+    worst[k] = Math.max(worst[k], d);
+    worst.samples += 1;
+    worst.hunters += k === 'hunter' ? 1 : 0;
+  }
+  for (const p of pages) {
+    const d = await p.evaluate(`(() => {
+      const w = window.__war().drawn;
+      const own = window.__warAt(w.at);
+      let off = own.length === w.list.length ? 0 : Infinity;
+      for (let i = 0; i < own.length && off < Infinity; i += 1) {
+        const x = own[i], y = w.list[i];
+        /* A hunter drawn past its newest sample is redrawn once the next
+         * arrives, so only its id is held to the frame. */
+        off = x.id !== y.id ? Infinity : (x.kind === 'hunter' ? off : Math.max(off, Math.hypot(x.p[0] - y.p[0], x.p[1] - y.p[1], x.p[2] - y.p[2])));
+      }
+      const n = Object.values(w.counts).reduce((s, c) => s + c, 0);
+      return { off, calls: w.calls, n, listed: w.list.length };
+    })()`);
+    worst.drawn = Math.max(worst.drawn, d.n === d.listed ? d.off : Infinity);
+    worst.calls = Math.max(worst.calls, d.calls);
+  }
+}
+
+async function sameView(what) {
+  const [va, vb] = await Promise.all(pages.map(warOf));
+  check(`${what}: both pages hold the same war`, same(va.view) === same(vb.view),
+    `output ${va.view.output}/${vb.view.output}, wave ${va.view.wave}/${vb.view.wave}, rack ${va.view.rack}/${vb.view.rack}, kills ${JSON.stringify(va.view.scores)}`);
+  return [va, vb];
+}
+
+/* Compares every 2 s until `done` returns true or room ms `until`. */
+async function watch(done, until) {
+  for (;;) {
+    await compare();
+    if (await done() || (await nowOf(a)) > until) {
+      return;
+    }
+    await a.sleep(2000);
+  }
+}
+
+try {
+  for (const p of pages) {
+    await p.until('window.__shellReady === true', 300000);
+    await p.until('window.__map && window.__map().ready && window.__crashCam', 600000);
+  }
+  const code = await a.evaluate("window.__roomCreate({ map: 'itaipu' })");
+  check('page A makes a private room on Itaipu', /^[A-Z0-9]{6}$/.test(code), code);
+  await a.until("window.__rooms().phase === 'open'", 30000);
+  await b.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
+  for (const p of pages) {
+    await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1 && window.__rooms().roomNow != null", 30000);
+    await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  }
+  for (const p of pages) {
+    await p.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+    await p.evaluate("import('/scripts/war-twopage-wire.js').then((m) => m.install())");
+  }
+  const seats = await Promise.all(pages.map((p) => p.evaluate('window.__rooms().seat')));
+  const w0 = await Promise.all(pages.map(warOf));
+  check('each page\'s war client has its seat and the room\'s lobby from the welcome', w0.every((w, i) => w.seat === seats[i] && w.view.state === 'lobby'),
+    w0.map((w) => `${w.seat} ${w.view.state}`).join(', '));
+
+  await a.evaluate("window.__warDo('start', 'itaipu-1')");
+  for (const p of pages) {
+    await p.until("window.__war().view.state === 'countdown' || window.__war().view.state === 'live'", 15000);
+  }
+  const goAt = (await warOf(a)).view.goAt;
+  console.log(`  info  seats A ${seats[0]}, B ${seats[1]}; the go at room ms ${goAt}`);
+  for (const p of pages) {
+    await p.until("window.__war().view.state === 'live'", 20000);
+  }
+  const [live] = await sameView('at the go');
+  /* The room's side, traced for a failure's details: every pose the war
+   * took (its t, and the room ms it came in at) and every judgement. */
+  const trace = { poses: [], judged: [] };
+  {
+    const w = roomWarOf();
+    const pose0 = w.pose.bind(w);
+    w.pose = (core, s, bytes, now) => {
+      const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      trace.poses.push({ seat: s.seat, t: v.getUint32(4, true), at: core.roomMs(now), flags: bytes[1] });
+      return pose0(core, s, bytes, now);
+    };
+    const judge0 = w.judge.bind(w);
+    w.judge = (core, roomNow) => {
+      const f0 = w.match.f;
+      const out = judge0(core, roomNow);
+      trace.judged.push({ at: roomNow, f0, f: w.match.f });
+      return out;
+    };
+  }
+  /* What the room saw of seat's poses and its frontier over [t0, t1]. */
+  const traceOf = (seat, t0, t1) => {
+    const ps = trace.poses.filter((x) => x.seat === seat && x.t >= t0 && x.t <= t1);
+    const gaps = ps.slice(1).map((x, i) => x.t - ps[i].t);
+    const lag = ps.map((x) => x.at - x.t);
+    const js = trace.judged.filter((j) => j.f > t0 && j.f0 < t1);
+    const past = js.filter((j) => j.f > Math.max(...trace.poses.filter((x) => x.seat === seat && x.at <= j.at).map((x) => x.t)));
+    return {
+      gap: Math.max(...gaps),
+      past: past.length,
+      text: `seat ${seat}: ${ps.length} poses, gap max ${Math.max(...gaps)} ms median ${gaps.sort((a, b) => a - b)[gaps.length >> 1]}, lag max ${Math.round(Math.max(...lag))} ms, flags ${[...new Set(ps.map((x) => x.flags.toString(16)))]}; ${js.length} judgements, ${past.length} with the frontier past its newest pose`,
+    };
+  };
+  check('the rack is the mission\'s three airframes a pilot, the output its 14 000 MW', live.view.rack === 6 && live.view.rackMax === 6 && live.view.output === itaipu1.output,
+    `rack ${live.view.rack}/${live.view.rackMax}, ${live.view.output} MW`);
+
+  /* A on the middle Striker's route, 15 s after its birth; B 100 m to its
+   * side and 30 m up, out of every Striker's way (their gap is 25 m). */
+  const wave = itaipu1.waves.findIndex((w) => w.kind === 'strike');
+  const sw = itaipu1.waves[wave];
+  const plan = planAgent(itaipu1, {
+    kind: sw.kind, route: sw.route, t0: goAt + sw.at * 1000, k: 1, n: sw.n, err: 0, target: sw.target,
+  });
+  const tHit = goAt + sw.at * 1000 + 15000;
+  const P = poseAt(plan, tHit).p.slice();
+  const bAt = [P[0] + 100, P[1] + 30, P[2]];
+  await hold(a, P);
+  await hold(b, bAt);
+  for (const p of pages) {
+    await p.until('window.__rooms().spawning === false', SPAWN_MS + 10000);
+  }
+  await a.sleep(SPAWN_MS + 1000);
+  console.log(`  info  held; the room has ${roomSeats()}`);
+  console.log(`  info  A's craft: ${JSON.stringify(await a.evaluate('(() => { const c = window.__crash(); return { mode: window.__craftState().mode, flags: c.flags, wrecked: c.wrecked }; })()'))}`);
+  /* Scouts from 20 s, Strikers from 60 s: compared as they come. */
+  let lookedAtStrikers = false;
+  await watch(async () => {
+    const t = await nowOf(b);
+    if (!lookedAtStrikers && t > tHit - 7000) {
+      lookedAtStrikers = true;
+      /* Close: a camera 12 m off the middle Striker's path, 2 s ahead of
+       * it, then the three of them coming at A. */
+      const near = poseAt(plan, t + 2000).p;
+      await b.evaluate(`window.__setCam(${near[0] + 12}, ${near[1] + 3}, ${near[2]}, ${near[0]}, ${near[1]}, ${near[2]}, 40); true`);
+      await b.until(`window.__rooms().roomNow > ${t + 2000}`, 10000);
+      await shot(b, '1-B-close-on-the-strikers');
+      await b.evaluate(`window.__setCam(${bAt[0]}, ${bAt[1] + 5}, ${bAt[2] + 20}, ${P[0]}, ${P[1]}, ${P[2] - 60}, 50); true`);
+      await b.sleep(800);
+      await shot(b, '2-B-watches-the-strikers-reach-A');
+      await b.evaluate('window.__setCam(null); true');
+    }
+    return (await warOf(a)).log.some((e) => e.type === 'boom');
+  }, tHit + 15000);
+  await a.sleep(1500);
+  console.log(`  info  after the Strikers' pass the room has ${roomSeats()}; its log ${JSON.stringify(roomWarOf().log.slice(0, 6))}`);
+  /* The room judges a pilot only up to its newest pose, or LATE_MS behind
+   * its own clock when that is later (war.js, tag's single timeline): a
+   * page that sends poses further apart than that has milliseconds judged
+   * before they are heard, and a pass through the bubble in one of them is
+   * never seen. A software rasteriser on a loaded machine renders, and so
+   * sends, a couple of times a second; SIM_GPU=1 is the cure. */
+  const heard = traceOf(seats[0], tHit - 3000, tHit + 3000);
+  check(`the room heard A often enough to judge the pass: poses under LATE_MS (${LATE_MS} ms) apart, the frontier never past the newest`,
+    heard.gap <= LATE_MS && heard.past === 0, heard.text);
+  const [ba, bb] = await Promise.all(pages.map(warOf));
+  const boomA = ba.log.find((e) => e.type === 'boom');
+  const boomB = bb.log.find((e) => e.type === 'boom');
+  check('A detonates on the Striker it was held in front of', boomA && boomA.seat === seats[0] && boomA.mine === true,
+    boomA ? `seat ${boomA.seat} at ${boomA.at} (${Math.round(boomA.at - tHit)} ms from the hold point's ms), ${dist(boomA.p, P).toFixed(2)} m from it` : 'no boom');
+  check('B hears the same boom, not its own', boomB && JSON.stringify({ ...boomB, mine: 0 }) === JSON.stringify({ ...boomA, mine: 0 }) && boomB.mine === false);
+  const deadA = ba.log.find((e) => e.type === 'dead' && e.why === 'boom');
+  const deadB = bb.log.find((e) => e.type === 'dead' && e.why === 'boom');
+  check('both pages take the same Striker off, at the same ms and place', deadA && deadB && sameEvent(deadA, deadB) && deadA.ids.length === 1 && deadA.mine && !deadB.mine,
+    deadA ? `ids ${deadA.ids} by ${deadA.by}` : 'none');
+  const [va] = await sameView('after the detonation');
+  const me = va.view.scores.find((r) => r.seat === seats[0]);
+  check('A scores the kill and the Switchyard\'s megawatts saved, and the rack is one down', me && me.kills === 1 && me.mw === itaipu1.targets[sw.target].mw && va.view.rack === 5,
+    JSON.stringify(me) + ` rack ${va.view.rack}`);
+  check('A\'s HUD calls its own kill and the warhead, B\'s calls A\'s', ba.said.some((s) => /SPLASH ONE/.test(s)) && bb.said.some((s) => s.includes(`#${seats[0]}`)),
+    `${ba.said.slice(-3).join(' | ')} || ${bb.said.slice(-3).join(' | ')}`);
+
+  /* Both up the gorge, the Hunters' way, 40 m apart. */
+  const gA = [-1000, 300, 1540];
+  const gB = [-1000, 300, 1500];
+  await hold(a, gA);
+  await hold(b, gB);
+  const yardAt = plan.tEnd;
+  let lookedAtHunters = false;
+  await watch(async () => {
+    const t = await nowOf(b);
+    if (!lookedAtHunters && t > goAt + 205000) {
+      lookedAtHunters = true;
+      const h = (await b.evaluate(`window.__warAt(${t})`)).find((x) => x.kind === 'hunter');
+      if (h) {
+        /* 8 m from the hunter as drawn, on B's side of it: a live camera
+         * on a 0.25 m quad at 36 m/s, so taken at once. */
+        await b.evaluate(`(() => {
+          const h = window.__warAt(window.__rooms().roomNow).find((x) => x.kind === 'hunter');
+          const d = [${gB[0]} - h.p[0], ${gB[1]} - h.p[1], ${gB[2]} - h.p[2]];
+          const n = Math.hypot(...d);
+          window.__setCam(h.p[0] + d[0] / n * 8, h.p[1] + d[1] / n * 8 + 1, h.p[2] + d[2] / n * 8, h.p[0], h.p[1], h.p[2], 40);
+          return true;
+        })()`);
+        await shot(b, '3-B-watches-a-hunter-come');
+        await b.evaluate('window.__setCam(null); true');
+      }
+    }
+    const logs = await Promise.all(pages.map(warOf));
+    return t > yardAt + 3000 && logs.every((w) => w.log.filter((e) => e.type === 'boom').length >= 2);
+  }, goAt + 280000);
+  await a.sleep(1500);
+  const [ya, yb] = await Promise.all(pages.map(warOf));
+  const yardA = ya.log.filter((e) => e.type === 'dead' && e.target === sw.target);
+  const yardB = yb.log.filter((e) => e.type === 'dead' && e.target === sw.target);
+  const yardIds = yardA.flatMap((e) => e.ids).length;
+  check('the Strikers left reach the Switchyard on both pages alike', yardIds === sw.n - (deadA ? deadA.ids.length : 0) && JSON.stringify(yardA) === JSON.stringify(yardB) && yardA.every((e) => e.hit),
+    yardA.map((e) => `${e.ids} at ${e.at} hit ${e.hit}`).join('; '));
+  /* Every target hit takes its megawatts once, whoever else hits it. */
+  const hitTargets = [...new Set(ya.log.filter((e) => e.type === 'dead' && e.hit).map((e) => e.target))];
+  const lost = hitTargets.reduce((sum, id) => sum + itaipu1.targets[id].mw, 0);
+  check('both take each hit target\'s megawatts once, and call the Switchyard', ya.view.output === itaipu1.output - lost && yb.view.output === ya.view.output
+    && JSON.stringify(ya.view.down) === JSON.stringify(hitTargets) && [ya, yb].every((w) => w.said.some((s) => s.includes('SWITCHYARD HIT'))),
+  `${ya.view.output} and ${yb.view.output} MW, down ${hitTargets.join(',')}; ${ya.said.filter((s) => s.includes('HIT')).join(' | ')}`);
+  const hunterBoom = ya.log.filter((e) => e.type === 'boom')[1];
+  const hunterBoomB = yb.log.filter((e) => e.type === 'boom')[1];
+  check('a Hunter goes off on a pilot, and both pages agree who, when and where', hunterBoom && hunterBoomB
+    && JSON.stringify({ ...hunterBoom, mine: 0 }) === JSON.stringify({ ...hunterBoomB, mine: 0 }),
+  hunterBoom ? `seat ${hunterBoom.seat} at ${hunterBoom.at}` : 'no second boom');
+  const deadHunt = (w) => w.log.filter((e) => e.type === 'dead' && e.why === 'boom')[1];
+  check('and the same Hunter dies on both', deadHunt(ya) && sameEvent(deadHunt(ya), deadHunt(yb)),
+    deadHunt(ya) ? `ids ${deadHunt(ya).ids}` : 'none');
+  await sameView('after the Hunter');
+  await shot(a, '4-A-hud-after-the-hunter');
+
+  check('both pages list the same attackers at every compared ms', worst.mismatch.length === 0, worst.mismatch.slice(0, 2).join(' | '));
+  check(`scripted attackers at the same room ms agree within ${SCRIPTED_M} m`, worst.samples > 0 && worst.scripted <= SCRIPTED_M,
+    `${worst.scripted.toExponential(2)} m worst over ${worst.samples - worst.hunters} pairs`);
+  check(`hunters at the same room ms agree within ${HUNTER_M} m`, worst.hunters > 0 && worst.hunter <= HUNTER_M,
+    `${worst.hunter.toFixed(3)} m worst over ${worst.hunters} pairs`);
+  check('each page draws its own list, instance for instance, every scripted one where attackersAt puts it', worst.drawn < 1e-3, `${worst.drawn} m worst`);
+  check('at most one draw call a kind', worst.calls <= 7, `${worst.calls} kinds drawn at once at most`);
+
+  await a.evaluate("window.__warDo('end')");
+  for (const p of pages) {
+    await p.until("window.__war().view.state === 'ended' && window.__war().hud.banner !== ''", 10000);
+  }
+  const [ea, eb] = await sameView('at the end');
+  check('both show the mission ended', ea.hud.banner !== '' && ea.hud.banner === eb.hud.banner, ea.hud.banner);
+  const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
+  check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
+} catch (e) {
+  for (const [i, p] of pages.entries()) {
+    const st = await p.evaluate('JSON.stringify({ war: window.__war && window.__war(), rooms: window.__rooms && window.__rooms().phase })').catch((x) => String(x));
+    console.log(`  page ${names[i]}: ${String(st).slice(0, 1500)}`);
+    console.log(`  page ${names[i]} errors: ${p.errors.slice(0, 5).join(' | ')}`);
+  }
+  failed += 1;
+  console.log(`  FAIL  ${e.stack || e}`);
+} finally {
+  for (const p of pages) {
+    await p.close();
+  }
+  await server.stop();
+  rmSync(scratch, { recursive: true, force: true });
+}
+console.log(`\n${passed} passed, ${failed} failed`);
+process.exit(failed ? 1 : 0);
