@@ -40,6 +40,7 @@
  */
 
 import { trimPeers } from './peers.js';
+import { trimPaper } from './paper.js';
 
 /* Seconds of flight a replay holds, and the most rows it takes to hold
  * them: 120 a second. A faster display is sampled down to that; a slower
@@ -284,9 +285,10 @@ export function createRecorder(capacity = CAPACITY) {
     lastWall = NaN;
   }
 
-  /* Where the last WINDOW_S seconds start in the ring, and how many rows
-   * they are: what clip() cuts, for anything kept beside the rows by the
-   * same index (src/replay/peers.js). */
+  /* Where the last WINDOW_S seconds start in the ring, how many rows they
+   * are, and the clock at the first and the last: what clip() cuts, for
+   * anything kept beside the rows by the same index or the same clock
+   * (src/replay/peers.js, src/replay/paper.js). */
   function span() {
     let first = (head - size + capacity) % capacity;
     let n = size;
@@ -295,7 +297,7 @@ export function createRecorder(capacity = CAPACITY) {
       first = (first + 1) % capacity;
       n -= 1;
     }
-    return [first, n];
+    return [first, n, n ? c.time[first] : 0, newest];
   }
 
   /* The last WINDOW_S seconds of the ring in order, oldest first, as a
@@ -353,6 +355,7 @@ export function trimClip(clip, t0, t1) {
     keys: (clip.keys || []).filter((k) => k.t >= base && k.t <= clip.time[b]).map((k) => ({ ...k, t: k.t - base })),
     meta: { ...clip.meta, duration: time[n - 1] },
     ...(clip.peers ? { peers: trimPeers(clip.peers, a, b) } : {}),
+    ...(clip.paper ? { paper: trimPaper(clip.paper, a, b, base, clip.time[b]) } : {}),
   };
 }
 

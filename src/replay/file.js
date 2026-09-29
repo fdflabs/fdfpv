@@ -36,6 +36,14 @@
  * nobody else in it is written as version 3, byte for byte what the build
  * before wrote, so a single player replay is unchanged and still opens in
  * that build. Versions 1 to 3 are read with nobody else.
+ *
+ * Version 5 added combat's paper (src/replay/paper.js): the header's
+ * `paper` ({ bytes, events }, the cuts' bursts and the SCHWINGs), then
+ * after everything else the paper's rows, `bytes` of them, each row its
+ * ribbons as paper.js packs them (a row without paper one zero byte). In
+ * a version 5 file the peers are there when anybody else was drawn. A
+ * clip without paper is written as it was before: version 4 with peers,
+ * version 3 alone. Versions 1 to 4 are read without paper.
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -68,12 +76,22 @@ import {
   PEER, PEER_N, PEERS_MAX, PIECE_N,
 } from './peers.js';
 import { checkCrashTable, checkProfile } from '../share/roomwire.js';
+import { checkPaper, rowsOf } from './paper.js';
 
-export const FILE_VERSION = 4;
+export const FILE_VERSION = 5;
+/* A clip without paper: the version before paper, unchanged. */
+const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4];
+const READS = [1, 2, 3, 4, 5];
+/* The version a clip is written as: the lowest that holds what it has. */
+function versionFor(clip) {
+  if (clip.paper) {
+    return FILE_VERSION;
+  }
+  return clip.peers ? PEERS_VERSION : SOLO_VERSION;
+}
 
 /* The columns a version holds, as its header's layout says them. */
 function layoutOf(version) {
@@ -91,13 +109,19 @@ function poseBytes(n) {
   const b = n * POSE_N * 4;
   return b + ((8 - (b % 8)) % 8);
 }
-export const FILE_MAX_BYTES = 24 * 1024 * 1024;
+/* The largest file read. A clip of a full public room at its fullest is
+ * the most there can be: 30 s at 120 Hz of this pilot (about 1.2 MB),
+ * sixteen others and their wrecks (10.1 MB) and sixteen streamers of a
+ * hundred links each (18.3 MB), about 30 MB; the cap leaves room over it
+ * and still refuses anything much bigger than a replay can be. */
+export const FILE_MAX_BYTES = 40 * 1024 * 1024;
 export const FILE_EXT = '.fdfreplay';
 const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper'];
+const PAPER_KEYS = ['bytes', 'events'];
 const PEERS_KEYS = ['slots', 'layout', 'pieces', 'who', 'tables'];
 const WHO_KEYS = ['seat', 'label', 'profile', 'figure'];
 const FIGURE_KEYS = ['at', 'yaw'];
@@ -120,7 +144,8 @@ const FPV_KEYS = ['fwd', 'up', 'tilt', 'fov'];
 export function encodeReplay(clip) {
   const n = clip.n;
   const peers = clip.peers || null;
-  const version = peers ? FILE_VERSION : SOLO_VERSION;
+  const paper = clip.paper || null;
+  const version = versionFor(clip);
   const pieceCount = peers ? peers.pieceAt[n] : 0;
   const head = clip.head.slice(0, n * HEAD_N);
   let partRows = 0;
@@ -144,11 +169,15 @@ export function encodeReplay(clip) {
       slots: peers.slots, layout: [PEER_N, PIECE_N], pieces: pieceCount, who: peers.who, tables: peers.tables,
     };
   }
+  if (paper) {
+    header.paper = { bytes: paper.bytes.byteLength, events: paper.events };
+  }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
   const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, version)
-    + partRows * PART_N * 4 + (peers ? (n * peers.slots * PEER_N + pieceCount * PIECE_N) * 4 : 0);
+    + partRows * PART_N * 4 + (peers ? (n * peers.slots * PEER_N + pieceCount * PIECE_N) * 4 : 0)
+    + (paper ? paper.bytes.byteLength : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
@@ -180,6 +209,10 @@ export function encodeReplay(clip) {
     new Float32Array(buf, o, n * peers.slots * PEER_N).set(peers.cols.subarray(0, n * peers.slots * PEER_N));
     o += n * peers.slots * PEER_N * 4;
     new Float32Array(buf, o, pieceCount * PIECE_N).set(peers.pieces.subarray(0, pieceCount * PIECE_N));
+    o += pieceCount * PIECE_N * 4;
+  }
+  if (paper) {
+    u8.set(paper.bytes, o);
   }
   return buf;
 }
@@ -400,8 +433,20 @@ export function decodeReplay(buf, known = null) {
     throw new ReplayFileError('keys is not a list');
   }
   header.keys.forEach(checkKey);
-  if ((version >= 4) !== (header.peers !== undefined)) {
-    throw new ReplayFileError(version >= 4 ? 'a version 4 file without its peers' : 'peers in a file older than version 4');
+  if (version < 4 && header.peers !== undefined) {
+    throw new ReplayFileError('peers in a file older than version 4');
+  }
+  if (version === 4 && header.peers === undefined) {
+    throw new ReplayFileError('a version 4 file without its peers');
+  }
+  if ((version >= 5) !== (header.paper !== undefined)) {
+    throw new ReplayFileError(version >= 5 ? 'a version 5 file without its paper' : 'paper in a file older than version 5');
+  }
+  if (header.paper !== undefined) {
+    onlyKeys(header.paper, PAPER_KEYS, 'paper');
+    if (!Number.isInteger(header.paper.bytes) || header.paper.bytes < n || header.paper.bytes > FILE_MAX_BYTES) {
+      throw new ReplayFileError('paper.bytes is out of range');
+    }
   }
   if (header.peers !== undefined) {
     checkPeersHeader(header.peers, header.meta.map);
@@ -440,7 +485,8 @@ export function decodeReplay(buf, known = null) {
   }
   const P = header.peers;
   const peerBytes = P ? (n * P.slots * PEER_N + P.pieces * PIECE_N) * 4 : 0;
-  if (o + rows * PART_N * 4 + peerBytes !== buf.byteLength) {
+  const paperBytes = header.paper ? header.paper.bytes : 0;
+  if (o + rows * PART_N * 4 + peerBytes + paperBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
   for (const col of [time, head, pose, plant, smoke]) {
@@ -470,6 +516,17 @@ export function decodeReplay(buf, known = null) {
     clip.peers = {
       slots: P.slots, cols, pieceAt: checkPeerColumns(cols, pieces, n, P), pieces, who: P.who, tables: P.tables,
     };
+    o += P.pieces * PIECE_N * 4;
+  }
+  if (header.paper) {
+    const bytes = new Uint8Array(buf.slice(o, o + paperBytes));
+    try {
+      const paper = { bytes, rowAt: rowsOf(bytes, n), events: header.paper.events };
+      checkPaper(paper, n);
+      clip.paper = paper;
+    } catch (err) {
+      throw new ReplayFileError(err.message);
+    }
   }
   return clip;
 }
