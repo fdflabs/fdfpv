@@ -26,7 +26,9 @@
  */
 
 import { str, plural } from '../strings/index.js';
-import { GOALS, GOAL_MAX, GOAL_MIN } from '../share/roomtag.js';
+import {
+  BUBBLE_M, GOALS, GOAL_MAX, GOAL_MIN,
+} from '../share/roomtag.js';
 
 /* A pilot's name on the scoreboard, crowned when they are the Ace. */
 function crowned(row, nameOf) {
@@ -105,12 +107,14 @@ export function tagRows(o) {
    * its first page, and this row was the one that pushed Start off it.
    * Everybody else, and a host with an error or a match on, keeps it. */
   const idleHost = host && !on && !err;
+  const bubble = { m: BUBBLE_M };
+  const rules = str('roomtag.rules_note', bubble);
   const rows = [
     { label: str('roomtag.section'), section: true },
     ...(idleHost ? [] : [{
       label: str('roomtag.rules'),
       value: on ? str('roomtag.on_value', { goal: v.goal }) : '',
-      note: err ? str(`roomtag.error_${err}`) : str(host ? 'roomtag.rules_note' : 'roomtag.wait'),
+      note: err ? str(`roomtag.error_${err}`) : str(host ? 'roomtag.rules_note' : 'roomtag.wait', bubble),
       info: true,
     }]),
   ];
@@ -124,7 +128,7 @@ export function tagRows(o) {
     const again = v.state === 'results';
     rows.push({
       label: str(again ? 'roomtag.again' : 'roomtag.start'),
-      note: again ? str('roomtag.again_note') : `${str('roomtag.rules_note')} ${str('roomtag.start_note')}`,
+      note: again ? str('roomtag.again_note') : `${rules} ${str('roomtag.start_note')}`,
       action: 'friends-tag-start',
     });
   }

@@ -393,9 +393,6 @@ const CP = new Float64Array(6);
  *
  * The broadphase is a sphere per aircraft round its whole hull, grown by
  * its travel over the span; almost every span stops there.
- *
- * A negative margin is a gap: boxes within that distance of each other on
- * every axis count (a tag, edge/rooms/tag.js), and both spheres grow by it.
  */
 export function judge(hA, hB, tA, tB, t0, t1, margin = MARGIN_M) {
   const first = Math.floor(t0) + 1;
@@ -405,8 +402,7 @@ export function judge(hA, hB, tA, tB, t0, t1, margin = MARGIN_M) {
   }
   const A = hA.hull;
   const B = hB.hull;
-  const gap = margin < 0 ? -margin : 0;
-  const reach = A.reach + B.reach + gap;
+  const reach = A.reach + B.reach;
   /* The coarse test on the span's two ends, each grown by what either
    * could travel in it at the fastest either sample says. */
   const a0 = poseAt(tA, first, PA);
@@ -452,7 +448,7 @@ export function judge(hA, hB, tA, tB, t0, t1, margin = MARGIN_M) {
     let best = null;
     for (let i = 0; i < A.n; i += 1) {
       for (let j = 0; j < B.n; j += 1) {
-        const rr = A.rho[i] + B.rho[j] + gap;
+        const rr = A.rho[i] + B.rho[j];
         const ex = CA[i * 3] - CB[j * 3];
         const ey = CA[i * 3 + 1] - CB[j * 3 + 1];
         const ez = CA[i * 3 + 2] - CB[j * 3 + 2];
@@ -485,6 +481,86 @@ export function judge(hA, hB, tA, tB, t0, t1, margin = MARGIN_M) {
       best.pb = { ...pb };
       approachNormal(A, B, tA, tB, t - 1, best);
       return best;
+    }
+  }
+  return null;
+}
+
+/*
+ * How far the nearest part box of hull h (a hullFor() answer) posed at p
+ * is from the world point (x, y, z), metres, 0 inside one.
+ */
+export function hullDistance(h, p, x, y, z) {
+  const H = h.hull;
+  bodyAxes(p.qx, p.qy, p.qz, p.qw, BOXB.a);
+  partCentres(H, BOXB.a, p, CB);
+  let best = Infinity;
+  for (let i = 0; i < H.n; i += 1) {
+    const ex = CB[i * 3] - x;
+    const ey = CB[i * 3 + 1] - y;
+    const ez = CB[i * 3 + 2] - z;
+    const far = best + H.rho[i];
+    if (ex * ex + ey * ey + ez * ez > far * far) {
+      continue;
+    }
+    placeBox(H, i, CB, BOXB);
+    nearestOnBox(BOXB, x, y, z, CP, 0);
+    best = Math.min(best, Math.hypot(CP[0] - x, CP[1] - y, CP[2] - z));
+  }
+  return best;
+}
+
+/*
+ * The bubble rule (a tag, edge/rooms/tag.js): the first room millisecond
+ * in (t0, t1] at which some part box of B comes within r metres of A's
+ * centre, the point its pose carries, or null: { tc, d } with d that
+ * distance. The poses, the untouchable flags and the taxiing pair are
+ * judge()'s, so only the distance is new.
+ */
+export function within(hA, hB, tA, tB, t0, t1, r) {
+  const first = Math.floor(t0) + 1;
+  const last = Math.floor(t1);
+  if (last < first || !hA || !hB) {
+    return null;
+  }
+  const reach = r + hB.hull.reach;
+  const a0 = poseAt(tA, first, PA);
+  const b0 = poseAt(tB, first, PB);
+  if (a0 && b0) {
+    const va = Math.sqrt(a0.vx * a0.vx + a0.vy * a0.vy + a0.vz * a0.vz);
+    const vb = Math.sqrt(b0.vx * b0.vx + b0.vy * b0.vy + b0.vz * b0.vz);
+    const grow = 2 * (va + vb) * (last - first) / 1000 + 1;
+    const dx = a0.px - b0.px;
+    const dy = a0.py - b0.py;
+    const dz = a0.pz - b0.pz;
+    if (dx * dx + dy * dy + dz * dz > (reach + grow) * (reach + grow)) {
+      return null;
+    }
+  }
+  let ia = 0;
+  let ib = 0;
+  for (let t = first; t <= last; t += 1) {
+    const ja = tA.bracket(t, ia);
+    const jb = tB.bracket(t, ib);
+    if (ja < 0 || jb < 0) {
+      continue;
+    }
+    ia = ja;
+    ib = jb;
+    const pa = lerpPose(tA.s[ja], tA.s[ja + 1], t, PA);
+    const pb = lerpPose(tB.s[jb], tB.s[jb + 1], t, PB);
+    if (untouchable(pa) || untouchable(pb) || (taxiing(pa) && taxiing(pb))) {
+      continue;
+    }
+    const dx = pa.px - pb.px;
+    const dy = pa.py - pb.py;
+    const dz = pa.pz - pb.pz;
+    if (dx * dx + dy * dy + dz * dz > reach * reach) {
+      continue;
+    }
+    const d = hullDistance(hB, pb, pa.px, pa.py, pa.pz);
+    if (d <= r) {
+      return { tc: t, d };
     }
   }
   return null;

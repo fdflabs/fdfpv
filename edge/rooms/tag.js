@@ -3,11 +3,12 @@
  * (docs/TAG-PLAN.md). The room's half; the client's is src/share/roomtag.js.
  *
  * One pilot is the Ace and scores a point a second; everybody else hunts
- * it, and the first hunter to touch it takes the crown. The room is the
- * referee of every touch, with Phase 3's rule (src/game/midair.js judge)
- * run with a gap instead of an overlap: any part box of a hunter within
- * TAG_M of any part box of the Ace, on every separating axis, is a tag.
- * The first to reach the goal wins, the instant they reach it.
+ * it, and the first hunter into its bubble takes the crown. The room is
+ * the referee of every tag, on Phase 3's poses and hulls (src/game/
+ * midair.js within): any part box of a hunter within BUBBLE_M of the
+ * Ace's centre is a tag. Nothing has to touch; a real collision is still
+ * no crash in a match (below). The first to reach the goal wins, the
+ * instant they reach it.
  *
  * ONE TIMELINE, JUDGED IN ORDER. The crown and the points are decided on
  * the room clock, millisecond by millisecond, over the span every seat
@@ -16,20 +17,22 @@
  * from the samples' contents and stamps only, never from when they
  * arrived, and every client is sent the one answer (docs/TAG-PLAN.md,
  * fairness).
- * Inside a span, the earliest touch of the Ace by any hunter wins, a tie
+ * Inside a span, the earliest tag of the Ace by any hunter wins, a tie
  * to the lower seat; the Ace's points are counted up to it; then the
- * judgement goes on from the touch with the new Ace.
+ * judgement goes on from the tag with the new Ace.
  *
  * What a client sends (JSON text), the host only, public or private:
  *
  *   { type: 'tag', op: 'start', goal }   count down and play to goal points
  *   { type: 'tag', op: 'end' }           results now
  *
- * What the room sends: { type: 'tag', tag } (the view below) to everybody
+ * What the room sends: { type: 'tag', tag } (the view below, whose
+ * `bubble` is BUBBLE_M: a client draws the bubble only for a room that
+ * sends it, since a room from before it judges a touch) to everybody
  * on every change of state or crown and on every whole point the Ace adds,
  * { type: 'tag', error } to a refused sender, and the view in each
- * welcome. A touch in a match is never a mid air crash: edge/rooms/core.js
- * asks on() and sends no referee hit while it is true.
+ * welcome. A collision in a match is never a mid air crash:
+ * edge/rooms/core.js asks on() and sends no referee hit while it is true.
  *
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. The match (small) is handed
@@ -56,19 +59,14 @@
 
 import { FLAG_CRASHED, FLAG_SPAWNING, decodePose } from '../../src/share/roomwire.js';
 import {
-  LATE_MS, Track, hullFor, judge,
+  LATE_MS, Track, hullFor, within,
 } from '../../src/game/midair.js';
 import {
-  CROWNS_SHOWN, GOAL_MAX, GOAL_MIN, POINT_MS, PROTECT_MS, orderScores,
+  BUBBLE_M, CROWNS_SHOWN, GOAL_MAX, GOAL_MIN, POINT_MS, PROTECT_MS, orderScores,
 } from '../../src/share/roomtag.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 
-/* How close is a touch: the gap between two part boxes on every
- * separating axis, metres. docs/TAG-PLAN.md decision 3: the near peer
- * drawing error (0.39 m in a 6 g turn) plus the clock's (0.36 m at 20 m/s),
- * measured by Phase 3, with a little over. */
-export const TAG_M = 0.8;
 /* An Ace nobody can catch for this long drops the crown (decision 8). */
 export const DROP_MS = 10000;
 /* A seat silent for longer than this (a menu, a tab in the background) is
@@ -148,6 +146,7 @@ export class RoomTag {
       goal: m.goal,
       goAt: m.goAt,
       ace: m.ace,
+      bubble: BUBBLE_M,
       protectUntil: m.protectUntil,
       f: m.f,
       scores: orderScores(Object.entries(m.players).map(([seat, p]) => ({ seat: Number(seat), ms: p.ms, gone: !here.has(Number(seat)) }))),
@@ -400,7 +399,7 @@ export class RoomTag {
     }
   }
 
-  /* One step of the judgement from m.f toward t1: up to the first touch,
+  /* One step of the judgement from m.f toward t1: up to the first tag,
    * the goal, a drop, or t1. What is left is judged again with the Ace
    * the step ended with. */
   span(fly, t1) {
@@ -414,7 +413,7 @@ export class RoomTag {
         if (h.seat === m.ace) {
           continue;
         }
-        const c = judge(ace.hull, h.hull, ace.track, h.track, start, t1, -TAG_M);
+        const c = within(ace.hull, h.hull, ace.track, h.track, start, t1, BUBBLE_M);
         if (c && (!tag || c.tc < tag.tc)) {
           tag = { tc: c.tc, seat: h.seat };
         }

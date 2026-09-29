@@ -44,6 +44,23 @@
  * a version 5 file the peers are there when anybody else was drawn. A
  * clip without paper is written as it was before: version 4 with peers,
  * version 3 alone. Versions 1 to 4 are read without paper.
+ *
+ * Version 6 added the movie editor's edit (src/replay/edit.js): the
+ * header's `edit`, the shots a clip reopens with, checked field by field
+ * by checkEdit. It replaces the camera keys, so a file with an edit has
+ * empty `keys`; the peers and the paper are each there when the clip has
+ * them. A clip whose
+ * edit is its default (one chase shot over the whole clip) is written as
+ * the version before, byte for byte, and versions 1 to 5 are read with no
+ * edit; their keys become one when the clip is opened (fromKeys).
+ *
+ * Version 6 also carries Catch the Ace's bubble (src/render/acebubble.js),
+ * in the peers: their header's layout gains BUBBLE_N, and after their
+ * pieces come the bubble's rows, f32[n x BUBBLE_N] (src/replay/peers.js
+ * BUBBLE). A version 6 file has an edit, a bubble or both; each is
+ * written only when the clip has it, so a clip with neither is still the
+ * version before, byte for byte.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -70,27 +87,51 @@ import {
   CAPACITY, HEAD, HEAD_N, PART_N, PARTS_MAX, PLANT_N, POSE_N, SMOKE_N,
 } from './recorder.js';
 import { normalisePlane } from '../../configs/hangar-parts.js';
-import { RIGS } from './cameras.js';
+import { RIGS, defaults } from './cameras.js';
+import { EditError, checkEdit, isDefault } from './edit.js';
 import { FINISHES, MAX_DECALS, checkDecal } from '../../configs/paint.js';
 import {
-  PEER, PEER_N, PEERS_MAX, PIECE_N,
+  BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N,
 } from './peers.js';
 import { checkCrashTable, checkProfile } from '../share/roomwire.js';
 import { checkPaper, rowsOf } from './paper.js';
 
-export const FILE_VERSION = 5;
+export const FILE_VERSION = 6;
+/* A clip with no edit of its own and no bubble, with paper: the version
+ * before those. */
+const PAPER_VERSION = 5;
 /* A clip without paper: the version before paper, unchanged. */
 const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5];
+const READS = [1, 2, 3, 4, 5, 6];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
-  if (clip.paper) {
+  if (realEdit(clip) || bubbleOf(clip)) {
     return FILE_VERSION;
   }
+  if (clip.paper) {
+    return PAPER_VERSION;
+  }
   return clip.peers ? PEERS_VERSION : SOLO_VERSION;
+}
+
+/* Whether a clip has an edit of its own, not the default one. */
+function realEdit(clip) {
+  return Boolean(clip.edit) && !isDefault(clip.edit, clip.time[clip.n - 1], defaultCam(clip.meta.size));
+}
+
+/* A clip's bubble column, or null. */
+function bubbleOf(clip) {
+  return (clip.peers && clip.peers.bubble) || null;
+}
+
+/* The camera a clip opens with when nothing says otherwise. */
+function defaultCam(size) {
+  return {
+    rig: 'chase', target: -1, watch: 0, p: defaults('chase', size),
+  };
 }
 
 /* The columns a version holds, as its header's layout says them. */
@@ -102,6 +143,11 @@ function layoutOf(version) {
 /* The smoke column's bytes: none before version 3. */
 function smokeBytes(n, version) {
   return version >= 3 ? n * SMOKE_N * 4 : 0;
+}
+
+/* The peers' column layout: with the bubble's rows, or without. */
+function peersLayout(bubble) {
+  return bubble ? [PEER_N, PIECE_N, BUBBLE_N] : [PEER_N, PIECE_N];
 }
 
 /* The pose column's bytes with its padding to 8. */
@@ -120,7 +166,7 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit'];
 const PAPER_KEYS = ['bytes', 'events'];
 const PEERS_KEYS = ['slots', 'layout', 'pieces', 'who', 'tables'];
 const WHO_KEYS = ['seat', 'label', 'profile', 'figure'];
@@ -162,21 +208,30 @@ export function encodeReplay(clip) {
     meta: clip.meta,
     events: clip.events,
     spawns: clip.spawns,
-    keys: clip.keys || [],
+    /* A clip with an edit has had its keys turned into it: writing them
+     * too would bring back a camera the pilot has since cut away. */
+    keys: clip.edit ? [] : clip.keys || [],
   };
   if (peers) {
     header.peers = {
-      slots: peers.slots, layout: [PEER_N, PIECE_N], pieces: pieceCount, who: peers.who, tables: peers.tables,
+      slots: peers.slots, layout: peersLayout(bubbleOf(clip)), pieces: pieceCount, who: peers.who, tables: peers.tables,
     };
   }
   if (paper) {
     header.paper = { bytes: paper.bytes.byteLength, events: paper.events };
+  }
+  if (realEdit(clip)) {
+    /* Checked on the way out as on the way in, so an edit that does not
+     * fit its clip (one not trimmed with it, say) fails the save rather
+     * than making a file that will not open. */
+    header.edit = checkedEdit(clip.edit, clip.time[n - 1], peers);
   }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
   const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, version)
     + partRows * PART_N * 4 + (peers ? (n * peers.slots * PEER_N + pieceCount * PIECE_N) * 4 : 0)
+    + (bubbleOf(clip) ? n * BUBBLE_N * 4 : 0)
     + (paper ? paper.bytes.byteLength : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
@@ -210,6 +265,10 @@ export function encodeReplay(clip) {
     o += n * peers.slots * PEER_N * 4;
     new Float32Array(buf, o, pieceCount * PIECE_N).set(peers.pieces.subarray(0, pieceCount * PIECE_N));
     o += pieceCount * PIECE_N * 4;
+  }
+  if (bubbleOf(clip)) {
+    new Float32Array(buf, o, n * BUBBLE_N).set(peers.bubble.subarray(0, n * BUBBLE_N));
+    o += n * BUBBLE_N * 4;
   }
   if (paper) {
     u8.set(paper.bytes, o);
@@ -440,8 +499,21 @@ export function decodeReplay(buf, known = null) {
   if (version === 4 && header.peers === undefined) {
     throw new ReplayFileError('a version 4 file without its peers');
   }
-  if ((version >= 5) !== (header.paper !== undefined)) {
-    throw new ReplayFileError(version >= 5 ? 'a version 5 file without its paper' : 'paper in a file older than version 5');
+  if (version === 5 && header.paper === undefined) {
+    throw new ReplayFileError('a version 5 file without its paper');
+  }
+  if (version < 5 && header.paper !== undefined) {
+    throw new ReplayFileError('paper in a file older than version 5');
+  }
+  const bubbled = Boolean(header.peers && Array.isArray(header.peers.layout) && header.peers.layout.length === 3);
+  if (version < 6 && (header.edit !== undefined || bubbled)) {
+    throw new ReplayFileError(header.edit !== undefined ? 'an edit in a file older than version 6' : 'a bubble in a file older than version 6');
+  }
+  if (version >= 6 && header.edit === undefined && !bubbled) {
+    throw new ReplayFileError('a version 6 file without its edit or a bubble');
+  }
+  if (header.edit !== undefined && header.keys.length) {
+    throw new ReplayFileError('a version 6 file with camera keys');
   }
   if (header.paper !== undefined) {
     onlyKeys(header.paper, PAPER_KEYS, 'paper');
@@ -450,7 +522,7 @@ export function decodeReplay(buf, known = null) {
     }
   }
   if (header.peers !== undefined) {
-    checkPeersHeader(header.peers, header.meta.map);
+    checkPeersHeader(header.peers, header.meta.map, bubbled);
   }
 
   const pre = 12 + hl;
@@ -485,7 +557,8 @@ export function decodeReplay(buf, known = null) {
     rows += np;
   }
   const P = header.peers;
-  const peerBytes = P ? (n * P.slots * PEER_N + P.pieces * PIECE_N) * 4 : 0;
+  const bubbleBytes = bubbled ? n * BUBBLE_N * 4 : 0;
+  const peerBytes = P ? (n * P.slots * PEER_N + P.pieces * PIECE_N) * 4 + bubbleBytes : 0;
   const paperBytes = header.paper ? header.paper.bytes : 0;
   if (o + rows * PART_N * 4 + peerBytes + paperBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
@@ -510,6 +583,9 @@ export function decodeReplay(buf, known = null) {
     n, time, head, pose, plant, parts, smoke,
     events: header.events, spawns: header.spawns, keys: header.keys, meta: header.meta,
   };
+  if (header.edit !== undefined) {
+    clip.edit = checkedEdit(header.edit, time[n - 1], P);
+  }
   if (P) {
     const cols = new Float32Array(buf.slice(o, o + n * P.slots * PEER_N * 4));
     o += n * P.slots * PEER_N * 4;
@@ -518,6 +594,10 @@ export function decodeReplay(buf, known = null) {
       slots: P.slots, cols, pieceAt: checkPeerColumns(cols, pieces, n, P), pieces, who: P.who, tables: P.tables,
     };
     o += P.pieces * PIECE_N * 4;
+    if (bubbleBytes) {
+      clip.peers.bubble = checkBubble(new Float32Array(buf.slice(o, o + bubbleBytes)));
+      o += bubbleBytes;
+    }
   }
   if (header.paper) {
     const bytes = new Uint8Array(buf.slice(o, o + paperBytes));
@@ -532,14 +612,27 @@ export function decodeReplay(buf, known = null) {
   return clip;
 }
 
+/* An edit checked against its clip's length and pilots (src/replay/edit.js),
+ * its refusal a file's refusal. */
+function checkedEdit(edit, duration, peers) {
+  try {
+    return checkEdit(edit, { duration, peers: peers ? peers.who.length : 0 });
+  } catch (err) {
+    if (!(err instanceof EditError)) {
+      throw err;
+    }
+    throw new ReplayFileError(err.message);
+  }
+}
+
 /* The peers' header: who they were and the tables their wrecks were cut
  * by, each checked as the room checks it (src/share/roomwire.js). */
-function checkPeersHeader(P, map) {
+function checkPeersHeader(P, map, bubbled) {
   onlyKeys(P, PEERS_KEYS, 'peers');
   if (!Number.isInteger(P.slots) || P.slots < 1 || P.slots > PEERS_MAX) {
     throw new ReplayFileError('peers.slots is out of range');
   }
-  if (!Array.isArray(P.layout) || P.layout.join() !== [PEER_N, PIECE_N].join()) {
+  if (!Array.isArray(P.layout) || P.layout.join() !== peersLayout(bubbled).join()) {
     throw new ReplayFileError('the peers\' column layout does not match this build');
   }
   if (!Number.isInteger(P.pieces) || P.pieces < 0 || P.pieces > CAPACITY * PEERS_MAX * PARTS_MAX) {
@@ -577,6 +670,22 @@ function checkPeersHeader(P, map) {
     }
     return table;
   });
+}
+
+/* The Ace's bubble, row by row: nothing, or a sphere no bigger than a
+ * room could draw, at a finite place, a level the pulse gives and a seat.
+ * Returns the column. */
+function checkBubble(bubble) {
+  for (let o = 0; o < bubble.length; o += BUBBLE_N) {
+    const r = bubble[o + BUBBLE.r];
+    const level = bubble[o + BUBBLE.level];
+    const seat = bubble[o + BUBBLE.seat];
+    const at = [0, 1, 2].map((i) => bubble[o + BUBBLE.pos + i]);
+    if (!(r >= 0 && r <= 50) || !at.every(Number.isFinite) || !(level >= 0 && level <= 2) || !Number.isInteger(seat) || seat < 0 || seat > 64) {
+      throw new ReplayFileError(`frame ${o / BUBBLE_N} has a bad bubble`);
+    }
+  }
+  return bubble;
 }
 
 /* The peers' columns against their header: every id a profile, every

@@ -17,7 +17,10 @@
  * which part table it is cut by and each piece that has left, at the pose
  * drawn. ONCE PER PEER: who it is, as a profile the room relayed (its
  * airframe, paint, parts, pilot figure), its name tag as drawn, and where
- * its pilot figure stood.
+ * its pilot figure stood. PER ROW, ONCE: Catch the Ace's bubble as the
+ * room drew it (src/render/acebubble.js), round whichever aircraft was
+ * the Ace, this pilot's own included, so a replay puts it where it was,
+ * as bright as it was.
  *
  * A peer is an id, made the first time its drawn aircraft is seen: a new
  * pilot in a seat, or a pilot whose airframe, paint or add ons changed,
@@ -35,9 +38,10 @@
  * not kept, and counted (stats), never silently.
  *
  * A clip's `peers` is the same cut to its rows and the slots it used:
- * { slots, cols, pieceAt, pieces, who, tables }, or absent when nobody
- * else was drawn. src/replay/file.js saves it; src/replay/peerscene.js
- * draws it.
+ * { slots, cols, pieceAt, pieces, who, tables, bubble }, or absent when
+ * nobody else was drawn; `bubble` (f32[n x BUBBLE_N]) only when a bubble
+ * was drawn in one of its rows. src/replay/file.js saves it;
+ * src/replay/peerscene.js draws it.
  *
  * Render only. Nothing here reaches a plant.
  *
@@ -75,8 +79,14 @@ export const PEER_N = 26;
 export const PIECE_N = 8;
 export const PIECES_MAX = 64;
 const ROW_N = PEERS_MAX * PEER_N;
+/* Per row, floats: the bubble's radius (0 for none), its centre, the
+ * level its colour was drawn at, and the Ace's seat. */
+export const BUBBLE = {
+  r: 0, pos: 1, level: 4, seat: 5,
+};
+export const BUBBLE_N = 6;
 /* The bytes a row costs once the columns are made, and the ring's. */
-export const ROW_BYTES = ROW_N * 4 + PIECES_MAX * PIECE_N * 4;
+export const ROW_BYTES = ROW_N * 4 + PIECES_MAX * PIECE_N * 4 + BUBBLE_N * 4;
 
 /*
  * The recorder's companion: rows by the recorder's own index. begin(i)
@@ -86,6 +96,7 @@ export const ROW_BYTES = ROW_N * 4 + PIECES_MAX * PIECE_N * 4;
 export function createPeerRing(capacity) {
   let cols = null;
   let pool = null;
+  let bubbles = null;
   let row = -1;
   let used = 0;
   let nextId = 1;
@@ -110,6 +121,7 @@ export function createPeerRing(capacity) {
     used = 0;
     if (cols) {
       cols.fill(0, i * ROW_N, (i + 1) * ROW_N);
+      bubbles.fill(0, i * BUBBLE_N, (i + 1) * BUBBLE_N);
     }
   }
 
@@ -185,6 +197,7 @@ export function createPeerRing(capacity) {
       const t0 = performance.now();
       cols = new Float32Array(capacity * ROW_N);
       pool = new Float32Array(capacity * PIECES_MAX * PIECE_N);
+      bubbles = new Float32Array(capacity * BUBBLE_N);
       stats.allocMs = performance.now() - t0;
     }
     let id = ids.get(rig);
@@ -281,6 +294,23 @@ export function createPeerRing(capacity) {
     cols[o + PEER.pieces] = n;
   }
 
+  /*
+   * The bubble as this frame drew it, { r, x, y, z, level, seat }, after the
+   * peers: nothing before the room has drawn anybody, as for them.
+   */
+  function bubble(b) {
+    if (row < 0 || !cols || !b || !(b.r > 0)) {
+      return;
+    }
+    const o = row * BUBBLE_N;
+    bubbles[o + BUBBLE.r] = b.r;
+    bubbles[o + BUBBLE.pos] = b.x;
+    bubbles[o + BUBBLE.pos + 1] = b.y;
+    bubbles[o + BUBBLE.pos + 2] = b.z;
+    bubbles[o + BUBBLE.level] = b.level;
+    bubbles[o + BUBBLE.seat] = b.seat;
+  }
+
   /* The ring after the recorder's clear(): nobody carries on in a slot. */
   function clear() {
     before.fill(0);
@@ -357,6 +387,14 @@ export function createPeerRing(capacity) {
     }
     out.pieceAt[n] = w;
     out.pieces = out.pieces.slice(0, w * PIECE_N);
+    const bubble = new Float32Array(n * BUBBLE_N);
+    for (let k = 0; k < n; k += 1) {
+      const r = (first + k) % capacity;
+      bubble.set(bubbles.subarray(r * BUBBLE_N, (r + 1) * BUBBLE_N), k * BUBBLE_N);
+    }
+    if (anyBubble(bubble)) {
+      out.bubble = bubble;
+    }
     for (const [id] of idMap) {
       out.who.push(JSON.parse(JSON.stringify(who.get(id))));
     }
@@ -369,15 +407,26 @@ export function createPeerRing(capacity) {
   return {
     begin,
     add,
+    bubble,
     clear,
     clip,
     /* The row begin() opened, or -1. */
     row: () => row,
     /* Bytes held now: nothing until a room draws a peer. */
-    bytes: () => (cols ? cols.byteLength + pool.byteLength : 0),
+    bytes: () => (cols ? cols.byteLength + pool.byteLength + bubbles.byteLength : 0),
     ringBytes: capacity * ROW_BYTES,
     stats,
   };
+}
+
+/* Whether a clip's bubble column draws a bubble in any row. */
+export function anyBubble(bubble) {
+  for (let o = 0; o < bubble.length; o += BUBBLE_N) {
+    if (bubble[o + BUBBLE.r] > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /* Rows a to b (inclusive) of a clip's peers, or null when nobody is in
@@ -398,12 +447,38 @@ export function trimPeers(peers, a, b) {
   for (let k = 0; k <= n; k += 1) {
     pieceAt[k] = peers.pieceAt[a + k] - base;
   }
-  return {
+  const out = {
     ...peers,
     cols,
     pieceAt,
     pieces: peers.pieces.slice(base * PIECE_N, peers.pieceAt[b + 1] * PIECE_N),
   };
+  delete out.bubble;
+  const bubble = peers.bubble ? peers.bubble.slice(a * BUBBLE_N, (b + 1) * BUBBLE_N) : null;
+  if (bubble && anyBubble(bubble)) {
+    out.bubble = bubble;
+  }
+  return out;
+}
+
+/*
+ * The bubble between rows k and k + 1, `a` of the way, into out ({ r, x,
+ * y, z, level }): eased between two rows that drew one round the same
+ * Ace, else the earlier row's, so a crown changing hands is a jump, as
+ * it was live.
+ */
+export function bubbleAt(bubble, n, k, a, out) {
+  const o0 = k * BUBBLE_N;
+  const o1 = Math.min(k + 1, n - 1) * BUBBLE_N;
+  const same = bubble[o0 + BUBBLE.r] > 0 && bubble[o1 + BUBBLE.r] > 0 && bubble[o0 + BUBBLE.seat] === bubble[o1 + BUBBLE.seat];
+  const u = same ? a : 0;
+  const at = (i) => bubble[o0 + i] + (bubble[o1 + i] - bubble[o0 + i]) * u;
+  out.r = at(BUBBLE.r);
+  out.x = at(BUBBLE.pos);
+  out.y = at(BUBBLE.pos + 1);
+  out.z = at(BUBBLE.pos + 2);
+  out.level = at(BUBBLE.level);
+  return out;
 }
 
 /* ---- reading ---- */

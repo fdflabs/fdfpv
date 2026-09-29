@@ -45,6 +45,11 @@
  *    budget of sixteen hundred link streamers over the window, and what
  *    happens past it; a trim; the version 5 file with and without peers,
  *    version 4 still written without paper, and its refusals.
+ * 13. Catch the Ace's bubble (src/replay/peers.js BUBBLE): each row holds
+ *    the bubble that frame drew or none; eased round one Ace, a jump when
+ *    the crown changes hands; a trim; the version 6 file with and without
+ *    paper and with and without the movie editor's edit, version 4 still
+ *    written without either, and its refusals.
  *
  * Run: npm run crashcam:selftest
  *
@@ -80,8 +85,9 @@ import {
   addKey, createPose, defaults, easeInOut, evaluate, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
+import { cut, defaultEdit, setSpeed } from '../src/replay/edit.js';
 import {
-  PEER, PEER_N, PEERS_MAX, PIECE_N, PIECES_MAX, createPeerRing, createPeerSample, peerPose, samplePeers,
+  BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N, PIECES_MAX, bubbleAt, createPeerRing, createPeerSample, peerPose, samplePeers,
 } from '../src/replay/peers.js';
 import {
   NODES_MAX, PAPER_ERR_M, PAPER_PILOTS, checkPaper, createPaperRing, createPaperRow, createPaperSample, readRow, samplePaper,
@@ -1456,6 +1462,127 @@ function paperRecord() {
   }, 'paper cut short');
 }
 
+/*
+ * Catch the Ace's bubble, flown: 60 frames of a room where peer A (seat
+ * 2) is the Ace to frame 30, drawn at x = frame + 100, then peer C (seat
+ * 4), at x = frame + 300, and nobody from frame 45 to 49. Each row is
+ * given the bubble the way src/main.js hands it over, after the peers.
+ */
+function bubbleFlight(cap, frames) {
+  const r = createRecorder(cap);
+  const ring = createPeerRing(cap);
+  const A = fakePeer(2, 'cub1400');
+  const C = fakePeer(4, '5inch');
+  const pp = { x: 0, y: 0, z: 0 };
+  const qq = { x: 0, y: 0, z: 0, w: 1 };
+  const st = new Float64Array(20);
+  const sp = r.spawnIndex(0, 0, 0, 0, 0, 0, 1, 0.045);
+  const drawnLive = [];
+  for (let f = 0; f < frames; f += 1) {
+    ring.begin(-1);
+    const i = r.begin(f / 60, (f * 1000) / 60);
+    ring.begin(i);
+    pp.x = f;
+    r.pose(i, pp, qq);
+    r.plant(i, st);
+    r.status(i, [0, f], sp, 0, false, 0, 0, 0);
+    A.rig.group.position.x = f + 100;
+    C.rig.group.position.x = f + 300;
+    ring.add(A);
+    ring.add(C);
+    const ace = f < 30 ? A : C;
+    const b = f >= 45 && f < 50 ? { r: 0 } : {
+      r: 6, x: ace.rig.group.position.x, y: 50, z: -3, level: 0.4 + f / 200, seat: ace.seat,
+    };
+    ring.bubble(b);
+    drawnLive.push(b);
+  }
+  const [first, n] = r.span();
+  const clip = r.clip({
+    name: 'Ace', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'swiss2', scale: 1, size: 1.8, duration: 0,
+    parts: [], fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
+  });
+  clip.keys = [];
+  clip.peers = ring.clip(first, n);
+  return { clip, drawnLive };
+}
+
+function bubbleRecord() {
+  console.log('13. Catch the Ace\'s bubble is recorded, played and saved');
+  const { clip, drawnLive } = bubbleFlight(64, 60);
+  const B = clip.peers && clip.peers.bubble;
+  check(Boolean(B) && B.length === clip.n * BUBBLE_N, 'the clip carries a bubble row for every row', B ? `${B.length / BUBBLE_N} rows` : 'none');
+  let rowsOk = true;
+  for (let k = 0; k < clip.n; k += 1) {
+    const want = drawnLive[clip.pose[k * POSE_N]];
+    const o = k * BUBBLE_N;
+    rowsOk &&= want.r === 0 ? B[o + BUBBLE.r] === 0
+      : B[o + BUBBLE.r] === 6 && B[o + BUBBLE.pos] === want.x && B[o + BUBBLE.pos + 1] === 50 && B[o + BUBBLE.pos + 2] === -3
+        && B[o + BUBBLE.level] === Math.fround(want.level) && B[o + BUBBLE.seat] === want.seat;
+  }
+  check(rowsOk, 'each row holds the bubble that frame drew: where, how big, how bright, round whom, or none');
+  const out = {};
+  const kOf = (f) => {
+    for (let k = 0; k < clip.n; k += 1) {
+      if (clip.pose[k * POSE_N] === f) {
+        return k;
+      }
+    }
+    return -1;
+  };
+  bubbleAt(B, clip.n, kOf(10), 0.5, out);
+  check(out.r === 6 && out.x === 110.5, 'between two rows round the same Ace it is eased', `x ${out.x}`);
+  bubbleAt(B, clip.n, kOf(29), 0.5, out);
+  check(out.x === 129, 'across a crown changing hands it jumps, as it did live, never sliding from one to the other', `x ${out.x}`);
+  bubbleAt(B, clip.n, kOf(46), 0.5, out);
+  check(out.r === 0, 'and where none was drawn, none is');
+  const early = trimClip(clip, clip.time[kOf(5)], clip.time[kOf(20)]);
+  const gap = trimClip(clip, clip.time[kOf(46)], clip.time[kOf(48)]);
+  check(early.peers.bubble && early.peers.bubble.length === early.n * BUBBLE_N && early.peers.bubble[BUBBLE.pos] === 105
+    && gap.peers && gap.peers.bubble === undefined, 'a trim keeps the bubble\'s rows of its range, and none when the range drew none');
+
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 6 && same(back.peers.bubble, B) && same(back.peers.cols, clip.peers.cols),
+    'a clip with the bubble is saved as version 6, and it comes back bit for bit beside the pilots', `${buf.byteLength} bytes`);
+  const withPaper = decodeReplay(encodeReplay({ ...clip, paper: paperFlight(64, 60).clip.paper }));
+  check(same(withPaper.peers.bubble, B) && withPaper.paper, 'and with combat\'s paper as well');
+  check(new DataView(encodeReplay(gap)).getUint32(4, true) === 4, 'a clip whose rows drew no bubble is written as before, version 4');
+  /* Version 6 is the movie editor's too (src/replay/edit.js): an edit, a
+   * bubble, or both, each written only when the clip has it. */
+  const dur = clip.time[clip.n - 1];
+  const edit = cut(setSpeed(defaultEdit(dur, { rig: 'orbit', target: -1, watch: 0, p: defaults('orbit', 1.8) }), 0, 0.5), dur / 2);
+  const edited = decodeReplay(encodeReplay({ ...clip, edit }));
+  check(edited.edit && JSON.stringify(edited.edit) === JSON.stringify(edit) && edited.edit.shots.length === 2 && same(edited.peers.bubble, B),
+    'an edited clip with a bubble saves as one version 6 file and reloads with both');
+  const keyed = decodeReplay(encodeReplay({ ...clip, keys: [{ t: 0.2, rig: 'orbit', target: -1, p: defaults('orbit', 1.8) }] }));
+  check(keyed.edit === undefined && keyed.keys.length === 1 && same(keyed.peers.bubble, B),
+    'a bubble without an edit keeps its camera keys, as the version before did');
+  const plain = roomFlight(64, 60).clip;
+  const editedNoBubble = { ...plain, edit: setSpeed(defaultEdit(plain.time[plain.n - 1], { rig: 'chase', target: -1, watch: 0, p: defaults('chase', 1.8) }), 0, 2) };
+  const eb = decodeReplay(encodeReplay(editedNoBubble));
+  check(eb.edit && eb.peers && eb.peers.bubble === undefined, 'an edit without a bubble is version 6 with the peers as before');
+  const refused = (mut, why) => {
+    try {
+      decodeReplay(mut());
+      check(false, `refused: ${why}`, 'it was accepted');
+    } catch (err) {
+      check(err instanceof ReplayFileError, `refused: ${why}`, err.message);
+    }
+  };
+  refused(() => {
+    const bubble = B.slice();
+    bubble[3 * BUBBLE_N + BUBBLE.r] = 5000;
+    return encodeReplay({ ...clip, peers: { ...clip.peers, bubble } });
+  }, 'a bubble bigger than a room could draw');
+  refused(() => {
+    const bubble = B.slice();
+    bubble[3 * BUBBLE_N + BUBBLE.seat] = 2.5;
+    return encodeReplay({ ...clip, peers: { ...clip.peers, bubble } });
+  }, 'a bubble round a seat that is not one');
+  refused(() => reheader(buf, 4), 'a bubble in a file that says version 4');
+}
+
 ring();
 interpolation();
 cameras();
@@ -1464,6 +1591,7 @@ counts();
 smokeColumn();
 peersRecord();
 paperRecord();
+bubbleRecord();
 await pureReaders();
 await flyTakeOver();
 await bounded();
