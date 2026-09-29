@@ -51,11 +51,9 @@ const MS = 4;
 const PLANES = {
   wing: [2, 7.25], sky: [3, 9.2], cub: [4, 8.1], slowstick: [5, 4.4], radian: [6, 6.5],
   timber: [7, 7.2], bramor: [8, 13.0], timberf: [9, 7.1], cubf: [10, 8.7], bombshell: [11, 6.49],
-  kadet: [12, 7.15], edge: [13, 9.58],
+  kadet: [12, 7.15],
   f16: [16, 12.33],
   uglystik: [19, 9.48],
-  wot4: [20, 10.05],
-  quickie: [22, 9.31],
   tigermoth: [23, 9.47],
 };
 const MODES = [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']];

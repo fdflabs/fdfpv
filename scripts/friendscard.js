@@ -56,7 +56,7 @@ const QUALITY = 82;
 
 /* Seats 1 and 3 are the two in the picture, seat 2 is out of it on the
  * other side of seat 1, and seat 4 is the camera. */
-const SEATS = ['p51d1450', 'edge1524', 'cub1400', 'sky1800'];
+const SEATS = ['p51d1450', 'uglystik1567', 'cub1400', 'sky1800'];
 
 function seedFor(id) {
   const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
