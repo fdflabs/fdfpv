@@ -3,9 +3,9 @@
  * sections 5 and 14).
  *
  *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/itaipu-water-check.js
- *       [--node] [--shots=DIR]
+ *       [--node] [--shots=DIR] [--swiss2=PERF_JSON]
  *
- * In Node, against dist/sim.wasm and the data's water.json,
+ * In Node, against dist/sim.wasm and the data's water.json and dam.json,
  * with the bodies in src/game/water.js's lake form as src/maps/itaipu.js
  * makes them (lakesOf: its wind, 2 m/s from the north east, over the
  * fetch water.json gives for that direction) and declared through
@@ -33,9 +33,21 @@
  *               shell's);
  *   afloat      the flight starts afloat on the reservoir (body 0), and
  *               respawned on the river's spawn it floats on body 1; 40 %
- *               throttle taxis it on each.
+ *               throttle taxis it on each;
+ *   chute       the chutes are D's floor records, their material water
+ *               (the map's surfaceAt), each the map's ground, and the
+ *               drawn sheet lies 0.4 m over each;
+ *   waves       the plant's waves reach both drawn bodies;
+ *   mirror      with the camera over the reservoir the mirror is the
+ *               reservoir's, down in the canyon the river's, never two
+ *               at once, at swiss2's scale for the tier; with SIM_GPU=1
+ *               its GPU time at those two places, median of 40 draws,
+ *               is no more than swiss2's lake mirror on
+ *               scripts/swiss2-perf.js (--swiss2 names its perf.json;
+ *               without it the time is printed and not judged).
  *
- * --shots=DIR leaves a Timber afloat on the reservoir there as a PNG.
+ * --shots=DIR leaves the reservoir, the river, the chutes and a Timber
+ * afloat there as PNGs.
  *
  * Exits 1 on any failure.
  *
@@ -69,7 +81,7 @@ import { threePosToSim, threeDirToSim } from '../src/render/frame.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
-const opts = { node: false, shots: '' };
+const opts = { node: false, shots: '', swiss2: '' };
 for (const a of process.argv.slice(2)) {
   const m = a.match(/^--([a-z0-9]+)(?:=(.*))?$/);
   if (!m || !(m[1] in opts)) {
@@ -300,6 +312,7 @@ async function browser() {
       localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
     } catch (e) { /* Storage refused. The run still boots. */ }`],
   });
+  const part = 'window.__mapScene().userData.itaipu.parts.water';
   /* Until the terrain has built what the camera asks for (scripts/
    * itaipu-check.js settle). */
   const settle = async () => {
@@ -311,11 +324,18 @@ async function browser() {
       await page.until('window.__boot().frames > window.__cf + 3', 60000);
     }
   };
+  const park = async (cam) => {
+    await page.evaluate(`window.__setCam(${cam.join(', ')}, 50)`);
+    await settle();
+  };
   const shoot = async (name) => {
     if (!opts.shots) {
       return;
     }
+    /* The world alone, without the screens over it. */
+    await page.evaluate("(() => { document.body.style.visibility = 'hidden'; for (const c of document.querySelectorAll('canvas')) { c.dataset.vis = c.style.visibility; c.style.visibility = 'visible'; } return 1; })()");
     const r = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
+    await page.evaluate("(() => { document.body.style.visibility = ''; for (const c of document.querySelectorAll('canvas')) { c.style.visibility = c.dataset.vis; } return 1; })()");
     const file = join(resolve(opts.shots), `${name}.png`);
     await writeFile(file, Buffer.from(r.data, 'base64'));
     console.log(`  picture ${file}`);
@@ -364,10 +384,7 @@ async function browser() {
       await page.evaluate(`window.__respawn(${water[0].spawn.x}, ${water[0].spawn.z}, ${water[0].spawn.yaw})`);
       await waitSim(3);
       await settle();
-      /* The pilot's chase camera, without the screens over it. */
-      await page.evaluate("(() => { for (const n of document.querySelectorAll('body > *:not(canvas)')) { if (!n.querySelector('canvas')) { n.dataset.shown = n.style.visibility; n.style.visibility = 'hidden'; } } return 1; })()");
       await shoot('timber-afloat');
-      await page.evaluate("(() => { for (const n of document.querySelectorAll('[data-shown]')) { n.style.visibility = n.dataset.shown; delete n.dataset.shown; } return 1; })()");
     }
     await page.evaluate(`window.__respawn(${water[1].spawn.x}, ${water[1].spawn.z}, ${water[1].spawn.yaw})`);
     await onWater(1, 'river');
@@ -397,6 +414,96 @@ async function browser() {
       agree === pts.length,
       `${agree} of ${pts.length} agree${disagree.length ? `, first off ${JSON.stringify(disagree[0])}` : ''}; ${pts.filter((_, i) => plant[i].body >= 0).length} on water`);
 
+    /* The chutes: D's floors, water to the crash world, the sheet over
+     * them. */
+    const chute = await page.evaluate(`(() => {
+      const w = ${part};
+      const st = w.stats();
+      const g = w.group.getObjectByName('itaipu-chute').geometry.getAttribute('position');
+      let worst = 0;
+      let wet = 0;
+      let ground = 0;
+      w.records.forEach((r, k) => {
+        const f = r.faces[0];
+        const x = (f.pts[0][0] + f.pts[1][0] + f.pts[2][0]) / 3;
+        const z = (f.pts[0][1] + f.pts[1][1] + f.pts[2][1]) / 3;
+        const top = f.a * x + f.b * z + f.d;
+        if (r.material === 'water' && r.kind === 'spillway chute') wet += 1;
+        if (Math.abs(window.__surface(x, z, top + 0.2) - top) < 1e-6) ground += 1;
+        for (let v = 0; v < 3; v += 1) {
+          const [px, pz] = f.pts[v];
+          const y = f.a * px + f.b * pz + f.d;
+          worst = Math.max(worst, Math.abs(g.getY(k * 4 + v) - y - ${0.4}));
+        }
+      });
+      return { n: w.records.length, wet, ground, worst, floors: st.chuteFloors };
+    })()`);
+    check('the chutes are D\'s floors, which answer water to the crash world, with the drawn sheet 0.4 m over them',
+      chute.n > 0 && chute.wet === chute.n && chute.ground === chute.n && chute.worst < 1e-3,
+      `${chute.n} floor records, ${chute.wet} of kind spillway chute and material water, ${chute.ground} the map's ground at their middle, sheet off by at most ${chute.worst.toFixed(4)} m`);
+    const waves = await page.evaluate(`${part}.stats().waves`);
+    check('the plant\'s waves are handed to both drawn bodies',
+      Array.isArray(waves) && waves.length === 2 && waves.every((n) => n > 0),
+      `components per body ${JSON.stringify(waves)}`);
+
+    /* The mirror, and the pictures. */
+    const VIEWS = [
+      { name: 'reservoir', cam: [-2600, 340, -4300, 300, 219, -1900], body: 0 },
+      { name: 'river', cam: [-760, 175, -250, -1150, 104, 2600], body: 1 },
+      { name: 'chutes', cam: [-1450, 480, 250, -930, 170, -800], body: 1 },
+    ];
+    const gpu = process.env.SIM_GPU === '1';
+    const times = {};
+    for (const v of VIEWS) {
+      await park(v.cam);
+      const st = await page.evaluate(`${part}.stats()`);
+      check(`the mirror at the ${v.name} view is the ${water[v.body].name}'s, and one`,
+        st.mirrorBody === v.body && st.mirrorDrawn && st.mirrorsLive === 1 && st.mirrorScale === 0.5,
+        `body ${st.mirrorBody}, drawn ${st.mirrorDrawn}, ${st.mirrorsLive} live, scale ${st.mirrorScale} (swiss2 High 0.5), ${st.mirrorCalls} calls, ${st.mirrorTriangles} triangles`);
+      await shoot(v.name);
+      if (gpu && v.name !== 'chutes') {
+        times[v.name] = await page.evaluate(`(async () => {
+          const w = ${part};
+          const { renderer, scene, camera } = w.seen;
+          const gl = renderer.getContext();
+          const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+          if (!ext) { throw new Error('no EXT_disjoint_timer_query_webgl2'); }
+          const qs = [];
+          for (let k = 0; k < 40; k += 1) {
+            gl.finish();
+            const q = gl.createQuery();
+            gl.beginQuery(ext.TIME_ELAPSED_EXT, q);
+            w.renderMirror(renderer, scene, camera);
+            gl.endQuery(ext.TIME_ELAPSED_EXT);
+            qs.push(q);
+          }
+          gl.finish();
+          const last = qs[qs.length - 1];
+          while (!gl.getQueryParameter(last, gl.QUERY_RESULT_AVAILABLE)) {
+            await new Promise((d) => setTimeout(d, 5));
+          }
+          const ms = qs.map((q) => gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6).sort((a, b) => a - b);
+          return { median: ms[ms.length >> 1], least: ms[0] };
+        })()`);
+      }
+    }
+    if (!gpu) {
+      console.log('NOT RUN the mirror\'s GPU time: needs SIM_GPU=1 (a software rasteriser\'s timings say nothing about a GPU)');
+    } else if (!opts.swiss2) {
+      console.log(`NOT JUDGED the mirror's GPU time, no --swiss2 perf.json: ${JSON.stringify(times)}`);
+    } else {
+      const perf = JSON.parse(await readFile(resolve(opts.swiss2), 'utf8'));
+      /* swiss2-perf.js's perf.json: presets[].views[], each view's best
+       * repeat's median per part. */
+      const swiss = (perf.presets || []).filter((p) => p.preset === 'high')
+        .flatMap((p) => p.views).filter((v) => /^lake/.test(v.id) && v.best && v.best.parts)
+        .map((v) => ({ view: v.id, mirror: v.best.parts.mirror }));
+      const worstSwiss = Math.max(...swiss.map((r) => r.mirror));
+      const ours = Math.max(...Object.values(times).map((t) => t.median));
+      check('the mirror costs no more than swiss2\'s lake mirror on swiss2-perf.js (High)',
+        swiss.length > 0 && ours <= worstSwiss,
+        `Itaipu ${Object.entries(times).map(([n, t]) => `${n} ${t.median.toFixed(2)} ms (least ${t.least.toFixed(2)})`).join(', ')}; swiss2 ${swiss.map((r) => `${r.view} ${r.mirror.toFixed(2)} ms`).join(', ') || 'no lake rows found'}`);
+    }
     const errors = page.errors.filter((e) => !/favicon/.test(e));
     check('no page error', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
     return res;

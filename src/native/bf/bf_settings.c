@@ -54,6 +54,7 @@
 #include "fc/controlrate_profile.h"
 #include "fc/parameter_names.h"
 #include "fc/rc_controls.h"
+#include "flight/failsafe.h"
 #include "flight/mixer.h"
 #include "flight/mixer_init.h"
 #include "flight/pid.h"
@@ -115,6 +116,10 @@ static const char *const LUT_CRASH_RECOVERY[] = { "OFF", "ON", "BEEP", "DISARM" 
 static const char *const LUT_LAUNCH_CONTROL_MODE[] = { "NORMAL", "PITCHONLY", "FULL" };
 /* gyro.h, the hardware lpf selector. Inert here, no gyro hardware. */
 static const char *const LUT_GYRO_HARDWARE_LPF[] = { "NORMAL", "OPTION_1", "OPTION_2", "EXPERIMENTAL" };
+/* failsafe.h failsafeProcedure_e. GPS-RESCUE is not built for this target
+ * but is accepted, so a GPS quad's dump still loads; bf_glue.c stores it as
+ * DROP and says why. */
+static const char *const LUT_FAILSAFE_PROCEDURE[] = { "AUTO-LAND", "DROP", "GPS-RESCUE" };
 /* common/axis.h flight_dynamics_index_t plus ALL */
 static const char *const LUT_GYRO_DEBUG_AXIS[] = { "ROLL", "PITCH", "YAW" };
 
@@ -165,6 +170,7 @@ void bf_settings_build(void) {
   pidConfig_t *pc = pidConfigMutable();
   dynNotchConfig_t *dn = dynNotchConfigMutable();
   rpmFilterConfig_t *rf = rpmFilterConfigMutable();
+  failsafeConfig_t *fs = failsafeConfigMutable();
 
   /* ---- PID gains, flight/pid.c ---- */
   U8("p_roll", p->pid[PID_ROLL].P);
@@ -406,6 +412,17 @@ void bf_settings_build(void) {
   U8("airmode_start_throttle_percent", x->airModeActivateThreshold);
   U8("fpv_mix_degrees", x->fpvCamAngleDegrees);
 
+  /* ---- Failsafe, flight/failsafe.c and rx/rx.c. Live once the shell
+   * judges the link (sim_rx_signal). failsafe_switch_mode needs an aux
+   * switch and failsafe_stick_threshold needs GPS rescue; neither exists
+   * here, so both stay in the inert prefix below. ---- */
+  U8("failsafe_delay", fs->failsafe_delay);
+  U8("failsafe_off_delay", fs->failsafe_off_delay);
+  U16("failsafe_throttle", fs->failsafe_throttle);
+  U16("failsafe_throttle_low_delay", fs->failsafe_throttle_low_delay);
+  LUT8("failsafe_procedure", fs->failsafe_procedure, LUT_FAILSAFE_PROCEDURE);
+  U16("failsafe_recovery_delay", fs->failsafe_recovery_delay);
+
   /* ---- Motor output, drivers seam in bf_glue.c ---- */
   U16(PARAM_NAME_DSHOT_IDLE_VALUE, m->digitalIdleOffsetValue);
   U8(PARAM_NAME_MOTOR_POLES, m->motorPoleCount);
@@ -457,7 +474,7 @@ static const char *const INERT_PREFIX[] = {
   "spektrum_",
   "srxl2_",
   "crsf_",
-  "failsafe_",   /* the link never fails here */
+  "failsafe_",   /* only switch_mode and stick_threshold reach here, see above */
   "rx_",         /* receiver pulse limits */
   "gyro_calib",  /* the simulated gyro needs no calibration */
   "gyro_overflow",

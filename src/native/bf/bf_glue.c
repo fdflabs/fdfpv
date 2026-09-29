@@ -59,6 +59,7 @@
 #include "build/debug.h"
 #include "drivers/dshot.h"
 #include "drivers/dshot_command.h"
+#include "drivers/rx/rx_pwm.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc.h"
 #include "fc/rc_controls.h"
@@ -66,6 +67,7 @@
 #include "fc/runtime_config.h"
 #include "flight/imu.h"
 #include "flight/dyn_notch_filter.h"
+#include "flight/failsafe.h"
 #include "flight/mixer.h"
 #include "flight/mixer_init.h"
 #include "flight/pid.h"
@@ -96,8 +98,9 @@ extern double PLANT_DBG_PITCH_UP;
 /* Externs Betaflight expects from files we do not compile. gyro itself is
  * no longer here: sensors/gyro.c defines it now, and defines it because
  * this build compiles the real filter chain rather than writing filtered
- * rates straight into gyroADCf. */
-float rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+ * rates straight into gyroADCf. rcData is not here either: rx/rx.c
+ * defines it, and writes it, because the receiver path that decides what
+ * the sticks are during a lost link is compiled now. */
 struct pidProfile_s *currentPidProfile;
 
 /* Betaflight parameter group reset helpers we call directly instead of
@@ -107,6 +110,9 @@ extern void pgResetFn_rxConfig(rxConfig_t *rxConfig);
 extern void pgResetFn_motorConfig(motorConfig_t *motorConfig);
 extern void pgResetFn_mixerConfig(mixerConfig_t *mixerConfig);
 extern void pgResetFn_gyroConfig(gyroConfig_t *gyroConfig);
+extern void pgResetFn_rxChannelRangeConfigs(rxChannelRangeConfig_t *rxChannelRangeConfigs);
+extern void pgResetFn_rxFailsafeChannelConfigs(rxFailsafeChannelConfig_t *rxFailsafeChannelConfigs);
+extern const failsafeConfig_t pgResetTemplate_failsafeConfig;
 extern const pidConfig_t pgResetTemplate_pidConfig;
 extern const dynNotchConfig_t pgResetTemplate_dynNotchConfig;
 extern const rpmFilterConfig_t pgResetTemplate_rpmFilterConfig;
@@ -421,6 +427,9 @@ void bf_config_begin(void) {
 
   pgResetFn_controlRateProfiles(controlRateProfilesMutable(0));
   pgResetFn_rxConfig(rxConfigMutable());
+  pgResetFn_rxChannelRangeConfigs(rxChannelRangeConfigsMutable(0));
+  pgResetFn_rxFailsafeChannelConfigs(rxFailsafeChannelConfigsMutable(0));
+  *failsafeConfigMutable() = pgResetTemplate_failsafeConfig;
   pgResetFn_motorConfig(motorConfigMutable());
   pgResetFn_mixerConfig(mixerConfigMutable());
   pgResetFn_gyroConfig(gyroConfigMutable());
@@ -509,6 +518,16 @@ static void bf_runtime_init(void) {
    * the physics step and the control loop cannot drift apart. */
   pidConfigMutable()->pid_process_denom = 1;
   targetPidLooptime = SIM_US_PER_STEP; /* microseconds, one plant step */
+
+  /* bf_settings.c accepts GPS-RESCUE so a GPS quad's dump still loads, but
+   * USE_GPS_RESCUE is not built for this target and failsafe.c has no case
+   * for it: left as it is, its state machine would spin in
+   * FAILSAFE_RX_LOSS_DETECTED for ever. With no GPS there is never a fix,
+   * and a rescue with no fix fails its sanity check and disarms, so DROP is
+   * what that setting would have done. Stored as DROP, so a dump says so. */
+  if (failsafeConfig()->failsafe_procedure >= FAILSAFE_PROCEDURE_COUNT) {
+    failsafeConfigMutable()->failsafe_procedure = FAILSAFE_PROCEDURE_DROP_IT;
+  }
 
   gyro.targetLooptime = targetPidLooptime;
   gyro.sampleLooptime = targetPidLooptime;
@@ -695,6 +714,13 @@ double sim_bf_debug(int what) {
   /* The sensor's own roll reading, deg/s, before any filter: what a chipped
    * prop's imbalance line is put into (crash.c's plant test reads it). */
   case 71: return g_gyro_dps[FD_ROLL];
+  /* The receiver and failsafe, for scripts/failsafe-trace.js: the channel
+   * values rx.c decided on, whether it hears the link, and failsafe.c's
+   * phase. ARMED and the stage 2 flag are in sim_rx_signal's status. */
+  case 72: return rcData[THROTTLE];
+  case 73: return rcData[ROLL];
+  case 74: return rxIsReceivingSignal() ? 1.0 : 0.0;
+  case 75: return (double)failsafePhase();
   default: return 0.0;
   }
 }
@@ -746,6 +772,15 @@ int sim_bf_get(const char *key, char *out, int cap) {
  * so the acro trajectory does not run atan2 or touch flightModeFlags.
  */
 static int g_angle_mode = 0;
+
+/*
+ * Betaflight's stage 2 levels the craft: fc/core.c processRx raises
+ * ANGLE_MODE whenever failsafeIsActive() and an accelerometer is present,
+ * which is what an AUTO-LAND descent flies in. processRx is not compiled,
+ * so this is that one rule, latched where processRx would evaluate it.
+ * Zero for as long as the link has never been lost.
+ */
+static int g_failsafe_level = 0;
 
 /*
  * LAUNCH CONTROL, kept off the acro path the same way.
@@ -861,7 +896,7 @@ static void bf_feed_attitude(const SimState *s) {
 }
 
 static void bf_apply_angle_mode_flag(void) {
-  if (g_angle_mode) {
+  if (g_angle_mode || g_failsafe_level) {
     flightModeFlags |= ANGLE_MODE;
   } else {
     flightModeFlags &= (uint16_t)~ANGLE_MODE;
@@ -871,6 +906,156 @@ static void bf_apply_angle_mode_flag(void) {
 void bridge_set_angle_mode(int on) {
   g_angle_mode = on ? 1 : 0;
   bf_apply_angle_mode_flag();
+}
+
+/*
+ * ---- THE RECEIVER AND BETAFLIGHT'S FAILSAFE ----
+ *
+ * rx/rx.c and flight/failsafe.c are compiled. This is their receiver driver,
+ * registered the way target/SITL/sitl.c registers its UDP one: a raw channel
+ * read and a frame status. A frame is a stick sample the shell queued with
+ * sim_input, consumed by this step, while the link is up.
+ *
+ * THE LINK IS THE SHELL'S TO JUDGE, AND UNTIL IT DOES, NOTHING IS JUDGED.
+ * g_rx_link starts at -1: no receiver is modelled, which is every harness,
+ * replay and gate in the repository. They hold sticks by queueing one sample
+ * and stepping for seconds, and a real receiver that went that long without
+ * a frame would be in failsafe. So in that state rxFrameCheck is only asked
+ * on steps that carry a frame, and failsafe.c is never set monitoring, which
+ * is Betaflight's own gate (processRx starts it five seconds after power on).
+ * The rc path is then the one it replaced, frame for frame.
+ *
+ * sim_rx_signal moves it to 1 (up) or 0 (down) and starts monitoring. From
+ * then rxFrameCheck runs every step, as the scheduler runs it, so 100 ms
+ * without a frame is signal loss, and failsafe.c runs every 10 ms, as the
+ * scheduler runs it. A shell that says the link is up must therefore queue
+ * frames at the radio's rate, which src/main.js does on its RC_HZ grid.
+ * While the link is down a consumed sample is a packet that never arrived:
+ * it does not reach the channels.
+ *
+ * What happens then is Betaflight's, unedited: channels hold 300 ms and then
+ * go to their rxfail values (sticks centred, throttle at rx_min_usec); after
+ * failsafe_delay, stage 2, and failsafe_procedure decides between AUTO-LAND
+ * (failsafe_throttle, levelled, for failsafe_off_delay) and DROP (disarm at
+ * once). A link back inside failsafe_delay hands the sticks straight back;
+ * after stage 2 it needs failsafe_recovery_delay of good frames.
+ */
+static int g_rx_link = -1;
+static int g_rx_frame = 0;
+static float g_rx_raw[NON_AUX_CHANNEL_COUNT];
+static timeUs_t g_rx_task_us = 0;
+static timeMs_t g_failsafe_check_ms = 0;
+
+static float sim_rx_read_raw(const rxRuntimeState_t *state, uint8_t channel) {
+  (void)state;
+  if (channel >= NON_AUX_CHANNEL_COUNT) {
+    return PPM_RCVR_TIMEOUT;
+  }
+  return g_rx_raw[channel];
+}
+
+/* A radio sends its channels in its own order, AETR by Betaflight's default
+ * map, and rx.c's rcmap puts them back in function order. So a stick is
+ * written to the radio channel the map reads that function from. */
+static void sim_rx_send(int function, float value) {
+  const uint8_t channel = rxConfig()->rcmap[function];
+  if (channel < NON_AUX_CHANNEL_COUNT) {
+    g_rx_raw[channel] = value;
+  }
+}
+
+static uint8_t sim_rx_frame_status(rxRuntimeState_t *state) {
+  (void)state;
+  return g_rx_frame ? RX_FRAME_COMPLETE : RX_FRAME_PENDING;
+}
+
+static void bf_rx_init(void) {
+  /* channelCount first: rxInit sizes rxChannelCount from it. */
+  rxRuntimeState.channelCount = NON_AUX_CHANNEL_COUNT;
+  rxInit();
+  rxRuntimeState.rxProvider = RX_PROVIDER_UDP;
+  rxRuntimeState.rcReadRawFn = sim_rx_read_raw;
+  rxRuntimeState.rcFrameStatusFn = sim_rx_frame_status;
+  failsafeInit();
+  failsafeReset();
+  g_rx_frame = 0;
+  g_rx_task_us = 0;
+  g_failsafe_check_ms = 0;
+  g_failsafe_level = 0;
+}
+
+/*
+ * One step of the receiver, in two halves because the flight modes sit
+ * between them. The first is the scheduler's every loop work, the frame
+ * check and the 10 ms failsafe check, and then rx.c deciding the channels
+ * (rcData): it runs where this file used to write rcData itself, so the
+ * launch control trigger reads this frame's throttle as it always has.
+ * Returns whether rx.c processed anything; if it did, the second half is
+ * the rest of processRx and updateRcCommands, where they always ran.
+ */
+static int bf_rx_channels(timeUs_t now_us, int frame) {
+  g_rx_frame = frame;
+  if (frame || failsafeIsMonitoring()) {
+    rxFrameCheck(now_us, cmpTimeUs(now_us, g_rx_task_us));
+  }
+  g_rx_frame = 0;
+
+  if (cmp32(millis(), g_failsafe_check_ms) > PERIOD_RXDATA_FAILURE) {
+    failsafeCheckDataFailurePeriod();
+    failsafeUpdateState();
+    g_failsafe_check_ms = millis();
+  }
+
+  if (!rxUpdateCheck(now_us, 0) || !calculateRxChannelsAndUpdateFailsafe(now_us)) {
+    return 0;
+  }
+  g_rx_task_us = now_us;
+  return 1;
+}
+
+static void bf_rx_commands(timeUs_t now_us) {
+  updateRcRefreshRate(now_us);
+  const int level = failsafeIsActive() ? 1 : 0;
+  if (level != g_failsafe_level) {
+    g_failsafe_level = level;
+    bf_apply_angle_mode_flag();
+  }
+  updateRcCommands();
+}
+
+/*
+ * fc/core.c's disarm, as much of it as this build has: ARMED clears, so
+ * mixTable writes motor_disarmed and every motor stops, and turtle ends.
+ * Blackbox, OSD statistics and the disarm beep have no device here.
+ *
+ * WHAT A STAGE 2 DROP DOES, decided: the craft is disarmed and falls, and it
+ * STAYS disarmed. failsafe.c lifts its arming block once the link has been
+ * back for failsafe_recovery_delay, but on a real quad the pilot still has to
+ * flip the arm switch, and this simulator has no arm switch. The only re-arm
+ * is a reset, bf_runtime_init's ENABLE_ARMING_FLAG, which is the shell
+ * respawning the craft. The shell reads ARMED from sim_rx_signal's status.
+ */
+void disarm(flightLogDisarmReason_e reason) {
+  (void)reason;
+  if (!ARMING_FLAG(ARMED)) {
+    return;
+  }
+  if (!g_crashflip) {
+    ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
+  }
+  DISABLE_ARMING_FLAG(ARMED);
+  g_crashflip = 0;
+}
+
+#ifdef __EMSCRIPTEN__
+EMSCRIPTEN_KEEPALIVE
+#endif
+int sim_rx_signal(int ok) {
+  g_rx_link = ok ? 1 : 0;
+  failsafeStartMonitoring();
+  return (int)failsafePhase()
+      | (failsafeIsActive() ? SIM_RX_FAILSAFE_ACTIVE : 0)
+      | (ARMING_FLAG(ARMED) ? SIM_RX_ARMED : 0);
 }
 
 void bridge_reset(void) {
@@ -904,11 +1089,24 @@ void bridge_reset(void) {
   }
   bf_runtime_init();
 
+  /* The receiver powers on with the clock, and rxInit stamps its channel
+   * timeouts from it, so the clock is at zero first. The warm up's frames
+   * are packets only if the link is up: a craft reset into a dead link
+   * never sees one, and failsafe.c disarms it the moment it monitors. */
+  sim_bf_now_us = 0;
+  for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i += 1) {
+    sim_rx_send(i, (i == THROTTLE) ? 1000.0f : 1500.0f);
+  }
+  bf_rx_init();
   for (uint32_t ms = BF_WARMUP_FRAME_MS; ms <= BF_WARMUP_MS; ms += BF_WARMUP_FRAME_MS) {
     sim_bf_now_us = ms * 1000;
-    updateRcRefreshRate((timeUs_t)ms * 1000);
-    updateRcCommands();
+    if (bf_rx_channels((timeUs_t)ms * 1000, g_rx_link != 0)) {
+      bf_rx_commands((timeUs_t)ms * 1000);
+    }
     processRcCommand();
+  }
+  if (g_rx_link >= 0) {
+    failsafeStartMonitoring();
   }
   pidResetIterm();
   /* Reset does not clear the shell's requested mode. Re-apply after the
@@ -947,18 +1145,27 @@ void bridge_run(const SimState *s, const double rc[4], int rx_new,
    * channel inverts here, exactly once, at this seam. The yaw channel is
    * already inverted inside updateRcCommands (high channel gives a
    * negative internal yaw setpoint, nose right), which matches the ABI
-   * direction, so yaw passes straight through. */
-  rcData[ROLL] = (float)(1500.0 + 500.0 * rc[0]);
-  rcData[PITCH] = (float)(1500.0 - 500.0 * rc[1]);
-  rcData[YAW] = (float)(1500.0 + 500.0 * rc[2]);
-  double thr = rc[3];
-  if (thr < 0.0) {
-    thr = 0.0;
+   * direction, so yaw passes straight through.
+   *
+   * These are the receiver's raw channel values now, and only a frame that
+   * arrived carries them. rx.c's channel range for these four is Betaflight's
+   * default 1000 to 2000, whose scaleRangef is the identity on every float
+   * from 700 to 2300 (checked exhaustively), so a frame reaches rcData as the
+   * same bits this seam used to write there directly. */
+  const int frame = rx_new && g_rx_link != 0;
+  if (frame) {
+    sim_rx_send(ROLL, (float)(1500.0 + 500.0 * rc[0]));
+    sim_rx_send(PITCH, (float)(1500.0 - 500.0 * rc[1]));
+    sim_rx_send(YAW, (float)(1500.0 + 500.0 * rc[2]));
+    double thr = rc[3];
+    if (thr < 0.0) {
+      thr = 0.0;
+    }
+    if (thr > 1.0) {
+      thr = 1.0;
+    }
+    sim_rx_send(THROTTLE, (float)(1000.0 + 1000.0 * thr));
   }
-  if (thr > 1.0) {
-    thr = 1.0;
-  }
-  rcData[THROTTLE] = (float)(1000.0 + 1000.0 * thr);
 
   /* Pack voltage under load, in hundredths of a volt, which is what
    * Betaflight's battery monitor publishes and what vbat_sag_compensation
@@ -993,6 +1200,8 @@ void bridge_run(const SimState *s, const double rc[4], int rx_new,
       (timeUs_t)((long long)BF_WARMUP_MS * 1000 + (long long)s->step_index * SIM_US_PER_STEP);
   sim_bf_now_us = (uint32_t)now_us;
 
+  const int rx_processed = bf_rx_channels(now_us, frame);
+
   /* Angle mode only, unless launch control is holding. Acro never
    * enters: both switches stay off, attitude stays untouched, pidLevel
    * is not reached. Launch control needs attitude for the optional
@@ -1007,7 +1216,7 @@ void bridge_run(const SimState *s, const double rc[4], int rx_new,
       g_launch_state = LAUNCH_CONTROL_TRIGGERED;
       pidResetIterm();
     }
-  } else if (g_angle_mode) {
+  } else if (g_angle_mode || g_failsafe_level) {
     bf_apply_angle_mode_flag();
     bf_feed_attitude(s);
   }
@@ -1024,13 +1233,14 @@ void bridge_run(const SimState *s, const double rc[4], int rx_new,
    *
    * updateRcRefreshRate must be called on frames too: without it the
    * feedforward path divides by a zero rx interval and poisons the whole
-   * state with NaN. */
+   * state with NaN. bf_rx_commands calls both when rx.c processed
+   * something: every frame, and while the link is lost, every 100 ms as
+   * rx.c re-judges the channels. */
   gyroUpdate();
   gyroFiltering(now_us);
 
-  if (rx_new) {
-    updateRcRefreshRate(now_us);
-    updateRcCommands();
+  if (rx_processed) {
+    bf_rx_commands(now_us);
   }
   processRcCommand();
 
