@@ -691,6 +691,16 @@ function file() {
   } catch (err) {
     check(err instanceof ReplayFileError && err.map === 'alps', 'refused: a map this build does not have, by name', `${err.message}, map ${err.map}`);
   }
+  /* And one flown on an aircraft this build no longer has names the
+   * aircraft, so the screen can say it was removed (configs/airframes.js
+   * retiredAirframe). */
+  try {
+    decodeReplay(buf, { airframe: (id) => id !== 'sky1800', map: () => true });
+    check(false, 'refused: an aircraft this build does not fly, by name', 'accepted');
+  } catch (err) {
+    check(err instanceof ReplayFileError && err.airframe === 'sky1800' && err.map === null,
+      'refused: an aircraft this build does not fly, by name', `${err.message}, airframe ${err.airframe}`);
+  }
 }
 const PARTS_MAX_R = PARTS_MAX;
 
