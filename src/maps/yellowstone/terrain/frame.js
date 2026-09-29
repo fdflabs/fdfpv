@@ -61,6 +61,28 @@ export function tilePath(level, i, j) {
   return level === HERO ? `hero/${i}_${j}.bin` : `${level}/${i}_${j}.bin`;
 }
 
+/*
+ * THE FRAME AS A VALUE, for the engine (engine.js) and the apron
+ * (apron.js), which take one so a second map can run the same terrain on
+ * its own square. The level scheme, the tile paths and the encoding are
+ * fixed; what a map chooses is how far its square reaches, its coarsest
+ * level, and the country the apron invents past the edge (base and amp
+ * metres of world y, depth metres past the edge). This is Yellowstone's,
+ * the default wherever a frame is not passed, and it reads exactly the
+ * numbers above.
+ */
+export const YELLOWSTONE_FRAME = makeFrame({
+  half: HALF,
+  coarsest: COARSEST,
+  apron: { base: 250, amp: 650, depth: 80000 },
+});
+
+export function makeFrame({ half, coarsest, apron }) {
+  return {
+    half, extent: 2 * half, coarsest, apron,
+  };
+}
+
 /* The encoding: decimetres from a kilometre below Y0. */
 export function decode(v) {
   return v * 0.1 - 1000;

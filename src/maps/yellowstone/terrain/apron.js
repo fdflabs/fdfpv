@@ -32,12 +32,12 @@
  */
 
 import * as THREE from 'three';
-import { HALF } from './frame.js';
+import { YELLOWSTONE_FRAME } from './frame.js';
 import { paint, GRAIN_M } from './chunks.js';
 import { fbm, smoothstep } from './noise.js';
 
-export const APRON_IN = HALF - 200;
-const APRON_OUT = HALF + 80000;
+/* How far inside the extent's edge the apron starts. */
+const APRON_TUCK_IN = 200;
 /* How far under the border the inner edge is tucked: under the lowest
  * coarse sample within two cells either way, by this much and by the
  * relief there, so a finer level's edge, which can dip between coarse
@@ -49,23 +49,23 @@ const TUCK_REACH = 1920;
 /* Grid lines, the same along x and z: every 2 km across the inside, so the
  * bands along each edge follow the border, then growing from 1 km at the
  * edge to 6 km far out. */
-function lines() {
+function lines(inner, outer) {
   const pos = [];
   let d = 0;
   let step = 1000;
-  while (APRON_IN + d < APRON_OUT) {
-    pos.push(APRON_IN + d);
+  while (inner + d < outer) {
+    pos.push(inner + d);
     d += step;
     step = Math.min(6000, step * 1.18);
   }
-  pos.push(APRON_OUT);
+  pos.push(outer);
   const out = [];
   for (let k = pos.length - 1; k >= 0; k -= 1) {
     out.push(-pos[k]);
   }
-  const inner = Math.round((2 * APRON_IN) / 2000);
-  for (let k = 1; k < inner; k += 1) {
-    out.push(-APRON_IN + (k * 2 * APRON_IN) / inner);
+  const across = Math.round((2 * inner) / 2000);
+  for (let k = 1; k < across; k += 1) {
+    out.push(-inner + (k * 2 * inner) / across);
   }
   for (const p of pos) {
     out.push(p);
@@ -76,10 +76,15 @@ function lines() {
 /*
  * `border(x, z)` is the terrain's height at the nearest point of the
  * extent's edge, read from the coarsest level. The apron eases from just
- * under it to a rolling upland at 2 300 to 2 900 m that the fog takes.
+ * under it to a rolling upland that the fog takes: on Yellowstone's frame
+ * (the default) 2 300 to 2 900 m, on another the frame's apron.base and
+ * apron.amp.
  */
-export function buildApron(border, material, cover) {
-  const xs = lines();
+export function buildApron(border, material, cover, frame = YELLOWSTONE_FRAME) {
+  const HALF = frame.half;
+  const APRON_IN = HALF - APRON_TUCK_IN;
+  const APRON_OUT = HALF + frame.apron.depth;
+  const xs = lines(APRON_IN, APRON_OUT);
   const n = xs.length;
   const h = new Float64Array(n * n);
   for (let r = 0; r < n; r += 1) {
@@ -108,7 +113,7 @@ export function buildApron(border, material, cover) {
       /* A finer level can dip between coarse samples by about as much as
        * the ground round here moves, so the tuck grows with the relief. */
       const edge = low - TUCK - (high - low);
-      const hills = 250 + 650 * (fbm(x / 14000 + 3.3, z / 14000 - 1.2, 4) - 0.35);
+      const hills = frame.apron.base + frame.apron.amp * (fbm(x / 14000 + 3.3, z / 14000 - 1.2, 4) - 0.35);
       const t = smoothstep(0, 9000, out);
       h[r * n + q] = edge * (1 - t) + hills * t;
     }

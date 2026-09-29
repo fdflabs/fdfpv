@@ -63,7 +63,7 @@
 
 import * as THREE from 'three';
 import {
-  HALF, EXTENT, HERO, COARSEST, TILE_CELLS, TILE_SAMPLES, cellOf, tileSizeOf, decode,
+  HERO, TILE_CELLS, TILE_SAMPLES, YELLOWSTONE_FRAME, cellOf, tileSizeOf, decode,
 } from './frame.js';
 import { TileStore, tileKey } from './tiles.js';
 import { CHUNK, chunkJob, chunkTriangles, disposeChunkIndices, recycleChunk } from './chunks.js';
@@ -83,8 +83,8 @@ export function nodeSize(level) {
   return CHUNK * cellOf(level);
 }
 
-function nodesPerAxis(level) {
-  return Math.ceil(EXTENT / nodeSize(level));
+function nodesPerAxis(frame, level) {
+  return Math.ceil(frame.extent / nodeSize(level));
 }
 
 function finer(level) {
@@ -98,18 +98,18 @@ function fanOf(level) {
 }
 
 class Node {
-  constructor(level, i, j) {
+  constructor(half, level, i, j) {
     this.level = level;
     this.i = i;
     this.j = j;
     this.key = `${level}:${i}:${j}`;
     this.cell = cellOf(level);
     this.size = nodeSize(level);
-    this.x0 = -HALF + i * this.size;
-    this.z0 = -HALF + j * this.size;
+    this.x0 = -half + i * this.size;
+    this.z0 = -half + j * this.size;
     /* Cells wholly inside the extent: 64, or fewer along the far edges. */
-    this.nx = Math.min(CHUNK, Math.floor((HALF - this.x0) / this.cell + 1e-9));
-    this.nz = Math.min(CHUNK, Math.floor((HALF - this.z0) / this.cell + 1e-9));
+    this.nx = Math.min(CHUNK, Math.floor((half - this.x0) / this.cell + 1e-9));
+    this.nz = Math.min(CHUNK, Math.floor((half - this.z0) / this.cell + 1e-9));
     this.ti = Math.floor(i / NODE_PER_TILE);
     this.tj = Math.floor(j / NODE_PER_TILE);
     this.ox = (i % NODE_PER_TILE) * CHUNK;
@@ -130,9 +130,11 @@ export class Terrain {
   /*
    * opts: { base, manifest, material, scene, cover (landcover.js, or
    * null), quality: { split, buildMs, tileCeiling, meshCap, prefetch,
-   * prefetchHero } }. Call load() once, then update() every frame.
+   * prefetchHero }, frame (frame.js makeFrame, Yellowstone's when not
+   * given) }. Call load() once, then update() every frame.
    */
   constructor(opts) {
+    this.f = opts.frame || YELLOWSTONE_FRAME;
     this.q = opts.quality;
     this.material = opts.material;
     this.cover = opts.cover || null;
@@ -147,10 +149,10 @@ export class Terrain {
     opts.scene.add(this.group);
     this.nodes = new Map();
     this.roots = [];
-    const n = nodesPerAxis(COARSEST);
+    const n = nodesPerAxis(this.f, this.f.coarsest);
     for (let j = 0; j < n; j += 1) {
       for (let i = 0; i < n; i += 1) {
-        this.roots.push(this.node(COARSEST, i, j));
+        this.roots.push(this.node(this.f.coarsest, i, j));
       }
     }
     this.leaves = [];
@@ -182,7 +184,7 @@ export class Terrain {
     const key = `${level}:${i}:${j}`;
     let nd = this.nodes.get(key);
     if (!nd) {
-      nd = new Node(level, i, j);
+      nd = new Node(this.f.half, level, i, j);
       this.nodes.set(key, nd);
     }
     return nd;
@@ -197,7 +199,7 @@ export class Terrain {
     }
     const fan = fanOf(nd.level);
     const lv = finer(nd.level);
-    const n = nodesPerAxis(lv);
+    const n = nodesPerAxis(this.f, lv);
     const out = [];
     for (let b = 0; b < fan; b += 1) {
       for (let a = 0; a < fan; a += 1) {
@@ -271,8 +273,9 @@ export class Terrain {
       }
       return v;
     };
-    const rim = nd.x0 <= -HALF || nd.z0 <= -HALF || nd.nx < CHUNK || nd.nz < CHUNK
-      || nd.x0 + nd.size >= HALF || nd.z0 + nd.size >= HALF;
+    const half = this.f.half;
+    const rim = nd.x0 <= -half || nd.z0 <= -half || nd.nx < CHUNK || nd.nz < CHUNK
+      || nd.x0 + nd.size >= half || nd.z0 + nd.size >= half;
     const t0 = performance.now();
     const job = chunkJob({
       nx: nd.nx, nz: nd.nz, cell: nd.cell, x0: nd.x0, z0: nd.z0, sample, rim, cover: this.cover,
@@ -414,6 +417,7 @@ export class Terrain {
   /* Ask for the finest tiles in a disc round the craft before the
    * selection needs them, and pin them. */
   prefetch(p) {
+    const HALF = this.f.half;
     for (const [level, radius] of [[0, this.q.prefetch], [HERO, this.q.prefetchHero]]) {
       const size = tileSizeOf(level);
       const i0 = Math.floor((p.x - radius + HALF) / size);
@@ -521,7 +525,7 @@ export class Terrain {
      * dozen builds rather than on every one. */
     const idle = [];
     for (const nd of this.built) {
-      if (!this.drawn.has(nd) && nd.level !== COARSEST) {
+      if (!this.drawn.has(nd) && nd.level !== this.f.coarsest) {
         idle.push(nd);
       }
     }
@@ -589,7 +593,8 @@ export class Terrain {
    */
   async load(spawn, eye, progress) {
     const coarse = [];
-    const n = Math.ceil(EXTENT / tileSizeOf(COARSEST));
+    const COARSEST = this.f.coarsest;
+    const n = Math.ceil(this.f.extent / tileSizeOf(COARSEST));
     for (let j = 0; j < n; j += 1) {
       for (let i = 0; i < n; i += 1) {
         if (this.store.exists(COARSEST, i, j)) {
@@ -606,7 +611,7 @@ export class Terrain {
       const j = this.startBuild(r);
       this.install(r, j.job.step(Infinity), j.stale());
     }
-    this.apron = buildApron((x, z) => this.coarseAt(x, z), this.material, this.cover);
+    this.apron = buildApron((x, z) => this.coarseAt(x, z), this.material, this.cover, this.f);
     this.group.add(this.apron.mesh);
     /* Walk the selection to a fixed point: each pass asks for what the
      * last one could not split into yet. */
@@ -639,18 +644,19 @@ export class Terrain {
 
   /* The coarsest level's height, for the apron's border. */
   coarseAt(x, z) {
-    const cell = cellOf(COARSEST);
-    return this.readGlobal(COARSEST, (x + HALF) / cell, (z + HALF) / cell);
+    const cell = cellOf(this.f.coarsest);
+    return this.readGlobal(this.f.coarsest, (x + this.f.half) / cell, (z + this.f.half) / cell);
   }
 
   /* The leaf this frame draws over (x, z), or null outside the drawn
    * cells. */
   leafAt(x, z) {
+    const HALF = this.f.half;
     if (x < -HALF || z < -HALF || x > HALF || z > HALF) {
       return null;
     }
-    const size = nodeSize(COARSEST);
-    const n = nodesPerAxis(COARSEST);
+    const size = nodeSize(this.f.coarsest);
+    const n = nodesPerAxis(this.f, this.f.coarsest);
     const ri = Math.min(n - 1, Math.floor((x + HALF) / size));
     const rj = Math.min(n - 1, Math.floor((z + HALF) / size));
     let nd = this.roots[rj * n + ri];
@@ -672,8 +678,8 @@ export class Terrain {
   readNode(nd, x, z) {
     const level = nd.level;
     const cell = nd.cell;
-    const gx = (x + HALF) / cell;
-    const gz = (z + HALF) / cell;
+    const gx = (x + this.f.half) / cell;
+    const gz = (z + this.f.half) / cell;
     const base = nd.ti * TILE_CELLS;
     const basez = nd.tj * TILE_CELLS;
     const lo = nd.ox;
@@ -691,7 +697,7 @@ export class Terrain {
   /* The same read anywhere on a level by global sample coordinates,
    * clamped into the tiles that exist: the apron's border only. */
   readGlobal(level, gx, gz) {
-    const tiles = Math.ceil(EXTENT / tileSizeOf(level));
+    const tiles = Math.ceil(this.f.extent / tileSizeOf(level));
     const max = tiles * TILE_CELLS - 1;
     const ci = Math.max(0, Math.min(max, Math.floor(gx)));
     const cj = Math.max(0, Math.min(max, Math.floor(gz)));
@@ -723,10 +729,12 @@ export class Terrain {
    * differ from height() far from the camera.
    */
   finestAt(x, z) {
+    const HALF = this.f.half;
+    const EXTENT = this.f.extent;
     if (x < -HALF || z < -HALF || x > HALF || z > HALF) {
       return this.apron.height(x, z);
     }
-    for (let level = HERO; level <= COARSEST; level += 1) {
+    for (let level = HERO; level <= this.f.coarsest; level += 1) {
       const cell = cellOf(level);
       const gx = (x + HALF) / cell;
       const gz = (z + HALF) / cell;
@@ -747,6 +755,7 @@ export class Terrain {
 
   /* Whether the finest data the files hold at (x, z) is loaded. */
   finestLoaded(x, z) {
+    const HALF = this.f.half;
     for (const level of [HERO, 0]) {
       const size = tileSizeOf(level);
       const i = Math.floor((x + HALF) / size);

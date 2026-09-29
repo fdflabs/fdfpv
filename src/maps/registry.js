@@ -104,6 +104,18 @@ export const MAPS = [
     buildMs: MAP_BUILD_MS.yellowstone,
     load: () => import('./yellowstone.js'),
   },
+  /* In development, and named so, as Yellowstone is: the terrain, the
+   * look and the water; the dam and the rest are parts still to come
+   * (docs/ITAIPU-PLAN.md). Not a builder world until its courses land. */
+  {
+    id: 'itaipu',
+    poster: 'assets/posters/itaipu.jpg',
+    name: str('registry.itaipu'),
+    mode: 'freestyle',
+    note: str('registry.itaipu_note'),
+    buildMs: MAP_BUILD_MS.itaipu,
+    load: () => import('./itaipu.js'),
+  },
 ];
 
 export function mapById(id) {

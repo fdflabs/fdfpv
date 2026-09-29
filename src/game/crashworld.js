@@ -53,6 +53,9 @@ import { contactMaterial, KINDS } from './collide.js';
  */
 const MAP_GROUND = {
   yellowstone: 'dirt',
+  /* The red earth that is the region's colour, under fields and forest
+   * alike (docs/ITAIPU-PLAN.md section 8). */
+  itaipu: 'dirt',
 };
 
 /* Steeper than this (the up component of the ground's normal, about 41
