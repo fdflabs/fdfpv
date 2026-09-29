@@ -286,6 +286,11 @@ export function createCrashCam(host) {
     if (S || host.mode() !== 'flight') {
       return;
     }
+    /* The one funnel every crash the shell declares goes through, so the
+     * bug report's record of it is kept from here (share/crashrecord.js). */
+    if (host.onCrash) {
+      host.onCrash(kind);
+    }
     rec.event('impact', { kind });
     const lost = rec.now() - lostPartAt < LOST_PART_S;
     if (kind === 'wreck' || kind === 'ground' || lost) {
