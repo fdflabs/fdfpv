@@ -1923,6 +1923,10 @@ export async function boot({
       roomSafety.reported(seat);
       ui.refreshFriends();
     },
+    onUnreported: (seat, undone) => {
+      roomSafety.unreported(seat, undone);
+      ui.refreshFriends();
+    },
     onRoom: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
@@ -1995,7 +1999,7 @@ export async function boot({
   const roomSafety = createRoomSafety((m) => roomLinkState.send(m), (seat) => {
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
-  });
+  }, () => ui.refreshFriends());
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
@@ -2613,6 +2617,7 @@ export async function boot({
       name: st.welcome ? st.welcome.name : null,
       host: st.welcome ? st.welcome.host : null,
       heard: roomSafety.heard(),
+      note: roomSafety.note(),
       peers: [...roomPeers.values()].map((p) => ({
         seat: p.seat,
         name: roomName(p.name),
@@ -2814,14 +2819,17 @@ export async function boot({
         const craft = airframeById(peer.profile.airframe).name;
         const muted = roomSafety.isMuted(peer.seat);
         const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
+        /* A report picked from this row asks here before it is sent. */
+        const question = roomSafety.question(peer.seat);
         rows.push({
-          label: w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown,
+          label: question || (w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown),
           value: craft,
-          note: str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
+          note: question ? str('friends.report_confirm_note')
+            : str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
           current: '',
           pickOnly: true,
           /* The host hands the room over from any pilot's row. */
-          options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
+          options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host && !question ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
           pick: (v) => {
             const picked = roomSafety.peerPick(peer.seat, v);
             if (picked === 'kick') {
@@ -2832,6 +2840,13 @@ export async function boot({
             ui.refreshFriends();
           },
         });
+        rows.push(...roomSafety.undoRows(peer.seat).map((row) => ({
+          ...row,
+          pick: (v) => {
+            row.pick(v);
+            ui.refreshFriends();
+          },
+        })));
       }
       rows.push(nameRow, figureRow, { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
       return rows;

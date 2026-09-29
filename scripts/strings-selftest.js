@@ -27,7 +27,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import en from '../src/strings/en.js';
-import { str, plural, setLocale, LOCALES } from '../src/strings/index.js';
+import { str, plural, setLocale, useLocale, LOCALES } from '../src/strings/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 let failed = 0;
@@ -60,6 +60,21 @@ for (const f of files) {
   const holes = keys.filter((k) => k in table && placeholders(table[k]) !== placeholders(en[k]));
   check(`${f} keeps every placeholder`, holes.length === 0, holes.slice(0, 3).join(', '));
 }
+
+/* A count in front of a plural noun reads "1 cuts" at one: such counts go
+ * through plural() and a count.* pair, never a bare placeholder. */
+const PLURAL_NOUNS = { 'en.js': /\{[a-zA-Z0-9_]+\} (points|cuts|pilots|metres)\b/, 'es.js': /\{[a-zA-Z0-9_]+\} (puntos|cortes|pilotos|metros)\b/ };
+for (const [f, noun] of Object.entries(PLURAL_NOUNS)) {
+  const table = (await import(join(root, 'src/strings', f))).default;
+  const bare = Object.keys(table).filter((k) => !k.startsWith('count.') && noun.test(table[k]));
+  check(`${f} counts its nouns with plural()`, bare.length === 0, bare.slice(0, 3).join(', '));
+  const pairs = Object.keys(table).filter((k) => /^count\..*\.one$/.test(k)).map((k) => k.slice(0, -4));
+  check(`${f} has both forms of every count`, pairs.length > 0 && pairs.every((k) => `${k}.other` in table), pairs.join(','));
+}
+check('one cut, two cuts', plural('count.cuts', 1) === '1 cut' && plural('count.cuts', 2) === '2 cuts' && plural('count.points', 0) === '0 points');
+await useLocale('es');
+check('un corte, dos cortes', plural('count.cuts', 1) === '1 corte' && plural('count.cuts', 2) === '2 cortes' && plural('count.paper_left', 1) === 'queda 1 m de papel');
+setLocale('en');
 
 check('a plain lookup returns the text', str('ui.settings') === en['ui.settings'] || typeof str('ui.settings') === 'string');
 const sampleKey = keys.find((k) => /\{[a-z]+\}/.test(en[k]));
