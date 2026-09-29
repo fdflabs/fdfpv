@@ -3004,6 +3004,23 @@ SIM_EXPORT int sim_water_vertex(int body, double x, double y) {
   return water_vertex(body, x, y) < 0 ? SIM_ERR_BAD_ARG : SIM_OK;
 }
 
+/* A channel, a river: water within half_width of a centre line whose
+ * points the host gives next, each with the surface's height there. */
+SIM_EXPORT int sim_water_channel(double half_width) {
+  if (!sim_finite(half_width) || !(half_width > 0.0) || !(half_width <= 1000.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const int i = water_channel_add(half_width);
+  return i < 0 ? SIM_ERR_BAD_STATE : i;
+}
+
+SIM_EXPORT int sim_water_channel_point(int body, double x, double y, double z) {
+  if (!sim_finite(x) || !sim_finite(y) || !sim_finite(z)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return water_channel_point(body, x, y, z) < 0 ? SIM_ERR_BAD_ARG : SIM_OK;
+}
+
 /* A unit direction, or the refusal: |d| within 3 percent of one. */
 static int water_unit2(double dx, double dy) {
   const double d2 = dx * dx + dy * dy;

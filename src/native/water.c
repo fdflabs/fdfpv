@@ -19,6 +19,14 @@
  * somewhere else; a lake has none, and the gates use one because a single
  * period is what a rocking can be measured against.
  *
+ * A CHANNEL is a river: water within a half width of a centre line whose
+ * points each carry the surface's height, level across the line and
+ * straight along it between two points, so it falls and rises with the
+ * river the host draws. It has no waves. Its points live in one pool
+ * shared by every channel, in chunks of WATER_CHUNK segments that each
+ * keep a box, so finding the water under a point reads a few boxes and
+ * one chunk's segments rather than the whole river.
+ *
  * Nothing is random and nothing reads a clock: the components are fixed
  * when the host declares them and the surface is a function of (x, y, t),
  * t the sim's own clock. Zero wind and zero swell is flat water, which is
@@ -90,6 +98,17 @@ static const double SEA_PHASE[WATER_SEA] = { 4.744, 2.3441, 6.2273, 3.8273, 1.42
 static WaterBody g_water[WATER_BODIES_MAX];
 static int g_water_count = 0;
 
+/* The channels' centre lines, x y and surface z, and each chunk's box
+ * (xmin, xmax, ymin, ymax, widened by its channel's half width). A
+ * channel starts on a chunk boundary, so chunk c is points c * CHUNK to
+ * (c + 1) * CHUNK of one channel only. */
+#define WATER_CHUNKS (WATER_CHANNEL_PTS_MAX / WATER_CHUNK)
+static double g_cx[WATER_CHANNEL_PTS_MAX];
+static double g_cy[WATER_CHANNEL_PTS_MAX];
+static double g_cz[WATER_CHANNEL_PTS_MAX];
+static double g_cbox[WATER_CHUNKS][4];
+static int g_cpts = 0;
+
 /* Cube root by Newton's method from a start above the root, a fixed count
  * of steps, so it is the same double on every host. Only for the peak
  * period's growth law, once per declaration. x > 0. */
@@ -150,6 +169,7 @@ static void water_build(WaterBody *b) {
 
 void water_clear(void) {
   g_water_count = 0;
+  g_cpts = 0;
 }
 
 int water_count(void) {
@@ -173,13 +193,16 @@ int water_add(double z0, double ox, double oy) {
   b->swell_t = 0.0;
   b->sdx = 1.0;
   b->sdy = 0.0;
+  b->half_width = 0.0;
+  b->first = 0;
+  b->npts = 0;
   water_build(b);
   g_water_count += 1;
   return g_water_count - 1;
 }
 
 int water_vertex(int i, double x, double y) {
-  if (i < 0 || i >= g_water_count || g_water[i].nvert >= WATER_VERTS_MAX) {
+  if (i < 0 || i >= g_water_count || g_water[i].nvert >= WATER_VERTS_MAX || g_water[i].half_width > 0.0) {
     return -1;
   }
   WaterBody *b = &g_water[i];
@@ -200,8 +223,111 @@ int water_vertex(int i, double x, double y) {
   return 0;
 }
 
+/* A channel of half width w, no points yet: water nowhere until it has
+ * two. Its surface is still; it takes no wind and no swell. */
+int water_channel_add(double w) {
+  const int first = (g_cpts + WATER_CHUNK - 1) / WATER_CHUNK * WATER_CHUNK;
+  if (first >= WATER_CHANNEL_PTS_MAX) {
+    return -1;
+  }
+  const int i = water_add(0.0, 0.0, 0.0);
+  if (i < 0) {
+    return -1;
+  }
+  WaterBody *b = &g_water[i];
+  b->half_width = w;
+  b->first = first;
+  b->npts = 0;
+  g_cpts = first;
+  return i;
+}
+
+/* The next point of channel i's centre line, its surface z there. Only
+ * the last declared channel takes points, so its run in the pool stays
+ * whole. */
+int water_channel_point(int i, double x, double y, double z) {
+  if (i != g_water_count - 1 || !(g_water[i].half_width > 0.0) || g_cpts >= WATER_CHANNEL_PTS_MAX) {
+    return -1;
+  }
+  WaterBody *b = &g_water[i];
+  const double w = b->half_width;
+  const int k = g_cpts;
+  g_cx[k] = x;
+  g_cy[k] = y;
+  g_cz[k] = z;
+  if (b->npts == 0) {
+    b->xmin = x - w;
+    b->xmax = x + w;
+    b->ymin = y - w;
+    b->ymax = y + w;
+    b->z0 = z;
+    b->ox = x;
+    b->oy = y;
+  } else {
+    if (x - w < b->xmin) b->xmin = x - w;
+    if (x + w > b->xmax) b->xmax = x + w;
+    if (y - w < b->ymin) b->ymin = y - w;
+    if (y + w > b->ymax) b->ymax = y + w;
+    if (z > b->z0) b->z0 = z;
+    /* Segment k-1 to k belongs to the chunk of point k-1: its box takes
+     * both ends. */
+    double *c = g_cbox[(k - 1) / WATER_CHUNK];
+    const double px = g_cx[k - 1], py = g_cy[k - 1];
+    if ((k - 1) % WATER_CHUNK == 0) {
+      c[0] = px - w;
+      c[1] = px + w;
+      c[2] = py - w;
+      c[3] = py + w;
+    }
+    if (x - w < c[0]) c[0] = x - w;
+    if (x + w > c[1]) c[1] = x + w;
+    if (y - w < c[2]) c[2] = y - w;
+    if (y + w > c[3]) c[3] = y + w;
+  }
+  b->npts += 1;
+  g_cpts += 1;
+  return 0;
+}
+
+/*
+ * The channel's centre line nearest (x, y): the squared distance to it,
+ * and the surface there, level across, straight along the segment
+ * between its two points' heights, with its slope. The first nearest
+ * segment wins a tie. -1 when the channel has under two points.
+ */
+static double channel_nearest(const WaterBody *b, double x, double y, double *z, double *sx, double *sy) {
+  double best = -1.0;
+  const int last = b->first + b->npts - 1;
+  for (int c = b->first / WATER_CHUNK; c * WATER_CHUNK < last; c += 1) {
+    const double *box = g_cbox[c];
+    if (x < box[0] || x > box[1] || y < box[2] || y > box[3]) {
+      continue;
+    }
+    int k1 = (c + 1) * WATER_CHUNK;
+    if (k1 > last) k1 = last;
+    for (int k = c * WATER_CHUNK; k < k1; k += 1) {
+      const double ax = g_cx[k], ay = g_cy[k];
+      const double ex = g_cx[k + 1] - ax, ey = g_cy[k + 1] - ay;
+      const double l2 = ex * ex + ey * ey;
+      double t = l2 > 0.0 ? ((x - ax) * ex + (y - ay) * ey) / l2 : 0.0;
+      if (t < 0.0) t = 0.0;
+      if (t > 1.0) t = 1.0;
+      const double dx = x - (ax + t * ex), dy = y - (ay + t * ey);
+      const double d2 = dx * dx + dy * dy;
+      if (best < 0.0 || d2 < best) {
+        const double dz = g_cz[k + 1] - g_cz[k];
+        best = d2;
+        *z = g_cz[k] + t * dz;
+        *sx = l2 > 0.0 ? dz * ex / l2 : 0.0;
+        *sy = l2 > 0.0 ? dz * ey / l2 : 0.0;
+      }
+    }
+  }
+  return best;
+}
+
 int water_wind(int i, double speed, double dx, double dy, double fetch) {
-  if (i < 0 || i >= g_water_count) {
+  if (i < 0 || i >= g_water_count || g_water[i].half_width > 0.0) {
     return -1;
   }
   WaterBody *b = &g_water[i];
@@ -214,7 +340,7 @@ int water_wind(int i, double speed, double dx, double dy, double fetch) {
 }
 
 int water_swell(int i, double height, double period, double dx, double dy) {
-  if (i < 0 || i >= g_water_count) {
+  if (i < 0 || i >= g_water_count || g_water[i].half_width > 0.0) {
     return -1;
   }
   WaterBody *b = &g_water[i];
@@ -228,10 +354,21 @@ int water_swell(int i, double height, double period, double dx, double dy) {
 
 /* Which body the point is over, the first declared wins; -1 for none. A
  * body without a polygon is everywhere. Even odd crossing test, which is
- * exact arithmetic on the vertices and needs no tolerance. */
+ * exact arithmetic on the vertices and needs no tolerance. A channel is
+ * where its centre line is within its half width. */
 int water_body_at(double x, double y) {
   for (int i = 0; i < g_water_count; i += 1) {
     const WaterBody *b = &g_water[i];
+    if (b->half_width > 0.0) {
+      double z, sx, sy;
+      if (b->npts >= 2 && x >= b->xmin && x <= b->xmax && y >= b->ymin && y <= b->ymax) {
+        const double d2 = channel_nearest(b, x, y, &z, &sx, &sy);
+        if (d2 >= 0.0 && d2 <= b->half_width * b->half_width) {
+          return i;
+        }
+      }
+      continue;
+    }
     if (b->nvert < 3) {
       return i;
     }
@@ -268,6 +405,9 @@ int water_body_at(double x, double y) {
 void water_sample(int i, double x, double y, double t, double out[6]) {
   const WaterBody *b = &g_water[i];
   double z = b->z0, sx = 0.0, sy = 0.0, u = 0.0, v = 0.0, w = 0.0;
+  if (b->half_width > 0.0 && channel_nearest(b, x, y, &z, &sx, &sy) < 0.0) {
+    z = b->z0;
+  }
   const double px = x - b->ox;
   const double py = y - b->oy;
   for (int c = 0; c < b->ncomp; c += 1) {

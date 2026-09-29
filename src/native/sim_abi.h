@@ -874,8 +874,8 @@ int sim_wing_tune(double *out);
  * unchanged.
  *
  * sim_water_add(z0, ox, oy): a body of still water at world z0, its wave
- * phases measured from (ox, oy). Returns its index, 0 to 3, or
- * SIM_ERR_BAD_STATE when four are declared already.
+ * phases measured from (ox, oy). Returns its index, 0 to 7, or
+ * SIM_ERR_BAD_STATE when eight are declared already.
  * sim_water_vertex(body, x, y): the next corner of its outline, world x y,
  * up to 256; a body with fewer than three corners is water everywhere.
  * sim_water_wind(body, speed, dx, dy, fetch): the wind over it, m/s along
@@ -895,9 +895,23 @@ int sim_wing_tune(double *out);
  * ky (y - oy) - omega t + phase).
  * sim_math_sin, sim_math_cos: the fixed libm's full range sin and cos,
  * for the tests' mirror.
+ *
+ * A CHANNEL is a river: sim_water_channel(half_width) declares one, 0 <
+ * half_width <= 1000 m, and returns its index (SIM_ERR_BAD_STATE when the
+ * table is full; eight bodies of either kind); sim_water_channel_point(
+ * body, x, y, z) gives its centre line's next point, world x y, and the
+ * surface's world z there, to 8192 points over every channel, and only
+ * to the channel declared last. Its water is within half_width of the
+ * line, its surface level across the line and straight along it between
+ * two points' heights, so it slopes where the river does. It is still:
+ * sim_water_wind and sim_water_swell refuse it, and sim_water_components
+ * gives no components and its highest point as z0. A channel with under
+ * two points is water nowhere.
  */
 int sim_water_clear(void);
 int sim_water_add(double z0, double ox, double oy);
+int sim_water_channel(double half_width);
+int sim_water_channel_point(int body, double x, double y, double z);
 int sim_water_vertex(int body, double x, double y);
 int sim_water_wind(int body, double speed, double dx, double dy, double fetch);
 int sim_water_swell(int body, double height, double period, double dx, double dy);

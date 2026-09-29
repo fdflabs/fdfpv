@@ -208,7 +208,7 @@ import { FpvOsd } from './ui/fpvhud.js';
 import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { str } from './strings/index.js';
-import { insideWater, waterFor } from './game/water.js';
+import { insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
@@ -569,7 +569,9 @@ async function loadMap(shell, id, loading, options) {
   const map = await mod.buildMap(shell, (f) => loading.progress('world', f), options);
   map.graphics = normalizeGraphics(options && options.quality);
   /* The map's water, as the plant is told it: src/game/water.js. */
-  map.water = await waterFor(id);
+  map.water = await waterFor(id, map);
+  /* The ground over a river or a pool is its water, as over the lake. */
+  map.height = wetHeight(map.height, map.water);
   loading.done('world');
   return map;
 }
@@ -1366,7 +1368,7 @@ export async function boot({
       return h;
     }
     const w = waterAt(x, z);
-    if (!w || h > w.surfaceY + 1e-6) {
+    if (!w || h > surfaceAt(w, x, z) + 1e-6) {
       return h;
     }
     return Math.min(h, w.bed(x, z));
@@ -1386,6 +1388,10 @@ export async function boot({
     sim.e.sim_water_clear();
     const bodies = [];
     for (const w of (view && view.water) || []) {
+      if (w.kind === 'channel') {
+        declareChannel(w);
+        continue;
+      }
       worldPosToSim(w.centre.x, w.surfaceY, w.centre.z, waterSim);
       const body = sim.e.sim_water_add(waterSim.z, waterSim.x, waterSim.y);
       if (body < 0) {
@@ -1398,9 +1404,23 @@ export async function boot({
       worldDirToSim(w.wind.toX, 0, w.wind.toZ, waterSim);
       const n = Math.hypot(waterSim.x, waterSim.y);
       sim.e.sim_water_wind(body, w.wind.speed, waterSim.x / n, waterSim.y / n, w.wind.fetch);
-      bodies.push(body);
+      bodies.push({ w, body });
     }
     handWaves(bodies);
+  }
+  /* A river, its centre line with the surface at every point: no waves. */
+  function declareChannel(w) {
+    const body = sim.e.sim_water_channel(w.halfWidth / simLenToWorld(1));
+    if (body < 0) {
+      return;
+    }
+    for (const p of w.line) {
+      worldPosToSim(p.x, p.y, p.z, waterSim);
+      const code = sim.e.sim_water_channel_point(body, waterSim.x, waterSim.y, waterSim.z);
+      if (code !== SIM_OK) {
+        throw new Error(`sim_water_channel_point: ${simErrorName(code)}`);
+      }
+    }
   }
 
   /*
@@ -1441,7 +1461,7 @@ export async function boot({
     }
     const perLength = 1 / simLenToWorld(1);
     const out = [];
-    for (const b of bodies) {
+    for (const { w, body: b } of bodies) {
       const code = sim.e.sim_water_components(b, wavesPtr);
       if (code !== SIM_OK) {
         throw new Error(`sim_water_components: ${simErrorName(code)}`);
@@ -1457,6 +1477,7 @@ export async function boot({
         crest += Math.abs(comps[i].a);
       }
       waveCrest = Math.max(waveCrest, crest);
+      w.crest = crest;
       out.push({ y0: waveO.y + startY, ox: waveO.x + startX, oz: waveO.z + startZ, comps });
     }
     wavesMap = out;
@@ -1470,7 +1491,8 @@ export async function boot({
    */
   function paperFloorAt(x, z) {
     const h = groundAt(x, z);
-    return waveCrest > 0 && waterAt(x, z) ? h + waveCrest : h;
+    const w = waveCrest > 0 ? waterAt(x, z) : null;
+    return w && w.crest > 0 ? h + w.crest : h;
   }
   function showWaves() {
     if (typeof view.setWaves !== 'function') {
@@ -5769,7 +5791,7 @@ export async function boot({
   function pieceGround(x, z, fromY) {
     const h = view.height(x, z, fromY);
     const w = view.water && view.water.length ? waterAt(x, z) : null;
-    return w && h <= w.surfaceY + 1e-6 ? null : h;
+    return w && h <= surfaceAt(w, x, z) + 1e-6 ? null : h;
   }
 
   function plantToWorld(px, py, pz, qw, qx, qy, qz, outPos, outQuat) {
@@ -5933,7 +5955,7 @@ export async function boot({
   /* The ground plane's material, with the plane itself. */
   function declareGroundMaterial(wx, wz, hy) {
     const w = view.water && view.water.length ? waterAt(wx, wz) : null;
-    const wet = w != null && hy >= w.surfaceY - 0.05;
+    const wet = w != null && hy >= surfaceAt(w, wx, wz) - 0.05;
     sim.e.sim_set_ground_material(groundSurface(view, wx, wz, groundNWorld.y, wet, hy));
   }
 
@@ -6488,7 +6510,8 @@ export async function boot({
     if (!w || nowWall - splashCueAtWall < 140 || !stateCurr) {
       return;
     }
-    const above = pCurr.y - w.surfaceY;
+    const surfaceY = surfaceAt(w, pCurr.x, pCurr.z);
+    const above = pCurr.y - surfaceY;
     const sink = -stateCurr[6];
     const wet = (entered & DAMAGE_FLAGS.inWater) !== 0
       || (above < 0.35 && above > -0.5 && (sink > 1.2 || speed > 7));
@@ -6496,9 +6519,9 @@ export async function boot({
       return;
     }
     splashCueAtWall = nowWall;
-    crashAt.set(pCurr.x, w.surfaceY, pCurr.z);
+    crashAt.set(pCurr.x, surfaceY, pCurr.z);
     crashNormal.set(0, 1, 0);
-    debris.emit(crashAt, crashNormal, Math.max(sink * 3, speed * 0.6), SURFACE.water, null, w.surfaceY, 'hit');
+    debris.emit(crashAt, crashNormal, Math.max(sink * 3, speed * 0.6), SURFACE.water, null, surfaceY, 'hit');
     if (crashLog.length < CRASH_LOG_MAX) {
       crashLog.push({ t: stateCurr[0], part: 'craft', type: 'splash', ratio: 0, force: 0, moment: 0, closing: Math.max(sink, speed), surface: 'water' });
     }
@@ -13937,7 +13960,9 @@ export async function boot({
     return out;
   };
   /* The map's water bodies, where a capture throws an aircraft on floats. */
-  window.__crashWater = () => (view.water || []).map((w) => ({ spawn: w.spawn, surfaceY: w.surfaceY }));
+  window.__crashWater = () => (view.water || []).map((w) => ({
+    kind: w.kind, spawn: w.spawn, surfaceY: w.surfaceY, line: w.line, halfWidth: w.halfWidth,
+  }));
   window.__crashBreak = (part) => simErrorName(sim.e.sim_part_break(part));
   window.__crashSetDamage = (part, d) => simErrorName(sim.e.sim_part_set_damage(part, d));
   /* Each drawn piece's farthest vertex outside its part's hull box, for a
@@ -14356,6 +14381,24 @@ export async function boot({
     }
     simPosToThree(probeSim.x, probeSim.y, out[1] + SPAWN_ALT, probeMap).applyQuaternion(qSpawn);
     return { t: drawn.t, drawn: drawn.y, patch: drawn.patch, plant: probeMap.y + startY, body: out[0] };
+  };
+  /* The plant's water under a map point, as a map height, with the body
+   * and the shell's own answer beside it: { body, plant, shell }, body
+   * -1 and plant null where the plant has none. For
+   * scripts/river-page-check.js. */
+  window.__waterSample = (x, z) => {
+    const ptr = sim.e.malloc(7 * 8);
+    worldPosToSim(x, 0, z, probeSim);
+    const code = sim.e.sim_water_sample(probeSim.x, probeSim.y, 0, ptr);
+    const out = Array.from(new Float64Array(sim.e.memory.buffer, ptr, 7));
+    sim.e.free(ptr);
+    const w = waterAt(x, z);
+    const shell = w ? surfaceAt(w, x, z) : null;
+    if (code !== SIM_OK || out[0] < 0) {
+      return { body: -1, plant: null, shell };
+    }
+    simPosToThree(probeSim.x, probeSim.y, out[1] + SPAWN_ALT, probeMap).applyQuaternion(qSpawn);
+    return { body: out[0], plant: probeMap.y + startY, shell };
   };
   /* Put the spawn somewhere else, facing another way, as a crash recovery
    * does, and reset there: the water is declared again in the new spawn's

@@ -68,6 +68,22 @@ export function ribbon(points, width, lift, heightAt, material) {
   return { mesh, dist, points };
 }
 
+/* A ribbon's centre line as drawn: at each point the middle of the row's
+ * two edge vertices, so its height is theirs averaged, which is where
+ * the drawn surface crosses the centre there. */
+export function ribbonCentre(points, width, lift, heightAt) {
+  return points.map((p, i) => {
+    const a = points[Math.max(0, i - 1)];
+    const b = points[Math.min(points.length - 1, i + 1)];
+    const len = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    const nx = -(b.z - a.z) / len;
+    const nz = (b.x - a.x) / len;
+    const hl = heightAt(p.x - nx * width / 2, p.z - nz * width / 2);
+    const hr = heightAt(p.x + nx * width / 2, p.z + nz * width / 2);
+    return { x: p.x, y: (hl + hr) / 2 + lift, z: p.z };
+  });
+}
+
 /* Where a distance along a polyline lands, and which way it faces. */
 export function alongRibbon(rib, s) {
   const total = rib.dist[rib.dist.length - 1];

@@ -9,7 +9,7 @@
  * place a map's water is named to the physics, so that no map file has to
  * learn about floats: a map's own look of its water stays the map's.
  *
- * A body here is:
+ * A body here is a lake or a channel (kind). A lake is:
  *   surfaceY        the still water's height
  *   outline         its shore, [{ x, z }], in order round it
  *   bed(x, z)       the ground under the water, for the plane an aircraft
@@ -35,6 +35,24 @@
  * more; the map draws the lake from the same waves (src/render/
  * lakewaves.js, docs/FLOATS-STAGE1.md). The aircraft spawns in the middle
  * facing into it, up the lake.
+ *
+ * A CHANNEL is a river, as the map draws it (the map's view.rivers, its
+ * stream's centre line with the drawn surface's height at every row, and
+ * its width): water within half the width of the line, the surface level
+ * across it and straight along it between two rows, which is the plant's
+ * sim_water_channel. It is:
+ *   line            [{ x, y, z }], y the surface there
+ *   halfWidth       m
+ *   bed(x, z)       the ground under it
+ *   chunks          boxes round every CHUNK segments, for surfaceAt
+ * It has no waves: a stream five metres wide has no fetch for a wind to
+ * raise any, and the drawn stream's ripples are its material's, laid on
+ * the still surface. The map's pools (view.pools, a disc of still water)
+ * are small lakes without wind.
+ *
+ * The map's height() answers the lake's surface over the lake, so that a
+ * quad or a wheeled plane rests ON the water; wetHeight gives every other
+ * body the same, so the ground over a river or a pool is its surface.
  *
  * Every other map has no water, and there an aircraft on floats stands on
  * its keels on the strip.
@@ -85,6 +103,7 @@ async function alpsLake(ground) {
     zMax = Math.max(zMax, cz + dz * r);
   }
   return {
+    kind: 'lake',
     surfaceY: t.LAKE_Y,
     outline,
     bed: height,
@@ -102,15 +121,141 @@ const WATER = {
   })],
 };
 
-/* The water bodies of a map, by its id: an empty list for a map without. */
-export async function waterFor(mapId) {
-  const make = WATER[mapId];
-  return make ? Promise.all(make()) : [];
+/* Segments a channel's box covers, as the plant's WATER_CHUNK. */
+const CHUNK = 32;
+/* The corners of a pool's outline. */
+const POOL_SIDES = 48;
+
+function channel(line, width, bed) {
+  const halfWidth = width / 2;
+  const chunks = [];
+  for (let k = 0; k + 1 < line.length; k += CHUNK) {
+    const end = Math.min(line.length - 1, k + CHUNK);
+    const box = { k, end, x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity };
+    for (let j = k; j <= end; j += 1) {
+      box.x0 = Math.min(box.x0, line[j].x - halfWidth);
+      box.x1 = Math.max(box.x1, line[j].x + halfWidth);
+      box.z0 = Math.min(box.z0, line[j].z - halfWidth);
+      box.z1 = Math.max(box.z1, line[j].z + halfWidth);
+    }
+    chunks.push(box);
+  }
+  return { kind: 'channel', line, halfWidth, bed, chunks };
 }
 
-/* Whether (x, z) is inside a body's outline: the even odd crossing test. */
+function pool({ x, z, r, y }, bed) {
+  const outline = [];
+  for (let k = 0; k < POOL_SIDES; k += 1) {
+    const a = (k / POOL_SIDES) * Math.PI * 2;
+    outline.push({ x: x + Math.cos(a) * r, z: z + Math.sin(a) * r });
+  }
+  return {
+    kind: 'lake', surfaceY: y, outline, bed, centre: { x, z }, spawn: null, wind: { speed: 0, toX: 1, toZ: 0, fetch: 0 },
+  };
+}
+
+/*
+ * The water bodies of a map, by its id and as built: an empty list for a
+ * map without. The lake first, since where two bodies meet (the stream's
+ * mouth) the first declared is the water, in the plant as here, and
+ * then the drawn pools and rivers, each over the map's own ground.
+ */
+export async function waterFor(mapId, map) {
+  const make = WATER[mapId];
+  const lakes = make ? await Promise.all(make()) : [];
+  if (!map) {
+    return lakes;
+  }
+  /* The ground itself, under any roof or bridge: the map's height as it
+   * is now, before wetHeight wraps it. */
+  const height = map.height;
+  const bed = (x, z) => height(x, z, -Infinity);
+  return [
+    ...lakes,
+    ...(map.pools || []).map((p) => pool(p, bed)),
+    ...(map.rivers || []).map((r) => channel(r.line, r.width, bed)),
+  ];
+}
+
+/*
+ * A channel's surface under (x, z) and how far off its line that is:
+ * { d2, y }, the nearest segment's, or null where no chunk's box holds
+ * the point. The plant's channel_nearest (src/native/water.c) in the
+ * map's frame.
+ */
+function channelNearest(body, x, z) {
+  const L = body.line;
+  let best = null;
+  for (const c of body.chunks) {
+    if (x < c.x0 || x > c.x1 || z < c.z0 || z > c.z1) {
+      continue;
+    }
+    for (let k = c.k; k < c.end; k += 1) {
+      const ex = L[k + 1].x - L[k].x;
+      const ez = L[k + 1].z - L[k].z;
+      const l2 = ex * ex + ez * ez;
+      let t = l2 > 0 ? ((x - L[k].x) * ex + (z - L[k].z) * ez) / l2 : 0;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const dx = x - (L[k].x + t * ex);
+      const dz = z - (L[k].z + t * ez);
+      const d2 = dx * dx + dz * dz;
+      if (!best || d2 < best.d2) {
+        best = { d2, y: L[k].y + t * (L[k + 1].y - L[k].y) };
+      }
+    }
+  }
+  return best;
+}
+
+/* The still surface's height of a body at (x, z), which should be inside
+ * it. */
+export function surfaceAt(body, x, z) {
+  if (body.kind !== 'channel') {
+    return body.surfaceY;
+  }
+  const n = channelNearest(body, x, z);
+  return n ? n.y : -Infinity;
+}
+
+/*
+ * The map's height with the water's surface over every body it does not
+ * already answer for: the higher of the ground and the surface, so the
+ * ground over a river is its water as the ground over the lake is, and a
+ * bridge over it is still the bridge. Over the lake the map's height is
+ * already its surface or above, so the lake changes nothing there.
+ */
+export function wetHeight(height, bodies) {
+  if (!bodies.length) {
+    return height;
+  }
+  return (x, z, fromY) => {
+    const h = height(x, z, fromY);
+    for (const b of bodies) {
+      if (insideWater(b, x, z)) {
+        const y = surfaceAt(b, x, z);
+        return y > h ? y : h;
+      }
+    }
+    return h;
+  };
+}
+
+/* Whether (x, z) is inside a body: a channel within its half width of
+ * its line, a lake inside its outline by the even odd crossing test. */
 export function insideWater(body, x, z) {
+  if (body.kind === 'channel') {
+    const n = channelNearest(body, x, z);
+    return Boolean(n) && n.d2 <= body.halfWidth * body.halfWidth;
+  }
   const o = body.outline;
+  if (!body.box) {
+    body.box = {
+      x0: Math.min(...o.map((p) => p.x)), x1: Math.max(...o.map((p) => p.x)), z0: Math.min(...o.map((p) => p.z)), z1: Math.max(...o.map((p) => p.z)),
+    };
+  }
+  if (x < body.box.x0 || x > body.box.x1 || z < body.box.z0 || z > body.box.z1) {
+    return false;
+  }
   let inside = false;
   for (let j = 0, k = o.length - 1; j < o.length; k = j, j += 1) {
     if ((o[j].z > z) !== (o[k].z > z)) {

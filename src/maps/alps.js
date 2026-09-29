@@ -355,6 +355,10 @@ export async function buildValley(shell, progress, q, style) {
       }
     },
     probeWater: (x, z) => (nature.probeWater ? nature.probeWater(x, z) : null),
+    /* The drawn stream and pool, which src/game/water.js tells the plant
+     * of: { line: [{ x, y, z }], width } and { x, z, r, y }. */
+    rivers: nature.rivers || [],
+    pools: nature.pools || [],
     references: {
       valleyFloorWidth: {
         measured: floorWidth,
