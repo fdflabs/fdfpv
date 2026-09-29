@@ -1056,69 +1056,6 @@ export const AIRFRAMES = [
   },
   {
     /*
-     * Glen Spickler's Quickie 500, American Aircraft Modeler, December
-     * 1972, docs/QUICKIE-STAGE1.md: the club pylon racer the Quickie 500
-     * class is named after, 51 in of balsa box and constant chord low
-     * wing, RCM's 3 1/2 lb ready to fly, simId 22 on the fixed wing plant.
-     * A K&B 40 R/C hung out on its side with no silencer on an APC 9 x 6:
-     * flat out it does 88 mph (Spickler: "around 100 mph on the
-     * straightaway"), rolls at 400 deg/s and stops where the stick is
-     * centred, goes round a pylon at 6 g losing 5 percent of its speed and
-     * needs no rudder to do it; closed, it glides long and flat. The stick
-     * runs the engine from its 2,700 rpm idle to full and it never stops,
-     * and `voice` is the two stroke's note. It stands on wire gear and a
-     * tail skid and takes off from the ground, as the class does; `gear`
-     * is the plant's settled pose idling, which the drawn wheels in
-     * src/render/quickiecraft.js match: the CG 0.1326 m over the ground
-     * and 6.47 degrees nose up.
-     */
-    id: 'quickie1293',
-    simId: 22,
-    fixedWing: true,
-    voice: 'glow2',
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/quickie-thresholds.json q2_stall. */
-    stall: 9.31,
-    /* Level speed at full throttle, m/s: tests/quickie-thresholds.json q1_top, derived. */
-    topSpeed: 39.37,
-    gear: { restHeight: 0.1326, restPitch: 6.47 * Math.PI / 180 },
-    name: 'Quickie 500',
-    short: 'Quickie',
-    blurb: 'Glen Spickler\'s Quickie 500 of 1972, the club pylon racer the class is named after: a 51 in box on a K&B .40 hung out in the wind, in white with a red sunburst and a blue band of stars. Flat out it does nearly 90 mph, rolls at 400 degrees a second and goes round a pylon flat, bleeding speed in every corner.',
-    facts: ['K&B .40 glow', '1293 mm', 'Pylon racer'],
-    sizeMm: 1293,
-    grams: 1587.6,
-    trackClass: 'wing',
-    cells: 2,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'quickie-acro',
-    gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/quickiecraft.js QUICKIE_DIMS: the
-     * furthest reach in plan is the elevator's tip at its trailing edge,
-     * 0.747 m, further than the tips; the lowest drawn point the mains'
-     * and the highest the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1143,
-      hullR: 0.7470,
-      vHalfDown: 0.1449,
-      vHalfUp: 0.1669,
-      bodyLength: 1.0566,
-      bodyWidth: 1.2934,
-      bodyHeight: 0.3118,
-    },
-  },
-  {
-    /*
      * Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md: a 71
      * in balsa and ply scale de Havilland DH.82A, the full size at 1/4.96,
      * 10.25 lb, simId 23 on the fixed wing plant. A biplane (the plant's
@@ -1236,174 +1173,6 @@ export const AIRFRAMES = [
       bodyLength: 1.2628,
       bodyWidth: 1.450,
       bodyHeight: 0.4794,
-    },
-  },
-  {
-    /*
-     * Extreme Flight's 60 in Edge 540T, docs/EDGE-STAGE1.md: the Zivko Edge
-     * 540, the Red Bull Air Race's aircraft, as an unlimited aerobatic
-     * model, 2.49 kg, simId 13 on the fixed wing plant. Ailerons over the
-     * whole trailing edge, an elevator and a rudder at EF's 3D throws, a
-     * symmetric wing at no incidence, so it flies on its back as it flies
-     * upright, and a T-Motor AM600 on 6S with three times its weight in
-     * thrust. It rolls at over 600 deg/s, and a hard yank at the edge of
-     * the envelope stalls one wing before the other and it snaps. A
-     * taildragger on carbon gear: `gear` is the plant's settled pose, which
-     * the drawn wheels in src/render/edgecraft.js match, the CG 0.2510 m
-     * over the ground and 9.84 deg nose up.
-     */
-    id: 'edge1524',
-    simId: 13,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/edge-thresholds.json e2_stall. */
-    stall: 9.58,
-    /* Level speed at full throttle, m/s: tests/edge-thresholds.json e4_top, derived. */
-    topSpeed: 29.7,
-    gear: { restHeight: 0.2510, restPitch: 9.84 * Math.PI / 180 },
-    name: 'Edge 540',
-    short: 'Edge',
-    blurb: 'A 60 in Extreme Flight Edge 540T, the Red Bull Air Race aircraft as an unlimited aerobat, on 6S with three times its weight in thrust. It rolls at over 600 degrees a second, flies on its back as well as upright, and snaps if you yank it at the edge of the envelope. A taildragger on carbon gear.',
-    facts: ['6S', '1524 mm', 'Unlimited aerobat'],
-    sizeMm: 1524,
-    grams: 2494.8,
-    trackClass: 'wing',
-    cells: 6,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'edge-acro',
-    gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/edgecraft.js EDGE_DIMS: the furthest
-     * reach in plan is the rudder's trailing edge at its foot, further
-     * from the CG than the tips; the main tyres' bottoms and the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.2032,
-      hullR: 0.9652,
-      vHalfDown: 0.276225,
-      vHalfUp: 0.3175,
-      bodyLength: 1.4986,
-      bodyWidth: 1.524,
-      bodyHeight: 0.593725,
-    },
-  },
-  {
-    /*
-     * E-flite's Extra 300 3D 1.3m, EFL115500, docs/EXTRA-STAGE1.md: a
-     * moulded foam aerobatic monoplane, 1.51 kg on 4S, simId 14 on the
-     * fixed wing plant. Its thrust is two and a half times its weight, so
-     * it hangs on its prop: its oversized ailerons, elevator and rudder
-     * work in the slipstream with no airspeed at all, and the airframe
-     * turns against the prop's torque when they are let go. A taildragger
-     * on spatted wheels; `gear` is the plant's settled pose, which the
-     * drawn wheels in src/render/extracraft.js match: the CG 0.2221 m over
-     * the ground and 6.7 degrees nose up, tail down.
-     */
-    id: 'extra1308',
-    simId: 14,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/extra-thresholds.json e2_stall. */
-    stall: 8.31,
-    /* Level speed at full throttle, m/s: tests/extra-thresholds.json e4_top, derived. */
-    topSpeed: 24.34,
-    gear: { restHeight: 0.2221, restPitch: 6.7 * Math.PI / 180 },
-    name: 'Extra 300 3D',
-    short: 'Extra',
-    blurb: 'A 1308 mm E-flite Extra 300 3D on 4S, with two and a half times its weight in thrust and control surfaces as big as it can carry. Hang it on the prop, let go of the ailerons and it torque rolls; harrier it in slow at 40 degrees, knife edge it past on the rudder.',
-    facts: ['4S', '1308 mm', '3D'],
-    sizeMm: 1308,
-    grams: 1510,
-    trackClass: 'wing',
-    cells: 4,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'extra-acro',
-    gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/extracraft.js EXTRA_DIMS: the furthest
-     * reach in plan is the rudder's trailing edge, 0.926 m aft, further
-     * than the tips; the lowest drawn point the wheels' and the highest the
-     * rudder's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1651,
-      hullR: 0.926,
-      vHalfDown: 0.2416,
-      vHalfUp: 0.208,
-      bodyLength: 1.263,
-      bodyWidth: 1.308,
-      bodyHeight: 0.4496,
-    },
-  },
-  {
-    /*
-     * E-flite's Pitts S-1S 850mm, EFL35500, docs/PITTS-STAGE1.md: a moulded
-     * foam biplane, 1.529 kg on 3S, simId 18 on the fixed wing plant, its
-     * two wings each in the other's flow (the plant's second wing). Four
-     * ailerons roll it at the full size S-1S's rate, the top wing stalls
-     * first, and a yank with a boot of rudder snaps it. A short taildragger
-     * on wire gear in pants; `gear` is the plant's settled pose, which the
-     * drawn wheels in src/render/pittscraft.js match: the CG 0.2134 m over
-     * the ground and 12.3 degrees nose up, tail down.
-     */
-    id: 'pitts850',
-    simId: 18,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/pitts-thresholds.json p2_stall. */
-    stall: 9.78,
-    /* Level speed at full throttle, m/s: tests/pitts-thresholds.json p4_top, derived. */
-    topSpeed: 18.84,
-    gear: { restHeight: 0.2134, restPitch: 12.30 * Math.PI / 180 },
-    name: 'Pitts S-1S',
-    short: 'Pitts',
-    blurb: 'An 850 mm E-flite Pitts S-1S on 3S, the aerobatic biplane. Four ailerons roll it at over 400 degrees a second, its top wing stalls first, and a yank with a boot of rudder snaps it. Short coupled and a little squirrelly on its wheels: keep your feet on the rudder.',
-    facts: ['3S', '850 mm', 'Biplane'],
-    sizeMm: 850,
-    grams: 1529,
-    trackClass: 'wing',
-    cells: 3,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'pitts-acro',
-    gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/pittscraft.js PITTS_DIMS: the furthest
-     * reach in plan is the rudder's trailing edge, 0.541 m aft, further
-     * than the tips; the lowest drawn point the wheels' and the highest the
-     * prop's tip, over the fin and the top wing. */
-    dims: {
-      arm: 0,
-      propR: 0.1397,
-      hullR: 0.541,
-      vHalfDown: 0.2336,
-      vHalfUp: 0.1397,
-      bodyLength: 0.787,
-      bodyWidth: 0.850,
-      bodyHeight: 0.3733,
     },
   },
   {
@@ -1575,63 +1344,6 @@ export const AIRFRAMES = [
       bodyHeight: 0.222,
     },
   },
-  {
-    /*
-     * The Ripmax Wot 4 Mk2 ARTF, docs/WOT4-STAGE1.md: Chris Foss's club
-     * sport aerobat, the UK's answer to the Ugly Stik, 2.27 kg on Foss's
-     * own electric conversion (an AXI 4120/14 and an APC 13 x 8 on 4S),
-     * simId 20 on the fixed wing plant. A flat constant chord wing on top
-     * of a slab sided box, strip ailerons, a big rudder, the ARTF manual's
-     * throws: it rolls crisply, loops big, mushes wings level when it
-     * stalls, spins on the rudder and stops when let go. A taildragger on
-     * an aluminium strap; `gear` is the plant's settled pose, which the
-     * drawn wheels in src/render/wot4craft.js match: the CG 0.2127 m over
-     * the ground and 12.56 degrees nose up.
-     */
-    id: 'wot41334',
-    simId: 20,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/wot4-thresholds.json w2_stall. */
-    stall: 9.32,
-    /* Level speed at full throttle, m/s: tests/wot4-thresholds.json w4_top, derived. */
-    topSpeed: 23.59,
-    gear: { restHeight: 0.2127, restPitch: 12.56 * Math.PI / 180 },
-    name: 'Wot 4',
-    short: 'Wot 4',
-    blurb: 'A 1334 mm Ripmax Wot 4 Mk2, Chris Foss\'s club sport aerobat, on his electric conversion: 4S and a 13 x 8, one and a half times its weight in thrust. It does everything well and forgives mistakes: crisp rolls, big loops, a stall that mushes wings level, a spin that stops when you let go. A taildragger with a big rudder.',
-    facts: ['4S', '1334 mm', 'Sport aerobat'],
-    sizeMm: 1334,
-    grams: 2268,
-    trackClass: 'wing',
-    cells: 4,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'wot4-acro',
-    gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/wot4craft.js WOT4_DIMS: the furthest
-     * reach in plan is the rudder's trailing edge, 0.833 m aft, further
-     * than the tips' 0.667; the lowest drawn point the wheels' and the
-     * highest the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1651,
-      hullR: 0.833,
-      vHalfDown: 0.23375,
-      vHalfUp: 0.258,
-      bodyLength: 1.163,
-      bodyWidth: 1.334,
-      bodyHeight: 0.49175,
-    },
-  },
 ];
 
 
@@ -1689,6 +1401,57 @@ export const AIRFRAME_IDS = AIRFRAMES.map((a) => a.id);
 
 export function airframeById(id) {
   return AIRFRAMES.find((a) => a.id === id) ?? AIRFRAMES[0];
+}
+
+/*
+ * The aircraft this build no longer has, and the one each is seated and
+ * drawn as instead (src/maps/retired.js is the same idea for worlds).
+ *
+ * An id in here is not an unknown id. A pilot's stored settings, a ?craft=
+ * link from the board (whose own table still names the flying wing,
+ * fdfpv-leaderboard public/app.js CRAFT_ID), a Flight controller dump's
+ * stamp, a room peer on an old tab, a ghost and a saved crash cam clip all
+ * name the aircraft they were made with, and each of them outlives it. An unknown id falls back to the five
+ * inch (airframeById), which is right for a typo and wrong for a plane a
+ * pilot flew last week: they would be put in a quad. So a retired id is
+ * named here with its successor, the nearest plane that is left and one
+ * that opens no later on the progression, so a pilot who had the old one
+ * has the new one too, and with its own name, which is a proper noun and so
+ * not a string key, for anything that has to say what it was.
+ *
+ * The flying wing went on the Bramor's arrival. The Edge 540, the Extra
+ * 300, the Pitts S-1S, the Wot 4 and the Quickie 500 were removed on
+ * 2026-09-29 at the owner's request ("ok just delete quickie 500, delete
+ * edge 540, eliminate extra, eliminate pitts, eliminate wot 4"): the
+ * Pitts's successor is the other biplane, the Tiger Moth; the rest go to
+ * the Ugly Stik, the sport aerobat that is left. Their sim ids stay
+ * reserved (src/native/sim_abi.h), so nothing is ever flown on them again.
+ */
+const RETIRED_AIRFRAMES = {
+  wing1000: { to: 'bramor2300', name: 'Fixed wing' },
+  edge1524: { to: 'uglystik1567', name: 'Edge 540' },
+  extra1308: { to: 'uglystik1567', name: 'Extra 300 3D' },
+  pitts850: { to: 'tigermoth1803', name: 'Pitts S-1S' },
+  wot41334: { to: 'uglystik1567', name: 'Wot 4' },
+  quickie1293: { to: 'uglystik1567', name: 'Quickie 500' },
+};
+for (const [id, gone] of Object.entries(RETIRED_AIRFRAMES)) {
+  if (AIRFRAME_IDS.includes(id) || !AIRFRAME_IDS.includes(gone.to)) {
+    throw new Error(`airframes: retired ${id} must be gone and its successor ${gone.to} present`);
+  }
+}
+
+/* The retired entry for an id, or null for an aircraft this build has or
+ * never had. */
+export function retiredAirframe(id) {
+  return typeof id === 'string' && Object.hasOwn(RETIRED_AIRFRAMES, id) ? RETIRED_AIRFRAMES[id] : null;
+}
+
+/* The id to seat or draw for one that may be retired: its successor, else
+ * itself. */
+export function currentAirframeId(id) {
+  const gone = retiredAirframe(id);
+  return gone ? gone.to : id;
 }
 
 /* The sim_set_airframe argument for a stored id, falling back to the five

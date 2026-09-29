@@ -59,10 +59,12 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 const AIRFRAMES = [
   ['5in', 0], ['whoop65', 1], ['wing1000', 2], ['sky1800', 3], ['cub1400', 4], ['slowstick1180', 5],
   ['radian2000', 6], ['timber1500', 7], ['bramor2300', 8], ['timber1500f', 9], ['cub1400f', 10],
-  ['bombshell1118', 11], ['kadet1981', 12], ['edge1524', 13], ['extra1308', 14], ['p51d1450', 15], ['f16878', 16], ['zagi1219', 17],
-  ['pitts850', 18], ['uglystik1567', 19], ['wot41334', 20], ['nrj1490', 21], ['quickie1293', 22], ['tigermoth1803', 23],
+  ['bombshell1118', 11], ['kadet1981', 12], ['p51d1450', 15], ['f16878', 16], ['zagi1219', 17],
+  ['uglystik1567', 19], ['nrj1490', 21], ['tigermoth1803', 23],
 ];
-const MASS = { 0: 0.71, 1: 0.0234, 2: 0.65, 3: 2.10, 4: 1.32, 5: 0.42, 6: 0.98, 7: 1.70, 8: 4.5, 9: 1.934, 10: 1.532, 11: 0.5599, 12: 2.7216, 13: 2.4948, 14: 1.51, 15: 2.35, 16: 2.116, 17: 0.7229, 18: 1.529, 19: 2.7216, 20: 2.268, 21: 0.213, 22: 1.5876, 23: 4.6493 };
+const MASS = { 0: 0.71, 1: 0.0234, 2: 0.65, 3: 2.10, 4: 1.32, 5: 0.42, 6: 0.98, 7: 1.70, 8: 4.5, 9: 1.934, 10: 1.532, 11: 0.5599, 12: 2.7216, 15: 2.35, 16: 2.116, 17: 0.7229, 19: 2.7216, 21: 0.213, 23: 4.6493 };
+/* Removed on 2026-09-29, each id reserved (sim_abi.h). */
+const RESERVED_IDS = [13, 14, 18, 20, 22];
 
 let failed = 0;
 let passed = 0;
@@ -109,6 +111,16 @@ for (const [name, id] of AIRFRAMES) {
   check(`${name}: the root's residual mass is positive and its centre inside the airframe`, masses && inBox,
     `root ${root0.mass.toFixed(4)} kg at (${root0.cg.map((v) => v.toFixed(4)).join(', ')}), ${(out * 1000).toFixed(1)} mm outside its own box`);
   check(`${name}: parents precede children, every kind named, hulls and joints present`, order && kinds && hulls && joints);
+}
+
+/* The ids of the aircraft removed on 2026-09-29 stay reserved (sim_abi.h):
+ * the module refuses them rather than seating another aircraft on them. */
+{
+  const sim = await loadSim(wasmBytes);
+  must(sim.init(configText), 'init');
+  for (const id of RESERVED_IDS) {
+    check(`airframe ${id} is reserved: sim_set_airframe refuses it`, sim.e.sim_set_airframe(id) !== SIM_OK);
+  }
 }
 
 console.log('2. configs/parts.js against the module');

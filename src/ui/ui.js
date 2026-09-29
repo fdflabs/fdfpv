@@ -69,7 +69,7 @@ const CAL_LABELS = {
 };
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
-import { AIRFRAMES, AIRFRAME_IDS, airframeById, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
+import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, retiredAirframe, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
 import { normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { normaliseParts } from '../../configs/hangar-parts.js';
@@ -942,14 +942,6 @@ const SUPERSEDED_WHOOP = {
   pidsSeed: { tune: 'whoop-freestyle', sliders: { master: 150 } },
 };
 
-/*
- * Airframes the shell no longer seats, and the one each is seated on
- * instead: a stored profile, a link from the board (whose own table still
- * names the flying wing, fdfpv-leaderboard public/app.js CRAFT_ID) and a
- * Flight controller dump's stamp all go through this.
- */
-const RETIRED_AIRFRAMES = { wing1000: 'bramor2300' };
-
 export function loadSettings() {
   let stored = {};
   try {
@@ -984,22 +976,23 @@ export function loadSettings() {
    * the default rather than being snapped to the nearest survivor.
    */
   /*
-   * A RETIRED AIRFRAME IS RESEATED ON ITS SUCCESSOR, before the check below
-   * would send it to the five inch. The 1000 mm flying wing was replaced by
-   * the Bramor C4EYE (configs/airframes.js): a profile seated on it is a
-   * fixed wing pilot and flies the Bramor, keeping the tune, since the
-   * three wing tunes moved with it, and everything else the two share. No
-   * generation marker, unlike the migrations below: the old id can never be
-   * stored again, so reseating it is the same answer on every load. A Flight
-   * controller dump stamped with it goes with it.
+   * A RETIRED AIRFRAME IS RESEATED ON ITS SUCCESSOR (configs/airframes.js
+   * retiredAirframe), before the check below would send it to the five
+   * inch: a profile seated on the 1000 mm flying wing flies the Bramor that
+   * replaced it, keeping the tune, since the three wing tunes moved with
+   * it; one seated on a plane removed on 2026-09-29 flies the plane nearest
+   * it, on that plane's own default tune, since the tune check below finds
+   * the old tune gone. The old plane's paint, power, parts and tuning are
+   * dropped by their own normalisers, which know only the planes there are.
+   * No generation marker, unlike the migrations below: the old id can never
+   * be stored again, so reseating it is the same answer on every load. A
+   * Flight controller dump stamped with it goes with it.
    */
-  if (RETIRED_AIRFRAMES[s.airframe]) {
-    s.airframe = RETIRED_AIRFRAMES[s.airframe];
-  }
+  s.airframe = currentAirframeId(s.airframe);
   try {
     const stamped = localStorage.getItem(FC_DUMP_AIRFRAME_KEY);
-    if (RETIRED_AIRFRAMES[stamped]) {
-      localStorage.setItem(FC_DUMP_AIRFRAME_KEY, RETIRED_AIRFRAMES[stamped]);
+    if (retiredAirframe(stamped)) {
+      localStorage.setItem(FC_DUMP_AIRFRAME_KEY, currentAirframeId(stamped));
     }
   } catch (e) {
     /* Storage refused: the dump stays unoffered, which is what it was. */
@@ -2949,7 +2942,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'uglystik1567', 'tigermoth1803', 'quickie1293', 'p51d1450', 'edge1524', 'extra1308', 'pitts850', 'f16878', 'zagi1219', 'wot41334', 'nrj1490'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'uglystik1567', 'tigermoth1803', 'p51d1450', 'f16878', 'zagi1219', 'nrj1490'],
     mode: 'freestyle',
     /* The card's own world. A card with a home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
@@ -3072,7 +3065,7 @@ function linkedCraft() {
   } catch (e) {
     return null;
   }
-  const wanted = RETIRED_AIRFRAMES[params.get('craft')] ?? params.get('craft');
+  const wanted = currentAirframeId(params.get('craft'));
   return AIRFRAME_IDS.includes(wanted) ? wanted : null;
 }
 

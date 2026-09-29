@@ -12,17 +12,11 @@
  * ?plane=bombshell the Buzzard Bombshell's, from standing on its wheels and
  * skid, ?plane=p51 and ?plane=p51-air the P-51's take off and its
  * retracts in the air, ?plane=kadet the Kadet Senior's, from standing on
- * its three wheels, ?plane=edge the Edge 540's, from standing on its three
- * wheels, ?plane=extra the Extra 300's, from standing on its wheels,
- * through a hover and a torque roll, ?plane=uglystik the Ugly Stik's,
- * from standing on its three wheels, ?plane=wot4 the Wot 4's, from
- * standing on its wheels, ?plane=f16 the F-16's, from
+ * its three wheels, ?plane=uglystik the Ugly Stik's,
+ * from standing on its three wheels, ?plane=f16 the F-16's, from
  * standing on its three wheels with its fan stopped, ?plane=zagi the
  * Zagi's, thrown by hand, and ?plane=dlg the NRJ's, thrown by its wingtip
- * from the grass into a thermal, and ?plane=pitts the Pitts's, from
- * standing on its wheels through a roll and a snap, ?plane=quickie
- * the Quickie 500's, from standing on its mains and skid, and
- * ?plane=tigermoth the Tiger Moth's, from standing on its three points;
+ * from the grass into a thermal, and ?plane=tigermoth the Tiger Moth's, from standing on its three points;
  * with no query
  * it is the wing's, exactly as it always was.
  *
@@ -46,7 +40,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, edgeGroundPrelude, extraGroundPrelude, pittsGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, quickieGroundPrelude, skyPrelude, tigermothGroundPrelude, uglystikGroundPrelude, wot4GroundPrelude, zagiPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, tigermothGroundPrelude, uglystikGroundPrelude, zagiPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -63,13 +57,8 @@ const PLANES = {
   timberf: { rec: '/tests/inputs/timberf-baseline.rec', prelude: timberFloatRecPrelude },
   bombshell: { rec: '/tests/inputs/bombshell-baseline.rec', prelude: (sim) => bombshellGroundPrelude(sim) },
   kadet: { rec: '/tests/inputs/kadet-baseline.rec', prelude: (sim) => kadetGroundPrelude(sim) },
-  edge: { rec: '/tests/inputs/edge-baseline.rec', prelude: (sim) => edgeGroundPrelude(sim) },
-  extra: { rec: '/tests/inputs/extra-baseline.rec', prelude: (sim) => extraGroundPrelude(sim) },
-  pitts: { rec: '/tests/inputs/pitts-baseline.rec', prelude: (sim) => pittsGroundPrelude(sim) },
   uglystik: { rec: '/tests/inputs/uglystik-baseline.rec', prelude: (sim) => uglystikGroundPrelude(sim) },
-  wot4: { rec: '/tests/inputs/wot4-baseline.rec', prelude: (sim) => wot4GroundPrelude(sim) },
   dlg: { rec: '/tests/inputs/dlg-baseline.rec', prelude: dlgRecPrelude },
-  quickie: { rec: '/tests/inputs/quickie-baseline.rec', prelude: (sim) => quickieGroundPrelude(sim) },
   tigermoth: { rec: '/tests/inputs/tigermoth-baseline.rec', prelude: (sim) => tigermothGroundPrelude(sim) },
   f16: { rec: '/tests/inputs/f16-baseline.rec', prelude: (sim) => f16GroundPrelude(sim) },
   p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },

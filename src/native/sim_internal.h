@@ -264,21 +264,18 @@ typedef struct {
 #define SIM_AIRFRAME_CUB1400F 10
 #define SIM_AIRFRAME_BOMBSHELL1118 11
 #define SIM_AIRFRAME_KADET1981 12
-#define SIM_AIRFRAME_EDGE1524 13
-#define SIM_AIRFRAME_EXTRA1308 14
 #define SIM_AIRFRAME_P51D1450 15
 #define SIM_AIRFRAME_F16878 16
 #define SIM_AIRFRAME_ZAGI1219 17
-#define SIM_AIRFRAME_PITTS850 18
 #define SIM_AIRFRAME_UGLYSTIK1567 19
-#define SIM_AIRFRAME_WOT41334 20
 #define SIM_AIRFRAME_NRJ1490 21
-#define SIM_AIRFRAME_QUICKIE1293 22
 #define SIM_AIRFRAME_TIGERMOTH1803 23
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
- * count is. */
+ * count is. 13, 14, 18, 20 and 22 are empty that way for good: their
+ * aircraft were removed on 2026-09-29 and the ids stay reserved
+ * (sim_abi.h). */
 #define SIM_AIRFRAME_COUNT 24
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
@@ -944,16 +941,11 @@ extern const FixedWingParams FW_TIMBER1500F;
 extern const FixedWingParams FW_CUB1400F;
 extern const FixedWingParams FW_BOMBSHELL1118;
 extern const FixedWingParams FW_KADET1981;
-extern const FixedWingParams FW_EDGE1524;
-extern const FixedWingParams FW_EXTRA1308;
 extern const FixedWingParams FW_P51D1450;
 extern const FixedWingParams FW_F16878;
-extern const FixedWingParams FW_PITTS850;
 extern const FixedWingParams FW_ZAGI1219;
 extern const FixedWingParams FW_UGLYSTIK1567;
-extern const FixedWingParams FW_WOT41334;
 extern const FixedWingParams FW_NRJ1490;
-extern const FixedWingParams FW_QUICKIE1293;
 extern const FixedWingParams FW_TIGERMOTH1803;
 
 void plant_wing_step(SimState *s, const double rc[4]);

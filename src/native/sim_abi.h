@@ -355,12 +355,7 @@ int sim_set_flight_style(int arcade);
  * ailerons like the Slow Stick, on wheels and a tail skid, and 12 SIG's
  * Kadet Senior (docs/KADET-STAGE1.md), a 78 in balsa trainer on an O.S.
  * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
- * a tricycle gear whose nose wheel steers with the rudder, 13 Extreme
- * Flight's 60 in Edge 540T (docs/EDGE-STAGE1.md), an unlimited aerobatic
- * taildragger on a symmetric section, with the Cub's surfaces at 3D throws,
- * 14 E-flite's Extra 300 3D 1.3m (docs/EXTRA-STAGE1.md), a foam aerobatic
- * taildragger whose thrust is two and a half times its weight, which
- * hangs on its prop with its surfaces in the slipstream, 15 FMS's
+ * a tricycle gear whose nose wheel steers with the rudder, 15 FMS's
  * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
  * flaps on retracting taildragger gear, 16 Freewing's F-16 V3
  * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
@@ -373,21 +368,21 @@ int sim_set_flight_style(int arcade);
  * a section near enough symmetric to fly on its back, on a tricycle gear,
  * and 21 OA Composites' NRJ (docs/DLG-STAGE1.md), a 1490 mm F3K discus
  * launch glider with no motor, thrown by its wingtip (sim_wing_discus) into
- * the thermals of sim_air_lift, and 18 E-flite's Pitts S-1S 850mm
- * (docs/PITTS-STAGE1.md), a foam aerobatic biplane, its two wings each in
- * the other's flow, on a taildragger's gear, 22 Glen Spickler's
- * Quickie 500 (docs/QUICKIE-STAGE1.md), the 1972 club pylon racer the
- * class is named after, a 51 in low wing box on a K&B 40 glow engine, on
- * wire gear and a tail skid, and 20 the Ripmax Wot 4 Mk2
- * (docs/WOT4-STAGE1.md), Chris Foss's club sport aerobat on his electric
- * conversion, a shoulder wing taildragger with a big rudder, and 23 Great
- * Planes' Tiger Moth ARF (docs/TIGERMOTH-STAGE1.md), a 71 in scale de
- * Havilland DH.82A on a .61 two stroke glow engine, a biplane on the
- * Pitts's second wing whose ailerons are on its bottom wing alone, on a
- * taildragger's gear. Returns SIM_ERR_BAD_ARG for any id without an
+ * the thermals of sim_air_lift, and 23 Great Planes' Tiger Moth ARF
+ * (docs/TIGERMOTH-STAGE1.md), a 71 in scale de Havilland DH.82A on a .61
+ * two stroke glow engine, a biplane on the plant's second wing
+ * (docs/PITTS-STAGE1.md) whose ailerons are on its bottom wing alone, on
+ * a taildragger's gear. Returns SIM_ERR_BAD_ARG for any id without an
  * aircraft.
  * 2 to 23 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
+ *
+ * RESERVED: 13 (the Edge 540T), 14 (the Extra 300 3D), 18 (the Pitts
+ * S-1S), 20 (the Wot 4) and 22 (the Quickie 500) were removed on
+ * 2026-09-29 at the owner's request. Their ids are never reused, so a
+ * recording, a ghost, a clip or a room peer that names one still names
+ * that aircraft and no other; sim_set_airframe refuses them with
+ * SIM_ERR_BAD_ARG, as it refuses any id without an aircraft.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
  * changed meaning, and a replay that never calls this is bit identical to
@@ -416,16 +411,11 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_CUB1400F_ID 10
 #define SIM_AIRFRAME_BOMBSHELL1118_ID 11
 #define SIM_AIRFRAME_KADET1981_ID 12
-#define SIM_AIRFRAME_EDGE1524_ID 13
-#define SIM_AIRFRAME_EXTRA1308_ID 14
 #define SIM_AIRFRAME_P51D1450_ID 15
 #define SIM_AIRFRAME_F16878_ID 16
 #define SIM_AIRFRAME_ZAGI1219_ID 17
-#define SIM_AIRFRAME_PITTS850_ID 18
 #define SIM_AIRFRAME_UGLYSTIK1567_ID 19
-#define SIM_AIRFRAME_WOT41334_ID 20
 #define SIM_AIRFRAME_NRJ1490_ID 21
-#define SIM_AIRFRAME_QUICKIE1293_ID 22
 #define SIM_AIRFRAME_TIGERMOTH1803_ID 23
 int sim_set_airframe(int id);
 
