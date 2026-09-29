@@ -57,6 +57,7 @@
     "live:selftest": "node scripts/live-selftest.js",
     "rooms:selftest": "node scripts/rooms-selftest.js",
     "rooms:soak": "node scripts/rooms-soak.js",
+    "rooms:load": "node scripts/rooms-load.js",
     "rooms:twopage": "node scripts/rooms-two-page.js",
     "rooms:racetwopage": "node scripts/rooms-race-two-page.js",
     "rooms:slots": "node scripts/rooms-slots-check.js",

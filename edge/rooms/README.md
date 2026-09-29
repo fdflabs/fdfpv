@@ -11,7 +11,8 @@ One room's logic, and the two platforms that serve it. The plan is
 | `host.js` | `RoomHost`, a room as a server holds it: load, the action loop, init, accept, message, close, alarm | none |
 | `front.js` | the HTTP front: routes, origin check, limits, a typed room name judged (the tracks server's word filter) | none |
 | `do.js` | Cloudflare: the `Room` Durable Object around a `RoomHost`, and the Worker | Cloudflare |
-| `node.js` | Node: namespaces, a queue per object, SQLite storage, timers for alarms, `ws` sockets | the VM |
+| `node.js` | Node: namespaces, a queue per object, SQLite storage, timers for alarms, `ws` sockets, the counters | the VM |
+| `health.js` | what the server costs (GET /v2/admin/health) and the valve that refuses new public rooms while the core is short | the VM |
 
 Production is `node.js` on the owner's VM since 2026-09-28
 (`deploy/vm/README.md`). The Worker, `fdfpv-rooms` on workers.dev, is still
@@ -69,7 +70,10 @@ unless the platform contract above does.
   With no origin it starts `node.js` itself and adds a restart with two
   pilots flying. Against `npx wrangler dev --config edge/rooms/wrangler.toml`
   it proves `do.js`.
-- `node scripts/rooms-soak.js <origin> <seconds> <clients>`: load.
+- `node scripts/rooms-soak.js <origin> <seconds> <clients>`: a soak.
+- `npm run rooms:load [origin] [--pilots=8,16 --rooms=4 ...]`: load, many
+  pilots through free flight, a race and a combat round, with the
+  server's own counters; `--quick` (CI) is 32 in one room.
 - The two page browser checks (`rooms:twopage`, `rooms:safety`,
   `rooms:wrecks`, `rooms:racetwopage`, `rooms:restart`) against any origin.
 - `npm run rooms:browser [origin]`: the room browser, three pages through

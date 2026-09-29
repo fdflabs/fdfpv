@@ -890,6 +890,124 @@ supports it, the cost counters (billable messages and awake room time per
 day, from the room's own counts). Check: `rooms:load` at 32 a room.
 **2 to 3 days.**
 
+As built (2026-09-29), for the VM rather than Cloudflare: since the move to
+the owner's one core VM (`deploy/vm/README.md`) "cost" means that core,
+its memory and its egress, not a bill of requests.
+
+- **Interest thinning** is `edge/rooms/core.js` `INTEREST`, as section 5
+  planned: a peer within 300 m every tick (30 Hz), to 1.5 km every sixth
+  (5 Hz), beyond that every thirtieth (1 Hz), judged per recipient each
+  tick from the two newest poses. A seat that is not flying (no pose for a
+  second: a menu, a crash cam, just joined) is sent everybody at the full
+  rate. Only the batches are thinned: the referee, a tag match and a
+  combat round judge every pose as it arrives, and a far peer that stops
+  still has its last pose delivered. The client (`src/game/peer.js`) draws
+  a far peer DELAY_MS plus however much longer than 33 ms its samples now
+  come apart, the delay slewing at 20% so a change of band never jumps,
+  and carries a late sample on at its velocity rather than holding it; a
+  peer at the full rate is drawn exactly as before, and a near peer's
+  present never depended on the delay.
+- **The counters** are `edge/rooms/health.js`, counted at the sockets in
+  `edge/rooms/node.js`, at `GET /v2/admin/health` with the tracks server's
+  admin secret (the rooms unit reads the same `/etc/fdfpv/tracks.env`):
+  pilots, rooms, messages and bytes a second each way for the server and
+  per room (a private room without its code), this process's CPU and the
+  host's, the loop's p50, p99 and worst delay, memory, and the UTC day's
+  totals (egress, messages, pilot hours, room hours, the peak, refusals).
+- **The valve**: while this process averages half the core over 10 s, or
+  the loop's p99 delay averages 20 ms, or its resident size passes 200 MB,
+  a new public room is refused (503 `busy` on a create, and on a quick
+  join that finds no room with a seat), and the list says `busy: true`,
+  which the room browser shows in place of Make a room and quick join. It
+  opens after 30 calm seconds in a row. Rooms flying, joins into them and
+  private rooms are never refused.
+- **The cap stays 16.** The numbers below say a public room of 24 or 32
+  fits the core alone but not several of them busy at once, and the
+  client colours sixteen seats.
+
+**rooms:load** (`scripts/rooms-load.js`) flies headless pilots at the
+client's rates: poses at 30 Hz, clock pings, keepalives, a quick chat
+every 8 to 20 s, a crash a pilot a minute (the event, then PARTS at 10 Hz
+for 3 s), then a race (a six gate track, everyone ready, three laps, every
+gate reported), then a combat round (a fifty link streamer at 10 Hz from
+the countdown). Free flight is spread as on a big map: half the room
+within 250 m, a quarter 300 m to 1.5 km out, a quarter 1.5 to 4 km. The
+server's numbers come from its own admin route. CI runs `--quick`: 32 in
+one room, 5 s a phase, checking function only.
+
+Measured 2026-09-29 on the owner's desktop (Core Ultra 7 265, 20 cores)
+against a local `node.js`, 20 s a phase, **with the machine at a load
+average of 18 to 32 from other agents**, so CPU is CPU time (a fraction of
+one core) and not wall share, and the loop's delay includes the host's
+scheduling. CPU is the rooms process; "per pilot" is the payload each
+pilot received; "near" is the rate and p99 gap of peers within 300 m;
+"saved" is the pose entries thinning did not send against every pose to
+everybody.
+
+| Phase | Rooms x pilots | CPU | Loop p99 mean / worst ms | Out kB/s (a room) | Out msgs/s | Per pilot kB/s | Near Hz / p99 gap ms | Saved |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| free | 1 x 8 | 5.0% | 3.0 / 5.3 | 42 | 239 | 4.9 | 29.8 / 67.5 | 76% |
+| race | 1 x 8 | 2.8% | 2.9 / 4.2 | 67 | 246 | 8.5 | 29.1 / 67.5 | 16% |
+| combat | 1 x 8 | 3.9% | 2.9 / 4.4 | 170 | 799 | 21.3 | 29.8 / 67.5 | 3% |
+| free | 1 x 16 | 6.0% | 3.2 / 6.9 | 186 | 776 | 10.8 | 28.9 / 67.5 | 74% |
+| race | 1 x 16 | 3.6% | 2.6 / 4.6 | 307 | 532 | 19.2 | 29.1 / 67.5 | 10% |
+| combat | 1 x 16 | 10.1% | 9.6 / 51.2 | 722 | 2,883 | 45.0 | 28.8 / 67.5 | 5% |
+| free | 1 x 24 | 7.6% | 3.2 / 4.9 | 434 | 1,512 | 16.9 | 29.4 / 67.5 | 73% |
+| race | 1 x 24 | 5.1% | 3.1 / 7.4 | 649 | 849 | 27.1 | 29.2 / 67.5 | 17% |
+| combat | 1 x 24 | 14.1% | 15.1 / 48.8 | 1,662 | 6,261 | 69.1 | 28.7 / 67.5 | 5% |
+| free | 1 x 32 | 9.7% | 3.3 / 6.2 | 772 | 2,561 | 22.5 | 29.3 / 67.5 | 73% |
+| race | 1 x 32 | 6.9% | 3.7 / 7.9 | 1,104 | 1,192 | 34.7 | 29.0 / 67.5 | 21% |
+| combat | 1 x 32 | 25.0% | 28.6 / 49.5 | 2,918 | 10,883 | 91.0 | **26.9 / 82.5** | 11% |
+| free | 4 x 16 | 14.1% | 3.6 / 5.7 | 182 | 3,104 | 10.5 | 29.2 / 67.5 | 75% |
+| race | 4 x 16 | 11.3% | 4.4 / 8.4 | 310 | 2,117 | 19.4 | 29.2 / 67.5 | 9% |
+| combat | 4 x 16 | 24.1% | 14.9 / 42.9 | 724 | 11,508 | 45.1 | 28.8 / 72.5 | 5% |
+| free | 8 x 16 | 23.5% | 4.3 / 6.7 | 186 | 6,260 | 10.8 | 29.2 / 67.5 | 74% |
+| combat | 8 x 16 | 49.9% | 38.6 / 58.0 | 661 | 22,382 | 41.2 | **23.2 / 102.5** | 23% |
+| free | 16 x 8 | 20.4% | 3.7 / 5.9 | 41 | 3,924 | 4.8 | 29.6 / 67.5 | 77% |
+| combat | 16 x 8 | 39.7% | 26.2 / 52.5 | 162 | 12,321 | 19.9 | **25.0 / 102.5** | 17% |
+
+Resident size rose from 95 MB (one room of 8) to 176 MB (sixteen rooms
+of 8 in combat) on this machine's Node 22; the VM measured 70 MB by `ps`
+and 34 MB by its cgroup for 32 pilots flying, so these are an upper side.
+
+**Thinning against main** (the same run, one room of 16 in free flight,
+30 s, twice each, main's `edge/rooms/node.js` against this one): each
+pilot received **23.7 kB/s before and 8.9 kB/s after, 62% less**, at a
+CPU of 4.5% before and 5.0 to 5.2% after (the distances and the per recipient
+bookkeeping; the messages are as many, one batch a tick). Near peers:
+29.5 Hz before, 29.0 to 29.3 after, the same 67.5 ms p99 gap. With the
+room all within a few hundred metres it saves 22% (some pairs are still
+past 300 m once height is counted) and the rest is sent as before.
+
+**What limits the VM.** Combat, by far: every streamer frame is relayed
+to every other pilot at 10 Hz, so a combat room's messages grow with the
+square of its pilots (10,883 a second for 32), and its loop delay with
+them. Near peers first arrived late (under 29 Hz, a p99 gap past two
+ticks) at a loop p99 averaging 26 to 39 ms; at 15 ms they did not. That
+is the valve's 20 ms. To carry this to the VM: the four rooms of eight of
+`rooms-soak.js` that the VM ran at 10% of its core ran here at 7%, and
+`combat:harness`, 113 ms of CPU a second on the VM, ran here at 122 to
+136 ms, so the VM is about 0.9 to 1.4 times this loaded machine's CPU
+time, and Caddy's TLS adds about 0.6 of the rooms' own (6% beside 10% on
+the VM). Taking the heavier 1.4 and Caddy's 0.6, the core costs about
+2.2 times the CPU column: a combat room of 16 about 22% of the VM's core,
+one of 32 about 56%, and a free flight room of 16 about 13%. So with
+headroom (the valve at about 80%) the VM carries roughly **three busy
+combat rooms of 16, or eight to ten free flight rooms of 16**, and not
+two combat rooms of 32. These are estimates from this machine until the
+live run below is made (`deploy/vm/README.md`).
+
+**Egress.** A free flight room of 16 sends about 190 kB/s of payload, a
+race 310, a combat round 720 (plus about 76 bytes of headers a message).
+One combat room of 16 held all month is about 2.4 TB; Oracle's Always
+Free allowance is published as 10 TB a month (to confirm on the account).
+The counters' `day.outBytes` is the number to watch.
+
+**Next, if combat rooms crowd the VM:** thin the streamer relay as the
+poses are (a far pilot's paper at 2 Hz, or none past 300 m), or send the
+streamers in the tick's batch; either cuts the messages that make combat
+the limit.
+
 Total: **22 to 31 agent days**, in that order, each phase ending with the
 owner flying it.
 
@@ -910,6 +1028,10 @@ owner flying it.
   flies.
 - **The 1,000 message a second soft limit** is per object. A cap raised
   past about 30 at 30 Hz meets it.
+- **On the VM, combat is the limit** (section 12, Phase 6 as built): its
+  streamer relay grows with the square of a room's pilots, and three busy
+  combat rooms of 16 are about what one core carries with headroom. The
+  valve refuses new public rooms before the rooms flying degrade.
 - **The Free plan fails closed** when a day's requests run out. A launch
   is on Paid.
 - **Children and real crashes.** The owner chose jelly pylons so that a

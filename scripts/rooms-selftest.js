@@ -60,6 +60,7 @@ import { UNDO_MS, createRoomSafety } from '../src/share/roomsafety.js';
 import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { browserSection } from './rooms-selftest-browser.js';
+import { scaleSection } from './rooms-selftest-scale.js';
 import { DROP_MS, TAG_M } from '../edge/rooms/tag.js';
 import { RoomHost } from '../edge/rooms/host.js';
 import {
@@ -1452,6 +1453,7 @@ console.log('catch the ace: starting a match');
 
 combatSection(check);
 await browserSection(check);
+await scaleSection(check);
 
 /* ---------------------------------------------------------------------
  * Stale games and the host: a game a restart restores whether or not its
