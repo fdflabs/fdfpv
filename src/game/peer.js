@@ -3,12 +3,23 @@
  * relays (src/share/roomwire.js), on the room clock.
  *
  * Far peers are drawn in the past, DELAY_MS behind their newest sample,
- * interpolated between two real samples: smooth, and never a guess. Near
+ * interpolated between two real samples: smooth, and not a guess. Near
  * peers are drawn in the present: extrapolated from the newest sample by
  * its velocity and its angular velocity, at most EXTRAP_MAX_MS ahead, so a
  * pilot formating on another sees them where they are rather than a few
  * metres behind (docs/MULTIPLAYER-PLAN.md section 6.4). Between NEAR_M and
  * FAR_M the two blend.
+ *
+ * The room sends a far peer's poses less often (edge/rooms/core.js
+ * INTEREST: 5 Hz past 300 m, 1 Hz past 1.5 km), so the past a far peer is
+ * drawn in is DELAY_MS plus however much longer than SEND_MS its samples
+ * now come apart (the median of the last GAPS), which keeps the drawn time
+ * between two real samples instead of past the newest; when it is past
+ * anyway (a late sample), the newest is carried on at its velocity. The delay moves
+ * at DELAY_SLEW, so a peer changing band speeds up or slows down a little
+ * for a moment and never jumps. A peer at the full rate is drawn with
+ * DELAY_MS as before, and the present a near peer is drawn in does not
+ * depend on the delay at all.
  *
  * Render only. Nothing here reaches a plant, so no trajectory depends on
  * it, and a single player flight never builds one.
@@ -34,7 +45,18 @@ export const EXTRAP_MAX_MS = 250;
 export const NEAR_M = 60;
 export const FAR_M = 100;
 export const STALE_MS = 2000;
+/* A sender's pose interval (src/main.js roomSendPose), the full rate. */
+export const SEND_MS = 1000 / 30;
+export const GAPS = 5;
+/* Delay ms per clock ms: the drawn clock runs at 80 to 120 percent while
+ * the delay moves. */
+export const DELAY_SLEW = 0.2;
 const RING = 48;
+
+function median(list) {
+  const sorted = [...list].sort((a, b) => a - b);
+  return sorted[sorted.length >> 1];
+}
 
 /* How much of the present to draw a peer this far away with: 1 near, 0 far. */
 export function nearWeight(distanceM) {
@@ -64,6 +86,9 @@ export class PeerTrack {
   constructor() {
     this.poses = []; /* newest last, by room time */
     this.arrivedAt = null; /* room ms the newest arrived */
+    this.gaps = []; /* the last GAPS sample intervals, ms */
+    this.delay = DELAY_MS; /* how far in the past a far peer is drawn */
+    this.sampledAt = null; /* room ms of the last sample(), for the slew */
   }
 
   /* A decoded pose. Older than the newest held is dropped, never
@@ -73,6 +98,12 @@ export class PeerTrack {
     const last = this.poses[this.poses.length - 1];
     if (last && pose.t <= last.t) {
       return;
+    }
+    if (last) {
+      this.gaps.push(pose.t - last.t);
+      if (this.gaps.length > GAPS) {
+        this.gaps.shift();
+      }
     }
     this.poses.push(pose);
     if (this.poses.length > RING) {
@@ -85,6 +116,11 @@ export class PeerTrack {
     return this.poses.length ? this.poses[this.poses.length - 1] : null;
   }
 
+  /* The delay the samples' spacing asks for: DELAY_MS at the full rate. */
+  wantedDelay() {
+    return this.gaps.length ? DELAY_MS + Math.max(0, median(this.gaps) - SEND_MS) : DELAY_MS;
+  }
+
   /*
    * The pose to draw at room time nowMs, into out ({ px, py, pz, qx, qy,
    * qz, qw }), with `near` from nearWeight. Returns false when there is
@@ -95,8 +131,11 @@ export class PeerTrack {
     if (!newest || this.arrivedAt == null || nowMs - this.arrivedAt > STALE_MS) {
       return false;
     }
-    /* The past: interpolated at nowMs - DELAY_MS, held at the ends. */
-    const t = nowMs - DELAY_MS;
+    /* The past: interpolated at nowMs - delay. */
+    const step = this.sampledAt == null ? Infinity : Math.max(0, nowMs - this.sampledAt) * DELAY_SLEW;
+    this.sampledAt = nowMs;
+    this.delay += Math.max(-step, Math.min(step, this.wantedDelay() - this.delay));
+    const t = nowMs - this.delay;
     let i = this.poses.length - 1;
     while (i > 0 && this.poses[i - 1].t > t) {
       i -= 1;
@@ -105,7 +144,19 @@ export class PeerTrack {
     const a = i > 0 ? this.poses[i - 1] : b;
     const span = b.t - a.t;
     const u = span > 0 ? Math.min(1, Math.max(0, (t - a.t) / span)) : 1;
-    const past = { px: a.px + (b.px - a.px) * u, py: a.py + (b.py - a.py) * u, pz: a.pz + (b.pz - a.pz) * u, qx: 0, qy: 0, qz: 0, qw: 1 };
+    /* Past the newest sample (it is late, or the delay is still growing
+     * after a change of band): carried on at its velocity, at most
+     * EXTRAP_MAX_MS, rather than held and then jumped. */
+    const over = t > b.t && i === this.poses.length - 1 ? Math.min(EXTRAP_MAX_MS, t - b.t) / 1000 : 0;
+    const past = {
+      px: a.px + (b.px - a.px) * u + b.vx * over,
+      py: a.py + (b.py - a.py) * u + b.vy * over,
+      pz: a.pz + (b.pz - a.pz) * u + b.vz * over,
+      qx: 0,
+      qy: 0,
+      qz: 0,
+      qw: 1,
+    };
     nlerp(a, b, u, past);
     if (near <= 0) {
       Object.assign(out, past);

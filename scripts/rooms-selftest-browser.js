@@ -83,7 +83,7 @@ const texts = (c, type) => c.got.filter((m) => m && m.type === type);
 /* The rooms server of node.js in one process, minus the sockets: one
  * RoomHost per name, one Lobby, and front.js answering. `stores` outlives
  * a server, so a second one over it is the same rooms after a restart. */
-function server(stores = new Map(), publicRooms = 'on') {
+export function server(stores = new Map(), publicRooms = 'on') {
   const env = { PUBLIC_ROOMS: publicRooms };
   const rooms = new Map();
   env.ROOMS = {
@@ -120,6 +120,7 @@ function server(stores = new Map(), publicRooms = 'on') {
   }), env);
   const s = {
     env,
+    call,
     stores,
     rooms,
     lobby,

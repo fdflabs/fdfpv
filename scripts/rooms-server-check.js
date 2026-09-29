@@ -68,12 +68,16 @@ function check(name, ok, detail = '') {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* The admin route's secret: this check's own when it starts the server,
+ * else ADMIN_SECRET for a live one (without it only the refusal is
+ * checked). */
+const adminSecret = given ? (process.env.ADMIN_SECRET || '') : 'rooms-server-check-secret';
 let scratch = null;
 let server = null;
 let origin = given;
 async function startLocal() {
   const { startRooms } = await import('../edge/rooms/node.js');
-  server = await startRooms({ db: join(scratch, 'rooms.db'), port: server ? server.port : 0 });
+  server = await startRooms({ db: join(scratch, 'rooms.db'), port: server ? server.port : 0, adminSecret });
   origin = `http://127.0.0.1:${server.port}`;
 }
 if (!given) {
@@ -164,6 +168,23 @@ a.ws.send(pose(a));
 const batch = await b.until((x) => x.got.find((m) => m instanceof Uint8Array && decodeBatch(m)));
 const decoded = batch ? decodeBatch(batch) : null;
 check('a pose reaches the other pilot in a batch', decoded && decoded.poses.length === 1 && decoded.poses[0].seat === 1);
+
+console.log('the admin counters (Phase 6)');
+res = await fetch(`${origin}/v2/admin/health`);
+check('the counters are refused without the admin secret', res.status === 401 || res.status === 404, `${res.status}`);
+if (adminSecret) {
+  let health = null;
+  for (let k = 0; k < 30 && !(health && health.pilots >= 2); k += 1) {
+    a.ws.send(pose(a));
+    await sleep(100);
+    res = await fetch(`${origin}/v2/admin/health`, { headers: { authorization: `Bearer ${adminSecret}` } });
+    health = res.ok ? await res.json() : null;
+  }
+  check('with it: the two pilots, their room, and what the server is costing', health && health.pilots >= 2 && health.rooms >= 1
+    && health.now && Number.isFinite(health.now.cpu) && Number.isFinite(health.now.lagP99Ms) && health.memory.rss > 0 && health.busy === false,
+  JSON.stringify(health && { pilots: health.pilots, rooms: health.rooms, now: health.now }));
+  check('and a private room is listed without its code', health && health.perRoom.length >= 1 && health.perRoom.every((r) => r.room !== code));
+}
 
 console.log('a race track (Phase 4), a wreck (Phase 2) and quick chat (Phase 5)');
 const raceDoc = mapTrackDocument({ id: 'trk-check001', name: 'Server check', types: ['gate', 'hoop30', 'gate'], radius: 60 });

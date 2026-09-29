@@ -1,7 +1,7 @@
 /*
  * node.js: the rooms server on plain Node, the VM's adapter.
  *
- *   ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db PORT=8797 node edge/rooms/node.js
+ *   ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db PORT=8797 ADMIN_SECRET=... node edge/rooms/node.js
  *
  * The same rooms as do.js serves on Cloudflare: front.js answers every
  * request, each room is a RoomHost (host.js) around a RoomCore, and the
@@ -30,6 +30,12 @@
  * browser lists the public ones again at once, with nobody in them yet,
  * and each reports its real count as its pilots come back.
  *
+ * What each room costs, messages and bytes each way, is counted here, at
+ * the sockets, and edge/rooms/health.js turns the counts into the admin
+ * report (GET /v2/admin/health, with ADMIN_SECRET; without one it refuses
+ * everyone, as the tracks server's admin routes do) and the valve that
+ * refuses new public rooms while the core is short.
+ *
  * On SIGTERM (systemctl restart) every socket is closed with 1012, service
  * restart, which the client (src/share/rooms.js) answers by reconnecting.
  *
@@ -57,6 +63,7 @@ import { WebSocketServer } from 'ws';
 import front from './front.js';
 import { PURGE_MS, RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
+import { Health, roomCounters } from './health.js';
 import { answer, listener, refuseUpgrade, upgradeListener } from '../node-http.js';
 
 /* The largest message the simulator sends is a host's race track, logos
@@ -133,12 +140,15 @@ function memoryStorage() {
 /* A socket as host.js sees one: the attachment is a structured clone both
  * ways, as it is on a Durable Object, so nothing aliases the core's state. */
 class Conn {
-  constructor(ws) {
+  constructor(ws, counters) {
     this.ws = ws;
+    this.counters = counters;
     this.attachment = null;
   }
 
   send(data) {
+    this.counters.outMsgs += 1;
+    this.counters.outBytes += typeof data === 'string' ? Buffer.byteLength(data) : data.byteLength;
     this.ws.send(data);
   }
 
@@ -170,6 +180,7 @@ class Room {
     this.name = name;
     this.env = env;
     this.sockets = new Set();
+    this.counters = roomCounters();
     this.queue = Promise.resolve();
     this.alarmTimer = null;
     this.host = new RoomHost({
@@ -220,12 +231,14 @@ class Room {
   }
 
   connect(ws, request) {
-    const conn = new Conn(ws);
+    const conn = new Conn(ws, this.counters);
     this.sockets.add(conn);
     this.enqueue(() => this.host.accept(conn, request));
     ws.on('message', (data, binary) => {
+      this.counters.inMsgs += 1;
+      this.counters.inBytes += data.length;
       if (!binary && data.length === 4 && data.toString() === 'ping') {
-        ws.send('pong');
+        conn.send('pong');
         return;
       }
       this.enqueue(() => this.host.message(conn, binary ? data : data.toString()));
@@ -281,11 +294,21 @@ function lobbyObject(env) {
   };
 }
 
-export function startRooms({ db, port, host = '127.0.0.1', publicRooms = 'on' }) {
+/* roomCap: every new room's cap, for scripts/rooms-load.js alone; a seat
+ * is a byte on the wire and the client colours sixteen, so the process's
+ * own entry point below never reads it. */
+export function startRooms({ db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0 }) {
+  if (!(Number.isInteger(roomCap) && roomCap >= 0 && roomCap <= 64)) {
+    throw new Error(`roomCap ${roomCap}: 0 (the usual caps) to 64`);
+  }
   const store = new Store(db);
-  const env = { PUBLIC_ROOMS: publicRooms };
+  const env = { PUBLIC_ROOMS: publicRooms, ADMIN_SECRET: adminSecret, ROOM_CAP: roomCap };
   env.ROOMS = new Namespace((name) => new Room(name, store, env));
   env.LOBBY = new Namespace(() => lobbyObject(env));
+  env.HEALTH = new Health(() => [...env.ROOMS.objects.values()].map((room) => {
+    const core = room.host.core;
+    return { counters: room.counters, pilots: core ? core.seats.size : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null };
+  }));
 
   /* Rooms stored before a restart: each gets its alarm back, or a purge
    * PURGE_MS from now if it had none (it had pilots when the process
@@ -308,6 +331,7 @@ export function startRooms({ db, port, host = '127.0.0.1', publicRooms = 'on' })
   }));
 
   function stop() {
+    env.HEALTH.stop();
     for (const ws of wss.clients) {
       ws.close(CLOSE_RESTART, 'restart');
     }
@@ -335,8 +359,9 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     port: Number(process.env.PORT || 8797),
     host: process.env.HOST || '127.0.0.1',
     publicRooms: process.env.PUBLIC_ROOMS || 'on',
+    adminSecret: process.env.ADMIN_SECRET || '',
   });
-  console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}`);
+  console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}`);
   process.on('SIGTERM', async () => {
     await running.stop();
     process.exit(0);

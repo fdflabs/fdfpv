@@ -2479,6 +2479,7 @@ export default {
   "roombrowser.make_private_note": "Makes it and puts you in it, with a code to give your friends.",
   "roombrowser.bad_name": "That room name is not allowed. Please choose another.",
   "roombrowser.make_failed": "Could not make the room. Try again in a moment.",
+  "roombrowser.busy": "The servers are full right now, so no new public rooms for a few minutes. Join a room with a seat, or make a private one.",
   "roombrowser.room": "Room",
   "roombrowser.room_note": "The room's picked name.",
   "roombrowser.room_named_note": "The name its maker gave it.",

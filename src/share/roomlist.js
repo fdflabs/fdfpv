@@ -58,6 +58,7 @@ export function checkRoomLine(r) {
 export function createRoomList(onChange = () => {}) {
   let rooms = null; /* null until the first answer */
   let open = null;
+  let busy = false; /* the server refuses new public rooms for now (edge/rooms/health.js) */
   let failed = false;
   let timer = null;
   let asking = false;
@@ -76,6 +77,7 @@ export function createRoomList(onChange = () => {}) {
       }
       const body = await res.json();
       open = body.open === true;
+      busy = body.busy === true;
       rooms = Array.isArray(body.rooms) ? body.rooms.map(checkRoomLine).filter(Boolean) : [];
       failed = false;
     } catch (e) {
@@ -84,7 +86,7 @@ export function createRoomList(onChange = () => {}) {
       failed = true;
     }
     asking = false;
-    const now = JSON.stringify([rooms, open, failed]);
+    const now = JSON.stringify([rooms, open, busy, failed]);
     if (now !== shown) {
       shown = now;
       onChange();
@@ -105,6 +107,7 @@ export function createRoomList(onChange = () => {}) {
     refresh: ask,
     rooms: () => rooms,
     open: () => open,
+    busy: () => busy,
     failed: () => failed,
   };
 }

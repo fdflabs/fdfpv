@@ -2483,6 +2483,7 @@ export default {
   "roombrowser.make_private_note": "La crea y te pone dentro, con un código para tus amigos.",
   "roombrowser.bad_name": "Ese nombre de sala no está permitido. Elige otro, por favor.",
   "roombrowser.make_failed": "No se pudo crear la sala. Inténtalo de nuevo en un momento.",
+  "roombrowser.busy": "Los servidores están llenos ahora, así que no hay salas públicas nuevas durante unos minutos. Entra en una sala con sitio o crea una privada.",
   "roombrowser.room": "Sala",
   "roombrowser.room_note": "El nombre elegido de la sala.",
   "roombrowser.room_named_note": "El nombre que le dio quien la creó.",

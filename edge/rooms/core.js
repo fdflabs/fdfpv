@@ -113,6 +113,41 @@ export const RESEAT_MS = 60 * 1000;
 export const ABANDON_MS = 10 * 1000;
 
 /*
+ * Interest thinning (docs/MULTIPLAYER-PLAN.md section 5): how often a
+ * seat is sent a peer's pose, by the distance between their newest poses.
+ * Within `m` metres, every `every` room ticks: 30, 5 and 1 Hz. A seat
+ * not flying (no pose for HERE_MS: a menu, a crash cam, just joined) is
+ * sent everyone every tick.
+ * The near band is wider than any aircraft closes in the far band's gap
+ * (300 m in 200 ms is 1,500 m/s), so a peer that can reach you is always
+ * at the full rate before it does, and the far rates stay under the
+ * client's STALE_MS (src/game/peer.js), which would hide a peer.
+ */
+export const INTEREST = [
+  { m: 300, every: 1 },
+  { m: 1500, every: 6 },
+  { m: Infinity, every: 30 },
+];
+
+/* A seat whose newest pose is older than this is not flying anywhere. */
+export const HERE_MS = 1000;
+
+/* A POSE's position, scene metres. */
+function poseAt(bytes) {
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return [v.getFloat32(8, true), v.getFloat32(12, true), v.getFloat32(16, true)];
+}
+
+/* The ticks between two sends of a pose at `b` to a seat at `a`. */
+export function interestEvery(a, b) {
+  if (!a || !b) {
+    return 1;
+  }
+  const d = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  return INTEREST.find((band) => d <= band.m).every;
+}
+
+/*
  * Who holds the room: the host's seat token, kept in storage (host.js hands
  * it back to restore() on load), so a restart keeps the host when that
  * pilot reconnects, whoever reconnects first. While the host is away, for
@@ -170,6 +205,7 @@ export class RoomCore {
     this.joins = new Map();   /* address -> { since, n } */
     this.recent = new Map();  /* token -> { seat, until }, for a reconnect */
     this.ticking = false;
+    this.tickNo = 0; /* memory only: the room ticks counted, for INTEREST */
     /* Phase 3, mid air: edge/rooms/referee.js. */
     this.referee = new Referee(meta.friendly);
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
@@ -190,7 +226,7 @@ export class RoomCore {
   restore(conns) {
     for (const { conn, attachment } of conns) {
       if (attachment && attachment.seat) {
-        this.seats.set(conn, { ...attachment, pose: null, fresh: false, poseRate: { since: 0, n: 0 }, ...textRates(0) });
+        this.seats.set(conn, { ...attachment, pose: null, sent: new Map(), poseRate: { since: 0, n: 0 }, ...textRates(0) });
         this.referee.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
         this.combat.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
       } else {
@@ -529,7 +565,7 @@ export class RoomCore {
       joined,
       address: address || '',
       pose: null,
-      fresh: false,
+      sent: new Map(),
       poseRate: { since: now, n: 0 },
       ...textRates(now),
     };
@@ -692,7 +728,7 @@ export class RoomCore {
       return checked.actions;
     }
     s.pose = checked.bytes;
-    s.fresh = true;
+    s.poseNow = now;
     /* The referee judges the bytes the room relays: Phase 5 sets
      * FLAG_SPAWNING on a spawning or benched seat, which the rule leaves
      * out, and every hit counts toward its ramming bench. In a tag match
@@ -710,28 +746,46 @@ export class RoomCore {
     return [...hits, { tick: true }];
   }
 
-  /* One room tick: every seat gets one batch of the others' poses that
-   * arrived since the last. Ticks stop when nobody sent a pose. */
+  /*
+   * One room tick: every seat gets one batch of the others' poses it has
+   * not been sent yet, each at its interest band's rate (INTEREST): a peer
+   * near this seat every tick, a far one every few. The room's own judges
+   * (the referee, a tag match, a combat round) see every pose as it
+   * arrives (pose()), so this thins only what a screen draws. Ticks stop
+   * when every seat has been sent every newest pose.
+   */
   tick(now) {
     this.referee.tick(this.roomMs(now));
-    const fresh = [...this.seats.values()].filter((s) => s.fresh);
+    this.tickNo += 1;
     const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now)];
     out.push(...this.settleHost(now), ...this.settleGames(now));
-    if (!fresh.length) {
-      this.ticking = this.waiting();
-      return this.ticking ? [...out, { tick: true }] : out;
-    }
+    const flying = [...this.seats.values()].filter((f) => f.pose);
+    const at = new Map(flying.map((f) => [f, poseAt(f.pose)]));
+    let owed = false;
     for (const [conn, s] of this.seats) {
-      const entries = fresh.filter((f) => f !== s).map((f) => ({ seat: f.seat, pose: f.pose }));
+      /* Where this seat is flying; nowhere once it has stopped sending
+       * (a menu, a crash cam), and then it is sent everyone at full rate. */
+      const here = s.pose && now - s.poseNow <= HERE_MS ? at.get(s) : null;
+      const entries = [];
+      for (const f of flying) {
+        const last = s.sent.get(f.seat);
+        if (f === s || (last && last.pose === f.pose)) {
+          continue;
+        }
+        if (last && this.tickNo - last.tick < interestEvery(here, at.get(f))) {
+          owed = true;
+          continue;
+        }
+        entries.push({ seat: f.seat, pose: f.pose });
+        s.sent.set(f.seat, { pose: f.pose, tick: this.tickNo });
+      }
       if (entries.length) {
         out.push({ send: conn, data: encodeBatch(this.roomMs(now), entries) });
+        owed = true;
       }
     }
-    for (const f of fresh) {
-      f.fresh = false;
-    }
-    out.push({ tick: true });
-    return out;
+    this.ticking = owed || this.waiting();
+    return this.ticking ? [...out, { tick: true }] : out;
   }
 
   close(conn, now) {

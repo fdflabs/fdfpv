@@ -12,7 +12,18 @@
  *                            public room of that map with a seat, or a new
  *                            one; ?shard= from a page older than the
  *                            browser is ignored
+ *   GET  /v2/admin/health    the server's counters (edge/rooms/health.js),
+ *                            with authorization: Bearer ADMIN_SECRET only;
+ *                            404 on a platform that keeps none (Cloudflare)
  *   GET  /                   a line of text, for a person checking it is up
+ *
+ * THE VALVE. While env.HEALTH says the server is busy (edge/rooms/health.js,
+ * the VM only), a new public room is refused, 503 { error: 'busy' } on a
+ * create and 503 on a quick join that finds no room with a seat, and the
+ * list and /v2/public say busy: true so the room browser can say why
+ * before anybody asks. Rooms already flying, and quick joins into them,
+ * go on. A private room is not refused: it is a household's, made by code
+ * for friends, capped at eight, and six a minute from one address.
  *
  * Every room, public or private, is the object `prv:<code>`: the prefix is
  * older than public rooms with codes, and a room stored under it must
@@ -60,6 +71,7 @@ import {
   LIST_EVERY_MS, PUBLIC_CAP, ROOM_MODES, codeFromBytes, normaliseCode, normaliseRoomName,
 } from '../../src/share/roomwire.js';
 import { badWordIn } from '../../tracks-api/words.js';
+import { sha256Base64 } from '../../src/share/identity.js';
 import { lobbyStub } from './lobby.js';
 
 /*
@@ -122,6 +134,39 @@ const MAP_RE = /^[a-z0-9_]{1,32}$/;
 
 const newCode = () => codeFromBytes(crypto.getRandomValues(new Uint8Array(6)));
 
+/* Whether the valve refuses new public rooms now (edge/rooms/health.js). */
+function busy(env) {
+  return Boolean(env.HEALTH && env.HEALTH.busy());
+}
+
+/* The tracks server's admin check (tracks-api/worker.js isAdmin), with the
+ * same secret on the VM: constant time over the digests, so the comparison
+ * says nothing about how much of a guess was right. */
+async function isAdmin(env, request) {
+  const secret = env.ADMIN_SECRET;
+  const got = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!secret || !got) {
+    return false;
+  }
+  const a = await sha256Base64(secret);
+  const b = await sha256Base64(got);
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+async function health(request, env) {
+  if (!env.HEALTH || request.method !== 'GET') {
+    return new Response('not found', { status: 404 });
+  }
+  if (!(await isAdmin(env, request))) {
+    return Response.json({ error: 'admin' }, { status: 401 });
+  }
+  return Response.json(env.HEALTH.report(), { headers: { 'cache-control': 'no-store' } });
+}
+
 /* Make the room `code` (host.js init); false when the code was taken. */
 async function makeRoom(env, code, room) {
   const stub = env.ROOMS.get(env.ROOMS.idFromName(`prv:${code}`));
@@ -156,6 +201,10 @@ async function create(request, env, origin) {
   const open = body.public === true;
   if (open && env.PUBLIC_ROOMS !== 'on') {
     return refuse(403, 'closed');
+  }
+  if (open && busy(env)) {
+    env.HEALTH.refuse();
+    return refuse(503, 'busy');
   }
   const name = roomNameFor(body.name);
   if (name === false) {
@@ -192,12 +241,12 @@ async function publicRoute(request, env, url, headers) {
       return new Response('rate', { status: 429, headers });
     }
     const list = await (await lobbyStub(env).fetch('https://lobby/list')).text();
-    return new Response(`{"open":true,"rooms":${list}}`, {
+    return new Response(`{"open":true,"busy":${busy(env)},"rooms":${list}}`, {
       headers: { ...headers, 'content-type': 'application/json', 'cache-control': 'no-store' },
     });
   }
   if (url.pathname === '/v2/public') {
-    return Response.json({ open, cap: PUBLIC_CAP }, { headers });
+    return Response.json({ open, cap: PUBLIC_CAP, busy: busy(env) }, { headers });
   }
   const m = url.pathname.match(/^\/v2\/public\/([a-z0-9_]{1,32})$/);
   if (!m || !open || request.headers.get('upgrade') !== 'websocket') {
@@ -206,8 +255,13 @@ async function publicRoute(request, env, url, headers) {
   if (!joinAllowed(address, Date.now())) {
     return new Response('rate', { status: 429 });
   }
-  const res = await lobbyStub(env).fetch('https://lobby/quick', { method: 'POST', body: JSON.stringify({ map: m[1], code: newCode() }) });
+  /* Busy: a room with a seat, or nothing (no code for a new one). */
+  const full = busy(env);
+  const res = await lobbyStub(env).fetch('https://lobby/quick', { method: 'POST', body: JSON.stringify({ map: m[1], code: full ? null : newCode() }) });
   const got = await res.json();
+  if (!got.code && full) {
+    env.HEALTH.refuse();
+  }
   if (!got.code || (got.fresh && !(await makeRoom(env, got.code, { map: m[1], friendly: false, public: true, name: null, mode: null })))) {
     return new Response('busy', { status: 503 });
   }
@@ -223,6 +277,9 @@ export default {
     }
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors(origin) });
+    }
+    if (url.pathname === '/v2/admin/health') {
+      return health(request, env);
     }
     if (url.pathname === '/v2/create' && request.method === 'POST') {
       return create(request, env, origin);
