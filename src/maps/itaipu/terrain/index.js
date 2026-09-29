@@ -83,6 +83,11 @@ export async function buildTerrain({
     base, manifest, material, scene, cover: null, quality, frame: ITAIPU_FRAME,
   });
   terrain.group.name = 'itaipu-terrain';
+  /* Drawn after the scene's other opaque things (three sorts by a group's
+   * renderOrder first): the ground's material is the dearest per pixel,
+   * and whatever stands on it (the canopy over the forest, the town, the
+   * dam) then hides it before it is shaded rather than after. */
+  terrain.group.renderOrder = 1;
   const store = terrain.store;
   const all = listed(manifest);
   const keys = all.map(([level, i, j]) => tileKey(level, i, j));
