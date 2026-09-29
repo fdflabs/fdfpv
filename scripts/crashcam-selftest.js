@@ -57,6 +57,10 @@
  *    free orb's bubble row (seat 0) read back as one, the version 7 file
  *    round trip, version 6 still written without a crown, and its
  *    refusals.
+ * 15. A war flight (Defend Itaipu): a five inch's link cut with
+ *    sim_rx_signal until Betaflight's stage 2 drops it, the link back,
+ *    then its warhead breaking every part; frames all through put back
+ *    from the journal bit for bit, as in 3.
  *
  * Run: npm run crashcam:selftest
  *
@@ -383,6 +387,140 @@ function flyTakeOver() {
       }
     }
     check(identical === picks.length, 'every frame tried was put back exactly', `${identical}/${picks.length}`);
+  })();
+}
+
+/* ---- 15. a war flight ---- */
+
+/*
+ * What Defend Itaipu adds to the calls the shell makes (src/main.js
+ * warLinkFrame and warBoomMine), flown on a five inch quad: the link cut
+ * with sim_rx_signal(0) and no packets for long enough that Betaflight's
+ * failsafe goes to stage 2 and drops the quad, the link back, and then the
+ * warhead, every part broken with sim_part_break. The same frames all
+ * through are put back from the journal and compared bit for bit, as in 3:
+ * the journal writes every call down whoever makes it, so this holds
+ * without a line of the journal knowing about the war.
+ */
+const QUAD = 0;
+const WAR_MS = 5200;
+const CUT_MS = [1200, 3600];
+const BOOM_MS = 4400;
+/* sim_abi.h */
+const RX_ACTIVE = 0x10;
+const RX_ARMED = 0x20;
+
+function warFlight(sim, statePtr, partsPtr, eventsPtr, frame) {
+  must(sim.init(configText), 'sim_init');
+  must(sim.e.sim_set_airframe(QUAD), 'sim_set_airframe');
+  must(sim.e.sim_reset(), 'sim_reset');
+  must(sim.e.sim_set_cell_voltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_part_table(0), 'sim_set_part_table');
+  must(sim.e.sim_set_damage(1), 'sim_set_damage');
+  must(sim.e.sim_set_pose(0, 0, 30, 1, 0, 0, 0), 'sim_set_pose');
+  let rxSeen = 0;
+  for (let ms = 0; ms < WAR_MS; ms += 1) {
+    const up = ms < CUT_MS[0] || ms >= CUT_MS[1];
+    /* The live shell's radio grid, every 4 ms, while packets arrive. */
+    if (up && ms % 4 === 0) {
+      const k = (ms % 1600) / 1600;
+      const tri = k < 0.5 ? 4 * k - 1 : 3 - 4 * k;
+      sim.input(ms / 1000, 0.2 * tri, -0.1 * tri, 0.05 * tri, 0.55);
+    }
+    /* Once a frame, as warLinkFrame calls it. */
+    if (ms % 16 === 0) {
+      rxSeen |= sim.e.sim_rx_signal(up ? 1 : 0);
+    }
+    if (ms === BOOM_MS) {
+      const n = sim.e.sim_parts_count();
+      for (let i = 1; i < n; i += 1) {
+        must(sim.e.sim_part_break(i), `sim_part_break ${i}`);
+      }
+    }
+    sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E);
+    sim.e.sim_step(1);
+    sim.e.sim_state(statePtr);
+    sim.e.sim_damage_flags();
+    sim.e.sim_parts_state(partsPtr);
+    sim.e.sim_damage_events(eventsPtr, 64);
+    if (ms % 16 === 15) {
+      frame(ms, rxSeen, sim.e.sim_rx_signal(up ? 1 : 0));
+    }
+  }
+}
+
+function flyWarTakeOver() {
+  return (async () => {
+    console.log('15. a war flight: the link cut to failsafe and back, then the warhead, put back bit for bit');
+    const { sim, j, raw } = await journaled();
+    const statePtr = sim.e.malloc(64 * 8);
+    const partsPtr = sim.e.malloc(PARTS_MAX * PART_STATE_DOUBLES * 8);
+    const eventsPtr = sim.e.malloc(64 * 16 * 8);
+    const nState = sim.e.sim_state_size();
+    const region = () => new Uint8Array(raw.memory.buffer, j.region.lo, j.region.hi - j.region.lo);
+    j.snapshot(0);
+    const frames = [];
+    let seen = 0;
+    let dropAt = -1;
+    let broke = false;
+    warFlight(sim, statePtr, partsPtr, eventsPtr, (ms, rxSeen, rx) => {
+      const t = (ms + 1) / 1000;
+      if (j.due(t)) {
+        j.snapshot(t);
+      }
+      seen = rxSeen;
+      if (dropAt < 0 && ms > CUT_MS[0] && !(rx & RX_ARMED)) {
+        dropAt = frames.length;
+      }
+      if (ms > BOOM_MS) {
+        broke = broke || sim.e.sim_damage_flags() !== 0;
+      }
+      frames.push({
+        ms,
+        mark: j.mark(),
+        st: new Float64Array(raw.memory.buffer, statePtr, nState).slice(),
+        parts: new Float64Array(raw.memory.buffer, partsPtr, PARTS_MAX * PART_STATE_DOUBLES).slice(),
+        hash: sha(region()),
+      });
+    });
+    check((seen & RX_ACTIVE) !== 0, 'the cut link reached Betaflight\'s stage 2', `states seen 0x${seen.toString(16)}`);
+    check(dropAt >= 0, 'and stage 2 dropped the quad (ARMED gone)', `from frame ${dropAt}`);
+    check(broke, 'the warhead broke the quad');
+    const at = (ms) => frames.findIndex((f) => f.ms >= ms);
+    const picks = [frames.length - 1, at(BOOM_MS + 40), at(CUT_MS[1] + 100), dropAt + 2, at(CUT_MS[0] + 200), at(600)]
+      .filter((i, k, a) => i >= 0 && i < frames.length && a.indexOf(i) === k).sort((a, b) => b - a);
+    let identical = 0;
+    for (const i of picks) {
+      const f = frames[i];
+      const again = await journaled();
+      const g = again.sim;
+      const sp = g.e.malloc(64 * 8);
+      const pp = g.e.malloc(PARTS_MAX * PART_STATE_DOUBLES * 8);
+      const ep = g.e.malloc(64 * 16 * 8);
+      if (sp !== statePtr || pp !== partsPtr || ep !== eventsPtr) {
+        throw new Error('the second module allocated elsewhere; the flight is not the same flight');
+      }
+      again.j.snapshot(0);
+      warFlight(g, sp, pp, ep, (ms) => {
+        if (again.j.due((ms + 1) / 1000)) {
+          again.j.snapshot((ms + 1) / 1000);
+        }
+      });
+      const ok = again.j.restore(f.mark, (f.ms + 1) / 1000);
+      const reg = new Uint8Array(again.raw.memory.buffer, again.j.region.lo, again.j.region.hi - again.j.region.lo);
+      g.e.sim_state(sp);
+      g.e.sim_parts_state(pp);
+      const st = new Float64Array(again.raw.memory.buffer, sp, nState);
+      const parts = new Float64Array(again.raw.memory.buffer, pp, PARTS_MAX * PART_STATE_DOUBLES);
+      const sameState = Buffer.compare(Buffer.from(st.buffer, st.byteOffset, st.byteLength), Buffer.from(f.st.buffer, 0, f.st.byteLength)) === 0;
+      const sameParts = Buffer.compare(Buffer.from(parts.buffer, parts.byteOffset, parts.byteLength), Buffer.from(f.parts.buffer, 0, f.parts.byteLength)) === 0;
+      const sameRegion = sha(reg) === f.hash;
+      const good = ok && sameState && sameParts && sameRegion;
+      identical += good ? 1 : 0;
+      check(good, `frame ${i} (t ${((f.ms + 1) / 1000).toFixed(3)} s) put back`,
+        `restore ${ok}, state ${sameState}, parts ${sameParts}, region ${sameRegion} ${f.hash}`);
+    }
+    check(identical === picks.length, 'every war frame tried was put back exactly', `${identical}/${picks.length}`);
   })();
 }
 
@@ -1747,6 +1885,7 @@ bubbleRecord();
 crownRecord();
 await pureReaders();
 await flyTakeOver();
+await flyWarTakeOver();
 await bounded();
 
 if (failures) {

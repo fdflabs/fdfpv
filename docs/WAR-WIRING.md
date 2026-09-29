@@ -10,6 +10,31 @@ drift; the function named beside each is the anchor.
 two page check; where the two differ, this file is the one to follow
 (the check has no plant, so it leaves out steps 7 to 10).
 
+**Wired.** main.js now makes these calls, at DEFEND ITAIPU (after
+`combatRows`), and `npm run war:twopage -- --main` runs the two page
+check against it instead of the wire module. Where the wiring had to
+differ from the steps below, and why:
+
+- Step 4's `warDamage(to)` on a `state` event is instead a begin and a
+  finish on `roomWar.on()` changing (`warBegin`, `warFinish`): a pilot
+  seated while a war is live gets its view in the welcome and no `state`
+  event, and must be put in the war all the same.
+- Step 6's host menu is main.js's own (`ui.friendsRows`, beside
+  `combatRows` and `roomTagRows`), not src/ui: `warRows` and `warStart`,
+  with the consent screen of plan section 9 kept in `settings.warConsent`.
+- Step 7: `applyCrashMode` clears the crash state, so it is not called
+  in flight. A war's begin and end mark the mode due (`warCrashDue`), and
+  `resetCraft` applies it; the begin restarts a flying pilot on the slot
+  (or takes a waiting one off), as step 7 says tag does.
+- Step 9: the view has no `terrain`; the finest ground is
+  `view.scene.userData.itaipu.terrain.finestAt`, and Itaipu's water is
+  `view.lakes` (it has no `view.water`). `link` is main.js's `rcLink`,
+  and its clock `rcNextMs`. The signal runs in `warLinkFrame`, after
+  `roomFrame`, so a closed room link turns it off too.
+- `sim_rx_signal` holds across `sim_reset` (sim_abi.h), so once a war has
+  called it the module judges the link for the rest of the session;
+  `warLinkOff` leaves it up (1), which the live shell's radio grid feeds.
+
 ## 1. Imports
 
 Beside the other room imports (`createRoomTag`, line 95; `createRoomCombat`,
