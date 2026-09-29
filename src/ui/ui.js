@@ -46,7 +46,9 @@ import { retiredMap } from '../maps/retired.js';
 import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
 import { planesFor } from '../game/verify.js';
-import { CAL_STEPS } from '../input/input.js';
+import {
+  CAL_STEPS, MOUSE_SENS, MOUSE_EXPOS, MOUSE_CENTRES,
+} from '../input/input.js';
 import {
   STICK_MODES, DEFAULT_STICK_MODE, normaliseStickMode, stickChannels, stickCaption,
 } from '../input/stickmode.js';
@@ -181,6 +183,7 @@ import {
   clampCameraAngle,
 } from '../render/lens.js';
 import { ScoreHud } from './scorehud.js';
+import { MARK_STYLES } from './peermarks.js';
 import { formatScore } from '../game/score.js';
 import { JOKE_MS, quotedJoke } from './loading.js';
 import { fillCredits } from './credits.js';
@@ -215,7 +218,7 @@ const LINK_ACTIONS = new Set(['leaderboard', 'wiki']);
 const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
-  'calibrate', 'friends',
+  'calibrate', 'friends', 'rooms', 'roomnew',
 ]);
 
 /* What the breadcrumb says, per screen. A room is a navigation parent, so a
@@ -253,6 +256,8 @@ const SCREEN_TITLES = {
   tricks: str('ui.trick_list'),
   credits: 'Credits',
   friends: str('friends.title'),
+  rooms: str('roombrowser.title'),
+  roomnew: str('roombrowser.new_title'),
 };
 const CRUMBS = {
   courses: [str('ui.track_mode'), str('ui.my_tracks')],
@@ -270,6 +275,8 @@ const CRUMBS = {
   tricks: [str('ui.freestyle'), str('ui.trick_list')],
   credits: [str('ui.credits')],
   friends: [str('friends.title')],
+  rooms: [str('friends.title'), str('roombrowser.title')],
+  roomnew: [str('friends.title'), str('roombrowser.title'), str('roombrowser.new_title')],
   title: ['FDFPV'],
 };
 
@@ -656,6 +663,18 @@ const DEFAULTS = {
    */
   stickMode: DEFAULT_STICK_MODE,
   /*
+   * MOUSE FLIGHT: the wheel is the throttle and the mouse is the right
+   * stick. Off by default, and a pilot who leaves it off meets nothing new
+   * but the row. See the note above MOUSE_SENS in src/input/input.js for
+   * what each of the other four does. Sensitivity and expo are percents so
+   * the typeof gate below keeps them numbers.
+   */
+  mouseFlight: false,
+  mouseSens: 100,
+  mouseExpo: 0,
+  mouseInvert: false,
+  mouseCentre: 'auto',
+  /*
    * FREESTYLE IS THREE DIFFERENT ACTIVITIES AND THEY WANT DIFFERENT RULES.
    * See FREESTYLE_SCORING above for what each value does.
    *
@@ -726,6 +745,10 @@ const DEFAULTS = {
    * A quad flies FPV only. */
   wingView: 'fpv',
   hudStyle: 'osd',
+  /* The marks that point out the other pilots in a room when their
+   * aircraft is small, hidden or off screen (src/ui/peermarks.js): 'on',
+   * 'minimal' (the shapes without the names and ranges) or 'off'. */
+  peerMarks: 'on',
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
@@ -996,6 +1019,7 @@ export function loadSettings() {
     ['renderScale', RENDER_SCALES],
     ['fpsCap', FPS_CAPS],
     ['hudStyle', HUD_STYLES],
+    ['peerMarks', MARK_STYLES],
     ['flightStyle', FLIGHT_STYLES],
     ['laps', LAP_COUNTS],
     ['packVoltage', PACK_VOLTAGES],
@@ -1003,6 +1027,9 @@ export function loadSettings() {
     ['ghost', ['off', 'best', 'previous']],
     ['live', ['off', 'on']],
     ['freestyleScoring', FREESTYLE_SCORING],
+    ['mouseSens', MOUSE_SENS],
+    ['mouseExpo', MOUSE_EXPOS],
+    ['mouseCentre', MOUSE_CENTRES],
   ]) {
     if (!allowed.includes(s[key])) {
       /* The tune's fallback is the AIRFRAME's default tune, not the blob's:
@@ -2709,21 +2736,58 @@ function linkedMode() {
  * fuselage and a tailplane, in the quads' fills and strokes. One card
  * covers every fixed wing, so it is not either plane's outline.
  */
+const PLANE_PARTS = [
+  /* Fuselage, nose up. */
+  '<rect x="138" y="38" width="24" height="222" rx="12" fill="currentColor" fill-opacity="0.55"'
+    + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9"/>',
+  /* Wing, a little taper to the tips. */
+  '<path d="M 22 128 L 278 128 L 270 166 L 30 166 Z" fill="currentColor" fill-opacity="0.38"'
+    + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
+  /* Tailplane. */
+  '<path d="M 96 226 L 204 226 L 198 250 L 102 250 Z" fill="currentColor" fill-opacity="0.38"'
+    + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
+].join('');
+
 function planeSvg() {
-  const parts = [
-    /* Fuselage, nose up. */
-    '<rect x="138" y="38" width="24" height="222" rx="12" fill="currentColor" fill-opacity="0.55"'
-      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9"/>',
-    /* Wing, a little taper to the tips. */
-    '<path d="M 22 128 L 278 128 L 270 166 L 30 166 Z" fill="currentColor" fill-opacity="0.38"'
-      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
-    /* Tailplane. */
-    '<path d="M 96 226 L 204 226 L 198 250 L 102 250 Z" fill="currentColor" fill-opacity="0.38"'
-      + ' stroke="currentColor" stroke-width="4" stroke-opacity="0.9" stroke-linejoin="round"/>',
-  ];
   return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
     + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
-    + parts.join('') + '</svg>';
+    + PLANE_PARTS + '</svg>';
+}
+
+/*
+ * Two of the plane symbol in echelon, for the Fly with friends card: the
+ * same symbol, so it reads as the same kind of mark as its neighbours, and
+ * two of them because company is what that card offers. Not to any scale,
+ * for the reason planeSvg gives.
+ */
+function pairSvg() {
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + `<g transform="translate(4 20) scale(0.56)">${PLANE_PARTS}</g>`
+    + `<g transform="translate(128 112) scale(0.56)">${PLANE_PARTS}</g>`
+    + '</svg>';
+}
+
+/* Combat's mark: the plane symbol towing its paper, a streamer in the
+ * same strokes waving off the tail. */
+function streamerSvg() {
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + `<g transform="translate(78 4) scale(0.48)">${PLANE_PARTS}</g>`
+    + '<path d="M 150 132 C 120 170, 190 190, 150 222 S 110 262, 150 294" fill="none"'
+    + ' stroke="currentColor" stroke-width="12" stroke-opacity="0.7" stroke-linecap="round"/>'
+    + '</svg>';
+}
+
+/* Catch the Ace's mark: the crown the Ace wears (src/ui/peermarks.js). */
+function crownSvg() {
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + '<path d="M 50 210 L 38 96 L 104 150 L 150 70 L 196 150 L 262 96 L 250 210 Z"'
+    + ' fill="currentColor" fill-opacity="0.45" stroke="currentColor" stroke-width="8"'
+    + ' stroke-opacity="0.9" stroke-linejoin="round"/>'
+    + '<rect x="50" y="222" width="200" height="26" rx="6" fill="currentColor" fill-opacity="0.7"/>'
+    + '</svg>';
 }
 
 /*
@@ -2892,6 +2956,66 @@ const WAYS = [
     blurb: str('ui.the_fixed_wings'),
     facts: [str('ui.every_plane'), str('ui.the_swiss_valley')],
   },
+  {
+    /* FLY WITH FRIENDS, the owner's third card (2026-09-28). Free flight
+     * in a private room: the same mode and home as the card before it, and
+     * every aircraft free flight takes, the five inch as well as the
+     * planes. `room` is what makes it a different way in: it opens the
+     * room screen (#128, src/main.js friendsRows) instead of the aircraft
+     * picker, and the aircraft and the world are chosen there, after the
+     * room. Public rooms (Phase 5) are a row on that screen, not a card.
+     *
+     * AFTER THE TWO SOLO CARDS, with the games after it, because
+     * pickForWay's "the card that takes it" and seatedWay's "the card of
+     * its kind" are first match reads of this table and neither is meant
+     * to land on a room card. On the gate only where there is a
+     * rooms server (friendsItems), the same rule as the menu row. */
+    id: 'friends',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'swiss2',
+    room: true,
+    label: str('friends.title'),
+    art: 'assets/gate/friends.jpg',
+    svg: pairSvg(),
+    blurb: str('friends.card_blurb'),
+    facts: [str('friends.card_public'), str('friends.card_code'), str('friends.card_craft')],
+  },
+  /*
+   * THE ROOM GAMES, one card each, by the owner's word (2026-09-29): "both
+   * modes need their dedicated card on the main menu". Each is the Fly
+   * with friends card with its `game` preselected: the same room screen,
+   * where a private room's host then finds that game's start row on top
+   * and under the cursor (src/main.js friendsRows), and a pilot who joins
+   * sees what the room is set up for. Private rooms only, as the games
+   * are, so the screen they open does not offer a public room.
+   */
+  {
+    id: 'combat',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'swiss2',
+    room: true,
+    game: 'combat',
+    label: str('combat.card'),
+    art: 'assets/gate/combat.jpg',
+    svg: streamerSvg(),
+    blurb: str('combat.card_blurb'),
+    facts: [str('combat.card_cut'), str('combat.card_rounds'), str('friends.card_code')],
+  },
+  {
+    id: 'ace',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'swiss2',
+    room: true,
+    game: 'tag',
+    label: str('roomtag.section'),
+    art: 'assets/gate/ace.jpg',
+    svg: crownSvg(),
+    blurb: str('roomtag.card_blurb'),
+    facts: [str('roomtag.card_crown'), str('roomtag.card_touch'), str('friends.card_code')],
+  },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
 /* The way that is seated right now, which is what the gate's cursor opens
@@ -3046,6 +3170,8 @@ export class Ui {
     this.modeSyncedFor = this.settings.airframe;
     /* Set while a guided first flight is in the air. main.js reads it. */
     this.guided = false;
+    /* The room game a title card preselected; see act()'s ways. */
+    this.roomGame = null;
     this.boardCourses = [];
     /* The pilot's own tracks, read off this browser's library on entry to
      * My tracks. This and the board's above are the two things that screen
@@ -3490,7 +3616,7 @@ export class Ui {
      * most likely holding the machine. */
     const tabList = [
       ...(touchWanted() ? [['touch', 'Touch']] : []),
-      ['keyboard', 'Keyboard'], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')],
+      ['keyboard', 'Keyboard'], ['mouse', str('ui.mouse')], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')],
     ];
     for (const [id, label] of tabList) {
       const b = btn('howto-tab', label);
@@ -3523,7 +3649,7 @@ export class Ui {
     this.howtoHelp = howtoBlock.help;
     howto.append(howtoBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_arrow_keys_still_move')));
     this.screens.howto = howto;
-    this.howtoSource = touchWanted() ? 'touch' : 'keyboard';
+    this.howtoSource = touchWanted() ? 'touch' : (this.settings.mouseFlight ? 'mouse' : 'keyboard');
     this.renderHowto();
 
     /*
@@ -3697,6 +3823,23 @@ export class Ui {
     this.friendsHelp = friendsBlock.help;
     friends.append(friendsBlock.stage, hintWithKeys(['Esc'], str('ui.goes_back_changes_are_already_stored')));
     this.screens.friends = friends;
+
+    /* THE ROOM BROWSER and MAKE A ROOM, two pages under Fly with friends
+     * whose rows are src/ui/roombrowser.js's, through the shell
+     * (roomRows), for the same reason as the room screen's. */
+    this.roomPages = {};
+    for (const [id, title, lede] of [
+      ['rooms', str('roombrowser.title'), str('roombrowser.lede')],
+      ['roomnew', str('roombrowser.new_title'), str('roombrowser.new_lede')],
+    ]) {
+      const page = el('div', `screen screen-page screen-${id}`);
+      page.append(el('h2', null, title), el('p', 'rates-lede', lede));
+      const block = wrapMenu();
+      block.menu.classList.add('menu-scroll');
+      this.roomPages[id] = block;
+      page.append(block.stage, hintWithKeys(['Esc'], str('ui.goes_back_changes_are_already_stored')));
+      this.screens[id] = page;
+    }
 
     /*
      * STANDINGS: the board, in the game.
@@ -4212,10 +4355,66 @@ export class Ui {
     return [{ label: str('friends.title'), value: row.value, note: row.note, action: 'friends' }];
   }
 
+  /*
+   * The aircraft and the world, on the room screen between runs. The
+   * aircraft is the Quad room's own row. The world is a choice until there
+   * is a room and a fact after: a room is made in one world and flies
+   * there (src/main.js seats it on welcome), so changing it inside one
+   * would only put this pilot somewhere nobody else is.
+   */
+  roomSeatRows(inRoom) {
+    const s = this.settings;
+    const world = seatedFreestyleMap(s);
+    const worlds = MAPS.filter((x) => x.mode === 'freestyle').map((x) => x.id);
+    const worldRow = inRoom
+      ? { label: str('ui.the_world'), value: world ? world.name : '', note: str('friends.world_fixed'), info: true }
+      : {
+        ...choice(
+          str('ui.the_world'),
+          str('friends.world_note'),
+          worlds,
+          world ? world.id : worlds[0],
+          (id) => mapById(id).name,
+          /* The two fields seatMap writes, without its landing: this row
+           * is on the screen the pilot is staying on, and pick() and
+           * adjust() save and hand the shell the settings after it. */
+          (id) => {
+            s.freestyleMap = id;
+            s.map = id;
+          },
+        ),
+        pickOnly: true,
+      };
+    return [
+      { ...craftItem(s, null), open: () => this.openCraftRow(false) },
+      worldRow,
+    ];
+  }
+
   /* The shell's room changed: redraw a screen that shows it. */
   refreshFriends() {
-    if (this.screen === 'title' || this.screen === 'paused' || this.screen === 'friends') {
+    const row = this.friendsRow ? this.friendsRow() : null;
+    const inRoom = Boolean(row && row.inRoom);
+    const entered = inRoom && !this.friendsInRoom;
+    this.friendsInRoom = inRoom;
+    /* In a room the lede, which is about making and joining one, gives its
+     * height to the rows: see .screen-friends.in-room in index.html. */
+    if (this.screens && this.screens.friends) {
+      this.screens.friends.classList.toggle('in-room', inRoom);
+    }
+    if (['title', 'paused', 'friends', 'rooms', 'roomnew'].includes(this.screen)) {
       this.renderMenu();
+    }
+    /* The row the cursor was on, Make a room or Join, is gone the moment
+     * the room opens, so the cursor goes to Fly, the screen's primary
+     * between runs: card, Make a room, Fly is three presses of Enter. The
+     * remembered row goes too, so the next visit opens on Fly as well
+     * (restoreCursor). */
+    if (entered) {
+      delete this.cursorMemory.friends;
+    }
+    if (entered && this.screen === 'friends') {
+      this.setCursor(this.restoreCursor());
     }
   }
 
@@ -5534,12 +5733,13 @@ export class Ui {
        * says which of the three it belongs to.
        */
       if (this.onGate()) {
+        const rooms = this.friendsItems().length > 0;
         return [
-          ...WAYS.map((w) => ({
+          ...WAYS.filter((w) => rooms || !w.room).map((w) => ({
             label: w.label,
             card: w.id,
             art: w.art,
-            svg: craftSvg(airframeById(w.airframes[0])),
+            svg: w.svg ?? craftSvg(airframeById(w.airframes[0])),
             blurb: w.blurb,
             facts: w.facts,
             action: w.action,
@@ -5753,7 +5953,33 @@ export class Ui {
       return [{ label: str('ui.back'), action: 'back' }];
     }
     if (this.screen === 'friends') {
-      return [...(this.friendsRows ? this.friendsRows() : []), { label: str('ui.back'), action: 'back' }];
+      /*
+       * BETWEEN RUNS THE ROOM SCREEN IS ALSO THE WAY INTO THE AIR: Fly on
+       * top once there is a room, the title's own Fly (act('fly'), so Track
+       * mode gets its launch card), because the owner sat in a joined room
+       * and found no way to start flying from it. In free flight, which is
+       * where the card lands, the aircraft and the world go under the
+       * room's own rows too. From a paused run the pause menu has all of
+       * it, Resume first.
+       */
+      const between = this.returnTo !== 'paused';
+      const seat = between && this.mode === 'freestyle';
+      const row = this.friendsRow ? this.friendsRow() : null;
+      const inRoom = Boolean(row && row.inRoom);
+      const rows = this.friendsRows ? this.friendsRows() : [];
+      /* A game's start row is the primary when a game card set the room up
+       * (src/main.js friendsRows), and the cursor opens on it; Fly stays on
+       * top but gives the screen's one primary up to it. */
+      const started = rows.some((it) => it.primary);
+      return [
+        ...(between && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: !started, note: str('friends.fly_note') }] : []),
+        ...rows,
+        ...(seat ? this.roomSeatRows(inRoom) : []),
+        { label: str('ui.back'), action: 'back' },
+      ];
+    }
+    if (this.screen === 'rooms' || this.screen === 'roomnew') {
+      return [...(this.roomRows ? this.roomRows(this.screen) : []), { label: str('ui.back'), action: 'back' }];
     }
     if (this.screen === 'credits') {
       return [{ label: str('ui.back'), action: 'back' }];
@@ -6157,6 +6383,50 @@ export class Ui {
           action: 'choosepad',
           note: padChooseNote(this.padInfo),
         },
+        /*
+         * MOUSE FLIGHT, beside the joystick because it is the other answer
+         * to "what am I flying with". Its four adjustments appear only
+         * while it is on, so the list a keyboard or radio pilot walks is
+         * one row longer and no more.
+         */
+        toggle(
+          str('ui.mouse_flight'),
+          str('ui.mouse_flight_note'),
+          s.mouseFlight,
+          (v) => { s.mouseFlight = Boolean(v); },
+        ),
+        ...(s.mouseFlight ? [
+          choice(
+            str('ui.mouse_sensitivity'),
+            str('ui.mouse_sensitivity_note'),
+            MOUSE_SENS,
+            s.mouseSens,
+            (n) => `${n}%`,
+            (n) => { s.mouseSens = n; },
+          ),
+          choice(
+            str('ui.mouse_expo'),
+            str('ui.mouse_expo_note'),
+            MOUSE_EXPOS,
+            s.mouseExpo,
+            (n) => `${n}%`,
+            (n) => { s.mouseExpo = n; },
+          ),
+          toggle(
+            str('ui.mouse_invert'),
+            str('ui.mouse_invert_note'),
+            s.mouseInvert,
+            (v) => { s.mouseInvert = Boolean(v); },
+          ),
+          choice(
+            str('ui.mouse_centre'),
+            str('ui.mouse_centre_note'),
+            MOUSE_CENTRES,
+            s.mouseCentre,
+            (id) => str(`ui.mouse_centre_${id}`),
+            (id) => { s.mouseCentre = id; },
+          ),
+        ] : []),
         { label: str('ui.calibrate_sticks'), action: 'calibrate', note: str('ui.centre_full_range_then_one_named') },
         /*
          * THE WAY BACK TO THE ONLY SCREEN THAT SHOWS A MAPPING.
@@ -6245,6 +6515,14 @@ export class Ui {
           s.hudStyle,
           (id) => (id === 'osd' ? str('ui.hud_osd') : str('ui.hud_game')),
           (id) => { s.hudStyle = id; },
+        ),
+        choice(
+          str('ui.peer_marks'),
+          str('ui.peer_marks_note'),
+          MARK_STYLES,
+          s.peerMarks,
+          (id) => str(`ui.peer_marks_${id}`),
+          (id) => { s.peerMarks = id; },
         ),
         { label: str('ui.sound'), section: true },
         toggle(str('ui.sound'), str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
@@ -6528,6 +6806,11 @@ export class Ui {
         ...(s.map === 'track' ? [{ label: str('ui.my_tracks'), action: 'mytracks', note: str('ui.back_to_the_list_of_tracks') }] : []),
         { label: str('ui.quit_to_title'), action: 'title' },
       ];
+    }
+    /* A room's race has the shell's rows: its results are the room's, and
+     * nothing on them posts to a board (src/main.js roomResultsRows). */
+    if (this.screen === 'results' && this.roomResults && this.roomResultsRows) {
+      return this.roomResultsRows();
     }
     if (this.screen === 'results') {
       /* The same rows on every race, greyed when an action does not apply,
@@ -7038,6 +7321,8 @@ export class Ui {
       freestyle: this.freestyleMenu,
       pilot: this.pilotMenu,
       friends: this.friendsMenu,
+      rooms: this.roomPages.rooms && this.roomPages.rooms.menu,
+      roomnew: this.roomPages.roomnew && this.roomPages.roomnew.menu,
       quad: this.quadMenu,
       launch: this.launchMenu,
       standings: this.standingsMenu,
@@ -7395,6 +7680,8 @@ export class Ui {
       freestyle: this.freestyleHelp,
       pilot: this.pilotHelp,
       friends: this.friendsHelp,
+      rooms: this.roomPages.rooms && this.roomPages.rooms.help,
+      roomnew: this.roomPages.roomnew && this.roomPages.roomnew.help,
       quad: this.quadHelp,
       launch: this.launchHelp,
       standings: this.standingsHelp,
@@ -8361,6 +8648,9 @@ export class Ui {
     if (!this.titleCards || this.titleCardKey !== key) {
       this.titleCardKey = key;
       host.textContent = '';
+      /* How many share the row, for the sheet: five cards are laid out
+       * tighter than two or three (index.html, THE GATE'S CARDS). */
+      host.dataset.count = String(items.length);
       this.titleCards = items.map((it, i) => {
         const card = el('div', `gate-card gate-card-${it.card}`);
         card.setAttribute('role', 'button');
@@ -9786,7 +10076,7 @@ export class Ui {
    * toggled because it is six lines of type and a switch nobody flips twice.
    */
   setHowtoSource(id) {
-    this.howtoSource = ['radio', 'launch', 'touch'].includes(id) ? id : 'keyboard';
+    this.howtoSource = ['radio', 'launch', 'touch', 'mouse'].includes(id) ? id : 'keyboard';
     this.renderHowto();
     if (this.onUiSound) {
       this.onUiSound('adjust');
@@ -9820,6 +10110,16 @@ export class Ui {
         ['Acro', str('ui.hands_off_holds_the_attitude_you')],
         ['Turtle', str('ui.if_you_end_up_inverted_on_2')],
       ]
+      : source === 'mouse'
+        ? [
+          [str('ui.mouse'), str('ui.howto_mouse_move')],
+          [str('ui.howto_mouse_wheel_key'), str('ui.howto_mouse_wheel')],
+          [str('ui.howto_mouse_buttons_key'), str('ui.howto_mouse_buttons')],
+          [str('ui.howto_mouse_centre_key'), str('ui.howto_mouse_centre')],
+          [str('ui.howto_mouse_keys_key'), str('ui.howto_mouse_keys')],
+          ['Esc', str('ui.howto_mouse_escape')],
+          [str('ui.howto_mouse_on_key'), str('ui.howto_mouse_on', { pilot: SCREEN_TITLES.pilot })],
+        ]
       : source === 'launch'
         ? [
           [str('ui.what_it_is'), str('ui.betaflight_race_start_pitch_the_quad')],
@@ -9846,14 +10146,18 @@ export class Ui {
         ? str('ui.move_your_sticks_these_follow_the')
         : source === 'launch'
           ? str('ui.l_arms_it_pitch_centre_punch')
-          : str('ui.press_the_keys_these_follow_your');
+          : source === 'mouse'
+            ? str('ui.howto_mouse_live')
+            : str('ui.press_the_keys_these_follow_your');
     this.howtoMode.textContent = source === 'touch'
       ? str('ui.thumb_sticks_are_a_real_proportional')
       : source === 'radio'
         ? str('ui.a_radio_flies_acro_by_default')
         : source === 'launch'
           ? str('ui.off_by_default_because_a_punch')
-          : str('ui.keys_are_on_or_off_so');
+          : source === 'mouse'
+            ? str('ui.howto_mouse_mode')
+            : str('ui.keys_are_on_or_off_so');
   }
 
   /* Live channels for the tutorial's gimbals, fed by the shell's loop. */
@@ -10155,6 +10459,7 @@ export class Ui {
    * figure to say whether this lap beat it.
    */
   showResults(log, best, recordAtStart, ghostNote = null) {
+    this.roomResults = false;
     this.resultsBody.textContent = '';
     this.resultsNote.textContent = '';
     const clean = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
@@ -10297,6 +10602,46 @@ export class Ui {
     /* The one automatic offer of the flight feel question, because this is
      * the only place a first race finishes. */
     this.maybeOfferFeel();
+  }
+
+  /*
+   * A room's race on the same screen (src/share/roomrace.js): everybody in
+   * it in order, one row each, written by the shell because only it knows
+   * the pilots' names. v is { kicker, head, heroCap, heroTime, heroMeta,
+   * win, rows: [{ label, time, tag, me, out }] }. Called again as the
+   * others finish; nothing here is posted anywhere.
+   */
+  showRoomResults(v) {
+    this.roomResults = true;
+    this.resultsBody.textContent = '';
+    this.resultsNote.textContent = '';
+    const screen = this.screens.results;
+    screen.classList.toggle('is-record', Boolean(v.win));
+    screen.classList.remove('is-empty');
+    this.resultsKicker.textContent = v.kicker;
+    this.resultsHead.textContent = v.head;
+    this.resultsHeroCap.textContent = v.heroCap;
+    this.resultsHeroTime.textContent = v.heroTime;
+    this.resultsHeroMeta.textContent = v.heroMeta;
+    this.resultsHeroMeta.className = 'results-hero-meta';
+    for (const r of v.rows) {
+      const row = el('div', `result-row${r.out ? ' void' : ''}${r.me ? ' fastest' : ''}`);
+      const main = el('div', 'result-main');
+      main.append(el('span', 'result-label', r.label), el('span', 'result-time', r.time));
+      if (r.tag) {
+        main.append(el('span', 'result-tag', r.tag));
+      }
+      row.append(main);
+      this.resultsBody.append(row);
+    }
+    if (this.screen !== 'results') {
+      screen.classList.remove('is-in');
+      void screen.offsetWidth;
+      screen.classList.add('is-in');
+      this.show('results');
+    } else {
+      this.renderMenu();
+    }
   }
 
   /* `panelled` true boxes the text in the middle of the frame; 'edge' is
@@ -10726,6 +11071,7 @@ export class Ui {
    * cares about: you flew nine flips and they were worth this much.
    */
   showFreestyleResults(summary) {
+    this.roomResults = false;
     this.freestyleRun = summary;
     this.runPosted = null;
     this.resultsBody.textContent = '';
@@ -11907,8 +12253,13 @@ export class Ui {
    * swaps the world, and lands the pilot back where the choice was made
    * from. The gate and both pickers go through here so none of them can
    * leave the seat and the row that names it disagreeing.
+   *
+   * `stay` keeps the pilot on the screen they are on, for a seat nobody
+   * chose on this screen: a room that flies in another world seats it on
+   * welcome (src/main.js), which used to throw a pilot who had just typed
+   * a code on the room screen out to the title.
    */
-  seatMap(id) {
+  seatMap(id, { stay = false } = {}) {
     const m = MAPS.find((x) => x.id === id);
     if (m && m.mode === 'freestyle') {
       /* So the Map row names the place you were last in rather than the
@@ -11918,7 +12269,9 @@ export class Ui {
     }
     this.settings.map = id;
     saveSettings(this.settings);
-    this.show(this.returnTo === 'paused' ? 'paused' : 'title');
+    if (!stay) {
+      this.show(this.returnTo === 'paused' ? 'paused' : 'title');
+    }
     if (this.onSettings) {
       this.onSettings(this.settings);
     }
@@ -11996,6 +12349,12 @@ export class Ui {
     }
     if (this.screen === 'calibrate') {
       this.act('calibrate-cancel');
+      return;
+    }
+    /* Make a room is inside Rooms, and Rooms inside Fly with friends,
+     * whichever way the pilot came in, the pause menu included. */
+    if (this.screen === 'rooms' || this.screen === 'roomnew') {
+      this.show(this.screen === 'rooms' ? 'friends' : 'rooms');
       return;
     }
     if (this.screen === 'padpick') {
@@ -12325,6 +12684,10 @@ export class Ui {
       this.settings.airframeAsked = true;
       this.craftGate = false;
       this.mode = way.mode;
+      /* The room game a card preselected, 'combat' or 'tag', or null: read
+       * by the shell's room rows (src/main.js friendsRows) and sent in this
+       * pilot's profile, so the room screen leads with it. */
+      this.roomGame = way.game ?? null;
       saveSettings(this.settings);
       /* The shell has to hear this before anything is flown: it is the
        * call that swaps the plant in the compiled module and reloads the
@@ -12373,6 +12736,9 @@ export class Ui {
          * reason as below: the fourth card is not the menu's fourth row. */
         this.setCursor(this.titleStop());
         this.seatMap(want.id);
+        if (way.room) {
+          this.show('friends');
+        }
         return;
       }
       /*
@@ -12386,6 +12752,9 @@ export class Ui {
        */
       this.setCursor(this.titleStop());
       this.renderMenu();
+      if (way.room) {
+        this.show('friends');
+      }
       return;
     }
     /*
@@ -12406,6 +12775,12 @@ export class Ui {
       if (this.onFriends) {
         this.onFriends(action);
       }
+      return;
+    }
+    /* Pages under Fly with friends: show(), not the branch below, which
+     * would rewrite returnTo and lose a paused run. */
+    if (action === 'rooms' || action === 'roomnew') {
+      this.show(action);
       return;
     }
     if (action === 'howto' || action === 'pilot' || action === 'quad'
@@ -12773,6 +13148,12 @@ export class Ui {
   pickForWay(action) {
     const way = WAYS.find((w) => w.action === action);
     if (!way) {
+      return;
+    }
+    /* A room's aircraft is chosen in the room, once it is known who is
+     * flying what: the card goes straight to the room screen. */
+    if (way.room) {
+      this.act(action);
       return;
     }
     const s = this.settings;
