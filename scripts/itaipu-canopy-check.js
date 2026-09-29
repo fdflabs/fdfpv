@@ -301,7 +301,14 @@ const TOUCHES = `JSON.stringify((() => {
   };
 })())`;
 
-const STREAM = 'JSON.stringify({ s: window.__map().stream, near: window.__map().parts.vegetation.near, c: window.__colliders() })';
+/* The refill's own numbers, read without window.__map(), whose whole
+ * stats allocate enough to set off a collection inside the slice being
+ * timed. */
+const STREAM = `JSON.stringify((() => {
+  const it = window.__mapScene().userData.itaipu;
+  const c = window.__colliders();
+  return { s: it.stream, near: it.parts.vegetation.near, c: { streamed: c.streamed, streamGen: c.streamGen } };
+})())`;
 
 /* Park the camera over (x, z), `up` metres over the ground, and wait
  * until the streamed set has been refilled round it (the camera is the

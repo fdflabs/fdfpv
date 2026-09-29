@@ -39,7 +39,7 @@
  */
 
 import * as THREE from 'three';
-import { Colliders } from '../game/collide.js';
+import { Colliders, STREAM_SLICE } from '../game/collide.js';
 import { insideWater } from '../game/water.js';
 import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
@@ -96,6 +96,12 @@ const PARTS = [
  * pilot has left what the part's set covers, and fill adds the part's
  * colliders round (x, z) to `list`, yielding between slices of its work.
  */
+/* Cell entries a refill's step writes here: half collide.js's measured
+ * STREAM_SLICE, because a step also freezes the set it starts on, and a
+ * step at the full slice ran to 2.8 ms in the page while the JIT was
+ * cold (scripts/itaipu-canopy-check.js). */
+const STEP_ENTRIES = STREAM_SLICE / 2;
+
 function makeStreamer(colliders, parts) {
   const streams = parts.map((p) => p.stream).filter(Boolean);
   let fill = null;
@@ -120,7 +126,7 @@ function makeStreamer(colliders, parts) {
       }
       return false;
     }
-    if (!fill.step()) {
+    if (!fill.step(STEP_ENTRIES)) {
       return false;
     }
     fill = null;
@@ -325,7 +331,9 @@ async function buildItaipu(shell, progress, q) {
   progress(1);
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
-  scene.userData.itaipu = { terrain, camera, parts, look };
+  scene.userData.itaipu = {
+    terrain, camera, parts, look, stream: streamer.stats,
+  };
   return {
     id: 'itaipu',
     name: str('registry.itaipu'),

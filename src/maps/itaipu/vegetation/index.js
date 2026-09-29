@@ -137,7 +137,7 @@ export async function buildPart(ctx) {
     timed('mask', fetchBytes(`${base}${manifest.imagery.hero.masks}`)),
     timed('colour', jpegPixels(`${base}${manifest.imagery.hero.file}`)),
     timed('atlases', loadAtlases()),
-    ...heroTiles.map(([i, j]) => fetchBytes(`${base}${manifest.canopy.path.replace('{i}', i).replace('{j}', j)}`)),
+    ...heroTiles.map(([i, j]) => fetchBytes(base + manifest.canopy.path.replace('{i}', i).replace('{j}', j))),
   ]);
   const mask = await decodePng(maskBytes, inflate);
   const byTile = new Map(heroTiles.map(([i, j], k) => [`${i}_${j}`, tiles[k]]));
@@ -251,6 +251,7 @@ export async function buildPart(ctx) {
      * planting and their crowns in the models, as the drawing does. */
     forest,
     crowns,
+    near,
     /* The wind on the sim clock, so a replay's leaves move as they did. */
     update(step) {
       wind.uTime.value = step / 1000;
