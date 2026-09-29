@@ -4317,6 +4317,28 @@
       .touch-fly-on .swap-chip { display: none; }
       .touch-fly .touch-swap { top: 88px; }
 
+      /* A newer deploy is out: src/ui/update.js. Bottom centre over the
+         command bar, away from the chip stack in the top right, in the same
+         chip family. Menus and Paused only; syncChips hides it in flight. */
+      .update-bar {
+        position: absolute; left: 50%; bottom: calc(var(--bar-bot) + 12px); z-index: 7;
+        transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box;
+        display: flex; align-items: center; gap: 12px;
+        pointer-events: auto;
+        border: 1px solid rgba(232, 168, 184, 0.45);
+        background: rgba(16, 22, 17, 0.9); color: var(--cream);
+        font: 600 12px/1.3 var(--ui-font); letter-spacing: 0.06em;
+        padding: 6px 6px 6px 14px; border-radius: 4px;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+      }
+      .update-bar[hidden] { display: none; }
+      .update-reload {
+        appearance: none; border: 1px solid var(--sakura); border-radius: 3px;
+        background: transparent; color: var(--sakura); cursor: pointer;
+        font: inherit; padding: 5px 10px;
+      }
+      .update-reload:hover { background: var(--sakura); color: #101611; }
+
       /*
        * THE AIRCRAFT PICKER (src/ui/carousel.js). The models are drawn in
        * the canvas UNDER all of this (src/render/carousel3d.js), so the
@@ -4465,6 +4487,22 @@
         margin-top: 8px; font-size: clamp(28px, 4vw, 46px); font-weight: 800; letter-spacing: 0.005em; line-height: 1;
       }
       .hangar-facts { justify-content: flex-start; margin-top: 12px; }
+      /* The Floats toggle, a pill beside the span and the weight: outlined
+         off, filled on. */
+      .hangar-floats {
+        display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+        font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em; color: var(--cream);
+        padding: 6px 12px; border-radius: 999px;
+        background: rgba(12, 18, 14, 0.55); border: 1px solid rgba(243, 234, 212, 0.45);
+      }
+      .hangar-floats::before {
+        content: ''; width: 22px; height: 12px; border-radius: 999px;
+        background: rgba(243, 234, 212, 0.25) radial-gradient(circle at 6px 6px, var(--cream) 4px, transparent 5px);
+        transition: background-color 160ms;
+      }
+      .hangar-floats.on { color: var(--amber); border-color: rgba(255, 212, 92, 0.7); }
+      .hangar-floats.on::before { background: var(--amber) radial-gradient(circle at 16px 6px, #10160f 4px, transparent 5px); }
+      .hangar-floats:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
       .hangar-tabs { position: relative; }
       .hangar-tab-pill {
         position: absolute; top: 3px; left: 3px; height: calc(100% - 6px); width: 0;
@@ -4605,8 +4643,6 @@
         border: 1px solid rgba(243, 234, 212, 0.35); transition: background 160ms, box-shadow 160ms;
       }
       .parts-toggle.on::after { background: var(--mint); border-color: var(--mint); box-shadow: 0 0 10px rgba(125, 255, 180, 0.7); }
-      .parts-link { border-style: dashed; }
-      .parts-link:disabled { opacity: 0.5; cursor: default; transform: none; }
       .parts-damage { display: flex; flex-direction: column; gap: 6px; }
       .parts-damage-row {
         display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -4810,13 +4846,13 @@
         .hangar-body { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 32vh) minmax(0, 1fr); gap: 10px; }
         .hangar-schemes { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
         .hangar-panel { gap: 8px; padding-left: 16px; padding-right: 16px; }
-        .hangar-facts { display: none; }
+        .hangar-facts:not(:has(.hangar-floats)), .hangar-facts .carousel-fact { display: none; }
       }
       /* A short screen, a phone on its side: the words give way. */
       @media (max-height: 520px) {
         .hangar-panel { gap: 6px; padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
         .hangar-name { font-size: 22px; margin-top: 4px; }
-        .hangar-facts, .hangar .carousel-hint { display: none; }
+        .hangar-facts:not(:has(.hangar-floats)), .hangar-facts .carousel-fact, .hangar .carousel-hint { display: none; }
         .hangar .carousel-choose, .hangar .carousel-back { padding: 9px 22px; }
       }
 

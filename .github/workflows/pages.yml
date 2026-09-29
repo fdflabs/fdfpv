@@ -6,6 +6,12 @@
 # because nothing served needs it, and vendor/ is left out of the artifact
 # for the same reason. Pages serves .wasm as application/wasm, which the
 # streaming instantiate in tests/lib/simmod.js requires.
+#
+# The one change to the staged tree is the version stamp: every module the
+# shell pages import is named at ?v=<commit> in their import maps, and
+# version.json carries the same commit for src/ui/update.js to poll. Pages
+# sends max-age=600 on every file, so without it a tab or a reload could run
+# modules from two deploys at once. See scripts/stamp-version.js.
 name: pages
 
 on:
@@ -44,6 +50,11 @@ jobs:
           du -sh /tmp/site
           test -f /tmp/site/dist/sim.wasm
           test -f /tmp/site/tests/lib/simmod.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Stamp the version
+        run: node scripts/stamp-version.js /tmp/site "${GITHUB_SHA::12}"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: /tmp/site

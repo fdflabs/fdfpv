@@ -29,19 +29,12 @@
 
 import { POWER, powerBlock, powerChoice, powerOption, SIM_POWER } from '../../configs/power.js';
 import {
-  ADDONS, FLOAT_TWIN, PROPS, addonsFor, normalisePlane, partsEntry, partsSummary, propOf, propShape, tapeable,
+  ADDONS, PROPS, addonsFor, normalisePlane, partsEntry, partsSummary, propOf, propShape, tapeable,
 } from '../../configs/hangar-parts.js';
 import { PROP_ESTIMATES } from '../../configs/prop-estimates.js';
 import { PART_KINDS } from '../../configs/parts.js';
-import { airframeById } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
-
-/* Set by the shell: open the hangar on another plane (the float twin). */
-const links = { openHangar: null };
-export function setPartsLinks(fn) {
-  links.openHangar = typeof fn === 'function' ? fn : null;
-}
 
 /* The tab's state for the plane on the stand. */
 let st = null;
@@ -138,8 +131,7 @@ function propCards(hangar, box, now) {
 function addonCards(hangar, box, now) {
   const id = st.id;
   const fit = addonsFor(id);
-  const twin = FLOAT_TWIN[id];
-  if (!fit.length && !twin) {
+  if (!fit.length) {
     return;
   }
   box.append(el('h3', 'hangar-h', str('parts.addons')));
@@ -170,22 +162,6 @@ function addonCards(hangar, box, now) {
     hangar.lockMark(b, 'addon', a);
     grid.append(b);
   });
-  if (twin) {
-    const dirty = hangar.dirty();
-    const b = button('hangar-card parts-link');
-    b.dataset.key = 'addon-floats';
-    b.dataset.focus = 'overview';
-    b.style.setProperty('--i', String(fit.length));
-    b.disabled = dirty || !links.openHangar;
-    b.append(el('span', 'hangar-card-name', str(airframeById(twin).floats ? 'parts.floats_on' : 'parts.floats_off')));
-    b.append(el('span', 'hangar-card-detail', dirty ? str('parts.save_first') : airframeById(twin).name));
-    b.addEventListener('click', () => {
-      if (links.openHangar) {
-        links.openHangar(twin);
-      }
-    });
-    grid.append(b);
-  }
   box.append(grid);
   if (st.entry.addons.includes('smoke')) {
     box.append(el('p', 'hangar-source', str('parts.smoke_key')));

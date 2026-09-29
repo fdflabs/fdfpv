@@ -730,13 +730,12 @@ export class RoomCore {
     s.pose = checked.bytes;
     s.poseNow = now;
     /* The referee judges the bytes the room relays: Phase 5 sets
-     * FLAG_SPAWNING on a spawning or benched seat, which the rule leaves
-     * out, and every hit counts toward its ramming bench. In a tag match
-     * a touch is a tag, never a crash: the match judges it instead. */
-    const hits = this.tag.on() ? this.tag.pose(this, s, checked.bytes, now) : this.referee.pose(s.seat, checked.bytes, this.roomMs(now)).flatMap((h) => {
-      this.safety.noteHit(h.a, h.b, now);
-      return this.others(null, JSON.stringify(h));
-    });
+     * FLAG_SPAWNING on a spawning seat, which the rule leaves out. It
+     * judges in a tag match too, whose bubble is a rule of its own on the
+     * same bytes: a hunter in the bubble takes the crown, and a hunter
+     * that hits the Ace crashes as well (docs/TAG-PLAN.md decision 1). */
+    const hits = this.referee.pose(s.seat, checked.bytes, this.roomMs(now)).flatMap((h) => this.others(null, JSON.stringify(h)));
+    hits.push(...this.tag.pose(this, s, checked.bytes, now));
     /* After the referee: a crash from a hit it just decided is a mid air's. */
     hits.push(...this.combat.pose(this, s, now));
     if (this.ticking) {

@@ -120,26 +120,6 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             held by craft-preview.js's half span row. The reach is the
  *             elevator's rounded outer trailing corner, 1.168 m.
  *             src/render/kadetcraft.js draws it.
- *   edge1524  Extreme Flight's 60 in (1524 mm) Edge 540T, whose rudder
- *             also reaches further from the CG than its tips: its
- *             trailing edge's foot is 0.965 m aft, EF's 58 in length less
- *             the 19 in to the CG and the spinner's 2 in, the tips 0.762 m
- *             out, so the width and the reach this file measures are both
- *             1930 mm, and EF's 1524 mm is held by craft-preview.js's half
- *             span row. src/render/edgecraft.js draws it.
- *   extra1308 E-flite's 1308 mm Extra 300 3D, whose rudder also reaches
- *             further from the CG than its tips: its trailing edge is
- *             0.926 m aft, E-flite's 1260 mm length less the CG's 0.337 m
- *             behind the spinner, and the tips 0.654 m out, so the width
- *             and the reach this file measures are both 1852 mm and
- *             E-flite's 1308 mm span is held by the half span of
- *             src/render/extracraft.js EXTRA_DIMS.
- *   pitts850  E-flite's 850 mm Pitts S-1S, whose round rudder reaches
- *             further from the CG than its top wing's tips: its trailing
- *             edge 0.541 m aft against the tips' 0.425 m out, so the width
- *             and the reach this file measures are both 1082 mm and
- *             E-flite's 850 mm span is held by the half span of
- *             src/render/pittscraft.js PITTS_DIMS.
  *   f16878    Freewing's F-16 V3, 878 mm over its tip rails, whose pitot
  *             reaches further from the CG than anything else: 0.710 m
  *             ahead, against the rails' 0.439 m out and the fin's tip
@@ -168,20 +148,6 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             the width and the reach this file measures are both the
  *             rudder's, 1769 mm, and the plan's 61.7 in span is held by
  *             src/render/uglystikcraft.js UGLYSTIK_DIMS.
- *   wot41334  the Ripmax Wot 4 Mk2, 1334 mm, whose big rudder's trailing
- *             edge, 0.833 m aft of the CG (Ripmax's 1185 mm length and
- *             the cover's side view), reaches further than its tips,
- *             0.667 m out, so the width this file measures and the reach
- *             are both the rudder's, 1666 mm, and Ripmax's 1334 mm is held
- *             by craft-preview.js's half span row. src/render/wot4craft.js
- *             draws it.
- *   quickie1293 Spickler's 51 in Quickie 500, whose elevator's trailing
- *             edge, 0.719 m behind the CG on the plan (station 42.3
- *             against the CG's 14.0), reaches further than its tips, 0.647
- *             m out, so the width this file measures is the elevator's,
- *             1438 mm, and the reach its tip corner's, 8 in out, 1494 mm;
- *             the plan's 50.9 in span is held by
- *             src/render/quickiecraft.js QUICKIE_DIMS.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -203,16 +169,11 @@ const REAL = {
   cub1400f: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
   kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
-  edge1524: { spanMm: 1930.4, sweepMm: 1930.4, tolMm: 6 },
-  extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
-  pitts850: { spanMm: 1082.0, sweepMm: 1082.0, tolMm: 6 },
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
   zagi1219: { spanMm: 1219.2, sweepMm: 1331.4, tolMm: 6 },
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
-  wot41334: { spanMm: 1666.0, sweepMm: 1666.0, tolMm: 6 },
   nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
   tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
-  quickie1293: { spanMm: 1437.6, sweepMm: 1494.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

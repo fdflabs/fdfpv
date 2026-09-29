@@ -39,7 +39,7 @@
  */
 
 import * as THREE from 'three';
-import { Colliders } from '../game/collide.js';
+import { Colliders, STREAM_SLICE } from '../game/collide.js';
 import { insideWater } from '../game/water.js';
 import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
@@ -81,6 +81,103 @@ const PARTS = [
   ['town', buildTown, 0.3],
   ['vegetation', buildVegetation, 0.2],
 ];
+
+/*
+ * THE STREAMED COLLIDERS (docs/ITAIPU-PLAN.md sections 7, 9 and 13): what
+ * the parts keep only near the pilot (the town's walls, the near trees),
+ * in the one streamed set Colliders has (src/game/collide.js
+ * streamFill). One set, so one owner: the map starts a refill when any
+ * part's stream wants one, every streaming part adds its colliders round
+ * the pilot to it, and it advances one slice a frame: a part's fill (a
+ * generator) to its next yield, then one StreamFill.step at a time. Until
+ * the step that swaps it in, the set before it is the one in force, whole.
+ *
+ * A part's stream is { wants(x, z), fill(list, x, z), swapped(offset) }:
+ * wants says the pilot has left what the part's set covers, fill adds
+ * the part's colliders round (x, z) to `list`, yielding between slices
+ * of its work, and swapped, if the part has it, is called on the slice
+ * that swaps the set in, with the offset (colliders.staticCount) that
+ * turns an index `list` gave into the collider's index in the map (the
+ * town's roofs name the walls under them this way).
+ *
+ * Before each step the roofs' cover is lifted (`uncover`): the step that
+ * swaps renumbers every streamed collider, and the pass flags the cover
+ * set on the walls under a roof would name other colliders after it. The
+ * obstacle pass sets the cover again from the craft before its next sweep
+ * (src/main.js).
+ */
+/* Cell entries a refill's step writes here: half collide.js's measured
+ * STREAM_SLICE, because a step also freezes the set it starts on, and a
+ * step at the full slice ran to 2.8 ms in the page while the JIT was
+ * cold (scripts/itaipu-canopy-check.js). */
+const STEP_ENTRIES = STREAM_SLICE / 2;
+
+function makeStreamer(colliders, parts, uncover) {
+  const streams = parts.map((p) => p.stream).filter(Boolean);
+  let fill = null;
+  let adds = [];
+  let frames = 0;
+  const stats = {
+    refills: 0, frames: 0, maxSliceMs: 0, lastSlicesMs: [],
+  };
+  const begin = (x, z) => {
+    fill = colliders.streamFill();
+    adds = streams.map((s) => s.fill(fill, x, z));
+    frames = 0;
+    stats.lastSlicesMs = [];
+  };
+  /* One slice of the refill in progress; true on the one that swapped
+   * the new set in. */
+  const slice = () => {
+    frames += 1;
+    if (adds.length) {
+      if (adds[0].next().done) {
+        adds.shift();
+      }
+      return false;
+    }
+    uncover();
+    if (!fill.step(STEP_ENTRIES)) {
+      return false;
+    }
+    fill = null;
+    for (const s of streams) {
+      if (s.swapped) {
+        s.swapped(colliders.staticCount);
+      }
+    }
+    stats.refills += 1;
+    stats.frames = frames;
+    return true;
+  };
+  return {
+    stats,
+    /* At load, round the spawn, all at once. */
+    fillNow(x, z) {
+      if (!streams.length) {
+        return;
+      }
+      begin(x, z);
+      while (!slice()) {
+        /* Each slice is bounded; the loop ends when the set is in. */
+      }
+    },
+    /* Once a frame, with the pilot. */
+    update(x, z) {
+      if (!fill) {
+        if (!streams.some((s) => s.wants(x, z))) {
+          return;
+        }
+        begin(x, z);
+      }
+      const t0 = performance.now();
+      slice();
+      const ms = performance.now() - t0;
+      stats.lastSlicesMs.push(Math.round(ms * 100) / 100);
+      stats.maxSliceMs = Math.max(stats.maxSliceMs, ms);
+    },
+  };
+}
 
 export function dataBase() {
   const loc = window.location;
@@ -196,6 +293,20 @@ async function buildItaipu(shell, progress, q) {
   }
   colliders.build();
   const roofs = makeRoofs(roofRecords);
+  const streamer = makeStreamer(colliders, Object.values(parts), () => roofs.cover(colliders, 0, 0, -Infinity));
+  streamer.fillNow(SPAWN.x, SPAWN.z);
+  /* The forest volume (section 9): the highest canopy any part answers
+   * for, for the contact pass's canopy call (src/main.js). */
+  const canopies = Object.values(parts).map((p) => p.canopyAt).filter(Boolean);
+  const canopyAt = canopies.length
+    ? (x, z) => {
+      let top = -Infinity;
+      for (const c of canopies) {
+        top = Math.max(top, c(x, z));
+      }
+      return top;
+    }
+    : undefined;
   look.setHeights(ground, HERO_HALF, 10);
   look.finish();
   progress(0.93);
@@ -236,7 +347,9 @@ async function buildItaipu(shell, progress, q) {
   progress(1);
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
-  scene.userData.itaipu = { terrain, camera, parts, look };
+  scene.userData.itaipu = {
+    terrain, camera, parts, look, stream: streamer.stats,
+  };
   return {
     id: 'itaipu',
     name: str('registry.itaipu'),
@@ -276,7 +389,14 @@ async function buildItaipu(shell, progress, q) {
     updateShadowFocus(target) {
       look.updateShadowFocus(target);
       terrain.update(target, camera.position);
+      streamer.update(target.x, target.z);
+      for (const p of Object.values(parts)) {
+        if (p.view) {
+          p.view(target, camera);
+        }
+      }
     },
+    canopyAt,
     updateWind() {},
     updateAnim(step) {
       for (const p of Object.values(parts)) {
@@ -294,6 +414,7 @@ async function buildItaipu(shell, progress, q) {
       terrain: terrain.stats(),
       reconciled: terrain.reconciled,
       colliders: colliders.stats(),
+      stream: streamer.stats,
       parts: Object.fromEntries(Object.entries(parts).map(([n, p]) => [n, p.stats()])),
     }),
     /* The terrain frees its chunks and leaves the scene; the graph frees

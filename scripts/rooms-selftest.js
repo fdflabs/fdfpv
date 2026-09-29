@@ -54,7 +54,7 @@ import {
   CHAT_BURST, CHAT_EVERY_MS, CHAT_PRESETS, CLOSE_REMOVED, EMOTES, FLAG_SPAWNING, PUBLIC_CAP, REPORT_REASONS, REPORT_WINDOW_MS,
 } from '../src/share/roomwire.js';
 import {
-  BENCH_MS, IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
+  IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
 } from '../edge/rooms/safety.js';
 import { TELEPORT_SPEED } from '../src/game/verify.js';
 import { SYNC_GAP_MS } from '../src/share/rooms.js';
@@ -479,11 +479,6 @@ console.log('mid air referee');
     `${plain.a.length} and ${plain.b.length}`);
   check('just before they would meet, CG to CG', h && h.tc > MEET - 50 && h.tc < MEET, h ? `${h.tc} ms` : '');
   check('inside Phase 5\'s spawn protection nobody is hit: the same pass 2 s after spawning', pass({ meet: 2000 }).a.length === 0);
-  check('the hit counts toward Phase 5\'s ramming bench, on both seats', (() => {
-    const p = pass();
-    const counts = [...p.room.safety.pilots.values()].map((x) => x.hits.length);
-    return counts.length === 2 && counts.every((n) => n === 1);
-  })());
   check('a hit a client can act on (checkHit)', h && checkHit(h));
   check('each side is struck by the other: A\'s normal points back along its flight, in its own body frame', h && h.A.n[0] < -0.9 && h.B.n[0] < -0.9,
     h ? `${h.A.n} ${h.B.n}` : '');
@@ -1148,33 +1143,65 @@ for (let i = 0; i < IMPOSSIBLE_LIMIT; i += 1) {
 }
 check(`${IMPOSSIBLE_LIMIT} impossible poses in a minute remove the seat`, f1.closed && f1.closed.code === CLOSE_REMOVED);
 
-console.log('phase 5: ramming');
-room = new RoomCore(meta);
-const g1 = sock('g1', '10.9.0.1');
-const g2 = sock('g2', '10.9.0.2');
-const g3 = sock('g3', '10.9.0.3');
-for (const s of [g1, g2, g3]) {
-  hello(s);
+/*
+ * No ramming bench (the owner, 2026-09-29: "kill anti ramming rule"). Two
+ * Cubs fly back and forth along one line, 30 m either side of the middle
+ * at 15 m/s, mirror images, so they meet head on in the middle every 4 s,
+ * each pass through the room's own referee: twenty mid airs in 82 s.
+ */
+console.log('phase 5: every mid air counts');
+{
+  room = new RoomCore(meta);
+  const r1 = sock('r1', '10.9.1.1');
+  const r2 = sock('r2', '10.9.1.2');
+  hello(r1);
+  hello(r2);
+  const LEG_MS = 4000;
+  const start = now;
+  /* A's x at ms u of the flight: -30 to 30 and back, and its heading. */
+  const legOf = (u) => {
+    const k = Math.floor(u / LEG_MS);
+    const f = (u - k * LEG_MS) / LEG_MS;
+    const dir = k % 2 === 0 ? 1 : -1;
+    return { x: dir * (60 * f - 30), dir };
+  };
+  const cubAt = (x, dir) => encodePose({
+    flags: FLAG_AIRBORNE, seq: 1, t: now - meta.epoch, px: x, py: 80, pz: 0,
+    qx: 0, qy: dir > 0 ? -Math.SQRT1_2 : Math.SQRT1_2, qz: 0, qw: Math.SQRT1_2,
+    vx: 15 * dir, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, c0: 0, c1: 0, c2: 0, c3: 0, motor: 0, flaps: 0,
+  });
+  let flagged = 0;
+  const MEETS = 20;
+  const endAt = start + LEG_MS / 2 + MEETS * LEG_MS + 1000;
+  while (now < endAt) {
+    now += 33;
+    const { x, dir } = legOf(now - start);
+    run(room.message(r1, cubAt(x, dir), now));
+    run(room.message(r2, cubAt(-x, -dir), now));
+    const n = r1.got.length;
+    run(room.tick(now));
+    /* Past the first pose's spawn protection, nobody is marked spawning. */
+    if (now - start > SPAWN_MS + 100) {
+      for (const m of r1.got.slice(n).filter((q) => q instanceof Uint8Array)) {
+        flagged += decodeBatch(m).poses.filter((q) => (q.flags & FLAG_SPAWNING) !== 0).length;
+      }
+    }
+  }
+  const hitsOf = (s) => texts(s, 'hit');
+  const h1 = hitsOf(r1);
+  const h2 = hitsOf(r2);
+  const span = h1.length ? h1.at(-1).tc - h1[0].tc : 0;
+  check(`${MEETS} head on passes after the spawn protection: ${MEETS} mid airs, every one sent to both pilots`,
+    h1.length === MEETS && JSON.stringify(h1) === JSON.stringify(h2), `${h1.length} and ${h2.length}`);
+  check('all of them inside five minutes', span > 0 && span < 5 * 60 * 1000, `${(span / 1000).toFixed(1)} s from the first to the last`);
+  for (const nth of [5, 10, 20]) {
+    const h = h1[nth - 1];
+    check(`the ${nth}th mid air in five minutes still counts: a hit between the two, with a part broken on each`,
+      Boolean(h) && [h.a, h.b].sort().join() === [seatOf(r1), seatOf(r2)].sort().join() && h.A.brk > 0 && h.B.brk > 0,
+      h ? `${((h.tc - h1[0].tc) / 1000).toFixed(1)} s after the first` : 'none');
+  }
+  check('and neither pilot is ever made untouchable for it: no relayed pose is marked spawning', flagged === 0, `${flagged} marked`);
 }
-run(room.message(g1, livePose(), now));
-now += SPAWN_MS + 1;
-check('a flying seat can be touched', !room.safety.untouchable(seatOf(g1), now));
-for (let i = 0; i < 3; i += 1) {
-  room.safety.noteHit(seatOf(g1), i % 2 ? seatOf(g2) : seatOf(g3), now);
-  now += 1000;
-}
-check('three hits in five minutes is still flying', !room.safety.untouchable(seatOf(g1), now));
-room.safety.noteHit(seatOf(g1), seatOf(g2), now);
-check('a fourth benches the seat: untouchable and unable to touch', room.safety.untouchable(seatOf(g1), now));
-check('its two victims, hit twice each, are not', !room.safety.untouchable(seatOf(g2), now) && !room.safety.untouchable(seatOf(g3), now));
-run(room.message(g1, livePose(), now));
-const n3 = g3.got.length;
-now += 34;
-run(room.tick(now));
-const benched = g3.got.slice(n3).filter((m) => m instanceof Uint8Array).map((m) => decodeBatch(m).poses.find((q) => q.seat === seatOf(g1)))[0];
-check('everybody sees the benched seat as spawning', benched && (benched.flags & FLAG_SPAWNING) !== 0);
-now += BENCH_MS;
-check(`for ${BENCH_MS / 60000} minutes`, !room.safety.untouchable(seatOf(g1), now));
 
 /* The public lobby became the room browser's: scripts/rooms-selftest-browser.js. */
 
@@ -1339,7 +1366,7 @@ console.log('catch the ace: starting a match');
     tagged && tagged.t === cd.goAt + PROTECT_MS + 1 && tagged.seat === 1 && tagged.from === 2, tagged ? JSON.stringify(tagged) : '');
   check('every seat is told who and when, the same', [0, 1, 2].every((i) => JSON.stringify(e.view(i).crowns) === JSON.stringify(e.view(0).crowns))
     && e.view(0).ace === 1);
-  check('a touch is a tag, not a crash: no mid air hit was sent', e.hits === 0);
+  check('a tag is not a crash: 0.5 m off the Ace\'s wing is inside the bubble and touches nothing, so no mid air hit was sent', e.hits === 0);
   /* B keeps station 0.5 m off A's wing: the tag back waits out A's three
    * seconds too. */
   e.fly(tagged.t + PROTECT_MS + 400);
@@ -1365,7 +1392,51 @@ console.log('catch the ace: starting a match');
   check('at that millisecond: every millisecond since the go belongs to somebody, and nobody else is at the goal',
     end.scores.reduce((n, r) => n + r.ms, 0) === end.endAt - cd.goAt && end.scores.every((r) => r.seat === 2 || r.ms < 5000));
   check('every seat has the same results', [1, 2].every((i) => JSON.stringify(e.view(i)) === JSON.stringify(end)));
-  check('and the room referees crashes again', !e.r.tag.on() && e.r.game() === null);
+  check('and the room runs no game again', !e.r.tag.on() && e.r.game() === null);
+
+  /*
+   * A collision in a match is a mid air crash (the owner, 2026-09-29:
+   * "keep collisions for ace"). A flies across into B's lane and on into
+   * B itself: it enters the bubble first and takes the crown, then the two
+   * hulls meet and the referee sends the hit, to every seat. Both are then
+   * wrecks, as their clients make them, and the tag rules for a wreck
+   * apply: the new Ace scores nothing while it is one, and the old Ace,
+   * wrecked inside its bubble, takes nothing back.
+   */
+  console.log('catch the ace: a collision is a crash');
+  {
+    const k = tagRoom();
+    k.fly(1000);
+    k.say(0, { type: 'tag', op: 'start', goal: 60 });
+    const kgo = k.view(0).goAt;
+    k.fly(kgo + PROTECT_MS + 200);
+    check('seat 2, B, is the Ace', k.view(0).ace === 2);
+    const kB = level(40);
+    const kFrom = k.clock;
+    k.paths[0] = (t) => ({ ...kB(t), pz: Math.min(1, (t - kFrom) / 2000) * 40, vz: t < kFrom + 2000 ? 20 : 0 });
+    const hitsOf = (i) => texts(k.socks[i], 'hit');
+    while (!hitsOf(0).length && k.clock < kFrom + 4000) {
+      k.fly(k.clock + 33);
+    }
+    const kTag = k.r.tag.log.find((c) => c.why === 'tag');
+    const kHit = hitsOf(0)[0];
+    check('A enters the Ace\'s bubble and takes the crown', kTag && kTag.seat === 1 && kTag.from === 2, kTag ? JSON.stringify(kTag) : 'no tag');
+    check('then A and B collide: a mid air hit between them, the same on all three seats', kHit && [kHit.a, kHit.b].join() === '1,2'
+      && [1, 2].every((i) => JSON.stringify(hitsOf(i)) === JSON.stringify(hitsOf(0))), kHit ? `hit at ${kHit.tc}` : 'no hit');
+    check('the tag came first, the crash after it, as the two closed', kTag && kHit && kTag.t < kHit.tc, kTag && kHit ? `${kHit.tc - kTag.t} ms apart` : '');
+    check('a crash like any other: at 20 m/s across, parts break on both', kHit && checkHit(kHit) && kHit.A.brk > 0 && kHit.B.brk > 0);
+    const wreckAt = k.clock;
+    const msAt = k.view(0).scores.find((r) => r.seat === 1).ms;
+    for (const i of [0, 1]) {
+      const was = k.paths[i](wreckAt);
+      k.paths[i] = () => ({ ...was, vx: 0, flags: FLAG_CRASHED });
+    }
+    k.fly(wreckAt + PROTECT_MS + 1000);
+    const kv = k.view(0);
+    const kAce = kv.scores.find((r) => r.seat === 1).ms;
+    check('the new Ace, a wreck, scores nothing while it is one', kv.ace === 1 && kAce - msAt <= 40, `${kAce - msAt} ms added`);
+    check('and the old Ace, a wreck inside its bubble, takes nothing back', k.r.tag.log.filter((c) => c.why === 'tag').length === 1);
+  }
 
   console.log('catch the ace: two clients');
   const ca = createRoomTag(() => {});
@@ -1446,10 +1517,19 @@ console.log('catch the ace: starting a match');
     x.paths[0] = (t) => (t < go + 2000 ? level(0)(t) : { ...B(t), pz: Math.min(1, (t - (go + 2000)) / 1500) * (40 - 1.2) });
     x.paths[2] = (t) => (t < go + 2000 ? level(80)(t) : { ...B(t), pz: 80 - Math.min(1, (t - (go + 2000)) / 1400) * (80 - 41.2) });
     x.fly(go + 20000);
-    return JSON.stringify({ crowns: x.r.tag.log.map((c) => [c.t, c.seat, c.why]), scores: x.view(1).scores, end: x.view(1).endAt, hits: x.hits });
+    /* The hunters hold station with a wing through the Ace's, so the
+     * referee crashes them over and over (collisions count in a match):
+     * the mid airs up to the end are lag's to decide no more than the
+     * crowns are. The flight goes on past the end, where a last hit may
+     * still be undecided when the run stops. */
+    const end = x.view(1).endAt;
+    /* Which pair a lagging seat lets the referee decide first is lag's,
+     * so the hits are compared in order of contact, not of sending. */
+    const hits = texts(x.socks[0], 'hit').filter((h) => h.tc <= end).map((h) => [h.tc, h.a, h.b]).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    return JSON.stringify({ crowns: x.r.tag.log.map((c) => [c.t, c.seat, c.why]), scores: x.view(1).scores, end, hits });
   };
   const zero = timeline([]);
-  check('two hunters closing on the Ace from both sides: the same crowns, points and end with 0, 60, 150 and 300 ms of lag',
+  check('two hunters closing on the Ace from both sides: the same crowns, points, end and mid airs with 0, 60, 150 and 300 ms of lag',
     [[150, 0, 300], [0, 300, 150], [60, 60, 60]].every((lag) => timeline(lag) === zero), zero);
   check(`and a seat later than LATE_MS (${LATE_MS} ms) is not waited for: the match still ends`, JSON.parse(timeline([0, 0, LATE_MS + 200])).end != null);
 

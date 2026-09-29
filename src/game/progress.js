@@ -83,31 +83,11 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * "no hands off inherent stability like a J-3 Cub", "not a beginner's
  * trainer"), but on RCM's travel limits it rolls at under 100 deg/s,
  * stalls straight and lands on a tricycle at 11 m/s: nothing it does
- * needs the P-51's rudder or the aerobats' hands. The Wot 4 at 4, with the
- * Bombshell and the Zagi: the Stik's British counterpart, but a
- * taildragger that rolls a quarter faster (pb/2V 0.094 against 0.074 on
- * the manual's throws) and spins on its big rudder; forgiving, its stall
- * mushes wings level and the spin stops when the sticks are let go
- * (docs/WOT4-STAGE1.md). The Quickie 500 at 7,
- * with the P-51: Spickler's "I don't consider the Quicky 500 a trainer,
- * but anyone who has advanced to the aileron stage shouldn't have any
- * problems", and FM's "not intended for the beginner ... someone who has
- * passed the trainer stage". It handles as gently as the Stik and stalls
- * as straight, but at nearly twice its speed, rolling at 400 deg/s, on a
- * taildragger with no steerable wheel: the pace, not the handling, is the
- * step, and 6 already holds the Bramor and the NRJ. The P-51 at 7: it has the heaviest wing loading here but one (65 N/m^2
- * against the Timber's 46 and the Kadet's 36), it swings on the take off
- * roll until the pilot's rudder holds it, and it drops a wing at the
- * stall; FMS rate it for an intermediate pilot. The Pitts at 8: E-flite's
- * own intermediate rating, a short coupled biplane whose half stick yank
- * is past its stall and snaps it with a boot of rudder, and which swerves
- * on the ground without the pilot's feet, at a trainer's speeds on a
- * foam airframe (docs/PITTS-STAGE1.md). The Extra at 9: a hover
- * held on every stick at once, and a torque roll the ailerons must hold,
- * on a foam airframe that forgives the ground. The Edge at 10: an
- * unlimited aerobat at 3D throws rolls past 600 deg/s and snaps when
- * yanked (docs/EDGE-STAGE1.md). The F-16 last: the fastest here, the
- * hottest landing, and a fan whose thrust has to be planned ahead of the
+ * needs the P-51's rudder. The P-51 at 7: it has the heaviest wing
+ * loading here but one (65 N/m^2 against the Timber's 46 and the Kadet's
+ * 36), it swings on the take off roll until the pilot's rudder holds it,
+ * and it drops a wing at the stall; FMS rate it for an intermediate
+ * pilot. The F-16 last: the fastest here, the hottest landing, and a fan whose thrust has to be planned ahead of the
  * stick; Motion RC sells the 6S version "for skilled intermediate or
  * advanced pilots with experience flying at least two EDFs", the only
  * kit here whose maker asks for experience on its own kind. The Zagi
@@ -122,14 +102,16 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * and not a stick one, so it sits after the Radian and ahead of the fast
  * and the aerobatic. Shared rather than slotted in, so no plane a pilot
  * already has goes back behind a lock. The Tiger Moth at 4 with the
- * Bombshell, the Zagi and the Wot 4: slow, and its stall drops the nose
- * and no wing, but it asks for the rudder in every turn (its ailerons on
+ * Bombshell and the Zagi: slow, and its stall drops the nose and no wing, but it asks for the rudder in every turn (its ailerons on
  * the bottom wing alone yaw it the wrong way) and on every take off (a
  * taildragger on a two stroke's torque), and Great Planes say it "does
  * not, however, possess the self-recovery characteristics of a primary
- * R/C trainer". Nothing it does needs the aerobats' hands or the P-51's
- * speed. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, wot41334: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, quickie1293: 7, pitts850: 8, extra1308: 9, edge1524: 10, f16878: 11 };
+ * R/C trainer". Nothing it does needs the P-51's speed. The Edge 540,
+ * the Extra 300, the Pitts S-1S, the Wot 4 and the Quickie 500 held 10,
+ * 9, 8, 4 and 7 until they were removed on 2026-09-29 at the owner's
+ * request; the F-16 stays at 11 rather than move, since where a plane
+ * opens is the owner's call, so 8 to 10 open no plane. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, f16878: 11 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

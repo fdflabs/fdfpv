@@ -54,9 +54,11 @@ const SETTINGS_KEY = 'webfpv.settings.v3';
 /*
  * MIRRORS fixedWing in configs/airframes.js. A mirror rather than an import
  * because this file imports nothing (see above); an airframe added there
- * without a row here takes the quads' seat. wing1000 is here as the seat a
- * stored profile or a link that still names the retired flying wing reads,
- * until the shell reseats it on the Bramor.
+ * without a row here takes the quads' seat. wing1000, edge1524, extra1308,
+ * pitts850, wot41334 and quickie1293 are here as the seat a stored profile
+ * or a link that still names a retired plane reads, until the shell
+ * reseats it on its successor (configs/airframes.js retiredAirframe),
+ * which is a plane too.
  */
 const PLANES = new Set([
   'wing1000', 'sky1800', 'cub1400', 'radian2000', 'bramor2300', 'slowstick1180',

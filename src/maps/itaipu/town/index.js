@@ -1,32 +1,27 @@
 /*
- * town/index.js: OpenStreetMap's buildings, roads and power lines. A STUB, package B's, until package F
- * replaces it (docs/ITAIPU-PLAN.md section 14).
+ * town/index.js: OpenStreetMap's buildings, roads and power lines in the
+ * hero square, and the Friendship Bridge in the ring (docs/ITAIPU-PLAN.md
+ * section 7; section 14, package F).
  *
- * The part interface, the seam every part is built against:
+ *   model.js    the town in numbers: what is drawn, what is ground, what
+ *               is streamed (plan.js buildings, roads.js roads and
+ *               bridges, power.js towers and wires, bridge.js the
+ *               Friendship Bridge, drape.js the roads on the ground)
+ *   mesh.js     the faces into a few meshes a quarter of the hero
+ *
+ * The part interface is the one every part is built against:
  *
  *   export async function buildPart(ctx) -> { group, update(stepIndex), dispose(), stats() }
  *
- *   ctx = {
- *     THREE, scene, quality: 'low'|'medium'|'high',
- *     data,          parsed JSON files from the data folder, by name
- *                    ('water.json', 'dam.json', 'osm/roads.json', ...)
- *     base,          the data folder's URL, ending in a slash, for what is
- *                    not JSON (canopy/, masks/, imagery/)
- *     manifest,      the data's manifest.json
- *     ground(x, z),  terrain height, world metres, water beds included
- *     colliders,     the map's Colliders, not yet built
- *     roofs,         the map's roofs record (src/maps/alps/roofs.js)
- *     mats,          swiss2's material kit, shared, never disposed by a part
- *     progress(f),   0 to 1 within the part's share of the bar
- *   }
+ * and this part adds `stream`, the map's seam for the streamed set
+ * (src/maps/itaipu.js). The roofs and
+ * the bridges' decks go into ctx.roofs and the decks' walls into
+ * ctx.colliders during buildPart; the buildings' walls and the power
+ * lines are only ever in the streamed set.
  *
- * A part adds its colliders and roof records during buildPart and never
- * after; the map calls colliders.build() once, when every part is in.
- * The map adds `group` to the scene, and passes every material in it
- * through the light (look/index.js finish) once all the parts are built.
- * On a swap the scene graph frees every geometry, material and texture
- * in `group` (src/render/shell.js disposeSceneGraph); dispose() frees
- * only what the graph cannot reach (a render target, a worker's buffer).
+ * The data is OpenStreetMap's, ODbL: "(c) OpenStreetMap contributors",
+ * credited where the map is shown (src/ui/credits.js and the world card,
+ * package B) and carried in stats() with the data it came from.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -44,14 +39,48 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { planTown } from './model.js';
+import { makeSink } from './mesh.js';
+import { yieldToPaint } from '../../../ui/loading.js';
+
 export async function buildPart(ctx) {
-  const group = new ctx.THREE.Group();
+  const { THREE } = ctx;
+  const group = new THREE.Group();
   group.name = 'itaipu-town';
+  const t0 = performance.now();
+  const sink = makeSink(THREE, ctx.mats.look);
+  const town = await planTown({
+    data: ctx.data,
+    ground: ctx.ground,
+    sink,
+    progress: (f) => ctx.progress(0.9 * f),
+    yieldEvery: yieldToPaint,
+  });
+  for (const rec of town.records) {
+    ctx.roofs.push(rec);
+  }
+  for (const b of town.fixed) {
+    ctx.colliders.addBox('wall', ...b);
+  }
+  const drawn = sink.build(group, town.wires);
+  const buildMs = performance.now() - t0;
   ctx.progress(1);
+  const osm = ctx.data['osm/buildings.json'];
   return {
     group,
     update() {},
     dispose() {},
-    stats: () => ({ stub: true }),
+    stream: town.stream,
+    /* The model, for the checks (scripts/town-check.js). */
+    town,
+    stats: () => ({
+      ...town.counts,
+      drawn,
+      buildMs: Math.round(buildMs),
+      friendship: town.friendship,
+      stream: { ...town.stream.near },
+      attribution: osm.attribution,
+      data: osm.data,
+    }),
   };
 }

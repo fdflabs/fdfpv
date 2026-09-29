@@ -6,9 +6,9 @@
  * it, and the first hunter into its bubble takes the crown. The room is
  * the referee of every tag, on Phase 3's poses and hulls (src/game/
  * midair.js within): any part box of a hunter within BUBBLE_M of the
- * Ace's centre is a tag. Nothing has to touch; a real collision is still
- * no crash in a match (below). The first to reach the goal wins, the
- * instant they reach it.
+ * Ace's centre is a tag. Nothing has to touch, and a real collision is
+ * still a mid air crash for both, as in free flight (below). The first to
+ * reach the goal wins, the instant they reach it.
  *
  * ONE TIMELINE, JUDGED IN ORDER. The crown and the points are decided on
  * the room clock, millisecond by millisecond, over the span every seat
@@ -31,8 +31,10 @@
  * sends it, since a room from before it judges a touch) to everybody
  * on every change of state or crown and on every whole point the Ace adds,
  * { type: 'tag', error } to a refused sender, and the view in each
- * welcome. A collision in a match is never a mid air crash:
- * edge/rooms/core.js asks on() and sends no referee hit while it is true.
+ * welcome. A collision in a match is a mid air crash all the same:
+ * edge/rooms/core.js hands every pose to the mid air referee and to this
+ * match, and a wreck is judged here as uncatchable until it has respawned
+ * and its spawn protection is over (catchable, below).
  *
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. The match (small) is handed
@@ -126,8 +128,7 @@ export class RoomTag {
     return { store: 'tag', value: { match: this.match, nextId: this.nextId } };
   }
 
-  /* Whether a match is counting down or on: the room runs no other game
-   * and its referee sends no crash. */
+  /* Whether a match is counting down or on: the room runs no other game. */
   on() {
     const m = this.match;
     return Boolean(m) && (m.state === 'countdown' || m.state === 'live');
@@ -251,7 +252,7 @@ export class RoomTag {
 
   /*
    * A seat's POSE, as the room relays it (Phase 5 has set FLAG_SPAWNING on
-   * a spawning or benched seat). Kept while a match is on, for the seats
+   * a spawning seat). Kept while a match is on, for the seats
    * flying the room's world.
    */
   pose(core, s, bytes, now) {
