@@ -14,7 +14,9 @@
  * injection, without the Alps' terrain shadow and cloud deck, which are
  * baked on the Alps' square (light.js says why); the sky turned to that
  * sun (sky.js); and the ground, the satellite's colour with swiss2's
- * photographed grain under it (ground.js).
+ * photographed grain under it (ground.js), finished where the place asks
+ * for it: the canyon's basalt, the reservoir's margin and the rockfill
+ * dam's faces.
  *
  * The low cloud swiss2 marches in its post chain is made and never handed
  * a terrain, so it draws nothing (clouds.js: until setTerrain, "the march
@@ -49,7 +51,7 @@ import { sunDirection, makeLit } from './light.js';
 import {
   skyBackdrop, skyTurn, turnEquirect, stretchEquirect,
 } from './sky.js';
-import { groundMaterial, loadImage } from './ground.js';
+import { groundMaterial, loadImage, loadSite } from './ground.js';
 
 /* Past the horizon from 500 m (80 km) the apron and the fog have it. */
 export const CAMERA_FAR = 90000;
@@ -71,16 +73,17 @@ export async function makeLook({
   const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   const layerPx = q.id === 'high' ? 1024 : 512;
   const im = manifest.imagery;
-  const [arrays, sky, heroCol, ringCol, heroMask, ringMask, ...sets] = await Promise.all([
+  const [arrays, sky, site, heroCol, ringCol, heroMask, ringMask, ...sets] = await Promise.all([
     loadTerrainArrays(layerPx, aniso),
     loadSky(),
+    loadSite(base, manifest.frame.ring[1]),
     loadImage(`${base}${im.hero.file}`, true, aniso),
     loadImage(`${base}${im.ring.file}`, true, aniso),
     loadImage(`${base}${im.hero.masks}`, false, aniso),
     loadImage(`${base}${im.ring.masks}`, false, aniso),
     ...SURFACES.map((n) => loadSurface(n, aniso)),
   ]);
-  for (const t of [arrays.col, arrays.nrh, sky.back, heroCol, ringCol, heroMask, ringMask]) {
+  for (const t of [arrays.col, arrays.nrh, sky.back, site.reservoir, heroCol, ringCol, heroMask, ringMask]) {
     own(t);
   }
   const surfaces = {};
@@ -117,9 +120,12 @@ export async function makeLook({
       heroCol, ringCol, heroMask, ringMask,
     },
     arrays,
+    site,
     heroHalf: manifest.frame.hero[1],
     ringHalf: manifest.frame.ring[1],
     white: im.colour.white,
+    water: im.colour.water,
+    anisotropy: aniso,
   });
   /* The ground's heights on the hero's 10 m grid, for the kit's walls,
    * which weather by their height over the ground (swiss2/look.js

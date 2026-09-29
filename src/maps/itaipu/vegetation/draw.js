@@ -49,6 +49,7 @@ import { plantMaterial, plantDepthMaterial, DITHER_GLSL } from '../../swiss2/veg
 import {
   HALF, KINDS, K_LONE, K_EUCALYPTUS, YAW_COS, YAW_SIN,
 } from './plant.js';
+import { FOREST_GRADE } from '../look/ground.js';
 
 /*
  * The bands per preset, m: the whole model to `near`, the reduced model
@@ -528,8 +529,9 @@ export function canopyShell({
           index[k] = pos.length / 3;
           pos.push(x, ground(x, z) + (h >= 0 ? h : -0.5), z);
           const c = colourAt(x, z);
+          /* Graded as the ground's forest is, so the two meet unseen. */
           const shade = h >= 0 ? 1 : 0.6;
-          col.push(c[0] * shade, c[1] * shade, c[2] * shade);
+          col.push(c[0] * shade * FOREST_GRADE[0], c[1] * shade * FOREST_GRADE[1], c[2] * shade * FOREST_GRADE[2]);
         }
         return index[k];
       };
