@@ -156,6 +156,7 @@ import { BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP } from './render/bombshellc
 import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
 import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP } from './render/edgecraft.js';
+import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
 
@@ -172,6 +173,7 @@ const WING_MOUNTS = {
   f16878: [F16_MOUNT_FORWARD, F16_MOUNT_UP],
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
   edge1524: [EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP],
+  extra1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
   /* On floats the CG is lower, so the camera stands higher over it. */
@@ -1921,6 +1923,10 @@ export async function boot({
       roomSafety.reported(seat);
       ui.refreshFriends();
     },
+    onUnreported: (seat, undone) => {
+      roomSafety.unreported(seat, undone);
+      ui.refreshFriends();
+    },
     onRoom: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
@@ -1993,7 +1999,7 @@ export async function boot({
   const roomSafety = createRoomSafety((m) => roomLinkState.send(m), (seat) => {
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
-  });
+  }, () => ui.refreshFriends());
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
@@ -2611,6 +2617,7 @@ export async function boot({
       name: st.welcome ? st.welcome.name : null,
       host: st.welcome ? st.welcome.host : null,
       heard: roomSafety.heard(),
+      note: roomSafety.note(),
       peers: [...roomPeers.values()].map((p) => ({
         seat: p.seat,
         name: roomName(p.name),
@@ -2812,14 +2819,17 @@ export async function boot({
         const craft = airframeById(peer.profile.airframe).name;
         const muted = roomSafety.isMuted(peer.seat);
         const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
+        /* A report picked from this row asks here before it is sent. */
+        const question = roomSafety.question(peer.seat);
         rows.push({
-          label: w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown,
+          label: question || (w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown),
           value: craft,
-          note: str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
+          note: question ? str('friends.report_confirm_note')
+            : str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
           current: '',
           pickOnly: true,
           /* The host hands the room over from any pilot's row. */
-          options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
+          options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host && !question ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
           pick: (v) => {
             const picked = roomSafety.peerPick(peer.seat, v);
             if (picked === 'kick') {
@@ -2830,6 +2840,13 @@ export async function boot({
             ui.refreshFriends();
           },
         });
+        rows.push(...roomSafety.undoRows(peer.seat).map((row) => ({
+          ...row,
+          pick: (v) => {
+            row.pick(v);
+            ui.refreshFriends();
+          },
+        })));
       }
       rows.push(nameRow, figureRow, { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
       return rows;
@@ -5918,8 +5935,18 @@ export async function boot({
       const z0 = crashSimA.z;
       const c0 = worldPosToSim(t.x, t.crownY0, t.z, crashSimB).z;
       const c1 = worldPosToSim(t.x, t.crownY1, t.z, crashSimB).z;
-      if (sim.e.sim_tree_add(crashSimA.x, crashSimA.y, z0, t.trunkR, c0, c1, t.crownR) < 0) {
+      const k = sim.e.sim_tree_add(crashSimA.x, crashSimA.y, z0, t.trunkR, c0, c1, t.crownR);
+      if (k < 0) {
         break;
+      }
+      /* Its leaves: the crown spheres, each a clump the plant flies the
+       * craft into, with the air between them left as air. */
+      for (const j of t.crown) {
+        worldPosToSim(col.fax[j], col.fay[j], col.faz[j], crashSimB);
+        const code = sim.e.sim_tree_clump_add(k, crashSimB.x, crashSimB.y, crashSimB.z, col.fr[j]);
+        if (code !== SIM_OK) {
+          throw new Error(`sim_tree_clump_add: ${simErrorName(code)} for crown sphere ${j} of a tree with ${t.crown.length}`);
+        }
       }
       crashTreesDeclared += 1;
       /* The crown is the plant's now: the sweep flies into it. */

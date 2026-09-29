@@ -37,6 +37,7 @@ export const DAMAGE_EVENTS_MAX = 64;
 export const FREE_BODIES_MAX = 12;
 export const OBSTACLES_MAX = 64;
 export const TREES_MAX = 32;
+export const TREE_CLUMPS_MAX = 32;
 
 /* SIM_PART_*, by id. */
 export const PART_KINDS = [

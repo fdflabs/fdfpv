@@ -12,7 +12,9 @@
  * a preset phrase and waves, and B must read both in Spanish under A's
  * Spanish picker name; B mutes A, and A's next phrase and A's name tag
  * must be gone from B's screen while A's aircraft is still drawn; B
- * unmutes, and A is heard again; B says hello and A reads it in English.
+ * unmutes, and A is heard again; B says hello and A reads it in English;
+ * B reports A from A's row, which asks before anything is sent, and
+ * takes the report back with its mute from the Undo row under it.
  * Pictures in outdir, which is not in the repository.
  *
  * This file is part of WebFPVSimulator.
@@ -172,6 +174,38 @@ try {
   const want4 = en['friends.chat_line'].replace('{name}', nameOfBonA).replace('{phrase}', en['rooms.chat.hello']);
   await a.until(`window.__rooms().heard.includes(${JSON.stringify(want4)})`, 10000).catch(() => {});
   check('B says hello, A reads it in English', (await heard(a)).includes(want4), JSON.stringify(await heard(a)));
+
+  /* B reports A from A's row in Fly with friends: the pick asks first,
+   * and the report, once sent, is taken back with its mute. */
+  await b.evaluate("window.__ui.show('friends'); true");
+  await b.sleep(400);
+  /* A's row: the only one in a room of two with a pilot's options. */
+  const peerRow = "window.__ui.items().findIndex((it) => it.pickOnly && it.options && it.options.some((o) => ['mute', 'unmute', 'confirm'].includes(o.value)))";
+  const rowState = `(() => { const rows = window.__ui.items(); const i = ${peerRow}; const it = rows[i]; const next = rows[i + 1];
+    return { label: it.label, options: it.options.map((o) => o.value), next: next ? { label: next.label, options: (next.options || []).map((o) => o.value) } : null }; })()`;
+  await b.evaluate(`window.__ui.items()[${peerRow}].pick('report:0'); true`);
+  await b.sleep(300);
+  const asked = await b.evaluate(rowState);
+  const question = es['friends.report_confirm'].replace('{name}', nameOfAonB).replace('{reason}', es['rooms.report.ramming']);
+  check('B picks a reason on A\'s row: the row asks, Confirm or Cancel, and A is not muted', asked.label === question && asked.options.join() === 'confirm,cancel'
+    && !(await b.evaluate('window.__rooms()')).peers[0].muted, JSON.stringify(asked));
+  await shot(b, 'b-es-report-asks-first');
+  await b.evaluate(`window.__ui.items()[${peerRow}].pick('confirm'); true`);
+  const reportedNote = es['friends.reported'].replace('{name}', nameOfAonB);
+  await b.until(`window.__rooms().note === ${JSON.stringify(reportedNote)}`, 10000).catch(() => {});
+  const sentState = await b.evaluate(rowState);
+  check('confirmed, the room counts it, A is muted, and an Undo row sits under A\'s', (await b.evaluate('window.__rooms()')).note === reportedNote
+    && (await b.evaluate('window.__rooms()')).peers[0].muted && sentState.next && sentState.next.label === es['friends.undo_row'].replace('{name}', nameOfAonB)
+    && sentState.next.options.join() === 'unreport,unreport_unmute', JSON.stringify({ note: (await b.evaluate('window.__rooms()')).note, sentState }));
+  /* Found by its words, straight after, since it goes after UNDO_MS and
+   * a round trip to a loaded page can take seconds. */
+  const undoLabel = es['friends.undo_row'].replace('{name}', nameOfAonB);
+  await b.evaluate(`window.__ui.items().find((it) => it.label === ${JSON.stringify(undoLabel)}).pick('unreport_unmute'); true`);
+  const undoneNote = es['friends.unreported'].replace('{name}', nameOfAonB);
+  await b.until(`window.__rooms().note === ${JSON.stringify(undoneNote)}`, 10000).catch(() => {});
+  const after = await b.evaluate('window.__rooms()');
+  check('Undo takes the report back in the room, and the mute that came with it', after.note === undoneNote && !after.peers[0].muted,
+    JSON.stringify({ note: after.note, muted: after.peers[0].muted }));
 
   await a.evaluate("window.__ui.show('friends'); true");
   await a.sleep(800);

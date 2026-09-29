@@ -59,6 +59,7 @@ const PLANES = [
   { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
   { name: 'edge', id: 13, hx: 0.50, hy: 0.762, down: 0.10, up: 0.14, land: 11, rollMs: 20000, nose: 12, toss: 12, tossSticks: [0, 0.2, 0, 0.6], wheels: { restPitchDeg: 9.84, restZ: 0.2510 } },
   { name: 'timber', id: 7, hx: 0.30, hy: 0.60, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 11.81, restZ: 0.2117 } },
+  { name: 'extra', id: 14, hx: 0.35, hy: 0.654, down: 0.10, up: 0.09, land: 10, nose: 11, toss: 10, tossSticks: [0, 0.1, 0, 0.7], wheels: { restPitchDeg: 6.7, restZ: 0.2221 } },
   /* The F-16 lands fast and rolls long: a clean jet on small wheels. */
   { name: 'f16', id: 16, hx: 0.42, hy: 0.439, down: 0.06, up: 0.07, land: 14, rollMs: 30000, nose: 16, toss: 16, tossSticks: [0, 0.2, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.140 } },
 ];

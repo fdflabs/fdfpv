@@ -27,7 +27,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { str } from '../strings/index.js';
+import { str, plural } from '../strings/index.js';
 import { formatTime } from './ui.js';
 
 export function trackName(t) {
@@ -78,7 +78,7 @@ export function resultsView(rr, nameOf) {
     rows: rows.map((row) => ({
       label: str('roomrace.row', { place: row.place, name: nameOf(row.seat) }),
       time: rowValue(row, r.laps),
-      tag: row.points ? str('ui.lap_points', { n: row.points }) : '',
+      tag: row.points ? plural('count.points', row.points) : '',
       me: row.seat === rr.seat(),
       out: row.ms == null,
     })),

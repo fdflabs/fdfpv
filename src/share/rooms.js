@@ -58,7 +58,7 @@ const PICK_KEY = 'fdfpv.pilotPick';
 const FIGURE_KEY = 'fdfpv.pilotFigure';
 const RETRY_MS = [1000, 2000, 4000, 8000, 16000];
 const SYNC_PINGS = 8;
-const SYNC_GAP_MS = 250;
+export const SYNC_GAP_MS = 250;
 const RESYNC_MS = 30000;
 const SLEW_MS = 2;
 const KEEPALIVE_MS = 20000;
@@ -379,6 +379,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onEvent?.(m);
       } else if (m.type === 'reported') {
         handlers.onReported?.(m.seat);
+      } else if (m.type === 'unreported') {
+        handlers.onUnreported?.(m.seat, m.undone === true);
       } else if (m.type === 'room') {
         if (welcome) {
           welcome.name = m.name;

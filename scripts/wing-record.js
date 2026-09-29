@@ -37,7 +37,7 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
 import {
   bramorPrelude, recordChuteFlight, recordCubFlight, recordGliderFlight, recordScriptedFlight,
-  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordEdgeFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, skyPrelude, wingPrelude,
+  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordEdgeFlight, recordExtraFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, skyPrelude, wingPrelude,
 } from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
@@ -54,8 +54,9 @@ import {
  * for kadet-gates.js S18; `p51` the P-51's take off and flight and
  * `p51-air` its retracts and stall in the air, for p51-gates.js S18; `edge`
  * the Edge 540's take off, roll, inverted run and snap for edge-gates.js
- * E18; `f16` the F-16's take off and flight, its fan spooling up and down,
- * for f16-gates.js S18. */
+ * E18; `extra` the Extra 300's take off, hover, torque roll and flight
+ * for extra-gates.js E16; `f16` the F-16's take off and flight, its fan
+ * spooling up and down, for f16-gates.js S18. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
   sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
@@ -70,6 +71,7 @@ const PLANES = {
   f16: { file: 'tests/inputs/f16-baseline.rec', record: recordF16Flight },
   kadet: { file: 'tests/inputs/kadet-baseline.rec', record: recordKadetFlight },
   edge: { file: 'tests/inputs/edge-baseline.rec', record: recordEdgeFlight },
+  extra: { file: 'tests/inputs/extra-baseline.rec', record: recordExtraFlight },
   p51: { file: 'tests/inputs/p51-baseline.rec', record: recordP51Flight },
   'p51-air': { file: 'tests/inputs/p51-air.rec', record: recordP51AirFlight },
 };

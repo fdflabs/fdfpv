@@ -358,13 +358,16 @@ int sim_set_flight_style(int arcade);
  * a tricycle gear whose nose wheel steers with the rudder, 13 Extreme
  * Flight's 60 in Edge 540T (docs/EDGE-STAGE1.md), an unlimited aerobatic
  * taildragger on a symmetric section, with the Cub's surfaces at 3D throws,
- * 15 FMS's 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird
- * with flaps on retracting taildragger gear, and 16 Freewing's F-16 V3
+ * 14 E-flite's Extra 300 3D 1.3m (docs/EXTRA-STAGE1.md), a foam aerobatic
+ * taildragger whose thrust is two and a half times its weight, which
+ * hangs on its prop with its surfaces in the slipstream, 15 FMS's
+ * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
+ * flaps on retracting taildragger gear, and 16 Freewing's F-16 V3
  * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
- * the stick, on a tricycle gear. 14 and 17 to 23 are reserved for the
- * aircraft being added alongside them. Returns SIM_ERR_BAD_ARG for any id
+ * the stick, on a tricycle gear. 17 to 23 are reserved for the aircraft
+ * being added alongside them. Returns SIM_ERR_BAD_ARG for any id
  * without an aircraft.
- * 2 to 13, 15 and 16 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * 2 to 16 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -395,6 +398,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_BOMBSHELL1118_ID 11
 #define SIM_AIRFRAME_KADET1981_ID 12
 #define SIM_AIRFRAME_EDGE1524_ID 13
+#define SIM_AIRFRAME_EXTRA1308_ID 14
 #define SIM_AIRFRAME_P51D1450_ID 15
 #define SIM_AIRFRAME_F16878_ID 16
 int sim_set_airframe(int id);
@@ -769,7 +773,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 13, 15 and 16): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 16): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *
@@ -1252,6 +1256,21 @@ int sim_obstacle_state(int i, double *out);
 int sim_tree_clear(void);
 int sim_tree_add(double x, double y, double z0, double trunk_r,
                  double crown_z0, double crown_z1, double crown_r);
+
+/*
+ * A CROWN OF CLUMPS. sim_tree_clump_add(tree, x, y, z, r): tree `tree`'s
+ * crown is leaves in clumps with air between them, and this is one, a
+ * sphere of radius r at (x, y, z), plant frame. A tree given clumps drags
+ * and holds only the parts inside one of them (and inside its cylinder,
+ * which stays the crown's bound); a tree given none is its whole cylinder,
+ * as before, which is a conifer's crown. At most SIM_TREE_CLUMPS_MAX a
+ * tree: a swiss2 broadleaf is drawn with 26 to 31. SIM_ERR_BAD_ARG for a
+ * tree not added since sim_tree_clear or a value not finite or r not
+ * positive, SIM_ERR_BAD_STATE past the most a tree holds. Additive ABI,
+ * version unchanged: a host that never calls it has the cylinders it had.
+ */
+#define SIM_TREE_CLUMPS_MAX 32
+int sim_tree_clump_add(int tree, double x, double y, double z, double r);
 
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);

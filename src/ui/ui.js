@@ -194,7 +194,7 @@ import {
   downloadCli, drawAttitude, FcSession, paintPageStrip, paintTabStrip,
 } from './fc.js';
 import { FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY } from '../fc/dump.js';
-import { str, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } from '../strings/index.js';
+import { str, plural, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } from '../strings/index.js';
 /* The pilot's own tracks live in this browser's library, and My tracks
  * lists, copies, renames and deletes them there. */
 import {
@@ -2944,7 +2944,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'edge1524', 'f16878'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'edge1524', 'extra1308', 'f16878'],
     mode: 'freestyle',
     /* The card's own world. A card with a home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
@@ -8746,7 +8746,7 @@ export class Ui {
     }
     this.trickShown = t.name;
     Ui.text(this.trickName, t.name);
-    Ui.text(this.trickMeta, str('ui.points', { formatScore: formatScore(t.points), difficulty: t.difficulty })
+    Ui.text(this.trickMeta, str('ui.points', { points: plural('count.points', t.points, { n: formatScore(t.points) }), difficulty: t.difficulty })
       + ` \u00b7 ${t.category} \u00b7 ${t.status.tag}`);
     Ui.text(this.trickHow, `${t.how} ${t.status.line}`);
     /* Which way the camera faces, because a roll seen from the side is a
@@ -10517,7 +10517,7 @@ export class Ui {
         main.append(el('span', 'result-time', formatTime(entry.ms)));
         /* A plane's lap is scored (src/game/race.js PLANE_REACH). */
         if (Number.isFinite(entry.score)) {
-          main.append(el('span', 'result-tag', str('ui.lap_points', { n: entry.score })));
+          main.append(el('span', 'result-tag', plural('count.points', entry.score)));
         }
         if (fastestRow && clean.length > 1) {
           main.append(el('span', 'result-tag', 'fastest'));
@@ -10549,7 +10549,7 @@ export class Ui {
       const row = el('div', 'result-row total');
       const main = el('div', 'result-main');
       main.append(el('span', 'result-label', str('ui.run_score')));
-      main.append(el('span', 'result-time', str('ui.lap_points', { n: scores.reduce((a, b) => a + b, 0) })));
+      main.append(el('span', 'result-time', plural('count.points', scores.reduce((a, b) => a + b, 0))));
       row.append(main);
       this.resultsBody.append(row);
     }

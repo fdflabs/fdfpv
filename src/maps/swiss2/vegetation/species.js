@@ -326,6 +326,58 @@ function limb(b, { from, to, r0, r1, sag, segs, sides, uvOf, colour, flex }) {
   }
 }
 
+/* How far a clump's leaves reach from its centre, over its rc: nine
+ * tenths of the near model's card area is inside 1.15 to 1.19 rc (the
+ * cards are scattered to rc and stand a card's length out from where
+ * they are pinned), measured over the three broadleaf variants. The far
+ * model's cards are larger; this follows the near one, which is the one
+ * drawn round a craft in the tree. */
+export const CLUMP_REACH = 1.2;
+
+/*
+ * A broadleaf's clumps, in the model's own frame (metres, standing on the
+ * origin, up +y): each { c, rc, depth }, its centre, the radius its leaf
+ * cards are scattered in and how far out in the crown it is (0 the axis,
+ * 1 the shell). On the crown's shell, apart from each other, fewer
+ * underneath, and a few inside it that fill the middle. `rng` is the
+ * tree's own stream, which broadleaf() goes on drawing its limbs from; a
+ * caller that wants only the clumps (the colliders, forest.js) leaves it
+ * out and gets the same clumps the drawing has.
+ */
+export function crownClumps(variant, rng = makeRng(variant.seed * 7)) {
+  const H = variant.h;
+  const centreY = H * 0.6;
+  const rx = variant.rx * H;
+  const ry = variant.ry * H;
+  const clumps = [];
+  const rc0 = rx * 0.27;
+  const want = 22 + Math.floor(rng() * 6);
+  for (let tries = 0; clumps.length < want && tries < 4000; tries += 1) {
+    const d = new THREE.Vector3(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1);
+    if (d.lengthSq() > 1 || d.lengthSq() < 0.05 || (d.y < -0.4 && rng() < 0.7)) {
+      continue;
+    }
+    d.normalize();
+    const f = 0.66 + 0.28 * rng();
+    const c = new THREE.Vector3(d.x * rx * f, centreY + d.y * ry * f, d.z * rx * f);
+    const rc = rc0 * (0.8 + 0.45 * rng());
+    if (clumps.some((q) => q.c.distanceTo(c) < (q.rc + rc) * 0.78)) {
+      continue;
+    }
+    clumps.push({ c, rc, depth: f });
+  }
+  for (let k = 0; k < 4; k += 1) {
+    const a = rng() * Math.PI * 2;
+    const f = 0.25 + 0.2 * rng();
+    clumps.push({
+      c: new THREE.Vector3(Math.cos(a) * rx * f, centreY + ry * (rng() * 0.5 - 0.1), Math.sin(a) * rx * f),
+      rc: rc0 * 1.1,
+      depth: f,
+    });
+  }
+  return { clumps, rc0 };
+}
+
 /*
  * A beech or a sycamore. A broadleaf crown is not a ball of leaves: it
  * is a few ascending limbs that fork into branches, each branch ending in
@@ -366,34 +418,7 @@ function broadleaf(variant, lod) {
     uvOf: near ? uvNear : uvMid,
     colour: () => grey,
   });
-  /* The clumps: on the crown's shell, apart from each other, fewer
-   * underneath, and a few inside it that fill the middle. */
-  const clumps = [];
-  const rc0 = rx * 0.27;
-  const want = 22 + Math.floor(rng() * 6);
-  for (let tries = 0; clumps.length < want && tries < 4000; tries += 1) {
-    const d = new THREE.Vector3(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1);
-    if (d.lengthSq() > 1 || d.lengthSq() < 0.05 || (d.y < -0.4 && rng() < 0.7)) {
-      continue;
-    }
-    d.normalize();
-    const f = 0.66 + 0.28 * rng();
-    const c = new THREE.Vector3(d.x * rx * f, centre.y + d.y * ry * f, d.z * rx * f);
-    const rc = rc0 * (0.8 + 0.45 * rng());
-    if (clumps.some((q) => q.c.distanceTo(c) < (q.rc + rc) * 0.78)) {
-      continue;
-    }
-    clumps.push({ c, rc, depth: f });
-  }
-  for (let k = 0; k < 4; k += 1) {
-    const a = rng() * Math.PI * 2;
-    const f = 0.25 + 0.2 * rng();
-    clumps.push({
-      c: new THREE.Vector3(Math.cos(a) * rx * f, centre.y + ry * (rng() * 0.5 - 0.1), Math.sin(a) * rx * f),
-      rc: rc0 * 1.1,
-      depth: f,
-    });
-  }
+  const { clumps, rc0 } = crownClumps(variant, rng);
   /* The limbs: four to six ascending from the top of the trunk, each
    * ending half way out to the shell; every clump's branch starts at the
    * limb end nearest it. */

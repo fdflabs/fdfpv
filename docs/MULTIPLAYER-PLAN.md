@@ -741,7 +741,9 @@ typed into a public room, not a track name.
   `src/game/verify.js` already uses, and marks the seat `spawning` while it
   does: a forged pose cannot ram anyone.
 - **Rate limits at the room.** POSE over 35 a second dropped; text over 5
-  a second dropped; over 20 a second closes the socket. Joins: 10 a
+  a second dropped, with the clock's pings counted apart (5 a second of
+  their own, `edge/rooms/core.js` CLOCK_PER_S); over 20 texts a second, of
+  any kind, closes the socket. Joins: 10 a
   minute per address per room, and the Worker applies a per address limit
   across rooms before it ever reaches one.
 - **What a kick remembers, and for how long.** A removal is keyed on the
