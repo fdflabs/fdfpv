@@ -219,6 +219,7 @@
     "pick:selftest": "node scripts/craft-pick-selftest.js",
     "hotswap:check": "node scripts/hotswap-check.js",
     "itaipu:check": "node scripts/itaipu-check.js",
+    "itaipu:yard": "node tools/itaipu/war-check.js",
     "check:dam": "node scripts/dam-check.js",
     "itaipu:water": "node scripts/itaipu-water-check.js",
     "town:check": "node scripts/town-check.js",

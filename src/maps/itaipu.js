@@ -81,6 +81,7 @@ const PARTS = [
   ['water', buildWater, 0.1],
   ['town', buildTown, 0.3],
   ['vegetation', buildVegetation, 0.2],
+  ['war', (ctx) => import('./itaipu/war/index.js').then((m) => m.buildPart(ctx)), 0],
 ];
 
 /*
@@ -435,5 +436,6 @@ export async function buildMap(shell, onProgress, options) {
   const progress = onProgress ?? (() => {});
   const q = qualityFor(options && options.quality);
   const map = await buildItaipu(shell, progress, q);
+  (await import('./itaipu/war/index.js')).takeYard(map);
   return map.scene.userData.itaipu.look.compose(shell, map);
 }
