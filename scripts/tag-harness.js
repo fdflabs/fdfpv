@@ -343,7 +343,7 @@ function runOne(cfg) {
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
   const clients = sc.air.map((_, i) => ({
-    i, conn: { i }, seat: 0, crowns: new Map(), last: null, hits: 0, sent: [],
+    i, conn: { i }, seat: 0, crowns: new Map(), last: null, hits: [], sent: [],
   }));
   /* The last view the room sent: what every client must end up with. */
   let sentView = null;
@@ -362,10 +362,8 @@ function runOne(cfg) {
         const m = JSON.parse(data);
         if (m.type === 'welcome') {
           c.seat = m.seat;
-        } else if (m.type === 'hit' && m.tc >= START_AT && !(room.tag.match && room.tag.match.state === 'results' && m.tc > room.tag.match.endAt)) {
-          /* A crash hit for a contact after the start and before the end:
-           * inside a match, where there must be none. */
-          c.hits += 1;
+        } else if (m.type === 'hit') {
+          c.hits.push(m.id);
         } else if (m.type === 'tag' && m.tag && m.tag.id != null) {
           c.last = m.tag;
           for (const cr of m.tag.crowns) {
@@ -422,8 +420,17 @@ function runOne(cfg) {
   while (q.h.length) {
     q.pop().fn();
   }
+  /* A collision in a match is a mid air crash (docs/TAG-PLAN.md decision
+   * 1): the referee's hits between the go and the end, and whether every
+   * client got exactly those. The scripted clients fly on through a hit,
+   * so this counts contacts, not wrecks. */
+  const m = room.tag.match;
+  const inMatch = (tc) => m && tc >= m.goAt && (m.endAt == null || tc <= m.endAt);
+  const refereed = room.referee.log.map((h) => h.id);
+  const hits = room.referee.log.filter((h) => inMatch(h.tc)).length;
+  const hitsMissed = clients.filter((c) => c.hits.join() !== refereed.join()).length;
   return {
-    clients, room, skew, log: room.tag.log.map((c) => ({ ...c })), view: room.tag.view(room), sentView, hits: clients.reduce((x, c) => x + c.hits, 0),
+    clients, room, skew, log: room.tag.log.map((c) => ({ ...c })), view: room.tag.view(room), sentView, hits, hitsMissed,
   };
 }
 
@@ -486,7 +493,7 @@ function truthReach(sc, ace, hunter, t) {
 function sweep(sc, clock) {
   const r = {
     name: sc.name, kind: sc.kind, reach: sc.reach ?? null, runs: 0, disagree: 0, notRef: 0, lateRuns: 0, falseTags: 0, misses: 0,
-    owner: 0, protect: 0, badScores: 0, badEnd: 0, notOver: 0, hits: 0, tags: 0, tagRuns: 0, onTimeRuns: 0, delays: [], reaches: [], stationBack: [],
+    owner: 0, protect: 0, badScores: 0, badEnd: 0, notOver: 0, hits: 0, hitsMissed: 0, tags: 0, tagRuns: 0, onTimeRuns: 0, delays: [], reaches: [], stationBack: [],
     examples: [],
   };
   const seeds = sc.kind === 'furball' ? [Number(sc.name.split(' ')[1])] : [1, 2, 3];
@@ -522,6 +529,7 @@ function sweep(sc, clock) {
         note(`not the reference: ${room.slice(0, 120)} vs ${refKey.slice(0, 120)}`);
       }
       r.hits += res.hits;
+      r.hitsMissed += res.hitsMissed;
       const tags = res.log.filter((c) => c.why === 'tag');
       r.tags += tags.length;
       r.tagRuns += tags.length ? 1 : 0;
@@ -623,7 +631,8 @@ function report(clock, results) {
   const runs = sum('runs');
   row('every client has the room\'s crown timeline and scores', sum('disagree') === 0, `${sum('disagree')} of ${runs} disagree`);
   row('the timeline and scores are the zero latency run\'s, every run inside LATE_MS', sum('notRef') === 0, `${sum('notRef')} differ`);
-  row('a touch is never a crash: no mid air hit during a match', sum('hits') === 0, `${sum('hits')} hits`);
+  row('a collision in a match is a mid air crash: the furballs collide, and every client gets every hit the referee sends',
+    sum('hits', furballs) > 0 && sum('hitsMissed') === 0, `${sum('hits', furballs)} hits in the furballs, ${sum('hitsMissed')} client lists short or different`);
   row('tag back protection honoured', sum('protect') === 0, `${sum('protect')} early tags`);
   row('the scores add up to the recount from the script', sum('badScores') === 0, `${sum('badScores')} of ${runs} runs off`);
   row(`every furball ends at exactly ${GOAL} points, the first to get there`, sum('badEnd') === 0 && sum('notOver') === 0,

@@ -1366,7 +1366,7 @@ console.log('catch the ace: starting a match');
     tagged && tagged.t === cd.goAt + PROTECT_MS + 1 && tagged.seat === 1 && tagged.from === 2, tagged ? JSON.stringify(tagged) : '');
   check('every seat is told who and when, the same', [0, 1, 2].every((i) => JSON.stringify(e.view(i).crowns) === JSON.stringify(e.view(0).crowns))
     && e.view(0).ace === 1);
-  check('a touch is a tag, not a crash: no mid air hit was sent', e.hits === 0);
+  check('a tag is not a crash: 0.5 m off the Ace\'s wing is inside the bubble and touches nothing, so no mid air hit was sent', e.hits === 0);
   /* B keeps station 0.5 m off A's wing: the tag back waits out A's three
    * seconds too. */
   e.fly(tagged.t + PROTECT_MS + 400);
@@ -1392,7 +1392,51 @@ console.log('catch the ace: starting a match');
   check('at that millisecond: every millisecond since the go belongs to somebody, and nobody else is at the goal',
     end.scores.reduce((n, r) => n + r.ms, 0) === end.endAt - cd.goAt && end.scores.every((r) => r.seat === 2 || r.ms < 5000));
   check('every seat has the same results', [1, 2].every((i) => JSON.stringify(e.view(i)) === JSON.stringify(end)));
-  check('and the room referees crashes again', !e.r.tag.on() && e.r.game() === null);
+  check('and the room runs no game again', !e.r.tag.on() && e.r.game() === null);
+
+  /*
+   * A collision in a match is a mid air crash (the owner, 2026-09-29:
+   * "keep collisions for ace"). A flies across into B's lane and on into
+   * B itself: it enters the bubble first and takes the crown, then the two
+   * hulls meet and the referee sends the hit, to every seat. Both are then
+   * wrecks, as their clients make them, and the tag rules for a wreck
+   * apply: the new Ace scores nothing while it is one, and the old Ace,
+   * wrecked inside its bubble, takes nothing back.
+   */
+  console.log('catch the ace: a collision is a crash');
+  {
+    const k = tagRoom();
+    k.fly(1000);
+    k.say(0, { type: 'tag', op: 'start', goal: 60 });
+    const kgo = k.view(0).goAt;
+    k.fly(kgo + PROTECT_MS + 200);
+    check('seat 2, B, is the Ace', k.view(0).ace === 2);
+    const kB = level(40);
+    const kFrom = k.clock;
+    k.paths[0] = (t) => ({ ...kB(t), pz: Math.min(1, (t - kFrom) / 2000) * 40, vz: t < kFrom + 2000 ? 20 : 0 });
+    const hitsOf = (i) => texts(k.socks[i], 'hit');
+    while (!hitsOf(0).length && k.clock < kFrom + 4000) {
+      k.fly(k.clock + 33);
+    }
+    const kTag = k.r.tag.log.find((c) => c.why === 'tag');
+    const kHit = hitsOf(0)[0];
+    check('A enters the Ace\'s bubble and takes the crown', kTag && kTag.seat === 1 && kTag.from === 2, kTag ? JSON.stringify(kTag) : 'no tag');
+    check('then A and B collide: a mid air hit between them, the same on all three seats', kHit && [kHit.a, kHit.b].join() === '1,2'
+      && [1, 2].every((i) => JSON.stringify(hitsOf(i)) === JSON.stringify(hitsOf(0))), kHit ? `hit at ${kHit.tc}` : 'no hit');
+    check('the tag came first, the crash after it, as the two closed', kTag && kHit && kTag.t < kHit.tc, kTag && kHit ? `${kHit.tc - kTag.t} ms apart` : '');
+    check('a crash like any other: at 20 m/s across, parts break on both', kHit && checkHit(kHit) && kHit.A.brk > 0 && kHit.B.brk > 0);
+    const wreckAt = k.clock;
+    const msAt = k.view(0).scores.find((r) => r.seat === 1).ms;
+    for (const i of [0, 1]) {
+      const was = k.paths[i](wreckAt);
+      k.paths[i] = () => ({ ...was, vx: 0, flags: FLAG_CRASHED });
+    }
+    k.fly(wreckAt + PROTECT_MS + 1000);
+    const kv = k.view(0);
+    const kAce = kv.scores.find((r) => r.seat === 1).ms;
+    check('the new Ace, a wreck, scores nothing while it is one', kv.ace === 1 && kAce - msAt <= 40, `${kAce - msAt} ms added`);
+    check('and the old Ace, a wreck inside its bubble, takes nothing back', k.r.tag.log.filter((c) => c.why === 'tag').length === 1);
+  }
 
   console.log('catch the ace: two clients');
   const ca = createRoomTag(() => {});
@@ -1473,10 +1517,19 @@ console.log('catch the ace: starting a match');
     x.paths[0] = (t) => (t < go + 2000 ? level(0)(t) : { ...B(t), pz: Math.min(1, (t - (go + 2000)) / 1500) * (40 - 1.2) });
     x.paths[2] = (t) => (t < go + 2000 ? level(80)(t) : { ...B(t), pz: 80 - Math.min(1, (t - (go + 2000)) / 1400) * (80 - 41.2) });
     x.fly(go + 20000);
-    return JSON.stringify({ crowns: x.r.tag.log.map((c) => [c.t, c.seat, c.why]), scores: x.view(1).scores, end: x.view(1).endAt, hits: x.hits });
+    /* The hunters hold station with a wing through the Ace's, so the
+     * referee crashes them over and over (collisions count in a match):
+     * the mid airs up to the end are lag's to decide no more than the
+     * crowns are. The flight goes on past the end, where a last hit may
+     * still be undecided when the run stops. */
+    const end = x.view(1).endAt;
+    /* Which pair a lagging seat lets the referee decide first is lag's,
+     * so the hits are compared in order of contact, not of sending. */
+    const hits = texts(x.socks[0], 'hit').filter((h) => h.tc <= end).map((h) => [h.tc, h.a, h.b]).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    return JSON.stringify({ crowns: x.r.tag.log.map((c) => [c.t, c.seat, c.why]), scores: x.view(1).scores, end, hits });
   };
   const zero = timeline([]);
-  check('two hunters closing on the Ace from both sides: the same crowns, points and end with 0, 60, 150 and 300 ms of lag',
+  check('two hunters closing on the Ace from both sides: the same crowns, points, end and mid airs with 0, 60, 150 and 300 ms of lag',
     [[150, 0, 300], [0, 300, 150], [60, 60, 60]].every((lag) => timeline(lag) === zero), zero);
   check(`and a seat later than LATE_MS (${LATE_MS} ms) is not waited for: the match still ends`, JSON.parse(timeline([0, 0, LATE_MS + 200])).end != null);
 
