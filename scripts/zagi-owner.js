@@ -18,8 +18,9 @@
  *   spin      back up to 80 m, a 30 deg bank held, the throttle closed
  *             and the elevons pulled to full up over 3 s with full roll
  *             held into the turn: once round within 4 s (Z10).
- *   landing   the throttle closed, banked home to the grass it was thrown
- *             from, dived to 10 m, then a shallow glide, wings level for
+ *   landing   home at 30 m under power, over the trees, and within 50 m
+ *             of the grass it was thrown from the throttle closed, spiralled
+ *             down to 10 m, then a shallow glide, wings level for
  *             the last 3 m, flared at 0.6 m: it slides to rest on its belly, the CG
  *             the hull's 12 mm over the ground, uncrashed.
  *
@@ -132,7 +133,7 @@ window.__T = { out: {}, done: false, phase: '' };
     } else if (phase === 'spin') {
       s = [1, Math.min(1, el / ${th.z10_turn_stall.pullS}), 0, 0];
       acc.most = Math.max(acc.most || 0, Math.abs(turned));
-      if (el > ${th.z10_turn_stall.withinS}) { O.spin = { turned: +acc.most.toFixed(0) }; hold = 12; T.next = 'approach'; go('recover', c); }
+      if (el > ${th.z10_turn_stall.withinS}) { O.spin = { turned: +acc.most.toFixed(0) }; hold = 30; T.next = 'approach'; go('recover', c); }
     } else if (phase === 'recover') {
       s = [wings(c, 0), nose(c, 5), 0, 1];
       if (el > 3 && Math.abs(bank) < 5) go('climb', c);
@@ -143,15 +144,21 @@ window.__T = { out: {}, done: false, phase: '' };
       const err = wrap((Math.atan2(hx * rx0 + hz * rz0, hx * fx0 + hz * fz0) - Math.atan2(c.fwd.x * rx0 + c.fwd.z * rz0, c.fwd.x * fx0 + c.fwd.z * fz0)) * D);
       const want = h > 3 && Math.hypot(hx, hz) > 15 ? cl(0.6 * err, -25, 25) : 0;
       const flare = h < 0.6;
-      /* Down to 10 m in a steeper dive, then the shallow glide. */
-      s = [wings(c, want), nose(c, flare ? 6 : h > 10 ? -12 : -3), 0, 0];
+      /* Home at 30 m under power, over the valley's trees (their crowns
+       * stop a wing that meets them), and only within 50 m of the throw
+       * point the throttle closed: down to 10 m in a steeper spiral over
+       * the grass, then the shallow glide. */
+      if (Math.hypot(hx, hz) < 50) acc.near = true;
+      s = acc.near ? [wings(c, want), nose(c, flare ? 6 : h > 10 ? -12 : -3), 0, 0]
+        : [wings(c, want), cl(0.02 * (0 - vy) + nose(c, 2) * 0.5, -1, 1), 0, 0.6];
       if (h < 0.05) acc.down = true;
+      if (!acc.tr || now - acc.tr > 2) { acc.tr = now; (T.trace = T.trace || []).push([el, h, Math.hypot(hx, hz), c.speed, bank, pitch, c.worldX, c.worldZ].map((v) => +v.toFixed(1)).join(' ')); }
       if (acc.down) {
         s = [0, 0, 0, 0];
         if (c.speed < 0.05) { acc.rest = (acc.rest || 0) + dt; }
         if ((acc.rest || 0) > 1) { O.landing = { bank: +bank.toFixed(1), pitch: +pitch.toFixed(1), clearance: +c.groundClearance.toFixed(4) }; phase = 'end'; }
       }
-      if (el > 150) { O.stuck = 'approach'; O.at = { h: +h.toFixed(3), speed: +c.speed.toFixed(2), down: !!acc.down }; phase = 'end'; }
+      if (el > 150) { O.stuck = 'approach'; O.at = { h: +h.toFixed(3), speed: +c.speed.toFixed(2), down: !!acc.down, home: +Math.hypot(hx, hz).toFixed(1), x: +c.worldX.toFixed(1), z: +c.worldZ.toFixed(1), y: +c.worldY.toFixed(1) }; phase = 'end'; }
     }
     if (c.crashed && !O.crashedIn) O.crashedIn = phase;
     T.phase = phase;
@@ -168,6 +175,7 @@ const say = (ok, what) => {
   if (!ok) failed += 1;
 };
 
+const WALL_S = 1500;
 const page = await openPage({ root, width: 960, height: 540, url: '/index.html' });
 try {
   await page.until('!!window.__shellReady', 240000);
@@ -185,12 +193,26 @@ try {
   await page.evaluate(PILOT);
   const t0 = Date.now();
   let last = '';
-  while (Date.now() - t0 < 1500000 && !(await page.evaluate('window.__T.done'))) {
+  while (Date.now() - t0 < WALL_S * 1000 && !(await page.evaluate('window.__T.done'))) {
     const ph = await page.evaluate('window.__T.phase');
-    if (ph !== last) { console.log(`    ${ph}`); last = ph; }
+    if (ph !== last) {
+      const simS = await page.evaluate('window.__craftState().simS');
+      console.log(`    ${ph.padEnd(9)} sim ${simS.toFixed(1)} s, wall ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+      last = ph;
+    }
     await page.sleep(1000);
   }
   const O = await page.evaluate('window.__T.out');
+  /* The flight runs on the sim clock, which a loaded machine slows; a run
+   * the wall clock cut short says so rather than failing a phase it never
+   * reached. */
+  if (!(await page.evaluate('window.__T.done'))) {
+    O.stuck = `the wall clock's ${WALL_S} s, in ${last} at sim ${(await page.evaluate('window.__craftState().simS')).toFixed(1)} s`;
+  }
+  if (O.stuck === 'approach' || !O.landing) {
+    console.log('  the approach, every 2 s: s in it, m up, m from home, m/s, bank, pitch, world x, z');
+    console.log((await page.evaluate('window.__T.trace || []')).map((l) => `    ${l}`).join('\n'));
+  }
   console.log(`  ${JSON.stringify(O)}`);
 
   const t = O.throw;
