@@ -159,8 +159,10 @@ function pool({ x, z, r, y }, bed) {
 /*
  * The water bodies of a map, by its id and as built: an empty list for a
  * map without. The lake first, since where two bodies meet (the stream's
- * mouth) the first declared is the water, in the plant as here, and
- * then the drawn pools and rivers, each over the map's own ground.
+ * mouth) the first declared is the water, in the plant as here, then the
+ * lakes a map builds in this file's lake form itself (map.lakes: Itaipu's
+ * reservoir and river, from its data), and then the drawn pools and
+ * rivers, each over the map's own ground.
  */
 export async function waterFor(mapId, map) {
   const make = WATER[mapId];
@@ -174,6 +176,7 @@ export async function waterFor(mapId, map) {
   const bed = (x, z) => height(x, z, -Infinity);
   return [
     ...lakes,
+    ...(map.lakes || []),
     ...(map.pools || []).map((p) => pool(p, bed)),
     ...(map.rivers || []).map((r) => channel(r.line, r.width, bed)),
   ];
